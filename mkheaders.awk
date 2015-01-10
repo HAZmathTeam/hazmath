@@ -11,8 +11,11 @@ BEGIN {
   print "/* This header file was automatically generated with \"make fheaders\".   */" 
   print "/* WARNING: DO NOT EDIT!!!                               */  "
   print "/*******************************************************************/  "
-  print "#include \"femstructs.h\""
-  print "#include \"umfpack.h\""
+  print "#include \"macro.h\""
+  print "#include \"grid.h\""
+  print "#include \"quad.h\""
+  print "#include \"sparse.h\""
+  print "#include \"vec.h\""
 }
 
 {

@@ -13,6 +13,9 @@
 #ifndef _grid_h
 #define _grid_h
 
+#include "sparse.h"
+#include "vec.h"
+
 /**
  * \struct coordinates
  * \brief Returns coordinates of nodes
@@ -32,19 +35,6 @@ typedef struct coordinates{
   INT n;
 	
 } coordinates;
-
-/* Quadrature Nodes and Weights structure */
-typedef struct 
-{
-	
-  REAL *x;
-  REAL *y;
-  REAL *z;
-  REAL *w;
-  // Size of arrays
-  INT n;
-	
-} qcoordinates;
 
 
 /**

@@ -13,6 +13,7 @@
 #include <math.h>
 
 // Our Includes
+#include "macro.h"
 #include "grid.h"
 #include "sparse.h"
 #include "vec.h"

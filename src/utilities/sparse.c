@@ -9,9 +9,9 @@
 #include <math.h>
 #include <time.h>
 
+#include "macro.h"
 #include "sparse.h"
 #include "vec.h"
-
 
 dCSRmat dcsr_create (const INT m,
                      const INT n,
@@ -475,20 +475,20 @@ void icsr_mxm_symb (iCSRmat *A,
 
 void icsr_mxm_symb_max (iCSRmat *A,
                         iCSRmat *B,
-                        iCSRmat *C
+                        iCSRmat *C,
                         INT multmax)
 {
     // C has been allocated outside?  -- Xiaozhe
     
-    ia = A->IA;
-    ja = A->JA;
-    na = A->row;
-    mab = A->col;
-    mb = B->col;
-    ic = C->IA;
-    jc = C->JA;
-    ib = B->IA;
-    jb = B->JA;
+    INT *ia = A->IA;
+    INT *ja = A->JA;
+    INT na = A->row;
+    //INT mab = A->col;
+    INT mb = B->col;
+    INT *ic = C->IA;
+    INT *jc = C->JA;
+    INT *ib = B->IA;
+    INT *jb = B->JA;
     
     C->row = A->row;
     C->col = B->col;
