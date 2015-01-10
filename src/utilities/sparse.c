@@ -45,7 +45,6 @@ dCSRmat dcsr_create (const INT m,
     return A;
 }
 
-
 iCSRmat icsr_create (const INT m,
                      const INT n,
                      const INT nnz)
@@ -77,7 +76,6 @@ iCSRmat icsr_create (const INT m,
     
     return A;
 }
-
 
 void dcsr_free (dCSRmat *A)
 {
@@ -311,4 +309,240 @@ void dcsr_mxm (dCSRmat *A,
     
     C->nnz = C->IA[C->row]-C->IA[0];
     
+}
+
+void icsr_mxm (iCSRmat *A,
+               iCSRmat *B,
+               iCSRmat *C)
+{
+    INT i,j,k,l,count;
+    
+    INT *JD = (INT *)calloc(B->col,sizeof(INT));
+    
+    C->row = A->row;
+    C->col = B->col;
+    C->val = NULL;
+    C->JA  = NULL;
+    C->IA  = (INT*)calloc(C->row+1,sizeof(INT));
+    
+    for (i=0;i<B->col;++i) JD[i]=-1;
+    
+    // step 1: Find first the structure IA of C
+    for(i=0;i<C->row;++i) {
+        count=0;
+        
+        for (k=A->IA[i];k<A->IA[i+1];++k) {
+            for (j=B->IA[A->JA[k]];j<B->IA[A->JA[k]+1];++j) {
+                for (l=0;l<count;l++) {
+                    if (JD[l]==B->JA[j]) break;
+                }
+                
+                if (l==count) {
+                    JD[count]=B->JA[j];
+                    count++;
+                }
+            }
+        }
+        C->IA[i+1]=count;
+        for (j=0;j<count;++j) {
+            JD[j]=-1;
+        }
+    }
+    
+    for (i=0;i<C->row;++i) C->IA[i+1]+=C->IA[i];
+    
+    // step 2: Find the structure JA of C
+    INT countJD;
+    
+    C->JA=(INT*)calloc(C->IA[C->row],sizeof(INT));
+    
+    for (i=0;i<C->row;++i) {
+        countJD=0;
+        count=C->IA[i];
+        for (k=A->IA[i];k<A->IA[i+1];++k) {
+            for (j=B->IA[A->JA[k]];j<B->IA[A->JA[k]+1];++j) {
+                for (l=0;l<countJD;l++) {
+                    if (JD[l]==B->JA[j]) break;
+                }
+                
+                if (l==countJD) {
+                    C->JA[count]=B->JA[j];
+                    JD[countJD]=B->JA[j];
+                    count++;
+                    countJD++;
+                }
+            }
+        }
+        
+        //for (j=0;j<countJD;++j) JD[j]=-1;
+        memset(JD, -1, sizeof(INT)*countJD);
+    }
+    
+    free(JD);
+    
+    // step 3: Find the structure A of C
+    C->val=(INT*)calloc(C->IA[C->row],sizeof(INT));
+    
+    for (i=0;i<C->row;++i) {
+        for (j=C->IA[i];j<C->IA[i+1];++j) {
+            C->val[j]=0;
+            for (k=A->IA[i];k<A->IA[i+1];++k) {
+                for (l=B->IA[A->JA[k]];l<B->IA[A->JA[k]+1];l++) {
+                    if (B->JA[l]==C->JA[j]) {
+                        C->val[j]+=A->val[k]*B->val[l];
+                    } // end if
+                } // end for l
+            } // end for k
+        } // end for j
+    }    // end for i
+    
+    C->nnz = C->IA[C->row]-C->IA[0];
+    
+}
+
+void icsr_mxm_symb (iCSRmat *A,
+                    iCSRmat *B,
+                    iCSRmat *C)
+{
+    INT i,j,k,l,count;
+    
+    INT *JD = (INT *)calloc(B->col,sizeof(INT));
+    
+    C->row = A->row;
+    C->col = B->col;
+    C->val = NULL;
+    C->JA  = NULL;
+    C->IA  = (INT*)calloc(C->row+1,sizeof(INT));
+    
+    for (i=0;i<B->col;++i) JD[i]=-1;
+    
+    // step 1: Find first the structure IA of C
+    for(i=0;i<C->row;++i) {
+        count=0;
+        
+        for (k=A->IA[i];k<A->IA[i+1];++k) {
+            for (j=B->IA[A->JA[k]];j<B->IA[A->JA[k]+1];++j) {
+                for (l=0;l<count;l++) {
+                    if (JD[l]==B->JA[j]) break;
+                }
+                
+                if (l==count) {
+                    JD[count]=B->JA[j];
+                    count++;
+                }
+            }
+        }
+        C->IA[i+1]=count;
+        for (j=0;j<count;++j) {
+            JD[j]=-1;
+        }
+    }
+    
+    for (i=0;i<C->row;++i) C->IA[i+1]+=C->IA[i];
+    
+    // step 2: Find the structure JA of C
+    INT countJD;
+    
+    C->JA=(INT*)calloc(C->IA[C->row],sizeof(INT));
+    
+    for (i=0;i<C->row;++i) {
+        countJD=0;
+        count=C->IA[i];
+        for (k=A->IA[i];k<A->IA[i+1];++k) {
+            for (j=B->IA[A->JA[k]];j<B->IA[A->JA[k]+1];++j) {
+                for (l=0;l<countJD;l++) {
+                    if (JD[l]==B->JA[j]) break;
+                }
+                
+                if (l==countJD) {
+                    C->JA[count]=B->JA[j];
+                    JD[countJD]=B->JA[j];
+                    count++;
+                    countJD++;
+                }
+            }
+        }
+        
+        //for (j=0;j<countJD;++j) JD[j]=-1;
+        memset(JD, -1, sizeof(INT)*countJD);
+    }
+    
+    free(JD);
+    
+    C->nnz = C->IA[C->row]-C->IA[0];
+    
+}
+
+void icsr_mxm_symb_max (iCSRmat *A,
+                        iCSRmat *B,
+                        iCSRmat *C
+                        INT multmax)
+{
+    // C has been allocated outside?  -- Xiaozhe
+    
+    ia = A->IA;
+    ja = A->JA;
+    na = A->row;
+    mab = A->col;
+    mb = B->col;
+    ic = C->IA;
+    jc = C->JA;
+    ib = B->IA;
+    jb = B->JA;
+    
+    C->row = A->row;
+    C->col = B->col;
+    C->val = NULL;
+    
+	
+    INT i,jk,icp,icp_temp,iaa,iab,ibb,iba,jbk,j,if1; /* Counters and such */
+    INT *ix=NULL;
+    INT *col=NULL;
+    INT jck=0;
+    ix = calloc(mb,sizeof(INT));
+    col = calloc(mb,sizeof(INT));
+	
+    for(i = 0;i<mb;i++) {
+        ix[i]=0;
+        col[i]=0;
+    }
+    icp = 1;
+    for(i = 1;i<=na;i++) {
+        ic[i-1]=icp;
+        icp_temp = icp;
+        iaa=ia[i-1];
+        iab=ia[i]-1;
+        if(iab>=iaa) {
+            for(jk = iaa;jk<=iab;jk++){
+                if1 = ja[jk-1];
+                iba = ib[if1-1];
+                ibb = ib[if1]-1;
+                if(ibb>=iba) {
+                    for (jbk = iba;jbk<=ibb;jbk++){
+                        j = jb[jbk-1];
+                        col[j-1]++;
+                        if(ix[j-1] != i) {
+                            ix[j-1]=i;
+                            jc[icp_temp-1] = j;
+                            icp_temp++;
+                        }
+                    }
+                }
+            }
+            for (jck=ic[i-1];jck<icp_temp;jck++){
+                j = jc[jck-1];
+                if(col[j-1] == multmax || (!multmax)) {
+                    col[j-1]=0;
+                    jc[icp-1] = j;
+                    icp++;
+                } else {
+                    col[j-1]=0;
+                }
+            }
+        }
+    }
+    ic[na] = icp;
+    if(ix) free(ix);
+    if(col) free(col);
+    return;
 }
