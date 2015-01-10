@@ -1,5 +1,5 @@
 /*
- *  creategrid.c
+ *  grid.c
  *  
  *  Created by James Adler and Xiaozhe Hu on 1/9/15.
  *  Copyright 2015_JXLcode__. All rights reserved.
@@ -14,245 +14,457 @@
 
 // Our Includes
 #include "grid.h"
+#include "sparse.h"
+#include "vec.h"
 
 /**************************************************************************************************************************************************/
 /********* Read in arbritray grid and create FEM structure for the grid ***************************************************************************/
 /**************************************************************************************************************************************************/
-void creategrid(FILE *gfid,INT *element_node,REAL *xn,REAL *yn,INT *bdry_n,INT nelm, INT n, INT nbedge,INT element_order) 
+void creategrid(FILE *gfid,INT dim,trimesh* mesh) 
 {
-	/* Reads in gridfile of the following form:
-	 *
-	 * First line:				nelms nnodes nboundaryedges nboundaryedges (This will be read outside this routine)
-	 * Next four lines:		       	Each element will have 3 vertices in 2D and 4 in 3D
-	 *			line 1:	       	First node of all elements
-	 *			line 2:		Second node of all elements
-	 *			line 3:	        Third node of all elements
-	 *			line 4:		Dummy line (ignore) (or 4th node for 3D)
-	 *					Columns are node-element map not sparse
-	 * Next two (or 3 in 3D) lines:		x,y,z coordinates
-	 *			line 1:					x coordinates of all nodes
-	 *			line 2:					y coordinates of all nodes
-	 *			(line 3:				z coordinates of all nodes (only in 3D))
-	 * Next two lines:					List of nodes that land on boundary
-	 *			line 1:					Corresponds to first part of edge on bondary
-	 *			line 2:					Corresponds to second part of edge on boundary
-	 *									Columns of this are edge_node map of boundary
-	 * Rest of lines are dummy and not used
-	 *
-	 * Outputs: element to node map (not sparse)
-	 *			node to coordinate map xn,yn,zn
-	 *			Boundary Edge to Node Correspondence bdry_n(nbedge,2)
-	 *
-	 */
+  /* Reads in gridfile of the following form:
+   *
+   * First line:			nelms nnodes nboundaryedges nboundaryedges
+   * Next four lines:		       	Each element will have 3 vertices in 2D and 4 in 3D
+   *			line 1:	       	First node of all elements
+   *			line 2:		Second node of all elements
+   *			line 3:	        Third node of all elements
+   *			line 4:		Dummy line (ignore) (or 4th node for 3D)
+   *					Columns are node-element map not sparse
+   * Next two (or 3 in 3D) lines:	x,y,z coordinates
+   *			line 1:		x coordinates of all nodes
+   *			line 2:		y coordinates of all nodes
+   *			(line 3:	z coordinates of all nodes (only in 3D))
+   * Next two lines in 2D:		List of nodes that land on boundary
+   *			line 1:		Corresponds to first part of edge on bondary
+   *			line 2:		Corresponds to second part of edge on boundary
+   *					Columns of this are edge_node map of boundary
+   *
+   * OR Next line in 3D:                List of nodes and whether they land on boundary (binary)
+   *
+   * Rest of lines are dummy and not used
+   *
+   */
 	
-	INT i,j; /* Loop indices */
+  INT i,j; /* Loop indices */
+
+  // Define dummy mesh to load data
+  trimesh mesh_temp;
+
+  // Get Number of elements, nodes and boundary edges first
+  INT* line1 = calloc(4,sizeof(INT));
+  INT lenhead = 4;
+  rveci_(gfid,line1,&lenhead);
+  INT nelm = line1[0];
+  INT nv = line1[1];
+  INT nbedge = line1[2];
+  free(line1);
+
+  // Get number of vertices, edges, and faces per element
+  INT v_per_elm = dim+1;
+  INT ed_per_elm = 3*(dim-1);
+  INT f_per_elm = v_per_elm;
+			
+  // Allocate arrays to read in other data such as coordinate information
+  INT* element_vertex = (INT *) calloc(nelm*v_per_elm,sizeof(INT));
+  coordinates cv;
+  allocatecoords(&cv,nv,dim);
+  INT* bdry_v = (INT *) calloc(nbedge*2,sizeof(INT));
 		
-	// Get next 3 lines Element-Node Map
-	INT* line2 = calloc(nelm,sizeof(INT));
-	for (i=0; i<element_order; i++) {
-		rveci_(gfid,line2,&nelm);
-		for (j=0; j<nelm; j++) {
-			element_node[j*element_order+i] = line2[j];
-		}
-	}
-	// Next line is dummy
-	rveci_(gfid,line2,&nelm);
-	free(line2);
+  // Get next 3-4 lines Element-Vertex Map
+  INT* line2 = (INT *) calloc(nelm,sizeof(INT));
+  for (i=0; i<v_per_elm; i++) {
+    rveci_(gfid,line2,&nelm);
+    for (j=0; j<nelm; j++) {
+      element_vertex[j*v_per_elm+i] = line2[j];
+    }
+  }
+  // Next line is dummy in 2D
+  if(dim==2) {
+    rveci_(gfid,line2,&nelm);
+  }
+  free(line2);
 	
-	// Get next 2 lines X and Y Node map
-	rvecd_(gfid,xn,&n);
-	rvecd_(gfid,yn,&n);
+  // Get next 2-3 lines for coordinate map
+  rvecd_(gfid,cv.x,&nv);
+  rvecd_(gfid,cv.y,&nv);
+  if(dim==3)
+    rvecd_(gfid,cv.z,&nv);
 	
-	// Get next 2 lines for boundary nodes
-	INT* line3 = calloc(nbedge,sizeof(INT));
-	INT* line4 = calloc(nbedge,sizeof(INT));
-	rveci_(gfid,line3,&nbedge);
-	rveci_(gfid,line4,&nbedge);
-	for (i=0; i<nbedge; i++) {
-		bdry_n[i*2+0] = line3[i];
-		bdry_n[i*2+1] = line4[i];
-	}
-	free(line3);
-	free(line4);
+  // Get next 1-2 lines for boundary nodes
+  INT nbv = 0;
+  INT* bdry_v=NULL;
+  INT* v_bdry = (INT *) calloc(nv,sizeof(INT));
+  if(dim==2) {
+    INT* line3 = (INT *) calloc(nbedge,sizeof(INT));
+    INT* line4 = (INT *) calloc(nbedge,sizeof(INT));
+    bdry_v = (INT *) calloc(nbedge*2,sizeof(INT));
+    rveci_(gfid,line3,&nbedge);
+    rveci_(gfid,line4,&nbedge);
+    for (i=0; i<nbedge; i++) {
+      bdry_v[i*2+0] = line3[i];
+      bdry_v[i*2+1] = line4[i];
+    }
+    free(line3);
+    free(line4);
+  } else if(dim==3) {
+    INT cnt = 0;
+    rveci_(gfid,v_bdry,&nv);
+    for(i=0;i<nv;i++)
+      if(v_bdry[i])
+	nbv++;
+  }
+
+  printf("\nConverting Grid Maps to CSR and Computing Data Structures:\n ");	
+  /* Element Vertex Map */
+  iCSRmat el_v = convert_elmnode(element_vertex,nelm,nv,v_per_elm);
+  if(element_vertex) free(element_vertex);
 	
-	return;
+  /* Edge to Node Map */
+  INT nedge = 0;
+  if(dim==2) {  
+    nedge = nelm+nv-(dim-1);
+  } else if(dim==3) {
+    get_nedge(&nedge,el_v.IA,el_v.JA,nvert,nelm,nve); 
+  }
+  iCSRmat ed_v = get_edge_n(nedge,el_v,nv,nelm,v_per_elm);
+	
+  /* Get Boundary Edges and Nodes */
+  INT* ed_bdry = (INT *) calloc(nedge,sizeof(INT));
+  if (dim==2) {
+    isboundary_ed(ed_v,nedge,nbedge,bdry_v,ed_bdry);
+    isboundary_v(nv,bdry_v,v_bdry,nbedge,&nbv);
+    if(bdry_v) free(bdry_v);
+  } else if(dim==3) {
+    isboundary_ed3D(ed_v,nedge,cv,&nbedge,v_bdry,ed_bdry);
+  }
+	
+  /* Element to Edge Map */
+  INT nnz_eled=0;
+  INT* in_ed = calloc(nv+1,sizeof(INT));
+  INT* jn_ed = calloc(2*nedge,sizeof(INT));
+  atransps(ed_v.IA,ed_v.JA,nedge,nv,in_ed,jn_ed);
+  get_nnz(el_v.IA,el_v.JA,nelm,nvert,nedge,in_ed,jn_ed,&nnz_eled);
+  allocateCSRinc(&el_ed,nelm,nedge,nnz_eled);
+  abybs_mult(el_v.IA,el_v.JA,nelm,nv,nedge,el_ed.IA,el_ed.JA,in_ed,jn_ed,2);
+  if(in_ed) free(in_ed);
+  if(jn_ed) free(jn_ed);
+	???
+  return;
 }
 /**************************************************************************************************************************************************/
 
-/**************************************************************************************************************************************************/
-/********* Read in arbritray grid (3D Triangulation) **********************************************************************************************/
-/**************************************************************************************************************************************************/
-void readgrid3D(FILE *gfid,INT *element_node,REAL *xn,REAL *yn,REAL *zn,INT *n_bdry,INT nelm, INT n,INT element_order,INT *nbvert) 
-{
-	/* Reads in gridfile of the following form:
-	 *
-	 * First line:						nelms nnodes nboundaryedges nboundaryedges (This will be read outside this routine)
-	 * Next four lines:					Each element will have 3 vertices in 2D and 4 in 3D
-	 *			line 1:					First node of all elements
-	 *			line 2:					Second node of all elements
-	 *			line 3:					Third node of all elements
-	 *			line 4:					Dummy line (ignore) (or 4th node for 3D)
-	 *									Columns are node-element map not sparse
-	 * Next two (or 3 in 3D) lines:		x,y,z coordinates
-	 *			line 1:					x coordinates of all nodes
-	 *			line 2:					y coordinates of all nodes
-	 *			line 3:					z coordinates of all nodes (only in 3D)
-	 * Next	line:						List of nodes and whether they land on boundary
-	 *
-	 * Rest of lines are dummy and not used
-	 *
-	 * Outputs: element to node map (not sparse)
-	 *			node to coordinate map xn,yn,zn
-	 *			Boundary Edge to Node Correspondence bdry_n(nbedge,2)
-	 *			nbvert Number of Nodes on Boundaries
-	 *
-	 */
-	
-	INT i,j,cnt; /* Loop indices */
-	
-	// Get next 4 lines Element-Node Map
-	INT* line2 = calloc(nelm,sizeof(INT));
-	for (i=0; i<element_order; i++) {
-		rveci_(gfid,line2,&nelm);
-		for (j=0; j<nelm; j++) {
-			element_node[j*element_order+i] = line2[j];
-		}
-	}
-	free(line2);
-
-	// Get next 3 lines X and Y and Z Node map
-	rvecd_(gfid,xn,&n);
-	rvecd_(gfid,yn,&n);
-	rvecd_(gfid,zn,&n);
-	
-	// Get next line for boundary nodes
-	INT* line3 = calloc(n,sizeof(INT));
-	cnt = 0;
-	rveci_(gfid,line3,&n);
-	for (i=0; i<n; i++) {
-		n_bdry[i] = line3[i];
-		if(n_bdry[i]) {
-			cnt++;
-		}
-	}
-	*nbvert = cnt;
-	free(line3);
-	return;
-}
-/**************************************************************************************************************************************************/
-
-/**************************************************************************************************************************************************/
-/******** Make Default 2D Grid ***********************************************************************************************************************/
-/**************************************************************************************************************************************************/
-void std_tri_grid(INT *element_node,REAL *xn,REAL *yn,INT nex,INT ney,REAL xL,REAL xR,REAL yB,REAL yT,INT *bdry_n) 
+/***********************************************************************************************/
+iCSRmat convert_elmnode(INT *element_node,INT nelm,INT nvert,INT nve) 
 {
 	
-	INT i,j; /* Loop indices */
+  /* Convert the input element to vertex map into sparse matrix form 
+   *
+   * Input: nelm:	            Number of elements
+   *	    nvert:		    Number of vertices
+   *        nve:	            Number of vertices per element
+   *	    element_node(nelm,nve): Each row is an element, each column is the corresponding vertices for that element 
+   *										
+   *
+   * Output:	el_v	    element to vertex map in CSR format.  Rows are all elements, columns are all vertices.  Entries are 1 if there's a connection.
+   */
 	
-	/* Creates the defualt triangular mesh using T3 elements and edges
-	 
-	 *    9----10----11----12
-	 *    |\ 8  |\10  |\12  |
-	 *    | \   | \   | \   |
-	 *    |  \  |  \  |  \  |
-	 *    |   \ |   \ |   \ |
-	 *    |  7 \|  9 \| 11 \|
-	 *    5-e11-6-e12-7-e13-8
-	 *    |\ 2  |\ 4  |\ 6  |
-	 *    | \   | \   | \   |
-	 *    e4 e5 e6 e7 e8 e9 e10
-	 *    |   \ |   \ |   \ |
-	 *    |  1 \|  3 \|  5 \|
-	 *    1-e1--2-e2--3-e3--4
-	 *
-	 *    Input:   nex,ney   Number of trigangle elements in x and y directions
-	 *             xL,xR     Endpoints of domain in x
-	 *             yB,yT     Endpoints of domain in y
-	 *
-	 *    Output:  element_node(elms,nodes)    Element to Node Map size (nelm,nodes)
-	 *             xn,yn(nodes)					Coordinates of Nodes
-	 *			   bdry_n(nbedge,2)			   Nodes on given edge that lies on boundary
-	 */
+  INT i,j,k; /* Loop Indices */
+
+  iCSRmat el_v;
 	
-	/******* Define grid *******************************************************/
+  /* Exactly nve vertices per row */
+  if ( nelm > 0 ) {
+    el_v.IA = (INT *)calloc(nelm+1, sizeof(INT));
+  }
+  else {
+    el_v.IA = NULL;
+  }
+  for(i=0;i<nelm+1;i++) {
+    el_v.IA[i] = nve*i + 1;
+  }
 	
-	// Get number of nodes in each direction and total
-	INT nx = nex/2 + 1;
-	INT ny = ney/2 + 1;
-	//INT n = nx*ny;
+  /* Columns are extracted directly from input array */
+  if ( nv > 0 ) {
+    el_v.JA = (INT *)calloc(nelm*nve, sizeof(INT));
+  }
+  else {
+    el_v.JA = NULL;
+  }
+  k=0;
+  for(i=0;i<nelm;i++) {
+    for(j=0;j<nve;j++) {
+      el_v.JA[k] = element_node[i*nve+j];
+      k=k+1;
+    }
+  }
+  
+  el_v.val = NULL;
+  el_v.row = nelm; el_v.col = nv; el_v.nnz = nelm*nve;
 	
-	// Get total number of elements
-	//INT nelm = 2*(nex/2)*(ney/2);
-	//INT nedge = 3*nelm/2 + nex/2 + ney/2;
-	
-	/********* Node Matrix *********/	
-	for (j=0;j<ny;j++) {
-		for (i=0;i<nx;i++) {
-			xn[i+j*nx] = xL + i*(xR-xL)/(nx-1);
-			yn[i+j*nx] = yB + j*(yT-yB)/(ny-1);
-		}
-	}
-	
-	/********** Element-Node Matrix, Element-Edge Matrix, and Edge-Node Matrix */
-	INT k = 0;
-	INT sw,se,nw,ne,south,west,mid,east,north;
-	
-	INT m=0;
-	for (j=1;j<=ney/2;j++) {
-		for (i=1;i<=nex/2;i++) {
-			
-			sw = i+(j-1)*nx;
-			se = sw+1;
-			nw = i+j*nx;
-			ne = nw+1;
-	
-			south = i+(j-1)*(1.5*nex+1);
-			west = south+(nex/2)+(i-1);
-			mid = west+1;
-			east = mid+1;
-			north = i+j*(1.5*nex+1);
-	
-			element_node[k*3 + 0] = sw;
-			element_node[k*3 + 1] = se;
-			element_node[k*3 + 2] = nw;
-			element_node[(k+1)*3 + 0] = ne;
-			element_node[(k+1)*3 + 1] = nw;
-			element_node[(k+1)*3 + 2] = se;
-	
-			//element_edge[k*3 + 0] = south;
-			//element_edge[k*3 + 1] = mid;
-			//element_edge[k*3 + 2] = west;
-			//element_edge[(k+1)*3 + 0] = north;
-			//element_edge[(k+1)*3 + 1] = mid;
-			//element_edge[(k+1)*3 + 2] = east;
-	
-			k = k+2;
-			
-			// Boundaries
-			
-			if(j==1){
-				bdry_n[m*2+0] = sw;
-				bdry_n[m*2+1] = se;
-				m++;
-			}
-			if (i==1) {
-				bdry_n[m*2+0] = sw;
-				bdry_n[m*2+1] = nw;
-				m++;
-			}
-			if (j==ney/2) {
-				bdry_n[m*2+0] = nw;
-				bdry_n[m*2+1] = ne;
-				m++;
-			}
-			if (i==nex/2) {
-				bdry_n[m*2+0] = se;
-				bdry_n[m*2+1] = ne;
-				m++;
-			}
-		}
-	}
-	return;
+  return el_v;
 }
-/**************************************************************************************************************************************************/
+/***********************************************************************************************/
+
+/***********************************************************************************************/
+void get_nedge(INT *nedge,iCSRmat el_v,INT nv,INT nelm,INT v_per_elm) 
+{
 	
+  /* Gets the Number of Edges (NEEDED for 3D)
+   *
+   *	Input:  iel_n,j_eln:		Element to Node Map
+   *			n					Total number of Nodes
+   *			nelm				Total number of Elements
+   *			element_order:		Number of nodes per element
+   *
+   *	Output: nedge				Total number of Edges
+   *
+   */
+	
+  INT i,j,col_b,col_e,icntr; /* Loop indices and counters */
+  INT* in_el = calloc(nv+1,sizeof(INT));
+  INT* jn_el = calloc(v_per_elmr*nelm,sizeof(INT));
+  INT nnz_nn = 0;
+	
+  /* Get Transpose of el_n -> n_el */
+  atransps(el_v.IA,el_v.JA,nelm,nv,in_el,jn_el);
+	
+  /* Create Node to Node Map by n_el*el_n */
+  INT* in_n = calloc(nv+1,sizeof(INT)); /* Rows of Node to Node Map */
+  // Find out how many non-zeros first
+  get_nnz(in_el,jn_el,nv,nelm,nv,el_v.IA,el_v.JA,&nnz_nn);
+  INT* jn_n = calloc(nnz_nn,sizeof(INT));
+  // Compute n_n
+  abybs(in_el,jn_el,nv,nelm,nv,in_n,jn_n,el_v.IA,el_v.JA);
+	
+  /* Free Node-Element */
+  free(in_el);
+  free(jn_el);
+	
+  // Now go through upper triangular (above diagonal) portion of node-node and count non-zeros
+  // Each of these node-node connections are edges.  Upper so we don't count i->j and j->i as two
+  // separate edges, and no diagonal since i->i is not an edge.
+  icntr = 0;
+  for(i=0;i<nv-1;i++) {
+    col_b = in_n[i];
+    col_e = in_n[i+1]-1;
+    for(j=col_b;j<=col_e;j++) {
+      if((jn_n[j-1]-1)>i) {
+	icntr++;
+      }
+    }
+  }	
+  /* Free Node Node */
+  free(in_n);
+  free(jn_n);
+  *nedge = icntr;
+  return;
+}
+/***********************************************************************************************/
+
+/***********************************************************************************************/
+iCSRmat get_edge_v(INT nedge,iCSRmat el_v,INT nv,INT nelm,INT v_per_elm) 
+{
+	
+  /* Gets the Edge to Vertex mapping in CSR Fromat (Should be dim independent)
+   * This is used to get Element to Edge map, but also for determining
+   * things such as edge_length and the tangent vectors of edges 
+   *
+   *	Input: el_v:	  Element to Vertex Map
+   *	       nv:	  Total number of Vertices
+   *	       v_per_elm: Number of vertices per element
+   *
+   */
+
+  iCSRmat ed_v;
+  if ( nedge > 0 ) {
+    ed_v.IA = (INT *)calloc(nedge+1, sizeof(INT));
+  }
+  else {
+    ed_v.IA = NULL;
+  }
+    
+  if ( nv > 0 ) {
+    ed_v.JA = (INT *)calloc(2*nedge, sizeof(INT));
+  }
+  else {
+    ed_v.JA = NULL;
+  }
+	
+  INT i,j,col_b,col_e,icntr,jcntr; /* Loop indices and counters */
+  INT* in_el = calloc(nv+1,sizeof(INT));
+  INT* jn_el = calloc(v_per_elm*nelm,sizeof(INT));
+  INT nnz_nn = 0;
+	
+  /* Get Transpose of el_n -> n_el */
+  atransps(el_v.IA,el_v.JA,nelm,nf,in_el,jn_el);
+	
+  /* Create Node to Node Map by n_el*el_n */
+  INT* in_n = calloc(nv+1,sizeof(INT)); /* Rows of Node to Node Map */
+  // Find out how many non-zeros first
+  get_nnz(in_el,jn_el,nv,nelm,nv,el_v.IA,el_v.JA,&nnz_nn);
+  INT* jn_n = calloc(nnz_nn,sizeof(INT));
+  // Compute n_n
+  abybs(in_el,jn_el,nv,nelm,nv,in_n,jn_n,el_v.IA,el_v.JA);
+	
+  /* Free Node-Element */
+  free(in_el);
+  free(jn_el);
+	
+  // Now go through upper triangular (above diagonal) portion of node-node and count non-zeros
+  // Each of these node-node connections are edges.  Upper so we don't count i->j and j->i as two
+  // separate edges, and no diagonal since i->i is not an edge.
+  jcntr = 0;
+  icntr = 0;
+  for(i=0;i<nv-1;i++) {
+    col_b = in_n[i];
+    col_e = in_n[i+1]-1;
+    for(j=col_b;j<=col_e;j++) {
+      if((jn_n[j-1]-1)>i) {
+	ed_n.IA[icntr] = jcntr+1;
+	ed_n.JA[jcntr] = jn_n[j-1];
+	ed_n.JA[jcntr+1] = i+1;
+	jcntr=jcntr+2;
+	icntr++;
+      }
+    }
+  }
+  ed_n.IA[icntr] = jcntr+1;		
+	
+  /* Free Node Node */
+  free(in_n);
+  free(jn_n);
+
+  ed_v.val=NULL;
+  ed_v.row = nedge;
+  ed_v.col = nv;
+  ed_v.nnz = 2*nedge;
+	
+  return;
+}
+/***********************************************************************************************/
+
+/***********************************************************************************************/
+void isboundary_v(INT nv,INT *bdry_v,INT *v_bdry,INT nbedge,INT *nbv) 
+{
+	
+  /* Indicates whether a vertex is on boundary or not
+   *
+   *	Input:  nv:	Number of vertices
+   *		bdry_v	List of boundaries and corresponding vertices
+   *		nbedge	Total Number of boundary edges
+   *	Output: 
+   *		v_bdry	List of vertices and whether or not they're a boundary
+   *		nbv	Total number of boundary vertices
+   */
+	
+  INT i,m,cnt;
+	
+  for (i=0; i<nv; i++) {
+    v_bdry[i] = 0;
+  }
+	
+  for (i=0; i<2*nbedge; i++) {
+    m = bdry_v[i];
+    v_bdry[m-1] = 1;
+  }
+	
+  cnt = 0;
+  for (i=0; i<nv; i++) {
+    if(v_bdry[i]==1) {
+      cnt++;
+    }
+  }
+  *nbv = cnt;
+  return;
+}
+/***********************************************************************************************/
+
+/***********************************************************************************************/
+void isboundary_ed(iCSRmat ed_v,INT nedge,INT nbedge,INT *bdry_v,INT *ed_bdry) 
+{
+	
+  /* Indicates whether an edge is on boundary or not
+   *
+   *	Input:  ed_v		Edge to Vertex Map
+   *		nedge		Total number of Edges
+   *		nbedge:		Number of boundary edges
+   *		bdry_v		List of boundaries and corresponding vertices
+   *	Output: 
+   *		ed_bdry		List of Edges and whether or not they're a boundary
+   */
+	
+  INT i,j,col_b,col_e,k,jcntr; /* Loop indices and counters */
+  INT* n = calloc(2,sizeof(INT));
+  INT* m = calloc(2,sizeof(INT));
+	
+  // Zero out ed_bdry
+  for (i=0; i<nedge; i++) {
+    ed_bdry[i] = 0;
+  }
+	
+  for (i=0; i<nedge; i++) {
+    col_b = ed_v.IA[i];
+    col_e = ed_v.IA[i+1]-1;
+    jcntr=0;
+    for (j=col_b; j<=col_e; j++) {
+      n[jcntr] = ed_n.JA[j-1];
+      jcntr++;
+    }
+    for (k=0; k<nbedge; k++) {
+      m[0] = bdry_v[k*2+0];
+      m[1] = bdry_v[k*2+1];
+      if (((n[0]==m[0]) && (n[1]==m[1])) || ((n[1]==m[0]) && (n[0]==m[1]))) {
+	ed_bdry[i] = 1;
+      }
+    }
+  }
+  if(n) free(n);
+  if(m) free(m);
+	
+  return;
+}
+/***********************************************************************************************/
+
+/***********************************************************************************************/
+void isboundary_ed3D(iCSRmat ed_v,INT nedge,coordinates cv,INT *nbedge,INT *v_bdry,INT *ed_bdry) 
+{
+	
+  /* Counts the number of boundary edges and indicates whether an edge is a boundary
+   *
+   *	Input:  ed_v:		Edge to Vertex Map
+   *		nedge	    	Total number of edges
+   *		cv		Vertex Coordinates
+   *		v_bdry		List of vertices and whether they are on boundary
+   *	Output: 
+   *		ed_bdry		List of edges and whether they are on boundary
+   *		nbedge	        Number of boundary edges
+   */
+	
+  INT i,col_b,col_e,jcntr; /* Loop indices and counters */
+  INT n;
+  INT m;
+  INT edge;
+	
+  jcntr=0;
+  // For every edge get nodes
+  for (i=0; i<nedge; i++) {
+    edge = i+1;
+    col_b = ed_v.IA[i];
+    col_e = ed_v.IA[i+1]-1;
+    n = ed_v.JA[col_b-1]-1;
+    m = ed_v.JA[col_e-1]-1;
+    //Check if two nodes are on boundary
+    if (v_bdry[n]!=0 && v_bdry[m]!=0) {
+      if(cv.x[n]==cv.x[m] || cv.y[n]==cv.y[m] || cv.z[n]==cv.z[m]) {
+	ed_bdry[i] = v_bdry[n];
+	jcntr++;
+      } else {
+	ed_bdry[i] = 0;
+      }
+    }
+  }
+  *nbedge = jcntr;
+  return;
+}
+/***********************************************************************************************/

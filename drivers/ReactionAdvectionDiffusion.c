@@ -1,12 +1,12 @@
 /*
- *  stokesmain.c
+ *  ReactionAdvectionDiffusion.c
  *  
- *
- *  Created by James Adler on 6/8/10.
- *  Copyright 2010 __MyCompanyName__. All rights reserved.
+ *  Created by James Adler and Xiaozhe Hu on 1/9/15.
+ *  Copyright 2015_JXLcode__. All rights reserved.
  *
  */
 
+// Standard Includes
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -17,146 +17,78 @@
 #include <time.h>
 #include <unistd.h>
 
-
 /*
  *  Discussion:
  *
- *    This program solves the Laplace Equation using P1 or P2 finite elements
+ *    This program solves the Advection-Reaction-Diffusion Equation using finite elements
  *
- *      -Laplace u = 0
+ *      -Div(a(x)grad(u)) + b(x)*grad(u) + c(x)u = 0
  *
- *    in a 2D or 3D rectangular region in the plane.
+ *    in a 2D or 3D
  *
- *    Along the boundary of the region, homogeneous Dirichlet conditions
- *    are imposed:
+ *   Along the boundary of the region, Dirichlet conditions are imposed:
  *
  *      u = 0
- *
- *
- *
- *    INPUT:
- *			gridfile = File containing finite element mesh
- *          (nodes,elements,boundaries)
- *
- *    OUTPUT: 
- *         Creates matrices and solves using Minres preconditioned algorithm
  */
 
 /*********** EXTERNAL FUNCTIONS ****************************************************************/
-#include "fem_mhd_functs.h"
+#include "sparse.h"
+#include "grid.h"
+#include "vec.h"
+#include "quad.h"
 /***********************************************************************************************/
 
 /****** MAIN DRIVER ****************************************************************************/
 int main (int argc, char* argv[]) 
 {
 	
-  printf("\nBeginning Program to create Finite Element Matrices for Laplace\n");
+  printf("\nBeginning Program to create Finite Element Matrices for ReactionAdvectionDiffusion.c\n");
 	
   /****** INITIALIZE PARAMETERS **************************************************************/
-  INT i,j; /* Loop indices */
-  clock_t clk0,clk1,clka,clkb; /* timing parameters */
-  clka = clock();
-	
-  // Grid data
-  FILE* gfid;
-  char gridfile[50] = "Data/grids/2D/hp52d.dat";	/* File name for grid data file */	
-  INT input_grid = 1;								/* Set to 0 for default grid to be used */
+  // Loop Indices
+  INT i,j;
+  // Timing Parameters
+  clock_t clk_start,clk_end,clk1,clk2;
+  clk_start = clock();
 	
   // Grab parameters from input.dat file
   INT ipar[55];
-  REAL fpar[20];
+  REAL fpar[20];	
+  char gridfile[50];
   getinput(gridfile,fpar,ipar);
 	
   // Dimension is needed for all this to work
   INT mydim = ipar[0];
+
+  // Create the mesh (now we assume triangles in 2D or tetrahedra in 3D)
+  clk1 = clock();
+  trimesh mesh;
+  // Open gridfile for reading
+  gfid = fopen(gridfile,"r");
+  if( gfid == NULL ) { 
+    printf("\nError opening Grid File!!!\nFile (%s) probably doesn't exist...\nAborting Program.\n\n",gridfile);
+    return 0;
+  }
+  printf("\nLoading grid from file and creating mesh and all its properties: %s->\n",gridfile);
+  creategrid(gfid,mydim,mesh);
+  fclose(gfid);
+  
 	
-  // How many nodes and edges per element?
-  // This is default for standard triangles and tetrahedra
+  // Get info for FEM spaces
   INT poly = ipar[2];				       	/* Order of Elements */
-  INT nve = mydim+1;					/* Vertices per element */
-  INT edge_order = 3*(mydim-1);		                /* Edges per element */
-  INT element_order = nve+(poly-1)*edge_order;	        /* Total Nodes per Element (dim+1 for linears) */
+  INT dof_order = mesh.v_per_elm+(poly-1)*ed_per_elm;	/* Total DOF per Element (dim+1 for linears) */
   INT nq1d = ipar[1];					/* Quadrature points per dimension */
   INT nq = pow(nq1d,mydim);			        /* Quadrature points per element */
-	
-  // Properties of Mesh
-  INT nelm = 0;				        	/* Number of Elements */
-  INT n = 0;				       		/* Number of Nodes */
-  INT nvert = 0;		       			/* Number of vertices total */
-  INT nedge = nelm+n-(mydim-1);	                	/* Number of Edges */
-  INT nbedge = 0;			       		/* Number of edges on boundary */
-  INT nbvert = 0;		       			/* Number of nodes on boundary */
   INT ndof;		       				/* Generic degrees of freedom */
 	
-  // Discrete System Properties
-  INT maxit=ipar[41];	       				/* Max Number of PCG iterations */
-  REAL diag=-666.66;                                  /* Diagonal of Matrix */
-  INT outprint=ipar[39];		       		/* Display CG Residuals */
-  REAL pcgtol=fpar[6];                                /* Tolerance for PCG solving Ax=b */
-  INT solvertype = ipar[40];                            /* Indicates type of solver, for now: 1->MINRES 2->GMRES */
-	
-  // Domain Boundaries (if no domain file given.  Assumes rectangle for now)
-  REAL xL = 0.0;
-  REAL xR = 1.0;
-  REAL yB = 0.0;
-  REAL yT = 1.0;
-  REAL zD = 0.0;
-  REAL zU = 1.0;
-	
-  // Parameters
+  // Parameters of PDE
   REAL coef = fpar[3];
   INT compRHS = ipar[20];			       	/* Right-hand size = mydim*pi^2*sin(pi*x)*sin(pi*y)*sin(pi*z) */
   INT compB = ipar[13];			       		/* Zero Dirichlet Boundary Condition (2D or 3D) */
   INT ut = ipar[5];
-		
-  // Solution Stuff
-  INT havetrue = ipar[4];	       			/* Indicates whether there exists an analytic solution to compute error. */
-  INT cola,colb,jaa;	       				/* Loop indices for prINTing matrix */
-  INT dumpmat = ipar[38];      				/* Dump Matrix? 0 -> No  1 -> Just to Screen  2 -> Just to File  3 -> Screen and File */
-  INT dumpsol = ipar[36];      				/* Dump Solution? same as above */
-  INT dumpmesh = ipar[37];     				/* Dump Mesh data? 1 yes 0 no */
-
-  FILE* matid;	       					/* File to dump matrix A */
-  FILE* rhsid;	       					/* File to dump rhs b */
-  FILE* truid;	       					/* File to dump true solution */
-  FILE* uid;         				       	/* File to dump numerical solution */
-	
-  // Temporary Grid stuff for my fake grid
-  INT nx;		                                /* Number of nodes in each direction */
-  INT ny;
-  INT nex = 2;                                          /* Number of macroelements (squares) in each direciton */
-  INT ney = 2;
-  /*******************************************************************************************/
-	
-  /*** Get Input arguments if any ************************************************************/
-  for (i=1; i < argc; i++) {
-    if (strcmp("-nex", argv[i])==0) { nex = atoi(argv[++i]);}
-    if (strcmp("-ney", argv[i])==0) { ney = atoi(argv[++i]);}
-    if (strcmp("-dim", argv[i])==0) { mydim = atoi(argv[++i]);}
-    if (strcmp("-xL", argv[i])==0) { xL = atof(argv[++i]);}
-    if (strcmp("-xR", argv[i])==0) { xR = atof(argv[++i]);}
-    if (strcmp("-yB", argv[i])==0) { yB = atof(argv[++i]);}
-    if (strcmp("-yT", argv[i])==0) { yT = atof(argv[++i]);}
-    if (strcmp("-poly", argv[i])==0) { poly = atoi(argv[++i]);}
-    if (strcmp("-nq", argv[i])==0) { nq1d = atoi(argv[++i]);}
-    if (strcmp("-grid", argv[i])==0) { strcpy(gridfile,argv[++i]); input_grid=1;}
-    if (strcmp("-true", argv[i])==0) { havetrue = 1; }
-    if (strcmp("-dump", argv[i])==0) { dumpmat = atoi(argv[++i]); }
-  }
   /*******************************************************************************************/
 	
   /** INITIALIZE ANY ARRAYS NEEDED ***********************************************************/
-  INT* element_node=NULL;	/* Element to Node map Given as Input (NOT CSR FORMAT) */
-  CSRinc el_v;                  /* Element to Vertex Map (CSR FORMAT) */
-  coordinates cv;               /* Coordinates of vertices */
-  CSRinc el_n;                  /* Element to Node Map */
-  coordinates cn;               /* Coordinates of nodes */
-  CSRinc ed_n;                  /* Edge to Vertex Map */
-  CSRinc el_ed;	        	/*  Element to Edge Map (CSR Format) */
-  INT* ed_bdry=NULL;	       	/* Indicates whether an edge is a boundary */
-  INT* v_bdry=NULL;	       	/* Indicates whether a vertex is a boundary */
-  INT* n_bdry=NULL; 	      	/* Indicates whether a node is a boundary */
-  INT* bdry_v=NULL; 		/* Indicates nodes of an edge on boundary */
   qcoordinates cq;              /* Quadrature nodes and weights */
   dCSRmat A;                    /* Global stiffness matrix */
   REAL* f=NULL;	       	/* Global right-hand side vector */
@@ -166,128 +98,7 @@ int main (int argc, char* argv[])
   REAL errnorm=0.0;     	/* L2 Norm of u1 Error */
   REAL errnorml2=0.0;    	/* Little l2 error */
   /*******************************************************************************************/
-	
-  /******* Input Grid ********************************************************/
-  // Either input from file or use the default grid:
-  clk0 = clock();
-  if(input_grid==0) {
-    printf("\nWhat!? You don't have your OWN grid...Creating Default Grid:->\n");
 		
-    //Get number of nodes in each direction and total
-    nx = nex/2 + 1;
-    ny = ney/2 + 1;
-    nvert = nx*ny;
-		
-    // Get total number of elements
-    nelm = 2*(nex/2)*(ney/2);
-		
-    // Get total number of edges
-    nedge = nelm+nvert-(mydim-1);	/* Number of Edges */
-		
-    // Get total number of boundaries
-    nbedge = 2*(nx-1)+2*(ny-1);
-    nbvert = nbedge;
-		
-    // Allocate arrays needed
-    bdry_v = calloc(nbedge*2,sizeof(INT));
-    allocatecoords(&cv,nvert,mydim);
-    element_node = (INT *) calloc((nelm) * (nvert),sizeof(INT));
-		
-    // Create Default Grid
-    std_tri_grid(element_node,cv.x,cv.y,nex,ney,xL,xR,yB,yT,bdry_v);
-		
-  } else {
-    printf("\nLoading Grid From File: %s->\n",gridfile);
-		
-    // Open file for reading
-    gfid = fopen(gridfile,"r");
-    if( gfid == NULL ) { 
-      printf("\nError opening Grid File!!!\nFile (%s) probably doesn't exist...\nAborting Program.\n\n",gridfile);
-      return 0;
-    }
-		
-    if(mydim==2) {
-      // Get Number of elements, nodes and boundary edges first
-      INT* line1 = calloc(4,sizeof(INT));
-      INT lenhead = 4;
-      rveci_(gfid,line1,&lenhead);
-      nelm = line1[0];
-      nvert = line1[1];
-      nbedge = line1[2];
-      nedge = nelm+nvert-(mydim-1); /* Number of Edges */
-      free(line1);
-			
-      // Allocate arrays
-      element_node = calloc(nelm*nve,sizeof(INT));
-      allocatecoords(&cv,nvert,mydim);
-      bdry_v = calloc(nbedge*2,sizeof(INT));
-			
-      // Read in data
-      readgrid2D(gfid,element_node,cv.x,cv.y,bdry_v,nelm,nvert,nbedge,nve);
-    } else {
-			
-      // Get Number of elements, nodes and boundary edges first
-      INT* line1 = calloc(4,sizeof(INT));
-      INT lenhead = 4;
-      rveci_(gfid,line1,&lenhead);
-      nelm = line1[0];
-      nvert = line1[1];
-      free(line1);
-			
-      // Allocate arrays
-      element_node = calloc(nelm*nve,sizeof(INT));
-      allocatecoords(&cv,nvert,mydim);
-      v_bdry = calloc(nvert,sizeof(INT));
-      // Read in data
-      readgrid3D(gfid,element_node,cv.x,cv.y,cv.z,v_bdry,nelm,nvert,nve,&nbvert);
-    }
-    fclose(gfid);
-		
-  }
-  /*******************************************************************************************/
-  /*** Convert Map matrices to Sparse Matrix Format ******************************************/
-  printf("\nConverting Grid Maps to CSR and Computing Data Structures:\n ");
-	
-  /* How many Nodes per element? */	
-  if (poly==1) {
-    element_order = nve;
-  } else if (poly==2) {
-    element_order = nve+edge_order;
-  }
-	
-  /* Element Vertex Map */
-  allocateCSRinc(&el_v,nelm,nvert,nelm*nve);
-  convert_elmnode(el_v.IA,el_v.JA,element_node,nelm,nvert,nve);
-  if(element_node) free(element_node);
-	
-  /* Edge to Node Map */
-  if (mydim==3) { get_nedge(&nedge,el_v.IA,el_v.JA,nvert,nelm,nve); }
-  allocateCSRinc(&ed_n,nedge,nvert,2*nedge);
-  get_edge_n(ed_n.IA,ed_n.JA,nedge,el_v.IA,el_v.JA,nvert,nelm,nve);
-	
-  /* Get Boundary Edges and Nodes */
-  if (mydim==2) {
-    ed_bdry = calloc(nedge,sizeof(INT));
-    v_bdry = calloc(nvert,sizeof(INT));
-    isboundary_ed(ed_n.IA,ed_n.JA,nedge,nbedge,bdry_v,ed_bdry);
-    isboundary_n(nvert,bdry_v,v_bdry,nbedge,&nbvert);
-    if(bdry_v) free(bdry_v);
-  } else {
-    ed_bdry = calloc(nedge,sizeof(INT));
-    isboundary_ed3D(ed_n.IA,ed_n.JA,nedge,cv.x,cv.y,cv.z,xL,xR,yB,yT,zD,zU,&nbedge,v_bdry,ed_bdry);
-  }
-	
-  /* Element to Edge Map */
-  INT nnz_eled=0;
-  INT* in_ed = calloc(nvert+1,sizeof(INT));
-  INT* jn_ed = calloc(2*nedge,sizeof(INT));
-  atransps(ed_n.IA,ed_n.JA,nedge,nvert,in_ed,jn_ed);
-  get_nnz(el_v.IA,el_v.JA,nelm,nvert,nedge,in_ed,jn_ed,&nnz_eled);
-  allocateCSRinc(&el_ed,nelm,nedge,nnz_eled);
-  abybs_mult(el_v.IA,el_v.JA,nelm,nvert,nedge,el_ed.IA,el_ed.JA,in_ed,jn_ed,2);
-  if(in_ed) free(in_ed);
-  if(jn_ed) free(jn_ed);	
-	
   /* Get Quadrature Nodes */
   nq = pow(nq1d,mydim);
   allocateqcoords(&cq,nq1d,nelm,mydim);	

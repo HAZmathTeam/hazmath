@@ -33,7 +33,18 @@ typedef struct coordinates{
 	
 } coordinates;
 
-
+/* Quadrature Nodes and Weights structure */
+typedef struct 
+{
+	
+  REAL *x;
+  REAL *y;
+  REAL *z;
+  REAL *w;
+  // Size of arrays
+  INT n;
+	
+} qcoordinates;
 
 
 /**
@@ -47,12 +58,21 @@ typedef struct trimesh{
 
   //! number of vertices
   INT nv;
+
+  //! number of vertices per element
+  INT v_per_elm;
     
   //! number of edges
   INT nedge;
+
+  //! number of edges per element
+  INT ed_per_elm;
     
   //! number of faces (in 2D faces=edges)
   INT nface;
+
+  //! number of faces per element
+  INT f_per_elm;
     
   //! number of vertices on boundary
   INT nbv;
@@ -102,18 +122,16 @@ typedef struct trimesh{
   //! coordinates of vertices
   coordinates cv;
 
-  
+  //! indicates whether a vertex is on boundary
+  ivector v_bdry;
 
-  
-  coordinates cv;               /* Coordinates of vertices */
-  
-  CSRinc ed_n;                  /* Edge to Vertex Map */
-  INT* ed_bdry=NULL;	       	/* Indicates whether an edge is a boundary */
-  INT* v_bdry=NULL;	       	/* Indicates whether a vertex is a boundary */
-  INT* n_bdry=NULL; 	      	/* Indicates whether a node is a boundary */
-  INT* bdry_v=NULL; 		/* Indicates nodes of an edge on boundary */
+  //! indicates whether an edge is on boundary
+  ivector ed_bdry;
+
+  //! indicates whether a face is on boundary
+  ivector f_bdry;
     
-} dCSRmat; /**< Sparse matrix of REAL type in CSR format */
+} trimesh; 
 
 
 #endif
