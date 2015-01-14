@@ -128,7 +128,7 @@ void creategrid(FILE *gfid,INT dim,trimesh* mesh)
   } else if(dim==3) {
     get_nedge(&nedge,el_v.IA,el_v.JA,nvert,nelm,nve); 
   }
-  iCSRmat ed_v = get_edge_n(nedge,el_v,nv,nelm,v_per_elm);
+  iCSRmat ed_v = get_edge_v(nedge,el_v,nv,nelm,v_per_elm);
 	
   /* Get Boundary Edges and Nodes */
   INT* ed_bdry = (INT *) calloc(nedge,sizeof(INT));
@@ -141,16 +141,25 @@ void creategrid(FILE *gfid,INT dim,trimesh* mesh)
   }
 	
   /* Element to Edge Map */
-  INT nnz_eled=0;
-  INT* in_ed = calloc(nv+1,sizeof(INT));
-  INT* jn_ed = calloc(2*nedge,sizeof(INT));
-  atransps(ed_v.IA,ed_v.JA,nedge,nv,in_ed,jn_ed);
-  get_nnz(el_v.IA,el_v.JA,nelm,nvert,nedge,in_ed,jn_ed,&nnz_eled);
-  allocateCSRinc(&el_ed,nelm,nedge,nnz_eled);
-  abybs_mult(el_v.IA,el_v.JA,nelm,nv,nedge,el_ed.IA,el_ed.JA,in_ed,jn_ed,2);
-  if(in_ed) free(in_ed);
-  if(jn_ed) free(jn_ed);
-	???
+  iCSRmat el_ed = get_el_ed(el_v,ed_v);
+
+  // Assign components to the mesh
+  mesh_temp.dim = dim;
+  mesh_temp.nv = nv;
+  mesh_temp.v_per_elm = v_per_elm;
+  mesh_temp.nedge = nedge;
+  mesh_temp.ed_per_elm = ed_per_elm;
+  //mesh_temp.nface = nface;
+  //mesh_temp.f_per_elm = f_per_elm;
+  mesh_temp.nbv = nbv;
+  mesh_temp.nbedge = nbedge;
+  //mesh_temp.nbface = nbface;
+  mesh_temp.el_v = &el_v;
+  mesh_temp.el_ed = &el_ed;
+  //mesh_temp.el_f = &el_f;
+  mesh_temp.ed_v = &ed_v;
+  //mesh_temp.f_v = &f_v;
+  
   return;
 }
 /**************************************************************************************************************************************************/
@@ -222,43 +231,41 @@ void get_nedge(INT *nedge,iCSRmat el_v,INT nv,INT nelm,INT v_per_elm)
    *
    */
 	
-  INT i,j,col_b,col_e,icntr; /* Loop indices and counters */
-  INT* in_el = calloc(nv+1,sizeof(INT));
-  INT* jn_el = calloc(v_per_elmr*nelm,sizeof(INT));
-  INT nnz_nn = 0;
+  //INT i,j,col_b,col_e,icntr; /* Loop indices and counters */
 	
-  /* Get Transpose of el_n -> n_el */
-  atransps(el_v.IA,el_v.JA,nelm,nv,in_el,jn_el);
+  /* Get Transpose of el_v -> v_el */
+  iCSRmat v_el;
+  icsr_trans_1(&el_v,&v_el);
 	
-  /* Create Node to Node Map by n_el*el_n */
-  INT* in_n = calloc(nv+1,sizeof(INT)); /* Rows of Node to Node Map */
-  // Find out how many non-zeros first
-  get_nnz(in_el,jn_el,nv,nelm,nv,el_v.IA,el_v.JA,&nnz_nn);
-  INT* jn_n = calloc(nnz_nn,sizeof(INT));
-  // Compute n_n
-  abybs(in_el,jn_el,nv,nelm,nv,in_n,jn_n,el_v.IA,el_v.JA);
+  /* Create Vertex to Vertex Map by v_el*el_v */
+  iCSRmat v_v;
+  icsr_mxm_1(&v_el,&el_v,&v_v);
 	
-  /* Free Node-Element */
-  free(in_el);
-  free(jn_el);
-	
-  // Now go through upper triangular (above diagonal) portion of node-node and count non-zeros
-  // Each of these node-node connections are edges.  Upper so we don't count i->j and j->i as two
+  // Now go through upper triangular (above diagonal) portion of vertex-vertex and count non-zeros
+  // Each of these vertex-vertex connections are edges.  Upper so we don't count i->j and j->i as two
   // separate edges, and no diagonal since i->i is not an edge.
-  icntr = 0;
-  for(i=0;i<nv-1;i++) {
-    col_b = in_n[i];
-    col_e = in_n[i+1]-1;
-    for(j=col_b;j<=col_e;j++) {
-      if((jn_n[j-1]-1)>i) {
-	icntr++;
-      }
-    }
-  }	
+  /* INT* iv_v = v_v.IA; */
+  /* INT* jv_v = v_v.JA; */
+  /* icntr = 0; */
+  /* for(i=0;i<nv-1;i++) { */
+  /*   col_b = in_n[i]; */
+  /*   col_e = in_n[i+1]-1; */
+  /*   for(j=col_b;j<=col_e;j++) { */
+  /*     if((jn_n[j-1]-1)>i) { */
+  /* 	icntr++; */
+  /*     } */
+  /*   } */
+  /* }	 */
   /* Free Node Node */
-  free(in_n);
-  free(jn_n);
-  *nedge = icntr;
+  /* free(in_n); */
+  /* free(jn_n); */
+  /* *nedge = icntr; */
+
+  *nedge = (INT) (v_v.nnz - v_v.row)/2;
+
+  /* Free matrices */
+  icsr_free(&v_v);
+  icsr_free(&v_el);
   return;
 }
 /***********************************************************************************************/
@@ -284,7 +291,6 @@ iCSRmat get_edge_v(INT nedge,iCSRmat el_v,INT nv,INT nelm,INT v_per_elm)
   else {
     ed_v.IA = NULL;
   }
-    
   if ( nv > 0 ) {
     ed_v.JA = (INT *)calloc(2*nedge, sizeof(INT));
   }
@@ -293,24 +299,16 @@ iCSRmat get_edge_v(INT nedge,iCSRmat el_v,INT nv,INT nelm,INT v_per_elm)
   }
 	
   INT i,j,col_b,col_e,icntr,jcntr; /* Loop indices and counters */
-  INT* in_el = calloc(nv+1,sizeof(INT));
-  INT* jn_el = calloc(v_per_elm*nelm,sizeof(INT));
-  INT nnz_nn = 0;
 	
-  /* Get Transpose of el_n -> n_el */
-  atransps(el_v.IA,el_v.JA,nelm,nf,in_el,jn_el);
+  /* Get Transpose of el_v -> v_el */
+  iCSRmat v_el;
+  icsr_trans_1(&el_v,&v_el);
 	
-  /* Create Node to Node Map by n_el*el_n */
-  INT* in_n = calloc(nv+1,sizeof(INT)); /* Rows of Node to Node Map */
-  // Find out how many non-zeros first
-  get_nnz(in_el,jn_el,nv,nelm,nv,el_v.IA,el_v.JA,&nnz_nn);
-  INT* jn_n = calloc(nnz_nn,sizeof(INT));
-  // Compute n_n
-  abybs(in_el,jn_el,nv,nelm,nv,in_n,jn_n,el_v.IA,el_v.JA);
-	
-  /* Free Node-Element */
-  free(in_el);
-  free(jn_el);
+  /* Create Vertex to Vertex Map by v_el*el_v */
+  iCSRmat v_v;
+  icsr_mxm_1(&v_el,&el_v,&v_v);
+  INT* iv_v = v_v.IA;
+  INT* jv_v = v_v.JA;
 	
   // Now go through upper triangular (above diagonal) portion of node-node and count non-zeros
   // Each of these node-node connections are edges.  Upper so we don't count i->j and j->i as two
@@ -318,30 +316,32 @@ iCSRmat get_edge_v(INT nedge,iCSRmat el_v,INT nv,INT nelm,INT v_per_elm)
   jcntr = 0;
   icntr = 0;
   for(i=0;i<nv-1;i++) {
-    col_b = in_n[i];
-    col_e = in_n[i+1]-1;
+    col_b = iv_v[i];
+    col_e = iv_v[i+1]-1;
     for(j=col_b;j<=col_e;j++) {
-      if((jn_n[j-1]-1)>i) {
-	ed_n.IA[icntr] = jcntr+1;
-	ed_n.JA[jcntr] = jn_n[j-1];
-	ed_n.JA[jcntr+1] = i+1;
+      if((jv_v[j-1]-1)>i) {
+	ed_v.IA[icntr] = jcntr+1;
+	ed_v.JA[jcntr] = jn_n[j-1];
+	ed_v.JA[jcntr+1] = i+1;
 	jcntr=jcntr+2;
 	icntr++;
       }
     }
   }
-  ed_n.IA[icntr] = jcntr+1;		
+  ed_v.IA[icntr] = jcntr+1;		
 	
   /* Free Node Node */
-  free(in_n);
-  free(jn_n);
+  free(iv_v);
+  free(jv_v);
+  icsr_free(v_v);
+  icsr_free(v_el);
 
   ed_v.val=NULL;
   ed_v.row = nedge;
   ed_v.col = nv;
   ed_v.nnz = 2*nedge;
 	
-  return;
+  return ed_v;
 }
 /***********************************************************************************************/
 
@@ -467,5 +467,29 @@ void isboundary_ed3D(iCSRmat ed_v,INT nedge,coordinates cv,INT *nbedge,INT *v_bd
   }
   *nbedge = jcntr;
   return;
+}
+/***********************************************************************************************/
+
+/***********************************************************************************************/
+iCSRmat get_el_ed(iCSRmat el_v,iCSRmat ed_v) 
+{
+/* Gets the Element to Edge mapping in CSR Fromat (Should be dim independent)
+   *
+   *	Input: el_v:	  Element to Vertex Map
+   *	       ed_v:	  Edge to Vertex Map
+   *	       v_per_elm: Number of vertices per element
+   *
+ */
+
+  iCSRmat el_ed;
+  
+  // Get transpose of edge to vertex
+  iCSRmat v_ed;
+  icsr_trans_1(&ed_v,&v_ed);
+  icsr_mxm_symb_max_1(&el_v,&v_ed,&el_ed,2);
+  
+  icsr_free(&v_ed);
+
+  return el_ed;
 }
 /***********************************************************************************************/

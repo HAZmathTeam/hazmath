@@ -23,13 +23,13 @@
 typedef struct coordinates{
 
   //! x values
-  dvector x;
+  REAL* x;
 
   //! y values
-  dvector y;
+  REAL* y;
 
   //! z values (if in 3D)
-  dvector z;
+  REAL* z;
 
   //! Size of arrays (number of nodes)
   INT n;
@@ -83,43 +83,43 @@ typedef struct trimesh{
   iCSRmat el_f;
 
   //! edge to vertex map (CSR Format)
-  iCSRmat ed_n;
+  iCSRmat ed_v;
 
   //! face to vertex map (CSR Format)
-  iCSRmat f_n;
+  iCSRmat f_v;
 
   //! element volumes (areas in 2D)
-  dvector el_vol;
+  REAL* el_vol;
 
   //! barycenter of element
-  dvector el_mid;
+  REAL* el_mid;
 
   //! edge lengths 
-  dvector ed_len;
+  REAL* ed_len;
 
   //! tangent vectors on edges
-  dvector ed_tau;
+  REAL* ed_tau;
 
   //! midpoint of edges
-  dvector ed_mid;
+  REAL* ed_mid;
 
   //! area of faces
-  dvector f_area;
+  REAL* f_area;
 
   //! normal vector on face
-  dvector f_norm;
+  REAL* f_norm;
 
   //! coordinates of vertices
   coordinates cv;
 
   //! indicates whether a vertex is on boundary
-  ivector v_bdry;
+  INT* v_bdry;
 
   //! indicates whether an edge is on boundary
-  ivector ed_bdry;
+  INT* ed_bdry;
 
   //! indicates whether a face is on boundary
-  ivector f_bdry;
+  INT* f_bdry;
     
 } trimesh; 
 

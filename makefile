@@ -28,7 +28,10 @@ AR = ar ruc
 #ARPACKLIB = 
 
 # UMFPACK
-UMFPACKDIR = /usr/local
+#XH 
+#UMFPACKDIR = /usr/local
+#JA
+UMFPACKDIR = /opt/local
 UMFPACKINCLUDE = -I$(UMFPACKDIR)/include
 UMFPACKLIB = -L$(UMFPACKDIR)/lib -lsuitesparseconfig -lcholmod -lamd -lcolamd -lccolamd -lcamd -lspqr -lumfpack -lamd -lcxsparse
 
