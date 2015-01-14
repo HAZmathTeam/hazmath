@@ -222,6 +222,32 @@ void icsr_trans (iCSRmat *A,
     } // end if
 }
 
+void icsr_trans_1 (iCSRmat *A,
+                 iCSRmat *AT)
+{
+    
+    INT i;
+    
+    INT *A_IA = A->IA;
+    INT *A_JA = A->JA;
+    
+    for (i=0; i<A->row; i++) A_IA[i] = A_IA[i]-1;
+    for (i=0; i<A->nnz; i++) A_JA[i] = A_JA[i]-1;
+    
+    icsr_trans(A, AT);
+    
+    INT *AT_IA = AT->IA;
+    INT *AT_JA = AT->JA;
+    
+    for (i=0; i<A->row; i++) A_IA[i] = A_IA[i]+1;
+    for (i=0; i<AT->row; i++) AT_IA[i] = AT_IA[i]+1;
+    for (i=0; i<A->nnz; i++) {
+        A_JA[i] = A_JA[i]+1;
+        AT_JA[i] = AT_JA[i]+1;
+    }
+    
+}
+
 void dcsr_mxm (dCSRmat *A,
                dCSRmat *B,
                dCSRmat *C)
@@ -400,6 +426,40 @@ void icsr_mxm (iCSRmat *A,
     
 }
 
+void icsr_mxm_1 (iCSRmat *A,
+               iCSRmat *B,
+               iCSRmat *C)
+{
+    
+    INT i;
+    
+    INT *A_IA = A->IA;
+    INT *A_JA = A->JA;
+    INT *B_IA = B->IA;
+    INT *B_JA = B->JA;
+    
+    for (i=0; i<A->row; i++) A_IA[i] = A_IA[i]-1;
+    for (i=0; i<A->nnz; i++) A_JA[i] = A_JA[i]-1;
+    
+    for (i=0; i<B->row; i++) B_IA[i] = B_IA[i]-1;
+    for (i=0; i<B->nnz; i++) B_JA[i] = B_JA[i]-1;
+            
+    icsr_mxm(A, B, C);
+            
+    INT *C_IA = C->IA;
+    INT *C_JA = C->JA;
+            
+    for (i=0; i<A->row; i++) A_IA[i] = A_IA[i]+1;
+    for (i=0; i<A->nnz; i++) A_JA[i] = A_JA[i]+1;
+    
+    for (i=0; i<B->row; i++) B_IA[i] = B_IA[i]+1;
+    for (i=0; i<B->nnz; i++) B_JA[i] = B_JA[i]+1;
+    
+    for (i=0; i<C->row; i++) C_IA[i] = C_IA[i]+1;
+    for (i=0; i<C->nnz; i++) C_JA[i] = C_JA[i]+1;
+    
+}
+
 void icsr_mxm_symb (iCSRmat *A,
                     iCSRmat *B,
                     iCSRmat *C)
@@ -546,3 +606,40 @@ void icsr_mxm_symb_max (iCSRmat *A,
     if(col) free(col);
     return;
 }
+
+
+void icsr_mxm_symb_max_1 (iCSRmat *A,
+                        iCSRmat *B,
+                        iCSRmat *C,
+                        INT multmax)
+{
+    
+    INT i;
+    
+    INT *A_IA = A->IA;
+    INT *A_JA = A->JA;
+    INT *B_IA = B->IA;
+    INT *B_JA = B->JA;
+    
+    for (i=0; i<A->row; i++) A_IA[i] = A_IA[i]-1;
+    for (i=0; i<A->nnz; i++) A_JA[i] = A_JA[i]-1;
+            
+    for (i=0; i<B->row; i++) B_IA[i] = B_IA[i]-1;
+    for (i=0; i<B->nnz; i++) B_JA[i] = B_JA[i]-1;
+                    
+    icsr_mxm_symb_max(A, B, C, multmax);
+                    
+    INT *C_IA = C->IA;
+    INT *C_JA = C->JA;
+                    
+    for (i=0; i<A->row; i++) A_IA[i] = A_IA[i]+1;
+    for (i=0; i<A->nnz; i++) A_JA[i] = A_JA[i]+1;
+                            
+    for (i=0; i<B->row; i++) B_IA[i] = B_IA[i]+1;
+    for (i=0; i<B->nnz; i++) B_JA[i] = B_JA[i]+1;
+                                    
+    for (i=0; i<C->row; i++) C_IA[i] = C_IA[i]+1;
+    for (i=0; i<C->nnz; i++) C_JA[i] = C_JA[i]+1;
+                                            
+}
+
