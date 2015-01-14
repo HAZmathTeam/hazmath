@@ -74,19 +74,19 @@ typedef struct trimesh{
   INT nbface;
 
   //! element to vertex map (CSR Format)
-  iCSRmat el_v;                
+  iCSRmat* el_v;
 
   //! element to edge map (CSR Format)
-  iCSRmat el_ed;
+  iCSRmat* el_ed;
 
   //! element to face map (CSR Format)
-  iCSRmat el_f;
+  iCSRmat* el_f;
 
   //! edge to vertex map (CSR Format)
-  iCSRmat ed_v;
+  iCSRmat* ed_v;
 
   //! face to vertex map (CSR Format)
-  iCSRmat f_v;
+  iCSRmat* f_v;
 
   //! element volumes (areas in 2D)
   REAL* el_vol;
@@ -110,7 +110,7 @@ typedef struct trimesh{
   REAL* f_norm;
 
   //! coordinates of vertices
-  coordinates cv;
+  coordinates* cv;
 
   //! indicates whether a vertex is on boundary
   INT* v_bdry;
