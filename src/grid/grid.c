@@ -17,6 +17,7 @@
 #include "grid.h"
 #include "sparse.h"
 #include "vec.h"
+#include "functs.h"
 
 /**************************************************************************************************************************************************/
 /********* Read in arbritray grid and create FEM structure for the grid ***************************************************************************/
@@ -70,6 +71,7 @@ void creategrid(FILE *gfid,INT dim,trimesh* mesh)
   INT* element_vertex = (INT *) calloc(nelm*v_per_elm,sizeof(INT));
   coordinates cv;
   allocatecoords(&cv,nv,dim);
+  mesh_temp.coordinates = &cv;
   INT* bdry_v = (INT *) calloc(nbedge*2,sizeof(INT));
 		
   // Get next 3-4 lines Element-Vertex Map
@@ -94,12 +96,10 @@ void creategrid(FILE *gfid,INT dim,trimesh* mesh)
 	
   // Get next 1-2 lines for boundary nodes
   INT nbv = 0;
-  INT* bdry_v=NULL;
   INT* v_bdry = (INT *) calloc(nv,sizeof(INT));
   if(dim==2) {
     INT* line3 = (INT *) calloc(nbedge,sizeof(INT));
     INT* line4 = (INT *) calloc(nbedge,sizeof(INT));
-    bdry_v = (INT *) calloc(nbedge*2,sizeof(INT));
     rveci_(gfid,line3,&nbedge);
     rveci_(gfid,line4,&nbedge);
     for (i=0; i<nbedge; i++) {
@@ -109,12 +109,12 @@ void creategrid(FILE *gfid,INT dim,trimesh* mesh)
     free(line3);
     free(line4);
   } else if(dim==3) {
-    INT cnt = 0;
     rveci_(gfid,v_bdry,&nv);
     for(i=0;i<nv;i++)
       if(v_bdry[i])
 	nbv++;
   }
+  if(bdry_v) free(bdry_v);
 
   printf("\nConverting Grid Maps to CSR and Computing Data Structures:\n ");	
   /* Element Vertex Map */
@@ -126,7 +126,7 @@ void creategrid(FILE *gfid,INT dim,trimesh* mesh)
   if(dim==2) {  
     nedge = nelm+nv-(dim-1);
   } else if(dim==3) {
-    get_nedge(el_v); 
+    get_nedge(&nedge,el_v); 
   }
   iCSRmat ed_v = get_edge_v(nedge,el_v);
 	
@@ -150,7 +150,7 @@ void creategrid(FILE *gfid,INT dim,trimesh* mesh)
   mesh_temp.nedge = nedge;
   mesh_temp.ed_per_elm = ed_per_elm;
   //mesh_temp.nface = nface;
-  //mesh_temp.f_per_elm = f_per_elm;
+  mesh_temp.f_per_elm = f_per_elm;
   mesh_temp.nbv = nbv;
   mesh_temp.nbedge = nbedge;
   //mesh_temp.nbface = nbface;
@@ -166,23 +166,24 @@ void creategrid(FILE *gfid,INT dim,trimesh* mesh)
   //mesh_temp.ed_mid = &ed_mid;
   //mesh_temp.f_area = &f_area;
   //mesh_temp.f_norm = &f_norm;
-  mesh_temp.coordinates = &cv;
-  mesh_temp.v_bdry = &v_bdry;
-  mesh_temp.ed_bdry = &ed_bdry;
-  //mesh_temp.f_bdry = &f_bdry;
   
+  mesh_temp.v_bdry = v_bdry;
+  mesh_temp.ed_bdry = ed_bdry;
+  //mesh_temp.f_bdry = f_bdry;
+  
+  *mesh = mesh_temp;
   return;
 }
 /**************************************************************************************************************************************************/
 
 /***********************************************************************************************/
-iCSRmat convert_elmnode(INT *element_node,INT nelm,INT nvert,INT nve) 
+iCSRmat convert_elmnode(INT *element_node,INT nelm,INT nv,INT nve) 
 {
 	
   /* Convert the input element to vertex map into sparse matrix form 
    *
    * Input: nelm:	            Number of elements
-   *	    nvert:		    Number of vertices
+   *	    nv:		    Number of vertices
    *        nve:	            Number of vertices per element
    *	    element_node(nelm,nve): Each row is an element, each column is the corresponding vertices for that element 
    *										
@@ -228,7 +229,7 @@ iCSRmat convert_elmnode(INT *element_node,INT nelm,INT nvert,INT nve)
 /***********************************************************************************************/
 
 /***********************************************************************************************/
-void get_nedge(iCSRmat el_v) 
+void get_nedge(INT* nedge, iCSRmat el_v) 
 {
 	
   /* Gets the Number of Edges (NEEDED for 3D)
@@ -333,7 +334,7 @@ iCSRmat get_edge_v(INT nedge,iCSRmat el_v)
     for(j=col_b;j<=col_e;j++) {
       if((jv_v[j-1]-1)>i) {
 	ed_v.IA[icntr] = jcntr+1;
-	ed_v.JA[jcntr] = jn_n[j-1];
+	ed_v.JA[jcntr] = jv_v[j-1];
 	ed_v.JA[jcntr+1] = i+1;
 	jcntr=jcntr+2;
 	icntr++;
@@ -345,8 +346,8 @@ iCSRmat get_edge_v(INT nedge,iCSRmat el_v)
   /* Free Node Node */
   free(iv_v);
   free(jv_v);
-  icsr_free(v_v);
-  icsr_free(v_el);
+  icsr_free(&v_v);
+  icsr_free(&v_el);
 
   ed_v.val=NULL;
   ed_v.row = nedge;
@@ -421,7 +422,7 @@ void isboundary_ed(iCSRmat ed_v,INT nedge,INT nbedge,INT *bdry_v,INT *ed_bdry)
     col_e = ed_v.IA[i+1]-1;
     jcntr=0;
     for (j=col_b; j<=col_e; j++) {
-      n[jcntr] = ed_n.JA[j-1];
+      n[jcntr] = ed_v.JA[j-1];
       jcntr++;
     }
     for (k=0; k<nbedge; k++) {
@@ -457,12 +458,10 @@ void isboundary_ed3D(iCSRmat ed_v,INT nedge,coordinates cv,INT *nbedge,INT *v_bd
   INT i,col_b,col_e,jcntr; /* Loop indices and counters */
   INT n;
   INT m;
-  INT edge;
 	
   jcntr=0;
   // For every edge get nodes
   for (i=0; i<nedge; i++) {
-    edge = i+1;
     col_b = ed_v.IA[i];
     col_e = ed_v.IA[i+1]-1;
     n = ed_v.JA[col_b-1]-1;
@@ -505,3 +504,24 @@ iCSRmat get_el_ed(iCSRmat el_v,iCSRmat ed_v)
   return el_ed;
 }
 /***********************************************************************************************/
+
+/****************************************************************************************/
+void allocatecoords(coordinates *A,INT ndof,INT mydim)
+{
+  /* allocates memory and properties of coordinates struct */
+
+  coordinates Atmp;
+  Atmp.x = calloc(ndof,sizeof(REAL));
+  Atmp.y = calloc(ndof,sizeof(REAL));
+  if (mydim==3) {
+    Atmp.z = calloc(ndof,sizeof(REAL));
+  } else {
+    Atmp.z = NULL;
+  }
+  Atmp.n = ndof;
+
+  *A = Atmp;
+  
+  return;
+}
+/****************************************************************************************/
