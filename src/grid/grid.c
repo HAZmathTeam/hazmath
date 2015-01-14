@@ -126,9 +126,9 @@ void creategrid(FILE *gfid,INT dim,trimesh* mesh)
   if(dim==2) {  
     nedge = nelm+nv-(dim-1);
   } else if(dim==3) {
-    get_nedge(&nedge,el_v.IA,el_v.JA,nvert,nelm,nve); 
+    get_nedge(el_v); 
   }
-  iCSRmat ed_v = get_edge_v(nedge,el_v,nv,nelm,v_per_elm);
+  iCSRmat ed_v = get_edge_v(nedge,el_v);
 	
   /* Get Boundary Edges and Nodes */
   INT* ed_bdry = (INT *) calloc(nedge,sizeof(INT));
@@ -159,6 +159,17 @@ void creategrid(FILE *gfid,INT dim,trimesh* mesh)
   //mesh_temp.el_f = &el_f;
   mesh_temp.ed_v = &ed_v;
   //mesh_temp.f_v = &f_v;
+  //mesh_temp.el_vol = &el_vol;
+  //mesh_temp.el_mid = &el_mid;
+  //mesh_temp.ed_len = &ed_len;
+  //mesh_temp.ed_tau = &ed_tau;
+  //mesh_temp.ed_mid = &ed_mid;
+  //mesh_temp.f_area = &f_area;
+  //mesh_temp.f_norm = &f_norm;
+  mesh_temp.coordinates = &cv;
+  mesh_temp.v_bdry = &v_bdry;
+  mesh_temp.ed_bdry = &ed_bdry;
+  //mesh_temp.f_bdry = &f_bdry;
   
   return;
 }
@@ -217,7 +228,7 @@ iCSRmat convert_elmnode(INT *element_node,INT nelm,INT nvert,INT nve)
 /***********************************************************************************************/
 
 /***********************************************************************************************/
-void get_nedge(INT *nedge,iCSRmat el_v,INT nv,INT nelm,INT v_per_elm) 
+void get_nedge(iCSRmat el_v) 
 {
 	
   /* Gets the Number of Edges (NEEDED for 3D)
@@ -271,7 +282,7 @@ void get_nedge(INT *nedge,iCSRmat el_v,INT nv,INT nelm,INT v_per_elm)
 /***********************************************************************************************/
 
 /***********************************************************************************************/
-iCSRmat get_edge_v(INT nedge,iCSRmat el_v,INT nv,INT nelm,INT v_per_elm) 
+iCSRmat get_edge_v(INT nedge,iCSRmat el_v) 
 {
 	
   /* Gets the Edge to Vertex mapping in CSR Fromat (Should be dim independent)
@@ -284,6 +295,7 @@ iCSRmat get_edge_v(INT nedge,iCSRmat el_v,INT nv,INT nelm,INT v_per_elm)
    *
    */
 
+  INT nv = el_v.col;
   iCSRmat ed_v;
   if ( nedge > 0 ) {
     ed_v.IA = (INT *)calloc(nedge+1, sizeof(INT));
