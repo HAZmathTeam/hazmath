@@ -71,7 +71,6 @@ void creategrid(FILE *gfid,INT dim,trimesh* mesh)
   INT* element_vertex = (INT *) calloc(nelm*v_per_elm,sizeof(INT));
   coordinates cv;
   allocatecoords(&cv,nv,dim);
-  mesh_temp.coordinates = &cv;
   INT* bdry_v = (INT *) calloc(nbedge*2,sizeof(INT));
 		
   // Get next 3-4 lines Element-Vertex Map
@@ -151,6 +150,9 @@ void creategrid(FILE *gfid,INT dim,trimesh* mesh)
   mesh_temp.ed_per_elm = ed_per_elm;
   //mesh_temp.nface = nface;
   mesh_temp.f_per_elm = f_per_elm;
+  mesh_temp.x = cv.x;
+  mesh_temp.y = cv.y;
+  mesh_temp.z = cv.z;
   mesh_temp.nbv = nbv;
   mesh_temp.nbedge = nbedge;
   //mesh_temp.nbface = nbface;

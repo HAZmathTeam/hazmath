@@ -63,6 +63,11 @@ typedef struct trimesh{
 
   //! number of faces per element
   INT f_per_elm;
+
+  //! coordinates of vertices
+  REAL* x;
+  REAL* y;
+  REAL* z;
     
   //! number of vertices on boundary
   INT nbv;
@@ -108,9 +113,6 @@ typedef struct trimesh{
 
   //! normal vector on face
   REAL* f_norm;
-
-  //! coordinates of vertices
-  coordinates* cv;
 
   //! indicates whether a vertex is on boundary
   INT* v_bdry;
