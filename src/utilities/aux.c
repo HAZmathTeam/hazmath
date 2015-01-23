@@ -42,3 +42,13 @@ void rvecd_(FILE *fp,  REAL *vec, INT *nn)
   return;
 }
 /****************************************************************************************/
+
+/****************************************************************************************/
+void baddimension()          
+{
+  // Print Error if dimension is not 2 or 3
+  printf("\n!!!  You have now entered the Twilight Zone.  Your dimesnion is not 2 or 3!  !!!\n\n");
+  exit(2);
+  return;
+}
+/****************************************************************************************/
