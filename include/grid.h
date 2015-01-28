@@ -64,6 +64,9 @@ typedef struct trimesh{
   //! number of faces per element
   INT f_per_elm;
 
+  //! Number of holes in domain - usually 0
+  INT nholes;
+
   //! coordinates of vertices
   REAL* x;
   REAL* y;

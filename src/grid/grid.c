@@ -47,11 +47,12 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
    * Rest of lines are dummy and not used
    *
    * INPUT: gfid    Grid File ID
-   *        dim     Dimension of Problem
+   *        dim     Dimension of Problem 
    *        nholes  Number of Holes in the domain (usually 0)
+   *        TODO: change mesh files so that dim and nholes is automatically read in
    */
 	
-  INT i,j; /* Loop indices */
+  INT i,j,k; /* Loop indices */
 
   // Define dummy mesh to load data
   trimesh mesh_temp;
@@ -169,8 +170,29 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
     printf("Your simplices are all messed up.  Euler Characteristic doesn't equal 1+nholes!\teuler=%d\tnholes=%d",euler,nholes);
     exit(0);
   }
-  
 
+  // In order to get some of the face maps, we need to know how the faces are ordered on each element
+  // This is done by the same ordering as the nodes, connecting the opposite face with each node.
+  INT* fel_order= (INT *)calloc(f_per_elm*dim,sizeof(INT));
+  get_face_ordering(v_per_elm,dim,f_per_elm,fel_order);
+
+  // Next get the element to face map, the face to vertex map, and the face boundary information.
+  iCSRmat el_f = icsr_create(nelm,nface,f_per_elm*nelm);
+  iCSRmat f_v = icsr_create(nface,nv,nface*dim);
+  INT* f_bdry = (INT *) calloc(nface,sizeof(INT));
+  INT nbface;
+  get_face_maps(el_v,v_per_elm,nface,dim,f_per_elm,&el_f,f_bdry,&nbface,&f_v,fel_order);
+  // In case v_bdry has different types of boundaries, match the face boundary to the same:
+  for(i=0;i<nface;i++) {
+    if(f_bdry[i]==1) {
+      j = f_v.IA[i]-1;
+      k = f_v.JA[j]-1;
+      f_bdry[i] = v_bdry[k];
+    }
+  }
+  // Next get the face data, such as areas, midpoints, and normal vectors
+  // face_stats(f_area,f_norm,nface,cv.x,cv.y,cv.z,el_face.IA,el_face.JA,el_face.val,face_n.IA,face_n.JA,mydim,face_order,fel_order,el_v.IA,el_v.JA,nve,nelm,f_mid);
+  
   // Assign components to the mesh
   mesh_temp.dim = dim;
   mesh_temp.nv = nv;
@@ -179,17 +201,18 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
   mesh_temp.ed_per_elm = ed_per_elm;
   mesh_temp.nface = nface;
   mesh_temp.f_per_elm = f_per_elm;
+  mesh_temp.nholes = nholes;
   mesh_temp.x = cv.x;
   mesh_temp.y = cv.y;
   mesh_temp.z = cv.z;
   mesh_temp.nbv = nbv;
   mesh_temp.nbedge = nbedge;
-  //mesh_temp.nbface = nbface;
+  mesh_temp.nbface = nbface;
   mesh_temp.el_v = &el_v;
   mesh_temp.el_ed = &el_ed;
-  //mesh_temp.el_f = &el_f;
+  mesh_temp.el_f = &el_f;
   mesh_temp.ed_v = &ed_v;
-  //mesh_temp.f_v = &f_v;
+  mesh_temp.f_v = &f_v;
   //mesh_temp.el_vol = &el_vol;
   //mesh_temp.el_mid = &el_mid;
   mesh_temp.ed_len = ed_len;
@@ -200,7 +223,7 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
   
   mesh_temp.v_bdry = v_bdry;
   mesh_temp.ed_bdry = ed_bdry;
-  //mesh_temp.f_bdry = f_bdry;
+  mesh_temp.f_bdry = f_bdry;
   
   *mesh = mesh_temp;
   return;
@@ -604,8 +627,7 @@ void edge_stats_all(REAL *ed_len,REAL *ed_tau,REAL *ed_mid,coordinates cv,iCSRma
     ed_len[i] = sqrt((x[1]-x[0])*(x[1]-x[0]) + (y[1]-y[0])*(y[1]-y[0]) + (z[1]-z[0])*(z[1]-z[0]));
 	
     /* Get correct orientation for tangent vectors */
-#define max(a,b) ((a) > (b) ? (a) : (b))
-    if(max(ip[0],ip[1])==ip[0]) {
+    if(MAX(ip[0],ip[1])==ip[0]) {
       ihi1 = 0;
       ilo1 = 1;
     } else {
@@ -631,182 +653,416 @@ void edge_stats_all(REAL *ed_len,REAL *ed_tau,REAL *ed_mid,coordinates cv,iCSRma
 }
 /*********************************************************************************************************/
 
-/* /\***********************************************************************************************\/ */
-/* void get_face_maps(iCSRmat el_v,INT el_order,INT nface,INT dim,INT f_order,iCSRmat el_f,INT *f_bdry,INT *nbf,iCSRmat f_n,INT *fel_order)  */
-/* { */
+/***********************************************************************************************/
+void get_face_ordering(INT el_order,INT dim,INT f_order,INT *fel_order)
+{
 	
-/*   /\* Gets the Element to Face, Face to Node, Face to Boundary mapping in CSR Fromat as well as face ordering on element (Should be dim independent) */
-/*    *     */
-/*    *               3 */
-/*    *             /   \ */
-/*    *            2     1 */
-/*    *           /       \ */
-/*    *          1 ---3----2 */
-/*    * */
-/*    *	Input:  el_v:		Element to Vertex Map */
-/*    *		el_order:	Number of nodes per element */
-/*    *            nface           Total Number of Faces  */
-/*    *            dim             Dimension */
-/*    *            f_order         Number of Faces per element 3 in 2D, 4 in 3D */
-/*    * */
-/*    *	Output:  */
-/*    *		el_f	Element to Face Map where value represents face number in element */
-/*    *            f_bdry  Indicates whether given face is on boundary or not */
-/*    *            nbf     Number of boundary faces */
-/*    *            f_n     Face to Node Map */
-/*    *            fel_order Indicates order of faces on an element */
-/*    * */
-/*    *\/ */
+  /* Gets the face ordering on element (Should be dim independent and consistent for all elements)
+   *
+   *               3
+   *             /   \
+   *            2     1
+   *           /       \
+   *          1 ---3----2
+   *
+   *	Input:  
+   *		el_order:	Number of nodes per element
+   *            dim             Dimension
+   *            f_order         Number of Faces per element 3 in 2D, 4 in 3D
+   *
+   *	Output:
+   *            fel_order Indicates order of faces on an element
+   *
+   */
 	
-/*   INT i,j,k,m,p,jk,col_b,icntr,jcntr,kcntr; /\* Loop Indices *\/ */
-/*   INT ncol1,ncol2,ncol3,ncol4,ncol5,ncol6;  /\* Node indices *\/ */
-/*   INT el1,el2,el3,el; /\* Element indices *\/ */
-/*   INT iflag = 0;  /\* Marks if we found a face *\/ */
-/*   INT nbf = 0; /\* hold number of boundary faces *\/ */
-/*   INT nd[dim]; */
-/*   INT f_num;  /\* Current face number of element *\/ */
-/*   INT* in_f; */
-/*   INT* jn_f; */
+  INT i,j,jcntr,col_b; /* Loop Indices */
 
-/*   // We will build face to element map first and then transpose it */
-/*   INT* iface_el = (INT *) calloc(nface+1,sizeof(INT)); */
-/*   INT* jface_el = (INT *) calloc(nelm*f_order,sizeof(INT)); */
-/*   INT* face_el = (INT *) calloc(nelm*f_order,sizeof(INT)); */
+  // First order the faces per element.  Start with node 1 and indicate opposite face as face 1.  Then loop over nodes
+  for(j=0;j<f_order;j++) {
+    for(i=0;i<dim;i++) {
+      jcntr = j+i+2;
+      col_b = j*dim+i;
+      if(jcntr>el_order) {
+	fel_order[col_b] = jcntr-el_order;
+      } else {
+	fel_order[col_b] = jcntr;
+      }
+    }
+  }
+  return;
+}
+/***********************************************************************************************/
 
-/*   // First order the faces per element.  Start with node 1 and indicate opposite face as face 1.  Then loop over nodes */
-/*   for(j=0;j<f_order;j++) { */
-/*     for(i=0;i<dim;i++) { */
-/*       jcntr = j+i+2; */
-/*       col_b = j*dim+i; */
-/*       if(jcntr>el_order) { */
-/* 	fel_order[col_b] = jcntr-el_order; */
-/*       } else { */
-/* 	fel_order[col_b] = jcntr; */
-/*       } */
-/*     } */
-/*   } */
-/*   /\* Get Transpose of el_n -> n_el *\/ */
-/*   INT* in_el = calloc(n+1,sizeof(INT)); */
-/*   INT* jn_el = calloc(element_order*nelm,sizeof(INT)); */
-/*   atransps(iel_n,jel_n,nelm,n,in_el,jn_el); */
 
-/*   // Get interior faces first */
-/*   // Loop over All elements and each face on the element */
-/*   icntr=0; */
-/*   jcntr=0; */
-/*   kcntr=0; */
-/*   iflag=0; */
-/*   for(i=0;i<nelm;i++) { */
-/*     // Get first node of element */
-/*     col_b = iel_n[i]-1; */
-/*     // Now loop over all faces of element */
-/*     for(j=0;j<face_order;j++) { */
-/*       // Get appropriate nodes on face */
-/*       for(k=0;k<mydim;k++) { */
-/* 	jk = col_b+fel_order[j*mydim+k]-1; */
-/* 	nd[k] = jel_n[jk]; */
-/*       } */
-/*       // Next Loop over all elements that touch the first node */
-/*       ncol1 = in_el[nd[0]-1]-1; */
-/*       ncol2 = in_el[nd[0]]-1; */
-/*       for(k=ncol1;k<ncol2;k++) { */
-/* 	el1 = jn_el[k]-1; */
-/* 	if(el1!=i) { // If not the same element we started in then check other nodes elements */
-/* 	  ncol3 = in_el[nd[1]-1]-1; */
-/* 	  ncol4 = in_el[nd[1]]-1; */
-/* 	  for(m=ncol3;m<ncol4;m++) { */
-/* 	    el2 = jn_el[m]-1; */
-/* 	    if(el2==el1) { // Our two nodes share the element!  In 2D this is the face! In 3D, we check third guy */
-/* 	      if(mydim==2) { */
-/* 		// Mark the element that shares the face as well as the nodes that are shared */
-/* 		iflag = 1; */
-/* 		el = el1; */
-/* 	      } else if(mydim==3) { */
-/* 		ncol5 = in_el[nd[2]-1]-1; */
-/* 		ncol6 = in_el[nd[2]]-1; */
-/* 		for(p=ncol5;p<ncol6;p++) { */
-/* 		  el3 = jn_el[p]-1; */
-/* 		  if(el3==el2) { */
-/* 		    // Mark the element that shares the face as well as the nodes that are shared */
-/* 		    iflag = 1; */
-/* 		    el = el1; */
-/* 		  } */
-/* 		} */
-/* 	      } else { */
-/* 		baddimension(); */
-/* 	      } */
-/* 	    } */
-/* 	  } */
-/* 	} */
-/*       } */
-/*       if(iflag && el>i) { */
-/* 	iface_el[icntr] = jcntr+1; */
-/* 	jface_el[jcntr] = i+1; */
-/* 	face_el[jcntr] = j+1; */
-/* 	jface_el[jcntr+1] = el+1; */
-/* 	// Find face number for other element */
-/* 	find_facenumber(iel_n,jel_n,fel_order,el+1,nd,mydim,&f_num); */
-/* 	face_el[jcntr+1] = f_num; */
-/* 	face_bdry[icntr] = 0; */
-/* 	if_n[icntr] = kcntr+1; */
-/* 	jf_n[kcntr] = nd[0]; */
-/* 	jf_n[kcntr+1] = nd[1]; */
-/* 	//	fprintf(stdout,"\n1:kcntr=%d\n",kcntr+1); */
-/* 	kcntr+=2; */
-/* 	if(mydim==3) {  */
-/* 	  jf_n[kcntr] = nd[2]; */
-/* 	  //	  fprintf(stdout,"\n2:kcntr=%d\n",kcntr); */
-/* 	  kcntr++; */
-/* 	} */
-/* 	icntr++; */
-/* 	jcntr+=2; */
-/*       } else if(!iflag){  // this must be a boundary face! */
-/* 	nbf++; */
-/* 	iface_el[icntr] = jcntr+1; */
-/* 	jface_el[jcntr] = i+1; */
-/* 	face_el[jcntr] = j+1; */
-/* 	face_bdry[icntr] = 1; */
-/* 	if_n[icntr] = kcntr+1; */
-/* 	jf_n[kcntr] = nd[0]; */
-/* 	jf_n[kcntr+1] = nd[1]; */
-/* 	//	fprintf(stdout,"\n3:kcntr=%d\n",kcntr+1); */
-/* 	kcntr+=2; */
-/* 	if(mydim==3) {  */
-/* 	  //	  fprintf(stdout,"\n4:kcntr=%d\n",kcntr); */
-/* 	  jf_n[kcntr] = nd[2]; */
-/* 	  kcntr++; */
-/* 	} */
-/* 	icntr++; */
-/* 	jcntr++; */
-/*       }	 */
-/*       iflag=0; */
-/*     } */
-/*   } */
+/***********************************************************************************************/
+void get_face_maps(iCSRmat el_v,INT el_order,INT nface,INT dim,INT f_order,iCSRmat *el_f,INT *f_bdry,INT *nbface,iCSRmat *f_v,INT *fel_order)
+{
+	
+  /* Gets the Element to Face, Face to Node, Face to Boundary mapping in CSR Fromat as well as face ordering on element (Should be dim independent)
+   *
+   *               3
+   *             /   \
+   *            2     1
+   *           /       \
+   *          1 ---3----2
+   *
+   *	Input:  el_v:		Element to Vertex Map
+   *		el_order:	Number of nodes per element
+   *            nface           Total Number of Faces
+   *            dim             Dimension
+   *            f_order         Number of Faces per element 3 in 2D, 4 in 3D
+   *            fel_order Indicates order of faces on an element
+   *
+   *	Output:
+   *		el_f	Element to Face Map where value represents face number in element
+   *            f_bdry  Indicates whether given face is on boundary or not
+   *            nbf     Number of boundary faces
+   *            f_v     Face to Node Map
+   *
+   */
+	
+  INT i,j,k,m,p,jk,col_b,icntr,jcntr,kcntr; /* Loop Indices */
+  INT ncol1,ncol2,ncol3,ncol4,ncol5,ncol6;  /* Node indices */
+  INT el1=-1,el2=-1,el3=-1,el=-1; /* Element indices */
+  INT iflag = 0;  /* Marks if we found a face */
+  INT nbf = 0; /* hold number of boundary faces */
+  INT nd[dim];
+  INT f_num=-1;  /* Current face number of element */
+  INT nelm = el_v.row;
+  INT nv = el_v.col;
 
-/*   iface_el[icntr] = jcntr+1; */
-/*   if_n[icntr] = kcntr+1; */
-/*   //  fprintf(stdout,"\nicntr=%d,kcntr=%d,jcntr=%d\n",icntr,kcntr,jcntr); */
-/*   //  fflush(stdout); */
-/*   /\* Get Transpose of face_el -> el_face *\/ */
-/*   atransps(iface_el,jface_el,nface,nelm,iel_face,jel_face); */
-/*   atransp_int(iface_el,jface_el,face_el,nface,nelm,iel_face,jel_face,el_face); */
+  // We will build face to element map first and then transpose it
+  iCSRmat f_el = icsr_create (nface,nelm,nelm*f_order);
+  
+  /* Get Transpose of el_v -> v_el */
+  iCSRmat v_el;
+  icsr_trans_1(&el_v,&v_el);
 
-/*   /\* Transpose face_node and back again to order nodes in increasing order (from global structure) *\/ */
-/*   in_f = calloc(n+1,sizeof(INT)); */
-/*   jn_f = calloc(nface*mydim,sizeof(INT)); */
-/*   atransps(if_n,jf_n,nface,n,in_f,jn_f); */
-/*   atransps(in_f,jn_f,n,nface,if_n,jf_n); */
+  // Get interior faces first
+  // Loop over All elements and each face on the element
+  // Then populate face to element and face to vertex map
+  // Also determines if a face is on the boundary.
+  icntr=0;
+  jcntr=0;
+  kcntr=0;
+  iflag=0;
+  for(i=0;i<nelm;i++) {
+    // Get first node of element
+    col_b = el_v.IA[i]-1;
+    // Now loop over all faces of element
+    for(j=0;j<f_order;j++) {
+      // Get appropriate nodes on face
+      for(k=0;k<dim;k++) {
+	jk = col_b+fel_order[j*dim+k]-1;
+	nd[k] = el_v.JA[jk];
+      }
+      // Next Loop over all elements that touch the first node
+      ncol1 = v_el.IA[nd[0]-1]-1;
+      ncol2 = v_el.IA[nd[0]]-1;
+      for(k=ncol1;k<ncol2;k++) {
+	el1 = v_el.JA[k]-1;
+	if(el1!=i) { // If not the same element we started in then check other nodes elements
+	  ncol3 = v_el.IA[nd[1]-1]-1;
+	  ncol4 = v_el.IA[nd[1]]-1;
+	  for(m=ncol3;m<ncol4;m++) {
+	    el2 = v_el.JA[m]-1;
+	    if(el2==el1) { // Our two nodes share the element!  In 2D this is the face! In 3D, we check third guy
+	      if(dim==2) {
+		// Mark the element that shares the face as well as the nodes that are shared
+		iflag = 1;
+		el = el1;
+	      } else if(dim==3) {
+		ncol5 = v_el.IA[nd[2]-1]-1;
+		ncol6 = v_el.IA[nd[2]]-1;
+		for(p=ncol5;p<ncol6;p++) {
+		  el3 = v_el.JA[p]-1;
+		  if(el3==el2) {
+		    // Mark the element that shares the face as well as the nodes that are shared
+		    iflag = 1;
+		    el = el1;
+		  }
+		}
+	      } else {
+		baddimension();
+	      }
+	    }
+	  }
+	}
+      }
+      if(iflag && el>i) {
+	f_el.IA[icntr] = jcntr+1;
+	f_el.JA[jcntr] = i+1;
+	f_el.val[jcntr] = j+1;
+	f_el.JA[jcntr+1] = el+1;
+	// Find face number for other element
+	find_facenumber(el_v,fel_order,el+1,nd,dim,&f_num);
+	f_el.val[jcntr+1] = f_num;
+	f_bdry[icntr] = 0;
+	f_v->IA[icntr] = kcntr+1;
+	f_v->JA[kcntr] = nd[0];
+	f_v->JA[kcntr+1] = nd[1];
+	kcntr+=2;
+	if(dim==3) {
+	  f_v->JA[kcntr] = nd[2];
+	  kcntr++;
+	}
+	icntr++;
+	jcntr+=2;
+      } else if(!iflag){  // this must be a boundary face!
+	nbf++;
+	f_el.IA[icntr] = jcntr+1;
+	f_el.JA[jcntr] = i+1;
+	f_el.val[jcntr] = j+1;
+	f_bdry[icntr] = 1;
+	f_v->IA[icntr] = kcntr+1;
+	f_v->JA[kcntr] = nd[0];
+	f_v->JA[kcntr+1] = nd[1];
+	kcntr+=2;
+	if(dim==3) {
+	  f_v->JA[kcntr] = nd[2];
+	  kcntr++;
+	}
+	icntr++;
+	jcntr++;
+      }
+      iflag=0;
+    }
+  }
 
-/*   *nbface = nbf; */
+  f_el.IA[icntr] = jcntr+1;
+  f_v->IA[icntr] = kcntr+1;
+  
+  /* Get Transpose of f_el -> el_f */
+  icsr_trans_1(&f_el,el_f);
 
-/*   if(in_el) free(in_el); */
-/*   if(jn_el) free(jn_el); */
-/*   if(iface_el) free(iface_el); */
-/*   if(jface_el) free(jface_el); */
-/*   if(face_el) free(face_el); */
-/*   if(in_f) free(in_f); */
-/*   if(jn_f) free(jn_f); */
+  /* Transpose face_node and back again to order nodes in increasing order (from global structure) */
+  iCSRmat v_f = icsr_create(nv,nface,nface*dim);
+  icsr_trans_1(f_v,&v_f);
+  icsr_trans_1(&v_f,f_v);
+  
+  *nbface = nbf;
 
-/*   return; */
-/* } */
-/* /\***********************************************************************************************\/ */
+  icsr_free(&v_el);
+  icsr_free(&f_el);
+  icsr_free(&v_f);
+
+  return;
+}
+/***********************************************************************************************/
+
+/****************************************************************************************/
+void find_facenumber(iCSRmat el_v,INT* fel_order,INT elm,INT* nd,INT dim,INT *f_num)          
+{
+
+  /* Find the face number of the given element, using the element it shares the face with
+   *
+   * Input:
+   *        el_v              Element to Vertex Map (all elements and vertices)
+   *        fel_order         Ordering of faces on element with corresponding nodes
+   *        elm               Current Elment we consider
+   *        nd                Nodes of current face
+   *        mydim             Dimension
+   *
+   * Output:
+   *       f_num             Face Number for that element
+   *
+   */
+
+  INT cola,colb,mark,icnt,i,j,mynd;
+  INT fntmp=-1;
+
+  cola = el_v.IA[elm-1]-1;
+  colb = el_v.IA[elm]-1;
+  mark = 0;
+  icnt=0;
+  for(i=cola;i<colb;i++) {
+    icnt++;
+    mynd = el_v.JA[i];
+    for(j=0;j<dim;j++) {
+      if(mynd!=nd[j]) {
+	mark++;
+      }
+    }
+    if(mark==dim) {
+      fntmp = icnt;
+    }
+    mark=0;
+  }
+
+  *f_num = fntmp;
+
+  return;
+}
+/****************************************************************************************/
+
+/*********************************************************************************************************/
+void face_stats(REAL *f_area,REAL *f_norm,INT nface,REAL *xn,REAL *yn,REAL *zn,INT *iel_face,INT *jel_face,INT *el_face,INT *if_n,INT *jf_n,\
+		INT mydim,INT face_order,INT* fel_order,INT* iel_n,INT* jel_n,INT element_order,INT nelm,REAL *f_mid) 
+{
+  /***************************************************************************
+   * Get area, normal vector for all faces **********
+   *
+   *
+   *    Input:   xn,yn,zn                    Node Coordinates
+   *             nface                       Number of Faces
+   *             iel_face,jel_face,el_face   Element to Face Map
+   *             if_n,jf_n                   Face to Node map
+   *             mydim                       Dimension
+   *             face_order                  Number of Faces per element
+   *             fel_order                   Ordering of Faces on a given element
+   *             iel_n,jel_n                 Element to Face Map
+   *             element_order               Number of Vertices per element
+   *             nelm                        Number of Elements
+   *
+   *    Output:  f_area                      Area of each face (length in 2D)
+   *             n_face(nface,mydim)         Normal vectors of each face
+   *             f_mid(nface,mydim)          Midpoints of face
+   *            
+   */
+	
+  INT i,jcnt,j,j_a,j_b; /* loop index */
+
+  // Face Node Stuff
+  INT* ipf = calloc(mydim,sizeof(INT));
+  REAL* xf = calloc(mydim,sizeof(REAL));
+  REAL* yf = calloc(mydim,sizeof(REAL));
+  REAL* zf;
+  if(mydim==3) {
+    zf = calloc(mydim,sizeof(REAL));
+  }
+
+  // Face Element Stuff  
+  INT notbdry;
+  INT* if_el;
+  INT* jf_el;
+  INT* f_el;
+  INT myel,myopn;
+  INT ie[2];
+  INT op_n[2];
+
+  // Element Node Stuff
+  INT* myel_n = calloc(element_order,sizeof(INT));
+  REAL* p = calloc(element_order,sizeof(REAL));
+  REAL* dpx = calloc(element_order,sizeof(REAL));
+  REAL* dpy = calloc(element_order,sizeof(REAL));
+  REAL* dpz;
+  if(mydim==3) { dpz = calloc(element_order,sizeof(REAL)); }
+  REAL grad_mag,x,y,z,e1x,e1y,e1z,e2x,e2y,e2z;
+  
+  /* Get Face to Element Map */
+  if_el = calloc(nface+1,sizeof(INT));
+  jf_el = calloc(nelm*face_order,sizeof(INT));
+  f_el = calloc(nelm*face_order,sizeof(INT));
+  atransps(iel_face,jel_face,nelm,nface,if_el,jf_el);
+  atransp_int(iel_face,jel_face,el_face,nelm,nface,if_el,jf_el,f_el);
+
+  // Loop over all Faces
+  for(i=0;i<nface;i++) {
+   
+    /* Find Nodes in given Face */
+    j_a = if_n[i]-1;
+    j_b = if_n[i+1]-1;
+    jcnt = 0;
+    for (j=j_a; j<j_b;j++) {
+      ipf[jcnt] = jf_n[j];
+      xf[jcnt] = xn[ipf[jcnt]-1];
+      yf[jcnt] = yn[ipf[jcnt]-1];
+      if (mydim==3) {
+	zf[jcnt] = zn[ipf[jcnt]-1];
+      }
+      jcnt++;
+    }
+
+    // Find Corresponding Elements and order in element 
+    // Also picks correct opposite node to form vector 
+    // normal vectors point from lower number element to higher one
+    // or outward from external boundary
+    j_a = if_el[i]-1;
+    j_b = if_el[i+1]-1;
+    jcnt=0;
+    for (j=j_a; j<j_b; j++) {
+      notbdry = j_b-j_a-1;
+      ie[jcnt] = jf_el[j];
+      op_n[jcnt] = f_el[j]-1;
+      jcnt++;
+    }
+    if(notbdry && (ie[1]<ie[0])) {
+      myopn = op_n[1];
+      myel = ie[1];
+    } else {
+      myopn = op_n[0];
+      myel = ie[0];
+    }
+    // Get Nodes of this chosen element
+    j_a = iel_n[myel-1]-1;
+    j_b = iel_n[myel]-1;
+    jcnt=0;
+    for(j=j_a;j<j_b;j++) {
+      myel_n[jcnt] = jel_n[j];
+      jcnt++;
+    }
+    x = xn[myel_n[myopn]];
+    y = yn[myel_n[myopn]];
+    if(mydim==3) {
+      z = zn[myel_n[myopn]];
+    }
+
+    /* Compute Area (length if 2D) and get midpt of face */
+    if(mydim==2) {
+      f_area[i] = sqrt(pow(fabs(xf[1]-xf[0]),2)+pow(fabs(yf[1]-yf[0]),2));
+      f_mid[i*mydim] = (xf[0]+xf[1])/2.0;
+      f_mid[i*mydim+1] = (yf[0]+yf[1])/2.0;
+    } else if(mydim==3) {
+      e1x = xf[1]-xf[0];
+      e1y = yf[1]-yf[0];
+      e1z = zf[1]-zf[0];
+      e2x = xf[2]-xf[0];
+      e2y = yf[2]-yf[0];
+      e2z = zf[2]-zf[0];
+      f_area[i] = 0.5*sqrt(pow(e1y*e2z-e2y*e1z,2)+pow(e1z*e2x-e2z*e1x,2)+pow(e1x*e2y-e2x*e1y,2));
+      f_mid[i*mydim] = (xf[0]+xf[1]+xf[2])/3.0;
+      f_mid[i*mydim+1] = (yf[0]+yf[1]+yf[2])/3.0;
+      f_mid[i*mydim+2] = (zf[0]+zf[1]+zf[2])/3.0;
+    } else {
+      printf("Dimension in Face Stats Wrong!\n\n");
+      exit(0);
+    }
+	
+    /* Compute Normal Vectors based on opposite node */
+    /* Get Linear Basis Functions for particular element */	
+    if(mydim==2) {
+      lin_tri_2D(p,dpx,dpy,x,y,myel_n,xn,yn,element_order);
+      grad_mag = -sqrt(dpx[myopn]*dpx[myopn]+dpy[myopn]*dpy[myopn]);
+      f_norm[i*mydim] = dpx[myopn]/grad_mag;
+      f_norm[i*mydim+1] = dpy[myopn]/grad_mag;
+    } else if(mydim==3) {
+      lin_tet_3D(p,dpx,dpy,dpz,x,y,z,myel_n,xn,yn,zn,element_order);
+      grad_mag = -sqrt(dpx[myopn]*dpx[myopn]+dpy[myopn]*dpy[myopn]+dpz[myopn]*dpz[myopn]);
+      f_norm[i*mydim] = dpx[myopn]/grad_mag;
+      f_norm[i*mydim+1] = dpy[myopn]/grad_mag;
+      f_norm[i*mydim+2] = dpz[myopn]/grad_mag;
+    } else {
+      printf("You have now entered the twilight zone, in face_stats");
+      exit(0);
+    }
+
+  }
+  
+  if(if_el) free(if_el);
+  if(jf_el) free(jf_el);
+  if(f_el) free(f_el);
+  if(ipf) free(ipf);
+  if(xf) free(xf);
+  if(yf) free(yf);
+  if(p) free(p);
+  if(dpx) free(dpx);
+  if(dpy) free(dpy);
+  if(myel_n) free(myel_n);
+  if(mydim==3) { 
+    if(dpz) free(dpz);
+    if(zf) free(zf);
+  }
+	
+    return;
+  }
+  /*********************************************************************************************************/
