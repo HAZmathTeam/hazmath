@@ -190,8 +190,11 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
       f_bdry[i] = v_bdry[k];
     }
   }
-  // Next get the face data, such as areas, midpoints, and normal vectors
-  // face_stats(f_area,f_norm,nface,cv.x,cv.y,cv.z,el_face.IA,el_face.JA,el_face.val,face_n.IA,face_n.JA,mydim,face_order,fel_order,el_v.IA,el_v.JA,nve,nelm,f_mid);
+  // Next get the face data, such as areas, midpoints, and normal vectors // STILL NEED TO ADD F_NORM
+  REAL* f_area = (REAL *) calloc(nface,sizeof(REAL));
+  REAL* f_mid = (REAL *) calloc(nface*dim,sizeof(REAL));
+  //REAL* f_norm = (REAL *) calloc(nface*dim,sizeof(REAL));
+  face_stats(f_area,f_mid,cv,el_f,f_v,dim,f_per_elm,fel_order,el_v,v_per_elm);
   
   // Assign components to the mesh
   mesh_temp.dim = dim;
@@ -218,7 +221,8 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
   mesh_temp.ed_len = ed_len;
   mesh_temp.ed_tau = ed_tau;
   mesh_temp.ed_mid = ed_mid;
-  //mesh_temp.f_area = &f_area;
+  mesh_temp.f_area = f_area;
+  mesh_temp.f_mid = f_mid;
   //mesh_temp.f_norm = &f_norm;
   
   mesh_temp.v_bdry = v_bdry;
@@ -861,7 +865,7 @@ void find_facenumber(iCSRmat el_v,INT* fel_order,INT elm,INT* nd,INT dim,INT *f_
    *        fel_order         Ordering of faces on element with corresponding nodes
    *        elm               Current Elment we consider
    *        nd                Nodes of current face
-   *        mydim             Dimension
+   *        dim               Dimension
    *
    * Output:
    *       f_num             Face Number for that element
@@ -896,79 +900,73 @@ void find_facenumber(iCSRmat el_v,INT* fel_order,INT elm,INT* nd,INT dim,INT *f_
 /****************************************************************************************/
 
 /*********************************************************************************************************/
-void face_stats(REAL *f_area,REAL *f_norm,INT nface,REAL *xn,REAL *yn,REAL *zn,INT *iel_face,INT *jel_face,INT *el_face,INT *if_n,INT *jf_n,\
-		INT mydim,INT face_order,INT* fel_order,INT* iel_n,INT* jel_n,INT element_order,INT nelm,REAL *f_mid) 
+// TO DO: Add REAL *f_norm,
+void face_stats(REAL *f_area,REAL *f_mid,coordinates cv,iCSRmat el_f,iCSRmat f_v,INT dim,INT f_order,INT* fel_order,iCSRmat el_v,INT el_order) 
 {
   /***************************************************************************
    * Get area, normal vector for all faces **********
    *
    *
-   *    Input:   xn,yn,zn                    Node Coordinates
-   *             nface                       Number of Faces
-   *             iel_face,jel_face,el_face   Element to Face Map
-   *             if_n,jf_n                   Face to Node map
-   *             mydim                       Dimension
-   *             face_order                  Number of Faces per element
-   *             fel_order                   Ordering of Faces on a given element
-   *             iel_n,jel_n                 Element to Face Map
-   *             element_order               Number of Vertices per element
-   *             nelm                        Number of Elements
+   *    Input:   cv                   Vertices Coordinates
+   *             el_f                 Element to Face Map
+   *             f_v                  Face to Node map
+   *             dim                  Dimension
+   *             f_order              Number of Faces per element
+   *             fel_order            Ordering of Faces on a given element
+   *             el_v                 Element to Face Map
+   *             el_order             Number of Vertices per element
    *
-   *    Output:  f_area                      Area of each face (length in 2D)
-   *             n_face(nface,mydim)         Normal vectors of each face
-   *             f_mid(nface,mydim)          Midpoints of face
+   *    Output:  f_area               Area of each face (length in 2D)
+   *             f_norm(nface,dim)    Normal vectors of each face
+   *             f_mid(nface,dim)     Midpoints of face
    *            
    */
 	
   INT i,jcnt,j,j_a,j_b; /* loop index */
+  INT nface = el_f.col;
+  INT nelm = el_f.row;
 
   // Face Node Stuff
-  INT* ipf = calloc(mydim,sizeof(INT));
-  REAL* xf = calloc(mydim,sizeof(REAL));
-  REAL* yf = calloc(mydim,sizeof(REAL));
+  INT* ipf = calloc(dim,sizeof(INT));
+  REAL* xf = calloc(dim,sizeof(REAL));
+  REAL* yf = calloc(dim,sizeof(REAL));
   REAL* zf;
-  if(mydim==3) {
-    zf = calloc(mydim,sizeof(REAL));
+  if(dim==3) {
+    zf = calloc(dim,sizeof(REAL));
   }
 
   // Face Element Stuff  
   INT notbdry;
-  INT* if_el;
-  INT* jf_el;
-  INT* f_el;
   INT myel,myopn;
   INT ie[2];
   INT op_n[2];
 
   // Element Node Stuff
-  INT* myel_n = calloc(element_order,sizeof(INT));
-  REAL* p = calloc(element_order,sizeof(REAL));
-  REAL* dpx = calloc(element_order,sizeof(REAL));
-  REAL* dpy = calloc(element_order,sizeof(REAL));
+  INT* myel_n = (INT *) calloc(el_order,sizeof(INT));
+  REAL* p = (REAL *) calloc(el_order,sizeof(REAL));
+  REAL* dpx = (REAL *) calloc(el_order,sizeof(REAL));
+  REAL* dpy = (REAL *) calloc(el_order,sizeof(REAL));
   REAL* dpz;
-  if(mydim==3) { dpz = calloc(element_order,sizeof(REAL)); }
+  if(dim==3) { dpz = (REAL *) calloc(el_order,sizeof(REAL)); }
   REAL grad_mag,x,y,z,e1x,e1y,e1z,e2x,e2y,e2z;
   
   /* Get Face to Element Map */
-  if_el = calloc(nface+1,sizeof(INT));
-  jf_el = calloc(nelm*face_order,sizeof(INT));
-  f_el = calloc(nelm*face_order,sizeof(INT));
-  atransps(iel_face,jel_face,nelm,nface,if_el,jf_el);
-  atransp_int(iel_face,jel_face,el_face,nelm,nface,if_el,jf_el,f_el);
+  /* Get Transpose of f_el -> el_f */
+  iCSRmat f_el = icsr_create(nface,nelm,f_order*nelm);
+  icsr_trans_1(&el_f,&f_el);
 
   // Loop over all Faces
   for(i=0;i<nface;i++) {
-   
-    /* Find Nodes in given Face */
-    j_a = if_n[i]-1;
-    j_b = if_n[i+1]-1;
+    /* Find Vertices in given Face */
+    j_a = f_v.IA[i]-1;
+    j_b = f_v.JA[i+1]-1;
     jcnt = 0;
     for (j=j_a; j<j_b;j++) {
-      ipf[jcnt] = jf_n[j];
-      xf[jcnt] = xn[ipf[jcnt]-1];
-      yf[jcnt] = yn[ipf[jcnt]-1];
-      if (mydim==3) {
-	zf[jcnt] = zn[ipf[jcnt]-1];
+      ipf[jcnt] = f_v.JA[j];
+      xf[jcnt] = cv.x[ipf[jcnt]-1];
+      yf[jcnt] = cv.y[ipf[jcnt]-1];
+      if (dim==3) {
+	zf[jcnt] = cv.z[ipf[jcnt]-1];
       }
       jcnt++;
     }
@@ -977,13 +975,13 @@ void face_stats(REAL *f_area,REAL *f_norm,INT nface,REAL *xn,REAL *yn,REAL *zn,I
     // Also picks correct opposite node to form vector 
     // normal vectors point from lower number element to higher one
     // or outward from external boundary
-    j_a = if_el[i]-1;
-    j_b = if_el[i+1]-1;
+    j_a = f_el.IA[i]-1;
+    j_b = f_el.IA[i+1]-1;
     jcnt=0;
     for (j=j_a; j<j_b; j++) {
       notbdry = j_b-j_a-1;
-      ie[jcnt] = jf_el[j];
-      op_n[jcnt] = f_el[j]-1;
+      ie[jcnt] = f_el.JA[j];
+      op_n[jcnt] = f_el.val[j]-1;
       jcnt++;
     }
     if(notbdry && (ie[1]<ie[0])) {
@@ -994,25 +992,25 @@ void face_stats(REAL *f_area,REAL *f_norm,INT nface,REAL *xn,REAL *yn,REAL *zn,I
       myel = ie[0];
     }
     // Get Nodes of this chosen element
-    j_a = iel_n[myel-1]-1;
-    j_b = iel_n[myel]-1;
+    j_a = el_v.IA[myel-1]-1;
+    j_b = el_v.IA[myel]-1;
     jcnt=0;
     for(j=j_a;j<j_b;j++) {
-      myel_n[jcnt] = jel_n[j];
+      myel_n[jcnt] = el_v.JA[j];
       jcnt++;
     }
-    x = xn[myel_n[myopn]];
-    y = yn[myel_n[myopn]];
-    if(mydim==3) {
-      z = zn[myel_n[myopn]];
+    x = cv.x[myel_n[myopn]];
+    y = cv.y[myel_n[myopn]];
+    if(dim==3) {
+      z = cv.z[myel_n[myopn]];
     }
 
     /* Compute Area (length if 2D) and get midpt of face */
-    if(mydim==2) {
+    if(dim==2) {
       f_area[i] = sqrt(pow(fabs(xf[1]-xf[0]),2)+pow(fabs(yf[1]-yf[0]),2));
-      f_mid[i*mydim] = (xf[0]+xf[1])/2.0;
-      f_mid[i*mydim+1] = (yf[0]+yf[1])/2.0;
-    } else if(mydim==3) {
+      f_mid[i*dim] = (xf[0]+xf[1])/2.0;
+      f_mid[i*dim+1] = (yf[0]+yf[1])/2.0;
+    } else if(dim==3) {
       e1x = xf[1]-xf[0];
       e1y = yf[1]-yf[0];
       e1z = zf[1]-zf[0];
@@ -1020,37 +1018,34 @@ void face_stats(REAL *f_area,REAL *f_norm,INT nface,REAL *xn,REAL *yn,REAL *zn,I
       e2y = yf[2]-yf[0];
       e2z = zf[2]-zf[0];
       f_area[i] = 0.5*sqrt(pow(e1y*e2z-e2y*e1z,2)+pow(e1z*e2x-e2z*e1x,2)+pow(e1x*e2y-e2x*e1y,2));
-      f_mid[i*mydim] = (xf[0]+xf[1]+xf[2])/3.0;
-      f_mid[i*mydim+1] = (yf[0]+yf[1]+yf[2])/3.0;
-      f_mid[i*mydim+2] = (zf[0]+zf[1]+zf[2])/3.0;
+      f_mid[i*dim] = (xf[0]+xf[1]+xf[2])/3.0;
+      f_mid[i*dim+1] = (yf[0]+yf[1]+yf[2])/3.0;
+      f_mid[i*dim+2] = (zf[0]+zf[1]+zf[2])/3.0;
     } else {
-      printf("Dimension in Face Stats Wrong!\n\n");
-      exit(0);
+      baddimension();
     }
 	
     /* Compute Normal Vectors based on opposite node */
-    /* Get Linear Basis Functions for particular element */	
-    if(mydim==2) {
-      lin_tri_2D(p,dpx,dpy,x,y,myel_n,xn,yn,element_order);
-      grad_mag = -sqrt(dpx[myopn]*dpx[myopn]+dpy[myopn]*dpy[myopn]);
-      f_norm[i*mydim] = dpx[myopn]/grad_mag;
-      f_norm[i*mydim+1] = dpy[myopn]/grad_mag;
-    } else if(mydim==3) {
-      lin_tet_3D(p,dpx,dpy,dpz,x,y,z,myel_n,xn,yn,zn,element_order);
-      grad_mag = -sqrt(dpx[myopn]*dpx[myopn]+dpy[myopn]*dpy[myopn]+dpz[myopn]*dpz[myopn]);
-      f_norm[i*mydim] = dpx[myopn]/grad_mag;
-      f_norm[i*mydim+1] = dpy[myopn]/grad_mag;
-      f_norm[i*mydim+2] = dpz[myopn]/grad_mag;
-    } else {
-      printf("You have now entered the twilight zone, in face_stats");
-      exit(0);
-    }
+    /* Get Linear Basis Functions for particular element */
+    // TO DO FOR NOW SINCE I DON"T HAVE BASIS FUNCTIONS YET!
+    /* if(dim==2) { */
+    /*   lin_tri_2D(p,dpx,dpy,x,y,myel_n,xn,yn,element_order); */
+    /*   grad_mag = -sqrt(dpx[myopn]*dpx[myopn]+dpy[myopn]*dpy[myopn]); */
+    /*   f_norm[i*dim] = dpx[myopn]/grad_mag; */
+    /*   f_norm[i*dim+1] = dpy[myopn]/grad_mag; */
+    /* } else if(dim==3) { */
+    /*   lin_tet_3D(p,dpx,dpy,dpz,x,y,z,myel_n,xn,yn,zn,element_order); */
+    /*   grad_mag = -sqrt(dpx[myopn]*dpx[myopn]+dpy[myopn]*dpy[myopn]+dpz[myopn]*dpz[myopn]); */
+    /*   f_norm[i*dim] = dpx[myopn]/grad_mag; */
+    /*   f_norm[i*dim+1] = dpy[myopn]/grad_mag; */
+    /*   f_norm[i*dim+2] = dpz[myopn]/grad_mag; */
+    /* } else { */
+    /*   baddimension(); */
+    /* } */
 
   }
-  
-  if(if_el) free(if_el);
-  if(jf_el) free(jf_el);
-  if(f_el) free(f_el);
+
+  icsr_free(&f_el);
   if(ipf) free(ipf);
   if(xf) free(xf);
   if(yf) free(yf);
@@ -1058,7 +1053,7 @@ void face_stats(REAL *f_area,REAL *f_norm,INT nface,REAL *xn,REAL *yn,REAL *zn,I
   if(dpx) free(dpx);
   if(dpy) free(dpy);
   if(myel_n) free(myel_n);
-  if(mydim==3) { 
+  if(dim==3) { 
     if(dpz) free(dpz);
     if(zf) free(zf);
   }

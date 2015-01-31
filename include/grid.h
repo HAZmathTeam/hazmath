@@ -117,6 +117,9 @@ typedef struct trimesh{
   //! normal vector on face
   REAL* f_norm;
 
+  //! midpoint of face
+  REAL* f_mid;
+
   //! indicates whether a vertex is on boundary
   INT* v_bdry;
 
