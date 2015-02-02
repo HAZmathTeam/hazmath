@@ -1228,8 +1228,7 @@ void get_el_vol(REAL *el_vol,iCSRmat el_v,coordinates cv,INT dim,INT v_per_elm)
 /****************************************************************************************/
 void free_mesh(trimesh mesh)
 {
-  /* fres memory of arrays in mesh struct */
-
+  /* frees memory of arrays in mesh struct */
 
   if(mesh.x) free(mesh.x);
   if(mesh.y) free(mesh.y);
