@@ -125,7 +125,7 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
   iCSRmat el_v = convert_elmnode(element_vertex,nelm,nv,v_per_elm);
   if(element_vertex) free(element_vertex);
 	
-  /* Edge to Node Map */
+  /* Edge to Vertex Map */
   INT nedge = 0;
   if(dim==2) {  
     nedge = nelm+nv-(dim-1);
@@ -134,7 +134,7 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
   }
   iCSRmat ed_v = get_edge_v(nedge,el_v);
 	
-  /* Get Boundary Edges and Nodes */
+  /* Get Boundary Edges and Vertices */
   INT* ed_bdry = (INT *) calloc(nedge,sizeof(INT));
   if (dim==2) {
     isboundary_ed(ed_v,nedge,nbedge,bdry_v,ed_bdry);
@@ -239,6 +239,45 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
   mesh_temp.f_bdry = f_bdry;
   
   *mesh = mesh_temp;
+  return;
+}
+/**************************************************************************************************************************************************/
+
+/**************************************************************************************************************************************************/
+void initialize_mesh(trimesh* mesh) 
+{
+  /* Initializes all components of the structure trimesh. */
+	
+  mesh->dim = -666;
+  mesh->x = NULL;
+  mesh->y = NULL;
+  mesh->z = NULL;
+  mesh->f_per_elm = -666;
+  mesh->el_v = NULL;
+  mesh->el_f = NULL;
+  mesh->v_per_elm = -666;
+  mesh->f_v = NULL;
+  mesh->nv = -666;
+  mesh->nedge = -666;
+  mesh->ed_per_elm = -666;
+  mesh->nface = -666;
+  mesh->nholes = -666;
+  mesh->nbv = -666;
+  mesh->nbedge = -666;
+  mesh->nbface = -666;
+  mesh->el_ed = NULL;
+  mesh->ed_v = NULL;
+  mesh->el_vol = NULL;
+  mesh->el_mid = NULL;
+  mesh->ed_len = NULL;
+  mesh->ed_tau = NULL;
+  mesh->ed_mid = NULL;
+  mesh->f_area = NULL;
+  mesh->f_mid = NULL;
+  mesh->f_norm = NULL;
+  mesh->v_bdry = NULL;
+  mesh->ed_bdry = NULL;
+  mesh->f_bdry = NULL;
   return;
 }
 /**************************************************************************************************************************************************/
@@ -946,18 +985,13 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,INT* fel_order,trimesh mes
   INT f_order = mesh.f_per_elm;
   INT nv = mesh.nv;
 
-  coordinates cv;
-  allocatecoords(&cv,nv,dim);
-  cv.x = mesh.x;
-  cv.y = mesh.y;
-  cv.z = mesh.z;
+  REAL *cx = mesh.x;
+  REAL *cy = mesh.y;
+  REAL *cz = mesh.z;
 
-  iCSRmat el_f = icsr_create(nelm,nface,f_order*nelm);
-  el_f = *mesh.el_f;
-  iCSRmat f_v = icsr_create(nface,nv,nface*dim);
-  f_v = *mesh.f_v;
-  iCSRmat el_v = icsr_create(nelm,nv,nelm*el_order);
-  el_v = *mesh.el_v;
+  iCSRmat *el_f = mesh.el_f;
+  iCSRmat *f_v = mesh.f_v; 
+  iCSRmat *el_v = mesh.el_v;
 
   // Face Node Stuff
   INT* ipf = calloc(dim,sizeof(INT));
@@ -996,10 +1030,10 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,INT* fel_order,trimesh mes
     jcnt = 0;
     for (j=j_a; j<j_b;j++) {
       ipf[jcnt] = f_v.JA[j];
-      xf[jcnt] = cv.x[ipf[jcnt]-1];
-      yf[jcnt] = cv.y[ipf[jcnt]-1];
+      xf[jcnt] = cx[ipf[jcnt]-1];
+      yf[jcnt] = cy[ipf[jcnt]-1];
       if (dim==3) {
-	zf[jcnt] = cv.z[ipf[jcnt]-1];
+	zf[jcnt] = cz[ipf[jcnt]-1];
       }
       jcnt++;
     }
@@ -1032,11 +1066,11 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,INT* fel_order,trimesh mes
       myel_n[jcnt] = el_v.JA[j];
       jcnt++;
     }
-    x = cv.x[myel_n[myopn]];
-    y = cv.y[myel_n[myopn]];
+    x = cx[myel_n[myopn]];
+    y = cy[myel_n[myopn]];
     z = -666.66;
     if(dim==3) {
-      z = cv.z[myel_n[myopn]];
+      z = cz[myel_n[myopn]];
     }
 
     /* Compute Area (length if 2D) and get midpt of face */
@@ -1089,12 +1123,6 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,INT* fel_order,trimesh mes
     if(zf) free(zf);
   }
 
-  // SHOULD I FREE THIS????
-  freecoords(cv);
-  icsr_free(&el_f);
-  icsr_free(&f_v);
-  icsr_free(&el_v);
-	
   return;
 }
 /*********************************************************************************************************/
@@ -1237,6 +1265,7 @@ void free_mesh(trimesh mesh)
   icsr_free(mesh.el_ed);
   icsr_free(mesh.el_f);
   icsr_free(mesh.ed_v);
+  icsr_free(mesh.f_v);
   if(mesh.el_vol) free(mesh.el_vol);
   if(mesh.el_mid) free(mesh.el_mid);
   if(mesh.ed_len) free(mesh.ed_len);
