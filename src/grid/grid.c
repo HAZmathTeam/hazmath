@@ -2,7 +2,7 @@
  *  grid.c
  *  
  *  Created by James Adler and Xiaozhe Hu on 1/9/15.
- *  Copyright 2015_JXLcode__. All rights reserved.
+ *  Copyright 2015__HAZMAT__. All rights reserved.
  *
  */
 
@@ -215,6 +215,7 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
   get_el_mid(el_mid,el_v,cv,dim);
   
   // Assign components to the mesh
+  mesh_temp.nelm = nelm;
   mesh_temp.nv = nv;
   mesh_temp.nedge = nedge;
   mesh_temp.ed_per_elm = ed_per_elm;
@@ -249,6 +250,7 @@ void initialize_mesh(trimesh* mesh)
   /* Initializes all components of the structure trimesh. */
 	
   mesh->dim = -666;
+  mesh->nelm = -666;
   mesh->x = NULL;
   mesh->y = NULL;
   mesh->z = NULL;
@@ -983,7 +985,6 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,INT* fel_order,trimesh mes
   INT dim = mesh.dim;
   INT el_order = mesh.v_per_elm;
   INT f_order = mesh.f_per_elm;
-  INT nv = mesh.nv;
 
   REAL *cx = mesh.x;
   REAL *cy = mesh.y;
@@ -1020,16 +1021,16 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,INT* fel_order,trimesh mes
   /* Get Face to Element Map */
   /* Get Transpose of f_el -> el_f */
   iCSRmat f_el = icsr_create(nface,nelm,f_order*nelm);
-  icsr_trans_1(&el_f,&f_el);
+  icsr_trans_1(el_f,&f_el);
 
   // Loop over all Faces
   for(i=0;i<nface;i++) {
     /* Find Vertices in given Face */
-    j_a = f_v.IA[i]-1;
-    j_b = f_v.JA[i+1]-1;
+    j_a = f_v->IA[i]-1;
+    j_b = f_v->JA[i+1]-1;
     jcnt = 0;
     for (j=j_a; j<j_b;j++) {
-      ipf[jcnt] = f_v.JA[j];
+      ipf[jcnt] = f_v->JA[j];
       xf[jcnt] = cx[ipf[jcnt]-1];
       yf[jcnt] = cy[ipf[jcnt]-1];
       if (dim==3) {
@@ -1059,11 +1060,11 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,INT* fel_order,trimesh mes
       myel = ie[0];
     }
     // Get Nodes of this chosen element
-    j_a = el_v.IA[myel-1]-1;
-    j_b = el_v.IA[myel]-1;
+    j_a = el_v->IA[myel-1]-1;
+    j_b = el_v->IA[myel]-1;
     jcnt=0;
     for(j=j_a;j<j_b;j++) {
-      myel_n[jcnt] = el_v.JA[j];
+      myel_n[jcnt] = el_v->JA[j];
       jcnt++;
     }
     x = cx[myel_n[myopn]];
@@ -1277,6 +1278,24 @@ void free_mesh(trimesh mesh)
   if(mesh.v_bdry) free(mesh.v_bdry);
   if(mesh.ed_bdry) free(mesh.ed_bdry);
   if(mesh.f_bdry) free(mesh.f_bdry);
+  
+  return;
+}
+/****************************************************************************************/
+
+/****************************************************************************************/
+void get_incidence_row(INT row,iCSRmat *fem_map,INT* thisrow)
+{
+  /* Gets single row of an incidence map (i.e., Gets vertices of given element from el_v) */
+
+  INT j;
+  INT rowa = fem_map->IA[row];
+  INT rowb = fem_map->IA[row+1]-1;
+  INT jcntr = 0;
+  for (j=rowa; j<=rowb; j++) {
+    thisrow[jcntr] = fem_map->JA[j-1];
+    jcntr++;
+  }
   
   return;
 }

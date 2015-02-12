@@ -4,13 +4,20 @@
 /*******************************************************************/  
 #include "macro.h"
 #include "grid.h"
-#include "quad.h"
 #include "sparse.h"
 #include "vec.h"
 #include "fem.h"
 void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL x,REAL y,REAL z,INT *dof,INT porder,trimesh mesh) ;
 void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dpxy,REAL x,REAL y,REAL z,INT *dof,INT porder,trimesh mesh) ;
+void allocateqcoords(qcoordinates *A,INT nq1d,INT nelm,INT mydim);
+void freeqcoords(qcoordinates A);
+void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm) ;
+void quad_edge(qcoordinates *cqedge,trimesh *mesh,INT nq1d,INT edge) ;
+void quad1d(REAL *gaussp, REAL *gaussc, INT ng1d);
+void triquad_(REAL *gp, REAL *gc, INT ng1d);
+void tetquad_(REAL *gp, REAL *gc, INT ng1d);
 void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh) ;
+void initialize_mesh(trimesh* mesh) ;
 iCSRmat convert_elmnode(INT *element_node,INT nelm,INT nv,INT nve) ;
 void get_nedge(INT* nedge, iCSRmat el_v) ;
 iCSRmat get_edge_v(INT nedge,iCSRmat el_v) ;
@@ -28,6 +35,7 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,INT* fel_order,trimesh mes
 void get_el_mid(REAL *el_mid,iCSRmat el_v,coordinates cv,INT dim) ;
 void get_el_vol(REAL *el_vol,iCSRmat el_v,coordinates cv,INT dim,INT v_per_elm) ;
 void free_mesh(trimesh mesh);
+void get_incidence_row(INT row,iCSRmat *fem_map,INT* thisrow);
 void rveci_(FILE *fp, INT *vec, INT *nn)       ;
 void rvecd_(FILE *fp,  REAL *vec, INT *nn);
 void baddimension()          ;

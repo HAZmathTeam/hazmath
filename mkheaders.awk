@@ -13,7 +13,6 @@ BEGIN {
   print "/*******************************************************************/  "
   print "#include \"macro.h\""
   print "#include \"grid.h\""
-  print "#include \"quad.h\""
   print "#include \"sparse.h\""
   print "#include \"vec.h\""
   print "#include \"fem.h\""

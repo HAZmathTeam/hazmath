@@ -46,6 +46,9 @@ typedef struct trimesh{
   //! dimension
   INT dim;
 
+  //! Number of elements
+  INT nelm;
+
   //! number of vertices
   INT nv;
 

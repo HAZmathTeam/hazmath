@@ -9,7 +9,7 @@
 DIR0 = .
 INCLUDE = -I$(DIR0)/include
 CSRCDIR = $(DIR0)/src
-LIB = $(DIR0)/lib/libJXLcode.a
+LIB = $(DIR0)/lib/libHAZMAT.a
 DRIVERS = $(DIR0)/drivers
 
 ########################################################################
@@ -76,7 +76,7 @@ FLFLAGS = -lm $(LINKOPTS) $(LIBS)
 #
 CSRC := $(wildcard $(CSRCDIR)/assemble/*.c) 
 CSRC += $(wildcard $(CSRCDIR)/fem/*.c)
-#CSRC += $(wildcard $(CSRCDIR)/grid/*.c)
+CSRC += $(wildcard $(CSRCDIR)/grid/*.c)
 CSRC += $(wildcard $(CSRCDIR)/solver/*.c)
 CSRC += $(wildcard $(CSRCDIR)/utilities/*.c)
 #
@@ -157,7 +157,7 @@ distclean:
 
 help:
 	@echo "======================================================"
-	@echo " 		   JXL_Code		             "
+	@echo " 		   HAZMAT		             "
 	@echo "======================================================"
 	@echo " "
 	@echo " make            : build all exe files "

@@ -2,7 +2,7 @@
  *  ReactionAdvectionDiffusion.c
  *  
  *  Created by James Adler and Xiaozhe Hu on 1/9/15.
- *  Copyright 2015_JXLcode__. All rights reserved.
+ *  Copyright 2015_HAZMAT__. All rights reserved.
  *
  */
 
@@ -36,6 +36,7 @@
 #include "grid.h"
 #include "vec.h"
 #include "quad.h"
+#include "fem.h"
 /***********************************************************************************************/
 
 /****** MAIN DRIVER ****************************************************************************/
@@ -47,6 +48,7 @@ int main (int argc, char* argv[])
   /****** INITIALIZE PARAMETERS **************************************************************/
   // Loop Indices
   INT i,j;
+
   // Timing Parameters
   clock_t clk_start,clk_end,clk1,clk2;
   clk_start = clock();
@@ -70,43 +72,18 @@ int main (int argc, char* argv[])
     return 0;
   }
   printf("\nLoading grid from file and creating mesh and all its properties: %s->\n",gridfile);
+  initialize_mesh(&mesh);
   creategrid(gfid,mydim,mesh);
   fclose(gfid);
-  
-	
+  	
   // Get info for FEM spaces
   INT poly = ipar[2];				       	/* Order of Elements */
   INT dof_order = mesh.v_per_elm+(poly-1)*ed_per_elm;	/* Total DOF per Element (dim+1 for linears) */
   INT nq1d = ipar[1];					/* Quadrature points per dimension */
-  INT nq = pow(nq1d,mydim);			        /* Quadrature points per element */
   INT ndof;		       				/* Generic degrees of freedom */
-	
-  // Parameters of PDE
-  REAL coef = fpar[3];
-  INT compRHS = ipar[20];			       	/* Right-hand size = mydim*pi^2*sin(pi*x)*sin(pi*y)*sin(pi*z) */
-  INT compB = ipar[13];			       		/* Zero Dirichlet Boundary Condition (2D or 3D) */
-  INT ut = ipar[5];
-  /*******************************************************************************************/
-	
-  /** INITIALIZE ANY ARRAYS NEEDED ***********************************************************/
-  qcoordinates cq;              /* Quadrature nodes and weights */
-  dCSRmat A;                    /* Global stiffness matrix */
-  REAL* f=NULL;	       	/* Global right-hand side vector */
-  REAL* u=NULL;	       	/* Solution vector (represents u*tau) */
-  REAL* utrue=NULL;       	/* True Solution vector */
-  REAL* myerr=NULL;           /* Error Vector */
-  REAL errnorm=0.0;     	/* L2 Norm of u1 Error */
-  REAL errnorml2=0.0;    	/* Little l2 error */
-  /*******************************************************************************************/
-		
-  /* Get Quadrature Nodes */
-  nq = pow(nq1d,mydim);
-  allocateqcoords(&cq,nq1d,nelm,mydim);	
-  if (mydim==2) {
-    get_quadrature(cq.x,cq.y,NULL,cq.w,cv.x,cv.y,NULL,el_v.IA,el_v.JA,nelm,nve,nq1d,mydim);
-  } else {
-    get_quadrature(cq.x,cq.y,cq.z,cq.w,cv.x,cv.y,cv.z,el_v.IA,el_v.JA,nelm,nve,nq1d,mydim);
-  }
+
+  // Get Quadrature Nodes for the Mesh
+  qcoordinates cq = get_quadrature(&mesh,nq1d);
 	
   // Get Higher Order Grids if necessary
   if(poly==1) {
@@ -376,18 +353,7 @@ int main (int argc, char* argv[])
   /*******************************************************************************************/
 	
   /******** Free All the Arrays ***************************************************************/
-  freecoords(cn);
-  freeCSRinc(el_n);
-  freeCSRinc(ed_n);
-  freeCSRinc(el_ed);
-  freeqcoords(cq);
-  if(f) free(f);
-  if(ed_bdry) free(ed_bdry);
-  if(n_bdry) free(n_bdry);
-  if(u) free(u);
-  if(utrue) free(utrue);
-  if(myerr) free(myerr);
-  freedCSRmat(A);
+  free_mesh(mesh);
   /*******************************************************************************************/
 	
   clkb = clock();
