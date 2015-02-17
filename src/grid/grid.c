@@ -635,7 +635,7 @@ void allocatecoords(coordinates *A,INT ndof,INT mydim)
 /****************************************************************************************/
 
 /****************************************************************************************/
-void freecoords(coordinates A)
+void free_coords(coordinates A)
 {
   /* fres memory of arrays of Incident matrix struct */
 

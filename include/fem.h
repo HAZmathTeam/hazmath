@@ -18,8 +18,8 @@
 #include "grid.h"
 
 /**
- * \struct coordinates
- * \brief Returns coordinates of nodes
+ * \struct qcoordinates
+ * \brief Returns coordinates of quadrature nodes
  */
 typedef struct qcoordinates{
 
@@ -42,6 +42,44 @@ typedef struct qcoordinates{
   INT nq_per_elm;
 	
 } qcoordinates;
+
+/**
+ * \struct fespace
+ * \brief Returns properties of the finite-element space
+ */
+typedef struct fespace{
+
+  //! x values of coordinates of dof
+  REAL* x;
+
+  //! y values of coordinates of dof
+  REAL* y;
+
+  //! z values of coordinates of dof(if in 3D)
+  REAL* z;
+
+  //! number of DOF 
+  INT ndof;
+
+  //! number of DOF on boundary
+  INT nbdof;
+
+  //! number of DOF per element
+  INT dof_per_elm;
+
+  //! Element to DOF map
+  iCSRmat* el_dof;
+
+  //! Edge to DOF map
+  iCSRmat* ed_dof;
+
+  //! Face to DOF map
+  iCSRmat* f_dof;
+
+  //! Dirichlet Boundary map
+  INT* dof_bdry;
+	
+} fespace;
 
 
 #endif

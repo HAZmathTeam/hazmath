@@ -67,7 +67,7 @@ void allocateqcoords(qcoordinates *A,INT nq1d,INT nelm,INT mydim)
 /****************************************************************************************/
 
 /****************************************************************************************/
-void freeqcoords(qcoordinates A)
+void free_qcoords(qcoordinates A)
 {
   /* fres memory of arrays of Incident matrix struct */
 
@@ -116,7 +116,7 @@ qcoordinates get_quadrature(trimesh *mesh,INT nq1d)
     }
   }
   
-  freeqcoords(cqelm);
+  free_qcoords(cqelm);
 	
   return cq_all;
 }
@@ -222,7 +222,7 @@ void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm)
 	
   if(gp) free(gp);
   if(gw) free(gw);
-  freecoords(cvelm);
+  free_coords(cvelm);
   if(thiselm_v) free(thiselm_v);
 	
   return;
@@ -264,7 +264,7 @@ qcoordinates get_quadrature_edge(trimesh *mesh,INT nq1d)
     }
   }
   
-  freeqcoords(cqedge);
+  free_qcoords(cqedge);
 	
   return cq_all;
 }
@@ -371,7 +371,7 @@ void quad_edge(qcoordinates *cqedge,trimesh *mesh,INT nq1d,INT edge)
 
   if(gp) free(gp);
   if(gw) free(gw);
-  freecoords(cvedge);
+  free_coords(cvedge);
   if(thisedge_v) free(thisedge_v);
 	
   return;

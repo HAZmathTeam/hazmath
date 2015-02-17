@@ -4,20 +4,6 @@
  *  Created by James Adler and Xiaozhe Hu on 1/9/15.
  *  Copyright 2015_HAZMAT__. All rights reserved.
  *
- */
-
-// Standard Includes
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
-#include <limits.h>
-#include <getopt.h>
-#include <sys/types.h>
-#include <time.h>
-#include <unistd.h>
-
-/*
  *  Discussion:
  *
  *    This program solves the Advection-Reaction-Diffusion Equation using finite elements
@@ -31,21 +17,30 @@
  *      u = 0
  */
 
-/*********** EXTERNAL FUNCTIONS ****************************************************************/
+/*********** EXTERNAL FUNCTIONS *****************/
+// Standard Includes
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <math.h>
+#include <limits.h>
+#include <getopt.h>
+#include <sys/types.h>
+#include <time.h>
+#include <unistd.h>
+// Internal Includes
 #include "sparse.h"
 #include "grid.h"
 #include "vec.h"
 #include "quad.h"
 #include "fem.h"
-/***********************************************************************************************/
+/************************************************/
 
-/****** MAIN DRIVER ****************************************************************************/
+/****** MAIN DRIVER *****************************/
 int main (int argc, char* argv[]) 
-{
-	
-  printf("\nBeginning Program to create Finite Element Matrices for ReactionAdvectionDiffusion.c\n");
-	
-  /****** INITIALIZE PARAMETERS **************************************************************/
+{	
+  printf("\nBeginning Program to create Finite Element Matrices for ReactionAdvectionDiffusion.c\n");	
+  /****** INITIALIZE PARAMETERS ****************/
   // Loop Indices
   INT i,j;
 
@@ -58,6 +53,12 @@ int main (int argc, char* argv[])
   REAL fpar[20];	
   char gridfile[50];
   getinput(gridfile,fpar,ipar);
+  // Open gridfile for reading
+  gfid = fopen(gridfile,"r");
+  if( gfid == NULL ) { 
+    printf("\nError opening Grid File!!!\nFile (%s) probably doesn't exist...\nAborting Program.\n\n",gridfile);
+    return 0;
+  }
 	
   // Dimension is needed for all this to work
   INT mydim = ipar[0];
@@ -65,78 +66,23 @@ int main (int argc, char* argv[])
   // Create the mesh (now we assume triangles in 2D or tetrahedra in 3D)
   clk1 = clock();
   trimesh mesh;
-  // Open gridfile for reading
-  gfid = fopen(gridfile,"r");
-  if( gfid == NULL ) { 
-    printf("\nError opening Grid File!!!\nFile (%s) probably doesn't exist...\nAborting Program.\n\n",gridfile);
-    return 0;
-  }
   printf("\nLoading grid from file and creating mesh and all its properties: %s->\n",gridfile);
   initialize_mesh(&mesh);
   creategrid(gfid,mydim,mesh);
   fclose(gfid);
-  	
-  // Get info for FEM spaces
-  INT poly = ipar[2];				       	/* Order of Elements */
-  INT dof_order = mesh.v_per_elm+(poly-1)*ed_per_elm;	/* Total DOF per Element (dim+1 for linears) */
-  INT nq1d = ipar[1];					/* Quadrature points per dimension */
-  INT ndof;		       				/* Generic degrees of freedom */
 
   // Get Quadrature Nodes for the Mesh
+  INT nq1d = ipar[1];	/* Quadrature points per dimension */
   qcoordinates cq = get_quadrature(&mesh,nq1d);
-	
-  // Get Higher Order Grids if necessary
-  if(poly==1) {
-    n = nvert;
-  } else if(poly==2) {
-    n = nvert+nedge;
-    nbvert = nbvert+nbedge;
-  }
-  allocatecoords(&cn,n,mydim);
-  allocateCSRinc(&el_n,nelm,n,nelm*element_order);
-  n_bdry = calloc(n,sizeof(INT));
-	
-  if (mydim==3) {
-    if (poly==1) {
-      for(i=0;i<n;i++) {
-	cn.x[i] = cv.x[i];
-	cn.y[i] = cv.y[i];
-	cn.z[i] = cv.z[i];
-	n_bdry[i] = v_bdry[i];
-      }
-      for (i=0; i<nelm+1; i++) {
-	el_n.IA[i] = el_v.IA[i];
-      }
-      for (i=0; i<nelm*element_order; i++) {
-	el_n.JA[i] = el_v.JA[i];
-      }
-    } else if (poly==2) {
-      get_P2(cn.x,cn.y,cn.z,el_n.IA,el_n.JA,cv.x,cv.y,cv.z,el_v.IA,el_v.JA,nve,element_order,el_ed.IA,el_ed.JA,ed_n.IA,ed_n.JA,nvert,mydim,nelm,nedge,n_bdry,v_bdry,ed_bdry);
-    }	
-  } else { // 2D		
-    if (poly==1) {
-      for	(i=0;i<n;i++) {
-	cn.x[i] = cv.x[i];
-	cn.y[i] = cv.y[i];
-	n_bdry[i] = v_bdry[i];
-      }
-      for (i=0; i<nelm+1; i++) {
-	el_n.IA[i] = el_v.IA[i];
-      }
-      for (i=0; i<nelm*element_order; i++) {
-	el_n.JA[i] = el_v.JA[i];
-      }
-    } else if (poly==2) {
-      get_P2(cn.x,cn.y,cn.z,el_n.IA,el_n.JA,cv.x,cv.y,cv.z,el_v.IA,el_v.JA,nve,element_order,el_ed.IA,el_ed.JA,ed_n.IA,ed_n.JA,nvert,mydim,nelm,nedge,n_bdry,v_bdry,ed_bdry);
-    }
-  }
+  	
+  // Get info for and create FEM spaces
+  INT poly = ipar[2];	/* Order of Elements: 0 - P0; 1 - P1; 2 - P2; -1 - Nedelec; -2 - Raviart-Thomas */
+  fespace FE;
+  create_fespace(&FE,&mesh,poly);
+
   if(dumpmesh==1) {
     dumpmeshdata(el_n.IA,el_n.JA,el_v.IA,el_v.JA,cn.x,cn.y,cn.z,nelm,n,nvert,element_order,mydim+1,mydim,40,n_bdry,n);
   }
-	
-  freecoords(cv);
-  freeCSRinc(el_v);
-  if(v_bdry) free(v_bdry);
 	
   clk1 = clock();
   printf("Elapsed CPU Time for Conversion = %f seconds.\n\n",(REAL) (clk1 - clk0)/CLOCKS_PER_SEC);
@@ -354,6 +300,8 @@ int main (int argc, char* argv[])
 	
   /******** Free All the Arrays ***************************************************************/
   free_mesh(mesh);
+  free_qcoords(cq);
+  free_fespace(FE);
   /*******************************************************************************************/
 	
   clkb = clock();
