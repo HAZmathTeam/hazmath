@@ -100,7 +100,7 @@ OBJSC := $(patsubst %.c,%.o,$(CSRC))
 ########################################################################
 
 # Everything
-ALLPROG=$(LIB) test
+ALLPROG=$(LIB) test diff
 
 ########################################################################
 # Link
@@ -130,6 +130,9 @@ test: $(LIB)
 	$(CC) $(CFLAGS) -c $(DRIVERS)/test.c -o $(DRIVERS)/test.o
 	$(CC) $(LOPT) $(DRIVERS)/test.o $(CLFLAGS) -o test.ex
 
+diff: $(LIB)
+	$(CC) $(CFLAGS) -c $(DRIVERS)/ReactionAdvectionDiffusion.c -o $(DRIVERS)/ReactionAdvectionDiffusion.o
+	$(CC) $(LOPT) $(DRIVERS)/ReactionAdvectionDiffusion.o $(CLFLAGS) -o diff.ex
 ########################################################################
 # Clean up
 ########################################################################

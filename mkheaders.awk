@@ -38,7 +38,7 @@ BEGIN {
   next;
 }
 
-!/^INT|^REAL|^FILE|^OFF_T|^size_t|^off_t|^pid_t|^unsigned|^mode_t|^DIR|^user|^int|^char|^uint|^struct|^BOOL|^void|^double|^time|^dCSRmat|^dvector|^iCSRmat|^ivector|^AMG_data/ {
+!/^INT|^REAL|^coordinates|^qcoordinates|^FILE|^OFF_T|^size_t|^off_t|^pid_t|^unsigned|^mode_t|^DIR|^user|^int|^char|^uint|^struct|^BOOL|^void|^double|^time|^dCSRmat|^dvector|^iCSRmat|^ivector|^AMG_data/ {
   next;
 }
 

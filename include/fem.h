@@ -49,14 +49,11 @@ typedef struct qcoordinates{
  */
 typedef struct fespace{
 
-  //! x values of coordinates of dof
-  REAL* x;
+  //! Type of finite element: 0 - P0; 1 - P1; 2 - P2; -1 - Nedelec; -2 - Raviart-Thomas
+  INT FEtype;
 
-  //! y values of coordinates of dof
-  REAL* y;
-
-  //! z values of coordinates of dof(if in 3D)
-  REAL* z;
+  //! Coordinates of DOF
+  coordinates* cdof;
 
   //! number of DOF 
   INT ndof;

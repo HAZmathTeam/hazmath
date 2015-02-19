@@ -133,7 +133,7 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
     get_nedge(&nedge,el_v); 
   }
   iCSRmat ed_v = get_edge_v(nedge,el_v);
-	
+  
   /* Get Boundary Edges and Vertices */
   INT* ed_bdry = (INT *) calloc(nedge,sizeof(INT));
   if (dim==2) {
@@ -197,9 +197,7 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
   REAL* f_norm = (REAL *) calloc(nface*dim,sizeof(REAL));
   // Need to update mesh_temp for a few things first
   mesh_temp.dim = dim;
-  mesh_temp.x = cv.x;
-  mesh_temp.y = cv.y;
-  mesh_temp.z = cv.z;
+  mesh_temp.cv = &cv;
   mesh_temp.f_per_elm = f_per_elm;
   mesh_temp.el_v = &el_v;
   mesh_temp.el_f = &el_f;
@@ -251,9 +249,7 @@ void initialize_mesh(trimesh* mesh)
 	
   mesh->dim = -666;
   mesh->nelm = -666;
-  mesh->x = NULL;
-  mesh->y = NULL;
-  mesh->z = NULL;
+  mesh->cv = NULL;
   mesh->f_per_elm = -666;
   mesh->el_v = NULL;
   mesh->el_f = NULL;
@@ -427,10 +423,11 @@ iCSRmat get_edge_v(INT nedge,iCSRmat el_v)
 	
   /* Create Vertex to Vertex Map by v_el*el_v */
   iCSRmat v_v;
+  printf("hello\n\n");
   icsr_mxm_1(&v_el,&el_v,&v_v);
   INT* iv_v = v_v.IA;
   INT* jv_v = v_v.JA;
-	
+	  
   // Now go through upper triangular (above diagonal) portion of node-node and count non-zeros
   // Each of these node-node connections are edges.  Upper so we don't count i->j and j->i as two
   // separate edges, and no diagonal since i->i is not an edge.
@@ -635,13 +632,13 @@ void allocatecoords(coordinates *A,INT ndof,INT mydim)
 /****************************************************************************************/
 
 /****************************************************************************************/
-void free_coords(coordinates A)
+void free_coords(coordinates* A)
 {
   /* fres memory of arrays of Incident matrix struct */
 
-  if(A.x) free(A.x);
-  if(A.y) free(A.y);
-  if(A.z) free(A.z);
+  if(A->x) free(A->x);
+  if(A->y) free(A->y);
+  if(A->z) free(A->z);
   
   return;
 }
@@ -986,9 +983,7 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,INT* fel_order,trimesh mes
   INT el_order = mesh.v_per_elm;
   INT f_order = mesh.f_per_elm;
 
-  REAL *cx = mesh.x;
-  REAL *cy = mesh.y;
-  REAL *cz = mesh.z;
+  coordinates *cv = mesh.cv;
 
   iCSRmat *el_f = mesh.el_f;
   iCSRmat *f_v = mesh.f_v; 
@@ -1031,10 +1026,10 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,INT* fel_order,trimesh mes
     jcnt = 0;
     for (j=j_a; j<j_b;j++) {
       ipf[jcnt] = f_v->JA[j];
-      xf[jcnt] = cx[ipf[jcnt]-1];
-      yf[jcnt] = cy[ipf[jcnt]-1];
+      xf[jcnt] = cv->x[ipf[jcnt]-1];
+      yf[jcnt] = cv->y[ipf[jcnt]-1];
       if (dim==3) {
-	zf[jcnt] = cz[ipf[jcnt]-1];
+	zf[jcnt] = cv->z[ipf[jcnt]-1];
       }
       jcnt++;
     }
@@ -1067,11 +1062,11 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,INT* fel_order,trimesh mes
       myel_n[jcnt] = el_v->JA[j];
       jcnt++;
     }
-    x = cx[myel_n[myopn]];
-    y = cy[myel_n[myopn]];
+    x = cv->x[myel_n[myopn]];
+    y = cv->y[myel_n[myopn]];
     z = -666.66;
     if(dim==3) {
-      z = cz[myel_n[myopn]];
+      z = cv->z[myel_n[myopn]];
     }
 
     /* Compute Area (length if 2D) and get midpt of face */
@@ -1255,29 +1250,27 @@ void get_el_vol(REAL *el_vol,iCSRmat el_v,coordinates cv,INT dim,INT v_per_elm)
 /*********************************************************************************************************/
 
 /****************************************************************************************/
-void free_mesh(trimesh mesh)
+void free_mesh(trimesh* mesh)
 {
   /* frees memory of arrays in mesh struct */
 
-  if(mesh.x) free(mesh.x);
-  if(mesh.y) free(mesh.y);
-  if(mesh.x) free(mesh.z);
-  icsr_free(mesh.el_v);
-  icsr_free(mesh.el_ed);
-  icsr_free(mesh.el_f);
-  icsr_free(mesh.ed_v);
-  icsr_free(mesh.f_v);
-  if(mesh.el_vol) free(mesh.el_vol);
-  if(mesh.el_mid) free(mesh.el_mid);
-  if(mesh.ed_len) free(mesh.ed_len);
-  if(mesh.ed_tau) free(mesh.ed_tau);
-  if(mesh.ed_mid) free(mesh.ed_mid);
-  if(mesh.f_area) free(mesh.f_area);
-  if(mesh.f_norm) free(mesh.f_norm);
-  if(mesh.f_mid) free(mesh.f_mid);
-  if(mesh.v_bdry) free(mesh.v_bdry);
-  if(mesh.ed_bdry) free(mesh.ed_bdry);
-  if(mesh.f_bdry) free(mesh.f_bdry);
+  free_coords(mesh->cv);
+  icsr_free(mesh->el_v);
+  icsr_free(mesh->el_ed);
+  icsr_free(mesh->el_f);
+  icsr_free(mesh->ed_v);
+  icsr_free(mesh->f_v);
+  if(mesh->el_vol) free(mesh->el_vol);
+  if(mesh->el_mid) free(mesh->el_mid);
+  if(mesh->ed_len) free(mesh->ed_len);
+  if(mesh->ed_tau) free(mesh->ed_tau);
+  if(mesh->ed_mid) free(mesh->ed_mid);
+  if(mesh->f_area) free(mesh->f_area);
+  if(mesh->f_norm) free(mesh->f_norm);
+  if(mesh->f_mid) free(mesh->f_mid);
+  if(mesh->v_bdry) free(mesh->v_bdry);
+  if(mesh->ed_bdry) free(mesh->ed_bdry);
+  if(mesh->f_bdry) free(mesh->f_bdry);
   
   return;
 }
@@ -1300,3 +1293,34 @@ void get_incidence_row(INT row,iCSRmat *fem_map,INT* thisrow)
   return;
 }
 /****************************************************************************************/
+
+/****************************************************************************************/
+void dump_coords(FILE* fid,coordinates *c) 
+{
+  /* Dump the coordinate data to file for plotting purposes
+   *
+   * Input:		
+   *          c:      Coordinate data.
+   *
+   * Output:		
+   *          coord.dat:    coord(n,dim)  coordinates of nodes
+   *
+   */
+	
+  INT i; /* Loop Indices */
+		
+  if (c->z) {
+    for (i=0; i<c->n; i++) {
+      fprintf(fid,"%25.16e\t%25.16e\t%25.16e\n",c->x[i],c->y[i],c->z[i]);
+    }
+  } else {
+    for (i=0; i<c->n; i++) {
+      fprintf(fid,"%25.16e\t%25.16e\n",c->x[i],c->y[i]);
+    }
+  }
+   		
+  return;
+}
+/****************************************************************************************/
+
+

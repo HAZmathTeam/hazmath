@@ -71,9 +71,7 @@ typedef struct trimesh{
   INT nholes;
 
   //! coordinates of vertices
-  REAL* x;
-  REAL* y;
-  REAL* z;
+  coordinates* cv;
     
   //! number of vertices on boundary
   INT nbv;

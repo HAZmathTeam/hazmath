@@ -123,14 +123,16 @@ void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL x,REAL y,REAL z,INT 
   REAL* yp = (REAL *) calloc(v_per_elm,sizeof(REAL));
   REAL* zp=NULL;
 
+  coordinates* cv = mesh.cv;
+
   
   // 2D and 3D is slightly different
   if(dim==2) {
   
     // Get Physical Coordinates of Vertices
     for (i=0; i<v_per_elm; i++) {
-      xp[i] = mesh.x[dof[i]-1];
-      yp[i] = mesh.y[dof[i]-1];
+      xp[i] = cv->x[dof[i]-1];
+      yp[i] = cv->y[dof[i]-1];
     }
 		
     // Get coordinates on reference triangle
@@ -210,9 +212,9 @@ void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL x,REAL y,REAL z,INT 
     zp = (REAL *) calloc(v_per_elm,sizeof(REAL));
     // Get Nodes and Physical Coordinates
     for (i=0; i<v_per_elm; i++) {
-      xp[i] = mesh.x[dof[i]-1];
-      yp[i] = mesh.y[dof[i]-1];
-      zp[i] = mesh.z[dof[i]-1];
+      xp[i] = cv->x[dof[i]-1];
+      yp[i] = cv->y[dof[i]-1];
+      zp[i] = cv->z[dof[i]-1];
     }
 		
     // Get coordinates on reference triangle
@@ -392,11 +394,13 @@ void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dp
   REAL dp1rr,dp2rr,dp3rr,dp4rr,dp5rr,dp6rr;
   REAL dp1ss,dp2ss,dp3ss,dp4ss,dp5ss,dp6ss;
   REAL dp1rs,dp2rs,dp3rs,dp4rs,dp5rs,dp6rs;
+
+  coordinates* cv = mesh.cv;
 	
   // Get Nodes and Physical Coordinates of vertices only
   for (i=0; i<3; i++) {
-    xp[i] = mesh.x[dof[i]-1];
-    yp[i] = mesh.y[dof[i]-1];
+    xp[i] = cv->x[dof[i]-1];
+    yp[i] = cv->y[dof[i]-1];
   }
 		
   // Get coordinates on reference triangle

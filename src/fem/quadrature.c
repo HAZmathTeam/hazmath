@@ -67,20 +67,20 @@ void allocateqcoords(qcoordinates *A,INT nq1d,INT nelm,INT mydim)
 /****************************************************************************************/
 
 /****************************************************************************************/
-void free_qcoords(qcoordinates A)
+void free_qcoords(qcoordinates* A)
 {
   /* fres memory of arrays of Incident matrix struct */
 
-  if(A.x) free(A.x);
-  if(A.y) free(A.y);
-  if(A.z) free(A.z);
-  if(A.w) free(A.w);
+  if(A->x) free(A->x);
+  if(A->y) free(A->y);
+  if(A->z) free(A->z);
+  if(A->w) free(A->w);
   
   return;
 }
 /****************************************************************************************/
 
-/********************************************************************************************************************/
+/****************************************************************************************/
 qcoordinates get_quadrature(trimesh *mesh,INT nq1d) 
 {	
   /* Computes quadrature weights and nodes for entire domain using nq1d^(dim) quadrature nodes per element
@@ -116,7 +116,7 @@ qcoordinates get_quadrature(trimesh *mesh,INT nq1d)
     }
   }
   
-  free_qcoords(cqelm);
+  free_qcoords(&cqelm);
 	
   return cq_all;
 }
@@ -170,8 +170,8 @@ void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm)
   // Get coordinates of vertices for given element
   if(dim==2) {
     for (j=0; j<v_per_elm; j++) {
-      cvelm.x[j] = mesh->x[thiselm_v[j]-1];
-      cvelm.y[j] = mesh->y[thiselm_v[j]-1];
+      cvelm.x[j] = mesh->cv->x[thiselm_v[j]-1];
+      cvelm.y[j] = mesh->cv->y[thiselm_v[j]-1];
     }
 
     voldim = 2.0*e_vol;
@@ -192,9 +192,9 @@ void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm)
     }
   } else if(dim==3) {
     for (j=0; j<v_per_elm; j++) {
-      cvelm.x[j] = mesh->x[thiselm_v[j]-1];
-      cvelm.y[j] = mesh->y[thiselm_v[j]-1];
-      cvelm.z[j] = mesh->z[thiselm_v[j]-1];
+      cvelm.x[j] = mesh->cv->x[thiselm_v[j]-1];
+      cvelm.y[j] = mesh->cv->y[thiselm_v[j]-1];
+      cvelm.z[j] = mesh->cv->z[thiselm_v[j]-1];
     }
 
     voldim = 6.0*e_vol;
@@ -222,7 +222,7 @@ void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm)
 	
   if(gp) free(gp);
   if(gw) free(gw);
-  free_coords(cvelm);
+  free_coords(&cvelm);
   if(thiselm_v) free(thiselm_v);
 	
   return;
@@ -264,7 +264,7 @@ qcoordinates get_quadrature_edge(trimesh *mesh,INT nq1d)
     }
   }
   
-  free_qcoords(cqedge);
+  free_qcoords(&cqedge);
 	
   return cq_all;
 }
@@ -314,14 +314,14 @@ void quad_edge(qcoordinates *cqedge,trimesh *mesh,INT nq1d,INT edge)
   get_incidence_row(edge,ed_v,thisedge_v);
   if(dim==2) {
     for (j=0; j<2; j++) {
-      cvedge.x[j] = mesh->x[thisedge_v[j]-1];
-      cvedge.y[j] = mesh->y[thisedge_v[j]-1];
+      cvedge.x[j] = mesh->cv->x[thisedge_v[j]-1];
+      cvedge.y[j] = mesh->cv->y[thisedge_v[j]-1];
     }
   } else if(dim==3){
     for (j=0; j<2; j++) {
-      cvedge.x[j] = mesh->x[thisedge_v[j]-1];
-      cvedge.y[j] = mesh->y[thisedge_v[j]-1];
-      cvedge.z[j] = mesh->z[thisedge_v[j]-1];
+      cvedge.x[j] = mesh->cv->x[thisedge_v[j]-1];
+      cvedge.y[j] = mesh->cv->y[thisedge_v[j]-1];
+      cvedge.z[j] = mesh->cv->z[thisedge_v[j]-1];
     }
   } else {
     baddimension();
@@ -371,12 +371,46 @@ void quad_edge(qcoordinates *cqedge,trimesh *mesh,INT nq1d,INT edge)
 
   if(gp) free(gp);
   if(gw) free(gw);
-  free_coords(cvedge);
+  free_coords(&cvedge);
   if(thisedge_v) free(thisedge_v);
 	
   return;
 }
-/********************************************************************************************************************/
+/****************************************************************************************/
+
+/****************************************************************************************/
+void dump_qcoords(qcoordinates *q) 
+{
+  /* Dump the coordinate data to file for plotting purposes
+   *
+   * Input:		
+   *          q:      Quadrature data.
+   *
+   * Output:		
+   *          qcoord.dat:    qcoord(nq,dim+1)  coordinates of nodes
+   *
+   */
+	
+  INT i; /* Loop Indices */
+	
+  FILE* fid = fopen("output/qcoord.dat","w");
+	
+  if (q->z) {
+    for (i=0; i<q->n; i++) {
+      fprintf(fid,"%25.16e\t%25.16e\t%25.16e\t%25.16e\n",q->x[i],q->y[i],q->z[i],q->w[i]);
+    }
+  } else {
+    for (i=0; i<q->n; i++) {
+      fprintf(fid,"%25.16e\t%25.16e\t%25.16e\n",q->x[i],q->y[i],q->w[i]);
+    }
+  }
+   
+	
+  fclose(fid);
+	
+  return;
+}
+/****************************************************************************************/
 
 /**************************************************************/
 /**** Integration Routines ********/
