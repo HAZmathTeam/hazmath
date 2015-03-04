@@ -109,21 +109,44 @@ void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL x,REAL y,REAL z,INT 
    *          dpx,dpy(3)	  Derivatives of basis functions at each vertex evaluated at given point
    */
 	
-	
+
+    
   REAL dp1r,dp2r,dp3r,dp4r,dp5r,dp6r,dp7r,dp8r,dp9r,dp10r;
   REAL dp1s,dp2s,dp3s,dp4s,dp5s,dp6s,dp7s,dp8s,dp9s,dp10s;
   REAL dp1t,dp2t,dp3t,dp4t,dp5t,dp6t,dp7t,dp8t,dp9t,dp10t;
   REAL onemrst;
   INT i;
+    
+    printf("hello-basis0\n");
+
+    
   // Get Mesh Data
   INT v_per_elm = mesh.v_per_elm;
   INT dim = mesh.dim;
+    
+    printf("hello-basis1\n");
+    
+    printf("v_per_elm = %d\n", v_per_elm);
+    printf("dim = %d\n", dim);
+
 
   REAL* xp = (REAL *) calloc(v_per_elm,sizeof(REAL));
+    
+    printf("hello-basis11\n");
+
+    
   REAL* yp = (REAL *) calloc(v_per_elm,sizeof(REAL));
-  REAL* zp=NULL;
+    
+    printf("hello-basis12\n");
+
+    
+  REAL* zp = NULL;
+    
+    printf("hello-basis2\n");
+
 
   coordinates* cv = mesh.cv;
+
 
   
   // 2D and 3D is slightly different
@@ -356,6 +379,8 @@ void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL x,REAL y,REAL z,INT 
   } else {
     baddimension();
   }
+    
+    printf("hello-basis3\n");
 	
   if(xp) free(xp);
   if(yp) free(yp);

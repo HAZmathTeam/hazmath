@@ -118,13 +118,16 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
       if(v_bdry[i])
 	nbv++;
   }
-  if(bdry_v) free(bdry_v);
+    
+    
+  // if(bdry_v) free(bdry_v);  // I comment this out since otherwise it give seg fault later -- Xiaozhe
+    
 
-  printf("\nConverting Grid Maps to CSR and Computing Data Structures:\n ");	
+  printf("\nConverting Grid Maps to CSR and Computing Data Structures:\n ");
   /* Element Vertex Map */
   iCSRmat el_v = convert_elmnode(element_vertex,nelm,nv,v_per_elm);
   if(element_vertex) free(element_vertex);
-	
+    
   /* Edge to Vertex Map */
   INT nedge = 0;
   if(dim==2) {  
@@ -132,26 +135,38 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
   } else if(dim==3) {
     get_nedge(&nedge,el_v); 
   }
+
+
   iCSRmat ed_v = get_edge_v(nedge,el_v);
-  
+
+    
   /* Get Boundary Edges and Vertices */
   INT* ed_bdry = (INT *) calloc(nedge,sizeof(INT));
   if (dim==2) {
+      
     isboundary_ed(ed_v,nedge,nbedge,bdry_v,ed_bdry);
     isboundary_v(nv,bdry_v,v_bdry,nbedge,&nbv);
-    if(bdry_v) free(bdry_v);
+
+
   } else if(dim==3) {
     isboundary_ed3D(ed_v,nedge,cv,&nbedge,v_bdry,ed_bdry);
   }
+
+  if(bdry_v) free(bdry_v);
 	
   /* Element to Edge Map */
   iCSRmat el_ed = get_el_ed(el_v,ed_v);
+    
+
 
   /* Get Edge Stats such as edge lengths, midpoints, and tangent vectors */
   REAL* ed_len = (REAL *) calloc(nedge,sizeof(REAL));
   REAL* ed_tau = (REAL *) calloc(nedge*dim,sizeof(REAL));
   REAL* ed_mid = (REAL *) calloc(nedge*dim,sizeof(REAL));
+    
+
   edge_stats_all(ed_len,ed_tau,ed_mid,cv,ed_v,dim);
+    
 
   /* Figure out Number of Faces */
   INT nface = 0;
@@ -172,6 +187,8 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
     exit(0);
   }
 
+
+    
   // In order to get some of the face maps, we need to know how the faces are ordered on each element
   // This is done by the same ordering as the nodes, connecting the opposite face with each node.
   INT* fel_order= (INT *)calloc(f_per_elm*dim,sizeof(INT));
@@ -191,6 +208,7 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
       f_bdry[i] = v_bdry[k];
     }
   }
+    
   // Next get the face data, such as areas, midpoints, and normal vectors 
   REAL* f_area = (REAL *) calloc(nface,sizeof(REAL));
   REAL* f_mid = (REAL *) calloc(nface*dim,sizeof(REAL));
@@ -203,8 +221,14 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
   mesh_temp.el_f = &el_f;
   mesh_temp.v_per_elm = v_per_elm;
   mesh_temp.f_v = &f_v;
+    
+    printf("hello\n");
+    
   // TODO check if passing the mesh was done correctly
   face_stats(f_area,f_mid,f_norm,fel_order,mesh_temp);
+    
+    printf("hello1\n");
+
 
   // Finally get volumes/areas of elements and the midpoint (barycentric)
   REAL* el_mid = (REAL *) calloc(nelm*dim,sizeof(REAL));
@@ -423,8 +447,7 @@ iCSRmat get_edge_v(INT nedge,iCSRmat el_v)
 	
   /* Create Vertex to Vertex Map by v_el*el_v */
   iCSRmat v_v;
-  printf("hello\n\n");
-  icsr_mxm_1(&v_el,&el_v,&v_v);
+  icsr_mxm_symb_1(&v_el,&el_v,&v_v);
   INT* iv_v = v_v.IA;
   INT* jv_v = v_v.JA;
 	  
@@ -449,8 +472,8 @@ iCSRmat get_edge_v(INT nedge,iCSRmat el_v)
   ed_v.IA[icntr] = jcntr+1;		
 	
   /* Free Node Node */
-  free(iv_v);
-  free(jv_v);
+    //free(iv_v);
+    //free(jv_v);
   icsr_free(&v_v);
   icsr_free(&v_el);
 
@@ -458,7 +481,7 @@ iCSRmat get_edge_v(INT nedge,iCSRmat el_v)
   ed_v.row = nedge;
   ed_v.col = nv;
   ed_v.nnz = 2*nedge;
-	
+    
   return ed_v;
 }
 /***********************************************************************************************/
@@ -478,15 +501,20 @@ void isboundary_v(INT nv,INT *bdry_v,INT *v_bdry,INT nbedge,INT *nbv)
    */
 	
   INT i,m,cnt;
+    
 	
   for (i=0; i<nv; i++) {
     v_bdry[i] = 0;
   }
+    
+
 	
   for (i=0; i<2*nbedge; i++) {
     m = bdry_v[i];
     v_bdry[m-1] = 1;
   }
+    
+
 	
   cnt = 0;
   for (i=0; i<nv; i++) {
@@ -495,6 +523,8 @@ void isboundary_v(INT nv,INT *bdry_v,INT *v_bdry,INT nbedge,INT *nbv)
     }
   }
   *nbv = cnt;
+    
+
   return;
 }
 /***********************************************************************************************/
@@ -606,6 +636,7 @@ iCSRmat get_el_ed(iCSRmat el_v,iCSRmat ed_v)
   
   icsr_free(&v_ed);
 
+    
   return el_ed;
 }
 /***********************************************************************************************/
@@ -975,6 +1006,8 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,INT* fel_order,trimesh mes
    *             f_mid(nface,dim)     Midpoints of face
    *            
    */
+    
+    printf("hello-in\n");
 	
   INT i,jcnt,j,j_a,j_b; /* loop index */
   INT nface = mesh.el_f->col;
@@ -1015,8 +1048,14 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,INT* fel_order,trimesh mes
   
   /* Get Face to Element Map */
   /* Get Transpose of f_el -> el_f */
+    
+    printf("hello-in1\n");
+    
   iCSRmat f_el = icsr_create(nface,nelm,f_order*nelm);
   icsr_trans_1(el_f,&f_el);
+    
+    printf("hello-in2\n");
+
 
   // Loop over all Faces
   for(i=0;i<nface;i++) {
@@ -1034,6 +1073,9 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,INT* fel_order,trimesh mes
       jcnt++;
     }
 
+      printf("hello-in3\n");
+
+      
     // Find Corresponding Elements and order in element 
     // Also picks correct opposite node to form vector 
     // normal vectors point from lower number element to higher one
@@ -1068,6 +1110,9 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,INT* fel_order,trimesh mes
     if(dim==3) {
       z = cv->z[myel_n[myopn]];
     }
+      
+      printf("hello-in3\n");
+
 
     /* Compute Area (length if 2D) and get midpt of face */
     if(dim==2) {
@@ -1089,21 +1134,32 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,INT* fel_order,trimesh mes
       baddimension();
     }
 	
+      printf("hello-in4\n");
+
+      
     //Compute Normal Vectors based on opposite node
     //Get Linear Basis Functions for particular element
     PX_H1_basis(p,dpx,dpy,dpz,x,y,z,myel_n,1,mesh);
+      printf("hello-in5\n");
     grad_mag = dpx[myopn]*dpx[myopn]+dpy[myopn]*dpy[myopn];
+      printf("hello-in6\n");
     if(dim==3) {
       grad_mag = grad_mag + dpz[myopn]*dpz[myopn];
     }
+      printf("hello-in7\n");
     grad_mag = -sqrt(grad_mag);
     f_norm[i*dim] = dpx[myopn]/grad_mag;
     f_norm[i*dim+1] = dpy[myopn]/grad_mag;
+      printf("hello-in8\n");
     if(dim==3) {
       f_norm[i*dim+2] = dpz[myopn]/grad_mag;
     }
+      printf("hello-in9\n");
+
   }
 
+
+    
   icsr_free(&f_el);
   if(ipf) free(ipf);
   if(xf) free(xf);
