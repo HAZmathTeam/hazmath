@@ -633,7 +633,13 @@ iCSRmat get_el_ed(iCSRmat el_v,iCSRmat ed_v)
   iCSRmat v_ed;
   icsr_trans_1(&ed_v,&v_ed);
   icsr_mxm_symb_max_1(&el_v,&v_ed,&el_ed,2);
-  
+  printf("nedge=%d\tnv=%d\n",ed_v.row,ed_v.col);
+  pveci_(ed_v.IA,(ed_v.row)+1);
+  pveci_(ed_v.JA,ed_v.nnz);
+  pveci_(v_ed.IA,v_ed.row+1);
+  pveci_(v_ed.JA,v_ed.nnz);
+  pveci_(el_ed.IA,el_ed.row+1);
+  pveci_(el_ed.JA,el_ed.nnz);
   icsr_free(&v_ed);
 
     
