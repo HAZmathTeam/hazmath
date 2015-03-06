@@ -108,16 +108,3 @@ void getinput(char* gridfile,REAL* fpar,INT* ipar)
 }
 /****************************************************************************************/
 
-/****************************************************************************************/
-void pveci_(INT *vec, INT n   )          
-{
-  /* prints a vector of integers of size nn */
-  INT *vec_end;
-  vec_end  =  vec + n;
-  fprintf(stdout,"\n");
-  for ( ; vec < vec_end; ++vec)
-    fprintf(stdout, "%i  ",*vec);
-  fprintf(stdout,"\n");
-  return;
-}
-/****************************************************************************************/

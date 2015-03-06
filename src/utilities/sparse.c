@@ -263,7 +263,7 @@ void dcsr_trans_1 (dCSRmat *A,
     INT *A_IA = A->IA;
     INT *A_JA = A->JA;
     
-    for (i=0; i<A->row; i++) A_IA[i] = A_IA[i]-1;
+    for (i=0; i<A->row+1; i++) A_IA[i] = A_IA[i]-1;
     for (i=0; i<A->nnz; i++) A_JA[i] = A_JA[i]-1;
     
     dcsr_trans(A, AT);
@@ -271,8 +271,8 @@ void dcsr_trans_1 (dCSRmat *A,
     INT *AT_IA = AT->IA;
     INT *AT_JA = AT->JA;
     
-    for (i=0; i<A->row; i++) A_IA[i] = A_IA[i]+1;
-    for (i=0; i<AT->row; i++) AT_IA[i] = AT_IA[i]+1;
+    for (i=0; i<A->row+1; i++) A_IA[i] = A_IA[i]+1;
+    for (i=0; i<AT->row+1; i++) AT_IA[i] = AT_IA[i]+1;
     for (i=0; i<A->nnz; i++) {
         A_JA[i] = A_JA[i]+1;
         AT_JA[i] = AT_JA[i]+1;
@@ -374,7 +374,7 @@ void icsr_trans_1 (iCSRmat *A,
     INT *A_IA = A->IA;
     INT *A_JA = A->JA;
     
-    for (i=0; i<A->row; i++) A_IA[i] = A_IA[i]-1;
+    for (i=0; i<A->row+1; i++) A_IA[i] = A_IA[i]-1;
     for (i=0; i<A->nnz; i++) A_JA[i] = A_JA[i]-1;
     
     icsr_trans(A, AT);
@@ -382,8 +382,8 @@ void icsr_trans_1 (iCSRmat *A,
     INT *AT_IA = AT->IA;
     INT *AT_JA = AT->JA;
     
-    for (i=0; i<A->row; i++) A_IA[i] = A_IA[i]+1;
-    for (i=0; i<AT->row; i++) AT_IA[i] = AT_IA[i]+1;
+    for (i=0; i<A->row+1; i++) A_IA[i] = A_IA[i]+1;
+    for (i=0; i<AT->row+1; i++) AT_IA[i] = AT_IA[i]+1;
     for (i=0; i<A->nnz; i++) {
         A_JA[i] = A_JA[i]+1;
         AT_JA[i] = AT_JA[i]+1;
@@ -621,10 +621,10 @@ void dcsr_mxm_1 (dCSRmat *A,
     INT *B_IA = B->IA;
     INT *B_JA = B->JA;
     
-    for (i=0; i<A->row; i++) A_IA[i] = A_IA[i]-1;
+    for (i=0; i<A->row+1; i++) A_IA[i] = A_IA[i]-1;
     for (i=0; i<A->nnz; i++) A_JA[i] = A_JA[i]-1;
     
-    for (i=0; i<B->row; i++) B_IA[i] = B_IA[i]-1;
+    for (i=0; i<B->row+1; i++) B_IA[i] = B_IA[i]-1;
     for (i=0; i<B->nnz; i++) B_JA[i] = B_JA[i]-1;
     
     dcsr_mxm(A, B, C);
@@ -632,13 +632,13 @@ void dcsr_mxm_1 (dCSRmat *A,
     INT *C_IA = C->IA;
     INT *C_JA = C->JA;
     
-    for (i=0; i<A->row; i++) A_IA[i] = A_IA[i]+1;
+    for (i=0; i<A->row+1; i++) A_IA[i] = A_IA[i]+1;
     for (i=0; i<A->nnz; i++) A_JA[i] = A_JA[i]+1;
     
-    for (i=0; i<B->row; i++) B_IA[i] = B_IA[i]+1;
+    for (i=0; i<B->row+1; i++) B_IA[i] = B_IA[i]+1;
     for (i=0; i<B->nnz; i++) B_JA[i] = B_JA[i]+1;
     
-    for (i=0; i<C->row; i++) C_IA[i] = C_IA[i]+1;
+    for (i=0; i<C->row+1; i++) C_IA[i] = C_IA[i]+1;
     for (i=0; i<C->nnz; i++) C_JA[i] = C_JA[i]+1;
     
 }
@@ -770,10 +770,10 @@ void icsr_mxm_1 (iCSRmat *A,
     INT *B_IA = B->IA;
     INT *B_JA = B->JA;
     
-    for (i=0; i<A->row; i++) A_IA[i] = A_IA[i]-1;
+    for (i=0; i<A->row+1; i++) A_IA[i] = A_IA[i]-1;
     for (i=0; i<A->nnz; i++) A_JA[i] = A_JA[i]-1;
     
-    for (i=0; i<B->row; i++) B_IA[i] = B_IA[i]-1;
+    for (i=0; i<B->row+1; i++) B_IA[i] = B_IA[i]-1;
     for (i=0; i<B->nnz; i++) B_JA[i] = B_JA[i]-1;
     
     icsr_mxm(A, B, C);
@@ -781,13 +781,13 @@ void icsr_mxm_1 (iCSRmat *A,
     INT *C_IA = C->IA;
     INT *C_JA = C->JA;
             
-    for (i=0; i<A->row; i++) A_IA[i] = A_IA[i]+1;
+    for (i=0; i<A->row+1; i++) A_IA[i] = A_IA[i]+1;
     for (i=0; i<A->nnz; i++) A_JA[i] = A_JA[i]+1;
     
-    for (i=0; i<B->row; i++) B_IA[i] = B_IA[i]+1;
+    for (i=0; i<B->row+1; i++) B_IA[i] = B_IA[i]+1;
     for (i=0; i<B->nnz; i++) B_JA[i] = B_JA[i]+1;
     
-    for (i=0; i<C->row; i++) C_IA[i] = C_IA[i]+1;
+    for (i=0; i<C->row+1; i++) C_IA[i] = C_IA[i]+1;
     for (i=0; i<C->nnz; i++) C_JA[i] = C_JA[i]+1;
     
 }
@@ -902,10 +902,10 @@ void icsr_mxm_symb_1 (iCSRmat *A,
     INT *B_IA = B->IA;
     INT *B_JA = B->JA;
     
-    for (i=0; i<A->row; i++) A_IA[i] = A_IA[i]-1;
+    for (i=0; i<A->row+1; i++) A_IA[i] = A_IA[i]-1;
     for (i=0; i<A->nnz; i++) A_JA[i] = A_JA[i]-1;
     
-    for (i=0; i<B->row; i++) B_IA[i] = B_IA[i]-1;
+    for (i=0; i<B->row+1; i++) B_IA[i] = B_IA[i]-1;
     for (i=0; i<B->nnz; i++) B_JA[i] = B_JA[i]-1;
     
     icsr_mxm_symb(A, B, C);
@@ -913,13 +913,13 @@ void icsr_mxm_symb_1 (iCSRmat *A,
     INT *C_IA = C->IA;
     INT *C_JA = C->JA;
     
-    for (i=0; i<A->row; i++) A_IA[i] = A_IA[i]+1;
+    for (i=0; i<A->row+1; i++) A_IA[i] = A_IA[i]+1;
     for (i=0; i<A->nnz; i++) A_JA[i] = A_JA[i]+1;
     
-    for (i=0; i<B->row; i++) B_IA[i] = B_IA[i]+1;
+    for (i=0; i<B->row+1; i++) B_IA[i] = B_IA[i]+1;
     for (i=0; i<B->nnz; i++) B_JA[i] = B_JA[i]+1;
     
-    for (i=0; i<C->row; i++) C_IA[i] = C_IA[i]+1;
+    for (i=0; i<C->row+1; i++) C_IA[i] = C_IA[i]+1;
     for (i=0; i<C->nnz; i++) C_JA[i] = C_JA[i]+1;
     
 }
@@ -934,10 +934,9 @@ void icsr_mxm_symb_1 (iCSRmat *A,
  * \param A         Pointer to the iCSRmat matrix A
  * \param B         Pointer to the iCSRmat matrix B
  * \param C         Pointer to iCSRmat matrix equal to A*B
- * \param multimax  max value allowed in the iCSRmat matrix C, any entry that is bigger than multimax will be deleted
+ * \param multimax  value allowed in the iCSRmat matrix C, any entry that is not equal to multimax will be deleted
  *
  */
-// C has been allocated outside?  -- Xiaozhe
 void icsr_mxm_symb_max (iCSRmat *A,
                         iCSRmat *B,
                         iCSRmat *C,
@@ -979,6 +978,8 @@ void icsr_mxm_symb_max (iCSRmat *A,
                     count++;
                 }
             }
+        
+                
         }
         
         
@@ -988,11 +989,13 @@ void icsr_mxm_symb_max (iCSRmat *A,
             
             JD[j]=-1;
             
-            if (entry_count[j] > multmax) C->IA[i+1] = C->IA[i+1]-1;
+            if (entry_count[j] != multmax) C->IA[i+1] = C->IA[i+1]-1;
 
             entry_count[j] = 0;
             
         }
+        
+        
     }
     
     for (i=0;i<C->row;++i) C->IA[i+1]+=C->IA[i];
@@ -1024,21 +1027,24 @@ void icsr_mxm_symb_max (iCSRmat *A,
                     countJD++;
                 }
             }
+            
         }
         
         
         for (j=0;j<countJD;++j) {
             
-            JD[j]=-1;
             
-            if (entry_count[j] <= multmax) {
-                C->JA[count]=JD[countJD];
+            if (entry_count[j] == multmax) {
+                C->JA[count]=JD[j];
                 count++;
             }
             
+            JD[j]=-1;
             entry_count[j] = 0;
             
         }
+        
+        
         
     }
     
@@ -1158,7 +1164,7 @@ void icsr_mxm_symb_max (iCSRmat *A,
  * \param A         Pointer to the iCSRmat matrix A
  * \param B         Pointer to the iCSRmat matrix B
  * \param C         Pointer to iCSRmat matrix equal to A*B
- * \param multimax  max value allowed in the iCSRmat matrix C, any entry that is bigger than multimax will be deleted
+ * \param multimax  value allowed in the iCSRmat matrix C, any entry that is not equal to multimax will be deleted
  *
  */
 void icsr_mxm_symb_max_1 (iCSRmat *A,
@@ -1174,10 +1180,10 @@ void icsr_mxm_symb_max_1 (iCSRmat *A,
     INT *B_IA = B->IA;
     INT *B_JA = B->JA;
     
-    for (i=0; i<A->row; i++) A_IA[i] = A_IA[i]-1;
+    for (i=0; i<A->row+1; i++) A_IA[i] = A_IA[i]-1;
     for (i=0; i<A->nnz; i++) A_JA[i] = A_JA[i]-1;
             
-    for (i=0; i<B->row; i++) B_IA[i] = B_IA[i]-1;
+    for (i=0; i<B->row+1; i++) B_IA[i] = B_IA[i]-1;
     for (i=0; i<B->nnz; i++) B_JA[i] = B_JA[i]-1;
     
     icsr_mxm_symb_max(A, B, C, multmax);
@@ -1186,13 +1192,13 @@ void icsr_mxm_symb_max_1 (iCSRmat *A,
     INT *C_IA = C->IA;
     INT *C_JA = C->JA;
                     
-    for (i=0; i<A->row; i++) A_IA[i] = A_IA[i]+1;
+    for (i=0; i<A->row+1; i++) A_IA[i] = A_IA[i]+1;
     for (i=0; i<A->nnz; i++) A_JA[i] = A_JA[i]+1;
                             
-    for (i=0; i<B->row; i++) B_IA[i] = B_IA[i]+1;
+    for (i=0; i<B->row+1; i++) B_IA[i] = B_IA[i]+1;
     for (i=0; i<B->nnz; i++) B_JA[i] = B_JA[i]+1;
                                     
-    for (i=0; i<C->row; i++) C_IA[i] = C_IA[i]+1;
+    for (i=0; i<C->row+1; i++) C_IA[i] = C_IA[i]+1;
     for (i=0; i<C->nnz; i++) C_JA[i] = C_JA[i]+1;
                                             
 }

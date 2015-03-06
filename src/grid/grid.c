@@ -633,13 +633,31 @@ iCSRmat get_el_ed(iCSRmat el_v,iCSRmat ed_v)
   iCSRmat v_ed;
   icsr_trans_1(&ed_v,&v_ed);
   icsr_mxm_symb_max_1(&el_v,&v_ed,&el_ed,2);
-  printf("nedge=%d\tnv=%d\n",ed_v.row,ed_v.col);
-  pveci_(ed_v.IA,(ed_v.row)+1);
-  pveci_(ed_v.JA,ed_v.nnz);
-  pveci_(v_ed.IA,v_ed.row+1);
-  pveci_(v_ed.JA,v_ed.nnz);
-  pveci_(el_ed.IA,el_ed.row+1);
-  pveci_(el_ed.JA,el_ed.nnz);
+    
+  printf("nelem=%d \t nedge=%d \t nv=%d\n", el_v.row, ed_v.row,ed_v.col);
+    
+    printf("print el_v:\n");
+  iarray_print(el_v.IA,(el_v.row)+1);
+  iarray_print(el_v.JA,el_v.nnz);
+    
+    printf("\n");
+
+  //iarray_print(ed_v.IA,ed_v.row+1);
+  //iarray_print(ed_v.JA,ed_v.nnz);
+  
+    printf("print v_ed:\n");
+  iarray_print(v_ed.IA,v_ed.row+1);
+  iarray_print(v_ed.JA,v_ed.nnz);
+    printf("\n");
+
+  
+    printf("print el_ed:\n");
+  iarray_print(el_ed.IA,el_ed.row+1);
+  iarray_print(el_ed.JA,el_ed.nnz);
+    printf("\n");
+
+    
+  
   icsr_free(&v_ed);
 
     
