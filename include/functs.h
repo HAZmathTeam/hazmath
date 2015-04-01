@@ -49,6 +49,7 @@ void rveci_(FILE *fp, INT *vec, INT *nn)       ;
 void rvecd_(FILE *fp,  REAL *vec, INT *nn);
 void baddimension()          ;
 void getinput(char* gridfile,REAL* fpar,INT* ipar);
+void iarray_print(INT *vec, INT n   );
 dCSRmat dcsr_create (const INT m,
                      const INT n,
                      const INT nnz);
@@ -59,13 +60,21 @@ void dcsr_free (dCSRmat *A);
 void icsr_free (iCSRmat *A);
 INT dcsr_trans (dCSRmat *A,
                 dCSRmat *AT);
+void dcsr_trans_1 (dCSRmat *A,
+                   dCSRmat *AT);
 void icsr_trans (iCSRmat *A,
                  iCSRmat *AT);
 void icsr_trans_1 (iCSRmat *A,
                  iCSRmat *AT);
+void dcsr_mxv (dCSRmat *A,
+                REAL *x,
+                REAL *y);
 void dcsr_mxm (dCSRmat *A,
                dCSRmat *B,
                dCSRmat *C);
+void dcsr_mxm_1 (dCSRmat *A,
+                 dCSRmat *B,
+                 dCSRmat *C);
 void icsr_mxm (iCSRmat *A,
                iCSRmat *B,
                iCSRmat *C);
@@ -75,6 +84,9 @@ void icsr_mxm_1 (iCSRmat *A,
 void icsr_mxm_symb (iCSRmat *A,
                     iCSRmat *B,
                     iCSRmat *C);
+void icsr_mxm_symb_1 (iCSRmat *A,
+                 iCSRmat *B,
+                 iCSRmat *C);
 void icsr_mxm_symb_max (iCSRmat *A,
                         iCSRmat *B,
                         iCSRmat *C,
