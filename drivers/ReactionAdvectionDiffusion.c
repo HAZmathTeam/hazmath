@@ -73,10 +73,12 @@ int main (int argc, char* argv[])
   initialize_mesh(&mesh);
   creategrid(gfid,dim,0,&mesh);
   fclose(gfid);
+  iarray_print(mesh.el_v->IA,mesh.el_v->row+1);
 
   // Get Quadrature Nodes for the Mesh
   INT nq1d = ipar[1];	/* Quadrature points per dimension */
   qcoordinates cq = get_quadrature(&mesh,nq1d);
+  printf("hello_driver\n\n");
   	
   // Get info for and create FEM spaces
   // Order of Elements: 0 - P0; 1 - P1; 2 - P2; -1 - Nedelec; -2 - Raviart-Thomas

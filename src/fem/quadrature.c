@@ -97,13 +97,13 @@ qcoordinates get_quadrature(trimesh *mesh,INT nq1d)
 
   INT dim = mesh->dim;
   INT nelm = mesh->nelm;
-	
+  printf("dim=%d\tnelm=%d\n",dim,mesh->el_v->row);
   INT nq = (INT) pow(nq1d,dim);
   qcoordinates cq_all;
   allocateqcoords(&cq_all,nq1d,nelm,dim);
   qcoordinates cqelm;
   allocateqcoords(&cqelm,nq1d,1,dim);
-
+iarray_print(mesh->el_v->IA,mesh->el_v->row+1);
   for (i=0; i<nelm; i++) {
     quad_elm(&cqelm,mesh,nq1d,i);
     for (j=0; j<nq; j++) {
@@ -165,6 +165,9 @@ void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm)
   // Get vertices of element
   INT* thiselm_v = (INT *) calloc(v_per_elm,sizeof(INT));
   iCSRmat* el_v = mesh->el_v;
+  iarray_print(mesh->el_v->IA,mesh->el_v->row+1);
+  printf("adfadsf=%d\n",el_v->IA[1]);
+  printf("\n\nhello_james\n\n\n");
   get_incidence_row(elm,el_v,thiselm_v);
 
   // Get coordinates of vertices for given element

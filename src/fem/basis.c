@@ -117,38 +117,15 @@ void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL x,REAL y,REAL z,INT 
   REAL onemrst;
   INT i;
     
-    printf("hello-basis0\n");
-
-    
   // Get Mesh Data
   INT v_per_elm = mesh.v_per_elm;
   INT dim = mesh.dim;
-    
-    printf("hello-basis1\n");
-    
-    printf("v_per_elm = %d\n", v_per_elm);
-    printf("dim = %d\n", dim);
-
 
   REAL* xp = (REAL *) calloc(v_per_elm,sizeof(REAL));
-    
-    printf("hello-basis11\n");
-
-    
   REAL* yp = (REAL *) calloc(v_per_elm,sizeof(REAL));
-    
-    printf("hello-basis12\n");
-
-    
   REAL* zp = NULL;
-    
-    printf("hello-basis2\n");
-
-
   coordinates* cv = mesh.cv;
 
-
-  
   // 2D and 3D is slightly different
   if(dim==2) {
   
@@ -379,9 +356,7 @@ void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL x,REAL y,REAL z,INT 
   } else {
     baddimension();
   }
-    
-    printf("hello-basis3\n");
-	
+    	
   if(xp) free(xp);
   if(yp) free(yp);
   if(zp) free(zp);

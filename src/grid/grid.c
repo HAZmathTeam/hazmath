@@ -126,6 +126,7 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
   printf("\nConverting Grid Maps to CSR and Computing Data Structures:\n ");
   /* Element Vertex Map */
   iCSRmat el_v = convert_elmnode(element_vertex,nelm,nv,v_per_elm);
+  iarray_print(el_v.IA,el_v.row+1);
   if(element_vertex) free(element_vertex);
     
   /* Edge to Vertex Map */
@@ -221,14 +222,9 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
   mesh_temp.el_f = &el_f;
   mesh_temp.v_per_elm = v_per_elm;
   mesh_temp.f_v = &f_v;
-    
-    printf("hello\n");
-    
-  // TODO check if passing the mesh was done correctly
+        
+  // Get Statistics of the faces (midpoint, area, normal vector, ordering, etc.)
   face_stats(f_area,f_mid,f_norm,fel_order,mesh_temp);
-    
-    printf("hello1\n");
-
 
   // Finally get volumes/areas of elements and the midpoint (barycentric)
   REAL* el_mid = (REAL *) calloc(nelm*dim,sizeof(REAL));
@@ -634,32 +630,7 @@ iCSRmat get_el_ed(iCSRmat el_v,iCSRmat ed_v)
   icsr_trans_1(&ed_v,&v_ed);
   icsr_mxm_symb_max_1(&el_v,&v_ed,&el_ed,2);
     
-  printf("nelem=%d \t nedge=%d \t nv=%d\n", el_v.row, ed_v.row,ed_v.col);
-    
-    printf("print el_v:\n");
-  iarray_print(el_v.IA,(el_v.row)+1);
-  iarray_print(el_v.JA,el_v.nnz);
-    
-    printf("\n");
-
-  //iarray_print(ed_v.IA,ed_v.row+1);
-  //iarray_print(ed_v.JA,ed_v.nnz);
-  
-    printf("print v_ed:\n");
-  iarray_print(v_ed.IA,v_ed.row+1);
-  iarray_print(v_ed.JA,v_ed.nnz);
-    printf("\n");
-
-  
-    printf("print el_ed:\n");
-  iarray_print(el_ed.IA,el_ed.row+1);
-  iarray_print(el_ed.JA,el_ed.nnz);
-    printf("\n");
-
-    
-  
   icsr_free(&v_ed);
-
     
   return el_ed;
 }
@@ -1030,9 +1001,7 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,INT* fel_order,trimesh mes
    *             f_mid(nface,dim)     Midpoints of face
    *            
    */
-    
-    printf("hello-in\n");
-	
+    	
   INT i,jcnt,j,j_a,j_b; /* loop index */
   INT nface = mesh.el_f->col;
   INT nelm = mesh.el_f->row;
@@ -1071,15 +1040,9 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,INT* fel_order,trimesh mes
   REAL grad_mag,x,y,z,e1x,e1y,e1z,e2x,e2y,e2z;
   
   /* Get Face to Element Map */
-  /* Get Transpose of f_el -> el_f */
-    
-    printf("hello-in1\n");
-    
+  /* Get Transpose of f_el -> el_f */    
   iCSRmat f_el = icsr_create(nface,nelm,f_order*nelm);
   icsr_trans_1(el_f,&f_el);
-    
-    printf("hello-in2\n");
-
 
   // Loop over all Faces
   for(i=0;i<nface;i++) {
@@ -1096,9 +1059,6 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,INT* fel_order,trimesh mes
       }
       jcnt++;
     }
-
-      printf("hello-in3\n");
-
       
     // Find Corresponding Elements and order in element 
     // Also picks correct opposite node to form vector 
@@ -1134,9 +1094,6 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,INT* fel_order,trimesh mes
     if(dim==3) {
       z = cv->z[myel_n[myopn]];
     }
-      
-      printf("hello-in3\n");
-
 
     /* Compute Area (length if 2D) and get midpt of face */
     if(dim==2) {
@@ -1157,33 +1114,22 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,INT* fel_order,trimesh mes
     } else {
       baddimension();
     }
-	
-      printf("hello-in4\n");
-
       
     //Compute Normal Vectors based on opposite node
     //Get Linear Basis Functions for particular element
     PX_H1_basis(p,dpx,dpy,dpz,x,y,z,myel_n,1,mesh);
-      printf("hello-in5\n");
     grad_mag = dpx[myopn]*dpx[myopn]+dpy[myopn]*dpy[myopn];
-      printf("hello-in6\n");
     if(dim==3) {
       grad_mag = grad_mag + dpz[myopn]*dpz[myopn];
     }
-      printf("hello-in7\n");
     grad_mag = -sqrt(grad_mag);
     f_norm[i*dim] = dpx[myopn]/grad_mag;
     f_norm[i*dim+1] = dpy[myopn]/grad_mag;
-      printf("hello-in8\n");
     if(dim==3) {
       f_norm[i*dim+2] = dpz[myopn]/grad_mag;
     }
-      printf("hello-in9\n");
-
   }
 
-
-    
   icsr_free(&f_el);
   if(ipf) free(ipf);
   if(xf) free(xf);
@@ -1362,9 +1308,12 @@ void get_incidence_row(INT row,iCSRmat *fem_map,INT* thisrow)
   /* Gets single row of an incidence map (i.e., Gets vertices of given element from el_v) */
 
   INT j;
+  printf("row1=%d\n",row);
   INT rowa = fem_map->IA[row];
+printf("row2=%d\n",row);
   INT rowb = fem_map->IA[row+1]-1;
   INT jcntr = 0;
+  printf("rowa=%d\trowb=%d\tjcntr=%d\n",rowa,rowb,jcntr);
   for (j=rowa; j<=rowb; j++) {
     thisrow[jcntr] = fem_map->JA[j-1];
     jcntr++;
