@@ -55,9 +55,6 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
 	
   INT i,j,k; /* Loop indices */
 
-  // Define dummy mesh to load data
-  trimesh mesh_temp;
-
   // Get Number of elements, nodes and boundary edges first
   INT* line1 = calloc(4,sizeof(INT));
   INT lenhead = 4;
@@ -126,7 +123,6 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
   printf("\nConverting Grid Maps to CSR and Computing Data Structures:\n ");
   /* Element Vertex Map */
   iCSRmat el_v = convert_elmnode(element_vertex,nelm,nv,v_per_elm);
-  iarray_print(el_v.IA,el_v.row+1);
   if(element_vertex) free(element_vertex);
     
   /* Edge to Vertex Map */
@@ -136,10 +132,7 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
   } else if(dim==3) {
     get_nedge(&nedge,el_v); 
   }
-
-
   iCSRmat ed_v = get_edge_v(nedge,el_v);
-
     
   /* Get Boundary Edges and Vertices */
   INT* ed_bdry = (INT *) calloc(nedge,sizeof(INT));
@@ -147,28 +140,20 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
       
     isboundary_ed(ed_v,nedge,nbedge,bdry_v,ed_bdry);
     isboundary_v(nv,bdry_v,v_bdry,nbedge,&nbv);
-
-
   } else if(dim==3) {
     isboundary_ed3D(ed_v,nedge,cv,&nbedge,v_bdry,ed_bdry);
   }
-
   if(bdry_v) free(bdry_v);
 	
   /* Element to Edge Map */
   iCSRmat el_ed = get_el_ed(el_v,ed_v);
-    
-
 
   /* Get Edge Stats such as edge lengths, midpoints, and tangent vectors */
   REAL* ed_len = (REAL *) calloc(nedge,sizeof(REAL));
   REAL* ed_tau = (REAL *) calloc(nedge*dim,sizeof(REAL));
   REAL* ed_mid = (REAL *) calloc(nedge*dim,sizeof(REAL));
-    
-
   edge_stats_all(ed_len,ed_tau,ed_mid,cv,ed_v,dim);
     
-
   /* Figure out Number of Faces */
   INT nface = 0;
   INT euler = -10; // Euler Number should be 1 for simplices
@@ -188,8 +173,6 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
     exit(0);
   }
 
-
-    
   // In order to get some of the face maps, we need to know how the faces are ordered on each element
   // This is done by the same ordering as the nodes, connecting the opposite face with each node.
   INT* fel_order= (INT *)calloc(f_per_elm*dim,sizeof(INT));
@@ -201,6 +184,7 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
   INT* f_bdry = (INT *) calloc(nface,sizeof(INT));
   INT nbface;
   get_face_maps(el_v,v_per_elm,nface,dim,f_per_elm,&el_f,f_bdry,&nbface,&f_v,fel_order);
+  
   // In case v_bdry has different types of boundaries, match the face boundary to the same:
   for(i=0;i<nface;i++) {
     if(f_bdry[i]==1) {
@@ -214,17 +198,17 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
   REAL* f_area = (REAL *) calloc(nface,sizeof(REAL));
   REAL* f_mid = (REAL *) calloc(nface*dim,sizeof(REAL));
   REAL* f_norm = (REAL *) calloc(nface*dim,sizeof(REAL));
-  // Need to update mesh_temp for a few things first
-  mesh_temp.dim = dim;
-  mesh_temp.cv = &cv;
-  mesh_temp.f_per_elm = f_per_elm;
-  mesh_temp.el_v = &el_v;
-  mesh_temp.el_f = &el_f;
-  mesh_temp.v_per_elm = v_per_elm;
-  mesh_temp.f_v = &f_v;
+  // Need to update mesh for a few things first
+  mesh->dim = dim;
+  *(mesh->cv) = cv;
+  mesh->f_per_elm = f_per_elm;
+  *(mesh->el_v) = el_v;
+  *(mesh->el_f) = el_f;
+  mesh->v_per_elm = v_per_elm;
+  *(mesh->f_v) = f_v;
         
   // Get Statistics of the faces (midpoint, area, normal vector, ordering, etc.)
-  face_stats(f_area,f_mid,f_norm,fel_order,mesh_temp);
+  face_stats(f_area,f_mid,f_norm,fel_order,*mesh);
 
   // Finally get volumes/areas of elements and the midpoint (barycentric)
   REAL* el_mid = (REAL *) calloc(nelm*dim,sizeof(REAL));
@@ -233,31 +217,30 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
   get_el_mid(el_mid,el_v,cv,dim);
   
   // Assign components to the mesh
-  mesh_temp.nelm = nelm;
-  mesh_temp.nv = nv;
-  mesh_temp.nedge = nedge;
-  mesh_temp.ed_per_elm = ed_per_elm;
-  mesh_temp.nface = nface;
-  mesh_temp.nholes = nholes;
-  mesh_temp.nbv = nbv;
-  mesh_temp.nbedge = nbedge;
-  mesh_temp.nbface = nbface;
-  mesh_temp.el_ed = &el_ed;
-  mesh_temp.ed_v = &ed_v;
-  mesh_temp.el_vol = el_vol;
-  mesh_temp.el_mid = el_mid;
-  mesh_temp.ed_len = ed_len;
-  mesh_temp.ed_tau = ed_tau;
-  mesh_temp.ed_mid = ed_mid;
-  mesh_temp.f_area = f_area;
-  mesh_temp.f_mid = f_mid;
-  mesh_temp.f_norm = f_norm;
+  mesh->nelm = nelm;
+  mesh->nv = nv;
+  mesh->nedge = nedge;
+  mesh->ed_per_elm = ed_per_elm;
+  mesh->nface = nface;
+  mesh->nholes = nholes;
+  mesh->nbv = nbv;
+  mesh->nbedge = nbedge;
+  mesh->nbface = nbface;
+  *(mesh->el_ed) = el_ed;
+  *(mesh->ed_v) = ed_v;
+  mesh->el_vol = el_vol;
+  mesh->el_mid = el_mid;
+  mesh->ed_len = ed_len;
+  mesh->ed_tau = ed_tau;
+  mesh->ed_mid = ed_mid;
+  mesh->f_area = f_area;
+  mesh->f_mid = f_mid;
+  mesh->f_norm = f_norm;
   
-  mesh_temp.v_bdry = v_bdry;
-  mesh_temp.ed_bdry = ed_bdry;
-  mesh_temp.f_bdry = f_bdry;
-  
-  *mesh = mesh_temp;
+  mesh->v_bdry = v_bdry;
+  mesh->ed_bdry = ed_bdry;
+  mesh->f_bdry = f_bdry;
+
   return;
 }
 /**************************************************************************************************************************************************/
@@ -269,12 +252,12 @@ void initialize_mesh(trimesh* mesh)
 	
   mesh->dim = -666;
   mesh->nelm = -666;
-  mesh->cv = NULL;
+  mesh->cv = malloc(sizeof(struct coordinates));
   mesh->f_per_elm = -666;
-  mesh->el_v = NULL;
-  mesh->el_f = NULL;
+  mesh->el_v = malloc(sizeof(struct iCSRmat));
+  mesh->el_f = malloc(sizeof(struct iCSRmat));
   mesh->v_per_elm = -666;
-  mesh->f_v = NULL;
+  mesh->f_v = malloc(sizeof(struct iCSRmat));
   mesh->nv = -666;
   mesh->nedge = -666;
   mesh->ed_per_elm = -666;
@@ -283,8 +266,8 @@ void initialize_mesh(trimesh* mesh)
   mesh->nbv = -666;
   mesh->nbedge = -666;
   mesh->nbface = -666;
-  mesh->el_ed = NULL;
-  mesh->ed_v = NULL;
+  mesh->el_ed = malloc(sizeof(struct iCSRmat));
+  mesh->ed_v = malloc(sizeof(struct iCSRmat));
   mesh->el_vol = NULL;
   mesh->el_mid = NULL;
   mesh->ed_len = NULL;
@@ -1016,9 +999,9 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,INT* fel_order,trimesh mes
   iCSRmat *el_v = mesh.el_v;
 
   // Face Node Stuff
-  INT* ipf = calloc(dim,sizeof(INT));
-  REAL* xf = calloc(dim,sizeof(REAL));
-  REAL* yf = calloc(dim,sizeof(REAL));
+  INT* ipf = (INT *) calloc(dim,sizeof(INT));
+  REAL* xf = (REAL *) calloc(dim,sizeof(REAL));
+  REAL* yf = (REAL *) calloc(dim,sizeof(REAL));
   REAL* zf;
   if(dim==3) {
     zf = calloc(dim,sizeof(REAL));
@@ -1048,7 +1031,7 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,INT* fel_order,trimesh mes
   for(i=0;i<nface;i++) {
     /* Find Vertices in given Face */
     j_a = f_v->IA[i]-1;
-    j_b = f_v->JA[i+1]-1;
+    j_b = f_v->IA[i+1]-1;
     jcnt = 0;
     for (j=j_a; j<j_b;j++) {
       ipf[jcnt] = f_v->JA[j];
@@ -1088,11 +1071,11 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,INT* fel_order,trimesh mes
       myel_n[jcnt] = el_v->JA[j];
       jcnt++;
     }
-    x = cv->x[myel_n[myopn]];
-    y = cv->y[myel_n[myopn]];
+    x = cv->x[myel_n[myopn]-1];
+    y = cv->y[myel_n[myopn]-1];
     z = -666.66;
     if(dim==3) {
-      z = cv->z[myel_n[myopn]];
+      z = cv->z[myel_n[myopn]-1];
     }
 
     /* Compute Area (length if 2D) and get midpt of face */
@@ -1308,12 +1291,9 @@ void get_incidence_row(INT row,iCSRmat *fem_map,INT* thisrow)
   /* Gets single row of an incidence map (i.e., Gets vertices of given element from el_v) */
 
   INT j;
-  printf("row1=%d\n",row);
   INT rowa = fem_map->IA[row];
-printf("row2=%d\n",row);
   INT rowb = fem_map->IA[row+1]-1;
   INT jcntr = 0;
-  printf("rowa=%d\trowb=%d\tjcntr=%d\n",rowa,rowb,jcntr);
   for (j=rowa; j<=rowb; j++) {
     thisrow[jcntr] = fem_map->JA[j-1];
     jcntr++;

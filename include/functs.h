@@ -9,6 +9,7 @@
 #include "fem.h"
 void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL x,REAL y,REAL z,INT *dof,INT porder,trimesh mesh) ;
 void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dpxy,REAL x,REAL y,REAL z,INT *dof,INT porder,trimesh mesh) ;
+void initialize_fespace(fespace *FE) ;
 void create_fespace(fespace *FE,trimesh* mesh,INT FEtype);
 void free_fespace(fespace* FE);
 void get_P2(fespace* FE,trimesh* mesh) ;

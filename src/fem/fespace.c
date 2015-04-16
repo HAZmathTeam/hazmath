@@ -24,58 +24,73 @@
 #include "functs.h"
 #include "fem.h"
 
+/**************************************************************************************************************************************************/
+void initialize_fespace(fespace *FE) 
+{
+
+  FE->FEtype = -666;
+  FE->cdof = malloc(sizeof(struct coordinates));
+  FE->ndof = -666;
+  FE->nbdof = -666;
+  FE->dof_per_elm = -666;
+  FE->el_dof = malloc(sizeof(struct iCSRmat));
+  FE->ed_dof = malloc(sizeof(struct iCSRmat));
+  FE->f_dof = malloc(sizeof(struct iCSRmat));
+  FE->dof_bdry = NULL;
+      
+  return;
+}
+/**************************************************************************************************************************************************/
+
 /****************************************************************************************/
 void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
 {
   /* allocates memory and properties of fespace struct */
 
-  fespace FEtmp;
-  FEtmp.FEtype = FEtype;
+  FE->FEtype = FEtype;
   switch (FEtype)   
     {
     case 1: // Linears - P1
-      FEtmp.cdof = mesh->cv;
-      FEtmp.ndof = mesh->nv;
-      FEtmp.nbdof = mesh->nbv;
-      FEtmp.dof_per_elm = mesh->v_per_elm;
-      FEtmp.el_dof = mesh->el_v;
-      FEtmp.ed_dof = mesh->ed_v;
-      FEtmp.f_dof = mesh->f_v;
-      FEtmp.dof_bdry = mesh->v_bdry;
+      FE->cdof = mesh->cv;
+      FE->ndof = mesh->nv;
+      FE->nbdof = mesh->nbv;
+      FE->dof_per_elm = mesh->v_per_elm;
+      FE->el_dof = mesh->el_v;
+      FE->ed_dof = mesh->ed_v;
+      FE->f_dof = mesh->f_v;
+      FE->dof_bdry = mesh->v_bdry;
       break;
     case 2: // Quadratics - P2
-      FEtmp.ndof = mesh->nv + mesh->nedge;
-      FEtmp.nbdof = mesh->nbv + mesh->nbedge;
-      FEtmp.dof_per_elm = mesh->v_per_elm + mesh->ed_per_elm;
-      get_P2(&FEtmp,mesh);
-      FEtmp.f_dof = NULL;
+      FE->ndof = mesh->nv + mesh->nedge;
+      FE->nbdof = mesh->nbv + mesh->nbedge;
+      FE->dof_per_elm = mesh->v_per_elm + mesh->ed_per_elm;
+      get_P2(FE,mesh);
+      FE->f_dof = NULL;
       break;
     case -1: // Nedelec Elements 
-      FEtmp.cdof = NULL;
-      FEtmp.ndof = mesh->nedge;
-      FEtmp.nbdof = mesh->nbedge;
-      FEtmp.dof_per_elm = mesh->ed_per_elm;
-      FEtmp.el_dof = mesh->el_ed;
-      FEtmp.ed_dof = NULL;
-      FEtmp.f_dof = NULL;
-      FEtmp.dof_bdry = mesh->ed_bdry;
+      FE->cdof = NULL;
+      FE->ndof = mesh->nedge;
+      FE->nbdof = mesh->nbedge;
+      FE->dof_per_elm = mesh->ed_per_elm;
+      FE->el_dof = mesh->el_ed;
+      FE->ed_dof = NULL;
+      FE->f_dof = NULL;
+      FE->dof_bdry = mesh->ed_bdry;
       break;
     case -2: // Raviart-Thomas Elements
-      FEtmp.cdof = NULL;
-      FEtmp.ndof = mesh->nface;
-      FEtmp.nbdof = mesh->nbface;
-      FEtmp.dof_per_elm = mesh->f_per_elm;
-      FEtmp.el_dof = mesh->el_f;
-      FEtmp.ed_dof = NULL;
-      FEtmp.f_dof = NULL;
-      FEtmp.dof_bdry = mesh->f_bdry;
+      FE->cdof = NULL;
+      FE->ndof = mesh->nface;
+      FE->nbdof = mesh->nbface;
+      FE->dof_per_elm = mesh->f_per_elm;
+      FE->el_dof = mesh->el_f;
+      FE->ed_dof = NULL;
+      FE->f_dof = NULL;
+      FE->dof_bdry = mesh->f_bdry;
       break;
     default:
       printf("You haven't defined a finite-element space that I understand :-(");
       exit(0);
     }
-
-  *FE = FEtmp;
   
   return;
 }
@@ -105,7 +120,6 @@ void get_P2(fespace* FE,trimesh* mesh)
   INT i,j,k,s,jcntr;  /* Loop Indices */
   INT n1,n2,va,vb,ea,eb,v1,v2,mye,ed,na;
 
-  fespace FEtmp;
   INT ndof = FE->ndof;
   INT dof_per_elm = FE->dof_per_elm;
   INT dim = mesh->dim;
@@ -204,13 +218,11 @@ void get_P2(fespace* FE,trimesh* mesh)
   }
   ed_n.IA[nedge] = 3*nedge+1;
 	
-  FEtmp.dof_bdry = dof_bdry;
-  FEtmp.el_dof = &el_n;
-  FEtmp.ed_dof = &ed_n;
-  FEtmp.cdof = &cdof;
+  FE->dof_bdry = dof_bdry;
+  *(FE->el_dof) = el_n;
+  *(FE->ed_dof) = ed_n;
+  *(FE->cdof) = cdof;
   
-  *FE = FEtmp;
-
   if(ipv) free(ipv);
 	
   return;
@@ -236,6 +248,7 @@ void dump_el_dof(FILE* fid,iCSRmat *el_dof)
     acol = el_dof->IA[i]-1;
     bcol = el_dof->IA[i+1]-1;
     for (j=acol; j<bcol; j++) {
+      printf("j=%d\tja=%d\n\n",j,el_dof->JA[j]);
       fprintf(fid,"%d\t",el_dof->JA[j]);
     }
     fprintf(fid,"\n");

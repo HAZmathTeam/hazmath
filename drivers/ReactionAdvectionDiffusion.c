@@ -68,26 +68,26 @@ int main (int argc, char* argv[])
   // Create the mesh (now we assume triangles in 2D or tetrahedra in 3D)
   clk1 = clock();
   trimesh mesh;
-  printf("\nLoading grid from file: %s\n" ,gridfile);
+  printf("\nLoading grid from file: %s\n",gridfile);
   printf("--> creating mesh and all its properties.\n");
   initialize_mesh(&mesh);
   creategrid(gfid,dim,0,&mesh);
   fclose(gfid);
-  iarray_print(mesh.el_v->IA,mesh.el_v->row+1);
-
+  
   // Get Quadrature Nodes for the Mesh
   INT nq1d = ipar[1];	/* Quadrature points per dimension */
   qcoordinates cq = get_quadrature(&mesh,nq1d);
-  printf("hello_driver\n\n");
   	
   // Get info for and create FEM spaces
   // Order of Elements: 0 - P0; 1 - P1; 2 - P2; -1 - Nedelec; -2 - Raviart-Thomas
   INT order = ipar[2];	
   fespace FE;
+  initialize_fespace(&FE);
   create_fespace(&FE,&mesh,order);
 
   // Dump some data if needed
   INT dumpmesh=ipar[37];
+  dumpmesh=0;
   if(dumpmesh==1) {
     dump_fespace(&FE);
     FILE* fid = fopen("output/coords.dat","w");
@@ -101,14 +101,13 @@ int main (int argc, char* argv[])
   /**************************************************************************************/
 	
   printf("***************************************************************************\n");
-  printf("Number of Elements = %d\n",mesh.nelm);
-  printf("Order of Elements = %d\t\tOrder of Quadrature = %d\n",FE.FEtype,2*nq1d-1);
-  printf("--- Degrees of Freedom ---\n");
-  printf("Vertices: %d\t\tEdges: %d\t\tFaces: %d\t\t",mesh.nv,mesh.nedge,mesh.nface);
-  printf("--> Total DOF: %d\n",FE.ndof);
-  printf("--- Boundaries ---");
-  printf("Vertices: %d\t\tEdges: %d\t\tFaces: %d\t\t",mesh.nbv,mesh.nbedge,mesh.nbface);
-  printf("--> Total Boundary DOF: %d\n",FE.nbdof);
+  printf("Number of Elements = %d\tOrder of Elements = %d\tOrder of Quadrature = %d\n",mesh.nelm,FE.FEtype,2*nq1d-1);
+  printf("\n--- Degrees of Freedom ---\n");
+  printf("Vertices: %d\tEdges: %d\tFaces: %d",mesh.nv,mesh.nedge,mesh.nface);
+  printf("\t--> Total DOF: %d\n",FE.ndof);
+  printf("\n--- Boundaries ---\n");
+  printf("Vertices: %d\tEdges: %d\tFaces: %d",mesh.nbv,mesh.nbedge,mesh.nbface);
+  printf("\t--> Total Boundary DOF: %d\n",FE.nbdof);
   printf("***************************************************************************\n\n");
 	
   /* /\*** Assemble the matrix and right hand side *******************************\/ */
