@@ -71,8 +71,7 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
 			
   // Allocate arrays to read in other data such as coordinate information
   INT* element_vertex = (INT *) calloc(nelm*v_per_elm,sizeof(INT));
-  coordinates cv;
-  allocatecoords(&cv,nv,dim);
+  coordinates cv = allocatecoords(nv,dim);
   INT* bdry_v = (INT *) calloc(nbedge*2,sizeof(INT));
 		
   // Get next 3-4 lines Element-Vertex Map
@@ -175,7 +174,7 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
 
   // In order to get some of the face maps, we need to know how the faces are ordered on each element
   // This is done by the same ordering as the nodes, connecting the opposite face with each node.
-  INT* fel_order= (INT *)calloc(f_per_elm*dim,sizeof(INT));
+  INT* fel_order= (INT *) calloc(f_per_elm*dim,sizeof(INT));
   get_face_ordering(v_per_elm,dim,f_per_elm,fel_order);
 
   // Next get the element to face map, the face to vertex map, and the face boundary information.
@@ -208,7 +207,7 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
   *(mesh->f_v) = f_v;
         
   // Get Statistics of the faces (midpoint, area, normal vector, ordering, etc.)
-  face_stats(f_area,f_mid,f_norm,fel_order,*mesh);
+  face_stats(f_area,f_mid,f_norm,*mesh);
 
   // Finally get volumes/areas of elements and the midpoint (barycentric)
   REAL* el_mid = (REAL *) calloc(nelm*dim,sizeof(REAL));
@@ -240,6 +239,8 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
   mesh->v_bdry = v_bdry;
   mesh->ed_bdry = ed_bdry;
   mesh->f_bdry = f_bdry;
+
+  if(fel_order) free(fel_order);
 
   return;
 }
@@ -620,23 +621,22 @@ iCSRmat get_el_ed(iCSRmat el_v,iCSRmat ed_v)
 /***********************************************************************************************/
 
 /****************************************************************************************/
-void allocatecoords(coordinates *A,INT ndof,INT mydim)
+coordinates allocatecoords(INT ndof,INT mydim)
 {
   /* allocates memory and properties of coordinates struct */
 
-  coordinates Atmp;
-  Atmp.x = calloc(ndof,sizeof(REAL));
-  Atmp.y = calloc(ndof,sizeof(REAL));
-  if (mydim==3) {
-    Atmp.z = calloc(ndof,sizeof(REAL));
-  } else {
-    Atmp.z = NULL;
-  }
-  Atmp.n = ndof;
+  coordinates A;
 
-  *A = Atmp;
+  A.x = (REAL *) calloc(ndof,sizeof(REAL));
+  A.y = (REAL *) calloc(ndof,sizeof(REAL));
+  if (mydim==3) {
+    A.z = (REAL *) calloc(ndof,sizeof(REAL));
+  } else {
+    A.z = NULL;
+  }
+  A.n = ndof;
   
-  return;
+  return A;
 }
 /****************************************************************************************/
 
@@ -645,9 +645,22 @@ void free_coords(coordinates* A)
 {
   /* fres memory of arrays of Incident matrix struct */
 
-  if(A->x) free(A->x);
-  if(A->y) free(A->y);
-  if(A->z) free(A->z);
+  if (A==NULL) return;
+
+  if(A->x) { 
+    free(A->x);
+    A->x = NULL;
+  }
+
+  if(A->y) {
+    free(A->y);
+    A->y = NULL;
+  }
+
+  if(A->z) {
+    free(A->z);
+    A->z = NULL;
+  }
   
   return;
 }
@@ -722,6 +735,7 @@ void edge_stats_all(REAL *ed_len,REAL *ed_tau,REAL *ed_mid,coordinates cv,iCSRma
       ed_mid[i*dim+2] = 0.5*(z[0]+z[1]);		
     }
   }
+
   return;
 }
 /*********************************************************************************************************/
@@ -868,7 +882,7 @@ void get_face_maps(iCSRmat el_v,INT el_order,INT nface,INT dim,INT f_order,iCSRm
 	f_el.val[jcntr] = j+1;
 	f_el.JA[jcntr+1] = el+1;
 	// Find face number for other element
-	find_facenumber(el_v,fel_order,el+1,nd,dim,&f_num);
+	find_facenumber(el_v,el+1,nd,dim,&f_num);
 	f_el.val[jcntr+1] = f_num;
 	f_bdry[icntr] = 0;
 	f_v->IA[icntr] = kcntr+1;
@@ -924,14 +938,13 @@ void get_face_maps(iCSRmat el_v,INT el_order,INT nface,INT dim,INT f_order,iCSRm
 /***********************************************************************************************/
 
 /****************************************************************************************/
-void find_facenumber(iCSRmat el_v,INT* fel_order,INT elm,INT* nd,INT dim,INT *f_num)          
+void find_facenumber(iCSRmat el_v,INT elm,INT* nd,INT dim,INT *f_num)          
 {
 
   /* Find the face number of the given element, using the element it shares the face with
    *
    * Input:
    *        el_v              Element to Vertex Map (all elements and vertices)
-   *        fel_order         Ordering of faces on element with corresponding nodes
    *        elm               Current Elment we consider
    *        nd                Nodes of current face
    *        dim               Dimension
@@ -969,14 +982,13 @@ void find_facenumber(iCSRmat el_v,INT* fel_order,INT elm,INT* nd,INT dim,INT *f_
 /****************************************************************************************/
 
 /*********************************************************************************************************/
-void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,INT* fel_order,trimesh mesh) 
+void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,trimesh mesh) 
 {
   /***************************************************************************
    * Get area, normal vector for all faces **********
    *
    *
    *    Input:   
-   *             fel_order            Ordering of Faces on a given element
    *             mesh                 Information needed for mesh
    *
    *    Output:  f_area               Area of each face (length in 2D)
@@ -1263,23 +1275,68 @@ void free_mesh(trimesh* mesh)
 {
   /* frees memory of arrays in mesh struct */
 
+  if(mesh==NULL) return;
+
   free_coords(mesh->cv);
   icsr_free(mesh->el_v);
   icsr_free(mesh->el_ed);
   icsr_free(mesh->el_f);
   icsr_free(mesh->ed_v);
   icsr_free(mesh->f_v);
-  if(mesh->el_vol) free(mesh->el_vol);
-  if(mesh->el_mid) free(mesh->el_mid);
-  if(mesh->ed_len) free(mesh->ed_len);
-  if(mesh->ed_tau) free(mesh->ed_tau);
-  if(mesh->ed_mid) free(mesh->ed_mid);
-  if(mesh->f_area) free(mesh->f_area);
-  if(mesh->f_norm) free(mesh->f_norm);
-  if(mesh->f_mid) free(mesh->f_mid);
-  if(mesh->v_bdry) free(mesh->v_bdry);
-  if(mesh->ed_bdry) free(mesh->ed_bdry);
-  if(mesh->f_bdry) free(mesh->f_bdry);
+  if(mesh->el_vol) {
+    free(mesh->el_vol);
+    mesh->el_vol = NULL;
+  }
+  if(mesh->el_mid) {
+    free(mesh->el_mid);
+    mesh->el_mid = NULL;
+  }
+
+  if(mesh->ed_len) {
+    free(mesh->ed_len);
+    mesh->ed_len = NULL;
+  }
+
+  if(mesh->ed_tau) {
+    free(mesh->ed_tau);
+    mesh->ed_tau = NULL;
+  }
+
+  if(mesh->ed_mid) {
+    free(mesh->ed_mid);
+    mesh->ed_mid = NULL;
+  }
+
+  if(mesh->f_area) {
+    free(mesh->f_area);
+    mesh->f_area = NULL;
+  }
+
+  if(mesh->f_norm) {
+    free(mesh->f_norm);
+    mesh->f_norm = NULL;
+  }
+
+  if(mesh->f_mid) {
+    free(mesh->f_mid);
+    mesh->f_mid = NULL;
+  }
+
+  // TODO: JAMES: This is causing a memory error!!!!
+  /* if(mesh->v_bdry) { */
+  /*   free(mesh->v_bdry); */
+  /*   mesh->v_bdry = NULL; */
+  /* } */
+
+  if(mesh->ed_bdry) {
+    free(mesh->ed_bdry);
+    mesh->ed_bdry = NULL;
+  }
+
+  if(mesh->f_bdry) {
+    free(mesh->f_bdry);
+    mesh->f_bdry = NULL;
+  }
   
   return;
 }

@@ -134,8 +134,7 @@ void get_P2(fespace* FE,trimesh* mesh)
   INT* ipv = (INT *) calloc(mesh->v_per_elm,sizeof(INT));
 	
   // Get Coordinates
-  coordinates cdof;
-  allocatecoords(&cdof,ndof,dim);	
+  coordinates cdof = allocatecoords(ndof,dim);	
   // First go through all vertices.
   for (i=0; i<nv; i++) {
     cdof.x[i] = mesh->cv->x[i];

@@ -24,45 +24,43 @@
 #include "fem.h"
 
 /****************************************************************************************/
-void allocateqcoords(qcoordinates *A,INT nq1d,INT nelm,INT mydim)
+qcoordinates allocateqcoords(INT nq1d,INT nelm,INT mydim)
 {
   /* allocates memory and properties of quadrature coordinates struct */
 
-  qcoordinates Atmp;
+  qcoordinates A;
   INT nq = 0;
   switch (mydim)   
     {
     case 4:
       nq = nq1d;
-      Atmp.z = (REAL *) calloc(nq*nelm,sizeof(REAL));
+      A.z = (REAL *) calloc(nq*nelm,sizeof(REAL));
     case 1:
       nq = nq1d;
-      Atmp.x = (REAL *) calloc(nq*nelm,sizeof(REAL));
-      Atmp.y = NULL;
-      Atmp.z = NULL;
+      A.x = (REAL *) calloc(nq*nelm,sizeof(REAL));
+      A.y = NULL;
+      A.z = NULL;
       break;
     case 2: 
       nq = nq1d*nq1d;
-      Atmp.x = (REAL *) calloc(nq*nelm,sizeof(REAL));
-      Atmp.y = (REAL *) calloc(nq*nelm,sizeof(REAL));
-      Atmp.z = NULL;
+      A.x = (REAL *) calloc(nq*nelm,sizeof(REAL));
+      A.y = (REAL *) calloc(nq*nelm,sizeof(REAL));
+      A.z = NULL;
       break;
     case 3:
       nq = nq1d*nq1d*nq1d;
-      Atmp.x = (REAL *) calloc(nq*nelm,sizeof(REAL));
-      Atmp.y = (REAL *) calloc(nq*nelm,sizeof(REAL));
-      Atmp.z = (REAL *) calloc(nq*nelm,sizeof(REAL));
+      A.x = (REAL *) calloc(nq*nelm,sizeof(REAL));
+      A.y = (REAL *) calloc(nq*nelm,sizeof(REAL));
+      A.z = (REAL *) calloc(nq*nelm,sizeof(REAL));
       break;
     default:
       baddimension();
     }
-  Atmp.w = (REAL *) calloc(nq*nelm,sizeof(REAL));
-  Atmp.n = nq*nelm;
-  Atmp.nq_per_elm = nq;
-
-  *A = Atmp;
+  A.w = (REAL *) calloc(nq*nelm,sizeof(REAL));
+  A.n = nq*nelm;
+  A.nq_per_elm = nq;
   
-  return;
+  return A;
 }
 /****************************************************************************************/
 
@@ -71,10 +69,27 @@ void free_qcoords(qcoordinates* A)
 {
   /* fres memory of arrays of Incident matrix struct */
 
-  if(A->x) free(A->x);
-  if(A->y) free(A->y);
-  if(A->z) free(A->z);
-  if(A->w) free(A->w);
+  if (A==NULL) return;
+
+  if(A->x) {
+    free(A->x);
+    A->x = NULL;
+  }
+
+  if(A->y) {
+    free(A->y);
+    A->y = NULL;
+  }
+
+  if(A->z) {
+    free(A->z);
+    A->z = NULL;
+  }
+
+  if(A->w) {
+    free(A->w);
+    A->w = NULL;
+  }
   
   return;
 }
@@ -97,13 +112,9 @@ qcoordinates get_quadrature(trimesh *mesh,INT nq1d)
   INT dim = mesh->dim;
   INT nelm = mesh->nelm;
   INT nq = (INT) pow(nq1d,dim);
-  qcoordinates cq_all;
+  qcoordinates cq_all = allocateqcoords(nq1d,nelm,dim);
 
-  allocateqcoords(&cq_all,nq1d,nelm,dim);
-
-  qcoordinates cqelm;
-
-  allocateqcoords(&cqelm,nq1d,1,dim);
+  qcoordinates cqelm = allocateqcoords(nq1d,1,dim);
  
   //iarray_print((mesh->el_v)->IA,(mesh->el_v)->row+1);
 
@@ -151,8 +162,7 @@ void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm)
 
   /* Coordinates of vertices of element */
   INT v_per_elm = mesh->v_per_elm;
-  coordinates cvelm;
-  allocatecoords(&cvelm,v_per_elm,dim);
+  coordinates cvelm = allocatecoords(v_per_elm,dim);
 	
   /* Gaussian points for reference element */
   REAL* gp = (REAL *) calloc(dim*nq,sizeof(REAL));
@@ -250,10 +260,8 @@ qcoordinates get_quadrature_edge(trimesh *mesh,INT nq1d)
   INT dim = mesh->dim;
   INT nedge = mesh->nedge;
 	
-  qcoordinates cq_all;
-  allocateqcoords(&cq_all,nq1d,nedge,1);
-  qcoordinates cqedge;
-  allocateqcoords(&cqedge,nq1d,1,1);
+  qcoordinates cq_all = allocateqcoords(nq1d,nedge,1);
+  qcoordinates cqedge = allocateqcoords(nq1d,1,1);
 	
   for (i=0; i<nedge; i++) {
     quad_edge(&cqedge,mesh,nq1d,i);
@@ -292,8 +300,7 @@ void quad_edge(qcoordinates *cqedge,trimesh *mesh,INT nq1d,INT edge)
   INT q,j,nqdum; /* Loop indices */
   INT dim = mesh->dim;
   /* Coordinates of vertices of edge */
-  coordinates cvedge;
-  allocatecoords(&cvedge,2,dim);
+  coordinates cvedge = allocatecoords(2,dim);
 
   // Add in for Simpson's Rule
   if(nq1d==-1) {
