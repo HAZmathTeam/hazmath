@@ -29,7 +29,7 @@ void initialize_fespace(fespace *FE)
 {
 
   FE->FEtype = -666;
-  FE->cdof = malloc(sizeof(struct coordinates));
+  FE->cdof = NULL;
   FE->ndof = -666;
   FE->nbdof = -666;
   FE->dof_per_elm = -666;
@@ -101,11 +101,34 @@ void free_fespace(fespace* FE)
 {
   /* frees memory of arrays of fespace struct */
 
-  free_coords(FE->cdof);
-  icsr_free(FE->el_dof);
-  icsr_free(FE->ed_dof);
-  icsr_free(FE->f_dof);
-  if(FE->dof_bdry) free(FE->dof_bdry);
+  if(FE->cdof && (FE->FEtype!=1)) {
+    free_coords(FE->cdof);
+    free(FE->cdof);
+    FE->cdof = NULL;
+  }
+
+  if(FE->el_dof && FE->FEtype==2) {
+    icsr_free(FE->el_dof);
+    free(FE->el_dof);
+    FE->el_dof = NULL;
+  }
+
+  if(FE->ed_dof && FE->FEtype==2) { 
+    icsr_free(FE->ed_dof);
+    free(FE->ed_dof);
+    FE->ed_dof = NULL;
+  }
+  
+  if(FE->f_dof && FE->FEtype==2) {
+    icsr_free(FE->f_dof);
+    free(FE->f_dof);
+    FE->f_dof = NULL;
+  }
+
+  if(FE->dof_bdry && (FE->FEtype>1)) {
+    free(FE->dof_bdry);
+    FE->dof_bdry = NULL;
+  }
   
   return;
 }
@@ -134,12 +157,13 @@ void get_P2(fespace* FE,trimesh* mesh)
   INT* ipv = (INT *) calloc(mesh->v_per_elm,sizeof(INT));
 	
   // Get Coordinates
-  coordinates cdof = allocatecoords(ndof,dim);	
+  coordinates *cdof = allocatecoords(ndof,dim);	
+
   // First go through all vertices.
   for (i=0; i<nv; i++) {
-    cdof.x[i] = mesh->cv->x[i];
-    cdof.y[i] = mesh->cv->y[i];
-    if (dim>2) { cdof.z[i] = mesh->cv->z[i]; }
+    cdof->x[i] = mesh->cv->x[i];
+    cdof->y[i] = mesh->cv->y[i];
+    if (dim>2) { cdof->z[i] = mesh->cv->z[i]; }
   }
   // Now, go through and add extra nodes
   // These are simply the midpoints of the edges
@@ -148,9 +172,9 @@ void get_P2(fespace* FE,trimesh* mesh)
     ed = ed_v->IA[i]-1;
     n1 = ed_v->JA[ed]-1;
     n2 = ed_v->JA[ed+1]-1;
-    cdof.x[s] = 0.5*(mesh->cv->x[n1]+mesh->cv->x[n2]);
-    cdof.y[s] = 0.5*(mesh->cv->y[n1]+mesh->cv->y[n2]);
-    if (dim>2) { cdof.z[s] = 0.5*(mesh->cv->z[n1]+mesh->cv->z[n2]); }
+    cdof->x[s] = 0.5*(mesh->cv->x[n1]+mesh->cv->x[n2]);
+    cdof->y[s] = 0.5*(mesh->cv->y[n1]+mesh->cv->y[n2]);
+    if (dim>2) { cdof->z[s] = 0.5*(mesh->cv->z[n1]+mesh->cv->z[n2]); }
     s++;
   }
 	
@@ -220,7 +244,7 @@ void get_P2(fespace* FE,trimesh* mesh)
   FE->dof_bdry = dof_bdry;
   *(FE->el_dof) = el_n;
   *(FE->ed_dof) = ed_n;
-  *(FE->cdof) = cdof;
+  FE->cdof = cdof;
   
   if(ipv) free(ipv);
 	

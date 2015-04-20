@@ -93,7 +93,7 @@
 /****************************************************************************************************************************/
 /* Compute Standard Lagrange Finite Element Basis Functions (PX) at a particular point in 2 or 3D*/
 /* For now, we only assume Linears or Quadratic Elements (P1 or P2) */
-void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL x,REAL y,REAL z,INT *dof,INT porder,trimesh mesh) 
+void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL x,REAL y,REAL z,INT *dof,INT porder,trimesh *mesh) 
 {
   /*
    *    INPUT:
@@ -118,13 +118,13 @@ void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL x,REAL y,REAL z,INT 
   INT i;
     
   // Get Mesh Data
-  INT v_per_elm = mesh.v_per_elm;
-  INT dim = mesh.dim;
+  INT v_per_elm = mesh->v_per_elm;
+  INT dim = mesh->dim;
 
   REAL* xp = (REAL *) calloc(v_per_elm,sizeof(REAL));
   REAL* yp = (REAL *) calloc(v_per_elm,sizeof(REAL));
   REAL* zp = NULL;
-  coordinates* cv = mesh.cv;
+  coordinates* cv = mesh->cv;
 
   // 2D and 3D is slightly different
   if(dim==2) {
@@ -368,7 +368,7 @@ void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL x,REAL y,REAL z,INT 
 /****************************************************************************************************************************/
 /* Compute Standard Quadratic Finite Element Basis Functions (P2) at a particular point */
 /* Also compute the 2nd derivatives for some reason... */
-void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dpxy,REAL x,REAL y,REAL z,INT *dof,INT porder,trimesh mesh) 
+void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dpxy,REAL x,REAL y,REAL z,INT *dof,INT porder,trimesh *mesh) 
 {
 	
   /*
@@ -388,14 +388,14 @@ void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dp
   REAL dp1s,dp2s,dp3s,dp4s,dp5s,dp6s;
   REAL onemrs;
   INT i;
-  INT v_per_elm = mesh.v_per_elm;
+  INT v_per_elm = mesh->v_per_elm;
   REAL* xp = (REAL *) calloc(v_per_elm,sizeof(REAL));
   REAL* yp = (REAL *) calloc(v_per_elm,sizeof(REAL));
   REAL dp1rr,dp2rr,dp3rr,dp4rr,dp5rr,dp6rr;
   REAL dp1ss,dp2ss,dp3ss,dp4ss,dp5ss,dp6ss;
   REAL dp1rs,dp2rs,dp3rs,dp4rs,dp5rs,dp6rs;
 
-  coordinates* cv = mesh.cv;
+  coordinates* cv = mesh->cv;
 	
   // Get Nodes and Physical Coordinates of vertices only
   for (i=0; i<3; i++) {

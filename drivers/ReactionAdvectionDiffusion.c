@@ -76,7 +76,7 @@ int main (int argc, char* argv[])
   
   // Get Quadrature Nodes for the Mesh
   INT nq1d = ipar[1];	/* Quadrature points per dimension */
-  qcoordinates cq = get_quadrature(&mesh,nq1d);
+  qcoordinates *cq = get_quadrature(&mesh,nq1d);
   	
   // Get info for and create FEM spaces
   // Order of Elements: 0 - P0; 1 - P1; 2 - P2; -1 - Nedelec; -2 - Raviart-Thomas
@@ -314,9 +314,13 @@ int main (int argc, char* argv[])
   /* /\*******************************************************************************************\/ */
 	
   /******** Free All the Arrays ***********************************************************/
-  free_mesh(&mesh);
-  free_qcoords(&cq);
   free_fespace(&FE);
+  if(cq) {
+    free_qcoords(cq);
+    free(cq);
+    cq = NULL;
+  }
+  free_mesh(&mesh);
   /****************************************************************************************/
 	
   clk_end = clock();

@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <assert.h>
 
 // Our Includes
 #include "macro.h"
@@ -24,41 +25,43 @@
 #include "fem.h"
 
 /****************************************************************************************/
-qcoordinates allocateqcoords(INT nq1d,INT nelm,INT mydim)
+struct qcoordinates *allocateqcoords(INT nq1d,INT nelm,INT mydim)
 {
   /* allocates memory and properties of quadrature coordinates struct */
 
-  qcoordinates A;
+  struct qcoordinates *A = malloc(sizeof(struct qcoordinates));
+  assert(A != NULL);
+
   INT nq = 0;
   switch (mydim)   
     {
     case 4:
       nq = nq1d;
-      A.z = (REAL *) calloc(nq*nelm,sizeof(REAL));
+      A->z = (REAL *) calloc(nq*nelm,sizeof(REAL));
     case 1:
       nq = nq1d;
-      A.x = (REAL *) calloc(nq*nelm,sizeof(REAL));
-      A.y = NULL;
-      A.z = NULL;
+      A->x = (REAL *) calloc(nq*nelm,sizeof(REAL));
+      A->y = NULL;
+      A->z = NULL;
       break;
     case 2: 
       nq = nq1d*nq1d;
-      A.x = (REAL *) calloc(nq*nelm,sizeof(REAL));
-      A.y = (REAL *) calloc(nq*nelm,sizeof(REAL));
-      A.z = NULL;
+      A->x = (REAL *) calloc(nq*nelm,sizeof(REAL));
+      A->y = (REAL *) calloc(nq*nelm,sizeof(REAL));
+      A->z = NULL;
       break;
     case 3:
       nq = nq1d*nq1d*nq1d;
-      A.x = (REAL *) calloc(nq*nelm,sizeof(REAL));
-      A.y = (REAL *) calloc(nq*nelm,sizeof(REAL));
-      A.z = (REAL *) calloc(nq*nelm,sizeof(REAL));
+      A->x = (REAL *) calloc(nq*nelm,sizeof(REAL));
+      A->y = (REAL *) calloc(nq*nelm,sizeof(REAL));
+      A->z = (REAL *) calloc(nq*nelm,sizeof(REAL));
       break;
     default:
       baddimension();
     }
-  A.w = (REAL *) calloc(nq*nelm,sizeof(REAL));
-  A.n = nq*nelm;
-  A.nq_per_elm = nq;
+  A->w = (REAL *) calloc(nq*nelm,sizeof(REAL));
+  A->n = nq*nelm;
+  A->nq_per_elm = nq;
   
   return A;
 }
@@ -96,7 +99,7 @@ void free_qcoords(qcoordinates* A)
 /****************************************************************************************/
 
 /****************************************************************************************/
-qcoordinates get_quadrature(trimesh *mesh,INT nq1d) 
+qcoordinates* get_quadrature(trimesh *mesh,INT nq1d) 
 {	
   /* Computes quadrature weights and nodes for entire domain using nq1d^(dim) quadrature nodes per element
    *
@@ -112,25 +115,26 @@ qcoordinates get_quadrature(trimesh *mesh,INT nq1d)
   INT dim = mesh->dim;
   INT nelm = mesh->nelm;
   INT nq = (INT) pow(nq1d,dim);
-  qcoordinates cq_all = allocateqcoords(nq1d,nelm,dim);
-
-  qcoordinates cqelm = allocateqcoords(nq1d,1,dim);
+  qcoordinates *cq_all = allocateqcoords(nq1d,nelm,dim);
+  qcoordinates *cqelm = allocateqcoords(nq1d,1,dim);
  
-  //iarray_print((mesh->el_v)->IA,(mesh->el_v)->row+1);
-
   for (i=0; i<nelm; i++) {
-    quad_elm(&cqelm,mesh,nq1d,i);
+    quad_elm(cqelm,mesh,nq1d,i);
     for (j=0; j<nq; j++) {
-      cq_all.x[i*nq+j] = cqelm.x[j];
-      cq_all.y[i*nq+j] = cqelm.y[j];
-      cq_all.w[i*nq+j] = cqelm.w[j];
+      cq_all->x[i*nq+j] = cqelm->x[j];
+      cq_all->y[i*nq+j] = cqelm->y[j];
+      cq_all->w[i*nq+j] = cqelm->w[j];
       if(dim==3) {
-	cq_all.z[i*nq+j] = cqelm.z[j];
+	cq_all->z[i*nq+j] = cqelm->z[j];
       }
     }
   }
   
-  free_qcoords(&cqelm);
+  if(cqelm) {
+    free_qcoords(cqelm);
+    free(cqelm);
+    cqelm = NULL;
+  }
 	
   return cq_all;
 }
@@ -162,7 +166,7 @@ void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm)
 
   /* Coordinates of vertices of element */
   INT v_per_elm = mesh->v_per_elm;
-  coordinates cvelm = allocatecoords(v_per_elm,dim);
+  coordinates *cvelm = allocatecoords(v_per_elm,dim);
 	
   /* Gaussian points for reference element */
   REAL* gp = (REAL *) calloc(dim*nq,sizeof(REAL));
@@ -183,8 +187,8 @@ void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm)
   // Get coordinates of vertices for given element
   if(dim==2) {
     for (j=0; j<v_per_elm; j++) {
-      cvelm.x[j] = mesh->cv->x[thiselm_v[j]-1];
-      cvelm.y[j] = mesh->cv->y[thiselm_v[j]-1];
+      cvelm->x[j] = mesh->cv->x[thiselm_v[j]-1];
+      cvelm->y[j] = mesh->cv->y[thiselm_v[j]-1];
     }
 
     voldim = 2.0*e_vol;
@@ -199,15 +203,15 @@ void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm)
     for (q=0; q<nq; q++) {
       r = gp[q];
       s = gp[nq+q];
-      cqelm->x[q] = cvelm.x[0]*(1-r-s) + cvelm.x[1]*r + cvelm.x[2]*s;
-      cqelm->y[q] = cvelm.y[0]*(1-r-s) + cvelm.y[1]*r + cvelm.y[2]*s;
+      cqelm->x[q] = cvelm->x[0]*(1-r-s) + cvelm->x[1]*r + cvelm->x[2]*s;
+      cqelm->y[q] = cvelm->y[0]*(1-r-s) + cvelm->y[1]*r + cvelm->y[2]*s;
       cqelm->w[q] = voldim*gw[q];
     }
   } else if(dim==3) {
     for (j=0; j<v_per_elm; j++) {
-      cvelm.x[j] = mesh->cv->x[thiselm_v[j]-1];
-      cvelm.y[j] = mesh->cv->y[thiselm_v[j]-1];
-      cvelm.z[j] = mesh->cv->z[thiselm_v[j]-1];
+      cvelm->x[j] = mesh->cv->x[thiselm_v[j]-1];
+      cvelm->y[j] = mesh->cv->y[thiselm_v[j]-1];
+      cvelm->z[j] = mesh->cv->z[thiselm_v[j]-1];
     }
 
     voldim = 6.0*e_vol;
@@ -224,9 +228,9 @@ void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm)
       r = gp[q];
       s = gp[nq+q];
       t = gp[2*nq+q];
-      cqelm->x[q] = cvelm.x[0]*(1-r-s-t) + cvelm.x[1]*r + cvelm.x[2]*s + cvelm.x[3]*t;
-      cqelm->y[q] = cvelm.y[0]*(1-r-s-t) + cvelm.y[1]*r + cvelm.y[2]*s + cvelm.y[3]*t;
-      cqelm->z[q] = cvelm.z[0]*(1-r-s-t) + cvelm.z[1]*r + cvelm.z[2]*s + cvelm.z[3]*t;
+      cqelm->x[q] = cvelm->x[0]*(1-r-s-t) + cvelm->x[1]*r + cvelm->x[2]*s + cvelm->x[3]*t;
+      cqelm->y[q] = cvelm->y[0]*(1-r-s-t) + cvelm->y[1]*r + cvelm->y[2]*s + cvelm->y[3]*t;
+      cqelm->z[q] = cvelm->z[0]*(1-r-s-t) + cvelm->z[1]*r + cvelm->z[2]*s + cvelm->z[3]*t;
       cqelm->w[q] = voldim*gw[q];
     }
   } else {
@@ -235,7 +239,11 @@ void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm)
 	
   if(gp) free(gp);
   if(gw) free(gw);
-  free_coords(&cvelm);
+  if(cvelm) {
+    free_coords(cvelm);
+    free(cvelm);
+    cvelm=NULL;
+  }
   if(thiselm_v) free(thiselm_v);
 	
   return;
@@ -243,7 +251,7 @@ void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm)
 /********************************************************************************************************************/
 
 /********************************************************************************************************************/
-qcoordinates get_quadrature_edge(trimesh *mesh,INT nq1d) 
+qcoordinates* get_quadrature_edge(trimesh *mesh,INT nq1d) 
 {
   /* Computes quadrature weights and nodes for all edges in entire domain using nq1d quadrature nodes per edge
    *
@@ -260,22 +268,26 @@ qcoordinates get_quadrature_edge(trimesh *mesh,INT nq1d)
   INT dim = mesh->dim;
   INT nedge = mesh->nedge;
 	
-  qcoordinates cq_all = allocateqcoords(nq1d,nedge,1);
-  qcoordinates cqedge = allocateqcoords(nq1d,1,1);
+  qcoordinates *cq_all = allocateqcoords(nq1d,nedge,1);
+  qcoordinates *cqedge = allocateqcoords(nq1d,1,1);
 	
   for (i=0; i<nedge; i++) {
-    quad_edge(&cqedge,mesh,nq1d,i);
+    quad_edge(cqedge,mesh,nq1d,i);
     for (j=0; j<nq1d; j++) {
-      cq_all.x[i*nq1d+j] = cqedge.x[j];
-      cq_all.y[i*nq1d+j] = cqedge.y[j];
-      cq_all.w[i*nq1d+j] = cqedge.w[j];
+      cq_all->x[i*nq1d+j] = cqedge->x[j];
+      cq_all->y[i*nq1d+j] = cqedge->y[j];
+      cq_all->w[i*nq1d+j] = cqedge->w[j];
       if(dim==3) {
-	cq_all.z[i*nq1d+j] = cqedge.z[j];
+	cq_all->z[i*nq1d+j] = cqedge->z[j];
       }
     }
   }
   
-  free_qcoords(&cqedge);
+  if(cqedge) {
+    free_qcoords(cqedge);
+    free(cqedge);
+    cqedge = NULL;
+  }
 	
   return cq_all;
 }
@@ -300,7 +312,7 @@ void quad_edge(qcoordinates *cqedge,trimesh *mesh,INT nq1d,INT edge)
   INT q,j,nqdum; /* Loop indices */
   INT dim = mesh->dim;
   /* Coordinates of vertices of edge */
-  coordinates cvedge = allocatecoords(2,dim);
+  coordinates *cvedge = allocatecoords(2,dim);
 
   // Add in for Simpson's Rule
   if(nq1d==-1) {
@@ -324,26 +336,26 @@ void quad_edge(qcoordinates *cqedge,trimesh *mesh,INT nq1d,INT edge)
   get_incidence_row(edge,ed_v,thisedge_v);
   if(dim==2) {
     for (j=0; j<2; j++) {
-      cvedge.x[j] = mesh->cv->x[thisedge_v[j]-1];
-      cvedge.y[j] = mesh->cv->y[thisedge_v[j]-1];
+      cvedge->x[j] = mesh->cv->x[thisedge_v[j]-1];
+      cvedge->y[j] = mesh->cv->y[thisedge_v[j]-1];
     }
   } else if(dim==3){
     for (j=0; j<2; j++) {
-      cvedge.x[j] = mesh->cv->x[thisedge_v[j]-1];
-      cvedge.y[j] = mesh->cv->y[thisedge_v[j]-1];
-      cvedge.z[j] = mesh->cv->z[thisedge_v[j]-1];
+      cvedge->x[j] = mesh->cv->x[thisedge_v[j]-1];
+      cvedge->y[j] = mesh->cv->y[thisedge_v[j]-1];
+      cvedge->z[j] = mesh->cv->z[thisedge_v[j]-1];
     }
   } else {
     baddimension();
   }
 
   // Get Jacobian
-  dxt = 0.5*(cvedge.x[1]-cvedge.x[0]);
-  dyt = 0.5*(cvedge.y[1]-cvedge.y[0]);
+  dxt = 0.5*(cvedge->x[1]-cvedge->x[0]);
+  dyt = 0.5*(cvedge->y[1]-cvedge->y[0]);
   if(dim==2) {
     dst = sqrt(dxt*dxt+dyt*dyt);
   } else if(dim==3) {
-    dzt = 0.5*(cvedge.z[1]-cvedge.z[0]);
+    dzt = 0.5*(cvedge->z[1]-cvedge->z[0]);
     dst = sqrt(dxt*dxt+dyt*dyt+dzt*dzt);
   } else {
     baddimension();
@@ -365,23 +377,27 @@ void quad_edge(qcoordinates *cqedge,trimesh *mesh,INT nq1d,INT edge)
   if(dim==2) {
     for (q=0; q<nq1d; q++) {
       r = gp[q];
-      cqedge->x[q] = 0.5*cvedge.x[0]*(1-r) + 0.5*cvedge.x[1]*(1+r);
-      cqedge->y[q] = 0.5*cvedge.y[0]*(1-r) + 0.5*cvedge.y[1]*(1+r);
+      cqedge->x[q] = 0.5*cvedge->x[0]*(1-r) + 0.5*cvedge->x[1]*(1+r);
+      cqedge->y[q] = 0.5*cvedge->y[0]*(1-r) + 0.5*cvedge->y[1]*(1+r);
       cqedge->w[q] = dst*gw[q];	
     }
   } else if(dim==3) {
     for (q=0; q<nq1d; q++) {
       r = gp[q];
-      cqedge->x[q] = 0.5*cvedge.x[0]*(1-r) + 0.5*cvedge.x[1]*(1+r);
-      cqedge->y[q] = 0.5*cvedge.y[0]*(1-r) + 0.5*cvedge.y[1]*(1+r);
-      cqedge->z[q] = 0.5*cvedge.z[0]*(1-r) + 0.5*cvedge.z[1]*(1+r);
+      cqedge->x[q] = 0.5*cvedge->x[0]*(1-r) + 0.5*cvedge->x[1]*(1+r);
+      cqedge->y[q] = 0.5*cvedge->y[0]*(1-r) + 0.5*cvedge->y[1]*(1+r);
+      cqedge->z[q] = 0.5*cvedge->z[0]*(1-r) + 0.5*cvedge->z[1]*(1+r);
       cqedge->w[q] = dst*gw[q];	
     }
   }
 
   if(gp) free(gp);
   if(gw) free(gw);
-  free_coords(&cvedge);
+  if(cvedge) {
+    free_coords(cvedge);
+    free(cvedge);
+    cvedge=NULL;
+  }
   if(thisedge_v) free(thisedge_v);
 	
   return;
