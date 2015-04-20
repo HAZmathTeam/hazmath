@@ -33,9 +33,9 @@ void initialize_fespace(fespace *FE)
   FE->ndof = -666;
   FE->nbdof = -666;
   FE->dof_per_elm = -666;
-  FE->el_dof = malloc(sizeof(struct iCSRmat));
-  FE->ed_dof = malloc(sizeof(struct iCSRmat));
-  FE->f_dof = malloc(sizeof(struct iCSRmat));
+  FE->el_dof = NULL;//malloc(sizeof(struct iCSRmat));
+  FE->ed_dof = NULL;//malloc(sizeof(struct iCSRmat));
+  FE->f_dof = NULL;//malloc(sizeof(struct iCSRmat));
   FE->dof_bdry = NULL;
       
   return;
@@ -64,6 +64,9 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
       FE->ndof = mesh->nv + mesh->nedge;
       FE->nbdof = mesh->nbv + mesh->nbedge;
       FE->dof_per_elm = mesh->v_per_elm + mesh->ed_per_elm;
+      FE->el_dof = malloc(sizeof(struct iCSRmat));
+      FE->ed_dof = malloc(sizeof(struct iCSRmat));
+      FE->f_dof = malloc(sizeof(struct iCSRmat));
       get_P2(FE,mesh);
       FE->f_dof = NULL;
       break;

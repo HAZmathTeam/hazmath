@@ -179,11 +179,10 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
   get_face_ordering(v_per_elm,dim,f_per_elm,fel_order);
 
   // Next get the element to face map, the face to vertex map, and the face boundary information.
-  iCSRmat el_f = icsr_create(nelm,nface,f_per_elm*nelm);
   iCSRmat f_v = icsr_create(nface,nv,nface*dim);
   INT* f_bdry = (INT *) calloc(nface,sizeof(INT));
   INT nbface;
-  get_face_maps(el_v,v_per_elm,nface,dim,f_per_elm,&el_f,f_bdry,&nbface,&f_v,fel_order);
+  get_face_maps(el_v,v_per_elm,nface,dim,f_per_elm,mesh->el_f,f_bdry,&nbface,&f_v,fel_order);
   
   // In case v_bdry has different types of boundaries, match the face boundary to the same:
   for(i=0;i<nface;i++) {
@@ -203,7 +202,6 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
   mesh->cv = cv;
   mesh->f_per_elm = f_per_elm;
   *(mesh->el_v) = el_v;
-  *(mesh->el_f) = el_f;
   mesh->v_per_elm = v_per_elm;
   *(mesh->f_v) = f_v;
         
@@ -924,8 +922,9 @@ void get_face_maps(iCSRmat el_v,INT el_order,INT nface,INT dim,INT f_order,iCSRm
   icsr_trans_1(&f_el,el_f);
 
   /* Transpose face_node and back again to order nodes in increasing order (from global structure) */
-  iCSRmat v_f = icsr_create(nv,nface,nface*dim);
+  iCSRmat v_f;
   icsr_trans_1(f_v,&v_f);
+  icsr_free(f_v);
   icsr_trans_1(&v_f,f_v);
   
   *nbface = nbf;
@@ -1037,7 +1036,7 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,trimesh *mesh)
   
   /* Get Face to Element Map */
   /* Get Transpose of f_el -> el_f */    
-  iCSRmat f_el = icsr_create(nface,nelm,f_order*nelm);
+  iCSRmat f_el;// = icsr_create(nface,nelm,f_order*nelm);
   icsr_trans_1(el_f,&f_el);
 
   // Loop over all Faces
