@@ -815,7 +815,6 @@ void get_face_maps(iCSRmat el_v,INT el_order,INT nface,INT dim,INT f_order,iCSRm
   INT nd[dim];
   INT f_num=-1;  /* Current face number of element */
   INT nelm = el_v.row;
-  INT nv = el_v.col;
 
   // We will build face to element map first and then transpose it
   iCSRmat f_el = icsr_create (nface,nelm,nelm*f_order);
@@ -999,10 +998,8 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,trimesh *mesh)
     	
   INT i,jcnt,j,j_a,j_b; /* loop index */
   INT nface = mesh->el_f->col;
-  INT nelm = mesh->el_f->row;
   INT dim = mesh->dim;
   INT el_order = mesh->v_per_elm;
-  INT f_order = mesh->f_per_elm;
 
   coordinates *cv = mesh->cv;
 
@@ -1036,7 +1033,7 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,trimesh *mesh)
   
   /* Get Face to Element Map */
   /* Get Transpose of f_el -> el_f */    
-  iCSRmat f_el;// = icsr_create(nface,nelm,f_order*nelm);
+  iCSRmat f_el;
   icsr_trans_1(el_f,&f_el);
 
   // Loop over all Faces

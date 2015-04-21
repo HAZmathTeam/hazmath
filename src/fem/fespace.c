@@ -274,7 +274,6 @@ void dump_el_dof(FILE* fid,iCSRmat *el_dof)
     acol = el_dof->IA[i]-1;
     bcol = el_dof->IA[i+1]-1;
     for (j=acol; j<bcol; j++) {
-      printf("j=%d\tja=%d\n\n",j,el_dof->JA[j]);
       fprintf(fid,"%d\t",el_dof->JA[j]);
     }
     fprintf(fid,"\n");
@@ -300,8 +299,10 @@ void dump_fespace(fespace *FE)
 	
   INT i;
   INT totdof = FE->ndof;
-  FILE* fid1 = fopen("output/el_dof.dat","w");
-  FILE* fid2 = fopen("output/bdry.dat","w");
+  FILE* fid1 = fopen("el_dof.dat","w");
+  FILE* fid2 = fopen("bdry.dat","w");
+  FILE* fid3 = fopen("coords.dat","w");
+    
 
   // Dump Element to DOF map
   dump_el_dof(fid1,FE->el_dof);
@@ -311,8 +312,12 @@ void dump_fespace(fespace *FE)
     fprintf(fid2,"%d\n",FE->dof_bdry[i]);
   }
 
+  // Dump Coordinates of DOF
+  dump_coords(fid3,FE->cdof);
+
   fclose(fid1);
   fclose(fid2);
+  fclose(fid3);
 	
   return;
 }

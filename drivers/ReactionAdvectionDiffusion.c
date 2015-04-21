@@ -87,12 +87,8 @@ int main (int argc, char* argv[])
 
   // Dump some data if needed
   INT dumpmesh=ipar[37];
-  dumpmesh=0;
   if(dumpmesh==1) {
     dump_fespace(&FE);
-    FILE* fid = fopen("output/coords.dat","w");
-    dump_coords(fid,FE.cdof);
-    fclose(fid);
   }
 	
   clk2 = clock();
