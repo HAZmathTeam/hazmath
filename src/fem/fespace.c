@@ -66,9 +66,8 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
       FE->dof_per_elm = mesh->v_per_elm + mesh->ed_per_elm;
       FE->el_dof = malloc(sizeof(struct iCSRmat));
       FE->ed_dof = malloc(sizeof(struct iCSRmat));
-      FE->f_dof = malloc(sizeof(struct iCSRmat));
-      get_P2(FE,mesh);
       FE->f_dof = NULL;
+      get_P2(FE,mesh);
       break;
     case -1: // Nedelec Elements 
       FE->cdof = NULL;

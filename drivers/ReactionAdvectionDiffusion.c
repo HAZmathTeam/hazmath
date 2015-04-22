@@ -106,9 +106,9 @@ int main (int argc, char* argv[])
   printf("\t--> Total Boundary DOF: %d\n",FE.nbdof);
   printf("***************************************************************************\n\n");
 	
-  /* /\*** Assemble the matrix and right hand side *******************************\/ */
-  /* printf("Assembling the Matrix and Right-Hand Side:\n"); */
-  /* clk0 = clock(); */
+  /*** Assemble the matrix and right hand side *******************************/
+  printf("Assembling the Matrix and Right-Hand Side:\n");
+  clk1 = clock();
 	
   /* // Number of degrees of freedom equals number of nodes plus edges for P2 elements for each component of u plus the number of elements for P0 elements for p */
   /* //ndof = mydim*n+nelm; */
@@ -141,9 +141,9 @@ int main (int argc, char* argv[])
   /* /\* for(i=0;i<nnzA;i++) { M[i] = 0.0; } *\/ */
   /* /\* H1_assemble_Mass(iM,jM,M,cn.x,cn.y,cn.z,cq.x,cq.y,cq.z,cq.w,el_n.IA,el_n.JA,element_order,nq1d,mydim,nelm,n,n_bdry,compB,1.0); *\/ */
 
-  /* clk1 = clock(); */
-  /* printf("Elapsed CPU Time for Assembly = %f seconds.\n\n",(REAL) (clk1-clk0)/CLOCKS_PER_SEC); */
-  /* /\*******************************************************************************************\/ */
+  clk2 = clock();
+  printf("Elapsed CPU Time for Assembly = %f seconds.\n\n",(REAL) (clk2-clk1)/CLOCKS_PER_SEC);
+  /*******************************************************************************************/
 	
   /* /\**************** Solve ********************************************************************\/ */
   /* printf("Solving the System: Using Preconditioned Minimal Residual Method (CG for all inversions)\n"); */

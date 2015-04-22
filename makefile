@@ -46,7 +46,7 @@ BLASLIB = -framework Accelerate
 ########################################################################
 # Compiling Options
 ########################################################################
-BOPT = -g -pg -O3 -Wall #-fopenmp
+BOPT = -g -pg -O0 -Wall #-fopenmp
 
 COPTS = $(BOPT)
 CINCLUDES = $(INCLUDE) $(UMFPACKINCLUDE) $(METISINCLUDE)
@@ -108,8 +108,7 @@ ALLPROG=$(LIB) test diff
 
 all: $(ALLPROG)
 
-Default: 
-	$(LIB)
+Default: $(ALLPROG)	
 
 headers: 
 	/bin/cat $(CSRCDIR)/assemble/*.c $(CSRCDIR)/fem/*.c \
