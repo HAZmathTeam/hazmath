@@ -7,6 +7,12 @@
 #include "sparse.h"
 #include "vec.h"
 #include "fem.h"
+void assemble_DuDv_global(dCSRmat* A,dvector *b,fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),void (*bc)(REAL *,REAL *,REAL),void (*coeff)(REAL *,REAL *,REAL),REAL time) ;
+void assemble_DuDv_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time) ;
+void FEM_RHS_Local(REAL* bLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL),REAL time) ;
+void stiffG_nnz(dCSRmat *A, fespace *FE) ;
+void stiffG_cols(dCSRmat *A, fespace *FE) ;
+void LocaltoGlobal(INT *dof_on_elm,fespace *FE,dvector *b,dCSRmat *A,REAL *ALoc,REAL *bLoc) ;
 void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL x,REAL y,REAL z,INT *dof,INT porder,trimesh *mesh) ;
 void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dpxy,REAL x,REAL y,REAL z,INT *dof,INT porder,trimesh *mesh) ;
 void initialize_fespace(fespace *FE) ;
@@ -51,6 +57,8 @@ void rvecd_(FILE *fp,  REAL *vec, INT *nn);
 void baddimension()          ;
 void getinput(char* gridfile,REAL* fpar,INT* ipar);
 void iarray_print(INT *vec, INT n   );
+void csr_print_matlab(FILE* fid,dCSRmat *A);
+void dvector_print(FILE* fid,dvector *b);
 dCSRmat dcsr_create (const INT m,
                      const INT n,
                      const INT nnz);

@@ -29,6 +29,7 @@ void initialize_fespace(fespace *FE)
 {
 
   FE->FEtype = -666;
+  FE->nelm = -666;
   FE->cdof = NULL;
   FE->ndof = -666;
   FE->nbdof = -666;
@@ -48,6 +49,7 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
   /* allocates memory and properties of fespace struct */
 
   FE->FEtype = FEtype;
+  FE->nelm = mesh->nelm;
   switch (FEtype)   
     {
     case 1: // Linears - P1

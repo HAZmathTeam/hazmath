@@ -37,14 +37,33 @@
 #include "fem.h"
 /****************************************************************************************/
 
+/******** Data Input ********************************************************************/
+// Right-hand Side
+void myrhs(REAL *val,REAL* x,REAL time) {
+  *val = 2*M_PI*M_PI*sin(M_PI*x[0])*sin(M_PI*x[1]);
+}
+
+// Boundary Conditions
+void bc(REAL *val,REAL* x,REAL time) {
+  *val = 0.0;
+}
+
+// PDE Coefficients
+void diffcoeff(REAL *val,REAL* x,REAL time) {
+  *val = 1.0;
+}
+
+// True Solution (if you have one)
+void truesol(REAL *val,REAL* x,REAL time) {
+  *val = sin(M_PI*x[0])*sin(M_PI*x[1]);
+}
+
+
 /****** MAIN DRIVER *********************************************************************/
 int main (int argc, char* argv[]) 
 {	
   printf("\nBeginning Program to solve Reaction-Advection-Diffusion Problem.\n");	
   /****** INITIALIZE PARAMETERS ********************************************************/
-  // Loop Indices
-  //INT i,j;
-
   // Timing Parameters
   clock_t clk_start,clk_end,clk1,clk2;
   clk_start = clock();
@@ -110,36 +129,18 @@ int main (int argc, char* argv[])
   printf("Assembling the Matrix and Right-Hand Side:\n");
   clk1 = clock();
 	
-  /* // Number of degrees of freedom equals number of nodes plus edges for P2 elements for each component of u plus the number of elements for P0 elements for p */
-  /* //ndof = mydim*n+nelm; */
-  /* ndof = n; */
-  /* A.row = ndof; */
-  /* A.col = ndof; */
-  /* f = calloc(ndof,sizeof(REAL)); */
-	
-  /* // First get P2 Laplacian Matrix for each component of u */
-  /* //iA = calloc(ndof+1,sizeof(INT)); */
-  /* A.IA = calloc(ndof+1,sizeof(INT)); */
+  // Allocate the right-hand side and declare the csr matrix
+  dvector b;
+  dCSRmat A;
 
-  /* // Get non-zeros of A (ignores cancellations, so maybe more than necessary) */
-  /* // stiffG_nnz(iA,&nnzA,el_n.IA,el_n.JA,n,nelm,n_bdry); */
-  /* stiffG_nnz(A.IA,&A.nnz,el_n.IA,el_n.JA,n,nelm,n_bdry); */
-
-	
-  /* // Build Stiffness Matrix and right-hand side vector */
-  /* A.val = calloc(A.nnz,sizeof(REAL)); */
-  /* for (i=0; i<A.nnz; i++) { */
-  /*   A.val[i] = 0; */
-  /* } */
-  /* A.JA = calloc(A.nnz,sizeof(INT)); */
-
-  /* H1_assemble_Lap(A.IA,A.JA,A.val,f,cn.x,cn.y,cn.z,cq.x,cq.y,cq.z,cq.w,el_n.IA,el_n.JA,element_order,nq1d,coef,mydim,nelm,n,n_bdry,compRHS,compB,0,NULL,NULL,NULL,0.0); */
-  /* /\* INT* iM = calloc(ndof+1,sizeof(INT)); *\/ */
-  /* /\* stiffG_nnz(iM,&nnzA,el_n.IA,el_n.JA,n,nelm,n_bdry); *\/ */
-  /* /\* INT* jM = calloc(nnzA,sizeof(INT)); *\/ */
-  /* /\* REAL* M = calloc(nnzA,sizeof(REAL)); *\/ */
-  /* /\* for(i=0;i<nnzA;i++) { M[i] = 0.0; } *\/ */
-  /* /\* H1_assemble_Mass(iM,jM,M,cn.x,cn.y,cn.z,cq.x,cq.y,cq.z,cq.w,el_n.IA,el_n.JA,element_order,nq1d,mydim,nelm,n,n_bdry,compB,1.0); *\/ */
+  // Assemble the matrix
+  assemble_DuDv_global(&A,&b,&FE,&mesh,cq,myrhs,bc,diffcoeff,0.0);
+  FILE* matid = fopen("mat.dat","w");
+  csr_print_matlab(matid,&A);
+  fclose(matid);
+  FILE* rhsid = fopen("rhs.dat","w");
+  dvector_print(rhsid,&b);
+  fclose(rhsid);
 
   clk2 = clock();
   printf("Elapsed CPU Time for Assembly = %f seconds.\n\n",(REAL) (clk2-clk1)/CLOCKS_PER_SEC);
@@ -310,6 +311,8 @@ int main (int argc, char* argv[])
   /* /\*******************************************************************************************\/ */
 	
   /******** Free All the Arrays ***********************************************************/
+  dcsr_free(&A);
+  if(b.val) free(b.val);
   free_fespace(&FE);
   if(cq) {
     free_qcoords(cq);

@@ -52,6 +52,9 @@ typedef struct fespace{
   //! Type of finite element: 0 - P0; 1 - P1; 2 - P2; -1 - Nedelec; -2 - Raviart-Thomas
   INT FEtype;
 
+  //! Number of Elements
+  INT nelm;
+
   //! Coordinates of DOF
   coordinates* cdof;
 
