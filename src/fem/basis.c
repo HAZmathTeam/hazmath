@@ -101,9 +101,7 @@ void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL x,REAL y,REAL z,INT 
    *          mesh                Mesh Data
    *	      dof                 DOF for the given element (in this case vertices and their global numbering)
    *          porder              Order of elements (1 or 2 for now)
-   *          cv                  Coordinates of Vertices
-   *          v_per_elm           Number of vertices per element
-   *          dim                 Dimension of Problem
+   *
    *    OUTPUT:
    *          p(v_per_elm)	  Basis functions at particular point (1 for each vertex)
    *          dpx,dpy(3)	  Derivatives of basis functions at each vertex evaluated at given point
@@ -505,2474 +503,332 @@ void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dp
 }
 /****************************************************************************************************************************/
 
-/* /\****************************************************************************************************************************\/ */
-/* void ned_basis(REAL *phi,REAL *cphi,REAL x,REAL y,INT *jel_n,INT *jel_ed,INT *ied_n,INT *jed_n,REAL *xn,REAL *yn,INT element_order,INT mydim)  */
-/* { */
-	
-/*   /\*************************************************************************** */
-/*    *** Build basis functions *************************************************\/ */
-	
-/*   /\* Compute the Nedelec Elements */
-/*    *    INPUT: */
-/*    *          x,y              Coordinates on physical triangle where to compute basis */
-/*    *          jel_n			 Nodes belonging to particular element */
-/*    *			jel_ed			 Edges belonging to particular element */
-/*    *			ied_n,jed_n		 Edge to Node Map */
-/*    *			element_order	 Number of nodes per element */
-/*    *			mydim			 Dimension of Problem */
-/*    *          xn,yn            Coordinates of nodes */
-/*    *    OUTPUT: */
-/*    *          phi(3,2)         Basis functions at particular point (2 for */
-/*    *                           each edge, 6 total) (from reference triangle) */
-/*    *          cphi(3)          2D Curl of Basis functions at particular point  */
-/*    *                           (1 for each edge) (from reference triangle) */
-/*    *\/ */
-	
-/*   INT i,ica,n1,n2,z,ihi,ilo; */
-/*   INT mark1 = -1; */
-/*   INT mark2 = -1; */
-/*   REAL* p; */
-/*   REAL* dpx; */
-/*   REAL* dpy; */
-/*   //REAL p[element_order],dpx[element_order],dpy[element_order]; */
-/*   INT* ip = calloc(element_order,sizeof(INT)); */
-/*   //INT ip[element_order]; */
-/*   INT nedge = 3*(mydim-1); */
-/*   INT ie[nedge]; */
-	
-/*   /\* Get Linear Basis Functions for particular element *\/ */
-/*   p = calloc(element_order,sizeof(REAL)); */
-/*   dpx = calloc(element_order,sizeof(REAL)); */
-/*   dpy = calloc(element_order,sizeof(REAL)); */
-/*   lin_tri_2D(p,dpx,dpy,x,y,jel_n,xn,yn,element_order); */
-	
-	
-/*   REAL elen; */
-/*   REAL* tau_edge = calloc(mydim,sizeof(REAL)); */
-/*   REAL* midpt = calloc(mydim,sizeof(REAL)); */
-/*   //REAL tau_edge[mydim],midpt[mydim]; */
-	
-/*   // Get Nodes correspond to linear basis elements */
-/*   for (i=0; i<element_order; i++) { */
-/*     ip[i] = jel_n[i]; */
-/*   } */
-	
-/* #define max(a,b) ((a) > (b) ? (a) : (b)) */
-	
-	
-/*   /\* Now, with the linear basis functions p, dpx, and dpy, the nedelec elements are  */
-/*    * phi_eij = |eij|*(p(i)grad(p(j)) - p(j)grad(p(i))) */
-/*    * |eij| = sqrt(|xj-xi|^2)   */
-/*    *\/ */
-/*   //INT* ie = calloc((mydim-1)*3,sizeof(INT)); */
-	
-/*   // Go through each edge and get length and find the corresponding nodes */
-/*   for (i=0; i<nedge; i++) { */
-/*     ie[i] = jel_ed[i]; */
-/*     ica = ied_n[ie[i]-1]; */
-/*     n1 = jed_n[ica-1]; */
-/*     n2 = jed_n[ica]; */
-/*     edge_stats(&elen,tau_edge,midpt,ie[i],xn,yn,NULL,ied_n,jed_n,mydim); */
-		
-/*     // Find out which linear basis elements line up with nodes on this edge */
-/*     for (z=0; z<element_order; z++) { */
-/*       if (ip[z]==n1) { */
-/* 	mark1=z; */
-/*       } */
-/*       if (ip[z]==n2) { */
-/* 	mark2=z; */
-/*       } */
-/*     } */
-/*     // Make sure orientation is correct always go from i->j if nj > ni */
-/*     if (max(n1,n2)==n1) { */
-/*       ihi = mark1; */
-/*       ilo = mark2; */
-/*     } else { */
-/*       ihi = mark2; */
-/*       ilo = mark1; */
-/*     } */
-		
-/*     phi[i*mydim+0] = elen*(p[ilo]*dpx[ihi] - p[ihi]*dpx[ilo]); */
-/*     phi[i*mydim+1] = elen*(p[ilo]*dpy[ihi] - p[ihi]*dpy[ilo]); */
-		
-/*     /\* Now compute Curls */
-/*      * In 2D curl v = (-dy,dx)*(v1,v2)^T = (dx,dy)(0 1;-1 0)(v1,v2)^T = div (Jv) */
-/*      * curl phi_eij = |eij|*(grad(p(i))*(J*grad(p(j)))-grad(p(j))*(J*grad(p(i))) */
-/*      * This results from the fact that the p's are linear... */
-/*      *\/ */
-		
-/*     cphi[i] = elen*2*(dpx[ilo]*dpy[ihi] - dpy[ilo]*dpx[ihi]); */
-/*   } */
-	
-/*   //if(ie) free(ie); */
-/*   if(p) free(p); */
-/*   if(dpx) free(dpx); */
-/*   if(dpy) free(dpy); */
-/*   if(ip) free(ip); */
-/*   if(tau_edge) free(tau_edge); */
-/*   if(midpt) free(midpt); */
-	
-/*   return; */
-/* } */
-/* /\***************************************************************************\/ */
-
-/* /\****************************************************************************************************************************\/ */
-/* void rt_basis(REAL *phi,REAL *dphi,REAL x,REAL y,REAL z,INT *jel_n,INT *jel_face,INT *iface_n,INT *jface_n, \ */
-/* 	      REAL *f_area,REAL *f_norm,INT face_order,REAL *xn,REAL *yn,REAL *zn,INT element_order,INT mydim) */
-/* { */
-	
-/*   /\*************************************************************************** */
-/*    *** Build basis functions *************************************************\/ */
-	
-/*   /\* Compute the Raviart Thomas Elements */
-/*    *    INPUT: */
-/*    *          x,y,z                Coordinates on physical triangle where to compute basis */
-/*    *          jel_n	         Nodes belonging to particular element */
-/*    *	    jel_face             Faces belonging to particular element */
-/*    *          el_face              Ordering of faces on element */
-/*    *	    iface_n,jface_n	 Face to Node Map */
-/*    *          fel_order            Nodes belonging to face and ordering */
-/*    *          f_area               Area of faces */
-/*    *          f_norm               Normal vector of faces */
-/*    *          face_order           Number of faces per element */
-/*    *	    element_order	 Number of nodes per element */
-/*    *	    mydim		 Dimension of Problem */
-/*    *          xn,yn,zn             Coordinates of nodes */
-/*    *    OUTPUT: */
-/*    *          phi(face_order,mydim)    Basis functions at particular point (face_order for */
-/*    *                                   each face, 6 total in 2D 12 in 3D) (from reference triangle) */
-/*    *          Dphi(face_order)         Div of Basis functions at particular point */
-/*    *\/ */
-	
-/*   INT i,j,ica,icb,jcnt; */
-/*   REAL* p; */
-/*   REAL* dpx; */
-/*   REAL* dpy; */
-/*   REAL* dpz; */
-/*   INT* ipf = calloc(mydim,sizeof(INT)); */
-/*   INT myf; */
-/*   REAL farea; */
-/*   REAL* xf = calloc(mydim,sizeof(REAL)); */
-/*   REAL* yf = calloc(mydim,sizeof(REAL)); */
-/*   REAL* zf; */
-/*   if(mydim==3) { zf = calloc(mydim,sizeof(REAL)); } */
-
-/*   INT elnd,ef1,ef2,ef3; */
-	
-/*   /\* Get Linear Basis Functions for particular element *\/ */
-/*   p = calloc(element_order,sizeof(REAL)); */
-/*   dpx = calloc(element_order,sizeof(REAL)); */
-/*   dpy = calloc(element_order,sizeof(REAL)); */
-	
-/*   if(mydim==2) { */
-/*     lin_tri_2D(p,dpx,dpy,x,y,jel_n,xn,yn,element_order); */
-/*   } else if(mydim==3) { */
-/*     dpz = calloc(element_order,sizeof(REAL)); */
-/*     lin_tet_3D(p,dpx,dpy,dpz,x,y,z,jel_n,xn,yn,zn,element_order); */
-/*   } else { */
-/*     printf("You have now entered the twilight zone, in rt_basis()"); */
-/*     exit(0); */
-/*   } */
-	
-/*   // Go through each face and find the corresponding nodes */
-/*   if(mydim==2) { */
-/*     for (i=0; i<face_order; i++) { */
-/*       myf = jel_face[i]; */
-/*       ica = iface_n[myf-1]-1; */
-/*       icb = iface_n[myf]-1; */
-/*       jcnt=0; */
-/*       for(j=ica;j<icb;j++) { */
-/* 	ipf[jcnt] = jface_n[j]; */
-/* 	xf[jcnt] = xn[ipf[jcnt]-1]; */
-/* 	yf[jcnt] = yn[ipf[jcnt]-1]; */
-/* 	jcnt++; */
-/*       } */
-    
-/*       // Get the area and normal vector of the face */
-/*       farea = f_area[myf-1]; */
-/*       /\* nx = f_norm[(myf-1)*mydim]; *\/ */
-/*       /\* ny = f_norm[(myf-1)*mydim+1]; *\/ */
-
-/*       /\* // Determine proper orientation of basis vectors  Compute n^(\perp)*t.  If + use face_node ordering, if - switch sign *\/ */
-/*       /\* tx = xf[1]-xf[0]; *\/ */
-/*       /\* ty = yf[1]-yf[0]; *\/ */
-/*       /\* mysign = -ny*tx + nx*ty; *\/ */
-/*       /\* if(mysign<0) { *\/ */
-/*       /\* 	nf1 = 1; *\/ */
-/*       /\* 	nf2 = 0; *\/ */
-/*       /\* } else { *\/ */
-/*       /\* 	nf1 = 0; *\/ */
-/*       /\* 	nf2 = 1; *\/ */
-/*       /\* } *\/ */
-
-/*       // Loop through Nodes on element to find corresponding nodes */
-/*       for(j=0;j<element_order;j++) { */
-/* 	elnd = jel_n[j]; */
-/* 	if(ipf[0]==elnd) { */
-/* 	  ef1 = j; */
-/* 	} */
-/* 	if(ipf[1]==elnd) { */
-/* 	  ef2 = j; */
-/* 	} */
-/*       } */
-     
-/*       /\* Now, with the linear basis functions p, dpx, and dpy, the RT elements are in 2D */
-/*        * phi_fij = |fij|*(p(i)curl(p(j)) - p(j)curl(p(i))) */
-/*        * |fij| = |eij| */
-/*        *\/ */
-/*       phi[i*mydim+0] = farea*(p[ef1]*dpy[ef2] - p[ef2]*dpy[ef1]); */
-/*       phi[i*mydim+1] = farea*(-p[ef1]*dpx[ef2] + p[ef2]*dpx[ef1]); */
-		
-/*       // Compute divs div(phi_fij) = 2*|fij|(dx(p(i))*dy(p(j)) - dx(p(j))*dy(p(i))) */
-/*       dphi[i] = 2*farea*(dpx[ef1]*dpy[ef2] - dpx[ef2]*dpy[ef1]); */
-
-/*     } */
-/*   } else if(mydim==3) { */
-/*     for (i=0; i<face_order; i++) { */
-/*       myf = jel_face[i]; */
-/*       ica = iface_n[myf-1]-1; */
-/*       icb = iface_n[myf]-1; */
-/*       jcnt=0; */
-/*       for(j=ica;j<icb;j++) { */
-/* 	ipf[jcnt] = jface_n[j]; */
-/* 	xf[jcnt] = xn[ipf[jcnt]-1]; */
-/* 	yf[jcnt] = yn[ipf[jcnt]-1]; */
-/* 	zf[jcnt] = zn[ipf[jcnt]-1]; */
-/* 	jcnt++; */
-/*       } */
-    
-/*       // Get the area and normal vector of the face */
-/*       farea = f_area[myf-1]; */
-/*       /\* nx = f_norm[(myf-1)*mydim]; *\/ */
-/*       /\* ny = f_norm[(myf-1)*mydim+1]; *\/ */
-/*       /\* nz = f_norm[(myf-1)*mydim+2]; *\/ */
-/*       /\* //  printf("\n\nface %d:\tnx=%f\tny=%f\tnz=%f\n",myf,nx,ny,nz); *\/ */
-
-/*       /\* // Determine proper orientation of basis vectors  Compute n^(\perp)*t.  If + use face_node ordering, if - switch sign *\/ */
-/*       /\* tx = (yf[1]-yf[0])*(zf[2]-zf[0]) - (zf[1]-zf[0])*(yf[2]-yf[0]); *\/ */
-/*       /\* ty = (zf[1]-zf[0])*(xf[2]-xf[0]) - (xf[1]-xf[0])*(zf[2]-zf[0]); *\/ */
-/*       /\* tz = (xf[1]-xf[0])*(yf[2]-yf[0]) - (yf[1]-yf[0])*(xf[2]-xf[0]); *\/ */
-/*       /\* mysign = nx*tx + ny*ty + nz*tz; *\/ */
-/*       /\* if(mysign<0) { *\/ */
-/*       /\* 	nf1 = 0; *\/ */
-/*       /\* 	nf2 = 2; *\/ */
-/*       /\* 	nf3 = 1; *\/ */
-/*       /\* } else { *\/ */
-/*       /\* 	nf1 = 0; *\/ */
-/*       /\* 	nf2 = 1; *\/ */
-/*       /\* 	nf3 = 2; *\/ */
-/*       /\* } *\/ */
-
-/*       // Loop through Nodes on element to find corresponding nodes */
-/*       for(j=0;j<element_order;j++) { */
-/* 	elnd = jel_n[j]; */
-/* 	if(ipf[0]==elnd) { */
-/* 	  ef1 = j; */
-/* 	} */
-/* 	if(ipf[1]==elnd) { */
-/* 	  ef2 = j; */
-/* 	} */
-/* 	if(ipf[2]==elnd) { */
-/* 	  ef3 = j; */
-/* 	} */
-/*       } */
-/*       //printf("\n\nface %d:\tef1=%d\tef2=%d\tef3=%d\n",myf,ef1,ef2,ef3); */
-/*       /\* Now, with the linear basis functions p, dpx, and dpy, the RT elements are in 3D */
-/*        * phi_fijk = 6*|fijk|*(p(i)(grad(p(j)) x grad(p(k))) - p(j)(grad(p(k)) x grad(p(i))) + p(k)(grad(p(i)) x grad(p(j)))) */
-/*        * |fijk| = Area(Face) */
-/*        *\/ */
-/*       phi[i*mydim+0] = 2*farea*(p[ef1]*(dpy[ef2]*dpz[ef3]-dpz[ef2]*dpy[ef3]) + p[ef2]*(dpy[ef3]*dpz[ef1]-dpz[ef3]*dpy[ef1]) + \ */
-/* 				p[ef3]*(dpy[ef1]*dpz[ef2]-dpz[ef1]*dpy[ef2])); */
-/*       phi[i*mydim+1] = 2*farea*(p[ef1]*(dpz[ef2]*dpx[ef3]-dpx[ef2]*dpz[ef3]) + p[ef2]*(dpz[ef3]*dpx[ef1]-dpx[ef3]*dpz[ef1]) + \ */
-/* 				p[ef3]*(dpz[ef1]*dpx[ef2]-dpx[ef1]*dpz[ef2])); */
-/*       phi[i*mydim+2] = 2*farea*(p[ef1]*(dpx[ef2]*dpy[ef3]-dpy[ef2]*dpx[ef3]) + p[ef2]*(dpx[ef3]*dpy[ef1]-dpy[ef3]*dpx[ef1]) + \ */
-/* 				p[ef3]*(dpx[ef1]*dpy[ef2]-dpy[ef1]*dpx[ef2])); */
-		
-/*       // Compute divs div(phi_fij) = 2*|fij|(dx(p(i))*dy(p(j)) - dx(p(j))*dy(p(i))) */
-/*       dphi[i] = 6*farea*(dpx[ef1]*(dpy[ef2]*dpz[ef3]-dpz[ef2]*dpy[ef3]) + dpy[ef1]*(dpz[ef2]*dpx[ef3]-dpx[ef2]*dpz[ef3]) + \ */
-/* 			 dpz[ef1]*(dpx[ef2]*dpy[ef3]-dpy[ef2]*dpx[ef3])); */
-/*     } */
-/*   } else { */
-/*     baddimension(); */
-/*   } */
-	
-/*   //if(ie) free(ie); */
-/*   if(p) free(p); */
-/*   if(dpx) free(dpx); */
-/*   if(dpy) free(dpy); */
-/*   if(xf) free(xf); */
-/*   if(yf) free(yf); */
-/*   if(ipf) free(ipf); */
-/*   if(mydim==3) { */
-/*     if(dpz) free(dpz); */
-/*     if(zf) free(zf); */
-/*   } */
-	
-/*   return; */
-/* } */
-/* /\****************************************************************************************************************************\/ */
-
-/* /\****************************************************************************************************************************\/ */
-/* void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL x,REAL y,REAL z,INT *jel_n,INT *jel_face,CSRinc face_n, \ */
-/* 	      REAL *f_area,INT face_order,coordinates cn,INT element_order,INT mydim) */
-/* { */
-/*   /\*************************************************************************** */
-/*    *** Build basis functions *************************************************\/ */
-	
-/*   /\* Compute the Brezzi-Douglas-Marini (BDM) Elements of order 1 for now (only 2D for now). */
-/*    *    INPUT: */
-/*    *          x,y,z              Coordinates on physical triangle where to compute basis */
-/*    *          jel_n	         Nodes belonging to particular element */
-/*    *	      jel_face           Faces belonging to particular element */
-/*    *          el_face            Ordering of faces on element */
-/*    *	      face_n	         Face to Node Map */
-/*    *          f_area             Area of faces (length of edge in 2D) */
-/*    *          f_norm             Normal vector of faces */
-/*    *          face_order         Number of faces per element */
-/*    *	      element_order	 Number of nodes per element */
-/*    *	      mydim		 Dimension of Problem */
-/*    *          cn                 Coordinates of nodes */
-/*    *    OUTPUT: */
-/*    *          phi(2*face_order,mydim)                   Basis functions at particular point (2*face_order for */
-/*    *                                                    each face, 12 total in 2D) (from reference triangle) */
-/*    *          Dphix(2*face_order,mydim),Dphiy           Derivatives of Basis functions at particular point */
-/*    *\/ */
-	
-/*   INT i,j,ica,icb,jcnt; */
-/*   REAL a1,a2,a3,a4; */
-/*   REAL* p; */
-/*   REAL* dpx; */
-/*   REAL* dpy; */
-/*   REAL* dpz; */
-/*   INT* ipf = calloc(mydim,sizeof(INT)); */
-/*   INT myf; */
-/*   REAL farea; */
-/*   INT elnd,ef1,ef2; */
-	
-/*   /\* Get Linear Basis Functions for particular element *\/ */
-/*   p = calloc(element_order,sizeof(REAL)); */
-/*   dpx = calloc(element_order,sizeof(REAL)); */
-/*   dpy = calloc(element_order,sizeof(REAL)); */
-	
-/*   if(mydim==2) { */
-/*     lin_tri_2D(p,dpx,dpy,x,y,jel_n,cn.x,cn.y,element_order); */
-/*   } else if(mydim==3) { */
-/*     dpz = calloc(element_order,sizeof(REAL)); */
-/*     lin_tet_3D(p,dpx,dpy,dpz,x,y,z,jel_n,cn.x,cn.y,cn.z,element_order); */
-/*   } else { */
-/*     printf("You have now entered the twilight zone, in bdm1_basis()"); */
-/*     exit(0); */
-/*   } */
-	
-/*   // Go through each face and find the corresponding nodes */
-/*   if(mydim==2) { */
-/*     for (i=0; i<face_order; i++) { */
-/*       myf = jel_face[i]; */
-/*       ica = face_n.IA[myf-1]-1; */
-/*       icb = face_n.IA[myf]-1; */
-/*       jcnt=0; */
-/*       for(j=ica;j<icb;j++) { */
-/* 	ipf[jcnt] = face_n.JA[j]; */
-/* 	jcnt++; */
-/*       } */
-    
-/*       // Get the area of the face */
-/*       farea = f_area[myf-1]; */
-
-/*       // Loop through Nodes on element to find corresponding nodes and orientation */
-/*       for(j=0;j<element_order;j++) { */
-/* 	elnd = jel_n[j]; */
-/* 	if(ipf[0]==elnd) { */
-/* 	  ef1 = j; */
-/* 	} */
-/* 	if(ipf[1]==elnd) { */
-/* 	  ef2 = j; */
-/* 	} */
-/*       } */
-     
-/*       /\* Now, with the linear basis functions p, dpx, and dpy, the BDM1 elements are in 2D */
-/*        * phi_fij = |fij|*(p(i)curl(p(j)) - p(j)curl(p(i))) */
-/*        * psi_fij = alpha*|fij|*curl(p(i)p(j)) */
-/*        * |fij| = |eij| */
-/*        *\/ */
-/*       phi[i*mydim*2] = farea*(p[ef1]*dpy[ef2] - p[ef2]*dpy[ef1]); */
-/*       phi[i*mydim*2+1] = farea*(-p[ef1]*dpx[ef2] + p[ef2]*dpx[ef1]); */
-/*       phi[i*mydim*2+2] = -6*farea*(p[ef1]*dpy[ef2] + p[ef2]*dpy[ef2]); */
-/*       phi[i*mydim*2+3] = 6*farea*(p[ef1]*dpx[ef2] + p[ef2]*dpx[ef2]); */
-		
-/*       a1 = dpx[ef1]*dpx[ef2]; */
-/*       a2 = dpx[ef1]*dpy[ef2]; */
-/*       a3 = dpy[ef1]*dpx[ef2]; */
-/*       a4 = dpy[ef1]*dpy[ef2]; */
-
-/*       dphix[i*mydim*2] = farea*(a2-a3); */
-/*       dphix[i*mydim*2+1] = 0.0; */
-/*       dphix[i*mydim*2+2] = -6*farea*(a2+a3); */
-/*       dphix[i*mydim*2+3] = 12*farea*a1; */
-/*       dphiy[i*mydim*2] = 0.0; */
-/*       dphiy[i*mydim*2+1] = farea*(a2-a3); */
-/*       dphiy[i*mydim*2+2] = -12*farea*a4; */
-/*       dphiy[i*mydim*2+3] = 6*farea*(a2+a3); */
-
-/*     } */
-/*   } else { */
-/*     baddimension(); // 3D not implemented */
-/*   } */
-	
-/*   //if(ie) free(ie); */
-/*   if(p) free(p); */
-/*   if(dpx) free(dpx); */
-/*   if(dpy) free(dpy); */
-/*   if(ipf) free(ipf); */
-/*   if(mydim==3) { */
-/*     if(dpz) free(dpz); */
-/*   } */
-	
-/*   return; */
-/* } */
-/* /\****************************************************************************************************************************\/ */
-
-
-
-/* /\****************************************************************************************************************************\/ */
-/* void ned_basis3D(REAL *phi,REAL *cphi,REAL x,REAL y,REAL z,INT *jel_n,INT *jel_ed,INT *ied_n,INT *jed_n,REAL *xn, \ */
-/* 		 REAL *yn,REAL *zn,INT element_order,INT mydim)  */
-/* { */
-	
-/*   /\*************************************************************************** */
-/*    *** Build basis functions *************************************************\/ */
-	
-/*   /\* Compute the Nedelec Elements */
-/*    *    INPUT: */
-/*    *          x,y,z            Coordinates on physical triangle where to compute basis */
-/*    *          jel_n			 Nodes belonging to particular element */
-/*    *			jel_ed			 Edges belonging to particular element */
-/*    *			ied_n,jed_n		 Edge to Node Map */
-/*    *			element_order	 Number of nodes per element */
-/*    *			mydim			 Dimension of Problem */
-/*    *          xn,yn,zn         Coordinates of nodes */
-/*    *    OUTPUT: */
-/*    *          phi(6,3)         Basis functions at particular point (3 for */
-/*    *                           each edge, 18 total) (from reference triangle) */
-/*    * */
-/*    *\/ */
-	
-/*   INT i,ica,n1,n2,k,ihi,ilo; */
-/*   INT mark1 = -1; */
-/*   INT mark2 = -1; */
-/*   REAL* p; */
-/*   REAL* dpx; */
-/*   REAL* dpy; */
-/*   REAL* dpz; */
-/*   INT* ip = calloc(element_order,sizeof(INT)); */
-/*   //REAL p[element_order],dpx[element_order],dpy[element_order],dpz[element_order]; */
-/*   //INT ip[element_order]; */
-	
-	
-/*   /\* Get Linear Basis Functions for particular element *\/ */
-/*   p = calloc(element_order,sizeof(REAL)); */
-/*   dpx = calloc(element_order,sizeof(REAL)); */
-/*   dpy = calloc(element_order,sizeof(REAL)); */
-/*   dpz = calloc(element_order,sizeof(REAL)); */
-/*   lin_tet_3D(p,dpx,dpy,dpz,x,y,z,jel_n,xn,yn,zn,element_order); */
-	
-/*   REAL elen; */
-/*   REAL* tau_edge = calloc(mydim,sizeof(REAL)); */
-/*   REAL* midpt = calloc(mydim,sizeof(REAL)); */
-/*   //REAL tau_edge[mydim],midpt[mydim]; */
-	
-/*   INT nedge = 3*(mydim-1); */
-/*   INT ie[nedge]; */
-	
-/*   // Get Nodes correspond to linear basis elements */
-/*   for (i=0; i<element_order; i++) { */
-/*     ip[i] = jel_n[i]; */
-/*   } */
-	
-/* #define max(a,b) ((a) > (b) ? (a) : (b)) */
-	
-	
-/*   /\* Now, with the linear basis functions p, dpx, and dpy, the nedelec elements are  */
-/*    * phi_eij = |eij|*(p(i)grad(p(j)) - p(j)grad(p(i))) */
-/*    * |eij| = sqrt(|xj-xi|^2)   */
-/*    *\/ */
-/*   //INT* ie = calloc((mydim-1)*3,sizeof(INT)); */
-/*   // Go through each edge and get length and find the corresponding nodes */
-/*   for (i=0; i<nedge; i++) { */
-/*     ie[i] = jel_ed[i]; */
-/*     ica = ied_n[ie[i]-1]; */
-/*     n1 = jed_n[ica-1]; */
-/*     n2 = jed_n[ica]; */
-/*     edge_stats(&elen,tau_edge,midpt,ie[i],xn,yn,zn,ied_n,jed_n,mydim); */
-		
-/*     // Find out which linear basis elements line up with nodes on this edge */
-/*     for (k=0; k<element_order; k++) { */
-/*       if (ip[k]==n1) { */
-/* 	mark1=k; */
-/*       } */
-/*       if (ip[k]==n2) { */
-/* 	mark2=k; */
-/*       } */
-/*     } */
-/*     // Make sure orientation is correct always go from i->j if nj > ni */
-/*     if (max(n1,n2)==n1) { */
-/*       ihi = mark1; */
-/*       ilo = mark2; */
-/*     } else { */
-/*       ihi = mark2; */
-/*       ilo = mark1; */
-/*     } */
-		
-/*     phi[i*mydim+0] = elen*(p[ilo]*dpx[ihi] - p[ihi]*dpx[ilo]); */
-/*     phi[i*mydim+1] = elen*(p[ilo]*dpy[ihi] - p[ihi]*dpy[ilo]); */
-/*     phi[i*mydim+2] = elen*(p[ilo]*dpz[ihi] - p[ihi]*dpz[ilo]); */
-		
-/*     cphi[i*mydim+0] = 2*elen*(dpy[ilo]*dpz[ihi]-dpy[ihi]*dpz[ilo]); */
-/*     cphi[i*mydim+1] = 2*elen*(dpx[ihi]*dpz[ilo]-dpx[ilo]*dpz[ihi]); */
-/*     cphi[i*mydim+2] = 2*elen*(dpx[ilo]*dpy[ihi]-dpx[ihi]*dpy[ilo]); */
-		
-/*     /\* Curls not needed in 3D as <curl u, curl v> operator can be found from laplacian matrix *\/ */
-/*   } */
-	
-/*   //if(ie) free(ie); */
-/*   if(p) free(p); */
-/*   if(dpx) free(dpx); */
-/*   if(dpy) free(dpy); */
-/*   if(dpz) free(dpz); */
-/*   if(ip) free(ip); */
-/*   if(tau_edge) free(tau_edge); */
-/*   if(midpt) free(midpt); */
-	
-/*   return; */
-/* } */
-/* /\***************************************************************************\/ */
-
 /****************************************************************************************************************************/
-// INTERPOLATION ROUTINES 
+/* Compute Nedelec Finite Element Basis Functions (zeroth order) at a particular point in 2 or 3D*/
+void ned_basis(REAL *phi,REAL *cphi,REAL x,REAL y,REAL z,INT *v_on_elm,INT *dof,trimesh *mesh)
+{
+  /* Compute the Nedelec Elements
+   *    INPUT:
+   *          x,y,z                  Coordinates on physical triangle where to compute basis
+   *          mesh                   Mesh Data
+   *          v_on_elm               Vertices on the given element
+   *	      dof                    DOF for the given element (in this case edges and their global numbering)
+   *    OUTPUT:
+   *          phi(ed_per_elm,dim)    Basis functions at particular point (dim for each edge from reference triangle)
+   *          cphi(ed_per_elm,dim)   Curl of Basis functions at particular point (1 for each edge in 2D) (from reference triangle)
+   */
+
+  // Get Mesh Data
+  INT v_per_elm = mesh->v_per_elm;
+  INT ed_per_elm = mesh->ed_per_elm;
+  INT dim = mesh->dim;
+	
+  INT i,k,ica,n1,n2,ihi,ilo;
+  INT mark1 = -1;
+  INT mark2 = -1;
+  REAL* p;
+  REAL* dpx;
+  REAL* dpy;
+  REAL* dpz=NULL;
+	
+  /* Get Linear Basis Functions for particular element */
+  p = (REAL *) calloc(v_per_elm,sizeof(REAL));
+  dpx = (REAL *) calloc(v_per_elm,sizeof(REAL));
+  dpy = (REAL *) calloc(v_per_elm,sizeof(REAL));
+  if(dim==3) dpz = (REAL *) calloc(v_per_elm,sizeof(REAL));
+  PX_H1_basis(p,dpx,dpy,dpz,x,y,z,v_on_elm,1,mesh);	
+	
+  REAL elen;	
+	
+  /* Now, with the linear basis functions p, dpx, and dpy, the nedelec elements are
+   * phi_eij = |eij|*(p(i)grad(p(j)) - p(j)grad(p(i)))
+   * |eij| = sqrt(|xj-xi|^2)
+   */
+	
+  // Go through each edge and get length and find the corresponding nodes
+  for (i=0; i<ed_per_elm; i++) {
+    ica = mesh->ed_v->IA[dof[i]-1];
+    n1 = mesh->ed_v->JA[ica-1];
+    n2 = mesh->ed_v->JA[ica];
+    elen = mesh->ed_len[dof[i]-1];
+		
+    // Find out which linear basis elements line up with nodes on this edge
+    for (k=0; k<v_per_elm; k++) {
+      if (v_on_elm[k]==n1) {
+	mark1=k;
+      }
+      if (v_on_elm[k]==n2) {
+	mark2=k;
+      }
+    }
+    // Make sure orientation is correct always go from i->j if nj > ni
+    if (MAX(n1,n2)==n1) {
+      ihi = mark1;
+      ilo = mark2;
+    } else {
+      ihi = mark2;
+      ilo = mark1;
+    }
+		
+    phi[i*dim+0] = elen*(p[ilo]*dpx[ihi] - p[ihi]*dpx[ilo]);
+    phi[i*dim+1] = elen*(p[ilo]*dpy[ihi] - p[ihi]*dpy[ilo]);
+    if(dim==3) phi[i*dim+2] = elen*(p[ilo]*dpz[ihi] - p[ihi]*dpz[ilo]);
+		
+    /* Now compute Curls
+     * In 2D curl v = (-dy,dx)*(v1,v2)^T = (dx,dy)(0 1;-1 0)(v1,v2)^T = div (Jv)
+     * curl phi_eij = |eij|*(grad(p(i))*(J*grad(p(j)))-grad(p(j))*(J*grad(p(i)))
+     * This results from the fact that the p's are linear...
+     *
+     * In 3D, technically the curls are not needed in 3D as <curl u, curl v> operator can be found from Laplacian matrix.
+     * We compute them anyway
+     */
+		
+    if(dim==2) {
+      cphi[i] = 2*elen*(dpx[ilo]*dpy[ihi] - dpy[ilo]*dpx[ihi]);
+    } else if(dim==3) {
+      cphi[i*dim+0] = 2*elen*(dpy[ilo]*dpz[ihi]-dpy[ihi]*dpz[ilo]);
+      cphi[i*dim+1] = 2*elen*(dpx[ihi]*dpz[ilo]-dpx[ilo]*dpz[ihi]);
+      cphi[i*dim+2] = 2*elen*(dpx[ilo]*dpy[ihi]-dpx[ihi]*dpy[ilo]);
+    } else {
+      baddimension();
+    }
+  }
+	
+  if(p) free(p);
+  if(dpx) free(dpx);
+  if(dpy) free(dpy);
+  if(dpz) free(dpz);
+	
+  return;
+}
 /****************************************************************************************************************************/
 
-/* /\****************************************************************************************************************************\/ */
-/* void H1_interpolation(REAL* val,REAL *u,REAL x,REAL y,REAL z,INT *jel_dof,REAL *xn,REAL *yn,REAL *zn,INT ndof,INT element_order,INT mydim,INT nun)  */
-/* { */
+/****************************************************************************************************************************/
+void rt_basis(REAL *phi,REAL *dphi,REAL x,REAL y,REAL z,INT *v_on_elm,INT *dof,trimesh *mesh)
+{
+/* Compute the Raviart Thomas Elements
+   *    INPUT:
+   *          x,y,z               Coordinates on physical triangle where to compute basis
+   *          mesh                Mesh Data
+   *          v_on_elm            Vertices on the given element
+   *	      dof                 DOF for the given element (in this case faces and their global numbering)
+   *    OUTPUT:
+   *          phi(f_per_elm,dim)  Basis functions at particular point (dim for each face from reference triangle)
+   *          dphi(f_per_elm)     Div of Basis functions at particular point
+   */
 	
-/*   /\*************************************************************************** */
-/*    *** Interpolate a finite-element approximation to any other point in the given element using H1 elements ************************************************* */
-/*    *** so far only P0,P1,or P2 ************************************************************************************************************ */
-/*    *    INPUT: */
-/*    *			u				 Approximation to interpolate */
-/*    *          x,y,z            Coordinates where to compute value */
-/*    *          jel_dof			 DOF belonging to particular element */
-/*    *          xn,yn,zn         Coordinates of nodes */
-/*    *			element_order	 Number of DOF per element */
-/*    *			ndof			 Total DOF for each unknown */
-/*    *			mydim			 Dimension of Problem */
-/*    *			nun				 Number of unknowns in u (u1,u2,etc?) 1 is a scalar... */
-/*    *    OUTPUT: */
-/*    *          val				 Value of approximation at given values */
-/*    * */
-/*    *\/ */
-	
-	
-/*   INT i,nd,j; */
-/*   REAL coef; */
-/*   REAL* p = calloc(element_order,sizeof(REAL)); */
-/*   REAL* dpx = calloc(element_order,sizeof(REAL)); */
-/*   REAL* dpy = calloc(element_order,sizeof(REAL)); */
-/*   REAL* dpz = calloc(element_order,sizeof(REAL)); */
-	
-/*   if(element_order==3) { // P1 elements 2D */
-/*     lin_tri_2D(p,dpx,dpy,x,y,jel_dof,xn,yn,element_order); */
-/*   } else if(element_order==6) { // P2 elements 2D */
-/*     quad_tri_2D(p,dpx,dpy,x,y,jel_dof,xn,yn,element_order); */
-/*   } else if(element_order==4) { // P1 Elements 3D */
-/*     lin_tet_3D(p,dpx,dpy,dpz,x,y,z,jel_dof,xn,yn,zn,element_order); */
-/*   } else if(element_order==10) { // P2 Elements 3D */
-/*     quad_tet_3D(p,dpx,dpy,dpz,x,y,z,jel_dof,xn,yn,zn,element_order); */
-/*   } */
-	
-/*   for (i=0; i<nun; i++) { */
-/*     coef = 0.0; */
-		
-/*     for (j=0; j<element_order; j++) {  */
-/*       nd = i*ndof + jel_dof[j]-1; */
-/*       coef = coef + u[nd]*p[j]; */
-/*     } */
-/*     val[i] = coef; */
-/*   } */
-	
-/*   if (p) free(p); */
-/*   if(dpx) free(dpx); */
-/*   if(dpy) free(dpy); */
-/*   if(dpz) free(dpz); */
-/*   return; */
-/* } */
-/* /\****************************************************************************************************************************\/ */
+  // Get Mesh Data
+  INT v_per_elm = mesh->v_per_elm;
+  INT f_per_elm = mesh->f_per_elm;
+  INT dim = mesh->dim;
 
-/* /\****************************************************************************************************************************\/ */
-/* void H1Grad_interpolation(REAL* val,REAL *u,REAL x,REAL y,REAL z,INT *jel_dof,REAL *xn,REAL *yn,REAL *zn,INT ndof,INT element_order,INT mydim,INT nun)  */
-/* { */
+  INT i,j,ica,icb,jcnt;
+  REAL* p;
+  REAL* dpx;
+  REAL* dpy;
+  REAL* dpz;
+  INT* ipf = (INT *) calloc(dim,sizeof(INT));
+  INT myf;
+  REAL farea;
+  INT elnd,ef1,ef2,ef3;
 	
-/*   /\*************************************************************************** */
-/*    *** Interpolate the gradient of a finite-element approximation to any other point in the given element using H1 elements *********************** */
-/*    *** so far only P0,P1,or P2 ************************************************************************************************************ */
-/*    *    INPUT: */
-/*    *			u				 Approximation to interpolate */
-/*    *          x,y,z            Coordinates where to compute value */
-/*    *          jel_dof			 DOF belonging to particular element */
-/*    *          xn,yn,zn         Coordinates of nodes */
-/*    *			element_order	 Number of DOF per element */
-/*    *			ndof			 Total DOF for each unknown */
-/*    *			mydim			 Dimension of Problem */
-/*    *			nun				 Number of unknowns in u (u1,u2,etc?) 1 is a scalar... */
-/*    *    OUTPUT: */
-/*    *          val				 Value of gradient of approximation at given values (val(mydim,nun)) */
-/*    * */
-/*    *\/ */
+  /* Get Linear Basis Functions for particular element */
+  p = (REAL *) calloc(v_per_elm,sizeof(REAL));
+  dpx = (REAL *) calloc(v_per_elm,sizeof(REAL));
+  dpy = (REAL *) calloc(v_per_elm,sizeof(REAL));
+  if(dim==3) dpz = (REAL *) calloc(v_per_elm,sizeof(REAL));
+  PX_H1_basis(p,dpx,dpy,dpz,x,y,z,v_on_elm,1,mesh);
 	
-	
-/*   INT i,nd,j; */
-/*   REAL* coef = calloc(mydim,sizeof(REAL)); */
-/*   REAL* p = calloc(element_order,sizeof(REAL)); */
-/*   REAL* dpx = calloc(element_order,sizeof(REAL)); */
-/*   REAL* dpy = calloc(element_order,sizeof(REAL)); */
-/*   REAL* dpz = calloc(element_order,sizeof(REAL)); */
-	
-/*   if(element_order==3) { // P1 elements 2D */
-/*     lin_tri_2D(p,dpx,dpy,x,y,jel_dof,xn,yn,element_order); */
-/*   } else if(element_order==6) { // P2 elements 2D */
-/*     quad_tri_2D(p,dpx,dpy,x,y,jel_dof,xn,yn,element_order); */
-/*   } else if(element_order==4) { // P1 Elements 3D */
-/*     lin_tet_3D(p,dpx,dpy,dpz,x,y,z,jel_dof,xn,yn,zn,element_order); */
-/*   } else if(element_order==10) { // P2 Elements 3D */
-/*     quad_tet_3D(p,dpx,dpy,dpz,x,y,z,jel_dof,xn,yn,zn,element_order); */
-/*   } */
-	
-/*   if (mydim==2) { */
-/*     for (i=0; i<nun; i++) { */
-/*       coef[0] = 0.0; */
-/*       coef[1] = 0.0; */
-/*       for (j=0; j<element_order; j++) {  */
-/* 	nd = i*ndof + jel_dof[j]-1; */
-/* 	coef[0] = coef[0] + u[nd]*dpx[j]; */
-/* 	coef[1] = coef[1] + u[nd]*dpy[j]; */
-/*       } */
-/*       val[i] = coef[0]; */
-/*       val[nun+i] = coef[1]; */
-/*     } */
-/*   } else if (mydim==3) { */
-/*     for (i=0; i<nun; i++) { */
-/*       coef[0] = 0.0; */
-/*       coef[1] = 0.0; */
-/*       coef[2] = 0.0; */
-/*       for (j=0; j<element_order; j++) {  */
-/* 	nd = i*ndof + jel_dof[j]-1; */
-/* 	coef[0] = coef[0] + u[nd]*dpx[j]; */
-/* 	coef[1] = coef[1] + u[nd]*dpy[j]; */
-/* 	coef[2] = coef[2] + u[nd]*dpz[j]; */
-/*       } */
-/*       val[i] = coef[0]; */
-/*       val[nun+i] = coef[1]; */
-/*       val[2*nun+i] = coef[2]; */
-/*     } */
-/*   } else { */
-/*     printf("Dimension not 2 or 3.  What is this the Twighlight Zone??"); */
-/*     exit(0); */
-/*   } */
-	
-/*   if (coef) free(coef); */
-/*   if (p) free(p); */
-/*   if(dpx) free(dpx); */
-/*   if(dpy) free(dpy); */
-/*   if(dpz) free(dpz); */
-	
-/*   return; */
-/* } */
-/* /\****************************************************************************************************************************\/ */
-
-/* /\****************************************************************************************************************************\/ */
-/* void Ned_interpolation(REAL* val,REAL *u,REAL x,REAL y,REAL z,INT *jel_n,INT *jel_ed,INT *ied_n,INT *jed_n,REAL *xn,REAL *yn,REAL *zn,INT element_order,INT edge_order,INT mydim)  */
-/* { */
-	
-/*   /\*************************************************************************** */
-/*    *** Interpolate a finite-element approximation to any other point in the given element using Nedelec elements ************************************************* */
-/*    *** so far only first-order ************************************************************************************************************ */
-/*    *    INPUT: */
-/*    *			u				 Approximation to interpolate */
-/*    *          x,y,z            Coordinates where to compute value */
-/*    *          jel_n			 Nodes belonging to particular element */
-/*    *			jel_ed			 Edges for particular element */
-/*    *			ied_n,jed_n		 Edge to Node map */
-/*    *          xn,yn,zn         Coordinates of nodes */
-/*    *			element_order	 Number of Nodes per element */
-/*    *			edge_order		 Number of Edges per element */
-/*    *			mydim			 Dimension of Problem */
-/*    *    OUTPUT: */
-/*    *          val				 Value of approximation at given values (vector) */
-/*    * */
-/*    *\/ */
-	
-	
-/*   INT ed,j; */
-/*   REAL coef1,coef2,coef3; */
-/*   REAL* phi = calloc(edge_order*mydim,sizeof(REAL)); */
-/*   REAL* cphi2d= calloc(edge_order,sizeof(REAL)); */
-/*   REAL* cphi = calloc(edge_order*mydim,sizeof(REAL)); */
-	
-/*   if (mydim==2) { */
-/*     ned_basis(phi,cphi2d,x,y,jel_n,jel_ed,ied_n,jed_n,xn,yn,element_order,mydim); */
-/*   } else if (mydim==3) { */
-/*     ned_basis3D(phi,cphi,x,y,z,jel_n,jel_ed,ied_n,jed_n,xn,yn,zn,element_order,mydim); */
-/*   } else { */
-/*     printf("Dimension not 2 or 3!"); */
-/*     exit(0); */
-/*   } */
-	
-/*   coef1 = 0.0; */
-/*   coef2 = 0.0; */
-/*   coef3 = 0.0; */
-		
-/*   if (mydim==2) { */
-/*     for (j=0; j<edge_order; j++) {  */
-/*       ed =jel_ed[j]-1; */
-/*       coef1 = coef1 + u[ed]*phi[j*mydim+0]; */
-/*       coef2 = coef2 + u[ed]*phi[j*mydim+1]; */
-/*     } */
-/*     val[0] = coef1; */
-/*     val[1] = coef2; */
-/*   } else if (mydim==3) { */
-/*     for (j=0; j<edge_order; j++) {  */
-/*       ed =jel_ed[j]-1; */
-/*       coef1 = coef1 + u[ed]*phi[j*mydim+0]; */
-/*       coef2 = coef2 + u[ed]*phi[j*mydim+1]; */
-/*       coef3 = coef3 + u[ed]*phi[j*mydim+2]; */
-/*     } */
-/*     val[0] = coef1; */
-/*     val[1] = coef2; */
-/*     val[2] = coef3; */
-/*   } */
-	
-/*   if (phi) free(phi); */
-/*   if(cphi) free(cphi); */
-/*   if(cphi2d) free(cphi2d); */
-
-/*   return; */
-/* } */
-/* /\****************************************************************************************************************************\/ */
-
-/* /\****************************************************************************************************************************\/ */
-/* void RT_interpolation(REAL* val,REAL *u,REAL x,REAL y,REAL z,INT *jel_n,INT *jel_f,INT *if_n,INT *jf_n,REAL *xn,REAL *yn,REAL *zn,INT element_order,INT face_order,INT mydim,REAL* f_area,REAL* f_norm)  */
-/* { */
-	
-/*   /\*************************************************************************** */
-/*    *** Interpolate a finite-element approximation to any other point in the given element using Raviart Thomas elements *************** */
-/*    *** so far only first-order ************************************************************************************************************ */
-/*    *    INPUT: */
-/*    *	      u				 Approximation to interpolate */
-/*    *          x,y,z                      Coordinates where to compute value */
-/*    *          jel_n			 Nodes belonging to particular element */
-/*    *	      jel_f			 Faces for particular element */
-/*    *	      if_n,jf_n	         	 Face to Node map */
-/*    *          xn,yn,zn                   Coordinates of nodes */
-/*    *	      element_order	         Number of Nodes per element */
-/*    *   	      face_order		 Number of Faces per element */
-/*    *	      mydim			 Dimension of Problem */
-/*    *    OUTPUT: */
-/*    *          val				 Value of approximation at given values (vector) */
-/*    * */
-/*    *\/ */
-	
-	
-/*   INT face,j; */
-/*   REAL coef1,coef2,coef3; */
-/*   REAL* phi = calloc(face_order*mydim,sizeof(REAL)); */
-/*   REAL* dphi= calloc(face_order,sizeof(REAL)); */
-  
-/*   rt_basis(phi,dphi,x,y,z,jel_n,jel_f,if_n,jf_n,f_area,f_norm,face_order,xn,yn,zn,element_order,mydim); */
+  // Go through each face and find the corresponding nodes
+  if(dim==2) {
+    for (i=0; i<f_per_elm; i++) {
+      myf = dof[i];
+      ica = mesh->f_v->IA[myf-1]-1;
+      icb = mesh->f_v->IA[myf]-1;
+      jcnt=0;
+      for(j=ica;j<icb;j++) {
+      	ipf[jcnt] = mesh->f_v->JA[j];
+      	jcnt++;
+      }
     
-	
-/*   coef1 = 0.0; */
-/*   coef2 = 0.0; */
-/*   coef3 = 0.0; */
+      // Get the area and normal vector of the face
+      farea = mesh->f_area[myf-1];
+
+      // Loop through Nodes on element to find corresponding nodes and get correct orienation
+      for(j=0;j<v_per_elm;j++) {
+	elnd = v_on_elm[j];
+	if(ipf[0]==elnd) {
+	  ef1 = j;
+	}
+	if(ipf[1]==elnd) {
+	  ef2 = j;
+	}
+      }
+     
+      /* Now, with the linear basis functions p, dpx, and dpy, the RT elements are in 2D
+       * phi_fij = |fij|*(p(i)curl(p(j)) - p(j)curl(p(i)))
+       * |fij| = |eij|
+       */
+      phi[i*dim+0] = farea*(p[ef1]*dpy[ef2] - p[ef2]*dpy[ef1]);
+      phi[i*dim+1] = farea*(-p[ef1]*dpx[ef2] + p[ef2]*dpx[ef1]);
 		
-/*   if (mydim==2) { */
-/*     for (j=0; j<face_order; j++) {  */
-/*       face =jel_f[j]-1; */
-/*       coef1 = coef1 + u[face]*phi[j*mydim+0]; */
-/*       coef2 = coef2 + u[face]*phi[j*mydim+1]; */
-/*     } */
-/*     val[0] = coef1; */
-/*     val[1] = coef2; */
-/*   } else if (mydim==3) { */
-/*     for (j=0; j<face_order; j++) {  */
-/*       face =jel_f[j]-1; */
-/*       coef1 = coef1 + u[face]*phi[j*mydim+0]; */
-/*       coef2 = coef2 + u[face]*phi[j*mydim+1]; */
-/*       coef3 = coef3 + u[face]*phi[j*mydim+2]; */
-/*     } */
-/*     val[0] = coef1; */
-/*     val[1] = coef2; */
-/*     val[2] = coef3; */
-/*   } */
-	
-/*   if (phi) free(phi); */
-/*   if(dphi) free(dphi); */
-
-/*   return; */
-/* } */
-/* /\****************************************************************************************************************************\/ */
-
-/* /\****************************************************************************************************************************\/ */
-/* void NedCurl_interpolation(REAL* val,REAL *u,REAL x,REAL y,REAL z,INT *jel_n,INT *jel_ed,INT *ied_n,INT *jed_n,REAL *xn,REAL *yn,REAL *zn,INT element_order,INT edge_order,INT mydim)  */
-/* { */
-	
-/*   /\*************************************************************************** */
-/*    *** Interpolate the curl of a finite-element approximation to any other point in the given element using Nedelec elements ************************************************* */
-/*    *** so far only first-order ************************************************************************************************************ */
-/*    *    INPUT: */
-/*    *			u				 Approximation to interpolate */
-/*    *          x,y,z            Coordinates where to compute value */
-/*    *          jel_n			 Nodes belonging to particular element */
-/*    *			jel_ed			 Edges for particular element */
-/*    *			ied_n,jed_n		 Edge to Node map */
-/*    *          xn,yn,zn         Coordinates of nodes */
-/*    *			element_order	 Number of Nodes per element */
-/*    *			edge_order		 Number of Edges per element */
-/*    *			mydim			 Dimension of Problem */
-/*    *    OUTPUT: */
-/*    *          val				 Value of approximation at given values (vector in 3D scalar in 1D) */
-/*    * */
-/*    *\/ */
-	
-	
-/*   INT ed,j; */
-/*   REAL coef1,coef2,coef3; */
-/*   REAL* phi = calloc(edge_order*mydim,sizeof(REAL)); */
-/*   REAL* cphi2d= calloc(edge_order,sizeof(REAL)); */
-/*   REAL* cphi = calloc(mydim+1,sizeof(REAL)); */
-	
-/*   if (mydim==2) { */
-/*     ned_basis(phi,cphi2d,x,y,jel_n,jel_ed,ied_n,jed_n,xn,yn,element_order,mydim); */
-/*   } else if (mydim==3) { */
-/*     ned_basis3D(phi,cphi,x,y,z,jel_n,jel_ed,ied_n,jed_n,xn,yn,zn,element_order,mydim); */
-/*   } else { */
-/*     printf("Dimension not 2 or 3!"); */
-/*     exit(0); */
-/*   } */
-	
-/*   coef1 = 0.0; */
-/*   coef2 = 0.0; */
-/*   coef3 = 0.0; */
-	
-/*   if (mydim==2) { */
-/*     for (j=0; j<edge_order; j++) {  */
-/*       ed =jel_ed[j]-1; */
-/*       coef1 = coef1 + u[ed]*cphi2d[j]; */
-/*     } */
-/*     val[0] = coef1; */
-/*   } else if (mydim==3) { */
-/*     for (j=0; j<edge_order; j++) {  */
-/*       ed =jel_ed[j]-1; */
-/*       coef1 = coef1 + u[ed]*cphi[j*mydim+0]; */
-/*       coef2 = coef2 + u[ed]*cphi[j*mydim+1]; */
-/*       coef3 = coef3 + u[ed]*cphi[j*mydim+2]; */
-/*     } */
-/*     val[0] = coef1; */
-/*     val[1] = coef2; */
-/*     val[2] = coef3; */
-/*   } */
-	
-/*   if (phi) free(phi); */
-/*   if(cphi2d) free(cphi2d); */
-/*   if(cphi) free(cphi); */
-	
-/*   return; */
-/* } */
-/* /\****************************************************************************************************************************\/ */
-
-/* /\****************************************************************************************************************************\/ */
-/* void RTDiv_interpolation(REAL* val,REAL *u,REAL x,REAL y,REAL z,INT *jel_n,INT *jel_f,INT *if_n,INT *jf_n,REAL *xn,REAL *yn,REAL *zn,INT element_order,INT face_order,INT mydim,REAL* f_area,REAL* f_norm)  */
-/* { */
-	
-/*   /\*************************************************************************** */
-/*    *** Interpolate the divergence a finite-element approximation to any other point in the given element using Raviart Thomas elements *************** */
-/*    *** so far only first-order ************************************************************************************************************ */
-/*    *    INPUT: */
-/*    *	      u				 Approximation to interpolate */
-/*    *          x,y,z                      Coordinates where to compute value */
-/*    *          jel_n			 Nodes belonging to particular element */
-/*    *	      jel_f			 Faces for particular element */
-/*    *	      if_n,jf_n	         	 Face to Node map */
-/*    *          xn,yn,zn                   Coordinates of nodes */
-/*    *	      element_order	         Number of Nodes per element */
-/*    *   	      face_order		 Number of Faces per element */
-/*    *	      mydim			 Dimension of Problem */
-/*    *    OUTPUT: */
-/*    *          val				 Value of approximation at given values (vector) */
-/*    * */
-/*    *\/ */
-	
-	
-/*   INT face,j; */
-/*   REAL coef; */
-/*   REAL* phi = calloc(face_order*mydim,sizeof(REAL)); */
-/*   REAL* dphi= calloc(face_order,sizeof(REAL)); */
-  
-/*   rt_basis(phi,dphi,x,y,z,jel_n,jel_f,if_n,jf_n,f_area,f_norm,face_order,xn,yn,zn,element_order,mydim); */
+      // Compute divs div(phi_fij) = 2*|fij|(dx(p(i))*dy(p(j)) - dx(p(j))*dy(p(i)))
+      dphi[i] = 2*farea*(dpx[ef1]*dpy[ef2] - dpx[ef2]*dpy[ef1]);
+    }
+  } else if(dim==3) {
+    for (i=0; i<f_per_elm; i++) {
+      myf = dof[i];
+      ica = mesh->f_v->IA[myf-1]-1;
+      icb = mesh->f_v->IA[myf]-1;
+      jcnt=0;
+      for(j=ica;j<icb;j++) {
+	ipf[jcnt] = mesh->f_v->JA[j];
+	jcnt++;
+      }
     
-/*   coef = 0.0; */
+      // Get the area
+      farea = mesh->f_area[myf-1];
+
+      // Loop through Nodes on element to find corresponding nodes for correct orienation
+      for(j=0;j<v_per_elm;j++) {
+	elnd = v_on_elm[j];
+	if(ipf[0]==elnd) {
+	  ef1 = j;
+	}
+	if(ipf[1]==elnd) {
+	  ef2 = j;
+	}
+	if(ipf[2]==elnd) {
+	  ef3 = j;
+	}
+      }
+
+      /* Now, with the linear basis functions p, dpx, and dpy, the RT elements are in 3D
+       * phi_fijk = 6*|fijk|*(p(i)(grad(p(j)) x grad(p(k))) - p(j)(grad(p(k)) x grad(p(i))) + p(k)(grad(p(i)) x grad(p(j))))
+       * |fijk| = Area(Face)
+       */
+      phi[i*dim+0] = 2*farea*(p[ef1]*(dpy[ef2]*dpz[ef3]-dpz[ef2]*dpy[ef3]) + p[ef2]*(dpy[ef3]*dpz[ef1]-dpz[ef3]*dpy[ef1]) + \
+				p[ef3]*(dpy[ef1]*dpz[ef2]-dpz[ef1]*dpy[ef2]));
+      phi[i*dim+1] = 2*farea*(p[ef1]*(dpz[ef2]*dpx[ef3]-dpx[ef2]*dpz[ef3]) + p[ef2]*(dpz[ef3]*dpx[ef1]-dpx[ef3]*dpz[ef1]) + \
+				p[ef3]*(dpz[ef1]*dpx[ef2]-dpx[ef1]*dpz[ef2]));
+      phi[i*dim+2] = 2*farea*(p[ef1]*(dpx[ef2]*dpy[ef3]-dpy[ef2]*dpx[ef3]) + p[ef2]*(dpx[ef3]*dpy[ef1]-dpy[ef3]*dpx[ef1]) + \
+				p[ef3]*(dpx[ef1]*dpy[ef2]-dpy[ef1]*dpx[ef2]));
 		
-/*   for (j=0; j<face_order; j++) {  */
-/*     face =jel_f[j]-1; */
-/*     coef = coef + u[face]*dphi[j]; */
-/*   } */
-/*   val[0] = coef; */
-    	
-/*   if (phi) free(phi); */
-/*   if(dphi) free(dphi); */
+      // Compute divs div(phi_fij) = 2*|fij|(dx(p(i))*dy(p(j)) - dx(p(j))*dy(p(i)))
+      dphi[i] = 6*farea*(dpx[ef1]*(dpy[ef2]*dpz[ef3]-dpz[ef2]*dpy[ef3]) + dpy[ef1]*(dpz[ef2]*dpx[ef3]-dpx[ef2]*dpz[ef3]) + \
+			 dpz[ef1]*(dpx[ef2]*dpy[ef3]-dpy[ef2]*dpx[ef3]));
+    }
+  } else {
+    baddimension();
+  }
+	
+  if(p) free(p);
+  if(dpx) free(dpx);
+  if(dpy) free(dpy);
+  if(dpz) free(dpz);
+  if(ipf) free(ipf);
+	
+  return;
+}
+/****************************************************************************************************************************/
 
-/*   return; */
-/* } */
-/* /\****************************************************************************************************************************\/ */
+/****************************************************************************************************************************/
+void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL x,REAL y,REAL z,INT *v_on_elm,INT *dof,trimesh *mesh)
+{
+/* Compute the Brezzi-Douglas-Marini (BDM) Elements of order 1 for now (only 2D for now).
+   *    INPUT:
+   *          x,y,z                 Coordinates on physical triangle where to compute basis
+   *          mesh                  Mesh Data
+   *          v_on_elm              Vertices on the given element
+   *	      dof                   DOF for the given element (in this case faces and their global numbering)
+   *    OUTPUT:
+   *          phi(2*f_per_elm,dim)  Basis functions at particular point (2*f_per_elm for each face, 12 total in 2D) (from reference triangle)
+   *          Dphix, Dphiy          Derivatives of Basis functions at particular point
+   */
+	
+  // Get Mesh Data
+  INT v_per_elm = mesh->v_per_elm;
+  INT f_per_elm = mesh->f_per_elm;
+  INT dim = mesh->dim;
 
-/* /\****************************************************************************************************************************\/ */
-/* // Error and Norm ROUTINES */
-/* /\****************************************************************************************************************************\/ */
-
-/* /\***************************************************************************\/ */
-/* void L2error(REAL *err,REAL *u,REAL *xn,REAL *yn,REAL *zn,INT *iel_n,INT *jel_n,INT nelm,INT nve,INT mydim,INT nq1d,INT element_order,INT test, \ */
-/* 	     REAL param,REAL time)  */
-/* { */
+  INT i,j,ica,icb,jcnt;
+  REAL a1,a2,a3,a4;
+  REAL* p;
+  REAL* dpx;
+  REAL* dpy;
+  REAL* dpz;
+  INT* ipf = (INT *) calloc(dim,sizeof(INT));
+  INT myf;
+  REAL farea;
+  INT elnd,ef1,ef2;
 	
-/*   /\* Computes the L2 Norm of the Error using a high order quadrature or the Mass matrix if given */
-/*    * */
-/*    * Input:		u				Numerical Solution at DOF */
-/*    *	       		xn,yn,zn		Coordinates of Nodes */
-/*    *	       		iel_n,jel_n		Element to Node Map */
-/*    *	       		nelm			Number of Elements */
-/*    *	       		nve			Number of Vertices per element */
-/*    *   			mydim			Dimension */
-/*    *   			nq1d			Number of Quadrature Points per dimension */
-/*    *	       		element_order	        Number of Nodes per Element */
-/*    *		       	test			Which solution to compare to */
-/*    * */
-/*    * Output:		err				L2 Norm of the Error */
-/*    * */
-/*    *\/ */
+  /* Get Linear Basis Functions for particular element */
+  p = (REAL *) calloc(v_per_elm,sizeof(REAL));
+  dpx = (REAL *) calloc(v_per_elm,sizeof(REAL));
+  dpy = (REAL *) calloc(v_per_elm,sizeof(REAL));
+  if(dim==3) dpz = (REAL *) calloc(v_per_elm,sizeof(REAL));
+  PX_H1_basis(p,dpx,dpy,dpz,x,y,z,v_on_elm,1,mesh);
 	
-/*   INT i,j,rowa,iq;				/\* Loop Indices *\/ */
-	
-/*   REAL el2 = 0;			/\* Error *\/ */
-	
-/*   INT nq = (INT) pow(nq1d,mydim); */
-/*   REAL* xq = calloc(nq,sizeof(REAL)); */
-/*   REAL* yq = calloc(nq,sizeof(REAL)); */
-/*   REAL* zq = calloc(nq,sizeof(REAL)); */
-/*   REAL* wq = calloc(nq,sizeof(REAL)); */
-/*   INT* ipv = calloc(nve,sizeof(INT)); */
-/*   INT* ipn = calloc(element_order,sizeof(INT)); */
-	
-/*   REAL x,y,z,w; */
-	
-/*   REAL uh,utrue;			/\* Numerical Solution and True Solution at Quadrature Nodes *\/ */
-	
-/*   for (i=0; i<nelm; i++) { */
-		
-/*     // Get Vertices (must be vertices) */
-/*     rowa = iel_n[i]-1; */
-/*     for (j=0; j<nve; j++) {  // First ones are always vertices  */
-/*       ipv[j] = jel_n[rowa+j]; */
-/*       ipn[j] = ipv[j]; */
-/*     } */
-/*     for (j=nve; j<element_order; j++) { */
-/*       ipn[j] = jel_n[rowa+j]; */
-/*     } */
-/*     if (mydim==2) { */
-/*       quad_2D_tri(xq,yq,wq,xn,yn,ipv,nq1d); */
-/*     } else if (mydim==3) { */
-/*       quad_3D_tet(xq,yq,zq,wq,xn,yn,zn,ipv,nq1d); */
-/*     } else { */
-/*       printf("Bad Dimension"); */
-/*       return; */
-/*     } */
-		
-/*     for (iq=0;iq<nq;iq++) { */
-/*       x = xq[iq]; */
-/*       y = yq[iq]; */
-/*       if (mydim>2) { z = zq[iq]; } */
-/*       w = wq[iq]; */
-			
-/*       if (element_order==1) { */
-/* 	uh=u[i]; */
-/*       } else { */
-/* 	H1_interpolation(&uh,u,x,y,z,ipn,xn,yn,zn,0,element_order,mydim,1); */
-/*       } */
-
-/*       // get true solution at quadrature node */
-/*       getknownfunction(&utrue,x,y,z,time,mydim,1,param,test); */
-			
-/*       el2 = el2 + ( uh - utrue )*( uh - utrue)*w; */
-/*     } */
-		
-/*   }	 */
-	
-/*   el2 = sqrt ( el2 ); */
- 
-	
-/*   *err = el2; */
-	
-/*   if(xq) free(xq); */
-/*   if(yq) free(yq); */
-/*   if(zq) free(zq); */
-/*   if(ipn) free(ipn); */
-/*   if(ipv) free(ipv); */
-	
-/*   return; */
-/* } */
-/* /\*******************************************************************************************************************************************************\/ */
-
-/* /\***************************************************************************\/ */
-/* void L2normMass(REAL *norm,REAL *u,INT* iM,INT* jM,REAL* M,INT imin,INT imax)  */
-/* { */
-	
-/*   /\* Computes the L2 Norm of a vector using the Mass matrix if given for any type of element... */
-/*    * */
-/*    * Input:		u		       	Numerical Solution at DOF */
-/*    *                    iM,jM,M                 Computes L2 norm much faster by <Mu,u> */
-/*    *                    ndof                    Number of DOF */
-/*    * */
-/*    * Output:		norm		       	L2 Norm */
-/*    * */
-/*    *\/ */
-		
-/*   REAL el2 = 0.0;			/\* Error *\/ */
-
-/*   INT i,j,jk,rowa,rowb; */
-/*   REAL ui,mij; */
-
-/*   for(i=imin;i<imax;i++) { */
-/*     rowa=iM[i]-1; */
-/*     rowb=iM[i+1]-1; */
-/*     ui=0.0; */
-/*     for (jk=rowa ; jk< rowb; jk++) { */
-/*       j=jM[jk]-1; */
-/*       mij=M[jk]; */
-/*       ui+=mij*u[j]; */
-/*     } */
-/*     el2+=ui*u[i]; */
-/*   } */
-/*   *norm = sqrt(el2); */
-/*   return; */
-/* } */
-/* /\*******************************************************************************************************************************************************\/ */
-
-/* /\***************************************************************************\/ */
-/* void L2normMassassemble(REAL *norm,REAL *u,INT* iel_n,INT* jel_n,INT* iel_dof,INT* jel_dof,REAL* xn,REAL* yn,REAL* zn,REAL* xq,REAL* yq,REAL* zq, \ */
-/* 			REAL* wq,INT nelm,INT nq1d,INT mydim,INT dof_order,INT element_order,INT* idof_n,INT* jdof_n,REAL* f_area,REAL* f_norm, \ */
-/* 			INT elementtype)  */
-/* { */
-
-/*   /\* Computes the L2 Norm of a vector using the Mass matrix if given for any type of element... */
-/*    * */
-/*    * Input:		u		       	Numerical Solution at DOF */
-/*    *                    iM,jM,M                 Computes L2 norm much faster by <Mu,u> */
-/*    *                    ndof                    Number of DOF */
-/*    * */
-/*    * Output:		norm		       	L2 Norm */
-/*    * */
-/*    *\/ */
-		
-/*   INT i,j,k,rowa,rowb,ndof,jcntr,elm; */
-/*   REAL sum = 0.0; */
-/*   REAL* MLoc = calloc(dof_order*dof_order,sizeof(REAL)); */
-/*   INT* ipdof = calloc(dof_order,sizeof(INT)); */
-/*   INT* ipn = calloc(element_order,sizeof(INT)); */
-
-/*   /\* Loop over all Elements *\/ */
-/*   for (i=0; i<nelm; i++) { */
-		
-/*     ndof = iel_dof[i+1]-iel_dof[i]; */
-		
-/*     // Zero out local matrices */
-/*     for (j=0; j<ndof*ndof; j++) { */
-/*       MLoc[j]=0.0; */
-/*     } */
-		
-/*     // Find DOF for given Element if not H1 elements */
-/*     rowa = iel_dof[i]-1; */
-/*     rowb = iel_dof[i+1]-1; */
-/*     jcntr = 0; */
-/*     for (j=rowa; j<rowb; j++) { */
-/*       ipdof[jcntr] = jel_dof[j]; */
-/*       jcntr++; */
-/*     } */
-
-/*     //Find Nodes for given Element if not H1 elements */
-/*     rowa = iel_n[i]-1; */
-/*     rowb = iel_n[i+1]-1; */
-/*     jcntr=0; */
-/*     for (j=rowa; j<rowb; j++) { */
-/*       ipn[jcntr] = jel_n[j]; */
-/*       jcntr++; */
-/*     } */
+  // Go through each face and find the corresponding nodes
+  if(dim==2) {
+    for (i=0; i<f_per_elm; i++) {
+      myf = dof[i];
+      ica = mesh->f_v->IA[myf-1]-1;
+      icb = mesh->f_v->IA[myf]-1;
+      jcnt=0;
+      for(j=ica;j<icb;j++) {
+      	ipf[jcnt] = mesh->f_v->JA[j];
+      	jcnt++;
+      }
     
+      // Get the area and normal vector of the face
+      farea = mesh->f_area[myf-1];
+
+      // Loop through Nodes on element to find corresponding nodes and get correct orienation
+      for(j=0;j<v_per_elm;j++) {
+	elnd = v_on_elm[j];
+	if(ipf[0]==elnd) {
+	  ef1 = j;
+	}
+	if(ipf[1]==elnd) {
+	  ef2 = j;
+	}
+      }
+     
+      /* Now, with the linear basis functions p, dpx, and dpy, the BDM1 elements are in 2D
+       * phi_fij = |fij|*(p(i)curl(p(j)) - p(j)curl(p(i)))
+       * psi_fij = alpha*|fij|*curl(p(i)p(j))
+       * |fij| = |eij|
+       */
+      phi[i*dim*2] = farea*(p[ef1]*dpy[ef2] - p[ef2]*dpy[ef1]);
+      phi[i*dim*2+1] = farea*(-p[ef1]*dpx[ef2] + p[ef2]*dpx[ef1]);
+      phi[i*dim*2+2] = -6*farea*(p[ef1]*dpy[ef2] + p[ef2]*dpy[ef2]);
+      phi[i*dim*2+3] = 6*farea*(p[ef1]*dpx[ef2] + p[ef2]*dpx[ef2]);
 		
-/*     // Compute Local Stiffness Matrix for given Element */
-/*     elm = i+1; */
+      a1 = dpx[ef1]*dpx[ef2];
+      a2 = dpx[ef1]*dpy[ef2];
+      a3 = dpy[ef1]*dpx[ef2];
+      a4 = dpy[ef1]*dpy[ef2];
 
-/*     if(elementtype==0) { // H1 Elements Linears or Quadratics */
-/*       H1_massL(MLoc,xn,yn,zn,xq,yq,zq,wq,ipn,ndof,nq1d,mydim,elm); */
-/*     } else if(elementtype==1) { // Nedelec Elements */
-/*       if (mydim==2) { */
-/* 	ned_massL2D(MLoc,xn,yn,xq,yq,wq,ipn,ipdof,idof_n,jdof_n,ndof,element_order,nq1d,mydim,elm); */
-/*       } else if (mydim==3) { */
-/* 	ned_massL3D(MLoc,xn,yn,zn,xq,yq,zq,wq,ipn,ipdof,idof_n,jdof_n,ndof,element_order,nq1d,mydim,elm); */
-/*       } else { */
-/* 	printf("Your dimension isn't 2 or 3.  Welcome to the Twilight Zone..."); */
-/*       } */
-/*     } else if(elementtype==2) { // Raviart-Thomas Elements */
-/*       rt_massL(MLoc,xn,yn,zn,xq,yq,zq,wq,ipn,ipdof,idof_n,jdof_n,ndof,f_area,f_norm,element_order,nq1d,mydim,elm); */
-/*     } */
-
-/*     for(j=0;j<ndof;j++) { */
-/*       for(k=0;k<ndof;k++) { */
-/* 	sum+=u[ipdof[j]-1]*MLoc[j*ndof+k]*u[ipdof[k]-1]; */
-/*       } */
-/*     } */
-/*   } */
-
-    
-/*   *norm = sqrt(sum); */
-
-/*   if(MLoc) free(MLoc); */
-/*   if(ipn) free(ipn); */
-/*   if(ipdof) free(ipdof); */
-
-/*   return; */
-/* } */
-/* /\*******************************************************************************************************************************************************\/ */
-
-/* /\***************************************************************************\/ */
-/* void L2innerprodMassassemble(REAL *norm,REAL *u,REAL *v,INT* iel_n,INT* jel_n,INT* iel_dof,INT* jel_dof,REAL* xn,REAL* yn,REAL* zn,REAL* xq,REAL* yq,REAL* zq, \ */
-/* 			REAL* wq,INT nelm,INT nq1d,INT mydim,INT dof_order,INT element_order,INT* idof_n,INT* jdof_n,REAL* f_area,REAL* f_norm, \ */
-/* 			INT elementtype)  */
-/* { */
-
-/*   /\* Computes the L2 inner product of two vectors using the Mass matrix if given for any type of element... */
-/*    * */
-/*    * Input:		u		       	Numerical Solution at DOF */
-/*    *                    iM,jM,M                 Computes L2 norm much faster by <Mu,u> */
-/*    *                    ndof                    Number of DOF */
-/*    * */
-/*    * Output:		norm		       	L2 Norm */
-/*    * */
-/*    *\/ */
-		
-/*   INT i,j,k,rowa,rowb,ndof,jcntr,elm; */
-/*   REAL sum = 0.0; */
-/*   REAL* MLoc = calloc(dof_order*dof_order,sizeof(REAL)); */
-/*   INT* ipdof = calloc(dof_order,sizeof(INT)); */
-/*   INT* ipn = calloc(element_order,sizeof(INT)); */
-
-/*   /\* Loop over all Elements *\/ */
-/*   for (i=0; i<nelm; i++) { */
-		
-/*     ndof = iel_dof[i+1]-iel_dof[i]; */
-		
-/*     // Zero out local matrices */
-/*     for (j=0; j<ndof*ndof; j++) { */
-/*       MLoc[j]=0.0; */
-/*     } */
-		
-/*     // Find DOF for given Element if not H1 elements */
-/*     rowa = iel_dof[i]-1; */
-/*     rowb = iel_dof[i+1]-1; */
-/*     jcntr = 0; */
-/*     for (j=rowa; j<rowb; j++) { */
-/*       ipdof[jcntr] = jel_dof[j]; */
-/*       jcntr++; */
-/*     } */
-
-/*     //Find Nodes for given Element if not H1 elements */
-/*     rowa = iel_n[i]-1; */
-/*     rowb = iel_n[i+1]-1; */
-/*     jcntr=0; */
-/*     for (j=rowa; j<rowb; j++) { */
-/*       ipn[jcntr] = jel_n[j]; */
-/*       jcntr++; */
-/*     } */
-    
-		
-/*     // Compute Local Stiffness Matrix for given Element */
-/*     elm = i+1; */
-
-/*     if(elementtype==0) { // H1 Elements Linears or Quadratics */
-/*       H1_massL(MLoc,xn,yn,zn,xq,yq,zq,wq,ipn,ndof,nq1d,mydim,elm); */
-/*     } else if(elementtype==1) { // Nedelec Elements */
-/*       if (mydim==2) { */
-/* 	ned_massL2D(MLoc,xn,yn,xq,yq,wq,ipn,ipdof,idof_n,jdof_n,ndof,element_order,nq1d,mydim,elm); */
-/*       } else if (mydim==3) { */
-/* 	ned_massL3D(MLoc,xn,yn,zn,xq,yq,zq,wq,ipn,ipdof,idof_n,jdof_n,ndof,element_order,nq1d,mydim,elm); */
-/*       } else { */
-/* 	printf("Your dimension isn't 2 or 3.  Welcome to the Twilight Zone..."); */
-/*       } */
-/*     } else if(elementtype==2) { // Raviart-Thomas Elements */
-/*       rt_massL(MLoc,xn,yn,zn,xq,yq,zq,wq,ipn,ipdof,idof_n,jdof_n,ndof,f_area,f_norm,element_order,nq1d,mydim,elm); */
-/*     } */
-
-/*     for(j=0;j<ndof;j++) { */
-/*       for(k=0;k<ndof;k++) { */
-/* 	sum+=v[ipdof[j]-1]*MLoc[j*ndof+k]*u[ipdof[k]-1]; */
-/*       } */
-/*     } */
-/*   } */
-
-/*   *norm = sum; */
-/*   //\*norm = sqrt(sum); */
-
-/*   if(MLoc) free(MLoc); */
-/*   if(ipn) free(ipn); */
-/*   if(ipdof) free(ipdof); */
-
-/*   return; */
-/* } */
-/* /\*******************************************************************************************************************************************************\/ */
-
-/* /\***************************************************************************\/ */
-/* void H1seminormLapassemble(REAL *norm,REAL *u,CSRinc el_dof,CSRinc el_n,coordinates cn,INT nelm,INT nq1d,INT mydim,INT dof_order,INT element_order, \ */
-/* 			   CSRinc dof_n,REAL* f_area,REAL* f_norm,INT elementtype)  */
-/* { */
-
-/*   /\* Computes the H1 semi-Norm of a vector using the laplacian-like matrix if given for any type of element... */
-/*    *          Nodal - <grad u, grad u> - |u|_1 */
-/*    *          RT - <div u, div u>      - |u|_(H(div)) */
-/*    *          Nedelec - <curl u, curl u>  - |u|_(H(curl)) */
-/*    * */
-/*    * Input:		u		       	Numerical Solution at DOF */
-/*    *                    ndof                    Number of DOF */
-/*    * */
-/*    * Output:		norm		       	L2 Norm */
-/*    * */
-/*    *\/ */
-		
-/*   INT i,j,k,rowa,rowb,ndof,jcntr,elm; */
-/*   REAL sum = 0.0; */
-/*   REAL* MLoc = calloc(dof_order*dof_order,sizeof(REAL)); */
-/*   INT* ipdof = calloc(dof_order,sizeof(INT)); */
-/*   INT* ipn = calloc(element_order,sizeof(INT)); */
-/*   REAL nq; */
-/*   qcoordinates cq; */
-
-/*   /\* Get Quadrature Nodes *\/ */
-/*   nq = pow(nq1d,mydim); */
-/*   allocateqcoords(&cq,nq1d,nelm,mydim); */
-/*   if (mydim==2) { */
-/*     get_quadrature(cq.x,cq.y,NULL,cq.w,cn.x,cn.y,NULL,el_n.IA,el_n.JA,nelm,element_order,nq1d,mydim); */
-/*   } else { */
-/*     get_quadrature(cq.x,cq.y,cq.z,cq.w,cn.x,cn.y,cn.z,el_n.IA,el_n.JA,nelm,element_order,nq1d,mydim); */
-/*   } */
-
-/*   /\* Loop over all Elements *\/ */
-/*   for (i=0; i<nelm; i++) { */
-		
-/*     ndof = el_dof.IA[i+1]-el_dof.IA[i]; */
-		
-/*     // Zero out local matrices */
-/*     for (j=0; j<ndof*ndof; j++) { */
-/*       MLoc[j]=0.0; */
-/*     } */
-		
-/*     // Find DOF for given Element if not H1 elements */
-/*     rowa = el_dof.IA[i]-1; */
-/*     rowb = el_dof.IA[i+1]-1; */
-/*     jcntr = 0; */
-/*     for (j=rowa; j<rowb; j++) { */
-/*       ipdof[jcntr] = el_dof.JA[j]; */
-/*       jcntr++; */
-/*     } */
-
-/*     //Find Nodes for given Element if not H1 elements */
-/*     rowa = el_n.IA[i]-1; */
-/*     rowb = el_n.IA[i+1]-1; */
-/*     jcntr=0; */
-/*     for (j=rowa; j<rowb; j++) { */
-/*       ipn[jcntr] = el_n.JA[j]; */
-/*       jcntr++; */
-/*     } */
-    
-		
-/*     // Compute Local Stiffness Matrix for given Element */
-/*     elm = i+1; */
-
-/*     if(elementtype==0) { // H1 Elements Linears or Quadratics */
-/*       H1_LapL(MLoc,cn.x,cn.y,cn.z,cq.x,cq.y,cq.z,cq.w,ipn,ndof,nq1d,mydim,elm); */
-/*     } else if(elementtype==1) { // Nedelec Elements */
-/*       if (mydim==2) { */
-/* 	ned_curlcurlL2D(MLoc,cn.x,cn.y,cq.x,cq.y,cq.w,ipn,ipdof,dof_n.IA,dof_n.JA,ndof,element_order,nq1d,mydim,elm); */
-/*       } else if (mydim==3) { */
-/* 	ned_curlcurlL3D(MLoc,cn.x,cn.y,cn.z,cq.x,cq.y,cq.z,cq.w,ipn,ipdof,dof_n.IA,dof_n.JA,ndof,element_order,nq1d,mydim,elm); */
-/*       } else { */
-/* 	printf("Your dimension isn't 2 or 3.  Welcome to the Twilight Zone..."); */
-/*       } */
-/*     } else if(elementtype==2) { // Raviart-Thomas Elements */
-/*       rt_divdivL(MLoc,cn.x,cn.y,cn.z,cq.x,cq.y,cq.z,cq.w,ipn,ipdof,dof_n.IA,dof_n.JA,ndof,f_area,f_norm,element_order,nq1d,mydim,elm); */
-/*     } */
-
-/*     for(j=0;j<ndof;j++) { */
-/*       for(k=0;k<ndof;k++) { */
-/* 	sum+=u[ipdof[j]-1]*MLoc[j*ndof+k]*u[ipdof[k]-1]; */
-/*       } */
-/*     } */
-/*   } */
-
-/*   if(sum<0.0) { */
-/*     printf("Your H1 Semi Norm Squared is negative!  Outputting the square itself\n"); */
-/*     *norm = sum; */
-/*   } else { */
-/*     *norm = sqrt(sum); */
-/*   } */
-
-/*   if(MLoc) free(MLoc); */
-/*   if(ipn) free(ipn); */
-/*   if(ipdof) free(ipdof); */
-/*   freeqcoords(cq); */
-
-/*   return; */
-/* } */
-/* /\*******************************************************************************************************************************************************\/ */
-
-/* /\***************************************************************************\/ */
-/* void H1semierror(REAL *err,REAL *u,REAL *xn,REAL *yn,REAL *zn,INT *iel_n,INT *jel_n,INT nelm,INT nve,INT mydim,INT nq1d,INT element_order,INT test,REAL param,REAL time)  */
-/* { */
-
-/*   /\* Computes the H1 Semi-Norm of the Error using a high order quadrature  */
-/*    * */
-/*    * Input:		u				Numerical Solution at DOF */
-/*    *				xn,yn,zn		Coordinates of Nodes */
-/*    *				iel_n,jel_n		Element to Node Map */
-/*    *				nelm			Number of Elements */
-/*    *				ndof			Number of DOF */
-/*    *				mydim			Dimension */
-/*    *				nq1d			Number of Quadrature Points per dimension */
-/*    *				element_order	Number of Nodes per Element */
-/*    *				test			Which solution to compare to (This is the gradient of the solution so it's a vector) */
-/*    * */
-/*    * Output:		err				H1 Norm of the Error */
-/*    * */
-/*    *\/ */
-	
-/*   INT i,j,rowa,iq;				/\* Loop Indices *\/ */
-
-/*   REAL el = 0.0;			 */
-/*   REAL elx = 0.0;			 */
-/*   REAL ely = 0.0; */
-/*   REAL elz = 0.0; */
-	
-/*   INT nq = (INT) pow(nq1d,mydim); */
-/*   REAL* xq = calloc(nq,sizeof(REAL)); */
-/*   REAL* yq = calloc(nq,sizeof(REAL)); */
-/*   REAL* zq = calloc(nq,sizeof(REAL)); */
-/*   REAL* wq = calloc(nq,sizeof(REAL)); */
-/*   INT* ipv = calloc(nve,sizeof(INT)); */
-/*   INT* ipn = calloc(element_order,sizeof(INT)); */
-	
-/*   REAL x,y,z,w; */
-	
-/*   REAL* ugh = calloc(mydim,sizeof(REAL));			/\* Grad of approximation interpolated at Quadrature Nodes *\/ */
-/*   REAL* ugtrue = calloc(mydim,sizeof(REAL));		/\* Grad of true solution interpolated at Quadrature Nodes *\/ */
-	
-/*   if (mydim==2) { */
-/*     for (i=0; i<nelm; i++) { */
-		
-/*       // Get Vertices (must be vertices) */
-/*       rowa = iel_n[i]-1; */
-/*       for (j=0; j<nve; j++) {  // First ones are always vertices  */
-/* 	ipv[j] = jel_n[rowa+j]; */
-/* 	ipn[j] = ipv[j]; */
-/*       } */
-/*       for (j=nve; j<element_order; j++) { */
-/* 	ipn[j] = jel_n[rowa+j]; */
-/*       } */
-/*       quad_2D_tri(xq,yq,wq,xn,yn,ipv,nq1d);		 */
-		
-/*       for (iq=0;iq<nq;iq++) { */
-/* 	x = xq[iq]; */
-/* 	y = yq[iq]; */
-/* 	z = 0; */
-/* 	w = wq[iq]; */
-			
-/* 	H1Grad_interpolation(ugh,u,x,y,z,ipn,xn,yn,zn,0,element_order,mydim,1); */
-			
-/* 	// get true solution at quadrature node */
-/* 	getknownfunction(ugtrue,x,y,z,time,mydim,2,param,test); */
-			
-/* 	elx = elx + ( ugh[0] - ugtrue[0] )*( ugh[0] - ugtrue[0] )*w; */
-/* 	ely = ely + ( ugh[1] - ugtrue[1] )*( ugh[1] - ugtrue[1] )*w; */
-/*       } */
-		
-/*     } */
-/*   } else if (mydim==3) { */
-/*     for (i=0; i<nelm; i++) { */
-			
-/*       // Get Vertices (must be vertices) */
-/*       rowa = iel_n[i]-1; */
-/*       for (j=0; j<nve; j++) {  // First ones are always vertices  */
-/* 	ipv[j] = jel_n[rowa+j]; */
-/* 	ipn[j] = ipv[j]; */
-/*       } */
-/*       for (j=nve; j<element_order; j++) { */
-/* 	ipn[j] = jel_n[rowa+j]; */
-/*       } */
-
-/*       quad_3D_tet(xq,yq,zq,wq,xn,yn,zn,ipv,nq1d); */
-			
-/*       for (iq=0;iq<nq;iq++) { */
-/* 	x = xq[iq]; */
-/* 	y = yq[iq]; */
-/* 	z = zq[iq];  */
-/* 	w = wq[iq]; */
-				
-/* 	H1Grad_interpolation(ugh,u,x,y,z,ipn,xn,yn,zn,0,element_order,mydim,1); */
-				
-/* 	// get true solution at quadrature node */
-/* 	getknownfunction(ugtrue,x,y,z,time,mydim,2,param,test); */
-				
-/* 	elx = elx + ( ugh[0] - ugtrue[0] )*( ugh[0] - ugtrue[0] )*w; */
-/* 	ely = ely + ( ugh[1] - ugtrue[1] )*( ugh[1] - ugtrue[1] )*w; */
-/* 	elz = elz + ( ugh[2] - ugtrue[2] )*( ugh[2] - ugtrue[2] )*w; */
-/*       } */
-/*     } */
-/*   } else { */
-/*     printf("Dimension not 2 or 3.  YOu are in the twilight zone"); */
-/*     exit(0); */
-/*   } */
-
-	
-/*   el = sqrt ( elx + ely + elz ); */
-	
-/*   *err = el; */
-	
-/*   if(xq) free(xq); */
-/*   if(yq) free(yq); */
-/*   if(zq) free(zq); */
-/*   if(ipn) free(ipn); */
-/*   if(ipv) free(ipv); */
-	
-/*   return; */
-/* } */
-/* /\*******************************************************************************************************************************************************\/ */
-
-/* /\*******************************************************************************************************************************************************\/ */
-/* void L2errorRT(REAL *err,REAL *u,REAL *xn,REAL *yn,REAL *zn,INT *iel_n,INT *jel_n,INT *iel_f,INT *jel_f,INT *if_n,INT *jf_n,INT nelm,INT nve,INT mydim,INT nq1d,INT element_order,INT face_order,INT test,REAL param,REAL time,REAL* f_area,REAL* f_norm) */
-/* { */
-	
-/*   /\* Computes the L2 error of an approximation defined on Nedelec elements using a high order quadrature  */
-/*    * */
-/*    * Input:		u				Approximation at DOF */
-/*    *				xn,yn,zn		Coordinates of Nodes */
-/*    *				iel_n,jel_n		Element to Node Map */
-/*    *				iel_ed,jel_ed	Element to Edge Map */
-/*    *				ied_n,jed_n		Edge to Node Map */
-/*    *				nelm			Number of Elements */
-/*    *				nve				Number of vertices per element */
-/*    *				mydim			Dimension */
-/*    *				nq1d			Number of Quadrature PoINTs per dimension */
-/*    *				element_order	Number of Nodes per Element */
-/*    *				edge_order		Number of Edges per Element */
-/*    * */
-/*    * Output:		norm			L2 Norm */
-/*    * */
-/*    *\/ */
-	
-/*   INT i,j,iq,rowa;				/\* Loop Indices *\/ */
-	
-/*   REAL el = 0.0; */
-/*   REAL elx = 0.0;			/\* Error *\/ */
-/*   REAL ely = 0.0; */
-/*   REAL elz = 0.0;	 */
-	
-/*   INT nq = (INT) pow(nq1d,mydim); */
-/*   REAL* xq = calloc(nq,sizeof(REAL)); */
-/*   REAL* yq = calloc(nq,sizeof(REAL)); */
-/*   REAL* zq = calloc(nq,sizeof(REAL)); */
-/*   REAL* wq = calloc(nq,sizeof(REAL)); */
-/*   INT* ipv = calloc(nve,sizeof(INT)); */
-/*   INT* ipn = calloc(element_order,sizeof(INT)); */
-/*   INT* ipf = calloc(face_order,sizeof(INT)); */
-	
-/*   REAL x,y,z,w; */
-	
-/*   REAL* uh = calloc(mydim,sizeof(REAL));			/\* Numerical Solution interpolated at Quadrature Nodes *\/ */
-/*   REAL* utrue = calloc(mydim,sizeof(REAL));		/\* True Solution at Quadrature Nodes *\/ */
-	
-/*   if (mydim==2) { */
-/*     for (i=0; i<nelm; i++) { */
-			
-/*       // Get Vertices (must be vertices) */
-/*       rowa = iel_n[i]-1; */
-/*       for (j=0; j<nve; j++) {  // First ones are always vertices  */
-/* 	ipv[j] = jel_n[rowa+j]; */
-/* 	ipn[j] = ipv[j]; */
-/*       } */
-/*       // Get rest of nodes */
-/*       for (j=nve; j<element_order; j++) { */
-/* 	ipn[j] = jel_n[rowa+j]; */
-/*       } */
-/*       // Get edges */
-/*       rowa = iel_f[i]-1; */
-/*       for (j=0; j<face_order; j++) { */
-/* 	ipf[j] = jel_f[rowa+j]; */
-/*       } */
-			
-/*       // Get quadrature nodes for given order of accuracy */
-/*       quad_2D_tri(xq,yq,wq,xn,yn,ipv,nq1d); */
-			
-/*       for (iq=0;iq<nq;iq++) { */
-/* 	x = xq[iq]; */
-/* 	y = yq[iq]; */
-/* 	z = 0; */
-/* 	w = wq[iq]; */
-				
-/* 	RT_interpolation(uh,u,x,y,z,ipn,ipf,if_n,jf_n,xn,yn,zn,element_order,face_order,mydim,f_area,f_norm); */
-				
-/* 	// get true solution at quadrature node */
-/* 	getknownfunction(utrue,x,y,z,time,mydim,2,param,test); */
-/* 	elx = elx + (uh[0]-utrue[0])*(uh[0]-utrue[0])*w; */
-/* 	ely = ely + (uh[1]-utrue[1])*(uh[1]-utrue[1])*w; */
-/*       } */
-			
-/*     }	 */
-/*   } else if (mydim==3) { */
-/*     for (i=0; i<nelm; i++) { */
-			
-/*       // Get Vertices (must be vertices) */
-/*       rowa = iel_n[i]-1; */
-/*       for (j=0; j<nve; j++) {  // First ones are always vertices  */
-/* 	ipv[j] = jel_n[rowa+j]; */
-/* 	ipn[j] = ipv[j]; */
-/*       } */
-/*       // Get rest of nodes */
-/*       for (j=nve; j<element_order; j++) { */
-/* 	ipn[j] = jel_n[rowa+j]; */
-/*       } */
-/*       // Get edges */
-/*       rowa = iel_f[i]-1; */
-/*       for (j=0; j<face_order; j++) { */
-/* 	ipf[j] = jel_f[rowa+j]; */
-/*       } */
-			
-/*       // Get quadrature nodes for given order of accuracy */
-/*       quad_3D_tet(xq,yq,zq,wq,xn,yn,zn,ipv,nq1d); */
-			
-/*       for (iq=0;iq<nq;iq++) { */
-/* 	x = xq[iq]; */
-/* 	y = yq[iq]; */
-/* 	z = zq[iq];  */
-/* 	w = wq[iq]; */
-				
-/* 	RT_interpolation(uh,u,x,y,z,ipn,ipf,if_n,jf_n,xn,yn,zn,element_order,face_order,mydim,f_area,f_norm); */
-				
-/* 	// get true solution at quadrature node */
-/* 	getknownfunction(utrue,x,y,z,time,mydim,2,param,test); */
-				
-/* 	elx = elx + (uh[0]-utrue[0])*(uh[0]-utrue[0])*w; */
-/* 	ely = ely + (uh[1]-utrue[1])*(uh[1]-utrue[1])*w; */
-/* 	elz = elz + (uh[2]-utrue[2])*(uh[2]-utrue[2])*w; */
-/*       } */
-/*     } */
-/*   } else { */
-/*     printf("Dimension not 2 or 3\n"); */
-/*     exit(0); */
-/*   } */
-	
-	
-/*   el = sqrt ( elx + ely + elz ); */
-	
-/*   *err = el; */
-	
-/*   if(ipv) free(ipv); */
-/*   if(ipn) free(ipn); */
-/*   if(ipf) free(ipf); */
-/*   if(xq) free(xq); */
-/*   if(yq) free(yq); */
-/*   if(zq) free(zq); */
-/*   if(wq) free(wq); */
-/*   return; */
-/* } */
-/* /\*******************************************************************************************************************************************************\/ */
-
-/* /\*******************************************************************************************************************************************************\/ */
-/* void L2errorNed(REAL *err,REAL *u,REAL *xn,REAL *yn,REAL *zn,INT *iel_n,INT *jel_n,INT *iel_ed,INT *jel_ed,INT *ied_n,INT *jed_n,INT nelm,INT nve,INT mydim,INT nq1d,INT element_order,INT edge_order,INT test,REAL param,REAL time)   */
-/* { */
-	
-/*   /\* Computes the L2 error of an approximation defined on Nedelec elements using a high order quadrature  */
-/*    * */
-/*    * Input:		u				Approximation at DOF */
-/*    *				xn,yn,zn		Coordinates of Nodes */
-/*    *				iel_n,jel_n		Element to Node Map */
-/*    *				iel_ed,jel_ed	Element to Edge Map */
-/*    *				ied_n,jed_n		Edge to Node Map */
-/*    *				nelm			Number of Elements */
-/*    *				nve				Number of vertices per element */
-/*    *				mydim			Dimension */
-/*    *				nq1d			Number of Quadrature Points per dimension */
-/*    *				element_order	Number of Nodes per Element */
-/*    *				edge_order		Number of Edges per Element */
-/*    * */
-/*    * Output:		norm			L2 Norm */
-/*    * */
-/*    *\/ */
-	
-/*   INT i,j,iq,rowa;				/\* Loop Indices *\/ */
-/*   REAL el = 0.0; */
-/*   REAL elx = 0.0;			/\* Error *\/ */
-/*   REAL ely = 0.0; */
-/*   REAL elz = 0.0;	 */
-	
-/*   INT nq = (INT) pow(nq1d,mydim); */
-/*   REAL* xq = calloc(nq,sizeof(REAL)); */
-/*   REAL* yq = calloc(nq,sizeof(REAL)); */
-/*   REAL* zq = calloc(nq,sizeof(REAL)); */
-/*   REAL* wq = calloc(nq,sizeof(REAL)); */
-/*   INT* ipv = calloc(nve,sizeof(INT)); */
-/*   INT* ipn = calloc(element_order,sizeof(INT)); */
-/*   INT* ipe = calloc(edge_order,sizeof(INT)); */
-	
-/*   REAL x,y,z,w; */
-	
-/*   REAL* uh = calloc(mydim,sizeof(REAL));			/\* Numerical Solution interpolated at Quadrature Nodes *\/ */
-/*   REAL* utrue = calloc(mydim,sizeof(REAL));		/\* True Solution at Quadrature Nodes *\/ */
-	
-/*   if (mydim==2) { */
-/*     for (i=0; i<nelm; i++) { */
-			
-/*       // Get Vertices (must be vertices) */
-/*       rowa = iel_n[i]-1; */
-/*       for (j=0; j<nve; j++) {  // First ones are always vertices  */
-/* 	ipv[j] = jel_n[rowa+j]; */
-/* 	ipn[j] = ipv[j]; */
-/*       } */
-/*       // Get rest of nodes */
-/*       for (j=nve; j<element_order; j++) { */
-/* 	ipn[j] = jel_n[rowa+j]; */
-/*       } */
-/*       // Get edges */
-/*       rowa = iel_ed[i]-1; */
-/*       for (j=0; j<edge_order; j++) { */
-/* 	ipe[j] = jel_ed[rowa+j]; */
-/*       } */
-			
-/*       // Get quadrature nodes for given order of accuracy */
-/*       quad_2D_tri(xq,yq,wq,xn,yn,ipv,nq1d); */
-			
-/*       for (iq=0;iq<nq;iq++) { */
-/* 	x = xq[iq]; */
-/* 	y = yq[iq]; */
-/* 	z = 0; */
-/* 	w = wq[iq]; */
-				
-/* 	Ned_interpolation(uh,u,x,y,z,ipn,ipe,ied_n,jed_n,xn,yn,zn,element_order,edge_order,mydim); */
-				
-/* 	// get true solution at quadrature node */
-/* 	getknownfunction(utrue,x,y,z,time,mydim,2,param,test); */
-
-/* 	elx = elx + (uh[0]-utrue[0])*(uh[0]-utrue[0])*w; */
-/* 	ely = ely + (uh[1]-utrue[1])*(uh[1]-utrue[1])*w; */
-/*       } */
-			
-/*     }	 */
-/*   } else if (mydim==3) { */
-/*     for (i=0; i<nelm; i++) { */
-			
-/*       // Get Vertices (must be vertices) */
-/*       rowa = iel_n[i]-1; */
-/*       for (j=0; j<nve; j++) {  // First ones are always vertices  */
-/* 	ipv[j] = jel_n[rowa+j]; */
-/* 	ipn[j] = ipv[j]; */
-/*       } */
-/*       // Get rest of nodes */
-/*       for (j=nve; j<element_order; j++) { */
-/* 	ipn[j] = jel_n[rowa+j]; */
-/*       } */
-/*       // Get edges */
-/*       rowa = iel_ed[i]-1; */
-/*       for (j=0; j<edge_order; j++) { */
-/* 	ipe[j] = jel_ed[rowa+j]; */
-/*       } */
-			
-/*       // Get quadrature nodes for given order of accuracy */
-/*       quad_3D_tet(xq,yq,zq,wq,xn,yn,zn,ipv,nq1d); */
-			
-/*       for (iq=0;iq<nq;iq++) { */
-/* 	x = xq[iq]; */
-/* 	y = yq[iq]; */
-/* 	z = zq[iq];  */
-/* 	w = wq[iq]; */
-/* 	Ned_interpolation(uh,u,x,y,z,ipn,ipe,ied_n,jed_n,xn,yn,zn,element_order,edge_order,mydim); */
-				
-/* 	// get true solution at quadrature node */
-/* 	getknownfunction(utrue,x,y,z,time,mydim,2,param,test); */
-				
-/* 	elx = elx + (uh[0]-utrue[0])*(uh[0]-utrue[0])*w; */
-/* 	ely = ely + (uh[1]-utrue[1])*(uh[1]-utrue[1])*w; */
-/* 	elz = elz + (uh[2]-utrue[2])*(uh[2]-utrue[2])*w; */
-/*       } */
-/*     } */
-/*   } else { */
-/*     printf("Dimension not 2 or 3\n"); */
-/*     exit(0); */
-/*   } */
-	
-	
-/*   el = sqrt ( elx + ely + elz ); */
-	
-/*   *err = el; */
-	
-/*   if (ipv) free(ipv); */
-/*   if(ipn) free(ipn); */
-/*   if(ipe) free(ipe); */
-/*   if(xq) free(xq); */
-/*   if(yq) free(yq); */
-/*   if(zq) free(zq); */
-/*   if(wq) free(wq); */
-/*   return; */
-/* } */
-/* /\*******************************************************************************************************************************************************\/ */
-
-
-/* /\*******************************************************************************************************************************************************\/ */
-/* void NedsemiCurlerror(REAL *err,REAL *u,REAL *xn,REAL *yn,REAL *zn,INT *iel_n,INT *jel_n,INT *iel_ed,INT *jel_ed,INT *ied_n,INT *jed_n,INT nelm,INT nve,INT mydim,INT nq1d,INT element_order,INT edge_order,INT test,REAL param,REAL time)  */
-/* { */
-	
-/*   /\* Computes the H curl Semi-Norm Error of an approximation using a high order quadrature  */
-/*    * */
-/*    * Input:		u				Approximation at DOF */
-/*    *				xn,yn,zn		Coordinates of Nodes */
-/*    *				iel_n,jel_n		Element to Node Map */
-/*    *				iel_ed,jel_ed	Element to Edge Map */
-/*    *				ied_n,jed_n		Edge to Node Map */
-/*    *				nelm			Number of Elements */
-/*    *				nve				Number of vertices per element */
-/*    *				mydim			Dimension */
-/*    *				nq1d			Number of Quadrature PoINTs per dimension */
-/*    *				element_order	Number of Nodes per Element */
-/*    *				edge_order		Number of Edges per Element */
-/*    * */
-/*    * Output:		norm			L2 Norm */
-/*    * */
-/*    *\/ */
-	
-/*   INT i,j,iq,rowa;				/\* Loop Indices *\/ */
-	
-/*   REAL el = 0.0; */
-/*   REAL elx = 0.0;			/\* Error *\/ */
-/*   REAL ely = 0.0; */
-/*   REAL elz = 0.0; */
-	
-/*   INT nq = (INT) pow(nq1d,mydim); */
-/*   REAL* xq = calloc(nq,sizeof(REAL)); */
-/*   REAL* yq = calloc(nq,sizeof(REAL)); */
-/*   REAL* zq = calloc(nq,sizeof(REAL)); */
-/*   REAL* wq = calloc(nq,sizeof(REAL)); */
-/*   INT* ipv = calloc(nve,sizeof(INT)); */
-/*   INT* ipn = calloc(element_order,sizeof(INT)); */
-/*   INT* ipe = calloc(edge_order,sizeof(INT)); */
-	
-/*   REAL x,y,z,w; */
-	
-/*   REAL* uch = calloc(mydim,sizeof(REAL));			/\* Curl of approximation interpolated at Quadrature Nodes *\/ */
-/*   REAL* uctrue = calloc(mydim,sizeof(REAL));		/\* Curl of true solution interpolated at Quadrature Nodes *\/ */
-	
-/*   if (mydim==2 ) { */
-/*     for (i=0; i<nelm; i++) { */
-			
-/*       // Get Vertices (must be vertices) */
-/*       rowa = iel_n[i]-1; */
-/*       for (j=0; j<nve; j++) {  // First ones are always vertices  */
-/* 	ipv[j] = jel_n[rowa+j]; */
-/* 	ipn[j] = ipv[j]; */
-/*       } */
-/*       for (j=nve; j<element_order; j++) { */
-/* 	ipn[j] = jel_n[rowa+j]; */
-/*       } */
-/*       // Get edges */
-/*       rowa = iel_ed[i]-1; */
-/*       for (j=0; j<edge_order; j++) { */
-/* 	ipe[j] = jel_ed[rowa+j]; */
-/*       } */
-			
-/*       // Get quadrature nodes for given order of accuracy */
-/*       quad_2D_tri(xq,yq,wq,xn,yn,ipv,nq1d); */
-			
-/*       for (iq=0;iq<nq;iq++) { */
-/* 	x = xq[iq]; */
-/* 	y = yq[iq]; */
-/* 	z = 0; */
-/* 	w = wq[iq]; */
-				
-/* 	NedCurl_interpolation(uch,u,x,y,z,ipn,ipe,ied_n,jed_n,xn,yn,zn,element_order,edge_order,mydim); */
-/* 	getknownfunction(uctrue,x,y,z,time,mydim,1,param,test); */
-				
-/* 	elx = elx + (uch[0]-uctrue[0])*(uch[0]-uctrue[0])*w; */
-/*       } */
-/*     } */
-		
-/*   } else if (mydim==3) { */
-/*     for (i=0; i<nelm; i++) { */
-			
-/*       // Get Vertices (must be vertices) */
-/*       rowa = iel_n[i]-1; */
-/*       for (j=0; j<nve; j++) {  // First ones are always vertices  */
-/* 	ipv[j] = jel_n[rowa+j]; */
-/* 	ipn[j] = ipv[j]; */
-/*       } */
-/*       for (j=nve; j<element_order; j++) { */
-/* 	ipn[j] = jel_n[rowa+j]; */
-/*       } */
-/*       // Get edges */
-/*       rowa = iel_ed[i]-1; */
-/*       for (j=0; j<edge_order; j++) { */
-/* 	ipe[j] = jel_ed[rowa+j]; */
-/*       } */
-			
-/*       // Get quadrature nodes for given order of accuracy */
-/*       quad_3D_tet(xq,yq,zq,wq,xn,yn,zn,ipv,nq1d); */
-			
-/*       for (iq=0;iq<nq;iq++) { */
-/* 	x = xq[iq]; */
-/* 	y = yq[iq]; */
-/* 	z = zq[iq];  */
-/* 	w = wq[iq]; */
-				
-/* 	NedCurl_interpolation(uch,u,x,y,z,ipn,ipe,ied_n,jed_n,xn,yn,zn,element_order,edge_order,mydim); */
-				
-/* 	// True Solution */
-/* 	getknownfunction(uctrue,x,y,z,time,mydim,2,param,test); */
-
-				
-/* 	elx = elx + (uch[0]-uctrue[0])*(uch[0]-uctrue[0])*w; */
-/* 	ely = ely + (uch[1]-uctrue[1])*(uch[1]-uctrue[1])*w; */
-/* 	elz = elz + (uch[2]-uctrue[2])*(uch[2]-uctrue[2])*w; */
-/*       } */
-/*     } */
-/*   } else { */
-/*     printf("Dimension not 2 or 3.  What is this the Twighlight Zone??"); */
-/*     exit(0); */
-/*   } */
-	
-	
-/*   el = sqrt ( elx + ely + elz ); */
-	
-/*   *err = el; */
-	
-/*   if (ipv) free(ipv); */
-/*   if(ipn) free(ipn); */
-/*   if(ipe) free(ipe); */
-/*   if(xq) free(xq); */
-/*   if(yq) free(yq); */
-/*   if(zq) free(zq); */
-/*   if(wq) free(wq); */
-/*   return; */
-/* } */
-/* /\*******************************************************************************************************************************************************\/ */
-
-/* /\*******************************************************************************************************************************************************\/ */
-/* void L2norminterp(REAL *norm,REAL *u,REAL *xn,REAL *yn,REAL *zn,INT *iel_n,INT *jel_n,INT nelm,INT nve,INT mydim,INT nq1d,INT element_order)  */
-/* { */
-	
-/*   /\* Computes the L2 Norm of an approximation using a high order quadrature  */
-/*    * */
-/*    * Input:		u				Approximation at DOF */
-/*    *				xn,yn,zn		Coordinates of Nodes */
-/*    *				iel_n,jel_n		Element to Node Map */
-/*    *				nelm			Number of Elements */
-/*    *				ndof			Number of DOF */
-/*    *				mydim			Dimension */
-/*    *				nq1d			Number of Quadrature Points per dimension */
-/*    *				element_order	Number of Nodes per Element */
-/*    * */
-/*    * Output:		norm			L2 Norm */
-/*    * */
-/*    *\/ */
-	
-/*   INT i,j,iq,rowa;				/\* Loop Indices *\/ */
-	
-/*   REAL el2 = 0.0; */
-	
-/*   INT nq = (INT) pow(nq1d,mydim); */
-/*   REAL* xq = calloc(nq,sizeof(REAL)); */
-/*   REAL* yq = calloc(nq,sizeof(REAL)); */
-/*   REAL* zq = calloc(nq,sizeof(REAL)); */
-/*   REAL* wq = calloc(nq,sizeof(REAL)); */
-/*   INT* ipv = calloc(nve,sizeof(INT)); */
-/*   INT* ipn = calloc(element_order,sizeof(INT)); */
-	
-/*   REAL x,y,z,w; */
-	
-/*   REAL uh;			/\* Numerical Solution interpolated at Quadrature Nodes *\/ */
-	
-/*   for (i=0; i<nelm; i++) { */
-		
-/*     // Get Vertices (must be vertices) */
-/*     rowa = iel_n[i]-1; */
-/*     for (j=0; j<nve; j++) {  // First ones are always vertices  */
-/*       ipv[j] = jel_n[rowa+j]; */
-/*       ipn[j] = ipv[j]; */
-/*     } */
-/*     for (j=nve; j<element_order; j++) { */
-/*       ipn[j] = jel_n[rowa+j]; */
-/*     } */
-		
-/*     // Get quadrature nodes for given order of accuracy */
-/*     if (mydim==2) { */
-/*       quad_2D_tri(xq,yq,wq,xn,yn,ipv,nq1d); */
-/*     } else if (mydim==3) { */
-/*       quad_3D_tet(xq,yq,zq,wq,xn,yn,zn,ipv,nq1d); */
-/*     } else { */
-/*       printf("Bad Dimension"); */
-/*       return; */
-/*     } */
-		
-/*     for (iq=0;iq<nq;iq++) { */
-/*       x = xq[iq]; */
-/*       y = yq[iq]; */
-/*       if (mydim>2) { z = zq[iq]; } */
-/*       w = wq[iq]; */
-			
-/*       if (element_order==1) { */
-/* 	uh=u[i]; */
-/*       } else { */
-/* 	H1_interpolation(&uh,u,x,y,z,ipn,xn,yn,zn,0,element_order,mydim,1); */
-/*       } */
-			
-/*       el2 = el2 + uh*uh*w; */
-/*     } */
-		
-/*   }	 */
-	
-/*   el2 = sqrt ( el2 ); */
-	
-/*   *norm = el2; */
-	
-/*   if (ipv) free(ipv); */
-/*   if(ipn) free(ipn); */
-/*   if(xq) free(xq); */
-/*   if(yq) free(yq); */
-/*   if(zq) free(zq); */
-/*   if(wq) free(wq); */
-/*   return; */
-/* } */
-/* /\*******************************************************************************************************************************************************\/ */
-
-/* /\*******************************************************************************************************************************************************\/ */
-/* void H1seminorminterp(REAL *norm,REAL *u,REAL *xn,REAL *yn,REAL *zn,INT *iel_n,INT *jel_n,INT nelm,INT nve,INT mydim,INT nq1d,INT element_order)  */
-/* { */
-	
-/*   /\* Computes the H1 Semi-Norm of an approximation using a high order quadrature  */
-/*    * */
-/*    * Input:		u				Approximation at DOF */
-/*    *				xn,yn,zn		Coordinates of Nodes */
-/*    *				iel_n,jel_n		Element to Node Map */
-/*    *				nelm			Number of Elements */
-/*    *				ndof			Number of DOF */
-/*    *				mydim			Dimension */
-/*    *				nq1d			Number of Quadrature Points per dimension */
-/*    *				element_order	Number of Nodes per Element */
-/*    * */
-/*    * Output:		norm				H1 semi-norm */
-/*    * */
-/*    *\/ */
-	
-/*   INT i,j,iq,rowa;				/\* Loop Indices *\/ */
-	
-/*   REAL el = 0.0; */
-/*   REAL elx = 0.0;			/\* Error *\/ */
-/*   REAL ely = 0.0; */
-/*   REAL elz = 0.0; */
-	
-/*   INT nq = (INT) pow(nq1d,mydim); */
-/*   REAL* xq = calloc(nq,sizeof(REAL)); */
-/*   REAL* yq = calloc(nq,sizeof(REAL)); */
-/*   REAL* zq = calloc(nq,sizeof(REAL)); */
-/*   REAL* wq = calloc(nq,sizeof(REAL)); */
-/*   INT* ipv = calloc(nve,sizeof(INT)); */
-/*   INT* ipn = calloc(element_order,sizeof(INT)); */
-	
-/*   REAL x,y,z,w; */
-	
-/*   REAL* uh = calloc(mydim,sizeof(REAL));			/\* Grad of approximation interpolated at Quadrature Nodes *\/ */
-	
-/*   if (mydim==2 ) { */
-/*     for (i=0; i<nelm; i++) { */
-			
-/*       // Get Vertices (must be vertices) */
-/*       rowa = iel_n[i]-1; */
-/*       for (j=0; j<nve; j++) {  // First ones are always vertices  */
-/* 	ipv[j] = jel_n[rowa+j]; */
-/* 	ipn[j] = ipv[j]; */
-/*       } */
-/*       for (j=nve; j<element_order; j++) { */
-/* 	ipn[j] = jel_n[rowa+j]; */
-/*       } */
-			
-/*       // Get quadrature nodes for given order of accuracy */
-/*       quad_2D_tri(xq,yq,wq,xn,yn,ipv,nq1d); */
-			
-/*       for (iq=0;iq<nq;iq++) { */
-/* 	x = xq[iq]; */
-/* 	y = yq[iq]; */
-/* 	z = 0; */
-/* 	w = wq[iq]; */
-				
-/* 	H1Grad_interpolation(uh,u,x,y,z,ipn,xn,yn,zn,0,element_order,mydim,1); */
-				
-/* 	elx = elx + uh[0]*uh[0]*w; */
-/* 	ely = ely + uh[1]*uh[1]*w; */
-/*       } */
-/*     } */
-		
-/*   } else if (mydim==3) { */
-/*     for (i=0; i<nelm; i++) { */
-			
-/*       // Get Vertices (must be vertices) */
-/*       rowa = iel_n[i]-1; */
-/*       for (j=0; j<nve; j++) {  // First ones are always vertices  */
-/* 	ipv[j] = jel_n[rowa+j]; */
-/* 	ipn[j] = ipv[j]; */
-/*       } */
-/*       for (j=nve; j<element_order; j++) { */
-/* 	ipn[j] = jel_n[rowa+j]; */
-/*       } */
-			
-/*       // Get quadrature nodes for given order of accuracy */
-/*       quad_3D_tet(xq,yq,zq,wq,xn,yn,zn,ipv,nq1d); */
-			
-/*       for (iq=0;iq<nq;iq++) { */
-/* 	x = xq[iq]; */
-/* 	y = yq[iq]; */
-/* 	z = zq[iq];  */
-/* 	w = wq[iq]; */
-				
-/* 	H1Grad_interpolation(uh,u,x,y,z,ipn,xn,yn,zn,0,element_order,mydim,1); */
-				
-/* 	elx = elx + uh[0]*uh[0]*w; */
-/* 	ely = ely + uh[1]*uh[1]*w; */
-/* 	elz = elz + uh[2]*uh[2]*w; */
-/*       } */
-/*     } */
-/*   } else { */
-/*     printf("Dimension not 2 or 3.  What is this the Twighlight Zone??"); */
-/*     exit(0); */
-/*   } */
-	
-	
-/*   el = sqrt ( elx + ely + elz ); */
-	
-/*   *norm = el; */
-	
-/*   if (ipv) free(ipv); */
-/*   if(ipn) free(ipn); */
-/*   if(xq) free(xq); */
-/*   if(yq) free(yq); */
-/*   if(zq) free(zq); */
-/*   if(wq) free(wq); */
-/*   return; */
-/* } */
-/* /\*******************************************************************************************************************************************************\/ */
-
-/* /\*******************************************************************************************************************************************************\/ */
-/* void L2normNed(REAL *norm,REAL *u,REAL *xn,REAL *yn,REAL *zn,INT *iel_n,INT *jel_n,INT *iel_ed,INT *jel_ed,INT *ied_n,INT *jed_n,INT nelm,INT nve,INT mydim,INT nq1d,INT element_order,INT edge_order)  */
-/* { */
-	
-/*   /\* Computes the L2 Norm of an approximation defined on Nedelec elements using a high order quadrature  */
-/*    * */
-/*    * Input:		u				Approximation at DOF */
-/*    *				xn,yn,zn		Coordinates of Nodes */
-/*    *				iel_n,jel_n		Element to Node Map */
-/*    *				iel_ed,jel_ed	Element to Edge Map */
-/*    *				ied_n,jed_n		Edge to Node Map */
-/*    *				nelm			Number of Elements */
-/*    *				nve				Number of vertices per element */
-/*    *				mydim			Dimension */
-/*    *				nq1d			Number of Quadrature Points per dimension */
-/*    *				element_order	Number of Nodes per Element */
-/*    *				edge_order		Number of Edges per Element */
-/*    * */
-/*    * Output:		norm			L2 Norm */
-/*    * */
-/*    *\/ */
-	
-/*   INT i,j,iq,rowa;				/\* Loop Indices *\/ */
-	
-/*   REAL el = 0.0; */
-/*   REAL elx = 0.0;			/\* Error *\/ */
-/*   REAL ely = 0.0; */
-/*   REAL elz = 0.0;	 */
-	
-/*   INT nq = (INT) pow(nq1d,mydim); */
-/*   REAL* xq = calloc(nq,sizeof(REAL)); */
-/*   REAL* yq = calloc(nq,sizeof(REAL)); */
-/*   REAL* zq = calloc(nq,sizeof(REAL)); */
-/*   REAL* wq = calloc(nq,sizeof(REAL)); */
-/*   INT* ipv = calloc(nve,sizeof(INT)); */
-/*   INT* ipn = calloc(element_order,sizeof(INT)); */
-/*   INT* ipe = calloc(edge_order,sizeof(INT)); */
-	
-/*   REAL x,y,z,w; */
-	
-/*   REAL* uh = calloc(mydim,sizeof(REAL));			/\* Numerical Solution interpolated at Quadrature Nodes *\/ */
-	
-/*   if (mydim==2) { */
-/*     for (i=0; i<nelm; i++) { */
-		
-/*       // Get Vertices (must be vertices) */
-/*       rowa = iel_n[i]-1; */
-/*       for (j=0; j<nve; j++) {  // First ones are always vertices  */
-/* 	ipv[j] = jel_n[rowa+j]; */
-/* 	ipn[j] = ipv[j]; */
-/*       } */
-/*       // Get rest of nodes */
-/*       for (j=nve; j<element_order; j++) { */
-/* 	ipn[j] = jel_n[rowa+j]; */
-/*       } */
-/*       // Get edges */
-/*       rowa = iel_ed[i]-1; */
-/*       for (j=0; j<edge_order; j++) { */
-/* 	ipe[j] = jel_ed[rowa+j]; */
-/*       } */
-		
-/*       // Get quadrature nodes for given order of accuracy */
-/*       quad_2D_tri(xq,yq,wq,xn,yn,ipv,nq1d); */
-		
-/*       for (iq=0;iq<nq;iq++) { */
-/* 	x = xq[iq]; */
-/* 	y = yq[iq]; */
-/* 	z = 0; */
-/* 	w = wq[iq]; */
-			
-/* 	Ned_interpolation(uh,u,x,y,z,ipn,ipe,ied_n,jed_n,xn,yn,zn,element_order,edge_order,mydim); */
-			
-/* 	elx = elx + uh[0]*uh[0]*w; */
-/* 	ely = ely + uh[1]*uh[1]*w; */
-/*       } */
-		
-/*     }	 */
-/*   } else if (mydim==3) { */
-/*     for (i=0; i<nelm; i++) { */
-			
-/*       // Get Vertices (must be vertices) */
-/*       rowa = iel_n[i]-1; */
-/*       for (j=0; j<nve; j++) {  // First ones are always vertices  */
-/* 	ipv[j] = jel_n[rowa+j]; */
-/* 	ipn[j] = ipv[j]; */
-/*       } */
-/*       // Get rest of nodes */
-/*       for (j=nve; j<element_order; j++) { */
-/* 	ipn[j] = jel_n[rowa+j]; */
-/*       } */
-/*       // Get edges */
-/*       rowa = iel_ed[i]-1; */
-/*       for (j=0; j<edge_order; j++) { */
-/* 	ipe[j] = jel_ed[rowa+j]; */
-/*       } */
-			
-/*       // Get quadrature nodes for given order of accuracy */
-/*       quad_3D_tet(xq,yq,zq,wq,xn,yn,zn,ipv,nq1d); */
-			
-/*       for (iq=0;iq<nq;iq++) { */
-/* 	x = xq[iq]; */
-/* 	y = yq[iq]; */
-/* 	z = zq[iq];  */
-/* 	w = wq[iq]; */
-				
-/* 	Ned_interpolation(uh,u,x,y,z,ipn,ipe,ied_n,jed_n,xn,yn,zn,element_order,edge_order,mydim); */
-				
-/* 	elx = elx + uh[0]*uh[0]*w; */
-/* 	ely = ely + uh[1]*uh[1]*w; */
-/* 	elz = elz + uh[2]*uh[2]*w; */
-/*       } */
-			
-/*     } */
-/*   } else { */
-/*     printf("Dimension not 2 or 3\n"); */
-/*     exit(0); */
-/*   } */
-
-	
-/*   el = sqrt ( elx + ely + elz ); */
-	
-/*   *norm = el; */
-	
-/*   if (ipv) free(ipv); */
-/*   if(ipn) free(ipn); */
-/*   if(ipe) free(ipe); */
-/*   if(xq) free(xq); */
-/*   if(yq) free(yq); */
-/*   if(zq) free(zq); */
-/*   if(wq) free(wq); */
-/*   return; */
-/* } */
-/* /\*******************************************************************************************************************************************************\/ */
-
-/* /\*******************************************************************************************************************************************************\/ */
-/* void L2normRT(REAL *norm,REAL *u,REAL *xn,REAL *yn,REAL *zn,INT *iel_n,INT *jel_n,INT *iel_f,INT *jel_f,INT *if_n,INT *jf_n,INT nelm,INT nve,INT mydim,INT nq1d,INT element_order,INT face_order,REAL* f_area,REAL* f_norm)  */
-/* { */
-	
-/*   /\* Computes the L2 Norm of an approximation defined on Nedelec elements using a high order quadrature  */
-/*    * */
-/*    * Input:		u				Approximation at DOF */
-/*    *				xn,yn,zn		Coordinates of Nodes */
-/*    *				iel_n,jel_n		Element to Node Map */
-/*    *				iel_ed,jel_ed	Element to Edge Map */
-/*    *				ied_n,jed_n		Edge to Node Map */
-/*    *				nelm			Number of Elements */
-/*    *				nve				Number of vertices per element */
-/*    *				mydim			Dimension */
-/*    *				nq1d			Number of Quadrature Points per dimension */
-/*    *				element_order	Number of Nodes per Element */
-/*    *				edge_order		Number of Edges per Element */
-/*    * */
-/*    * Output:		norm			L2 Norm */
-/*    * */
-/*    *\/ */
-	
-/*   INT i,j,iq,rowa;				/\* Loop Indices *\/ */
-	
-/*   REAL el = 0.0; */
-/*   REAL elx = 0.0;			/\* Error *\/ */
-/*   REAL ely = 0.0; */
-/*   REAL elz = 0.0;	 */
-	
-/*   INT nq = (INT) pow(nq1d,mydim); */
-/*   REAL* xq = calloc(nq,sizeof(REAL)); */
-/*   REAL* yq = calloc(nq,sizeof(REAL)); */
-/*   REAL* zq = calloc(nq,sizeof(REAL)); */
-/*   REAL* wq = calloc(nq,sizeof(REAL)); */
-/*   INT* ipv = calloc(nve,sizeof(INT)); */
-/*   INT* ipn = calloc(element_order,sizeof(INT)); */
-/*   INT* ipf = calloc(face_order,sizeof(INT)); */
-	
-/*   REAL x,y,z,w; */
-	
-/*   REAL* uh = calloc(mydim,sizeof(REAL));			/\* Numerical Solution interpolated at Quadrature Nodes *\/ */
-	
-/*   if (mydim==2) { */
-/*     for (i=0; i<nelm; i++) { */
-		
-/*       // Get Vertices (must be vertices) */
-/*       rowa = iel_n[i]-1; */
-/*       for (j=0; j<nve; j++) {  // First ones are always vertices  */
-/* 	ipv[j] = jel_n[rowa+j]; */
-/* 	ipn[j] = ipv[j]; */
-/*       } */
-/*       // Get rest of nodes */
-/*       for (j=nve; j<element_order; j++) { */
-/* 	ipn[j] = jel_n[rowa+j]; */
-/*       } */
-/*       // Get edges */
-/*       rowa = iel_f[i]-1; */
-/*       for (j=0; j<face_order; j++) { */
-/* 	ipf[j] = jel_f[rowa+j]; */
-/*       } */
-		
-/*       // Get quadrature nodes for given order of accuracy */
-/*       quad_2D_tri(xq,yq,wq,xn,yn,ipv,nq1d); */
-		
-/*       for (iq=0;iq<nq;iq++) { */
-/* 	x = xq[iq]; */
-/* 	y = yq[iq]; */
-/* 	z = 0; */
-/* 	w = wq[iq]; */
-			
-/* 	RT_interpolation(uh,u,x,y,z,ipn,ipf,if_n,jf_n,xn,yn,zn,element_order,face_order,mydim,f_area,f_norm); */
-			
-/* 	elx = elx + uh[0]*uh[0]*w; */
-/* 	ely = ely + uh[1]*uh[1]*w; */
-/*       } */
-		
-/*     }	 */
-/*   } else if (mydim==3) { */
-/*     for (i=0; i<nelm; i++) { */
-			
-/*       // Get Vertices (must be vertices) */
-/*       rowa = iel_n[i]-1; */
-/*       for (j=0; j<nve; j++) {  // First ones are always vertices  */
-/* 	ipv[j] = jel_n[rowa+j]; */
-/* 	ipn[j] = ipv[j]; */
-/*       } */
-/*       // Get rest of nodes */
-/*       for (j=nve; j<element_order; j++) { */
-/* 	ipn[j] = jel_n[rowa+j]; */
-/*       } */
-/*       // Get edges */
-/*       rowa = iel_f[i]-1; */
-/*       for (j=0; j<face_order; j++) { */
-/* 	ipf[j] = jel_f[rowa+j]; */
-/*       } */
-			
-/*       // Get quadrature nodes for given order of accuracy */
-/*       quad_3D_tet(xq,yq,zq,wq,xn,yn,zn,ipv,nq1d); */
-			
-/*       for (iq=0;iq<nq;iq++) { */
-/* 	x = xq[iq]; */
-/* 	y = yq[iq]; */
-/* 	z = zq[iq];  */
-/* 	w = wq[iq]; */
-				
-/* 	RT_interpolation(uh,u,x,y,z,ipn,ipf,if_n,jf_n,xn,yn,zn,element_order,face_order,mydim,f_area,f_norm); */
-				
-/* 	elx = elx + uh[0]*uh[0]*w; */
-/* 	ely = ely + uh[1]*uh[1]*w; */
-/* 	elz = elz + uh[2]*uh[2]*w; */
-/*       } */
-			
-/*     } */
-/*   } else { */
-/*     printf("Dimension not 2 or 3\n"); */
-/*     exit(0); */
-/*   } */
-
-	
-/*   el = sqrt ( elx + ely + elz ); */
-	
-/*   *norm = el; */
-	
-/*   if (ipv) free(ipv); */
-/*   if(ipn) free(ipn); */
-/*   if(ipf) free(ipf); */
-/*   if(xq) free(xq); */
-/*   if(yq) free(yq); */
-/*   if(zq) free(zq); */
-/*   if(wq) free(wq); */
-/*   return; */
-/* } */
-/* /\*******************************************************************************************************************************************************\/ */
-
-/* /\*******************************************************************************************************************************************************\/ */
-/* void NedsemiCurlnorm(REAL *norm,REAL *u,REAL *xn,REAL *yn,REAL *zn,INT *iel_n,INT *jel_n,INT *iel_ed,INT *jel_ed,INT *ied_n,INT *jed_n,INT nelm,INT nve,INT mydim,INT nq1d,INT element_order,INT edge_order)  */
-/* { */
-	
-/*   /\* Computes the H curl Semi-Norm of an approximation using a high order quadrature  */
-/*    * */
-/*    * Input:		u				Approximation at DOF */
-/*    *				xn,yn,zn		Coordinates of Nodes */
-/*    *				iel_n,jel_n		Element to Node Map */
-/*    *				iel_ed,jel_ed	Element to Edge Map */
-/*    *				ied_n,jed_n		Edge to Node Map */
-/*    *				nelm			Number of Elements */
-/*    *				nve				Number of vertices per element */
-/*    *				mydim			Dimension */
-/*    *				nq1d			Number of Quadrature Points per dimension */
-/*    *				element_order	Number of Nodes per Element */
-/*    *				edge_order		Number of Edges per Element */
-/*    * */
-/*    * Output:		norm			L2 Norm */
-/*    * */
-/*    *\/ */
-	
-/*   INT i,j,iq,rowa;				/\* Loop Indices *\/ */
-	
-/*   REAL el = 0.0; */
-/*   REAL elx = 0.0;			/\* Error *\/ */
-/*   REAL ely = 0.0; */
-/*   REAL elz = 0.0; */
-	
-/*   INT nq = (INT) pow(nq1d,mydim); */
-/*   REAL* xq = calloc(nq,sizeof(REAL)); */
-/*   REAL* yq = calloc(nq,sizeof(REAL)); */
-/*   REAL* zq = calloc(nq,sizeof(REAL)); */
-/*   REAL* wq = calloc(nq,sizeof(REAL)); */
-/*   INT* ipv = calloc(nve,sizeof(INT)); */
-/*   INT* ipn = calloc(element_order,sizeof(INT)); */
-/*   INT* ipe = calloc(edge_order,sizeof(INT)); */
-	
-/*   REAL x,y,z,w; */
-	
-/*   REAL* uh = calloc(mydim,sizeof(REAL));			/\* Curl of approximation interpolated at Quadrature Nodes *\/ */
-	
-/*   if (mydim==2 ) { */
-/*     for (i=0; i<nelm; i++) { */
-			
-/*       // Get Vertices (must be vertices) */
-/*       rowa = iel_n[i]-1; */
-/*       for (j=0; j<nve; j++) {  // First ones are always vertices  */
-/* 	ipv[j] = jel_n[rowa+j]; */
-/* 	ipn[j] = ipv[j]; */
-/*       } */
-/*       for (j=nve; j<element_order; j++) { */
-/* 	ipn[j] = jel_n[rowa+j]; */
-/*       } */
-/*       // Get edges */
-/*       rowa = iel_ed[i]-1; */
-/*       for (j=0; j<edge_order; j++) { */
-/* 	ipe[j] = jel_ed[rowa+j]; */
-/*       } */
-			
-/*       // Get quadrature nodes for given order of accuracy */
-/*       quad_2D_tri(xq,yq,wq,xn,yn,ipv,nq1d); */
-			
-/*       for (iq=0;iq<nq;iq++) { */
-/* 	x = xq[iq]; */
-/* 	y = yq[iq]; */
-/* 	z = 0; */
-/* 	w = wq[iq]; */
-				
-/* 	NedCurl_interpolation(uh,u,x,y,z,ipn,ipe,ied_n,jed_n,xn,yn,zn,element_order,edge_order,mydim); */
-				
-/* 	elx = elx + uh[0]*uh[0]*w; */
-/*       } */
-/*     } */
-		
-/*   } else if (mydim==3) { */
-/*     for (i=0; i<nelm; i++) { */
-			
-/*       // Get Vertices (must be vertices) */
-/*       rowa = iel_n[i]-1; */
-/*       for (j=0; j<nve; j++) {  // First ones are always vertices  */
-/* 	ipv[j] = jel_n[rowa+j]; */
-/* 	ipn[j] = ipv[j]; */
-/*       } */
-/*       for (j=nve; j<element_order; j++) { */
-/* 	ipn[j] = jel_n[rowa+j]; */
-/*       } */
-/*       // Get edges */
-/*       rowa = iel_ed[i]-1; */
-/*       for (j=0; j<edge_order; j++) { */
-/* 	ipe[j] = jel_ed[rowa+j]; */
-/*       } */
-			
-/*       // Get quadrature nodes for given order of accuracy */
-/*       quad_3D_tet(xq,yq,zq,wq,xn,yn,zn,ipv,nq1d); */
-			
-/*       for (iq=0;iq<nq;iq++) { */
-/* 	x = xq[iq]; */
-/* 	y = yq[iq]; */
-/* 	z = zq[iq];  */
-/* 	w = wq[iq]; */
-				
-/* 	NedCurl_interpolation(uh,u,x,y,z,ipn,ipe,ied_n,jed_n,xn,yn,zn,element_order,edge_order,mydim); */
-				
-/* 	elx = elx + uh[0]*uh[0]*w; */
-/* 	ely = ely + uh[1]*uh[1]*w; */
-/* 	elz = elz + uh[2]*uh[2]*w; */
-/*       } */
-/*     } */
-/*   } else { */
-/*     printf("Dimension not 2 or 3.  What is this the Twighlight Zone??"); */
-/*     exit(0); */
-/*   } */
-	
-	
-/*   el = sqrt ( elx + ely + elz ); */
-	
-/*   *norm = el; */
-	
-/*   if (ipv) free(ipv); */
-/*   if(ipn) free(ipn); */
-/*   if(ipe) free(ipe); */
-/*   if(xq) free(xq); */
-/*   if(yq) free(yq); */
-/*   if(zq) free(zq); */
-/*   if(wq) free(wq); */
-/*   return; */
-/* } */
-/* /\*******************************************************************************************************************************************************\/ */
+      dphix[i*dim*2] = farea*(a2-a3);
+      dphix[i*dim*2+1] = 0.0;
+      dphix[i*dim*2+2] = -6*farea*(a2+a3);
+      dphix[i*dim*2+3] = 12*farea*a1;
+      dphiy[i*dim*2] = 0.0;
+      dphiy[i*dim*2+1] = farea*(a2-a3);
+      dphiy[i*dim*2+2] = -12*farea*a4;
+      dphiy[i*dim*2+3] = 6*farea*(a2+a3);
+    }
+  } else {
+    baddimension(); // 3D not implemented
+  }
+	
+  if(p) free(p);
+  if(dpx) free(dpx);
+  if(dpy) free(dpy);
+  if(ipf) free(ipf);
+  if(dpz) free(dpz);
+	
+  return;
+}
+/****************************************************************************************************************************/
