@@ -148,12 +148,13 @@ int main (int argc, char* argv[])
     
     
     /**************** Solve ********************************************************************/
-    printf("Solving the System: Using Conjugate Gradiant Methos \n");
+    printf("Solving the System: Using Krylov Subspace Methos \n");
     
     // parameters
     INT solver_flag;
     REAL tol = 1e-6;
     INT MaxIt = 100;
+    SHORT restart = 50;
     SHORT stop_type = STOP_REL_RES;
     SHORT print_level = PRINT_MORE;
     
@@ -167,7 +168,16 @@ int main (int argc, char* argv[])
     dcsr_shift(&A, -1);
     
     // solve the linear system
+    
+    printf("\n");
+    
+    printf("Conjugate gradient method:\n");
     solver_flag = dcsr_pcg(&A, &b, &u, NULL, tol, MaxIt, stop_type, print_level);
+    
+    printf("\n");
+    
+    printf("GMRes method:\n");
+    solver_flag = dcsr_pvgmres(&A, &b, &u, NULL, tol, MaxIt, restart, stop_type, print_level);
     
     if (solver_flag < 0) printf("### ERROR: CG does not converge with error code = %d!\n", solver_flag);
     
