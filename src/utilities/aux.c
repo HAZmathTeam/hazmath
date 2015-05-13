@@ -5,9 +5,13 @@
 #include <limits.h>
 
 /* ===================================================== */
+// Our Includes
 #include "macro.h"
+#include "grid.h"
 #include "sparse.h"
 #include "vec.h"
+#include "functs.h"
+#include "fem.h"
 /*=============================================================*/
 
 /*** Auxillary Files (from Ludmil) *******************************************************/

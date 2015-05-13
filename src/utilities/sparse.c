@@ -1,17 +1,21 @@
-//
-//  sparse.c
-//  
-//
-//  Created by Hu, Xiaozhe on 1/9/15.
-//
-//
+/*
+ *  sparse.c
+ *
+ *  Created by James Adler and Xiaozhe Hu on 3/6/15.
+ *  Copyright 2015__HAZMAT__. All rights reserved.
+ *
+ */
 
 #include <math.h>
 #include <time.h>
 
+// Our Includes
 #include "macro.h"
+#include "grid.h"
 #include "sparse.h"
 #include "vec.h"
+#include "functs.h"
+#include "fem.h"
 
 /***********************************************************************************************/
 dCSRmat dcsr_create (const INT m,
@@ -57,6 +61,51 @@ dCSRmat dcsr_create (const INT m,
     A.row = m; A.col = n; A.nnz = nnz;
     
     return A;
+}
+
+/***********************************************************************************************/
+void dcsr_alloc (const INT m,
+                      const INT n,
+                      const INT nnz,
+                      dCSRmat *A)
+{
+    
+    /**
+     * \fn void dcsr_alloc (const INT m, const INT n, const INT nnz, dCSRmat *A)
+     *
+     * \brief Allocate CSR sparse matrix memory space
+     *
+     * \param m      Number of rows
+     * \param n      Number of columns
+     * \param nnz    Number of nonzeros
+     * \param A      Pointer to the dCSRmat matrix
+     *
+     */
+    
+    if ( m > 0 ) {
+        A->IA=(INT*)calloc(m+1,sizeof(INT));
+    }
+    else {
+        A->IA = NULL;
+    }
+    
+    if ( n > 0 ) {
+        A->JA=(INT*)calloc(nnz,sizeof(INT));
+    }
+    else {
+        A->JA = NULL;
+    }
+    
+    if ( nnz > 0 ) {
+        A->val=(REAL*)calloc(nnz,sizeof(REAL));
+    }
+    else {
+        A->val = NULL;
+    }
+    
+    A->row=m; A->col=n; A->nnz=nnz;
+    
+    return;
 }
 
 /***********************************************************************************************/
@@ -134,7 +183,9 @@ void dcsr_free (dCSRmat *A)
         free(A->val);
         A->val = NULL;
     }
+
 }
+
 
 /***********************************************************************************************/
 void icsr_free (iCSRmat *A)
@@ -166,6 +217,149 @@ void icsr_free (iCSRmat *A)
         free(A->val);
         A->val = NULL;
     }
+}
+
+/***********************************************************************************************/
+void dcsr_null (dCSRmat *A)
+{
+    /**
+     * \fn void dcsr_null (dCSRmat *A)
+     *
+     * \brief Initialize CSR sparse matrix
+     *
+     * \param A   Pointer to the dCSRmat matrix
+     *
+     */
+    
+    A->row = A->col = A->nnz = 0;
+    A->IA  = A->JA  = NULL;
+    A->val = NULL;
+}
+
+/***********************************************************************************************/
+void icsr_null (iCSRmat *A)
+{
+    /**
+     * \fn void icsr_null (iCSRmat *A)
+     *
+     * \brief Initialize CSR sparse matrix
+     *
+     * \param A   Pointer to the iCSRmat matrix
+     *
+     */
+    
+    A->row = A->col = A->nnz = 0;
+    A->IA  = A->JA  = NULL;
+    A->val = NULL;
+}
+
+
+/***********************************************************************************************/
+dCSRmat dcsr_perm (dCSRmat *A,
+                   INT *P)
+{
+    
+    /**
+     * \fn dCSRmat dcsr_perm (dCSRmat *A, INT *P)
+     *
+     * \brief Apply permutation of A, i.e. Aperm=PAP' by the orders given in P
+     *
+     * \param A  Pointer to the original dCSRmat matrix
+     * \param P  Pointer to orders
+     *
+     * \return   The new ordered dCSRmat matrix if succeed, NULL if fail
+     *
+     *
+     * \note   P[i] = k means k-th row and column become i-th row and column!
+     *
+     */
+    
+    const INT n=A->row,nnz=A->nnz;
+    const INT *ia=A->IA, *ja=A->JA;
+    const REAL *Aval=A->val;
+    INT i,j,k,jaj,i1,i2,start;
+    
+    dCSRmat Aperm = dcsr_create(n,n,nnz);
+    
+    // form the transpose of P
+    INT *Pt = (INT*)calloc(n,sizeof(INT));
+    
+    for (i=0; i<n; ++i) Pt[P[i]] = i;
+    
+    // compute IA of P*A (row permutation)
+    Aperm.IA[0] = 0;
+    for (i=0; i<n; ++i) {
+        k = P[i];
+        Aperm.IA[i+1] = Aperm.IA[i]+(ia[k+1]-ia[k]);
+    }
+    
+    // perform actual P*A
+    for (i=0; i<n; ++i) {
+        i1 = Aperm.IA[i]; i2 = Aperm.IA[i+1]-1;
+        k = P[i];
+        start = ia[k];
+        for (j=i1; j<=i2; ++j) {
+            jaj = start+j-i1;
+            Aperm.JA[j] = ja[jaj];
+            Aperm.val[j] = Aval[jaj];
+        }
+    }
+    
+    // perform P*A*P' (column permutation)
+    for (k=0; k<nnz; ++k) {
+        j = Aperm.JA[k];
+        Aperm.JA[k] = Pt[j];
+    }
+    
+    free(Pt);
+    
+    return(Aperm);
+}
+
+/***********************************************************************************************/
+void icsr_cp (iCSRmat *A,
+              iCSRmat *B)
+{
+    /**
+     * \fn void icsr_cp (iCSRmat *A, iCSRmat *B)
+     *
+     * \brief Copy a iCSRmat to a new one B=A
+     *
+     * \param A   Pointer to the iCSRmat matrix
+     * \param B   Pointer to the iCSRmat matrix
+     *
+     */
+    
+    B->row=A->row;
+    B->col=A->col;
+    B->nnz=A->nnz;
+    
+    iarray_cp (A->row+1, A->IA, B->IA);
+    iarray_cp (A->nnz, A->JA, B->JA);
+    iarray_cp (A->nnz, A->val, B->val);
+}
+
+/***********************************************************************************************/
+void dcsr_cp (dCSRmat *A,
+              dCSRmat *B)
+{
+    /**
+     * \fn void dcsr_cp (dCSRmat *A, dCSRmat *B)
+     *
+     * \brief copy a dCSRmat to a new one B=A
+     *
+     * \param A   Pointer to the dCSRmat matrix
+     * \param B   Pointer to the dCSRmat matrix
+     *
+     */
+    
+    B->row=A->row;
+    B->col=A->col;
+    B->nnz=A->nnz;
+    
+    iarray_cp(A->row+1, A->IA, B->IA);
+    iarray_cp(A->nnz, A->JA, B->JA);
+    array_cp(A->nnz, A->val, B->val);
 }
 
 /***********************************************************************************************/
@@ -205,7 +399,6 @@ INT dcsr_trans (dCSRmat *A,
     // first pass: find the Number of nonzeros in the first m-1 columns of A
     // Note: these Numbers are stored in the array AT.IA from 1 to m-1
     
-    // fasp_iarray_set(m+1, AT->IA, 0);
     memset(AT->IA, 0, sizeof(INT)*(m+1));
     
     for (j=0;j<nnz;++j) {
@@ -356,6 +549,30 @@ void icsr_trans (iCSRmat *A,
 }
 
 /***********************************************************************************************/
+void dcsr_shift (dCSRmat *A,
+                 INT offset)
+{
+    /**
+     * \fn void dcsr_shift (dCSRmat *A, INT offset)
+     *
+     * \brief Re-index a REAL matrix in CSR format to make the index starting from 0 or 1
+     *
+     * \param A         Pointer to CSR matrix
+     * \param  offset   Size of offset (1 or -1)
+     *
+     */
+    
+    const INT nnz=A->nnz;
+    const INT n=A->row+1;
+    INT i, *ai=A->IA, *aj=A->JA;
+    
+    for (i=0; i<n; ++i) ai[i]+=offset;
+    
+    for (i=0; i<nnz; ++i) aj[i]+=offset;
+
+}
+
+/***********************************************************************************************/
 void icsr_trans_1 (iCSRmat *A,
                  iCSRmat *AT)
 {
@@ -389,6 +606,151 @@ void icsr_trans_1 (iCSRmat *A,
         AT_JA[i] = AT_JA[i]+1;
     }
     
+}
+
+/***********************************************************************************************/
+INT dcsr_add (dCSRmat *A,
+              const REAL alpha,
+              dCSRmat *B,
+              const REAL beta,
+              dCSRmat *C)
+{
+    
+    /**
+     * \fn void dcsr_add (dCSRmat *A, const REAL alpha, dCSRmat *B,
+     *                              const REAL beta, dCSRmat *C)
+     *
+     * \brief compute C = alpha*A + beta*B in CSR format
+     *
+     * \param A      Pointer to dCSRmat matrix
+     * \param alpha  REAL factor alpha
+     * \param B      Pointer to dCSRmat matrix
+     * \param beta   REAL factor beta
+     * \param C      Pointer to dCSRmat matrix
+     *
+     *
+     */
+    
+    INT i,j,k,l;
+    INT count=0, added, countrow;
+    INT status = 0;
+    
+    if (A->row != B->row || A->col != B->col) {
+        printf("### ERROR: Dimensions of matrices do not match! %s\n", __FUNCTION__);
+        status = 1;
+        goto FINISHED;
+    }
+    
+    if (A == NULL && B == NULL) {
+        C->row=0; C->col=0; C->nnz=0;
+        status=0; goto FINISHED;
+    }
+    
+    if (A->nnz == 0 && B->nnz == 0) {
+        C->row=A->row; C->col=A->col; C->nnz=A->nnz;
+        status=0; goto FINISHED;
+    }
+    
+    // empty matrix A
+    if (A->nnz == 0 || A == NULL) {
+        dcsr_alloc(B->row,B->col,B->nnz,C);
+        memcpy(C->IA,B->IA,(B->row+1)*sizeof(INT));
+        memcpy(C->JA,B->JA,(B->nnz)*sizeof(INT));
+        
+        
+        for (i=0;i<A->nnz;++i) C->val[i]=B->val[i]*beta;
+        
+        status=0;
+        goto FINISHED;
+    }
+    
+    // empty matrix B
+    if (B->nnz == 0 || B == NULL) {
+        dcsr_alloc(A->row,A->col,A->nnz,C);
+        memcpy(C->IA,A->IA,(A->row+1)*sizeof(INT));
+        memcpy(C->JA,A->JA,(A->nnz)*sizeof(INT));
+        
+        for (i=0;i<A->nnz;++i) C->val[i]=A->val[i]*alpha;
+        
+        status=0;
+        goto FINISHED;
+    }
+    
+    C->row=A->row; C->col=A->col;
+    
+    C->IA=(INT*)calloc(C->row+1,sizeof(INT));
+    
+    // allocate work space for C->JA and C->val
+    C->JA=(INT *)calloc(A->nnz+B->nnz,sizeof(INT));
+    
+    C->val=(REAL *)calloc(A->nnz+B->nnz,sizeof(REAL));
+    
+    // initial C->IA
+    memset(C->IA, 0, sizeof(INT)*(C->row+1));
+    memset(C->JA, -1, sizeof(INT)*(A->nnz+B->nnz));
+    
+    
+    for (i=0; i<A->row; ++i) {
+        countrow = 0;
+        for (j=A->IA[i]; j<A->IA[i+1]; ++j) {
+            C->val[count] = alpha * A->val[j];
+            C->JA[count] = A->JA[j];
+            C->IA[i+1]++;
+            count++;
+            countrow++;
+        } // end for js
+        
+        for (k=B->IA[i]; k<B->IA[i+1]; ++k) {
+            added = 0;
+            
+            for (l=C->IA[i]; l<C->IA[i]+countrow+1; l++) {
+                if (B->JA[k] == C->JA[l]) {
+                    C->val[l] = C->val[l] + beta * B->val[k];
+                    added = 1;
+                    break;
+                }
+            } // end for l
+            
+            if (added == 0) {
+                C->val[count] = beta * B->val[k];
+                C->JA[count] = B->JA[k];
+                C->IA[i+1]++;
+                count++;
+            }
+            
+        } // end for k
+        
+        C->IA[i+1] += C->IA[i];
+        
+    }
+    
+    C->nnz = count;
+    C->JA  = (INT *)realloc(C->JA, (count)*sizeof(INT));
+    C->val = (REAL *)realloc(C->val, (count)*sizeof(REAL));
+    
+FINISHED:
+    return status;
+}
+
+/***********************************************************************************************/
+void dcsr_axm (dCSRmat *A,
+               const REAL alpha)
+{
+    /**
+     * \fn void dcsr_axm (dCSRmat *A, const REAL alpha)
+     *
+     * \brief Multiply a sparse matrix A in CSR format by a scalar alpha.
+     *
+     * \param A      Pointer to dCSRmat matrix A
+     * \param alpha  REAL factor alpha
+     *
+     */
+
+    
+    const INT nnz=A->nnz;
+    
+    // A direct calculation can be written as:
+    array_ax(nnz, alpha, A->val);
 }
 
 
@@ -493,6 +855,173 @@ void dcsr_mxv (dCSRmat *A,
     }
 }
 
+
+/***********************************************************************************************/
+void dcsr_mxv_agg (dCSRmat *A,
+                   REAL *x,
+                   REAL *y)
+{
+    /**
+     * \fn void dcsr_mxv_agg (dCSRmat *A, REAL *x, REAL *y)
+     *
+     * \brief Matrix-vector multiplication y = A*x, where the entries of A are all ones.
+     *
+     * \param A   Pointer to dCSRmat matrix A
+     * \param x   Pointer to array x
+     * \param y   Pointer to array y
+     *
+     */
+
+    const INT  m  = A->row;
+    const INT *ia = A->IA, *ja = A->JA;
+    INT i, k, begin_row, end_row;
+    register REAL temp;
+    
+    for (i=0;i<m;++i) {
+        temp=0.0;
+        begin_row=ia[i]; end_row=ia[i+1];
+        for (k=begin_row; k<end_row; ++k) temp+=x[ja[k]];
+        y[i]=temp;
+    }
+
+}
+
+/***********************************************************************************************/
+void dcsr_aAxpy (const REAL alpha,
+                 dCSRmat *A,
+                 REAL *x,
+                 REAL *y)
+{
+    /**
+     * \fn void dcsr_aAxpy (const REAL alpha, dCSRmat *A, REAL *x, REAL *y)
+     *
+     * \brief Matrix-vector multiplication y = alpha*A*x + y
+     *
+     * \param alpha  REAL factor alpha
+     * \param A      Pointer to dCSRmat matrix A
+     * \param x      Pointer to array x
+     * \param y      Pointer to array y
+     *
+     */
+    
+    const INT  m  = A->row;
+    const INT *ia = A->IA, *ja = A->JA;
+    const REAL *aj = A->val;
+    INT i, k, begin_row, end_row;
+    register REAL temp;
+    
+    if ( alpha == 1.0 ) {
+        for (i=0;i<m;++i) {
+            temp=0.0;
+            begin_row=ia[i]; end_row=ia[i+1];
+            for (k=begin_row; k<end_row; ++k) temp+=aj[k]*x[ja[k]];
+            y[i]+=temp;
+        }
+    }
+    
+    else if ( alpha == -1.0 ) {
+        for (i=0;i<m;++i) {
+            temp=0.0;
+            begin_row=ia[i]; end_row=ia[i+1];
+            for (k=begin_row; k<end_row; ++k) temp+=aj[k]*x[ja[k]];
+            y[i]-=temp;
+        }
+    }
+    
+    else {
+        for (i=0;i<m;++i) {
+            temp=0.0;
+            begin_row=ia[i]; end_row=ia[i+1];
+            for (k=begin_row; k<end_row; ++k) temp+=aj[k]*x[ja[k]];
+            y[i]+=temp*alpha;
+        }
+    }
+}
+
+/***********************************************************************************************/
+
+/**
+ * \fn void dcsr_aAxpy_agg (const REAL alpha, dCSRmat *A, REAL *x, REAL *y)
+ *
+ * \brief Matrix-vector multiplication y = alpha*A*x + y (the entries of A are all ones)
+ *
+ * \param alpha  REAL factor alpha
+ * \param A      Pointer to dCSRmat matrix A
+ * \param x      Pointer to array x
+ * \param y      Pointer to array y
+ *
+ */
+void dcsr_aAxpy_agg (const REAL alpha,
+                     dCSRmat *A,
+                     REAL *x,
+                     REAL *y)
+{
+    const INT  m  = A->row;
+    const INT *ia = A->IA, *ja = A->JA;
+    
+    INT i, k, begin_row, end_row;
+    register REAL temp;
+    
+    if ( alpha == 1.0 ) {
+        for (i=0;i<m;++i) {
+            temp=0.0;
+            begin_row=ia[i]; end_row=ia[i+1];
+            for (k=begin_row; k<end_row; ++k) temp+=x[ja[k]];
+            y[i]+=temp;
+        }
+    }
+    else if ( alpha == -1.0 ) {
+        for (i=0;i<m;++i) {
+            temp=0.0;
+            begin_row=ia[i]; end_row=ia[i+1];
+            for (k=begin_row; k<end_row; ++k) temp+=x[ja[k]];
+            y[i]-=temp;
+        }
+    }
+    
+    else {
+        for (i=0;i<m;++i) {
+            temp=0.0;
+            begin_row=ia[i]; end_row=ia[i+1];
+            for (k=begin_row; k<end_row; ++k) temp+=x[ja[k]];
+            y[i]+=temp*alpha;
+        }
+    }
+    
+}
+
+/***********************************************************************************************/
+REAL dcsr_vmv (dCSRmat *A,
+               REAL *x,
+               REAL *y)
+{
+    /**
+     * \fn REAL dcsr_vmv (dCSRmat *A, REAL *x, REAL *y)
+     *
+     * \brief vector-Matrix-vector multiplication alpha = y'*A*x
+     *
+     * \param A   Pointer to dCSRmat matrix A
+     * \param x   Pointer to array x
+     * \param y   Pointer to array y
+     *
+     */
+    
+    register REAL value=0.0;
+    const INT m=A->row;
+    const INT *ia=A->IA, *ja=A->JA;
+    const REAL *aj=A->val;
+    INT i, k, begin_row, end_row;
+    register REAL temp;
+    
+    for (i=0;i<m;++i) {
+        temp=0.0;
+        begin_row=ia[i]; end_row=ia[i+1];
+        for (k=begin_row; k<end_row; ++k) temp+=aj[k]*x[ja[k]];
+        value+=y[i]*temp;
+    }
+    
+    return value;
+}
 
 
 /***********************************************************************************************/

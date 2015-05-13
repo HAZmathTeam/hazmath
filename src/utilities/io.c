@@ -31,7 +31,24 @@ void iarray_print(INT *vec, INT n   )
     fprintf(stdout,"\n");
 
     for ( ; vec < vec_end; ++vec)
-        fprintf(stdout, "%i  ",*vec);
+        fprintf(stdout, "%i\n  ",*vec);
+    
+    fprintf(stdout,"\n");
+    
+    return;
+}
+
+void array_print(REAL *vec, INT n   )
+{
+    /* prints a vector of integers of size nn */
+    REAL *vec_end;
+    
+    vec_end  =  vec + n;
+    
+    fprintf(stdout,"\n");
+    
+    for ( ; vec < vec_end; ++vec)
+        fprintf(stdout, "%e\n  ",*vec);
     
     fprintf(stdout,"\n");
     

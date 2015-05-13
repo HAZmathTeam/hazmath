@@ -16,6 +16,7 @@ BEGIN {
   print "#include \"sparse.h\""
   print "#include \"vec.h\""
   print "#include \"fem.h\""
+  print "#include \"solver.h\""
 }
 
 {
