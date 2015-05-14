@@ -1,20 +1,26 @@
 /*
- *  ReactionAdvectionDiffusion.c
+ *  HDEquation.c
  *
  *  Created by James Adler and Xiaozhe Hu on 1/9/15.
  *  Copyright 2015_HAZMAT__. All rights reserved.
  *
  *  Discussion:
  *
- *    This program solves the Advection-Reaction-Diffusion Equation using finite elements
+ *    This program solves the following PDE using finite elements
  *
- *      -Div(a(x)grad(u)) + b(x)*grad(u) + c(x)u = 0
+ *      D^*(a(x)D(u)) + c(x)u = 0
  *
- *    in a 2D or 3D
+ *    where D = grad, D^* = -div for P1,P2 elements,
+ *          D = curl, D^* = curl for Nedelec elements
+ *          D = div, D^* = -grad for Raviart-Thomas elements
+ *
+ *    in 2D or 3D
  *
  *   Along the boundary of the region, Dirichlet conditions are imposed:
  *
- *      u = 0
+ *      u = 0 for P1, P2
+ *    u*t = 0 for Nedelec
+ *    u*n = 0 for Raviart-Thomas
  */
 
 /*********** EXTERNAL FUNCTIONS *********************************************************/

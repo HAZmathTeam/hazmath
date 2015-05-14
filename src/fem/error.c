@@ -26,7 +26,7 @@
 /****************************************************************************************************************************/
 
 /***************************************************************************/
-void L2norm(REAL *norm,REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
+REAL L2norm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
 {
 
   /* Computes the L2 Norm of a FE approximation using the mass matrix assembly any type of element.
@@ -85,18 +85,16 @@ void L2norm(REAL *norm,REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
     }
   }
 
-  *norm = sqrt(sum);
-
   if(MLoc) free(MLoc);
   if(dof_on_elm) free(dof_on_elm);
   if(v_on_elm) free(v_on_elm);
 
-  return;
+  return sqrt(sum);
 }
 /*******************************************************************************************************************************************************/
 
 /***************************************************************************/
-void L2_InnerProduct(REAL *product,REAL *u,REAL *v,fespace *FE,trimesh *mesh,qcoordinates *cq)
+REAL L2_InnerProduct(REAL *u,REAL *v,fespace *FE,trimesh *mesh,qcoordinates *cq)
 {
 
   /* Computes the L2 inner product of two FE approximations using the mass matrix assembly any type of element.
@@ -155,107 +153,89 @@ void L2_InnerProduct(REAL *product,REAL *u,REAL *v,fespace *FE,trimesh *mesh,qco
     }
   }
 
-  *product= sqrt(sum);
+  if(MLoc) free(MLoc);
+  if(dof_on_elm) free(dof_on_elm);
+  if(v_on_elm) free(v_on_elm);
+
+  return sum;
+}
+/*******************************************************************************************************************************************************/
+
+/***************************************************************************/
+REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+{
+
+  /* Computes the L2 Norm of the error of a FE approximation and a true solution given by a function using the mass matrix assembly any type of element.
+   *
+   * Input:		u	Numerical Solution at DOF
+   *                  truesol   Function to get true solution at any given point
+   *                    FE      fespace struct
+   *                    mesh    mesh struct
+   *                    cq      Quadrature Nodes
+   *                  time      Time to evaluate solution at
+   *
+   * Output:		norm	L2 Norm
+   *
+   */
+		
+  INT i,j,k,rowa,rowb,jcntr,elm;
+  REAL sum = 0.0;
+  REAL utk,utj,erk,erj;
+
+  INT dof_per_elm = FE->dof_per_elm;
+  INT v_per_elm = mesh->v_per_elm;
+  INT local_size = dof_per_elm*dof_per_elm;
+  REAL* MLoc = calloc(local_size,sizeof(REAL));
+  INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
+  INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
+
+  /* Loop over all Elements */
+  for (i=0; i<FE->nelm; i++) {
+
+    // Zero out local matrices
+    for (j=0; j<local_size; j++) MLoc[j] = 0.0;
+    
+    // Find Nodes for given Element
+    rowa = FE->el_dof->IA[i]-1;
+    rowb = FE->el_dof->IA[i+1]-1;
+    jcntr = 0;
+    for (j=rowa; j<rowb; j++) {
+      dof_on_elm[jcntr] = FE->el_dof->JA[j];
+      jcntr++;
+    }
+
+    //Find Nodes for given Element if not H1 elements
+    rowa = mesh->el_v->IA[i]-1;
+    rowb = mesh->el_v->IA[i+1]-1;
+    jcntr=0;
+    for (j=rowa; j<rowb; j++) {
+      v_on_elm[jcntr] = mesh->el_v->JA[j];
+      jcntr++;
+    }
+    		
+    // Compute Local Stiffness Matrix for given Element
+    elm = i+1;
+    assemble_mass_local(MLoc,FE,mesh,cq,dof_on_elm,v_on_elm,elm,constcoeff,1.0);
+
+    for(j=0;j<dof_per_elm;j++) {
+      for(k=0;k<dof_per_elm;k++) {
+	utj = FE_Evaluate_DOF(truesol,FE,mesh,time,dof_on_elm[j]-1);
+	utk = FE_Evaluate_DOF(truesol,FE,mesh,time,dof_on_elm[k]-1);
+	erj = ABS(utj - u[dof_on_elm[j]-1]);
+	erk = ABS(utk - u[dof_on_elm[k]-1]);
+	sum+=erj*MLoc[j*dof_per_elm+k]*erk;
+      }
+    }
+  }
 
   if(MLoc) free(MLoc);
   if(dof_on_elm) free(dof_on_elm);
   if(v_on_elm) free(v_on_elm);
 
-  return;
+  return sqrt(sum);
 }
 /*******************************************************************************************************************************************************/
 
-/* /\***************************************************************************\/ */
-/* void L2error(REAL *err,REAL *u,REAL *xn,REAL *yn,REAL *zn,INT *iel_n,INT *jel_n,INT nelm,INT nve,INT mydim,INT nq1d,INT element_order,INT test, \ */
-/* 	     REAL param,REAL time)  */
-/* { */
-	
-/*   /\* Computes the L2 Norm of the Error using a high order quadrature or the Mass matrix if given */
-/*    * */
-/*    * Input:		u				Numerical Solution at DOF */
-/*    *	       		xn,yn,zn		Coordinates of Nodes */
-/*    *	       		iel_n,jel_n		Element to Node Map */
-/*    *	       		nelm			Number of Elements */
-/*    *	       		nve			Number of Vertices per element */
-/*    *   			mydim			Dimension */
-/*    *   			nq1d			Number of Quadrature Points per dimension */
-/*    *	       		element_order	        Number of Nodes per Element */
-/*    *		       	test			Which solution to compare to */
-/*    * */
-/*    * Output:		err				L2 Norm of the Error */
-/*    * */
-/*    *\/ */
-	
-/*   INT i,j,rowa,iq;				/\* Loop Indices *\/ */
-	
-/*   REAL el2 = 0;			/\* Error *\/ */
-	
-/*   INT nq = (INT) pow(nq1d,mydim); */
-/*   REAL* xq = calloc(nq,sizeof(REAL)); */
-/*   REAL* yq = calloc(nq,sizeof(REAL)); */
-/*   REAL* zq = calloc(nq,sizeof(REAL)); */
-/*   REAL* wq = calloc(nq,sizeof(REAL)); */
-/*   INT* ipv = calloc(nve,sizeof(INT)); */
-/*   INT* ipn = calloc(element_order,sizeof(INT)); */
-	
-/*   REAL x,y,z,w; */
-	
-/*   REAL uh,utrue;			/\* Numerical Solution and True Solution at Quadrature Nodes *\/ */
-	
-/*   for (i=0; i<nelm; i++) { */
-		
-/*     // Get Vertices (must be vertices) */
-/*     rowa = iel_n[i]-1; */
-/*     for (j=0; j<nve; j++) {  // First ones are always vertices  */
-/*       ipv[j] = jel_n[rowa+j]; */
-/*       ipn[j] = ipv[j]; */
-/*     } */
-/*     for (j=nve; j<element_order; j++) { */
-/*       ipn[j] = jel_n[rowa+j]; */
-/*     } */
-/*     if (mydim==2) { */
-/*       quad_2D_tri(xq,yq,wq,xn,yn,ipv,nq1d); */
-/*     } else if (mydim==3) { */
-/*       quad_3D_tet(xq,yq,zq,wq,xn,yn,zn,ipv,nq1d); */
-/*     } else { */
-/*       printf("Bad Dimension"); */
-/*       return; */
-/*     } */
-		
-/*     for (iq=0;iq<nq;iq++) { */
-/*       x = xq[iq]; */
-/*       y = yq[iq]; */
-/*       if (mydim>2) { z = zq[iq]; } */
-/*       w = wq[iq]; */
-			
-/*       if (element_order==1) { */
-/* 	uh=u[i]; */
-/*       } else { */
-/* 	H1_interpolation(&uh,u,x,y,z,ipn,xn,yn,zn,0,element_order,mydim,1); */
-/*       } */
-
-/*       // get true solution at quadrature node */
-/*       getknownfunction(&utrue,x,y,z,time,mydim,1,param,test); */
-			
-/*       el2 = el2 + ( uh - utrue )*( uh - utrue)*w; */
-/*     } */
-		
-/*   }	 */
-	
-/*   el2 = sqrt ( el2 ); */
- 
-	
-/*   *err = el2; */
-	
-/*   if(xq) free(xq); */
-/*   if(yq) free(yq); */
-/*   if(zq) free(zq); */
-/*   if(ipn) free(ipn); */
-/*   if(ipv) free(ipv); */
-	
-/*   return; */
-/* } */
-/* /\*******************************************************************************************************************************************************\/ */
 
 /* /\***************************************************************************\/ */
 /* void H1seminormLapassemble(REAL *norm,REAL *u,CSRinc el_dof,CSRinc el_n,coordinates cn,INT nelm,INT nq1d,INT mydim,INT dof_order,INT element_order, \ */
