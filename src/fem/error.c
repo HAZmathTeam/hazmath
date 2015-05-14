@@ -76,7 +76,7 @@ void L2norm(REAL *norm,REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
     		
     // Compute Local Stiffness Matrix for given Element
     elm = i+1;
-    assemble_mass_local(MLoc,FE,mesh,cq,dof_on_elm,v_on_elm,elm);
+    assemble_mass_local(MLoc,FE,mesh,cq,dof_on_elm,v_on_elm,elm,constcoeff,1.0);
 
     for(j=0;j<dof_per_elm;j++) {
       for(k=0;k<dof_per_elm;k++) {
@@ -146,7 +146,7 @@ void L2_InnerProduct(REAL *product,REAL *u,REAL *v,fespace *FE,trimesh *mesh,qco
     		
     // Compute Local Stiffness Matrix for given Element
     elm = i+1;
-    assemble_mass_local(MLoc,FE,mesh,cq,dof_on_elm,v_on_elm,elm);
+    assemble_mass_local(MLoc,FE,mesh,cq,dof_on_elm,v_on_elm,elm,constcoeff,1.0);
 
     for(j=0;j<dof_per_elm;j++) {
       for(k=0;k<dof_per_elm;k++) {

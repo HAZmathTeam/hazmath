@@ -1,0 +1,13 @@
+TO DO:
+
+James 
+ - Error calculations
+ - Mass + <du,dv> assembly
+ - Test above
+
+Xiaozhe
+ - Fix input
+ - Multigrid
+
+Ludmil
+ - CMAKE

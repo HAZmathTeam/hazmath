@@ -134,7 +134,7 @@ int main (int argc, char* argv[])
     dCSRmat A;
     
     // Assemble the matrix
-    assemble_DuDv_global(&A,&b,&FE,&mesh,cq,myrhs,bc,diffcoeff,0.0);
+    assemble_global(&A,&b,assemble_mass_local,&FE,&mesh,cq,myrhs,bc,diffcoeff,0.0);
     FILE* matid = fopen("mat.dat","w");
     csr_print_matlab(matid,&A);
     fclose(matid);
@@ -176,8 +176,8 @@ int main (int argc, char* argv[])
     
     printf("\n");
     
-    printf("GMRes method:\n");
-    solver_flag = dcsr_pvgmres(&A, &b, &u, NULL, tol, MaxIt, restart, stop_type, print_level);
+    /* printf("GMRes method:\n"); */
+    /* solver_flag = dcsr_pvgmres(&A, &b, &u, NULL, tol, MaxIt, restart, stop_type, print_level); */
     
     if (solver_flag < 0) printf("### ERROR: CG does not converge with error code = %d!\n", solver_flag);
     

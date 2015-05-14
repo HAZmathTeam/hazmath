@@ -24,25 +24,26 @@
 #include "fem.h"
 
 /******************************************************************************************************/
-void assemble_DuDv_global(dCSRmat* A,dvector *b,fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),void (*bc)(REAL *,REAL *,REAL),void (*coeff)(REAL *,REAL *,REAL),REAL time) 
+void assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),void (*bc)(REAL *,REAL *,REAL),void (*coeff)(REAL *,REAL *,REAL),REAL time) 
 {
 	
-  /* Computes the global stiffness matrix and rhs for a <Du,Dv> = <f,v> bilinear form using various element types
-   * (eg. P1, P2 -> (grad u, grad v), Nedelec <curl u, curl v>, and Raviart-Thomas <div u, div v>).
+  /* Computes the global stiffness matrix and rhs for any a(u,v) = <f,v> bilinear form using various element types
+   * (eg. P1, P2, Nedelec, and Raviart-Thomas).
    * Also takes care of Dirichlet boundary conditions.  If the node is a boundary the row will be
    * zeroed out except for the diagonal entry being 1.  The corresponding column will also be 0 and 
    * the right-hand side adjusted.
    *
    * For this problem we compute:
    *
-   * coef * D*D u = f  ---->   coef*<D u, D v> = <f,v>
+   * Lu = f  ---->   a(u,v) = <f,v>
    *
    * which gives Ax = b,
    *
-   * A_ij = coef *<D phi_j,D phi_i>
+   * A_ij = a( phi_j, phi_i)
    * b_i  = <f,phi_i>
    * 
    *    INPUT:
+   *            local_assembly      Function to local assembly routine
    *            fespace		    Finite-Element Space Struct
    *	      	mesh                Mesh Struct
    *            cq                  Quadrature Coordinates and Weights
@@ -126,7 +127,7 @@ void assemble_DuDv_global(dCSRmat* A,dvector *b,fespace *FE,trimesh *mesh,qcoord
     }
 		
     // Compute Local Stiffness Matrix for given Element
-    assemble_DuDvcoeff_local(ALoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,coeff,time);
+    (*local_assembly)(ALoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,coeff,time);
     FEM_RHS_Local(bLoc,FE,mesh,cq,dof_on_elm,i,rhs,time);
 
     // Loop over DOF and place in appropriate slot globally
