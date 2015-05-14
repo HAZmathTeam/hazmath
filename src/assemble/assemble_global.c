@@ -57,6 +57,7 @@ void assemble_DuDv_global(dCSRmat* A,dvector *b,fespace *FE,trimesh *mesh,qcoord
    */
 
   INT dof_per_elm = FE->dof_per_elm;
+  INT v_per_elm = mesh->v_per_elm;
   INT i,j;
 
   // Allocate Row Array
@@ -82,19 +83,12 @@ void assemble_DuDv_global(dCSRmat* A,dvector *b,fespace *FE,trimesh *mesh,qcoord
   	
   // Now Build Global Matrix entries
   // First deal with boundary rows
-  REAL* bc_coords = (REAL *) calloc(3,sizeof(REAL));
-  REAL bd_val=0.0;
   for (i=0; i<FE->ndof; i++) {
     if (FE->dof_bdry[i]==1) { /* This is a boundary row.  Just make identity and fix right hand side */
       A->val[A->IA[i]-1] = 1.0;
-      bc_coords[0] = FE->cdof->x[i];
-      bc_coords[1] = FE->cdof->y[i];
-      if(mesh->dim==3) bc_coords[2] = FE->cdof->z[i];
-      (*bc)(&bd_val,bc_coords,time);
-      b->val[i] = bd_val;
+      b->val[i] = FE_Evaluate_DOF(bc,FE,mesh,time,i);
     }
   }
-  if(bc_coords) free(bc_coords);
 
   // Now adjust other rows
   /* Loop over all Elements and build local matrix and rhs */
@@ -102,6 +96,7 @@ void assemble_DuDv_global(dCSRmat* A,dvector *b,fespace *FE,trimesh *mesh,qcoord
   REAL* ALoc = (REAL *) calloc(local_size,sizeof(REAL));
   REAL* bLoc = (REAL *) calloc(dof_per_elm,sizeof(REAL));
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
+  INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
   INT rowa,rowb,jcntr;
   for (i=0; i<FE->nelm; i++) {	
     // Zero out local matrices
@@ -112,7 +107,7 @@ void assemble_DuDv_global(dCSRmat* A,dvector *b,fespace *FE,trimesh *mesh,qcoord
       bLoc[j]=0;
     }
 		
-    // Find Nodes for given Element
+    // Find DOF for given Element
     rowa = FE->el_dof->IA[i]-1;
     rowb = FE->el_dof->IA[i+1]-1;
     jcntr = 0;
@@ -120,9 +115,18 @@ void assemble_DuDv_global(dCSRmat* A,dvector *b,fespace *FE,trimesh *mesh,qcoord
       dof_on_elm[jcntr] = FE->el_dof->JA[j];
       jcntr++;
     }
+
+    // Find vertices for given Element
+    rowa = mesh->el_v->IA[i]-1;
+    rowb = mesh->el_v->IA[i+1]-1;
+    jcntr = 0;
+    for (j=rowa; j<rowb; j++) {
+      v_on_elm[jcntr] = mesh->el_v->JA[j];
+      jcntr++;
+    }
 		
     // Compute Local Stiffness Matrix for given Element
-    assemble_DuDv_local(ALoc,FE,mesh,cq,dof_on_elm,i,coeff,time);
+    assemble_DuDvcoeff_local(ALoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,coeff,time);
     FEM_RHS_Local(bLoc,FE,mesh,cq,dof_on_elm,i,rhs,time);
 
     // Loop over DOF and place in appropriate slot globally
@@ -130,6 +134,7 @@ void assemble_DuDv_global(dCSRmat* A,dvector *b,fespace *FE,trimesh *mesh,qcoord
   }	
 
   if(dof_on_elm) free(dof_on_elm);
+  if(v_on_elm) free(v_on_elm);
   if(ALoc) free(ALoc);
   if(bLoc) free(bLoc);
 		

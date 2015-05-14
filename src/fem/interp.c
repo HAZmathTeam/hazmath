@@ -265,3 +265,116 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL x,REAL y,REAL z,INT *dof_
     return;
 }
 /****************************************************************************************************************************/
+
+/****************************************************************************************************************************/
+void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,REAL time)
+{
+
+/* Evaluate a given analytic function on the finite-element space given
+   *    INPUT:
+   *		    expr       Function call to analytic expression expr(FE approx, x values, time)
+   *                  FE       FE Space struct
+   *                mesh       Mesh struct
+   *                time       Time to evaluate function if time-dependent
+   *    OUTPUT:
+   *          val	       FE approximation of function on fespace
+   *
+   */
+
+  int i,j;
+  REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
+  REAL* valx = NULL;
+  INT dim = mesh->dim;
+  INT FEtype = FE->FEtype;
+  
+  if(FEtype>0) { // Lagrange Elements u[dof] = u[x_i}
+    for(i=0;i<FE->ndof;i++) {
+      valx = (REAL *) calloc(1,sizeof(REAL));
+      x[0] = FE->cdof->x[i];
+      x[1] = FE->cdof->y[i];
+      if(dim==3) x[2] = FE->cdof->z[i];
+      (*expr)(valx,x,time);
+      val[i] = valx[0];
+    }
+  } else if (FEtype==-1) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
+    for(i=0;i<FE->ndof;i++) {
+      valx = (REAL *) calloc(dim,sizeof(REAL));
+      x[0] = mesh->ed_mid[i*dim];
+      x[1] = mesh->ed_mid[i*dim+1];
+      if(dim==3) x[2] = mesh->ed_mid[i*dim+1];
+      (*expr)(valx,x,time);
+      val[i] = 0.0;
+      for(j=0;j<dim;j++) val[i]+=mesh->ed_tau[i*dim+j]*valx[j];
+    }
+  } else if (FEtype==-2) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
+    for(i=0;i<FE->ndof;i++) {
+      valx = (REAL *) calloc(dim,sizeof(REAL));
+      x[0] = mesh->f_mid[i*dim];
+      x[1] = mesh->f_mid[i*dim+1];
+      if(dim==3) x[2] = mesh->f_mid[i*dim+1];
+      (*expr)(valx,x,time);
+      val[i] = 0.0;
+      for(j=0;j<dim;j++) val[i]+=mesh->f_norm[i*dim+j]*valx[j];
+    }
+  }
+  
+  if (x) free(x);
+  if(valx) free(valx);
+  return;
+}
+/****************************************************************************************************************************/
+
+/****************************************************************************************************************************/
+REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,REAL time,INT DOF)
+{
+
+/* Evaluate a given analytic function on the specific degree of freedom of the finite-element space given
+   *    INPUT:
+   *		    expr       Function call to analytic expression expr(FE approx, x values, time)
+   *                  FE       FE Space struct
+   *                mesh       Mesh struct
+   *                time       Time to evaluate function if time-dependent
+   *                 DOF       DOF index to evaluate (start at 0)
+   *    OUTPUT:
+   *          val	       FE approximation of function on fespace at DOF
+   *
+   */
+
+  INT j;
+  REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
+  REAL* valx = NULL;
+  INT dim = mesh->dim;
+  INT FEtype = FE->FEtype;
+  REAL val;
+  
+  if(FEtype>0) { // Lagrange Elements u[dof] = u[x_i}
+    valx = (REAL *) calloc(1,sizeof(REAL));
+    x[0] = FE->cdof->x[DOF];
+    x[1] = FE->cdof->y[DOF];
+    if(dim==3) x[2] = FE->cdof->z[DOF];
+    (*expr)(valx,x,time);
+    val = valx[0];
+  } else if (FEtype==-1) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
+    valx = (REAL *) calloc(dim,sizeof(REAL));
+    x[0] = mesh->ed_mid[DOF*dim];
+    x[1] = mesh->ed_mid[DOF*dim+1];
+    if(dim==3) x[2] = mesh->ed_mid[DOF*dim+1];
+    (*expr)(valx,x,time);
+    val = 0.0;
+    for(j=0;j<dim;j++) val+=mesh->ed_tau[DOF*dim+j]*valx[j];
+  } else if (FEtype==-2) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
+    valx = (REAL *) calloc(dim,sizeof(REAL));
+    x[0] = mesh->f_mid[DOF*dim];
+    x[1] = mesh->f_mid[DOF*dim+1];
+    if(dim==3) x[2] = mesh->f_mid[DOF*dim+1];
+    (*expr)(valx,x,time);
+    val = 0.0;
+    for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx[j];
+  }
+  
+  if (x) free(x);
+  if(valx) free(valx);
+
+  return val;
+}
+/****************************************************************************************************************************/
