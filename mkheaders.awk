@@ -17,6 +17,7 @@ BEGIN {
   print "#include \"vec.h\""
   print "#include \"fem.h\""
   print "#include \"solver.h\""
+  print "#include \"param.h\""
 }
 
 {

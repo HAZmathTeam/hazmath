@@ -41,6 +41,7 @@
 #include "vec.h"
 #include "functs.h"
 #include "fem.h"
+#include "param.h"
 /****************************************************************************************/
 
 /******** Data Input ********************************************************************/
@@ -74,46 +75,45 @@ int main (int argc, char* argv[])
     clock_t clk_start,clk_end,clk1,clk2;
     clk_start = clock();
     
-    // Grab parameters from input.dat file
-    INT ipar[55];
-    REAL fpar[20];
-    char gridfile[50];
-    getinput(gridfile,fpar,ipar);
+    //------------------------//
+    // Step 0. Set parameters //
+    //------------------------//
+    input_param     inparam; // parameters from input files
+    param_input("./input-new.dat", &inparam); // read in
+    
     // Open gridfile for reading
-    FILE* gfid = fopen(gridfile,"r");
+    FILE* gfid = fopen(inparam.gridfile,"r");
     if( gfid == NULL ) {
         printf("\nError opening Grid File!!!\n");
-        printf("File (%s) probably doesn't exist!\n\n",gridfile);
+        printf("File (%s) probably doesn't exist!\n\n",inparam.gridfile);
         return 0;
     }
     
     // Dimension is needed for all this to work
-    INT dim = ipar[0];
+    INT dim = inparam.dim;
     
     // Create the mesh (now we assume triangles in 2D or tetrahedra in 3D)
     clk1 = clock();
     trimesh mesh;
-    printf("\nLoading grid from file: %s\n",gridfile);
+    printf("\nLoading grid from file: %s\n",inparam.gridfile);
     printf("--> creating mesh and all its properties.\n");
     initialize_mesh(&mesh);
     creategrid(gfid,dim,0,&mesh);
     fclose(gfid);
     
     // Get Quadrature Nodes for the Mesh
-    INT nq1d = ipar[1];	/* Quadrature points per dimension */
+    INT nq1d = inparam.nquad; /* Quadrature points per dimension */
     qcoordinates *cq = get_quadrature(&mesh,nq1d);
     
     // Get info for and create FEM spaces
     // Order of Elements: 0 - P0; 1 - P1; 2 - P2; -1 - Nedelec; -2 - Raviart-Thomas
-    INT order = ipar[2];
+    INT order = inparam.FE_type;
     fespace FE;
     initialize_fespace(&FE);
     create_fespace(&FE,&mesh,order);
     
-    // Dump some data if needed
-    INT dumpmesh=ipar[37];
-    if(dumpmesh==1) {
-        dump_fespace(&FE);
+    if(inparam.print_level > 3) {
+         dump_fespace(&FE);
     }
     
     clk2 = clock();
