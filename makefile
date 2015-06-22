@@ -130,7 +130,7 @@ test: $(LIB)
 	$(CC) $(LOPT) $(DRIVERS)/test.o $(CLFLAGS) -o test.ex
 
 diff: $(LIB)
-	$(CC) $(CFLAGS) -c $(DRIVERS)/ReactionAdvectionDiffusion.c -o $(DRIVERS)/ReactionAdvectionDiffusion.o
+	$(CC) $(CFLAGS) -c $(DRIVERS)/HDEquation.c -o $(DRIVERS)/ReactionAdvectionDiffusion.o
 	$(CC) $(LOPT) $(DRIVERS)/ReactionAdvectionDiffusion.o $(CLFLAGS) -o diff.ex
 ########################################################################
 # Clean up
