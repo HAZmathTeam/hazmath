@@ -120,7 +120,7 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
   // if(bdry_v) free(bdry_v);  // I comment this out since otherwise it give seg fault later -- Xiaozhe
     
 
-  printf("\nConverting Grid Maps to CSR and Computing Data Structures:\n ");
+  //printf("\nConverting Grid Maps to CSR and Computing Data Structures:\n ");
   /* Element Vertex Map */
   iCSRmat el_v = convert_elmnode(element_vertex,nelm,nv,v_per_elm);
   if(element_vertex) free(element_vertex);

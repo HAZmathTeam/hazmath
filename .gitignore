@@ -1,6 +1,13 @@
+makefile
+include/functs.h
 *.dSYM/
 *.ex
 *.o
 *.a
 *~
+runs/bdry.dat
+runs/coords.dat
+runs/el_dof.dat
+runs/mat.dat
+runs/rhs.dat
 .DS_Store
