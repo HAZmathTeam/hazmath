@@ -1,5 +1,5 @@
-makefile
 include/functs.h
+makefile
 *.dSYM/
 *.ex
 *.o

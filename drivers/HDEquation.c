@@ -23,31 +23,17 @@
  *    u*n = 0 for Raviart-Thomas
  */
 
-/*********** EXTERNAL FUNCTIONS *********************************************************/
-// Standard Includes
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
-#include <limits.h>
-#include <getopt.h>
-#include <sys/types.h>
-#include <time.h>
-#include <unistd.h>
-// Internal Includes
-#include "macro.h"
-#include "grid.h"
-#include "sparse.h"
-#include "vec.h"
+/*********** HAZMAT FUNCTIONS and INCLUDES **********************************************/
 #include "functs.h"
-#include "fem.h"
-#include "param.h"
 /****************************************************************************************/
 
 /******** Data Input ********************************************************************/
 // Right-hand Side
 void myrhs(REAL *val,REAL* x,REAL time) {
-  *val = 2*M_PI*M_PI*sin(M_PI*x[0])*sin(M_PI*x[1]);
+  // 2D
+  //*val = 2*M_PI*M_PI*sin(M_PI*x[0])*sin(M_PI*x[1]);
+  // 3D
+  *val = 3*M_PI*M_PI*sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
 }
 
 // Boundary Conditions
@@ -62,7 +48,10 @@ void diffcoeff(REAL *val,REAL* x,REAL time) {
 
 // True Solution (if you have one)
 void truesol(REAL *val,REAL* x,REAL time) {
-  *val = sin(M_PI*x[0])*sin(M_PI*x[1]);
+  // 2D
+  //*val = sin(M_PI*x[0])*sin(M_PI*x[1]);
+  // 3D
+  *val = sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
 }
 
 
@@ -128,7 +117,7 @@ int main (int argc, char* argv[])
     exit(0);
   }
     
-  if(inparam.print_level > 3) {
+  if(inparam.print_level > 1) {
     dump_fespace(&FE);
   }
     
@@ -229,36 +218,18 @@ int main (int argc, char* argv[])
   printf(" --> elapsed CPU time for getting errors = %f seconds.\n\n",(REAL) (clk2-clk1)/CLOCKS_PER_SEC);
   /*******************************************************************************************/
     
-  /* /\**************** Print Results or Dump Results *******************************************\/ */
-  /* if (dumpsol>=2) {  */
-  /*   uid = fopen("output/sol.dat","w");  */
-  /*   if(havetrue) { truid = fopen("output/true.dat","w"); } */
-  /* } */
-  /* dumpsolution(u,utrue,uid,truid,ndof,n,nelm,dumpsol,1,mydim,havetrue); */
-  /* if(dumpmat>=2) { */
-  /*   matid = fopen("output/mat.dat","w"); */
-  /*   rhsid = fopen("output/rhs.dat","w"); */
-  /* } */
-  /* dumpmatrices(A.IA,A.JA,A.val,f,matid,rhsid,A.row,dumpmat); */
-  /* if (havetrue) { */
-  /*   printf("***********************************************************************************************\n"); */
-  /*   printf("L2 Norm of u error = %25.17g\n",errnorm); */
-  /*   printf("l2 Norm of error =   %25.17g\n",sqrt(errnorml2)); */
-  /*   printf("***********************************************************************************************\n"); */
-  /*   if(dumpsol>=2) {fclose(truid);} */
-  /* } */
-  /* if (dumpsol>=2) { */
-  /*   fclose(uid); */
-  /* } */
-  /* if (dumpmat>=2) { */
-  /*   fclose(rhsid); */
-  /*   fclose(matid); */
-  /* } */
-  /* /\*******************************************************************************************\/ */
+  /**************** Print Results or Dump Results *******************************************/
+  if (inparam.output_type==2) {
+    FILE* uid = fopen("sol.dat","w");
+    dvector_print(uid,&u);
+    fclose(uid);
+  }
+  /*******************************************************************************************/
     
   /******** Free All the Arrays ***********************************************************/
   dcsr_free(&A);
   if(b.val) free(b.val);
+  if(u.val) free(u.val);
   free_fespace(&FE);
   if(cq) {
     free_qcoords(cq);
