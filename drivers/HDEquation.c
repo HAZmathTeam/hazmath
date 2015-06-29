@@ -145,7 +145,7 @@ int main (int argc, char* argv[])
   dCSRmat A;
     
   // Assemble the matrix
-  assemble_global(&A,&b,assemble_DuDv_local,&FE,&mesh,cq,myrhs,bc,diffcoeff,0.0);
+  assemble_global_withBC(&A,&b,assemble_DuDv_local,&FE,&mesh,cq,myrhs,bc,diffcoeff,0.0);
   FILE* matid = fopen("mat.dat","w");
   csr_print_matlab(matid,&A);
   fclose(matid);

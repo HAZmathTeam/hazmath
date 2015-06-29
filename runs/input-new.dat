@@ -9,20 +9,20 @@
 %---------------%
 
 print_level			= 2;	% how much information to print out
-output_type			= 1;	% 1 to screen | 2 to file
+output_type			= 2;	% 1 to screen | 2 to file
 
 %---------------%
 % files
 %---------------%
 
 workdir				= ./			% path to input files 
-gridfile			= ../input/grids/2D/unit_hp03125.dat	% grid file
+gridfile			= ../input/grids/3D/ex3Dgrid_v27.dat	% grid file
 
 %---------------%
 % finite element
 %---------------%
 
-dim				= 2	% Dimension
+dim				= 3	% Dimension
 nquad				= 2	% Quadrature nodes each direction
 
 FE_type				= 1	% 0 P0 | 1 P1 | 2 P2 | -1 Ned -2 RT 
