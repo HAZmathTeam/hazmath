@@ -48,7 +48,7 @@ void assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
    *	      	mesh                Mesh Struct
    *            cq                  Quadrature Coordinates and Weights
    *            rhs                 Function that gives right-hand side at given coordinates rhs(&val,x,time)
-   *            bc                  Function that gives right-hand side at given coordinates bc(&val,x,time)
+   *            bc                  Function that gives boundary condition at given coordinates bc(&val,x,time)
    *            coeff               Function that gives coefficient (for now assume constant)
    *            time                Time if time dependent
    *
@@ -144,7 +144,7 @@ void assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
 /******************************************************************************************************/
 
 /******************************************************************************************************/
-void assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),void (*bc)(REAL *,REAL *,REAL),void (*coeff)(REAL *,REAL *,REAL),REAL time) 
+void assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),void (*coeff)(REAL *,REAL *,REAL),REAL time) 
 {
 	
   /* Computes the global stiffness matrix and rhs for any a(u,v) = <f,v> bilinear form using various element types
@@ -167,7 +167,6 @@ void assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace
    *	      	mesh                Mesh Struct
    *            cq                  Quadrature Coordinates and Weights
    *            rhs                 Function that gives right-hand side at given coordinates rhs(&val,x,time)
-   *            bc                  Function that gives right-hand side at given coordinates bc(&val,x,time)
    *            coeff               Function that gives coefficient (for now assume constant)
    *            time                Time if time dependent
    *

@@ -117,7 +117,7 @@ int main (int argc, char* argv[])
     exit(0);
   }
     
-  if(inparam.print_level > 1) {
+  if(inparam.print_level > 3) {
     dump_fespace(&FE);
   }
     
@@ -144,8 +144,11 @@ int main (int argc, char* argv[])
   dvector b;
   dCSRmat A;
     
-  // Assemble the matrix
-  assemble_global_withBC(&A,&b,assemble_DuDv_local,&FE,&mesh,cq,myrhs,bc,diffcoeff,0.0);
+  // Assemble the matrix without BC
+  assemble_global(&A,&b,assemble_DuDv_local,&FE,&mesh,cq,myrhs,diffcoeff,0.0);
+  // Eliminate Dirichlet BC
+  eliminate_DirichletBC(bc,&FE,&mesh,&b,&A,0.0);
+
   FILE* matid = fopen("mat.dat","w");
   csr_print_matlab(matid,&A);
   fclose(matid);

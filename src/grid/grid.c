@@ -356,9 +356,13 @@ void get_nedge(INT* nedge, iCSRmat el_v)
   iCSRmat v_el;
   icsr_trans_1(&el_v,&v_el);
 	
+  /* /\* Create Vertex to Vertex Map by v_el*el_v *\/ */
+  /* iCSRmat v_v; */
+  /* icsr_mxm_symb_1(&v_el,&el_v,&v_v); */
   /* Create Vertex to Vertex Map by v_el*el_v */
   iCSRmat v_v;
-  icsr_mxm_1(&v_el,&el_v,&v_v);
+  icsr_mxm_symb_1(&v_el,&el_v,&v_v);
+
 	
   // Now go through upper triangular (above diagonal) portion of vertex-vertex and count non-zeros
   // Each of these vertex-vertex connections are edges.  Upper so we don't count i->j and j->i as two
@@ -1241,9 +1245,9 @@ void get_el_vol(REAL *el_vol,iCSRmat el_v,coordinates *cv,INT dim,INT v_per_elm)
       j_b = el_v.IA[i+1]-1;
       jcnt=0;
       for (j=j_a; j<=j_b; j++) {
-	x[j] = cv->x[el_v.JA[j-1]-1];
-	y[j] = cv->y[el_v.JA[j-1]-1];
-	z[j] = cv->z[el_v.JA[j-1]-1];
+	x[jcnt] = cv->x[el_v.JA[j-1]-1];
+	y[jcnt] = cv->y[el_v.JA[j-1]-1];
+	z[jcnt] = cv->z[el_v.JA[j-1]-1];
 	jcnt++;
       }
       x2 = x[1]-x[0];

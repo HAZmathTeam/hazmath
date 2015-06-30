@@ -374,3 +374,67 @@ void LocaltoGlobalBC(INT *dof_on_elm,fespace *FE,dvector *b,dCSRmat *A,REAL *ALo
   return;
 }
 /******************************************************************************************************/
+
+/******************************************************************************************************/
+void eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,dvector *b,dCSRmat *A,REAL time) 
+{
+  /********* Eliminates the Dirichlet boundaries from the global matrix *********************
+   * 
+   *  for each row in A that corresponds to a Dirichlet boundary, make the diagonal 1 and 
+   *  off-diagonals zero.  Then, making the corresponding column entries 0.
+   *  For the rhs, if it's a boundary DOF, set to the actual boundary value
+   *  If it's DOF connected to a boundary row, set f(DOF) = f(DOF) - A(DOF,DOF_BC)*u(DOF)
+   *
+   *	Input:
+   *            bc              Function that gives boundary condition at given coordinates bc(&val,x,time)
+   *		FE              finite-element space struct
+   *	      	mesh            Mesh Struct
+   *		b               Global right hand side
+   *		A		Global Stiffness Matrix
+   *            time            Time if time dependent
+   *
+   *	Output:		
+   *            A		Adjusted Global Matrix
+   *		b		Adjusted Global right-hand side
+   *
+   */
+
+  INT i,j,cola,colb;
+  INT ndof = FE->ndof;
+
+  // Error Check
+  if(A->row!=ndof || A->col!=ndof) {
+    printf("\nYou're matrix size doesn't match your number of DOF in Boundary Elimination\n");
+    exit(0);
+  }
+
+  // Loop over rows of A
+  for (i=0; i<ndof; i++) {
+    cola = A->IA[i]-1;
+    colb = A->IA[i+1]-1;
+    if(FE->dof_bdry[i]==1) { // Boundary Row
+      // Set rhs to BC
+      b->val[i] = FE_Evaluate_DOF(bc,FE,mesh,time,i); 
+      // Loop over columns and 0 out row except for diagonal
+      for(j=cola; j<colb; j++) { 
+	if(A->JA[j]==i+1)
+	  A->val[j] = 1.0;
+	else
+	  A->val[j] = 0.0;
+      }
+    } else { // Non-boundary-row
+      // Loop over columns and 0 out if column is boundary
+      for(j=cola; j<colb; j++) { 
+	if(FE->dof_bdry[A->JA[j]-1]==1) {
+	  // Adjust RHS accordingly as well
+	  b->val[i] = b->val[i] - A->val[j]*FE_Evaluate_DOF(bc,FE,mesh,time,A->JA[j]-1);
+	  // Zero out matrix entry
+	  A->val[j] = 0.0;
+	}
+      }
+    }
+  }
+
+  return;
+}
+/******************************************************************************************************/
