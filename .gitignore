@@ -1,5 +1,6 @@
-include/functs.h
+include/hazmat.h
 makefile
+runs/input.dat
 *.dSYM/
 *.ex
 *.o
@@ -10,4 +11,5 @@ runs/coords.dat
 runs/el_dof.dat
 runs/mat.dat
 runs/rhs.dat
+runs/sol.dat
 .DS_Store

@@ -70,7 +70,7 @@ int main (int argc, char* argv[])
   // Step 0. Set parameters //
   //------------------------//
   input_param     inparam; // parameters from input files
-  param_input("./input-new.dat", &inparam); // read in
+  param_input("./input.dat", &inparam); // read in
     
   // Open gridfile for reading
   printf("\nCreating mesh and FEM spaces:\n");

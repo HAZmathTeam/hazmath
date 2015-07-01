@@ -1,0 +1,55 @@
+%----------------------------------------------%
+% input parameters: Laplacian_Simple_Test      %
+% lines starting with % are comments           %
+% must have spaces around the equal sign "="   %
+%----------------------------------------------%
+
+%---------------%
+% output flags
+%---------------%
+
+print_level			= 2;	% how much information to print out
+output_type			= 2;	% 1 to screen | 2 to file
+
+%---------------%
+% files
+%---------------%
+
+workdir				= ./			% path to input files 
+%gridfile			= ../input/grids/2D/unit_hp25.dat	% grid file
+gridfile                        = ../input/grids/3D/ex3Dgrid_v35937.dat
+%---------------%
+% finite element
+%---------------%
+
+dim				= 3	% Dimension
+nquad				= 2	% Quadrature nodes each direction
+
+FE_type				= 1	% 0 P0 | 1 P1 | 2 P2 | -1 Ned -2 RT 
+
+FE_type_velocity		= 2	% 0 P0 | 1 P1 | 2 P2 |
+FE_type_pressure		= 0	% 0 P0 | 1 P1 | 2 P2 |
+
+%---------------%
+% time stepping
+%---------------%
+
+time_step_type			= 1	% 0 CN | 1 BDF1 | 2 BDF2 |
+time_steps			= 2 	% number of time steps
+time_step_size			= 0.01	% time step size
+
+%---------------%
+% nonlinear solver
+%---------------%
+
+nonlinear_itsolver_maxit	= 5   	% maximal iterations of nonlinear solver
+nonlinear_itsolver_tol		= 1e-8 	% tolerance for nonlinear solver
+
+%---------------%
+% linear solver
+%---------------%
+
+linear_itsolver_type		= 1    	% 1 CG | 2 MINRES | 3 GMRES
+linear_itsolver_maxit		= 200  	% maximal iterations of linear iterative solver
+linear_itsolver_tol		= 1e-12  % tolerance for linear iterative solver 
+
