@@ -10,19 +10,7 @@
 /* Creates and destroys the structres for the finite-element spaces.  
  * Also contains routines for interpolating functions onto the FE space. */
 
-// Standard Includes
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
-
-// Our Includes
-#include "macro.h"
-#include "grid.h"
-#include "sparse.h"
-#include "vec.h"
-#include "functs.h"
-#include "fem.h"
+#include "hazmat.h"
 
 /**************************************************************************************************************************************************/
 void initialize_fespace(fespace *FE) 

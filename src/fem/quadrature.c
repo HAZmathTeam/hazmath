@@ -9,20 +9,7 @@
 
 /* Computes quadrature nodes and weights for each element or for entire domain */
 
-// Standard Includes
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
-#include <assert.h>
-
-// Our Includes
-#include "macro.h"
-#include "grid.h"
-#include "sparse.h"
-#include "vec.h"
-#include "functs.h"
-#include "fem.h"
+#include "hazmat.h"
 
 /****************************************************************************************/
 struct qcoordinates *allocateqcoords(INT nq1d,INT nelm,INT mydim)

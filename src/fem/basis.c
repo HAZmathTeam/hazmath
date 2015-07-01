@@ -6,19 +6,7 @@
  *
  */
 
-// Standard Includes
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
-
-// Our Includes
-#include "macro.h"
-#include "grid.h"
-#include "sparse.h"
-#include "vec.h"
-#include "functs.h"
-#include "fem.h"
+#include "hazmat.h"
 
 /* Compute the basis functions for triangles or tetrahedra
  *

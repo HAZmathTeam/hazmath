@@ -1,18 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <limits.h>
-
-/* ===================================================== */
-// Our Includes
-#include "macro.h"
-#include "grid.h"
-#include "sparse.h"
-#include "vec.h"
-#include "functs.h"
-#include "fem.h"
-/*=============================================================*/
+#include "hazmat.h"
 
 /*** Auxillary Files (some from Ludmil) *******************************************************/
 

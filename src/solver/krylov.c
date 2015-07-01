@@ -6,17 +6,7 @@
  *
  */
 
-#include <math.h>
-#include <time.h>
-
-// Our Includes
-#include "macro.h"
-#include "grid.h"
-#include "sparse.h"
-#include "vec.h"
-#include "functs.h"
-#include "fem.h"
-#include "solver.h"
+#include "hazmat.h"
 
 #include "itsolver_util.inl"
 

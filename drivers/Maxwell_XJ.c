@@ -7,16 +7,7 @@
  *
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
-#include <limits.h>
-#include <getopt.h>
-#include <sys/types.h>
-#include <time.h>
-#include <unistd.h>
-#include <umfpack.h>
+#include "hazmat.h"
 
 /*
  *  Discussion:

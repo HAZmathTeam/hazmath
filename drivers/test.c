@@ -6,11 +6,7 @@
 //
 //
 
-#include <stdio.h>
-#include <time.h>
-#include <math.h>
-
-#include "functs.h"
+#include "hazmat.h"
 
 INT main (INT argc, const char * argv[])
 {

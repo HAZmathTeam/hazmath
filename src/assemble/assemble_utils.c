@@ -8,21 +8,7 @@
 
 /* This code will contain all the tools needed to build stiffness matrices */
 
-// Standard Includes
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
-#include <assert.h>
-
-// Our Includes
-#include "macro.h"
-#include "grid.h"
-#include "sparse.h"
-#include "vec.h"
-#include "functs.h"
-#include "fem.h"
-
+#include "hazmat.h"
 
 /******************************************************************************************************/
 void stiffG_nnz(dCSRmat *A, fespace *FE) 

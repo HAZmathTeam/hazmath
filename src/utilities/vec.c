@@ -6,15 +6,7 @@
  *
  */
 
-#include <math.h>
-
-// Our Includes
-#include "macro.h"
-#include "grid.h"
-#include "sparse.h"
-#include "vec.h"
-#include "functs.h"
-#include "fem.h"
+#include "hazmat.h"
 
 /***********************************************************************************************/
 INT dvec_isnan (dvector *u)

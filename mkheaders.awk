@@ -22,6 +22,7 @@ BEGIN {
   print "#include <sys/types.h>"
   print "#include <time.h>"
   print "#include <unistd.h>"
+  print "#include <assert.h>" 
   print "// Internal Includes"
   print "#include \"macro.h\""
   print "#include \"grid.h\""

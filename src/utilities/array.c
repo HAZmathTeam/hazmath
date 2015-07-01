@@ -6,17 +6,7 @@
  *
  */
 
-#include <math.h>
-
-// Our Includes
-#include "macro.h"
-#include "grid.h"
-#include "sparse.h"
-#include "vec.h"
-#include "functs.h"
-#include "fem.h"
-
-
+#include "hazmat.h"
 
 /***********************************************************************************************/
 void array_null (REAL *x)
