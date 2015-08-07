@@ -614,7 +614,7 @@ void rt_basis(REAL *phi,REAL *dphi,REAL x,REAL y,REAL z,INT *v_on_elm,INT *dof,t
   REAL* p;
   REAL* dpx;
   REAL* dpy;
-  REAL* dpz;
+  REAL* dpz=NULL;
   INT* ipf = (INT *) calloc(dim,sizeof(INT));
   INT myf;
   REAL farea;
@@ -744,7 +744,7 @@ void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL x,REAL y,REAL z,INT *v_on
   REAL* p;
   REAL* dpx;
   REAL* dpy;
-  REAL* dpz;
+  REAL* dpz=NULL;
   INT* ipf = (INT *) calloc(dim,sizeof(INT));
   INT myf;
   REAL farea;

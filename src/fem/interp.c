@@ -333,7 +333,7 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,
   REAL* valx = NULL;
   INT dim = mesh->dim;
   INT FEtype = FE->FEtype;
-  REAL val;
+  REAL val=-666e+00;
   
   if(FEtype>0) { // Lagrange Elements u[dof] = u[x_i}
     valx = (REAL *) calloc(1,sizeof(REAL));
