@@ -30,6 +30,8 @@ AR = ar ruc
 # UMFPACK
 #XH 
 #UMFPACKDIR = /usr/local
+#lz
+#UMFPACKDIR = /Users/ltz1/packages
 #JA
 UMFPACKDIR = /opt/local
 UMFPACKINCLUDE = -I$(UMFPACKDIR)/include
