@@ -165,7 +165,7 @@ int main (int argc, char* argv[])
   printf("Solving the System:\n");
   clk1 = clock();
   // parameters
-  INT solver_flag;
+  INT solver_flag=-20;
   INT solver_type = inparam.linear_itsolver_type;
   REAL tol = inparam.linear_itsolver_tol;
   INT MaxIt = inparam.linear_itsolver_maxit;
