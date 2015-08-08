@@ -52,7 +52,7 @@
 # If you want to use the SuiteSparse package, uncomment the next 
 # line (and read carefully the instructons below it):
 # 
- suitesparse=yes
+# suitesparse=yes
 #
 # If you have installed SuiteSparse from source or for some other
 # reason you want to specify the path to SuiteSparse libraries and
@@ -60,7 +60,6 @@
 # below (and continue reading...)  
 #
 # suitesparse_dir="/dir/to/SuiteSparse"
- suitesparse_dir="/Users/ltz1/packages"
 #
 # IMPORTANT:
 # This defines the path to the SuiteSparse library and include files.
