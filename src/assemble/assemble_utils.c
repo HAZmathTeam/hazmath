@@ -3,7 +3,7 @@
  *  
  *  Created by James Adler and Xiaozhe Hu on 4/22/15.
  *  Copyright 2015__HAZMAT__. All rights reserved.
- *
+ *  Modified 2015-08-08 (ltz)
  */
 
 /* This code will contain all the tools needed to build stiffness matrices */
