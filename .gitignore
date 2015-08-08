@@ -1,7 +1,6 @@
-include/hazmat.h
-lib/libhazmat.*
-haz_config/hazmat.mk
 BUILD_HAZ
+haz_config/hazmat.mk
+lib/libhazmat.*
 examples/runs/input.dat
 *.dSYM/
 *.ex
@@ -16,3 +15,4 @@ examples/runs/mat.dat
 examples/runs/rhs.dat
 examples/runs/sol.dat
 .DS_Store
+#include/hazmat.h
