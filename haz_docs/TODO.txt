@@ -1,0 +1,11 @@
+TO DO:
+
+James 
+ - Test above
+
+Xiaozhe
+ - Fix input
+ - Multigrid
+
+Ludmil
+ - CMAKE

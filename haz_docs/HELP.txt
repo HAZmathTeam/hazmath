@@ -1,0 +1,14 @@
+=========================================================
+                       HAZMAT		              
+---------------------------------------------------------
+Quick start: 1. Copy "haz_config/hazmat.mk.example" to
+                "haz_config/hazmat.mk"
+             2. Type "make config ; make ; make install".
+=========================================================
+ make config           # set environment to build
+ make config CC=gcc    # set a specific C compiler
+ make config debug=yes # compiler's debug options ON
+ make                  # compile/link libhazmat
+ make install          # install libhazmat and examples
+=========================================================
+*** User defined options go in "haz_config/hazmat.mk"***
