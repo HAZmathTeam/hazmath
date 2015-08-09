@@ -2,7 +2,7 @@
 
 file( GLOB HAZMAT_EXMPLSRC RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" *.c *.f *.f90 )
 
-message(STATUS: "HAZMAT_EXMPLSRC=${HAZMAT_EXMPLSRC} ")
+##message(STATUS: "HAZMAT_EXMPLSRC=${HAZMAT_EXMPLSRC} ")
 
 foreach( srcfile ${HAZMAT_EXMPLSRC} )
  	string( REGEX MATCH "\\.c$|\\.f90$|\\.cpp$" Z ${srcfile} )

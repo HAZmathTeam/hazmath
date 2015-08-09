@@ -33,10 +33,10 @@ endif( THE_C )
 
 project(HAZMAT C )
 
-message(STATUS " XXXXXXXXX ${HAZMAT_SOURCE_DIR}")
+#message(STATUS " XXXXXXXXX ${HAZMAT_SOURCE_DIR}")
 
 
-message(STATUS "C compiler ID:${CMAKE_C_COMPILER_ID} Version:${CMAKE_C_COMPILER_VERSION}" )
+#message(STATUS "C compiler ID:${CMAKE_C_COMPILER_ID} Version:${CMAKE_C_COMPILER_VERSION}" )
 message(STATUS "The system is ${CMAKE_HOST_SYSTEM}; apple=${APPLE}; unix=${UNIX}")
 set(REAL_C "${CMAKE_C_COMPILER_ID}${CMAKE_C_COMPILER_VERSION}")
 ############################
@@ -141,7 +141,6 @@ if (USE_SUITESPARSE)
 
 # metis is not part of SuiteSparse, so there may be also some other metis dir. 
 ##   set(METIS_DIR "${SUITESPARSE_DIR}")
-
 
    if (SUITESPARSE_FOUND)
       add_definitions("-DWITH_SUITESPARSE=1")

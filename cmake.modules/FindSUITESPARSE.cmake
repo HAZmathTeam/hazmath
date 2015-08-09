@@ -73,6 +73,9 @@ endif()
 
 #set(SUITESPARSE_LIBRARIES ${SUITESPARSE_LIBRARIES} "-lgfortran")
 
+mark_as_advanced(SUITESPARSE_INCLUDE_DIRS)
+mark_as_advanced(SUITESPARSE_LIBRARIES)
+
 # Try to run a test program that uses SUITESPARSE
 # Standard package handling
 include(FindPackageHandleStandardArgs)
