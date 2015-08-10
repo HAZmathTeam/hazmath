@@ -8,7 +8,7 @@
 BEGIN {
   inheader=0;
   print "/*******************************************************************/  "
-  print "/* This header file was automatically generated with \"make fheaders\".   */" 
+  print "/* This header file was automatically generated with \"make headers\".   */" 
   print "/* WARNING: DO NOT EDIT!!!                               */  "
   print "/*******************************************************************/  "
   print ""
