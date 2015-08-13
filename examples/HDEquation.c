@@ -28,30 +28,40 @@
 /****************************************************************************************/
 
 /******** Data Input ********************************************************************/
-// Right-hand Side
-void myrhs(REAL *val,REAL* x,REAL time) {
-  // 2D
-  //*val = 2*M_PI*M_PI*sin(M_PI*x[0])*sin(M_PI*x[1]);
-  // 3D
-  *val = 3*M_PI*M_PI*sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
-}
-
 // Boundary Conditions
 void bc(REAL *val,REAL* x,REAL time) {
   *val = 0.0;
 }
 
 // PDE Coefficients
-void diffcoeff(REAL *val,REAL* x,REAL time) {
+void diffusion_coeff(REAL *val,REAL* x,REAL time) {
   *val = 1.0;
+}
+
+void reaction_coeff(REAL *val,REAL* x,REAL time) {
+  *val = 0.0;
 }
 
 // True Solution (if you have one)
 void truesol(REAL *val,REAL* x,REAL time) {
   // 2D
-  //*val = sin(M_PI*x[0])*sin(M_PI*x[1]);
+  *val = sin(M_PI*x[0])*sin(M_PI*x[1]);
   // 3D
-  *val = sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
+  //*val = sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
+}
+
+// Right-hand Side
+void myrhs(REAL *val,REAL* x,REAL time) {
+  REAL myc=-666.6;
+  REAL mya=-666.6;
+  REAL myu=-666.6;
+  reaction_coeff(&myc,x,time);
+  diffusion_coeff(&mya,x,time);
+  truesol(&myu,x,time);
+  // 2D
+  *val = mya*2*M_PI*M_PI*sin(M_PI*x[0])*sin(M_PI*x[1]) + myc*myu;
+  // 3D
+  //*val = mya*3*M_PI*M_PI*sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]) + myc*myu;
 }
 
 
@@ -142,10 +152,27 @@ int main (int argc, char* argv[])
     
   // Allocate the right-hand side and declare the csr matrix
   dvector b;
+  dvector bnull;
+  dCSRmat Diff;
   dCSRmat A;
+  dCSRmat Mass;
     
   // Assemble the matrix without BC
-  assemble_global(&A,&b,assemble_DuDv_local,&FE,&mesh,cq,myrhs,diffcoeff,0.0);
+  // Diffusion block
+  printf("hello 1\n");
+  assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,myrhs,diffusion_coeff,0.0);
+  printf("hello 2\n");
+  // Reaction block
+  assemble_global(&Mass,&bnull,assemble_mass_local,&FE,&mesh,cq,myrhs,reaction_coeff,0.0);
+
+  printf("hello 3\n");
+  // Add the M + D
+  dcsr_add_1(&Diff,1.0,&Mass,1.0,&A);
+  printf("hello 4\n");
+  if(bnull.val) free(bnull.val);
+  dcsr_free(&Diff);
+  dcsr_free(&Mass);
+  
   // Eliminate Dirichlet BC
   eliminate_DirichletBC(bc,&FE,&mesh,&b,&A,0.0);
 

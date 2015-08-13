@@ -1,6 +1,7 @@
 BUILD_HAZ
 haz_config/hazmat.mk
 lib/libhazmat.*
+include/hazmat.h
 examples/runs/input.dat
 *.dSYM/
 *.ex

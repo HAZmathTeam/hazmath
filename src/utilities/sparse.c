@@ -724,6 +724,49 @@ FINISHED:
 }
 
 /***********************************************************************************************/
+INT dcsr_add_1 (dCSRmat *A,
+              const REAL alpha,
+              dCSRmat *B,
+              const REAL beta,
+              dCSRmat *C)
+{
+    
+    /**
+     * \fn void dcsr_add_1 (dCSRmat *A, const REAL alpha, dCSRmat *B,
+     *                              const REAL beta, dCSRmat *C)
+     *
+     * \brief compute C = alpha*A + beta*B in CSR format (assuming counting from 1)
+     *
+     * \param A      Pointer to dCSRmat matrix
+     * \param alpha  REAL factor alpha
+     * \param B      Pointer to dCSRmat matrix
+     * \param beta   REAL factor beta
+     * \param C      Pointer to dCSRmat matrix
+     *
+     *
+     */
+
+  INT status = 0;
+  
+  // shift A
+  dcsr_shift(A, -1);
+  // shift B
+  dcsr_shift(B, -1);
+
+  // add
+  status = dcsr_add(A,alpha,B,beta,C);
+
+  // shift A back
+  dcsr_shift(A, 1);
+  // shift B back
+  dcsr_shift(B, 1);
+  // shift C back
+  dcsr_shift(C, 1);
+    
+  return status;
+}
+
+/***********************************************************************************************/
 void dcsr_axm (dCSRmat *A,
                const REAL alpha)
 {
