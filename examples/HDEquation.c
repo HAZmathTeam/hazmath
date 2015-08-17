@@ -45,15 +45,19 @@ void reaction_coeff(REAL *val,REAL* x,REAL time) {
 // True Solution (if you have one)
 void truesol(REAL *val,REAL* x,REAL time) {
   // 2D - grad grad
-  *val = sin(M_PI*x[0])*sin(M_PI*x[1]);
+  //*val = sin(M_PI*x[0])*sin(M_PI*x[1]);
   // 2D - curl curl
   /* val[0] = x[1]*(1-x[1]); */
   /* val[1] = x[0]*(1-x[0]); */
   // 2D - grad div
   /* val[0] = x[0]*(1-x[0]); */
   /* val[1] = x[1]*(1-x[1]); */
-  // 3D
+  // 3D - grad grad
   //*val = sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
+  // 3D - curl curl
+  val[0] = x[1]*(1-x[1])*x[2]*(1-x[2]);
+  val[1] = x[0]*(1-x[0])*x[2]*(1-x[2]);
+  val[2] = x[0]*(1-x[0])*x[1]*(1-x[1]);
 }
 
 // Right-hand Side
@@ -61,17 +65,21 @@ void myrhs(REAL *val,REAL* x,REAL time) {
   REAL myc=-666.6;
   REAL mya=-666.6;
   //REAL myu=-666.6;
-  REAL myu[1];
+  REAL myu[3];
   reaction_coeff(&myc,x,time);
   diffusion_coeff(&mya,x,time);
   truesol(myu,x,time);
   // 2D - grad grad
-  *val = mya*2*M_PI*M_PI*sin(M_PI*x[0])*sin(M_PI*x[1]) + myc*myu[0];
+  //*val = mya*2*M_PI*M_PI*sin(M_PI*x[0])*sin(M_PI*x[1]) + myc*myu[0];
   // 2D - curl curl or grad div
   /* val[0] = mya*2.0 + myc*myu[0]; */
   /* val[1] = mya*2.0 + myc*myu[1]; */
-  // 3D
+  // 3D - grad grad
   //*val = mya*3*M_PI*M_PI*sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]) + myc*myu;
+  // 3D - curl curl
+  val[0] = 2*((x[2]-x[2]*x[2])+(x[1]-x[1]*x[1])) + myc*myu[0];
+  val[1] = 2*((x[2]-x[2]*x[2])+(x[0]-x[0]*x[0])) + myc*myu[1];
+  val[2] = 2*((x[0]-x[0]*x[0])+(x[1]-x[1]*x[1])) + myc*myu[2];
 }
 
 
