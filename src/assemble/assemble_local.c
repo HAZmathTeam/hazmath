@@ -308,7 +308,7 @@ void assemble_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
 /******************************************************************************************************/
 
 /******************************************************************************************************/
-void FEM_RHS_Local(REAL* bLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL),REAL time) 
+void FEM_RHS_Local(REAL* bLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL),REAL time) 
 {
 	
   /* Computes the local Right hand side vector for Galerkin Finite Elements
@@ -328,52 +328,110 @@ void FEM_RHS_Local(REAL* bLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *do
    *	       	ALoc                Local Stiffness Matrix (Full Matrix)
    */
 
+  // Mesh and FE data
+  INT dof_per_elm = FE->dof_per_elm;
+  INT dim = mesh->dim;
+  
   // Loop Indices
   INT quad,test;
+  
   // Quadrature Weights and Nodes
   REAL w; 
   REAL* qx = (REAL *) calloc(3,sizeof(REAL));
 	
-  // Basis Functions
-  REAL* p = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
-  REAL* dpx = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
-  REAL* dpy = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
-  REAL* dpz = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
+  // Basis Functions and its derivatives if necessary
+  REAL* phi=NULL;
+  REAL* dphix=NULL;
+  REAL* dphiy=NULL;
+  REAL* dphiz=NULL;
   
   // Right-hand side function at Quadrature Nodes
-  REAL rhs_val=0.0;
+  REAL* rhs_val=NULL;
   
-  //  Sum over quadrature points
-  for (quad=0;quad<cq->nq_per_elm;quad++) {        
-    qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-    qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-    if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
-    w = cq->w[elm*cq->nq_per_elm+quad];
-    (*rhs)(&rhs_val,qx,time);
+  if(FE->FEtype>0) { // PX elements
+    phi = (REAL *) calloc(dof_per_elm,sizeof(REAL));
+    dphix = (REAL *) calloc(dof_per_elm,sizeof(REAL));
+    dphiy = (REAL *) calloc(dof_per_elm,sizeof(REAL));
+    if(dim==3) dphiz = (REAL *) calloc(dof_per_elm,sizeof(REAL));
+    rhs_val = (REAL *) calloc(1,sizeof(REAL));
     
-    //  Get the Basis Functions at each quadrature node
-    if(FE->FEtype>0) { // PX elements
-      PX_H1_basis(p,dpx,dpy,dpz,qx[0],qx[1],qx[2],dof_on_elm,FE->FEtype,mesh);
-    } else if(FE->FEtype==-1) { // Nedelec elements
-      printf("Nedelec Not Implemented Yet\n!");
-    } else if(FE->FEtype==-2) { // Raviart-Thomas elements
-      printf("RT Not Implemented Yet!\n");
-    } else {
-      printf("Trying to implement non-existent elements!\n\n");
-      exit(0);
-    }	
+    //  Sum over quadrature points
+    for (quad=0;quad<cq->nq_per_elm;quad++) {        
+      qx[0] = cq->x[elm*cq->nq_per_elm+quad];
+      qx[1] = cq->y[elm*cq->nq_per_elm+quad];
+      if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
+      w = cq->w[elm*cq->nq_per_elm+quad];
+      (*rhs)(rhs_val,qx,time);
+    
+      //  Get the Basis Functions at each quadrature node
+      PX_H1_basis(phi,dphix,dphiy,dphiz,qx[0],qx[1],qx[2],dof_on_elm,FE->FEtype,mesh);
 
-    // Loop over test functions and integrate rhs
-    for (test=0; test<FE->dof_per_elm;test++) {
-      bLoc[test] = bLoc[test] + w*rhs_val*p[test];
+      // Loop over test functions and integrate rhs
+      for (test=0; test<FE->dof_per_elm;test++) {
+	bLoc[test] = bLoc[test] + w*rhs_val[0]*phi[test];
+      }
     }
+  } else if(FE->FEtype==-1) { // Nedelec elements
+    phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
+    if(dim==2) {
+      dphix = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Curl of basis function
+    } else if (dim==3) {
+      dphix = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL)); // Curl of basis function
+    } else {
+      baddimension();
+    }
+    rhs_val = (REAL *) calloc(dim,sizeof(REAL));
+
+    //  Sum over quadrature points
+    for (quad=0;quad<cq->nq_per_elm;quad++) {        
+      qx[0] = cq->x[elm*cq->nq_per_elm+quad];
+      qx[1] = cq->y[elm*cq->nq_per_elm+quad];
+      if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
+      w = cq->w[elm*cq->nq_per_elm+quad];
+      (*rhs)(rhs_val,qx,time);
+
+      //  Get the Basis Functions at each quadrature node
+      ned_basis(phi,dphix,qx[0],qx[1],qx[2],v_on_elm,dof_on_elm,mesh);
+
+      // Loop over test functions and integrate rhs
+      for (test=0; test<FE->dof_per_elm;test++) {
+	bLoc[test] = bLoc[test] + w*(rhs_val[0]*phi[test*dim] + rhs_val[1]*phi[test*dim+1]);
+	if(dim==3) bLoc[test] = bLoc[test] + w*rhs_val[2]*phi[test*dim+2];
+      }
+    }
+  } else if(FE->FEtype==-2) { // Raviart-Thomas elements
+    phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
+    dphix = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Divergence of element
+    rhs_val = (REAL *) calloc(dim,sizeof(REAL));
+
+    //  Sum over quadrature points
+    for (quad=0;quad<cq->nq_per_elm;quad++) {        
+      qx[0] = cq->x[elm*cq->nq_per_elm+quad];
+      qx[1] = cq->y[elm*cq->nq_per_elm+quad];
+      if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
+      w = cq->w[elm*cq->nq_per_elm+quad];
+      (*rhs)(rhs_val,qx,time);
+
+      //  Get the Basis Functions at each quadrature node
+      rt_basis(phi,dphix,qx[0],qx[1],qx[2],v_on_elm,dof_on_elm,mesh);
+
+      // Loop over test functions and integrate rhs
+      for (test=0; test<FE->dof_per_elm;test++) {
+	bLoc[test] = bLoc[test] + w*(rhs_val[0]*phi[test*dim] + rhs_val[1]*phi[test*dim+1]);
+	if(dim==3) bLoc[test] = bLoc[test] + w*rhs_val[2]*phi[test*dim+2];
+      }
+    }
+  } else {
+    printf("Trying to implement non-existent elements!\n\n");
+    exit(0);
   }
-		
-  if(p) free(p);
-  if(dpx) free(dpx);
-  if(dpy) free(dpy);
-  if(dpz) free(dpz);
+  
+  if (phi) free(phi);
+  if(dphix) free(dphix);
+  if(dphiy) free(dphiy);
+  if(dphiz) free(dphiz);
   if(qx) free(qx);
+  if(rhs_val) free(rhs_val);
 	
   return;
 }

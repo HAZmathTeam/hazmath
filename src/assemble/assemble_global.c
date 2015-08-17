@@ -115,7 +115,7 @@ void assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
 		
     // Compute Local Stiffness Matrix for given Element
     (*local_assembly)(ALoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,coeff,time);
-    FEM_RHS_Local(bLoc,FE,mesh,cq,dof_on_elm,i,rhs,time);
+    FEM_RHS_Local(bLoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,rhs,time);
 
     // Loop over DOF and place in appropriate slot globally
     LocaltoGlobalBC(dof_on_elm,FE,b,A,ALoc,bLoc);
@@ -225,7 +225,7 @@ void assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace
 		
     // Compute Local Stiffness Matrix for given Element
     (*local_assembly)(ALoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,coeff,time);
-    FEM_RHS_Local(bLoc,FE,mesh,cq,dof_on_elm,i,rhs,time);
+    FEM_RHS_Local(bLoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,rhs,time);
 
     // Loop over DOF and place in appropriate slot globally
     LocaltoGlobal(dof_on_elm,FE,b,A,ALoc,bLoc);
