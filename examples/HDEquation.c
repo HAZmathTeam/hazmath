@@ -28,11 +28,6 @@
 /****************************************************************************************/
 
 /******** Data Input ********************************************************************/
-// Boundary Conditions
-void bc(REAL *val,REAL* x,REAL time) {
-  *val = 0.0;
-}
-
 // PDE Coefficients
 void diffusion_coeff(REAL *val,REAL* x,REAL time) {
   *val = 1.0;
@@ -43,45 +38,142 @@ void reaction_coeff(REAL *val,REAL* x,REAL time) {
 }
 
 // True Solution (if you have one)
-void truesol(REAL *val,REAL* x,REAL time) {
+// Pick one of these and rename it truesol
+void truesol_2D_PX(REAL *val,REAL* x,REAL time) {
+  //void truesol(REAL *val,REAL* x,REAL time) {
   // 2D - grad grad
-  //*val = sin(M_PI*x[0])*sin(M_PI*x[1]);
-  // 2D - curl curl
-  /* val[0] = x[1]*(1-x[1]); */
-  /* val[1] = x[0]*(1-x[0]); */
-  // 2D - grad div
-  /* val[0] = x[0]*(1-x[0]); */
-  /* val[1] = x[1]*(1-x[1]); */
+  *val = sin(M_PI*x[0])*sin(M_PI*x[1]);
+}
+void truesol_3D_PX(REAL *val,REAL* x,REAL time) {
+  //void truesol(REAL *val,REAL* x,REAL time) {
   // 3D - grad grad
-  //*val = sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
+  *val = sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
+}
+void truesol_2D_Ned(REAL *val,REAL* x,REAL time) {
+  //void truesol(REAL *val,REAL* x,REAL time) {
+  // 2D - curl curl
+  val[0] = cos(M_PI*x[0])*sin(M_PI*x[1]);
+  val[1] = -sin(M_PI*x[0])*cos(M_PI*x[1]);
+}
+void truesol_3D_Ned(REAL *val,REAL* x,REAL time) {
+  //void truesol(REAL *val,REAL* x,REAL time) {
   // 3D - curl curl
-  val[0] = x[1]*(1-x[1])*x[2]*(1-x[2]);
-  val[1] = x[0]*(1-x[0])*x[2]*(1-x[2]);
-  val[2] = x[0]*(1-x[0])*x[1]*(1-x[1]);
+  val[0] = cos(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
+  val[1] = sin(M_PI*x[0])*cos(M_PI*x[1])*sin(M_PI*x[2]);
+  val[2] = -sin(M_PI*x[0])*sin(M_PI*x[1])*cos(M_PI*x[2]);
+}
+void truesol_2D_RT(REAL *val,REAL* x,REAL time) {
+  //void truesol(REAL *val,REAL* x,REAL time) {
+  // 2D - grad div
+  val[0] = sin(M_PI*x[0])*cos(M_PI*x[1]);
+  val[1] = cos(M_PI*x[0])*sin(M_PI*x[1]);
+}
+//void truesol_3D_RT(REAL *val,REAL* x,REAL time) {
+void truesol(REAL *val,REAL* x,REAL time) {
+  // 3D - grad div
+  val[0] = sin(M_PI*x[0])*cos(M_PI*x[1])*cos(M_PI*x[2]);
+  val[1] = cos(M_PI*x[0])*sin(M_PI*x[1])*cos(M_PI*x[2]);
+  val[2] = cos(M_PI*x[0])*cos(M_PI*x[1])*sin(M_PI*x[2]);
 }
 
 // Right-hand Side
-void myrhs(REAL *val,REAL* x,REAL time) {
+// Pick one of these and rename it myrhs
+void rhs_2D_PX(REAL *val,REAL* x,REAL time) {
+  //void myrhs(REAL *val,REAL* x,REAL time) {
+  // 2D - grad grad
   REAL myc=-666.6;
   REAL mya=-666.6;
-  //REAL myu=-666.6;
+  REAL myu=-666.6;
+  reaction_coeff(&myc,x,time);
+  diffusion_coeff(&mya,x,time);
+  truesol(&myu,x,time);
+  *val = (mya*2*M_PI*M_PI + myc)*myu;
+}
+void rhs_3D_PX(REAL *val,REAL* x,REAL time) {
+  //void myrhs(REAL *val,REAL* x,REAL time) {
+  // 3D - grad grad
+  REAL myc=-666.6;
+  REAL mya=-666.6;
+  REAL myu=-666.6;
+  reaction_coeff(&myc,x,time);
+  diffusion_coeff(&mya,x,time);
+  truesol(&myu,x,time);
+  *val = (mya*3*M_PI*M_PI + myc)*myu;
+}
+void rhs_2D_Ned(REAL *val,REAL* x,REAL time) {
+  //void myrhs(REAL *val,REAL* x,REAL time) {
+  // 2D - curl curl
+  REAL myc=-666.6;
+  REAL mya=-666.6;
+  REAL myu[2];
+  reaction_coeff(&myc,x,time);
+  diffusion_coeff(&mya,x,time);
+  truesol(myu,x,time);
+  val[0] = (mya*2.0*M_PI*M_PI + myc)*myu[0];
+  val[1] = (mya*2.0*M_PI*M_PI + myc)*myu[1];
+}
+void rhs_3D_Ned(REAL *val,REAL* x,REAL time) {
+  //void myrhs(REAL *val,REAL* x,REAL time) {
+  // 3D - curl curl
+  REAL myc=-666.6;
+  REAL mya=-666.6;
   REAL myu[3];
   reaction_coeff(&myc,x,time);
   diffusion_coeff(&mya,x,time);
   truesol(myu,x,time);
-  // 2D - grad grad
-  //*val = mya*2*M_PI*M_PI*sin(M_PI*x[0])*sin(M_PI*x[1]) + myc*myu[0];
-  // 2D - curl curl or grad div
-  /* val[0] = mya*2.0 + myc*myu[0]; */
-  /* val[1] = mya*2.0 + myc*myu[1]; */
-  // 3D - grad grad
-  //*val = mya*3*M_PI*M_PI*sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]) + myc*myu;
-  // 3D - curl curl
-  val[0] = 2*((x[2]-x[2]*x[2])+(x[1]-x[1]*x[1])) + myc*myu[0];
-  val[1] = 2*((x[2]-x[2]*x[2])+(x[0]-x[0]*x[0])) + myc*myu[1];
-  val[2] = 2*((x[0]-x[0]*x[0])+(x[1]-x[1]*x[1])) + myc*myu[2];
+  val[0] = (2*mya*M_PI*M_PI + myc)*myu[0];
+  val[1] = (2*mya*M_PI*M_PI + myc)*myu[1];
+  val[2] = (4*mya*M_PI*M_PI + myc)*myu[2];
+}
+void rhs_2D_RT(REAL *val,REAL* x,REAL time) {
+  //void myrhs(REAL *val,REAL* x,REAL time) {
+  // 2D - grad div
+  REAL myc=-666.6;
+  REAL mya=-666.6;
+  REAL myu[2];
+  reaction_coeff(&myc,x,time);
+  diffusion_coeff(&mya,x,time);
+  truesol(myu,x,time);
+  val[0] = (mya*2.0*M_PI*M_PI + myc)*myu[0];
+  val[1] = (mya*2.0*M_PI*M_PI + myc)*myu[1];
+}
+//void rhs_3D_RT(REAL *val,REAL* x,REAL time) {
+void myrhs(REAL *val,REAL* x,REAL time) {
+  // 3D - grad div
+  REAL myc=-666.6;
+  REAL mya=-666.6;
+  REAL myu[3];
+  reaction_coeff(&myc,x,time);
+  diffusion_coeff(&mya,x,time);
+  truesol(myu,x,time);
+  val[0] = (mya*3.0*M_PI*M_PI + myc)*myu[0];
+  val[1] = (mya*3.0*M_PI*M_PI + myc)*myu[1];
+  val[2] = (mya*3.0*M_PI*M_PI + myc)*myu[2];
 }
 
+// Boundary Conditions
+// Switch one to bc
+void bc_PX(REAL *val,REAL* x,REAL time) {
+  //void bc(REAL *val,REAL* x,REAL time) {
+  REAL myu;
+  truesol(&myu,x,time);
+  *val= myu;
+}
+void bc_2Dvec(REAL *val,REAL* x,REAL time) {
+  //void bc(REAL *val,REAL* x,REAL time) {
+  REAL myu[2];
+  truesol(myu,x,time);
+  val[0] = myu[0];
+  val[1] = myu[1];
+}
+//void bc_3Dvec(REAL *val,REAL* x,REAL time) {
+void bc(REAL *val,REAL* x,REAL time) {
+  REAL myu[3];
+  truesol(myu,x,time);
+  val[0] = myu[0];
+  val[1] = myu[1];
+  val[2] = myu[2];
+}
 
 /****** MAIN DRIVER *********************************************************************/
 int main (int argc, char* argv[])
@@ -119,6 +211,16 @@ int main (int argc, char* argv[])
   initialize_mesh(&mesh);
   creategrid(gfid,dim,0,&mesh);
   fclose(gfid);
+
+  /* INT i,a1,a2,j; */
+  /* for(i=0;i<mesh.nface;i++) { */
+  /*   a1 = mesh.f_v->IA[i]-1; */
+  /*   a2 = mesh.f_v->IA[i+1]-1; */
+  /*   for(j=a1;j<a2;j++) { */
+  /*     printf("(%f,%f) ",mesh.cv->x[mesh.f_v->JA[j]-1],mesh.cv->y[mesh.f_v->JA[j]-1]); */
+  /*   } */
+  /*   printf("A = %f, n = (%f,%f), m = (%f,%f)\n",mesh.f_area[i],mesh.f_norm[i*dim],mesh.f_norm[i*dim+1],mesh.f_mid[i*dim],mesh.f_mid[i*dim+1]); */
+  /* } */
     
   // Get Quadrature Nodes for the Mesh
   INT nq1d = inparam.nquad; /* Quadrature points per dimension */
@@ -219,29 +321,33 @@ int main (int argc, char* argv[])
     
   // set initial guess to be all zero
   dvec_set(u.row, &u, 0.0);
-
-  // shift A
-  dcsr_shift(&A, -1);
     
   // solve the linear system
-  if(solver_type==1) {
+  if(solver_type==0) {
+    printf(" --> using UMFPACK's Direct Solver:\n");
+    solver_flag = directsolve_UMF_symmetric(&A,&b,u.val);
+  } else if(solver_type==1) {
     printf(" --> using Conjugate Gradient Method:\n");
+    dcsr_shift(&A, -1);  // shift A
     solver_flag = dcsr_pcg(&A, &b, &u, NULL, tol, MaxIt, stop_type, print_level);
+    dcsr_shift(&A, 1);   // shift A back
   } else if(solver_type==2) {
     printf(" --> using MINRES:\n");
+    dcsr_shift(&A, -1);  // shift A
+    printf(" NOTHING IMPLEMENTED FOR MINRES\n");
+    dcsr_shift(&A, 1);   // shift A back
   } else if(solver_type==3) {
     printf(" --> using GMRES:\n");
+    dcsr_shift(&A, -1);  // shift A
     solver_flag = dcsr_pvgmres(&A, &b, &u, NULL, tol, MaxIt, restart, stop_type, print_level);
+    dcsr_shift(&A, 1);   // shift A back
   } else {
     printf("Unknown Solver Type\n");
     exit(0);
   }
   
   // Error Check
-  if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
-    
-  // shift A back
-  dcsr_shift(&A, 1);
+  if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);  
 
   clk2 = clock();
   printf(" --> elapsed CPU time for solve = %f seconds.\n\n",(REAL) (clk2-clk1)/CLOCKS_PER_SEC);

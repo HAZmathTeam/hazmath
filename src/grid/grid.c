@@ -103,10 +103,8 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
 	nbv++;
   }
     
-    
   // if(bdry_v) free(bdry_v);  // I comment this out since otherwise it give seg fault later -- Xiaozhe
     
-
   //printf("\nConverting Grid Maps to CSR and Computing Data Structures:\n ");
   /* Element Vertex Map */
   iCSRmat el_v = convert_elmnode(element_vertex,nelm,nv,v_per_elm);
@@ -190,10 +188,14 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
   mesh->f_per_elm = f_per_elm;
   *(mesh->el_v) = el_v;
   mesh->v_per_elm = v_per_elm;
-  *(mesh->f_v) = f_v;
+ 
         
   // Get Statistics of the faces (midpoint, area, normal vector, ordering, etc.)
-  face_stats(f_area,f_mid,f_norm,mesh);
+  face_stats(f_area,f_mid,f_norm,&f_v,mesh);
+
+  // Reorder appropriately
+  sync_facenode(&f_v,f_norm,mesh);
+  *(mesh->f_v) = f_v;
 
   // Finally get volumes/areas of elements and the midpoint (barycentric)
   REAL* el_mid = (REAL *) calloc(nelm*dim,sizeof(REAL));
@@ -972,7 +974,7 @@ void find_facenumber(iCSRmat el_v,INT elm,INT* nd,INT dim,INT *f_num)
 /****************************************************************************************/
 
 /*********************************************************************************************************/
-void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,trimesh *mesh) 
+void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,trimesh *mesh) 
 {
   /***************************************************************************
    * Get area, normal vector for all faces **********
@@ -995,7 +997,7 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,trimesh *mesh)
   coordinates *cv = mesh->cv;
 
   iCSRmat *el_f = mesh->el_f;
-  iCSRmat *f_v = mesh->f_v; 
+  //iCSRmat *f_v = mesh->f_v; 
   iCSRmat *el_v = mesh->el_v;
 
   // Face Node Stuff
@@ -1131,6 +1133,102 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,trimesh *mesh)
   return;
 }
 /*********************************************************************************************************/
+
+/****************************************************************************************/
+void sync_facenode(iCSRmat *f_v,REAL* f_norm,trimesh *mesh)           
+{
+
+  /* Reorder the Face-Node mapping so it has positive orientation with respect to the face's normal vector
+   *
+   * Input:
+   *        if_n,jf_n         Face to Node Map
+   *        ndpf              Number of Nodes per Face
+   *        mydim             Dimension
+   *        nface             Total Number of Faces
+   *
+   * Output:
+   *       if_n,jf_n         Reordered Face to Node Map
+   *
+   */
+  
+  INT i,j; /* loop index */
+  INT nface = mesh->el_f->col;
+  INT dim = mesh->dim;
+  INT el_order = mesh->v_per_elm;
+  INT ndpf = dim;
+  coordinates *cv = mesh->cv;
+  
+  REAL nx,ny,nz,tx,ty,tz,mysign;
+  INT nd,rowa,rowb,jcnt,nf1,nf2,nf3;
+  REAL* xf = calloc(ndpf,sizeof(REAL));
+  REAL* yf = calloc(ndpf,sizeof(REAL));
+  REAL* zf = calloc(ndpf,sizeof(REAL));
+
+  if(dim==2) {
+    for(i=0;i<nface;i++) {
+      // Get normal vector of face
+      nx = f_norm[(i)*dim];
+      ny = f_norm[(i)*dim+1];
+
+      // Get Coordinates of Nodes
+      rowa = f_v->IA[i]-1;
+      rowb = f_v->IA[i+1]-1;
+      jcnt=0;
+      for(j=rowa;j<rowb;j++) {
+	nd = f_v->JA[j]-1;
+	xf[jcnt] = cv->x[nd];
+	yf[jcnt] = cv->y[nd];
+	jcnt++;
+      }
+      // Determine proper orientation of basis vectors  Compute n^(\perp)*t.  If + use face_node ordering, if - switch sign
+      tx = xf[1]-xf[0];
+      ty = yf[1]-yf[0];
+      mysign = -ny*tx + nx*ty;
+      if(mysign<0) {
+	nf2 = f_v->JA[rowa];
+	nf1 = f_v->JA[rowa+1];
+	f_v->JA[rowa+1] = nf2;
+	f_v->JA[rowa] = nf1;
+      } 
+    }
+  } else if (dim==3) {
+    for(i=0;i<nface;i++) {
+      // Get normal vector of face
+      nx = f_norm[(i)*dim];
+      ny = f_norm[(i)*dim+1];
+      nz = f_norm[(i)*dim+2];
+
+      // Get Coordinates of Nodes
+      rowa = f_v->IA[i]-1;
+      rowb = f_v->IA[i+1]-1;
+      jcnt=0;
+      for(j=rowa;j<rowb;j++) {
+	nd = f_v->JA[j]-1;
+	xf[jcnt] = cv->x[nd];
+	yf[jcnt] = cv->y[nd];
+	zf[jcnt] = cv->z[nd];
+	jcnt++;
+      }
+      // Determine proper orientation of basis vectors  Compute n^(\perp)*t.  If + use face_node ordering, if - switch sign
+      tx = (yf[1]-yf[0])*(zf[2]-zf[0]) - (zf[1]-zf[0])*(yf[2]-yf[0]);
+      ty = (zf[1]-zf[0])*(xf[2]-xf[0]) - (xf[1]-xf[0])*(zf[2]-zf[0]);
+      tz = (xf[1]-xf[0])*(yf[2]-yf[0]) - (yf[1]-yf[0])*(xf[2]-xf[0]);
+      mysign = nx*tx + ny*ty + nz*tz;
+      if(mysign<0) {
+	nf3=f_v->JA[rowa+1];
+	nf2=f_v->JA[rowa+2];
+	f_v->JA[rowa+1]=nf2;
+	f_v->JA[rowa+2]=nf3;
+      } 
+    }
+  }
+
+  if(xf) free(xf);
+  if(yf) free(yf);
+  if(zf) free(zf);
+  return;
+}
+/****************************************************************************************/
 
 /*********************************************************************************************************/
 void get_el_mid(REAL *el_mid,iCSRmat el_v,coordinates *cv,INT dim) 

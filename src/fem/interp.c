@@ -346,7 +346,7 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,
     valx = (REAL *) calloc(dim,sizeof(REAL));
     x[0] = mesh->ed_mid[DOF*dim];
     x[1] = mesh->ed_mid[DOF*dim+1];
-    if(dim==3) x[2] = mesh->ed_mid[DOF*dim+1];
+    if(dim==3) x[2] = mesh->ed_mid[DOF*dim+2];
     (*expr)(valx,x,time);
     val = 0.0;
     for(j=0;j<dim;j++) val+=mesh->ed_tau[DOF*dim+j]*valx[j];
@@ -354,7 +354,7 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,
     valx = (REAL *) calloc(dim,sizeof(REAL));
     x[0] = mesh->f_mid[DOF*dim];
     x[1] = mesh->f_mid[DOF*dim+1];
-    if(dim==3) x[2] = mesh->f_mid[DOF*dim+1];
+    if(dim==3) x[2] = mesh->f_mid[DOF*dim+2];
     (*expr)(valx,x,time);
     val = 0.0;
     for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx[j];
