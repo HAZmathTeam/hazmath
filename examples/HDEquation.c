@@ -55,8 +55,8 @@ void truesol_2D_Ned(REAL *val,REAL* x,REAL time) {
   val[0] = cos(M_PI*x[0])*sin(M_PI*x[1]);
   val[1] = -sin(M_PI*x[0])*cos(M_PI*x[1]);
 }
-void truesol_3D_Ned(REAL *val,REAL* x,REAL time) {
-  //void truesol(REAL *val,REAL* x,REAL time) {
+//void truesol_3D_Ned(REAL *val,REAL* x,REAL time) {
+void truesol(REAL *val,REAL* x,REAL time) {
   // 3D - curl curl
   val[0] = cos(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
   val[1] = sin(M_PI*x[0])*cos(M_PI*x[1])*sin(M_PI*x[2]);
@@ -68,8 +68,8 @@ void truesol_2D_RT(REAL *val,REAL* x,REAL time) {
   val[0] = sin(M_PI*x[0])*cos(M_PI*x[1]);
   val[1] = cos(M_PI*x[0])*sin(M_PI*x[1]);
 }
-//void truesol_3D_RT(REAL *val,REAL* x,REAL time) {
-void truesol(REAL *val,REAL* x,REAL time) {
+void truesol_3D_RT(REAL *val,REAL* x,REAL time) {
+  //void truesol(REAL *val,REAL* x,REAL time) {
   // 3D - grad div
   val[0] = sin(M_PI*x[0])*cos(M_PI*x[1])*cos(M_PI*x[2]);
   val[1] = cos(M_PI*x[0])*sin(M_PI*x[1])*cos(M_PI*x[2]);
@@ -112,8 +112,8 @@ void rhs_2D_Ned(REAL *val,REAL* x,REAL time) {
   val[0] = (mya*2.0*M_PI*M_PI + myc)*myu[0];
   val[1] = (mya*2.0*M_PI*M_PI + myc)*myu[1];
 }
-void rhs_3D_Ned(REAL *val,REAL* x,REAL time) {
-  //void myrhs(REAL *val,REAL* x,REAL time) {
+//void rhs_3D_Ned(REAL *val,REAL* x,REAL time) {
+void myrhs(REAL *val,REAL* x,REAL time) {
   // 3D - curl curl
   REAL myc=-666.6;
   REAL mya=-666.6;
@@ -137,8 +137,8 @@ void rhs_2D_RT(REAL *val,REAL* x,REAL time) {
   val[0] = (mya*2.0*M_PI*M_PI + myc)*myu[0];
   val[1] = (mya*2.0*M_PI*M_PI + myc)*myu[1];
 }
-//void rhs_3D_RT(REAL *val,REAL* x,REAL time) {
-void myrhs(REAL *val,REAL* x,REAL time) {
+void rhs_3D_RT(REAL *val,REAL* x,REAL time) {
+  //void myrhs(REAL *val,REAL* x,REAL time) {
   // 3D - grad div
   REAL myc=-666.6;
   REAL mya=-666.6;
@@ -167,7 +167,7 @@ void bc_2Dvec(REAL *val,REAL* x,REAL time) {
   val[1] = myu[1];
 }
 //void bc_3Dvec(REAL *val,REAL* x,REAL time) {
-void bc(REAL *val,REAL* x,REAL time) {
+  void bc(REAL *val,REAL* x,REAL time) {
   REAL myu[3];
   truesol(myu,x,time);
   val[0] = myu[0];
@@ -325,22 +325,22 @@ int main (int argc, char* argv[])
   // solve the linear system
   if(solver_type==0) {
     printf(" --> using UMFPACK's Direct Solver:\n");
-    solver_flag = directsolve_UMF_symmetric(&A,&b,u.val);
+    solver_flag = directsolve_UMF_symmetric(&A,&b,u.val,print_level);
   } else if(solver_type==1) {
     printf(" --> using Conjugate Gradient Method:\n");
-    dcsr_shift(&A, -1);  // shift A
+    //dcsr_shift(&A, -1);  // shift A
     solver_flag = dcsr_pcg(&A, &b, &u, NULL, tol, MaxIt, stop_type, print_level);
-    dcsr_shift(&A, 1);   // shift A back
+    //dcsr_shift(&A, 1);   // shift A back
   } else if(solver_type==2) {
     printf(" --> using MINRES:\n");
-    dcsr_shift(&A, -1);  // shift A
+    //dcsr_shift(&A, -1);  // shift A
     printf(" NOTHING IMPLEMENTED FOR MINRES\n");
-    dcsr_shift(&A, 1);   // shift A back
+    //dcsr_shift(&A, 1);   // shift A back
   } else if(solver_type==3) {
     printf(" --> using GMRES:\n");
-    dcsr_shift(&A, -1);  // shift A
+    //dcsr_shift(&A, -1);  // shift A
     solver_flag = dcsr_pvgmres(&A, &b, &u, NULL, tol, MaxIt, restart, stop_type, print_level);
-    dcsr_shift(&A, 1);   // shift A back
+    //dcsr_shift(&A, 1);   // shift A back
   } else {
     printf("Unknown Solver Type\n");
     exit(0);

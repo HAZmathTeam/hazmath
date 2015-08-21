@@ -49,7 +49,7 @@ nonlinear_itsolver_tol		= 1e-8 	% tolerance for nonlinear solver
 % linear solver
 %---------------%
 
-linear_itsolver_type		= 1    	% 1 CG | 2 MINRES | 3 GMRES
+linear_itsolver_type		= 1    	% 0 Direct Solve | 1 CG | 2 MINRES | 3 GMRES
 linear_itsolver_maxit		= 200  	% maximal iterations of linear iterative solver
 linear_itsolver_tol		= 1e-12  % tolerance for linear iterative solver 
 

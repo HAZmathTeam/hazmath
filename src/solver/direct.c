@@ -15,48 +15,99 @@
  */
 
 /***************************************************************************************************************************/
-INT directsolve_UMF_symmetric(dCSRmat *A,dvector *f,REAL *x) 
+INT directsolve_UMF_symmetric(dCSRmat *A,dvector *f,REAL *x,INT print_level) 
 {
 	
   /* Performs Gaussian Elmination on Ax = f, using UMFPACK  
    * Assumes A is symmetric (I think) and in CSR format
-   * Also assumes counting of arrays starts at 1.
    *
    * Input:		
    *        	A:	       	Matrix A to be solved
    *	       	f:	       	Right hand side vector
+   *  print_level:              Flag to print messages to screen
    *
    * Output:	
    *	        x:	       	Solution
    *
    */
+  
+  INT i;
+  INT shift_flag = 0;
 
-  // UMFPACK pointers
-  void *Symbolic=NULL;
-  void *Numeric=NULL;
+  // UMFPACK requires transpose of A
+  dCSRmat At;
+  // Check if counting from 1 or 0 for CSR arrays
+  if(A->IA[0]==1) {
+    dcsr_shift(A, -1);  // shift A
+    shift_flag = 1;
+  }
+  // Transpose A
+  dcsr_trans(A,&At);
 
-  // Size of A
-  INT ndof = f->row;
-  if(ndof!=A->row) {
-    printf("RHS and Matrix don't match in Direct Solver");
-    exit(0);
+  // Fix A back to correct counting
+  if(shift_flag==1) {
+    dcsr_shift(A, 1);  // shift A back
   }
 
-  /* Symbolic analysis */
-  umfpack_di_symbolic(ndof,ndof,A->IA,A->JA,A->val,Symbolic,NULL,NULL);
-  printf("SYMBOLIC =%d\n",Symbolic);
+  // Reformat to longs
+  long mydof2 = (long) At.row;
+  long* iA = (long *) calloc(At.row+1,sizeof(long));
+  long* jA = (long *) calloc(At.nnz,sizeof(long));
+  for(i=0;i<At.row+1;i++) iA[i] = (long) At.IA[i];
+  for(i=0;i<At.nnz;i++) jA[i] = (long) At.JA[i];
 
+  // Get UMFPACK pointers
+  void *Symbolic=NULL, *Numeric=NULL;
+  double Control [UMFPACK_CONTROL], Info [UMFPACK_INFO];
+
+  if(print_level>=PRINT_SOME) {
+    printf("\n=======================================================================");
+    printf("\nUsing UMFPACK LU Factorization for Direct Solve of the System.\n");
+    printf("=======================================================================\n\n");
+  }
+
+  /* symbolic analysis */
+  umfpack_dl_symbolic(mydof2,mydof2,iA,jA,At.val,&Symbolic,Control,Info);
+  if(print_level>=PRINT_SOME) {
+    printf("\tSymbolic factorization done  -> ");
+    if(Info[0]==0.0) {
+      printf("No Errors\n");
+    }
+  }
+  if(Info[0]!=0.0) {
+    printf("Error in UMFPACK Symbolic Factorization: Info[0] = %f\n",Info[0]);
+    return Info[0];
+  }
+  
   /* LU factorization */
-  umfpack_di_numeric(A->IA,A->JA,A->val,Symbolic,Numeric,NULL,NULL);
-  umfpack_di_free_symbolic(Symbolic);
+  umfpack_dl_numeric(iA,jA,At.val,Symbolic,&Numeric,Control,Info);
+  umfpack_dl_free_symbolic(&Symbolic);
+
+  if(print_level>=PRINT_SOME) {
+    printf("\tNumeric factorization done   -> ");
+    if(Info[0]==0.0) {
+      printf("No Errors\n");
+    }
+  }
+  if(Info[0]!=0.0) {
+    printf("Error in UMFPACK Numeric Factorization: Info[0] = %f\n",Info[0]);
+    return Info[0];
+  }
 
   /* solve system */
-  umfpack_di_solve(UMFPACK_A,A->IA,A->JA,A->val,x,f->val,Numeric,NULL,NULL);
-  printf("SYMBOLIC =%d\n",Numeric);
+  umfpack_dl_solve(UMFPACK_A,iA,jA,At.val,x,f->val,Numeric,Control,Info);
+  umfpack_dl_free_numeric(&Numeric);
   
-  umfpack_di_free_numeric(Numeric);
+  // Clean up
+  dcsr_free(&At);
+  if(iA) free(iA);
+  if(jA) free(jA);
 
-  // Need to add the error checks
-  return 1;
+  if(print_level>=PRINT_SOME) {
+    printf("\n=======================================================================");
+    printf("\n UMFPACK Solve Complete.\n");
+    printf("=======================================================================\n\n");
+  }
 }
+
 /***************************************************************************************************************************/
