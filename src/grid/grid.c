@@ -1154,7 +1154,6 @@ void sync_facenode(iCSRmat *f_v,REAL* f_norm,trimesh *mesh)
   INT i,j; /* loop index */
   INT nface = mesh->el_f->col;
   INT dim = mesh->dim;
-  INT el_order = mesh->v_per_elm;
   INT ndpf = dim;
   coordinates *cv = mesh->cv;
   
