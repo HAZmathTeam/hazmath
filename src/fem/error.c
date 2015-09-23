@@ -223,7 +223,7 @@ REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *me
 
       // Compute Error on Element
       for(j=0;j<ncomp;j++) {
-	sum+=w*(ABS(val_sol[j] - val_true[j]));
+	sum+=w*(ABS(val_sol[j] - val_true[j]))*(ABS(val_sol[j] - val_true[j]));
       }
     }
   }
@@ -469,7 +469,7 @@ REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL),fespace *FE,trime
 
       // Compute Error on Element
       for(j=0;j<ncomp;j++) {
-	sum+=w*(ABS(val_sol[j] - val_true[j]));
+	sum+=w*(ABS(val_sol[j] - val_true[j]))*(ABS(val_sol[j] - val_true[j]));
       }
     }
   }

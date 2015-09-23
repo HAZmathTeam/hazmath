@@ -39,8 +39,8 @@ void reaction_coeff(REAL *val,REAL* x,REAL time) {
 
 // True Solution (if you have one)
 // Pick one of these and rename it truesol
-//void truesol_2D_PX(REAL *val,REAL* x,REAL time) {
-void truesol(REAL *val,REAL* x,REAL time) {
+void truesol_2D_PX(REAL *val,REAL* x,REAL time) {
+  //void truesol(REAL *val,REAL* x,REAL time) {
   // 2D - grad grad
   *val = sin(M_PI*x[0])*sin(M_PI*x[1]);
 }
@@ -50,13 +50,13 @@ void truesol_3D_PX(REAL *val,REAL* x,REAL time) {
   *val = sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
 }
 void truesol_2D_Ned(REAL *val,REAL* x,REAL time) {
-  //void truesol(REAL *val,REAL* x,REAL time) {
+//void truesol(REAL *val,REAL* x,REAL time) {
   // 2D - curl curl
   val[0] = cos(M_PI*x[0])*sin(M_PI*x[1]);
   val[1] = -sin(M_PI*x[0])*cos(M_PI*x[1]);
 }
-void truesol_3D_Ned(REAL *val,REAL* x,REAL time) {
-//void truesol(REAL *val,REAL* x,REAL time) {
+//void truesol_3D_Ned(REAL *val,REAL* x,REAL time) {
+void truesol(REAL *val,REAL* x,REAL time) {
   // 3D - curl curl
   val[0] = cos(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
   val[1] = sin(M_PI*x[0])*cos(M_PI*x[1])*sin(M_PI*x[2]);
@@ -69,7 +69,7 @@ void truesol_2D_RT(REAL *val,REAL* x,REAL time) {
   val[1] = cos(M_PI*x[0])*sin(M_PI*x[1]);
 }
 void truesol_3D_RT(REAL *val,REAL* x,REAL time) {
-  //void truesol(REAL *val,REAL* x,REAL time) {
+//void truesol(REAL *val,REAL* x,REAL time) {
   // 3D - grad div
   val[0] = sin(M_PI*x[0])*cos(M_PI*x[1])*cos(M_PI*x[2]);
   val[1] = cos(M_PI*x[0])*sin(M_PI*x[1])*cos(M_PI*x[2]);
@@ -78,8 +78,8 @@ void truesol_3D_RT(REAL *val,REAL* x,REAL time) {
 
 // Derivative of True Solution (if you have one)
 // Pick one of these and rename it truesol
-//void D_truesol_2D_PX(REAL *val,REAL* x,REAL time) {
-void D_truesol(REAL *val,REAL* x,REAL time) {
+void D_truesol_2D_PX(REAL *val,REAL* x,REAL time) {
+  //void D_truesol(REAL *val,REAL* x,REAL time) {
   // 2D - grad grad
   val[0] = M_PI*cos(M_PI*x[0])*sin(M_PI*x[1]);
   val[1] = M_PI*sin(M_PI*x[0])*cos(M_PI*x[1]);
@@ -92,12 +92,12 @@ void D_truesol_3D_PX(REAL *val,REAL* x,REAL time) {
   val[2] = M_PI*sin(M_PI*x[0])*sin(M_PI*x[1])*cos(M_PI*x[2]);
 }
 void D_truesol_2D_Ned(REAL *val,REAL* x,REAL time) {
-  //void D_truesol(REAL *val,REAL* x,REAL time) {
+//void D_truesol(REAL *val,REAL* x,REAL time) {
   // 2D - curl curl
   *val = -2*M_PI*cos(M_PI*x[0])*cos(M_PI*x[1]);
 }
-void D_truesol_3D_Ned(REAL *val,REAL* x,REAL time) {
-  //void D_truesol(REAL *val,REAL* x,REAL time) {
+//void D_truesol_3D_Ned(REAL *val,REAL* x,REAL time) {
+void D_truesol(REAL *val,REAL* x,REAL time) {
   // 3D - curl curl
   val[0] = -2*M_PI*sin(M_PI*x[0])*cos(M_PI*x[1])*cos(M_PI*x[2]);
   val[1] = 2*M_PI*cos(M_PI*x[0])*sin(M_PI*x[1])*cos(M_PI*x[2]);
@@ -109,15 +109,15 @@ void D_truesol_2D_RT(REAL *val,REAL* x,REAL time) {
   *val = 2*M_PI*cos(M_PI*x[0])*cos(M_PI*x[1]);
 }
 void D_truesol_3D_RT(REAL *val,REAL* x,REAL time) {
-  //void D_truesol(REAL *val,REAL* x,REAL time) {
+//void D_truesol(REAL *val,REAL* x,REAL time) {
   // 3D - grad div
   *val = 3*M_PI*cos(M_PI*x[0])*cos(M_PI*x[1])*cos(M_PI*x[2]);
 }
 
 // Right-hand Side
 // Pick one of these and rename it myrhs
-//void rhs_2D_PX(REAL *val,REAL* x,REAL time) {
-void myrhs(REAL *val,REAL* x,REAL time) {
+void rhs_2D_PX(REAL *val,REAL* x,REAL time) {
+  //void myrhs(REAL *val,REAL* x,REAL time) {
   // 2D - grad grad
   REAL myc=-666.6;
   REAL mya=-666.6;
@@ -139,7 +139,7 @@ void rhs_3D_PX(REAL *val,REAL* x,REAL time) {
   *val = (mya*3*M_PI*M_PI + myc)*myu;
 }
 void rhs_2D_Ned(REAL *val,REAL* x,REAL time) {
-  //void myrhs(REAL *val,REAL* x,REAL time) {
+//void myrhs(REAL *val,REAL* x,REAL time) {
   // 2D - curl curl
   REAL myc=-666.6;
   REAL mya=-666.6;
@@ -150,8 +150,8 @@ void rhs_2D_Ned(REAL *val,REAL* x,REAL time) {
   val[0] = (mya*2.0*M_PI*M_PI + myc)*myu[0];
   val[1] = (mya*2.0*M_PI*M_PI + myc)*myu[1];
 }
-void rhs_3D_Ned(REAL *val,REAL* x,REAL time) {
-  //void myrhs(REAL *val,REAL* x,REAL time) {
+//void rhs_3D_Ned(REAL *val,REAL* x,REAL time) {
+void myrhs(REAL *val,REAL* x,REAL time) {
   // 3D - curl curl
   REAL myc=-666.6;
   REAL mya=-666.6;
@@ -176,7 +176,7 @@ void rhs_2D_RT(REAL *val,REAL* x,REAL time) {
   val[1] = (mya*2.0*M_PI*M_PI + myc)*myu[1];
 }
 void rhs_3D_RT(REAL *val,REAL* x,REAL time) {
-  //void myrhs(REAL *val,REAL* x,REAL time) {
+//void myrhs(REAL *val,REAL* x,REAL time) {
   // 3D - grad div
   REAL myc=-666.6;
   REAL mya=-666.6;
@@ -191,8 +191,8 @@ void rhs_3D_RT(REAL *val,REAL* x,REAL time) {
 
 // Boundary Conditions
 // Switch one to bc
-//void bc_PX(REAL *val,REAL* x,REAL time) {
-void bc(REAL *val,REAL* x,REAL time) {
+void bc_PX(REAL *val,REAL* x,REAL time) {
+  //void bc(REAL *val,REAL* x,REAL time) {
   REAL myu;
   truesol(&myu,x,time);
   *val= myu;
@@ -204,8 +204,8 @@ void bc_2Dvec(REAL *val,REAL* x,REAL time) {
   val[0] = myu[0];
   val[1] = myu[1];
 }
-void bc_3Dvec(REAL *val,REAL* x,REAL time) {
-  //  void bc(REAL *val,REAL* x,REAL time) {
+//void bc_3Dvec(REAL *val,REAL* x,REAL time) {
+void bc(REAL *val,REAL* x,REAL time) {
   REAL myu[3];
   truesol(myu,x,time);
   val[0] = myu[0];
