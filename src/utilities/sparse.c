@@ -1718,7 +1718,6 @@ void icsr_mxm_symb_max (iCSRmat *A,
  */
 
 
-/***********************************************************************************************/
 /**
  * \fn void icsr_mxm_symb_max (iCSRmat *A, iCSRmat *B, iCSRmat *C INT multmax)
  *
@@ -1766,3 +1765,425 @@ void icsr_mxm_symb_max_1 (iCSRmat *A,
                                             
 }
 
+/***********************************************************************************************/
+void dcsr_getdiag (INT n,
+                        dCSRmat *A,
+                        dvector *diag)
+{
+    /**
+     * \fn void dcsr_getdiag (INT n, dCSRmat *A, dvector *diag)
+     *
+     * \brief Get first n diagonal entries of a CSR matrix A
+     *
+     * \param n     Number of diagonal entries to get (if n=0, then get all diagonal entries)
+     * \param A     Pointer to dCSRmat CSR matrix
+     * \param diag  Pointer to the diagonal as a dvector
+     *
+     * \author Xiaozhe Hu
+     * \date   10/06/2015
+     */
+    INT i,k,j,ibegin,iend;
+    
+    if ( n==0 || n>A->row || n>A->col ) n = MIN(A->row,A->col);
+    
+    dvec_alloc(n, diag);
+    
+    for (i=0;i<n;++i) {
+        ibegin=A->IA[i]; iend=A->IA[i+1];
+            for (k=ibegin;k<iend;++k) {
+                j=A->JA[k];
+                if ((j-i)==0) {
+                    diag->val[i] = A->val[k]; break;
+            } // end if
+        } // end for k
+    } // end for i
+    
+}
+
+/***********************************************************************************************/
+void dcsr_diagpref (dCSRmat *A)
+{
+    /*!
+     * \fn void dcsr_diagpref ( dCSRmat *A )
+     *
+     * \brief Re-order the column and data arrays of a CSR matrix,
+     *        so that the first entry in each row is the diagonal
+     *
+     * \param A   Pointer to the matrix to be re-ordered
+     *
+     * \author Zhiyang Zhou
+     * \date   09/09/2010
+     *
+     * \author Chunsheng Feng, Zheng Li
+     * \date   09/02/2012
+     *
+     * \note Reordering is done in place.
+     *
+     * Modified by Chensong Zhang on Dec/21/2012
+     */
+    
+    const INT   num_rowsA = A -> row;
+    REAL      * A_data    = A -> val;
+    INT       * A_i       = A -> IA;
+    INT       * A_j       = A -> JA;
+    
+    // Local variable
+    INT    i, j;
+    INT    tempi, row_size;
+    REAL   tempd;
+    
+    for (i = 0; i < num_rowsA; i ++) {
+        row_size = A_i[i+1] - A_i[i];
+        // check whether the first entry is already diagonal
+        if (A_j[0] != i) {
+            for (j = 1; j < row_size; j ++) {
+                if (A_j[j] == i) {
+                    tempi  = A_j[0];
+                    A_j[0] = A_j[j];
+                    A_j[j] = tempi;
+                        
+                    tempd     = A_data[0];
+                    A_data[0] = A_data[j];
+                    A_data[j] = tempd;
+                    
+                    break;
+                }
+            }
+            if (j == row_size) {
+                printf("### ERROR: Diagonal entry %d is missing or zero!\n", i);
+                chkerr(ERROR_MISC, __FUNCTION__);
+            }
+        }
+        A_j    += row_size;
+        A_data += row_size;
+    }
+    
+}
+
+/***********************************************************************************************/
+void dcsr_rap (dCSRmat *R,
+                         dCSRmat *A,
+                         dCSRmat *P,
+                         dCSRmat *RAP)
+{
+    /**
+     * \fn void dcsr_rap (dCSRmat *R, dCSRmat *A, dCSRmat *P, dCSRmat *RAP)
+     *
+     * \brief Triple sparse matrix multiplication B=R*A*P
+     *
+     * \param R   Pointer to the dCSRmat matrix R
+     * \param A   Pointer to the dCSRmat matrix A
+     * \param P   Pointer to the dCSRmat matrix P
+     * \param RAP Pointer to dCSRmat matrix equal to R*A*P
+     *
+     *
+     * \note Ref. R.E. Bank and C.C. Douglas. SMMP: Sparse Matrix Multiplication Package.
+     *       Advances in Computational Mathematics, 1 (1993), pp. 127-137.
+     */
+    
+    INT n_coarse = R->row;
+    INT *R_i = R->IA;
+    INT *R_j = R->JA;
+    REAL *R_data = R->val;
+    
+    INT n_fine = A->row;
+    INT *A_i = A->IA;
+    INT *A_j = A->JA;
+    REAL *A_data = A->val;
+    
+    INT *P_i = P->IA;
+    INT *P_j = P->JA;
+    REAL *P_data = P->val;
+    
+    INT RAP_size;
+    INT *RAP_i = NULL;
+    INT *RAP_j = NULL;
+    REAL *RAP_data = NULL;
+    
+    INT *Ps_marker = NULL;
+    INT *As_marker = NULL;
+    
+    INT ic, i1, i2, i3, jj1, jj2, jj3;
+    INT jj_counter, jj_row_begining;
+    REAL r_entry, r_a_product, r_a_p_product;
+    
+    INT nthreads = 1;
+    
+    INT coarse_mul_nthreads = n_coarse * nthreads;
+    INT fine_mul_nthreads = n_fine * nthreads;
+    INT coarse_add_nthreads = n_coarse + nthreads;
+    INT minus_one_length = coarse_mul_nthreads + fine_mul_nthreads;
+    INT total_calloc = minus_one_length + coarse_add_nthreads + nthreads;
+    
+    Ps_marker = (INT *)calloc(total_calloc, sizeof(INT));
+    As_marker = Ps_marker + coarse_mul_nthreads;
+    
+    /*------------------------------------------------------*
+     *  First Pass: Determine size of RAP and set up RAP_i  *
+     *------------------------------------------------------*/
+    RAP_i = (INT *)calloc(n_coarse+1, sizeof(INT));
+    
+    iarray_set(minus_one_length, Ps_marker, -1);
+    
+    jj_counter = 0;
+    for (ic = 0; ic < n_coarse; ic ++) {
+        Ps_marker[ic] = jj_counter;
+        jj_row_begining = jj_counter;
+        jj_counter ++;
+        
+        for (jj1 = R_i[ic]; jj1 < R_i[ic+1]; jj1 ++) {
+            i1 = R_j[jj1];
+            
+            for (jj2 = A_i[i1]; jj2 < A_i[i1+1]; jj2 ++) {
+                i2 = A_j[jj2];
+                if (As_marker[i2] != ic) {
+                    As_marker[i2] = ic;
+                    for (jj3 = P_i[i2]; jj3 < P_i[i2+1]; jj3 ++) {
+                        i3 = P_j[jj3];
+                        if (Ps_marker[i3] < jj_row_begining) {
+                            Ps_marker[i3] = jj_counter;
+                            jj_counter ++;
+                        }
+                    }
+                }
+            }
+        }
+            
+        RAP_i[ic] = jj_row_begining;
+    }
+        
+    RAP_i[n_coarse] = jj_counter;
+    RAP_size = jj_counter;
+
+    
+    RAP_j = (INT *)calloc(RAP_size, sizeof(INT));
+    RAP_data = (REAL *)calloc(RAP_size, sizeof(REAL));
+    
+    iarray_set(minus_one_length, Ps_marker, -1);
+    
+    jj_counter = 0;
+    for (ic = 0; ic < n_coarse; ic ++) {
+        Ps_marker[ic] = jj_counter;
+        jj_row_begining = jj_counter;
+        RAP_j[jj_counter] = ic;
+        RAP_data[jj_counter] = 0.0;
+        jj_counter ++;
+        
+        for (jj1 = R_i[ic]; jj1 < R_i[ic+1]; jj1 ++) {
+            r_entry = R_data[jj1];
+            
+            i1 = R_j[jj1];
+            for (jj2 = A_i[i1]; jj2 < A_i[i1+1]; jj2 ++) {
+                r_a_product = r_entry * A_data[jj2];
+                    
+                i2 = A_j[jj2];
+                if (As_marker[i2] != ic) {
+                    As_marker[i2] = ic;
+                    for (jj3 = P_i[i2]; jj3 < P_i[i2+1]; jj3 ++) {
+                        r_a_p_product = r_a_product * P_data[jj3];
+                        
+                        i3 = P_j[jj3];
+                        if (Ps_marker[i3] < jj_row_begining) {
+                            Ps_marker[i3] = jj_counter;
+                            RAP_data[jj_counter] = r_a_p_product;
+                            RAP_j[jj_counter] = i3;
+                            jj_counter ++;
+                        }
+                        else {
+                            RAP_data[Ps_marker[i3]] += r_a_p_product;
+                        }
+                    }
+                }
+                else {
+                    for (jj3 = P_i[i2]; jj3 < P_i[i2+1]; jj3 ++) {
+                        i3 = P_j[jj3];
+                        r_a_p_product = r_a_product * P_data[jj3];
+                        RAP_data[Ps_marker[i3]] += r_a_p_product;
+                    }
+                }
+            }
+        }
+    }
+    
+    RAP->row = n_coarse;
+    RAP->col = n_coarse;
+    RAP->nnz = RAP_size;
+    RAP->IA = RAP_i;
+    RAP->JA = RAP_j;
+    RAP->val = RAP_data;
+    
+    free(Ps_marker);
+}
+
+
+void dcsr_rap_agg (dCSRmat *R,
+                             dCSRmat *A,
+                             dCSRmat *P,
+                             dCSRmat *RAP)
+{
+    /**
+     * \fn void dcsr_rap_agg (dCSRmat *R, dCSRmat *A, dCSRmat *P, dCSRmat *RAP)
+     *
+     * \brief Triple sparse matrix multiplication B=R*A*P
+     *
+     * \param R   Pointer to the dCSRmat matrix R
+     * \param A   Pointer to the dCSRmat matrix A
+     * \param P   Pointer to the dCSRmat matrix P
+     * \param RAP Pointer to dCSRmat matrix equal to R*A*P
+     *
+     * \author Xiaozhe Hu
+     * \date   05/10/2010
+     *
+     * \note Ref. R.E. Bank and C.C. Douglas. SMMP: Sparse Matrix Multiplication Package.
+     *       Advances in Computational Mathematics, 1 (1993), pp. 127-137.
+     */
+    
+    INT n_coarse = R->row;
+    INT *R_i = R->IA;
+    INT *R_j = R->JA;
+    
+    INT n_fine = A->row;
+    INT *A_i = A->IA;
+    INT *A_j = A->JA;
+    REAL *A_data = A->val;
+    
+    INT *P_i = P->IA;
+    INT *P_j = P->JA;
+    
+    INT RAP_size;
+    INT *RAP_i = NULL;
+    INT *RAP_j = NULL;
+    REAL *RAP_data = NULL;
+    
+    INT *Ps_marker = NULL;
+    INT *As_marker = NULL;
+    
+    INT ic, i1, i2, i3, jj1, jj2, jj3;
+    INT jj_counter, jj_row_begining;
+    
+    INT nthreads = 1;
+    
+    INT coarse_mul_nthreads = n_coarse * nthreads;
+    INT fine_mul_nthreads = n_fine * nthreads;
+    INT coarse_add_nthreads = n_coarse + nthreads;
+    INT minus_one_length = coarse_mul_nthreads + fine_mul_nthreads;
+    INT total_calloc = minus_one_length + coarse_add_nthreads + nthreads;
+    
+    Ps_marker = (INT *)calloc(total_calloc, sizeof(INT));
+    As_marker = Ps_marker + coarse_mul_nthreads;
+    
+    /*------------------------------------------------------*
+     *  First Pass: Determine size of RAP and set up RAP_i  *
+     *------------------------------------------------------*/
+    RAP_i = (INT *)calloc(n_coarse+1, sizeof(INT));
+    
+    iarray_set(minus_one_length, Ps_marker, -1);
+    
+    jj_counter = 0;
+    for (ic = 0; ic < n_coarse; ic ++) {
+        Ps_marker[ic] = jj_counter;
+        jj_row_begining = jj_counter;
+        jj_counter ++;
+        
+        for (jj1 = R_i[ic]; jj1 < R_i[ic+1]; jj1 ++) {
+            i1 = R_j[jj1];
+            
+            for (jj2 = A_i[i1]; jj2 < A_i[i1+1]; jj2 ++) {
+                i2 = A_j[jj2];
+                if (As_marker[i2] != ic) {
+                    As_marker[i2] = ic;
+                    for (jj3 = P_i[i2]; jj3 < P_i[i2+1]; jj3 ++) {
+                        i3 = P_j[jj3];
+                        if (Ps_marker[i3] < jj_row_begining) {
+                            Ps_marker[i3] = jj_counter;
+                            jj_counter ++;
+                        }
+                    }
+                }
+            }
+        }
+        
+        RAP_i[ic] = jj_row_begining;
+    }
+        
+    RAP_i[n_coarse] = jj_counter;
+    RAP_size = jj_counter;
+    
+    RAP_j = (INT *)calloc(RAP_size, sizeof(INT));
+    RAP_data = (REAL *)calloc(RAP_size, sizeof(REAL));
+    
+    iarray_set(minus_one_length, Ps_marker, -1);
+    
+    jj_counter = 0;
+    for (ic = 0; ic < n_coarse; ic ++) {
+        Ps_marker[ic] = jj_counter;
+        jj_row_begining = jj_counter;
+        RAP_j[jj_counter] = ic;
+        RAP_data[jj_counter] = 0.0;
+        jj_counter ++;
+        
+        for (jj1 = R_i[ic]; jj1 < R_i[ic+1]; jj1 ++) {
+            i1 = R_j[jj1];
+            for (jj2 = A_i[i1]; jj2 < A_i[i1+1]; jj2 ++) {
+                i2 = A_j[jj2];
+                if (As_marker[i2] != ic) {
+                    As_marker[i2] = ic;
+                    for (jj3 = P_i[i2]; jj3 < P_i[i2+1]; jj3 ++) {
+                        i3 = P_j[jj3];
+                        if (Ps_marker[i3] < jj_row_begining) {
+                            Ps_marker[i3] = jj_counter;
+                            RAP_data[jj_counter] = A_data[jj2];
+                            RAP_j[jj_counter] = i3;
+                            jj_counter ++;
+                        }
+                        else {
+                            RAP_data[Ps_marker[i3]] += A_data[jj2];
+                        }
+                    }
+                }
+                else {
+                    for (jj3 = P_i[i2]; jj3 < P_i[i2+1]; jj3 ++) {
+                        i3 = P_j[jj3];
+                        RAP_data[Ps_marker[i3]] += A_data[jj2];
+                    }
+                }
+            }
+        }
+    }
+    
+    RAP->row = n_coarse;
+    RAP->col = n_coarse;
+    RAP->nnz = RAP_size;
+    RAP->IA = RAP_i;
+    RAP->JA = RAP_j;
+    RAP->val = RAP_data;
+    
+    free(Ps_marker);
+}
+
+
+void dcsr_bandwith (dCSRmat *A,
+                              INT     *bndwith)
+{
+    /**
+     * \fn dcsr_bandwith (dCSRmat *A, INT *bndwith)
+     *
+     * \brief Get bandwith of matrix
+     *
+     * \param A       pointer to the dCSRmat matrix
+     * \param bndwith pointer to the bandwith
+     *
+     * \author Zheng Li
+     * \date   03/22/2015
+     */
+    
+    INT row = A->row;
+    INT *ia = A->IA;
+    
+    INT i, max;
+    max = 0;
+    
+    for (i=0; i<row; ++i) max = MAX(max, ia[i+1]-ia[i]);
+    
+    *bndwith = max;
+}

@@ -39,8 +39,8 @@ void reaction_coeff(REAL *val,REAL* x,REAL time) {
 
 // True Solution (if you have one)
 // Pick one of these and rename it truesol
-void truesol_2D_PX(REAL *val,REAL* x,REAL time) {
-  //void truesol(REAL *val,REAL* x,REAL time) {
+//void truesol_2D_PX(REAL *val,REAL* x,REAL time) {
+  void truesol(REAL *val,REAL* x,REAL time) {
   // 2D - grad grad
   *val = sin(M_PI*x[0])*sin(M_PI*x[1]);
 }
@@ -55,8 +55,8 @@ void truesol_2D_Ned(REAL *val,REAL* x,REAL time) {
   val[0] = cos(M_PI*x[0])*sin(M_PI*x[1]);
   val[1] = -sin(M_PI*x[0])*cos(M_PI*x[1]);
 }
-//void truesol_3D_Ned(REAL *val,REAL* x,REAL time) {
-void truesol(REAL *val,REAL* x,REAL time) {
+void truesol_3D_Ned(REAL *val,REAL* x,REAL time) {
+//void truesol(REAL *val,REAL* x,REAL time) {
   // 3D - curl curl
   val[0] = cos(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
   val[1] = sin(M_PI*x[0])*cos(M_PI*x[1])*sin(M_PI*x[2]);
@@ -78,8 +78,8 @@ void truesol_3D_RT(REAL *val,REAL* x,REAL time) {
 
 // Derivative of True Solution (if you have one)
 // Pick one of these and rename it truesol
-void D_truesol_2D_PX(REAL *val,REAL* x,REAL time) {
-  //void D_truesol(REAL *val,REAL* x,REAL time) {
+//void D_truesol_2D_PX(REAL *val,REAL* x,REAL time) {
+  void D_truesol(REAL *val,REAL* x,REAL time) {
   // 2D - grad grad
   val[0] = M_PI*cos(M_PI*x[0])*sin(M_PI*x[1]);
   val[1] = M_PI*sin(M_PI*x[0])*cos(M_PI*x[1]);
@@ -96,8 +96,8 @@ void D_truesol_2D_Ned(REAL *val,REAL* x,REAL time) {
   // 2D - curl curl
   *val = -2*M_PI*cos(M_PI*x[0])*cos(M_PI*x[1]);
 }
-//void D_truesol_3D_Ned(REAL *val,REAL* x,REAL time) {
-void D_truesol(REAL *val,REAL* x,REAL time) {
+void D_truesol_3D_Ned(REAL *val,REAL* x,REAL time) {
+//void D_truesol(REAL *val,REAL* x,REAL time) {
   // 3D - curl curl
   val[0] = -2*M_PI*sin(M_PI*x[0])*cos(M_PI*x[1])*cos(M_PI*x[2]);
   val[1] = 2*M_PI*cos(M_PI*x[0])*sin(M_PI*x[1])*cos(M_PI*x[2]);
@@ -116,8 +116,8 @@ void D_truesol_3D_RT(REAL *val,REAL* x,REAL time) {
 
 // Right-hand Side
 // Pick one of these and rename it myrhs
-void rhs_2D_PX(REAL *val,REAL* x,REAL time) {
-  //void myrhs(REAL *val,REAL* x,REAL time) {
+//void rhs_2D_PX(REAL *val,REAL* x,REAL time) {
+  void myrhs(REAL *val,REAL* x,REAL time) {
   // 2D - grad grad
   REAL myc=-666.6;
   REAL mya=-666.6;
@@ -150,8 +150,8 @@ void rhs_2D_Ned(REAL *val,REAL* x,REAL time) {
   val[0] = (mya*2.0*M_PI*M_PI + myc)*myu[0];
   val[1] = (mya*2.0*M_PI*M_PI + myc)*myu[1];
 }
-//void rhs_3D_Ned(REAL *val,REAL* x,REAL time) {
-void myrhs(REAL *val,REAL* x,REAL time) {
+void rhs_3D_Ned(REAL *val,REAL* x,REAL time) {
+//void myrhs(REAL *val,REAL* x,REAL time) {
   // 3D - curl curl
   REAL myc=-666.6;
   REAL mya=-666.6;
@@ -191,8 +191,8 @@ void rhs_3D_RT(REAL *val,REAL* x,REAL time) {
 
 // Boundary Conditions
 // Switch one to bc
-void bc_PX(REAL *val,REAL* x,REAL time) {
-  //void bc(REAL *val,REAL* x,REAL time) {
+//void bc_PX(REAL *val,REAL* x,REAL time) {
+  void bc(REAL *val,REAL* x,REAL time) {
   REAL myu;
   truesol(&myu,x,time);
   *val= myu;
@@ -204,8 +204,8 @@ void bc_2Dvec(REAL *val,REAL* x,REAL time) {
   val[0] = myu[0];
   val[1] = myu[1];
 }
-//void bc_3Dvec(REAL *val,REAL* x,REAL time) {
-void bc(REAL *val,REAL* x,REAL time) {
+void bc_3Dvec(REAL *val,REAL* x,REAL time) {
+//void bc(REAL *val,REAL* x,REAL time) {
   REAL myu[3];
   truesol(myu,x,time);
   val[0] = myu[0];
@@ -344,15 +344,20 @@ int main (int argc, char* argv[])
     
   /**************** Solve ********************************************************************/
   printf("Solving the System:\n");
-  clk1 = clock();
+  clk1=clock();
   // parameters
   INT solver_flag=-20;
-  INT solver_type = inparam.linear_itsolver_type;
-  REAL tol = inparam.linear_itsolver_tol;
-  INT MaxIt = inparam.linear_itsolver_maxit;
-  SHORT restart = 5;
-  SHORT stop_type = STOP_REL_RES;
-  SHORT print_level = PRINT_MORE;
+  
+    // set parameters for linear iterative methods
+    linear_itsolver_param linear_itparam;
+    param_solver_set(&linear_itparam, &inparam);
+    param_linear_solver_print(&linear_itparam);
+    
+    // set parameters for algebriac multigrid methods
+    AMG_param amgparam;
+    param_amg_init(&amgparam);
+    param_amg_set(&amgparam, &inparam);
+    param_amg_print(&amgparam);
     
   // Allocate the solution
   dvector u = dvec_create(b.row);
@@ -361,35 +366,50 @@ int main (int argc, char* argv[])
   dvec_set(u.row, &u, 0.0);
     
   // solve the linear system
-  if(solver_type==0) {
+    // direct solver
+  if(linear_itparam.linear_itsolver_type == 0) {
     printf(" --> using UMFPACK's Direct Solver:\n");
-    solver_flag = directsolve_UMF_symmetric(&A,&b,u.val,print_level);
-  } else if(solver_type==1) {
-    printf(" --> using Conjugate Gradient Method:\n");
-    //dcsr_shift(&A, -1);  // shift A
-    solver_flag = dcsr_pcg(&A, &b, &u, NULL, tol, MaxIt, stop_type, print_level);
-    //dcsr_shift(&A, 1);   // shift A back
-  } else if(solver_type==2) {
-    printf(" --> using MINRES:\n");
-    //dcsr_shift(&A, -1);  // shift A
-    printf(" NOTHING IMPLEMENTED FOR MINRES\n");
-    //dcsr_shift(&A, 1);   // shift A back
-  } else if(solver_type==3) {
-    printf(" --> using GMRES:\n");
-    //dcsr_shift(&A, -1);  // shift A
-    solver_flag = dcsr_pvgmres(&A, &b, &u, NULL, tol, MaxIt, restart, stop_type, print_level);
-    //dcsr_shift(&A, 1);   // shift A back
-  } else {
-    printf("Unknown Solver Type\n");
-    exit(0);
+    solver_flag = directsolve_UMF_symmetric(&A,&b,u.val,linear_itparam.linear_print_level);
+  }
+    // itertive solver
+  else {
+      dcsr_shift(&A, -1);  // shift A
+      
+      // use AMG as iterative solver
+      if (linear_itparam.linear_itsolver_type == SOLVER_AMG){
+          solver_flag = linear_solver_amg(&A, &b, &u, &amgparam);
+      }
+      // use Krylov iterative solver
+      else {
+          
+          switch (linear_itparam.linear_precond_type) {
+          
+              case PREC_DIAG:  // diagonal preconditioner
+                  solver_flag = linear_solver_dcsr_krylov_diag(&A, &b, &u, &linear_itparam);
+                  break;
+                  
+              case PREC_AMG:  // AMG preconditioner
+                  solver_flag = linear_solver_dcsr_krylov_amg(&A, &b, &u, &linear_itparam, &amgparam);
+                  break;
+          
+              default:  // no preconditioner
+                  solver_flag = linear_solver_dcsr_krylov(&A, &b, &u, &linear_itparam);
+                  break;
+     
+          }
+      }
+    
+      
+      dcsr_shift(&A, 1);   // shift A back
   }
   
   // Error Check
   if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);  
 
-  clk2 = clock();
+    clk2=clock();
   printf(" --> elapsed CPU time for solve = %f seconds.\n\n",(REAL) (clk2-clk1)/CLOCKS_PER_SEC);
-  /*******************************************************************************************/    
+
+  /*******************************************************************************************/
        
   /**************** Compute Errors if you have true solution *********************************/
   printf("Computing True Solution and Errors:\n");

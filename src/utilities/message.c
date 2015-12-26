@@ -91,3 +91,150 @@ void print_message (const INT ptrlvl,
     if ( ptrlvl > PRINT_NONE ) printf("%s", message);
 }
 
+/***********************************************************************************************/
+void print_amgcomplexity (AMG_data *mgl,
+                          const SHORT prtlvl)
+{
+    /**
+     * \fn void void print_amgcomplexity (AMG_data *mgl, const SHORT prtlvl)
+     *
+     * \brief Print complexities of AMG method
+     *
+     * \param mgl      Multilevel hierachy for AMG
+     * \param prtlvl   How much information to print
+     *
+     * \author Chensong Zhang
+     * \date   11/16/2009
+     */
+    
+    const SHORT   max_levels=mgl->num_levels;
+    SHORT         level;
+    REAL          gridcom=0.0, opcom=0.0;
+    
+    if ( prtlvl >= PRINT_SOME ) {
+        
+        printf("-----------------------------------------------------------\n");
+        printf("  Level   Num of rows   Num of nonzeros   Avg. NNZ / row   \n");
+        printf("-----------------------------------------------------------\n");
+        
+        for ( level = 0; level < max_levels; ++level) {
+            REAL AvgNNZ = (REAL) mgl[level].A.nnz/mgl[level].A.row;
+            printf("%5d %13d %17d %14.2f\n",
+                   level, mgl[level].A.row, mgl[level].A.nnz, AvgNNZ);
+            gridcom += mgl[level].A.row;
+            opcom   += mgl[level].A.nnz;
+        }
+        printf("-----------------------------------------------------------\n");
+        
+        gridcom /= mgl[0].A.row;
+        opcom   /= mgl[0].A.nnz;
+        printf("  Grid complexity = %.3f  |", gridcom);
+        printf("  Operator complexity = %.3f\n", opcom);
+        
+        printf("-----------------------------------------------------------\n");
+        
+    }
+}
+
+
+/***********************************************************************************************/
+void chkerr (const SHORT status,
+                  const char *fctname)
+{
+    
+    /**
+     * \fn void chkerr (const SHORT status, const char *fctname)
+     *
+     * \brief Check error status and print out error messages before quit
+     *
+     * \param status   Error status
+     * \param fctname  Function name where this routine is called
+     *
+     * \author Chensong Zhang
+     * \date   01/10/2012
+     */
+    
+    if ( status >= 0 ) return; // No error at all
+    
+    switch ( status ) {
+        case ERROR_OPEN_FILE:
+            printf("### ERROR: %s -- Cannot open file!\n", fctname);
+            break;
+        case ERROR_WRONG_FILE:
+            printf("### ERROR: %s -- Wrong file format!\n", fctname);
+            break;
+        case ERROR_INPUT_PAR:
+            printf("### ERROR: %s -- Wrong input arguments!\n", fctname);
+            break;
+        case ERROR_REGRESS:
+            printf("### ERROR: %s -- Regression test failed!\n", fctname);
+            break;
+        case ERROR_ALLOC_MEM:
+            printf("### ERROR: %s -- Cannot allocate memory!\n", fctname);
+            break;
+        case ERROR_NUM_BLOCKS:
+            printf("### ERROR: %s -- Wrong number of blocks!\n", fctname);
+            break;
+        case ERROR_DATA_STRUCTURE:
+            printf("### ERROR: %s -- Data structure mismatch!\n", fctname);
+            break;
+        case ERROR_DATA_ZERODIAG:
+            printf("### ERROR: %s -- Matrix has zero diagonal entries!\n", fctname);
+            break;
+        case ERROR_DUMMY_VAR:
+            printf("### ERROR: %s -- Unexpected input argument!\n", fctname);
+            break;
+        case ERROR_AMG_INTERP_TYPE:
+            printf("### ERROR: %s -- Unknown AMG interpolation type!\n", fctname);
+            break;
+        case ERROR_AMG_COARSE_TYPE:
+            printf("### ERROR: %s -- Unknown AMG coarsening type!\n", fctname);
+            break;
+        case ERROR_AMG_SMOOTH_TYPE:
+            printf("### ERROR: %s -- Unknown AMG smoother type!\n", fctname);
+            break;
+        case ERROR_SOLVER_TYPE:
+            printf("### ERROR: %s -- Unknown solver type!\n", fctname);
+            break;
+        case ERROR_SOLVER_PRECTYPE:
+            printf("### ERROR: %s -- Unknown preconditioner type!\n", fctname);
+            break;
+        case ERROR_SOLVER_STAG:
+            printf("### ERROR: %s -- Solver stagnation error!\n", fctname);
+            break;
+        case ERROR_SOLVER_SOLSTAG:
+            printf("### ERROR: %s -- Solution is close to zero!\n", fctname);
+            break;
+        case ERROR_SOLVER_TOLSMALL:
+            printf("### ERROR: %s -- Tol is too small for the solver!\n", fctname);
+            break;
+        case ERROR_SOLVER_ILUSETUP:
+            printf("### ERROR: %s -- ILU setup failed!\n", fctname);
+            break;
+        case ERROR_SOLVER_MAXIT:
+            printf("### ERROR: %s -- Max iteration number reached!\n", fctname);
+            break;
+        case ERROR_SOLVER_EXIT:
+            printf("### ERROR: %s -- Solver exited unexpected!\n", fctname);
+            break;
+        case ERROR_SOLVER_MISC:
+            printf("### ERROR: %s -- Unknown solver runtime error!\n", fctname);
+            break;
+        case ERROR_MISC:
+            printf("### ERROR: %s -- Unknown error occurred!\n", fctname);
+            break;
+        case ERROR_QUAD_TYPE:
+            printf("### ERROR: %s -- Unknown quadrature rules!\n", fctname);
+            break;
+        case ERROR_QUAD_DIM:
+            printf("### ERROR: %s -- Num of quad points is not supported!\n", fctname);
+            break;
+        case ERROR_UNKNOWN:
+            printf("### ERROR: %s -- Function does not exit successfully!\n", fctname);
+            break;
+        default:
+            break;
+    }
+    
+    exit(status);
+}

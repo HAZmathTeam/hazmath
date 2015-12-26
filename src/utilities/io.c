@@ -67,3 +67,49 @@ void dvector_print(FILE* fid,dvector *b)
   }
   return;
 }
+
+
+void dcsr_write_dcoo (const char *filename,
+                      dCSRmat *A)
+{
+    /**
+     * \fn void dcsr_write_dcoo (const char *filename, dCSRmat *A)
+     *
+     * \brief Write a matrix to disk file in IJ format (coordinate format)
+     *
+     * \param A         pointer to the dCSRmat matrix
+     * \param filename  char for vector file name
+     *
+     * \note
+     *
+     *      The routine writes the specified REAL vector in COO format.
+     *      Refer to the reading subroutine \ref fasp_dcoo_read.
+     *
+     * \note File format:
+     *   - The first line of the file gives the number of rows, the
+     *   number of columns, and the number of nonzeros.
+     *   - Then gives nonzero values in i j a(i,j) format.
+     *
+     */
+    
+    const INT m = A->row, n = A->col;
+    INT i, j;
+    
+    FILE *fp = fopen(filename, "w");
+    
+    if ( fp == NULL ) {
+        printf("### ERROR: Cannot open %s!\n", filename);
+        chkerr(ERROR_OPEN_FILE, __FUNCTION__);
+    }
+    
+    printf("%s: writing to file %s...\n", __FUNCTION__, filename);
+    
+    fprintf(fp,"%d  %d  %d\n",m,n,A->nnz);
+    for ( i = 0; i < m; ++i ) {
+        for ( j = A->IA[i]; j < A->IA[i+1]; j++ )
+            fprintf(fp,"%d  %d  %0.15e\n",i,A->JA[j],A->val[j]);
+    }
+    
+    fclose(fp);
+}
+

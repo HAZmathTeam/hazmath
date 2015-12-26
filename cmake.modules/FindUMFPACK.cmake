@@ -16,7 +16,7 @@ find_package(BLAS)
 find_package(SUITESPARSECONFIG)
 find_package(AMD)
 ### next one not needed if we only want UMFPACK.
-#### find_package(CHOLMOD) 
+find_package(CHOLMOD) 
 
 message(STATUS "Checking for package 'UMFPACK'")
 

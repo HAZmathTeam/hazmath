@@ -9,7 +9,9 @@
 #  02/27/2013
 #  Modified   2015-08-08   --ltz
 
-# Find packages that SUITESPARSE depends on 
+# Find packages that SUITESPARSE depends on
+find_package(BLAS)
+find_package(LAPACK) 
 find_package(SUITESPARSECONFIG)
 find_package(AMD)
 find_package(UMFPACK)
@@ -20,8 +22,9 @@ find_package(CCOLAMD)
 if(NOT APPLE) 
  find_package(RT)
 endif(NOT APPLE)
-find_package(BLAS)
-find_package(LAPACK)
+#find_package(BLAS)
+#find_package(LAPACK)
+#find_package(UMFPACK)
 
 message(STATUS "Checking for packages in 'SUITESPARSE'")
 

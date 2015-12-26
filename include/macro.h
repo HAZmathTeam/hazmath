@@ -97,11 +97,137 @@
 #define REAL             double     /**< float type */
 
 /**
+ * \brief Definition of solver types for iterative methods
+ */
+#define SOLVER_DEFAULT          0  /**< Use default solver */
+//---------------------------------------------------------------------------------
+#define SOLVER_CG               1  /**< Conjugate Gradient */
+#define SOLVER_MinRes           2  /**< Minimal Residual */
+#define SOLVER_VGMRES           3  /**< Variable Restarting GMRES */
+#define SOLVER_VFGMRES          4  /**< Variable Restarting Flexible GMRES */
+#define SOLVER_GCG              5  /**< Generalized Conjugate Gradient */
+#define SOLVER_GCR              6  /**< Generalized Conjugate Residual */
+//---------------------------------------------------------------------------------
+#define SOLVER_SCG             11  /**< Conjugate Gradient with safe net */
+#define SOLVER_SMinRes         12  /**< MinRes with safe net */
+#define SOLVER_SVGMRES         13  /**< Variable-restart GMRES with safe net */
+#define SOLVER_SVFGMRES        14  /**< Variable-restart FGMRES with safe net */
+#define SOLVER_SGCG            15  /**< GCG with safe net */
+//---------------------------------------------------------------------------------
+#define SOLVER_AMG             21  /**< AMG as an iterative solver */
+#define SOLVER_FMG             22  /**< Full AMG as an solver */
+//---------------------------------------------------------------------------------
+#define SOLVER_SUPERLU         31  /**< SuperLU Direct Solver */
+#define SOLVER_UMFPACK         32  /**< UMFPack Direct Solver */
+#define SOLVER_MUMPS           33  /**< MUMPS   Direct Solver */
+
+
+/**
  * \brief Definition of iterative solver stopping criteria types
  */
 #define STOP_REL_RES            1  /**< relative residual ||r||/||b|| */
 #define STOP_REL_PRECRES        2  /**< relative B-residual ||r||_B/||b||_B */
 #define STOP_MOD_REL_RES        3  /**< modified relative residual ||r||/||x|| */
+
+/**
+ * \brief Definition of preconditioner type for iterative methods
+ */
+#define PREC_NULL               0  /**< with no precond */
+#define PREC_DIAG               1  /**< with diagonal precond */
+#define PREC_AMG                2  /**< with AMG precond */
+#define PREC_FMG                3  /**< with full AMG precond */
+#define PREC_ILU                4  /**< with ILU precond */
+#define PREC_SCHWARZ            5  /**< with Schwarz preconditioner */
+
+/**
+ * \brief Type of ILU methods
+ */
+#define ILUk                    1  /**< ILUk */
+#define ILUt                    2  /**< ILUt */
+#define ILUtp                   3  /**< ILUtp */
+
+/**
+ * \brief Type of Schwarz smoother
+ */
+#define SCHWARZ_FORWARD         1  /**< Forward ordering */
+#define SCHWARZ_BACKWARD        2  /**< Backward ordering */
+#define SCHWARZ_SYMMETRIC       3  /**< Symmetric smoother */
+
+/**
+ * \brief Definition of AMG types
+ */
+#define CLASSIC_AMG             1  /**< classic AMG */
+#define SA_AMG                  2  /**< smoothed aggregation AMG */
+#define UA_AMG                  3  /**< unsmoothed aggregation AMG */
+
+/**
+ * \brief Definition of aggregation types
+ */
+#define PAIRWISE                1  /**< pairwise aggregation */
+#define VMB                     2  /**< VMB aggregation */
+
+/**
+ * \brief Definition of cycle types
+ */
+#define V_CYCLE                 1  /**< V-cycle */
+#define W_CYCLE                 2  /**< W-cycle */
+#define AMLI_CYCLE              3  /**< AMLI-cycle */
+#define NL_AMLI_CYCLE           4  /**< Nonlinear AMLI-cycle */
+
+/**
+ * \brief Definition of standard smoother types
+ */
+#define SMOOTHER_JACOBI         1  /**< Jacobi smoother */
+#define SMOOTHER_GS             2  /**< Gauss-Seidel smoother */
+#define SMOOTHER_SGS            3  /**< Symmetric Gauss-Seidel smoother */
+#define SMOOTHER_CG             4  /**< CG as a smoother */
+#define SMOOTHER_SOR            5  /**< SOR smoother */
+#define SMOOTHER_SSOR           6  /**< SSOR smoother */
+#define SMOOTHER_GSOR           7  /**< GS + SOR smoother */
+#define SMOOTHER_SGSOR          8  /**< SGS + SSOR smoother */
+#define SMOOTHER_POLY           9  /**< Polynomial smoother */
+#define SMOOTHER_L1DIAG        10  /**< L1 norm diagonal scaling smoother */
+
+/**
+ * \brief Definition of coarsening types
+ */
+#define COARSE_RS               1  /**< Classical coarsening */
+#define COARSE_RSP              2  /**< Classical coarsening with positive offdiags*/
+#define COARSE_CR               3  /**< Compatible relaxation */
+#define COARSE_AC               4  /**< Aggressive coarsening */
+#define COARSE_MIS              5  /**< Aggressive coarsening based on MIS */
+
+/**
+ * \brief Definition of interpolation types
+ */
+#define INTERP_DIR              1  /**< Direct interpolation */
+#define INTERP_STD              2  /**< Standard interpolation */
+#define INTERP_ENG              3  /**< energy minimization interpolation */
+
+/**
+ * \brief Type of vertices (DOFs) for coarsening
+ */
+#define G0PT                   -5  /**< Cannot fit in aggregates */
+#define UNPT                   -1  /**< Undetermined points */
+#define FGPT                    0  /**< Fine grid points  */
+#define CGPT                    1  /**< Coarse grid points */
+#define ISPT                    2  /**< Isolated points */
+
+/**
+ * \brief Definition of smoothing order
+ */
+#define NO_ORDER                0  /**< Natural order smoothing */
+#define CF_ORDER                1  /**< C/F order smoothing */
+
+/**
+ * \brief Type of ordering for smoothers
+ */
+#define USERDEFINED             0  /**< User defined order */
+#define CPFIRST                 1  /**< C-points first order */
+#define FPFIRST                -1  /**< F-points first order */
+#define ASCEND                 12  /**< Ascending order */
+#define DESCEND                21  /**< Descending order */
+
 
 /**
  * \brief Definition of max, min, abs
