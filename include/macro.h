@@ -191,8 +191,8 @@
 /**
  * \brief Definition of coarsening types
  */
-#define COARSE_RS               1  /**< Classical coarsening */
-#define COARSE_RSP              2  /**< Classical coarsening with positive offdiags*/
+#define COARSE_C               1  /**< Classical coarsening */
+#define COARSE_CP              2  /**< Classical coarsening with positive offdiags*/
 #define COARSE_CR               3  /**< Compatible relaxation */
 #define COARSE_AC               4  /**< Aggressive coarsening */
 #define COARSE_MIS              5  /**< Aggressive coarsening based on MIS */

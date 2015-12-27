@@ -94,6 +94,15 @@ typedef struct {
     //SHORT AMG_nl_amli_krylov_type; /**< type of Krylov method used by nonlinear AMLI cycle */
     //INT AMG_Schwarz_levels;        /**< number of levels use Schwarz smoother */
     
+    // Classsical AMG
+    SHORT AMG_coarsening_type;     /**< coarsening type */
+    SHORT AMG_interpolation_type;  /**< interpolation type */
+    REAL AMG_strong_threshold;     /**< strong threshold for coarsening */
+    REAL AMG_truncation_threshold; /**< truncation factor for interpolation */
+    REAL AMG_max_row_sum;          /**< maximal row sum */
+    INT AMG_aggressive_level;      /**< number of levels use aggressive coarsening */
+    INT AMG_aggressive_path;       /**< number of paths used to determine strongly coupled C-set */
+
     // Aggregation AMG
     SHORT AMG_aggregation_type;    /**< aggregation type */
     REAL AMG_strong_coupled;       /**< strong coupled threshold for aggregate */

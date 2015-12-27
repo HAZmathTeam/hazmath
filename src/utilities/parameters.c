@@ -25,7 +25,7 @@ void param_amg_init (AMG_param *amgparam)
      */
     
     // General AMG parameters
-    amgparam->AMG_type             = UA_AMG;
+    amgparam->AMG_type             = CLASSIC_AMG;
     amgparam->print_level          = PRINT_NONE;
     amgparam->maxit                = 1;
     amgparam->tol                  = 1e-6;
@@ -45,8 +45,8 @@ void param_amg_init (AMG_param *amgparam)
     amgparam->nl_amli_krylov_type  = SOLVER_GCG;
     
     // Classical AMG specific
-    amgparam->coarsening_type      = COARSE_RS;
-    amgparam->interpolation_type   = INTERP_DIR;
+    amgparam->coarsening_type      = COARSE_C;
+    amgparam->interpolation_type   = INTERP_STD;
     amgparam->max_row_sum          = 0.9;
     amgparam->strong_threshold     = 0.3;
     amgparam->truncation_threshold = 0.2;
@@ -268,13 +268,13 @@ void param_amg_set (AMG_param *param,
     //param->amli_coef            = NULL;
     //param->nl_amli_krylov_type  = iniparam->AMG_nl_amli_krylov_type;
     
-    //param->coarsening_type      = iniparam->AMG_coarsening_type;
-    //param->interpolation_type   = iniparam->AMG_interpolation_type;
-    //param->strong_threshold     = iniparam->AMG_strong_threshold;
-    //param->truncation_threshold = iniparam->AMG_truncation_threshold;
-    //param->max_row_sum          = iniparam->AMG_max_row_sum;
-    //param->aggressive_level     = iniparam->AMG_aggressive_level;
-    //param->aggressive_path      = iniparam->AMG_aggressive_path;
+    param->coarsening_type      = iniparam->AMG_coarsening_type;
+    param->interpolation_type   = iniparam->AMG_interpolation_type;
+    param->strong_threshold     = iniparam->AMG_strong_threshold;
+    param->truncation_threshold = iniparam->AMG_truncation_threshold;
+    param->max_row_sum          = iniparam->AMG_max_row_sum;
+    param->aggressive_level     = iniparam->AMG_aggressive_level;
+    param->aggressive_path      = iniparam->AMG_aggressive_path;
     
     param->aggregation_type     = iniparam->AMG_aggregation_type;
     param->pair_number          = iniparam->AMG_pair_number;
@@ -367,6 +367,7 @@ void param_amg_to_prec (precond_data *pcdata,
     pcdata->amli_coef           = amgparam->amli_coef;
     pcdata->nl_amli_krylov_type = amgparam->nl_amli_krylov_type;
     pcdata->tentative_smooth    = amgparam->tentative_smooth;
+    
 }
 
 

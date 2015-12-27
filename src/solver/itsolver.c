@@ -168,8 +168,7 @@ INT linear_solver_amg (dCSRmat *A,
             
         default: // Classical AMG setup
             if ( prtlvl > PRINT_NONE ) printf("\nCalling classical AMG ...\n");
-            //status = fasp_amg_setup_rs(mgl, param);
-            status = amg_setup_ua(mgl, param); break;
+            status = amg_setup_c(mgl, param); break;
             
     }
     
@@ -364,8 +363,7 @@ INT linear_solver_dcsr_krylov_amg (dCSRmat *A,
             status = amg_setup_ua(mgl, amgparam); break;
             
         default: // Classical AMG
-            //status = fasp_amg_setup_rs(mgl, amgparam); break;
-            status = amg_setup_ua(mgl, amgparam); break;
+            status = amg_setup_c(mgl, amgparam); break;
             
     }
     
