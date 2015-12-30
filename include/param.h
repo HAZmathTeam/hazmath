@@ -90,8 +90,8 @@ typedef struct {
     //SHORT AMG_ILU_levels;          /**< how many levels use ILU smoother */
     SHORT AMG_coarse_solver;       /**< coarse solver type */
     SHORT AMG_coarse_scaling;      /**< switch of scaling of the coarse grid correction */
-    //SHORT AMG_amli_degree;         /**< degree of the polynomial used by AMLI cycle */
-    //SHORT AMG_nl_amli_krylov_type; /**< type of Krylov method used by nonlinear AMLI cycle */
+    SHORT AMG_amli_degree;         /**< degree of the polynomial used by AMLI cycle */
+    SHORT AMG_nl_amli_krylov_type; /**< type of Krylov method used by nonlinear AMLI cycle */
     //INT AMG_Schwarz_levels;        /**< number of levels use Schwarz smoother */
     
     // Classsical AMG

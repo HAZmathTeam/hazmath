@@ -349,6 +349,28 @@ void param_input (const char *filenm,
             fgets(buffer,500,fp); // skip rest of line
         }
         
+        else if (strcmp(buffer,"AMG_amli_degree")==0) {
+            val = fscanf(fp,"%s",buffer);
+            if (val!=1 || strcmp(buffer,"=")!=0) {
+                status = ERROR_INPUT_PAR; break;
+            }
+            val = fscanf(fp,"%d",&ibuff);
+            if (val!=1) { status = ERROR_INPUT_PAR; break; }
+            inparam->AMG_amli_degree = ibuff;
+            fgets(buffer,500,fp); // skip rest of line
+        }
+        
+        else if (strcmp(buffer,"AMG_nl_amli_krylov_type")==0) {
+            val = fscanf(fp,"%s",buffer);
+            if (val!=1 || strcmp(buffer,"=")!=0) {
+                status = ERROR_INPUT_PAR; break;
+            }
+            val = fscanf(fp,"%d",&ibuff);
+            if (val!=1) { status = ERROR_INPUT_PAR; break; }
+            inparam->AMG_nl_amli_krylov_type = ibuff;
+            fgets(buffer,500,fp); // skip rest of line
+        }
+        
         else if (strcmp(buffer,"AMG_smoother")==0) {
             val = fscanf(fp,"%s",buffer);
             if (val!=1 || strcmp(buffer,"=")!=0) {

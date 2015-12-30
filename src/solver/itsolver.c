@@ -59,18 +59,36 @@ INT solver_dcsr_linear_itsolver (dCSRmat *A,
     /* Choose a desirable Krylov iterative solver */
     switch ( itsolver_type ) {
         case 1:
-            if ( prtlvl > PRINT_NONE ) printf(" --> using Conjugate Gradient Method:\n");
+            if ( prtlvl > PRINT_NONE ) {
+                printf("**********************************************************\n");
+                printf(" --> using Conjugate Gradient Method:\n");
+            }
             iter = dcsr_pcg(A, b, x, pc, tol, MaxIt, stop_type, prtlvl);
             break;
             
         case 2:
-            if ( prtlvl > PRINT_NONE )printf(" --> using MINRES:\n");
+            if ( prtlvl > PRINT_NONE ) {
+                printf("**********************************************************\n");
+                printf(" --> using MINRES Method:\n");
+            }
+            iter = dcsr_pminres(A, b, x, pc, tol, MaxIt, stop_type, prtlvl);
             printf(" NOTHING IMPLEMENTED FOR MINRES\n");
             break;
             
         case 3:
-            if ( prtlvl > PRINT_NONE ) printf(" --> using GMRES:\n");
+            if ( prtlvl > PRINT_NONE )  {
+                printf("**********************************************************\n");
+                printf(" --> using GMRES Method:\n");
+            }
             iter = dcsr_pvgmres(A, b, x, pc, tol, MaxIt, restart, stop_type, prtlvl);
+            break;
+            
+        case 4:
+            if ( prtlvl > PRINT_NONE ) {
+                printf("**********************************************************\n");
+                printf(" --> using Flexible GMRES Method:\n");
+            }
+            iter = dcsr_pvfgmres(A, b, x, pc, tol, MaxIt, restart, stop_type, prtlvl);
             break;
             
         default:
@@ -159,7 +177,7 @@ INT linear_solver_amg (dCSRmat *A,
             /*
         case SA_AMG: // Smoothed Aggregation AMG setup
             if ( prtlvl > PRINT_NONE ) printf("\nCalling SA AMG ...\n");
-            status = fasp_amg_setup_sa(mgl, param); break;
+            status = amg_setup_sa(mgl, param); break;
              */
             
         case UA_AMG: // Unsmoothed Aggregation AMG setup
@@ -177,13 +195,11 @@ INT linear_solver_amg (dCSRmat *A,
         
         switch (cycle_type) {
             
-                /*
             case AMLI_CYCLE: // AMLI-cycle
-                fasp_amg_solve_amli(mgl, param); break;
+                status = amg_solve_amli(mgl, param); break;
                 
             case NL_AMLI_CYCLE: // Nonlinear AMLI-cycle
-                fasp_amg_solve_nl_amli(mgl, param); break;
-                 */
+                status = amg_solve_nl_amli(mgl, param); break;
                 
             default: // V,W-cycles (determined by param)
                 status = amg_solve(mgl, param); break;
@@ -212,6 +228,7 @@ INT linear_solver_amg (dCSRmat *A,
     if ( prtlvl > PRINT_NONE ) {
         gettime(&AMG_end);
         print_cputime("AMG totally", AMG_end - AMG_start);
+        printf("**********************************************************\n");
     }
     
     return status;
@@ -252,11 +269,8 @@ INT linear_solver_dcsr_krylov (dCSRmat *A,
         gettime(&solver_end);
         solver_duration = solver_end - solver_start;
         print_cputime("Krylov method totally", solver_duration);
+        printf("**********************************************************");
     }
-    
-#if DEBUG_MODE > 0
-    printf("### DEBUG: %s ...... [Finish]\n", __FUNCTION__);
-#endif
     
     return status;
 }
@@ -305,6 +319,8 @@ INT linear_solver_dcsr_krylov_diag (dCSRmat *A,
         gettime(&solver_end);
         solver_duration = solver_end - solver_start;
         print_cputime("Diag_Krylov method totally", solver_duration);
+        printf("**********************************************************\n");
+
     }
     
     dvec_free(&diag);
@@ -376,23 +392,21 @@ INT linear_solver_dcsr_krylov_amg (dCSRmat *A,
     pcdata.mgl_data = mgl;
     
     precond pc; pc.data = &pcdata;
-    pc.fct = precond_amg;
-     
-    /*
-    if (itparam->precond_type == PREC_FMG) {
-        pc.fct = fasp_precond_famg; // Full AMG
-    }
-    else {
+    //pc.fct = precond_amg;
+    
+    //if (itparam->precond_type == PREC_FMG) {
+    //    pc.fct = fasp_precond_famg; // Full AMG
+    //}
+    //else {
         switch (amgparam->cycle_type) {
             case AMLI_CYCLE: // AMLI cycle
-                pc.fct = fasp_precond_amli; break;
+                pc.fct = precond_amli; break;
             case NL_AMLI_CYCLE: // Nonlinear AMLI AMG
-                pc.fct = fasp_precond_nl_amli; break;
+                pc.fct = precond_nl_amli; break;
             default: // V,W-Cycle AMG
-                pc.fct = fasp_precond_amg; break;
+                pc.fct = precond_amg; break;
         }
-    }
-     */
+    //}
     
     // call iterative solver
     status = solver_dcsr_linear_itsolver(A, b, x, &pc, itparam);
@@ -401,6 +415,7 @@ INT linear_solver_dcsr_krylov_amg (dCSRmat *A,
         gettime(&solver_end);
         solver_duration = solver_end - solver_start;
         print_cputime("AMG_Krylov method totally", solver_duration);
+        printf("**********************************************************\n");
     }
     
 FINISHED:

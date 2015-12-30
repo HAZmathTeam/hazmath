@@ -264,9 +264,9 @@ void param_amg_set (AMG_param *param,
     param->postsmooth_iter      = iniparam->AMG_postsmooth_iter;
     param->coarse_dof           = iniparam->AMG_coarse_dof;
     param->coarse_scaling       = iniparam->AMG_coarse_scaling;
-    //param->amli_degree          = iniparam->AMG_amli_degree;
-    //param->amli_coef            = NULL;
-    //param->nl_amli_krylov_type  = iniparam->AMG_nl_amli_krylov_type;
+    param->amli_degree          = iniparam->AMG_amli_degree;
+    param->amli_coef            = NULL;
+    param->nl_amli_krylov_type  = iniparam->AMG_nl_amli_krylov_type;
     
     param->coarsening_type      = iniparam->AMG_coarsening_type;
     param->interpolation_type   = iniparam->AMG_interpolation_type;
