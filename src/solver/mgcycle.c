@@ -136,19 +136,20 @@ ForwardSweep:
             break;
         }
 #endif
+ */
             
-#if WITH_UMFPACK
+#if WITH_SUITESPARSE
         case SOLVER_UMFPACK: {
             // use UMFPACK direct solver on the coarsest level
-            fasp_umfpack_solve(&mgl[nl-1].A, &mgl[nl-1].b, &mgl[nl-1].x, mgl[nl-1].Numeric, 0);
+            umfpack_solve(&mgl[nl-1].A, &mgl[nl-1].b, &mgl[nl-1].x, mgl[nl-1].Numeric, 0);
             break;
         }
 #endif
- */
             
         default:
             // use iterative solver on the coarsest level
             coarse_itsolver(&mgl[nl-1].A, &mgl[nl-1].b, &mgl[nl-1].x, tol, prtlvl);
+            break;
             
     }
     
@@ -402,14 +403,7 @@ void amli (AMG_data *mgl,
                 fasp_solver_superlu(A0, b0, e0, 0);
                 break;
 #endif
-                
-#if WITH_UMFPACK
-            case SOLVER_UMFPACK:
-                // use UMFPACK direct solver on the coarsest level //
-                fasp_umfpack_solve(A0, b0, e0, mgl[level].Numeric, 0);
-                break;
-#endif
-                
+         
 #if WITH_MUMPS
             case SOLVER_MUMPS:
                 // use MUMPS direct solver on the coarsest level //
@@ -418,6 +412,13 @@ void amli (AMG_data *mgl,
                 break;
 #endif
          */
+                
+#if WITH_SUITESPARSE
+            case SOLVER_UMFPACK:
+                // use UMFPACK direct solver on the coarsest level //
+                umfpack_solve(A0, b0, e0, mgl[level].Numeric, 0);
+                break;
+#endif
                 
             default:
                 /* use iterative solver on the coarsest level */
@@ -632,14 +633,7 @@ void nl_amli (AMG_data *mgl,
                 fasp_solver_superlu(A0, b0, e0, 0);
                 break;
 #endif
-                
-#if WITH_UMFPACK
-            case SOLVER_UMFPACK:
-                // use UMFPACK direct solver on the coarsest level //
-                fasp_umfpack_solve(A0, b0, e0, mgl[level].Numeric, 0);
-                break;
-#endif
-                
+                 
 #if WITH_MUMPS
             case SOLVER_MUMPS:
                 // use MUMPS direct solver on the coarsest level //
@@ -648,6 +642,13 @@ void nl_amli (AMG_data *mgl,
                 break;
 #endif
                  */
+                
+#if WITH_SUITESPARSE
+            case SOLVER_UMFPACK:
+                // use UMFPACK direct solver on the coarsest level //
+                umfpack_solve(A0, b0, e0, mgl[level].Numeric, 0);
+                break;
+#endif
                 
             default:
                 /* use iterative solver on the coarsest level */

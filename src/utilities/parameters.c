@@ -262,6 +262,7 @@ void param_amg_set (AMG_param *param,
     //param->polynomial_degree    = iniparam->AMG_polynomial_degree;
     param->presmooth_iter       = iniparam->AMG_presmooth_iter;
     param->postsmooth_iter      = iniparam->AMG_postsmooth_iter;
+    param->coarse_solver        = iniparam->AMG_coarse_solver;
     param->coarse_dof           = iniparam->AMG_coarse_dof;
     param->coarse_scaling       = iniparam->AMG_coarse_scaling;
     param->amli_degree          = iniparam->AMG_amli_degree;
