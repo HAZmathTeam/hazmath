@@ -276,6 +276,61 @@ void param_input (const char *filenm,
             fgets(buffer,500,fp); // skip rest of line
         }
         
+        else if (strcmp(buffer,"ILU_type")==0) {
+            val = fscanf(fp,"%s",buffer);
+            if (val!=1 || strcmp(buffer,"=")!=0) {
+                status = ERROR_INPUT_PAR; break;
+            }
+            val = fscanf(fp,"%d",&ibuff);
+            if (val!=1) { status = ERROR_INPUT_PAR; break; }
+            inparam->ILU_type = ibuff;
+            fgets(buffer,500,fp); // skip rest of line
+        }
+        
+        else if (strcmp(buffer,"ILU_lfil")==0) {
+            val = fscanf(fp,"%s",buffer);
+            if (val!=1 || strcmp(buffer,"=")!=0) {
+                status = ERROR_INPUT_PAR; break;
+            }
+            val = fscanf(fp,"%d",&ibuff);
+            if (val!=1) { status = ERROR_INPUT_PAR; break; }
+            inparam->ILU_lfil = ibuff;
+            fgets(buffer,500,fp); // skip rest of line
+        }
+        
+        else if (strcmp(buffer,"ILU_droptol")==0) {
+            val = fscanf(fp,"%s",buffer);
+            if (val!=1 || strcmp(buffer,"=")!=0) {
+                status = ERROR_INPUT_PAR; break;
+            }
+            val = fscanf(fp,"%lf",&dbuff);
+            if (val!=1) { status = ERROR_INPUT_PAR; break; }
+            inparam->ILU_droptol = dbuff;
+            fgets(buffer,500,fp); // skip rest of line
+        }
+        
+        else if (strcmp(buffer,"ILU_relax")==0) {
+            val = fscanf(fp,"%s",buffer);
+            if (val!=1 || strcmp(buffer,"=")!=0) {
+                status = ERROR_INPUT_PAR; break;
+            }
+            val = fscanf(fp,"%lf",&dbuff);
+            if (val!=1) { status = ERROR_INPUT_PAR; break; }
+            inparam->ILU_relax = dbuff;
+            fgets(buffer,500,fp); // skip rest of line
+        }
+        
+        else if (strcmp(buffer,"ILU_permtol")==0) {
+            val = fscanf(fp,"%s",buffer);
+            if (val!=1 || strcmp(buffer,"=")!=0) {
+                status = ERROR_INPUT_PAR; break;
+            }
+            val = fscanf(fp,"%lf",&dbuff);
+            if (val!=1) { status = ERROR_INPUT_PAR; break; }
+            inparam->ILU_permtol = dbuff;
+            fgets(buffer,500,fp); // skip rest of line
+        }
+        
         else if (strcmp(buffer,"AMG_tol")==0) {
             val = fscanf(fp,"%s",buffer);
             if (val!=1 || strcmp(buffer,"=")!=0) {
@@ -368,6 +423,17 @@ void param_input (const char *filenm,
             val = fscanf(fp,"%d",&ibuff);
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->AMG_nl_amli_krylov_type = ibuff;
+            fgets(buffer,500,fp); // skip rest of line
+        }
+        
+        else if (strcmp(buffer,"AMG_ILU_levels")==0) {
+            val = fscanf(fp,"%s",buffer);
+            if (val!=1 || strcmp(buffer,"=")!=0) {
+                status = ERROR_INPUT_PAR; break;
+            }
+            val = fscanf(fp,"%d",&ibuff);
+            if (val!=1) { status = ERROR_INPUT_PAR; break; }
+            inparam->AMG_ILU_levels = ibuff;
             fgets(buffer,500,fp); // skip rest of line
         }
         

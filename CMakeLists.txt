@@ -42,29 +42,34 @@ set(REAL_C "${CMAKE_C_COMPILER_ID}${CMAKE_C_COMPILER_VERSION}")
 ############################
 if(${REAL_C} MATCHES "GNU.*" AND  ${THE_C} MATCHES "gcc.*") 
      		string(REPLACE "gcc" "g++" C_XX ${THE_C} )
+		string(REPLACE "gcc" "gfortran" F_C ${THE_C} )
 		find_program(THE_CXX NAMES ${C_XX})
+		find_program(THE_FC NAMES ${F_C})
        elseif( ${REAL_C} MATCHES "Intel.*" AND ${THE_C} MATCHES "icc.*" )
 		find_program(THE_CXX NAMES icpc)
+		find_program(THE_FC NAMES ifort)
        elseif( ${REAL_C} MATCHES "Clang.*")
-	 find_program(THE_C NAMES clang)
-	find_program(THE_CXX NAMES clang++ clang)
+	 	find_program(THE_C NAMES clang)
+		find_program(THE_CXX NAMES clang++ clang)
 	else()       
 	   message("
 	   	     ** WARNING: ${THE_C} did not match any of the preset C compilers. 
 	   	     ** Continuing with the default compiler: ${CMAKE_C_COMPILER}
 		     " )
    	   set(THE_C "0")
-   	   set(THE_CXX "0")	      
+   	   set(THE_CXX "0")
+	   set(THE_FC "0")	      
     endif(${REAL_C} MATCHES "GNU.*" AND  ${THE_C} MATCHES "gcc.*") 
 #
-	if( THE_C AND THE_CXX )
+	if( THE_C AND THE_CXX AND THE_FC )
 	     	 set(CMAKE_C_COMPILER ${THE_C} CACHE INTERNAL   "the C   compiler" FORCE) 
 	    	 set(CMAKE_CXX_COMPILER ${THE_CXX} CACHE INTERNAL   "the C++ compiler" FORCE)
-	endif( THE_C AND THE_CXX )
+		set(CMAKE_Fortran_COMPILER ${THE_FC} CACHE INTERNAL    "the F compiler" FORCE)
+	endif( THE_C AND THE_CXX AND THE_FC )
 # END COMPILERS SET UP................ 
 ##################################
 	enable_language(CXX) 
-#####	enable_language(Fortran) 
+	enable_language(Fortran) 
 
 #
 # OpenMP : defined on command line in the top Makefile
@@ -87,14 +92,18 @@ if(${REAL_C} MATCHES "GNU.*" AND  ${THE_C} MATCHES "gcc.*")
 
 ########## Additional compiler flags (not defined by the build
 
-   if(ADD_CFLAGS)
+	if(ADD_CFLAGS)
           set (CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE} 
 	  	  "${CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE}} ${ADD_CFLAGS}")	 
 	endif(ADD_CFLAGS)
 	if(ADD_CXXFLAGS)
           set (CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE} 
 	  	  "${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}} ${ADD_CXXFLAGS}")	 
-   endif(ADD_CXXFLAGS)
+   	endif(ADD_CXXFLAGS)
+	if(ADD_FFLAGS)
+          set (CMAKE_Fortran_FLAGS_${CMAKE_BUILD_TYPE} 
+	  	  "${CMAKE_Fortran_FLAGS_${CMAKE_BUILD_TYPE}} ${ADD_FFLAGS}")	 
+	endif(ADD_FFLAGS)
 #
     set(CMAKE_INSTALL_PREFIX "${HAZMAT_SOURCE_DIR}" )
     set(HAZMATLIB_BASE_PATH "${HAZMAT_SOURCE_DIR}" CACHE PATH "path to HAZMATLIB")
@@ -121,6 +130,9 @@ file(GLOB HAZMAT_C_SOURCES RELATIVE ${HAZMAT_SOURCE_DIR}
 	  		    ${HAZMAT_SOURCE_DIR}/src/grid/*.inl
 	  		    ${HAZMAT_SOURCE_DIR}/src/solver/*.inl 
 	  		    ${HAZMAT_SOURCE_DIR}/src/utilities/*.inl)
+
+file(GLOB HAZMAT_F_SOURCES RELATIVE ${HAZMAT_SOURCE_DIR}
+	  		    ${HAZMAT_SOURCE_DIR}/src/solver/*.f)
 
 # auto generating headers if needed
  add_custom_target(headers ./headmk.sh "${HAZMAT_SOURCE_DIR}"
@@ -167,7 +179,7 @@ endif(NOT (CMAKE_CXX_COMPILER_ID STREQUAL CMAKE_C_COMPILER_ID))
 ##
 # Build libhazmat
 # depends also on the source, header and inl files 
-add_library(hazmat ${HAZMAT_LIBRARY_TYPE} ${HAZMAT_C_SOURCES} ${HAZMAT_INL_SOURCES} ${HAZMAT_HEADERS}) 
+add_library(hazmat ${HAZMAT_LIBRARY_TYPE} ${HAZMAT_C_SOURCES} ${HAZMAT_INL_SOURCES} ${HAZMAT_F_SOURCES}  ${HAZMAT_HEADERS}) 
 
 # install libhazmat
     install(TARGETS hazmat

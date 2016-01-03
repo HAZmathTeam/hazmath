@@ -74,6 +74,13 @@ typedef struct {
     // Preconditioner
     INT linear_precond_type;                 /**< type of preconditioner for iterative solvers */
     
+    // parameters for ILU
+    SHORT ILU_type;      /**< ILU type for decomposition*/
+    INT ILU_lfil;        /**< level of fill-in */
+    REAL ILU_droptol;    /**< drop tolerance */
+    REAL ILU_relax;      /**< scaling factor: add the sum of dropped entries to diagonal */
+    REAL ILU_permtol;    /**< permutation tolerance */
+    
     // Algebraic Multigrid
     SHORT AMG_type;                /**< Type of AMG */
     SHORT AMG_levels;              /**< maximal number of levels */
@@ -87,7 +94,7 @@ typedef struct {
     INT AMG_coarse_dof;            /**< max number of coarsest level DOF */
     REAL AMG_tol;                  /**< tolerance for AMG if used as preconditioner */
     INT AMG_maxit;                 /**< number of iterations for AMG used as preconditioner */
-    //SHORT AMG_ILU_levels;          /**< how many levels use ILU smoother */
+    SHORT AMG_ILU_levels;          /**< how many levels use ILU smoother */
     SHORT AMG_coarse_solver;       /**< coarse solver type */
     SHORT AMG_coarse_scaling;      /**< switch of scaling of the coarse grid correction */
     SHORT AMG_amli_degree;         /**< degree of the polynomial used by AMLI cycle */
@@ -129,6 +136,32 @@ typedef struct {
     SHORT linear_print_level;   /**< print level: 0--10 */
     
 } linear_itsolver_param; /**< Parameters for iterative solvers */
+
+/**
+ * \struct ILU_param
+ * \brief Parameters for ILU
+ */
+typedef struct {
+    
+    //! print level
+    SHORT print_level;
+    
+    //! ILU type for decomposition
+    SHORT ILU_type;
+    
+    //! level of fill-in for ILUk
+    INT ILU_lfil;
+    
+    //! drop tolerance for ILUt
+    REAL ILU_droptol;
+    
+    //! add the sum of dropped elements to diagonal element in proportion relax
+    REAL ILU_relax;
+    
+    //! permuted if permtol*|a(i,j)| > |a(i,i)|
+    REAL ILU_permtol;
+    
+} ILU_param; /**< Parameters for ILU */
 
 /**
  * \struct AMG_param
@@ -268,171 +301,6 @@ typedef struct {
     INT Schwarz_blksolver;
     
 } AMG_param; /**< Parameters for AMG */
-
-/**
- * \struct AMG_data
- * \brief Data for AMG solvers
- *
- * \note This is needed for the AMG solver/preconditioner.
- */
-typedef struct {
-    
-    /* Level information */
-    
-    //! max number of levels
-    SHORT max_levels;
-    
-    //! number of levels in use <= max_levels
-    SHORT num_levels;
-    
-    /* Problem information */
-    
-    //! pointer to the matrix at level level_num
-    dCSRmat A;
-    
-    //! restriction operator at level level_num
-    dCSRmat R;
-    
-    //! prolongation operator at level level_num
-    dCSRmat P;
-    
-    //! pointer to the right-hand side at level level_num
-    dvector b;
-    
-    //! pointer to the iterative solution at level level_num
-    dvector x;
-    
-    /* Extra information */
-    
-    //! pointer to the numerical factorization from UMFPACK
-    void *Numeric;
-    
-    //! pointer to the CF marker at level level_num
-    ivector cfmark;
-    
-    //! number of levels use ILU smoother
-    INT ILU_levels;
-    
-    //! ILU matrix for ILU smoother
-    // ILU_data LU;
-    
-    //! dimension of the near kernel for SAMG
-    INT near_kernel_dim;
-    
-    //! basis of near kernel space for SAMG
-    REAL **near_kernel_basis;
-    
-    // Smoother order information
-    
-    //! number of levels use Schwarz smoother
-    INT Schwarz_levels;
-    
-    //! data of Schwarz smoother
-    // Schwarz_data Schwarz;
-    
-    //! Temporary work space
-    dvector w;
-    
-    //! data for MUMPS
-    // Mumps_data mumps;
-    
-    //! cycle type
-    INT cycle_type;
-    
-} AMG_data; /**< Data for AMG */
-
-/**
- * \struct precond_data
- * \brief Data passed to the preconditioners
- */
-typedef struct {
-    
-    //! type of AMG method
-    SHORT AMG_type;
-    
-    //! print level in AMG preconditioner
-    SHORT print_level;
-    
-    //! max number of iterations of AMG preconditioner
-    INT maxit;
-    
-    //! max number of AMG levels
-    SHORT max_levels;
-    
-    //! tolerance for AMG preconditioner
-    REAL tol;
-    
-    //! AMG cycle type
-    SHORT cycle_type;
-    
-    //! AMG smoother type
-    SHORT smoother;
-    
-    //! AMG smoother ordering
-    SHORT smooth_order;
-    
-    //! number of presmoothing
-    SHORT presmooth_iter;
-    
-    //! number of postsmoothing
-    SHORT postsmooth_iter;
-    
-    //! relaxation parameter for SOR smoother
-    REAL relaxation;
-    
-    //! degree of the polynomial smoother
-    SHORT polynomial_degree;
-    
-    //! switch of scaling of the coarse grid correction
-    SHORT coarsening_type;
-    
-    //! coarse solver type for AMG
-    SHORT coarse_solver;
-    
-    //! switch of scaling of the coarse grid correction
-    SHORT coarse_scaling;
-    
-    //! degree of the polynomial used by AMLI cycle
-    SHORT amli_degree;
-    
-    //! type of Krylov method used by Nonlinear AMLI cycle
-    SHORT nl_amli_krylov_type;
-    
-    //! smooth factor for smoothing the tentative prolongation
-    REAL tentative_smooth;
-    
-    //! coefficients of the polynomial used by AMLI cycle
-    REAL *amli_coef;
-    
-    //! AMG preconditioner data
-    AMG_data *mgl_data;
-    
-    //! ILU preconditioner data (needed for CPR type preconditioner)
-    //ILU_data *LU;
-    
-    //! Matrix data
-    dCSRmat *A;
-    
-    // extra near kernel space
-    
-    //! Matrix data for near kernel
-    dCSRmat *A_nk;
-    
-    //! Prolongation for near kernel
-    dCSRmat *P_nk;
-    
-    //! Restriction for near kernel
-    dCSRmat *R_nk;
-    
-    // temporary work space
-    
-    //! temporary dvector used to store and restore the residual
-    dvector r;
-    
-    //! temporary work space for other usage
-    REAL *w;
-    
-} precond_data; /**< Data for general preconditioner */
 
 
 #endif

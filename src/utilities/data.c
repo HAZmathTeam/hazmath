@@ -44,6 +44,74 @@ void precond_data_null (precond_data *pcdata)
 }
 
 /***********************************************************************************************/
+void ilu_data_null (ILU_data *ILUdata)
+{
+    /**
+     * \fn void ilu_data_null (ILU_data *ILUdata)
+     *
+     * \brief Initialize ILU data
+     *
+     * \param ILUdata   Pointer to ILU_data
+     *
+     * \author Chensong Zhang
+     * \date   2010/03/23
+     */
+    
+    ILUdata->row = ILUdata->col = ILUdata->nzlu = 0;
+    ILUdata->ijlu = NULL; ILUdata->luval = NULL;
+}
+
+/***********************************************************************************************/
+void ilu_data_alloc (const INT iwk,
+                          const INT nwork,
+                          ILU_data *iludata)
+{
+    /**
+     * \fn void ilu_data_alloc (const INT iwk, const INT nwork, ILU_data *iludata)
+     *
+     * \brief Allocate workspace for ILU factorization
+     *
+     * \param iwk       Size of the index array
+     * \param nwork     Size of the work array
+     * \param iludata   Pointer to the ILU_data
+     *
+     * \author Chensong Zhang
+     * \date   2010/04/06
+     */
+
+    iludata->ijlu=(INT*)calloc(iwk, sizeof(INT));
+    
+    iludata->luval=(REAL*)calloc(iwk, sizeof(REAL));
+    
+    iludata->work=(REAL*)calloc(nwork, sizeof(REAL));
+    
+    return;
+}
+
+/***********************************************************************************************/
+void ilu_data_free (ILU_data *ILUdata)
+{
+    /**
+     * \fn void ilu_data_free (ILU_data *ILUdata)
+     *
+     * \brief Create ILU_data sturcture
+     *
+     * \param ILUdata   Pointer to ILU_data
+     *
+     * \author Chensong Zhang
+     * \date   2010/04/03
+     */
+    
+    if (ILUdata==NULL) return;
+    
+    free(ILUdata->ijlu);  ILUdata->ijlu  = NULL;
+    free(ILUdata->luval); ILUdata->luval = NULL;
+    free(ILUdata->work);  ILUdata->work  = NULL;
+    
+    ILUdata->row = ILUdata->col = ILUdata->nzlu = ILUdata ->nwork = ILUdata->nb = 0;
+}
+
+/***********************************************************************************************/
 AMG_data * amg_data_create (SHORT max_levels)
 {
     /**
@@ -74,6 +142,7 @@ AMG_data * amg_data_create (SHORT max_levels)
     
     return(mgl);
 }
+
 
 /***********************************************************************************************/
 void amg_data_free (AMG_data *mgl,

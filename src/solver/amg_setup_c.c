@@ -46,7 +46,7 @@ SHORT amg_setup_c (AMG_data *mgl,
     SHORT         status = SUCCESS;
     INT           lvl = 0, max_lvls = param->max_levels;
     REAL          setup_start, setup_end;
-    //ILU_param     iluparam;
+    ILU_param     iluparam;
     //Schwarz_param swzparam;
     iCSRmat       Scouple; // strong n-couplings
     
@@ -72,7 +72,6 @@ SHORT amg_setup_c (AMG_data *mgl,
         amg_amli_coef(2.0, 0.5, amlideg, param->amli_coef);
     }
     
-    /*
     // Initialize ILU parameters
     mgl->ILU_levels = param->ILU_levels;
     if ( param->ILU_levels > 0 ) {
@@ -82,7 +81,6 @@ SHORT amg_setup_c (AMG_data *mgl,
         iluparam.ILU_relax   = param->ILU_relax;
         iluparam.ILU_type    = param->ILU_type;
     }
-    */
     
     /*
     // Initialize Schwarz parameters
@@ -105,7 +103,6 @@ SHORT amg_setup_c (AMG_data *mgl,
         
         
         /*-- Setup ILU decomposition if needed --*/
-        /*
         if ( lvl < param->ILU_levels ) {
             status = ilu_dcsr_setup(&mgl[lvl].A, &mgl[lvl].LU, &iluparam);
             if ( status < 0 ) {
@@ -116,7 +113,6 @@ SHORT amg_setup_c (AMG_data *mgl,
                 param->ILU_levels = lvl;
             }
         }
-        */
         
         /*-- Setup Schwarz smoother if needed --*/
         /*

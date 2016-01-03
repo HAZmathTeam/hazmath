@@ -359,6 +359,12 @@ int main (int argc, char* argv[])
     param_amg_set(&amgparam, &inparam);
     param_amg_print(&amgparam);
     
+    // set parameters for ILU methods
+    ILU_param iluparam;
+    param_ilu_init(&iluparam);
+    param_ilu_set(&iluparam, &inparam);
+    param_ilu_print(&iluparam);
+    
   // Allocate the solution
   dvector u = dvec_create(b.row);
     
@@ -390,6 +396,10 @@ int main (int argc, char* argv[])
                   
               case PREC_AMG:  // AMG preconditioner
                   solver_flag = linear_solver_dcsr_krylov_amg(&A, &b, &u, &linear_itparam, &amgparam);
+                  break;
+                  
+              case PREC_ILU:
+                  solver_flag = linear_solver_dcsr_krylov_ilu(&A, &b, &u, &linear_itparam, &iluparam);
                   break;
           
               default:  // no preconditioner

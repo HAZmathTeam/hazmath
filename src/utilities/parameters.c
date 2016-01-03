@@ -77,6 +77,25 @@ void param_amg_init (AMG_param *amgparam)
     amgparam->Schwarz_blksolver    = SOLVER_DEFAULT;
 }
 
+void param_ilu_init (ILU_param *iluparam)
+{
+    /**
+     * \fn void param_ilu_init (ILU_param *iluparam)
+     *
+     * \brief Initialize ILU parameters
+     *
+     * \param iluparam  Parameters for ILU
+     *
+     */
+    
+    iluparam->print_level  = PRINT_NONE;
+    iluparam->ILU_type     = ILUk;
+    iluparam->ILU_lfil     = 2;
+    iluparam->ILU_droptol  = 0.001;
+    iluparam->ILU_relax    = 0;
+    iluparam->ILU_permtol  = 0.01;
+}
+
 void param_linear_solver_init (linear_itsolver_param *itsparam)
 {
     itsparam->linear_print_level   = 0;
@@ -88,109 +107,26 @@ void param_linear_solver_init (linear_itsolver_param *itsparam)
     itsparam->linear_tol           = 1e-6;
 }
 
-
-void param_amg_print (AMG_param *param)
+void param_ilu_set (ILU_param *iluparam,
+                         input_param *iniparam)
 {
-    
     /**
-     * \fn void param_amg_print (AMG_param *param)
+     * \fn void param_ilu_set (ILU_param *iluparam, input_param *iniparam)
      *
-     * \brief Print out AMG parameters
+     * \brief Set ILU_param with INPUT
      *
-     * \param param   Parameters for AMG
+     * \param iluparam    Parameters for ILU
+     * \param iniparam     Input parameters
      *
-     * \author Xiaozhe Hu
-     * \date   10/06/2015
      */
     
-    if ( param ) {
-        
-        printf("\n       Parameters in AMG_param\n");
-        printf("-----------------------------------------------\n");
-        
-        printf("AMG print level:                   %d\n", param->print_level);
-        printf("AMG max num of iter:               %d\n", param->maxit);
-        printf("AMG type:                          %d\n", param->AMG_type);
-        printf("AMG tolerance:                     %.2e\n", param->tol);
-        printf("AMG max levels:                    %d\n", param->max_levels);
-        printf("AMG cycle type:                    %d\n", param->cycle_type);
-        printf("AMG coarse solver type:            %d\n", param->coarse_solver);
-        printf("AMG scaling of coarse correction:  %d\n", param->coarse_scaling);
-        printf("AMG smoother type:                 %d\n", param->smoother);
-        printf("AMG smoother order:                %d\n", param->smooth_order);
-        printf("AMG num of presmoothing:           %d\n", param->presmooth_iter);
-        printf("AMG num of postsmoothing:          %d\n", param->postsmooth_iter);
-        
-        if ( param->smoother == SMOOTHER_SOR  ||
-             param->smoother == SMOOTHER_SSOR ||
-             param->smoother == SMOOTHER_GSOR ||
-             param->smoother == SMOOTHER_SGSOR ) {
-            printf("AMG relax factor:                  %.4f\n", param->relaxation);
-        }
-        
-        if ( param->smoother == SMOOTHER_POLY ) {
-            printf("AMG polynomial smoother degree:    %d\n", param->polynomial_degree);
-        }
-        
-        if ( param->cycle_type == AMLI_CYCLE ) {
-            printf("AMG AMLI degree of polynomial:     %d\n", param->amli_degree);
-        }
-        
-        if ( param->cycle_type == NL_AMLI_CYCLE ) {
-            printf("AMG Nonlinear AMLI Krylov type:    %d\n", param->nl_amli_krylov_type);
-        }
-        
-        switch (param->AMG_type) {
-            case CLASSIC_AMG:
-                printf("AMG coarsening type:               %d\n", param->coarsening_type);
-                printf("AMG interpolation type:            %d\n", param->interpolation_type);
-                printf("AMG dof on coarsest grid:          %d\n", param->coarse_dof);
-                printf("AMG strong threshold:              %.4f\n", param->strong_threshold);
-                printf("AMG truncation threshold:          %.4f\n", param->truncation_threshold);
-                printf("AMG max row sum:                   %.4f\n", param->max_row_sum);
-                printf("AMG aggressive levels:             %d\n", param->aggressive_level);
-                printf("AMG aggressive path:               %d\n", param->aggressive_path);
-                break;
-                
-            default: // SA_AMG or UA_AMG
-                printf("Aggregation type:                  %d\n", param->aggregation_type);
-                if ( param->aggregation_type == PAIRWISE ) {
-                    printf("Aggregation number of pairs:       %d\n", param->pair_number);
-                    printf("Aggregation quality bound:         %.2f\n", param->quality_bound);
-                }
-                if ( param->aggregation_type == VMB ) {
-                    printf("Aggregation AMG strong coupling:   %.4f\n", param->strong_coupled);
-                    printf("Aggregation AMG max aggregation:   %d\n", param->max_aggregation);
-                    printf("Aggregation AMG tentative smooth:  %.4f\n", param->tentative_smooth);
-                    printf("Aggregation AMG smooth filter:     %d\n", param->smooth_filter);
-                }
-                break;
-        }
-        
-        if (param->ILU_levels>0) {
-            printf("AMG ILU smoother level:            %d\n", param->ILU_levels);
-            printf("AMG ILU type:                      %d\n", param->ILU_type);
-            printf("AMG ILU level of fill-in:          %d\n", param->ILU_lfil);
-            printf("AMG ILU drop tol:                  %e\n", param->ILU_droptol);
-            printf("AMG ILU relaxation:                %f\n", param->ILU_relax);
-        }
-        
-        if (param->Schwarz_levels>0){
-            printf("AMG Schwarz smoother level:        %d\n", param->Schwarz_levels);
-            printf("AMG Schwarz type:                  %d\n", param->Schwarz_type);
-            printf("AMG Schwarz forming block level:   %d\n", param->Schwarz_maxlvl);
-            printf("AMG Schwarz maximal block size:    %d\n", param->Schwarz_mmsize);
-        }
-        
-        printf("-----------------------------------------------\n\n");
-        
-    }
-    else {
-        printf("### WARNING: param has not been set!\n");
-    } // end if (param)
-    
+    iluparam->print_level = iniparam->print_level;
+    iluparam->ILU_type    = iniparam->ILU_type;
+    iluparam->ILU_lfil    = iniparam->ILU_lfil;
+    iluparam->ILU_droptol = iniparam->ILU_droptol;
+    iluparam->ILU_relax   = iniparam->ILU_relax;
+    iluparam->ILU_permtol = iniparam->ILU_permtol;
 }
-
 
 void param_solver_set (linear_itsolver_param *itsparam,
                             input_param *iniparam)
@@ -220,7 +156,6 @@ void param_solver_set (linear_itsolver_param *itsparam,
         itsparam->linear_maxit = iniparam->linear_itsolver_maxit;
     }
 }
-
 
 void param_amg_set (AMG_param *param,
                     input_param *iniparam)
@@ -285,7 +220,6 @@ void param_amg_set (AMG_param *param,
     //param->tentative_smooth     = iniparam->AMG_tentative_smooth;
     //param->smooth_filter        = iniparam->AMG_smooth_filter;
     
-    /*
     param->ILU_levels           = iniparam->AMG_ILU_levels;
     param->ILU_type             = iniparam->ILU_type;
     param->ILU_lfil             = iniparam->ILU_lfil;
@@ -293,13 +227,13 @@ void param_amg_set (AMG_param *param,
     param->ILU_relax            = iniparam->ILU_relax;
     param->ILU_permtol          = iniparam->ILU_permtol;
     
+    /*
     param->Schwarz_levels       = iniparam->AMG_Schwarz_levels;
     param->Schwarz_mmsize       = iniparam->Schwarz_mmsize;
     param->Schwarz_maxlvl       = iniparam->Schwarz_maxlvl;
     param->Schwarz_type         = iniparam->Schwarz_type;
     */
 }
-
 
 void param_linear_solver_print (linear_itsolver_param *param)
 {
@@ -335,6 +269,138 @@ void param_linear_solver_print (linear_itsolver_param *param)
     }
 }
 
+void param_ilu_print (ILU_param *param)
+{
+    /**
+     * \fn void param_ilu_print (ILU_param *param)
+     *
+     * \brief Print out ILU parameters
+     *
+     * \param param    Parameters for ILU
+     *
+     */
+    
+    if ( param ) {
+        
+        printf("\n       Parameters in ILU_param\n");
+        printf("-----------------------------------------------\n");
+        printf("ILU print level:                   %d\n",   param->print_level);
+        printf("ILU type:                          %d\n",   param->ILU_type);
+        printf("ILU level of fill-in:              %d\n",   param->ILU_lfil);
+        printf("ILU relaxation factor:             %.4f\n", param->ILU_relax);
+        printf("ILU drop tolerance:                %.2e\n", param->ILU_droptol);
+        printf("ILU permutation tolerance:         %.2e\n", param->ILU_permtol);
+        printf("-----------------------------------------------\n\n");
+        
+    }
+    else {
+        printf("### WARNING: param has not been set!\n");
+    }
+}
+
+void param_amg_print (AMG_param *param)
+{
+    
+    /**
+     * \fn void param_amg_print (AMG_param *param)
+     *
+     * \brief Print out AMG parameters
+     *
+     * \param param   Parameters for AMG
+     *
+     * \author Xiaozhe Hu
+     * \date   10/06/2015
+     */
+    
+    if ( param ) {
+        
+        printf("\n       Parameters in AMG_param\n");
+        printf("-----------------------------------------------\n");
+        
+        printf("AMG print level:                   %d\n", param->print_level);
+        printf("AMG max num of iter:               %d\n", param->maxit);
+        printf("AMG type:                          %d\n", param->AMG_type);
+        printf("AMG tolerance:                     %.2e\n", param->tol);
+        printf("AMG max levels:                    %d\n", param->max_levels);
+        printf("AMG cycle type:                    %d\n", param->cycle_type);
+        printf("AMG coarse solver type:            %d\n", param->coarse_solver);
+        printf("AMG scaling of coarse correction:  %d\n", param->coarse_scaling);
+        printf("AMG smoother type:                 %d\n", param->smoother);
+        printf("AMG smoother order:                %d\n", param->smooth_order);
+        printf("AMG num of presmoothing:           %d\n", param->presmooth_iter);
+        printf("AMG num of postsmoothing:          %d\n", param->postsmooth_iter);
+        
+        if ( param->smoother == SMOOTHER_SOR  ||
+            param->smoother == SMOOTHER_SSOR ||
+            param->smoother == SMOOTHER_GSOR ||
+            param->smoother == SMOOTHER_SGSOR ) {
+            printf("AMG relax factor:                  %.4f\n", param->relaxation);
+        }
+        
+        /*
+        if ( param->smoother == SMOOTHER_POLY ) {
+            printf("AMG polynomial smoother degree:    %d\n", param->polynomial_degree);
+        }
+         */
+        
+        if ( param->cycle_type == AMLI_CYCLE ) {
+            printf("AMG AMLI degree of polynomial:     %d\n", param->amli_degree);
+        }
+        
+        if ( param->cycle_type == NL_AMLI_CYCLE ) {
+            printf("AMG Nonlinear AMLI Krylov type:    %d\n", param->nl_amli_krylov_type);
+        }
+        
+        switch (param->AMG_type) {
+            case CLASSIC_AMG:
+                printf("AMG coarsening type:               %d\n", param->coarsening_type);
+                printf("AMG interpolation type:            %d\n", param->interpolation_type);
+                printf("AMG dof on coarsest grid:          %d\n", param->coarse_dof);
+                printf("AMG strong threshold:              %.4f\n", param->strong_threshold);
+                printf("AMG truncation threshold:          %.4f\n", param->truncation_threshold);
+                printf("AMG max row sum:                   %.4f\n", param->max_row_sum);
+                printf("AMG aggressive levels:             %d\n", param->aggressive_level);
+                printf("AMG aggressive path:               %d\n", param->aggressive_path);
+                break;
+                
+            default: // SA_AMG or UA_AMG
+                printf("Aggregation type:                  %d\n", param->aggregation_type);
+                if ( param->aggregation_type == PAIRWISE ) {
+                    printf("Aggregation number of pairs:       %d\n", param->pair_number);
+                    printf("Aggregation quality bound:         %.2f\n", param->quality_bound);
+                }
+                if ( param->aggregation_type == VMB ) {
+                    printf("Aggregation AMG strong coupling:   %.4f\n", param->strong_coupled);
+                    printf("Aggregation AMG max aggregation:   %d\n", param->max_aggregation);
+                    printf("Aggregation AMG tentative smooth:  %.4f\n", param->tentative_smooth);
+                    printf("Aggregation AMG smooth filter:     %d\n", param->smooth_filter);
+                }
+                break;
+        }
+        
+        if (param->ILU_levels>0) {
+            printf("AMG ILU smoother level:            %d\n", param->ILU_levels);
+            printf("AMG ILU type:                      %d\n", param->ILU_type);
+            printf("AMG ILU level of fill-in:          %d\n", param->ILU_lfil);
+            printf("AMG ILU drop tol:                  %e\n", param->ILU_droptol);
+            printf("AMG ILU relaxation:                %f\n", param->ILU_relax);
+        }
+        
+        if (param->Schwarz_levels>0){
+            printf("AMG Schwarz smoother level:        %d\n", param->Schwarz_levels);
+            printf("AMG Schwarz type:                  %d\n", param->Schwarz_type);
+            printf("AMG Schwarz forming block level:   %d\n", param->Schwarz_maxlvl);
+            printf("AMG Schwarz maximal block size:    %d\n", param->Schwarz_mmsize);
+        }
+        
+        printf("-----------------------------------------------\n\n");
+        
+    }
+    else {
+        printf("### WARNING: param has not been set!\n");
+    } // end if (param)
+    
+}
 
 void param_amg_to_prec (precond_data *pcdata,
                              AMG_param *amgparam)
@@ -371,7 +437,6 @@ void param_amg_to_prec (precond_data *pcdata,
     
 }
 
-
 void param_prec_to_amg (AMG_param *amgparam,
                              precond_data *pcdata)
 {
@@ -402,8 +467,6 @@ void param_prec_to_amg (AMG_param *amgparam,
     amgparam->tentative_smooth    = pcdata->tentative_smooth;
     amgparam->ILU_levels          = pcdata->mgl_data->ILU_levels;
 }
-
-
 
 void amg_amli_coef (const REAL lambda_max,
                          const REAL lambda_min,

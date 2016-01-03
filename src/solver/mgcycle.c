@@ -68,12 +68,13 @@ ForwardSweep:
         
         // pre-smoothing with ILU method
         if ( l < mgl->ILU_levels ) {
-            //fasp_smoother_dcsr_ilu(&mgl[l].A, &mgl[l].b, &mgl[l].x, &mgl[l].LU);
+            smoother_dcsr_ilu(&mgl[l].A, &mgl[l].b, &mgl[l].x, &mgl[l].LU);
         }
         
         // or pre-smoothing with Schwarz method
+        /*
         else if ( l < mgl->Schwarz_levels ) {
-            /*
+        
             switch (mgl[l].Schwarz.Schwarz_type) {
                 case SCHWARZ_SYMMETRIC:
                     fasp_dcsr_Schwarz_forward_smoother(&mgl[l].Schwarz, &swzparam, 
@@ -86,8 +87,9 @@ ForwardSweep:
                                                        &mgl[l].x, &mgl[l].b);
                     break;
             }
-             */
+            
         }
+        */
         
         // or pre-smoothing with standard smoothers
         else {
@@ -177,12 +179,13 @@ ForwardSweep:
         
         // post-smoothing with ILU method
         if ( l < mgl->ILU_levels ) {
-            //fasp_smoother_dcsr_ilu(&mgl[l].A, &mgl[l].b, &mgl[l].x, &mgl[l].LU);
+            smoother_dcsr_ilu(&mgl[l].A, &mgl[l].b, &mgl[l].x, &mgl[l].LU);
         }
         
         // post-smoothing with Schwarz method
+        /*
         else if ( l < mgl->Schwarz_levels ) {
-            /*
+        
             switch (mgl[l].Schwarz.Schwarz_type) {
                 case SCHWARZ_SYMMETRIC:
                     fasp_dcsr_Schwarz_backward_smoother(&mgl[l].Schwarz, &swzparam, 
@@ -195,8 +198,9 @@ ForwardSweep:
                                                         &mgl[l].x, &mgl[l].b);
                     break;
             }
-             */
+         
         }
+         */
         
         // post-smoothing with standard methods
         else {
@@ -261,7 +265,7 @@ void amli (AMG_data *mgl,
     const INT m0 = A0->row, m1 = A1->row;
     
     INT      *ordering = mgl[level].cfmark.val; // smoother ordering
-    //ILU_data *LU_level = &mgl[level].LU;        // fine level ILU decomposition
+    ILU_data *LU_level = &mgl[level].LU;        // fine level ILU decomposition
     REAL     *r        = mgl[level].w.val;      // work array for residual
     REAL     *r1       = mgl[level+1].w.val+m1; // work array for residual
     
@@ -279,14 +283,14 @@ void amli (AMG_data *mgl,
     
     if ( level < mgl[level].num_levels-1 ) {
         
-        /*
         // pre smoothing
         if ( level < mgl[level].ILU_levels ) {
             
-            fasp_smoother_dcsr_ilu(A0, b0, e0, LU_level);
+            smoother_dcsr_ilu(A0, b0, e0, LU_level);
             
         }
         
+        /*
         else if ( level < mgl->Schwarz_levels ) {
             
             switch (mgl[level].Schwarz.Schwarz_type) {
@@ -302,12 +306,13 @@ void amli (AMG_data *mgl,
                     break;
             }
         }
-         */
+        */
         
-        //else {
-        dcsr_presmoothing(smoother,A0,b0,e0,param->presmooth_iter,
+        else {
+            
+            dcsr_presmoothing(smoother,A0,b0,e0,param->presmooth_iter,
                                    0,m0-1,1,relax,ndeg,smooth_order,ordering);
-        //}
+        }
         
         // form residual r = b - A x
         array_cp(m0,b0->val,r);
@@ -361,13 +366,13 @@ void amli (AMG_data *mgl,
         }
         
         // post smoothing
-        /*
         if ( level < mgl[level].ILU_levels ) {
             
-            fasp_smoother_dcsr_ilu(A0, b0, e0, LU_level);
+            smoother_dcsr_ilu(A0, b0, e0, LU_level);
             
         }
         
+        /*
         else if (level<mgl->Schwarz_levels) {
             
             switch (mgl[level].Schwarz.Schwarz_type) {
@@ -383,12 +388,13 @@ void amli (AMG_data *mgl,
                     break;
             }
         }
-         */
+        */
         
-        //else {
+        else {
+            
             dcsr_postsmoothing(smoother,A0,b0,e0,param->postsmooth_iter,
                                     0,m0-1,-1,relax,ndeg,smooth_order,ordering);
-        //}
+        }
         
     }
     
@@ -473,7 +479,7 @@ void nl_amli (AMG_data *mgl,
     const INT m0 = A0->row, m1 = A1->row;
     
     INT      *ordering = mgl[level].cfmark.val; // smoother ordering
-    //ILU_data *LU_level = &mgl[level].LU;        // fine level ILU decomposition
+    ILU_data *LU_level = &mgl[level].LU;        // fine level ILU decomposition
     REAL     *r        = mgl[level].w.val;      // work array for residual
     
     dvector uH;  // for coarse level correction
@@ -492,14 +498,14 @@ void nl_amli (AMG_data *mgl,
     
     if ( level < num_levels-1 ) {
         
-        /*
         // pre smoothing
         if ( level < mgl[level].ILU_levels ) {
             
-            fasp_smoother_dcsr_ilu(A0, b0, e0, LU_level);
+            smoother_dcsr_ilu(A0, b0, e0, LU_level);
             
         }
         
+        /*
         else if ( level < mgl->Schwarz_levels ) {
             
             switch (mgl[level].Schwarz.Schwarz_type) {
@@ -515,14 +521,14 @@ void nl_amli (AMG_data *mgl,
                     break;
             }
         }
-         */
+        */
         
-        //else {
+        else {
             
             dcsr_presmoothing(smoother,A0,b0,e0,param->presmooth_iter,
                                    0,m0-1,1,relax,ndeg,smooth_order,ordering);
             
-        //}
+        }
         
         // form residual r = b - A x
         array_cp(m0,b0->val,r);
@@ -591,12 +597,13 @@ void nl_amli (AMG_data *mgl,
         }
         
         // post smoothing
-        /*
         if ( level < mgl[level].ILU_levels ) {
             
-            fasp_smoother_dcsr_ilu(A0, b0, e0, LU_level);
+            smoother_dcsr_ilu(A0, b0, e0, LU_level);
             
         }
+        
+        /*
         else if ( level < mgl->Schwarz_levels ) {
             
             switch (mgl[level].Schwarz.Schwarz_type) {
@@ -613,12 +620,13 @@ void nl_amli (AMG_data *mgl,
             }
             
         }
-         */
+        */
         
-        //else {
+        else {
+            
             dcsr_postsmoothing(smoother,A0,b0,e0,param->postsmooth_iter,
                                     0,m0-1,-1,relax,ndeg,smooth_order,ordering);
-        //}
+        }
         
     }
     

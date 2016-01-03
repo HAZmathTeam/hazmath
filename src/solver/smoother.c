@@ -623,6 +623,80 @@ void smoother_dcsr_L1diag (dvector *u,
     
     return;
 }
+
+
+void smoother_dcsr_ilu (dCSRmat *A,
+                             dvector *b,
+                             dvector *x,
+                             void *data)
+{
+    /**
+     * \fn void smoother_dcsr_ilu (dCSRmat *A, dvector *b, dvector *x, void *data)
+     *
+     * \brief ILU method as a smoother
+     *
+     * \param A      Pointer to dBSRmat: the coefficient matrix
+     * \param b      Pointer to dvector: the right hand side
+     * \param x      Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
+     * \param data   Pointer to user defined data
+     *
+     * \author Shiquan Zhang, Xiaozhe Hu
+     * \date   2010/11/12
+     */
+    
+    const INT m=A->row, m2=2*m, memneed=3*m;
+    const ILU_data *iludata=(ILU_data *)data;
+    
+    REAL *zz = iludata->work;
+    REAL *zr = iludata->work+m;
+    REAL *z  = iludata->work+m2;
+    
+    if (iludata->nwork<memneed) goto MEMERR;
+    
+    {
+        INT i, j, jj, begin_row, end_row;
+        REAL *lu = iludata->luval;
+        INT *ijlu = iludata->ijlu;
+        REAL *xval = x->val, *bval = b->val;
+        
+        /** form residual zr = b - A x */
+        array_cp(m,bval,zr); dcsr_aAxpy(-1.0,A,xval,zr);
+        
+        // forward sweep: solve unit lower matrix equation L*zz=zr
+        zz[0]=zr[0];
+        for (i=1;i<m;++i) {
+            begin_row=ijlu[i]; end_row=ijlu[i+1];
+            for (j=begin_row;j<end_row;++j) {
+                jj=ijlu[j];
+                if (jj<i) zr[i]-=lu[j]*zz[jj];
+                else break;
+            }
+            zz[i]=zr[i];
+        }
+        
+        // backward sweep: solve upper matrix equation U*z=zz
+        z[m-1]=zz[m-1]*lu[m-1];
+        for (i=m-2;i>=0;--i) {
+            begin_row=ijlu[i]; end_row=ijlu[i+1]-1;
+            for (j=end_row;j>=begin_row;--j) {
+                jj=ijlu[j];
+                if (jj>i) zz[i]-=lu[j]*z[jj];
+                else break;
+            }
+            z[i]=zz[i]*lu[i];
+        }
+        
+        array_axpy(m,1,z,xval);
+    }
+    
+    return;
+    
+MEMERR:
+    printf("### ERROR: ILU needs %d memory, only %d available! %s : %d\n",
+           memneed, iludata->nwork, __FILE__, __LINE__);
+    chkerr(ERROR_ALLOC_MEM, __FUNCTION__);
+}
+
 /*---------------------------------*/
 /*--        End of File          --*/
 /*---------------------------------*/

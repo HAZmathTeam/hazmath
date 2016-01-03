@@ -80,7 +80,7 @@ static SHORT amg_setup_unsmoothP_unsmoothR (AMG_data *mgl,
     SHORT         max_levels = param->max_levels, lvl = 0, status = SUCCESS;
     INT           i;
     REAL          setup_start, setup_end;
-    //ILU_param     iluparam;
+    ILU_param     iluparam;
     //Schwarz_param swzparam;
     
     gettime(&setup_start);
@@ -106,7 +106,6 @@ static SHORT amg_setup_unsmoothP_unsmoothR (AMG_data *mgl,
     }
     
     // Initialize ILU parameters
-    /*
     mgl->ILU_levels = param->ILU_levels;
     if ( param->ILU_levels > 0 ) {
         iluparam.print_level = param->print_level;
@@ -115,7 +114,6 @@ static SHORT amg_setup_unsmoothP_unsmoothR (AMG_data *mgl,
         iluparam.ILU_relax   = param->ILU_relax;
         iluparam.ILU_type    = param->ILU_type;
     }
-     */
     
     // Initialize Schwarz parameters
     /*
@@ -154,9 +152,8 @@ static SHORT amg_setup_unsmoothP_unsmoothR (AMG_data *mgl,
     while ( (mgl[lvl].A.row > min_cdof) && (lvl < max_levels-1) ) {
                 
         /*-- Setup ILU decomposition if necessary */
-        /*
         if ( lvl < param->ILU_levels ) {
-            status = fasp_ilu_dcsr_setup(&mgl[lvl].A, &mgl[lvl].LU, &iluparam);
+            status = ilu_dcsr_setup(&mgl[lvl].A, &mgl[lvl].LU, &iluparam);
             if ( status < 0 ) {
                 if ( prtlvl > PRINT_MIN ) {
                     printf("### WARNING: ILU setup on level-%d failed!\n", lvl);
@@ -165,7 +162,6 @@ static SHORT amg_setup_unsmoothP_unsmoothR (AMG_data *mgl,
                 param->ILU_levels = lvl;
             }
         }
-         */
         
         /*-- Setup Schwarz smoother if necessary */
         /*
