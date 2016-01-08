@@ -121,8 +121,7 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
     
   /* Get Boundary Edges and Vertices */
   INT* ed_bdry = (INT *) calloc(nedge,sizeof(INT));
-  if (dim==2) {
-      
+  if (dim==2) {     
     isboundary_ed(ed_v,nedge,nbedge,bdry_v,ed_bdry);
     isboundary_v(nv,bdry_v,v_bdry,nbedge,&nbv);
   } else if(dim==3) {
@@ -165,9 +164,10 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
 
   // Next get the element to face map, the face to vertex map, and the face boundary information.
   iCSRmat f_v = icsr_create(nface,nv,nface*dim);
+  iCSRmat f_ed = icsr_create(nface,nedge,nface*(2*dim-3));
   INT* f_bdry = (INT *) calloc(nface,sizeof(INT));
   INT nbface;
-  get_face_maps(el_v,v_per_elm,nface,dim,f_per_elm,mesh->el_f,f_bdry,&nbface,&f_v,fel_order);
+  get_face_maps(el_v,v_per_elm,ed_v,nface,dim,f_per_elm,mesh->el_f,f_bdry,&nbface,&f_v,&f_ed,fel_order);
   
   // In case v_bdry has different types of boundaries, match the face boundary to the same:
   for(i=0;i<nface;i++) {
@@ -189,13 +189,13 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
   *(mesh->el_v) = el_v;
   mesh->v_per_elm = v_per_elm;
  
-        
   // Get Statistics of the faces (midpoint, area, normal vector, ordering, etc.)
   face_stats(f_area,f_mid,f_norm,&f_v,mesh);
 
   // Reorder appropriately
   sync_facenode(&f_v,f_norm,mesh);
   *(mesh->f_v) = f_v;
+  *(mesh->f_ed) = f_ed;
 
   // Finally get volumes/areas of elements and the midpoint (barycentric)
   REAL* el_mid = (REAL *) calloc(nelm*dim,sizeof(REAL));
@@ -247,6 +247,7 @@ void initialize_mesh(trimesh* mesh)
   mesh->el_f = malloc(sizeof(struct iCSRmat));
   mesh->v_per_elm = -666;
   mesh->f_v = malloc(sizeof(struct iCSRmat));
+  mesh->f_ed = malloc(sizeof(struct iCSRmat));
   mesh->nv = -666;
   mesh->nedge = -666;
   mesh->ed_per_elm = -666;
@@ -774,7 +775,7 @@ void get_face_ordering(INT el_order,INT dim,INT f_order,INT *fel_order)
 
 
 /***********************************************************************************************/
-void get_face_maps(iCSRmat el_v,INT el_order,INT nface,INT dim,INT f_order,iCSRmat *el_f,INT *f_bdry,INT *nbface,iCSRmat *f_v,INT *fel_order)
+void get_face_maps(iCSRmat el_v,INT el_order,iCSRmat ed_v,INT nface,INT dim,INT f_order,iCSRmat *el_f,INT *f_bdry,INT *nbface,iCSRmat *f_v,iCSRmat *f_ed,INT *fel_order)
 {
 	
   /* Gets the Element to Face, Face to Node, Face to Boundary mapping in CSR Fromat as well as face ordering on element (Should be dim independent)
@@ -808,6 +809,7 @@ void get_face_maps(iCSRmat el_v,INT el_order,INT nface,INT dim,INT f_order,iCSRm
   INT nd[dim];
   INT f_num=-1;  /* Current face number of element */
   INT nelm = el_v.row;
+  INT edpf = 2*dim - 3;
 
   // We will build face to element map first and then transpose it
   iCSRmat f_el = icsr_create (nface,nelm,nelm*f_order);
@@ -918,6 +920,18 @@ void get_face_maps(iCSRmat el_v,INT el_order,INT nface,INT dim,INT f_order,iCSRm
   icsr_trans_1(f_v,&v_f);
   icsr_free(f_v);
   icsr_trans_1(&v_f,f_v);
+
+  /* Get Face to Edge Map */
+  iCSRmat face_ed;
+  iCSRmat v_ed;
+  icsr_trans_1(&ed_v,&v_ed);
+  icsr_mxm_symb_max_1(f_v,&v_ed,&face_ed,2);
+  for(i=0;i<nface+1;i++)
+    f_ed->IA[i] = face_ed.IA[i];
+  for(i=0;i<nface*edpf;i++)
+    f_ed->JA[i] = face_ed.JA[i];
+  icsr_free(&face_ed);
+  icsr_free(&v_ed);
   
   *nbface = nbf;
 
@@ -997,7 +1011,6 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,trimesh *mesh
   coordinates *cv = mesh->cv;
 
   iCSRmat *el_f = mesh->el_f;
-  //iCSRmat *f_v = mesh->f_v; 
   iCSRmat *el_v = mesh->el_v;
 
   // Face Node Stuff

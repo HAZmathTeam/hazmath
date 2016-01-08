@@ -366,3 +366,231 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,
   return val;
 }
 /****************************************************************************************************************************/
+
+/***********************************************************************************************/
+void get_grad_H1toNed(dCSRmat* Grad,trimesh* mesh) 
+{
+  // TODO: This only makes sense for P1 elements
+
+  /* Computes Gradient operator.  Applying the resulting matrix computes the gradient of an H1 approximation.  
+   * Takes Nodal (H1) DOF vector to Edge (Nedelec) DOF vector
+   * Ordering determined by edge to node map: bigger node is +1 smaller is -1
+   *    
+   *    INPUT:
+   *                mesh       Mesh struct
+   *    OUTPUT:
+   *                Grad       Matrix that takes the gradient of an H1 approximation
+   *
+   */
+  
+  INT i,j,k,rowa;
+  INT nedge = mesh->nedge;
+  REAL oneoverlen;
+  dCSRmat Gtmp;
+
+  Gtmp.row = mesh->ed_v->row;
+  Gtmp.col = mesh->ed_v->col;
+  Gtmp.nnz = mesh->ed_v->nnz;
+  Gtmp.IA = (INT *) calloc(Gtmp.row+1,sizeof(INT));
+  Gtmp.JA = (INT *) calloc(Gtmp.nnz,sizeof(INT));
+  Gtmp.val = (REAL *) calloc(Gtmp.nnz,sizeof(REAL));
+
+  for(i=0;i<=nedge;i++) {
+    Gtmp.IA[i] = mesh->ed_v->IA[i];
+  }
+  for(i=0;i<Gtmp.nnz;i++) {
+    Gtmp.JA[i] = mesh->ed_v->JA[i];
+  }
+
+  for (i=0; i<nedge; i++) {
+    oneoverlen = 1.0/(mesh->ed_len[i]);
+    rowa = mesh->ed_v->IA[i]-1;
+    j = mesh->ed_v->JA[rowa];
+    k = mesh->ed_v->JA[rowa+1];
+    if(j>k) {
+      Gtmp.val[rowa] = oneoverlen;
+      Gtmp.val[rowa+1] = -oneoverlen;
+    } else { 
+      Gtmp.val[rowa+1] = oneoverlen;
+      Gtmp.val[rowa] = -oneoverlen;
+    }
+  }
+
+  *Grad = Gtmp;
+	
+  return;
+}
+/***********************************************************************************************/
+
+/***********************************************************************************************/
+void get_curl_NedtoRT(dCSRmat* Curl,trimesh* mesh) 
+{
+	
+  // TODO: Only makes sense in 3D and assuming lowest order elements
+
+  /* Computes Curl operator in 3D ONLY.  Applying the resulting matrix computes the Curl of a Nedelec approximation.  
+   * Takes Edge (Nedelec) DOF vector to Face (RT) DOF vector
+   *    
+   *    INPUT:
+   *                mesh       Mesh struct
+   *    OUTPUT:
+   *                Curl       Matrix that takes the curl of a Nedelec approximation
+   *
+   */
+  
+  INT i,j,k,s,col_a,nd1,nd2,nd3,rowa,rowb,jcntr;
+  INT ndpf = mesh->dim;
+  INT mydim = mesh->dim;
+  INT nface = mesh->nface;
+  INT* inf = (INT *) calloc(ndpf,sizeof(INT));
+  REAL vec1[3],vec2[3],vec3[3];
+  REAL mydet;
+
+  dCSRmat Ktmp;
+
+  Ktmp.row = mesh->f_ed->row;
+  Ktmp.col = mesh->f_ed->col;
+  Ktmp.nnz = mesh->f_ed->nnz;
+  Ktmp.IA = (INT *) calloc(Ktmp.row+1,sizeof(INT));
+  Ktmp.JA = (INT *) calloc(Ktmp.nnz,sizeof(INT));
+  Ktmp.val = (REAL *) calloc(Ktmp.nnz,sizeof(REAL));
+
+  for(i=0;i<=Ktmp.row;i++) {
+    Ktmp.IA[i] = mesh->f_ed->IA[i];
+  }
+  for(i=0;i<Ktmp.nnz;i++) {
+    Ktmp.JA[i] = mesh->f_ed->JA[i];
+  }
+
+  // Get Kcurl -> if_ed,jf_ed, sign = sign(det(xi-xk,xj-xk,n_fijk))
+  for (i=0;i<nface;i++) {
+    // Get Normal Vector
+    vec3[0] = mesh->f_norm[i*mydim];
+    vec3[1] = mesh->f_norm[i*mydim+1];
+    vec3[2] = mesh->f_norm[i*mydim+2];
+    // Get nodes of Face
+    rowa = mesh->f_v->IA[i]-1;
+    rowb = mesh->f_v->IA[i+1]-1;
+    jcntr=0;
+    for(j=rowa;j<rowb;j++) {
+      inf[jcntr] = mesh->f_v->JA[j];
+      jcntr++;
+    }
+    // Get edges of face
+    rowa = mesh->f_ed->IA[i]-1;
+    rowb = mesh->f_ed->IA[i+1]-1;
+    for(j=rowa;j<rowb;j++) {
+      k = mesh->f_ed->JA[j];
+      // Get nodes of edge
+      col_a = mesh->ed_v->IA[k-1]-1;
+      nd1 = mesh->ed_v->JA[col_a];
+      nd2 = mesh->ed_v->JA[col_a+1];
+      // Determine what other node on face is
+      for(s=0;s<ndpf;s++) {
+	if(inf[s]!=nd1 && inf[s]!=nd2) {
+	  nd3 = inf[s];
+	}
+      }
+      vec1[0] = mesh->cv->x[nd1-1]-mesh->cv->x[nd3-1];
+      vec2[0] = mesh->cv->x[nd2-1]-mesh->cv->x[nd3-1];
+      vec1[1] = mesh->cv->y[nd1-1]-mesh->cv->y[nd3-1];
+      vec2[1] = mesh->cv->y[nd2-1]-mesh->cv->y[nd3-1];
+      vec1[2] = mesh->cv->z[nd1-1]-mesh->cv->z[nd3-1];
+      vec2[2] = mesh->cv->z[nd2-1]-mesh->cv->z[nd3-1];
+      if(nd1>nd2) {
+      	det3D(&mydet,vec2,vec1,vec3);
+      } else {
+      	det3D(&mydet,vec1,vec2,vec3);
+      }
+      if(mydet>0) {
+	Ktmp.val[j]=1;
+      } else {
+	Ktmp.val[j]=-1;
+      }
+    }
+  }
+
+  // K -> Df^(-1) K De
+  for(i=0;i<nface;i++) {
+    rowa = mesh->f_ed->IA[i]-1;
+    rowb = mesh->f_ed->IA[i+1]-1;
+    for(j=rowa;j<rowb;j++) {
+      k = mesh->f_ed->JA[j]-1;
+      Ktmp.val[j] = (1.0/(mesh->f_area[i]))*( (REAL) Ktmp.val[j])*(mesh->ed_len[k]);
+    }
+  }	
+
+  *Curl = Ktmp;
+	
+  return;
+}
+/***********************************************************************************************/
+
+/***********************************************************************************************/
+void get_Pigrad_H1toNed(dCSRmat* Pgrad,trimesh* mesh) 
+{
+  // TODO: This only makes sense for P1 elements...I think
+  // Also assumes shuffled ordering
+
+  /* Computes Gradient operator into scalar components for HX preconditioner.  
+   * Ordering determined by edge to node map: bigger node is +1 smaller is -1
+   *    
+   *    INPUT:
+   *                mesh       Mesh struct
+   *    OUTPUT:
+   *                Pgrad      Matrix that takes the \Pi for HX preconditioner.
+   *
+   */
+  
+  INT i,j,k,rowa,cola;
+  INT nedge = mesh->nedge;
+  INT dim = mesh->dim;
+  REAL oneoverlen,xL,yL,zL;
+  dCSRmat Ptmp;
+
+  Ptmp.row = mesh->ed_v->row;
+  Ptmp.col = (mesh->ed_v->col)*dim;
+  Ptmp.nnz = (mesh->ed_v->nnz)*dim;
+  Ptmp.IA = (INT *) calloc(Ptmp.row+1,sizeof(INT));
+  Ptmp.JA = (INT *) calloc(Ptmp.nnz,sizeof(INT));
+  Ptmp.val = (REAL *) calloc(Ptmp.nnz,sizeof(REAL));    
+
+  for (i=0; i<nedge; i++) {
+    oneoverlen = 1.0/(mesh->ed_len[i]);
+    rowa = mesh->ed_v->IA[i]-1;
+    Ptmp.IA[i] = rowa+1 + i*(dim-1)*2;
+    cola = Ptmp.IA[i]-1;
+    j = mesh->ed_v->JA[rowa];
+    k = mesh->ed_v->JA[rowa+1];
+    if(j>k) {
+      xL = 0.5*oneoverlen*((mesh->cv->x[j-1])-(mesh->cv->x[k-1]));
+      yL = 0.5*oneoverlen*((mesh->cv->x[j-1])-(mesh->cv->x[k-1]));
+      if(dim==3)
+	zL = 0.5*oneoverlen*((mesh->cv->x[j-1])-(mesh->cv->x[k-1]));
+    } else { 
+      xL = 0.5*oneoverlen*((mesh->cv->x[k-1])-(mesh->cv->x[j-1]));
+      yL = 0.5*oneoverlen*((mesh->cv->x[k-1])-(mesh->cv->x[j-1]));
+      if(dim==3)
+	zL = 0.5*oneoverlen*((mesh->cv->x[k-1])-(mesh->cv->x[j-1]));
+    }
+    Ptmp.JA[cola] = (j-1)*dim+1;
+    Ptmp.val[cola] = xL;
+    Ptmp.JA[cola+dim] = (k-1)*dim+1;
+    Ptmp.val[cola+dim] = xL;
+    Ptmp.JA[cola+1] = (j-1)*dim+2;
+    Ptmp.val[cola+1] = yL;
+    Ptmp.JA[cola+dim+1] = (k-1)*dim+2;
+    Ptmp.val[cola+dim+1] = yL;
+    if(dim==3) {
+      Ptmp.JA[cola+2] = (j-1)*dim+3;
+      Ptmp.val[cola+2] = zL;
+      Ptmp.JA[cola+dim+2] = (k-1)*dim+3;
+      Ptmp.val[cola+dim+2] = zL;
+    }
+  }
+
+  *Pgrad = Ptmp;
+	
+  return;
+}
+/***********************************************************************************************/

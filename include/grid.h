@@ -97,6 +97,9 @@ typedef struct trimesh{
   //! face to vertex map (CSR Format)
   iCSRmat* f_v;
 
+  //! face to edge map (CSR Format)
+  iCSRmat* f_ed;
+
   //! element volumes (areas in 2D)
   REAL* el_vol;
 
