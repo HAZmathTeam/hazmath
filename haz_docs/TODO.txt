@@ -1,11 +1,10 @@
 TO DO:
 
 James 
- - Test above
+ - Maxwell matrices 
 
 Xiaozhe
- - Fix input
- - Multigrid
+ - Maxwell solvers
 
 Ludmil
- - CMAKE
+ - clean file structure
