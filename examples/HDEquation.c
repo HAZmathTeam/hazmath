@@ -40,7 +40,7 @@ void reaction_coeff(REAL *val,REAL* x,REAL time) {
 // True Solution (if you have one)
 // Pick one of these and rename it truesol
 //void truesol_2D_PX(REAL *val,REAL* x,REAL time) {
-  void truesol(REAL *val,REAL* x,REAL time) {
+void truesol(REAL *val,REAL* x,REAL time) {
   // 2D - grad grad
   *val = sin(M_PI*x[0])*sin(M_PI*x[1]);
 }
@@ -50,13 +50,13 @@ void truesol_3D_PX(REAL *val,REAL* x,REAL time) {
   *val = sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
 }
 void truesol_2D_Ned(REAL *val,REAL* x,REAL time) {
-//void truesol(REAL *val,REAL* x,REAL time) {
+  //void truesol(REAL *val,REAL* x,REAL time) {
   // 2D - curl curl
   val[0] = cos(M_PI*x[0])*sin(M_PI*x[1]);
   val[1] = -sin(M_PI*x[0])*cos(M_PI*x[1]);
 }
 void truesol_3D_Ned(REAL *val,REAL* x,REAL time) {
-//void truesol(REAL *val,REAL* x,REAL time) {
+  //void truesol(REAL *val,REAL* x,REAL time) {
   // 3D - curl curl
   val[0] = cos(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
   val[1] = sin(M_PI*x[0])*cos(M_PI*x[1])*sin(M_PI*x[2]);
@@ -69,7 +69,7 @@ void truesol_2D_RT(REAL *val,REAL* x,REAL time) {
   val[1] = cos(M_PI*x[0])*sin(M_PI*x[1]);
 }
 void truesol_3D_RT(REAL *val,REAL* x,REAL time) {
-//void truesol(REAL *val,REAL* x,REAL time) {
+  //void truesol(REAL *val,REAL* x,REAL time) {
   // 3D - grad div
   val[0] = sin(M_PI*x[0])*cos(M_PI*x[1])*cos(M_PI*x[2]);
   val[1] = cos(M_PI*x[0])*sin(M_PI*x[1])*cos(M_PI*x[2]);
@@ -79,7 +79,7 @@ void truesol_3D_RT(REAL *val,REAL* x,REAL time) {
 // Derivative of True Solution (if you have one)
 // Pick one of these and rename it truesol
 //void D_truesol_2D_PX(REAL *val,REAL* x,REAL time) {
-  void D_truesol(REAL *val,REAL* x,REAL time) {
+void D_truesol(REAL *val,REAL* x,REAL time) {
   // 2D - grad grad
   val[0] = M_PI*cos(M_PI*x[0])*sin(M_PI*x[1]);
   val[1] = M_PI*sin(M_PI*x[0])*cos(M_PI*x[1]);
@@ -92,12 +92,12 @@ void D_truesol_3D_PX(REAL *val,REAL* x,REAL time) {
   val[2] = M_PI*sin(M_PI*x[0])*sin(M_PI*x[1])*cos(M_PI*x[2]);
 }
 void D_truesol_2D_Ned(REAL *val,REAL* x,REAL time) {
-//void D_truesol(REAL *val,REAL* x,REAL time) {
+  //void D_truesol(REAL *val,REAL* x,REAL time) {
   // 2D - curl curl
   *val = -2*M_PI*cos(M_PI*x[0])*cos(M_PI*x[1]);
 }
 void D_truesol_3D_Ned(REAL *val,REAL* x,REAL time) {
-//void D_truesol(REAL *val,REAL* x,REAL time) {
+  //void D_truesol(REAL *val,REAL* x,REAL time) {
   // 3D - curl curl
   val[0] = -2*M_PI*sin(M_PI*x[0])*cos(M_PI*x[1])*cos(M_PI*x[2]);
   val[1] = 2*M_PI*cos(M_PI*x[0])*sin(M_PI*x[1])*cos(M_PI*x[2]);
@@ -109,7 +109,7 @@ void D_truesol_2D_RT(REAL *val,REAL* x,REAL time) {
   *val = 2*M_PI*cos(M_PI*x[0])*cos(M_PI*x[1]);
 }
 void D_truesol_3D_RT(REAL *val,REAL* x,REAL time) {
-//void D_truesol(REAL *val,REAL* x,REAL time) {
+  //void D_truesol(REAL *val,REAL* x,REAL time) {
   // 3D - grad div
   *val = 3*M_PI*cos(M_PI*x[0])*cos(M_PI*x[1])*cos(M_PI*x[2]);
 }
@@ -117,7 +117,7 @@ void D_truesol_3D_RT(REAL *val,REAL* x,REAL time) {
 // Right-hand Side
 // Pick one of these and rename it myrhs
 //void rhs_2D_PX(REAL *val,REAL* x,REAL time) {
-  void myrhs(REAL *val,REAL* x,REAL time) {
+void myrhs(REAL *val,REAL* x,REAL time) {
   // 2D - grad grad
   REAL myc=-666.6;
   REAL mya=-666.6;
@@ -139,7 +139,7 @@ void rhs_3D_PX(REAL *val,REAL* x,REAL time) {
   *val = (mya*3*M_PI*M_PI + myc)*myu;
 }
 void rhs_2D_Ned(REAL *val,REAL* x,REAL time) {
-//void myrhs(REAL *val,REAL* x,REAL time) {
+  //void myrhs(REAL *val,REAL* x,REAL time) {
   // 2D - curl curl
   REAL myc=-666.6;
   REAL mya=-666.6;
@@ -151,7 +151,7 @@ void rhs_2D_Ned(REAL *val,REAL* x,REAL time) {
   val[1] = (mya*2.0*M_PI*M_PI + myc)*myu[1];
 }
 void rhs_3D_Ned(REAL *val,REAL* x,REAL time) {
-//void myrhs(REAL *val,REAL* x,REAL time) {
+  //void myrhs(REAL *val,REAL* x,REAL time) {
   // 3D - curl curl
   REAL myc=-666.6;
   REAL mya=-666.6;
@@ -176,7 +176,7 @@ void rhs_2D_RT(REAL *val,REAL* x,REAL time) {
   val[1] = (mya*2.0*M_PI*M_PI + myc)*myu[1];
 }
 void rhs_3D_RT(REAL *val,REAL* x,REAL time) {
-//void myrhs(REAL *val,REAL* x,REAL time) {
+  //void myrhs(REAL *val,REAL* x,REAL time) {
   // 3D - grad div
   REAL myc=-666.6;
   REAL mya=-666.6;
@@ -192,7 +192,7 @@ void rhs_3D_RT(REAL *val,REAL* x,REAL time) {
 // Boundary Conditions
 // Switch one to bc
 //void bc_PX(REAL *val,REAL* x,REAL time) {
-  void bc(REAL *val,REAL* x,REAL time) {
+void bc(REAL *val,REAL* x,REAL time) {
   REAL myu;
   truesol(&myu,x,time);
   *val= myu;
@@ -205,7 +205,7 @@ void bc_2Dvec(REAL *val,REAL* x,REAL time) {
   val[1] = myu[1];
 }
 void bc_3Dvec(REAL *val,REAL* x,REAL time) {
-//void bc(REAL *val,REAL* x,REAL time) {
+  //void bc(REAL *val,REAL* x,REAL time) {
   REAL myu[3];
   truesol(myu,x,time);
   val[0] = myu[0];
@@ -217,10 +217,12 @@ void bc_3Dvec(REAL *val,REAL* x,REAL time) {
 /****** MAIN DRIVER ***************************************************************/
 int main (int argc, char* argv[])
 {
+  
   printf("\n===========================================================================\n");
   printf("Beginning Program to solve H(D) problem: <D u, D v> + <u,v> = <f,v>.\n");
   printf("===========================================================================\n");
-  /****** INITIALIZE PARAMETERS ********************************************************/
+  
+  /****** INITIALIZE PARAMETERS ***************************************************/
   // Timing Parameters
   clock_t clk_start,clk_end,clk1,clk2;
   clk_start = clock();
@@ -250,16 +252,6 @@ int main (int argc, char* argv[])
   initialize_mesh(&mesh);
   creategrid(gfid,dim,0,&mesh);
   fclose(gfid);
-
-  /* INT i,a1,a2,j; */
-  /* for(i=0;i<mesh.nface;i++) { */
-  /*   a1 = mesh.f_v->IA[i]-1; */
-  /*   a2 = mesh.f_v->IA[i+1]-1; */
-  /*   for(j=a1;j<a2;j++) { */
-  /*     printf("(%f,%f) ",mesh.cv->x[mesh.f_v->JA[j]-1],mesh.cv->y[mesh.f_v->JA[j]-1]); */
-  /*   } */
-  /*   printf("A = %f, n = (%f,%f), m = (%f,%f)\n",mesh.f_area[i],mesh.f_norm[i*dim],mesh.f_norm[i*dim+1],mesh.f_mid[i*dim],mesh.f_mid[i*dim+1]); */
-  /* } */
     
   // Get Quadrature Nodes for the Mesh
   INT nq1d = inparam.nquad; /* Quadrature points per dimension */
@@ -293,7 +285,7 @@ int main (int argc, char* argv[])
   clk2 = clock();
   printf(" --> elapsed CPU time for mesh and FEM space construction = %f seconds.\n\n",
 	 (REAL) (clk2 - clk1)/CLOCKS_PER_SEC);
-  /**************************************************************************************/
+  /********************************************************************************/
     
   printf("***********************************************************************************\n");
   printf("Number of Elements = %d\tElement Type = %s\tOrder of Quadrature = %d\n",mesh.nelm,elmtype,2*nq1d-1);
@@ -349,22 +341,22 @@ int main (int argc, char* argv[])
   // parameters
   INT solver_flag=-20;
   
-    // set parameters for linear iterative methods
-    linear_itsolver_param linear_itparam;
-    param_solver_set(&linear_itparam, &inparam);
-    param_linear_solver_print(&linear_itparam);
+  // set parameters for linear iterative methods
+  linear_itsolver_param linear_itparam;
+  param_solver_set(&linear_itparam, &inparam);
+  param_linear_solver_print(&linear_itparam);
     
-    // set parameters for algebriac multigrid methods
-    AMG_param amgparam;
-    param_amg_init(&amgparam);
-    param_amg_set(&amgparam, &inparam);
-    param_amg_print(&amgparam);
+  // set parameters for algebriac multigrid methods
+  AMG_param amgparam;
+  param_amg_init(&amgparam);
+  param_amg_set(&amgparam, &inparam);
+  param_amg_print(&amgparam);
     
-    // set parameters for ILU methods
-    ILU_param iluparam;
-    param_ilu_init(&iluparam);
-    param_ilu_set(&iluparam, &inparam);
-    param_ilu_print(&iluparam);
+  // set parameters for ILU methods
+  ILU_param iluparam;
+  param_ilu_init(&iluparam);
+  param_ilu_set(&iluparam, &inparam);
+  param_ilu_print(&iluparam);
     
   // Allocate the solution
   dvector u = dvec_create(b.row);
@@ -373,51 +365,51 @@ int main (int argc, char* argv[])
   dvec_set(u.row, &u, 0.0);
     
   // solve the linear system
-    // direct solver
+  // direct solver
   if(linear_itparam.linear_itsolver_type == 0) {
     printf(" --> using UMFPACK's Direct Solver:\n");
     solver_flag = directsolve_UMF_symmetric(&A,&b,u.val,linear_itparam.linear_print_level);
   }
-    // itertive solver
+  // itertive solver
   else {
-      dcsr_shift(&A, -1);  // shift A
+    dcsr_shift(&A, -1);  // shift A
       
-      // use AMG as iterative solver
-      if (linear_itparam.linear_itsolver_type == SOLVER_AMG){
-          solver_flag = linear_solver_amg(&A, &b, &u, &amgparam);
-      }
-      // use Krylov iterative solver
-      else {
+    // use AMG as iterative solver
+    if (linear_itparam.linear_itsolver_type == SOLVER_AMG){
+      solver_flag = linear_solver_amg(&A, &b, &u, &amgparam);
+    }
+    // use Krylov iterative solver
+    else {
           
-          switch (linear_itparam.linear_precond_type) {
+      switch (linear_itparam.linear_precond_type) {
           
-              case PREC_DIAG:  // diagonal preconditioner
-                  solver_flag = linear_solver_dcsr_krylov_diag(&A, &b, &u, &linear_itparam);
-                  break;
+      case PREC_DIAG:  // diagonal preconditioner
+	solver_flag = linear_solver_dcsr_krylov_diag(&A, &b, &u, &linear_itparam);
+	break;
                   
-              case PREC_AMG:  // AMG preconditioner
-                  solver_flag = linear_solver_dcsr_krylov_amg(&A, &b, &u, &linear_itparam, &amgparam);
-                  break;
+      case PREC_AMG:  // AMG preconditioner
+	solver_flag = linear_solver_dcsr_krylov_amg(&A, &b, &u, &linear_itparam, &amgparam);
+	break;
                   
-              case PREC_ILU:
-                  solver_flag = linear_solver_dcsr_krylov_ilu(&A, &b, &u, &linear_itparam, &iluparam);
-                  break;
+      case PREC_ILU:
+	solver_flag = linear_solver_dcsr_krylov_ilu(&A, &b, &u, &linear_itparam, &iluparam);
+	break;
           
-              default:  // no preconditioner
-                  solver_flag = linear_solver_dcsr_krylov(&A, &b, &u, &linear_itparam);
-                  break;
+      default:  // no preconditioner
+	solver_flag = linear_solver_dcsr_krylov(&A, &b, &u, &linear_itparam);
+	break;
      
-          }
       }
+    }
     
       
-      dcsr_shift(&A, 1);   // shift A back
+    dcsr_shift(&A, 1);   // shift A back
   }
   
   // Error Check
   if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);  
 
-    clk2=clock();
+  clk2=clock();
   printf(" --> elapsed CPU time for solve = %f seconds.\n\n",(REAL) (clk2-clk1)/CLOCKS_PER_SEC);
 
   /*******************************************************************************************/
