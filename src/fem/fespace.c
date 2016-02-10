@@ -273,12 +273,13 @@ void dump_el_dof(FILE* fid,iCSRmat *el_dof)
 /****************************************************************************************/
 
 /****************************************************************************************/
-void dump_fespace(fespace *FE) 
+void dump_fespace(fespace *FE,char *varname) 
 {
   /* Dump the mesh data to file for plotting purposes
    *
    * Input:		
    *	      FE:   Finite-element space
+   *     varname:   String to name files
    *
    * Output:		
    *   	      el_dof.dat    el_nd(nelm,dof_per_elm) Elements for each node
@@ -288,11 +289,13 @@ void dump_fespace(fespace *FE)
 	
   INT i;
   INT totdof = FE->ndof;
-  FILE* fid1 = fopen("el_dof.dat","w");
-  FILE* fid2 = fopen("bdry.dat","w");
-  FILE* fid3 = fopen("coords.dat","w");
+  char eldofname[20];
+  char bdryname[20];
+  sprintf(eldofname,"el_dof_%s.dat",varname);
+  sprintf(bdryname,"bdry_%s.dat",varname);
+  FILE* fid1 = fopen(eldofname,"w");
+  FILE* fid2 = fopen(bdryname,"w");
     
-
   // Dump Element to DOF map
   dump_el_dof(fid1,FE->el_dof);
 
@@ -301,12 +304,8 @@ void dump_fespace(fespace *FE)
     fprintf(fid2,"%d\n",FE->dof_bdry[i]);
   }
 
-  // Dump Coordinates of DOF
-  dump_coords(fid3,FE->cdof);
-
   fclose(fid1);
   fclose(fid2);
-  fclose(fid3);
 	
   return;
 }

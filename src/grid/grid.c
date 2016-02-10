@@ -146,7 +146,7 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
     euler = nv - nedge + nelm;
   } else if (dim==3) {
     nface = 1 + nedge-nv+nelm;
-    nholes=0;
+    //nholes=0;
     nface = nface + nholes; // add number of holes!
     euler = nv - nedge + nface - nelm;
   } else {

@@ -227,11 +227,9 @@ int main (int argc, char* argv[])
   clock_t clk_start,clk_end,clk1,clk2;
   clk_start = clock();
     
-  //------------------------//
-  // Step 0. Set parameters //
-  //------------------------//
-  input_param     inparam; // parameters from input files
-  param_input("./input.dat", &inparam); // read in
+  // Set Parameters from Reading in Input File
+  input_param     inparam; 
+  param_input("./input.dat", &inparam); 
     
   // Open gridfile for reading
   printf("\nCreating mesh and FEM spaces:\n");
@@ -279,7 +277,9 @@ int main (int argc, char* argv[])
   }
     
   if(inparam.print_level > 3) {
-    dump_fespace(&FE);
+    char varu[1];
+    sprintf(varu,"u");
+    dump_fespace(&FE,varu);
   }
     
   clk2 = clock();
