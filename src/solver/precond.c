@@ -217,6 +217,152 @@ void precond_nl_amli (REAL *r,
     array_cp(m,mgl->x.val,z);
 }
 
+/***********************************************************************************************/
+void precond_hx_curl_additive (REAL *r,
+                      REAL *z,
+                      void *data)
+{
+    /**
+     * \fn void precond_hx_curl_additive (REAL *r, REAL *z, void *data)
+     *
+     * \brief HX preconditioner for H(curl): additive version
+     *
+     * \param r     Pointer to the vector needs preconditioning
+     * \param z     Pointer to preconditioned vector
+     * \param data  Pointer to precondition data
+     *
+     * \author Xiaozhe Hu
+     * \date   02/10/2016
+     */
+    
+    HX_curl_data *hxcurldata=(HX_curl_data *)data;
+    INT n = hxcurldata->A->row;
+    SHORT smooth_iter = hxcurldata->smooth_iter;
+    
+    // make sure z is initialzied by zeros
+    array_set(n, z, 0.0);
+    
+    // local variable
+    dvector zz;
+    zz.row = n; zz.val = z;
+    dvector rr;
+    rr.row = n; rr.val = r;
+    
+    SHORT maxit, i;
+    
+    // smoothing
+    smoother_dcsr_sgs(&zz, hxcurldata->A, &rr, smooth_iter);
+
+    // solve vector Laplacian
+    AMG_param *amgparam_vgrad = hxcurldata->amgparam_vgrad;
+    AMG_data *mgl_vgrad = hxcurldata->mgl_vgrad;
+    maxit = amgparam_vgrad->maxit;
+    
+    mgl_vgrad->b.row = hxcurldata->A_vgrad->row;
+    dcsr_mxv(hxcurldata->Pt_curl, r, mgl_vgrad->b.val);
+    mgl_vgrad->x.row=hxcurldata->A_vgrad->row;
+    dvec_set(hxcurldata->A_vgrad->row, &mgl_vgrad->x, 0.0);
+    
+    for (i=0;i<maxit;++i) mgcycle(mgl_vgrad, amgparam_vgrad);
+    
+    dcsr_aAxpy(1.0, hxcurldata->P_curl, mgl_vgrad->x.val, z);
+    
+    // solve scalar Laplacian
+    AMG_param *amgparam_grad = hxcurldata->amgparam_grad;
+    AMG_data *mgl_grad = hxcurldata->mgl_grad;
+    maxit = amgparam_grad->maxit;
+    
+    mgl_grad->b.row = hxcurldata->A_grad->row;
+    dcsr_mxv(hxcurldata->Gradt, r, mgl_grad->b.val);
+    mgl_grad->x.row=hxcurldata->A_grad->row;
+    dvec_set(hxcurldata->A_grad->row, &mgl_grad->x, 0.0);
+    
+    for (i=0;i<maxit;++i) mgcycle(mgl_grad, amgparam_grad);
+    
+    dcsr_aAxpy(1.0, hxcurldata->Grad, mgl_grad->x.val, z);
+    
+}
+
+/***********************************************************************************************/
+void precond_hx_curl_multiplicative (REAL *r,
+                               REAL *z,
+                               void *data)
+{
+    /**
+     * \fn void precond_hx_curl_multiplicative (REAL *r, REAL *z, void *data)
+     *
+     * \brief HX preconditioner for H(curl): multiplicative version
+     *
+     * \param r     Pointer to the vector needs preconditioning
+     * \param z     Pointer to preconditioned vector
+     * \param data  Pointer to precondition data
+     *
+     * \author Xiaozhe Hu
+     * \date   02/10/2016
+     */
+    
+    HX_curl_data *hxcurldata=(HX_curl_data *)data;
+    INT n = hxcurldata->A->row;
+    SHORT smooth_iter = hxcurldata->smooth_iter;
+    
+    // backup r
+    array_cp(n, r, hxcurldata->backup_r);
+    
+    // make sure z is initialzied by zeros
+    array_set(n, z, 0.0);
+    
+    // local variable
+    dvector zz;
+    zz.row = n; zz.val = z;
+    dvector rr;
+    rr.row = n; rr.val = r;
+    
+    SHORT maxit, i;
+    
+    // smoothing
+    smoother_dcsr_sgs(&zz, hxcurldata->A, &rr, smooth_iter);
+    
+    // update r
+    dcsr_aAxpy(-1.0, hxcurldata->A, zz.val, rr.val);
+    
+    // solve vector Laplacian
+    AMG_param *amgparam_vgrad = hxcurldata->amgparam_vgrad;
+    AMG_data *mgl_vgrad = hxcurldata->mgl_vgrad;
+    maxit = amgparam_vgrad->maxit;
+    
+    mgl_vgrad->b.row = hxcurldata->A_vgrad->row;
+    dcsr_mxv(hxcurldata->Pt_curl, r, mgl_vgrad->b.val);
+    mgl_vgrad->x.row=hxcurldata->A_vgrad->row;
+    dvec_set(hxcurldata->A_vgrad->row, &mgl_vgrad->x, 0.0);
+    
+    for (i=0;i<maxit;++i) mgcycle(mgl_vgrad, amgparam_vgrad);
+    
+    dcsr_aAxpy(1.0, hxcurldata->P_curl, mgl_vgrad->x.val, z);
+    
+    // update r
+    array_cp(n, hxcurldata->backup_r, r);
+    dcsr_aAxpy(-1.0, hxcurldata->A, zz.val, rr.val);
+    
+    // solve scalar Laplacian
+    AMG_param *amgparam_grad = hxcurldata->amgparam_grad;
+    AMG_data *mgl_grad = hxcurldata->mgl_grad;
+    maxit = amgparam_grad->maxit;
+    
+    mgl_grad->b.row = hxcurldata->A_grad->row;
+    dcsr_mxv(hxcurldata->Gradt, r, mgl_grad->b.val);
+    mgl_grad->x.row=hxcurldata->A_grad->row;
+    dvec_set(hxcurldata->A_grad->row, &mgl_grad->x, 0.0);
+    
+    for (i=0;i<maxit;++i) mgcycle(mgl_grad, amgparam_grad);
+    
+    dcsr_aAxpy(1.0, hxcurldata->Grad, mgl_grad->x.val, z);
+    
+    // store r
+    array_cp(n, hxcurldata->backup_r, r);
+    
+}
+
+
 /*---------------------------------*/
 /*--        End of File          --*/
 /*---------------------------------*/

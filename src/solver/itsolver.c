@@ -496,6 +496,167 @@ FINISHED:
     return status;
 }
 
+INT linear_solver_dcsr_krylov_hx_curl (dCSRmat *A,
+                                   dvector *b,
+                                   dvector *x,
+                                   linear_itsolver_param *itparam,
+                                   AMG_param *amgparam,
+                                   dCSRmat *P_curl,
+                                   dCSRmat *Grad)
+{
+    /**
+     * \fn INT linear_solver_dcsr_krylov_hx_curl (dCSRmat *A, dvector *b, dvector *x,
+     *                                      linear_itsolver_param *itparam, AMG_param *amgparam,
+     *                                      dCSRmat P_curl, dCSRmat Grad)
+     *
+     * \brief Solve Ax=b by HX (H(curl)) preconditioned Krylov methods
+     *
+     * \param A         Pointer to the coeff matrix in dCSRmat format
+     * \param b         Pointer to the right hand side in dvector format
+     * \param x         Pointer to the approx solution in dvector format
+     * \param itparam   Pointer to parameters for iterative solvers
+     * \param amgparam  Pointer to parameters for AMG methods
+     * \param P_curl    Pointer to the Pi_curl interpolation in dCSRmat format
+     * \param Grad      Pointer to the Grad operator in dCSRmat format
+     *
+     * \return          Iteration number if converges; ERROR otherwise.
+     *
+     * \author Xiaozhe Hu
+     * \date   02/10/2016
+     */
+    
+    const SHORT prtlvl = itparam->linear_print_level;
+    const SHORT max_levels = amgparam->max_levels;
+    const INT nnz = A->nnz, m = A->row, n = A->col;
+    
+    /*------------------------*/
+    /* Local Variables */
+    /*------------------------*/
+    INT      status = SUCCESS;
+    REAL     solver_start, solver_end, solver_duration;
+    
+    gettime(&solver_start);
+    
+    /*------------------------*/
+    /* setup vector Laplacian */
+    /*------------------------*/
+    
+    // get transpose of P_curl
+    dCSRmat Pt_curl;
+    dcsr_trans(P_curl, &Pt_curl);
+    
+    // get A_vgrad
+    dCSRmat A_vgrad;
+    dcsr_rap(&Pt_curl, A, P_curl, &A_vgrad);
+    
+    // initialize A, b, x for mgl_vgrad[0]
+    AMG_data *mgl_vgrad = amg_data_create(max_levels);
+    mgl_vgrad[0].A=dcsr_create(A_vgrad.row,A_vgrad.col,A_vgrad.nnz);
+    dcsr_cp(&A_vgrad, &mgl_vgrad[0].A);
+    mgl_vgrad[0].b=dvec_create(A_vgrad.col);
+    mgl_vgrad[0].x=dvec_create(A_vgrad.row);
+    
+    // setup AMG for vector Laplacian
+    switch (amgparam->AMG_type) {
+            
+        case UA_AMG: // Unsmoothed Aggregation AMG
+            status = amg_setup_ua(mgl_vgrad, amgparam); break;
+            
+        default: // Classical AMG
+            status = amg_setup_c(mgl_vgrad, amgparam); break;
+            
+    }
+    
+    if (status < 0) goto FINISHED;
+    
+    /*------------------------*/
+    /* setup scalar Laplacian */
+    /*------------------------*/
+    
+    // get transpose of Grad
+    dCSRmat Gradt;
+    dcsr_trans(Grad, &Gradt);
+    
+    // get A_grad
+    dCSRmat A_grad;
+    dcsr_rap(&Gradt, A, Grad, &A_grad);
+    
+    // initialize A, b, x for mgl_grad[0]
+    AMG_data *mgl_grad = amg_data_create(max_levels);
+    mgl_grad[0].A=dcsr_create(A_grad.row,A_grad.col,A_grad.nnz);
+    dcsr_cp(&A_grad, &mgl_grad[0].A);
+    mgl_grad[0].b=dvec_create(A_grad.col);
+    mgl_grad[0].x=dvec_create(A_grad.row);
+    
+    // setup AMG for scalar Laplacian
+    switch (amgparam->AMG_type) {
+            
+        case UA_AMG: // Unsmoothed Aggregation AMG
+            status = amg_setup_ua(mgl_grad, amgparam); break;
+            
+        default: // Classical AMG
+            status = amg_setup_c(mgl_grad, amgparam); break;
+            
+    }
+    
+    if (status < 0) goto FINISHED;
+    
+    /*------------------------*/
+    // setup preconditioner
+    HX_curl_data hxcurldata;
+    
+    hxcurldata.A = A;
+    
+    hxcurldata.smooth_type = 1;
+    hxcurldata.smooth_iter = 1;
+    
+    hxcurldata.P_curl = P_curl;
+    hxcurldata.Pt_curl = &Pt_curl;
+    hxcurldata.A_vgrad = &A_vgrad;
+    hxcurldata.amgparam_vgrad = amgparam;
+    hxcurldata.mgl_vgrad = mgl_vgrad;
+    
+    hxcurldata.Grad = Grad;
+    hxcurldata.Gradt = &Gradt;
+    hxcurldata.A_grad = &A_grad;
+    hxcurldata.amgparam_grad = amgparam;
+    hxcurldata.mgl_grad = mgl_grad;
+    
+    hxcurldata.backup_r = (REAL*)calloc(A->row, sizeof(REAL));
+    
+    precond pc; pc.data = &hxcurldata;
+    switch (itparam->linear_precond_type) {
+            
+        case PREC_HX_CURL_A:
+            pc.fct = precond_hx_curl_additive;
+            break;
+        
+        default:
+            pc.fct = precond_hx_curl_multiplicative;
+            break;
+
+    }
+    
+    // call iterative solver
+    status = solver_dcsr_linear_itsolver(A, b, x, &pc, itparam);
+    
+    if ( prtlvl >= PRINT_MIN ) {
+        gettime(&solver_end);
+        solver_duration = solver_end - solver_start;
+        print_cputime("HX_curl_Krylov method totally", solver_duration);
+        printf("**********************************************************\n");
+    }
+    
+FINISHED:
+    amg_data_free(mgl_vgrad, amgparam);
+    amg_data_free(mgl_grad, amgparam);
+    
+    //todo: clean memory
+    
+    return status;
+}
+
+
 /*---------------------------------*/
 /*--        End of File          --*/
 /*---------------------------------*/
