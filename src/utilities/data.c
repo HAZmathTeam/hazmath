@@ -197,6 +197,46 @@ void amg_data_free (AMG_data *mgl,
 }
 
 /***********************************************************************************************/
+void HX_curl_data_free (HX_curl_data *hxcurldata, SHORT flag)
+{
+    /**
+     * \fn void HX_curl_data_free (HX_curl_data *hxcurldata)
+     *
+     * \brief Free HX_curl_data data memeory space
+     *
+     * \param hxcurldata    Pointer to the HX_curl_data
+     * \param flag          A flag: 0 means A, P_curl, and Grad will be reused | 1 means free everything
+     *
+     * \author Xiaozhe Hu
+     * \date   02/11/2016
+     *
+     *
+     */
+    
+    if (flag == TRUE) {
+        dcsr_free(hxcurldata->A);
+        dcsr_free(hxcurldata->P_curl);
+        dcsr_free(hxcurldata->Grad);
+    }
+    
+    dcsr_free(hxcurldata->Pt_curl);
+    dcsr_free(hxcurldata->A_vgrad);
+    
+    amg_data_free(hxcurldata->mgl_vgrad, hxcurldata->amgparam_vgrad);
+    
+    dcsr_free(hxcurldata->Gradt);
+    dcsr_free(hxcurldata->A_grad);
+    
+    amg_data_free(hxcurldata->mgl_grad, hxcurldata->amgparam_grad);
+    
+    if (hxcurldata->backup_r) free(hxcurldata->backup_r);
+    
+    if (hxcurldata->w) free(hxcurldata->w);
+        
+
+}
+
+/***********************************************************************************************/
 void precond_null (precond *pcdata)
 {
     /**

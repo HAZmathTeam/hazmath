@@ -412,6 +412,9 @@ int main (int argc, char* argv[])
                     dcsr_shift(&P_curl, 1);   // shift A back
                     dcsr_shift(&Grad, 1);   // shift A back
                     
+                    dcsr_free(&P_curl);
+                    dcsr_free(&Grad);
+                    
                     break;
                     
                 case PREC_HX_CURL_M: // HX precondtioner
@@ -426,6 +429,9 @@ int main (int argc, char* argv[])
                     
                     dcsr_shift(&P_curl, 1);   // shift A back
                     dcsr_shift(&Grad, 1);   // shift A back
+                    
+                    dcsr_free(&P_curl);
+                    dcsr_free(&Grad);
                     
                     break;
                     

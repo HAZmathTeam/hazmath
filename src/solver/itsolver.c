@@ -623,6 +623,7 @@ INT linear_solver_dcsr_krylov_hx_curl (dCSRmat *A,
     hxcurldata.mgl_grad = mgl_grad;
     
     hxcurldata.backup_r = (REAL*)calloc(A->row, sizeof(REAL));
+    hxcurldata.w = (REAL*)calloc(A->row, sizeof(REAL));
     
     precond pc; pc.data = &hxcurldata;
     switch (itparam->linear_precond_type) {
@@ -648,10 +649,7 @@ INT linear_solver_dcsr_krylov_hx_curl (dCSRmat *A,
     }
     
 FINISHED:
-    amg_data_free(mgl_vgrad, amgparam);
-    amg_data_free(mgl_grad, amgparam);
-    
-    //todo: clean memory
+    HX_curl_data_free(&hxcurldata, FALSE);
     
     return status;
 }
