@@ -164,7 +164,7 @@ void assemble_DuDv_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
 void assemble_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time) 
 {
 	
-  /* Computes the global mass matrix for a <u,v> = <f,v> bilinear form using various element types
+  /* Computes the local mass matrix for a <u,v> = <f,v> bilinear form using various element types
    * (eg. P1, P2, Nedelec, and Raviart-Thomas).
    * 
    * For this problem we compute:
@@ -587,6 +587,106 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinat
   if(dphiz) free(dphiz);
   if(qx) free(qx);
   if(coeff_val) free(coeff_val);
+  return;
+}
+/******************************************************************************************************/
+
+/******************************************************************************************************/
+void impedencebdry_local(REAL* ZLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *ed_on_f, \
+			 INT *v_on_elm,INT *ed_on_elm,INT elm,INT face,void (*coeff)(REAL *,REAL *,REAL),REAL time) 
+{
+
+  /* Computes the local weal formulation of the Impedance boundary condition
+   * ONLY WORKS IN 3D
+   * Uses midpoint rule to integrate on edges of boundary face
+   * For this problem we compute the left-hand side of:
+   *
+   *    <n x E,n x F>_bdryobstacle    for all F in H_imp(curl) (Nedelec)
+   * 
+   *
+   *    INPUT:
+   *            FE		    Finite-Element Space Struct for E
+   *	      	mesh                Mesh Struct
+   *            cq                  Quadrature Coordinates and Weights
+   *            ed_on_f            Specific DOF on boundary face
+   *            v_on_elm            Vertices on current element associated with current face
+   *            ed_on_elm           Edges on current element associated with current face
+   *            elm                 Current element associated with current face
+   *            face                Current face on boundary
+   *            coeff               Function that gives coefficient (for now assume constant)
+   *            time                Time if time dependent
+   *
+   *    OUTPUT:
+   *	       	ZLoc                Local Boundary Matrix (Full Matrix)
+   */
+	
+  // Mesh and FE data
+  INT ed_per_elm = FE->dof_per_elm;
+  INT dim = mesh->dim;
+  
+  // Loop Indices
+  INT j,quad,test,trial,ed,edt,edb;
+
+  // Quadrature Weights and Nodes
+  // Using triangle midpoint rule, so qx is midpoint of edges and w is |F|/3
+  REAL w = mesh->f_area[face-1]/3.0; 
+  REAL* qx = (REAL *) calloc(3,sizeof(REAL));
+
+  // Get normal vector components on face
+  REAL nx = mesh->f_norm[(face-1)*dim];
+  REAL ny = mesh->f_norm[(face-1)*dim+1];
+  REAL nz = mesh->f_norm[(face-1)*dim+2];
+
+  // Stiffness Matrix Entry
+  REAL kij,kij1,kij2,kij3,kij4,kij5,kij6;
+	
+  // Basis Functions and its curl
+  REAL* phi= (REAL *) calloc(ed_per_elm*dim,sizeof(REAL));
+  REAL* cphi = (REAL *) calloc(ed_per_elm*dim,sizeof(REAL));
+  
+  // Coefficient Value at Quadrature Nodes
+  REAL coeff_val=0.0;
+
+  //  Sum over midpoints of edges
+  for (quad=0;quad<3;quad++) { 
+    ed = ed_on_elm[quad]-1;
+    qx[0] = mesh->ed_mid[ed*dim];
+    qx[1] = mesh->ed_mid[ed*dim+1];
+    qx[2] = mesh->ed_mid[ed*dim+2];
+
+    (*coeff)(&coeff_val,qx,time);
+
+    //  Get the Basis Functions at each quadrature node
+    ned_basis(phi,cphi,qx[0],qx[1],qx[2],v_on_elm,ed_on_elm,mesh);
+
+    // Loop over Test Functions (Rows - edges)
+    for (test=0; test<3;test++) {
+      // Loop over Trial Functions (Columns)
+      for (trial=0; trial<3; trial++) {
+	// Make sure ordering for global matrix is right
+	for(j=0;j<mesh->ed_per_elm;j++) {
+	  if(ed_on_f[test]==ed_on_elm[j]) {
+	    edt = j;
+	  }
+	  if(ed_on_f[trial]==ed_on_elm[j]) {
+	    edb = j;
+	  }
+	}
+	kij1 = phi[edb*dim+1]*nz - phi[edb*dim+2]*ny;
+	kij2 = phi[edb*dim+2]*nx - phi[edb*dim]*nz;
+	kij3 = phi[edb*dim]*ny - phi[edb*dim+1]*nx;
+	kij4 = phi[edt*dim+1]*nz - phi[edt*dim+2]*ny;
+	kij5 = phi[edt*dim+2]*nx - phi[edt*dim]*nz;
+	kij6 = phi[edt*dim]*ny - phi[edt*dim+1]*nx;
+	kij = coeff_val*(kij1*kij4+kij2*kij5+kij3*kij6);
+	ZLoc[test*3+trial]+=w*kij;
+      }
+    }
+  }
+  
+  if (phi) free(phi);
+  if(cphi) free(cphi);
+  if(qx) free(qx);
   return;
 }
 /******************************************************************************************************/
