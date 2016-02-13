@@ -155,7 +155,8 @@ void LocaltoGlobal(INT *dof_on_elm,fespace *FE,dvector *b,dCSRmat *A,REAL *ALoc,
   for (i=0; i<FE->dof_per_elm; i++) { /* Rows of Local Stiffness */
     row = dof_on_elm[i]-1;	
     // Adjust Right-hand side globally
-    b->val[row] = b->val[row] + bLoc[i];
+    if(bLoc!=NULL)
+      b->val[row] = b->val[row] + bLoc[i];
 			
     for (j=0; j<FE->dof_per_elm; j++) { /* Columns of Local Stiffness */
       col = dof_on_elm[j]-1;
@@ -338,7 +339,8 @@ void LocaltoGlobalBC(INT *dof_on_elm,fespace *FE,dvector *b,dCSRmat *A,REAL *ALo
     row = dof_on_elm[i]-1;
     if (FE->dof_bdry[row]==0) { /* Only if not on a boundary */		
       // Adjust Right-hand side globally
-      b->val[row] = b->val[row] + bLoc[i];
+      if(bLoc!=NULL)
+	b->val[row] = b->val[row] + bLoc[i];
 			
       for (j=0; j<FE->dof_per_elm; j++) { /* Columns of Local Stiffness */
 	col = dof_on_elm[j]-1;
@@ -352,7 +354,175 @@ void LocaltoGlobalBC(INT *dof_on_elm,fespace *FE,dvector *b,dCSRmat *A,REAL *ALo
 	    }
 	  }
 	} else { /* If boundary adjust Right hand side */
-	  b->val[row] = b->val[row]-(ALoc[i*FE->dof_per_elm+j])*b->val[col];
+	  if(bLoc!=NULL)
+	    b->val[row] = b->val[row]-(ALoc[i*FE->dof_per_elm+j])*b->val[col];
+	}
+      }
+    }
+  }
+  return;
+}
+/******************************************************************************************************/
+
+/******************************************************************************************************/
+void stiffG_nnz_subset(dCSRmat *A, fespace *FE,INT flag) 
+{
+  /* Computes the "possible" number of nonzeros for the global stiffness matrix
+   * Also takes into account special boundary conditions.  Here if the boundary is equal to "flag" (whatever that corresponds to)
+   * Then we add something to the matrix
+   * 
+   *
+   *    INPUT:
+   *          fespace		    Finite-Element Space Struct
+   *             flag               Indicates boundary term we want
+   *
+   *    OUTPUT:
+   *          A->IA(ndof)	    Rows of Global A
+   *	      A->nnzA		    Nonzeroes of A (ignoring cancellations)
+   */
+	
+  INT i,j,k,j_a,j_b,k_a,k_b,mydof,if1,icp;
+		
+  // We will need the DOF to element map first
+  iCSRmat dof_el;
+  icsr_trans_1(FE->el_dof,&dof_el);
+
+  INT ndof = FE->ndof;
+	
+  INT* ix = (INT *) calloc(ndof,sizeof(INT));
+  for (i=0; i<ndof; i++) {
+    ix[i] = 0;	
+  }
+	
+  // Loop over all DOF and count possible nonzeros in A
+  // Also build A->IA, while you're at it...
+  icp=1;
+  for (i=0; i<ndof; i++) {
+    A->IA[i] = icp;
+    // Check if this is a boundary dof we want
+    if (FE->dof_bdry[i]==flag) {	
+      // Loop over all Elements connected to particular edge
+      j_a = dof_el.IA[i];
+      j_b = dof_el.IA[i+1]-1;
+      for (j=j_a; j<=j_b; j++) {
+	if1 = dof_el.JA[j-1];
+	k_a = FE->el_dof->IA[if1-1];
+	k_b = FE->el_dof->IA[if1]-1;
+	for (k=k_a; k<=k_b; k++) {
+	  mydof = FE->el_dof->JA[k-1];
+	  if (ix[mydof-1]!=i+1 && FE->dof_bdry[mydof-1]==flag) { /* We haven't been here AND it is a boundary */
+	    icp++;
+	    ix[mydof-1] = i+1;
+	  }
+	}				
+      }
+    }
+  }
+  A->IA[ndof] = icp;
+  A->nnz = icp-1;
+		
+  if(ix) free(ix);
+  icsr_free(&dof_el);
+	
+  return;
+}
+/******************************************************************************************************/
+
+/******************************************************************************************************/
+void stiffG_cols_subset(dCSRmat *A, fespace *FE,INT flag) 
+{
+  /* Finds the column sparsity structure of the  Global Stiffness Matrix
+   * Also takes into account special boundary conditions.  Here if the boundary is equal to "flag" (whatever that corresponds to)
+   * Then we add something to the matrix
+   *
+   *    INPUT:
+   *          fespace		    Finite-Element Space Struct
+   *             flag               Indicates boundary term we want
+   *
+   *    OUTPUT:
+   *          A->IA(ndof)	    Rows of Global A
+   *	      A->nnzA		    Nonzeroes of A (ignoring cancellations)
+   */
+	
+  INT i,j,k,j_a,j_b,k_a,k_b,mydof,if1,icp;
+	
+  // We will need the DOF to element map first
+  iCSRmat dof_el;
+  icsr_trans_1(FE->el_dof,&dof_el);
+
+  INT ndof = FE->ndof;
+	
+  INT* ix = (INT *) calloc(ndof,sizeof(INT));
+  for (i=0; i<ndof; i++) {
+    ix[i] = 0;	
+  }
+	
+  // Loop over all DOF and build A->JA
+  icp=1;
+  for (i=0; i<ndof; i++) {
+    // Check if this is a boundary edge
+    if (FE->dof_bdry[i]==flag) {
+      // Loop over all Elements connected to particular edge
+      j_a = dof_el.IA[i];
+      j_b = dof_el.IA[i+1]-1;
+      for (j=j_a; j<=j_b; j++) {
+	if1 = dof_el.JA[j-1];
+	k_a = FE->el_dof->IA[if1-1];
+	k_b = FE->el_dof->IA[if1]-1;
+	for (k=k_a; k<=k_b; k++) {
+	  mydof = FE->el_dof->JA[k-1];
+	  if (ix[mydof-1]!=i+1 && FE->dof_bdry[mydof-1]==flag) { /* We haven't been here AND it is a boundary */
+	    A->JA[icp-1] = mydof;
+	    icp++;
+	    ix[mydof-1] = i+1;
+	  }
+	}				
+      }
+    }
+  }
+	
+	
+  if(ix) free(ix);
+  icsr_free(&dof_el);
+	
+  return;
+}
+/******************************************************************************************************/
+
+/******************************************************************************************************/
+void LocaltoGlobalsubset(INT *dof_on_elm,fespace *FE,dCSRmat *A,REAL *ALoc,INT flag) 
+{
+  /********* Maps the Local Matrix to Global Matrix considering "special" boundaries *****************
+   *
+   *	Input:
+   *		dof_on_elm	Array of DOF entries on the given element
+   *		FE              finite-element space struct
+   *		A		Global Stiffness Matrix
+   *		ALoc		Local Stiffness Matrix
+   *		flag		Indicates which boundary DOF to grab
+   *
+   *	Output:		
+   *            A		Adjusted Global Matrix
+   *
+   */
+	
+  INT i,j,k,row,col,col_a,col_b,acol;
+	
+  for (i=0; i<FE->dof_per_elm; i++) { /* Rows of Local Stiffness */
+    row = dof_on_elm[i]-1;
+    if (FE->dof_bdry[row]==flag) { /* Only if on special boundary */		
+			
+      for (j=0; j<FE->dof_per_elm; j++) { /* Columns of Local Stiffness */
+	col = dof_on_elm[j]-1;
+	if (FE->dof_bdry[col]==flag) { /* Only do stuff if hit a special boundary */
+	  col_a = A->IA[row]-1;
+	  col_b = A->IA[row+1]-1;
+	  for (k=col_a; k<col_b; k++) { /* Columns of A */
+	    acol = A->JA[k]-1;				
+	    if (acol==col) {	/* If they match, put it in the global matrix */
+	      A->val[k] = A->val[k] + ALoc[i*FE->dof_per_elm+j];
+	    }
+	  }
 	}
       }
     }
@@ -400,7 +570,8 @@ void eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL),fespace *FE,trimesh *m
     colb = A->IA[i+1]-1;
     if(FE->dof_bdry[i]==1) { // Boundary Row
       // Set rhs to BC
-      b->val[i] = FE_Evaluate_DOF(bc,FE,mesh,time,i); 
+      if(b->val!=NULL)
+	b->val[i] = FE_Evaluate_DOF(bc,FE,mesh,time,i); 
       // Loop over columns and 0 out row except for diagonal
       for(j=cola; j<colb; j++) { 
 	if(A->JA[j]==i+1)
@@ -413,7 +584,8 @@ void eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL),fespace *FE,trimesh *m
       for(j=cola; j<colb; j++) { 
 	if(FE->dof_bdry[A->JA[j]-1]==1) {
 	  // Adjust RHS accordingly as well
-	  b->val[i] = b->val[i] - A->val[j]*FE_Evaluate_DOF(bc,FE,mesh,time,A->JA[j]-1);
+	  if(b->val!=NULL)
+	    b->val[i] = b->val[i] - A->val[j]*FE_Evaluate_DOF(bc,FE,mesh,time,A->JA[j]-1);
 	  // Zero out matrix entry
 	  A->val[j] = 0.0;
 	}

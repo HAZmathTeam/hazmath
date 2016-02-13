@@ -147,6 +147,46 @@ iCSRmat icsr_create (const INT m,
 }
 
 /***********************************************************************************************/
+iCSRmat icsr_create_identity (const INT m)
+{
+    
+    /**
+     * \fn iCSRmat icsr_create (const INT m)
+     *
+     * \brief Create CSR sparse matrix data memory space for identity matrix
+     *
+     * \param m    Number of rows=columns=nonzeros
+     *
+     * \return A   the new iCSRmat identity matrix
+     *
+     */
+    INT i;
+    iCSRmat A;
+    
+    if ( m > 0 ) {
+        A.IA = (INT *)calloc(m+1, sizeof(INT));
+	A.JA = (INT *)calloc(m, sizeof(INT));
+	A.val = NULL;
+    }
+    else {
+        A.IA = NULL;
+	A.JA = NULL;
+	A.val = NULL;
+    }
+    
+    A.row = m; A.col = m; A.nnz = m;
+
+    for(i=0;i<m;i++) {
+      A.IA[i] = i+1;
+      A.JA[i] = i+1;
+    }
+    A.IA[m] = m+1;
+    
+    return A;
+}
+
+/***********************************************************************************************/
+
 void dcsr_free (dCSRmat *A)
 {
     /**

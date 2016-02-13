@@ -65,8 +65,10 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
       FE->nbdof = mesh->nbedge;
       FE->dof_per_elm = mesh->ed_per_elm;
       FE->el_dof = mesh->el_ed;
-      FE->ed_dof = NULL;
-      FE->f_dof = NULL;
+      iCSRmat ed_ed = icsr_create_identity(mesh->nedge);
+      FE->ed_dof = malloc(sizeof(struct iCSRmat));
+      *(FE->ed_dof) = ed_ed;
+      FE->f_dof = mesh->f_ed;
       FE->dof_bdry = mesh->ed_bdry;
       break;
     case -2: // Raviart-Thomas Elements
@@ -75,8 +77,13 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
       FE->nbdof = mesh->nbface;
       FE->dof_per_elm = mesh->f_per_elm;
       FE->el_dof = mesh->el_f;
-      FE->ed_dof = NULL;
-      FE->f_dof = NULL;
+      iCSRmat ed_f;
+      icsr_trans_1(mesh->f_ed,&ed_f);
+      FE->ed_dof = malloc(sizeof(struct iCSRmat));
+      *(FE->ed_dof) = ed_f;
+      iCSRmat f_f = icsr_create_identity(mesh->nface);
+      FE->f_dof = malloc(sizeof(struct iCSRmat));
+      *(FE->f_dof) = f_f;
       FE->dof_bdry = mesh->f_bdry;
       break;
     default:
@@ -105,13 +112,13 @@ void free_fespace(fespace* FE)
     FE->el_dof = NULL;
   }
 
-  if(FE->ed_dof && FE->FEtype==2) { 
+  if(FE->ed_dof && FE->FEtype!=1) { 
     icsr_free(FE->ed_dof);
     free(FE->ed_dof);
     FE->ed_dof = NULL;
   }
   
-  if(FE->f_dof && FE->FEtype==2) {
+  if(FE->f_dof && FE->FEtype!=1) {
     icsr_free(FE->f_dof);
     free(FE->f_dof);
     FE->f_dof = NULL;

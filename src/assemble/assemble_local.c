@@ -592,13 +592,14 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinat
 /******************************************************************************************************/
 
 /******************************************************************************************************/
-void impedencebdry_local(REAL* ZLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *ed_on_f, \
-			 INT *v_on_elm,INT *ed_on_elm,INT elm,INT face,void (*coeff)(REAL *,REAL *,REAL),REAL time) 
+void impedancebdry_local(REAL* ZLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *ed_on_f, \
+			 INT *ed_on_elm,INT *v_on_elm,INT face,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time) 
 {
 
-  /* Computes the local weal formulation of the Impedance boundary condition
-   * ONLY WORKS IN 3D
+  /* Computes the local weak formulation of the Impedance boundary condition
+   *
    * Uses midpoint rule to integrate on edges of boundary face
+   * ASSUMING 3D ONLY
    * For this problem we compute the left-hand side of:
    *
    *    <n x E,n x F>_bdryobstacle    for all F in H_imp(curl) (Nedelec)
@@ -608,9 +609,8 @@ void impedencebdry_local(REAL* ZLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
    *            FE		    Finite-Element Space Struct for E
    *	      	mesh                Mesh Struct
    *            cq                  Quadrature Coordinates and Weights
-   *            ed_on_f            Specific DOF on boundary face
+   *            ed_on_f             Specific Edge on boundary face
    *            v_on_elm            Vertices on current element associated with current face
-   *            ed_on_elm           Edges on current element associated with current face
    *            elm                 Current element associated with current face
    *            face                Current face on boundary
    *            coeff               Function that gives coefficient (for now assume constant)
@@ -628,9 +628,10 @@ void impedencebdry_local(REAL* ZLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
   INT j,quad,test,trial,ed,edt,edb;
 
   // Quadrature Weights and Nodes
-  // Using triangle midpoint rule, so qx is midpoint of edges and w is |F|/3
-  REAL w = mesh->f_area[face-1]/3.0; 
-  REAL* qx = (REAL *) calloc(3,sizeof(REAL));
+  INT nq = 2*dim-3; // = ed_per_face
+  REAL* qx = (REAL *) calloc(nq,sizeof(REAL));
+  // 3D: Using triangle midpoint rule, so qx is midpoint of edges and w is |F|/3
+  REAL w = mesh->f_area[face]/3.0; 
 
   // Get normal vector components on face
   REAL nx = mesh->f_norm[(face-1)*dim];
@@ -648,8 +649,8 @@ void impedencebdry_local(REAL* ZLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
   REAL coeff_val=0.0;
 
   //  Sum over midpoints of edges
-  for (quad=0;quad<3;quad++) { 
-    ed = ed_on_elm[quad]-1;
+  for (quad=0;quad<nq;quad++) { 
+    ed = ed_on_f[quad]-1;
     qx[0] = mesh->ed_mid[ed*dim];
     qx[1] = mesh->ed_mid[ed*dim+1];
     qx[2] = mesh->ed_mid[ed*dim+2];
@@ -660,9 +661,9 @@ void impedencebdry_local(REAL* ZLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
     ned_basis(phi,cphi,qx[0],qx[1],qx[2],v_on_elm,ed_on_elm,mesh);
 
     // Loop over Test Functions (Rows - edges)
-    for (test=0; test<3;test++) {
+    for (test=0; test<nq;test++) {
       // Loop over Trial Functions (Columns)
-      for (trial=0; trial<3; trial++) {
+      for (trial=0; trial<nq; trial++) {
 	// Make sure ordering for global matrix is right
 	for(j=0;j<mesh->ed_per_elm;j++) {
 	  if(ed_on_f[test]==ed_on_elm[j]) {
@@ -679,7 +680,7 @@ void impedencebdry_local(REAL* ZLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
 	kij5 = phi[edt*dim+2]*nx - phi[edt*dim]*nz;
 	kij6 = phi[edt*dim]*ny - phi[edt*dim+1]*nx;
 	kij = coeff_val*(kij1*kij4+kij2*kij5+kij3*kij6);
-	ZLoc[test*3+trial]+=w*kij;
+	ZLoc[test*nq+trial]+=w*kij;
       }
     }
   }

@@ -275,7 +275,11 @@ int main (int argc, char* argv[])
     printf("ERROR: Unknown Finite Element Type\n");
     exit(0);
   }
-    
+
+  /* FILE* fid=fopen("test.out","w"); */
+  /* icsr_print_matlab(fid,FE.ed_dof); */
+  /* fclose(fid); */
+
   if(inparam.print_level > 3) {
     char varu[1];
     sprintf(varu,"u");
