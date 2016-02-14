@@ -564,13 +564,14 @@ void eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL),fespace *FE,trimesh *m
     exit(0);
   }
 
+  
   // Loop over rows of A
   for (i=0; i<ndof; i++) {
     cola = A->IA[i]-1;
     colb = A->IA[i+1]-1;
     if(FE->dof_bdry[i]==1) { // Boundary Row
       // Set rhs to BC
-      if(b->val!=NULL)
+      if(b!=NULL)
 	b->val[i] = FE_Evaluate_DOF(bc,FE,mesh,time,i); 
       // Loop over columns and 0 out row except for diagonal
       for(j=cola; j<colb; j++) { 
@@ -584,7 +585,7 @@ void eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL),fespace *FE,trimesh *m
       for(j=cola; j<colb; j++) { 
 	if(FE->dof_bdry[A->JA[j]-1]==1) {
 	  // Adjust RHS accordingly as well
-	  if(b->val!=NULL)
+	  if(b!=NULL)
 	    b->val[i] = b->val[i] - A->val[j]*FE_Evaluate_DOF(bc,FE,mesh,time,A->JA[j]-1);
 	  // Zero out matrix entry
 	  A->val[j] = 0.0;
@@ -592,7 +593,6 @@ void eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL),fespace *FE,trimesh *m
       }
     }
   }
-
   return;
 }
 /******************************************************************************************************/
