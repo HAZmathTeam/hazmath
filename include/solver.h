@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "param.h"
+
 #ifndef _solver_h
 #define _solver_h
 
@@ -225,6 +227,73 @@ typedef struct {
     REAL *w;
     
 } precond_data; /**< Data for general preconditioner */
+
+
+/**
+ * \struct HX_curl_data
+ * \brief Data for HX preconditioner for H(curl) problems
+ */
+typedef struct {
+    
+    //! Curl Matrix
+    dCSRmat *A;
+    
+    /* ---------------------*/
+    /* smoother information */
+    /* ---------------------*/
+    //! Smoother type
+    SHORT smooth_type;
+
+    //! number of smoothing
+    SHORT smooth_iter;
+    
+    /* ---------------------*/
+    /* vector Laplacian information */
+    /* ---------------------*/
+    //! P_curl operator
+    dCSRmat *P_curl;
+    
+    //! transpose of P_curl operator
+    dCSRmat *Pt_curl;
+    
+    //! vector Laplacian
+    dCSRmat *A_vgrad;
+    
+    //! AMG parameters for vector Laplacian
+    AMG_param *amgparam_vgrad;
+    
+    //! AMG data for vector Laplacian
+    AMG_data *mgl_vgrad;
+    
+    /* ---------------------*/
+    /* scalar Laplacian information */
+    /* ---------------------*/
+    //! Grad operator
+    dCSRmat *Grad;
+    
+    //! transpose of Grad operator
+    dCSRmat *Gradt;
+    
+    //! vector Laplacian
+    dCSRmat *A_grad;
+    
+    //! AMG parameters for vector Laplacian
+    AMG_param *amgparam_grad;
+    
+    //! AMG data for vector Laplacian
+    AMG_data *mgl_grad;
+    
+    /* ---------------------*/
+    /* HX preconditioner information */
+    /* ---------------------*/
+    //! backup residual space
+    REAL *backup_r;
+    
+    //! temporary work space for other usage
+    REAL *w;
+    
+} HX_curl_data;
+
 
 /**
  * \struct Link

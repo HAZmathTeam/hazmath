@@ -138,6 +138,8 @@
 #define PREC_FMG                3  /**< with full AMG precond */
 #define PREC_ILU                4  /**< with ILU precond */
 #define PREC_SCHWARZ            5  /**< with Schwarz preconditioner */
+#define PREC_HX_CURL_A          6  /**< with additive HX preconditioner for H(curl) problem */
+#define PREC_HX_CURL_M          7  /**< with multiplicative HX preconditioner for H(curl) problem */
 
 /**
  * \brief Type of ILU methods
