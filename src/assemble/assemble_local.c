@@ -634,9 +634,9 @@ void impedancebdry_local(REAL* ZLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
   REAL w = mesh->f_area[face]/3.0; 
 
   // Get normal vector components on face
-  REAL nx = mesh->f_norm[(face-1)*dim];
-  REAL ny = mesh->f_norm[(face-1)*dim+1];
-  REAL nz = mesh->f_norm[(face-1)*dim+2];
+  REAL nx = mesh->f_norm[face*dim];
+  REAL ny = mesh->f_norm[face*dim+1];
+  REAL nz = mesh->f_norm[face*dim+2];
 
   // Stiffness Matrix Entry
   REAL kij,kij1,kij2,kij3,kij4,kij5,kij6;

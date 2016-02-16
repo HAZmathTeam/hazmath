@@ -392,7 +392,7 @@ void assemble_global_face(dCSRmat* A,void (*local_assembly_face)(REAL *,fespace 
       (*local_assembly_face)(ALoc,FE,mesh,cq,dof_on_f,dof_on_elm,v_on_elm,i,elm,coeff,time);
       
       // Loop over DOF and place in appropriate slot globally
-      LocaltoGlobalsubset(dof_on_elm,FE,A,ALoc,flag); 
+      LocaltoGlobal_face(dof_on_f,dof_per_face,FE,A,ALoc,flag); 
     }	
   }
 

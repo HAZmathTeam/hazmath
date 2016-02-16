@@ -282,8 +282,10 @@ int main (int argc, char* argv[])
 
   if(inparam.print_level > 3) {
     char varu[1];
+    char dir[20];
+    sprintf(dir,"output");
     sprintf(varu,"u");
-    dump_fespace(&FE,varu);
+    dump_fespace(&FE,varu,dir);
   }
     
   clk2 = clock();

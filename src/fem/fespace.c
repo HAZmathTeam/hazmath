@@ -280,7 +280,7 @@ void dump_el_dof(FILE* fid,iCSRmat *el_dof)
 /****************************************************************************************/
 
 /****************************************************************************************/
-void dump_fespace(fespace *FE,char *varname) 
+void dump_fespace(fespace *FE,char *varname,char *dir) 
 {
   /* Dump the mesh data to file for plotting purposes
    *
@@ -298,8 +298,8 @@ void dump_fespace(fespace *FE,char *varname)
   INT totdof = FE->ndof;
   char eldofname[20];
   char bdryname[20];
-  sprintf(eldofname,"el_dof_%s.dat",varname);
-  sprintf(bdryname,"bdry_%s.dat",varname);
+  sprintf(eldofname,"%s/el_dof_%s.dat",dir,varname);
+  sprintf(bdryname,"%s/bdry_%s.dat",dir,varname);
   FILE* fid1 = fopen(eldofname,"w");
   FILE* fid2 = fopen(bdryname,"w");
     

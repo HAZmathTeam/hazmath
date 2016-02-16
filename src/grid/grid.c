@@ -119,14 +119,12 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
   }
   iCSRmat ed_v = get_edge_v(nedge,el_v);
     
-  /* Get Boundary Edges and Vertices */
+  /* Get Boundary Edges and Vertices in 2D (3D needs face_bdry first */
   INT* ed_bdry = (INT *) calloc(nedge,sizeof(INT));
   if (dim==2) {     
     isboundary_ed(ed_v,nedge,nbedge,bdry_v,ed_bdry);
     isboundary_v(nv,bdry_v,v_bdry,nbedge,&nbv);
-  } else if(dim==3) {
-    isboundary_ed3D(ed_v,nedge,cv,&nbedge,v_bdry,ed_bdry);
-  }
+  } 
   if(bdry_v) free(bdry_v);
 	
   /* Element to Edge Map */
@@ -196,6 +194,12 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
   sync_facenode(&f_v,f_norm,mesh);
   *(mesh->f_v) = f_v;
   *(mesh->f_ed) = f_ed;
+
+  // If in 3D, still need to get edge_bdry map
+  if(dim==3) {
+    //isboundary_ed3D(ed_v,nedge,cv,&nbedge,v_bdry,ed_bdry);
+    isboundary_ed3D_f(&f_ed,&ed_v,nedge,nface,f_bdry,v_bdry,&nbedge,ed_bdry); 
+  }
 
   // Finally get volumes/areas of elements and the midpoint (barycentric)
   REAL* el_mid = (REAL *) calloc(nelm*dim,sizeof(REAL));
@@ -445,8 +449,6 @@ iCSRmat get_edge_v(INT nedge,iCSRmat el_v)
   ed_v.IA[icntr] = jcntr+1;		
 	
   /* Free Node Node */
-    //free(iv_v);
-    //free(jv_v);
   icsr_free(&v_v);
   icsr_free(&v_el);
 
@@ -570,10 +572,10 @@ void isboundary_ed3D(iCSRmat ed_v,INT nedge,coordinates *cv,INT *nbedge,INT *v_b
   jcntr=0;
   // For every edge get nodes
   for (i=0; i<nedge; i++) {
-    col_b = ed_v.IA[i];
+    col_b = ed_v.IA[i]-1;
     col_e = ed_v.IA[i+1]-1;
-    n = ed_v.JA[col_b-1]-1;
-    m = ed_v.JA[col_e-1]-1;
+    n = ed_v.JA[col_b]-1;
+    m = ed_v.JA[col_b+1]-1;
     //Check if two nodes are on boundary
     if (v_bdry[n]!=0 && v_bdry[m]!=0) {
       if(cv->x[n]==cv->x[m] || cv->y[n]==cv->y[m] || cv->z[n]==cv->z[m]) {
@@ -585,6 +587,55 @@ void isboundary_ed3D(iCSRmat ed_v,INT nedge,coordinates *cv,INT *nbedge,INT *v_b
     }
   }
   *nbedge = jcntr;
+  return;
+}
+/***********************************************************************************************/
+
+/***********************************************************************************************/
+void isboundary_ed3D_f(iCSRmat* f_ed,iCSRmat* ed_v,INT nedge,INT nface,INT *f_bdry,INT *v_bdry,INT *nbedge,INT *ed_bdry) 
+{
+	
+  /* Counts the number of boundary edges in 3D and indicates whether an edge is 
+   * a boundary, using the f_bdry map.
+   *
+   *	Input:  f_ed:		Edge to Vertex Map
+   *		nedge	    	Total number of edges
+   *		nface		Total number of faces
+   *		f_bdry		List of faces and whether they are on boundary
+   *	Output: 
+   *		ed_bdry		List of edges and whether they are on boundary
+   *		nbedge	        Number of boundary edges
+   */
+	
+  INT i,j,ed,v1,v2,col_b,col_e,jcntr; /* Loop indices and counters */
+	
+  // For every face get edges
+  // All edges on a face should have the same property as the face.
+  for (i=0; i<nface; i++) {
+    col_b = f_ed->IA[i]-1;
+    col_e = f_ed->IA[i+1]-1;
+    for(j=col_b;j<col_e;j++) {
+      ed = f_ed->JA[j]-1;
+      v1 = ed_v->JA[ed_v->IA[ed]-1]-1;
+      v2 = ed_v->JA[ed_v->IA[ed]]-1;
+      if(v_bdry[v1]==v_bdry[v2]) {
+	if(f_bdry[i]==v_bdry[v1]) {
+	  ed_bdry[ed] = f_bdry[i];
+	}
+      }
+    }
+  }
+
+  // Now go back through edges and count how many are on boundary.
+  jcntr=0;
+  for (i=0; i<nedge; i++) {
+    if(ed_bdry[i]!=0) {
+      jcntr++;
+    }
+  }
+
+  *nbedge = jcntr;
+
   return;
 }
 /***********************************************************************************************/

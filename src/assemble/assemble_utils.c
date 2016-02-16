@@ -400,7 +400,7 @@ void stiffG_nnz_subset(dCSRmat *A, fespace *FE,INT flag)
   for (i=0; i<ndof; i++) {
     A->IA[i] = icp;
     // Check if this is a boundary dof we want
-    if (FE->dof_bdry[i]==flag) {	
+    if (FE->dof_bdry[i]==flag) {
       // Loop over all Elements connected to particular edge
       j_a = dof_el.IA[i];
       j_b = dof_el.IA[i+1]-1;
@@ -490,7 +490,7 @@ void stiffG_cols_subset(dCSRmat *A, fespace *FE,INT flag)
 /******************************************************************************************************/
 
 /******************************************************************************************************/
-void LocaltoGlobalsubset(INT *dof_on_elm,fespace *FE,dCSRmat *A,REAL *ALoc,INT flag) 
+void LocaltoGlobal_face(INT *dof_on_f,INT dof_per_f,fespace *FE,dCSRmat *A,REAL *ALoc,INT flag) 
 {
   /********* Maps the Local Matrix to Global Matrix considering "special" boundaries *****************
    *
@@ -508,19 +508,19 @@ void LocaltoGlobalsubset(INT *dof_on_elm,fespace *FE,dCSRmat *A,REAL *ALoc,INT f
 	
   INT i,j,k,row,col,col_a,col_b,acol;
 	
-  for (i=0; i<FE->dof_per_elm; i++) { /* Rows of Local Stiffness */
-    row = dof_on_elm[i]-1;
+  for (i=0; i<dof_per_f; i++) { /* Rows of Local Stiffness */
+    row = dof_on_f[i]-1;
     if (FE->dof_bdry[row]==flag) { /* Only if on special boundary */		
 			
-      for (j=0; j<FE->dof_per_elm; j++) { /* Columns of Local Stiffness */
-	col = dof_on_elm[j]-1;
+      for (j=0; j<dof_per_f; j++) { /* Columns of Local Stiffness */
+	col = dof_on_f[j]-1;
 	if (FE->dof_bdry[col]==flag) { /* Only do stuff if hit a special boundary */
 	  col_a = A->IA[row]-1;
 	  col_b = A->IA[row+1]-1;
 	  for (k=col_a; k<col_b; k++) { /* Columns of A */
 	    acol = A->JA[k]-1;				
 	    if (acol==col) {	/* If they match, put it in the global matrix */
-	      A->val[k] = A->val[k] + ALoc[i*FE->dof_per_elm+j];
+	      A->val[k] = A->val[k] + ALoc[i*dof_per_f+j];
 	    }
 	  }
 	}
