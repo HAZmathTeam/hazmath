@@ -2,7 +2,7 @@
 //  sparse.h
 //  
 //
-//  Created by Hu, Xiaozhe on 1/9/15.
+//  Created by Adler, James and Hu, Xiaozhe on 1/9/15.
 //
 //
 
@@ -74,5 +74,42 @@ typedef struct iCSRmat{
     
 } iCSRmat; /**< Sparse matrix of INT type in CSR format */
 
+/**
+ * \struct block_dCSRmat
+ * \brief Block REAL CSR matrix format
+ *
+ * \note The starting index of A is 0.
+ */
+typedef struct block_dCSRmat {
+    
+    //! row number of blocks in A, m
+    INT brow;
+    
+    //! column number of blocks A, n
+    INT bcol;
+    
+    //! blocks of dCSRmat, point to blocks[brow][bcol]
+    dCSRmat **blocks;
+    
+} block_dCSRmat; /**< Matrix of REAL type in Block CSR format */
+
+/**
+ * \struct block_iCSRmat
+ * \brief Block INT CSR matrix format
+ *
+ * \note The starting index of A is 0.
+ */
+typedef struct block_iCSRmat {
+    
+    //! row number of blocks in A, m
+    INT brow;
+    
+    //! column number of blocks A, n
+    INT bcol;
+    
+    //! blocks of iCSRmat, point to blocks[brow][bcol]
+    iCSRmat **blocks;
+    
+} block_iCSRmat; /**< Matrix of INT type in Block CSR format */
 
 #endif

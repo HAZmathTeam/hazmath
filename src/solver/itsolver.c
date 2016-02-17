@@ -103,9 +103,93 @@ INT solver_dcsr_linear_itsolver (dCSRmat *A,
         print_cputime("Iterative method", solver_duration);
     }
     
-#if DEBUG_MODE > 0
-    printf("### DEBUG: %s ...... [Finish]\n", __FUNCTION__);
-#endif
+    
+    return iter;
+}
+
+/**
+ * \fn INT solver_bdcsr_linear_itsolver (block_dCSRmat *A, dvector *b, dvector *x,
+ *                                     precond *pc, linear_itsolver_param *itparam)
+ *
+ * \brief Solve Ax = b by standard Krylov methods
+ *
+ * \param A        Pointer to the coeff matrix in block_dCSRmat format
+ * \param b        Pointer to the right hand side in dvector format
+ * \param x        Pointer to the approx solution in dvector format
+ * \param pc       Pointer to the preconditioning action
+ * \param itparam  Pointer to parameters for iterative solvers
+ *
+ * \return         Iteration number if converges; ERROR otherwise.
+ *
+ *
+ * \author Xiaozhe Hu
+ * \date   02/17/2016
+ */
+INT solver_bdcsr_linear_itsolver (block_dCSRmat *A,
+                                dvector *b,
+                                dvector *x,
+                                precond *pc,
+                                linear_itsolver_param *itparam)
+{
+    const SHORT prtlvl =        itparam->linear_print_level;
+    const SHORT itsolver_type = itparam->linear_itsolver_type;
+    const SHORT stop_type =     itparam->linear_stop_type;
+    const SHORT restart =       itparam->linear_restart;
+    const INT   MaxIt =         itparam->linear_maxit;
+    const REAL  tol =           itparam->linear_tol;
+    
+    REAL  solver_start, solver_end, solver_duration;
+    INT   iter = ERROR_SOLVER_TYPE;
+    
+    gettime(&solver_start);
+
+    /* Safe-guard checks on parameters */
+    ITS_CHECK ( MaxIt, tol );
+    
+    switch (itsolver_type) {
+            
+        case SOLVER_CG:
+            if ( prtlvl > PRINT_NONE ) {
+                printf("**********************************************************\n");
+                printf(" --> using Conjugate Gradient Method (Block CSR):\n");
+            }
+            iter = bdcsr_pcg(A, b, x, pc, tol, MaxIt, stop_type, prtlvl);
+            break;
+            
+        case SOLVER_MinRes:
+            if ( prtlvl > PRINT_NONE ) {
+                printf("**********************************************************\n");
+                printf(" --> using MINRES Method (Block CSR):\n");
+            }
+            iter = bdcsr_pminres(A, b, x, pc, tol, MaxIt, stop_type, prtlvl);
+            break;
+            
+        case SOLVER_VGMRES:
+            if ( prtlvl > PRINT_NONE ) {
+                printf("**********************************************************\n");
+                printf(" --> using GMRES Method (Block CSR):\n");
+            }
+            iter = bdcsr_pvgmres(A, b, x, pc, tol, MaxIt, restart, stop_type, prtlvl);
+            break;
+            
+        case SOLVER_VFGMRES:
+            if ( prtlvl > PRINT_NONE ) {
+                printf("**********************************************************\n");
+                printf(" --> using Flexible GMRES Method (Block CSR):\n");
+            }
+            iter = bdcsr_pvfgmres(A, b, x, pc, tol, MaxIt, restart, stop_type, prtlvl);
+            break;
+            
+        default:
+            printf("### ERROR: Unknown itertive solver type %d!\n", itsolver_type);
+            
+    }
+    
+    if ( (prtlvl >= PRINT_MIN) && (iter >= 0) ) {
+        gettime(&solver_end);
+        solver_duration = solver_end - solver_start;
+        print_cputime("Iterative method", solver_duration);
+    }
     
     return iter;
 }
@@ -271,6 +355,47 @@ INT linear_solver_dcsr_krylov (dCSRmat *A,
         print_cputime("Krylov method totally", solver_duration);
         printf("**********************************************************");
     }
+    
+    return status;
+}
+
+/**
+ * \fn INT linear_solver_bdcsr_krylov (block_dCSRmat *A, dvector *b, dvector *x,
+ *                                   linear_itsolver_param *itparam)
+ *
+ * \brief Solve Ax = b by standard Krylov methods
+ *
+ * \param A         Pointer to the coeff matrix in block_dCSRmat format
+ * \param b         Pointer to the right hand side in dvector format
+ * \param x         Pointer to the approx solution in dvector format
+ * \param itparam   Pointer to parameters for iterative solvers
+ *
+ * \return          Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   07/18/2010
+ */
+INT linear_solver_bdcsr_krylov (block_dCSRmat *A,
+                              dvector *b,
+                              dvector *x,
+                              linear_itsolver_param *itparam)
+{
+    const SHORT prtlvl = itparam->linear_print_level;
+    
+    INT status = SUCCESS;
+    REAL solver_start, solver_end, solver_duration;
+    
+    // solver part
+    gettime(&solver_start);
+    
+    status = solver_bdcsr_linear_itsolver(A,b,x,NULL,itparam);
+    
+    gettime(&solver_end);
+    
+    solver_duration = solver_end - solver_start;
+    
+    if ( prtlvl >= PRINT_MIN )
+        print_cputime("Krylov method totally", solver_duration);
     
     return status;
 }
