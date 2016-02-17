@@ -13,20 +13,21 @@
 /*---------------------------------*/
 
 /***********************************************************************************************/
-/**
- * \fn dCSRmat bdcsr_2_dcsr (block_dCSRmat *Ab)
- *
- * \brief Form A in dCSRmat format using blocks given by Ab which is in block_dCSRmat format
- *
- * \param Ab   Pointer to block_dCSRmat matrix
- *
- * \return     dCSRmat matrix if succeed, NULL if fail
- *
- * \author Shiquan Zhang and Xiaozhe Hu
- * \date   02/17/2016
- */
-dCSRmat fasp_format_bdcsr_dcsr (block_dCSRmat *Ab)
+dCSRmat bdcsr_2_dcsr (block_dCSRmat *Ab)
 {
+    /**
+     * \fn dCSRmat bdcsr_2_dcsr (block_dCSRmat *Ab)
+     *
+     * \brief Form A in dCSRmat format using blocks given by Ab which is in block_dCSRmat format
+     *
+     * \param Ab   Pointer to block_dCSRmat matrix
+     *
+     * \return     dCSRmat matrix if succeed, NULL if fail
+     *
+     * \author Xiaozhe Hu
+     * \date   02/17/2016
+     */
+    
     // local variables
     INT m=0,n=0,nnz=0;
     const INT mb=Ab->brow, nb=Ab->bcol, nbl=mb*nb;
@@ -78,6 +79,8 @@ dCSRmat fasp_format_bdcsr_dcsr (block_dCSRmat *Ab)
     
     return(A);
 }
+
+/***********************************************************************************************/
 
 /*---------------------------------*/
 /*--        End of File          --*/
