@@ -289,7 +289,7 @@ void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL),fespace *FE,trimesh 
       valx = (REAL *) calloc(dim,sizeof(REAL));
       x[0] = mesh->ed_mid[i*dim];
       x[1] = mesh->ed_mid[i*dim+1];
-      if(dim==3) x[2] = mesh->ed_mid[i*dim+1];
+      if(dim==3) x[2] = mesh->ed_mid[i*dim+2];
       (*expr)(valx,x,time);
       val[i] = 0.0;
       for(j=0;j<dim;j++) val[i]+=mesh->ed_tau[i*dim+j]*valx[j];
@@ -299,7 +299,7 @@ void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL),fespace *FE,trimesh 
       valx = (REAL *) calloc(dim,sizeof(REAL));
       x[0] = mesh->f_mid[i*dim];
       x[1] = mesh->f_mid[i*dim+1];
-      if(dim==3) x[2] = mesh->f_mid[i*dim+1];
+      if(dim==3) x[2] = mesh->f_mid[i*dim+2];
       (*expr)(valx,x,time);
       val[i] = 0.0;
       for(j=0;j<dim;j++) val[i]+=mesh->f_norm[i*dim+j]*valx[j];
