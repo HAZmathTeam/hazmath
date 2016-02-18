@@ -367,6 +367,67 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,
 }
 /****************************************************************************************************************************/
 
+/****************************************************************************************************************************/
+void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,REAL time)
+{
+
+/* Evaluate a given analytic function on the finite-element space given
+   *    INPUT:
+   *		    expr       Function call to analytic expression expr(FE approx, x values, time) assumes multiple variables
+   *                  FE       block FE Space struct for multiple variables
+   *                mesh       Mesh struct
+   *                time       Time to evaluate function if time-dependent
+   *    OUTPUT:
+   *          val	       FE approximation of function on fespace
+   *
+   */
+
+  int i,j,k;
+  REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
+  REAL* valx = NULL;
+  INT dim = mesh->dim;
+  INT entry = 0;
+
+  for(k=0;k<FE->numspaces;i++) {
+    if(FE->var_spaces[k]->FEtype>0) { // Lagrange Elements u[dof] = u[x_i}
+      for(i=0;i<FE->var_spaces[k]->ndof;i++) {
+	valx = (REAL *) calloc(1,sizeof(REAL));
+	x[0] = FE->var_spaces[k]->cdof->x[i];
+	x[1] = FE->var_spaces[k]->cdof->y[i];
+	if(dim==3) x[2] = FE->var_spaces[k]->cdof->z[i];
+	(*expr)(valx,x,time);
+	val[entry + i] = valx[0];
+      }
+    } else if (FEtype==-1) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
+      for(i=0;i<FE->ndof;i++) {
+	valx = (REAL *) calloc(dim,sizeof(REAL));
+	x[0] = mesh->ed_mid[i*dim];
+	x[1] = mesh->ed_mid[i*dim+1];
+	if(dim==3) x[2] = mesh->ed_mid[i*dim+2];
+	(*expr)(valx,x,time);
+	val[i] = 0.0;
+	for(j=0;j<dim;j++) val[i]+=mesh->ed_tau[i*dim+j]*valx[j];
+      }
+    } else if (FEtype==-2) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
+      for(i=0;i<FE->ndof;i++) {
+	valx = (REAL *) calloc(dim,sizeof(REAL));
+	x[0] = mesh->f_mid[i*dim];
+	x[1] = mesh->f_mid[i*dim+1];
+	if(dim==3) x[2] = mesh->f_mid[i*dim+2];
+	(*expr)(valx,x,time);
+	val[i] = 0.0;
+	for(j=0;j<dim;j++) val[i]+=mesh->f_norm[i*dim+j]*valx[j];
+      }
+    }
+    entry += FE->var_spaces[k]->ndof
+  }
+  
+  if (x) free(x);
+  if(valx) free(valx);
+  return;
+}
+/****************************************************************************************************************************/
+
 /***********************************************************************************************/
 void get_grad_H1toNed(dCSRmat* Grad,trimesh* mesh) 
 {

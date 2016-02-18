@@ -1014,6 +1014,64 @@ void dcsr_aAxpy (const REAL alpha,
 
 /***********************************************************************************************/
 
+/***********************************************************************************************/
+void dcsr_aAxpy_1 (const REAL alpha,
+                 dCSRmat *A,
+                 REAL *x,
+                 REAL *y)
+{
+    /**
+     * \fn void dcsr_aAxpy (const REAL alpha, dCSRmat *A, REAL *x, REAL *y)
+     *
+     * \brief Matrix-vector multiplication y = alpha*A*x + y
+     *
+     * \param alpha  REAL factor alpha
+     * \param A      Pointer to dCSRmat matrix A
+     * \param x      Pointer to array x
+     * \param y      Pointer to array y
+     *
+     */
+    
+    // SHIFT A First
+    dcsr_shift(A, -1);
+    const INT  m  = A->row;
+    const INT *ia = A->IA, *ja = A->JA;
+    const REAL *aj = A->val;
+    INT i, k, begin_row, end_row;
+    register REAL temp;
+    
+    if ( alpha == 1.0 ) {
+        for (i=0;i<m;++i) {
+            temp=0.0;
+            begin_row=ia[i]; end_row=ia[i+1];
+            for (k=begin_row; k<end_row; ++k) temp+=aj[k]*x[ja[k]];
+            y[i]+=temp;
+        }
+    }
+    
+    else if ( alpha == -1.0 ) {
+        for (i=0;i<m;++i) {
+            temp=0.0;
+            begin_row=ia[i]; end_row=ia[i+1];
+            for (k=begin_row; k<end_row; ++k) temp+=aj[k]*x[ja[k]];
+            y[i]-=temp;
+        }
+    }
+    
+    else {
+        for (i=0;i<m;++i) {
+            temp=0.0;
+            begin_row=ia[i]; end_row=ia[i+1];
+            for (k=begin_row; k<end_row; ++k) temp+=aj[k]*x[ja[k]];
+            y[i]+=temp*alpha;
+        }
+    }
+    // shift A back
+    dcsr_shift(A, 1);
+}
+
+/***********************************************************************************************/
+
 /**
  * \fn void dcsr_aAxpy_agg (const REAL alpha, dCSRmat *A, REAL *x, REAL *y)
  *

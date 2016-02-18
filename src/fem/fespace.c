@@ -133,6 +133,29 @@ void free_fespace(fespace* FE)
 }
 /****************************************************************************************/
 
+/****************************************************************************************/
+void free_blockfespace(block_fespace* FE)
+{
+  /* frees memory of arrays of block_fespace struct */
+
+ if (FE == NULL) return; // Nothing need to be freed!
+    
+    INT i;
+    INT num_spaces = (FE->nspaces);
+    
+    for ( i=0; i<num_spaces; i++ ) {
+        free_fespace(FE->var_spaces[i]);
+        FE->var_spaces[i] = NULL;
+    }
+    
+    free(FE->var_spaces);
+    FE->var_spaces = NULL;
+  
+  return;
+}
+/****************************************************************************************/
+
+
 /***********************************************************************************************/
 void get_P2(fespace* FE,trimesh* mesh) 
 {

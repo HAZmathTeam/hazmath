@@ -258,6 +258,90 @@ void assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace
 /******************************************************************************************************/
 
 /******************************************************************************************************/
+void assemble_global_RHS(dvector *b,fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time) 
+{
+	
+  /* Computes the global rhs for any a(u,v) = <f,v> bilinear form using various element types
+   * (eg. P1, P2, Nedelec, and Raviart-Thomas).
+   * DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
+   *
+   * For this problem we compute RHS of:
+   *
+   * Lu = f  ---->   a(u,v) = <f,v>
+   *
+   * which gives Ax = b,
+   *
+   * A_ij = a( phi_j, phi_i)
+   * b_i  = <f,phi_i>
+   * 
+   *    INPUT:
+   *            fespace		    Finite-Element Space Struct
+   *	      	mesh                Mesh Struct
+   *            cq                  Quadrature Coordinates and Weights
+   *            rhs                 Function that gives right-hand side at given coordinates rhs(&val,x,time)
+   *            time                Time if time dependent
+   *
+   *    OUTPUT:
+   *            b	       	    Global Right hand side vector
+   */
+
+  INT dof_per_elm = FE->dof_per_elm;
+  INT v_per_elm = mesh->v_per_elm;
+  INT i,j,row;
+
+  // Allocate Arrays
+  b->row = FE->ndof;
+  b->val = (REAL *) calloc(b->row,sizeof(REAL));
+ 
+  /* Loop over all Elements and build local rhs */
+  REAL* bLoc= (REAL *) calloc(dof_per_elm,sizeof(REAL));
+
+  INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
+  INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
+  INT rowa,rowb,jcntr;
+  for (i=0; i<FE->nelm; i++) {	
+    
+    for (j=0; j<dof_per_elm; j++) {
+      bLoc[j]=0;
+    }
+		
+    // Find DOF for given Element
+    rowa = FE->el_dof->IA[i]-1;
+    rowb = FE->el_dof->IA[i+1]-1;
+    jcntr = 0;
+    for (j=rowa; j<rowb; j++) {
+      dof_on_elm[jcntr] = FE->el_dof->JA[j];
+      jcntr++;
+    }
+
+    // Find vertices for given Element
+    rowa = mesh->el_v->IA[i]-1;
+    rowb = mesh->el_v->IA[i+1]-1;
+    jcntr = 0;
+    for (j=rowa; j<rowb; j++) {
+      v_on_elm[jcntr] = mesh->el_v->JA[j];
+      jcntr++;
+    }
+		
+    // Compute Local RHS for given Element
+    FEM_RHS_Local(bLoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,rhs,time);
+
+    // Loop over DOF and place in appropriate slot globally
+    for (j=0; j<dof_per_elm; j++) { 
+      row = dof_on_elm[j]-1;	
+      b->val[row] = b->val[row] + bLoc[j];
+    }
+  }	
+
+  if(dof_on_elm) free(dof_on_elm);
+  if(v_on_elm) free(v_on_elm);
+  if(bLoc) free(bLoc);
+		
+  return;
+}
+/******************************************************************************************************/
+
+/******************************************************************************************************/
 void assemble_global_face(dCSRmat* A,void (*local_assembly_face)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*coeff)(REAL *,REAL *,REAL),REAL time,INT flag) 
 {
 	

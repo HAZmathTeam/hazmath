@@ -81,5 +81,20 @@ typedef struct fespace{
 	
 } fespace;
 
+/**
+ * \struct block_fespace
+ * \brief Block of fespaces for coupled problems
+ *
+ */
+typedef struct block_fespace {
+    
+    //! number of FEM spaces in system
+    INT nspaces;
+    
+    //! blocks of dCSRmat, point to blocks[brow][bcol]
+    fespace **var_spaces;
+    
+} block_fespace; /**< Matrix of REAL type in Block CSR format */
+
 
 #endif
