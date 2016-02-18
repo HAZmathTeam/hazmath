@@ -427,7 +427,7 @@ int main (int argc, char* argv[])
     }    
     dcsr_shift(&A, 1);   // shift A back
   }
-    
+
   // Error Check
   if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
     
