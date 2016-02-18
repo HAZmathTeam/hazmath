@@ -2201,6 +2201,75 @@ void dcsr_rap_agg (dCSRmat *R,
     free(Ps_marker);
 }
 
+
+SHORT dcsr_getblk (dCSRmat *A,
+                        INT *Is,
+                        INT *Js,
+                        const INT m,
+                        const INT n,
+                        dCSRmat *B)
+{
+    /**
+     * \fn SHORT dcsr_getblk (dCSRmat *A, INT *Is, INT *Js, const INT m,
+     *                             const INT n, dCSRmat *B)
+     *
+     * \brief Get a sub CSR matrix of A with specified rows and columns
+     *
+     * \param A     Pointer to dCSRmat matrix
+     * \param B     Pointer to dCSRmat matrix
+     * \param Is    Pointer to selected rows
+     * \param Js    Pointer to selected columns
+     * \param m     Number of selected rows
+     * \param n     Number of selected columns
+     *
+     * \return      SUCCESS if succeeded, otherwise return error information.
+     *
+     * \author Shiquan Zhang, Xiaozhe Hu
+     * \date   12/25/2010
+     *
+     */
+    
+    INT status = SUCCESS;
+    
+    INT i,j,k,nnz=0;
+    INT *col_flag;
+    
+    // create column flags
+    col_flag = (INT*)calloc(A->col,sizeof(INT));
+    
+    B->row = m; B->col = n;
+    
+    B->IA  = (INT*)calloc(m+1,sizeof(INT));
+    B->JA  = (INT*)calloc(A->nnz,sizeof(INT));
+    B->val = (REAL*)calloc(A->nnz,sizeof(REAL));
+    
+    for (i=0;i<n;++i) col_flag[Js[i]]=i+1;
+    
+    // Count nonzeros for sub matrix and fill in
+    B->IA[0]=0;
+    for (i=0;i<m;++i) {
+        for (k=A->IA[Is[i]];k<A->IA[Is[i]+1];++k) {
+            j=A->JA[k];
+            if (col_flag[j]>0) {
+                B->JA[nnz]=col_flag[j]-1;
+                B->val[nnz]=A->val[k];
+                nnz++;
+            }
+        } /* end for k */
+        B->IA[i+1]=nnz;
+    } /* end for i */
+    B->nnz=nnz;
+        
+    // re-allocate memory space
+    B->JA=(INT*)realloc(B->JA, sizeof(INT)*nnz);
+    B->val=(REAL*)realloc(B->val, sizeof(REAL)*nnz);
+    
+    free(col_flag);
+    
+    return(status);
+}
+
+
 void bdcsr_free (block_dCSRmat *A)
 {
     /**
