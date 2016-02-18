@@ -276,8 +276,8 @@ void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL),fespace *FE,trimesh 
   INT FEtype = FE->FEtype;
   
   if(FEtype>0) { // Lagrange Elements u[dof] = u[x_i}
+    valx = (REAL *) calloc(1,sizeof(REAL));
     for(i=0;i<FE->ndof;i++) {
-      valx = (REAL *) calloc(1,sizeof(REAL));
       x[0] = FE->cdof->x[i];
       x[1] = FE->cdof->y[i];
       if(dim==3) x[2] = FE->cdof->z[i];
@@ -285,8 +285,8 @@ void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL),fespace *FE,trimesh 
       val[i] = valx[0];
     }
   } else if (FEtype==-1) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
+    valx = (REAL *) calloc(dim,sizeof(REAL));
     for(i=0;i<FE->ndof;i++) {
-      valx = (REAL *) calloc(dim,sizeof(REAL));
       x[0] = mesh->ed_mid[i*dim];
       x[1] = mesh->ed_mid[i*dim+1];
       if(dim==3) x[2] = mesh->ed_mid[i*dim+2];
@@ -295,8 +295,8 @@ void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL),fespace *FE,trimesh 
       for(j=0;j<dim;j++) val[i]+=mesh->ed_tau[i*dim+j]*valx[j];
     }
   } else if (FEtype==-2) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
+    valx = (REAL *) calloc(dim,sizeof(REAL));
     for(i=0;i<FE->ndof;i++) {
-      valx = (REAL *) calloc(dim,sizeof(REAL));
       x[0] = mesh->f_mid[i*dim];
       x[1] = mesh->f_mid[i*dim+1];
       if(dim==3) x[2] = mesh->f_mid[i*dim+2];
@@ -384,46 +384,79 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL),block_fespace *
 
   int i,j,k;
   REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
-  REAL* valx = NULL;
+  REAL* valx = (REAL *) calloc(mesh->dim*FE->nspaces,sizeof(REAL));
   INT dim = mesh->dim;
-  INT entry = 0;
+  INT entry = 0, local_entry = 0;
+  INT local_dim = 0;
 
-  for(k=0;k<FE->numspaces;i++) {
+  for(k=0;k<FE->nspaces;k++) {    
     if(FE->var_spaces[k]->FEtype>0) { // Lagrange Elements u[dof] = u[x_i}
+      local_dim = 1;
       for(i=0;i<FE->var_spaces[k]->ndof;i++) {
-	valx = (REAL *) calloc(1,sizeof(REAL));
 	x[0] = FE->var_spaces[k]->cdof->x[i];
 	x[1] = FE->var_spaces[k]->cdof->y[i];
 	if(dim==3) x[2] = FE->var_spaces[k]->cdof->z[i];
 	(*expr)(valx,x,time);
-	val[entry + i] = valx[0];
+	val[entry + i] = valx[local_entry];
       }
-    } else if (FEtype==-1) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
-      for(i=0;i<FE->ndof;i++) {
-	valx = (REAL *) calloc(dim,sizeof(REAL));
+    } else if (FE->var_spaces[k]->FEtype==-1) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
+      local_dim = dim;
+      for(i=0;i<FE->var_spaces[k]->ndof;i++) {
 	x[0] = mesh->ed_mid[i*dim];
 	x[1] = mesh->ed_mid[i*dim+1];
 	if(dim==3) x[2] = mesh->ed_mid[i*dim+2];
 	(*expr)(valx,x,time);
-	val[i] = 0.0;
-	for(j=0;j<dim;j++) val[i]+=mesh->ed_tau[i*dim+j]*valx[j];
+	val[entry + i] = 0.0;
+	for(j=0;j<dim;j++) {
+	  val[entry + i]+=mesh->ed_tau[i*dim+j]*valx[local_entry + j];
+	}
       }
-    } else if (FEtype==-2) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
-      for(i=0;i<FE->ndof;i++) {
-	valx = (REAL *) calloc(dim,sizeof(REAL));
+    } else if (FE->var_spaces[k]->FEtype==-2) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
+      local_dim = dim;
+      for(i=0;i<FE->var_spaces[k]->ndof;i++) {
 	x[0] = mesh->f_mid[i*dim];
 	x[1] = mesh->f_mid[i*dim+1];
 	if(dim==3) x[2] = mesh->f_mid[i*dim+2];
 	(*expr)(valx,x,time);
-	val[i] = 0.0;
-	for(j=0;j<dim;j++) val[i]+=mesh->f_norm[i*dim+j]*valx[j];
+	val[i+entry] = 0.0;
+	for(j=0;j<dim;j++) val[i+entry]+=mesh->f_norm[i*dim+j]*valx[local_entry + j];
       }
     }
-    entry += FE->var_spaces[k]->ndof
+    entry += FE->var_spaces[k]->ndof;
+    local_entry += local_dim;
   }
   
   if (x) free(x);
   if(valx) free(valx);
+  return;
+}
+/****************************************************************************************************************************/
+
+/****************************************************************************************************************************/
+void get_unknown_component(dvector* u,dvector* ublock,block_fespace *FE,INT comp)
+{
+
+/* Evaluate a given analytic function on the finite-element space given
+   *    INPUT:
+   *		  ublock       FE vector in blocks
+   *                  FE       block FE Space struct for multiple variables
+   *                comp       Which block to grab (starts count at 0)
+   *    OUTPUT:
+   *          u	               FE approximation of function on specific block of fespace
+   *
+   */
+
+  int i;
+  INT entry = 0;
+
+  for(i=0;i<comp;i++) {
+    entry += FE->var_spaces[i]->ndof;
+  }
+
+  for(i=0;i<FE->var_spaces[comp]->ndof;i++) {
+    u->val[i] = ublock->val[entry + i];
+  }
+
   return;
 }
 /****************************************************************************************************************************/

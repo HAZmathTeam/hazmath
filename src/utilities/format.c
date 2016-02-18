@@ -40,13 +40,12 @@ dCSRmat bdcsr_2_dcsr (block_dCSRmat *Ab)
     
     // count the size of A
     row[0]=0; col[0]=0;
-    
+
     for (i=0;i<mb;++i) {
         
         for (j=0; j<nb; ++j){
-        
             if (blockptr[i*nb+j]) {
-                m+=blockptr[i*nb]->row;
+                m+=blockptr[i*nb+j]->row;
                 row[i+1]=m;
                 break;
             }
@@ -57,7 +56,6 @@ dCSRmat bdcsr_2_dcsr (block_dCSRmat *Ab)
     for (i=0;i<nb;++i) {
         
         for (j=0;j<mb;++j){
-        
             if (blockptr[j*mb+i]) {
                 n+=blockptr[j*mb+i]->col;
                 col[i+1]=n;
