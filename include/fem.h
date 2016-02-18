@@ -88,11 +88,17 @@ typedef struct fespace{
  */
 typedef struct block_fespace {
     
-    //! number of FEM spaces in system
-    INT nspaces;
-    
-    //! blocks of dCSRmat, point to blocks[brow][bcol]
-    fespace **var_spaces;
+  //! number of FEM spaces in system
+  INT nspaces;
+
+  //! total number of dof
+  INT ndof;
+  
+  //! blocks of dCSRmat, point to blocks[brow][bcol]
+  fespace **var_spaces;
+
+  //! Boundary DOF array for ALL unknowns
+  INT* dof_bdry;
     
 } block_fespace; /**< Matrix of REAL type in Block CSR format */
 

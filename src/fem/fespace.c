@@ -150,6 +150,11 @@ void free_blockfespace(block_fespace* FE)
     
     free(FE->var_spaces);
     FE->var_spaces = NULL;
+
+    if(FE->dof_bdry) {
+      free(FE->dof_bdry);
+      FE->dof_bdry = NULL;
+    }
   
   return;
 }

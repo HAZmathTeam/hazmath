@@ -433,6 +433,65 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL),block_fespace *
 /****************************************************************************************************************************/
 
 /****************************************************************************************************************************/
+REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,REAL time,INT DOF)
+{
+
+/* Evaluate a given analytic function on the specific degree of freedom of the block finite-element space given
+   *    INPUT:
+   *		    expr       Function call to analytic expression expr(FE approx, x values, time) assumes multiple variables
+   *                  FE       block FE Space struct
+   *                mesh       Mesh struct
+   *                time       Time to evaluate function if time-dependent
+   *                 DOF       DOF index to evaluate (start at 0)
+   *    OUTPUT:
+   *          val	       FE approximation of function on fespace at DOF
+   *
+   */
+
+  int i,j,k;
+  REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
+  REAL* valx = (REAL *) calloc(mesh->dim*FE->nspaces,sizeof(REAL));
+  INT dim = mesh->dim;
+  INT local_entry = 0;
+  INT local_dim = 0;
+  REAL val=-666e+00;
+
+
+  for(k=0;k<FE->nspaces;k++) {    
+    if(FE->var_spaces[k]->FEtype>0) { // Lagrange Elements u[dof] = u[x_i}
+      local_dim = 1;
+      x[0] = FE->var_spaces[k]->cdof->x[DOF];
+      x[1] = FE->var_spaces[k]->cdof->y[DOF];
+      if(dim==3) x[2] = FE->var_spaces[k]->cdof->z[DOF];
+      (*expr)(valx,x,time);
+      val = valx[local_entry];
+    } else if (FE->var_spaces[k]->FEtype==-1) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
+      local_dim = dim;
+      x[0] = mesh->ed_mid[DOF*dim];
+      x[1] = mesh->ed_mid[DOF*dim+1];
+      if(dim==3) x[2] = mesh->ed_mid[DOF*dim+2];
+      (*expr)(valx,x,time);
+      val = 0.0;
+      for(j=0;j<dim;j++) val+=mesh->ed_tau[DOF*dim+j]*valx[local_entry + j];
+    } else if (FE->var_spaces[k]->FEtype==-2) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
+      local_dim = dim;
+      x[0] = mesh->f_mid[DOF*dim];
+      x[1] = mesh->f_mid[DOF*dim+1];
+      if(dim==3) x[2] = mesh->f_mid[DOF*dim+2];
+      (*expr)(valx,x,time);
+      val = 0.0;
+      for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx[local_entry + j];
+    }
+    local_entry += local_dim;
+  }
+  
+  if (x) free(x);
+  if(valx) free(valx);
+  return val;
+}
+/****************************************************************************************************************************/
+
+/****************************************************************************************************************************/
 void get_unknown_component(dvector* u,dvector* ublock,block_fespace *FE,INT comp)
 {
 

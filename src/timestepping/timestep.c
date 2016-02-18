@@ -10,7 +10,7 @@
 #include "hazmat.h"
 
 /******************************************************************************************************/
-void fixrhs_time(dvector* b,dvector* b_old,dCSRmat* M,dCSRmat* A,dvector* uprev,INT* dof_bdry,INT time_scheme,REAL dt,dvector* b_update)
+void fixrhs_time(dvector* b,dvector* b_old,dCSRmat* M,dCSRmat* A,dvector* uprev,INT time_scheme,REAL dt,dvector* b_update)
 {
   /********* Updates the right-hand side for a timestepping scheme *********************
    *
@@ -32,29 +32,32 @@ void fixrhs_time(dvector* b,dvector* b_old,dCSRmat* M,dCSRmat* A,dvector* uprev,
    */
 	
   dCSRmat Atemp;
+  INT i;
+  for(i=0;i<b->row;i++) b_update->val[i] = 0.0;
 
   // Crank-Nicolson (alpha = 2/dt): (alpha M + A)u = (alpha M - A)uprev + (b_old + b) 
   if(time_scheme==0) { 
     // Add new and old RHS
     dvec_axpyz(1.0,b_old,b,b_update);
-
+    
     // Obtain alpha M - A
     dcsr_add_1(M,2.0/dt,A,-1.0,&Atemp);
 
     // Compute updated RHS
     dcsr_aAxpy_1(1.0,&Atemp,uprev->val,b_update->val);
 
+    // Free Atemp
+    dcsr_free(&Atemp);
+
   // Backward Euler (alpha = 1/dt): (alpha M + A)u = alpha M uprev + b
   } else if(time_scheme==1) { 
 
     dcsr_aAxpy_1(1.0,M,uprev->val,b_update->val);
-
+    
   } else { // Unknown
-    printf("Not sure how to do timestepping, so I have decided to give up.");
+    printf("Not sure how to do timestepping, so I have decided to give up.\n\n");
     exit(2);
   }
-  
-  dcsr_free(&Atemp);
 	
   return;
 }
@@ -89,7 +92,7 @@ void get_timeoperator(dCSRmat* M,dCSRmat* A,INT time_scheme,REAL dt,dCSRmat* Ati
     dcsr_add_1(M,1.0/dt,A,1.0,Atime);
 
   } else { // Unknown
-    printf("Not sure how to do timestepping, so I have decided to give up.");
+    printf("Not sure how to do timestepping, so I have decided to give up.\n\n");
     exit(2);
   }
 	

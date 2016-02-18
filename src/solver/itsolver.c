@@ -353,7 +353,7 @@ INT linear_solver_dcsr_krylov (dCSRmat *A,
         gettime(&solver_end);
         solver_duration = solver_end - solver_start;
         print_cputime("Krylov method totally", solver_duration);
-        printf("**********************************************************");
+        printf("**********************************************************\n");
     }
     
     return status;
