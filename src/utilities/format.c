@@ -119,7 +119,9 @@ block_dCSRmat dcsr_2_bdcsr (dCSRmat *A, int bnum, int *bsize)
      *
      * \brief Form Ab in block_dCSRmat format using A which is in dCSRmat format
      *
-     * \param A   Pointer to dCSRmat matrix
+     * \param A         Pointer to dCSRmat matrix
+     * \param bnum      Number of block in each direction, 3 by 3 blocks, bnum = 3;
+     * \param bsize     Pointer to the size of each diagonal block 
      *
      * \return     block_dCSRmat matrix if succeed, NULL if fail
      *
