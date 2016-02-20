@@ -18,12 +18,12 @@
 # If you want to work with build type DEBUG, then uncomment the next
 # line (to include "-Wall -g")
 #
-# debug=yes
+ debug=yes
 #
 # In order to get debug output during run-time, you can uncomment the 
 # following line (to include "-Wall -g -DDEBUG_MODE=3"):
 # 
-# debug=all
+ debug=all
 #
 # The default setting for vebosity level for HAZMAT is verbose=no. If you
 # want to increase verbosity level, uncomment the next line:
@@ -52,14 +52,14 @@
 # If you want to use the SuiteSparse package, uncomment the next 
 # line (and read carefully the instructons below it):
 # 
-# suitesparse=yes
+ suitesparse=yes
 #
 # If you have installed SuiteSparse from source or for some other
 # reason you want to specify the path to SuiteSparse libraries and
 # header files, uncomment and edit the definition of "suitesparse_dir"
 # below (and continue reading...)  
 #
-# suitesparse_dir="/dir/to/SuiteSparse"
+ suitesparse_dir=/opt/local/lib
 #
 # IMPORTANT:
 # This defines the path to the SuiteSparse library and include files.
