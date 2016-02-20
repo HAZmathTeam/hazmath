@@ -11,6 +11,97 @@
 /*---------------------------------*/
 /*--      Public Functions       --*/
 /*---------------------------------*/
+void param_input_init (input_param *iniparam)
+{
+    
+    // output flags
+    iniparam->print_level              = PRINT_SOME;
+    iniparam->output_type              = 0;
+    
+    //--------------------------
+    // finite element parameters
+    //--------------------------
+    // general parameter
+    iniparam->dim                      = 2;
+    iniparam->nquad                    = 2;
+    
+    // parameters for H(D) equations
+    iniparam->FE_type                  = 1;
+    
+    // paramters for Stokes/NS equations
+    iniparam->FE_type_velocity         = 2;
+    iniparam->FE_type_pressure         = 0;
+    
+    //----------------------------
+    // time steppng paramters
+    //----------------------------
+    iniparam->time_step_type           = 0;
+    iniparam->time_steps               = 2;
+    iniparam->time_step_size           = 0.01;
+    
+    //----------------------------
+    // nonlinear solver parameters
+    //----------------------------
+    iniparam->nonlinear_itsolver_maxit = 5;
+    iniparam->nonlinear_itsolver_tol   = 1e-8;
+    
+    //-------------------------
+    // linear solver parameters
+    //-------------------------
+    // Iterative solver
+    iniparam->linear_itsolver_type     = SOLVER_VGMRES;
+    iniparam->linear_precond_type      = PREC_NULL;
+    iniparam->linear_stop_type         = STOP_REL_RES;
+    
+    // Solver parameters
+    iniparam->linear_itsolver_tol      = 1e-6;
+    iniparam->linear_itsolver_maxit    = 500;
+    iniparam->linear_restart           = 25;
+    
+    // ILU method parameters
+    iniparam->ILU_type                 = ILUt;
+    iniparam->ILU_lfil                 = 0;
+    iniparam->ILU_droptol              = 0.01;
+    iniparam->ILU_relax                = 0;
+    iniparam->ILU_permtol              = 0.0;
+    
+    // AMG method parameters
+    iniparam->AMG_type                 = CLASSIC_AMG;
+    iniparam->AMG_levels               = 20;
+    iniparam->AMG_cycle_type           = V_CYCLE;
+    iniparam->AMG_smoother             = SMOOTHER_GS;
+    iniparam->AMG_smooth_order         = CF_ORDER;
+    iniparam->AMG_presmooth_iter       = 1;
+    iniparam->AMG_postsmooth_iter      = 1;
+    iniparam->AMG_relaxation           = 1.0;
+    iniparam->AMG_coarse_dof           = 500;
+    iniparam->AMG_coarse_solver        = 0;
+    iniparam->AMG_tol                  = 1e-6;
+    iniparam->AMG_maxit                = 1;
+    iniparam->AMG_ILU_levels           = 0;
+    iniparam->AMG_coarse_scaling       = OFF;
+    iniparam->AMG_amli_degree          = 1;
+    iniparam->AMG_nl_amli_krylov_type  = 2;
+    
+    // Classical AMG specific
+    iniparam->AMG_coarsening_type      = 1;
+    iniparam->AMG_interpolation_type   = 1;
+    iniparam->AMG_max_row_sum          = 0.9;
+    iniparam->AMG_strong_threshold     = 0.3;
+    iniparam->AMG_truncation_threshold = 0.2;
+    iniparam->AMG_aggressive_level     = 0;
+    iniparam->AMG_aggressive_path      = 1;
+    
+    // Aggregation AMG specific
+    iniparam->AMG_aggregation_type     = VMB;
+    iniparam->AMG_quality_bound        = 8.0;
+    iniparam->AMG_pair_number          = 2;
+    iniparam->AMG_strong_coupled       = 0.08;
+    iniparam->AMG_max_aggregation      = 20;
+    
+}
+
+
 void param_amg_init (AMG_param *amgparam)
 {
     /**
