@@ -100,7 +100,7 @@ void param_linear_solver_init (linear_itsolver_param *itsparam)
 {
     itsparam->linear_print_level   = 0;
     itsparam->linear_itsolver_type = SOLVER_CG;
-    itsparam->linear_precond_type  = PREC_AMG;
+    itsparam->linear_precond_type  = PREC_NULL;
     itsparam->linear_stop_type     = STOP_REL_RES;
     itsparam->linear_maxit         = 500;
     itsparam->linear_restart       = 25;

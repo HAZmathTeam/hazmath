@@ -433,7 +433,7 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL),block_fespace *
 /****************************************************************************************************************************/
 
 /****************************************************************************************************************************/
-REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,REAL time,INT DOF)
+REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,REAL time,INT comp,INT DOF)
 {
 
 /* Evaluate a given analytic function on the specific degree of freedom of the block finite-element space given
@@ -442,48 +442,50 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL),block_fespace *FE,tri
    *                  FE       block FE Space struct
    *                mesh       Mesh struct
    *                time       Time to evaluate function if time-dependent
-   *                 DOF       DOF index to evaluate (start at 0)
+   *                comp       FE block to consider (indexes at 0)
+   *                 DOF       DOF index to evaluate (starts at 0 and is local order)
    *    OUTPUT:
    *          val	       FE approximation of function on fespace at DOF
    *
    */
 
-  int i,j,k;
+  int i,j;
   REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
   REAL* valx = (REAL *) calloc(mesh->dim*FE->nspaces,sizeof(REAL));
   INT dim = mesh->dim;
-  INT local_entry = 0;
   INT local_dim = 0;
   REAL val=-666e+00;
 
-
-  for(k=0;k<FE->nspaces;k++) {    
-    if(FE->var_spaces[k]->FEtype>0) { // Lagrange Elements u[dof] = u[x_i}
-      local_dim = 1;
-      x[0] = FE->var_spaces[k]->cdof->x[DOF];
-      x[1] = FE->var_spaces[k]->cdof->y[DOF];
-      if(dim==3) x[2] = FE->var_spaces[k]->cdof->z[DOF];
-      (*expr)(valx,x,time);
-      val = valx[local_entry];
-    } else if (FE->var_spaces[k]->FEtype==-1) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
-      local_dim = dim;
-      x[0] = mesh->ed_mid[DOF*dim];
-      x[1] = mesh->ed_mid[DOF*dim+1];
-      if(dim==3) x[2] = mesh->ed_mid[DOF*dim+2];
-      (*expr)(valx,x,time);
-      val = 0.0;
-      for(j=0;j<dim;j++) val+=mesh->ed_tau[DOF*dim+j]*valx[local_entry + j];
-    } else if (FE->var_spaces[k]->FEtype==-2) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
-      local_dim = dim;
-      x[0] = mesh->f_mid[DOF*dim];
-      x[1] = mesh->f_mid[DOF*dim+1];
-      if(dim==3) x[2] = mesh->f_mid[DOF*dim+2];
-      (*expr)(valx,x,time);
-      val = 0.0;
-      for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx[local_entry + j];
+  for(i=0;i<comp;i++) {
+    if(FE->var_spaces[i]->FEtype>0) { // Scalar Element
+      local_dim += 1;
+    } else { // Vector Element
+      local_dim += dim;
     }
-    local_entry += local_dim;
   }
+ 
+  if(FE->var_spaces[comp]->FEtype>0) { // Lagrange Elements u[dof] = u[x_i}
+    x[0] = FE->var_spaces[comp]->cdof->x[DOF];
+    x[1] = FE->var_spaces[comp]->cdof->y[DOF];
+    if(dim==3) x[2] = FE->var_spaces[comp]->cdof->z[DOF];
+    (*expr)(valx,x,time);
+    val = valx[local_dim];
+  } else if (FE->var_spaces[comp]->FEtype==-1) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
+    x[0] = mesh->ed_mid[DOF*dim];
+    x[1] = mesh->ed_mid[DOF*dim+1];
+    if(dim==3) x[2] = mesh->ed_mid[DOF*dim+2];
+    (*expr)(valx,x,time);
+    val = 0.0;
+    for(j=0;j<dim;j++) val+=mesh->ed_tau[DOF*dim+j]*valx[local_dim + j];
+  } else if (FE->var_spaces[comp]->FEtype==-2) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
+    x[0] = mesh->f_mid[DOF*dim];
+    x[1] = mesh->f_mid[DOF*dim+1];
+    if(dim==3) x[2] = mesh->f_mid[DOF*dim+2];
+    (*expr)(valx,x,time);
+    val = 0.0;
+    for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx[local_dim + j];
+  }
+
   
   if (x) free(x);
   if(valx) free(valx);

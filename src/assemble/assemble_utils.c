@@ -807,6 +807,7 @@ void eliminate_DirichletBC_RHS_blockFE(void (*bc)(REAL *,REAL *,REAL),block_fesp
 
   INT i,j,cola,colb;
   INT ndof = FE->ndof;
+  INT ndof_local=0, entry = 0;
   REAL* ub = (REAL *) calloc(ndof,sizeof(REAL));
 
   // Error Check
@@ -816,12 +817,16 @@ void eliminate_DirichletBC_RHS_blockFE(void (*bc)(REAL *,REAL *,REAL),block_fesp
   }
 
   // Get solution vector that's 0 on interior and boundary value on boundary
-  for(i=0; i<ndof; i++) {
-    if(FE->dof_bdry[i]==1) {
-      ub[i] = blockFE_Evaluate_DOF(bc,FE,mesh,time,i);
-    } else {
-      ub[i] = 0.0;
+  for(j=0;j<FE->nspaces;j++) { 
+    ndof_local = FE->var_spaces[j]->ndof;
+    for(i=0; i<ndof_local; i++) {
+      if(FE->dof_bdry[entry+i]==1) {
+	ub[entry + i] = blockFE_Evaluate_DOF(bc,FE,mesh,time,j,i);
+      } else {
+	ub[entry + i] = 0.0;
+      }
     }
+    entry += ndof_local;
   }
 
   // b = b - Aub

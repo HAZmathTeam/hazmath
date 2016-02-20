@@ -694,9 +694,7 @@ INT dcsr_add (dCSRmat *A,
         status=0;
         goto FINISHED;
     }
-    
-    printf("Hi-4\n");
-    
+        
     // empty matrix B
     if (B->nnz == 0 || B == NULL) {
         dcsr_alloc(A->row,A->col,A->nnz,C);
