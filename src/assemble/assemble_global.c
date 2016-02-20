@@ -482,6 +482,7 @@ void assemble_global_face(dCSRmat* A,void (*local_assembly_face)(REAL *,fespace 
 
   if(dof_on_elm) free(dof_on_elm);
   if(v_on_elm) free(v_on_elm);
+  if(dof_on_f) free(dof_on_f);
   if(ALoc) free(ALoc);
   icsr_free(&f_el);
   

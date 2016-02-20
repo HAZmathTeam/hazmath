@@ -676,6 +676,8 @@ void get_curl_NedtoRT(dCSRmat* Curl,trimesh* mesh)
   }	
 
   *Curl = Ktmp;
+
+  if(inf) free(inf);
 	
   return;
 }
