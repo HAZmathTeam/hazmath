@@ -31,21 +31,29 @@ void fixrhs_time(dvector* b,dvector* b_old,dCSRmat* M,dCSRmat* A,dvector* uprev,
    *
    */
 	
-  dCSRmat Atemp;
   INT i;
-  for(i=0;i<b->row;i++) b_update->val[i] = 0.0;
-
+    
+    for(i=0;i<b->row;i++) {
+        
+      b_update->val[i] = 0.0;
+        
+    }
+    
   // Crank-Nicolson (alpha = 2/dt): (alpha M + A)u = (alpha M - A)uprev + (b_old + b) 
-  if(time_scheme==0) { 
+  if(time_scheme==0) {
+      
+      dCSRmat Atemp;
+      
     // Add new and old RHS
     dvec_axpyz(1.0,b_old,b,b_update);
-    
+      
     // Obtain alpha M - A
+      
     dcsr_add_1(M,2.0/dt,A,-1.0,&Atemp);
-
+      
     // Compute updated RHS
     dcsr_aAxpy_1(1.0,&Atemp,uprev->val,b_update->val);
-
+      
     // Free Atemp
     dcsr_free(&Atemp);
 

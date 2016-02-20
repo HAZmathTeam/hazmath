@@ -385,7 +385,7 @@ void dvec_axpyz(const REAL a,
     
     z->row = m;
     
-    memcpy(ypt, zpt, m*sizeof(dvector));
+    memcpy(ypt, zpt, m*sizeof(REAL));
     array_axpy(m, a, xpt, zpt);
 }
 

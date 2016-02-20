@@ -695,6 +695,8 @@ INT dcsr_add (dCSRmat *A,
         goto FINISHED;
     }
     
+    printf("Hi-4\n");
+    
     // empty matrix B
     if (B->nnz == 0 || B == NULL) {
         dcsr_alloc(A->row,A->col,A->nnz,C);
@@ -719,7 +721,6 @@ INT dcsr_add (dCSRmat *A,
     // initial C->IA
     memset(C->IA, 0, sizeof(INT)*(C->row+1));
     memset(C->JA, -1, sizeof(INT)*(A->nnz+B->nnz));
-    
     
     for (i=0; i<A->row; ++i) {
         countrow = 0;
@@ -758,7 +759,7 @@ INT dcsr_add (dCSRmat *A,
     C->nnz = count;
     C->JA  = (INT *)realloc(C->JA, (count)*sizeof(INT));
     C->val = (REAL *)realloc(C->val, (count)*sizeof(REAL));
-    
+        
 FINISHED:
     return status;
 }
@@ -787,6 +788,7 @@ INT dcsr_add_1 (dCSRmat *A,
      */
 
   INT status = 0;
+    
   
   // shift A
   dcsr_shift(A, -1);
