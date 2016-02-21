@@ -56,7 +56,7 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
       FE->dof_per_elm = mesh->v_per_elm + mesh->ed_per_elm;
       FE->el_dof = malloc(sizeof(struct iCSRmat));
       FE->ed_dof = malloc(sizeof(struct iCSRmat));
-      FE->f_dof = NULL;
+      FE->f_dof = malloc(sizeof(struct iCSRmat));
       get_P2(FE,mesh);
       break;
     case -1: // Nedelec Elements 
@@ -100,31 +100,31 @@ void free_fespace(fespace* FE)
 {
   /* frees memory of arrays of fespace struct */
 
-  if(FE->cdof && (FE->FEtype!=1)) {
+  if(FE->cdof && (FE->FEtype!=1)) { // If Linears, free_mesh will destroy coordinate struct
     free_coords(FE->cdof);
     free(FE->cdof);
     FE->cdof = NULL;
   }
 
-  if(FE->el_dof && FE->FEtype==2) {
+  if(FE->el_dof && FE->FEtype==2) { // If not P2, free_mesh will destroy el_dof struct
     icsr_free(FE->el_dof);
     free(FE->el_dof);
     FE->el_dof = NULL;
   }
 
-  if(FE->ed_dof && FE->FEtype!=1) { 
+  if(FE->ed_dof && FE->FEtype!=1) { // If Linears, free_mesh will destroy ed_dof struct
     icsr_free(FE->ed_dof);
     free(FE->ed_dof);
     FE->ed_dof = NULL;
   }
   
-  if(FE->f_dof && FE->FEtype!=1) {
+  if(FE->f_dof && FE->FEtype!=1 && FE->FEtype!=-1) { // If Linears or Nedelec, free_mesh will destroy f_dof
     icsr_free(FE->f_dof);
     free(FE->f_dof);
     FE->f_dof = NULL;
   }
 
-  if(FE->dof_bdry && (FE->FEtype>1)) {
+  if(FE->dof_bdry && (FE->FEtype==2)) { // If not P2, free_mesh will destroy dof_bdry
     free(FE->dof_bdry);
     FE->dof_bdry = NULL;
   }
@@ -138,23 +138,23 @@ void free_blockfespace(block_fespace* FE)
 {
   /* frees memory of arrays of block_fespace struct */
 
- if (FE == NULL) return; // Nothing need to be freed!
+  if (FE == NULL) return; // Nothing need to be freed!
     
-    INT i;
-    INT num_spaces = (FE->nspaces);
+  INT i;
+  INT num_spaces = (FE->nspaces);
     
-    for ( i=0; i<num_spaces; i++ ) {
-        free_fespace(FE->var_spaces[i]);
-        FE->var_spaces[i] = NULL;
-    }
+  for ( i=0; i<num_spaces; i++ ) {
+    free_fespace(FE->var_spaces[i]);
+    FE->var_spaces[i] = NULL;
+  }
     
-    free(FE->var_spaces);
-    FE->var_spaces = NULL;
+  free(FE->var_spaces);
+  FE->var_spaces = NULL;
 
-    if(FE->dof_bdry) {
-      free(FE->dof_bdry);
-      FE->dof_bdry = NULL;
-    }
+  if(FE->dof_bdry) {
+    free(FE->dof_bdry);
+    FE->dof_bdry = NULL;
+  }
   
   return;
 }
@@ -168,18 +168,21 @@ void get_P2(fespace* FE,trimesh* mesh)
   /* Converts Node Coordinate and Element to Node maps to higher orders (just P2 for now) */
 	
   INT i,j,k,s,jcntr;  /* Loop Indices */
-  INT n1,n2,va,vb,ea,eb,v1,v2,mye,ed,na;
+  INT n1,n2,n3,va,vb,ea,eb,v1,v2,mye,ed,na,ed1,ed2,face;
 
   INT ndof = FE->ndof;
   INT dof_per_elm = FE->dof_per_elm;
   INT dim = mesh->dim;
   INT nv = mesh->nv;
   INT nedge = mesh->nedge;
+  INT nface = mesh->nface;
   INT nelm = mesh->nelm;
   INT v_per_elm = mesh->v_per_elm;
-  iCSRmat *ed_v = mesh->ed_v;
   iCSRmat *el_v = mesh->el_v;
   iCSRmat *el_ed = mesh->el_ed;
+  iCSRmat *ed_v = mesh->ed_v;
+  iCSRmat *f_v = mesh->f_v;
+  iCSRmat *f_ed = mesh->f_ed;
 	
   INT* ipv = (INT *) calloc(mesh->v_per_elm,sizeof(INT));
 	
@@ -237,8 +240,7 @@ void get_P2(fespace* FE,trimesh* mesh)
 	    na++;
 	  }
 	}
-      }
-			
+      }			
     }
   }
 	
@@ -267,10 +269,35 @@ void get_P2(fespace* FE,trimesh* mesh)
     s++;
   }
   ed_n.IA[nedge] = 3*nedge+1;
+
+  // Get face to DOF map
+  INT n_per_f = 3*(dim-1);
+  INT extra_n = 2*dim-3;
+  iCSRmat f_n = icsr_create(nface,ndof,n_per_f*nedge);
+  for (i=0; i<nface; i++) {
+    face = f_v->IA[i]-1;
+    f_n.IA[i] = face+1+(2*dim-3)*i;
+    n1 = f_v->JA[face]-1;
+    n2 = f_v->JA[face+1]-1;
+    if(dim==3) n3 = f_v->JA[face+2]-1;
+    f_n.JA[face+extra_n*i] = n1+1;
+    f_n.JA[face+extra_n*i+1] = n2+1;
+    if(dim==3) f_n.JA[face+extra_n*i+2] = n3+1;
+    // Fill in rest with edge numbers
+    ed1 = f_ed->IA[i]-1;
+    ed2 = f_ed->IA[i+1]-1;
+    jcntr = 0;
+    for(j=ed1;j<ed2;j++) {
+      f_n.JA[face+extra_n*i+dim+jcntr] = f_ed->JA[j]+nv;
+      jcntr++;
+    }
+  }
+  f_n.IA[nface] = n_per_f*nedge+1;
 	
   FE->dof_bdry = dof_bdry;
   *(FE->el_dof) = el_n;
   *(FE->ed_dof) = ed_n;
+  *(FE->f_dof) = f_n;
   FE->cdof = cdof;
   
   if(ipv) free(ipv);
