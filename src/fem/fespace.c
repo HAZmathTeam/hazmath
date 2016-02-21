@@ -207,13 +207,13 @@ void get_P2(fespace* FE,trimesh* mesh)
     if (dim>2) { cdof->z[s] = 0.5*(mesh->cv->z[n1]+mesh->cv->z[n2]); }
     s++;
   }
-	
+  
   // Get Element to Node map
   iCSRmat el_n = icsr_create(nelm,ndof,dof_per_elm*nelm);
   // Rows of Element to Node map
   for(i=0;i<nelm+1;i++) {
     el_n.IA[i] = dof_per_elm*i + 1;
-  }	
+  }
   // Columns
   for(i=0;i<nelm;i++) {
     va = el_v->IA[i]-1;
@@ -273,7 +273,8 @@ void get_P2(fespace* FE,trimesh* mesh)
   // Get face to DOF map
   INT n_per_f = 3*(dim-1);
   INT extra_n = 2*dim-3;
-  iCSRmat f_n = icsr_create(nface,ndof,n_per_f*nedge);
+  iCSRmat f_n = icsr_create(nface,ndof,n_per_f*nface);
+  
   for (i=0; i<nface; i++) {
     face = f_v->IA[i]-1;
     f_n.IA[i] = face+1+(2*dim-3)*i;
