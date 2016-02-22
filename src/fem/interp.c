@@ -751,3 +751,64 @@ void get_Pigrad_H1toNed(dCSRmat* Pgrad,trimesh* mesh)
   return;
 }
 /***********************************************************************************************/
+
+/***********************************************************************************************/
+void ProjectOut_Grad(dvector* u,fespace* FE_H1,fespace* FE_Ned,trimesh* mesh,qcoordinates* cq,dCSRmat* G) 
+{
+
+  /* Takes an approximation in H(curl) using lowest-order Nedelec FE space and projects out the 
+   * gradient from it's decomposition:
+   *
+   * u = grad p + curl q
+   *
+   * Thus, we remove the grad p, so that div u = 0 (at least weakly).  Here p is in H0^1
+   * and we assume P1 elements.  u <-- u - grad p
+   *
+   * p is found by solving discrete Laplacian: <grad p, grad v> = <E, grad v>
+   *    
+   *    INPUT:
+   *       FE_H1:      P1 FE space
+   *      FE_Ned:      Nedele FE space
+   *        mesh:      Computational Mesh
+   *          cq:      Quadrature points on mesh   
+   *           G:      Gradient Matrix in CSR format
+   *   
+   *    OUTPUT:
+   *           u:      Nedelec Approximation with gradient kernel removed
+   *
+   */
+  
+  // Construct the Laplacian using P1 elements: <grad p, grad v>
+  dCSRmat Alap;
+  assemble_global(&Alap,NULL,assemble_DuDv_local,FE_H1,mesh,cq,NULL,NULL,0.0);
+
+  // Construct RHS vector: <E,grad v>
+  dvector b;
+  assemble_global_Ned_GradH1_RHS(&b,FE_H1,FE_Ned,mesh,cq,u);
+
+  // Eliminate Boundary Conditions (p=0 on boundary)
+  eliminate_DirichletBC(zero_coeff_scal,FE_H1,mesh,&b,&Alap,0.0); // 
+
+  // Solve Laplacian System to get p: <grad p, grad v> = <E, grad v> -> use CG
+  // Allocate the solution and set initial guess to be all zero (except at boundaries)
+  dvector p = dvec_create(mesh->nv);
+  dvec_set(p.row, &p, 0.0);
+
+  // Solve for p
+  dcsr_pcg(&Alap,&b,&p,NULL,1e-8,2000,1,0);
+  
+  // Multiply by Gradient
+  dvector gradp = dvec_create(mesh->nedge);
+  dcsr_mxv_1(G,p.val,gradp.val);
+  
+  // Update E
+  dvec_axpy(-1.0,&gradp,u);
+   
+  // Free Vectors
+  dcsr_free(&Alap);
+  dvec_free(&p);
+  dvec_free(&gradp);
+
+  return;
+}
+/***********************************************************************************************/

@@ -490,3 +490,78 @@ void assemble_global_face(dCSRmat* A,void (*local_assembly_face)(REAL *,fespace 
 }
 /******************************************************************************************************/
 
+/******************************************************************************************************/
+void assemble_global_Ned_GradH1_RHS(dvector *b,fespace *FE_H1,fespace *FE_Ned,trimesh *mesh,qcoordinates *cq,dvector* u) 
+{
+	
+  /* Computes the global rhs for any <u,grad v>, where u is a Nedelec FE function and v is in P1
+   * DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
+   *
+   * 
+   *    INPUT:
+   *            FE_H1		    Finite-Element Space Struct for P1
+   *            FE_Ned              Finite_element Space Struct for Nedelec
+   *	      	mesh                Mesh Struct
+   *            cq                  Quadrature Coordinates and Weights
+   *            u                   Nedelec function for RHS
+   *
+   *    OUTPUT:
+   *            b	       	    Global Right hand side vector
+   */
+
+  INT ed_per_elm = FE_Ned->dof_per_elm;
+  INT v_per_elm = mesh->v_per_elm;
+  INT i,j,row;
+
+  // Allocate Arrays
+  b->row = FE_H1->ndof;
+  b->val = (REAL *) calloc(b->row,sizeof(REAL));
+ 
+  /* Loop over all Elements and build local rhs */
+  REAL* bLoc= (REAL *) calloc(v_per_elm,sizeof(REAL));
+
+  INT* ed_on_elm = (INT *) calloc(ed_per_elm,sizeof(INT));
+  INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
+  INT rowa,rowb,jcntr;
+  for (i=0; i<FE_H1->nelm; i++) {	
+    
+    for (j=0; j<v_per_elm; j++) {
+      bLoc[j]=0;
+    }
+		
+    // Find Edges for given Element
+    rowa = FE_Ned->el_dof->IA[i]-1;
+    rowb = FE_Ned->el_dof->IA[i+1]-1;
+    jcntr = 0;
+    for (j=rowa; j<rowb; j++) {
+      ed_on_elm[jcntr] = FE_Ned->el_dof->JA[j];
+      jcntr++;
+    }
+
+    // Find vertices for given Element
+    rowa = mesh->el_v->IA[i]-1;
+    rowb = mesh->el_v->IA[i+1]-1;
+    jcntr = 0;
+    for (j=rowa; j<rowb; j++) {
+      v_on_elm[jcntr] = mesh->el_v->JA[j];
+      jcntr++;
+    }
+		
+    // Compute Local RHS for given Element
+    Ned_GradH1_RHS_local(bLoc,FE_H1,FE_Ned,mesh,cq,ed_on_elm,v_on_elm,i,u);
+
+    // Loop over DOF and place in appropriate slot globally
+    for (j=0; j<v_per_elm; j++) { 
+      row = v_on_elm[j]-1;	
+      b->val[row] += bLoc[j];
+    }
+  }	
+
+  if(ed_on_elm) free(ed_on_elm);
+  if(v_on_elm) free(v_on_elm);
+  if(bLoc) free(bLoc);
+		
+  return;
+}
+/******************************************************************************************************/
+

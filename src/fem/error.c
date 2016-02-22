@@ -62,7 +62,7 @@ REAL L2norm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
     }
     		
     // Compute Local Stiffness Matrix for given Element
-    assemble_mass_local(MLoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,constcoeff,1.0);
+    assemble_mass_local(MLoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
 
     for(j=0;j<dof_per_elm;j++) {
       for(k=0;k<dof_per_elm;k++) {
@@ -129,7 +129,7 @@ REAL L2_InnerProduct(REAL *u,REAL *v,fespace *FE,trimesh *mesh,qcoordinates *cq)
     }
     		
     // Compute Local Stiffness Matrix for given Element
-    assemble_mass_local(MLoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,constcoeff,1.0);
+    assemble_mass_local(MLoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
 
     for(j=0;j<dof_per_elm;j++) {
       for(k=0;k<dof_per_elm;k++) {
@@ -292,7 +292,7 @@ REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimes
     }
     		
     // Compute Local Stiffness Matrix for given Element
-    assemble_mass_local(MLoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,constcoeff,1.0);
+    assemble_mass_local(MLoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
 
     for(j=0;j<dof_per_elm;j++) {
       for(k=0;k<dof_per_elm;k++) {
@@ -364,7 +364,7 @@ REAL HDseminorm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
     }
     		
     // Compute Local Stiffness Matrix for given Element
-    assemble_DuDv_local(ALoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,constcoeff,1.0);
+    assemble_DuDv_local(ALoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
 
     for(j=0;j<dof_per_elm;j++) {
       for(k=0;k<dof_per_elm;k++) {
@@ -540,7 +540,7 @@ REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,t
     }
     		
     // Compute Local Stiffness Matrix for given Element
-    assemble_DuDv_local(ALoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,constcoeff,1.0);
+    assemble_DuDv_local(ALoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
 
     for(j=0;j<dof_per_elm;j++) {
       for(k=0;k<dof_per_elm;k++) {

@@ -524,3 +524,17 @@ REAL dvec_norminf (dvector *x)
     return infnorm;
 }
 
+/****************************************************************************************/
+void det3D(REAL *mydet,REAL* vec1,REAL* vec2,REAL* vec3)          
+{
+  /* gets determinant of 3 3D vectors */
+  REAL dettmp;
+  
+  dettmp = vec1[0]*(vec2[1]*vec3[2]-vec2[2]*vec3[1]) - vec1[1]*(vec2[0]*vec3[2]-vec2[2]*vec3[0]) + vec1[2]*(vec2[0]*vec3[1]-vec2[1]*vec3[0]);
+
+  *mydet = dettmp;
+
+  return;
+}
+/****************************************************************************************/
+

@@ -71,7 +71,11 @@ void assemble_DuDv_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
       qx[1] = cq->y[elm*cq->nq_per_elm+quad];
       if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
-      (*coeff)(&coeff_val,qx,time);
+      if(coeff!=NULL) {
+	(*coeff)(&coeff_val,qx,time);
+      } else {
+	coeff_val = 1.0;
+      }
       
       //  Get the Basis Functions at each quadrature node
       PX_H1_basis(phi,dphix,dphiy,dphiz,qx[0],qx[1],qx[2],dof_on_elm,FE->FEtype,mesh);
@@ -102,7 +106,11 @@ void assemble_DuDv_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
       qx[1] = cq->y[elm*cq->nq_per_elm+quad];
       if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
-      (*coeff)(&coeff_val,qx,time);
+      if(coeff!=NULL) {
+	(*coeff)(&coeff_val,qx,time);
+      } else {
+	coeff_val = 1.0;
+      }
 
       //  Get the Basis Functions at each quadrature node
       ned_basis(phi,dphix,qx[0],qx[1],qx[2],v_on_elm,dof_on_elm,mesh);
@@ -132,7 +140,11 @@ void assemble_DuDv_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
       qx[1] = cq->y[elm*cq->nq_per_elm+quad];
       if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
-      (*coeff)(&coeff_val,qx,time);
+      if(coeff!=NULL) {
+	(*coeff)(&coeff_val,qx,time);
+      } else {
+	coeff_val = 1.0;
+      }
 
       //  Get the Basis Functions at each quadrature node
       rt_basis(phi,dphix,qx[0],qx[1],qx[2],v_on_elm,dof_on_elm,mesh);
@@ -223,7 +235,11 @@ void assemble_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
       qx[1] = cq->y[elm*cq->nq_per_elm+quad];
       if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
-      (*coeff)(&coeff_val,qx,time);
+      if(coeff!=NULL) {
+	(*coeff)(&coeff_val,qx,time);
+      } else {
+	coeff_val = 1.0;
+      }
       
       //  Get the Basis Functions at each quadrature node
       PX_H1_basis(phi,dphix,dphiy,dphiz,qx[0],qx[1],qx[2],dof_on_elm,FE->FEtype,mesh);
@@ -253,7 +269,11 @@ void assemble_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
       qx[1] = cq->y[elm*cq->nq_per_elm+quad];
       if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
-      (*coeff)(&coeff_val,qx,time);
+      if(coeff!=NULL) {
+	(*coeff)(&coeff_val,qx,time);
+      } else {
+	coeff_val = 1.0;
+      }
 
       //  Get the Basis Functions at each quadrature node
       ned_basis(phi,dphix,qx[0],qx[1],qx[2],v_on_elm,dof_on_elm,mesh);
@@ -278,7 +298,11 @@ void assemble_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
       qx[1] = cq->y[elm*cq->nq_per_elm+quad];
       if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
-      (*coeff)(&coeff_val,qx,time);
+      if(coeff!=NULL) {
+	(*coeff)(&coeff_val,qx,time);
+      } else {
+	coeff_val = 1.0;
+      }
 
       //  Get the Basis Functions at each quadrature node
       rt_basis(phi,dphix,qx[0],qx[1],qx[2],v_on_elm,dof_on_elm,mesh);
@@ -498,7 +522,12 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinat
       qx[1] = cq->y[elm*cq->nq_per_elm+quad];
       if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
-      (*coeff)(coeff_val,qx,time);
+      if(coeff!=NULL) {
+	(*coeff)(coeff_val,qx,time);
+      } else {
+	coeff_val[0] = 1.0;
+	coeff_val[1] = 1.0;
+      }
       
       //  Get the Basis Functions at each quadrature node
       PX_H1_basis(phi,dphix,dphiy,dphiz,qx[0],qx[1],qx[2],dof_on_elm,FE->FEtype,mesh);
@@ -529,7 +558,12 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinat
       qx[1] = cq->y[elm*cq->nq_per_elm+quad];
       if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
-      (*coeff)(coeff_val,qx,time);
+      if(coeff!=NULL) {
+	(*coeff)(coeff_val,qx,time);
+      } else {
+	coeff_val[0] = 1.0;
+	coeff_val[1] = 1.0;
+      }
 
       //  Get the Basis Functions at each quadrature node
       ned_basis(phi,dphix,qx[0],qx[1],qx[2],v_on_elm,dof_on_elm,mesh);
@@ -560,7 +594,12 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinat
       qx[1] = cq->y[elm*cq->nq_per_elm+quad];
       if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
-      (*coeff)(coeff_val,qx,time);
+      if(coeff!=NULL) {
+	(*coeff)(coeff_val,qx,time);
+      } else {
+	coeff_val[0] = 1.0;
+	coeff_val[1] = 1.0;
+      }
 
       //  Get the Basis Functions at each quadrature node
       rt_basis(phi,dphix,qx[0],qx[1],qx[2],v_on_elm,dof_on_elm,mesh);
@@ -655,7 +694,11 @@ void impedancebdry_local(REAL* ZLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
     qx[1] = mesh->ed_mid[ed*dim+1];
     qx[2] = mesh->ed_mid[ed*dim+2];
 
-    (*coeff)(&coeff_val,qx,time);
+    if(coeff!=NULL) {
+	(*coeff)(&coeff_val,qx,time);
+      } else {
+	coeff_val = 1.0;
+      }
 
     //  Get the Basis Functions at each quadrature node
     ned_basis(phi,cphi,qx[0],qx[1],qx[2],v_on_elm,ed_on_elm,mesh);
@@ -688,6 +731,82 @@ void impedancebdry_local(REAL* ZLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
   if (phi) free(phi);
   if(cphi) free(cphi);
   if(qx) free(qx);
+  return;
+}
+/******************************************************************************************************/
+
+/******************************************************************************************************/
+void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,trimesh *mesh,qcoordinates *cq,INT *ed_on_elm,INT *v_on_elm,INT elm,dvector* u)  
+{
+
+  /* Computes the local weak formulation of <E,grad(q)> where E is a given
+   * Nedelec approximation and q in H_0^1 (linears)
+   *
+   *    INPUT:
+   *            FE_H1		    Finite-Element Space Struct for H1 elements
+   *            FE_Ned              Finite-Element Space Struct for Nedelec elements
+   *	      	mesh                Mesh Struct
+   *            cq                  Quadrature Coordinates and Weights
+   *            ed_on_elm           Specific Edges on element
+   *            v_on_elm            Vertices on current element 
+   *            elm                 Current element 
+   *            u                   FEM Function that gives coefficient
+   *
+   *    OUTPUT:
+   *	       	bLoc                Local rhs
+   */
+	
+   // Mesh and FE data
+  INT v_per_elm = FE_H1->dof_per_elm;
+  INT dim = mesh->dim;
+  
+  // Loop Indices
+  INT quad,test;
+  
+  // Quadrature Weights and Nodes
+  REAL w; 
+  REAL* qx = (REAL *) calloc(dim,sizeof(REAL));
+	
+  // Basis Functions and its derivatives if necessary
+  REAL* phi=NULL;
+  REAL* dphix=NULL;
+  REAL* dphiy=NULL;
+  REAL* dphiz=NULL;
+  phi = (REAL *) calloc(v_per_elm,sizeof(REAL));
+  dphix = (REAL *) calloc(v_per_elm,sizeof(REAL));
+  dphiy = (REAL *) calloc(v_per_elm,sizeof(REAL));
+  if(dim==3) dphiz = (REAL *) calloc(v_per_elm,sizeof(REAL));
+  
+  // Right-hand side function at Quadrature Nodes
+  REAL* ucoeff = (REAL *) calloc(dim,sizeof(REAL));
+  
+  //  Sum over quadrature points
+  for (quad=0;quad<cq->nq_per_elm;quad++) {        
+    qx[0] = cq->x[elm*cq->nq_per_elm+quad];
+    qx[1] = cq->y[elm*cq->nq_per_elm+quad];
+    if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
+    w = cq->w[elm*cq->nq_per_elm+quad];
+    
+    // Get FEM function at quadrature nodes
+    FE_Interpolation(ucoeff,u->val,qx[0],qx[1],qx[2],ed_on_elm,v_on_elm,FE_Ned,mesh,mesh->nedge,1);
+    
+    //  Get the Basis Functions at each quadrature node
+    PX_H1_basis(phi,dphix,dphiy,dphiz,qx[0],qx[1],qx[2],v_on_elm,FE_H1->FEtype,mesh);
+
+    // Loop over test functions and integrate rhs
+    for (test=0; test<FE_H1->dof_per_elm;test++) {
+      bLoc[test] += w*(ucoeff[0]*dphix[test]+ucoeff[1]*dphiy[test]);
+      if(dim==3) bLoc[test] += w*ucoeff[2]*dphiz[test];
+    }
+  }
+  
+  if (phi) free(phi);
+  if(dphix) free(dphix);
+  if(dphiy) free(dphiy);
+  if(dphiz) free(dphiz);
+  if(qx) free(qx);
+  if(ucoeff) free(ucoeff);
+	
   return;
 }
 /******************************************************************************************************/

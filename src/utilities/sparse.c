@@ -929,6 +929,33 @@ void dcsr_mxv (dCSRmat *A,
     }
 }
 
+/***********************************************************************************************/
+void dcsr_mxv_1 (dCSRmat *A,
+                REAL *x,
+                REAL *y)
+{
+    
+    /**
+     * \fn void dcsr_mxv_1 (dCSRmat *A, REAL *x, REAL *y)
+     *
+     * \brief Matrix-vector multiplication y = A*x (index starts with 1!!)
+     *
+     * \param A   Pointer to dCSRmat matrix A
+     * \param x   Pointer to array x
+     * \param y   Pointer to array y
+     *
+     */
+    
+  // Shift A
+  dcsr_shift(A,-1);
+  
+  // Perform Matrix Vector Multiply
+  dcsr_mxv(A,x,y);
+
+  // Shift A back
+  dcsr_shift(A,1);
+}
+
 
 /***********************************************************************************************/
 void dcsr_mxv_agg (dCSRmat *A,
