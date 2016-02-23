@@ -800,7 +800,7 @@ void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,trimesh *mes
     }
   }
   
-  if (phi) free(phi);
+  if(phi) free(phi);
   if(dphix) free(dphix);
   if(dphiy) free(dphiy);
   if(dphiz) free(dphiz);

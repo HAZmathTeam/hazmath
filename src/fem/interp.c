@@ -836,6 +836,7 @@ void ProjectOut_Grad(dvector* u,fespace* FE_H1,fespace* FE_Ned,trimesh* mesh,qco
    
   // Free Vectors
   dcsr_free(&Alap);
+  dvec_free(&b);
   dvec_free(&p);
   dvec_free(&gradp);
 
