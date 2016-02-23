@@ -497,7 +497,7 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL),block_fespace *FE,tri
 void get_unknown_component(dvector* u,dvector* ublock,block_fespace *FE,INT comp)
 {
 
-/* Evaluate a given analytic function on the finite-element space given
+/* Grab a component of a block FE function
    *    INPUT:
    *		  ublock       FE vector in blocks
    *                  FE       block FE Space struct for multiple variables
@@ -516,6 +516,36 @@ void get_unknown_component(dvector* u,dvector* ublock,block_fespace *FE,INT comp
 
   for(i=0;i<FE->var_spaces[comp]->ndof;i++) {
     u->val[i] = ublock->val[entry + i];
+  }
+
+  return;
+}
+/****************************************************************************************************************************/
+
+/****************************************************************************************************************************/
+void set_unknown_component(dvector* u,dvector* ublock,block_fespace *FE,INT comp)
+{
+
+/* Set a component of a block FE function
+   *    INPUT:
+   *                   u       FE approximation of function on specific block of fespace		  
+   *                  FE       block FE Space struct for multiple variables
+   *                comp       Which block to grab (starts count at 0)
+   *    OUTPUT:
+   *          ublock       FE vector in blocks
+   
+   *
+   */
+
+  int i;
+  INT entry = 0;
+
+  for(i=0;i<comp;i++) {
+    entry += FE->var_spaces[i]->ndof;
+  }
+
+  for(i=0;i<FE->var_spaces[comp]->ndof;i++) {
+    ublock->val[entry + i] = u->val[i];
   }
 
   return;
@@ -795,7 +825,7 @@ void ProjectOut_Grad(dvector* u,fespace* FE_H1,fespace* FE_Ned,trimesh* mesh,qco
   dvec_set(p.row, &p, 0.0);
 
   // Solve for p
-  dcsr_pcg(&Alap,&b,&p,NULL,1e-8,2000,1,0);
+  dcsr_pcg(&Alap,&b,&p,NULL,1e-15,50000,1,0);
   
   // Multiply by Gradient
   dvector gradp = dvec_create(mesh->nedge);

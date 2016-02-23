@@ -194,7 +194,6 @@ void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)
 
   // If in 3D, still need to get edge_bdry map
   if(dim==3) {
-    //isboundary_ed3D(ed_v,nedge,cv,&nbedge,v_bdry,ed_bdry);
     isboundary_ed3D_f(&f_ed,&ed_v,nedge,nface,f_bdry,v_bdry,&nbedge,ed_bdry); 
   }
 
