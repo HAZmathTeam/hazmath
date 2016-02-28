@@ -14,12 +14,12 @@
  */
 #define BIGREAL          1e+20 /**< A large real number */
 #define SMALLREAL        1e-20 /**< A small real number */
-#define SMALLREAL2          1e-40  /**< An extremely small real number */
+#define SMALLREAL2       1e-40  /**< An extremely small real number */
 #define MAX_REFINE_LVL   20    /**< Maximal refinement level */
 #define MAX_AMG_LVL      20    /**< Maximal AMG coarsening level */
 #define MIN_CDOF         20    /**< Minimal number of coarsest variables */
 #define MIN_CRATE        0.9   /**< Minimal coarsening ratio */
-#define MAX_CRATE        20.0  /**< Maximal coarsening ratio */
+#define MAX_CRATE        100.0  /**< Maximal coarsening ratio */
 #define STAG_RATIO       1e-4  /**< Stagnation tolerance = tol*STAGRATIO */
 #define MAX_STAG         20    /**< Maximal number of stagnation times */
 #define MAX_RESTART      20    /**< Maximal number of restarting for BiCGStab */

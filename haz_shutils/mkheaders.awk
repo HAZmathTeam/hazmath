@@ -53,7 +53,7 @@ BEGIN {
   next;
 }
 
-!/^INT|^REAL|^coordinates|^qcoordinates|^FILE|^OFF_T|^size_t|^off_t|^pid_t|^unsigned|^mode_t|^DIR|^user|^int|^char|^uint|^struct|^BOOL|^void|^double|^time|^dCSRmat|^dvector|^iCSRmat|^ivector|block_dCSRmat|^AMG_data/ {
+!/^INT|^REAL|^coordinates|^qcoordinates|^FILE|^OFF_T|^size_t|^off_t|^pid_t|^unsigned|^mode_t|^DIR|^user|^int|^char|^uint|^struct|SHORT|^BOOL|^void|^double|^time|^dCSRmat|^dvector|^iCSRmat|^ivector|block_dCSRmat|^AMG_data/ {
   next;
 }
 

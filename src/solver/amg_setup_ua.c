@@ -256,16 +256,6 @@ static SHORT amg_setup_unsmoothP_unsmoothR (AMG_data *mgl,
     // Setup coarse level systems for direct solvers
     switch (csolver) {
 
-/*
-#if WITH_MUMPS
-        case SOLVER_MUMPS: {
-            // Setup MUMPS direct solver on the coarsest level
-            mgl[lvl].mumps.job = 1;
-            fasp_solver_mumps_steps(&mgl[lvl].A, &mgl[lvl].b, &mgl[lvl].x, &mgl[lvl].mumps);
-            break;
-        }
-#endif
-*/
  
 #if WITH_SUITESPARSE
         case SOLVER_UMFPACK: {

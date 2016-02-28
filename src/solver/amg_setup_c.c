@@ -180,6 +180,7 @@ SHORT amg_setup_c (AMG_data *mgl,
                 printf("### WARNING: m = n = %d, nnz = %d!\n",
                        mgl[lvl].A.col, mgl[lvl].A.nnz);
             }
+            dcsr_free(&mgl[lvl+1].A);
             break;
         }
         
@@ -195,16 +196,6 @@ SHORT amg_setup_c (AMG_data *mgl,
     // Setup coarse level systems for direct solvers
     switch (csolver) {
 
-            /*
-#if WITH_MUMPS
-        case SOLVER_MUMPS: {
-            // Setup MUMPS direct solver on the coarsest level
-            mgl[lvl].mumps.job = 1;
-            fasp_solver_mumps_steps(&mgl[lvl].A, &mgl[lvl].b, &mgl[lvl].x, &mgl[lvl].mumps);
-            break;
-        }
-#endif
-             */
             
 #if WITH_SUITESPARSE
         case SOLVER_UMFPACK: {
@@ -239,7 +230,7 @@ SHORT amg_setup_c (AMG_data *mgl,
         
         mgl[lvl].cycle_type     = cycle_type; // initialize cycle type!
         mgl[lvl].ILU_levels     = param->ILU_levels - lvl; // initialize ILU levels!
-        mgl[lvl].Schwarz_levels = param->Schwarz_levels -lvl; // initialize Schwarz!
+        //mgl[lvl].Schwarz_levels = param->Schwarz_levels -lvl; // initialize Schwarz!
         
         // allocate work arrays for the solve phase
         if ( cycle_type == NL_AMLI_CYCLE )

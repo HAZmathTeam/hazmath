@@ -296,6 +296,37 @@ typedef struct {
 
 
 /**
+ * \brief Data passed to the preconditioner for block preconditioning for block_dCSRmat format
+ *
+ * This is needed for the block preconditioner.
+ */
+typedef struct {
+    
+    /*-------------------------------------*/
+    /* Basic data for block preconditioner */
+    /*-------------------------------------*/
+    block_dCSRmat *Abcsr; /**< problem data, the blocks */
+    
+    dCSRmat *A_diag;      /**< data for each diagonal block*/
+    
+    dvector r;            /**< temp work space */
+    
+    /*------------------------------*/
+    /* Data for the diagonal blocks */
+    /*------------------------------*/
+    /*--- solve by direct solver ---*/
+    void **LU_diag;       /**< LU decomposition for the diagonal blocks (for UMFpack) */
+    
+    /*---  solve by AMG ---*/
+    AMG_data **mgl;       /**< AMG data for the diagonal blocks */
+    AMG_param *amgparam;  /**< parameters for AMG */
+    
+    /*--- solver by HX preconditioner */
+    HX_curl_data **hxcurldata; /**< HX data for the diagonal blocks */
+    
+} precond_block_data; /**< Precond data for block matrices */
+
+/**
  * \struct Link
  * \brief Struct for Links
  */

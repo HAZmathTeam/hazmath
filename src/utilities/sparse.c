@@ -2321,13 +2321,13 @@ SHORT dcsr_getblk (dCSRmat *A,
     
     // create column flags
     col_flag = (INT*)calloc(A->col,sizeof(INT));
-    
+
     B->row = m; B->col = n;
     
     B->IA  = (INT*)calloc(m+1,sizeof(INT));
     B->JA  = (INT*)calloc(A->nnz,sizeof(INT));
     B->val = (REAL*)calloc(A->nnz,sizeof(REAL));
-    
+        
     for (i=0;i<n;++i) col_flag[Js[i]]=i+1;
     
     // Count nonzeros for sub matrix and fill in
@@ -2344,7 +2344,8 @@ SHORT dcsr_getblk (dCSRmat *A,
         B->IA[i+1]=nnz;
     } /* end for i */
     B->nnz=nnz;
-        
+    
+    
     // re-allocate memory space
     B->JA=(INT*)realloc(B->JA, sizeof(INT)*nnz);
     B->val=(REAL*)realloc(B->val, sizeof(REAL)*nnz);

@@ -173,6 +173,7 @@ void amg_data_free (AMG_data *mgl,
         dvec_free(&mgl[i].x);
         dvec_free(&mgl[i].w);
         ivec_free(&mgl[i].cfmark);
+        ilu_data_free(&mgl[i].LU);
     }
     
     for (i=0; i<mgl->near_kernel_dim; ++i) {
@@ -182,6 +183,13 @@ void amg_data_free (AMG_data *mgl,
     
     // Clean direct solver data in necessary
     switch (param->coarse_solver) {
+            
+#if WITH_SUITESPARSE
+        case SOLVER_UMFPACK: {
+            free(mgl[max_levels-1].Numeric);
+            break;
+        }
+#endif
             
         default: // Do nothing!
             break;

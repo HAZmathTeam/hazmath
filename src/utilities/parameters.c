@@ -14,9 +14,18 @@
 void param_input_init (input_param *iniparam)
 {
     
+    //----------------
     // output flags
+    //----------------
     iniparam->print_level              = PRINT_SOME;
     iniparam->output_type              = 0;
+    
+    //----------------
+    // files
+    //----------------
+    strcpy(iniparam->workdir,"./");
+    strcpy(iniparam->inifile,"./input.dat");
+    strcpy(iniparam->gridfile,"../input/grids/3D/ex3Dgrid_v125.dat");
     
     //--------------------------
     // finite element parameters
