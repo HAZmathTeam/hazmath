@@ -783,6 +783,85 @@ void get_Pigrad_H1toNed(dCSRmat* Pgrad,trimesh* mesh)
 /***********************************************************************************************/
 
 /***********************************************************************************************/
+void get_div_RTtoL2(dCSRmat* Div,trimesh* mesh) 
+{
+  // TODO: I think only works for lowest order elements
+
+  /* Computes Divergence operator.  Applying the resulting matrix computes the divergence of an RT approximation.  
+   * Takes Face (RT) DOF vector to Volume (L2) DOF vector
+   * Ordering determined by element to face map: orientation determined by normal vector of face.
+   * Normal vectors point from lower number element to higher one or outward from external boundary
+   * Entry gets positive 1 if normal is outward of element and -1 if inward of element
+   *    
+   *    INPUT:
+   *                mesh       Mesh struct
+   *    OUTPUT:
+   *                Grad       Matrix that takes the gradient of an H1 approximation
+   *
+   */
+  
+  INT i,j,k,rowa,rowb,rowc,rowd,face,elm1,elm2,elm_big,n_felm;
+  INT nface = mesh->nedge;
+  INT nelm = mesh->nelm;
+  REAL oneovervol=0.0;
+  REAL farea=0.0;
+  dCSRmat Dtmp;
+
+  // We will need the face to element map as well
+  // Each face will have two elements (or one if on boundary).
+  iCSRmat f_el;
+  icsr_trans_1(mesh->el_f,&f_el);
+
+  Dtmp.row = mesh->el_f->row;
+  Dtmp.col = mesh->el_f->col;
+  Dtmp.nnz = mesh->el_f->nnz;
+  Dtmp.IA = (INT *) calloc(Dtmp.row+1,sizeof(INT));
+  Dtmp.JA = (INT *) calloc(Dtmp.nnz,sizeof(INT));
+  Dtmp.val = (REAL *) calloc(Dtmp.nnz,sizeof(REAL));
+
+  for(i=0;i<=nelm;i++) {
+    Dtmp.IA[i] = mesh->el_f->IA[i];
+  }
+  for(i=0;i<Dtmp.nnz;i++) {
+    Dtmp.JA[i] = mesh->el_f->JA[i];
+  }
+
+  for (i=0; i<nelm; i++) {
+    oneovervol = 1.0/(mesh->el_vol[i]);
+    // Get faces of element
+    rowa = mesh->el_f->IA[i]-1;
+    rowb = mesh->el_f->IA[i+1]-1;
+    for(j=rowa;j<rowb;j++) {
+      face = mesh->el_f->JA[j]-1;
+      farea = mesh->f_area[face];
+      // Get elements of face
+      rowc = f_el.IA[face]-1;
+      rowd = f_el.IA[face+1]-1;
+      n_felm = rowd-rowc;
+      if(n_felm==1)
+	Dtmp.val[j] = farea*oneovervol;
+      else if(n_felm==2) {
+	elm1 = f_el.JA[rowc]-1;
+	elm2 = f_el.JA[rowc+1]-1;
+	elm_big = MAX(elm1,elm2);
+	if(i==elm_big)
+	  Dtmp.val[j] = -farea*oneovervol;
+	else
+	  Dtmp.val[j] = farea*oneovervol;
+      } else {
+	printf("something is wrong in the divergence operator\n");
+	exit(0);
+      }	
+    }
+  }
+
+  *Div = Dtmp;
+	
+  return;
+}
+/***********************************************************************************************/
+
+/***********************************************************************************************/
 void ProjectOut_Grad(dvector* u,fespace* FE_H1,fespace* FE_Ned,trimesh* mesh,qcoordinates* cq,dCSRmat* G) 
 {
 
