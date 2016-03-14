@@ -1007,7 +1007,11 @@ INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A,
                                         AMG_param *amgparam,
                                         dCSRmat *A_diag,
                                         dCSRmat *P_curl,
-                                        dCSRmat *Grad)
+                                        dCSRmat *Grad,
+                                        dCSRmat *Gb,
+                                        dCSRmat *Kb,
+                                        dCSRmat *Gtb,
+                                        dCSRmat *Ktb)
 {
     /**
      * \fn INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A, dvector *b, dvector *x,
@@ -1075,7 +1079,7 @@ INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A,
         printf("*******************************************\n");
     }
     
-    if (precond_type == 30){
+    if (precond_type < 20){
         
 #if WITH_SUITESPARSE
         A_tran = dcsr_create(A_diag[0].row, A_diag[0].col, A_diag[0].nnz);
@@ -1115,7 +1119,7 @@ INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A,
         printf("*******************************************\n");
     }
     
-    if (precond_type == 30){
+    if (precond_type < 20){
         
 #if WITH_SUITESPARSE
         // direct solver for A_EE
@@ -1224,7 +1228,7 @@ INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A,
         printf("*******************************************\n");
     }
     
-    if (precond_type == 30){
+    if (precond_type < 20){
         
 #if WITH_SUITESPARSE
         // direct solver for A_pp
@@ -1261,6 +1265,11 @@ INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A,
     precdata.A_diag = A_diag;
     precdata.r = dvec_create(b->row);
     
+    precdata.G = Gb;
+    precdata.K = Kb;
+    precdata.Gt = Gtb;
+    precdata.Kt = Ktb;
+    
     precdata.LU_diag = LU_diag;
     precdata.amgparam = amgparam;
     precdata.mgl = mgl;
@@ -1270,16 +1279,64 @@ INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A,
     
     switch (precond_type)
     {
-        case 30:
+        case 10:
+            prec.fct = precond_block_diag_3;
+            break;
+            
+        case 11:
+            prec.fct = precond_block_lower_3;
+            break;
+            
+        case 12:
             prec.fct = precond_block_upper_3;
             break;
+            
+        case 20:
+            prec.fct = precond_block_diag_maxwell;
+            break;
+            
+        case 21:
+            prec.fct = precond_block_lower_maxwell;
+            break;
      
-        case 31:
+        case 22:
             prec.fct = precond_block_upper_maxwell;
+            break;
+            
+        case 30:
+            prec.fct = precond_block_diag_maxwell_krylov;
+            break;
+            
+        case 31:
+            prec.fct = precond_block_lower_maxwell_krylov;
             break;
             
         case 32:
             prec.fct = precond_block_upper_maxwell_krylov;
+            break;
+            
+        case 41:
+            prec.fct = precond_block_lower_diag_maxwell;
+            break;
+            
+        case 42:
+            prec.fct = precond_block_diag_upper_maxwell;
+            break;
+            
+        case 43:
+            prec.fct = precond_block_lower_diag_upper_maxwell;
+            break;
+            
+        case 51:
+            prec.fct = precond_block_lower_diag_maxwell_krylov;
+            break;
+            
+        case 52:
+            prec.fct = precond_block_diag_upper_maxwell_krylov;
+            break;
+            
+        case 53:
+            prec.fct = precond_block_lower_diag_upper_maxwell_krylov;
             break;
      
         default:
@@ -1309,7 +1366,7 @@ INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A,
 FINISHED:
     // clean
 
-    if (precond_type == 30){
+    if (precond_type < 20){
     
 #if WITH_SUITESPARSE
         dcsr_free(&A_tran);

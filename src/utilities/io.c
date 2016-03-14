@@ -84,6 +84,40 @@ void dvector_print(FILE* fid,dvector *b)
 }
 
 
+void dvec_write (const char *filename,
+                      dvector *vec)
+{
+    /**
+     * \fn void dvec_write (const char *filename, dvector *vec)
+     *
+     * \brief Write a dvector to disk file
+     *
+     * \param vec       Pointer to the dvector
+     * \param filename  File name
+     *
+     * \author Xiaozhe Hu
+     * \date   03/02/2016
+     */
+    
+    INT m = vec->row, i;
+    
+    FILE *fp = fopen(filename,"w");
+    
+    if ( fp == NULL ) {
+        printf("### ERROR: Cannot open %s!\n", filename);
+        chkerr(ERROR_OPEN_FILE, __FUNCTION__);
+    }
+    
+    printf("%s: writing to file %s...\n", __FUNCTION__, filename);
+    
+    fprintf(fp,"%d\n",m);
+    
+    for ( i = 0; i < m; ++i ) fprintf(fp,"%0.15e\n",vec->val[i]);
+    
+    fclose(fp);
+}
+
+
 void dcsr_write_dcoo (const char *filename,
                       dCSRmat *A)
 {

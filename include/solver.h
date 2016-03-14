@@ -324,6 +324,14 @@ typedef struct {
     /*--- solver by HX preconditioner */
     HX_curl_data **hxcurldata; /**< HX data for the diagonal blocks */
     
+    /*------------------------------*/
+    /* Data for Maxwell problem only!! */
+    /*------------------------------*/
+    dCSRmat *G;         /**< scaled gradiend operator */
+    dCSRmat *K;         /**< scaled curl operator */
+    dCSRmat *Gt;        /**< scaled transpose gradiend operator */
+    dCSRmat *Kt;        /**< scaled transpose gradiend operator */
+    
 } precond_block_data; /**< Precond data for block matrices */
 
 /**
