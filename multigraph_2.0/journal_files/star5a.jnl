@@ -1,0 +1,48 @@
+Smxcg=50
+lt=0,n=320
+fdtol=1.e-1,maxfil=100,maxlvl=1
+s
+gigrsw=3,t="maxlvl=1, dtol=1.e-1"
+gigrsw=0,t="maxlvl=1, dtol=1.e-1"
+lt=0,n=320
+fdtol=1.e-1,maxfil=100,maxlvl=2
+s
+gigrsw=3,t="maxlvl=2, dtol=1.e-1"
+gigrsw=0,t="maxlvl=2, dtol=1.e-1"
+lt=0,n=320
+fdtol=1.e-1,maxfil=100,maxlvl=3
+s
+gigrsw=3,t="maxlvl=3, dtol=1.e-1"
+gigrsw=0,t="maxlvl=3, dtol=1.e-1"
+#
+lt=0,n=320
+fdtol=1.e-2,maxfil=100,maxlvl=1
+s
+gigrsw=3,t="maxlvl=1, dtol=1.e-2"
+gigrsw=0,t="maxlvl=1, dtol=1.e-2"
+lt=0,n=320
+fdtol=1.e-2,maxfil=100,maxlvl=2
+s
+gigrsw=3,t="maxlvl=2, dtol=1.e-2"
+gigrsw=0,t="maxlvl=2, dtol=1.e-2"
+lt=0,n=320
+fdtol=1.e-2,maxfil=100,maxlvl=3
+s
+gigrsw=3,t="maxlvl=3, dtol=1.e-2"
+gigrsw=0,t="maxlvl=3, dtol=1.e-2"
+#
+lt=0,n=320
+fdtol=1.e-3,maxfil=100,maxlvl=1
+s
+gigrsw=3,t="maxlvl=1, dtol=1.e-3"
+gigrsw=0,t="maxlvl=1, dtol=1.e-3"
+lt=0,n=320
+fdtol=1.e-3,maxfil=100,maxlvl=2
+s
+gigrsw=3,t="maxlvl=2, dtol=1.e-3"
+gigrsw=0,t="maxlvl=2, dtol=1.e-3"
+lt=0,n=320
+fdtol=1.e-3,maxfil=100,maxlvl=3
+s
+gigrsw=3,t="maxlvl=3, dtol=1.e-3"
+gigrsw=0,t="maxlvl=3, dtol=1.e-3"

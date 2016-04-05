@@ -1,0 +1,77 @@
+Fmaxlvl=20,maxfil=50
+#
+#  problem 1
+#
+Fdtol=1.e-2 
+rf=../matrix/mtx001
+f
+smxcg=15
+gigrsw=3,t="-Delta u = 1"
+gigrsw=0
+#
+#  problem 2
+#
+Fdtol=1.e-3 
+rf=../matrix/mtx002
+f
+smxcg=15
+gigrsw=3,t="-Delta u + 1000 u_x = 1"
+gigrsw=0
+#
+#  problem 3
+#
+Fdtol=1.e-3 
+rf=../matrix/mtx003
+f
+smxcg=15
+gigrsw=3,t="-Delta u + 1000 u_x + 1000 u_y = 1"
+gigrsw=0
+#
+#  problem 4
+#
+Fdtol=1.e-4 
+rf=../matrix/mtx004
+f
+smxcg=15            
+gigrsw=3,t="-Delta u - 1000 u = 1"
+gigrsw=0
+#
+#  problem 5
+#
+Fdtol=1.e-3 
+rf=../matrix/mtx005
+f
+smxcg=15
+gigrsw=3,t="-Delta u + 1000 u = 1"
+gigrsw=0
+#
+#  problem 6
+#
+Fdtol=1.e-4 
+rf=../matrix/mtx006
+f
+smxcg=15
+gigrsw=3,t="-.001 u_xx - u_yy = 1"
+gigrsw=0
+#
+#  problem 7
+#
+Fdtol=1.e-4 
+rf=../matrix/mtx007
+f
+smxcg=15
+gigrsw=3,t="-Delta u - 1000 ( (y-1/2) u_x - (x-1/2) u_y ) = 1"
+gigrsw=0
+#
+
+
+
+
+
+
+
+
+
+
+
+

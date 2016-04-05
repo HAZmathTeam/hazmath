@@ -1,0 +1,37 @@
+#Gd=7
+Fdtol=1.e-2,maxfil=130,ncfact=4
+lt=3,n=10
+f
+s
+gigrsw=3,t="stokes 10x10" 
+gigrsw=0,t="stokes 10x10" 
+lt=3,n=20
+f
+s
+gigrsw=3,t="stokes 20x20" 
+gigrsw=0,t="stokes 20x20" 
+lt=3,n=40
+f
+s
+gigrsw=3,t="stokes 40x40" 
+gigrsw=0,t="stokes 40x40" 
+lt=3,n=80
+f
+s
+gigrsw=3,t="stokes 80x80" 
+gigrsw=0,t="stokes 80x80" 
+lt=3,n=160
+f
+s
+gigrsw=3,t="stokes 160x160" 
+gigrsw=0,t="stokes 160x160" 
+
+
+
+
+
+
+
+
+
+

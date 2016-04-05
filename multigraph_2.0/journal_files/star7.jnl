@@ -1,0 +1,115 @@
+Smxcg=50
+Fncfact=8
+lt=2,n=50
+fdtol=1.e-1,maxfil=125000,maxlvl=1
+s
+gigrsw=3,t="maxlvl=1, dtol=1.e-1"
+gigrsw=0,t="maxlvl=1, dtol=1.e-1"
+lt=2,n=50
+fdtol=1.e-1,maxfil=125000,maxlvl=2
+s
+gigrsw=3,t="maxlvl=2, dtol=1.e-1"
+gigrsw=0,t="maxlvl=2, dtol=1.e-1"
+lt=2,n=50
+fdtol=1.e-1,maxfil=125000,maxlvl=3
+s
+gigrsw=3,t="maxlvl=3, dtol=1.e-1"
+gigrsw=0,t="maxlvl=3, dtol=1.e-1"
+lt=2,n=50
+fdtol=1.e-1,maxfil=125000,maxlvl=4
+s
+gigrsw=3,t="maxlvl=4, dtol=1.e-1"
+gigrsw=0,t="maxlvl=4, dtol=1.e-1"
+lt=2,n=50
+fdtol=1.e-1,maxfil=125000,maxlvl=5
+s
+gigrsw=3,t="maxlvl=5, dtol=1.e-1"
+gigrsw=0,t="maxlvl=5, dtol=1.e-1"
+lt=2,n=50
+fdtol=1.e-1,maxfil=125000,maxlvl=6
+s
+gigrsw=3,t="maxlvl=6, dtol=1.e-1"
+gigrsw=0,t="maxlvl=6, dtol=1.e-1"
+lt=2,n=50
+fdtol=1.e-1,maxfil=125000,maxlvl=7
+s
+gigrsw=3,t="maxlvl=7, dtol=1.e-1"
+gigrsw=0,t="maxlvl=7, dtol=1.e-1"
+#
+lt=2,n=50
+fdtol=1.e-2,maxfil=125000,maxlvl=1
+s
+gigrsw=3,t="maxlvl=1, dtol=1.e-2"
+gigrsw=0,t="maxlvl=1, dtol=1.e-2"
+lt=2,n=50
+fdtol=1.e-2,maxfil=125000,maxlvl=2
+s
+gigrsw=3,t="maxlvl=2, dtol=1.e-2"
+gigrsw=0,t="maxlvl=2, dtol=1.e-2"
+lt=2,n=50
+fdtol=1.e-2,maxfil=125000,maxlvl=3
+s
+gigrsw=3,t="maxlvl=3, dtol=1.e-2"
+gigrsw=0,t="maxlvl=3, dtol=1.e-2"
+lt=2,n=50
+fdtol=1.e-2,maxfil=125000,maxlvl=4
+s
+gigrsw=3,t="maxlvl=4, dtol=1.e-2"
+gigrsw=0,t="maxlvl=4, dtol=1.e-2"
+lt=2,n=50
+fdtol=1.e-2,maxfil=125000,maxlvl=5
+s
+gigrsw=3,t="maxlvl=5, dtol=1.e-2"
+gigrsw=0,t="maxlvl=5, dtol=1.e-2"
+lt=2,n=50
+fdtol=1.e-2,maxfil=125000,maxlvl=6
+s
+gigrsw=3,t="maxlvl=6, dtol=1.e-2"
+gigrsw=0,t="maxlvl=6, dtol=1.e-2"
+lt=2,n=50
+fdtol=1.e-2,maxfil=125000,maxlvl=7
+s
+gigrsw=3,t="maxlvl=7, dtol=1.e-2"
+gigrsw=0,t="maxlvl=7, dtol=1.e-2"
+#
+lt=2,n=50
+fdtol=1.e-3,maxfil=125000,maxlvl=1
+s
+gigrsw=3,t="maxlvl=1, dtol=1.e-3"
+gigrsw=0,t="maxlvl=1, dtol=1.e-3"
+lt=2,n=50
+fdtol=1.e-3,maxfil=125000,maxlvl=2
+s
+gigrsw=3,t="maxlvl=2, dtol=1.e-3"
+gigrsw=0,t="maxlvl=2, dtol=1.e-3"
+lt=2,n=50
+fdtol=1.e-3,maxfil=125000,maxlvl=3
+s
+gigrsw=3,t="maxlvl=3, dtol=1.e-3"
+gigrsw=0,t="maxlvl=3, dtol=1.e-3"
+lt=2,n=50
+fdtol=1.e-3,maxfil=125000,maxlvl=4
+s
+gigrsw=3,t="maxlvl=4, dtol=1.e-3"
+gigrsw=0,t="maxlvl=4, dtol=1.e-3"
+lt=2,n=50
+fdtol=1.e-3,maxfil=125000,maxlvl=5
+s
+gigrsw=3,t="maxlvl=5, dtol=1.e-3"
+gigrsw=0,t="maxlvl=5, dtol=1.e-3"
+lt=2,n=50
+fdtol=1.e-3,maxfil=125000,maxlvl=6
+s
+gigrsw=3,t="maxlvl=6, dtol=1.e-3"
+gigrsw=0,t="maxlvl=6, dtol=1.e-3"
+lt=2,n=50
+fdtol=1.e-3,maxfil=125000,maxlvl=7
+s
+gigrsw=3,t="maxlvl=7, dtol=1.e-3"
+gigrsw=0,t="maxlvl=7, dtol=1.e-3"
+#
+lt=2,n=50
+fdtol=0.0e0,maxfil=125000,maxlvl=1
+s
+gigrsw=3,t="maxlvl=1, dtol=0.0e0"
+gigrsw=0,t="maxlvl=1, dtol=0.0e0"

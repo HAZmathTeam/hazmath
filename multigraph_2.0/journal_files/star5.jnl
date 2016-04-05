@@ -1,0 +1,31 @@
+Fdtol=1.e-2,maxfil=10
+lt=0,n=10
+f
+s
+gigrsw=3,t="star5 10x10" 
+gigrsw=0
+lt=0,n=20
+f
+s
+gigrsw=3,t="star5 20x20" 
+gigrsw=0
+lt=0,n=40
+f
+s
+gigrsw=3,t="star5 40x40"
+gigrsw=0
+lt=0,n=80
+f
+s
+gigrsw=3,t="star5 80x80"
+gigrsw=0
+lt=0,n=160
+f
+s
+gigrsw=3,t="star5 160x160"
+gigrsw=0
+lt=0,n=320
+f
+s
+gigrsw=3,t="star5 320x320"
+gigrsw=0

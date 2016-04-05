@@ -1,0 +1,110 @@
+--------------------------------------------------------------------------------
+                                    Manifest
+
+This directory contains the following:
+
+1. README                         this file
+2. COPYRIGHT_NOTICE               the copyright notice file
+3. src (directory)                source code
+5. journal_files (directory)      journal files for use with example problems
+6. matrix (directory)             sample matrix files
+7. guide.pdf                      documentation
+                      
+--------------------------------------------------------------------------------
+                                  Installation
+
+The directory src contains the following files:
+
+ 1. mg0.f                           module that sets precision
+ 2. solver.f                        the solver routines
+ 3. driver.f                        graphics and driver routines
+ 4. mgvio.f                         SG interface
+ 5. xgui.c                          X-Windows interface
+ 6. atest.f                         main driver program
+ 7. xgui_stubs.c, mgvio_stubs.f     (mostly) empty routines 
+ 8. Makefile                        a simple generic makefile
+ 9. Makefile_osx                    an example makefile for OS X  
+
+You can set the precision in the module mthdef in the file mg0.f. This
+module is machine dependent, but should work as provided in most
+environments. Set the integer arithmetic to single or
+double precision as desired; the default is single precision.
+Floating point can be single, double, or quadruple precision
+(if supported); the default is double precision.
+
+If you want to incorporate the solver into your own environment,
+just compile and link the files mg0.f and solver.f with your existing 
+application, and call the appropriate subroutines as described in the 
+documentation.
+
+If you want to use the included test driver, your environment
+must include Fortran90 and C compilers as well as X-Windows 
+and SG. The X-Windows GUI is based on the Motif widget set and X11R6.
+SG (socket graphics) is an OpenGL display tool written by Michael Holst;
+it is available at http://scicomp.ucsd.edu/~mholst/
+
+All calls to X-Windows routines are made by routines in the file xgui.c.
+If X-Windows is unavailable, empty replacement routines in the file
+xgui_stubs.c can be used in place of xgui.c. (e.g. set X11_INTERFACE to
+xgui_stubs in the Makefile). In this case, X-Windows libraries are not 
+needed to resolve external references, but the X-Windows interface is disabled.
+
+Similarly, if SG is not available or not desired, one can use the file
+mgvio_stubs.f in place of mgvio.f. Then the maloc library is not needed 
+to resolve external references, and the SG and bh file graphics interfaces 
+are disabled. 
+
+To make an executable, you must compile mg0.f, solver.f, driver.f, mgvio.f,
+xgui.c, and atest.f, and link the resulting object files with the Xm, 
+Xt, and X11 libraries (X-Windows), and the maloc library (SG). 
+A generic Makefile is provided (along with a sample Makefile for OS X). 
+To use the Makefile, specify paths for the indicated include files and 
+libraries, and set compiler flags as necessary.
+
+--------------------------------------------------------------------------------
+                                  SG Interface
+
+To use the SG (OpenGL) interface in Hb, first start up one or more
+(up to 4) SG display tools. Click on the button marked `socket' and choose
+INET TCP/IP Socket K, where K=0,1,2,3. Be sure each instance of SG is 
+associated with a unique socket number. Choose the corresponding socket
+number for graphics output (Hb parameters  GDEVCE and MDEVCE).
+If SG is running on a different computer from Hb, be sure to set the Hb
+parameter SGHOST to the name of the host machine (default is `localhost').
+
+--------------------------------------------------------------------------------
+                                  Documentation
+
+Complete documentation is provided in the PDF file guide.pdf.
+
+--------------------------------------------------------------------------------
+                                    Thanks
+
+This version of MULTIGRAPH was supported by the National Science Foundation
+through grant DMS-1318480 (University of California at San Diego).
+
+--------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
