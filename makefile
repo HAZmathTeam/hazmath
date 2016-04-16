@@ -56,7 +56,7 @@ endif
 CONFIG_FLAGS+=-DADD_CFLAGS=$(cflags)
 CONFIG_FLAGS+=-DADD_CXXFLAGS=$(cxxflags)
 
-all clean install docs headers:
+all clean headers docs:
 	@if [ ! -f $(build_dir)/Makefile ] ; then \
 		echo "Configuration not found! Please perform configuration first."; \
 		echo "See the following help screen for usage ..."; \
@@ -66,6 +66,15 @@ all clean install docs headers:
 	  	make -C $(build_dir) $@ ; \
 	fi
 
+install:	headers	
+	@if [ ! -f $(build_dir)/Makefile ] ; then \
+		echo "Configuration not found! Please perform configuration first."; \
+		echo "See the following help screen for usage ..."; \
+		echo " "; \
+		cat haz_docs/HELP.txt; \
+	else \
+	  	make -C $(build_dir) install ; \
+	fi
 config: distclean
 	@if [ ! -f ./haz_config/hazmat.mk ] ; then \
 		echo "***ERROR: haz_config/hazmat.mk is missing...." ; \
@@ -76,7 +85,12 @@ config: distclean
 		mkdir -p $(build_dir) ; \
 		cd $(build_dir) && cmake $(CURDIR) $(CONFIG_FLAGS) ; \
 	fi
-
+	@-echo " "
+	@-echo "--------------------------------------------------------"
+	@-echo "If SUCCESS, run 'make install' to install the library."
+	@-echo "--------------------------------------------------------"
+	@-echo " "
+ 
 uninstall:
 	@if [ ! -f $(build_dir)/install_manifest.txt ]; then \
 		echo "Installation manifest not found! Nothing to uninstall."; \

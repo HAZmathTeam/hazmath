@@ -7,6 +7,12 @@
 #TODO:should know to do "make headers" but it does not...
 ############################################################
 cmake_minimum_required (VERSION 2.8)
+
+# Stupidity Prevention
+if (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
+	message(FATAL_ERROR "Source and build directories cannot be the same.")
+endif()
+
 # Helper modules.
 include(CheckFunctionExists)
 include(CheckIncludeFile)
