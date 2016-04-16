@@ -694,6 +694,17 @@ void param_input (const char *filenm,
             inparam->AMG_max_aggregation = ibuff;
             fgets(buffer,500,fp); // skip rest of line
         }
+        
+        else if (strcmp(buffer,"HX_smooth_iter")==0) {
+            val = fscanf(fp,"%s",buffer);
+            if (val!=1 || strcmp(buffer,"=")!=0) {
+                status = ERROR_INPUT_PAR; break;
+            }
+            val = fscanf(fp,"%d",&ibuff);
+            if (val!=1) { status = ERROR_INPUT_PAR; break; }
+            inparam->HX_smooth_iter = ibuff;
+            fgets(buffer,500,fp); // skip rest of line
+        }
 
         else {
             printf("### WARNING: Unknown input keyword %s!\n", buffer);

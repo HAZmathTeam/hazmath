@@ -205,6 +205,9 @@ void param_linear_solver_init (linear_itsolver_param *itsparam)
     itsparam->linear_maxit         = 500;
     itsparam->linear_restart       = 25;
     itsparam->linear_tol           = 1e-6;
+    
+    // HX preconditioner
+    itsparam->HX_smooth_iter       = 3;
 }
 
 void param_ilu_set (ILU_param *iluparam,
@@ -255,6 +258,9 @@ void param_solver_set (linear_itsolver_param *itsparam,
         itsparam->linear_tol   = iniparam->linear_itsolver_tol;
         itsparam->linear_maxit = iniparam->linear_itsolver_maxit;
     }
+    
+    itsparam->HX_smooth_iter = iniparam->HX_smooth_iter;
+    
 }
 
 void param_amg_set (AMG_param *param,
@@ -360,6 +366,8 @@ void param_linear_solver_print (linear_itsolver_param *param)
         printf("Solver tolerance:                  %.2e\n", param->linear_tol);
         printf("Solver stopping type:              %d\n", param->linear_stop_type);
         printf("Solver restart number:             %d\n", param->linear_restart);
+        
+        printf("HX smooth num of iter:             %d\n", param->HX_smooth_iter);
     
         printf("-----------------------------------------------\n\n");
         

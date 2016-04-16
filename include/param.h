@@ -119,6 +119,9 @@ typedef struct {
     //REAL AMG_tentative_smooth;     /**< relaxation factor for smoothing the tentative prolongation */
     //SHORT AMG_smooth_filter;       /**< use filter for smoothing the tentative prolongation or not */
     
+    // HX preconditioner
+    SHORT HX_smooth_iter;            /**< number of smoothing */
+    
 } input_param; /**< Input parameters */
 
 /**
@@ -134,6 +137,9 @@ typedef struct {
     REAL  linear_tol;           /**< convergence tolerance */
     INT   linear_restart;       /**< number of steps for restarting: for GMRES etc */
     SHORT linear_print_level;   /**< print level: 0--10 */
+    
+    // HX preconditioner
+    SHORT HX_smooth_iter;            /**< number of smoothing */
     
 } linear_itsolver_param; /**< Parameters for iterative solvers */
 

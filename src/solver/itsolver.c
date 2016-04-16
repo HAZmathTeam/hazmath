@@ -703,7 +703,7 @@ INT linear_solver_dcsr_krylov_hx_curl (dCSRmat *A,
     hxcurldata.A = A;
     
     hxcurldata.smooth_type = 1;
-    hxcurldata.smooth_iter = 1;
+    hxcurldata.smooth_iter = itparam->HX_smooth_iter;
     
     hxcurldata.P_curl = P_curl;
     hxcurldata.Pt_curl = &Pt_curl;
@@ -1200,7 +1200,7 @@ INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A,
         hxcurldata[1]->A = &A_diag[1];
         
         hxcurldata[1]->smooth_type = 1;
-        hxcurldata[1]->smooth_iter = 1;
+        hxcurldata[1]->smooth_iter = itparam->HX_smooth_iter;
         
         hxcurldata[1]->P_curl = P_curl;
         hxcurldata[1]->Pt_curl = &Pt_curl;
