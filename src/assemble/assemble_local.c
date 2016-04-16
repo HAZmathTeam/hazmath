@@ -321,6 +321,16 @@ void assemble_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
     printf("Trying to implement non-existent elements!\n\n");
     exit(0);
   }
+
+  /* for (test=0; test<FE->dof_per_elm;test++) { */
+  /*   // Loop over Trial Functions (Columns) */
+  /*   for (trial=0; trial<FE->dof_per_elm; trial++) { */
+  /*     fprintf(stdout,"%23.16g ", MLoc[test*FE->dof_per_elm+trial]); */
+  /*   } */
+  /*   //fprintf(stdout,"\n"); */
+  /* } */
+  /* fprintf(stdout,"xxxxx\n"); */
+  
   
   if (phi) free(phi);
   if(dphix) free(dphix);
