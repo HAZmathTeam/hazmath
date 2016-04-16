@@ -2,9 +2,7 @@ TO DO:
 
 Add default grid generator
 Find memory leak in grid/parameter read-ins
-make cmake protocol for external sources that link to HAZMAT
 Fix indexing mismatch between FEM and Solver stuff
 Add more elements
-
-Ludmil
- - clean file structure
+Add Julia interface
+Add in multigraph code

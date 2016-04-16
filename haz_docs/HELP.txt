@@ -1,9 +1,8 @@
 =============================================================
                          HAZMAT		              
 -------------------------------------------------------------
-Quick start: 1. Copy "haz_config/hazmat.mk.example" to
-                "haz_config/hazmat.mk"
-             2. Type "make config ; make headers"
+Quick start: 1. Edit "haz_config/hazmat.mk" as needed.
+             2. Type "make config" ;
                 and then  "make install"
 =============================================================
  make config           # set environment to build
