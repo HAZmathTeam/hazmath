@@ -10,7 +10,13 @@ cmake_minimum_required (VERSION 2.8)
 
 # Stupidity Prevention
 if (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
-	message(FATAL_ERROR "Source and build directories cannot be the same.")
+	message(FATAL_ERROR 
+"------------------------------------------------
+Source and build directories cannot be the same.  
+Please REMOVE CMakeCache.txt and CMakeFiles.
+TYPE 'make help' for more information. 
+-------------------------------------------------"
+)
 endif()
 
 # Helper modules.
