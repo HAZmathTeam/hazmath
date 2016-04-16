@@ -168,7 +168,7 @@ endif(USE_SUITESPARSE)
     include_directories(${HAZMATLIB_BASE_PATH}/include)
 # 
 # Recursively look for CMakeLists.txt in subdirs.
-    add_subdirectory("examples")
+#    add_subdirectory("examples")
 
 ###MISMATCH CHECK:
 if(NOT (CMAKE_CXX_COMPILER_ID STREQUAL CMAKE_C_COMPILER_ID))
