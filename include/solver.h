@@ -317,6 +317,9 @@ typedef struct {
     /*--- solve by direct solver ---*/
     void **LU_diag;       /**< LU decomposition for the diagonal blocks (for UMFpack) */
     
+    /*--- solve by diagonal preconditioner ---*/
+    dvector **diag;
+    
     /*---  solve by AMG ---*/
     AMG_data **mgl;       /**< AMG data for the diagonal blocks */
     AMG_param *amgparam;  /**< parameters for AMG */

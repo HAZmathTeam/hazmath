@@ -641,11 +641,18 @@ void precond_block_diag_maxwell (REAL *r,
     
     // Preconditioning A00 block
     /* use AMG solver */
+    /*
     mgl[0]->b.row=N0; array_cp(N0, r0.val, mgl[0]->b.val); // residual is an input
     mgl[0]->x.row=N0; dvec_set(N0, &mgl[0]->x,0.0);
+     
+     for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[0], amgparam);
+     array_cp(N0, mgl[0]->x.val, z0.val);
+     */
+    memcpy(z0.val,r0.val,N0*sizeof(REAL));
+    for (i=0;i<N0;++i) {
+        if (ABS(precdata->diag[0]->val[i])>SMALLREAL) z0.val[i]/=precdata->diag[0]->val[i];
+    }
     
-    for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[0], amgparam);
-    array_cp(N0, mgl[0]->x.val, z0.val);
     
     // Preconditioning A11 block
     /* use HX preconditioner */
@@ -714,11 +721,17 @@ void precond_block_lower_maxwell (REAL *r,
     
     // Preconditioning A00 block
     /* use AMG solver */
+    /*
     mgl[0]->b.row=N0; array_cp(N0, r0.val, mgl[0]->b.val); // residual is an input
     mgl[0]->x.row=N0; dvec_set(N0, &mgl[0]->x,0.0);
     
     for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[0], amgparam);
     array_cp(N0, mgl[0]->x.val, z0.val);
+     */
+    memcpy(z0.val,r0.val,N0*sizeof(REAL));
+    for (i=0;i<N0;++i) {
+        if (ABS(precdata->diag[0]->val[i])>SMALLREAL) z0.val[i]/=precdata->diag[0]->val[i];
+    }
     
     // r1 = r1 - A3*z0
     dcsr_aAxpy(-1.0, A->blocks[3], z0.val, r1.val);
@@ -811,11 +824,17 @@ void precond_block_upper_maxwell (REAL *r,
     
     // Preconditioning A00 block
     /* use AMG solver */
+    /*
     mgl[0]->b.row=N0; array_cp(N0, r0.val, mgl[0]->b.val); // residual is an input
     mgl[0]->x.row=N0; dvec_set(N0, &mgl[0]->x,0.0);
     
     for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[0], amgparam);
     array_cp(N0, mgl[0]->x.val, z0.val);
+     */
+    memcpy(z0.val,r0.val,N0*sizeof(REAL));
+    for (i=0;i<N0;++i) {
+        if (ABS(precdata->diag[0]->val[i])>SMALLREAL) z0.val[i]/=precdata->diag[0]->val[i];
+    }
     
     // restore r
     array_cp(N, tempr->val, r);
@@ -871,6 +890,7 @@ void precond_block_diag_maxwell_krylov (REAL *r,
     
     // Preconditioning A00 block
     /* use AMG+Krylov solver */
+    /*
     precond_data pcdata_B;
     param_amg_to_prec(&pcdata_B,amgparam);
     pcdata_B.max_levels = mgl[0][0].num_levels;
@@ -880,6 +900,11 @@ void precond_block_diag_maxwell_krylov (REAL *r,
     pc_B.fct = precond_amg;
     
     dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc_B, 1e-2, 100, 100, 1, 1);
+     */
+    precond pc_B; pc_B.data = precdata->diag[0];
+    pc_B.fct = precond_diag;
+    
+    dcsr_pvfgmres(&A_diag[0], &r0, &z0, &pc_B, 1e-2, 100, 100, 1, 1);
     
     // Preconditioning A11 block
     /* use HX preconditioner+Krylov solver */
@@ -953,6 +978,7 @@ void precond_block_lower_maxwell_krylov (REAL *r,
     
     // Preconditioning A00 block
     /* use AMG+Krylov solver */
+    /*
     precond_data pcdata_B;
     param_amg_to_prec(&pcdata_B,amgparam);
     pcdata_B.max_levels = mgl[0][0].num_levels;
@@ -962,6 +988,11 @@ void precond_block_lower_maxwell_krylov (REAL *r,
     pc_B.fct = precond_amg;
     
     dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc_B, 1e-2, 100, 100, 1, 1);
+     */
+    precond pc_B; pc_B.data = precdata->diag[0];
+    pc_B.fct = precond_diag;
+    
+    dcsr_pvfgmres(&A_diag[0], &r0, &z0, &pc_B, 1e-2, 100, 100, 1, 1);
     
     // r1 = r1 - A3*z0
     dcsr_aAxpy(-1.0, A->blocks[3], z0.val, r1.val);
@@ -1066,6 +1097,7 @@ void precond_block_upper_maxwell_krylov (REAL *r,
     
     // Preconditioning A00 block
     /* use AMG+Krylov solver */
+    /*
     precond_data pcdata_B;
     param_amg_to_prec(&pcdata_B,amgparam);
     pcdata_B.max_levels = mgl[0][0].num_levels;
@@ -1075,6 +1107,12 @@ void precond_block_upper_maxwell_krylov (REAL *r,
      pc_B.fct = precond_amg;
     
     dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc_B, 1e-2, 100, 100, 1, 1);
+     */
+    
+    precond pc_B; pc_B.data = precdata->diag[0];
+    pc_B.fct = precond_diag;
+    
+    dcsr_pvfgmres(&A_diag[0], &r0, &z0, &pc_B, 1e-2, 100, 100, 1, 1);
         
     // restore r
     array_cp(N, tempr->val, r);
@@ -1145,11 +1183,17 @@ void precond_block_lower_diag_maxwell (REAL *r,
     
     // Preconditioning A00 block
     /* use AMG solver */
+    /*
     mgl[0]->b.row=N0; array_cp(N0, r0.val, mgl[0]->b.val); // residual is an input
     mgl[0]->x.row=N0; dvec_set(N0, &mgl[0]->x,0.0);
     
     for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[0], amgparam);
     array_cp(N0, mgl[0]->x.val, z0.val);
+     */
+    memcpy(z0.val,r0.val,N0*sizeof(REAL));
+    for (i=0;i<N0;++i) {
+        if (ABS(precdata->diag[0]->val[i])>SMALLREAL) z0.val[i]/=precdata->diag[0]->val[i];
+    }
     
     // Preconditioning A11 block
     /* use HX preconditioner */
@@ -1224,11 +1268,18 @@ void precond_block_diag_upper_maxwell (REAL *r,
     
     // Preconditioning A00 block
     /* use AMG solver */
+    /*
     mgl[0]->b.row=N0; array_cp(N0, r0.val, mgl[0]->b.val); // residual is an input
     mgl[0]->x.row=N0; dvec_set(N0, &mgl[0]->x,0.0);
     
     for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[0], amgparam);
     array_cp(N0, mgl[0]->x.val, z0.val);
+     */
+    
+    memcpy(z0.val,r0.val,N0*sizeof(REAL));
+    for (i=0;i<N0;++i) {
+        if (ABS(precdata->diag[0]->val[i])>SMALLREAL) z0.val[i]/=precdata->diag[0]->val[i];
+    }
     
     // Preconditioning A11 block
     /* use HX preconditioner */
@@ -1319,11 +1370,18 @@ void precond_block_lower_diag_upper_maxwell (REAL *r,
     
     // Preconditioning A00 block
     /* use AMG solver */
+    /*
     mgl[0]->b.row=N0; array_cp(N0, r0.val, mgl[0]->b.val); // residual is an input
     mgl[0]->x.row=N0; dvec_set(N0, &mgl[0]->x,0.0);
     
     for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[0], amgparam);
     array_cp(N0, mgl[0]->x.val, z0.val);
+     */
+    
+    memcpy(z0.val,r0.val,N0*sizeof(REAL));
+    for (i=0;i<N0;++i) {
+        if (ABS(precdata->diag[0]->val[i])>SMALLREAL) z0.val[i]/=precdata->diag[0]->val[i];
+    }
     
     // Preconditioning A11 block
     /* use HX preconditioner */
@@ -1438,6 +1496,7 @@ void precond_block_lower_diag_maxwell_krylov (REAL *r,
     /* use AMG+Krylov solver */
     //printf("solve B\n");
     
+    /*
     precond_data pcdata_B;
     param_amg_to_prec(&pcdata_B,amgparam);
     pcdata_B.max_levels = mgl[0][0].num_levels;
@@ -1445,8 +1504,12 @@ void precond_block_lower_diag_maxwell_krylov (REAL *r,
     
     precond pc_B; pc_B.data = &pcdata_B;
     pc_B.fct = precond_amg;
+     */
     
-    dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc_B, 1e-2, 100, 100, 1, 1);
+    precond pc_B; pc_B.data = precdata->diag[0];
+    pc_B.fct = precond_diag;
+    
+    dcsr_pvfgmres(&A_diag[0], &r0, &z0, &pc_B, 1e-2, 100, 100, 1, 1);
     
     // restore r
     array_cp(N, tempr->val, r);
@@ -1509,8 +1572,6 @@ void precond_block_diag_upper_maxwell_krylov (REAL *r,
     
     // Preconditioning A22 block
     /* use AMG+Krylov solver */
-    printf("solve p\n");
-    
     precond_data pcdata_p;
     param_amg_to_prec(&pcdata_p,amgparam);
     pcdata_p.max_levels = mgl[2][0].num_levels;
@@ -1524,8 +1585,6 @@ void precond_block_diag_upper_maxwell_krylov (REAL *r,
     
     // Preconditioning A11 block
     /* use HX preconditioner+Krylov solver */
-    printf("solve E\n");
-
     precond pc_E; pc_E.data = hxcurldata[1];
     pc_E.fct = precond_hx_curl_multiplicative;
     dcsr_pvfgmres(&A_diag[1], &r1, &z1, &pc_E, 1e-2, 100, 100, 1, 1);
@@ -1533,8 +1592,7 @@ void precond_block_diag_upper_maxwell_krylov (REAL *r,
     
     // Preconditioning A00 block
     /* use AMG+Krylov solver */
-    printf("solve B\n");
-    
+    /*
     precond_data pcdata_B;
     param_amg_to_prec(&pcdata_B,amgparam);
     pcdata_B.max_levels = mgl[0][0].num_levels;
@@ -1542,8 +1600,15 @@ void precond_block_diag_upper_maxwell_krylov (REAL *r,
     
     precond pc_B; pc_B.data = &pcdata_B;
     pc_B.fct = precond_amg;
+     
+     dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc_B, 1e-2, 100, 100, 1, 1);
+     */
     
-    dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc_B, 1e-2, 100, 100, 1, 1);
+    precond pc_B; pc_B.data = precdata->diag[0];
+    pc_B.fct = precond_diag;
+    
+    dcsr_pvfgmres(&A_diag[0], &r0, &z0, &pc_B, 1e-2, 100, 100, 1, 1);
+
     
     // upper blocks
     
@@ -1640,6 +1705,7 @@ void precond_block_lower_diag_upper_maxwell_krylov (REAL *r,
     
     // Preconditioning A00 block
     /* use AMG+Krylov solver */
+    /*
     precond_data pcdata_B;
     param_amg_to_prec(&pcdata_B,amgparam);
     pcdata_B.max_levels = mgl[0][0].num_levels;
@@ -1649,6 +1715,12 @@ void precond_block_lower_diag_upper_maxwell_krylov (REAL *r,
     pc_B.fct = precond_amg;
     
     dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc_B, 1e-2, 100, 100, 1, 1);
+     */
+    
+    precond pc_B; pc_B.data = precdata->diag[0];
+    pc_B.fct = precond_diag;
+    
+    dcsr_pvfgmres(&A_diag[0], &r0, &z0, &pc_B, 1e-2, 100, 100, 1, 1);
     
     // upper blocks
     

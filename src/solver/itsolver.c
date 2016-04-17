@@ -402,6 +402,8 @@ INT linear_solver_dcsr_krylov_diag (dCSRmat *A,
     // setup preconditioner
     dvector diag; dcsr_getdiag(0,A,&diag);
     
+    //dvec_write("diag.dat", &diag);
+    
     precond pc;
     pc.data = &diag;
     pc.fct  = precond_diag;
@@ -1052,6 +1054,7 @@ INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A,
     INT m, n, nnz, i;
     
     void **LU_diag = (void **)calloc(3, sizeof(void *));
+    dvector **diag = (dvector **)calloc(3, sizeof(dvector *));
     AMG_data **mgl = (AMG_data **)calloc(3, sizeof(AMG_data *));
     HX_curl_data **hxcurldata = (HX_curl_data **)calloc(3, sizeof(HX_curl_data *));
     
@@ -1094,6 +1097,7 @@ INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A,
     else {
         
         // AMG for A_BB
+        /*
         mgl[0] = amg_data_create(max_levels);
         m = A_diag[0].row; n = A_diag[0].col; nnz = A_diag[0].nnz;
         mgl[0][0].A=dcsr_create(m,n,nnz); dcsr_cp(&A_diag[0],&mgl[0][0].A);
@@ -1107,6 +1111,11 @@ INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A,
         }
      
         if (status < 0) goto FINISHED;
+         */
+        
+        // diagonal precondition for A_BB
+        diag[0] = (dvector *)calloc(1, sizeof(dvector));
+        dcsr_getdiag(0, &A_diag[0], diag[0]);
         
     }
     
@@ -1271,6 +1280,7 @@ INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A,
     precdata.Kt = Ktb;
     
     precdata.LU_diag = LU_diag;
+    precdata.diag = diag;
     precdata.amgparam = amgparam;
     precdata.mgl = mgl;
     precdata.hxcurldata = hxcurldata;
@@ -1376,12 +1386,14 @@ FINISHED:
         
     }
     else {
-        amg_data_free(mgl[0], amgparam);
+        dvec_free(diag[0]);
+        //amg_data_free(mgl[0], amgparam);
         HX_curl_data_free(hxcurldata[1], FALSE);
         amg_data_free(mgl[2], amgparam);
     }
     
     if (LU_diag) free(LU_diag);
+    if (diag) free(diag);
     if (mgl) free(mgl);
     if (hxcurldata) free(hxcurldata);
     
