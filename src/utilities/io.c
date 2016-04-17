@@ -198,19 +198,20 @@ void rvecd_(FILE *fp,  REAL *vec, INT *nn)
 
 /****************************************************************************************/
 FILE* HAZ_fopen( char *fname, char *mode )
- {
- /* ..............................................................
-      . A graceful version of fopen(). It checks if the file has .
-      . been successfully opened.  If  that is  not  the case  a .
-      . message is printed and the program is exited.            .
-      .............................................................. */
+{
+  /* ..............................................................
+     . A graceful version of fopen(). It checks if the file has .
+     . been successfully opened.  If  that is  not  the case  a .
+     . message is printed and the program is exited.            .
+     .............................................................. */
 
- FILE   *fp;
+  FILE   *fp;
 
- fp = fopen(fname,mode);
- if ( fp == NULL ) {
+  fp = fopen(fname,mode);
+  if ( fp == NULL ) {
     fprintf(stderr,"Cannot open %s  -Exiting\n",fname);
     exit(255);
- }
- return fp;
+  }
+  return fp;
+}
 /****************************************************************************************/

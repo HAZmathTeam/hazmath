@@ -81,11 +81,11 @@
 /****************************************************************************************************************************/
 /* Compute Standard Lagrange Finite Element Basis Functions (PX) at a particular point in 2 or 3D*/
 /* For now, we only assume Linears or Quadratic Elements (P1 or P2) */
-void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL x,REAL y,REAL z,INT *dof,INT porder,trimesh *mesh) 
+void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL *x,INT *dof,INT porder,trimesh *mesh) 
 {
   /*
    *    INPUT:
-   *          x,y,z               Coordinates on physical triangle where to compute basis
+   *          x                   Coordinates on physical triangle where to compute basis
    *          mesh                Mesh Data
    *	      dof                 DOF for the given element (in this case vertices and their global numbering)
    *          porder              Order of elements (1 or 2 for now)
@@ -124,12 +124,12 @@ void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL x,REAL y,REAL z,INT 
     // Get coordinates on reference triangle
     REAL det = (xp[1]-xp[0])*(yp[2]-yp[0]) - (xp[2]-xp[0])*(yp[1]-yp[0]);
 	
-    REAL r = ((yp[2]-yp[0])*(x-xp[0]) + (xp[0]-xp[2])*(y-yp[0]))/det;
+    REAL r = ((yp[2]-yp[0])*(x[0]-xp[0]) + (xp[0]-xp[2])*(x[1]-yp[0]))/det;
 	
     REAL drdx = (yp[2]-yp[0])/det;
     REAL drdy = (xp[0]-xp[2])/det;
 	
-    REAL s = ((yp[0]-yp[1])*(x-xp[0]) + (xp[1]-xp[0])*(y-yp[0]))/det;
+    REAL s = ((yp[0]-yp[1])*(x[0]-xp[0]) + (xp[1]-xp[0])*(x[1]-yp[0]))/det;
 	
     REAL dsdx = (yp[0]-yp[1])/det;
     REAL dsdy = (xp[1]-xp[0])/det;
@@ -208,25 +208,25 @@ void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL x,REAL y,REAL z,INT 
       - (xp[2]-xp[0])*((yp[1]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(zp[1]-zp[0])) \
       + (xp[1]-xp[0])*((yp[2]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(zp[2]-zp[0]));
 	
-    REAL r = ((xp[3]-xp[0])*((y-yp[0])*(zp[2]-zp[0])-(yp[2]-yp[0])*(z-zp[0])) \
-	      - (xp[2]-xp[0])*((y-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(z-zp[0])) \
-	      + (x-xp[0])*((yp[2]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(zp[2]-zp[0])))/det;
+    REAL r = ((xp[3]-xp[0])*((x[1]-yp[0])*(zp[2]-zp[0])-(yp[2]-yp[0])*(x[2]-zp[0])) \
+	      - (xp[2]-xp[0])*((x[1]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(x[2]-zp[0])) \
+	      + (x[0]-xp[0])*((yp[2]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(zp[2]-zp[0])))/det;
 	
     REAL drdx = ((yp[2]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(zp[2]-zp[0]))/det;
     REAL drdy = ((xp[3]-xp[0])*(zp[2]-zp[0]) - (xp[2]-xp[0])*(zp[3]-zp[0]))/det;
     REAL drdz = ((xp[2]-xp[0])*(yp[3]-yp[0]) - (xp[3]-xp[0])*(yp[2]-yp[0]))/det;
 	
-    REAL s = ((xp[3]-xp[0])*((yp[1]-yp[0])*(z-zp[0])-(y-yp[0])*(zp[1]-zp[0])) \
-	      - (x-xp[0])*((yp[1]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(zp[1]-zp[0])) \
-	      + (xp[1]-xp[0])*((y-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(z-zp[0])))/det;
+    REAL s = ((xp[3]-xp[0])*((yp[1]-yp[0])*(x[2]-zp[0])-(x[1]-yp[0])*(zp[1]-zp[0])) \
+	      - (x[0]-xp[0])*((yp[1]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(zp[1]-zp[0])) \
+	      + (xp[1]-xp[0])*((x[1]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(x[2]-zp[0])))/det;
 	
     REAL dsdx = -((yp[1]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(zp[1]-zp[0]))/det;
     REAL dsdy = ((xp[1]-xp[0])*(zp[3]-zp[0]) - (xp[3]-xp[0])*(zp[1]-zp[0]))/det;
     REAL dsdz = ((xp[3]-xp[0])*(yp[1]-yp[0]) - (xp[1]-xp[0])*(yp[3]-yp[0]))/det;
 	
-    REAL t = ((x-xp[0])*((yp[1]-yp[0])*(zp[2]-zp[0])-(yp[2]-yp[0])*(zp[1]-zp[0])) \
-	      - (xp[2]-xp[0])*((yp[1]-yp[0])*(z-zp[0])-(y-yp[0])*(zp[1]-zp[0])) \
-	      + (xp[1]-xp[0])*((yp[2]-yp[0])*(z-zp[0])-(y-yp[0])*(zp[2]-zp[0])))/det;
+    REAL t = ((x[0]-xp[0])*((yp[1]-yp[0])*(zp[2]-zp[0])-(yp[2]-yp[0])*(zp[1]-zp[0])) \
+	      - (xp[2]-xp[0])*((yp[1]-yp[0])*(x[2]-zp[0])-(x[1]-yp[0])*(zp[1]-zp[0])) \
+	      + (xp[1]-xp[0])*((yp[2]-yp[0])*(x[2]-zp[0])-(x[1]-yp[0])*(zp[2]-zp[0])))/det;
 	
     REAL dtdx = ((yp[1]-yp[0])*(zp[2]-zp[0])-(yp[2]-yp[0])*(zp[1]-zp[0]))/det;
     REAL dtdy = ((xp[2]-xp[0])*(zp[1]-zp[0]) - (xp[1]-xp[0])*(zp[2]-zp[0]))/det;
@@ -493,11 +493,11 @@ void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dp
 
 /****************************************************************************************************************************/
 /* Compute Nedelec Finite Element Basis Functions (zeroth order) at a particular point in 2 or 3D*/
-void ned_basis(REAL *phi,REAL *cphi,REAL x,REAL y,REAL z,INT *v_on_elm,INT *dof,trimesh *mesh)
+void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
 {
   /* Compute the Nedelec Elements
    *    INPUT:
-   *          x,y,z                  Coordinates on physical triangle where to compute basis
+   *          x                      Coordinates on physical triangle where to compute basis
    *          mesh                   Mesh Data
    *          v_on_elm               Vertices on the given element
    *	      dof                    DOF for the given element (in this case edges and their global numbering)
@@ -524,7 +524,7 @@ void ned_basis(REAL *phi,REAL *cphi,REAL x,REAL y,REAL z,INT *v_on_elm,INT *dof,
   dpx = (REAL *) calloc(v_per_elm,sizeof(REAL));
   dpy = (REAL *) calloc(v_per_elm,sizeof(REAL));
   if(dim==3) dpz = (REAL *) calloc(v_per_elm,sizeof(REAL));
-  PX_H1_basis(p,dpx,dpy,dpz,x,y,z,v_on_elm,1,mesh);	
+  PX_H1_basis(p,dpx,dpy,dpz,x,v_on_elm,1,mesh);	
 	
   REAL elen;	
 	
@@ -592,11 +592,11 @@ void ned_basis(REAL *phi,REAL *cphi,REAL x,REAL y,REAL z,INT *v_on_elm,INT *dof,
 /****************************************************************************************************************************/
 
 /****************************************************************************************************************************/
-void rt_basis(REAL *phi,REAL *dphi,REAL x,REAL y,REAL z,INT *v_on_elm,INT *dof,trimesh *mesh)
+void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
 {
 /* Compute the Raviart Thomas Elements
    *    INPUT:
-   *          x,y,z               Coordinates on physical triangle where to compute basis
+   *          x                   Coordinates on physical triangle where to compute basis
    *          mesh                Mesh Data
    *          v_on_elm            Vertices on the given element
    *	      dof                 DOF for the given element (in this case faces and their global numbering)
@@ -625,7 +625,7 @@ void rt_basis(REAL *phi,REAL *dphi,REAL x,REAL y,REAL z,INT *v_on_elm,INT *dof,t
   dpx = (REAL *) calloc(v_per_elm,sizeof(REAL));
   dpy = (REAL *) calloc(v_per_elm,sizeof(REAL));
   if(dim==3) dpz = (REAL *) calloc(v_per_elm,sizeof(REAL));
-  PX_H1_basis(p,dpx,dpy,dpz,x,y,z,v_on_elm,1,mesh);
+  PX_H1_basis(p,dpx,dpy,dpz,x,v_on_elm,1,mesh);
 	
   // Go through each face and find the corresponding nodes
   if(dim==2) {
@@ -721,11 +721,11 @@ void rt_basis(REAL *phi,REAL *dphi,REAL x,REAL y,REAL z,INT *v_on_elm,INT *dof,t
 /****************************************************************************************************************************/
 
 /****************************************************************************************************************************/
-void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL x,REAL y,REAL z,INT *v_on_elm,INT *dof,trimesh *mesh)
+void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
 {
 /* Compute the Brezzi-Douglas-Marini (BDM) Elements of order 1 for now (only 2D for now).
    *    INPUT:
-   *          x,y,z                 Coordinates on physical triangle where to compute basis
+   *          x                     Coordinates on physical triangle where to compute basis
    *          mesh                  Mesh Data
    *          v_on_elm              Vertices on the given element
    *	      dof                   DOF for the given element (in this case faces and their global numbering)
@@ -755,7 +755,7 @@ void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL x,REAL y,REAL z,INT *v_on
   dpx = (REAL *) calloc(v_per_elm,sizeof(REAL));
   dpy = (REAL *) calloc(v_per_elm,sizeof(REAL));
   if(dim==3) dpz = (REAL *) calloc(v_per_elm,sizeof(REAL));
-  PX_H1_basis(p,dpx,dpy,dpz,x,y,z,v_on_elm,1,mesh);
+  PX_H1_basis(p,dpx,dpy,dpz,x,v_on_elm,1,mesh);
 	
   // Go through each face and find the corresponding nodes
   if(dim==2) {

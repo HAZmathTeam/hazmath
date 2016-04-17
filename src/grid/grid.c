@@ -1070,6 +1070,7 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,trimesh *mesh
   if(dim==3) {
     zf = calloc(dim,sizeof(REAL));
   }
+  REAL* myx = (REAL *) calloc(dim,sizeof(REAL));
 
   // Face Element Stuff  
   INT notbdry=-666;
@@ -1084,7 +1085,7 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,trimesh *mesh
   REAL* dpy = (REAL *) calloc(el_order,sizeof(REAL));
   REAL* dpz=NULL;
   if(dim==3) { dpz = (REAL *) calloc(el_order,sizeof(REAL)); }
-  REAL grad_mag,x,y,z,e1x,e1y,e1z,e2x,e2y,e2z;
+  REAL grad_mag,e1x,e1y,e1z,e2x,e2y,e2z;
   
   /* Get Face to Element Map */
   /* Get Transpose of f_el -> el_f */    
@@ -1135,11 +1136,10 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,trimesh *mesh
       myel_n[jcnt] = el_v->JA[j];
       jcnt++;
     }
-    x = cv->x[myel_n[myopn]-1];
-    y = cv->y[myel_n[myopn]-1];
-    z = -666.66;
+    myx[0] = cv->x[myel_n[myopn]-1];
+    myx[1] = cv->y[myel_n[myopn]-1];
     if(dim==3) {
-      z = cv->z[myel_n[myopn]-1];
+      myx[2] = cv->z[myel_n[myopn]-1];
     }
 
     /* Compute Area (length if 2D) and get midpt of face */
@@ -1164,7 +1164,7 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,trimesh *mesh
       
     //Compute Normal Vectors based on opposite node
     //Get Linear Basis Functions for particular element
-    PX_H1_basis(p,dpx,dpy,dpz,x,y,z,myel_n,1,mesh);
+    PX_H1_basis(p,dpx,dpy,dpz,myx,myel_n,1,mesh);
     grad_mag = dpx[myopn]*dpx[myopn]+dpy[myopn]*dpy[myopn];
     if(dim==3) {
       grad_mag = grad_mag + dpz[myopn]*dpz[myopn];
@@ -1181,6 +1181,7 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,trimesh *mesh
   if(ipf) free(ipf);
   if(xf) free(xf);
   if(yf) free(yf);
+  if(myx) free(myx);
   if(p) free(p);
   if(dpx) free(dpx);
   if(dpy) free(dpy);

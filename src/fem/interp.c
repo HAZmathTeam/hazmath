@@ -13,13 +13,13 @@
 /****************************************************************************************************************************/
 
 /****************************************************************************************************************************/
-void FE_Interpolation(REAL* val,REAL *u,REAL x,REAL y,REAL z,INT *dof_on_elm,INT *v_on_elm,fespace *FE,trimesh *mesh,INT ndof,INT nun)
+void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,trimesh *mesh,INT ndof,INT nun)
 {
 
 /* Interpolate a finite-element approximation to any other point in the given element using the given type of elements 
    *    INPUT:
    *		       u       Approximation to interpolate
-   *               x,y,z       Coordinates where to compute value
+   *                   x       Coordinates where to compute value
    *          dof_on_elm       DOF belonging to particular element
    *          v_on_elm         Vertices belonging to particular element
    *                  FE       FE Space struct
@@ -50,7 +50,7 @@ void FE_Interpolation(REAL* val,REAL *u,REAL x,REAL y,REAL z,INT *dof_on_elm,INT
     dphix = (REAL *) calloc(dof_per_elm,sizeof(REAL));
     dphiy = (REAL *) calloc(dof_per_elm,sizeof(REAL));
     if(dim==3) dphiz = (REAL *) calloc(dof_per_elm,sizeof(REAL));
-    PX_H1_basis(phi,dphix,dphiy,dphiz,x,y,z,dof_on_elm,FEtype,mesh);
+    PX_H1_basis(phi,dphix,dphiy,dphiz,x,dof_on_elm,FEtype,mesh);
     REAL coef;
 
     for (i=0; i<nun; i++) {
@@ -74,7 +74,7 @@ void FE_Interpolation(REAL* val,REAL *u,REAL x,REAL y,REAL z,INT *dof_on_elm,INT
       baddimension();
     }
     
-    ned_basis(phi,dphix,x,y,z,v_on_elm,dof_on_elm,mesh);
+    ned_basis(phi,dphix,x,v_on_elm,dof_on_elm,mesh);
     	
     coef1 = 0.0;
     coef2 = 0.0;
@@ -105,7 +105,7 @@ void FE_Interpolation(REAL* val,REAL *u,REAL x,REAL y,REAL z,INT *dof_on_elm,INT
     phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
     dphix = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Divergence of element
     
-    rt_basis(phi,dphix,x,y,z,v_on_elm,dof_on_elm,mesh);
+    rt_basis(phi,dphix,x,v_on_elm,dof_on_elm,mesh);
     	
     coef1 = 0.0;
     coef2 = 0.0;
@@ -141,7 +141,7 @@ void FE_Interpolation(REAL* val,REAL *u,REAL x,REAL y,REAL z,INT *dof_on_elm,INT
 /****************************************************************************************************************************/
 
 /****************************************************************************************************************************/
-void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL x,REAL y,REAL z,INT *dof_on_elm,INT *v_on_elm,fespace *FE,trimesh *mesh,INT ndof,INT nun)
+void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,trimesh *mesh,INT ndof,INT nun)
 {
 
 /* Interpolate the "derivative" of a finite-element approximation to any other point in the given element using the given type of elements 
@@ -180,7 +180,7 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL x,REAL y,REAL z,INT *dof_
     dphix = (REAL *) calloc(dof_per_elm,sizeof(REAL));
     dphiy = (REAL *) calloc(dof_per_elm,sizeof(REAL));
     if(dim==3) dphiz = (REAL *) calloc(dof_per_elm,sizeof(REAL));
-    PX_H1_basis(phi,dphix,dphiy,dphiz,x,y,z,dof_on_elm,FEtype,mesh);
+    PX_H1_basis(phi,dphix,dphiy,dphiz,x,dof_on_elm,FEtype,mesh);
     coef = (REAL *) calloc(dim,sizeof(REAL));
 
     for (i=0; i<nun; i++) {
@@ -206,7 +206,7 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL x,REAL y,REAL z,INT *dof_
     } else {
       baddimension();
     }
-    ned_basis(phi,dphix,x,y,z,v_on_elm,dof_on_elm,mesh);
+    ned_basis(phi,dphix,x,v_on_elm,dof_on_elm,mesh);
     	
     coef = (REAL *) calloc(dim,sizeof(REAL));
     for(j=0;j<dim;j++) coef[0] = 0.0;
@@ -233,7 +233,7 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL x,REAL y,REAL z,INT *dof_
     phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
     dphix = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Divergence of element
     
-    rt_basis(phi,dphix,x,y,z,v_on_elm,dof_on_elm,mesh);
+    rt_basis(phi,dphix,x,v_on_elm,dof_on_elm,mesh);
     	
     coef = (REAL *) calloc(1,sizeof(REAL));
     coef[0] = 0.0;

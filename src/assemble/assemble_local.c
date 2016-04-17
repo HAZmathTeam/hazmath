@@ -78,7 +78,7 @@ void assemble_DuDv_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
       }
       
       //  Get the Basis Functions at each quadrature node
-      PX_H1_basis(phi,dphix,dphiy,dphiz,qx[0],qx[1],qx[2],dof_on_elm,FE->FEtype,mesh);
+      PX_H1_basis(phi,dphix,dphiy,dphiz,qx,dof_on_elm,FE->FEtype,mesh);
 
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
@@ -113,7 +113,7 @@ void assemble_DuDv_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
       }
 
       //  Get the Basis Functions at each quadrature node
-      ned_basis(phi,dphix,qx[0],qx[1],qx[2],v_on_elm,dof_on_elm,mesh);
+      ned_basis(phi,dphix,qx,v_on_elm,dof_on_elm,mesh);
 
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
@@ -147,7 +147,7 @@ void assemble_DuDv_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
       }
 
       //  Get the Basis Functions at each quadrature node
-      rt_basis(phi,dphix,qx[0],qx[1],qx[2],v_on_elm,dof_on_elm,mesh);
+      rt_basis(phi,dphix,qx,v_on_elm,dof_on_elm,mesh);
 
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
@@ -242,7 +242,7 @@ void assemble_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
       }
       
       //  Get the Basis Functions at each quadrature node
-      PX_H1_basis(phi,dphix,dphiy,dphiz,qx[0],qx[1],qx[2],dof_on_elm,FE->FEtype,mesh);
+      PX_H1_basis(phi,dphix,dphiy,dphiz,qx,dof_on_elm,FE->FEtype,mesh);
 
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
@@ -276,7 +276,7 @@ void assemble_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
       }
 
       //  Get the Basis Functions at each quadrature node
-      ned_basis(phi,dphix,qx[0],qx[1],qx[2],v_on_elm,dof_on_elm,mesh);
+      ned_basis(phi,dphix,qx,v_on_elm,dof_on_elm,mesh);
 
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
@@ -305,7 +305,7 @@ void assemble_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
       }
 
       //  Get the Basis Functions at each quadrature node
-      rt_basis(phi,dphix,qx[0],qx[1],qx[2],v_on_elm,dof_on_elm,mesh);
+      rt_basis(phi,dphix,qx,v_on_elm,dof_on_elm,mesh);
 
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
@@ -398,7 +398,7 @@ void FEM_RHS_Local(REAL* bLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *do
       (*rhs)(rhs_val,qx,time);
     
       //  Get the Basis Functions at each quadrature node
-      PX_H1_basis(phi,dphix,dphiy,dphiz,qx[0],qx[1],qx[2],dof_on_elm,FE->FEtype,mesh);
+      PX_H1_basis(phi,dphix,dphiy,dphiz,qx,dof_on_elm,FE->FEtype,mesh);
 
       // Loop over test functions and integrate rhs
       for (test=0; test<FE->dof_per_elm;test++) {
@@ -425,7 +425,7 @@ void FEM_RHS_Local(REAL* bLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *do
       (*rhs)(rhs_val,qx,time);
 
       //  Get the Basis Functions at each quadrature node
-      ned_basis(phi,dphix,qx[0],qx[1],qx[2],v_on_elm,dof_on_elm,mesh);
+      ned_basis(phi,dphix,qx,v_on_elm,dof_on_elm,mesh);
 
       // Loop over test functions and integrate rhs
       for (test=0; test<FE->dof_per_elm;test++) {
@@ -447,7 +447,7 @@ void FEM_RHS_Local(REAL* bLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *do
       (*rhs)(rhs_val,qx,time);
 
       //  Get the Basis Functions at each quadrature node
-      rt_basis(phi,dphix,qx[0],qx[1],qx[2],v_on_elm,dof_on_elm,mesh);
+      rt_basis(phi,dphix,qx,v_on_elm,dof_on_elm,mesh);
 
       // Loop over test functions and integrate rhs
       for (test=0; test<FE->dof_per_elm;test++) {
@@ -540,7 +540,7 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinat
       }
       
       //  Get the Basis Functions at each quadrature node
-      PX_H1_basis(phi,dphix,dphiy,dphiz,qx[0],qx[1],qx[2],dof_on_elm,FE->FEtype,mesh);
+      PX_H1_basis(phi,dphix,dphiy,dphiz,qx,dof_on_elm,FE->FEtype,mesh);
 
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
@@ -576,7 +576,7 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinat
       }
 
       //  Get the Basis Functions at each quadrature node
-      ned_basis(phi,dphix,qx[0],qx[1],qx[2],v_on_elm,dof_on_elm,mesh);
+      ned_basis(phi,dphix,qx,v_on_elm,dof_on_elm,mesh);
 
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
@@ -612,7 +612,7 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinat
       }
 
       //  Get the Basis Functions at each quadrature node
-      rt_basis(phi,dphix,qx[0],qx[1],qx[2],v_on_elm,dof_on_elm,mesh);
+      rt_basis(phi,dphix,qx,v_on_elm,dof_on_elm,mesh);
 
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
@@ -711,7 +711,7 @@ void impedancebdry_local(REAL* ZLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
       }
 
     //  Get the Basis Functions at each quadrature node
-    ned_basis(phi,cphi,qx[0],qx[1],qx[2],v_on_elm,ed_on_elm,mesh);
+    ned_basis(phi,cphi,qx,v_on_elm,ed_on_elm,mesh);
 
     // Loop over Test Functions (Rows - edges)
     for (test=0; test<nq;test++) {
@@ -798,10 +798,10 @@ void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,trimesh *mes
     w = cq->w[elm*cq->nq_per_elm+quad];
     
     // Get FEM function at quadrature nodes
-    FE_Interpolation(ucoeff,u->val,qx[0],qx[1],qx[2],ed_on_elm,v_on_elm,FE_Ned,mesh,mesh->nedge,1);
+    FE_Interpolation(ucoeff,u->val,qx,ed_on_elm,v_on_elm,FE_Ned,mesh,mesh->nedge,1);
     
     //  Get the Basis Functions at each quadrature node
-    PX_H1_basis(phi,dphix,dphiy,dphiz,qx[0],qx[1],qx[2],v_on_elm,FE_H1->FEtype,mesh);
+    PX_H1_basis(phi,dphix,dphiy,dphiz,qx,v_on_elm,FE_H1->FEtype,mesh);
 
     // Loop over test functions and integrate rhs
     for (test=0; test<FE_H1->dof_per_elm;test++) {
