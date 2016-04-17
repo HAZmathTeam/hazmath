@@ -4,6 +4,7 @@
  *  Created by James Adler and Xiaozhe Hu on 3/6/15.
  *  Copyright 2015__HAZMAT__. All rights reserved.
  *
+ *  Routines for reading and writing to file or screen.
  */
 
 #include "hazmat.h"
@@ -193,4 +194,23 @@ void rvecd_(FILE *fp,  REAL *vec, INT *nn)
   //fprintf(stdout,"Read %d REALS", n);
   return;
 }
+/****************************************************************************************/
+
+/****************************************************************************************/
+FILE* HAZ_fopen( char *fname, char *mode )
+ {
+ /* ..............................................................
+      . A graceful version of fopen(). It checks if the file has .
+      . been successfully opened.  If  that is  not  the case  a .
+      . message is printed and the program is exited.            .
+      .............................................................. */
+
+ FILE   *fp;
+
+ fp = fopen(fname,mode);
+ if ( fp == NULL ) {
+    fprintf(stderr,"Cannot open %s  -Exiting\n",fname);
+    exit(255);
+ }
+ return fp;
 /****************************************************************************************/
