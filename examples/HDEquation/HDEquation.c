@@ -244,7 +244,8 @@ int main (int argc, char* argv[])
   trimesh mesh;
   printf(" --> loading grid from file: %s\n",inparam.gridfile);
   initialize_mesh(&mesh);
-  creategrid(gfid,dim,0,&mesh);
+  //creategrid(gfid,dim,0,&mesh);
+  creategrid_fromread(gfid,&mesh);
   fclose(gfid);
     
   // Get Quadrature Nodes for the Mesh
