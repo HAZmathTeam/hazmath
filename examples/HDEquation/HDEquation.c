@@ -56,14 +56,14 @@ void truesol_2D_Ned(REAL *val,REAL* x,REAL time) {
   val[1] = -sin(M_PI*x[0])*cos(M_PI*x[1]);
 }
 void truesol_3D_Ned(REAL *val,REAL* x,REAL time) {
-  //void truesol(REAL *val,REAL* x,REAL time) {
+//void truesol(REAL *val,REAL* x,REAL time) {
   // 3D - curl curl
   val[0] = cos(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
   val[1] = sin(M_PI*x[0])*cos(M_PI*x[1])*sin(M_PI*x[2]);
   val[2] = -sin(M_PI*x[0])*sin(M_PI*x[1])*cos(M_PI*x[2]);
 }
 void truesol_2D_RT(REAL *val,REAL* x,REAL time) {
-  //void truesol(REAL *val,REAL* x,REAL time) {
+//void truesol(REAL *val,REAL* x,REAL time) {
   // 2D - grad div
   val[0] = sin(M_PI*x[0])*cos(M_PI*x[1]);
   val[1] = cos(M_PI*x[0])*sin(M_PI*x[1]);
@@ -97,14 +97,14 @@ void D_truesol_2D_Ned(REAL *val,REAL* x,REAL time) {
   *val = -2*M_PI*cos(M_PI*x[0])*cos(M_PI*x[1]);
 }
 void D_truesol_3D_Ned(REAL *val,REAL* x,REAL time) {
-  //void D_truesol(REAL *val,REAL* x,REAL time) {
+//void D_truesol(REAL *val,REAL* x,REAL time) {
   // 3D - curl curl
   val[0] = -2*M_PI*sin(M_PI*x[0])*cos(M_PI*x[1])*cos(M_PI*x[2]);
   val[1] = 2*M_PI*cos(M_PI*x[0])*sin(M_PI*x[1])*cos(M_PI*x[2]);
   val[2] = 0;
 }
 void D_truesol_2D_RT(REAL *val,REAL* x,REAL time) {
-  //void D_truesol(REAL *val,REAL* x,REAL time) {
+//void D_truesol(REAL *val,REAL* x,REAL time) {
   // 2D - grad div
   *val = 2*M_PI*cos(M_PI*x[0])*cos(M_PI*x[1]);
 }
@@ -151,7 +151,7 @@ void rhs_2D_Ned(REAL *val,REAL* x,REAL time) {
   val[1] = (mya*2.0*M_PI*M_PI + myc)*myu[1];
 }
 void rhs_3D_Ned(REAL *val,REAL* x,REAL time) {
-  //void myrhs(REAL *val,REAL* x,REAL time) {
+//void myrhs(REAL *val,REAL* x,REAL time) {
   // 3D - curl curl
   REAL myc=-666.6;
   REAL mya=-666.6;
@@ -164,7 +164,7 @@ void rhs_3D_Ned(REAL *val,REAL* x,REAL time) {
   val[2] = (4*mya*M_PI*M_PI + myc)*myu[2];
 }
 void rhs_2D_RT(REAL *val,REAL* x,REAL time) {
-  //void myrhs(REAL *val,REAL* x,REAL time) {
+//void myrhs(REAL *val,REAL* x,REAL time) {
   // 2D - grad div
   REAL myc=-666.6;
   REAL mya=-666.6;
@@ -198,14 +198,14 @@ void bc(REAL *val,REAL* x,REAL time) {
   *val= myu;
 }
 void bc_2Dvec(REAL *val,REAL* x,REAL time) {
-  //void bc(REAL *val,REAL* x,REAL time) {
+//void bc(REAL *val,REAL* x,REAL time) {
   REAL myu[2];
   truesol(myu,x,time);
   val[0] = myu[0];
   val[1] = myu[1];
 }
 void bc_3Dvec(REAL *val,REAL* x,REAL time) {
-  //void bc(REAL *val,REAL* x,REAL time) {
+//void bc(REAL *val,REAL* x,REAL time) {
   REAL myu[3];
   truesol(myu,x,time);
   val[0] = myu[0];
@@ -240,13 +240,19 @@ int main (int argc, char* argv[])
   INT dim = inparam.dim;
     
   // Create the mesh (now we assume triangles in 2D or tetrahedra in 3D)
+  // File types possible are 0 - old format; 1 - vtk format
+  INT mesh_type = 0;
   clk1 = clock();
   trimesh mesh;
   printf(" --> loading grid from file: %s\n",inparam.gridfile);
   initialize_mesh(&mesh);
   //creategrid(gfid,dim,0,&mesh);
-  creategrid_fromread(gfid,&mesh);
+  creategrid_fread(gfid,0,&mesh);
   fclose(gfid);
+
+  /* // Dump mesh for testing */
+  /* char* namevtk = "mesh.vtu"; */
+  /* dump_mesh_vtk(namevtk,&mesh); */
     
   // Get Quadrature Nodes for the Mesh
   INT nq1d = inparam.nquad; /* Quadrature points per dimension */
