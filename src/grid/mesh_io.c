@@ -197,10 +197,17 @@ void dump_mesh_vtk(char *namevtk,trimesh *mesh)
 	      mesh->cv->z[k]);
   fprintf(fvtk,"</DataArray>\n");
   fprintf(fvtk,"</Points>\n");
-  fprintf(fvtk,"<Cells>\n");
-  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"offsets\" Format=\"ascii\">",tinto);
+
+  // Dump v_bdry Data to indicate if vertices are boundaries
+  fprintf(fvtk,"<PointData Scalars=\"scalars\">\n");
+  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"v_bdry\" Format=\"ascii\">",tinto);
+  for(k=0;k<=nv;k++) fprintf(fvtk," %i ",mesh->v_bdry[k]);
+  fprintf(fvtk,"</DataArray>\n");
+  fprintf(fvtk,"</PointData>\n");
 
   // Dump el_v map
+  fprintf(fvtk,"<Cells>\n");
+  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"offsets\" Format=\"ascii\">",tinto);
   for(k=1;k<=nelm;k++) fprintf(fvtk," %i ",mesh->el_v->IA[k]-1);
   fprintf(fvtk,"</DataArray>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectivity\" Format=\"ascii\">\n",tinto);
