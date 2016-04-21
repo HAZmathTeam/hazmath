@@ -7,3 +7,5 @@ include/hazmat.h
 *.o
 *.a
 *~
+examples/HDEquation/*.vtu
+examples/HDEquation/*.dat
