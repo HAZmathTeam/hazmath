@@ -30,6 +30,7 @@ void initialize_mesh(trimesh* mesh)
   mesh->nface = -666;
   mesh->nconn_reg = -666;
   mesh->nconn_bdry = -666;
+  mesh->v_component = NULL;
   mesh->nbv = -666;
   mesh->nbedge = -666;
   mesh->nbface = -666;
@@ -306,8 +307,8 @@ void creategrid_fread(FILE *gfid,INT file_type,trimesh* mesh)
   // READ FILE
   if(file_type==0) {
     read_grid_old(gfid,mesh);
-  /* } else if(file_type==1) { */
-  /*   read_grid_vtk(gfid,mesh); */
+  } else if(file_type==1) {
+    read_grid_vtk(gfid,mesh);
   } else {
     fprintf(stderr, \
 	    "Unknown mesh file type, %d. Try using vtk format. -Exiting\n", \
@@ -636,6 +637,11 @@ void free_mesh(trimesh* mesh)
   if(mesh->f_bdry) {
     free(mesh->f_bdry);
     mesh->f_bdry = NULL;
+  }
+
+  if(mesh->v_component) {
+    free(mesh->v_component);
+    mesh->v_component = NULL;
   }
   
   return;

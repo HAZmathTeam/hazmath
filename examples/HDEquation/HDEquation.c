@@ -240,19 +240,18 @@ int main (int argc, char* argv[])
   INT dim = inparam.dim;
     
   // Create the mesh (now we assume triangles in 2D or tetrahedra in 3D)
-  // File types possible are 0 - old format; 1 - vtk format
+  // File types possible are 0 - old format; 1 - vtk format (doesn't work yet)
   INT mesh_type = 0;
   clk1 = clock();
   trimesh mesh;
   printf(" --> loading grid from file: %s\n",inparam.gridfile);
   initialize_mesh(&mesh);
-  //creategrid(gfid,dim,0,&mesh);
   creategrid_fread(gfid,mesh_type,&mesh);
   fclose(gfid);
 
-  /* // Dump mesh for testing */
-  /* char* namevtk = "mesh.vtu"; */
-  /* dump_mesh_vtk(namevtk,&mesh); */
+  // Dump mesh for testing
+  char* namevtk = "mesh.vtu";
+  dump_mesh_vtk(namevtk,&mesh);
     
   // Get Quadrature Nodes for the Mesh
   INT nq1d = inparam.nquad; /* Quadrature points per dimension */
