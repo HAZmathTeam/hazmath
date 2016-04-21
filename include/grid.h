@@ -67,8 +67,11 @@ typedef struct trimesh{
   //! number of faces per element
   INT f_per_elm;
 
-  //! Number of holes in domain - usually 0
-  INT nholes;
+  //! Number of connected regions in domain - usually 1
+  INT nconn_reg;
+
+  //! Number of connected boundaries - usually 1
+  INT nconn_bdry;
 
   //! coordinates of vertices
   coordinates* cv;

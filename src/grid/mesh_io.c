@@ -91,12 +91,23 @@ void read_grid_old(FILE *gfid,trimesh *mesh)
   iCSRmat el_v = convert_elmnode(element_vertex,nelm,nv,v_per_elm);
   if(element_vertex) free(element_vertex);
 
+  INT nconn_reg = 0;
+  INT nconn_bdry = 0;
+  if(nholes==0) {
+    nconn_reg = 1;
+    nconn_bdry = 1;
+  } else if(nholes==1) {
+    nconn_reg = 1;
+    nconn_bdry = 2;
+  }
+
   // Update mesh with known quantities
   mesh->dim = dim;
   mesh->nelm = nelm;
   mesh->nv = nv;
   mesh->nbv = nbv;
-  mesh->nholes = nholes;
+  mesh->nconn_reg = nconn_reg;
+  mesh->nconn_bdry = nconn_bdry;
   mesh->cv = cv;
   *(mesh->el_v) = el_v;
   mesh->v_per_elm = v_per_elm;
@@ -202,6 +213,20 @@ void dump_mesh_vtk(char *namevtk,trimesh *mesh)
   fprintf(fvtk,"<PointData Scalars=\"scalars\">\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"v_bdry\" Format=\"ascii\">",tinto);
   for(k=0;k<=nv;k++) fprintf(fvtk," %i ",mesh->v_bdry[k]);
+  fprintf(fvtk,"</DataArray>\n");
+  fprintf(fvtk,"</PointData>\n");
+
+  // Dump information about connected components
+  // Positive integers indicate connected components of a domain
+  // Negative integers indicate connected components of the boundaries
+  // Example: A cube (1 connected domain and 1 connected boundary) 
+  //            would be 1 on the interior and -1 on points on the boundary
+  //          A cube with a hole (1 connected domain and 2 connected boundaries)
+  //          would have 1 on the points in the interior and
+  //          -1 on points on the outer boundary and -2 on the inner boundary
+  fprintf(fvtk,"<PointData Scalars=\"scalars\">\n");
+  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"v_bdry\" Format=\"ascii\">",tinto);
+  /* for(k=0;k<=nv;k++) fprintf(fvtk," %i ",mesh->v_bdry[k]); */
   fprintf(fvtk,"</DataArray>\n");
   fprintf(fvtk,"</PointData>\n");
 

@@ -247,7 +247,7 @@ int main (int argc, char* argv[])
   printf(" --> loading grid from file: %s\n",inparam.gridfile);
   initialize_mesh(&mesh);
   //creategrid(gfid,dim,0,&mesh);
-  creategrid_fread(gfid,0,&mesh);
+  creategrid_fread(gfid,mesh_type,&mesh);
   fclose(gfid);
 
   /* // Dump mesh for testing */

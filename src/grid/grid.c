@@ -28,7 +28,8 @@ void initialize_mesh(trimesh* mesh)
   mesh->nedge = -666;
   mesh->ed_per_elm = -666;
   mesh->nface = -666;
-  mesh->nholes = -666;
+  mesh->nconn_reg = -666;
+  mesh->nconn_bdry = -666;
   mesh->nbv = -666;
   mesh->nbedge = -666;
   mesh->nbface = -666;
@@ -49,230 +50,242 @@ void initialize_mesh(trimesh* mesh)
 }
 /******************************************************************************/
 
-/******************************************************************************/
-void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh) 
-{
-  //  OLD FORMAT WILL CHANGE
-  /* Reads in gridfile of the following form:
-   *
-   * First line:			nelms nnodes nboundaryedges nboundaryedges
-   * Next four lines:		       	Each element will have 3 vertices in 2D and 4 in 3D
-   *			line 1:	       	First node of all elements
-   *			line 2:		Second node of all elements
-   *			line 3:	        Third node of all elements
-   *			line 4:		Dummy line (ignore) (or 4th node for 3D)
-   *					Columns are node-element map not sparse
-   * Next two (or 3 in 3D) lines:	x,y,z coordinates
-   *			line 1:		x coordinates of all nodes
-   *			line 2:		y coordinates of all nodes
-   *			(line 3:	z coordinates of all nodes (only in 3D))
-   * Next two lines in 2D:		List of nodes that land on boundary
-   *			line 1:		Corresponds to first part of edge on bondary
-   *			line 2:		Corresponds to second part of edge on boundary
-   *					Columns of this are edge_node map of boundary
-   *
-   * OR Next line in 3D:                List of nodes and whether they land on boundary (binary)
-   *
-   * Rest of lines are dummy and not used
-   *
-   * INPUT: gfid    Grid File ID
-   *        dim     Dimension of Problem 
-   *        nholes  Number of Holes in the domain (usually 0)
-   *        TODO: change mesh files so that dim and nholes is automatically read in
-   */
+/* /\******************************************************************************\/ */
+/* void creategrid(FILE *gfid,INT dim,INT nholes,trimesh* mesh)  */
+/* { */
+/*   //  OLD FORMAT WILL CHANGE */
+/*   /\* Reads in gridfile of the following form: */
+/*    * */
+/*    * First line:			nelms nnodes nboundaryedges nboundaryedges */
+/*    * Next four lines:		       	Each element will have 3 vertices in 2D and 4 in 3D */
+/*    *			line 1:	       	First node of all elements */
+/*    *			line 2:		Second node of all elements */
+/*    *			line 3:	        Third node of all elements */
+/*    *			line 4:		Dummy line (ignore) (or 4th node for 3D) */
+/*    *					Columns are node-element map not sparse */
+/*    * Next two (or 3 in 3D) lines:	x,y,z coordinates */
+/*    *			line 1:		x coordinates of all nodes */
+/*    *			line 2:		y coordinates of all nodes */
+/*    *			(line 3:	z coordinates of all nodes (only in 3D)) */
+/*    * Next two lines in 2D:		List of nodes that land on boundary */
+/*    *			line 1:		Corresponds to first part of edge on bondary */
+/*    *			line 2:		Corresponds to second part of edge on boundary */
+/*    *					Columns of this are edge_node map of boundary */
+/*    * */
+/*    * OR Next line in 3D:                List of nodes and whether they land on boundary (binary) */
+/*    * */
+/*    * Rest of lines are dummy and not used */
+/*    * */
+/*    * INPUT: gfid    Grid File ID */
+/*    *        dim     Dimension of Problem  */
+/*    *        nholes  Number of Holes in the domain (usually 0) */
+/*    *        TODO: change mesh files so that dim and nholes is automatically read in */
+/*    *\/ */
 	
-  INT i,j,k; /* Loop indices */
+/*   INT i,j,k; /\* Loop indices *\/ */
 
-  // Get Number of elements, nodes and boundary edges first
-  INT* line1 = calloc(4,sizeof(INT));
-  INT lenhead = 4;
-  rveci_(gfid,line1,&lenhead);
-  INT nelm = line1[0];
-  INT nv = line1[1];
-  INT nbedge = line1[2];
-  free(line1);
+/*   // Get Number of elements, nodes and boundary edges first */
+/*   INT* line1 = calloc(4,sizeof(INT)); */
+/*   INT lenhead = 4; */
+/*   rveci_(gfid,line1,&lenhead); */
+/*   INT nelm = line1[0]; */
+/*   INT nv = line1[1]; */
+/*   INT nbedge = line1[2]; */
+/*   free(line1); */
 
-  // Get number of vertices, edges, and faces per element
-  INT v_per_elm = dim+1;
-  INT ed_per_elm = 3*(dim-1);
-  INT f_per_elm = v_per_elm;
+/*   // Get number of vertices, edges, and faces per element */
+/*   INT v_per_elm = dim+1; */
+/*   INT ed_per_elm = 3*(dim-1); */
+/*   INT f_per_elm = v_per_elm; */
 			
-  // Allocate arrays to read in other data such as coordinate information
-  INT* element_vertex = (INT *) calloc(nelm*v_per_elm,sizeof(INT));
-  coordinates *cv = allocatecoords(nv,dim);
-  INT* bdry_v = (INT *) calloc(nbedge*2,sizeof(INT));
+/*   // Allocate arrays to read in other data such as coordinate information */
+/*   INT* element_vertex = (INT *) calloc(nelm*v_per_elm,sizeof(INT)); */
+/*   coordinates *cv = allocatecoords(nv,dim); */
+/*   INT* bdry_v = (INT *) calloc(nbedge*2,sizeof(INT)); */
 		
-  // Get next 3-4 lines Element-Vertex Map
-  INT* line2 = (INT *) calloc(nelm,sizeof(INT));
-  for (i=0; i<v_per_elm; i++) {
-    rveci_(gfid,line2,&nelm);
-    for (j=0; j<nelm; j++) {
-      element_vertex[j*v_per_elm+i] = line2[j];
-    }
-  }
-  // Next line is dummy in 2D
-  if(dim==2) {
-    rveci_(gfid,line2,&nelm);
-  }
-  free(line2);
+/*   // Get next 3-4 lines Element-Vertex Map */
+/*   INT* line2 = (INT *) calloc(nelm,sizeof(INT)); */
+/*   for (i=0; i<v_per_elm; i++) { */
+/*     rveci_(gfid,line2,&nelm); */
+/*     for (j=0; j<nelm; j++) { */
+/*       element_vertex[j*v_per_elm+i] = line2[j]; */
+/*     } */
+/*   } */
+/*   // Next line is dummy in 2D */
+/*   if(dim==2) { */
+/*     rveci_(gfid,line2,&nelm); */
+/*   } */
+/*   free(line2); */
 	
-  // Get next 2-3 lines for coordinate map
-  rvecd_(gfid,cv->x,&nv);
-  rvecd_(gfid,cv->y,&nv);
-  if(dim==3)
-    rvecd_(gfid,cv->z,&nv);
+/*   // Get next 2-3 lines for coordinate map */
+/*   rvecd_(gfid,cv->x,&nv); */
+/*   rvecd_(gfid,cv->y,&nv); */
+/*   if(dim==3) */
+/*     rvecd_(gfid,cv->z,&nv); */
 	
-  // Get next 1-2 lines for boundary nodes
-  INT nbv = 0;
-  INT* v_bdry = (INT *) calloc(nv,sizeof(INT));
-  if(dim==2) {
-    INT* line3 = (INT *) calloc(nbedge,sizeof(INT));
-    INT* line4 = (INT *) calloc(nbedge,sizeof(INT));
-    rveci_(gfid,line3,&nbedge);
-    rveci_(gfid,line4,&nbedge);
-    for (i=0; i<nbedge; i++) {
-      bdry_v[i*2+0] = line3[i];
-      bdry_v[i*2+1] = line4[i];
-    }
-    free(line3);
-    free(line4);
-  } else if(dim==3) {
-    rveci_(gfid,v_bdry,&nv);
-    for(i=0;i<nv;i++)
-      if(v_bdry[i])
-	nbv++;
-  }
+/*   // Get next 1-2 lines for boundary nodes */
+/*   INT nbv = 0; */
+/*   INT* v_bdry = (INT *) calloc(nv,sizeof(INT)); */
+/*   if(dim==2) { */
+/*     INT* line3 = (INT *) calloc(nbedge,sizeof(INT)); */
+/*     INT* line4 = (INT *) calloc(nbedge,sizeof(INT)); */
+/*     rveci_(gfid,line3,&nbedge); */
+/*     rveci_(gfid,line4,&nbedge); */
+/*     for (i=0; i<nbedge; i++) { */
+/*       bdry_v[i*2+0] = line3[i]; */
+/*       bdry_v[i*2+1] = line4[i]; */
+/*     } */
+/*     free(line3); */
+/*     free(line4); */
+/*   } else if(dim==3) { */
+/*     rveci_(gfid,v_bdry,&nv); */
+/*     for(i=0;i<nv;i++) */
+/*       if(v_bdry[i]) */
+/* 	nbv++; */
+/*   } */
         
-  /* Element Vertex Map */
-  iCSRmat el_v = convert_elmnode(element_vertex,nelm,nv,v_per_elm);
-  if(element_vertex) free(element_vertex);
+/*   /\* Element Vertex Map *\/ */
+/*   iCSRmat el_v = convert_elmnode(element_vertex,nelm,nv,v_per_elm); */
+/*   if(element_vertex) free(element_vertex); */
     
-  /* Edge to Vertex Map */
-  INT nedge = 0;
-  if(dim==2) {  
-    nedge = nelm+nv-(dim-1);
-  } else if(dim==3) {
-    get_nedge(&nedge,el_v); 
-  }
-  iCSRmat ed_v = get_edge_v(nedge,el_v);
+/*   /\* Edge to Vertex Map *\/ */
+/*   INT nedge = 0; */
+/*   if(dim==2) {   */
+/*     nedge = nelm+nv-(dim-1); */
+/*   } else if(dim==3) { */
+/*     get_nedge(&nedge,el_v);  */
+/*   } */
+/*   iCSRmat ed_v = get_edge_v(nedge,el_v); */
     
-  /* Get Boundary Edges and Vertices in 2D (3D needs face_bdry first */
-  INT* ed_bdry = (INT *) calloc(nedge,sizeof(INT));
-  if (dim==2) {     
-    isboundary_ed(ed_v,nedge,nbedge,bdry_v,ed_bdry);
-    isboundary_v(nv,bdry_v,v_bdry,nbedge,&nbv);
-  } 
-  if(bdry_v) free(bdry_v);
+/*   /\* Get Boundary Edges and Vertices in 2D (3D needs face_bdry first *\/ */
+/*   INT* ed_bdry = (INT *) calloc(nedge,sizeof(INT)); */
+/*   if (dim==2) {      */
+/*     isboundary_ed(ed_v,nedge,nbedge,bdry_v,ed_bdry); */
+/*     isboundary_v(nv,bdry_v,v_bdry,nbedge,&nbv); */
+/*   }  */
+/*   if(bdry_v) free(bdry_v); */
 	
-  /* Element to Edge Map */
-  iCSRmat el_ed = get_el_ed(el_v,ed_v);
+/*   /\* Element to Edge Map *\/ */
+/*   iCSRmat el_ed = get_el_ed(el_v,ed_v); */
 
-  /* Get Edge Stats such as edge lengths, midpoints, and tangent vectors */
-  REAL* ed_len = (REAL *) calloc(nedge,sizeof(REAL));
-  REAL* ed_tau = (REAL *) calloc(nedge*dim,sizeof(REAL));
-  REAL* ed_mid = (REAL *) calloc(nedge*dim,sizeof(REAL));
-  edge_stats_all(ed_len,ed_tau,ed_mid,cv,ed_v,dim);
+/*   /\* Get Edge Stats such as edge lengths, midpoints, and tangent vectors *\/ */
+/*   REAL* ed_len = (REAL *) calloc(nedge,sizeof(REAL)); */
+/*   REAL* ed_tau = (REAL *) calloc(nedge*dim,sizeof(REAL)); */
+/*   REAL* ed_mid = (REAL *) calloc(nedge*dim,sizeof(REAL)); */
+/*   edge_stats_all(ed_len,ed_tau,ed_mid,cv,ed_v,dim); */
     
-  /* Figure out Number of Faces */
-  INT nface = 0;
-  INT euler = -10; // Euler Number should be 1 for simplices
-  if(dim==2) {
-    nface = nedge;
-    euler = nv - nedge + nelm;
-  } else if (dim==3) {
-    nface = 1 + nedge-nv+nelm;
-    //nholes=0;
-    nface = nface + nholes; // add number of holes!
-    euler = nv - nedge + nface - nelm;
-  } else {
-    baddimension();
-  }
-  if(euler!=1+nholes) {
-    printf("Your simplices are all messed up.  Euler Characteristic doesn't equal 1+nholes!\teuler=%d\tnholes=%d",euler,nholes);
-    exit(0);
-  }
+/*   /\* Figure out Number of Faces *\/ */
+/*   INT nface = 0; */
+/*   INT euler = -10; // Euler Number should be 1 for simplices */
+/*   if(dim==2) { */
+/*     nface = nedge; */
+/*     euler = nv - nedge + nelm; */
+/*   } else if (dim==3) { */
+/*     nface = 1 + nedge-nv+nelm; */
+/*     //nholes=0; */
+/*     nface = nface + nholes; // add number of holes! */
+/*     euler = nv - nedge + nface - nelm; */
+/*   } else { */
+/*     baddimension(); */
+/*   } */
+/*   if(euler!=1+nholes) { */
+/*     printf("Your simplices are all messed up.  Euler Characteristic doesn't equal 1+nholes!\teuler=%d\tnholes=%d",euler,nholes); */
+/*     exit(0); */
+/*   } */
 
-  // In order to get some of the face maps, we need to know how the faces are ordered on each element
-  // This is done by the same ordering as the nodes, connecting the opposite face with each node.
-  INT* fel_order= (INT *) calloc(f_per_elm*dim,sizeof(INT));
-  get_face_ordering(v_per_elm,dim,f_per_elm,fel_order);
+/*   // In order to get some of the face maps, we need to know how the faces are ordered on each element */
+/*   // This is done by the same ordering as the nodes, connecting the opposite face with each node. */
+/*   INT* fel_order= (INT *) calloc(f_per_elm*dim,sizeof(INT)); */
+/*   get_face_ordering(v_per_elm,dim,f_per_elm,fel_order); */
 
-  // Next get the element to face map, the face to vertex map, and the face boundary information.
-  iCSRmat f_v = icsr_create(nface,nv,nface*dim);
-  iCSRmat f_ed = icsr_create(nface,nedge,nface*(2*dim-3));
-  INT* f_bdry = (INT *) calloc(nface,sizeof(INT));
-  INT nbface;
-  get_face_maps(el_v,v_per_elm,ed_v,nface,dim,f_per_elm,mesh->el_f,f_bdry,&nbface,&f_v,&f_ed,fel_order);
+/*   // Next get the element to face map, the face to vertex map, and the face boundary information. */
+/*   iCSRmat f_v = icsr_create(nface,nv,nface*dim); */
+/*   iCSRmat f_ed = icsr_create(nface,nedge,nface*(2*dim-3)); */
+/*   INT* f_bdry = (INT *) calloc(nface,sizeof(INT)); */
+/*   INT nbface; */
+/*   get_face_maps(el_v,v_per_elm,ed_v,nface,dim,f_per_elm,mesh->el_f,f_bdry,&nbface,&f_v,&f_ed,fel_order); */
   
-  // In case v_bdry has different types of boundaries, match the face boundary to the same:
-  for(i=0;i<nface;i++) {
-    if(f_bdry[i]==1) {
-      j = f_v.IA[i]-1;
-      k = f_v.JA[j]-1;
-      f_bdry[i] = v_bdry[k];
-    }
-  }
+/*   // In case v_bdry has different types of boundaries, match the face boundary to the same: */
+/*   for(i=0;i<nface;i++) { */
+/*     if(f_bdry[i]==1) { */
+/*       j = f_v.IA[i]-1; */
+/*       k = f_v.JA[j]-1; */
+/*       f_bdry[i] = v_bdry[k]; */
+/*     } */
+/*   } */
     
-  // Next get the face data, such as areas, midpoints, and normal vectors 
-  REAL* f_area = (REAL *) calloc(nface,sizeof(REAL));
-  REAL* f_mid = (REAL *) calloc(nface*dim,sizeof(REAL));
-  REAL* f_norm = (REAL *) calloc(nface*dim,sizeof(REAL));
-  // Need to update mesh for a few things first
-  mesh->dim = dim;
-  mesh->cv = cv;
-  mesh->f_per_elm = f_per_elm;
-  *(mesh->el_v) = el_v;
-  mesh->v_per_elm = v_per_elm;
+/*   // Next get the face data, such as areas, midpoints, and normal vectors  */
+/*   REAL* f_area = (REAL *) calloc(nface,sizeof(REAL)); */
+/*   REAL* f_mid = (REAL *) calloc(nface*dim,sizeof(REAL)); */
+/*   REAL* f_norm = (REAL *) calloc(nface*dim,sizeof(REAL)); */
+/*   // Need to update mesh for a few things first */
+/*   mesh->dim = dim; */
+/*   mesh->cv = cv; */
+/*   mesh->f_per_elm = f_per_elm; */
+/*   *(mesh->el_v) = el_v; */
+/*   mesh->v_per_elm = v_per_elm; */
  
-  // Get Statistics of the faces (midpoint, area, normal vector, ordering, etc.)
-  face_stats(f_area,f_mid,f_norm,&f_v,mesh);
+/*   // Get Statistics of the faces (midpoint, area, normal vector, ordering, etc.) */
+/*   face_stats(f_area,f_mid,f_norm,&f_v,mesh); */
 
-  // Reorder appropriately
-  sync_facenode(&f_v,f_norm,mesh);
-  *(mesh->f_v) = f_v;
-  *(mesh->f_ed) = f_ed;
+/*   // Reorder appropriately */
+/*   sync_facenode(&f_v,f_norm,mesh); */
+/*   *(mesh->f_v) = f_v; */
+/*   *(mesh->f_ed) = f_ed; */
 
-  // If in 3D, still need to get edge_bdry map
-  if(dim==3) {
-    isboundary_ed_f(&f_ed,&ed_v,nedge,nface,f_bdry,v_bdry,&nbedge,ed_bdry); 
-  }
+/*   // If in 3D, still need to get edge_bdry map */
+/*   if(dim==3) { */
+/*     isboundary_ed_f(&f_ed,&ed_v,nedge,nface,f_bdry,v_bdry,&nbedge,ed_bdry);  */
+/*   } */
 
-  // Finally get volumes/areas of elements and the midpoint (barycentric)
-  REAL* el_mid = (REAL *) calloc(nelm*dim,sizeof(REAL));
-  REAL* el_vol = (REAL *) calloc(nelm,sizeof(REAL));
-  get_el_vol(el_vol,el_v,cv,dim,v_per_elm);
-  get_el_mid(el_mid,el_v,cv,dim);
+/*   // Finally get volumes/areas of elements and the midpoint (barycentric) */
+/*   REAL* el_mid = (REAL *) calloc(nelm*dim,sizeof(REAL)); */
+/*   REAL* el_vol = (REAL *) calloc(nelm,sizeof(REAL)); */
+/*   get_el_vol(el_vol,el_v,cv,dim,v_per_elm); */
+/*   get_el_mid(el_mid,el_v,cv,dim); */
+
+/*   // Compute the number of connected components and connected boundaries */
+/*   INT nconn_reg=0; */
+/*   INT nconn_bdry=0; */
+/*   if(nholes==0) { */
+/*     nconn_reg = 1; */
+/*     nconn_bdry = 1; */
+/*   } else if(nholes==1) { */
+/*     nconn_reg = 1; */
+/*     nconn_bdry = 2; */
+/*   } */
   
-  // Assign components to the mesh
-  mesh->nelm = nelm;
-  mesh->nv = nv;
-  mesh->nedge = nedge;
-  mesh->ed_per_elm = ed_per_elm;
-  mesh->nface = nface;
-  mesh->nholes = nholes;
-  mesh->nbv = nbv;
-  mesh->nbedge = nbedge;
-  mesh->nbface = nbface;
-  *(mesh->el_ed) = el_ed;
-  *(mesh->ed_v) = ed_v;
-  mesh->el_vol = el_vol;
-  mesh->el_mid = el_mid;
-  mesh->ed_len = ed_len;
-  mesh->ed_tau = ed_tau;
-  mesh->ed_mid = ed_mid;
-  mesh->f_area = f_area;
-  mesh->f_mid = f_mid;
-  mesh->f_norm = f_norm;
+/*   // Assign components to the mesh */
+/*   mesh->nelm = nelm; */
+/*   mesh->nv = nv; */
+/*   mesh->nedge = nedge; */
+/*   mesh->ed_per_elm = ed_per_elm; */
+/*   mesh->nface = nface; */
+/*   mesh->nconn_reg = nconn_reg; */
+/*   mesh->nconn_bdry = nconn_bdry; */
+/*   mesh->nbv = nbv; */
+/*   mesh->nbedge = nbedge; */
+/*   mesh->nbface = nbface; */
+/*   *(mesh->el_ed) = el_ed; */
+/*   *(mesh->ed_v) = ed_v; */
+/*   mesh->el_vol = el_vol; */
+/*   mesh->el_mid = el_mid; */
+/*   mesh->ed_len = ed_len; */
+/*   mesh->ed_tau = ed_tau; */
+/*   mesh->ed_mid = ed_mid; */
+/*   mesh->f_area = f_area; */
+/*   mesh->f_mid = f_mid; */
+/*   mesh->f_norm = f_norm; */
   
-  mesh->v_bdry = v_bdry;
-  mesh->ed_bdry = ed_bdry;
-  mesh->f_bdry = f_bdry;
+/*   mesh->v_bdry = v_bdry; */
+/*   mesh->ed_bdry = ed_bdry; */
+/*   mesh->f_bdry = f_bdry; */
 
-  if(fel_order) free(fel_order);
+/*   if(fel_order) free(fel_order); */
 
-  return;
-}
-/******************************************************************************/
+/*   return; */
+/* } */
+/* /\******************************************************************************\/ */
 
 /******************************************************************************/
 void creategrid_fread(FILE *gfid,INT file_type,trimesh* mesh) 
@@ -323,11 +336,13 @@ void build_mesh(trimesh* mesh)
   INT nelm = mesh->nelm;
   INT nv = mesh->nv;
   INT nbv = mesh->nbv;
-  INT nholes = mesh->nholes;
+  INT nconn_reg = mesh->nconn_reg;
+  INT nconn_bdry = mesh->nconn_bdry;
   INT v_per_elm = dim+1;
   INT ed_per_elm = 3*(dim-1);
   INT f_per_elm = v_per_elm;
     
+  //printf("conn= %d\t%d\n\n\n",nconn_reg,nconn_bdry);
   /* Edge to Vertex Map */
   INT nedge = 0;
   if(dim==2) {  
@@ -347,6 +362,7 @@ void build_mesh(trimesh* mesh)
   edge_stats_all(ed_len,ed_tau,ed_mid,mesh->cv,ed_v,dim);
     
   /* Figure out Number of Faces */
+  INT nholes = nconn_bdry - 1;
   INT nface = 0;
   INT euler = -10; // Euler Number should be 1 for simplices
   if(dim==2) {
@@ -389,7 +405,7 @@ void build_mesh(trimesh* mesh)
       f_bdry[i] = mesh->v_bdry[k];
     }
   }
-    printf("HELLO\n\n\n");
+
   // Next get the face data, such as areas, midpoints, and normal vectors 
   REAL* f_area = (REAL *) calloc(nface,sizeof(REAL));
   REAL* f_mid = (REAL *) calloc(nface*dim,sizeof(REAL));
