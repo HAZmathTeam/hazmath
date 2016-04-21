@@ -73,6 +73,9 @@ typedef struct trimesh{
   //! Number of connected boundaries - usually 1
   INT nconn_bdry;
 
+  //! Array indicating which vertices are on which component
+  INT* v_component;
+
   //! coordinates of vertices
   coordinates* cv;
     

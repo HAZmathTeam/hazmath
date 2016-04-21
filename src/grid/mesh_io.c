@@ -15,7 +15,7 @@ void read_grid_old(FILE *gfid,trimesh *mesh)
 {
   /* Reads in gridfile of the following form:
    *
-   * First line:	dim nelms nnodes ?? ?? nholes
+   * First line:	nelms nnodes dim nholes
    * Next four lines:	Each element will have 3 vertices in 2D and 4 in 3D
    * 
    *	      line 1:	First node of all elements
@@ -45,13 +45,13 @@ void read_grid_old(FILE *gfid,trimesh *mesh)
   INT i,j,k; /* Loop indices */
 
   // Get Number of elements, nodes and boundary edges first
-  INT* line1 = calloc(6,sizeof(INT));
-  INT lenhead = 6;
+  INT* line1 = calloc(4,sizeof(INT));
+  INT lenhead = 4;
   rveci_(gfid,line1,&lenhead);
-  INT dim = line1[0];
-  INT nelm = line1[1];
-  INT nv = line1[2];
-  INT nholes = line1[5];
+  INT dim = line1[2];
+  INT nelm = line1[0];
+  INT nv = line1[1];
+  INT nholes = line1[3];
   free(line1);
 
   // Get number of vertices per element
@@ -91,6 +91,8 @@ void read_grid_old(FILE *gfid,trimesh *mesh)
   iCSRmat el_v = convert_elmnode(element_vertex,nelm,nv,v_per_elm);
   if(element_vertex) free(element_vertex);
 
+  // This format only allows for 1 connected region and 
+  // up to 2 connected boundaries (1 hole).
   INT nconn_reg = 0;
   INT nconn_bdry = 0;
   if(nholes==0) {
@@ -112,6 +114,68 @@ void read_grid_old(FILE *gfid,trimesh *mesh)
   *(mesh->el_v) = el_v;
   mesh->v_per_elm = v_per_elm;
   mesh->v_bdry = v_bdry;
+
+  return;
+}
+/******************************************************************************/
+
+/******************************************************************************/
+void read_grid_vtk(FILE *gfid,trimesh *mesh) 
+{
+  /* Reads in gridfile in vtk (really vtu) format.  Example follows:
+   *
+   * <VTKFile type="UnstructuredGrid" version="0.1" byte_order="LittleEndian">
+   * <UnstructuredGrid>
+   * <Piece NumberOfPoints="9" NumberOfCells="8">
+   * <Points>
+   * <DataArray type="Float64" NumberOfComponents="3" Format="ascii">                        
+   * 0                        0                        0                                            
+   * 0.5                      0                        0                      
+   * 1                        0                        0                        
+   * 0                      0.5                        0                      
+   * 0.5                    0.5                        0                      
+   * 1                      0.5                        0                         
+   * 0                        1                        0                      
+   * 0.5                      1                        0                      
+   * 1                        1                        0 
+   * </DataArray>
+   * </Points>
+   * <PointData Scalars="scalars">
+   * <DataArray type="Int64" Name="v_bdry" Format="ascii"> 
+   * 1  1  1  1  0  1  1  1  1  
+   * </DataArray>
+   * <DataArray type="Int64" Name="connectedcomponents" Format="ascii"> 
+   * -1  -1  -1  -1  1  -1  -1  -1  -1  
+   * </DataArray>
+   * </PointData>
+   * <Cells>
+   * <DataArray type="Int64" Name="offsets" Format="ascii"> 
+   * 3  6  9  12  15  18  21  24 
+   * </DataArray>
+   * <DataArray type="Int64" Name="connectivity" Format="ascii">
+   * 0  1  3  3  1  4  1  2  4  4  2  5  3  4  6  6  4  7  4  5  7  7  5  8 
+   * </DataArray>
+   * <DataArray type="Int64" Name="types" Format="ascii"> 
+   * 5  5  5  5  5  5  5  5 
+   * </DataArray>
+   * </Cells>
+   * </Piece>
+   * </UnstructuredGrid>
+   * </VTKFile>
+
+   *
+   * INPUT: 
+   *         gfid    Grid File ID
+   *
+   * OUTPUT: 
+   *         mesh    Properties of mesh:
+   *                  dim, nelm, nvert, nbvert, v_per_elm, 
+   *                  coordinates, and element to vertex map
+   *
+   */
+	
+  fprintf(stderr,"I don't really want to process this vtk file just yet...Come back later...\n\n");
+  exit(255);
 
   return;
 }
@@ -212,11 +276,10 @@ void dump_mesh_vtk(char *namevtk,trimesh *mesh)
   // Dump v_bdry Data to indicate if vertices are boundaries
   fprintf(fvtk,"<PointData Scalars=\"scalars\">\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"v_bdry\" Format=\"ascii\">",tinto);
-  for(k=0;k<=nv;k++) fprintf(fvtk," %i ",mesh->v_bdry[k]);
+  for(k=0;k<nv;k++) fprintf(fvtk," %i ",mesh->v_bdry[k]);
   fprintf(fvtk,"</DataArray>\n");
-  fprintf(fvtk,"</PointData>\n");
 
-  // Dump information about connected components
+  // Dump information about connected components.
   // Positive integers indicate connected components of a domain
   // Negative integers indicate connected components of the boundaries
   // Example: A cube (1 connected domain and 1 connected boundary) 
@@ -224,10 +287,12 @@ void dump_mesh_vtk(char *namevtk,trimesh *mesh)
   //          A cube with a hole (1 connected domain and 2 connected boundaries)
   //          would have 1 on the points in the interior and
   //          -1 on points on the outer boundary and -2 on the inner boundary
-  fprintf(fvtk,"<PointData Scalars=\"scalars\">\n");
-  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"v_bdry\" Format=\"ascii\">",tinto);
-  /* for(k=0;k<=nv;k++) fprintf(fvtk," %i ",mesh->v_bdry[k]); */
-  fprintf(fvtk,"</DataArray>\n");
+  // If NULL, then one connected region and boundary.
+  if(mesh->v_component) {
+    fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectedcomponents\" Format=\"ascii\">",tinto);
+    for(k=0;k<nv;k++) fprintf(fvtk," %i ",mesh->v_component[k]);
+    fprintf(fvtk,"</DataArray>\n");
+  }
   fprintf(fvtk,"</PointData>\n");
 
   // Dump el_v map
