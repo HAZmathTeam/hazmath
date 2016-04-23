@@ -54,11 +54,11 @@ void initialize_mesh(trimesh* mesh)
 /******************************************************************************/
 void creategrid_fread(FILE *gfid,INT file_type,trimesh* mesh) 
 {
-  /* Creates grid by reading in file (in old format):
+  /* Creates grid by reading in file:
    *
    * INPUT: 
    *  gfid        Grid File ID
-   *  file_type   Type of File Input: 0 - old format; 1 - vtk
+   *  file_type   Type of File Input: 0 - haz format; 1 - vtk
    *
    * OUTPUT: 
    *  mesh        Mesh struct and all its properties.
@@ -69,7 +69,7 @@ void creategrid_fread(FILE *gfid,INT file_type,trimesh* mesh)
 
   // READ FILE
   if(file_type==0) {
-    read_grid_old(gfid,mesh);
+    read_grid_haz(gfid,mesh);
   } else if(file_type==1) {
     read_grid_vtk(gfid,mesh);
   } else {
@@ -106,15 +106,14 @@ void build_mesh(trimesh* mesh)
   INT ed_per_elm = 3*(dim-1);
   INT f_per_elm = v_per_elm;
     
-  //printf("conn= %d\t%d\n\n\n",nconn_reg,nconn_bdry);
   /* Edge to Vertex Map */
   INT nedge = 0;
-  if(dim==2) {  
-    nedge = nelm+nv-(dim-1);
-  } else if(dim==3) {
-    get_nedge(&nedge,*(mesh->el_v)); 
-  }
-  iCSRmat ed_v = get_edge_v(nedge,*(mesh->el_v));
+  /* if(dim==2) {   */
+  /*   nedge = nelm+nv-(dim-1); */
+  /* } else if(dim==3) { */
+  /*   get_nedge(&nedge,*(mesh->el_v));  */
+  /* } */
+  iCSRmat ed_v = get_edge_v(&nedge,*(mesh->el_v));
 	
   /* Element to Edge Map */
   iCSRmat el_ed = get_el_ed(*(mesh->el_v),ed_v);
@@ -188,7 +187,7 @@ void build_mesh(trimesh* mesh)
   /* Get Boundary Edges */
   INT nbedge=0;
   INT* ed_bdry = (INT *) calloc(nedge,sizeof(INT));
-  isboundary_ed_f(&f_ed,&ed_v,nedge,nface,f_bdry,mesh->v_bdry,&nbedge,ed_bdry); 
+  isboundary_ed(&f_ed,&ed_v,nedge,nface,f_bdry,mesh->v_bdry,&nbedge,ed_bdry); 
 
   // Finally get volumes/areas of elements and the midpoint (barycentric)
   REAL* el_mid = (REAL *) calloc(nelm*dim,sizeof(REAL));
