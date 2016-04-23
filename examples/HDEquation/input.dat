@@ -16,13 +16,14 @@ output_type			= 2;	% 1 to screen | 2 to file
 %---------------%
 
 workdir				= ./			% path to input files 
-%gridfile			= ../input/grids/2D/unit_hp25.dat	% grid file
-gridfile                        = ../input/grids/3D/ex3Dgrid_v35937.dat
+gridfile                        = ../grids/2D/unitSQ_hp0625.haz
+%gridfile                        = ../grids/3D/unitCUBE_v125.haz
+
 %---------------%
 % finite element
 %---------------%
 
-dim				= 3	% Dimension
+dim				= 2	% Dimension
 nquad				= 2	% Quadrature nodes each direction
 
 FE_type				= 1	% 0 P0 | 1 P1 | 2 P2 | -1 Ned -2 RT 
