@@ -70,8 +70,6 @@ void creategrid_fread(FILE *gfid,INT file_type,trimesh* mesh)
   // READ FILE
   if(file_type==0) {
     read_grid_old(gfid,mesh);
-    fprintf(stdout,"\n****after old\n");
-    fflush(stdout);
   } else if(file_type==1) {
     read_grid_vtk(gfid,mesh);
   } else {
@@ -120,7 +118,7 @@ void build_mesh(trimesh* mesh)
 	
   /* Element to Edge Map */
   iCSRmat el_ed = get_el_ed(*(mesh->el_v),ed_v);
-
+  
   /* Get Edge Stats such as edge lengths, midpoints, and tangent vectors */
   REAL* ed_len = (REAL *) calloc(nedge,sizeof(REAL));
   REAL* ed_tau = (REAL *) calloc(nedge*dim,sizeof(REAL));
