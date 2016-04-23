@@ -260,16 +260,19 @@ void dump_mesh_vtk(char *namevtk,trimesh *mesh)
   fprintf(fvtk,"<Piece NumberOfPoints=\"%i\" NumberOfCells=\"%i\">\n",nv,nelm);
   fprintf(fvtk,"<Points>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" NumberOfComponents=\"3\" Format=\"ascii\">", \
-	  tfloat);
+  	  tfloat);
 
   // Dump coordinates
-  if(dim == 2) 
-    for(k=0;k<nv;k++)
+  if(dim == 2) {
+    for(k=0;k<nv;k++) {
       fprintf(fvtk," %24.16g %24.16g %24.16g ",mesh->cv->x[k],mesh->cv->y[k],0e0);
-  else
-    for(k=0;k<nv;k++)
+    }
+  } else {
+    for(k=0;k<nv;k++) {
       fprintf(fvtk," %24.16g %24.16g %24.16g ",mesh->cv->x[k],mesh->cv->y[k], \
-	      mesh->cv->z[k]);
+  	      mesh->cv->z[k]);
+    }
+  }
   fprintf(fvtk,"</DataArray>\n");
   fprintf(fvtk,"</Points>\n");
 
@@ -282,7 +285,7 @@ void dump_mesh_vtk(char *namevtk,trimesh *mesh)
   // Dump information about connected components.
   // Positive integers indicate connected components of a domain
   // Negative integers indicate connected components of the boundaries
-  // Example: A cube (1 connected domain and 1 connected boundary) 
+  // Example: A cube (1 connected domain and 1 connected boundary)
   //            would be 1 on the interior and -1 on points on the boundary
   //          A cube with a hole (1 connected domain and 2 connected boundaries)
   //          would have 1 on the points in the interior and

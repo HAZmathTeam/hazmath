@@ -638,7 +638,7 @@ void get_face_maps(iCSRmat el_v,INT el_order,iCSRmat ed_v,INT nface,INT dim,INT 
 
   f_el.IA[icntr] = jcntr+1;
   f_v->IA[icntr] = kcntr+1;
-  
+
   /* Get Transpose of f_el -> el_f */
   icsr_trans_1(&f_el,el_f);
 
