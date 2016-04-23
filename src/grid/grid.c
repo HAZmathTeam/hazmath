@@ -70,6 +70,8 @@ void creategrid_fread(FILE *gfid,INT file_type,trimesh* mesh)
   // READ FILE
   if(file_type==0) {
     read_grid_old(gfid,mesh);
+    fprintf(stdout,"\n****after old\n");
+    fflush(stdout);
   } else if(file_type==1) {
     read_grid_vtk(gfid,mesh);
   } else {
