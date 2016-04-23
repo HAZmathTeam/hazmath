@@ -67,49 +67,13 @@ iCSRmat convert_elmnode(INT *element_vertex,INT nelm,INT nv,INT nve)
 /*******************************************************************************/
 
 /*******************************************************************************/
-void get_nedge(INT* nedge, iCSRmat el_v) 
-{	
-  /* Gets the Number of Edges 
-   *
-   * Input:  
-   *  el_v:	Element to Node Map
-   *
-   * Output: 
-   *  nedge:	Total number of Edges
-   *
-   */
-		
-  /* Get Transpose of el_v -> v_el */
-  iCSRmat v_el;
-  icsr_trans_1(&el_v,&v_el);
-	
-  /* Create Vertex to Vertex Map by v_el*el_v */
-  iCSRmat v_v;
-  icsr_mxm_symb_1(&v_el,&el_v,&v_v);
-
-	
-  // Now go through upper triangular (above diagonal) portion of vertex-vertex 
-  // and count non-zeros
-  // Each of these vertex-vertex connections are edges.  Upper so we don't 
-  // count i->j and j->i as two separate edges, and no diagonal since i->i 
-  // is not an edge.
-
-  *nedge = (INT) (v_v.nnz - v_v.row)/2;
-
-  /* Free matrices */
-  icsr_free(&v_v);
-  icsr_free(&v_el);
-  return;
-}
-/*******************************************************************************/
-
-/*******************************************************************************/
-iCSRmat get_edge_v(INT nedge,iCSRmat el_v) 
+iCSRmat get_edge_v(INT* nedge,iCSRmat el_v) 
 {
 	
   /* Gets the Edge to Vertex mapping in CSR Fromat (Should be dim independent)
    * This is used to get Element to Edge map, but also for determining
-   * things such as edge_length and the tangent vectors of edges 
+   * things such as edge_length and the tangent vectors of edges
+   * The routine also counts the number of edges. 
    *
    * Input: 
    *  el_v:    Element to Vertex Map
@@ -121,20 +85,6 @@ iCSRmat get_edge_v(INT nedge,iCSRmat el_v)
    */
 
   INT nv = el_v.col;
-  iCSRmat ed_v;
-  if ( nedge > 0 ) {
-    ed_v.IA = (INT *)calloc(nedge+1, sizeof(INT));
-  }
-  else {
-    ed_v.IA = NULL;
-  }
-  if ( nv > 0 ) {
-    ed_v.JA = (INT *)calloc(2*nedge, sizeof(INT));
-  }
-  else {
-    ed_v.JA = NULL;
-  }
-	
   INT i,j,col_b,col_e,icntr,jcntr; /* Loop indices and counters */
 	
   /* Get Transpose of el_v -> v_el */
@@ -146,6 +96,26 @@ iCSRmat get_edge_v(INT nedge,iCSRmat el_v)
   icsr_mxm_symb_1(&v_el,&el_v,&v_v);
   INT* iv_v = v_v.IA;
   INT* jv_v = v_v.JA;
+
+  // Get the number of edges.  
+  // This is the number of nonzeroes in the upper triangular
+  // part of vertex-vertex map (not including diagonal).
+  INT ned = (INT) (v_v.nnz - v_v.row)/2;
+  *nedge = ned;
+
+  iCSRmat ed_v;
+  if ( ned > 0 ) {
+    ed_v.IA = (INT *)calloc(ned+1, sizeof(INT));
+  }
+  else {
+    ed_v.IA = NULL;
+  }
+  if ( nv > 0 ) {
+    ed_v.JA = (INT *)calloc(2*ned, sizeof(INT));
+  }
+  else {
+    ed_v.JA = NULL;
+  }
 	  
   // Now go through upper triangular (above diagonal) portion of node-node and 
   // count non-zeros.
@@ -174,139 +144,16 @@ iCSRmat get_edge_v(INT nedge,iCSRmat el_v)
   icsr_free(&v_el);
 
   ed_v.val=NULL;
-  ed_v.row = nedge;
+  ed_v.row = ned;
   ed_v.col = nv;
-  ed_v.nnz = 2*nedge;
+  ed_v.nnz = 2*ned;
     
   return ed_v;
 }
 /*******************************************************************************/
 
 /*******************************************************************************/
-void isboundary_v(INT nv,INT *bdry_v,INT *v_bdry,INT nbedge,INT *nbv) 
-{	
-  /* Indicates whether a vertex is on boundary or not
-   *
-   *	Input:  nv:	Number of vertices
-   *		bdry_v	List of boundaries and corresponding vertices
-   *		nbedge	Total Number of boundary edges
-   *	Output: 
-   *		v_bdry	List of vertices and whether or not they're a boundary
-   *		nbv	Total number of boundary vertices
-   */
-	
-  INT i,m,cnt;
-    	
-  for (i=0; i<nv; i++) {
-    v_bdry[i] = 0;
-  }
-    	
-  for (i=0; i<2*nbedge; i++) {
-    m = bdry_v[i];
-    v_bdry[m-1] = 1;
-  }
-    	
-  cnt = 0;
-  for (i=0; i<nv; i++) {
-    if(v_bdry[i]==1) {
-      cnt++;
-    }
-  }
-  *nbv = cnt;
-    
-  return;
-}
-/*******************************************************************************/
-
-/*******************************************************************************/
-void isboundary_ed(iCSRmat ed_v,INT nedge,INT nbedge,INT *bdry_v,INT *ed_bdry) 
-{	
-  /* Indicates whether an edge is on boundary or not
-   *
-   *	Input:  ed_v		Edge to Vertex Map
-   *		nedge		Total number of Edges
-   *		nbedge:		Number of boundary edges
-   *		bdry_v		List of boundaries and corresponding vertices
-   *	Output: 
-   *		ed_bdry		List of Edges whether boundary or not 
-   */
-	
-  INT i,j,col_b,col_e,k,jcntr; /* Loop indices and counters */
-  INT* n = calloc(2,sizeof(INT));
-  INT* m = calloc(2,sizeof(INT));
-	
-  // Zero out ed_bdry
-  for (i=0; i<nedge; i++) {
-    ed_bdry[i] = 0;
-  }
-	
-  for (i=0; i<nedge; i++) {
-    col_b = ed_v.IA[i];
-    col_e = ed_v.IA[i+1]-1;
-    jcntr=0;
-    for (j=col_b; j<=col_e; j++) {
-      n[jcntr] = ed_v.JA[j-1];
-      jcntr++;
-    }
-    for (k=0; k<nbedge; k++) {
-      m[0] = bdry_v[k*2+0];
-      m[1] = bdry_v[k*2+1];
-      if (((n[0]==m[0]) && (n[1]==m[1])) || ((n[1]==m[0]) && (n[0]==m[1]))) {
-	ed_bdry[i] = 1;
-      }
-    }
-  }
-  if(n) free(n);
-  if(m) free(m);
-	
-  return;
-}
-/*******************************************************************************/
-
-/*******************************************************************************/
-void isboundary_ed3D(iCSRmat ed_v,INT nedge,coordinates *cv,INT *nbedge,INT *v_bdry,INT *ed_bdry) 
-{
-	
-  /* Counts the number of boundary edges and indicates whether an edge is a
-   * boundary
-   *
-   *	Input:  ed_v:		Edge to Vertex Map
-   *		nedge	    	Total number of edges
-   *		cv		Vertex Coordinates
-   *		v_bdry		List of vertices and whether they are on boundary
-   *	Output: 
-   *		ed_bdry		List of edges and whether they are on boundary
-   *		nbedge	        Number of boundary edges
-   */
-	
-  INT i,col_b,col_e,jcntr; /* Loop indices and counters */
-  INT n;
-  INT m;
-	
-  jcntr=0;
-  // For every edge get nodes
-  for (i=0; i<nedge; i++) {
-    col_b = ed_v.IA[i]-1;
-    col_e = ed_v.IA[i+1]-1;
-    n = ed_v.JA[col_b]-1;
-    m = ed_v.JA[col_b+1]-1;
-    //Check if two nodes are on boundary
-    if (v_bdry[n]!=0 && v_bdry[m]!=0) {
-      if(cv->x[n]==cv->x[m] || cv->y[n]==cv->y[m] || cv->z[n]==cv->z[m]) {
-	ed_bdry[i] = v_bdry[n];
-	jcntr++;
-      } else {
-	ed_bdry[i] = 0;
-      }
-    }
-  }
-  *nbedge = jcntr;
-  return;
-}
-/*******************************************************************************/
-
-/*******************************************************************************/
-void isboundary_ed_f(iCSRmat* f_ed,iCSRmat* ed_v,INT nedge,INT nface,INT *f_bdry,INT *v_bdry,INT *nbedge,INT *ed_bdry) 
+void isboundary_ed(iCSRmat* f_ed,iCSRmat* ed_v,INT nedge,INT nface,INT *f_bdry,INT *v_bdry,INT *nbedge,INT *ed_bdry) 
 {	
   /* Counts the number of boundary edges and indicates whether an edge is 
    * a boundary, using the f_bdry map.
@@ -654,8 +501,10 @@ void get_face_maps(iCSRmat el_v,INT el_order,iCSRmat ed_v,INT nface,INT dim,INT 
   iCSRmat v_ed;
   icsr_trans_1(&ed_v,&v_ed);
   icsr_mxm_symb_max_1(f_v,&v_ed,&face_ed,2);
+  printf("nface=%d\tnbface=%d\n\n\n",nface,nbf);
   for(i=0;i<nface+1;i++)
     f_ed->IA[i] = face_ed.IA[i];
+  
   for(i=0;i<nface*edpf;i++)
     f_ed->JA[i] = face_ed.JA[i];
   icsr_free(&face_ed);
@@ -1101,4 +950,164 @@ void get_el_vol(REAL *el_vol,iCSRmat el_v,coordinates *cv,INT dim,INT v_per_elm)
 }
 /********************************************************************************/
 
+/******* OUTDATED CODE **********************************************************/
 
+/*******************************************************************************/
+void get_nedge(INT* nedge, iCSRmat el_v) 
+{	
+  /* Gets the Number of Edges 
+   *
+   * Input:  
+   *  el_v:	Element to Node Map
+   *
+   * Output: 
+   *  nedge:	Total number of Edges
+   *
+   */
+		
+  /* Get Transpose of el_v -> v_el */
+  iCSRmat v_el;
+  icsr_trans_1(&el_v,&v_el);
+	
+  /* Create Vertex to Vertex Map by v_el*el_v */
+  iCSRmat v_v;
+  icsr_mxm_symb_1(&v_el,&el_v,&v_v);
+
+	
+  // Now go through upper triangular (above diagonal) portion of vertex-vertex 
+  // and count non-zeros
+  // Each of these vertex-vertex connections are edges.  Upper so we don't 
+  // count i->j and j->i as two separate edges, and no diagonal since i->i 
+  // is not an edge.
+
+  *nedge = (INT) (v_v.nnz - v_v.row)/2;
+
+  /* Free matrices */
+  icsr_free(&v_v);
+  icsr_free(&v_el);
+  return;
+}
+/*******************************************************************************/
+
+/*******************************************************************************/
+void isboundary_v(INT nv,INT *bdry_v,INT *v_bdry,INT nbedge,INT *nbv) 
+{	
+  /* Indicates whether a vertex is on boundary or not
+   *
+   *	Input:  nv:	Number of vertices
+   *		bdry_v	List of boundaries and corresponding vertices
+   *		nbedge	Total Number of boundary edges
+   *	Output: 
+   *		v_bdry	List of vertices and whether or not they're a boundary
+   *		nbv	Total number of boundary vertices
+   */
+	
+  INT i,m,cnt;
+    	
+  for (i=0; i<nv; i++) {
+    v_bdry[i] = 0;
+  }
+    	
+  for (i=0; i<2*nbedge; i++) {
+    m = bdry_v[i];
+    v_bdry[m-1] = 1;
+  }
+    	
+  cnt = 0;
+  for (i=0; i<nv; i++) {
+    if(v_bdry[i]==1) {
+      cnt++;
+    }
+  }
+  *nbv = cnt;
+    
+  return;
+}
+/*******************************************************************************/
+
+/*******************************************************************************/
+void isboundary_ed_old(iCSRmat ed_v,INT nedge,INT nbedge,INT *bdry_v,INT *ed_bdry) 
+{	
+  /* Indicates whether an edge is on boundary or not
+   *
+   *	Input:  ed_v		Edge to Vertex Map
+   *		nedge		Total number of Edges
+   *		nbedge:		Number of boundary edges
+   *		bdry_v		List of boundaries and corresponding vertices
+   *	Output: 
+   *		ed_bdry		List of Edges whether boundary or not 
+   */
+	
+  INT i,j,col_b,col_e,k,jcntr; /* Loop indices and counters */
+  INT* n = calloc(2,sizeof(INT));
+  INT* m = calloc(2,sizeof(INT));
+	
+  // Zero out ed_bdry
+  for (i=0; i<nedge; i++) {
+    ed_bdry[i] = 0;
+  }
+	
+  for (i=0; i<nedge; i++) {
+    col_b = ed_v.IA[i];
+    col_e = ed_v.IA[i+1]-1;
+    jcntr=0;
+    for (j=col_b; j<=col_e; j++) {
+      n[jcntr] = ed_v.JA[j-1];
+      jcntr++;
+    }
+    for (k=0; k<nbedge; k++) {
+      m[0] = bdry_v[k*2+0];
+      m[1] = bdry_v[k*2+1];
+      if (((n[0]==m[0]) && (n[1]==m[1])) || ((n[1]==m[0]) && (n[0]==m[1]))) {
+	ed_bdry[i] = 1;
+      }
+    }
+  }
+  if(n) free(n);
+  if(m) free(m);
+	
+  return;
+}
+/*******************************************************************************/
+
+/*******************************************************************************/
+void isboundary_ed3D_old(iCSRmat ed_v,INT nedge,coordinates *cv,INT *nbedge,INT *v_bdry,INT *ed_bdry) 
+{
+	
+  /* Counts the number of boundary edges and indicates whether an edge is a
+   * boundary
+   *
+   *	Input:  ed_v:		Edge to Vertex Map
+   *		nedge	    	Total number of edges
+   *		cv		Vertex Coordinates
+   *		v_bdry		List of vertices and whether they are on boundary
+   *	Output: 
+   *		ed_bdry		List of edges and whether they are on boundary
+   *		nbedge	        Number of boundary edges
+   */
+	
+  INT i,col_b,col_e,jcntr; /* Loop indices and counters */
+  INT n;
+  INT m;
+	
+  jcntr=0;
+  // For every edge get nodes
+  for (i=0; i<nedge; i++) {
+    col_b = ed_v.IA[i]-1;
+    col_e = ed_v.IA[i+1]-1;
+    n = ed_v.JA[col_b]-1;
+    m = ed_v.JA[col_b+1]-1;
+    //Check if two nodes are on boundary
+    if (v_bdry[n]!=0 && v_bdry[m]!=0) {
+      if(cv->x[n]==cv->x[m] || cv->y[n]==cv->y[m] || cv->z[n]==cv->z[m]) {
+	ed_bdry[i] = v_bdry[n];
+	jcntr++;
+      } else {
+	ed_bdry[i] = 0;
+      }
+    }
+  }
+  *nbedge = jcntr;
+  return;
+}
+/*******************************************************************************/

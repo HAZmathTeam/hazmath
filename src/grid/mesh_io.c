@@ -11,7 +11,7 @@
 #include "hazmat.h"
 
 /******************************************************************************/
-void read_grid_old(FILE *gfid,trimesh *mesh) 
+void read_grid_haz(FILE *gfid,trimesh *mesh) 
 {
   /* Reads in gridfile of the following form:
    *
