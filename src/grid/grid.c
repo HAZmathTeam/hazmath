@@ -130,16 +130,16 @@ void build_mesh(trimesh* mesh)
   INT euler = -10; // Euler Number should be 1 for simplices
   if(dim==2) {
     nface = nedge;
-    euler = nv - nedge + nelm;
+    euler = nv - nedge + nelm + nholes;
   } else if (dim==3) {
     nface = 1 + nedge-nv+nelm;
     nface = nface + nholes; // add number of holes!
-    euler = nv - nedge + nface - nelm;
+    euler = nv - nedge + nface - nelm - nholes;
   } else {
     baddimension();
   }
-  if(euler!=1+nholes) {
-    printf("Your simplices are all messed up.  Euler Characteristic doesn't equal 1+nholes!\teuler=%d\tnholes=%d",euler,nholes);
+  if(euler!=1) {
+    printf("Your simplices are all messed up.  Euler Characteristic doesn't equal 1+nholes!\teuler=%d\tnholes=%d\n\n",euler,nholes);
     exit(0);
   }
 

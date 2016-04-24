@@ -17,7 +17,7 @@ output_type			= 2;	% 1 to screen | 2 to file
 
 workdir				= ./			% path to input files 
 gridfile                        = ../grids/2D/unitSQ_hp0625.haz
-%gridfile                        = ../grids/3D/unitCUBE_v125.haz
+%gridfile                        = ../grids/3D/unitCUBE_v4913.haz
 
 %---------------%
 % finite element
@@ -51,6 +51,6 @@ nonlinear_itsolver_tol		= 1e-8 	% tolerance for nonlinear solver
 %---------------%
 
 linear_itsolver_type		= 1    	% 1 CG | 2 MINRES | 3 GMRES
-linear_itsolver_maxit		= 200  	% maximal iterations of linear iterative solver
+linear_itsolver_maxit		= 9000  	% maximal iterations of linear iterative solver
 linear_itsolver_tol		= 1e-12  % tolerance for linear iterative solver 
 
