@@ -291,7 +291,7 @@ int main (int argc, char* argv[])
   }
     
   clk2 = clock();
-  printf(" --> elapsed CPU time for mesh and FEM space construction = %f seconds.\n\n",
+  printf(" --> elapsed CPU time for mesh and FEM space construction = %lf seconds.\n\n", \
 	 (REAL) (clk2 - clk1)/CLOCKS_PER_SEC);
   /*******************************************************************************/
     
@@ -339,7 +339,7 @@ int main (int argc, char* argv[])
   }
     
   clk2 = clock();
-  printf(" --> elapsed CPU time for assembly = %f seconds.\n\n",(REAL) (clk2-clk1)/CLOCKS_PER_SEC);
+  printf(" --> elapsed CPU time for assembly = %lf seconds.\n\n",(REAL) (clk2-clk1)/CLOCKS_PER_SEC);
   /*******************************************************************************/
     
   /**************** Solve ********************************************************/
@@ -434,7 +434,7 @@ int main (int argc, char* argv[])
   if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
     
   clk2=clock();
-  printf(" --> elapsed CPU time for solve = %f seconds.\n\n",(REAL) (clk2-clk1)/CLOCKS_PER_SEC);  
+  printf(" --> elapsed CPU time for solve = %lf seconds.\n\n",(REAL) (clk2-clk1)/CLOCKS_PER_SEC);  
   /******************************************************************************/
     
   /**************** Compute Errors if you have true solution ********************/
@@ -446,11 +446,11 @@ int main (int argc, char* argv[])
   REAL uH1err = sqrt(uerr*uerr + graduerr*graduerr);
     
   printf("************************************************************************************\n");
-  printf("L2 Norm of u error      = %25.17g\n",uerr);
-  printf("H1 Semi-Norm of u error = %25.17g\n",graduerr);
-  printf("H1 Norm of u error      = %25.17g\n",uH1err);
+  printf("L2 Norm of u error      = %26.13e\n",uerr);
+  printf("H1 Semi-Norm of u error = %26.13e\n",graduerr);
+  printf("H1 Norm of u error      = %26.13e\n",uH1err);
   printf("************************************************************************************\n");
-  printf(" --> elapsed CPU time for getting errors = %f seconds.\n\n",(REAL) (clk2-clk1)/CLOCKS_PER_SEC);
+  printf(" --> elapsed CPU time for getting errors = %lf seconds.\n\n",(REAL) (clk2-clk1)/CLOCKS_PER_SEC);
   /******************************************************************************/
     
   /**************** Print Results or Dump Results *******************************/
@@ -475,7 +475,7 @@ int main (int argc, char* argv[])
   /******************************************************************************/
     
   clk_end = clock();
-  printf("\nEnd of Program: Total CPU Time = %f seconds.\n\n",(REAL) (clk_end-clk_start)/CLOCKS_PER_SEC);
+  printf("\nEnd of Program: Total CPU Time = %lf seconds.\n\n",(REAL) (clk_end-clk_start)/CLOCKS_PER_SEC);
   return 0;
     
 }	/* End of Program */
