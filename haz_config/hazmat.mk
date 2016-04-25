@@ -20,11 +20,6 @@
 #
 # debug=yes
 #
-# In order to get debug output during run-time, you can uncomment the 
-# following line (to include "-Wall -g -DDEBUG_MODE=3"):
-# 
-# debug=all
-#
 # The default setting for vebosity level for HAZMAT is verbose=no. If you
 # want to increase verbosity level, uncomment the next line:
 #
