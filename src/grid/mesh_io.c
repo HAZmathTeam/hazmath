@@ -265,11 +265,11 @@ void dump_mesh_vtk(char *namevtk,trimesh *mesh)
   // Dump coordinates
   if(dim == 2) {
     for(k=0;k<nv;k++) {
-      fprintf(fvtk," %24.16g %24.16g %24.16g ",mesh->cv->x[k],mesh->cv->y[k],0e0);
+      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],mesh->cv->y[k],0e0);
     }
   } else {
     for(k=0;k<nv;k++) {
-      fprintf(fvtk," %24.16g %24.16g %24.16g ",mesh->cv->x[k],mesh->cv->y[k], \
+      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],mesh->cv->y[k], \
   	      mesh->cv->z[k]);
     }
   }
