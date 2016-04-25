@@ -800,8 +800,7 @@ void get_div_RTtoL2(dCSRmat* Div,trimesh* mesh)
    *
    */
   
-  INT i,j,k,rowa,rowb,rowc,rowd,face,elm1,elm2,elm_big,n_felm;
-  INT nface = mesh->nedge;
+  INT i,j,rowa,rowb,rowc,rowd,face,elm1,elm2,elm_big,n_felm;
   INT nelm = mesh->nelm;
   REAL oneovervol=0.0;
   REAL farea=0.0;

@@ -25,7 +25,7 @@ void param_input_init (input_param *iniparam)
     //----------------
     strcpy(iniparam->workdir,"./");
     strcpy(iniparam->inifile,"./input.dat");
-    strcpy(iniparam->gridfile,"../input/grids/3D/ex3Dgrid_v125.dat");
+    strcpy(iniparam->gridfile,"../grids/2D/unitSQ_hp125.dat");
     
     //--------------------------
     // finite element parameters
@@ -107,6 +107,9 @@ void param_input_init (input_param *iniparam)
     iniparam->AMG_pair_number          = 2;
     iniparam->AMG_strong_coupled       = 0.08;
     iniparam->AMG_max_aggregation      = 20;
+
+    // HX Preconditioner
+    iniparam->HX_smooth_iter           = 1;
     
 }
 

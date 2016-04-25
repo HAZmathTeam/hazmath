@@ -683,7 +683,7 @@ void eliminate_DirichletBC_RHS(void (*bc)(REAL *,REAL *,REAL),fespace *FE,trimes
    *
    */
 
-  INT i,j,cola,colb;
+  INT i;
   INT ndof = FE->ndof;
   REAL* ub = (REAL *) calloc(ndof,sizeof(REAL));
 
@@ -805,7 +805,7 @@ void eliminate_DirichletBC_RHS_blockFE(void (*bc)(REAL *,REAL *,REAL),block_fesp
    *
    */
 
-  INT i,j,cola,colb;
+  INT i,j;
   INT ndof = FE->ndof;
   INT ndof_local=0, entry = 0;
   REAL* ub = (REAL *) calloc(ndof,sizeof(REAL));

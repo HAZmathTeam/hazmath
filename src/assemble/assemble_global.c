@@ -376,7 +376,6 @@ void assemble_global_face(dCSRmat* A,void (*local_assembly_face)(REAL *,fespace 
 
   INT dof_per_elm = FE->dof_per_elm;
   INT v_per_elm = mesh->v_per_elm;
-  INT f_per_elm = mesh->f_per_elm;
   INT dof_per_face = 0;
   INT dim = mesh->dim;
   if(FE->FEtype==1) { // P1 Elements

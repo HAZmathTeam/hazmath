@@ -42,7 +42,7 @@ void read_grid_haz(FILE *gfid,trimesh *mesh)
    *
    */
 	
-  INT i,j,k; /* Loop indices */
+  INT i,j; /* Loop indices */
 
   // Get Number of elements, nodes and boundary edges first
   INT* line1 = calloc(4,sizeof(INT));

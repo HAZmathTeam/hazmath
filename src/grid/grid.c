@@ -65,8 +65,6 @@ void creategrid_fread(FILE *gfid,INT file_type,trimesh* mesh)
    *
    */
 	
-  INT i,j,k; /* Loop indices */
-
   // READ FILE
   if(file_type==0) {
     read_grid_haz(gfid,mesh);
@@ -99,8 +97,6 @@ void build_mesh(trimesh* mesh)
   INT dim = mesh->dim;
   INT nelm = mesh->nelm;
   INT nv = mesh->nv;
-  INT nbv = mesh->nbv;
-  INT nconn_reg = mesh->nconn_reg;
   INT nconn_bdry = mesh->nconn_bdry;
   INT v_per_elm = dim+1;
   INT ed_per_elm = 3*(dim-1);
