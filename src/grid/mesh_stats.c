@@ -501,7 +501,6 @@ void get_face_maps(iCSRmat el_v,INT el_order,iCSRmat ed_v,INT nface,INT dim,INT 
   iCSRmat v_ed;
   icsr_trans_1(&ed_v,&v_ed);
   icsr_mxm_symb_max_1(f_v,&v_ed,&face_ed,2);
-  printf("nface=%d\tnbface=%d\n\n\n",nface,nbf);
   for(i=0;i<nface+1;i++)
     f_ed->IA[i] = face_ed.IA[i];
   
@@ -1086,7 +1085,7 @@ void isboundary_ed3D_old(iCSRmat ed_v,INT nedge,coordinates *cv,INT *nbedge,INT 
    *		nbedge	        Number of boundary edges
    */
 	
-  INT i,col_b,col_e,jcntr; /* Loop indices and counters */
+  INT i,col_b,jcntr; /* Loop indices and counters */
   INT n;
   INT m;
 	
@@ -1094,7 +1093,6 @@ void isboundary_ed3D_old(iCSRmat ed_v,INT nedge,coordinates *cv,INT *nbedge,INT 
   // For every edge get nodes
   for (i=0; i<nedge; i++) {
     col_b = ed_v.IA[i]-1;
-    col_e = ed_v.IA[i+1]-1;
     n = ed_v.JA[col_b]-1;
     m = ed_v.JA[col_b+1]-1;
     //Check if two nodes are on boundary

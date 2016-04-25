@@ -229,7 +229,7 @@ int main (int argc, char* argv[])
     
   // Set Parameters from Reading in Input File
   input_param     inparam;
-    param_input_init(&inparam);
+  param_input_init(&inparam);
   param_input("./input.dat", &inparam); 
     
   // Open gridfile for reading

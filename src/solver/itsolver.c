@@ -14,7 +14,7 @@
 /*--      Public Functions       --*/
 /*---------------------------------*/
 /********************************************************************************************/
-/* general itrative solver for different format
+// general itrative solver for different format          
 /********************************************************************************************/
 INT solver_dcsr_linear_itsolver (dCSRmat *A,
                                dvector *b,
