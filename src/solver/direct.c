@@ -143,7 +143,13 @@ void* umfpack_factorize (dCSRmat *ptrA,
     clock_t start_time = clock();
     
     status = umfpack_di_symbolic (n, n, Ap, Ai, Ax, &Symbolic, NULL, NULL);
+    if(status<0) {
+	fprintf(stderr,"UMFPACK ERROR in Symbolic, status = %d\n\n",status);
+    }
     status = umfpack_di_numeric (Ap, Ai, Ax, Symbolic, &Numeric, NULL, NULL);
+    if(status<0) {
+	fprintf(stderr,"UMFPACK ERROR in Numeric, status = %d\n\n",status);
+    }
     umfpack_di_free_symbolic (&Symbolic);
         
     if ( prtlvl > PRINT_MIN ) {
