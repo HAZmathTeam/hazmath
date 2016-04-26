@@ -130,8 +130,8 @@ void* umfpack_factorize (dCSRmat *ptrA,
      */
     
     const INT n = ptrA->col;
-    const INT m = ptrA->row;
-    const INT nnz = ptrA->nnz;
+    //const INT m = ptrA->row;
+    //const INT nnz = ptrA->nnz;
     
     INT *Ap = ptrA->IA;
     INT *Ai = ptrA->JA;
@@ -179,9 +179,9 @@ INT umfpack_solve (dCSRmat *ptrA,
      * Modified by Xiaozhe on 05/10/2014
      */
     
-    const INT n = ptrA->col;
-    const INT m = ptrA->row;
-    const INT nnz = ptrA->nnz;
+    /* const INT n = ptrA->col; */
+    /* const INT m = ptrA->row; */
+    /* const INT nnz = ptrA->nnz; */
     
     INT *Ap = ptrA->IA;
     INT *Ai = ptrA->JA;
