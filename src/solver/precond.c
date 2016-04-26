@@ -609,7 +609,7 @@ void precond_block_diag_maxwell (REAL *r,
      */
     
     precond_block_data *precdata=(precond_block_data *)data;
-    block_dCSRmat *A = precdata->Abcsr;
+    //block_dCSRmat *A = precdata->Abcsr;
     dCSRmat *A_diag = precdata->A_diag;
     //void **LU_diag = precdata->LU_diag;
     AMG_param *amgparam = precdata->amgparam;
@@ -859,13 +859,13 @@ void precond_block_diag_maxwell_krylov (REAL *r,
      */
     
     precond_block_data *precdata=(precond_block_data *)data;
-    block_dCSRmat *A = precdata->Abcsr;
+    // block_dCSRmat *A = precdata->Abcsr;
     dCSRmat *A_diag = precdata->A_diag;
     AMG_param *amgparam = precdata->amgparam;
     AMG_data **mgl = precdata->mgl;
     HX_curl_data **hxcurldata = precdata->hxcurldata;
     
-    INT i;
+    //INT i;
     
     dvector *tempr = &(precdata->r);
     
@@ -953,7 +953,7 @@ void precond_block_lower_maxwell_krylov (REAL *r,
     AMG_data **mgl = precdata->mgl;
     HX_curl_data **hxcurldata = precdata->hxcurldata;
     
-    INT i;
+    //    INT i;
     
     dvector *tempr = &(precdata->r);
     

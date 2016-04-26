@@ -624,7 +624,7 @@ INT linear_solver_dcsr_krylov_hx_curl (dCSRmat *A,
     
     const SHORT prtlvl = itparam->linear_print_level;
     const SHORT max_levels = amgparam->max_levels;
-    const INT nnz = A->nnz, m = A->row, n = A->col;
+    //const INT nnz = A->nnz, m = A->row, n = A->col;
     
     /*------------------------*/
     /* Local Variables */
@@ -828,14 +828,15 @@ INT linear_solver_bdcsr_krylov_block_3 (block_dCSRmat *A,
      */
     
     const SHORT prtlvl = itparam->linear_print_level;
-    const SHORT precond_type = itparam->linear_precond_type;
+    //const SHORT precond_type = itparam->linear_precond_type;
     
     INT status = SUCCESS;
     REAL setup_start, setup_end, setup_duration;
     REAL solver_start, solver_end, solver_duration;
     
     //const SHORT max_levels = amgparam->max_levels;
-    INT m, n, nnz, i;
+    //INT m, n, nnz; 
+    INT i;
     
     //AMG_data **mgl = NULL;
     
