@@ -266,7 +266,6 @@ static INT cfsplitting_cls (dCSRmat *A,
     INT maxmeas, maxnode, num_left = 0;
     INT measure, newmeas;
     INT i, j, k, l;
-    INT myid, mybegin, myend;
     INT *vec = vertices->val;
     INT *work = (INT*)calloc(3*row,sizeof(INT));
     INT *lists = work, *where = lists+row, *lambda = where+row;
@@ -531,7 +530,6 @@ static INT cfsplitting_clsp (dCSRmat *A,
 	INT maxmeas, maxnode, num_left = 0;
 	INT measure, newmeas;
 	INT i, j, k, l;
-	INT myid, mybegin, myend;
 	
 	INT *ia = A->IA, *vec = vertices->val;
 	INT *work = (INT*)calloc(3*row,sizeof(INT));
