@@ -185,10 +185,11 @@ void amg_data_free (AMG_data *mgl,
     switch (param->coarse_solver) {
             
 #if WITH_SUITESPARSE
-        case SOLVER_UMFPACK: {
-            free(mgl[max_levels-1].Numeric);
-            break;
-        }
+    case SOLVER_UMFPACK: {
+      umfpack_free_numeric(mgl[max_levels-1].Numeric);
+      //free(mgl[max_levels-1].Numeric);
+      break;
+    }
 #endif
             
         default: // Do nothing!
