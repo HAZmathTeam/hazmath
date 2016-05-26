@@ -187,7 +187,6 @@ void amg_data_free (AMG_data *mgl,
 #if WITH_SUITESPARSE
     case SOLVER_UMFPACK: {
       umfpack_free_numeric(mgl[max_levels-1].Numeric);
-      //free(mgl[max_levels-1].Numeric);
       break;
     }
 #endif
