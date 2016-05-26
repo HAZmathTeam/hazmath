@@ -215,3 +215,139 @@ FILE* HAZ_fopen( char *fname, char *mode )
   return fp;
 }
 /****************************************************************************************/
+
+/******************************************************************************/
+void dump_sol_onV_vtk(char *namevtk,trimesh *mesh,REAL *sol,INT ncomp)
+{
+
+  /* Dumps solution data to vtk format 
+  *
+  * Input:
+  *   mesh:     Mesh struct to dump
+  *    sol:     solution vector to dump
+  *  ncomp:     Number of components to the solution
+  * 
+  * Output:
+  *  namevtk  File name of vtk file
+  *
+  */
+
+  // Basic Quantities
+  INT nv = mesh->nv;
+  INT nelm = mesh->nelm;
+  INT dim = mesh->dim;
+  INT v_per_elm = mesh->v_per_elm;
+
+  // VTK needed Quantities
+  INT tcell=-10;
+  INT k=-10,j=-10,kndl=-10;
+  char *tfloat="Float64", *tinto="Int64", *endian="LittleEndian";
+   
+  /* 
+     What endian?:
+
+     Intel x86; OS=MAC OS X: little-endian
+     Intel x86; OS=Windows: little-endian
+     Intel x86; OS=Linux: little-endian
+     Intel x86; OS=Solaris: little-endian
+     Dec Alpha; OS=Digital Unix: little-endian
+     Dec Alpha; OS=VMS: little-endian
+     Hewlett Packard PA-RISC; OS=HP-UX: big-endian
+     IBM RS/6000; OS=AIX: big-endian
+     Motorola PowerPC; OS=Mac OS X:  big-endian
+     SGI R4000 and up; OS=IRIX: big-endian
+     Sun SPARC; OS=Solaris: big-endian
+  */
+
+  /* 
+     Types of cells for VTK 
+
+     VTK_VERTEX (=1) 
+     VTK_POLY_VERTEX (=2)
+     VTK_LINE (=3)
+     VTK_POLY_LINE (=4)
+     VTK_TRIANGLE(=5)
+     VTK_TRIANGLE_STRIP (=6)
+     VTK_POLYGON (=7) 
+     VTK_PIXEL (=8) 
+     VTK_QUAD (=9)
+     VTK_TETRA (=10)
+     VTK_VOXEL (=11)
+     VTK_HEXAHEDRON (=12)
+     VTK_WEDGE (=13) 
+     VTK_PYRAMID (=14)
+  */
+  const INT TRI=5;  
+  const INT TET=10;
+  
+  if(dim==2) 
+    tcell=TRI; /* triangle */
+  else 
+    tcell=TET; /* tet */
+
+  // Open File for Writing
+  FILE* fvtk = HAZ_fopen(namevtk,"w");  
+
+  // Write Headers
+  fprintf(fvtk, \
+	  "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"%s\">\n", \
+	  endian);
+  fprintf(fvtk,"<UnstructuredGrid>\n");
+  fprintf(fvtk,"<Piece NumberOfPoints=\"%i\" NumberOfCells=\"%i\">\n",nv,nelm);
+  fprintf(fvtk,"<Points>\n");
+  fprintf(fvtk,"<DataArray type=\"%s\" NumberOfComponents=\"3\" Format=\"ascii\">", \
+  	  tfloat);
+
+  // Dump coordinates
+  if(dim == 2) {
+    for(k=0;k<nv;k++) {
+      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],mesh->cv->y[k],0e0);
+    }
+  } else {
+    for(k=0;k<nv;k++) {
+      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],mesh->cv->y[k], \
+  	      mesh->cv->z[k]);
+    }
+  }
+  fprintf(fvtk,"</DataArray>\n");
+  fprintf(fvtk,"</Points>\n");
+
+  // Dump solution Data on Vertices of mesh
+  fprintf(fvtk,"<PointData Scalars=\"scalars\">\n");
+  INT i=0;
+  for(i=0;i<ncomp;i++) {
+    fprintf(fvtk,"<DataArray type=\"%s\" Name=\"Solution Component %i\" Format=\"ascii\">",tfloat,i);
+    for(k=0;k<nv;k++) fprintf(fvtk," %23.16e ",sol[i*nv+k]);
+    fprintf(fvtk,"</DataArray>\n");
+  }
+    fprintf(fvtk,"</PointData>\n");
+
+  // Dump el_v map
+  fprintf(fvtk,"<Cells>\n");
+  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"offsets\" Format=\"ascii\">",tinto);
+  for(k=1;k<=nelm;k++) fprintf(fvtk," %i ",mesh->el_v->IA[k]-1);
+  fprintf(fvtk,"</DataArray>\n");
+  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectivity\" Format=\"ascii\">\n",tinto);
+  for(k=0;k<nelm;k++){
+    kndl=k*v_per_elm;
+    for(j=0;j<v_per_elm;j++) fprintf(fvtk," %i ",mesh->el_v->JA[kndl + j]-1);
+  }
+  fprintf(fvtk,"</DataArray>\n");
+
+  // Dump Element Type
+  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"types\" Format=\"ascii\">",tinto);
+  for(k=1;k<=nelm;k++)
+    fprintf(fvtk," %i ",tcell);
+
+  // Put in remaining headers
+  fprintf(fvtk,"</DataArray>\n");
+  fprintf(fvtk,"</Cells>\n");
+  fprintf(fvtk,"</Piece>\n");
+  fprintf(fvtk,"</UnstructuredGrid>\n");
+  fprintf(fvtk,"</VTKFile>\n");
+
+  fclose(fvtk);
+
+  return;
+}
+/******************************************************************************/

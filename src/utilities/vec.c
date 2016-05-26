@@ -359,6 +359,28 @@ void dvec_axpy (const REAL a,
 }
 
 /***********************************************************************************************/
+void dvec_ax (const REAL a,
+                dvector *x)
+{
+    /**
+     * \fn void dvec_ax (const REAL a, dvector *x)
+     *
+     * \brief x = a*x
+     *
+     * \param a   REAL factor a
+     * \param x   Pointer to dvector x
+     *
+     */
+    
+    INT i, m=x->row;
+    REAL *xpt=x->val;
+    
+    
+    for (i=0; i<m; ++i) xpt[i] = a*xpt[i];
+    
+}
+
+/***********************************************************************************************/
 void dvec_axpyz(const REAL a,
                 dvector *x,
                 dvector *y,
