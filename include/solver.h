@@ -338,6 +338,21 @@ typedef struct {
 } precond_block_data; /**< Precond data for block matrices */
 
 /**
+ * \struct matvec
+ * \brief Matrix-vector multiplication
+ */
+typedef struct {
+    
+    //! data for Matrix-vector
+    void *data;
+    
+    //! action for Matrix-vector, should be a pointer to a function
+    void (*fct)(void *, REAL *, REAL *);
+    
+} matvec; /**< Data for general Matrix-vector multiplication */
+
+
+/**
  * \struct Link
  * \brief Struct for Links
  */
