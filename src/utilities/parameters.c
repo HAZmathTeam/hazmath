@@ -202,11 +202,11 @@ void param_ilu_init (ILU_param *iluparam)
 void param_linear_solver_init (linear_itsolver_param *itsparam)
 {
     itsparam->linear_print_level   = 0;
-    itsparam->linear_itsolver_type = SOLVER_CG;
+    itsparam->linear_itsolver_type = SOLVER_VFGMRES;
     itsparam->linear_precond_type  = PREC_NULL;
     itsparam->linear_stop_type     = STOP_REL_RES;
     itsparam->linear_maxit         = 500;
-    itsparam->linear_restart       = 25;
+    itsparam->linear_restart       = 100;
     itsparam->linear_tol           = 1e-6;
     
     // HX preconditioner
