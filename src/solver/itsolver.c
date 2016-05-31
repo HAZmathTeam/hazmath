@@ -199,6 +199,101 @@ INT solver_bdcsr_linear_itsolver (block_dCSRmat *A,
 }
 
 /********************************************************************************************/
+INT solver_general_linear_itsolver(matvec *mxv,
+                                 dvector *b,
+                                 dvector *x,
+                                 precond *pc,
+                                 linear_itsolver_param *itparam)
+{
+    /**
+     * \fn INT solver_general_linear_itsolver (dCSRmat *A, dvector *b, dvector *x,
+     *                                    precond *pc, linear_itsolver_param *itparam)
+     *
+     * \brief Solve Ax=b by preconditioned Krylov methods (matrix-free version)
+     *
+     * \param A        Pointer to the coeff matrix in dCSRmat format
+     * \param b        Pointer to the right hand side in dvector format
+     * \param x        Pointer to the approx solution in dvector format
+     * \param pc       Pointer to the preconditioning action
+     * \param itparam  Pointer to parameters for lienar iterative solvers
+     *
+     * \return         Iteration number if converges; ERROR otherwise.
+     *
+     * \author Xiaozhe Hu
+     * \date   05/31/2015
+     *
+     * \note This is an abstract interface for iterative methods.
+     */
+    
+    const SHORT prtlvl        = itparam->linear_print_level;
+    const SHORT itsolver_type = itparam->linear_itsolver_type;
+    const SHORT stop_type     = itparam->linear_stop_type;
+    const SHORT restart       = itparam->linear_restart;
+    const INT   MaxIt         = itparam->linear_maxit;
+    const REAL  tol           = itparam->linear_tol;
+    
+    /* Local Variables */
+    REAL solver_start, solver_end, solver_duration;
+    INT iter;
+    
+    gettime(&solver_start);
+    
+    /* Safe-guard checks on parameters */
+    ITS_CHECK ( MaxIt, tol );
+    
+    /* Choose a desirable Krylov iterative solver */
+    switch ( itsolver_type ) {
+        case 1:
+            if ( prtlvl > PRINT_NONE ) {
+                printf("**********************************************************\n");
+                printf(" --> using Conjugate Gradient Method:\n");
+            }
+            iter = general_pcg(mxv, b, x, pc, tol, MaxIt, stop_type, prtlvl);
+            break;
+            
+        case 2:
+            if ( prtlvl > PRINT_NONE ) {
+                printf("**********************************************************\n");
+                printf(" --> using MINRES Method:\n");
+            }
+            iter = general_pminres(mxv, b, x, pc, tol, MaxIt, stop_type, prtlvl);
+            printf(" NOTHING IMPLEMENTED FOR MINRES\n");
+            break;
+            
+        case 3:
+            if ( prtlvl > PRINT_NONE )  {
+                printf("**********************************************************\n");
+                printf(" --> using GMRES Method:\n");
+            }
+            iter = general_pvgmres(mxv, b, x, pc, tol, MaxIt, restart, stop_type, prtlvl);
+            break;
+            
+        case 4:
+            if ( prtlvl > PRINT_NONE ) {
+                printf("**********************************************************\n");
+                printf(" --> using Flexible GMRES Method:\n");
+            }
+            iter = general_pvfgmres(mxv, b, x, pc, tol, MaxIt, restart, stop_type, prtlvl);
+            break;
+            
+        default:
+            printf("### ERROR: Unknown itertive solver type %d!\n", itsolver_type);
+            return ERROR_SOLVER_TYPE;
+            
+    }
+    
+    if ( (prtlvl >= PRINT_SOME) && (iter >= 0) ) {
+        gettime(&solver_end);
+        solver_duration = solver_end - solver_start;
+        print_cputime("Iterative method", solver_duration);
+    }
+    
+    
+    return iter;
+}
+
+
+/********************************************************************************************/
 // AMG method for CSR format
 /********************************************************************************************/
 INT linear_solver_amg (dCSRmat *A,
