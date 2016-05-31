@@ -343,7 +343,7 @@ typedef struct {
  */
 typedef struct {
     
-    //! data for Matrix-vector
+    //! data for Matrix-vector multiplication
     void *data;
     
     //! action for Matrix-vector, should be a pointer to a function
