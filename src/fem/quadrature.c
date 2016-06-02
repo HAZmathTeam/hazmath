@@ -285,7 +285,7 @@ void quad_edge(qcoordinates *cqedge,trimesh *mesh,INT nq1d,INT edge)
 {
 	
   /* Computes quadrature weights and nodes for SINGLE Edge using nq1d quadrature nodes on
-   * a line
+   * a line.  Can be used to compute integrals on 1D boundaries (curves).
    *
    *    INPUT:
    *          mesh	Domain mesh
@@ -298,6 +298,7 @@ void quad_edge(qcoordinates *cqedge,trimesh *mesh,INT nq1d,INT edge)
 	
   INT q,j,nqdum; /* Loop indices */
   INT dim = mesh->dim;
+
   /* Coordinates of vertices of edge */
   coordinates *cvedge = allocatecoords(2,dim);
 
@@ -307,17 +308,16 @@ void quad_edge(qcoordinates *cqedge,trimesh *mesh,INT nq1d,INT edge)
     nq1d = 3;
   }
 	
-  /* Gaussian poINTs for reference element */
+  /* Gaussian points for reference element ([-1,1])*/
   REAL* gp = (REAL *) calloc(nq1d,sizeof(REAL));
   /* Gaussian weights for reference element */
   REAL* gw = (REAL *) calloc(nq1d,sizeof(REAL));		
 	
   REAL r;      	/* Points on Reference Edge */
 	
-  REAL dxt,dyt,dzt,dst; /* Jacobaians */
+  REAL w = 0.5*mesh->ed_len[edge]; /* Jacobian = 1/2 |e| */
  
   // Get coordinates of vertices for given edge
-  // Get vertices of edge
   INT* thisedge_v = (INT *) calloc(2,sizeof(INT));
   iCSRmat* ed_v = mesh->ed_v;
   get_incidence_row(edge,ed_v,thisedge_v);
@@ -336,22 +336,10 @@ void quad_edge(qcoordinates *cqedge,trimesh *mesh,INT nq1d,INT edge)
     baddimension();
   }
 
-  // Get Jacobian
-  dxt = 0.5*(cvedge->x[1]-cvedge->x[0]);
-  dyt = 0.5*(cvedge->y[1]-cvedge->y[0]);
-  if(dim==2) {
-    dst = sqrt(dxt*dxt+dyt*dyt);
-  } else if(dim==3) {
-    dzt = 0.5*(cvedge->z[1]-cvedge->z[0]);
-    dst = sqrt(dxt*dxt+dyt*dyt+dzt*dzt);
-  } else {
-    baddimension();
-  }
-
   // Get Quad Nodes and Weights
-  if(nqdum>=1) {
+  if(nqdum>=1) { // Not Simpson's Rule
     quad1d(gp,gw,nq1d);
-  } else {
+  } else { // Simpson's Rule
     gp[0] = -1.0;
     gp[1] = 0.0;
     gp[2] = 1.0;
@@ -366,7 +354,7 @@ void quad_edge(qcoordinates *cqedge,trimesh *mesh,INT nq1d,INT edge)
       r = gp[q];
       cqedge->x[q] = 0.5*cvedge->x[0]*(1-r) + 0.5*cvedge->x[1]*(1+r);
       cqedge->y[q] = 0.5*cvedge->y[0]*(1-r) + 0.5*cvedge->y[1]*(1+r);
-      cqedge->w[q] = dst*gw[q];	
+      cqedge->w[q] = w*gw[q];	
     }
   } else if(dim==3) {
     for (q=0; q<nq1d; q++) {
@@ -374,7 +362,7 @@ void quad_edge(qcoordinates *cqedge,trimesh *mesh,INT nq1d,INT edge)
       cqedge->x[q] = 0.5*cvedge->x[0]*(1-r) + 0.5*cvedge->x[1]*(1+r);
       cqedge->y[q] = 0.5*cvedge->y[0]*(1-r) + 0.5*cvedge->y[1]*(1+r);
       cqedge->z[q] = 0.5*cvedge->z[0]*(1-r) + 0.5*cvedge->z[1]*(1+r);
-      cqedge->w[q] = dst*gw[q];	
+      cqedge->w[q] = w*gw[q];	
     }
   }
 
@@ -386,6 +374,96 @@ void quad_edge(qcoordinates *cqedge,trimesh *mesh,INT nq1d,INT edge)
     cvedge=NULL;
   }
   if(thisedge_v) free(thisedge_v);
+	
+  return;
+}
+/****************************************************************************************/
+
+/********************************************************************************************************************/
+void quad_face(qcoordinates *cqface,trimesh *mesh,INT nq1d,INT face) 
+{
+	
+  /* Computes quadrature weights and nodes for SINGLE Face using nq1d*nq1d quadrature nodes on
+   * a surface.  Can be used to integrate on a boundary surface (face).
+   *
+   *    INPUT:
+   *          mesh	Domain mesh
+   *	      nq1d	quadrature nodes per edge
+   *          face      Index of current edge
+   *
+   *    OUTPUT:
+   *          cqface    quadrature nodes and weights for given edge
+   */
+	
+  INT q,j; /* Loop indices */
+  INT dim = mesh->dim;
+
+  /* Coordinates of vertices of face */
+  coordinates *cvface = allocatecoords(3,dim);
+	
+  /* Gaussian points for reference element ((0,0),(1,0),(0,1))*/
+  REAL* gp = (REAL *) calloc(2*nq1d*nq1d,sizeof(REAL));
+  /* Gaussian weights for reference element */
+  REAL* gw = (REAL *) calloc(nq1d*nq1d,sizeof(REAL));		
+	
+  REAL r,s;      	/* Points on Reference Edge */
+	
+  REAL w = 2*mesh->f_area[face]; /* Jacobian = 2*|f| */
+ 
+  // Get coordinates of vertices for given face
+  INT* thisface_v = (INT *) calloc(3,sizeof(INT));
+  iCSRmat* f_v = mesh->f_v;
+  get_incidence_row(face,f_v,thisface_v);
+  if(dim==2) {
+    for (j=0; j<3; j++) {
+      cvface->x[j] = mesh->cv->x[thisface_v[j]-1];
+      cvface->y[j] = mesh->cv->y[thisface_v[j]-1];
+    }
+  } else if(dim==3){
+    for (j=0; j<3; j++) {
+      cvface->x[j] = mesh->cv->x[thisface_v[j]-1];
+      cvface->y[j] = mesh->cv->y[thisface_v[j]-1];
+      cvface->z[j] = mesh->cv->z[thisface_v[j]-1];
+    }
+  } else {
+    baddimension();
+  }
+
+  // Get Quad Nodes and Weights
+  triquad_(gp,gw,nq1d);
+	
+  // Map to Real Triangle
+  // x = x1*(1-r-s) + x2*r + x3*s
+  // y = y1*(1-r-s) + y2*r + y3*s
+  // z = z1*(1-r-s) + z2*r + z3*s
+  // w = 2*Element Area*wref
+  if(dim==2) {
+    for (q=0; q<nq1d*nq1d; q++) {
+      r = gp[q];
+      s = gp[nq1d*nq1d+q];
+      cqface->x[q] = cvface->x[0]*(1-r-s) + cvface->x[1]*r + cvface->x[2]*s;
+      cqface->y[q] = cvface->y[0]*(1-r-s) + cvface->y[1]*r + cvface->y[2]*s;
+      cqface->w[q] = w*gw[q];	
+    }
+  } else if(dim==3) {
+    for (q=0; q<nq1d; q++) {
+      r = gp[q];
+      s = gp[nq1d*nq1d+q];
+      cqface->x[q] = cvface->x[0]*(1-r-s) + cvface->x[1]*r + cvface->x[2]*s;
+      cqface->y[q] = cvface->y[0]*(1-r-s) + cvface->y[1]*r + cvface->y[2]*s;
+      cqface->z[q] = cvface->z[0]*(1-r-s) + cvface->z[1]*r + cvface->z[2]*s;
+      cqface->w[q] = w*gw[q];	
+    }
+  }
+
+  if(gp) free(gp);
+  if(gw) free(gw);
+  if(cvface) {
+    free_coords(cvface);
+    free(cvface);
+    cvface=NULL;
+  }
+  if(thisface_v) free(thisface_v);
 	
   return;
 }
@@ -518,7 +596,7 @@ void dump_qcoords(qcoordinates *q)
 void quad1d(REAL *gaussp, REAL *gaussc, INT ng1d)
 {
 	
-  /* up to 101 Gaussian points on the reference domain
+  /* up to 5 Gaussian points on the reference domain
    * ng1d is the num of Gaussin pts in 1 direction    
    * gp(j) x coordinates of the j-th
    * Gaussian point; and gc(j) is the corresponding coefficient at the j-th
@@ -532,9 +610,9 @@ void quad1d(REAL *gaussp, REAL *gaussc, INT ng1d)
     ng1d = 2;
     printf("HEY!  Unless you want to do the midpoint rule, you better have at least 2 quadrature points...");
   }
-  if(ng1d>101) {
-    ng1d = 101;
-    printf("Getting greedy with the quadrature aren't we??");
+  if(ng1d>5) {
+    ng1d = 5;
+    printf("Getting greedy with the quadrature aren't we??\n\n");
   }
 
   switch (ng1d) {
