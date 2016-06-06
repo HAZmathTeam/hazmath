@@ -746,6 +746,224 @@ void impedancebdry_local(REAL* ZLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
 /******************************************************************************************************/
 
 /******************************************************************************************************/
+void boundary_mass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_f, \
+			 INT *dof_on_elm,INT *v_on_elm,INT face,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
+{
+  /* Computes the local weak formulation of the mass matrix on a boundary face (3D -> 2D surface; 2D -> 1D curve)
+   *
+   * For this problem we compute the left-hand side of:
+   *
+   *    <u,v>_bdryobstacle    for all v
+   *
+   *
+   *    INPUT:
+   *            FE		    Finite-Element Space Struct for E
+   *	      	mesh                Mesh Struct
+   *            cq                  Quadrature Coordinates and Weights on surface/curve
+   *            dof_on_f            Specific DOF on boundary face
+   *            v_on_elm            Vertices on current element associated with current face
+   *            elm                 Current element associated with current face
+   *            face                Current face on boundary
+   *            coeff               Function that gives coefficient (for now assume constant)
+   *            time                Time if time dependent
+   *
+   *    OUTPUT:
+   *	       	ALoc                Local Boundary Matrix (Full Matrix)
+   */
+	
+  // Mesh and FE data
+  INT dof_per_elm = FE->dof_per_elm;
+  INT dim = mesh->dim;
+  INT dof_per_f = 0;
+  
+  // Loop Indices
+  INT j,quad,test,trial,dof,doft,dofb;
+
+  // Quadrature Weights and Nodes
+  REAL w;
+  REAL* qx = (REAL *) calloc(3,sizeof(REAL));
+
+  // Stiffness Matrix Entry
+  REAL kij;
+
+  // Basis Functions and its derivatives if necessary
+  REAL* phi=NULL;
+  REAL* dphix=NULL;
+  REAL* dphiy=NULL;
+  REAL* dphiz=NULL;
+  
+  // Coefficient Value at Quadrature Nodes
+  REAL coeff_val=0.0;
+
+  if(FE->FEtype>0) { // PX elements
+    phi = (REAL *) calloc(dof_per_elm,sizeof(REAL));
+    dphix = (REAL *) calloc(dof_per_elm,sizeof(REAL));
+    dphiy = (REAL *) calloc(dof_per_elm,sizeof(REAL));
+    if(dim==3) dphiz = (REAL *) calloc(dof_per_elm,sizeof(REAL));
+
+    // Get DOF Per Face
+    if(dim==2) {
+      dof_per_f = FE->FEtype+1;
+    } else if(dim==3) {
+      dof_per_f = 3*FE->FEtype;
+    } else {
+      baddimension();
+    }
+
+    //  Sum over midpoints of edges
+    for (quad=0;quad<cq->nq_per_elm;quad++) {
+      qx[0] = cq->x[face*cq->nq_per_elm+quad];
+      qx[1] = cq->y[face*cq->nq_per_elm+quad];
+      if(mesh->dim==3) qx[2] = cq->z[face*cq->nq_per_elm+quad];
+      w = cq->w[face*cq->nq_per_elm+quad];
+      printf("\n\nHELLO\n\n");
+      if(coeff!=NULL) {
+	(*coeff)(&coeff_val,qx,time);
+      } else {
+	coeff_val = 1.0;
+      }
+    
+      //  Get the Basis Functions at each quadrature node
+      PX_H1_basis(phi,dphix,dphiy,dphiz,qx,dof_on_elm,FE->FEtype,mesh);
+
+      // Loop over Test Functions (Rows - vertices)
+      for (test=0; test<dof_per_f;test++) {
+	// Loop over Trial Functions (Columns)
+	for (trial=0; trial<dof_per_f; trial++) {
+	  // Make sure ordering for global matrix is right
+	  for(j=0;j<FE->dof_per_elm;j++) {
+	    if(dof_on_f[test]==dof_on_elm[j]) {
+	      doft = j;
+	    }
+	    if(dof_on_f[trial]==dof_on_elm[j]) {
+	      dofb = j;
+	    }
+	  }
+	  kij = coeff_val*(phi[dofb]*phi[doft]);
+	  ALoc[test*dof_per_f+trial]+=w*kij;
+	}
+      }
+    }
+  } else if(FE->FEtype==-1) {
+
+    // Basis Functions and its curl
+    phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
+    if(dim==2) {
+      dphix = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Curl of basis function
+    } else if (dim==3) {
+      dphix = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL)); // Curl of basis function
+    } else {
+      baddimension();
+    }
+
+    // Get DOF Per Face
+    if(dim==2) {
+      dof_per_f = 1;
+    } else if(dim==3) {
+      dof_per_f = 3;
+    } else {
+      baddimension();
+    }
+
+    //  Sum over quadrature points
+    for (quad=0;quad<cq->nq_per_elm;quad++) {        
+      qx[0] = cq->x[face*cq->nq_per_elm+quad];
+      qx[1] = cq->y[face*cq->nq_per_elm+quad];
+      if(mesh->dim==3) qx[2] = cq->z[face*cq->nq_per_elm+quad];
+      w = cq->w[face*cq->nq_per_elm+quad];
+
+      if(coeff!=NULL) {
+	(*coeff)(&coeff_val,qx,time);
+      } else {
+	coeff_val = 1.0;
+      }
+
+      //  Get the Basis Functions at each quadrature node
+      ned_basis(phi,dphix,qx,v_on_elm,dof_on_elm,mesh);
+
+      // Loop over Test Functions (Rows - edges)
+      for (test=0; test<dof_per_f;test++) {
+	// Loop over Trial Functions (Columns)
+	for (trial=0; trial<dof_per_f; trial++) {
+	  // Make sure ordering for global matrix is right
+	  for(j=0;j<FE->dof_per_elm;j++) {
+	    if(dof_on_f[test]==dof_on_elm[j]) {
+	      doft = j;
+	    }
+	    if(dof_on_f[trial]==dof_on_elm[j]) {
+	      dofb = j;
+	    }
+	  }
+	  kij = coeff_val*(phi[dofb*dim]*phi[doft*dim] + phi[dofb*dim+1]*phi[doft*dim+1]);
+	  if(dim==3) kij += coeff_val*(phi[dofb*dim+2]*phi[doft*dim+2]);
+	  ALoc[test*dof_per_f+trial]+=w*kij;
+	}
+      }
+    }
+  } else if(FE->FEtype==-2) { // Raviart-Thomas elements
+    phi = (REAL *) calloc(FE->dof_per_elm*dim,sizeof(REAL));
+    dphix = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL)); // Divergence of element
+
+    // Get DOF Per Face
+    if(dim==2) {
+      dof_per_f = 1;
+    } else if(dim==3) {
+      dof_per_f = 1;
+    } else {
+      baddimension();
+    }
+
+    //  Sum over quadrature points
+    for (quad=0;quad<cq->nq_per_elm;quad++) {        
+      qx[0] = cq->x[face*cq->nq_per_elm+quad];
+      qx[1] = cq->y[face*cq->nq_per_elm+quad];
+      if(mesh->dim==3) qx[2] = cq->z[face*cq->nq_per_elm+quad];
+      w = cq->w[face*cq->nq_per_elm+quad];
+
+      if(coeff!=NULL) {
+	(*coeff)(&coeff_val,qx,time);
+      } else {
+	coeff_val = 1.0;
+      }
+
+      //  Get the Basis Functions at each quadrature node
+      rt_basis(phi,dphix,qx,v_on_elm,dof_on_elm,mesh);
+
+      /// Loop over Test Functions (Rows - edges)
+      for (test=0; test<dof_per_f;test++) {
+	// Loop over Trial Functions (Columns)
+	for (trial=0; trial<dof_per_f; trial++) {
+	  // Make sure ordering for global matrix is right
+	  for(j=0;j<FE->dof_per_elm;j++) {
+	    if(dof_on_f[test]==dof_on_elm[j]) {
+	      doft = j;
+	    }
+	    if(dof_on_f[trial]==dof_on_elm[j]) {
+	      dofb = j;
+	    }
+	  }
+	  kij = coeff_val*(phi[dofb*dim]*phi[doft*dim] + phi[dofb*dim+1]*phi[doft*dim+1]);
+	  kij += coeff_val*(phi[dofb*dim+2]*phi[doft*dim+2]);
+	  ALoc[test*dof_per_f+trial]+=w*kij;
+	}
+      }
+    }
+  } else {
+    printf("Trying to implement non-existent elements!\n\n");
+    exit(0);
+  }
+  
+  if (phi) free(phi);
+  if(dphix) free(dphix);
+  if(dphiy) free(dphiy);
+  if(dphiz) free(dphiz);
+  if(qx) free(qx);
+
+  return;
+}
+/******************************************************************************************************/
+
+/******************************************************************************************************/
 void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,trimesh *mesh,qcoordinates *cq,INT *ed_on_elm,INT *v_on_elm,INT elm,dvector* u)  
 {
 
