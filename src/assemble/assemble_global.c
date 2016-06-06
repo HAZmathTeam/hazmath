@@ -411,7 +411,7 @@ void assemble_global_face(dCSRmat* A,void (*local_assembly_face)(REAL *,fespace 
   }
   	
   // Now Build Global Matrix entries
- 
+
   /* Loop over all Faces and build local matrix */
   INT local_size = dof_per_face*dof_per_face;
   REAL* ALoc = (REAL *) calloc(local_size,sizeof(REAL));
@@ -425,7 +425,7 @@ void assemble_global_face(dCSRmat* A,void (*local_assembly_face)(REAL *,fespace 
   // We will need the face to element map
   iCSRmat f_el;
   icsr_trans_1(mesh->el_f,&f_el);
-  
+   
   // Loop over boundary faces
   for (i=0; i<mesh->nface; i++) {	
     // Only grab the faces on the flagged boundary
@@ -484,6 +484,12 @@ void assemble_global_face(dCSRmat* A,void (*local_assembly_face)(REAL *,fespace 
   if(dof_on_f) free(dof_on_f);
   if(ALoc) free(ALoc);
   icsr_free(&f_el);
+
+  if(cq) {
+    free_qcoords(cq);
+    free(cq);
+    cq = NULL;
+  }
   
   return;
 }
