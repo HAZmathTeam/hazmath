@@ -369,7 +369,7 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
   INT nq = pow(nq1d,e_or_f);
 
   /* Coordinates of vertices of edge/face */
-  coordinates *cvdof = allocatecoords(dim,dim);
+  coordinates *cvdof = allocatecoords(e_or_f+1,dim);
 
   // Add in for Simpson's Rule if using edges
   if(nq1d==-1) {
@@ -397,7 +397,7 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
   }
  
   // Get coordinates of vertices for given edge/face
-  INT* thisdof_v = (INT *) calloc(dim,sizeof(INT));
+  INT* thisdof_v = (INT *) calloc(e_or_f+1,sizeof(INT));
   iCSRmat* dof_v = NULL;
   if(e_or_f==1) {
     dof_v = mesh->ed_v;
@@ -409,12 +409,12 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
   }
   get_incidence_row(dof,dof_v,thisdof_v);
   if(dim==2) {
-    for (j=0; j<2; j++) {
+    for (j=0; j<e_or_f+1; j++) {
       cvdof->x[j] = mesh->cv->x[thisdof_v[j]-1];
       cvdof->y[j] = mesh->cv->y[thisdof_v[j]-1];
     }
   } else if(dim==3){
-    for (j=0; j<2; j++) {
+    for (j=0; j<e_or_f+1; j++) {
       cvdof->x[j] = mesh->cv->x[thisdof_v[j]-1];
       cvdof->y[j] = mesh->cv->y[thisdof_v[j]-1];
       cvdof->z[j] = mesh->cv->z[thisdof_v[j]-1];
@@ -478,12 +478,11 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
 	cqbdry->w[q] = w*gw[q];	
       }
     } else if(dim==3) {
-      for (q=0; q<nq1d; q++) {
+      for (q=0; q<nq1d*nq1d; q++) {
 	r = gp[q];
 	s = gp[nq1d*nq1d+q];
 	cqbdry->x[q] = cvdof->x[0]*(1-r-s) + cvdof->x[1]*r + cvdof->x[2]*s;
 	cqbdry->y[q] = cvdof->y[0]*(1-r-s) + cvdof->y[1]*r + cvdof->y[2]*s;
-	printf("\n\nHELLO\n\n");
 	cqbdry->z[q] = cvdof->z[0]*(1-r-s) + cvdof->z[1]*r + cvdof->z[2]*s;
 	cqbdry->w[q] = w*gw[q];	
       }

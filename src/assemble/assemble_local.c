@@ -816,7 +816,7 @@ void boundary_mass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
       qx[1] = cq->y[face*cq->nq_per_elm+quad];
       if(mesh->dim==3) qx[2] = cq->z[face*cq->nq_per_elm+quad];
       w = cq->w[face*cq->nq_per_elm+quad];
-      printf("\n\nHELLO\n\n");
+
       if(coeff!=NULL) {
 	(*coeff)(&coeff_val,qx,time);
       } else {
