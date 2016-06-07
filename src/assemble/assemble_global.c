@@ -484,12 +484,6 @@ void assemble_global_face(dCSRmat* A,void (*local_assembly_face)(REAL *,fespace 
   if(dof_on_f) free(dof_on_f);
   if(ALoc) free(ALoc);
   icsr_free(&f_el);
-
-  if(cq) {
-    free_qcoords(cq);
-    free(cq);
-    cq = NULL;
-  }
   
   return;
 }
