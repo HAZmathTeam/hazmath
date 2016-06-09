@@ -777,7 +777,7 @@ void boundary_mass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
   INT dof_per_f = 0;
   
   // Loop Indices
-  INT j,quad,test,trial,dof,doft,dofb;
+  INT j,quad,test,trial,doft,dofb;
 
   // Quadrature Weights and Nodes
   REAL w;
