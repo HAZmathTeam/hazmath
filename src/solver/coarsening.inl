@@ -1652,6 +1652,7 @@ static void form_P_pattern_std (dCSRmat *P,
 	free(visited);
 }
 
+#if 0
 /***********************************************************************************************/
 static INT cfsplitting_mis (iCSRmat *S,
                             ivector *vertices,
@@ -1710,6 +1711,7 @@ static INT cfsplitting_mis (iCSRmat *S,
 	return col;
 }
 
+
 /***********************************************************************************************/
 static void ordering1 (iCSRmat *S,
                        ivector *order)
@@ -1753,6 +1755,8 @@ static void ordering1 (iCSRmat *S,
 	ord[maxind] = 0;
 	return;
 }
+
+#endif
 
 /***********************************************************************************************/
 SHORT amg_coarsening_c(dCSRmat *A,

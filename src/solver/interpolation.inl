@@ -474,6 +474,8 @@ static void interp_STD (dCSRmat *A,
     amg_interp_trunc(P, param);
 }
 
+
+#if 0
 /***********************************************************************************************/
 static void interp_EXT (dCSRmat *A,
                         ivector *vertices,
@@ -678,6 +680,7 @@ static void interp_EXT (dCSRmat *A,
     amg_interp_trunc(P, param);
 }
 
+#endif
 
 /***********************************************************************************************/
 void amg_interp (dCSRmat *A,

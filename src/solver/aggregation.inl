@@ -13,6 +13,8 @@
 /*--      Private Functions      --*/
 /*---------------------------------*/
 
+#if 0
+
 /***********************************************************************************************/
 static INT krylov_cycle_dcsr_pgcg (dCSRmat *A,
                                         dvector *b,
@@ -121,6 +123,7 @@ static INT krylov_cycle_dcsr_pgcg (dCSRmat *A,
 }
 
 
+
 static void pairwise_aggregation_initial (const dCSRmat *A,
                                           INT checkdd,
                                           REAL kaptg,
@@ -199,7 +202,6 @@ static void pairwise_aggregation_initial (const dCSRmat *A,
     free(colmax);
     free(abscolsum);
 }
-
 
 static void pairwise_aggregation_initial2 (const dCSRmat *A,
                                            ivector *vertices,
@@ -465,6 +467,7 @@ static INT cholesky_factorization_check (REAL W[8][8],
     return status;
 }
 
+
 static INT aggregation_quality_check(dCSRmat *A,
                                      ivector *tentmap,
                                      REAL *s,
@@ -625,6 +628,7 @@ static INT aggregation_quality_check(dCSRmat *A,
     
     return status;
 }
+
 
 
 static void first_pairwise_unsymm (const dCSRmat * A,
@@ -1073,6 +1077,7 @@ static void second_pairwise_unsymm (dCSRmat *A,
     free(Tval);
 }
 
+#endif
 
 static void form_tentative_p (ivector *vertices,
                               dCSRmat *tentp,
@@ -1337,7 +1342,7 @@ static void form_pairwise (const dCSRmat * A,
     free(s);
 }
 
-
+#if 0
 static void smooth_agg (dCSRmat *A,
                         dCSRmat *tentp,
                         dCSRmat *P,
@@ -1461,7 +1466,8 @@ static void smooth_agg (dCSRmat *A,
     P->nnz = P->IA[P->row];
     dcsr_free(&S);
 }
-    
+
+#endif
 
 static SHORT aggregation_pairwise (AMG_data *mgl,
                                    AMG_param *param,
