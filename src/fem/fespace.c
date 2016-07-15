@@ -358,18 +358,21 @@ void dump_fespace(fespace *FE,char *varname,char *dir)
   sprintf(bdryname,"%s/bdry_%s.dat",dir,varname);
   FILE* fid1 = fopen(eldofname,"w");
   FILE* fid2 = fopen(bdryname,"w");
-    
-  // Dump Element to DOF map
-  dump_el_dof(fid1,FE->el_dof);
+  
+  if(fid1==NULL || fid2==NULL) {
+	printf("\n\nFilenames: %s\t%s are incorrect or do not exist.  No files dumped.\n\n",eldofname,bdryname);
+  } else {  
+  	// Dump Element to DOF map
+  	dump_el_dof(fid1,FE->el_dof);
 
-  // Dump boundary data
-  for(i=0;i<totdof;i++) {
-    fprintf(fid2,"%d\n",FE->dof_bdry[i]);
-  }
+  	// Dump boundary data
+  	for(i=0;i<totdof;i++) {
+    	fprintf(fid2,"%d\n",FE->dof_bdry[i]);
+  	}
 
-  fclose(fid1);
-  fclose(fid2);
-	
+  	fclose(fid1);
+  	fclose(fid2);
+  }	
   return;
 }
 /****************************************************************************************/
