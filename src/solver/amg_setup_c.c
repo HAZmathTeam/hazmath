@@ -41,7 +41,7 @@ SHORT amg_setup_c (AMG_data *mgl,
     const SHORT csolver    = param->coarse_solver;
     const SHORT min_cdof   = MAX(param->coarse_dof,MIN_CDOF);
     const INT   m          = mgl[0].A.row;
-    
+
     // local variables
     SHORT         status = SUCCESS;
     INT           lvl = 0, max_lvls = param->max_levels;
@@ -126,27 +126,35 @@ SHORT amg_setup_c (AMG_data *mgl,
         /*-- Coarsening and form the structure of interpolation --*/
         status = amg_coarsening_c(&mgl[lvl].A, &vertices, &mgl[lvl].P,
 		                                &Scouple, param);
-        
-        // Check 1: Did coarsening step succeeded?
+
+           // Check 1: Did coarsening step succeeded?
         if ( status < 0 ) {
             // When error happens, stop at the current multigrid level!
-            if ( prtlvl > PRINT_MIN ) {
+            if ( prtlvl > 0 ) {
                 printf("### WARNING: Could not find any C-variables!\n");
                 printf("### WARNING: RS coarsening on level-%d failed!\n", lvl);
             }
+	    free(Scouple.IA);
+	    free(Scouple.JA);
             status = SUCCESS; break;
         }
 
         // Check 2: Is coarse sparse too small?
-        if ( mgl[lvl].P.col < MIN_CDOF ) break;
-        
+        if ( mgl[lvl].P.col < MIN_CDOF ) {
+	  free(Scouple.IA);
+	  free(Scouple.JA);
+	  break;
+        }
+	
         // Check 3: Does this coarsening step too aggressive?
         if ( mgl[lvl].P.row > mgl[lvl].P.col * 10.0 ) {
-            if ( prtlvl > PRINT_MIN ) {
+            if ( prtlvl > 0 ) {
                 printf("### WARNING: Coarsening might be too aggressive!\n");
                 printf("### WARNING: Fine level = %d, coarse level = %d. Discard!\n",
                        mgl[lvl].P.row, mgl[lvl].P.col);
             }
+	    free(Scouple.IA);
+	    free(Scouple.JA);
             break;
         }
         
@@ -175,7 +183,7 @@ SHORT amg_setup_c (AMG_data *mgl,
         
         // Check 4: Is the coarse matrix too dense?
         if ( mgl[lvl].A.nnz / mgl[lvl].A.row > mgl[lvl].A.col * 0.2 ) {
-            if ( prtlvl > PRINT_MIN ) {
+            if ( prtlvl > 0 ) {
                 printf("### WARNING: Coarse matrix is too dense!\n");
                 printf("### WARNING: m = n = %d, nnz = %d!\n",
                        mgl[lvl].A.col, mgl[lvl].A.nnz);
@@ -201,7 +209,7 @@ SHORT amg_setup_c (AMG_data *mgl,
         case SOLVER_UMFPACK: {
             // Need to sort the matrix A for UMFPACK to work
             dCSRmat Ac_tran;
-            Ac_tran = dcsr_create(mgl[lvl].A.row, mgl[lvl].A.col, mgl[lvl].A.nnz);
+            //Ac_tran = dcsr_create(mgl[lvl].A.row, mgl[lvl].A.col, mgl[lvl].A.nnz);
             dcsr_trans(&mgl[lvl].A, &Ac_tran);
             // It is equivalent to do transpose and then sort
             //     fasp_dcsr_trans(&mgl[lvl].A, &Ac_tran);

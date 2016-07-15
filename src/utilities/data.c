@@ -175,7 +175,7 @@ void amg_data_free (AMG_data *mgl,
         ivec_free(&mgl[i].cfmark);
         ilu_data_free(&mgl[i].LU);
     }
-    
+
     for (i=0; i<mgl->near_kernel_dim; ++i) {
         if (mgl->near_kernel_basis[i]) free(mgl->near_kernel_basis[i]);
         mgl->near_kernel_basis[i] = NULL;
