@@ -14,6 +14,7 @@
  *
  */
 
+#if WITH_SUITESPARSE
 /***************************************************************************************************************************/
 INT directsolve_UMF_symmetric(dCSRmat *A,dvector *f,REAL *x,INT print_level) 
 {
@@ -112,7 +113,6 @@ INT directsolve_UMF_symmetric(dCSRmat *A,dvector *f,REAL *x,INT print_level)
 }
 
 /***************************************************************************************************************************/
-#if WITH_SUITESPARSE
 void* umfpack_factorize (dCSRmat *ptrA,
                          const SHORT prtlvl)
 {
