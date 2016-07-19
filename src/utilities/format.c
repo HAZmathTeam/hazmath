@@ -168,6 +168,57 @@ block_dCSRmat dcsr_2_bdcsr (dCSRmat *A, int bnum, int *bsize)
     return Ab;
 }
 
+/***********************************************************************************************/
+SHORT dcoo_2_dcsr (dCOOmat *A,
+                   dCSRmat *B)
+{
+    /**
+     * \fn SHORT dcoo_2_dcsr (dCOOmat *A, dCSRmat *B)
+     *
+     * \brief Transform a REAL matrix from its IJ format to its CSR format.
+     *
+     * \param A   Pointer to dCOOmat matrix
+     * \param B   Pointer to dCSRmat matrix
+     *
+     * \return    SUCCESS if successed; otherwise, error information.
+     *
+     * \author Xiaozhe Hu
+     * \date   07/11/2016
+     */
+    
+    const INT m=A->row, n=A->col, nnz=A->nnz;
+    
+    dcsr_alloc(m,n,nnz,B);
+    
+    INT * ia = B->IA, i;
+    INT   iind, jind;
+    
+    INT * ind = (INT *) calloc(m+1,sizeof(INT));
+    
+    //for (i=0; i<=m; ++i) ind[i]=0; // initialize
+    memset(ind, 0, sizeof(INT)*(m+1));
+    
+    for (i=0; i<nnz; ++i) ind[A->rowind[i]+1]++; // count nnz in each row
+    
+    ia[0] = 0; // first index starting from zero
+    for (i=1; i<=m; ++i) {
+        ia[i] = ia[i-1]+ind[i]; // set row_idx
+        ind[i] = ia[i];
+    }
+    
+    // loop over nnz and set col_idx and val
+    for (i=0; i<nnz; ++i) {
+        iind = A->rowind[i]; jind = ind[iind];
+        B->JA [jind] = A->colind[i];
+        B->val[jind] = A->val[i];
+        ind[iind] = ++jind;
+    }
+    
+    if (ind) free(ind);
+    
+    return SUCCESS;
+}
+
 /*---------------------------------*/
 /*--        End of File          --*/
 /*---------------------------------*/

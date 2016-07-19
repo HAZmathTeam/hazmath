@@ -3895,7 +3895,11 @@ INT general_pvfgmres (matvec *mxv,
     for ( i = 0; i < Restart1; i++ ) z[i] = hh[Restart] + Restart + i*n;
     
     /* initialization */
+    //for (i = 0; i < x->row; i++) printf("x[%d] = %f\n", i, x->val[i]);
+    //for (i = 0; i < x->row; i++) printf("p[%d] = %f\n", i, p[0][i]);
+    
     mxv->fct(mxv->data, x->val, p[0]);
+        
     array_axpby(n, 1.0, b->val, -1.0, p[0]);
     
     b_norm = array_norm2(n, b->val);

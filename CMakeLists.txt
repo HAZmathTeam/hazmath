@@ -176,6 +176,22 @@ if (USE_SUITESPARSE)
      endif(SUITESPARSE_FOUND)
 endif(USE_SUITESPARSE)
 
+#################################################################
+# For MATLAB: if want to use Matlab interface
+#################################################################
+if (USE_MATLAB)
+
+   find_package(MATLAB)
+
+   if (MATLAB_FOUND)
+      add_definitions("-DWITH_MATLAB=1")
+      include_directories(${Matlab_INCLUDE_DIRS})
+   else(MATLAB_FOUND)
+      message("    WARNING: MATLAB was requested but not supported!")	
+   endif(MATLAB_FOUND)
+
+endif(USE_MATLAB)
+
 # Add include directories.
     include_directories(${HAZMATLIB_BASE_PATH}/include)
 # 

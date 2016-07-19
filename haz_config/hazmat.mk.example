@@ -67,6 +67,11 @@
 # $(suitesparse_dir)/include or in the system standard paths for libraries
 # and header files. 
 # -------------------------------------------------------------------------
+# If you want to use the interface with MATLAB, uncomment the next line:
+#
+# matlab=yes
+#
+# ------------------------------------------------------------------------
 ####################  User Defined Compiler Flags  #####################
 #cflags="-funroll-loops -funswitch-loops"
 #cxxflags="-funroll-loops -funswitch-loops"

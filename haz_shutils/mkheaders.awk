@@ -22,7 +22,7 @@ BEGIN {
   print "#include <sys/types.h>"
   print "#include <time.h>"
   print "#include <unistd.h>"
-  print "#include <assert.h>" 
+  print "#include <assert.h>"
   print "// Internal Includes"
   print "#include \"macro.h\""
   print "#include \"grid.h\""
@@ -31,6 +31,10 @@ BEGIN {
   print "#include \"fem.h\""
   print "#include \"solver.h\""
   print "#include \"param.h\""
+  print "// Special Includes"
+  print "#if WITH_MATLAB"
+  print "#include \"mex.h\""
+  print "#endif"
 }
 
 {

@@ -192,7 +192,7 @@ void param_ilu_init (ILU_param *iluparam)
      */
     
     iluparam->print_level  = PRINT_NONE;
-    iluparam->ILU_type     = ILUk;
+    iluparam->ILU_type     = ILUt;
     iluparam->ILU_lfil     = 2;
     iluparam->ILU_droptol  = 0.001;
     iluparam->ILU_relax    = 0;
@@ -206,7 +206,7 @@ void param_linear_solver_init (linear_itsolver_param *itsparam)
     itsparam->linear_precond_type  = PREC_NULL;
     itsparam->linear_stop_type     = STOP_REL_RES;
     itsparam->linear_maxit         = 500;
-    itsparam->linear_restart       = 100;
+    itsparam->linear_restart       = 500;
     itsparam->linear_tol           = 1e-6;
     
     // HX preconditioner

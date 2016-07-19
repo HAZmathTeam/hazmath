@@ -75,6 +75,38 @@ typedef struct iCSRmat{
 } iCSRmat; /**< Sparse matrix of INT type in CSR format */
 
 /**
+ * \struct dCOOmat
+ * \brief Sparse matrix of REAL type in COO (or IJ) format
+ *
+ * Coordinate Format (I,J,A)
+ *
+ * \note The starting index of A is 0.
+ * \note Change I to rowind, J to colind. To avoid with complex.h confliction on I.
+ */
+typedef struct dCOOmat{
+    
+    //! row number of matrix A, m
+    INT row;
+    
+    //! column of matrix A, n
+    INT col;
+    
+    //! number of nonzero entries
+    INT nnz;
+    
+    //! integer array of row indices, the size is nnz
+    INT *rowind;
+    
+    //! integer array of column indices, the size is nnz
+    INT *colind;
+    
+    //! nonzero entries of A
+    REAL *val;
+    
+} dCOOmat; /**< Sparse matrix of REAL type in COO format */
+
+
+/**
  * \struct block_dCSRmat
  * \brief Block REAL CSR matrix format
  *

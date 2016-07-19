@@ -396,6 +396,8 @@ void dvec_axpyz(const REAL a,
      * \param y   Pointer to dvector y
      * \param z   Pointer to dvector z
      *
+     * note: something wrong with the function!! -- Xiaozhe 
+     *
      */
     
     const INT m=x->row;
