@@ -53,6 +53,10 @@ ifeq ($(suitesparse), yes)
     CONFIG_FLAGS+=-DSUITESPARSE_DIR=$(suitesparse_dir)
 endif
 
+ifeq ($(matlab), yes)
+    CONFIG_FLAGS+=-DUSE_MATLAB=$(matlab)
+endif
+
 CONFIG_FLAGS+=-DADD_CFLAGS=$(cflags)
 CONFIG_FLAGS+=-DADD_CXXFLAGS=$(cxxflags)
 

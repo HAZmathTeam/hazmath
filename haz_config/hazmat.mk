@@ -46,7 +46,7 @@
 #-------------------------------------------------------------------------
 # If you want to use the SuiteSparse package, uncomment the next 
 # line (and read carefully the instructons below it):
-# 
+#
  suitesparse=yes
 #
 # If you have installed SuiteSparse from source or for some other
@@ -61,6 +61,11 @@
 # These are expected to be found in $(suitesparse_dir)/lib and
 # $(suitesparse_dir)/include or in the system standard paths for libraries
 # and header files. 
+# -------------------------------------------------------------------------
+# If you want to use the interface with MATLAB, uncomment the next line:
+#
+ matlab=yes
+#
 # -------------------------------------------------------------------------
 ####################  User Defined Compiler Flags  #####################
 #cflags="-funroll-loops -funswitch-loops"
