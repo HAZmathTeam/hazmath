@@ -64,7 +64,7 @@
 # -------------------------------------------------------------------------
 # If you want to use the interface with MATLAB, uncomment the next line:
 #
- matlab=yes
+# matlab=yes
 #
 # -------------------------------------------------------------------------
 ####################  User Defined Compiler Flags  #####################
