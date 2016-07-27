@@ -176,6 +176,256 @@ void LocaltoGlobal(INT *dof_on_elm,fespace *FE,dvector *b,dCSRmat *A,REAL *ALoc,
 }
 /******************************************************************************************************/
 
+/******************************************************************************************************/
+void stiffG_nnz_FE1FE2(dCSRmat *A, fespace *FE1, fespace *FE2) 
+{
+  /* Computes the "possible" number of nonzeros for the global stiffness matrix
+   * Ignores Dirichlet boundary conditions, which can be eliminated later. 
+   * Assumes non-square system where test and trial are from different FE spaces 
+   *
+   * Entry will be nonzero if degree of freedom belongs to the element (i.e. row)
+   * 
+   *
+   *    INPUT:
+   *          FE1		    Finite-Element Space Struct for trial functions (u)
+   *          FE2		    Finite-Element Space Struct for test  functions (v)
+   *
+   *    OUTPUT:
+   *          A->IA(ndof)	    Rows of Global A
+   *	      A->nnzA		    Nonzeroes of A (ignoring cancellations)
+   */
+	
+  INT i,j,k,j_a,j_b,k_a,k_b,mydof,if1,icp;
+		
+  // We will need the DOF to element map of the test space
+  iCSRmat dof_el_2;
+  icsr_trans_1(FE2->el_dof,&dof_el_2);
+
+  INT nrows = FE2->ndof;
+  INT ncols = FE1->ndof;
+	
+  INT* ix = (INT *) calloc(ncols,sizeof(INT));
+  for (i=0; i<ncols; i++) {
+    ix[i] = 0;	
+  }
+	
+  // Loop over all DOF of test space and count possible nonzeros in A
+  // Also build A->IA, while you're at it...
+  icp=1;
+  for (i=0; i<nrows; i++) {
+    A->IA[i] = icp;
+    // Loop over all Elements connected to particular DOF of test space
+    j_a = dof_el_2.IA[i];
+    j_b = dof_el_2.IA[i+1]-1;
+    for (j=j_a; j<=j_b; j++) {
+      if1 = dof_el_2.JA[j-1];
+      // For this given element grab the DOF in the trial space
+      k_a = FE1->el_dof->IA[if1-1];
+      k_b = FE1->el_dof->IA[if1]-1;
+      for (k=k_a; k<=k_b; k++) {
+	mydof = FE1->el_dof->JA[k-1];
+	if (ix[mydof-1]!=i+1) { /* We haven't been here  */
+	  icp++;
+	  ix[mydof-1] = i+1;
+	}
+      }
+				
+    }
+  }
+  A->IA[nrows] = icp;
+  A->nnz = icp-1;
+		
+  if(ix) free(ix);
+  icsr_free(&dof_el_2);
+	
+  return;
+}
+/******************************************************************************************************/
+
+/******************************************************************************************************/
+void stiffG_cols_FE1FE2(dCSRmat *A, fespace *FE1, fespace *FE2)
+{
+  /* Finds the column sparsity structure of the  Global Stiffness Matrix
+   * Ignores Dirichlet boundary conditions to be eliminated later.  
+   * Assumes non-square system where test and trial are from different FE spaces 
+   *
+   * Entry will be nonzero if degree of freedom belongs to the element (i.e. row)
+   * 
+   *
+   *    INPUT:
+   *          FE1		    Finite-Element Space Struct for trial functions (u)
+   *          FE2		    Finite-Element Space Struct for test  functions (v)
+   *
+   *    OUTPUT:
+   *          A->IA(ndof)	    Rows of Global A
+   *	      A->nnzA		    Nonzeroes of A (ignoring cancellations)
+   */
+	
+  INT i,j,k,j_a,j_b,k_a,k_b,mydof,if1,icp;
+	
+  // We will need the DOF to element map of the test space
+  iCSRmat dof_el_2;
+  icsr_trans_1(FE2->el_dof,&dof_el_2);
+
+  INT nrows = FE2->ndof;
+  INT ncols = FE1->ndof;
+	
+  INT* ix = (INT *) calloc(ncols,sizeof(INT));
+  for (i=0; i<ncols; i++) {
+    ix[i] = 0;	
+  }
+	
+  // Loop over all DOF of test space and build A->JA
+  icp=1;
+  for (i=0; i<nrows; i++) {
+    // Loop over all Elements connected to particular edge
+    j_a = dof_el_2.IA[i];
+    j_b = dof_el_2.IA[i+1]-1;
+    for (j=j_a; j<=j_b; j++) {
+      if1 = dof_el_2.JA[j-1];
+      k_a = FE1->el_dof->IA[if1-1];
+      k_b = FE1->el_dof->IA[if1]-1;
+      for (k=k_a; k<=k_b; k++) {
+	mydof = FE1->el_dof->JA[k-1];
+	if (ix[mydof-1]!=i+1) { /* We haven't been here */
+	  A->JA[icp-1] = mydof;
+	  icp++;
+	  ix[mydof-1] = i+1;
+	}
+      }
+				
+    }
+  }
+		
+  if(ix) free(ix);
+  icsr_free(&dof_el_2);
+	
+  return;
+}
+/******************************************************************************************************/
+
+/******************************************************************************************************/
+void LocaltoGlobal_FE1FE2(INT *dof_on_elm1,fespace *FE1,INT *dof_on_elm2,fespace *FE2,dvector *b,dCSRmat *A,REAL *ALoc,REAL *bLoc) 
+{
+  /********* Maps the Local Matrix to Global Matrix NOT considering boundaries *********************
+   *
+   *	Input:
+   *		dof_on_elm1	Array of trial space DOF entries on the given element
+   *		FE1             finite-element space struct for trial space
+   *            dof_on_elm2	Array of test space DOF entries on the given element
+   *		FE2             finite-element space struct for test space
+   *		b               Global right hand side
+   *		A		Global Stiffness Matrix
+   *		ALoc		Local Stiffness Matrix
+   *		bLoc		Local right hand side
+   *
+   *	Output:		
+   *            A		Adjusted Global Matrix
+   *		b		Adjusted Global right-hand side
+   *
+   */
+	
+  INT i,j,k,row,col,col_a,col_b,acol;
+	
+  for (i=0; i<FE2->dof_per_elm; i++) { /* Rows of Local Stiffness (test space)*/
+    row = dof_on_elm2[i]-1;	
+    // Adjust Right-hand side globally
+    if(bLoc!=NULL)
+      b->val[row] = b->val[row] + bLoc[i];
+			
+    for (j=0; j<FE1->dof_per_elm; j++) { /* Columns of Local Stiffness (trial space)*/
+      col = dof_on_elm1[j]-1;
+    
+      col_a = A->IA[row]-1;
+      col_b = A->IA[row+1]-1;
+      for (k=col_a; k<col_b; k++) { /* Columns of A */
+	acol = A->JA[k]-1;				
+	if (acol==col) {	/* If they match, put it in the global matrix */
+	  A->val[k] = A->val[k] + ALoc[i*FE1->dof_per_elm+j];
+	}
+      }
+    }
+  }
+  return;
+}
+/******************************************************************************************************/
+
+/******************************************************************************************************/
+void LocaltoGlobal_blockFE(INT *dof_on_elm,block_fespace *FE,dvector *b,block_dCSRmat *A,REAL *ALoc,REAL *bLoc) 
+{
+  /********* Maps the Local Matrix to Global Matrix NOT considering boundaries *********************
+   *
+   *	Input:
+   *		dof_on_elm	Array of DOF entries on the given element
+   *		FE              block finite-element space struct 
+   *		b               Global right hand side
+   *		A		Global Stiffness Matrix
+   *		ALoc		Local Stiffness Matrix
+   *		bLoc		Local right hand side
+   *
+   *	Output:		
+   *            A		Adjusted Global Matrix in block form
+   *		b		Adjusted Global right-hand side
+   *
+   */
+	
+  INT i,j,k,col_a,col_b,acol,test_row,trial_col;
+  INT local_row,global_row,local_col;
+	
+  // Loop over all the blocks
+  INT nblocks = FE->nspaces;
+  INT dof_per_elm_test = 0;
+  INT dof_per_elm_trial = 0;
+  INT local_row_index = 0;
+  INT local_col_index = 0;
+  INT global_row_index = 0;
+  INT dof_per_elm = 0;
+
+  // Get total dof_per_elm for indexing
+  for(test_row=0;test_row<nblocks;test_row++) {
+    dof_per_elm += FE->var_spaces[test_row]->dof_per_elm;
+  }
+   
+  // Loop through all the blocks
+  for(test_row=0;test_row<nblocks;test_row++) {
+    dof_per_elm_test = FE->var_spaces[test_row]->dof_per_elm;
+    
+    for(trial_col=0;trial_col<nblocks;trial_col++) {
+      dof_per_elm_trial = FE->var_spaces[trial_col]->dof_per_elm;
+      
+
+      /* Rows of Local Stiffness (test space)*/
+      for (i=0; i<dof_per_elm_test; i++) { 
+	local_row = dof_on_elm[local_row_index+i]-1;
+	global_row = local_row + global_row_index;
+	// Adjust Right-hand side globally
+	if(bLoc!=NULL)
+	  b->val[global_row] += bLoc[local_row_index+i];
+			
+	/* Columns of Local Stiffness (trial space)*/
+	for (j=0; j<dof_per_elm_trial; j++) { 
+	  local_col = dof_on_elm[local_col_index + j]-1;
+	  /* Columns of A */
+	  col_a = A->blocks[test_row*nblocks+trial_col]->IA[local_row]-1;
+	  col_b = A->blocks[test_row*nblocks+trial_col]->IA[local_row+1]-1;
+	  for (k=col_a; k<col_b; k++) {
+	    acol = A->blocks[test_row*nblocks+trial_col]->JA[k]-1;				
+	    if (acol==local_col) {	/* If they match, put it in the global matrix */
+	      A->blocks[test_row*nblocks+trial_col]->val[k] += ALoc[(local_row_index+i)*dof_per_elm+(local_col_index+j)]; 
+	    }
+	  }
+	}
+      }
+      local_col_index += dof_per_elm_trial;
+    }
+    local_col_index = 0;
+    global_row_index += FE->var_spaces[test_row]->ndof;
+    local_row_index += dof_per_elm_test;
+  }
+  return;
+}
+/******************************************************************************************************/
+
 // The following are similar routines above, but eliminates Dirichlet boundary conditions during the
 // construction of the matrices.
 
