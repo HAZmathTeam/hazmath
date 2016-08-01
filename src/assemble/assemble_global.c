@@ -447,22 +447,24 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
     for(j=0;j<nblocks;j++) {
       testdof = FE->var_spaces[i]->ndof;
       trialdof = FE->var_spaces[j]->ndof;
-      A->blocks[i*nblocks+j]->row = testdof; // test functions
-      A->blocks[i*nblocks+j]->col = trialdof; // trial functions
-      A->blocks[i*nblocks+j]->IA = (INT *) calloc(testdof+1,sizeof(INT));
+      if(A->blocks[i*nblocks+j]) {
+	A->blocks[i*nblocks+j]->row = testdof; // test functions
+	A->blocks[i*nblocks+j]->col = trialdof; // trial functions
+	A->blocks[i*nblocks+j]->IA = (INT *) calloc(testdof+1,sizeof(INT));
       
-      // Get Sparsity Structure First
-      // Non-zeros of A and IA (ignores cancellations, so maybe more than necessary)
-      stiffG_nnz_FE1FE2(A->blocks[i*nblocks+j],FE->var_spaces[j],FE->var_spaces[i]);
+	// Get Sparsity Structure First
+	// Non-zeros of A and IA (ignores cancellations, so maybe more than necessary)
+	stiffG_nnz_FE1FE2(A->blocks[i*nblocks+j],FE->var_spaces[j],FE->var_spaces[i]);
 	
-      // Columns of A -> JA
-      A->blocks[i*nblocks+j]->JA = (INT *) calloc(A->blocks[i*nblocks+j]->nnz,sizeof(INT));
-      stiffG_cols_FE1FE2(A->blocks[i*nblocks+j],FE->var_spaces[j],FE->var_spaces[i]);
+	// Columns of A -> JA
+	A->blocks[i*nblocks+j]->JA = (INT *) calloc(A->blocks[i*nblocks+j]->nnz,sizeof(INT));
+	stiffG_cols_FE1FE2(A->blocks[i*nblocks+j],FE->var_spaces[j],FE->var_spaces[i]);
   
-      // Set values
-      A->blocks[i*nblocks+j]->val = (REAL *) calloc(A->blocks[i*nblocks+j]->nnz,sizeof(REAL));
-      for (k=0; k<A->blocks[i*nblocks+j]->nnz; k++) {
-	A->blocks[i*nblocks+j]->val[k] = 0;
+	// Set values
+	A->blocks[i*nblocks+j]->val = (REAL *) calloc(A->blocks[i*nblocks+j]->nnz,sizeof(REAL));
+	for (k=0; k<A->blocks[i*nblocks+j]->nnz; k++) {
+	  A->blocks[i*nblocks+j]->val[k] = 0;
+	}
       }
     }
     dof_per_elm += FE->var_spaces[i]->dof_per_elm;
