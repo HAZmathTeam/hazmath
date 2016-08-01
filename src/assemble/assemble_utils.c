@@ -406,12 +406,14 @@ void LocaltoGlobal_blockFE(INT *dof_on_elm,block_fespace *FE,dvector *b,block_dC
 	for (j=0; j<dof_per_elm_trial; j++) { 
 	  local_col = dof_on_elm[local_col_index + j]-1;
 	  /* Columns of A */
-	  col_a = A->blocks[test_row*nblocks+trial_col]->IA[local_row]-1;
-	  col_b = A->blocks[test_row*nblocks+trial_col]->IA[local_row+1]-1;
-	  for (k=col_a; k<col_b; k++) {
-	    acol = A->blocks[test_row*nblocks+trial_col]->JA[k]-1;				
-	    if (acol==local_col) {	/* If they match, put it in the global matrix */
-	      A->blocks[test_row*nblocks+trial_col]->val[k] += ALoc[(local_row_index+i)*dof_per_elm+(local_col_index+j)]; 
+	  if(A->blocks[test_row*nblocks+trial_col]) {
+	    col_a = A->blocks[test_row*nblocks+trial_col]->IA[local_row]-1;
+	    col_b = A->blocks[test_row*nblocks+trial_col]->IA[local_row+1]-1;
+	    for (k=col_a; k<col_b; k++) {
+	      acol = A->blocks[test_row*nblocks+trial_col]->JA[k]-1;				
+	      if (acol==local_col) {	/* If they match, put it in the global matrix */
+		A->blocks[test_row*nblocks+trial_col]->val[k] += ALoc[(local_row_index+i)*dof_per_elm+(local_col_index+j)]; 
+	      }
 	    }
 	  }
 	}
