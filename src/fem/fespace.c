@@ -38,8 +38,35 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
 
   FE->FEtype = FEtype;
   FE->nelm = mesh->nelm;
+  INT dim = mesh->dim;
   switch (FEtype)   
     {
+    case 0: // Contants - P0
+      FE->ndof = mesh->nelm;
+      coordinates *barycenter = allocatecoords(mesh->nelm,dim);
+      for (INT i=0; i<mesh->nelm; i++) {
+	barycenter->x[i] = mesh->el_mid[i*dim];
+	barycenter->y[i] = mesh->el_mid[i*dim + 1];
+	if (mesh->dim>2) { barycenter->z[i] = mesh->el_mid[i*dim + 2]; }
+      }
+      FE->cdof = barycenter;
+      FE->nbdof = 0;
+      FE->dof_per_elm = 1;
+      iCSRmat el_el = icsr_create_identity(mesh->nelm);
+      FE->el_dof = malloc(sizeof(struct iCSRmat));
+      *(FE->el_dof) = el_el;
+      iCSRmat ed_el;
+      icsr_trans_1(mesh->el_ed,&ed_el);
+      FE->ed_dof = malloc(sizeof(struct iCSRmat));
+      *(FE->ed_dof) = ed_el;
+      iCSRmat f_el;
+      icsr_trans_1(mesh->el_f,&f_el);
+      FE->f_dof = malloc(sizeof(struct iCSRmat));
+      *(FE->f_dof) = f_el;
+      INT* el_bdry = (INT *) calloc(mesh->nelm,sizeof(INT));
+      for(INT i=0;i<mesh->nelm;i++) el_bdry[i] = 0;
+      FE->dof_bdry = el_bdry;
+      break;
     case 1: // Linears - P1
       FE->cdof = mesh->cv;
       FE->ndof = mesh->nv;
@@ -106,7 +133,7 @@ void free_fespace(fespace* FE)
     FE->cdof = NULL;
   }
 
-  if(FE->el_dof && FE->FEtype==2) { // If not P2, free_mesh will destroy el_dof struct
+  if(FE->el_dof && (FE->FEtype==2 || FE->FEtype==0)) { // If not P2 or P0, free_mesh will destroy el_dof struct
     icsr_free(FE->el_dof);
     free(FE->el_dof);
     FE->el_dof = NULL;
@@ -377,3 +404,61 @@ void dump_fespace(fespace *FE,char *varname,char *dir)
 }
 /****************************************************************************************/
 
+/****************************************************************************************/
+void set_dirichlet_bdry(fespace* FE,trimesh* mesh,INT flag) 
+{
+  /* Determine which boundary DOF are Dirichlet.  Determined by the FE space type
+   * and by the given flag from the mesh file.  
+   *
+   * Input:		
+   *          FE:      Finite-element space considered
+   *          mesh:    Mesh and all it's properties
+   *          flag:    User-input for which Boundary DOF are Dirichlet
+   *
+   * Output:		
+   *          isdirichlet:   integer array that is 1 if the DOF is a Dirichlet Boundary
+   *
+   */
+  INT i;
+  for(i=0;i<FE->ndof;i++) {
+    if(FE->dof_bdry[i]==flag) {
+      FE->dof_bdry[i] = 1;
+    } else {
+      FE->dof_bdry[i] = 0;
+    }
+  }		
+  return;
+}
+/****************************************************************************************/
+
+/****************************************************************************************/
+void set_dirichlet_bdry_block(block_fespace* FE,trimesh* mesh,INT flag) 
+{
+  /* Determine which boundary DOF are Dirichlet.  Determined by the FE space type
+   * and by the given flag from the mesh file.  
+   *
+   * Input:		
+   *          FE:      Finite-element space considered
+   *          mesh:    Mesh and all it's properties
+   *          flag:    User-input for which Boundary DOF are Dirichlet
+   *
+   * Output:		
+   *          isdirichlet:   integer array that is 1 if the DOF is a Dirichlet Boundary
+   *
+   */
+  INT i,j,ndof,cnt;
+  cnt = 0;
+  for(i=0;i<FE->nspaces;i++) {
+    ndof = FE->var_spaces[i]->ndof;
+    for(j=0;j<ndof;j++) {
+      if(FE->var_spaces[i]->dof_bdry[j]==flag) {
+	FE->dof_bdry[cnt+j] = 1;
+      } else {
+	FE->dof_bdry[cnt+j] = 0;
+      }
+    }
+    cnt += ndof;
+  }		
+  return;
+}
+/****************************************************************************************/
