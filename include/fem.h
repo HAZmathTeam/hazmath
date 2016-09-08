@@ -93,6 +93,9 @@ typedef struct block_fespace {
 
   //! total number of dof
   INT ndof;
+
+  //! total number of boundary dof
+  INT nbdof;
   
   //! blocks of dCSRmat, point to blocks[brow][bcol]
   fespace **var_spaces;

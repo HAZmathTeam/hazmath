@@ -447,18 +447,23 @@ void set_dirichlet_bdry_block(block_fespace* FE,trimesh* mesh,INT flag)
    *
    */
   INT i,j,ndof,cnt;
+
+  INT* isdirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
+
   cnt = 0;
   for(i=0;i<FE->nspaces;i++) {
     ndof = FE->var_spaces[i]->ndof;
     for(j=0;j<ndof;j++) {
       if(FE->var_spaces[i]->dof_bdry[j]==flag) {
-	FE->dof_bdry[cnt+j] = 1;
+	isdirichlet[cnt+j] = 1;
       } else {
-	FE->dof_bdry[cnt+j] = 0;
+	isdirichlet[cnt+j] = 0;
       }
     }
     cnt += ndof;
-  }		
+  }
+
+  FE->dof_bdry = isdirichlet;
   return;
 }
 /****************************************************************************************/
