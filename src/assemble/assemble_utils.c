@@ -1003,7 +1003,7 @@ void eliminate_DirichletBC_blockFE(void (*bc)(REAL *,REAL *,REAL),block_fespace 
     printf("\nYour matrix size doesn't match your number of DOF in Boundary Elimination\n");
     exit(0);
   }
-
+  
   // Fix RHS First b_interior = (b - A(0;u_bdry)^T)_interior
   //               b_bdry = u_bdry
   if(b!=NULL) 
@@ -1083,7 +1083,7 @@ void eliminate_DirichletBC_RHS_blockFE(void (*bc)(REAL *,REAL *,REAL),block_fesp
 
   // b = b - Aub
   dcsr_aAxpy_1(-1.0,A,ub,b->val);
-
+  
   // Fix boundary values
   for(i=0;i<ndof;i++) {
     if(FE->dof_bdry[i]==1) {

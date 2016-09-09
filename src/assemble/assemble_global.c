@@ -438,7 +438,7 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
     exit(0);
   }
   if(rhs!=NULL) {
-    b->row += FE->ndof;
+    b->row = FE->ndof;
     b->val = (REAL *) calloc(b->row,sizeof(REAL));
   }
     
@@ -469,7 +469,7 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
     }
     dof_per_elm += FE->var_spaces[i]->dof_per_elm;
   }
-  	
+  
   // Now Build Global Matrix entries
  
   /* Loop over all Elements and build local matrix and rhs */
