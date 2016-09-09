@@ -464,7 +464,7 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL),block_fespace *FE,tri
     }
   }
  
-  if(FE->var_spaces[comp]->FEtype>0) { // Lagrange Elements u[dof] = u[x_i}
+  if(FE->var_spaces[comp]->FEtype>=0) { // Lagrange Elements u[dof] = u[x_i]
     x[0] = FE->var_spaces[comp]->cdof->x[DOF];
     x[1] = FE->var_spaces[comp]->cdof->y[DOF];
     if(dim==3) x[2] = FE->var_spaces[comp]->cdof->z[DOF];
