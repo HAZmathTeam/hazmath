@@ -80,7 +80,7 @@
 
 /****************************************************************************************************************************/
 /* Compute Standard Lagrange Finite Element Basis Functions (PX) at a particular point in 2 or 3D*/
-/* For now, we only assume Linears or Quadratic Elements (P1 or P2) */
+/* For now, we only assume Linears or Quadratic Elements (P0 or P1 or P2) */
 void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL *x,INT *dof,INT porder,trimesh *mesh) 
 {
   /*
@@ -112,235 +112,240 @@ void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL *x,INT *dof,INT pord
   REAL* zp = NULL;
   coordinates* cv = mesh->cv;
 
-  // 2D and 3D is slightly different
-  if(dim==2) {
-  
-    // Get Physical Coordinates of Vertices
-    for (i=0; i<v_per_elm; i++) {
-      xp[i] = cv->x[dof[i]-1];
-      yp[i] = cv->y[dof[i]-1];
-    }
-		
-    // Get coordinates on reference triangle
-    REAL det = (xp[1]-xp[0])*(yp[2]-yp[0]) - (xp[2]-xp[0])*(yp[1]-yp[0]);
-	
-    REAL r = ((yp[2]-yp[0])*(x[0]-xp[0]) + (xp[0]-xp[2])*(x[1]-yp[0]))/det;
-	
-    REAL drdx = (yp[2]-yp[0])/det;
-    REAL drdy = (xp[0]-xp[2])/det;
-	
-    REAL s = ((yp[0]-yp[1])*(x[0]-xp[0]) + (xp[1]-xp[0])*(x[1]-yp[0]))/det;
-	
-    REAL dsdx = (yp[0]-yp[1])/det;
-    REAL dsdy = (xp[1]-xp[0])/det;
-	
-    /*  Get the basis functions for linear elements on each node.
-     *  The basis functions can now be evaluated in terms of the
-     *  reference coordinates R and S.  It's also easy to determine
-     *  the values of the derivatives with respect to R and S.
-     */
-	
-    onemrst = 1 - r - s;
-    if(porder==1) {
-      p[0] = onemrst;
-      p[1] = r;
-      p[2] = s;
-      dp1r = -1;
-      dp2r = 1;
-      dp3r = 0;
-      dp1s = -1;
-      dp2s = 0;
-      dp3s = 1;
-    } else if(porder==2) {
-      p[0] = 2*onemrst*(onemrst-0.5);
-      p[1] = 2*r*(r-0.5);
-      p[2] = 2*s*(s-0.5);
-      p[3] = 4*r*onemrst;
-      p[4] = 4*s*onemrst;
-      p[5] = 4*r*s;	
-      dp1r = 4*r+4*s-3;
-      dp2r = 4*r - 1;
-      dp3r = 0;
-      dp4r = 4-8*r-4*s;
-      dp5r = -4*s;
-      dp6r = 4*s;
-      dp1s = dp1r;
-      dp2s = 0;
-      dp3s = 4*s-1;
-      dp4s = -4*r;
-      dp5s = 4-4*r-8*s;
-      dp6s = 4*r;
-    } else {
-      printf("You are attempting P%d elements.  Code can only do P1 or P2 at the moment.",porder);
-      exit(0);
-    }
-	
-    /*  We need to convert the derivative information from (R(X,Y),S(X,Y))
-     *  to (X,Y) using the chain rule.
-     */
-	
-    dpx[0] = dp1r * drdx + dp1s * dsdx;
-    dpy[0] = dp1r * drdy + dp1s * dsdy;
-    dpx[1] = dp2r * drdx + dp2s * dsdx;
-    dpy[1] = dp2r * drdy + dp2s * dsdy;
-    dpx[2] = dp3r * drdx + dp3s * dsdx;
-    dpy[2] = dp3r * drdy + dp3s * dsdy;
-    if(porder==2) {
-      dpx[3] = dp4r * drdx + dp4s * dsdx;
-      dpy[3] = dp4r * drdy + dp4s * dsdy;
-      dpx[4] = dp5r * drdx + dp5s * dsdx;
-      dpy[4] = dp5r * drdy + dp5s * dsdy;
-      dpx[5] = dp6r * drdx + dp6s * dsdx;
-      dpy[5] = dp6r * drdy + dp6s * dsdy;
-    }
-	
-  } else if (dim==3) {
-    zp = (REAL *) calloc(v_per_elm,sizeof(REAL));
-    // Get Nodes and Physical Coordinates
-    for (i=0; i<v_per_elm; i++) {
-      xp[i] = cv->x[dof[i]-1];
-      yp[i] = cv->y[dof[i]-1];
-      zp[i] = cv->z[dof[i]-1];
-    }
-		
-    // Get coordinates on reference triangle
-    REAL det = (xp[3]-xp[0])*((yp[1]-yp[0])*(zp[2]-zp[0])-(yp[2]-yp[0])*(zp[1]-zp[0])) \
-      - (xp[2]-xp[0])*((yp[1]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(zp[1]-zp[0])) \
-      + (xp[1]-xp[0])*((yp[2]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(zp[2]-zp[0]));
-	
-    REAL r = ((xp[3]-xp[0])*((x[1]-yp[0])*(zp[2]-zp[0])-(yp[2]-yp[0])*(x[2]-zp[0])) \
-	      - (xp[2]-xp[0])*((x[1]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(x[2]-zp[0])) \
-	      + (x[0]-xp[0])*((yp[2]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(zp[2]-zp[0])))/det;
-	
-    REAL drdx = ((yp[2]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(zp[2]-zp[0]))/det;
-    REAL drdy = ((xp[3]-xp[0])*(zp[2]-zp[0]) - (xp[2]-xp[0])*(zp[3]-zp[0]))/det;
-    REAL drdz = ((xp[2]-xp[0])*(yp[3]-yp[0]) - (xp[3]-xp[0])*(yp[2]-yp[0]))/det;
-	
-    REAL s = ((xp[3]-xp[0])*((yp[1]-yp[0])*(x[2]-zp[0])-(x[1]-yp[0])*(zp[1]-zp[0])) \
-	      - (x[0]-xp[0])*((yp[1]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(zp[1]-zp[0])) \
-	      + (xp[1]-xp[0])*((x[1]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(x[2]-zp[0])))/det;
-	
-    REAL dsdx = -((yp[1]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(zp[1]-zp[0]))/det;
-    REAL dsdy = ((xp[1]-xp[0])*(zp[3]-zp[0]) - (xp[3]-xp[0])*(zp[1]-zp[0]))/det;
-    REAL dsdz = ((xp[3]-xp[0])*(yp[1]-yp[0]) - (xp[1]-xp[0])*(yp[3]-yp[0]))/det;
-	
-    REAL t = ((x[0]-xp[0])*((yp[1]-yp[0])*(zp[2]-zp[0])-(yp[2]-yp[0])*(zp[1]-zp[0])) \
-	      - (xp[2]-xp[0])*((yp[1]-yp[0])*(x[2]-zp[0])-(x[1]-yp[0])*(zp[1]-zp[0])) \
-	      + (xp[1]-xp[0])*((yp[2]-yp[0])*(x[2]-zp[0])-(x[1]-yp[0])*(zp[2]-zp[0])))/det;
-	
-    REAL dtdx = ((yp[1]-yp[0])*(zp[2]-zp[0])-(yp[2]-yp[0])*(zp[1]-zp[0]))/det;
-    REAL dtdy = ((xp[2]-xp[0])*(zp[1]-zp[0]) - (xp[1]-xp[0])*(zp[2]-zp[0]))/det;
-    REAL dtdz = ((xp[1]-xp[0])*(yp[2]-yp[0]) - (xp[2]-xp[0])*(yp[1]-yp[0]))/det;
-	
-    /*  Get the basis functions for linear elements on each node.
-     *  The basis functions can now be evaluated in terms of the
-     *  reference coordinates R and S.  It's also easy to determine
-     *  the values of the derivatives with respect to R and S.
-     */
-	
-    onemrst = 1 - r - s - t;
-    if(porder==1) {
-      p[0] = onemrst;
-      p[1] = r;
-      p[2] = s;
-      p[3] = t;
-      dp1r = -1;
-      dp2r = 1;
-      dp3r = 0;
-      dp4r = 0;
-      dp1s = -1;
-      dp2s = 0;
-      dp3s = 1;
-      dp4s = 0;
-      dp1t = -1;
-      dp2t = 0;
-      dp3t = 0;
-      dp4t = 1;
-    } else if(porder==2) {
-      p[0] = onemrst*(1 - 2*r - 2*s - 2*t);
-      p[1] = 2*r*(r-0.5);
-      p[2] = 2*s*(s-0.5);
-      p[3] = 2*t*(t-0.5);
-      p[4] = 4*r*onemrst;
-      p[5] = 4*s*onemrst;
-      p[6] = 4*t*onemrst;
-      p[7] = 4*r*s;
-      p[8] = 4*r*t;
-      p[9] = 4*s*t;
-	
-      dp1r = 4*r+4*s+4*t-3;
-      dp2r = 4*r-1;
-      dp3r = 0;
-      dp4r = 0;
-      dp5r = 4*onemrst - 4*r;
-      dp6r = -4*s;
-      dp7r = -4*t;
-      dp8r = 4*s;
-      dp9r = 4*t;
-      dp10r = 0;
-      dp1s = 4*r+4*s+4*t-3;
-      dp2s = 0;
-      dp3s = 4*s-1;
-      dp4s = 0;
-      dp5s = -4*r;
-      dp6s = 4*onemrst - 4*s;
-      dp7s = -4*t;
-      dp8s = 4*r;
-      dp9s = 0;
-      dp10s = 4*t;
-      dp1t = 4*r+4*s+4*t-3;
-      dp2t = 0;
-      dp3t = 0;
-      dp4t = 4*t-1;
-      dp5t = -4*r;
-      dp6t = -4*s;
-      dp7t = 4*onemrst - 4*t;
-      dp8t = 0;
-      dp9t = 4*r;
-      dp10t = 4*s;
-    } else {
-      printf("You are attempting P%d elements.  Code can only do P1 or P2 at the moment.",porder);
-      exit(0);
-    }
-	
-    /*  We need to convert the derivative information from (R(X,Y),S(X,Y))
-     *  to (X,Y) using the chain rule.
-     */
-	
-    dpx[0] = dp1r * drdx + dp1s * dsdx + dp1t * dtdx;
-    dpy[0] = dp1r * drdy + dp1s * dsdy + dp1t * dtdy;
-    dpz[0] = dp1r * drdz + dp1s * dsdz + dp1t * dtdz;
-    dpx[1] = dp2r * drdx + dp2s * dsdx + dp2t * dtdx;
-    dpy[1] = dp2r * drdy + dp2s * dsdy + dp2t * dtdy;
-    dpz[1] = dp2r * drdz + dp2s * dsdz + dp2t * dtdz;
-    dpx[2] = dp3r * drdx + dp3s * dsdx + dp3t * dtdx;
-    dpy[2] = dp3r * drdy + dp3s * dsdy + dp3t * dtdy;
-    dpz[2] = dp3r * drdz + dp3s * dsdz + dp3t * dtdz;
-    dpx[3] = dp4r * drdx + dp4s * dsdx + dp4t * dtdx;
-    dpy[3] = dp4r * drdy + dp4s * dsdy + dp4t * dtdy;
-    dpz[3] = dp4r * drdz + dp4s * dsdz + dp4t * dtdz;
-    if(porder==2) {
-      dpx[4] = dp5r * drdx + dp5s * dsdx + dp5t * dtdx;
-      dpy[4] = dp5r * drdy + dp5s * dsdy + dp5t * dtdy;
-      dpz[4] = dp5r * drdz + dp5s * dsdz + dp5t * dtdz;
-      dpx[5] = dp6r * drdx + dp6s * dsdx + dp6t * dtdx;
-      dpy[5] = dp6r * drdy + dp6s * dsdy + dp6t * dtdy;
-      dpz[5] = dp6r * drdz + dp6s * dsdz + dp6t * dtdz;
-      dpx[6] = dp7r * drdx + dp7s * dsdx + dp7t * dtdx;
-      dpy[6] = dp7r * drdy + dp7s * dsdy + dp7t * dtdy;
-      dpz[6] = dp7r * drdz + dp7s * dsdz + dp7t * dtdz;
-      dpx[7] = dp8r * drdx + dp8s * dsdx + dp8t * dtdx;
-      dpy[7] = dp8r * drdy + dp8s * dsdy + dp8t * dtdy;
-      dpz[7] = dp8r * drdz + dp8s * dsdz + dp8t * dtdz;
-      dpx[8] = dp9r * drdx + dp9s * dsdx + dp9t * dtdx;
-      dpy[8] = dp9r * drdy + dp9s * dsdy + dp9t * dtdy;
-      dpz[8] = dp9r * drdz + dp9s * dsdz + dp9t * dtdz;
-      dpx[9] = dp10r * drdx + dp10s * dsdx + dp10t * dtdx;
-      dpy[9] = dp10r * drdy + dp10s * dsdy + dp10t * dtdy;
-      dpz[9] = dp10r * drdz + dp10s * dsdz + dp10t * dtdz;
-    }
+  // P0 elements are trivial and we just need to return a 1 for each element:
+  if(porder==0) {
+    p[0] = 1.0;
   } else {
-    baddimension();
+    // 2D and 3D is slightly different
+    if(dim==2) {
+  
+      // Get Physical Coordinates of Vertices
+      for (i=0; i<v_per_elm; i++) {
+	xp[i] = cv->x[dof[i]-1];
+	yp[i] = cv->y[dof[i]-1];
+      }
+		
+      // Get coordinates on reference triangle
+      REAL det = (xp[1]-xp[0])*(yp[2]-yp[0]) - (xp[2]-xp[0])*(yp[1]-yp[0]);
+	
+      REAL r = ((yp[2]-yp[0])*(x[0]-xp[0]) + (xp[0]-xp[2])*(x[1]-yp[0]))/det;
+	
+      REAL drdx = (yp[2]-yp[0])/det;
+      REAL drdy = (xp[0]-xp[2])/det;
+	
+      REAL s = ((yp[0]-yp[1])*(x[0]-xp[0]) + (xp[1]-xp[0])*(x[1]-yp[0]))/det;
+	
+      REAL dsdx = (yp[0]-yp[1])/det;
+      REAL dsdy = (xp[1]-xp[0])/det;
+	
+      /*  Get the basis functions for linear elements on each node.
+       *  The basis functions can now be evaluated in terms of the
+       *  reference coordinates R and S.  It's also easy to determine
+       *  the values of the derivatives with respect to R and S.
+       */
+	
+      onemrst = 1 - r - s;
+      if(porder==1) {
+	p[0] = onemrst;
+	p[1] = r;
+	p[2] = s;
+	dp1r = -1;
+	dp2r = 1;
+	dp3r = 0;
+	dp1s = -1;
+	dp2s = 0;
+	dp3s = 1;
+      } else if(porder==2) {
+	p[0] = 2*onemrst*(onemrst-0.5);
+	p[1] = 2*r*(r-0.5);
+	p[2] = 2*s*(s-0.5);
+	p[3] = 4*r*onemrst;
+	p[4] = 4*s*onemrst;
+	p[5] = 4*r*s;	
+	dp1r = 4*r+4*s-3;
+	dp2r = 4*r - 1;
+	dp3r = 0;
+	dp4r = 4-8*r-4*s;
+	dp5r = -4*s;
+	dp6r = 4*s;
+	dp1s = dp1r;
+	dp2s = 0;
+	dp3s = 4*s-1;
+	dp4s = -4*r;
+	dp5s = 4-4*r-8*s;
+	dp6s = 4*r;
+      } else {
+	printf("You are attempting P%d elements.  Code can only do P1 or P2 at the moment.",porder);
+	exit(0);
+      }
+	
+      /*  We need to convert the derivative information from (R(X,Y),S(X,Y))
+       *  to (X,Y) using the chain rule.
+       */
+	
+      dpx[0] = dp1r * drdx + dp1s * dsdx;
+      dpy[0] = dp1r * drdy + dp1s * dsdy;
+      dpx[1] = dp2r * drdx + dp2s * dsdx;
+      dpy[1] = dp2r * drdy + dp2s * dsdy;
+      dpx[2] = dp3r * drdx + dp3s * dsdx;
+      dpy[2] = dp3r * drdy + dp3s * dsdy;
+      if(porder==2) {
+	dpx[3] = dp4r * drdx + dp4s * dsdx;
+	dpy[3] = dp4r * drdy + dp4s * dsdy;
+	dpx[4] = dp5r * drdx + dp5s * dsdx;
+	dpy[4] = dp5r * drdy + dp5s * dsdy;
+	dpx[5] = dp6r * drdx + dp6s * dsdx;
+	dpy[5] = dp6r * drdy + dp6s * dsdy;
+      }
+	
+    } else if (dim==3) {
+      zp = (REAL *) calloc(v_per_elm,sizeof(REAL));
+      // Get Nodes and Physical Coordinates
+      for (i=0; i<v_per_elm; i++) {
+	xp[i] = cv->x[dof[i]-1];
+	yp[i] = cv->y[dof[i]-1];
+	zp[i] = cv->z[dof[i]-1];
+      }
+		
+      // Get coordinates on reference triangle
+      REAL det = (xp[3]-xp[0])*((yp[1]-yp[0])*(zp[2]-zp[0])-(yp[2]-yp[0])*(zp[1]-zp[0])) \
+	- (xp[2]-xp[0])*((yp[1]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(zp[1]-zp[0])) \
+	+ (xp[1]-xp[0])*((yp[2]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(zp[2]-zp[0]));
+	
+      REAL r = ((xp[3]-xp[0])*((x[1]-yp[0])*(zp[2]-zp[0])-(yp[2]-yp[0])*(x[2]-zp[0])) \
+		- (xp[2]-xp[0])*((x[1]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(x[2]-zp[0])) \
+		+ (x[0]-xp[0])*((yp[2]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(zp[2]-zp[0])))/det;
+	
+      REAL drdx = ((yp[2]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(zp[2]-zp[0]))/det;
+      REAL drdy = ((xp[3]-xp[0])*(zp[2]-zp[0]) - (xp[2]-xp[0])*(zp[3]-zp[0]))/det;
+      REAL drdz = ((xp[2]-xp[0])*(yp[3]-yp[0]) - (xp[3]-xp[0])*(yp[2]-yp[0]))/det;
+	
+      REAL s = ((xp[3]-xp[0])*((yp[1]-yp[0])*(x[2]-zp[0])-(x[1]-yp[0])*(zp[1]-zp[0])) \
+		- (x[0]-xp[0])*((yp[1]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(zp[1]-zp[0])) \
+		+ (xp[1]-xp[0])*((x[1]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(x[2]-zp[0])))/det;
+	
+      REAL dsdx = -((yp[1]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(zp[1]-zp[0]))/det;
+      REAL dsdy = ((xp[1]-xp[0])*(zp[3]-zp[0]) - (xp[3]-xp[0])*(zp[1]-zp[0]))/det;
+      REAL dsdz = ((xp[3]-xp[0])*(yp[1]-yp[0]) - (xp[1]-xp[0])*(yp[3]-yp[0]))/det;
+	
+      REAL t = ((x[0]-xp[0])*((yp[1]-yp[0])*(zp[2]-zp[0])-(yp[2]-yp[0])*(zp[1]-zp[0])) \
+		- (xp[2]-xp[0])*((yp[1]-yp[0])*(x[2]-zp[0])-(x[1]-yp[0])*(zp[1]-zp[0])) \
+		+ (xp[1]-xp[0])*((yp[2]-yp[0])*(x[2]-zp[0])-(x[1]-yp[0])*(zp[2]-zp[0])))/det;
+	
+      REAL dtdx = ((yp[1]-yp[0])*(zp[2]-zp[0])-(yp[2]-yp[0])*(zp[1]-zp[0]))/det;
+      REAL dtdy = ((xp[2]-xp[0])*(zp[1]-zp[0]) - (xp[1]-xp[0])*(zp[2]-zp[0]))/det;
+      REAL dtdz = ((xp[1]-xp[0])*(yp[2]-yp[0]) - (xp[2]-xp[0])*(yp[1]-yp[0]))/det;
+	
+      /*  Get the basis functions for linear elements on each node.
+       *  The basis functions can now be evaluated in terms of the
+       *  reference coordinates R and S.  It's also easy to determine
+       *  the values of the derivatives with respect to R and S.
+       */
+	
+      onemrst = 1 - r - s - t;
+      if(porder==1) {
+	p[0] = onemrst;
+	p[1] = r;
+	p[2] = s;
+	p[3] = t;
+	dp1r = -1;
+	dp2r = 1;
+	dp3r = 0;
+	dp4r = 0;
+	dp1s = -1;
+	dp2s = 0;
+	dp3s = 1;
+	dp4s = 0;
+	dp1t = -1;
+	dp2t = 0;
+	dp3t = 0;
+	dp4t = 1;
+      } else if(porder==2) {
+	p[0] = onemrst*(1 - 2*r - 2*s - 2*t);
+	p[1] = 2*r*(r-0.5);
+	p[2] = 2*s*(s-0.5);
+	p[3] = 2*t*(t-0.5);
+	p[4] = 4*r*onemrst;
+	p[5] = 4*s*onemrst;
+	p[6] = 4*t*onemrst;
+	p[7] = 4*r*s;
+	p[8] = 4*r*t;
+	p[9] = 4*s*t;
+	
+	dp1r = 4*r+4*s+4*t-3;
+	dp2r = 4*r-1;
+	dp3r = 0;
+	dp4r = 0;
+	dp5r = 4*onemrst - 4*r;
+	dp6r = -4*s;
+	dp7r = -4*t;
+	dp8r = 4*s;
+	dp9r = 4*t;
+	dp10r = 0;
+	dp1s = 4*r+4*s+4*t-3;
+	dp2s = 0;
+	dp3s = 4*s-1;
+	dp4s = 0;
+	dp5s = -4*r;
+	dp6s = 4*onemrst - 4*s;
+	dp7s = -4*t;
+	dp8s = 4*r;
+	dp9s = 0;
+	dp10s = 4*t;
+	dp1t = 4*r+4*s+4*t-3;
+	dp2t = 0;
+	dp3t = 0;
+	dp4t = 4*t-1;
+	dp5t = -4*r;
+	dp6t = -4*s;
+	dp7t = 4*onemrst - 4*t;
+	dp8t = 0;
+	dp9t = 4*r;
+	dp10t = 4*s;
+      } else {
+	printf("You are attempting P%d elements.  Code can only do P1 or P2 at the moment.",porder);
+	exit(0);
+      }
+	
+      /*  We need to convert the derivative information from (R(X,Y),S(X,Y))
+       *  to (X,Y) using the chain rule.
+       */
+	
+      dpx[0] = dp1r * drdx + dp1s * dsdx + dp1t * dtdx;
+      dpy[0] = dp1r * drdy + dp1s * dsdy + dp1t * dtdy;
+      dpz[0] = dp1r * drdz + dp1s * dsdz + dp1t * dtdz;
+      dpx[1] = dp2r * drdx + dp2s * dsdx + dp2t * dtdx;
+      dpy[1] = dp2r * drdy + dp2s * dsdy + dp2t * dtdy;
+      dpz[1] = dp2r * drdz + dp2s * dsdz + dp2t * dtdz;
+      dpx[2] = dp3r * drdx + dp3s * dsdx + dp3t * dtdx;
+      dpy[2] = dp3r * drdy + dp3s * dsdy + dp3t * dtdy;
+      dpz[2] = dp3r * drdz + dp3s * dsdz + dp3t * dtdz;
+      dpx[3] = dp4r * drdx + dp4s * dsdx + dp4t * dtdx;
+      dpy[3] = dp4r * drdy + dp4s * dsdy + dp4t * dtdy;
+      dpz[3] = dp4r * drdz + dp4s * dsdz + dp4t * dtdz;
+      if(porder==2) {
+	dpx[4] = dp5r * drdx + dp5s * dsdx + dp5t * dtdx;
+	dpy[4] = dp5r * drdy + dp5s * dsdy + dp5t * dtdy;
+	dpz[4] = dp5r * drdz + dp5s * dsdz + dp5t * dtdz;
+	dpx[5] = dp6r * drdx + dp6s * dsdx + dp6t * dtdx;
+	dpy[5] = dp6r * drdy + dp6s * dsdy + dp6t * dtdy;
+	dpz[5] = dp6r * drdz + dp6s * dsdz + dp6t * dtdz;
+	dpx[6] = dp7r * drdx + dp7s * dsdx + dp7t * dtdx;
+	dpy[6] = dp7r * drdy + dp7s * dsdy + dp7t * dtdy;
+	dpz[6] = dp7r * drdz + dp7s * dsdz + dp7t * dtdz;
+	dpx[7] = dp8r * drdx + dp8s * dsdx + dp8t * dtdx;
+	dpy[7] = dp8r * drdy + dp8s * dsdy + dp8t * dtdy;
+	dpz[7] = dp8r * drdz + dp8s * dsdz + dp8t * dtdz;
+	dpx[8] = dp9r * drdx + dp9s * dsdx + dp9t * dtdx;
+	dpy[8] = dp9r * drdy + dp9s * dsdy + dp9t * dtdy;
+	dpz[8] = dp9r * drdz + dp9s * dsdz + dp9t * dtdz;
+	dpx[9] = dp10r * drdx + dp10s * dsdx + dp10t * dtdx;
+	dpy[9] = dp10r * drdy + dp10s * dsdy + dp10t * dtdy;
+	dpz[9] = dp10r * drdz + dp10s * dsdz + dp10t * dtdz;
+      }
+    } else {
+      baddimension();
+    }
   }
     	
   if(xp) free(xp);
