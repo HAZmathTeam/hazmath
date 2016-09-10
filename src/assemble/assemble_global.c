@@ -396,6 +396,7 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
    * (eg. P1, P2, Nedelec, and Raviart-Thomas).
    * Here we assume a system and thus a block FE space and that this is from
    * the assembly of a nonlinear problem (computing the Jacobian).
+   * If it is a linear system, just add NULL for old_sol.
    * DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
    * This allows for several matrices to be assembled then added or concatenated together.
    *

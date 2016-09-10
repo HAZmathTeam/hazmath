@@ -45,7 +45,12 @@ void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fe
   REAL* dphiy=NULL;
   REAL* dphiz=NULL;
 
-  if(FEtype>0) { // Lagrange Elements
+  if(FEtype==0) { // P0 Elements
+    for (i=0; i<nun; i++) {
+      nd = i*ndof + dof_on_elm[0] - 1;
+      val[i] = u[nd];
+    }
+  } else if(FEtype>0) { // Lagrange Elements
     phi = (REAL *) calloc(dof_per_elm,sizeof(REAL));
     dphix = (REAL *) calloc(dof_per_elm,sizeof(REAL));
     dphiy = (REAL *) calloc(dof_per_elm,sizeof(REAL));
@@ -921,3 +926,86 @@ void ProjectOut_Grad(dvector* u,fespace* FE_H1,fespace* FE_Ned,trimesh* mesh,qco
   return;
 }
 /***********************************************************************************************/
+
+/****************************************************************************************************************************/
+void Project_to_Vertices(REAL* u_on_V,REAL *u,fespace *FE,trimesh *mesh,INT nun)
+{
+
+  /* Interpolate a finite-element approximation to the vertices of a mesh 
+   *    INPUT:
+   *		       u       Approximation to interpolate
+   *                  FE       FE Space struct
+   *                mesh       Mesh struct
+   *		     nun       Number of unknowns in u (u1,u2,etc?) 1 is a scalar...
+   *    OUTPUT:
+   *          u_on_V	       Solution on Vertices of mesh
+   *
+   */
+	
+  INT i,k,j,rowa,rowb,jcntr;
+  REAL* val = NULL;
+  INT dim = mesh->dim;
+  REAL* x = (REAL *) calloc(dim,sizeof(REAL));
+
+  // Get FE and Mesh data
+  INT dof_per_elm = FE->dof_per_elm;
+  INT v_per_elm = mesh->v_per_elm;
+  INT FEtype = FE->FEtype;
+  INT nelm = mesh->nelm;
+  INT ndof = FE->ndof;
+  INT nv = mesh->nv;
+
+  INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
+  INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
+
+  if(FEtype>=0) { // Scalar Element
+    val = (REAL *) calloc(nun,sizeof(REAL)); 
+  } else { // Vector Element (assume only 1 vector unknown)
+    val = (REAL *) calloc(dim,sizeof(REAL));
+  } 
+ 
+  // Loop over Elements
+  for(i=0;i<nelm;i++) {
+    // Find DOF for given Element
+    rowa = FE->el_dof->IA[i]-1;
+    rowb = FE->el_dof->IA[i+1]-1;
+    jcntr = 0;
+    for (j=rowa; j<rowb; j++) {
+      dof_on_elm[jcntr] = FE->el_dof->JA[j];
+      jcntr++;
+    }
+
+    // Find vertices for given Element
+    rowa = mesh->el_v->IA[i]-1;
+    rowb = mesh->el_v->IA[i+1]-1;
+    jcntr = 0;
+    for (j=rowa; j<rowb; j++) {
+      v_on_elm[jcntr] = mesh->el_v->JA[j];
+      jcntr++;
+    }
+
+    // Interpolate FE approximation to vertices
+    for(j=0;j<v_per_elm;j++) {
+      x[0] = mesh->cv->x[v_on_elm[j]-1];
+      x[1] = mesh->cv->y[v_on_elm[j]-1];
+      if(dim==3) x[2] = mesh->cv->z[v_on_elm[j]-1];
+      FE_Interpolation(val,u,x,dof_on_elm,v_on_elm,FE,mesh,ndof,nun);
+      if(FEtype>=0) {
+	for(k=0;k<nun;k++) {
+	  u_on_V[k*nv + v_on_elm[j]-1] = val[k];
+	}
+      } else { // Only assume 1 vector component
+	for(k=0;k<dim;k++) {
+	  u_on_V[k*nv + v_on_elm[j]-1] = val[k];
+	}
+      }
+    }
+  }
+    
+  if (x) free(x);
+  if(val) free(val);
+  if(v_on_elm) free(v_on_elm);
+  if(dof_on_elm) free(dof_on_elm);
+  return;
+}
+/****************************************************************************************************************************/
