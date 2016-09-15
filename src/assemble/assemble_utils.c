@@ -742,19 +742,23 @@ void stiffG_cols_subset(dCSRmat *A, fespace *FE,INT flag)
 /******************************************************************************************************/
 
 /******************************************************************************************************/
-void LocaltoGlobal_face(INT *dof_on_f,INT dof_per_f,fespace *FE,dCSRmat *A,REAL *ALoc,INT flag) 
+void LocaltoGlobal_face(INT *dof_on_f,INT dof_per_f,fespace *FE,dvector *b,dCSRmat *A,REAL *ALoc,REAL *bLoc,INT flag) 
 {
   /********* Maps the Local Matrix to Global Matrix considering "special" boundaries *****************
    *
    *	Input:
-   *		dof_on_elm	Array of DOF entries on the given element
+   *		dof_on_f	Array of DOF entries on the given face
+   *            dof_per_f       Number of DOF on the given face
    *		FE              finite-element space struct
+   *            b               Global RHS
    *		A		Global Stiffness Matrix
    *		ALoc		Local Stiffness Matrix
+   *            bLoc            Local RHS
    *		flag		Indicates which boundary DOF to grab
    *
    *	Output:		
    *            A		Adjusted Global Matrix
+   *            b               Adjusted Global RHS
    *
    */
 	
@@ -762,7 +766,9 @@ void LocaltoGlobal_face(INT *dof_on_f,INT dof_per_f,fespace *FE,dCSRmat *A,REAL 
 	
   for (i=0; i<dof_per_f; i++) { /* Rows of Local Stiffness */
     row = dof_on_f[i]-1;
-    if (FE->dof_bdry[row]==flag) { /* Only if on special boundary */		
+    if (FE->dof_bdry[row]==flag) { /* Only if on special boundary */
+      if(bLoc!=NULL)
+	b->val[row] = b->val[row] + bLoc[i];
 			
       for (j=0; j<dof_per_f; j++) { /* Columns of Local Stiffness */
 	col = dof_on_f[j]-1;

@@ -641,7 +641,7 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinat
 /******************************************************************************************************/
 
 /******************************************************************************************************/
-void impedancebdry_local(REAL* ZLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *ed_on_f, \
+void impedancebdry_local(REAL* ZLoc,dvector *old_sol,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *ed_on_f, \
 			 INT *ed_on_elm,INT *v_on_elm,INT face,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time) 
 {
 
