@@ -795,7 +795,7 @@ void assemble_global_RHS_blockFE(dvector *b,void (*local_rhs_assembly)(REAL *,bl
 
   INT dof_per_elm = 0;
   INT v_per_elm = mesh->v_per_elm;
-  INT i,j,k,testdof,trialdof,row;
+  INT i,j,k,row;
 
   // Get block data first
   INT nblocks = FE->nspaces;
@@ -901,7 +901,7 @@ void assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_a
 
   INT dof_per_elm = 0;
   INT v_per_elm = mesh->v_per_elm;
-  INT i,j,k,testdof,trialdof,row;
+  INT i,j,k,row;
 
   // Get block data first
   INT nblocks = FE->nspaces;
