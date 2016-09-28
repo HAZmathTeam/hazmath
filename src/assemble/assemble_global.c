@@ -1139,7 +1139,7 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
 /******************************************************************************************************/
 
 /******************************************************************************************************/
-void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *, REAL),REAL time,INT flag) 
+void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,INT *,INT,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,void (*rhs)(REAL *,REAL *, REAL),REAL time,INT flag) 
 {
 	
   /* Computes the global RHS for any "boundary" bilinear form using various element types
@@ -1179,7 +1179,7 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
   } else if(FE->FEtype==-1) { // Nedelec Elements
     dof_per_face = 2*dim - 3; // 3 edges per face in 3D; face is edge in 2D
   } else if(FE->FEtype==-2) { // Raviart-Thomas Elements
-    dof_per_elm = 1;
+    dof_per_face = 1;
   } else {
     printf("Face integration isn't set up for the FEM space you chose\n");
     exit(0);
@@ -1251,7 +1251,7 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
       }
 		
       // Compute Local Stiffness Matrix for given Element
-      (*local_rhs_assembly_face)(bLoc,old_sol,FE,mesh,cq,dof_on_f,dof_on_elm,v_on_elm,i,elm,rhs,time);
+      (*local_rhs_assembly_face)(bLoc,old_sol,FE,mesh,dof_on_f,dof_per_face,dof_on_elm,v_on_elm,i,elm,rhs,time);
       
       // Loop over DOF and place in appropriate slot globally
       for (j=0; j<dof_per_face; j++) { /* Rows of Local Stiffness */
