@@ -1,5 +1,4 @@
-/*
- *  error.c
+/*! \file error.c
  *  
  *  Created by James Adler and Xiaozhe Hu on 5/13/15.
  *  Copyright 2015_JXLcode__. All rights reserved.

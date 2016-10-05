@@ -1,5 +1,4 @@
-/*
- *  assemble_local.c   
+/*! \file assemble_local.c   
  *  
  *  Created by James Adler and Xiaozhe Hu on 4/22/15.
  *  Copyright 2015__HAZMAT__. All rights reserved.

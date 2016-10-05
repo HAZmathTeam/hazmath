@@ -1,5 +1,4 @@
-/*
- *  smoother.c
+/*! \file smoother.c
  *
  *  Smoothers
  *

@@ -1,5 +1,4 @@
-/*
- *  interp.c
+/*! \file interp.c
  *  
  *  Created by James Adler and Xiaozhe Hu on 2/1/15.
  *  Copyright 2015_JXLcode__. All rights reserved.

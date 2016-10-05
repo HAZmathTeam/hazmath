@@ -1,5 +1,4 @@
-/*
- *  coefficient.c   
+/*! \file coefficient.c   
  *  
  *  Created by James Adler and Xiaozhe Hu on 2/22/16.
  *  Copyright 2015__HAZMAT__. All rights reserved.

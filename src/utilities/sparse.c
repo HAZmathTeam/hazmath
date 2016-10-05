@@ -1,5 +1,4 @@
-/*
- *  sparse.c
+/*! \file sparse.c
  *
  *  Created by James Adler and Xiaozhe Hu on 3/6/15.
  *  Copyright 2015__HAZMAT__. All rights reserved.
