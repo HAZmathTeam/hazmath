@@ -1,5 +1,4 @@
-/*
- *  timestep.c   
+/*! \file timestep.c   
  *  
  *  Created by James Adler and Xiaozhe Hu on 2/18/16.
  *  Copyright 2015__HAZMAT__. All rights reserved.

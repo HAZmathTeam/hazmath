@@ -1,5 +1,4 @@
-/*
- *  fespace.c
+/*! \file fespace.c
  *  
  *
  *  Created by James Adler on 2/17/15.

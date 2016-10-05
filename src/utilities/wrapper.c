@@ -1,5 +1,4 @@
-/*
- *  wrapper.c
+/*! \file wrapper.c
  *
  *  Created by James Adler and Xiaozhe Hu on 09/02/16.
  *  Copyright 2016__HAZMAT__. All rights reserved.
@@ -67,7 +66,6 @@ void python_wrapper_krylov_amg(INT *n,
     /*
     param_amg_init(&amgparam);
     amgparam.AMG_type             = UA_AMG;
-    amgparam.print_level          = *ptrlvl;
     amgparam.aggregation_type     = VMB;
     
     amgparam.coarse_dof           = 100;
@@ -87,6 +85,7 @@ void python_wrapper_krylov_amg(INT *n,
     itparam.linear_itsolver_type = SOLVER_VFGMRES;
     */
     
+    amgparam.print_level          = *ptrlvl;
     itparam.linear_tol            = *tol;
     itparam.linear_print_level    = *ptrlvl;
     itparam.linear_maxit          = *maxit;

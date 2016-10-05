@@ -1,5 +1,4 @@
-/*
- *  mgcycle.c
+/*! \file mgcycle.c
  *
  *  Abstract multigrid cycle
  *

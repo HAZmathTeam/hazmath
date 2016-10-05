@@ -1,5 +1,4 @@
-/*
- *  krylov.c
+/*! \file krylov.c
  *
  *  Created by James Adler and Xiaozhe Hu on 5/13/15.
  *  Copyright 2015__HAZMAT__. All rights reserved.

@@ -1,5 +1,4 @@
-/*
- *  format.c
+/*! \file format.c
  *
  *  Created by James Adler and Xiaozhe Hu on 02/17/16.
  *  Copyright 2016__HAZMAT__. All rights reserved.

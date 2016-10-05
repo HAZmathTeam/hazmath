@@ -1,5 +1,4 @@
-/*  
- *  amg_setup_c.c
+/*! \file amg_setup_c.c
  *
  *  Classical AMG: SETUP phase
  *

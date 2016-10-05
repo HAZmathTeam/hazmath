@@ -1,5 +1,4 @@
-/*
- *  quadrature.c
+/*! \file quadrature.c
  *  
  *
  *  Created by James Adler on 2/11/15.
