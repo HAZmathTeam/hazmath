@@ -1,4 +1,4 @@
-/*! \file amg_setup_ua.c
+/*! \file src/solver/amg_setup_ua.c
  *
  *  Unsmoothed Aggregation AMG: SETUP phase
  *

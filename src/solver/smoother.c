@@ -1,4 +1,4 @@
-/*! \file smoother.c
+/*! \file src/solver/smoother.c
  *
  *  Smoothers
  *

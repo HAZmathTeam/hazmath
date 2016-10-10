@@ -1,4 +1,4 @@
-/*! \file mesh_stats.c   
+/*! \file src/grid/mesh_stats.c   
  *  
  *  Created by James Adler and Xiaozhe Hu on 1/9/15.
  *  Copyright 2015__HAZMAT__. All rights reserved.

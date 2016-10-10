@@ -1,4 +1,4 @@
-/*! \file direct.c
+/*! \file src/solver/direct.c
  *
  *  Created by James Adler and Xiaozhe Hu on 8/19/15.
  *  Copyright 2015__HAZMAT__. All rights reserved.

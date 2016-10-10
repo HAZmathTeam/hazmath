@@ -1,4 +1,4 @@
-/*! \file amg_setup_c.c
+/*! \file src/solver/amg_setup_c.c
  *
  *  Classical AMG: SETUP phase
  *

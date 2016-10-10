@@ -1,4 +1,4 @@
-/*! amg_solve.c
+/*! src/solver/amg_solve.c
  *
  *  Algebraic multigrid iterations: SOLVE phase.
  *

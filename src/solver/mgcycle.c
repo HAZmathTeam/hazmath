@@ -1,4 +1,4 @@
-/*! \file mgcycle.c
+/*! \file src/solver/mgcycle.c
  *
  *  Abstract multigrid cycle
  *
