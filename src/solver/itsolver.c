@@ -1,4 +1,4 @@
-/*! \file itsolver.c
+/*! \file src/solver/itsolver.c
  *
  *  Created by James Adler and Xiaozhe Hu on 10/06/15.
  *  Copyright 2015__HAZMAT__. All rights reserved.

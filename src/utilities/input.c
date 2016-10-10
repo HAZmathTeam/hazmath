@@ -1,4 +1,4 @@
-/*! \file input.c
+/*! \file src/utilities/input.c
  *
  *  Created by James Adler and Xiaozhe Hu on 13/6/15.
  *  Copyright 2015__HAZMAT__. All rights reserved.
