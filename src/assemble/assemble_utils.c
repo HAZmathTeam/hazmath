@@ -1,4 +1,4 @@
-/*! \file assemble_utils.c   
+/*! \file src/assemble/assemble_utils.c   
  *  
  *  Created by James Adler and Xiaozhe Hu on 4/22/15.
  *  Copyright 2015__HAZMAT__. All rights reserved.
