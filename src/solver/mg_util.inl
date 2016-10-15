@@ -1,5 +1,4 @@
-/*
- *  mg_util.inl
+/*! \file mg_util.inl
  *
  *  Routines for algebraic multigrid cycles
  *

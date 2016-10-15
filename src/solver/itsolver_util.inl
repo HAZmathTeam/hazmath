@@ -1,5 +1,4 @@
-/*
- *  itsolver_util.inl
+/*! \file itsolver_util.inl
  *
  *  Created by James Adler and Xiaozhe Hu on 5/13/15.
  *  Copyright 2015__HAZMAT__. All rights reserved.
