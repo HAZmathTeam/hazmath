@@ -1,5 +1,4 @@
-/*  
- *  linklist.inl
+/*! \file linklist.inl
  *
  *  Utilities for link list data structure
  *

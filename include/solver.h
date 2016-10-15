@@ -326,7 +326,12 @@ typedef struct {
     
     /*--- solver by HX preconditioner */
     HX_curl_data **hxcurldata; /**< HX data for the diagonal blocks */
-    
+  
+    /*------------------------------*/
+    /* Data for mixed Darcy flow only!! */
+    /*------------------------------*/
+    dvector *el_vol;   /**< volume of each element */
+  
     /*------------------------------*/
     /* Data for Maxwell problem only!! */
     /*------------------------------*/

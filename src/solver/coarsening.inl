@@ -1,5 +1,4 @@
-/* 
- *  coarsening.inl
+/*! \file coarsening.inl
  *
  *  Coarsening with a modified Ruge-Stuben strategy.
  *

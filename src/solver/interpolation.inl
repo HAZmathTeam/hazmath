@@ -1,5 +1,4 @@
-/*
- *  interpolation.inl
+/*! \file interpolation.inl
  *
  *  Interpolation operators for AMG
  *
