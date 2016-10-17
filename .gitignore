@@ -7,5 +7,6 @@ include/hazmat.h
 *.o
 *.a
 *~
+examples/HeatEquation/*.vtu
 examples/HDEquation/*.vtu
 examples/HDEquation/*.dat

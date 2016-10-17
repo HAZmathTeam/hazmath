@@ -58,7 +58,7 @@ void assemble_DuDv_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
   REAL* dphiy=NULL;
   REAL* dphiz=NULL;
 
-  if(FE->FEtype>0) { // PX elements
+  if(FE->FEtype>=0) { // PX elements
     phi = (REAL *) calloc(dof_per_elm,sizeof(REAL));
     dphix = (REAL *) calloc(dof_per_elm,sizeof(REAL));
     dphiy = (REAL *) calloc(dof_per_elm,sizeof(REAL));
@@ -222,7 +222,7 @@ void assemble_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
   REAL coeff_val=0.0;
 
 
-  if(FE->FEtype>0) { // PX elements
+  if(FE->FEtype>=0) { // PX elements
     phi = (REAL *) calloc(dof_per_elm,sizeof(REAL));
     dphix = (REAL *) calloc(dof_per_elm,sizeof(REAL));
     dphiy = (REAL *) calloc(dof_per_elm,sizeof(REAL));
@@ -381,7 +381,7 @@ void FEM_RHS_Local(REAL* bLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *do
   // Right-hand side function at Quadrature Nodes
   REAL* rhs_val=NULL;
   
-  if(FE->FEtype>0) { // PX elements
+  if(FE->FEtype>=0) { // PX elements
     phi = (REAL *) calloc(dof_per_elm,sizeof(REAL));
     dphix = (REAL *) calloc(dof_per_elm,sizeof(REAL));
     dphiy = (REAL *) calloc(dof_per_elm,sizeof(REAL));
@@ -519,7 +519,7 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinat
   REAL* dphiy=NULL;
   REAL* dphiz=NULL;
 
-  if(FE->FEtype>0) { // PX elements
+  if(FE->FEtype>=0) { // PX elements
     phi = (REAL *) calloc(dof_per_elm,sizeof(REAL));
     dphix = (REAL *) calloc(dof_per_elm,sizeof(REAL));
     dphiy = (REAL *) calloc(dof_per_elm,sizeof(REAL));
@@ -794,7 +794,7 @@ void boundary_mass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
   // Coefficient Value at Quadrature Nodes
   REAL coeff_val=0.0;
 
-  if(FE->FEtype>0) { // PX elements
+  if(FE->FEtype>=0) { // PX elements
     phi = (REAL *) calloc(dof_per_elm,sizeof(REAL));
     dphix = (REAL *) calloc(dof_per_elm,sizeof(REAL));
     dphiy = (REAL *) calloc(dof_per_elm,sizeof(REAL));
