@@ -10,9 +10,9 @@ DIR0 = .
 #XH
 #SSDIR = /usr/local
 #JA
-#SSDIR = /opt/local
+SSDIR = /opt/local
 #Polaris
-SSDIR = /usr/local/numerics/suitesparse
+#SSDIR = /usr/local/numerics/suitesparse
 
 # Machine Specific Compilers and Libraries
 # APPLE MACHINES
@@ -58,5 +58,5 @@ $(EXE): $(OBJSex)
 	$(FC) $(INCLUDE) $(FFLAGS) -o $@ -c  $< $(PROFFLAG)
 
 clean:
-	rm -rf $(EXE) $(SRC)/*.o sol.dat ./*.dSYM
+	rm -rf $(EXE) $(SRC)/*.o output/* ./*.dSYM
 

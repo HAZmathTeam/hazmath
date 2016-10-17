@@ -34,9 +34,9 @@ void diffusion_coeff(REAL *val,REAL* x,REAL time) {
 //void truesol_2D(REAL *val,REAL* x,REAL time) {
 void truesol(REAL *val,REAL* x,REAL time) {
   // 2D
-  *val = sin(M_PI*x[0])*sin(M_PI*x[1])*exp(-2.0*M_PI*M_PI*time);
+  //*val = sin(M_PI*x[0])*sin(M_PI*x[1])*exp(-2.0*M_PI*M_PI*time);
   // 3D
-  //*val = sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2])*exp(-3*M_PI*M_PI*time);
+  *val = sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2])*exp(-3*M_PI*M_PI*time);
 }
 
 // Right-hand Side
@@ -52,9 +52,9 @@ void bc(REAL *val,REAL* x,REAL time) {
 // Initial Conditions
 void initial_conditions(REAL *val,REAL* x,REAL time) {
   // 2D
-  *val = sin(M_PI*x[0])*sin(M_PI*x[1]);
+  //*val = sin(M_PI*x[0])*sin(M_PI*x[1]);
   // 3D
-  //*val = sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
+  *val = sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
 }
 
 /**********************************************************************************/
@@ -198,10 +198,10 @@ int main (int argc, char* argv[])
   // Get Initial Conditions
   FE_Evaluate(sol.val,initial_conditions,&FE,&mesh,0.0);
   time_stepper.sol = &sol;
-  char solout[20];
-  char trueout[30];
+  char solout[40];
+  char trueout[40];
   if (inparam.output_type==2) {
-    sprintf(solout,"solution_ts000.vtu");
+    sprintf(solout,"output/solution_ts000.vtu");
     dump_sol_onV_vtk(solout,&mesh,time_stepper.sol->val,1);
   }
 
@@ -259,8 +259,6 @@ int main (int argc, char* argv[])
       printf(" --> using UMFPACK's Direct Solver:\n");
       //solver_flag = directsolve_UMF_symmetric(&A,&b,u.val,linear_itparam.linear_print_level);
     } else { // Iterative Solver
-      dcsr_shift(&A, -1);  // shift A
-
       // Use AMG as iterative solver
       if (linear_itparam.linear_itsolver_type == SOLVER_AMG){
         solver_flag = linear_solver_amg(time_stepper.At,time_stepper.rhs_time,time_stepper.sol, &amgparam);
@@ -311,9 +309,9 @@ int main (int argc, char* argv[])
     /******************************************************************************/
 
     if (inparam.output_type==2) {
-      sprintf(solout,"solution_ts%03d.vtu",time_stepper.current_step);
+      sprintf(solout,"output/solution_ts%03d.vtu",time_stepper.current_step);
       dump_sol_onV_vtk(solout,&mesh,time_stepper.sol->val,1);
-      sprintf(trueout,"true_solution_ts%03d.vtu",time_stepper.current_step);
+      sprintf(trueout,"output/true_solution_ts%03d.vtu",time_stepper.current_step);
       dump_sol_onV_vtk(trueout,&mesh,true_sol.val,1);
     }
     printf("\n");
