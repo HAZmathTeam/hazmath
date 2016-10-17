@@ -26,7 +26,7 @@ gridfile                        = ../grids/2D/unitSQ_hp125.haz
 dim				= 2	% Dimension
 nquad				= 2	% Quadrature nodes each direction
 
-FE_type				= -2	% 0 P0 | 1 P1 | 2 P2 | -1 Ned -2 RT 
+FE_type				= 1	% 0 P0 | 1 P1 | 2 P2 | -1 Ned -2 RT 
 
 FE_type_velocity		= 2	% 0 P0 | 1 P1 | 2 P2 |
 FE_type_pressure		= 0	% 0 P0 | 1 P1 | 2 P2 |

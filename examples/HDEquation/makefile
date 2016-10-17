@@ -11,12 +11,14 @@ DIR0 = .
 #SSDIR = /usr/local
 #JA
 SSDIR = /opt/local
+# Polaris
+#SSDIR = /usr/local/numerics/suitesparse
 
 # Machine Specific Compilers and Libraries
 # APPLE MACHINES
-CC = gcc-mp-5
-FC = gfortran-mp-5
-CXX = g++-mp-5
+CC = gcc
+FC = gfortran
+CXX = g++
 CFLAGS = -g 
 FFLAGS = -g -fno-second-underscore
 LDFLAGS = -g
@@ -56,5 +58,5 @@ $(EXE): $(OBJSex)
 	$(FC) $(INCLUDE) $(FFLAGS) -o $@ -c  $< $(PROFFLAG)
 
 clean:
-	rm -rf $(EXE) $(SRC)/*.o sol.dat ./*.dSYM
+	rm -rf $(EXE) $(SRC)/*.o output/* ./*.dSYM
 

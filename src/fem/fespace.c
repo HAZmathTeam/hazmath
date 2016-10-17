@@ -380,11 +380,12 @@ void dump_fespace(fespace *FE,char *varname,char *dir)
   INT totdof = FE->ndof;
   char eldofname[20];
   char bdryname[20];
+
   sprintf(eldofname,"%s/el_dof_%s.dat",dir,varname);
   sprintf(bdryname,"%s/bdry_%s.dat",dir,varname);
   FILE* fid1 = fopen(eldofname,"w");
   FILE* fid2 = fopen(bdryname,"w");
-  
+
   if(fid1==NULL || fid2==NULL) {
 	printf("\n\nFilenames: %s\t%s are incorrect or do not exist.  No files dumped.\n\n",eldofname,bdryname);
   } else {  

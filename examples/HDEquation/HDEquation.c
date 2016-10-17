@@ -250,7 +250,7 @@ int main (int argc, char* argv[])
   fclose(gfid);
 
   // Dump mesh for testing
-  char* namevtk = "mesh.vtu";
+  char* namevtk = "output/mesh.vtu";
   dump_mesh_vtk(namevtk,&mesh);
     
   // Get Quadrature Nodes for the Mesh
@@ -278,18 +278,13 @@ int main (int argc, char* argv[])
     exit(0);
   }
 
-  /* FILE* fid=fopen("test.out","w"); */
-  /* icsr_print_matlab(fid,FE.ed_dof); */
-  /* fclose(fid); */
-
-
-
-
-	if(inparam.print_level > 3) {
-    char varu[1];
+if(inparam.print_level > 3) {
+    char varu[10];
     char dir[20];
+
     sprintf(dir,"output");
     sprintf(varu,"u");
+
     dump_fespace(&FE,varu,dir);
   }
     
@@ -333,10 +328,10 @@ int main (int argc, char* argv[])
   eliminate_DirichletBC(bc,&FE,&mesh,&b,&A,0.0);
 
   if(inparam.print_level > 3) {
-    FILE* matid = HAZ_fopen("mat.dat","w");
+    FILE* matid = HAZ_fopen("output/mat.dat","w");
     csr_print_matlab(matid,&A);
     fclose(matid);
-    FILE* rhsid = HAZ_fopen("rhs.dat","w");
+    FILE* rhsid = HAZ_fopen("output/rhs.dat","w");
     dvector_print(rhsid,&b);
     fclose(rhsid);
   }
@@ -458,7 +453,7 @@ int main (int argc, char* argv[])
     
   /**************** Print Results or Dump Results *******************************/
   if (inparam.output_type==2) {
-    FILE* uid = HAZ_fopen("sol.dat","w");
+    FILE* uid = HAZ_fopen("output/sol.dat","w");
     dvector_print(uid,&u);
     fclose(uid);
   }
