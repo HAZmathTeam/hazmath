@@ -334,6 +334,7 @@ int main (int argc, char* argv[])
   if(unorm) free(unorm);
   if(utnorm) free(utnorm);
   if(uerr) free(uerr);
+  dvec_free(&true_sol);
   free_timestepper(&time_stepper);
   free_fespace(&FE);
   if(cq) {
