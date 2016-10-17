@@ -712,7 +712,11 @@ void assemble_global_RHS(dvector *b,fespace *FE,trimesh *mesh,qcoordinates *cq,v
 
   // Allocate Arrays
   b->row = FE->ndof;
-  b->val = (REAL *) calloc(b->row,sizeof(REAL));
+  if(b->val) {
+      dvec_set(b->row,b,0.0);
+  } else {
+      b->val = (REAL *) calloc(b->row,sizeof(REAL));
+  }
  
   /* Loop over all Elements and build local rhs */
   REAL* bLoc= (REAL *) calloc(dof_per_elm,sizeof(REAL));
@@ -801,7 +805,11 @@ void assemble_global_RHS_blockFE(dvector *b,void (*local_rhs_assembly)(REAL *,bl
   
   // Allocate arrays
   b->row = FE->ndof;
-  b->val = (REAL *) calloc(b->row,sizeof(REAL));
+  if(b->val) {
+      dvec_set(b->row,b,0.0);
+  } else {
+      b->val = (REAL *) calloc(b->row,sizeof(REAL));
+  }
     
   // Loop over each block and get dof_per_elm
   for(i=0;i<FE->nspaces;i++) {
@@ -907,8 +915,12 @@ void assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_a
   
   // Allocate arrays
   b->row = FE->ndof;
-  b->val = (REAL *) calloc(b->row,sizeof(REAL));
-    
+  if(b->val) {
+      dvec_set(b->row,b,0.0);
+  } else {
+      b->val = (REAL *) calloc(b->row,sizeof(REAL));
+  }
+
   // Loop over each block and get dof_per_elm
   for(i=0;i<FE->nspaces;i++) {
     dof_per_elm += FE->var_spaces[i]->dof_per_elm;
@@ -1188,7 +1200,11 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
 
   // Allocate Row Array
   b->row = FE->ndof;
-  b->val = (REAL *) calloc(b->row,sizeof(REAL));
+  if(b->val) {
+      dvec_set(b->row,b,0.0);
+  } else {
+      b->val = (REAL *) calloc(b->row,sizeof(REAL));
+  }
 
   /* Loop over all Faces and build local matrix */
   REAL* bLoc=NULL;

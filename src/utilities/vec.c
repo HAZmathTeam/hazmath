@@ -398,7 +398,7 @@ void dvec_axpyz(const REAL a,
      * note: something wrong with the function!! -- Xiaozhe 
      *
      */
-    
+
     const INT m=x->row;
     REAL *xpt=x->val, *ypt=y->val, *zpt=z->val;
     
@@ -407,9 +407,11 @@ void dvec_axpyz(const REAL a,
     }
     
     z->row = m;
-    
-    memcpy(ypt, zpt, m*sizeof(REAL));
+
+    memcpy(zpt, ypt, m*sizeof(REAL));
+
     array_axpy(m, a, xpt, zpt);
+
 }
 
 /***********************************************************************************************/
