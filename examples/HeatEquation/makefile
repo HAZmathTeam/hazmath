@@ -10,13 +10,15 @@ DIR0 = .
 #XH
 #SSDIR = /usr/local
 #JA
-SSDIR = /opt/local
+#SSDIR = /opt/local
+#Polaris
+SSDIR = /usr/local/numerics/suitesparse
 
 # Machine Specific Compilers and Libraries
 # APPLE MACHINES
-CC = gcc-mp-5
-FC = gfortran-mp-5
-CXX = g++-mp-5
+CC = gcc
+FC = gfortran
+CXX = g++
 CFLAGS = -g 
 FFLAGS = -g -fno-second-underscore
 LDFLAGS = -g

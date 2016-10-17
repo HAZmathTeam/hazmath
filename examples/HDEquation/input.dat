@@ -8,7 +8,7 @@
 % output flags
 %---------------%
 
-print_level			= 2;	% how much information to print out
+print_level			= 5;	% how much information to print out
 output_type			= 2;	% 1 to screen | 2 to file
 
 %---------------%
@@ -16,8 +16,8 @@ output_type			= 2;	% 1 to screen | 2 to file
 %---------------%
 
 workdir				= ./			% path to input files 
-gridfile                        = ../grids/2D/unitSQ_hp0625.haz
-%gridfile                        = ../grids/3D/unitCUBE_v4913.haz
+gridfile                        = ../grids/2D/unitSQ_hp125.haz
+%gridfile                        = ../grids/3D/unitCUBE_v27.haz
 
 %---------------%
 % finite element
@@ -26,7 +26,7 @@ gridfile                        = ../grids/2D/unitSQ_hp0625.haz
 dim				= 2	% Dimension
 nquad				= 2	% Quadrature nodes each direction
 
-FE_type				= 1	% 0 P0 | 1 P1 | 2 P2 | -1 Ned -2 RT 
+FE_type				= -2	% 0 P0 | 1 P1 | 2 P2 | -1 Ned -2 RT 
 
 FE_type_velocity		= 2	% 0 P0 | 1 P1 | 2 P2 |
 FE_type_pressure		= 0	% 0 P0 | 1 P1 | 2 P2 |
@@ -51,6 +51,89 @@ nonlinear_itsolver_tol		= 1e-8 	% tolerance for nonlinear solver
 %---------------%
 
 linear_itsolver_type		= 1    	% 1 CG | 2 MINRES | 3 GMRES
-linear_itsolver_maxit		= 9000  	% maximal iterations of linear iterative solver
-linear_itsolver_tol		= 1e-12  % tolerance for linear iterative solver 
+linear_itsolver_maxit		= 90  	% maximal iterations of linear iterative solver
+linear_itsolver_tol		= 1e-2  % tolerance for linear iterative solver 
+linear_stop_type		= 1     	% 1 ||r||/||b|| | 2 ||r||_B/||b||_B | % 3 ||r||/||x||
+linear_restart 			= 100		% restart for GMRes
 
+% preconditioner
+linear_precond_type		= 0		%  0 Null | 1 Diag | 2 AMG | 4 ILU | 
+						%  6 additive HX for H(curl) | 7 multiplicative HX for H(curl)
+						%%
+						% 10 block diagonal triangular for maxwell (exact block solver)
+						% 11 block lower triangular for maxwell (exact block solver)
+						% 12 block upper triangular for maxwell (exact block solver)
+						%%
+						% 20 block diagonal triangular for maxwell (inexact block solver)
+						% 21 block lower triangular for maxwell (inexact block solver)
+						% 22 block upper triangular for maxwell (inexact block solver)
+						%%
+						% 30 block diagonal triangular for maxwell (inexact Krylov block solver)
+						% 31 block lower triangular for maxwell (inexact Krylov block solver)
+						% 32 block upper triangular for maxwell (inexact Krylov block solver)
+						%%
+						% 41 block lower+diagonal triangular for maxwell (inexact block solver)
+						% 42 block diagonal+upper triangular for maxwell (inexact block solver)
+						% 43 block lower+diagonal+upper triangular for maxwell (inexact block solver)
+						%% 
+						% 51 block lower+diagonal triangular for maxwell (inexact Krylov block solver)
+						% 52 block diagonal+upper triangular for maxwell (inexact Krylov block solver)
+						% 53 block lower+diagonal+upper triangular for maxwell (inexact Krylov block solver)
+
+%----------------------------------------------%
+% parameters for ILU preconditioners           %
+%----------------------------------------------%
+
+ILU_type                 	= 1     % 1 ILUk | 2 ILUt | 3 ILUtp 
+ILU_lfil                 	= 2     % level of fill-in for ILUk
+ILU_droptol              	= 0.01  % ILU drop tolerance
+ILU_permtol              	= 0.01 % permutation toleration for ILUtp
+ILU_relax                	= 0.9   % add dropped entries to diagonal with relaxation
+
+%----------------------------------------------%
+% parameters for Algebraic Multigrid           %
+%----------------------------------------------%
+
+AMG_type 			= C	% C classical AMG | UA unsmoothed AMG
+AMG_cycle_type			= V     % V V-cycle | W W-cycle | A AMLI-cycle | NA Nonlinear AMLI-cycle 
+AMG_levels			= 20	% 
+AMG_tol				= 1e-8
+AMG_maxit			= 1
+
+AMG_smoother			= GS	% JACOBI | GS | SGS | SOR | SSOR | L1DIAG | 
+AMG_smooth_order		= NO	% NO | CF
+AMG_ILU_levels           	= 0      % number of levels using ILU smoother
+AMG_relaxation			= 1.2   % Relaxation for SOR
+AMG_presmooth_iter		= 1
+AMG_postsmooth_iter		= 1
+
+AMG_coarse_dof			= 100	
+AMG_coarse_solver		= 32    % coarsest solver: 0 iterative | 32 UMFPACK
+AMG_coarse_scaling		= OFF	% OFF | ON
+
+AMG_amli_degree          	= 2     % degree of the polynomial used by AMLI cycle
+AMG_nl_amli_krylov_type  	= 5	% Krylov method in nonlinear AMLI cycle: 5 GCG |  6 GCR
+
+% classical AMG
+AMG_coarsening_type      	= 1     % 1 Modified RS | 4 Aggressive 
+AMG_interpolation_type   	= 2     % 1 Direct | 2 Standard 
+AMG_strong_threshold     	= 0.35   % Strong threshold
+AMG_truncation_threshold 	= 0.45  % Truncation threshold
+AMG_max_row_sum          	= 0.95  % Max row sum
+AMG_aggressive_level	 	= 0     % number of levels using aggressive coarsening 
+AMG_aggressive_path      	= 1     % number of paths used to determine C points: 1 or 2
+                                 	% only works when AMG_coarsening_type = 4
+                                  	% usually 1 gives more aggressive coarsening ratio
+
+% aggregation AMG
+AMG_aggregation_type		= 1     % 1 Matching | 2 VMB
+AMG_strong_coupled		= 0.04  % Strong coupled threshold
+AMG_max_aggregation		= 10	% Max size of aggregations
+AMG_pair_number			= 2	% Number of pairs in matching
+AMG_quality_bound		= 8.0   % quality of aggregation: 8.0 symm | 10.0 unsymm
+
+%----------------------------------------------%
+% parameters for HX preconditioner             %
+%----------------------------------------------%i
+
+HX_smooth_iter                  = 1    % number of smoothing

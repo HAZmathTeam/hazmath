@@ -1258,7 +1258,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy (block_dCSRmat *A,
   REAL solver_start, solver_end, solver_duration;
   
   const SHORT max_levels = amgparam->max_levels;
-  INT m, n, nnz, i;
+  INT n;
   
   void **LU_diag = (void **)calloc(2, sizeof(void *));
   AMG_data **mgl = (AMG_data **)calloc(2, sizeof(AMG_data *));
@@ -1271,7 +1271,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy (block_dCSRmat *A,
   
   /* set AMG for the flux block */
   mgl[0] = amg_data_create(max_levels);
-  m = A->blocks[0]->row; n = A->blocks[0]->row;
+  n = A->blocks[0]->row;
   dcsr_mxm(A->blocks[1],A->blocks[2],&BTB);
   dcsr_add(&BTB, 100.0, A->blocks[0], 1.0, &mgl[0][0].A);
   mgl[0][0].b=dvec_create(n); mgl[0][0].x=dvec_create(n);
