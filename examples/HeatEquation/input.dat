@@ -26,7 +26,7 @@ gridfile                        = ../grids/3D/unitCUBE_v4913.haz
 dim				= 3	% Dimension
 nquad				= 2	% Quadrature nodes each direction
 
-FE_type				= 1	% 0 P0 | 1 P1 | 2 P2 | -1 Ned -2 RT 
+FE_type				= 1	% 0-9 PX | 10-19 QX (not yet) | 20 Ned | 30 RT | -9--1 DGX (not yet) 
 
 FE_type_velocity		= 2	% 0 P0 | 1 P1 | 2 P2 |
 FE_type_pressure		= 0	% 0 P0 | 1 P1 | 2 P2 |

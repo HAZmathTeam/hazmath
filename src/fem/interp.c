@@ -49,7 +49,7 @@ void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fe
       nd = i*ndof + dof_on_elm[0] - 1;
       val[i] = u[nd];
     }
-  } else if(FEtype>0) { // Lagrange Elements
+  } else if(FEtype>0 && FEtype<10) { // Lagrange Elements
     phi = (REAL *) calloc(dof_per_elm,sizeof(REAL));
     dphix = (REAL *) calloc(dof_per_elm,sizeof(REAL));
     dphiy = (REAL *) calloc(dof_per_elm,sizeof(REAL));
@@ -66,7 +66,7 @@ void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fe
       }
       val[i] = coef;
     }
-  } else if (FEtype==-1) { // Nedelec
+  } else if (FEtype==20) { // Nedelec
     REAL coef1,coef2,coef3;
     INT edge;
     phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
@@ -103,7 +103,7 @@ void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fe
       val[1] = coef2;
       val[2] = coef3;
     }
-  } else if (FEtype==-2) { // Raviart-Thomas
+  } else if (FEtype==30) { // Raviart-Thomas
     REAL coef1,coef2,coef3;
     INT face;
     phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
@@ -179,7 +179,7 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
   REAL* dphiz=NULL;
   REAL* coef=NULL;
 
-  if(FEtype>0) { // Lagrange Elements
+  if(FEtype>0 && FEtype<10) { // Lagrange Elements
     phi = (REAL *) calloc(dof_per_elm,sizeof(REAL));
     dphix = (REAL *) calloc(dof_per_elm,sizeof(REAL));
     dphiy = (REAL *) calloc(dof_per_elm,sizeof(REAL));
@@ -200,7 +200,7 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
       val[nun+i] = coef[1];
       if(dim==3) val[2*nun+i] = coef[2];
     }
-  } else if (FEtype==-1) { // Nedelec
+  } else if (FEtype==20) { // Nedelec
     INT edge;
     phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
     if(dim==2) {
@@ -232,7 +232,7 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
       val[1] = coef[1];
       val[2] = coef[2];
     }
-  } else if (FEtype==-2) { // Raviart-Thomas
+  } else if (FEtype==30) { // Raviart-Thomas
     INT face;
     phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
     dphix = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Divergence of element
@@ -279,7 +279,7 @@ void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL),fespace *FE,trimesh 
   INT dim = mesh->dim;
   INT FEtype = FE->FEtype;
   
-  if(FEtype>0) { // Lagrange Elements u[dof] = u[x_i}
+  if(FEtype>0 && FEtype<10) { // Lagrange Elements u[dof] = u[x_i}
     valx = (REAL *) calloc(1,sizeof(REAL));
     for(i=0;i<FE->ndof;i++) {
       x[0] = FE->cdof->x[i];
@@ -288,7 +288,7 @@ void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL),fespace *FE,trimesh 
       (*expr)(valx,x,time);
       val[i] = valx[0];
     }
-  } else if (FEtype==-1) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
+  } else if (FEtype==20) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
     valx = (REAL *) calloc(dim,sizeof(REAL));
     for(i=0;i<FE->ndof;i++) {
       x[0] = mesh->ed_mid[i*dim];
@@ -298,7 +298,7 @@ void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL),fespace *FE,trimesh 
       val[i] = 0.0;
       for(j=0;j<dim;j++) val[i]+=mesh->ed_tau[i*dim+j]*valx[j];
     }
-  } else if (FEtype==-2) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
+  } else if (FEtype==30) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
     valx = (REAL *) calloc(dim,sizeof(REAL));
     for(i=0;i<FE->ndof;i++) {
       x[0] = mesh->f_mid[i*dim];
@@ -339,14 +339,14 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,
   INT FEtype = FE->FEtype;
   REAL val=-666e+00;
   
-  if(FEtype>0) { // Lagrange Elements u[dof] = u[x_i}
+  if(FEtype>0 && FEtype<10) { // Lagrange Elements u[dof] = u[x_i}
     valx = (REAL *) calloc(1,sizeof(REAL));
     x[0] = FE->cdof->x[DOF];
     x[1] = FE->cdof->y[DOF];
     if(dim==3) x[2] = FE->cdof->z[DOF];
     (*expr)(valx,x,time);
     val = valx[0];
-  } else if (FEtype==-1) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
+  } else if (FEtype==20) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
     valx = (REAL *) calloc(dim,sizeof(REAL));
     x[0] = mesh->ed_mid[DOF*dim];
     x[1] = mesh->ed_mid[DOF*dim+1];
@@ -354,7 +354,7 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,
     (*expr)(valx,x,time);
     val = 0.0;
     for(j=0;j<dim;j++) val+=mesh->ed_tau[DOF*dim+j]*valx[j];
-  } else if (FEtype==-2) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
+  } else if (FEtype==30) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
     valx = (REAL *) calloc(dim,sizeof(REAL));
     x[0] = mesh->f_mid[DOF*dim];
     x[1] = mesh->f_mid[DOF*dim+1];
@@ -394,7 +394,7 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL),block_fespace *
   INT local_dim = 0;
 
   for(k=0;k<FE->nspaces;k++) {    
-    if(FE->var_spaces[k]->FEtype>0) { // Lagrange Elements u[dof] = u[x_i}
+    if(FE->var_spaces[k]->FEtype>0 && FE->var_spaces[k]->FEtype<10) { // Lagrange Elements u[dof] = u[x_i}
       local_dim = 1;
       for(i=0;i<FE->var_spaces[k]->ndof;i++) {
 	x[0] = FE->var_spaces[k]->cdof->x[i];
@@ -403,7 +403,7 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL),block_fespace *
 	(*expr)(valx,x,time);
 	val[entry + i] = valx[local_entry];
       }
-    } else if (FE->var_spaces[k]->FEtype==-1) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
+    } else if (FE->var_spaces[k]->FEtype==20) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
       local_dim = dim;
       for(i=0;i<FE->var_spaces[k]->ndof;i++) {
 	x[0] = mesh->ed_mid[i*dim];
@@ -415,7 +415,7 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL),block_fespace *
 	  val[entry + i]+=mesh->ed_tau[i*dim+j]*valx[local_entry + j];
 	}
       }
-    } else if (FE->var_spaces[k]->FEtype==-2) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
+    } else if (FE->var_spaces[k]->FEtype==30) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
       local_dim = dim;
       for(i=0;i<FE->var_spaces[k]->ndof;i++) {
 	x[0] = mesh->f_mid[i*dim];
@@ -461,27 +461,27 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL),block_fespace *FE,tri
   REAL val=-666e+00;
 
   for(i=0;i<comp;i++) {
-    if(FE->var_spaces[i]->FEtype>0) { // Scalar Element
+    if(FE->var_spaces[i]->FEtype>0 && FE->var_spaces[i]->FEtype<10) { // Scalar Element
       local_dim += 1;
     } else { // Vector Element
       local_dim += dim;
     }
   }
  
-  if(FE->var_spaces[comp]->FEtype>=0) { // Lagrange Elements u[dof] = u[x_i]
+  if(FE->var_spaces[comp]->FEtype>=0 && FE->var_spaces[comp]->FEtype<10) { // Lagrange Elements u[dof] = u[x_i]
     x[0] = FE->var_spaces[comp]->cdof->x[DOF];
     x[1] = FE->var_spaces[comp]->cdof->y[DOF];
     if(dim==3) x[2] = FE->var_spaces[comp]->cdof->z[DOF];
     (*expr)(valx,x,time);
     val = valx[local_dim];
-  } else if (FE->var_spaces[comp]->FEtype==-1) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
+  } else if (FE->var_spaces[comp]->FEtype==20) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
     x[0] = mesh->ed_mid[DOF*dim];
     x[1] = mesh->ed_mid[DOF*dim+1];
     if(dim==3) x[2] = mesh->ed_mid[DOF*dim+2];
     (*expr)(valx,x,time);
     val = 0.0;
     for(j=0;j<dim;j++) val+=mesh->ed_tau[DOF*dim+j]*valx[local_dim + j];
-  } else if (FE->var_spaces[comp]->FEtype==-2) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
+  } else if (FE->var_spaces[comp]->FEtype==30) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
     x[0] = mesh->f_mid[DOF*dim];
     x[1] = mesh->f_mid[DOF*dim+1];
     if(dim==3) x[2] = mesh->f_mid[DOF*dim+2];
@@ -957,7 +957,7 @@ void Project_to_Vertices(REAL* u_on_V,REAL *u,fespace *FE,trimesh *mesh,INT nun)
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
   INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
 
-  if(FEtype>=0) { // Scalar Element
+  if(FEtype>=0 && FEtype<20) { // Scalar Element
     val = (REAL *) calloc(nun,sizeof(REAL)); 
   } else { // Vector Element (assume only 1 vector unknown)
     val = (REAL *) calloc(dim,sizeof(REAL));

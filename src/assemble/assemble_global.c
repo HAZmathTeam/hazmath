@@ -1023,11 +1023,11 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
   INT v_per_elm = mesh->v_per_elm;
   INT dof_per_face = 0;
   INT dim = mesh->dim;
-  if(FE->FEtype>=1) { // PX Elements 2 -> 2 or 3   3 -> 3 or 6
+  if(FE->FEtype>=1 && FE->FEtype<10) { // PX Elements 2 -> 2 or 3   3 -> 3 or 6
     dof_per_face = dim + (FE->FEtype-1)*(2*dim -3);
-  } else if(FE->FEtype==-1) { // Nedelec Elements
+  } else if(FE->FEtype==20) { // Nedelec Elements
     dof_per_face = 2*dim - 3; // 3 edges per face in 3D; face is edge in 2D
-  } else if(FE->FEtype==-2) { // Raviart-Thomas Elements
+  } else if(FE->FEtype==30) { // Raviart-Thomas Elements
     dof_per_elm = 1;
   } else {
     printf("Face integration isn't set up for the FEM space you chose\n");
@@ -1185,11 +1185,11 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
   INT v_per_elm = mesh->v_per_elm;
   INT dof_per_face = 0;
   INT dim = mesh->dim;
-  if(FE->FEtype>=1) { // PX Elements 2 -> 2 or 3   3 -> 3 or 6
+  if(FE->FEtype>=1 && FE->FEtype<10) { // PX Elements 2 -> 2 or 3   3 -> 3 or 6
     dof_per_face = dim + (FE->FEtype-1)*(2*dim -3);
-  } else if(FE->FEtype==-1) { // Nedelec Elements
+  } else if(FE->FEtype==20) { // Nedelec Elements
     dof_per_face = 2*dim - 3; // 3 edges per face in 3D; face is edge in 2D
-  } else if(FE->FEtype==-2) { // Raviart-Thomas Elements
+  } else if(FE->FEtype==30) { // Raviart-Thomas Elements
     dof_per_face = 1;
   } else {
     printf("Face integration isn't set up for the FEM space you chose\n");

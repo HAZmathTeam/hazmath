@@ -85,7 +85,7 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
       FE->f_dof = malloc(sizeof(struct iCSRmat));
       get_P2(FE,mesh);
       break;
-    case -1: // Nedelec Elements 
+    case 20: // Nedelec Elements
       FE->cdof = NULL;
       FE->ndof = mesh->nedge;
       FE->nbdof = mesh->nbedge;
@@ -97,7 +97,7 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
       FE->f_dof = mesh->f_ed;
       FE->dof_bdry = mesh->ed_bdry;
       break;
-    case -2: // Raviart-Thomas Elements
+    case 30: // Raviart-Thomas Elements
       FE->cdof = NULL;
       FE->ndof = mesh->nface;
       FE->nbdof = mesh->nbface;
@@ -144,7 +144,7 @@ void free_fespace(fespace* FE)
     FE->ed_dof = NULL;
   }
   
-  if(FE->f_dof && FE->FEtype!=1 && FE->FEtype!=-1) { // If Linears or Nedelec, free_mesh will destroy f_dof
+  if(FE->f_dof && FE->FEtype!=1 && FE->FEtype!=20) { // If Linears or Nedelec, free_mesh will destroy f_dof
     icsr_free(FE->f_dof);
     free(FE->f_dof);
     FE->f_dof = NULL;
