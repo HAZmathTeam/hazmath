@@ -38,38 +38,31 @@ void reaction_coeff(REAL *val,REAL* x,REAL time) {
 }
 
 // True Solution (if you have one)
-// Pick one of these and rename it truesol
-//void truesol_2D_PX(REAL *val,REAL* x,REAL time) {
-void truesol(REAL *val,REAL* x,REAL time) {
+void truesol_2D_PX(REAL *val,REAL* x,REAL time) {
   // 2D - grad grad
   *val = sin(M_PI*x[0])*sin(M_PI*x[1]);
 }
 void truesol_3D_PX(REAL *val,REAL* x,REAL time) {
-  //void truesol(REAL *val,REAL* x,REAL time) {
   // 3D - grad grad
   *val = sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
 }
 void truesol_2D_Ned(REAL *val,REAL* x,REAL time) {
-//void truesol(REAL *val,REAL* x,REAL time) {
   // 2D - curl curl
   val[0] = cos(M_PI*x[0])*sin(M_PI*x[1]);
   val[1] = -sin(M_PI*x[0])*cos(M_PI*x[1]);
 }
 void truesol_3D_Ned(REAL *val,REAL* x,REAL time) {
-  //void truesol(REAL *val,REAL* x,REAL time) {
   // 3D - curl curl
   val[0] = cos(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
   val[1] = sin(M_PI*x[0])*cos(M_PI*x[1])*sin(M_PI*x[2]);
   val[2] = -sin(M_PI*x[0])*sin(M_PI*x[1])*cos(M_PI*x[2]);
 }
 void truesol_2D_RT(REAL *val,REAL* x,REAL time) {
-  //void truesol(REAL *val,REAL* x,REAL time) {
   // 2D - grad div
   val[0] = sin(M_PI*x[0])*cos(M_PI*x[1]);
   val[1] = cos(M_PI*x[0])*sin(M_PI*x[1]);
 }
 void truesol_3D_RT(REAL *val,REAL* x,REAL time) {
-//void truesol(REAL *val,REAL* x,REAL time) {
   // 3D - grad div
   val[0] = sin(M_PI*x[0])*cos(M_PI*x[1])*cos(M_PI*x[2]);
   val[1] = cos(M_PI*x[0])*sin(M_PI*x[1])*cos(M_PI*x[2]);
@@ -77,137 +70,137 @@ void truesol_3D_RT(REAL *val,REAL* x,REAL time) {
 }
 
 // Derivative of True Solution (if you have one)
-// Pick one of these and rename it truesol
-//void D_truesol_2D_PX(REAL *val,REAL* x,REAL time) {
-void D_truesol(REAL *val,REAL* x,REAL time) {
+void D_truesol_2D_PX(REAL *val,REAL* x,REAL time) {
   // 2D - grad grad
   val[0] = M_PI*cos(M_PI*x[0])*sin(M_PI*x[1]);
   val[1] = M_PI*sin(M_PI*x[0])*cos(M_PI*x[1]);
 }
 void D_truesol_3D_PX(REAL *val,REAL* x,REAL time) {
-  //void D_truesol(REAL *val,REAL* x,REAL time) {
   // 3D - grad grad
   val[0] = M_PI*cos(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
   val[1] = M_PI*sin(M_PI*x[0])*cos(M_PI*x[1])*sin(M_PI*x[2]);
   val[2] = M_PI*sin(M_PI*x[0])*sin(M_PI*x[1])*cos(M_PI*x[2]);
 }
 void D_truesol_2D_Ned(REAL *val,REAL* x,REAL time) {
-//void D_truesol(REAL *val,REAL* x,REAL time) {
   // 2D - curl curl
   *val = -2*M_PI*cos(M_PI*x[0])*cos(M_PI*x[1]);
 }
 void D_truesol_3D_Ned(REAL *val,REAL* x,REAL time) {
-  //void D_truesol(REAL *val,REAL* x,REAL time) {
   // 3D - curl curl
   val[0] = -2*M_PI*sin(M_PI*x[0])*cos(M_PI*x[1])*cos(M_PI*x[2]);
   val[1] = 2*M_PI*cos(M_PI*x[0])*sin(M_PI*x[1])*cos(M_PI*x[2]);
   val[2] = 0;
 }
 void D_truesol_2D_RT(REAL *val,REAL* x,REAL time) {
-  //void D_truesol(REAL *val,REAL* x,REAL time) {
   // 2D - grad div
   *val = 2*M_PI*cos(M_PI*x[0])*cos(M_PI*x[1]);
 }
 void D_truesol_3D_RT(REAL *val,REAL* x,REAL time) {
-//void D_truesol(REAL *val,REAL* x,REAL time) {
   // 3D - grad div
   *val = 3*M_PI*cos(M_PI*x[0])*cos(M_PI*x[1])*cos(M_PI*x[2]);
 }
 
 // Right-hand Side
-// Pick one of these and rename it myrhs
-//void rhs_2D_PX(REAL *val,REAL* x,REAL time) {
-void myrhs(REAL *val,REAL* x,REAL time) {
+void rhs_2D_PX(REAL *val,REAL* x,REAL time) {
   // 2D - grad grad
   REAL myc=-666.6;
   REAL mya=-666.6;
   REAL myu=-666.6;
   reaction_coeff(&myc,x,time);
   diffusion_coeff(&mya,x,time);
-  truesol(&myu,x,time);
+  truesol_2D_PX(&myu,x,time);
   *val = (mya*2*M_PI*M_PI + myc)*myu;
 }
 void rhs_3D_PX(REAL *val,REAL* x,REAL time) {
-  //void myrhs(REAL *val,REAL* x,REAL time) {
   // 3D - grad grad
   REAL myc=-666.6;
   REAL mya=-666.6;
   REAL myu=-666.6;
   reaction_coeff(&myc,x,time);
   diffusion_coeff(&mya,x,time);
-  truesol(&myu,x,time);
+  truesol_3D_PX(&myu,x,time);
   *val = (mya*3*M_PI*M_PI + myc)*myu;
 }
 void rhs_2D_Ned(REAL *val,REAL* x,REAL time) {
-//void myrhs(REAL *val,REAL* x,REAL time) {
   // 2D - curl curl
   REAL myc=-666.6;
   REAL mya=-666.6;
   REAL myu[2];
   reaction_coeff(&myc,x,time);
   diffusion_coeff(&mya,x,time);
-  truesol(myu,x,time);
+  truesol_2D_Ned(myu,x,time);
   val[0] = (mya*2.0*M_PI*M_PI + myc)*myu[0];
   val[1] = (mya*2.0*M_PI*M_PI + myc)*myu[1];
 }
 void rhs_3D_Ned(REAL *val,REAL* x,REAL time) {
-  //void myrhs(REAL *val,REAL* x,REAL time) {
   // 3D - curl curl
   REAL myc=-666.6;
   REAL mya=-666.6;
   REAL myu[3];
   reaction_coeff(&myc,x,time);
   diffusion_coeff(&mya,x,time);
-  truesol(myu,x,time);
+  truesol_3D_Ned(myu,x,time);
   val[0] = (2*mya*M_PI*M_PI + myc)*myu[0];
   val[1] = (2*mya*M_PI*M_PI + myc)*myu[1];
   val[2] = (4*mya*M_PI*M_PI + myc)*myu[2];
 }
 void rhs_2D_RT(REAL *val,REAL* x,REAL time) {
-  //void myrhs(REAL *val,REAL* x,REAL time) {
   // 2D - grad div
   REAL myc=-666.6;
   REAL mya=-666.6;
   REAL myu[2];
   reaction_coeff(&myc,x,time);
   diffusion_coeff(&mya,x,time);
-  truesol(myu,x,time);
+  truesol_2D_RT(myu,x,time);
   val[0] = (mya*2.0*M_PI*M_PI + myc)*myu[0];
   val[1] = (mya*2.0*M_PI*M_PI + myc)*myu[1];
 }
 void rhs_3D_RT(REAL *val,REAL* x,REAL time) {
-//void myrhs(REAL *val,REAL* x,REAL time) {
   // 3D - grad div
   REAL myc=-666.6;
   REAL mya=-666.6;
   REAL myu[3];
   reaction_coeff(&myc,x,time);
   diffusion_coeff(&mya,x,time);
-  truesol(myu,x,time);
+  truesol_3D_RT(myu,x,time);
   val[0] = (mya*3.0*M_PI*M_PI + myc)*myu[0];
   val[1] = (mya*3.0*M_PI*M_PI + myc)*myu[1];
   val[2] = (mya*3.0*M_PI*M_PI + myc)*myu[2];
 }
 
 // Boundary Conditions
-// Switch one to bc
-//void bc_PX(REAL *val,REAL* x,REAL time) {
-void bc(REAL *val,REAL* x,REAL time) {
+void bc_2D_PX(REAL *val,REAL* x,REAL time) {
   REAL myu;
-  truesol(&myu,x,time);
+  truesol_2D_PX(&myu,x,time);
   *val= myu;
 }
-void bc_2Dvec(REAL *val,REAL* x,REAL time) {
-  //void bc(REAL *val,REAL* x,REAL time) {
+void bc_3D_PX(REAL *val,REAL* x,REAL time) {
+  REAL myu;
+  truesol_3D_PX(&myu,x,time);
+  *val= myu;
+}
+void bc_2D_Ned(REAL *val,REAL* x,REAL time) {
   REAL myu[2];
-  truesol(myu,x,time);
+  truesol_2D_Ned(myu,x,time);
   val[0] = myu[0];
   val[1] = myu[1];
 }
-void bc_3Dvec(REAL *val,REAL* x,REAL time) {
-// void bc(REAL *val,REAL* x,REAL time) {
+void bc_3D_Ned(REAL *val,REAL* x,REAL time) {
   REAL myu[3];
-  truesol(myu,x,time);
+  truesol_3D_Ned(myu,x,time);
+  val[0] = myu[0];
+  val[1] = myu[1];
+  val[2] = myu[2];
+}
+void bc_2D_RT(REAL *val,REAL* x,REAL time) {
+  REAL myu[2];
+  truesol_2D_RT(myu,x,time);
+  val[0] = myu[0];
+  val[1] = myu[1];
+}
+void bc_3D_RT(REAL *val,REAL* x,REAL time) {
+  REAL myu[3];
+  truesol_3D_RT(myu,x,time);
   val[0] = myu[0];
   val[1] = myu[1];
   val[2] = myu[2];
@@ -264,13 +257,13 @@ int main (int argc, char* argv[])
   initialize_fespace(&FE);
   create_fespace(&FE,&mesh,order);
   char elmtype[8];
-  if(order>=0) {
+  if(order>=0 && order<10) {
     sprintf(elmtype,"P%d",order);
     printf(" --> using P%d elements => D = grad\n",order);
-  } else if(order==-1) {
+  } else if(order==20) {
     sprintf(elmtype,"Ned");
     printf(" --> using Nedelec elements => D = curl\n");
-  } else if(order==-2) {
+  } else if(order==30) {
     sprintf(elmtype,"RT");
     printf(" --> using Raviart-Thomas elements => D = div\n");
   } else {
@@ -315,7 +308,32 @@ if(inparam.print_level > 3) {
     
   // Assemble the matrix without BC
   // Diffusion block
-  assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,myrhs,diffusion_coeff,0.0);
+  if(dim==2) {
+    if(FE.FEtype>0 && FE.FEtype<10) { // PX
+      assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,rhs_2D_PX,diffusion_coeff,0.0);
+    } else if(FE.FEtype==20) { // Nedelec
+      assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,rhs_2D_Ned,diffusion_coeff,0.0);
+    } else if(FE.FEtype==30) { // RT
+      assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,rhs_2D_RT,diffusion_coeff,0.0);
+    } else {
+      printf("Unsure of what elements you are using\n");
+      exit(0);
+    }
+  } else if(dim==3) {
+    if(FE.FEtype>0 && FE.FEtype<10) { // PX
+      assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,rhs_3D_PX,diffusion_coeff,0.0);
+    } else if(FE.FEtype==20) { // Nedelec
+      assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,rhs_3D_Ned,diffusion_coeff,0.0);
+    } else if(FE.FEtype==30) { // RT
+      assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,rhs_3D_RT,diffusion_coeff,0.0);
+    } else {
+      printf("Unsure of what elements you are using\n");
+      exit(0);
+    }
+  } else {
+    baddimension();
+  }
+
   // Reaction block
   assemble_global(&Mass,NULL,assemble_mass_local,&FE,&mesh,cq,NULL,reaction_coeff,0.0);
 
@@ -325,7 +343,31 @@ if(inparam.print_level > 3) {
   dcsr_free(&Mass);
   
   // Eliminate Dirichlet BC
-  eliminate_DirichletBC(bc,&FE,&mesh,&b,&A,0.0);
+  if(dim==2) {
+    if(FE.FEtype>0 && FE.FEtype<10) { // PX
+      eliminate_DirichletBC(bc_2D_PX,&FE,&mesh,&b,&A,0.0);
+    } else if(FE.FEtype==20) { // Nedelec
+      eliminate_DirichletBC(bc_2D_Ned,&FE,&mesh,&b,&A,0.0);
+    } else if(FE.FEtype==30) { // RT
+      eliminate_DirichletBC(bc_2D_RT,&FE,&mesh,&b,&A,0.0);
+    } else {
+      printf("Unsure of what elements you are using\n");
+      exit(0);
+    }
+  } else if(dim==3) {
+    if(FE.FEtype>0 && FE.FEtype<10) { // PX
+      eliminate_DirichletBC(bc_3D_PX,&FE,&mesh,&b,&A,0.0);
+    } else if(FE.FEtype==20) { // Nedelec
+      eliminate_DirichletBC(bc_3D_Ned,&FE,&mesh,&b,&A,0.0);
+    } else if(FE.FEtype==30) { // RT
+      eliminate_DirichletBC(bc_3D_RT,&FE,&mesh,&b,&A,0.0);
+    } else {
+      printf("Unsure of what elements you are using\n");
+      exit(0);
+    }
+  } else {
+    baddimension();
+  }
 
   if(inparam.print_level > 3) {
     FILE* matid = HAZ_fopen("output/mat.dat","w");
@@ -438,9 +480,39 @@ if(inparam.print_level > 3) {
   /**************** Compute Errors if you have true solution ********************/
   printf("Computing True Solution and Errors:\n");
   clk2 = clock();
- 
-  REAL uerr = L2error(u.val,truesol,&FE,&mesh,cq,0.0);
-  REAL graduerr = HDsemierror(u.val,D_truesol,&FE,&mesh,cq,0.0);
+  REAL uerr=0.0;
+  REAL graduerr=0.0;
+  if(dim==2) {
+    if(FE.FEtype>0 && FE.FEtype<10) { // PX
+      uerr = L2error(u.val,truesol_2D_PX,&FE,&mesh,cq,0.0);
+      graduerr = HDsemierror(u.val,D_truesol_2D_PX,&FE,&mesh,cq,0.0);
+    } else if(FE.FEtype==20) { // Nedelec
+      uerr = L2error(u.val,truesol_2D_Ned,&FE,&mesh,cq,0.0);
+      graduerr = HDsemierror(u.val,D_truesol_2D_Ned,&FE,&mesh,cq,0.0);
+    } else if(FE.FEtype==30) { // RT
+      uerr = L2error(u.val,truesol_2D_RT,&FE,&mesh,cq,0.0);
+      graduerr = HDsemierror(u.val,D_truesol_2D_RT,&FE,&mesh,cq,0.0);
+    } else {
+      printf("Unsure of what elements you are using\n");
+      exit(0);
+    }
+  } else if(dim==3) {
+    if(FE.FEtype>0 && FE.FEtype<10) { // PX
+      uerr = L2error(u.val,truesol_3D_PX,&FE,&mesh,cq,0.0);
+      graduerr = HDsemierror(u.val,D_truesol_3D_PX,&FE,&mesh,cq,0.0);
+    } else if(FE.FEtype==20) { // Nedelec
+      uerr = L2error(u.val,truesol_3D_Ned,&FE,&mesh,cq,0.0);
+      graduerr = HDsemierror(u.val,D_truesol_3D_Ned,&FE,&mesh,cq,0.0);
+    } else if(FE.FEtype==30) { // RT
+      uerr = L2error(u.val,truesol_3D_RT,&FE,&mesh,cq,0.0);
+      graduerr = HDsemierror(u.val,D_truesol_3D_RT,&FE,&mesh,cq,0.0);
+    } else {
+      printf("Unsure of what elements you are using\n");
+      exit(0);
+    }
+  } else {
+    baddimension();
+  }
   REAL uH1err = sqrt(uerr*uerr + graduerr*graduerr);
     
   printf("************************************************************************************\n");

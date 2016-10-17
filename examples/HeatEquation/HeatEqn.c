@@ -106,7 +106,7 @@ int main (int argc, char* argv[])
   initialize_timestepper(&time_stepper,&inparam);
 
   // Get info for and create FEM spaces
-  // Order of Elements: 0 - P0; 1 - P1; 2 - P2; -1 - Nedelec; -2 - Raviart-Thomas
+  // Order of Elements: 0 - P0; 1 - P1; 2 - P2; 20 - Nedelec; 30 - Raviart-Thomas
   INT order = inparam.FE_type;
   fespace FE;
   initialize_fespace(&FE);

@@ -179,7 +179,7 @@ REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *me
 
   // True Solution and FE Solution at Quadrature Nodes
   INT ncomp = 0;
-  if(FEtype>=0) { // Lagrange Elements
+  if(FEtype<20) { // Lagrange Elements
     ncomp = 1;
   } else { // Vector Elements
     ncomp = dim;
@@ -423,9 +423,9 @@ REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL),fespace *FE,trime
 
   // Derivative of True Solution and FE Solution at Quadrature Nodes
   INT ncomp = 0;
-  if(FEtype>=0) { // Lagrange Elements -> Grad
+  if(FEtype<20) { // Lagrange Elements -> Grad
     ncomp = dim;
-  } else if(FEtype==-1 && dim==3) { // Nedelec Elements in 3D -> Curl is a Vector
+  } else if(FEtype>=20 && FEtype<30 && dim==3) { // Nedelec Elements in 3D -> Curl is a Vector
     ncomp = dim;
   } else { // 2D Nedelec -> Curl is a scalar or RT -> Div is a scalar
     ncomp = 1;

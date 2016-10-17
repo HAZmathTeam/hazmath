@@ -3,7 +3,6 @@ TO DO:
 Add default grid generator and refinement
 Fix indexing mismatch between FEM and Solver stuff
 Add more elements
- - idea for numbering: 0:9 - PX elements, -9:-1 - DGX elements, 10-19 - QX elements, 20-29 - Nedelec, 30-39 - RT
  - add DG stuff 
 Add in newton structs
 Add Julia interface
