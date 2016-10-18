@@ -39,7 +39,6 @@ time_step_type			= 1	% 0 CN | 1 BDF1 | 2 BDF2 |
 time_steps			= 10 	% number of time steps
 time_step_size			= 0.01	% time step size
 rhs_time_dep                    = 0     % Whether RHS is time-dependent or not
-bc_time_dep                     = 0     % Whether BC's are time-dependent or not
 
 %---------------%
 % nonlinear solver

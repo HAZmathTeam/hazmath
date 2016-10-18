@@ -39,9 +39,6 @@ typedef struct timestepper{
   //! Indicates if RHS is time-dependent
   INT rhs_timedep;
 
-  //! Indicates if Boundary Conditions are time-dependent
-  INT bc_timedep;
-
   //! Current time step
   INT current_step;
 

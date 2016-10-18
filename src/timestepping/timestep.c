@@ -28,7 +28,6 @@ void initialize_timestepper(timestepper *tstepper,input_param *inparam)
 
   // Indicator if rhs or boundaries are time-dependent
   tstepper->rhs_timedep = inparam->rhs_time_dep;
-  tstepper->bc_timedep = inparam->bc_time_dep;
 
   // Current Time and Time Step
   tstepper->current_step = 0;

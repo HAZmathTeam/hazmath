@@ -196,17 +196,6 @@ void param_input (const char *filenm,
             inparam->rhs_time_dep = ibuff;
             fgets(buffer,500,fp); // skip rest of line
         }
-
-        else if (strcmp(buffer,"bc_time_dep")==0) {
-            val = fscanf(fp,"%s",buffer);
-            if (val!=1 || strcmp(buffer,"=")!=0) {
-                status = ERROR_INPUT_PAR; break;
-            }
-            val = fscanf(fp,"%d",&ibuff);
-            if (val!=1) { status = ERROR_INPUT_PAR; break; }
-            inparam->bc_time_dep = ibuff;
-            fgets(buffer,500,fp); // skip rest of line
-        }
         
         else if (strcmp(buffer,"nonlinear_itsolver_maxit")==0) {
             val = fscanf(fp,"%s",buffer);
