@@ -227,6 +227,7 @@ int main (int argc, char* argv[])
   printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n\n\n");
 
   clock_t clk_timeloop_start = clock();
+
   for(j=0;j<time_stepper.tsteps;j++) {
     clock_t clk_timestep_start = clock();
 
@@ -238,7 +239,7 @@ int main (int argc, char* argv[])
     printf("============================\n");
 
     // Recompute RHS if it's time-dependent
-    if(time_stepper.rhs_timedep && j>0) {
+    if(time_stepper.rhs_timedep) {
       assemble_global_RHS(time_stepper.rhs,&FE,&mesh,cq,myrhs,time_stepper.time);
     }
 
