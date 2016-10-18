@@ -2,8 +2,7 @@ TO DO:
 
 Add default grid generator and refinement
 Fix indexing mismatch between FEM and Solver stuff
-Add more elements
- - add DG stuff 
-Add in newton structs
+Add more elements (i.e., DG, Quads, Higher-Order)
 Add Julia interface
 Add in multigraph code
+Add more test examples (Stokes, Nonlinear Problem (Navier-Stokes))
