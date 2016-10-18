@@ -46,6 +46,7 @@ rhs_time_dep                    = 0     % Whether RHS is time-dependent or not
 
 nonlinear_itsolver_maxit	= 5   	% maximal iterations of nonlinear solver
 nonlinear_itsolver_tol		= 1e-8 	% tolerance for nonlinear solver
+nonlinear_itsolver_toltype	= 0 	% type of tolerance for nonlinear solver 1 - ||nonlinear residual||<tol OR 2 - ||update|| < tol OR 0 - BOTH
 
 %---------------%
 % linear solver

@@ -56,7 +56,7 @@ void initialize_timestepper(timestepper *tstepper,input_param *inparam)
 /****************************************************************************************/
 void free_timestepper(timestepper* ts)
 {
-  /* frees memory of arrays of fespace struct */
+  /* frees memory of arrays of timestepper struct */
 
   if(ts->A) {
       dcsr_free(ts->A);

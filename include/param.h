@@ -55,14 +55,14 @@ typedef struct {
     INT time_steps;      /**< time steps */
     REAL time_step_size; /**< time step type */
     INT rhs_time_dep;    /**< indicates if rhs is time-dependent */
-    INT bc_time_dep;    /**< indicates if bc is time-dependent */
     
     //----------------------------
     // nonlinear solver parameters
     //----------------------------
     INT nonlinear_itsolver_maxit;   /**< maximal iterations of nonlinear solver*/
     REAL nonlinear_itsolver_tol;    /**< tolerance for nonlinear solver */
-    
+    INT nonlinear_itsolver_toltype; /**< type of stopping tolerance for nonlinear solver */
+
     //-------------------------
     // linear solver parameters
     //-------------------------
