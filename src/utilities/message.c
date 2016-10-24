@@ -11,7 +11,7 @@
 void baddimension()          
 {
   // Print Error if dimension is not 2 or 3
-  printf("\n!!!  You have now entered the Twilight Zone.  Your dimesnion is not 2 or 3!  !!!\n\n");
+  printf("\n!!!  You have now entered the Twilight Zone.  Your dimension is not 1-3!  !!!\n\n");
   exit(2);
   return;
 }

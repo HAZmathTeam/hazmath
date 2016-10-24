@@ -238,7 +238,6 @@ int main (int argc, char* argv[])
   clk1 = clock();
   trimesh mesh;
   printf(" --> loading grid from file: %s\n",inparam.gridfile);
-  initialize_mesh(&mesh);
   creategrid_fread(gfid,mesh_type,&mesh);
   fclose(gfid);
 
@@ -254,7 +253,6 @@ int main (int argc, char* argv[])
   // Order of Elements: 0 - P0; 1 - P1; 2 - P2; -1 - Nedelec; -2 - Raviart-Thomas
   INT order = inparam.FE_type;
   fespace FE;
-  initialize_fespace(&FE);
   create_fespace(&FE,&mesh,order);
   char elmtype[8];
   if(order>=0 && order<10) {
