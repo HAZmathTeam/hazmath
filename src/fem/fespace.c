@@ -21,9 +21,9 @@ void initialize_fespace(fespace *FE)
   FE->ndof = -666;
   FE->nbdof = -666;
   FE->dof_per_elm = -666;
-  FE->el_dof = NULL;//malloc(sizeof(struct iCSRmat));
-  FE->ed_dof = NULL;//malloc(sizeof(struct iCSRmat));
-  FE->f_dof = NULL;//malloc(sizeof(struct iCSRmat));
+  FE->el_dof = NULL;
+  FE->ed_dof = NULL;
+  FE->f_dof = NULL;
   FE->dof_bdry = NULL;
       
   return;
@@ -35,18 +35,22 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
 {
   /* allocates memory and properties of fespace struct */
 
+  // Initialize First for good mesure
+  initialize_fespace(FE);
+
+  // Start setting parameters
   FE->FEtype = FEtype;
   FE->nelm = mesh->nelm;
   INT dim = mesh->dim;
-  switch (FEtype)   
-    {
-    case 0: // Contants - P0
+  switch (FEtype)
+  {
+  case 0: // Contants - P0
       FE->ndof = mesh->nelm;
       coordinates *barycenter = allocatecoords(mesh->nelm,dim);
       for (INT i=0; i<mesh->nelm; i++) {
-	barycenter->x[i] = mesh->el_mid[i*dim];
-	barycenter->y[i] = mesh->el_mid[i*dim + 1];
-	if (mesh->dim>2) { barycenter->z[i] = mesh->el_mid[i*dim + 2]; }
+          barycenter->x[i] = mesh->el_mid[i*dim];
+          barycenter->y[i] = mesh->el_mid[i*dim + 1];
+          if (mesh->dim>2) { barycenter->z[i] = mesh->el_mid[i*dim + 2]; }
       }
       FE->cdof = barycenter;
       FE->nbdof = 0;
@@ -66,7 +70,7 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
       for(INT i=0;i<mesh->nelm;i++) el_bdry[i] = 0;
       FE->dof_bdry = el_bdry;
       break;
-    case 1: // Linears - P1
+  case 1: // Linears - P1
       FE->cdof = mesh->cv;
       FE->ndof = mesh->nv;
       FE->nbdof = mesh->nbv;
@@ -76,7 +80,7 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
       FE->f_dof = mesh->f_v;
       FE->dof_bdry = mesh->v_bdry;
       break;
-    case 2: // Quadratics - P2
+  case 2: // Quadratics - P2
       FE->ndof = mesh->nv + mesh->nedge;
       FE->nbdof = mesh->nbv + mesh->nbedge;
       FE->dof_per_elm = mesh->v_per_elm + mesh->ed_per_elm;
@@ -85,7 +89,7 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
       FE->f_dof = malloc(sizeof(struct iCSRmat));
       get_P2(FE,mesh);
       break;
-    case 20: // Nedelec Elements
+  case 20: // Nedelec Elements
       FE->cdof = NULL;
       FE->ndof = mesh->nedge;
       FE->nbdof = mesh->nbedge;
@@ -97,7 +101,7 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
       FE->f_dof = mesh->f_ed;
       FE->dof_bdry = mesh->ed_bdry;
       break;
-    case 30: // Raviart-Thomas Elements
+  case 30: // Raviart-Thomas Elements
       FE->cdof = NULL;
       FE->ndof = mesh->nface;
       FE->nbdof = mesh->nbface;
@@ -112,10 +116,10 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
       *(FE->f_dof) = f_f;
       FE->dof_bdry = mesh->f_bdry;
       break;
-    default:
+  default:
       printf("You haven't defined a finite-element space that I understand :-(");
       exit(0);
-    }
+  }
   
   return;
 }

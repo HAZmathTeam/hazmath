@@ -15,21 +15,21 @@ void read_grid_haz(FILE *gfid,trimesh *mesh)
   /* Reads in gridfile of the following form:
    *
    * First line:	nelms nnodes dim nholes
-   * Next four lines:	Each element will have 3 vertices in 2D and 4 in 3D
+   * Next two-four lines:	Each element will have 2 vertices in 1D, 3 in 2D, and 4 in 3D
    * 
    *	      line 1:	First node of all elements
    *	      line 2: 	Second node of all elements
-   *	      line 3:   Third node of all elements
-   *          line 4:	Dummy line in 2D or 4th node for 3D
-   *			Columns are node-element map not sparse
+   *	      line 3:   Third node of all elements (only 2D & 3D)
+   *          line 4:	4th node for 3D
+   *		Columns are node-element map not sparse
    *
-   * Next two (or 3 in 3D) lines:	x,y,z coordinates
+   * Next one, two, or 3 lines:	x,y,z coordinates
    *			line 1:		x coordinates of all nodes
-   *			line 2:		y coordinates of all nodes
-   *			line 3:	        z coordinates of all nodes (only in 3D)
+   *			line 2:		y coordinates of all nodes (only in 2 or 3D)
+   *			line 3:	    z coordinates of all nodes (only in 3D)
    *
    * Next line:         List of nodes and whether they land on boundary 
-   *                    (binary) -1 indicates boundary of hole if any
+   *                    (binary or flagged) -1 indicates boundary of hole if any
    *
    * INPUT: 
    *         gfid    Grid File ID
@@ -72,9 +72,11 @@ void read_grid_haz(FILE *gfid,trimesh *mesh)
 	
   // Get next 2-3 lines for coordinate map
   rvecd_(gfid,cv->x,&nv);
-  rvecd_(gfid,cv->y,&nv);
-  if(dim==3)
-    rvecd_(gfid,cv->z,&nv);
+  if(dim>1) {
+    rvecd_(gfid,cv->y,&nv);
+    if(dim==3)
+      rvecd_(gfid,cv->z,&nv);
+  }
 	
   // Get next 1-2 lines for boundary nodes
   INT nbv = 0;
@@ -180,6 +182,112 @@ void read_grid_vtk(FILE *gfid,trimesh *mesh)
 }
 /******************************************************************************/
 
+/******************************************************************************/
+void dump_mesh_haz(char *namehaz,trimesh *mesh)
+{
+
+  /* Dumps mesh data to haz format
+  *
+  * Input:
+  *  mesh:     Mesh struct to dump
+  *
+  * Output:
+  *  namehaz  File name of haz file
+  *
+  *  First line:	nelms nnodes dim nholes
+   * Next four lines:	Each element will have 2 vertices in 1D, 3 in 2D, and 4 in 3D
+   *
+   *	      line 1:	First node of all elements
+   *	      line 2: 	Second node of all elements
+   *	      line 3:   Third node of all elements (dummy in 1D)
+   *          line 4:	Dummy line in 2D or 4th node for 3D
+   *		Columns are node-element map not sparse
+   *
+   * Next one, two, or 3 lines:	x,y,z coordinates
+   *			line 1:		x coordinates of all nodes
+   *			line 2:		y coordinates of all nodes (only in 2 or 3D)
+   *			line 3:	    z coordinates of all nodes (only in 3D)
+   *
+   * Next line:         List of nodes and whether they land on boundary
+   *                    (binary or flagged) -1 indicates boundary of hole if any
+  */
+
+  // Basic Quantities
+  INT i,j,ja,jb,jcnt;
+  INT nv = mesh->nv;
+  INT nelm = mesh->nelm;
+  INT dim = mesh->dim;
+  INT v_per_elm = mesh->v_per_elm;
+
+  // Open File for Writing
+  FILE* fhaz = HAZ_fopen(namehaz,"w");
+
+  // Write First Line
+  fprintf(fhaz,"%d %d %d %d\n",nelm,nv,dim,mesh->nconn_bdry-mesh->nconn_reg);
+
+  // Write Next 2-4 lines for element->vertex map
+  INT* nodes = (INT *) calloc(nelm*v_per_elm,sizeof(INT));
+  for(i=0;i<nelm;i++) {
+    ja = mesh->el_v->IA[i]-1;
+    jb = mesh->el_v->IA[i+1]-1;
+    jcnt=0;
+    for(j=ja;j<jb;j++) {
+      nodes[i*v_per_elm+jcnt] = mesh->el_v->JA[j];
+      jcnt++;
+    }
+    // Print first node of elements
+    fprintf(fhaz," %d ",nodes[i*v_per_elm]);
+  }
+  fprintf(fhaz,"\n");
+  // Print Second Node
+  for(i=0;i<nelm;i++) {
+    fprintf(fhaz," %d ",nodes[i*v_per_elm+1]);
+  }
+  fprintf(fhaz,"\n");
+  // Print Third if in 2 or 3D
+  if(dim==2 || dim==3) {
+    for(i=0;i<nelm;i++) {
+      fprintf(fhaz,"% d ",nodes[i*v_per_elm+2]);
+    }
+    fprintf(fhaz,"\n");
+  }
+  // Print Fourth node if in 3D
+  if(dim==3) {
+    for(i=0;i<nelm;i++) {
+      fprintf(fhaz," %d ",nodes[i*v_per_elm+3]);
+    }
+    fprintf(fhaz,"\n");
+  }
+
+  // Dump coordinates
+  // x
+  for(i=0;i<nv;i++) {
+    fprintf(fhaz,"%23.16e ",mesh->cv->x[i]);
+  }
+  fprintf(fhaz,"\n");
+  //y
+  if(dim == 2 || dim==3) {
+    for(i=0;i<nv;i++) {
+      fprintf(fhaz,"%23.16e ",mesh->cv->y[i]);
+    }
+    fprintf(fhaz,"\n");
+  }
+  if(dim==3) {
+    for(i=0;i<nv;i++) {
+      fprintf(fhaz,"%23.16e ",mesh->cv->z[i]);
+    }
+    fprintf(fhaz,"\n");
+  }
+
+  // Dump v_bdry Data to indicate if vertices are boundaries
+  for(i=0;i<nv;i++) fprintf(fhaz,"%i ",mesh->v_bdry[i]);
+  fprintf(fhaz,"\n");
+
+  fclose(fhaz);
+
+  return;
+}
+/******************************************************************************/
 
 /******************************************************************************/
 void dump_mesh_vtk(char *namevtk,trimesh *mesh)
@@ -240,10 +348,13 @@ void dump_mesh_vtk(char *namevtk,trimesh *mesh)
      VTK_WEDGE (=13) 
      VTK_PYRAMID (=14)
   */
+  const INT LINE=3;
   const INT TRI=5;  
   const INT TET=10;
-  
-  if(dim==2) 
+
+  if(dim==1) /* Line */
+    tcell=LINE;
+  else if(dim==2)
     tcell=TRI; /* triangle */
   else 
     tcell=TET; /* tet */
@@ -262,7 +373,11 @@ void dump_mesh_vtk(char *namevtk,trimesh *mesh)
   	  tfloat);
 
   // Dump coordinates
-  if(dim == 2) {
+  if(dim == 1) {
+    for(k=0;k<nv;k++) {
+      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],0e0,0e0);
+    }
+  } else if(dim == 2) {
     for(k=0;k<nv;k++) {
       fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],mesh->cv->y[k],0e0);
     }
@@ -322,6 +437,81 @@ void dump_mesh_vtk(char *namevtk,trimesh *mesh)
   fprintf(fvtk,"</VTKFile>\n");
 
   fclose(fvtk);
+
+  return;
+}
+/******************************************************************************/
+
+// Create Mesh from Scratch Routines
+/******************************************************************************/
+void create1Dgrid_Line(trimesh* mesh,REAL left_end,REAL right_end,INT nelm)
+{
+  /* Creates a 1D grid from scratch [left_end,right_end] with no holes:
+   *
+   * INPUT:
+   *  left_end    Coordinate of Left-End Point
+   *  right_end   Coordinate of Right-End Point
+   *  nelm        Number of Elements
+   *
+   * OUTPUT:
+   *  mesh        Mesh struct and all its properties.
+   *
+   */
+
+  // Initialize mesh for read in.
+  initialize_mesh(mesh);
+  mesh->el_v = malloc(sizeof(struct iCSRmat));
+
+  INT i,j; /* Loop indices */
+
+  INT dim = 1;
+  INT nv = nelm+1;
+
+  // Get number of vertices per element
+  INT v_per_elm = 2;
+
+  // Get h-spacing
+  REAL h = 1.0/nelm;
+
+  // Allocate arrays for element-vertex map,coordinates, and boundaries
+  iCSRmat el_v = icsr_create(nelm,nv,v_per_elm*nelm);
+  coordinates *cv = allocatecoords(nv,dim);
+  INT* v_bdry = (INT *) calloc(nv,sizeof(INT));
+
+  // Build element-vertex map, coordinates, and v_bdry
+  j=0;
+  for(i=0;i<nelm;i++) {
+    el_v.IA[i]=i*v_per_elm+1;
+    el_v.JA[j]=i+1;
+    el_v.JA[j+1]=i+2;
+    j=j+2;
+    cv->x[i]=left_end+h*i;
+    v_bdry[i]=0;
+  }
+  el_v.IA[nelm] = nelm*v_per_elm+1;
+  cv->x[nelm] = right_end;
+  v_bdry[0] = 1;
+  v_bdry[nelm] = 1;
+  INT nbv = 2;
+
+  // Assume no holes
+  INT nconn_reg = 1;
+  INT nconn_bdry = 1;
+
+  // Update mesh with known quantities
+  mesh->dim = dim;
+  mesh->nelm = nelm;
+  mesh->nv = nv;
+  mesh->nbv = nbv;
+  mesh->nconn_reg = nconn_reg;
+  mesh->nconn_bdry = nconn_bdry;
+  mesh->cv = cv;
+  *(mesh->el_v) = el_v;
+  mesh->v_per_elm = v_per_elm;
+  mesh->v_bdry = v_bdry;
+
+  // Build rest of mesh
+  build_mesh(mesh);
 
   return;
 }
