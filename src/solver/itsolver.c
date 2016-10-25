@@ -1273,7 +1273,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy (block_dCSRmat *A,
   mgl[0] = amg_data_create(max_levels);
   n = A->blocks[0]->row;
   dcsr_mxm(A->blocks[1],A->blocks[2],&BTB);
-  dcsr_add(&BTB, 100.0, A->blocks[0], 1.0, &mgl[0][0].A);
+  dcsr_add(&BTB, 1000.0, A->blocks[0], 1.0, &mgl[0][0].A);
   mgl[0][0].b=dvec_create(n); mgl[0][0].x=dvec_create(n);
   
   switch (amgparam->AMG_type) {
