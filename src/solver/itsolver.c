@@ -1107,28 +1107,6 @@ INT linear_solver_bdcsr_krylov_block_3 (block_dCSRmat *A,
         case 12:
             prec.fct = precond_block_upper_3;
             break;
-
-        /*
-        case 24:
-            prec.fct = fasp_precond_block_SGS_3;
-            break;
-            
-        case 31:
-            prec.fct = fasp_precond_block_diag_3_amg;
-            break;
-            
-        case 32:
-            prec.fct = fasp_precond_block_lower_3_amg;
-            break;
-            
-        case 33:
-            prec.fct = fasp_precond_block_upper_3_amg;
-            break;
-            
-        case 34:
-            prec.fct = fasp_precond_block_SGS_3_amg;
-            break;
-         */
             
         default:
             break;

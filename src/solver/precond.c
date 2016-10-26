@@ -589,7 +589,6 @@ void precond_block_diag_3 (REAL *r,
     array_set(N, z, 0.0);
     
     // prepare
-//#if  WITH_UMFPACK
     void **LU_diag = precdata->LU_diag;
     dvector r0, r1, r2, z0, z1, z2;
     
@@ -599,25 +598,18 @@ void precond_block_diag_3 (REAL *r,
     
     r0.val = r; r1.val = &(r[N0]); r2.val = &(r[N0+N1]);
     z0.val = z; z1.val = &(z[N0]); z2.val = &(z[N0+N1]);
-//#endif
     
     // Preconditioning A00 block
-//#if  WITH_UMFPACK
     /* use UMFPACK direct solver */
     umfpack_solve(&A_diag[0], &r0, &z0, LU_diag[0], 0);
-//#endif
     
     // Preconditioning A11 block
-//#if  WITH_UMFPACK
     /* use UMFPACK direct solver */
     umfpack_solve(&A_diag[1], &r1, &z1, LU_diag[1], 0);
-//#endif
     
     // Preconditioning A22 block
-//#if  WITH_UMFPACK
     /* use UMFPACK direct solver */
     umfpack_solve(&A_diag[2], &r2, &z2, LU_diag[2], 0);
-//#endif
     
     // restore r
     array_cp(N, tempr->val, r);
@@ -673,29 +665,26 @@ void precond_block_lower_3 (REAL *r,
     z0.val = z; z1.val = &(z[N0]); z2.val = &(z[N0+N1]);
     
     // Preconditioning A00 block
-    //#if  WITH_UMFPACK
     /* use UMFPACK direct solver */
     umfpack_solve(&A_diag[0], &r0, &z0, LU_diag[0], 0);
-    //#endif
     
     // r1 = r1 - A3*z0
-    dcsr_aAxpy(-1.0, A->blocks[3], z0.val, r1.val);
+    if (A->blocks[3] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[3], z0.val, r1.val);
 
     // Preconditioning A11 block
-    //#if  WITH_UMFPACK
     /* use UMFPACK direct solver */
     umfpack_solve(&A_diag[1], &r1, &z1, LU_diag[1], 0);
-    //#endif
     
     // r2 = r2 - A6*z0 - A7*z1
-    dcsr_aAxpy(-1.0, A->blocks[6], z0.val, r2.val);
-    dcsr_aAxpy(-1.0, A->blocks[7], z1.val, r2.val);
+    if (A->blocks[6] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[6], z0.val, r2.val);
+    if (A->blocks[7] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[7], z1.val, r2.val);
     
     // Preconditioning A22 block
-    //#if  WITH_UMFPACK
     /* use UMFPACK direct solver */
     umfpack_solve(&A_diag[2], &r2, &z2, LU_diag[2], 0);
-    //#endif
     
     // restore r
     array_cp(N, tempr->val, r);
@@ -752,29 +741,26 @@ void precond_block_upper_3 (REAL *r,
     z0.val = z; z1.val = &(z[N0]); z2.val = &(z[N0+N1]);
     
     // Preconditioning A22 block
-//#if  WITH_UMFPACK
     /* use UMFPACK direct solver */
     umfpack_solve(&A_diag[2], &r2, &z2, LU_diag[2], 0);
-//#endif
     
     // r1 = r1 - A5*z2
-    dcsr_aAxpy(-1.0, A->blocks[5], z2.val, r1.val);
+    if (A->blocks[5] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[5], z2.val, r1.val);
     
     // Preconditioning A11 block
-//#if  WITH_UMFPACK
     /* use UMFPACK direct solver */
     umfpack_solve(&A_diag[1], &r1, &z1, LU_diag[1], 0);
-//#endif
     
     // r0 = r0 - A1*z1 - A2*z2
-    dcsr_aAxpy(-1.0, A->blocks[1], z1.val, r0.val);
-    dcsr_aAxpy(-1.0, A->blocks[2], z2.val, r0.val);
+    if (A->blocks[1] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[1], z1.val, r0.val);
+    if (A->blocks[2] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[2], z2.val, r0.val);
     
     // Preconditioning A00 block
-//#if  WITH_UMFPACK
     /* use UMFPACK direct solver */
     umfpack_solve(&A_diag[0], &r0, &z0, LU_diag[0], 0);
-//#endif
     
     // restore r
     array_cp(N, tempr->val, r);
