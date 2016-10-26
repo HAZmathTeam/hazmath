@@ -3,20 +3,21 @@
  *  Created by James Adler and Xiaozhe Hu on 5/13/15.
  *  Copyright 2015__HAZMAT__. All rights reserved.
  *
+ *  \note: modified by Xiaozhe Hu on 10/25/2016
+ *
  */
 
 #include "hazmat.h"
 
 /***********************************************************************************************/
-void array_null (REAL *x)
+void array_null(REAL *x)
 {
-    
-    /**
+    /*!
      * \fn void array_null (REAL *x)
      *
-     * \brief Initialize an array
+     * \brief Initialize a null array
      *
-     * \param x    Pointer to the vector
+     * \param x    Null pointer to the vector
      *
      */
     
@@ -28,15 +29,14 @@ void array_set (const INT n,
                 REAL *x,
                 const REAL val)
 {
-    
-    /**
+    /*!
      * \fn void array_set (const INT n, REAL *x, const REAL val)
      *
-     * \brief Set initial value for an array to be x=val
+     * \brief Set value for the first n entries of a REAL array to be a given value
      *
-     * \param n    Number of variables
-     * \param x    Pointer to the vector
-     * \param val  Initial value for the REAL array
+     * \param n    Number of entries
+     * \param x    Pointer to the REAL array
+     * \param val  given value
      *
      */
     
@@ -55,14 +55,14 @@ void iarray_set (const INT n,
                  INT *x,
                  const INT val)
 {
-    /**
+    /*!
      * \fn void iarray_set (const INT n, INT *x, const INT val)
      *
-     * \brief Set initial value for an array to be x=val
+     * \brief Set value for the first n entries of a INT array to be a given integer
      *
-     * \param n    Number of variables
-     * \param x    Pointer to the vector
-     * \param val  Initial value for the REAL array
+     * \param n    Number of entries
+     * \param x    Pointer to the INT array
+     * \param val  given integer
      *
      */
     
@@ -84,11 +84,11 @@ void array_cp (const INT n,
     /**
      * \fn void array_cp (const INT n, REAL *x, REAL *y)
      *
-     * \brief Copy an array to the other y=x
+     * \brief Copy first n entries of a REAL array x to another REAL array y
      *
-     * \param n    Number of variables
-     * \param x    Pointer to the original vector
-     * \param y    Pointer to the destination vector
+     * \param n    Number of entires
+     * \param x    Pointer to the original REAL array
+     * \param y    Pointer to the destination REAL array
      *
      */
     
@@ -100,14 +100,14 @@ void iarray_cp (const INT n,
                 INT *x,
                 INT *y)
 {
-    /**
+    /*!
      * \fn void iarray_cp (const INT n, INT *x, INT *y)
      *
-     * \brief Copy an array to the other y=x
+     * \brief Copy first n entries of a INT array to another INT array y
      *
-     * \param n    Number of variables
-     * \param x    Pointer to the original vector
-     * \param y    Pointer to the destination vector
+     * \param n    Number of entries
+     * \param x    Pointer to the original INT array
+     * \param y    Pointer to the destination INT array
      *
      */
     
@@ -119,16 +119,16 @@ void array_ax (const INT n,
                const REAL a,
                REAL *x)
 {
-    /**
+    /*!
      * \fn void array_ax (const INT n, const REAL a, REAL *x)
      *
-     * \brief x = a*x
+     * \brief Compute x = a*x
      *
-     * \param n    Number of variables
-     * \param a    Factor a
-     * \param x    Pointer to x
+     * \param n    length of the array
+     * \param a    Scalar REAL number
+     * \param x    Pointer to a REAL array
      *
-     * \note x is reused to store the resulting array.
+     * \note Result REAL array overwrites the original REAL array x
      */
     
     INT i;
@@ -147,18 +147,18 @@ void array_axpy (const INT n,
                  REAL *x,
                  REAL *y)
 {
-    /**
+    /*!
      * \fn void array_axpy (const INT n, const REAL a, REAL *x, REAL *y)
      *
-     * \brief y = a*x + y
+     * \brief Compute y = a*x + y
      *
-     * \param n    Number of variables
-     * \param a    Factor a
-     * \param x    Pointer to x
-     * \param y    Pointer to y
+     * \param n    length of the arrays
+     * \param a    Scalar REAL number
+     * \param x    Pointer to the REAL array x
+     * \param y    Pointer to the REAL array y
      *
      *
-     * \note y is reused to store the resulting array.
+     * \note .
      */
     
     INT i;
