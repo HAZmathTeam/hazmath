@@ -105,7 +105,7 @@ void dvec_write (const char *filename,
     
     if ( fp == NULL ) {
         printf("### ERROR: Cannot open %s!\n", filename);
-        chkerr(ERROR_OPEN_FILE, __FUNCTION__);
+        check_error(ERROR_OPEN_FILE, __FUNCTION__);
     }
     
     printf("%s: writing to file %s...\n", __FUNCTION__, filename);
@@ -148,7 +148,7 @@ void dcsr_write_dcoo (const char *filename,
     
     if ( fp == NULL ) {
         printf("### ERROR: Cannot open %s!\n", filename);
-        chkerr(ERROR_OPEN_FILE, __FUNCTION__);
+        check_error(ERROR_OPEN_FILE, __FUNCTION__);
     }
     
     printf("%s: writing to file %s...\n", __FUNCTION__, filename);

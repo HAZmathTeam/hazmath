@@ -1,25 +1,42 @@
 /*! \file src/utilities/array.c
  *
  *  Created by James Adler and Xiaozhe Hu on 5/13/15.
- *  Copyright 2015__HAZMAT__. All rights reserved.
+ *  Copyright 2016__HAZMAT__. All rights reserved.
+ *
+ *  \note: modified by Xiaozhe Hu on 10/25/2016
+ *  \note: done cleanup for releasing -- Xiaozhe Hu 10/27/2016
  *
  */
 
 #include "hazmat.h"
 
 /***********************************************************************************************/
-void array_null (REAL *x)
+void array_null(REAL *x)
 {
-    
-    /**
+    /*!
      * \fn void array_null (REAL *x)
      *
-     * \brief Initialize an array
+     * \brief Initialize a null array
      *
-     * \param x    Pointer to the vector
+     * \param x    Null pointer to the vector
      *
      */
     
+    x = NULL;
+}
+
+/***********************************************************************************************/
+void iarray_null(INT *x)
+{
+    /*!
+     * \fn void array_null (REAL *x)
+     *
+     * \brief Initialize a null array
+     *
+     * \param x    Null pointer to the vector
+     *
+     */
+
     x = NULL;
 }
 
@@ -28,15 +45,14 @@ void array_set (const INT n,
                 REAL *x,
                 const REAL val)
 {
-    
-    /**
+    /*!
      * \fn void array_set (const INT n, REAL *x, const REAL val)
      *
-     * \brief Set initial value for an array to be x=val
+     * \brief Set value for the first n entries of a REAL array to be a given value
      *
-     * \param n    Number of variables
-     * \param x    Pointer to the vector
-     * \param val  Initial value for the REAL array
+     * \param n    Number of entries
+     * \param x    Pointer to the REAL array
+     * \param val  given value
      *
      */
     
@@ -55,14 +71,14 @@ void iarray_set (const INT n,
                  INT *x,
                  const INT val)
 {
-    /**
+    /*!
      * \fn void iarray_set (const INT n, INT *x, const INT val)
      *
-     * \brief Set initial value for an array to be x=val
+     * \brief Set value for the first n entries of a INT array to be a given integer
      *
-     * \param n    Number of variables
-     * \param x    Pointer to the vector
-     * \param val  Initial value for the REAL array
+     * \param n    Number of entries
+     * \param x    Pointer to the INT array
+     * \param val  given integer
      *
      */
     
@@ -81,14 +97,14 @@ void array_cp (const INT n,
                REAL *x,
                REAL *y)
 {
-    /**
+    /*!
      * \fn void array_cp (const INT n, REAL *x, REAL *y)
      *
-     * \brief Copy an array to the other y=x
+     * \brief Copy first n entries of a REAL array x to another REAL array y
      *
-     * \param n    Number of variables
-     * \param x    Pointer to the original vector
-     * \param y    Pointer to the destination vector
+     * \param n    Number of entires
+     * \param x    Pointer to the original REAL array
+     * \param y    Pointer to the destination REAL array
      *
      */
     
@@ -100,14 +116,14 @@ void iarray_cp (const INT n,
                 INT *x,
                 INT *y)
 {
-    /**
+    /*!
      * \fn void iarray_cp (const INT n, INT *x, INT *y)
      *
-     * \brief Copy an array to the other y=x
+     * \brief Copy first n entries of a INT array to another INT array y
      *
-     * \param n    Number of variables
-     * \param x    Pointer to the original vector
-     * \param y    Pointer to the destination vector
+     * \param n    Number of entries
+     * \param x    Pointer to the original INT array
+     * \param y    Pointer to the destination INT array
      *
      */
     
@@ -119,16 +135,16 @@ void array_ax (const INT n,
                const REAL a,
                REAL *x)
 {
-    /**
+    /*!
      * \fn void array_ax (const INT n, const REAL a, REAL *x)
      *
-     * \brief x = a*x
+     * \brief Compute x = a*x
      *
-     * \param n    Number of variables
-     * \param a    Factor a
-     * \param x    Pointer to x
+     * \param n    length of the array
+     * \param a    Scalar REAL number
+     * \param x    Pointer to a REAL array
      *
-     * \note x is reused to store the resulting array.
+     * \note Result REAL array overwrites the original REAL array x
      */
     
     INT i;
@@ -147,18 +163,18 @@ void array_axpy (const INT n,
                  REAL *x,
                  REAL *y)
 {
-    /**
+    /*!
      * \fn void array_axpy (const INT n, const REAL a, REAL *x, REAL *y)
      *
-     * \brief y = a*x + y
+     * \brief Compute y = a*x + y
      *
-     * \param n    Number of variables
-     * \param a    Factor a
-     * \param x    Pointer to x
-     * \param y    Pointer to y
+     * \param n    Length of the arrays
+     * \param a    Scalar REAL number
+     * \param x    Pointer to the REAL array x
+     * \param y    Pointer to the REAL array y
      *
      *
-     * \note y is reused to store the resulting array.
+     * \note .
      */
     
     INT i;
@@ -181,17 +197,17 @@ void array_axpyz (const INT n,
                   REAL *y,
                   REAL *z)
 {
-    /**
+    /*!
      * \fn void array_axpyz(const INT n, const REAL a, REAL *x,
      *                                REAL *y, REAL *z)
      *
-     * \brief z = a*x + y
+     * \brief Compute z = a*x + y
      *
-     * \param n    Number of variables
-     * \param a    Factor a
-     * \param x    Pointer to x
-     * \param y    Pointer to y
-     * \param z    Pointer to z
+     * \param n    Length of the arrays
+     * \param a    Scalar REAL number
+     * \param x    Pointer to the REAL array x
+     * \param y    Pointer to the REAL array y
+     * \param z    Pointer to the REAL array z
      *
      */
     
@@ -208,7 +224,7 @@ void array_axpby (const INT n,
                   const REAL b,
                   REAL *y)
 {
-    /**
+    /*!
      * \fn void array_axpby (const INT n, const REAL a, REAL *x,
      *                                 const REAL b, REAL *y)
      *
@@ -234,14 +250,14 @@ REAL array_dotprod (const INT n,
                     const REAL * x,
                     const REAL * y)
 {
-    /**
+    /*!
      * \fn REAL array_dotprod (const INT n, const REAL *x, const REAL *y)
      *
-     * \brief Inner product of two arraies (x,y)
+     * \brief Compute inner product of REAL array x and REAL array y
      *
-     * \param n    Number of variables
-     * \param x    Pointer to x
-     * \param y    Pointer to y
+     * \param n    Length of the arrays
+     * \param x    Pointer to the REAL array x
+     * \param y    Pointer to the REAL array y
      *
      * \return     Inner product (x,y)
      *
@@ -259,15 +275,15 @@ REAL array_dotprod (const INT n,
 REAL array_norm1 (const INT n,
                   const REAL * x)
 {
-    /**
+    /*!
      * \fn REAL array_norm1 (const INT n, const REAL * x)
      *
-     * \brief L1 norm of array x
+     * \brief Compute the l1 norm of a REAL array x
      *
      * \param n    Number of variables
      * \param x    Pointer to x
      *
-     * \return     L1 norm of x
+     * \return     l1 norm of x
      *
      */
     
@@ -283,15 +299,15 @@ REAL array_norm1 (const INT n,
 REAL array_norm2 (const INT n,
                   const REAL * x)
 {
-    /**
+    /*!
      * \fn REAL array_norm2 (const INT n, const REAL * x)
      *
-     * \brief L2 norm of array x
+     * \brief compute l2 norm of a REAL array x
      *
-     * \param n    Number of variables
-     * \param x    Pointer to x
+     * \param n    Length of the REAL array x
+     * \param x    Pointer to the REAL array x
      *
-     * \return     L2 norm of x
+     * \return     l2 norm of x
      *
      */
     
@@ -310,12 +326,12 @@ REAL array_norminf (const INT n,
     /**
      * \fn REAL array_norminf (const INT n, const REAL * x)
      *
-     * \brief Linf norm of array x
+     * \brief compute infinity norm of a REAL array x
      *
-     * \param n    Number of variables
-     * \param x    Pointer to x
+     * \param n    Length of the REAL array x
+     * \param x    Pointer to the REAL array x
      *
-     * \return     L_inf norm of x
+     * \return     infinity norm of x
      *
      */
     
@@ -327,5 +343,29 @@ REAL array_norminf (const INT n,
     return infnorm;
 }
 
+/***********************************************************************************************/
+REAL array_normp (const INT n,
+                  const REAL * x,
+                  const INT p)
+{
+    /*!
+     * \fn REAL array_normp (const INT n, const REAL * x)
+     *
+     * \brief compute lp norm of a REAL array x
+     *
+     * \param n    Length of the REAL array x
+     * \param x    Pointer to the REAL array x
+     *
+     * \return     lp norm of x
+     *
+     */
 
+    INT i;
+    REAL pnorm = 0.;
 
+    for (i=0;i<n;++i) pnorm+=ABS(pow(x[i],p));
+
+    return pow(pnorm, 1.0/p);
+}
+
+/*************************************  END  ******************************************************/
