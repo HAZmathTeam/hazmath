@@ -338,12 +338,12 @@ INT linear_solver_amg (dCSRmat *A,
     // check matrix data
     if ( m != n ) {
         printf("### ERROR: A is not a square matrix!\n");
-        chkerr(ERROR_MAT_SIZE, __FUNCTION__);
+        check_error(ERROR_MAT_SIZE, __FUNCTION__);
     }
     
     if ( nnz <= 0 ) {
         printf("### ERROR: A has no nonzero entries!\n");
-        chkerr(ERROR_MAT_SIZE, __FUNCTION__);
+        check_error(ERROR_MAT_SIZE, __FUNCTION__);
     }
     
     // Step 0: initialize mgl[0] with A, b and x
@@ -1046,18 +1046,15 @@ INT linear_solver_bdcsr_krylov_block_3 (block_dCSRmat *A,
      */
     
     const SHORT prtlvl = itparam->linear_print_level;
-    //const SHORT precond_type = itparam->linear_precond_type;
+    const SHORT precond_type = itparam->linear_precond_type;
     
     INT status = SUCCESS;
     REAL setup_start, setup_end, setup_duration;
     REAL solver_start, solver_end, solver_duration;
     
-    //const SHORT max_levels = amgparam->max_levels;
     //INT m, n, nnz; 
     INT i;
-    
-    //AMG_data **mgl = NULL;
-    
+        
 #if WITH_SUITESPARSE
     void **LU_diag = (void **)calloc(3, sizeof(void *));
 #endif
@@ -1065,9 +1062,7 @@ INT linear_solver_bdcsr_krylov_block_3 (block_dCSRmat *A,
     /* setup preconditioner */
     gettime(&setup_start);
     
-    /* diagonal blocks are solved exactly */
-    //if ( precond_type > 20 && precond_type < 30 ) {
-        
+    /* diagonal blocks are solved exactly */        
 #if WITH_SUITESPARSE
         // Need to sort the diagonal blocks for UMFPACK format
         dCSRmat A_tran;
@@ -1086,101 +1081,36 @@ INT linear_solver_bdcsr_krylov_block_3 (block_dCSRmat *A,
         dcsr_free(&A_tran);
     
 #endif
-        
-    //}
-    
-    /* diagonal blocks are solved by AMG */
-    /*
-    else if ( precond_type > 30 && precond_type < 40 ) {
-        
-        mgl = (AMG_data **)fasp_mem_calloc(3, sizeof(AMG_data *));
-        
-        for (i=0; i<3; i++){
             
-            mgl[i] = fasp_amg_data_create(max_levels);
-            m = A_diag[i].row; n = A_diag[i].col; nnz = A_diag[i].nnz;
-            mgl[i][0].A=fasp_dcsr_create(m,n,nnz); fasp_dcsr_cp(&A_diag[i],&mgl[i][0].A);
-            mgl[i][0].b=fasp_dvec_create(n); mgl[i][0].x=fasp_dvec_create(n);
-            
-            switch (amgparam->AMG_type) {
-                case SA_AMG: // Smoothed Aggregation AMG
-                    status = fasp_amg_setup_sa(mgl[i], amgparam); break;
-                case UA_AMG: // Unsmoothed Aggregation AMG
-                    status = fasp_amg_setup_ua(mgl[i], amgparam); break;
-                default: // Classical AMG
-                    status = fasp_amg_setup_rs(mgl[i], amgparam); break;
-            }
-            
-        }
-        
-    }
-     */
-    
-    
-    
     precond_block_data precdata;
     precdata.Abcsr = A;
     precdata.A_diag = A_diag;
     precdata.r = dvec_create(b->row);
     
     /* diagonal blocks are solved exactly */
-    //if ( precond_type > 20 && precond_type < 30 ) {
 #if WITH_SUITESPARSE
         precdata.LU_diag = LU_diag;
 #endif
-    //}
-    /* diagonal blocks are solved by AMG */
-    /*
-    else ( precond_type > 30 && precond_type < 40 ) {
-        precdata.amgparam = amgparam;
-        precdata.mgl = mgl;
-    }
-     */
     
     precond prec; prec.data = &precdata;
     
-    /*
     switch (precond_type)
     {
-        case 21:
-            prec.fct = fasp_precond_block_diag_3;
+        case 10:
+            prec.fct = precond_block_diag_3;
             break;
             
-        case 22:
-            prec.fct = fasp_precond_block_lower_3;
+        case 11:
+            prec.fct = precond_block_lower_3;
             break;
             
-        case 23:
-            prec.fct = fasp_precond_block_upper_3;
-            break;
-            
-        case 24:
-            prec.fct = fasp_precond_block_SGS_3;
-            break;
-            
-        case 31:
-            prec.fct = fasp_precond_block_diag_3_amg;
-            break;
-            
-        case 32:
-            prec.fct = fasp_precond_block_lower_3_amg;
-            break;
-            
-        case 33:
-            prec.fct = fasp_precond_block_upper_3_amg;
-            break;
-            
-        case 34:
-            prec.fct = fasp_precond_block_SGS_3_amg;
+        case 12:
+            prec.fct = precond_block_upper_3;
             break;
             
         default:
             break;
     }
-     */
-    
-    //prec.fct = precond_block_diag_3;
-    prec.fct = precond_block_upper_3;
     
     
     if ( prtlvl >= PRINT_MIN ) {
@@ -1203,19 +1133,10 @@ INT linear_solver_bdcsr_krylov_block_3 (block_dCSRmat *A,
     
     // clean
     /* diagonal blocks are solved exactly */
-    //if ( precond_type > 20 && precond_type < 30 ) {
 #if WITH_SUITESPARSE
         for (i=0; i<3; i++) umfpack_free_numeric(LU_diag[i]);
 #endif
-    //}
-    /* diagonal blocks are solved by AMG */
-    /*
-    else ( precond_type > 30 && precond_type < 40 ) {
-        for (i=0; i<3; i++) fasp_amg_data_free(mgl[i], amgparam);
-        if (mgl) fasp_mem_free(mgl);
-    }
 
-     */
     
     return status;
 }
@@ -1273,7 +1194,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy (block_dCSRmat *A,
   mgl[0] = amg_data_create(max_levels);
   n = A->blocks[0]->row;
   dcsr_mxm(A->blocks[1],A->blocks[2],&BTB);
-  dcsr_add(&BTB, 100.0, A->blocks[0], 1.0, &mgl[0][0].A);
+  dcsr_add(&BTB, 1000.0, A->blocks[0], 1.0, &mgl[0][0].A);
   mgl[0][0].b=dvec_create(n); mgl[0][0].x=dvec_create(n);
   
   switch (amgparam->AMG_type) {
@@ -1704,7 +1625,7 @@ INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A,
             break;
      
         default:
-            chkerr(ERROR_SOLVER_PRECTYPE, __FUNCTION__);
+            check_error(ERROR_SOLVER_PRECTYPE, __FUNCTION__);
             break;
      }
     

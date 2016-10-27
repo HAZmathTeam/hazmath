@@ -29,7 +29,9 @@
 /**
  * \brief Definition of return status and error messages
  */
-#define SUCCESS            0  /**< return from function successfully */
+#define SUCCESS                 0  /**< return from function successfully */
+//---------------------------------------------------------------------------------
+#define ERROR_DIM               -1 /**< wrong dimension */
 //---------------------------------------------------------------------------------
 #define ERROR_OPEN_FILE       -10  /**< fail to open a file */
 #define ERROR_WRONG_FILE      -11  /**< input contains wrong format */

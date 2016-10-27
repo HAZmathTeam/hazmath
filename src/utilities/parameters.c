@@ -543,7 +543,6 @@ void param_amg_to_prec (precond_data *pcdata,
     pcdata->amli_degree         = amgparam->amli_degree;
     pcdata->amli_coef           = amgparam->amli_coef;
     pcdata->nl_amli_krylov_type = amgparam->nl_amli_krylov_type;
-    pcdata->tentative_smooth    = amgparam->tentative_smooth;
     
 }
 
@@ -574,7 +573,6 @@ void param_prec_to_amg (AMG_param *amgparam,
     amgparam->amli_degree         = pcdata->amli_degree;
     amgparam->amli_coef           = pcdata->amli_coef;
     amgparam->nl_amli_krylov_type = pcdata->nl_amli_krylov_type;
-    amgparam->tentative_smooth    = pcdata->tentative_smooth;
     amgparam->ILU_levels          = pcdata->mgl_data->ILU_levels;
 }
 
@@ -646,7 +644,7 @@ void amg_amli_coef (const REAL lambda_max,
     
     else {
         printf("### ERROR: Wrong AMLI degree %d!\n", degree);
-        chkerr(ERROR_INPUT_PAR, __FUNCTION__);
+        check_error(ERROR_INPUT_PAR, __FUNCTION__);
     }
     
     return;

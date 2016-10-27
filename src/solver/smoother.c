@@ -693,7 +693,7 @@ void smoother_dcsr_ilu (dCSRmat *A,
 MEMERR:
     printf("### ERROR: ILU needs %d memory, only %d available! %s : %d\n",
            memneed, iludata->nwork, __FILE__, __LINE__);
-    chkerr(ERROR_ALLOC_MEM, __FUNCTION__);
+    check_error(ERROR_ALLOC_MEM, __FUNCTION__);
 }
 
 /*---------------------------------*/
