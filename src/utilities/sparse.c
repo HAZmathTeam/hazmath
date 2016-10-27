@@ -2008,7 +2008,7 @@ void dcsr_diagpref (dCSRmat *A)
             }
             if (j == row_size) {
                 printf("### ERROR: Diagonal entry %d is missing or zero!\n", i);
-                chkerr(ERROR_MISC, __FUNCTION__);
+                check_error(ERROR_MISC, __FUNCTION__);
             }
         }
         A_j    += row_size;

@@ -250,7 +250,7 @@ SHORT amg_setup_c (AMG_data *mgl,
 
     if ( prtlvl > PRINT_NONE ) {
         gettime(&setup_end);
-        print_amgcomplexity(mgl, prtlvl);
+        print_amg_complexity(mgl, prtlvl);
         print_cputime("Classical AMG setup", setup_end - setup_start);
     }
     

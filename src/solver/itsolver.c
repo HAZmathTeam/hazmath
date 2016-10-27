@@ -338,12 +338,12 @@ INT linear_solver_amg (dCSRmat *A,
     // check matrix data
     if ( m != n ) {
         printf("### ERROR: A is not a square matrix!\n");
-        chkerr(ERROR_MAT_SIZE, __FUNCTION__);
+        check_error(ERROR_MAT_SIZE, __FUNCTION__);
     }
     
     if ( nnz <= 0 ) {
         printf("### ERROR: A has no nonzero entries!\n");
-        chkerr(ERROR_MAT_SIZE, __FUNCTION__);
+        check_error(ERROR_MAT_SIZE, __FUNCTION__);
     }
     
     // Step 0: initialize mgl[0] with A, b and x
@@ -1625,7 +1625,7 @@ INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A,
             break;
      
         default:
-            chkerr(ERROR_SOLVER_PRECTYPE, __FUNCTION__);
+            check_error(ERROR_SOLVER_PRECTYPE, __FUNCTION__);
             break;
      }
     
