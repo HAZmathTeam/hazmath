@@ -1,5 +1,5 @@
 /*! \file src/fem/quadrature.c
- *  
+ *
  *
  *  Created by James Adler on 2/11/15.
  *  Copyright 2015__HAZMAT__. All rights reserved.
@@ -19,32 +19,32 @@ struct qcoordinates *allocateqcoords(INT nq1d,INT nelm,INT mydim)
   assert(A != NULL);
 
   INT nq = 0;
-  switch (mydim)   
-    {
-    case 4:
-      nq = nq1d;
-      A->z = (REAL *) calloc(nq*nelm,sizeof(REAL));
-    case 1:
-      nq = nq1d;
-      A->x = (REAL *) calloc(nq*nelm,sizeof(REAL));
-      A->y = NULL;
-      A->z = NULL;
-      break;
-    case 2: 
-      nq = nq1d*nq1d;
-      A->x = (REAL *) calloc(nq*nelm,sizeof(REAL));
-      A->y = (REAL *) calloc(nq*nelm,sizeof(REAL));
-      A->z = NULL;
-      break;
-    case 3:
-      nq = nq1d*nq1d*nq1d;
-      A->x = (REAL *) calloc(nq*nelm,sizeof(REAL));
-      A->y = (REAL *) calloc(nq*nelm,sizeof(REAL));
-      A->z = (REAL *) calloc(nq*nelm,sizeof(REAL));
-      break;
-    default:
-      baddimension();
-    }
+  switch (mydim)
+  {
+  case 1:
+    nq = nq1d;
+    A->x = (REAL *) calloc(nq*nelm,sizeof(REAL));
+    A->y = NULL;
+    A->z = NULL;
+    break;
+  case 2:
+    nq = nq1d*nq1d;
+    A->x = (REAL *) calloc(nq*nelm,sizeof(REAL));
+    A->y = (REAL *) calloc(nq*nelm,sizeof(REAL));
+    A->z = NULL;
+    break;
+  case 3:
+    nq = nq1d*nq1d*nq1d;
+    A->x = (REAL *) calloc(nq*nelm,sizeof(REAL));
+    A->y = (REAL *) calloc(nq*nelm,sizeof(REAL));
+    A->z = (REAL *) calloc(nq*nelm,sizeof(REAL));
+    break;
+  case 4:
+    nq = nq1d;
+    A->z = (REAL *) calloc(nq*nelm,sizeof(REAL));
+  default:
+    baddimension();
+  }
   A->w = (REAL *) calloc(nq*nelm,sizeof(REAL));
   A->n = nq*nelm;
   A->nq_per_elm = nq;
@@ -56,11 +56,11 @@ struct qcoordinates *allocateqcoords(INT nq1d,INT nelm,INT mydim)
 /*********************************************************************************/
 struct qcoordinates *allocateqcoords_bdry(INT nq1d,INT nelm,INT dim,INT ed_or_f)
 {
-  /* allocates memory and properties of quadrature coordinates struct 
-  *  Assumes we are allocated on a boundary, so dimension is 1 or 2 
-  *  less 
+  /* allocates memory and properties of quadrature coordinates struct
+  *  Assumes we are allocated on a boundary, so dimension is 1 or 2
+  *  less
   *
-  *  Input: nq1d: # of quadrature points in 1D 
+  *  Input: nq1d: # of quadrature points in 1D
   *         nelm: # of "elements (faces or edges) to get quadrature
   *          dim: Dimension of problem
   *     ed_or_f:  Whether we are computing quadrature on edges or faces
@@ -73,25 +73,25 @@ struct qcoordinates *allocateqcoords_bdry(INT nq1d,INT nelm,INT dim,INT ed_or_f)
   assert(A != NULL);
 
   INT nq = 0;
-  switch (ed_or_f)   
-    {
-    case 1: 
-      // Compute quadrature on edges
-      nq = nq1d;
-      break;
-    case 2:
-      nq = nq1d*nq1d;
-      break;
-    default:
-      baddimension();
-    }
+  switch (ed_or_f)
+  {
+  case 1:
+    // Compute quadrature on edges
+    nq = nq1d;
+    break;
+  case 2:
+    nq = nq1d*nq1d;
+    break;
+  default:
+    baddimension();
+  }
 
   A->x = (REAL *) calloc(nq*nelm,sizeof(REAL));
   A->y = (REAL *) calloc(nq*nelm,sizeof(REAL));
   if(dim==2) {
     A->z = NULL;
   } else if(dim==3) {
-     A->z = (REAL *) calloc(nq*nelm,sizeof(REAL));
+    A->z = (REAL *) calloc(nq*nelm,sizeof(REAL));
   } else {
     baddimension();
   }
@@ -137,10 +137,11 @@ void free_qcoords(qcoordinates* A)
 /*********************************************************************************/
 qcoordinates* get_quadrature(trimesh *mesh,INT nq1d) 
 {	
-  /* Computes quadrature weights and nodes for entire domain using nq1d^(dim) quadrature nodes per element
+  /* Computes quadrature weights and nodes for entire domain using nq1d^(dim)
+   * quadrature nodes per element
    *
    *    INPUT:
-   *          mesh      Domain Mesh
+   *          mesh  Domain Mesh
    *	      nq1d	Quad nodes in each direction per element (nq = nq1d^dim)
    *
    *    OUTPUT:
@@ -153,15 +154,18 @@ qcoordinates* get_quadrature(trimesh *mesh,INT nq1d)
   INT nq = (INT) pow(nq1d,dim);
   qcoordinates *cq_all = allocateqcoords(nq1d,nelm,dim);
   qcoordinates *cqelm = allocateqcoords(nq1d,1,dim);
- 
+
   for (i=0; i<nelm; i++) {
     quad_elm(cqelm,mesh,nq1d,i);
     for (j=0; j<nq; j++) {
       cq_all->x[i*nq+j] = cqelm->x[j];
-      cq_all->y[i*nq+j] = cqelm->y[j];
       cq_all->w[i*nq+j] = cqelm->w[j];
+      if(dim==2) {
+        cq_all->y[i*nq+j] = cqelm->y[j];
+      }
       if(dim==3) {
-	cq_all->z[i*nq+j] = cqelm->z[j];
+        cq_all->y[i*nq+j] = cqelm->y[j];
+        cq_all->z[i*nq+j] = cqelm->z[j];
       }
     }
   }
@@ -171,7 +175,7 @@ qcoordinates* get_quadrature(trimesh *mesh,INT nq1d)
     free(cqelm);
     cqelm = NULL;
   }
-	
+
   return cq_all;
 }
 /*********************************************************************************/
@@ -179,59 +183,78 @@ qcoordinates* get_quadrature(trimesh *mesh,INT nq1d)
 /*********************************************************************************/
 void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm) 
 {
-	
-  /* Computes quadrature weights and nodes for SINGLE element using nq1d^(dim) quadrature nodes on simplex
+
+  /* Computes quadrature weights and nodes for SINGLE element using nq1d^(dim)
+   * quadrature nodes on simplex
    *
    *    INPUT:
    *          mesh	Domain mesh
-   *	      nq1d	Square Root of quad nodes per element (nq = nq1d^dim)
-   *          elm       Index of current element
+   *	      nq1d	quad nodes per element in 1 direction (nq = nq1d^dim)
+   *          elm   Index of current element
    *
    *    OUTPUT:
-   *          cqelm     quadrature nodes and weights for given element
+   *          cqelm  quadrature nodes and weights for given element
    */
 
   /* Loop indices */
-  INT q,j; 
+  INT q,j;
 
   /* Dimension */
   INT dim = mesh->dim;
   
   /* Total Number of Quadrature Nodes */
-  INT nq = pow(nq1d,dim); 
+  INT nq = pow(nq1d,dim);
 
   /* Coordinates of vertices of element */
   INT v_per_elm = mesh->v_per_elm;
   coordinates *cvelm = allocatecoords(v_per_elm,dim);
-	
+
   /* Gaussian points for reference element */
   REAL* gp = (REAL *) calloc(dim*nq,sizeof(REAL));
   /* Gaussian weights for reference element */
-  REAL* gw = (REAL *) calloc(nq,sizeof(REAL));		
+  REAL* gw = (REAL *) calloc(nq,sizeof(REAL));
 
   /* Points on Reference Triangle */
-  REAL r,s,t;		
-	
+  REAL r,s,t;
+
   REAL e_vol = mesh->el_vol[elm]; /* Area/Volume of Element */
   REAL voldim=0.0;
-	
+
   // Get vertices of element
   INT* thiselm_v = (INT *) calloc(v_per_elm,sizeof(INT));
   iCSRmat* el_v = mesh->el_v;
   get_incidence_row(elm,el_v,thiselm_v);
 
   // Get coordinates of vertices for given element
-  if(dim==2) {
+  if(dim==1) {
+    for (j=0; j<v_per_elm; j++) {
+      cvelm->x[j] = mesh->cv->x[thiselm_v[j]-1];
+    }
+
+    voldim = 0.5*e_vol;
+
+    // Get Quad Nodes and Weights
+    quad1d(gp,gw,nq1d);
+
+    // Map to Real Interval
+    // x = 0.5*(x2-x1)*r + 0.5*(x1+x2)
+    // w = 0.5*(x2-x1)*wref
+    for (q=0; q<nq; q++) {
+      r = gp[q];
+      cqelm->x[q] = 0.5*(cvelm->x[0]*(1-r) + cvelm->x[1]*(1+r));
+      cqelm->w[q] = voldim*gw[q];
+    }
+  } else if(dim==2) {
     for (j=0; j<v_per_elm; j++) {
       cvelm->x[j] = mesh->cv->x[thiselm_v[j]-1];
       cvelm->y[j] = mesh->cv->y[thiselm_v[j]-1];
     }
 
     voldim = 2.0*e_vol;
-	
+
     // Get Quad Nodes and Weights
     triquad_(gp,gw,nq1d);
-	
+
     // Map to Real Triangle
     // x = x1*(1-r-s) + x2*r + x3*s
     // y = y1*(1-r-s) + y2*r + y3*s
@@ -251,10 +274,10 @@ void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm)
     }
 
     voldim = 6.0*e_vol;
-	
+
     // Get Quad Nodes and Weights
     tetquad_(gp,gw,nq1d);
-	
+
     // Map to Real Triangle
     // x = x1*(1-r-s-t) + x2*r + x3*s + x4*t
     // y = y1*(1-r-s-t) + y2*r + y3*s + y4*t
@@ -272,7 +295,7 @@ void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm)
   } else {
     baddimension();
   }
-	
+
   if(gp) free(gp);
   if(gw) free(gw);
   if(cvelm) {
@@ -281,7 +304,7 @@ void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm)
     cvelm=NULL;
   }
   if(thiselm_v) free(thiselm_v);
-	
+
   return;
 }
 /*******************************************************************************/
@@ -289,20 +312,20 @@ void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm)
 /*******************************************************************************/
 qcoordinates* get_quadrature_boundary(trimesh *mesh,INT nq1d,INT ed_or_f) 
 {
-  /* Computes quadrature weights and nodes for all faces (surface integral) 
-   * or edges (line integral) in entire domain using nq1d quadrature nodes 
+  /* Computes quadrature weights and nodes for all faces (surface integral)
+   * or edges (line integral) in entire domain using nq1d quadrature nodes
    * per 1D direction
    *
    *    INPUT:
-   *          mesh      Mesh of Domain	
+   *          mesh      Mesh of Domain
    *	      nq1d      Quad nodes in each direction per element (nq = nq1d^dim)
    *       ed_or_f      1D (1) or 2D (2) integral.
    *
    *    OUTPUT:
-   *          cq	quadrature nodes and weights for all edges/faces in 
+   *          cq	quadrature nodes and weights for all edges/faces in
    *                    entire domain
    */
-	
+
   INT i,j;
 
   INT dim = mesh->dim;
@@ -318,11 +341,11 @@ qcoordinates* get_quadrature_boundary(trimesh *mesh,INT nq1d,INT ed_or_f)
     ndof=nface;
     nq = nq1d*nq1d;
   }
-	
+
   // Allocate quadrature points
   qcoordinates *cq_all = allocateqcoords_bdry(nq1d,ndof,dim,ed_or_f);
   qcoordinates *cq_surf = allocateqcoords_bdry(nq1d,1,dim,ed_or_f);
-	
+
   for (i=0; i<ndof; i++) {
     quad_edgeface(cq_surf,mesh,nq1d,i,ed_or_f);
     for (j=0; j<nq; j++) {
@@ -330,7 +353,7 @@ qcoordinates* get_quadrature_boundary(trimesh *mesh,INT nq1d,INT ed_or_f)
       cq_all->y[i*nq+j] = cq_surf->y[j];
       cq_all->w[i*nq+j] = cq_surf->w[j];
       if(dim==3) {
-	cq_all->z[i*nq+j] = cq_surf->z[j];
+        cq_all->z[i*nq+j] = cq_surf->z[j];
       }
     }
   }
@@ -340,7 +363,7 @@ qcoordinates* get_quadrature_boundary(trimesh *mesh,INT nq1d,INT ed_or_f)
     free(cq_surf);
     cq_surf = NULL;
   }
-	
+
   return cq_all;
 }
 /*******************************************************************************/
@@ -348,9 +371,9 @@ qcoordinates* get_quadrature_boundary(trimesh *mesh,INT nq1d,INT ed_or_f)
 /*******************************************************************************/
 void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_f) 
 {
-	
-  /* Computes quadrature weights and nodes for SINGLE Edge/Face using nq1d 
-   * quadrature nodes on a line/surface.  Can be used to compute integrals on 
+
+  /* Computes quadrature weights and nodes for SINGLE Edge/Face using nq1d
+   * quadrature nodes on a line/surface.  Can be used to compute integrals on
    * 1D/2D boundaries (curves/surfaces).
    *
    *    INPUT:
@@ -362,7 +385,7 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
    *    OUTPUT:
    *          cqbdry   quadrature nodes and weights for given edge/face
    */
-	
+
   INT q,j,nqdum; /* Loop indices */
   INT dim = mesh->dim;
   INT nq = pow(nq1d,e_or_f);
@@ -375,16 +398,15 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
     nqdum = -1;
     nq1d = 3;
   }
-	
-  
-  // Gaussian points for reference element 
-  // (edges: [-1,1] faces: tri[(0,0),(1,0),(0,1)]) 
+
+  // Gaussian points for reference element
+  // (edges: [-1,1] faces: tri[(0,0),(1,0),(0,1)])
   REAL* gp = (REAL *) calloc(e_or_f*nq,sizeof(REAL));
   /* Gaussian weights for reference element */
-  REAL* gw = (REAL *) calloc(nq,sizeof(REAL));		
-	
+  REAL* gw = (REAL *) calloc(nq,sizeof(REAL));
+
   REAL r,s;      	/* Points on Reference Edge */
-	
+
   REAL w = 0.0;
   if(e_or_f==1) {  // Edges
     w = 0.5*mesh->ed_len[dof]; /* Jacobian = 1/2 |e| */
@@ -394,7 +416,7 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
     printf("Unknown type of quadrature\n\n");
     exit(0);
   }
- 
+
   // Get coordinates of vertices for given edge/face
   INT* thisdof_v = (INT *) calloc(e_or_f+1,sizeof(INT));
   iCSRmat* dof_v = NULL;
@@ -440,27 +462,27 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
     printf("Unknown type of quadrature\n\n");
     exit(0);
   }
-	
+
   // Map to Real Edge
-  if(e_or_f==1) { 
+  if(e_or_f==1) {
     // Edges: x = 0.5(x1*(1-r) + x2*(1+r))
     //        y = 0.5(y1*(1-r) + y2*(1+r))
     //        z = 0.5(z1*(1-r) + z2*(1+r))
     //        w = 0.5*Edge Length*wref
     if(dim==2) {
       for (q=0; q<nq1d; q++) {
-	r = gp[q];
-	cqbdry->x[q] = 0.5*cvdof->x[0]*(1-r) + 0.5*cvdof->x[1]*(1+r);
-	cqbdry->y[q] = 0.5*cvdof->y[0]*(1-r) + 0.5*cvdof->y[1]*(1+r);
-	cqbdry->w[q] = w*gw[q];	
+        r = gp[q];
+        cqbdry->x[q] = 0.5*cvdof->x[0]*(1-r) + 0.5*cvdof->x[1]*(1+r);
+        cqbdry->y[q] = 0.5*cvdof->y[0]*(1-r) + 0.5*cvdof->y[1]*(1+r);
+        cqbdry->w[q] = w*gw[q];
       }
     } else if(dim==3) {
       for (q=0; q<nq1d; q++) {
-	r = gp[q];
-	cqbdry->x[q] = 0.5*cvdof->x[0]*(1-r) + 0.5*cvdof->x[1]*(1+r);
-	cqbdry->y[q] = 0.5*cvdof->y[0]*(1-r) + 0.5*cvdof->y[1]*(1+r);
-	cqbdry->z[q] = 0.5*cvdof->z[0]*(1-r) + 0.5*cvdof->z[1]*(1+r);
-	cqbdry->w[q] = w*gw[q];	
+        r = gp[q];
+        cqbdry->x[q] = 0.5*cvdof->x[0]*(1-r) + 0.5*cvdof->x[1]*(1+r);
+        cqbdry->y[q] = 0.5*cvdof->y[0]*(1-r) + 0.5*cvdof->y[1]*(1+r);
+        cqbdry->z[q] = 0.5*cvdof->z[0]*(1-r) + 0.5*cvdof->z[1]*(1+r);
+        cqbdry->w[q] = w*gw[q];
       }
     }
   } else if(e_or_f==2) {
@@ -470,20 +492,20 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
     //        w = 2*Element Area*wref
     if(dim==2) {
       for (q=0; q<nq1d*nq1d; q++) {
-	r = gp[q];
-	s = gp[nq1d*nq1d+q];
-	cqbdry->x[q] = cvdof->x[0]*(1-r-s) + cvdof->x[1]*r + cvdof->x[2]*s;
-	cqbdry->y[q] = cvdof->y[0]*(1-r-s) + cvdof->y[1]*r + cvdof->y[2]*s;
-	cqbdry->w[q] = w*gw[q];	
+        r = gp[q];
+        s = gp[nq1d*nq1d+q];
+        cqbdry->x[q] = cvdof->x[0]*(1-r-s) + cvdof->x[1]*r + cvdof->x[2]*s;
+        cqbdry->y[q] = cvdof->y[0]*(1-r-s) + cvdof->y[1]*r + cvdof->y[2]*s;
+        cqbdry->w[q] = w*gw[q];
       }
     } else if(dim==3) {
       for (q=0; q<nq1d*nq1d; q++) {
-	r = gp[q];
-	s = gp[nq1d*nq1d+q];
-	cqbdry->x[q] = cvdof->x[0]*(1-r-s) + cvdof->x[1]*r + cvdof->x[2]*s;
-	cqbdry->y[q] = cvdof->y[0]*(1-r-s) + cvdof->y[1]*r + cvdof->y[2]*s;
-	cqbdry->z[q] = cvdof->z[0]*(1-r-s) + cvdof->z[1]*r + cvdof->z[2]*s;
-	cqbdry->w[q] = w*gw[q];	
+        r = gp[q];
+        s = gp[nq1d*nq1d+q];
+        cqbdry->x[q] = cvdof->x[0]*(1-r-s) + cvdof->x[1]*r + cvdof->x[2]*s;
+        cqbdry->y[q] = cvdof->y[0]*(1-r-s) + cvdof->y[1]*r + cvdof->y[2]*s;
+        cqbdry->z[q] = cvdof->z[0]*(1-r-s) + cvdof->z[1]*r + cvdof->z[2]*s;
+        cqbdry->w[q] = w*gw[q];
       }
     }
   } else {
@@ -499,230 +521,44 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
     cvdof=NULL;
   }
   if(thisdof_v) free(thisdof_v);
-	
+
   return;
 }
 /*********************************************************************************/
-
-/* /\*******************************************************************************\/ */
-/* void quad_edge(qcoordinates *cqedge,trimesh *mesh,INT nq1d,INT edge)  */
-/* { */
-	
-/*   /\* Computes quadrature weights and nodes for SINGLE Edge using nq1d quadrature nodes on */
-/*    * a line.  Can be used to compute integrals on 1D boundaries (curves). */
-/*    * */
-/*    *    INPUT: */
-/*    *          mesh	Domain mesh */
-/*    *	      nq1d	quadrature nodes per edge */
-/*    *          edge      Index of current edge */
-/*    * */
-/*    *    OUTPUT: */
-/*    *          cqedge    quadrature nodes and weights for given edge */
-/*    *\/ */
-	
-/*   INT q,j,nqdum; /\* Loop indices *\/ */
-/*   INT dim = mesh->dim; */
-
-/*   /\* Coordinates of vertices of edge *\/ */
-/*   coordinates *cvedge = allocatecoords(2,dim); */
-
-/*   // Add in for Simpson's Rule */
-/*   if(nq1d==-1) { */
-/*     nqdum = -1; */
-/*     nq1d = 3; */
-/*   } */
-	
-/*   /\* Gaussian points for reference element ([-1,1])*\/ */
-/*   REAL* gp = (REAL *) calloc(nq1d,sizeof(REAL)); */
-/*   /\* Gaussian weights for reference element *\/ */
-/*   REAL* gw = (REAL *) calloc(nq1d,sizeof(REAL));		 */
-	
-/*   REAL r;      	/\* Points on Reference Edge *\/ */
-	
-/*   REAL w = 0.5*mesh->ed_len[edge]; /\* Jacobian = 1/2 |e| *\/ */
- 
-/*   // Get coordinates of vertices for given edge */
-/*   INT* thisedge_v = (INT *) calloc(2,sizeof(INT)); */
-/*   iCSRmat* ed_v = mesh->ed_v; */
-/*   get_incidence_row(edge,ed_v,thisedge_v); */
-/*   if(dim==2) { */
-/*     for (j=0; j<2; j++) { */
-/*       cvedge->x[j] = mesh->cv->x[thisedge_v[j]-1]; */
-/*       cvedge->y[j] = mesh->cv->y[thisedge_v[j]-1]; */
-/*     } */
-/*   } else if(dim==3){ */
-/*     for (j=0; j<2; j++) { */
-/*       cvedge->x[j] = mesh->cv->x[thisedge_v[j]-1]; */
-/*       cvedge->y[j] = mesh->cv->y[thisedge_v[j]-1]; */
-/*       cvedge->z[j] = mesh->cv->z[thisedge_v[j]-1]; */
-/*     } */
-/*   } else { */
-/*     baddimension(); */
-/*   } */
-
-/*   // Get Quad Nodes and Weights */
-/*   if(nqdum>=1) { // Not Simpson's Rule */
-/*     quad1d(gp,gw,nq1d); */
-/*   } else { // Simpson's Rule */
-/*     gp[0] = -1.0; */
-/*     gp[1] = 0.0; */
-/*     gp[2] = 1.0; */
-/*     gw[0] = 1.0/3.0; */
-/*     gw[1] = 4.0/3.0; */
-/*     gw[2] = gw[0]; */
-/*   } */
-	
-/*   // Map to Real Edge */
-/*   if(dim==2) { */
-/*     for (q=0; q<nq1d; q++) { */
-/*       r = gp[q]; */
-/*       cqedge->x[q] = 0.5*cvedge->x[0]*(1-r) + 0.5*cvedge->x[1]*(1+r); */
-/*       cqedge->y[q] = 0.5*cvedge->y[0]*(1-r) + 0.5*cvedge->y[1]*(1+r); */
-/*       cqedge->w[q] = w*gw[q];	 */
-/*     } */
-/*   } else if(dim==3) { */
-/*     for (q=0; q<nq1d; q++) { */
-/*       r = gp[q]; */
-/*       cqedge->x[q] = 0.5*cvedge->x[0]*(1-r) + 0.5*cvedge->x[1]*(1+r); */
-/*       cqedge->y[q] = 0.5*cvedge->y[0]*(1-r) + 0.5*cvedge->y[1]*(1+r); */
-/*       cqedge->z[q] = 0.5*cvedge->z[0]*(1-r) + 0.5*cvedge->z[1]*(1+r); */
-/*       cqedge->w[q] = w*gw[q];	 */
-/*     } */
-/*   } */
-
-/*   if(gp) free(gp); */
-/*   if(gw) free(gw); */
-/*   if(cvedge) { */
-/*     free_coords(cvedge); */
-/*     free(cvedge); */
-/*     cvedge=NULL; */
-/*   } */
-/*   if(thisedge_v) free(thisedge_v); */
-	
-/*   return; */
-/* } */
-/* /\****************************************************************************************\/ */
-
-/* /\*********************************************************************************\/ */
-/* void quad_face(qcoordinates *cqface,trimesh *mesh,INT nq1d,INT face)  */
-/* { */
-	
-/*   /\* Computes quadrature weights and nodes for SINGLE Face using nq1d*nq1d quadrature nodes on */
-/*    * a surface.  Can be used to integrate on a boundary surface (face). */
-/*    * */
-/*    *    INPUT: */
-/*    *          mesh	Domain mesh */
-/*    *	      nq1d	quadrature nodes per edge */
-/*    *          face      Index of current edge */
-/*    * */
-/*    *    OUTPUT: */
-/*    *          cqface    quadrature nodes and weights for given edge */
-/*    *\/ */
-	
-/*   INT q,j; /\* Loop indices *\/ */
-/*   INT dim = mesh->dim; */
-
-/*   /\* Coordinates of vertices of face *\/ */
-/*   coordinates *cvface = allocatecoords(3,dim); */
-	
-/*   /\* Gaussian points for reference element ((0,0),(1,0),(0,1))*\/ */
-/*   REAL* gp = (REAL *) calloc(2*nq1d*nq1d,sizeof(REAL)); */
-/*   /\* Gaussian weights for reference element *\/ */
-/*   REAL* gw = (REAL *) calloc(nq1d*nq1d,sizeof(REAL));		 */
-	
-/*   REAL r,s;      	/\* Points on Reference Edge *\/ */
-	
-/*   REAL w = 2*mesh->f_area[face]; /\* Jacobian = 2*|f| *\/ */
- 
-/*   // Get coordinates of vertices for given face */
-/*   INT* thisface_v = (INT *) calloc(3,sizeof(INT)); */
-/*   iCSRmat* f_v = mesh->f_v; */
-/*   get_incidence_row(face,f_v,thisface_v); */
-/*   if(dim==2) { */
-/*     for (j=0; j<3; j++) { */
-/*       cvface->x[j] = mesh->cv->x[thisface_v[j]-1]; */
-/*       cvface->y[j] = mesh->cv->y[thisface_v[j]-1]; */
-/*     } */
-/*   } else if(dim==3){ */
-/*     for (j=0; j<3; j++) { */
-/*       cvface->x[j] = mesh->cv->x[thisface_v[j]-1]; */
-/*       cvface->y[j] = mesh->cv->y[thisface_v[j]-1]; */
-/*       cvface->z[j] = mesh->cv->z[thisface_v[j]-1]; */
-/*     } */
-/*   } else { */
-/*     baddimension(); */
-/*   } */
-
-/*   // Get Quad Nodes and Weights */
-/*   triquad_(gp,gw,nq1d); */
-	
-/*   // Map to Real Triangle */
-/*   // x = x1*(1-r-s) + x2*r + x3*s */
-/*   // y = y1*(1-r-s) + y2*r + y3*s */
-/*   // z = z1*(1-r-s) + z2*r + z3*s */
-/*   // w = 2*Element Area*wref */
-/*   if(dim==2) { */
-/*     for (q=0; q<nq1d*nq1d; q++) { */
-/*       r = gp[q]; */
-/*       s = gp[nq1d*nq1d+q]; */
-/*       cqface->x[q] = cvface->x[0]*(1-r-s) + cvface->x[1]*r + cvface->x[2]*s; */
-/*       cqface->y[q] = cvface->y[0]*(1-r-s) + cvface->y[1]*r + cvface->y[2]*s; */
-/*       cqface->w[q] = w*gw[q];	 */
-/*     } */
-/*   } else if(dim==3) { */
-/*     for (q=0; q<nq1d; q++) { */
-/*       r = gp[q]; */
-/*       s = gp[nq1d*nq1d+q]; */
-/*       cqface->x[q] = cvface->x[0]*(1-r-s) + cvface->x[1]*r + cvface->x[2]*s; */
-/*       cqface->y[q] = cvface->y[0]*(1-r-s) + cvface->y[1]*r + cvface->y[2]*s; */
-/*       cqface->z[q] = cvface->z[0]*(1-r-s) + cvface->z[1]*r + cvface->z[2]*s; */
-/*       cqface->w[q] = w*gw[q];	 */
-/*     } */
-/*   } */
-
-/*   if(gp) free(gp); */
-/*   if(gw) free(gw); */
-/*   if(cvface) { */
-/*     free_coords(cvface); */
-/*     free(cvface); */
-/*     cvface=NULL; */
-/*   } */
-/*   if(thisface_v) free(thisface_v); */
-	
-/*   return; */
-/* } */
-/* /\****************************************************************************************\/ */
 
 /*********************************************************************************/
 void dump_qcoords(qcoordinates *q) 
 {
   /* Dump the coordinate data to file for plotting purposes
    *
-   * Input:		
+   * Input:
    *          q:      Quadrature data.
    *
-   * Output:		
+   * Output:
    *          qcoord.dat:    qcoord(nq,dim+1)  coordinates of nodes
    *
    */
-	
+
   INT i; /* Loop Indices */
-	
+
   FILE* fid = fopen("output/qcoord.dat","w");
-	
+
   if (q->z) {
     for (i=0; i<q->n; i++) {
       fprintf(fid,"%25.16e\t%25.16e\t%25.16e\t%25.16e\n",q->x[i],q->y[i],q->z[i],q->w[i]);
     }
-  } else {
+  } else if (q->y) {
     for (i=0; i<q->n; i++) {
       fprintf(fid,"%25.16e\t%25.16e\t%25.16e\n",q->x[i],q->y[i],q->w[i]);
     }
+  } else {
+    for (i=0; i<q->n; i++) {
+      fprintf(fid,"%25.16e\t%25.16e\n",q->x[i],q->w[i]);
+    }
   }
-   
-	
+
   fclose(fid);
-	
+
   return;
 }
 /*********************************************************************************/
@@ -733,7 +569,7 @@ void dump_qcoords(qcoordinates *q)
 /* /\********************************************************************************************************************\/ */
 /* REAL integrate_elm(qcoordinates *cq,INT elm,INT dim)  */
 /* { */
-	
+
 /*   /\* Computes the L2 inner product (integral) of two functions over a single element */
 /*    * */
 /*    *    INPUT: */
@@ -743,7 +579,7 @@ void dump_qcoords(qcoordinates *q)
 /*    *    OUTPUT: */
 /*    *          myval            Resulting Integral */
 /*    *\/ */
-	
+
 /*   // Initialize  */
 /*   INT nq = cq->nq_per_elm;  /\* Total Number of Quadrature Nodes Per Element *\/ */
 /*   INT quad;                      /\* Loop Indices *\/ */
@@ -751,7 +587,7 @@ void dump_qcoords(qcoordinates *q)
 /*   REAL uval = 0.0; */
 /*   REAL vval = 0.0;               /\* Values of known function at quadrature node *\/ */
 /*   REAL myint = 0.0; */
-	
+
 /*   z = 0.0; */
 /*   //  Sum over quadrature points */
 /*   for (quad=0;quad<nq;quad++) {         */
@@ -759,15 +595,15 @@ void dump_qcoords(qcoordinates *q)
 /*     y = cq->y[elm*nq+quad]; */
 /*     if (dim==3) { z = cq->z[elm*nq+quad]; } */
 /*     w = cq->w[elm*nq+quad]; */
-			
+
 /*     /\* if(interp==0) { // Using exact functions from data_input.c *\/ */
-				
+
 /*     /\*   // Get known vectors *\/ */
 /*     /\*   getknownfunction(&uval,x,y,z,time,mydim,1,param,test1); *\/ */
 /*     /\*   getknownfunction(&vval,x,y,z,time,mydim,1,param,test2); *\/ */
-	
+
 /*     /\* } else if(interp==1) { // Interpolate vector to quadrature nodes *\/ */
-      
+
 /*     /\*   // Get interpolated vector *\/ */
 /*     /\*   H1_interpolation(&uval,u,x,y,z,jel_n,xn,yn,zn,ndof,element_order,mydim,1); *\/ */
 /*     /\*   H1_interpolation(&vval,v,x,y,z,jel_n,xn,yn,zn,ndof,element_order,mydim,1); *\/ */
@@ -776,7 +612,7 @@ void dump_qcoords(qcoordinates *q)
 /*     /\*   printf("What exactly would you like me to integrate??  Aborting now..."); *\/ */
 /*     /\*   exit(1); *\/ */
 /*     /\* } *\/ */
-    
+
 /*     myint = myint + w*uval*vval; */
 /*   } */
 
@@ -787,7 +623,7 @@ void dump_qcoords(qcoordinates *q)
 /* /\********************************************************************************************************************\/ */
 /* REAL integrate_domain(qcoordinates *cq,trimesh *mesh)  */
 /* { */
-	
+
 /*   /\* Computes the L2 inner product (integral) of two functions over entire domain */
 /*    * */
 /*    *    INPUT: */
@@ -797,11 +633,11 @@ void dump_qcoords(qcoordinates *q)
 /*    *    OUTPUT: */
 /*    *          myint       Resulting Integral */
 /*    *\/ */
-	
+
 /*   INT i; */
 /*   REAL int_elm=0.0; */
 /*   REAL myint=0.0; */
-  
+
 /*   for(i=0;i<nelm;i++) { */
 /*     int_elm = integrate_elm(cq,i); */
 /*     myint = myint + int_elm; */
@@ -819,18 +655,18 @@ void dump_qcoords(qcoordinates *q)
 /* 1D Quadrature on Reference Element [-1,1] ) */
 void quad1d(REAL *gaussp, REAL *gaussc, INT ng1d)
 {
-	
+
   /* up to 5 Gaussian points on the reference domain
-   * ng1d is the num of Gaussin pts in 1 direction    
+   * ng1d is the num of Gaussin pts in 1 direction
    * gp(j) x coordinates of the j-th
    * Gaussian point; and gc(j) is the corresponding coefficient at the j-th
-   * Gaussian point.     
+   * Gaussian point.
    *
    * size of gp is (ngauss); size of gc is (ngauss); with
    * ngauss=ng1d;
    */
 
-  if(ng1d<2) { 
+  if(ng1d<2) {
     ng1d = 2;
     printf("HEY!  Unless you want to do the midpoint rule, you better have at least 2 quadrature points...");
   }
@@ -841,41 +677,41 @@ void quad1d(REAL *gaussp, REAL *gaussc, INT ng1d)
 
   switch (ng1d) {
   case 2:
-    gaussp[0] =     -0.57735026918962576450915;    
-    gaussp[1] =      0.57735026918962576450915;    
-    gaussc[0] =       1.0000000000000000000000;    
-    gaussc[1] =       1.0000000000000000000000;  
+    gaussp[0] =     -0.57735026918962576450915;
+    gaussp[1] =      0.57735026918962576450915;
+    gaussc[0] =       1.0000000000000000000000;
+    gaussc[1] =       1.0000000000000000000000;
     break;
- 
-  default:
-    gaussp[  0]=     -0.77459666924148337703585;    
-    gaussp[  1]=                            0.0;     
-    gaussp[  2]=      0.77459666924148337703585;    
-    gaussc[  0]=      0.55555555555555555555556;    
-    gaussc[  1]=      0.88888888888888888888889;    
-    gaussc[  2]=      0.55555555555555555555556;  
+
+  default:// case 3:
+    gaussp[  0]=     -0.77459666924148337703585;
+    gaussp[  1]=                            0.0;
+    gaussp[  2]=      0.77459666924148337703585;
+    gaussc[  0]=      0.55555555555555555555556;
+    gaussc[  1]=      0.88888888888888888888889;
+    gaussc[  2]=      0.55555555555555555555556;
     break;
   case 4:
-    gaussp[  0]=     -0.86113631159405257522395;    
-    gaussp[  1]=     -0.33998104358485626480267;    
-    gaussp[  2]=      0.33998104358485626480267;    
-    gaussp[  3]=      0.86113631159405257522395;    
-    gaussc[  0]=      0.34785484513745385315771;    
-    gaussc[  1]=      0.65214515486254614656693;    
-    gaussc[  2]=      0.65214515486254614289181;    
-    gaussc[  3]=      0.34785484513745385738355;    
+    gaussp[  0]=     -0.86113631159405257522395;
+    gaussp[  1]=     -0.33998104358485626480267;
+    gaussp[  2]=      0.33998104358485626480267;
+    gaussp[  3]=      0.86113631159405257522395;
+    gaussc[  0]=      0.34785484513745385315771;
+    gaussc[  1]=      0.65214515486254614656693;
+    gaussc[  2]=      0.65214515486254614289181;
+    gaussc[  3]=      0.34785484513745385738355;
     break;
   case 5:
-    gaussp[  0]=     -0.90617984593866399279763;    
-    gaussp[  1]=     -0.53846931010568309103631;    
-    gaussp[  2]=                            0.0;     
-    gaussp[  3]=      0.53846931010568309103631;    
-    gaussp[  4]=      0.90617984593866399279763;    
-    gaussc[  0]=      0.23692688505618908751426;    
-    gaussc[  1]=      0.47862867049936646804129;    
-    gaussc[  2]=      0.56888888888888888903082;    
-    gaussc[  3]=      0.47862867049936646790566;    
-    gaussc[  4]=      0.23692688505618908750796;    
+    gaussp[  0]=     -0.90617984593866399279763;
+    gaussp[  1]=     -0.53846931010568309103631;
+    gaussp[  2]=                            0.0;
+    gaussp[  3]=      0.53846931010568309103631;
+    gaussp[  4]=      0.90617984593866399279763;
+    gaussc[  0]=      0.23692688505618908751426;
+    gaussc[  1]=      0.47862867049936646804129;
+    gaussc[  2]=      0.56888888888888888903082;
+    gaussc[  3]=      0.47862867049936646790566;
+    gaussc[  4]=      0.23692688505618908750796;
     break;
   }
   return;
@@ -888,12 +724,12 @@ void quad1d(REAL *gaussp, REAL *gaussc, INT ng1d)
 /* 2D Quadrature on Reference Triangle (Vertices (0,0),(1,0),(0,1) ) */
 void triquad_(REAL *gp, REAL *gc, INT ng1d)
 {
-	
+
   /* up to 7x7 Gaussian points on a triangle
-   * ng1d is the num of Gaussin pts in 1 direction    
+   * ng1d is the num of Gaussin pts in 1 direction
    * gp(1,j) and g(2,j) are the (x,y) coordinates of the j-th
    * Gaussian point; and gc(j) is the corresponding coefficient at the j-th
-   * Gaussian point.     
+   * Gaussian point.
    *
    * size of gp is (2,ngauss); size of gc is (ngauss); with
    * ngauss=ng1d*ng1d;
@@ -1344,10 +1180,10 @@ void triquad_(REAL *gp, REAL *gc, INT ng1d)
 void tetquad_(REAL *gp, REAL *gc, INT ng1d)
 {
   /* up to 5 x 5 x 5 Gaussian points on a tet
-   * ng1d is the num of Gaussin pts in 1 direction    
+   * ng1d is the num of Gaussin pts in 1 direction
    * gp(1,j), g(2,j) and gp(3,j) are the (x,y,z) coordinates of the j-th
    * Gaussian point; and gc(j) is the corresponding coefficient at the j-th
-   * Gaussian point.     
+   * Gaussian point.
    *
    * size of gp is (3,ngauss); size of gc is (ngauss); with
    * ngauss=ng1d*ng1d*ng1d;
@@ -1504,768 +1340,766 @@ void tetquad_(REAL *gp, REAL *gc, INT ng1d)
     gp[2*ngauss+ 26]=   0.7299402407314973215583798E-01;
     gc[ 26]=   0.8770474929651058804317146E-02;
     break;
-			
-    /*  case 4: 
-	gp[ngauss+  1]=   0.1981013974700432744909435E-02; 
-	gp[2*ngauss+  1]=   0.1756168039625049658342796E+00; 
-	gp[3][  1]=   0.7958514178967728633033780E+00; 
-	gc[  1]=   0.5614254026695104258530883E-04; 
-	gp[ngauss+  2]=   0.9415757216553928623888957E-02; 
-	gp[2*ngauss+  2]=   0.1756168039625049658342796E+00; 
-	gp[3][  2]=   0.7958514178967728633033780E+00; 
-	gc[  2]=   0.1052539187783914959760637E-03; 
-	gp[ngauss+  3]=   0.1911602092416824223845346E-01; 
-	gp[2*ngauss+  3]=   0.1756168039625049658342796E+00; 
-	gp[3][  3]=   0.7958514178967728633033780E+00; 
-	gc[  3]=   0.1052539187783914959760637E-03; 
-	gp[ngauss+  4]=   0.2655076416602173811743298E-01; 
-	gp[2*ngauss+  4]=   0.1756168039625049658342796E+00; 
-	gp[3][  4]=   0.7958514178967728633033780E+00; 
-	gc[  4]=   0.5614254026695104258530883E-04; 
-	gp[ngauss+  5]=   0.5902361000058098432934300E-02; 
-	gp[2*ngauss+  5]=   0.1191391592971236390275109E+00; 
-	gp[3][  5]=   0.7958514178967728633033780E+00; 
-	gc[  5]=   0.2337955152791078423282521E-03; 
-	gp[ngauss+  6]=   0.2805391526296907513510520E-01; 
-	gp[2*ngauss+  6]=   0.1191391592971236390275109E+00; 
-	gp[3][  6]=   0.7958514178967728633033780E+00; 
-	gc[  6]=   0.4383110215343271014270785E-03; 
-	gp[ngauss+  7]=   0.5695550754313442253400591E-01; 
-	gp[2*ngauss+  7]=   0.1191391592971236390275109E+00; 
-	gp[3][  7]=   0.7958514178967728633033780E+00; 
-	gc[  7]=   0.4383110215343271014270785E-03; 
-	gp[ngauss+  8]=   0.7910706180604539923617681E-01; 
-	gp[2*ngauss+  8]=   0.1191391592971236390275109E+00; 
-	gp[3][  8]=   0.7958514178967728633033780E+00; 
-	gc[  8]=   0.2337955152791078423282521E-03; 
-	gp[ngauss+  9]=   0.1025032546082947250520215E-01; 
-	gp[2*ngauss+  9]=   0.5651710869940735217362115E-01; 
-	gp[3][  9]=   0.7958514178967728633033780E+00; 
-	gc[  9]=   0.3663457985554326676012287E-03; 
-	gp[ngauss+ 10]=   0.4871978550500959094728183E-01; 
-	gp[2*ngauss+ 10]=   0.5651710869940735217362115E-01; 
-	gp[3][ 10]=   0.7958514178967728633033780E+00; 
-	gc[ 10]=   0.6868112975047707265125985E-03; 
-	gp[ngauss+ 11]=   0.9891168789881019357571906E-01; 
-	gp[2*ngauss+ 11]=   0.5651710869940735217362115E-01; 
-	gp[3][ 11]=   0.7958514178967728633033780E+00; 
-	gc[ 11]=   0.6868112975047707265125985E-03; 
-	gp[ngauss+ 12]=   0.1373811479429903120177987E+00; 
-	gp[2*ngauss+ 12]=   0.5651710869940735217362115E-01; 
-	gp[3][ 12]=   0.7958514178967728633033780E+00; 
-	gc[ 12]=   0.3663457985554326676012287E-03; 
-	gp[ngauss+ 13]=   0.1336499411296589418346618E-01; 
-	gp[2*ngauss+ 13]=   0.1165774066892339709191637E-01; 
-	gp[3][ 13]=   0.7958514178967728633033780E+00; 
-	gc[ 13]=   0.2439854216206053939189319E-03; 
-	gp[ngauss+ 14]=   0.6352380214147103185255417E-01; 
-	gp[2*ngauss+ 14]=   0.1165774066892339709191637E-01; 
-	gp[3][ 14]=   0.7958514178967728633033780E+00; 
-	gc[ 14]=   0.4574146739399300507499519E-03; 
-	gp[ngauss+ 15]=   0.1289670392928327077521515E+00; 
-	gp[2*ngauss+ 15]=   0.1165774066892339709191637E-01; 
-	gp[3][ 15]=   0.7958514178967728633033780E+00; 
-	gc[ 15]=   0.4574146739399300507499519E-03; 
-	gp[ngauss+ 16]=   0.1791258473213378454212395E+00; 
-	gp[2*ngauss+ 16]=   0.1165774066892339709191637E-01; 
-	gp[3][ 16]=   0.7958514178967728633033780E+00; 
-	gc[ 16]=   0.2439854216206053939189319E-03; 
-	gp[ngauss+ 17]=   0.4686469274784633447665181E-02; 
-	gp[2*ngauss+ 17]=   0.4154553003749570180402003E+00; 
-	gp[3][ 17]=   0.5170472951043675023405734E+00; 
-	gc[ 17]=   0.3722170752562633273986158E-03; 
-	gp[ngauss+ 18]=   0.2227478324623351755095983E-01; 
-	gp[2*ngauss+ 18]=   0.4154553003749570180402003E+00; 
-	gp[3][ 18]=   0.5170472951043675023405734E+00; 
-	gc[ 18]=   0.6978185458062600471342006E-03; 
-	gp[ngauss+ 19]=   0.4522262127444196206826646E-01; 
-	gp[2*ngauss+ 19]=   0.4154553003749570180402003E+00; 
-	gp[3][ 19]=   0.5170472951043675023405734E+00; 
-	gc[ 19]=   0.6978185458062600471342006E-03; 
-	gp[ngauss+ 20]=   0.6281093524589084617156111E-01; 
-	gp[2*ngauss+ 20]=   0.4154553003749570180402003E+00; 
-	gp[3][ 20]=   0.5170472951043675023405734E+00; 
-	gc[ 20]=   0.3722170752562633273986158E-03; 
-	gp[ngauss+ 21]=   0.1396316928033901864590850E-01; 
-	gp[2*ngauss+ 21]=   0.2818465778637800603501812E+00; 
-	gp[3][ 21]=   0.5170472951043675023405734E+00; 
-	gc[ 21]=   0.1550031090353912216078243E-02; 
-	gp[ngauss+ 22]=   0.6636692804612728658298820E-01; 
-	gp[2*ngauss+ 22]=   0.2818465778637800603501812E+00; 
-	gp[3][ 22]=   0.5170472951043675023405734E+00; 
-	gc[ 22]=   0.2905939875758179218047843E-02; 
-	gp[ngauss+ 23]=   0.1347391989857251507262572E+00; 
-	gp[2*ngauss+ 23]=   0.2818465778637800603501812E+00; 
-	gp[3][ 23]=   0.5170472951043675023405734E+00; 
-	gc[ 23]=   0.2905939875758179218047843E-02; 
-	gp[ngauss+ 24]=   0.1871429577515134186633369E+00; 
-	gp[2*ngauss+ 24]=   0.2818465778637800603501812E+00; 
-	gp[3][ 24]=   0.5170472951043675023405734E+00; 
-	gc[ 24]=   0.1550031090353912216078243E-02; 
-	gp[ngauss+ 25]=   0.2424911481807401304158134E-01; 
-	gp[2*ngauss+ 25]=   0.1337020822679903798291838E+00; 
-	gp[3][ 25]=   0.5170472951043675023405734E+00; 
-	gc[ 25]=   0.2428820659384971875777962E-02; 
-	gp[ngauss+ 26]=   0.1152560157370177676747899E+00; 
-	gp[2*ngauss+ 26]=   0.1337020822679903798291838E+00; 
-	gp[3][ 26]=   0.5170472951043675023405734E+00; 
-	gc[ 26]=   0.4553461442867277241397578E-02; 
-	gp[ngauss+ 27]=   0.2339946068906243501554529E+00; 
-	gp[2*ngauss+ 27]=   0.1337020822679903798291838E+00; 
-	gp[3][ 27]=   0.5170472951043675023405734E+00; 
-	gc[ 27]=   0.4553461442867277241397578E-02; 
-	gp[ngauss+ 28]=   0.3250015078095681047886615E+00; 
-	gp[2*ngauss+ 28]=   0.1337020822679903798291838E+00; 
-	gp[3][ 28]=   0.5170472951043675023405734E+00; 
-	gc[ 28]=   0.2428820659384971875777962E-02; 
-	gp[ngauss+ 29]=   0.3161746210173187993001242E-01; 
-	gp[2*ngauss+ 29]=   0.2757862597439698206385973E-01; 
-	gp[3][ 29]=   0.5170472951043675023405734E+00; 
-	gc[ 29]=   0.1617588723434511855713981E-02; 
-	gp[ngauss+ 30]=   0.1502777621740505836344576E+00; 
-	gp[2*ngauss+ 30]=   0.2757862597439698206385973E-01; 
-	gp[3][ 30]=   0.5170472951043675023405734E+00; 
-	gc[ 30]=   0.3032594380369393047795663E-02; 
-	gp[ngauss+ 31]=   0.3050963167471849319611093E+00; 
-	gp[2*ngauss+ 31]=   0.2757862597439698206385973E-01; 
-	gp[3][ 31]=   0.5170472951043675023405734E+00; 
-	gc[ 31]=   0.3032594380369393047795663E-02; 
-	gp[ngauss+ 32]=   0.4237566168195036356655545E+00; 
-	gp[2*ngauss+ 32]=   0.2757862597439698206385973E-01; 
-	gp[3][ 32]=   0.5170472951043675023405734E+00; 
-	gc[ 32]=   0.1617588723434511855713981E-02; 
-	gp[ngauss+ 33]=   0.7388454838611978023539041E-02; 
-	gp[2*ngauss+ 33]=   0.6549862048169314047901757E+00; 
-	gp[3][ 33]=   0.2386007375518623050589814E+00; 
-	gc[ 33]=   0.7780094259316945643908710E-03; 
-	gp[ngauss+ 34]=   0.3511731762334666143239029E-01; 
-	gp[2*ngauss+ 34]=   0.6549862048169314047901757E+00; 
-	gp[3][ 34]=   0.2386007375518623050589814E+00; 
-	gc[ 34]=   0.1458582752694612457632238E-02; 
-	gp[ngauss+ 35]=   0.7129574000785962871845260E-01; 
-	gp[2*ngauss+ 35]=   0.6549862048169314047901757E+00; 
-	gp[3][ 35]=   0.2386007375518623050589814E+00; 
-	gc[ 35]=   0.1458582752694612457632238E-02; 
-	gp[ngauss+ 36]=   0.9902460279259431212730384E-01; 
-	gp[2*ngauss+ 36]=   0.6549862048169314047901757E+00; 
-	gp[3][ 36]=   0.2386007375518623050589814E+00; 
-	gc[ 36]=   0.7780094259316945643908710E-03; 
-	gp[ngauss+ 37]=   0.2201363960428823146375467E-01; 
-	gp[2*ngauss+ 37]=   0.4443453247774830496819952E+00; 
-	gp[3][ 37]=   0.2386007375518623050589814E+00; 
-	gc[ 37]=   0.3239880378814602487009997E-02; 
-	gp[ngauss+ 38]=   0.1046308045343487533720147E+00; 
-	gp[2*ngauss+ 38]=   0.4443453247774830496819952E+00; 
-	gp[3][ 38]=   0.2386007375518623050589814E+00; 
-	gc[ 38]=   0.6074005640321836238018089E-02; 
-	gp[ngauss+ 39]=   0.2124231331363058918870087E+00; 
-	gp[2*ngauss+ 39]=   0.4443453247774830496819952E+00; 
-	gp[3][ 39]=   0.2386007375518623050589814E+00; 
-	gc[ 39]=   0.6074005640321836238018089E-02; 
-	gp[ngauss+ 40]=   0.2950402980663664137952687E+00; 
-	gp[2*ngauss+ 40]=   0.4443453247774830496819952E+00; 
-	gp[3][ 40]=   0.2386007375518623050589814E+00; 
-	gc[ 40]=   0.3239880378814602487009997E-02; 
-	gp[ngauss+ 41]=   0.3822995078056706336853632E-01; 
-	gp[2*ngauss+ 41]=   0.2107880663979872074525160E+00; 
-	gp[3][ 41]=   0.2386007375518623050589814E+00; 
-	gc[ 41]=   0.5076729393991831949508787E-02; 
-	gp[ngauss+ 42]=   0.1817069135037572184823919E+00; 
-	gp[2*ngauss+ 42]=   0.2107880663979872074525160E+00; 
-	gp[3][ 42]=   0.2386007375518623050589814E+00; 
-	gc[ 42]=   0.9517660952894889436594081E-02; 
-	gp[ngauss+ 43]=   0.3689042825463932690061107E+00; 
-	gp[2*ngauss+ 43]=   0.2107880663979872074525160E+00; 
-	gp[3][ 43]=   0.2386007375518623050589814E+00; 
-	gc[ 43]=   0.9517660952894889436594081E-02; 
-	gp[ngauss+ 44]=   0.5123812452695834241199663E+00; 
-	gp[2*ngauss+ 44]=   0.2107880663979872074525160E+00; 
-	gp[3][ 44]=   0.2386007375518623050589814E+00; 
-	gc[ 44]=   0.5076729393991831949508787E-02; 
-	gp[ngauss+ 45]=   0.4984652136888425922032195E-01; 
-	gp[2*ngauss+ 45]=   0.4347909280428757352601284E-01; 
-	gp[3][ 45]=   0.2386007375518623050589814E+00; 
-	gc[ 45]=   0.3381089578564921959659668E-02; 
-	gp[ngauss+ 46]=   0.2369204605788584548781286E+00; 
-	gp[2*ngauss+ 46]=   0.4347909280428757352601284E-01; 
-	gp[3][ 46]=   0.2386007375518623050589814E+00; 
-	gc[ 46]=   0.6338739326589163169268273E-02; 
-	gp[ngauss+ 47]=   0.4809997090649916665368772E+00; 
-	gp[2*ngauss+ 47]=   0.4347909280428757352601284E-01; 
-	gp[3][ 47]=   0.2386007375518623050589814E+00; 
-	gc[ 47]=   0.6338739326589163169268273E-02; 
-	gp[ngauss+ 48]=   0.6680736482749658621946838E+00; 
-	gp[2*ngauss+ 48]=   0.4347909280428757352601284E-01; 
-	gp[3][ 48]=   0.2386007375518623050589814E+00; 
-	gc[ 48]=   0.3381089578564921959659668E-02; 
-	gp[ngauss+ 49]=   0.9233146216573625006194481E-02; 
-	gp[2*ngauss+ 49]=   0.8185180164205332861703353E+00; 
-	gp[3][ 49]=   0.4850054944699732929706726E-01; 
-	gc[ 49]=   0.6013729287201758834679817E-03; 
-	gp[ngauss+ 50]=   0.4388513368935080907940955E-01; 
-	gp[2*ngauss+ 50]=   0.8185180164205332861703353E+00; 
-	gp[3][ 50]=   0.4850054944699732929706726E-01; 
-	gc[ 50]=   0.1127431304213664877060578E-02; 
-	gp[ngauss+ 51]=   0.8909630044311857545318785E-01; 
-	gp[2*ngauss+ 51]=   0.8185180164205332861703353E+00; 
-	gp[3][ 51]=   0.4850054944699732929706726E-01; 
-	gc[ 51]=   0.1127431304213664877060578E-02; 
-	gp[ngauss+ 52]=   0.1237482879158957595264029E+00; 
-	gp[2*ngauss+ 52]=   0.8185180164205332861703353E+00; 
-	gp[3][ 52]=   0.4850054944699732929706726E-01; 
-	gc[ 52]=   0.6013729287201758834679817E-03; 
-	gp[ngauss+ 53]=   0.2750983225384828197777377E-01; 
-	gp[2*ngauss+ 53]=   0.5552859757470136190763871E+00; 
-	gp[3][ 53]=   0.4850054944699732929706726E-01; 
-	gc[ 53]=   0.2504309443009021240723960E-02; 
-	gp[ngauss+ 54]=   0.1307542020795333691342280E+00; 
-	gp[2*ngauss+ 54]=   0.5552859757470136190763871E+00; 
-	gp[3][ 54]=   0.4850054944699732929706726E-01; 
-	gc[ 54]=   0.4694984969634420460775905E-02; 
-	gp[ngauss+ 55]=   0.2654592727264556824923177E+00; 
-	gp[2*ngauss+ 55]=   0.5552859757470136190763871E+00; 
-	gp[3][ 55]=   0.4850054944699732929706726E-01; 
-	gc[ 55]=   0.4694984969634420460775905E-02; 
-	gp[ngauss+ 56]=   0.3687036425521407696487719E+00; 
-	gp[2*ngauss+ 56]=   0.5552859757470136190763871E+00; 
-	gp[3][ 56]=   0.4850054944699732929706726E-01; 
-	gc[ 56]=   0.2504309443009021240723960E-02; 
-	gp[ngauss+ 57]=   0.4777490464781690413678532E-01; 
-	gp[2*ngauss+ 57]=   0.2634159753661122469767895E+00; 
-	gp[3][ 57]=   0.4850054944699732929706726E-01; 
-	gc[ 57]=   0.3924126780763078895076854E-02; 
-	gp[ngauss+ 58]=   0.2270740686096784331853873E+00; 
-	gp[2*ngauss+ 58]=   0.2634159753661122469767895E+00; 
-	gp[3][ 58]=   0.4850054944699732929706726E-01; 
-	gc[ 58]=   0.7356805009082974006098323E-02; 
-	gp[ngauss+ 59]=   0.4610094065772119905407560E+00; 
-	gp[2*ngauss+ 59]=   0.2634159753661122469767895E+00; 
-	gp[3][ 59]=   0.4850054944699732929706726E-01; 
-	gc[ 59]=   0.7356805009082974006098323E-02; 
-	gp[ngauss+ 60]=   0.6403085705390735195893580E+00; 
-	gp[2*ngauss+ 60]=   0.2634159753661122469767895E+00; 
-	gp[3][ 60]=   0.4850054944699732929706726E-01; 
-	gc[ 60]=   0.3924126780763078895076854E-02; 
-	gp[ngauss+ 61]=   0.6229180934845267994089097E-01; 
-	gp[2*ngauss+ 61]=   0.5433461122723448458170192E-01; 
-	gp[3][ 61]=   0.4850054944699732929706726E-01; 
-	gc[ 61]=   0.2613459007507404913181355E-02; 
-	gp[ngauss+ 62]=   0.2960729004920768122935820E+00; 
-	gp[2*ngauss+ 62]=   0.5433461122723448458170192E-01; 
-	gp[3][ 62]=   0.4850054944699732929706726E-01; 
-	gc[ 62]=   0.4899614459888755644422873E-02; 
-	gp[ngauss+ 63]=   0.6010919388336913738276488E+00; 
-	gp[2*ngauss+ 63]=   0.5433461122723448458170192E-01; 
-	gp[3][ 63]=   0.4850054944699732929706726E-01; 
-	gc[ 63]=   0.4899614459888755644422873E-02; 
-	gp[ngauss+ 64]=   0.8348730299773155061803398E+00; 
-	gp[2*ngauss+ 64]=   0.5433461122723448458170192E-01; 
-	gp[3][ 64]=   0.4850054944699732929706726E-01; 
-	gc[ 64]=   0.2613459007507404913181355E-02; 
-	break;
-	case 5: 
-	gp[ngauss+  1]=   0.6884703934122676876048399E-03; 
-	gp[2*ngauss+  1]=   0.1342694011463441143815669E+00; 
-	gp[3][  1]=   0.8510542129470164181162242E+00; 
-	gc[  1]=   0.7674555521798018092669516E-05; 
-	gp[ngauss+  2]=   0.3386801256323271594835794E-02; 
-	gp[2*ngauss+  2]=   0.1342694011463441143815669E+00; 
-	gp[3][  2]=   0.8510542129470164181162242E+00; 
-	gc[  2]=   0.1550378001720072350948701E-04; 
-	gp[ngauss+  3]=   0.7338192953319733751104449E-02; 
-	gp[2*ngauss+  3]=   0.1342694011463441143815669E+00; 
-	gp[3][  3]=   0.8510542129470164181162242E+00; 
-	gc[  3]=   0.1842749657758906164643500E-04; 
-	gp[ngauss+  4]=   0.1128958465031619590737310E-01; 
-	gp[2*ngauss+  4]=   0.1342694011463441143815669E+00; 
-	gp[3][  4]=   0.8510542129470164181162242E+00; 
-	gc[  4]=   0.1550378001720072350948701E-04; 
-	gp[ngauss+  5]=   0.1398791551322719981460406E-01; 
-	gp[2*ngauss+  5]=   0.1342694011463441143815669E+00; 
-	gp[3][  5]=   0.8510542129470164181162242E+00; 
-	gc[  5]=   0.7674555521798018092669516E-05; 
-	gp[ngauss+  6]=   0.2127808889925481860954521E-02; 
-	gp[2*ngauss+  6]=   0.1035864735618886456835587E+00; 
-	gp[3][  6]=   0.8510542129470164181162242E+00; 
-	gc[  6]=   0.3601859320129832317508089E-04; 
-	gp[ngauss+  7]=   0.1046735762433882115148403E-01; 
-	gp[2*ngauss+  7]=   0.1035864735618886456835587E+00; 
-	gp[3][  7]=   0.8510542129470164181162242E+00; 
-	gc[  7]=   0.7276308627071362096789688E-04; 
-	gp[ngauss+  8]=   0.2267965674554746810010855E-01; 
-	gp[2*ngauss+  8]=   0.1035864735618886456835587E+00; 
-	gp[3][  8]=   0.8510542129470164181162242E+00; 
-	gc[  8]=   0.8648481349327657670994506E-04; 
-	gp[ngauss+  9]=   0.3489195586675611504873307E-01; 
-	gp[2*ngauss+  9]=   0.1035864735618886456835587E+00; 
-	gp[3][  9]=   0.8510542129470164181162242E+00; 
-	gc[  9]=   0.7276308627071362096789688E-04; 
-	gp[ngauss+ 10]=   0.4323150460116945433926258E-01; 
-	gp[2*ngauss+ 10]=   0.1035864735618886456835587E+00; 
-	gp[3][ 10]=   0.8510542129470164181162242E+00; 
-	gc[ 10]=   0.3601859320129832317508089E-04; 
-	gp[ngauss+ 11]=   0.3926902791626685426815838E-02; 
-	gp[2*ngauss+ 11]=   0.6523450282167806813349548E-01; 
-	gp[3][ 11]=   0.8510542129470164181162242E+00; 
-	gc[ 11]=   0.7133992621705575404868601E-04; 
-	gp[ngauss+ 12]=   0.1931766338160684304489376E-01; 
-	gp[2*ngauss+ 12]=   0.6523450282167806813349548E-01; 
-	gp[3][ 12]=   0.8510542129470164181162242E+00; 
-	gc[ 12]=   0.1441175999536500782735814E-03; 
-	gp[ngauss+ 13]=   0.4185564211565275687514017E-01; 
-	gp[2*ngauss+ 13]=   0.6523450282167806813349548E-01; 
-	gp[3][ 13]=   0.8510542129470164181162242E+00; 
-	gc[ 13]=   0.1712954245332319660698772E-03; 
-	gp[ngauss+ 14]=   0.6439362084969867070538657E-01; 
-	gp[2*ngauss+ 14]=   0.6523450282167806813349548E-01; 
-	gp[3][ 14]=   0.8510542129470164181162242E+00; 
-	gc[ 14]=   0.1441175999536500782735814E-03; 
-	gp[ngauss+ 15]=   0.7978438143967882832346449E-01; 
-	gp[2*ngauss+ 15]=   0.6523450282167806813349548E-01; 
-	gp[3][ 15]=   0.8510542129470164181162242E+00; 
-	gc[ 15]=   0.7133992621705575404868601E-04; 
-	gp[ngauss+ 16]=   0.5603527040461490761502753E-02; 
-	gp[2*ngauss+ 16]=   0.2949326437223589592796798E-01; 
-	gp[3][ 16]=   0.8510542129470164181162242E+00; 
-	gc[ 16]=   0.8147053631288434281442928E-04; 
-	gp[ngauss+ 17]=   0.2756550260123100869305021E-01; 
-	gp[2*ngauss+ 17]=   0.2949326437223589592796798E-01; 
-	gp[3][ 17]=   0.8510542129470164181162242E+00; 
-	gc[ 17]=   0.1645829871568117858991650E-03; 
-	gp[ngauss+ 18]=   0.5972626134037384297790392E-01; 
-	gp[2*ngauss+ 18]=   0.2949326437223589592796798E-01; 
-	gp[3][ 18]=   0.8510542129470164181162242E+00; 
-	gc[ 18]=   0.1956201925721807731387582E-03; 
-	gp[ngauss+ 19]=   0.9188702007951667726275762E-01; 
-	gp[2*ngauss+ 19]=   0.2949326437223589592796798E-01; 
-	gp[3][ 19]=   0.8510542129470164181162242E+00; 
-	gc[ 19]=   0.1645829871568117858991650E-03; 
-	gp[ngauss+ 20]=   0.1138489956402861951943051E+00; 
-	gp[2*ngauss+ 20]=   0.2949326437223589592796798E-01; 
-	gp[3][ 20]=   0.8510542129470164181162242E+00; 
-	gc[ 20]=   0.8147053631288434281442928E-04; 
-	gp[ngauss+ 21]=   0.6708904550162072916648035E-02; 
-	gp[2*ngauss+ 21]=   0.5929510490997780154719579E-02; 
-	gp[3][ 21]=   0.8510542129470164181162242E+00; 
-	gc[ 21]=   0.4716533650593665851425186E-04; 
-	gp[ngauss+ 22]=   0.3300320039388486633331973E-01; 
-	gp[2*ngauss+ 22]=   0.5929510490997780154719579E-02; 
-	gp[3][ 22]=   0.8510542129470164181162242E+00; 
-	gc[ 22]=   0.9528121850813989619054645E-04; 
-	gp[ngauss+ 23]=   0.7150813828099290086452812E-01; 
-	gp[2*ngauss+ 23]=   0.5929510490997780154719579E-02; 
-	gp[3][ 23]=   0.8510542129470164181162242E+00; 
-	gc[ 23]=   0.1132494350422471987715167E-03; 
-	gp[ngauss+ 24]=   0.1100130761681009353957365E+00; 
-	gp[2*ngauss+ 24]=   0.5929510490997780154719579E-02; 
-	gp[3][ 24]=   0.8510542129470164181162242E+00; 
-	gc[ 24]=   0.9528121850813989619054645E-04; 
-	gp[ngauss+ 25]=   0.1363073720118237288124082E+00; 
-	gp[2*ngauss+ 25]=   0.5929510490997780154719579E-02; 
-	gp[3][ 25]=   0.8510542129470164181162242E+00; 
-	gc[ 25]=   0.4716533650593665851425186E-04; 
-	gp[ngauss+ 26]=   0.1690216171511836227042953E-02; 
-	gp[2*ngauss+ 26]=   0.3296355447210387441801802E+00; 
-	gp[3][ 26]=   0.6343334726308867723471639E+00; 
-	gc[ 26]=   0.5980139538929241281078968E-04; 
-	gp[ngauss+ 27]=   0.8314702139567988954602070E-02; 
-	gp[2*ngauss+ 27]=   0.3296355447210387441801802E+00; 
-	gp[3][ 27]=   0.6343334726308867723471639E+00; 
-	gc[ 27]=   0.1208079967893718785024756E-03; 
-	gp[ngauss+ 28]=   0.1801549132403724173632794E-01; 
-	gp[2*ngauss+ 28]=   0.3296355447210387441801802E+00; 
-	gp[3][ 28]=   0.6343334726308867723471639E+00; 
-	gc[ 28]=   0.1435900757693728527211053E-03; 
-	gp[ngauss+ 29]=   0.2771628050850649451805380E-01; 
-	gp[2*ngauss+ 29]=   0.3296355447210387441801802E+00; 
-	gp[3][ 29]=   0.6343334726308867723471639E+00; 
-	gc[ 29]=   0.1208079967893718785024756E-03; 
-	gp[ngauss+ 30]=   0.3434076647656264724561292E-01; 
-	gp[2*ngauss+ 30]=   0.3296355447210387441801802E+00; 
-	gp[3][ 30]=   0.6343334726308867723471639E+00; 
-	gc[ 30]=   0.5980139538929241281078968E-04; 
-	gp[ngauss+ 31]=   0.5223836827337728335993803E-02; 
-	gp[2*ngauss+ 31]=   0.2543080057465078161577979E+00; 
-	gp[3][ 31]=   0.6343334726308867723471639E+00; 
-	gc[ 31]=   0.2806627859136634173965294E-03; 
-	gp[ngauss+ 32]=   0.2569768765504614119336387E-01; 
-	gp[2*ngauss+ 32]=   0.2543080057465078161577979E+00; 
-	gp[3][ 32]=   0.6343334726308867723471639E+00; 
-	gc[ 32]=   0.5669819026601681133017675E-03; 
-	gp[ngauss+ 33]=   0.5567926081130270574751912E-01; 
-	gp[2*ngauss+ 33]=   0.2543080057465078161577979E+00; 
-	gp[3][ 33]=   0.6343334726308867723471639E+00; 
-	gc[ 33]=   0.6739038517854064343439875E-03; 
-	gp[ngauss+ 34]=   0.8566083396755927030167437E-01; 
-	gp[2*ngauss+ 34]=   0.2543080057465078161577979E+00; 
-	gp[3][ 34]=   0.6343334726308867723471639E+00; 
-	gc[ 34]=   0.5669819026601681133017675E-03; 
-	gp[ngauss+ 35]=   0.1061346847952676831590444E+00; 
-	gp[2*ngauss+ 35]=   0.2543080057465078161577979E+00; 
-	gp[3][ 35]=   0.6343334726308867723471639E+00; 
-	gc[ 35]=   0.2806627859136634173965294E-03; 
-	gp[ngauss+ 36]=   0.9640668162164327438527513E-02; 
-	gp[2*ngauss+ 36]=   0.1601527279383079979472859E+00; 
-	gp[3][ 36]=   0.6343334726308867723471639E+00; 
-	gc[ 36]=   0.5558924060985351094218042E-03; 
-	gp[ngauss+ 37]=   0.4742546281705090567357321E-01; 
-	gp[2*ngauss+ 37]=   0.1601527279383079979472859E+00; 
-	gp[3][ 37]=   0.6343334726308867723471639E+00; 
-	gc[ 37]=   0.1122987976685449209851463E-02; 
-	gp[ngauss+ 38]=   0.1027568997154026148527751E+00; 
-	gp[2*ngauss+ 38]=   0.1601527279383079979472859E+00; 
-	gp[3][ 38]=   0.6343334726308867723471639E+00; 
-	gc[ 38]=   0.1334762043455590017807318E-02; 
-	gp[ngauss+ 39]=   0.1580883366137543240319770E+00; 
-	gp[2*ngauss+ 39]=   0.1601527279383079979472859E+00; 
-	gp[3][ 39]=   0.6343334726308867723471639E+00; 
-	gc[ 39]=   0.1122987976685449209851463E-02; 
-	gp[ngauss+ 40]=   0.1958731312686409022670227E+00; 
-	gp[2*ngauss+ 40]=   0.1601527279383079979472859E+00; 
-	gp[3][ 40]=   0.6343334726308867723471639E+00; 
-	gc[ 40]=   0.5558924060985351094218042E-03; 
-	gp[ngauss+ 41]=   0.1375683270031391679650191E-01; 
-	gp[2*ngauss+ 41]=   0.7240687888633139719987719E-01; 
-	gp[3][ 41]=   0.6343334726308867723471639E+00; 
-	gc[ 41]=   0.6348317815652551040684828E-03; 
-	gp[ngauss+ 42]=   0.6767416394121158260026687E-01; 
-	gp[2*ngauss+ 42]=   0.7240687888633139719987719E-01; 
-	gp[3][ 42]=   0.6343334726308867723471639E+00; 
-	gc[ 42]=   0.1282457630459549363510960E-02; 
-	gp[ngauss+ 43]=   0.1466298242413909152264795E+00; 
-	gp[2*ngauss+ 43]=   0.7240687888633139719987719E-01; 
-	gp[3][ 43]=   0.6343334726308867723471639E+00; 
-	gc[ 43]=   0.1524304625709161315839557E-02; 
-	gp[ngauss+ 44]=   0.2255854845415702478526920E+00; 
-	gp[2*ngauss+ 44]=   0.7240687888633139719987719E-01; 
-	gp[3][ 44]=   0.6343334726308867723471639E+00; 
-	gc[ 44]=   0.1282457630459549363510960E-02; 
-	gp[ngauss+ 45]=   0.2795028157824679136564570E+00; 
-	gp[2*ngauss+ 45]=   0.7240687888633139719987719E-01; 
-	gp[3][ 45]=   0.6343334726308867723471639E+00; 
-	gc[ 45]=   0.6348317815652551040684828E-03; 
-	gp[ngauss+ 46]=   0.1647056877436847659039497E-01; 
-	gp[2*ngauss+ 46]=   0.1455713218307138008948628E-01; 
-	gp[3][ 46]=   0.6343334726308867723471639E+00; 
-	gc[ 46]=   0.3675200380073265705508936E-03; 
-	gp[ngauss+ 47]=   0.8102388069429512304981796E-01; 
-	gp[2*ngauss+ 47]=   0.1455713218307138008948628E-01; 
-	gp[3][ 47]=   0.6343334726308867723471639E+00; 
-	gc[ 47]=   0.7424468824279099317121437E-03; 
-	gp[ngauss+ 48]=   0.1755546975930209237816749E+00; 
-	gp[2*ngauss+ 48]=   0.1455713218307138008948628E-01; 
-	gp[3][ 48]=   0.6343334726308867723471639E+00; 
-	gc[ 48]=   0.8824581727683867844078806E-03; 
-	gp[ngauss+ 49]=   0.2700855144917467245135319E+00; 
-	gp[2*ngauss+ 49]=   0.1455713218307138008948628E-01; 
-	gp[3][ 49]=   0.6343334726308867723471639E+00; 
-	gc[ 49]=   0.7424468824279099317121437E-03; 
-	gp[ngauss+ 50]=   0.3346388264116733709729549E+00; 
-	gp[2*ngauss+ 50]=   0.1455713218307138008948628E-01; 
-	gp[3][ 50]=   0.6343334726308867723471639E+00; 
-	gc[ 50]=   0.3675200380073265705508936E-03; 
-	gp[ngauss+ 51]=   0.2820121115434851485096519E-02; 
-	gp[2*ngauss+ 51]=   0.5499960157369496423867172E+00; 
-	gp[3][ 51]=   0.3898863870655193282408954E+00; 
-	gc[ 51]=   0.1664075540527897608455068E-03; 
-	gp[ngauss+ 52]=   0.1387305805468257439256853E-01; 
-	gp[2*ngauss+ 52]=   0.5499960157369496423867172E+00; 
-	gp[3][ 52]=   0.3898863870655193282408954E+00; 
-	gc[ 52]=   0.3361687988193032947249193E-03; 
-	gp[ngauss+ 53]=   0.3005879859876551468619370E-01; 
-	gp[2*ngauss+ 53]=   0.5499960157369496423867172E+00; 
-	gp[3][ 53]=   0.3898863870655193282408954E+00; 
-	gc[ 53]=   0.3995638084945832988385996E-03; 
-	gp[ngauss+ 54]=   0.4624453914284845497981886E-01; 
-	gp[2*ngauss+ 54]=   0.5499960157369496423867172E+00; 
-	gp[3][ 54]=   0.3898863870655193282408954E+00; 
-	gc[ 54]=   0.3361687988193032947249193E-03; 
-	gp[ngauss+ 55]=   0.5729747608209617788729088E-01; 
-	gp[2*ngauss+ 55]=   0.5499960157369496423867172E+00; 
-	gp[3][ 55]=   0.3898863870655193282408954E+00; 
-	gc[ 55]=   0.1664075540527897608455068E-03; 
-	gp[ngauss+ 56]=   0.8715957632321213455687685E-02; 
-	gp[2*ngauss+ 56]=   0.4243122204826401923058484E+00; 
-	gp[3][ 56]=   0.3898863870655193282408954E+00; 
-	gc[ 56]=   0.7809919386245131847165196E-03; 
-	gp[ngauss+ 57]=   0.4287652242081133138941515E-01; 
-	gp[2*ngauss+ 57]=   0.4243122204826401923058484E+00; 
-	gp[3][ 57]=   0.3898863870655193282408954E+00; 
-	gc[ 57]=   0.1577723579854277460560149E-02; 
-	gp[ngauss+ 58]=   0.9290069622592023972662808E-01; 
-	gp[2*ngauss+ 58]=   0.4243122204826401923058484E+00; 
-	gp[3][ 58]=   0.3898863870655193282408954E+00; 
-	gc[ 58]=   0.1875252089225373929164060E-02; 
-	gp[ngauss+ 59]=   0.1429248700310291480638410E+00; 
-	gp[2*ngauss+ 59]=   0.4243122204826401923058484E+00; 
-	gp[3][ 59]=   0.3898863870655193282408954E+00; 
-	gc[ 59]=   0.1577723579854277460560149E-02; 
-	gp[ngauss+ 60]=   0.1770854348195192659975685E+00; 
-	gp[2*ngauss+ 60]=   0.4243122204826401923058484E+00; 
-	gp[3][ 60]=   0.3898863870655193282408954E+00; 
-	gc[ 60]=   0.7809919386245131847165196E-03; 
-	gp[ngauss+ 61]=   0.1608542878080594201063844E-01; 
-	gp[2*ngauss+ 61]=   0.2672143938543263687711941E+00; 
-	gp[3][ 61]=   0.3898863870655193282408954E+00; 
-	gc[ 61]=   0.1546865169503060314679319E-02; 
-	gp[ngauss+ 62]=   0.7912925657314306568907516E-01; 
-	gp[2*ngauss+ 62]=   0.2672143938543263687711941E+00; 
-	gp[3][ 62]=   0.3898863870655193282408954E+00; 
-	gc[ 62]=   0.3124905049696835174549313E-02; 
-	gp[ngauss+ 63]=   0.1714496095400771514939552E+00; 
-	gp[2*ngauss+ 63]=   0.2672143938543263687711941E+00; 
-	gp[3][ 63]=   0.3898863870655193282408954E+00; 
-	gc[ 63]=   0.3714202410295569084604130E-02; 
-	gp[ngauss+ 64]=   0.2637699625070112372988353E+00; 
-	gp[2*ngauss+ 64]=   0.2672143938543263687711941E+00; 
-	gp[3][ 64]=   0.3898863870655193282408954E+00; 
-	gc[ 64]=   0.3124905049696835174549313E-02; 
-	gp[ngauss+ 65]=   0.3268137902993483609772720E+00; 
-	gp[2*ngauss+ 65]=   0.2672143938543263687711941E+00; 
-	gp[3][ 65]=   0.3898863870655193282408954E+00; 
-	gc[ 65]=   0.1546865169503060314679319E-02; 
-	gp[ngauss+ 66]=   0.2295323819139559290243112E-01; 
-	gp[2*ngauss+ 66]=   0.1208106817883721533703770E+00; 
-	gp[3][ 66]=   0.3898863870655193282408954E+00; 
-	gc[ 66]=   0.1766527408224395001754439E-02; 
-	gp[ngauss+ 67]=   0.1129141596895874545450887E+00; 
-	gp[2*ngauss+ 67]=   0.1208106817883721533703770E+00; 
-	gp[3][ 67]=   0.3898863870655193282408954E+00; 
-	gc[ 67]=   0.3568656484883993820498823E-02; 
-	gp[ngauss+ 68]=   0.2446514655730542591943638E+00; 
-	gp[2*ngauss+ 68]=   0.1208106817883721533703770E+00; 
-	gp[3][ 68]=   0.3898863870655193282408954E+00; 
-	gc[ 68]=   0.4241636883961948877319364E-02; 
-	gp[ngauss+ 69]=   0.3763887714565210638436389E+00; 
-	gp[2*ngauss+ 69]=   0.1208106817883721533703770E+00; 
-	gp[3][ 69]=   0.3898863870655193282408954E+00; 
-	gc[ 69]=   0.3568656484883993820498823E-02; 
-	gp[ngauss+ 70]=   0.4663496929547129254862965E+00; 
-	gp[2*ngauss+ 70]=   0.1208106817883721533703770E+00; 
-	gp[3][ 70]=   0.3898863870655193282408954E+00; 
-	gc[ 70]=   0.1766527408224395001754439E-02; 
-	gp[ngauss+ 71]=   0.2748109949881235672570692E-01; 
-	gp[2*ngauss+ 71]=   0.2428853571607680625473734E-01; 
-	gp[3][ 71]=   0.3898863870655193282408954E+00; 
-	gc[ 71]=   0.1022687015780539027115484E-02; 
-	gp[ngauss+ 72]=   0.1351881260230007058889347E+00; 
-	gp[2*ngauss+ 72]=   0.2428853571607680625473734E-01; 
-	gp[3][ 72]=   0.3898863870655193282408954E+00; 
-	gc[ 72]=   0.2065984730200281882763274E-02; 
-	gp[ngauss+ 73]=   0.2929125386092019327521836E+00; 
-	gp[2*ngauss+ 73]=   0.2428853571607680625473734E-01; 
-	gp[3][ 73]=   0.3898863870655193282408954E+00; 
-	gc[ 73]=   0.2455589959537547058785597E-02; 
-	gp[ngauss+ 74]=   0.4506369511954031596154326E+00; 
-	gp[2*ngauss+ 74]=   0.2428853571607680625473734E-01; 
-	gp[3][ 74]=   0.3898863870655193282408954E+00; 
-	gc[ 74]=   0.2065984730200281882763274E-02; 
-	gp[ngauss+ 75]=   0.5583439777195915087786603E+00; 
-	gp[2*ngauss+ 75]=   0.2428853571607680625473734E-01; 
-	gp[3][ 75]=   0.3898863870655193282408954E+00; 
-	gc[ 75]=   0.1022687015780539027115484E-02; 
-	gp[ngauss+ 76]=   0.3820412379430865050367239E-02; 
-	gp[2*ngauss+ 76]=   0.7450784917211248190869680E+00; 
-	gp[3][ 76]=   0.1734803207716957231045924E+00; 
-	gc[ 76]=   0.2354307468301136510627038E-03; 
-	gp[ngauss+ 77]=   0.1879380372800047934136409E-01; 
-	gp[2*ngauss+ 77]=   0.7450784917211248190869680E+00; 
-	gp[3][ 77]=   0.1734803207716957231045924E+00; 
-	gc[ 77]=   0.4756062416607821967306727E-03; 
-	gp[ngauss+ 78]=   0.4072059375358972890421977E-01; 
-	gp[2*ngauss+ 78]=   0.7450784917211248190869680E+00; 
-	gp[3][ 78]=   0.1734803207716957231045924E+00; 
-	gc[ 78]=   0.5652964877443147112891440E-03; 
-	gp[ngauss+ 79]=   0.6264738377917897846707544E-01; 
-	gp[2*ngauss+ 79]=   0.7450784917211248190869680E+00; 
-	gp[3][ 79]=   0.1734803207716957231045924E+00; 
-	gc[ 79]=   0.4756062416607821967306727E-03; 
-	gp[ngauss+ 80]=   0.7762077512774859275807230E-01; 
-	gp[2*ngauss+ 80]=   0.7450784917211248190869680E+00; 
-	gp[3][ 80]=   0.1734803207716957231045924E+00; 
-	gc[ 80]=   0.2354307468301136510627038E-03; 
-	gp[ngauss+ 81]=   0.1180749020134916839035834E-01; 
-	gp[2*ngauss+ 81]=   0.5748149081269930263556251E+00; 
-	gp[3][ 81]=   0.1734803207716957231045924E+00; 
-	gc[ 81]=   0.1104934907704599594434288E-02; 
-	gp[ngauss+ 82]=   0.5808473832803965156390707E-01; 
-	gp[2*ngauss+ 82]=   0.5748149081269930263556251E+00; 
-	gp[3][ 82]=   0.1734803207716957231045924E+00; 
-	gc[ 82]=   0.2232138094997411949593085E-02; 
-	gp[ngauss+ 83]=   0.1258523855506556252698913E+00; 
-	gp[2*ngauss+ 83]=   0.5748149081269930263556251E+00; 
-	gp[3][ 83]=   0.1734803207716957231045924E+00; 
-	gc[ 83]=   0.2653076672955636507052818E-02; 
-	gp[ngauss+ 84]=   0.1936200327732715989758754E+00; 
-	gp[2*ngauss+ 84]=   0.5748149081269930263556251E+00; 
-	gp[3][ 84]=   0.1734803207716957231045924E+00; 
-	gc[ 84]=   0.2232138094997411949593085E-02; 
-	gp[ngauss+ 85]=   0.2398972808999620821494242E+00; 
-	gp[2*ngauss+ 85]=   0.5748149081269930263556251E+00; 
-	gp[3][ 85]=   0.1734803207716957231045924E+00; 
-	gc[ 85]=   0.1104934907704599594434288E-02; 
-	gp[ngauss+ 86]=   0.2179089788247223673946365E-01; 
-	gp[2*ngauss+ 86]=   0.3619947996757470286840036E+00; 
-	gp[3][ 86]=   0.1734803207716957231045924E+00; 
-	gc[ 86]=   0.2188480109418990024542297E-02; 
-	gp[ngauss+ 87]=   0.1071962440664831064485623E+00; 
-	gp[2*ngauss+ 87]=   0.3619947996757470286840036E+00; 
-	gp[3][ 87]=   0.1734803207716957231045924E+00; 
-	gc[ 87]=   0.4421065701079485357792387E-02; 
-	gp[ngauss+ 88]=   0.2322624397762786241057020E+00; 
-	gp[2*ngauss+ 88]=   0.3619947996757470286840036E+00; 
-	gp[3][ 88]=   0.1734803207716957231045924E+00; 
-	gc[ 88]=   0.5254794184744129496514531E-02; 
-	gp[ngauss+ 89]=   0.3573286354860741417628417E+00; 
-	gp[2*ngauss+ 89]=   0.3619947996757470286840036E+00; 
-	gp[3][ 89]=   0.1734803207716957231045924E+00; 
-	gc[ 89]=   0.4421065701079485357792387E-02; 
-	gp[ngauss+ 90]=   0.4427339816700850114719404E+00; 
-	gp[2*ngauss+ 90]=   0.3619947996757470286840036E+00; 
-	gp[3][ 90]=   0.1734803207716957231045924E+00; 
-	gc[ 90]=   0.2188480109418990024542297E-02; 
-	gp[ngauss+ 91]=   0.3109470542044839223481313E-01; 
-	gp[2*ngauss+ 91]=   0.1636619866237947995192818E+00; 
-	gp[3][ 91]=   0.1734803207716957231045924E+00; 
-	gc[ 91]=   0.2499254732643923770293104E-02; 
-	gp[ngauss+ 92]=   0.1529645840847571531666495E+00; 
-	gp[2*ngauss+ 92]=   0.1636619866237947995192818E+00; 
-	gp[3][ 92]=   0.1734803207716957231045924E+00; 
-	gc[ 92]=   0.5048878136564868823849832E-02; 
-	gp[ngauss+ 93]=   0.3314288463022547386880629E+00; 
-	gp[2*ngauss+ 93]=   0.1636619866237947995192818E+00; 
-	gp[3][ 93]=   0.1734803207716957231045924E+00; 
-	gc[ 93]=   0.6001000045085251254970781E-02; 
-	gp[ngauss+ 94]=   0.5098931085197523242094763E+00; 
-	gp[2*ngauss+ 94]=   0.1636619866237947995192818E+00; 
-	gp[3][ 94]=   0.1734803207716957231045924E+00; 
-	gc[ 94]=   0.5048878136564868823849832E-02; 
-	gp[ngauss+ 95]=   0.6317629871840610851413126E+00; 
-	gp[2*ngauss+ 95]=   0.1636619866237947995192818E+00; 
-	gp[3][ 95]=   0.1734803207716957231045924E+00; 
-	gc[ 95]=   0.2499254732643923770293104E-02; 
-	gp[ngauss+ 96]=   0.3722858998892505406031969E-01; 
-	gp[2*ngauss+ 96]=   0.3290363028030459202550237E-01; 
-	gp[3][ 96]=   0.1734803207716957231045924E+00; 
-	gc[ 96]=   0.1446881238470051746865003E-02; 
-	gp[ngauss+ 97]=   0.1831390812910861357644692E+00; 
-	gp[2*ngauss+ 97]=   0.3290363028030459202550237E-01; 
-	gp[3][ 97]=   0.1734803207716957231045924E+00; 
-	gc[ 97]=   0.2922922163836161298883409E-02; 
-	gp[ngauss+ 98]=   0.3968080244739998424349526E+00; 
-	gp[2*ngauss+ 98]=   0.3290363028030459202550237E-01; 
-	gp[3][ 98]=   0.1734803207716957231045924E+00; 
-	gc[ 98]=   0.3474129413013635216495632E-02; 
-	gp[ngauss+ 99]=   0.6104769676569135491054361E+00; 
-	gp[2*ngauss+ 99]=   0.3290363028030459202550237E-01; 
-	gp[3][ 99]=   0.1734803207716957231045924E+00; 
-	gc[ 99]=   0.2922922163836161298883409E-02; 
-	gp[ngauss+100]=   0.7563874589590746308095855E+00; 
-	gp[2*ngauss+100]=   0.3290363028030459202550237E-01; 
-	gp[3][100]=   0.1734803207716957231045924E+00; 
-	gc[100]=   0.1446881238470051746865003E-02; 
-	gp[ngauss+101]=   0.4462454629928929415083641E-02; 
-	gp[2*ngauss+101]=   0.8702932130946322704376958E+00; 
-	gp[3][101]=   0.3457893991821509152445743E-01; 
-	gc[101]=   0.1525364704986189692495816E-03; 
-	gp[ngauss+102]=   0.2195221042407078662784791E-01; 
-	gp[2*ngauss+102]=   0.8702932130946322704376958E+00; 
-	gp[3][102]=   0.3457893991821509152445743E-01; 
-	gc[102]=   0.3081470811558820321245740E-03; 
-	gp[ngauss+103]=   0.4756392349357631901892338E-01; 
-	gp[2*ngauss+103]=   0.8702932130946322704376958E+00; 
-	gp[3][103]=   0.3457893991821509152445743E-01; 
-	gc[103]=   0.3662577305079262619620616E-03; 
-	gp[ngauss+104]=   0.7317563656308185140999884E-01; 
-	gp[2*ngauss+104]=   0.8702932130946322704376958E+00; 
-	gp[3][104]=   0.3457893991821509152445743E-01; 
-	gc[104]=   0.3081470811558820321245740E-03; 
-	gp[ngauss+105]=   0.9066539235722370862276311E-01; 
-	gp[2*ngauss+105]=   0.8702932130946322704376958E+00; 
-	gp[3][105]=   0.3457893991821509152445743E-01; 
-	gc[105]=   0.1525364704986189692495816E-03; 
-	gp[ngauss+106]=   0.1379180676948294852564964E-01; 
-	gp[2*ngauss+106]=   0.6714158560300755951647965E+00; 
-	gp[3][106]=   0.3457893991821509152445743E-01; 
-	gc[106]=   0.7158915019438693925839182E-03; 
-	gp[ngauss+107]=   0.6784621232925240815339392E-01; 
-	gp[2*ngauss+107]=   0.6714158560300755951647965E+00; 
-	gp[3][107]=   0.3457893991821509152445743E-01; 
-	gc[107]=   0.1446210706378584148049987E-02; 
-	gp[ngauss+108]=   0.1470026020258546566553730E+00; 
-	gp[2*ngauss+108]=   0.6714158560300755951647965E+00; 
-	gp[3][108]=   0.3457893991821509152445743E-01; 
-	gc[108]=   0.1718938401647664926715154E-02; 
-	gp[ngauss+109]=   0.2261589917224569051573522E+00; 
-	gp[2*ngauss+109]=   0.6714158560300755951647965E+00; 
-	gp[3][109]=   0.3457893991821509152445743E-01; 
-	gc[109]=   0.1446210706378584148049987E-02; 
-	gp[ngauss+110]=   0.2802133972822263647850965E+00; 
-	gp[2*ngauss+110]=   0.6714158560300755951647965E+00; 
-	gp[3][110]=   0.3457893991821509152445743E-01; 
-	gc[110]=   0.7158915019438693925839182E-03; 
-	gp[ngauss+111]=   0.2545298347097098436579517E-01; 
-	gp[2*ngauss+111]=   0.4228301055981501231453074E+00; 
-	gp[3][111]=   0.3457893991821509152445743E-01; 
-	gc[111]=   0.1417924532550925506744889E-02; 
-	gp[ngauss+112]=   0.1252111887766239334716453E+00; 
-	gp[2*ngauss+112]=   0.4228301055981501231453074E+00; 
-	gp[3][112]=   0.3457893991821509152445743E-01; 
-	gc[112]=   0.2864425173708486951862259E-02; 
-	gp[ngauss+113]=   0.2712954772418173926651176E+00; 
-	gp[2*ngauss+113]=   0.4228301055981501231453074E+00; 
-	gp[3][113]=   0.3457893991821509152445743E-01; 
-	gc[113]=   0.3404601008703135370818105E-02; 
-	gp[ngauss+114]=   0.4173797657070108518585898E+00; 
-	gp[2*ngauss+114]=   0.4228301055981501231453074E+00; 
-	gp[3][114]=   0.3457893991821509152445743E-01; 
-	gc[114]=   0.2864425173708486951862259E-02; 
-	gp[ngauss+115]=   0.5171379710126638009644400E+00; 
-	gp[2*ngauss+115]=   0.4228301055981501231453074E+00; 
-	gp[3][115]=   0.3457893991821509152445743E-01; 
-	gc[115]=   0.1417924532550925506744889E-02; 
-	gp[ngauss+116]=   0.3632034932062158323429498E-01; 
-	gp[2*ngauss+116]=   0.1911663237939562572118897E+00; 
-	gp[3][116]=   0.3457893991821509152445743E-01; 
-	gc[116]=   0.1619276585269326374535570E-02; 
-	gp[ngauss+117]=   0.1786711612964319811195394E+00; 
-	gp[2*ngauss+117]=   0.1911663237939562572118897E+00; 
-	gp[3][117]=   0.3457893991821509152445743E-01; 
-	gc[117]=   0.3271187222988250904745399E-02; 
-	gp[ngauss+118]=   0.3871273681439143256318264E+00; 
-	gp[2*ngauss+118]=   0.1911663237939562572118897E+00; 
-	gp[3][118]=   0.3457893991821509152445743E-01; 
-	gc[118]=   0.3888070605322794358683006E-02; 
-	gp[ngauss+119]=   0.5955835749913966701441134E+00; 
-	gp[2*ngauss+119]=   0.1911663237939562572118897E+00; 
-	gp[3][119]=   0.3457893991821509152445743E-01; 
-	gc[119]=   0.3271187222988250904745399E-02; 
-	gp[ngauss+120]=   0.7379343869672070680293578E+00; 
-	gp[2*ngauss+120]=   0.1911663237939562572118897E+00; 
-	gp[3][120]=   0.3457893991821509152445743E-01; 
-	gc[120]=   0.1619276585269326374535570E-02; 
-	gp[ngauss+121]=   0.4348506843299289873538162E-01; 
-	gp[2*ngauss+121]=   0.3843327439633327330290728E-01; 
-	gp[3][121]=   0.3457893991821509152445743E-01; 
-	gc[121]=   0.9374398217669952625390973E-03; 
-	gp[ngauss+122]=   0.2139166561255058407993538E+00; 
-	gp[2*ngauss+122]=   0.3843327439633327330290728E-01; 
-	gp[3][122]=   0.3457893991821509152445743E-01; 
-	gc[122]=   0.1893772314860302438326724E-02; 
-	gp[ngauss+123]=   0.4634938928427258175863176E+00; 
-	gp[2*ngauss+123]=   0.3843327439633327330290728E-01; 
-	gp[3][123]=   0.3457893991821509152445743E-01; 
-	gc[123]=   0.2250901574461454072738044E-02; 
-	gp[ngauss+124]=   0.7130711295599457943732815E+00; 
-	gp[2*ngauss+124]=   0.3843327439633327330290728E-01; 
-	gp[3][124]=   0.3457893991821509152445743E-01; 
-	gc[124]=   0.1893772314860302438326724E-02; 
-	gp[ngauss+125]=   0.8835027172524587364372537E+00; 
-	gp[2*ngauss+125]=   0.3843327439633327330290728E-01; 
-	gp[3][125]=   0.3457893991821509152445743E-01; 
-	gc[125]=   0.9374398217669952625390973E-03; 
-	break;
-    */			
+  case 4:
+    gp[0]=   0.1981013974700432744909435E-02;
+    gp[ngauss +  0]=   0.1756168039625049658342796E+00;
+    gp[2*ngauss +  0]=   0.7958514178967728633033780E+00;
+    gc[0]=   0.5614254026695104258530883E-04;
+    gp[1]=   0.9415757216553928623888957E-02;
+    gp[ngauss+  1]=   0.1756168039625049658342796E+00;
+    gp[2*ngauss+ 1]=   0.7958514178967728633033780E+00;
+    gc[  1]=   0.1052539187783914959760637E-03;
+    gp[2]=   0.1911602092416824223845346E-01;
+    gp[ngauss+  2]=   0.1756168039625049658342796E+00;
+    gp[2*ngauss+  2]=   0.7958514178967728633033780E+00;
+    gc[  2]=   0.1052539187783914959760637E-03;
+    gp[3]=   0.2655076416602173811743298E-01;
+    gp[ngauss+  3]=   0.1756168039625049658342796E+00;
+    gp[2*ngauss+  3]=   0.7958514178967728633033780E+00;
+    gc[  3]=   0.5614254026695104258530883E-04;
+    gp[4]=   0.5902361000058098432934300E-02;
+    gp[ngauss+  4]=   0.1191391592971236390275109E+00;
+    gp[2*ngauss+  4]=   0.7958514178967728633033780E+00;
+    gc[  4]=   0.2337955152791078423282521E-03;
+    gp[5]=   0.2805391526296907513510520E-01;
+    gp[ngauss+  5]=   0.1191391592971236390275109E+00;
+    gp[2*ngauss+  5]=   0.7958514178967728633033780E+00;
+    gc[  5]=   0.4383110215343271014270785E-03;
+    gp[6]=   0.5695550754313442253400591E-01;
+    gp[ngauss+  6]=   0.1191391592971236390275109E+00;
+    gp[2*ngauss+  6]=   0.7958514178967728633033780E+00;
+    gc[  6]=   0.4383110215343271014270785E-03;
+    gp[7]=   0.7910706180604539923617681E-01;
+    gp[ngauss+  7]=   0.1191391592971236390275109E+00;
+    gp[2*ngauss+  7]=   0.7958514178967728633033780E+00;
+    gc[  7]=   0.2337955152791078423282521E-03;
+    gp[8]=   0.1025032546082947250520215E-01;
+    gp[ngauss+  8]=   0.5651710869940735217362115E-01;
+    gp[2*ngauss+  8]=   0.7958514178967728633033780E+00;
+    gc[  8]=   0.3663457985554326676012287E-03;
+    gp[ 9]=   0.4871978550500959094728183E-01;
+    gp[ngauss+ 9]=   0.5651710869940735217362115E-01;
+    gp[2*ngauss+ 9]=   0.7958514178967728633033780E+00;
+    gc[ 9]=   0.6868112975047707265125985E-03;
+    gp[ 10]=   0.9891168789881019357571906E-01;
+    gp[ngauss+ 10]=   0.5651710869940735217362115E-01;
+    gp[2*ngauss+ 10]=   0.7958514178967728633033780E+00;
+    gc[ 10]=   0.6868112975047707265125985E-03;
+    gp[ 11]=   0.1373811479429903120177987E+00;
+    gp[ngauss+ 11]=   0.5651710869940735217362115E-01;
+    gp[2*ngauss+ 11]=   0.7958514178967728633033780E+00;
+    gc[ 11]=   0.3663457985554326676012287E-03;
+    gp[ 12]=   0.1336499411296589418346618E-01;
+    gp[ngauss+ 12]=   0.1165774066892339709191637E-01;
+    gp[2*ngauss+ 12]=   0.7958514178967728633033780E+00;
+    gc[ 12]=   0.2439854216206053939189319E-03;
+    gp[ 13]=   0.6352380214147103185255417E-01;
+    gp[ngauss+ 13]=   0.1165774066892339709191637E-01;
+    gp[2*ngauss+ 13]=   0.7958514178967728633033780E+00;
+    gc[ 13]=   0.4574146739399300507499519E-03;
+    gp[ 14]=   0.1289670392928327077521515E+00;
+    gp[ngauss+ 14]=   0.1165774066892339709191637E-01;
+    gp[2*ngauss+ 14]=   0.7958514178967728633033780E+00;
+    gc[ 14]=   0.4574146739399300507499519E-03;
+    gp[ 15]=   0.1791258473213378454212395E+00;
+    gp[ngauss+ 15]=   0.1165774066892339709191637E-01;
+    gp[2*ngauss+ 15]=   0.7958514178967728633033780E+00;
+    gc[ 15]=   0.2439854216206053939189319E-03;
+    gp[ 16]=   0.4686469274784633447665181E-02;
+    gp[ngauss+ 16]=   0.4154553003749570180402003E+00;
+    gp[2*ngauss+ 16]=   0.5170472951043675023405734E+00;
+    gc[ 16]=   0.3722170752562633273986158E-03;
+    gp[ 17]=   0.2227478324623351755095983E-01;
+    gp[ngauss+ 17]=   0.4154553003749570180402003E+00;
+    gp[2*ngauss+ 17]=   0.5170472951043675023405734E+00;
+    gc[ 17]=   0.6978185458062600471342006E-03;
+    gp[ 18]=   0.4522262127444196206826646E-01;
+    gp[ngauss+ 18]=   0.4154553003749570180402003E+00;
+    gp[2*ngauss+ 18]=   0.5170472951043675023405734E+00;
+    gc[ 18]=   0.6978185458062600471342006E-03;
+    gp[ 19]=   0.6281093524589084617156111E-01;
+    gp[ngauss+ 19]=   0.4154553003749570180402003E+00;
+    gp[2*ngauss+ 19]=   0.5170472951043675023405734E+00;
+    gc[ 19]=   0.3722170752562633273986158E-03;
+    gp[ 20]=   0.1396316928033901864590850E-01;
+    gp[ngauss+ 20]=   0.2818465778637800603501812E+00;
+    gp[2*ngauss+ 20]=   0.5170472951043675023405734E+00;
+    gc[ 20]=   0.1550031090353912216078243E-02;
+    gp[ 21]=   0.6636692804612728658298820E-01;
+    gp[ngauss+ 21]=   0.2818465778637800603501812E+00;
+    gp[2*ngauss+ 21]=   0.5170472951043675023405734E+00;
+    gc[ 21]=   0.2905939875758179218047843E-02;
+    gp[ 22]=   0.1347391989857251507262572E+00;
+    gp[ngauss+ 22]=   0.2818465778637800603501812E+00;
+    gp[2*ngauss+ 22]=   0.5170472951043675023405734E+00;
+    gc[ 22]=   0.2905939875758179218047843E-02;
+    gp[ 23]=   0.1871429577515134186633369E+00;
+    gp[ngauss+ 23]=   0.2818465778637800603501812E+00;
+    gp[2*ngauss+ 23]=   0.5170472951043675023405734E+00;
+    gc[ 23]=   0.1550031090353912216078243E-02;
+    gp[ 24]=   0.2424911481807401304158134E-01;
+    gp[ngauss+ 24]=   0.1337020822679903798291838E+00;
+    gp[2*ngauss+ 24]=   0.5170472951043675023405734E+00;
+    gc[ 24]=   0.2428820659384971875777962E-02;
+    gp[ 25]=   0.1152560157370177676747899E+00;
+    gp[ngauss+ 25]=   0.1337020822679903798291838E+00;
+    gp[2*ngauss+ 25]=   0.5170472951043675023405734E+00;
+    gc[ 25]=   0.4553461442867277241397578E-02;
+    gp[ 26]=   0.2339946068906243501554529E+00;
+    gp[ngauss+ 26]=   0.1337020822679903798291838E+00;
+    gp[2*ngauss+ 26]=   0.5170472951043675023405734E+00;
+    gc[ 26]=   0.4553461442867277241397578E-02;
+    gp[ 27]=   0.3250015078095681047886615E+00;
+    gp[ngauss+ 27]=   0.1337020822679903798291838E+00;
+    gp[2*ngauss+ 27]=   0.5170472951043675023405734E+00;
+    gc[ 27]=   0.2428820659384971875777962E-02;
+    gp[ 28]=   0.3161746210173187993001242E-01;
+    gp[ngauss+ 28]=   0.2757862597439698206385973E-01;
+    gp[2*ngauss+ 28]=   0.5170472951043675023405734E+00;
+    gc[ 28]=   0.1617588723434511855713981E-02;
+    gp[ 29]=   0.1502777621740505836344576E+00;
+    gp[ngauss+ 29]=   0.2757862597439698206385973E-01;
+    gp[2*ngauss+ 29]=   0.5170472951043675023405734E+00;
+    gc[ 29]=   0.3032594380369393047795663E-02;
+    gp[ 30]=   0.3050963167471849319611093E+00;
+    gp[ngauss+ 30]=   0.2757862597439698206385973E-01;
+    gp[2*ngauss+ 30]=   0.5170472951043675023405734E+00;
+    gc[ 30]=   0.3032594380369393047795663E-02;
+    gp[ 31]=   0.4237566168195036356655545E+00;
+    gp[ngauss+ 31]=   0.2757862597439698206385973E-01;
+    gp[2*ngauss+ 31]=   0.5170472951043675023405734E+00;
+    gc[ 31]=   0.1617588723434511855713981E-02;
+    gp[ 32]=   0.7388454838611978023539041E-02;
+    gp[ngauss+ 32]=   0.6549862048169314047901757E+00;
+    gp[2*ngauss+ 32]=   0.2386007375518623050589814E+00;
+    gc[ 32]=   0.7780094259316945643908710E-03;
+    gp[ 33]=   0.3511731762334666143239029E-01;
+    gp[ngauss+ 33]=   0.6549862048169314047901757E+00;
+    gp[2*ngauss+ 33]=   0.2386007375518623050589814E+00;
+    gc[ 33]=   0.1458582752694612457632238E-02;
+    gp[ 34]=   0.7129574000785962871845260E-01;
+    gp[ngauss+ 34]=   0.6549862048169314047901757E+00;
+    gp[2*ngauss+ 34]=   0.2386007375518623050589814E+00;
+    gc[ 34]=   0.1458582752694612457632238E-02;
+    gp[ 35]=   0.9902460279259431212730384E-01;
+    gp[ngauss+ 35]=   0.6549862048169314047901757E+00;
+    gp[2*ngauss+ 35]=   0.2386007375518623050589814E+00;
+    gc[ 35]=   0.7780094259316945643908710E-03;
+    gp[ 36]=   0.2201363960428823146375467E-01;
+    gp[ngauss+ 36]=   0.4443453247774830496819952E+00;
+    gp[2*ngauss+ 36]=   0.2386007375518623050589814E+00;
+    gc[ 36]=   0.3239880378814602487009997E-02;
+    gp[ 37]=   0.1046308045343487533720147E+00;
+    gp[ngauss+ 37]=   0.4443453247774830496819952E+00;
+    gp[2*ngauss+ 37]=   0.2386007375518623050589814E+00;
+    gc[ 37]=   0.6074005640321836238018089E-02;
+    gp[ 38]=   0.2124231331363058918870087E+00;
+    gp[ngauss+ 38]=   0.4443453247774830496819952E+00;
+    gp[2*ngauss+ 38]=   0.2386007375518623050589814E+00;
+    gc[ 38]=   0.6074005640321836238018089E-02;
+    gp[ 39]=   0.2950402980663664137952687E+00;
+    gp[ngauss+ 39]=   0.4443453247774830496819952E+00;
+    gp[2*ngauss+ 39]=   0.2386007375518623050589814E+00;
+    gc[ 39]=   0.3239880378814602487009997E-02;
+    gp[ 40]=   0.3822995078056706336853632E-01;
+    gp[ngauss+ 40]=   0.2107880663979872074525160E+00;
+    gp[2*ngauss+ 40]=   0.2386007375518623050589814E+00;
+    gc[ 40]=   0.5076729393991831949508787E-02;
+    gp[ 41]=   0.1817069135037572184823919E+00;
+    gp[ngauss+ 41]=   0.2107880663979872074525160E+00;
+    gp[2*ngauss+ 41]=   0.2386007375518623050589814E+00;
+    gc[ 41]=   0.9517660952894889436594081E-02;
+    gp[ 42]=   0.3689042825463932690061107E+00;
+    gp[ngauss+ 42]=   0.2107880663979872074525160E+00;
+    gp[2*ngauss+ 42]=   0.2386007375518623050589814E+00;
+    gc[ 42]=   0.9517660952894889436594081E-02;
+    gp[ 43]=   0.5123812452695834241199663E+00;
+    gp[ngauss+ 43]=   0.2107880663979872074525160E+00;
+    gp[2*ngauss+ 43]=   0.2386007375518623050589814E+00;
+    gc[ 43]=   0.5076729393991831949508787E-02;
+    gp[ 44]=   0.4984652136888425922032195E-01;
+    gp[ngauss+ 44]=   0.4347909280428757352601284E-01;
+    gp[2*ngauss+ 44]=   0.2386007375518623050589814E+00;
+    gc[ 44]=   0.3381089578564921959659668E-02;
+    gp[ 45]=   0.2369204605788584548781286E+00;
+    gp[ngauss+ 45]=   0.4347909280428757352601284E-01;
+    gp[2*ngauss+ 45]=   0.2386007375518623050589814E+00;
+    gc[ 45]=   0.6338739326589163169268273E-02;
+    gp[ 46]=   0.4809997090649916665368772E+00;
+    gp[ngauss+ 46]=   0.4347909280428757352601284E-01;
+    gp[2*ngauss+ 46]=   0.2386007375518623050589814E+00;
+    gc[ 46]=   0.6338739326589163169268273E-02;
+    gp[ 47]=   0.6680736482749658621946838E+00;
+    gp[ngauss+ 47]=   0.4347909280428757352601284E-01;
+    gp[2*ngauss+ 47]=   0.2386007375518623050589814E+00;
+    gc[ 47]=   0.3381089578564921959659668E-02;
+    gp[ 48]=   0.9233146216573625006194481E-02;
+    gp[ngauss+ 48]=   0.8185180164205332861703353E+00;
+    gp[2*ngauss+ 48]=   0.4850054944699732929706726E-01;
+    gc[ 48]=   0.6013729287201758834679817E-03;
+    gp[ 49]=   0.4388513368935080907940955E-01;
+    gp[ngauss+ 49]=   0.8185180164205332861703353E+00;
+    gp[2*ngauss+ 49]=   0.4850054944699732929706726E-01;
+    gc[ 49]=   0.1127431304213664877060578E-02;
+    gp[ 50]=   0.8909630044311857545318785E-01;
+    gp[ngauss+ 50]=   0.8185180164205332861703353E+00;
+    gp[2*ngauss+ 50]=   0.4850054944699732929706726E-01;
+    gc[ 50]=   0.1127431304213664877060578E-02;
+    gp[ 51]=   0.1237482879158957595264029E+00;
+    gp[ngauss+ 51]=   0.8185180164205332861703353E+00;
+    gp[2*ngauss+ 51]=   0.4850054944699732929706726E-01;
+    gc[ 51]=   0.6013729287201758834679817E-03;
+    gp[ 52]=   0.2750983225384828197777377E-01;
+    gp[ngauss+ 52]=   0.5552859757470136190763871E+00;
+    gp[2*ngauss+ 52]=   0.4850054944699732929706726E-01;
+    gc[ 52]=   0.2504309443009021240723960E-02;
+    gp[ 53]=   0.1307542020795333691342280E+00;
+    gp[ngauss+ 53]=   0.5552859757470136190763871E+00;
+    gp[2*ngauss+ 53]=   0.4850054944699732929706726E-01;
+    gc[ 53]=   0.4694984969634420460775905E-02;
+    gp[ 54]=   0.2654592727264556824923177E+00;
+    gp[ngauss+ 54]=   0.5552859757470136190763871E+00;
+    gp[2*ngauss+ 54]=   0.4850054944699732929706726E-01;
+    gc[ 54]=   0.4694984969634420460775905E-02;
+    gp[ 55]=   0.3687036425521407696487719E+00;
+    gp[ngauss+ 55]=   0.5552859757470136190763871E+00;
+    gp[2*ngauss+ 55]=   0.4850054944699732929706726E-01;
+    gc[ 55]=   0.2504309443009021240723960E-02;
+    gp[ 56]=   0.4777490464781690413678532E-01;
+    gp[ngauss+ 56]=   0.2634159753661122469767895E+00;
+    gp[2*ngauss+ 56]=   0.4850054944699732929706726E-01;
+    gc[ 56]=   0.3924126780763078895076854E-02;
+    gp[ 57]=   0.2270740686096784331853873E+00;
+    gp[ngauss+ 57]=   0.2634159753661122469767895E+00;
+    gp[2*ngauss+ 57]=   0.4850054944699732929706726E-01;
+    gc[ 57]=   0.7356805009082974006098323E-02;
+    gp[ 58]=   0.4610094065772119905407560E+00;
+    gp[ngauss+ 58]=   0.2634159753661122469767895E+00;
+    gp[2*ngauss+ 58]=   0.4850054944699732929706726E-01;
+    gc[ 58]=   0.7356805009082974006098323E-02;
+    gp[ 59]=   0.6403085705390735195893580E+00;
+    gp[ngauss+ 59]=   0.2634159753661122469767895E+00;
+    gp[2*ngauss+ 59]=   0.4850054944699732929706726E-01;
+    gc[ 59]=   0.3924126780763078895076854E-02;
+    gp[ 60]=   0.6229180934845267994089097E-01;
+    gp[ngauss+ 60]=   0.5433461122723448458170192E-01;
+    gp[2*ngauss+ 60]=   0.4850054944699732929706726E-01;
+    gc[ 60]=   0.2613459007507404913181355E-02;
+    gp[ 61]=   0.2960729004920768122935820E+00;
+    gp[ngauss+ 61]=   0.5433461122723448458170192E-01;
+    gp[2*ngauss+ 61]=   0.4850054944699732929706726E-01;
+    gc[ 61]=   0.4899614459888755644422873E-02;
+    gp[ 62]=   0.6010919388336913738276488E+00;
+    gp[ngauss+ 62]=   0.5433461122723448458170192E-01;
+    gp[2*ngauss+ 62]=   0.4850054944699732929706726E-01;
+    gc[ 62]=   0.4899614459888755644422873E-02;
+    gp[ 63]=   0.8348730299773155061803398E+00;
+    gp[ngauss+ 63]=   0.5433461122723448458170192E-01;
+    gp[2*ngauss+ 63]=   0.4850054944699732929706726E-01;
+    gc[ 63]=   0.2613459007507404913181355E-02;
+    break;
+  case 5:
+    gp[0]=   0.6884703934122676876048399E-03;
+    gp[ngauss+  0]=   0.1342694011463441143815669E+00;
+    gp[2*ngauss+  0]=   0.8510542129470164181162242E+00;
+    gc[  0]=   0.7674555521798018092669516E-05;
+    gp[1]=   0.3386801256323271594835794E-02;
+    gp[ngauss+  1]=   0.1342694011463441143815669E+00;
+    gp[2*ngauss+  1]=   0.8510542129470164181162242E+00;
+    gc[  1]=   0.1550378001720072350948701E-04;
+    gp[2]=   0.7338192953319733751104449E-02;
+    gp[ngauss+  2]=   0.1342694011463441143815669E+00;
+    gp[2*ngauss+  2]=   0.8510542129470164181162242E+00;
+    gc[  2]=   0.1842749657758906164643500E-04;
+    gp[3]=   0.1128958465031619590737310E-01;
+    gp[ngauss+  3]=   0.1342694011463441143815669E+00;
+    gp[2*ngauss+  3]=   0.8510542129470164181162242E+00;
+    gc[  3]=   0.1550378001720072350948701E-04;
+    gp[4]=   0.1398791551322719981460406E-01;
+    gp[ngauss+  4]=   0.1342694011463441143815669E+00;
+    gp[2*ngauss+  4]=   0.8510542129470164181162242E+00;
+    gc[  4=   0.7674555521798018092669516E-05;
+    gp[5]=   0.2127808889925481860954521E-02;
+    gp[ngauss+  5]=   0.1035864735618886456835587E+00;
+    gp[2*ngauss+  5]=   0.8510542129470164181162242E+00;
+    gc[  5]=   0.3601859320129832317508089E-04;
+    gp[6]=   0.1046735762433882115148403E-01;
+    gp[ngauss+  6]=   0.1035864735618886456835587E+00;
+    gp[2*ngauss+  6]=   0.8510542129470164181162242E+00;
+    gc[  6]=   0.7276308627071362096789688E-04;
+    gp[7]=   0.2267965674554746810010855E-01;
+    gp[ngauss+  7]=   0.1035864735618886456835587E+00;
+    gp[2*ngauss+  7]=   0.8510542129470164181162242E+00;
+    gc[  7]=   0.8648481349327657670994506E-04;
+    gp[  8]=   0.3489195586675611504873307E-01;
+    gp[ngauss+  8]=   0.1035864735618886456835587E+00;
+    gp[2*ngauss+  8]=   0.8510542129470164181162242E+00;
+    gc[  8]=   0.7276308627071362096789688E-04;
+    gp[ 9]=   0.4323150460116945433926258E-01;
+    gp[ngauss+ 9]=   0.1035864735618886456835587E+00;
+    gp[2*ngauss+ 9]=   0.8510542129470164181162242E+00;
+    gc[ 9]=   0.3601859320129832317508089E-04;
+    gp[ 10]=   0.3926902791626685426815838E-02;
+    gp[ngauss+ 10]=   0.6523450282167806813349548E-01;
+    gp[2*ngauss+ 10]=   0.8510542129470164181162242E+00;
+    gc[ 10]=   0.7133992621705575404868601E-04;
+    gp[ 11]=   0.1931766338160684304489376E-01;
+    gp[ngauss+ 11]=   0.6523450282167806813349548E-01;
+    gp[2*ngauss+ 11]=   0.8510542129470164181162242E+00;
+    gc[ 11]=   0.1441175999536500782735814E-03;
+    gp[ 12]=   0.4185564211565275687514017E-01;
+    gp[ngauss+ 12]=   0.6523450282167806813349548E-01;
+    gp[2*ngauss+ 12]=   0.8510542129470164181162242E+00;
+    gc[ 12]=   0.1712954245332319660698772E-03;
+    gp[ 13]=   0.6439362084969867070538657E-01;
+    gp[ngauss+ 13]=   0.6523450282167806813349548E-01;
+    gp[2*ngauss+ 13]=   0.8510542129470164181162242E+00;
+    gc[ 13]=   0.1441175999536500782735814E-03;
+    gp[ 14]=   0.7978438143967882832346449E-01;
+    gp[ngauss+ 14]=   0.6523450282167806813349548E-01;
+    gp[2*ngauss+ 14]=   0.8510542129470164181162242E+00;
+    gc[ 14]=   0.7133992621705575404868601E-04;
+    gp[ 15]=   0.5603527040461490761502753E-02;
+    gp[ngauss+ 15]=   0.2949326437223589592796798E-01;
+    gp[2*ngauss+ 15]=   0.8510542129470164181162242E+00;
+    gc[ 15]=   0.8147053631288434281442928E-04;
+    gp[ 16]=   0.2756550260123100869305021E-01;
+    gp[ngauss+ 16]=   0.2949326437223589592796798E-01;
+    gp[2*ngauss+ 16]=   0.8510542129470164181162242E+00;
+    gc[ 16]=   0.1645829871568117858991650E-03;
+    gp[ 17]=   0.5972626134037384297790392E-01;
+    gp[ngauss+ 17]=   0.2949326437223589592796798E-01;
+    gp[2*ngauss+ 17]=   0.8510542129470164181162242E+00;
+    gc[ 17]=   0.1956201925721807731387582E-03;
+    gp[ 18]=   0.9188702007951667726275762E-01;
+    gp[ngauss+ 18]=   0.2949326437223589592796798E-01;
+    gp[2*ngauss+ 18]=   0.8510542129470164181162242E+00;
+    gc[ 18]=   0.1645829871568117858991650E-03;
+    gp[ 19]=   0.1138489956402861951943051E+00;
+    gp[ngauss+ 19]=   0.2949326437223589592796798E-01;
+    gp[2*ngauss+ 19]=   0.8510542129470164181162242E+00;
+    gc[ 19]=   0.8147053631288434281442928E-04;
+    gp[ 20]=   0.6708904550162072916648035E-02;
+    gp[ngauss+ 20]=   0.5929510490997780154719579E-02;
+    gp[2*ngauss+ 20]=   0.8510542129470164181162242E+00;
+    gc[ 20]=   0.4716533650593665851425186E-04;
+    gp[ 21]=   0.3300320039388486633331973E-01;
+    gp[ngauss+ 21]=   0.5929510490997780154719579E-02;
+    gp[2*ngauss+ 21]=   0.8510542129470164181162242E+00;
+    gc[ 21]=   0.9528121850813989619054645E-04;
+    gp[ 22]=   0.7150813828099290086452812E-01;
+    gp[ngauss+ 22]=   0.5929510490997780154719579E-02;
+    gp[2*ngauss+ 22]=   0.8510542129470164181162242E+00;
+    gc[ 22]=   0.1132494350422471987715167E-03;
+    gp[ 23]=   0.1100130761681009353957365E+00;
+    gp[ngauss+ 23]=   0.5929510490997780154719579E-02;
+    gp[2*ngauss+ 23]=   0.8510542129470164181162242E+00;
+    gc[ 23]=   0.9528121850813989619054645E-04;
+    gp[ 24]=   0.1363073720118237288124082E+00;
+    gp[ngauss+ 24]=   0.5929510490997780154719579E-02;
+    gp[2*ngauss+ 24]=   0.8510542129470164181162242E+00;
+    gc[ 24]=   0.4716533650593665851425186E-04;
+    gp[ 25]=   0.1690216171511836227042953E-02;
+    gp[ngauss+ 25]=   0.3296355447210387441801802E+00;
+    gp[2*ngauss+ 25]=   0.6343334726308867723471639E+00;
+    gc[ 25]=   0.5980139538929241281078968E-04;
+    gp[ 26]=   0.8314702139567988954602070E-02;
+    gp[ngauss+ 26]=   0.3296355447210387441801802E+00;
+    gp[2*ngauss+ 26]=   0.6343334726308867723471639E+00;
+    gc[ 26]=   0.1208079967893718785024756E-03;
+    gp[ 27]=   0.1801549132403724173632794E-01;
+    gp[ngauss+ 27]=   0.3296355447210387441801802E+00;
+    gp[2*ngauss+ 27]=   0.6343334726308867723471639E+00;
+    gc[ 27]=   0.1435900757693728527211053E-03;
+    gp[ 28]=   0.2771628050850649451805380E-01;
+    gp[ngauss+ 28]=   0.3296355447210387441801802E+00;
+    gp[2*ngauss+ 28]=   0.6343334726308867723471639E+00;
+    gc[ 28]=   0.1208079967893718785024756E-03;
+    gp[ 29]=   0.3434076647656264724561292E-01;
+    gp[ngauss+ 29]=   0.3296355447210387441801802E+00;
+    gp[2*ngauss+ 29]=   0.6343334726308867723471639E+00;
+    gc[ 29]=   0.5980139538929241281078968E-04;
+    gp[ 30]=   0.5223836827337728335993803E-02;
+    gp[ngauss+ 30]=   0.2543080057465078161577979E+00;
+    gp[2*ngauss+ 30]=   0.6343334726308867723471639E+00;
+    gc[ 30]=   0.2806627859136634173965294E-03;
+    gp[ 31]=   0.2569768765504614119336387E-01;
+    gp[ngauss+ 31]=   0.2543080057465078161577979E+00;
+    gp[2*ngauss+ 31]=   0.6343334726308867723471639E+00;
+    gc[ 31]=   0.5669819026601681133017675E-03;
+    gp[ 32]=   0.5567926081130270574751912E-01;
+    gp[ngauss+ 32]=   0.2543080057465078161577979E+00;
+    gp[2*ngauss+ 32]=   0.6343334726308867723471639E+00;
+    gc[ 32]=   0.6739038517854064343439875E-03;
+    gp[ 33]=   0.8566083396755927030167437E-01;
+    gp[ngauss+ 33]=   0.2543080057465078161577979E+00;
+    gp[2*ngauss+ 33]=   0.6343334726308867723471639E+00;
+    gc[ 33]=   0.5669819026601681133017675E-03;
+    gp[ 34]=   0.1061346847952676831590444E+00;
+    gp[ngauss+ 34]=   0.2543080057465078161577979E+00;
+    gp[2*ngauss+ 34]=   0.6343334726308867723471639E+00;
+    gc[ 34]=   0.2806627859136634173965294E-03;
+    gp[ 35]=   0.9640668162164327438527513E-02;
+    gp[ngauss+ 35]=   0.1601527279383079979472859E+00;
+    gp[2*ngauss+ 35]=   0.6343334726308867723471639E+00;
+    gc[ 35]=   0.5558924060985351094218042E-03;
+    gp[ 36]=   0.4742546281705090567357321E-01;
+    gp[ngauss+ 36]=   0.1601527279383079979472859E+00;
+    gp[2*ngauss+ 36]=   0.6343334726308867723471639E+00;
+    gc[ 36]=   0.1122987976685449209851463E-02;
+    gp[ 37]=   0.1027568997154026148527751E+00;
+    gp[ngauss+ 37]=   0.1601527279383079979472859E+00;
+    gp[2*ngauss+ 37]=   0.6343334726308867723471639E+00;
+    gc[ 37]=   0.1334762043455590017807318E-02;
+    gp[ 38]=   0.1580883366137543240319770E+00;
+    gp[ngauss+ 38]=   0.1601527279383079979472859E+00;
+    gp[2*ngauss+ 38]=   0.6343334726308867723471639E+00;
+    gc[ 38]=   0.1122987976685449209851463E-02;
+    gp[ 39]=   0.1958731312686409022670227E+00;
+    gp[ngauss+ 39]=   0.1601527279383079979472859E+00;
+    gp[2*ngauss+ 39]=   0.6343334726308867723471639E+00;
+    gc[ 39]=   0.5558924060985351094218042E-03;
+    gp[ 40]=   0.1375683270031391679650191E-01;
+    gp[ngauss+ 40]=   0.7240687888633139719987719E-01;
+    gp[2*ngauss+ 40]=   0.6343334726308867723471639E+00;
+    gc[ 40]=   0.6348317815652551040684828E-03;
+    gp[ 41]=   0.6767416394121158260026687E-01;
+    gp[ngauss+ 41]=   0.7240687888633139719987719E-01;
+    gp[2*ngauss+ 41]=   0.6343334726308867723471639E+00;
+    gc[ 41]=   0.1282457630459549363510960E-02;
+    gp[ 42]=   0.1466298242413909152264795E+00;
+    gp[ngauss+ 42]=   0.7240687888633139719987719E-01;
+    gp[2*ngauss+ 42]=   0.6343334726308867723471639E+00;
+    gc[ 42]=   0.1524304625709161315839557E-02;
+    gp[ 43]=   0.2255854845415702478526920E+00;
+    gp[ngauss+ 43]=   0.7240687888633139719987719E-01;
+    gp[2*ngauss+ 43]=   0.6343334726308867723471639E+00;
+    gc[ 43]=   0.1282457630459549363510960E-02;
+    gp[ 44]=   0.2795028157824679136564570E+00;
+    gp[ngauss+ 44]=   0.7240687888633139719987719E-01;
+    gp[2*ngauss+ 44]=   0.6343334726308867723471639E+00;
+    gc[ 44]=   0.6348317815652551040684828E-03;
+    gp[ 45]=   0.1647056877436847659039497E-01;
+    gp[ngauss+ 45]=   0.1455713218307138008948628E-01;
+    gp[2*ngauss+ 45]=   0.6343334726308867723471639E+00;
+    gc[ 45]=   0.3675200380073265705508936E-03;
+    gp[ 46]=   0.8102388069429512304981796E-01;
+    gp[ngauss+ 46]=   0.1455713218307138008948628E-01;
+    gp[2*ngauss+ 46]=   0.6343334726308867723471639E+00;
+    gc[ 46]=   0.7424468824279099317121437E-03;
+    gp[ 47]=   0.1755546975930209237816749E+00;
+    gp[ngauss+ 47]=   0.1455713218307138008948628E-01;
+    gp[2*ngauss+ 47]=   0.6343334726308867723471639E+00;
+    gc[ 47]=   0.8824581727683867844078806E-03;
+    gp[ 48]=   0.2700855144917467245135319E+00;
+    gp[ngauss+ 48]=   0.1455713218307138008948628E-01;
+    gp[2*ngauss+ 48]=   0.6343334726308867723471639E+00;
+    gc[ 48]=   0.7424468824279099317121437E-03;
+    gp[ 49]=   0.3346388264116733709729549E+00;
+    gp[ngauss+ 49]=   0.1455713218307138008948628E-01;
+    gp[2*ngauss+ 49]=   0.6343334726308867723471639E+00;
+    gc[ 49]=   0.3675200380073265705508936E-03;
+    gp[ 50]=   0.2820121115434851485096519E-02;
+    gp[ngauss+ 50]=   0.5499960157369496423867172E+00;
+    gp[2*ngauss+ 50]=   0.3898863870655193282408954E+00;
+    gc[ 50]=   0.1664075540527897608455068E-03;
+    gp[ 51]=   0.1387305805468257439256853E-01;
+    gp[ngauss+ 51]=   0.5499960157369496423867172E+00;
+    gp[2*ngauss+ 51]=   0.3898863870655193282408954E+00;
+    gc[ 51]=   0.3361687988193032947249193E-03;
+    gp[ 52]=   0.3005879859876551468619370E-01;
+    gp[ngauss+ 52]=   0.5499960157369496423867172E+00;
+    gp[2*ngauss+ 52]=   0.3898863870655193282408954E+00;
+    gc[ 52]=   0.3995638084945832988385996E-03;
+    gp[ 53]=   0.4624453914284845497981886E-01;
+    gp[ngauss+ 53]=   0.5499960157369496423867172E+00;
+    gp[2*ngauss+ 53]=   0.3898863870655193282408954E+00;
+    gc[ 53]=   0.3361687988193032947249193E-03;
+    gp[ 54]=   0.5729747608209617788729088E-01;
+    gp[ngauss+ 54]=   0.5499960157369496423867172E+00;
+    gp[2*ngauss+ 54]=   0.3898863870655193282408954E+00;
+    gc[ 54]=   0.1664075540527897608455068E-03;
+    gp[ 55]=   0.8715957632321213455687685E-02;
+    gp[ngauss+ 55]=   0.4243122204826401923058484E+00;
+    gp[2*ngauss+ 55]=   0.3898863870655193282408954E+00;
+    gc[ 55]=   0.7809919386245131847165196E-03;
+    gp[ 56]=   0.4287652242081133138941515E-01;
+    gp[ngauss+ 56]=   0.4243122204826401923058484E+00;
+    gp[2*ngauss+ 56]=   0.3898863870655193282408954E+00;
+    gc[ 56]=   0.1577723579854277460560149E-02;
+    gp[ 57]=   0.9290069622592023972662808E-01;
+    gp[ngauss+ 57]=   0.4243122204826401923058484E+00;
+    gp[2*ngauss+ 57]=   0.3898863870655193282408954E+00;
+    gc[ 57]=   0.1875252089225373929164060E-02;
+    gp[ 58]=   0.1429248700310291480638410E+00;
+    gp[ngauss+ 58]=   0.4243122204826401923058484E+00;
+    gp[2*ngauss+ 58]=   0.3898863870655193282408954E+00;
+    gc[ 58]=   0.1577723579854277460560149E-02;
+    gp[ 59]=   0.1770854348195192659975685E+00;
+    gp[ngauss+ 59]=   0.4243122204826401923058484E+00;
+    gp[2*ngauss+ 59]=   0.3898863870655193282408954E+00;
+    gc[ 59]=   0.7809919386245131847165196E-03;
+    gp[ 60]=   0.1608542878080594201063844E-01;
+    gp[ngauss+ 60]=   0.2672143938543263687711941E+00;
+    gp[2*ngauss+ 60]=   0.3898863870655193282408954E+00;
+    gc[ 60]=   0.1546865169503060314679319E-02;
+    gp[ 61]=   0.7912925657314306568907516E-01;
+    gp[ngauss+ 61]=   0.2672143938543263687711941E+00;
+    gp[2*ngauss+ 61]=   0.3898863870655193282408954E+00;
+    gc[ 61]=   0.3124905049696835174549313E-02;
+    gp[ 62]=   0.1714496095400771514939552E+00;
+    gp[ngauss+ 62]=   0.2672143938543263687711941E+00;
+    gp[2*ngauss+ 62]=   0.3898863870655193282408954E+00;
+    gc[ 62]=   0.3714202410295569084604130E-02;
+    gp[ 63]=   0.2637699625070112372988353E+00;
+    gp[ngauss+ 63]=   0.2672143938543263687711941E+00;
+    gp[2*ngauss+ 63]=   0.3898863870655193282408954E+00;
+    gc[ 63]=   0.3124905049696835174549313E-02;
+    gp[ 64]=   0.3268137902993483609772720E+00;
+    gp[ngauss+ 64]=   0.2672143938543263687711941E+00;
+    gp[2*ngauss+ 64]=   0.3898863870655193282408954E+00;
+    gc[ 64]=   0.1546865169503060314679319E-02;
+    gp[ 65]=   0.2295323819139559290243112E-01;
+    gp[ngauss+ 65]=   0.1208106817883721533703770E+00;
+    gp[2*ngauss+ 65]=   0.3898863870655193282408954E+00;
+    gc[ 65]=   0.1766527408224395001754439E-02;
+    gp[ 66]=   0.1129141596895874545450887E+00;
+    gp[ngauss+ 66]=   0.1208106817883721533703770E+00;
+    gp[2*ngauss+ 66]=   0.3898863870655193282408954E+00;
+    gc[ 66]=   0.3568656484883993820498823E-02;
+    gp[ 67]=   0.2446514655730542591943638E+00;
+    gp[ngauss+ 67]=   0.1208106817883721533703770E+00;
+    gp[2*ngauss+ 67]=   0.3898863870655193282408954E+00;
+    gc[ 67]=   0.4241636883961948877319364E-02;
+    gp[ 68]=   0.3763887714565210638436389E+00;
+    gp[ngauss+ 68]=   0.1208106817883721533703770E+00;
+    gp[2*ngauss+ 68]=   0.3898863870655193282408954E+00;
+    gc[ 68]=   0.3568656484883993820498823E-02;
+    gp[ 69]=   0.4663496929547129254862965E+00;
+    gp[ngauss+ 69]=   0.1208106817883721533703770E+00;
+    gp[2*ngauss+ 69]=   0.3898863870655193282408954E+00;
+    gc[ 69]=   0.1766527408224395001754439E-02;
+    gp[ 70]=   0.2748109949881235672570692E-01;
+    gp[ngauss+ 70]=   0.2428853571607680625473734E-01;
+    gp[2*ngauss+ 70]=   0.3898863870655193282408954E+00;
+    gc[ 70]=   0.1022687015780539027115484E-02;
+    gp[ 71]=   0.1351881260230007058889347E+00;
+    gp[ngauss+ 71]=   0.2428853571607680625473734E-01;
+    gp[2*ngauss+ 71]=   0.3898863870655193282408954E+00;
+    gc[ 71]=   0.2065984730200281882763274E-02;
+    gp[ 72]=   0.2929125386092019327521836E+00;
+    gp[ngauss+ 72]=   0.2428853571607680625473734E-01;
+    gp[2*ngauss+ 72]=   0.3898863870655193282408954E+00;
+    gc[ 72]=   0.2455589959537547058785597E-02;
+    gp[ 73]=   0.4506369511954031596154326E+00;
+    gp[ngauss+ 73]=   0.2428853571607680625473734E-01;
+    gp[2*ngauss+ 73]=   0.3898863870655193282408954E+00;
+    gc[ 73]=   0.2065984730200281882763274E-02;
+    gp[ 74]=   0.5583439777195915087786603E+00;
+    gp[ngauss+ 74]=   0.2428853571607680625473734E-01;
+    gp[2*ngauss+ 74]=   0.3898863870655193282408954E+00;
+    gc[ 74]=   0.1022687015780539027115484E-02;
+    gp[ 75]=   0.3820412379430865050367239E-02;
+    gp[ngauss+ 75]=   0.7450784917211248190869680E+00;
+    gp[2*ngauss+ 75]=   0.1734803207716957231045924E+00;
+    gc[ 75]=   0.2354307468301136510627038E-03;
+    gp[ 76]=   0.1879380372800047934136409E-01;
+    gp[ngauss+ 76]=   0.7450784917211248190869680E+00;
+    gp[2*ngauss+ 76]=   0.1734803207716957231045924E+00;
+    gc[ 76]=   0.4756062416607821967306727E-03;
+    gp[ 77]=   0.4072059375358972890421977E-01;
+    gp[ngauss+ 77]=   0.7450784917211248190869680E+00;
+    gp[2*ngauss+ 77]=   0.1734803207716957231045924E+00;
+    gc[ 77]=   0.5652964877443147112891440E-03;
+    gp[ 78]=   0.6264738377917897846707544E-01;
+    gp[ngauss+ 78]=   0.7450784917211248190869680E+00;
+    gp[2*ngauss+ 78]=   0.1734803207716957231045924E+00;
+    gc[ 78]=   0.4756062416607821967306727E-03;
+    gp[ 79]=   0.7762077512774859275807230E-01;
+    gp[ngauss+ 79]=   0.7450784917211248190869680E+00;
+    gp[2*ngauss+ 79]=   0.1734803207716957231045924E+00;
+    gc[ 79]=   0.2354307468301136510627038E-03;
+    gp[ 80]=   0.1180749020134916839035834E-01;
+    gp[ngauss+ 80]=   0.5748149081269930263556251E+00;
+    gp[2*ngauss+ 80]=   0.1734803207716957231045924E+00;
+    gc[ 80]=   0.1104934907704599594434288E-02;
+    gp[ 81]=   0.5808473832803965156390707E-01;
+    gp[ngauss+ 81]=   0.5748149081269930263556251E+00;
+    gp[2*ngauss+ 81]=   0.1734803207716957231045924E+00;
+    gc[ 81]=   0.2232138094997411949593085E-02;
+    gp[ 82]=   0.1258523855506556252698913E+00;
+    gp[ngauss+ 82]=   0.5748149081269930263556251E+00;
+    gp[2*ngauss+ 82]=   0.1734803207716957231045924E+00;
+    gc[ 82]=   0.2653076672955636507052818E-02;
+    gp[ 83]=   0.1936200327732715989758754E+00;
+    gp[ngauss+ 83]=   0.5748149081269930263556251E+00;
+    gp[2*ngauss+ 83]=   0.1734803207716957231045924E+00;
+    gc[ 83]=   0.2232138094997411949593085E-02;
+    gp[ 84]=   0.2398972808999620821494242E+00;
+    gp[ngauss+ 84]=   0.5748149081269930263556251E+00;
+    gp[2*ngauss+ 84]=   0.1734803207716957231045924E+00;
+    gc[ 84]=   0.1104934907704599594434288E-02;
+    gp[ 85]=   0.2179089788247223673946365E-01;
+    gp[ngauss+ 85]=   0.3619947996757470286840036E+00;
+    gp[2*ngauss+ 85]=   0.1734803207716957231045924E+00;
+    gc[ 85]=   0.2188480109418990024542297E-02;
+    gp[ 86]=   0.1071962440664831064485623E+00;
+    gp[ngauss+ 86]=   0.3619947996757470286840036E+00;
+    gp[2*ngauss+ 86]=   0.1734803207716957231045924E+00;
+    gc[ 86]=   0.4421065701079485357792387E-02;
+    gp[ 87]=   0.2322624397762786241057020E+00;
+    gp[ngauss+ 87]=   0.3619947996757470286840036E+00;
+    gp[2*ngauss+ 87]=   0.1734803207716957231045924E+00;
+    gc[ 87]=   0.5254794184744129496514531E-02;
+    gp[ 88]=   0.3573286354860741417628417E+00;
+    gp[ngauss+ 88]=   0.3619947996757470286840036E+00;
+    gp[2*ngauss+ 88]=   0.1734803207716957231045924E+00;
+    gc[ 88]=   0.4421065701079485357792387E-02;
+    gp[ 89]=   0.4427339816700850114719404E+00;
+    gp[ngauss+ 89]=   0.3619947996757470286840036E+00;
+    gp[2*ngauss+ 89]=   0.1734803207716957231045924E+00;
+    gc[ 89]=   0.2188480109418990024542297E-02;
+    gp[ 90]=   0.3109470542044839223481313E-01;
+    gp[ngauss+ 90]=   0.1636619866237947995192818E+00;
+    gp[2*ngauss+ 90]=   0.1734803207716957231045924E+00;
+    gc[ 90]=   0.2499254732643923770293104E-02;
+    gp[ 91]=   0.1529645840847571531666495E+00;
+    gp[ngauss+ 91]=   0.1636619866237947995192818E+00;
+    gp[2*ngauss+ 91]=   0.1734803207716957231045924E+00;
+    gc[ 91]=   0.5048878136564868823849832E-02;
+    gp[ 92]=   0.3314288463022547386880629E+00;
+    gp[ngauss+ 92]=   0.1636619866237947995192818E+00;
+    gp[2*ngauss+ 92]=   0.1734803207716957231045924E+00;
+    gc[ 92]=   0.6001000045085251254970781E-02;
+    gp[ 93]=   0.5098931085197523242094763E+00;
+    gp[ngauss+ 93]=   0.1636619866237947995192818E+00;
+    gp[2*ngauss+ 93]=   0.1734803207716957231045924E+00;
+    gc[ 93]=   0.5048878136564868823849832E-02;
+    gp[ 94]=   0.6317629871840610851413126E+00;
+    gp[ngauss+ 94]=   0.1636619866237947995192818E+00;
+    gp[2*ngauss+ 94]=   0.1734803207716957231045924E+00;
+    gc[ 94]=   0.2499254732643923770293104E-02;
+    gp[ 95]=   0.3722858998892505406031969E-01;
+    gp[ngauss+ 95]=   0.3290363028030459202550237E-01;
+    gp[2*ngauss+ 95]=   0.1734803207716957231045924E+00;
+    gc[ 95]=   0.1446881238470051746865003E-02;
+    gp[ 96]=   0.1831390812910861357644692E+00;
+    gp[ngauss+ 96]=   0.3290363028030459202550237E-01;
+    gp[2*ngauss+ 96]=   0.1734803207716957231045924E+00;
+    gc[ 96]=   0.2922922163836161298883409E-02;
+    gp[ 97]=   0.3968080244739998424349526E+00;
+    gp[ngauss+ 97]=   0.3290363028030459202550237E-01;
+    gp[2*ngauss+ 97]=   0.1734803207716957231045924E+00;
+    gc[ 97]=   0.3474129413013635216495632E-02;
+    gp[ 98]=   0.6104769676569135491054361E+00;
+    gp[ngauss+ 98]=   0.3290363028030459202550237E-01;
+    gp[2*ngauss+ 98]=   0.1734803207716957231045924E+00;
+    gc[ 98]=   0.2922922163836161298883409E-02;
+    gp[99]=   0.7563874589590746308095855E+00;
+    gp[ngauss+99]=   0.3290363028030459202550237E-01;
+    gp[2*ngauss+99]=   0.1734803207716957231045924E+00;
+    gc[99]=   0.1446881238470051746865003E-02;
+    gp[100]=   0.4462454629928929415083641E-02;
+    gp[ngauss+100]=   0.8702932130946322704376958E+00;
+    gp[2*ngauss+100]=   0.3457893991821509152445743E-01;
+    gc[100]=   0.1525364704986189692495816E-03;
+    gp[101]=   0.2195221042407078662784791E-01;
+    gp[ngauss+101]=   0.8702932130946322704376958E+00;
+    gp[2*ngauss+101]=   0.3457893991821509152445743E-01;
+    gc[101]=   0.3081470811558820321245740E-03;
+    gp[102]=   0.4756392349357631901892338E-01;
+    gp[ngauss+102]=   0.8702932130946322704376958E+00;
+    gp[2*ngauss+102]=   0.3457893991821509152445743E-01;
+    gc[102]=   0.3662577305079262619620616E-03;
+    gp[103]=   0.7317563656308185140999884E-01;
+    gp[ngauss+103]=   0.8702932130946322704376958E+00;
+    gp[2*ngauss+103]=   0.3457893991821509152445743E-01;
+    gc[103]=   0.3081470811558820321245740E-03;
+    gp[104]=   0.9066539235722370862276311E-01;
+    gp[ngauss+104]=   0.8702932130946322704376958E+00;
+    gp[2*ngauss+104]=   0.3457893991821509152445743E-01;
+    gc[104]=   0.1525364704986189692495816E-03;
+    gp[105]=   0.1379180676948294852564964E-01;
+    gp[ngauss+105]=   0.6714158560300755951647965E+00;
+    gp[2*ngauss+105]=   0.3457893991821509152445743E-01;
+    gc[105]=   0.7158915019438693925839182E-03;
+    gp[106]=   0.6784621232925240815339392E-01;
+    gp[ngauss+106]=   0.6714158560300755951647965E+00;
+    gp[2*ngauss+106]=   0.3457893991821509152445743E-01;
+    gc[106]=   0.1446210706378584148049987E-02;
+    gp[107]=   0.1470026020258546566553730E+00;
+    gp[ngauss+107]=   0.6714158560300755951647965E+00;
+    gp[2*ngauss+107]=   0.3457893991821509152445743E-01;
+    gc[107]=   0.1718938401647664926715154E-02;
+    gp[108]=   0.2261589917224569051573522E+00;
+    gp[ngauss+108]=   0.6714158560300755951647965E+00;
+    gp[2*ngauss+108]=   0.3457893991821509152445743E-01;
+    gc[108]=   0.1446210706378584148049987E-02;
+    gp[109]=   0.2802133972822263647850965E+00;
+    gp[ngauss+109]=   0.6714158560300755951647965E+00;
+    gp[2*ngauss+109]=   0.3457893991821509152445743E-01;
+    gc[109]=   0.7158915019438693925839182E-03;
+    gp[110]=   0.2545298347097098436579517E-01;
+    gp[ngauss+110]=   0.4228301055981501231453074E+00;
+    gp[2*ngauss+110]=   0.3457893991821509152445743E-01;
+    gc[110]=   0.1417924532550925506744889E-02;
+    gp[111]=   0.1252111887766239334716453E+00;
+    gp[ngauss+111]=   0.4228301055981501231453074E+00;
+    gp[2*ngauss+111]=   0.3457893991821509152445743E-01;
+    gc[111]=   0.2864425173708486951862259E-02;
+    gp[112]=   0.2712954772418173926651176E+00;
+    gp[ngauss+112]=   0.4228301055981501231453074E+00;
+    gp[2*ngauss+112]=   0.3457893991821509152445743E-01;
+    gc[112]=   0.3404601008703135370818105E-02;
+    gp[113]=   0.4173797657070108518585898E+00;
+    gp[ngauss+113]=   0.4228301055981501231453074E+00;
+    gp[2*ngauss+113]=   0.3457893991821509152445743E-01;
+    gc[113]=   0.2864425173708486951862259E-02;
+    gp[114]=   0.5171379710126638009644400E+00;
+    gp[ngauss+114]=   0.4228301055981501231453074E+00;
+    gp[2*ngauss+114]=   0.3457893991821509152445743E-01;
+    gc[114]=   0.1417924532550925506744889E-02;
+    gp[115]=   0.3632034932062158323429498E-01;
+    gp[ngauss+115]=   0.1911663237939562572118897E+00;
+    gp[2*ngauss+115]=   0.3457893991821509152445743E-01;
+    gc[115]=   0.1619276585269326374535570E-02;
+    gp[116]=   0.1786711612964319811195394E+00;
+    gp[ngauss+116]=   0.1911663237939562572118897E+00;
+    gp[2*ngauss+116]=   0.3457893991821509152445743E-01;
+    gc[116]=   0.3271187222988250904745399E-02;
+    gp[117]=   0.3871273681439143256318264E+00;
+    gp[ngauss+117]=   0.1911663237939562572118897E+00;
+    gp[2*ngauss+117]=   0.3457893991821509152445743E-01;
+    gc[117]=   0.3888070605322794358683006E-02;
+    gp[118]=   0.5955835749913966701441134E+00;
+    gp[ngauss+118]=   0.1911663237939562572118897E+00;
+    gp[2*ngauss+118]=   0.3457893991821509152445743E-01;
+    gc[118]=   0.3271187222988250904745399E-02;
+    gp[119]=   0.7379343869672070680293578E+00;
+    gp[ngauss+119]=   0.1911663237939562572118897E+00;
+    gp[2*ngauss+119]=   0.3457893991821509152445743E-01;
+    gc[119]=   0.1619276585269326374535570E-02;
+    gp[120]=   0.4348506843299289873538162E-01;
+    gp[ngauss+120]=   0.3843327439633327330290728E-01;
+    gp[2*ngauss+120]=   0.3457893991821509152445743E-01;
+    gc[120]=   0.9374398217669952625390973E-03;
+    gp[121]=   0.2139166561255058407993538E+00;
+    gp[ngauss+121]=   0.3843327439633327330290728E-01;
+    gp[2*ngauss+121]=   0.3457893991821509152445743E-01;
+    gc[121]=   0.1893772314860302438326724E-02;
+    gp[122]=   0.4634938928427258175863176E+00;
+    gp[ngauss+122]=   0.3843327439633327330290728E-01;
+    gp[2*ngauss+122]=   0.3457893991821509152445743E-01;
+    gc[122]=   0.2250901574461454072738044E-02;
+    gp[123]=   0.7130711295599457943732815E+00;
+    gp[ngauss+123]=   0.3843327439633327330290728E-01;
+    gp[2*ngauss+123]=   0.3457893991821509152445743E-01;
+    gc[123]=   0.1893772314860302438326724E-02;
+    gp[124]=   0.8835027172524587364372537E+00;
+    gp[ngauss+124]=   0.3843327439633327330290728E-01;
+    gp[2*ngauss+124]=   0.3457893991821509152445743E-01;
+    gc[124]=   0.9374398217669952625390973E-03;
+    break;
   }
   return;
 }
