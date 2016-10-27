@@ -3,61 +3,81 @@
  *  Created by James Adler and Xiaozhe Hu on 12/23/15.
  *  Copyright 2015__HAZMAT__. All rights reserved.
  *
+ *  \note modified by Xiaozhe Hu 10/27/2016
+ *  \note: done cleanup for releasing -- Xiaozhe Hu 10/27/2016
+ *
  */
 
 #include "hazmat.h"
 
-/*---------------------------------*/
-/*--      Public Functions       --*/
-/*---------------------------------*/
-
 /***********************************************************************************************/
 void precond_data_null (precond_data *pcdata)
 {
-    /**
+    /*!
      * \fn void precond_data_null (precond_data *pcdata)
      *
-     * \brief Initialize precond_data
+     * \brief Initialize precond_data (pointers are set to NULL)
      *
      * \param pcdata   Preconditioning data structure
      *
-     * \author Chensong Zhang & Xiaozhe Hu
-     * \date   12/23/2015
      */
     
     pcdata->AMG_type            = UA_AMG;
-    pcdata->print_level         = PRINT_NONE;
-    pcdata->maxit               = 500;
+    pcdata->print_level         = PRINT_MIN;
+    pcdata->maxit               = 100;
     pcdata->max_levels          = 20;
     pcdata->tol                 = 1e-8;
     pcdata->cycle_type          = V_CYCLE;
     pcdata->smoother            = SMOOTHER_GS;
-    pcdata->smooth_order        = CF_ORDER;
+    pcdata->smooth_order        = NO_ORDER;
     pcdata->presmooth_iter      = 1;
     pcdata->postsmooth_iter     = 1;
-    pcdata->relaxation          = 1.1;
+    pcdata->relaxation          = 1.2;
+    pcdata->polynomial_degree   = 2;
     pcdata->coarsening_type     = 1;
-    pcdata->coarse_scaling      = ON;
-    pcdata->amli_degree         = 1;
-    pcdata->nl_amli_krylov_type = SOLVER_GCG;
+    pcdata->coarse_solver       = SOLVER_UMFPACK;
+    pcdata->coarse_scaling      = OFF;
+    pcdata->amli_degree         = 2;
+    pcdata->nl_amli_krylov_type = SOLVER_VFGMRES;
+
+    pcdata->amli_coef           = NULL;
+    pcdata->mgl_data            = NULL;
+    pcdata->LU                  = NULL;
+    pcdata->A                   = NULL;
+
+    pcdata->A_nk                = NULL;
+    pcdata->P_nk                = NULL;
+    pcdata->R_nk                = NULL;
+
+    pcdata->r                   = NULL;
+    pcdata->w                   = NULL;
+
 }
 
 /***********************************************************************************************/
 void ilu_data_null (ILU_data *ILUdata)
 {
-    /**
+    /*!
      * \fn void ilu_data_null (ILU_data *ILUdata)
      *
-     * \brief Initialize ILU data
+     * \brief Initialize ILU data (Pointers are set to NULL)
      *
      * \param ILUdata   Pointer to ILU_data
      *
-     * \author Chensong Zhang
-     * \date   2010/03/23
      */
     
-    ILUdata->row = ILUdata->col = ILUdata->nzlu = 0;
-    ILUdata->ijlu = NULL; ILUdata->luval = NULL;
+    ILUdata->row        = 0;
+    ILUdata->col        = 0;
+    ILUdata->nzlu       = 0;
+
+    ILUdata->ijlu       = NULL;
+    ILUdata->luval      = NULL;
+
+    ILUdata->nb         = 0;
+    ILUdata->nwork      = 0;
+
+    ILUdata->work       = NULL;
+
 }
 
 /***********************************************************************************************/
@@ -65,18 +85,17 @@ void ilu_data_alloc (const INT iwk,
                           const INT nwork,
                           ILU_data *iludata)
 {
-    /**
+    /*!
      * \fn void ilu_data_alloc (const INT iwk, const INT nwork, ILU_data *iludata)
      *
-     * \brief Allocate workspace for ILU factorization
+     * \brief Allocate workspace for ILU factorization used as smoothers
      *
-     * \param iwk       Size of the index array
+     * \param iwk       Size of the array for the indices
      * \param nwork     Size of the work array
      * \param iludata   Pointer to the ILU_data
      *
-     * \author Chensong Zhang
-     * \date   2010/04/06
      */
+
 
     iludata->ijlu=(INT*)calloc(iwk, sizeof(INT));
     
@@ -90,40 +109,46 @@ void ilu_data_alloc (const INT iwk,
 /***********************************************************************************************/
 void ilu_data_free (ILU_data *ILUdata)
 {
-    /**
+    /*!
      * \fn void ilu_data_free (ILU_data *ILUdata)
      *
-     * \brief Create ILU_data sturcture
+     * \brief free the ILU_data sturcture
      *
-     * \param ILUdata   Pointer to ILU_data
+     * \param ILUdata   Pointer to the ILU_data structure
      *
-     * \author Chensong Zhang
-     * \date   2010/04/03
      */
     
-    if (ILUdata==NULL) return;
+    if (ILUdata) {
+
+        free(ILUdata->ijlu);
+        ILUdata->ijlu  = NULL;
+
+        free(ILUdata->luval);
+        ILUdata->luval = NULL;
+
+        free(ILUdata->work);
+        ILUdata->work  = NULL;
     
-    free(ILUdata->ijlu);  ILUdata->ijlu  = NULL;
-    free(ILUdata->luval); ILUdata->luval = NULL;
-    free(ILUdata->work);  ILUdata->work  = NULL;
-    
-    ILUdata->row = ILUdata->col = ILUdata->nzlu = ILUdata ->nwork = ILUdata->nb = 0;
+        ILUdata->row    = 0;
+        ILUdata->col    = 0;
+        ILUdata->nzlu   = 0;
+        ILUdata ->nwork = 0;
+        ILUdata->nb     = 0;
+    }
 }
 
 /***********************************************************************************************/
-AMG_data * amg_data_create (SHORT max_levels)
+AMG_data *amg_data_create(SHORT max_levels)
 {
-    /**
+    /*!
      * \fn AMG_data * amg_data_create (SHORT max_levels)
      *
-     * \brief Create and initialize AMG_data
+     * \brief Create AMG_data structure (but all values are 0 and pointers point to NULL)
      *
      * \param max_levels   Max number of levels allowed
      *
-     * \return Pointer to the AMG_data data structure
+     * \return Pointer to the AMG_data structure
      *
-     * \author Chensong Zhang & Xiaozhe
-     * \date   12/24/2015
      */
     
     max_levels = MAX(1, max_levels); // at least allocate one level
@@ -144,19 +169,17 @@ AMG_data * amg_data_create (SHORT max_levels)
 
 
 /***********************************************************************************************/
-void amg_data_free (AMG_data *mgl,
-                         AMG_param *param)
+void amg_data_free(AMG_data *mgl,
+                   AMG_param *param)
 {
-    /**
-     * \fn void amg_data_free (AMG_data *mgl, AMG_param *param)
+    /*!
+     * \fn void amg_data_free(AMG_data *mgl, AMG_param *param)
      *
-     * \brief Free AMG_data data memeory space
+     * \brief Free AMG_data structure
      *
      * \param mgl    Pointer to the AMG_data
      * \param param  Pointer to AMG parameters
      *
-     * \author Chensong Zhang & Xiaozhe Hu
-     * \date   12/24/2015
      *
      */
     
@@ -180,43 +203,79 @@ void amg_data_free (AMG_data *mgl,
         mgl->near_kernel_basis[i] = NULL;
     }
     
-    // Clean direct solver data in necessary
+    // Clean direct solver data if necessary
     switch (param->coarse_solver) {
             
 #if WITH_SUITESPARSE
-    case SOLVER_UMFPACK: {
-      umfpack_free_numeric(mgl[max_levels-1].Numeric);
-      break;
-    }
+        case SOLVER_UMFPACK: {
+            umfpack_free_numeric(mgl[max_levels-1].Numeric);
+            break;
+        }
 #endif
             
         default: // Do nothing!
             break;
     }
     
-    free(mgl->near_kernel_basis); mgl->near_kernel_basis = NULL;
+    free(mgl->near_kernel_basis);
+    mgl->near_kernel_basis = NULL;
     
     free(mgl); mgl = NULL;
     
     if (param != NULL) {
-        if ( param->cycle_type == AMLI_CYCLE ) free(param->amli_coef);
+        if ( param->cycle_type == AMLI_CYCLE )
+            free(param->amli_coef);
     }
+}
+
+/***********************************************************************************************/
+void HX_curl_data_null (HX_curl_data *hxcurldata)
+{
+    /*!
+     * \fn void HX_curl_data_null(HX_curl_data *hxcurldata)
+     *
+     * \brief Initalize HX_curl_data structure (set values to 0 and pointers to NULL)
+     *
+     * \param hxcurldata    Pointer to the HX_curl_data structure
+     *
+     */
+
+    hxcurldata->A               = NULL;
+
+    hxcurldata->smooth_type     = 0;
+    hxcurldata->smooth_iter     = 0;
+
+    hxcurldata->P_curl          = NULL;
+    hxcurldata->Pt_curl         = NULL;
+    hxcurldata->A_vgrad         = NULL;
+
+    hxcurldata->amgparam_vgrad  = NULL;
+    hxcurldata->mgl_vgrad       = NULL;
+
+    hxcurldata->Grad            = NULL;
+    hxcurldata->Gradt           = NULL;
+    hxcurldata->A_grad          = NULL;
+
+    hxcurldata->amgparam_grad   = NULL;
+    hxcurldata->mgl_grad        = NULL;
+
+    hxcurldata->backup_r        = NULL;
+    hxcurldata->w               = NULL;
+
 }
 
 /***********************************************************************************************/
 void HX_curl_data_free (HX_curl_data *hxcurldata, SHORT flag)
 {
-    /**
-     * \fn void HX_curl_data_free (HX_curl_data *hxcurldata)
+    /*!
+     * \fn void HX_curl_data_free (HX_curl_data *hxcurldata, SHORT flag)
      *
-     * \brief Free HX_curl_data data memeory space
+     * \brief Free HX_curl_data structure (set values to 0 and pointers to NULL)
      *
-     * \param hxcurldata    Pointer to the HX_curl_data
-     * \param flag          A flag: 0 means A, P_curl, and Grad will be reused | 1 means free everything
-     *
-     * \author Xiaozhe Hu
-     * \date   02/11/2016
-     *
+     * \param hxcurldata    Pointer to the HX_curl_data structure
+     * \param flag          flag of whether the date will be reused:
+     *                          flag = False - A, P_curl, and Grad will be reused
+     *                          flag = TRUE  - free everything
      *
      */
     
@@ -244,23 +303,19 @@ void HX_curl_data_free (HX_curl_data *hxcurldata, SHORT flag)
 }
 
 /***********************************************************************************************/
-void precond_null (precond *pcdata)
+void precond_null(precond *pcdata)
 {
     /**
-     * \fn void precond_null (precond *pcdata)
+     * \fn void precond_null(precond *pcdata)
      *
-     * \brief Initialize precond data
+     * \brief Initialize precond data (set pointers to NULL)
      *
      * \param pcdata   Pointer to precond
      *
-     * \author Chensong Zhang & Xiaozhe Hu
-     * \date   12/23/2015
      */
     
     pcdata->data = NULL;
     pcdata->fct  = NULL;
 }
 
-/*---------------------------------*/
-/*--        End of File          --*/
-/*---------------------------------*/
+/*************************************  END  ***************************************************/

@@ -31,12 +31,15 @@ typedef struct {
     
 } precond; /**< Data for general preconditioner passed to iterative solvers */
 
-/**
- * \struct ILU_data
- * \brief Data for ILU setup
- */
+/***********************************************************************************************/
+
 typedef struct {
     
+    /*!
+     * \struct ILU_data
+     * \brief Data for ILU setup
+     */
+
     //! row number of matrix LU, m
     INT row;
     
@@ -61,7 +64,10 @@ typedef struct {
     //! work space
     REAL *work;
     
-} ILU_data; /**< Data for ILU */
+} ILU_data; /*! Data for ILU */
+
+/***********************************************************************************************/
+
 
 /**
  * \struct AMG_data
@@ -135,12 +141,15 @@ typedef struct {
     
 } AMG_data; /**< Data for AMG */
 
-/**
- * \struct precond_data
- * \brief Data passed to the preconditioners
- */
+
 typedef struct {
     
+    /*!
+     * \struct precond_data
+     *
+     * \brief Data that need to be passed to the preconditioners
+     */
+
     //! type of AMG method
     SHORT AMG_type;
     
@@ -192,9 +201,6 @@ typedef struct {
     //! type of Krylov method used by Nonlinear AMLI cycle
     SHORT nl_amli_krylov_type;
     
-    //! smooth factor for smoothing the tentative prolongation
-    REAL tentative_smooth;
-    
     //! coefficients of the polynomial used by AMLI cycle
     REAL *amli_coef;
     
@@ -207,8 +213,9 @@ typedef struct {
     //! Matrix data
     dCSRmat *A;
     
-    // extra near kernel space
-    
+    /****************************/
+    /*  extra near kernel space */
+    /****************************/
     //! Matrix data for near kernel
     dCSRmat *A_nk;
     
@@ -218,23 +225,27 @@ typedef struct {
     //! Restriction for near kernel
     dCSRmat *R_nk;
     
-    // temporary work space
-    
+    /**************************/
+    /*  temporary work space  */
+    /****************************/
     //! temporary dvector used to store and restore the residual
-    dvector r;
+    dvector *r;
     
     //! temporary work space for other usage
     REAL *w;
     
-} precond_data; /**< Data for general preconditioner */
+} precond_data; /*! Data for general preconditioner */
 
 
-/**
- * \struct HX_curl_data
- * \brief Data for HX preconditioner for H(curl) problems
- */
+/***********************************************************************************************/
+
 typedef struct {
     
+    /*!
+     * \struct HX_curl_data
+     * \brief Data for HX preconditioner for H(curl) problems
+     */
+
     //! Curl Matrix
     dCSRmat *A;
     
@@ -293,6 +304,8 @@ typedef struct {
     REAL *w;
     
 } HX_curl_data;
+
+/***********************************************************************************************/
 
 
 /**

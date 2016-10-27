@@ -3,6 +3,9 @@
  *  Created by James Adler and Xiaozhe Hu on 3/6/15.
  *  Copyright 2015__HAZMAT__. All rights reserved.
  *
+ *  \note modified by Xiaozhe Hu 10/27/2016
+ *  \note: done cleanup for releasing -- Xiaozhe Hu 10/27/2016
+ *
  */
 
 #include "hazmat.h"
@@ -10,42 +13,53 @@
 /****************************************************************************************/
 void baddimension()          
 {
-  // Print Error if dimension is not 2 or 3
-  printf("\n!!!  You have now entered the Twilight Zone.  Your dimension is not 1-3!  !!!\n\n");
-  exit(2);
-  return;
+    /*!
+    * \fn void baddimension()
+    *
+    * \brief Print Error if dimension is not 2 or 3
+    *
+    * \todo this function can be combined with check_error -- Xiaozhe Hu
+    *
+    */
+
+    // Print Error if dimension is not 2 or 3
+    printf("\n!!!  You have now entered the Twilight Zone.  Your dimension is not 1-3!  !!!\n\n");
+
+    exit(ERROR_DIM);
+
+    return;
 }
 /****************************************************************************************/
 
 /***********************************************************************************************/
-void print_itsolver_info (const INT ptrlvl,
-                   const INT stop_type,
-                   const INT iter,
-                   const REAL relres,
-                   const REAL absres,
-                   const REAL factor)
+void print_itsolver_info(const INT  print_lvl,
+                         const INT  stop_type,
+                         const INT  iter,
+                         const REAL rel_res,
+                         const REAL abs_res,
+                         const REAL factor)
 {
-    /**
-     * \fn void print_itsolver_info (const INT ptrlvl, const INT stop_type, const INT iter,
-     *                        const REAL relres, const REAL absres, const REAL factor)
+    /*!
+     * \fn void print_itsolver_info (const INT print_lvl, const INT stop_type, const INT iter,
+     *                        const REAL rel_res, const REAL abs_res, const REAL factor)
      *
-     * \brief Print out iteration information for iterative solvers
+     * \brief Print out iteration information for linear iterative solvers at each iteration
      *
-     * \param ptrlvl     Level for output
-     * \param stop_type  Type of stopping criteria
-     * \param iter       Number of iterations
-     * \param relres     Relative residual of different kinds
-     * \param absres     Absolute residual of different kinds
-     * \param factor     Contraction factor
+     * \param print_lvl     how much information to print (higher number means print more information)
+     * \param stop_type     Type of stopping criteria
+     * \param iter          Number of iterations
+     * \param rel_res       Relative residual (different for different stop_type)
+     * \param abs_res       Absolute residual (different for different stop_type)
+     * \param factor        Contraction factor at each iteration
      *
      */
     
-    if ( ptrlvl >= PRINT_SOME ) {
+    if ( print_lvl >= PRINT_SOME ) {
         
-        if ( iter > 0 ) {
-            printf("%6d | %13.6e   | %13.6e  | %10.4f\n", iter, relres, absres, factor);
+        if ( iter > 0 ) { // iter > 0: not the first iteration
+            printf("%6d | %13.6e   | %13.6e  | %10.4f\n", iter, rel_res, abs_res, factor);
         }
-        else { // iter = 0: initial guess
+        else { // iter = 0: first iteration
             printf("-----------------------------------------------------------\n");
             switch (stop_type) {
                 case STOP_REL_RES:
@@ -59,10 +73,10 @@ void print_itsolver_info (const INT ptrlvl,
                     break;
             }
             printf("-----------------------------------------------------------\n");
-            printf("%6d | %13.6e   | %13.6e  |     -.-- \n", iter, relres, absres);
+            printf("%6d | %13.6e   | %13.6e  |     -.-- \n", iter, rel_res, abs_res);
         } // end if iter
         
-    } // end if ptrlvl
+    } // end if print_lvl
 }
 
 /***********************************************************************************************/
@@ -70,12 +84,12 @@ void print_cputime (const char *message,
                     const REAL cputime)
 {
     
-    /**
-     * \fn void void print_cputime (const char *message, const REAL cputime)
+    /*!
+     * \fn void print_cputime (const char *message, const REAL cputime)
      *
      * \brief Print CPU walltime
      *
-     * \param message   Some string to print out
+     * \param message   Pointer to the string to print out
      * \param cputime   Walltime since start to end
      *
      */
@@ -84,43 +98,41 @@ void print_cputime (const char *message,
 }
 
 /***********************************************************************************************/
-void print_message (const INT ptrlvl,
+void print_message (const INT print_lvl,
                     const char *message)
 {
-    /**
+    /*!
      * \fn void print_message (const INT ptrlvl, const char *message)
      *
-     * \brief Print output information if necessary
+     * \brief Print out the message if necessary
      *
-     * \param ptrlvl   Level for output
-     * \param message  Error message to print
+     * \param print_lvl   Level for output
+     * \param message     Pointer to the error message
      *
      */
     
-    if ( ptrlvl > PRINT_NONE ) printf("%s", message);
+    if ( print_lvl > PRINT_NONE ) printf("%s", message);
 }
 
 /***********************************************************************************************/
-void print_amgcomplexity (AMG_data *mgl,
-                          const SHORT prtlvl)
+void print_amg_complexity (AMG_data *mgl,
+                          const SHORT print_lvl)
 {
-    /**
-     * \fn void void print_amgcomplexity (AMG_data *mgl, const SHORT prtlvl)
+    /*!
+     * \fn void print_amg_complexity (AMG_data *mgl, const SHORT prtlvl)
      *
-     * \brief Print complexities of AMG method
+     * \brief Print grid and operator complexity of AMG method
      *
-     * \param mgl      Multilevel hierachy for AMG
-     * \param prtlvl   How much information to print
+     * \param mgl      Multilevel structure for AMG
+     * \param print_lvl   How much information to print
      *
-     * \author Chensong Zhang
-     * \date   11/16/2009
      */
     
-    const SHORT   max_levels=mgl->num_levels;
+    const SHORT   max_levels = mgl->num_levels;
     SHORT         level;
-    REAL          gridcom=0.0, opcom=0.0;
+    REAL          grid_complexity=0.0, operator_complexity=0.0;
     
-    if ( prtlvl >= PRINT_SOME ) {
+    if ( print_lvl >= PRINT_SOME ) {
         
         printf("-----------------------------------------------------------\n");
         printf("  Level   Num of rows   Num of nonzeros   Avg. NNZ / row   \n");
@@ -130,15 +142,15 @@ void print_amgcomplexity (AMG_data *mgl,
             REAL AvgNNZ = (REAL) mgl[level].A.nnz/mgl[level].A.row;
             printf("%5d %13d %17d %14.2f\n",
                    level, mgl[level].A.row, mgl[level].A.nnz, AvgNNZ);
-            gridcom += mgl[level].A.row;
-            opcom   += mgl[level].A.nnz;
+            grid_complexity    += mgl[level].A.row;
+            operator_complexity += mgl[level].A.nnz;
         }
         printf("-----------------------------------------------------------\n");
         
-        gridcom /= mgl[0].A.row;
-        opcom   /= mgl[0].A.nnz;
-        printf("  Grid complexity = %.3f  |", gridcom);
-        printf("  Operator complexity = %.3f\n", opcom);
+        grid_complexity     /= mgl[0].A.row;
+        operator_complexity /= mgl[0].A.nnz;
+        printf("  Grid complexity = %.3f  |", grid_complexity);
+        printf("  Operator complexity = %.3f\n", operator_complexity);
         
         printf("-----------------------------------------------------------\n");
         
@@ -147,23 +159,21 @@ void print_amgcomplexity (AMG_data *mgl,
 
 
 /***********************************************************************************************/
-void chkerr (const SHORT status,
-                  const char *fctname)
+void check_error (const SHORT status,
+             const char *fctname)
 {
     
-    /**
-     * \fn void chkerr (const SHORT status, const char *fctname)
+    /*!
+     * \fn void check_error (const SHORT status, const char *fctname)
      *
      * \brief Check error status and print out error messages before quit
      *
      * \param status   Error status
-     * \param fctname  Function name where this routine is called
+     * \param fctname  piinter to the function name where this routine is called
      *
-     * \author Chensong Zhang
-     * \date   01/10/2012
      */
     
-    if ( status >= 0 ) return; // No error at all
+    if ( status >= SUCCESS ) return; // No error at all
     
     switch ( status ) {
         case ERROR_OPEN_FILE:

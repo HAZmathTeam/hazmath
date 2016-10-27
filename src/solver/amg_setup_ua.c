@@ -312,7 +312,7 @@ static SHORT amg_setup_unsmoothP_unsmoothR (AMG_data *mgl,
     
     if ( prtlvl > PRINT_NONE ) {
         gettime(&setup_end);
-        print_amgcomplexity(mgl,prtlvl);
+        print_amg_complexity(mgl,prtlvl);
         print_cputime("Unsmoothed aggregation setup", setup_end - setup_start);
     }
     
