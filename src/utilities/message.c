@@ -10,8 +10,18 @@
 /****************************************************************************************/
 void baddimension()          
 {
-  // Print Error if dimension is not 2 or 3
+  // Print Error if dimension is not 1, 2, or 3
   printf("\n!!!  You have now entered the Twilight Zone.  Your dimension is not 1-3!  !!!\n\n");
+  exit(2);
+  return;
+}
+/****************************************************************************************/
+
+/****************************************************************************************/
+void badfem()
+{
+  // Print Error if FE Space is not known
+  printf("\n!!!  The FE Space you want is not implemented  !!!\n\n");
   exit(2);
   return;
 }
