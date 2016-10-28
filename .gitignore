@@ -10,3 +10,8 @@ include/hazmat.h
 examples/HeatEquation/*.vtu
 examples/HDEquation/*.vtu
 examples/HDEquation/*.dat
+HAZMAT.config
+HAZMAT.creator
+HAZMAT.creator.user
+HAZMAT.files
+HAZMAT.includes

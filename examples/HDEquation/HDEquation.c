@@ -216,6 +216,9 @@ int main (int argc, char* argv[])
   printf("===========================================================================\n");
   
   /****** INITIALIZE PARAMETERS **************************************************/
+  // flag for errors
+  SHORT status;
+
   // Timing Parameters
   clock_t clk_start,clk_end,clk1,clk2;
   clk_start = clock();
@@ -329,7 +332,8 @@ if(inparam.print_level > 3) {
       exit(0);
     }
   } else {
-    baddimension();
+      status = ERROR_DIM;
+      check_error(status, __FUNCTION__);
   }
 
   // Reaction block
@@ -364,7 +368,8 @@ if(inparam.print_level > 3) {
       exit(0);
     }
   } else {
-    baddimension();
+      status = ERROR_DIM;
+      check_error(status, __FUNCTION__);
   }
 
   if(inparam.print_level > 3) {
@@ -509,7 +514,8 @@ if(inparam.print_level > 3) {
       exit(0);
     }
   } else {
-    baddimension();
+      status = ERROR_DIM;
+      check_error(status, __FUNCTION__);
   }
   REAL uH1err = sqrt(uerr*uerr + graduerr*graduerr);
     

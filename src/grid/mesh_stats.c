@@ -369,6 +369,9 @@ void get_face_maps(iCSRmat* el_v,INT el_order,iCSRmat* ed_v,INT nface,INT dim,IN
    *
    */
 
+  // flag for errors
+  SHORT status;
+
   INT i,j,k,m,p,jk,col_b,icntr,jcntr,kcntr; /* Loop Indices */
   INT ncol1,ncol2,ncol3,ncol4,ncol5,ncol6;  /* Node indices */
   INT el1=-1,el2=-1,el3=-1,el=-1; /* Element indices */
@@ -436,7 +439,8 @@ void get_face_maps(iCSRmat* el_v,INT el_order,iCSRmat* ed_v,INT nface,INT dim,IN
                   }
                 }
               } else {
-                baddimension();
+                  status = ERROR_DIM;
+                  check_error(status, __FUNCTION__);
               }
             }
           }
@@ -576,6 +580,9 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,trimesh *mesh
    *
    */
 
+  // flag for errors
+  SHORT status;
+
   INT i,jcnt,j,j_a,j_b; /* loop index */
   INT nface = mesh->el_f->col;
   INT dim = mesh->dim;
@@ -684,7 +691,8 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,trimesh *mesh
       f_mid[i*dim+1] = (yf[0]+yf[1]+yf[2])/3.0;
       f_mid[i*dim+2] = (zf[0]+zf[1]+zf[2])/3.0;
     } else {
-      baddimension();
+        status = ERROR_DIM;
+        check_error(status, __FUNCTION__);
     }
 
     // Compute Normal Vectors based on opposite node
@@ -831,6 +839,9 @@ void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
    *    Output: el_mid		Midpoint of element
    */
 
+  // flag for errors
+  SHORT status;
+
   INT i,j,cnt,nd,acol,bcol; /* Loop Index */
   INT nelm = el_v->row;
 
@@ -883,7 +894,8 @@ void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
       el_mid[i*dim+2]=0.25*el_mid[i*dim+2];
     }
   } else {
-    baddimension();
+      status = ERROR_DIM;
+      check_error(status, __FUNCTION__);
   }
 
   return;
