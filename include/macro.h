@@ -31,7 +31,8 @@
  */
 #define SUCCESS                 0  /**< return from function successfully */
 //---------------------------------------------------------------------------------
-#define ERROR_DIM               -1 /**< wrong dimension */
+#define ERROR_DIM              -1 /**< wrong dimension */
+#define ERROR_FE_TYPE         -2 /**< wrong type of FEM */
 //---------------------------------------------------------------------------------
 #define ERROR_OPEN_FILE       -10  /**< fail to open a file */
 #define ERROR_WRONG_FILE      -11  /**< input contains wrong format */

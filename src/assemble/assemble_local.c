@@ -41,6 +41,9 @@ void assemble_DuDv_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
   // Mesh and FE data
   INT dof_per_elm = FE->dof_per_elm;
   INT dim = mesh->dim;
+
+  // flag of errors
+  SHORT status;
   
   // Loop Indices
   INT quad,test,trial;
@@ -96,7 +99,8 @@ void assemble_DuDv_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
     } else if (dim==3) {
       dphix = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL)); // Curl of basis function
     } else {
-      baddimension();
+        status = ERROR_DIM;
+        check_error(status, __FUNCTION__);
     }
 
     //  Sum over quadrature points
@@ -123,7 +127,8 @@ void assemble_DuDv_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
 	  } else if (dim==3) {
 	    kij = coeff_val*(dphix[test*dim]*dphix[trial*dim] + dphix[test*dim+1]*dphix[trial*dim+1] + dphix[test*dim+2]*dphix[trial*dim+2]);
 	  } else {
-	    baddimension();
+          status = ERROR_DIM;
+          check_error(status, __FUNCTION__);
 	  }
 	  ALoc[test*FE->dof_per_elm+trial] = ALoc[test*FE->dof_per_elm+trial] + w*kij;
 	}
@@ -203,6 +208,9 @@ void assemble_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
   // Mesh and FE data
   INT dof_per_elm = FE->dof_per_elm;
   INT dim = mesh->dim;
+
+  // flag for errors
+  SHORT status;
   
   // Loop Indices
   INT quad,test,trial;
@@ -259,7 +267,8 @@ void assemble_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
     } else if (dim==3) {
       dphix = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL)); // Curl of basis function
     } else {
-      baddimension();
+        status = ERROR_DIM;
+        check_error(status, __FUNCTION__);
     }
 
     //  Sum over quadrature points
@@ -364,6 +373,9 @@ void FEM_RHS_Local(REAL* bLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *do
   // Mesh and FE data
   INT dof_per_elm = FE->dof_per_elm;
   INT dim = mesh->dim;
+
+  // flag for errors
+  SHORT status;
   
   // Loop Indices
   INT quad,test;
@@ -411,7 +423,8 @@ void FEM_RHS_Local(REAL* bLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *do
     } else if (dim==3) {
       dphix = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL)); // Curl of basis function
     } else {
-      baddimension();
+        status = ERROR_DIM;
+        check_error(status, __FUNCTION__);
     }
     rhs_val = (REAL *) calloc(dim,sizeof(REAL));
 
@@ -502,6 +515,9 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinat
   // Mesh and FE data
   INT dof_per_elm = FE->dof_per_elm;
   INT dim = mesh->dim;
+
+  // flag for errors
+  SHORT status;
   
   // Loop Indices
   INT quad,test,trial;
@@ -558,7 +574,8 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinat
     } else if (dim==3) {
       dphix = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL)); // Curl of basis function
     } else {
-      baddimension();
+        status = ERROR_DIM;
+        check_error(status, __FUNCTION__);
     }
 
     //  Sum over quadrature points
@@ -587,7 +604,8 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinat
 	    kij = coeff_val[0]*(dphix[test*dim]*dphix[trial*dim] + dphix[test*dim+1]*dphix[trial*dim+1] + dphix[test*dim+2]*dphix[trial*dim+2]) + 
 	      coeff_val[1]*(phi[test*dim]*phi[trial*dim] + phi[test*dim+1]*phi[trial*dim+1] + phi[test*dim+2]*phi[trial*dim+2]);
 	  } else {
-	    baddimension();
+          status = ERROR_DIM;
+          check_error(status, __FUNCTION__);
 	  }
 	  ALoc[test*FE->dof_per_elm+trial] = ALoc[test*FE->dof_per_elm+trial] + w*kij;
 	}
@@ -671,6 +689,9 @@ void impedancebdry_local(REAL* ZLoc,dvector *old_sol,fespace *FE,trimesh *mesh,q
   // Mesh and FE data
   INT ed_per_elm = FE->dof_per_elm;
   INT dim = mesh->dim;
+
+  // flag for errors
+  SHORT status;
   
   // Loop Indices
   INT j,quad,test,trial,ed,edt,edb;
@@ -774,6 +795,9 @@ void boundary_mass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
   INT dof_per_elm = FE->dof_per_elm;
   INT dim = mesh->dim;
   INT dof_per_f = 0;
+
+  // flag for errors
+  SHORT status;
   
   // Loop Indices
   INT j,quad,test,trial,doft,dofb;
@@ -806,7 +830,8 @@ void boundary_mass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
     } else if(dim==3) {
       dof_per_f = 3*FE->FEtype;
     } else {
-      baddimension();
+        status = ERROR_DIM;
+        check_error(status, __FUNCTION__);
     }
 
     //  Sum over midpoints of edges
@@ -852,7 +877,8 @@ void boundary_mass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
     } else if (dim==3) {
       dphix = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL)); // Curl of basis function
     } else {
-      baddimension();
+        status = ERROR_DIM;
+        check_error(status, __FUNCTION__);
     }
 
     // Get DOF Per Face
@@ -861,7 +887,8 @@ void boundary_mass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
     } else if(dim==3) {
       dof_per_f = 3;
     } else {
-      baddimension();
+        status = ERROR_DIM;
+        check_error(status, __FUNCTION__);
     }
 
     //  Sum over quadrature points
@@ -909,7 +936,8 @@ void boundary_mass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
     } else if(dim==3) {
       dof_per_f = 1;
     } else {
-      baddimension();
+        status = ERROR_DIM;
+        check_error(status, __FUNCTION__);
     }
 
     //  Sum over quadrature points
@@ -986,6 +1014,9 @@ void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,trimesh *mes
    // Mesh and FE data
   INT v_per_elm = FE_H1->dof_per_elm;
   INT dim = mesh->dim;
+
+  // flag for errors
+  SHORT status;
   
   // Loop Indices
   INT quad,test;

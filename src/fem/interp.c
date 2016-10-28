@@ -33,6 +33,9 @@ void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fe
 	
   INT i,nd,j;
 
+  // flag for errors
+  SHORT status;
+
   // Get FE and Mesh data
   INT dof_per_elm = FE->dof_per_elm;
   INT FEtype = FE->FEtype;
@@ -75,7 +78,8 @@ void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fe
     } else if (dim==3) {
       dphix = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL)); // Curl of basis function
     } else {
-      baddimension();
+        status = ERROR_DIM;
+        check_error(status, __FUNCTION__);
     }
     
     ned_basis(phi,dphix,x,v_on_elm,dof_on_elm,mesh);
@@ -167,6 +171,9 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
 	
   INT i,nd,j;
 
+  // flag for errors
+  SHORT status;
+
   // Get FE and Mesh data
   INT dof_per_elm = FE->dof_per_elm;
   INT FEtype = FE->FEtype;
@@ -208,7 +215,8 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
     } else if (dim==3) {
       dphix = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL)); // Curl of basis function
     } else {
-      baddimension();
+        status = ERROR_DIM;
+        check_error(status, __FUNCTION__);
     }
     ned_basis(phi,dphix,x,v_on_elm,dof_on_elm,mesh);
     	
@@ -278,6 +286,9 @@ void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL),fespace *FE,trimesh 
   REAL* valx = NULL;
   INT dim = mesh->dim;
   INT FEtype = FE->FEtype;
+
+  // flag for errors
+  SHORT status;
   
   if(FEtype>0 && FEtype<10) { // Lagrange Elements u[dof] = u[x_i}
     valx = (REAL *) calloc(1,sizeof(REAL));

@@ -15,6 +15,9 @@ struct qcoordinates *allocateqcoords(INT nq1d,INT nelm,INT mydim)
 {
   /* allocates memory and properties of quadrature coordinates struct */
 
+  // flag for errors
+  SHORT status;
+
   struct qcoordinates *A = malloc(sizeof(struct qcoordinates));
   assert(A != NULL);
 
@@ -43,7 +46,8 @@ struct qcoordinates *allocateqcoords(INT nq1d,INT nelm,INT mydim)
     nq = nq1d;
     A->z = (REAL *) calloc(nq*nelm,sizeof(REAL));
   default:
-    baddimension();
+      status = ERROR_DIM;
+      check_error(status, __FUNCTION__);
   }
   A->w = (REAL *) calloc(nq*nelm,sizeof(REAL));
   A->n = nq*nelm;
@@ -69,6 +73,9 @@ struct qcoordinates *allocateqcoords_bdry(INT nq1d,INT nelm,INT dim,INT ed_or_f)
   *
   */
 
+  // flag for errors
+  SHORT status;
+
   struct qcoordinates *A = malloc(sizeof(struct qcoordinates));
   assert(A != NULL);
 
@@ -83,7 +90,8 @@ struct qcoordinates *allocateqcoords_bdry(INT nq1d,INT nelm,INT dim,INT ed_or_f)
     nq = nq1d*nq1d;
     break;
   default:
-    baddimension();
+      status = ERROR_DIM;
+      check_error(status, __FUNCTION__);
   }
 
   A->x = (REAL *) calloc(nq*nelm,sizeof(REAL));
@@ -93,7 +101,8 @@ struct qcoordinates *allocateqcoords_bdry(INT nq1d,INT nelm,INT dim,INT ed_or_f)
   } else if(dim==3) {
     A->z = (REAL *) calloc(nq*nelm,sizeof(REAL));
   } else {
-    baddimension();
+      status = ERROR_DIM;
+      check_error(status, __FUNCTION__);
   }
   A->w = (REAL *) calloc(nq*nelm,sizeof(REAL));
   A->n = nq*nelm;
@@ -196,6 +205,9 @@ void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm)
    *          cqelm  quadrature nodes and weights for given element
    */
 
+  // flag for errors
+ SHORT status;
+
   /* Loop indices */
   INT q,j;
 
@@ -293,7 +305,8 @@ void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm)
       cqelm->w[q] = voldim*gw[q];
     }
   } else {
-    baddimension();
+      status = ERROR_DIM;
+      check_error(status, __FUNCTION__);
   }
 
   if(gp) free(gp);
@@ -386,6 +399,9 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
    *          cqbdry   quadrature nodes and weights for given edge/face
    */
 
+  // flag for errors
+  SHORT status;
+
   INT q,j,nqdum; /* Loop indices */
   INT dim = mesh->dim;
   INT nq = pow(nq1d,e_or_f);
@@ -441,7 +457,8 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
       cvdof->z[j] = mesh->cv->z[thisdof_v[j]-1];
     }
   } else {
-    baddimension();
+      status = ERROR_DIM;
+      check_error(status, __FUNCTION__);
   }
 
   // Get Quad Nodes and Weights

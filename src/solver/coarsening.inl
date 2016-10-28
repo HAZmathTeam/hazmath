@@ -813,7 +813,7 @@ static void strong_couplings_agg1 (dCSRmat *A,
 						if ( cp_rindex[ck] >= num_c ) {
 							printf("### ERROR: ck=%d, num_c=%d, out of bound!\n",
 							ck, num_c);
-							chkerr(ERROR_AMG_COARSEING, __FUNCTION__);
+                            check_error(ERROR_AMG_COARSEING, __FUNCTION__);
 						}
 						cck = cp_rindex[ck];
 						
@@ -994,7 +994,7 @@ static void strong_couplings_agg2 (dCSRmat *A,
 						if ( cp_rindex[ck] >= num_c ) {
 							printf("### ERROR: ck=%d, num_c=%d, out of bound!\n",
 							ck, num_c);
-							chkerr(ERROR_AMG_COARSEING, __FUNCTION__);
+                            check_error(ERROR_AMG_COARSEING, __FUNCTION__);
 						}
 						cck = cp_rindex[ck];
 						
@@ -1826,7 +1826,7 @@ SHORT amg_coarsening_c(dCSRmat *A,
 #endif
             
         default:
-            chkerr(ERROR_AMG_COARSE_TYPE, __FUNCTION__);
+            check_error(ERROR_AMG_COARSE_TYPE, __FUNCTION__);
             
     }
     
@@ -1844,7 +1844,7 @@ SHORT amg_coarsening_c(dCSRmat *A,
             form_P_pattern_std(P, S, vertices, row, col); break;
             
         default:
-            chkerr(ERROR_AMG_INTERP_TYPE, __FUNCTION__);
+            check_error(ERROR_AMG_INTERP_TYPE, __FUNCTION__);
             
     }
     

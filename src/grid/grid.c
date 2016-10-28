@@ -93,6 +93,8 @@ void build_mesh(trimesh* mesh)
 /* Creates grid. Assumes basic info has already been read in or created.
  * This includes, dimension, el_v, cv, nv, and nbv.
  */
+    // flag for errors
+    SHORT status;
 
     INT i,j,k; /* Loop indices */
 
@@ -138,7 +140,8 @@ void build_mesh(trimesh* mesh)
             nface = nface + nholes; // add number of holes!
             euler = nv - nedge + nface - nelm - nholes;
         } else {
-            baddimension();
+            status = ERROR_DIM;
+            check_error(status, __FUNCTION__);
         }
         if(euler!=1) {
             printf("Your simplices are all messed up.  Euler Characteristic doesn't equal 1+nholes!\teuler=%d\tnholes=%d\n\n",euler,nholes);
@@ -221,7 +224,8 @@ void build_mesh(trimesh* mesh)
         mesh->nbedge = 0;
         mesh->nbface = 0;
     } else {
-        baddimension();
+        status = ERROR_DIM;
+        check_error(status, __FUNCTION__);
     }
 
     // Finally get volumes/areas of elements and the midpoint (barycentric)
@@ -241,6 +245,9 @@ struct coordinates *allocatecoords(INT ndof,INT mydim)
 {
   /* Allocates memory and properties of coordinates struct */
   
+  // flag for errors
+  SHORT status;
+
   struct coordinates *A = malloc(sizeof(struct coordinates));
   assert(A != NULL);
 
@@ -262,7 +269,8 @@ struct coordinates *allocatecoords(INT ndof,INT mydim)
     A->z = (REAL *) calloc(ndof,sizeof(REAL));
     break;
   default:
-    baddimension();
+      status = ERROR_DIM;
+      check_error(status, __FUNCTION__);
   }
 
   A->n = ndof;

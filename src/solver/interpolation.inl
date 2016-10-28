@@ -723,7 +723,7 @@ void amg_interp (dCSRmat *A,
             interp_STD(A, vertices, P, S, param); break;
             
         default:
-            chkerr(ERROR_AMG_INTERP_TYPE, __FUNCTION__);
+            check_error(ERROR_AMG_INTERP_TYPE, __FUNCTION__);
             
     }
     

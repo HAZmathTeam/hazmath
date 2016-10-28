@@ -113,6 +113,9 @@ void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL *x,INT *dof,INT pord
   REAL onemrst;
   INT i;
 
+  // flag for errors
+  SHORT status;
+
   // Get Mesh Data
   INT v_per_elm = mesh->v_per_elm;
   INT dim = mesh->dim;
@@ -151,7 +154,8 @@ void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL *x,INT *dof,INT pord
         dpx[1] = 4*lam2*oneoverh - oneoverh - lam2;
         dpx[2] = 4*lam1*oneoverh - 4*lam2*oneoverh;
       } else {
-        badfem();
+        status = ERROR_FE_TYPE;
+        check_error(status, __FUNCTION__);
       }
     } else if(dim==2) {
       // Get Physical Coordinates of Vertices
@@ -210,7 +214,8 @@ void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL *x,INT *dof,INT pord
         dp5s = 4-4*r-8*s;
         dp6s = 4*r;
       } else {
-        badfem();
+          status = ERROR_FE_TYPE;
+          check_error(status, __FUNCTION__);
       }
 
       /*  We need to convert the derivative information from (R(X,Y),S(X,Y))
@@ -335,7 +340,8 @@ void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL *x,INT *dof,INT pord
         dp9t = 4*r;
         dp10t = 4*s;
       } else {
-        badfem();
+          status = ERROR_FE_TYPE;
+          check_error(status, __FUNCTION__);
       }
 
       /*  We need to convert the derivative information from (R(X,Y),S(X,Y))
@@ -374,7 +380,8 @@ void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL *x,INT *dof,INT pord
         dpz[9] = dp10r * drdz + dp10s * dsdz + dp10t * dtdz;
       }
     } else {
-      baddimension();
+        status = ERROR_DIM;
+        check_error(status, __FUNCTION__);
     }
   }
 
@@ -541,6 +548,9 @@ void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh
    *          cphi(ed_per_elm,dim)   Curl of Basis functions at particular point (1 for each edge in 2D) (from reference triangle)
    */
 
+  // flag for errors
+  SHORT status;
+
   // Get Mesh Data
   INT v_per_elm = mesh->v_per_elm;
   INT ed_per_elm = mesh->ed_per_elm;
@@ -613,7 +623,8 @@ void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh
       cphi[i*dim+1] = 2*elen*(dpx[ihi]*dpz[ilo]-dpx[ilo]*dpz[ihi]);
       cphi[i*dim+2] = 2*elen*(dpx[ilo]*dpy[ihi]-dpx[ihi]*dpy[ilo]);
     } else {
-      baddimension();
+        status = ERROR_DIM;
+        check_error(status, __FUNCTION__);
     }
   }
 
@@ -639,6 +650,9 @@ void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
    *          phi(f_per_elm,dim)  Basis functions at particular point (dim for each face from reference triangle)
    *          dphi(f_per_elm)     Div of Basis functions at particular point
    */
+
+  // flag for erros
+  SHORT status;
 
   // Get Mesh Data
   INT v_per_elm = mesh->v_per_elm;
@@ -742,7 +756,8 @@ void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
                          dpz[ef1]*(dpx[ef2]*dpy[ef3]-dpy[ef2]*dpx[ef3]));
     }
   } else {
-    baddimension();
+      status = ERROR_DIM;
+      check_error(status, __FUNCTION__);
   }
 
   if(p) free(p);
@@ -768,6 +783,9 @@ void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof
    *          phi(2*f_per_elm,dim)  Basis functions at particular point (2*f_per_elm for each face, 12 total in 2D) (from reference triangle)
    *          Dphix, Dphiy          Derivatives of Basis functions at particular point
    */
+
+  // flag for errors
+  SHORT status;
 
   // Get Mesh Data
   INT v_per_elm = mesh->v_per_elm;
@@ -843,7 +861,8 @@ void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof
       dphiy[i*dim*2+3] = 6*farea*(a2+a3);
     }
   } else {
-    baddimension(); // 3D not implemented
+      status = ERROR_DIM;
+      check_error(status, __FUNCTION__); // 3D not implemented
   }
 
   if(p) free(p);

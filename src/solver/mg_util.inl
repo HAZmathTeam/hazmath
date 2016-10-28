@@ -148,7 +148,7 @@ static void dcsr_presmoothing (const SHORT smoother,
 
         default:
             printf("### ERROR: Wrong smoother type %d!\n", smoother);
-            chkerr(ERROR_INPUT_PAR, __FUNCTION__);
+            check_error(ERROR_INPUT_PAR, __FUNCTION__);
     }
 }
 
@@ -250,7 +250,7 @@ static void dcsr_postsmoothing (const SHORT smoother,
 
         default:
             printf("### ERROR: Wrong smoother type %d!\n", smoother);
-            chkerr(ERROR_INPUT_PAR, __FUNCTION__);
+            check_error(ERROR_INPUT_PAR, __FUNCTION__);
     }
 }
 
