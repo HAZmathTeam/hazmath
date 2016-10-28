@@ -87,6 +87,47 @@ dCSRmat dcsr_create_zeromatrix_1 (const INT m,
 }
 
 /***********************************************************************************************/
+dCSRmat dcsr_create_single_nnz_matrix (const INT m,
+                     const INT n, 
+                     const INT row, 
+                     const INT col, 
+                     const REAL val, 
+                     const INT index_start)
+{
+    /**
+     * \fn dCSRmat dcsr_create_single_nnz_matrix (const INT m, const INT n, const INT row,
+     *                           const INT col, const REAL val, const INT index_start)
+     *
+     * \brief Create a CSR sparse matrix that is all zeros
+     *
+     * \param m    Number of rows
+     * \param n    Number of columns
+     * \param row  Row index of nonzero value
+     * \param col  Column index of nonzero value
+     * \param val  Value of nonzero value
+     * \param index_start Number from which memory is indexed (1 for fem/assembly, 0 for solver)
+     *
+     * \return A   the new dCSRmat matrix
+     *
+     */
+
+    dCSRmat A;
+
+    A.IA = (INT *)calloc(m+1, sizeof(INT));
+    A.JA = (INT *)calloc(1, sizeof(INT));
+    A.val = (REAL *)calloc(1, sizeof(REAL));
+
+    A.row = m; A.col = n; A.nnz = 1;
+
+    INT i;
+    for(i=0;i<row;i++) A.IA[i]=index_start;
+    for(i=row;i<m+1;i++) A.IA[i]=index_start+1;
+    A.JA[0]=col-(1-index_start);
+    A.val[0] = val;
+
+    return A;
+}
+/***********************************************************************************************/
 void dcsr_alloc (const INT m,
                       const INT n,
                       const INT nnz,
