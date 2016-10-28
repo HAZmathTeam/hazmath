@@ -98,7 +98,7 @@ dCSRmat dcsr_create_single_nnz_matrix (const INT m,
      * \fn dCSRmat dcsr_create_single_nnz_matrix (const INT m, const INT n, const INT row,
      *                           const INT col, const REAL val, const INT index_start)
      *
-     * \brief Create a CSR sparse matrix that is all zeros
+     * \brief Create a CSR sparse matrix that is all zeros except for one non zero element
      *
      * \param m    Number of rows
      * \param n    Number of columns
@@ -124,6 +124,41 @@ dCSRmat dcsr_create_single_nnz_matrix (const INT m,
     for(i=row;i<m+1;i++) A.IA[i]=index_start+1;
     A.JA[0]=col-(1-index_start);
     A.val[0] = val;
+
+    return A;
+}
+
+/***********************************************************************************************/
+dCSRmat dcsr_create_identity_matrix (const INT m,
+                     const INT index_start)
+{
+    /**
+     * \fn dCSRmat dcsr_create_identity_matrix (const INT m, const INT n, const INT index_start)
+     *
+     * \brief Create a CSR sparse matrix that is the identity matrix
+     *
+     * \param m    Number of rows
+     * \param index_start Number from which memory is indexed (1 for fem/assembly, 0 for solver)
+     *
+     * \return A   the new dCSRmat matrix
+     *
+     */
+
+    dCSRmat A;
+
+    A.IA = (INT *)calloc(m+1, sizeof(INT));
+    A.JA = (INT *)calloc(m, sizeof(INT));
+    A.val = (REAL *)calloc(m, sizeof(REAL));
+
+    A.row = m; A.col = m; A.nnz = m;
+
+    INT i;
+    for(i=0;i<m;i++){
+      A.IA[i]=i + index_start;
+      A.JA[i]=i + index_start;
+      A.val[i] = 1.0;
+    }
+    A.IA[m] = m + index_start;
 
     return A;
 }
