@@ -32,13 +32,16 @@
 #define SUCCESS                 0  /**< return from function successfully */
 //---------------------------------------------------------------------------------
 #define ERROR_DIM              -1 /**< wrong dimension */
-#define ERROR_FE_TYPE         -2 /**< wrong type of FEM */
+#define ERROR_FE_TYPE          -2 /**< wrong type of FEM */
+#define ERROR_QUAD_TYPE        -3  /**< unknown quadrature type */
+#define ERROR_QUAD_DIM         -4  /**< unsupported quadrature dim */
 //---------------------------------------------------------------------------------
 #define ERROR_OPEN_FILE       -10  /**< fail to open a file */
 #define ERROR_WRONG_FILE      -11  /**< input contains wrong format */
 #define ERROR_INPUT_PAR       -13  /**< wrong input argument */
 #define ERROR_REGRESS         -14  /**< regression test fail */
 #define ERROR_MAT_SIZE        -15  /**< wrong problem size */
+#define ERROR_BLKMAT_ZERO     -16  /**< block matrix is singular (at least one row or one column is zero) */
 #define ERROR_NUM_BLOCKS      -18  /**< wrong number of blocks */
 #define ERROR_MISC            -19  /**< other error */
 //---------------------------------------------------------------------------------
@@ -61,9 +64,6 @@
 #define ERROR_SOLVER_MISC     -46  /**< misc solver error during run time */
 #define ERROR_SOLVER_MAXIT    -48  /**< maximal iteration number exceeded */
 #define ERROR_SOLVER_EXIT     -49  /**< solver does not quit successfully */
-//---------------------------------------------------------------------------------
-#define ERROR_QUAD_TYPE       -60  /**< unknown quadrature type */
-#define ERROR_QUAD_DIM        -61  /**< unsupported quadrature dim */
 //---------------------------------------------------------------------------------
 #define ERROR_LIC_TYPE        -80  /**< wrong license type */
 //---------------------------------------------------------------------------------
@@ -163,8 +163,7 @@
  * \brief Definition of AMG types
  */
 #define CLASSIC_AMG             1  /**< classic AMG */
-#define SA_AMG                  2  /**< smoothed aggregation AMG */
-#define UA_AMG                  3  /**< unsmoothed aggregation AMG */
+#define UA_AMG                  2  /**< unsmoothed aggregation AMG */
 
 /**
  * \brief Definition of aggregation types

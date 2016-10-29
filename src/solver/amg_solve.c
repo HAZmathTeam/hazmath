@@ -43,7 +43,7 @@ INT amg_solve (AMG_data *mgl,
     REAL  relres1 = BIGREAL, absres0 = sumb, absres, factor;
     INT   iter = 0;
 
-    gettime(&solve_start);
+    get_time(&solve_start);
     
     // Print iteration information if needed
     print_itsolver_info(prtlvl, STOP_REL_RES, iter, 1.0, sumb, 0.0);
@@ -73,7 +73,7 @@ INT amg_solve (AMG_data *mgl,
     
     if ( prtlvl > PRINT_NONE ) {
         ITS_FINAL(iter, MaxIt, relres1);
-        gettime(&solve_end);
+        get_time(&solve_end);
         print_cputime("AMG solve",solve_end - solve_start);
     }
 
@@ -118,7 +118,7 @@ INT amg_solve_amli (AMG_data *mgl,
     REAL         relres1 = BIGREAL, absres0 = sumb, absres, factor;
     INT          iter = 0;
     
-    gettime(&solve_start);
+    get_time(&solve_start);
 
     // Print iteration information if needed
     print_itsolver_info(prtlvl, STOP_REL_RES, iter, 1.0, sumb, 0.0);
@@ -148,7 +148,7 @@ INT amg_solve_amli (AMG_data *mgl,
     
     if ( prtlvl > PRINT_NONE ) {
         ITS_FINAL(iter, MaxIt, relres1);
-        gettime(&solve_end);
+        get_time(&solve_end);
         solve_time = solve_end - solve_start;
         print_cputime("AMLI solve", solve_time);
     }
@@ -192,7 +192,7 @@ INT amg_solve_nl_amli (AMG_data *mgl,
     REAL          relres1 = BIGREAL, absres0 = BIGREAL, absres, factor;
     INT           iter = 0;
     
-    gettime(&solve_start);
+    get_time(&solve_start);
     
     // Print iteration information if needed
     print_itsolver_info(prtlvl, STOP_REL_RES, iter, 1.0, sumb, 0.0);
@@ -220,7 +220,7 @@ INT amg_solve_nl_amli (AMG_data *mgl,
     
     if ( prtlvl > PRINT_NONE ) {
         ITS_FINAL(iter, MaxIt, relres1);
-        gettime(&solve_end);
+        get_time(&solve_end);
         print_cputime("Nonlinear AMLI solve", solve_end - solve_start);
     }
     
@@ -259,7 +259,7 @@ void fasp_famg_solve (AMG_data *mgl,
            mgl[0].A.row, mgl[0].A.col, mgl[0].A.nnz);
 #endif
     
-    fasp_gettime(&solve_start);
+    fasp_get_time(&solve_start);
 
     // Call one full multigrid cycle
     fasp_solver_fmgcycle(mgl, param);
@@ -274,7 +274,7 @@ void fasp_famg_solve (AMG_data *mgl,
     
     if ( prtlvl > PRINT_NONE ) {
         printf("FMG finishes with relative residual %e.\n", relres1);
-        fasp_gettime(&solve_end);
+        fasp_get_time(&solve_end);
         print_cputime("FMG solve",solve_end - solve_start);
     }
     

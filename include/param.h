@@ -51,37 +51,42 @@ typedef struct {
     //----------------------------
     // time steppng paramters
     //----------------------------
-    INT time_step_type;  /**< time step type */
-    INT time_steps;      /**< time steps */
+    INT  time_step_type;  /**< time step type */
+    INT  time_steps;      /**< time steps */
     REAL time_step_size; /**< time step type */
-    INT rhs_time_dep;    /**< indicates if rhs is time-dependent */
+    INT  rhs_time_dep;    /**< indicates if rhs is time-dependent */
     
     //----------------------------
     // nonlinear solver parameters
     //----------------------------
-    INT nonlinear_itsolver_maxit;   /**< maximal iterations of nonlinear solver*/
+    INT  nonlinear_itsolver_maxit;   /**< maximal iterations of nonlinear solver*/
     REAL nonlinear_itsolver_tol;    /**< tolerance for nonlinear solver */
-    INT nonlinear_itsolver_toltype; /**< type of stopping tolerance for nonlinear solver */
+    INT  nonlinear_itsolver_toltype; /**< type of stopping tolerance for nonlinear solver */
 
     //-------------------------
     // linear solver parameters
     //-------------------------
     // Iterative solver
-    INT linear_itsolver_type;         /**< type of iteative linear solver */
-    INT linear_itsolver_maxit;        /**< maximal iterations of linear iterative solver*/
-    REAL linear_itsolver_tol;         /**< tolerance for linear iterative solver */
+    INT   linear_itsolver_type;         /**< type of iteative linear solver */
+    INT   linear_itsolver_maxit;        /**< maximal iterations of linear iterative solver*/
+    REAL  linear_itsolver_tol;         /**< tolerance for linear iterative solver */
     SHORT linear_stop_type;           /**< stop type of linear iterative solver */
-    INT linear_restart;                      /**< restart number used in GMRES */
+    INT   linear_restart;                      /**< restart number used in GMRES */
     
     // Preconditioner
     INT linear_precond_type;                 /**< type of preconditioner for iterative solvers */
     
     // parameters for ILU
     SHORT ILU_type;      /**< ILU type for decomposition*/
-    INT ILU_lfil;        /**< level of fill-in */
-    REAL ILU_droptol;    /**< drop tolerance */
-    REAL ILU_relax;      /**< scaling factor: add the sum of dropped entries to diagonal */
-    REAL ILU_permtol;    /**< permutation tolerance */
+    INT   ILU_lfil;        /**< level of fill-in */
+    REAL  ILU_droptol;    /**< drop tolerance */
+    REAL  ILU_relax;      /**< scaling factor: add the sum of dropped entries to diagonal */
+    REAL  ILU_permtol;    /**< permutation tolerance */
+
+    // parameters for Schwarz
+    INT Schwarz_mmsize;        /**< maximal block size for Schwarz smoother */
+    INT Schwarz_maxlvl;        /**< maximal levels for Schwarz smoother */
+    INT Schwarz_type;          /**< type of Schwarz smoother */
     
     // Algebraic Multigrid
     SHORT AMG_type;                /**< Type of AMG */
@@ -89,20 +94,20 @@ typedef struct {
     SHORT AMG_cycle_type;          /**< type of cycle */
     SHORT AMG_smoother;            /**< type of smoother */
     SHORT AMG_smooth_order;        /**< order for smoothers */
-    REAL AMG_relaxation;           /**< over-relaxation parameter for SOR */
-    //SHORT AMG_polynomial_degree;   /**< degree of the polynomial smoother */
+    REAL  AMG_relaxation;           /**< over-relaxation parameter for SOR */
     SHORT AMG_presmooth_iter;      /**< number of presmoothing */
     SHORT AMG_postsmooth_iter;     /**< number of postsmoothing */
-    INT AMG_coarse_dof;            /**< max number of coarsest level DOF */
-    REAL AMG_tol;                  /**< tolerance for AMG if used as preconditioner */
-    INT AMG_maxit;                 /**< number of iterations for AMG used as preconditioner */
+    SHORT AMG_polynomial_degree;   /**< degree of polynomial smoothers  */
+    INT   AMG_coarse_dof;            /**< max number of coarsest level DOF */
+    REAL  AMG_tol;                  /**< tolerance for AMG if used as preconditioner */
+    INT   AMG_maxit;                 /**< number of iterations for AMG used as preconditioner */
     SHORT AMG_ILU_levels;          /**< how many levels use ILU smoother */
     SHORT AMG_coarse_solver;       /**< coarse solver type */
     SHORT AMG_coarse_scaling;      /**< switch of scaling of the coarse grid correction */
     SHORT AMG_amli_degree;         /**< degree of the polynomial used by AMLI cycle */
     SHORT AMG_nl_amli_krylov_type; /**< type of Krylov method used by nonlinear AMLI cycle */
-    //INT AMG_Schwarz_levels;        /**< number of levels use Schwarz smoother */
-    
+    INT AMG_Schwarz_levels;        /**< number of levels use Schwarz smoother */
+
     // Classsical AMG
     SHORT AMG_coarsening_type;     /**< coarsening type */
     SHORT AMG_interpolation_type;  /**< interpolation type */
@@ -118,8 +123,6 @@ typedef struct {
     INT AMG_max_aggregation;       /**< max size of each aggregate */
     INT AMG_pair_number;           /**< number of pairs in matching algorithm */
     REAL AMG_quality_bound;        /**< threshold for pair wise aggregation */
-    //REAL AMG_tentative_smooth;     /**< relaxation factor for smoothing the tentative prolongation */
-    //SHORT AMG_smooth_filter;       /**< use filter for smoothing the tentative prolongation or not */
     
     // HX preconditioner
     SHORT HX_smooth_iter;            /**< number of smoothing */
@@ -268,12 +271,6 @@ typedef struct {
     
     //! max size of each aggregate
     INT max_aggregation;
-    
-    //! relaxation parameter for smoothing the tentative prolongation
-    REAL tentative_smooth;
-    
-    //! switch for filtered matrix used for smoothing the tentative prolongation
-    SHORT smooth_filter;
     
     //! number of levels use ILU smoother
     SHORT ILU_levels;

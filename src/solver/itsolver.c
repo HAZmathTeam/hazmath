@@ -52,7 +52,7 @@ INT solver_dcsr_linear_itsolver (dCSRmat *A,
     REAL solver_start, solver_end, solver_duration;
     INT iter;
     
-    gettime(&solver_start);
+    get_time(&solver_start);
     
     /* Safe-guard checks on parameters */
     ITS_CHECK ( MaxIt, tol );
@@ -99,7 +99,7 @@ INT solver_dcsr_linear_itsolver (dCSRmat *A,
     }
     
     if ( (prtlvl >= PRINT_SOME) && (iter >= 0) ) {
-        gettime(&solver_end);
+        get_time(&solver_end);
         solver_duration = solver_end - solver_start;
         print_cputime("Iterative method", solver_duration);
     }
@@ -144,7 +144,7 @@ INT solver_bdcsr_linear_itsolver (block_dCSRmat *A,
     REAL  solver_start, solver_end, solver_duration;
     INT   iter = ERROR_SOLVER_TYPE;
     
-    gettime(&solver_start);
+    get_time(&solver_start);
 
     /* Safe-guard checks on parameters */
     ITS_CHECK ( MaxIt, tol );
@@ -189,7 +189,7 @@ INT solver_bdcsr_linear_itsolver (block_dCSRmat *A,
     }
     
     if ( (prtlvl >= PRINT_MIN) && (iter >= 0) ) {
-        gettime(&solver_end);
+        get_time(&solver_end);
         solver_duration = solver_end - solver_start;
         print_cputime("Iterative method", solver_duration);
     }
@@ -235,7 +235,7 @@ INT solver_general_linear_itsolver(matvec *mxv,
     REAL solver_start, solver_end, solver_duration;
     INT iter;
     
-    gettime(&solver_start);
+    get_time(&solver_start);
     
     /* Safe-guard checks on parameters */
     ITS_CHECK ( MaxIt, tol );
@@ -283,7 +283,7 @@ INT solver_general_linear_itsolver(matvec *mxv,
     }
     
     if ( (prtlvl >= PRINT_SOME) && (iter >= 0) ) {
-        gettime(&solver_end);
+        get_time(&solver_end);
         solver_duration = solver_end - solver_start;
         print_cputime("Iterative method", solver_duration);
     }
@@ -333,7 +333,7 @@ INT linear_solver_amg (dCSRmat *A,
     AMG_data *    mgl = amg_data_create(max_levels);
     REAL          AMG_start, AMG_end;
     
-    if ( prtlvl > PRINT_NONE ) gettime(&AMG_start);
+    if ( prtlvl > PRINT_NONE ) get_time(&AMG_start);
     
     // check matrix data
     if ( m != n ) {
@@ -411,7 +411,7 @@ INT linear_solver_amg (dCSRmat *A,
     
     // print out CPU time if needed
     if ( prtlvl > PRINT_NONE ) {
-        gettime(&AMG_end);
+        get_time(&AMG_end);
         print_cputime("AMG totally", AMG_end - AMG_start);
         printf("**********************************************************\n");
     }
@@ -449,12 +449,12 @@ INT linear_solver_dcsr_krylov (dCSRmat *A,
     INT      status = SUCCESS;
     REAL     solver_start, solver_end, solver_duration;
     
-    gettime(&solver_start);
+    get_time(&solver_start);
     
     status = solver_dcsr_linear_itsolver(A,b,x,NULL,itparam);
     
     if ( prtlvl >= PRINT_MIN ) {
-        gettime(&solver_end);
+        get_time(&solver_end);
         solver_duration = solver_end - solver_start;
         print_cputime("Krylov method totally", solver_duration);
         printf("**********************************************************\n");
@@ -492,7 +492,7 @@ INT linear_solver_dcsr_krylov_diag (dCSRmat *A,
     INT       status = SUCCESS;
     REAL      solver_start, solver_end, solver_duration;
     
-    gettime(&solver_start);
+    get_time(&solver_start);
     
     // setup preconditioner
     dvector diag; dcsr_getdiag(0,A,&diag);
@@ -507,7 +507,7 @@ INT linear_solver_dcsr_krylov_diag (dCSRmat *A,
     status = solver_dcsr_linear_itsolver(A,b,x,&pc,itparam);
     
     if ( prtlvl >= PRINT_MIN ) {
-        gettime(&solver_end);
+        get_time(&solver_end);
         solver_duration = solver_end - solver_start;
         print_cputime("Diag_Krylov method totally", solver_duration);
         printf("**********************************************************\n");
@@ -550,7 +550,7 @@ INT linear_solver_dcsr_krylov_ilu (dCSRmat *A,
     INT      status = SUCCESS;
     REAL     solver_start, solver_end, solver_duration;
     
-    gettime(&solver_start);
+    get_time(&solver_start);
     
     // ILU setup for whole matrix
     ILU_data LU;
@@ -568,7 +568,7 @@ INT linear_solver_dcsr_krylov_ilu (dCSRmat *A,
     status = solver_dcsr_linear_itsolver(A,b,x,&pc,itparam);
     
     if ( prtlvl >= PRINT_MIN ) {
-        gettime(&solver_end);
+        get_time(&solver_end);
         solver_duration = solver_end - solver_start;
         
         switch (iluparam->ILU_type) {
@@ -623,7 +623,7 @@ INT linear_solver_dcsr_krylov_amg (dCSRmat *A,
     INT      status = SUCCESS;
     REAL     solver_start, solver_end, solver_duration;
     
-    gettime(&solver_start);
+    get_time(&solver_start);
     
     // initialize A, b, x for mgl[0]
     AMG_data *mgl=amg_data_create(max_levels);
@@ -674,7 +674,7 @@ INT linear_solver_dcsr_krylov_amg (dCSRmat *A,
     status = solver_dcsr_linear_itsolver(A, b, x, &pc, itparam);
     
     if ( prtlvl >= PRINT_MIN ) {
-        gettime(&solver_end);
+        get_time(&solver_end);
         solver_duration = solver_end - solver_start;
         print_cputime("AMG_Krylov method totally", solver_duration);
         printf("**********************************************************\n");
@@ -727,7 +727,7 @@ INT linear_solver_dcsr_krylov_hx_curl (dCSRmat *A,
     INT      status = SUCCESS;
     REAL     solver_start, solver_end, solver_duration;
     
-    gettime(&solver_start);
+    get_time(&solver_start);
     
     /*------------------------*/
     /* setup vector Laplacian */
@@ -834,7 +834,7 @@ INT linear_solver_dcsr_krylov_hx_curl (dCSRmat *A,
     status = solver_dcsr_linear_itsolver(A, b, x, &pc, itparam);
     
     if ( prtlvl >= PRINT_MIN ) {
-        gettime(&solver_end);
+        get_time(&solver_end);
         solver_duration = solver_end - solver_start;
         print_cputime("HX_curl_Krylov method totally", solver_duration);
         printf("**********************************************************\n");
@@ -878,11 +878,11 @@ INT linear_solver_bdcsr_krylov (block_dCSRmat *A,
     REAL solver_start, solver_end, solver_duration;
     
     // solver part
-    gettime(&solver_start);
+    get_time(&solver_start);
     
     status = solver_bdcsr_linear_itsolver(A,b,x,NULL,itparam);
     
-    gettime(&solver_end);
+    get_time(&solver_end);
     
     solver_duration = solver_end - solver_start;
     
@@ -936,7 +936,7 @@ INT linear_solver_bdcsr_krylov_block_2 (block_dCSRmat *A,
 #endif
   
   /* setup preconditioner */
-  gettime(&setup_start);
+  get_time(&setup_start);
   
   /* diagonal blocks are solved exactly */
 #if WITH_SUITESPARSE
@@ -990,17 +990,17 @@ INT linear_solver_bdcsr_krylov_block_2 (block_dCSRmat *A,
   
   
   if ( prtlvl >= PRINT_MIN ) {
-    gettime(&setup_end);
+    get_time(&setup_end);
     setup_duration = setup_end - setup_start;
     print_cputime("Setup totally", setup_duration);
   }
   
   // solver part
-  gettime(&solver_start);
+  get_time(&solver_start);
   
   status=solver_bdcsr_linear_itsolver(A,b,x, &prec,itparam);
   
-  gettime(&solver_end);
+  get_time(&solver_end);
   
   solver_duration = solver_end - solver_start;
   
@@ -1060,7 +1060,7 @@ INT linear_solver_bdcsr_krylov_block_3 (block_dCSRmat *A,
 #endif
     
     /* setup preconditioner */
-    gettime(&setup_start);
+    get_time(&setup_start);
     
     /* diagonal blocks are solved exactly */        
 #if WITH_SUITESPARSE
@@ -1114,17 +1114,17 @@ INT linear_solver_bdcsr_krylov_block_3 (block_dCSRmat *A,
     
     
     if ( prtlvl >= PRINT_MIN ) {
-        gettime(&setup_end);
+        get_time(&setup_end);
         setup_duration = setup_end - setup_start;
         print_cputime("Setup totally", setup_duration);
     }
     
     // solver part
-    gettime(&solver_start);
+    get_time(&solver_start);
     
     status=solver_bdcsr_linear_itsolver(A,b,x, &prec,itparam);
     
-    gettime(&solver_end);
+    get_time(&solver_end);
     
     solver_duration = solver_end - solver_start;
     
@@ -1188,7 +1188,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy (block_dCSRmat *A,
   dCSRmat BTB;
   
   /* setup preconditioner */
-  gettime(&setup_start);
+  get_time(&setup_start);
   
   /* set AMG for the flux block */
   mgl[0] = amg_data_create(max_levels);
@@ -1245,18 +1245,18 @@ INT linear_solver_bdcsr_krylov_mixed_darcy (block_dCSRmat *A,
   }
   
   if ( prtlvl >= PRINT_MIN ) {
-    gettime(&setup_end);
+    get_time(&setup_end);
     setup_duration = setup_end - setup_start;
     print_cputime("Setup totally", setup_duration);
   }
   
   // solver part
-  gettime(&solver_start);
+  get_time(&solver_start);
   
   status=solver_bdcsr_linear_itsolver(A,b,x, &prec,itparam);
   //status=solver_bdcsr_linear_itsolver(A,b,x, NULL,itparam);
   
-  gettime(&solver_end);
+  get_time(&solver_end);
   
   solver_duration = solver_end - solver_start;
   
@@ -1346,7 +1346,7 @@ INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A,
     /*------------------------*/
     /* setup preconditioner */
     /*------------------------*/
-    gettime(&setup_start);
+    get_time(&setup_start);
     
     /*--------------------------------------------------------------------- */
     /* magnetic filed block A_BB */
@@ -1631,17 +1631,17 @@ INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A,
     
     
     if ( prtlvl >= PRINT_MIN ) {
-        gettime(&setup_end);
+        get_time(&setup_end);
         setup_duration = setup_end - setup_start;
         print_cputime("Setup totally", setup_duration);
     }
     
     // solver part
-    gettime(&solver_start);
+    get_time(&solver_start);
     
     status=solver_bdcsr_linear_itsolver(A,b,x, &prec,itparam);
     
-    gettime(&solver_end);
+    get_time(&solver_end);
     
     solver_duration = solver_end - solver_start;
     

@@ -395,7 +395,7 @@ if(inparam.print_level > 3) {
   //============= SHOULD THIS BE IF STATEMENTS? =====================//
   // Set parameters for linear iterative methods
   linear_itsolver_param linear_itparam;
-  param_solver_set(&linear_itparam, &inparam);
+  param_linear_solver_set(&linear_itparam, &inparam);
   param_linear_solver_print(&linear_itparam);
     
   // Set parameters for algebriac multigrid methods

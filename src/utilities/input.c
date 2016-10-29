@@ -3,43 +3,46 @@
  *  Created by James Adler and Xiaozhe Hu on 13/6/15.
  *  Copyright 2015__HAZMAT__. All rights reserved.
  *
+ *  \note: modified by Xiaozhe Hu on 10/29/2016
+ *  \note: done cleanup for releasing -- Xiaozhe Hu 10/29/2016
+ *
+ *  \todo: check errors at the end -- Xiaozhe Hu
+ *
  */
 
 #include "hazmat.h"
 
-/*---------------------------------*/
-/*--      Public Functions       --*/
-/*---------------------------------*/
+/***********************************************************************************************/
 void param_input (const char *filenm,
-                       input_param *inparam)
+                  input_param *inparam)
 {
-    /**
+    /*!
      * \fn void param_input (const char *filenm, input_param *inparam)
      *
      * \brief Read input parameters from disk file
      *
-     * \param filenm    File name for input file
-     * \param inparam   Input parameters
-     *
-     * \author Xiaozhe Hu
-     * \date   06/13/2015 
-     *
+     * \param filenm   Pointer to file name of the input file
+     * \param inparam     Pointet to input_param structure
+     * 
      */
     
     char     buffer[500]; // Note: max number of char for each line!
     int      val;
     SHORT    status = SUCCESS;
     
-    // set default input parameters  -- to be added, Xiaozhe
+    // set default input parameters
+    param_input_init(inparam);
 
     // if input file is not specified, use the default values
     if (filenm==NULL) return;
     
     FILE *fp = fopen(filenm,"r");
     if (fp==NULL) {
-        printf("### ERROR: Could not open file %s...\n", filenm);
+        status = ERROR_OPEN_FILE;
+        check_error(status, __FUNCTION__);
     }
     
+    // only read when successfully open the file
     while ( status == SUCCESS ) {
         int     ibuff;
         double  dbuff;
@@ -384,8 +387,6 @@ void param_input (const char *filenm,
             
             if ((strcmp(buffer,"C")==0)||(strcmp(buffer,"c")==0))
                 inparam->AMG_type = CLASSIC_AMG;
-            else if ((strcmp(buffer,"SA")==0)||(strcmp(buffer,"sa")==0))
-                inparam->AMG_type = SA_AMG;
             else if ((strcmp(buffer,"UA")==0)||(strcmp(buffer,"ua")==0))
                 inparam->AMG_type = UA_AMG;
             else
@@ -735,10 +736,8 @@ void param_input (const char *filenm,
     
     fclose(fp);
     
-    // sanity checks -- to be added,  Xiaozhe
+    // check errors -- to be added,  Xiaozhe
     
 }
 
-/*---------------------------------*/
-/*--        End of File          --*/
-/*---------------------------------*/
+/************************************ END ******************************************************/
