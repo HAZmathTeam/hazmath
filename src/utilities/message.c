@@ -156,85 +156,85 @@ void check_error (const SHORT status,
     
     switch ( status ) {
         case ERROR_DIM:
-            printf("\n!!! ERROR: %s -- Wrong dimension (Your dimension is not 1-3) !!! \n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- You have entered the Twilight Zone (dimension is not 1-3) !!! \n\n", func_name);
             break;
         case ERROR_FE_TYPE:
-            printf("\n!!! ERROR: %s -- The FE Space you want is not implemented !!! \n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- The FE Space you want is not implemented !!! \n\n", func_name);
             break;
         case ERROR_OPEN_FILE:
-            printf("\n!!! ERROR: %s -- Cannot open file !!!\n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Cannot open file !!!\n\n", func_name);
             break;
         case ERROR_WRONG_FILE:
-            printf("\n!!! ERROR: %s -- Wrong file format !!!\n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Wrong file format !!!\n\n", func_name);
             break;
         case ERROR_INPUT_PAR:
-            printf("\n!!! ERROR: %s -- Wrong input arguments !!!\n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Wrong input arguments !!!\n\n", func_name);
             break;
         case ERROR_REGRESS:
-            printf("\n!!! ERROR: %s -- Regression test failed !!!\n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Regression test failed !!!\n\n", func_name);
             break;
         case ERROR_ALLOC_MEM:
-            printf("\n!!! ERROR: %s -- Cannot allocate memory !!!\n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Cannot allocate memory !!!\n\n", func_name);
             break;
         case ERROR_NUM_BLOCKS:
-            printf("\n!!! ERROR: %s -- Wrong number of blocks !!!\n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Wrong number of blocks !!!\n\n", func_name);
             break;
         case ERROR_DATA_STRUCTURE:
-            printf("\n!!! ERROR: %s -- Data structure mismatch !!!\n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Data structure mismatch !!!\n\n", func_name);
             break;
         case ERROR_DATA_ZERODIAG:
-            printf("\n!!! ERROR: %s -- Matrix has zero diagonal entries !!!\n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Matrix has zero diagonal entries !!!\n\n", func_name);
             break;
         case ERROR_DUMMY_VAR:
-            printf("\n!!! ERROR: %s -- Unexpected input argument !!!\n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Unexpected input argument !!!\n\n", func_name);
             break;
         case ERROR_AMG_INTERP_TYPE:
-            printf("\n!!! ERROR: %s -- Unknown AMG interpolation type !!!\n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Unknown AMG interpolation type !!!\n\n", func_name);
             break;
         case ERROR_AMG_COARSE_TYPE:
-            printf("\n!!! ERROR: %s -- Unknown AMG coarsening type !!!\n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Unknown AMG coarsening type !!!\n\n", func_name);
             break;
         case ERROR_AMG_SMOOTH_TYPE:
-            printf("\n!!! ERROR: %s -- Unknown AMG smoother type !!!\n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Unknown AMG smoother type !!!\n\n", func_name);
             break;
         case ERROR_SOLVER_TYPE:
-            printf("\n!!! ERROR: %s -- Unknown solver type !!!\n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Unknown solver type !!!\n\n", func_name);
             break;
         case ERROR_SOLVER_PRECTYPE:
-            printf("\n!!! ERROR: %s -- Unknown preconditioner type !!!\n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Unknown preconditioner type !!!\n\n", func_name);
             break;
         case ERROR_SOLVER_STAG:
-            printf("\n!!! ERROR: %s -- Solver stagnation error !!!\n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Solver stagnation error !!!\n\n", func_name);
             break;
         case ERROR_SOLVER_SOLSTAG:
-            printf("\n!!! ERROR: %s -- Solution is close to zero !!!\n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Solution is close to zero !!!\n\n", func_name);
             break;
         case ERROR_SOLVER_TOLSMALL:
-            printf("\n!!! ERROR: %s -- Tol is too small for the solver !!!\n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Tol is too small for the solver !!!\n\n", func_name);
             break;
         case ERROR_SOLVER_ILUSETUP:
-            printf("\n!!! ERROR: %s -- ILU setup failed !!!\n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- ILU setup failed !!!\n\n", func_name);
             break;
         case ERROR_SOLVER_MAXIT:
-            printf("\n!!! ERROR: %s -- Max iteration number reached !!!\n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Max iteration number reached !!!\n\n", func_name);
             break;
         case ERROR_SOLVER_EXIT:
-            printf("\n!!! ERROR: %s -- Solver exited unexpected !!!\n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Solver exited unexpected !!!\n\n", func_name);
             break;
         case ERROR_SOLVER_MISC:
-            printf("\n!!! ERROR: %s -- Unknown solver runtime error !!!\n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Unknown solver runtime error !!!\n\n", func_name);
             break;
         case ERROR_MISC:
-            printf("\n!!! ERROR: %s -- Unknown error occurred !!!\n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Unknown error occurred !!!\n\n", func_name);
             break;
         case ERROR_QUAD_TYPE:
-            printf("\n!!! ERROR: %s -- Unknown quadrature rules !!!\n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Unknown quadrature rules !!!\n\n", func_name);
             break;
         case ERROR_QUAD_DIM:
-            printf("\n!!! ERROR: %s -- Num of quad points is not supported !!!\n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Num of quad points is not supported !!!\n\n", func_name);
             break;
         case ERROR_UNKNOWN:
-            printf("\n!!! ERROR: %s -- Function does not exit successfully !!!\n\n", func_name);
+            printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Function does not exit successfully !!!\n\n", func_name);
             break;
         default:
             break;

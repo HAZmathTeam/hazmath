@@ -52,10 +52,10 @@ SHORT amg_setup_c (AMG_data *mgl,
     // level info (fine: 0; coarse: 1)
     ivector       vertices = ivec_create(m);
     
-    gettime(&setup_start);
+    get_time(&setup_start);
     
     // Make sure classical AMG will not call dcsr_mxv_agg!
-    param->tentative_smooth = 1.0;
+    //param->tentative_smooth = 1.0;
     
     // If user want to use aggressive coarsening but did not specify number of
     // levels use aggressive coarsening, make sure apply aggressive coarsening
@@ -249,7 +249,7 @@ SHORT amg_setup_c (AMG_data *mgl,
     ivec_free(&vertices);
 
     if ( prtlvl > PRINT_NONE ) {
-        gettime(&setup_end);
+        get_time(&setup_end);
         print_amg_complexity(mgl, prtlvl);
         print_cputime("Classical AMG setup", setup_end - setup_start);
     }

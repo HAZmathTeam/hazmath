@@ -69,7 +69,7 @@ SHORT ilu_dcsr_setup (dCSRmat *A,
     REAL   setup_start, setup_end, setup_duration;
     SHORT  status = SUCCESS;
     
-    gettime(&setup_start);
+    get_time(&setup_start);
     
     // Expected amount of memory for ILU needed and allocate memory 
     switch (type) {
@@ -133,7 +133,7 @@ SHORT ilu_dcsr_setup (dCSRmat *A,
     }
     
     if (print_level>PRINT_NONE) {
-        gettime(&setup_end);
+        get_time(&setup_end);
         setup_duration = setup_end - setup_start;
         
         switch (type) {

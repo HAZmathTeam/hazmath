@@ -82,7 +82,7 @@ static SHORT amg_setup_unsmoothP_unsmoothR (AMG_data *mgl,
     ILU_param     iluparam;
     //Schwarz_param swzparam;
     
-    gettime(&setup_start);
+    get_time(&setup_start);
     
     // level info (fine: 0; coarse: 1)
     ivector *vertices = (ivector *)calloc(max_levels,sizeof(ivector));
@@ -311,7 +311,7 @@ static SHORT amg_setup_unsmoothP_unsmoothR (AMG_data *mgl,
     }
     
     if ( prtlvl > PRINT_NONE ) {
-        gettime(&setup_end);
+        get_time(&setup_end);
         print_amg_complexity(mgl,prtlvl);
         print_cputime("Unsmoothed aggregation setup", setup_end - setup_start);
     }

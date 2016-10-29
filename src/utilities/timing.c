@@ -3,22 +3,21 @@
  *  Created by James Adler and Xiaozhe Hu on 10/06/15.
  *  Copyright 2015__HAZMAT__. All rights reserved.
  *
+ *  \note: modified by Xiaozhe Hu on 10/27/2016
+ *  \note: done cleanup for releasing -- Xiaozhe Hu 10/27/2016
  */
 
 #include "hazmat.h"
 
-/*---------------------------------*/
-/*--      Public Functions       --*/
-/*---------------------------------*/
-
-void gettime (REAL *time)
+/*************************************************************************************/
+void get_time (REAL *time)
 {
-    /**
-     * \fn gettime (REAL *time)
+    /*!
+     * \fn get_time (REAL *time)
      *
      * \brief Get system time
      *
-     * \author Xiaozhe
+     * \author Xiaozhe Hu
      * \date   10/06/2015
      *
      */
@@ -28,6 +27,4 @@ void gettime (REAL *time)
     }
 }
 
-/*---------------------------------*/
-/*--        End of File          --*/
-/*---------------------------------*/
+/******************************* END **************************************************/

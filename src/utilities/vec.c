@@ -301,7 +301,7 @@ REAL dvec_maxdiff (dvector *x,
 
 /***********************************************************************************************/
 void dvec_symdiagscale (dvector *b,
-                             dvector *diag)
+                        dvector *diag)
 {
     
     /**

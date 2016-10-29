@@ -1341,132 +1341,6 @@ static void form_pairwise (const dCSRmat * A,
     free(s);
 }
 
-#if 0
-static void smooth_agg (dCSRmat *A,
-                        dCSRmat *tentp,
-                        dCSRmat *P,
-                        AMG_param *param,
-                        INT levelNum,
-                        dCSRmat *N)
-{
-    /**
-     * \fn static void smooth_agg (dCSRmat *A, dCSRmat *tentp, dCSRmat *P,
-     *                             AMG_param *param, INT levelNum, dCSRmat *N)
-     *
-     * \brief Smooth the tentative prolongation
-     *
-     * \param A         Pointer to the coefficient matrices
-     * \param tentp     Pointer to the tentative prolongation operators
-     * \param P         Pointer to the prolongation operators
-     * \param param     Pointer to AMG parameters
-     * \param levelNum  Current level number
-     * \param N         Pointer to strongly coupled neighbors
-     *
-     * \author Xiaozhe Hu
-     * \date   09/29/2009
-     *
-     * Modified by Chunsheng Feng, Zheng Li on 10/12/2012
-     * Modified by Chensong on 04/29/2014: Fix a sign problem
-     */
-    
-    const SHORT filter = param->smooth_filter;
-    const INT   row = A->row, col= A->col;
-    const REAL  smooth_factor = param->tentative_smooth;
-    
-    dCSRmat S;
-    dvector diag;  // diagonal entries
-    
-    REAL row_sum_A, row_sum_N;
-    INT i,j;
-    
-    /* Step 1. Form smoother */
-    
-    /* Without filter: Using A for damped Jacobian smoother */
-    if ( filter != ON ) {
-        
-        // copy structure from A
-        S = dcsr_create(row, col, A->IA[row]);
-        
-        for ( i=0; i<=row; ++i ) S.IA[i] = A->IA[i];
-        for ( i=0; i<S.IA[S.row]; ++i ) S.JA[i] = A->JA[i];
-        
-        dcsr_getdiag(0, A, &diag);  // get the diagonal entries of A
-        
-        // check the diagonal entries.
-        // if it is too small, use Richardson smoother for the corresponding row
-        for (i=0; i<row; ++i) {
-            if (ABS(diag.val[i]) < 1e-6) diag.val[i] = 1.0;
-        }
-        
-        for (i=0; i<row; ++i) {
-            for (j=S.IA[i]; j<S.IA[i+1]; ++j) {
-                if (S.JA[j] == i) {
-                    S.val[j] = 1 - smooth_factor * A->val[j] / diag.val[i];
-                }
-                else {
-                    S.val[j] = - smooth_factor * A->val[j] / diag.val[i];
-                }
-            }
-        }
-    }
-    
-    /* Using filtered A for damped Jacobian smoother */
-    else {
-        /* Form filtered A and store in N */
-        for (i=0; i<row; ++i) {
-            for (row_sum_A = 0.0, j=A->IA[i]; j<A->IA[i+1]; ++j) {
-                if (A->JA[j] != i) row_sum_A += A->val[j];
-            }
-                
-            for (row_sum_N = 0.0, j=N->IA[i]; j<N->IA[i+1]; ++j) {
-                if (N->JA[j] != i) row_sum_N += N->val[j];
-            }
-                
-            for (j=N->IA[i]; j<N->IA[i+1]; ++j) {
-                if (N->JA[j] == i) {
-                    // The original paper has a wrong sign!!! --Chensong
-                    N->val[j] += row_sum_A - row_sum_N;
-                }
-            }
-        }
-
-        // copy structure from N (filtered A)
-        S = dcsr_create(row, col, N->IA[row]);
-        
-        for (i=0; i<=row; ++i) S.IA[i] = N->IA[i];
-        
-        for (i=0; i<S.IA[S.row]; ++i) S.JA[i] = N->JA[i];
-        
-        dcsr_getdiag(0, N, &diag);  // get the diagonal entries of N (filtered A)
-        
-        // check the diagonal entries.
-        // if it is too small, use Richardson smoother for the corresponding row
-        for (i=0;i<row;++i) {
-            if (ABS(diag.val[i]) < 1e-6) diag.val[i] = 1.0;
-        }
-        
-        for (i=0;i<row;++i) {
-            for (j=S.IA[i]; j<S.IA[i+1]; ++j) {
-                if (S.JA[j] == i) {
-                    S.val[j] = 1 - smooth_factor * N->val[j] / diag.val[i];
-                }
-                else {
-                    S.val[j] = - smooth_factor * N->val[j] / diag.val[i];
-                }
-            }
-        }
-        
-    }
-    
-    dvec_free(&diag);
-    
-    /* Step 2. Smooth the tentative prolongation P = S*tenp */
-    dcsr_mxm(&S, tentp, P); // Note: think twice about this.
-    P->nnz = P->IA[P->row];
-    dcsr_free(&S);
-}
-
-#endif
 
 static SHORT aggregation_pairwise (AMG_data *mgl,
                                    AMG_param *param,
@@ -1649,12 +1523,12 @@ static SHORT aggregation_vmb (dCSRmat *A,
     dvector diag;
     dcsr_getdiag(0, A, &diag);  // get the diagonal entries
     
-    if ( GE(param->tentative_smooth, SMALLREAL) ) {
-        strongly_coupled = param->strong_coupled * pow(0.5, levelNum-1);
-    }
-    else {
-        strongly_coupled = param->strong_coupled;
-    }
+    //if ( GE(param->tentative_smooth, SMALLREAL) ) {
+    //    strongly_coupled = param->strong_coupled * pow(0.5, levelNum-1);
+    //}
+    //else {
+    strongly_coupled = param->strong_coupled;
+    //}
     strongly_coupled2 = pow(strongly_coupled,2);
     
     /*------------------------------------------*/
