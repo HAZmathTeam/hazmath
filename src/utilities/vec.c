@@ -3,6 +3,9 @@
  *  Created by James Adler and Xiaozhe Hu on 5/13/15.
  *  Copyright 2015__HAZMAT__. All rights reserved.
  *
+ *  \note: modified by Xiaozhe Hu on 10/29/2016
+ *  \note: done cleanup for releasing -- Xiaozhe Hu 10/30/2016
+ *
  */
 
 #include "hazmat.h"
@@ -10,14 +13,14 @@
 /***********************************************************************************************/
 INT dvec_isnan (dvector *u)
 {
-    /**
+    /*!
      * \fn INT dvec_isnan (dvector *u)
      *
-     * \brief Check a dvector whether there is NAN
+     * \brief Check a dvector whether at least one entry is NAN
      *
      * \param u    Pointer to dvector
      *
-     * \return     Return TRUE if there is NAN
+     * \return     Return TRUE if there is an NAN
      *
      */
     
@@ -31,15 +34,38 @@ INT dvec_isnan (dvector *u)
 }
 
 /***********************************************************************************************/
+INT ivec_isnan (ivector *u)
+{
+    /*!
+     * \fn INT ivec_isnan (dvector *u)
+     *
+     * \brief Check a ivector whether at least one entry is NAN
+     *
+     * \param u    Pointer to ivector
+     *
+     * \return     Return TRUE if there is an NAN
+     *
+     */
+
+    INT i;
+
+    for ( i=0; i<u->row; i++ ) {
+        if ( ISNAN(u->val[i]) ) return TRUE;
+    }
+
+    return FALSE;
+}
+
+/***********************************************************************************************/
 dvector dvec_create (const INT m)
 {
     
-    /**
+    /*!
      * \fn dvector dvec_create (const INT m)
      *
-     * \brief Create dvector data space of REAL type
+     * \brief Create a dvector of given length
      *
-     * \param m    Number of rows
+     * \param m    length of the dvector
      *
      * \return u   The new dvector
      *
@@ -51,18 +77,19 @@ dvector dvec_create (const INT m)
     u.val = (REAL *)calloc(m,sizeof(REAL));
     
     return u;
+
 }
 
 /***********************************************************************************************/
 ivector ivec_create (const INT m)
 {    
     
-    /**
+    /*!
      * \fn ivector ivec_create (const INT m)
      *
-     * \brief Create vector data space of INT type
+     * \brief Create an ivector of given length
      *
-     * \param m   Number of rows
+     * \param m   length of the ivector
      *
      * \return u  The new ivector
      *
@@ -80,12 +107,12 @@ ivector ivec_create (const INT m)
 void dvec_alloc (const INT m,
                  dvector *u)
 {    
-    /**
+    /*!
      * \fn void dvec_alloc (const INT m, dvector *u)
      *
-     * \brief Create dvector data space of REAL type
+     * \brief Allocate a dvector of given length
      *
-     * \param m    Number of rows
+     * \param m    length of the dvector
      * \param u    Pointer to dvector (OUTPUT)
      *
      */
@@ -100,12 +127,12 @@ void dvec_alloc (const INT m,
 void ivec_alloc (const INT m,
                  ivector *u)
 {
-    /**
+    /*!
      * \fn void ivec_alloc (const INT m, ivector *u)
      *
-     * \brief Create vector data space of INT type
+     * \brief Allocate an ivector of given length
      *
-     * \param m   Number of rows
+     * \param m   length of the ivector
      * \param u   Pointer to ivector (OUTPUT)
      *
      */
@@ -119,10 +146,10 @@ void ivec_alloc (const INT m,
 /***********************************************************************************************/
 void dvec_free (dvector *u)
 {    
-    /**
+    /*!
      * \fn void dvec_free (dvector *u)
      *
-     * \brief Free vector data space of REAL type
+     * \brief Free the space of a dvector
      *
      * \param u   Pointer to dvector which needs to be deallocated
      *
@@ -137,13 +164,12 @@ void dvec_free (dvector *u)
 /***********************************************************************************************/
 void ivec_free (ivector *u)
 {    
-    /**
+    /*!
      * \fn void ivec_free (ivector *u)
      *
-     * \brief Free vector data space of INT type
+     * \brief Free the space of an ivector
      *
      * \param u   Pointer to ivector which needs to be deallocated
-     *
      *
      * \note This function is same as dvec_free except input type.
      */
@@ -155,107 +181,158 @@ void ivec_free (ivector *u)
 }
 
 /***********************************************************************************************/
-void dvec_null (dvector *x)
+void dvec_null (dvector *u)
 {
     
-    /**
-     * \fn void dvec_null (dvector *x)
+    /*!
+     * \fn void dvec_null (dvector *u)
      *
-     * \brief Initialize dvector
+     * \brief Initialize a dvector to NULL
      *
-     * \param x   Pointer to dvector which needs to be initialized
+     * \param u   Pointer to the dvector
      *
      */
     
-    x->row = 0; x->val = NULL;
+    u->row = 0; u->val = NULL;
+}
+
+/***********************************************************************************************/
+void ivec_null (ivector *u)
+{
+
+    /*!
+     * \fn void ivec_null (ivector *u)
+     *
+     * \brief Initialize an ivector to NULL
+     *
+     * \param u   Pointer to the ivector
+     *
+     */
+
+    u->row = 0; u->val = NULL;
 }
 
 /***********************************************************************************************/
 void dvec_rand (const INT n,
-                dvector *x)
+                dvector *u)
 {
-    /**
+    /*!
      * \fn void dvec_rand (const INT n, dvector *x)
      *
      * \brief Generate random REAL vector in the range from 0 to 1
      *
      * \param n    Size of the vector
-     * \param x    Pointer to dvector
+     * \param u    Pointer to dvector
+     *
+     * \note Use 1 as the seed of the random number generator, so the results
+     *       are actually repeatable.  -- Xiaozhe Hu
      *
      */
-    
-    const INT va=(REAL) 0;
-    const INT vb=(REAL) n;
-    
+        
     INT s=1; srand(s);
     
-    INT i,j;
+    INT i;
     
-    x->row = n;
+    u->row = n;
     
     for (i=0; i<n; ++i){
-        j = 1 + (INT) (((REAL)n)*rand()/(RAND_MAX+1.0));
-        x->val[i] = (((REAL)j)-va)/(vb-va);
+        u->val[i] = rand()/(RAND_MAX+1.0);
     }
+}
+
+/***********************************************************************************************/
+void dvec_rand_true (const INT n,
+                     dvector *u)
+{
+    /*!
+     * \fn void dvec_rand_true (const INT n, dvector *x)
+     *
+     * \brief Generate random REAL vector in the range from 0 to 1
+     *
+     * \param n    Size of the vector
+     * \param u    Pointer to dvector
+     *
+     * \note Use time as the seed of the random number generator, so the results
+     *       are not repeatable.  -- Xiaozhe Hu
+     *
+     */
+
+    srand(time(0));
+
+    INT i;
+
+    u->row = n;
+
+    for (i=0; i<n; ++i){
+        u->val[i] = rand()/(RAND_MAX+1.0);
+    }
+
+
 }
 
 /***********************************************************************************************/
 void dvec_set (INT n,
-               dvector *x,
+               dvector *u,
                REAL val)
 {
-    /**
+    /*!
      * \fn void dvec_set (INT n, dvector *x, REAL val)
      *
-     * \brief Initialize dvector x[i]=val for i=0:n-1
+     * \brief Initialize dvector and set all the entries to be a given value
      *
-     * \param n      Number of variables
-     * \param x      Pointer to dvector
-     * \param val    Initial value for the vector
+     * \param n      Length of the dvector
+     * \param u      Pointer to dvector
+     * \param val    Given REAL value
+     *
+     * \note Memory space has to be allocated before calling this function -- Xiaozhe Hu
      *
      */
     
     INT i;
-    REAL *xpt=x->val;
+    REAL *upt=u->val;
     
-    if (n>0) x->row=n; 
-    else n=x->row;
+    if (n>0) u->row=n;
+    else n=u->row;
    
     if (val == 0.0) {
-        memset(xpt, 0x0, sizeof(REAL)*n);
+        memset(upt, 0x0, sizeof(REAL)*n);
     }
-    
     else {
-        for (i=0; i<n; ++i) xpt[i]=val;
+        for (i=0; i<n; ++i) upt[i]=val;
     }
 }
 
 /***********************************************************************************************/
-void ivec_set (const INT m,
-               ivector *u)
+void ivec_set (INT n,
+               ivector *u,
+               const INT val)
 {
-    /**
-     * \fn void ivec_set (const INT m, ivector *u)
+    /*!
+     * \fn void ivec_set (INT n, ivector *u, const INT val)
      *
-     * \brief Set ivector value to be m
+     * \brief Intialzie an ivector and set all the entries to be a given value
      *
-     * \param  m    Integer value of ivector
-     * \param  u    Pointer to ivector (MODIFIED)
+     * \param  n    Length of the ivector
+     * \param  u    Pointer to ivector
+     * \param  val  Given integer value
      *
      */
     
     INT i;
-    INT n = u->row;
+    INT *upt=u->val;
+
+    if (n>0) u->row=n;
+    else n=u->row;
     
-    for (i=0; i<n; ++i) u->val[i] = m;
+    for (i=0; i<n; ++i) upt[i]=val;
     
 }
 
 /***********************************************************************************************/
 void dvec_cp (dvector *x,
-                   dvector *y)
+              dvector *y)
 {
-    /**
+    /*!
      * \fn void dvec_cp (dvector *x, dvector *y)
      *
      * \brief Copy dvector x to dvector y
@@ -271,18 +348,38 @@ void dvec_cp (dvector *x,
 }
 
 /***********************************************************************************************/
+void ivec_cp (ivector *x,
+              ivector *y)
+{
+    /*!
+     * \fn void ivec_cp (ivector *x, ivector *y)
+     *
+     * \brief Copy ivector x to ivector y
+     *
+     * \param x  Pointer to ivector
+     * \param y  Pointer to ivector (MODIFIED)
+     *
+     */
+
+    y->row=x->row;
+    memcpy(y->val,x->val,x->row*sizeof(INT));
+
+}
+
+
+/***********************************************************************************************/
 REAL dvec_maxdiff (dvector *x,
                    dvector *y)
 {
-    /**
+    /*!
      * \fn REAL dvec_maxdiff (dvector *x, dvector *y)
      *
-     * \brief Maximal difference of two dvector x and y
+     * \brief Maximal difference of two dvector x and y (in absolute value)
      *
      * \param  x    Pointer to dvector
      * \param  y    Pointer to dvector
      *
-     * \return      Maximal norm of x-y
+     * \return      l-infinity norm of x-y
      *
      */
     
@@ -300,35 +397,26 @@ REAL dvec_maxdiff (dvector *x,
 }
 
 /***********************************************************************************************/
-void dvec_symdiagscale (dvector *b,
-                        dvector *diag)
+void dvec_ax (const REAL a,
+              dvector *x)
 {
-    
-    /**
-     * \fn void dvec_symdiagscale (dvector *b, dvector *diag)
+    /*!
+     * \fn void dvec_ax (const REAL a, dvector *x)
      *
-     * \brief Symmetric diagonal scaling D^{-1/2}b
+     * \brief Compute x = a*x
      *
-     * \param b       Pointer to dvector
-     * \param diag    Pointer to dvector: the diagonal entries
+     * \param a   REAL scalar number
+     * \param x   Pointer to dvector x
      *
      */
-    
-    // information about dvector
-    const INT n = b->row;
-    REAL *val = b->val;
-    
-    // local variables
-    INT i;
-    
-    if (diag->row != n) {
-        printf("### ERROR: Sizes of diag = %d != dvector = %d!", diag->row, n);
-    }
-    
-    for (i=0; i<n; ++i) val[i] = val[i]/sqrt(diag->val[i]);
-    
-    return;
+
+    INT i, m=x->row;
+    REAL *xpt=x->val;
+
+    for (i=0; i<m; ++i) xpt[i] = a*xpt[i];
+
 }
+
 
 /***********************************************************************************************/
 void dvec_axpy (const REAL a,
@@ -338,9 +426,9 @@ void dvec_axpy (const REAL a,
     /**
      * \fn void dvec_axpy (const REAL a, dvector *x, dvector *y)
      *
-     * \brief y = a*x + y
+     * \brief Compute y = a*x + y
      *
-     * \param a   REAL factor a
+     * \param a   REAL scalar number
      * \param x   Pointer to dvector x
      * \param y   Pointer to dvector y
      *
@@ -350,34 +438,15 @@ void dvec_axpy (const REAL a,
     REAL *xpt=x->val, *ypt=y->val;
     
     if ((y->row-m)!=0) {
-        printf("### ERROR: Two vectors have different dimensions!\n");
+        printf("### WARNING HAZMAT DANGER in function %s: Two vectors have different lengths!\n", __FUNCTION__);
+        m = MIN(m, y->row);
+        printf("Only first %d entries will be computed!!\n", m);
     }
     
     for (i=0; i<m; ++i) ypt[i] += a*xpt[i];
     
 }
 
-/***********************************************************************************************/
-void dvec_ax (const REAL a,
-                dvector *x)
-{
-    /**
-     * \fn void dvec_ax (const REAL a, dvector *x)
-     *
-     * \brief x = a*x
-     *
-     * \param a   REAL factor a
-     * \param x   Pointer to dvector x
-     *
-     */
-    
-    INT i, m=x->row;
-    REAL *xpt=x->val;
-    
-    
-    for (i=0; i<m; ++i) xpt[i] = a*xpt[i];
-    
-}
 
 /***********************************************************************************************/
 void dvec_axpyz(const REAL a,
@@ -385,31 +454,32 @@ void dvec_axpyz(const REAL a,
                 dvector *y,
                 dvector *z)
 {
-    /**
+    /*!
      * \fn void dvec_axpyz (const REAL a, dvector *x, dvector *y, dvector *z)
      *
-     * \brief z = a*x + y, z is a third vector (z is cleared)
+     * \brief Compute z = a*x + y, z is a third vector
      *
      * \param a   REAL factor a
      * \param x   Pointer to dvector x
      * \param y   Pointer to dvector y
      * \param z   Pointer to dvector z
      *
-     * note: something wrong with the function!! -- Xiaozhe 
+     * \note Memory of the dvector z shoule be allocated before calling this function -- Xiaozhe
      *
      */
 
-    const INT m=x->row;
+    INT m=x->row;
     REAL *xpt=x->val, *ypt=y->val, *zpt=z->val;
     
     if ((y->row-m)!=0) {
-        printf("### ERROR: Two vectors have different dimensions!\n");
+        printf("### WARNING HAZMAT DANGER in function %s: Two vectors have different lengths!\n", __FUNCTION__);
+        m = MIN(m, y->row);
+        printf("Only first %d entries will be computed!!\n", m);
     }
     
     z->row = m;
 
     memcpy(zpt, ypt, m*sizeof(REAL));
-
     array_axpy(m, a, xpt, zpt);
 
 }
@@ -418,22 +488,28 @@ void dvec_axpyz(const REAL a,
 REAL dvec_dotprod (dvector *x,
                    dvector *y)
 {
-    /**
+    /*!
      * \fn REAL dvec_dotprod (dvector *x, dvector *y)
      *
-     * \brief Inner product of two vectors (x,y)
+     * \brief Inner product of two dvectors x and y
      *
      * \param x   Pointer to dvector x
      * \param y   Pointer to dvector y
      *
-     * \return Inner product
+     * \return Inner product of x and y
      *
      */
     
     REAL value=0;
     INT i;
-    const INT length=x->row;
+    INT length=x->row;
     REAL *xpt=x->val, *ypt=y->val;
+
+    if ((y->row-length)!=0) {
+        printf("### WARNING HAZMAT DANGER in function %s: Two vectors have different lengths!\n", __FUNCTION__);
+        length = MIN(length, y->row);
+        printf("Only first %d entries will be computed!!\n", length);
+    }
     
     for (i=0; i<length; ++i) value+=xpt[i]*ypt[i];
     
@@ -446,25 +522,27 @@ REAL dvec_relerr (dvector *x,
                   dvector *y)
 {
     
-    /**
+    /*!
      * \fn REAL dvec_relerr (dvector *x, dvector *y)
      *
-     * \brief Relative error of two dvector x and y
+     * \brief Relative differences between two dvector x and y (l2 norm)
      *
      * \param x   Pointer to dvector x
      * \param y   Pointer to dvector y
      *
-     * \return relative error ||x-y||/||x||
+     * \return relative differences: ||x-y||_2/||x||_2
      *
      */
     
     REAL diff=0, temp=0;
     INT i;
-    const INT length=x->row;
+    INT length=x->row;
     REAL *xpt=x->val, *ypt=y->val;
     
     if (length!=y->row) {
-        printf("### ERROR: Two vectors have different dimensions!\n");
+        printf("### WARNING HAZMAT DANGER in function %s: Two vectors have different lengths!\n", __FUNCTION__);
+        length = MIN(length, y->row);
+        printf("Only first %d entries will be computed!!\n", length);
     }
     
     for (i=0;i<length;++i) {
@@ -478,14 +556,14 @@ REAL dvec_relerr (dvector *x,
 /***********************************************************************************************/
 REAL dvec_norm1 (dvector *x)
 {
-    /**
+    /*!
      * \fn REAL dvec_norm1 (dvector *x)
      *
-     * \brief L1 norm of dvector x
+     * \brief Compute l1 norm of a dvector x
      *
      * \param x   Pointer to dvector x
      *
-     * \return L1 norm of x
+     * \return l1 norm of x: ||x||_1
      *
      */
     
@@ -502,14 +580,14 @@ REAL dvec_norm1 (dvector *x)
 /***********************************************************************************************/
 REAL dvec_norm2 (dvector *x)
 {
-    /**
+    /*!
      * \fn REAL dvec_norm2 (dvector *x)
      *
-     * \brief L2 norm of dvector x
+     * \brief Compute l2 norm of dvector x
      *
      * \param x   Pointer to dvector x
      *
-     * \return L2 norm of x
+     * \return L2 norm of x: ||x||_2
      *
      */
     
@@ -523,18 +601,17 @@ REAL dvec_norm2 (dvector *x)
     return sqrt(twonorm);
 }
 
-
 /***********************************************************************************************/
 REAL dvec_norminf (dvector *x)
 {
-    /**
+    /*!
      * \fn REAL dvec_norminf (dvector *x)
      *
-     * \brief Linf norm of dvector x
+     * \brief Compute l_inf norm of dvector x
      *
      * \param x   Pointer to dvector x
      *
-     * \return L_inf norm of x
+     * \return l_inf norm of x: ||x||_{inf}
      *
      */
     
@@ -549,17 +626,5 @@ REAL dvec_norminf (dvector *x)
     return infnorm;
 }
 
-/****************************************************************************************/
-void det3D(REAL *mydet,REAL* vec1,REAL* vec2,REAL* vec3)          
-{
-  /* gets determinant of 3 3D vectors */
-  REAL dettmp;
-  
-  dettmp = vec1[0]*(vec2[1]*vec3[2]-vec2[2]*vec3[1]) - vec1[1]*(vec2[0]*vec3[2]-vec2[2]*vec3[0]) + vec1[2]*(vec2[0]*vec3[1]-vec2[1]*vec3[0]);
-
-  *mydet = dettmp;
-
-  return;
-}
-/****************************************************************************************/
+/********************************** END *************************************************/
 
