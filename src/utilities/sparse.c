@@ -3,6 +3,9 @@
  *  Created by James Adler and Xiaozhe Hu on 3/6/15.
  *  Copyright 2015__HAZMAT__. All rights reserved.
  *
+ *  \note: modified by Xiaozhe Hu on 10/30/2016
+ *  \note: done cleanup for releasing -- Xiaozhe Hu 10/31/2016
+ *
  */
 
 #include "hazmat.h"
@@ -12,16 +15,16 @@ dCSRmat dcsr_create (const INT m,
                      const INT n,
                      const INT nnz)
 {
-    /**
+    /*!
      * \fn dCSRmat dcsr_create (const INT m, const INT n, const INT nnz)
      *
-     * \brief Create CSR sparse matrix data memory space
+     * \brief Create a dCSRmat sparse matrix
      *
      * \param m    Number of rows
      * \param n    Number of columns
      * \param nnz  Number of nonzeros
      *
-     * \return A   the new dCSRmat matrix
+     * \return A   the dCSRmat matrix
      *
      */
     
@@ -54,16 +57,18 @@ dCSRmat dcsr_create (const INT m,
 }
 
 /***********************************************************************************************/
-dCSRmat dcsr_create_zeromatrix_1 (const INT m,
-                     const INT n)
+dCSRmat dcsr_create_zeromatrix (const INT m,
+                                const INT n,
+                                const INT index_start)
 {
-    /**
+    /*!
      * \fn dCSRmat dcsr_create_zeromatrix (const INT m, const INT n, const INT nnz)
      *
      * \brief Create a CSR sparse matrix that is all zeros
      *
-     * \param m    Number of rows
-     * \param n    Number of columns
+     * \param m             Number of rows
+     * \param n             Number of columns
+     * \param index_start   Number from which memory is indexed (1 for fem/assembly, 0 for solver)
      *
      * \return A   the new dCSRmat matrix
      *
@@ -78,9 +83,9 @@ dCSRmat dcsr_create_zeromatrix_1 (const INT m,
     A.row = m; A.col = n; A.nnz = 1;
 
     INT i;
-    A.IA[0]=1;
-    for(i=1;i<m+1;i++) A.IA[i]=2;
-    A.JA[0]=1;
+    A.IA[0]=index_start;
+    for(i=1;i<m+1;i++) A.IA[i]=index_start+1;
+    A.JA[0]=index_start;
     A.val[0] = 0.0;
 
     return A;
@@ -88,24 +93,24 @@ dCSRmat dcsr_create_zeromatrix_1 (const INT m,
 
 /***********************************************************************************************/
 dCSRmat dcsr_create_single_nnz_matrix (const INT m,
-                     const INT n, 
-                     const INT row, 
-                     const INT col, 
-                     const REAL val, 
-                     const INT index_start)
+                                       const INT n,
+                                       const INT row,
+                                       const INT col,
+                                       const REAL val,
+                                       const INT index_start)
 {
     /**
      * \fn dCSRmat dcsr_create_single_nnz_matrix (const INT m, const INT n, const INT row,
      *                           const INT col, const REAL val, const INT index_start)
      *
-     * \brief Create a CSR sparse matrix that is all zeros except for one non zero element
+     * \brief Create a dCSRmat sparse matrix that is all zeros except for one non zero element
      *
-     * \param m    Number of rows
-     * \param n    Number of columns
-     * \param row  Row index of nonzero value
-     * \param col  Column index of nonzero value
-     * \param val  Value of nonzero value
-     * \param index_start Number from which memory is indexed (1 for fem/assembly, 0 for solver)
+     * \param m             Number of rows
+     * \param n             Number of columns
+     * \param row           Row index of nonzero value
+     * \param col           Column index of nonzero value
+     * \param val           Value of nonzero value
+     * \param index_start   Number from which memory is indexed (1 for fem/assembly, 0 for solver)
      *
      * \return A   the new dCSRmat matrix
      *
@@ -130,17 +135,17 @@ dCSRmat dcsr_create_single_nnz_matrix (const INT m,
 
 /***********************************************************************************************/
 dCSRmat dcsr_create_identity_matrix (const INT m,
-                     const INT index_start)
+                                     const INT index_start)
 {
-    /**
+    /*!
      * \fn dCSRmat dcsr_create_identity_matrix (const INT m, const INT n, const INT index_start)
      *
-     * \brief Create a CSR sparse matrix that is the identity matrix
+     * \brief Create a dCSRmat sparse matrix that is the identity matrix
      *
-     * \param m    Number of rows
-     * \param index_start Number from which memory is indexed (1 for fem/assembly, 0 for solver)
+     * \param m             Number of rows
+     * \param index_start   Number from which memory is indexed (1 for fem/assembly, 0 for solver)
      *
-     * \return A   the new dCSRmat matrix
+     * \return A            the new dCSRmat matrix
      *
      */
 
@@ -162,17 +167,18 @@ dCSRmat dcsr_create_identity_matrix (const INT m,
 
     return A;
 }
+
 /***********************************************************************************************/
 void dcsr_alloc (const INT m,
-                      const INT n,
-                      const INT nnz,
-                      dCSRmat *A)
+                 const INT n,
+                 const INT nnz,
+                 dCSRmat *A)
 {
     
-    /**
+    /*!
      * \fn void dcsr_alloc (const INT m, const INT n, const INT nnz, dCSRmat *A)
      *
-     * \brief Allocate CSR sparse matrix memory space
+     * \brief Allocate dCSRmat sparse matrix memory space
      *
      * \param m      Number of rows
      * \param n      Number of columns
@@ -216,7 +222,7 @@ iCSRmat icsr_create (const INT m,
     /**
      * \fn iCSRmat icsr_create (const INT m, const INT n, const INT nnz)
      *
-     * \brief Create CSR sparse matrix data memory space
+     * \brief Create iCSRmat sparse matrix
      *
      * \param m    Number of rows
      * \param n    Number of columns
@@ -255,17 +261,19 @@ iCSRmat icsr_create (const INT m,
 }
 
 /***********************************************************************************************/
-iCSRmat icsr_create_identity (const INT m)
+iCSRmat icsr_create_identity (const INT m,
+                              const INT index_start)
 {
     
     /**
-     * \fn iCSRmat icsr_create (const INT m)
+     * \fn iCSRmat icsr_create_identity (const INT m, const INT index_start)
      *
-     * \brief Create CSR sparse matrix data memory space for identity matrix
+     * \brief Create a iCSRmat sparse matrix that is the identity matrix
      *
-     * \param m    Number of rows=columns=nonzeros
+     * \param m             Number of rows
+     * \param index_start   Number from which memory is indexed (1 for fem/assembly, 0 for solver)
      *
-     * \return A   the new iCSRmat identity matrix
+     * \return A            the new dCSRmat matrix
      *
      */
     INT i;
@@ -273,34 +281,33 @@ iCSRmat icsr_create_identity (const INT m)
     
     if ( m > 0 ) {
         A.IA = (INT *)calloc(m+1, sizeof(INT));
-	A.JA = (INT *)calloc(m, sizeof(INT));
-	A.val = NULL;
+        A.JA = (INT *)calloc(m, sizeof(INT));
+        A.val = NULL;
     }
     else {
         A.IA = NULL;
-	A.JA = NULL;
-	A.val = NULL;
+        A.JA = NULL;
+        A.val = NULL;
     }
     
     A.row = m; A.col = m; A.nnz = m;
 
     for(i=0;i<m;i++) {
-      A.IA[i] = i+1;
-      A.JA[i] = i+1;
+        A.IA[i] = i+index_start;
+        A.JA[i] = i+index_start;
     }
-    A.IA[m] = m+1;
+    A.IA[m] = m+index_start;
     
     return A;
 }
 
 /***********************************************************************************************/
-
 void dcsr_free (dCSRmat *A)
 {
-    /**
+    /*!
      * \fn void dcsr_free (dCSRmat *A)
      *
-     * \brief Free CSR sparse matrix data memory space
+     * \brief Free dCSRmat sparse matrix
      *
      * \param A   Pointer to the dCSRmat matrix
      *
@@ -325,15 +332,14 @@ void dcsr_free (dCSRmat *A)
 
 }
 
-
 /***********************************************************************************************/
 void icsr_free (iCSRmat *A)
 {
     
-    /**
+    /*!
      * \fn void icsr_free (iCSRmat *A)
      *
-     * \brief Free CSR sparse matrix data memory space
+     * \brief Free iCSRmat sparse matrix
      *
      * \param A   Pointer to the iCSRmat matrix
      *
@@ -361,10 +367,10 @@ void icsr_free (iCSRmat *A)
 /***********************************************************************************************/
 void dcsr_null (dCSRmat *A)
 {
-    /**
+    /*!
      * \fn void dcsr_null (dCSRmat *A)
      *
-     * \brief Initialize CSR sparse matrix
+     * \brief Initialize dCSRmat sparse matrix (set arrays to NULL)
      *
      * \param A   Pointer to the dCSRmat matrix
      *
@@ -378,10 +384,10 @@ void dcsr_null (dCSRmat *A)
 /***********************************************************************************************/
 void icsr_null (iCSRmat *A)
 {
-    /**
+    /*!
      * \fn void icsr_null (iCSRmat *A)
      *
-     * \brief Initialize CSR sparse matrix
+     * \brief Initialize iCSRmat sparse matrix (set arrays to NULL)
      *
      * \param A   Pointer to the iCSRmat matrix
      *
@@ -392,22 +398,20 @@ void icsr_null (iCSRmat *A)
     A->val = NULL;
 }
 
-
 /***********************************************************************************************/
 dCSRmat dcsr_perm (dCSRmat *A,
                    INT *P)
 {
     
-    /**
+    /*!
      * \fn dCSRmat dcsr_perm (dCSRmat *A, INT *P)
      *
-     * \brief Apply permutation of A, i.e. Aperm=PAP' by the orders given in P
+     * \brief Apply permutation to a dCSRmat matrix A, i.e. Aperm=PAP', for a given ordering P
      *
      * \param A  Pointer to the original dCSRmat matrix
      * \param P  Pointer to orders
      *
      * \return   The new ordered dCSRmat matrix if succeed, NULL if fail
-     *
      *
      * \note   P[i] = k means k-th row and column become i-th row and column!
      *
@@ -459,7 +463,7 @@ dCSRmat dcsr_perm (dCSRmat *A,
 void icsr_cp (iCSRmat *A,
               iCSRmat *B)
 {
-    /**
+    /*!
      * \fn void icsr_cp (iCSRmat *A, iCSRmat *B)
      *
      * \brief Copy a iCSRmat to a new one B=A
@@ -482,7 +486,7 @@ void icsr_cp (iCSRmat *A,
 void dcsr_cp (dCSRmat *A,
               dCSRmat *B)
 {
-    /**
+    /*!
      * \fn void dcsr_cp (dCSRmat *A, dCSRmat *B)
      *
      * \brief copy a dCSRmat to a new one B=A
@@ -506,13 +510,15 @@ INT dcsr_trans (dCSRmat *A,
                 dCSRmat *AT)
 {
     
-    /**
+    /*!
      * \fn void dcsr_trans (dCSRmat *A, dCSRmat *AT)
      *
-     * \brief Find transpose of dCSRmat matrix A (index of the array starts with 0!!)
+     * \brief Transpose a dCSRmat matrix A
      *
      * \param A   Pointer to the dCSRmat matrix
      * \param AT  Pointer to the transpose of dCSRmat matrix A (output)
+     *
+     * \note Index of the arrays start at 0!!! -- Xiaozhe Hu
      *
      */
     
@@ -580,35 +586,27 @@ void dcsr_trans_1 (dCSRmat *A,
                    dCSRmat *AT)
 {
  
-    /**
+    /*!
      * \fn void dcsr_trans_1 (dCSRmat *A, dCSRmat *AT)
      *
-     * \brief Find transpose of dCSRmat matrix A (index of the array starts with 1!!)
+     * \brief Transpose a dCSRmat matrix A
      *
      * \param A   Pointer to the dCSRmat matrix
      * \param AT  Pointer to the transpose of dCSRmat matrix A (output)
      *
+     * \note  Index of the arrays start at 1!!! -- Xiaozhe Hu
+     *
      */
     
-    INT i;
-    
-    INT *A_IA = A->IA;
-    INT *A_JA = A->JA;
-    
-    for (i=0; i<A->row+1; i++) A_IA[i] = A_IA[i]-1;
-    for (i=0; i<A->nnz; i++) A_JA[i] = A_JA[i]-1;
-    
+    // shift A
+    dcsr_shift(A, -1);
+
+    // transpose
     dcsr_trans(A, AT);
     
-    INT *AT_IA = AT->IA;
-    INT *AT_JA = AT->JA;
-    
-    for (i=0; i<A->row+1; i++) A_IA[i] = A_IA[i]+1;
-    for (i=0; i<AT->row+1; i++) AT_IA[i] = AT_IA[i]+1;
-    for (i=0; i<A->nnz; i++) {
-        A_JA[i] = A_JA[i]+1;
-        AT_JA[i] = AT_JA[i]+1;
-    }
+    // shift A and AT back
+    dcsr_shift(A, 1);
+    dcsr_shift(AT, 1);
     
 }
 
@@ -617,13 +615,15 @@ void icsr_trans (iCSRmat *A,
                  iCSRmat *AT)
 {
 
-    /**
+    /*!
      * \fn void icsr_trans (iCSRmat *A, iCSRmat *AT)
      *
-     * \brief Find transpose of iCSRmat matrix A (index of the array starts with 0!!)
+     * \brief Transpose an iCSRmat matrix A
      *
      * \param A   Pointer to the iCSRmat matrix
      * \param AT  Pointer to the transpose of iCSRmat matrix A (output)
+     *
+     * \note Index of the arrays start at 0!!! -- Xiaozhe Hu
      *
      */
     
@@ -632,10 +632,6 @@ void icsr_trans (iCSRmat *A,
     // Local variables
     INT i,j,k,p;
     INT ibegin, iend;
-    
-#if DEBUG_MODE
-    printf("### DEBUG: m=%d, n=%d, nnz=%d\n",m,n,nnz);
-#endif
     
     AT->row=m; AT->col=n; AT->nnz=nnz;
     
@@ -688,16 +684,45 @@ void icsr_trans (iCSRmat *A,
 }
 
 /***********************************************************************************************/
+void icsr_trans_1 (iCSRmat *A,
+                 iCSRmat *AT)
+{
+    /*!
+     * \fn void icsr_trans_1 (iCSRmat *A, iCSRmat *AT)
+     *
+     * \brief Transpose an iCSRmat matrix A
+     *
+     * \param A   Pointer to the iCSRmat matrix
+     * \param AT  Pointer to the transpose of iCSRmat matrix A (output)
+     *
+     * \note  Index of the arrays start at 1!!! -- Xiaozhe Hu
+     *
+     */
+
+
+    // shift A and B
+    icsr_shift(A, -1);
+
+    icsr_trans(A, AT);
+
+    // shift A and AT back
+    icsr_shift(A, 1);
+    icsr_shift(AT, 1);
+
+
+}
+
+/***********************************************************************************************/
 void dcsr_shift (dCSRmat *A,
                  INT offset)
 {
-    /**
+    /*!
      * \fn void dcsr_shift (dCSRmat *A, INT offset)
      *
-     * \brief Re-index a REAL matrix in CSR format to make the index starting from 0 or 1
+     * \brief Re-index a dCSRmat matrix to make the index starting from 0 or 1
      *
-     * \param A         Pointer to CSR matrix
-     * \param  offset   Size of offset (1 or -1)
+     * \param A         Pointer to dCSRmat matrix
+     * \param offset    Size of offset (1 or -1)
      *
      */
     
@@ -712,39 +737,27 @@ void dcsr_shift (dCSRmat *A,
 }
 
 /***********************************************************************************************/
-void icsr_trans_1 (iCSRmat *A,
-                 iCSRmat *AT)
+void icsr_shift (iCSRmat *A,
+                 INT offset)
 {
-    /**
-     * \fn void icsr_trans_1 (iCSRmat *A, iCSRmat *AT)
+    /*!
+     * \fn void icsr_shift (iCSRmat *A, INT offset)
      *
-     * \brief Find transpose of iCSRmat matrix A (index of the array starts with 1!!)
+     * \brief Re-index an iCSRmat matrix to make the index starting from 0 or 1
      *
-     * \param A   Pointer to the iCSRmat matrix
-     * \param AT  Pointer to the transpose of iCSRmat matrix A (output)
+     * \param A         Pointer to iCSRmat matrix
+     * \param offset    Size of offset (1 or -1)
      *
      */
-    
-    INT i;
-    
-    INT *A_IA = A->IA;
-    INT *A_JA = A->JA;
-    
-    for (i=0; i<A->row+1; i++) A_IA[i] = A_IA[i]-1;
-    for (i=0; i<A->nnz; i++) A_JA[i] = A_JA[i]-1;
-    
-    icsr_trans(A, AT);
-    
-    INT *AT_IA = AT->IA;
-    INT *AT_JA = AT->JA;
-    
-    for (i=0; i<A->row+1; i++) A_IA[i] = A_IA[i]+1;
-    for (i=0; i<AT->row+1; i++) AT_IA[i] = AT_IA[i]+1;
-    for (i=0; i<A->nnz; i++) {
-        A_JA[i] = A_JA[i]+1;
-        AT_JA[i] = AT_JA[i]+1;
-    }
-    
+
+    const INT nnz=A->nnz;
+    const INT n=A->row+1;
+    INT i, *ai=A->IA, *aj=A->JA;
+
+    for (i=0; i<n; ++i) ai[i]+=offset;
+
+    for (i=0; i<nnz; ++i) aj[i]+=offset;
+
 }
 
 /***********************************************************************************************/
@@ -755,39 +768,44 @@ INT dcsr_add (dCSRmat *A,
               dCSRmat *C)
 {
     
-    /**
+    /*!
      * \fn void dcsr_add (dCSRmat *A, const REAL alpha, dCSRmat *B,
      *                              const REAL beta, dCSRmat *C)
      *
-     * \brief compute C = alpha*A + beta*B in CSR format
+     * \brief compute C = alpha*A + beta*B in dCSRmat format
      *
      * \param A      Pointer to dCSRmat matrix
      * \param alpha  REAL factor alpha
      * \param B      Pointer to dCSRmat matrix
      * \param beta   REAL factor beta
-     * \param C      Pointer to dCSRmat matrix
+     * \param C      Pointer to dCSRmat matrix (OUTPUT)
      *
+     * \return Flag of whether the adding is succesful or not (SUCCUESS: 0; FAIL: <0)
      *
      */
     
     INT i,j,k,l;
     INT count=0, added, countrow;
-    INT status = 0;
+    INT status = SUCCESS;
     
     if (A->row != B->row || A->col != B->col) {
-        printf("### ERROR: Dimensions of matrices do not match! %s\n", __FUNCTION__);
-        status = 1;
+        printf("### ERROR HAZMAT DANGER: Dimensions of matrices do not match!!! %s\n", __FUNCTION__);
+        status = ERROR_MAT_SIZE;
         goto FINISHED;
     }
     
+    // both matrices A and B are NULL
     if (A == NULL && B == NULL) {
         C->row=0; C->col=0; C->nnz=0;
-        status=0; goto FINISHED;
+        status=SUCCESS;
+        goto FINISHED;
     }
     
+    // both matrices A and B are empty
     if (A->nnz == 0 && B->nnz == 0) {
         C->row=A->row; C->col=A->col; C->nnz=A->nnz;
-        status=0; goto FINISHED;
+        status = SUCCESS;
+        goto FINISHED;
     }
     
     // empty matrix A
@@ -796,10 +814,9 @@ INT dcsr_add (dCSRmat *A,
         memcpy(C->IA,B->IA,(B->row+1)*sizeof(INT));
         memcpy(C->JA,B->JA,(B->nnz)*sizeof(INT));
         
-        
         for (i=0;i<A->nnz;++i) C->val[i]=B->val[i]*beta;
         
-        status=0;
+        status = SUCCESS;
         goto FINISHED;
     }
         
@@ -811,7 +828,7 @@ INT dcsr_add (dCSRmat *A,
         
         for (i=0;i<A->nnz;++i) C->val[i]=A->val[i]*alpha;
         
-        status=0;
+        status = SUCCESS;
         goto FINISHED;
     }
     
@@ -872,17 +889,17 @@ FINISHED:
 
 /***********************************************************************************************/
 INT dcsr_add_1 (dCSRmat *A,
-              const REAL alpha,
-              dCSRmat *B,
-              const REAL beta,
-              dCSRmat *C)
+                const REAL alpha,
+                dCSRmat *B,
+                const REAL beta,
+                dCSRmat *C)
 {
     
-    /**
+    /*!
      * \fn void dcsr_add_1 (dCSRmat *A, const REAL alpha, dCSRmat *B,
      *                              const REAL beta, dCSRmat *C)
      *
-     * \brief compute C = alpha*A + beta*B in CSR format (assuming counting from 1)
+     * \brief Compute C = alpha*A + beta*B in dCSRmat format (index starts at 1!!!)
      *
      * \param A      Pointer to dCSRmat matrix
      * \param alpha  REAL factor alpha
@@ -890,12 +907,14 @@ INT dcsr_add_1 (dCSRmat *A,
      * \param beta   REAL factor beta
      * \param C      Pointer to dCSRmat matrix
      *
+     * \return Flag of whether the adding is succesful or not (SUCCUESS: 0; FAIL: <0)
+     *
+     * \note Index starts at 1!!! -- Xiaozhe Hu
      *
      */
 
-  INT status = 0;
+  INT status = SUCCESS;
     
-  
   // shift A
   dcsr_shift(A, -1);
   // shift B
@@ -912,44 +931,49 @@ INT dcsr_add_1 (dCSRmat *A,
   dcsr_shift(C, 1);
     
   return status;
+
 }
 
 /***********************************************************************************************/
 void dcsr_axm (dCSRmat *A,
                const REAL alpha)
 {
-    /**
+    /*!
      * \fn void dcsr_axm (dCSRmat *A, const REAL alpha)
      *
-     * \brief Multiply a sparse matrix A in CSR format by a scalar alpha.
+     * \brief Multiply a dCSRmat format sparse matrix A by a scalar number alpha.
      *
      * \param A      Pointer to dCSRmat matrix A
-     * \param alpha  REAL factor alpha
+     * \param alpha  Scalar REAL number
+     *
+     * \note This works for both index cases (starts at 0 or 1) -- Xiaozhe Hu
      *
      */
 
-    
     const INT nnz=A->nnz;
     
     // A direct calculation can be written as:
     array_ax(nnz, alpha, A->val);
+
 }
 
 
 /***********************************************************************************************/
 void dcsr_mxv (dCSRmat *A,
-                REAL *x,
-                REAL *y)
+               REAL *x,
+               REAL *y)
 {
     
-    /**
+    /*!
      * \fn void dcsr_mxv (dCSRmat *A, REAL *x, REAL *y)
      *
-     * \brief Matrix-vector multiplication y = A*x (index starts with 0!!)
+     * \brief Matrix-vector multiplication y = A*x (index starts at 0!!)
      *
      * \param A   Pointer to dCSRmat matrix A
      * \param x   Pointer to array x
      * \param y   Pointer to array y
+     *
+     * \note Index starts at 0!!! -- Xiaozhe Hu
      *
      */
     
@@ -965,6 +989,16 @@ void dcsr_mxv (dCSRmat *A,
         end_row=ia[i+1];
         nnz_num_row = end_row - begin_row;
         switch(nnz_num_row) {
+            case 1:
+                k=begin_row;
+                temp+=aj[k]*x[ja[k]];
+                break;
+            case 2:
+                k=begin_row;
+                temp+=aj[k]*x[ja[k]];
+                k ++;
+                temp+=aj[k]*x[ja[k]];
+                break;
             case 3:
                 k=begin_row;
                 temp+=aj[k]*x[ja[k]];
@@ -1025,6 +1059,44 @@ void dcsr_mxv (dCSRmat *A,
                 k ++;
                 temp+=aj[k]*x[ja[k]];
                 break;
+            case 8:
+                k=begin_row;
+                temp+=aj[k]*x[ja[k]];
+                k ++;
+                temp+=aj[k]*x[ja[k]];
+                k ++;
+                temp+=aj[k]*x[ja[k]];
+                k ++;
+                temp+=aj[k]*x[ja[k]];
+                k ++;
+                temp+=aj[k]*x[ja[k]];
+                k ++;
+                temp+=aj[k]*x[ja[k]];
+                k ++;
+                temp+=aj[k]*x[ja[k]];
+                k ++;
+                temp+=aj[k]*x[ja[k]];
+                break;
+            case 9:
+                k=begin_row;
+                temp+=aj[k]*x[ja[k]];
+                k ++;
+                temp+=aj[k]*x[ja[k]];
+                k ++;
+                temp+=aj[k]*x[ja[k]];
+                k ++;
+                temp+=aj[k]*x[ja[k]];
+                k ++;
+                temp+=aj[k]*x[ja[k]];
+                k ++;
+                temp+=aj[k]*x[ja[k]];
+                k ++;
+                temp+=aj[k]*x[ja[k]];
+                k ++;
+                temp+=aj[k]*x[ja[k]];
+                k ++;
+                temp+=aj[k]*x[ja[k]];
+                break;
             default:
                 for (k=begin_row; k<end_row; ++k) {
                     temp+=aj[k]*x[ja[k]];
@@ -1043,7 +1115,7 @@ void dcsr_mxv_1 (dCSRmat *A,
                 REAL *y)
 {
     
-    /**
+    /*!
      * \fn void dcsr_mxv_1 (dCSRmat *A, REAL *x, REAL *y)
      *
      * \brief Matrix-vector multiplication y = A*x (index starts with 1!!)
@@ -1051,6 +1123,8 @@ void dcsr_mxv_1 (dCSRmat *A,
      * \param A   Pointer to dCSRmat matrix A
      * \param x   Pointer to array x
      * \param y   Pointer to array y
+     *
+     * \note Index starts at 1!!! -- Xiaozhe Hu
      *
      */
     
@@ -1070,7 +1144,7 @@ void dcsr_mxv_agg (dCSRmat *A,
                    REAL *x,
                    REAL *y)
 {
-    /**
+    /*!
      * \fn void dcsr_mxv_agg (dCSRmat *A, REAL *x, REAL *y)
      *
      * \brief Matrix-vector multiplication y = A*x, where the entries of A are all ones.
@@ -1078,6 +1152,8 @@ void dcsr_mxv_agg (dCSRmat *A,
      * \param A   Pointer to dCSRmat matrix A
      * \param x   Pointer to array x
      * \param y   Pointer to array y
+     *
+     * \note This subroutine is used only for unsmoothed aggregation AMG!!! -- Xiaozhe Hu
      *
      */
 
@@ -1101,7 +1177,7 @@ void dcsr_aAxpy (const REAL alpha,
                  REAL *x,
                  REAL *y)
 {
-    /**
+    /*!
      * \fn void dcsr_aAxpy (const REAL alpha, dCSRmat *A, REAL *x, REAL *y)
      *
      * \brief Matrix-vector multiplication y = alpha*A*x + y
@@ -1110,6 +1186,8 @@ void dcsr_aAxpy (const REAL alpha,
      * \param A      Pointer to dCSRmat matrix A
      * \param x      Pointer to array x
      * \param y      Pointer to array y
+     *
+     * \note Index starts at 0!!! -- Xiaozhe Hu
      *
      */
     
@@ -1151,11 +1229,11 @@ void dcsr_aAxpy (const REAL alpha,
 
 /***********************************************************************************************/
 void dcsr_aAxpy_1 (const REAL alpha,
-                 dCSRmat *A,
-                 REAL *x,
-                 REAL *y)
+                    dCSRmat *A,
+                    REAL *x,
+                    REAL *y)
 {
-    /**
+    /*!
      * \fn void dcsr_aAxpy (const REAL alpha, dCSRmat *A, REAL *x, REAL *y)
      *
      * \brief Matrix-vector multiplication y = alpha*A*x + y
@@ -1165,64 +1243,40 @@ void dcsr_aAxpy_1 (const REAL alpha,
      * \param x      Pointer to array x
      * \param y      Pointer to array y
      *
+     * \note Index starts at 1!!! -- Xiaozhe Hu
+     *
      */
     
     // SHIFT A First
     dcsr_shift(A, -1);
-    const INT  m  = A->row;
-    const INT *ia = A->IA, *ja = A->JA;
-    const REAL *aj = A->val;
-    INT i, k, begin_row, end_row;
-    register REAL temp;
-    
-    if ( alpha == 1.0 ) {
-        for (i=0;i<m;++i) {
-            temp=0.0;
-            begin_row=ia[i]; end_row=ia[i+1];
-            for (k=begin_row; k<end_row; ++k) temp+=aj[k]*x[ja[k]];
-            y[i]+=temp;
-        }
-    }
-    
-    else if ( alpha == -1.0 ) {
-        for (i=0;i<m;++i) {
-            temp=0.0;
-            begin_row=ia[i]; end_row=ia[i+1];
-            for (k=begin_row; k<end_row; ++k) temp+=aj[k]*x[ja[k]];
-            y[i]-=temp;
-        }
-    }
-    
-    else {
-        for (i=0;i<m;++i) {
-            temp=0.0;
-            begin_row=ia[i]; end_row=ia[i+1];
-            for (k=begin_row; k<end_row; ++k) temp+=aj[k]*x[ja[k]];
-            y[i]+=temp*alpha;
-        }
-    }
+
+    // multiply
+    dcsr_aAxpy(alpha, A, x, y);
+
     // shift A back
     dcsr_shift(A, 1);
 }
 
 /***********************************************************************************************/
-
-/**
- * \fn void dcsr_aAxpy_agg (const REAL alpha, dCSRmat *A, REAL *x, REAL *y)
- *
- * \brief Matrix-vector multiplication y = alpha*A*x + y (the entries of A are all ones)
- *
- * \param alpha  REAL factor alpha
- * \param A      Pointer to dCSRmat matrix A
- * \param x      Pointer to array x
- * \param y      Pointer to array y
- *
- */
 void dcsr_aAxpy_agg (const REAL alpha,
                      dCSRmat *A,
                      REAL *x,
                      REAL *y)
 {
+    /*!
+     * \fn void dcsr_aAxpy_agg (const REAL alpha, dCSRmat *A, REAL *x, REAL *y)
+     *
+     * \brief Matrix-vector multiplication y = alpha*A*x + y (the entries of A are all ones)
+     *
+     * \param alpha  REAL factor alpha
+     * \param A      Pointer to dCSRmat matrix A
+     * \param x      Pointer to array x
+     * \param y      Pointer to array y
+     *
+     * \note This subroutine is used only for unsmoothed aggregation AMG!!! -- Xiaozhe Hu
+     *
+     */
+
     const INT  m  = A->row;
     const INT *ia = A->IA, *ja = A->JA;
     
@@ -1262,7 +1316,7 @@ REAL dcsr_vmv (dCSRmat *A,
                REAL *x,
                REAL *y)
 {
-    /**
+    /*!
      * \fn REAL dcsr_vmv (dCSRmat *A, REAL *x, REAL *y)
      *
      * \brief vector-Matrix-vector multiplication alpha = y'*A*x
@@ -1270,6 +1324,8 @@ REAL dcsr_vmv (dCSRmat *A,
      * \param A   Pointer to dCSRmat matrix A
      * \param x   Pointer to array x
      * \param y   Pointer to array y
+     *
+     * \note Index starts at 0!!! -- Xiaozhe Hu
      *
      */
     
@@ -1290,6 +1346,34 @@ REAL dcsr_vmv (dCSRmat *A,
     return value;
 }
 
+/***********************************************************************************************/
+REAL dcsr_vmv_1 (dCSRmat *A,
+               REAL *x,
+               REAL *y)
+{
+    /*!
+     * \fn REAL dcsr_vmv_1 (dCSRmat *A, REAL *x, REAL *y)
+     *
+     * \brief vector-Matrix-vector multiplication alpha = y'*A*x
+     *
+     * \param A   Pointer to dCSRmat matrix A
+     * \param x   Pointer to array x
+     * \param y   Pointer to array y
+     *
+     * \note Index starts at 1!!! -- Xiaozhe Hu
+     *
+     */
+
+    // SHIFT A First
+    dcsr_shift(A, -1);
+
+    // multiply
+    dcsr_vmv(A, x, y);
+
+    // shift A back
+    dcsr_shift(A, 1);
+}
+
 
 /***********************************************************************************************/
 void dcsr_mxm (dCSRmat *A,
@@ -1297,7 +1381,7 @@ void dcsr_mxm (dCSRmat *A,
                dCSRmat *C)
 {
     
-    /**
+    /*!
      * \fn void dcsr_mxm (dCSRmat *A, dCSRmat *B, dCSRmat *C)
      *
      * \brief Sparse matrix multiplication C=A*B (index starts with 0!!)
@@ -1305,6 +1389,8 @@ void dcsr_mxm (dCSRmat *A,
      * \param A   Pointer to the dCSRmat matrix A
      * \param B   Pointer to the dCSRmat matrix B
      * \param C   Pointer to dCSRmat matrix equal to A*B
+     *
+     * \note Index starts at 0!!! -- Xiaozhe Hu
      *
      */
     
@@ -1399,8 +1485,8 @@ void dcsr_mxm_1 (dCSRmat *A,
                  dCSRmat *C)
 {
     
-    /**
-     * \fn void dcsr_mxm_1 (dCSRmat *A, dCSRmat *B, dCSRmat *C)
+    /*!
+     * \fn void dcsr_mxm_1(dCSRmat *A, dCSRmat *B, dCSRmat *C)
      *
      * \brief Sparse matrix multiplication C=A*B (index starts with 1!!)
      *
@@ -1408,34 +1494,21 @@ void dcsr_mxm_1 (dCSRmat *A,
      * \param B   Pointer to the dCSRmat matrix B
      * \param C   Pointer to dCSRmat matrix equal to A*B
      *
+     * \note Index starts at 1!!! -- Xiaozhe Hu
+     *
      */
     
-    INT i;
-    
-    INT *A_IA = A->IA;
-    INT *A_JA = A->JA;
-    INT *B_IA = B->IA;
-    INT *B_JA = B->JA;
-    
-    for (i=0; i<A->row+1; i++) A_IA[i] = A_IA[i]-1;
-    for (i=0; i<A->nnz; i++) A_JA[i] = A_JA[i]-1;
-    
-    for (i=0; i<B->row+1; i++) B_IA[i] = B_IA[i]-1;
-    for (i=0; i<B->nnz; i++) B_JA[i] = B_JA[i]-1;
-    
+    // shift A and B
+    dcsr_shift(A, -1);
+    dcsr_shift(B, -1);
+
+    // multiply A and B
     dcsr_mxm(A, B, C);
     
-    INT *C_IA = C->IA;
-    INT *C_JA = C->JA;
-    
-    for (i=0; i<A->row+1; i++) A_IA[i] = A_IA[i]+1;
-    for (i=0; i<A->nnz; i++) A_JA[i] = A_JA[i]+1;
-    
-    for (i=0; i<B->row+1; i++) B_IA[i] = B_IA[i]+1;
-    for (i=0; i<B->nnz; i++) B_JA[i] = B_JA[i]+1;
-    
-    for (i=0; i<C->row+1; i++) C_IA[i] = C_IA[i]+1;
-    for (i=0; i<C->nnz; i++) C_JA[i] = C_JA[i]+1;
+    // shift A, B, and C back
+    dcsr_shift(A, 1);
+    dcsr_shift(B, 1);
+    dcsr_shift(C, 1);
     
 }
 
@@ -1445,7 +1518,7 @@ void icsr_mxm (iCSRmat *A,
                iCSRmat *C)
 {
     
-    /**
+    /*!
      * \fn void icsr_mxm (iCSRmat *A, iCSRmat *B, iCSRmat *C)
      *
      * \brief Sparse matrix multiplication C=A*B (index starts with 0!!)
@@ -1453,6 +1526,8 @@ void icsr_mxm (iCSRmat *A,
      * \param A   Pointer to the iCSRmat matrix A
      * \param B   Pointer to the iCSRmat matrix B
      * \param C   Pointer to iCSRmat matrix equal to A*B
+     *
+     * \note Index starts at 0!!! -- Xiaozhe Hu
      *
      */
     
@@ -1548,7 +1623,7 @@ void icsr_mxm_1 (iCSRmat *A,
                iCSRmat *C)
 {
     
-    /**
+    /*!
      * \fn void icsr_mxm_1 (iCSRmat *A, iCSRmat *B, iCSRmat *C)
      *
      * \brief Sparse matrix multiplication C=A*B (index starts with 1!!)
@@ -1557,34 +1632,20 @@ void icsr_mxm_1 (iCSRmat *A,
      * \param B   Pointer to the iCSRmat matrix B
      * \param C   Pointer to iCSRmat matrix equal to A*B
      *
+     * \note Index starts at 1!!! -- Xiaozhe Hu
+     *
      */
     
-    INT i;
-    
-    INT *A_IA = A->IA;
-    INT *A_JA = A->JA;
-    INT *B_IA = B->IA;
-    INT *B_JA = B->JA;
-    
-    for (i=0; i<A->row+1; i++) A_IA[i] = A_IA[i]-1;
-    for (i=0; i<A->nnz; i++) A_JA[i] = A_JA[i]-1;
-    
-    for (i=0; i<B->row+1; i++) B_IA[i] = B_IA[i]-1;
-    for (i=0; i<B->nnz; i++) B_JA[i] = B_JA[i]-1;
+    // shift A and B
+    icsr_shift(A, -1);
+    icsr_shift(B, -1);
     
     icsr_mxm(A, B, C);
     
-    INT *C_IA = C->IA;
-    INT *C_JA = C->JA;
-            
-    for (i=0; i<A->row+1; i++) A_IA[i] = A_IA[i]+1;
-    for (i=0; i<A->nnz; i++) A_JA[i] = A_JA[i]+1;
-    
-    for (i=0; i<B->row+1; i++) B_IA[i] = B_IA[i]+1;
-    for (i=0; i<B->nnz; i++) B_JA[i] = B_JA[i]+1;
-    
-    for (i=0; i<C->row+1; i++) C_IA[i] = C_IA[i]+1;
-    for (i=0; i<C->nnz; i++) C_JA[i] = C_JA[i]+1;
+    // shift A, B, and C back
+    icsr_shift(A, 1);
+    icsr_shift(B, 1);
+    icsr_shift(C, 1);
     
 }
 
@@ -1594,7 +1655,7 @@ void icsr_mxm_symb (iCSRmat *A,
                     iCSRmat *C)
 {
     
-    /**
+    /*!
      * \fn void icsr_mxm_symb (iCSRmat *A, iCSRmat *B, iCSRmat *C)
      *
      * \brief Symbolic sparse matrix multiplication C=A*B (index starts with 0!!)
@@ -1602,6 +1663,8 @@ void icsr_mxm_symb (iCSRmat *A,
      * \param A   Pointer to the iCSRmat matrix A
      * \param B   Pointer to the iCSRmat matrix B
      * \param C   Pointer to iCSRmat matrix equal to A*B
+     *
+     * \note Index starts at 0!!! -- Xiaozhe Hu
      *
      */
     
@@ -1680,7 +1743,7 @@ void icsr_mxm_symb_1 (iCSRmat *A,
                  iCSRmat *C)
 {
     
-    /**
+    /*!
      * \fn void icsr_mxm_symb_1 (iCSRmat *A, iCSRmat *B, iCSRmat *C)
      *
      * \brief Symbolic sparse matrix multiplication C=A*B (index starts with 1!!)
@@ -1689,56 +1752,45 @@ void icsr_mxm_symb_1 (iCSRmat *A,
      * \param B   Pointer to the iCSRmat matrix B
      * \param C   Pointer to iCSRmat matrix equal to A*B
      *
+     * \note Index starts at 0!!! -- Xiaozhe Hu
+     *
      */
     
-    INT i;
-    
-    INT *A_IA = A->IA;
-    INT *A_JA = A->JA;
-    INT *B_IA = B->IA;
-    INT *B_JA = B->JA;
-    
-    for (i=0; i<A->row+1; i++) A_IA[i] = A_IA[i]-1;
-    for (i=0; i<A->nnz; i++) A_JA[i] = A_JA[i]-1;
-    
-    for (i=0; i<B->row+1; i++) B_IA[i] = B_IA[i]-1;
-    for (i=0; i<B->nnz; i++) B_JA[i] = B_JA[i]-1;
-    
+    // shift A and B
+    icsr_shift(A, -1);
+    icsr_shift(B, -1);
+
+    // symbolic multiplication
     icsr_mxm_symb(A, B, C);
     
-    INT *C_IA = C->IA;
-    INT *C_JA = C->JA;
-    
-    for (i=0; i<A->row+1; i++) A_IA[i] = A_IA[i]+1;
-    for (i=0; i<A->nnz; i++) A_JA[i] = A_JA[i]+1;
-    
-    for (i=0; i<B->row+1; i++) B_IA[i] = B_IA[i]+1;
-    for (i=0; i<B->nnz; i++) B_JA[i] = B_JA[i]+1;
-    
-    for (i=0; i<C->row+1; i++) C_IA[i] = C_IA[i]+1;
-    for (i=0; i<C->nnz; i++) C_JA[i] = C_JA[i]+1;
-    
+    // shift back
+    icsr_shift(A, 1);
+    icsr_shift(B, 1);
+    icsr_shift(C, 1);
+
 }
 
 /***********************************************************************************************/
-
-/**
- * \fn void icsr_mxm_symb_max (iCSRmat *A, iCSRmat *B, iCSRmat *C, INT multmax)
- *
- * \brief symbolic sparse matrix multiplication C=A*B (index starts with 0!!)
- *
- * \param A         Pointer to the iCSRmat matrix A
- * \param B         Pointer to the iCSRmat matrix B
- * \param C         Pointer to iCSRmat matrix equal to A*B
- * \param multimax  value allowed in the iCSRmat matrix C, any entry that is not equal to multimax will be deleted
- *
- */
 void icsr_mxm_symb_max (iCSRmat *A,
                         iCSRmat *B,
                         iCSRmat *C,
                         INT multmax)
 {
- 
+
+    /*!
+     * \fn void icsr_mxm_symb_max (iCSRmat *A, iCSRmat *B, iCSRmat *C, INT multmax)
+     *
+     * \brief symbolic sparse matrix multiplication C=A*B (index starts with 0!!)
+     *
+     * \param A         Pointer to the iCSRmat matrix A
+     * \param B         Pointer to the iCSRmat matrix B
+     * \param C         Pointer to iCSRmat matrix equal to A*B
+     * \param multimax  value allowed in the iCSRmat matrix C, any entry that is not equal to multimax will be deleted
+     *
+     * \note Index starts at 0!!! -- Xiaozhe Hu
+     *
+     */
+
     INT i,j,k,l,count;
     
     INT *JD = (INT *)calloc(B->col,sizeof(INT));
@@ -1851,170 +1903,59 @@ void icsr_mxm_symb_max (iCSRmat *A,
     C->nnz = C->IA[C->row]-C->IA[0];
 }
 
-
-/*
- void icsr_mxm_symb_max (iCSRmat *A,
-                        iCSRmat *B,
-                        iCSRmat *C,
-                        INT multmax)
-{
-    printf("max-1\n");
-    
-    INT *ia = A->IA;
-    INT *ja = A->JA;
-    INT na = A->row;
-    //INT mab = A->col;
-    INT mb = B->col;
-    INT *ib = B->IA;
-    INT *jb = B->JA;
-    
-    C->row = A->row;
-    C->col = B->col;
-    C->val = NULL;
-    C->IA  = (INT*)calloc(C->row+1,sizeof(INT));
-    C->JA  = NULL;
-    INT *ic = C->IA;
-    //INT *jc = C->JA;
-    
-    INT i,jk,icp,icp_temp,iaa,iab,ibb,iba,jbk,j,if1; // Counters and such
-    INT *ix=NULL;
-    INT *col=NULL;
-    INT jck=0;
-    ix = calloc(mb,sizeof(INT));
-    col = calloc(mb,sizeof(INT));
-	
-    printf("max-2\n");
-    
-    for(i = 0;i<mb;i++) {
-        ix[i]=0;
-        col[i]=0;
-    }
-    icp = 0;
-    
-    printf("max-3\n");
-    
-    // first loop to figure out the structure of C->JA
-    for(i = 1;i<=na;i++) {
-        ic[i-1]=icp;
-        icp_temp = icp;
-        iaa=ia[i-1];
-        iab=ia[i]-1;
-        if(iab>=iaa) {
-            for(jk = iaa;jk<=iab;jk++){
-                if1 = ja[jk-1];
-                iba = ib[if1-1];
-                ibb = ib[if1]-1;
-                if(ibb>=iba) {
-                    for (jbk = iba;jbk<=ibb;jbk++){
-                        j = jb[jbk-1];
-                        col[j-1]++;
-                        if(ix[j-1] != i) {
-                            ix[j-1]=i;
-                            //jc[icp_temp-1] = j;
-                            icp_temp++;
-                        }
-                    }
-                }
-            }
-            for (jck=ic[i-1];jck<icp_temp;jck++){
-                j = jc[jck-1];
-                if(col[j-1] == multmax || (!multmax)) {
-                    col[j-1]=0;
-                    jc[icp-1] = j;
-                    icp++;
-                } else {
-                    col[j-1]=0;
-                }
-            }
-        }
-    }
-    
-    printf("max-3\n");
-    
-    printf("ic[%d]=%d\n",0, ic[0]);
-    
-    ic[na] = icp;
-    
-    printf("max-4\n");
-
-    if(ix) free(ix);
-    
-    printf("max-5\n");
-
-    if(col) free(col);
-    
-    printf("max-6\n");
-
-    
-    return;
-}
- */
-
-
-/**
- * \fn void icsr_mxm_symb_max (iCSRmat *A, iCSRmat *B, iCSRmat *C INT multmax)
- *
- * \brief symbolic sparse matrix multiplication C=A*B (index starts with 1!!)
- *
- * \param A         Pointer to the iCSRmat matrix A
- * \param B         Pointer to the iCSRmat matrix B
- * \param C         Pointer to iCSRmat matrix equal to A*B
- * \param multimax  value allowed in the iCSRmat matrix C, any entry that is not equal to multimax will be deleted
- *
- */
+/***********************************************************************************************/
 void icsr_mxm_symb_max_1 (iCSRmat *A,
-                        iCSRmat *B,
-                        iCSRmat *C,
-                        INT multmax)
+                          iCSRmat *B,
+                          iCSRmat *C,
+                          INT multmax)
 {
 
-    INT i;
+    /*!
+     * \fn void icsr_mxm_symb_max_1 (iCSRmat *A, iCSRmat *B, iCSRmat *C INT multmax)
+     *
+     * \brief symbolic sparse matrix multiplication C=A*B (index starts with 1!!)
+     *
+     * \param A         Pointer to the iCSRmat matrix A
+     * \param B         Pointer to the iCSRmat matrix B
+     * \param C         Pointer to iCSRmat matrix equal to A*B
+     * \param multimax  value allowed in the iCSRmat matrix C, any entry that is not equal to multimax will be deleted
+     *
+     * \note Index starts at 1!!! -- Xiaozhe Hu
+     *
+     */
+
+    // shift A and B
+    icsr_shift(A, -1);
+    icsr_shift(B, -1);
     
-    INT *A_IA = A->IA;
-    INT *A_JA = A->JA;
-    INT *B_IA = B->IA;
-    INT *B_JA = B->JA;
-    
-    for (i=0; i<A->row+1; i++) A_IA[i] = A_IA[i]-1;
-    for (i=0; i<A->nnz; i++) A_JA[i] = A_JA[i]-1;
-            
-    for (i=0; i<B->row+1; i++) B_IA[i] = B_IA[i]-1;
-    for (i=0; i<B->nnz; i++) B_JA[i] = B_JA[i]-1;
-    
+    // multiply
     icsr_mxm_symb_max(A, B, C, multmax);
 
-    
-    INT *C_IA = C->IA;
-    INT *C_JA = C->JA;
-                    
-    for (i=0; i<A->row+1; i++) A_IA[i] = A_IA[i]+1;
-    for (i=0; i<A->nnz; i++) A_JA[i] = A_JA[i]+1;
-                            
-    for (i=0; i<B->row+1; i++) B_IA[i] = B_IA[i]+1;
-    for (i=0; i<B->nnz; i++) B_JA[i] = B_JA[i]+1;
-                                    
-    for (i=0; i<C->row+1; i++) C_IA[i] = C_IA[i]+1;
-    for (i=0; i<C->nnz; i++) C_JA[i] = C_JA[i]+1;
+    // shift back
+    icsr_shift(A, 1);
+    icsr_shift(B, 1);
+    icsr_shift(C, 1);
                                             
 }
 
 /***********************************************************************************************/
 void dcsr_getdiag (INT n,
-                        dCSRmat *A,
-                        dvector *diag)
+                   dCSRmat *A,
+                   dvector *diag)
 {
-    /**
+    /*!
      * \fn void dcsr_getdiag (INT n, dCSRmat *A, dvector *diag)
      *
-     * \brief Get first n diagonal entries of a CSR matrix A
+     * \brief Get first n diagonal entries of a dCSRmat sparse matrix A
      *
      * \param n     Number of diagonal entries to get (if n=0, then get all diagonal entries)
      * \param A     Pointer to dCSRmat CSR matrix
      * \param diag  Pointer to the diagonal as a dvector
      *
-     * \author Xiaozhe Hu
-     * \date   10/06/2015
+     * \note Index starts at 0!!! -- Xiaozhe Hu
+     *
      */
+
     INT i,k,j,ibegin,iend;
     
     if ( n==0 || n>A->row || n>A->col ) n = MIN(A->row,A->col);
@@ -2026,7 +1967,8 @@ void dcsr_getdiag (INT n,
             for (k=ibegin;k<iend;++k) {
                 j=A->JA[k];
                 if ((j-i)==0) {
-                    diag->val[i] = A->val[k]; break;
+                    diag->val[i] = A->val[k];
+                    break;
             } // end if
         } // end for k
     } // end for i
@@ -2039,67 +1981,66 @@ void dcsr_diagpref (dCSRmat *A)
     /*!
      * \fn void dcsr_diagpref ( dCSRmat *A )
      *
-     * \brief Re-order the column and data arrays of a CSR matrix,
-     *        so that the first entry in each row is the diagonal
+     * \brief Re-order the column and data arrays of a dCSRmat matrix row by row,
+     *        so that the first entry in each row is the diagonal entry of that row
      *
      * \param A   Pointer to the matrix to be re-ordered
      *
-     * \author Zhiyang Zhou
-     * \date   09/09/2010
-     *
-     * \author Chunsheng Feng, Zheng Li
-     * \date   09/02/2012
-     *
      * \note Reordering is done in place.
+     * \note Index starts at 0!!! -- Xiaozhe Hu
      *
-     * Modified by Chensong Zhang on Dec/21/2012
      */
     
-    const INT   num_rowsA = A -> row;
-    REAL      * A_data    = A -> val;
-    INT       * A_i       = A -> IA;
-    INT       * A_j       = A -> JA;
+    const INT    m    = A->row;
+    INT         *IA   = A->IA;
+    INT         *JA   = A->JA;
+    REAL        *valA = A->val;
+
     
     // Local variable
     INT    i, j;
     INT    tempi, row_size;
     REAL   tempd;
     
-    for (i = 0; i < num_rowsA; i ++) {
-        row_size = A_i[i+1] - A_i[i];
+    for (i=0; i<m; i ++) {
+
+        row_size = IA[i+1] - IA[i];
+
         // check whether the first entry is already diagonal
-        if (A_j[0] != i) {
-            for (j = 1; j < row_size; j ++) {
-                if (A_j[j] == i) {
-                    tempi  = A_j[0];
-                    A_j[0] = A_j[j];
-                    A_j[j] = tempi;
-                        
-                    tempd     = A_data[0];
-                    A_data[0] = A_data[j];
-                    A_data[j] = tempd;
+        if (JA[0] != i) {
+            for (j=1; j<row_size; j ++) {
+                if (JA[j] == i) {
+                    //swap JA
+                    tempi  = JA[0];
+                    JA[0] = JA[j];
+                    JA[j] = tempi;
+
+                    // swap valA
+                    tempd     = valA[0];
+                    valA[0] = valA[j];
+                    valA[j] = tempd;
                     
                     break;
                 }
             }
-            if (j == row_size) {
-                printf("### ERROR: Diagonal entry %d is missing or zero!\n", i);
-                check_error(ERROR_MISC, __FUNCTION__);
+            if (j==row_size) {
+                check_error(ERROR_DATA_ZERODIAG, __FUNCTION__);
             }
         }
-        A_j    += row_size;
-        A_data += row_size;
+
+        JA    += row_size;
+        valA  += row_size;
     }
     
 }
 
 /***********************************************************************************************/
 void dcsr_rap (dCSRmat *R,
-                         dCSRmat *A,
-                         dCSRmat *P,
-                         dCSRmat *RAP)
+               dCSRmat *A,
+               dCSRmat *P,
+               dCSRmat *RAP)
 {
-    /**
+    /*!
      * \fn void dcsr_rap (dCSRmat *R, dCSRmat *A, dCSRmat *P, dCSRmat *RAP)
      *
      * \brief Triple sparse matrix multiplication B=R*A*P
@@ -2109,9 +2050,10 @@ void dcsr_rap (dCSRmat *R,
      * \param P   Pointer to the dCSRmat matrix P
      * \param RAP Pointer to dCSRmat matrix equal to R*A*P
      *
-     *
      * \note Ref. R.E. Bank and C.C. Douglas. SMMP: Sparse Matrix Multiplication Package.
      *       Advances in Computational Mathematics, 1 (1993), pp. 127-137.
+     * \note Index starts at 0!!! -- Xiaozhe Hu
+     *
      */
     
     INT n_coarse = R->row;
@@ -2128,7 +2070,7 @@ void dcsr_rap (dCSRmat *R,
     INT *P_j = P->JA;
     REAL *P_data = P->val;
     
-    INT RAP_size;
+    INT  RAP_size;
     INT *RAP_i = NULL;
     INT *RAP_j = NULL;
     REAL *RAP_data = NULL;
@@ -2248,27 +2190,27 @@ void dcsr_rap (dCSRmat *R,
     free(Ps_marker);
 }
 
-
+/***********************************************************************************************/
 void dcsr_rap_agg (dCSRmat *R,
                              dCSRmat *A,
                              dCSRmat *P,
                              dCSRmat *RAP)
 {
-    /**
+    /*!
      * \fn void dcsr_rap_agg (dCSRmat *R, dCSRmat *A, dCSRmat *P, dCSRmat *RAP)
      *
-     * \brief Triple sparse matrix multiplication B=R*A*P
+     * \brief Triple sparse matrix multiplication B=R*A*P (all the entries in R and P are ones)
      *
      * \param R   Pointer to the dCSRmat matrix R
      * \param A   Pointer to the dCSRmat matrix A
      * \param P   Pointer to the dCSRmat matrix P
      * \param RAP Pointer to dCSRmat matrix equal to R*A*P
      *
-     * \author Xiaozhe Hu
-     * \date   05/10/2010
-     *
      * \note Ref. R.E. Bank and C.C. Douglas. SMMP: Sparse Matrix Multiplication Package.
      *       Advances in Computational Mathematics, 1 (1993), pp. 127-137.
+     * \note Index starts at 0!!! -- Xiaozhe Hu
+     * \note Only used in unsmoothed aggregation AMG!!! -- Xiaozhe Hu
+     *
      */
     
     INT n_coarse = R->row;
@@ -2394,19 +2336,19 @@ void dcsr_rap_agg (dCSRmat *R,
     free(Ps_marker);
 }
 
-
+/***********************************************************************************************/
 SHORT dcsr_getblk (dCSRmat *A,
-                        INT *Is,
-                        INT *Js,
-                        const INT m,
-                        const INT n,
-                        dCSRmat *B)
+                   INT *Is,
+                   INT *Js,
+                   const INT m,
+                   const INT n,
+                   dCSRmat *B)
 {
-    /**
+    /*!
      * \fn SHORT dcsr_getblk (dCSRmat *A, INT *Is, INT *Js, const INT m,
      *                             const INT n, dCSRmat *B)
      *
-     * \brief Get a sub CSR matrix of A with specified rows and columns
+     * \brief Get a sub dCSRmat sparse matrix from a dCSRmat sparse matrix A with specified rows and columns
      *
      * \param A     Pointer to dCSRmat matrix
      * \param B     Pointer to dCSRmat matrix
@@ -2417,8 +2359,7 @@ SHORT dcsr_getblk (dCSRmat *A,
      *
      * \return      SUCCESS if succeeded, otherwise return error information.
      *
-     * \author Shiquan Zhang, Xiaozhe Hu
-     * \date   12/25/2010
+     * \note Index starts at 0!!! -- Xiaozhe Hu
      *
      */
     
@@ -2463,18 +2404,44 @@ SHORT dcsr_getblk (dCSRmat *A,
     return(status);
 }
 
+/***********************************************************************************************/
+void dcsr_bandwith (dCSRmat *A,
+                    INT     *bndwith)
+{
+    /*!
+     * \fn dcsr_bandwith (dCSRmat *A, INT *bndwith)
+     *
+     * \brief Get bandwith of a dCSRmat format sparse matrix
+     *
+     * \param A       pointer to the dCSRmat matrix
+     * \param bndwith pointer to the bandwith
+     *
+     */
 
+    INT row = A->row;
+    INT *IA = A->IA;
+
+    INT i, max;
+    max = 0;
+
+    for (i=0; i<row; ++i) max = MAX(max, IA[i+1]-IA[i]);
+
+    *bndwith = max;
+}
+
+
+/***********************************************************************************************/
+// Block_dCSRmat subroutines starts here!
+/***********************************************************************************************/
 void bdcsr_free (block_dCSRmat *A)
 {
-    /**
+    /*!
      * \fn void bdcsr_free (block_dCSRmat *A)
      *
-     * \brief Free block CSR sparse matrix data memory space
+     * \brief Free block dCSR sparse matrix data
      *
      * \param A   Pointer to the block_dCSRmat matrix
      *
-     * \author Xiaozhe Hu
-     * \date   04/18/2014
      */
     
     if (A == NULL) return; // Nothing need to be freed!
@@ -2491,52 +2458,23 @@ void bdcsr_free (block_dCSRmat *A)
     A->blocks = NULL;
 }
 
-
-void dcsr_bandwith (dCSRmat *A,
-                              INT     *bndwith)
-{
-    /**
-     * \fn dcsr_bandwith (dCSRmat *A, INT *bndwith)
-     *
-     * \brief Get bandwith of matrix
-     *
-     * \param A       pointer to the dCSRmat matrix
-     * \param bndwith pointer to the bandwith
-     *
-     * \author Zheng Li
-     * \date   03/22/2015
-     */
-    
-    INT row = A->row;
-    INT *ia = A->IA;
-    
-    INT i, max;
-    max = 0;
-    
-    for (i=0; i<row; ++i) max = MAX(max, ia[i+1]-ia[i]);
-    
-    *bndwith = max;
-}
-
-
+/***********************************************************************************************/
 void bdcsr_aAxpy (const REAL alpha,
-                            block_dCSRmat *A,
-                            REAL *x,
-                            REAL *y)
+                  block_dCSRmat *A,
+                  REAL *x,
+                  REAL *y)
 {
-    /**
+    /*!
      * \fn void bdcsr_aAxpy (const REAL alpha, block_dCSRmat *A,
      *                                 REAL *x, REAL *y)
      *
-     * \brief Matrix-vector multiplication y = alpha*A*x + y
+     * \brief Matrix-vector multiplication y = alpha*A*x + y in block_dCSRmat format
      *
      * \param alpha  REAL factor a
      * \param A      Pointer to block_dCSRmat matrix A
      * \param x      Pointer to array x
      * \param y      Pointer to array y
      *
-     * \author Xiaozhe Hu
-     * \date   06/04/2010
      */
     
     // information of A
@@ -2647,22 +2585,22 @@ void bdcsr_aAxpy (const REAL alpha,
     
 }
 
-/**
- * \fn void bdcsr_mxv (block_dCSRmat *A, REAL *x, REAL *y)
- *
- * \brief Matrix-vector multiplication y = A*x
- *
- * \param A      Pointer to block_dCSRmat matrix A
- * \param x      Pointer to array x
- * \param y      Pointer to array y
- *
- * \author Chensong Zhang
- * \date   04/27/2013
- */
+/***********************************************************************************************/
 void bdcsr_mxv (block_dCSRmat *A,
-                          REAL *x,
-                          REAL *y)
+                REAL *x,
+                REAL *y)
 {
+    /*!
+     * \fn void bdcsr_mxv (block_dCSRmat *A, REAL *x, REAL *y)
+     *
+     * \brief Matrix-vector multiplication y = A*x in block_dCSRmat format
+     *
+     * \param A      Pointer to block_dCSRmat matrix A
+     * \param x      Pointer to array x
+     * \param y      Pointer to array y
+     *
+     */
+
     // information of A
     INT brow = A->brow;
     
@@ -2779,4 +2717,5 @@ void bdcsr_mxv (block_dCSRmat *A,
 }
 
 
+/************************************** END ***************************************************/
 

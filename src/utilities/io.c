@@ -4,13 +4,29 @@
  *  Copyright 2015__HAZMAT__. All rights reserved.
  *
  *  Routines for reading and writing to file or screen.
+ *
+ * \note: modified by Xiaozhe Hu on 10/31/2016
+ *
  */
 
 #include "hazmat.h"
 
-void iarray_print(INT *vec, INT n   )
+/***********************************************************************************************/
+void iarray_print(INT *vec,
+                  INT n)
 {
-    /* prints a vector of integers of size nn */
+
+    /*!
+     * \fn void iarray_print(INT *vec, INT n)
+     *
+     * \brief print an integer array on screen
+     *
+     * \param vec   Pointer to the INT array
+     * \param n     Length of the array
+     *
+     */
+
+    /* prints a vector of integers of size n */
     INT *vec_end;
     
     vec_end  =  vec + n;
@@ -25,8 +41,21 @@ void iarray_print(INT *vec, INT n   )
     return;
 }
 
-void array_print(REAL *vec, INT n   )
+/***********************************************************************************************/
+void array_print(REAL *vec,
+                 INT n)
 {
+
+    /*!
+     * \fn void array_print(REAL *vec, INT n)
+     *
+     * \brief print a REAL array on screen
+     *
+     * \param vec   Pointer to the REAL array
+     * \param n     Length of the array
+     *
+     */
+
     /* prints a vector of integers of size nn */
     REAL *vec_end;
     
@@ -40,41 +69,24 @@ void array_print(REAL *vec, INT n   )
     fprintf(stdout,"\n");
     
     return;
+
 }
 
-void csr_print_matlab(FILE* fid,dCSRmat *A)
+/***********************************************************************************************/
+void dvector_print(FILE* fid,
+                   dvector *b)
 {
-  /* prints a csr matrix in matlab output*/    
-  INT i,j1,j2,j; /* Loop Indices */
+    /*!
+     * \fn void dvector_print(FILE* fid,dvector *b)
+     *
+     * \brief print a dvector to a file
+     *
+     * \param fid  Pointer to the file
+     * \param b    Pointer to the dvector
+     *
+     */
 
-  for(i=0;i<A->row;i++) {
-    j1 = A->IA[i]-1;
-    j2 = A->IA[i+1]-1;
-    for(j=j1;j<j2;j++) {
-      fprintf(fid,"%d\t%d\t%25.16e\n",i+1,A->JA[j],A->val[j]);
-    }
-  }		
-  return;
-}
-
-void icsr_print_matlab(FILE* fid,iCSRmat *A)
-{
-  /* prints a csr matrix in matlab output*/    
-  INT i,j1,j2,j; /* Loop Indices */
-
-  for(i=0;i<A->row;i++) {
-    j1 = A->IA[i]-1;
-    j2 = A->IA[i+1]-1;
-    for(j=j1;j<j2;j++) {
-      fprintf(fid,"%d\t%d\n",i+1,A->JA[j]);
-    }
-  }		
-  return;
-}
-
-void dvector_print(FILE* fid,dvector *b)
-{
-  /* prints a csr matrix in matlab output*/    
+  /* prints a dvector in matlab output*/
   INT i; /* Loop Indices */
 
   for(i=0;i<b->row;i++) {
@@ -83,11 +95,65 @@ void dvector_print(FILE* fid,dvector *b)
   return;
 }
 
-
-void dvec_write (const char *filename,
-                      dvector *vec)
+/***********************************************************************************************/
+void csr_print_matlab(FILE* fid,
+                      dCSRmat *A)
 {
-    /**
+
+    /*!
+     * \fn void csr_print_matlab(FILE* fid,dCSRmat *A)
+     *
+     * \brief print a dCSRmat format sparse matrix to a file
+     *
+     * \param fid  Pointer to the file
+     * \param A    Pointer to the dCSRmat format sparse matrix
+     *
+     */
+
+  /* prints a csr matrix in matlab output*/
+  INT i,j1,j2,j; /* Loop Indices */
+
+  for(i=0;i<A->row;i++) {
+    j1 = A->IA[i]-1;
+    j2 = A->IA[i+1]-1;
+    for(j=j1;j<j2;j++) {
+      fprintf(fid,"%d\t%d\t%25.16e\n",i+1,A->JA[j],A->val[j]);
+    }
+  }
+  return;
+}
+
+/***********************************************************************************************/
+void icsr_print_matlab(FILE* fid,iCSRmat *A)
+{
+    /*!
+     * \fn void icsr_print_matlab(FILE* fid,dCSRmat *A)
+     *
+     * \brief print a iCSRmat format sparse matrix to a file
+     *
+     * \param fid  Pointer to the file
+     * \param A    Pointer to the iCSRmat format sparse matrix
+     *
+     */
+
+  /* prints a csr matrix in matlab output*/
+  INT i,j1,j2,j; /* Loop Indices */
+
+  for(i=0;i<A->row;i++) {
+    j1 = A->IA[i]-1;
+    j2 = A->IA[i+1]-1;
+    for(j=j1;j<j2;j++) {
+      fprintf(fid,"%d\t%d\n",i+1,A->JA[j]);
+    }
+  }
+  return;
+}
+
+/***********************************************************************************************/
+void dvec_write (const char *filename,
+                 dvector *vec)
+{
+    /*!
      * \fn void dvec_write (const char *filename, dvector *vec)
      *
      * \brief Write a dvector to disk file
@@ -95,49 +161,37 @@ void dvec_write (const char *filename,
      * \param vec       Pointer to the dvector
      * \param filename  File name
      *
-     * \author Xiaozhe Hu
-     * \date   03/02/2016
      */
-    
+
     INT m = vec->row, i;
-    
+
     FILE *fp = fopen(filename,"w");
-    
+
     if ( fp == NULL ) {
         printf("### ERROR: Cannot open %s!\n", filename);
         check_error(ERROR_OPEN_FILE, __FUNCTION__);
     }
-    
+
     printf("%s: writing to file %s...\n", __FUNCTION__, filename);
-    
+
     fprintf(fp,"%d\n",m);
-    
+
     for ( i = 0; i < m; ++i ) fprintf(fp,"%0.15e\n",vec->val[i]);
-    
+
     fclose(fp);
 }
 
-
+/***********************************************************************************************/
 void dcsr_write_dcoo (const char *filename,
                       dCSRmat *A)
 {
-    /**
+    /*!
      * \fn void dcsr_write_dcoo (const char *filename, dCSRmat *A)
      *
-     * \brief Write a matrix to disk file in IJ format (coordinate format)
+     * \brief Write a dCSRmat matrix to disk file in IJ format (coordinate format)
      *
      * \param A         pointer to the dCSRmat matrix
      * \param filename  char for vector file name
-     *
-     * \note
-     *
-     *      The routine writes the specified REAL vector in COO format.
-     *      Refer to the reading subroutine \ref fasp_dcoo_read.
-     *
-     * \note File format:
-     *   - The first line of the file gives the number of rows, the
-     *   number of columns, and the number of nonzeros.
-     *   - Then gives nonzero values in i j a(i,j) format.
      *
      */
     

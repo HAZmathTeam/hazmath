@@ -368,4 +368,32 @@ REAL array_normp (const INT n,
     return pow(pnorm, 1.0/p);
 }
 
+/****************************************************************************************/
+void det3D(REAL *mydet,
+           REAL* vec1,
+           REAL* vec2,
+           REAL* vec3)
+{
+    /*!
+     * \fn det3D(REAL *mydet,REAL* vec1,REAL* vec2,REAL* vec3)
+     *
+     * \brief compute determinant of 3 3D arrays
+     *
+     * \param mydet   Determinant of the 3 arrays (OUTPUT)
+     * \param vec1    Pointer to the first array
+     * \param vec2    Pointer to the second array
+     * \param vec2    Pointer to the third array
+     *
+     */
+
+  /* gets determinant of 3 3D vectors */
+  REAL dettmp;
+
+  dettmp = vec1[0]*(vec2[1]*vec3[2]-vec2[2]*vec3[1]) - vec1[1]*(vec2[0]*vec3[2]-vec2[2]*vec3[0]) + vec1[2]*(vec2[0]*vec3[1]-vec2[1]*vec3[0]);
+
+  *mydet = dettmp;
+
+  return;
+}
+
 /*************************************  END  ******************************************************/

@@ -55,7 +55,7 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
       FE->cdof = barycenter;
       FE->nbdof = 0;
       FE->dof_per_elm = 1;
-      iCSRmat el_el = icsr_create_identity(mesh->nelm);
+      iCSRmat el_el = icsr_create_identity(mesh->nelm, 1);
       FE->el_dof = malloc(sizeof(struct iCSRmat));
       *(FE->el_dof) = el_el;
       iCSRmat ed_el;
@@ -95,7 +95,7 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
       FE->nbdof = mesh->nbedge;
       FE->dof_per_elm = mesh->ed_per_elm;
       FE->el_dof = mesh->el_ed;
-      iCSRmat ed_ed = icsr_create_identity(mesh->nedge);
+      iCSRmat ed_ed = icsr_create_identity(mesh->nedge, 1);
       FE->ed_dof = malloc(sizeof(struct iCSRmat));
       *(FE->ed_dof) = ed_ed;
       FE->f_dof = mesh->f_ed;
@@ -111,7 +111,7 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
       icsr_trans_1(mesh->f_ed,&ed_f);
       FE->ed_dof = malloc(sizeof(struct iCSRmat));
       *(FE->ed_dof) = ed_f;
-      iCSRmat f_f = icsr_create_identity(mesh->nface);
+      iCSRmat f_f = icsr_create_identity(mesh->nface, 1);
       FE->f_dof = malloc(sizeof(struct iCSRmat));
       *(FE->f_dof) = f_f;
       FE->dof_bdry = mesh->f_bdry;
