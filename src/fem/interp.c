@@ -44,9 +44,7 @@ void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fe
 
   // Basis Functions and its derivatives if necessary
   REAL* phi=NULL;
-  REAL* dphix=NULL;
-  REAL* dphiy=NULL;
-  REAL* dphiz=NULL;
+  REAL* dphi=NULL;
 
   if(FEtype==0) { // P0 Elements
     for (i=0; i<nun; i++) {
@@ -55,12 +53,8 @@ void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fe
     }
   } else if(FEtype>0 && FEtype<10) { // Lagrange Elements
     phi = (REAL *) calloc(dof_per_elm,sizeof(REAL));
-    dphix = (REAL *) calloc(dof_per_elm,sizeof(REAL));
-    if(dim==2 || dim==3)
-      dphiy = (REAL *) calloc(dof_per_elm,sizeof(REAL));
-    if(dim==3)
-      dphiz = (REAL *) calloc(dof_per_elm,sizeof(REAL));
-    PX_H1_basis(phi,dphix,dphiy,dphiz,x,dof_on_elm,FEtype,mesh);
+    dphi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
+    PX_H1_basis(phi,dphi,x,dof_on_elm,FEtype,mesh);
     REAL coef;
 
     for (i=0; i<nun; i++) {
@@ -77,15 +71,15 @@ void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fe
     INT edge;
     phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
     if(dim==2) {
-      dphix = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Curl of basis function
+      dphi = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Curl of basis function
     } else if (dim==3) {
-      dphix = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL)); // Curl of basis function
+      dphi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL)); // Curl of basis function
     } else {
       status = ERROR_DIM;
       check_error(status, __FUNCTION__);
     }
     
-    ned_basis(phi,dphix,x,v_on_elm,dof_on_elm,mesh);
+    ned_basis(phi,dphi,x,v_on_elm,dof_on_elm,mesh);
 
     coef1 = 0.0;
     coef2 = 0.0;
@@ -114,9 +108,9 @@ void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fe
     REAL coef1,coef2,coef3;
     INT face;
     phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
-    dphix = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Divergence of element
+    dphi = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Divergence of element
     
-    rt_basis(phi,dphix,x,v_on_elm,dof_on_elm,mesh);
+    rt_basis(phi,dphi,x,v_on_elm,dof_on_elm,mesh);
 
     coef1 = 0.0;
     coef2 = 0.0;
@@ -144,9 +138,7 @@ void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fe
   }
 
   if (phi) free(phi);
-  if(dphix) free(dphix);
-  if(dphiy) free(dphiy);
-  if(dphiz) free(dphiz);
+  if(dphi) free(dphi);
   return;
 }
 /****************************************************************************************************************************/
@@ -184,19 +176,13 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
 
   // Basis Functions and its derivatives if necessary
   REAL* phi=NULL;
-  REAL* dphix=NULL;
-  REAL* dphiy=NULL;
-  REAL* dphiz=NULL;
+  REAL* dphi=NULL;
   REAL* coef=NULL;
 
   if(FEtype>0 && FEtype<10) { // Lagrange Elements
     phi = (REAL *) calloc(dof_per_elm,sizeof(REAL));
-    dphix = (REAL *) calloc(dof_per_elm,sizeof(REAL));
-    if(dim==2 || dim==3)
-      dphiy = (REAL *) calloc(dof_per_elm,sizeof(REAL));
-    if(dim==3)
-      dphiz = (REAL *) calloc(dof_per_elm,sizeof(REAL));
-    PX_H1_basis(phi,dphix,dphiy,dphiz,x,dof_on_elm,FEtype,mesh);
+    dphi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
+    PX_H1_basis(phi,dphi,x,dof_on_elm,FEtype,mesh);
 
     coef = (REAL *) calloc(dim,sizeof(REAL));
 
@@ -205,11 +191,11 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
         coef[0] = 0.0;
       for (j=0; j<dof_per_elm; j++) {
         nd = i*ndof + dof_on_elm[j] - 1;
-        coef[0] += u[nd]*dphix[j];
+        coef[0] += u[nd]*dphi[j*dim];
         if(dim==2 || dim==3)
-          coef[1] += u[nd]*dphiy[j];
+          coef[1] += u[nd]*dphi[j*dim+1];
         if(dim==3)
-          coef[2] += u[nd]*dphiz[j];
+          coef[2] += u[nd]*dphi[j*dim+2];
       }
       val[i] = coef[0];
       if(dim==2 || dim==3)
@@ -221,14 +207,14 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
     INT edge;
     phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
     if(dim==2) {
-      dphix = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Curl of basis function
+      dphi = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Curl of basis function
     } else if (dim==3) {
-      dphix = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL)); // Curl of basis function
+      dphi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL)); // Curl of basis function
     } else {
       status = ERROR_DIM;
       check_error(status, __FUNCTION__);
     }
-    ned_basis(phi,dphix,x,v_on_elm,dof_on_elm,mesh);
+    ned_basis(phi,dphi,x,v_on_elm,dof_on_elm,mesh);
 
     coef = (REAL *) calloc(dim,sizeof(REAL));
     for(j=0;j<dim;j++)
@@ -236,15 +222,15 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
     if (dim==2) {
       for (j=0; j<dof_per_elm; j++) {
         edge = dof_on_elm[j]-1;
-        coef[0] += u[edge]*dphix[j];
+        coef[0] += u[edge]*dphi[j];
       }
       val[0] = coef[0];
     } else if (dim==3) {
       for (j=0; j<dof_per_elm; j++) {
         edge = dof_on_elm[j]-1;
-        coef[0] += u[edge]*dphix[j*dim+0];
-        coef[1] += u[edge]*dphix[j*dim+1];
-        coef[2] += u[edge]*dphix[j*dim+2];
+        coef[0] += u[edge]*dphi[j*dim+0];
+        coef[1] += u[edge]*dphi[j*dim+1];
+        coef[2] += u[edge]*dphi[j*dim+2];
       }
       val[0] = coef[0];
       val[1] = coef[1];
@@ -253,24 +239,22 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
   } else if (FEtype==30) { // Raviart-Thomas
     INT face;
     phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
-    dphix = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Divergence of element
+    dphi = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Divergence of element
     
-    rt_basis(phi,dphix,x,v_on_elm,dof_on_elm,mesh);
+    rt_basis(phi,dphi,x,v_on_elm,dof_on_elm,mesh);
 
     coef = (REAL *) calloc(1,sizeof(REAL));
     coef[0] = 0.0;
 
     for (j=0; j<dof_per_elm; j++) {
       face = dof_on_elm[j]-1;
-      coef[0] += u[face]*dphix[j];
+      coef[0] += u[face]*dphi[j];
     }
     val[0] = coef[0];
   }
 
   if (phi) free(phi);
-  if(dphix) free(dphix);
-  if(dphiy) free(dphiy);
-  if(dphiz) free(dphiz);
+  if(dphi) free(dphi);
   if(coef) free(coef);
   return;
 }
@@ -332,6 +316,9 @@ void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL),fespace *FE,trimesh 
       val[i] = 0.0;
       for(j=0;j<dim;j++) val[i]+=mesh->f_norm[i*dim+j]*valx[j];
     }
+  } else {
+    status = ERROR_FE_TYPE;
+    check_error(status, __FUNCTION__);
   }
   
   if (x) free(x);
@@ -557,7 +544,7 @@ void Project_to_Vertices(REAL* u_on_V,REAL *u,fespace *FE,trimesh *mesh,INT nun)
   INT v_per_elm = mesh->v_per_elm;
   INT FEtype = FE->FEtype;
   INT nelm = mesh->nelm;
-  INT ndof = FE->ndof;
+  //INT ndof = FE->ndof;
   INT nv = mesh->nv;
 
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));

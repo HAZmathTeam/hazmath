@@ -90,13 +90,16 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     FE->dof_bdry = mesh->v_bdry;
     break;
   case 2: // Quadratics - P2
-    FE->ndof = mesh->nv + mesh->nedge;
-    FE->nbdof = mesh->nbv + mesh->nbedge;
-    FE->dof_per_elm = mesh->v_per_elm + mesh->ed_per_elm;
+    FE->ndof = mesh->nv + mesh->nelm; // In 1D
+    FE->nbdof = mesh->nbv; // In 1D
+    FE->dof_per_elm = mesh->v_per_elm + 1; // In 1D
     FE->el_dof = malloc(sizeof(struct iCSRmat));
-    if(mesh->dim>1) {
+    if(mesh->dim>1) { // Not in 1D
       FE->ed_dof = malloc(sizeof(struct iCSRmat));
       FE->f_dof = malloc(sizeof(struct iCSRmat));
+      FE->ndof = mesh->nv + mesh->nedge;
+      FE->nbdof = mesh->nbv + mesh->nbedge;
+      FE->dof_per_elm = mesh->v_per_elm + mesh->ed_per_elm;
     }
     get_P2(FE,mesh);
     break;
