@@ -114,6 +114,8 @@ dCSRmat dcsr_create_single_nnz_matrix (const INT m,
      *
      * \return A   the new dCSRmat matrix
      *
+     * \note row and col are indexed consistently with index_start.
+     *
      */
 
     dCSRmat A;
@@ -125,8 +127,8 @@ dCSRmat dcsr_create_single_nnz_matrix (const INT m,
     A.row = m; A.col = n; A.nnz = 1;
 
     INT i;
-    for(i=0;i<row;i++) A.IA[i]=index_start;
-    for(i=row;i<m+1;i++) A.IA[i]=index_start+1;
+    for(i=0;i<row+1-index_start;i++) A.IA[i]=index_start;
+    for(i=row+1-index_start;i<m+1;i++) A.IA[i]=index_start+1;
     A.JA[0]=col-(1-index_start);
     A.val[0] = val;
 
