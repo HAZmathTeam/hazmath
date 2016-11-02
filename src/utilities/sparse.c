@@ -1366,14 +1366,18 @@ REAL dcsr_vmv_1 (dCSRmat *A,
      *
      */
 
+  REAL value=0.0;
+
     // SHIFT A First
     dcsr_shift(A, -1);
 
     // multiply
-    dcsr_vmv(A, x, y);
+    value = dcsr_vmv(A, x, y);
 
     // shift A back
     dcsr_shift(A, 1);
+
+    return value;
 }
 
 

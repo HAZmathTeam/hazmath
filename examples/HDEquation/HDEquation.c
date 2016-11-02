@@ -1,26 +1,24 @@
-/*
- *  HDEquation.c
+/*! \file examples/HDEquation/HDEquation.c
  *
  *  Created by James Adler and Xiaozhe Hu on 1/9/15.
  *  Copyright 2015_HAZMAT__. All rights reserved.
  *
- *  Discussion:
- *
- *    This program solves the following PDE using finite elements
+ * \brief This program solves the following PDE using finite elements
  *
  *      D^*(a(x)D(u)) + c(x)u = 0
  *
  *    where D = grad, D^* = -div for P1,P2 elements,
  *          D = curl, D^* = curl for Nedelec elements
- *          D = div, D^* = -grad for Raviart-Thomas elements
+ *          D = div,  D^* = -grad for Raviart-Thomas elements
  *
- *    in 2D or 3D
+ *    in 1D, 2D, or 3D
  *
  *   Along the boundary of the region, Dirichlet conditions are imposed:
  *
  *      u = 0 for P1, P2
  *    u*t = 0 for Nedelec
  *    u*n = 0 for Raviart-Thomas
+ *
  */
 
 /*********** HAZMAT FUNCTIONS and INCLUDES ****************************************/
@@ -38,6 +36,10 @@ void reaction_coeff(REAL *val,REAL* x,REAL time) {
 }
 
 // True Solution (if you have one)
+void truesol_1D_PX(REAL *val,REAL* x,REAL time) {
+  // 1D - grad grad
+  *val = sin(M_PI*x[0]);
+}
 void truesol_2D_PX(REAL *val,REAL* x,REAL time) {
   // 2D - grad grad
   *val = sin(M_PI*x[0])*sin(M_PI*x[1]);
@@ -70,6 +72,10 @@ void truesol_3D_RT(REAL *val,REAL* x,REAL time) {
 }
 
 // Derivative of True Solution (if you have one)
+void D_truesol_1D_PX(REAL *val,REAL* x,REAL time) {
+  // 1D - grad grad
+  *val = M_PI*cos(M_PI*x[0]);
+}
 void D_truesol_2D_PX(REAL *val,REAL* x,REAL time) {
   // 2D - grad grad
   val[0] = M_PI*cos(M_PI*x[0])*sin(M_PI*x[1]);
@@ -101,6 +107,16 @@ void D_truesol_3D_RT(REAL *val,REAL* x,REAL time) {
 }
 
 // Right-hand Side
+void rhs_1D_PX(REAL *val,REAL* x,REAL time) {
+  // 1D - grad grad
+  REAL myc=-666.6;
+  REAL mya=-666.6;
+  REAL myu=-666.6;
+  reaction_coeff(&myc,x,time);
+  diffusion_coeff(&mya,x,time);
+  truesol_1D_PX(&myu,x,time);
+  *val = (mya*M_PI*M_PI + myc)*myu;
+}
 void rhs_2D_PX(REAL *val,REAL* x,REAL time) {
   // 2D - grad grad
   REAL myc=-666.6;
@@ -169,6 +185,11 @@ void rhs_3D_RT(REAL *val,REAL* x,REAL time) {
 }
 
 // Boundary Conditions
+void bc_1D_PX(REAL *val,REAL* x,REAL time) {
+  REAL myu;
+  truesol_1D_PX(&myu,x,time);
+  *val= myu;
+}
 void bc_2D_PX(REAL *val,REAL* x,REAL time) {
   REAL myu;
   truesol_2D_PX(&myu,x,time);
@@ -309,7 +330,14 @@ if(inparam.print_level > 3) {
     
   // Assemble the matrix without BC
   // Diffusion block
-  if(dim==2) {
+  if(dim==1) {
+    if(FE.FEtype>0 && FE.FEtype<10) { // PX
+      assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,rhs_1D_PX,diffusion_coeff,0.0);
+    } else {
+      status = ERROR_FE_TYPE;
+      check_error(status, __FUNCTION__);
+    }
+  } else if(dim==2) {
     if(FE.FEtype>0 && FE.FEtype<10) { // PX
       assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,rhs_2D_PX,diffusion_coeff,0.0);
     } else if(FE.FEtype==20) { // Nedelec
@@ -317,8 +345,8 @@ if(inparam.print_level > 3) {
     } else if(FE.FEtype==30) { // RT
       assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,rhs_2D_RT,diffusion_coeff,0.0);
     } else {
-      printf("Unsure of what elements you are using\n");
-      exit(0);
+      status = ERROR_FE_TYPE;
+      check_error(status, __FUNCTION__);
     }
   } else if(dim==3) {
     if(FE.FEtype>0 && FE.FEtype<10) { // PX
@@ -328,8 +356,8 @@ if(inparam.print_level > 3) {
     } else if(FE.FEtype==30) { // RT
       assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,rhs_3D_RT,diffusion_coeff,0.0);
     } else {
-      printf("Unsure of what elements you are using\n");
-      exit(0);
+      status = ERROR_FE_TYPE;
+      check_error(status, __FUNCTION__);
     }
   } else {
       status = ERROR_DIM;
@@ -345,7 +373,14 @@ if(inparam.print_level > 3) {
   dcsr_free(&Mass);
   
   // Eliminate Dirichlet BC
-  if(dim==2) {
+  if(dim==1) {
+    if(FE.FEtype>0 && FE.FEtype<10) { // PX
+      eliminate_DirichletBC(bc_1D_PX,&FE,&mesh,&b,&A,0.0);
+    } else {
+      status = ERROR_FE_TYPE;
+      check_error(status, __FUNCTION__);
+    }
+  } else if(dim==2) {
     if(FE.FEtype>0 && FE.FEtype<10) { // PX
       eliminate_DirichletBC(bc_2D_PX,&FE,&mesh,&b,&A,0.0);
     } else if(FE.FEtype==20) { // Nedelec
@@ -353,8 +388,8 @@ if(inparam.print_level > 3) {
     } else if(FE.FEtype==30) { // RT
       eliminate_DirichletBC(bc_2D_RT,&FE,&mesh,&b,&A,0.0);
     } else {
-      printf("Unsure of what elements you are using\n");
-      exit(0);
+      status = ERROR_FE_TYPE;
+      check_error(status, __FUNCTION__);
     }
   } else if(dim==3) {
     if(FE.FEtype>0 && FE.FEtype<10) { // PX
@@ -364,8 +399,8 @@ if(inparam.print_level > 3) {
     } else if(FE.FEtype==30) { // RT
       eliminate_DirichletBC(bc_3D_RT,&FE,&mesh,&b,&A,0.0);
     } else {
-      printf("Unsure of what elements you are using\n");
-      exit(0);
+      status = ERROR_FE_TYPE;
+      check_error(status, __FUNCTION__);
     }
   } else {
       status = ERROR_DIM;
@@ -485,7 +520,15 @@ if(inparam.print_level > 3) {
   clk2 = clock();
   REAL uerr=0.0;
   REAL graduerr=0.0;
-  if(dim==2) {
+  if(dim==1) {
+    if(FE.FEtype>0 && FE.FEtype<10) { // PX
+      uerr = L2error(u.val,truesol_1D_PX,&FE,&mesh,cq,0.0);
+      graduerr = HDsemierror(u.val,D_truesol_1D_PX,&FE,&mesh,cq,0.0);
+    } else {
+      status = ERROR_FE_TYPE;
+      check_error(status, __FUNCTION__);
+    }
+  } else if(dim==2) {
     if(FE.FEtype>0 && FE.FEtype<10) { // PX
       uerr = L2error(u.val,truesol_2D_PX,&FE,&mesh,cq,0.0);
       graduerr = HDsemierror(u.val,D_truesol_2D_PX,&FE,&mesh,cq,0.0);
@@ -496,8 +539,8 @@ if(inparam.print_level > 3) {
       uerr = L2error(u.val,truesol_2D_RT,&FE,&mesh,cq,0.0);
       graduerr = HDsemierror(u.val,D_truesol_2D_RT,&FE,&mesh,cq,0.0);
     } else {
-      printf("Unsure of what elements you are using\n");
-      exit(0);
+      status = ERROR_FE_TYPE;
+      check_error(status, __FUNCTION__);
     }
   } else if(dim==3) {
     if(FE.FEtype>0 && FE.FEtype<10) { // PX
@@ -510,8 +553,8 @@ if(inparam.print_level > 3) {
       uerr = L2error(u.val,truesol_3D_RT,&FE,&mesh,cq,0.0);
       graduerr = HDsemierror(u.val,D_truesol_3D_RT,&FE,&mesh,cq,0.0);
     } else {
-      printf("Unsure of what elements you are using\n");
-      exit(0);
+      status = ERROR_FE_TYPE;
+      check_error(status, __FUNCTION__);
     }
   } else {
       status = ERROR_DIM;

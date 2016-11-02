@@ -91,7 +91,7 @@
 /****************************************************************************************************************************/
 /* Compute Standard Lagrange Finite Element Basis Functions (PX) at a particular point in 1, 2 or 3D*/
 /* For now, we only assume constants, Linears or Quadratic Elements (P0 or P1 or P2) */
-void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL *x,INT *dof,INT porder,trimesh *mesh) 
+void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,trimesh *mesh)
 {
   /*
    *    INPUT:
@@ -102,7 +102,7 @@ void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL *x,INT *dof,INT pord
    *
    *    OUTPUT:
    *          p(v_per_elm)	  Basis functions at particular point (1 for each vertex)
-   *          dpx,dpy(3)	  Derivatives of basis functions at each vertex evaluated at given point
+   *          dp         	  Derivatives of basis functions at each vertex evaluated at given point
    */
 
 
@@ -144,15 +144,15 @@ void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL *x,INT *dof,INT pord
       if(porder==1) {
         p[0] = lam1;
         p[1] = lam2;
-        dpx[0] = -oneoverh;
-        dpx[1] = oneoverh;
+        dp[0] = -oneoverh;
+        dp[1] = oneoverh;
       } else if(porder==2) {
         p[0] = lam1*(2*lam1-1);
         p[1] = lam2*(2*lam2-1);
         p[2] = 4*lam1*lam2;
-        dpx[0] = -4*lam1*oneoverh + oneoverh - lam1;
-        dpx[1] = 4*lam2*oneoverh - oneoverh - lam2;
-        dpx[2] = 4*lam1*oneoverh - 4*lam2*oneoverh;
+        dp[0] = -4*lam1*oneoverh + oneoverh - lam1;
+        dp[1] = 4*lam2*oneoverh - oneoverh - lam2;
+        dp[2] = 4*lam1*oneoverh - 4*lam2*oneoverh;
       } else {
         status = ERROR_FE_TYPE;
         check_error(status, __FUNCTION__);
@@ -221,19 +221,19 @@ void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL *x,INT *dof,INT pord
       /*  We need to convert the derivative information from (R(X,Y),S(X,Y))
        *  to (X,Y) using the chain rule.
        */
-      dpx[0] = dp1r * drdx + dp1s * dsdx;
-      dpy[0] = dp1r * drdy + dp1s * dsdy;
-      dpx[1] = dp2r * drdx + dp2s * dsdx;
-      dpy[1] = dp2r * drdy + dp2s * dsdy;
-      dpx[2] = dp3r * drdx + dp3s * dsdx;
-      dpy[2] = dp3r * drdy + dp3s * dsdy;
+      dp[0*dim] = dp1r * drdx + dp1s * dsdx;
+      dp[0*dim+1] = dp1r * drdy + dp1s * dsdy;
+      dp[1*dim] = dp2r * drdx + dp2s * dsdx;
+      dp[1*dim+1] = dp2r * drdy + dp2s * dsdy;
+      dp[2*dim] = dp3r * drdx + dp3s * dsdx;
+      dp[2*dim+1] = dp3r * drdy + dp3s * dsdy;
       if(porder==2) {
-        dpx[3] = dp4r * drdx + dp4s * dsdx;
-        dpy[3] = dp4r * drdy + dp4s * dsdy;
-        dpx[4] = dp5r * drdx + dp5s * dsdx;
-        dpy[4] = dp5r * drdy + dp5s * dsdy;
-        dpx[5] = dp6r * drdx + dp6s * dsdx;
-        dpy[5] = dp6r * drdy + dp6s * dsdy;
+        dp[3*dim] = dp4r * drdx + dp4s * dsdx;
+        dp[3*dim+1] = dp4r * drdy + dp4s * dsdy;
+        dp[4*dim] = dp5r * drdx + dp5s * dsdx;
+        dp[4*dim+1] = dp5r * drdy + dp5s * dsdy;
+        dp[5*dim] = dp6r * drdx + dp6s * dsdx;
+        dp[5*dim+1] = dp6r * drdy + dp6s * dsdy;
       }
     } else if (dim==3) {
       // Get Nodes and Physical Coordinates
@@ -347,37 +347,37 @@ void PX_H1_basis(REAL *p,REAL *dpx,REAL *dpy,REAL *dpz,REAL *x,INT *dof,INT pord
       /*  We need to convert the derivative information from (R(X,Y),S(X,Y))
        *  to (X,Y) using the chain rule.
        */
-      dpx[0] = dp1r * drdx + dp1s * dsdx + dp1t * dtdx;
-      dpy[0] = dp1r * drdy + dp1s * dsdy + dp1t * dtdy;
-      dpz[0] = dp1r * drdz + dp1s * dsdz + dp1t * dtdz;
-      dpx[1] = dp2r * drdx + dp2s * dsdx + dp2t * dtdx;
-      dpy[1] = dp2r * drdy + dp2s * dsdy + dp2t * dtdy;
-      dpz[1] = dp2r * drdz + dp2s * dsdz + dp2t * dtdz;
-      dpx[2] = dp3r * drdx + dp3s * dsdx + dp3t * dtdx;
-      dpy[2] = dp3r * drdy + dp3s * dsdy + dp3t * dtdy;
-      dpz[2] = dp3r * drdz + dp3s * dsdz + dp3t * dtdz;
-      dpx[3] = dp4r * drdx + dp4s * dsdx + dp4t * dtdx;
-      dpy[3] = dp4r * drdy + dp4s * dsdy + dp4t * dtdy;
-      dpz[3] = dp4r * drdz + dp4s * dsdz + dp4t * dtdz;
+      dp[0*dim] = dp1r * drdx + dp1s * dsdx + dp1t * dtdx;
+      dp[0*dim+1] = dp1r * drdy + dp1s * dsdy + dp1t * dtdy;
+      dp[0*dim+2] = dp1r * drdz + dp1s * dsdz + dp1t * dtdz;
+      dp[1*dim] = dp2r * drdx + dp2s * dsdx + dp2t * dtdx;
+      dp[1*dim+1] = dp2r * drdy + dp2s * dsdy + dp2t * dtdy;
+      dp[1*dim+2] = dp2r * drdz + dp2s * dsdz + dp2t * dtdz;
+      dp[2*dim] = dp3r * drdx + dp3s * dsdx + dp3t * dtdx;
+      dp[2*dim+1] = dp3r * drdy + dp3s * dsdy + dp3t * dtdy;
+      dp[2*dim+2] = dp3r * drdz + dp3s * dsdz + dp3t * dtdz;
+      dp[3*dim] = dp4r * drdx + dp4s * dsdx + dp4t * dtdx;
+      dp[3*dim+1] = dp4r * drdy + dp4s * dsdy + dp4t * dtdy;
+      dp[3*dim+2] = dp4r * drdz + dp4s * dsdz + dp4t * dtdz;
       if(porder==2) {
-        dpx[4] = dp5r * drdx + dp5s * dsdx + dp5t * dtdx;
-        dpy[4] = dp5r * drdy + dp5s * dsdy + dp5t * dtdy;
-        dpz[4] = dp5r * drdz + dp5s * dsdz + dp5t * dtdz;
-        dpx[5] = dp6r * drdx + dp6s * dsdx + dp6t * dtdx;
-        dpy[5] = dp6r * drdy + dp6s * dsdy + dp6t * dtdy;
-        dpz[5] = dp6r * drdz + dp6s * dsdz + dp6t * dtdz;
-        dpx[6] = dp7r * drdx + dp7s * dsdx + dp7t * dtdx;
-        dpy[6] = dp7r * drdy + dp7s * dsdy + dp7t * dtdy;
-        dpz[6] = dp7r * drdz + dp7s * dsdz + dp7t * dtdz;
-        dpx[7] = dp8r * drdx + dp8s * dsdx + dp8t * dtdx;
-        dpy[7] = dp8r * drdy + dp8s * dsdy + dp8t * dtdy;
-        dpz[7] = dp8r * drdz + dp8s * dsdz + dp8t * dtdz;
-        dpx[8] = dp9r * drdx + dp9s * dsdx + dp9t * dtdx;
-        dpy[8] = dp9r * drdy + dp9s * dsdy + dp9t * dtdy;
-        dpz[8] = dp9r * drdz + dp9s * dsdz + dp9t * dtdz;
-        dpx[9] = dp10r * drdx + dp10s * dsdx + dp10t * dtdx;
-        dpy[9] = dp10r * drdy + dp10s * dsdy + dp10t * dtdy;
-        dpz[9] = dp10r * drdz + dp10s * dsdz + dp10t * dtdz;
+        dp[4*dim] = dp5r * drdx + dp5s * dsdx + dp5t * dtdx;
+        dp[4*dim+1] = dp5r * drdy + dp5s * dsdy + dp5t * dtdy;
+        dp[4*dim+2] = dp5r * drdz + dp5s * dsdz + dp5t * dtdz;
+        dp[5*dim] = dp6r * drdx + dp6s * dsdx + dp6t * dtdx;
+        dp[5*dim+1] = dp6r * drdy + dp6s * dsdy + dp6t * dtdy;
+        dp[5*dim+2] = dp6r * drdz + dp6s * dsdz + dp6t * dtdz;
+        dp[6*dim] = dp7r * drdx + dp7s * dsdx + dp7t * dtdx;
+        dp[6*dim+1] = dp7r * drdy + dp7s * dsdy + dp7t * dtdy;
+        dp[6*dim+2] = dp7r * drdz + dp7s * dsdz + dp7t * dtdz;
+        dp[7*dim] = dp8r * drdx + dp8s * dsdx + dp8t * dtdx;
+        dp[7*dim+1] = dp8r * drdy + dp8s * dsdy + dp8t * dtdy;
+        dp[7*dim+2] = dp8r * drdz + dp8s * dsdz + dp8t * dtdz;
+        dp[8*dim] = dp9r * drdx + dp9s * dsdx + dp9t * dtdx;
+        dp[8*dim+1] = dp9r * drdy + dp9s * dsdy + dp9t * dtdy;
+        dp[8*dim+2] = dp9r * drdz + dp9s * dsdz + dp9t * dtdz;
+        dp[9*dim] = dp10r * drdx + dp10s * dsdx + dp10t * dtdx;
+        dp[9*dim+1] = dp10r * drdy + dp10s * dsdy + dp10t * dtdy;
+        dp[9*dim+2] = dp10r * drdz + dp10s * dsdz + dp10t * dtdz;
       }
     } else {
         status = ERROR_DIM;
@@ -560,16 +560,12 @@ void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh
   INT mark1 = -1;
   INT mark2 = -1;
   REAL* p;
-  REAL* dpx;
-  REAL* dpy;
-  REAL* dpz=NULL;
+  REAL* dp;
 
   /* Get Linear Basis Functions for particular element */
   p = (REAL *) calloc(v_per_elm,sizeof(REAL));
-  dpx = (REAL *) calloc(v_per_elm,sizeof(REAL));
-  dpy = (REAL *) calloc(v_per_elm,sizeof(REAL));
-  if(dim==3) dpz = (REAL *) calloc(v_per_elm,sizeof(REAL));
-  PX_H1_basis(p,dpx,dpy,dpz,x,v_on_elm,1,mesh);
+  dp = (REAL *) calloc(v_per_elm*dim,sizeof(REAL));
+  PX_H1_basis(p,dp,x,v_on_elm,1,mesh);
 
   REAL elen;
 
@@ -603,9 +599,9 @@ void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh
       ilo = mark1;
     }
 
-    phi[i*dim+0] = elen*(p[ilo]*dpx[ihi] - p[ihi]*dpx[ilo]);
-    phi[i*dim+1] = elen*(p[ilo]*dpy[ihi] - p[ihi]*dpy[ilo]);
-    if(dim==3) phi[i*dim+2] = elen*(p[ilo]*dpz[ihi] - p[ihi]*dpz[ilo]);
+    phi[i*dim+0] = elen*(p[ilo]*dp[ihi*dim] - p[ihi]*dp[ilo*dim]);
+    phi[i*dim+1] = elen*(p[ilo]*dp[ihi*dim+1] - p[ihi]*dp[ilo*dim+1]);
+    if(dim==3) phi[i*dim+2] = elen*(p[ilo]*dp[ihi*dim+2] - p[ihi]*dp[ilo*dim+2]);
 
     /* Now compute Curls
      * In 2D curl v = (-dy,dx)*(v1,v2)^T = (dx,dy)(0 1;-1 0)(v1,v2)^T = div (Jv)
@@ -617,11 +613,11 @@ void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh
      */
 
     if(dim==2) {
-      cphi[i] = 2*elen*(dpx[ilo]*dpy[ihi] - dpy[ilo]*dpx[ihi]);
+      cphi[i] = 2*elen*(dp[ilo*dim]*dp[ihi*dim+1] - dp[ilo*dim+1]*dp[ihi*dim]);
     } else if(dim==3) {
-      cphi[i*dim+0] = 2*elen*(dpy[ilo]*dpz[ihi]-dpy[ihi]*dpz[ilo]);
-      cphi[i*dim+1] = 2*elen*(dpx[ihi]*dpz[ilo]-dpx[ilo]*dpz[ihi]);
-      cphi[i*dim+2] = 2*elen*(dpx[ilo]*dpy[ihi]-dpx[ihi]*dpy[ilo]);
+      cphi[i*dim+0] = 2*elen*(dp[ilo*dim+1]*dp[ihi*dim+2]-dp[ihi*dim+1]*dp[ilo*dim+2]);
+      cphi[i*dim+1] = 2*elen*(dp[ihi*dim]*dp[ilo*dim+2]-dp[ilo*dim]*dp[ihi*dim+2]);
+      cphi[i*dim+2] = 2*elen*(dp[ilo*dim]*dp[ihi*dim+1]-dp[ihi*dim]*dp[ilo*dim+1]);
     } else {
         status = ERROR_DIM;
         check_error(status, __FUNCTION__);
@@ -629,9 +625,7 @@ void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh
   }
 
   if(p) free(p);
-  if(dpx) free(dpx);
-  if(dpy) free(dpy);
-  if(dpz) free(dpz);
+  if(dp) free(dp);
 
   return;
 }
@@ -661,9 +655,7 @@ void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
 
   INT i,j,ica,icb,jcnt;
   REAL* p;
-  REAL* dpx;
-  REAL* dpy;
-  REAL* dpz=NULL;
+  REAL* dp;
   INT* ipf = (INT *) calloc(dim,sizeof(INT));
   INT myf;
   REAL farea;
@@ -671,10 +663,8 @@ void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
 
   /* Get Linear Basis Functions for particular element */
   p = (REAL *) calloc(v_per_elm,sizeof(REAL));
-  dpx = (REAL *) calloc(v_per_elm,sizeof(REAL));
-  dpy = (REAL *) calloc(v_per_elm,sizeof(REAL));
-  if(dim==3) dpz = (REAL *) calloc(v_per_elm,sizeof(REAL));
-  PX_H1_basis(p,dpx,dpy,dpz,x,v_on_elm,1,mesh);
+  dp = (REAL *) calloc(v_per_elm*dim,sizeof(REAL));
+  PX_H1_basis(p,dp,x,v_on_elm,1,mesh);
 
   // Go through each face and find the corresponding nodes
   if(dim==2) {
@@ -706,11 +696,11 @@ void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
        * phi_fij = |fij|*(p(i)curl(p(j)) - p(j)curl(p(i)))
        * |fij| = |eij|
        */
-      phi[i*dim+0] = farea*(p[ef1]*dpy[ef2] - p[ef2]*dpy[ef1]);
-      phi[i*dim+1] = farea*(-p[ef1]*dpx[ef2] + p[ef2]*dpx[ef1]);
+      phi[i*dim+0] = farea*(p[ef1]*dp[ef2*dim+1] - p[ef2]*dp[ef1*dim+1]);
+      phi[i*dim+1] = farea*(-p[ef1]*dp[ef2*dim] + p[ef2]*dp[ef1*dim]);
 
       // Compute divs div(phi_fij) = 2*|fij|(dx(p(i))*dy(p(j)) - dx(p(j))*dy(p(i)))
-      dphi[i] = 2*farea*(dpx[ef1]*dpy[ef2] - dpx[ef2]*dpy[ef1]);
+      dphi[i] = 2*farea*(dp[ef1*dim]*dp[ef2*dim+1] - dp[ef2*dim]*dp[ef1*dim+1]);
     }
   } else if(dim==3) {
     for (i=0; i<f_per_elm; i++) {
@@ -744,16 +734,20 @@ void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
        * phi_fijk = 6*|fijk|*(p(i)(grad(p(j)) x grad(p(k))) - p(j)(grad(p(k)) x grad(p(i))) + p(k)(grad(p(i)) x grad(p(j))))
        * |fijk| = Area(Face)
        */
-      phi[i*dim+0] = 2*farea*(p[ef1]*(dpy[ef2]*dpz[ef3]-dpz[ef2]*dpy[ef3]) + p[ef2]*(dpy[ef3]*dpz[ef1]-dpz[ef3]*dpy[ef1]) + \
-                              p[ef3]*(dpy[ef1]*dpz[ef2]-dpz[ef1]*dpy[ef2]));
-      phi[i*dim+1] = 2*farea*(p[ef1]*(dpz[ef2]*dpx[ef3]-dpx[ef2]*dpz[ef3]) + p[ef2]*(dpz[ef3]*dpx[ef1]-dpx[ef3]*dpz[ef1]) + \
-                              p[ef3]*(dpz[ef1]*dpx[ef2]-dpx[ef1]*dpz[ef2]));
-      phi[i*dim+2] = 2*farea*(p[ef1]*(dpx[ef2]*dpy[ef3]-dpy[ef2]*dpx[ef3]) + p[ef2]*(dpx[ef3]*dpy[ef1]-dpy[ef3]*dpx[ef1]) + \
-                              p[ef3]*(dpx[ef1]*dpy[ef2]-dpy[ef1]*dpx[ef2]));
+      phi[i*dim+0] = 2*farea*(p[ef1]*(dp[ef2*dim+1]*dp[ef3*dim+2]-dp[ef2*dim+2]*dp[ef3*dim+1])
+          + p[ef2]*(dp[ef3*dim+1]*dp[ef1*dim+2]-dp[ef3*dim+2]*dp[ef1*dim+1])
+          + p[ef3]*(dp[ef1*dim+1]*dp[ef2*dim+2]-dp[ef1*dim+2]*dp[ef2*dim+1]));
+      phi[i*dim+1] = 2*farea*(p[ef1]*(dp[ef2*dim+2]*dp[ef3*dim]-dp[ef2*dim]*dp[ef3*dim+2])
+          + p[ef2]*(dp[ef3*dim+2]*dp[ef1*dim]-dp[ef3*dim]*dp[ef1*dim+2])
+          + p[ef3]*(dp[ef1*dim+2]*dp[ef2*dim]-dp[ef1*dim]*dp[ef2*dim+2]));
+      phi[i*dim+2] = 2*farea*(p[ef1]*(dp[ef2*dim]*dp[ef3*dim+1]-dp[ef2*dim+1]*dp[ef3*dim])
+          + p[ef2]*(dp[ef3*dim]*dp[ef1*dim+1]-dp[ef3*dim+1]*dp[ef1*dim])
+          + p[ef3]*(dp[ef1*dim]*dp[ef2*dim+1]-dp[ef1*dim+1]*dp[ef2*dim]));
 
       // Compute divs div(phi_fij) = 2*|fij|(dx(p(i))*dy(p(j)) - dx(p(j))*dy(p(i)))
-      dphi[i] = 6*farea*(dpx[ef1]*(dpy[ef2]*dpz[ef3]-dpz[ef2]*dpy[ef3]) + dpy[ef1]*(dpz[ef2]*dpx[ef3]-dpx[ef2]*dpz[ef3]) + \
-                         dpz[ef1]*(dpx[ef2]*dpy[ef3]-dpy[ef2]*dpx[ef3]));
+      dphi[i] = 6*farea*(dp[ef1*dim]*(dp[ef2*dim+1]*dp[ef3*dim+2]-dp[ef2*dim+2]*dp[ef3*dim+1])
+          + dp[ef1*dim+1]*(dp[ef2*dim+2]*dp[ef3*dim]-dp[ef2*dim]*dp[ef3*dim+2])
+          + dp[ef1*dim+2]*(dp[ef2*dim]*dp[ef3*dim+1]-dp[ef2*dim+1]*dp[ef3*dim]));
     }
   } else {
       status = ERROR_DIM;
@@ -761,9 +755,7 @@ void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
   }
 
   if(p) free(p);
-  if(dpx) free(dpx);
-  if(dpy) free(dpy);
-  if(dpz) free(dpz);
+  if(dp) free(dp);
   if(ipf) free(ipf);
 
   return;
@@ -795,9 +787,7 @@ void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof
   INT i,j,ica,icb,jcnt;
   REAL a1,a2,a3,a4;
   REAL* p;
-  REAL* dpx;
-  REAL* dpy;
-  REAL* dpz=NULL;
+  REAL* dp;
   INT* ipf = (INT *) calloc(dim,sizeof(INT));
   INT myf;
   REAL farea;
@@ -805,10 +795,8 @@ void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof
 
   /* Get Linear Basis Functions for particular element */
   p = (REAL *) calloc(v_per_elm,sizeof(REAL));
-  dpx = (REAL *) calloc(v_per_elm,sizeof(REAL));
-  dpy = (REAL *) calloc(v_per_elm,sizeof(REAL));
-  if(dim==3) dpz = (REAL *) calloc(v_per_elm,sizeof(REAL));
-  PX_H1_basis(p,dpx,dpy,dpz,x,v_on_elm,1,mesh);
+  dp = (REAL *) calloc(v_per_elm*dim,sizeof(REAL));
+  PX_H1_basis(p,dp,x,v_on_elm,1,mesh);
 
   // Go through each face and find the corresponding nodes
   if(dim==2) {
@@ -841,15 +829,15 @@ void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof
        * psi_fij = alpha*|fij|*curl(p(i)p(j))
        * |fij| = |eij|
        */
-      phi[i*dim*2] = farea*(p[ef1]*dpy[ef2] - p[ef2]*dpy[ef1]);
-      phi[i*dim*2+1] = farea*(-p[ef1]*dpx[ef2] + p[ef2]*dpx[ef1]);
-      phi[i*dim*2+2] = -6*farea*(p[ef1]*dpy[ef2] + p[ef2]*dpy[ef2]);
-      phi[i*dim*2+3] = 6*farea*(p[ef1]*dpx[ef2] + p[ef2]*dpx[ef2]);
+      phi[i*dim*2] = farea*(p[ef1]*dp[ef2*dim+1] - p[ef2]*dp[ef1*dim+1]);
+      phi[i*dim*2+1] = farea*(-p[ef1]*dp[ef2*dim] + p[ef2]*dp[ef1*dim]);
+      phi[i*dim*2+2] = -6*farea*(p[ef1]*dp[ef2*dim+1] + p[ef2]*dp[ef2*dim+1]);
+      phi[i*dim*2+3] = 6*farea*(p[ef1]*dp[ef2*dim] + p[ef2]*dp[ef2*dim]);
 
-      a1 = dpx[ef1]*dpx[ef2];
-      a2 = dpx[ef1]*dpy[ef2];
-      a3 = dpy[ef1]*dpx[ef2];
-      a4 = dpy[ef1]*dpy[ef2];
+      a1 = dp[ef1*dim]*dp[ef2*dim];
+      a2 = dp[ef1*dim]*dp[ef2*dim+1];
+      a3 = dp[ef1*dim+1]*dp[ef2*dim];
+      a4 = dp[ef1*dim+1]*dp[ef2*dim+1];
 
       dphix[i*dim*2] = farea*(a2-a3);
       dphix[i*dim*2+1] = 0.0;
@@ -866,10 +854,7 @@ void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof
   }
 
   if(p) free(p);
-  if(dpx) free(dpx);
-  if(dpy) free(dpy);
-  if(ipf) free(ipf);
-  if(dpz) free(dpz);
+  if(dp) free(dp);
 
   return;
 }

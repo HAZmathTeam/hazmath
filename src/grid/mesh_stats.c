@@ -612,10 +612,7 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,trimesh *mesh
   // Element Node Stuff
   INT* myel_n = (INT *) calloc(el_order,sizeof(INT));
   REAL* p = (REAL *) calloc(el_order,sizeof(REAL));
-  REAL* dpx = (REAL *) calloc(el_order,sizeof(REAL));
-  REAL* dpy = (REAL *) calloc(el_order,sizeof(REAL));
-  REAL* dpz=NULL;
-  if(dim==3) { dpz = (REAL *) calloc(el_order,sizeof(REAL)); }
+  REAL* dp = (REAL *) calloc(el_order*dim,sizeof(REAL));
   REAL grad_mag,e1x,e1y,e1z,e2x,e2y,e2z;
   
   /* Get Face to Element Map */
@@ -697,16 +694,16 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,trimesh *mesh
 
     // Compute Normal Vectors based on opposite node
     // Get Linear Basis Functions for particular element
-    PX_H1_basis(p,dpx,dpy,dpz,myx,myel_n,1,mesh);
-    grad_mag = dpx[myopn]*dpx[myopn]+dpy[myopn]*dpy[myopn];
+    PX_H1_basis(p,dp,myx,myel_n,1,mesh);
+    grad_mag = dp[myopn*dim]*dp[myopn*dim]+dp[myopn*dim+1]*dp[myopn*dim+1];
     if(dim==3) {
-      grad_mag = grad_mag + dpz[myopn]*dpz[myopn];
+      grad_mag += dp[myopn*dim+2]*dp[myopn*dim+2];
     }
     grad_mag = -sqrt(grad_mag);
-    f_norm[i*dim] = dpx[myopn]/grad_mag;
-    f_norm[i*dim+1] = dpy[myopn]/grad_mag;
+    f_norm[i*dim] = dp[myopn*dim]/grad_mag;
+    f_norm[i*dim+1] = dp[myopn*dim+1]/grad_mag;
     if(dim==3) {
-      f_norm[i*dim+2] = dpz[myopn]/grad_mag;
+      f_norm[i*dim+2] = dp[myopn*dim+2]/grad_mag;
     }
   }
 
@@ -716,13 +713,11 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,trimesh *mesh
   if(yf) free(yf);
   if(myx) free(myx);
   if(p) free(p);
-  if(dpx) free(dpx);
-  if(dpy) free(dpy);
+  if(dp) free(dp);
   if(op_n) free(op_n);
   if(ie) free(ie);
   if(myel_n) free(myel_n);
   if(dim==3) {
-    if(dpz) free(dpz);
     if(zf) free(zf);
   }
 
