@@ -1,6 +1,6 @@
 /*! \file src/utilities/coefficient.c
  *
- *  \brief This code create generic functions for coefficients that are commonly used
+ *  \brief This code creates generic functions for coefficients that are commonly used
  *        such as zero scalars and vectors and coefficients of 1.
  *  
  *  Created by James Adler and Xiaozhe Hu on 2/22/16.
