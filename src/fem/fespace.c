@@ -1,5 +1,5 @@
 /*! \file src/fem/fespace.c
- *  
+ *
  *
  *  Created by James Adler on 2/17/15.
  *  Copyright 2015__HAZMAT__. All rights reserved.
@@ -25,7 +25,7 @@ void initialize_fespace(fespace *FE)
   FE->ed_dof = NULL;
   FE->f_dof = NULL;
   FE->dof_bdry = NULL;
-      
+
   return;
 }
 /**************************************************************************************************************************************************/
@@ -34,6 +34,9 @@ void initialize_fespace(fespace *FE)
 void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
 {
   /* allocates memory and properties of fespace struct */
+
+  // flag for errors
+  SHORT status;
 
   // Initialize First for good mesure
   initialize_fespace(FE);
@@ -45,19 +48,22 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
   switch (FEtype)
   {
   case 0: // Contants - P0
-      FE->ndof = mesh->nelm;
-      coordinates *barycenter = allocatecoords(mesh->nelm,dim);
-      for (INT i=0; i<mesh->nelm; i++) {
-          barycenter->x[i] = mesh->el_mid[i*dim];
-          barycenter->y[i] = mesh->el_mid[i*dim + 1];
-          if (mesh->dim>2) { barycenter->z[i] = mesh->el_mid[i*dim + 2]; }
-      }
-      FE->cdof = barycenter;
-      FE->nbdof = 0;
-      FE->dof_per_elm = 1;
-      iCSRmat el_el = icsr_create_identity(mesh->nelm, 1);
-      FE->el_dof = malloc(sizeof(struct iCSRmat));
-      *(FE->el_dof) = el_el;
+    FE->ndof = mesh->nelm;
+    coordinates *barycenter = allocatecoords(mesh->nelm,dim);
+    for (INT i=0; i<mesh->nelm; i++) {
+      barycenter->x[i] = mesh->el_mid[i*dim];
+      if(mesh->dim>1)
+        barycenter->y[i] = mesh->el_mid[i*dim + 1];
+      if (mesh->dim>2)
+        barycenter->z[i] = mesh->el_mid[i*dim + 2];
+    }
+    FE->cdof = barycenter;
+    FE->nbdof = 0;
+    FE->dof_per_elm = 1;
+    iCSRmat el_el = icsr_create_identity(mesh->nelm, 1);
+    FE->el_dof = malloc(sizeof(struct iCSRmat));
+    *(FE->el_dof) = el_el;
+    if(mesh->dim>1) {
       iCSRmat ed_el;
       icsr_trans_1(mesh->el_ed,&ed_el);
       FE->ed_dof = malloc(sizeof(struct iCSRmat));
@@ -66,59 +72,64 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
       icsr_trans_1(mesh->el_f,&f_el);
       FE->f_dof = malloc(sizeof(struct iCSRmat));
       *(FE->f_dof) = f_el;
-      INT* el_bdry = (INT *) calloc(mesh->nelm,sizeof(INT));
-      for(INT i=0;i<mesh->nelm;i++) el_bdry[i] = 0;
-      FE->dof_bdry = el_bdry;
-      break;
+    }
+    INT* el_bdry = (INT *) calloc(mesh->nelm,sizeof(INT));
+    for(INT i=0;i<mesh->nelm;i++) el_bdry[i] = 0;
+    FE->dof_bdry = el_bdry;
+    break;
   case 1: // Linears - P1
-      FE->cdof = mesh->cv;
-      FE->ndof = mesh->nv;
-      FE->nbdof = mesh->nbv;
-      FE->dof_per_elm = mesh->v_per_elm;
-      FE->el_dof = mesh->el_v;
+    FE->cdof = mesh->cv;
+    FE->ndof = mesh->nv;
+    FE->nbdof = mesh->nbv;
+    FE->dof_per_elm = mesh->v_per_elm;
+    FE->el_dof = mesh->el_v;
+    if(mesh->dim>1) {
       FE->ed_dof = mesh->ed_v;
       FE->f_dof = mesh->f_v;
-      FE->dof_bdry = mesh->v_bdry;
-      break;
+    }
+    FE->dof_bdry = mesh->v_bdry;
+    break;
   case 2: // Quadratics - P2
-      FE->ndof = mesh->nv + mesh->nedge;
-      FE->nbdof = mesh->nbv + mesh->nbedge;
-      FE->dof_per_elm = mesh->v_per_elm + mesh->ed_per_elm;
-      FE->el_dof = malloc(sizeof(struct iCSRmat));
+    FE->ndof = mesh->nv + mesh->nedge;
+    FE->nbdof = mesh->nbv + mesh->nbedge;
+    FE->dof_per_elm = mesh->v_per_elm + mesh->ed_per_elm;
+    FE->el_dof = malloc(sizeof(struct iCSRmat));
+    if(mesh->dim>1) {
       FE->ed_dof = malloc(sizeof(struct iCSRmat));
       FE->f_dof = malloc(sizeof(struct iCSRmat));
-      get_P2(FE,mesh);
-      break;
+    }
+    get_P2(FE,mesh);
+    break;
   case 20: // Nedelec Elements
-      FE->cdof = NULL;
-      FE->ndof = mesh->nedge;
-      FE->nbdof = mesh->nbedge;
-      FE->dof_per_elm = mesh->ed_per_elm;
-      FE->el_dof = mesh->el_ed;
-      iCSRmat ed_ed = icsr_create_identity(mesh->nedge, 1);
-      FE->ed_dof = malloc(sizeof(struct iCSRmat));
-      *(FE->ed_dof) = ed_ed;
-      FE->f_dof = mesh->f_ed;
-      FE->dof_bdry = mesh->ed_bdry;
-      break;
+    FE->cdof = NULL;
+    FE->ndof = mesh->nedge;
+    FE->nbdof = mesh->nbedge;
+    FE->dof_per_elm = mesh->ed_per_elm;
+    FE->el_dof = mesh->el_ed;
+    iCSRmat ed_ed = icsr_create_identity(mesh->nedge, 1);
+    FE->ed_dof = malloc(sizeof(struct iCSRmat));
+    *(FE->ed_dof) = ed_ed;
+    FE->f_dof = mesh->f_ed;
+    FE->dof_bdry = mesh->ed_bdry;
+    break;
   case 30: // Raviart-Thomas Elements
-      FE->cdof = NULL;
-      FE->ndof = mesh->nface;
-      FE->nbdof = mesh->nbface;
-      FE->dof_per_elm = mesh->f_per_elm;
-      FE->el_dof = mesh->el_f;
-      iCSRmat ed_f;
-      icsr_trans_1(mesh->f_ed,&ed_f);
-      FE->ed_dof = malloc(sizeof(struct iCSRmat));
-      *(FE->ed_dof) = ed_f;
-      iCSRmat f_f = icsr_create_identity(mesh->nface, 1);
-      FE->f_dof = malloc(sizeof(struct iCSRmat));
-      *(FE->f_dof) = f_f;
-      FE->dof_bdry = mesh->f_bdry;
-      break;
+    FE->cdof = NULL;
+    FE->ndof = mesh->nface;
+    FE->nbdof = mesh->nbface;
+    FE->dof_per_elm = mesh->f_per_elm;
+    FE->el_dof = mesh->el_f;
+    iCSRmat ed_f;
+    icsr_trans_1(mesh->f_ed,&ed_f);
+    FE->ed_dof = malloc(sizeof(struct iCSRmat));
+    *(FE->ed_dof) = ed_f;
+    iCSRmat f_f = icsr_create_identity(mesh->nface, 1);
+    FE->f_dof = malloc(sizeof(struct iCSRmat));
+    *(FE->f_dof) = f_f;
+    FE->dof_bdry = mesh->f_bdry;
+    break;
   default:
-      printf("You haven't defined a finite-element space that I understand :-(");
-      exit(0);
+    status = ERROR_FE_TYPE;
+    check_error(status, __FUNCTION__);
   }
   
   return;
@@ -169,15 +180,15 @@ void free_blockfespace(block_fespace* FE)
   /* frees memory of arrays of block_fespace struct */
 
   if (FE == NULL) return; // Nothing need to be freed!
-    
+
   INT i;
   INT num_spaces = (FE->nspaces);
-    
+
   for ( i=0; i<num_spaces; i++ ) {
     free_fespace(FE->var_spaces[i]);
     FE->var_spaces[i] = NULL;
   }
-    
+
   free(FE->var_spaces);
   FE->var_spaces = NULL;
 
@@ -194,9 +205,9 @@ void free_blockfespace(block_fespace* FE)
 /***********************************************************************************************/
 void get_P2(fespace* FE,trimesh* mesh) 
 {
-	
+
   /* Converts Node Coordinate and Element to Node maps to higher orders (just P2 for now) */
-	
+
   INT i,j,k,s,jcntr;  /* Loop Indices */
   INT n1,n2,n3,va,vb,ea,eb,v1,v2,mye,ed,na,ed1,ed2,face;
 
@@ -209,33 +220,50 @@ void get_P2(fespace* FE,trimesh* mesh)
   INT nelm = mesh->nelm;
   INT v_per_elm = mesh->v_per_elm;
   iCSRmat *el_v = mesh->el_v;
-  iCSRmat *el_ed = mesh->el_ed;
-  iCSRmat *ed_v = mesh->ed_v;
-  iCSRmat *f_v = mesh->f_v;
-  iCSRmat *f_ed = mesh->f_ed;
-	
+  iCSRmat *el_ed = NULL;
+  iCSRmat *ed_v = NULL;
+  iCSRmat *f_v = NULL;
+  iCSRmat *f_ed = NULL;
+
+  if(dim>1) {
+    el_ed = mesh->el_ed;
+    ed_v = mesh->ed_v;
+    f_v = mesh->f_v;
+    f_ed = mesh->f_ed;
+  }
+
   INT* ipv = (INT *) calloc(mesh->v_per_elm,sizeof(INT));
-	
+
   // Get Coordinates
-  coordinates *cdof = allocatecoords(ndof,dim);	
+  coordinates *cdof = allocatecoords(ndof,dim);
 
   // First go through all vertices.
   for (i=0; i<nv; i++) {
     cdof->x[i] = mesh->cv->x[i];
-    cdof->y[i] = mesh->cv->y[i];
-    if (dim>2) { cdof->z[i] = mesh->cv->z[i]; }
+    if(dim>1)
+      cdof->y[i] = mesh->cv->y[i];
+    if (dim>2)
+      cdof->z[i] = mesh->cv->z[i];
   }
   // Now, go through and add extra nodes
-  // These are simply the midpoints of the edges
   s = nv;
-  for (i=0; i<nedge; i++) {
-    ed = ed_v->IA[i]-1;
-    n1 = ed_v->JA[ed]-1;
-    n2 = ed_v->JA[ed+1]-1;
-    cdof->x[s] = 0.5*(mesh->cv->x[n1]+mesh->cv->x[n2]);
-    cdof->y[s] = 0.5*(mesh->cv->y[n1]+mesh->cv->y[n2]);
-    if (dim>2) { cdof->z[s] = 0.5*(mesh->cv->z[n1]+mesh->cv->z[n2]); }
-    s++;
+
+  // In 1D this is just the midpoint of the elements
+  if(dim==1) {
+    for(i=0;i<nelm;i++) {
+      cdof->x[s] = mesh->el_mid[i];
+      s++;
+    }
+  } else { // In 2D or 3D, these are simply the midpoints of the edges
+    for (i=0; i<nedge; i++) {
+      ed = ed_v->IA[i]-1;
+      n1 = ed_v->JA[ed]-1;
+      n2 = ed_v->JA[ed+1]-1;
+      cdof->x[s] = 0.5*(mesh->cv->x[n1]+mesh->cv->x[n2]);
+      cdof->y[s] = 0.5*(mesh->cv->y[n1]+mesh->cv->y[n2]);
+      if (dim>2) { cdof->z[s] = 0.5*(mesh->cv->z[n1]+mesh->cv->z[n2]); }
+      s++;
+    }
   }
   
   // Get Element to Node map
@@ -245,94 +273,118 @@ void get_P2(fespace* FE,trimesh* mesh)
     el_n.IA[i] = dof_per_elm*i + 1;
   }
   // Columns
-  for(i=0;i<nelm;i++) {
-    va = el_v->IA[i]-1;
-    vb = el_v->IA[i+1]-1;
-    ea = el_ed->IA[i]-1;
-    eb = el_ed->IA[i+1]-1;
-    na = el_n.IA[i]-1;
-    jcntr = 0;
-    for(j=va;j<vb;j++) {
-      ipv[jcntr] = el_v->JA[j];
-      el_n.JA[na+jcntr] = ipv[jcntr];
-      jcntr++;
+  // In 1D just add the midpoint of elements
+  if(dim==1) {
+    for(i=0;i<nelm;i++) {
+      va = el_v->IA[i]-1;
+      vb = el_v->IA[i+1]-1;
+      na = el_n.IA[i]-1;
+      jcntr = 0;
+      for(j=va;j<vb;j++) {
+        el_n.JA[na+jcntr] = el_v->JA[j];
+        jcntr++;
+      }
+      el_n.JA[na+jcntr] = nv+i+1;
     }
-    for (j=0;j<v_per_elm;j++) {
-      for (k=j+1;k<v_per_elm;k++) {
-	v1 = ipv[j];
-	v2 = ipv[k];
-	for(s=ea;s<eb;s++) {
-	  mye = el_ed->JA[s];
-	  n1 = ed_v->JA[ed_v->IA[mye-1]-1];
-	  n2 = ed_v->JA[ed_v->IA[mye-1]];
-	  if ((n1==v1 && n2==v2) || (n2==v1 && n1==v2)) {
-	    el_n.JA[v_per_elm+na] = mye+nv;
-	    na++;
-	  }
-	}
-      }			
+  } else {
+    // For 2D or 3D we add the midpoint of the edges
+    for(i=0;i<nelm;i++) {
+      va = el_v->IA[i]-1;
+      vb = el_v->IA[i+1]-1;
+      ea = el_ed->IA[i]-1;
+      eb = el_ed->IA[i+1]-1;
+      na = el_n.IA[i]-1;
+      jcntr = 0;
+      for(j=va;j<vb;j++) {
+        ipv[jcntr] = el_v->JA[j];
+        el_n.JA[na+jcntr] = ipv[jcntr];
+        jcntr++;
+      }
+      for (j=0;j<v_per_elm;j++) {
+        for (k=j+1;k<v_per_elm;k++) {
+          v1 = ipv[j];
+          v2 = ipv[k];
+          for(s=ea;s<eb;s++) {
+            mye = el_ed->JA[s];
+            n1 = ed_v->JA[ed_v->IA[mye-1]-1];
+            n2 = ed_v->JA[ed_v->IA[mye-1]];
+            if ((n1==v1 && n2==v2) || (n2==v1 && n1==v2)) {
+              el_n.JA[v_per_elm+na] = mye+nv;
+              na++;
+            }
+          }
+        }
+      }
     }
   }
-	
+
   // Fix Boundaries
   INT* dof_bdry = (INT *) calloc(ndof,sizeof(INT));
   // First set of nodes are vertices
   for (i=0; i<nv; i++) {
     dof_bdry[i] = mesh->v_bdry[i];
   }
-  // Rest are edges
-  for(i=0;i<nedge;i++) {
-    dof_bdry[nv+i] = mesh->ed_bdry[i];
+  // In 1D rest are interior
+  if(dim==1) {
+    for(i=0;i<nelm;i++)
+      dof_bdry[nv+i] = 0;
+  } else {
+    // In 2D or 3D, rest are edges
+    for(i=0;i<nedge;i++) {
+      dof_bdry[nv+i] = mesh->ed_bdry[i];
+    }
   }
 
   // Get edge to DOF map
-  iCSRmat ed_n = icsr_create(nedge,ndof,3*nedge);
-  s = nv+1;
-  for (i=0; i<nedge; i++) {
-    ed = ed_v->IA[i]-1;
-    ed_n.IA[i] = ed+1+i;
-    n1 = ed_v->JA[ed]-1;
-    n2 = ed_v->JA[ed+1]-1;
-    ed_n.JA[ed+i] = n1+1;
-    ed_n.JA[ed+1+i] = n2+1;
-    ed_n.JA[ed+2+i] = s;
-    s++;
-  }
-  ed_n.IA[nedge] = 3*nedge+1;
-
-  // Get face to DOF map
-  INT n_per_f = 3*(dim-1);
-  INT extra_n = 2*dim-3;
-  iCSRmat f_n = icsr_create(nface,ndof,n_per_f*nface);
-  
-  for (i=0; i<nface; i++) {
-    face = f_v->IA[i]-1;
-    f_n.IA[i] = face+1+(2*dim-3)*i;
-    n1 = f_v->JA[face]-1;
-    n2 = f_v->JA[face+1]-1;
-    if(dim==3) n3 = f_v->JA[face+2]-1;
-    f_n.JA[face+extra_n*i] = n1+1;
-    f_n.JA[face+extra_n*i+1] = n2+1;
-    if(dim==3) f_n.JA[face+extra_n*i+2] = n3+1;
-    // Fill in rest with edge numbers
-    ed1 = f_ed->IA[i]-1;
-    ed2 = f_ed->IA[i+1]-1;
-    jcntr = 0;
-    for(j=ed1;j<ed2;j++) {
-      f_n.JA[face+extra_n*i+dim+jcntr] = f_ed->JA[j]+nv;
-      jcntr++;
+  if(dim>1) {
+    iCSRmat ed_n = icsr_create(nedge,ndof,3*nedge);
+    s = nv+1;
+    for (i=0; i<nedge; i++) {
+      ed = ed_v->IA[i]-1;
+      ed_n.IA[i] = ed+1+i;
+      n1 = ed_v->JA[ed]-1;
+      n2 = ed_v->JA[ed+1]-1;
+      ed_n.JA[ed+i] = n1+1;
+      ed_n.JA[ed+1+i] = n2+1;
+      ed_n.JA[ed+2+i] = s;
+      s++;
     }
+    ed_n.IA[nedge] = 3*nedge+1;
+
+    // Get face to DOF map
+    INT n_per_f = 3*(dim-1);
+    INT extra_n = 2*dim-3;
+    iCSRmat f_n = icsr_create(nface,ndof,n_per_f*nface);
+
+    for (i=0; i<nface; i++) {
+      face = f_v->IA[i]-1;
+      f_n.IA[i] = face+1+(2*dim-3)*i;
+      n1 = f_v->JA[face]-1;
+      n2 = f_v->JA[face+1]-1;
+      if(dim==3) n3 = f_v->JA[face+2]-1;
+      f_n.JA[face+extra_n*i] = n1+1;
+      f_n.JA[face+extra_n*i+1] = n2+1;
+      if(dim==3) f_n.JA[face+extra_n*i+2] = n3+1;
+      // Fill in rest with edge numbers
+      ed1 = f_ed->IA[i]-1;
+      ed2 = f_ed->IA[i+1]-1;
+      jcntr = 0;
+      for(j=ed1;j<ed2;j++) {
+        f_n.JA[face+extra_n*i+dim+jcntr] = f_ed->JA[j]+nv;
+        jcntr++;
+      }
+    }
+    f_n.IA[nface] = n_per_f*nedge+1;
+    *(FE->ed_dof) = ed_n;
+    *(FE->f_dof) = f_n;
   }
-  f_n.IA[nface] = n_per_f*nedge+1;
-	
+
   FE->dof_bdry = dof_bdry;
   *(FE->el_dof) = el_n;
-  *(FE->ed_dof) = ed_n;
-  *(FE->f_dof) = f_n;
   FE->cdof = cdof;
   
   if(ipv) free(ipv);
-	
+
   return;
 }
 /******************************************************************************************/
@@ -342,16 +394,16 @@ void dump_el_dof(FILE* fid,iCSRmat *el_dof)
 {
   /* Dump the element to DOF map to file for plotting purposes
    *
-   * Input:		
+   * Input:
    *          el_dof:      Element to DOF map
    *
-   * Output:		
+   * Output:
    *          coord.dat:    coord(nelm,dof_per_elm)  coordinates of nodes
    *
    */
-	
+
   INT i,j,acol,bcol; /* Loop Indices */
-		
+
   for (i=0; i<el_dof->row; i++) {
     acol = el_dof->IA[i]-1;
     bcol = el_dof->IA[i+1]-1;
@@ -360,7 +412,7 @@ void dump_el_dof(FILE* fid,iCSRmat *el_dof)
     }
     fprintf(fid,"\n");
   }
-   		
+
   return;
 }
 /****************************************************************************************/
@@ -370,16 +422,16 @@ void dump_fespace(fespace *FE,char *varname,char *dir)
 {
   /* Dump the mesh data to file for plotting purposes
    *
-   * Input:		
+   * Input:
    *	      FE:   Finite-element space
    *     varname:   String to name files
    *
-   * Output:		
+   * Output:
    *   	      el_dof.dat    el_nd(nelm,dof_per_elm) Elements for each node
    *          bdry.dat      bdry(ndof) Indicates whether dof is on boundary
    *
    */
-	
+
   INT i;
   INT totdof = FE->ndof;
   char eldofname[20];
@@ -391,19 +443,19 @@ void dump_fespace(fespace *FE,char *varname,char *dir)
   FILE* fid2 = fopen(bdryname,"w");
 
   if(fid1==NULL || fid2==NULL) {
-	printf("\n\nFilenames: %s\t%s are incorrect or do not exist.  No files dumped.\n\n",eldofname,bdryname);
-  } else {  
-  	// Dump Element to DOF map
-  	dump_el_dof(fid1,FE->el_dof);
+    printf("\n\nFilenames: %s\t%s are incorrect or do not exist.  No files dumped.\n\n",eldofname,bdryname);
+  } else {
+    // Dump Element to DOF map
+    dump_el_dof(fid1,FE->el_dof);
 
-  	// Dump boundary data
-  	for(i=0;i<totdof;i++) {
-    	fprintf(fid2,"%d\n",FE->dof_bdry[i]);
-  	}
+    // Dump boundary data
+    for(i=0;i<totdof;i++) {
+      fprintf(fid2,"%d\n",FE->dof_bdry[i]);
+    }
 
-  	fclose(fid1);
-  	fclose(fid2);
-  }	
+    fclose(fid1);
+    fclose(fid2);
+  }
   return;
 }
 /****************************************************************************************/
@@ -412,14 +464,14 @@ void dump_fespace(fespace *FE,char *varname,char *dir)
 void set_dirichlet_bdry(fespace* FE,trimesh* mesh,INT flag) 
 {
   /* Determine which boundary DOF are Dirichlet.  Determined by the FE space type
-   * and by the given flag from the mesh file.  
+   * and by the given flag from the mesh file.
    *
-   * Input:		
+   * Input:
    *          FE:      Finite-element space considered
    *          mesh:    Mesh and all it's properties
    *          flag:    User-input for which Boundary DOF are Dirichlet
    *
-   * Output:		
+   * Output:
    *          isdirichlet:   integer array that is 1 if the DOF is a Dirichlet Boundary
    *
    */
@@ -430,7 +482,7 @@ void set_dirichlet_bdry(fespace* FE,trimesh* mesh,INT flag)
     } else {
       FE->dof_bdry[i] = 0;
     }
-  }		
+  }
   return;
 }
 /****************************************************************************************/
@@ -439,14 +491,14 @@ void set_dirichlet_bdry(fespace* FE,trimesh* mesh,INT flag)
 void set_dirichlet_bdry_block(block_fespace* FE,trimesh* mesh,INT flag) 
 {
   /* Determine which boundary DOF are Dirichlet.  Determined by the FE space type
-   * and by the given flag from the mesh file.  
+   * and by the given flag from the mesh file.
    *
-   * Input:		
+   * Input:
    *          FE:      Finite-element space considered
    *          mesh:    Mesh and all it's properties
    *          flag:    User-input for which Boundary DOF are Dirichlet
    *
-   * Output:		
+   * Output:
    *          isdirichlet:   integer array that is 1 if the DOF is a Dirichlet Boundary
    *
    */
@@ -459,9 +511,9 @@ void set_dirichlet_bdry_block(block_fespace* FE,trimesh* mesh,INT flag)
     ndof = FE->var_spaces[i]->ndof;
     for(j=0;j<ndof;j++) {
       if(FE->var_spaces[i]->dof_bdry[j]==flag) {
-	isdirichlet[cnt+j] = 1;
+        isdirichlet[cnt+j] = 1;
       } else {
-	isdirichlet[cnt+j] = 0;
+        isdirichlet[cnt+j] = 0;
       }
     }
     cnt += ndof;

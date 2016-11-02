@@ -1,31 +1,35 @@
 /*! \file src/fem/error.c
- *  
- *  Created by James Adler and Xiaozhe Hu on 5/13/15.
- *  Copyright 2015_JXLcode__. All rights reserved.
+ *
+ * \brief This code contains functions for computing errors and norms
+ *        mostly using FEM assembly routines.
+ *
+ *  Created by James Adler and Xiaozhe Hu on 5/14/15.
+ *  Copyright 2016__HAZMAT__. All rights reserved.
+ *
+ *  \note modified by James Adler 11/1/2016
  *
  */
 
 #include "hazmat.h"
 
-/****************************************************************************************************************************/
-// Error and Norm ROUTINES
-/****************************************************************************************************************************/
-
 /***************************************************************************/
 REAL L2norm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
 {
-
-  /* Computes the L2 Norm of a FE approximation using the mass matrix assembly any type of element.
+  /*!
+   * \fn REAL L2norm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
    *
-   * Input:		u	Numerical Solution at DOF
-   *                    FE      fespace struct
-   *                    mesh    mesh struct
-   *                    cq      Quadrature Nodes
+   * \brief Computes the L2 Norm of a FE approximation using the mass matrix
+   *        assembly for any type of element.
    *
-   * Output:		norm	L2 Norm
+   * \param u 	    Numerical Solution at DOF
+   * \param FE      FE Space
+   * \param mesh    Mesh Data
+   * \param cq      Quadrature Nodes
+   *
+   * \return norm   L2 Norm
    *
    */
-		
+
   INT i,j,k,rowa,rowb,jcntr;
   REAL sum = 0.0;
 
@@ -59,13 +63,13 @@ REAL L2norm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
       v_on_elm[jcntr] = mesh->el_v->JA[j];
       jcntr++;
     }
-    		
+
     // Compute Local Stiffness Matrix for given Element
     assemble_mass_local(MLoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
 
     for(j=0;j<dof_per_elm;j++) {
       for(k=0;k<dof_per_elm;k++) {
-	sum+=u[dof_on_elm[j]-1]*MLoc[j*dof_per_elm+k]*u[dof_on_elm[k]-1];
+        sum+=u[dof_on_elm[j]-1]*MLoc[j*dof_per_elm+k]*u[dof_on_elm[k]-1];
       }
     }
   }
@@ -81,18 +85,22 @@ REAL L2norm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
 /***************************************************************************/
 REAL L2_InnerProduct(REAL *u,REAL *v,fespace *FE,trimesh *mesh,qcoordinates *cq)
 {
-
-  /* Computes the L2 inner product of two FE approximations using the mass matrix assembly any type of element.
+  /*!
+   * \fn REAL L2_InnerProduct(REAL *u,REAL *v,fespace *FE,trimesh *mesh,qcoordinates *cq)
    *
-   * Input:		u,v	Numerical Solutions at DOF
-   *                    FE      fespace struct
-   *                    mesh    mesh struct
-   *                    cq      Quadrature Nodes
+   * \brief Computes the L2 inner product of two FE approximations using the mass matrix
+   *        assembly for any type of element.
    *
-   * Output:		product	L2 Inner Product of u and v, <u,v>
+   * \param u 	    Numerical Solution 1 at DOF
+   * \param v       Numerical Solution 2 at DOF
+   * \param FE      FE Space
+   * \param mesh    Mesh Data
+   * \param cq      Quadrature Nodes
+   *
+   * \return product  L2 Inner Product of u and v, <u,v>
    *
    */
-		
+
   INT i,j,k,rowa,rowb,jcntr;
   REAL sum = 0.0;
 
@@ -126,13 +134,13 @@ REAL L2_InnerProduct(REAL *u,REAL *v,fespace *FE,trimesh *mesh,qcoordinates *cq)
       v_on_elm[jcntr] = mesh->el_v->JA[j];
       jcntr++;
     }
-    		
+
     // Compute Local Stiffness Matrix for given Element
     assemble_mass_local(MLoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
 
     for(j=0;j<dof_per_elm;j++) {
       for(k=0;k<dof_per_elm;k++) {
-	sum+=v[dof_on_elm[j]-1]*MLoc[j*dof_per_elm+k]*u[dof_on_elm[k]-1];
+        sum+=v[dof_on_elm[j]-1]*MLoc[j*dof_per_elm+k]*u[dof_on_elm[k]-1];
       }
     }
   }
@@ -148,24 +156,27 @@ REAL L2_InnerProduct(REAL *u,REAL *v,fespace *FE,trimesh *mesh,qcoordinates *cq)
 /***************************************************************************/
 REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
 {
-
-  /* Computes the L2 Norm of the error of a FE approximation and a true solution given by a function using quadrature for any type of element.
+  /*!
+   * \fn REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
    *
-   * Input:		u	Numerical Solution at DOF
-   *                  truesol   Function to get true solution at any given point
-   *                    FE      fespace struct
-   *                    mesh    mesh struct
-   *                    cq      Quadrature Nodes
-   *                  time      Time to evaluate solution
+   * \brief Computes the L2 Norm of the error of a FE approximation and a true
+   *        solution given by a function using quadrature for any type of element.
    *
-   * Output:		error	L2 Error
+   * \param u 	          Numerical Solution at DOF
+   * \param truesol       Function to get true solution at a given point
+   * \param FE            FE Space
+   * \param mesh          Mesh Data
+   * \param cq            Quadrature Nodes
+   * \param time          Physical time to compute solution at
+   *
+   * \return error        L2 Error
    *
    */
 
   INT dim = mesh->dim;
 
   // Quadrature Weights and Nodes
-  REAL w; 
+  REAL w;
   REAL* qx = (REAL *) calloc(mesh->dim,sizeof(REAL));
   
   // FE Stuff
@@ -179,7 +190,7 @@ REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *me
 
   // True Solution and FE Solution at Quadrature Nodes
   INT ncomp = 0;
-  if(FEtype<20) { // Lagrange Elements
+  if(FEtype<20) { // Lagrange Elements (i.e., Scalar elements)
     ncomp = 1;
   } else { // Vector Elements
     ncomp = dim;
@@ -190,39 +201,41 @@ REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *me
   /* Loop over all Elements */
   for (elm=0; elm<FE->nelm; elm++) {
     // Loop over quadrature nodes on element
-    for (quad=0;quad<cq->nq_per_elm;quad++) {        
+    for (quad=0;quad<cq->nq_per_elm;quad++) {
       qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-      qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-      if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
+      if(mesh->dim==2 || mesh->dim==3)
+        qx[1] = cq->y[elm*cq->nq_per_elm+quad];
+      if(mesh->dim==3)
+        qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
 
       // Get True Solution at Quadrature Nodes
       (*truesol)(val_true,qx,time);
-    
+
       // Find DOF for given Element
       rowa = FE->el_dof->IA[elm]-1;
       rowb = FE->el_dof->IA[elm+1]-1;
       jcntr = 0;
       for (j=rowa; j<rowb; j++) {
-	dof_on_elm[jcntr] = FE->el_dof->JA[j];
-	jcntr++;
+        dof_on_elm[jcntr] = FE->el_dof->JA[j];
+        jcntr++;
       }
 
-      //Find Vertices for given Element if not H1 elements
+      // Find Vertices for given Element if not H1 elements
       rowa = mesh->el_v->IA[elm]-1;
       rowb = mesh->el_v->IA[elm+1]-1;
       jcntr=0;
       for (j=rowa; j<rowb; j++) {
-	v_on_elm[jcntr] = mesh->el_v->JA[j];
-	jcntr++;
+        v_on_elm[jcntr] = mesh->el_v->JA[j];
+        jcntr++;
       }
 
       // Interpolate FE solution to quadrature point
-      FE_Interpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,mesh,FE->ndof,1);
+      FE_Interpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,mesh,1);
 
       // Compute Error on Element
       for(j=0;j<ncomp;j++) {
-	sum+=w*(ABS(val_sol[j] - val_true[j]))*(ABS(val_sol[j] - val_true[j]));
+        sum+=w*(ABS(val_sol[j] - val_true[j]))*(ABS(val_sol[j] - val_true[j]));
       }
     }
   }
@@ -241,20 +254,23 @@ REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *me
 /***************************************************************************/
 REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
 {
-
-  /* Computes the L2 Norm of the error of a FE approximation and a true solution given by a function using the mass matrix assembly any type of element.
+  /*!
+   * \fn L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
    *
-   * Input:		u	Numerical Solution at DOF
-   *                  truesol   Function to get true solution at any given point
-   *                    FE      fespace struct
-   *                    mesh    mesh struct
-   *                    cq      Quadrature Nodes
-   *                  time      Time to evaluate solution
+   * \brief Computes the L2 Norm of the error of a FE approximation and a true
+   *        solution given by a function using mass matrix assembly for any type of element.
    *
-   * Output:		error	L2 Error
+   * \param u 	          Numerical Solution at DOF
+   * \param truesol       Function to get true solution at a given point
+   * \param FE            FE Space
+   * \param mesh          Mesh Data
+   * \param cq            Quadrature Nodes
+   * \param time          Physical time to compute solution at
+   *
+   * \return error        L2 Error
    *
    */
-		
+
   INT i,j,k,rowa,rowb,jcntr;
   REAL sum = 0.0;
   REAL utk,utj,erk,erj;
@@ -289,17 +305,17 @@ REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimes
       v_on_elm[jcntr] = mesh->el_v->JA[j];
       jcntr++;
     }
-    		
+
     // Compute Local Stiffness Matrix for given Element
     assemble_mass_local(MLoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
 
     for(j=0;j<dof_per_elm;j++) {
       for(k=0;k<dof_per_elm;k++) {
-	utj = FE_Evaluate_DOF(truesol,FE,mesh,time,dof_on_elm[j]-1);
-	utk = FE_Evaluate_DOF(truesol,FE,mesh,time,dof_on_elm[k]-1);
-	erj = ABS(utj - u[dof_on_elm[j]-1]);
-	erk = ABS(utk - u[dof_on_elm[k]-1]);
-	sum+=erj*MLoc[j*dof_per_elm+k]*erk;
+        utj = FE_Evaluate_DOF(truesol,FE,mesh,time,dof_on_elm[j]-1);
+        utk = FE_Evaluate_DOF(truesol,FE,mesh,time,dof_on_elm[k]-1);
+        erj = ABS(utj - u[dof_on_elm[j]-1]);
+        erk = ABS(utk - u[dof_on_elm[k]-1]);
+        sum+=erj*MLoc[j*dof_per_elm+k]*erk;
       }
     }
   }
@@ -315,20 +331,24 @@ REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimes
 /***************************************************************************/
 REAL HDseminorm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
 {
-  /* Computes the H(D) semi-Norm of a FE approximation using the <Du,Dv> matrix assembly for any type of element.
-   *          Nodal - <grad u, grad u> - |u|_1
-   *          RT - <div u, div u>      - |u|_(H(div))
-   *          Nedelec - <curl u, curl u>  - |u|_(H(curl))
+  /*!
+   * \fn REAL HDseminorm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
    *
-   * Input:		u	Numerical Solution at DOF
-   *                    FE      fespace struct
-   *                    mesh    mesh struct
-   *                    cq      Quadrature Nodes
+   * \brief Computes the H(D) semi-Norm of a FE approximation using the
+   *        <Du,Dv> matrix assembly for any type of element.
+   *          Nodal   - <grad u, grad u>  -> |u|_1
+   *          RT      - <div u, div u>    -> |u|_(H(div))
+   *          Nedelec - <curl u, curl u>  -> |u|_(H(curl))
    *
-   * Output:		norm	Semi-Norm
+   * \param u 	    Numerical Solution at DOF
+   * \param FE      FE Space
+   * \param mesh    Mesh Data
+   * \param cq      Quadrature Nodes
+   *
+   * \return norm   HD Semi Norm
    *
    */
-		
+
   INT i,j,k,rowa,rowb,jcntr;
   REAL sum = 0.0;
   INT dof_per_elm = FE->dof_per_elm;
@@ -340,10 +360,10 @@ REAL HDseminorm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
 
   /* Loop over all Elements */
   for (i=0; i<FE->nelm; i++) {
-		
+
     // Zero out local matrices
     for (j=0; j<local_size; j++) ALoc[j] = 0.0;
-		
+
     // Find DOF for given Element
     rowa = FE->el_dof->IA[i]-1;
     rowb = FE->el_dof->IA[i+1]-1;
@@ -361,13 +381,13 @@ REAL HDseminorm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
       v_on_elm[jcntr] = mesh->el_v->JA[j];
       jcntr++;
     }
-    		
+
     // Compute Local Stiffness Matrix for given Element
     assemble_DuDv_local(ALoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
 
     for(j=0;j<dof_per_elm;j++) {
       for(k=0;k<dof_per_elm;k++) {
-	sum+=u[dof_on_elm[j]-1]*ALoc[j*dof_per_elm+k]*u[dof_on_elm[k]-1];
+        sum+=u[dof_on_elm[j]-1]*ALoc[j*dof_per_elm+k]*u[dof_on_elm[k]-1];
       }
     }
   }
@@ -389,27 +409,29 @@ REAL HDseminorm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
 /***************************************************************************/
 REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
 {
-
-  /* Computes the H(D) semi-Norm of the error of a FE approximation and a true solution given by a function using quadrature for any type of element.
-   *          Nodal - <grad u, grad u> - |u|_1
-   *          RT - <div u, div u>      - |u|_(H(div))
-   *          Nedelec - <curl u, curl u>  - |u|_(H(curl))
+  /*!
+   * \fn REAL HDsemierror(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
    *
-   * Input:		u	Numerical Solution at DOF
-   *                  truesol   Function to get derivative of true solution at any given point
-   *                    FE      fespace struct
-   *                    mesh    mesh struct
-   *                    cq      Quadrature Nodes
-   *                  time      Time to evaluate solution
+   * \brief Computes the H(D) semi-norm of the error of a FE approximation and a true
+   *        solution given by a function using quadrature for any type of element.
+   *          Nodal   - <grad u, grad u>  -> |u|_1
+   *          RT      - <div u, div u>    -> |u|_(H(div))
+   *          Nedelec - <curl u, curl u>  -> |u|_(H(curl))
+   * \param u 	          Numerical Solution at DOF
+   * \param D_truesol     Function to get derivative of true solution at a given point
+   * \param FE            FE Space
+   * \param mesh          Mesh Data
+   * \param cq            Quadrature Nodes
+   * \param time          Physical time to compute solution at
    *
-   * Output:		error	Semi-Norm Error
+   * \return error        Semi-Norm Error
    *
    */
 
   INT dim = mesh->dim;
 
   // Quadrature Weights and Nodes
-  REAL w; 
+  REAL w;
   REAL* qx = (REAL *) calloc(mesh->dim,sizeof(REAL));
   
   // FE Stuff
@@ -436,22 +458,24 @@ REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL),fespace *FE,trime
   /* Loop over all Elements */
   for (elm=0; elm<FE->nelm; elm++) {
     // Loop over quadrature nodes on element
-    for (quad=0;quad<cq->nq_per_elm;quad++) {        
+    for (quad=0;quad<cq->nq_per_elm;quad++) {
       qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-      qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-      if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
+      if(mesh->dim==2 || mesh->dim==3)
+        qx[1] = cq->y[elm*cq->nq_per_elm+quad];
+      if(mesh->dim==3)
+        qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
 
       // Get True Solution at Quadrature Nodes
       (*D_truesol)(val_true,qx,time);
-    
+
       // Find DOF for given Element
       rowa = FE->el_dof->IA[elm]-1;
       rowb = FE->el_dof->IA[elm+1]-1;
       jcntr = 0;
       for (j=rowa; j<rowb; j++) {
-	dof_on_elm[jcntr] = FE->el_dof->JA[j];
-	jcntr++;
+        dof_on_elm[jcntr] = FE->el_dof->JA[j];
+        jcntr++;
       }
 
       //Find Vertices for given Element if not H1 elements
@@ -459,16 +483,16 @@ REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL),fespace *FE,trime
       rowb = mesh->el_v->IA[elm+1]-1;
       jcntr=0;
       for (j=rowa; j<rowb; j++) {
-	v_on_elm[jcntr] = mesh->el_v->JA[j];
-	jcntr++;
+        v_on_elm[jcntr] = mesh->el_v->JA[j];
+        jcntr++;
       }
 
       // Interpolate FE solution to quadrature point
-      FE_DerivativeInterpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,mesh,FE->ndof,1);
+      FE_DerivativeInterpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,mesh,1);
 
       // Compute Error on Element
       for(j=0;j<ncomp;j++) {
-	sum+=w*(ABS(val_sol[j] - val_true[j]))*(ABS(val_sol[j] - val_true[j]));
+        sum+=w*(ABS(val_sol[j] - val_true[j]))*(ABS(val_sol[j] - val_true[j]));
       }
     }
   }
@@ -487,22 +511,25 @@ REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL),fespace *FE,trime
 /***************************************************************************/
 REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
 {
-  /* Computes the H(D) semi-Norm of the error of a FE approximation and a true solution given by a function using the <Du,Dv> matrix assembly for any type of element.
-   *          Nodal - <grad u, grad u> - |u|_1
-   *          RT - <div u, div u>      - |u|_(H(div))
-   *          Nedelec - <curl u, curl u>  - |u|_(H(curl))
+  /*!
+   * \fn REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
    *
-   * Input:		u	Numerical Solution at DOF
-   *                  truesol   Function to get true solution at any given point
-   *                    FE      fespace struct
-   *                    mesh    mesh struct
-   *                    cq      Quadrature Nodes
-   *                  time      Time to evaluate solution
+   * \brief Computes the H(D) semi-norm of the error of a FE approximation and a true
+   *        solution given by a function using the <Du,Dv> matrix assembly for any type of element.
+   *          Nodal   - <grad u, grad u>  -> |u|_1
+   *          RT      - <div u, div u>    -> |u|_(H(div))
+   *          Nedelec - <curl u, curl u>  -> |u|_(H(curl))
+   * \param u 	          Numerical Solution at DOF
+   * \param D_truesol     Function to get derivative of true solution at a given point
+   * \param FE            FE Space
+   * \param mesh          Mesh Data
+   * \param cq            Quadrature Nodes
+   * \param time          Physical time to compute solution at
    *
-   * Output:		error	Semi-Norm Error
+   * \return error        Semi-Norm Error
    *
    */
-		
+
   INT i,j,k,rowa,rowb,jcntr;
   REAL sum = 0.0;
   REAL utk,utj,erk,erj;
@@ -516,10 +543,10 @@ REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,t
 
   /* Loop over all Elements */
   for (i=0; i<FE->nelm; i++) {
-		
+
     // Zero out local matrices
     for (j=0; j<local_size; j++) ALoc[j] = 0.0;
-		
+
     // Find DOF for given Element
     rowa = FE->el_dof->IA[i]-1;
     rowb = FE->el_dof->IA[i+1]-1;
@@ -537,17 +564,17 @@ REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,t
       v_on_elm[jcntr] = mesh->el_v->JA[j];
       jcntr++;
     }
-    		
+
     // Compute Local Stiffness Matrix for given Element
     assemble_DuDv_local(ALoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
 
     for(j=0;j<dof_per_elm;j++) {
       for(k=0;k<dof_per_elm;k++) {
-	utj = FE_Evaluate_DOF(truesol,FE,mesh,time,dof_on_elm[j]-1);
-	utk = FE_Evaluate_DOF(truesol,FE,mesh,time,dof_on_elm[k]-1);
-	erj = ABS(utj - u[dof_on_elm[j]-1]);
-	erk = ABS(utk - u[dof_on_elm[k]-1]);
-	sum+=erj*ALoc[j*dof_per_elm+k]*erk;
+        utj = FE_Evaluate_DOF(truesol,FE,mesh,time,dof_on_elm[j]-1);
+        utk = FE_Evaluate_DOF(truesol,FE,mesh,time,dof_on_elm[k]-1);
+        erj = ABS(utj - u[dof_on_elm[j]-1]);
+        erk = ABS(utk - u[dof_on_elm[k]-1]);
+        sum+=erj*ALoc[j*dof_per_elm+k]*erk;
       }
     }
   }
@@ -569,20 +596,23 @@ REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,t
 /***************************************************************************/
 REAL HDnorm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
 {
-  /* Computes the H(D) norm of a FE approximation using the <u,v> and <Du,Dv> matrix assembly for any type of element.
-   *          Nodal - <u,u> + <grad u, grad u> - ||u||_1
-   *          RT - <u,u> + <div u, div u>      - ||u||_(H(div))
-   *          Nedelec - <u,u> + <curl u, curl u>  - ||u||_(H(curl))
+  /*!
+   * \fn REAL HDnorm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
    *
-   * Input:		u	Numerical Solution at DOF
-   *                    FE      fespace struct
-   *                    mesh    mesh struct
-   *                    cq      Quadrature Nodes
+   * \brief Computes the H(D) norm of a FE approximation using the
+   *        <Du,Dv> matrix assembly for any type of element.
+   *          Nodal   - <u,u> + <grad u, grad u>  -> ||u||_1
+   *          RT      - <u,u> + <div u, div u>    -> ||u||_(H(div))
+   *          Nedelec - <u,u> + <curl u, curl u>  -> ||u||_(H(curl))
    *
-   * Output:		norm	Norm
+   * \param u 	    Numerical Solution at DOF
+   * \param FE      FE Space
+   * \param mesh    Mesh Data
+   * \param cq      Quadrature Nodes
+   *
+   * \return norm   HD Norm
    *
    */
-		
 
   REAL sumL2 = L2norm(u,FE,mesh,cq);
   REAL sumSemi = HDseminorm(u,FE,mesh,cq);
@@ -595,23 +625,28 @@ REAL HDnorm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
 /***************************************************************************/
 REAL HDerror(REAL *u,void (*truesol)(REAL *,REAL *,REAL),void (*D_truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
 {
-  /* Computes the H(D) Norm of the error of a FE approximation and a true solution given by a function using the <u,v> and <Du,Dv> matrix assembly for any type of element.
-   *          Nodal - <u,u> + <grad u, grad u> - ||u||_1
-   *          RT - <u,u> + <div u, div u>      - ||u||_(H(div))
-   *          Nedelec - <u,u> + <curl u, curl u>  - ||u||_(H(curl))
+  /*!
+   * \fn REAL HDerror(REAL *u,void (*truesol)(REAL *,REAL *,REAL),void (*D_truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
    *
-   * Input:		u	Numerical Solution at DOF
-   *                  truesol   Function to get true solution at any given point
-   *                  D_truesol Derivative of Function to get true solution at any given point
-   *                    FE      fespace struct
-   *                    mesh    mesh struct
-   *                    cq      Quadrature Nodes
-   *                  time      Time to evaluate solution
+   * \brief Computes the H(D) norm of the error of a FE approximation
+   *        and a true solution given by a function using the
+   *        <u,v> and <Du,Dv> matrix assembly for any type of element.
+   *          Nodal   - <u,u> + <grad u, grad u>  -> ||u||_1
+   *          RT      - <u,u> + <div u, div u>    -> ||u||_(H(div))
+   *          Nedelec - <u,u> + <curl u, curl u>  -> ||u||_(H(curl))
    *
-   * Output:		error	Norm Error
+   * \param u 	          Numerical Solution at DOF
+   * \param truesol       Function to get true solution at given point
+   * \param D_truesol     Function to get derivative of true solution at a given point
+   * \param FE            FE Space
+   * \param mesh          Mesh Data
+   * \param cq            Quadrature Nodes
+   * \param time          Physical time to compute solution at
+   *
+   * \return norm         HD Norm of Error
    *
    */
-		
+
   REAL sumL2 = L2error(u,truesol,FE,mesh,cq,time);
   REAL sumSemi = HDsemierror(u,D_truesol,FE,mesh,cq,time);
 
