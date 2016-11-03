@@ -581,6 +581,7 @@ if(inparam.print_level > 3) {
     char trueout[20];
     sprintf(trueout,"output/true.vtu");
     dump_sol_onV_vtk(trueout,&mesh,true_sol.val,1);
+    dvec_free(&true_sol);
   }
   /******************************************************************************/
     
