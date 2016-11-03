@@ -572,9 +572,15 @@ if(inparam.print_level > 3) {
     
   /**************** Print Results or Dump Results *******************************/
   if (inparam.output_type==2) {
-    FILE* uid = HAZ_fopen("output/sol.dat","w");
-    dvector_print(uid,&u);
-    fclose(uid);
+    char solout[20];
+    sprintf(solout,"output/sol.vtu");
+    dump_sol_onV_vtk(solout,&mesh,u.val,1);
+
+    dvector true_sol = dvec_create(FE.ndof);
+    FE_Evaluate(true_sol.val,truesol_1D_PX,&FE,&mesh,0.0);
+    char trueout[20];
+    sprintf(trueout,"output/true.vtu");
+    dump_sol_onV_vtk(trueout,&mesh,true_sol.val,1);
   }
   /******************************************************************************/
     

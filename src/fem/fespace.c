@@ -268,7 +268,6 @@ void get_P2(fespace* FE,trimesh* mesh)
       s++;
     }
   }
-  
   // Get Element to Node map
   iCSRmat el_n = icsr_create(nelm,ndof,dof_per_elm*nelm);
   // Rows of Element to Node map
@@ -284,7 +283,7 @@ void get_P2(fespace* FE,trimesh* mesh)
       na = el_n.IA[i]-1;
       jcntr = 0;
       for(j=va;j<vb;j++) {
-        el_n.JA[na+jcntr] = el_v->JA[j];
+        el_n.JA[na + jcntr] = el_v->JA[j];
         jcntr++;
       }
       el_n.JA[na+jcntr] = nv+i+1;
