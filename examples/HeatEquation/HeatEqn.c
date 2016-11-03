@@ -1,22 +1,20 @@
-/*
- *  HeatEqn.c
+/*! \file examples/HeatEquation/HeatEqn.c
  *
- *  Created by James Adler on 10/16/16.
+ *  Created by James Adler and Xiaozhe Hu on 10/16/16.
  *  Copyright 2015_HAZMAT__. All rights reserved.
  *
- *  Discussion:
- *
- *    This program solves the following PDE using finite elements
+ * \brief This program solves the following PDE using finite elements
  *
  *      du/dt - div(a(x)grad(u)) = 0
  *
  *    where du/dt is discretized with Crank-Nicolson or BDF-1 (Backward Euler)
  *
- *    in 2D or 3D
+ *    in 1D, 2D, or 3D
  *
  *   Along the boundary of the region, Dirichlet conditions are imposed:
  *
  *      u = 0 for P1, P2
+ *
  */
 
 /*********** HAZMAT FUNCTIONS and INCLUDES ****************************************/
@@ -33,10 +31,12 @@ void diffusion_coeff(REAL *val,REAL* x,REAL time) {
 // Pick one of these and rename it truesol
 //void truesol_2D(REAL *val,REAL* x,REAL time) {
 void truesol(REAL *val,REAL* x,REAL time) {
+  // 1D
+  //*val = sin(M_PI*x[0])*exp(-M_PI*M_PI*time);
   // 2D
-  //*val = sin(M_PI*x[0])*sin(M_PI*x[1])*exp(-2.0*M_PI*M_PI*time);
+  *val = sin(M_PI*x[0])*sin(M_PI*x[1])*exp(-2.0*M_PI*M_PI*time);
   // 3D
-  *val = sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2])*exp(-3*M_PI*M_PI*time);
+  //*val = sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2])*exp(-3*M_PI*M_PI*time);
 }
 
 // Right-hand Side
@@ -51,10 +51,12 @@ void bc(REAL *val,REAL* x,REAL time) {
 
 // Initial Conditions
 void initial_conditions(REAL *val,REAL* x,REAL time) {
+  // 1D
+  //*val = sin(M_PI*x[0]);
   // 2D
-  //*val = sin(M_PI*x[0])*sin(M_PI*x[1]);
+  *val = sin(M_PI*x[0])*sin(M_PI*x[1]);
   // 3D
-  *val = sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
+  //*val = sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
 }
 
 /**********************************************************************************/
@@ -179,7 +181,7 @@ int main (int argc, char* argv[])
   // Set parameters for linear iterative methods
   linear_itsolver_param linear_itparam;
   param_linear_solver_init(&linear_itparam);
-  param_solver_set(&linear_itparam, &inparam);
+  param_linear_solver_set(&linear_itparam, &inparam);
   INT solver_flag=-20;
   // Set parameters for algebriac multigrid methods
   AMG_param amgparam;
