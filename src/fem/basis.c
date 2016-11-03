@@ -150,8 +150,8 @@ void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,trimesh *mesh)
         p[0] = lam1*(2*lam1-1);
         p[1] = lam2*(2*lam2-1);
         p[2] = 4*lam1*lam2;
-        dp[0] = -4*lam1*oneoverh + oneoverh - lam1;
-        dp[1] = 4*lam2*oneoverh - oneoverh - lam2;
+        dp[0] = -oneoverh*(2*lam1-1) - 2*lam1*oneoverh;
+        dp[1] = oneoverh*(2*lam2-1) + 2*lam2*oneoverh;
         dp[2] = 4*lam1*oneoverh - 4*lam2*oneoverh;
       } else {
         status = ERROR_FE_TYPE;

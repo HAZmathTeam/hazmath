@@ -188,7 +188,7 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
 
     for (i=0; i<nun; i++) {
       for(j=0;j<dim;j++)
-        coef[0] = 0.0;
+        coef[j] = 0.0;
       for (j=0; j<dof_per_elm; j++) {
         nd = i*ndof + dof_on_elm[j] - 1;
         coef[0] += u[nd]*dphi[j*dim];
@@ -218,7 +218,7 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
 
     coef = (REAL *) calloc(dim,sizeof(REAL));
     for(j=0;j<dim;j++)
-      coef[0] = 0.0;
+      coef[j] = 0.0;
     if (dim==2) {
       for (j=0; j<dof_per_elm; j++) {
         edge = dof_on_elm[j]-1;

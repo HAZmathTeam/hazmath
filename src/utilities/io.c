@@ -330,14 +330,18 @@ void dump_sol_onV_vtk(char *namevtk,trimesh *mesh,REAL *sol,INT ncomp)
      VTK_WEDGE (=13) 
      VTK_PYRAMID (=14)
   */
+
+  const INT LINE=3;
   const INT TRI=5;  
   const INT TET=10;
   
-  if(dim==2) 
+  if(dim==1) {
+    tcell=LINE; /* line */
+  } else if(dim==2) {
     tcell=TRI; /* triangle */
-  else 
+  } else {
     tcell=TET; /* tet */
-
+  }
   // Open File for Writing
   FILE* fvtk = HAZ_fopen(namevtk,"w");  
 
@@ -352,7 +356,11 @@ void dump_sol_onV_vtk(char *namevtk,trimesh *mesh,REAL *sol,INT ncomp)
   	  tfloat);
 
   // Dump coordinates
-  if(dim == 2) {
+  if(dim == 1) {
+    for(k=0;k<nv;k++) {
+      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],0e0,0e0);
+    }
+  } else if(dim == 2) {
     for(k=0;k<nv;k++) {
       fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],mesh->cv->y[k],0e0);
     }

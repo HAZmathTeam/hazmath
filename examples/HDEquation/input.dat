@@ -8,7 +8,7 @@
 % output flags
 %---------------%
 
-print_level			= 5;	% how much information to print out
+print_level			= 2;	% how much information to print out
 output_type			= 2;	% 1 to screen | 2 to file
 
 %---------------%
@@ -16,17 +16,18 @@ output_type			= 2;	% 1 to screen | 2 to file
 %---------------%
 
 workdir				= ./			% path to input files 
-%gridfile                        = ../grids/2D/unitSQ_hp5.haz
-gridfile                        = ../grids/3D/unitCUBE_v27.haz
+%gridfile                         = ../grids/1D/unitLINE_hp0625.haz
+gridfile                        = ../grids/2D/unitSQ_hp0625.haz
+%gridfile                        = ../grids/3D/unitCUBE_v4913.haz
 
 %---------------%
 % finite element
 %---------------%
 
-dim				= 3	% Dimension
+dim				= 2	% Dimension
 nquad				= 2	% Quadrature nodes each direction
 
-FE_type				= 30	% 0-9 PX | 10-19 QX (not yet) | 20 Ned | 30 RT | -9--1 DGX (not yet) 
+FE_type				= 1	% 0-9 PX | 10-19 QX (not yet) | 20 Ned | 30 RT | -9--1 DGX (not yet) 
 
 FE_type_velocity		= 2	% 0 P0 | 1 P1 | 2 P2 |
 FE_type_pressure		= 0	% 0 P0 | 1 P1 | 2 P2 |
@@ -52,7 +53,7 @@ nonlinear_itsolver_toltype	= 0 	% type of tolerance for nonlinear solver 1 - ||n
 %---------------%
 
 linear_itsolver_type		= 1    	% 1 CG | 2 MINRES | 3 GMRES
-linear_itsolver_maxit		= 900  	% maximal iterations of linear iterative solver
+linear_itsolver_maxit		= 9000  	% maximal iterations of linear iterative solver
 linear_itsolver_tol		= 1e-8  % tolerance for linear iterative solver 
 linear_stop_type		= 1     	% 1 ||r||/||b|| | 2 ||r||_B/||b||_B | % 3 ||r||/||x||
 linear_restart 			= 100		% restart for GMRes
