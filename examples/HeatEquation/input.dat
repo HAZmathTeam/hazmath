@@ -16,15 +16,16 @@ output_type			= 2;	% 1 to screen | 2 to file
 %---------------%
 
 workdir				= ./			% path to input files 
-%gridfile                        = ../grids/2D/unitSQ_hp03125.haz
-gridfile                        = ../grids/3D/unitCUBE_v4913.haz
+%gridfile                         = ../grids/1D/unitLINE_hp03125.haz
+gridfile                        = ../grids/2D/unitSQ_hp03125.haz
+%gridfile                        = ../grids/3D/unitCUBE_v4913.haz
 
 %---------------%
 % finite element
 %---------------%
 
-dim				= 3	% Dimension
-nquad				= 2	% Quadrature nodes each direction
+dim				= 2	% Dimension
+nquad				= 3	% Quadrature nodes each direction
 
 FE_type				= 1	% 0-9 PX | 10-19 QX (not yet) | 20 Ned | 30 RT | -9--1 DGX (not yet) 
 
@@ -35,7 +36,7 @@ FE_type_pressure		= 0	% 0 P0 | 1 P1 | 2 P2 |
 % time stepping
 %---------------%
 
-time_step_type			= 1	% 0 CN | 1 BDF1 | 2 BDF2 |
+time_step_type			= 0	% 0 CN | 1 BDF1 | 2 BDF2 |
 time_steps			= 10 	% number of time steps
 time_step_size			= 0.01	% time step size
 rhs_time_dep                    = 0     % Whether RHS is time-dependent or not
