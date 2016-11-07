@@ -1101,3 +1101,176 @@ void eliminate_DirichletBC_RHS_blockFE(void (*bc)(REAL *,REAL *,REAL),block_fesp
   return;
 }
 /******************************************************************************************************/
+
+/******************************************************************************************************/
+void eliminate_DirichletBC_RHS_blockFE_blockA(void (*bc)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,dvector *b,block_dCSRmat *A,REAL time) 
+{
+  /********* Eliminates the Dirichlet boundaries from the global RHS vector *********************
+   *    Assumes block structure of FE space
+   *  For the rhs, if it's a boundary DOF, set to the actual boundary value
+   *  If it's DOF connected to a boundary row, set f(DOF) = f(DOF) - A(DOF,DOF_BC)*u(DOF)
+   *
+   *  Input:
+   *    bc              Function that gives boundary condition at given coordinates bc(&val,x,time)
+   *    FE              finite-element space struct (block structure)
+   *    mesh            Mesh Struct
+   *    b               Global right hand side
+   *    A               Global Stiffness Matrix (unmodified) (block matrix format)
+   *    time            Time if time dependent
+   *
+   *  Output:
+   *    b   Adjusted Global right-hand side
+   *
+   */
+
+  INT i,j;
+  INT ndof = FE->ndof;
+  INT ndof_local=0, entry = 0;
+  REAL* ub = (REAL *) calloc(ndof,sizeof(REAL));
+
+  // Error Check
+//  if(A->row!=ndof || A->col!=ndof) {
+//    printf("\nYou're matrix size doesn't match your number of DOF in Boundary Elimination\n");
+//    exit(0);
+//  }
+
+  // Get solution vector that's 0 on interior and boundary value on boundary
+  for(j=0;j<FE->nspaces;j++) {
+    ndof_local = FE->var_spaces[j]->ndof;
+    for(i=0; i<ndof_local; i++) {
+      if(FE->dof_bdry[entry+i]==1) {
+        ub[entry + i] = blockFE_Evaluate_DOF(bc,FE,mesh,time,j,i);
+      } else {
+        ub[entry + i] = 0.0;
+      }
+    }
+    entry += ndof_local;
+  }
+
+  // Shift for HAZMAT
+  for(i=0;i<(FE->nspaces)*(FE->nspaces);i++) {
+    if(A->blocks[i] != NULL)
+      dcsr_shift(A->blocks[i],-1);
+  }
+
+  // b = b - Aub
+  bdcsr_aAxpy(-1.0,A,ub,b->val);
+  
+  // Shift back
+  for(i=0;i<(FE->nspaces)*(FE->nspaces);i++) {
+    if(A->blocks[i] != NULL)
+      dcsr_shift(A->blocks[i],1);
+  }
+
+  // Fix boundary values
+  for(i=0;i<ndof;i++) {
+    if(FE->dof_bdry[i]==1) {
+      b->val[i] = ub[i];
+    }
+  }
+
+  if(ub) free(ub);
+
+  return;
+}
+/******************************************************************************************************/
+
+/******************************************************************************************************/
+void eliminate_DirichletBC_blockFE_blockA(void (*bc)(REAL *, REAL *,REAL),block_fespace *FE,trimesh *mesh,dvector *b,
+                                          block_dCSRmat *A,REAL time)
+{
+  /********* Eliminates the Dirichlet boundaries from the global matrix *********************
+   *     Assumes block structure of FE space
+   *  for each row in A that corresponds to a Dirichlet boundary, make the diagonal 1 and
+   *  off-diagonals zero.  Then, making the corresponding column entries 0.
+   *  For the rhs, if it's a boundary DOF, set to the actual boundary value
+   *  If it's DOF connected to a boundary row, set f(DOF) = f(DOF) - A(DOF,DOF_BC)*u(DOF)
+   *
+   *  Input:
+   *    bc              Function that gives boundary condition at given coordinates bc(&val,x,time)
+   *    FE              finite-element space struct (block format)
+   *    mesh            Mesh Struct
+   *    b               Global right hand side
+   *    A               Global Stiffness Matrix (block matrix format)
+   *    time            Time if time dependent
+   *
+   *  Output:
+   *    A   Adjusted Global Matrix
+   *    b   Adjusted Global right-hand side
+   *
+   */
+
+  INT i,j,k,cola,colb;
+  INT nsp = FE->nspaces;
+  INT ndof = 0;
+  for(i=0;i<FE->nspaces;i++) ndof+=FE->var_spaces[i]->ndof;
+
+  INT nrows;
+  INT rowshift, colshift;
+  INT l;
+
+  // Fix RHS First b_interior = (b - A(0;u_bdry)^T)_interior
+  //               b_bdry = u_bdry
+  if(b!=NULL)
+    eliminate_DirichletBC_RHS_blockFE_blockA(bc,FE,mesh,b,A,time);
+
+  // Find dof shifts needed for each block
+  INT *dofshift;
+  dofshift = (INT *)calloc(nsp,sizeof(INT));
+  for(i=0;i<nsp;i++){
+    for(j=0;j<nsp;j++){
+      if(dofshift[j]==0){
+        if(A->blocks[i+j*nsp] != NULL){
+          dofshift[j] = A->blocks[i+j*nsp]->row;
+        }
+      }
+    }
+  }
+  // Error Check
+  for(i=0;i<nsp;i++){ if(dofshift[i]==0) { printf("PROBLEM: ZERO BLOCK ROW\n"); } }
+
+
+  colshift = 0;
+//  printf("Loops Start\n");
+  // Loop over blocks of A
+  for(i=0;i<FE->nspaces;i++){ // Loop over block cols
+    rowshift = 0;
+    for(j=0;j<FE->nspaces;j++){ // Loop over block rows
+//     printf("BLOCK: %d\n",(i+j*nsp));
+     if(A->blocks[i+j*nsp]!=NULL){
+      nrows = A->blocks[i+j*nsp]->row;
+      for(k=0;k<nrows;k++){ // Loop over matrix rows
+        cola = A->blocks[i+j*nsp]->IA[k]-1;
+        colb = A->blocks[i+j*nsp]->IA[k+1]-1;
+        if(FE->dof_bdry[k+rowshift] == 1) { // Boundary Row
+          for(l=cola;l<colb;l++){ // Loop over matrix columns
+            if(A->blocks[i+j*nsp]->JA[l]==k+1 && i==j) // diagonal Entry
+              A->blocks[i+j*nsp]->val[l] = 1.0;
+            else
+              A->blocks[i+j*nsp]->val[l] = 0.0;
+          }//end for(l)
+        } else { // Non-boundary Row
+          for(l=cola;l<colb;l++){ // Loop over matrix columns
+            if(FE->dof_bdry[A->blocks[i+j*nsp]->JA[l]+colshift-1]==1) { // Boundary Column
+              // If column is boundary column, set to zero
+              A->blocks[i+j*nsp]->val[l] = 0.0;
+            }//end if(boundary column)
+          }//end for(l)
+        }//end Non-boundary Row
+      }//end for(k)
+     }//end if(A->blocks[i+j*nsp]!=NULL)
+
+    // Update dof shift for rows
+    rowshift += dofshift[j];
+//    printf("Done j=%d\n",i);
+    }//end for(j)
+
+  // Update dof shift for columns
+  colshift += dofshift[i];
+//  printf("Done i=%d\n",i);
+  }//end for(i)
+
+  free(dofshift);
+  return;
+}
+/******************************************************************************************************/
