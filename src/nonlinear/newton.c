@@ -1,16 +1,28 @@
 /*! \file src/nonlinear/newton.c
  *
+ * \brief This code will contain all the tools needed to perform Newton stepping
+ *
  *  Created by James Adler and Xiaozhe Hu on 10/18/16.
  *  Copyright 2015__HAZMAT__. All rights reserved.
+ *
+ * \note modified by James Adler 11/11/2016
  */
-
-/* This code will contain all the tools needed to perform Newton stepping */
 
 #include "hazmat.h"
 
 /******************************************************************************************************/
 void initialize_newton(newton *n_it,input_param *inparam)
 {
+  /*!
+   * \fn void initialize_newton(newton *n_it,input_param *inparam)
+   *
+   * \brief Initialize the Newton struct for nonlinear iterations.
+   *
+   * \param inparam       Input from input parameter list
+   *
+   * \return n_it         Struct for Newton Iterations
+   *
+   */
 
     // Number of Newton steps
     n_it->tsteps = inparam->nonlinear_itsolver_maxit;
@@ -41,7 +53,14 @@ void initialize_newton(newton *n_it,input_param *inparam)
 /****************************************************************************************/
 void free_newton(newton* n_it)
 {
-    /* frees memory of arrays of newton struct */
+  /*!
+   * \fn void free_newton(newton* n_it)
+   *
+   * \brief Frees memory of arrays of newton struct
+   *
+   * \return n_it         Freed struct for Newton Iterations
+   *
+   */
 
     if(n_it->Jac) {
         dcsr_free(n_it->Jac);
@@ -77,7 +96,14 @@ void free_newton(newton* n_it)
 /******************************************************************************************************/
 void update_newtonstep(newton* n_it)
 {
-    /* Updates the newton data at each step */
+  /*!
+   * \fn void update_newtonstep(newton* n_it)
+   *
+   * \brief Updates the Newton data at each step.
+   *
+   * \return n_it     Updated Newton struct
+   *
+   */
 
     // Counters
     n_it->current_step++;
@@ -101,9 +127,13 @@ void update_newtonstep(newton* n_it)
 /******************************************************************************************************/
 void update_sol_newton(newton *n_it)
 {
-    /********* Updates solution to nonlinear problem *********************
+  /*!
+   * \fn void update_sol_newton(newton *n_it)
    *
-   *     sol = sol_prev + step_length * update
+   * \brief Updates the solution to the nonlinear problem.
+   *        sol = sol_prev + step_length * update
+   *
+   * \return n_it.sol     Updated Newton solution
    *
    */
 
@@ -116,11 +146,18 @@ void update_sol_newton(newton *n_it)
 /******************************************************************************************************/
 bool check_newton_convergence(newton *n_it,fespace* FE,trimesh* mesh, qcoordinates* cq)
 {
-    /********* Checks if Newton has converged *********************
+  /*!
+   * \fn bool check_newton_convergence(newton *n_it,fespace* FE,trimesh* mesh, qcoordinates* cq)
    *
-   *     If tol_type = 1: Check if || nonlinear residual (rhs)|| < tol
-   *                   2: Check if || update || < tol
-   *                   0: Check both
+   * \brief Checks if Newton has converged:
+   *        If tol_type = 1: Check if ||nonlinear residual (rhs)|| < tol
+   *                      2: Check if ||update|| < tol
+   *                      0: Check both
+   *
+   * \param n_it     Newton struct
+   * \param FE       FE space
+   * \param mesh     Mesh struct
+   * \param cq       Quadrature for computing norms
    *
    */
 
