@@ -33,8 +33,9 @@
 //---------------------------------------------------------------------------------
 #define ERROR_DIM              -1 /**< wrong dimension */
 #define ERROR_FE_TYPE          -2 /**< wrong type of FEM */
-#define ERROR_QUAD_TYPE        -3  /**< unknown quadrature type */
+#define ERROR_QUAD_TYPE        -3 /**< unknown quadrature type */
 #define ERROR_QUAD_DIM         -4  /**< unsupported quadrature dim */
+#define ERROR_MAT_DOF          -5 /**< stiffness matrix size and dof not consistent */
 //---------------------------------------------------------------------------------
 #define ERROR_OPEN_FILE       -10  /**< fail to open a file */
 #define ERROR_WRONG_FILE      -11  /**< input contains wrong format */

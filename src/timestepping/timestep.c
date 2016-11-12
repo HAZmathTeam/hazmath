@@ -1,16 +1,28 @@
 /*! \file src/timestepping/timestep.c   
- *  
+ *
+ * \brief This code will contain all the tools needed to perform timestepping
+ *
  *  Created by James Adler and Xiaozhe Hu on 2/18/16.
  *  Copyright 2015__HAZMAT__. All rights reserved.
+ *
+ * \note modified by James Adler 11/11/2016
  */
-
-/* This code will contain all the tools needed to perform timestepping */
 
 #include "hazmat.h"
 
 /******************************************************************************************************/
 void initialize_timestepper(timestepper *tstepper,input_param *inparam)
 {
+  /*!
+   * \fn void initialize_timestepper(timestepper *tstepper,input_param *inparam)
+   *
+   * \brief Initialize the timestepping struct.
+   *
+   * \param inparam       Input from input parameter list
+   *
+   * \return tstepper     Struct for Timestepping
+   *
+   */
 
   // Number of time steps
   tstepper->tsteps = inparam->time_steps;
@@ -56,7 +68,14 @@ void initialize_timestepper(timestepper *tstepper,input_param *inparam)
 /****************************************************************************************/
 void free_timestepper(timestepper* ts)
 {
-  /* frees memory of arrays of timestepper struct */
+  /*!
+   * \fn void free_timestepper(timestepper* ts)
+   *
+   * \brief Frees memory of arrays of timestepping struct
+   *
+   * \return n_it         Freed struct for Timestepping
+   *
+   */
 
   if(ts->A) {
       dcsr_free(ts->A);
@@ -116,7 +135,14 @@ void free_timestepper(timestepper* ts)
 /******************************************************************************************************/
 void update_timestep(timestepper *tstepper)
 {
-/* Updates the time-stepping data at each time step */
+  /*!
+   * \fn void update_timestep(timestepper *tstepper)
+   *
+   * \brief Updates the Timestepping data at each step.
+   *
+   * \return tstepper     Updated timestepping struct
+   *
+   */
 
   // Counters and Physical Time
   tstepper->current_step++;
@@ -142,18 +168,15 @@ void update_timestep(timestepper *tstepper)
 /******************************************************************************************************/
 void get_timeoperator(timestepper* ts)
 {
-  /********* Gets the matrix to solve for timestepping scheme *********************
+  /*!
+   * \fn void get_timeoperator(timestepper* ts)
    *
-   *     Assumes we have: M du/dt + Au = b
-   * 
-   *	Input:		
-   *            A            Spatial Matrix
-   *            M            Mass Matrix
-   *            timescheme   What type of timestepping to use (0->CN 1->Backward Euler (BDF1) etc...)
-   *            dt           Time step size
+   * \brief Gets the matrix to solve for timestepping scheme
+   *        Assumes we have: M du/dt + Au = b
    *
-   *	Output:		
-   *            Atime        Matrix to solve with
+   * \param ts            Timestepping struct
+   *
+   * \return ts.Atime     Matrix to solve with
    *
    */
 
@@ -187,13 +210,19 @@ void get_timeoperator(timestepper* ts)
 /******************************************************************************************************/
 void update_time_rhs(timestepper *ts)
 {
-  /********* Updates the right-hand side for a timestepping scheme *********************
+  /*!
+   * \fn void update_time_rhs(timestepper *ts)
    *
-   * Assume the form: a*M du/dt + A u = f
-   * After timestepping we get: A_time*u = rhs_time
-   * For now we assume the following time-steppers:
-   * CN: (aM + 0.5*dt*A)u = 0.5*dt*(fprev+f) + (aM - 0.5*dt*A)uprev
-   * BDF1: (aM + dt*A)u = dt*f + aM*uprev
+   * \brief Updates the right-hand side for a timestepping scheme
+   *        Assume the form: a*M du/dt + A u = f
+   *        After timestepping we get: A_time*u = rhs_time
+   *        For now we assume the following time-steppers:
+   *         CN:   (aM + 0.5*dt*A)u = 0.5*dt*(fprev+f) + (aM - 0.5*dt*A)uprev
+   *         BDF1: (aM + dt*A)u = dt*f + aM*uprev
+   *
+   * \param ts            Timestepping struct
+   *
+   * \return ts.rhstime   RHS to solve with
    *
    */
 
@@ -252,22 +281,26 @@ void update_time_rhs(timestepper *ts)
 /******************************************************************************************************/
 void fixrhs_time(dvector* b,dvector* b_old,dCSRmat* M,dCSRmat* A,dvector* uprev,INT time_scheme,REAL dt,dvector* b_update)
 {
-  /********* Updates the right-hand side for a timestepping scheme *********************
+  /*!
+   * \fn void fixrhs_time(dvector* b,dvector* b_old,dCSRmat* M,dCSRmat* A,dvector* uprev,INT time_scheme,REAL dt,dvector* b_update)
    *
-   *     Assumes we have: M du/dt + Au = b
+   * \brief Updates the right-hand side for a timestepping scheme
+   *        Assume the form: a*M du/dt + A u = f
+   *        After timestepping we get: A_time*u = rhs_time
+   *        For now we assume the following time-steppers:
+   *         CN:   (aM + 0.5*dt*A)u = 0.5*dt*(fprev+f) + (aM - 0.5*dt*A)uprev
+   *         BDF1: (aM + dt*A)u = dt*f + aM*uprev
    *
-   *	Input:
-   *            b            Original right-hand side from current time-step
-   *            b_old        Original RHS from previous time-step (only needed if RHS is time-dependent.  If not just use b twice)
-   *            A            Spatial Matrix
-   *            M            Mass Matrix
-   *            uprev        Previous solution
-   *            dof_bdry     Indicates which DOF are on boundary
-   *            timescheme   What type of timestepping to use (0->CN 1->Backward Euler (BDF1) etc...)
-   *            dt           Time step size
+   * \param b            Original right-hand side from current time-step
+   * \param b_old        Original RHS from previous time-step (only needed if RHS is time-dependent.  If not just use b twice)
+   * \param A            Spatial Matrix
+   * \param M            Mass Matrix
+   * \param uprev        Previous solution
+   * \param dof_bdry     Indicates which DOF are on boundary
+   * \param timescheme   What type of timestepping to use (0->CN 1->Backward Euler (BDF1) etc...)
+   * \param dt           Time step size
    *
-   *	Output:
-   *            b_update     Updated rhs
+   * \return b_update     Updated rhs
    *
    */
 
@@ -314,18 +347,22 @@ void fixrhs_time(dvector* b,dvector* b_old,dCSRmat* M,dCSRmat* A,dvector* uprev,
 /******************************************************************************************************/
 void get_timeoperator_old(dCSRmat* M,dCSRmat* A,INT time_scheme,REAL dt,dCSRmat* Atime)
 {
-  /********* Gets the matrix to solve for timestepping scheme *********************
+  /*!
+   * \fn void get_timeoperator_old(dCSRmat* M,dCSRmat* A,INT time_scheme,REAL dt,dCSRmat* Atime)
    *
-   *     Assumes we have: M du/dt + Au = b
+   * \brief Gets the matrix to solve for timestepping scheme
+   *        Assumes we have: M du/dt + Au = b
+   *        After timestepping we get: A_time*u = rhs_time
+   *        For now we assume the following time-steppers:
+   *         CN:   (aM + 0.5*dt*A)u = 0.5*dt*(fprev+f) + (aM - 0.5*dt*A)uprev
+   *         BDF1: (aM + dt*A)u = dt*f + aM*uprev
    *
-   *	Input:
-   *            A            Spatial Matrix
-   *            M            Mass Matrix
-   *            timescheme   What type of timestepping to use (0->CN 1->Backward Euler (BDF1) etc...)
-   *            dt           Time step size
+   * \param A            Spatial Matrix
+   * \param M            Mass Matrix
+   * \param timescheme   What type of timestepping to use (0->CN 1->Backward Euler (BDF1) etc...)
+   * \param dt           Time step size
    *
-   *	Output:
-   *            Atime        Matrix to solve with
+   * \return Atime       Updated propagation matrix
    *
    */
 

@@ -1,6 +1,8 @@
 /*! \file src/assemble/assemble_local.c
  *
  * \brief This code will build local mass and stiffness matrices for various PDE systems
+ *        Set up for just a few generic systems
+ *        In general, the user would write their own specialized ones.
  *
  *  Created by James Adler and Xiaozhe Hu on 4/22/15.
  *  Copyright 2016__HAZMAT__. All rights reserved.
