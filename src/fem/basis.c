@@ -1,111 +1,114 @@
 /*! \file src/fem/basis.c
  *
+ * \brief Compute the basis functions for triangles or tetrahedra or 1D FEM
+ *
  *  Created by James Adler and Xiaozhe Hu on 2/1/15.
- *  Copyright 2015_JXLcode__. All rights reserved.
+ *  Copyright 2015__HAZMAT__. All rights reserved.
+ *
+ * \note modified by James Adler 11/14/2016
+ *
+ * \note Typically this involves DOF defined on either the
+ *  vertices, edges, or faces.  In most cases, the basis elements are
+ *  defined using the standard Lagrange finite-element basis functions
+ *  using barycentric coordinates.  See PX_H1_basis for details on the Lagrange
+ *  basis functions.
  *
  */
 
 #include "hazmat.h"
 
-/* Compute the basis functions for triangles or tetrahedra or 1D FEM
- *
- *  Discussion:  Typically this involves DOF defined on either the
- *  vertices, edges, or faces.  In most cases, the basis elements are
- *  defined using the standard Lagrange finite-element basis functions
- *  using barycentric coordinates.
- *
- * For 1D we just compute the basis functions directly
- * For P1: for element between x_1 and x_2:  x1 ------ x2
- * phi_1 = (x_2 - x)/(x_2 - x_1)
- * phi_2 = (x-x_1)/(x_2 - x_1)
- *
- * For P2: for element between x_1 and x_2: x1 ---- x3 ---- x2
- * phi_1 = (x_2 - x)/(x_2 - x_1)*(2(x_2 - x)/(x_2 - x_1) - 1)
- * phi_2 = (x-x_1)/(x_2 - x_1)*(2(x-x_1)/(x_2 - x_1) - 1)
- * phi_3 = 4(x_2 - x)/(x_2 - x_1)(x-x_1)/(x_2 - x_1)
- *
- * For 2D, we show an illustration here.
- *
- *  The physical element:
- *
- *    In this picture, we don't mean to suggest that the bottom of
- *    the physical triangle is horizontal.  However, we do assume that
- *    each of the sides is a straight line, and that the intermediate
- *    points are exactly halfway on each side.
- *
- *    |
- *    |
- *    |        3
- *    |       / \
- *    |      /   \
- *    Y    e31    e23
- *    |    /       \
- *    |   /         \
- *    |  1----e12-----2
- *    |
- *    +--------X-------->
- *
- *  Reference element T3:
- *
- *    In this picture of the reference element, we really do assume
- *    that one side is vertical, one horizontal, of length 1.
- *
- *    |
- *    |
- *    1  3
- *    |  |\
- *    |  | \
- *    S e31 e23
- *    |  |   \
- *    |  |    \
- *    0  1-e12-2
- *    |
- *    +--0--R--1-------->
- *
- *  Determine the (R,S) coordinates corresponding to (X,Y).
- *
- *  What is happening here is that we are solving the linear system:
- *
- *    ( X2-X1  X3-X1 ) * ( R ) = ( X - X1 )
- *    ( Y2-Y1  Y3-Y1 )   ( S )   ( Y - Y1 )
- *
- *  by computing the inverse of the coefficient matrix and multiplying
- *  it by the right hand side to get R and S.
- *
- *  The values of dRdX, dRdY, dSdX and dSdY are easily from the formulas
- *  for R and S.
- *
- *  For quadratic elements:
- *    |
- *    1  3
- *    |  |\
- *    |  | \
- *    S  5  6
- *    |  |   \
- *    |  |    \
- *    0  1--4--2
- *    |
- *    +--0--R--1-------->
- */
-
-/****************************************************************************************************************************/
-/* Compute Standard Lagrange Finite Element Basis Functions (PX) at a particular point in 1, 2 or 3D*/
-/* For now, we only assume constants, Linears or Quadratic Elements (P0 or P1 or P2) */
+/*******************************************************************************************************/
 void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,trimesh *mesh)
 {
-  /*
-   *    INPUT:
-   *          x                   Coordinates on physical triangle where to compute basis
-   *          mesh                Mesh Data
-   *	      dof                 DOF for the given element (in this case vertices and their global numbering)
-   *          porder              Order of elements (1 or 2 for now)
+  /*!
+   * \fn void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,trimesh *mesh)
    *
-   *    OUTPUT:
-   *          p(v_per_elm)	  Basis functions at particular point (1 for each vertex)
-   *          dp         	  Derivatives of basis functions at each vertex evaluated at given point
+   * \brief Compute Standard Lagrange Finite Element Basis Functions (PX) at a particular point in 1, 2 or 3D
+   *        For now, we only assume constants, Linears, or Quadratic Elements (P0 or P1 or P2)
+   *
+   * \param x       Coordinate on where to compute basis function
+   * \param dof       DOF on element
+   * \param porder  Order of elements
+   * \param mesh    Mesh struct
+   *
+   * \return p      Basis functions (1 for each DOF on element)
+   * \return dp     Derivatives of basis functions (i.e., gradient)
+   *
+   *  \note For 1D we just compute the basis functions directly
+   *        For P1: for element between x_1 and x_2:  x1 ------ x2
+   *             phi_1 = (x_2 - x)/(x_2 - x_1)
+   *             phi_2 = (x-x_1)/(x_2 - x_1)
+   *
+   *        For P2: for element between x_1 and x_2: x1 ---- x3 ---- x2
+   *             phi_1 = (x_2 - x)/(x_2 - x_1)*(2(x_2 - x)/(x_2 - x_1) - 1)
+   *             phi_2 = (x-x_1)/(x_2 - x_1)*(2(x-x_1)/(x_2 - x_1) - 1)
+   *             phi_3 = 4(x_2 - x)/(x_2 - x_1)(x-x_1)/(x_2 - x_1)
+   *
+   *        For 2D, we show an illustration here.
+   *
+   *        The physical element:
+   *
+   *        In this picture, we don't mean to suggest that the bottom of
+   *        the physical triangle is horizontal.  However, we do assume that
+   *        each of the sides is a straight line, and that the intermediate
+   *        points are exactly halfway on each side.
+   *
+   *    |
+   *    |
+   *    |        3
+   *    |       / \
+   *    |      /   \
+   *    Y    e31    e23
+   *    |    /       \
+   *    |   /         \
+   *    |  1----e12-----2
+   *    |
+   *    +--------X-------->
+   *
+   *      Reference element T3:
+   *
+   *       In this picture of the reference element, we really do assume
+   *       that one side is vertical, one horizontal, of length 1.
+   *
+   *    |
+   *    |
+   *    1  3
+   *    |  |\
+   *    |  | \
+   *    S e31 e23
+   *    |  |   \
+   *    |  |    \
+   *    0  1-e12-2
+   *    |
+   *    +--0--R--1-------->
+   *
+   *     Determine the (R,S) coordinates corresponding to (X,Y).
+   *
+   *     What is happening here is that we are solving the linear system:
+   *
+   *      ( X2-X1  X3-X1 ) * ( R ) = ( X - X1 )
+   *      ( Y2-Y1  Y3-Y1 )   ( S )   ( Y - Y1 )
+   *
+   *     by computing the inverse of the coefficient matrix and multiplying
+   *     it by the right hand side to get R and S.
+   *
+   *    The values of dRdX, dRdY, dSdX and dSdY are easily from the formulas
+   *    for R and S.
+   *
+   *    For quadratic elements:
+   *
+   *    |
+   *    1  3
+   *    |  |\
+   *    |  | \
+   *    S  5  6
+   *    |  |   \
+   *    |  |    \
+   *    0  1--4--2
+   *    |
+   *    +--0--R--1-------->
+   *
    */
-
-
 
   REAL dp1r,dp2r,dp3r,dp4r,dp5r,dp6r,dp7r,dp8r,dp9r,dp10r;
   REAL dp1s,dp2s,dp3s,dp4s,dp5s,dp6s,dp7s,dp8s,dp9s,dp10s;
@@ -113,7 +116,7 @@ void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,trimesh *mesh)
   REAL onemrst;
   INT i;
 
-  // flag for errors
+  // Flag for errors
   SHORT status;
 
   // Get Mesh Data
@@ -214,8 +217,8 @@ void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,trimesh *mesh)
         dp5s = 4-4*r-8*s;
         dp6s = 4*r;
       } else {
-          status = ERROR_FE_TYPE;
-          check_error(status, __FUNCTION__);
+        status = ERROR_FE_TYPE;
+        check_error(status, __FUNCTION__);
       }
 
       /*  We need to convert the derivative information from (R(X,Y),S(X,Y))
@@ -340,8 +343,8 @@ void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,trimesh *mesh)
         dp9t = 4*r;
         dp10t = 4*s;
       } else {
-          status = ERROR_FE_TYPE;
-          check_error(status, __FUNCTION__);
+        status = ERROR_FE_TYPE;
+        check_error(status, __FUNCTION__);
       }
 
       /*  We need to convert the derivative information from (R(X,Y),S(X,Y))
@@ -380,8 +383,8 @@ void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,trimesh *mesh)
         dp[9*dim+2] = dp10r * drdz + dp10s * dsdz + dp10t * dtdz;
       }
     } else {
-        status = ERROR_DIM;
-        check_error(status, __FUNCTION__);
+      status = ERROR_DIM;
+      check_error(status, __FUNCTION__);
     }
   }
 
@@ -391,26 +394,28 @@ void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,trimesh *mesh)
 
   return;
 }
-/****************************************************************************************************************************/
+/*******************************************************************************************************/
 
-/****************************************************************************************************************************/
-/* Compute Standard Quadratic Finite Element Basis Functions (P2) at a particular point */
-/* Also compute the 2nd derivatives for some reason... */
+/*******************************************************************************************************/
 void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dpxy,REAL x,REAL y,REAL z,INT *dof,INT porder,trimesh *mesh) 
 {
-
-  /*
-   *    INPUT:
-   *          x,y,z               Coordinates on physical triangle where to compute basis
-   *          mesh                Mesh Data
-   *	      dof                 DOF for the given element (in this case vertices and their global numbering)
-   *          porder              Order of elements (1 or 2 for now)
-   *    OUTPUT:
-   *          p(v_per_elm)	  Basis functions at particular point (1 for each vertex)
-   *          dpx,dpy(3)	  Derivatives of basis functions at each vertex evaluated at given point
-   *          dpxx,dpyy,dpxy      2nd Derivatives of basis functions
+  /*!
+   * \fn void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dpxy,REAL x,REAL y,REAL z,INT *dof,INT porder,trimesh *mesh)
+   *
+   * \brief Compute Standard Quadratic Finite Element Basis Functions (P2) at a particular point
+   *        Also compute the 2nd derivatives for some reason...
+   *
+   * \param x,y,z           Coordinate on where to compute basis function
+   * \param dof             DOF for the given element (in this case vertices and their global numbering)
+   * \param porder          Order of elements
+   * \param mesh            Mesh struct
+   *
+   * \return p              Basis functions (1 for each DOF on element)
+   * \return dpx,dpy        Derivatives of basis functions (i.e., gradient)
+   * \return dpxx,dpyy,dpxy 2nd Derivatives of basis functions
+   *
+   *
    */
-
 
   REAL dp1r,dp2r,dp3r,dp4r,dp5r,dp6r;
   REAL dp1s,dp2s,dp3s,dp4s,dp5s,dp6s;
@@ -531,24 +536,27 @@ void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dp
 
   return;
 }
-/****************************************************************************************************************************/
+/*******************************************************************************************************/
 
-/****************************************************************************************************************************/
-/* Compute Nedelec Finite Element Basis Functions (zeroth order) at a particular point in 2 or 3D*/
+/*******************************************************************************************************/
 void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
 {
-  /* Compute the Nedelec Elements
-   *    INPUT:
-   *          x                      Coordinates on physical triangle where to compute basis
-   *          mesh                   Mesh Data
-   *          v_on_elm               Vertices on the given element
-   *	      dof                    DOF for the given element (in this case edges and their global numbering)
-   *    OUTPUT:
-   *          phi(ed_per_elm,dim)    Basis functions at particular point (dim for each edge from reference triangle)
-   *          cphi(ed_per_elm,dim)   Curl of Basis functions at particular point (1 for each edge in 2D) (from reference triangle)
+  /*!
+   * \fn void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
+   *
+   * \brief Compute Nedelec Finite Element Basis Functions (zeroth order) at a particular point in 2 or 3D
+   *
+   * \param x         Coordinate on where to compute basis function
+   * \param v_on_elm  Vertices on element
+   * \param dof       DOF on element
+   * \param mesh      Mesh struct
+   *
+   * \return phi      Basis functions (dim for each edge from reference triangle)
+   * \return cphi     Curl of basis functions (1 for each edge in 2D, dim for each edge in 3D)
+   *
    */
 
-  // flag for errors
+  // Flag for errors
   SHORT status;
 
   // Get Mesh Data
@@ -619,8 +627,8 @@ void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh
       cphi[i*dim+1] = 2*elen*(dp[ihi*dim]*dp[ilo*dim+2]-dp[ilo*dim]*dp[ihi*dim+2]);
       cphi[i*dim+2] = 2*elen*(dp[ilo*dim]*dp[ihi*dim+1]-dp[ihi*dim]*dp[ilo*dim+1]);
     } else {
-        status = ERROR_DIM;
-        check_error(status, __FUNCTION__);
+      status = ERROR_DIM;
+      check_error(status, __FUNCTION__);
     }
   }
 
@@ -634,18 +642,22 @@ void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh
 /****************************************************************************************************************************/
 void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
 {
-  /* Compute the Raviart Thomas Elements
-   *    INPUT:
-   *          x                   Coordinates on physical triangle where to compute basis
-   *          mesh                Mesh Data
-   *          v_on_elm            Vertices on the given element
-   *	      dof                 DOF for the given element (in this case faces and their global numbering)
-   *    OUTPUT:
-   *          phi(f_per_elm,dim)  Basis functions at particular point (dim for each face from reference triangle)
-   *          dphi(f_per_elm)     Div of Basis functions at particular point
+  /*!
+   * \fn void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
+   *
+   * \brief Compute Raviart-Thomas Finite Element Basis Functions (zeroth order) at a particular point in 2 or 3D
+   *
+   * \param x         Coordinate on where to compute basis function
+   * \param v_on_elm  Vertices on element
+   * \param dof       DOF on element
+   * \param mesh      Mesh struct
+   *
+   * \return phi      Basis functions (dim for each face from reference triangle)
+   * \return dphi     Div of basis functions (1 for each face)
+   *
    */
 
-  // flag for erros
+  // Flag for erros
   SHORT status;
 
   // Get Mesh Data
@@ -750,8 +762,8 @@ void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
           + dp[ef1*dim+2]*(dp[ef2*dim]*dp[ef3*dim+1]-dp[ef2*dim+1]*dp[ef3*dim]));
     }
   } else {
-      status = ERROR_DIM;
-      check_error(status, __FUNCTION__);
+    status = ERROR_DIM;
+    check_error(status, __FUNCTION__);
   }
 
   if(p) free(p);
@@ -765,18 +777,25 @@ void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
 /****************************************************************************************************************************/
 void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
 {
-  /* Compute the Brezzi-Douglas-Marini (BDM) Elements of order 1 for now (only 2D for now).
-   *    INPUT:
-   *          x                     Coordinates on physical triangle where to compute basis
-   *          mesh                  Mesh Data
-   *          v_on_elm              Vertices on the given element
-   *	      dof                   DOF for the given element (in this case faces and their global numbering)
-   *    OUTPUT:
-   *          phi(2*f_per_elm,dim)  Basis functions at particular point (2*f_per_elm for each face, 12 total in 2D) (from reference triangle)
-   *          Dphix, Dphiy          Derivatives of Basis functions at particular point
+  /*!
+   * \fn void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
+   *
+   * \brief Brezzi-Douglas-Marini (BDM) Elements of order 1.
+   *
+   * \note ONLY in 2D for now.
+   * \note This has NOT been tested.
+   *
+   * \param x         Coordinate on where to compute basis function
+   * \param v_on_elm  Vertices on element
+   * \param dof       DOF on element
+   * \param mesh      Mesh struct
+   *
+   * \return phi      Basis functions (2*f_per_elm for each face, 12 total in 2D)
+   * \return dphix    Div of basis functions
+   *
    */
 
-  // flag for errors
+  // Flag for errors
   SHORT status;
 
   // Get Mesh Data
@@ -849,8 +868,8 @@ void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof
       dphiy[i*dim*2+3] = 6*farea*(a2+a3);
     }
   } else {
-      status = ERROR_DIM;
-      check_error(status, __FUNCTION__); // 3D not implemented
+    status = ERROR_DIM;
+    check_error(status, __FUNCTION__); // 3D not implemented
   }
 
   if(p) free(p);
