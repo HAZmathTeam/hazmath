@@ -1,21 +1,32 @@
 /*! \file src/fem/quadrature.c
  *
+ * \brief Computes quadrature nodes and weights for each element or for entire domain
  *
- *  Created by James Adler on 2/11/15.
+ *  Created by James Adler and Xiaozhe Hu on 2/11/15.
  *  Copyright 2015__HAZMAT__. All rights reserved.
  *
+ * \note modified by James Adler 11/14/2016
  */
-
-/* Computes quadrature nodes and weights for each element or for entire domain */
 
 #include "hazmat.h"
 
 /*********************************************************************************/
 struct qcoordinates *allocateqcoords(INT nq1d,INT nelm,INT mydim)
 {
-  /* allocates memory and properties of quadrature coordinates struct */
+  /*!
+   * \fn struct qcoordinates *allocateqcoords(INT nq1d,INT nelm,INT mydim)
+   *
+   * \brief Allocates memory and properties of quadrature coordinates struct.
+   *
+   * \param nq1d    Number of quadrature nodes on an element in 1D direction
+   * \param nelm    Number of elements to get quadrature on
+   * \param mydim   Dimension of problem
+   *
+   * \return A      Quadrature struct
+   *
+   */
 
-  // flag for errors
+  // Flag for errors
   SHORT status;
 
   struct qcoordinates *A = malloc(sizeof(struct qcoordinates));
@@ -46,8 +57,8 @@ struct qcoordinates *allocateqcoords(INT nq1d,INT nelm,INT mydim)
     nq = nq1d;
     A->z = (REAL *) calloc(nq*nelm,sizeof(REAL));
   default:
-      status = ERROR_DIM;
-      check_error(status, __FUNCTION__);
+    status = ERROR_DIM;
+    check_error(status, __FUNCTION__);
   }
   A->w = (REAL *) calloc(nq*nelm,sizeof(REAL));
   A->n = nq*nelm;
@@ -60,20 +71,22 @@ struct qcoordinates *allocateqcoords(INT nq1d,INT nelm,INT mydim)
 /*********************************************************************************/
 struct qcoordinates *allocateqcoords_bdry(INT nq1d,INT nelm,INT dim,INT ed_or_f)
 {
-  /* allocates memory and properties of quadrature coordinates struct
-  *  Assumes we are allocated on a boundary, so dimension is 1 or 2
-  *  less
-  *
-  *  Input: nq1d: # of quadrature points in 1D
-  *         nelm: # of "elements (faces or edges) to get quadrature
-  *          dim: Dimension of problem
-  *     ed_or_f:  Whether we are computing quadrature on edges or faces
-  *
-  *  Output: returns quadrature points
-  *
-  */
+  /*!
+   * \fn struct qcoordinates *allocateqcoords_bdry(INT nq1d,INT nelm,INT dim,INT ed_or_f)
+   *
+   * \brief Allocates memory and properties of quadrature coordinates struct.
+   *        Assumes we are allocated on a boundary, so dimension is 1 or 2 less
+   *
+   * \param nq1d    Number of quadrature nodes on an element in 1D direction
+   * \param nelm    Number of "elements" (faces or edges) to get quadrature on
+   * \param dim     Dimension of problem
+   * \param ed_or_f Whether we are computing quadrature on faces or edges
+   *
+   * \return A      Quadrature struct
+   *
+   */
 
-  // flag for errors
+  // Flag for errors
   SHORT status;
 
   struct qcoordinates *A = malloc(sizeof(struct qcoordinates));
@@ -90,8 +103,8 @@ struct qcoordinates *allocateqcoords_bdry(INT nq1d,INT nelm,INT dim,INT ed_or_f)
     nq = nq1d*nq1d;
     break;
   default:
-      status = ERROR_DIM;
-      check_error(status, __FUNCTION__);
+    status = ERROR_DIM;
+    check_error(status, __FUNCTION__);
   }
 
   A->x = (REAL *) calloc(nq*nelm,sizeof(REAL));
@@ -101,8 +114,8 @@ struct qcoordinates *allocateqcoords_bdry(INT nq1d,INT nelm,INT dim,INT ed_or_f)
   } else if(dim==3) {
     A->z = (REAL *) calloc(nq*nelm,sizeof(REAL));
   } else {
-      status = ERROR_DIM;
-      check_error(status, __FUNCTION__);
+    status = ERROR_DIM;
+    check_error(status, __FUNCTION__);
   }
   A->w = (REAL *) calloc(nq*nelm,sizeof(REAL));
   A->n = nq*nelm;
@@ -115,7 +128,14 @@ struct qcoordinates *allocateqcoords_bdry(INT nq1d,INT nelm,INT dim,INT ed_or_f)
 /*********************************************************************************/
 void free_qcoords(qcoordinates* A)
 {
-  /* fres memory of arrays of Incident matrix struct */
+  /*!
+   * \fn void free_qcoords(qcoordinates* A)
+   *
+   * \brief Frees memory of arrays of quadrature struct
+   *
+   * \return A       Struct for quadratures to be freed
+   *
+   */
 
   if (A==NULL) return;
 
@@ -146,16 +166,19 @@ void free_qcoords(qcoordinates* A)
 /*********************************************************************************/
 qcoordinates* get_quadrature(trimesh *mesh,INT nq1d) 
 {	
-  /* Computes quadrature weights and nodes for entire domain using nq1d^(dim)
-   * quadrature nodes per element
+  /*!
+   * \fn qcoordinates* get_quadrature(trimesh *mesh,INT nq1d)
    *
-   *    INPUT:
-   *          mesh  Domain Mesh
-   *	      nq1d	Quad nodes in each direction per element (nq = nq1d^dim)
+   * \brief Computes quadrature weights and nodes for entire domain using nq1d^(dim)
+   *        quadrature nodes per element
    *
-   *    OUTPUT:
-   *          cq	quadrature nodes and weights for entire domain
+   * \param nq1d    Number of quadrature nodes on an element in 1D direction
+   * \param mesh    Mesh struct
+   *
+   * \return cq_all      Quadrature struct
+   *
    */
+
   INT i,j;
 
   INT dim = mesh->dim;
@@ -192,21 +215,22 @@ qcoordinates* get_quadrature(trimesh *mesh,INT nq1d)
 /*********************************************************************************/
 void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm) 
 {
-
-  /* Computes quadrature weights and nodes for SINGLE element using nq1d^(dim)
-   * quadrature nodes on simplex
+  /*!
+   * \fn void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm)
    *
-   *    INPUT:
-   *          mesh	Domain mesh
-   *	      nq1d	quad nodes per element in 1 direction (nq = nq1d^dim)
-   *          elm   Index of current element
+   * \brief Computes quadrature weights and nodes for SINGLE element using nq1d^(dim)
+   *        quadrature nodes on simplex
    *
-   *    OUTPUT:
-   *          cqelm  quadrature nodes and weights for given element
+   * \param nq1d    Number of quadrature nodes on an element in 1D direction
+   * \param mesh    Mesh struct
+   * \param elm     Index of current element
+   *
+   * \return cq_elm Quadrature struct on element
+   *
    */
 
-  // flag for errors
- SHORT status;
+  // Flag for errors
+  SHORT status;
 
   /* Loop indices */
   INT q,j;
@@ -305,8 +329,8 @@ void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm)
       cqelm->w[q] = voldim*gw[q];
     }
   } else {
-      status = ERROR_DIM;
-      check_error(status, __FUNCTION__);
+    status = ERROR_DIM;
+    check_error(status, __FUNCTION__);
   }
 
   if(gp) free(gp);
@@ -325,18 +349,19 @@ void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm)
 /*******************************************************************************/
 qcoordinates* get_quadrature_boundary(trimesh *mesh,INT nq1d,INT ed_or_f) 
 {
-  /* Computes quadrature weights and nodes for all faces (surface integral)
-   * or edges (line integral) in entire domain using nq1d quadrature nodes
-   * per 1D direction
+  /*!
+   * \fn qcoordinates* get_quadrature_boundary(trimesh *mesh,INT nq1d,INT ed_or_f)
    *
-   *    INPUT:
-   *          mesh      Mesh of Domain
-   *	      nq1d      Quad nodes in each direction per element (nq = nq1d^dim)
-   *       ed_or_f      1D (1) or 2D (2) integral.
+   * \brief Computes quadrature weights and nodes for all faces (surface integral)
+   *        or edges (line integral) in entire domain using nq1d quadrature nodes
+   *        per 1D direction.
    *
-   *    OUTPUT:
-   *          cq	quadrature nodes and weights for all edges/faces in
-   *                    entire domain
+   * \param nq1d    Number of quadrature nodes on an element in 1D direction
+   * \param mesh    Mesh struct
+   * \param ed_or_f Whether we do an edge integral (1) or face integral (2)
+   *
+   * \return cq_all Quadrature struct on boundary
+   *
    */
 
   INT i,j;
@@ -384,22 +409,23 @@ qcoordinates* get_quadrature_boundary(trimesh *mesh,INT nq1d,INT ed_or_f)
 /*******************************************************************************/
 void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_f) 
 {
-
-  /* Computes quadrature weights and nodes for SINGLE Edge/Face using nq1d
-   * quadrature nodes on a line/surface.  Can be used to compute integrals on
-   * 1D/2D boundaries (curves/surfaces).
+  /*!
+   * \fn void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_f)
    *
-   *    INPUT:
-   *          mesh	Domain mesh
-   *	      nq1d	quadrature nodes per 1D direction (use -1 for Simpson's)
-   *           dof      Index of current edge/face
-   *        e_or_f      Edge (1) or Face (2) calculation
+   * \brief Computes quadrature weights and nodes for SINGLE Edge/Face using nq1d^(e_or_f)
+   *          quadrature nodes on a line/surface.  Can be used to compute integrals on
+   *          1D/2D boundaries (curves/surfaces).
    *
-   *    OUTPUT:
-   *          cqbdry   quadrature nodes and weights for given edge/face
+   * \param nq1d    Number of quadrature nodes on an element in 1D direction
+   * \param mesh    Mesh struct
+   * \param dof     Index of current edge/face
+   * \param e_or_f  Whether we do an edge integral (1) or face integral (2)
+   *
+   * \return cq_bdry Quadrature struct on edge/face
+   *
    */
 
-  // flag for errors
+  // Flag for errors
   SHORT status;
 
   INT q,j,nqdum; /* Loop indices */
@@ -457,8 +483,8 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
       cvdof->z[j] = mesh->cv->z[thisdof_v[j]-1];
     }
   } else {
-      status = ERROR_DIM;
-      check_error(status, __FUNCTION__);
+    status = ERROR_DIM;
+    check_error(status, __FUNCTION__);
   }
 
   // Get Quad Nodes and Weights
@@ -546,17 +572,19 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
 /*********************************************************************************/
 void dump_qcoords(qcoordinates *q) 
 {
-  /* Dump the coordinate data to file for plotting purposes
+  /*!
+   * \fn void dump_qcoords(qcoordinates *q)
    *
-   * Input:
-   *          q:      Quadrature data.
+   * \brief Dump the quadrature data to file for plotting purposes
    *
-   * Output:
-   *          qcoord.dat:    qcoord(nq,dim+1)  coordinates of nodes
+   * \param q           Quadrature struct
+   *
+   * \return qcoord.dat File with quadrature in format: qcoord(nq,dim+1)
    *
    */
 
-  INT i; /* Loop Indices */
+  // Loop indices
+  INT i;
 
   FILE* fid = fopen("output/qcoord.dat","w");
 
@@ -580,116 +608,36 @@ void dump_qcoords(qcoordinates *q)
 }
 /*********************************************************************************/
 
-/**************************************************************/
-/**** Integration Routines ********/
-/**************************************************************/
-/* /\********************************************************************************************************************\/ */
-/* REAL integrate_elm(qcoordinates *cq,INT elm,INT dim)  */
-/* { */
-
-/*   /\* Computes the L2 inner product (integral) of two functions over a single element */
-/*    * */
-/*    *    INPUT: */
-/*    *          cq             Quadrature Nodes and Weights */
-/*    *          elm            Element to Integrate over (counts at 0) */
-/*    * */
-/*    *    OUTPUT: */
-/*    *          myval            Resulting Integral */
-/*    *\/ */
-
-/*   // Initialize  */
-/*   INT nq = cq->nq_per_elm;  /\* Total Number of Quadrature Nodes Per Element *\/ */
-/*   INT quad;                      /\* Loop Indices *\/ */
-/*   REAL x,y,z,w;                  /\* Quadrature Nodes and weights *\/ */
-/*   REAL uval = 0.0; */
-/*   REAL vval = 0.0;               /\* Values of known function at quadrature node *\/ */
-/*   REAL myint = 0.0; */
-
-/*   z = 0.0; */
-/*   //  Sum over quadrature points */
-/*   for (quad=0;quad<nq;quad++) {         */
-/*     x = cq->x[elm*nq+quad]; */
-/*     y = cq->y[elm*nq+quad]; */
-/*     if (dim==3) { z = cq->z[elm*nq+quad]; } */
-/*     w = cq->w[elm*nq+quad]; */
-
-/*     /\* if(interp==0) { // Using exact functions from data_input.c *\/ */
-
-/*     /\*   // Get known vectors *\/ */
-/*     /\*   getknownfunction(&uval,x,y,z,time,mydim,1,param,test1); *\/ */
-/*     /\*   getknownfunction(&vval,x,y,z,time,mydim,1,param,test2); *\/ */
-
-/*     /\* } else if(interp==1) { // Interpolate vector to quadrature nodes *\/ */
-
-/*     /\*   // Get interpolated vector *\/ */
-/*     /\*   H1_interpolation(&uval,u,x,y,z,jel_n,xn,yn,zn,ndof,element_order,mydim,1); *\/ */
-/*     /\*   H1_interpolation(&vval,v,x,y,z,jel_n,xn,yn,zn,ndof,element_order,mydim,1); *\/ */
-
-/*     /\* } else { *\/ */
-/*     /\*   printf("What exactly would you like me to integrate??  Aborting now..."); *\/ */
-/*     /\*   exit(1); *\/ */
-/*     /\* } *\/ */
-
-/*     myint = myint + w*uval*vval; */
-/*   } */
-
-/*   return myint; */
-/* } */
-/* /\********************************************************************************************************************\/ */
-
-/* /\********************************************************************************************************************\/ */
-/* REAL integrate_domain(qcoordinates *cq,trimesh *mesh)  */
-/* { */
-
-/*   /\* Computes the L2 inner product (integral) of two functions over entire domain */
-/*    * */
-/*    *    INPUT: */
-/*    *          cq             Quadrature Nodes and Weights */
-/*    *          mesh	     Mesh Domain */
-/*    * */
-/*    *    OUTPUT: */
-/*    *          myint       Resulting Integral */
-/*    *\/ */
-
-/*   INT i; */
-/*   REAL int_elm=0.0; */
-/*   REAL myint=0.0; */
-
-/*   for(i=0;i<nelm;i++) { */
-/*     int_elm = integrate_elm(cq,i); */
-/*     myint = myint + int_elm; */
-/*   } */
-
-/*   return myint; */
-/* } */
-/* /\********************************************************************************************************************\/ */
-
-/**************************************************************/
+/*********************************************************************/
 /**** Tables of Quadrature Nodes and Weights 1D and 2D and 3D ********/
-/**************************************************************/
+/*********************************************************************/
 
 /************************************************************************************/
-/* 1D Quadrature on Reference Element [-1,1] ) */
 void quad1d(REAL *gaussp, REAL *gaussc, INT ng1d)
 {
-
-  /* up to 5 Gaussian points on the reference domain
-   * ng1d is the num of Gaussin pts in 1 direction
-   * gp(j) x coordinates of the j-th
-   * Gaussian point; and gc(j) is the corresponding coefficient at the j-th
-   * Gaussian point.
+  /*!
+   * \fn void quad1d(REAL *gaussp, REAL *gaussc, INT ng1d)
    *
-   * size of gp is (ngauss); size of gc is (ngauss); with
-   * ngauss=ng1d;
+   * \brief 1D Quadrature on Reference Element [-1,1]
+   *
+   * \note Up to 5 Gaussian points on the reference domain
+   *
+   * \param ng1d            Number of Gaussian points in 1 direction
+   *
+   * \return gaussp         x coordinates of the Gaussian points
+   * \return gaussc         Weights of the Gaussian points
+   *
    */
 
+  // Check for errors
   if(ng1d<2) {
     ng1d = 2;
-    printf("HEY!  Unless you want to do the midpoint rule, you better have at least 2 quadrature points...");
+    printf("HEY!  Unless you want to do the midpoint rule, you better have at least 2 quadrature points...\n");
+    printf("Forcing you to use 2 quadrature points.\n\n")
   }
   if(ng1d>5) {
     ng1d = 5;
-    printf("Getting greedy with the quadrature aren't we??\n\n");
+    printf("Getting greedy with the quadrature aren't we??\n  Knocking you down to 5 quadrature points...\n");
   }
 
   switch (ng1d) {
@@ -735,22 +683,34 @@ void quad1d(REAL *gaussp, REAL *gaussc, INT ng1d)
 }
 /************************************************************************************/
 
-
-
 /************************************************************************************/
-/* 2D Quadrature on Reference Triangle (Vertices (0,0),(1,0),(0,1) ) */
 void triquad_(REAL *gp, REAL *gc, INT ng1d)
 {
-
-  /* up to 7x7 Gaussian points on a triangle
-   * ng1d is the num of Gaussin pts in 1 direction
-   * gp(1,j) and g(2,j) are the (x,y) coordinates of the j-th
-   * Gaussian point; and gc(j) is the corresponding coefficient at the j-th
-   * Gaussian point.
+  /*!
+   * \fn void triquad_(REAL *gp, REAL *gc, INT ng1d)
    *
-   * size of gp is (2,ngauss); size of gc is (ngauss); with
-   * ngauss=ng1d*ng1d;
+   * \brief 2D Quadrature on Reference Triangle ( Vertices (0,0),(1,0),(0,1) )
+   *
+   * \note Up to 7x7 Gaussian points on a triangle.
+   *
+   * \param ng1d        Number of Gaussian points in 1 direction
+   *
+   * \return gp         (x,y) coordinates of the Gaussian points
+   * \return gc         Weights of the Gaussian points
+   *
    */
+
+  // Check for errors
+  if(ng1d<1) {
+    ng1d = 1;
+    printf("HEY!  You better have at least 1 quadrature point...\n");
+    printf("Forcing you to use 1 quadrature point.\n\n")
+  }
+  if(ng1d>7) {
+    ng1d = 5;
+    printf("Getting greedy with the quadrature aren't we??\n  Knocking you down to 7x7 quadrature points...\n");
+  }
+
   INT ngauss = ng1d*ng1d;
   switch (ng1d) {
   case 1:
@@ -1193,18 +1153,33 @@ void triquad_(REAL *gp, REAL *gc, INT ng1d)
 /************************************************************************************/
 
 /************************************************************************************/
-/* 3D Quadrature on Reference Tetrahedron (Vertices (0,0,0),(0,1,0),(1,0,0),(0,0,1) ) */
 void tetquad_(REAL *gp, REAL *gc, INT ng1d)
 {
-  /* up to 5 x 5 x 5 Gaussian points on a tet
-   * ng1d is the num of Gaussin pts in 1 direction
-   * gp(1,j), g(2,j) and gp(3,j) are the (x,y,z) coordinates of the j-th
-   * Gaussian point; and gc(j) is the corresponding coefficient at the j-th
-   * Gaussian point.
+  /*!
+   * \fn void tetquad_(REAL *gp, REAL *gc, INT ng1d)
    *
-   * size of gp is (3,ngauss); size of gc is (ngauss); with
-   * ngauss=ng1d*ng1d*ng1d;
+   * \brief 3D Quadrature on Reference Tetrahedron ( Vertices (0,0,0),(0,1,0),(1,0,0),(0,0,1) )
+   *
+   * \note Up to 5x5x5 Gaussian points on a tetrahedron.
+   *
+   * \param ng1d        Number of Gaussian points in 1 direction
+   *
+   * \return gp         (x,y) coordinates of the Gaussian points
+   * \return gc         Weights of the Gaussian points
+   *
    */
+
+  // Check for errors
+  if(ng1d<1) {
+    ng1d = 1;
+    printf("HEY!  You better have at least 1 quadrature point...\n");
+    printf("Forcing you to use 1 quadrature point.\n\n")
+  }
+  if(ng1d>5) {
+    ng1d = 5;
+    printf("Getting greedy with the quadrature aren't we??\n  Knocking you down to 5x5x5 quadrature points...\n");
+  }
+
   INT ngauss=ng1d*ng1d*ng1d;
   switch (ng1d) {
   case 1:
