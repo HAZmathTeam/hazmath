@@ -100,22 +100,10 @@ void assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace
     }
 
     // Find DOF for given Element
-    rowa = FE->el_dof->IA[i]-1;
-    rowb = FE->el_dof->IA[i+1]-1;
-    jcntr = 0;
-    for (j=rowa; j<rowb; j++) {
-      dof_on_elm[jcntr] = FE->el_dof->JA[j];
-      jcntr++;
-    }
+    get_incidence_row(i,FE->el_dof,dof_on_elm);
 
     // Find vertices for given Element
-    rowa = mesh->el_v->IA[i]-1;
-    rowb = mesh->el_v->IA[i+1]-1;
-    jcntr = 0;
-    for (j=rowa; j<rowb; j++) {
-      v_on_elm[jcntr] = mesh->el_v->JA[j];
-      jcntr++;
-    }
+    get_incidence_row(i,mesh->el_v,v_on_elm);
 
     // Compute Local Stiffness Matrix for given Element
     (*local_assembly)(ALoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,coeff,time);
@@ -232,22 +220,10 @@ void assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
     }
 
     // Find DOF for given Element
-    rowa = FE->el_dof->IA[i]-1;
-    rowb = FE->el_dof->IA[i+1]-1;
-    jcntr = 0;
-    for (j=rowa; j<rowb; j++) {
-      dof_on_elm[jcntr] = FE->el_dof->JA[j];
-      jcntr++;
-    }
+    get_incidence_row(i,FE->el_dof,dof_on_elm);
 
     // Find vertices for given Element
-    rowa = mesh->el_v->IA[i]-1;
-    rowb = mesh->el_v->IA[i+1]-1;
-    jcntr = 0;
-    for (j=rowa; j<rowb; j++) {
-      v_on_elm[jcntr] = mesh->el_v->JA[j];
-      jcntr++;
-    }
+    get_incidence_row(i,mesh->el_v,v_on_elm);
 
     // Compute Local Stiffness Matrix for given Element
     (*local_assembly)(ALoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,coeff,time);
@@ -357,30 +333,14 @@ void assemble_global_FE1FE2(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
       }
     }
 
-    // Find DOF for given Element
-    rowa = FE1->el_dof->IA[i]-1;
-    rowb = FE1->el_dof->IA[i+1]-1;
-    jcntr = 0;
-    for (j=rowa; j<rowb; j++) {
-      dof_on_elm1[jcntr] = FE1->el_dof->JA[j];
-      jcntr++;
-    }
-    rowa = FE2->el_dof->IA[i]-1;
-    rowb = FE2->el_dof->IA[i+1]-1;
-    jcntr = 0;
-    for (j=rowa; j<rowb; j++) {
-      dof_on_elm2[jcntr] = FE2->el_dof->JA[j];
-      jcntr++;
-    }
+    // Find DOF of FE 1 for given Element
+    get_incidence_row(i,FE1->el_dof,dof_on_elm1);
+
+    // Find DOF of FE 2 for given Element
+    get_incidence_row(i,FE2->el_dof,dof_on_elm2);
 
     // Find vertices for given Element
-    rowa = mesh->el_v->IA[i]-1;
-    rowb = mesh->el_v->IA[i+1]-1;
-    jcntr = 0;
-    for (j=rowa; j<rowb; j++) {
-      v_on_elm[jcntr] = mesh->el_v->JA[j];
-      jcntr++;
-    }
+    get_incidence_row(i,mesh->el_v,v_on_elm);
 
     // Compute Local Stiffness Matrix for given Element
     (*local_assembly)(ALoc,FE1,FE2,mesh,cq,dof_on_elm1,dof_on_elm2,v_on_elm,i,coeff,time);
@@ -524,13 +484,7 @@ void assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(RE
     }
 
     // Find vertices for given Element
-    rowa = mesh->el_v->IA[i]-1;
-    rowb = mesh->el_v->IA[i+1]-1;
-    jcntr = 0;
-    for (j=rowa; j<rowb; j++) {
-      v_on_elm[jcntr] = mesh->el_v->JA[j];
-      jcntr++;
-    }
+    get_incidence_row(i,mesh->el_v,v_on_elm);
 
     // Compute Local Stiffness Matrix for given Element
     (*local_assembly)(ALoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,time);
@@ -675,14 +629,7 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
       }
     }
 
-    // Find vertices for given Element
-    rowa = mesh->el_v->IA[i]-1;
-    rowb = mesh->el_v->IA[i+1]-1;
-    jcntr = 0;
-    for (j=rowa; j<rowb; j++) {
-      v_on_elm[jcntr] = mesh->el_v->JA[j];
-      jcntr++;
-    }
+    get_incidence_row(i,mesh->el_v,v_on_elm);
 
     // Compute Local Stiffness Matrix for given Element
     (*local_assembly)(ALoc,old_sol,FE,mesh,cq,dof_on_elm,v_on_elm,i,time);
@@ -758,22 +705,10 @@ void assemble_global_RHS(dvector *b,fespace *FE,trimesh *mesh,qcoordinates *cq,v
     }
 
     // Find DOF for given Element
-    rowa = FE->el_dof->IA[i]-1;
-    rowb = FE->el_dof->IA[i+1]-1;
-    jcntr = 0;
-    for (j=rowa; j<rowb; j++) {
-      dof_on_elm[jcntr] = FE->el_dof->JA[j];
-      jcntr++;
-    }
+    get_incidence_row(i,FE->el_dof,dof_on_elm);
 
     // Find vertices for given Element
-    rowa = mesh->el_v->IA[i]-1;
-    rowb = mesh->el_v->IA[i+1]-1;
-    jcntr = 0;
-    for (j=rowa; j<rowb; j++) {
-      v_on_elm[jcntr] = mesh->el_v->JA[j];
-      jcntr++;
-    }
+    get_incidence_row(i,mesh->el_v,v_on_elm);
 
     // Compute Local RHS for given Element
     FEM_RHS_Local(bLoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,rhs,time);
@@ -872,13 +807,7 @@ void assemble_global_RHS_block(dvector *b,void (*local_rhs_assembly)(REAL *,bloc
     }
 
     // Find vertices for given Element
-    rowa = mesh->el_v->IA[i]-1;
-    rowb = mesh->el_v->IA[i+1]-1;
-    jcntr = 0;
-    for (j=rowa; j<rowb; j++) {
-      v_on_elm[jcntr] = mesh->el_v->JA[j];
-      jcntr++;
-    }
+    get_incidence_row(i,mesh->el_v,v_on_elm);
 
     // Compute Local RHS for given Element
     (*local_rhs_assembly)(bLoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,rhs,time);
@@ -984,13 +913,7 @@ void assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_a
     }
 
     // Find vertices for given Element
-    rowa = mesh->el_v->IA[i]-1;
-    rowb = mesh->el_v->IA[i+1]-1;
-    jcntr = 0;
-    for (j=rowa; j<rowb; j++) {
-      v_on_elm[jcntr] = mesh->el_v->JA[j];
-      jcntr++;
-    }
+    get_incidence_row(i,mesh->el_v,v_on_elm);
 
     // Compute Local RHS for given Element
     (*local_rhs_assembly)(bLoc,old_sol,FE,mesh,cq,dof_on_elm,v_on_elm,i,rhs,time);
@@ -1129,17 +1052,7 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
       }
 
       // Find DOF for given Face
-      rowa = FE->f_dof->IA[i]-1;
-      rowb = FE->f_dof->IA[i+1]-1;
-      jcntr = 0;
-      for (j=rowa; j<rowb; j++) {
-        dof_on_f[jcntr] = FE->f_dof->JA[j];
-        jcntr++;
-      }
-      if(rowb-rowa!=dof_per_face) {
-        printf("Face Integration has error.  Do you know how many DOF's per Face you have??\n");
-        exit(0);
-      }
+      get_incidence_row(i,FE->f_dof,dof_on_f);
 
       // Find the corresponding element associated with the face
       // Assume only 1 matters (if on boundary)
@@ -1147,22 +1060,10 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
       elm = f_el.JA[rowa]-1;
 
       // Find DOF on that element
-      rowa = FE->el_dof->IA[elm]-1;
-      rowb = FE->el_dof->IA[elm+1]-1;
-      jcntr = 0;
-      for (j=rowa; j<rowb; j++) {
-        dof_on_elm[jcntr] = FE->el_dof->JA[j];
-        jcntr++;
-      }
+      get_incidence_row(elm,FE->el_dof,dof_on_elm);
       
       // Find vertices for given Element
-      rowa = mesh->el_v->IA[elm]-1;
-      rowb = mesh->el_v->IA[elm+1]-1;
-      jcntr = 0;
-      for (j=rowa; j<rowb; j++) {
-        v_on_elm[jcntr] = mesh->el_v->JA[j];
-        jcntr++;
-      }
+      get_incidence_row(elm,mesh->el_v,v_on_elm);
 
       // Compute Local Stiffness Matrix for given Element
       (*local_assembly_face)(ALoc,old_sol,FE,mesh,cq,dof_on_f,dof_on_elm,v_on_elm,i,elm,coeff,time);
@@ -1271,17 +1172,7 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
       }
 
       // Find DOF for given Face
-      rowa = FE->f_dof->IA[i]-1;
-      rowb = FE->f_dof->IA[i+1]-1;
-      jcntr = 0;
-      for (j=rowa; j<rowb; j++) {
-        dof_on_f[jcntr] = FE->f_dof->JA[j];
-        jcntr++;
-      }
-      if(rowb-rowa!=dof_per_face) {
-        printf("Face Integration has error.  Do you know how many DOF's per Face you have??\n");
-        exit(0);
-      }
+      get_incidence_row(i,FE->f_dof,dof_on_f);
 
       // Find the corresponding element associated with the face
       // Assume only 1 matters (if on boundary)
@@ -1289,22 +1180,10 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
       elm = f_el.JA[rowa]-1;
 
       // Find DOF on that element
-      rowa = FE->el_dof->IA[elm]-1;
-      rowb = FE->el_dof->IA[elm+1]-1;
-      jcntr = 0;
-      for (j=rowa; j<rowb; j++) {
-        dof_on_elm[jcntr] = FE->el_dof->JA[j];
-        jcntr++;
-      }
-      
+      get_incidence_row(elm,FE->el_dof,dof_on_elm);
+
       // Find vertices for given Element
-      rowa = mesh->el_v->IA[elm]-1;
-      rowb = mesh->el_v->IA[elm+1]-1;
-      jcntr = 0;
-      for (j=rowa; j<rowb; j++) {
-        v_on_elm[jcntr] = mesh->el_v->JA[j];
-        jcntr++;
-      }
+      get_incidence_row(elm,mesh->el_v,v_on_elm);
 
       // Compute Local Stiffness Matrix for given Element
       (*local_rhs_assembly_face)(bLoc,old_sol,FE,mesh,dof_on_f,dof_per_face,dof_on_elm,v_on_elm,i,elm,rhs,time);
@@ -1371,22 +1250,10 @@ void assemble_global_Ned_GradH1_RHS(dvector *b,fespace *FE_H1,fespace *FE_Ned,tr
     }
 
     // Find Edges for given Element
-    rowa = FE_Ned->el_dof->IA[i]-1;
-    rowb = FE_Ned->el_dof->IA[i+1]-1;
-    jcntr = 0;
-    for (j=rowa; j<rowb; j++) {
-      ed_on_elm[jcntr] = FE_Ned->el_dof->JA[j];
-      jcntr++;
-    }
+    get_incidence_row(i,FE_Ned->el_dof,ed_on_elm);
 
     // Find vertices for given Element
-    rowa = mesh->el_v->IA[i]-1;
-    rowb = mesh->el_v->IA[i+1]-1;
-    jcntr = 0;
-    for (j=rowa; j<rowb; j++) {
-      v_on_elm[jcntr] = mesh->el_v->JA[j];
-      jcntr++;
-    }
+    get_incidence_row(i,mesh->el_v,v_on_elm);
 
     // Compute Local RHS for given Element
     Ned_GradH1_RHS_local(bLoc,FE_H1,FE_Ned,mesh,cq,ed_on_elm,v_on_elm,i,u);

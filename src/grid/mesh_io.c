@@ -1,5 +1,5 @@
 /*! \file src/grid/mesh_input.c   
- *  
+ *
  *  Created by James Adler and Xiaozhe Hu on 1/9/15.
  *  Copyright 2015__HAZMAT__. All rights reserved.
  *
@@ -12,36 +12,44 @@
 /******************************************************************************/
 void read_grid_haz(FILE *gfid,trimesh *mesh) 
 {
-  /* Reads in gridfile of the following form:
+  /*!
+   * \fn void read_grid_haz(FILE *gfid,trimesh *mesh)
    *
-   * First line:	nelms nnodes dim nholes
-   * Next two-four lines:	Each element will have 2 vertices in 1D, 3 in 2D, and 4 in 3D
-   * 
-   *	      line 1:	First node of all elements
-   *	      line 2: 	Second node of all elements
-   *	      line 3:   Third node of all elements (only 2D & 3D)
-   *          line 4:	4th node for 3D
-   *		Columns are node-element map not sparse
+   * \brief Reads in gridfile of the following form:
    *
-   * Next one, two, or 3 lines:	x,y,z coordinates
-   *			line 1:		x coordinates of all nodes
-   *			line 2:		y coordinates of all nodes (only in 2 or 3D)
-   *			line 3:	    z coordinates of all nodes (only in 3D)
+   *        First line:             nelms nnodes dim nholes
+   *        Next two-four lines:	Each element will have 2 vertices in 1D, 3 in 2D, and 4 in 3D.
+   *                                Columns are node-element map not sparse
    *
-   * Next line:         List of nodes and whether they land on boundary 
-   *                    (binary or flagged) -1 indicates boundary of hole if any
+   *	      Line 1:	First node of all elements
+   *	      Line 2: 	Second node of all elements
+   *	      Line 3:   Third node of all elements (only 2D & 3D)
+   *          Line 4:	4th node for 3D
    *
-   * INPUT: 
-   *         gfid    Grid File ID
+   *        Next one, two, or 3 lines:	x,y,z coordinates
    *
-   * OUTPUT: 
-   *         mesh    Properties of mesh:
-   *                  dim, nelm, nvert, nbvert, v_per_elm, 
-   *                  coordinates, and element to vertex map
+   *          Line 1:	x coordinates of all nodes
+   *		  Line 2:	y coordinates of all nodes (only in 2 or 3D)
+   *		  Line 3:	z coordinates of all nodes (only in 3D)
+   *
+   *        Next line:  List of nodes and whether they land on boundary
+   *                    Binary or Flagged (i.e., -1 indicates boundary of hole)
+   *
+   * \param gfid             Grid FILE ID.
+   * \param mesh             Pointer to mesh struct
+   *
+   * \return mesh.dim        Dimension of problem
+   * \return mesh.nelm       Number of elements in mesh
+   * \return mesh.nvert      Number of vertices in mesh
+   * \return mesh.nbvert     Number of boundary vertices in mesh
+   * \return mesh.v_per_elm  Number of vertices per element
+   * \return mesh.cv         Coordinates of mesh vertices
+   * \return mesh.el_v       Element to vertex map
    *
    */
-	
-  INT i,j; /* Loop indices */
+
+  // Loop indices
+  INT i,j;
 
   // Get Number of elements, nodes and boundary edges first
   INT* line1 = calloc(4,sizeof(INT));
@@ -55,11 +63,11 @@ void read_grid_haz(FILE *gfid,trimesh *mesh)
 
   // Get number of vertices per element
   INT v_per_elm = dim+1;
-			
+
   // Allocate arrays to read in other data such as coordinate information
   INT* element_vertex = (INT *) calloc(nelm*v_per_elm,sizeof(INT));
   coordinates *cv = allocatecoords(nv,dim);
-		
+
   // Get next 3-4 lines Element-Vertex Map
   INT* line2 = (INT *) calloc(nelm,sizeof(INT));
   for (i=0; i<v_per_elm; i++) {
@@ -69,7 +77,7 @@ void read_grid_haz(FILE *gfid,trimesh *mesh)
     }
   }
   free(line2);
-	
+
   // Get next 2-3 lines for coordinate map
   rvecd_(gfid,cv->x,&nv);
   if(dim>1) {
@@ -77,7 +85,7 @@ void read_grid_haz(FILE *gfid,trimesh *mesh)
     if(dim==3)
       rvecd_(gfid,cv->z,&nv);
   }
-	
+
   // Get next 1-2 lines for boundary nodes
   INT nbv = 0;
   INT* v_bdry = (INT *) calloc(nv,sizeof(INT));
@@ -87,12 +95,12 @@ void read_grid_haz(FILE *gfid,trimesh *mesh)
       nbv++;
     }
   }
-        
+
   /* Element Vertex Map */
   iCSRmat el_v = convert_elmnode(element_vertex,nelm,nv,v_per_elm);
   if(element_vertex) free(element_vertex);
 
-  // This format only allows for 1 connected region and 
+  // This format only allows for 1 connected region and
   // up to 2 connected boundaries (1 hole).
   INT nconn_reg = 0;
   INT nconn_bdry = 0;
@@ -123,60 +131,65 @@ void read_grid_haz(FILE *gfid,trimesh *mesh)
 /******************************************************************************/
 void read_grid_vtk(FILE *gfid,trimesh *mesh) 
 {
-  /* Reads in gridfile in vtk (really vtu) format.  Example follows:
+  /*!
+   * \fn void read_grid_vtk(FILE *gfid,trimesh *mesh)
    *
-   * <VTKFile type="UnstructuredGrid" version="0.1" byte_order="LittleEndian">
-   * <UnstructuredGrid>
-   * <Piece NumberOfPoints="9" NumberOfCells="8">
-   * <Points>
-   * <DataArray type="Float64" NumberOfComponents="3" Format="ascii">                        
-   * 0                        0                        0                                            
-   * 0.5                      0                        0                      
-   * 1                        0                        0                        
-   * 0                      0.5                        0                      
-   * 0.5                    0.5                        0                      
-   * 1                      0.5                        0                         
-   * 0                        1                        0                      
-   * 0.5                      1                        0                      
-   * 1                        1                        0 
-   * </DataArray>
-   * </Points>
-   * <PointData Scalars="scalars">
-   * <DataArray type="Int64" Name="v_bdry" Format="ascii"> 
-   * 1  1  1  1  0  1  1  1  1  
-   * </DataArray>
-   * <DataArray type="Int64" Name="connectedcomponents" Format="ascii"> 
-   * -1  -1  -1  -1  1  -1  -1  -1  -1  
-   * </DataArray>
-   * </PointData>
-   * <Cells>
-   * <DataArray type="Int64" Name="offsets" Format="ascii"> 
-   * 3  6  9  12  15  18  21  24 
-   * </DataArray>
-   * <DataArray type="Int64" Name="connectivity" Format="ascii">
-   * 0  1  3  3  1  4  1  2  4  4  2  5  3  4  6  6  4  7  4  5  7  7  5  8 
-   * </DataArray>
-   * <DataArray type="Int64" Name="types" Format="ascii"> 
-   * 5  5  5  5  5  5  5  5 
-   * </DataArray>
-   * </Cells>
-   * </Piece>
-   * </UnstructuredGrid>
-   * </VTKFile>
-
+   * \brief Reads in gridfile in vtk (really vtu) format.  Example follows:
    *
-   * INPUT: 
-   *         gfid    Grid File ID
+   *        <VTKFile type="UnstructuredGrid" version="0.1" byte_order="LittleEndian">
+   *        <UnstructuredGrid>
+   *        <Piece NumberOfPoints="9" NumberOfCells="8">
+   *        <Points>
+   *        <DataArray type="Float64" NumberOfComponents="3" Format="ascii">
+   *        0                        0                        0
+   *        0.5                      0                        0
+   *        1                        0                        0
+   *        0                      0.5                        0
+   *        0.5                    0.5                        0
+   *        1                      0.5                        0
+   *        0                        1                        0
+   *        0.5                      1                        0
+   *        1                        1                        0
+   *        </DataArray>
+   *        </Points>
+   *        <PointData Scalars="scalars">
+   *        <DataArray type="Int64" Name="v_bdry" Format="ascii">
+   *        1  1  1  1  0  1  1  1  1
+   *        </DataArray>
+   *        <DataArray type="Int64" Name="connectedcomponents" Format="ascii">
+   *        -1  -1  -1  -1  1  -1  -1  -1  -1
+   *        </DataArray>
+   *        </PointData>
+   *        <Cells>
+   *        <DataArray type="Int64" Name="offsets" Format="ascii">
+   *        3  6  9  12  15  18  21  24
+   *        </DataArray>
+   *        <DataArray type="Int64" Name="connectivity" Format="ascii">
+   *        0  1  3  3  1  4  1  2  4  4  2  5  3  4  6  6  4  7  4  5  7  7  5  8
+   *        </DataArray>
+   *        <DataArray type="Int64" Name="types" Format="ascii">
+   *        5  5  5  5  5  5  5  5
+   *        </DataArray>
+   *        </Cells>
+   *        </Piece>
+   *        </UnstructuredGrid>
+   *        </VTKFile>
    *
-   * OUTPUT: 
-   *         mesh    Properties of mesh:
-   *                  dim, nelm, nvert, nbvert, v_per_elm, 
-   *                  coordinates, and element to vertex map
+   * \param gfid             Grid FILE ID.
+   * \param mesh             Pointer to mesh struct
+   *
+   * \return mesh.dim        Dimension of problem
+   * \return mesh.nelm       Number of elements in mesh
+   * \return mesh.nvert      Number of vertices in mesh
+   * \return mesh.nbvert     Number of boundary vertices in mesh
+   * \return mesh.v_per_elm  Number of vertices per element
+   * \return mesh.cv         Coordinates of mesh vertices
+   * \return mesh.el_v       Element to vertex map
    *
    */
-	
+
   fprintf(stderr,"I don't really want to process this vtk file just yet...Come back later...\n\n");
-  exit(255);
+  exit(ERROR_OPEN_FILE);
 
   return;
 }
@@ -185,32 +198,35 @@ void read_grid_vtk(FILE *gfid,trimesh *mesh)
 /******************************************************************************/
 void dump_mesh_haz(char *namehaz,trimesh *mesh)
 {
-
-  /* Dumps mesh data to haz format
-  *
-  * Input:
-  *  mesh:     Mesh struct to dump
-  *
-  * Output:
-  *  namehaz  File name of haz file
-  *
-  *  First line:	nelms nnodes dim nholes
-   * Next four lines:	Each element will have 2 vertices in 1D, 3 in 2D, and 4 in 3D
+  /*!
+   * \fn void dump_mesh_haz(char *namehaz,trimesh *mesh)
    *
-   *	      line 1:	First node of all elements
-   *	      line 2: 	Second node of all elements
-   *	      line 3:   Third node of all elements (dummy in 1D)
-   *          line 4:	Dummy line in 2D or 4th node for 3D
-   *		Columns are node-element map not sparse
+   * \brief Dumps mesh data to haz format
    *
-   * Next one, two, or 3 lines:	x,y,z coordinates
-   *			line 1:		x coordinates of all nodes
-   *			line 2:		y coordinates of all nodes (only in 2 or 3D)
-   *			line 3:	    z coordinates of all nodes (only in 3D)
+   *        First line:             nelms nnodes dim nholes
+   *        Next two-four lines:	Each element will have 2 vertices in 1D, 3 in 2D, and 4 in 3D.
+   *                                Columns are node-element map not sparse
    *
-   * Next line:         List of nodes and whether they land on boundary
-   *                    (binary or flagged) -1 indicates boundary of hole if any
-  */
+   *	      Line 1:	First node of all elements
+   *	      Line 2: 	Second node of all elements
+   *	      Line 3:   Third node of all elements (only 2D & 3D)
+   *          Line 4:	4th node for 3D
+   *
+   *        Next one, two, or 3 lines:	x,y,z coordinates
+   *
+   *          Line 1:	x coordinates of all nodes
+   *		  Line 2:	y coordinates of all nodes (only in 2 or 3D)
+   *		  Line 3:	z coordinates of all nodes (only in 3D)
+   *
+   *        Next line:  List of nodes and whether they land on boundary
+   *                    Binary or Flagged (i.e., -1 indicates boundary of hole)
+   *
+   * \param namehaz          Output file name
+   * \param mesh             Pointer to mesh struct
+   *
+   * \return namehaz.haz     File with mesh data.
+   *
+   */
 
   // Basic Quantities
   INT i,j,ja,jb,jcnt;
@@ -292,16 +308,56 @@ void dump_mesh_haz(char *namehaz,trimesh *mesh)
 /******************************************************************************/
 void dump_mesh_vtk(char *namevtk,trimesh *mesh)
 {
-
-  /* Dumps mesh data to vtk format 
-  *
-  * Input:
-  *  mesh:     Mesh struct to dump
-  * 
-  * Output:
-  *  namevtk  File name of vtk file
-  *
-  */
+  /*!
+   * \fn void dump_mesh_vtk(char *namevtk,trimesh *mesh)
+   *
+   * \brief Dumps mesh data to vtk format. Example follows:
+   *
+   *        <VTKFile type="UnstructuredGrid" version="0.1" byte_order="LittleEndian">
+   *        <UnstructuredGrid>
+   *        <Piece NumberOfPoints="9" NumberOfCells="8">
+   *        <Points>
+   *        <DataArray type="Float64" NumberOfComponents="3" Format="ascii">
+   *        0                        0                        0
+   *        0.5                      0                        0
+   *        1                        0                        0
+   *        0                      0.5                        0
+   *        0.5                    0.5                        0
+   *        1                      0.5                        0
+   *        0                        1                        0
+   *        0.5                      1                        0
+   *        1                        1                        0
+   *        </DataArray>
+   *        </Points>
+   *        <PointData Scalars="scalars">
+   *        <DataArray type="Int64" Name="v_bdry" Format="ascii">
+   *        1  1  1  1  0  1  1  1  1
+   *        </DataArray>
+   *        <DataArray type="Int64" Name="connectedcomponents" Format="ascii">
+   *        -1  -1  -1  -1  1  -1  -1  -1  -1
+   *        </DataArray>
+   *        </PointData>
+   *        <Cells>
+   *        <DataArray type="Int64" Name="offsets" Format="ascii">
+   *        3  6  9  12  15  18  21  24
+   *        </DataArray>
+   *        <DataArray type="Int64" Name="connectivity" Format="ascii">
+   *        0  1  3  3  1  4  1  2  4  4  2  5  3  4  6  6  4  7  4  5  7  7  5  8
+   *        </DataArray>
+   *        <DataArray type="Int64" Name="types" Format="ascii">
+   *        5  5  5  5  5  5  5  5
+   *        </DataArray>
+   *        </Cells>
+   *        </Piece>
+   *        </UnstructuredGrid>
+   *        </VTKFile>
+   *
+   * \param namevtk          Output file name
+   * \param mesh             Pointer to mesh struct
+   *
+   * \return namevtk.vtu     File with mesh data.
+   *
+   */
 
   // Basic Quantities
   INT nv = mesh->nv;
@@ -313,8 +369,8 @@ void dump_mesh_vtk(char *namevtk,trimesh *mesh)
   INT tcell=-10;
   INT k=-10,j=-10,kndl=-10;
   char *tfloat="Float64", *tinto="Int64", *endian="LittleEndian";
-   
-  /* 
+
+  /*
      What endian?:
 
      Intel x86; OS=MAC OS X: little-endian
@@ -330,47 +386,47 @@ void dump_mesh_vtk(char *namevtk,trimesh *mesh)
      Sun SPARC; OS=Solaris: big-endian
   */
 
-  /* 
-     Types of cells for VTK 
+  /*
+     Types of cells for VTK
 
-     VTK_VERTEX (=1) 
+     VTK_VERTEX (=1)
      VTK_POLY_VERTEX (=2)
      VTK_LINE (=3)
      VTK_POLY_LINE (=4)
      VTK_TRIANGLE(=5)
      VTK_TRIANGLE_STRIP (=6)
-     VTK_POLYGON (=7) 
-     VTK_PIXEL (=8) 
+     VTK_POLYGON (=7)
+     VTK_PIXEL (=8)
      VTK_QUAD (=9)
      VTK_TETRA (=10)
      VTK_VOXEL (=11)
      VTK_HEXAHEDRON (=12)
-     VTK_WEDGE (=13) 
+     VTK_WEDGE (=13)
      VTK_PYRAMID (=14)
   */
   const INT LINE=3;
-  const INT TRI=5;  
+  const INT TRI=5;
   const INT TET=10;
 
   if(dim==1) /* Line */
     tcell=LINE;
   else if(dim==2)
     tcell=TRI; /* triangle */
-  else 
+  else
     tcell=TET; /* tet */
 
   // Open File for Writing
-  FILE* fvtk = HAZ_fopen(namevtk,"w");  
+  FILE* fvtk = HAZ_fopen(namevtk,"w");
 
   // Write Headers
   fprintf(fvtk, \
-	  "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"%s\">\n", \
-	  endian);
+          "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"%s\">\n", \
+          endian);
   fprintf(fvtk,"<UnstructuredGrid>\n");
   fprintf(fvtk,"<Piece NumberOfPoints=\"%i\" NumberOfCells=\"%i\">\n",nv,nelm);
   fprintf(fvtk,"<Points>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" NumberOfComponents=\"3\" Format=\"ascii\">", \
-  	  tfloat);
+          tfloat);
 
   // Dump coordinates
   if(dim == 1) {
@@ -384,7 +440,7 @@ void dump_mesh_vtk(char *namevtk,trimesh *mesh)
   } else {
     for(k=0;k<nv;k++) {
       fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],mesh->cv->y[k], \
-  	      mesh->cv->z[k]);
+              mesh->cv->z[k]);
     }
   }
   fprintf(fvtk,"</DataArray>\n");
@@ -446,15 +502,16 @@ void dump_mesh_vtk(char *namevtk,trimesh *mesh)
 /******************************************************************************/
 void create1Dgrid_Line(trimesh* mesh,REAL left_end,REAL right_end,INT nelm)
 {
-  /* Creates a 1D grid from scratch [left_end,right_end] with no holes:
+  /*!
+   * \fn void create1Dgrid_Line(trimesh* mesh,REAL left_end,REAL right_end,INT nelm)
    *
-   * INPUT:
-   *  left_end    Coordinate of Left-End Point
-   *  right_end   Coordinate of Right-End Point
-   *  nelm        Number of Elements
+   * \brief Creates a 1D grid from scratch [left_end,right_end] with no holes.
    *
-   * OUTPUT:
-   *  mesh        Mesh struct and all its properties.
+   * \param left_end    Coordinate of Left-End Point
+   * \param right_end   Coordinate of Right-End Point
+   * \param nelm        Number of Elements
+   *
+   * \return mesh       Mesh struct and all its properties.
    *
    */
 
