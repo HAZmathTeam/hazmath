@@ -1167,8 +1167,7 @@ void eliminate_DirichletBC_blockFE_blockA(void (*bc)(REAL *, REAL *,REAL),block_
 
   INT i,j,k,cola,colb;
   INT nsp = FE->nspaces;
-  INT ndof = 0;
-  for(i=0;i<FE->nspaces;i++) ndof+=FE->var_spaces[i]->ndof;
+  INT ndof = FE->ndof;
 
   INT nrows;
   INT rowshift, colshift;
@@ -1187,21 +1186,23 @@ void eliminate_DirichletBC_blockFE_blockA(void (*bc)(REAL *, REAL *,REAL),block_
       if(dofshift[j]==0){
         if(A->blocks[i+j*nsp] != NULL){
           dofshift[j] = A->blocks[i+j*nsp]->row;
+          break;
         }
       }
     }
   }
   // Error Check
-  for(i=0;i<nsp;i++){ if(dofshift[i]==0) { printf("PROBLEM: ZERO BLOCK ROW\n"); } }
-
+  for(i=0;i<nsp;i++) {
+    if(dofshift[i]==0) {
+      printf("ERROR HAZMAT DANGER: in function %s: NULL BLOCK ROW in A.\n",__FUNCTION__);
+    }
+  }
 
   colshift = 0;
-  //  printf("Loops Start\n");
   // Loop over blocks of A
-  for(i=0;i<FE->nspaces;i++){ // Loop over block cols
+  for(i=0;i<nsp;i++){ // Loop over block cols
     rowshift = 0;
-    for(j=0;j<FE->nspaces;j++){ // Loop over block rows
-      //     printf("BLOCK: %d\n",(i+j*nsp));
+    for(j=0;j<nsp;j++){ // Loop over block rows
       if(A->blocks[i+j*nsp]!=NULL){
         nrows = A->blocks[i+j*nsp]->row;
         for(k=0;k<nrows;k++){ // Loop over matrix rows
@@ -1227,12 +1228,10 @@ void eliminate_DirichletBC_blockFE_blockA(void (*bc)(REAL *, REAL *,REAL),block_
 
       // Update dof shift for rows
       rowshift += dofshift[j];
-      //    printf("Done j=%d\n",i);
     }//end for(j)
 
     // Update dof shift for columns
     colshift += dofshift[i];
-    //  printf("Done i=%d\n",i);
   }//end for(i)
 
   free(dofshift);
