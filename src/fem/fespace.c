@@ -525,3 +525,31 @@ void set_dirichlet_bdry_block(block_fespace* FE,trimesh* mesh,INT flag)
   return;
 }
 /****************************************************************************************/
+
+/******************************************************************************/
+void get_incidence_row(INT row,iCSRmat *fem_map,INT* thisrow)
+{
+  /*!
+   * \fn void get_incidence_row(INT row,iCSRmat *fem_map,INT* thisrow)
+   *
+   * \brief Gets single row of an incidence map (i.e., gets vertices of given element from el_v)
+   *
+   * \param row       Row to grab (indexed at 0)
+   * \param fem_map   Incidence matrix to grab
+   *
+   * \return thisrow  Given row of the incidence matrix
+   *
+   */
+
+  INT j;
+  INT rowa = fem_map->IA[row]-1;
+  INT rowb = fem_map->IA[row+1]-1;
+  INT jcntr = 0;
+  for (j=rowa; j<rowb; j++) {
+    thisrow[jcntr] = fem_map->JA[j];
+    jcntr++;
+  }
+
+  return;
+}
+/******************************************************************************/
