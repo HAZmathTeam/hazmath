@@ -633,7 +633,7 @@ void quad1d(REAL *gaussp, REAL *gaussc, INT ng1d)
   if(ng1d<2) {
     ng1d = 2;
     printf("HEY!  Unless you want to do the midpoint rule, you better have at least 2 quadrature points...\n");
-    printf("Forcing you to use 2 quadrature points.\n\n")
+    printf("Forcing you to use 2 quadrature points.\n\n");
   }
   if(ng1d>5) {
     ng1d = 5;
@@ -704,7 +704,7 @@ void triquad_(REAL *gp, REAL *gc, INT ng1d)
   if(ng1d<1) {
     ng1d = 1;
     printf("HEY!  You better have at least 1 quadrature point...\n");
-    printf("Forcing you to use 1 quadrature point.\n\n")
+    printf("Forcing you to use 1 quadrature point.\n\n");
   }
   if(ng1d>7) {
     ng1d = 5;
@@ -1173,7 +1173,7 @@ void tetquad_(REAL *gp, REAL *gc, INT ng1d)
   if(ng1d<1) {
     ng1d = 1;
     printf("HEY!  You better have at least 1 quadrature point...\n");
-    printf("Forcing you to use 1 quadrature point.\n\n")
+    printf("Forcing you to use 1 quadrature point.\n\n");
   }
   if(ng1d>5) {
     ng1d = 5;
