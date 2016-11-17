@@ -129,7 +129,7 @@ dCSRmat dcsr_create_single_nnz_matrix (const INT m,
     INT i;
     for(i=0;i<row+1-index_start;i++) A.IA[i]=index_start;
     for(i=row+1-index_start;i<m+1;i++) A.IA[i]=index_start+1;
-    A.JA[0]=col-(1-index_start);
+    A.JA[0]=col;
     A.val[0] = val;
 
     return A;
