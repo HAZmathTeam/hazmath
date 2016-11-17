@@ -1186,7 +1186,7 @@ void eliminate_DirichletBC_blockFE_blockA(void (*bc)(REAL *, REAL *,REAL),block_
       if(dofshift[j]==0){
         if(A->blocks[i+j*nsp] != NULL){
           dofshift[j] = A->blocks[i+j*nsp]->row;
-          break;
+          //break;
         }
       }
     }
