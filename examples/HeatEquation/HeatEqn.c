@@ -5,31 +5,30 @@
  *
  * \brief This program solves the following PDE using finite elements
  *
- *      du/dt - div(a(x)grad(u)) = 0
+ *        du/dt - div(a(x)grad(u)) = 0
  *
- *    where du/dt is discretized with Crank-Nicolson or BDF-1 (Backward Euler)
+ *        where du/dt is discretized with Crank-Nicolson or
+ *        BDF-1 (Backward Euler) in 1D, 2D, or 3D.
  *
- *    in 1D, 2D, or 3D
+ *        Along the boundary of the region, Dirichlet conditions are imposed:
  *
- *   Along the boundary of the region, Dirichlet conditions are imposed:
- *
- *      u = 0 for P1, P2
+ *          u = 0 for P1 or P2 elements
  *
  */
 
-/*********** HAZMAT FUNCTIONS and INCLUDES ****************************************/
+/*********** HAZMAT FUNCTIONS and INCLUDES ***************************/
 #include "hazmat.h"
-/**********************************************************************************/
+/*********************************************************************/
 
-/******** Data Input **************************************************************/
+/******** Data Input *************************************************/
 // PDE Coefficients
 void diffusion_coeff(REAL *val,REAL* x,REAL time) {
+  // a(x)
   *val = 1.0;
 }
 
 // True Solution (if you have one)
-// Pick one of these and rename it truesol
-//void truesol_2D(REAL *val,REAL* x,REAL time) {
+// Change as needed for different dimensions
 void truesol(REAL *val,REAL* x,REAL time) {
   // 1D
   //*val = sin(M_PI*x[0])*exp(-M_PI*M_PI*time);
@@ -50,6 +49,7 @@ void bc(REAL *val,REAL* x,REAL time) {
 }
 
 // Initial Conditions
+// Change as needed for different dimensions
 void initial_conditions(REAL *val,REAL* x,REAL time) {
   // 1D
   //*val = sin(M_PI*x[0]);
@@ -59,9 +59,9 @@ void initial_conditions(REAL *val,REAL* x,REAL time) {
   //*val = sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
 }
 
-/**********************************************************************************/
+/*********************************************************************/
 
-/****** MAIN DRIVER ***************************************************************/
+/****** MAIN DRIVER **************************************************/
 int main (int argc, char* argv[])
 {
   
@@ -69,12 +69,11 @@ int main (int argc, char* argv[])
   printf("Beginning Program to solve the Heat Equation.\n");
   printf("===========================================================================\n");
   
-  /****** INITIALIZE PARAMETERS **************************************************/
+  /****** INITIALIZE PARAMETERS **************************************/
+  // Flag for errors
+  SHORT status;
 
-  // Counters
-  INT j;
-
-  // Overall Timing
+  // Overall CPU Timing
   clock_t clk_overall_start = clock();
 
   // Set Parameters from Reading in Input File
@@ -89,8 +88,8 @@ int main (int argc, char* argv[])
   // Dimension is needed for all this to work
   INT dim = inparam.dim;
 
-  // Create the mesh (now we assume triangles in 2D or tetrahedra in 3D)
-  // File types possible are 0 - old format; 1 - vtk format
+  // Create the mesh
+  // File types possible are 0 - HAZ format; 1 - VTK format
   clock_t clk_mesh_start = clock(); // Time mesh generation FE setup
   INT mesh_type = 0;
   trimesh mesh;
@@ -99,7 +98,7 @@ int main (int argc, char* argv[])
   fclose(gfid);
 
   // Get Quadrature Nodes for the Mesh
-  INT nq1d = inparam.nquad; /* Quadrature points per dimension */
+  INT nq1d = inparam.nquad; // Quadrature points per dimension
   qcoordinates *cq = get_quadrature(&mesh,nq1d);
 
   // Time stepping parameters
@@ -107,24 +106,28 @@ int main (int argc, char* argv[])
   initialize_timestepper(&time_stepper,&inparam);
 
   // Get info for and create FEM spaces
-  // Order of Elements: 0 - P0; 1 - P1; 2 - P2; 20 - Nedelec; 30 - Raviart-Thomas
+  // Order of Elements: 0 - P0; 1 - P1; 2 - P2
   INT order = inparam.FE_type;
   fespace FE;
   create_fespace(&FE,&mesh,order);
+  // Strings for printing
   char elmtype[8];
   sprintf(elmtype,"P%d",order);
 
   // Set Dirichlet Boundaries
+  // Assume physical boundaries (flag of 1 in mesh file) are Dirichlet
   set_dirichlet_bdry(&FE,&mesh,1);
 
   // Dump some of the data
   if(inparam.print_level > 3) {
-    char varu[1];
+    // FE space
+    char varu[10];
     char dir[20];
     sprintf(dir,"output");
     sprintf(varu,"u");
     dump_fespace(&FE,varu,dir);
 
+    // Mesh
     char* namevtk = "output/mesh.vtu";
     dump_mesh_vtk(namevtk,&mesh);
   }
@@ -132,7 +135,7 @@ int main (int argc, char* argv[])
   clock_t clk_mesh_end = clock(); // End of timing for mesh and FE setup
   printf(" --> elapsed CPU time for mesh and FEM space construction = %f seconds.\n\n",
          (REAL) (clk_mesh_end - clk_mesh_start)/CLOCKS_PER_SEC);
-  /*******************************************************************************/
+  /*******************************************************************/
     
   printf("***********************************************************************************\n");
   printf("Number of Elements = %d\tElement Type = %s\tOrder of Quadrature = %d\n",mesh.nelm,elmtype,2*nq1d-1);
@@ -144,7 +147,7 @@ int main (int argc, char* argv[])
   printf("\t--> Boundary DOF: %d\n",FE.nbdof);
   printf("***********************************************************************************\n\n");
     
-  /*** Assemble the matrix and right hand side *******************************/
+  /*** Assemble the matrix and right hand side ***********************/
   printf("Assembling the matrix and right-hand side:\n");
   clock_t clk_assembly_start = clock();
     
@@ -155,10 +158,12 @@ int main (int argc, char* argv[])
     
   // Assemble the matrix without BC
   // Diffusion block
-  assemble_global(&A,&b,assemble_DuDv_local,&FE,&mesh,cq,myrhs,diffusion_coeff,0.0);
+  assemble_global(&A,&b,assemble_DuDv_local,&FE,&mesh,cq,myrhs,
+                  diffusion_coeff,0.0);
 
   // Time-Derivative block
-  assemble_global(&M,NULL,assemble_mass_local,&FE,&mesh,cq,NULL,one_coeff_scal,0.0);
+  assemble_global(&M,NULL,assemble_mass_local,&FE,&mesh,cq,NULL,
+                  one_coeff_scal,0.0);
 
   // Create Time Operator (one with BC and one without)
   time_stepper.A = &A;
@@ -168,15 +173,14 @@ int main (int argc, char* argv[])
   clock_t clk_assembly_end = clock();
   printf(" --> elapsed CPU time for assembly = %f seconds.\n\n",(REAL)
          (clk_assembly_end-clk_assembly_start)/CLOCKS_PER_SEC);
-  /*******************************************************************************/
+  /*******************************************************************/
 
-  /**************** Solve ********************************************************/
+  /**************** Solve ********************************************/
 
   // Create Solution Vector
   dvector sol = dvec_create(FE.ndof);
   dvector true_sol = dvec_create(FE.ndof);
   FE_Evaluate(true_sol.val,truesol,&FE,&mesh,0.0);
-
 
   // Set parameters for linear iterative methods
   linear_itsolver_param linear_itparam;
@@ -198,6 +202,8 @@ int main (int argc, char* argv[])
   // Get Initial Conditions
   FE_Evaluate(sol.val,initial_conditions,&FE,&mesh,0.0);
   time_stepper.sol = &sol;
+
+  // Dump Solution
   char solout[40];
   char trueout[40];
   if (inparam.output_type==2) {
@@ -208,12 +214,7 @@ int main (int argc, char* argv[])
   // Store current RHS
   time_stepper.rhs = &b;
 
-  // Begin Timestepping Loop
-  printf("Performing %d Time Steps with step size dt = %1.3f\n",time_stepper.tsteps,time_stepper.dt);
-  printf("--------------------------------------------------------------\n\n");
-  printf("============================\n");
-  printf("Time Step %d: Time = %1.8f\n",time_stepper.current_step,time_stepper.time);
-  printf("============================\n");
+  // Compute initial errors and norms
   REAL* uerr = (REAL *) calloc(time_stepper.tsteps+1,sizeof(REAL));
   uerr[0] = L2error(time_stepper.sol->val,truesol,&FE,&mesh,cq,time_stepper.time);
   REAL* unorm = (REAL *) calloc(time_stepper.tsteps+1,sizeof(REAL));
@@ -226,8 +227,16 @@ int main (int argc, char* argv[])
   printf("L2 Norm of u error      = %26.13e\n",uerr[0]);
   printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n\n\n");
 
+  // Begin Timestepping Loop
+  printf("Performing %d Time Steps with step size dt = %1.3f\n",time_stepper.tsteps,time_stepper.dt);
+  printf("--------------------------------------------------------------\n\n");
+  printf("============================\n");
+  printf("Time Step %d: Time = %1.8f\n",time_stepper.current_step,time_stepper.time);
+  printf("============================\n");
+
   clock_t clk_timeloop_start = clock();
 
+  INT j; // Time step counter
   for(j=0;j<time_stepper.tsteps;j++) {
     clock_t clk_timestep_start = clock();
 
@@ -258,7 +267,7 @@ int main (int argc, char* argv[])
     dcsr_shift(time_stepper.At, -1);  // shift A
     if(linear_itparam.linear_itsolver_type == 0) { // Direct Solver
       printf(" --> using UMFPACK's Direct Solver:\n");
-      //solver_flag = directsolve_UMF_symmetric(&A,&b,u.val,linear_itparam.linear_print_level);
+      solver_flag = directsolve_UMF_symmetric(&A,&b,sol.val,linear_itparam.linear_print_level);
     } else { // Iterative Solver
       // Use AMG as iterative solver
       if (linear_itparam.linear_itsolver_type == SOLVER_AMG){
@@ -292,7 +301,7 @@ int main (int argc, char* argv[])
     clock_t clk_timestep_end = clock();
     printf("Elapsed CPU Time for Time Step = %f seconds.\n\n",(REAL) (clk_timestep_end-clk_timestep_start)/CLOCKS_PER_SEC);
 
-    /**************** Compute Errors if you have true solution ********************/
+    /**************** Compute Errors if you have true solution *******/
     clock_t clk_error_start = clock();
 
     uerr[j+1] = L2error(time_stepper.sol->val,truesol,&FE,&mesh,cq,time_stepper.time);
@@ -307,7 +316,7 @@ int main (int argc, char* argv[])
     printf("L2 Norm of true u       = %26.13e\n",utnorm[j+1]);
     printf("L2 Norm of u error      = %26.13e\n",uerr[j+1]);
     printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-    /******************************************************************************/
+    /*******************************************************************/
 
     if (inparam.output_type==2) {
       sprintf(solout,"output/solution_ts%03d.vtu",time_stepper.current_step);
@@ -319,17 +328,18 @@ int main (int argc, char* argv[])
   } // End Timestepping Loop
   printf("----------------------- Timestepping Complete ---------------------------------------\n\n");
   clock_t clk_timeloop_end = clock();
-  printf("Elapsed CPU Time ALL Time Steps = %f seconds.\n\n",(REAL) (clk_timeloop_end-clk_timeloop_start)/CLOCKS_PER_SEC);
-  /******************************************************************************/
+  printf("Elapsed CPU Time ALL Time Steps = %f seconds.\n\n",
+         (REAL) (clk_timeloop_end-clk_timeloop_start)/CLOCKS_PER_SEC);
+  /*******************************************************************/
 
-  /******** Summary Print *******************************************************/
+  /******** Summary Print ********************************************/
   printf("Summary of Timestepping\n");
   printf("Time Step\tTime\t\t\t||u||\t\t\t\t||u_true||\t\t\t||error||\n\n");
   for(j=0;j<=time_stepper.tsteps;j++) {
     printf("%02d\t\t%f\t%25.16e\t%25.16e\t%25.16e\n",j,j*time_stepper.dt,unorm[j],utnorm[j],uerr[j]);
   }
 
-  /******** Free All the Arrays *************************************************/
+  /******** Free All the Arrays **************************************/
   if(unorm) free(unorm);
   if(utnorm) free(utnorm);
   if(uerr) free(uerr);
@@ -342,13 +352,12 @@ int main (int argc, char* argv[])
     cq = NULL;
   }
   free_mesh(&mesh);
-  /******************************************************************************/
+  /*******************************************************************/
     
   clock_t clk_overall_end = clock();
-  printf("\nEnd of Program: Total CPU Time = %f seconds.\n\n",(REAL) (clk_overall_end-clk_overall_start)/CLOCKS_PER_SEC);
+  printf("\nEnd of Program: Total CPU Time = %f seconds.\n\n",
+         (REAL) (clk_overall_end-clk_overall_start)/CLOCKS_PER_SEC);
   return 0;
 
 }	/* End of Program */
-/*******************************************************************************************/
-
-
+/*******************************************************************/

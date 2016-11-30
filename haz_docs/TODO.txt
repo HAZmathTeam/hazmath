@@ -1,8 +1,17 @@
 TO DO:
 
-Add default grid generator and refinement
-Fix indexing mismatch between FEM and Solver stuff
-Add more elements (i.e., DG, Quads, Higher-Order)
-Add Julia interface
-Add in multigraph code
-Add more test examples (Stokes, Nonlinear Problem (Navier-Stokes))
+Immediate:
+Doxygen testing - H
+Clean up solver part in examples - H
+Clean up input files - H
+Add more test examples (Stokes, Nonlinear Problem (Navier-Stokes)) - A
+
+Long Term:
+Add default grid generator and refinement - HAZ
+Add more elements (i.e., DG, Quads, Higher-Order) - A 
+Add more solvers (i.e., Classical AMG, Monolithic MG, Block Solvers, HX-Div) - H
+
+Pipe Dreams:
+Fix indexing mismatch between FEM and Solver stuff - HA
+Add Julia interface - Z
+Add in multigraph code - Z
