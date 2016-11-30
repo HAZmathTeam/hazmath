@@ -5,37 +5,40 @@
  *
  * \brief This program solves the following PDE using finite elements
  *
- *      D^*(a(x)D(u)) + c(x)u = 0
+ *        D^*(a(x)D(u)) + c(x)u = 0
  *
- *    where D = grad, D^* = -div for P1,P2 elements,
- *          D = curl, D^* = curl for Nedelec elements
- *          D = div,  D^* = -grad for Raviart-Thomas elements
+ *        where D = grad, D^* = -div for P1,P2 elements,
+ *              D = curl, D^* = curl for Nedelec elements
+ *              D = div,  D^* = -grad for Raviart-Thomas elements
  *
- *    in 1D, 2D, or 3D
+ *        in 1D, 2D, or 3D
  *
- *   Along the boundary of the region, Dirichlet conditions are imposed:
+ *        Along the boundary of the region, Dirichlet conditions are
+ *        imposed:
  *
- *      u = 0 for P1, P2
- *    u*t = 0 for Nedelec
- *    u*n = 0 for Raviart-Thomas
+ *          u = 0 for P1, P2
+ *          u*t = 0 for Nedelec
+ *          u*n = 0 for Raviart-Thomas
  *
  */
 
-/*********** HAZMAT FUNCTIONS and INCLUDES ****************************************/
+/*********** HAZMAT FUNCTIONS and INCLUDES ***************************/
 #include "hazmat.h"
-/**********************************************************************************/
+/*********************************************************************/
 
-/******** Data Input **************************************************************/
+/******** Data Input *************************************************/
 // PDE Coefficients
 void diffusion_coeff(REAL *val,REAL* x,REAL time) {
+  // a(x)
   *val = 1.0;
 }
-
 void reaction_coeff(REAL *val,REAL* x,REAL time) {
+  // c(x)
   *val = 1.0;
 }
 
 // True Solution (if you have one)
+// We have different ones for different dimensions and different D's
 void truesol_1D_PX(REAL *val,REAL* x,REAL time) {
   // 1D - grad grad
   *val = sin(M_PI*x[0]);
@@ -72,6 +75,7 @@ void truesol_3D_RT(REAL *val,REAL* x,REAL time) {
 }
 
 // Derivative of True Solution (if you have one)
+// We have different ones for different dimensions and different D's
 void D_truesol_1D_PX(REAL *val,REAL* x,REAL time) {
   // 1D - grad grad
   *val = M_PI*cos(M_PI*x[0]);
@@ -107,6 +111,7 @@ void D_truesol_3D_RT(REAL *val,REAL* x,REAL time) {
 }
 
 // Right-hand Side
+// We have different ones for different dimensions and different D's
 void rhs_1D_PX(REAL *val,REAL* x,REAL time) {
   // 1D - grad grad
   REAL myc=-666.6;
@@ -185,6 +190,7 @@ void rhs_3D_RT(REAL *val,REAL* x,REAL time) {
 }
 
 // Boundary Conditions
+// We have different ones for different dimensions and different D's
 void bc_1D_PX(REAL *val,REAL* x,REAL time) {
   REAL myu;
   truesol_1D_PX(&myu,x,time);
@@ -226,9 +232,9 @@ void bc_3D_RT(REAL *val,REAL* x,REAL time) {
   val[1] = myu[1];
   val[2] = myu[2];
 }
-/**********************************************************************************/
+/*********************************************************************/
 
-/****** MAIN DRIVER ***************************************************************/
+/****** MAIN DRIVER **************************************************/
 int main (int argc, char* argv[])
 {
   
@@ -236,16 +242,15 @@ int main (int argc, char* argv[])
   printf("Beginning Program to solve H(D) problem: <D u, D v> + <u,v> = <f,v>.\n");
   printf("===========================================================================\n");
   
-  /****** INITIALIZE PARAMETERS **************************************************/
-  // flag for errors
+  /****** INITIALIZE PARAMETERS **************************************/
+  // Flag for errors
   SHORT status;
 
-  // Timing Parameters
-  clock_t clk_start,clk_end,clk1,clk2;
-  clk_start = clock();
+  // Overall CPU Timing
+  clock_t clk_overall_start = clock();
     
   // Set Parameters from Reading in Input File
-  input_param     inparam;
+  input_param inparam;
   param_input_init(&inparam);
   param_input("./input.dat", &inparam); 
     
@@ -256,28 +261,31 @@ int main (int argc, char* argv[])
   // Dimension is needed for all this to work
   INT dim = inparam.dim;
     
-  // Create the mesh (now we assume triangles in 2D or tetrahedra in 3D)
-  // File types possible are 0 - old format; 1 - vtk format (doesn't work yet)
+  // Create the mesh
+  // File types possible are 0 - HAZ format; 1 - VTK format
   INT mesh_type = 0;
-  clk1 = clock();
+  clock_t clk_mesh_start = clock(); // Time mesh generation FE setup
   trimesh mesh;
   printf(" --> loading grid from file: %s\n",inparam.gridfile);
   creategrid_fread(gfid,mesh_type,&mesh);
   fclose(gfid);
-
-  // Dump mesh for testing
-  char* namevtk = "output/mesh.vtu";
-  dump_mesh_vtk(namevtk,&mesh);
     
   // Get Quadrature Nodes for the Mesh
-  INT nq1d = inparam.nquad; /* Quadrature points per dimension */
+  INT nq1d = inparam.nquad; // Quadrature points per dimension
   qcoordinates *cq = get_quadrature(&mesh,nq1d);
     
   // Get info for and create FEM spaces
-  // Order of Elements: 0 - P0; 1 - P1; 2 - P2; -1 - Nedelec; -2 - Raviart-Thomas
+  // Order of Elements:
+  //    0 - P0; 1 - P1; 2 - P2; -1 - Nedelec; -2 - Raviart-Thomas
   INT order = inparam.FE_type;
   fespace FE;
   create_fespace(&FE,&mesh,order);
+
+  // Set Dirichlet Boundaries
+  // Assume physical boundaries (flag of 1 in mesh file) are Dirichlet
+  set_dirichlet_bdry(&FE,&mesh,1);
+
+  // Strings for printing
   char elmtype[8];
   if(order>=0 && order<10) {
     sprintf(elmtype,"P%d",order);
@@ -293,20 +301,24 @@ int main (int argc, char* argv[])
     exit(0);
   }
 
-if(inparam.print_level > 3) {
+  // Dump some of the data
+  if(inparam.print_level > 3) {
+    // FE space
     char varu[10];
     char dir[20];
-
     sprintf(dir,"output");
     sprintf(varu,"u");
-
     dump_fespace(&FE,varu,dir);
+
+    // Mesh
+    char* namevtk = "output/mesh.vtu";
+    dump_mesh_vtk(namevtk,&mesh);
   }
-    
-  clk2 = clock();
-  printf(" --> elapsed CPU time for mesh and FEM space construction = %lf seconds.\n\n", \
-	 (REAL) (clk2 - clk1)/CLOCKS_PER_SEC);
-  /*******************************************************************************/
+
+  clock_t clk_mesh_end = clock(); // End of timing for mesh and FE setup
+  printf(" --> elapsed CPU time for mesh and FEM space construction = %f seconds.\n\n",
+         (REAL) (clk_mesh_end - clk_mesh_start)/CLOCKS_PER_SEC);
+  /*******************************************************************/
     
   printf("***********************************************************************************\n");
   printf("Number of Elements = %d\tElement Type = %s\tOrder of Quadrature = %d\n",mesh.nelm,elmtype,2*nq1d-1);
@@ -318,9 +330,9 @@ if(inparam.print_level > 3) {
   printf("\t--> Boundary DOF: %d\n",FE.nbdof);
   printf("***********************************************************************************\n\n");
     
-  /*** Assemble the matrix and right hand side *******************************/
+  /*** Assemble the matrix and right hand side ***********************/
   printf("Assembling the matrix and right-hand side:\n");
-  clk1 = clock();
+  clock_t clk_assembly_start = clock();
     
   // Allocate the right-hand side and declare the csr matrix
   dvector b;
@@ -329,32 +341,41 @@ if(inparam.print_level > 3) {
   dCSRmat Mass;
     
   // Assemble the matrix without BC
+  // Different cases for dimension and FE of test problem
+
   // Diffusion block
   if(dim==1) {
     if(FE.FEtype>0 && FE.FEtype<10) { // PX
-      assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,rhs_1D_PX,diffusion_coeff,0.0);
+      assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,
+                      rhs_1D_PX,diffusion_coeff,0.0);
     } else {
       status = ERROR_FE_TYPE;
       check_error(status, __FUNCTION__);
     }
   } else if(dim==2) {
     if(FE.FEtype>0 && FE.FEtype<10) { // PX
-      assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,rhs_2D_PX,diffusion_coeff,0.0);
+      assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,
+                      rhs_2D_PX,diffusion_coeff,0.0);
     } else if(FE.FEtype==20) { // Nedelec
-      assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,rhs_2D_Ned,diffusion_coeff,0.0);
+      assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,
+                      rhs_2D_Ned,diffusion_coeff,0.0);
     } else if(FE.FEtype==30) { // RT
-      assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,rhs_2D_RT,diffusion_coeff,0.0);
+      assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,
+                      rhs_2D_RT,diffusion_coeff,0.0);
     } else {
       status = ERROR_FE_TYPE;
       check_error(status, __FUNCTION__);
     }
   } else if(dim==3) {
     if(FE.FEtype>0 && FE.FEtype<10) { // PX
-      assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,rhs_3D_PX,diffusion_coeff,0.0);
+      assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,
+                      rhs_3D_PX,diffusion_coeff,0.0);
     } else if(FE.FEtype==20) { // Nedelec
-      assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,rhs_3D_Ned,diffusion_coeff,0.0);
+      assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,
+                      rhs_3D_Ned,diffusion_coeff,0.0);
     } else if(FE.FEtype==30) { // RT
-      assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,rhs_3D_RT,diffusion_coeff,0.0);
+      assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,
+                      rhs_3D_RT,diffusion_coeff,0.0);
     } else {
       status = ERROR_FE_TYPE;
       check_error(status, __FUNCTION__);
@@ -365,14 +386,16 @@ if(inparam.print_level > 3) {
   }
 
   // Reaction block
-  assemble_global(&Mass,NULL,assemble_mass_local,&FE,&mesh,cq,NULL,reaction_coeff,0.0);
+  assemble_global(&Mass,NULL,assemble_mass_local,&FE,&mesh,cq,NULL,
+                  reaction_coeff,0.0);
 
-  // Add the M + D
+  // Add M + D
   dcsr_add_1(&Diff,1.0,&Mass,1.0,&A);
   dcsr_free(&Diff);
   dcsr_free(&Mass);
   
   // Eliminate Dirichlet BC
+  // Different cases for dimension and FE of test problem
   if(dim==1) {
     if(FE.FEtype>0 && FE.FEtype<10) { // PX
       eliminate_DirichletBC(bc_1D_PX,&FE,&mesh,&b,&A,0.0);
@@ -407,6 +430,7 @@ if(inparam.print_level > 3) {
       check_error(status, __FUNCTION__);
   }
 
+  // Dump matrices for testing
   if(inparam.print_level > 3) {
     FILE* matid = HAZ_fopen("output/mat.dat","w");
     csr_print_matlab(matid,&A);
@@ -416,15 +440,21 @@ if(inparam.print_level > 3) {
     fclose(rhsid);
   }
     
-  clk2 = clock();
-  printf(" --> elapsed CPU time for assembly = %lf seconds.\n\n",(REAL) (clk2-clk1)/CLOCKS_PER_SEC);
-  /*******************************************************************************/
+  clock_t clk_assembly_end = clock();
+  printf(" --> elapsed CPU time for assembly = %f seconds.\n\n",(REAL)
+           (clk_assembly_end-clk_assembly_start)/CLOCKS_PER_SEC);
+  /*******************************************************************/
     
-  /**************** Solve ********************************************************/
+  /**************** Solve ********************************************/
   printf("Solving the System:\n");
-  clk1=clock();
+  clock_t clk_solve_start = clock();
+
+  // Create Solution Vector
+  dvector u = dvec_create(FE.ndof);
+  // Set initial guess to be all zero
+  dvec_set(u.row, &u, 0.0);
   
-  // Parameters
+  // Set Solver Parameters
   INT solver_flag=-20;
   
   //============= SHOULD THIS BE IF STATEMENTS? =====================//
@@ -450,16 +480,11 @@ if(inparam.print_level > 3) {
   dCSRmat Grad;
   //=================================================================//
     
-  // Allocate the solution
-  dvector u = dvec_create(b.row);
-    
-  // Set initial guess to be all zero
-  dvec_set(u.row, &u, 0.0);
-    
+
   // Solve the linear system
   if(linear_itparam.linear_itsolver_type == 0) { // Direct Solver
     printf(" --> using UMFPACK's Direct Solver:\n");
-    //solver_flag = directsolve_UMF_symmetric(&A,&b,u.val,linear_itparam.linear_print_level);
+    solver_flag = directsolve_UMF_symmetric(&A,&b,u.val,linear_itparam.linear_print_level);
   } else { // Iterative Solver
     dcsr_shift(&A, -1);  // shift A
       
@@ -511,13 +536,15 @@ if(inparam.print_level > 3) {
   // Error Check
   if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
     
-  clk2=clock();
-  printf(" --> elapsed CPU time for solve = %lf seconds.\n\n",(REAL) (clk2-clk1)/CLOCKS_PER_SEC);  
-  /******************************************************************************/
+  clock_t clk_solve_end = clock();
+  printf("Elapsed CPU Time for Solve = %f seconds.\n\n",
+         (REAL) (clk_solve_end-clk_solve_start)/CLOCKS_PER_SEC);
+  /*******************************************************************/
     
-  /**************** Compute Errors if you have true solution ********************/
+  /**************** Compute Errors if you have true solution *********/
+  // Again this depends on dimension and FE type
   printf("Computing True Solution and Errors:\n");
-  clk2 = clock();
+  clock_t clk_error_start = clock();
   REAL uerr=0.0;
   REAL graduerr=0.0;
   if(dim==1) {
@@ -567,10 +594,12 @@ if(inparam.print_level > 3) {
   printf("H1 Semi-Norm of u error = %26.13e\n",graduerr);
   printf("H1 Norm of u error      = %26.13e\n",uH1err);
   printf("************************************************************************************\n");
-  printf(" --> elapsed CPU time for getting errors = %lf seconds.\n\n",(REAL) (clk2-clk1)/CLOCKS_PER_SEC);
-  /******************************************************************************/
+  clock_t clk_error_end = clock();
+  printf("Elapsed CPU time for getting errors = %lf seconds.\n\n",(REAL)
+         (clk_error_end-clk_error_start)/CLOCKS_PER_SEC);
+  /*******************************************************************/
     
-  /**************** Print Results or Dump Results *******************************/
+  /**************** Print Results or Dump Results ********************/
   if (inparam.output_type==2) {
     char solout[20];
     sprintf(solout,"output/sol.vtu");
@@ -583,9 +612,9 @@ if(inparam.print_level > 3) {
     dump_sol_onV_vtk(trueout,&mesh,true_sol.val,1);
     dvec_free(&true_sol);
   }
-  /******************************************************************************/
+  /*******************************************************************/
     
-  /******** Free All the Arrays *************************************************/
+  /******** Free All the Arrays **************************************/
   dcsr_free(&A);
   if(b.val) free(b.val);
   if(u.val) free(u.val);
@@ -596,13 +625,12 @@ if(inparam.print_level > 3) {
     cq = NULL;
   }
   free_mesh(&mesh);
-  /******************************************************************************/
+  /*******************************************************************/
     
-  clk_end = clock();
-  printf("\nEnd of Program: Total CPU Time = %lf seconds.\n\n",(REAL) (clk_end-clk_start)/CLOCKS_PER_SEC);
+  clock_t clk_overall_end = clock();
+  printf("\nEnd of Program: Total CPU Time = %f seconds.\n\n",
+         (REAL) (clk_overall_end-clk_overall_start)/CLOCKS_PER_SEC);
   return 0;
     
 }	/* End of Program */
-/**********************************************************************************/
-
-
+/*******************************************************************/
