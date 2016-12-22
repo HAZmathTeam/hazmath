@@ -904,7 +904,7 @@ void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,trimesh *mesh,qcoordinates
    *
    */
 
-  INT i,j;
+  INT i;
 
   // Mesh and FE data
   INT dim = mesh->dim;
@@ -926,7 +926,6 @@ void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,trimesh *mesh,qcoordinates
   REAL w;
   REAL* qx = (REAL *) calloc(dim,sizeof(REAL));
   // Stiffness Matrix Entry
-  REAL kij = 0.0;
 
   // Right-hand side function at Quadrature Nodes
   REAL* rhs_val= (REAL *) calloc(nun,sizeof(REAL));

@@ -1167,7 +1167,6 @@ void eliminate_DirichletBC_blockFE_blockA(void (*bc)(REAL *, REAL *,REAL),block_
 
   INT i,j,k,cola,colb;
   INT nsp = FE->nspaces;
-  INT ndof = FE->ndof;
 
   INT nrows;
   INT rowshift, colshift;
