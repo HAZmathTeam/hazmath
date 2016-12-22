@@ -87,7 +87,6 @@ void assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace
 
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
   INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
-  INT rowa,rowb,jcntr;
   for (i=0; i<FE->nelm; i++) {
     // Zero out local matrices
     for (j=0; j<local_size; j++) {
@@ -207,7 +206,6 @@ void assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
 
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
   INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
-  INT rowa,rowb,jcntr;
   for (i=0; i<FE->nelm; i++) {
     // Zero out local matrices
     for (j=0; j<local_size; j++) {
@@ -320,7 +318,6 @@ void assemble_global_FE1FE2(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
   INT* dof_on_elm1 = (INT *) calloc(dof_per_elm1,sizeof(INT));
   INT* dof_on_elm2 = (INT *) calloc(dof_per_elm2,sizeof(INT));
   INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
-  INT rowa,rowb,jcntr;
   // Loop over elements
   for (i=0; i<FE1->nelm; i++) {
     // Zero out local matrices
@@ -697,7 +694,6 @@ void assemble_global_RHS(dvector *b,fespace *FE,trimesh *mesh,qcoordinates *cq,v
 
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
   INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
-  INT rowa,rowb,jcntr;
   for (i=0; i<FE->nelm; i++) {
     
     for (j=0; j<dof_per_elm; j++) {
@@ -1031,7 +1027,7 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
   INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
   INT* dof_on_f = (INT *) calloc(dof_per_face,sizeof(INT));
-  INT rowa,rowb,jcntr;
+  INT rowa;
 
   // We will need the face to element map
   iCSRmat f_el;
@@ -1138,7 +1134,7 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
     exit(0);
   }
 
-  INT i,j,elm,row;
+  INT i,j,elm,row,rowa;
 
   // Allocate Row Array
   b->row = FE->ndof;
@@ -1156,7 +1152,6 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
   INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
   INT* dof_on_f = (INT *) calloc(dof_per_face,sizeof(INT));
-  INT rowa,rowb,jcntr;
 
   // We will need the face to element map
   iCSRmat f_el;
@@ -1242,7 +1237,6 @@ void assemble_global_Ned_GradH1_RHS(dvector *b,fespace *FE_H1,fespace *FE_Ned,tr
 
   INT* ed_on_elm = (INT *) calloc(ed_per_elm,sizeof(INT));
   INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
-  INT rowa,rowb,jcntr;
   for (i=0; i<FE_H1->nelm; i++) {
     
     for (j=0; j<v_per_elm; j++) {
