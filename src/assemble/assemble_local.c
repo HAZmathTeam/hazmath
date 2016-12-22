@@ -345,138 +345,6 @@ void assemble_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
 /******************************************************************************************************/
 
 /******************************************************************************************************/
-void FEM_RHS_Local(REAL* bLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL),REAL time) 
-{
-  /*!
-   * \fn void FEM_RHS_Local(REAL* bLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL),REAL time)
-   *
-   * \brief Computes the local Right hand side vector for Galerkin Finite Elements
-   *        b_i  = <f,phi_i>
-   *
-   * \param FE            FE Space
-   * \param mesh          Mesh Data
-   * \param cq            Quadrature Nodes
-   * \param dof_on_elm    Specific DOF on element
-   * \param elm           Current element
-   * \param rhs           Function that gives RHS
-   * \param time          Physical Time if time dependent
-   *
-   * \return bLoc         Local RHS Vector
-   *
-   * \note Assumes 2D or 3D only for Nedelec and Raviart-Thomas Elements
-   *
-   */
-
-  // Mesh and FE data
-  INT dof_per_elm = FE->dof_per_elm;
-  INT dim = mesh->dim;
-
-  // flag for errors
-  SHORT status;
-  
-  // Loop Indices
-  INT quad,test;
-  
-  // Quadrature Weights and Nodes
-  REAL w;
-  REAL* qx = (REAL *) calloc(3,sizeof(REAL));
-
-  // Basis Functions and its derivatives if necessary
-  REAL* phi=NULL;
-  REAL* dphi=NULL;
-  
-  // Right-hand side function at Quadrature Nodes
-  REAL* rhs_val=NULL;
-  
-  if(FE->FEtype>=0 && FE->FEtype<10) { // PX elements
-    phi = (REAL *) calloc(dof_per_elm,sizeof(REAL));
-    dphi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
-    rhs_val = (REAL *) calloc(1,sizeof(REAL));
-    
-    //  Sum over quadrature points
-    for (quad=0;quad<cq->nq_per_elm;quad++) {
-      qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-      if(dim==2 || dim==3)
-        qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-      if(dim==3)
-        qx[2] = cq->z[elm*cq->nq_per_elm+quad];
-      w = cq->w[elm*cq->nq_per_elm+quad];
-      (*rhs)(rhs_val,qx,time);
-
-      //  Get the Basis Functions at each quadrature node
-      PX_H1_basis(phi,dphi,qx,dof_on_elm,FE->FEtype,mesh);
-
-      // Loop over test functions and integrate rhs
-      for (test=0; test<FE->dof_per_elm;test++) {
-        bLoc[test] += w*rhs_val[0]*phi[test];
-      }
-    }
-  } else if(FE->FEtype==20) { // Nedelec elements
-    phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
-    if(dim==2) {
-      dphi = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Curl of basis function
-    } else if (dim==3) {
-      dphi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL)); // Curl of basis function
-    } else {
-      status = ERROR_DIM;
-      check_error(status, __FUNCTION__);
-    }
-    rhs_val = (REAL *) calloc(dim,sizeof(REAL));
-
-    //  Sum over quadrature points
-    for (quad=0;quad<cq->nq_per_elm;quad++) {
-      qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-      qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-      if(dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
-      w = cq->w[elm*cq->nq_per_elm+quad];
-      (*rhs)(rhs_val,qx,time);
-
-      //  Get the Basis Functions at each quadrature node
-      ned_basis(phi,dphi,qx,v_on_elm,dof_on_elm,mesh);
-
-      // Loop over test functions and integrate rhs
-      for (test=0; test<FE->dof_per_elm;test++) {
-        bLoc[test] += w*(rhs_val[0]*phi[test*dim] + rhs_val[1]*phi[test*dim+1]);
-        if(dim==3) bLoc[test] += w*rhs_val[2]*phi[test*dim+2];
-      }
-    }
-  } else if(FE->FEtype==30) { // Raviart-Thomas elements
-    phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
-    dphi = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Divergence of element
-    rhs_val = (REAL *) calloc(dim,sizeof(REAL));
-
-    //  Sum over quadrature points
-    for (quad=0;quad<cq->nq_per_elm;quad++) {
-      qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-      qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-      if(dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
-      w = cq->w[elm*cq->nq_per_elm+quad];
-      (*rhs)(rhs_val,qx,time);
-
-      //  Get the Basis Functions at each quadrature node
-      rt_basis(phi,dphi,qx,v_on_elm,dof_on_elm,mesh);
-
-      // Loop over test functions and integrate rhs
-      for (test=0; test<FE->dof_per_elm;test++) {
-        bLoc[test] += w*(rhs_val[0]*phi[test*dim] + rhs_val[1]*phi[test*dim+1]);
-        if(dim==3) bLoc[test] += w*rhs_val[2]*phi[test*dim+2];
-      }
-    }
-  } else {
-    status = ERROR_FE_TYPE;
-    check_error(status, __FUNCTION__);
-  }
-  
-  if (phi) free(phi);
-  if(dphi) free(dphi);
-  if(qx) free(qx);
-  if(rhs_val) free(rhs_val);
-
-  return;
-}
-/******************************************************************************************************/
-
-/******************************************************************************************************/
 void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time) 
 {
   /*!
@@ -654,114 +522,7 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinat
 }
 /******************************************************************************************************/
 
-/******************************************************************************************************/
-void impedancebdry_local(REAL* ZLoc,dvector *old_sol,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *ed_on_f, \
-                         INT *ed_on_elm,INT *v_on_elm,INT face,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
-{
-  /*!
-   * \fn void impedancebdry_local(REAL* ZLoc,dvector *old_sol,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *ed_on_f, \
-                         INT *ed_on_elm,INT *v_on_elm,INT face,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
-   *
-   * \brief Computes the local weak formulation of the Impedance boundary condition for Maxwell's Equations
-   *         Uses midpoint rule to integrate on edges of boundary face
-   *         For this problem we compute the left-hand side of:
-   *
-   *         <n x E,n x F>_bdryobstacle    for all F in H_imp(curl) (Nedelec)
-   *
-   * \param old_sol       Solution at previous step (not needed in this function)
-   * \param FE            FE Space
-   * \param mesh          Mesh Data
-   * \param cq            Quadrature Nodes
-   * \param ed_on_f       Specific edges on the given face
-   * \param ed_on_elm     Specific edges on the given element
-   * \param v_on_elm      Specific vertices on the given element
-   * \param face          Current face
-   * \param elm           Current element
-   * \param coeff         Function that gives coefficient (for now assume constant)
-   * \param time          Physical Time if time dependent
-   *
-   * \return ZLoc         Local Boundary Matrix (Full Matrix)
-   *
-   * \note                ASSUMING 3D ONLY
-   *
-   */
-
-  // Mesh and FE data
-  INT ed_per_elm = FE->dof_per_elm;
-  INT dim = mesh->dim;
-  
-  // Loop Indices
-  INT j,quad,test,trial,ed,edt,edb;
-
-  // Quadrature Weights and Nodes
-  INT nq = 2*dim-3; // = ed_per_face
-  REAL* qx = (REAL *) calloc(nq,sizeof(REAL));
-  // 3D: Using triangle midpoint rule, so qx is midpoint of edges and w is |F|/3
-  REAL w = mesh->f_area[face]/3.0;
-
-  // Get normal vector components on face
-  REAL nx = mesh->f_norm[face*dim];
-  REAL ny = mesh->f_norm[face*dim+1];
-  REAL nz = mesh->f_norm[face*dim+2];
-
-  // Stiffness Matrix Entry
-  REAL kij,kij1,kij2,kij3,kij4,kij5,kij6;
-
-  // Basis Functions and its curl
-  REAL* phi= (REAL *) calloc(ed_per_elm*dim,sizeof(REAL));
-  REAL* cphi = (REAL *) calloc(ed_per_elm*dim,sizeof(REAL));
-  
-  // Coefficient Value at Quadrature Nodes
-  REAL coeff_val=0.0;
-
-  //  Sum over midpoints of edges
-  for (quad=0;quad<nq;quad++) {
-    ed = ed_on_f[quad]-1;
-    qx[0] = mesh->ed_mid[ed*dim];
-    qx[1] = mesh->ed_mid[ed*dim+1];
-    qx[2] = mesh->ed_mid[ed*dim+2];
-
-    if(coeff!=NULL) {
-      (*coeff)(&coeff_val,qx,time);
-    } else {
-      coeff_val = 1.0;
-    }
-
-    //  Get the Basis Functions at each quadrature node
-    ned_basis(phi,cphi,qx,v_on_elm,ed_on_elm,mesh);
-
-    // Loop over Test Functions (Rows - edges)
-    for (test=0; test<nq;test++) {
-      // Loop over Trial Functions (Columns)
-      for (trial=0; trial<nq; trial++) {
-        // Make sure ordering for global matrix is right
-        for(j=0;j<mesh->ed_per_elm;j++) {
-          if(ed_on_f[test]==ed_on_elm[j]) {
-            edt = j;
-          }
-          if(ed_on_f[trial]==ed_on_elm[j]) {
-            edb = j;
-          }
-        }
-        kij1 = phi[edb*dim+1]*nz - phi[edb*dim+2]*ny;
-        kij2 = phi[edb*dim+2]*nx - phi[edb*dim]*nz;
-        kij3 = phi[edb*dim]*ny - phi[edb*dim+1]*nx;
-        kij4 = phi[edt*dim+1]*nz - phi[edt*dim+2]*ny;
-        kij5 = phi[edt*dim+2]*nx - phi[edt*dim]*nz;
-        kij6 = phi[edt*dim]*ny - phi[edt*dim+1]*nx;
-        kij = coeff_val*(kij1*kij4+kij2*kij5+kij3*kij6);
-        ZLoc[test*nq+trial]+=w*kij;
-      }
-    }
-  }
-  
-  if (phi) free(phi);
-  if(cphi) free(cphi);
-  if(qx) free(qx);
-  return;
-}
-/******************************************************************************************************/
-
+/****** Boundary Assemblies *******************/
 /******************************************************************************************************/
 void boundary_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_f, \
                          INT *dof_on_elm,INT *v_on_elm,INT face,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
@@ -799,7 +560,7 @@ void boundary_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
 
   // flag for errors
   SHORT status;
-  
+
   // Loop Indices
   INT j,quad,test,trial,doft,dofb;
 
@@ -813,7 +574,7 @@ void boundary_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
   // Basis Functions and its derivatives if necessary
   REAL* phi=NULL;
   REAL* dphi=NULL;
-  
+
   // Coefficient Value at Quadrature Nodes
   REAL coeff_val=0.0;
 
@@ -976,7 +737,7 @@ void boundary_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
     status = ERROR_FE_TYPE;
     check_error(status, __FUNCTION__);
   }
-  
+
   if (phi) free(phi);
   if(dphi) free(dphi);
   if(qx) free(qx);
@@ -984,6 +745,239 @@ void boundary_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
   return;
 }
 /******************************************************************************************************/
+
+/***** RHS Routines *********************************/
+
+/******************************************************************************************************/
+void FEM_RHS_Local(REAL* bLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+{
+  /*!
+   * \fn void FEM_RHS_Local(REAL* bLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+   *
+   * \brief Computes the local Right hand side vector for Galerkin Finite Elements
+   *        b_i  = <f,phi_i>
+   *
+   * \param FE            FE Space
+   * \param mesh          Mesh Data
+   * \param cq            Quadrature Nodes
+   * \param dof_on_elm    Specific DOF on element
+   * \param v_on_elm      Specific Vertices on element
+   * \param elm           Current element
+   * \param rhs           Function that gives RHS
+   * \param time          Physical Time if time dependent
+   *
+   * \return bLoc         Local RHS Vector
+   *
+   * \note Assumes 2D or 3D only for Nedelec and Raviart-Thomas Elements
+   *
+   */
+
+  // Mesh and FE data
+  INT dof_per_elm = FE->dof_per_elm;
+  INT dim = mesh->dim;
+
+  // flag for errors
+  SHORT status;
+
+  // Loop Indices
+  INT quad,test;
+
+  // Quadrature Weights and Nodes
+  REAL w;
+  REAL* qx = (REAL *) calloc(3,sizeof(REAL));
+
+  // Basis Functions and its derivatives if necessary
+  REAL* phi=NULL;
+  REAL* dphi=NULL;
+
+  // Right-hand side function at Quadrature Nodes
+  REAL* rhs_val=NULL;
+
+  if(FE->FEtype>=0 && FE->FEtype<10) { // PX elements
+    phi = (REAL *) calloc(dof_per_elm,sizeof(REAL));
+    dphi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
+    rhs_val = (REAL *) calloc(1,sizeof(REAL));
+
+    //  Sum over quadrature points
+    for (quad=0;quad<cq->nq_per_elm;quad++) {
+      qx[0] = cq->x[elm*cq->nq_per_elm+quad];
+      if(dim==2 || dim==3)
+        qx[1] = cq->y[elm*cq->nq_per_elm+quad];
+      if(dim==3)
+        qx[2] = cq->z[elm*cq->nq_per_elm+quad];
+      w = cq->w[elm*cq->nq_per_elm+quad];
+      (*rhs)(rhs_val,qx,time);
+
+      //  Get the Basis Functions at each quadrature node
+      PX_H1_basis(phi,dphi,qx,dof_on_elm,FE->FEtype,mesh);
+
+      // Loop over test functions and integrate rhs
+      for (test=0; test<FE->dof_per_elm;test++) {
+        bLoc[test] += w*rhs_val[0]*phi[test];
+      }
+    }
+  } else if(FE->FEtype==20) { // Nedelec elements
+    phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
+    if(dim==2) {
+      dphi = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Curl of basis function
+    } else if (dim==3) {
+      dphi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL)); // Curl of basis function
+    } else {
+      status = ERROR_DIM;
+      check_error(status, __FUNCTION__);
+    }
+    rhs_val = (REAL *) calloc(dim,sizeof(REAL));
+
+    //  Sum over quadrature points
+    for (quad=0;quad<cq->nq_per_elm;quad++) {
+      qx[0] = cq->x[elm*cq->nq_per_elm+quad];
+      qx[1] = cq->y[elm*cq->nq_per_elm+quad];
+      if(dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
+      w = cq->w[elm*cq->nq_per_elm+quad];
+      (*rhs)(rhs_val,qx,time);
+
+      //  Get the Basis Functions at each quadrature node
+      ned_basis(phi,dphi,qx,v_on_elm,dof_on_elm,mesh);
+
+      // Loop over test functions and integrate rhs
+      for (test=0; test<FE->dof_per_elm;test++) {
+        bLoc[test] += w*(rhs_val[0]*phi[test*dim] + rhs_val[1]*phi[test*dim+1]);
+        if(dim==3) bLoc[test] += w*rhs_val[2]*phi[test*dim+2];
+      }
+    }
+  } else if(FE->FEtype==30) { // Raviart-Thomas elements
+    phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
+    dphi = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Divergence of element
+    rhs_val = (REAL *) calloc(dim,sizeof(REAL));
+
+    //  Sum over quadrature points
+    for (quad=0;quad<cq->nq_per_elm;quad++) {
+      qx[0] = cq->x[elm*cq->nq_per_elm+quad];
+      qx[1] = cq->y[elm*cq->nq_per_elm+quad];
+      if(dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
+      w = cq->w[elm*cq->nq_per_elm+quad];
+      (*rhs)(rhs_val,qx,time);
+
+      //  Get the Basis Functions at each quadrature node
+      rt_basis(phi,dphi,qx,v_on_elm,dof_on_elm,mesh);
+
+      // Loop over test functions and integrate rhs
+      for (test=0; test<FE->dof_per_elm;test++) {
+        bLoc[test] += w*(rhs_val[0]*phi[test*dim] + rhs_val[1]*phi[test*dim+1]);
+        if(dim==3) bLoc[test] += w*rhs_val[2]*phi[test*dim+2];
+      }
+    }
+  } else {
+    status = ERROR_FE_TYPE;
+    check_error(status, __FUNCTION__);
+  }
+
+  if (phi) free(phi);
+  if(dphi) free(dphi);
+  if(qx) free(qx);
+  if(rhs_val) free(rhs_val);
+
+  return;
+}
+/******************************************************************************************************/
+
+/******************************************************************************************************/
+void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+{
+  /*!
+   * \fn void FEM_RHS_Local(REAL* bLoc,block_fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+   *
+   * \brief Computes the local Right hand side vector for a block FEM system
+   *        b_i  = <f,phi_i>
+   *
+   * \param FE            Block FE Space
+   * \param mesh          Mesh Data
+   * \param cq            Quadrature Nodes
+   * \param dof_on_elm    Specific DOF on element
+   * \param v_on_elm      Specific Vertices on element
+   * \param elm           Current element
+   * \param rhs           Function that gives RHS (in FEM block ordering
+   * \param time          Physical Time if time dependent
+   *
+   * \return bLoc         Local RHS Vector
+   *
+   *
+   */
+
+  INT i,j;
+
+  // Mesh and FE data
+  INT dim = mesh->dim;
+  INT dof_per_elm = 0;
+  INT nun=0;
+  for(i=0;i<FE->nspaces;i++) {
+    dof_per_elm += FE->var_spaces[i]->dof_per_elm;
+    if(FE->var_spaces[i]->FEtype<20) /* Scalar Element */
+      nun++;
+    else /* Vector Element */
+      nun += dim;
+  }
+  INT* local_dof_on_elm = NULL;
+  local_dof_on_elm = dof_on_elm;
+
+  // Loop Indices
+  INT quad,test;
+  // Quadrature Weights and Nodes
+  REAL w;
+  REAL* qx = (REAL *) calloc(dim,sizeof(REAL));
+  // Stiffness Matrix Entry
+  REAL kij = 0.0;
+
+  // Right-hand side function at Quadrature Nodes
+  REAL* rhs_val= (REAL *) calloc(nun,sizeof(REAL));
+
+  INT local_row_index=0;
+  INT unknown_index=0;
+
+  //  Sum over quadrature points
+  for (quad=0;quad<cq->nq_per_elm;quad++) {
+    qx[0] = cq->x[elm*cq->nq_per_elm+quad];
+    qx[1] = cq->y[elm*cq->nq_per_elm+quad];
+    if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
+    w = cq->w[elm*cq->nq_per_elm+quad];
+    (*rhs)(rhs_val,qx,time);
+
+    for(i=0;i<FE->nspaces;i++) {
+
+      // Basis Functions and its derivatives if necessary
+      REAL* phi=NULL;
+      REAL* dphi=NULL;
+      get_FEM_basis(phi,dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[i]);
+
+      // Loop over test functions and integrate rhs
+      if(FE->var_spaces[i]->FEtype<20) { // Scalar Element
+
+        for (test=0; test<FE->var_spaces[i]->dof_per_elm;test++) {
+          bLoc[(local_row_index+test)] += w*rhs_val[unknown_index]*phi[test];
+        }
+        unknown_index++;
+
+      } else { // Vector Element
+        for (test=0; test<FE->var_spaces[i]->dof_per_elm;test++) {
+          bLoc[(local_row_index+test)] += w*(rhs_val[unknown_index]*phi[test*dim] +
+              rhs_val[unknown_index+1]*phi[test*dim+1]);
+          if(dim==3) bLoc[(local_row_index+test)] += w*rhs_val[unknown_index+2]*phi[test*dim+2];
+        }
+        unknown_index += dim;
+      }
+
+      local_dof_on_elm += FE->var_spaces[i]->dof_per_elm;
+      local_row_index += FE->var_spaces[i]->dof_per_elm;
+
+      // Reset basis functions
+      if(phi) free(phi);
+      if(dphi) free(dphi);
+    }
+  }
+
+  if(qx) free(qx);
+  return;
+}
 
 /******************************************************************************************************/
 void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,trimesh *mesh,qcoordinates *cq,INT *ed_on_elm,INT *v_on_elm,INT elm,dvector* u)  
@@ -1058,6 +1052,114 @@ void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,trimesh *mes
 }
 /******************************************************************************************************/
 
+/****** Special Assemblies *********************/
 
+/******************************************************************************************************/
+void impedancebdry_local(REAL* ZLoc,dvector *old_sol,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *ed_on_f, \
+                         INT *ed_on_elm,INT *v_on_elm,INT face,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
+{
+  /*!
+   * \fn void impedancebdry_local(REAL* ZLoc,dvector *old_sol,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *ed_on_f, \
+                         INT *ed_on_elm,INT *v_on_elm,INT face,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
+   *
+   * \brief Computes the local weak formulation of the Impedance boundary condition for Maxwell's Equations
+   *         Uses midpoint rule to integrate on edges of boundary face
+   *         For this problem we compute the left-hand side of:
+   *
+   *         <n x E,n x F>_bdryobstacle    for all F in H_imp(curl) (Nedelec)
+   *
+   * \param old_sol       Solution at previous step (not needed in this function)
+   * \param FE            FE Space
+   * \param mesh          Mesh Data
+   * \param cq            Quadrature Nodes
+   * \param ed_on_f       Specific edges on the given face
+   * \param ed_on_elm     Specific edges on the given element
+   * \param v_on_elm      Specific vertices on the given element
+   * \param face          Current face
+   * \param elm           Current element
+   * \param coeff         Function that gives coefficient (for now assume constant)
+   * \param time          Physical Time if time dependent
+   *
+   * \return ZLoc         Local Boundary Matrix (Full Matrix)
+   *
+   * \note                ASSUMING 3D ONLY
+   *
+   */
+
+  // Mesh and FE data
+  INT ed_per_elm = FE->dof_per_elm;
+  INT dim = mesh->dim;
+
+  // Loop Indices
+  INT j,quad,test,trial,ed,edt,edb;
+
+  // Quadrature Weights and Nodes
+  INT nq = 2*dim-3; // = ed_per_face
+  REAL* qx = (REAL *) calloc(nq,sizeof(REAL));
+  // 3D: Using triangle midpoint rule, so qx is midpoint of edges and w is |F|/3
+  REAL w = mesh->f_area[face]/3.0;
+
+  // Get normal vector components on face
+  REAL nx = mesh->f_norm[face*dim];
+  REAL ny = mesh->f_norm[face*dim+1];
+  REAL nz = mesh->f_norm[face*dim+2];
+
+  // Stiffness Matrix Entry
+  REAL kij,kij1,kij2,kij3,kij4,kij5,kij6;
+
+  // Basis Functions and its curl
+  REAL* phi= (REAL *) calloc(ed_per_elm*dim,sizeof(REAL));
+  REAL* cphi = (REAL *) calloc(ed_per_elm*dim,sizeof(REAL));
+
+  // Coefficient Value at Quadrature Nodes
+  REAL coeff_val=0.0;
+
+  //  Sum over midpoints of edges
+  for (quad=0;quad<nq;quad++) {
+    ed = ed_on_f[quad]-1;
+    qx[0] = mesh->ed_mid[ed*dim];
+    qx[1] = mesh->ed_mid[ed*dim+1];
+    qx[2] = mesh->ed_mid[ed*dim+2];
+
+    if(coeff!=NULL) {
+      (*coeff)(&coeff_val,qx,time);
+    } else {
+      coeff_val = 1.0;
+    }
+
+    //  Get the Basis Functions at each quadrature node
+    ned_basis(phi,cphi,qx,v_on_elm,ed_on_elm,mesh);
+
+    // Loop over Test Functions (Rows - edges)
+    for (test=0; test<nq;test++) {
+      // Loop over Trial Functions (Columns)
+      for (trial=0; trial<nq; trial++) {
+        // Make sure ordering for global matrix is right
+        for(j=0;j<mesh->ed_per_elm;j++) {
+          if(ed_on_f[test]==ed_on_elm[j]) {
+            edt = j;
+          }
+          if(ed_on_f[trial]==ed_on_elm[j]) {
+            edb = j;
+          }
+        }
+        kij1 = phi[edb*dim+1]*nz - phi[edb*dim+2]*ny;
+        kij2 = phi[edb*dim+2]*nx - phi[edb*dim]*nz;
+        kij3 = phi[edb*dim]*ny - phi[edb*dim+1]*nx;
+        kij4 = phi[edt*dim+1]*nz - phi[edt*dim+2]*ny;
+        kij5 = phi[edt*dim+2]*nx - phi[edt*dim]*nz;
+        kij6 = phi[edt*dim]*ny - phi[edt*dim+1]*nx;
+        kij = coeff_val*(kij1*kij4+kij2*kij5+kij3*kij6);
+        ZLoc[test*nq+trial]+=w*kij;
+      }
+    }
+  }
+
+  if (phi) free(phi);
+  if(cphi) free(cphi);
+  if(qx) free(qx);
+  return;
+}
+/******************************************************************************************************/
 
 

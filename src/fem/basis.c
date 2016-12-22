@@ -878,3 +878,64 @@ void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof
   return;
 }
 /****************************************************************************************************************************/
+
+/****************************************************************************************************************************/
+void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh,fespace *FE)
+{
+  /*!
+   * \fn void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh,fespace *FE)
+   *
+   * \brief Grabs the basis function of a FEM space at a particular point in 2 or 3D
+   *
+   * \param x         Coordinate on where to compute basis function
+   * \param v_on_elm  Vertices on element
+   * \param dof       DOF on element
+   * \param mesh      Mesh struct
+   * \param FE        Fespace struct
+   *
+   * \return phi      Basis functions
+   * \return dphi     Derivatives of basis functions (depends on type)
+   *
+   */
+
+  // Flag for erros
+  SHORT status;
+
+  // Mesh and FEM Data
+  INT dim = mesh->dim;
+  INT dof_per_elm = FE->dof_per_elm;
+  INT FEtype = FE->FEtype;
+
+  if(FEtype>=0 && FEtype<10) { // PX elements
+
+    phi = (REAL *) calloc(dof_per_elm,sizeof(REAL));
+    dphi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
+    PX_H1_basis(phi,dphi,x,dof,FEtype,mesh);
+
+  } else if(FEtype==20) { // Nedelec elements
+
+    phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
+    if(dim==2) {
+      dphi = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Curl of basis function
+    } else if (dim==3) {
+      dphi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL)); // Curl of basis function
+    } else {
+      status = ERROR_DIM;
+      check_error(status, __FUNCTION__);
+    }
+    ned_basis(phi,dphi,x,v_on_elm,dof,mesh);
+
+  } else if(FEtype==30) { // Raviart-Thomas elements
+
+    phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
+    dphi = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Divergence of element
+    rt_basis(phi,dphi,x,v_on_elm,dof,mesh);
+
+  } else {
+    status = ERROR_FE_TYPE;
+    check_error(status, __FUNCTION__);
+  }
+
+  return;
+}
+/****************************************************************************************************************************/

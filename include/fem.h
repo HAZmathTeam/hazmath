@@ -49,7 +49,7 @@ typedef struct qcoordinates{
  */
 typedef struct fespace{
 
-  //! Type of finite element: 0 - P0; 1 - P1; 2 - P2; -1 - Nedelec; -2 - Raviart-Thomas
+  //! Type of finite element: 0-9 PX | 10-19 QX (not yet) | 20 Ned | 30 RT | -9 - -1 DGX (not yet)
   INT FEtype;
 
   //! Number of Elements
