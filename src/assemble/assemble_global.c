@@ -442,7 +442,7 @@ void assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(RE
     }
     dof_per_elm += FE->var_spaces[i]->dof_per_elm;
   }
-  
+
   // Now Build Global Matrix entries
 
   /* Loop over all Elements and build local matrix and rhs */
