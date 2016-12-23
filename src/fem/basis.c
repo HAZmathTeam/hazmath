@@ -880,7 +880,7 @@ void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof
 /****************************************************************************************************************************/
 
 /****************************************************************************************************************************/
-void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh,fespace *FE)
+void get_FEM_basis(REAL **phit,REAL **dphit,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh,fespace *FE)
 {
   /*!
    * \fn void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh,fespace *FE)
@@ -905,6 +905,9 @@ void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *
   INT dim = mesh->dim;
   INT dof_per_elm = FE->dof_per_elm;
   INT FEtype = FE->FEtype;
+
+  REAL* phi;
+  REAL* dphi;
 
   if(FEtype>=0 && FEtype<10) { // PX elements
 
@@ -936,6 +939,8 @@ void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *
     check_error(status, __FUNCTION__);
   }
 
+  *phit = phi;
+  *dphit = dphi;
   return;
 }
 /****************************************************************************************************************************/

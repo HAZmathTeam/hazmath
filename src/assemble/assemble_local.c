@@ -904,12 +904,14 @@ void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,trimesh *mesh,qcoordinates
    *
    */
 
-  INT i;
+  // Loop Indices
+  INT i,quad,test;
 
   // Mesh and FE data
   INT dim = mesh->dim;
   INT dof_per_elm = 0;
   INT nun=0;
+
   for(i=0;i<FE->nspaces;i++) {
     dof_per_elm += FE->var_spaces[i]->dof_per_elm;
     if(FE->var_spaces[i]->FEtype<20) /* Scalar Element */
@@ -918,10 +920,9 @@ void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,trimesh *mesh,qcoordinates
       nun += dim;
   }
   INT* local_dof_on_elm = NULL;
-  local_dof_on_elm = dof_on_elm;
+  INT local_row_index=0;
+  INT unknown_index=0;
 
-  // Loop Indices
-  INT quad,test;
   // Quadrature Weights and Nodes
   REAL w;
   REAL* qx = (REAL *) calloc(dim,sizeof(REAL));
@@ -929,9 +930,6 @@ void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,trimesh *mesh,qcoordinates
 
   // Right-hand side function at Quadrature Nodes
   REAL* rhs_val= (REAL *) calloc(nun,sizeof(REAL));
-
-  INT local_row_index=0;
-  INT unknown_index=0;
 
   //  Sum over quadrature points
   for (quad=0;quad<cq->nq_per_elm;quad++) {
@@ -941,16 +939,18 @@ void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,trimesh *mesh,qcoordinates
     w = cq->w[elm*cq->nq_per_elm+quad];
     (*rhs)(rhs_val,qx,time);
 
+    local_row_index=0;
+    unknown_index=0;
+    local_dof_on_elm=dof_on_elm;
     for(i=0;i<FE->nspaces;i++) {
 
       // Basis Functions and its derivatives if necessary
-      REAL* phi=NULL;
-      REAL* dphi=NULL;
-      get_FEM_basis(phi,dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[i]);
+      REAL* phi;
+      REAL* dphi;
+      get_FEM_basis(&phi,&dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[i]);
 
       // Loop over test functions and integrate rhs
       if(FE->var_spaces[i]->FEtype<20) { // Scalar Element
-
         for (test=0; test<FE->var_spaces[i]->dof_per_elm;test++) {
           bLoc[(local_row_index+test)] += w*rhs_val[unknown_index]*phi[test];
         }

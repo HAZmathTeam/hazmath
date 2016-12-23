@@ -47,22 +47,10 @@ REAL L2norm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
     for (j=0; j<local_size; j++) MLoc[j] = 0.0;
     
     // Find DOF for given Element
-    rowa = FE->el_dof->IA[i]-1;
-    rowb = FE->el_dof->IA[i+1]-1;
-    jcntr = 0;
-    for (j=rowa; j<rowb; j++) {
-      dof_on_elm[jcntr] = FE->el_dof->JA[j];
-      jcntr++;
-    }
+    get_incidence_row(i,FE->el_dof,dof_on_elm);
 
     //Find Nodes for given Element if not H1 elements
-    rowa = mesh->el_v->IA[i]-1;
-    rowb = mesh->el_v->IA[i+1]-1;
-    jcntr=0;
-    for (j=rowa; j<rowb; j++) {
-      v_on_elm[jcntr] = mesh->el_v->JA[j];
-      jcntr++;
-    }
+    get_incidence_row(i,mesh->el_v,v_on_elm);
 
     // Compute Local Stiffness Matrix for given Element
     assemble_mass_local(MLoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
@@ -80,7 +68,35 @@ REAL L2norm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
 
   return sqrt(sum);
 }
-/*******************************************************************************************************************************************************/
+/***************************************************************************/
+
+/***************************************************************************/
+void L2norm_block(REAL *norm,REAL *u,block_fespace *FE,trimesh *mesh,qcoordinates *cq)
+{
+  /*!
+   * \fn void L2norm_block(REAL *norm,REAL *u,block_fespace *FE,trimesh *mesh,qcoordinates *cq)
+   *
+   * \brief Computes the L2 Norm of a block FE approximation using the mass matrix
+   *        assembly for any type of element.
+   *
+   * \param u 	    Numerical Solution at DOF
+   * \param FE      Block FE Space
+   * \param mesh    Mesh Data
+   * \param cq      Quadrature Nodes
+   *
+   * \return norm   L2 Norm
+   *
+   */
+
+  INT i;
+
+  for(i=0;i<FE->nspaces;i++) {
+    norm[i] = L2norm(u,FE->var_spaces[i],mesh,cq);
+  }
+
+  return;
+}
+/***************************************************************************/
 
 /***************************************************************************/
 REAL L2_InnerProduct(REAL *u,REAL *v,fespace *FE,trimesh *mesh,qcoordinates *cq)
@@ -117,23 +133,11 @@ REAL L2_InnerProduct(REAL *u,REAL *v,fespace *FE,trimesh *mesh,qcoordinates *cq)
     // Zero out local matrices
     for (j=0; j<local_size; j++) MLoc[j] = 0.0;
     
-    // Find Nodes for given Element
-    rowa = FE->el_dof->IA[i]-1;
-    rowb = FE->el_dof->IA[i+1]-1;
-    jcntr = 0;
-    for (j=rowa; j<rowb; j++) {
-      dof_on_elm[jcntr] = FE->el_dof->JA[j];
-      jcntr++;
-    }
+    // Find DOF for given Element
+    get_incidence_row(i,FE->el_dof,dof_on_elm);
 
     //Find Nodes for given Element if not H1 elements
-    rowa = mesh->el_v->IA[i]-1;
-    rowb = mesh->el_v->IA[i+1]-1;
-    jcntr=0;
-    for (j=rowa; j<rowb; j++) {
-      v_on_elm[jcntr] = mesh->el_v->JA[j];
-      jcntr++;
-    }
+    get_incidence_row(i,mesh->el_v,v_on_elm);
 
     // Compute Local Stiffness Matrix for given Element
     assemble_mass_local(MLoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
@@ -151,13 +155,42 @@ REAL L2_InnerProduct(REAL *u,REAL *v,fespace *FE,trimesh *mesh,qcoordinates *cq)
 
   return sum;
 }
-/*******************************************************************************************************************************************************/
+/***************************************************************************/
 
 /***************************************************************************/
-REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+void L2_InnerProduct_block(REAL *prod,REAL *u,REAL *v,block_fespace *FE,trimesh *mesh,qcoordinates *cq)
 {
   /*!
-   * \fn REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+   * \fn void L2_InnerProduct_block(REAL *prod,REAL *u,REAL *v,block_fespace *FE,trimesh *mesh,qcoordinates *cq)
+   *
+   * \brief Computes the L2 inner product of two block FE approximations using the mass matrix
+   *        assembly for any type of element.
+   *
+   * \param u 	    Numerical Solution 1 at DOF
+   * \param v       Numerical Solution 2 at DOF
+   * \param FE      Block FE Space
+   * \param mesh    Mesh Data
+   * \param cq      Quadrature Nodes
+   *
+   * \return product  L2 Inner Product of u and v, <u,v> (for each component of block FE space)
+   *
+   */
+
+  INT i;
+
+  for(i=0;i<FE->nspaces;i++) {
+    prod[i] = L2_InnerProduct(u,v,FE->var_spaces[i],mesh,cq);
+  }
+
+  return;
+}
+/***************************************************************************/
+
+/***************************************************************************/
+REAL L2error_interp(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+{
+  /*!
+   * \fn REAL L2error_interp(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
    *
    * \brief Computes the L2 Norm of the error of a FE approximation and a true
    *        solution given by a function using quadrature for any type of element.
@@ -200,6 +233,13 @@ REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *me
 
   /* Loop over all Elements */
   for (elm=0; elm<FE->nelm; elm++) {
+
+    // Find DOF for given Element
+    get_incidence_row(elm,FE->el_dof,dof_on_elm);
+
+    // Find Vertices for given Element if not H1 elements
+    get_incidence_row(elm,mesh->el_v,v_on_elm);
+
     // Loop over quadrature nodes on element
     for (quad=0;quad<cq->nq_per_elm;quad++) {
       qx[0] = cq->x[elm*cq->nq_per_elm+quad];
@@ -211,24 +251,6 @@ REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *me
 
       // Get True Solution at Quadrature Nodes
       (*truesol)(val_true,qx,time);
-
-      // Find DOF for given Element
-      rowa = FE->el_dof->IA[elm]-1;
-      rowb = FE->el_dof->IA[elm+1]-1;
-      jcntr = 0;
-      for (j=rowa; j<rowb; j++) {
-        dof_on_elm[jcntr] = FE->el_dof->JA[j];
-        jcntr++;
-      }
-
-      // Find Vertices for given Element if not H1 elements
-      rowa = mesh->el_v->IA[elm]-1;
-      rowb = mesh->el_v->IA[elm+1]-1;
-      jcntr=0;
-      for (j=rowa; j<rowb; j++) {
-        v_on_elm[jcntr] = mesh->el_v->JA[j];
-        jcntr++;
-      }
 
       // Interpolate FE solution to quadrature point
       FE_Interpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,mesh,1);
@@ -249,13 +271,123 @@ REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *me
 
   return sqrt(sum);
 }
-/*******************************************************************************************************************************************************/
+/****************************************************************************/
 
 /***************************************************************************/
-REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+void L2error_block_interp(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
 {
   /*!
-   * \fn L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+   * \fn REAL L2error_block_interp(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+   *
+   * \brief Computes the L2 Norm of the error of a block FE approximation and a true
+   *        solution given by a function using quadrature for any type of element.
+   *
+   * \param u 	          Numerical Solution at DOF
+   * \param truesol       Function to get true solution at a given point
+   * \param FE            FE Space
+   * \param mesh          Mesh Data
+   * \param cq            Quadrature Nodes
+   * \param time          Physical time to compute solution at
+   *
+   * \return err          L2 Error
+   *
+   */
+
+  // Loop Indices
+  INT i,elm,quad,j,rowa,rowb,jcntr;
+  REAL sum = 0.0;
+
+  // Mesh Stuff
+  INT dim = mesh->dim;
+  INT v_per_elm = mesh->v_per_elm;
+  INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
+
+  // Quadrature Weights and Nodes
+  REAL w;
+  REAL* qx = (REAL *) calloc(dim,sizeof(REAL));
+
+  // FEM Stuff
+  INT nspaces = FE->nspaces;
+  INT dof_per_elm = 0;
+  INT* ncomp = (INT *) calloc(FE->nspaces,sizeof(INT));
+  INT nun=0;
+  for(i=0;i<FE->nspaces;i++) {
+    dof_per_elm += FE->var_spaces[i]->dof_per_elm;
+    if(FE->var_spaces[i]->FEtype<20) /* Scalar Element */
+      ncomp[i]=1;
+    else /* Vector Element */
+      ncomp[i] = dim;
+    nun += ncomp[i];
+  }
+  INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
+  REAL* val_true = (REAL *) calloc(nun,sizeof(REAL));
+  REAL* val_sol = (REAL *) calloc(nun,sizeof(REAL));
+
+  /* Loop over all Elements */
+  for (elm=0; elm<mesh->nelm; elm++) {
+
+    // Find DOF for given Element
+    // Note this is "local" ordering for the given FE space of the block
+    // Not global ordering of all DOF
+    jcntr = 0;
+    for(i=0;i<nspaces;i++) {
+      rowa = FE->var_spaces[i]->el_dof->IA[elm]-1;
+      rowb = FE->var_spaces[i]->el_dof->IA[elm+1]-1;
+      for (j=rowa; j<rowb; j++) {
+        dof_on_elm[jcntr] = FE->var_spaces[i]->el_dof->JA[j];
+        jcntr++;
+      }
+    }
+    // Find vertices for given Element
+    get_incidence_row(elm,mesh->el_v,v_on_elm);
+
+    // Loop over quadrature nodes on element
+    for (quad=0;quad<cq->nq_per_elm;quad++) {
+      qx[0] = cq->x[elm*cq->nq_per_elm+quad];
+      if(mesh->dim==2 || mesh->dim==3)
+        qx[1] = cq->y[elm*cq->nq_per_elm+quad];
+      if(mesh->dim==3)
+        qx[2] = cq->z[elm*cq->nq_per_elm+quad];
+      w = cq->w[elm*cq->nq_per_elm+quad];
+
+      // Get True Solution at Quadrature Nodes
+      (*truesol)(val_true,qx,time);
+
+      // Interpolate FE solution to quadrature point
+      blockFE_Interpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,mesh);
+
+      // Compute Square of Error on Element for each component of FE space
+      jcntr=0;
+      for(i=0;i<nspaces;i++) {
+        err[i]=0;
+        for(j=0;j<ncomp[i];j++) {
+          err[i]+=w*(ABS(val_sol[jcntr+j] - val_true[jcntr+j]))*(ABS(val_sol[jcntr+j] - val_true[jcntr+j]));
+        }
+        jcntr+=ncomp[i];
+      }
+    }
+  }
+
+  for(i=0;i<nspaces;i++) {
+    err[i] = sqrt(err[i]);
+  }
+
+  if(dof_on_elm) free(dof_on_elm);
+  if(v_on_elm) free(v_on_elm);
+  if(qx) free(qx);
+  if(val_true) free(val_true);
+  if(val_sol) free(val_sol);
+  if(ncomp) free(ncomp);
+
+  return;
+}
+/************************************************************************************************/
+
+/***************************************************************************/
+REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+{
+  /*!
+   * \fn L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
    *
    * \brief Computes the L2 Norm of the error of a FE approximation and a true
    *        solution given by a function using mass matrix assembly for any type of element.
@@ -288,23 +420,11 @@ REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimes
     // Zero out local matrices
     for (j=0; j<local_size; j++) MLoc[j] = 0.0;
     
-    // Find Nodes for given Element
-    rowa = FE->el_dof->IA[i]-1;
-    rowb = FE->el_dof->IA[i+1]-1;
-    jcntr = 0;
-    for (j=rowa; j<rowb; j++) {
-      dof_on_elm[jcntr] = FE->el_dof->JA[j];
-      jcntr++;
-    }
+    // Find DOF for given Element
+    get_incidence_row(i,FE->el_dof,dof_on_elm);
 
     //Find Nodes for given Element if not H1 elements
-    rowa = mesh->el_v->IA[i]-1;
-    rowb = mesh->el_v->IA[i+1]-1;
-    jcntr=0;
-    for (j=rowa; j<rowb; j++) {
-      v_on_elm[jcntr] = mesh->el_v->JA[j];
-      jcntr++;
-    }
+    get_incidence_row(i,mesh->el_v,v_on_elm);
 
     // Compute Local Stiffness Matrix for given Element
     assemble_mass_local(MLoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
@@ -327,6 +447,85 @@ REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimes
   return sqrt(sum);
 }
 /*******************************************************************************************************************************************************/
+
+/***************************************************************************/
+void L2error_block(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+{
+  /*!
+   * \fn void L2error_block(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+   *
+   * \brief Computes the L2 Norm of the error of a block FE approximation and a true
+   *        solution given by a function using mass matrix assembly for any type of element.
+   *
+   * \param u 	          Numerical Solution at DOF in blocks
+   * \param truesol       Function to get true solution at a given point
+   * \param FE            Block FE Space
+   * \param mesh          Mesh Data
+   * \param cq            Quadrature Nodes
+   * \param time          Physical time to compute solution at
+   *
+   * \return err          L2 Error
+   *
+   */
+
+  INT i,j,k,rowa,rowb,jcntr,elm;
+  REAL utk,utj,erk,erj;
+
+  INT v_per_elm = mesh->v_per_elm;
+  INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
+
+  INT local_size=0;
+  INT u_dof = 0;
+  INT nspaces = FE->nspaces;
+
+  for(i=0;i<nspaces;i++) {
+    err[i] = 0.0;
+  }
+
+  /* Loop over all Elements */
+  for (elm=0; elm<mesh->nelm; elm++) {
+
+    // Find vertices for given Element
+    get_incidence_row(elm,mesh->el_v,v_on_elm);
+
+    // Get DOF and error on DOF for given element for each FE space
+
+    for(i=0;i<nspaces;i++) {
+      local_size = FE->var_spaces[i]->dof_per_elm;
+      INT* dof_on_elm = (INT *) calloc(local_size,sizeof(INT));
+      get_incidence_row(elm,FE->var_spaces[i]->el_dof,dof_on_elm);
+
+      REAL* MLoc = calloc(local_size*local_size,sizeof(REAL));
+      for (j=0; j<local_size*local_size; j++) MLoc[j] = 0.0;
+
+      // Compute Local Stiffness Matrix for given Element
+      assemble_mass_local(MLoc,FE->var_spaces[i],mesh,cq,dof_on_elm,v_on_elm,elm,constant_coeff_scal,1.0);
+
+      for(j=0;j<local_size;j++) {
+        for(k=0;k<local_size;k++) {
+          utj = blockFE_Evaluate_DOF(truesol,FE,mesh,time,i,dof_on_elm[j]-1);
+          utk = blockFE_Evaluate_DOF(truesol,FE,mesh,time,i,dof_on_elm[k]-1);
+          erj = ABS(utj - u[u_dof + dof_on_elm[j]-1]);
+          erk = ABS(utk - u[u_dof + dof_on_elm[k]-1]);
+          err[i]+=erj*MLoc[j*local_size+k]*erk;
+        }
+      }
+      u_dof += FE->var_spaces[i]->ndof;
+      if(MLoc) free(MLoc);
+      if(dof_on_elm) free(dof_on_elm);
+    }
+  }
+
+  for(i=0;i<nspaces;i++) {
+    err[i] = sqrt(err[i]);
+  }
+
+  if(v_on_elm) free(v_on_elm);
+
+  return;
+}
+/*******************************************************************************************************************************************************/
+
 
 /***************************************************************************/
 REAL HDseminorm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
