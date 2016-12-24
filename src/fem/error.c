@@ -30,7 +30,7 @@ REAL L2norm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
    *
    */
 
-  INT i,j,k,rowa,rowb,jcntr;
+  INT i,j,k;
   REAL sum = 0.0;
 
   INT dof_per_elm = FE->dof_per_elm;
@@ -119,7 +119,7 @@ REAL L2_InnerProduct(REAL *u,REAL *v,fespace *FE,trimesh *mesh,qcoordinates *cq)
    *
    */
 
-  INT i,j,k,rowa,rowb,jcntr;
+  INT i,j,k;
   REAL sum = 0.0;
 
   INT dof_per_elm = FE->dof_per_elm;
@@ -220,7 +220,7 @@ REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *me
   
   // FE Stuff
   INT FEtype = FE->FEtype;
-  INT elm,quad,j,rowa,rowb,jcntr;
+  INT elm,quad,j;
   REAL sum = 0.0;
   INT dof_per_elm = FE->dof_per_elm;
   INT v_per_elm = mesh->v_per_elm;
@@ -301,7 +301,6 @@ void L2error_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_f
 
   // Loop Indices
   INT i,elm,quad,j,rowa,rowb,jcntr;
-  REAL sum = 0.0;
 
   // Mesh Stuff
   INT dim = mesh->dim;
@@ -409,7 +408,7 @@ REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimes
    *
    */
 
-  INT i,j,k,rowa,rowb,jcntr;
+  INT i,j,k;
   REAL sum = 0.0;
   REAL utk,utj,erk,erj;
 
@@ -474,7 +473,7 @@ void L2error_block_mass(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL),b
    *
    */
 
-  INT i,j,k,rowa,rowb,jcntr,elm;
+  INT i,j,k,elm;
   REAL utk,utj,erk,erj;
 
   INT v_per_elm = mesh->v_per_elm;
@@ -673,7 +672,7 @@ REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL),fespace *FE,trime
   
   // FE Stuff
   INT FEtype = FE->FEtype;
-  INT elm,quad,j,rowa,rowb,jcntr;
+  INT elm,quad,j;
   REAL sum = 0.0;
   INT dof_per_elm = FE->dof_per_elm;
   INT v_per_elm = mesh->v_per_elm;
@@ -757,7 +756,6 @@ void HDsemierror_block(REAL *err,REAL *u,void (*D_truesol)(REAL *,REAL *,REAL),b
 
   // Loop Indices
   INT i,elm,quad,j,rowa,rowb,jcntr;
-  REAL sum = 0.0;
 
   // Mesh Stuff
   INT dim = mesh->dim;
@@ -871,7 +869,7 @@ REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,t
    *
    */
 
-  INT i,j,k,rowa,rowb,jcntr;
+  INT i,j,k;
   REAL sum = 0.0;
   REAL utk,utj,erk,erj;
 
@@ -944,7 +942,7 @@ void HDsemierror_block_stiff(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,RE
    *
    */
 
-  INT i,j,k,rowa,rowb,jcntr,elm;
+  INT i,j,k,elm;
   REAL utk,utj,erk,erj;
 
   INT v_per_elm = mesh->v_per_elm;
