@@ -33,9 +33,6 @@ void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fe
 
   INT i,j,dof;
 
-  // flag for errors
-  SHORT status;
-
   // Get FE and Mesh data
   INT dof_per_elm = FE->dof_per_elm;
   INT FEtype = FE->FEtype;
@@ -96,9 +93,6 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
    */
 
   INT i,dof,j,k;
-
-  // flag for errors
-  SHORT status;
 
   // Get FE and Mesh data
   INT dof_per_elm = FE->dof_per_elm;
@@ -305,7 +299,7 @@ void blockFE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_e
    *
    */
 
-  int i,j,k;
+  INT k;
   INT dim = mesh->dim;
 
   INT* local_dof_on_elm = dof_on_elm;
@@ -313,7 +307,7 @@ void blockFE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_e
   REAL* u_comp = u;
 
   for(k=0;k<FE->nspaces;k++) {
-    FE_Interpolation(val_sol,u_comp,x,local_dof_on_elm,v_on_elm,FE->var_spaces[i],mesh,1);
+    FE_Interpolation(val_sol,u_comp,x,local_dof_on_elm,v_on_elm,FE->var_spaces[k],mesh,1);
     if(FE->var_spaces[k]->FEtype<20) { // Scalar
       val_sol++;
     } else { // Vector
@@ -349,7 +343,7 @@ void blockFE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,I
    *
    */
 
-  int i,j,k;
+  INT k;
   INT dim = mesh->dim;
 
   INT* local_dof_on_elm = dof_on_elm;
@@ -357,7 +351,7 @@ void blockFE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,I
   REAL* u_comp = u;
 
   for(k=0;k<FE->nspaces;k++) {
-    FE_DerivativeInterpolation(val_sol,u_comp,x,local_dof_on_elm,v_on_elm,FE->var_spaces[i],mesh,1);
+    FE_DerivativeInterpolation(val_sol,u_comp,x,local_dof_on_elm,v_on_elm,FE->var_spaces[k],mesh,1);
     if(FE->var_spaces[k]->FEtype<20) { // Scalar
       val_sol += dim;
     } else if(FE->var_spaces[k]->FEtype==20 && dim==2) { // Curl in 2D is Scalar
