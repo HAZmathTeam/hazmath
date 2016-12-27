@@ -387,7 +387,7 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL),block_fespace *
 
   int i,j,k;
   REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
-  REAL* valx = (REAL *) calloc(mesh->dim*FE->nspaces,sizeof(REAL));
+  REAL* valx = (REAL *) calloc(FE->nun,sizeof(REAL));
   INT dim = mesh->dim;
   INT entry = 0, local_entry = 0;
   INT local_dim = 0;

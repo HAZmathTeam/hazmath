@@ -183,7 +183,7 @@ void L2_InnerProduct_block(REAL *prod,REAL *u,REAL *v,block_fespace *FE,trimesh 
   REAL* vdof = v;
 
   for(i=0;i<FE->nspaces;i++) {
-    prod[i] = L2_InnerProduct(u,v,FE->var_spaces[i],mesh,cq);
+    prod[i] = L2_InnerProduct(udof,vdof,FE->var_spaces[i],mesh,cq);
     udof += FE->var_spaces[i]->ndof;
     vdof += FE->var_spaces[i]->ndof;
   }
@@ -600,7 +600,7 @@ REAL HDseminorm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
   if(v_on_elm) free(v_on_elm);
 
   if(sum<0.0) {
-    printf("Your H1 Semi Norm Squared is negative!  Outputting the square itself\n");
+    printf("Your H1 Semi Norm Squared is negative (%f)!  Outputting the square itself\n",sum);
     return sum;
   } else {
     return sqrt(sum);
