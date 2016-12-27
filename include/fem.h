@@ -91,6 +91,9 @@ typedef struct block_fespace {
   //! number of FEM spaces in system
   INT nspaces;
 
+  //! number of unknowns in system (includes # of components for vectors)
+  INT nun;
+
   //! total number of dof
   INT ndof;
 
