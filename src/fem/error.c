@@ -438,8 +438,8 @@ REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimes
       for(k=0;k<dof_per_elm;k++) {
         utj = FE_Evaluate_DOF(truesol,FE,mesh,time,dof_on_elm[j]-1);
         utk = FE_Evaluate_DOF(truesol,FE,mesh,time,dof_on_elm[k]-1);
-        erj = ABS(utj - u[dof_on_elm[j]-1]);
-        erk = ABS(utk - u[dof_on_elm[k]-1]);
+        erj = (utj - u[dof_on_elm[j]-1]);
+        erk = (utk - u[dof_on_elm[k]-1]);
         sum+=erj*MLoc[j*dof_per_elm+k]*erk;
       }
     }
@@ -449,7 +449,7 @@ REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimes
   if(dof_on_elm) free(dof_on_elm);
   if(v_on_elm) free(v_on_elm);
 
-  return sqrt(sum);
+  return sqrt(ABS(sum));
 }
 /*******************************************************************************************************************************************************/
 
@@ -510,8 +510,8 @@ void L2error_block_mass(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL),b
         for(k=0;k<local_size;k++) {
           utj = blockFE_Evaluate_DOF(truesol,FE,mesh,time,i,dof_on_elm[j]-1);
           utk = blockFE_Evaluate_DOF(truesol,FE,mesh,time,i,dof_on_elm[k]-1);
-          erj = ABS(utj - u[u_dof + dof_on_elm[j]-1]);
-          erk = ABS(utk - u[u_dof + dof_on_elm[k]-1]);
+          erj = (utj - u[u_dof + dof_on_elm[j]-1]);
+          erk = (utk - u[u_dof + dof_on_elm[k]-1]);
           err[i]+=erj*MLoc[j*local_size+k]*erk;
         }
       }
@@ -522,7 +522,7 @@ void L2error_block_mass(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL),b
   }
 
   for(i=0;i<nspaces;i++) {
-    err[i] = sqrt(err[i]);
+    err[i] = sqrt(ABS(err[i]));
   }
 
   if(v_on_elm) free(v_on_elm);
@@ -889,8 +889,8 @@ REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,t
       for(k=0;k<dof_per_elm;k++) {
         utj = FE_Evaluate_DOF(truesol,FE,mesh,time,dof_on_elm[j]-1);
         utk = FE_Evaluate_DOF(truesol,FE,mesh,time,dof_on_elm[k]-1);
-        erj = ABS(utj - u[dof_on_elm[j]-1]);
-        erk = ABS(utk - u[dof_on_elm[k]-1]);
+        erj = (utj - u[dof_on_elm[j]-1]);
+        erk = (utk - u[dof_on_elm[k]-1]);
         sum+=erj*ALoc[j*dof_per_elm+k]*erk;
       }
     }
@@ -900,13 +900,7 @@ REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,t
   if(dof_on_elm) free(dof_on_elm);
   if(v_on_elm) free(v_on_elm);
 
-  if(sum<0.0) {
-    printf("Your H1 Semi Norm Error Squared is negative (%25.16e)!  Taking ABS before squarerooting itself\n",sum);
-    return sqrt(ABS(sum));
-  } else {
-    return sqrt(sum);
-  }
-
+  return sqrt(ABS(sum));
 }
 /*******************************************************************************************************************************************************/
 
@@ -969,8 +963,8 @@ void HDsemierror_block_stiff(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,RE
         for(k=0;k<local_size;k++) {
           utj = blockFE_Evaluate_DOF(truesol,FE,mesh,time,i,dof_on_elm[j]-1);
           utk = blockFE_Evaluate_DOF(truesol,FE,mesh,time,i,dof_on_elm[k]-1);
-          erj = ABS(utj - u[u_dof + dof_on_elm[j]-1]);
-          erk = ABS(utk - u[u_dof + dof_on_elm[k]-1]);
+          erj = (utj - u[u_dof + dof_on_elm[j]-1]);
+          erk = (utk - u[u_dof + dof_on_elm[k]-1]);
           err[i]+=erj*ALoc[j*local_size+k]*erk;
         }
       }
@@ -983,12 +977,7 @@ void HDsemierror_block_stiff(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,RE
   if(v_on_elm) free(v_on_elm);
 
   for(i=0;i<nspaces;i++) {
-    if(err[i]<0.0) {
-      printf("Your H1 Semi Norm Error Squared is negative (%25.16e)!  Taking ABS before squarerooting itself\n",err[i]);
-      err[i] = sqrt(ABS(err[i]));
-    } else {
-      err[i] = sqrt(err[i]);
-    }
+    err[i] = sqrt(ABS(err[i]));
   }
 
   return;
