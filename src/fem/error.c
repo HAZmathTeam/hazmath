@@ -552,7 +552,7 @@ REAL HDseminorm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
    *
    */
 
-  INT i,j,k,rowa,rowb,jcntr;
+  INT i,j,k;
   REAL sum = 0.0;
   INT dof_per_elm = FE->dof_per_elm;
   INT v_per_elm = mesh->v_per_elm;
@@ -568,22 +568,10 @@ REAL HDseminorm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
     for (j=0; j<local_size; j++) ALoc[j] = 0.0;
 
     // Find DOF for given Element
-    rowa = FE->el_dof->IA[i]-1;
-    rowb = FE->el_dof->IA[i+1]-1;
-    jcntr = 0;
-    for (j=rowa; j<rowb; j++) {
-      dof_on_elm[jcntr] = FE->el_dof->JA[j];
-      jcntr++;
-    }
+    get_incidence_row(i,FE->el_dof,dof_on_elm);
 
     //Find Nodes for given Element if not H1 elements
-    rowa = mesh->el_v->IA[i]-1;
-    rowb = mesh->el_v->IA[i+1]-1;
-    jcntr=0;
-    for (j=rowa; j<rowb; j++) {
-      v_on_elm[jcntr] = mesh->el_v->JA[j];
-      jcntr++;
-    }
+    get_incidence_row(i,mesh->el_v,v_on_elm);
 
     // Compute Local Stiffness Matrix for given Element
     assemble_DuDv_local(ALoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
@@ -600,8 +588,8 @@ REAL HDseminorm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
   if(v_on_elm) free(v_on_elm);
 
   if(sum<0.0) {
-    printf("Your H1 Semi Norm Squared is negative (%f)!  Outputting the square itself\n",sum);
-    return sum;
+    printf("Your H1 Semi Norm Squared is negative (%25.16e)!  Taking ABS before squarerooting itself\n",sum);
+    return sqrt(ABS(sum));
   } else {
     return sqrt(sum);
   }
@@ -693,7 +681,15 @@ REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL),fespace *FE,trime
 
   /* Loop over all Elements */
   for (elm=0; elm<FE->nelm; elm++) {
+
+    // Find DOF for given Element
+    get_incidence_row(elm,FE->el_dof,dof_on_elm);
+
+    //Find Vertices for given Element if not H1 elements
+    get_incidence_row(elm,mesh->el_v,v_on_elm);
+
     // Loop over quadrature nodes on element
+
     for (quad=0;quad<cq->nq_per_elm;quad++) {
       qx[0] = cq->x[elm*cq->nq_per_elm+quad];
       if(mesh->dim==2 || mesh->dim==3)
@@ -704,12 +700,6 @@ REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL),fespace *FE,trime
 
       // Get True Solution at Quadrature Nodes
       (*D_truesol)(val_true,qx,time);
-
-      // Find DOF for given Element
-      get_incidence_row(elm,FE->el_dof,dof_on_elm);
-
-      //Find Vertices for given Element if not H1 elements
-      get_incidence_row(elm,mesh->el_v,v_on_elm);
 
       // Interpolate FE solution to quadrature point
       FE_DerivativeInterpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,mesh,1);
@@ -911,8 +901,8 @@ REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,t
   if(v_on_elm) free(v_on_elm);
 
   if(sum<0.0) {
-    printf("Your H1 Semi Norm Error Squared is negative!  Outputting the square itself\n");
-    return sum;
+    printf("Your H1 Semi Norm Error Squared is negative (%25.16e)!  Taking ABS before squarerooting itself\n",sum);
+    return sqrt(ABS(sum));
   } else {
     return sqrt(sum);
   }
@@ -990,15 +980,21 @@ void HDsemierror_block_stiff(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,RE
     }
   }
 
-  for(i=0;i<nspaces;i++) {
-    err[i] = sqrt(err[i]);
-  }
-
   if(v_on_elm) free(v_on_elm);
+
+  for(i=0;i<nspaces;i++) {
+    if(err[i]<0.0) {
+      printf("Your H1 Semi Norm Error Squared is negative (%25.16e)!  Taking ABS before squarerooting itself\n",err[i]);
+      err[i] = sqrt(ABS(err[i]));
+    } else {
+      err[i] = sqrt(err[i]);
+    }
+  }
 
   return;
 }
 /*******************************************************************************************************************************************************/
+
 
 /***************************************************************************/
 REAL HDnorm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
