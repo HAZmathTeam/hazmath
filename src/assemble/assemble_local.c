@@ -67,27 +67,23 @@ void assemble_DuDv_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
   REAL* phi=NULL;
   REAL* dphi=NULL;
 
-  if(FE->FEtype>=0 && FE->FEtype<10) { // PX elements
-    phi = (REAL *) calloc(dof_per_elm,sizeof(REAL));
-    dphi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
-    
-    //  Sum over quadrature points
-    for (quad=0;quad<cq->nq_per_elm;quad++) {
-      qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-      if(dim==2 || dim==3)
-        qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-      if(dim==3)
-        qx[2] = cq->z[elm*cq->nq_per_elm+quad];
-      w = cq->w[elm*cq->nq_per_elm+quad];
-      if(coeff!=NULL) {
-        (*coeff)(&coeff_val,qx,time);
-      } else {
-        coeff_val = 1.0;
-      }
-      
-      //  Get the Basis Functions at each quadrature node
-      PX_H1_basis(phi,dphi,qx,dof_on_elm,FE->FEtype,mesh);
+  //  Sum over quadrature points
+  for (quad=0;quad<cq->nq_per_elm;quad++) {
+    qx[0] = cq->x[elm*cq->nq_per_elm+quad];
+    if(dim==2 || dim==3)
+      qx[1] = cq->y[elm*cq->nq_per_elm+quad];
+    if(dim==3)
+      qx[2] = cq->z[elm*cq->nq_per_elm+quad];
+    w = cq->w[elm*cq->nq_per_elm+quad];
+    if(coeff!=NULL) {
+      (*coeff)(&coeff_val,qx,time);
+    } else {
+      coeff_val = 1.0;
+    }
 
+    get_FEM_basis(&phi,&dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
+
+    if(FE->FEtype<20 || (FE->FEtype>=20 && FE->FEtype<30 && dim==3)) { // Vector Derivatives: Gradients (PX) and 3D Curls (3D Ned)
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
         // Loop over Trial Functions (Columns)
@@ -98,69 +94,7 @@ void assemble_DuDv_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
           ALoc[test*FE->dof_per_elm+trial] += w*kij;
         }
       }
-    }
-  } else if(FE->FEtype==20) { // Nedelec elements
-    phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
-    if(dim==2) {
-      dphi = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Curl of basis function
-    } else if (dim==3) {
-      dphi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL)); // Curl of basis function
-    } else {
-      status = ERROR_DIM;
-      check_error(status, __FUNCTION__);
-    }
-
-    //  Sum over quadrature points
-    for (quad=0;quad<cq->nq_per_elm;quad++) {
-      qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-      qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-      if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
-      w = cq->w[elm*cq->nq_per_elm+quad];
-      if(coeff!=NULL) {
-        (*coeff)(&coeff_val,qx,time);
-      } else {
-        coeff_val = 1.0;
-      }
-
-      //  Get the Basis Functions at each quadrature node
-      ned_basis(phi,dphi,qx,v_on_elm,dof_on_elm,mesh);
-
-      // Loop over Test Functions (Rows)
-      for (test=0; test<FE->dof_per_elm;test++) {
-        // Loop over Trial Functions (Columns)
-        for (trial=0; trial<FE->dof_per_elm; trial++) {
-          if(dim==2) {
-            kij = coeff_val*(dphi[test]*dphi[trial]);
-          } else if (dim==3) {
-            kij = coeff_val*(dphi[test*dim]*dphi[trial*dim] + dphi[test*dim+1]*dphi[trial*dim+1]
-                + dphi[test*dim+2]*dphi[trial*dim+2]);
-          } else {
-            status = ERROR_DIM;
-            check_error(status, __FUNCTION__);
-          }
-          ALoc[test*FE->dof_per_elm+trial] += w*kij;
-        }
-      }
-    }
-  } else if(FE->FEtype==30) { // Raviart-Thomas elements
-    phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
-    dphi = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Divergence of element
-
-    //  Sum over quadrature points
-    for (quad=0;quad<cq->nq_per_elm;quad++) {
-      qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-      qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-      if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
-      w = cq->w[elm*cq->nq_per_elm+quad];
-      if(coeff!=NULL) {
-        (*coeff)(&coeff_val,qx,time);
-      } else {
-        coeff_val = 1.0;
-      }
-
-      //  Get the Basis Functions at each quadrature node
-      rt_basis(phi,dphi,qx,v_on_elm,dof_on_elm,mesh);
-
+    } else { // Scalar Derivatives: Divergence (RT) and 2D Curls (2D Ned)
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
         // Loop over Trial Functions (Columns)
@@ -170,9 +104,6 @@ void assemble_DuDv_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
         }
       }
     }
-  } else {
-    status = ERROR_FE_TYPE;
-    check_error(status, __FUNCTION__);
   }
   
   if (phi) free(phi);
