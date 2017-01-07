@@ -901,6 +901,7 @@ void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,trimesh *mesh,qcoordinates
   }
 
   if(qx) free(qx);
+  if(rhs_val) free(rhs_val);
   return;
 }
 
