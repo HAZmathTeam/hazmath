@@ -112,6 +112,13 @@ void csr_print_matlab(FILE* fid,
 
   /* prints a csr matrix in matlab output*/
   INT i,j1,j2,j; /* Loop Indices */
+  INT shift_flag = 0; /* Check if Indexing starts at 0 or 1 */
+
+  if(A->IA[0]==0) {
+    printf("hello\n\n");
+    dcsr_shift(A, 1);  // shift A
+    shift_flag = 1;
+  }
 
   for(i=0;i<A->row;i++) {
     j1 = A->IA[i]-1;
@@ -120,6 +127,11 @@ void csr_print_matlab(FILE* fid,
       fprintf(fid,"%d\t%d\t%25.16e\n",i+1,A->JA[j],A->val[j]);
     }
   }
+
+  if(shift_flag==1) {
+    dcsr_shift(A, -1);  // shift A back
+  }
+
   return;
 }
 

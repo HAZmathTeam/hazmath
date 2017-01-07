@@ -15,11 +15,11 @@
 
 #if WITH_SUITESPARSE
 /***************************************************************************************************************************/
-INT directsolve_UMF_symmetric(dCSRmat *A,dvector *f,REAL *x,INT print_level) 
+INT directsolve_UMF(dCSRmat *A,dvector *f,REAL *x,INT print_level)
 {
 	
   /* Performs Gaussian Elmination on Ax = f, using UMFPACK  
-   * Assumes A is symmetric (I think) and in CSR format
+   * Assumes A is in CSR format
    *
    * Input:		
    *        	A:	       	Matrix A to be solved
