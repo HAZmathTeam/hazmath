@@ -484,7 +484,7 @@ int main (int argc, char* argv[])
   // Solve the linear system
   if(linear_itparam.linear_itsolver_type == 0) { // Direct Solver
     printf(" --> using UMFPACK's Direct Solver:\n");
-    solver_flag = directsolve_UMF_symmetric(&A,&b,u.val,linear_itparam.linear_print_level);
+    solver_flag = directsolve_UMF(&A,&b,u.val,linear_itparam.linear_print_level);
   } else { // Iterative Solver
     dcsr_shift(&A, -1);  // shift A
       

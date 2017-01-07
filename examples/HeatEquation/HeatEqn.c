@@ -267,7 +267,7 @@ int main (int argc, char* argv[])
     dcsr_shift(time_stepper.At, -1);  // shift A
     if(linear_itparam.linear_itsolver_type == 0) { // Direct Solver
       printf(" --> using UMFPACK's Direct Solver:\n");
-      solver_flag = directsolve_UMF_symmetric(&A,&b,sol.val,linear_itparam.linear_print_level);
+      solver_flag = directsolve_UMF(&A,&b,sol.val,linear_itparam.linear_print_level);
     } else { // Iterative Solver
       // Use AMG as iterative solver
       if (linear_itparam.linear_itsolver_type == SOLVER_AMG){
