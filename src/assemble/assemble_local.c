@@ -45,13 +45,8 @@ void assemble_DuDv_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
    *
    */
 
-  // Mesh and FE data
-  INT dof_per_elm = FE->dof_per_elm;
   INT dim = mesh->dim;
 
-  // flag of errors
-  SHORT status;
-  
   // Loop Indices
   INT quad,test,trial,idim;
 
