@@ -232,8 +232,18 @@ void dcsr_write_dcoo (const char *filename,
 
 /****************************************************************************************/
 void rveci_(FILE *fp, INT *vec, INT *nn)       
-/* reads a vector of integers of size nn from a file fp*/
+/* */
 {
+  /*!
+   * \fn void rveci_(FILE *fp, INT *vec, INT *nn)
+   *
+   * \brief Reads a vector of integers of size nn from a file fp
+   *
+   * \param fp        FILE ID
+   * \param vec       Where to store vector
+   * \param nn        Size of Vector
+   *
+   */
 	
   INT n;
   INT *vec_end;
@@ -248,8 +258,18 @@ void rveci_(FILE *fp, INT *vec, INT *nn)
 
 /****************************************************************************************/
 void rvecd_(FILE *fp,  REAL *vec, INT *nn)
-/* reads a vector of REALS of size nn from a file fp*/
 {
+  /*!
+   * \fn void rvecd_(FILE *fp, REAL *vec, INT *nn)
+   *
+   * \brief Reads a vector of doubles of size nn from a file fp
+   *
+   * \param fp        FILE ID
+   * \param vec       Where to store vector
+   * \param nn        Size of Vector
+   *
+   */
+
   INT n;
   REAL *vec_end;  
   n= *nn;
@@ -264,11 +284,17 @@ void rvecd_(FILE *fp,  REAL *vec, INT *nn)
 /****************************************************************************************/
 FILE* HAZ_fopen( char *fname, char *mode )
 {
-  /* ..............................................................
-     . A graceful version of fopen(). It checks if the file has .
-     . been successfully opened.  If  that is  not  the case  a .
-     . message is printed and the program is exited.            .
-     .............................................................. */
+  /*!
+   * \fn FILE* HAZ_fopen( char *fname, char *mode )
+   *
+   * \brief A graceful version of fopen(). It checks if the file has
+   *     been successfully opened.  If  that is  not  the case  a
+   *     message is printed and the program is exited.
+   *
+   * \param fname     Filename
+   * \param mode      read or write
+   *
+   */
 
   FILE   *fp;
 
@@ -284,18 +310,17 @@ FILE* HAZ_fopen( char *fname, char *mode )
 /******************************************************************************/
 void dump_sol_onV_vtk(char *namevtk,trimesh *mesh,REAL *sol,INT ncomp)
 {
-
-  /* Dumps solution data to vtk format 
-  *
-  * Input:
-  *   mesh:     Mesh struct to dump
-  *    sol:     solution vector to dump
-  *  ncomp:     Number of components to the solution
-  * 
-  * Output:
-  *  namevtk  File name of vtk file
-  *
-  */
+  /*!
+   * \fn void dump_sol_onV_vtk(char *namevtk,trimesh *mesh,REAL *sol,INT ncomp)
+   *
+   * \brief Dumps solution data to vtk format
+   *
+   * \param namevtk  Filename
+   * \param mesh     Mesh struct to dump
+   * \param sol      solution vector to dump
+   * \param ncomp:   Number of components to the solution
+   *
+   */
 
   // Basic Quantities
   INT nv = mesh->nv;
@@ -417,6 +442,65 @@ void dump_sol_onV_vtk(char *namevtk,trimesh *mesh,REAL *sol,INT ncomp)
   fprintf(fvtk,"</Cells>\n");
   fprintf(fvtk,"</Piece>\n");
   fprintf(fvtk,"</UnstructuredGrid>\n");
+  fprintf(fvtk,"</VTKFile>\n");
+
+  fclose(fvtk);
+
+  return;
+}
+/******************************************************************************/
+
+/******************************************************************************/
+void create_pvd(char *namepvd,INT nfiles,char *vtkfilename,char *filetype)
+{
+
+  /*!
+   * \fn void create_pvd(char *namevtk,trimesh *mesh,REAL *sol,INT ncomp)
+   *
+   * \brief Dumps solution data in vtk format to a single file.  Useful for timestepping
+   * \note  File names of vtk file must have same structure
+   *
+   * \param namepvd      Filename
+   * \param nfiles       Number of files to store (i.e. timesteps)
+   * \param vtkfilename  Filename structure of vtu files.
+   * \param filetype     Name for types of files (i.e. "timestep")
+   *
+   */
+
+  // VTK needed Quantities
+  //  What endian?:
+  //    Intel x86; OS=MAC OS X: little-endian
+  //    Intel x86; OS=Windows: little-endian
+  //    Intel x86; OS=Linux: little-endian
+  //    Intel x86; OS=Solaris: little-endian
+  //    Dec Alpha; OS=Digital Unix: little-endian
+  //    Dec Alpha; OS=VMS: little-endian
+  //    Hewlett Packard PA-RISC; OS=HP-UX: big-endian
+  //    IBM RS/6000; OS=AIX: big-endian
+  //    Motorola PowerPC; OS=Mac OS X:  big-endian
+  //    SGI R4000 and up; OS=IRIX: big-endian
+  //    Sun SPARC; OS=Solaris: big-endian
+
+  char *endian="LittleEndian";
+  INT i;
+
+  // Open File for Writing
+  FILE* fvtk = HAZ_fopen(namepvd,"w");
+
+  // Write Headers
+  fprintf(fvtk,"<?xml version=\"1.0\"?>\n");
+  fprintf(fvtk,
+          "<VTKFile type=\"Collection\" version=\"0.1\" byte_order=\"%s\" compressor=\"vtkZLibDataCompressor\">\n", \
+          endian);
+  fprintf(fvtk,"<Collection>\n");
+  char filecounter[40];
+  for(i=0;i<nfiles;i++) {
+    sprintf(filecounter,"%s%03d.vtu",vtkfilename,i);
+    fprintf(fvtk,"<DataSet %s=\"%d\" group=\"\" part=\"0\" file=\"%s\"/>\n",filetype,i,filecounter);
+  }
+
+  // Put in remaining headers
+  fprintf(fvtk,"</Collection>\n");
   fprintf(fvtk,"</VTKFile>\n");
 
   fclose(fvtk);
