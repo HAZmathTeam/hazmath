@@ -63,6 +63,9 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
   FE->FEtype = FEtype;
   FE->nelm = mesh->nelm;
   INT dim = mesh->dim;
+
+  INT* dof_bdry;
+
   switch (FEtype)
   {
   case 0: // Contants - P0
@@ -91,9 +94,9 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
       FE->f_dof = malloc(sizeof(struct iCSRmat));
       *(FE->f_dof) = f_el;
     }
-    INT* el_bdry = (INT *) calloc(mesh->nelm,sizeof(INT));
-    for(INT i=0;i<mesh->nelm;i++) el_bdry[i] = 0;
-    FE->dof_bdry = el_bdry;
+    dof_bdry = (INT *) calloc(mesh->nelm,sizeof(INT));
+    for(INT i=0;i<mesh->nelm;i++) dof_bdry[i] = 0;
+    FE->dof_bdry = dof_bdry;
     break;
   case 1: // Linears - P1
     FE->cdof = mesh->cv;
@@ -105,7 +108,9 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
       FE->ed_dof = mesh->ed_v;
       FE->f_dof = mesh->f_v;
     }
-    FE->dof_bdry = mesh->v_bdry;
+    dof_bdry = (INT *) calloc(FE->ndof,sizeof(INT));
+    for(INT i=0;i<FE->ndof;i++) dof_bdry[i] = mesh->v_bdry[i];
+    FE->dof_bdry = dof_bdry;
     break;
   case 2: // Quadratics - P2
     FE->ndof = mesh->nv + mesh->nelm; // In 1D
@@ -131,7 +136,9 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     FE->ed_dof = malloc(sizeof(struct iCSRmat));
     *(FE->ed_dof) = ed_ed;
     FE->f_dof = mesh->f_ed;
-    FE->dof_bdry = mesh->ed_bdry;
+    dof_bdry = (INT *) calloc(FE->ndof,sizeof(INT));
+    for(INT i=0;i<FE->ndof;i++) dof_bdry[i] = mesh->ed_bdry[i];
+    FE->dof_bdry = dof_bdry;
     break;
   case 30: // Raviart-Thomas Elements
     FE->cdof = NULL;
@@ -146,7 +153,9 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     iCSRmat f_f = icsr_create_identity(mesh->nface, 1);
     FE->f_dof = malloc(sizeof(struct iCSRmat));
     *(FE->f_dof) = f_f;
-    FE->dof_bdry = mesh->f_bdry;
+    dof_bdry = (INT *) calloc(FE->ndof,sizeof(INT));
+    for(INT i=0;i<FE->ndof;i++) dof_bdry[i] = mesh->f_bdry[i];
+    FE->dof_bdry = dof_bdry;
     break;
   default:
     status = ERROR_FE_TYPE;
@@ -193,7 +202,7 @@ void free_fespace(fespace* FE)
     FE->f_dof = NULL;
   }
 
-  if(FE->dof_bdry && (FE->FEtype==2)) { // If not P2, free_mesh will destroy dof_bdry
+  if(FE->dof_bdry) { // If not P2, free_mesh will destroy dof_bdry
     free(FE->dof_bdry);
     FE->dof_bdry = NULL;
   }
