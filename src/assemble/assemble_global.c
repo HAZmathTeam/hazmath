@@ -413,6 +413,7 @@ void assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(RE
   if(rhs!=NULL) {
     b->row = FE->ndof;
     b->val = (REAL *) calloc(b->row,sizeof(REAL));
+    dvec_set(b->row,b,0.0);
   }
 
   // Loop over each block and build sparsity structure of matrices
