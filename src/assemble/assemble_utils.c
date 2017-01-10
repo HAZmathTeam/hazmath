@@ -633,8 +633,8 @@ void block_LocaltoGlobal(INT *dof_on_elm,block_fespace *FE,dvector *b,block_dCSR
    *
    */
 
-  INT i,j,k,col_a,col_b,acol,test_row,trial_col;
-  INT local_row,global_row,local_col;
+  INT i,j,k,col_a,col_b,acol,block_row,block_col;
+  INT local_row,local_col;
 
   // Loop over all the blocks
   INT nblocks = FE->nspaces;
@@ -643,40 +643,39 @@ void block_LocaltoGlobal(INT *dof_on_elm,block_fespace *FE,dvector *b,block_dCSR
   INT local_row_index = 0;
   INT local_col_index = 0;
   INT global_row_index = 0;
-  INT dof_per_elm = 0;
+  INT block_dof_per_elm = 0;
 
   // Get total dof_per_elm for indexing
-  for(test_row=0;test_row<nblocks;test_row++) {
-    dof_per_elm += FE->var_spaces[test_row]->dof_per_elm;
+  for(block_row=0;block_row<nblocks;block_row++) {
+    block_dof_per_elm += FE->var_spaces[block_row]->dof_per_elm;
   }
 
   // Loop through all the blocks
-  for(test_row=0;test_row<nblocks;test_row++) {
-    dof_per_elm_test = FE->var_spaces[test_row]->dof_per_elm;
+  for(block_row=0;block_row<nblocks;block_row++) {
+    dof_per_elm_test = FE->var_spaces[block_row]->dof_per_elm;
     
-    for(trial_col=0;trial_col<nblocks;trial_col++) {
-      dof_per_elm_trial = FE->var_spaces[trial_col]->dof_per_elm;
+    for(block_col=0;block_col<nblocks;block_col++) {
+      dof_per_elm_trial = FE->var_spaces[block_col]->dof_per_elm;
       
 
       /* Rows of Local Stiffness (test space)*/
       for (i=0; i<dof_per_elm_test; i++) {
         local_row = dof_on_elm[local_row_index+i]-1;
-        global_row = local_row + global_row_index;
         // Adjust Right-hand side globally
-        if(bLoc!=NULL)
-          b->val[global_row] += bLoc[local_row_index+i];
+        if(bLoc!=NULL && block_col==0)
+          b->val[local_row+global_row_index] += bLoc[local_row_index+i];
 
         /* Columns of Local Stiffness (trial space)*/
         for (j=0; j<dof_per_elm_trial; j++) {
           local_col = dof_on_elm[local_col_index + j]-1;
           /* Columns of A */
-          if(A->blocks[test_row*nblocks+trial_col]) {
-            col_a = A->blocks[test_row*nblocks+trial_col]->IA[local_row]-1;
-            col_b = A->blocks[test_row*nblocks+trial_col]->IA[local_row+1]-1;
+          if(A->blocks[block_row*nblocks+block_col]) {
+            col_a = A->blocks[block_row*nblocks+block_col]->IA[local_row]-1;
+            col_b = A->blocks[block_row*nblocks+block_col]->IA[local_row+1]-1;
             for (k=col_a; k<col_b; k++) {
-              acol = A->blocks[test_row*nblocks+trial_col]->JA[k]-1;
+              acol = A->blocks[block_row*nblocks+block_col]->JA[k]-1;
               if (acol==local_col) {	/* If they match, put it in the global matrix */
-                A->blocks[test_row*nblocks+trial_col]->val[k] += ALoc[(local_row_index+i)*dof_per_elm+(local_col_index+j)];
+                A->blocks[block_row*nblocks+block_col]->val[k] += ALoc[(local_row_index+i)*block_dof_per_elm+(local_col_index+j)];
               }
             }
           }
@@ -685,7 +684,7 @@ void block_LocaltoGlobal(INT *dof_on_elm,block_fespace *FE,dvector *b,block_dCSR
       local_col_index += dof_per_elm_trial;
     }
     local_col_index = 0;
-    global_row_index += FE->var_spaces[test_row]->ndof;
+    global_row_index += FE->var_spaces[block_row]->ndof;
     local_row_index += dof_per_elm_test;
   }
   return;
