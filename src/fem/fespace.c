@@ -32,6 +32,8 @@ void initialize_fespace(fespace *FE)
   FE->ed_dof = NULL;
   FE->f_dof = NULL;
   FE->dof_bdry = NULL;
+  FE->phi = NULL;
+  FE->dphi = NULL;
 
   return;
 }
@@ -65,6 +67,8 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
   INT dim = mesh->dim;
 
   INT* dof_bdry;
+  REAL* phi;
+  REAL* dphi;
 
   switch (FEtype)
   {
@@ -97,6 +101,8 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     dof_bdry = (INT *) calloc(mesh->nelm,sizeof(INT));
     for(INT i=0;i<mesh->nelm;i++) dof_bdry[i] = 0;
     FE->dof_bdry = dof_bdry;
+    phi = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
+    FE->phi = phi;
     break;
   case 1: // Linears - P1
     FE->cdof = mesh->cv;
@@ -111,6 +117,10 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     dof_bdry = (INT *) calloc(FE->ndof,sizeof(INT));
     for(INT i=0;i<FE->ndof;i++) dof_bdry[i] = mesh->v_bdry[i];
     FE->dof_bdry = dof_bdry;
+    phi = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
+    FE->phi = phi;
+    dphi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
+    FE->dphi = dphi;
     break;
   case 2: // Quadratics - P2
     FE->ndof = mesh->nv + mesh->nelm; // In 1D
@@ -125,6 +135,10 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
       FE->dof_per_elm = mesh->v_per_elm + mesh->ed_per_elm;
     }
     get_P2(FE,mesh);
+    phi = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
+    FE->phi = phi;
+    dphi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
+    FE->dphi = dphi;
     break;
   case 20: // Nedelec Elements
     FE->cdof = NULL;
@@ -139,6 +153,13 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     dof_bdry = (INT *) calloc(FE->ndof,sizeof(INT));
     for(INT i=0;i<FE->ndof;i++) dof_bdry[i] = mesh->ed_bdry[i];
     FE->dof_bdry = dof_bdry;
+    phi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
+    FE->phi = phi;
+    if(mesh->dim==2) // Scalar Curl
+      dphi = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
+    else // Vector Curl
+      dphi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
+    FE->dphi = dphi;
     break;
   case 30: // Raviart-Thomas Elements
     FE->cdof = NULL;
@@ -156,6 +177,10 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     dof_bdry = (INT *) calloc(FE->ndof,sizeof(INT));
     for(INT i=0;i<FE->ndof;i++) dof_bdry[i] = mesh->f_bdry[i];
     FE->dof_bdry = dof_bdry;
+    phi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
+    FE->phi = phi;
+    dphi = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
+    FE->dphi = dphi;
     break;
   default:
     status = ERROR_FE_TYPE;
@@ -202,9 +227,19 @@ void free_fespace(fespace* FE)
     FE->f_dof = NULL;
   }
 
-  if(FE->dof_bdry) { // If not P2, free_mesh will destroy dof_bdry
+  if(FE->dof_bdry) {
     free(FE->dof_bdry);
     FE->dof_bdry = NULL;
+  }
+
+  if(FE->phi) {
+    free(FE->phi);
+    FE->phi = NULL;
+  }
+
+  if(FE->dphi) {
+    free(FE->dphi);
+    FE->dphi = NULL;
   }
   
   return;

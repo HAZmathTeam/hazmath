@@ -880,7 +880,7 @@ void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof
 /****************************************************************************************************************************/
 
 /****************************************************************************************************************************/
-void get_FEM_basis(REAL **phit,REAL **dphit,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh,fespace *FE)
+void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh,fespace *FE)
 {
   /*!
    * \fn void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh,fespace *FE)
@@ -906,32 +906,16 @@ void get_FEM_basis(REAL **phit,REAL **dphit,REAL *x,INT *v_on_elm,INT *dof,trime
   INT dof_per_elm = FE->dof_per_elm;
   INT FEtype = FE->FEtype;
 
-  REAL* phi;
-  REAL* dphi;
-
   if(FEtype>=0 && FEtype<10) { // PX elements
 
-    phi = (REAL *) calloc(dof_per_elm,sizeof(REAL));
-    dphi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
     PX_H1_basis(phi,dphi,x,dof,FEtype,mesh);
 
   } else if(FEtype==20) { // Nedelec elements
 
-    phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
-    if(dim==2) {
-      dphi = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Curl of basis function
-    } else if (dim==3) {
-      dphi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL)); // Curl of basis function
-    } else {
-      status = ERROR_DIM;
-      check_error(status, __FUNCTION__);
-    }
     ned_basis(phi,dphi,x,v_on_elm,dof,mesh);
 
   } else if(FEtype==30) { // Raviart-Thomas elements
 
-    phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
-    dphi = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Divergence of element
     rt_basis(phi,dphi,x,v_on_elm,dof,mesh);
 
   } else {
@@ -939,8 +923,6 @@ void get_FEM_basis(REAL **phit,REAL **dphit,REAL *x,INT *v_on_elm,INT *dof,trime
     check_error(status, __FUNCTION__);
   }
 
-  *phit = phi;
-  *dphit = dphi;
   return;
 }
 /****************************************************************************************************************************/

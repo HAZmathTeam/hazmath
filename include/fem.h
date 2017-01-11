@@ -78,6 +78,10 @@ typedef struct fespace{
 
   //! Dirichlet Boundary map
   INT* dof_bdry;
+
+  //! Basis Functions and Derivatives
+  REAL* phi;
+  REAL* dphi;
 	
 } fespace;
 
