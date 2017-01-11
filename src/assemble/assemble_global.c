@@ -923,6 +923,7 @@ void assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_a
       for(j=0;j<FE->var_spaces[k]->dof_per_elm;j++) {
         row = dof_on_elm[jcntr]-1;
         b->val[row+rowa]+=bLoc[jcntr];
+        jcntr++;
       }
       rowa += FE->var_spaces[k]->ndof;
     }

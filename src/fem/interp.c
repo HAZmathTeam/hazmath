@@ -39,19 +39,16 @@ void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fe
   INT dim = mesh->dim;
   INT ndof = FE->ndof;
 
-  // Basis Functions and its derivatives if necessary
-  REAL* phi=NULL;
-  REAL* dphi=NULL;
   REAL coef[dim];
 
-  get_FEM_basis(&phi,&dphi,x,v_on_elm,dof_on_elm,mesh,FE);
+  get_FEM_basis(FE->phi,FE->dphi,x,v_on_elm,dof_on_elm,mesh,FE);
 
   if(FEtype<20) { // Scalar Element
     for(i=0; i<nun; i++) {
       coef[0] = 0.0;
       for(j=0; j<dof_per_elm; j++) {
         dof = i*ndof + dof_on_elm[j] - 1;
-        coef[0] += u[dof]*phi[j];
+        coef[0] += u[dof]*FE->phi[j];
       }
       val[i] = coef[0];
     }
@@ -60,14 +57,12 @@ void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fe
       coef[i] = 0.0;
       for(j=0; j<dof_per_elm; j++) {
         dof = dof_on_elm[j] - 1;
-        coef[i] += u[dof]*phi[j*dim+i];
+        coef[i] += u[dof]*FE->phi[j*dim+i];
       }
       val[i] = coef[i];
     }
   }
 
-  if (phi) free(phi);
-  if(dphi) free(dphi);
   return;
 }
 /****************************************************************************************************************************/
@@ -101,11 +96,9 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
   INT ndof = FE->ndof;
 
   // Basis Functions and its derivatives if necessary
-  REAL* phi=NULL;
-  REAL* dphi=NULL;
   REAL coef[dim];
 
-  get_FEM_basis(&phi,&dphi,x,v_on_elm,dof_on_elm,mesh,FE);
+  get_FEM_basis(FE->phi,FE->dphi,x,v_on_elm,dof_on_elm,mesh,FE);
 
   if(FEtype<20) { // Scalar Element
     for(i=0; i<nun; i++) {
@@ -113,7 +106,7 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
         coef[j] = 0.0;
         for(k=0; k<dof_per_elm; k++) {
           dof = i*ndof + dof_on_elm[k] - 1;
-          coef[j] += u[dof]*dphi[k*dim+j];
+          coef[j] += u[dof]*FE->dphi[k*dim+j];
         }
         val[i*dim+j] = coef[j];
       }
@@ -124,15 +117,15 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
     if (dim==2) { // Curl is scalar
       for (j=0; j<dof_per_elm; j++) {
         dof = dof_on_elm[j]-1;
-        coef[0] += u[dof]*dphi[j];
+        coef[0] += u[dof]*FE->dphi[j];
       }
       val[0] = coef[0];
     } else if (dim==3) { // Curl is vector
       for (j=0; j<dof_per_elm; j++) {
         dof = dof_on_elm[j]-1;
-        coef[0] += u[dof]*dphi[j*dim+0];
-        coef[1] += u[dof]*dphi[j*dim+1];
-        coef[2] += u[dof]*dphi[j*dim+2];
+        coef[0] += u[dof]*FE->dphi[j*dim+0];
+        coef[1] += u[dof]*FE->dphi[j*dim+1];
+        coef[2] += u[dof]*FE->dphi[j*dim+2];
       }
       val[0] = coef[0];
       val[1] = coef[1];
@@ -143,13 +136,11 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
 
     for (j=0; j<dof_per_elm; j++) {
       dof = dof_on_elm[j]-1;
-      coef[0] += u[dof]*dphi[j];
+      coef[0] += u[dof]*FE->dphi[j];
     }
     val[0] = coef[0];
   }
 
-  if (phi) free(phi);
-  if(dphi) free(dphi);
   return;
 }
 /****************************************************************************************************************************/

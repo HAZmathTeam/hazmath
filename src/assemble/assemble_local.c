@@ -14,7 +14,7 @@
 #include "hazmat.h"
 
 /******************************************************************************************************/
-void assemble_DuDv_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time) 
+void assemble_DuDv_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
 {
   /*!
    * \fn void assemble_DuDv_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
@@ -58,58 +58,74 @@ void assemble_DuDv_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
   // Coefficient Value at Quadrature Nodes
   REAL coeff_val=0.0;
 
-  // Basis Functions and its derivatives if necessary
-  REAL* phi=NULL;
-  REAL* dphi=NULL;
+  // Vector Derivatives: Gradients (PX) and 3D Curls (3D Ned)
+  if(FE->FEtype<20 || (FE->FEtype>=20 && FE->FEtype<30 && dim==3)) {
 
-  //  Sum over quadrature points
-  for (quad=0;quad<cq->nq_per_elm;quad++) {
-    qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-    if(dim==2 || dim==3)
-      qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-    if(dim==3)
-      qx[2] = cq->z[elm*cq->nq_per_elm+quad];
-    w = cq->w[elm*cq->nq_per_elm+quad];
-    if(coeff!=NULL) {
-      (*coeff)(&coeff_val,qx,time);
-    } else {
-      coeff_val = 1.0;
-    }
+    //  Sum over quadrature points
+    for (quad=0;quad<cq->nq_per_elm;quad++) {
+      qx[0] = cq->x[elm*cq->nq_per_elm+quad];
+      if(dim==2 || dim==3)
+        qx[1] = cq->y[elm*cq->nq_per_elm+quad];
+      if(dim==3)
+        qx[2] = cq->z[elm*cq->nq_per_elm+quad];
+      w = cq->w[elm*cq->nq_per_elm+quad];
+      if(coeff!=NULL) {
+        (*coeff)(&coeff_val,qx,time);
+      } else {
+        coeff_val = 1.0;
+      }
 
-    get_FEM_basis(&phi,&dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
+      // Basis Functions and its derivatives if necessary
+      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
 
-    if(FE->FEtype<20 || (FE->FEtype>=20 && FE->FEtype<30 && dim==3)) { // Vector Derivatives: Gradients (PX) and 3D Curls (3D Ned)
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
         // Loop over Trial Functions (Columns)
         for (trial=0; trial<FE->dof_per_elm; trial++) {
           kij=0.0;
           for(idim=0;idim<dim;idim++)
-            kij += coeff_val*(dphi[test*dim+idim]*dphi[trial*dim+idim]);
+            kij += coeff_val*(FE->dphi[test*dim+idim]*FE->dphi[trial*dim+idim]);
           ALoc[test*FE->dof_per_elm+trial] += w*kij;
         }
       }
-    } else { // Scalar Derivatives: Divergence (RT) and 2D Curls (2D Ned)
+    }
+  } else { // Scalar Derivatives: Divergence (RT) and 2D Curls (2D Ned)
+
+    //  Sum over quadrature points
+    for (quad=0;quad<cq->nq_per_elm;quad++) {
+      qx[0] = cq->x[elm*cq->nq_per_elm+quad];
+      if(dim==2 || dim==3)
+        qx[1] = cq->y[elm*cq->nq_per_elm+quad];
+      if(dim==3)
+        qx[2] = cq->z[elm*cq->nq_per_elm+quad];
+      w = cq->w[elm*cq->nq_per_elm+quad];
+      if(coeff!=NULL) {
+        (*coeff)(&coeff_val,qx,time);
+      } else {
+        coeff_val = 1.0;
+      }
+
+      // Basis Functions and its derivatives if necessary
+      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
+
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
         // Loop over Trial Functions (Columns)
         for (trial=0; trial<FE->dof_per_elm; trial++) {
-          kij = coeff_val*(dphi[test]*dphi[trial]);
+          kij = coeff_val*(FE->dphi[test]*FE->dphi[trial]);
           ALoc[test*FE->dof_per_elm+trial] += w*kij;
         }
       }
     }
   }
-  
-  if (phi) free(phi);
-  if(dphi) free(dphi);
+
   if(qx) free(qx);
   return;
 }
 /******************************************************************************************************/
 
 /******************************************************************************************************/
-void assemble_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time) 
+void assemble_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
 {
   /*!
    * \fn void assemble_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
@@ -140,32 +156,21 @@ void assemble_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
    *
    */
 
-  // Mesh and FE data
-  INT dof_per_elm = FE->dof_per_elm;
   INT dim = mesh->dim;
 
-  // flag for errors
-  SHORT status;
-  
   // Loop Indices
-  INT quad,test,trial;
+  INT quad,test,trial,idim;
 
   // Quadrature Weights and Nodes
   REAL w;
   REAL* qx = (REAL *) calloc(3,sizeof(REAL));
   // Stiffness Matrix Entry
   REAL kij;
-
-  // Basis Functions and its derivatives if necessary
-  REAL* phi=NULL;
-  REAL* dphi=NULL;
-
   // Coefficient Value at Quadrature Nodes
   REAL coeff_val=0.0;
 
-  if(FE->FEtype>=0 && FE->FEtype<10) { // PX elements
-    phi = (REAL *) calloc(dof_per_elm,sizeof(REAL));
-    dphi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
+  // Vector Functions
+  if(FE->FEtype>=20) {
 
     //  Sum over quadrature points
     for (quad=0;quad<cq->nq_per_elm;quad++) {
@@ -180,35 +185,30 @@ void assemble_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
       } else {
         coeff_val = 1.0;
       }
-      
-      //  Get the Basis Functions at each quadrature node
-      PX_H1_basis(phi,dphi,qx,dof_on_elm,FE->FEtype,mesh);
+
+      // Basis Functions and its derivatives if necessary
+      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
 
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
         // Loop over Trial Functions (Columns)
         for (trial=0; trial<FE->dof_per_elm; trial++) {
-          kij = coeff_val*(phi[test]*phi[trial]);
+          kij=0.0;
+          for(idim=0;idim<dim;idim++)
+            kij += coeff_val*(FE->phi[test*dim+idim]*FE->phi[trial*dim+idim]);
           MLoc[test*FE->dof_per_elm+trial] += w*kij;
         }
       }
     }
-  } else if(FE->FEtype==20) { // Nedelec elements
-    phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
-    if(dim==2) {
-      dphi = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Curl of basis function
-    } else if (dim==3) {
-      dphi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL)); // Curl of basis function
-    } else {
-      status = ERROR_DIM;
-      check_error(status, __FUNCTION__);
-    }
+  } else { // Scalar Functions
 
     //  Sum over quadrature points
     for (quad=0;quad<cq->nq_per_elm;quad++) {
       qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-      qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-      if(dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
+      if(dim==2 || dim==3)
+        qx[1] = cq->y[elm*cq->nq_per_elm+quad];
+      if(dim==3)
+        qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
       if(coeff!=NULL) {
         (*coeff)(&coeff_val,qx,time);
@@ -216,62 +216,27 @@ void assemble_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
         coeff_val = 1.0;
       }
 
-      //  Get the Basis Functions at each quadrature node
-      ned_basis(phi,dphi,qx,v_on_elm,dof_on_elm,mesh);
+      // Basis Functions and its derivatives if necessary
+      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
 
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
         // Loop over Trial Functions (Columns)
         for (trial=0; trial<FE->dof_per_elm; trial++) {
-          kij = coeff_val*(phi[test*dim]*phi[trial*dim] + phi[test*dim+1]*phi[trial*dim+1]);
-          if(dim==3) kij += coeff_val*phi[test*dim+2]*phi[trial*dim+2];
+          kij = coeff_val*(FE->phi[test]*FE->phi[trial]);
           MLoc[test*FE->dof_per_elm+trial] += w*kij;
         }
       }
     }
-  } else if(FE->FEtype==30) { // Raviart-Thomas elements
-    phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
-    dphi = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Divergence of element
-
-    //  Sum over quadrature points
-    for (quad=0;quad<cq->nq_per_elm;quad++) {
-      qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-      qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-      if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
-      w = cq->w[elm*cq->nq_per_elm+quad];
-      if(coeff!=NULL) {
-        (*coeff)(&coeff_val,qx,time);
-      } else {
-        coeff_val = 1.0;
-      }
-
-      //  Get the Basis Functions at each quadrature node
-      rt_basis(phi,dphi,qx,v_on_elm,dof_on_elm,mesh);
-
-      // Loop over Test Functions (Rows)
-      for (test=0; test<FE->dof_per_elm;test++) {
-        // Loop over Trial Functions (Columns)
-        for (trial=0; trial<FE->dof_per_elm; trial++) {
-          kij = coeff_val*(phi[test*dim]*phi[trial*dim] + phi[test*dim+1]*phi[trial*dim+1]);
-          if(dim==3) kij += coeff_val*phi[test*dim+2]*phi[trial*dim+2];
-          MLoc[test*FE->dof_per_elm+trial] += w*kij;
-        }
-      }
-    }
-  } else {
-    status = ERROR_FE_TYPE;
-    check_error(status, __FUNCTION__);
   }
-  
-  if (phi) free(phi);
-  if(dphi) free(dphi);
+
   if(qx) free(qx);
   return;
 }
 /******************************************************************************************************/
 
 /******************************************************************************************************/
-void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time) 
+void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
 {
   /*!
    * \fn void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
@@ -304,13 +269,11 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinat
    *
    */
 
-  // Mesh and FE data
-  INT dof_per_elm = FE->dof_per_elm;
   INT dim = mesh->dim;
 
-  // flag for errors
-  SHORT status;
-  
+  // Error Check
+  SHORT status=0;
+
   // Loop Indices
   INT quad,test,trial,idim;
 
@@ -320,22 +283,17 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinat
   // Stiffness Matrix Entry
   REAL kij;
   // Coefficient Value at Quadrature Nodes
-  REAL* coeff_val = (REAL *) calloc(2,sizeof(REAL));
+  REAL coeff_val[2];
 
-  // Basis Functions and its derivatives if necessary
-  REAL* phi=NULL;
-  REAL* dphi=NULL;
+  // Scalar Functions and Vector Derivatives: PX
+  if(FE->FEtype<20) {
 
-  if(FE->FEtype>=0 && FE->FEtype<10) { // PX elements
-    phi = (REAL *) calloc(dof_per_elm,sizeof(REAL));
-    dphi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
-    
     //  Sum over quadrature points
     for (quad=0;quad<cq->nq_per_elm;quad++) {
       qx[0] = cq->x[elm*cq->nq_per_elm+quad];
       if(dim==2 || dim==3)
         qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-      if(mesh->dim==3)
+      if(dim==3)
         qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
       if(coeff!=NULL) {
@@ -344,38 +302,30 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinat
         coeff_val[0] = 1.0;
         coeff_val[1] = 1.0;
       }
-      
-      //  Get the Basis Functions at each quadrature node
-      PX_H1_basis(phi,dphi,qx,dof_on_elm,FE->FEtype,mesh);
+
+      // Basis Functions and its derivatives if necessary
+      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
 
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
         // Loop over Trial Functions (Columns)
         for (trial=0; trial<FE->dof_per_elm; trial++) {
-          kij=coeff_val[1]*(phi[test]*phi[trial]);
-          for(idim=0;idim<dim;idim++) {
-            kij += coeff_val[0]*(dphi[test*dim+idim]*dphi[trial*dim+idim]);
-          }
+          kij=coeff_val[1]*(FE->phi[test]*FE->phi[trial]);
+          for(idim=0;idim<dim;idim++)
+            kij += coeff_val[0]*(FE->dphi[test*dim+idim]*FE->dphi[trial*dim+idim]);
           ALoc[test*FE->dof_per_elm+trial] += w*kij;
         }
       }
     }
-  } else if(FE->FEtype==20) { // Nedelec elements
-    phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
-    if(dim==2) {
-      dphi = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Curl of basis function
-    } else if (dim==3) {
-      dphi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL)); // Curl of basis function
-    } else {
-      status = ERROR_DIM;
-      check_error(status, __FUNCTION__);
-    }
+  } else if (FE->FEtype>=20 && FE->FEtype<30) { // Nedelec (diff in 2D and 3D)
 
     //  Sum over quadrature points
     for (quad=0;quad<cq->nq_per_elm;quad++) {
       qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-      qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-      if(dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
+      if(dim==2 || dim==3)
+        qx[1] = cq->y[elm*cq->nq_per_elm+quad];
+      if(dim==3)
+        qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
       if(coeff!=NULL) {
         (*coeff)(coeff_val,qx,time);
@@ -384,18 +334,21 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinat
         coeff_val[1] = 1.0;
       }
 
-      //  Get the Basis Functions at each quadrature node
-      ned_basis(phi,dphi,qx,v_on_elm,dof_on_elm,mesh);
+      // Basis Functions and its derivatives if necessary
+      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
 
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
         // Loop over Trial Functions (Columns)
         for (trial=0; trial<FE->dof_per_elm; trial++) {
           if(dim==2) {
-            kij = coeff_val[0]*(dphi[test]*dphi[trial]) + coeff_val[1]*(phi[test*dim]*phi[trial*dim] + phi[test*dim+1]*phi[trial*dim+1]);
+            kij = coeff_val[0]*(FE->dphi[test]*FE->dphi[trial]) +
+                coeff_val[1]*(FE->phi[test*dim]*FE->phi[trial*dim] + FE->phi[test*dim+1]*FE->phi[trial*dim+1]);
           } else if (dim==3) {
-            kij = coeff_val[0]*(dphi[test*dim]*dphi[trial*dim] + dphi[test*dim+1]*dphi[trial*dim+1] + dphi[test*dim+2]*dphi[trial*dim+2]) +
-                coeff_val[1]*(phi[test*dim]*phi[trial*dim] + phi[test*dim+1]*phi[trial*dim+1] + phi[test*dim+2]*phi[trial*dim+2]);
+            kij = coeff_val[0]*(FE->dphi[test*dim]*FE->dphi[trial*dim] +
+                FE->dphi[test*dim+1]*FE->dphi[trial*dim+1] + FE->dphi[test*dim+2]*FE->dphi[trial*dim+2]) +
+                coeff_val[1]*(FE->phi[test*dim]*FE->phi[trial*dim] + FE->phi[test*dim+1]*FE->phi[trial*dim+1] +
+                FE->phi[test*dim+2]*FE->phi[trial*dim+2]);
           } else {
             status = ERROR_DIM;
             check_error(status, __FUNCTION__);
@@ -404,9 +357,7 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinat
         }
       }
     }
-  } else if(FE->FEtype==30) { // Raviart-Thomas elements
-    phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
-    dphi = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Divergence of element
+  } else if(FE->FEtype==30) { // RT elements
 
     //  Sum over quadrature points
     for (quad=0;quad<cq->nq_per_elm;quad++) {
@@ -421,16 +372,16 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinat
         coeff_val[1] = 1.0;
       }
 
-      //  Get the Basis Functions at each quadrature node
-      rt_basis(phi,dphi,qx,v_on_elm,dof_on_elm,mesh);
+      // Basis Functions and its derivatives if necessary
+      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
 
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->dof_per_elm;test++) {
         // Loop over Trial Functions (Columns)
         for (trial=0; trial<FE->dof_per_elm; trial++) {
-          kij = coeff_val[0]*(dphi[test]*dphi[trial]) +
-              coeff_val[1]*(phi[test*dim]*phi[trial*dim] + phi[test*dim+1]*phi[trial*dim+1]);
-          if(dim==3) kij += coeff_val[1]*phi[test*dim+2]*phi[trial*dim+2];
+          kij = coeff_val[0]*(FE->dphi[test]*FE->dphi[trial]) +
+              coeff_val[1]*(FE->phi[test*dim]*FE->phi[trial*dim] + FE->phi[test*dim+1]*FE->phi[trial*dim+1]);
+          if(dim==3) kij += coeff_val[1]*FE->phi[test*dim+2]*FE->phi[trial*dim+2];
           ALoc[test*FE->dof_per_elm+trial] += w*kij;
         }
       }
@@ -439,11 +390,8 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinat
     status = ERROR_FE_TYPE;
     check_error(status, __FUNCTION__);
   }
-  
-  if (phi) free(phi);
-  if(dphi) free(dphi);
+
   if(qx) free(qx);
-  if(coeff_val) free(coeff_val);
   return;
 }
 /******************************************************************************************************/
@@ -497,16 +445,11 @@ void boundary_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
   // Stiffness Matrix Entry
   REAL kij;
 
-  // Basis Functions and its derivatives if necessary
-  REAL* phi=NULL;
-  REAL* dphi=NULL;
 
   // Coefficient Value at Quadrature Nodes
   REAL coeff_val=0.0;
 
   if(FE->FEtype>=0 && FE->FEtype<10) { // PX elements
-    phi = (REAL *) calloc(dof_per_elm,sizeof(REAL));
-    dphi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
 
     // Get DOF Per Face
     if(dim==2) {
@@ -532,7 +475,7 @@ void boundary_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
       }
 
       //  Get the Basis Functions at each quadrature node
-      PX_H1_basis(phi,dphi,qx,dof_on_elm,FE->FEtype,mesh);
+      PX_H1_basis(FE->phi,FE->dphi,qx,dof_on_elm,FE->FEtype,mesh);
 
       // Loop over Test Functions (Rows - vertices)
       for (test=0; test<dof_per_f;test++) {
@@ -547,23 +490,12 @@ void boundary_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
               dofb = j;
             }
           }
-          kij = coeff_val*(phi[dofb]*phi[doft]);
+          kij = coeff_val*(FE->phi[dofb]*FE->phi[doft]);
           MLoc[test*dof_per_f+trial]+=w*kij;
         }
       }
     }
   } else if(FE->FEtype==20) {
-
-    // Basis Functions and its curl
-    phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
-    if(dim==2) {
-      dphi = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Curl of basis function
-    } else if (dim==3) {
-      dphi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL)); // Curl of basis function
-    } else {
-      status = ERROR_DIM;
-      check_error(status, __FUNCTION__);
-    }
 
     // Get DOF Per Face
     if(dim==2) {
@@ -589,7 +521,7 @@ void boundary_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
       }
 
       //  Get the Basis Functions at each quadrature node
-      ned_basis(phi,dphi,qx,v_on_elm,dof_on_elm,mesh);
+      ned_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh);
 
       // Loop over Test Functions (Rows - edges)
       for (test=0; test<dof_per_f;test++) {
@@ -604,16 +536,13 @@ void boundary_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
               dofb = j;
             }
           }
-          kij = coeff_val*(phi[dofb*dim]*phi[doft*dim] + phi[dofb*dim+1]*phi[doft*dim+1]);
-          if(dim==3) kij += coeff_val*(phi[dofb*dim+2]*phi[doft*dim+2]);
+          kij = coeff_val*(FE->phi[dofb*dim]*FE->phi[doft*dim] + FE->phi[dofb*dim+1]*FE->phi[doft*dim+1]);
+          if(dim==3) kij += coeff_val*(FE->phi[dofb*dim+2]*FE->phi[doft*dim+2]);
           MLoc[test*dof_per_f+trial]+=w*kij;
         }
       }
     }
   } else if(FE->FEtype==30) { // Raviart-Thomas elements
-    phi = (REAL *) calloc(FE->dof_per_elm*dim,sizeof(REAL));
-    dphi = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL)); // Divergence of element
-
     // Get DOF Per Face
     if(dim==2) {
       dof_per_f = 1;
@@ -638,7 +567,7 @@ void boundary_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
       }
 
       //  Get the Basis Functions at each quadrature node
-      rt_basis(phi,dphi,qx,v_on_elm,dof_on_elm,mesh);
+      rt_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh);
 
       /// Loop over Test Functions (Rows - edges)
       for (test=0; test<dof_per_f;test++) {
@@ -653,8 +582,8 @@ void boundary_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
               dofb = j;
             }
           }
-          kij = coeff_val*(phi[dofb*dim]*phi[doft*dim] + phi[dofb*dim+1]*phi[doft*dim+1]);
-          kij += coeff_val*(phi[dofb*dim+2]*phi[doft*dim+2]);
+          kij = coeff_val*(FE->phi[dofb*dim]*FE->phi[doft*dim] + FE->phi[dofb*dim+1]*FE->phi[doft*dim+1]);
+          kij += coeff_val*(FE->phi[dofb*dim+2]*FE->phi[doft*dim+2]);
           MLoc[test*dof_per_f+trial]+=w*kij;
         }
       }
@@ -664,8 +593,6 @@ void boundary_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
     check_error(status, __FUNCTION__);
   }
 
-  if (phi) free(phi);
-  if(dphi) free(dphi);
   if(qx) free(qx);
 
   return;
@@ -702,26 +629,18 @@ void FEM_RHS_Local(REAL* bLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *do
   INT dof_per_elm = FE->dof_per_elm;
   INT dim = mesh->dim;
 
-  // flag for errors
-  SHORT status;
-
   // Loop Indices
-  INT quad,test;
+  INT quad,test,idim;
 
   // Quadrature Weights and Nodes
   REAL w;
   REAL* qx = (REAL *) calloc(3,sizeof(REAL));
 
-  // Basis Functions and its derivatives if necessary
-  REAL* phi=NULL;
-  REAL* dphi=NULL;
-
   // Right-hand side function at Quadrature Nodes
   REAL* rhs_val=NULL;
 
-  if(FE->FEtype>=0 && FE->FEtype<10) { // PX elements
-    phi = (REAL *) calloc(dof_per_elm,sizeof(REAL));
-    dphi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
+  if(FE->FEtype<20) { // Scalar Functions
+
     rhs_val = (REAL *) calloc(1,sizeof(REAL));
 
     //  Sum over quadrature points
@@ -735,23 +654,15 @@ void FEM_RHS_Local(REAL* bLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *do
       (*rhs)(rhs_val,qx,time);
 
       //  Get the Basis Functions at each quadrature node
-      PX_H1_basis(phi,dphi,qx,dof_on_elm,FE->FEtype,mesh);
+      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
 
       // Loop over test functions and integrate rhs
       for (test=0; test<FE->dof_per_elm;test++) {
-        bLoc[test] += w*rhs_val[0]*phi[test];
+        bLoc[test] += w*rhs_val[0]*FE->phi[test];
       }
     }
-  } else if(FE->FEtype==20) { // Nedelec elements
-    phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
-    if(dim==2) {
-      dphi = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Curl of basis function
-    } else if (dim==3) {
-      dphi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL)); // Curl of basis function
-    } else {
-      status = ERROR_DIM;
-      check_error(status, __FUNCTION__);
-    }
+  } else { // Vector Functions
+
     rhs_val = (REAL *) calloc(dim,sizeof(REAL));
 
     //  Sum over quadrature points
@@ -763,43 +674,17 @@ void FEM_RHS_Local(REAL* bLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *do
       (*rhs)(rhs_val,qx,time);
 
       //  Get the Basis Functions at each quadrature node
-      ned_basis(phi,dphi,qx,v_on_elm,dof_on_elm,mesh);
+      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
 
       // Loop over test functions and integrate rhs
       for (test=0; test<FE->dof_per_elm;test++) {
-        bLoc[test] += w*(rhs_val[0]*phi[test*dim] + rhs_val[1]*phi[test*dim+1]);
-        if(dim==3) bLoc[test] += w*rhs_val[2]*phi[test*dim+2];
+        for(idim=0;idim<dim;idim++) {
+          bLoc[test] += w*(rhs_val[idim]*FE->phi[test*dim+idim]);
+        }
       }
     }
-  } else if(FE->FEtype==30) { // Raviart-Thomas elements
-    phi = (REAL *) calloc(dof_per_elm*dim,sizeof(REAL));
-    dphi = (REAL *) calloc(dof_per_elm,sizeof(REAL)); // Divergence of element
-    rhs_val = (REAL *) calloc(dim,sizeof(REAL));
-
-    //  Sum over quadrature points
-    for (quad=0;quad<cq->nq_per_elm;quad++) {
-      qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-      qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-      if(dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
-      w = cq->w[elm*cq->nq_per_elm+quad];
-      (*rhs)(rhs_val,qx,time);
-
-      //  Get the Basis Functions at each quadrature node
-      rt_basis(phi,dphi,qx,v_on_elm,dof_on_elm,mesh);
-
-      // Loop over test functions and integrate rhs
-      for (test=0; test<FE->dof_per_elm;test++) {
-        bLoc[test] += w*(rhs_val[0]*phi[test*dim] + rhs_val[1]*phi[test*dim+1]);
-        if(dim==3) bLoc[test] += w*rhs_val[2]*phi[test*dim+2];
-      }
-    }
-  } else {
-    status = ERROR_FE_TYPE;
-    check_error(status, __FUNCTION__);
   }
 
-  if (phi) free(phi);
-  if(dphi) free(dphi);
   if(qx) free(qx);
   if(rhs_val) free(rhs_val);
 
@@ -871,32 +756,26 @@ void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,trimesh *mesh,qcoordinates
     for(i=0;i<FE->nspaces;i++) {
 
       // Basis Functions and its derivatives if necessary
-      REAL* phi;
-      REAL* dphi;
-      get_FEM_basis(&phi,&dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[i]);
+      get_FEM_basis(FE->var_spaces[i]->phi,FE->var_spaces[i]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[i]);
 
       // Loop over test functions and integrate rhs
       if(FE->var_spaces[i]->FEtype<20) { // Scalar Element
         for (test=0; test<FE->var_spaces[i]->dof_per_elm;test++) {
-          bLoc[(local_row_index+test)] += w*rhs_val[unknown_index]*phi[test];
+          bLoc[(local_row_index+test)] += w*rhs_val[unknown_index]*FE->var_spaces[i]->phi[test];
         }
         unknown_index++;
 
       } else { // Vector Element
         for (test=0; test<FE->var_spaces[i]->dof_per_elm;test++) {
-          bLoc[(local_row_index+test)] += w*(rhs_val[unknown_index]*phi[test*dim] +
-              rhs_val[unknown_index+1]*phi[test*dim+1]);
-          if(dim==3) bLoc[(local_row_index+test)] += w*rhs_val[unknown_index+2]*phi[test*dim+2];
+          bLoc[(local_row_index+test)] += w*(rhs_val[unknown_index]*FE->var_spaces[i]->phi[test*dim] +
+              rhs_val[unknown_index+1]*FE->var_spaces[i]->phi[test*dim+1]);
+          if(dim==3) bLoc[(local_row_index+test)] += w*rhs_val[unknown_index+2]*FE->var_spaces[i]->phi[test*dim+2];
         }
         unknown_index += dim;
       }
 
       local_dof_on_elm += FE->var_spaces[i]->dof_per_elm;
       local_row_index += FE->var_spaces[i]->dof_per_elm;
-
-      // Reset basis functions
-      if(phi) free(phi);
-      if(dphi) free(dphi);
     }
   }
 
@@ -939,12 +818,6 @@ void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,trimesh *mes
   // Quadrature Weights and Nodes
   REAL w;
   REAL* qx = (REAL *) calloc(dim,sizeof(REAL));
-
-  // Basis Functions and its derivatives if necessary
-  REAL* phi=NULL;
-  REAL* dphi=NULL;
-  phi = (REAL *) calloc(v_per_elm,sizeof(REAL));
-  dphi = (REAL *) calloc(v_per_elm*dim,sizeof(REAL));
   
   // Right-hand side function at Quadrature Nodes
   REAL* ucoeff = (REAL *) calloc(dim,sizeof(REAL));
@@ -960,17 +833,15 @@ void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,trimesh *mes
     FE_Interpolation(ucoeff,u->val,qx,ed_on_elm,v_on_elm,FE_Ned,mesh,1);
     
     //  Get the Basis Functions at each quadrature node
-    PX_H1_basis(phi,dphi,qx,v_on_elm,FE_H1->FEtype,mesh);
+    PX_H1_basis(FE_H1->phi,FE_H1->dphi,qx,v_on_elm,FE_H1->FEtype,mesh);
 
     // Loop over test functions and integrate rhs
     for (test=0; test<FE_H1->dof_per_elm;test++) {
-      bLoc[test] += w*(ucoeff[0]*dphi[test]+ucoeff[1]*dphi[test]);
-      if(dim==3) bLoc[test] += w*ucoeff[2]*dphi[test];
+      bLoc[test] += w*(ucoeff[0]*FE_H1->dphi[test]+ucoeff[1]*FE_H1->dphi[test]);
+      if(dim==3) bLoc[test] += w*ucoeff[2]*FE_H1->dphi[test];
     }
   }
-  
-  if(phi) free(phi);
-  if(dphi) free(dphi);
+
   if(qx) free(qx);
   if(ucoeff) free(ucoeff);
 
