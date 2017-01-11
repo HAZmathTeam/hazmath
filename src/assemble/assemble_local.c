@@ -428,7 +428,6 @@ void boundary_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
    */
 
   // Mesh and FE data
-  INT dof_per_elm = FE->dof_per_elm;
   INT dim = mesh->dim;
   INT dof_per_f = 0;
 
@@ -626,7 +625,6 @@ void FEM_RHS_Local(REAL* bLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *do
    */
 
   // Mesh and FE data
-  INT dof_per_elm = FE->dof_per_elm;
   INT dim = mesh->dim;
 
   // Loop Indices
@@ -809,7 +807,6 @@ void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,trimesh *mes
    */
 
   // Mesh and FE data
-  INT v_per_elm = FE_H1->dof_per_elm;
   INT dim = mesh->dim;
   
   // Loop Indices

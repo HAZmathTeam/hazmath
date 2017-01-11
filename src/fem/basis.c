@@ -902,8 +902,6 @@ void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *
   SHORT status;
 
   // Mesh and FEM Data
-  INT dim = mesh->dim;
-  INT dof_per_elm = FE->dof_per_elm;
   INT FEtype = FE->FEtype;
 
   if(FEtype>=0 && FEtype<10) { // PX elements
