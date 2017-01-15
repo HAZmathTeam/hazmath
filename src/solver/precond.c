@@ -1182,7 +1182,430 @@ void precond_block_upper_mixed_darcy_krylov (REAL *r,
   
 }
 
-/*************** Special Preconditioners for Maxwell equation *********************************/
+/*************** Special Preconditioners for Biot 2-phase formulation **************************/
+/***********************************************************************************************/
+void precond_block_diag_biot_2phase (REAL *r,
+                                     REAL *z,
+                                     void *data)
+{
+  /**
+   * \fn void precond_block_diag_biot_2phase (REAL *r, REAL *z, void *data)
+   * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+   *        is solved inexactly)
+   *
+   * \param r     Pointer to the vector needs preconditioning
+   * \param z     Pointer to preconditioned vector
+   * \param data  Pointer to precondition data
+   *
+   * \author Xiaozhe Hu
+   * \date   01/14/2017
+   */
+
+  precond_block_data *precdata=(precond_block_data *)data;
+  dvector *tempr = &(precdata->r);
+
+  block_dCSRmat *A = precdata->Abcsr;
+  AMG_param *amgparam = precdata->amgparam;
+  AMG_data **mgl = precdata->mgl;
+
+  INT i;
+
+  const INT N0 = A->blocks[0]->row;
+  const INT N1 = A->blocks[3]->row;
+  const INT N = N0 + N1;
+
+  // back up r, setup z;
+  array_cp(N, r, tempr->val);
+  array_set(N, z, 0.0);
+
+  // prepare
+  dvector r0, r1, z0, z1;
+
+  r0.row = N0; z0.row = N0;
+  r1.row = N1; z1.row = N1;
+
+  r0.val = r; r1.val = &(r[N0]);
+  z0.val = z; z1.val = &(z[N0]);
+  //#endif
+
+  // Preconditioning A00 block (displacement)
+  mgl[0]->b.row=N0; array_cp(N0, r0.val, mgl[0]->b.val); // residual is an input
+  mgl[0]->x.row=N0; dvec_set(N0, &mgl[0]->x,0.0);
+
+  for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[0], amgparam);
+  array_cp(N0, mgl[0]->x.val, z0.val);
+
+  // Preconditioning A11 block (pressure)
+  mgl[1]->b.row=N1; array_cp(N1, r1.val, mgl[1]->b.val); // residual is an input
+  mgl[1]->x.row=N1; dvec_set(N1, &mgl[1]->x,0.0);
+
+  for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[1], amgparam);
+  array_cp(N1, mgl[1]->x.val, z1.val);
+
+  // restore r
+  array_cp(N, tempr->val, r);
+
+}
+
+/***********************************************************************************************/
+void precond_block_lower_biot_2phase (REAL *r,
+                                      REAL *z,
+                                      void *data)
+{
+  /**
+   * \fn void precond_block_lower_biot_2phase (REAL *r, REAL *z, void *data)
+   * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+   *        is solved inexactly)
+   *
+   * \param r     Pointer to the vector needs preconditioning
+   * \param z     Pointer to preconditioned vector
+   * \param data  Pointer to precondition data
+   *
+   * \author Xiaozhe Hu
+   * \date   01/14/2017
+   */
+
+  precond_block_data *precdata=(precond_block_data *)data;
+  dvector *tempr = &(precdata->r);
+
+  block_dCSRmat *A = precdata->Abcsr;
+  AMG_param *amgparam = precdata->amgparam;
+  AMG_data **mgl = precdata->mgl;
+
+  INT i;
+
+  const INT N0 = A->blocks[0]->row;
+  const INT N1 = A->blocks[3]->row;
+  const INT N = N0 + N1;
+
+  // back up r, setup z;
+  array_cp(N, r, tempr->val);
+  array_set(N, z, 0.0);
+
+  // prepare
+  dvector r0, r1, z0, z1;
+
+  r0.row = N0; z0.row = N0;
+  r1.row = N1; z1.row = N1;
+
+  r0.val = r; r1.val = &(r[N0]);
+  z0.val = z; z1.val = &(z[N0]);
+  //#endif
+
+  // Preconditioning A00 block (displacement)
+  mgl[0]->b.row=N0; array_cp(N0, r0.val, mgl[0]->b.val); // residual is an input
+  mgl[0]->x.row=N0; dvec_set(N0, &mgl[0]->x,0.0);
+
+  for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[0], amgparam);
+  array_cp(N0, mgl[0]->x.val, z0.val);
+
+  // r1 = r1 - A2*z0
+  dcsr_aAxpy(-1.0, A->blocks[2], z0.val, r1.val);
+
+  // Preconditioning A11 block
+  mgl[1]->b.row=N1; array_cp(N1, r1.val, mgl[1]->b.val); // residual is an input
+  mgl[1]->x.row=N1; dvec_set(N1, &mgl[1]->x,0.0);
+
+  for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[1], amgparam);
+  array_cp(N1, mgl[1]->x.val, z1.val);
+
+  // restore r
+  array_cp(N, tempr->val, r);
+
+}
+
+/***********************************************************************************************/
+void precond_block_upper_biot_2phase (REAL *r,
+                                      REAL *z,
+                                      void *data)
+{
+  /**
+   * \fn void precond_block_upper_biot_2phase (REAL *r, REAL *z, void *data)
+   * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+   *        is solved inexactly)
+   *
+   * \param r     Pointer to the vector needs preconditioning
+   * \param z     Pointer to preconditioned vector
+   * \param data  Pointer to precondition data
+   *
+   * \author Xiaozhe Hu
+   * \date   01/14/2017
+   */
+
+  precond_block_data *precdata=(precond_block_data *)data;
+  dvector *tempr = &(precdata->r);
+
+  block_dCSRmat *A = precdata->Abcsr;
+  AMG_param *amgparam = precdata->amgparam;
+  AMG_data **mgl = precdata->mgl;
+
+  INT i;
+
+  const INT N0 = A->blocks[0]->row;
+  const INT N1 = A->blocks[3]->row;
+  const INT N = N0 + N1;
+
+  // back up r, setup z;
+  array_cp(N, r, tempr->val);
+  array_set(N, z, 0.0);
+
+  // prepare
+  dvector r0, r1, z0, z1;
+
+  r0.row = N0; z0.row = N0;
+  r1.row = N1; z1.row = N1;
+
+  r0.val = r; r1.val = &(r[N0]);
+  z0.val = z; z1.val = &(z[N0]);
+  //#endif
+
+  // Preconditioning A11 block (pressure)
+  mgl[1]->b.row=N1; array_cp(N1, r1.val, mgl[1]->b.val); // residual is an input
+  mgl[1]->x.row=N1; dvec_set(N1, &mgl[1]->x,0.0);
+
+  for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[1], amgparam);
+  array_cp(N1, mgl[1]->x.val, z1.val);
+
+  // r0 = r0 - A1*z1
+  dcsr_aAxpy(-1.0, A->blocks[1], z1.val, r0.val);
+
+  // Preconditioning A00 block (flux)
+  mgl[0]->b.row=N0; array_cp(N0, r0.val, mgl[0]->b.val); // residual is an input
+  mgl[0]->x.row=N0; dvec_set(N0, &mgl[0]->x,0.0);
+
+  for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[0], amgparam);
+  array_cp(N0, mgl[0]->x.val, z0.val);
+
+  // restore r
+  array_cp(N, tempr->val, r);
+
+}
+
+/***********************************************************************************************/
+void precond_block_diag_biot_2phase_krylov (REAL *r,
+                                            REAL *z,
+                                            void *data)
+{
+  /**
+   * \fn void precond_block_diag_biot_2phase_krylov (REAL *r, REAL *z, void *data)
+   * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+   *        is solved inexactly by Krylov methods)
+   *
+   * \param r     Pointer to the vector needs preconditioning
+   * \param z     Pointer to preconditioned vector
+   * \param data  Pointer to precondition data
+   *
+   * \author Xiaozhe Hu
+   * \date   01/14/2017
+   */
+
+  precond_block_data *precdata=(precond_block_data *)data;
+  dvector *tempr = &(precdata->r);
+
+  block_dCSRmat *A = precdata->Abcsr;
+  AMG_param *amgparam = precdata->amgparam;
+  AMG_data **mgl = precdata->mgl;
+
+  INT i;
+
+  const INT N0 = A->blocks[0]->row;
+  const INT N1 = A->blocks[3]->row;
+  const INT N = N0 + N1;
+
+  // back up r, setup z;
+  array_cp(N, r, tempr->val);
+  array_set(N, z, 0.0);
+
+  // prepare
+  dvector r0, r1, z0, z1;
+
+  r0.row = N0; z0.row = N0;
+  r1.row = N1; z1.row = N1;
+
+  r0.val = r; r1.val = &(r[N0]);
+  z0.val = z; z1.val = &(z[N0]);
+  //#endif
+
+  // Preconditioning A00 block (displacement)
+  precond_data pcdata_u;
+  param_amg_to_prec(&pcdata_u,amgparam);
+  pcdata_u.max_levels = mgl[0][0].num_levels;
+  pcdata_u.mgl_data = mgl[0];
+
+  precond pc_u; pc_u.data = &pcdata_u;
+  pc_u.fct = precond_amg;
+
+  dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc_u, 1e-3, 100, 100, 1, 1);
+
+
+  // Preconditioning A11 block (pressure)
+  precond_data pcdata_p;
+  param_amg_to_prec(&pcdata_p,amgparam);
+  pcdata_p.max_levels = mgl[1][0].num_levels;
+  pcdata_p.mgl_data = mgl[1];
+
+  precond pc_p; pc_p.data = &pcdata_p;
+  pc_p.fct = precond_amg;
+
+  dcsr_pvfgmres(&mgl[1][0].A, &r1, &z1, &pc_p, 1e-3, 100, 100, 1, 1);
+
+  // restore r
+  array_cp(N, tempr->val, r);
+
+}
+
+/***********************************************************************************************/
+void precond_block_lower_biot_2phase_krylov (REAL *r,
+                                            REAL *z,
+                                            void *data)
+{
+  /**
+   * \fn void precond_block_lower_biot_2phase_krylov (REAL *r, REAL *z, void *data)
+   * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+   *        is solved inexactly by Krylov methods)
+   *
+   * \param r     Pointer to the vector needs preconditioning
+   * \param z     Pointer to preconditioned vector
+   * \param data  Pointer to precondition data
+   *
+   * \author Xiaozhe Hu
+   * \date   01/14/2017
+   */
+
+  precond_block_data *precdata=(precond_block_data *)data;
+  dvector *tempr = &(precdata->r);
+
+  block_dCSRmat *A = precdata->Abcsr;
+  AMG_param *amgparam = precdata->amgparam;
+  AMG_data **mgl = precdata->mgl;
+
+  INT i;
+
+  const INT N0 = A->blocks[0]->row;
+  const INT N1 = A->blocks[3]->row;
+  const INT N = N0 + N1;
+
+  // back up r, setup z;
+  array_cp(N, r, tempr->val);
+  array_set(N, z, 0.0);
+
+  // prepare
+  dvector r0, r1, z0, z1;
+
+  r0.row = N0; z0.row = N0;
+  r1.row = N1; z1.row = N1;
+
+  r0.val = r; r1.val = &(r[N0]);
+  z0.val = z; z1.val = &(z[N0]);
+  //#endif
+
+  // Preconditioning A00 block (displacement)
+  precond_data pcdata_u;
+  param_amg_to_prec(&pcdata_u,amgparam);
+  pcdata_u.max_levels = mgl[0][0].num_levels;
+  pcdata_u.mgl_data = mgl[0];
+
+  precond pc_u; pc_u.data = &pcdata_u;
+  pc_u.fct = precond_amg;
+
+  dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc_u, 1e-3, 100, 100, 1, 1);
+
+  // r1 = r1 - A2*z0
+  dcsr_aAxpy(-1.0, A->blocks[2], z0.val, r1.val);
+
+  // Preconditioning A11 block
+  precond_data pcdata_p;
+  param_amg_to_prec(&pcdata_p,amgparam);
+  pcdata_p.max_levels = mgl[1][0].num_levels;
+  pcdata_p.mgl_data = mgl[1];
+
+  precond pc_p; pc_p.data = &pcdata_p;
+  pc_p.fct = precond_amg;
+
+  dcsr_pvfgmres(&mgl[1][0].A, &r1, &z1, &pc_p, 1e-3, 100, 100, 1, 1);
+
+  // restore r
+  array_cp(N, tempr->val, r);
+
+}
+
+/***********************************************************************************************/
+void precond_block_upper_biot_2phase_krylov (REAL *r,
+                                            REAL *z,
+                                            void *data)
+{
+  /**
+   * \fn void precond_block_upper_biot_2phase_darcy (REAL *r, REAL *z, void *data)
+   * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+   *        is solved inexactly by Krylov methods)
+   *
+   * \param r     Pointer to the vector needs preconditioning
+   * \param z     Pointer to preconditioned vector
+   * \param data  Pointer to precondition data
+   *
+   * \author Xiaozhe Hu
+   * \date   01/14/2017
+   */
+
+  precond_block_data *precdata=(precond_block_data *)data;
+  dvector *tempr = &(precdata->r);
+
+  block_dCSRmat *A = precdata->Abcsr;
+  AMG_param *amgparam = precdata->amgparam;
+  AMG_data **mgl = precdata->mgl;
+
+  INT i;
+
+  const INT N0 = A->blocks[0]->row;
+  const INT N1 = A->blocks[3]->row;
+  const INT N = N0 + N1;
+
+  // back up r, setup z;
+  array_cp(N, r, tempr->val);
+  array_set(N, z, 0.0);
+
+  // prepare
+  dvector r0, r1, z0, z1;
+
+  r0.row = N0; z0.row = N0;
+  r1.row = N1; z1.row = N1;
+
+  r0.val = r; r1.val = &(r[N0]);
+  z0.val = z; z1.val = &(z[N0]);
+  //#endif
+
+  // Preconditioning A11 block (pressure)
+  precond_data pcdata_p;
+  param_amg_to_prec(&pcdata_p,amgparam);
+  pcdata_p.max_levels = mgl[1][0].num_levels;
+  pcdata_p.mgl_data = mgl[1];
+
+  precond pc_p; pc_p.data = &pcdata_p;
+  pc_p.fct = precond_amg;
+
+  dcsr_pvfgmres(&mgl[1][0].A, &r1, &z1, &pc_p, 1e-3, 100, 100, 1, 1);
+
+  // r0 = r0 - A1*z1
+  dcsr_aAxpy(-1.0, A->blocks[1], z1.val, r0.val);
+
+  // Preconditioning A00 block (displacement)
+  precond_data pcdata_u;
+  param_amg_to_prec(&pcdata_u,amgparam);
+  pcdata_u.max_levels = mgl[0][0].num_levels;
+  pcdata_u.mgl_data = mgl[0];
+
+  precond pc_u; pc_u.data = &pcdata_u;
+  pc_u.fct = precond_amg;
+
+  dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc_u, 1e-3, 100, 100, 1, 1);
+
+  // restore r
+  array_cp(N, tempr->val, r);
+
+}
+
+
+/*************** Special Preconditioners for Maxwell equation **********************************/
 
 /***********************************************************************************************/
 void precond_block_diag_maxwell (REAL *r,
