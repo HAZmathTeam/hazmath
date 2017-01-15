@@ -1277,6 +1277,153 @@ INT linear_solver_bdcsr_krylov_mixed_darcy (block_dCSRmat *A,
 }
 
 /********************************************************************************************/
+INT linear_solver_bdcsr_krylov_biot_2phase (block_dCSRmat *A,
+                                            dvector *b,
+                                            dvector *x,
+                                            linear_itsolver_param *itparam,
+                                            AMG_param *amgparam,
+                                            dCSRmat *Mp)
+{
+  /**
+   * \fn INT linear_solver_bdcsr_krylov_biot_2phase (block_dCSRmat *A, dvector *b, dvector *x,
+   *                                           itsolver_param *itparam,
+   *                                           AMG_param *amgparam, dCSRmat *Mp)
+   *
+   * \brief Solve Ax = b by standard Krylov methods
+   *
+   * \param A         Pointer to the coeff matrix in block_dCSRmat format
+   * \param b         Pointer to the right hand side in dvector format
+   * \param x         Pointer to the approx solution in dvector format
+   * \param itparam   Pointer to parameters for iterative solvers
+   * \param amgparam  Pointer to parameters for AMG solvers
+   * \param A_diag    Digonal blocks of A
+   *
+   * \return          Iteration number if converges; ERROR otherwise.
+   *
+   * \author Xiaozhe Hu
+   * \date   01/14/2017
+   *
+   * \note only works for 2 by 2 block dCSRmat problems!! -- Xiaozhe Hu
+   */
+
+  const SHORT prtlvl = itparam->linear_print_level;
+  const SHORT precond_type = itparam->linear_precond_type;
+
+  INT status = SUCCESS;
+  REAL setup_start, setup_end, setup_duration;
+  REAL solver_start, solver_end, solver_duration;
+
+  const SHORT max_levels = amgparam->max_levels;
+  INT n;
+
+  void **LU_diag = (void **)calloc(2, sizeof(void *));
+  AMG_data **mgl = (AMG_data **)calloc(2, sizeof(AMG_data *));
+  HX_curl_data **hxcurldata = (HX_curl_data **)calloc(2, sizeof(HX_curl_data *));
+
+  /* setup preconditioner */
+  get_time(&setup_start);
+
+  /* set AMG for the displacement block */
+  mgl[0] = amg_data_create(max_levels);
+  dcsr_alloc(A->blocks[0]->row, A->blocks[0]->row, A->blocks[0]->nnz, &mgl[0][0].A);
+  dcsr_cp(A->blocks[0], &mgl[0][0].A);
+  mgl[0][0].b=dvec_create(A->blocks[0]->row);
+  mgl[0][0].x=dvec_create(A->blocks[0]->row);
+
+  switch (amgparam->AMG_type) {
+    case UA_AMG: // Unsmoothed Aggregation AMG
+      status = amg_setup_ua(mgl[0], amgparam); break;
+    default: // Classical AMG
+      status = amg_setup_c(mgl[0], amgparam); break;
+  }
+
+  /* set AMG for the presssure block */
+  mgl[1] = amg_data_create(max_levels);
+  dcsr_add(A->blocks[3], 1.0, Mp, 1.0, &mgl[1][0].A);
+  mgl[1][0].b=dvec_create(A->blocks[3]->row);
+  mgl[1][0].x=dvec_create(A->blocks[3]->row);
+
+  switch (amgparam->AMG_type) {
+    case UA_AMG: // Unsmoothed Aggregation AMG
+      status = amg_setup_ua(mgl[1], amgparam); break;
+    default: // Classical AMG
+      status = amg_setup_c(mgl[1], amgparam); break;
+  }
+
+  /* set the whole preconditioner data */
+  precond_block_data precdata;
+  precdata.Abcsr = A;
+  precdata.r = dvec_create(b->row);
+
+  precdata.amgparam = amgparam;
+  precdata.mgl = mgl;
+
+  precond prec; prec.data = &precdata;
+
+  switch (precond_type)
+  {
+    case 20:
+      prec.fct = precond_block_diag_biot_2phase;
+      break;
+
+    case 21:
+      prec.fct = precond_block_lower_biot_2phase;
+      break;
+
+    case 22:
+      prec.fct = precond_block_upper_biot_2phase;
+      break;
+
+    case 30:
+      prec.fct = precond_block_diag_biot_2phase_krylov;
+      break;
+
+    case 31:
+      prec.fct = precond_block_lower_biot_2phase_krylov;
+      break;
+
+    case 32:
+      prec.fct = precond_block_upper_biot_2phase_krylov;
+      break;
+
+    default:
+      break;
+  }
+
+  if ( prtlvl >= PRINT_MIN ) {
+    get_time(&setup_end);
+    setup_duration = setup_end - setup_start;
+    print_cputime("Setup totally", setup_duration);
+  }
+
+  // solver part
+  get_time(&solver_start);
+
+  status=solver_bdcsr_linear_itsolver(A,b,x, &prec,itparam);
+  //status=solver_bdcsr_linear_itsolver(A,b,x, NULL,itparam);
+
+  get_time(&solver_end);
+
+  solver_duration = solver_end - solver_start;
+
+  if ( prtlvl >= PRINT_MIN )
+    print_cputime("Krylov method totally", solver_duration);
+
+  // clean
+  amg_data_free(mgl[0], amgparam);
+  amg_data_free(mgl[1], amgparam);
+
+  if (LU_diag) free(LU_diag);
+  if (mgl) free(mgl);
+  if (hxcurldata) free(hxcurldata);
+
+  dvec_free(&precdata.r);
+
+  return status;
+}
+
+
+/********************************************************************************************/
 INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A,
                                         dvector *b,
                                         dvector *x,
