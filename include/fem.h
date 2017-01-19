@@ -40,6 +40,9 @@ typedef struct qcoordinates{
 
   //! Number of quadrature nodes on 1 element
   INT nq_per_elm;
+
+  //! Number of quadrature nodes in one direction
+  INT nq1d;
 	
 } qcoordinates;
 

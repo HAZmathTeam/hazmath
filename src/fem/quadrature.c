@@ -63,6 +63,7 @@ struct qcoordinates *allocateqcoords(INT nq1d,INT nelm,INT mydim)
   A->w = (REAL *) calloc(nq*nelm,sizeof(REAL));
   A->n = nq*nelm;
   A->nq_per_elm = nq;
+  A->nq1d = nq1d;
   
   return A;
 }
@@ -120,6 +121,7 @@ struct qcoordinates *allocateqcoords_bdry(INT nq1d,INT nelm,INT dim,INT ed_or_f)
   A->w = (REAL *) calloc(nq*nelm,sizeof(REAL));
   A->n = nq*nelm;
   A->nq_per_elm = nq;
+  A->nq1d = nq1d;
   
   return A;
 }

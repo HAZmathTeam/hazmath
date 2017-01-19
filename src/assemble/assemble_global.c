@@ -1086,10 +1086,10 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
 /******************************************************************************************************/
 
 /******************************************************************************************************/
-void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,INT *,INT,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,void (*rhs)(REAL *,REAL *, REAL),REAL time,INT flag) 
+void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *, REAL),REAL time,INT flag)
 {
   /*!
-   * \fn assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,INT *,INT,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,void (*rhs)(REAL *,REAL *, REAL),REAL time,INT flag)
+   * \fn void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *, REAL),REAL time,INT flag)
    *
    * \brief Computes the RHS for any "boundary" bilinear form using various element types
    *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
@@ -1104,9 +1104,11 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
    *
    *        which gives Ax = b,
    *
-   *        A_ij = a( phi_j, phi_i)_bdry
-   *
    * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
+   * \note Assumes different type of integral for different Element type:
+  *       PX -> <f,v>_bdry
+  *       Ned -> <f,nxv>_bdry
+  *       RT  -> <f,n*v>_bdry
    *
    * \param old_sol                 FE approximation of previous solution if needed
    * \param local_rhs_assembly_face Routine to get local rhs vectors over each face
@@ -1117,7 +1119,6 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
    * \param time                    Physical Time if time dependent
    * \param flag                    Marker for which faces are included in boundary integration
    *
-   * \return A                      Global stiffness CSR matrix
    * \return b                      Global RHS vector
    *
    */
@@ -1184,7 +1185,7 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
       get_incidence_row(elm,mesh->el_v,v_on_elm);
 
       // Compute Local Stiffness Matrix for given Element
-      (*local_rhs_assembly_face)(bLoc,old_sol,FE,mesh,dof_on_f,dof_per_face,dof_on_elm,v_on_elm,i,elm,rhs,time);
+      (*local_rhs_assembly_face)(bLoc,old_sol,FE,mesh,cq,dof_on_f,dof_on_elm,v_on_elm,dof_per_face,i,elm,rhs,time);
       
       // Loop over DOF and place in appropriate slot globally
       for (j=0; j<dof_per_face; j++) { /* Rows of Local Stiffness */
