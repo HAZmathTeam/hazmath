@@ -632,7 +632,7 @@ void FEM_RHS_Local(REAL* bLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *do
 
   // Quadrature Weights and Nodes
   REAL w;
-  REAL* qx = (REAL *) calloc(3,sizeof(REAL));
+  REAL* qx = (REAL *) calloc(dim,sizeof(REAL));
 
   // Right-hand side function at Quadrature Nodes
   REAL* rhs_val=NULL;
@@ -842,6 +842,135 @@ void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,trimesh *mes
   if(qx) free(qx);
   if(ucoeff) free(ucoeff);
 
+  return;
+}
+/******************************************************************************************************/
+
+/****** Boundary Assemblies *********************/
+/******************************************************************************************************/
+void FEM_RHS_Local_face(REAL* bLoc,dvector* old_sol,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_f,INT *dof_on_elm,INT *v_on_elm,INT dof_per_face,INT face,INT elm,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+{
+  /*!
+  * \fn void FEM_RHS_Local_face(REAL* bLoc,dvector* old_sol,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_f,INT *dof_on_elm,INT *v_on_elm,INT dof_per_face,INT face,INT elm,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+  *
+  * \brief Computes the local assembly of a RHS for any "boundary" bilinear form using various element types
+  *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
+  *        This does integration over a surface or boundary (i.e., faces of your domain: faces in 3D, edges in 2D)
+  *        a(u,v)_i, where i denotes a set of faces (or edges) with in a boundary region marked with flag
+  *
+  *
+  *        For this problem we compute local RHS of:
+  *
+  *        Lu = f  ---->   a(u,v)_bdry = <f,v>_bdry
+  *
+  *        which gives Ax = b,
+  *
+  *        A_ij = a( phi_j, phi_i)_bdry
+  *
+  * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
+  * \note Assumes different type of integral for different Element type:
+  *       Scalar -> <f,v>_bdry
+  *       Vector -> <f,n*v>_bdry
+  *
+  * \param old_sol                 FE approximation of previous solution if needed
+  * \param FE                      FE Space
+  * \param mesh                    Mesh Data
+  * \param dof_on_f                DOF on the given face
+  * \param dof_on_elm              DOF on given element
+  * \param v_on_elm                Vertices on given element
+  * \param dof_per_f               # of DOF per face
+  * \param face                    Given Face
+  * \param elm                     Given Element
+  * \param rhs                     Routine to get RHS function (NULL if only assembling matrix)
+  * \param time                    Physical Time if time dependent
+  *
+  * \return bLoc                   Local RHS vector
+  *
+  */
+
+  // Mesh and FE data
+  INT dof_per_elm = FE->dof_per_elm;
+  INT dim = mesh->dim;
+
+  // Loop Indices
+  INT i,j,quad,test,doft,rowa,rowb,jcntr,ed;
+
+  // Quadrature Weights and Nodes
+  qcoordinates *cq_face = allocateqcoords(cq->nq1d,1,dim);
+  quad_edgeface(cq_face,mesh,cq->nq1d,face,dim-1);
+  REAL* qx = (REAL *) calloc(dim,sizeof(REAL));
+  REAL w;
+
+  // Get normal vector components on face if needed
+  REAL nx=0.0,ny=0.0,nz=0.0;
+  if(FE->FEtype>=20) {
+    nx = mesh->f_norm[face*dim];
+    ny = mesh->f_norm[face*dim+1];
+    if(dim==3) nz = mesh->f_norm[face*dim+2];
+  }
+
+  // Stiffness Matrix Entry
+  REAL kij = 0.0;
+
+  // Value of f
+  REAL rhs_val;
+
+  if(FE->FEtype<20) { // Scalar Functions
+
+    //  Sum over quadrature points
+    for (quad=0;quad<cq_face->n;quad++) {
+      qx[0] = cq_face->x[quad];
+      qx[1] = cq_face->y[quad];
+      if(dim==3)
+        qx[2] = cq_face->z[quad];
+      w = cq_face->w[quad];
+      (*rhs)(&rhs_val,qx,time);
+
+      //  Get the Basis Functions at each quadrature node
+      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
+
+      // Loop over Test Functions (Rows)
+      for (test=0; test<dof_per_face;test++) {
+        // Make sure ordering for global matrix is right
+        for(j=0;j<FE->dof_per_elm;j++) {
+          if(dof_on_f[test]==dof_on_elm[j]) {
+            doft = j;
+          }
+        }
+        kij = rhs_val*FE->phi[doft];
+        bLoc[test] += w*kij;
+      }
+    }
+  } else { // Vector Functions
+
+    //  Sum over quadrature points
+    for (quad=0;quad<cq_face->n;quad++) {
+      qx[0] = cq_face->x[quad];
+      qx[1] = cq_face->y[quad];
+      if(dim==3)
+        qx[2] = cq_face->z[quad];
+      w = cq_face->w[quad];
+      (*rhs)(&rhs_val,qx,time);
+
+      //  Get the Basis Functions at each quadrature node
+      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
+
+      // Loop over Test Functions (Rows)
+      for (test=0; test<dof_per_face;test++) {
+        // Make sure ordering for global matrix is right
+        for(j=0;j<FE->dof_per_elm;j++) {
+          if(dof_on_f[test]==dof_on_elm[j]) {
+            doft = j;
+          }
+        }
+        kij = rhs_val*(nx*FE->phi[doft*dim] + ny*FE->phi[doft*dim+1]);
+        if(dim==3) kij +=rhs_val*nz*FE->phi[doft*dim+2];
+        bLoc[test] += w*kij;
+      }
+    }
+  }
+
+  if(qx) free(qx);
   return;
 }
 /******************************************************************************************************/
