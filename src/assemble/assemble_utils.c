@@ -766,13 +766,13 @@ void LocaltoGlobal_face(INT *dof_on_f,INT dof_per_f,fespace *FE,dvector *b,dCSRm
 
   for (i=0; i<dof_per_f; i++) { /* Rows of Local Stiffness */
     row = dof_on_f[i]-1;
-    if (FE->dof_bdry[row]==flag) { /* Only if on special boundary */
+    //if (FE->dof_bdry[row]==flag) { /* Only if on special boundary */
       if(bLoc!=NULL)
         b->val[row] = b->val[row] + bLoc[i];
 
       for (j=0; j<dof_per_f; j++) { /* Columns of Local Stiffness */
         col = dof_on_f[j]-1;
-        if (FE->dof_bdry[col]==flag) { /* Only do stuff if hit a special boundary */
+       // if (FE->dof_bdry[col]==flag) { /* Only do stuff if hit a special boundary */
           col_a = A->IA[row]-1;
           col_b = A->IA[row+1]-1;
           for (k=col_a; k<col_b; k++) { /* Columns of A */
@@ -781,9 +781,9 @@ void LocaltoGlobal_face(INT *dof_on_f,INT dof_per_f,fespace *FE,dvector *b,dCSRm
               A->val[k] = A->val[k] + ALoc[i*dof_per_f+j];
             }
           }
-        }
+        //}
       }
-    }
+    //}
   }
   return;
 }

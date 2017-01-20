@@ -1186,13 +1186,13 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
 
       // Compute Local Stiffness Matrix for given Element
       (*local_rhs_assembly_face)(bLoc,old_sol,FE,mesh,cq,dof_on_f,dof_on_elm,v_on_elm,dof_per_face,i,elm,rhs,time);
-      
+      printf("\n\n\nhello!!!\n\n\n");
       // Loop over DOF and place in appropriate slot globally
       for (j=0; j<dof_per_face; j++) { /* Rows of Local Stiffness */
         row = dof_on_f[j]-1;
-        if (FE->dof_bdry[row]==flag) { /* Only if on special boundary */
-          b->val[row] = b->val[row] + bLoc[j];
-        }
+        //if (FE->dof_bdry[row]==flag) { /* Only if on special boundary */
+          b->val[row] += bLoc[j];
+        //}
       }
     }
   }
