@@ -189,7 +189,7 @@ void assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
   // Now Build Global Matrix entries
   // First deal with boundary rows
   for (i=0; i<FE->ndof; i++) {
-    if (FE->dof_bdry[i]==1) { /* This is a boundary row.  Just make identity and fix right hand side */
+    if (FE->dirichlet[i]==1) { /* This is a boundary row.  Just make identity and fix right hand side */
       A->val[A->IA[i]-1] = 1.0;
       if(rhs!=NULL)
         b->val[i] = FE_Evaluate_DOF(bc,FE,mesh,time,i);
@@ -1190,9 +1190,7 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
       // Loop over DOF and place in appropriate slot globally
       for (j=0; j<dof_per_face; j++) { /* Rows of Local Stiffness */
         row = dof_on_f[j]-1;
-        //if (FE->dof_bdry[row]==flag) { /* Only if on special boundary */
-          b->val[row] += bLoc[j];
-        //}
+        b->val[row] += bLoc[j];
       }
     }
   }

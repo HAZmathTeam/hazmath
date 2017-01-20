@@ -296,7 +296,6 @@ void fixrhs_time(dvector* b,dvector* b_old,dCSRmat* M,dCSRmat* A,dvector* uprev,
    * \param A            Spatial Matrix
    * \param M            Mass Matrix
    * \param uprev        Previous solution
-   * \param dof_bdry     Indicates which DOF are on boundary
    * \param timescheme   What type of timestepping to use (0->CN 1->Backward Euler (BDF1) etc...)
    * \param dt           Time step size
    *
