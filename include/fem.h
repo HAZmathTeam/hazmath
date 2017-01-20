@@ -79,8 +79,11 @@ typedef struct fespace{
   //! Face to DOF map
   iCSRmat* f_dof;
 
-  //! Dirichlet Boundary map
-  INT* dof_bdry;
+  //! Dirichlet Boundaries (1 if Dirichlet; 0 if not)
+  INT* dirichlet;
+
+  //! DOF flags - indicates if the DOF is a special DOF (i.e. on certain boundary)
+  INT* dof_flag;
 
   //! Basis Functions and Derivatives
   REAL* phi;
@@ -110,8 +113,11 @@ typedef struct block_fespace {
   //! blocks of dCSRmat, point to blocks[brow][bcol]
   fespace **var_spaces;
 
-  //! Boundary DOF array for ALL unknowns
-  INT* dof_bdry;
+  //! Dirichlet Boundaries (1 if Dirichlet; 0 if not) for ALL unknowns
+  INT* dirichlet;
+
+  //! All DOF flags - indicates if the DOF is a special DOF (i.e. on certain boundary)
+  INT* dof_flag;
     
 } block_fespace; /**< Matrix of REAL type in Block CSR format */
 

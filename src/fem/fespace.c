@@ -31,7 +31,8 @@ void initialize_fespace(fespace *FE)
   FE->el_dof = NULL;
   FE->ed_dof = NULL;
   FE->f_dof = NULL;
-  FE->dof_bdry = NULL;
+  FE->dirichlet = NULL;
+  FE->dof_flag = NULL;
   FE->phi = NULL;
   FE->dphi = NULL;
 
@@ -66,7 +67,8 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
   FE->nelm = mesh->nelm;
   INT dim = mesh->dim;
 
-  INT* dof_bdry;
+  INT* dirichlet;
+  INT* dof_flag;
   REAL* phi;
   REAL* dphi;
 
@@ -98,9 +100,14 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
       FE->f_dof = malloc(sizeof(struct iCSRmat));
       *(FE->f_dof) = f_el;
     }
-    dof_bdry = (INT *) calloc(mesh->nelm,sizeof(INT));
-    for(INT i=0;i<mesh->nelm;i++) dof_bdry[i] = 0;
-    FE->dof_bdry = dof_bdry;
+    dirichlet = (INT *) calloc(mesh->nelm,sizeof(INT));
+    dof_flag = (INT *) calloc(mesh->nelm,sizeof(INT));
+    for(INT i=0;i<mesh->nelm;i++) {
+      dirichlet[i] = 0;
+      dof_flag[i] = 0;
+    }
+    FE->dirichlet = dirichlet;
+    FE->dof_flag = dof_flag;
     phi = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
     FE->phi = phi;
     break;
@@ -114,9 +121,14 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
       FE->ed_dof = mesh->ed_v;
       FE->f_dof = mesh->f_v;
     }
-    dof_bdry = (INT *) calloc(FE->ndof,sizeof(INT));
-    for(INT i=0;i<FE->ndof;i++) dof_bdry[i] = mesh->v_bdry[i];
-    FE->dof_bdry = dof_bdry;
+    dirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
+    dof_flag = (INT *) calloc(FE->ndof,sizeof(INT));
+    for(INT i=0;i<FE->ndof;i++) {
+      dirichlet[i] = mesh->v_bdry[i];
+      dof_flag[i] = mesh->v_bdry[i];
+    }
+    FE->dirichlet = dirichlet;
+    FE->dof_flag = dof_flag;
     phi = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
     FE->phi = phi;
     dphi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
@@ -150,9 +162,14 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     FE->ed_dof = malloc(sizeof(struct iCSRmat));
     *(FE->ed_dof) = ed_ed;
     FE->f_dof = mesh->f_ed;
-    dof_bdry = (INT *) calloc(FE->ndof,sizeof(INT));
-    for(INT i=0;i<FE->ndof;i++) dof_bdry[i] = mesh->ed_bdry[i];
-    FE->dof_bdry = dof_bdry;
+    dirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
+    dof_flag = (INT *) calloc(FE->ndof,sizeof(INT));
+    for(INT i=0;i<FE->ndof;i++) {
+      dirichlet[i] = mesh->ed_bdry[i];
+      dof_flag[i] = mesh->ed_bdry[i];
+    }
+    FE->dirichlet = dirichlet;
+    FE->dof_flag = dof_flag;
     phi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
     FE->phi = phi;
     if(mesh->dim==2) // Scalar Curl
@@ -174,9 +191,14 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     iCSRmat f_f = icsr_create_identity(mesh->nface, 1);
     FE->f_dof = malloc(sizeof(struct iCSRmat));
     *(FE->f_dof) = f_f;
-    dof_bdry = (INT *) calloc(FE->ndof,sizeof(INT));
-    for(INT i=0;i<FE->ndof;i++) dof_bdry[i] = mesh->f_bdry[i];
-    FE->dof_bdry = dof_bdry;
+    dirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
+    dof_flag = (INT *) calloc(FE->ndof,sizeof(INT));
+    for(INT i=0;i<FE->ndof;i++) {
+      dirichlet[i] = mesh->f_bdry[i];
+      dof_flag[i] = mesh->f_bdry[i];
+    }
+    FE->dirichlet = dirichlet;
+    FE->dof_flag = dof_flag;
     phi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
     FE->phi = phi;
     dphi = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
@@ -227,9 +249,14 @@ void free_fespace(fespace* FE)
     FE->f_dof = NULL;
   }
 
-  if(FE->dof_bdry) {
-    free(FE->dof_bdry);
-    FE->dof_bdry = NULL;
+  if(FE->dirichlet) {
+    free(FE->dirichlet);
+    FE->dirichlet = NULL;
+  }
+
+  if(FE->dof_flag) {
+    free(FE->dof_flag);
+    FE->dof_flag = NULL;
   }
 
   if(FE->phi) {
@@ -271,9 +298,14 @@ void free_blockfespace(block_fespace* FE)
   free(FE->var_spaces);
   FE->var_spaces = NULL;
 
-  if(FE->dof_bdry) {
-    free(FE->dof_bdry);
-    FE->dof_bdry = NULL;
+  if(FE->dirichlet) {
+    free(FE->dirichlet);
+    FE->dirichlet = NULL;
+  }
+
+  if(FE->dof_flag) {
+    free(FE->dof_flag);
+    FE->dof_flag = NULL;
   }
   
   return;
@@ -406,19 +438,24 @@ void get_P2(fespace* FE,trimesh* mesh)
   }
 
   // Fix Boundaries
-  INT* dof_bdry = (INT *) calloc(ndof,sizeof(INT));
+  INT* dirichlet = (INT *) calloc(ndof,sizeof(INT));
+  INT* dof_flag = (INT *) calloc(ndof,sizeof(INT));
   // First set of nodes are vertices
   for (i=0; i<nv; i++) {
-    dof_bdry[i] = mesh->v_bdry[i];
+    dirichlet[i] = mesh->v_bdry[i];
+    dof_flag[i] = mesh->v_bdry[i];
   }
   // In 1D rest are interior
   if(dim==1) {
-    for(i=0;i<nelm;i++)
-      dof_bdry[nv+i] = 0;
+    for(i=0;i<nelm;i++) {
+      dirichlet[nv+i] = 0;
+      dof_flag[nv+i] = 0;
+    }
   } else {
     // In 2D or 3D, rest are edges
     for(i=0;i<nedge;i++) {
-      dof_bdry[nv+i] = mesh->ed_bdry[i];
+      dirichlet[nv+i] = mesh->ed_bdry[i];
+      dof_flag[nv+i] = mesh->ed_bdry[i];
     }
   }
 
@@ -466,7 +503,8 @@ void get_P2(fespace* FE,trimesh* mesh)
     *(FE->f_dof) = f_n;
   }
 
-  FE->dof_bdry = dof_bdry;
+  FE->dirichlet = dirichlet;
+  FE->dof_flag = FE->dof_flag;
   *(FE->el_dof) = el_n;
   FE->cdof = cdof;
   
@@ -541,7 +579,7 @@ void dump_fespace(fespace *FE,char *varname,char *dir)
 
     // Dump boundary data
     for(i=0;i<totdof;i++) {
-      fprintf(fid2,"%d\n",FE->dof_bdry[i]);
+      fprintf(fid2,"%d\n",FE->dirichlet[i]);
     }
 
     fclose(fid1);
@@ -564,16 +602,16 @@ void set_dirichlet_bdry(fespace* FE,trimesh* mesh,INT flag)
    * \param mesh             Mesh struct
    * \param flag             User-input for which Boundary DOF are Dirichlet
    *
-   * \return FE.dof_bdry     Binary boundary array for DOF
+   * \return FE.dirichlet    Binary boundary array for DOF
    *
    */
 
   INT i;
   for(i=0;i<FE->ndof;i++) {
-    if(FE->dof_bdry[i]==flag) {
-      FE->dof_bdry[i] = 1;
+    if(FE->dof_flag[i]==flag) {
+      FE->dirichlet[i] = 1;
     } else {
-      FE->dof_bdry[i] = 0;
+      FE->dirichlet[i] = 0;
     }
   }
   return;
@@ -593,28 +631,32 @@ void set_dirichlet_bdry_block(block_fespace* FE,trimesh* mesh,INT flag)
    * \param mesh             Mesh struct
    * \param flag             User-input for which Boundary DOF are Dirichlet
    *
-   * \return FE.dof_bdry     Binary boundary array for DOF
+   * \return FE.dirichlet    Binary boundary array for DOF
+   * \return FE.dof_flag     Also set DOF flags based on each FE space
    *
    */
 
   INT i,j,ndof,cnt;
 
   INT* isdirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
+  INT* dof_flags = (INT *) calloc(FE->ndof,sizeof(INT));
 
   cnt = 0;
   for(i=0;i<FE->nspaces;i++) {
     ndof = FE->var_spaces[i]->ndof;
     for(j=0;j<ndof;j++) {
-      if(FE->var_spaces[i]->dof_bdry[j]==flag) {
+      if(FE->var_spaces[i]->dirichlet[j]==flag) {
         isdirichlet[cnt+j] = 1;
       } else {
         isdirichlet[cnt+j] = 0;
       }
+      dof_flags[cnt+j] = FE->var_spaces[i]->dof_flag[j];
     }
     cnt += ndof;
   }
 
-  FE->dof_bdry = isdirichlet;
+  FE->dirichlet = isdirichlet;
+  FE->dof_flag = dof_flags;
   return;
 }
 /****************************************************************************************/
