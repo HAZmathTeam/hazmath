@@ -504,7 +504,7 @@ void get_P2(fespace* FE,trimesh* mesh)
   }
 
   FE->dirichlet = dirichlet;
-  FE->dof_flag = FE->dof_flag;
+  FE->dof_flag = dof_flag;
   *(FE->el_dof) = el_n;
   FE->cdof = cdof;
   
