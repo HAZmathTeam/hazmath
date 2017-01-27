@@ -618,6 +618,79 @@ void precond_block_diag_3 (REAL *r,
 }
 
 /***********************************************************************************************/
+void precond_block_diag_4 (REAL *r,
+                                REAL *z,
+                                void *data)
+{
+    /**
+     * \fn void precond_block_diag_4 (REAL *r, REAL *z, void *data)
+     * \brief block diagonal preconditioning (4x4 block matrix, each diagonal block
+     *        is solved exactly)
+     *
+     * \param r     Pointer to the vector needs preconditioning
+     * \param z     Pointer to preconditioned vector
+     * \param data  Pointer to precondition data
+     *
+     * \author Xiaozhe Hu
+     * \date   01/20/2017
+     */
+
+#if WITH_SUITESPARSE
+    precond_block_data *precdata=(precond_block_data *)data;
+    dCSRmat *A_diag = precdata->A_diag;
+    dvector *tempr = &(precdata->r);
+
+    const INT N0 = A_diag[0].row;
+    const INT N1 = A_diag[1].row;
+    const INT N2 = A_diag[2].row;
+    const INT N3 = A_diag[3].row;
+    const INT N = N0 + N1 + N2 + N3;
+
+    // back up r, setup z;
+    array_cp(N, r, tempr->val);
+    array_set(N, z, 0.0);
+
+    // prepare
+    void **LU_diag = precdata->LU_diag;
+    dvector r0, r1, r2, r3, z0, z1, z2, z3;
+
+    r0.row = N0; z0.row = N0;
+    r1.row = N1; z1.row = N1;
+    r2.row = N2; z2.row = N2;
+    r3.row = N3; z3.row = N3;
+
+    r0.val = r;
+    r1.val = &(r[N0]);
+    r2.val = &(r[N0+N1]);
+    r3.val = &(r[N0+N1+N2]);
+    z0.val = z;
+    z1.val = &(z[N0]);
+    z2.val = &(z[N0+N1]);
+    z3.val = &(z[N0+N1+N2]);
+
+    // Preconditioning A00 block
+    /* use UMFPACK direct solver */
+    umfpack_solve(&A_diag[0], &r0, &z0, LU_diag[0], 0);
+
+    // Preconditioning A11 block
+    /* use UMFPACK direct solver */
+    umfpack_solve(&A_diag[1], &r1, &z1, LU_diag[1], 0);
+
+    // Preconditioning A22 block
+    /* use UMFPACK direct solver */
+    umfpack_solve(&A_diag[2], &r2, &z2, LU_diag[2], 0);
+
+    // Preconditioning A33 block
+    /* use UMFPACK direct solver */
+    umfpack_solve(&A_diag[3], &r3, &z3, LU_diag[3], 0);
+
+    // restore r
+    array_cp(N, tempr->val, r);
+
+#endif
+}
+
+/***********************************************************************************************/
 void precond_block_lower_3 (REAL *r,
                             REAL *z,
                             void *data)
