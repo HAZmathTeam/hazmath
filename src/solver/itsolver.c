@@ -1142,6 +1142,135 @@ INT linear_solver_bdcsr_krylov_block_3 (block_dCSRmat *A,
 }
 
 /********************************************************************************************/
+INT linear_solver_bdcsr_krylov_block_4 (block_dCSRmat *A,
+                                      dvector *b,
+                                      dvector *x,
+                                      linear_itsolver_param *itparam,
+                                      AMG_param *amgparam,
+                                      dCSRmat *A_diag)
+{
+    /**
+     * \fn INT linear_solver_bdcsr_krylov_block_4 (block_dCSRmat *A, dvector *b, dvector *x,
+     *                                           itsolver_param *itparam,
+     *                                           AMG_param *amgparam, dCSRmat *A_diag)
+     *
+     * \brief Solve Ax = b by standard Krylov methods
+     *
+     * \param A         Pointer to the coeff matrix in block_dCSRmat format
+     * \param b         Pointer to the right hand side in dvector format
+     * \param x         Pointer to the approx solution in dvector format
+     * \param itparam   Pointer to parameters for iterative solvers
+     * \param amgparam  Pointer to parameters for AMG solvers
+     * \param A_diag    Digonal blocks of A
+     *
+     * \return          Iteration number if converges; ERROR otherwise.
+     *
+     * \author Xiaozhe Hu
+     * \date   01/20/2017
+     *
+     * \note only works for 4 by 4 block dCSRmat problems!! -- Xiaozhe Hu
+     */
+
+    const SHORT prtlvl = itparam->linear_print_level;
+    const SHORT precond_type = itparam->linear_precond_type;
+
+    INT status = SUCCESS;
+    REAL setup_start, setup_end, setup_duration;
+    REAL solver_start, solver_end, solver_duration;
+
+    //INT m, n, nnz;
+    INT i;
+
+#if WITH_SUITESPARSE
+    void **LU_diag = (void **)calloc(4, sizeof(void *));
+#endif
+
+    /* setup preconditioner */
+    get_time(&setup_start);
+
+    /* diagonal blocks are solved exactly */
+#if WITH_SUITESPARSE
+        // Need to sort the diagonal blocks for UMFPACK format
+        dCSRmat A_tran;
+
+        for (i=0; i<4; i++){
+
+            A_tran = dcsr_create(A_diag[i].row, A_diag[i].col, A_diag[i].nnz);
+            dcsr_trans(&A_diag[i], &A_tran);
+            dcsr_cp(&A_tran, &A_diag[i]);
+
+            printf("Factorization for %d-th diagnol: \n", i);
+            LU_diag[i] = umfpack_factorize(&A_diag[i], prtlvl);
+
+        }
+
+        dcsr_free(&A_tran);
+
+#endif
+
+    precond_block_data precdata;
+    precdata.Abcsr = A;
+    precdata.A_diag = A_diag;
+    precdata.r = dvec_create(b->row);
+
+    /* diagonal blocks are solved exactly */
+#if WITH_SUITESPARSE
+        precdata.LU_diag = LU_diag;
+#endif
+
+    precond prec; prec.data = &precdata;
+
+    //switch (precond_type)
+    //{
+    //    case 10:
+    prec.fct = precond_block_diag_4;
+    //        break;
+
+        /*
+        case 11:
+            prec.fct = precond_block_lower_4;
+            break;
+
+        case 12:
+            prec.fct = precond_block_upper_4;
+            break;
+        */
+
+    //    default:
+    //        break;
+    //}
+
+
+    if ( prtlvl >= PRINT_MIN ) {
+        get_time(&setup_end);
+        setup_duration = setup_end - setup_start;
+        print_cputime("Setup totally", setup_duration);
+    }
+
+    // solver part
+    get_time(&solver_start);
+
+    status=solver_bdcsr_linear_itsolver(A,b,x, &prec,itparam);
+
+    get_time(&solver_end);
+
+    solver_duration = solver_end - solver_start;
+
+    if ( prtlvl >= PRINT_MIN )
+        print_cputime("Krylov method totally", solver_duration);
+
+    // clean
+    /* diagonal blocks are solved exactly */
+#if WITH_SUITESPARSE
+        for (i=0; i<4; i++) umfpack_free_numeric(LU_diag[i]);
+#endif
+
+
+    return status;
+}
+
+
+/********************************************************************************************/
 INT linear_solver_bdcsr_krylov_mixed_darcy (block_dCSRmat *A,
                                             dvector *b,
                                             dvector *x,
