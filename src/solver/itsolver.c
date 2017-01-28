@@ -1220,13 +1220,12 @@ INT linear_solver_bdcsr_krylov_block_4 (block_dCSRmat *A,
 
     precond prec; prec.data = &precdata;
 
-    //switch (precond_type)
-    //{
-    //    case 10:
-    prec.fct = precond_block_diag_4;
-    //        break;
+    switch (precond_type)
+    {
+        case 10:
+            prec.fct = precond_block_diag_4;
+            break;
 
-        /*
         case 11:
             prec.fct = precond_block_lower_4;
             break;
@@ -1234,12 +1233,10 @@ INT linear_solver_bdcsr_krylov_block_4 (block_dCSRmat *A,
         case 12:
             prec.fct = precond_block_upper_4;
             break;
-        */
 
-    //    default:
-    //        break;
-    //}
-
+        default:
+            break;
+    }
 
     if ( prtlvl >= PRINT_MIN ) {
         get_time(&setup_end);

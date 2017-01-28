@@ -618,79 +618,6 @@ void precond_block_diag_3 (REAL *r,
 }
 
 /***********************************************************************************************/
-void precond_block_diag_4 (REAL *r,
-                                REAL *z,
-                                void *data)
-{
-    /**
-     * \fn void precond_block_diag_4 (REAL *r, REAL *z, void *data)
-     * \brief block diagonal preconditioning (4x4 block matrix, each diagonal block
-     *        is solved exactly)
-     *
-     * \param r     Pointer to the vector needs preconditioning
-     * \param z     Pointer to preconditioned vector
-     * \param data  Pointer to precondition data
-     *
-     * \author Xiaozhe Hu
-     * \date   01/20/2017
-     */
-
-#if WITH_SUITESPARSE
-    precond_block_data *precdata=(precond_block_data *)data;
-    dCSRmat *A_diag = precdata->A_diag;
-    dvector *tempr = &(precdata->r);
-
-    const INT N0 = A_diag[0].row;
-    const INT N1 = A_diag[1].row;
-    const INT N2 = A_diag[2].row;
-    const INT N3 = A_diag[3].row;
-    const INT N = N0 + N1 + N2 + N3;
-
-    // back up r, setup z;
-    array_cp(N, r, tempr->val);
-    array_set(N, z, 0.0);
-
-    // prepare
-    void **LU_diag = precdata->LU_diag;
-    dvector r0, r1, r2, r3, z0, z1, z2, z3;
-
-    r0.row = N0; z0.row = N0;
-    r1.row = N1; z1.row = N1;
-    r2.row = N2; z2.row = N2;
-    r3.row = N3; z3.row = N3;
-
-    r0.val = r;
-    r1.val = &(r[N0]);
-    r2.val = &(r[N0+N1]);
-    r3.val = &(r[N0+N1+N2]);
-    z0.val = z;
-    z1.val = &(z[N0]);
-    z2.val = &(z[N0+N1]);
-    z3.val = &(z[N0+N1+N2]);
-
-    // Preconditioning A00 block
-    /* use UMFPACK direct solver */
-    umfpack_solve(&A_diag[0], &r0, &z0, LU_diag[0], 0);
-
-    // Preconditioning A11 block
-    /* use UMFPACK direct solver */
-    umfpack_solve(&A_diag[1], &r1, &z1, LU_diag[1], 0);
-
-    // Preconditioning A22 block
-    /* use UMFPACK direct solver */
-    umfpack_solve(&A_diag[2], &r2, &z2, LU_diag[2], 0);
-
-    // Preconditioning A33 block
-    /* use UMFPACK direct solver */
-    umfpack_solve(&A_diag[3], &r3, &z3, LU_diag[3], 0);
-
-    // restore r
-    array_cp(N, tempr->val, r);
-
-#endif
-}
-
-/***********************************************************************************************/
 void precond_block_lower_3 (REAL *r,
                             REAL *z,
                             void *data)
@@ -841,6 +768,282 @@ void precond_block_upper_3 (REAL *r,
 #endif
     
 }
+
+/***********************************************************************************************/
+void precond_block_diag_4 (REAL *r,
+                                REAL *z,
+                                void *data)
+{
+    /**
+     * \fn void precond_block_diag_4 (REAL *r, REAL *z, void *data)
+     * \brief block diagonal preconditioning (4x4 block matrix, each diagonal block
+     *        is solved exactly)
+     *
+     * \param r     Pointer to the vector needs preconditioning
+     * \param z     Pointer to preconditioned vector
+     * \param data  Pointer to precondition data
+     *
+     * \author Xiaozhe Hu
+     * \date   01/20/2017
+     */
+
+#if WITH_SUITESPARSE
+    precond_block_data *precdata=(precond_block_data *)data;
+    dCSRmat *A_diag = precdata->A_diag;
+    dvector *tempr = &(precdata->r);
+
+    const INT N0 = A_diag[0].row;
+    const INT N1 = A_diag[1].row;
+    const INT N2 = A_diag[2].row;
+    const INT N3 = A_diag[3].row;
+    const INT N = N0 + N1 + N2 + N3;
+
+    // back up r, setup z;
+    array_cp(N, r, tempr->val);
+    array_set(N, z, 0.0);
+
+    // prepare
+    void **LU_diag = precdata->LU_diag;
+    dvector r0, r1, r2, r3, z0, z1, z2, z3;
+
+    r0.row = N0; z0.row = N0;
+    r1.row = N1; z1.row = N1;
+    r2.row = N2; z2.row = N2;
+    r3.row = N3; z3.row = N3;
+
+    r0.val = r;
+    r1.val = &(r[N0]);
+    r2.val = &(r[N0+N1]);
+    r3.val = &(r[N0+N1+N2]);
+    z0.val = z;
+    z1.val = &(z[N0]);
+    z2.val = &(z[N0+N1]);
+    z3.val = &(z[N0+N1+N2]);
+
+    // Preconditioning A00 block
+    /* use UMFPACK direct solver */
+    umfpack_solve(&A_diag[0], &r0, &z0, LU_diag[0], 0);
+
+    // Preconditioning A11 block
+    /* use UMFPACK direct solver */
+    umfpack_solve(&A_diag[1], &r1, &z1, LU_diag[1], 0);
+
+    // Preconditioning A22 block
+    /* use UMFPACK direct solver */
+    umfpack_solve(&A_diag[2], &r2, &z2, LU_diag[2], 0);
+
+    // Preconditioning A33 block
+    /* use UMFPACK direct solver */
+    umfpack_solve(&A_diag[3], &r3, &z3, LU_diag[3], 0);
+
+    // restore r
+    array_cp(N, tempr->val, r);
+
+#endif
+}
+
+/***********************************************************************************************/
+void precond_block_lower_4 (REAL *r,
+                            REAL *z,
+                            void *data)
+{
+
+    /**
+     * \fn void precond_block_lower_4 (REAL *r, REAL *z, void *data)
+     * \brief block upper triangular preconditioning (4x4 block matrix, each diagonal
+     *        block is solved exactly)
+     *
+     * \param r     Pointer to the vector needs preconditioning
+     * \param z     Pointer to preconditioned vector
+     * \param data  Pointer to precondition data
+     *
+     * \author Xiaozhe Hu
+     * \date   01/28/2017
+     *
+     * A[0]  A[1]  A[2]  A[3]
+     * A[4]  A[5]  A[6]  A[7]
+     * A[8]  A[9]  A[10] A[11]
+     * A[12] A[13] A[14] A[15]
+     */
+
+#if WITH_SUITESPARSE
+
+    precond_block_data *precdata=(precond_block_data *)data;
+    block_dCSRmat *A = precdata->Abcsr;
+    dCSRmat *A_diag = precdata->A_diag;
+    void **LU_diag = precdata->LU_diag;
+
+    dvector *tempr = &(precdata->r);
+
+    const INT N0 = A_diag[0].row;
+    const INT N1 = A_diag[1].row;
+    const INT N2 = A_diag[2].row;
+    const INT N3 = A_diag[3].row;
+    const INT N = N0 + N1 + N2 + N3;
+
+    // back up r, setup z;
+    array_cp(N, r, tempr->val);
+    array_set(N, z, 0.0);
+
+    // prepare
+    dvector r0, r1, r2, r3, z0, z1, z2, z3;
+
+    r0.row = N0; z0.row = N0;
+    r1.row = N1; z1.row = N1;
+    r2.row = N2; z2.row = N2;
+    r3.row = N3; z3.row = N3;
+
+    r0.val = r;
+    r1.val = &(r[N0]);
+    r2.val = &(r[N0+N1]);
+    r3.val = &(r[N0+N1+N2]);
+    z0.val = z;
+    z1.val = &(z[N0]);
+    z2.val = &(z[N0+N1]);
+    z3.val = &(z[N0+N1+N2]);
+
+    // Preconditioning A00 block
+    /* use UMFPACK direct solver */
+    umfpack_solve(&A_diag[0], &r0, &z0, LU_diag[0], 0);
+
+    // r1 = r1 - A4*z0
+    if (A->blocks[4] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[4], z0.val, r1.val);
+
+    // Preconditioning A11 block
+    /* use UMFPACK direct solver */
+    umfpack_solve(&A_diag[1], &r1, &z1, LU_diag[1], 0);
+
+    // r2 = r2 - A8*z0 - A9*z1
+    if (A->blocks[8] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[8], z0.val, r2.val);
+    if (A->blocks[9] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[9], z1.val, r2.val);
+
+    // Preconditioning A22 block
+    /* use UMFPACK direct solver */
+    umfpack_solve(&A_diag[2], &r2, &z2, LU_diag[2], 0);
+
+    // r3 = r3 - A12*z0 - A13*z1 - A14*z2
+    if (A->blocks[12] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[12], z0.val, r3.val);
+    if (A->blocks[13] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[13], z1.val, r3.val);
+    if (A->blocks[14] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[14], z2.val, r3.val);
+
+    // Preconditioning A33 block
+    /* use UMFPACK direct solver */
+    umfpack_solve(&A_diag[3], &r3, &z3, LU_diag[3], 0);
+
+    // restore r
+    array_cp(N, tempr->val, r);
+
+#endif
+
+}
+
+/***********************************************************************************************/
+void precond_block_upper_4 (REAL *r,
+                                 REAL *z,
+                                 void *data)
+{
+
+    /**
+     * \fn void precond_block_upper_4 (REAL *r, REAL *z, void *data)
+     * \brief block upper triangular preconditioning (4x4 block matrix, each diagonal
+     *        block is solved exactly)
+     *
+     * \param r     Pointer to the vector needs preconditioning
+     * \param z     Pointer to preconditioned vector
+     * \param data  Pointer to precondition data
+     *
+     * \author Xiaozhe Hu
+     * \date   01/28/2017
+     *
+     * A[0]  A[1]  A[2]  A[3]
+     * A[4]  A[5]  A[6]  A[7]
+     * A[8]  A[9]  A[10] A[11]
+     * A[12] A[13] A[14] A[15]
+     */
+
+#if WITH_SUITESPARSE
+
+    precond_block_data *precdata=(precond_block_data *)data;
+    block_dCSRmat *A = precdata->Abcsr;
+    dCSRmat *A_diag = precdata->A_diag;
+    void **LU_diag = precdata->LU_diag;
+
+    dvector *tempr = &(precdata->r);
+
+    const INT N0 = A_diag[0].row;
+    const INT N1 = A_diag[1].row;
+    const INT N2 = A_diag[2].row;
+    const INT N3 = A_diag[3].row;
+    const INT N = N0 + N1 + N2 + N3;
+
+    // back up r, setup z;
+    array_cp(N, r, tempr->val);
+    array_set(N, z, 0.0);
+
+    // prepare
+    dvector r0, r1, r2, r3, z0, z1, z2, z3;
+
+    r0.row = N0; z0.row = N0;
+    r1.row = N1; z1.row = N1;
+    r2.row = N2; z2.row = N2;
+    r3.row = N3; z3.row = N3;
+
+    r0.val = r;
+    r1.val = &(r[N0]);
+    r2.val = &(r[N0+N1]);
+    r3.val = &(r[N0+N1+N2]);
+    z0.val = z;
+    z1.val = &(z[N0]);
+    z2.val = &(z[N0+N1]);
+    z3.val = &(z[N0+N1+N2]);
+
+    // Preconditioning A33 block
+    /* use UMFPACK direct solver */
+    umfpack_solve(&A_diag[3], &r3, &z3, LU_diag[3], 0);
+
+    // r2 = r2 - A11*z3
+    if (A->blocks[11] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[11], z3.val, r2.val);
+
+    // Preconditioning A22 block
+    /* use UMFPACK direct solver */
+    umfpack_solve(&A_diag[2], &r2, &z2, LU_diag[2], 0);
+
+    // r1 = r1 - A6*z2 - A7*z3
+    if (A->blocks[6] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[6], z2.val, r1.val);
+    if (A->blocks[7] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[7], z3.val, r1.val);
+
+    // Preconditioning A11 block
+    /* use UMFPACK direct solver */
+    umfpack_solve(&A_diag[1], &r1, &z1, LU_diag[1], 0);
+
+    // r0 = r0 - A1*z1 - A2*z2 - A3*z3
+    if (A->blocks[1] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[1], z1.val, r0.val);
+    if (A->blocks[2] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[2], z2.val, r0.val);
+    if (A->blocks[3] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[3], z3.val, r0.val);
+
+    // Preconditioning A00 block
+    /* use UMFPACK direct solver */
+    umfpack_solve(&A_diag[0], &r0, &z0, LU_diag[0], 0);
+
+    // restore r
+    array_cp(N, tempr->val, r);
+
+#endif
+
+}
+
 
 /*************** Special Preconditioners for Mixed Darcy Flow *********************************/
 
