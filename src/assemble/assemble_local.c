@@ -889,11 +889,10 @@ void FEM_RHS_Local_face(REAL* bLoc,dvector* old_sol,fespace *FE,trimesh *mesh,qc
   */
 
   // Mesh and FE data
-  INT dof_per_elm = FE->dof_per_elm;
   INT dim = mesh->dim;
 
   // Loop Indices
-  INT i,j,quad,test,doft,rowa,rowb,jcntr,ed;
+  INT j,quad,test,doft;
 
   // Quadrature Weights and Nodes
   qcoordinates *cq_face = allocateqcoords(cq->nq1d,1,dim);
