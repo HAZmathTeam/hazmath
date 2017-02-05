@@ -1440,7 +1440,6 @@ INT linear_solver_bdcsr_krylov_biot_2phase (block_dCSRmat *A,
   REAL solver_start, solver_end, solver_duration;
 
   const SHORT max_levels = amgparam->max_levels;
-  INT n;
 
   void **LU_diag = (void **)calloc(2, sizeof(void *));
   AMG_data **mgl = (AMG_data **)calloc(2, sizeof(AMG_data *));

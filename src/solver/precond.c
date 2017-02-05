@@ -1682,8 +1682,6 @@ void precond_block_diag_biot_2phase_krylov (REAL *r,
   AMG_param *amgparam = precdata->amgparam;
   AMG_data **mgl = precdata->mgl;
 
-  INT i;
-
   const INT N0 = A->blocks[0]->row;
   const INT N1 = A->blocks[3]->row;
   const INT N = N0 + N1;
@@ -1754,8 +1752,6 @@ void precond_block_lower_biot_2phase_krylov (REAL *r,
   block_dCSRmat *A = precdata->Abcsr;
   AMG_param *amgparam = precdata->amgparam;
   AMG_data **mgl = precdata->mgl;
-
-  INT i;
 
   const INT N0 = A->blocks[0]->row;
   const INT N1 = A->blocks[3]->row;
@@ -1829,8 +1825,6 @@ void precond_block_upper_biot_2phase_krylov (REAL *r,
   block_dCSRmat *A = precdata->Abcsr;
   AMG_param *amgparam = precdata->amgparam;
   AMG_data **mgl = precdata->mgl;
-
-  INT i;
 
   const INT N0 = A->blocks[0]->row;
   const INT N1 = A->blocks[3]->row;

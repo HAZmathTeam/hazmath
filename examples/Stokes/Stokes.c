@@ -341,7 +341,8 @@ int main (int argc, char* argv[])
     if(uy_on_V) free( uy_on_V );
     if(dim==3)
       if(uz_on_V) free( uz_on_V );
-    if(p_on_V) free( p_on_V );
+    if(order_p!=1)    
+      if(p_on_V) free( p_on_V );
     if(sol_on_V) free(sol_on_V);
   }
   /************ Free All the Arrays ***********************************************************/
