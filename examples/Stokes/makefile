@@ -1,47 +1,44 @@
 #####################################################
-# Last Modified 2012-07-21 --jha
+# Last Modified 2017-02-11 --jha
 ####################################################
 
-# Different Executable Programs
-EXE = stokes.ex
+# SRC File name
+SRCFILE = Stokes
 
-# Generic Directories
-DIR0 = .
-#XH
-#SSDIR = /usr/local
-#JA
-SSDIR = /opt/local
-# Polaris
-#SSDIR = /usr/local/numerics/suitesparse
+# Different Executable Programs
+EXE = $(SRCFILE).ex
 
 # Machine Specific Compilers and Libraries
-# APPLE MACHINES
 CC = gcc
 FC = gfortran
 CXX = g++
 CFLAGS = -g 
 FFLAGS = -g -fno-second-underscore
-LDFLAGS = -g
+ExtraFLAGS =
+
+# HAZMAT
+HAZDIR=../..
+HAZLIB = $(HAZDIR)/lib
+HAZINCLUDE = -I$(HAZDIR)/include
+
+# SuiteSparse  
+#XH (Linux)
+#SSDIR = /usr/local
+#JA (Macports)
+SSDIR = /opt/local
+# Polaris 
+#SSDIR = /usr/local/numerics/suitesparse
 SSINCLUDE = -I$(SSDIR)/include
 SSLIB = -L$(SSDIR)/lib -lsuitesparseconfig -lcholmod -lamd -lcolamd -lccolamd -lcamd -lspqr -lumfpack -lamd -lcxsparse 
 
-# HAZMAT Location
-HAZDIR=../..
-LIB = $(HAZDIR)/lib
-HAZINCLUDE = -I$(HAZDIR)/include
-
-INCLUDE = $(SSINCLUDE) $(HAZINCLUDE)
-
+# Source and Object Files
 SRC = .
-SRCex = $(SRC)/Stokes.c
-
-OBJex = $(SRC)/Stokes.o
-
-OBJS= $(LIB)/libhazmat.a	
-
-OBJSex = $(OBJex) $(OBJS) 
+SRCex = $(SRC)/$(SRCFILE).c
+OBJex = $(SRC)/$(SRCFILE).o
+OBJSex = $(OBJex) $(HAZLIB)/libhazmat.a 
 
 # Include all Libraries including UMFPACK, its dependencies, BLAS, and LAPACK
+INCLUDE = $(SSINCLUDE) $(HAZINCLUDE)
 LIBS = -lm -lblas -llapack -lgfortran $(SSLIB)
 
 .PHONY: all
@@ -49,7 +46,7 @@ LIBS = -lm -lblas -llapack -lgfortran $(SSLIB)
 all: $(EXE)
 
 $(EXE): $(OBJSex)
-	$(CC) $(LDFLAGS) $(OBJSex) $(INCLUDE) $(LIBS) -o $(EXE) 
+	$(CC) $(ExtraFLAGS) $(OBJSex) $(INCLUDE) $(LIBS) -o $(EXE) 
 
 %.o:	%.c
 	$(CC) $(INCLUDE) $(CFLAGS) -o $@ -c  $< $(PROFFLAG)
