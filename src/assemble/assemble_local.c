@@ -398,12 +398,12 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinat
 
 /****** Boundary Assemblies *******************/
 /******************************************************************************************************/
-void boundary_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_f, \
-                         INT *dof_on_elm,INT *v_on_elm,INT face,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
+void boundary_mass_local(REAL* MLoc,dvector* old_sol,fespace *FE,trimesh *mesh,qcoordinates *cq, \
+                         INT *dof_on_f,INT *dof_on_elm,INT *v_on_elm,INT face,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
 {
   /*!
-   * \fn void boundary_mass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_f, \
-                         INT *dof_on_elm,INT *v_on_elm,INT face,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
+   * \fn void boundary_mass_local(REAL* MLoc,dvector* old_sol,fespace *FE,trimesh *mesh,qcoordinates *cq, \
+                         INT *dof_on_f,INT *dof_on_elm,INT *v_on_elm,INT face,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
    *
    * \brief Computes the local weak formulation of the mass matrix on a boundary face (3D -> 2D surface; 2D -> 1D curve)
    *         For this problem we compute the left-hand side of:
@@ -411,6 +411,7 @@ void boundary_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
    *         <u,v>_bdryobstacle    for all v
    *
    * \param FE            FE Space
+   * \param old_sol       Old solution on FE space (not used here).
    * \param mesh          Mesh Data
    * \param cq            Quadrature Nodes
    * \param dof_on_f      Specific DOF on the given face
