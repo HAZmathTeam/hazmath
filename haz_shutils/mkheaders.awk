@@ -30,6 +30,7 @@ BEGIN {
   print "#include \"vec.h\""
   print "#include \"fem.h\""
   print "#include \"solver.h\""
+  print "#include \"nonlinear.h\""
   print "#include \"timestep.h\""
   print "#include \"param.h\""
   print "// Special Includes"

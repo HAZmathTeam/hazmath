@@ -1,4 +1,4 @@
-/*! \file src/grid/mesh_input.c   
+/*! \file src/grid/mesh_io.c   
  *
  *  Created by James Adler and Xiaozhe Hu on 1/9/15.
  *  Copyright 2015__HAZMAT__. All rights reserved.
