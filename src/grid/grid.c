@@ -1,4 +1,4 @@
-/*! \file src/nonlinear/newton.c
+/*! \file src/grid/grid.c
  *
  * \brief Obtains generic routines for initializing, building, and creating mesh data.
  *

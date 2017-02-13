@@ -55,7 +55,7 @@ typedef struct newton{
   //! RHS of Newton Iteration (nonlinear residual f- (A(sol_prev))
   dvector* rhs;
 	
-} timestepper;
+} newton;
 
 
 #endif
