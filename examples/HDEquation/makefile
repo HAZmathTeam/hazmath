@@ -9,9 +9,9 @@ SRCFILE = HDEquation
 EXE = $(SRCFILE).ex
 
 # Machine Specific Compilers and Libraries
-CC = gcc
-FC = gfortran
-CXX = g++
+CC = gcc-mp-5
+FC = gfortran-mp-5
+CXX = g++-mp-5
 CFLAGS = -g 
 FFLAGS = -g -fno-second-underscore
 ExtraFLAGS =
