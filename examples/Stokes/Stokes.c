@@ -50,9 +50,6 @@ int main (int argc, char* argv[])
   printf("\nCreating mesh and FEM spaces:\n");
   FILE* gfid = HAZ_fopen(inparam.gridfile,"r");
 
-  // Dimension is needed for all this to work
-  INT dim = inparam.dim;
-
   // Create the mesh (now we assume triangles in 2D or tetrahedra in 3D)
   // File types possible are 0 - old format; 1 - vtk format
   INT mesh_type = 0;
@@ -62,7 +59,7 @@ int main (int argc, char* argv[])
   initialize_mesh(&mesh);
   creategrid_fread(gfid,mesh_type,&mesh);
   fclose(gfid);
-  dim = mesh.dim;
+  INT dim = mesh.dim;
 
   // Get Quadrature Nodes for the Mesh
   INT nq1d = inparam.nquad; /* Quadrature points per dimension */
@@ -70,8 +67,8 @@ int main (int argc, char* argv[])
 
   // Get info for and create FEM spaces
   // Order of elements: 0 - P0; 1 - P1; 2 - P2; 20 - Nedlec; 30 - Raviart-Thomas
-  INT order_u = inparam.FE_type_velocity;
-  INT order_p = inparam.FE_type_pressure;
+  INT order_u = 2;
+  INT order_p = 1;
 
   // Need Spaces for each component of the velocity plus pressure
   fespace FE_ux; // Velocity in x direction

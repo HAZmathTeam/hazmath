@@ -39,9 +39,9 @@ typedef struct {
     // genearal parameters
     INT nquad;          /**< quadature nodes in each direction */
     
-    // parameters for H(D) equations
+    // parameters for H(D) equations (examples only)
     INT FE_type;        /**< finite element type */
-    
+
     //----------------------------
     // time steppng paramters
     //----------------------------
