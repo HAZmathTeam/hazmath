@@ -57,18 +57,7 @@ void param_input (const char *filenm,
         }
     
         // match keyword and scan for value
-        if (strcmp(buffer,"workdir")==0) {
-            val = fscanf(fp,"%s",buffer);
-            if (val!=1 || strcmp(buffer,"=")!=0) {
-                status = ERROR_INPUT_PAR; break;
-            }
-            val = fscanf(fp,"%s",sbuff);
-            if (val!=1) { status = ERROR_INPUT_PAR; break; }
-            strncpy(inparam->workdir,sbuff,128);
-            fgets(buffer,500,fp); // skip rest of line
-        }
-    
-        else if (strcmp(buffer,"print_level")==0) {
+        if (strcmp(buffer,"print_level")==0) {
             val = fscanf(fp,"%s",buffer);
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
@@ -78,18 +67,7 @@ void param_input (const char *filenm,
             inparam->print_level = ibuff;
             fgets(buffer,500,fp); // skip rest of line
         }
-    
-        else if (strcmp(buffer,"output_type")==0) {
-            val = fscanf(fp,"%s",buffer);
-            if (val!=1 || strcmp(buffer,"=")!=0) {
-                status = ERROR_INPUT_PAR; break;
-            }
-            val = fscanf(fp,"%d",&ibuff);
-            if (val!=1) { status = ERROR_INPUT_PAR; break; }
-            inparam->output_type = ibuff;
-            fgets(buffer,500,fp); // skip rest of line
-        }
-        
+
         else if (strcmp(buffer,"gridfile")==0) {
             val = fscanf(fp,"%s",buffer);
             if (val!=1 || strcmp(buffer,"=")!=0) {
@@ -100,15 +78,15 @@ void param_input (const char *filenm,
             strncpy(inparam->gridfile,sbuff,128);
             fgets(buffer,500,fp); // skip rest of line
         }
-        
-        else if (strcmp(buffer,"dim")==0) {
+
+        else if (strcmp(buffer,"output_dir")==0) {
             val = fscanf(fp,"%s",buffer);
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%s",sbuff);
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
-            inparam->dim = ibuff;
+            strncpy(inparam->output_dir,sbuff,128);
             fgets(buffer,500,fp); // skip rest of line
         }
         
@@ -134,28 +112,6 @@ void param_input (const char *filenm,
             fgets(buffer,500,fp); // skip rest of line
         }
         
-        else if (strcmp(buffer,"FE_type_velocity")==0) {
-            val = fscanf(fp,"%s",buffer);
-            if (val!=1 || strcmp(buffer,"=")!=0) {
-                status = ERROR_INPUT_PAR; break;
-            }
-            val = fscanf(fp,"%d",&ibuff);
-            if (val!=1) { status = ERROR_INPUT_PAR; break; }
-            inparam->FE_type_velocity = ibuff;
-            fgets(buffer,500,fp); // skip rest of line
-        }
-        
-        else if (strcmp(buffer,"FE_type_pressure")==0) {
-            val = fscanf(fp,"%s",buffer);
-            if (val!=1 || strcmp(buffer,"=")!=0) {
-                status = ERROR_INPUT_PAR; break;
-            }
-            val = fscanf(fp,"%d",&ibuff);
-            if (val!=1) { status = ERROR_INPUT_PAR; break; }
-            inparam->FE_type_pressure = ibuff;
-            fgets(buffer,500,fp); // skip rest of line
-        }
-    
         else if (strcmp(buffer,"time_step_type")==0) {
             val = fscanf(fp,"%s",buffer);
             if (val!=1 || strcmp(buffer,"=")!=0) {
@@ -197,6 +153,17 @@ void param_input (const char *filenm,
             val = fscanf(fp,"%d",&ibuff);
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->rhs_time_dep = ibuff;
+            fgets(buffer,500,fp); // skip rest of line
+        }
+
+        else if (strcmp(buffer,"nonlinear_itsolver_type")==0) {
+            val = fscanf(fp,"%s",buffer);
+            if (val!=1 || strcmp(buffer,"=")!=0) {
+                status = ERROR_INPUT_PAR; break;
+            }
+            val = fscanf(fp,"%d",&ibuff);
+            if (val!=1) { status = ERROR_INPUT_PAR; break; }
+            inparam->nonlinear_itsolver_type = ibuff;
             fgets(buffer,500,fp); // skip rest of line
         }
         

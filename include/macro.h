@@ -23,8 +23,6 @@
 #define STAG_RATIO       1e-4  /**< Stagnation tolerance = tol*STAGRATIO */
 #define MAX_STAG         20    /**< Maximal number of stagnation times */
 #define MAX_RESTART      20    /**< Maximal number of restarting for BiCGStab */
-#define OPENMP_HOLDS     2000  /**< Switch to sequence version when size is small */
-
 
 /**
  * \brief Definition of return status and error messages
@@ -102,7 +100,13 @@
 #define REAL             double     /**< float type */
 
 /**
- * \brief Definition of solver types for iterative methods
+ * \brief Definition of solver types for nonlinear methods
+ */
+#define NONLINEAR_NEWTON          0  /**< Newton's Method */
+#define NONLINEAR_PICARD          1  /**< Picard Iterations */
+
+/**
+ * \brief Definition of solver types for linear iterative methods
  */
 #define SOLVER_DEFAULT          0  /**< Use default solver */
 //---------------------------------------------------------------------------------

@@ -25,28 +25,22 @@ typedef struct {
     // output flags
     //----------------
     SHORT print_level;   /**< print level */
-    SHORT output_type;   /**< type of output stream */
     
     //----------------
     // files
     //----------------
-    char workdir[256];   /**< working directory for data files */
-    char inifile[256];   /**< ini file name */
+    char inifile[256];   /**< input parameter file name */
     char gridfile[256];  /**< grid file name */
+    char output_dir[256];   /**< output directory */
     
     //--------------------------
     // finite element parameters
     //--------------------------
     // genearal parameters
-    INT dim;            /**< dimension */
     INT nquad;          /**< quadature nodes in each direction */
     
     // parameters for H(D) equations
     INT FE_type;        /**< finite element type */
-    
-    // paramters for Stokes/NS equations
-    INT FE_type_velocity;   /**< finite element type for velocity */
-    INT FE_type_pressure;    /**< finite element type for pressure */
     
     //----------------------------
     // time steppng paramters
@@ -59,6 +53,7 @@ typedef struct {
     //----------------------------
     // nonlinear solver parameters
     //----------------------------
+    INT nonlinear_itsolver_type;      /**< type of nonlinear solver */
     INT  nonlinear_itsolver_maxit;   /**< maximal iterations of nonlinear solver*/
     REAL nonlinear_itsolver_tol;    /**< tolerance for nonlinear solver */
     INT  nonlinear_itsolver_toltype; /**< type of stopping tolerance for nonlinear solver */

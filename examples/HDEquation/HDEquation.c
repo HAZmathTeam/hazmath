@@ -258,9 +258,6 @@ int main (int argc, char* argv[])
   printf("\nCreating mesh and FEM spaces:\n");
   FILE* gfid = HAZ_fopen(inparam.gridfile,"r");
     
-  // Dimension is needed for all this to work
-  INT dim = inparam.dim;
-    
   // Create the mesh
   // File types possible are 0 - HAZ format; 1 - VTK format
   INT mesh_type = 0;
@@ -269,6 +266,9 @@ int main (int argc, char* argv[])
   printf(" --> loading grid from file: %s\n",inparam.gridfile);
   creategrid_fread(gfid,mesh_type,&mesh);
   fclose(gfid);
+
+  // Dimension is needed for all this to work
+  INT dim = mesh.dim;
     
   // Get Quadrature Nodes for the Mesh
   INT nq1d = inparam.nquad; // Quadrature points per dimension
@@ -461,7 +461,6 @@ int main (int argc, char* argv[])
   // Set parameters for linear iterative methods
   linear_itsolver_param linear_itparam;
   param_linear_solver_set(&linear_itparam, &inparam);
-  param_linear_solver_print(&linear_itparam);
     
   // Set parameters for algebriac multigrid methods
   AMG_param amgparam;
@@ -473,7 +472,6 @@ int main (int argc, char* argv[])
   ILU_param iluparam;
   param_ilu_init(&iluparam);
   param_ilu_set(&iluparam, &inparam);
-  param_ilu_print(&iluparam);
 
   // Data for HX preconditioner
   dCSRmat P_curl;
@@ -600,15 +598,17 @@ int main (int argc, char* argv[])
   /*******************************************************************/
     
   /**************** Print Results or Dump Results ********************/
-  if (inparam.output_type==2) {
-    char solout[20];
-    sprintf(solout,"output/sol.vtu");
+  if (inparam.output_dir != NULL) {
+    char solout[128];
+    strncpy(solout,inparam.output_dir,128);
+    strcat(solout,"sol.vtu");
     dump_sol_onV_vtk(solout,&mesh,u.val,1);
 
     dvector true_sol = dvec_create(FE.ndof);
     FE_Evaluate(true_sol.val,truesol_1D_PX,&FE,&mesh,0.0);
-    char trueout[20];
-    sprintf(trueout,"output/true.vtu");
+    char trueout[128];
+    strncpy(trueout,inparam.output_dir,128);
+    strcat(trueout,"true.vtu");
     dump_sol_onV_vtk(trueout,&mesh,true_sol.val,1);
     dvec_free(&true_sol);
   }
