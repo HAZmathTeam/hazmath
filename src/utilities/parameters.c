@@ -26,28 +26,22 @@ void param_input_init (input_param *inparam)
     // output flags
     //----------------
     inparam->print_level              = PRINT_SOME;
-    inparam->output_type              = 0;
-    
+
     //----------------
     // files
     //----------------
-    strcpy(inparam->workdir,"./");
     strcpy(inparam->inifile,"./input.dat");
     strcpy(inparam->gridfile,"../grids/2D/unitSQ_hp125.dat");
+    strcpy(inparam->output_dir,"./output/");
     
     //--------------------------
     // finite element parameters
     //--------------------------
     // general parameter
-    inparam->dim                      = 2;
     inparam->nquad                    = 2;
     
     // parameters for H(D) equations
     inparam->FE_type                  = 1;
-    
-    // paramters for Stokes/NS equations
-    inparam->FE_type_velocity         = 2;
-    inparam->FE_type_pressure         = 0;
     
     //----------------------------
     // time steppng paramters
@@ -59,8 +53,10 @@ void param_input_init (input_param *inparam)
     //----------------------------
     // nonlinear solver parameters
     //----------------------------
-    inparam->nonlinear_itsolver_maxit = 6;
-    inparam->nonlinear_itsolver_tol   = 1e-6;
+    inparam->nonlinear_itsolver_type    = 0;
+    inparam->nonlinear_itsolver_maxit   = 6;
+    inparam->nonlinear_itsolver_tol     = 1e-6;
+    inparam->nonlinear_itsolver_toltype	= 0;
     
     //-------------------------
     // linear solver parameters
@@ -84,15 +80,15 @@ void param_input_init (input_param *inparam)
     
     // AMG method parameters
     inparam->AMG_type                 = UA_AMG;
-    inparam->AMG_levels               = 20;
+    inparam->AMG_levels               = 10;
     inparam->AMG_cycle_type           = V_CYCLE;
     inparam->AMG_smoother             = SMOOTHER_GS;
     inparam->AMG_smooth_order         = NO_ORDER;
     inparam->AMG_presmooth_iter       = 1;
     inparam->AMG_postsmooth_iter      = 1;
-    inparam->AMG_polynomial_degree        = 2;
+    inparam->AMG_polynomial_degree    = 2;
     inparam->AMG_relaxation           = 1.2;
-    inparam->AMG_coarse_dof           = 500;
+    inparam->AMG_coarse_dof           = 100;
     inparam->AMG_coarse_solver        = SOLVER_DEFAULT;
     inparam->AMG_tol                  = 1e-6;
     inparam->AMG_maxit                = 1;
@@ -115,7 +111,7 @@ void param_input_init (input_param *inparam)
     inparam->AMG_aggregation_type     = VMB;
     inparam->AMG_quality_bound        = 8.0;
     inparam->AMG_pair_number          = 2;
-    inparam->AMG_strong_coupled       = 0.08;
+    inparam->AMG_strong_coupled       = 0.00;
     inparam->AMG_max_aggregation      = 20;
 
     // HX Preconditioner
@@ -143,7 +139,7 @@ void param_amg_init (AMG_param *amgparam)
     amgparam->print_level          = PRINT_NONE;
     amgparam->maxit                = 1;
     amgparam->tol                  = 1e-6;
-    amgparam->max_levels           = 20;
+    amgparam->max_levels           = 10;
     amgparam->coarse_dof           = 100;
     amgparam->cycle_type           = V_CYCLE;
     amgparam->smoother             = SMOOTHER_GS;
@@ -156,7 +152,7 @@ void param_amg_init (AMG_param *amgparam)
     amgparam->coarse_scaling       = OFF;
     amgparam->amli_degree          = 2;
     amgparam->amli_coef            = NULL;
-    amgparam->nl_amli_krylov_type  = SOLVER_GCG;
+    amgparam->nl_amli_krylov_type  = SOLVER_VFGMRES;
     
     // Classical AMG specific
     amgparam->coarsening_type      = COARSE_C;
@@ -171,14 +167,14 @@ void param_amg_init (AMG_param *amgparam)
     amgparam->aggregation_type     = VMB;
     amgparam->quality_bound        = 8.0;
     amgparam->pair_number          = 2;
-    amgparam->strong_coupled       = 0.25;
+    amgparam->strong_coupled       = 0.00;
     amgparam->max_aggregation      = 20;
     
     // ILU smoother parameters
-    amgparam->ILU_type             = ILUk;
+    amgparam->ILU_type             = ILUt;
     amgparam->ILU_levels           = 0;
     amgparam->ILU_lfil             = 0;
-    amgparam->ILU_droptol          = 0.001;
+    amgparam->ILU_droptol          = 0.01;
     amgparam->ILU_relax            = 0;
     
     // Schwarz smoother parameters
@@ -203,7 +199,7 @@ void param_ilu_init (ILU_param *iluparam)
     
     iluparam->print_level  = PRINT_NONE;
     iluparam->ILU_type     = ILUt;
-    iluparam->ILU_lfil     = 2;
+    iluparam->ILU_lfil     = 0;
     iluparam->ILU_droptol  = 0.01;
     iluparam->ILU_relax    = 0;
     iluparam->ILU_permtol  = 0.01;
@@ -227,7 +223,7 @@ void param_linear_solver_init (linear_itsolver_param *itsparam)
     itsparam->linear_precond_type  = PREC_NULL;
     itsparam->linear_stop_type     = STOP_REL_RES;
     itsparam->linear_maxit         = 500;
-    itsparam->linear_restart       = 50;
+    itsparam->linear_restart       = 100;
     itsparam->linear_tol           = 1e-6;
     
     // HX preconditioner
@@ -455,6 +451,7 @@ void param_amg_print (AMG_param *amgparam)
         printf("AMG tolerance:                     %.2e\n", amgparam->tol);
         printf("AMG max levels:                    %d\n", amgparam->max_levels);
         printf("AMG cycle type:                    %d\n", amgparam->cycle_type);
+        printf("AMG coarse dof:                    %d\n", amgparam->coarse_dof);
         printf("AMG coarse solver type:            %d\n", amgparam->coarse_solver);
         printf("AMG scaling of coarse correction:  %d\n", amgparam->coarse_scaling);
         printf("AMG smoother type:                 %d\n", amgparam->smoother);
