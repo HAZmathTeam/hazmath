@@ -47,14 +47,14 @@ void param_input_init (input_param *inparam)
     // time steppng paramters
     //----------------------------
     inparam->time_step_type           = 0;
-    inparam->time_steps               = 2;
+    inparam->time_steps               = 0;
     inparam->time_step_size           = 0.01;
     
     //----------------------------
     // nonlinear solver parameters
     //----------------------------
     inparam->nonlinear_itsolver_type    = 0;
-    inparam->nonlinear_itsolver_maxit   = 6;
+    inparam->nonlinear_itsolver_maxit   = 0;
     inparam->nonlinear_itsolver_tol     = 1e-6;
     inparam->nonlinear_itsolver_toltype	= 0;
     
