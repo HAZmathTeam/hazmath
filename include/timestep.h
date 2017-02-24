@@ -16,14 +16,17 @@
 /**
  * \struct timestepper
  * \brief Returns timestepping data
+ *
+ * \note Assume the form: d(Mu)/dt + L(u) = f
+ *        After timestepping we get: A_time*u = rhs_time
+ * For now we assume the following time-steppers:
+ *   CN: (M + 0.5*dt*A)u = 0.5*dt*(fprev+f) + M*uprev - 0.5*dt*L(uprev)
+ *   BDF-1: (M + dt*A)u = dt*f + M*uprev
+ *   BDF-k: (ak*M + bk*dt*A)u = bk*dt*f + \sum_{s=0:k-1} as*M*u_s
+ * Here, A is the discretization of L.
+ * Note that L can be nonlinear, so A represents the discrete Gateaux derivative of L, L'
+ * In the linear case, L(uprev) = A*uprev (=> L = mat-vec and Ldata = A)
  */
-// Assume the form: d(Mu)/dt + L(u) = f
-// After timestepping we get: A_time*u = rhs_time
-// For now we assume the following time-steppers:
-// CN: (M + 0.5*dt*A)u = 0.5*dt*(fprev+f) + (M*uprev - 0.5*dt*L(uprev)
-// BDF1: (M + dt*A)u = dt*f + M*uprev
-// Here, A is the discretization of L.
-// Note that L can be nonlinear, so A represents the discrete Gateaux derivative of L
 typedef struct timestepper{
 
   //! Number of Time Steps
@@ -43,9 +46,6 @@ typedef struct timestepper{
 
   //! Indicates if RHS is time-dependent
   INT rhs_timedep;
-
-  //! Indicate if problem is nonlinear
-  INT isnonlin;
 
   //! Current time step
   INT current_step;
@@ -91,15 +91,18 @@ typedef struct timestepper{
 /**
  * \struct block_timestepper
  * \brief Returns timestepping data
+ *
+ * \note Assume the form: d(Mu)/dt + L(u) = f
+ *        After timestepping we get: A_time*u = rhs_time
+ * For now we assume the following time-steppers:
+ *   CN: (M + 0.5*dt*A)u = 0.5*dt*(fprev+f) + M*uprev - 0.5*dt*L(uprev)
+ *   BDF-1: (M + dt*A)u = dt*f + M*uprev
+ *   BDF-k: (ak*M + bk*dt*A)u = bk*dt*f + \sum_{s=0:k-1} as*M*u_s
+ * Here, A is the discretization of L.
+ * Note that L can be nonlinear, so A represents the discrete Gateaux derivative of L, L'
+ * In the linear case, L(uprev) = A*uprev (=> L = mat-vec and Ldata = A)
+ * Assumes the matrices are all block_dcsr
  */
-// Assume the form: d(Mu)/dt + L(u) = f
-// After timestepping we get: A_time*u = rhs_time
-// For now we assume the following time-steppers:
-// CN: (M + 0.5*dt*A)u = 0.5*dt*(fprev+f) + (M*uprev - 0.5*dt*L(uprev)
-// BDF1: (M + dt*A)u = dt*f + M*uprev
-// Here, A is the discretization of L.
-// Note that L can be nonlinear, so A represents the discrete Gateaux derivative of L
-// Assumes the matrices are all block_dcsr
 typedef struct block_timestepper{
 
   //! Number of Time Steps
@@ -119,9 +122,6 @@ typedef struct block_timestepper{
 
   //! Indicates if RHS is time-dependent
   INT rhs_timedep;
-
-  //! Indicate if problem is nonlinear
-  INT isnonlin;
 
   //! Current time step
   INT current_step;

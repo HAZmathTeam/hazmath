@@ -22,6 +22,15 @@ void initialize_timestepper(timestepper *tstepper,input_param *inparam)
    *
    * \return tstepper     Struct for Timestepping
    *
+   * \note Assume the form: d(Mu)/dt + L(u) = f
+   *       After timestepping we get: A_time*u = rhs_time
+   *       For now we assume the following time-steppers:
+   *        CN: (M + 0.5*dt*A)u = 0.5*dt*(fprev+f) + M*uprev - 0.5*dt*L(uprev)
+   *        BDF-1: (M + dt*A)u = dt*f + M*uprev
+   *        BDF-k: (ak*M + bk*dt*A)u = bk*dt*f + \sum_{s=0:k-1} as*M*u_s
+   *       Here, A is the discretization of L.
+   *       Note that L can be nonlinear, so A represents the discrete Gateaux derivative of L, L'
+   *       In the linear case, L(uprev) = A*uprev (=> L = mat-vec and Ldata = A)
    */
 
   // Number of time steps
@@ -48,14 +57,6 @@ void initialize_timestepper(timestepper *tstepper,input_param *inparam)
   tstepper->time = 0.0;
 
   // Matrices and Vectors
-  // Assume the form: d(Mu)/dt + L(u) = f
-  // After timestepping we get: A_time*u = rhs_time
-  // For now we assume the following time-steppers:
-  // CN: (M + 0.5*dt*A)u = 0.5*dt*(fprev+f) + (M*uprev - 0.5*dt*L(uprev)
-  // BDF1: (M + dt*A)u = dt*f + M*uprev
-  // Here, A is the discretization of L.
-  // Note that L can be nonlinear, so A represents the discrete Gateaux derivative of L
-
   tstepper->M=NULL;
   tstepper->A=NULL;
   tstepper->At=malloc(sizeof(struct dCSRmat)); /* A_time */
@@ -68,10 +69,8 @@ void initialize_timestepper(timestepper *tstepper,input_param *inparam)
 
   // Set L operator for RHS (L=A if linear, otherwise call an assembly)
   if(inparam->nonlinear_itsolver_type==0) { // Linear
-    tstepper->isnonlin = 0;
     tstepper->L=dcsr_mxv_1_forts;
   } else {
-    tstepper->isnonlin = 1;
     tstepper->L=NULL;
   }
   tstepper->Ldata=NULL;
@@ -252,11 +251,6 @@ void update_time_rhs(timestepper *ts)
    * \fn void update_time_rhs(timestepper *ts)
    *
    * \brief Updates the right-hand side for a timestepping scheme
-   *        Assume the form: M du/dt + L(u) = f
-   *        After timestepping we get: A_time*u = rhs_time
-   *        For now we assume the following time-steppers:
-   *         CN:   (M + 0.5*dt*A)u = 0.5*dt*(fprev+f) + M*uprev - 0.5*dt*L(uprev)
-   *         BDF1: (M + dt*A)u = dt*f + M*uprev
    *
    * \param ts            Timestepping struct
    *
@@ -341,205 +335,213 @@ void update_time_rhs(timestepper *ts)
 }
 /******************************************************************************************************/
 
-////**** BLOCK Versions ******/
-///******************************************************************************************************/
-//void initialize_block_timestepper(block_timestepper *tstepper,input_param *inparam)
+//**** BLOCK Versions ******/
+/******************************************************************************************************/
+void initialize_blktimestepper(block_timestepper *tstepper,input_param *inparam)
+{
+  /*!
+   * \fn void initialize_blktimestepper(block_timestepper *tstepper,input_param *inparam)
+   *
+   * \brief Initialize the BLOCK timestepping struct.
+   *
+   * \param inparam       Input from input parameter list
+   *
+   * \return tstepper     Struct for Block Timestepping
+   *
+   * \note Assume the form: d(Mu)/dt + L(u) = f
+   *       After timestepping we get: A_time*u = rhs_time
+   *       For now we assume the following time-steppers:
+   *        CN: (M + 0.5*dt*A)u = 0.5*dt*(fprev+f) + M*uprev - 0.5*dt*L(uprev)
+   *        BDF-1: (M + dt*A)u = dt*f + M*uprev
+   *        BDF-k: (ak*M + bk*dt*A)u = bk*dt*f + \sum_{s=0:k-1} as*M*u_s
+   *       Here, A is the discretization of L.
+   *       Note that L can be nonlinear, so A represents the discrete Gateaux derivative of L, L'
+   *       In the linear case, L(uprev) = A*uprev (=> L = mat-vec and Ldata = A)
+   */
+
+  // Number of time steps
+  tstepper->tsteps = inparam->time_steps;
+
+  // Time step size
+  tstepper->dt = inparam->time_step_size;
+
+  // Time step Scheme
+  tstepper->time_scheme = inparam->time_step_type;
+  if(tstepper->time_scheme==0) {
+    sprintf(tstepper->time_scheme_str,"Crank-Nicolson");
+    tstepper->old_steps = 1;
+  } else {
+    sprintf(tstepper->time_scheme_str,"BDF-%d",tstepper->time_scheme);
+    tstepper->old_steps = tstepper->time_scheme;
+  }
+
+  // Indicator if rhs or boundaries are time-dependent
+  tstepper->rhs_timedep = inparam->rhs_time_dep;
+
+  // Current Time and Time Step
+  tstepper->current_step = 0;
+  tstepper->time = 0.0;
+
+  // Matrices and Vectors
+  tstepper->M=NULL;
+  tstepper->A=NULL;
+  tstepper->At=malloc(sizeof(struct block_dCSRmat)); /* A_time */
+  tstepper->At_noBC=malloc(sizeof(struct block_dCSRmat)); /* A_time with no boundary elimination */
+  tstepper->sol_prev=malloc(sizeof(struct dvector)); /* uprev */
+  tstepper->sol=NULL;      /* u */
+  tstepper->rhs=NULL;     /* f */
+  tstepper->rhs_prev=malloc(sizeof(struct dvector)); /* fprev */
+  tstepper->rhs_time=malloc(sizeof(struct dvector));
+
+  // Set L operator for RHS (L=A if linear, otherwise call an assembly)
+  if(inparam->nonlinear_itsolver_type==0) { // Linear
+    tstepper->L=bdcsr_mxv_forts;
+  } else {
+    tstepper->L=NULL;
+  }
+  tstepper->Ldata=NULL;
+
+  return;
+}
+/******************************************************************************************************/
+
+/****************************************************************************************/
+void free_blktimestepper(block_timestepper* ts)
+{
+  /*!
+   * \fn free_blktimestepper(block_timestepper* ts)
+   *
+   * \brief Frees memory of arrays of BLOCK timestepping struct
+   *
+   * \return n_it   Freed struct for block Timestepping
+   *
+   */
+
+  if(ts->A) {
+    bdcsr_free(ts->A);
+    ts->A=NULL;
+  }
+
+  if(ts->M) {
+    bdcsr_free(ts->M);
+    ts->M=NULL;
+  }
+
+  if(ts->At) {
+    bdcsr_free(ts->At);
+    free(ts->At);
+    ts->At=NULL;
+  }
+
+  if(ts->At_noBC) {
+    bdcsr_free(ts->At_noBC);
+    free(ts->At_noBC);
+    ts->At_noBC=NULL;
+  }
+
+  if(ts->sol) {
+    dvec_free(ts->sol);
+    ts->sol=NULL;
+  }
+
+  if(ts->sol_prev) {
+    dvec_free(ts->sol_prev);
+      free(ts->sol_prev);
+      ts->sol_prev=NULL;
+  }
+
+  if(ts->rhs) {
+      dvec_free(ts->rhs);
+      ts->rhs=NULL;
+  }
+
+  if(ts->rhs_prev) {
+      dvec_free(ts->rhs_prev);
+      free(ts->rhs_prev);
+      ts->rhs_prev=NULL;
+  }
+
+  if(ts->rhs_time) {
+      dvec_free(ts->rhs_time);
+      free(ts->rhs_time);
+      ts->rhs_time=NULL;
+  }
+
+  return;
+}
+/****************************************************************************************/
+
+/******************************************************************************************************/
+void update_blktimestep(block_timestepper *tstepper)
+{
+  /*!
+   * \fn void update_blktimestep(block_timestepper *tstepper)
+   *
+   * \brief Updates the BLOCK Timestepping data at each step.
+   *
+   * \return tstepper Updated block timestepping struct
+   *
+   */
+
+  INT i,j;
+  INT ndof = tstepper->sol->row;
+  dvector* solp1;
+  dvector* solp2;
+
+  // Counters and Physical Time
+  tstepper->current_step++;
+  tstepper->time = tstepper->current_step*tstepper->dt;
+
+  // If using BDF-k store last k timesteps
+  INT k = tstepper->old_steps;
+
+  // Solution
+  if(tstepper->current_step==1) {
+      dvec_alloc(k*ndof,tstepper->sol_prev);
+  }
+  for(i=1;i<k;i++) {
+    for(j=0;j<ndof;j++) {
+      tstepper->sol_prev->val[(k-i)*ndof+j] = tstepper->sol_prev->val[(k-i-1)*ndof+j];
+    }
+  }
+  for(j=0;j<ndof;j++) {
+    tstepper->sol_prev->val[j] = tstepper->sol->val[j];
+  }
+
+  // RHS
+  if(tstepper->current_step==1) {
+      dvec_alloc(k*tstepper->rhs->row,tstepper->rhs_prev);
+  }
+  for(i=1;i<k;i++) {
+    for(j=0;j<ndof;j++) {
+      tstepper->rhs_prev->val[(k-i)*ndof+j] = tstepper->rhs_prev->val[(k-i-1)*ndof+j];
+    }
+  }
+  for(j=0;j<ndof;j++) {
+    tstepper->rhs_prev->val[j] = tstepper->rhs->val[j];
+  }
+
+  return;
+}
+/******************************************************************************************************/
+
+/******************************************************************************************************/
+//void get_blktimeoperator(block_timestepper* ts)
 //{
 //  /*!
-//   * \fn void initialize_block_timestepper(block_timestepper *tstepper,input_param *inparam)
+//   * \fn void get_blktimeoperator(block_timestepper* ts)
 //   *
-//   * \brief Initialize the timestepping struct.
-//   *
-//   * \param inparam       Input from input parameter list
-//   *
-//   * \return tstepper     Struct for Block Timestepping
-//   *
-//   */
-
-//  // Number of time steps
-//  tstepper->tsteps = inparam->time_steps;
-
-//  // Time step size
-//  tstepper->dt = inparam->time_step_size;
-
-//  // Time step Scheme
-//  tstepper->time_scheme = inparam->time_step_type;
-//  if(tstepper->time_scheme==0) {
-//    sprintf(tstepper->time_scheme_str,"Crank-Nicolson");
-//    tstepper->old_steps = 1;
-//  } else {
-//    sprintf(tstepper->time_scheme_str,"BDF-%d",tstepper->time_scheme);
-//    tstepper->old_steps = tstepper->time_scheme;
-//  }
-
-//  // Indicator if rhs or boundaries are time-dependent
-//  tstepper->rhs_timedep = inparam->rhs_time_dep;
-
-//  // Current Time and Time Step
-//  tstepper->current_step = 0;
-//  tstepper->time = 0.0;
-
-//  // Matrices and Vectors
-//  // Assume the form: d(Mu)/dt + L(u) = f
-//  // After timestepping we get: A_time*u = rhs_time
-//  // For now we assume the following time-steppers:
-//  // CN: (M + 0.5*dt*A)u = 0.5*dt*(fprev+f) + (M*uprev - 0.5*dt*L(uprev)
-//  // BDF1: (M + dt*A)u = dt*f + M*uprev
-//  // Here, A is the discretization of L.
-//  // Note that L can be nonlinear, so A represents the discrete Gateaux derivative of L
-//  // All matrices are block_CSR
-//  tstepper->M=NULL;
-//  tstepper->A=NULL;
-//  tstepper->At=malloc(sizeof(struct block_dCSRmat)); /* A_time */
-//  tstepper->At_noBC=malloc(sizeof(struct block_dCSRmat)); /* A_time with no boundary elimination */
-//  tstepper->sol_prev=malloc(sizeof(struct dvector)); /* uprev */
-//  tstepper->sol=NULL;      /* u */
-//  tstepper->rhs=NULL;     /* f */
-//  tstepper->rhs_prev=malloc(sizeof(struct dvector)); /* fprev */
-//  tstepper->rhs_time=malloc(sizeof(struct dvector));
-
-//  // Set L operator for RHS (L=A if linear, otherwise call an assembly)
-//  if(tstepper->isnonlin) {
-//    tstepper->L=NULL;
-//  } else {
-//    tstepper->L=bdcsr_mxv_forts;
-//  }
-//  tstepper->Ldata=NULL;
-//  return;
-//}
-///******************************************************************************************************/
-
-///****************************************************************************************/
-//void free_block_timestepper(block_timestepper* ts)
-//{
-//  /*!
-//   * \fn void free_block_timestepper(block_timestepper* ts)
-//   *
-//   * \brief Frees memory of arrays of block_timestepping struct
-//   *
-//   * \return n_it         Freed struct for Block Timestepping
-//   *
-//   */
-
-//  if(ts->A) {
-//    bdcsr_free(ts->A);
-//    ts->A=NULL;
-//  }
-
-//  if(ts->M) {
-//    bdcsr_free(ts->M);
-//    ts->M=NULL;
-//  }
-
-//  if(ts->At) {
-//    bdcsr_free(ts->At);
-//    free(ts->At);
-//    ts->At=NULL;
-//  }
-
-//  if(ts->At_noBC) {
-//    bdcsr_free(ts->At_noBC);
-//    free(ts->At_noBC);
-//    ts->At_noBC=NULL;
-//  }
-
-//  if(ts->sol) {
-//    dvec_free(ts->sol);
-//    ts->sol=NULL;
-//  }
-
-//  if(ts->sol_prev) {
-//    dvec_free(ts->sol_prev);
-//      free(ts->sol_prev);
-//      ts->sol_prev=NULL;
-//  }
-
-//  if(ts->rhs) {
-//      dvec_free(ts->rhs);
-//      ts->rhs=NULL;
-//  }
-
-//  if(ts->rhs_prev) {
-//      dvec_free(ts->rhs_prev);
-//      free(ts->rhs_prev);
-//      ts->rhs_prev=NULL;
-//  }
-
-//  if(ts->rhs_time) {
-//      dvec_free(ts->rhs_time);
-//      free(ts->rhs_time);
-//      ts->rhs_time=NULL;
-//  }
-
-//  return;
-//}
-///****************************************************************************************/
-
-///******************************************************************************************************/
-//void update_block_timestep(block_timestepper *tstepper)
-//{
-//  /*!
-//   * \fn void update_block_timestep(block_timestepper *tstepper)
-//   *
-//   * \brief Updates the Timestepping data at each step.
-//   *
-//   * \return tstepper     Updated Block timestepping struct
-//   *
-//   */
-
-//INT i;
-//dvector* solp1;
-//dvector* solp2;
-
-//// Counters and Physical Time
-//tstepper->current_step++;
-//tstepper->time = tstepper->current_step*tstepper->dt;
-
-//// If using BDF-k store last k timesteps
-//INT k = tstepper->old_steps;
-
-//// Solution
-//if(tstepper->current_step==1) {
-//    dvec_alloc(k*tstepper->sol->row,tstepper->sol_prev);
-//    //dvec_set(k*tstepper->sol->row,tstepper->sol_prev,0.0);
-//}
-//for(i=1;i<k;i++) {
-//  solp1 = tstepper->sol_prev + (k-i-1)*tstepper->sol->row;
-//  solp2 = tstepper->sol_prev + (k-i)*tstepper->sol->row;
-//  dvec_cp(solp1,solp2);
-//}
-//dvec_cp(tstepper->sol,tstepper->sol_prev);
-
-//// RHS
-//if(tstepper->current_step==1) {
-//    dvec_alloc(k*tstepper->rhs->row,tstepper->rhs_prev);
-//    //dvec_set(k*tstepper->rhs->row,tstepper->rhs_prev,0.0);
-//}
-//for(i=1;i<k;i++) {
-//  solp1 = tstepper->sol_prev + (k-i-1)*tstepper->sol->row;
-//  solp2 = tstepper->sol_prev + (k-i)*tstepper->sol->row;
-//  dvec_cp(solp1,solp2);
-//}
-//dvec_cp(tstepper->rhs,tstepper->rhs_prev);
-
-//return;
-//}
-///******************************************************************************************************/
-
-///******************************************************************************************************/
-//void get_block_timeoperator(block_timestepper* ts)
-//{
-//  /*!
-//   * \fn void get_block_timeoperator(block_timestepper* ts)
-//   *
-//   * \brief Gets the matrix to solve for timestepping scheme
+//   * \brief Gets the matrix to solve for BLOCK timestepping scheme
 //   *        Assumes we have: M du/dt + L(u) = b
 //   *
-//   * \param ts            Block Timestepping struct
+//   * \param ts            block Timestepping struct
 //   *
-//   * \return ts.Atime     Block Matrix to solve with
+//   * \return ts.Atime     Matrix to solve with
 //   *
 //   */
+
+//  // Flag for errors
+//  SHORT status;
 
 //  REAL dt = ts->dt;
 //  INT time_scheme = ts->time_scheme;
@@ -566,92 +568,98 @@ void update_time_rhs(timestepper *ts)
 
 //  return;
 //}
-///******************************************************************************************************/
+/******************************************************************************************************/
 
-///******************************************************************************************************/
-//void update_block_time_rhs(block_timestepper *ts)
-//{
-//  /*!
-//   * \fn void update_block_time_rhs(block_timestepper *ts)
-//   *
-//   * \brief Updates the right-hand side for a timestepping scheme
-//   *        Assume the form: M du/dt + L(u) = f
-//   *        After timestepping we get: A_time*u = rhs_time
-//   *        For now we assume the following time-steppers:
-//   *         CN:   (M + 0.5*dt*A)u = 0.5*dt*(fprev+f) + M*uprev - 0.5*dt*L(uprev)
-//   *         BDF1: (M + dt*A)u = dt*f + M*uprev
-//   *
-//   * \param ts            Timestepping struct
-//   *
-//   * \return ts.rhstime   RHS to solve with
-//   *
-//   */
+/******************************************************************************************************/
+void update_blktime_rhs(block_timestepper *ts)
+{
+  /*!
+   * \fn void update_blktime_rhs(block_timestepper *ts)
+   *
+   * \brief Updates the right-hand side for a BLOCK timestepping scheme
+   *
+   * \param ts            block Timestepping struct
+   *
+   * \return ts.rhstime   RHS to solve with
+   *
+   */
 
-//  if(ts->current_step==1) {
-//      dvec_alloc(ts->rhs->row,ts->rhs_time);
-//  }
+  // Flag for errors
+  SHORT status;
 
-//  if(ts->time_scheme==0) { // Crank-Nicolson: (M + 0.5*dt*A)u = (M - 0.5*dt*L(uprev) + 0.5*dt*(b_old + b)
+  if(ts->current_step==1) {
+      dvec_alloc(ts->rhs->row,ts->rhs_time);
+  }
 
-//    block_dCSRmat Atemp;
-//    dvector btmp = dvec_create(ts->rhs->row);
-//    dvector Mu = dvec_create(ts->rhs->row);
-//    dvector Lu = dvec_create(ts->rhs->row);
+  if(ts->time_scheme==0) { // Crank-Nicolson: (M + 0.5*dt*A)u = (M - 0.5*dt*L(uprev) + 0.5*dt*(b_old + b)
 
-//    // Add new and old RHS
-//    dvec_axpyz(1.0,ts->rhs_prev,ts->rhs,&btmp);
-//    // btmp = 0.5*dt*(b_old+b)
-//    dvec_ax(0.5*ts->dt,&btmp);
+    dvector btmp = dvec_create(ts->rhs->row);
+    dvector Mu = dvec_create(ts->rhs->row);
+    dvector Lu = dvec_create(ts->rhs->row);
 
-//    // Obtain M*uprev
-//    bdcsr_mxv(ts->M,ts->sol_prev->val,Mu.val);
+    // Add new and old RHS
+    dvec_axpyz(1.0,ts->rhs_prev,ts->rhs,&btmp);
+    // btmp = 0.5*dt*(b_old+b)
+    dvec_ax(0.5*ts->dt,&btmp);
 
-//    // M*uprev + 0.5*dt(b_old+b)
-//    dvec_axpy(1.0,&Mu,&btmp);
+    // Obtain M*uprev
+    bdcsr_mxv(ts->M,ts->sol_prev->val,Mu.val);
 
-//    // Obtain L(uprev) (could be nonlinear)
-//    ts->L(ts->Ldata,ts->sol_prev->val,Lu.val);
+    // M*uprev + 0.5*dt(b_old+b)
+    dvec_axpy(1.0,&Mu,&btmp);
 
-//    // Compute updated RHS
-//    dvec_axpyz(-0.5*ts->dt,&Lu,&btmp,ts->rhs_time);
+    // Obtain L(uprev) (could be nonlinear)
+    ts->L(ts->Ldata,ts->sol_prev->val,Lu.val);
 
-//    // Free Atemp
-//    bdcsr_free(&Atemp);
-//    dvec_free(&btmp);
-//    dvec_free(&Mu);
-//    dvec_free(&Lu);
+    // Compute updated RHS
+    dvec_axpyz(-0.5*ts->dt,&Lu,&btmp,ts->rhs_time);
 
-//  } else if(ts->time_scheme==2) { // BDF-2: (M + (2/3)*dt*A)u = (4/3)*M*uprev - (1/3)*M*uprevprev + (2/3)*dt*b
+    dvec_free(&btmp);
+    dvec_free(&Mu);
+    dvec_free(&Lu);
 
-//    dvector btmp1 = dvec_create(ts->sol->row);
-//    dvector btmp2 = dvec_create(ts->sol->row);
-//    REAL* solprevptr;
+   } else if(ts->time_scheme==1) { // Backward Euler: (M + dt*A)u = M*uprev + dt*b
 
-//    // Get (4/3)*M*uprev
-//    bdcsr_mxv(ts->M,ts->sol_prev->val,btmp1.val);
-//    dvec_ax(4.0/3.0,&btmp1);
+    dvector btmp = dvec_create(ts->sol->row);
 
-//    // Get -(1/3)*M*uprevprev
-//    solprevptr = ts->sol_prev->val + ts->sol->row;
-//    bdcsr_mxv(ts->M,solprevptr,btmp2.val);
-//    dvec_ax(-1.0/3.0,&btmp2);
+    // Get M*uprev
+    bdcsr_mxv(ts->M,ts->sol_prev->val,btmp.val);
 
-//    // Add first two components
-//    dvec_axpy(1.0,&btmp1,&btmp2);
+    // Compute updated RHS
+    dvec_axpyz(ts->dt,ts->rhs,&btmp,ts->rhs_time);
 
-//    // Compute updated RHS
-//    dvec_axpyz((2.0/3.0)*ts->dt,ts->rhs,&btmp2,ts->rhs_time);
+    dvec_free(&btmp);
+  } else if(ts->time_scheme==2) { // BDF-2: (M + (2/3)*dt*A)u = (4/3)*M*uprev - (1/3)*M*uprevprev + (2/3)*dt*b
 
-//    dvec_free(&btmp1);
-//    dvec_free(&btmp2);
-//  } else {
-//    status = ERROR_TS_TYPE;
-//    check_error(status, __FUNCTION__);
-//  }
+    dvector btmp1 = dvec_create(ts->sol->row);
+    dvector btmp2 = dvec_create(ts->sol->row);
+    REAL* solprevptr;
 
-//  return;
-//}
-///******************************************************************************************************/
+    // Get (4/3)*M*uprev
+    bdcsr_mxv(ts->M,ts->sol_prev->val,btmp1.val);
+    dvec_ax(4.0/3.0,&btmp1);
+
+    // Get -(1/3)*M*uprevprev
+    solprevptr = ts->sol_prev->val + ts->sol->row;
+    bdcsr_mxv(ts->M,solprevptr,btmp2.val);
+    dvec_ax(-1.0/3.0,&btmp2);
+
+    // Add first two components
+    dvec_axpy(1.0,&btmp1,&btmp2);
+
+    // Compute updated RHS
+    dvec_axpyz((2.0/3.0)*ts->dt,ts->rhs,&btmp2,ts->rhs_time);
+
+    dvec_free(&btmp1);
+    dvec_free(&btmp2);
+  } else {
+    status = ERROR_TS_TYPE;
+    check_error(status, __FUNCTION__);
+  }
+
+  return;
+}
+/******************************************************************************************************/
 
 // OLD STUFF NEEDED FOR MAXWELL RUNS
 
