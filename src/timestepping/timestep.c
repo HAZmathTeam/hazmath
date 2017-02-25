@@ -159,8 +159,6 @@ void update_timestep(timestepper *tstepper)
 
   INT i,j;
   INT ndof = tstepper->sol->row;
-  dvector* solp1;
-  dvector* solp2;
 
   // Counters and Physical Time
   tstepper->current_step++;
@@ -485,8 +483,6 @@ void update_blktimestep(block_timestepper *tstepper)
 
   INT i,j;
   INT ndof = tstepper->sol->row;
-  dvector* solp1;
-  dvector* solp2;
 
   // Counters and Physical Time
   tstepper->current_step++;
