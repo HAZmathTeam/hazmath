@@ -104,6 +104,7 @@ int main (int argc, char* argv[])
   // Time stepping parameters
   timestepper time_stepper;
   initialize_timestepper(&time_stepper,&inparam);
+  time_stepper.rhs_timedep = 0; // RHS is not time-dependent
 
   // Get info for and create FEM spaces
   // Order of Elements: 0 - P0; 1 - P1; 2 - P2
