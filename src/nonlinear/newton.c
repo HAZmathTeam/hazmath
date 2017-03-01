@@ -164,7 +164,7 @@ int check_newton_convergence(newton *n_it,fespace* FE,trimesh* mesh, qcoordinate
     int newton_stop = 0;
     REAL tol = n_it->tol;
     REAL res_norm = L2norm(n_it->rhs->val,FE,mesh,cq);
-    REAL update_norm = L2norm(n_it->rhs->val,FE,mesh,cq);
+    REAL update_norm = L2norm(n_it->update->val,FE,mesh,cq);
 
     if(n_it->current_step>=n_it->max_steps) {
         newton_stop=1;
