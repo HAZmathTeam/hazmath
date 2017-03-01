@@ -25,7 +25,7 @@ void initialize_newton(newton *n_it,input_param *inparam)
    */
 
     // Number of Newton steps
-    n_it->tsteps = inparam->nonlinear_itsolver_maxit;
+    n_it->max_steps = inparam->nonlinear_itsolver_maxit;
 
     // Current Step
     n_it->current_step = 0;
@@ -81,7 +81,7 @@ void free_newton(newton* n_it)
     if(n_it->update) {
         dvec_free(n_it->update);
         free(n_it->update);
-        n_it->rhs_update=NULL;
+        n_it->update=NULL;
     }
 
     if(n_it->rhs) {
@@ -118,7 +118,7 @@ void update_newtonstep(newton* n_it)
     if(n_it->current_step==1) {
         dvec_alloc(n_it->sol->row,n_it->update);
     }
-    dvec_set(n_it->update,0.0);
+    dvec_set(n_it->update->row,n_it->update,0.0);
 
     return;
 }
@@ -144,10 +144,10 @@ void update_sol_newton(newton *n_it)
 /******************************************************************************************************/
 
 /******************************************************************************************************/
-bool check_newton_convergence(newton *n_it,fespace* FE,trimesh* mesh, qcoordinates* cq)
+int check_newton_convergence(newton *n_it,fespace* FE,trimesh* mesh, qcoordinates* cq)
 {
   /*!
-   * \fn bool check_newton_convergence(newton *n_it,fespace* FE,trimesh* mesh, qcoordinates* cq)
+   * \fn int check_newton_convergence(newton *n_it,fespace* FE,trimesh* mesh, qcoordinates* cq)
    *
    * \brief Checks if Newton has converged:
    *        If tol_type = 1: Check if ||nonlinear residual (rhs)|| < tol
@@ -161,37 +161,38 @@ bool check_newton_convergence(newton *n_it,fespace* FE,trimesh* mesh, qcoordinat
    *
    */
 
-    bool newton_stop = false;
+    int newton_stop = 0;
+    REAL tol = n_it->tol;
     REAL res_norm = L2norm(n_it->rhs->val,FE,mesh,cq);
     REAL update_norm = L2norm(n_it->rhs->val,FE,mesh,cq);
 
     if(n_it->current_step>=n_it->max_steps) {
-        newton_stop=true;
+        newton_stop=1;
         printf("The Newton iterations have reached the max number of iterations (%d Newton Steps) \n",n_it->current_step);
         printf("Convergence may not be reached.\n");
         printf("Final Nonlinear Residual = %25.16e\tLast Update Norm = %25.16e\n",res_norm,update_norm);
         return newton_stop;
     }
 
-    switch (n_it->toltype)
+    switch (n_it->tol_type)
     {
     default:
         if(res_norm<tol || update_norm<tol) {
-            newton_stop=true;
+            newton_stop=1;
             printf("Convergence met after %d Newton Steps.\n",n_it->current_step);
             printf("Final Nonlinear Residual = %25.16e\tLast Update Norm = %25.16e\n",res_norm,update_norm);
         }
         break;
     case 1:
         if(res_norm<tol) {
-            newton_stop=true;
+            newton_stop=1;
             printf("Convergence met after %d Newton Steps.\n",n_it->current_step);
             printf("Final Nonlinear Residual = %25.16e\tLast Update Norm = %25.16e\n",res_norm,update_norm);
         }
         break;
     case 2:
         if(update_norm<tol) {
-            newton_stop=true;
+            newton_stop=1;
             printf("Convergence met after %d Newton Steps.\n",n_it->current_step);
             printf("Final Nonlinear Residual = %25.16e\tLast Update Norm = %25.16e\n",res_norm,update_norm);
         }

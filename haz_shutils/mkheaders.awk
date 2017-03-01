@@ -15,6 +15,7 @@ BEGIN {
   print "// Standard Includes"
   print "#include <stdlib.h>"
   print "#include <stdio.h>"
+  print "#include <stdbool.h>"
   print "#include <string.h>"
   print "#include <math.h>"
   print "#include <limits.h>"

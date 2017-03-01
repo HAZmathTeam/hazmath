@@ -33,13 +33,6 @@ time_steps			= 0 	% number of time steps
 time_step_size			= 0.025	% time step size
 
 %---------------%
-% nonlinear solver
-%---------------%
-
-nonlinear_itsolver_maxit	= 5   	% maximal iterations of nonlinear solver
-nonlinear_itsolver_tol		= 1e-8 	% tolerance for nonlinear solver
-
-%---------------%
 % linear solver
 %---------------%
 % iterative solve
