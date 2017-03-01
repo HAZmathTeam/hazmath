@@ -137,12 +137,14 @@ file(GLOB HAZMAT_C_SOURCES RELATIVE ${HAZMAT_SOURCE_DIR}
 	  		    ${HAZMAT_SOURCE_DIR}/src/grid/*.c 
 	  		    ${HAZMAT_SOURCE_DIR}/src/solver/*.c
 			    ${HAZMAT_SOURCE_DIR}/src/timestepping/*.c 
+			    ${HAZMAT_SOURCE_DIR}/src/nonlinear/*.c 
 	  		    ${HAZMAT_SOURCE_DIR}/src/utilities/*.c 
 	  		    ${HAZMAT_SOURCE_DIR}/src/assemble/*.inl 
 	  		    ${HAZMAT_SOURCE_DIR}/src/fem/*.inl
 	  		    ${HAZMAT_SOURCE_DIR}/src/grid/*.inl
 	  		    ${HAZMAT_SOURCE_DIR}/src/solver/*.inl 
 			    ${HAZMAT_SOURCE_DIR}/src/timestepping/*.inl 
+			    ${HAZMAT_SOURCE_DIR}/src/nonlinear/*.inl 
 	  		    ${HAZMAT_SOURCE_DIR}/src/utilities/*.inl)
 
 file(GLOB HAZMAT_F_SOURCES RELATIVE ${HAZMAT_SOURCE_DIR}

@@ -85,9 +85,6 @@ int main (int argc, char* argv[])
   printf("\nCreating mesh and FEM spaces:\n");
   FILE* gfid = HAZ_fopen(inparam.gridfile,"r");
 
-  // Dimension is needed for all this to work
-  INT dim = inparam.dim;
-
   // Create the mesh
   // File types possible are 0 - HAZ format; 1 - VTK format
   clock_t clk_mesh_start = clock(); // Time mesh generation FE setup
@@ -97,6 +94,9 @@ int main (int argc, char* argv[])
   creategrid_fread(gfid,mesh_type,&mesh);
   fclose(gfid);
 
+  // Dimension is needed for all this to work
+  INT dim = mesh.dim;
+
   // Get Quadrature Nodes for the Mesh
   INT nq1d = inparam.nquad; // Quadrature points per dimension
   qcoordinates *cq = get_quadrature(&mesh,nq1d);
@@ -104,6 +104,7 @@ int main (int argc, char* argv[])
   // Time stepping parameters
   timestepper time_stepper;
   initialize_timestepper(&time_stepper,&inparam);
+  time_stepper.rhs_timedep = 0; // RHS is not time-dependent
 
   // Get info for and create FEM spaces
   // Order of Elements: 0 - P0; 1 - P1; 2 - P2
@@ -119,7 +120,7 @@ int main (int argc, char* argv[])
   set_dirichlet_bdry(&FE,&mesh,1);
 
   // Dump some of the data
-  if(inparam.print_level > 3) {
+  if(inparam.print_level > 3 && inparam.output_dir!=NULL) {
     // FE space
     char varu[10];
     char dir[20];
@@ -166,7 +167,9 @@ int main (int argc, char* argv[])
                   one_coeff_scal,0.0);
 
   // Create Time Operator (one with BC and one without)
+  // Note that since this is linear, L(u) = Au, so we set Ldata to A
   time_stepper.A = &A;
+  time_stepper.Ldata=&A;
   time_stepper.M = &M;
   get_timeoperator(&time_stepper);
 
@@ -187,17 +190,22 @@ int main (int argc, char* argv[])
   param_linear_solver_init(&linear_itparam);
   param_linear_solver_set(&linear_itparam, &inparam);
   INT solver_flag=-20;
+
   // Set parameters for algebriac multigrid methods
-  AMG_param amgparam;
-  param_amg_init(&amgparam);
-  param_amg_set(&amgparam, &inparam);
-  param_amg_print(&amgparam);
+  //if (linear_itparam.linear_itsolver_type == SOLVER_AMG || linear_itparam.linear_precond_type== PREC_AMG) {
+    AMG_param amgparam;
+    param_amg_init(&amgparam);
+    param_amg_set(&amgparam, &inparam);
+    param_amg_print(&amgparam);
+  //}
 
   // Set parameters for ILU methods
-  ILU_param iluparam;
-  param_ilu_init(&iluparam);
-  param_ilu_set(&iluparam, &inparam);
-  param_ilu_print(&iluparam);
+  //if (linear_itparam.linear_precond_type== PREC_ILU) {
+    ILU_param iluparam;
+    param_ilu_init(&iluparam);
+    param_ilu_set(&iluparam, &inparam);
+    param_ilu_print(&iluparam);
+  //}
 
   // Get Initial Conditions
   FE_Evaluate(sol.val,initial_conditions,&FE,&mesh,0.0);
@@ -206,7 +214,7 @@ int main (int argc, char* argv[])
   // Dump Solution
   char solout[40];
   char trueout[40];
-  if (inparam.output_type==2) {
+  if (inparam.output_dir!=NULL) {
     sprintf(solout,"output/solution_ts000.vtu");
     dump_sol_onV_vtk(solout,&mesh,time_stepper.sol->val,1);
   }
@@ -221,21 +229,20 @@ int main (int argc, char* argv[])
   unorm[0] = L2norm(time_stepper.sol->val,&FE,&mesh,cq);
   REAL* utnorm = (REAL *) calloc(time_stepper.tsteps+1,sizeof(REAL));
   utnorm[0] = L2norm(true_sol.val,&FE,&mesh,cq);
+
+  printf("Performing %d Time Steps with step size dt = %1.3f\n",time_stepper.tsteps,time_stepper.dt);
+  printf("--------------------------------------------------------------\n\n");
+  printf("============================\n");
+  printf("Time Step %d: Time = %1.8f\n",time_stepper.current_step,time_stepper.time);
+  printf("============================\n");
   printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
   printf("L2 Norm of u            = %26.13e\n",unorm[0]);
   printf("L2 Norm of true u       = %26.13e\n",utnorm[0]);
   printf("L2 Norm of u error      = %26.13e\n",uerr[0]);
   printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n\n\n");
 
-  // Begin Timestepping Loop
-  printf("Performing %d Time Steps with step size dt = %1.3f\n",time_stepper.tsteps,time_stepper.dt);
-  printf("--------------------------------------------------------------\n\n");
-  printf("============================\n");
-  printf("Time Step %d: Time = %1.8f\n",time_stepper.current_step,time_stepper.time);
-  printf("============================\n");
-
   clock_t clk_timeloop_start = clock();
-
+  // Begin Timestepping Loop
   INT j; // Time step counter
   for(j=0;j<time_stepper.tsteps;j++) {
     clock_t clk_timestep_start = clock();
@@ -318,7 +325,7 @@ int main (int argc, char* argv[])
     printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
     /*******************************************************************/
 
-    if (inparam.output_type==2) {
+    if (inparam.output_dir!=NULL) {
       sprintf(solout,"output/solution_ts%03d.vtu",time_stepper.current_step);
       dump_sol_onV_vtk(solout,&mesh,time_stepper.sol->val,1);
       sprintf(trueout,"output/true_solution_ts%03d.vtu",time_stepper.current_step);

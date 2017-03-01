@@ -239,6 +239,9 @@ void check_error (const SHORT status,
   case ERROR_MAT_DOF:
     printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Your matrix size doesn't match your number of DOF !!!\n\n", func_name);
     break;
+  case ERROR_TS_TYPE:
+    printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- The time-stepping scheme you want is not implemented !!!\n\n", func_name);
+    break;
   default:
     break;
   }
