@@ -41,6 +41,7 @@ void initialize_newton(newton *n_it,input_param *inparam)
     // Assume the form A(sol) = f gets linearized to
     // Jacobian(sol_prev)[update] = f - A(sol_prev)
     n_it->Jac=NULL;
+    n_it->Jac_block=NULL;
     n_it->sol=NULL;
     n_it->sol_prev=malloc(sizeof(struct dvector));
     n_it->update=malloc(sizeof(struct dvector));
@@ -65,6 +66,11 @@ void free_newton(newton* n_it)
     if(n_it->Jac) {
         dcsr_free(n_it->Jac);
         n_it->Jac=NULL;
+    }
+
+    if(n_it->Jac_block) {
+        bdcsr_free(n_it->Jac_block);
+        n_it->Jac_block=NULL;
     }
 
     if(n_it->sol) {
