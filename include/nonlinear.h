@@ -42,6 +42,9 @@ typedef struct newton{
   // Jacobian(sol_prev)[update] = f - A(sol_prev)
   //! Jacobian-matrix
   dCSRmat* Jac;
+  
+  //! Jacobian-matrix Block CSR
+  block_dCSRmat* Jac_block;
 
   //! Solution at previous Newton step
   dvector* sol_prev;
