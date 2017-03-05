@@ -53,6 +53,11 @@ ifeq ($(suitesparse), yes)
     CONFIG_FLAGS+=-DSUITESPARSE_DIR=$(suitesparse_dir)
 endif
 
+ifeq ($(multigraph), yes)
+    CONFIG_FLAGS+=-DUSE_MULTIGRAPH=$(multigraph)
+    CONFIG_FLAGS+=-DMULTIGRAPH_DIR=$(multigraph_dir)
+endif
+
 ifeq ($(matlab), yes)
     CONFIG_FLAGS+=-DUSE_MATLAB=$(matlab)
 endif
