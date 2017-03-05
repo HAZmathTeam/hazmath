@@ -147,8 +147,26 @@ file(GLOB HAZMAT_C_SOURCES RELATIVE ${HAZMAT_SOURCE_DIR}
 			    ${HAZMAT_SOURCE_DIR}/src/nonlinear/*.inl 
 	  		    ${HAZMAT_SOURCE_DIR}/src/utilities/*.inl)
 
-file(GLOB HAZMAT_F_SOURCES RELATIVE ${HAZMAT_SOURCE_DIR}
+if (USE_MULTIGRAPH)
+   set(CMAKE_MODULE_PATH "${HAZMAT_SOURCE_DIR}/cmake.modules")
+   find_package(MULTIGRAPH)
+   if (MULTIGRAPH_FOUND)
+      add_definitions("-DWITH_MULTIGRAPH=1")
+      file(GLOB ILU_F_SOURCES RELATIVE ${HAZMAT_SOURCE_DIR}
 	  		    ${HAZMAT_SOURCE_DIR}/src/solver/*.f)
+      file(GLOB MULTIGRAPH_F_SOURCES 
+	  		    ${MULTIGRAPH_SOURCE_DIR}/src/mg0.f
+	  		    ${MULTIGRAPH_SOURCE_DIR}/src/solver.f)
+      SET(HAZMAT_F_SOURCES ${ILU_F_SOURCES} ${MULTIGRAPH_F_SOURCES})			   
+   else(MULTIGRAPH_FOUND)
+      message("    WARNING: MULTIGRAPH was requested but not supported!")	
+      file(GLOB HAZMAT_F_SOURCES RELATIVE ${HAZMAT_SOURCE_DIR}
+      	  		    ${HAZMAT_SOURCE_DIR}/src/solver/*.f)
+   endif(MULTIGRAPH_FOUND)
+else(USE_MULTIGRAPH)
+   file(GLOB HAZMAT_F_SOURCES RELATIVE ${HAZMAT_SOURCE_DIR}
+  		    ${HAZMAT_SOURCE_DIR}/src/solver/*.f)
+endif(USE_MULTIGRAPH)
 
 # auto generating headers if needed
  add_custom_target(headers ./headmk.sh "${HAZMAT_SOURCE_DIR}"
