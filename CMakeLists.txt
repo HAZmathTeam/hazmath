@@ -1,14 +1,15 @@
 ############################################################
-# CMakeLists for HAZMAT (modified fom FASP)
+# CMakeLists for HAZMAT
 # No Fortran compiler check. 
 #
 #
 # Modified   2015-08-08   --ltz
-#TODO:should know to do "make headers" but it does not...
+# 	     2017-03-05   --ltz
+#
 ############################################################
 cmake_minimum_required (VERSION 2.8)
 
-# Stupidity Prevention
+# "Delete Yourself" Prevention
 if (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
 	message(FATAL_ERROR 
 "------------------------------------------------
@@ -45,7 +46,8 @@ endif( THE_C )
 
 project(HAZMAT C )
 
-#message(STATUS " XXXXXXXXX ${HAZMAT_SOURCE_DIR}")
+#message(STATUS "  ${HAZMAT_SOURCE_DIR}")
+
 
 
 #message(STATUS "C compiler ID:${CMAKE_C_COMPILER_ID} Version:${CMAKE_C_COMPILER_VERSION}" )
@@ -154,12 +156,15 @@ if (USE_MULTIGRAPH)
       add_definitions("-DWITH_MULTIGRAPH=1")
       file(GLOB ILU_F_SOURCES RELATIVE ${HAZMAT_SOURCE_DIR}
 	  		    ${HAZMAT_SOURCE_DIR}/src/solver/*.f)
-      file(GLOB MULTIGRAPH_F_SOURCES 
-	  		    ${MULTIGRAPH_SOURCE_DIR}/src/mg0.f
-	  		    ${MULTIGRAPH_SOURCE_DIR}/src/solver.f)
-      SET(HAZMAT_F_SOURCES ${ILU_F_SOURCES} ${MULTIGRAPH_F_SOURCES})			   
+      SET(MULTIGRAPH_F_SOURCES
+			    ${MULTIGRAPH_SOURCE_DIR}/mg0.f)
+      SET(MULTIGRAPH_F_SOURCES ${MULTIGRAPH_F_SOURCES}  ${MULTIGRAPH_SOURCE_DIR}/solver.f)
+      SET(HAZMAT_F_SOURCES ${ILU_F_SOURCES})
+###      message("Multigraph sources dir= " ${MULTIGRAPH_F_SOURCES})
+    set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/multigraph)
+    add_library(multigraph OBJECT ${MULTIGRAPH_F_SOURCES})
    else(MULTIGRAPH_FOUND)
-      message("    WARNING: MULTIGRAPH was requested but not supported!")	
+      message("    WARNING: MULTIGRAPH was requested but not supported!")
       file(GLOB HAZMAT_F_SOURCES RELATIVE ${HAZMAT_SOURCE_DIR}
       	  		    ${HAZMAT_SOURCE_DIR}/src/solver/*.f)
    endif(MULTIGRAPH_FOUND)
@@ -231,7 +236,7 @@ endif(NOT (CMAKE_CXX_COMPILER_ID STREQUAL CMAKE_C_COMPILER_ID))
 # depends also on the source, header and inl files 
 add_library(hazmat ${HAZMAT_LIBRARY_TYPE} ${HAZMAT_C_SOURCES} ${HAZMAT_INL_SOURCES} ${HAZMAT_F_SOURCES}  ${HAZMAT_HEADERS}) 
 
-# install libhazmat
+# install libhazmat 
     install(TARGETS hazmat
     LIBRARY DESTINATION lib
     RUNTIME DESTINATION lib
