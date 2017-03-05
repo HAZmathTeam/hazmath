@@ -7,7 +7,7 @@
 #  Ludmil 2017-03-04
 #
 # Check for header file
-      message("ZZZZZZZZZZZZZZZZZZ: ${MULTIGRAPH_DIR} ${USE_MULTIGRAPH}  ZZZ")
+###      message("ZZZZZZZZZZZZZZZZZZ: ${MULTIGRAPH_DIR} ${USE_MULTIGRAPH}  ZZZ")
 find_path(MULTIGRAPH_SOURCE_DIR solver.f
  HINTS ${MULTIGRAPH_DIR}/src
  PATH_SUFFIXES multigraph 

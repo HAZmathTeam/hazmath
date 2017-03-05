@@ -71,3 +71,7 @@
 #cflags="-funroll-loops -funswitch-loops"
 #cxxflags="-funroll-loops -funswitch-loops"
 #fflags="-funroll-loops -funswitch-loops"
+
+## Multigraph paths: ABSOLUTE PATHS, not relative
+#multigraph=yes
+#multigraph_dir=/Users/ltz1/packages/multigraph_2.0
