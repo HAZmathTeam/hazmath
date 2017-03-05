@@ -70,14 +70,14 @@
 # If you want to use the Multigraph (by R.Bank) package, uncomment the next 
 # line (and read carefully the instructons below it):
 # 
- multigraph=yes
+############ multigraph=yes
 #
 # If you have installed Multigraph (by R.Bank) from source or for some other
 # reason you want to specify the path to Multigraph (by R.Bank) libraries and
 # header files, uncomment and edit the definition of "multigraph_dir"
 # below (and continue reading...)  
 #
- multigraph_dir=multigraph-2.0
+############ multigraph_dir=$(HOME)/multigraph-2.0
 #
 # IMPORTANT: This defines the path to the Multigraph source files.
 # You need to have a working Fortran (F90) compiler. The sources are
