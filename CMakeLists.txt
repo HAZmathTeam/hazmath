@@ -84,7 +84,6 @@ if(${REAL_C} MATCHES "GNU.*" AND  ${THE_C} MATCHES "gcc.*")
 ##################################
 	enable_language(CXX) 
 	enable_language(Fortran) 
-
 #
 # OpenMP : defined on command line in the top Makefile
 #
@@ -156,17 +155,23 @@ if (USE_MULTIGRAPH)
       add_definitions("-DWITH_MULTIGRAPH=1")
       file(GLOB ILU_F_SOURCES RELATIVE ${HAZMAT_SOURCE_DIR}
 	  		    ${HAZMAT_SOURCE_DIR}/src/solver/*.f)
-      SET(MULTIGRAPH_Fortran_MOD_SOURCES
-			    ${MULTIGRAPH_SOURCE_DIR}/mg0.f)
-      SET(MULTIGRAPH_F_SOURCES  ${MULTIGRAPH_SOURCE_DIR}/solver.f)
-      SET(MULTIGRAPH_ALL_F_SOURCES
-	${MULTIGRAPH_Fortran_MOD_SOURCES} ${MULTIGRAPH_F_SOURCES})
       SET(HAZMAT_F_SOURCES ${ILU_F_SOURCES})
-###      message("Multigraph sources dir= " ${MULTIGRAPH_F_SOURCES})
-##    set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/multigraph)
-    add_library(dummy OBJECT ${MULTIGRAPH_Fortan_MOD_SOURCES}) 
-    add_library(multigraph ${HAZMAT_LIBRARY_TYPE} ${MULTIGRAPH_F_SOURCES}) 
-##    target_include_directories(multigraph PRIVATE ${CMAKE_Fortran_MODULE_DIRECTORY})
+################################################
+      SET(MULTIGRAPH_Fortran_MOD_SOURCE  ${MULTIGRAPH_SOURCE_DIR}/mg0.f)
+      SET(MULTIGRAPH_F_SOURCE  ${MULTIGRAPH_SOURCE_DIR}/solver.f)
+      SET(MULTIGRAPH_C_SOURCE  ${HAZMAT_SOURCE_DIR}/src/interfaces/i_multigraph.c)
+#     message("Multigraph sources dir= "  ${MULTIGRAPH_Fortran_MOD_SOURCE} )
+###      set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/multigraph)
+    add_library(lumodule OBJECT  ${MULTIGRAPH_Fortran_MOD_SOURCE})
+################ no optimization because ${CMAKE_Fortran_FLAGS_${CMAKE_BUILD_TYPE} is in quotes
+#      add_custom_target(lumodule
+#		COMMAND	${CMAKE_Fortran_COMPILER} -c  ${MULTIGRAPH_Fortran_MOD_SOURCE} -o  ${CMAKE_BINARY_DIR}/mthdef.mod
+#		   DEPENDS ${MULTIGRAPH_Fortran_MOD_SOURCE}
+#                   COMMENT  "HAZMAT: Fortran module for  Multigraph...")
+#
+    add_library(multigraph ${HAZMAT_LIBRARY_TYPE} ${MULTIGRAPH_F_SOURCE} ${MULTIGRAPH_C_SOURCE})
+    add_dependencies(multigraph lumodule)
+#    target_include_directories(multigraph PRIVATE ${CMAKE_BINARY_DIR})  
     					  
 # install libmultigraph
     install(TARGETS multigraph 
@@ -174,7 +179,7 @@ if (USE_MULTIGRAPH)
     RUNTIME DESTINATION lib
     ARCHIVE DESTINATION lib)
    else(MULTIGRAPH_FOUND)
-      message("    WARNING: MULTIGRAPH was requested but not supported!")
+      message("    WARNING: MULTIGRAPH was requested but not supported! ")
       file(GLOB HAZMAT_F_SOURCES RELATIVE ${HAZMAT_SOURCE_DIR}
       	  		    ${HAZMAT_SOURCE_DIR}/src/solver/*.f)
    endif(MULTIGRAPH_FOUND)
