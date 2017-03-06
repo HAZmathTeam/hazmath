@@ -11,7 +11,7 @@
 #include "hazmat.h"
 //**** NON-BLOCK STUFF ******/
 /******************************************************************************************************/
-void initialize_timestepper(timestepper *tstepper,input_param *inparam)
+void initialize_timestepper(timestepper *tstepper,input_param *inparam,INT rhs_timedep,INT ndof)
 {
   /*!
    * \fn void initialize_timestepper(timestepper *tstepper,input_param *inparam)
@@ -19,6 +19,8 @@ void initialize_timestepper(timestepper *tstepper,input_param *inparam)
    * \brief Initialize the timestepping struct.
    *
    * \param inparam       Input from input parameter list
+   * \param ndof          Number of DOF in the system
+   * \param rhs_timedep   Indicates if the RHS (f) is time-dependent (1 or 0)
    *
    * \return tstepper     Struct for Timestepping
    *
@@ -50,7 +52,7 @@ void initialize_timestepper(timestepper *tstepper,input_param *inparam)
   }
 
   // Indicator if rhs or boundaries are time-dependent
-  tstepper->rhs_timedep = inparam->rhs_time_dep;
+  tstepper->rhs_timedep = rhs_timedep;
 
   // Current Time and Time Step
   tstepper->current_step = 0;
@@ -66,6 +68,11 @@ void initialize_timestepper(timestepper *tstepper,input_param *inparam)
   tstepper->rhs=NULL;     /* f */
   tstepper->rhs_prev=malloc(sizeof(struct dvector)); /* fprev */
   tstepper->rhs_time=malloc(sizeof(struct dvector));
+
+  dvec_alloc(tstepper->old_steps*ndof,tstepper->sol_prev);
+  dvec_alloc(ndof,tstepper->rhs_prev);
+  dvec_alloc(ndof,tstepper->rhs_time);
+
 
   // Set L operator for RHS (L=A if linear, otherwise call an assembly)
   if(inparam->nonlinear_itsolver_type==0) { // Linear
@@ -168,9 +175,6 @@ void update_timestep(timestepper *tstepper)
   INT k = tstepper->old_steps;
 
   // Solution
-  if(tstepper->current_step==1) {
-      dvec_alloc(k*ndof,tstepper->sol_prev);
-  }
   for(i=1;i<k;i++) {
     for(j=0;j<ndof;j++) {
       tstepper->sol_prev->val[(k-i)*ndof+j] = tstepper->sol_prev->val[(k-i-1)*ndof+j];
@@ -181,14 +185,6 @@ void update_timestep(timestepper *tstepper)
   }
 
   // RHS
-  if(tstepper->current_step==1) {
-      dvec_alloc(k*tstepper->rhs->row,tstepper->rhs_prev);
-  }
-  for(i=1;i<k;i++) {
-    for(j=0;j<ndof;j++) {
-      tstepper->rhs_prev->val[(k-i)*ndof+j] = tstepper->rhs_prev->val[(k-i-1)*ndof+j];
-    }
-  }
   for(j=0;j<ndof;j++) {
     tstepper->rhs_prev->val[j] = tstepper->rhs->val[j];
   }
@@ -258,10 +254,6 @@ void update_time_rhs(timestepper *ts)
 
   // Flag for errors
   SHORT status;
-
-  if(ts->current_step==1) {
-      dvec_alloc(ts->rhs->row,ts->rhs_time);
-  }
 
   if(ts->time_scheme==0) { // Crank-Nicolson: (M + 0.5*dt*A)u = (M - 0.5*dt*L(uprev) + 0.5*dt*(b_old + b)
 
@@ -335,7 +327,7 @@ void update_time_rhs(timestepper *ts)
 
 //**** BLOCK Versions ******/
 /******************************************************************************************************/
-void initialize_blktimestepper(block_timestepper *tstepper,input_param *inparam)
+void initialize_blktimestepper(block_timestepper *tstepper,input_param *inparam,INT rhs_timedep,INT ndof)
 {
   /*!
    * \fn void initialize_blktimestepper(block_timestepper *tstepper,input_param *inparam)
@@ -343,6 +335,8 @@ void initialize_blktimestepper(block_timestepper *tstepper,input_param *inparam)
    * \brief Initialize the BLOCK timestepping struct.
    *
    * \param inparam       Input from input parameter list
+   * \param ndof          Number of DOF in the system
+   * \param rhs_timedep   Indicates if the RHS (f) is time-dependent (1 or 0)
    *
    * \return tstepper     Struct for Block Timestepping
    *
@@ -374,7 +368,7 @@ void initialize_blktimestepper(block_timestepper *tstepper,input_param *inparam)
   }
 
   // Indicator if rhs or boundaries are time-dependent
-  tstepper->rhs_timedep = inparam->rhs_time_dep;
+  tstepper->rhs_timedep = rhs_timedep;
 
   // Current Time and Time Step
   tstepper->current_step = 0;
@@ -390,6 +384,9 @@ void initialize_blktimestepper(block_timestepper *tstepper,input_param *inparam)
   tstepper->rhs=NULL;     /* f */
   tstepper->rhs_prev=malloc(sizeof(struct dvector)); /* fprev */
   tstepper->rhs_time=malloc(sizeof(struct dvector));
+  dvec_alloc(tstepper->old_steps*ndof,tstepper->sol_prev);
+  dvec_alloc(ndof,tstepper->rhs_prev);
+  dvec_alloc(ndof,tstepper->rhs_time);
 
   // Set L operator for RHS (L=A if linear, otherwise call an assembly)
   if(inparam->nonlinear_itsolver_type==0) { // Linear
@@ -492,9 +489,6 @@ void update_blktimestep(block_timestepper *tstepper)
   INT k = tstepper->old_steps;
 
   // Solution
-  if(tstepper->current_step==1) {
-      dvec_alloc(k*ndof,tstepper->sol_prev);
-  }
   for(i=1;i<k;i++) {
     for(j=0;j<ndof;j++) {
       tstepper->sol_prev->val[(k-i)*ndof+j] = tstepper->sol_prev->val[(k-i-1)*ndof+j];
@@ -505,14 +499,6 @@ void update_blktimestep(block_timestepper *tstepper)
   }
 
   // RHS
-  if(tstepper->current_step==1) {
-      dvec_alloc(k*tstepper->rhs->row,tstepper->rhs_prev);
-  }
-  for(i=1;i<k;i++) {
-    for(j=0;j<ndof;j++) {
-      tstepper->rhs_prev->val[(k-i)*ndof+j] = tstepper->rhs_prev->val[(k-i-1)*ndof+j];
-    }
-  }
   for(j=0;j<ndof;j++) {
     tstepper->rhs_prev->val[j] = tstepper->rhs->val[j];
   }
@@ -582,11 +568,6 @@ void update_blktime_rhs(block_timestepper *ts)
 
   // Flag for errors
   SHORT status;
-
-  if(ts->current_step==1) {
-      dvec_alloc(ts->rhs->row,ts->rhs_time);
-  }
-
   if(ts->time_scheme==0) { // Crank-Nicolson: (M + 0.5*dt*A)u = (M - 0.5*dt*L(uprev) + 0.5*dt*(b_old + b)
 
     dvector btmp = dvec_create(ts->rhs->row);
