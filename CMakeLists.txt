@@ -156,13 +156,23 @@ if (USE_MULTIGRAPH)
       add_definitions("-DWITH_MULTIGRAPH=1")
       file(GLOB ILU_F_SOURCES RELATIVE ${HAZMAT_SOURCE_DIR}
 	  		    ${HAZMAT_SOURCE_DIR}/src/solver/*.f)
-      SET(MULTIGRAPH_F_SOURCES
+      SET(MULTIGRAPH_Fortran_MOD_SOURCES
 			    ${MULTIGRAPH_SOURCE_DIR}/mg0.f)
-      SET(MULTIGRAPH_F_SOURCES ${MULTIGRAPH_F_SOURCES}  ${MULTIGRAPH_SOURCE_DIR}/solver.f)
+      SET(MULTIGRAPH_F_SOURCES  ${MULTIGRAPH_SOURCE_DIR}/solver.f)
+      SET(MULTIGRAPH_ALL_F_SOURCES
+	${MULTIGRAPH_Fortran_MOD_SOURCES} ${MULTIGRAPH_F_SOURCES})
       SET(HAZMAT_F_SOURCES ${ILU_F_SOURCES})
 ###      message("Multigraph sources dir= " ${MULTIGRAPH_F_SOURCES})
-    set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/multigraph)
-    add_library(multigraph OBJECT ${MULTIGRAPH_F_SOURCES})
+##    set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/multigraph)
+    add_library(dummy OBJECT ${MULTIGRAPH_Fortan_MOD_SOURCES}) 
+    add_library(multigraph ${HAZMAT_LIBRARY_TYPE} ${MULTIGRAPH_F_SOURCES}) 
+##    target_include_directories(multigraph PRIVATE ${CMAKE_Fortran_MODULE_DIRECTORY})
+    					  
+# install libmultigraph
+    install(TARGETS multigraph 
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION lib
+    ARCHIVE DESTINATION lib)
    else(MULTIGRAPH_FOUND)
       message("    WARNING: MULTIGRAPH was requested but not supported!")
       file(GLOB HAZMAT_F_SOURCES RELATIVE ${HAZMAT_SOURCE_DIR}
