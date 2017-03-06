@@ -101,11 +101,6 @@ int main (int argc, char* argv[])
   INT nq1d = inparam.nquad; // Quadrature points per dimension
   qcoordinates *cq = get_quadrature(&mesh,nq1d);
 
-  // Time stepping parameters
-  timestepper time_stepper;
-  initialize_timestepper(&time_stepper,&inparam);
-  time_stepper.rhs_timedep = 0; // RHS is not time-dependent
-
   // Get info for and create FEM spaces
   // Order of Elements: 0 - P0; 1 - P1; 2 - P2
   INT order = inparam.FE_type;
@@ -168,6 +163,8 @@ int main (int argc, char* argv[])
 
   // Create Time Operator (one with BC and one without)
   // Note that since this is linear, L(u) = Au, so we set Ldata to A
+  timestepper time_stepper;
+  initialize_timestepper(&time_stepper,&inparam,0,b.row);
   time_stepper.A = &A;
   time_stepper.Ldata=&A;
   time_stepper.M = &M;
