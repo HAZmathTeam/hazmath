@@ -67,23 +67,6 @@
 # $(suitesparse_dir)/include or in the system standard paths for libraries
 # and header files. 
 # -------------------------------------------------------------------------
-# If you want to use the Multigraph (by R.Bank) package, uncomment the next 
-# line (and read carefully the instructons below it):
-# 
-############ multigraph=yes
-#
-# If you have installed Multigraph (by R.Bank) from source or for some other
-# reason you want to specify the path to Multigraph (by R.Bank) libraries and
-# header files, uncomment and edit the definition of "multigraph_dir"
-# below (and continue reading...)  
-#
-############ multigraph_dir=$(HOME)/multigraph-2.0
-#
-# IMPORTANT: This defines the path to the Multigraph source files.
-# You need to have a working Fortran (F90) compiler. The sources are
-# expected to be found in $(multigraph_dir)/include or in the system
-# standard paths for libraries and header files.
-# -------------------------------------------------------------------------
 # If you want to use the interface with MATLAB, uncomment the next line:
 #
 # matlab=yes
