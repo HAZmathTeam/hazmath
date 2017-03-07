@@ -5,8 +5,7 @@
 #include <float.h>
 #include <limits.h>
 
-#define INT int
-#define REAL double
+#include "hazmat.h"
 
 void  mginit_(INT *n, INT *ispd, INT *nblock, INT *iblock,		\
 	      INT *maxja, INT *jareb, INT *maxa, REAL *areb,		\
@@ -26,40 +25,23 @@ void mg_(INT *ispd, INT *lvl, INT *mxcg, REAL *eps1,			\
        subroutine mg(ispd,lvl,mxcg,eps1,ja,a,dr,br,ka,relerr,
        +      iflag,hist)
   */
-  // io routines for debugging. 
-
 
 int main (int argc, char* argv[])
 {
-  
-  printf("\n===========================================================================\n");
-  printf("Beginning Program to solve the Heat Equation.\n");
-  printf("===========================================================================\n");
-  
-  /****** INITIALIZE PARAMETERS **************************************/
-  // Flag for errors
-  SHORT status;
-
-  // Overall CPU Timing
-  clock_t clk_overall_start = clock();
-
-  // Set Parameters from Reading in Input File
-  input_param inparam;
-  param_input_init(&inparam);
-  param_input("./input.dat", &inparam);
-
-  // Open gridfile for reading
-  printf("\nCreating mesh and FEM spaces:\n");
-  FILE* gfid = HAZ_fopen(inparam.matrixfile,"r");
-
-  // Create the mesh
-  // File types possible are 0 - HAZ format; 1 - VTK format
+  // io routines for debugging. 
+  FILE* fp;
+  fp=HAZ_fopen( char *fname, char *mode );
+  rveci_()
+#ifndef USE_SUITESPARSE
+  INT *ia=NULL, *ja;
+  double *A=NULL, *b=NULL;
+  // use now multigraph
   clock_t clk_mesh_start = clock(); // Time mesh generation FE setup
-  INT mesh_type = 0;
   INT    *jareb=NULL;
   REAL *areb=NULL;
   INT i,nnzlu=-16,n=*nrow,n1=*nrow+1;
   FILE *fp;
+  fprintf(stdout," *** Starting multigraph Solver\n");
   csrreb(&n,&n, &nnzlu,ia,ja,a,&jareb,&areb);
   INT maxja = 5*(n1 + jareb[n]-jareb[0]);
   if(maxja < 7*n) maxja=7*n;
@@ -81,7 +63,8 @@ int main (int argc, char* argv[])
   INT lvl=-16;
   INT *ka = (INT *) calloc(10*(maxlvl+1),sizeof(INT));
   //shift and do mginit
-  for (i=0;i<n1+nnzlu;++i) jareb[i]+=1;
+  for (i=0;i<n1+nnzlu;++i)
+    jareb[i]+=1;
   mginit_(&n, &ispd, &nblock, iblk,			\
   	  &maxja, jareb, &maxa, areb,			\
   	  &ncfact, &maxlvl, &maxfil, ka,
@@ -91,7 +74,7 @@ int main (int argc, char* argv[])
   REAL eps1=1e-8;
   INT mxcg=1000;
   INT ns=ka[10*(lvl+1-1)+(2-1)]-1;
-  REAL hist[22];
+  REAL *hist= (REAL *) calloc(maxlvl+3,sizeof(REAL));
   REAL relerr=1e0;  
   mg_(&ispd, &lvl, &mxcg, &eps1, jareb, areb,	\
        sol, rhs, ka, &relerr, &iflag, hist );
@@ -119,9 +102,16 @@ int main (int argc, char* argv[])
   //  for (i=0;i<n1+nnzlu;++i)jareb[i]-=1;
   ///  fprintf(stdout,"\n");
   if(ka) free(ka);
+  if(khist) free(ka);
   //  if(z) free(z);
   if(jareb) free(jareb); /* these are all integers */
   if(areb) free(areb); /*this should be all  reals */
+#else
+   // use UMFPACK to solve the system.
+   UMFPackSolver umf_solver;
+   umf_solver.SetOperator(A);
+   umf_solver.Mult(*b, x);
+#endif
   return;
 }
 
