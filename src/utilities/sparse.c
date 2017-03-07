@@ -2724,17 +2724,17 @@ INT bdcsr_add_1 (block_dCSRmat *A,
     }
 
     // only matrices A is NULL
-    if (A = NULL) {
+    if (A == NULL) {
         for (i=0; i<B->brow; i++){
             for (j=0; j<B->bcol; j++){
-                status = dcsr_add_1(NULL, alpha, B->blocks[i*A->brow+j], beta, C->blocks[i*A->brow+j]);
+                status = dcsr_add_1(NULL, alpha, B->blocks[i*B->brow+j], beta, C->blocks[i*B->brow+j]);
                 if (status < 0) {goto FINISHED;}
             }
         }
     }
 
     // only matrices B is NULL
-    if (B = NULL) {
+    if (B == NULL) {
         for (i=0; i<A->brow; i++){
             for (j=0; j<A->bcol; j++){
                 status = dcsr_add_1(A->blocks[i*A->brow+j], alpha, NULL, beta, C->blocks[i*A->brow+j]);
