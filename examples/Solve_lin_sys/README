@@ -1,0 +1,12 @@
+## Created 2017-03-06 --ltz
+##########################################
+README for example "gen_lin_solve". 
+
+This directory contains an example for the solution of linear systems
+with general non-symmetric or symmetric indefinite matrices using the
+mulitgraph method due Randolph E Bank or a direct solver from Suite
+Sparse.
+
+For other linear systems (such as SPD corresponding to elliptic
+equations) refer to the other examples included with this software.
+
