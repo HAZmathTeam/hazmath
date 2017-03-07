@@ -790,16 +790,64 @@ INT dcsr_add (dCSRmat *A,
   INT count=0, added, countrow;
   INT status = SUCCESS;
 
-  if (A->row != B->row || A->col != B->col) {
-    printf("### ERROR HAZMAT DANGER: Dimensions of matrices do not match!!! %s\n", __FUNCTION__);
-    status = ERROR_MAT_SIZE;
-    goto FINISHED;
-  }
-
   // both matrices A and B are NULL
   if (A == NULL && B == NULL) {
     C->row=0; C->col=0; C->nnz=0;
     status=SUCCESS;
+    goto FINISHED;
+  }
+
+  // matrix A is NULL but B is not
+  if (A == NULL) {
+
+     // matrix B is empty
+     if (B->nnz == 0) {
+         C->row=B->row; C->col=B->col; C->nnz=0;
+         status=SUCCESS;
+         goto FINISHED;
+     }
+     // matrix B is not empty
+     else {
+         dcsr_alloc(B->row,B->col,B->nnz,C);
+         memcpy(C->IA,B->IA,(B->row+1)*sizeof(INT));
+         memcpy(C->JA,B->JA,(B->nnz)*sizeof(INT));
+
+         for (i=0;i<A->nnz;++i) C->val[i]=B->val[i]*beta;
+
+         status = SUCCESS;
+         goto FINISHED;
+     }
+
+  }
+
+  // matrix B is NULL but A is not
+  if (B == NULL) {
+
+      // matrix A is empty
+     if (A->nnz == 0) {
+         C->row=A->row; C->col=A->col; C->nnz=0;
+         status=SUCCESS;
+         goto FINISHED;
+     }
+     // matrix A is not empty
+     else {
+         dcsr_alloc(A->row,A->col,A->nnz,C);
+         memcpy(C->IA,A->IA,(A->row+1)*sizeof(INT));
+         memcpy(C->JA,A->JA,(A->nnz)*sizeof(INT));
+
+         for (i=0;i<A->nnz;++i) C->val[i]=A->val[i]*alpha;
+
+         status = SUCCESS;
+         goto FINISHED;
+     }
+
+  }
+
+  // neither matrix A or B is NULL
+  // size does not match!
+  if (A->row != B->row || A->col != B->col) {
+    printf("### ERROR HAZMAT DANGER: Dimensions of matrices do not match!!! %s\n", __FUNCTION__);
+    status = ERROR_MAT_SIZE;
     goto FINISHED;
   }
 
@@ -811,7 +859,7 @@ INT dcsr_add (dCSRmat *A,
   }
 
   // empty matrix A
-  if (A->nnz == 0 || A == NULL) {
+  if (A->nnz == 0) {
     dcsr_alloc(B->row,B->col,B->nnz,C);
     memcpy(C->IA,B->IA,(B->row+1)*sizeof(INT));
     memcpy(C->JA,B->JA,(B->nnz)*sizeof(INT));
@@ -823,7 +871,7 @@ INT dcsr_add (dCSRmat *A,
   }
 
   // empty matrix B
-  if (B->nnz == 0 || B == NULL) {
+  if (B->nnz == 0) {
     dcsr_alloc(A->row,A->col,A->nnz,C);
     memcpy(C->IA,A->IA,(A->row+1)*sizeof(INT));
     memcpy(C->JA,A->JA,(A->nnz)*sizeof(INT));
@@ -834,6 +882,7 @@ INT dcsr_add (dCSRmat *A,
     goto FINISHED;
   }
 
+  // Both matrices A and B are neither NULL or empty
   C->row=A->row; C->col=A->col;
 
   C->IA=(INT*)calloc(C->row+1,sizeof(INT));
