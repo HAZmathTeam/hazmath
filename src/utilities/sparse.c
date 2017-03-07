@@ -728,6 +728,8 @@ void dcsr_shift (dCSRmat *A,
      *
      */
 
+  if (A == NULL) return;
+
   const INT nnz=A->nnz;
   const INT n=A->row+1;
   INT i, *ai=A->IA, *aj=A->JA;
@@ -735,6 +737,8 @@ void dcsr_shift (dCSRmat *A,
   for (i=0; i<n; ++i) ai[i]+=offset;
 
   for (i=0; i<nnz; ++i) aj[i]+=offset;
+
+  return;
 
 }
 
@@ -2639,11 +2643,58 @@ INT bdcsr_add (block_dCSRmat *A,
     INT i,j;
     INT status = SUCCESS;
 
+    // both matrices A and B are NULL
+    if (A == NULL && B == NULL) {
+      C->brow=0; C->bcol=0; C->blocks=NULL;
+      status=SUCCESS;
+      goto FINISHED;
+    }
+
     if (A->brow != B->brow || A->bcol != B->bcol) {
       printf("### ERROR HAZMAT DANGER: Dimensions of block matrices do not match!!! %s\n", __FUNCTION__);
       status = ERROR_MAT_SIZE;
       goto FINISHED;
     }
+
+    // blockwise addition
+    for (i=0; i<A->brow; i++){
+        for (j=0; j<A->bcol; j++){
+            status = dcsr_add(A->blocks[i*A->brow+j], alpha, B->blocks[i*A->brow+j], beta, C->blocks[i*A->brow+j]);
+            if (status < 0) {goto FINISHED;}
+        }
+    }
+
+FINISHED:
+  return status;
+
+}
+
+/***********************************************************************************************/
+INT bdcsr_add_1 (block_dCSRmat *A,
+                 const REAL alpha,
+                 block_dCSRmat *B,
+                 const REAL beta,
+                 block_dCSRmat *C)
+{
+
+    /*!
+       * \fn void bdcsr_add_1 (block_dCSRmat *A, const REAL alpha, block_dCSRmat *B,
+       *                              const REAL beta, block_dCSRmat *C)
+       *
+       * \brief compute C = alpha*A + beta*B in block_dCSRmat format
+       *
+       * \param A      Pointer to block dCSRmat matrix
+       * \param alpha  REAL factor alpha
+       * \param B      Pointer to block_dCSRmat matrix
+       * \param beta   REAL factor beta
+       * \param C      Pointer to block_dCSRmat matrix
+       *
+       * \return Flag of whether the adding is succesful or not (SUCCUESS: 0; FAIL: <0)
+       *
+       */
+
+    INT i,j;
+    INT status = SUCCESS;
 
     // both matrices A and B are NULL
     if (A == NULL && B == NULL) {
@@ -2652,10 +2703,16 @@ INT bdcsr_add (block_dCSRmat *A,
       goto FINISHED;
     }
 
+    if (A->brow != B->brow || A->bcol != B->bcol) {
+      printf("### ERROR HAZMAT DANGER: Dimensions of block matrices do not match!!! %s\n", __FUNCTION__);
+      status = ERROR_MAT_SIZE;
+      goto FINISHED;
+    }
+
     // blockwise addition
     for (i=0; i<A->brow; i++){
         for (j=0; j<A->bcol; j++){
-            status = dcsr_add(A->blocks[i*A->brow+j], alpha, B->blocks[i*A->brow+j], beta, C->blocks[i*A->brow+j]);
+            status = dcsr_add_1(A->blocks[i*A->brow+j], alpha, B->blocks[i*A->brow+j], beta, C->blocks[i*A->brow+j]);
             if (status < 0) {goto FINISHED;}
         }
     }
