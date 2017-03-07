@@ -97,6 +97,7 @@ SHORT ilu_dcsr_setup (dCSRmat *A,
     ijlu=iludata->ijlu;
     luval=iludata->luval;
     
+    /*
     switch (type) {
         case ILUt:
             
@@ -114,6 +115,7 @@ SHORT ilu_dcsr_setup (dCSRmat *A,
             iluk_(&n,A->val,A->JA,A->IA,&lfil,luval,ijlu,&iwk,&ierr,&nzlu);
             break;
     } 
+    */
     
     dcsr_shift(A, -1);
     
