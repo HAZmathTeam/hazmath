@@ -1,7 +1,3 @@
-#if defined (__cplusplus)
-extern "C" {
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,9 +29,33 @@ void mg_(INT *ispd, INT *lvl, INT *mxcg, REAL *eps1,			\
   // io routines for debugging. 
 
 
-void mgraph(INT *ia, INT *ja, REAL *a, INT *nrow,	\
-	    REAL *rhs, REAL *sol, REAL *exsol)
+int main (int argc, char* argv[])
 {
+  
+  printf("\n===========================================================================\n");
+  printf("Beginning Program to solve the Heat Equation.\n");
+  printf("===========================================================================\n");
+  
+  /****** INITIALIZE PARAMETERS **************************************/
+  // Flag for errors
+  SHORT status;
+
+  // Overall CPU Timing
+  clock_t clk_overall_start = clock();
+
+  // Set Parameters from Reading in Input File
+  input_param inparam;
+  param_input_init(&inparam);
+  param_input("./input.dat", &inparam);
+
+  // Open gridfile for reading
+  printf("\nCreating mesh and FEM spaces:\n");
+  FILE* gfid = HAZ_fopen(inparam.matrixfile,"r");
+
+  // Create the mesh
+  // File types possible are 0 - HAZ format; 1 - VTK format
+  clock_t clk_mesh_start = clock(); // Time mesh generation FE setup
+  INT mesh_type = 0;
   INT    *jareb=NULL;
   REAL *areb=NULL;
   INT i,nnzlu=-16,n=*nrow,n1=*nrow+1;
