@@ -532,13 +532,13 @@ void get_blktimeoperator(block_timestepper* ts)
 
     switch (time_scheme) {
       case 0: // Crank-Nicolson: (M + 0.5*dt*A)u = (M*uprev - 0.5*dt*L(uprev) + 0.5*dt*(b_old + b)
-        bdcsr_add(ts->M,1.0,ts->A,0.5*dt,A_time);
+        bdcsr_add_1(ts->M,1.0,ts->A,0.5*dt,A_time);
         break;
       case 1: // Backward Euler: (M + dt*A)u = M*uprev + dt*b
-        bdcsr_add(ts->M,1.0,ts->A,dt,A_time);
+        bdcsr_add_1(ts->M,1.0,ts->A,dt,A_time);
         break;
       case 2: // BDF-2: (M + (2/3)*dt*A)u = (4/3)*M*uprev - (1/3)*M*uprevprev+ (2/3)*dt*b
-        bdcsr_add(ts->M,1.0,ts->A,2.0*dt/3.0,A_time);
+        bdcsr_add_1(ts->M,1.0,ts->A,2.0*dt/3.0,A_time);
         break;
       default:
         status = ERROR_TS_TYPE;
