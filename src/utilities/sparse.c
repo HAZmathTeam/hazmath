@@ -2472,6 +2472,40 @@ void dcsr_bandwith (dCSRmat *A,
 /***********************************************************************************************/
 // Block_dCSRmat subroutines starts here!
 /***********************************************************************************************/
+void bdcsr_alloc (const INT brow,
+                  const INT bcol,
+                  block_dCSRmat *A)
+{
+    /*!
+       * \fn void bdcsr_alloc (const INT brow, const INT bcol, block_dCSRmat *A)
+       *
+       * \brief Allocate block dCSRmat sparse matrix memory space
+       *
+       * \param brow      Number of block rows
+       * \param bcol      Number of block columns
+       * \param A         Pointer to the dCSRmat matrix
+       *
+       * \note: this only allocates A->blocks, but does not allocate each block
+       *
+       */
+
+    SHORT i;
+
+    A->brow = brow;
+    A->bcol = bcol;
+
+    if (brow == 0 || bcol == 0){
+        A->blocks = NULL;
+    }
+    else {
+        A->blocks = (dCSRmat **) calloc(brow*bcol,sizeof(dCSRmat *));
+        for (i=0; i<brow*bcol; i++) A->blocks[i] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
+    }
+
+
+}
+
+/***********************************************************************************************/
 void bdcsr_free (block_dCSRmat *A)
 {
   /*!
@@ -2495,6 +2529,91 @@ void bdcsr_free (block_dCSRmat *A)
 
   free(A->blocks);
   A->blocks = NULL;
+}
+
+/***********************************************************************************************/
+void bdcsr_cp (block_dCSRmat *A,
+               block_dCSRmat *B)
+{
+  /*!
+     * \fn void bdcsr_cp (block_dCSRmat *A, block_dCSRmat *B)
+     *
+     * \brief copy a block_dCSRmat to a new one B=A
+     *
+     * \param A   Pointer to the block_dCSRmat matrix
+     * \param B   Pointer to the block_dCSRmat matrix
+     *
+     * \note: B->blocks has been allocated outsie but each block will be allocated here
+     *
+     */
+
+    SHORT i;
+
+    for (i=0; i<(A->brow*A->bcol); i++){
+
+        if (A->blocks[i] == NULL){
+            B->blocks[i] = NULL;
+        } else {
+            dcsr_alloc(A->blocks[i]->row, A->blocks[i]->col, A->blocks[i]->nnz, B->blocks[i]);
+            dcsr_cp(A->blocks[i], B->blocks[i]);
+        }
+
+    }
+
+}
+
+
+/***********************************************************************************************/
+INT bdcsr_add (block_dCSRmat *A,
+              const REAL alpha,
+              block_dCSRmat *B,
+              const REAL beta,
+              block_dCSRmat *C)
+{
+
+    /*!
+       * \fn void bdcsr_add (block_dCSRmat *A, const REAL alpha, block_dCSRmat *B,
+       *                              const REAL beta, block_dCSRmat *C)
+       *
+       * \brief compute C = alpha*A + beta*B in block_dCSRmat format
+       *
+       * \param A      Pointer to block dCSRmat matrix
+       * \param alpha  REAL factor alpha
+       * \param B      Pointer to block_dCSRmat matrix
+       * \param beta   REAL factor beta
+       * \param C      Pointer to block_dCSRmat matrix
+       *
+       * \return Flag of whether the adding is succesful or not (SUCCUESS: 0; FAIL: <0)
+       *
+       */
+
+    INT i,j;
+    INT status = SUCCESS;
+
+    if (A->brow != B->brow || A->bcol != B->bcol) {
+      printf("### ERROR HAZMAT DANGER: Dimensions of block matrices do not match!!! %s\n", __FUNCTION__);
+      status = ERROR_MAT_SIZE;
+      goto FINISHED;
+    }
+
+    // both matrices A and B are NULL
+    if (A == NULL && B == NULL) {
+      C->brow=0; C->bcol=0; C->blocks=NULL;
+      status=SUCCESS;
+      goto FINISHED;
+    }
+
+    // blockwise addition
+    for (i=0; i<A->brow; i++){
+        for (j=0; j<A->bcol; j++){
+            status = dcsr_add(A->blocks[i*A->brow+j], alpha, B->blocks[i*A->brow+j], beta, C->blocks[i*A->brow+j]);
+            if (status < 0) {goto FINISHED;}
+        }
+    }
+
+FINISHED:
+  return status;
+
 }
 
 /***********************************************************************************************/
@@ -2888,7 +3007,6 @@ void bdcsr_mxv_forts (void *At,
   } // end of switch
 
 }
-
 
 
 /************************************** END ***************************************************/
