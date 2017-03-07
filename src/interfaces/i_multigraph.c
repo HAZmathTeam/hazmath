@@ -192,8 +192,6 @@ void csrreb(INT *nrow, INT *ncol, INT *nnzluo, \
     }
   }  
   ib[n] = ipntr;
-  //  fprintf(stdout,"\nXXXXXXXXXXnonzeroes in U(A)+U(A^T) in %s: nnzLU=%i\n\n",__FUNCTION__,ib[n]);
-  //  fflush(stdout);
   if(ikeep) free(ikeep);
   /* now we have the indexing for U(A)+U(A^T) in ib and jb and
      the old indexing for B in itmp,jtmp; 
@@ -230,8 +228,6 @@ void csrreb(INT *nrow, INT *ncol, INT *nnzluo, \
   /*  clean up */
   /* final step is to store U(A) padded with zeroes where U(A^T) has nonzeroes */
   /* U(A) is pointed by utmp */
-  //  fprintf(stdout," %i %i\n",n,m);
-  //  for (i=0;i<nnzlu;++i) {utmp[i]=0e0;}
   
   for (i=0;i<n;++i) {
     i1=i+1;
@@ -240,10 +236,8 @@ void csrreb(INT *nrow, INT *ncol, INT *nnzluo, \
     if (iend > istrt) {
       for (jk = istrt;jk<iend;++jk) {
 	j=jb[jk];
-	//	fprintf(stdout," %i %i\n",i,j);
 	x[j] = 0e+00;
       }
-      //      fflush(stdout);
       /* only do B */
       itstrt = ia[i];
       itend = ia[i1];
