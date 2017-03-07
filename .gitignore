@@ -8,6 +8,9 @@ include/hazmat.h
 *.a
 *~
 *.mod
+\#*
+.\#*
+octave-workspace
 examples/HeatEquation/*.vtu
 examples/HDEquation/*.vtu
 examples/HDEquation/*.dat
