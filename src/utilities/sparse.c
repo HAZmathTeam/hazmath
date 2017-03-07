@@ -812,7 +812,7 @@ INT dcsr_add (dCSRmat *A,
          memcpy(C->IA,B->IA,(B->row+1)*sizeof(INT));
          memcpy(C->JA,B->JA,(B->nnz)*sizeof(INT));
 
-         for (i=0;i<A->nnz;++i) C->val[i]=B->val[i]*beta;
+         for (i=0;i<B->nnz;++i) C->val[i]=B->val[i]*beta;
 
          status = SUCCESS;
          goto FINISHED;
@@ -864,7 +864,7 @@ INT dcsr_add (dCSRmat *A,
     memcpy(C->IA,B->IA,(B->row+1)*sizeof(INT));
     memcpy(C->JA,B->JA,(B->nnz)*sizeof(INT));
 
-    for (i=0;i<A->nnz;++i) C->val[i]=B->val[i]*beta;
+    for (i=0;i<B->nnz;++i) C->val[i]=B->val[i]*beta;
 
     status = SUCCESS;
     goto FINISHED;
