@@ -10,6 +10,7 @@ include/hazmat.h
 *.mod
 \#*
 .\#*
+.DS_Store
 octave-workspace
 examples/HeatEquation/*.vtu
 examples/HDEquation/*.vtu
