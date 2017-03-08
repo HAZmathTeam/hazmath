@@ -2,53 +2,57 @@
 # Last Modified 2017-03-06 --ltz
 ####################################################
 
+SRCDIR = .
 # SRC File name
-SRCFILE = mgraph
+SRCFILE = $(SRCDIR)/multigraph_solve
 
+CC = gcc-6
+FC = gfortran-6
+CFLAGS = -O3
 # Different Executable Programs
 EXE = $(SRCFILE).ex
 
 # Machine Specific Compilers and Libraries
-CC = gcc
-
 # HAZMATH
-HAZDIR=../..
+HAZDIR=$(realpath ../..)
 HAZLIB = $(HAZDIR)/lib
-HAZINCLUDE = -I$(HAZDIR)/include
+HAZINCLUDE = $(HAZDIR)/include
+#Multigraph
+MULTIGRAPH_DIR = $(realpath /Users/ltz1/packages/multigraph_2.0)
+##########################################################
+MULTIGRAPH_SRCDIR = $(MULTIGRAPH_DIR)/src
+MULTIGRAPH_PRECISION_MOD = $(MULTIGRAPH_SRCDIR)/mthdef.mod
+MULTIGRAPH_PRECISION_SRC = $(MULTIGRAPH_SRCDIR)/mg0.f
 
-# SuiteSparse  
-# XH (Linux)
-#SSDIR = /usr/local
-#JA (Macports)
-SSDIR = /opt/local
-# Polaris 
-#SSDIR = /usr/local/numerics/suitesparse
-SSINCLUDE = -I$(SSDIR)/include
-SSLIB = -L$(SSDIR)/lib -lsuitesparseconfig -lcholmod -lamd -lcolamd -lccolamd -lcamd -lspqr -lumfpack -lamd -lcxsparse 
 
 # Source and Object Files
-SRC = .
-SRCex = $(SRC)/$(SRCFILE).c
-OBJex = $(SRC)/$(SRCFILE).o
-OBJSex = $(OBJex) $(HAZLIB)/libhazmat.a  $(HAZLIB)/libmultigraph.a 
+SRCex = $(SRCFILE).c
+HEADERS = $(SRCFILE).h
 
-# Include all Libraries including UMFPACK, its dependencies, BLAS, and LAPACK
-INCLUDE = $(SSINCLUDE) $(HAZINCLUDE)
-LIBS = -lm -lblas -llapack -lgfortran $(SSLIB)
+OBJS = solver.o $(SRCFILE).o
+INCLUDE = -I$(HAZINCLUDE) -I$(SRCDIR)
+LIBS = -lhazmat -lgfortran
 
-.PHONY: all
+
+.PHONY: all clean
 
 all: $(EXE)
 
-$(EXE): $(OBJSex)
-	$(CC) $(ExtraFLAGS) $(OBJSex) $(INCLUDE) $(LIBS) -o $(EXE) 
+$(EXE):	$(OBJS)  $(HAZLIB)
+	+$(CC)  -L$(HAZLIB) $(OBJS) -o $@ $(LIBS)
 
-%.o:	%.c
-	$(CC) $(INCLUDE) $(CFLAGS) -o $@ -c  $< $(PROFFLAG)
+%.o:	 %.c $(HEADERS)
+	+$(CC)  $(CFLAGS) $(INCLUDE)  -L$(HAZLIB) -o $@ -c $< 
 
-%.o:	%.f
-	$(FC) $(INCLUDE) $(FFLAGS) -o $@ -c  $< $(PROFFLAG)
+$(MULTIGRAPH_PRECISION_MOD):	$(MULTIGRAPH_PRECISION_SRC)
+		+$(FC)  $(CFLAGS) -c $<  $(INCLUDE) -o $@ 
+
+%.o:	 $(MULTIGRAPH_SRCDIR)/%.f $(MULTIGRAPH_PRECISION_MOD)
+	+$(FC)  $(CFLAGS) -c $<  $(INCLUDE) -o $@ 
+
+# Generate an error message if the HAZmath library is not built
+$(HAZLIB):
+	$(error The HAZmath library is not built or is not up to date)
 
 clean:
-	rm -rf $(EXE) $(SRC)/*.o output/* ./*.dSYM
-
+	rm -f *.o *.mod *~ $(MULTIGRAPH_PRECISION_MOD)  $(EXE) 

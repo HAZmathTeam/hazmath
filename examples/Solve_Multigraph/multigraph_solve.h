@@ -1,18 +1,18 @@
 
 /* MULTIGRAPH PARAMETERS for the call to mginit_()*/
 INT ispd=0; // is this an SPD problem ?
-INT ncfact=4; // factor for coarsening
+INT ncfact=4; // ?factor for coarsening
 INT maxlvl=20; // max number of levels
 INT maxfil=32; // max fill in
 INT method=0; // ilu method (check the multigraph-2.0 user guide for
-	      // details
-REAL dtol=1e-2; // drop tollerance
+	      // details)
+REAL dtol=1e-5; // drop tollerance
 INT iflag=-16;  // error flag, set to an unusual value
 INT lvl=-16; // levels counter, set to an unusual value
 
 /* Multigrpah parameters for the call to mg_() */
 REAL eps1=1e-8; // tolerance 
-INT mxcg=1000; // max cg iterations
+INT mxcg=10000; // max cg iterations
 REAL relerr=1e0; // check the user manual
 
 /* from multigraph-2.0 source
