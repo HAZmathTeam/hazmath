@@ -11,7 +11,7 @@ INT iflag=-16;  // error flag, set to an unusual value
 INT lvl=-16; // levels counter, set to an unusual value
 
 /* Multigrpah parameters for the call to mg_() */
-REAL eps1=1e-8; // tolerance 
+REAL eps1=1e-14; // tolerance 
 INT mxcg=1000; // max cg iterations
 REAL relerr=1e0; // check the user manual
 

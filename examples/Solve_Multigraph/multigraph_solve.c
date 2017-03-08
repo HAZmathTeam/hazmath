@@ -94,15 +94,13 @@ int main (int argc, char* argv[])
   for (i=0;i<iend;++i){    
     fprintf(stdout,"iter =  %5i; res %12.4e\n",itnum-iend+i+1,hist[i]);    
   }
-  /*
-    for (i=0;i<n;++i){    
+  for (i=0;i<n;++i){    
     fprintf(stdout,"%22.16e\n",sol.val[i]);    
-    }
-  */
-    if(ka) free(ka);
-    if(hist) free(hist);
-    if(jareb) free(jareb);
-    if(areb) free(areb); 
+  }
+  if(ka) free(ka);
+  if(hist) free(hist);
+  if(jareb) free(jareb);
+  if(areb) free(areb); 
   return 0;
 }
 #if defined (__cplusplus)
