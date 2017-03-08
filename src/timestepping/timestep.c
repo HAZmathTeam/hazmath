@@ -73,7 +73,6 @@ void initialize_timestepper(timestepper *tstepper,input_param *inparam,INT rhs_t
   dvec_alloc(ndof,tstepper->rhs_prev);
   dvec_alloc(ndof,tstepper->rhs_time);
 
-
   // Set L operator for RHS (L=A if linear, otherwise call an assembly)
   if(inparam->nonlinear_itsolver_type==0) { // Linear
     tstepper->L=dcsr_mxv_1_forts;
@@ -194,15 +193,17 @@ void update_timestep(timestepper *tstepper)
 /******************************************************************************************************/
 
 /******************************************************************************************************/
-void get_timeoperator(timestepper* ts)
+void get_timeoperator(timestepper* ts,INT first_visit,INT cpyNoBC)
 {
   /*!
-   * \fn void get_timeoperator(timestepper* ts)
+   * \fn void get_timeoperator(timestepper* ts,INT first_visit,INT cpyNoBC)
    *
    * \brief Gets the matrix to solve for timestepping scheme
    *        Assumes we have: M du/dt + L(u) = b
    *
    * \param ts            Timestepping struct
+   * \param first_visit   Indicates if this is the first visit in order to do allocation.
+   * \param cpyNoBC       Indicates if you'd like to store the time matrix without BC eliminated
    *
    * \return ts.Atime     Matrix to solve with
    *
@@ -214,24 +215,23 @@ void get_timeoperator(timestepper* ts)
   REAL dt = ts->dt;
   INT time_scheme = ts->time_scheme;
 
-  dCSRmat* A_time = ts->At;
-
   switch (time_scheme) {
   case 0: // Crank-Nicolson: (M + 0.5*dt*A)u = (M*uprev - 0.5*dt*L(uprev) + 0.5*dt*(b_old + b)
-    dcsr_add_1(ts->M,1.0,ts->A,0.5*dt,A_time);
+    dcsr_add_1(ts->M,1.0,ts->A,0.5*dt,ts->At);
     break;
   case 1: // Backward Euler: (M + dt*A)u = M*uprev + dt*b
-    dcsr_add_1(ts->M,1.0,ts->A,dt,A_time);
+    dcsr_add_1(ts->M,1.0,ts->A,dt,ts->At);
     break;
   case 2: // BDF-2: (M + (2/3)*dt*A)u = (4/3)*M*uprev - (1/3)*M*uprevprev+ (2/3)*dt*b
-    dcsr_add_1(ts->M,1.0,ts->A,2.0*dt/3.0,A_time);
+    dcsr_add_1(ts->M,1.0,ts->A,2.0*dt/3.0,ts->At);
     break;
   default:
     status = ERROR_TS_TYPE;
     check_error(status, __FUNCTION__);
   }
 
-  dcsr_alloc(ts->At->row,ts->At->col,ts->At->nnz,ts->At_noBC);
+  if(first_visit)
+    dcsr_alloc(ts->At->row,ts->At->col,ts->At->nnz,ts->At_noBC);
   dcsr_cp(ts->At,ts->At_noBC);
 	
   return;
@@ -327,16 +327,17 @@ void update_time_rhs(timestepper *ts)
 
 //**** BLOCK Versions ******/
 /******************************************************************************************************/
-void initialize_blktimestepper(block_timestepper *tstepper,input_param *inparam,INT rhs_timedep,INT ndof)
+void initialize_blktimestepper(block_timestepper *tstepper,input_param *inparam,INT rhs_timedep,INT ndof,INT blksize)
 {
   /*!
-   * \fn void initialize_blktimestepper(block_timestepper *tstepper,input_param *inparam)
+   * \fn void initialize_blktimestepper(block_timestepper *tstepper,input_param *inparam,INT rhs_timedep,INT ndof,INT blksize)
    *
    * \brief Initialize the BLOCK timestepping struct.
    *
    * \param inparam       Input from input parameter list
-   * \param ndof          Number of DOF in the system
    * \param rhs_timedep   Indicates if the RHS (f) is time-dependent (1 or 0)
+   * \param ndof          Number of DOF in the system
+   * \param blksize       Number of block rows in matrix (assume rows=cols)
    *
    * \return tstepper     Struct for Block Timestepping
    *
@@ -384,6 +385,9 @@ void initialize_blktimestepper(block_timestepper *tstepper,input_param *inparam,
   tstepper->rhs=NULL;     /* f */
   tstepper->rhs_prev=malloc(sizeof(struct dvector)); /* fprev */
   tstepper->rhs_time=malloc(sizeof(struct dvector));
+
+  bdcsr_alloc(blksize,blksize,tstepper->At);
+  bdcsr_alloc(blksize,blksize,tstepper->At_noBC);
   dvec_alloc(tstepper->old_steps*ndof,tstepper->sol_prev);
   dvec_alloc(ndof,tstepper->rhs_prev);
   dvec_alloc(ndof,tstepper->rhs_time);
@@ -508,15 +512,19 @@ void update_blktimestep(block_timestepper *tstepper)
 /******************************************************************************************************/
 
 /******************************************************************************************************/
-void get_blktimeoperator(block_timestepper* ts)
+void get_blktimeoperator(block_timestepper* ts,INT first_visit,INT cpyNoBC)
 {
     /*!
-    * \fn void get_blktimeoperator(block_timestepper* ts)
+    * \fn void get_blktimeoperator(block_timestepper* ts,INT cpNoBC)
     *
     * \brief Gets the matrix to solve for BLOCK timestepping scheme
     *        Assumes we have: M du/dt + L(u) = b
     *
     * \param ts            block Timestepping struct
+    * \param first_visit   Indicates if this is the first visit in order to do allocation.
+    * \param cpyNoBC       Indicates if you'd like to store the time matrix without BC eliminated
+    *
+    * \param cpNoBC        Flag to indicate if a non-boundary eliminated matrix needs to be stored
     *
     * \return ts.Atime     Matrix to solve with
     *
@@ -528,25 +536,23 @@ void get_blktimeoperator(block_timestepper* ts)
     REAL dt = ts->dt;
     INT time_scheme = ts->time_scheme;
 
-    block_dCSRmat* A_time = ts->At;
-
     switch (time_scheme) {
       case 0: // Crank-Nicolson: (M + 0.5*dt*A)u = (M*uprev - 0.5*dt*L(uprev) + 0.5*dt*(b_old + b)
-        bdcsr_add_1(ts->M,1.0,ts->A,0.5*dt,A_time);
+        bdcsr_add_1(ts->M,1.0,ts->A,0.5*dt,ts->At);
         break;
       case 1: // Backward Euler: (M + dt*A)u = M*uprev + dt*b
-        bdcsr_add_1(ts->M,1.0,ts->A,dt,A_time);
+        bdcsr_add_1(ts->M,1.0,ts->A,dt,ts->At);
         break;
       case 2: // BDF-2: (M + (2/3)*dt*A)u = (4/3)*M*uprev - (1/3)*M*uprevprev+ (2/3)*dt*b
-        bdcsr_add_1(ts->M,1.0,ts->A,2.0*dt/3.0,A_time);
+        bdcsr_add_1(ts->M,1.0,ts->A,2.0*dt/3.0,ts->At);
         break;
       default:
         status = ERROR_TS_TYPE;
         check_error(status, __FUNCTION__);
     }
 
-    bdcsr_alloc(ts->At->brow,ts->At->bcol,ts->At_noBC);
-    bdcsr_cp(ts->At,ts->At_noBC);
+    if(cpyNoBC)
+      bdcsr_cp(ts->At,ts->At_noBC);
 
   return;
 }

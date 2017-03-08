@@ -168,7 +168,7 @@ int main (int argc, char* argv[])
   time_stepper.A = &A;
   time_stepper.Ldata=&A;
   time_stepper.M = &M;
-  get_timeoperator(&time_stepper);
+  get_timeoperator(&time_stepper,1,1);
 
   clock_t clk_assembly_end = clock();
   printf(" --> elapsed CPU time for assembly = %f seconds.\n\n",(REAL)
