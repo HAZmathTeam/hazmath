@@ -58,6 +58,7 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
 
   // Flag for errors
   SHORT status;
+  INT i;
 
   // Initialize First for good mesure
   initialize_fespace(FE);
@@ -77,7 +78,7 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
   case 0: // Contants - P0
     FE->ndof = mesh->nelm;
     coordinates *barycenter = allocatecoords(mesh->nelm,dim);
-    for (INT i=0; i<mesh->nelm; i++) {
+    for (i=0; i<mesh->nelm; i++) {
       barycenter->x[i] = mesh->el_mid[i*dim];
       if(mesh->dim>1)
         barycenter->y[i] = mesh->el_mid[i*dim + 1];
@@ -102,7 +103,7 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     }
     dirichlet = (INT *) calloc(mesh->nelm,sizeof(INT));
     dof_flag = (INT *) calloc(mesh->nelm,sizeof(INT));
-    for(INT i=0;i<mesh->nelm;i++) {
+    for(i=0;i<mesh->nelm;i++) {
       dirichlet[i] = 0;
       dof_flag[i] = 0;
     }
@@ -123,7 +124,7 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     }
     dirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
     dof_flag = (INT *) calloc(FE->ndof,sizeof(INT));
-    for(INT i=0;i<FE->ndof;i++) {
+    for(i=0;i<FE->ndof;i++) {
       dirichlet[i] = mesh->v_bdry[i];
       dof_flag[i] = mesh->v_bdry[i];
     }
@@ -164,7 +165,7 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     FE->f_dof = mesh->f_ed;
     dirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
     dof_flag = (INT *) calloc(FE->ndof,sizeof(INT));
-    for(INT i=0;i<FE->ndof;i++) {
+    for(i=0;i<FE->ndof;i++) {
       dirichlet[i] = mesh->ed_bdry[i];
       dof_flag[i] = mesh->ed_bdry[i];
     }
@@ -193,7 +194,7 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     *(FE->f_dof) = f_f;
     dirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
     dof_flag = (INT *) calloc(FE->ndof,sizeof(INT));
-    for(INT i=0;i<FE->ndof;i++) {
+    for(i=0;i<FE->ndof;i++) {
       dirichlet[i] = mesh->f_bdry[i];
       dof_flag[i] = mesh->f_bdry[i];
     }
