@@ -6,8 +6,8 @@ SRCDIR = .
 # SRC File name
 SRCFILE = $(SRCDIR)/multigraph_solve
 
-CC = gcc5
-FC = gfortran5
+CC = gcc-6
+FC = gfortran-6
 CFLAGS = -g
 # Different Executable Programs
 EXE = $(SRCFILE).ex
