@@ -72,7 +72,7 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
   INT* dof_flag;
   REAL* phi;
   REAL* dphi;
-
+  INT i;
   switch (FEtype)
   {
   case 0: // Contants - P0

@@ -15,7 +15,7 @@ int main (int argc, char* argv[])
   dvector rhs,sol,exsol; //RHS,solution,exact solution
   INT idummy[3],i=3,n=-16,ncol=-16;
   // read the matrix
-  FILE* fp=HAZ_fopen("symm.coo","r");
+  FILE* fp=HAZ_fopen("nonsymm.coo","r");
   rveci_(fp,idummy, &i);
   n=A.row=B.row=idummy[0];
   ncol=A.col=B.col=idummy[1];
@@ -46,17 +46,22 @@ int main (int argc, char* argv[])
   A.val=(REAL *) calloc(A.nnz,sizeof(REAL));
   dcoo_2_dcsr (&B,&A);
   if(B.rowind) free(B.rowind); if(B.colind) free(B.colind); if(B.val) free(B.val);
+  /*
+    fp=HAZ_fopen("symm01.coo","w");
+    csr_print_matlab(fp,&A);
+    fclose(fp);
+  */
   fprintf(stdout,"\nrows=%i,cols=%i,nnz=%i\n",A.row,A.col,A.nnz);
   // use now multigraph
   clock_t clk_mesh_start = clock(); // Time
   INT    *jareb=NULL;
-  REAL *areb=NULL;
+  REAL   *areb=NULL;
   INT nnzlu=-16;  
-  fprintf(stdout," *** Starting multigraph Solver\n");
-  csrreb(&n,&n, &nnzlu,A.IA,A.JA,A.val,&jareb,&areb);
-  INT maxja = 4*(n1 + jareb[n]-jareb[0]);
+  fprintf(stdout,"   *** Starting multigraph Solver\n");
+  csrreb(&n,&n,&nnzlu,A.IA,A.JA,A.val,&jareb,&areb);
+  INT maxja = 5*(n1 + jareb[n]-jareb[0]);
   if(maxja < 7*n) maxja=7*n;
-  INT maxa = 5*maxja;
+  INT maxa = 2*maxja;
   jareb=(INT *)realloc(jareb,maxja*sizeof(INT));
   areb=(REAL *)realloc(areb,maxa*sizeof(REAL));
   INT  nblock = 1;
@@ -72,26 +77,26 @@ int main (int argc, char* argv[])
   	  &ncfact, &maxlvl, &maxfil, ka,
   	  &lvl, &dtol, &method, 
   	  &iflag );
-  fprintf(stdout,"\n\n*** mginit: flag=%i\n\n",iflag);
+  fprintf(stdout,"\n*** mginit: flag=%i; levels = %i\n",iflag,lvl);
   fflush(stdout);
   INT j, ij;
   INT ns=ka[10*(lvl+1-1)+(2-1)]-1;
-  REAL *hist= (REAL *) calloc(22,sizeof(REAL));
+  REAL* hist=(REAL *)calloc(22,sizeof(REAL));
   mg_(&ispd, &lvl, &mxcg, &eps1, jareb, areb,	\
        sol.val, rhs.val, ka, &relerr, &iflag, hist );
-  fprintf(stdout,"\n\n*** mg_: flag=%i\n\n",iflag);
+  fprintf(stdout,"*** mg_: flag=%i\n",iflag);
   fflush(stdout);
   /* unshift */
   for (i=0;i<n1+nnzlu;++i) jareb[i]-=1;
-  INT iend=hist[22], itnum= (INT )hist[iend];
+  INT iend=20, itnum= (INT )hist[iend];
   if(itnum<iend) iend=itnum;
   fprintf(stdout,"\nMultigraph history (iter_num=%5i)\n",itnum);    
   for (i=0;i<iend;++i){    
     fprintf(stdout,"iter =  %5i; res %12.4e\n",itnum-iend+i+1,hist[i]);    
   }
-  //  for (i=0;i<n;++i){    
-  //    fprintf(stdout,"%22.16e\n",sol.val[i]);    
-  //  }
+  for (i=0;i<n;++i){    
+    fprintf(stdout,"%22.16e\n",sol.val[i]);    
+  }
   if(ka) free(ka);
   if(hist) free(hist);
   if(jareb) free(jareb);

@@ -9,8 +9,7 @@ extern "C" {
 #include <float.h>
 #include <limits.h>
 
-#define INT int
-#define REAL double
+#include "hazmat.h"
 
 void csrreb(INT *nrow, INT *ncol, INT *nnzluo, \
 	    INT *ia, INT *ja, REAL *a,       \
@@ -61,7 +60,7 @@ void csrreb(INT *nrow, INT *ncol, INT *nnzluo, \
       sparsity pattern, then it is padded with zeroes so that B has a
       symmetric pattern pattern. the storage for B is allocated here. 
 */
-  itmp=(INT *) calloc(n1,sizeof(int)); // pointers to rows (working)
+  itmp=(INT *) calloc(n1,sizeof(INT)); // pointers to rows (working)
   /*reset */
   for (i=0; i < n1; ++i) itmp[i] = 0;
   /*  count nonzeroes*/
@@ -78,7 +77,7 @@ void csrreb(INT *nrow, INT *ncol, INT *nnzluo, \
   }
   //  fprintf(stdout,"\nnonzeroes in L^T=U(A^T) in %s: nnzu=%i\n",__FUNCTION__,nnzu);
   //  fflush(stdout);
-  jtmp = (INT *)calloc(nnzu,sizeof(int));
+  jtmp = (INT *)calloc(nnzu,sizeof(INT));
   /* this is initial allocation for the B; if the sparsity is
      originally symmetric, there is no need to reallocate
      reallocated */
