@@ -57,11 +57,11 @@ int main (int argc, char* argv[])
   INT    *jareb=NULL;
   REAL   *areb=NULL;
   INT nnzlu=-16;  
-  fprintf(stdout," *** Starting multigraph Solver\n");
-  csrreb(&n,&n, &nnzlu,A.IA,A.JA,A.val,&jareb,&areb);
-  INT maxja = 4*(n1 + jareb[n]-jareb[0]);
+  fprintf(stdout,"   *** Starting multigraph Solver\n");
+  csrreb(&n,&n,&nnzlu,A.IA,A.JA,A.val,&jareb,&areb);
+  INT maxja = 5*(n1 + jareb[n]-jareb[0]);
   if(maxja < 7*n) maxja=7*n;
-  INT maxa = 5*maxja;
+  INT maxa = 2*maxja;
   jareb=(INT *)realloc(jareb,maxja*sizeof(INT));
   areb=(REAL *)realloc(areb,maxa*sizeof(REAL));
   INT  nblock = 1;
@@ -81,14 +81,7 @@ int main (int argc, char* argv[])
   fflush(stdout);
   INT j, ij;
   INT ns=ka[10*(lvl+1-1)+(2-1)]-1;
-  //  fprintf(stdout,"Multigraph history (iter_num)  %i\n",ns);
-  //  fflush(stdout);
-  /*
-    for(i=0;i<10*(maxlvl+1);i++) {
-    fprintf(stdout,"ka[%i]=%i\n",i+1,ka[i]);
-    }
-  */
-  REAL hist[22];
+  REAL* hist=(REAL *)calloc(22,sizeof(REAL));
   mg_(&ispd, &lvl, &mxcg, &eps1, jareb, areb,	\
        sol.val, rhs.val, ka, &relerr, &iflag, hist );
   fprintf(stdout,"*** mg_: flag=%i\n",iflag);
@@ -97,6 +90,7 @@ int main (int argc, char* argv[])
   for (i=0;i<n1+nnzlu;++i) jareb[i]-=1;
   INT iend=20, itnum= (INT )hist[iend];
   if(itnum<iend) iend=itnum;
+  fprintf(stdout,"\nMultigraph history (iter_num=%5i)\n",itnum);    
   for (i=0;i<iend;++i){    
     fprintf(stdout,"iter =  %5i; res %12.4e\n",itnum-iend+i+1,hist[i]);    
   }
@@ -105,10 +99,10 @@ int main (int argc, char* argv[])
     fprintf(stdout,"%22.16e\n",sol.val[i]);    
     }
   */
-  //  if(ka) free(ka);
-  //  if(hist) free(hist);
-  //  if(jareb) free(jareb);
-  //  if(areb) free(areb); 
+    if(ka) free(ka);
+    if(hist) free(hist);
+    if(jareb) free(jareb);
+    if(areb) free(areb); 
   return 0;
 }
 #if defined (__cplusplus)
