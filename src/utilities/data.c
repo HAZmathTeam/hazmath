@@ -1,14 +1,14 @@
 /*! \file src/utilities/data.c
  *
  *  Created by James Adler and Xiaozhe Hu on 12/23/15.
- *  Copyright 2015__HAZMAT__. All rights reserved.
+ *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  *  \note modified by Xiaozhe Hu 10/27/2016
  *  \note: done cleanup for releasing -- Xiaozhe Hu 10/27/2016
  *
  */
 
-#include "hazmat.h"
+#include "hazmath.h"
 
 /***********************************************************************************************/
 void precond_data_null (precond_data *pcdata)
@@ -29,7 +29,6 @@ void precond_data_null (precond_data *pcdata)
     pcdata->tol                 = 1e-8;
     pcdata->cycle_type          = V_CYCLE;
     pcdata->smoother            = SMOOTHER_GS;
-    pcdata->smooth_order        = NO_ORDER;
     pcdata->presmooth_iter      = 1;
     pcdata->postsmooth_iter     = 1;
     pcdata->relaxation          = 1.2;
@@ -42,7 +41,6 @@ void precond_data_null (precond_data *pcdata)
 
     pcdata->amli_coef           = NULL;
     pcdata->mgl_data            = NULL;
-    pcdata->LU                  = NULL;
     pcdata->A                   = NULL;
 
     pcdata->A_nk                = NULL;
@@ -54,88 +52,6 @@ void precond_data_null (precond_data *pcdata)
 
 }
 
-/***********************************************************************************************/
-void ilu_data_null (ILU_data *ILUdata)
-{
-    /*!
-     * \fn void ilu_data_null (ILU_data *ILUdata)
-     *
-     * \brief Initialize ILU data (Pointers are set to NULL)
-     *
-     * \param ILUdata   Pointer to ILU_data
-     *
-     */
-    
-    ILUdata->row        = 0;
-    ILUdata->col        = 0;
-    ILUdata->nzlu       = 0;
-
-    ILUdata->ijlu       = NULL;
-    ILUdata->luval      = NULL;
-
-    ILUdata->nb         = 0;
-    ILUdata->nwork      = 0;
-
-    ILUdata->work       = NULL;
-
-}
-
-/***********************************************************************************************/
-void ilu_data_alloc (const INT iwk,
-                          const INT nwork,
-                          ILU_data *iludata)
-{
-    /*!
-     * \fn void ilu_data_alloc (const INT iwk, const INT nwork, ILU_data *iludata)
-     *
-     * \brief Allocate workspace for ILU factorization used as smoothers
-     *
-     * \param iwk       Size of the array for the indices
-     * \param nwork     Size of the work array
-     * \param iludata   Pointer to the ILU_data
-     *
-     */
-
-
-    iludata->ijlu=(INT*)calloc(iwk, sizeof(INT));
-    
-    iludata->luval=(REAL*)calloc(iwk, sizeof(REAL));
-    
-    iludata->work=(REAL*)calloc(nwork, sizeof(REAL));
-    
-    return;
-}
-
-/***********************************************************************************************/
-void ilu_data_free (ILU_data *ILUdata)
-{
-    /*!
-     * \fn void ilu_data_free (ILU_data *ILUdata)
-     *
-     * \brief free the ILU_data sturcture
-     *
-     * \param ILUdata   Pointer to the ILU_data structure
-     *
-     */
-    
-    if (ILUdata) {
-
-        free(ILUdata->ijlu);
-        ILUdata->ijlu  = NULL;
-
-        free(ILUdata->luval);
-        ILUdata->luval = NULL;
-
-        free(ILUdata->work);
-        ILUdata->work  = NULL;
-    
-        ILUdata->row    = 0;
-        ILUdata->col    = 0;
-        ILUdata->nzlu   = 0;
-        ILUdata ->nwork = 0;
-        ILUdata->nb     = 0;
-    }
-}
 
 /***********************************************************************************************/
 AMG_data *amg_data_create(SHORT max_levels)
@@ -195,7 +111,6 @@ void amg_data_free(AMG_data *mgl,
         dvec_free(&mgl[i].x);
         dvec_free(&mgl[i].w);
         ivec_free(&mgl[i].cfmark);
-        ilu_data_free(&mgl[i].LU);
     }
 
     for (i=0; i<mgl->near_kernel_dim; ++i) {

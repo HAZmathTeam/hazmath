@@ -1,7 +1,7 @@
 /*! \file StokesSystem.h
  *
  *  Created by Peter Ohm on 1/5/17.
- *  Copyright 2015_HAZMAT__. All rights reserved.
+ *  Copyright 2015_HAZMATH__. All rights reserved.
  *
  * \brief This program solves Stokes PDE using finite elements
  *

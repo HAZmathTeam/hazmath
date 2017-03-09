@@ -1,0 +1,9 @@
+#####################################################
+# Last Modified 2017-03-08 --ltz
+####################################################
+
+
+To make the executables for the examples:
+   1. edit the variables in examples.mk to match your system.
+   2. change to the directory with an example and type "make", e.g.:
+      cd HeatEquation ; make

@@ -1,6 +1,6 @@
 BUILD_HAZ
-lib/libhazmat.*
-include/hazmat.h
+lib/libhazmath.*
+include/hazmath.h
 *.dSYM/
 *.ex
 */*.ex
@@ -15,9 +15,9 @@ octave-workspace
 examples/HeatEquation/*.vtu
 examples/HDEquation/*.vtu
 examples/HDEquation/*.dat
-HAZMAT.config
-HAZMAT.creator
-HAZMAT.creator.user
-HAZMAT.files
-HAZMAT.includes
-HAZMAT.pro
+HAZMATH.config
+HAZMATH.creator
+HAZMATH.creator.user
+HAZMATH.files
+HAZMATH.includes
+HAZMATH.pro

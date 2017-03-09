@@ -3,11 +3,11 @@
  *  Algebraic multigrid iterations: SOLVE phase.
  *
  *  Created by James Adler and Xiaozhe Hu on 12/24/15.
- *  Copyright 2015__HAZMAT__. All rights reserved.
+ *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  */
 
-#include "hazmat.h"
+#include "hazmath.h"
 #include "itsolver_util.inl"
 
 /*---------------------------------*/
@@ -226,66 +226,6 @@ INT amg_solve_nl_amli (AMG_data *mgl,
     
     return iter;
 }
-
-#if 0
-
-/**
- * \fn void fasp_famg_solve (AMG_data *mgl, AMG_param *param)
- *
- * \brief FMG -- SOLVE phase
- *
- * \param mgl    Pointer to AMG data: AMG_data
- * \param param  Pointer to AMG parameters: AMG_param
- *
- * \author Chensong Zhang
- * \date   01/10/2012
- */
-void fasp_famg_solve (AMG_data *mgl,
-                      AMG_param *param)
-{
-    dCSRmat     *ptrA = &mgl[0].A;
-    dvector     *b = &mgl[0].b, *x = &mgl[0].x, *r = &mgl[0].w;
-    
-    const SHORT  prtlvl = param->print_level;
-    const REAL   sumb   = fasp_blas_dvec_norm2(b); // L2norm(b)
-    
-    // local variables
-    REAL         solve_start, solve_end;
-    REAL         relres1 = BIGREAL, absres;
-        
-#if DEBUG_MODE > 0
-    printf("### DEBUG: %s ...... [Start]\n", __FUNCTION__);
-    printf("### DEBUG: nrow = %d, ncol = %d, nnz = %d\n",
-           mgl[0].A.row, mgl[0].A.col, mgl[0].A.nnz);
-#endif
-    
-    fasp_get_time(&solve_start);
-
-    // Call one full multigrid cycle
-    fasp_solver_fmgcycle(mgl, param);
-    
-    // Form residual r = b-A*x
-    fasp_dvec_cp(b, r);
-    fasp_blas_dcsr_aAxpy(-1.0, ptrA, x->val, r->val);
-    
-    // Compute norms of r and convergence factor
-    absres  = fasp_blas_dvec_norm2(r); // residual ||r||
-    relres1 = absres/sumb;             // relative residual ||r||/||b||
-    
-    if ( prtlvl > PRINT_NONE ) {
-        printf("FMG finishes with relative residual %e.\n", relres1);
-        fasp_get_time(&solve_end);
-        print_cputime("FMG solve",solve_end - solve_start);
-    }
-    
-#if DEBUG_MODE > 0
-    printf("### DEBUG: %s ...... [Finish]\n", __FUNCTION__);
-#endif
-    
-    return;
-}
-
-#endif
 
 /*---------------------------------*/
 /*--        End of File          --*/

@@ -3,14 +3,11 @@
  *  Abstract multigrid cycle
  *
  *  Created by James Adler and Xiaozhe Hu on 12/25/15.
- *  Copyright 2015__HAZMAT__. All rights reserved.
+ *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  */
 
-//#include <math.h>
-//#include <time.h>
-
-#include "hazmat.h"
+#include "hazmath.h"
 #include "mg_util.inl"
 
 static SHORT krylov_cycle_dcsr_pgcg(dCSRmat *, dvector *, dvector *, precond *);
@@ -39,63 +36,26 @@ void mgcycle (AMG_data *mgl,
     const SHORT  prtlvl = param->print_level;
     const SHORT  amg_type = param->AMG_type;
     const SHORT  smoother = param->smoother;
-    const SHORT  smooth_order = param->smooth_order;
     const SHORT  cycle_type = param->cycle_type;
     const SHORT  coarse_solver = param->coarse_solver;
     const SHORT  nl = mgl[0].num_levels;
     const REAL   relax = param->relaxation;
     const REAL   tol = param->tol * 1e-4;
-    const SHORT  ndeg = param->polynomial_degree;
-    
-    /*
-    // Schwarz parameters
-    Schwarz_param swzparam;
-    if ( param->Schwarz_levels > 0 ) {
-        swzparam.Schwarz_blksolver = param->Schwarz_blksolver;
-    }
-     */
+    const SHORT  ndeg = param->polynomial_degree;    
     
     // local variables
     REAL alpha = 1.0;
     INT  num_lvl[MAX_AMG_LVL] = {0}, l = 0;
-    
     
 ForwardSweep:
     while ( l < nl-1 ) {
         
         num_lvl[l]++;
         
-        // pre-smoothing with ILU method
-        if ( l < mgl->ILU_levels ) {
-            smoother_dcsr_ilu(&mgl[l].A, &mgl[l].b, &mgl[l].x, &mgl[l].LU);
-        }
-        
-        // or pre-smoothing with Schwarz method
-        /*
-        else if ( l < mgl->Schwarz_levels ) {
-        
-            switch (mgl[l].Schwarz.Schwarz_type) {
-                case SCHWARZ_SYMMETRIC:
-                    fasp_dcsr_Schwarz_forward_smoother(&mgl[l].Schwarz, &swzparam, 
-                                                       &mgl[l].x, &mgl[l].b);
-                    fasp_dcsr_Schwarz_backward_smoother(&mgl[l].Schwarz, &swzparam, 
-                                                        &mgl[l].x, &mgl[l].b);
-                    break;
-                default:
-                    fasp_dcsr_Schwarz_forward_smoother(&mgl[l].Schwarz, &swzparam, 
-                                                       &mgl[l].x, &mgl[l].b);
-                    break;
-            }
-            
-        }
-        */
-        
-        // or pre-smoothing with standard smoothers
-        else {
-            dcsr_presmoothing(smoother, &mgl[l].A, &mgl[l].b, &mgl[l].x,
-                                   param->presmooth_iter, 0, mgl[l].A.row-1, 1,
-                                   relax, ndeg, smooth_order, mgl[l].cfmark.val);
-        }
+        // pre-smoothing with standard smoothers
+        dcsr_presmoothing(smoother, &mgl[l].A, &mgl[l].b, &mgl[l].x,
+                          param->presmooth_iter, 0, mgl[l].A.row-1, 1,
+                          relax, ndeg);
         
         // form residual r = b - A x
         array_cp(mgl[l].A.row, mgl[l].b.val, mgl[l].w.val);
@@ -119,25 +79,6 @@ ForwardSweep:
     // If AMG only has one level or we have arrived at the coarsest level,
     // call the coarse space solver:
     switch ( coarse_solver ) {
-
-/*
-#if WITH_MUMPS
-        case SOLVER_MUMPS: {
-            // use MUMPS direct solver on the coarsest level
-            mgl[nl-1].mumps.job = 2;
-            fasp_solver_mumps_steps(&mgl[nl-1].A, &mgl[nl-1].b, &mgl[nl-1].x, &mgl[nl-1].mumps);
-            break;
-        }
-#endif
-            
-#if WITH_SuperLU
-        case SOLVER_SUPERLU: {
-            // use SuperLU direct solver on the coarsest level
-            fasp_solver_superlu(&mgl[nl-1].A, &mgl[nl-1].b, &mgl[nl-1].x, 0);
-            break;
-        }
-#endif
- */
             
 #if WITH_SUITESPARSE
         case SOLVER_UMFPACK: {
@@ -175,38 +116,11 @@ ForwardSweep:
                 dcsr_aAxpy(alpha, &mgl[l].P, mgl[l+1].x.val, mgl[l].x.val);
                 break;
         }
-        
-        // post-smoothing with ILU method
-        if ( l < mgl->ILU_levels ) {
-            smoother_dcsr_ilu(&mgl[l].A, &mgl[l].b, &mgl[l].x, &mgl[l].LU);
-        }
-        
-        // post-smoothing with Schwarz method
-        /*
-        else if ( l < mgl->Schwarz_levels ) {
-        
-            switch (mgl[l].Schwarz.Schwarz_type) {
-                case SCHWARZ_SYMMETRIC:
-                    fasp_dcsr_Schwarz_backward_smoother(&mgl[l].Schwarz, &swzparam, 
-                                                        &mgl[l].x, &mgl[l].b);
-                    fasp_dcsr_Schwarz_forward_smoother(&mgl[l].Schwarz, &swzparam, 
-                                                       &mgl[l].x, &mgl[l].b);
-                    break;
-                default:
-                    fasp_dcsr_Schwarz_backward_smoother(&mgl[l].Schwarz, &swzparam, 
-                                                        &mgl[l].x, &mgl[l].b);
-                    break;
-            }
-         
-        }
-         */
-        
+
         // post-smoothing with standard methods
-        else {
-            dcsr_postsmoothing(smoother, &mgl[l].A, &mgl[l].b, &mgl[l].x,
-                                    param->postsmooth_iter, 0, mgl[l].A.row-1, -1,
-                                    relax, ndeg, smooth_order, mgl[l].cfmark.val);
-        }
+        dcsr_postsmoothing(smoother, &mgl[l].A, &mgl[l].b, &mgl[l].x,
+                           param->postsmooth_iter, 0, mgl[l].A.row-1, -1,
+                           relax, ndeg);
         
         if ( num_lvl[l] < cycle_type ) break;
         else num_lvl[l] = 0;
@@ -244,7 +158,6 @@ void amli (AMG_data *mgl,
     const SHORT  amg_type=param->AMG_type;
     const SHORT  prtlvl = param->print_level;
     const SHORT  smoother = param->smoother;
-    const SHORT  smooth_order = param->smooth_order;
     const SHORT  coarse_solver = param->coarse_solver;
     const SHORT  degree= param->amli_degree;
     const REAL   relax = param->relaxation;
@@ -263,55 +176,17 @@ void amli (AMG_data *mgl,
     
     const INT m0 = A0->row, m1 = A1->row;
     
-    INT      *ordering = mgl[level].cfmark.val; // smoother ordering
-    ILU_data *LU_level = &mgl[level].LU;        // fine level ILU decomposition
     REAL     *r        = mgl[level].w.val;      // work array for residual
-    REAL     *r1       = mgl[level+1].w.val+m1; // work array for residual
-    
-    /*
-    // Schwarz parameters
-    Schwarz_param swzparam;
-    if ( param->Schwarz_levels > 0 ) {
-        swzparam.Schwarz_blksolver = param->Schwarz_blksolver;
-    }
-     */
-    
+    REAL     *r1       = mgl[level+1].w.val+m1; // work array for residual  
     
     if ( prtlvl >= PRINT_MOST )
         printf("AMLI level %d, smoother %d.\n", level, smoother);
     
     if ( level < mgl[level].num_levels-1 ) {
-        
-        // pre smoothing
-        if ( level < mgl[level].ILU_levels ) {
-            
-            smoother_dcsr_ilu(A0, b0, e0, LU_level);
-            
-        }
-        
-        /*
-        else if ( level < mgl->Schwarz_levels ) {
-            
-            switch (mgl[level].Schwarz.Schwarz_type) {
-                case SCHWARZ_SYMMETRIC:
-                    fasp_dcsr_Schwarz_forward_smoother(&mgl[level].Schwarz, &swzparam,
-                                                       &mgl[level].x, &mgl[level].b);
-                    fasp_dcsr_Schwarz_backward_smoother(&mgl[level].Schwarz, &swzparam,
-                                                        &mgl[level].x, &mgl[level].b);
-                    break;
-                default:
-                    fasp_dcsr_Schwarz_forward_smoother(&mgl[level].Schwarz, &swzparam,
-                                                       &mgl[level].x, &mgl[level].b);
-                    break;
-            }
-        }
-        */
-        
-        else {
-            
-            dcsr_presmoothing(smoother,A0,b0,e0,param->presmooth_iter,
-                                   0,m0-1,1,relax,ndeg,smooth_order,ordering);
-        }
+                
+        // presmoothing
+        dcsr_presmoothing(smoother,A0,b0,e0,param->presmooth_iter,
+                          0,m0-1,1,relax,ndeg);
         
         // form residual r = b - A x
         array_cp(m0,b0->val,r);
@@ -364,59 +239,15 @@ void amli (AMG_data *mgl,
                 break;
         }
         
-        // post smoothing
-        if ( level < mgl[level].ILU_levels ) {
-            
-            smoother_dcsr_ilu(A0, b0, e0, LU_level);
-            
-        }
-        
-        /*
-        else if (level<mgl->Schwarz_levels) {
-            
-            switch (mgl[level].Schwarz.Schwarz_type) {
-                case SCHWARZ_SYMMETRIC:
-                    fasp_dcsr_Schwarz_backward_smoother(&mgl[level].Schwarz, &swzparam,
-                                                        &mgl[level].x, &mgl[level].b);
-                    fasp_dcsr_Schwarz_forward_smoother(&mgl[level].Schwarz, &swzparam,
-                                                       &mgl[level].x, &mgl[level].b);
-                    break;
-                default:
-                    fasp_dcsr_Schwarz_backward_smoother(&mgl[level].Schwarz, &swzparam,
-                                                        &mgl[level].x, &mgl[level].b);
-                    break;
-            }
-        }
-        */
-        
-        else {
-            
-            dcsr_postsmoothing(smoother,A0,b0,e0,param->postsmooth_iter,
-                                    0,m0-1,-1,relax,ndeg,smooth_order,ordering);
-        }
-        
+        // postsmoothing
+        dcsr_postsmoothing(smoother,A0,b0,e0,param->postsmooth_iter,
+                           0,m0-1,-1,relax,ndeg);
+
     }
     
     else { // coarsest level solver
         
         switch (coarse_solver) {
-               
-        /*
-#if WITH_SuperLU
-            case SOLVER_SUPERLU:
-                // use SuperLU direct solver on the coarsest level //
-                fasp_solver_superlu(A0, b0, e0, 0);
-                break;
-#endif
-         
-#if WITH_MUMPS
-            case SOLVER_MUMPS:
-                // use MUMPS direct solver on the coarsest level //
-                mgl[level].mumps.job = 2;
-                fasp_solver_mumps_steps(A0, b0, e0, &mgl[level].mumps);
-                break;
-#endif
-         */
                 
 #if WITH_SUITESPARSE
             case SOLVER_UMFPACK:
@@ -463,7 +294,6 @@ void nl_amli (AMG_data *mgl,
     const SHORT  amg_type=param->AMG_type;
     const SHORT  prtlvl = param->print_level;
     const SHORT  smoother = param->smoother;
-    const SHORT  smooth_order = param->smooth_order;
     const SHORT  coarse_solver = param->coarse_solver;
     const REAL   relax = param->relaxation;
     const REAL   tol = param->tol*1e-4;
@@ -477,57 +307,19 @@ void nl_amli (AMG_data *mgl,
     
     const INT m0 = A0->row, m1 = A1->row;
     
-    INT      *ordering = mgl[level].cfmark.val; // smoother ordering
-    ILU_data *LU_level = &mgl[level].LU;        // fine level ILU decomposition
     REAL     *r        = mgl[level].w.val;      // work array for residual
     
     dvector uH;  // for coarse level correction
     uH.row = m1; uH.val = mgl[level+1].w.val + m1;
-    
-    /*
-    // Schwarz parameters
-    Schwarz_param swzparam;
-    if ( param->Schwarz_levels > 0 ) {
-        swzparam.Schwarz_blksolver = param->Schwarz_blksolver;
-    }
-     */
-    
+
     if ( prtlvl >= PRINT_MOST )
         printf("Nonlinear AMLI level %d, smoother %d.\n", num_levels, smoother);
     
     if ( level < num_levels-1 ) {
         
-        // pre smoothing
-        if ( level < mgl[level].ILU_levels ) {
-            
-            smoother_dcsr_ilu(A0, b0, e0, LU_level);
-            
-        }
-        
-        /*
-        else if ( level < mgl->Schwarz_levels ) {
-            
-            switch (mgl[level].Schwarz.Schwarz_type) {
-                case SCHWARZ_SYMMETRIC:
-                    fasp_dcsr_Schwarz_forward_smoother(&mgl[level].Schwarz, &swzparam,
-                                                       &mgl[level].x, &mgl[level].b);
-                    fasp_dcsr_Schwarz_backward_smoother(&mgl[level].Schwarz, &swzparam,
-                                                        &mgl[level].x, &mgl[level].b);
-                    break;
-                default:
-                    fasp_dcsr_Schwarz_forward_smoother(&mgl[level].Schwarz, &swzparam,
-                                                       &mgl[level].x, &mgl[level].b);
-                    break;
-            }
-        }
-        */
-        
-        else {
-            
-            dcsr_presmoothing(smoother,A0,b0,e0,param->presmooth_iter,
-                                   0,m0-1,1,relax,ndeg,smooth_order,ordering);
-            
-        }
+        // presmoothing
+        dcsr_presmoothing(smoother,A0,b0,e0,param->presmooth_iter,
+                          0,m0-1,1,relax,ndeg);
         
         // form residual r = b - A x
         array_cp(m0,b0->val,r);
@@ -595,60 +387,15 @@ void nl_amli (AMG_data *mgl,
                 break;
         }
         
-        // post smoothing
-        if ( level < mgl[level].ILU_levels ) {
-            
-            smoother_dcsr_ilu(A0, b0, e0, LU_level);
-            
-        }
-        
-        /*
-        else if ( level < mgl->Schwarz_levels ) {
-            
-            switch (mgl[level].Schwarz.Schwarz_type) {
-                case SCHWARZ_SYMMETRIC:
-                    fasp_dcsr_Schwarz_backward_smoother(&mgl[level].Schwarz, &swzparam,
-                                                        &mgl[level].x, &mgl[level].b);
-                    fasp_dcsr_Schwarz_forward_smoother(&mgl[level].Schwarz, &swzparam,
-                                                       &mgl[level].x, &mgl[level].b);
-                    break;
-                default:
-                    fasp_dcsr_Schwarz_backward_smoother(&mgl[level].Schwarz, &swzparam,
-                                                        &mgl[level].x, &mgl[level].b);
-                    break;
-            }
-            
-        }
-        */
-        
-        else {
-            
-            dcsr_postsmoothing(smoother,A0,b0,e0,param->postsmooth_iter,
-                                    0,m0-1,-1,relax,ndeg,smooth_order,ordering);
-        }
+        // postsmoothing
+        dcsr_postsmoothing(smoother,A0,b0,e0,param->postsmooth_iter,
+                           0,m0-1,-1,relax,ndeg);
         
     }
     
     else { // coarsest level solver
         
         switch (coarse_solver) {
-                
-                /*
-#if WITH_SuperLU
-            case SOLVER_SUPERLU:
-                // use SuperLU direct solver on the coarsest level //
-                fasp_solver_superlu(A0, b0, e0, 0);
-                break;
-#endif
-                 
-#if WITH_MUMPS
-            case SOLVER_MUMPS:
-                // use MUMPS direct solver on the coarsest level //
-                mgl[level].mumps.job = 2;
-                fasp_solver_mumps_steps(A0, b0, e0, &mgl[level].mumps);
-                break;
-#endif
-                 */
                 
 #if WITH_SUITESPARSE
             case SOLVER_UMFPACK:
