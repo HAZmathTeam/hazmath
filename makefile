@@ -1,19 +1,19 @@
 #######################################################################
 #
 ########################################################################
-# TOP LEVEL HAZMAT Makefile: Calls cmake to configure and build
-# the HAZMAT library and examples.
+# TOP LEVEL HAZMATH Makefile: Calls cmake to configure and build
+# the HAZMATH library and examples.
 # 
 #   Probably you will *NOT NEED TO CHANGE* this  top level Makefile.
 #
-#   USER DEFINED OPTIONS GO IN "hazmat.mk" which is included by this
-#   makefile. Copy "hazmat.mk.example file to "hazmat.mk", edit it to
+#   USER DEFINED OPTIONS GO IN "hazmath.mk" which is included by this
+#   makefile. Copy "hazmath.mk.example file to "hazmath.mk", edit it to
 #   adjust the settings to your liking, and then type "make help" to
-#   see how to configure/build HAZMAT.
+#   see how to configure/build HAZMATH.
 # 
 #  Modified   2015-08-08   --ltz
 ########################################################################
-sinclude haz_config/hazmat.mk
+sinclude haz_config/hazmath.mk
 
 ifeq ($(debug),yes)
 	cflags="-Wall -g"
@@ -85,10 +85,10 @@ install:	headers
 	  	make -C $(build_dir) install ; \
 	fi
 config: distclean
-	@if [ ! -f ./haz_config/hazmat.mk ] ; then \
-		echo "***ERROR: haz_config/hazmat.mk is missing...." ; \
-		echo "   1. Copy \"haz_config/hazmat.mk.example\" to \"haz_config/hazmat.mk\"." ; \
-		echo "   2. Adjust \"haz_config/hazmat.mk\" for your system or leave it with the default settings" ; \
+	@if [ ! -f ./haz_config/hazmath.mk ] ; then \
+		echo "***ERROR: haz_config/hazmath.mk is missing...." ; \
+		echo "   1. Copy \"haz_config/hazmath.mk.example\" to \"haz_config/hazmath.mk\"." ; \
+		echo "   2. Adjust \"haz_config/hazmath.mk\" for your system or leave it with the default settings" ; \
 		echo "   3. Run \"make config\" again." ; \
 	else \
 		mkdir -p $(build_dir) ; \

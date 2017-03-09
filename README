@@ -1,5 +1,5 @@
 =============================================================
-                         HAZMAT		              
+                         HAZMATH		              
 
 This package contains simple C functions to generate finite-element
 discretizations of Poisson's Equation, Maxwell's Equations, and 
@@ -9,7 +9,7 @@ SUITESPARSE direct/iterative linear solver libraries.  An example
 driver routine is contained in the "examples" directory.  
 
 -------------------------------------------------------------
-Quick start: 1. Edit "haz_config/hazmat.mk" as needed.
+Quick start: 1. Edit "haz_config/hazmath.mk" as needed.
 	     2. For more information type "make help"
 -------------------------------------------------------------
 

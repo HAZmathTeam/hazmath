@@ -1,5 +1,5 @@
 ############################################################
-# CMakeLists for HAZMAT
+# CMakeLists for HAZMATH
 # No Fortran compiler check. 
 #
 #
@@ -44,9 +44,9 @@ endif( THE_C )
 
 # name the project at this moment and this will set the compiler id:
 
-project(HAZMAT C )
+project(HAZMATH C )
 
-#message(STATUS "  ${HAZMAT_SOURCE_DIR}")
+#message(STATUS "  ${HAZMATH_SOURCE_DIR}")
 
 
 
@@ -118,50 +118,50 @@ if(${REAL_C} MATCHES "GNU.*" AND  ${THE_C} MATCHES "gcc.*")
 	  	  "${CMAKE_Fortran_FLAGS_${CMAKE_BUILD_TYPE}} ${ADD_FFLAGS}")	 
 	endif(ADD_FFLAGS)
 #
-    set(CMAKE_INSTALL_PREFIX "${HAZMAT_SOURCE_DIR}" )
-    set(HAZMATLIB_BASE_PATH "${HAZMAT_SOURCE_DIR}" CACHE PATH "path to HAZMATLIB")
-    set(HAZMAT_INSTALL TRUE)
+    set(CMAKE_INSTALL_PREFIX "${HAZMATH_SOURCE_DIR}" )
+    set(HAZMATHLIB_BASE_PATH "${HAZMATH_SOURCE_DIR}" CACHE PATH "path to HAZMATHLIB")
+    set(HAZMATH_INSTALL TRUE)
 #
 	if(SHARED) 
-	   set(HAZMAT_LIBRARY_TYPE SHARED)
+	   set(HAZMATH_LIBRARY_TYPE SHARED)
         else(SHARED)
-	   set(HAZMAT_LIBRARY_TYPE STATIC)
+	   set(HAZMATH_LIBRARY_TYPE STATIC)
 	endif(SHARED)	   
 # FOR MAC OS X to find shared libs in install location
         set(CMAKE_INSTALL_NAME_DIR 
 		${CMAKE_INSTALL_PREFIX}/lib CACHE PATH "path for apple")
 # FOR LINUX to find shared libs in install location
         set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_NAME_DIR} CACHE PATH "path for Linux")
-file(GLOB HAZMAT_C_SOURCES RELATIVE ${HAZMAT_SOURCE_DIR} 
-	  		    ${HAZMAT_SOURCE_DIR}/src/assemble/*.c 
-	  		    ${HAZMAT_SOURCE_DIR}/src/fem/*.c 
-	  		    ${HAZMAT_SOURCE_DIR}/src/grid/*.c 
-	  		    ${HAZMAT_SOURCE_DIR}/src/solver/*.c
-			    ${HAZMAT_SOURCE_DIR}/src/timestepping/*.c 
-			    ${HAZMAT_SOURCE_DIR}/src/nonlinear/*.c 
-	  		    ${HAZMAT_SOURCE_DIR}/src/utilities/*.c 
-	  		    ${HAZMAT_SOURCE_DIR}/src/assemble/*.inl 
-	  		    ${HAZMAT_SOURCE_DIR}/src/fem/*.inl
-	  		    ${HAZMAT_SOURCE_DIR}/src/grid/*.inl
-	  		    ${HAZMAT_SOURCE_DIR}/src/solver/*.inl 
-			    ${HAZMAT_SOURCE_DIR}/src/timestepping/*.inl 
-			    ${HAZMAT_SOURCE_DIR}/src/nonlinear/*.inl 
-	  		    ${HAZMAT_SOURCE_DIR}/src/utilities/*.inl
-			    ${HAZMAT_SOURCE_DIR}/src/interfaces/*.c)
+file(GLOB HAZMATH_C_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR} 
+	  		    ${HAZMATH_SOURCE_DIR}/src/assemble/*.c 
+	  		    ${HAZMATH_SOURCE_DIR}/src/fem/*.c 
+	  		    ${HAZMATH_SOURCE_DIR}/src/grid/*.c 
+	  		    ${HAZMATH_SOURCE_DIR}/src/solver/*.c
+			    ${HAZMATH_SOURCE_DIR}/src/timestepping/*.c 
+			    ${HAZMATH_SOURCE_DIR}/src/nonlinear/*.c 
+	  		    ${HAZMATH_SOURCE_DIR}/src/utilities/*.c 
+	  		    ${HAZMATH_SOURCE_DIR}/src/assemble/*.inl 
+	  		    ${HAZMATH_SOURCE_DIR}/src/fem/*.inl
+	  		    ${HAZMATH_SOURCE_DIR}/src/grid/*.inl
+	  		    ${HAZMATH_SOURCE_DIR}/src/solver/*.inl 
+			    ${HAZMATH_SOURCE_DIR}/src/timestepping/*.inl 
+			    ${HAZMATH_SOURCE_DIR}/src/nonlinear/*.inl 
+	  		    ${HAZMATH_SOURCE_DIR}/src/utilities/*.inl
+			    ${HAZMATH_SOURCE_DIR}/src/interfaces/*.c)
 # auto generating headers if needed
- add_custom_target(headers ./headmk.sh "${HAZMAT_SOURCE_DIR}"
-		   DEPENDS ${HAZMAT_C_SOURCES}
-                   WORKING_DIRECTORY "${HAZMAT_SOURCE_DIR}/haz_shutils"
+ add_custom_target(headers ./headmk.sh "${HAZMATH_SOURCE_DIR}"
+		   DEPENDS ${HAZMATH_C_SOURCES}
+                   WORKING_DIRECTORY "${HAZMATH_SOURCE_DIR}/haz_shutils"
                    COMMENT 
-		   "HAZMAT: Autogenerating header file with C functions..."
+		   "HAZMATH: Autogenerating header file with C functions..."
                    VERBATIM)
 ##################################################################
 # For SUITESPARSE: we here require all suite sparse packages
 ##################################################################
 if (USE_SUITESPARSE)
     # set the path to find specific modules	  
-#   message(STATUS "  ${HAZMAT_SOURCE_DIR}")
-   set(CMAKE_MODULE_PATH "${HAZMAT_SOURCE_DIR}/cmake.modules")
+#   message(STATUS "  ${HAZMATH_SOURCE_DIR}")
+   set(CMAKE_MODULE_PATH "${HAZMATH_SOURCE_DIR}/cmake.modules")
 
    find_package(SUITESPARSE)
 
@@ -193,7 +193,7 @@ if (USE_MATLAB)
 endif(USE_MATLAB)
 
 # Add include directories.
-    include_directories(${HAZMATLIB_BASE_PATH}/include)
+    include_directories(${HAZMATHLIB_BASE_PATH}/include)
 # 
 # Recursively look for CMakeLists.txt in subdirs.
 #    add_subdirectory("examples")
@@ -207,12 +207,12 @@ if(NOT (CMAKE_CXX_COMPILER_ID STREQUAL CMAKE_C_COMPILER_ID))
 endif(NOT (CMAKE_CXX_COMPILER_ID STREQUAL CMAKE_C_COMPILER_ID))
 
 ##
-# Build libhazmat
+# Build libhazmath
 # depends also on the source, header and inl files 
-add_library(hazmat ${HAZMAT_LIBRARY_TYPE} ${HAZMAT_C_SOURCES} ${HAZMAT_INL_SOURCES} ${HAZMAT_F_SOURCES}  ${HAZMAT_HEADERS}) 
+add_library(hazmath ${HAZMATH_LIBRARY_TYPE} ${HAZMATH_C_SOURCES} ${HAZMATH_INL_SOURCES} ${HAZMATH_F_SOURCES}  ${HAZMATH_HEADERS}) 
 
-# install libhazmat 
-    install(TARGETS hazmat
+# install libhazmath 
+    install(TARGETS hazmath
     LIBRARY DESTINATION lib
     RUNTIME DESTINATION lib
     ARCHIVE DESTINATION lib)
