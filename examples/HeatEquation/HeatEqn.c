@@ -196,14 +196,15 @@ int main (int argc, char* argv[])
     param_amg_print(&amgparam);
   //}
 
-  // Set parameters for ILU methods
-  //if (linear_itparam.linear_precond_type== PREC_ILU) {
+    /* No ILU
+    // Set parameters for ILU methods
+    //if (linear_itparam.linear_precond_type== PREC_ILU) {
     ILU_param iluparam;
     param_ilu_init(&iluparam);
     param_ilu_set(&iluparam, &inparam);
     param_ilu_print(&iluparam);
-  //}
-
+    //}
+    */
   // Get Initial Conditions
   FE_Evaluate(sol.val,initial_conditions,&FE,&mesh,0.0);
   time_stepper.sol = &sol;
@@ -285,9 +286,11 @@ int main (int argc, char* argv[])
         case PREC_AMG:  // AMG preconditioner
           solver_flag = linear_solver_dcsr_krylov_amg(time_stepper.At,time_stepper.rhs_time,time_stepper.sol, &linear_itparam, &amgparam);
           break;
-        case PREC_ILU:  // ILU preconditioner
-          solver_flag = linear_solver_dcsr_krylov_ilu(time_stepper.At,time_stepper.rhs_time,time_stepper.sol, &linear_itparam, &iluparam);
-          break;
+	  /* No ILU
+	    case PREC_ILU:  // ILU preconditioner
+	    solver_flag = linear_solver_dcsr_krylov_ilu(time_stepper.At,time_stepper.rhs_time,time_stepper.sol, &linear_itparam, &iluparam);
+	    break;
+	  */
         default:  // No Preconditioner
           solver_flag = linear_solver_dcsr_krylov(time_stepper.At,time_stepper.rhs_time,time_stepper.sol,&linear_itparam);
           break;
