@@ -20,6 +20,8 @@
 
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************/
 #include "hazmath.h"
+/* local include */
+#include "ConvectionDiffusion.h"
 /*********************************************************************/
 int main (int argc, char* argv[])
 {
@@ -74,7 +76,7 @@ int main (int argc, char* argv[])
   set_dirichlet_bdry(&FE,&mesh,1);
 
   // Dump some of the data
-  if(inparam.print_level > 3 && inparam.output_dir!=NULL) {
+  if(inparam.print_level > 3) { // && inparam.output_dir != NULL) {
     // FE space
     char varu[10];
     char dir[20];
@@ -135,81 +137,55 @@ int main (int argc, char* argv[])
 
   // Set parameters for algebriac multigrid methods
   //if (linear_itparam.linear_itsolver_type == SOLVER_AMG || linear_itparam.linear_precond_type== PREC_AMG) {
-    AMG_param amgparam;
-    param_amg_init(&amgparam);
-    param_amg_set(&amgparam, &inparam);
-    param_amg_print(&amgparam);
+  AMG_param amgparam;
+  param_amg_init(&amgparam);
+  param_amg_set(&amgparam, &inparam);
+  param_amg_print(&amgparam);
   //}
-  // Dump Solution
-  char solout[40];
-  char exactout[40];
-  if (inparam.output_dir!=NULL) {
-    sprintf(solout,"output/solution_ts000.vtu");
-    dump_sol_onV_vtk(solout,&mesh,sol->val,1);
-  }
-
-  // Store current RHS
-  // Compute initial errors and norms
-  REAL uerr = L2error(sol->val,exactsol,&FE,&mesh,cq,time_stepper.time);
-  REAL unorm = L2norm(sol->val,&FE,&mesh,cq);
-
-  printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-  printf("L2 Norm of u            = %26.13e\n",unorm[0]);
-  printf("L2 Norm of u error      = %26.13e\n",uerr[0]);
-  printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n\n\n");
-
-  eliminate_DirichletBC(bc,&FE,&mesh,b,A,0.0);
+  eliminate_DirichletBC(&bc,&FE,&mesh,&b,&A,0.0);
 
   // Solve
   clock_t clk_solve_start = clock();
-  dcsr_shift(A, -1);  // shift A
+  dcsr_shift(&A, -1);  // shift A
   // Use Krylov Iterative Solver
-  solver_flag = linear_solver_dcsr_krylov(A,b,sol,&linear_itparam);
-  dcsr_shift(A, 1);   // shift A back
+  solver_flag = linear_solver_dcsr_krylov(&A,&b,&sol,&linear_itparam);
+  dcsr_shift(&A, 1);   // shift A back
   // Error Check
   if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
 
-    clock_t clk_solve_end = clock();
-    printf("Elapsed CPU Time for Solve = %f seconds.\n\n",(REAL) (clk_solve_end-clk_solve_start)/CLOCKS_PER_SEC);
-    /**************** Compute Errors if you have exact solution *******/
-    clock_t clk_error_start = clock();
-
-    printf("Elapsed CPU time for getting errors = %lf seconds.\n\n",(REAL)
-           (clk_error_end-clk_error_start)/CLOCKS_PER_SEC);
-    printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-    printf("L2 Norm of u            = %26.13e\n",unorm);
-    printf("L2 Norm of u error      = %26.13e\n",uerr);
-    printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-    /*******************************************************************/
-
-    if (inparam.output_dir!=NULL) {
-      sprintf(solout,"output/solution_ts%03d.vtu",0);
-      dump_sol_onV_vtk(solout,&mesh,time_stepper.sol->val,1);
-      sprintf(exactout,"output/exact_solution_ts%03d.vtu",0);
-      dump_sol_onV_vtk(exactout,&mesh,exact_sol.val,1);
-    }
-    printf("\n");
-    printf("----------------------- Timestepping Complete ---------------------------------------\n\n");
-    clock_t clk_timeloop_end = clock();
-    printf("Elapsed CPU Time ALL Time Steps = %f seconds.\n\n",
-	   (REAL) (clk_timeloop_end-clk_timeloop_start)/CLOCKS_PER_SEC);
-    /*******************************************************************/
-    if(unorm) free(unorm);
-    if(uerr) free(uerr);
-    dvec_free(&exact_sol);
-    free_fespace(&FE);
-    if(cq) {
-      free_qcoords(cq);
-      free(cq);
-      cq = NULL;
-    }
-    free_mesh(&mesh);
-    /*******************************************************************/
-    
-    clock_t clk_overall_end = clock();
-    printf("\nEnd of Program: Total CPU Time = %f seconds.\n\n",
-	   (REAL) (clk_overall_end-clk_overall_start)/CLOCKS_PER_SEC);
-    return 0;
-    
+  clock_t clk_solve_end = clock();
+  printf("Elapsed CPU Time for Solve = %f seconds.\n\n",(REAL) (clk_solve_end-clk_solve_start)/CLOCKS_PER_SEC);
+  // Dump Solution
+  // Compute norms of errors
+  REAL uerr = L2error(sol.val,exactsol,&FE,&mesh,cq,0.0);
+  REAL unorm = L2norm(sol.val,&FE,&mesh,cq);
+  printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
+  printf("L2 Norm of u            = %26.13e\n",unorm);
+  printf("L2 Norm of u error      = %26.13e\n",uerr);
+  printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n\n\n");
+  char solout[40];
+  char exactout[40];
+  //  if (inparam.output_dir!=NULL) { always true. 
+    sprintf(solout,"output/solution_ts%03d.vtu",0);
+    dump_sol_onV_vtk(solout,&mesh,sol.val,1);
+    sprintf(exactout,"output/exact_solution_ts%03d.vtu",0);
+    dump_sol_onV_vtk(exactout,&mesh,exact_sol.val,1);
+    //  }
+  printf("\n");
+  /*******************************************************************/
+  dvec_free(&exact_sol);
+  free_fespace(&FE);
+  if(cq) {
+    free_qcoords(cq);
+    free(cq);
+    cq = NULL;
+  }
+  free_mesh(&mesh);
+  /*******************************************************************/
+  
+  clock_t clk_overall_end = clock();
+  printf("\nEnd of Program: Total CPU Time = %f seconds.\n\n",
+	 (REAL) (clk_overall_end-clk_overall_start)/CLOCKS_PER_SEC);
+  return 0; 
 }	/* End of Program */
 /*******************************************************************/
