@@ -3,7 +3,7 @@
  *  \brief This code contains functions for interpolating and evaluating FE
  *         approximations using FE basis functions.
  *
- *  Created by James Adler and Xiaozhe Hu on 2/1/15.
+ *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 2/1/15.
  *  Copyright 2016__HAZMATH__. All rights reserved.
  *
  *  \note modified by James Adler 11/1/2016

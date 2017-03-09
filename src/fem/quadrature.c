@@ -2,7 +2,7 @@
  *
  * \brief Computes quadrature nodes and weights for each element or for entire domain
  *
- *  Created by James Adler and Xiaozhe Hu on 2/11/15.
+ *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 2/11/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  * \note modified by James Adler 11/14/2016

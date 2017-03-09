@@ -4,7 +4,7 @@
  *        Set up for just a few generic systems
  *        In general, the user would write their own specialized ones.
  *
- *  Created by James Adler and Xiaozhe Hu on 4/22/15.
+ *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 4/22/15.
  *  Copyright 2016__HAZMATH__. All rights reserved.
  *
  *  \note modified by James Adler 11/2/2016

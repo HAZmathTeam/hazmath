@@ -2,7 +2,7 @@
 //  grid.h
 //  
 //
-//  Created by Adler, James on 1/9/15.
+//  Created by James Adler on 2015-01-09.
 //
 //
 

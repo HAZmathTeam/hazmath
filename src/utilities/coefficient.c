@@ -3,7 +3,7 @@
  *  \brief This code creates generic functions for coefficients that are commonly used
  *        such as zero scalars and vectors and coefficients of 1.
  *  
- *  Created by James Adler and Xiaozhe Hu on 2/22/16.
+ *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 2/22/16.
  *  Copyright 2016__HAZMATH__. All rights reserved.
  *
  *  \note modified by Xiaozhe Hu 10/27/2016

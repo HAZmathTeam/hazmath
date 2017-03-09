@@ -1,6 +1,6 @@
 /*! \file src/utilities/wrapper.c
  *
- *  Created by James Adler and Xiaozhe Hu on 09/02/16.
+ *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 09/02/16.
  *  Copyright 2016__HAZMATH__. All rights reserved.
  *
  *  \note: modified by Xiaozhe Hu on 10/27/2016
