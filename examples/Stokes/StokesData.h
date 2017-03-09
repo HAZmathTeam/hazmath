@@ -2,8 +2,8 @@
 
 // Coefficients
 
-// True Solutions
-void true_sol(REAL *val,REAL *x,REAL time) {
+// Exact Solutions
+void exact_sol(REAL *val,REAL *x,REAL time) {
 
   val[0] = -sin(M_PI*x[0])*sin(M_PI*(x[1]-x[2]));
   val[1] = sin(M_PI*x[1])*sin(M_PI*(x[0]-x[2]));
@@ -11,7 +11,7 @@ void true_sol(REAL *val,REAL *x,REAL time) {
   val[3] = 0.5 - x[0];
 
 }
-void true_sol2D(REAL *val, REAL *x, REAL time){
+void exact_sol2D(REAL *val, REAL *x, REAL time){
 
   val[0] = sin(M_PI*x[0])*cos(M_PI*x[1]);
   val[1] = -cos(M_PI*x[0])*sin(M_PI*x[1]);
@@ -19,8 +19,8 @@ void true_sol2D(REAL *val, REAL *x, REAL time){
 
 }
 
-// Gradients of True Solution
-void Dtrue_sol(REAL *val, REAL *x, REAL time) {
+// Gradients of Exact Solution
+void Dexact_sol(REAL *val, REAL *x, REAL time) {
 
   val[0] = -M_PI*cos(M_PI*x[0])*sin(M_PI*(x[1]-x[2]));
   val[1] = -M_PI*sin(M_PI*x[0])*cos(M_PI*(x[1]-x[2]));
@@ -38,7 +38,7 @@ void Dtrue_sol(REAL *val, REAL *x, REAL time) {
   val[10] = 0.0;
   val[11] = 0.0;
 }
-void Dtrue_sol2D(REAL *val, REAL *x, REAL time){
+void Dexact_sol2D(REAL *val, REAL *x, REAL time){
 
   val[0] = M_PI*cos(M_PI*x[0])*cos(M_PI*x[1]);
   val[1] = -M_PI*sin(M_PI*x[0])*sin(M_PI*x[1]);
@@ -66,38 +66,38 @@ void source2D(REAL *val, REAL *x, REAL time) {
 
 // Boundary Conditions
 void bc_ux(REAL *val, REAL *x, REAL time) {
-  REAL mytrue[4];
-  true_sol(mytrue,x,time);
-  *val = mytrue[0];
+  REAL myexact[4];
+  exact_sol(myexact,x,time);
+  *val = myexact[0];
 }
 
 void bc_uy(REAL *val, REAL *x, REAL time) {
-  REAL mytrue[4];
-  true_sol(mytrue,x,time);
-  *val = mytrue[1];
+  REAL myexact[4];
+  exact_sol(myexact,x,time);
+  *val = myexact[1];
 }
 
 void bc_uz(REAL *val, REAL *x, REAL time) {
-  REAL mytrue[4];
-  true_sol(mytrue,x,time);
-  *val = mytrue[2];
+  REAL myexact[4];
+  exact_sol(myexact,x,time);
+  *val = myexact[2];
 }
 
 void bc_p(REAL *val, REAL *x, REAL time) {
-  REAL mytrue[4];
-  true_sol(mytrue,x,time);
-  *val = mytrue[3];
+  REAL myexact[4];
+  exact_sol(myexact,x,time);
+  *val = myexact[3];
 }
 
 void bc2D(REAL *val, REAL *x, REAL time) {
 
-  true_sol2D(val,x,time);
+  exact_sol2D(val,x,time);
 
 }
 
 void bc3D(REAL *val, REAL *x, REAL time) {
 
-  true_sol(val,x,time);
+  exact_sol(val,x,time);
 
 }
 

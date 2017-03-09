@@ -1,7 +1,7 @@
 /*! \file examples/Stokes/Stokes.c
  *
  *  Created by Peter Ohm on 2/5/17.
- *  Copyright 2015_HAZMAT__. All rights reserved.
+ *  Copyright 2015_HAZMATH__. All rights reserved.
  *
  * \brief This program solves Stokes PDE using finite elements
  *
@@ -21,8 +21,8 @@
  *
  */
 
-/*********** HAZMAT FUNCTIONS and INCLUDES ***************************************/
-#include "hazmat.h"
+/*********** HAZMATH FUNCTIONS and INCLUDES ***************************************/
+#include "hazmath.h"
 #include "StokesData.h"
 #include "StokesSystem.h"
 /*********************************************************************************/
@@ -192,7 +192,7 @@ int main (int argc, char* argv[])
   
   /************ Prepare Preconditioners **************************************************/
   
-  // Shift for HAZMAT
+  // Shift for HAZMATH
   for(i=0;i<(FE.nspaces)*(FE.nspaces);i++) {
     if(A.blocks[i])
       dcsr_shift(A.blocks[i],-1);
@@ -263,16 +263,16 @@ int main (int argc, char* argv[])
          (REAL) (clk_solve_end-clk_solve_start)/CLOCKS_PER_SEC);
   /*******************************************************************************************/
   
-  /********************* Compute Errors if you have true solution ****************************/
+  /********************* Compute Errors if you have exact solution ****************************/
   clock_t clk_error_start = clock();
   REAL* solerrL2 = (REAL *) calloc(dim+1, sizeof(REAL));
   REAL* solerrH1 = (REAL *) calloc(dim+1, sizeof(REAL)); // Note: No H1 error for P0 elements
   if(dim==2){
-    L2error_block(solerrL2, sol.val, true_sol2D, &FE, &mesh, cq, 0.0);
-    if(order_p > 0) HDerror_block(solerrH1, sol.val, true_sol2D, Dtrue_sol2D, &FE, &mesh, cq, 0.0);
+    L2error_block(solerrL2, sol.val, exact_sol2D, &FE, &mesh, cq, 0.0);
+    if(order_p > 0) HDerror_block(solerrH1, sol.val, exact_sol2D, Dexact_sol2D, &FE, &mesh, cq, 0.0);
   } else if(dim==3){
-    L2error_block(solerrL2, sol.val, true_sol, &FE, &mesh, cq, 0.0);
-    if(order_p > 0) HDerror_block(solerrH1, sol.val, true_sol, Dtrue_sol, &FE, &mesh, cq, 0.0);
+    L2error_block(solerrL2, sol.val, exact_sol, &FE, &mesh, cq, 0.0);
+    if(order_p > 0) HDerror_block(solerrH1, sol.val, exact_sol, Dexact_sol, &FE, &mesh, cq, 0.0);
   }
 
   REAL uerrL2 = 0;

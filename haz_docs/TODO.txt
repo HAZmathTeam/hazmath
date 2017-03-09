@@ -13,5 +13,4 @@ Add more solvers (i.e., Classical AMG, Monolithic MG, Block Solvers, HX-Div) - H
 
 Pipe Dreams:
 Fix indexing mismatch between FEM and Solver stuff - HA
-Add Julia interface - Z
 Add in multigraph code - Z
