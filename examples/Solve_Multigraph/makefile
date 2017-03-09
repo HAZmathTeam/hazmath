@@ -29,7 +29,7 @@ MULTIGRAPH_PRECISION_SRC = $(MULTIGRAPH_SRCDIR)/mg0.f
 SRCex = $(SRCFILE).c
 HEADERS = $(SRCFILE).h
 
-OBJS = solver.o $(SRCFILE).o
+OBJS = solver.o $(SRCFILE).o m000.o
 INCLUDE = -I$(HAZINCLUDE) -I$(SRCDIR)
 LIBS = -lhazmat -lgfortran
 
