@@ -117,19 +117,10 @@
 #define SOLVER_GCG              5  /**< Generalized Conjugate Gradient */
 #define SOLVER_GCR              6  /**< Generalized Conjugate Residual */
 //---------------------------------------------------------------------------------
-#define SOLVER_SCG             11  /**< Conjugate Gradient with safe net */
-#define SOLVER_SMinRes         12  /**< MinRes with safe net */
-#define SOLVER_SVGMRES         13  /**< Variable-restart GMRES with safe net */
-#define SOLVER_SVFGMRES        14  /**< Variable-restart FGMRES with safe net */
-#define SOLVER_SGCG            15  /**< GCG with safe net */
-//---------------------------------------------------------------------------------
 #define SOLVER_AMG             21  /**< AMG as an iterative solver */
 #define SOLVER_FMG             22  /**< Full AMG as an solver */
 //---------------------------------------------------------------------------------
-#define SOLVER_SUPERLU         31  /**< SuperLU Direct Solver */
 #define SOLVER_UMFPACK         32  /**< UMFPack Direct Solver */
-#define SOLVER_MUMPS           33  /**< MUMPS   Direct Solver */
-
 
 /**
  * \brief Definition of iterative solver stopping criteria types
@@ -151,8 +142,7 @@
 /**
  * \brief Definition of AMG types
  */
-#define CLASSIC_AMG             1  /**< classic AMG */
-#define UA_AMG                  2  /**< unsmoothed aggregation AMG */
+#define UA_AMG                  1  /**< unsmoothed aggregation AMG */
 
 /**
  * \brief Definition of aggregation types
@@ -185,18 +175,7 @@
 /**
  * \brief Definition of coarsening types
  */
-#define COARSE_C               1  /**< Classical coarsening */
-#define COARSE_CP              2  /**< Classical coarsening with positive offdiags*/
-#define COARSE_CR               3  /**< Compatible relaxation */
-#define COARSE_AC               4  /**< Aggressive coarsening */
 #define COARSE_MIS              5  /**< Aggressive coarsening based on MIS */
-
-/**
- * \brief Definition of interpolation types
- */
-#define INTERP_DIR              1  /**< Direct interpolation */
-#define INTERP_STD              2  /**< Standard interpolation */
-#define INTERP_ENG              3  /**< energy minimization interpolation */
 
 /**
  * \brief Type of vertices (DOFs) for coarsening
@@ -207,18 +186,11 @@
 #define CGPT                    1  /**< Coarse grid points */
 #define ISPT                    2  /**< Isolated points */
 
-/**
- * \brief Definition of smoothing order
- */
-#define NO_ORDER                0  /**< Natural order smoothing */
-#define CF_ORDER                1  /**< C/F order smoothing */
 
 /**
  * \brief Type of ordering for smoothers
  */
 #define USERDEFINED             0  /**< User defined order */
-#define CPFIRST                 1  /**< C-points first order */
-#define FPFIRST                -1  /**< F-points first order */
 #define ASCEND                 12  /**< Ascending order */
 #define DESCEND                21  /**< Descending order */
 

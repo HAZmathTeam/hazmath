@@ -76,7 +76,6 @@ typedef struct {
     SHORT AMG_levels;              /**< maximal number of levels */
     SHORT AMG_cycle_type;          /**< type of cycle */
     SHORT AMG_smoother;            /**< type of smoother */
-    SHORT AMG_smooth_order;        /**< order for smoothers */
     REAL  AMG_relaxation;           /**< over-relaxation parameter for SOR */
     SHORT AMG_presmooth_iter;      /**< number of presmoothing */
     SHORT AMG_postsmooth_iter;     /**< number of postsmoothing */
@@ -88,18 +87,8 @@ typedef struct {
     SHORT AMG_coarse_scaling;      /**< switch of scaling of the coarse grid correction */
     SHORT AMG_amli_degree;         /**< degree of the polynomial used by AMLI cycle */
     SHORT AMG_nl_amli_krylov_type; /**< type of Krylov method used by nonlinear AMLI cycle */
-    INT AMG_Schwarz_levels;        /**< number of levels use Schwarz smoother */
 
-    // Classsical AMG
-    SHORT AMG_coarsening_type;     /**< coarsening type */
-    SHORT AMG_interpolation_type;  /**< interpolation type */
-    REAL AMG_strong_threshold;     /**< strong threshold for coarsening */
-    REAL AMG_truncation_threshold; /**< truncation factor for interpolation */
-    REAL AMG_max_row_sum;          /**< maximal row sum */
-    INT AMG_aggressive_level;      /**< number of levels use aggressive coarsening */
-    INT AMG_aggressive_path;       /**< number of paths used to determine strongly coupled C-set */
-
-    // Aggregation AMG
+    // Unsmoothed Aggregation AMG (UA AMG)
     SHORT AMG_aggregation_type;    /**< aggregation type */
     REAL AMG_strong_coupled;       /**< strong coupled threshold for aggregate */
     INT AMG_max_aggregation;       /**< max size of each aggregate */
@@ -165,10 +154,7 @@ typedef struct {
     
     //! smoother type
     SHORT smoother;
-    
-    //! smoother order
-    SHORT smooth_order; // 1: nature order 2: C/F order (both are symmetric)
-    
+       
     //! number of presmoothers
     SHORT presmooth_iter;
     
@@ -196,30 +182,9 @@ typedef struct {
     //! type of Krylov method used by Nonlinear AMLI cycle
     SHORT nl_amli_krylov_type;
     
-    //! coarsening type
-    SHORT coarsening_type;
-    
     //! aggregation type
     SHORT aggregation_type;
-    
-    //! interpolation type
-    SHORT interpolation_type;
-    
-    //! strong connection threshold for coarsening
-    REAL strong_threshold;
-    
-    //! maximal row sum parameter
-    REAL max_row_sum;
-    
-    //! truncation threshold
-    REAL truncation_threshold;
-    
-    //! number of levels use aggressive coarsening
-    INT aggressive_level;
-    
-    //! number of paths use to determine strongly coupled C points
-    INT aggressive_path;
-    
+       
     //! number of pairwise matchings
     INT pair_number;
     

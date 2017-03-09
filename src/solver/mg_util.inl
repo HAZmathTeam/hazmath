@@ -59,17 +59,14 @@ static void dcsr_presmoothing (const SHORT smoother,
                                     const INT iend,
                                     const INT istep,
                                     const REAL relax,
-                                    const SHORT ndeg,
-                                    const SHORT order,
-                                    INT *ordering)
+                                    const SHORT ndeg)
 {
     /**
      * \fn static void dcsr_presmoothing (const SHORT smoother, dCSRmat *A,
      *                                         dvector *b, dvector *x,
      *                                         const INT nsweeps, const INT istart,
      *                                         const INT iend, const INT istep,
-     *                                         const REAL relax, const SHORT ndeg,
-     *                                         const SHORT order, INT *ordering)
+     *                                         const REAL relax, const SHORT ndeg)
      *
      * \brief Multigrid presmoothing
      *
@@ -83,8 +80,6 @@ static void dcsr_presmoothing (const SHORT smoother,
      * \param  istep     step size
      * \param  relax     relaxation parameter for SOR-type smoothers
      * \param  ndeg      degree of the polynomial smoother
-     * \param  order     order for smoothing sweeps
-     * \param  ordering  user defined ordering
      *
      * \author Chensong Zhang
      * \date   01/10/2012
@@ -97,10 +92,7 @@ static void dcsr_presmoothing (const SHORT smoother,
     switch (smoother) {
 
         case SMOOTHER_GS:
-            if (order == NO_ORDER || ordering == NULL)
-                smoother_dcsr_gs(x, istart, iend, istep, A, b, nsweeps);
-            else if (order == CF_ORDER)
-                smoother_dcsr_gs_cf(x, A, b, nsweeps, ordering, 1);
+            smoother_dcsr_gs(x, istart, iend, istep, A, b, nsweeps);
             break;
 
         case SMOOTHER_SGS:
@@ -115,12 +107,6 @@ static void dcsr_presmoothing (const SHORT smoother,
             smoother_dcsr_L1diag(x, istart, iend, istep, A, b, nsweeps);
             break;
         
-        /*
-        case SMOOTHER_POLY:
-            fasp_smoother_dcsr_poly(A, b, x, iend+1, ndeg, nsweeps);
-            break;
-         */
-
         case SMOOTHER_SOR:
             smoother_dcsr_sor(x, istart, iend, istep, A, b, nsweeps, relax);
             break;
@@ -161,17 +147,14 @@ static void dcsr_postsmoothing (const SHORT smoother,
                                      const INT iend,
                                      const INT istep,
                                      const REAL relax,
-                                     const SHORT ndeg,
-                                     const SHORT order,
-                                     INT *ordering)
+                                     const SHORT ndeg)
 {
     /**
      * \fn static void dcsr_postsmoothing (const SHORT smoother, dCSRmat *A,
      *                                          dvector *b, dvector *x,
      *                                          const INT nsweeps, const INT istart,
      *                                          const INT iend, const INT istep,
-     *                                          const REAL relax, const SHORT ndeg,
-     *                                          const SHORT order, INT *ordering)
+     *                                          const REAL relax, const SHORT ndeg)
      *
      * \brief Multigrid presmoothing
      *
@@ -185,8 +168,6 @@ static void dcsr_postsmoothing (const SHORT smoother,
      * \param  istep     step size
      * \param  relax     relaxation parameter for SOR-type smoothers
      * \param  ndeg      degree of the polynomial smoother
-     * \param  order     order for smoothing sweeps
-     * \param  ordering  user defined ordering
      *
      * \author Chensong Zhang
      * \date   01/10/2012
@@ -198,11 +179,7 @@ static void dcsr_postsmoothing (const SHORT smoother,
     switch (smoother) {
 
         case SMOOTHER_GS:
-            if (order == NO_ORDER || ordering == NULL) {
-                smoother_dcsr_gs(x, iend, istart, istep, A, b, nsweeps);
-            }
-            else if (order == CF_ORDER)
-                smoother_dcsr_gs_cf(x, A, b, nsweeps, ordering, -1);
+            smoother_dcsr_gs(x, iend, istart, istep, A, b, nsweeps);
             break;
 
         case SMOOTHER_SGS:
@@ -216,12 +193,6 @@ static void dcsr_postsmoothing (const SHORT smoother,
         case SMOOTHER_L1DIAG:
             smoother_dcsr_L1diag(x, iend, istart, istep, A, b, nsweeps);
             break;
-
-        /*
-        case SMOOTHER_POLY:
-            fasp_smoother_dcsr_poly(A, b, x, iend+1, ndeg, nsweeps);
-            break;
-         */
 
         case SMOOTHER_SOR:
             smoother_dcsr_sor(x, iend, istart, istep, A, b, nsweeps, relax);

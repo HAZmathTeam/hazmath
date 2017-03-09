@@ -36,26 +36,16 @@ void mgcycle (AMG_data *mgl,
     const SHORT  prtlvl = param->print_level;
     const SHORT  amg_type = param->AMG_type;
     const SHORT  smoother = param->smoother;
-    const SHORT  smooth_order = param->smooth_order;
     const SHORT  cycle_type = param->cycle_type;
     const SHORT  coarse_solver = param->coarse_solver;
     const SHORT  nl = mgl[0].num_levels;
     const REAL   relax = param->relaxation;
     const REAL   tol = param->tol * 1e-4;
-    const SHORT  ndeg = param->polynomial_degree;
-    
-    /*
-    // Schwarz parameters
-    Schwarz_param swzparam;
-    if ( param->Schwarz_levels > 0 ) {
-        swzparam.Schwarz_blksolver = param->Schwarz_blksolver;
-    }
-     */
+    const SHORT  ndeg = param->polynomial_degree;    
     
     // local variables
     REAL alpha = 1.0;
     INT  num_lvl[MAX_AMG_LVL] = {0}, l = 0;
-    
     
 ForwardSweep:
     while ( l < nl-1 ) {
@@ -65,7 +55,7 @@ ForwardSweep:
         // pre-smoothing with standard smoothers
         dcsr_presmoothing(smoother, &mgl[l].A, &mgl[l].b, &mgl[l].x,
                           param->presmooth_iter, 0, mgl[l].A.row-1, 1,
-                          relax, ndeg, smooth_order, mgl[l].cfmark.val);
+                          relax, ndeg);
         
         // form residual r = b - A x
         array_cp(mgl[l].A.row, mgl[l].b.val, mgl[l].w.val);
@@ -130,7 +120,7 @@ ForwardSweep:
         // post-smoothing with standard methods
         dcsr_postsmoothing(smoother, &mgl[l].A, &mgl[l].b, &mgl[l].x,
                            param->postsmooth_iter, 0, mgl[l].A.row-1, -1,
-                           relax, ndeg, smooth_order, mgl[l].cfmark.val);
+                           relax, ndeg);
         
         if ( num_lvl[l] < cycle_type ) break;
         else num_lvl[l] = 0;
@@ -168,7 +158,6 @@ void amli (AMG_data *mgl,
     const SHORT  amg_type=param->AMG_type;
     const SHORT  prtlvl = param->print_level;
     const SHORT  smoother = param->smoother;
-    const SHORT  smooth_order = param->smooth_order;
     const SHORT  coarse_solver = param->coarse_solver;
     const SHORT  degree= param->amli_degree;
     const REAL   relax = param->relaxation;
@@ -187,7 +176,6 @@ void amli (AMG_data *mgl,
     
     const INT m0 = A0->row, m1 = A1->row;
     
-    INT      *ordering = mgl[level].cfmark.val; // smoother ordering
     REAL     *r        = mgl[level].w.val;      // work array for residual
     REAL     *r1       = mgl[level+1].w.val+m1; // work array for residual  
     
@@ -198,7 +186,7 @@ void amli (AMG_data *mgl,
                 
         // presmoothing
         dcsr_presmoothing(smoother,A0,b0,e0,param->presmooth_iter,
-                          0,m0-1,1,relax,ndeg,smooth_order,ordering);
+                          0,m0-1,1,relax,ndeg);
         
         // form residual r = b - A x
         array_cp(m0,b0->val,r);
@@ -253,7 +241,7 @@ void amli (AMG_data *mgl,
         
         // postsmoothing
         dcsr_postsmoothing(smoother,A0,b0,e0,param->postsmooth_iter,
-                           0,m0-1,-1,relax,ndeg,smooth_order,ordering);
+                           0,m0-1,-1,relax,ndeg);
 
     }
     
@@ -306,7 +294,6 @@ void nl_amli (AMG_data *mgl,
     const SHORT  amg_type=param->AMG_type;
     const SHORT  prtlvl = param->print_level;
     const SHORT  smoother = param->smoother;
-    const SHORT  smooth_order = param->smooth_order;
     const SHORT  coarse_solver = param->coarse_solver;
     const REAL   relax = param->relaxation;
     const REAL   tol = param->tol*1e-4;
@@ -320,7 +307,6 @@ void nl_amli (AMG_data *mgl,
     
     const INT m0 = A0->row, m1 = A1->row;
     
-    INT      *ordering = mgl[level].cfmark.val; // smoother ordering
     REAL     *r        = mgl[level].w.val;      // work array for residual
     
     dvector uH;  // for coarse level correction
@@ -333,7 +319,7 @@ void nl_amli (AMG_data *mgl,
         
         // presmoothing
         dcsr_presmoothing(smoother,A0,b0,e0,param->presmooth_iter,
-                          0,m0-1,1,relax,ndeg,smooth_order,ordering);
+                          0,m0-1,1,relax,ndeg);
         
         // form residual r = b - A x
         array_cp(m0,b0->val,r);
@@ -403,7 +389,7 @@ void nl_amli (AMG_data *mgl,
         
         // postsmoothing
         dcsr_postsmoothing(smoother,A0,b0,e0,param->postsmooth_iter,
-                           0,m0-1,-1,relax,ndeg,smooth_order,ordering);
+                           0,m0-1,-1,relax,ndeg);
         
     }
     

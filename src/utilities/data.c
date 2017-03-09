@@ -29,7 +29,6 @@ void precond_data_null (precond_data *pcdata)
     pcdata->tol                 = 1e-8;
     pcdata->cycle_type          = V_CYCLE;
     pcdata->smoother            = SMOOTHER_GS;
-    pcdata->smooth_order        = NO_ORDER;
     pcdata->presmooth_iter      = 1;
     pcdata->postsmooth_iter     = 1;
     pcdata->relaxation          = 1.2;
