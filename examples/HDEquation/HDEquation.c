@@ -1,6 +1,6 @@
 /*! \file examples/HDEquation/HDEquation.c
  *
- *  Created by James Adler and Xiaozhe Hu on 1/9/15.
+ *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov 20150109.
  *  Copyright 2015_HAZMATH__. All rights reserved.
  *
  * \brief This program solves the following PDE using finite elements
@@ -37,75 +37,75 @@ void reaction_coeff(REAL *val,REAL* x,REAL time) {
   *val = 1.0;
 }
 
-// True Solution (if you have one)
+// Exact Solution (if you have one)
 // We have different ones for different dimensions and different D's
-void truesol_1D_PX(REAL *val,REAL* x,REAL time) {
+void exactsol_1D_PX(REAL *val,REAL* x,REAL time) {
   // 1D - grad grad
   *val = sin(M_PI*x[0]);
 }
-void truesol_2D_PX(REAL *val,REAL* x,REAL time) {
+void exactsol_2D_PX(REAL *val,REAL* x,REAL time) {
   // 2D - grad grad
   *val = sin(M_PI*x[0])*sin(M_PI*x[1]);
 }
-void truesol_3D_PX(REAL *val,REAL* x,REAL time) {
+void exactsol_3D_PX(REAL *val,REAL* x,REAL time) {
   // 3D - grad grad
   *val = sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
 }
-void truesol_2D_Ned(REAL *val,REAL* x,REAL time) {
+void exactsol_2D_Ned(REAL *val,REAL* x,REAL time) {
   // 2D - curl curl
   val[0] = cos(M_PI*x[0])*sin(M_PI*x[1]);
   val[1] = -sin(M_PI*x[0])*cos(M_PI*x[1]);
 }
-void truesol_3D_Ned(REAL *val,REAL* x,REAL time) {
+void exactsol_3D_Ned(REAL *val,REAL* x,REAL time) {
   // 3D - curl curl
   val[0] = cos(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
   val[1] = sin(M_PI*x[0])*cos(M_PI*x[1])*sin(M_PI*x[2]);
   val[2] = -sin(M_PI*x[0])*sin(M_PI*x[1])*cos(M_PI*x[2]);
 }
-void truesol_2D_RT(REAL *val,REAL* x,REAL time) {
+void exactsol_2D_RT(REAL *val,REAL* x,REAL time) {
   // 2D - grad div
   val[0] = sin(M_PI*x[0])*cos(M_PI*x[1]);
   val[1] = cos(M_PI*x[0])*sin(M_PI*x[1]);
 }
-void truesol_3D_RT(REAL *val,REAL* x,REAL time) {
+void exactsol_3D_RT(REAL *val,REAL* x,REAL time) {
   // 3D - grad div
   val[0] = sin(M_PI*x[0])*cos(M_PI*x[1])*cos(M_PI*x[2]);
   val[1] = cos(M_PI*x[0])*sin(M_PI*x[1])*cos(M_PI*x[2]);
   val[2] = cos(M_PI*x[0])*cos(M_PI*x[1])*sin(M_PI*x[2]);
 }
 
-// Derivative of True Solution (if you have one)
+// Derivative of Exact Solution (if you have one)
 // We have different ones for different dimensions and different D's
-void D_truesol_1D_PX(REAL *val,REAL* x,REAL time) {
+void D_exactsol_1D_PX(REAL *val,REAL* x,REAL time) {
   // 1D - grad grad
   *val = M_PI*cos(M_PI*x[0]);
 }
-void D_truesol_2D_PX(REAL *val,REAL* x,REAL time) {
+void D_exactsol_2D_PX(REAL *val,REAL* x,REAL time) {
   // 2D - grad grad
   val[0] = M_PI*cos(M_PI*x[0])*sin(M_PI*x[1]);
   val[1] = M_PI*sin(M_PI*x[0])*cos(M_PI*x[1]);
 }
-void D_truesol_3D_PX(REAL *val,REAL* x,REAL time) {
+void D_exactsol_3D_PX(REAL *val,REAL* x,REAL time) {
   // 3D - grad grad
   val[0] = M_PI*cos(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
   val[1] = M_PI*sin(M_PI*x[0])*cos(M_PI*x[1])*sin(M_PI*x[2]);
   val[2] = M_PI*sin(M_PI*x[0])*sin(M_PI*x[1])*cos(M_PI*x[2]);
 }
-void D_truesol_2D_Ned(REAL *val,REAL* x,REAL time) {
+void D_exactsol_2D_Ned(REAL *val,REAL* x,REAL time) {
   // 2D - curl curl
   *val = -2*M_PI*cos(M_PI*x[0])*cos(M_PI*x[1]);
 }
-void D_truesol_3D_Ned(REAL *val,REAL* x,REAL time) {
+void D_exactsol_3D_Ned(REAL *val,REAL* x,REAL time) {
   // 3D - curl curl
   val[0] = -2*M_PI*sin(M_PI*x[0])*cos(M_PI*x[1])*cos(M_PI*x[2]);
   val[1] = 2*M_PI*cos(M_PI*x[0])*sin(M_PI*x[1])*cos(M_PI*x[2]);
   val[2] = 0;
 }
-void D_truesol_2D_RT(REAL *val,REAL* x,REAL time) {
+void D_exactsol_2D_RT(REAL *val,REAL* x,REAL time) {
   // 2D - grad div
   *val = 2*M_PI*cos(M_PI*x[0])*cos(M_PI*x[1]);
 }
-void D_truesol_3D_RT(REAL *val,REAL* x,REAL time) {
+void D_exactsol_3D_RT(REAL *val,REAL* x,REAL time) {
   // 3D - grad div
   *val = 3*M_PI*cos(M_PI*x[0])*cos(M_PI*x[1])*cos(M_PI*x[2]);
 }
@@ -119,7 +119,7 @@ void rhs_1D_PX(REAL *val,REAL* x,REAL time) {
   REAL myu=-666.6;
   reaction_coeff(&myc,x,time);
   diffusion_coeff(&mya,x,time);
-  truesol_1D_PX(&myu,x,time);
+  exactsol_1D_PX(&myu,x,time);
   *val = (mya*M_PI*M_PI + myc)*myu;
 }
 void rhs_2D_PX(REAL *val,REAL* x,REAL time) {
@@ -129,7 +129,7 @@ void rhs_2D_PX(REAL *val,REAL* x,REAL time) {
   REAL myu=-666.6;
   reaction_coeff(&myc,x,time);
   diffusion_coeff(&mya,x,time);
-  truesol_2D_PX(&myu,x,time);
+  exactsol_2D_PX(&myu,x,time);
   *val = (mya*2*M_PI*M_PI + myc)*myu;
 }
 void rhs_3D_PX(REAL *val,REAL* x,REAL time) {
@@ -139,7 +139,7 @@ void rhs_3D_PX(REAL *val,REAL* x,REAL time) {
   REAL myu=-666.6;
   reaction_coeff(&myc,x,time);
   diffusion_coeff(&mya,x,time);
-  truesol_3D_PX(&myu,x,time);
+  exactsol_3D_PX(&myu,x,time);
   *val = (mya*3*M_PI*M_PI + myc)*myu;
 }
 void rhs_2D_Ned(REAL *val,REAL* x,REAL time) {
@@ -149,7 +149,7 @@ void rhs_2D_Ned(REAL *val,REAL* x,REAL time) {
   REAL myu[2];
   reaction_coeff(&myc,x,time);
   diffusion_coeff(&mya,x,time);
-  truesol_2D_Ned(myu,x,time);
+  exactsol_2D_Ned(myu,x,time);
   val[0] = (mya*2.0*M_PI*M_PI + myc)*myu[0];
   val[1] = (mya*2.0*M_PI*M_PI + myc)*myu[1];
 }
@@ -160,7 +160,7 @@ void rhs_3D_Ned(REAL *val,REAL* x,REAL time) {
   REAL myu[3];
   reaction_coeff(&myc,x,time);
   diffusion_coeff(&mya,x,time);
-  truesol_3D_Ned(myu,x,time);
+  exactsol_3D_Ned(myu,x,time);
   val[0] = (2*mya*M_PI*M_PI + myc)*myu[0];
   val[1] = (2*mya*M_PI*M_PI + myc)*myu[1];
   val[2] = (4*mya*M_PI*M_PI + myc)*myu[2];
@@ -172,7 +172,7 @@ void rhs_2D_RT(REAL *val,REAL* x,REAL time) {
   REAL myu[2];
   reaction_coeff(&myc,x,time);
   diffusion_coeff(&mya,x,time);
-  truesol_2D_RT(myu,x,time);
+  exactsol_2D_RT(myu,x,time);
   val[0] = (mya*2.0*M_PI*M_PI + myc)*myu[0];
   val[1] = (mya*2.0*M_PI*M_PI + myc)*myu[1];
 }
@@ -183,7 +183,7 @@ void rhs_3D_RT(REAL *val,REAL* x,REAL time) {
   REAL myu[3];
   reaction_coeff(&myc,x,time);
   diffusion_coeff(&mya,x,time);
-  truesol_3D_RT(myu,x,time);
+  exactsol_3D_RT(myu,x,time);
   val[0] = (mya*3.0*M_PI*M_PI + myc)*myu[0];
   val[1] = (mya*3.0*M_PI*M_PI + myc)*myu[1];
   val[2] = (mya*3.0*M_PI*M_PI + myc)*myu[2];
@@ -193,41 +193,41 @@ void rhs_3D_RT(REAL *val,REAL* x,REAL time) {
 // We have different ones for different dimensions and different D's
 void bc_1D_PX(REAL *val,REAL* x,REAL time) {
   REAL myu;
-  truesol_1D_PX(&myu,x,time);
+  exactsol_1D_PX(&myu,x,time);
   *val= myu;
 }
 void bc_2D_PX(REAL *val,REAL* x,REAL time) {
   REAL myu;
-  truesol_2D_PX(&myu,x,time);
+  exactsol_2D_PX(&myu,x,time);
   *val= myu;
 }
 void bc_3D_PX(REAL *val,REAL* x,REAL time) {
   REAL myu;
-  truesol_3D_PX(&myu,x,time);
+  exactsol_3D_PX(&myu,x,time);
   *val= myu;
 }
 void bc_2D_Ned(REAL *val,REAL* x,REAL time) {
   REAL myu[2];
-  truesol_2D_Ned(myu,x,time);
+  exactsol_2D_Ned(myu,x,time);
   val[0] = myu[0];
   val[1] = myu[1];
 }
 void bc_3D_Ned(REAL *val,REAL* x,REAL time) {
   REAL myu[3];
-  truesol_3D_Ned(myu,x,time);
+  exactsol_3D_Ned(myu,x,time);
   val[0] = myu[0];
   val[1] = myu[1];
   val[2] = myu[2];
 }
 void bc_2D_RT(REAL *val,REAL* x,REAL time) {
   REAL myu[2];
-  truesol_2D_RT(myu,x,time);
+  exactsol_2D_RT(myu,x,time);
   val[0] = myu[0];
   val[1] = myu[1];
 }
 void bc_3D_RT(REAL *val,REAL* x,REAL time) {
   REAL myu[3];
-  truesol_3D_RT(myu,x,time);
+  exactsol_3D_RT(myu,x,time);
   val[0] = myu[0];
   val[1] = myu[1];
   val[2] = myu[2];
@@ -531,44 +531,44 @@ int main (int argc, char* argv[])
          (REAL) (clk_solve_end-clk_solve_start)/CLOCKS_PER_SEC);
   /*******************************************************************/
     
-  /**************** Compute Errors if you have true solution *********/
+  /**************** Compute Errors if you have exact solution *********/
   // Again this depends on dimension and FE type
-  printf("Computing True Solution and Errors:\n");
+  printf("Computing Exact Solution and Errors:\n");
   clock_t clk_error_start = clock();
   REAL uerr=0.0;
   REAL graduerr=0.0;
   if(dim==1) {
     if(FE.FEtype>0 && FE.FEtype<10) { // PX
-      uerr = L2error(u.val,truesol_1D_PX,&FE,&mesh,cq,0.0);
-      graduerr = HDsemierror(u.val,D_truesol_1D_PX,&FE,&mesh,cq,0.0);
+      uerr = L2error(u.val,exactsol_1D_PX,&FE,&mesh,cq,0.0);
+      graduerr = HDsemierror(u.val,D_exactsol_1D_PX,&FE,&mesh,cq,0.0);
     } else {
       status = ERROR_FE_TYPE;
       check_error(status, __FUNCTION__);
     }
   } else if(dim==2) {
     if(FE.FEtype>0 && FE.FEtype<10) { // PX
-      uerr = L2error(u.val,truesol_2D_PX,&FE,&mesh,cq,0.0);
-      graduerr = HDsemierror(u.val,D_truesol_2D_PX,&FE,&mesh,cq,0.0);
+      uerr = L2error(u.val,exactsol_2D_PX,&FE,&mesh,cq,0.0);
+      graduerr = HDsemierror(u.val,D_exactsol_2D_PX,&FE,&mesh,cq,0.0);
     } else if(FE.FEtype==20) { // Nedelec
-      uerr = L2error(u.val,truesol_2D_Ned,&FE,&mesh,cq,0.0);
-      graduerr = HDsemierror(u.val,D_truesol_2D_Ned,&FE,&mesh,cq,0.0);
+      uerr = L2error(u.val,exactsol_2D_Ned,&FE,&mesh,cq,0.0);
+      graduerr = HDsemierror(u.val,D_exactsol_2D_Ned,&FE,&mesh,cq,0.0);
     } else if(FE.FEtype==30) { // RT
-      uerr = L2error(u.val,truesol_2D_RT,&FE,&mesh,cq,0.0);
-      graduerr = HDsemierror(u.val,D_truesol_2D_RT,&FE,&mesh,cq,0.0);
+      uerr = L2error(u.val,exactsol_2D_RT,&FE,&mesh,cq,0.0);
+      graduerr = HDsemierror(u.val,D_exactsol_2D_RT,&FE,&mesh,cq,0.0);
     } else {
       status = ERROR_FE_TYPE;
       check_error(status, __FUNCTION__);
     }
   } else if(dim==3) {
     if(FE.FEtype>0 && FE.FEtype<10) { // PX
-      uerr = L2error(u.val,truesol_3D_PX,&FE,&mesh,cq,0.0);
-      graduerr = HDsemierror(u.val,D_truesol_3D_PX,&FE,&mesh,cq,0.0);
+      uerr = L2error(u.val,exactsol_3D_PX,&FE,&mesh,cq,0.0);
+      graduerr = HDsemierror(u.val,D_exactsol_3D_PX,&FE,&mesh,cq,0.0);
     } else if(FE.FEtype==20) { // Nedelec
-      uerr = L2error(u.val,truesol_3D_Ned,&FE,&mesh,cq,0.0);
-      graduerr = HDsemierror(u.val,D_truesol_3D_Ned,&FE,&mesh,cq,0.0);
+      uerr = L2error(u.val,exactsol_3D_Ned,&FE,&mesh,cq,0.0);
+      graduerr = HDsemierror(u.val,D_exactsol_3D_Ned,&FE,&mesh,cq,0.0);
     } else if(FE.FEtype==30) { // RT
-      uerr = L2error(u.val,truesol_3D_RT,&FE,&mesh,cq,0.0);
-      graduerr = HDsemierror(u.val,D_truesol_3D_RT,&FE,&mesh,cq,0.0);
+      uerr = L2error(u.val,exactsol_3D_RT,&FE,&mesh,cq,0.0);
+      graduerr = HDsemierror(u.val,D_exactsol_3D_RT,&FE,&mesh,cq,0.0);
     } else {
       status = ERROR_FE_TYPE;
       check_error(status, __FUNCTION__);
@@ -596,13 +596,13 @@ int main (int argc, char* argv[])
     strcat(solout,"sol.vtu");
     dump_sol_onV_vtk(solout,&mesh,u.val,1);
 
-    dvector true_sol = dvec_create(FE.ndof);
-    FE_Evaluate(true_sol.val,truesol_1D_PX,&FE,&mesh,0.0);
-    char trueout[128];
-    strncpy(trueout,inparam.output_dir,128);
-    strcat(trueout,"true.vtu");
-    dump_sol_onV_vtk(trueout,&mesh,true_sol.val,1);
-    dvec_free(&true_sol);
+    dvector exact_sol = dvec_create(FE.ndof);
+    FE_Evaluate(exact_sol.val,exactsol_1D_PX,&FE,&mesh,0.0);
+    char exactout[128];
+    strncpy(exactout,inparam.output_dir,128);
+    strcat(exactout,"exact.vtu");
+    dump_sol_onV_vtk(exactout,&mesh,exact_sol.val,1);
+    dvec_free(&exact_sol);
   }
   /*******************************************************************/
     

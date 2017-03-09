@@ -10,7 +10,7 @@
  *        -div(a(x)*grad(u) - u*b) = f
  *
  *        b is an advection vector; a(x) is a diffusion matrix. 
- *        u = 0 along the boundary.
+ *        u = 0 on the boundary.
  *        
  *        Details about the EAFE discretization are found in: 
  *        Jinchao Xu and Ludmil Zikatanov: A monotone finite element
@@ -61,8 +61,8 @@ int main (int argc, char* argv[])
   qcoordinates *cq = get_quadrature(&mesh,nq1d);
 
   // Get info for and create FEM spaces
-  // Order of Elements: P1
-  INT order = 1; ##inparam.FE_type;
+  // Order of Elements: P1 for this. 
+  INT order = 1; //inparam.FE_type;
   fespace FE;
   create_fespace(&FE,&mesh,order);
   // Strings for printing
@@ -110,7 +110,7 @@ int main (int argc, char* argv[])
   dvector b;
   dCSRmat A;
     
-  // Assemble the matrix without BC
+  // Assemble the matrix with natural BC. 
   // Diffusion block
   assemble_global(&A,&b,assemble_DuDv_local,&FE,&mesh,cq,myrhs,
                   diffusion_coeff,0.0);
@@ -124,8 +124,8 @@ int main (int argc, char* argv[])
 
   // Create Solution Vector
   dvector sol = dvec_create(FE.ndof);
-  dvector true_sol = dvec_create(FE.ndof);
-  FE_Evaluate(true_sol.val,truesol,&FE,&mesh,0.0);
+  dvector exact_sol = dvec_create(FE.ndof);
+  FE_Evaluate(exact_sol.val,exactsol,&FE,&mesh,0.0);
 
   // Set parameters for linear iterative methods
   linear_itsolver_param linear_itparam;
@@ -156,7 +156,7 @@ int main (int argc, char* argv[])
 
   // Dump Solution
   char solout[40];
-  char trueout[40];
+  char exactout[40];
   if (inparam.output_dir!=NULL) {
     sprintf(solout,"output/solution_ts000.vtu");
     dump_sol_onV_vtk(solout,&mesh,time_stepper.sol->val,1);
@@ -167,11 +167,11 @@ int main (int argc, char* argv[])
 
   // Compute initial errors and norms
   REAL* uerr = (REAL *) calloc(time_stepper.tsteps+1,sizeof(REAL));
-  uerr[0] = L2error(time_stepper.sol->val,truesol,&FE,&mesh,cq,time_stepper.time);
+  uerr[0] = L2error(time_stepper.sol->val,exactsol,&FE,&mesh,cq,time_stepper.time);
   REAL* unorm = (REAL *) calloc(time_stepper.tsteps+1,sizeof(REAL));
   unorm[0] = L2norm(time_stepper.sol->val,&FE,&mesh,cq);
   REAL* utnorm = (REAL *) calloc(time_stepper.tsteps+1,sizeof(REAL));
-  utnorm[0] = L2norm(true_sol.val,&FE,&mesh,cq);
+  utnorm[0] = L2norm(exact_sol.val,&FE,&mesh,cq);
 
   printf("Performing %d Time Steps with step size dt = %1.3f\n",time_stepper.tsteps,time_stepper.dt);
   printf("--------------------------------------------------------------\n\n");
@@ -180,7 +180,7 @@ int main (int argc, char* argv[])
   printf("============================\n");
   printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
   printf("L2 Norm of u            = %26.13e\n",unorm[0]);
-  printf("L2 Norm of true u       = %26.13e\n",utnorm[0]);
+  printf("L2 Norm of exact u       = %26.13e\n",utnorm[0]);
   printf("L2 Norm of u error      = %26.13e\n",uerr[0]);
   printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n\n\n");
 
@@ -253,19 +253,19 @@ int main (int argc, char* argv[])
     clock_t clk_timestep_end = clock();
     printf("Elapsed CPU Time for Time Step = %f seconds.\n\n",(REAL) (clk_timestep_end-clk_timestep_start)/CLOCKS_PER_SEC);
 
-    /**************** Compute Errors if you have true solution *******/
+    /**************** Compute Errors if you have exact solution *******/
     clock_t clk_error_start = clock();
 
-    uerr[j+1] = L2error(time_stepper.sol->val,truesol,&FE,&mesh,cq,time_stepper.time);
+    uerr[j+1] = L2error(time_stepper.sol->val,exactsol,&FE,&mesh,cq,time_stepper.time);
     unorm[j+1] = L2norm(time_stepper.sol->val,&FE,&mesh,cq);
-    FE_Evaluate(true_sol.val,truesol,&FE,&mesh,time_stepper.time);
-    utnorm[j+1] = L2norm(true_sol.val,&FE,&mesh,cq);
+    FE_Evaluate(exact_sol.val,exactsol,&FE,&mesh,time_stepper.time);
+    utnorm[j+1] = L2norm(exact_sol.val,&FE,&mesh,cq);
     clock_t clk_error_end = clock();
     printf("Elapsed CPU time for getting errors = %lf seconds.\n\n",(REAL)
            (clk_error_end-clk_error_start)/CLOCKS_PER_SEC);
     printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
     printf("L2 Norm of u            = %26.13e\n",unorm[j+1]);
-    printf("L2 Norm of true u       = %26.13e\n",utnorm[j+1]);
+    printf("L2 Norm of exact u       = %26.13e\n",utnorm[j+1]);
     printf("L2 Norm of u error      = %26.13e\n",uerr[j+1]);
     printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
     /*******************************************************************/
@@ -273,8 +273,8 @@ int main (int argc, char* argv[])
     if (inparam.output_dir!=NULL) {
       sprintf(solout,"output/solution_ts%03d.vtu",time_stepper.current_step);
       dump_sol_onV_vtk(solout,&mesh,time_stepper.sol->val,1);
-      sprintf(trueout,"output/true_solution_ts%03d.vtu",time_stepper.current_step);
-      dump_sol_onV_vtk(trueout,&mesh,true_sol.val,1);
+      sprintf(exactout,"output/exact_solution_ts%03d.vtu",time_stepper.current_step);
+      dump_sol_onV_vtk(exactout,&mesh,exact_sol.val,1);
     }
     printf("\n");
   } // End Timestepping Loop
@@ -286,7 +286,7 @@ int main (int argc, char* argv[])
 
   /******** Summary Print ********************************************/
   printf("Summary of Timestepping\n");
-  printf("Time Step\tTime\t\t\t||u||\t\t\t\t||u_true||\t\t\t||error||\n\n");
+  printf("Time Step\tTime\t\t\t||u||\t\t\t\t||u_exact||\t\t\t||error||\n\n");
   for(j=0;j<=time_stepper.tsteps;j++) {
     printf("%02d\t\t%f\t%25.16e\t%25.16e\t%25.16e\n",j,j*time_stepper.dt,unorm[j],utnorm[j],uerr[j]);
   }
@@ -295,7 +295,7 @@ int main (int argc, char* argv[])
   if(unorm) free(unorm);
   if(utnorm) free(utnorm);
   if(uerr) free(uerr);
-  dvec_free(&true_sol);
+  dvec_free(&exact_sol);
   free_timestepper(&time_stepper);
   free_fespace(&FE);
   if(cq) {
