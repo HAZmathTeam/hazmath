@@ -9,14 +9,14 @@ SRCFILE = HDEquation
 EXE = $(SRCFILE).ex
 
 # Machine Specific Compilers and Libraries
-CC = gcc-mp-5
-FC = gfortran-mp-5
-CXX = g++-mp-5
+CC = gcc
+FC = gfortran
+CXX = g++
 CFLAGS = -g 
 FFLAGS = -g -fno-second-underscore
 ExtraFLAGS =
 
-# HAZMAT
+# HAZMATH
 HAZDIR=../..
 HAZLIB = $(HAZDIR)/lib
 HAZINCLUDE = -I$(HAZDIR)/include
@@ -26,6 +26,8 @@ HAZINCLUDE = -I$(HAZDIR)/include
 #SSDIR = /usr/local
 #JA (Macports)
 SSDIR = /opt/local
+#LTZ (Homebrew)
+SSDIR = /usr/local
 # Polaris 
 #SSDIR = /usr/local/numerics/suitesparse
 SSINCLUDE = -I$(SSDIR)/include
@@ -35,11 +37,11 @@ SSLIB = -L$(SSDIR)/lib -lsuitesparseconfig -lcholmod -lamd -lcolamd -lccolamd -l
 SRC = .
 SRCex = $(SRC)/$(SRCFILE).c
 OBJex = $(SRC)/$(SRCFILE).o
-OBJSex = $(OBJex) $(HAZLIB)/libhazmat.a 
+OBJSex = $(OBJex) $(HAZLIB)/libhazmath.a 
 
 # Include all Libraries including UMFPACK, its dependencies, BLAS, and LAPACK
 INCLUDE = $(SSINCLUDE) $(HAZINCLUDE)
-LIBS = -lm -lblas -llapack -lgfortran $(SSLIB)
+LIBS = -lm -lblas -llapack $(SSLIB)
 
 .PHONY: all
 
