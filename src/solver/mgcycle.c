@@ -3,14 +3,14 @@
  *  Abstract multigrid cycle
  *
  *  Created by James Adler and Xiaozhe Hu on 12/25/15.
- *  Copyright 2015__HAZMAT__. All rights reserved.
+ *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  */
 
 //#include <math.h>
 //#include <time.h>
 
-#include "hazmat.h"
+#include "hazmath.h"
 #include "mg_util.inl"
 
 static SHORT krylov_cycle_dcsr_pgcg(dCSRmat *, dvector *, dvector *, precond *);

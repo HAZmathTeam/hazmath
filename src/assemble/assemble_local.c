@@ -5,13 +5,13 @@
  *        In general, the user would write their own specialized ones.
  *
  *  Created by James Adler and Xiaozhe Hu on 4/22/15.
- *  Copyright 2016__HAZMAT__. All rights reserved.
+ *  Copyright 2016__HAZMATH__. All rights reserved.
  *
  *  \note modified by James Adler 11/2/2016
  *
  */
 
-#include "hazmat.h"
+#include "hazmath.h"
 
 /******************************************************************************************************/
 void assemble_DuDv_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)

@@ -1,14 +1,14 @@
 /*! \file src/utilities/format.c
  *
  *  Created by James Adler and Xiaozhe Hu on 02/17/16.
- *  Copyright 2016__HAZMAT__. All rights reserved.
+ *  Copyright 2016__HAZMATH__. All rights reserved.
  *
  *  \note: modified by Xiaozhe Hu on 10/28/2016
  *  \note: done cleanup for releasing -- Xiaozhe Hu 10/28/2016
  *
  */
 
-#include "hazmat.h"
+#include "hazmath.h"
 
 /***********************************************************************************************/
 dCSRmat bdcsr_2_dcsr (block_dCSRmat *Ab)

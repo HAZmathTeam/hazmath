@@ -1,14 +1,14 @@
 /*! \file src/utilities/wrapper.c
  *
  *  Created by James Adler and Xiaozhe Hu on 09/02/16.
- *  Copyright 2016__HAZMAT__. All rights reserved.
+ *  Copyright 2016__HAZMATH__. All rights reserved.
  *
  *  \note: modified by Xiaozhe Hu on 10/27/2016
  *  \note: done cleanup for releasing -- Xiaozhe Hu 10/27/2016
  *
  */
 
-#include "hazmat.h"
+#include "hazmath.h"
 
 /*************************************************************************************/
 void python_wrapper_krylov_amg(INT *n,

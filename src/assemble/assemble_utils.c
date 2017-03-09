@@ -3,12 +3,12 @@
  * \brief This code will contain all the tools needed to build stiffness matrices
  *
  *  Created by James Adler and Xiaozhe Hu on 4/22/15.
- *  Copyright 2015__HAZMAT__. All rights reserved.
+ *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  * \note modified by James Adler 11/11/2016
  */
 
-#include "hazmat.h"
+#include "hazmath.h"
 
 /******************************************************************************************************/
 void create_CSR_rows(dCSRmat *A, fespace *FE)
@@ -1192,7 +1192,7 @@ void eliminate_DirichletBC_blockFE_blockA(void (*bc)(REAL *, REAL *,REAL),block_
   // Error Check
   for(i=0;i<nsp;i++) {
     if(dofshift[i]==0) {
-      printf("ERROR HAZMAT DANGER: in function %s: NULL BLOCK ROW in A.\n",__FUNCTION__);
+      printf("ERROR HAZMATH DANGER: in function %s: NULL BLOCK ROW in A.\n",__FUNCTION__);
     }
   }
 
@@ -1279,7 +1279,7 @@ void eliminate_DirichletBC_RHS_blockFE_blockA(void (*bc)(REAL *,REAL *,REAL),blo
     entry += ndof_local;
   }
 
-  // Shift indices for HAZMAT utilities
+  // Shift indices for HAZMATH utilities
   for(i=0;i<(FE->nspaces)*(FE->nspaces);i++) {
     if(A->blocks[i] != NULL)
       dcsr_shift(A->blocks[i],-1);

@@ -1,14 +1,14 @@
 /*! \file src/utilities/data.c
  *
  *  Created by James Adler and Xiaozhe Hu on 12/23/15.
- *  Copyright 2015__HAZMAT__. All rights reserved.
+ *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  *  \note modified by Xiaozhe Hu 10/27/2016
  *  \note: done cleanup for releasing -- Xiaozhe Hu 10/27/2016
  *
  */
 
-#include "hazmat.h"
+#include "hazmath.h"
 
 /***********************************************************************************************/
 void precond_data_null (precond_data *pcdata)
