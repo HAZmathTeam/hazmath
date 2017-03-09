@@ -1,6 +1,6 @@
 /*! \file src/grid/mesh_io.c   
  *
- *  Created by James Adler and Xiaozhe Hu on 1/9/15.
+ *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 1/9/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  *  Obtains routines for reading in meshes via original format and vtk format.

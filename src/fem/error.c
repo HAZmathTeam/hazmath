@@ -3,7 +3,7 @@
  * \brief This code contains functions for computing errors and norms
  *        mostly using FEM assembly routines.
  *
- *  Created by James Adler and Xiaozhe Hu on 5/14/15.
+ *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 5/14/15.
  *  Copyright 2016__HAZMATH__. All rights reserved.
  *
  *  \note modified by James Adler 11/1/2016

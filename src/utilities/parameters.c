@@ -1,6 +1,6 @@
 /*! \file src/utilities/parameters.c
  *
- *  Created by James Adler and Xiaozhe Hu on 10/06/15.
+ *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 10/06/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  *  \note: modified by Xiaozhe Hu on 10/27/2016

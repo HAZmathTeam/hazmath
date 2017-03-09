@@ -1,6 +1,6 @@
 /*! \file src/utilities/data.c
  *
- *  Created by James Adler and Xiaozhe Hu on 12/23/15.
+ *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 12/23/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  *  \note modified by Xiaozhe Hu 10/27/2016

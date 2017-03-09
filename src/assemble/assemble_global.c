@@ -5,7 +5,7 @@
  * \note It is set up to be generic so that a user could input their own local assembly routines.
  * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
  *
- *  Created by James Adler and Xiaozhe Hu on 4/22/15.
+ *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 4/22/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  * \note modified by James Adler 11/11/2016

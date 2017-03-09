@@ -2,7 +2,7 @@
  *
  * \brief This code will contain all the tools needed to perform Newton stepping
  *
- *  Created by James Adler and Xiaozhe Hu on 10/18/16.
+ *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 10/18/16.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  * \note modified by James Adler 11/11/2016

@@ -1,76 +1,81 @@
-/*ltz
- Assembles -div (a(x) grad(u) + (b . u)); 
+/*(1994-02-02) --ltz 
+
+Does Schur product for P1+EAFE for discretizing 
+
+-div (a(x) grad(u) + (b . u))
+
 */
+void SchurProduct(const coordinates xyz, const INT dim, \
+		  dCSRmat A, dvector dmass)
 {
-  void SchurProduct(const Mesh &mesh, const int dim, SparseMatrix &Ain, Vector &dmass) {
-    int i,j,jk,nrow=Ain.Size();
-    int *I=Ain.GetI(),*J=Ain.GetJ();
-    double *A=Ain.GetData();
-    int nv=mesh.GetNV();
-    Vector diag0(nrow);
-    diag0=0.; //overloaded "=" for vector class. 
-    Vector advcoeff(dim), xy(nv*dim),xmid(dim),te(dim);
-    double xi,yi,zi,xj,yj,zj,bte,bern,alpe;
-    int nv2=nv+nv; //;
-    mesh.GetVertices(xy);
-    for (i = 0; i < nrow; i++) {
-      xi=xy[i];
-      yi=xy[nv+i];
-      zi=xy[nv2+i];
-      for (jk=I[i]; jk<I[i+1]; jk++){
-	j=J[jk]; 
-	if(i != j){
-	  xj=xy[j];
-	  yj=xy[nv+j];
-	  zj=xy[nv2+j];
-	  // compute the advection field at the middle of the edge and
-	  // then the bernoulli function
-	  te[0]  = xi - xj;
-	  te[1]  =  yi - yj;
-	  te[2]  = zi - zj;
-	  xmid[0] = (xi + xj)*0.5e+0;
-	  xmid[1] = (yi + yj)*0.5e+0;
-	  xmid[2] = (zi + zj)*0.5e+0;
-	  advectEAFE(xmid,advcoeff);
-	  //	  bte = (beta*t_e); //c++ overloaded "*" s..t we can multiply these...
-	  //	  I do it the old way, unrolled it is faster
-	  bte = advcoeff[0]*te[0]+ advcoeff[1]*te[1]+ advcoeff[2]*te[2];
-	  ///
-	  // diffusion coefficient for the flux J = a(x)\nabla u + \beta u;
-	  alpe=diffuse(xmid);
-	  //	  xmid.Print(std::cout,3);
-	  //	  std::cout << "alpe = "<<alpe<<"; bte="<< bte<<std::endl<<std::flush;      
-	  // alpe=a(xmid)\approx harmonic_average=|e|/(int_e 1/a);
-	  // should be computed by quadrature in general for 1/a(x).
-	  // a_{ij}=B(beta.t_e/harmonic_average)*harmonic_average*omega_e;
-	  //	  for (i,j):    B(beta.t_e/harmonic_average);   
-	  //	  for (j,i):    B(-beta.t_e/harmonic_average), the minus comes from
-	  //     is because t_e=i-j;
-	  A[jk] *= alpe*(bernoulli(bte/alpe)); 
-    // the diagonal is equal to the negative column sum;
-	  diag0[j]-=A[jk];
-	}
-      } 
-    }
-    // Another loop to set up the diagonal equal to the negative column sum;
-    for (i = 0; i < nrow; i++) 
-      for (jk=I[i]; jk<I[i+1]; jk++){
-     	j = J[jk]; 
-     	if(i == j) A[jk]=diag0[i]+dmass[i];
+  INT i,j,jk,nrow=Ain.Size();
+  INT* ia=A.IA,ja=A.JA ;
+  REAL* a=A.val;
+  dector diag0;
+  diag0.row=xy.n;
+  diag0.val=(REAL *)calloc(nv,sizeof(REAL));
+  for (i=0;i<nv;i++){
+    diag0.val[i]=0.;
+  }     
+  REAL advcoeff[dim], xmid[dim],te[dim];
+  REAL xi,yi,zi,xj,yj,zj,bte,bern,alpe;
+  for (i = 0; i < nrow; i++) {
+    xi=xyz.x[i];
+    yi=xyz.y[i];
+    zi=xyz.z[i];
+    for (jk=I[i]; jk<I[i+1]; jk++){
+      j=J[jk]; 
+      if(i != j){
+	xj=xyz.x[j];
+	yj=xyz.y[j];
+	zj=xyz.z[j];
+	// compute the advection field at the middle of the edge and
+	// then the bernoulli function
+	te[0]  = xi - xj;
+	te[1]  =  yi - yj;
+	te[2]  = zi - zj;
+	xmid[0] = (xi + xj)*0.5e+0;
+	xmid[1] = (yi + yj)*0.5e+0;
+	xmid[2] = (zi + zj)*0.5e+0;
+	advect(xmid,advcoeff);
+	//	  bte = (beta*t_e); //c++ overloaded "*" s..t we can multiply these...
+	//	  I do it the old way, unrolled it is faster
+	bte = advcoeff[0]*te[0]+ advcoeff[1]*te[1]+ advcoeff[2]*te[2];
+	///
+	// diffusion coefficient for the flux J = a(x)\nabla u + \beta u;
+	diffusion_coeff(&alpe,xmid);
+	//	  xmid.Print(std::cout,3);
+	//	  std::cout << "alpe = "<<alpe<<"; bte="<< bte<<std::endl<<std::flush;      
+	// alpe=a(xmid)\approx harmonic_average=|e|/(int_e 1/a);
+	// should be computed by quadrature in general for 1/a(x).
+	// a_{ij}=B(beta.t_e/harmonic_average)*harmonic_average*omega_e;
+	//	  for (i,j):    B(beta.t_e/harmonic_average);   
+	//	  for (j,i):    B(-beta.t_e/harmonic_average), the minus comes from
+	//     is because t_e=i-j;
+	a[jk] *= (alpe*(bernoulli(bte/alpe))); 
+	// the diagonal is equal to the negative column sum;
+	diag0[j]-=a[jk];
       }
+    } 
   }
+  // Another loop to set up the diagonal equal to the negative column sum;
+  for (i = 0; i < nrow; i++) 
+    for (jk=ia[i]; jk<ia[i+1]; jk++){
+      j = ja[jk]; 
+      if(i == j) a[jk]=diag0.val[i]+dmass.val[i];
+    }
+}
 };
 ///
-void LumpMassBndry(const int dim, const int bndry_robin,
-		   DVECTOR dmass, dvector rhs) 
+void LumpMassBndry(const INT dim, const INT bndry_robin,
+		   dvector dmass, dvector rhs) 
 {
   //calculates boundary integral using lumped mass. 
-  int i, j,k,nve,attri;
+  INT i, j,k,nve,attri;
   Element *el=NULL;
-  int *node=NULL;
-  double v[3],w[3],sixth=1./6.,voltri=1e10,distz=0e0;
-  Vector bnormal[dim],xyz[dim];
-  dmass=0.;
+  INT *node=NULL;
+  REAL v[3],w[3],sixth=1./6.,voltri=1e10,distz=0e0, bnormal[dim],xyz[dim];
+
   fprintf(stdout,"NumOfBdrElements =%i\n",NumOfBdrElements);
   for (i = 0; i < NumOfBdrElements; i++)   {
     el=boundary[i];
@@ -83,7 +88,7 @@ void LumpMassBndry(const int dim, const int bndry_robin,
     //      distz+=fabs(vertices[node[j]](2)-tN);
     //    }
     //    if(distz>1e-12)continue;
-       if(attri != bndry_robin)continue;
+    if(attri != bndry_robin)continue;
     for(j=0;j<dim;j++) {
       v[j]=vertices[node[1]](j)-vertices[node[0]](j);
       w[j]=vertices[node[2]](j)-vertices[node[0]](j);
@@ -92,14 +97,14 @@ void LumpMassBndry(const int dim, const int bndry_robin,
     voltri += (v[2]*w[0]-v[0]*w[2])*(v[2]*w[0]-v[0]*w[2]);
     voltri+=  (v[0] * w[1]-v[1] * w[0])* (v[0] * w[1]-v[1] * w[0]);
     voltri=sixth*pow(voltri,0.5);
-     // std::cout << " ==================area= "<< voltri*3.<<std::endl;
-     // for (j=0; j<nve; ++j){
-     //   std::cout <<" vert"<<j+1<<"="<<node[j]+1<<"(";
-     //   for (k=0; k<dim; ++k){
-     // 	std::cout <<  vertices[node[j]](k);
-     // 	if(k<dim-1) std::cout<<",";  else std::cout<<")"<<std::endl;
-     //   }
-     // }
+    // std::cout << " ==================area= "<< voltri*3.<<std::endl;
+    // for (j=0; j<nve; ++j){
+    //   std::cout <<" vert"<<j+1<<"="<<node[j]+1<<"(";
+    //   for (k=0; k<dim; ++k){
+    // 	std::cout <<  vertices[node[j]](k);
+    // 	if(k<dim-1) std::cout<<",";  else std::cout<<")"<<std::endl;
+    //   }
+    // }
     // this should only be added for vertices interior to the boundary at t=T or z=T;
     for (j=0;j<nve;j++){
       xyz[0]=vertices[node[j]](0);
@@ -113,9 +118,9 @@ void LumpMassBndry(const int dim, const int bndry_robin,
   }
 }
 ///
-int main(int argc, char *argv[])
+INT main(INT argc, char *argv[])
 {
-  int i,j;//ltz
+  INT i,j;//ltz
    // 1. Parse command-line options.
    EAFE doEAFE;
    OptionsParser args(argc, argv);
@@ -147,7 +152,7 @@ int main(int argc, char *argv[])
    }
    mesh = new Mesh(imesh, 1, 1, 0);
    imesh.close();
-   int dim = mesh->Dimension();
+   INT dim = mesh->Dimension();
 
    // 3. Refine the mesh to increase the resolution. In this example we do
    //    'ref_levels' of uniform refinement. We choose 'ref_levels' to be the
@@ -155,7 +160,7 @@ int main(int argc, char *argv[])
    //    elements.
    {
      // ref_levels is in constnts.hpp
-      for (int l = 0; l < ref_levels; l++)
+      for (INT l = 0; l < ref_levels; l++)
          mesh->UniformRefinement();
    }
    // 4. Define a finite element space on the mesh. Here we use continuous
@@ -229,10 +234,10 @@ int main(int argc, char *argv[])
   ///////////////////////
   int myn=A.Size();
 #ifndef MFEM_USE_SUITESPARSE
-  int *ia=A.GetI();
-  int *ja=A.GetJ(); 
-  double *a01=A.GetData();
-  double *zrhs=b->GetData();
+  INT *ia=A.GetI();
+  INT *ja=A.GetJ(); 
+  REAL *a01=A.GetData();
+  REAL *zrhs=b->GetData();
   // use now multigraph
   std::cout<<" *** Starting multigraph Solver" <<std::endl;
   /* 

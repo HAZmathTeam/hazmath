@@ -2,7 +2,7 @@
  *
  * \brief Compute the basis functions for triangles or tetrahedra or 1D FEM
  *
- *  Created by James Adler and Xiaozhe Hu on 2/1/15.
+ *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 2/1/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  * \note modified by James Adler 11/14/2016

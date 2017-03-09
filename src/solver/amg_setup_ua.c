@@ -2,7 +2,7 @@
  *
  *  Unsmoothed Aggregation AMG: SETUP phase
  *
- *  Created by James Adler and Xiaozhe Hu on 12/24/15.
+ *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 12/24/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  */

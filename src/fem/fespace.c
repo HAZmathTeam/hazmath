@@ -2,7 +2,7 @@
  *
  * \brief Creates and destroys the structres for the finite-element spaces.
  *
- *  Created by James Adler and Xiaozhe Hu on 2/17/15.
+ *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 2/17/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  * \note modified by James Adler 11/14/2016
