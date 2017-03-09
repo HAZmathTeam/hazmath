@@ -6,14 +6,13 @@
  */
 
 #include "hazmath.h"
-#include "umfpack.h"
-
 
 /*! \brief Direct Solver methods -- for now just using UMFPACK Solvers
  *
  */
 
 #if WITH_SUITESPARSE
+#include "umfpack.h"
 /***************************************************************************************************************************/
 INT directsolve_UMF(dCSRmat *A,dvector *f,REAL *x,INT print_level)
 {
