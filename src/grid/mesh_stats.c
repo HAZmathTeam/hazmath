@@ -1,14 +1,14 @@
 /*! \file src/grid/mesh_stats.c
  *
  *  Created by James Adler and Xiaozhe Hu on 1/9/15.
- *  Copyright 2015__HAZMAT__. All rights reserved.
+ *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  *  Obtains routines for generating properties of the mesh,
  *  including all incidence matrices, element volumes, etc.
  *
  */
 
-#include "hazmat.h"
+#include "hazmath.h"
 
 /******************************************************************************/
 iCSRmat convert_elmnode(INT *element_vertex,INT nelm,INT nv,INT nve) 

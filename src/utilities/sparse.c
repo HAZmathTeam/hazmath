@@ -1,14 +1,14 @@
 /*! \file src/utilities/sparse.c
  *
  *  Created by James Adler and Xiaozhe Hu on 3/6/15.
- *  Copyright 2015__HAZMAT__. All rights reserved.
+ *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  *  \note: modified by Xiaozhe Hu on 10/30/2016
  *  \note: done cleanup for releasing -- Xiaozhe Hu 10/31/2016
  *
  */
 
-#include "hazmat.h"
+#include "hazmath.h"
 
 /***********************************************************************************************/
 dCSRmat dcsr_create (const INT m,
@@ -850,7 +850,7 @@ INT dcsr_add (dCSRmat *A,
   // neither matrix A or B is NULL
   // size does not match!
   if (A->row != B->row || A->col != B->col) {
-    printf("### ERROR HAZMAT DANGER: Dimensions of matrices do not match!!! %s\n", __FUNCTION__);
+    printf("### ERROR HAZMATH DANGER: Dimensions of matrices do not match!!! %s\n", __FUNCTION__);
     status = ERROR_MAT_SIZE;
     goto FINISHED;
   }
@@ -2671,7 +2671,7 @@ INT bdcsr_add (block_dCSRmat *A,
     }
 
     if (A->brow != B->brow || A->bcol != B->bcol) {
-      printf("### ERROR HAZMAT DANGER: Dimensions of block matrices do not match!!! %s\n", __FUNCTION__);
+      printf("### ERROR HAZMATH DANGER: Dimensions of block matrices do not match!!! %s\n", __FUNCTION__);
       status = ERROR_MAT_SIZE;
       goto FINISHED;
     }
@@ -2745,7 +2745,7 @@ INT bdcsr_add_1 (block_dCSRmat *A,
 
     // non of the matrices is NULL
     if (A->brow != B->brow || A->bcol != B->bcol) {
-      printf("### ERROR HAZMAT DANGER: Dimensions of block matrices do not match!!! %s\n", __FUNCTION__);
+      printf("### ERROR HAZMATH DANGER: Dimensions of block matrices do not match!!! %s\n", __FUNCTION__);
       status = ERROR_MAT_SIZE;
       goto FINISHED;
     }
