@@ -13,7 +13,7 @@ void diffusion_coeff(REAL *val,REAL* x) {
 
 // Exact Solution (if you have one)
 // Change as needed for different dimensions
-void exact_sol(REAL *val,REAL* x0) {
+void exactsol(REAL *val,REAL* x0) {
   // 1D
   //*val = sin(M_PI*x[0])*exp(-M_PI*M_PI*time);
   // 2D
