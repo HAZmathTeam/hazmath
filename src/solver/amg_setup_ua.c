@@ -3,11 +3,11 @@
  *  Unsmoothed Aggregation AMG: SETUP phase
  *
  *  Created by James Adler and Xiaozhe Hu on 12/24/15.
- *  Copyright 2015__HAZMAT__. All rights reserved.
+ *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  */
 
-#include "hazmat.h"
+#include "hazmath.h"
 #include "aggregation.inl"
 
 

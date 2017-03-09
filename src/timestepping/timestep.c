@@ -3,12 +3,12 @@
  * \brief This code will contain all the tools needed to perform timestepping
  *
  *  Created by James Adler and Xiaozhe Hu on 2/18/16.
- *  Copyright 2015__HAZMAT__. All rights reserved.
+ *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  * \note modified by James Adler 11/11/2016
  */
 
-#include "hazmat.h"
+#include "hazmath.h"
 //**** NON-BLOCK STUFF ******/
 /******************************************************************************************************/
 void initialize_timestepper(timestepper *tstepper,input_param *inparam,INT rhs_timedep,INT ndof)

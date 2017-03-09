@@ -8,7 +8,7 @@
  *      With contributions by A. Brandt, P. Oswald and K. Stuben.
  *
  *  Created by James Adler and Xiaozhe Hu on 12/27/15.
- *  Copyright 2015__HAZMAT__. All rights reserved.
+ *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  */
 

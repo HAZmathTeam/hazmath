@@ -3,12 +3,12 @@
  * \brief Obtains generic routines for initializing, building, and creating mesh data.
  *
  *  Created by James Adler and Xiaozhe Hu on 1/9/15.
- *  Copyright 2015__HAZMAT__. All rights reserved.
+ *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  * \note modified by James Adler 11/14/2016
  */
 
-#include "hazmat.h"
+#include "hazmath.h"
 
 /******************************************************************************/
 void initialize_mesh(trimesh* mesh) 
@@ -157,7 +157,7 @@ void build_mesh(trimesh* mesh)
       check_error(status, __FUNCTION__);
     }
     if(euler!=1) {
-      printf("ERROR HAZMAT DANGER: in function %s, your simplices are all messed up.  "
+      printf("ERROR HAZMATH DANGER: in function %s, your simplices are all messed up.  "
              "Euler Characteristic doesn't equal 1+nholes!\teuler=%d\tnholes=%d.\n\n",__FUNCTION__,euler,nholes);
       exit(ERROR_DIM);
     }

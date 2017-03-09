@@ -4,13 +4,13 @@
  *         approximations using FE basis functions.
  *
  *  Created by James Adler and Xiaozhe Hu on 2/1/15.
- *  Copyright 2016__HAZMAT__. All rights reserved.
+ *  Copyright 2016__HAZMATH__. All rights reserved.
  *
  *  \note modified by James Adler 11/1/2016
  *
  */
 
-#include "hazmat.h"
+#include "hazmath.h"
 
 /****************************************************************************************************************************/
 void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,trimesh *mesh,INT nun)

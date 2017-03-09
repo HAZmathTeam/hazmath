@@ -3,12 +3,12 @@
  * \brief Computes quadrature nodes and weights for each element or for entire domain
  *
  *  Created by James Adler and Xiaozhe Hu on 2/11/15.
- *  Copyright 2015__HAZMAT__. All rights reserved.
+ *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  * \note modified by James Adler 11/14/2016
  */
 
-#include "hazmat.h"
+#include "hazmath.h"
 
 /*********************************************************************************/
 struct qcoordinates *allocateqcoords(INT nq1d,INT nelm,INT mydim)

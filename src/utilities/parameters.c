@@ -1,14 +1,14 @@
 /*! \file src/utilities/parameters.c
  *
  *  Created by James Adler and Xiaozhe Hu on 10/06/15.
- *  Copyright 2015__HAZMAT__. All rights reserved.
+ *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  *  \note: modified by Xiaozhe Hu on 10/27/2016
  *  \note: done cleanup for releasing -- Xiaozhe Hu 10/28/2016
  *
  */
 
-#include "hazmat.h"
+#include "hazmath.h"
 
 /*************************************************************************************/
 void param_input_init (input_param *inparam)
@@ -314,7 +314,7 @@ void param_linear_solver_print (linear_itsolver_param *itsparam)
         
     }
     else {
-        printf("### WARNING HAZMAT DANGER: linear solver parameters have not been set!!! \n");
+        printf("### WARNING HAZMATH DANGER: linear solver parameters have not been set!!! \n");
         printf("Set linear solver parameters to default !!!\n");
         param_linear_solver_init(itsparam);
     }
@@ -397,7 +397,7 @@ void param_amg_print (AMG_param *amgparam)
         
     }
     else {
-        printf("### WARNING HAZMAT DANGER: AMG parameters have not been set!\n");
+        printf("### WARNING HAZMATH DANGER: AMG parameters have not been set!\n");
         printf("Set AMG parameters to default !!!\n");
         param_amg_init(amgparam);
     } // end if (param)
@@ -539,7 +539,7 @@ void amg_amli_coef (const REAL lambda_max,
     }
     
     else {
-        printf("### ERROR HAZMAT DANGER: Wrong AMLI degree %d!\n", degree);
+        printf("### ERROR HAZMATH DANGER: Wrong AMLI degree %d!\n", degree);
         check_error(ERROR_INPUT_PAR, __FUNCTION__);
     }
     

@@ -467,11 +467,6 @@ int main (int argc, char* argv[])
   param_amg_init(&amgparam);
   param_amg_set(&amgparam, &inparam);
   param_amg_print(&amgparam);
-    
-  // Set parameters for ILU methods
-  ILU_param iluparam;
-  param_ilu_init(&iluparam);
-  param_ilu_set(&iluparam, &inparam);
 
   // Data for HX preconditioner
   dCSRmat P_curl;
@@ -497,10 +492,7 @@ int main (int argc, char* argv[])
 	break;        
       case PREC_AMG:  // AMG preconditioner
 	solver_flag = linear_solver_dcsr_krylov_amg(&A, &b, &u, &linear_itparam, &amgparam);
-	break;            
-      case PREC_ILU:  // ILU preconditioner
-	solver_flag = linear_solver_dcsr_krylov_ilu(&A, &b, &u, &linear_itparam, &iluparam);
-	break;            
+	break;                        
       case PREC_HX_CURL_A: // HX precondtioner
 	get_Pigrad_H1toNed(&P_curl,&mesh);
 	get_grad_H1toNed(&Grad,&mesh);

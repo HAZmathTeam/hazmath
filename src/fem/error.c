@@ -4,13 +4,13 @@
  *        mostly using FEM assembly routines.
  *
  *  Created by James Adler and Xiaozhe Hu on 5/14/15.
- *  Copyright 2016__HAZMAT__. All rights reserved.
+ *  Copyright 2016__HAZMATH__. All rights reserved.
  *
  *  \note modified by James Adler 11/1/2016
  *
  */
 
-#include "hazmat.h"
+#include "hazmath.h"
 
 /***************************************************************************/
 REAL L2norm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)

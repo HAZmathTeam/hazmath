@@ -3,14 +3,14 @@
  *  Classical AMG: SETUP phase
  *
  *  Created by James Adler and Xiaozhe Hu on 12/26/15.
- *  Copyright 2015__HAZMAT__. All rights reserved.
+ *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  *  Ref Multigrid by U. Trottenberg, C. W. Oosterlee and A. Schuller
  *        Appendix P475 A.7 (by A. Brandt, P. Oswald and K. Stuben)
  *        Academic Press Inc., San Diego, CA, 2001.
  */
 
-#include "hazmat.h"
+#include "hazmath.h"
 #include "coarsening.inl"
 #include "interpolation.inl"
 
