@@ -5,7 +5,7 @@
 #include <float.h>
 #include <limits.h>
 
-#include "hazmat.h"
+#include "hazmath.h"
 #include "multigraph_solve.h"
 
 int main (int argc, char* argv[])

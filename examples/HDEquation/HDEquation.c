@@ -1,7 +1,7 @@
 /*! \file examples/HDEquation/HDEquation.c
  *
  *  Created by James Adler and Xiaozhe Hu on 1/9/15.
- *  Copyright 2015_HAZMAT__. All rights reserved.
+ *  Copyright 2015_HAZMATH__. All rights reserved.
  *
  * \brief This program solves the following PDE using finite elements
  *
@@ -22,8 +22,8 @@
  *
  */
 
-/*********** HAZMAT FUNCTIONS and INCLUDES ***************************/
-#include "hazmat.h"
+/*********** HAZMATH FUNCTIONS and INCLUDES ***************************/
+#include "hazmath.h"
 /*********************************************************************/
 
 /******** Data Input *************************************************/

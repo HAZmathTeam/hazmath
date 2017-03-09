@@ -31,7 +31,7 @@ HEADERS = $(SRCFILE).h
 
 OBJS = solver.o $(SRCFILE).o m000.o
 INCLUDE = -I$(HAZINCLUDE) -I$(SRCDIR)
-LIBS = -lhazmat -lgfortran
+LIBS = -lhazmath -lgfortran
 
 
 .PHONY: all clean

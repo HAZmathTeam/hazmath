@@ -1,18 +1,18 @@
 =============================================================
-                         HAZMAT		              
+                         HAZMATH		              
 -------------------------------------------------------------
-Quick start: 1. Edit "haz_config/hazmat.mk" as needed.
+Quick start: 1. Edit "haz_config/hazmath.mk" as needed.
              2. Type "make config" ;
                 and then  "make install"
 =============================================================
  make config           # set environment to build
  make config CC=gcc    # set a specific C compiler
  make config debug=yes # compiler's debug options ON
- make headers          # function defs in include/hazmat.h
- make                  # compile/link libhazmat
- make install          # install libhazmat and examples
+ make headers          # function defs in include/hazmath.h
+ make                  # compile/link libhazmath
+ make install          # install libhazmath and examples
  make clean            # remove *.o and *~ files
  make distclean        # delete the build directory
 =============================================================
-*More user defined options can go in "haz_config/hazmat.mk"*
+*More user defined options can go in "haz_config/hazmath.mk"*
 
