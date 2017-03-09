@@ -71,18 +71,6 @@ typedef struct {
     // Preconditioner
     INT linear_precond_type;                 /**< type of preconditioner for iterative solvers */
     
-    // parameters for ILU
-    SHORT ILU_type;      /**< ILU type for decomposition*/
-    INT   ILU_lfil;        /**< level of fill-in */
-    REAL  ILU_droptol;    /**< drop tolerance */
-    REAL  ILU_relax;      /**< scaling factor: add the sum of dropped entries to diagonal */
-    REAL  ILU_permtol;    /**< permutation tolerance */
-
-    // parameters for Schwarz
-    INT Schwarz_mmsize;        /**< maximal block size for Schwarz smoother */
-    INT Schwarz_maxlvl;        /**< maximal levels for Schwarz smoother */
-    INT Schwarz_type;          /**< type of Schwarz smoother */
-    
     // Algebraic Multigrid
     SHORT AMG_type;                /**< Type of AMG */
     SHORT AMG_levels;              /**< maximal number of levels */
@@ -96,7 +84,6 @@ typedef struct {
     INT   AMG_coarse_dof;            /**< max number of coarsest level DOF */
     REAL  AMG_tol;                  /**< tolerance for AMG if used as preconditioner */
     INT   AMG_maxit;                 /**< number of iterations for AMG used as preconditioner */
-    SHORT AMG_ILU_levels;          /**< how many levels use ILU smoother */
     SHORT AMG_coarse_solver;       /**< coarse solver type */
     SHORT AMG_coarse_scaling;      /**< switch of scaling of the coarse grid correction */
     SHORT AMG_amli_degree;         /**< degree of the polynomial used by AMLI cycle */
@@ -143,31 +130,6 @@ typedef struct {
     
 } linear_itsolver_param; /**< Parameters for iterative solvers */
 
-/**
- * \struct ILU_param
- * \brief Parameters for ILU
- */
-typedef struct {
-    
-    //! print level
-    SHORT print_level;
-    
-    //! ILU type for decomposition
-    SHORT ILU_type;
-    
-    //! level of fill-in for ILUk
-    INT ILU_lfil;
-    
-    //! drop tolerance for ILUt
-    REAL ILU_droptol;
-    
-    //! add the sum of dropped elements to diagonal element in proportion relax
-    REAL ILU_relax;
-    
-    //! permuted if permtol*|a(i,j)| > |a(i,i)|
-    REAL ILU_permtol;
-    
-} ILU_param; /**< Parameters for ILU */
 
 /**
  * \struct AMG_param
@@ -266,40 +228,7 @@ typedef struct {
     
     //! max size of each aggregate
     INT max_aggregation;
-    
-    //! number of levels use ILU smoother
-    SHORT ILU_levels;
-    
-    //! ILU type for smoothing
-    SHORT ILU_type;
-    
-    //! level of fill-in for ILUs and ILUk
-    INT ILU_lfil;
-    
-    //! drop tolerance for ILUt
-    REAL ILU_droptol;
-    
-    //! relaxation for ILUs
-    REAL ILU_relax;
-    
-    //! permuted if permtol*|a(i,j)| > |a(i,i)|
-    REAL ILU_permtol;
-    
-    //! number of levels use Schwarz smoother
-    INT Schwarz_levels;
-    
-    //! maximal block size
-    INT Schwarz_mmsize;
-    
-    //! maximal levels
-    INT Schwarz_maxlvl;
-    
-    //! type of Schwarz method
-    INT Schwarz_type;
-    
-    //! type of Schwarz block solver
-    INT Schwarz_blksolver;
-    
+
 } AMG_param; /**< Parameters for AMG */
 
 

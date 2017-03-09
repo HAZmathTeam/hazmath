@@ -45,8 +45,6 @@ SHORT amg_setup_c (AMG_data *mgl,
     SHORT         status = SUCCESS;
     INT           lvl = 0, max_lvls = param->max_levels;
     REAL          setup_start, setup_end;
-    ILU_param     iluparam;
-    //Schwarz_param swzparam;
     iCSRmat       Scouple; // strong n-couplings
     
     // level info (fine: 0; coarse: 1)
@@ -70,27 +68,6 @@ SHORT amg_setup_c (AMG_data *mgl,
         param->amli_coef = (REAL *)calloc(amlideg+1,sizeof(REAL));
         amg_amli_coef(2.0, 0.5, amlideg, param->amli_coef);
     }
-    
-    // Initialize ILU parameters
-    mgl->ILU_levels = param->ILU_levels;
-    if ( param->ILU_levels > 0 ) {
-        iluparam.print_level = param->print_level;
-        iluparam.ILU_lfil    = param->ILU_lfil;
-        iluparam.ILU_droptol = param->ILU_droptol;
-        iluparam.ILU_relax   = param->ILU_relax;
-        iluparam.ILU_type    = param->ILU_type;
-    }
-    
-    /*
-    // Initialize Schwarz parameters
-    mgl->Schwarz_levels = param->Schwarz_levels;
-    if ( param->Schwarz_levels > 0 ) {
-        swzparam.Schwarz_mmsize = param->Schwarz_mmsize;
-        swzparam.Schwarz_maxlvl = param->Schwarz_maxlvl;
-        swzparam.Schwarz_type   = param->Schwarz_type;
-        swzparam.Schwarz_blksolver = param->Schwarz_blksolver;
-    }
-    */
 
 #if DIAGONAL_PREF
     // Reorder each row to keep the diagonal entries appear first !!!
@@ -100,27 +77,6 @@ SHORT amg_setup_c (AMG_data *mgl,
     // Main AMG setup loop
     while ( (mgl[lvl].A.row > min_cdof) && (lvl < max_lvls-1) ) {
         
-        
-        /*-- Setup ILU decomposition if needed --*/
-        if ( lvl < param->ILU_levels ) {
-            status = ilu_dcsr_setup(&mgl[lvl].A, &mgl[lvl].LU, &iluparam);
-            if ( status < 0 ) {
-                if ( prtlvl > PRINT_MIN ) {
-                    printf("### WARNING: ILU setup on level-%d failed!\n", lvl);
-                    printf("### WARNING: Disable ILU for level >= %d.\n", lvl);
-                }
-                param->ILU_levels = lvl;
-            }
-        }
-        
-        /*-- Setup Schwarz smoother if needed --*/
-        /*
-        if ( lvl < param->Schwarz_levels ) { 
-            mgl[lvl].Schwarz.A = dcsr_sympat(&mgl[lvl].A);
-            fasp_dcsr_shift(&(mgl[lvl].Schwarz.A), 1);
-            fasp_Schwarz_setup(&mgl[lvl].Schwarz, &swzparam);
-        }
-         */
         
         /*-- Coarsening and form the structure of interpolation --*/
         status = amg_coarsening_c(&mgl[lvl].A, &vertices, &mgl[lvl].P,
@@ -236,8 +192,6 @@ SHORT amg_setup_c (AMG_data *mgl,
         mgl[lvl].x          = dvec_create(mm);
         
         mgl[lvl].cycle_type     = cycle_type; // initialize cycle type!
-        mgl[lvl].ILU_levels     = param->ILU_levels - lvl; // initialize ILU levels!
-        //mgl[lvl].Schwarz_levels = param->Schwarz_levels -lvl; // initialize Schwarz!
         
         // allocate work arrays for the solve phase
         if ( cycle_type == NL_AMLI_CYCLE )

@@ -81,6 +81,7 @@ dCSRmat bdcsr_2_dcsr (block_dCSRmat *Ab)
 
     }
     
+    // count number of nonzeros
     for (i=0;i<nbl;++i) {
         if (blockptr[i]) {
             nnz+=blockptr[i]->nnz;
@@ -159,6 +160,7 @@ block_dCSRmat dcsr_2_bdcsr (dCSRmat *A, int bnum, int *bsize)
     
     Ab.blocks = (dCSRmat **)calloc(bnum*bnum, sizeof(dCSRmat));
     for (i=0; i<bnum*bnum; i++) Ab.blocks[i] = (dCSRmat *) calloc(1, sizeof(dCSRmat));
+
     
     // allocate
     int *idx_row = (int *)calloc(A->row, sizeof(INT));
