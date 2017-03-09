@@ -58,7 +58,7 @@ int main (int argc, char* argv[])
   REAL   *areb=NULL;
   INT nnzlu=-16;  
   fprintf(stdout,"   *** Starting multigraph Solver\n");
-  csrreb0(&n,&n,&nnzlu,A.IA,A.JA,A.val,&jareb,&areb);
+  csrreb(&n,&n,&nnzlu,A.IA,A.JA,A.val,&jareb,&areb);
   INT maxja = 5*(n1 + jareb[n]-jareb[0]);
   if(maxja < 7*n) maxja=7*n;
   INT maxa = 2*maxja;
