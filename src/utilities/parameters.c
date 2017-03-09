@@ -78,7 +78,6 @@ void param_input_init (input_param *inparam)
     inparam->AMG_levels               = 10;
     inparam->AMG_cycle_type           = V_CYCLE;
     inparam->AMG_smoother             = SMOOTHER_GS;
-    inparam->AMG_smooth_order         = NO_ORDER;
     inparam->AMG_presmooth_iter       = 1;
     inparam->AMG_postsmooth_iter      = 1;
     inparam->AMG_polynomial_degree    = 2;
@@ -90,16 +89,7 @@ void param_input_init (input_param *inparam)
     inparam->AMG_coarse_scaling       = OFF;
     inparam->AMG_amli_degree          = 1;
     inparam->AMG_nl_amli_krylov_type  = 2;
-    
-    // Classical AMG specific
-    inparam->AMG_coarsening_type      = 1;
-    inparam->AMG_interpolation_type   = 1;
-    inparam->AMG_max_row_sum          = 0.9;
-    inparam->AMG_strong_threshold     = 0.3;
-    inparam->AMG_truncation_threshold = 0.2;
-    inparam->AMG_aggressive_level     = 0;
-    inparam->AMG_aggressive_path      = 1;
-    
+
     // Aggregation AMG specific
     inparam->AMG_aggregation_type     = VMB;
     inparam->AMG_quality_bound        = 8.0;
@@ -136,7 +126,6 @@ void param_amg_init (AMG_param *amgparam)
     amgparam->coarse_dof           = 100;
     amgparam->cycle_type           = V_CYCLE;
     amgparam->smoother             = SMOOTHER_GS;
-    amgparam->smooth_order         = NO_ORDER;
     amgparam->presmooth_iter       = 1;
     amgparam->postsmooth_iter      = 1;
     amgparam->coarse_solver        = SOLVER_DEFAULT;
@@ -146,15 +135,6 @@ void param_amg_init (AMG_param *amgparam)
     amgparam->amli_degree          = 2;
     amgparam->amli_coef            = NULL;
     amgparam->nl_amli_krylov_type  = SOLVER_VFGMRES;
-    
-    // Classical AMG specific
-    amgparam->coarsening_type      = COARSE_C;
-    amgparam->interpolation_type   = INTERP_STD;
-    amgparam->max_row_sum          = 0.9;
-    amgparam->strong_threshold     = 0.3;
-    amgparam->truncation_threshold = 0.2;
-    amgparam->aggressive_level     = 0;
-    amgparam->aggressive_path      = 1;
     
     // Aggregation AMG specific
     amgparam->aggregation_type     = VMB;
@@ -253,7 +233,6 @@ void param_amg_set (AMG_param *amgparam,
     amgparam->max_levels           = inparam->AMG_levels;
     amgparam->cycle_type           = inparam->AMG_cycle_type;
     amgparam->smoother             = inparam->AMG_smoother;
-    amgparam->smooth_order         = inparam->AMG_smooth_order;
     amgparam->relaxation           = inparam->AMG_relaxation;
     amgparam->coarse_solver        = inparam->AMG_coarse_solver;
     amgparam->polynomial_degree    = inparam->AMG_polynomial_degree;
@@ -265,14 +244,6 @@ void param_amg_set (AMG_param *amgparam,
     amgparam->amli_degree          = inparam->AMG_amli_degree;
     amgparam->amli_coef            = NULL;
     amgparam->nl_amli_krylov_type  = inparam->AMG_nl_amli_krylov_type;
-    
-    amgparam->coarsening_type      = inparam->AMG_coarsening_type;
-    amgparam->interpolation_type   = inparam->AMG_interpolation_type;
-    amgparam->strong_threshold     = inparam->AMG_strong_threshold;
-    amgparam->truncation_threshold = inparam->AMG_truncation_threshold;
-    amgparam->max_row_sum          = inparam->AMG_max_row_sum;
-    amgparam->aggressive_level     = inparam->AMG_aggressive_level;
-    amgparam->aggressive_path      = inparam->AMG_aggressive_path;
     
     amgparam->aggregation_type     = inparam->AMG_aggregation_type;
     amgparam->pair_number          = inparam->AMG_pair_number;
@@ -348,7 +319,6 @@ void param_amg_print (AMG_param *amgparam)
         printf("AMG coarse solver type:            %d\n", amgparam->coarse_solver);
         printf("AMG scaling of coarse correction:  %d\n", amgparam->coarse_scaling);
         printf("AMG smoother type:                 %d\n", amgparam->smoother);
-        printf("AMG smoother order:                %d\n", amgparam->smooth_order);
         printf("AMG num of presmoothing:           %d\n", amgparam->presmooth_iter);
         printf("AMG num of postsmoothing:          %d\n", amgparam->postsmooth_iter);
         
@@ -369,17 +339,7 @@ void param_amg_print (AMG_param *amgparam)
         }
         
         switch (amgparam->AMG_type) {
-            case CLASSIC_AMG:
-                printf("AMG coarsening type:               %d\n", amgparam->coarsening_type);
-                printf("AMG interpolation type:            %d\n", amgparam->interpolation_type);
-                printf("AMG dof on coarsest grid:          %d\n", amgparam->coarse_dof);
-                printf("AMG strong threshold:              %.4f\n", amgparam->strong_threshold);
-                printf("AMG truncation threshold:          %.4f\n", amgparam->truncation_threshold);
-                printf("AMG max row sum:                   %.4f\n", amgparam->max_row_sum);
-                printf("AMG aggressive levels:             %d\n", amgparam->aggressive_level);
-                printf("AMG aggressive path:               %d\n", amgparam->aggressive_path);
-                break;
-                
+
             default: // UA_AMG
                 printf("Aggregation type:                  %d\n", amgparam->aggregation_type);
                 if ( amgparam->aggregation_type == PAIRWISE ) {
@@ -425,10 +385,8 @@ void param_amg_to_prec (precond_data *pcdata,
     pcdata->tol                 = amgparam->tol;
     pcdata->cycle_type          = amgparam->cycle_type;
     pcdata->smoother            = amgparam->smoother;
-    pcdata->smooth_order        = amgparam->smooth_order;
     pcdata->presmooth_iter      = amgparam->presmooth_iter;
     pcdata->postsmooth_iter     = amgparam->postsmooth_iter;
-    pcdata->coarsening_type     = amgparam->coarsening_type;
     pcdata->coarse_solver       = amgparam->coarse_solver;
     pcdata->relaxation          = amgparam->relaxation;
     pcdata->polynomial_degree   = amgparam->polynomial_degree;
@@ -457,7 +415,6 @@ void param_prec_to_amg (AMG_param *amgparam,
     amgparam->print_level         = pcdata->print_level;
     amgparam->cycle_type          = pcdata->cycle_type;
     amgparam->smoother            = pcdata->smoother;
-    amgparam->smooth_order        = pcdata->smooth_order;
     amgparam->presmooth_iter      = pcdata->presmooth_iter;
     amgparam->postsmooth_iter     = pcdata->postsmooth_iter;
     amgparam->relaxation          = pcdata->relaxation;
