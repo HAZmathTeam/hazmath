@@ -1,7 +1,7 @@
 /*! \file src/utilities/input.c
  *
  *  Created by James Adler and Xiaozhe Hu on 13/6/15.
- *  Copyright 2015__HAZMAT__. All rights reserved.
+ *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  *  \note: modified by Xiaozhe Hu on 10/29/2016
  *  \note: done cleanup for releasing -- Xiaozhe Hu 10/29/2016
@@ -10,7 +10,7 @@
  *
  */
 
-#include "hazmat.h"
+#include "hazmath.h"
 
 /***********************************************************************************************/
 void param_input (const char *filenm,

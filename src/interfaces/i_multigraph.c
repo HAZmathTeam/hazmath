@@ -9,7 +9,7 @@ extern "C" {
 #include <float.h>
 #include <limits.h>
 
-#include "hazmat.h"
+#include "hazmath.h"
 
 void csrreb(INT *nrow, INT *ncol, INT *nnzluo, \
 	    INT *ia, INT *ja, REAL *a,       \

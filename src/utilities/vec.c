@@ -1,14 +1,14 @@
 /*! \file src/utilities/vec.c
  *
  *  Created by James Adler and Xiaozhe Hu on 5/13/15.
- *  Copyright 2015__HAZMAT__. All rights reserved.
+ *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  *  \note: modified by Xiaozhe Hu on 10/29/2016
  *  \note: done cleanup for releasing -- Xiaozhe Hu 10/30/2016
  *
  */
 
-#include "hazmat.h"
+#include "hazmath.h"
 
 /***********************************************************************************************/
 INT dvec_isnan (dvector *u)
@@ -438,7 +438,7 @@ void dvec_axpy (const REAL a,
     REAL *xpt=x->val, *ypt=y->val;
     
     if ((y->row-m)!=0) {
-        printf("### WARNING HAZMAT DANGER in function %s: Two vectors have different lengths!\n", __FUNCTION__);
+        printf("### WARNING HAZMATH DANGER in function %s: Two vectors have different lengths!\n", __FUNCTION__);
         m = MIN(m, y->row);
         printf("Only first %d entries will be computed!!\n", m);
     }
@@ -472,7 +472,7 @@ void dvec_axpyz(const REAL a,
     REAL *xpt=x->val, *ypt=y->val, *zpt=z->val;
     
     if ((y->row-m)!=0) {
-        printf("### WARNING HAZMAT DANGER in function %s: Two vectors have different lengths!\n", __FUNCTION__);
+        printf("### WARNING HAZMATH DANGER in function %s: Two vectors have different lengths!\n", __FUNCTION__);
         m = MIN(m, y->row);
         printf("Only first %d entries will be computed!!\n", m);
     }
@@ -506,7 +506,7 @@ REAL dvec_dotprod (dvector *x,
     REAL *xpt=x->val, *ypt=y->val;
 
     if ((y->row-length)!=0) {
-        printf("### WARNING HAZMAT DANGER in function %s: Two vectors have different lengths!\n", __FUNCTION__);
+        printf("### WARNING HAZMATH DANGER in function %s: Two vectors have different lengths!\n", __FUNCTION__);
         length = MIN(length, y->row);
         printf("Only first %d entries will be computed!!\n", length);
     }
@@ -540,7 +540,7 @@ REAL dvec_relerr (dvector *x,
     REAL *xpt=x->val, *ypt=y->val;
     
     if (length!=y->row) {
-        printf("### WARNING HAZMAT DANGER in function %s: Two vectors have different lengths!\n", __FUNCTION__);
+        printf("### WARNING HAZMATH DANGER in function %s: Two vectors have different lengths!\n", __FUNCTION__);
         length = MIN(length, y->row);
         printf("Only first %d entries will be computed!!\n", length);
     }

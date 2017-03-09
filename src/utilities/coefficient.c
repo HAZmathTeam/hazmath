@@ -4,14 +4,14 @@
  *        such as zero scalars and vectors and coefficients of 1.
  *  
  *  Created by James Adler and Xiaozhe Hu on 2/22/16.
- *  Copyright 2016__HAZMAT__. All rights reserved.
+ *  Copyright 2016__HAZMATH__. All rights reserved.
  *
  *  \note modified by Xiaozhe Hu 10/27/2016
  *  \note: done cleanup for releasing -- Xiaozhe Hu 10/27/2016
  *
  */
 
-#include "hazmat.h"
+#include "hazmath.h"
 
 /****************************************************************************************/
 void constant_coeff_scal(REAL *val,

@@ -3,12 +3,12 @@
  * \brief This code will contain all the tools needed to perform Newton stepping
  *
  *  Created by James Adler and Xiaozhe Hu on 10/18/16.
- *  Copyright 2015__HAZMAT__. All rights reserved.
+ *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  * \note modified by James Adler 11/11/2016
  */
 
-#include "hazmat.h"
+#include "hazmath.h"
 
 /******************************************************************************************************/
 void initialize_newton(newton *n_it,input_param *inparam)

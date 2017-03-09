@@ -7,7 +7,7 @@
  *      Academic Press Inc., San Diego, CA, 2001.
  *
  *  Created by James Adler and Xiaozhe Hu on 12/27/15.
- *  Copyright 2015__HAZMAT__. All rights reserved.
+ *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  */
 
