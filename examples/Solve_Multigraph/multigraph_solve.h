@@ -33,7 +33,3 @@ void mg_(INT *ispd, INT *lvl, INT *mxcg, REAL *eps1,			\
 	 INT *jareb, REAL *areb,		\
 	 REAL *sol, REAL *rhs, INT *ka, REAL *relerr,		\
 	 INT *iflag, REAL *hist );
-
-void csrreb0(INT *nrow, INT *ncol, INT *nnzluo, \
-	    INT *ia, INT *ja, REAL *a,       \
-	     INT **jareb, REAL **areb);
