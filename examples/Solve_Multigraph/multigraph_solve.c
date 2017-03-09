@@ -15,7 +15,7 @@ int main (int argc, char* argv[])
   dvector rhs,sol,exsol; //RHS,solution,exact solution
   INT idummy[3],i=3,n=-16,ncol=-16;
   // read the matrix
-  FILE* fp=HAZ_fopen("nonsymm.coo","r");
+  FILE* fp=HAZ_fopen("symm.coo","r");
   rveci_(fp,idummy, &i);
   n=A.row=B.row=idummy[0];
   ncol=A.col=B.col=idummy[1];
@@ -58,7 +58,7 @@ int main (int argc, char* argv[])
   REAL   *areb=NULL;
   INT nnzlu=-16;  
   fprintf(stdout,"   *** Starting multigraph Solver\n");
-  csrreb(&n,&n,&nnzlu,A.IA,A.JA,A.val,&jareb,&areb);
+  csrreb0(&n,&n,&nnzlu,A.IA,A.JA,A.val,&jareb,&areb);
   INT maxja = 5*(n1 + jareb[n]-jareb[0]);
   if(maxja < 7*n) maxja=7*n;
   INT maxa = 2*maxja;
