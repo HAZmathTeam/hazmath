@@ -211,10 +211,7 @@ void check_error (const SHORT status,
     break;
   case ERROR_SOLVER_TOLSMALL:
     printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Tol is too small for the solver !!!\n\n", func_name);
-    break;
-  case ERROR_SOLVER_ILUSETUP:
-    printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- ILU setup failed !!!\n\n", func_name);
-    break;
+      break;
   case ERROR_SOLVER_MAXIT:
     printf("\n!!! ERROR HAZMAT DANGER: in function '%s' -- Max iteration number reached !!!\n\n", func_name);
     break;

@@ -71,12 +71,7 @@ void param_input_init (input_param *inparam)
     inparam->linear_itsolver_maxit    = 500;
     inparam->linear_restart           = 25;
     
-    // ILU method parameters
-    inparam->ILU_type                 = ILUt;
-    inparam->ILU_lfil                 = 0;
-    inparam->ILU_droptol              = 0.01;
-    inparam->ILU_relax                = 0;
-    inparam->ILU_permtol              = 0.0;
+
     
     // AMG method parameters
     inparam->AMG_type                 = UA_AMG;
@@ -92,11 +87,9 @@ void param_input_init (input_param *inparam)
     inparam->AMG_coarse_solver        = SOLVER_DEFAULT;
     inparam->AMG_tol                  = 1e-6;
     inparam->AMG_maxit                = 1;
-    inparam->AMG_ILU_levels           = 0;
     inparam->AMG_coarse_scaling       = OFF;
     inparam->AMG_amli_degree          = 1;
     inparam->AMG_nl_amli_krylov_type  = 2;
-    inparam->AMG_Schwarz_levels       = 0;
     
     // Classical AMG specific
     inparam->AMG_coarsening_type      = 1;
@@ -170,41 +163,8 @@ void param_amg_init (AMG_param *amgparam)
     amgparam->strong_coupled       = 0.00;
     amgparam->max_aggregation      = 20;
     
-    // ILU smoother parameters
-    amgparam->ILU_type             = ILUt;
-    amgparam->ILU_levels           = 0;
-    amgparam->ILU_lfil             = 0;
-    amgparam->ILU_droptol          = 0.01;
-    amgparam->ILU_relax            = 0;
-    
-    // Schwarz smoother parameters
-    amgparam->Schwarz_levels       = 0; // how many levels will use Schwarz smoother
-    amgparam->Schwarz_mmsize       = 200;
-    amgparam->Schwarz_maxlvl       = 3; // block size -- all vertices at distance .le. this
-    amgparam->Schwarz_type         = 1;
-    amgparam->Schwarz_blksolver    = SOLVER_DEFAULT;
 }
 
-/*************************************************************************************/
-void param_ilu_init (ILU_param *iluparam)
-{
-    /*!
-     * \fn void param_ilu_init (ILU_param *iluparam)
-     *
-     * \brief Initialize ILU parameters
-     *
-     * \param iluparam  Pointer to the LIU_param structure
-     *
-     */
-    
-    iluparam->print_level  = PRINT_NONE;
-    iluparam->ILU_type     = ILUt;
-    iluparam->ILU_lfil     = 0;
-    iluparam->ILU_droptol  = 0.01;
-    iluparam->ILU_relax    = 0;
-    iluparam->ILU_permtol  = 0.01;
-
-}
 
 /*************************************************************************************/
 void param_linear_solver_init (linear_itsolver_param *itsparam)
@@ -228,29 +188,6 @@ void param_linear_solver_init (linear_itsolver_param *itsparam)
     
     // HX preconditioner
     itsparam->HX_smooth_iter       = 1;
-
-}
-
-/*************************************************************************************/
-void param_ilu_set (ILU_param *iluparam,
-                    input_param *inparam)
-{
-    /*!
-     * \fn void param_ilu_set (ILU_param *iluparam, input_param *iniparam)
-     *
-     * \brief Set ILU_param using input_param
-     *
-     * \param iluparam     Pointer to ILU_param structure
-     * \param iniparam     Pointer to input_param structure
-     *
-     */
-    
-    iluparam->print_level = inparam->print_level;
-    iluparam->ILU_type    = inparam->ILU_type;
-    iluparam->ILU_lfil    = inparam->ILU_lfil;
-    iluparam->ILU_droptol = inparam->ILU_droptol;
-    iluparam->ILU_relax   = inparam->ILU_relax;
-    iluparam->ILU_permtol = inparam->ILU_permtol;
 
 }
 
@@ -343,18 +280,6 @@ void param_amg_set (AMG_param *amgparam,
     amgparam->strong_coupled       = inparam->AMG_strong_coupled;
     amgparam->max_aggregation      = inparam->AMG_max_aggregation;
 
-    amgparam->ILU_levels           = inparam->AMG_ILU_levels;
-    amgparam->ILU_type             = inparam->ILU_type;
-    amgparam->ILU_lfil             = inparam->ILU_lfil;
-    amgparam->ILU_droptol          = inparam->ILU_droptol;
-    amgparam->ILU_relax            = inparam->ILU_relax;
-    amgparam->ILU_permtol          = inparam->ILU_permtol;
-
-    amgparam->Schwarz_levels       = inparam->AMG_Schwarz_levels;
-    amgparam->Schwarz_mmsize       = inparam->Schwarz_mmsize;
-    amgparam->Schwarz_maxlvl       = inparam->Schwarz_maxlvl;
-    amgparam->Schwarz_type         = inparam->Schwarz_type;
-
 }
 
 /*************************************************************************************/
@@ -392,38 +317,6 @@ void param_linear_solver_print (linear_itsolver_param *itsparam)
         printf("### WARNING HAZMAT DANGER: linear solver parameters have not been set!!! \n");
         printf("Set linear solver parameters to default !!!\n");
         param_linear_solver_init(itsparam);
-    }
-}
-
-/*************************************************************************************/
-void param_ilu_print (ILU_param *iluparam)
-{
-    /*!
-     * \fn void param_ilu_print (ILU_param *iluparam)
-     *
-     * \brief Print out ILU solver or smoother parameters
-     *
-     * \param param    Pointer to the ILU_param structure
-     *
-     */
-    
-    if ( iluparam ) {
-        
-        printf("\n       Parameters in ILU_param\n");
-        printf("-----------------------------------------------\n");
-        printf("ILU print level:                   %d\n",   iluparam->print_level);
-        printf("ILU type:                          %d\n",   iluparam->ILU_type);
-        printf("ILU level of fill-in:              %d\n",   iluparam->ILU_lfil);
-        printf("ILU relaxation factor:             %.4f\n", iluparam->ILU_relax);
-        printf("ILU drop tolerance:                %.2e\n", iluparam->ILU_droptol);
-        printf("ILU permutation tolerance:         %.2e\n", iluparam->ILU_permtol);
-        printf("-----------------------------------------------\n\n");
-        
-    }
-    else {
-        printf("### WARNING HAZMAT DANGER: ILU parameters have not been set!\n");
-        printf("Set ILU parameters to default !!!\n");
-        param_ilu_init(iluparam);
     }
 }
 
@@ -466,12 +359,7 @@ void param_amg_print (AMG_param *amgparam)
             printf("AMG relax factor:                  %.4f\n", amgparam->relaxation);
         }
         
-        /*
-        if ( param->smoother == SMOOTHER_POLY ) {
-            printf("AMG polynomial smoother degree:    %d\n", param->polynomial_degree);
-        }
-         */
-        
+
         if ( amgparam->cycle_type == AMLI_CYCLE ) {
             printf("AMG AMLI degree of polynomial:     %d\n", amgparam->amli_degree);
         }
@@ -503,21 +391,6 @@ void param_amg_print (AMG_param *amgparam)
                     printf("Aggregation AMG max aggregation:   %d\n", amgparam->max_aggregation);
                 }
                 break;
-        }
-        
-        if ( amgparam->ILU_levels>0 ) {
-            printf("AMG ILU smoother level:            %d\n", amgparam->ILU_levels);
-            printf("AMG ILU type:                      %d\n", amgparam->ILU_type);
-            printf("AMG ILU level of fill-in:          %d\n", amgparam->ILU_lfil);
-            printf("AMG ILU drop tol:                  %e\n", amgparam->ILU_droptol);
-            printf("AMG ILU relaxation:                %f\n", amgparam->ILU_relax);
-        }
-        
-        if ( amgparam->Schwarz_levels>0 ){
-            printf("AMG Schwarz smoother level:        %d\n", amgparam->Schwarz_levels);
-            printf("AMG Schwarz type:                  %d\n", amgparam->Schwarz_type);
-            printf("AMG Schwarz forming block level:   %d\n", amgparam->Schwarz_maxlvl);
-            printf("AMG Schwarz maximal block size:    %d\n", amgparam->Schwarz_mmsize);
         }
         
         printf("-----------------------------------------------\n\n");
@@ -594,7 +467,6 @@ void param_prec_to_amg (AMG_param *amgparam,
     amgparam->amli_degree         = pcdata->amli_degree;
     amgparam->amli_coef           = pcdata->amli_coef;
     amgparam->nl_amli_krylov_type = pcdata->nl_amli_krylov_type;
-    amgparam->ILU_levels          = pcdata->mgl_data->ILU_levels;
 
 }
 

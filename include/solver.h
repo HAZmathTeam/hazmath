@@ -33,42 +33,6 @@ typedef struct {
 
 /***********************************************************************************************/
 
-typedef struct {
-    
-    /*!
-     * \struct ILU_data
-     * \brief Data for ILU setup
-     */
-
-    //! row number of matrix LU, m
-    INT row;
-    
-    //! column of matrix LU, n
-    INT col;
-    
-    //! number of nonzero entries
-    INT nzlu;
-    
-    //! integer array of row pointers and column indexes, the size is nzlu
-    INT *ijlu;
-    
-    //! nonzero entries of LU
-    REAL *luval;
-    
-    //! block size for BSR type only
-    INT nb;
-    
-    //! work space size
-    INT nwork;
-    
-    //! work space
-    REAL *work;
-    
-} ILU_data; /*! Data for ILU */
-
-/***********************************************************************************************/
-
-
 /**
  * \struct AMG_data
  * \brief Data for AMG solvers
@@ -109,27 +73,14 @@ typedef struct {
     
     //! pointer to the CF marker at level level_num
     ivector cfmark;
-    
-    //! number of levels use ILU smoother
-    INT ILU_levels;
-    
-    //! ILU matrix for ILU smoother
-    ILU_data LU;
-    
+
     //! dimension of the near kernel for SAMG
     INT near_kernel_dim;
     
     //! basis of near kernel space for SAMG
     REAL **near_kernel_basis;
     
-    // Smoother order information
-    
-    //! number of levels use Schwarz smoother
-    INT Schwarz_levels;
-    
-    //! data of Schwarz smoother
-    // Schwarz_data Schwarz;
-    
+    // Smoother order information    
     //! Temporary work space
     dvector w;
     
@@ -206,9 +157,6 @@ typedef struct {
     
     //! AMG preconditioner data
     AMG_data *mgl_data;
-    
-    //! ILU preconditioner data (needed for CPR type preconditioner)
-    ILU_data *LU;
     
     //! Matrix data
     dCSRmat *A;

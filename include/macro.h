@@ -60,8 +60,7 @@
 #define ERROR_SOLVER_STAG     -42  /**< solver stagnates */
 #define ERROR_SOLVER_SOLSTAG  -43  /**< solver's solution is too small */
 #define ERROR_SOLVER_TOLSMALL -44  /**< solver's tolerance is too small */
-#define ERROR_SOLVER_ILUSETUP -45  /**< ILU setup error */
-#define ERROR_SOLVER_MISC     -46  /**< misc solver error during run time */
+#define ERROR_SOLVER_MISC     -47  /**< misc solver error during run time */
 #define ERROR_SOLVER_MAXIT    -48  /**< maximal iteration number exceeded */
 #define ERROR_SOLVER_EXIT     -49  /**< solver does not quit successfully */
 //---------------------------------------------------------------------------------
@@ -146,24 +145,8 @@
 #define PREC_DIAG               1  /**< with diagonal precond */
 #define PREC_AMG                2  /**< with AMG precond */
 #define PREC_FMG                3  /**< with full AMG precond */
-#define PREC_ILU                4  /**< with ILU precond */
-#define PREC_SCHWARZ            5  /**< with Schwarz preconditioner */
 #define PREC_HX_CURL_A          6  /**< with additive HX preconditioner for H(curl) problem */
 #define PREC_HX_CURL_M          7  /**< with multiplicative HX preconditioner for H(curl) problem */
-
-/**
- * \brief Type of ILU methods
- */
-#define ILUk                    1  /**< ILUk */
-#define ILUt                    2  /**< ILUt */
-#define ILUtp                   3  /**< ILUtp */
-
-/**
- * \brief Type of Schwarz smoother
- */
-#define SCHWARZ_FORWARD         1  /**< Forward ordering */
-#define SCHWARZ_BACKWARD        2  /**< Backward ordering */
-#define SCHWARZ_SYMMETRIC       3  /**< Symmetric smoother */
 
 /**
  * \brief Definition of AMG types
