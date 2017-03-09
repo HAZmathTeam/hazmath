@@ -1,14 +1,14 @@
 /*! \file src/utilities/format.c
  *
  *  Created by James Adler and Xiaozhe Hu on 02/17/16.
- *  Copyright 2016__HAZMAT__. All rights reserved.
+ *  Copyright 2016__HAZMATH__. All rights reserved.
  *
  *  \note: modified by Xiaozhe Hu on 10/28/2016
  *  \note: done cleanup for releasing -- Xiaozhe Hu 10/28/2016
  *
  */
 
-#include "hazmat.h"
+#include "hazmath.h"
 
 /***********************************************************************************************/
 dCSRmat bdcsr_2_dcsr (block_dCSRmat *Ab)
@@ -81,6 +81,7 @@ dCSRmat bdcsr_2_dcsr (block_dCSRmat *Ab)
 
     }
     
+    // count number of nonzeros
     for (i=0;i<nbl;++i) {
         if (blockptr[i]) {
             nnz+=blockptr[i]->nnz;
@@ -159,6 +160,7 @@ block_dCSRmat dcsr_2_bdcsr (dCSRmat *A, int bnum, int *bsize)
     
     Ab.blocks = (dCSRmat **)calloc(bnum*bnum, sizeof(dCSRmat));
     for (i=0; i<bnum*bnum; i++) Ab.blocks[i] = (dCSRmat *) calloc(1, sizeof(dCSRmat));
+
     
     // allocate
     int *idx_row = (int *)calloc(A->row, sizeof(INT));

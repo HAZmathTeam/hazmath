@@ -60,8 +60,7 @@
 #define ERROR_SOLVER_STAG     -42  /**< solver stagnates */
 #define ERROR_SOLVER_SOLSTAG  -43  /**< solver's solution is too small */
 #define ERROR_SOLVER_TOLSMALL -44  /**< solver's tolerance is too small */
-#define ERROR_SOLVER_ILUSETUP -45  /**< ILU setup error */
-#define ERROR_SOLVER_MISC     -46  /**< misc solver error during run time */
+#define ERROR_SOLVER_MISC     -47  /**< misc solver error during run time */
 #define ERROR_SOLVER_MAXIT    -48  /**< maximal iteration number exceeded */
 #define ERROR_SOLVER_EXIT     -49  /**< solver does not quit successfully */
 //---------------------------------------------------------------------------------
@@ -118,19 +117,10 @@
 #define SOLVER_GCG              5  /**< Generalized Conjugate Gradient */
 #define SOLVER_GCR              6  /**< Generalized Conjugate Residual */
 //---------------------------------------------------------------------------------
-#define SOLVER_SCG             11  /**< Conjugate Gradient with safe net */
-#define SOLVER_SMinRes         12  /**< MinRes with safe net */
-#define SOLVER_SVGMRES         13  /**< Variable-restart GMRES with safe net */
-#define SOLVER_SVFGMRES        14  /**< Variable-restart FGMRES with safe net */
-#define SOLVER_SGCG            15  /**< GCG with safe net */
-//---------------------------------------------------------------------------------
 #define SOLVER_AMG             21  /**< AMG as an iterative solver */
 #define SOLVER_FMG             22  /**< Full AMG as an solver */
 //---------------------------------------------------------------------------------
-#define SOLVER_SUPERLU         31  /**< SuperLU Direct Solver */
 #define SOLVER_UMFPACK         32  /**< UMFPack Direct Solver */
-#define SOLVER_MUMPS           33  /**< MUMPS   Direct Solver */
-
 
 /**
  * \brief Definition of iterative solver stopping criteria types
@@ -146,30 +136,13 @@
 #define PREC_DIAG               1  /**< with diagonal precond */
 #define PREC_AMG                2  /**< with AMG precond */
 #define PREC_FMG                3  /**< with full AMG precond */
-#define PREC_ILU                4  /**< with ILU precond */
-#define PREC_SCHWARZ            5  /**< with Schwarz preconditioner */
 #define PREC_HX_CURL_A          6  /**< with additive HX preconditioner for H(curl) problem */
 #define PREC_HX_CURL_M          7  /**< with multiplicative HX preconditioner for H(curl) problem */
 
 /**
- * \brief Type of ILU methods
- */
-#define ILUk                    1  /**< ILUk */
-#define ILUt                    2  /**< ILUt */
-#define ILUtp                   3  /**< ILUtp */
-
-/**
- * \brief Type of Schwarz smoother
- */
-#define SCHWARZ_FORWARD         1  /**< Forward ordering */
-#define SCHWARZ_BACKWARD        2  /**< Backward ordering */
-#define SCHWARZ_SYMMETRIC       3  /**< Symmetric smoother */
-
-/**
  * \brief Definition of AMG types
  */
-#define CLASSIC_AMG             1  /**< classic AMG */
-#define UA_AMG                  2  /**< unsmoothed aggregation AMG */
+#define UA_AMG                  1  /**< unsmoothed aggregation AMG */
 
 /**
  * \brief Definition of aggregation types
@@ -202,18 +175,7 @@
 /**
  * \brief Definition of coarsening types
  */
-#define COARSE_C               1  /**< Classical coarsening */
-#define COARSE_CP              2  /**< Classical coarsening with positive offdiags*/
-#define COARSE_CR               3  /**< Compatible relaxation */
-#define COARSE_AC               4  /**< Aggressive coarsening */
 #define COARSE_MIS              5  /**< Aggressive coarsening based on MIS */
-
-/**
- * \brief Definition of interpolation types
- */
-#define INTERP_DIR              1  /**< Direct interpolation */
-#define INTERP_STD              2  /**< Standard interpolation */
-#define INTERP_ENG              3  /**< energy minimization interpolation */
 
 /**
  * \brief Type of vertices (DOFs) for coarsening
@@ -224,18 +186,11 @@
 #define CGPT                    1  /**< Coarse grid points */
 #define ISPT                    2  /**< Isolated points */
 
-/**
- * \brief Definition of smoothing order
- */
-#define NO_ORDER                0  /**< Natural order smoothing */
-#define CF_ORDER                1  /**< C/F order smoothing */
 
 /**
  * \brief Type of ordering for smoothers
  */
 #define USERDEFINED             0  /**< User defined order */
-#define CPFIRST                 1  /**< C-points first order */
-#define FPFIRST                -1  /**< F-points first order */
 #define ASCEND                 12  /**< Ascending order */
 #define DESCEND                21  /**< Descending order */
 

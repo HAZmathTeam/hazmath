@@ -33,42 +33,6 @@ typedef struct {
 
 /***********************************************************************************************/
 
-typedef struct {
-    
-    /*!
-     * \struct ILU_data
-     * \brief Data for ILU setup
-     */
-
-    //! row number of matrix LU, m
-    INT row;
-    
-    //! column of matrix LU, n
-    INT col;
-    
-    //! number of nonzero entries
-    INT nzlu;
-    
-    //! integer array of row pointers and column indexes, the size is nzlu
-    INT *ijlu;
-    
-    //! nonzero entries of LU
-    REAL *luval;
-    
-    //! block size for BSR type only
-    INT nb;
-    
-    //! work space size
-    INT nwork;
-    
-    //! work space
-    REAL *work;
-    
-} ILU_data; /*! Data for ILU */
-
-/***********************************************************************************************/
-
-
 /**
  * \struct AMG_data
  * \brief Data for AMG solvers
@@ -86,7 +50,6 @@ typedef struct {
     SHORT num_levels;
     
     /* Problem information */
-    
     //! pointer to the matrix at level level_num
     dCSRmat A;
     
@@ -103,33 +66,19 @@ typedef struct {
     dvector x;
     
     /* Extra information */
-    
     //! pointer to the numerical factorization from UMFPACK
     void *Numeric;
     
     //! pointer to the CF marker at level level_num
     ivector cfmark;
-    
-    //! number of levels use ILU smoother
-    INT ILU_levels;
-    
-    //! ILU matrix for ILU smoother
-    ILU_data LU;
-    
+
     //! dimension of the near kernel for SAMG
     INT near_kernel_dim;
     
     //! basis of near kernel space for SAMG
     REAL **near_kernel_basis;
     
-    // Smoother order information
-    
-    //! number of levels use Schwarz smoother
-    INT Schwarz_levels;
-    
-    //! data of Schwarz smoother
-    // Schwarz_data Schwarz;
-    
+    // Smoother order information    
     //! Temporary work space
     dvector w;
     
@@ -170,10 +119,7 @@ typedef struct {
     
     //! AMG smoother type
     SHORT smoother;
-    
-    //! AMG smoother ordering
-    SHORT smooth_order;
-    
+       
     //! number of presmoothing
     SHORT presmooth_iter;
     
@@ -206,9 +152,6 @@ typedef struct {
     
     //! AMG preconditioner data
     AMG_data *mgl_data;
-    
-    //! ILU preconditioner data (needed for CPR type preconditioner)
-    ILU_data *LU;
     
     //! Matrix data
     dCSRmat *A;
@@ -338,7 +281,7 @@ typedef struct {
     AMG_param *amgparam;  /**< parameters for AMG */
     
     /*--- solver by HX preconditioner */
-    HX_curl_data **hxcurldata; /**< HX data for the diagonal blocks */
+    HX_curl_data **hxcurldata; /**< HX data for the diagonal CURL blocks */
   
     /*------------------------------*/
     /* Data for mixed Darcy flow only!! */
@@ -368,52 +311,5 @@ typedef struct {
     void (*fct)(void *, REAL *, REAL *);
     
 } matvec; /**< Data for general Matrix-vector multiplication */
-
-
-/**
- * \struct Link
- * \brief Struct for Links
- */
-typedef struct
-{
-    
-    //! previous node in the linklist
-    INT prev;
-    
-    //! next node in the linklist
-    INT next;
-    
-} Link; /**< General data structure for Links */
-
-/**
- * \struct linked_list
- * \brief A linked list node
- *
- * \note This definition is adapted from hypre 2.0.
- */
-typedef struct linked_list
-{
-    
-    //! data
-    INT data;
-    
-    //! starting of the list
-    INT head;
-    
-    //! ending of the list
-    INT tail;
-    
-    //! next node
-    struct linked_list *next_node;
-    
-    //! previous node
-    struct linked_list *prev_node;
-    
-} ListElement; /**< Linked element in list */
-
-/**
- * List of links
- */
-typedef ListElement *LinkList; /**< linked list */
 
 #endif

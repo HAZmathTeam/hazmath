@@ -1,13 +1,13 @@
 /*! \file src/grid/mesh_io.c   
  *
  *  Created by James Adler and Xiaozhe Hu on 1/9/15.
- *  Copyright 2015__HAZMAT__. All rights reserved.
+ *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  *  Obtains routines for reading in meshes via original format and vtk format.
  *
  */
 
-#include "hazmat.h"
+#include "hazmath.h"
 
 /******************************************************************************/
 void read_grid_haz(FILE *gfid,trimesh *mesh) 

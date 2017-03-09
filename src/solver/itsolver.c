@@ -1,11 +1,11 @@
 /*! \file src/solver/itsolver.c
  *
  *  Created by James Adler and Xiaozhe Hu on 10/06/15.
- *  Copyright 2015__HAZMAT__. All rights reserved.
+ *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  */
 
-#include "hazmat.h"
+#include "hazmath.h"
 
 #include "itsolver_util.inl"
 
@@ -315,10 +315,6 @@ INT linear_solver_amg (dCSRmat *A,
      * \author Xiaozhe Hu
      * \date   12/25/2015
      *
-     * \note Refer to "Multigrid"
-     *       by U. Trottenberg, C. W. Oosterlee and A. Schuller
-     *       Appendix A.7 (by A. Brandt, P. Oswald and K. Stuben)
-     *       Academic Press Inc., San Diego, CA, 2001.
      *
      */
     
@@ -358,20 +354,16 @@ INT linear_solver_amg (dCSRmat *A,
     
     // Step 1: AMG setup phase
     switch (amg_type) {
-          
-            /*
-        case SA_AMG: // Smoothed Aggregation AMG setup
-            if ( prtlvl > PRINT_NONE ) printf("\nCalling SA AMG ...\n");
-            status = amg_setup_sa(mgl, param); break;
-             */
-            
+
         case UA_AMG: // Unsmoothed Aggregation AMG setup
-            if ( prtlvl > PRINT_NONE ) printf("\nCalling UA AMG ...\n");
-            status = amg_setup_ua(mgl, param); break;
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_ua(mgl, param);
+        break;
             
-        default: // Classical AMG setup
-            if ( prtlvl > PRINT_NONE ) printf("\nCalling classical AMG ...\n");
-            status = amg_setup_c(mgl, param); break;
+        default: // Unsmoothed Aggregation AMG setup
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_ua(mgl, param);
+        break;
             
     }
     
@@ -401,8 +393,8 @@ INT linear_solver_amg (dCSRmat *A,
             printf("### WARNING: AMG setup failed!\n");
             printf("### WARNING: Use a backup solver instead.\n");
         }
-        status = dcsr_pvgmres (A, b, x, NULL, param->tol, param->maxit,
-                                  20, 1, prtlvl);
+        status = dcsr_pvgmres(A, b, x, NULL, param->tol, param->maxit,
+                              20, 1, prtlvl);
         
     }
     
@@ -520,77 +512,6 @@ INT linear_solver_dcsr_krylov_diag (dCSRmat *A,
 }
 
 /********************************************************************************************/
-INT linear_solver_dcsr_krylov_ilu (dCSRmat *A,
-                                 dvector *b,
-                                 dvector *x,
-                                 linear_itsolver_param *itparam,
-                                 ILU_param *iluparam)
-{
-    /**
-     * \fn INT linear_solver_dcsr_krylov_ilu (dCSRmat *A, dvector *b, dvector *x,
-     *                                      itsolver_param *itparam, ILU_param *iluparam)
-     *
-     * \brief Solve Ax=b by ILUs preconditioned Krylov methods
-     *
-     * \param A         Pointer to the coeff matrix in dCSRmat format
-     * \param b         Pointer to the right hand side in dvector format
-     * \param x         Pointer to the approx solution in dvector format
-     * \param itparam   Pointer to parameters for iterative solvers
-     * \param iluparam  Pointer to parameters for ILU
-     *
-     * \return          Iteration number if converges; ERROR otherwise.
-     *
-     * \author Chensong Zhang, Shiquan Zhang
-     * \date   09/25/2009
-     */
-    
-    const SHORT prtlvl = itparam->linear_print_level;
-    
-    /* Local Variables */
-    INT      status = SUCCESS;
-    REAL     solver_start, solver_end, solver_duration;
-    
-    get_time(&solver_start);
-    
-    // ILU setup for whole matrix
-    ILU_data LU;
-    if ( (status = ilu_dcsr_setup(A,&LU,iluparam)) < 0 ) goto FINISHED;
-    
-    // check iludata
-    if ( (status = mem_iludata_check(&LU)) < 0 ) goto FINISHED;
-    
-    // set preconditioner
-    precond pc;
-    pc.data = &LU;
-    pc.fct  = precond_ilu;
-    
-    // call iterative solver
-    status = solver_dcsr_linear_itsolver(A,b,x,&pc,itparam);
-    
-    if ( prtlvl >= PRINT_MIN ) {
-        get_time(&solver_end);
-        solver_duration = solver_end - solver_start;
-        
-        switch (iluparam->ILU_type) {
-            case ILUt:
-                print_cputime("ILUt_Krylov method totally", solver_duration);
-                break;
-            case ILUtp:
-                print_cputime("ILUtp_Krylov method totally", solver_duration);
-                break;
-            default: // ILUk
-                print_cputime("ILUk_Krylov method totally", solver_duration);
-                break;
-        }
-    }
-    
-FINISHED:
-    ilu_data_free(&LU);
-    
-    return status;
-}
-
-/********************************************************************************************/
 INT linear_solver_dcsr_krylov_amg (dCSRmat *A,
                                  dvector *b,
                                  dvector *x,
@@ -633,16 +554,17 @@ INT linear_solver_dcsr_krylov_amg (dCSRmat *A,
     
     // setup preconditioner
     switch (amgparam->AMG_type) {
-            
-        //case SA_AMG: // Smoothed Aggregation AMG
-        //    status = amg_setup_sa(mgl, amgparam); break;
-            
+                    
         case UA_AMG: // Unsmoothed Aggregation AMG
-            status = amg_setup_ua(mgl, amgparam); break;
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_ua(mgl, amgparam);
+        break;
             
-        default: // Classical AMG
-            status = amg_setup_c(mgl, amgparam); break;
-            
+        default: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_ua(mgl, amgparam);
+        break;
+
     }
     
     if (status < 0) goto FINISHED;
@@ -654,21 +576,22 @@ INT linear_solver_dcsr_krylov_amg (dCSRmat *A,
     pcdata.mgl_data = mgl;
     
     precond pc; pc.data = &pcdata;
-    //pc.fct = precond_amg;
     
-    //if (itparam->precond_type == PREC_FMG) {
-    //    pc.fct = fasp_precond_famg; // Full AMG
-    //}
-    //else {
-        switch (amgparam->cycle_type) {
-            case AMLI_CYCLE: // AMLI cycle
-                pc.fct = precond_amli; break;
-            case NL_AMLI_CYCLE: // Nonlinear AMLI AMG
-                pc.fct = precond_nl_amli; break;
-            default: // V,W-Cycle AMG
-                pc.fct = precond_amg; break;
-        }
-    //}
+    switch (amgparam->cycle_type) {
+
+        case AMLI_CYCLE: // AMLI cycle
+            pc.fct = precond_amli;
+        break;
+
+        case NL_AMLI_CYCLE: // Nonlinear AMLI AMG
+            pc.fct = precond_nl_amli;
+        break;
+
+        default: // V,W-Cycle AMG
+            pc.fct = precond_amg;
+        break;
+
+    }
     
     // call iterative solver
     status = solver_dcsr_linear_itsolver(A, b, x, &pc, itparam);
@@ -683,7 +606,6 @@ INT linear_solver_dcsr_krylov_amg (dCSRmat *A,
 FINISHED:
     amg_data_free(mgl, amgparam);
     
-
     return status;
 }
 
@@ -719,7 +641,6 @@ INT linear_solver_dcsr_krylov_hx_curl (dCSRmat *A,
     
     const SHORT prtlvl = itparam->linear_print_level;
     const SHORT max_levels = amgparam->max_levels;
-    //const INT nnz = A->nnz, m = A->row, n = A->col;
     
     /*------------------------*/
     /* Local Variables */
@@ -755,7 +676,7 @@ INT linear_solver_dcsr_krylov_hx_curl (dCSRmat *A,
             status = amg_setup_ua(mgl_vgrad, amgparam); break;
             
         default: // Classical AMG
-            status = amg_setup_c(mgl_vgrad, amgparam); break;
+            status = amg_setup_ua(mgl_vgrad, amgparam); break;
             
     }
     
@@ -784,10 +705,14 @@ INT linear_solver_dcsr_krylov_hx_curl (dCSRmat *A,
     switch (amgparam->AMG_type) {
             
         case UA_AMG: // Unsmoothed Aggregation AMG
-            status = amg_setup_ua(mgl_grad, amgparam); break;
-            
-        default: // Classical AMG
-            status = amg_setup_c(mgl_grad, amgparam); break;
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_ua(mgl_grad, amgparam);
+        break;
+
+        default: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_ua(mgl_grad, amgparam);
+        break;
             
     }
     
@@ -820,11 +745,11 @@ INT linear_solver_dcsr_krylov_hx_curl (dCSRmat *A,
     precond pc; pc.data = &hxcurldata;
     switch (itparam->linear_precond_type) {
             
-        case PREC_HX_CURL_A:
+        case PREC_HX_CURL_A: //additive HX preconditioner
             pc.fct = precond_hx_curl_additive;
             break;
         
-        default:
+        default:  // multiplicative HX preconditioner
             pc.fct = precond_hx_curl_multiplicative;
             break;
 
@@ -1324,12 +1249,20 @@ INT linear_solver_bdcsr_krylov_mixed_darcy (block_dCSRmat *A,
   mgl[0][0].b=dvec_create(n); mgl[0][0].x=dvec_create(n);
   
   switch (amgparam->AMG_type) {
+
     case UA_AMG: // Unsmoothed Aggregation AMG
-      status = amg_setup_ua(mgl[0], amgparam); break;
-    default: // Classical AMG
-      status = amg_setup_c(mgl[0], amgparam); break;
+      if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+      status = amg_setup_ua(mgl[0], amgparam);
+    break;
+
+    default: // Unsmoothed Aggregation AMG
+      if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+      status = amg_setup_ua(mgl[0], amgparam);
+    break;
+
   }
   
+
   precond_block_data precdata;
   precdata.Abcsr = A;
   precdata.r = dvec_create(b->row);
@@ -1456,10 +1389,17 @@ INT linear_solver_bdcsr_krylov_biot_2phase (block_dCSRmat *A,
   mgl[0][0].x=dvec_create(A->blocks[0]->row);
 
   switch (amgparam->AMG_type) {
+
     case UA_AMG: // Unsmoothed Aggregation AMG
-      status = amg_setup_ua(mgl[0], amgparam); break;
-    default: // Classical AMG
-      status = amg_setup_c(mgl[0], amgparam); break;
+      if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+      status = amg_setup_ua(mgl[0], amgparam);
+      break;
+
+    default: // UA AMG
+      if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+      status = amg_setup_ua(mgl[0], amgparam);
+    break;
+
   }
 
   /* set AMG for the presssure block */
@@ -1469,10 +1409,15 @@ INT linear_solver_bdcsr_krylov_biot_2phase (block_dCSRmat *A,
   mgl[1][0].x=dvec_create(A->blocks[3]->row);
 
   switch (amgparam->AMG_type) {
+
     case UA_AMG: // Unsmoothed Aggregation AMG
+      if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+      status = amg_setup_ua(mgl[1], amgparam);
+    break;
+
+    default: // UA AMG
+      if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
       status = amg_setup_ua(mgl[1], amgparam); break;
-    default: // Classical AMG
-      status = amg_setup_c(mgl[1], amgparam); break;
   }
 
   /* set the whole preconditioner data */
@@ -1711,10 +1656,14 @@ INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A,
         switch (amgparam->AMG_type) {
                 
             case UA_AMG: // Unsmoothed Aggregation AMG
-                status = amg_setup_ua(mgl_vgrad, amgparam); break;
+                if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+                status = amg_setup_ua(mgl_vgrad, amgparam);
+            break;
                 
-            default: // Classical AMG
-                status = amg_setup_c(mgl_vgrad, amgparam); break;
+            default: // UA AMG
+                if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+                status = amg_setup_ua(mgl_vgrad, amgparam);
+            break;
                 
         }
         
@@ -1741,10 +1690,14 @@ INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A,
         switch (amgparam->AMG_type) {
                 
             case UA_AMG: // Unsmoothed Aggregation AMG
-                status = amg_setup_ua(mgl_grad, amgparam); break;
+                if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+                status = amg_setup_ua(mgl_grad, amgparam);
+            break;
                 
-            default: // Classical AMG
-                status = amg_setup_c(mgl_grad, amgparam); break;
+            default: // UA AMG
+                if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+                status = amg_setup_ua(mgl_grad, amgparam);
+            break;
                 
         }
         
@@ -1806,10 +1759,17 @@ INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A,
         mgl[2][0].b=dvec_create(n); mgl[2][0].x=dvec_create(n);
     
         switch (amgparam->AMG_type) {
+
             case UA_AMG: // Unsmoothed Aggregation AMG
-                status = amg_setup_ua(mgl[2], amgparam); break;
-            default: // Classical AMG
-                status = amg_setup_c(mgl[2], amgparam); break;
+                if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+                status = amg_setup_ua(mgl[2], amgparam);
+            break;
+
+            default: // UA AMG
+                if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+                status = amg_setup_ua(mgl[2], amgparam);
+            break;
+
         }
     }
     

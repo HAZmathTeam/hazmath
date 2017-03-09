@@ -1,19 +1,18 @@
 /*! \file src/solver/direct.c
  *
  *  Created by James Adler and Xiaozhe Hu on 8/19/15.
- *  Copyright 2015__HAZMAT__. All rights reserved.
+ *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  */
 
-#include "hazmat.h"
-#include "umfpack.h"
-
+#include "hazmath.h"
 
 /*! \brief Direct Solver methods -- for now just using UMFPACK Solvers
  *
  */
 
 #if WITH_SUITESPARSE
+#include "umfpack.h"
 /***************************************************************************************************************************/
 INT directsolve_UMF(dCSRmat *A,dvector *f,REAL *x,INT print_level)
 {
