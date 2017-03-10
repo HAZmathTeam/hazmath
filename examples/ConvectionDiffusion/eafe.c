@@ -13,33 +13,74 @@ static REAL bernoulli(const REAL z)
     return 0.;
 }
 
-static void poisson_coeff(REAL *val,REAL* x, REAL t) {
-  // a(x)
-  *val = 1.0;
+void LumpMassBndry(const trimesh mesh, const INT bndry_marker,
+		   void (*vector_val)(REAL *, REAL *, REAL),	\
+		   void (*scalar_val)(REAL *, REAL *, REAL),	\
+		   dvector *dmass,  dvector *rhs) 
+{
+  //calculates boundary integral using lumped mass.
+  /* For an equation in divergence form, the natural boundary condition is
+   \grad u . n + (b . n)u=g; 
+   and also for 
+   \grad u . n = g; 
+   which is a Robin type condition when the equation is in divergence form.  
+  */
+  if(bndry_marker > 0 && bndry_marker < 3) return
+  INT i=-1, j=-1,k=-1,ifa=-1,ifb=-1,attri=-16;
+  REAL sixth=1./6.,vol=1e10,bdotn=1e10,rhsi=1e10;
+  /* mesh entities: number of faces, number boundary faces and so on */
+  INT  nf=mesh.nface,nfb=mesh.nbface,dim=mesh.dim; 
+  REAL ad[dim],xm[dim];
+  iCSRmat *f2v=mesh.f_v; /* face to vertex map as iCSR */
+  INT *fonb=mesh.f_bdry; /* boundary markers for every face */
+  /* get areas, normal vectors and barycenters  of faces */
+  REAL *fa=mesh.f_area, *fn=mesh.f_norm, *fm=mesh.f_mid;
+  fprintf(stdout,"Num Of Bdr Elements =%i\n",nfb);
+  for (i = 0; i < nf; i++)   {
+    attri=fonb[i];
+    if(attri != bndry_marker)continue;    
+    vol=sixth*sqrt(fa[i]);
+    for(k=0;k<dim;k++){
+      xm[k]=fm[i*dim+k];
+    }
+    vector_val(xm,ad,0.0);
+    bdotn=0.;
+    for(k=0;k<dim;k++) bdotn += ad[k]*fn[i*dim+k];
+    bdotn*=vol;
+    // bnormal is b*normal=b\cdot normal; 
+    scalar_val(&rhsi,xm,0.0);
+    rhsi *= vol;
+    for(k=ifa;k<ifb;k++){
+      j=f2v->JA[k];
+      //      dmass.val[j]-= bdotn;
+      rhs.val[j] += rhsi;
+    }
+  }
   return;
 }
 
-void SchurProduct(const trimesh mesh,					\
-		  void (*diffusion)(REAL *, REAL *, REAL),		\
-		  void (*advection_vector)(REAL *, REAL *, REAL),	\
-		  dCSRmat A, dvector dmass)
+void eafe(const trimesh mesh,					\
+	  void (*scalar_val)(REAL *, REAL *, REAL),		\
+	  void (*vector_val)(REAL *, REAL *, REAL),		\
+	  dCSRmat A, dvector rhs)
 {
-  INT i,j,jk,nv=mesh.nv,dim=mesh.dim;
+  INT i,j,jk,iaa,iab,nv=mesh.nv,dim=mesh.dim;
   INT *ia=A.IA, *ja=A.JA ;
   REAL *a=A.val;
   coordinates *xyz=mesh.cv;
-  dvector diag0;
-  diag0.row=xyz->n;
-  diag0.val=(REAL *)calloc(nv,sizeof(REAL));
-  for (i=0;i<nv;i++) diag0.val[i]=0.;
-  REAL advcoeff[dim], xmid[dim],te[dim];
-  REAL xi,yi,zi,xj,yj,zj,bte,bern,alpe;
+  dvector diag0 = dvec_create(nv);
+  dvector dmass = dvec_create(nv);
+  for (i=0;i<nv;i++) {dmass.val[i]=diag0.val[i]=0.;}
+  REAL ad[dim], xm[dim],te[dim];
+  REAL xi,yi,zi,xj,yj,zj,bte,alpe;
   for (i = 0; i < nv; i++) {
     xi=xyz->x[i];
     yi=xyz->y[i];
     zi=xyz->z[i];
-    for (jk=ia[i]; jk<ia[i+1]; jk++){
-      j=ja[jk]; 
+    iaa=ia[i]-1;
+    iab=ia[i+1]-1;
+    for (jk=iaa; jk<iab; jk++){
+      j=ja[jk]-1; 
       if(i != j){
 	xj=xyz->x[j];
 	yj=xyz->y[j];
@@ -48,17 +89,15 @@ void SchurProduct(const trimesh mesh,					\
 	// then the bernoulli function
 	te[0]  = xi - xj;
 	te[1]  = yi - yj;
-	te[2]  = zi - zj;
-	xmid[0] = (xi + xj)*0.5e+0;
-	xmid[1] = (yi + yj)*0.5e+0;
-	xmid[2] = (zi + zj)*0.5e+0;
-	advection_vector(advcoeff,xmid,0.0);
-	//	  bte = (beta*t_e); //c++ overloaded "*" s..t we can multiply these...
-	//	  I do it the old way, unrolled it is faster
-	bte = advcoeff[0]*te[0]+ advcoeff[1]*te[1]+ advcoeff[2]*te[2];
-	///
-	// diffusion coefficient for the flux J = a(x)\nabla u + \beta u;
-	diffusion(&alpe,xmid,0.0);
+	xm[0] = (xi + xj)*0.5e+0;
+	xm[1] = (yi + yj)*0.5e+0;
+	if(dim>2){
+	  te[2]  = zi - zj;
+	  xm[2] = (zi + zj)*0.5e+0;
+	}
+	vector_val(ad,xm,0.0);
+	bte = ad[0]*te[0]+ ad[1]*te[1]+ ad[2]*te[2];
+	scalar_val(&alpe,xm,0.0);
 	//	  xmid.Print(std::cout,3);
 	//	  std::cout << "alpe = "<<alpe<<"; bte="<< bte<<std::endl<<std::flush;      
 	// alpe=a(xmid)\approx harmonic_average=|e|/(int_e 1/a);
@@ -73,61 +112,11 @@ void SchurProduct(const trimesh mesh,					\
       }
     } 
   }
-  // Another loop to set up the diagonal equal to the negative column sum;
+  // Another loop to set up the diagonal equal to whatever it needs to equal. 
   for (i = 0; i < nv; i++) 
     for (jk=ia[i]; jk<ia[i+1]; jk++){
       j = ja[jk]; 
       if(i == j) a[jk]=diag0.val[i]+dmass.val[i];
     }
-  return;
-}
-/**/
-void LumpMassBndry(const trimesh mesh, const INT bndry_marker,
-		   dvector dmass, dvector rhs) 
-{
-  //calculates boundary integral using lumped mass.
-  /* For an equation in divergence form, the natural boundary condition is
-   \grad u . n + (b . n)u=g; 
-  */
-  INT i, j,k,nve,attri,node=-16;
-  REAL sixth=1./6.,voltri=1e10,distz=0e0;
-  /* mesh entities */
-  INT ns = mesh.nelm,nv=mesh.nv,dim=mesh.dim; /* ns=number of simplices of highest dimension*/
-  coordinates *xyz = mesh.cv;
-  REAL bnormal[dim],xyzb[dim];
-  INT *f2v=mesh.f_v; /* face to vertex map as iCSR */
-  INT *fonb=mesh.f_bdry; /* boundary markers for every face */
-  INT *fa=mesh.f_area; /* areas of faces */
-  INT nf=mesh.nface,nfb=mesh.nbface;
-  fprintf(stdout,"Num Of Bdr Elements =%i\n",nfb);
-  if(dim==2) {
-    nf=nedge;
-    nfb=mesh.nbedge;
-    f2v=mesh.ed_v;
-    fonb=mesh.ed_bdry;
-    fa=mesh.ed_len;
-  }
-  for (i = 0; i < nf; i++)   {
-    attri=fonb[i];
-    if(attri != bndry_marker)continue;
-    voltri=fa[i];
-    voltri=sixth*pow(voltri,0.5);
-    xyzb[0]=xyz.x[i];
-    xyzb[1]=xyz.y[i];
-    if(dim>2)
-      xyzb[2]=xyz.z[i];
-    //    ifstrat = f2v->IA[i]-1;
-    //    ifend =   f2v->IA[i+1]-1;
-    // advection(xyzb,bnormal);
-    // bnormal is b*normal=b\cdot (0,0,1); 
-    //dmass[node[j]]-=voltri * bnormal[2];
-    ifa=f2v->IA[i]-1;
-    ifb=f2v->IA[i+1]-1;
-    rhsi = rhs_neumann(xyzb);
-    for(k=ifa;k<ifb;k++){
-      j=f2v->JA[k];
-      rhs[j] += voltri * rhsi;
-    }
-  }
   return;
 }

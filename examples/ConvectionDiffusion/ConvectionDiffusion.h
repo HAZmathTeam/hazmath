@@ -6,13 +6,18 @@
 #define M_PI 3.141592653589793e+00;
 #endif
 
+void poisson_coeff(REAL *val,REAL* x, REAL t) {
+  // a(x)
+  *val = 1.0;
+  return;
+}
+
 // PDE Coefficients
 void diffusion_coeff(REAL *val,REAL* x, REAL t) {
   // a(x)
   *val = 1.0;
   return;
 }
-
 
 // Exact Solution (if you have one)
 // Change as needed for different dimensions
@@ -29,14 +34,14 @@ void exactsol(REAL *val,REAL* x, REAL t) {
 }
 
 void advection(REAL *val, REAL *x,REAL t) {
-  val[0] = 1e2; // or beta_1(x)
+  val[0] = 0; // or beta_1(x)
   val[1] = 0.; // or beta_2(x)
   val[2] = -1.; // or beta_3(x)
   return;
 }
 
 // Right-hand Side
-void myrhs(REAL *val,REAL* x, REAL t) {
+void f_rhs(REAL *val,REAL* x, REAL t) {
   *val = 0.0;
 }
 
