@@ -880,6 +880,116 @@ void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof
 /****************************************************************************************************************************/
 
 /****************************************************************************************************************************/
+void bubble_face_basis(REAL *phi, REAL *dphi, REAL *x, INT *v_on_elm, INT *dof, trimesh *mesh)
+{
+  /*!
+   * \fn void bubble_face_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
+   *
+   * \brief Compute Bubble Element Finite Element Basis Functions at a particular point in 2 or 3D
+   *
+   * \param x         Coordinate on where to compute basis function
+   * \param v_on_elm  Vertices on element
+   * \param dof       DOF on element
+   * \param mesh      Mesh struct
+   *
+   * \return phi      Basis functions (dim for each face from reference triangle)
+   * \return dphi     Tensor from gradient of basis functions
+   */
+
+  // Flag for errors
+  SHORT status;
+
+  // Get Mesh Data
+  INT v_per_elm = mesh->v_per_elm;
+  INT dof_per_elm = mesh->f_per_elm;
+  INT dim = mesh->dim;
+  INT i,j;
+
+  /* Get Linear Basis Functions for particular element */
+  REAL* p = (REAL *) calloc(v_per_elm,sizeof(REAL));
+  REAL* dp = (REAL *) calloc(v_per_elm*dim,sizeof(REAL));
+  PX_H1_basis(p,dp,x,v_on_elm,1,mesh);
+
+  // face to vertex map
+  INT* fv = (INT *)calloc(dim,sizeof(INT));
+  INT elnd,ef1,ef2,ef3;//face endpoint vertex tracking numbers
+
+  REAL gradp; 
+
+  if(dim==2){
+    for (i=0;i<dof_per_elm;i++) {
+      get_incidence_row(dof[i]-1,mesh->f_v,fv);
+      // Find orientation of face
+      for(j=0;j<v_per_elm;j++){
+        elnd = v_on_elm[j];
+        if(fv[0]==elnd) {
+          ef1 = j;
+        }
+        if(fv[1]==elnd) {
+          ef2 = j;
+        }
+      }
+      
+      // Multiply basis function by normal vector
+      phi[i*dim] = mesh->f_norm[dim*(dof[i]-1)] * 4*p[ef1]*p[ef2];
+      phi[i*dim+1] = mesh->f_norm[dim*(dof[i]-1)+1] * 4*p[ef1]*p[ef2];
+
+      // Gradient
+      for(j=0;j<dim;j++) {
+        gradp = p[ef1]*dp[ef2*dim+j] + dp[ef1*dim+j]*p[ef2];
+      
+        dphi[i*dim*dim + j*dim + 0] = gradp * mesh->f_norm[dim*(dof[i]-1)+0];
+        dphi[i*dim*dim + j*dim + 1] = gradp * mesh->f_norm[dim*(dof[i]-1)+1];
+      }
+
+    }
+  } else if(dim==3) {
+    for (i=0;i<dof_per_elm;i++) {
+      get_incidence_row(dof[i],mesh->f_v,fv);
+      // Find orientation of face
+      for(j=0;j<v_per_elm;j++){
+        elnd = v_on_elm[j];
+        if(fv[0]==elnd) {
+          ef1 = j;
+        }
+        if(fv[1]==elnd) {
+          ef2 = j;
+        }
+        if(fv[2]==elnd) {
+          ef3 = j;
+        }
+      }
+      
+      // Multiply basis function by normal vector
+      phi[i*dim] = mesh->f_norm[dim*(dof[i]-1)] * 8*p[ef1]*p[ef2]*p[ef3];
+      phi[i*dim+1] = mesh->f_norm[dim*(dof[i]-1)+1] * 8*p[ef1]*p[ef2]*p[ef3];
+      phi[i*dim+2] = mesh->f_norm[dim*(dof[i]-1)+2] * 8*p[ef1]*p[ef2]*p[ef3];
+
+      // Gradient
+      for(j=0;j<dim;j++) {
+        gradp = p[ef1]*p[ef2]*dp[ef3*dim+j] + p[ef1]*dp[ef2*dim+j]*p[ef3] + dp[ef1*dim+j]*p[ef2]*p[ef3];
+      
+        dphi[i*dim*dim + j*dim + 0] = gradp * mesh->f_norm[dim*(dof[i]-1)+0];
+        dphi[i*dim*dim + j*dim + 1] = gradp * mesh->f_norm[dim*(dof[i]-1)+1];
+        dphi[i*dim*dim + j*dim + 2] = gradp * mesh->f_norm[dim*(dof[i]-1)+2];
+      }
+
+    }
+  } else {
+    status = ERROR_DIM;
+    check_error(status, __FUNCTION__);
+  }
+
+
+  if(p) free(p);
+  if(dp) free(dp);
+  if(fv) free(fv);
+
+  return;
+}
+/****************************************************************************************************************************/
+
+/****************************************************************************************************************************/
 void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh,fespace *FE)
 {
   /*!
@@ -915,6 +1025,10 @@ void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *
   } else if(FEtype==30) { // Raviart-Thomas elements
 
     rt_basis(phi,dphi,x,v_on_elm,dof,mesh);
+
+  } else if(FEtype==60) { // Bubble elements
+
+    bubble_face_basis(phi,dphi,x,v_on_elm,dof,mesh);
 
   } else {
     status = ERROR_FE_TYPE;
