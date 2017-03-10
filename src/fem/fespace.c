@@ -74,6 +74,9 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
   REAL* dphi;
 
   /**/
+  iCSRmat ed_el;
+  iCSRmat f_el;
+  iCSRmat ed_f;
   switch (FEtype)
   {
   case 0: // Contants - P0
@@ -89,15 +92,12 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     FE->cdof = barycenter;
     FE->nbdof = 0;
     FE->dof_per_elm = 1;
-    iCSRmat el_el = icsr_create_identity(mesh->nelm, 1);
     FE->el_dof = malloc(sizeof(struct iCSRmat));
-    *(FE->el_dof) = el_el;
+    *(FE->el_dof) = icsr_create_identity(mesh->nelm, 1);
     if(mesh->dim>1) {
-      iCSRmat ed_el;
       icsr_trans_1(mesh->el_ed,&ed_el);
       FE->ed_dof = malloc(sizeof(struct iCSRmat));
       *(FE->ed_dof) = ed_el;
-      iCSRmat f_el;
       icsr_trans_1(mesh->el_f,&f_el);
       FE->f_dof = malloc(sizeof(struct iCSRmat));
       *(FE->f_dof) = f_el;
@@ -160,9 +160,8 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     FE->nbdof = mesh->nbedge;
     FE->dof_per_elm = mesh->ed_per_elm;
     FE->el_dof = mesh->el_ed;
-    iCSRmat ed_ed = icsr_create_identity(mesh->nedge, 1);
     FE->ed_dof = malloc(sizeof(struct iCSRmat));
-    *(FE->ed_dof) = ed_ed;
+    *(FE->ed_dof) = icsr_create_identity(mesh->nedge, 1);
     FE->f_dof = mesh->f_ed;
     dirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
     dof_flag = (INT *) calloc(FE->ndof,sizeof(INT));
@@ -186,13 +185,11 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     FE->nbdof = mesh->nbface;
     FE->dof_per_elm = mesh->f_per_elm;
     FE->el_dof = mesh->el_f;
-    iCSRmat ed_f;
     icsr_trans_1(mesh->f_ed,&ed_f);
     FE->ed_dof = malloc(sizeof(struct iCSRmat));
     *(FE->ed_dof) = ed_f;
-    iCSRmat f_f = icsr_create_identity(mesh->nface, 1);
     FE->f_dof = malloc(sizeof(struct iCSRmat));
-    *(FE->f_dof) = f_f;
+    *(FE->f_dof) = icsr_create_identity(mesh->nface, 1);
     dirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
     dof_flag = (INT *) calloc(FE->ndof,sizeof(INT));
     for(i=0;i<FE->ndof;i++) {
@@ -204,6 +201,30 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     phi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
     FE->phi = phi;
     dphi = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
+    FE->dphi = dphi;
+    break;
+  case 60: // Bubbles
+    FE->cdof = NULL;
+    FE->ndof = mesh->nface;
+    FE->nbdof = mesh->nbface;
+    FE->dof_per_elm = mesh->f_per_elm;
+    FE->el_dof = mesh->el_f;
+    icsr_trans_1(mesh->f_ed,&ed_f);
+    FE->ed_dof = malloc(sizeof(struct iCSRmat));
+    *(FE->ed_dof) = ed_f;
+    FE->f_dof = malloc(sizeof(struct iCSRmat));
+    *(FE->f_dof) = icsr_create_identity(mesh->nface, 1);;
+    dirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
+    dof_flag = (INT *) calloc(FE->ndof,sizeof(INT));
+    for(i=0;i<FE->ndof;i++) {
+      dirichlet[i] = mesh->f_bdry[i];
+      dof_flag[i] = mesh->f_bdry[i];
+    }
+    FE->dirichlet = dirichlet;
+    FE->dof_flag = dof_flag;
+    phi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
+    FE->phi = phi;
+    dphi = (REAL *) calloc(FE->dof_per_elm*mesh->dim*mesh->dim,sizeof(REAL));
     FE->dphi = dphi;
     break;
   default:
