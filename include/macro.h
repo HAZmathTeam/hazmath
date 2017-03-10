@@ -69,7 +69,7 @@
 #define ERROR_UNKNOWN         -99  /**< an unknown error type */
 
 /**
- * \brief Definition of logic type
+ * \brief Definition of type "logical"
  */
 #define TRUE                    1  /**< logic TRUE */
 #define FALSE                   0  /**< logic FALSE */

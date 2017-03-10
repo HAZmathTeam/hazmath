@@ -16,7 +16,7 @@ static REAL bernoulli(const REAL z)
 void LumpMassBndry(const trimesh mesh, const INT bndry_marker,
 		   void (*vector_val)(REAL *, REAL *, REAL),	\
 		   void (*scalar_val)(REAL *, REAL *, REAL),	\
-		   dvector *dmass,  dvector *rhs) 
+		   dvector *rhs, dvector dmass)
 {
   //calculates boundary integral using lumped mass.
   /* For an equation in divergence form, the natural boundary condition is
@@ -25,7 +25,12 @@ void LumpMassBndry(const trimesh mesh, const INT bndry_marker,
    \grad u . n = g; 
    which is a Robin type condition when the equation is in divergence form.  
   */
-  if(bndry_marker > 0 && bndry_marker < 3) return
+#ifndef BOUNDARY_MARKER_ROBIN
+  return;
+#endif
+#ifndef BOUNDARY_MARKER_NEUMANN
+  return;
+#endif
   INT i=-1, j=-1,k=-1,ifa=-1,ifb=-1,attri=-16;
   REAL sixth=1./6.,vol=1e10,bdotn=1e10,rhsi=1e10;
   /* mesh entities: number of faces, number boundary faces and so on */
@@ -35,25 +40,42 @@ void LumpMassBndry(const trimesh mesh, const INT bndry_marker,
   INT *fonb=mesh.f_bdry; /* boundary markers for every face */
   /* get areas, normal vectors and barycenters  of faces */
   REAL *fa=mesh.f_area, *fn=mesh.f_norm, *fm=mesh.f_mid;
-  fprintf(stdout,"Num Of Bdr Elements =%i\n",nfb);
-  for (i = 0; i < nf; i++)   {
-    attri=fonb[i];
-    if(attri != bndry_marker)continue;    
-    vol=sixth*sqrt(fa[i]);
-    for(k=0;k<dim;k++){
-      xm[k]=fm[i*dim+k];
+  if(dmass.row !=0 && bndry_marker == BOUNDARY_MARKER_ROBIN){
+    fprintf(stdout,"Num Of Bdr Elements =%i\n",nfb);
+    for (i = 0; i < nf; i++)   {
+      attri=fonb[i];
+      if(attri != bndry_marker)continue;    
+      vol=sixth*sqrt(fa[i]);
+      for(k=0;k<dim;k++){
+	xm[k]=fm[i*dim+k];
+      }
+      vector_val(xm,ad,0.0);
+      bdotn=0.;
+      for(k=0;k<dim;k++) bdotn += ad[k]*fn[i*dim+k];
+      bdotn*=vol;
+      // bnormal is b*normal=b\cdot normal; 
+      scalar_val(&rhsi,xm,0.0);
+      rhsi *= vol;
+      for(k=ifa;k<ifb;k++){
+	j=f2v->JA[k];
+	dmass->val[j]-= bdotn;
+	rhs->val[j] += rhsi;
+      }
     }
-    vector_val(xm,ad,0.0);
-    bdotn=0.;
-    for(k=0;k<dim;k++) bdotn += ad[k]*fn[i*dim+k];
-    bdotn*=vol;
-    // bnormal is b*normal=b\cdot normal; 
-    scalar_val(&rhsi,xm,0.0);
-    rhsi *= vol;
-    for(k=ifa;k<ifb;k++){
-      j=f2v->JA[k];
-      //      dmass.val[j]-= bdotn;
-      rhs.val[j] += rhsi;
+  } else{
+    for (i = 0; i < nf; i++)   {
+      attri=fonb[i];
+      if(attri != bndry_marker)continue;    
+      vol=sixth*sqrt(fa[i]);
+      for(k=0;k<dim;k++){
+	xm[k]=fm[i*dim+k];
+      }
+      scalar_val(&rhsi,xm,0.0);
+      rhsi *= vol;
+      for(k=ifa;k<ifb;k++){
+	j=f2v->JA[k];
+	rhs->val[j] += rhsi;
+      }
     }
   }
   return;
@@ -62,15 +84,14 @@ void LumpMassBndry(const trimesh mesh, const INT bndry_marker,
 void eafe(const trimesh mesh,					\
 	  void (*scalar_val)(REAL *, REAL *, REAL),		\
 	  void (*vector_val)(REAL *, REAL *, REAL),		\
-	  dCSRmat A, dvector rhs)
+	  dCSRmat *A, dvector *rhs, const INT marker_neumann, const INT marker_robin)
 {
   INT i,j,jk,iaa,iab,nv=mesh.nv,dim=mesh.dim;
-  INT *ia=A.IA, *ja=A.JA ;
-  REAL *a=A.val;
+  INT *ia=A->IA, *ja=A->JA ;
+  REAL *a=A->val;
   coordinates *xyz=mesh.cv;
   dvector diag0 = dvec_create(nv);
-  dvector dmass = dvec_create(nv);
-  for (i=0;i<nv;i++) {dmass.val[i]=diag0.val[i]=0.;}
+  for (i=0;i<nv;i++) {diag0.val[i]=0.;}
   REAL ad[dim], xm[dim],te[dim];
   REAL xi,yi,zi,xj,yj,zj,bte,alpe;
   for (i = 0; i < nv; i++) {
@@ -98,25 +119,33 @@ void eafe(const trimesh mesh,					\
 	vector_val(ad,xm,0.0);
 	bte = ad[0]*te[0]+ ad[1]*te[1]+ ad[2]*te[2];
 	scalar_val(&alpe,xm,0.0);
-	//	  xmid.Print(std::cout,3);
+	/*	  xmid.Print(std::cout,3);
 	//	  std::cout << "alpe = "<<alpe<<"; bte="<< bte<<std::endl<<std::flush;      
 	// alpe=a(xmid)\approx harmonic_average=|e|/(int_e 1/a);
 	// should be computed by quadrature in general for 1/a(x).
 	// a_{ij}=B(beta.t_e/harmonic_average)*harmonic_average*omega_e;
 	//	  for (i,j):    B(beta.t_e/harmonic_average);   
 	//	  for (j,i):    B(-beta.t_e/harmonic_average), the minus comes from
-	//     is because t_e=i-j;
+	//     is because t_e=i-j;*/
 	a[jk] *= (alpe*(bernoulli(bte/alpe))); 
-	// the diagonal is equal to the negative column sum;
+	/* the diagonal is equal to the negative column sum;*/
 	diag0.val[j]-=a[jk];
       }
     } 
   }
-  // Another loop to set up the diagonal equal to whatever it needs to equal. 
-  for (i = 0; i < nv; i++) 
-    for (jk=ia[i]; jk<ia[i+1]; jk++){
-      j = ja[jk]; 
-      if(i == j) a[jk]=diag0.val[i]+dmass.val[i];
-    }
+  /* Another loop to set up the diagonal equal to whatever it needs to equal. */
+  if(dmass){
+    for (i = 0; i < nv; i++) 
+      for (jk=ia[i]; jk<ia[i+1]; jk++){
+	j = ja[jk]; 
+	if(i == j) a[jk]=diag0.val[i]+dmass.val[i];
+      }
+  } else {
+    for (i = 0; i < nv; i++) 
+      for (jk=ia[i]; jk<ia[i+1]; jk++){
+	j = ja[jk]; 
+	if(i == j) a[jk]=diag0.val[i];
+      }
+  }
   return;
 }
