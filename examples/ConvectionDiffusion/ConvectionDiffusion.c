@@ -114,7 +114,7 @@ int main (int argc, char* argv[])
     
   // Assemble the matrix with natural BC. 
   // Diffusion block
-  assemble_global(&A,&b,assemble_DuDv_local,&FE,&mesh,cq,myrhs,
+  assemble_global(&A,&b,assemble_DuDv_local,&FE,&mesh,cq,f_rhs,
                   diffusion_coeff,0.0);
 
   clock_t clk_assembly_end = clock();

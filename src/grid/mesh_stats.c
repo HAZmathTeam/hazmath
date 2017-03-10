@@ -596,7 +596,7 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,trimesh *mesh
    *
    * \return f_area                    Area of each face (length in 2D)
    * \return f_norm                    Normal vector or each face
-   * \return f_mid                     Midpoint of each face
+   * \return f_mid                     Barycenter of each face
    *
    */
 
