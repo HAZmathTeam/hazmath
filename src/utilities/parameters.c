@@ -71,8 +71,6 @@ void param_input_init (input_param *inparam)
     inparam->linear_itsolver_maxit    = 500;
     inparam->linear_restart           = 25;
     
-
-    
     // AMG method parameters
     inparam->AMG_type                 = UA_AMG;
     inparam->AMG_levels               = 10;
@@ -92,8 +90,6 @@ void param_input_init (input_param *inparam)
 
     // Aggregation AMG specific
     inparam->AMG_aggregation_type     = VMB;
-    inparam->AMG_quality_bound        = 8.0;
-    inparam->AMG_pair_number          = 2;
     inparam->AMG_strong_coupled       = 0.00;
     inparam->AMG_max_aggregation      = 20;
 
@@ -138,8 +134,6 @@ void param_amg_init (AMG_param *amgparam)
     
     // Aggregation AMG specific
     amgparam->aggregation_type     = VMB;
-    amgparam->quality_bound        = 8.0;
-    amgparam->pair_number          = 2;
     amgparam->strong_coupled       = 0.00;
     amgparam->max_aggregation      = 20;
     
@@ -246,8 +240,6 @@ void param_amg_set (AMG_param *amgparam,
     amgparam->nl_amli_krylov_type  = inparam->AMG_nl_amli_krylov_type;
     
     amgparam->aggregation_type     = inparam->AMG_aggregation_type;
-    amgparam->pair_number          = inparam->AMG_pair_number;
-    amgparam->quality_bound        = inparam->AMG_quality_bound;
     amgparam->strong_coupled       = inparam->AMG_strong_coupled;
     amgparam->max_aggregation      = inparam->AMG_max_aggregation;
 
@@ -342,10 +334,6 @@ void param_amg_print (AMG_param *amgparam)
 
             default: // UA_AMG
                 printf("Aggregation type:                  %d\n", amgparam->aggregation_type);
-                if ( amgparam->aggregation_type == PAIRWISE ) {
-                    printf("Aggregation number of pairs:       %d\n", amgparam->pair_number);
-                    printf("Aggregation quality bound:         %.2f\n", amgparam->quality_bound);
-                }
                 if ( amgparam->aggregation_type == VMB ) {
                     printf("Aggregation AMG strong coupling:   %.4f\n", amgparam->strong_coupled);
                     printf("Aggregation AMG max aggregation:   %d\n", amgparam->max_aggregation);

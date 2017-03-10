@@ -16,7 +16,7 @@ void precond_data_null (precond_data *pcdata)
     /*!
      * \fn void precond_data_null (precond_data *pcdata)
      *
-     * \brief Initialize precond_data (pointers are set to NULL)
+     * \brief Initialize precond_data (pointers are set to NULL) (OUTPUT)
      *
      * \param pcdata   Preconditioning data structure
      *
@@ -33,7 +33,6 @@ void precond_data_null (precond_data *pcdata)
     pcdata->postsmooth_iter     = 1;
     pcdata->relaxation          = 1.2;
     pcdata->polynomial_degree   = 2;
-    pcdata->coarsening_type     = 1;
     pcdata->coarse_solver       = SOLVER_UMFPACK;
     pcdata->coarse_scaling      = OFF;
     pcdata->amli_degree         = 2;
@@ -93,7 +92,7 @@ void amg_data_free(AMG_data *mgl,
      *
      * \brief Free AMG_data structure
      *
-     * \param mgl    Pointer to the AMG_data
+     * \param mgl    Pointer to the AMG_data (OUTPUT)
      * \param param  Pointer to AMG parameters
      *
      *
@@ -110,7 +109,6 @@ void amg_data_free(AMG_data *mgl,
         dvec_free(&mgl[i].b);
         dvec_free(&mgl[i].x);
         dvec_free(&mgl[i].w);
-        ivec_free(&mgl[i].cfmark);
     }
 
     for (i=0; i<mgl->near_kernel_dim; ++i) {
@@ -149,7 +147,7 @@ void HX_curl_data_null (HX_curl_data *hxcurldata)
     /*!
      * \fn void HX_curl_data_null(HX_curl_data *hxcurldata)
      *
-     * \brief Initalize HX_curl_data structure (set values to 0 and pointers to NULL)
+     * \brief Initalize HX_curl_data structure (set values to 0 and pointers to NULL) (OUTPUT)
      *
      * \param hxcurldata    Pointer to the HX_curl_data structure
      *
@@ -180,17 +178,18 @@ void HX_curl_data_null (HX_curl_data *hxcurldata)
 }
 
 /***********************************************************************************************/
-void HX_curl_data_free (HX_curl_data *hxcurldata, SHORT flag)
+void HX_curl_data_free (HX_curl_data *hxcurldata,
+                        SHORT flag)
 {
     /*!
      * \fn void HX_curl_data_free (HX_curl_data *hxcurldata, SHORT flag)
      *
      * \brief Free HX_curl_data structure (set values to 0 and pointers to NULL)
      *
-     * \param hxcurldata    Pointer to the HX_curl_data structure
+     * \param hxcurldata    Pointer to the HX_curl_data structure (OUTPUT)
      * \param flag          flag of whether the date will be reused:
-     *                          flag = False - A, P_curl, and Grad will be reused
-     *                          flag = TRUE  - free everything
+     *                      flag = False - A, P_curl, and Grad will be reused
+     *                      flag = TRUE  - free everything
      *
      */
     

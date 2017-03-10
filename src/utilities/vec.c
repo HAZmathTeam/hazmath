@@ -224,8 +224,8 @@ void dvec_rand (const INT n,
      * \param n    Size of the vector
      * \param u    Pointer to dvector
      *
-     * \note Use 1 as the seed of the random number generator, so the results
-     *       are actually repeatable.  -- Xiaozhe Hu
+     * \note Use 1 as the seed of the random number generator, so the result dvector
+     *       is actually repeatable.  -- Xiaozhe Hu
      *
      */
         
@@ -252,8 +252,8 @@ void dvec_rand_true (const INT n,
      * \param n    Size of the vector
      * \param u    Pointer to dvector
      *
-     * \note Use time as the seed of the random number generator, so the results
-     *       are not repeatable.  -- Xiaozhe Hu
+     * \note Use time as the seed of the random number generator, so the result dvector
+     *       is not repeatable.  -- Xiaozhe Hu
      *
      */
 
@@ -281,7 +281,7 @@ void dvec_set (INT n,
      * \brief Initialize dvector and set all the entries to be a given value
      *
      * \param n      Length of the dvector
-     * \param u      Pointer to dvector
+     * \param u      Pointer to dvector (OUTPUT)
      * \param val    Given REAL value
      *
      * \note Memory space has to be allocated before calling this function -- Xiaozhe Hu
@@ -289,16 +289,15 @@ void dvec_set (INT n,
      */
     
     INT i;
-    REAL *upt=u->val;
     
     if (n>0) u->row=n;
     else n=u->row;
    
     if (val == 0.0) {
-        memset(upt, 0x0, sizeof(REAL)*n);
+        memset(u->val, 0x0, sizeof(REAL)*n);
     }
     else {
-        for (i=0; i<n; ++i) upt[i]=val;
+        for (i=0; i<n; ++i) u->val[i]=val;
     }
 }
 
@@ -316,15 +315,16 @@ void ivec_set (INT n,
      * \param  u    Pointer to ivector
      * \param  val  Given integer value
      *
+     * \note Memory space has to be allocated before calling this function -- Xiaozhe Hu
+     *
      */
     
     INT i;
-    INT *upt=u->val;
 
     if (n>0) u->row=n;
     else n=u->row;
     
-    for (i=0; i<n; ++i) upt[i]=val;
+    for (i=0; i<n; ++i) u->val[i]=val;
     
 }
 
@@ -338,7 +338,7 @@ void dvec_cp (dvector *x,
      * \brief Copy dvector x to dvector y
      *
      * \param x  Pointer to dvector
-     * \param y  Pointer to dvector (MODIFIED)
+     * \param y  Pointer to dvector (OUTPUT) (MODIFIED)
      *
      */
 
@@ -357,7 +357,7 @@ void ivec_cp (ivector *x,
      * \brief Copy ivector x to ivector y
      *
      * \param x  Pointer to ivector
-     * \param y  Pointer to ivector (MODIFIED)
+     * \param y  Pointer to ivector (OUTPUT) (MODIFIED)
      *
      */
 
@@ -385,12 +385,11 @@ REAL dvec_maxdiff (dvector *x,
     
     const INT length=x->row;
     REAL Linf=0., diffi=0.;
-    REAL *xpt=x->val, *ypt=y->val;
     
     INT i;
     
     for (i=0; i<length; ++i) {
-        if ((diffi = ABS(xpt[i]-ypt[i])) > Linf) Linf = diffi;
+        if ((diffi = ABS(x->val[i]-y->val[i])) > Linf) Linf = diffi;
     }
     
     return Linf;
@@ -406,14 +405,16 @@ void dvec_ax (const REAL a,
      * \brief Compute x = a*x
      *
      * \param a   REAL scalar number
-     * \param x   Pointer to dvector x
+     * \param x   Pointer to dvector x (OUTPUT)
      *
      */
 
     INT i, m=x->row;
-    REAL *xpt=x->val;
 
-    for (i=0; i<m; ++i) xpt[i] = a*xpt[i];
+    if (a!=1.0){
+        for (i=0; i<m; ++i) x->val[i] = a*x->val[i];
+    }
+
 
 }
 
@@ -430,12 +431,11 @@ void dvec_axpy (const REAL a,
      *
      * \param a   REAL scalar number
      * \param x   Pointer to dvector x
-     * \param y   Pointer to dvector y
+     * \param y   Pointer to dvector y (OUTPUT)
      *
      */
     
     INT i, m=x->row;
-    REAL *xpt=x->val, *ypt=y->val;
     
     if ((y->row-m)!=0) {
         printf("### WARNING HAZMATH DANGER in function %s: Two vectors have different lengths!\n", __FUNCTION__);
@@ -443,7 +443,15 @@ void dvec_axpy (const REAL a,
         printf("Only first %d entries will be computed!!\n", m);
     }
     
-    for (i=0; i<m; ++i) ypt[i] += a*xpt[i];
+    if (a==1.0){
+        for (i=0; i<m; ++i) y->val[i] += x->val[i];
+    }
+    else if(a==-1.0){
+        for (i=0; i<m; ++i) y->val[i] -= x->val[i];
+    }
+    else {
+        for (i=0; i<m; ++i) y->val[i] += a*x->val[i];
+    }
     
 }
 
@@ -462,14 +470,13 @@ void dvec_axpyz(const REAL a,
      * \param a   REAL factor a
      * \param x   Pointer to dvector x
      * \param y   Pointer to dvector y
-     * \param z   Pointer to dvector z
+     * \param z   Pointer to dvector z (OUTPUT)
      *
      * \note Memory of the dvector z shoule be allocated before calling this function -- Xiaozhe
      *
      */
 
     INT m=x->row;
-    REAL *xpt=x->val, *ypt=y->val, *zpt=z->val;
     
     if ((y->row-m)!=0) {
         printf("### WARNING HAZMATH DANGER in function %s: Two vectors have different lengths!\n", __FUNCTION__);
@@ -479,8 +486,8 @@ void dvec_axpyz(const REAL a,
     
     z->row = m;
 
-    memcpy(zpt, ypt, m*sizeof(REAL));
-    array_axpy(m, a, xpt, zpt);
+    memcpy(z->val, y->val, m*sizeof(REAL));
+    array_axpy(m, a, x->val, z->val);
 
 }
 
@@ -496,14 +503,12 @@ REAL dvec_dotprod (dvector *x,
      * \param x   Pointer to dvector x
      * \param y   Pointer to dvector y
      *
-     * \return Inner product of x and y
+     * \return Inner product of x and y: (x,y)
      *
      */
     
     REAL value=0;
-    INT i;
-    INT length=x->row;
-    REAL *xpt=x->val, *ypt=y->val;
+    INT i, length=x->row;
 
     if ((y->row-length)!=0) {
         printf("### WARNING HAZMATH DANGER in function %s: Two vectors have different lengths!\n", __FUNCTION__);
@@ -511,7 +516,7 @@ REAL dvec_dotprod (dvector *x,
         printf("Only first %d entries will be computed!!\n", length);
     }
     
-    for (i=0; i<length; ++i) value+=xpt[i]*ypt[i];
+    for (i=0; i<length; ++i) value+=x->val[i]*y->val[i];
     
     return value;
 }
@@ -537,7 +542,6 @@ REAL dvec_relerr (dvector *x,
     REAL diff=0, temp=0;
     INT i;
     INT length=x->row;
-    REAL *xpt=x->val, *ypt=y->val;
     
     if (length!=y->row) {
         printf("### WARNING HAZMATH DANGER in function %s: Two vectors have different lengths!\n", __FUNCTION__);
@@ -546,8 +550,8 @@ REAL dvec_relerr (dvector *x,
     }
     
     for (i=0;i<length;++i) {
-        temp += xpt[i]*xpt[i];
-        diff += pow(xpt[i]-ypt[i],2);
+        temp += x->val[i]*x->val[i];
+        diff += pow(x->val[i]-y->val[i],2);
     }
     
     return sqrt(diff/temp);
@@ -570,9 +574,8 @@ REAL dvec_norm1 (dvector *x)
     REAL onenorm=0;
     INT i;
     const INT length=x->row;
-    REAL *xpt=x->val;
     
-    for (i=0;i<length;++i) onenorm+=ABS(xpt[i]);
+    for (i=0;i<length;++i) onenorm+=ABS(x->val[i]);
     
     return onenorm;
 }
@@ -594,9 +597,8 @@ REAL dvec_norm2 (dvector *x)
     REAL twonorm=0;
     INT i;
     const INT length=x->row;
-    REAL *xpt=x->val;
     
-    for (i=0;i<length;++i) twonorm+=xpt[i]*xpt[i];
+    for (i=0;i<length;++i) twonorm+=x->val[i]*x->val[i];
     
     return sqrt(twonorm);
 }
@@ -617,11 +619,9 @@ REAL dvec_norminf (dvector *x)
     
     INT i;
     const INT length=x->row;
-    REAL *xpt=x->val;
-    
     register REAL infnorm=0;
     
-    for (i=0;i<length;++i) infnorm=MAX(infnorm,ABS(xpt[i]));
+    for (i=0;i<length;++i) infnorm=MAX(infnorm,ABS(x->val[i]));
     
     return infnorm;
 }

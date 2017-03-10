@@ -188,14 +188,11 @@ void check_error (const SHORT status,
   case ERROR_DUMMY_VAR:
     printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- Unexpected input argument !!!\n\n", func_name);
     break;
-  case ERROR_AMG_INTERP_TYPE:
-    printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- Unknown AMG interpolation type !!!\n\n", func_name);
-    break;
-  case ERROR_AMG_COARSE_TYPE:
-    printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- Unknown AMG coarsening type !!!\n\n", func_name);
-    break;
   case ERROR_AMG_SMOOTH_TYPE:
     printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- Unknown AMG smoother type !!!\n\n", func_name);
+    break;
+  case ERROR_AMG_AGG_TYPE:
+    printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- Unknown AMG aggregation type !!!\n\n", func_name);
     break;
   case ERROR_SOLVER_TYPE:
     printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- Unknown solver type !!!\n\n", func_name);
