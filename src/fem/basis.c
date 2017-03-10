@@ -919,7 +919,6 @@ void bubble_face_basis(REAL *phi, REAL *dphi, REAL *x, INT *v_on_elm, INT *dof, 
   if(dim==2){
     for (i=0;i<dof_per_elm;i++) {
       get_incidence_row(dof[i]-1,mesh->f_v,fv);
-      printf("HERE1\n");
       // Find orientation of face
       for(j=0;j<v_per_elm;j++){
         elnd = v_on_elm[j];
@@ -930,19 +929,10 @@ void bubble_face_basis(REAL *phi, REAL *dphi, REAL *x, INT *v_on_elm, INT *dof, 
           ef2 = j;
         }
       }
-      printf("HERE2\n");
       
       // Multiply basis function by normal vector
-      printf("dof[i]=%d\n",dof[i]);
-      printf("i=%d\n",i);
-      printf("dim=%d\n",dim);
-      printf("normx = %f\n",mesh->f_norm[dim*(dof[i]-1)]);
-      printf("elnd = %d\n",elnd);
-      printf("fv[0] = %d\n",fv[0]);
-      printf("fv[1] = %d\n",fv[1]);
       phi[i*dim] = mesh->f_norm[dim*(dof[i]-1)] * 4*p[ef1]*p[ef2];
       phi[i*dim+1] = mesh->f_norm[dim*(dof[i]-1)+1] * 4*p[ef1]*p[ef2];
-      printf("HERE3\n");
 
       // Gradient
       for(j=0;j<dim;j++) {
@@ -951,7 +941,6 @@ void bubble_face_basis(REAL *phi, REAL *dphi, REAL *x, INT *v_on_elm, INT *dof, 
         dphi[i*dim*dim + j*dim + 0] = gradp * mesh->f_norm[dim*(dof[i]-1)+0];
         dphi[i*dim*dim + j*dim + 1] = gradp * mesh->f_norm[dim*(dof[i]-1)+1];
       }
-      printf("HERE4\n");
 
     }
   } else if(dim==3) {
