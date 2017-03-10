@@ -1,49 +1,64 @@
-/*(1994-02-02) --ltz 
 
-Does Schur product for P1+EAFE for discretizing 
+#include "hazmath.h"
 
--div (a(x) grad(u) + (b . u))
+static REAL bernoulli(const REAL z)
+{
+  // returns B(z) = z/(exp(z)-1)
+  double tolb=1e-12,zlarge=256e+0;  
+  if (fabs(z) < tolb)
+    return (1.-z*0.5); // around 0 this is the asymptotic;
+  else if(z<zlarge)
+    return (z/(exp(z)-1.));
+  else //z>tlarge this is zero pretty much
+    return 0.;
+}
 
-*/
-void SchurProduct(const coordinates xyz, const INT dim, \
+static void poisson_coeff(REAL *val,REAL* x, REAL t) {
+  // a(x)
+  *val = 1.0;
+  return;
+}
+
+void SchurProduct(const trimesh mesh,					\
+		  void (*diffusion)(REAL *, REAL *, REAL),		\
+		  void (*advection_vector)(REAL *, REAL *, REAL),	\
 		  dCSRmat A, dvector dmass)
 {
-  INT i,j,jk,nrow=Ain.Size();
-  INT* ia=A.IA,ja=A.JA ;
-  REAL* a=A.val;
-  dector diag0;
-  diag0.row=xy.n;
+  INT i,j,jk,nv=mesh.nv,dim=mesh.dim;
+  INT *ia=A.IA, *ja=A.JA ;
+  REAL *a=A.val;
+  coordinates *xyz=mesh.cv;
+  dvector diag0;
+  diag0.row=xyz->n;
   diag0.val=(REAL *)calloc(nv,sizeof(REAL));
-  for (i=0;i<nv;i++){
-    diag0.val[i]=0.;
-  }     
+  for (i=0;i<nv;i++) diag0.val[i]=0.;
   REAL advcoeff[dim], xmid[dim],te[dim];
   REAL xi,yi,zi,xj,yj,zj,bte,bern,alpe;
-  for (i = 0; i < nrow; i++) {
-    xi=xyz.x[i];
-    yi=xyz.y[i];
-    zi=xyz.z[i];
-    for (jk=I[i]; jk<I[i+1]; jk++){
-      j=J[jk]; 
+  for (i = 0; i < nv; i++) {
+    xi=xyz->x[i];
+    yi=xyz->y[i];
+    zi=xyz->z[i];
+    for (jk=ia[i]; jk<ia[i+1]; jk++){
+      j=ja[jk]; 
       if(i != j){
-	xj=xyz.x[j];
-	yj=xyz.y[j];
-	zj=xyz.z[j];
+	xj=xyz->x[j];
+	yj=xyz->y[j];
+	zj=xyz->z[j];
 	// compute the advection field at the middle of the edge and
 	// then the bernoulli function
 	te[0]  = xi - xj;
-	te[1]  =  yi - yj;
+	te[1]  = yi - yj;
 	te[2]  = zi - zj;
 	xmid[0] = (xi + xj)*0.5e+0;
 	xmid[1] = (yi + yj)*0.5e+0;
 	xmid[2] = (zi + zj)*0.5e+0;
-	advect(xmid,advcoeff);
+	advection_vector(advcoeff,xmid,0.0);
 	//	  bte = (beta*t_e); //c++ overloaded "*" s..t we can multiply these...
 	//	  I do it the old way, unrolled it is faster
 	bte = advcoeff[0]*te[0]+ advcoeff[1]*te[1]+ advcoeff[2]*te[2];
 	///
 	// diffusion coefficient for the flux J = a(x)\nabla u + \beta u;
-	diffusion_coeff(&alpe,xmid);
+	diffusion(&alpe,xmid,0.0);
 	//	  xmid.Print(std::cout,3);
 	//	  std::cout << "alpe = "<<alpe<<"; bte="<< bte<<std::endl<<std::flush;      
 	// alpe=a(xmid)\approx harmonic_average=|e|/(int_e 1/a);
@@ -54,237 +69,65 @@ void SchurProduct(const coordinates xyz, const INT dim, \
 	//     is because t_e=i-j;
 	a[jk] *= (alpe*(bernoulli(bte/alpe))); 
 	// the diagonal is equal to the negative column sum;
-	diag0[j]-=a[jk];
+	diag0.val[j]-=a[jk];
       }
     } 
   }
   // Another loop to set up the diagonal equal to the negative column sum;
-  for (i = 0; i < nrow; i++) 
+  for (i = 0; i < nv; i++) 
     for (jk=ia[i]; jk<ia[i+1]; jk++){
       j = ja[jk]; 
       if(i == j) a[jk]=diag0.val[i]+dmass.val[i];
     }
+  return;
 }
-};
-///
-void LumpMassBndry(const INT dim, const INT bndry_robin,
+/**/
+void LumpMassBndry(const trimesh mesh, const INT bndry_marker,
 		   dvector dmass, dvector rhs) 
 {
-  //calculates boundary integral using lumped mass. 
-  INT i, j,k,nve,attri;
-  Element *el=NULL;
-  INT *node=NULL;
-  REAL v[3],w[3],sixth=1./6.,voltri=1e10,distz=0e0, bnormal[dim],xyz[dim];
-
-  fprintf(stdout,"NumOfBdrElements =%i\n",NumOfBdrElements);
-  for (i = 0; i < NumOfBdrElements; i++)   {
-    el=boundary[i];
-    nve = el->GetNVertices();
-    node = el->GetVertices();
-    attri = el->GetAttribute(); //top=6.
-    // we only look at the top bounddary
-    //    distz=0e0;
-    //    for (j=0; j<nve; ++j){
-    //      distz+=fabs(vertices[node[j]](2)-tN);
-    //    }
-    //    if(distz>1e-12)continue;
-    if(attri != bndry_robin)continue;
-    for(j=0;j<dim;j++) {
-      v[j]=vertices[node[1]](j)-vertices[node[0]](j);
-      w[j]=vertices[node[2]](j)-vertices[node[0]](j);
-    }
-    voltri = (v[1] * w[2]-v[2]*w[1])*(v[1] * w[2]-v[2]*w[1]);
-    voltri += (v[2]*w[0]-v[0]*w[2])*(v[2]*w[0]-v[0]*w[2]);
-    voltri+=  (v[0] * w[1]-v[1] * w[0])* (v[0] * w[1]-v[1] * w[0]);
-    voltri=sixth*pow(voltri,0.5);
-    // std::cout << " ==================area= "<< voltri*3.<<std::endl;
-    // for (j=0; j<nve; ++j){
-    //   std::cout <<" vert"<<j+1<<"="<<node[j]+1<<"(";
-    //   for (k=0; k<dim; ++k){
-    // 	std::cout <<  vertices[node[j]](k);
-    // 	if(k<dim-1) std::cout<<",";  else std::cout<<")"<<std::endl;
-    //   }
-    // }
-    // this should only be added for vertices interior to the boundary at t=T or z=T;
-    for (j=0;j<nve;j++){
-      xyz[0]=vertices[node[j]](0);
-      xyz[1]=vertices[node[j]](1);
-      xyz[2]=vertices[node[j]](2);
-      advectEAFE(xyz,bnormal);
-      // bnormal is b*normal=b\cdot (0,0,1); 
-      dmass[node[j]]-=voltri * (bnormal[2]*eps0);      
-      rhs[node[j]] += voltri * standard_n_rhs(xyz); 
-    }
-  }
-}
-///
-INT main(INT argc, char *argv[])
-{
-  INT i,j;//ltz
-   // 1. Parse command-line options.
-   EAFE doEAFE;
-   OptionsParser args(argc, argv);
-   args.AddOption(&mesh_file, "-m", "--mesh",
-                  "Mesh file to use.");
-   args.AddOption(&order, "-o", "--order",
-                  "Finite element order (polynomial degree) or -1 for"
-                  " isoparametric space.");
-   args.AddOption(&visualization, "-vis", "--visualization", "-no-vis",
-                  "--no-visualization",
-                  "Enable or disable GLVis visualization.");
-   args.Parse();
-   if (!args.Good())
-   {
-      args.PrintUsage(cout);
-      return 1;
-   }
-   args.PrintOptions(cout);
-
-   // 2. Read the mesh from the given mesh file. We can handle triangular,
-   //    quadrilateral, tetrahedral, hexahedral, surface and volume meshes with
-   //    the same code.
-   Mesh *mesh;
-   ifstream imesh(mesh_file);
-   if (!imesh)
-   {
-      cerr << "\nCan not open mesh file: " << mesh_file << '\n' << endl;
-      return 2;
-   }
-   mesh = new Mesh(imesh, 1, 1, 0);
-   imesh.close();
-   INT dim = mesh->Dimension();
-
-   // 3. Refine the mesh to increase the resolution. In this example we do
-   //    'ref_levels' of uniform refinement. We choose 'ref_levels' to be the
-   //    largest number that gives a final mesh with no more than 50,000
-   //    elements.
-   {
-     // ref_levels is in constnts.hpp
-      for (INT l = 0; l < ref_levels; l++)
-         mesh->UniformRefinement();
-   }
-   // 4. Define a finite element space on the mesh. Here we use continuous
-   //    Lagrange finite elements of the specified order. If order < 1, we
-   //    instead use an isoparametric/isogeometric space.
-   FiniteElementCollection *fec;
-   if (order > 0)
-      fec = new H1_FECollection(order, dim);
-   else if (mesh->GetNodes())
-      fec = mesh->GetNodes()->OwnFEC();
-   else
-      fec = new H1_FECollection(order = 1, dim);
-   // scalar.
-   FiniteElementSpace *fespace = new FiniteElementSpace(mesh, fec);
-   // For the vector field.
-   std::cout << "Number of unknowns: " << fespace->GetVSize() << std::endl;
-
-   // 5. Set up the linear form b(.) which corresponds to the right-hand side of
-   //    the FEM linear system, which in this case is (1,phi_i) where phi_i are
-   //    the basis functions in the finite element fespace.
-   LinearForm *b = new LinearForm(fespace);
-   //   ConstantCoefficient one(1.0);
-   FunctionCoefficient fabc(f_rhs);
-   b->AddDomainIntegrator(new DomainLFIntegrator(fabc));
-   b->Assemble();
-   // 6. Define the solution vector x as a finite element grid function
-   //    corresponding to fespace. Initialize x with initial guess of zero,
-   //    which satisfies the boundary conditions.
-   GridFunction x(fespace);
-   x = 0.0;
-   FunctionCoefficient uabc(u_exact);
-
-   // 7. Set up the bilinear form a(.,.) on the finite element space
-   //    corresponding to the Laplacian operator -Delta, by adding the Diffusion
-   //    domain integrator and imposing homogeneous Dirichlet boundary
-   //    conditions. The boundary conditions are implemented by marking all the
-   //    boundary attributes from the mesh as essential (Dirichlet). After
-   //    assembly and finalizing we extract the corresponding sparse matrix A.
-   BilinearForm *a = new BilinearForm(fespace);
-   MatrixFunctionCoefficient KDiff(dim,DiffusionTensorEAFE);
-   a->AddDomainIntegrator(new DiffusionIntegrator(KDiff));
-   //a->AddDomainIntegrator(new DiffusionIntegrator(one));
-   a->Assemble(0);
-   Array<int> ess_bdr(mesh->bdr_attributes.Max());
-   ess_bdr = 1;
-   ess_bdr[6-1]=0; //make anything with attribute 6 to be like
-		   //interior pt.
-   a->Finalize(1);
-   //   No constants; original: const SparseMatrix &A = a->SpMat();
-   SparseMatrix &A = a->SpMat(); 
-   Vector dmass(mesh->GetNV());
-   mesh->LumpMassBndry(dim, 6, dmass, *b);
-   doEAFE.SchurProduct(*mesh, dim,  A, dmass);
-   x.ProjectBdrCoefficient(uabc,ess_bdr);
-   a->EliminateEssentialBC(ess_bdr, x, *b); // *b is then a vector
-  ////////////////////////////////////////////////////
-  // if size is small, then open a stream and write the matrix, the
-  // rhs and the umfpack (exact) solution to the linear system.
-  /////////////////////
-   //  int myn=A.Size();
-  // if(myn < 5000) {
-  //   std::fstream fp;
-  //   fp.open ("a_mfem.dat",std::fstream::out);
-  //   (a->SpMat()).zPrintCSR(fp,1);
-  //   fp.close();
-  //   fp.open ("bx_mfem.dat",std::fstream::out);
-  //   b->zPrint(fp);
-  //   x.zPrint(fp);
-  //   fp.close();
-  // }
-  ///////////////////////
-  int myn=A.Size();
-#ifndef MFEM_USE_SUITESPARSE
-  INT *ia=A.GetI();
-  INT *ja=A.GetJ(); 
-  REAL *a01=A.GetData();
-  REAL *zrhs=b->GetData();
-  // use now multigraph
-  std::cout<<" *** Starting multigraph Solver" <<std::endl;
-  /* 
-  //uncomment if you want to print the matrix as (i,j,v) on a file file:  
-     zwrijv(ia, ja, a01, &myn,  &myn,"symm_ref5_sldi.coo");
+  //calculates boundary integral using lumped mass.
+  /* For an equation in divergence form, the natural boundary condition is
+   \grad u . n + (b . n)u=g; 
   */
-  mgraph(ia, ja, a01, &myn,zrhs, x, NULL);
-#else
-   // 8. If MFEM was compiled with SuiteSparse, use UMFPACK to solve the system.
-   UMFPackSolver umf_solver;
-   //   umf_solver.Control[UMFPACK_ORDERING] = UMFPACK_ORDERING_BEST;
-   umf_solver.SetOperator(A);
-   umf_solver.Mult(*b, x);
-#endif
-
-   // 9. Save the refined mesh and the solution. This output can be viewed later
-   //    using GLVis: "glvis -m refined.mesh -g sol.gf".
-   std::cout << std::setw(10) << "EAFE: ref_levels= " << ref_levels	\
-	     << "; Ndofs= " 						\
-	     << fespace->GetVSize()				\
-	     << "; E(L2)= "<< std::setprecision(3)		\
-	     << std::scientific					\
-	     << x.ComputeL2Error(uabc) << std::endl;
-   if(myn<50000) {
-    ofstream mesh_ofs("refined.mesh");
-    mesh_ofs.precision(8);
-    mesh->Print(mesh_ofs);
-    ofstream sol_ofs("sol.gf");
-    sol_ofs.precision(8);
-    x.Save(sol_ofs);
-    // 10. Send the solution by socket to a GLVis server.
-    if (visualization)
-      {
-	char vishost[] = "localhost";
-	int  visport   = 19916;
-	socketstream sol_sock(vishost, visport);
-	sol_sock.precision(8);
-	sol_sock << "solution\n" << *mesh << x << flush;
-      }
+  INT i, j,k,nve,attri,node=-16;
+  REAL sixth=1./6.,voltri=1e10,distz=0e0;
+  /* mesh entities */
+  INT ns = mesh.nelm,nv=mesh.nv,dim=mesh.dim; /* ns=number of simplices of highest dimension*/
+  coordinates *xyz = mesh.cv;
+  REAL bnormal[dim],xyzb[dim];
+  INT *f2v=mesh.f_v; /* face to vertex map as iCSR */
+  INT *fonb=mesh.f_bdry; /* boundary markers for every face */
+  INT *fa=mesh.f_area; /* areas of faces */
+  INT nf=mesh.nface,nfb=mesh.nbface;
+  fprintf(stdout,"Num Of Bdr Elements =%i\n",nfb);
+  if(dim==2) {
+    nf=nedge;
+    nfb=mesh.nbedge;
+    f2v=mesh.ed_v;
+    fonb=mesh.ed_bdry;
+    fa=mesh.ed_len;
   }
-   // 11. Free the used memory.
-   delete a;
-   delete b;
-   delete fespace;
-   if (order > 0)
-      delete fec;
-   delete mesh;
-   return 0;
+  for (i = 0; i < nf; i++)   {
+    attri=fonb[i];
+    if(attri != bndry_marker)continue;
+    voltri=fa[i];
+    voltri=sixth*pow(voltri,0.5);
+    xyzb[0]=xyz.x[i];
+    xyzb[1]=xyz.y[i];
+    if(dim>2)
+      xyzb[2]=xyz.z[i];
+    //    ifstrat = f2v->IA[i]-1;
+    //    ifend =   f2v->IA[i+1]-1;
+    // advection(xyzb,bnormal);
+    // bnormal is b*normal=b\cdot (0,0,1); 
+    //dmass[node[j]]-=voltri * bnormal[2];
+    ifa=f2v->IA[i]-1;
+    ifb=f2v->IA[i+1]-1;
+    rhsi = rhs_neumann(xyzb);
+    for(k=ifa;k<ifb;k++){
+      j=f2v->JA[k];
+      rhs[j] += voltri * rhsi;
+    }
+  }
+  return;
 }
-///////////////////////////////

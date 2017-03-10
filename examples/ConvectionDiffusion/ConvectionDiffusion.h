@@ -13,6 +13,7 @@ void diffusion_coeff(REAL *val,REAL* x, REAL t) {
   return;
 }
 
+
 // Exact Solution (if you have one)
 // Change as needed for different dimensions
 void exactsol(REAL *val,REAL* x, REAL t) {
@@ -27,24 +28,13 @@ void exactsol(REAL *val,REAL* x, REAL t) {
   return;
 }
 
-void advection(REAL* x, REAL *advcoeff, REAL t) {
-  advcoeff[0] = 1e2; // or beta_1(x)
-  advcoeff[1] = 0.; // or beta_2(x)
-  advcoeff[2] = -1.; // or beta_3(x)
+void advection(REAL *val, REAL *x,REAL t) {
+  val[0] = 1e2; // or beta_1(x)
+  val[1] = 0.; // or beta_2(x)
+  val[2] = -1.; // or beta_3(x)
   return;
 }
 
-REAL bernoulli(const REAL z)
-{
-  // returns B(z) = z/(exp(z)-1)
-  double tolb=1e-12,zlarge=256e+0;  
-  if (fabs(z) < tolb)
-    return (1.-z*0.5); // around 0 this is the asymptotic;
-  else if(z<zlarge)
-    return (z/(exp(z)-1.));
-  else //z>tlarge this is zero pretty much
-    return 0.;
-}
 // Right-hand Side
 void myrhs(REAL *val,REAL* x, REAL t) {
   *val = 0.0;
