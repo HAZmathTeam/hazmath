@@ -69,9 +69,6 @@ typedef struct {
     //! pointer to the numerical factorization from UMFPACK
     void *Numeric;
     
-    //! pointer to the CF marker at level level_num
-    ivector cfmark;
-
     //! dimension of the near kernel for SAMG
     INT near_kernel_dim;
     
@@ -81,10 +78,7 @@ typedef struct {
     // Smoother order information    
     //! Temporary work space
     dvector w;
-    
-    //! data for MUMPS
-    // Mumps_data mumps;
-    
+        
     //! cycle type
     INT cycle_type;
     
@@ -106,13 +100,13 @@ typedef struct {
     SHORT print_level;
     
     //! max number of iterations of AMG preconditioner
-    INT maxit;
+    INT   maxit;
     
     //! max number of AMG levels
     SHORT max_levels;
     
     //! tolerance for AMG preconditioner
-    REAL tol;
+    REAL  tol;
     
     //! AMG cycle type
     SHORT cycle_type;
@@ -131,10 +125,7 @@ typedef struct {
     
     //! degree of the polynomial smoother
     SHORT polynomial_degree;
-    
-    //! switch of scaling of the coarse grid correction
-    SHORT coarsening_type;
-    
+
     //! coarse solver type for AMG
     SHORT coarse_solver;
     

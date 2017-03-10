@@ -30,12 +30,6 @@
 #
 # shared=yes
 #
-# You may use multithread version after you enable OpenMP support. To
-# setup the environment, you need 
-#  >> export OMP_NUM_THREADS=4 (for bash)
-#  >> setenv OMP_NUM_THREADS 4 (for tcsh)
-# If you want to compile with OpenMP support, uncomment the next line:
-#
 # openmp=yes
 #
 # These user options can also be applied as make command line options.

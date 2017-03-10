@@ -117,13 +117,6 @@ static SHORT amg_setup_unsmoothP_unsmoothR (AMG_data *mgl,
     /*----------------------------*/
     /*--- checking aggregation ---*/
     /*----------------------------*/
-    
-    // Pairwise matching algorithm requires diagonal preference ordering
-    if ( param->aggregation_type == PAIRWISE ) {
-        param->pair_number = MIN(param->pair_number, max_levels);
-        dcsr_diagpref(&mgl[0].A);
-    }
-    
     // Main AMG setup loop
     while ( (mgl[lvl].A.row > min_cdof) && (lvl < max_levels-1) ) {
         
@@ -135,27 +128,26 @@ static SHORT amg_setup_unsmoothP_unsmoothR (AMG_data *mgl,
                 status = aggregation_vmb(&mgl[lvl].A, &vertices[lvl], param,
                                          lvl+1, &Neighbor[lvl], &num_aggs[lvl]);
                 
-                /*-- Choose strength threshold adaptively --*/
-                if ( num_aggs[lvl]*4 > mgl[lvl].A.row )
-                    param->strong_coupled /= 2;
-                else if ( num_aggs[lvl]*1.25 < mgl[lvl].A.row )
-                    param->strong_coupled *= 2;
-                
                 break;
                 
-            default: // pairwise matching aggregation
+            default: // wrong aggregation type
                 
-                status = aggregation_pairwise(mgl, param, lvl, vertices,
-                                              &num_aggs[lvl]);
-                
+                status = ERROR_AMG_AGG_TYPE;
+                check_error(ERROR_AMG_AGG_TYPE, __FUNCTION__);
                 break;
         }
         
+        /*-- Choose strength threshold adaptively --*/
+        if ( num_aggs[lvl]*4 > mgl[lvl].A.row )
+            param->strong_coupled /= 2;
+        else if ( num_aggs[lvl]*1.25 < mgl[lvl].A.row )
+            param->strong_coupled *= 2;
+
         // Check 1: Did coarsening step succeed?
         if ( status < 0 ) {
             // When error happens, stop at the current multigrid level!
             if ( prtlvl > PRINT_MIN ) {
-                printf("### WARNING: Forming aggregates on level-%d failed!\n", lvl);
+                printf("### HAZMATH WARNING: Forming aggregates on level-%d failed!\n", lvl);
             }
             status = SUCCESS; break;
         }
@@ -168,14 +160,16 @@ static SHORT amg_setup_unsmoothP_unsmoothR (AMG_data *mgl,
         if ( mgl[lvl].P.col < MIN_CDOF ) break;
         
         // Check 3: Does this coarsening step too aggressive?
+#if 0
         if ( mgl[lvl].P.row > mgl[lvl].P.col * MAX_CRATE ) {
             if ( prtlvl > PRINT_MIN ) {
-                printf("### WARNING: Coarsening might be too aggressive!\n");
-                printf("### WARNING: Fine level = %d, coarse level = %d. Discard!\n",
+                printf("### HAZMATH WARNING: Coarsening might be too aggressive!\n");
+                printf("### HAZMATH: Fine level = %d, coarse level = %d. Discard!\n",
                        mgl[lvl].P.row, mgl[lvl].P.col);
             }
             break;
         }
+#endif
         
         // Check 4: Is this coarsening ratio too small?
 #if 0
@@ -188,7 +182,6 @@ static SHORT amg_setup_unsmoothP_unsmoothR (AMG_data *mgl,
             break;
         }
 #endif
-        if ( (REAL)mgl[lvl].P.col > mgl[lvl].P.row * MIN_CRATE ) param->quality_bound *= 2.0; 
         
         /*-- Form restriction --*/
         dcsr_trans(&mgl[lvl].P, &mgl[lvl].R);

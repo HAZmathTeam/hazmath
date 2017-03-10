@@ -50,9 +50,8 @@
 #define ERROR_DATA_ZERODIAG   -22  /**< matrix has zero diagonal entries */
 #define ERROR_DUMMY_VAR       -23  /**< unexpected input data */
 //---------------------------------------------------------------------------------
-#define ERROR_AMG_INTERP_TYPE -30  /**< unknown interpolation type */
 #define ERROR_AMG_SMOOTH_TYPE -31  /**< unknown smoother type */
-#define ERROR_AMG_COARSE_TYPE -32  /**< unknown coarsening type */
+#define ERROR_AMG_AGG_TYPE    -32  /**< unknown aggregation type */
 #define ERROR_AMG_COARSEING   -33  /**< coarsening step failed to complete */
 //---------------------------------------------------------------------------------
 #define ERROR_SOLVER_TYPE     -40  /**< unknown solver type */
@@ -118,7 +117,6 @@
 #define SOLVER_GCR              6  /**< Generalized Conjugate Residual */
 //---------------------------------------------------------------------------------
 #define SOLVER_AMG             21  /**< AMG as an iterative solver */
-#define SOLVER_FMG             22  /**< Full AMG as an solver */
 //---------------------------------------------------------------------------------
 #define SOLVER_UMFPACK         32  /**< UMFPack Direct Solver */
 
@@ -135,7 +133,6 @@
 #define PREC_NULL               0  /**< with no precond */
 #define PREC_DIAG               1  /**< with diagonal precond */
 #define PREC_AMG                2  /**< with AMG precond */
-#define PREC_FMG                3  /**< with full AMG precond */
 #define PREC_HX_CURL_A          6  /**< with additive HX preconditioner for H(curl) problem */
 #define PREC_HX_CURL_M          7  /**< with multiplicative HX preconditioner for H(curl) problem */
 
@@ -147,8 +144,10 @@
 /**
  * \brief Definition of aggregation types
  */
-#define PAIRWISE                1  /**< pairwise aggregation */
-#define VMB                     2  /**< VMB aggregation */
+#define VMB                     1  /**< VMB aggregation */
+#define MIS                     2  /**< MIS aggregation */
+#define MWM                     3  /**< Maximal Weighted Matching aggregation */
+#define HEC                     4  /**< Hearvy Edge Coarsening aggregation */
 
 /**
  * \brief Definition of cycle types
@@ -173,18 +172,13 @@
 #define SMOOTHER_L1DIAG        10  /**< L1 norm diagonal scaling smoother */
 
 /**
- * \brief Definition of coarsening types
- */
-#define COARSE_MIS              5  /**< Aggressive coarsening based on MIS */
-
-/**
  * \brief Type of vertices (DOFs) for coarsening
  */
-#define G0PT                   -5  /**< Cannot fit in aggregates */
+//#define G0PT                   -5  /**< Cannot fit in aggregates */
 #define UNPT                   -1  /**< Undetermined points */
-#define FGPT                    0  /**< Fine grid points  */
-#define CGPT                    1  /**< Coarse grid points */
-#define ISPT                    2  /**< Isolated points */
+//#define FGPT                    0  /**< Fine grid points  */
+//#define CGPT                    1  /**< Coarse grid points */
+//#define ISPT                    2  /**< Isolated points */
 
 
 /**

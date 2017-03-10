@@ -53,7 +53,7 @@ typedef struct {
     //----------------------------
     // nonlinear solver parameters
     //----------------------------
-    INT nonlinear_itsolver_type;      /**< type of nonlinear solver */
+    INT  nonlinear_itsolver_type;      /**< type of nonlinear solver */
     INT  nonlinear_itsolver_maxit;   /**< maximal iterations of nonlinear solver*/
     REAL nonlinear_itsolver_tol;    /**< tolerance for nonlinear solver */
     INT  nonlinear_itsolver_toltype; /**< type of stopping tolerance for nonlinear solver */
@@ -90,11 +90,9 @@ typedef struct {
 
     // Unsmoothed Aggregation AMG (UA AMG)
     SHORT AMG_aggregation_type;    /**< aggregation type */
-    REAL AMG_strong_coupled;       /**< strong coupled threshold for aggregate */
-    INT AMG_max_aggregation;       /**< max size of each aggregate */
-    INT AMG_pair_number;           /**< number of pairs in matching algorithm */
-    REAL AMG_quality_bound;        /**< threshold for pair wise aggregation */
-    
+    REAL  AMG_strong_coupled;       /**< strong coupled threshold for aggregate */
+    INT   AMG_max_aggregation;       /**< max size of each aggregate */
+
     // HX preconditioner
     SHORT HX_smooth_iter;            /**< number of smoothing */
     
@@ -148,10 +146,7 @@ typedef struct {
     
     //! type of AMG cycle
     SHORT cycle_type;
-    
-    //! quality threshold for pairwise aggregation
-    REAL quality_bound;
-    
+       
     //! smoother type
     SHORT smoother;
        
@@ -184,10 +179,7 @@ typedef struct {
     
     //! aggregation type
     SHORT aggregation_type;
-       
-    //! number of pairwise matchings
-    INT pair_number;
-    
+           
     //! strong coupled threshold for aggregate
     REAL strong_coupled;
     

@@ -478,28 +478,6 @@ void param_input (const char *filenm,
             fgets(buffer,500,fp); // skip rest of line
         }
         
-        else if (strcmp(buffer,"AMG_pair_number")==0) {
-            val = fscanf(fp,"%s",buffer);
-            if (val!=1 || strcmp(buffer,"=")!=0) {
-                status = ERROR_INPUT_PAR; break;
-            }
-            val = fscanf(fp,"%d",&ibuff);
-            if (val!=1) { status = ERROR_INPUT_PAR; break; }
-            inparam->AMG_pair_number = ibuff;
-            fgets(buffer,500,fp); // skip rest of line
-        }
-        
-        else if (strcmp(buffer,"AMG_quality_bound")==0) {
-            val = fscanf(fp,"%s",buffer);
-            if (val!=1 || strcmp(buffer,"=")!=0) {
-                status = ERROR_INPUT_PAR; break;
-            }
-            val = fscanf(fp,"%lf",&dbuff);
-            if (val!=1) { status = ERROR_INPUT_PAR; break; }
-            inparam->AMG_quality_bound = dbuff;
-            fgets(buffer,500,fp); // skip rest of line
-        }
-        
         else if (strcmp(buffer,"AMG_strong_coupled")==0) {
             val = fscanf(fp,"%s",buffer);
             if (val!=1 || strcmp(buffer,"=")!=0) {
