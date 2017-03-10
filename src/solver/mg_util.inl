@@ -10,30 +10,27 @@
 /*---------------------------------*/
 /*--      Private Functions      --*/
 /*---------------------------------*/
-
-
+/**
+ * \fn static void coarse_itsolver (dCSRmat *A, dvector *b, dvector *x,
+ *                                       const REAL ctol, const SHORT prt_lvl)
+ *
+ * \brief Iterative on the coarset level
+ *
+ * \param  A         pointer to matrix data
+ * \param  b         pointer to rhs data
+ * \param  x         pointer to sol data
+ * \param  ctol      tolerance for the coarsest level
+ * \param  prt_lvl   level of output
+ *
+ * \author Chensong Zhang
+ * \date   01/10/2012
+ */
 static void coarse_itsolver (dCSRmat *A,
                                   dvector *b,
                                   dvector *x,
                                   const REAL ctol,
                                   const SHORT prt_lvl)
-{
-    /**
-     * \fn static void coarse_itsolver (dCSRmat *A, dvector *b, dvector *x,
-     *                                       const REAL ctol, const SHORT prt_lvl)
-     *
-     * \brief Iterative on the coarset level
-     *
-     * \param  A         pointer to matrix data
-     * \param  b         pointer to rhs data
-     * \param  x         pointer to sol data
-     * \param  ctol      tolerance for the coarsest level
-     * \param  prt_lvl   level of output
-     *
-     * \author Chensong Zhang
-     * \date   01/10/2012
-     */
-    
+{ 
     const INT n = A->row;
     const INT maxit = MAX(250,MIN(n*n, 1000)); // Should NOT be less!
 
@@ -49,7 +46,32 @@ static void coarse_itsolver (dCSRmat *A,
     }
 }
 
-
+/**
+ * \fn static void dcsr_presmoothing (const SHORT smoother, dCSRmat *A,
+ *                                         dvector *b, dvector *x,
+ *                                         const INT nsweeps, const INT istart,
+ *                                         const INT iend, const INT istep,
+ *                                         const REAL relax, const SHORT ndeg)
+ *
+ * \brief Multigrid presmoothing
+ *
+ * \param  smoother  type of smoother
+ * \param  A         pointer to matrix data
+ * \param  b         pointer to rhs data
+ * \param  x         pointer to sol data
+ * \param  nsweeps   number of smoothing sweeps
+ * \param  istart    starting index
+ * \param  iend      ending index
+ * \param  istep     step size
+ * \param  relax     relaxation parameter for SOR-type smoothers
+ * \param  ndeg      degree of the polynomial smoother
+ *
+ * \author Chensong Zhang
+ * \date   01/10/2012
+ *
+ * Modified by Xiaozhe on 06/04/2012: add ndeg as input
+ * Modified by Chensong on 02/16/2013: GS -> SMOOTHER_GS, etc
+ */
 static void dcsr_presmoothing (const SHORT smoother,
                                     dCSRmat *A,
                                     dvector *b,
@@ -60,35 +82,7 @@ static void dcsr_presmoothing (const SHORT smoother,
                                     const INT istep,
                                     const REAL relax,
                                     const SHORT ndeg)
-{
-    /**
-     * \fn static void dcsr_presmoothing (const SHORT smoother, dCSRmat *A,
-     *                                         dvector *b, dvector *x,
-     *                                         const INT nsweeps, const INT istart,
-     *                                         const INT iend, const INT istep,
-     *                                         const REAL relax, const SHORT ndeg)
-     *
-     * \brief Multigrid presmoothing
-     *
-     * \param  smoother  type of smoother
-     * \param  A         pointer to matrix data
-     * \param  b         pointer to rhs data
-     * \param  x         pointer to sol data
-     * \param  nsweeps   number of smoothing sweeps
-     * \param  istart    starting index
-     * \param  iend      ending index
-     * \param  istep     step size
-     * \param  relax     relaxation parameter for SOR-type smoothers
-     * \param  ndeg      degree of the polynomial smoother
-     *
-     * \author Chensong Zhang
-     * \date   01/10/2012
-     *
-     * Modified by Xiaozhe on 06/04/2012: add ndeg as input
-     * Modified by Chensong on 02/16/2013: GS -> SMOOTHER_GS, etc
-     */
-    
-    
+{    
     switch (smoother) {
 
         case SMOOTHER_GS:
@@ -138,6 +132,32 @@ static void dcsr_presmoothing (const SHORT smoother,
     }
 }
 
+/**
+ * \fn static void dcsr_postsmoothing (const SHORT smoother, dCSRmat *A,
+ *                                          dvector *b, dvector *x,
+ *                                          const INT nsweeps, const INT istart,
+ *                                          const INT iend, const INT istep,
+ *                                          const REAL relax, const SHORT ndeg)
+ *
+ * \brief Multigrid presmoothing
+ *
+ * \param  smoother  type of smoother
+ * \param  A         pointer to matrix data
+ * \param  b         pointer to rhs data
+ * \param  x         pointer to sol data
+ * \param  nsweeps   number of smoothing sweeps
+ * \param  istart    starting index
+ * \param  iend      ending index
+ * \param  istep     step size
+ * \param  relax     relaxation parameter for SOR-type smoothers
+ * \param  ndeg      degree of the polynomial smoother
+ *
+ * \author Chensong Zhang
+ * \date   01/10/2012
+ *
+ * Modified by Xiaozhe Hu on 06/04/2012: add ndeg as input
+ * Modified by Chensong on 02/16/2013: GS -> SMOOTHER_GS, etc
+ */
 static void dcsr_postsmoothing (const SHORT smoother,
                                      dCSRmat *A,
                                      dvector *b,
@@ -148,34 +168,7 @@ static void dcsr_postsmoothing (const SHORT smoother,
                                      const INT istep,
                                      const REAL relax,
                                      const SHORT ndeg)
-{
-    /**
-     * \fn static void dcsr_postsmoothing (const SHORT smoother, dCSRmat *A,
-     *                                          dvector *b, dvector *x,
-     *                                          const INT nsweeps, const INT istart,
-     *                                          const INT iend, const INT istep,
-     *                                          const REAL relax, const SHORT ndeg)
-     *
-     * \brief Multigrid presmoothing
-     *
-     * \param  smoother  type of smoother
-     * \param  A         pointer to matrix data
-     * \param  b         pointer to rhs data
-     * \param  x         pointer to sol data
-     * \param  nsweeps   number of smoothing sweeps
-     * \param  istart    starting index
-     * \param  iend      ending index
-     * \param  istep     step size
-     * \param  relax     relaxation parameter for SOR-type smoothers
-     * \param  ndeg      degree of the polynomial smoother
-     *
-     * \author Chensong Zhang
-     * \date   01/10/2012
-     *
-     * Modified by Xiaozhe Hu on 06/04/2012: add ndeg as input
-     * Modified by Chensong on 02/16/2013: GS -> SMOOTHER_GS, etc
-     */
-    
+{   
     switch (smoother) {
 
         case SMOOTHER_GS:

@@ -6,30 +6,35 @@
  */
 
 #include "hazmath.h"
+#if WITH_SUITESPARSE
+#include "umfpack.h"
+#endif
+
 
 /*! \brief Direct Solver methods -- for now just using UMFPACK Solvers
  *
  */
-
 #if WITH_SUITESPARSE
-#include "umfpack.h"
 /***************************************************************************************************************************/
-INT directsolve_UMF(dCSRmat *A,dvector *f,REAL *x,INT print_level)
-{
-	
-  /* Performs Gaussian Elmination on Ax = f, using UMFPACK  
-   * Assumes A is in CSR format
-   *
-   * Input:		
-   *        	A:	       	Matrix A to be solved
-   *	       	f:	       	Right hand side vector
-   *  print_level:              Flag to print messages to screen
-   *
-   * Output:	
-   *	        x:	       	Solution
-   *
-   */
-  
+/**
+ * \fn directsolve_UMF(dCSRmat *A,dvector *f,REAL *x,INT print_level)
+ *
+ * \brief Performs Gaussian Elmination on Ax = f, using UMFPACK (Assumes A is in CSR format)
+ *
+ * Input:
+ *        	A:	       	Matrix A to be solved
+ *	       	f:	       	Right hand side vector
+ *  print_level:              Flag to print messages to screen
+ *
+ * Output:
+ *	        x:	       	Solution
+ *
+ */
+INT directsolve_UMF(dCSRmat *A,
+                    dvector *f,
+                    REAL *x,
+                    INT print_level)
+{ 
   INT i;
   INT shift_flag = 0;
 
@@ -111,22 +116,21 @@ INT directsolve_UMF(dCSRmat *A,dvector *f,REAL *x,INT print_level)
 }
 
 /***************************************************************************************************************************/
+/**
+ * \fn void* umfpack_factorize (dCSRmat *ptrA, const SHORT prtlvl)
+ * \brief factorize A by UMFpack
+ *
+ * \param ptrA      Pointer to stiffness matrix of levelNum levels
+ * \param Numeric   Pointer to the numerical factorization
+ *
+ * \author Xiaozhe Hu
+ * \date   10/20/2010
+ *
+ * Modified by Xiaozhe Hu on 05/02/2014
+ */
 void* umfpack_factorize (dCSRmat *ptrA,
                          const SHORT prtlvl)
-{
-    /**
-     * \fn void* umfpack_factorize (dCSRmat *ptrA, const SHORT prtlvl)
-     * \brief factorize A by UMFpack
-     *
-     * \param ptrA      Pointer to stiffness matrix of levelNum levels
-     * \param Numeric   Pointer to the numerical factorization
-     *
-     * \author Xiaozhe Hu
-     * \date   10/20/2010
-     *
-     * Modified by Xiaozhe Hu on 05/02/2014
-     */
-    
+{   
     const INT n = ptrA->col;
     //const INT m = ptrA->row;
     //const INT nnz = ptrA->nnz;
@@ -160,29 +164,28 @@ void* umfpack_factorize (dCSRmat *ptrA,
 }
 
 /***************************************************************************************************************************/
+/**
+ * \fn INT umfpack_solve (dCSRmat *ptrA, dvector *b, dvector *u,
+ *                             void *Numeric, const SHORT prtlvl)
+ * \brief Solve Au=b by UMFpack, numerical factorization is given
+ *
+ * \param ptrA      Pointer to stiffness matrix of levelNum levels
+ * \param b         Pointer to the dvector of right hand side term
+ * \param u         Pointer to the dvector of dofs
+ * \param Numeric   Pointer to the numerical factorization
+ * \param prtlvl    Output level
+ *
+ * \author Xiaozhe Hu
+ * \date   10/20/2010
+ *
+ * Modified by Xiaozhe on 05/10/2014
+ */
 INT umfpack_solve (dCSRmat *ptrA,
                         dvector *b,
                         dvector *u,
                         void *Numeric,
                         const SHORT prtlvl)
-{
-    /**
-     * \fn INT umfpack_solve (dCSRmat *ptrA, dvector *b, dvector *u,
-     *                             void *Numeric, const SHORT prtlvl)
-     * \brief Solve Au=b by UMFpack, numerical factorization is given
-     *
-     * \param ptrA      Pointer to stiffness matrix of levelNum levels
-     * \param b         Pointer to the dvector of right hand side term
-     * \param u         Pointer to the dvector of dofs
-     * \param Numeric   Pointer to the numerical factorization
-     * \param prtlvl    Output level
-     *
-     * \author Xiaozhe Hu
-     * \date   10/20/2010
-     *
-     * Modified by Xiaozhe on 05/10/2014
-     */
-    
+{   
     /* const INT n = ptrA->col; */
     /* const INT m = ptrA->row; */
     /* const INT nnz = ptrA->nnz; */
@@ -206,25 +209,23 @@ INT umfpack_solve (dCSRmat *ptrA,
 }
 
 /***************************************************************************************************************************/
+/**
+ * \fn INT fasp_umfpack_free_numeric (void *Numeric)
+ * \brief Solve Au=b by UMFpack
+ *
+ * \param Numeric   Pointer to the numerical factorization
+ *
+ * \author Xiaozhe Hu
+ * \date   10/20/2010
+ */
 INT umfpack_free_numeric (void *Numeric)
-{
-    /**
-     * \fn INT fasp_umfpack_free_numeric (void *Numeric)
-     * \brief Solve Au=b by UMFpack
-     *
-     * \param Numeric   Pointer to the numerical factorization
-     *
-     * \author Xiaozhe Hu
-     * \date   10/20/2010
-     */
-    
+{   
     INT status = SUCCESS;
     
     umfpack_di_free_numeric (&Numeric);
     
     return status;
 }
-
 #endif
 
 /*---------------------------------*/

@@ -12,20 +12,18 @@
 #include "hazmath.h"
 
 /***********************************************************************************************/
+/*!
+ * \fn void iarray_print(INT *vec, INT n)
+ *
+ * \brief print an integer array on screen
+ *
+ * \param vec   Pointer to the INT array
+ * \param n     Length of the array
+ *
+ */
 void iarray_print(INT *vec,
                   INT n)
 {
-
-    /*!
-     * \fn void iarray_print(INT *vec, INT n)
-     *
-     * \brief print an integer array on screen
-     *
-     * \param vec   Pointer to the INT array
-     * \param n     Length of the array
-     *
-     */
-
     /* prints a vector of integers of size n */
     INT *vec_end;
     
@@ -42,20 +40,18 @@ void iarray_print(INT *vec,
 }
 
 /***********************************************************************************************/
+/*!
+ * \fn void array_print(REAL *vec, INT n)
+ *
+ * \brief print a REAL array on screen
+ *
+ * \param vec   Pointer to the REAL array
+ * \param n     Length of the array
+ *
+ */
 void array_print(REAL *vec,
                  INT n)
 {
-
-    /*!
-     * \fn void array_print(REAL *vec, INT n)
-     *
-     * \brief print a REAL array on screen
-     *
-     * \param vec   Pointer to the REAL array
-     * \param n     Length of the array
-     *
-     */
-
     /* prints a vector of integers of size nn */
     REAL *vec_end;
     
@@ -73,19 +69,18 @@ void array_print(REAL *vec,
 }
 
 /***********************************************************************************************/
+/*!
+ * \fn void dvector_print(FILE* fid,dvector *b)
+ *
+ * \brief print a dvector to a file
+ *
+ * \param fid  Pointer to the file
+ * \param b    Pointer to the dvector
+ *
+ */
 void dvector_print(FILE* fid,
                    dvector *b)
 {
-    /*!
-     * \fn void dvector_print(FILE* fid,dvector *b)
-     *
-     * \brief print a dvector to a file
-     *
-     * \param fid  Pointer to the file
-     * \param b    Pointer to the dvector
-     *
-     */
-
   /* prints a dvector in matlab output*/
   INT i; /* Loop Indices */
 
@@ -96,20 +91,18 @@ void dvector_print(FILE* fid,
 }
 
 /***********************************************************************************************/
+/*!
+ * \fn void csr_print_matlab(FILE* fid,dCSRmat *A)
+ *
+ * \brief print a dCSRmat format sparse matrix to a file
+ *
+ * \param fid  Pointer to the file
+ * \param A    Pointer to the dCSRmat format sparse matrix
+ *
+ */
 void csr_print_matlab(FILE* fid,
                       dCSRmat *A)
 {
-
-    /*!
-     * \fn void csr_print_matlab(FILE* fid,dCSRmat *A)
-     *
-     * \brief print a dCSRmat format sparse matrix to a file
-     *
-     * \param fid  Pointer to the file
-     * \param A    Pointer to the dCSRmat format sparse matrix
-     *
-     */
-
   /* prints a csr matrix in matlab output*/
   INT i,j1,j2,j; /* Loop Indices */
   INT shift_flag = 0; /* Check if Indexing starts at 0 or 1 */
@@ -136,18 +129,17 @@ void csr_print_matlab(FILE* fid,
 }
 
 /***********************************************************************************************/
+/*!
+ * \fn void icsr_print_matlab(FILE* fid,dCSRmat *A)
+ *
+ * \brief print a iCSRmat format sparse matrix to a file
+ *
+ * \param fid  Pointer to the file
+ * \param A    Pointer to the iCSRmat format sparse matrix
+ *
+ */
 void icsr_print_matlab(FILE* fid,iCSRmat *A)
 {
-    /*!
-     * \fn void icsr_print_matlab(FILE* fid,dCSRmat *A)
-     *
-     * \brief print a iCSRmat format sparse matrix to a file
-     *
-     * \param fid  Pointer to the file
-     * \param A    Pointer to the iCSRmat format sparse matrix
-     *
-     */
-
   /* prints a csr matrix in matlab output*/
   INT i,j1,j2,j; /* Loop Indices */
 
@@ -162,19 +154,18 @@ void icsr_print_matlab(FILE* fid,iCSRmat *A)
 }
 
 /***********************************************************************************************/
+/*!
+ * \fn void dvec_write (const char *filename, dvector *vec)
+ *
+ * \brief Write a dvector to disk file
+ *
+ * \param vec       Pointer to the dvector
+ * \param filename  File name
+ *
+ */
 void dvec_write (const char *filename,
                  dvector *vec)
 {
-    /*!
-     * \fn void dvec_write (const char *filename, dvector *vec)
-     *
-     * \brief Write a dvector to disk file
-     *
-     * \param vec       Pointer to the dvector
-     * \param filename  File name
-     *
-     */
-
     INT m = vec->row, i;
 
     FILE *fp = fopen(filename,"w");
@@ -194,19 +185,18 @@ void dvec_write (const char *filename,
 }
 
 /***********************************************************************************************/
+/*!
+ * \fn void dcsr_write_dcoo (const char *filename, dCSRmat *A)
+ *
+ * \brief Write a dCSRmat matrix to disk file in IJ format (coordinate format)
+ *
+ * \param A         pointer to the dCSRmat matrix
+ * \param filename  char for vector file name
+ *
+ */
 void dcsr_write_dcoo (const char *filename,
                       dCSRmat *A)
-{
-    /*!
-     * \fn void dcsr_write_dcoo (const char *filename, dCSRmat *A)
-     *
-     * \brief Write a dCSRmat matrix to disk file in IJ format (coordinate format)
-     *
-     * \param A         pointer to the dCSRmat matrix
-     * \param filename  char for vector file name
-     *
-     */
-    
+{   
     const INT m = A->row, n = A->col;
     INT i, j;
     
@@ -231,20 +221,18 @@ void dcsr_write_dcoo (const char *filename,
 /*** Auxillary Files (some from Ludmil) *******************************************************/
 
 /****************************************************************************************/
+/*!
+ * \fn void rveci_(FILE *fp, INT *vec, INT *nn)
+ *
+ * \brief Reads a vector of integers of size nn from a file fp
+ *
+ * \param fp        FILE ID
+ * \param vec       Where to store vector
+ * \param nn        Size of Vector
+ *
+ */
 void rveci_(FILE *fp, INT *vec, INT *nn)       
-/* */
-{
-  /*!
-   * \fn void rveci_(FILE *fp, INT *vec, INT *nn)
-   *
-   * \brief Reads a vector of integers of size nn from a file fp
-   *
-   * \param fp        FILE ID
-   * \param vec       Where to store vector
-   * \param nn        Size of Vector
-   *
-   */
-	
+{	
   INT n;
   INT *vec_end;
   n = *nn;
@@ -257,19 +245,18 @@ void rveci_(FILE *fp, INT *vec, INT *nn)
 /****************************************************************************************/
 
 /****************************************************************************************/
+/*!
+ * \fn void rvecd_(FILE *fp, REAL *vec, INT *nn)
+ *
+ * \brief Reads a vector of doubles of size nn from a file fp
+ *
+ * \param fp        FILE ID
+ * \param vec       Where to store vector
+ * \param nn        Size of Vector
+ *
+ */
 void rvecd_(FILE *fp,  REAL *vec, INT *nn)
 {
-  /*!
-   * \fn void rvecd_(FILE *fp, REAL *vec, INT *nn)
-   *
-   * \brief Reads a vector of doubles of size nn from a file fp
-   *
-   * \param fp        FILE ID
-   * \param vec       Where to store vector
-   * \param nn        Size of Vector
-   *
-   */
-
   INT n;
   REAL *vec_end;  
   n= *nn;
@@ -282,20 +269,19 @@ void rvecd_(FILE *fp,  REAL *vec, INT *nn)
 /****************************************************************************************/
 
 /****************************************************************************************/
+/*!
+ * \fn FILE* HAZ_fopen( char *fname, char *mode )
+ *
+ * \brief A graceful version of fopen(). It checks if the file has
+ *     been successfully opened.  If  that is  not  the case  a
+ *     message is printed and the program is exited.
+ *
+ * \param fname     Filename
+ * \param mode      read or write
+ *
+ */
 FILE* HAZ_fopen( char *fname, char *mode )
 {
-  /*!
-   * \fn FILE* HAZ_fopen( char *fname, char *mode )
-   *
-   * \brief A graceful version of fopen(). It checks if the file has
-   *     been successfully opened.  If  that is  not  the case  a
-   *     message is printed and the program is exited.
-   *
-   * \param fname     Filename
-   * \param mode      read or write
-   *
-   */
-
   FILE   *fp;
 
   fp = fopen(fname,mode);
@@ -308,20 +294,19 @@ FILE* HAZ_fopen( char *fname, char *mode )
 /****************************************************************************************/
 
 /******************************************************************************/
+/*!
+ * \fn void dump_sol_onV_vtk(char *namevtk,trimesh *mesh,REAL *sol,INT ncomp)
+ *
+ * \brief Dumps solution data to vtk format
+ *
+ * \param namevtk  Filename
+ * \param mesh     Mesh struct to dump
+ * \param sol      solution vector to dump
+ * \param ncomp:   Number of components to the solution
+ *
+ */
 void dump_sol_onV_vtk(char *namevtk,trimesh *mesh,REAL *sol,INT ncomp)
 {
-  /*!
-   * \fn void dump_sol_onV_vtk(char *namevtk,trimesh *mesh,REAL *sol,INT ncomp)
-   *
-   * \brief Dumps solution data to vtk format
-   *
-   * \param namevtk  Filename
-   * \param mesh     Mesh struct to dump
-   * \param sol      solution vector to dump
-   * \param ncomp:   Number of components to the solution
-   *
-   */
-
   // Basic Quantities
   INT nv = mesh->nv;
   INT nelm = mesh->nelm;
@@ -451,22 +436,20 @@ void dump_sol_onV_vtk(char *namevtk,trimesh *mesh,REAL *sol,INT ncomp)
 /******************************************************************************/
 
 /******************************************************************************/
+/*!
+ * \fn void create_pvd(char *namevtk,trimesh *mesh,REAL *sol,INT ncomp)
+ *
+ * \brief Dumps solution data in vtk format to a single file.  Useful for timestepping
+ * \note  File names of vtk file must have same structure
+ *
+ * \param namepvd      Filename
+ * \param nfiles       Number of files to store (i.e. timesteps)
+ * \param vtkfilename  Filename structure of vtu files.
+ * \param filetype     Name for types of files (i.e. "timestep")
+ *
+ */
 void create_pvd(char *namepvd,INT nfiles,char *vtkfilename,char *filetype)
 {
-
-  /*!
-   * \fn void create_pvd(char *namevtk,trimesh *mesh,REAL *sol,INT ncomp)
-   *
-   * \brief Dumps solution data in vtk format to a single file.  Useful for timestepping
-   * \note  File names of vtk file must have same structure
-   *
-   * \param namepvd      Filename
-   * \param nfiles       Number of files to store (i.e. timesteps)
-   * \param vtkfilename  Filename structure of vtu files.
-   * \param filetype     Name for types of files (i.e. "timestep")
-   *
-   */
-
   // VTK needed Quantities
   //  What endian?:
   //    Intel x86; OS=MAC OS X: little-endian

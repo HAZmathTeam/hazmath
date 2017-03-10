@@ -14,62 +14,59 @@
 #include "hazmath.h"
 
 /****************************************************************************************/
+/*!
+ * \fn void constant_coeff_scal(REAL *val, REAL *x, REAL constval)
+ *
+ * \brief Assigns constant value (uses "time" slot in assembly routines)
+ *
+ * \param val        Pointer to a scalar REAL number (OUTPUT)
+ * \param x          Pointer to an REAL array
+ * \param constval   constant value (scalar REAL number)
+ *
+ */
 void constant_coeff_scal(REAL *val,
                          REAL *x,
                          REAL constval)
 {
-   /*!
-    * \fn void constant_coeff_scal(REAL *val, REAL *x, REAL constval)
-    *
-    * \brief Assigns constant value (uses "time" slot in assembly routines)
-    *
-    * \param val        Pointer to a scalar REAL number (OUTPUT)
-    * \param x          Pointer to an REAL array
-    * \param constval   constant value (scalar REAL number)
-    *
-    */
-
     *val = constval;
 }
 /****************************************************************************************/
 
 /****************************************************************************************/
+/*!
+ * \fn void constant_coeff_vec2D(REAL *val,REAL* x,REAL constval)
+ *
+ * \brief Assigns constant value (uses "time" slot in assembly routines) in 2D
+ *
+ * \param val        Pointer to an REAL array (OUTPUT)
+ * \param x          Pointer to an REAL array
+ * \param constval   constant value (scalar REAL number)
+ *
+ */
 void constant_coeff_vec2D(REAL *val,
                           REAL *x,
                           REAL constval)
 {
-    /*!
-     * \fn void constant_coeff_vec2D(REAL *val,REAL* x,REAL constval)
-     *
-     * \brief Assigns constant value (uses "time" slot in assembly routines) in 2D
-     *
-     * \param val        Pointer to an REAL array (OUTPUT)
-     * \param x          Pointer to an REAL array
-     * \param constval   constant value (scalar REAL number)
-     *
-     */
-
     val[0] = constval;
     val[1] = constval;
 }
 /****************************************************************************************/
 
 /****************************************************************************************/
+/*!
+ * \fn void constant_coeff_vec3D(REAL *val,REAL* x,REAL constval)
+ *
+ * \brief Assigns constant value (uses "time" slot in assembly routines) in 3D
+ *
+ * \param val        Pointer to an REAL array (OUTPUT)
+ * \param x          Pointer to an REAL array
+ * \param constval   constant value (scalar REAL number)
+ *
+ */
 void constant_coeff_vec3D(REAL *val,
                           REAL *x,
                           REAL constval)
 {
-    /*!
-     * \fn void constant_coeff_vec3D(REAL *val,REAL* x,REAL constval)
-     *
-     * \brief Assigns constant value (uses "time" slot in assembly routines) in 3D
-     *
-     * \param val        Pointer to an REAL array (OUTPUT)
-     * \param x          Pointer to an REAL array
-     * \param constval   constant value (scalar REAL number)
-     *
-     */
-
     val[0] = constval;
     val[1] = constval;
     val[2] = constval;
@@ -77,62 +74,59 @@ void constant_coeff_vec3D(REAL *val,
 /****************************************************************************************/
 
 /****************************************************************************************/
+/*!
+ * \fn void zero_coeff_scal(REAL *val,REAL* x,REAL time)
+ *
+ * \brief Assigns zero value
+ *
+ * \param val        Pointer to a scalar REAL number (OUTPUT)
+ * \param x          Pointer to an REAL array
+ * \param constval   constant value (scalar REAL number)
+ *
+ */
 void zero_coeff_scal(REAL *val,
                      REAL *x,
                      REAL time)
 {
-    /*!
-     * \fn void zero_coeff_scal(REAL *val,REAL* x,REAL time)
-     *
-     * \brief Assigns zero value
-     *
-     * \param val        Pointer to a scalar REAL number (OUTPUT)
-     * \param x          Pointer to an REAL array
-     * \param constval   constant value (scalar REAL number)
-     *
-     */
-
     *val = 0.0;
 }
 /****************************************************************************************/
 
 /****************************************************************************************/
+/*!
+ * \fn void zero_coeff_vec2D(REAL *val,REAL* x,REAL time)
+ *
+ * \brief Assigns zero value in 2D
+ *
+ * \param val        Pointer to an REAL array (OUTPUT)
+ * \param x          Pointer to an REAL array
+ * \param constval   constant value (scalar REAL number)
+ *
+ */
 void zero_coeff_vec2D(REAL *val,
                       REAL *x,
                       REAL time)
 {
-    /*!
-     * \fn void zero_coeff_vec2D(REAL *val,REAL* x,REAL time)
-     *
-     * \brief Assigns zero value in 2D
-     *
-     * \param val        Pointer to an REAL array (OUTPUT)
-     * \param x          Pointer to an REAL array
-     * \param constval   constant value (scalar REAL number)
-     *
-     */
-
     val[0] = 0.0;
     val[1] = 0.0;
 }
 /****************************************************************************************/
 
 /****************************************************************************************/
+/*!
+ * \fn void zero_coeff_vec3D(REAL *val,REAL* x,REAL time)
+ *
+ * \brief Assigns zero value in 3D
+ *
+ * \param val        Pointer to an REAL array (OUTPUT)
+ * \param x          Pointer to an REAL array
+ * \param constval   constant value (scalar REAL number)
+ *
+ */
 void zero_coeff_vec3D(REAL *val,
                       REAL *x,
                       REAL time)
 {
-    /*!
-     * \fn void zero_coeff_vec3D(REAL *val,REAL* x,REAL time)
-     *
-     * \brief Assigns zero value in 3D
-     *
-     * \param val        Pointer to an REAL array (OUTPUT)
-     * \param x          Pointer to an REAL array
-     * \param constval   constant value (scalar REAL number)
-     *
-     */
-
     val[0] = 0.0;
     val[1] = 0.0;
     val[2] = 0.0;
@@ -140,62 +134,59 @@ void zero_coeff_vec3D(REAL *val,
 /****************************************************************************************/
 
 /****************************************************************************************/
+/*!
+ * \fn void one_coeff_scal(REAL *val,REAL* x,REAL time)
+ *
+ * \brief Assigns value 1
+ *
+ * \param val        Pointer to a scalar REAL number (OUTPUT)
+ * \param x          Pointer to an REAL array
+ * \param time       REAL number
+ *
+ */
 void one_coeff_scal(REAL *val,
                     REAL *x,
                     REAL time)
 {
-    /*!
-     * \fn void one_coeff_scal(REAL *val,REAL* x,REAL time)
-     *
-     * \brief Assigns value 1
-     *
-     * \param val        Pointer to a scalar REAL number (OUTPUT)
-     * \param x          Pointer to an REAL array
-     * \param time       REAL number
-     *
-     */
-
     *val = 1.0;
 }
 /****************************************************************************************/
 
 /****************************************************************************************/
+/*!
+ * \fn void one_coeff_vec2D(REAL *val,REAL* x,REAL time)
+ *
+ * \brief Assigns value 1 in 2D
+ *
+ * \param val        Pointer to a scalar REAL number (OUTPUT)
+ * \param x          Pointer to an REAL array
+ * \param time       REAL number
+ *
+ */
 void one_coeff_vec2D(REAL *val,
                      REAL *x,
                      REAL time)
 {
-    /*!
-     * \fn void one_coeff_vec2D(REAL *val,REAL* x,REAL time)
-     *
-     * \brief Assigns value 1 in 2D
-     *
-     * \param val        Pointer to a scalar REAL number (OUTPUT)
-     * \param x          Pointer to an REAL array
-     * \param time       REAL number
-     *
-     */
-
     val[0] = 1.0;
     val[1] = 1.0;
 }
 /****************************************************************************************/
 
 /****************************************************************************************/
+/*!
+ * \fn void one_coeff_vec3D(REAL *val,REAL* x,REAL time)
+ *
+ * \brief Assigns value 1 in 3D
+ *
+ * \param val        Pointer to a scalar REAL number (OUTPUT)
+ * \param x          Pointer to an REAL array
+ * \param time       REAL number
+ *
+ */
 void one_coeff_vec3D(REAL *val,
                      REAL *x,
                      REAL time)
 {
-    /*!
-     * \fn void one_coeff_vec3D(REAL *val,REAL* x,REAL time)
-     *
-     * \brief Assigns value 1 in 3D
-     *
-     * \param val        Pointer to a scalar REAL number (OUTPUT)
-     * \param x          Pointer to an REAL array
-     * \param time       REAL number
-     *
-     */
-
     val[0] = 1.0;
     val[1] = 1.0;
     val[2] = 1.0;

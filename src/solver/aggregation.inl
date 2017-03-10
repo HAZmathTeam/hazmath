@@ -11,32 +11,29 @@
 /*---------------------------------*/
 /*--      Private Functions      --*/
 /*---------------------------------*/
-
+/**
+ * \fn static void form_tentative_p (ivector *vertices, dCSRmat *tentp,
+ *                                   REAL **basis, INT levelNum, INT num_aggregations)
+ *
+ * \brief Form aggregation based on strong coupled neighbors
+ *
+ * \param vertices           Pointer to the aggregation of vertices
+ * \param tentp              Pointer to the prolongation operators
+ * \param basis              Pointer to the near kernel
+ * \param levelNum           Level number
+ * \param num_aggregations   Number of aggregations
+ *
+ * \author Xiaozhe Hu
+ * \date   09/29/2009
+ *
+ * Modified by Xiaozhe Hu on 05/25/2014
+ */
 static void form_tentative_p (ivector *vertices,
                               dCSRmat *tentp,
                               REAL **basis,
                               INT levelNum,
                               INT num_aggregations)
-{
-    
-    /**
-     * \fn static void form_tentative_p (ivector *vertices, dCSRmat *tentp,
-     *                                   REAL **basis, INT levelNum, INT num_aggregations)
-     *
-     * \brief Form aggregation based on strong coupled neighbors
-     *
-     * \param vertices           Pointer to the aggregation of vertices
-     * \param tentp              Pointer to the prolongation operators
-     * \param basis              Pointer to the near kernel
-     * \param levelNum           Level number
-     * \param num_aggregations   Number of aggregations
-     *
-     * \author Xiaozhe Hu
-     * \date   09/29/2009
-     *
-     * Modified by Xiaozhe Hu on 05/25/2014
-     */
-    
+{   
     INT i, j;
     
     /* Form tentative prolongation */
@@ -77,29 +74,27 @@ static void form_tentative_p (ivector *vertices,
     }
 }
 
-
+/**
+ * \fn static void form_boolean_p (ivector *vertices, dCSRmat *tentp, INT levelNum,
+ *                                 INT num_aggregations)
+ *
+ * \brief Form aggregation based on strong coupled neighbors
+ *
+ * \param vertices           Pointer to the aggregation of vertices
+ * \param tentp              Pointer to the prolongation operators
+ * \param levelNum           Level number
+ * \param num_aggregations   Number of aggregations
+ *
+ * \author Xiaozhe Hu
+ * \date   09/29/2009
+ *
+ * Modified by Xiaozhe Hu on 05/25/2014
+ */
 static void form_boolean_p (ivector *vertices,
                             dCSRmat *tentp,
                             INT levelNum,
                             INT num_aggregations)
-{
-    /**
-     * \fn static void form_boolean_p (ivector *vertices, dCSRmat *tentp, INT levelNum,
-     *                                 INT num_aggregations)
-     *
-     * \brief Form aggregation based on strong coupled neighbors
-     *
-     * \param vertices           Pointer to the aggregation of vertices
-     * \param tentp              Pointer to the prolongation operators
-     * \param levelNum           Level number
-     * \param num_aggregations   Number of aggregations
-     *
-     * \author Xiaozhe Hu
-     * \date   09/29/2009
-     *
-     * Modified by Xiaozhe Hu on 05/25/2014
-     */
-    
+{  
     INT i, j;
     
     /* Form tentative prolongation */
@@ -140,35 +135,34 @@ static void form_boolean_p (ivector *vertices,
     }
 }
 
+/**
+ * \fn static SHORT aggregation_vmb (dCSRmat *A, ivector *vertices, AMG_param *param,
+ *                                   INT levelNum, dCSRmat *Neigh, INT *num_aggregations)
+ *
+ * \brief Form aggregation based on strong coupled neighbors
+ *
+ * \param A                 Pointer to the coefficient matrices
+ * \param vertices          Pointer to the aggregation of vertices
+ * \param param             Pointer to AMG parameters
+ * \param levelNum          Level number
+ * \param Neigh             Pointer to strongly coupled neighbors
+ * \param num_aggregations  Pointer to number of aggregations
+ *
+ * \author Xiaozhe Hu
+ * \date   09/29/2009
+ *
+ * \note Setup A, P, PT and levels using the unsmoothed aggregation algorithm;
+ *       Refer to P. Vanek, J. Madel and M. Brezina
+ *       "Algebraic Multigrid on Unstructured Meshes", 1994
+ *
+ */
 static SHORT aggregation_vmb (dCSRmat *A,
                               ivector *vertices,
                               AMG_param *param,
                               INT levelNum,
                               dCSRmat *Neigh,
                               INT *num_aggregations)
-{
-    /**
-     * \fn static SHORT aggregation_vmb (dCSRmat *A, ivector *vertices, AMG_param *param,
-     *                                   INT levelNum, dCSRmat *Neigh, INT *num_aggregations)
-     *
-     * \brief Form aggregation based on strong coupled neighbors
-     *
-     * \param A                 Pointer to the coefficient matrices
-     * \param vertices          Pointer to the aggregation of vertices
-     * \param param             Pointer to AMG parameters
-     * \param levelNum          Level number
-     * \param Neigh             Pointer to strongly coupled neighbors
-     * \param num_aggregations  Pointer to number of aggregations
-     *
-     * \author Xiaozhe Hu
-     * \date   09/29/2009
-     *
-     * \note Setup A, P, PT and levels using the unsmoothed aggregation algorithm;
-     *       Refer to P. Vanek, J. Madel and M. Brezina
-     *       "Algebraic Multigrid on Unstructured Meshes", 1994
-     *
-     */
-    
+{   
     const INT    row = A->row, col = A->col, nnz = A->IA[row]-A->IA[0];
     const INT  * AIA = A->IA, * AJA = A->JA;
     const REAL * Aval = A->val;

@@ -13,22 +13,22 @@
 #include "hazmath.h"
 
 /***************************************************************************/
+/*!
+ * \fn REAL L2norm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
+ *
+ * \brief Computes the L2 Norm of a FE approximation using the mass matrix
+ *        assembly for any type of element.
+ *
+ * \param u 	    Numerical Solution at DOF
+ * \param FE      FE Space
+ * \param mesh    Mesh Data
+ * \param cq      Quadrature Nodes
+ *
+ * \return norm   L2 Norm
+ *
+ */
 REAL L2norm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
 {
-  /*!
-   * \fn REAL L2norm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
-   *
-   * \brief Computes the L2 Norm of a FE approximation using the mass matrix
-   *        assembly for any type of element.
-   *
-   * \param u 	    Numerical Solution at DOF
-   * \param FE      FE Space
-   * \param mesh    Mesh Data
-   * \param cq      Quadrature Nodes
-   *
-   * \return norm   L2 Norm
-   *
-   */
 
   INT i,j,k;
   REAL sum = 0.0;
@@ -71,23 +71,22 @@ REAL L2norm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
 /***************************************************************************/
 
 /***************************************************************************/
+/*!
+ * \fn void L2norm_block(REAL *norm,REAL *u,block_fespace *FE,trimesh *mesh,qcoordinates *cq)
+ *
+ * \brief Computes the L2 Norm of a block FE approximation using the mass matrix
+ *        assembly for any type of element.
+ *
+ * \param u 	    Numerical Solution at DOF
+ * \param FE      Block FE Space
+ * \param mesh    Mesh Data
+ * \param cq      Quadrature Nodes
+ *
+ * \return norm   L2 Norm
+ *
+ */
 void L2norm_block(REAL *norm,REAL *u,block_fespace *FE,trimesh *mesh,qcoordinates *cq)
 {
-  /*!
-   * \fn void L2norm_block(REAL *norm,REAL *u,block_fespace *FE,trimesh *mesh,qcoordinates *cq)
-   *
-   * \brief Computes the L2 Norm of a block FE approximation using the mass matrix
-   *        assembly for any type of element.
-   *
-   * \param u 	    Numerical Solution at DOF
-   * \param FE      Block FE Space
-   * \param mesh    Mesh Data
-   * \param cq      Quadrature Nodes
-   *
-   * \return norm   L2 Norm
-   *
-   */
-
   INT i;
   REAL* udof = u;
 
@@ -101,24 +100,23 @@ void L2norm_block(REAL *norm,REAL *u,block_fespace *FE,trimesh *mesh,qcoordinate
 /***************************************************************************/
 
 /***************************************************************************/
+/*!
+ * \fn REAL L2_InnerProduct(REAL *u,REAL *v,fespace *FE,trimesh *mesh,qcoordinates *cq)
+ *
+ * \brief Computes the L2 inner product of two FE approximations using the mass matrix
+ *        assembly for any type of element.
+ *
+ * \param u 	    Numerical Solution 1 at DOF
+ * \param v       Numerical Solution 2 at DOF
+ * \param FE      FE Space
+ * \param mesh    Mesh Data
+ * \param cq      Quadrature Nodes
+ *
+ * \return product  L2 Inner Product of u and v, <u,v>
+ *
+ */
 REAL L2_InnerProduct(REAL *u,REAL *v,fespace *FE,trimesh *mesh,qcoordinates *cq)
 {
-  /*!
-   * \fn REAL L2_InnerProduct(REAL *u,REAL *v,fespace *FE,trimesh *mesh,qcoordinates *cq)
-   *
-   * \brief Computes the L2 inner product of two FE approximations using the mass matrix
-   *        assembly for any type of element.
-   *
-   * \param u 	    Numerical Solution 1 at DOF
-   * \param v       Numerical Solution 2 at DOF
-   * \param FE      FE Space
-   * \param mesh    Mesh Data
-   * \param cq      Quadrature Nodes
-   *
-   * \return product  L2 Inner Product of u and v, <u,v>
-   *
-   */
-
   INT i,j,k;
   REAL sum = 0.0;
 
@@ -160,24 +158,23 @@ REAL L2_InnerProduct(REAL *u,REAL *v,fespace *FE,trimesh *mesh,qcoordinates *cq)
 /***************************************************************************/
 
 /***************************************************************************/
+/*!
+ * \fn void L2_InnerProduct_block(REAL *prod,REAL *u,REAL *v,block_fespace *FE,trimesh *mesh,qcoordinates *cq)
+ *
+ * \brief Computes the L2 inner product of two block FE approximations using the mass matrix
+ *        assembly for any type of element.
+ *
+ * \param u 	    Numerical Solution 1 at DOF
+ * \param v       Numerical Solution 2 at DOF
+ * \param FE      Block FE Space
+ * \param mesh    Mesh Data
+ * \param cq      Quadrature Nodes
+ *
+ * \return product  L2 Inner Product of u and v, <u,v> (for each component of block FE space)
+ *
+ */
 void L2_InnerProduct_block(REAL *prod,REAL *u,REAL *v,block_fespace *FE,trimesh *mesh,qcoordinates *cq)
 {
-  /*!
-   * \fn void L2_InnerProduct_block(REAL *prod,REAL *u,REAL *v,block_fespace *FE,trimesh *mesh,qcoordinates *cq)
-   *
-   * \brief Computes the L2 inner product of two block FE approximations using the mass matrix
-   *        assembly for any type of element.
-   *
-   * \param u 	    Numerical Solution 1 at DOF
-   * \param v       Numerical Solution 2 at DOF
-   * \param FE      Block FE Space
-   * \param mesh    Mesh Data
-   * \param cq      Quadrature Nodes
-   *
-   * \return product  L2 Inner Product of u and v, <u,v> (for each component of block FE space)
-   *
-   */
-
   INT i;
   REAL* udof = u;
   REAL* vdof = v;
@@ -193,25 +190,24 @@ void L2_InnerProduct_block(REAL *prod,REAL *u,REAL *v,block_fespace *FE,trimesh 
 /***************************************************************************/
 
 /***************************************************************************/
+/*!
+ * \fn REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+ *
+ * \brief Computes the L2 Norm of the error of a FE approximation and a true
+ *        solution given by a function using quadrature for any type of element.
+ *
+ * \param u 	          Numerical Solution at DOF
+ * \param truesol       Function to get true solution at a given point
+ * \param FE            FE Space
+ * \param mesh          Mesh Data
+ * \param cq            Quadrature Nodes
+ * \param time          Physical time to compute solution at
+ *
+ * \return error        L2 Error
+ *
+ */
 REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
 {
-  /*!
-   * \fn REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
-   *
-   * \brief Computes the L2 Norm of the error of a FE approximation and a true
-   *        solution given by a function using quadrature for any type of element.
-   *
-   * \param u 	          Numerical Solution at DOF
-   * \param truesol       Function to get true solution at a given point
-   * \param FE            FE Space
-   * \param mesh          Mesh Data
-   * \param cq            Quadrature Nodes
-   * \param time          Physical time to compute solution at
-   *
-   * \return error        L2 Error
-   *
-   */
-
   INT dim = mesh->dim;
 
   // Quadrature Weights and Nodes
@@ -280,25 +276,24 @@ REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *me
 /****************************************************************************/
 
 /***************************************************************************/
+/*!
+ * \fn void L2error_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+ *
+ * \brief Computes the L2 Norm of the error of a block FE approximation and a true
+ *        solution given by a function using quadrature for any type of element.
+ *
+ * \param u 	          Numerical Solution at DOF
+ * \param truesol       Function to get true solution at a given point
+ * \param FE            FE Space
+ * \param mesh          Mesh Data
+ * \param cq            Quadrature Nodes
+ * \param time          Physical time to compute solution at
+ *
+ * \return err          L2 Error
+ *
+ */
 void L2error_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
 {
-  /*!
-   * \fn void L2error_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
-   *
-   * \brief Computes the L2 Norm of the error of a block FE approximation and a true
-   *        solution given by a function using quadrature for any type of element.
-   *
-   * \param u 	          Numerical Solution at DOF
-   * \param truesol       Function to get true solution at a given point
-   * \param FE            FE Space
-   * \param mesh          Mesh Data
-   * \param cq            Quadrature Nodes
-   * \param time          Physical time to compute solution at
-   *
-   * \return err          L2 Error
-   *
-   */
-
   // Loop Indices
   INT i,elm,quad,j,rowa,rowb,jcntr;
 
@@ -389,9 +384,7 @@ void L2error_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_f
 /************************************************************************************************/
 
 /***************************************************************************/
-REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
-{
-  /*!
+/*!
    * \fn L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
    *
    * \brief Computes the L2 Norm of the error of a FE approximation and a true
@@ -407,7 +400,8 @@ REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimes
    * \return error        L2 Error
    *
    */
-
+REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+{
   INT i,j,k;
   REAL sum = 0.0;
   REAL utk,utj,erk,erj;
@@ -454,25 +448,24 @@ REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimes
 /*******************************************************************************************************************************************************/
 
 /***************************************************************************/
+/*!
+ * \fn void L2error_block_mass(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+ *
+ * \brief Computes the L2 Norm of the error of a block FE approximation and a true
+ *        solution given by a function using mass matrix assembly for any type of element.
+ *
+ * \param u 	          Numerical Solution at DOF in blocks
+ * \param truesol       Function to get true solution at a given point
+ * \param FE            Block FE Space
+ * \param mesh          Mesh Data
+ * \param cq            Quadrature Nodes
+ * \param time          Physical time to compute solution at
+ *
+ * \return err          L2 Error
+ *
+ */
 void L2error_block_mass(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
 {
-  /*!
-   * \fn void L2error_block_mass(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
-   *
-   * \brief Computes the L2 Norm of the error of a block FE approximation and a true
-   *        solution given by a function using mass matrix assembly for any type of element.
-   *
-   * \param u 	          Numerical Solution at DOF in blocks
-   * \param truesol       Function to get true solution at a given point
-   * \param FE            Block FE Space
-   * \param mesh          Mesh Data
-   * \param cq            Quadrature Nodes
-   * \param time          Physical time to compute solution at
-   *
-   * \return err          L2 Error
-   *
-   */
-
   INT i,j,k,elm;
   REAL utk,utj,erk,erj;
 
@@ -532,26 +525,25 @@ void L2error_block_mass(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL),b
 /*******************************************************************************************************************************************************/
 
 /***************************************************************************/
+/*!
+ * \fn REAL HDseminorm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
+ *
+ * \brief Computes the H(D) semi-Norm of a FE approximation using the
+ *        <Du,Dv> matrix assembly for any type of element.
+ *          Nodal   - <grad u, grad u>  -> |u|_1
+ *          RT      - <div u, div u>    -> |u|_(H(div))
+ *          Nedelec - <curl u, curl u>  -> |u|_(H(curl))
+ *
+ * \param u 	    Numerical Solution at DOF
+ * \param FE      FE Space
+ * \param mesh    Mesh Data
+ * \param cq      Quadrature Nodes
+ *
+ * \return norm   HD Semi Norm
+ *
+ */
 REAL HDseminorm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
 {
-  /*!
-   * \fn REAL HDseminorm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
-   *
-   * \brief Computes the H(D) semi-Norm of a FE approximation using the
-   *        <Du,Dv> matrix assembly for any type of element.
-   *          Nodal   - <grad u, grad u>  -> |u|_1
-   *          RT      - <div u, div u>    -> |u|_(H(div))
-   *          Nedelec - <curl u, curl u>  -> |u|_(H(curl))
-   *
-   * \param u 	    Numerical Solution at DOF
-   * \param FE      FE Space
-   * \param mesh    Mesh Data
-   * \param cq      Quadrature Nodes
-   *
-   * \return norm   HD Semi Norm
-   *
-   */
-
   INT i,j,k;
   REAL sum = 0.0;
   INT dof_per_elm = FE->dof_per_elm;
@@ -598,26 +590,25 @@ REAL HDseminorm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
 /*******************************************************************************************************************************************************/
 
 /***************************************************************************/
+/*!
+ * \fn void HDseminorm_block(REAL *norm, REAL *u,block_fespace *FE,trimesh *mesh,qcoordinates *cq)
+ *
+ * \brief Computes the H(D) semi-Norm of a block FE approximation using the
+ *        <Du,Dv> matrix assembly for any type of element.
+ *          Nodal   - <grad u, grad u>  -> |u|_1
+ *          RT      - <div u, div u>    -> |u|_(H(div))
+ *          Nedelec - <curl u, curl u>  -> |u|_(H(curl))
+ *
+ * \param u 	    Numerical Solution at DOF
+ * \param FE      Block FE Space
+ * \param mesh    Mesh Data
+ * \param cq      Quadrature Nodes
+ *
+ * \return norm   HD Semi Norm
+ *
+ */
 void HDseminorm_block(REAL *norm,REAL *u,block_fespace *FE,trimesh *mesh,qcoordinates *cq)
 {
-  /*!
-   * \fn void HDseminorm_block(REAL *norm, REAL *u,block_fespace *FE,trimesh *mesh,qcoordinates *cq)
-   *
-   * \brief Computes the H(D) semi-Norm of a block FE approximation using the
-   *        <Du,Dv> matrix assembly for any type of element.
-   *          Nodal   - <grad u, grad u>  -> |u|_1
-   *          RT      - <div u, div u>    -> |u|_(H(div))
-   *          Nedelec - <curl u, curl u>  -> |u|_(H(curl))
-   *
-   * \param u 	    Numerical Solution at DOF
-   * \param FE      Block FE Space
-   * \param mesh    Mesh Data
-   * \param cq      Quadrature Nodes
-   *
-   * \return norm   HD Semi Norm
-   *
-   */
-
   INT i;
   REAL* udof = u;
 
@@ -631,27 +622,26 @@ void HDseminorm_block(REAL *norm,REAL *u,block_fespace *FE,trimesh *mesh,qcoordi
 /*******************************************************************************************************************************************************/
 
 /***************************************************************************/
+/*!
+ * \fn REAL HDsemierror(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+ *
+ * \brief Computes the H(D) semi-norm of the error of a FE approximation and a true
+ *        solution given by a function using quadrature for any type of element.
+ *          Nodal   - <grad u, grad u>  -> |u|_1
+ *          RT      - <div u, div u>    -> |u|_(H(div))
+ *          Nedelec - <curl u, curl u>  -> |u|_(H(curl))
+ * \param u 	          Numerical Solution at DOF
+ * \param D_truesol     Function to get derivative of true solution at a given point
+ * \param FE            FE Space
+ * \param mesh          Mesh Data
+ * \param cq            Quadrature Nodes
+ * \param time          Physical time to compute solution at
+ *
+ * \return error        Semi-Norm Error
+ *
+ */
 REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
 {
-  /*!
-   * \fn REAL HDsemierror(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
-   *
-   * \brief Computes the H(D) semi-norm of the error of a FE approximation and a true
-   *        solution given by a function using quadrature for any type of element.
-   *          Nodal   - <grad u, grad u>  -> |u|_1
-   *          RT      - <div u, div u>    -> |u|_(H(div))
-   *          Nedelec - <curl u, curl u>  -> |u|_(H(curl))
-   * \param u 	          Numerical Solution at DOF
-   * \param D_truesol     Function to get derivative of true solution at a given point
-   * \param FE            FE Space
-   * \param mesh          Mesh Data
-   * \param cq            Quadrature Nodes
-   * \param time          Physical time to compute solution at
-   *
-   * \return error        Semi-Norm Error
-   *
-   */
-
   INT dim = mesh->dim;
 
   // Quadrature Weights and Nodes
@@ -723,27 +713,26 @@ REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL),fespace *FE,trime
 /*******************************************************************************************************************************************************/
 
 /***************************************************************************/
+/*!
+ * \fn void HDsemierror(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+ *
+ * \brief Computes the H(D) semi-norm of the error of a block FE approximation and a true
+ *        solution given by a function using quadrature for any type of element.
+ *          Nodal   - <grad u, grad u>  -> |u|_1
+ *          RT      - <div u, div u>    -> |u|_(H(div))
+ *          Nedelec - <curl u, curl u>  -> |u|_(H(curl))
+ * \param u 	          Numerical Solution at DOF
+ * \param D_truesol     Function to get derivative of true solution at a given point
+ * \param FE            Block FE Space
+ * \param mesh          Mesh Data
+ * \param cq            Quadrature Nodes
+ * \param time          Physical time to compute solution at
+ *
+ * \return err          Semi-Norm Error
+ *
+ */
 void HDsemierror_block(REAL *err,REAL *u,void (*D_truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
 {
-  /*!
-   * \fn void HDsemierror(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
-   *
-   * \brief Computes the H(D) semi-norm of the error of a block FE approximation and a true
-   *        solution given by a function using quadrature for any type of element.
-   *          Nodal   - <grad u, grad u>  -> |u|_1
-   *          RT      - <div u, div u>    -> |u|_(H(div))
-   *          Nedelec - <curl u, curl u>  -> |u|_(H(curl))
-   * \param u 	          Numerical Solution at DOF
-   * \param D_truesol     Function to get derivative of true solution at a given point
-   * \param FE            Block FE Space
-   * \param mesh          Mesh Data
-   * \param cq            Quadrature Nodes
-   * \param time          Physical time to compute solution at
-   *
-   * \return err          Semi-Norm Error
-   *
-   */
-
   // Loop Indices
   INT i,elm,quad,j,rowa,rowb,jcntr;
 
@@ -838,27 +827,26 @@ void HDsemierror_block(REAL *err,REAL *u,void (*D_truesol)(REAL *,REAL *,REAL),b
 /*******************************************************************************************************************************************************/
 
 /***************************************************************************/
+/*!
+ * \fn REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+ *
+ * \brief Computes the H(D) semi-norm of the error of a FE approximation and a true
+ *        solution given by a function using the <Du,Dv> matrix assembly for any type of element.
+ *          Nodal   - <grad u, grad u>  -> |u|_1
+ *          RT      - <div u, div u>    -> |u|_(H(div))
+ *          Nedelec - <curl u, curl u>  -> |u|_(H(curl))
+ * \param u 	          Numerical Solution at DOF
+ * \param D_truesol     Function to get derivative of true solution at a given point
+ * \param FE            FE Space
+ * \param mesh          Mesh Data
+ * \param cq            Quadrature Nodes
+ * \param time          Physical time to compute solution at
+ *
+ * \return error        Semi-Norm Error
+ *
+ */
 REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
 {
-  /*!
-   * \fn REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
-   *
-   * \brief Computes the H(D) semi-norm of the error of a FE approximation and a true
-   *        solution given by a function using the <Du,Dv> matrix assembly for any type of element.
-   *          Nodal   - <grad u, grad u>  -> |u|_1
-   *          RT      - <div u, div u>    -> |u|_(H(div))
-   *          Nedelec - <curl u, curl u>  -> |u|_(H(curl))
-   * \param u 	          Numerical Solution at DOF
-   * \param D_truesol     Function to get derivative of true solution at a given point
-   * \param FE            FE Space
-   * \param mesh          Mesh Data
-   * \param cq            Quadrature Nodes
-   * \param time          Physical time to compute solution at
-   *
-   * \return error        Semi-Norm Error
-   *
-   */
-
   INT i,j,k;
   REAL sum = 0.0;
   REAL utk,utj,erk,erj;
@@ -905,27 +893,26 @@ REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,t
 /*******************************************************************************************************************************************************/
 
 /***************************************************************************/
+/*!
+ * \fn void HDsemierror_block_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+ *
+ * \brief Computes the H(D) semi-norm of the error of a block FE approximation and a true
+ *        solution given by a function using the <Du,Dv> matrix assembly for any type of element.
+ *          Nodal   - <grad u, grad u>  -> |u|_1
+ *          RT      - <div u, div u>    -> |u|_(H(div))
+ *          Nedelec - <curl u, curl u>  -> |u|_(H(curl))
+ * \param u 	          Numerical Solution at DOF
+ * \param D_truesol     Function to get derivative of true solution at a given point
+ * \param FE            Block FE Space
+ * \param mesh          Mesh Data
+ * \param cq            Quadrature Nodes
+ * \param time          Physical time to compute solution at
+ *
+ * \return err          Semi-Norm Error
+ *
+ */
 void HDsemierror_block_stiff(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
 {
-  /*!
-   * \fn void HDsemierror_block_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
-   *
-   * \brief Computes the H(D) semi-norm of the error of a block FE approximation and a true
-   *        solution given by a function using the <Du,Dv> matrix assembly for any type of element.
-   *          Nodal   - <grad u, grad u>  -> |u|_1
-   *          RT      - <div u, div u>    -> |u|_(H(div))
-   *          Nedelec - <curl u, curl u>  -> |u|_(H(curl))
-   * \param u 	          Numerical Solution at DOF
-   * \param D_truesol     Function to get derivative of true solution at a given point
-   * \param FE            Block FE Space
-   * \param mesh          Mesh Data
-   * \param cq            Quadrature Nodes
-   * \param time          Physical time to compute solution at
-   *
-   * \return err          Semi-Norm Error
-   *
-   */
-
   INT i,j,k,elm;
   REAL utk,utj,erk,erj;
 
@@ -984,28 +971,26 @@ void HDsemierror_block_stiff(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,RE
 }
 /*******************************************************************************************************************************************************/
 
-
 /***************************************************************************/
+/*!
+ * \fn REAL HDnorm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
+ *
+ * \brief Computes the H(D) norm of a FE approximation using the
+ *        <Du,Dv> matrix assembly for any type of element.
+ *          Nodal   - <u,u> + <grad u, grad u>  -> ||u||_1
+ *          RT      - <u,u> + <div u, div u>    -> ||u||_(H(div))
+ *          Nedelec - <u,u> + <curl u, curl u>  -> ||u||_(H(curl))
+ *
+ * \param u 	    Numerical Solution at DOF
+ * \param FE      FE Space
+ * \param mesh    Mesh Data
+ * \param cq      Quadrature Nodes
+ *
+ * \return norm   HD Norm
+ *
+ */
 REAL HDnorm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
 {
-  /*!
-   * \fn REAL HDnorm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
-   *
-   * \brief Computes the H(D) norm of a FE approximation using the
-   *        <Du,Dv> matrix assembly for any type of element.
-   *          Nodal   - <u,u> + <grad u, grad u>  -> ||u||_1
-   *          RT      - <u,u> + <div u, div u>    -> ||u||_(H(div))
-   *          Nedelec - <u,u> + <curl u, curl u>  -> ||u||_(H(curl))
-   *
-   * \param u 	    Numerical Solution at DOF
-   * \param FE      FE Space
-   * \param mesh    Mesh Data
-   * \param cq      Quadrature Nodes
-   *
-   * \return norm   HD Norm
-   *
-   */
-
   REAL sumL2 = L2norm(u,FE,mesh,cq);
   REAL sumSemi = HDseminorm(u,FE,mesh,cq);
 
@@ -1015,26 +1000,25 @@ REAL HDnorm(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq)
 /*******************************************************************************************************************************************************/
 
 /***************************************************************************/
+/*!
+ * \fn void HDnorm(REAL *norm, REAL *u,block_fespace *FE,trimesh *mesh,qcoordinates *cq)
+ *
+ * \brief Computes the H(D) norm of a block FE approximation using the
+ *        <Du,Dv> matrix assembly for any type of element.
+ *          Nodal   - <u,u> + <grad u, grad u>  -> ||u||_1
+ *          RT      - <u,u> + <div u, div u>    -> ||u||_(H(div))
+ *          Nedelec - <u,u> + <curl u, curl u>  -> ||u||_(H(curl))
+ *
+ * \param u 	    Numerical Solution at DOF
+ * \param FE      Block FE Space
+ * \param mesh    Mesh Data
+ * \param cq      Quadrature Nodes
+ *
+ * \return norm   HD Norm
+ *
+ */
 void HDnorm_block(REAL *norm,REAL *u,block_fespace *FE,trimesh *mesh,qcoordinates *cq)
 {
-  /*!
-   * \fn void HDnorm(REAL *norm, REAL *u,block_fespace *FE,trimesh *mesh,qcoordinates *cq)
-   *
-   * \brief Computes the H(D) norm of a block FE approximation using the
-   *        <Du,Dv> matrix assembly for any type of element.
-   *          Nodal   - <u,u> + <grad u, grad u>  -> ||u||_1
-   *          RT      - <u,u> + <div u, div u>    -> ||u||_(H(div))
-   *          Nedelec - <u,u> + <curl u, curl u>  -> ||u||_(H(curl))
-   *
-   * \param u 	    Numerical Solution at DOF
-   * \param FE      Block FE Space
-   * \param mesh    Mesh Data
-   * \param cq      Quadrature Nodes
-   *
-   * \return norm   HD Norm
-   *
-   */
-
   INT i;
   REAL* sumL2 = (REAL *) calloc(FE->nspaces,sizeof(REAL));
   REAL* sumSemi = (REAL *) calloc(FE->nspaces,sizeof(REAL));
@@ -1053,30 +1037,29 @@ void HDnorm_block(REAL *norm,REAL *u,block_fespace *FE,trimesh *mesh,qcoordinate
 /***************************************************************************/
 
 /***************************************************************************/
+/*!
+ * \fn REAL HDerror(REAL *u,void (*truesol)(REAL *,REAL *,REAL),void (*D_truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+ *
+ * \brief Computes the H(D) norm of the error of a FE approximation
+ *        and a true solution given by a function using the
+ *        <u,v> and <Du,Dv> matrix assembly for any type of element.
+ *          Nodal   - <u,u> + <grad u, grad u>  -> ||u||_1
+ *          RT      - <u,u> + <div u, div u>    -> ||u||_(H(div))
+ *          Nedelec - <u,u> + <curl u, curl u>  -> ||u||_(H(curl))
+ *
+ * \param u 	          Numerical Solution at DOF
+ * \param truesol       Function to get true solution at given point
+ * \param D_truesol     Function to get derivative of true solution at a given point
+ * \param FE            FE Space
+ * \param mesh          Mesh Data
+ * \param cq            Quadrature Nodes
+ * \param time          Physical time to compute solution at
+ *
+ * \return norm         HD Norm of Error
+ *
+ */
 REAL HDerror(REAL *u,void (*truesol)(REAL *,REAL *,REAL),void (*D_truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
 {
-  /*!
-   * \fn REAL HDerror(REAL *u,void (*truesol)(REAL *,REAL *,REAL),void (*D_truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
-   *
-   * \brief Computes the H(D) norm of the error of a FE approximation
-   *        and a true solution given by a function using the
-   *        <u,v> and <Du,Dv> matrix assembly for any type of element.
-   *          Nodal   - <u,u> + <grad u, grad u>  -> ||u||_1
-   *          RT      - <u,u> + <div u, div u>    -> ||u||_(H(div))
-   *          Nedelec - <u,u> + <curl u, curl u>  -> ||u||_(H(curl))
-   *
-   * \param u 	          Numerical Solution at DOF
-   * \param truesol       Function to get true solution at given point
-   * \param D_truesol     Function to get derivative of true solution at a given point
-   * \param FE            FE Space
-   * \param mesh          Mesh Data
-   * \param cq            Quadrature Nodes
-   * \param time          Physical time to compute solution at
-   *
-   * \return norm         HD Norm of Error
-   *
-   */
-
   REAL sumL2 = L2error(u,truesol,FE,mesh,cq,time);
   REAL sumSemi = HDsemierror(u,D_truesol,FE,mesh,cq,time);
 
@@ -1086,30 +1069,29 @@ REAL HDerror(REAL *u,void (*truesol)(REAL *,REAL *,REAL),void (*D_truesol)(REAL 
 /*******************************************************************************************************************************************************/
 
 /***************************************************************************/
+/*!
+ * \fn void HDerror(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL),void (*D_truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+ *
+ * \brief Computes the H(D) norm of the error of a block FE approximation
+ *        and a true solution given by a function using the
+ *        <u,v> and <Du,Dv> matrix assembly for any type of element.
+ *          Nodal   - <u,u> + <grad u, grad u>  -> ||u||_1
+ *          RT      - <u,u> + <div u, div u>    -> ||u||_(H(div))
+ *          Nedelec - <u,u> + <curl u, curl u>  -> ||u||_(H(curl))
+ *
+ * \param u 	          Numerical Solution at DOF
+ * \param truesol       Function to get true solution at given point
+ * \param D_truesol     Function to get derivative of true solution at a given point
+ * \param FE            Block FE Space
+ * \param mesh          Mesh Data
+ * \param cq            Quadrature Nodes
+ * \param time          Physical time to compute solution at
+ *
+ * \return norm         HD Norm of Error
+ *
+ */
 void HDerror_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL),void (*D_truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
 {
-  /*!
-   * \fn void HDerror(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL),void (*D_truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
-   *
-   * \brief Computes the H(D) norm of the error of a block FE approximation
-   *        and a true solution given by a function using the
-   *        <u,v> and <Du,Dv> matrix assembly for any type of element.
-   *          Nodal   - <u,u> + <grad u, grad u>  -> ||u||_1
-   *          RT      - <u,u> + <div u, div u>    -> ||u||_(H(div))
-   *          Nedelec - <u,u> + <curl u, curl u>  -> ||u||_(H(curl))
-   *
-   * \param u 	          Numerical Solution at DOF
-   * \param truesol       Function to get true solution at given point
-   * \param D_truesol     Function to get derivative of true solution at a given point
-   * \param FE            Block FE Space
-   * \param mesh          Mesh Data
-   * \param cq            Quadrature Nodes
-   * \param time          Physical time to compute solution at
-   *
-   * \return norm         HD Norm of Error
-   *
-   */
-
   INT i;
   REAL* sumL2 = (REAL *) calloc(FE->nspaces,sizeof(REAL));
   REAL* sumSemi = (REAL *) calloc(FE->nspaces,sizeof(REAL));

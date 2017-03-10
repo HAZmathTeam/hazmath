@@ -10,18 +10,17 @@
 #include "hazmath.h"
 
 /*************************************************************************************/
+/*!
+ * \fn get_time (REAL *time)
+ *
+ * \brief Get system time
+ *
+ * \author Xiaozhe Hu
+ * \date   10/06/2015
+ *
+ */
 void get_time (REAL *time)
 {
-    /*!
-     * \fn get_time (REAL *time)
-     *
-     * \brief Get system time
-     *
-     * \author Xiaozhe Hu
-     * \date   10/06/2015
-     *
-     */
-    
     if ( time != NULL ) {
         *time = (REAL) clock() / CLOCKS_PER_SEC;
     }

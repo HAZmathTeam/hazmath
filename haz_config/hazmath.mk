@@ -1,15 +1,15 @@
 #######################################################################
-#                Simple Finite Element Package (HAZMAT) 
+#                Simple Finite Element Package (HAZMATH) 
 #
 ################# User Defined Configuration Options #################
 #
-# 1. Copy this file to a file named "hazmat.mk".
-# 2. Edit "hazmat.mk" to adjust options/settings for your system
+# 1. Copy this file to a file named "hazmath.mk".
+# 2. Edit "hazmath.mk" to adjust options/settings for your system
 #    following the directions below.
 # 3. Type "make help" to see all build and configuration options.
 ########################################################################
 #
-# The default setting for build type for HAZMAT is RELEASE. The RELEASE 
+# The default setting for build type for HAZMATH is RELEASE. The RELEASE 
 # build type by default has the "-O3". You may adjust the optimization
 # compilation options according to your hardware and software setting.
 # For example, on a macbook pro with Intel i7, best options could be
@@ -20,15 +20,21 @@
 #
 # debug=yes
 #
-# The default setting for vebosity level for HAZMAT is verbose=no. If you
+# The default setting for vebosity level for HAZMATH is verbose=no. If you
 # want to increase verbosity level, uncomment the next line:
 #
 # verbose=yes
 #
-# By default, HAZMAT generates static libraries. If you need to generate 
+# By default, HAZMATH generates static libraries. If you need to generate 
 # shared libs instead of static libs, uncomment the next line:
 #
 # shared=yes
+#
+# You may use multithread version after you enable OpenMP support. To
+# setup the environment, you need
+#  >> export OMP_NUM_THREADS=4 (for bash)
+#  >> setenv OMP_NUM_THREADS 4 (for tcsh)
+# If you want to compile with OpenMP support, uncomment the next line:
 #
 # openmp=yes
 #
@@ -38,10 +44,18 @@
 # make config debug=yes
 #
 #-------------------------------------------------------------------------
+#
+# HAZMATH uses the command-line Doxygen to generate a reference manual.
+# If you want to use the GUI of Doxgen instead of command-line,
+# uncomment the next line:
+#
+doxygen=yes
+#        
+#-------------------------------------------------------------------------
 # If you want to use the SuiteSparse package, uncomment the next 
 # line (and read carefully the instructons below it):
 #
- suitesparse=yes
+suitesparse=yes
 #
 # If you have installed SuiteSparse from source or for some other
 # reason you want to specify the path to SuiteSparse libraries and

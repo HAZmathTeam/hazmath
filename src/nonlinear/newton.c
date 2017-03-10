@@ -11,18 +11,18 @@
 #include "hazmath.h"
 
 /******************************************************************************************************/
+/*!
+ * \fn void initialize_newton(newton *n_it,input_param *inparam)
+ *
+ * \brief Initialize the Newton struct for nonlinear iterations.
+ *
+ * \param inparam       Input from input parameter list
+ *
+ * \return n_it         Struct for Newton Iterations
+ *
+ */
 void initialize_newton(newton *n_it,input_param *inparam)
 {
-  /*!
-   * \fn void initialize_newton(newton *n_it,input_param *inparam)
-   *
-   * \brief Initialize the Newton struct for nonlinear iterations.
-   *
-   * \param inparam       Input from input parameter list
-   *
-   * \return n_it         Struct for Newton Iterations
-   *
-   */
 
     // Number of Newton steps
     n_it->max_steps = inparam->nonlinear_itsolver_maxit;
@@ -52,17 +52,16 @@ void initialize_newton(newton *n_it,input_param *inparam)
 /******************************************************************************************************/
 
 /****************************************************************************************/
+/*!
+ * \fn void free_newton(newton* n_it)
+ *
+ * \brief Frees memory of arrays of newton struct
+ *
+ * \return n_it         Freed struct for Newton Iterations
+ *
+ */
 void free_newton(newton* n_it)
 {
-  /*!
-   * \fn void free_newton(newton* n_it)
-   *
-   * \brief Frees memory of arrays of newton struct
-   *
-   * \return n_it         Freed struct for Newton Iterations
-   *
-   */
-
     if(n_it->Jac) {
         dcsr_free(n_it->Jac);
         n_it->Jac=NULL;
@@ -100,17 +99,16 @@ void free_newton(newton* n_it)
 /****************************************************************************************/
 
 /******************************************************************************************************/
+/*!
+ * \fn void update_newtonstep(newton* n_it)
+ *
+ * \brief Updates the Newton data at each step.
+ *
+ * \return n_it     Updated Newton struct
+ *
+ */
 void update_newtonstep(newton* n_it)
 {
-  /*!
-   * \fn void update_newtonstep(newton* n_it)
-   *
-   * \brief Updates the Newton data at each step.
-   *
-   * \return n_it     Updated Newton struct
-   *
-   */
-
     // Counters
     n_it->current_step++;
 
@@ -131,18 +129,17 @@ void update_newtonstep(newton* n_it)
 /******************************************************************************************************/
 
 /******************************************************************************************************/
+/*!
+ * \fn void update_sol_newton(newton *n_it)
+ *
+ * \brief Updates the solution to the nonlinear problem.
+ *        sol = sol_prev + step_length * update
+ *
+ * \return n_it.sol     Updated Newton solution
+ *
+ */
 void update_sol_newton(newton *n_it)
 {
-  /*!
-   * \fn void update_sol_newton(newton *n_it)
-   *
-   * \brief Updates the solution to the nonlinear problem.
-   *        sol = sol_prev + step_length * update
-   *
-   * \return n_it.sol     Updated Newton solution
-   *
-   */
-
     dvec_axpyz(n_it->step_length,n_it->update,n_it->sol_prev,n_it->sol);
 
     return;
@@ -150,23 +147,22 @@ void update_sol_newton(newton *n_it)
 /******************************************************************************************************/
 
 /******************************************************************************************************/
+/*!
+ * \fn int check_newton_convergence(newton *n_it,fespace* FE,trimesh* mesh, qcoordinates* cq)
+ *
+ * \brief Checks if Newton has converged:
+ *        If tol_type = 1: Check if ||nonlinear residual (rhs)|| < tol
+ *                      2: Check if ||update|| < tol
+ *                      0: Check both
+ *
+ * \param n_it     Newton struct
+ * \param FE       FE space
+ * \param mesh     Mesh struct
+ * \param cq       Quadrature for computing norms
+ *
+ */
 int check_newton_convergence(newton *n_it,fespace* FE,trimesh* mesh, qcoordinates* cq)
 {
-  /*!
-   * \fn int check_newton_convergence(newton *n_it,fespace* FE,trimesh* mesh, qcoordinates* cq)
-   *
-   * \brief Checks if Newton has converged:
-   *        If tol_type = 1: Check if ||nonlinear residual (rhs)|| < tol
-   *                      2: Check if ||update|| < tol
-   *                      0: Check both
-   *
-   * \param n_it     Newton struct
-   * \param FE       FE space
-   * \param mesh     Mesh struct
-   * \param cq       Quadrature for computing norms
-   *
-   */
-
     int newton_stop = 0;
     REAL tol = n_it->tol;
     REAL res_norm = L2norm(n_it->rhs->val,FE,mesh,cq);

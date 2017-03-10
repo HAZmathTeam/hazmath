@@ -13,23 +13,22 @@
 /*---------------------------------*/
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_diag (REAL *r, REAL *z, void *data)
+ *
+ * \brief Diagonal preconditioner z=inv(D)*r
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   04/06/2010
+ */
 void precond_diag (REAL *r, 
                         REAL *z, 
                         void *data)
-{
-    /**
-     * \fn void precond_diag (REAL *r, REAL *z, void *data)
-     *
-     * \brief Diagonal preconditioner z=inv(D)*r
-     *
-     * \param r     Pointer to the vector needs preconditioning
-     * \param z     Pointer to preconditioned vector
-     * \param data  Pointer to precondition data
-     *
-     * \author Xiaozhe Hu
-     * \date   04/06/2010
-     */
-    
+{   
     dvector *diag=(dvector *)data;
     REAL *diagptr=diag->val;
     INT i, m=diag->row;    
@@ -41,23 +40,22 @@ void precond_diag (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_amg (REAL *r, REAL *z, void *data)
+ *
+ * \brief AMG preconditioner
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   12/30/2015
+ */
 void precond_amg (REAL *r,
                        REAL *z,
                        void *data)
-{
-    /**
-     * \fn void precond_amg (REAL *r, REAL *z, void *data)
-     *
-     * \brief AMG preconditioner
-     *
-     * \param r     Pointer to the vector needs preconditioning
-     * \param z     Pointer to preconditioned vector
-     * \param data  Pointer to precondition data
-     *
-     * \author Xiaozhe Hu
-     * \date   12/30/2015
-     */
-    
+{  
     precond_data *pcdata=(precond_data *)data;
     const INT m=pcdata->mgl_data[0].A.row;
     const INT maxit=pcdata->maxit;
@@ -77,23 +75,22 @@ void precond_amg (REAL *r,
 
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_amli(REAL *r, REAL *z, void *data)
+ *
+ * \brief AMLI AMG preconditioner
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   01/23/2011
+ */
 void precond_amli (REAL *r,
                         REAL *z,
                         void *data)
-{
-    /**
-     * \fn void precond_amli(REAL *r, REAL *z, void *data)
-     *
-     * \brief AMLI AMG preconditioner
-     *
-     * \param r     Pointer to the vector needs preconditioning
-     * \param z     Pointer to preconditioned vector
-     * \param data  Pointer to precondition data
-     *
-     * \author Xiaozhe Hu
-     * \date   01/23/2011
-     */
-    
+{  
     precond_data *pcdata=(precond_data *)data;
     const INT m=pcdata->mgl_data[0].A.row;
     const INT maxit=pcdata->maxit;
@@ -112,23 +109,22 @@ void precond_amli (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_nl_amli(REAL *r, REAL *z, void *data)
+ *
+ * \brief Nonlinear AMLI AMG preconditioner
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   04/25/2011
+ */
 void precond_nl_amli (REAL *r,
                            REAL *z,
                            void *data)
-{
-    /**
-     * \fn void precond_nl_amli(REAL *r, REAL *z, void *data)
-     *
-     * \brief Nonlinear AMLI AMG preconditioner
-     *
-     * \param r     Pointer to the vector needs preconditioning
-     * \param z     Pointer to preconditioned vector
-     * \param data  Pointer to precondition data
-     *
-     * \author Xiaozhe Hu
-     * \date   04/25/2011
-     */
-    
+{    
     precond_data *pcdata=(precond_data *)data;
     const INT m=pcdata->mgl_data[0].A.row;
     const INT maxit=pcdata->maxit;
@@ -148,23 +144,22 @@ void precond_nl_amli (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_hx_curl_additive (REAL *r, REAL *z, void *data)
+ *
+ * \brief HX preconditioner for H(curl): additive version
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   02/10/2016
+ */
 void precond_hx_curl_additive (REAL *r,
                       REAL *z,
                       void *data)
-{
-    /**
-     * \fn void precond_hx_curl_additive (REAL *r, REAL *z, void *data)
-     *
-     * \brief HX preconditioner for H(curl): additive version
-     *
-     * \param r     Pointer to the vector needs preconditioning
-     * \param z     Pointer to preconditioned vector
-     * \param data  Pointer to precondition data
-     *
-     * \author Xiaozhe Hu
-     * \date   02/10/2016
-     */
-    
+{   
     HX_curl_data *hxcurldata=(HX_curl_data *)data;
     INT n = hxcurldata->A->row;
     SHORT smooth_iter = hxcurldata->smooth_iter;
@@ -214,23 +209,22 @@ void precond_hx_curl_additive (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_hx_curl_multiplicative (REAL *r, REAL *z, void *data)
+ *
+ * \brief HX preconditioner for H(curl): multiplicative version
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   02/10/2016
+ */
 void precond_hx_curl_multiplicative (REAL *r,
                                REAL *z,
                                void *data)
-{
-    /**
-     * \fn void precond_hx_curl_multiplicative (REAL *r, REAL *z, void *data)
-     *
-     * \brief HX preconditioner for H(curl): multiplicative version
-     *
-     * \param r     Pointer to the vector needs preconditioning
-     * \param z     Pointer to preconditioned vector
-     * \param data  Pointer to precondition data
-     *
-     * \author Xiaozhe Hu
-     * \date   02/10/2016
-     */
-    
+{   
     HX_curl_data *hxcurldata=(HX_curl_data *)data;
     INT n = hxcurldata->A->row;
     SHORT smooth_iter = hxcurldata->smooth_iter;
@@ -293,23 +287,22 @@ void precond_hx_curl_multiplicative (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_diag_2 (REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+ *        is solved exactly)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   10/14/2016
+ */
 void precond_block_diag_2 (REAL *r,
                            REAL *z,
                            void *data)
 {
-  /**
-   * \fn void precond_block_diag_2 (REAL *r, REAL *z, void *data)
-   * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
-   *        is solved exactly)
-   *
-   * \param r     Pointer to the vector needs preconditioning
-   * \param z     Pointer to preconditioned vector
-   * \param data  Pointer to precondition data
-   *
-   * \author Xiaozhe Hu
-   * \date   10/14/2016
-   */
-  
 #if WITH_SUITESPARSE
   precond_block_data *precdata=(precond_block_data *)data;
   dCSRmat *A_diag = precdata->A_diag;
@@ -354,24 +347,22 @@ void precond_block_diag_2 (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_upper_2 (REAL *r, REAL *z, void *data)
+ * \brief block upper triangular preconditioning (3x3 block matrix, each diagonal
+ *        block is solved exactly)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   10/14/2016
+ */
 void precond_block_lower_2 (REAL *r,
                             REAL *z,
                             void *data)
-{
-  
-  /**
-   * \fn void precond_block_upper_2 (REAL *r, REAL *z, void *data)
-   * \brief block upper triangular preconditioning (3x3 block matrix, each diagonal
-   *        block is solved exactly)
-   *
-   * \param r     Pointer to the vector needs preconditioning
-   * \param z     Pointer to preconditioned vector
-   * \param data  Pointer to precondition data
-   *
-   * \author Xiaozhe Hu
-   * \date   10/14/2016
-   */
-  
+{ 
 #if WITH_SUITESPARSE
   
   precond_block_data *precdata=(precond_block_data *)data;
@@ -421,24 +412,22 @@ void precond_block_lower_2 (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_upper_2 (REAL *r, REAL *z, void *data)
+ * \brief block upper triangular preconditioning (2x2 block matrix, each diagonal
+ *        block is solved exactly)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   10/14/2016
+ */
 void precond_block_upper_2 (REAL *r,
                             REAL *z,
                             void *data)
-{
-  
-  /**
-   * \fn void precond_block_upper_2 (REAL *r, REAL *z, void *data)
-   * \brief block upper triangular preconditioning (2x2 block matrix, each diagonal
-   *        block is solved exactly)
-   *
-   * \param r     Pointer to the vector needs preconditioning
-   * \param z     Pointer to preconditioned vector
-   * \param data  Pointer to precondition data
-   *
-   * \author Xiaozhe Hu
-   * \date   10/14/2016
-   */
-  
+{ 
 #if WITH_SUITESPARSE
   
   precond_block_data *precdata=(precond_block_data *)data;
@@ -488,23 +477,22 @@ void precond_block_upper_2 (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_diag_3 (REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (3x3 block matrix, each diagonal block
+ *        is solved exactly)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   02/24/2014
+ */
 void precond_block_diag_3 (REAL *r,
                                 REAL *z,
                                 void *data)
-{
-    /**
-     * \fn void precond_block_diag_3 (REAL *r, REAL *z, void *data)
-     * \brief block diagonal preconditioning (3x3 block matrix, each diagonal block
-     *        is solved exactly)
-     *
-     * \param r     Pointer to the vector needs preconditioning
-     * \param z     Pointer to preconditioned vector
-     * \param data  Pointer to precondition data
-     *
-     * \author Xiaozhe Hu
-     * \date   02/24/2014
-     */
-    
+{   
 #if WITH_SUITESPARSE
     precond_block_data *precdata=(precond_block_data *)data;
     dCSRmat *A_diag = precdata->A_diag;
@@ -549,24 +537,22 @@ void precond_block_diag_3 (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_upper_3 (REAL *r, REAL *z, void *data)
+ * \brief block upper triangular preconditioning (3x3 block matrix, each diagonal
+ *        block is solved exactly)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   02/24/2016
+ */
 void precond_block_lower_3 (REAL *r,
                             REAL *z,
                             void *data)
-{
-    
-    /**
-     * \fn void precond_block_upper_3 (REAL *r, REAL *z, void *data)
-     * \brief block upper triangular preconditioning (3x3 block matrix, each diagonal
-     *        block is solved exactly)
-     *
-     * \param r     Pointer to the vector needs preconditioning
-     * \param z     Pointer to preconditioned vector
-     * \param data  Pointer to precondition data
-     *
-     * \author Xiaozhe Hu
-     * \date   02/24/2016
-     */
-    
+{ 
 #if WITH_SUITESPARSE
     
     precond_block_data *precdata=(precond_block_data *)data;
@@ -625,24 +611,22 @@ void precond_block_lower_3 (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_upper_3 (REAL *r, REAL *z, void *data)
+ * \brief block upper triangular preconditioning (3x3 block matrix, each diagonal
+ *        block is solved exactly)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   02/24/2016
+ */
 void precond_block_upper_3 (REAL *r,
                                  REAL *z,
                                  void *data)
-{
-    
-    /**
-     * \fn void precond_block_upper_3 (REAL *r, REAL *z, void *data)
-     * \brief block upper triangular preconditioning (3x3 block matrix, each diagonal
-     *        block is solved exactly)
-     *
-     * \param r     Pointer to the vector needs preconditioning
-     * \param z     Pointer to preconditioned vector
-     * \param data  Pointer to precondition data
-     *
-     * \author Xiaozhe Hu
-     * \date   02/24/2016
-     */
-    
+{ 
 #if WITH_SUITESPARSE
 
     precond_block_data *precdata=(precond_block_data *)data;
@@ -701,23 +685,22 @@ void precond_block_upper_3 (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_diag_4 (REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (4x4 block matrix, each diagonal block
+ *        is solved exactly)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   01/20/2017
+ */
 void precond_block_diag_4 (REAL *r,
                                 REAL *z,
                                 void *data)
 {
-    /**
-     * \fn void precond_block_diag_4 (REAL *r, REAL *z, void *data)
-     * \brief block diagonal preconditioning (4x4 block matrix, each diagonal block
-     *        is solved exactly)
-     *
-     * \param r     Pointer to the vector needs preconditioning
-     * \param z     Pointer to preconditioned vector
-     * \param data  Pointer to precondition data
-     *
-     * \author Xiaozhe Hu
-     * \date   01/20/2017
-     */
-
 #if WITH_SUITESPARSE
     precond_block_data *precdata=(precond_block_data *)data;
     dCSRmat *A_diag = precdata->A_diag;
@@ -774,29 +757,27 @@ void precond_block_diag_4 (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_lower_4 (REAL *r, REAL *z, void *data)
+ * \brief block upper triangular preconditioning (4x4 block matrix, each diagonal
+ *        block is solved exactly)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   01/28/2017
+ *
+ * A[0]  A[1]  A[2]  A[3]
+ * A[4]  A[5]  A[6]  A[7]
+ * A[8]  A[9]  A[10] A[11]
+ * A[12] A[13] A[14] A[15]
+ */
 void precond_block_lower_4 (REAL *r,
                             REAL *z,
                             void *data)
 {
-
-    /**
-     * \fn void precond_block_lower_4 (REAL *r, REAL *z, void *data)
-     * \brief block upper triangular preconditioning (4x4 block matrix, each diagonal
-     *        block is solved exactly)
-     *
-     * \param r     Pointer to the vector needs preconditioning
-     * \param z     Pointer to preconditioned vector
-     * \param data  Pointer to precondition data
-     *
-     * \author Xiaozhe Hu
-     * \date   01/28/2017
-     *
-     * A[0]  A[1]  A[2]  A[3]
-     * A[4]  A[5]  A[6]  A[7]
-     * A[8]  A[9]  A[10] A[11]
-     * A[12] A[13] A[14] A[15]
-     */
-
 #if WITH_SUITESPARSE
 
     precond_block_data *precdata=(precond_block_data *)data;
@@ -875,29 +856,27 @@ void precond_block_lower_4 (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_upper_4 (REAL *r, REAL *z, void *data)
+ * \brief block upper triangular preconditioning (4x4 block matrix, each diagonal
+ *        block is solved exactly)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   01/28/2017
+ *
+ * A[0]  A[1]  A[2]  A[3]
+ * A[4]  A[5]  A[6]  A[7]
+ * A[8]  A[9]  A[10] A[11]
+ * A[12] A[13] A[14] A[15]
+ */
 void precond_block_upper_4 (REAL *r,
                                  REAL *z,
                                  void *data)
 {
-
-    /**
-     * \fn void precond_block_upper_4 (REAL *r, REAL *z, void *data)
-     * \brief block upper triangular preconditioning (4x4 block matrix, each diagonal
-     *        block is solved exactly)
-     *
-     * \param r     Pointer to the vector needs preconditioning
-     * \param z     Pointer to preconditioned vector
-     * \param data  Pointer to precondition data
-     *
-     * \author Xiaozhe Hu
-     * \date   01/28/2017
-     *
-     * A[0]  A[1]  A[2]  A[3]
-     * A[4]  A[5]  A[6]  A[7]
-     * A[8]  A[9]  A[10] A[11]
-     * A[12] A[13] A[14] A[15]
-     */
-
 #if WITH_SUITESPARSE
 
     precond_block_data *precdata=(precond_block_data *)data;
@@ -979,23 +958,22 @@ void precond_block_upper_4 (REAL *r,
 /*************** Special Preconditioners for Mixed Darcy Flow *********************************/
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_diag_mixed_darcy (REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+ *        is solved inexactly)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   10/14/2016
+ */
 void precond_block_diag_mixed_darcy (REAL *r,
                                      REAL *z,
                                      void *data)
 {
-  /**
-   * \fn void precond_block_diag_mixed_darcy (REAL *r, REAL *z, void *data)
-   * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
-   *        is solved inexactly)
-   *
-   * \param r     Pointer to the vector needs preconditioning
-   * \param z     Pointer to preconditioned vector
-   * \param data  Pointer to precondition data
-   *
-   * \author Xiaozhe Hu
-   * \date   10/14/2016
-   */
-  
   precond_block_data *precdata=(precond_block_data *)data;
   dvector *tempr = &(precdata->r);
   
@@ -1044,23 +1022,22 @@ void precond_block_diag_mixed_darcy (REAL *r,
 
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_lower_mixed_darcy (REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+ *        is solved inexactly)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   10/14/2016
+ */
 void precond_block_lower_mixed_darcy (REAL *r,
                                      REAL *z,
                                      void *data)
-{
-  /**
-   * \fn void precond_block_lower_mixed_darcy (REAL *r, REAL *z, void *data)
-   * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
-   *        is solved inexactly)
-   *
-   * \param r     Pointer to the vector needs preconditioning
-   * \param z     Pointer to preconditioned vector
-   * \param data  Pointer to precondition data
-   *
-   * \author Xiaozhe Hu
-   * \date   10/14/2016
-   */
-  
+{  
   precond_block_data *precdata=(precond_block_data *)data;
   dvector *tempr = &(precdata->r);
   
@@ -1111,23 +1088,22 @@ void precond_block_lower_mixed_darcy (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_upper_mixed_darcy (REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+ *        is solved inexactly)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   10/14/2016
+ */
 void precond_block_upper_mixed_darcy (REAL *r,
                                      REAL *z,
                                      void *data)
 {
-  /**
-   * \fn void precond_block_upper_mixed_darcy (REAL *r, REAL *z, void *data)
-   * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
-   *        is solved inexactly)
-   *
-   * \param r     Pointer to the vector needs preconditioning
-   * \param z     Pointer to preconditioned vector
-   * \param data  Pointer to precondition data
-   *
-   * \author Xiaozhe Hu
-   * \date   10/14/2016
-   */
-  
   precond_block_data *precdata=(precond_block_data *)data;
   dvector *tempr = &(precdata->r);
   
@@ -1178,23 +1154,22 @@ void precond_block_upper_mixed_darcy (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_diag_mixed_darcy (REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+ *        is solved inexactly by Krylov methods)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   10/14/2016
+ */
 void precond_block_diag_mixed_darcy_krylov (REAL *r,
                                      REAL *z,
                                      void *data)
 {
-  /**
-   * \fn void precond_block_diag_mixed_darcy (REAL *r, REAL *z, void *data)
-   * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
-   *        is solved inexactly by Krylov methods)
-   *
-   * \param r     Pointer to the vector needs preconditioning
-   * \param z     Pointer to preconditioned vector
-   * \param data  Pointer to precondition data
-   *
-   * \author Xiaozhe Hu
-   * \date   10/14/2016
-   */
-  
   precond_block_data *precdata=(precond_block_data *)data;
   dvector *tempr = &(precdata->r);
   
@@ -1247,23 +1222,22 @@ void precond_block_diag_mixed_darcy_krylov (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_diag_mixed_darcy (REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+ *        is solved inexactly by Krylov methods)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   10/14/2016
+ */
 void precond_block_lower_mixed_darcy_krylov (REAL *r,
                                             REAL *z,
                                             void *data)
-{
-  /**
-   * \fn void precond_block_diag_mixed_darcy (REAL *r, REAL *z, void *data)
-   * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
-   *        is solved inexactly by Krylov methods)
-   *
-   * \param r     Pointer to the vector needs preconditioning
-   * \param z     Pointer to preconditioned vector
-   * \param data  Pointer to precondition data
-   *
-   * \author Xiaozhe Hu
-   * \date   10/14/2016
-   */
-  
+{ 
   precond_block_data *precdata=(precond_block_data *)data;
   dvector *tempr = &(precdata->r);
   
@@ -1318,23 +1292,22 @@ void precond_block_lower_mixed_darcy_krylov (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_upper_mixed_darcy (REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+ *        is solved inexactly by Krylov methods)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   10/14/2016
+ */
 void precond_block_upper_mixed_darcy_krylov (REAL *r,
                                             REAL *z,
                                             void *data)
-{
-  /**
-   * \fn void precond_block_upper_mixed_darcy (REAL *r, REAL *z, void *data)
-   * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
-   *        is solved inexactly by Krylov methods)
-   *
-   * \param r     Pointer to the vector needs preconditioning
-   * \param z     Pointer to preconditioned vector
-   * \param data  Pointer to precondition data
-   *
-   * \author Xiaozhe Hu
-   * \date   10/14/2016
-   */
-  
+{ 
   precond_block_data *precdata=(precond_block_data *)data;
   dvector *tempr = &(precdata->r);
   
@@ -1391,23 +1364,22 @@ void precond_block_upper_mixed_darcy_krylov (REAL *r,
 
 /*************** Special Preconditioners for Biot 2-phase formulation **************************/
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_diag_biot_2phase (REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+ *        is solved inexactly)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   01/14/2017
+ */
 void precond_block_diag_biot_2phase (REAL *r,
                                      REAL *z,
                                      void *data)
 {
-  /**
-   * \fn void precond_block_diag_biot_2phase (REAL *r, REAL *z, void *data)
-   * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
-   *        is solved inexactly)
-   *
-   * \param r     Pointer to the vector needs preconditioning
-   * \param z     Pointer to preconditioned vector
-   * \param data  Pointer to precondition data
-   *
-   * \author Xiaozhe Hu
-   * \date   01/14/2017
-   */
-
   precond_block_data *precdata=(precond_block_data *)data;
   dvector *tempr = &(precdata->r);
 
@@ -1455,23 +1427,22 @@ void precond_block_diag_biot_2phase (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_lower_biot_2phase (REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+ *        is solved inexactly)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   01/14/2017
+ */
 void precond_block_lower_biot_2phase (REAL *r,
                                       REAL *z,
                                       void *data)
 {
-  /**
-   * \fn void precond_block_lower_biot_2phase (REAL *r, REAL *z, void *data)
-   * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
-   *        is solved inexactly)
-   *
-   * \param r     Pointer to the vector needs preconditioning
-   * \param z     Pointer to preconditioned vector
-   * \param data  Pointer to precondition data
-   *
-   * \author Xiaozhe Hu
-   * \date   01/14/2017
-   */
-
   precond_block_data *precdata=(precond_block_data *)data;
   dvector *tempr = &(precdata->r);
 
@@ -1522,23 +1493,22 @@ void precond_block_lower_biot_2phase (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_upper_biot_2phase (REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+ *        is solved inexactly)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   01/14/2017
+ */
 void precond_block_upper_biot_2phase (REAL *r,
                                       REAL *z,
                                       void *data)
 {
-  /**
-   * \fn void precond_block_upper_biot_2phase (REAL *r, REAL *z, void *data)
-   * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
-   *        is solved inexactly)
-   *
-   * \param r     Pointer to the vector needs preconditioning
-   * \param z     Pointer to preconditioned vector
-   * \param data  Pointer to precondition data
-   *
-   * \author Xiaozhe Hu
-   * \date   01/14/2017
-   */
-
   precond_block_data *precdata=(precond_block_data *)data;
   dvector *tempr = &(precdata->r);
 
@@ -1589,23 +1559,22 @@ void precond_block_upper_biot_2phase (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_diag_biot_2phase_krylov (REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+ *        is solved inexactly by Krylov methods)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   01/14/2017
+ */
 void precond_block_diag_biot_2phase_krylov (REAL *r,
                                             REAL *z,
                                             void *data)
 {
-  /**
-   * \fn void precond_block_diag_biot_2phase_krylov (REAL *r, REAL *z, void *data)
-   * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
-   *        is solved inexactly by Krylov methods)
-   *
-   * \param r     Pointer to the vector needs preconditioning
-   * \param z     Pointer to preconditioned vector
-   * \param data  Pointer to precondition data
-   *
-   * \author Xiaozhe Hu
-   * \date   01/14/2017
-   */
-
   precond_block_data *precdata=(precond_block_data *)data;
   dvector *tempr = &(precdata->r);
 
@@ -1660,23 +1629,22 @@ void precond_block_diag_biot_2phase_krylov (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_lower_biot_2phase_krylov (REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+ *        is solved inexactly by Krylov methods)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   01/14/2017
+ */
 void precond_block_lower_biot_2phase_krylov (REAL *r,
                                             REAL *z,
                                             void *data)
 {
-  /**
-   * \fn void precond_block_lower_biot_2phase_krylov (REAL *r, REAL *z, void *data)
-   * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
-   *        is solved inexactly by Krylov methods)
-   *
-   * \param r     Pointer to the vector needs preconditioning
-   * \param z     Pointer to preconditioned vector
-   * \param data  Pointer to precondition data
-   *
-   * \author Xiaozhe Hu
-   * \date   01/14/2017
-   */
-
   precond_block_data *precdata=(precond_block_data *)data;
   dvector *tempr = &(precdata->r);
 
@@ -1733,23 +1701,22 @@ void precond_block_lower_biot_2phase_krylov (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_upper_biot_2phase_darcy (REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+ *        is solved inexactly by Krylov methods)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   01/14/2017
+ */
 void precond_block_upper_biot_2phase_krylov (REAL *r,
                                             REAL *z,
                                             void *data)
 {
-  /**
-   * \fn void precond_block_upper_biot_2phase_darcy (REAL *r, REAL *z, void *data)
-   * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
-   *        is solved inexactly by Krylov methods)
-   *
-   * \param r     Pointer to the vector needs preconditioning
-   * \param z     Pointer to preconditioned vector
-   * \param data  Pointer to precondition data
-   *
-   * \author Xiaozhe Hu
-   * \date   01/14/2017
-   */
-
   precond_block_data *precdata=(precond_block_data *)data;
   dvector *tempr = &(precdata->r);
 
@@ -1809,22 +1776,21 @@ void precond_block_upper_biot_2phase_krylov (REAL *r,
 /*************** Special Preconditioners for Maxwell equation **********************************/
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_diag_maxwell (REAL *r, REAL *z, void *data)
+ * \brief block upper triangular preconditioning (maxwell equation)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   03/12/2016
+ */
 void precond_block_diag_maxwell (REAL *r,
                                   REAL *z,
                                   void *data)
-{
-    /**
-     * \fn void precond_block_diag_maxwell (REAL *r, REAL *z, void *data)
-     * \brief block upper triangular preconditioning (maxwell equation)
-     *
-     * \param r     Pointer to the vector needs preconditioning
-     * \param z     Pointer to preconditioned vector
-     * \param data  Pointer to precondition data
-     *
-     * \author Xiaozhe Hu
-     * \date   03/12/2016
-     */
-    
+{   
     precond_block_data *precdata=(precond_block_data *)data;
     //block_dCSRmat *A = precdata->Abcsr;
     dCSRmat *A_diag = precdata->A_diag;
@@ -1889,22 +1855,21 @@ void precond_block_diag_maxwell (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_lower_maxwell (REAL *r, REAL *z, void *data)
+ * \brief block upper triangular preconditioning (maxwell equation)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   03/12/2016
+ */
 void precond_block_lower_maxwell (REAL *r,
                                   REAL *z,
                                   void *data)
-{
-    /**
-     * \fn void precond_block_lower_maxwell (REAL *r, REAL *z, void *data)
-     * \brief block upper triangular preconditioning (maxwell equation)
-     *
-     * \param r     Pointer to the vector needs preconditioning
-     * \param z     Pointer to preconditioned vector
-     * \param data  Pointer to precondition data
-     *
-     * \author Xiaozhe Hu
-     * \date   03/12/2016
-     */
-    
+{  
     precond_block_data *precdata=(precond_block_data *)data;
     block_dCSRmat *A = precdata->Abcsr;
     dCSRmat *A_diag = precdata->A_diag;
@@ -1974,22 +1939,21 @@ void precond_block_lower_maxwell (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_upper_maxwell (REAL *r, REAL *z, void *data)
+ * \brief block upper triangular preconditioning (maxwell equation)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   02/25/2016
+ */
 void precond_block_upper_maxwell (REAL *r,
                             REAL *z,
                             void *data)
-{
-    /**
-     * \fn void precond_block_upper_maxwell (REAL *r, REAL *z, void *data)
-     * \brief block upper triangular preconditioning (maxwell equation)
-     *
-     * \param r     Pointer to the vector needs preconditioning
-     * \param z     Pointer to preconditioned vector
-     * \param data  Pointer to precondition data
-     *
-     * \author Xiaozhe Hu
-     * \date   02/25/2016
-     */
-    
+{   
     precond_block_data *precdata=(precond_block_data *)data;
     block_dCSRmat *A = precdata->Abcsr;
     dCSRmat *A_diag = precdata->A_diag;
@@ -2059,22 +2023,21 @@ void precond_block_upper_maxwell (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_diag_maxwell_krylov (REAL *r, REAL *z, void *data)
+ * \brief block upper triangular preconditioning (maxwell equation)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   03/12/2016
+ */
 void precond_block_diag_maxwell_krylov (REAL *r,
                                          REAL *z,
                                          void *data)
-{
-    /**
-     * \fn void precond_block_diag_maxwell_krylov (REAL *r, REAL *z, void *data)
-     * \brief block upper triangular preconditioning (maxwell equation)
-     *
-     * \param r     Pointer to the vector needs preconditioning
-     * \param z     Pointer to preconditioned vector
-     * \param data  Pointer to precondition data
-     *
-     * \author Xiaozhe Hu
-     * \date   03/12/2016
-     */
-    
+{   
     precond_block_data *precdata=(precond_block_data *)data;
     // block_dCSRmat *A = precdata->Abcsr;
     dCSRmat *A_diag = precdata->A_diag;
@@ -2147,22 +2110,21 @@ void precond_block_diag_maxwell_krylov (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_lower_maxwell_krylov (REAL *r, REAL *z, void *data)
+ * \brief block upper triangular preconditioning (maxwell equation)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   02/26/2016
+ */
 void precond_block_lower_maxwell_krylov (REAL *r,
                                          REAL *z,
                                          void *data)
-{
-    /**
-     * \fn void precond_block_lower_maxwell_krylov (REAL *r, REAL *z, void *data)
-     * \brief block upper triangular preconditioning (maxwell equation)
-     *
-     * \param r     Pointer to the vector needs preconditioning
-     * \param z     Pointer to preconditioned vector
-     * \param data  Pointer to precondition data
-     *
-     * \author Xiaozhe Hu
-     * \date   02/26/2016
-     */
-    
+{   
     precond_block_data *precdata=(precond_block_data *)data;
     block_dCSRmat *A = precdata->Abcsr;
     dCSRmat *A_diag = precdata->A_diag;
@@ -2242,22 +2204,21 @@ void precond_block_lower_maxwell_krylov (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_upper_maxwell_krylov (REAL *r, REAL *z, void *data)
+ * \brief block upper triangular preconditioning (maxwell equation)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   02/26/2016
+ */
 void precond_block_upper_maxwell_krylov (REAL *r,
                                   REAL *z,
                                   void *data)
-{
-    /**
-     * \fn void precond_block_upper_maxwell_krylov (REAL *r, REAL *z, void *data)
-     * \brief block upper triangular preconditioning (maxwell equation)
-     *
-     * \param r     Pointer to the vector needs preconditioning
-     * \param z     Pointer to preconditioned vector
-     * \param data  Pointer to precondition data
-     *
-     * \author Xiaozhe Hu
-     * \date   02/26/2016
-     */
-    
+{    
     precond_block_data *precdata=(precond_block_data *)data;
     block_dCSRmat *A = precdata->Abcsr;
     dCSRmat *A_diag = precdata->A_diag;
@@ -2335,22 +2296,21 @@ void precond_block_upper_maxwell_krylov (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_lower_diag_maxwell (REAL *r, REAL *z, void *data)
+ * \brief block diagonal/upper triangular preconditioning (maxwell equation)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   03/12/2016
+ */
 void precond_block_lower_diag_maxwell (REAL *r,
                                               REAL *z,
                                               void *data)
-{
-    /**
-     * \fn void precond_block_lower_diag_maxwell (REAL *r, REAL *z, void *data)
-     * \brief block diagonal/upper triangular preconditioning (maxwell equation)
-     *
-     * \param r     Pointer to the vector needs preconditioning
-     * \param z     Pointer to preconditioned vector
-     * \param data  Pointer to precondition data
-     *
-     * \author Xiaozhe Hu
-     * \date   03/12/2016
-     */
-    
+{   
     precond_block_data *precdata=(precond_block_data *)data;
     dCSRmat *A_diag = precdata->A_diag;
     AMG_param *amgparam = precdata->amgparam;
@@ -2427,22 +2387,21 @@ void precond_block_lower_diag_maxwell (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_diag_upper_maxwell_krylov (REAL *r, REAL *z, void *data)
+ * \brief block diagonal/upper triangular preconditioning (maxwell equation)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   03/12/2016
+ */
 void precond_block_diag_upper_maxwell (REAL *r,
                                               REAL *z,
                                               void *data)
-{
-    /**
-     * \fn void precond_block_diag_upper_maxwell_krylov (REAL *r, REAL *z, void *data)
-     * \brief block diagonal/upper triangular preconditioning (maxwell equation)
-     *
-     * \param r     Pointer to the vector needs preconditioning
-     * \param z     Pointer to preconditioned vector
-     * \param data  Pointer to precondition data
-     *
-     * \author Xiaozhe Hu
-     * \date   03/12/2016
-     */
-    
+{   
     precond_block_data *precdata=(precond_block_data *)data;
     dCSRmat *A_diag = precdata->A_diag;
     AMG_param *amgparam = precdata->amgparam;
@@ -2520,22 +2479,21 @@ void precond_block_diag_upper_maxwell (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_lower_diag_upper_maxwell_krylov (REAL *r, REAL *z, void *data)
+ * \brief block diagonal/upper triangular preconditioning (maxwell equation)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   03/12/2016
+ */
 void precond_block_lower_diag_upper_maxwell (REAL *r,
                                                     REAL *z,
                                                     void *data)
-{
-    /**
-     * \fn void precond_block_lower_diag_upper_maxwell_krylov (REAL *r, REAL *z, void *data)
-     * \brief block diagonal/upper triangular preconditioning (maxwell equation)
-     *
-     * \param r     Pointer to the vector needs preconditioning
-     * \param z     Pointer to preconditioned vector
-     * \param data  Pointer to precondition data
-     *
-     * \author Xiaozhe Hu
-     * \date   03/12/2016
-     */
-    
+{   
     precond_block_data *precdata=(precond_block_data *)data;
     dCSRmat *A_diag = precdata->A_diag;
     AMG_param *amgparam = precdata->amgparam;
@@ -2621,22 +2579,21 @@ void precond_block_lower_diag_upper_maxwell (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_lower_diag_maxwell_krylov (REAL *r, REAL *z, void *data)
+ * \brief block diagonal/upper triangular preconditioning (maxwell equation)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   03/12/2016
+ */
 void precond_block_lower_diag_maxwell_krylov (REAL *r,
                                               REAL *z,
                                               void *data)
-{
-    /**
-     * \fn void precond_block_lower_diag_maxwell_krylov (REAL *r, REAL *z, void *data)
-     * \brief block diagonal/upper triangular preconditioning (maxwell equation)
-     *
-     * \param r     Pointer to the vector needs preconditioning
-     * \param z     Pointer to preconditioned vector
-     * \param data  Pointer to precondition data
-     *
-     * \author Xiaozhe Hu
-     * \date   03/12/2016
-     */
-    
+{   
     precond_block_data *precdata=(precond_block_data *)data;
     dCSRmat *A_diag = precdata->A_diag;
     AMG_param *amgparam = precdata->amgparam;
@@ -2726,22 +2683,21 @@ void precond_block_lower_diag_maxwell_krylov (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_diag_upper_maxwell_krylov (REAL *r, REAL *z, void *data)
+ * \brief block diagonal/upper triangular preconditioning (maxwell equation)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   03/12/2016
+ */
 void precond_block_diag_upper_maxwell_krylov (REAL *r,
                                          REAL *z,
                                          void *data)
-{
-    /**
-     * \fn void precond_block_diag_upper_maxwell_krylov (REAL *r, REAL *z, void *data)
-     * \brief block diagonal/upper triangular preconditioning (maxwell equation)
-     *
-     * \param r     Pointer to the vector needs preconditioning
-     * \param z     Pointer to preconditioned vector
-     * \param data  Pointer to precondition data
-     *
-     * \author Xiaozhe Hu
-     * \date   03/12/2016
-     */
-    
+{   
     precond_block_data *precdata=(precond_block_data *)data;
     dCSRmat *A_diag = precdata->A_diag;
     AMG_param *amgparam = precdata->amgparam;
@@ -2830,22 +2786,21 @@ void precond_block_diag_upper_maxwell_krylov (REAL *r,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_block_lower_diag_upper_maxwell_krylov (REAL *r, REAL *z, void *data)
+ * \brief block diagonal/upper triangular preconditioning (maxwell equation)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   03/12/2016
+ */
 void precond_block_lower_diag_upper_maxwell_krylov (REAL *r,
                                               REAL *z,
                                               void *data)
-{
-    /**
-     * \fn void precond_block_lower_diag_upper_maxwell_krylov (REAL *r, REAL *z, void *data)
-     * \brief block diagonal/upper triangular preconditioning (maxwell equation)
-     *
-     * \param r     Pointer to the vector needs preconditioning
-     * \param z     Pointer to preconditioned vector
-     * \param data  Pointer to precondition data
-     *
-     * \author Xiaozhe Hu
-     * \date   03/12/2016
-     */
-    
+{   
     precond_block_data *precdata=(precond_block_data *)data;
     dCSRmat *A_diag = precdata->A_diag;
     AMG_param *amgparam = precdata->amgparam;

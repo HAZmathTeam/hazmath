@@ -11,21 +11,20 @@
 #include "hazmath.h"
 
 /***********************************************************************************************/
+/*!
+ * \fn dCSRmat bdcsr_2_dcsr (block_dCSRmat *Ab)
+ *
+ * \brief Transform a block_dCSRmat matrix to a dCSRmat matrix
+ *
+ * \param Ab   Pointer to a block_dCSRmat matrix
+ *
+ * \return A   dCSRmat matrix if succeed, NULL if fail
+ *
+ * \note Memory space for the dCSRmat matrix is allocated inside this functions! -- Xiaozhe Hu
+ *
+ */
 dCSRmat bdcsr_2_dcsr (block_dCSRmat *Ab)
-{
-    /*!
-     * \fn dCSRmat bdcsr_2_dcsr (block_dCSRmat *Ab)
-     *
-     * \brief Transform a block_dCSRmat matrix to a dCSRmat matrix
-     *
-     * \param Ab   Pointer to a block_dCSRmat matrix
-     *
-     * \return A   dCSRmat matrix if succeed, NULL if fail
-     *
-     * \note Memory space for the dCSRmat matrix is allocated inside this functions! -- Xiaozhe Hu
-     *
-     */
-    
+{   
     // local variables
     INT m=0,n=0,nnz=0;
     const INT mb=Ab->brow, nb=Ab->bcol, nbl=mb*nb;
@@ -132,24 +131,23 @@ dCSRmat bdcsr_2_dcsr (block_dCSRmat *Ab)
 }
 
 /***********************************************************************************************/
+/*!
+ * \fn block_dCSRmat dcsr_2_bdcsr (dCSRmat *A)
+ *
+ * \brief
+ *
+ * \param A         Pointer to dCSRmat matrix
+ * \param bnum      Block size of the block_dCSRmat matrix
+ * \param bsize     Pointer to the size of each diagonal block
+ *
+ * \return Ab       block_dCSRmat matrix if succeed, NULL if fail
+ *
+ * \note Assume dCSRmat A has block form already and just need to explicitly form the blocks without reordering! -- Xiaozhe Hu
+ * \note SUM(bsize) = A->row = A->col, i.e., size has to be consistent!!  -- Xiaozhe Hu
+ *
+ */
 block_dCSRmat dcsr_2_bdcsr (dCSRmat *A, int bnum, int *bsize)
-{
-    /*!
-     * \fn block_dCSRmat dcsr_2_bdcsr (dCSRmat *A)
-     *
-     * \brief
-     *
-     * \param A         Pointer to dCSRmat matrix
-     * \param bnum      Block size of the block_dCSRmat matrix
-     * \param bsize     Pointer to the size of each diagonal block
-     *
-     * \return Ab       block_dCSRmat matrix if succeed, NULL if fail
-     *
-     * \note Assume dCSRmat A has block form already and just need to explicitly form the blocks without reordering! -- Xiaozhe Hu
-     * \note SUM(bsize) = A->row = A->col, i.e., size has to be consistent!!  -- Xiaozhe Hu
-     *
-     */
-    
+{ 
     // local variable
     int i, j;
     SHORT status = SUCCESS;
@@ -194,21 +192,20 @@ block_dCSRmat dcsr_2_bdcsr (dCSRmat *A, int bnum, int *bsize)
 }
 
 /***********************************************************************************************/
+/*!
+ * \fn SHORT dcoo_2_dcsr (dCOOmat *A, dCSRmat *B)
+ *
+ * \brief Transform a dCOOmat matrix to a dCSRmat format.
+ *
+ * \param A   Pointer to dCOOmat matrix
+ * \param B   Pointer to dCSRmat matrix
+ *
+ * \return    SUCCESS if successed; otherwise, error information.
+ *
+ */
 SHORT dcoo_2_dcsr (dCOOmat *A,
                    dCSRmat *B)
-{
-    /*!
-     * \fn SHORT dcoo_2_dcsr (dCOOmat *A, dCSRmat *B)
-     *
-     * \brief Transform a dCOOmat matrix to a dCSRmat format.
-     *
-     * \param A   Pointer to dCOOmat matrix
-     * \param B   Pointer to dCSRmat matrix
-     *
-     * \return    SUCCESS if successed; otherwise, error information.
-     *
-     */
-    
+{   
     // get size
     const INT m=A->row, n=A->col, nnz=A->nnz;
 

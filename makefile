@@ -53,6 +53,10 @@ ifeq ($(suitesparse), yes)
     CONFIG_FLAGS+=-DSUITESPARSE_DIR=$(suitesparse_dir)
 endif
 
+ifeq ($(doxygen),yes)
+    CONFIG_FLAGS+=-DUSE_DOXYGEN=$(doxygen)
+endif
+
 ifeq ($(multigraph), yes)
     CONFIG_FLAGS+=-DUSE_MULTIGRAPH=$(multigraph)
     CONFIG_FLAGS+=-DMULTIGRAPH_DIR=$(multigraph_dir)

@@ -11,6 +11,20 @@
 #include "hazmath.h"
 
 /***********************************************************************************************/
+/*!
+   * \fn void print_itsolver_info (const INT print_lvl, const INT stop_type, const INT iter,
+   *                        const REAL rel_res, const REAL abs_res, const REAL factor)
+   *
+   * \brief Print out iteration information for linear iterative solvers at each iteration
+   *
+   * \param print_lvl     how much information to print (higher number means print more information)
+   * \param stop_type     Type of stopping criteria
+   * \param iter          Number of iterations
+   * \param rel_res       Relative residual (different for different stop_type)
+   * \param abs_res       Absolute residual (different for different stop_type)
+   * \param factor        Contraction factor at each iteration
+   *
+   */
 void print_itsolver_info(const INT  print_lvl,
                          const INT  stop_type,
                          const INT  iter,
@@ -18,21 +32,6 @@ void print_itsolver_info(const INT  print_lvl,
                          const REAL abs_res,
                          const REAL factor)
 {
-  /*!
-     * \fn void print_itsolver_info (const INT print_lvl, const INT stop_type, const INT iter,
-     *                        const REAL rel_res, const REAL abs_res, const REAL factor)
-     *
-     * \brief Print out iteration information for linear iterative solvers at each iteration
-     *
-     * \param print_lvl     how much information to print (higher number means print more information)
-     * \param stop_type     Type of stopping criteria
-     * \param iter          Number of iterations
-     * \param rel_res       Relative residual (different for different stop_type)
-     * \param abs_res       Absolute residual (different for different stop_type)
-     * \param factor        Contraction factor at each iteration
-     *
-     */
-
   if ( print_lvl >= PRINT_SOME ) {
 
     if ( iter > 0 ) { // iter > 0: not the first iteration
@@ -59,54 +58,50 @@ void print_itsolver_info(const INT  print_lvl,
 }
 
 /***********************************************************************************************/
+/*!
+   * \fn void print_cputime (const char *message, const REAL cputime)
+   *
+   * \brief Print CPU walltime
+   *
+   * \param message   Pointer to the string to print out
+   * \param cputime   Walltime since start to end
+   *
+   */
 void print_cputime (const char *message,
                     const REAL cputime)
 {
-
-  /*!
-     * \fn void print_cputime (const char *message, const REAL cputime)
-     *
-     * \brief Print CPU walltime
-     *
-     * \param message   Pointer to the string to print out
-     * \param cputime   Walltime since start to end
-     *
-     */
-
   printf("%s costs %.4f seconds.\n", message, cputime);
 }
 
 /***********************************************************************************************/
+/*!
+   * \fn void print_message (const INT ptrlvl, const char *message)
+   *
+   * \brief Print out the message if necessary
+   *
+   * \param print_lvl   Level for output
+   * \param message     Pointer to the error message
+   *
+   */
 void print_message (const INT print_lvl,
                     const char *message)
 {
-  /*!
-     * \fn void print_message (const INT ptrlvl, const char *message)
-     *
-     * \brief Print out the message if necessary
-     *
-     * \param print_lvl   Level for output
-     * \param message     Pointer to the error message
-     *
-     */
-
   if ( print_lvl > PRINT_NONE ) printf("%s", message);
 }
 
 /***********************************************************************************************/
+/*!
+   * \fn void print_amg_complexity (AMG_data *mgl, const SHORT prtlvl)
+   *
+   * \brief Print grid and operator complexity of AMG method
+   *
+   * \param mgl      Multilevel structure for AMG
+   * \param print_lvl   How much information to print
+   *
+   */
 void print_amg_complexity (AMG_data *mgl,
                            const SHORT print_lvl)
 {
-  /*!
-     * \fn void print_amg_complexity (AMG_data *mgl, const SHORT prtlvl)
-     *
-     * \brief Print grid and operator complexity of AMG method
-     *
-     * \param mgl      Multilevel structure for AMG
-     * \param print_lvl   How much information to print
-     *
-     */
-
   const SHORT   max_levels = mgl->num_levels;
   SHORT         level;
   REAL          grid_complexity=0.0, operator_complexity=0.0;
@@ -138,20 +133,18 @@ void print_amg_complexity (AMG_data *mgl,
 
 
 /***********************************************************************************************/
+/*!
+   * \fn void check_error (const SHORT status, const char *fctname)
+   *
+   * \brief Check error status and print out error messages before quit
+   *
+   * \param status   Error status
+   * \param fctname  piinter to the function name where this routine is called
+   *
+   */
 void check_error (const SHORT status,
                   const char *func_name)
 {
-
-  /*!
-     * \fn void check_error (const SHORT status, const char *fctname)
-     *
-     * \brief Check error status and print out error messages before quit
-     *
-     * \param status   Error status
-     * \param fctname  piinter to the function name where this routine is called
-     *
-     */
-
   if ( status >= SUCCESS ) return; // No error at all
 
   switch ( status ) {

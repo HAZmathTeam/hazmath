@@ -45,17 +45,16 @@
 //! Output L2 norm of some variable
 #define ITS_PUTNORM(name,value) printf("L2 norm of %s = %e.\n",(name),(value));
 
+/**
+ * \fn inline static void ITS_CHECK (const INT MaxIt, const REAL tol)
+ * \brief Safeguard checks to prevent unexpected error for iterative solvers
+ *
+ * \param MaxIt   Maximal number of iterations
+ * \param tol     Tolerance for convergence check
+ *
+ */
 inline static void ITS_CHECK (const INT MaxIt, const REAL tol)
-{
-    /**
-     * \fn inline static void ITS_CHECK (const INT MaxIt, const REAL tol)
-     * \brief Safeguard checks to prevent unexpected error for iterative solvers
-     *
-     * \param MaxIt   Maximal number of iterations
-     * \param tol     Tolerance for convergence check
-     *
-     */
-    
+{    
     if ( tol < SMALLREAL ) {
         printf("### WARNING: Convergence tolerance for iterative solver is too small!\n");
     }

@@ -58,6 +58,26 @@
  */
 
 /***********************************************************************************************/
+/**
+ * \fn INT dcsr_pcg (dCSRmat *A, dvector *b, dvector *u, precond *pc,
+ *                               const REAL tol, const INT MaxIt,
+ *                               const SHORT stop_type, const SHORT prtlvl)
+ *
+ * \brief Preconditioned conjugate gradient method for solving Au=b
+ *
+ * \param A            Pointer to dCSRmat: the coefficient matrix
+ * \param b            Pointer to dvector: the right hand side
+ * \param u            Pointer to dvector: the unknowns
+ * \param pc           Pointer to precond: the structure of precondition
+ * \param tol          Tolerance for stopping
+ * \param MaxIt        Maximal number of iterations
+ * \param stop_type    Stopping criteria type
+ * \param prtlvl       How much information to print out
+ *
+ * \return             Iteration number if converges; ERROR otherwise.
+ *
+ *
+ */
 INT dcsr_pcg (dCSRmat *A,
               dvector *b,
               dvector *u,
@@ -66,28 +86,7 @@ INT dcsr_pcg (dCSRmat *A,
               const INT MaxIt,
               const SHORT stop_type,
               const SHORT prtlvl)
-{
-  /**
-   * \fn INT dcsr_pcg (dCSRmat *A, dvector *b, dvector *u, precond *pc,
-   *                               const REAL tol, const INT MaxIt,
-   *                               const SHORT stop_type, const SHORT prtlvl)
-   *
-   * \brief Preconditioned conjugate gradient method for solving Au=b
-   *
-   * \param A            Pointer to dCSRmat: the coefficient matrix
-   * \param b            Pointer to dvector: the right hand side
-   * \param u            Pointer to dvector: the unknowns
-   * \param pc           Pointer to precond: the structure of precondition
-   * \param tol          Tolerance for stopping
-   * \param MaxIt        Maximal number of iterations
-   * \param stop_type    Stopping criteria type
-   * \param prtlvl       How much information to print out
-   *
-   * \return             Iteration number if converges; ERROR otherwise.
-   *
-   *
-   */
-    
+{   
   // Check if matrix counting from 1 or 0 for CSR arrays (James vs. Xiaozhe code)
   INT shift_flag = 0;
   if(A->IA[0]==1) {
@@ -352,6 +351,28 @@ INT dcsr_pcg (dCSRmat *A,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn INT bdcsr_pcg (block_dCSRmat *A, dvector *b, dvector *u,
+ *                                precond *pc, const REAL tol, const INT MaxIt,
+ *                                const SHORT stop_type, const SHORT prtlvl)
+ *
+ * \brief Preconditioned conjugate gradient method for solving Au=b
+ *
+ * \param A            Pointer to block_dCSRmat: the coefficient matrix
+ * \param b            Pointer to dvector: the right hand side
+ * \param u            Pointer to dvector: the unknowns
+ * \param pc           Pointer to precond: the structure of precondition
+ * \param tol          Tolerance for stopping
+ * \param MaxIt        Maximal number of iterations
+ * \param stop_type    Stopping criteria type
+ * \param prtlvl       How much information to print out
+ *
+ * \return             Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   05/24/2010
+ *
+ */
 INT bdcsr_pcg (block_dCSRmat *A,
                dvector *b,
                dvector *u,
@@ -360,31 +381,7 @@ INT bdcsr_pcg (block_dCSRmat *A,
                const INT MaxIt,
                const SHORT stop_type,
                const SHORT prtlvl)
-{
-    
-    /**
-     * \fn INT bdcsr_pcg (block_dCSRmat *A, dvector *b, dvector *u,
-     *                                precond *pc, const REAL tol, const INT MaxIt,
-     *                                const SHORT stop_type, const SHORT prtlvl)
-     *
-     * \brief Preconditioned conjugate gradient method for solving Au=b
-     *
-     * \param A            Pointer to block_dCSRmat: the coefficient matrix
-     * \param b            Pointer to dvector: the right hand side
-     * \param u            Pointer to dvector: the unknowns
-     * \param pc           Pointer to precond: the structure of precondition
-     * \param tol          Tolerance for stopping
-     * \param MaxIt        Maximal number of iterations
-     * \param stop_type    Stopping criteria type
-     * \param prtlvl       How much information to print out
-     *
-     * \return             Iteration number if converges; ERROR otherwise.
-     *
-     * \author Xiaozhe Hu
-     * \date   05/24/2010
-     *
-     */
-    
+{  
     const SHORT  MaxStag = MAX_STAG, MaxRestartStep = MAX_RESTART;
     const INT    m = b->row;
     const REAL   maxdiff = tol*STAG_RATIO; // stagnation tolerance
@@ -636,6 +633,28 @@ FINISHED:  // finish the iterative method
 }
 
 /***********************************************************************************************/
+/**
+ * \fn INT general_pcg (matvec *mxv, dvector *b, dvector *u, precond *pc,
+ *                               const REAL tol, const INT MaxIt,
+ *                               const SHORT stop_type, const SHORT prtlvl)
+ *
+ * \brief Preconditioned conjugate gradient method for solving Au=b
+ *
+ * \param mxv          Pointer to matvec: the function of the action of matrix vector multiplication
+ * \param b            Pointer to dvector: the right hand side
+ * \param u            Pointer to dvector: the unknowns
+ * \param pc           Pointer to precond: the structure of precondition
+ * \param tol          Tolerance for stopping
+ * \param MaxIt        Maximal number of iterations
+ * \param stop_type    Stopping criteria type
+ * \param prtlvl       How much information to print out
+ *
+ * \return             Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   05/27/2016
+ *
+ */
 INT general_pcg (matvec *mxv,
                  dvector *b,
                  dvector *u,
@@ -644,30 +663,7 @@ INT general_pcg (matvec *mxv,
                  const INT MaxIt,
                  const SHORT stop_type,
                  const SHORT prtlvl)
-{
-    /**
-     * \fn INT general_pcg (matvec *mxv, dvector *b, dvector *u, precond *pc,
-     *                               const REAL tol, const INT MaxIt,
-     *                               const SHORT stop_type, const SHORT prtlvl)
-     *
-     * \brief Preconditioned conjugate gradient method for solving Au=b
-     *
-     * \param mxv          Pointer to matvec: the function of the action of matrix vector multiplication
-     * \param b            Pointer to dvector: the right hand side
-     * \param u            Pointer to dvector: the unknowns
-     * \param pc           Pointer to precond: the structure of precondition
-     * \param tol          Tolerance for stopping
-     * \param MaxIt        Maximal number of iterations
-     * \param stop_type    Stopping criteria type
-     * \param prtlvl       How much information to print out
-     *
-     * \return             Iteration number if converges; ERROR otherwise.
-     *
-     * \author Xiaozhe Hu
-     * \date   05/27/2016
-     *
-     */
-    
+{  
     const SHORT  MaxStag = MAX_STAG, MaxRestartStep = MAX_RESTART;
     const INT    m = b->row;
     const REAL   maxdiff = tol*STAG_RATIO; // stagnation tolerance
@@ -920,6 +916,30 @@ FINISHED:  // finish the iterative method
 }
 
 /***********************************************************************************************/
+/**
+ * \fn INT dcsr_pminres (dCSRmat *A, dvector *b, dvector *u, precond *pc,
+ *                                   const REAL tol, const INT MaxIt,
+ *                                   const SHORT stop_type, const SHORT prtlvl)
+ *
+ * \brief A preconditioned minimal residual (Minres) method for solving Au=b
+ *
+ * \param A            Pointer to dCSRmat: the coefficient matrix
+ * \param b            Pointer to dvector: the right hand side
+ * \param u            Pointer to dvector: the unknowns
+ * \param pc           Pointer to precond: the structure of precondition
+ * \param tol          Tolerance for stopping
+ * \param MaxIt        Maximal number of iterations
+ * \param stop_type    Stopping criteria type
+ * \param prtlvl       How much information to print out
+ *
+ * \return             Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   12/30/2015
+ *
+ * \note Rewritten based on the original version by Chensong Zhang 05/01/2012
+ *
+ */
 INT dcsr_pminres (dCSRmat *A,
                               dvector *b,
                               dvector *u,
@@ -928,32 +948,7 @@ INT dcsr_pminres (dCSRmat *A,
                               const INT MaxIt,
                               const SHORT stop_type,
                               const SHORT prtlvl)
-{
-    /**
-     * \fn INT dcsr_pminres (dCSRmat *A, dvector *b, dvector *u, precond *pc,
-     *                                   const REAL tol, const INT MaxIt,
-     *                                   const SHORT stop_type, const SHORT prtlvl)
-     *
-     * \brief A preconditioned minimal residual (Minres) method for solving Au=b
-     *
-     * \param A            Pointer to dCSRmat: the coefficient matrix
-     * \param b            Pointer to dvector: the right hand side
-     * \param u            Pointer to dvector: the unknowns
-     * \param pc           Pointer to precond: the structure of precondition
-     * \param tol          Tolerance for stopping
-     * \param MaxIt        Maximal number of iterations
-     * \param stop_type    Stopping criteria type
-     * \param prtlvl       How much information to print out
-     *
-     * \return             Iteration number if converges; ERROR otherwise.
-     *
-     * \author Xiaozhe Hu
-     * \date   12/30/2015
-     *
-     * \note Rewritten based on the original version by Chensong Zhang 05/01/2012
-     *
-     */
-    
+{    
     const SHORT  MaxStag = MAX_STAG, MaxRestartStep = MAX_RESTART;
     const INT    m = b->row;
     const REAL   maxdiff = tol*STAG_RATIO; // staganation tolerance
@@ -1323,6 +1318,30 @@ FINISHED:  // finish the iterative method
 }
 
 /***********************************************************************************************/
+/**
+ * \fn INT bdcsr_pminres (block_dCSRmat *A, dvector *b, dvector *u, precond *pc,
+ *                                    const REAL tol, const INT MaxIt,
+ *                                    const SHORT stop_type, const SHORT prtlvl)
+ *
+ * \brief A preconditioned minimal residual (Minres) method for solving Au=b
+ *
+ * \param A            Pointer to block_dCSRmat: the coefficient matrix
+ * \param b            Pointer to dvector: the right hand side
+ * \param u            Pointer to dvector: the unknowns
+ * \param pc           Pointer to precond: the structure of precondition
+ * \param tol          Tolerance for stopping
+ * \param MaxIt        Maximal number of iterations
+ * \param stop_type    Stopping criteria type
+ * \param prtlvl       How much information to print out
+ *
+ * \return             Iteration number if converges; ERROR otherwise.
+ *
+ * \author Chensong Zhang
+ * \date   05/01/2012
+ *
+ * \note Rewritten based on the original version by Xiaozhe Hu 05/24/2010
+ *
+ */
 INT bdcsr_pminres (block_dCSRmat *A,
                                dvector *b,
                                dvector *u,
@@ -1331,32 +1350,7 @@ INT bdcsr_pminres (block_dCSRmat *A,
                                const INT MaxIt,
                                const SHORT stop_type,
                                const SHORT prtlvl)
-{
-    /**
-     * \fn INT bdcsr_pminres (block_dCSRmat *A, dvector *b, dvector *u, precond *pc,
-     *                                    const REAL tol, const INT MaxIt,
-     *                                    const SHORT stop_type, const SHORT prtlvl)
-     *
-     * \brief A preconditioned minimal residual (Minres) method for solving Au=b
-     *
-     * \param A            Pointer to block_dCSRmat: the coefficient matrix
-     * \param b            Pointer to dvector: the right hand side
-     * \param u            Pointer to dvector: the unknowns
-     * \param pc           Pointer to precond: the structure of precondition
-     * \param tol          Tolerance for stopping
-     * \param MaxIt        Maximal number of iterations
-     * \param stop_type    Stopping criteria type
-     * \param prtlvl       How much information to print out
-     *
-     * \return             Iteration number if converges; ERROR otherwise.
-     *
-     * \author Chensong Zhang
-     * \date   05/01/2012
-     *
-     * \note Rewritten based on the original version by Xiaozhe Hu 05/24/2010
-     *
-     */
-    
+{   
     const SHORT  MaxStag = MAX_STAG, MaxRestartStep = MAX_RESTART;
     const INT    m = b->row;
     const REAL   maxdiff = tol*STAG_RATIO; // staganation tolerance
@@ -1722,6 +1716,28 @@ FINISHED:  // finish the iterative method
 }
 
 /***********************************************************************************************/
+/**
+ * \fn INT general_pminres (matvec *mxv, dvector *b, dvector *u, precond *pc,
+ *                                   const REAL tol, const INT MaxIt,
+ *                                   const SHORT stop_type, const SHORT prtlvl)
+ *
+ * \brief A preconditioned minimal residual (Minres) method for solving Au=b
+ *
+ * \param mxv          Pointer to matvec: the function of the action of matrix vector multiplication
+ * \param b            Pointer to dvector: the right hand side
+ * \param u            Pointer to dvector: the unknowns
+ * \param pc           Pointer to precond: the structure of precondition
+ * \param tol          Tolerance for stopping
+ * \param MaxIt        Maximal number of iterations
+ * \param stop_type    Stopping criteria type
+ * \param prtlvl       How much information to print out
+ *
+ * \return             Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   5/27/2016
+ *
+ */
 INT general_pminres (matvec *mxv,
                   dvector *b,
                   dvector *u,
@@ -1730,30 +1746,7 @@ INT general_pminres (matvec *mxv,
                   const INT MaxIt,
                   const SHORT stop_type,
                   const SHORT prtlvl)
-{
-    /**
-     * \fn INT general_pminres (matvec *mxv, dvector *b, dvector *u, precond *pc,
-     *                                   const REAL tol, const INT MaxIt,
-     *                                   const SHORT stop_type, const SHORT prtlvl)
-     *
-     * \brief A preconditioned minimal residual (Minres) method for solving Au=b
-     *
-     * \param mxv          Pointer to matvec: the function of the action of matrix vector multiplication
-     * \param b            Pointer to dvector: the right hand side
-     * \param u            Pointer to dvector: the unknowns
-     * \param pc           Pointer to precond: the structure of precondition
-     * \param tol          Tolerance for stopping
-     * \param MaxIt        Maximal number of iterations
-     * \param stop_type    Stopping criteria type
-     * \param prtlvl       How much information to print out
-     *
-     * \return             Iteration number if converges; ERROR otherwise.
-     *
-     * \author Xiaozhe Hu
-     * \date   5/27/2016
-     *
-     */
-    
+{    
     const SHORT  MaxStag = MAX_STAG, MaxRestartStep = MAX_RESTART;
     const INT    m = b->row;
     const REAL   maxdiff = tol*STAG_RATIO; // staganation tolerance
@@ -2123,6 +2116,32 @@ FINISHED:  // finish the iterative method
 }
 
 /***********************************************************************************************/
+/*!
+ * \fn INT dcsr_pvgmres (dCSRmat *A, dvector *b, dvector *x, precond *pc,
+ *                                   const REAL tol, const INT MaxIt, const SHORT restart,
+ *                                   const SHORT stop_type, const SHORT prtlvl)
+ *
+ * \brief Right preconditioned GMRES method in which the restart parameter
+ *        can be adaptively modified during the iteration.
+ *
+ * \param A            Pointer to dCSRmat: the coefficient matrix
+ * \param b            Pointer to dvector: the right hand side
+ * \param x            Pointer to dvector: the unknowns
+ * \param pc           Pointer to precond: the structure of precondition
+ * \param tol          Tolerance for stopping
+ * \param MaxIt        Maximal number of iterations
+ * \param restart      Restarting steps
+ * \param stop_type    Stopping criteria type
+ * \param prtlvl       How much information to print out
+ *
+ * \return             Iteration number if converges; ERROR otherwise.
+ *
+ * \note Refer to A.H. Baker, E.R. Jessup, and Tz.V. Kolev
+ *       A Simple Strategy for Varying the Restart Parameter in GMRES(m)
+ *       Journal of Computational and Applied Mathematics, 230 (2009)
+ *       pp. 751-761. UCRL-JRNL-235266.
+ *
+ */
 INT dcsr_pvgmres (dCSRmat *A,
                   dvector *b,
                   dvector *x,
@@ -2132,34 +2151,7 @@ INT dcsr_pvgmres (dCSRmat *A,
                   const SHORT restart,
                   const SHORT stop_type,
                   const SHORT prtlvl)
-{
-  /*!
-   * \fn INT dcsr_pvgmres (dCSRmat *A, dvector *b, dvector *x, precond *pc,
-   *                                   const REAL tol, const INT MaxIt, const SHORT restart,
-   *                                   const SHORT stop_type, const SHORT prtlvl)
-   *
-   * \brief Right preconditioned GMRES method in which the restart parameter
-   *        can be adaptively modified during the iteration.
-   *
-   * \param A            Pointer to dCSRmat: the coefficient matrix
-   * \param b            Pointer to dvector: the right hand side
-   * \param x            Pointer to dvector: the unknowns
-   * \param pc           Pointer to precond: the structure of precondition
-   * \param tol          Tolerance for stopping
-   * \param MaxIt        Maximal number of iterations
-   * \param restart      Restarting steps
-   * \param stop_type    Stopping criteria type
-   * \param prtlvl       How much information to print out
-   *
-   * \return             Iteration number if converges; ERROR otherwise.
-   *
-   * \note Refer to A.H. Baker, E.R. Jessup, and Tz.V. Kolev
-   *       A Simple Strategy for Varying the Restart Parameter in GMRES(m)
-   *       Journal of Computational and Applied Mathematics, 230 (2009)
-   *       pp. 751-761. UCRL-JRNL-235266.
-   *
-   */
-    
+{   
   // Check if matrix counting from 1 or 0 for CSR arrays (James vs. Xiaozhe code)
   INT shift_flag = 0;
   if(A->IA[0]==1) {
@@ -2482,6 +2474,29 @@ INT dcsr_pvgmres (dCSRmat *A,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn INT bdcsr_pvgmres (block_dCSRmat *A, dvector *b, dvector *x, precond *pc,
+ *                                    const REAL tol, const INT MaxIt, const SHORT restart,
+ *                                    const SHORT stop_type, const SHORT prtlvl)
+ *
+ * \brief Right preconditioned GMRES method in which the restart parameter
+ *        can be adaptively modified during the iteration.
+ *
+ * \param A            Pointer to dCSRmat: the coefficient matrix
+ * \param b            Pointer to dvector: the right hand side
+ * \param x            Pointer to dvector: the unknowns
+ * \param pc           Pointer to precond: the structure of precondition
+ * \param tol          Tolerance for stopping
+ * \param MaxIt        Maximal number of iterations
+ * \param restart      Restarting steps
+ * \param stop_type    Stopping criteria type
+ * \param prtlvl       How much information to print out
+ *
+ * \return             Iteration number if converges; ERROR otherwise.
+ *
+ * \author Chensong Zhang
+ * \date   04/05/2013
+ */
 INT bdcsr_pvgmres (block_dCSRmat *A,
                                dvector *b,
                                dvector *x,
@@ -2491,31 +2506,7 @@ INT bdcsr_pvgmres (block_dCSRmat *A,
                                const SHORT restart,
                                const SHORT stop_type,
                                const SHORT prtlvl)
-{
-    /**
-     * \fn INT bdcsr_pvgmres (block_dCSRmat *A, dvector *b, dvector *x, precond *pc,
-     *                                    const REAL tol, const INT MaxIt, const SHORT restart,
-     *                                    const SHORT stop_type, const SHORT prtlvl)
-     *
-     * \brief Right preconditioned GMRES method in which the restart parameter
-     *        can be adaptively modified during the iteration.
-     *
-     * \param A            Pointer to dCSRmat: the coefficient matrix
-     * \param b            Pointer to dvector: the right hand side
-     * \param x            Pointer to dvector: the unknowns
-     * \param pc           Pointer to precond: the structure of precondition
-     * \param tol          Tolerance for stopping
-     * \param MaxIt        Maximal number of iterations
-     * \param restart      Restarting steps
-     * \param stop_type    Stopping criteria type
-     * \param prtlvl       How much information to print out
-     *
-     * \return             Iteration number if converges; ERROR otherwise.
-     *
-     * \author Chensong Zhang
-     * \date   04/05/2013
-     */
-    
+{  
     const INT   n          = b->row;
     const INT   MIN_ITER   = 0;
     const REAL  epsmac     = SMALLREAL;
@@ -2818,6 +2809,32 @@ FINISHED:
 
 
 /***********************************************************************************************/
+/*!
+ * \fn INT general_pvgmres (matvec *mxv, dvector *b, dvector *x, precond *pc,
+ *                                   const REAL tol, const INT MaxIt, const SHORT restart,
+ *                                   const SHORT stop_type, const SHORT prtlvl)
+ *
+ * \brief Right preconditioned GMRES method in which the restart parameter
+ *        can be adaptively modified during the iteration.
+ *
+ * \param mxv          Pointer to matvec: the function of the action of matrix vector multiplication
+ * \param b            Pointer to dvector: the right hand side
+ * \param x            Pointer to dvector: the unknowns
+ * \param pc           Pointer to precond: the structure of precondition
+ * \param tol          Tolerance for stopping
+ * \param MaxIt        Maximal number of iterations
+ * \param restart      Restarting steps
+ * \param stop_type    Stopping criteria type
+ * \param prtlvl       How much information to print out
+ *
+ * \return             Iteration number if converges; ERROR otherwise.
+ *
+ * \note Refer to A.H. Baker, E.R. Jessup, and Tz.V. Kolev
+ *       A Simple Strategy for Varying the Restart Parameter in GMRES(m)
+ *       Journal of Computational and Applied Mathematics, 230 (2009)
+ *       pp. 751-761. UCRL-JRNL-235266.
+ *
+ */
 INT general_pvgmres (matvec *mxv,
                   dvector *b,
                   dvector *x,
@@ -2827,34 +2844,7 @@ INT general_pvgmres (matvec *mxv,
                   const SHORT restart,
                   const SHORT stop_type,
                   const SHORT prtlvl)
-{
-    /*!
-     * \fn INT general_pvgmres (matvec *mxv, dvector *b, dvector *x, precond *pc,
-     *                                   const REAL tol, const INT MaxIt, const SHORT restart,
-     *                                   const SHORT stop_type, const SHORT prtlvl)
-     *
-     * \brief Right preconditioned GMRES method in which the restart parameter
-     *        can be adaptively modified during the iteration.
-     *
-     * \param mxv          Pointer to matvec: the function of the action of matrix vector multiplication
-     * \param b            Pointer to dvector: the right hand side
-     * \param x            Pointer to dvector: the unknowns
-     * \param pc           Pointer to precond: the structure of precondition
-     * \param tol          Tolerance for stopping
-     * \param MaxIt        Maximal number of iterations
-     * \param restart      Restarting steps
-     * \param stop_type    Stopping criteria type
-     * \param prtlvl       How much information to print out
-     *
-     * \return             Iteration number if converges; ERROR otherwise.
-     *
-     * \note Refer to A.H. Baker, E.R. Jessup, and Tz.V. Kolev
-     *       A Simple Strategy for Varying the Restart Parameter in GMRES(m)
-     *       Journal of Computational and Applied Mathematics, 230 (2009)
-     *       pp. 751-761. UCRL-JRNL-235266.
-     *
-     */
-    
+{ 
     const INT   n          = b->row;
     const INT   MIN_ITER   = 0;
     const REAL  epsmac     = SMALLREAL;
@@ -3156,6 +3146,31 @@ FINISHED:
 }
 
 /***********************************************************************************************/
+/*!
+ * \fn INT dcsr_pvfgmres (dCSRmat *A, dvector *b, dvector *x, precond *pc,
+ *                                    const REAL tol, const INT MaxIt, const SHORT restart,
+ *                                    const SHORT stop_type, const SHORT prtlvl)
+ *
+ * \brief Solve "Ax=b" using PFGMRES(right preconditioned) iterative method in which
+ *        the restart parameter can be adaptively modified during the iteration and
+ *        flexible preconditioner can be used.
+ *
+ * \param A            Pointer to dCSRmat: the coefficient matrix
+ * \param b            Pointer to dvector: the right hand side
+ * \param x            Pointer to dvector: the unknowns
+ * \param pc           Pointer to precond: the structure of precondition
+ * \param tol          Tolerance for stopping
+ * \param MaxIt        Maximal number of iterations
+ * \param restart      Restarting steps
+ * \param stop_type    Stopping criteria type -- DOES not support this parameter
+ * \param prtlvl       How much information to print out
+ *
+ * \return             Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   01/04/2012
+ *
+ */
 INT dcsr_pvfgmres (dCSRmat *A,
                    dvector *b,
                    dvector *x,
@@ -3165,33 +3180,7 @@ INT dcsr_pvfgmres (dCSRmat *A,
                    const SHORT restart,
                    const SHORT stop_type,
                    const SHORT prtlvl)
-{
-    /*!
-     * \fn INT dcsr_pvfgmres (dCSRmat *A, dvector *b, dvector *x, precond *pc,
-     *                                    const REAL tol, const INT MaxIt, const SHORT restart,
-     *                                    const SHORT stop_type, const SHORT prtlvl)
-     *
-     * \brief Solve "Ax=b" using PFGMRES(right preconditioned) iterative method in which
-     *        the restart parameter can be adaptively modified during the iteration and
-     *        flexible preconditioner can be used.
-     *
-     * \param A            Pointer to dCSRmat: the coefficient matrix
-     * \param b            Pointer to dvector: the right hand side
-     * \param x            Pointer to dvector: the unknowns
-     * \param pc           Pointer to precond: the structure of precondition
-     * \param tol          Tolerance for stopping
-     * \param MaxIt        Maximal number of iterations
-     * \param restart      Restarting steps
-     * \param stop_type    Stopping criteria type -- DOES not support this parameter
-     * \param prtlvl       How much information to print out
-     *
-     * \return             Iteration number if converges; ERROR otherwise.
-     *
-     * \author Xiaozhe Hu
-     * \date   01/04/2012
-     *
-     */
-    
+{  
     const INT n                 = b->row;
     const INT min_iter          = 0;
     
@@ -3474,6 +3463,32 @@ FINISHED:
 }
 
 /***********************************************************************************************/
+/*!
+ * \fn INT fasp_solver_bdcsr_pvfgmres (block_dCSRmat *A, dvector *b, dvector *x,
+ *                                     precond *pc, const REAL tol, const INT MaxIt,
+ *                                     const SHORT restart, const SHORT stop_type,
+ *                                     const SHORT prtlvl)
+ *
+ * \brief Solve "Ax=b" using PFGMRES (right preconditioned) iterative method in which
+ *        the restart parameter can be adaptively modified during the iteration and
+ *        flexible preconditioner can be used.
+ *
+ * \param *A           pointer to the coefficient matrix
+ * \param *b           pointer to the right hand side vector
+ * \param *x           pointer to the solution vector
+ * \param MaxIt        maximal iteration number allowed
+ * \param tol          tolerance
+ * \param *pc          pointer to preconditioner data
+ * \param prtlvl       How much information to print out
+ * \param stop_type    default stopping criterion,i.e.||r_k||/||r_0||<tol, is used.
+ * \param restart      number of restart for GMRES
+ *
+ * \return             Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   01/04/2012
+ *
+ */
 INT bdcsr_pvfgmres (block_dCSRmat *A,
                                 dvector *b,
                                 dvector *x,
@@ -3483,34 +3498,7 @@ INT bdcsr_pvfgmres (block_dCSRmat *A,
                                 const SHORT restart,
                                 const SHORT stop_type,
                                 const SHORT prtlvl)
-{
-    /*!
-     * \fn INT fasp_solver_bdcsr_pvfgmres (block_dCSRmat *A, dvector *b, dvector *x,
-     *                                     precond *pc, const REAL tol, const INT MaxIt,
-     *                                     const SHORT restart, const SHORT stop_type,
-     *                                     const SHORT prtlvl)
-     *
-     * \brief Solve "Ax=b" using PFGMRES (right preconditioned) iterative method in which
-     *        the restart parameter can be adaptively modified during the iteration and
-     *        flexible preconditioner can be used.
-     *
-     * \param *A           pointer to the coefficient matrix
-     * \param *b           pointer to the right hand side vector
-     * \param *x           pointer to the solution vector
-     * \param MaxIt        maximal iteration number allowed
-     * \param tol          tolerance
-     * \param *pc          pointer to preconditioner data
-     * \param prtlvl       How much information to print out
-     * \param stop_type    default stopping criterion,i.e.||r_k||/||r_0||<tol, is used.
-     * \param restart      number of restart for GMRES
-     *
-     * \return             Iteration number if converges; ERROR otherwise.
-     *
-     * \author Xiaozhe Hu
-     * \date   01/04/2012
-     *
-     */
-    
+{  
     const INT n                 = b->row;
     const INT min_iter          = 0;
     
@@ -3794,6 +3782,31 @@ FINISHED:
 
 
 /***********************************************************************************************/
+/*!
+ * \fn INT general_pvfgmres (matvec *mxv, dvector *b, dvector *x, precond *pc,
+ *                                    const REAL tol, const INT MaxIt, const SHORT restart,
+ *                                    const SHORT stop_type, const SHORT prtlvl)
+ *
+ * \brief Solve "Ax=b" using PFGMRES(right preconditioned) iterative method in which
+ *        the restart parameter can be adaptively modified during the iteration and
+ *        flexible preconditioner can be used.
+ *
+ * \param mxv          Pointer to matvec: the function of the action of matrix vector multiplication
+ * \param b            Pointer to dvector: the right hand side
+ * \param x            Pointer to dvector: the unknowns
+ * \param pc           Pointer to precond: the structure of precondition
+ * \param tol          Tolerance for stopping
+ * \param MaxIt        Maximal number of iterations
+ * \param restart      Restarting steps
+ * \param stop_type    Stopping criteria type -- DOES not support this parameter
+ * \param prtlvl       How much information to print out
+ *
+ * \return             Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   05/27/2016
+ *
+ */
 INT general_pvfgmres (matvec *mxv,
                    dvector *b,
                    dvector *x,
@@ -3803,33 +3816,7 @@ INT general_pvfgmres (matvec *mxv,
                    const SHORT restart,
                    const SHORT stop_type,
                    const SHORT prtlvl)
-{
-    /*!
-     * \fn INT general_pvfgmres (matvec *mxv, dvector *b, dvector *x, precond *pc,
-     *                                    const REAL tol, const INT MaxIt, const SHORT restart,
-     *                                    const SHORT stop_type, const SHORT prtlvl)
-     *
-     * \brief Solve "Ax=b" using PFGMRES(right preconditioned) iterative method in which
-     *        the restart parameter can be adaptively modified during the iteration and
-     *        flexible preconditioner can be used.
-     *
-     * \param mxv          Pointer to matvec: the function of the action of matrix vector multiplication
-     * \param b            Pointer to dvector: the right hand side
-     * \param x            Pointer to dvector: the unknowns
-     * \param pc           Pointer to precond: the structure of precondition
-     * \param tol          Tolerance for stopping
-     * \param MaxIt        Maximal number of iterations
-     * \param restart      Restarting steps
-     * \param stop_type    Stopping criteria type -- DOES not support this parameter
-     * \param prtlvl       How much information to print out
-     *
-     * \return             Iteration number if converges; ERROR otherwise.
-     *
-     * \author Xiaozhe Hu
-     * \date   05/27/2016
-     *
-     */
-    
+{    
     const INT n                 = b->row;
     const INT min_iter          = 0;
     
