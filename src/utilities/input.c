@@ -13,19 +13,18 @@
 #include "hazmath.h"
 
 /***********************************************************************************************/
+/*!
+ * \fn void param_input (const char *filenm, input_param *inparam)
+ *
+ * \brief Read input parameters from disk file
+ *
+ * \param filenm   Pointer to file name of the input file
+ * \param inparam     Pointet to input_param structure
+ *
+ */
 void param_input (const char *filenm,
                   input_param *inparam)
-{
-    /*!
-     * \fn void param_input (const char *filenm, input_param *inparam)
-     *
-     * \brief Read input parameters from disk file
-     *
-     * \param filenm   Pointer to file name of the input file
-     * \param inparam     Pointet to input_param structure
-     * 
-     */
-    
+{  
     char     buffer[500]; // Note: max number of char for each line!
     int      val;
     SHORT    status = SUCCESS;

@@ -11,17 +11,16 @@
 #include "hazmath.h"
 
 /***********************************************************************************************/
+/*!
+ * \fn void precond_data_null (precond_data *pcdata)
+ *
+ * \brief Initialize precond_data (pointers are set to NULL) (OUTPUT)
+ *
+ * \param pcdata   Preconditioning data structure
+ *
+ */
 void precond_data_null (precond_data *pcdata)
-{
-    /*!
-     * \fn void precond_data_null (precond_data *pcdata)
-     *
-     * \brief Initialize precond_data (pointers are set to NULL) (OUTPUT)
-     *
-     * \param pcdata   Preconditioning data structure
-     *
-     */
-    
+{ 
     pcdata->AMG_type            = UA_AMG;
     pcdata->print_level         = PRINT_MIN;
     pcdata->maxit               = 100;
@@ -53,19 +52,18 @@ void precond_data_null (precond_data *pcdata)
 
 
 /***********************************************************************************************/
+/*!
+ * \fn AMG_data * amg_data_create (SHORT max_levels)
+ *
+ * \brief Create AMG_data structure (but all values are 0 and pointers point to NULL)
+ *
+ * \param max_levels   Max number of levels allowed
+ *
+ * \return Pointer to the AMG_data structure
+ *
+ */
 AMG_data *amg_data_create(SHORT max_levels)
-{
-    /*!
-     * \fn AMG_data * amg_data_create (SHORT max_levels)
-     *
-     * \brief Create AMG_data structure (but all values are 0 and pointers point to NULL)
-     *
-     * \param max_levels   Max number of levels allowed
-     *
-     * \return Pointer to the AMG_data structure
-     *
-     */
-    
+{ 
     max_levels = MAX(1, max_levels); // at least allocate one level
     
     AMG_data *mgl = (AMG_data *)calloc(max_levels,sizeof(AMG_data));
@@ -84,20 +82,19 @@ AMG_data *amg_data_create(SHORT max_levels)
 
 
 /***********************************************************************************************/
+/*!
+ * \fn void amg_data_free(AMG_data *mgl, AMG_param *param)
+ *
+ * \brief Free AMG_data structure
+ *
+ * \param mgl    Pointer to the AMG_data (OUTPUT)
+ * \param param  Pointer to AMG parameters
+ *
+ *
+ */
 void amg_data_free(AMG_data *mgl,
                    AMG_param *param)
-{
-    /*!
-     * \fn void amg_data_free(AMG_data *mgl, AMG_param *param)
-     *
-     * \brief Free AMG_data structure
-     *
-     * \param mgl    Pointer to the AMG_data (OUTPUT)
-     * \param param  Pointer to AMG parameters
-     *
-     *
-     */
-    
+{  
     const INT max_levels = MAX(1,mgl[0].num_levels);
     
     INT i;
@@ -142,17 +139,16 @@ void amg_data_free(AMG_data *mgl,
 }
 
 /***********************************************************************************************/
+/*!
+ * \fn void HX_curl_data_null(HX_curl_data *hxcurldata)
+ *
+ * \brief Initalize HX_curl_data structure (set values to 0 and pointers to NULL) (OUTPUT)
+ *
+ * \param hxcurldata    Pointer to the HX_curl_data structure
+ *
+ */
 void HX_curl_data_null (HX_curl_data *hxcurldata)
 {
-    /*!
-     * \fn void HX_curl_data_null(HX_curl_data *hxcurldata)
-     *
-     * \brief Initalize HX_curl_data structure (set values to 0 and pointers to NULL) (OUTPUT)
-     *
-     * \param hxcurldata    Pointer to the HX_curl_data structure
-     *
-     */
-
     hxcurldata->A               = NULL;
 
     hxcurldata->smooth_type     = 0;
@@ -178,21 +174,20 @@ void HX_curl_data_null (HX_curl_data *hxcurldata)
 }
 
 /***********************************************************************************************/
+/*!
+ * \fn void HX_curl_data_free (HX_curl_data *hxcurldata, SHORT flag)
+ *
+ * \brief Free HX_curl_data structure (set values to 0 and pointers to NULL)
+ *
+ * \param hxcurldata    Pointer to the HX_curl_data structure (OUTPUT)
+ * \param flag          flag of whether the date will be reused:
+ *                      flag = False - A, P_curl, and Grad will be reused
+ *                      flag = TRUE  - free everything
+ *
+ */
 void HX_curl_data_free (HX_curl_data *hxcurldata,
                         SHORT flag)
-{
-    /*!
-     * \fn void HX_curl_data_free (HX_curl_data *hxcurldata, SHORT flag)
-     *
-     * \brief Free HX_curl_data structure (set values to 0 and pointers to NULL)
-     *
-     * \param hxcurldata    Pointer to the HX_curl_data structure (OUTPUT)
-     * \param flag          flag of whether the date will be reused:
-     *                      flag = False - A, P_curl, and Grad will be reused
-     *                      flag = TRUE  - free everything
-     *
-     */
-    
+{ 
     if (flag == TRUE) {
         dcsr_free(hxcurldata->A);
         dcsr_free(hxcurldata->P_curl);
@@ -217,17 +212,16 @@ void HX_curl_data_free (HX_curl_data *hxcurldata,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void precond_null(precond *pcdata)
+ *
+ * \brief Initialize precond data (set pointers to NULL)
+ *
+ * \param pcdata   Pointer to precond
+ *
+ */
 void precond_null(precond *pcdata)
-{
-    /**
-     * \fn void precond_null(precond *pcdata)
-     *
-     * \brief Initialize precond data (set pointers to NULL)
-     *
-     * \param pcdata   Pointer to precond
-     *
-     */
-    
+{   
     pcdata->data = NULL;
     pcdata->fct  = NULL;
 }

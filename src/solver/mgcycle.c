@@ -16,23 +16,21 @@ static SHORT krylov_cycle_dcsr_pgcr(dCSRmat *, dvector *, dvector *, precond *);
 /*---------------------------------*/
 /*--      Public Functions       --*/
 /*---------------------------------*/
-
+/**
+ * \fn void mgcycle (AMG_data *mgl, AMG_param *param)
+ *
+ * \brief Solve Ax=b with non-recursive multigrid cycle
+ *
+ * \param mgl    Pointer to AMG data: AMG_data
+ * \param param  Pointer to AMG parameters: AMG_param
+ *
+ * \author Xiaozhe Hu
+ * \date   12/25/2015
+ *
+ */
 void mgcycle (AMG_data *mgl,
               AMG_param *param)
-{
-    /**
-     * \fn void mgcycle (AMG_data *mgl, AMG_param *param)
-     *
-     * \brief Solve Ax=b with non-recursive multigrid cycle
-     *
-     * \param mgl    Pointer to AMG data: AMG_data
-     * \param param  Pointer to AMG parameters: AMG_param
-     *
-     * \author Xiaozhe Hu
-     * \date   12/25/2015
-     *
-     */
-    
+{    
     const SHORT  prtlvl = param->print_level;
     const SHORT  amg_type = param->AMG_type;
     const SHORT  smoother = param->smoother;
@@ -132,29 +130,28 @@ ForwardSweep:
 }
 
 
+/**
+ * \fn void amli (AMG_data *mgl, AMG_param *param, INT level)
+ *
+ * \brief Solve Ax=b with recursive AMLI-cycle
+ *
+ * \param mgl    Pointer to AMG data: AMG_data
+ * \param param  Pointer to AMG parameters: AMG_param
+ * \param level  Current level
+ *
+ * \author Xiaozhe Hu
+ * \date   01/23/2011
+ *
+ * \note AMLI polynomial computed by the best approximation of 1/x.
+ *       Refer to Johannes K. Kraus, Panayot S. Vassilevski, Ludmil T. Zikatanov,
+ *       "Polynomial of best uniform approximation to $x^{-1}$ and smoothing in
+ *        two-level methods", 2013.
+ *
+ */
 void amli (AMG_data *mgl,
-                       AMG_param *param,
-                       INT level)
-{
-    /**
-     * \fn void amli (AMG_data *mgl, AMG_param *param, INT level)
-     *
-     * \brief Solve Ax=b with recursive AMLI-cycle
-     *
-     * \param mgl    Pointer to AMG data: AMG_data
-     * \param param  Pointer to AMG parameters: AMG_param
-     * \param level  Current level
-     *
-     * \author Xiaozhe Hu
-     * \date   01/23/2011
-     *
-     * \note AMLI polynomial computed by the best approximation of 1/x.
-     *       Refer to Johannes K. Kraus, Panayot S. Vassilevski, Ludmil T. Zikatanov,
-     *       "Polynomial of best uniform approximation to $x^{-1}$ and smoothing in
-     *        two-level methods", 2013.
-     *
-     */
-    
+           AMG_param *param,
+           INT level)
+{    
     const SHORT  amg_type=param->AMG_type;
     const SHORT  prtlvl = param->print_level;
     const SHORT  smoother = param->smoother;
@@ -266,31 +263,29 @@ void amli (AMG_data *mgl,
     
 }
 
-
+/**
+ * \fn void nl_amli (AMG_data *mgl, AMG_param *param,
+ *                               INT level, INT num_levels)
+ *
+ * \brief Solve Ax=b with recursive nonlinear AMLI-cycle
+ *
+ * \param mgl         Pointer to AMG_data data
+ * \param param       Pointer to AMG parameters
+ * \param level       Current level
+ * \param num_levels  Total number of levels
+ *
+ * \author Xiaozhe Hu
+ * \date   04/06/2010
+ *
+ * \note Refer to Xiazhe Hu, Panayot S. Vassilevski, Jinchao Xu
+ *       "Comparative Convergence Analysis of Nonlinear AMLI-cycle Multigrid", 2013.
+ *
+ */
 void nl_amli (AMG_data *mgl,
               AMG_param *param,
               INT level,
               INT num_levels)
-{
-    /**
-     * \fn void nl_amli (AMG_data *mgl, AMG_param *param,
-     *                               INT level, INT num_levels)
-     *
-     * \brief Solve Ax=b with recursive nonlinear AMLI-cycle
-     *
-     * \param mgl         Pointer to AMG_data data
-     * \param param       Pointer to AMG parameters
-     * \param level       Current level
-     * \param num_levels  Total number of levels
-     *
-     * \author Xiaozhe Hu
-     * \date   04/06/2010
-     *
-     * \note Refer to Xiazhe Hu, Panayot S. Vassilevski, Jinchao Xu
-     *       "Comparative Convergence Analysis of Nonlinear AMLI-cycle Multigrid", 2013.
-     *
-     */
-    
+{    
     const SHORT  amg_type=param->AMG_type;
     const SHORT  prtlvl = param->print_level;
     const SHORT  smoother = param->smoother;
@@ -417,29 +412,27 @@ void nl_amli (AMG_data *mgl,
 /*---------------------------------*/
 /*--     Private Functions       --*/
 /*---------------------------------*/
-
+/**
+ * \fn static SHORT krylov_cycle_dcsr_pgcg (dCSRmat *A, dvector *b,
+ *                                               dvector *u, precond *pc)
+ *
+ * \brief A preconditioned GCR method for solving Au=b
+ *
+ * \param *A    Pointer to the coefficient matrix
+ * \param *b    Pointer to the dvector of right hand side
+ * \param *u    Pointer to the dvector of DOFs
+ * \param *pre  Pointer to the structure of precondition (precond)
+ *
+ * \author Zheng Li, Chensong Zhang
+ * \date   11/09/2014
+ *
+ * \note   Specified for unsmoothed aggregation cycle
+ */
 static SHORT krylov_cycle_dcsr_pgcg (dCSRmat *A,
                                      dvector *b,
                                      dvector *u,
                                      precond *pc)
-{
-    /**
-     * \fn static SHORT krylov_cycle_dcsr_pgcg (dCSRmat *A, dvector *b,
-     *                                               dvector *u, precond *pc)
-     *
-     * \brief A preconditioned GCR method for solving Au=b
-     *
-     * \param *A    Pointer to the coefficient matrix
-     * \param *b    Pointer to the dvector of right hand side
-     * \param *u    Pointer to the dvector of DOFs
-     * \param *pre  Pointer to the structure of precondition (precond)
-     *
-     * \author Zheng Li, Chensong Zhang
-     * \date   11/09/2014
-     *
-     * \note   Specified for unsmoothed aggregation cycle
-     */
-    
+{    
     REAL   absres, relres, normb;
     REAL   alpha1, alpha2, gamma1, gamma2, rho1, rho2, beta1, beta2, beta3, beta4;
     REAL   *work, *r, *x1, *v1, *v2;
@@ -522,29 +515,27 @@ static SHORT krylov_cycle_dcsr_pgcg (dCSRmat *A,
     return SUCCESS;
 }
 
+/**
+ * \fn static SHORT krylov_cycle_dcsr_pgcr (dCSRmat *A, dvector *b,
+ *                                               dvector *u, precond *pc)
+ *
+ * \brief A preconditioned GCR method for solving Au=b
+ *
+ * \param *A    Pointer to the coefficient matrix
+ * \param *b    Pointer to the dvector of right hand side
+ * \param *u    Pointer to the dvector of DOFs
+ * \param *pre  Pointer to the structure of precondition (precond)
+ *
+ * \author zheng Li, Chensong Zhang
+ * \date   11/09/2014
+ *
+ * \note   Specified for unsmoothed aggregation cycle.
+ */
 static SHORT krylov_cycle_dcsr_pgcr (dCSRmat *A,
                                      dvector *b,
                                      dvector *u,
                                      precond *pc)
-{
-    /**
-     * \fn static SHORT krylov_cycle_dcsr_pgcr (dCSRmat *A, dvector *b,
-     *                                               dvector *u, precond *pc)
-     *
-     * \brief A preconditioned GCR method for solving Au=b
-     *
-     * \param *A    Pointer to the coefficient matrix
-     * \param *b    Pointer to the dvector of right hand side
-     * \param *u    Pointer to the dvector of DOFs
-     * \param *pre  Pointer to the structure of precondition (precond)
-     *
-     * \author zheng Li, Chensong Zhang
-     * \date   11/09/2014
-     *
-     * \note   Specified for unsmoothed aggregation cycle.
-     */
-
-    
+{    
     REAL   absres = BIGREAL;
     REAL   relres  = BIGREAL, normb  = BIGREAL;
     REAL   alpha, alpha1, alpha2, alpha3, alpha4, beta, gamma, rho1, rho2;

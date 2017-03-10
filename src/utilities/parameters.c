@@ -11,17 +11,16 @@
 #include "hazmath.h"
 
 /*************************************************************************************/
+/*!
+ * \fn void param_input_init (input_param *inparam)
+ *
+ * \brief Initialize input parameters
+ *
+ * \param inparam    Pointer to input_param structure
+ *
+ */
 void param_input_init (input_param *inparam)
 {
-    /*!
-     * \fn void param_input_init (input_param *inparam)
-     *
-     * \brief Initialize input parameters
-     *
-     * \param inparam    Pointer to input_param structure
-     *
-     */
-
     //----------------
     // output flags
     //----------------
@@ -99,20 +98,19 @@ void param_input_init (input_param *inparam)
 }
 
 /*************************************************************************************/
+/*!
+ * \fn void param_amg_init (AMG_param *amgparam)
+ *
+ * \brief Initialize AMG parameters
+ *
+ * \param amgparam    Pointer to AMG_param structure
+ *
+ * \author Xiaozhe Hu
+ * \date   10/06/2015
+ *
+ */
 void param_amg_init (AMG_param *amgparam)
-{
-    /*!
-     * \fn void param_amg_init (AMG_param *amgparam)
-     *
-     * \brief Initialize AMG parameters
-     *
-     * \param amgparam    Pointer to AMG_param structure
-     *
-     * \author Xiaozhe Hu
-     * \date   10/06/2015
-     *
-     */
-    
+{  
     // General AMG parameters
     amgparam->AMG_type             = UA_AMG;
     amgparam->print_level          = PRINT_NONE;
@@ -141,17 +139,16 @@ void param_amg_init (AMG_param *amgparam)
 
 
 /*************************************************************************************/
+/*!
+ * \fn void param_linear_solver_init (linear_itsolver_param *itsparam)
+ *
+ * \brief Initialize linear iterative solver parameters
+ *
+ * \param itsparam  Pointer to the linear_itsolver_param structure
+ *
+ */
 void param_linear_solver_init (linear_itsolver_param *itsparam)
 {
-    /*!
-     * \fn void param_linear_solver_init (linear_itsolver_param *itsparam)
-     *
-     * \brief Initialize linear iterative solver parameters
-     *
-     * \param itsparam  Pointer to the linear_itsolver_param structure
-     *
-     */
-
     itsparam->linear_print_level   = 0;
     itsparam->linear_itsolver_type = SOLVER_VFGMRES;
     itsparam->linear_precond_type  = PREC_NULL;
@@ -166,19 +163,18 @@ void param_linear_solver_init (linear_itsolver_param *itsparam)
 }
 
 /*************************************************************************************/
+/*!
+ * \fn void param_linear_solver_set (linear_itsolver_param *itsparam, input_param *iniparam)
+ *
+ * \brief Set linear_itsolver_param using input_param
+ *
+ * \param itsparam   Pointer to linear_itsovler_param structure
+ * \param inparam    Pointer to input_param structure
+ *
+ */
 void param_linear_solver_set (linear_itsolver_param *itsparam,
                        input_param *inparam)
-{
-    /*!
-     * \fn void param_linear_solver_set (linear_itsolver_param *itsparam, input_param *iniparam)
-     *
-     * \brief Set linear_itsolver_param using input_param
-     *
-     * \param itsparam   Pointer to linear_itsovler_param structure
-     * \param inparam    Pointer to input_param structure
-     *
-     */
-    
+{ 
     itsparam->linear_print_level    = inparam->print_level;
     itsparam->linear_itsolver_type  = inparam->linear_itsolver_type;
     itsparam->linear_stop_type      = inparam->linear_stop_type;
@@ -199,19 +195,18 @@ void param_linear_solver_set (linear_itsolver_param *itsparam,
 }
 
 /*************************************************************************************/
+/*!
+ * \fn void param_amg_set (AMG_param *param, input_param *inparam)
+ *
+ * \brief Set AMG_param using input_param
+ *
+ * \param amgparam   Pointer to the AMG_param structure
+ * \param inparam    Pointer to the input_param structure
+ *
+ */
 void param_amg_set (AMG_param *amgparam,
                     input_param *inparam)
-{
-    /*!
-     * \fn void param_amg_set (AMG_param *param, input_param *inparam)
-     *
-     * \brief Set AMG_param using input_param
-     *
-     * \param amgparam   Pointer to the AMG_param structure
-     * \param inparam    Pointer to the input_param structure
-     *
-     */
-    
+{  
     amgparam->AMG_type    = inparam->AMG_type;
     amgparam->print_level = inparam->print_level;
     
@@ -246,17 +241,16 @@ void param_amg_set (AMG_param *amgparam,
 }
 
 /*************************************************************************************/
+/*!
+ * \fn void param_linear_solver_print (linear_itsolver_param *itsparam)
+ *
+ * \brief Print out linear iterative solver parameters
+ *
+ * \param param  Pointer to the lienar_itsolver_parame structure
+ *
+ */
 void param_linear_solver_print (linear_itsolver_param *itsparam)
-{
-    /*!
-     * \fn void param_linear_solver_print (linear_itsolver_param *itsparam)
-     *
-     * \brief Print out linear iterative solver parameters
-     *
-     * \param param  Pointer to the lienar_itsolver_parame structure
-     *
-     */
-    
+{   
     if ( itsparam ) {
         
         printf("\n     Parameters in linear_itsolver_param     \n");
@@ -284,19 +278,17 @@ void param_linear_solver_print (linear_itsolver_param *itsparam)
 }
 
 /*************************************************************************************/
+/*!
+ * \fn void param_amg_print (AMG_param *amgparam)
+ *
+ * \brief Print out AMG parameters
+ *
+ * \param param   Pointer to AMG_param structure
+ *
+ */
 void param_amg_print (AMG_param *amgparam)
 {
-    
-    /*!
-     * \fn void param_amg_print (AMG_param *amgparam)
-     *
-     * \brief Print out AMG parameters
-     *
-     * \param param   Pointer to AMG_param structure
-     *
-     */
-    
-    if ( amgparam ) {
+   if ( amgparam ) {
         
         printf("\n       Parameters in AMG_param\n");
         printf("-----------------------------------------------\n");
@@ -353,19 +345,18 @@ void param_amg_print (AMG_param *amgparam)
 }
 
 /*************************************************************************************/
+/*!
+ * \fn void param_amg_to_prec (precond_data *pcdata, AMG_param *amgparam)
+ *
+ * \brief Set parameters in precond_data using AMG parameters
+ *
+ * \param pcdata      Pointer to the precond_data structure
+ * \param amgparam    Pointer to the AMG_param structure
+ *
+ */
 void param_amg_to_prec (precond_data *pcdata,
                         AMG_param *amgparam)
-{
-    /*!
-     * \fn void param_amg_to_prec (precond_data *pcdata, AMG_param *amgparam)
-     *
-     * \brief Set parameters in precond_data using AMG parameters
-     *
-     * \param pcdata      Pointer to the precond_data structure
-     * \param amgparam    Pointer to the AMG_param structure
-     *
-     */
-    
+{  
     pcdata->AMG_type            = amgparam->AMG_type;
     pcdata->print_level         = amgparam->print_level;
     pcdata->maxit               = amgparam->maxit;
@@ -386,19 +377,18 @@ void param_amg_to_prec (precond_data *pcdata,
 }
 
 /*************************************************************************************/
+/*!
+ * \fn void fasp_param_prec_to_amg (AMG_param *amgparam, precond_data *pcdata)
+ *
+ * \brief Set AMG parameters using parameters in precond_data
+ *
+ * \param amgparam    Pointer to the AMG_param structuree
+ * \param pcdata      Pointer to the precond_data structure
+ *
+ */
 void param_prec_to_amg (AMG_param *amgparam,
                         precond_data *pcdata)
-{
-    /*!
-     * \fn void fasp_param_prec_to_amg (AMG_param *amgparam, precond_data *pcdata)
-     *
-     * \brief Set AMG parameters using parameters in precond_data
-     *
-     * \param amgparam    Pointer to the AMG_param structuree
-     * \param pcdata      Pointer to the precond_data structure
-     *
-     */
-    
+{   
     amgparam->AMG_type            = pcdata->AMG_type;
     amgparam->print_level         = pcdata->print_level;
     amgparam->cycle_type          = pcdata->cycle_type;
@@ -416,28 +406,26 @@ void param_prec_to_amg (AMG_param *amgparam,
 }
 
 /*************************************************************************************/
+/*!
+ * \fn void amg_amli_coef (const REAL lambda_max, const REAL lambda_min,
+ *                              const INT degree, REAL *coef)
+ *
+ * \brief Compute the coefficients of the polynomial used by AMLI-cycle
+ *
+ * \param lambda_max  Maximal eigenvalue (estimated)
+ * \param lambda_min  Minimal eigenvalue (estimated)
+ * \param degree      Degree of polynomial used in AMLI-cycle
+ * \param coef        Pointer to the coefficients of AMLI-cycle (output)
+ *
+ * \note Best polynomial approximation of 1/x is used here -- Xiaozhe Hu
+ * \todo Other polynomials -- Xiaozhe Hu
+ *
+ */
 void amg_amli_coef (const REAL lambda_max,
                     const REAL lambda_min,
                     const INT degree,
                     REAL *coef)
-{
-    
-    /*!
-     * \fn void amg_amli_coef (const REAL lambda_max, const REAL lambda_min,
-     *                              const INT degree, REAL *coef)
-     *
-     * \brief Compute the coefficients of the polynomial used by AMLI-cycle
-     *
-     * \param lambda_max  Maximal eigenvalue (estimated)
-     * \param lambda_min  Minimal eigenvalue (estimated)
-     * \param degree      Degree of polynomial used in AMLI-cycle
-     * \param coef        Pointer to the coefficients of AMLI-cycle (output)
-     *
-     * \note Best polynomial approximation of 1/x is used here -- Xiaozhe Hu
-     * \todo Other polynomials -- Xiaozhe Hu
-     *
-     */
-    
+{  
     const REAL mu0 = 1.0/lambda_max, mu1 = 1.0/lambda_min;
     const REAL c = (sqrt(mu0)+sqrt(mu1))*(sqrt(mu0)+sqrt(mu1));
     const REAL a = (4*mu0*mu1)/(c);

@@ -18,22 +18,22 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *, AMG_param *);
 /*---------------------------------*/
 
 /***********************************************************************************************/
+/**
+ * \fn SHORT amg_setup_ua (AMG_data *mgl, AMG_param *param)
+ *
+ * \brief Set up phase of unsmoothed aggregation AMG
+ *
+ * \param mgl    Pointer to AMG data: AMG_data
+ * \param param  Pointer to AMG parameters: AMG_param
+ *
+ * \return       SUCCESS if successed; otherwise, error information.
+ *
+ * \author Xiaozhe Hu
+ * \date   12/28/2011
+ */
 SHORT amg_setup_ua (AMG_data *mgl,
                          AMG_param *param)
 {
-    /**
-     * \fn SHORT amg_setup_ua (AMG_data *mgl, AMG_param *param)
-     *
-     * \brief Set up phase of unsmoothed aggregation AMG
-     *
-     * \param mgl    Pointer to AMG data: AMG_data
-     * \param param  Pointer to AMG parameters: AMG_param
-     *
-     * \return       SUCCESS if successed; otherwise, error information.
-     *
-     * \author Xiaozhe Hu
-     * \date   12/28/2011
-     */
     
     SHORT status = amg_setup_unsmoothP_unsmoothR(mgl, param);
     
@@ -45,23 +45,23 @@ SHORT amg_setup_ua (AMG_data *mgl,
 /*---------------------------------*/
 
 /***********************************************************************************************/
+/**
+ * \fn static SHORT amg_setup_unsmoothP_unsmoothR (AMG_data *mgl, AMG_param *param)
+ *
+ * \brief Setup phase of plain aggregation AMG, using unsmoothed P and unsmoothed A
+ *
+ * \param mgl    Pointer to AMG_data
+ * \param param  Pointer to AMG_param
+ *
+ * \return       SUCCESS if succeed, error otherwise
+ *
+ * \author Xiaozhe Hu
+ * \date   02/21/2011
+ *
+ */
 static SHORT amg_setup_unsmoothP_unsmoothR (AMG_data *mgl,
                                             AMG_param *param)
 {
-    /**
-     * \fn static SHORT amg_setup_unsmoothP_unsmoothR (AMG_data *mgl, AMG_param *param)
-     *
-     * \brief Setup phase of plain aggregation AMG, using unsmoothed P and unsmoothed A
-     *
-     * \param mgl    Pointer to AMG_data
-     * \param param  Pointer to AMG_param
-     *
-     * \return       SUCCESS if succeed, error otherwise
-     *
-     * \author Xiaozhe Hu
-     * \date   02/21/2011
-     *
-     */
     
     const SHORT prtlvl     = param->print_level;
     const SHORT cycle_type = param->cycle_type;

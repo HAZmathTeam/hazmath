@@ -15,32 +15,31 @@
 /********************************************************************************************/
 // general itrative solver for different format          
 /********************************************************************************************/
+/**
+ * \fn INT solver_dcsr_linear_itsolver (dCSRmat *A, dvector *b, dvector *x,
+ *                                    precond *pc, linear_itsolver_param *itparam)
+ *
+ * \brief Solve Ax=b by preconditioned Krylov methods for CSR matrices
+ *
+ * \param A        Pointer to the coeff matrix in dCSRmat format
+ * \param b        Pointer to the right hand side in dvector format
+ * \param x        Pointer to the approx solution in dvector format
+ * \param pc       Pointer to the preconditioning action
+ * \param itparam  Pointer to parameters for lienar iterative solvers
+ *
+ * \return         Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   10/06/2015
+ *
+ * \note This is an abstract interface for iterative methods.
+ */
 INT solver_dcsr_linear_itsolver (dCSRmat *A,
                                dvector *b,
                                dvector *x,
                                precond *pc,
                                linear_itsolver_param *itparam)
-{
-    /**
-     * \fn INT solver_dcsr_linear_itsolver (dCSRmat *A, dvector *b, dvector *x,
-     *                                    precond *pc, linear_itsolver_param *itparam)
-     *
-     * \brief Solve Ax=b by preconditioned Krylov methods for CSR matrices
-     *
-     * \param A        Pointer to the coeff matrix in dCSRmat format
-     * \param b        Pointer to the right hand side in dvector format
-     * \param x        Pointer to the approx solution in dvector format
-     * \param pc       Pointer to the preconditioning action
-     * \param itparam  Pointer to parameters for lienar iterative solvers
-     *
-     * \return         Iteration number if converges; ERROR otherwise.
-     *
-     * \author Xiaozhe Hu
-     * \date   10/06/2015
-     *
-     * \note This is an abstract interface for iterative methods.
-     */
-    
+{   
     const SHORT prtlvl        = itparam->linear_print_level;
     const SHORT itsolver_type = itparam->linear_itsolver_type;
     const SHORT stop_type     = itparam->linear_stop_type;
@@ -109,31 +108,31 @@ INT solver_dcsr_linear_itsolver (dCSRmat *A,
 }
 
 /********************************************************************************************/
+/**
+ * \fn INT solver_bdcsr_linear_itsolver (block_dCSRmat *A, dvector *b, dvector *x,
+ *                                     precond *pc, linear_itsolver_param *itparam)
+ *
+ * \brief Solve Ax = b by standard Krylov methods
+ *
+ * \param A        Pointer to the coeff matrix in block_dCSRmat format
+ * \param b        Pointer to the right hand side in dvector format
+ * \param x        Pointer to the approx solution in dvector format
+ * \param pc       Pointer to the preconditioning action
+ * \param itparam  Pointer to parameters for iterative solvers
+ *
+ * \return         Iteration number if converges; ERROR otherwise.
+ *
+ *
+ * \author Xiaozhe Hu
+ * \date   02/17/2016
+ */
 INT solver_bdcsr_linear_itsolver (block_dCSRmat *A,
                                 dvector *b,
                                 dvector *x,
                                 precond *pc,
                                 linear_itsolver_param *itparam)
 {
-    /**
-     * \fn INT solver_bdcsr_linear_itsolver (block_dCSRmat *A, dvector *b, dvector *x,
-     *                                     precond *pc, linear_itsolver_param *itparam)
-     *
-     * \brief Solve Ax = b by standard Krylov methods
-     *
-     * \param A        Pointer to the coeff matrix in block_dCSRmat format
-     * \param b        Pointer to the right hand side in dvector format
-     * \param x        Pointer to the approx solution in dvector format
-     * \param pc       Pointer to the preconditioning action
-     * \param itparam  Pointer to parameters for iterative solvers
-     *
-     * \return         Iteration number if converges; ERROR otherwise.
-     *
-     *
-     * \author Xiaozhe Hu
-     * \date   02/17/2016
-     */
-    
+
     const SHORT prtlvl =        itparam->linear_print_level;
     const SHORT itsolver_type = itparam->linear_itsolver_type;
     const SHORT stop_type =     itparam->linear_stop_type;
@@ -198,32 +197,31 @@ INT solver_bdcsr_linear_itsolver (block_dCSRmat *A,
 }
 
 /********************************************************************************************/
+/**
+ * \fn INT solver_general_linear_itsolver (dCSRmat *A, dvector *b, dvector *x,
+ *                                    precond *pc, linear_itsolver_param *itparam)
+ *
+ * \brief Solve Ax=b by preconditioned Krylov methods (matrix-free version)
+ *
+ * \param A        Pointer to the coeff matrix in dCSRmat format
+ * \param b        Pointer to the right hand side in dvector format
+ * \param x        Pointer to the approx solution in dvector format
+ * \param pc       Pointer to the preconditioning action
+ * \param itparam  Pointer to parameters for lienar iterative solvers
+ *
+ * \return         Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   05/31/2015
+ *
+ * \note This is an abstract interface for iterative methods.
+ */
 INT solver_general_linear_itsolver(matvec *mxv,
                                  dvector *b,
                                  dvector *x,
                                  precond *pc,
                                  linear_itsolver_param *itparam)
-{
-    /**
-     * \fn INT solver_general_linear_itsolver (dCSRmat *A, dvector *b, dvector *x,
-     *                                    precond *pc, linear_itsolver_param *itparam)
-     *
-     * \brief Solve Ax=b by preconditioned Krylov methods (matrix-free version)
-     *
-     * \param A        Pointer to the coeff matrix in dCSRmat format
-     * \param b        Pointer to the right hand side in dvector format
-     * \param x        Pointer to the approx solution in dvector format
-     * \param pc       Pointer to the preconditioning action
-     * \param itparam  Pointer to parameters for lienar iterative solvers
-     *
-     * \return         Iteration number if converges; ERROR otherwise.
-     *
-     * \author Xiaozhe Hu
-     * \date   05/31/2015
-     *
-     * \note This is an abstract interface for iterative methods.
-     */
-    
+{    
     const SHORT prtlvl        = itparam->linear_print_level;
     const SHORT itsolver_type = itparam->linear_itsolver_type;
     const SHORT stop_type     = itparam->linear_stop_type;
@@ -296,28 +294,27 @@ INT solver_general_linear_itsolver(matvec *mxv,
 /********************************************************************************************/
 // AMG method for CSR format
 /********************************************************************************************/
+/**
+ * \fn void linear_solver_amg (dCSRmat *A, dvector *b, dvector *x,
+ *                           AMG_param *param)
+ *
+ * \brief Solve Ax = b by algebraic multigrid methods
+ *
+ * \param A      Pointer to dCSRmat: the coefficient matrix
+ * \param b      Pointer to dvector: the right hand side
+ * \param x      Pointer to dvector: the unknowns
+ * \param param  Pointer to AMG_param: AMG parameters
+ *
+ * \author Xiaozhe Hu
+ * \date   12/25/2015
+ *
+ *
+ */
 INT linear_solver_amg (dCSRmat *A,
                       dvector *b,
                       dvector *x,
                       AMG_param *param)
-{
-    /**
-     * \fn void linear_solver_amg (dCSRmat *A, dvector *b, dvector *x,
-     *                           AMG_param *param)
-     *
-     * \brief Solve Ax = b by algebraic multigrid methods
-     *
-     * \param A      Pointer to dCSRmat: the coefficient matrix
-     * \param b      Pointer to dvector: the right hand side
-     * \param x      Pointer to dvector: the unknowns
-     * \param param  Pointer to AMG_param: AMG parameters
-     *
-     * \author Xiaozhe Hu
-     * \date   12/25/2015
-     *
-     *
-     */
-    
+{   
     const SHORT   max_levels  = param->max_levels;
     const SHORT   prtlvl      = param->print_level;
     const SHORT   amg_type    = param->AMG_type;
@@ -414,27 +411,27 @@ INT linear_solver_amg (dCSRmat *A,
 /********************************************************************************************/
 // preconditioned Krylov methods for CSR format
 /********************************************************************************************/
+/**
+ * \fn INT linear_solver_dcsr_krylov (dCSRmat *A, dvector *b, dvector *x,
+ *                                  linear_itsolver_param *itparam)
+ *
+ * \brief Solve Ax=b by standard Krylov methods for CSR matrices
+ *
+ * \param A        Pointer to the coeff matrix in dCSRmat format
+ * \param b        Pointer to the right hand side in dvector format
+ * \param x        Pointer to the approx solution in dvector format
+ * \param itparam  Pointer to parameters for linear iterative solvers
+ *
+ * \return         Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   10/06/2015
+ */
 INT linear_solver_dcsr_krylov (dCSRmat *A,
                              dvector *b,
                              dvector *x,
                              linear_itsolver_param *itparam)
 {
-    /**
-     * \fn INT linear_solver_dcsr_krylov (dCSRmat *A, dvector *b, dvector *x,
-     *                                  linear_itsolver_param *itparam)
-     *
-     * \brief Solve Ax=b by standard Krylov methods for CSR matrices
-     *
-     * \param A        Pointer to the coeff matrix in dCSRmat format
-     * \param b        Pointer to the right hand side in dvector format
-     * \param x        Pointer to the approx solution in dvector format
-     * \param itparam  Pointer to parameters for linear iterative solvers
-     *
-     * \return         Iteration number if converges; ERROR otherwise.
-     *
-     * \author Xiaozhe Hu
-     * \date   10/06/2015
-     */
     const SHORT prtlvl = itparam->linear_print_level;
     
     /* Local Variables */
@@ -456,28 +453,27 @@ INT linear_solver_dcsr_krylov (dCSRmat *A,
 }
 
 /********************************************************************************************/
+/**
+ * \fn INT linear_solver_dcsr_krylov_diag (dCSRmat *A, dvector *b, dvector *x,
+ *                                       linear_itsolver_param *itparam)
+ *
+ * \brief Solve Ax=b by diagonal preconditioned Krylov methods
+ *
+ * \param A        Pointer to the coeff matrix in dCSRmat format
+ * \param b        Pointer to the right hand side in dvector format
+ * \param x        Pointer to the approx solution in dvector format
+ * \param itparam  Pointer to parameters for linear iterative solvers
+ *
+ * \return         Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   10/06/2015
+ */
 INT linear_solver_dcsr_krylov_diag (dCSRmat *A,
                                   dvector *b,
                                   dvector *x,
                                   linear_itsolver_param *itparam)
 {
-    
-    /**
-     * \fn INT linear_solver_dcsr_krylov_diag (dCSRmat *A, dvector *b, dvector *x,
-     *                                       linear_itsolver_param *itparam)
-     *
-     * \brief Solve Ax=b by diagonal preconditioned Krylov methods
-     *
-     * \param A        Pointer to the coeff matrix in dCSRmat format
-     * \param b        Pointer to the right hand side in dvector format
-     * \param x        Pointer to the approx solution in dvector format
-     * \param itparam  Pointer to parameters for linear iterative solvers
-     *
-     * \return         Iteration number if converges; ERROR otherwise.
-     *
-     * \author Xiaozhe Hu
-     * \date   10/06/2015
-     */
     const SHORT prtlvl = itparam->linear_print_level;
     
     /* Local Variables */
@@ -512,30 +508,29 @@ INT linear_solver_dcsr_krylov_diag (dCSRmat *A,
 }
 
 /********************************************************************************************/
+/**
+ * \fn INT linear_solver_dcsr_krylov_amg (dCSRmat *A, dvector *b, dvector *x,
+ *                                      linear_itsolver_param *itparam, AMG_param *amgparam)
+ *
+ * \brief Solve Ax=b by AMG preconditioned Krylov methods
+ *
+ * \param A         Pointer to the coeff matrix in dCSRmat format
+ * \param b         Pointer to the right hand side in dvector format
+ * \param x         Pointer to the approx solution in dvector format
+ * \param itparam   Pointer to parameters for iterative solvers
+ * \param amgparam  Pointer to parameters for AMG methods
+ *
+ * \return          Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   10/06/2015
+ */
 INT linear_solver_dcsr_krylov_amg (dCSRmat *A,
                                  dvector *b,
                                  dvector *x,
                                  linear_itsolver_param *itparam,
                                  AMG_param *amgparam)
 {
-    /**
-     * \fn INT linear_solver_dcsr_krylov_amg (dCSRmat *A, dvector *b, dvector *x,
-     *                                      linear_itsolver_param *itparam, AMG_param *amgparam)
-     *
-     * \brief Solve Ax=b by AMG preconditioned Krylov methods
-     *
-     * \param A         Pointer to the coeff matrix in dCSRmat format
-     * \param b         Pointer to the right hand side in dvector format
-     * \param x         Pointer to the approx solution in dvector format
-     * \param itparam   Pointer to parameters for iterative solvers
-     * \param amgparam  Pointer to parameters for AMG methods
-     *
-     * \return          Iteration number if converges; ERROR otherwise.
-     *
-     * \author Xiaozhe Hu
-     * \date   10/06/2015
-     */
-    
     const SHORT prtlvl = itparam->linear_print_level;
     const SHORT max_levels = amgparam->max_levels;
     const INT nnz = A->nnz, m = A->row, n = A->col;
@@ -610,6 +605,26 @@ FINISHED:
 }
 
 /********************************************************************************************/
+/**
+ * \fn INT linear_solver_dcsr_krylov_hx_curl (dCSRmat *A, dvector *b, dvector *x,
+ *                                      linear_itsolver_param *itparam, AMG_param *amgparam,
+ *                                      dCSRmat P_curl, dCSRmat Grad)
+ *
+ * \brief Solve Ax=b by HX (H(curl)) preconditioned Krylov methods
+ *
+ * \param A         Pointer to the coeff matrix in dCSRmat format
+ * \param b         Pointer to the right hand side in dvector format
+ * \param x         Pointer to the approx solution in dvector format
+ * \param itparam   Pointer to parameters for iterative solvers
+ * \param amgparam  Pointer to parameters for AMG methods
+ * \param P_curl    Pointer to the Pi_curl interpolation in dCSRmat format
+ * \param Grad      Pointer to the Grad operator in dCSRmat format
+ *
+ * \return          Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   02/10/2016
+ */
 INT linear_solver_dcsr_krylov_hx_curl (dCSRmat *A,
                                    dvector *b,
                                    dvector *x,
@@ -617,28 +632,7 @@ INT linear_solver_dcsr_krylov_hx_curl (dCSRmat *A,
                                    AMG_param *amgparam,
                                    dCSRmat *P_curl,
                                    dCSRmat *Grad)
-{
-    /**
-     * \fn INT linear_solver_dcsr_krylov_hx_curl (dCSRmat *A, dvector *b, dvector *x,
-     *                                      linear_itsolver_param *itparam, AMG_param *amgparam,
-     *                                      dCSRmat P_curl, dCSRmat Grad)
-     *
-     * \brief Solve Ax=b by HX (H(curl)) preconditioned Krylov methods
-     *
-     * \param A         Pointer to the coeff matrix in dCSRmat format
-     * \param b         Pointer to the right hand side in dvector format
-     * \param x         Pointer to the approx solution in dvector format
-     * \param itparam   Pointer to parameters for iterative solvers
-     * \param amgparam  Pointer to parameters for AMG methods
-     * \param P_curl    Pointer to the Pi_curl interpolation in dCSRmat format
-     * \param Grad      Pointer to the Grad operator in dCSRmat format
-     *
-     * \return          Iteration number if converges; ERROR otherwise.
-     *
-     * \author Xiaozhe Hu
-     * \date   02/10/2016
-     */
-    
+{    
     const SHORT prtlvl = itparam->linear_print_level;
     const SHORT max_levels = amgparam->max_levels;
     
@@ -775,28 +769,27 @@ FINISHED:
 /********************************************************************************************/
 // preconditioned Krylov methods for block CSR format
 /********************************************************************************************/
+/**
+ * \fn INT linear_solver_bdcsr_krylov (block_dCSRmat *A, dvector *b, dvector *x,
+ *                                   linear_itsolver_param *itparam)
+ *
+ * \brief Solve Ax = b by standard Krylov methods
+ *
+ * \param A         Pointer to the coeff matrix in block_dCSRmat format
+ * \param b         Pointer to the right hand side in dvector format
+ * \param x         Pointer to the approx solution in dvector format
+ * \param itparam   Pointer to parameters for iterative solvers
+ *
+ * \return          Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   07/18/2010
+ */
 INT linear_solver_bdcsr_krylov (block_dCSRmat *A,
                                 dvector *b,
                                 dvector *x,
                                 linear_itsolver_param *itparam)
-{
-    /**
-     * \fn INT linear_solver_bdcsr_krylov (block_dCSRmat *A, dvector *b, dvector *x,
-     *                                   linear_itsolver_param *itparam)
-     *
-     * \brief Solve Ax = b by standard Krylov methods
-     *
-     * \param A         Pointer to the coeff matrix in block_dCSRmat format
-     * \param b         Pointer to the right hand side in dvector format
-     * \param x         Pointer to the approx solution in dvector format
-     * \param itparam   Pointer to parameters for iterative solvers
-     *
-     * \return          Iteration number if converges; ERROR otherwise.
-     *
-     * \author Xiaozhe Hu
-     * \date   07/18/2010
-     */
-    
+{   
     const SHORT prtlvl = itparam->linear_print_level;
     
     INT status = SUCCESS;
@@ -818,6 +811,27 @@ INT linear_solver_bdcsr_krylov (block_dCSRmat *A,
 }
 
 /********************************************************************************************/
+/**
+ * \fn INT linear_solver_bdcsr_krylov_block_2 (block_dCSRmat *A, dvector *b, dvector *x,
+ *                                           itsolver_param *itparam,
+ *                                           AMG_param *amgparam, dCSRmat *A_diag)
+ *
+ * \brief Solve Ax = b by standard Krylov methods
+ *
+ * \param A         Pointer to the coeff matrix in block_dCSRmat format
+ * \param b         Pointer to the right hand side in dvector format
+ * \param x         Pointer to the approx solution in dvector format
+ * \param itparam   Pointer to parameters for iterative solvers
+ * \param amgparam  Pointer to parameters for AMG solvers
+ * \param A_diag    Digonal blocks of A
+ *
+ * \return          Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   10/14/2016
+ *
+ * \note only works for 2 by 2 block dCSRmat problems!! -- Xiaozhe Hu
+ */
 INT linear_solver_bdcsr_krylov_block_2 (block_dCSRmat *A,
                                         dvector *b,
                                         dvector *x,
@@ -825,28 +839,6 @@ INT linear_solver_bdcsr_krylov_block_2 (block_dCSRmat *A,
                                         AMG_param *amgparam,
                                         dCSRmat *A_diag)
 {
-  /**
-   * \fn INT linear_solver_bdcsr_krylov_block_2 (block_dCSRmat *A, dvector *b, dvector *x,
-   *                                           itsolver_param *itparam,
-   *                                           AMG_param *amgparam, dCSRmat *A_diag)
-   *
-   * \brief Solve Ax = b by standard Krylov methods
-   *
-   * \param A         Pointer to the coeff matrix in block_dCSRmat format
-   * \param b         Pointer to the right hand side in dvector format
-   * \param x         Pointer to the approx solution in dvector format
-   * \param itparam   Pointer to parameters for iterative solvers
-   * \param amgparam  Pointer to parameters for AMG solvers
-   * \param A_diag    Digonal blocks of A
-   *
-   * \return          Iteration number if converges; ERROR otherwise.
-   *
-   * \author Xiaozhe Hu
-   * \date   10/14/2016
-   *
-   * \note only works for 2 by 2 block dCSRmat problems!! -- Xiaozhe Hu
-   */
-  
   const SHORT prtlvl = itparam->linear_print_level;
   const SHORT precond_type = itparam->linear_precond_type;
   
@@ -941,6 +933,27 @@ INT linear_solver_bdcsr_krylov_block_2 (block_dCSRmat *A,
 }
 
 /********************************************************************************************/
+/**
+ * \fn INT linear_solver_bdcsr_krylov_block_3 (block_dCSRmat *A, dvector *b, dvector *x,
+ *                                           itsolver_param *itparam,
+ *                                           AMG_param *amgparam, dCSRmat *A_diag)
+ *
+ * \brief Solve Ax = b by standard Krylov methods
+ *
+ * \param A         Pointer to the coeff matrix in block_dCSRmat format
+ * \param b         Pointer to the right hand side in dvector format
+ * \param x         Pointer to the approx solution in dvector format
+ * \param itparam   Pointer to parameters for iterative solvers
+ * \param amgparam  Pointer to parameters for AMG solvers
+ * \param A_diag    Digonal blocks of A
+ *
+ * \return          Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   02/24/2014
+ *
+ * \note only works for 3 by 3 block dCSRmat problems!! -- Xiaozhe Hu
+ */
 INT linear_solver_bdcsr_krylov_block_3 (block_dCSRmat *A,
                                       dvector *b,
                                       dvector *x,
@@ -948,28 +961,6 @@ INT linear_solver_bdcsr_krylov_block_3 (block_dCSRmat *A,
                                       AMG_param *amgparam,
                                       dCSRmat *A_diag)
 {
-    /**
-     * \fn INT linear_solver_bdcsr_krylov_block_3 (block_dCSRmat *A, dvector *b, dvector *x,
-     *                                           itsolver_param *itparam,
-     *                                           AMG_param *amgparam, dCSRmat *A_diag)
-     *
-     * \brief Solve Ax = b by standard Krylov methods
-     *
-     * \param A         Pointer to the coeff matrix in block_dCSRmat format
-     * \param b         Pointer to the right hand side in dvector format
-     * \param x         Pointer to the approx solution in dvector format
-     * \param itparam   Pointer to parameters for iterative solvers
-     * \param amgparam  Pointer to parameters for AMG solvers
-     * \param A_diag    Digonal blocks of A
-     *
-     * \return          Iteration number if converges; ERROR otherwise.
-     *
-     * \author Xiaozhe Hu
-     * \date   02/24/2014
-     *
-     * \note only works for 3 by 3 block dCSRmat problems!! -- Xiaozhe Hu
-     */
-    
     const SHORT prtlvl = itparam->linear_print_level;
     const SHORT precond_type = itparam->linear_precond_type;
     
@@ -1067,6 +1058,27 @@ INT linear_solver_bdcsr_krylov_block_3 (block_dCSRmat *A,
 }
 
 /********************************************************************************************/
+/**
+ * \fn INT linear_solver_bdcsr_krylov_block_4 (block_dCSRmat *A, dvector *b, dvector *x,
+ *                                           itsolver_param *itparam,
+ *                                           AMG_param *amgparam, dCSRmat *A_diag)
+ *
+ * \brief Solve Ax = b by standard Krylov methods
+ *
+ * \param A         Pointer to the coeff matrix in block_dCSRmat format
+ * \param b         Pointer to the right hand side in dvector format
+ * \param x         Pointer to the approx solution in dvector format
+ * \param itparam   Pointer to parameters for iterative solvers
+ * \param amgparam  Pointer to parameters for AMG solvers
+ * \param A_diag    Digonal blocks of A
+ *
+ * \return          Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   01/20/2017
+ *
+ * \note only works for 4 by 4 block dCSRmat problems!! -- Xiaozhe Hu
+ */
 INT linear_solver_bdcsr_krylov_block_4 (block_dCSRmat *A,
                                       dvector *b,
                                       dvector *x,
@@ -1074,28 +1086,6 @@ INT linear_solver_bdcsr_krylov_block_4 (block_dCSRmat *A,
                                       AMG_param *amgparam,
                                       dCSRmat *A_diag)
 {
-    /**
-     * \fn INT linear_solver_bdcsr_krylov_block_4 (block_dCSRmat *A, dvector *b, dvector *x,
-     *                                           itsolver_param *itparam,
-     *                                           AMG_param *amgparam, dCSRmat *A_diag)
-     *
-     * \brief Solve Ax = b by standard Krylov methods
-     *
-     * \param A         Pointer to the coeff matrix in block_dCSRmat format
-     * \param b         Pointer to the right hand side in dvector format
-     * \param x         Pointer to the approx solution in dvector format
-     * \param itparam   Pointer to parameters for iterative solvers
-     * \param amgparam  Pointer to parameters for AMG solvers
-     * \param A_diag    Digonal blocks of A
-     *
-     * \return          Iteration number if converges; ERROR otherwise.
-     *
-     * \author Xiaozhe Hu
-     * \date   01/20/2017
-     *
-     * \note only works for 4 by 4 block dCSRmat problems!! -- Xiaozhe Hu
-     */
-
     const SHORT prtlvl = itparam->linear_print_level;
     const SHORT precond_type = itparam->linear_precond_type;
 
@@ -1193,35 +1183,34 @@ INT linear_solver_bdcsr_krylov_block_4 (block_dCSRmat *A,
 
 
 /********************************************************************************************/
+/**
+ * \fn INT linear_solver_bdcsr_krylov_mixed_darcy (block_dCSRmat *A, dvector *b, dvector *x,
+ *                                           itsolver_param *itparam,
+ *                                           AMG_param *amgparam, dCSRmat *A_diag)
+ *
+ * \brief Solve Ax = b by standard Krylov methods
+ *
+ * \param A         Pointer to the coeff matrix in block_dCSRmat format
+ * \param b         Pointer to the right hand side in dvector format
+ * \param x         Pointer to the approx solution in dvector format
+ * \param itparam   Pointer to parameters for iterative solvers
+ * \param amgparam  Pointer to parameters for AMG solvers
+ * \param A_diag    Digonal blocks of A
+ *
+ * \return          Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   10/14/2016
+ *
+ * \note only works for 2 by 2 block dCSRmat problems!! -- Xiaozhe Hu
+ */
 INT linear_solver_bdcsr_krylov_mixed_darcy (block_dCSRmat *A,
                                             dvector *b,
                                             dvector *x,
                                             linear_itsolver_param *itparam,
                                             AMG_param *amgparam,
                                             dvector *el_vol)
-{
-  /**
-   * \fn INT linear_solver_bdcsr_krylov_mixed_darcy (block_dCSRmat *A, dvector *b, dvector *x,
-   *                                           itsolver_param *itparam,
-   *                                           AMG_param *amgparam, dCSRmat *A_diag)
-   *
-   * \brief Solve Ax = b by standard Krylov methods
-   *
-   * \param A         Pointer to the coeff matrix in block_dCSRmat format
-   * \param b         Pointer to the right hand side in dvector format
-   * \param x         Pointer to the approx solution in dvector format
-   * \param itparam   Pointer to parameters for iterative solvers
-   * \param amgparam  Pointer to parameters for AMG solvers
-   * \param A_diag    Digonal blocks of A
-   *
-   * \return          Iteration number if converges; ERROR otherwise.
-   *
-   * \author Xiaozhe Hu
-   * \date   10/14/2016
-   *
-   * \note only works for 2 by 2 block dCSRmat problems!! -- Xiaozhe Hu
-   */
-  
+{  
   const SHORT prtlvl = itparam->linear_print_level;
   const SHORT precond_type = itparam->linear_precond_type;
   
@@ -1336,6 +1325,27 @@ INT linear_solver_bdcsr_krylov_mixed_darcy (block_dCSRmat *A,
 }
 
 /********************************************************************************************/
+/**
+ * \fn INT linear_solver_bdcsr_krylov_biot_2phase (block_dCSRmat *A, dvector *b, dvector *x,
+ *                                           itsolver_param *itparam,
+ *                                           AMG_param *amgparam, dCSRmat *Mp)
+ *
+ * \brief Solve Ax = b by standard Krylov methods
+ *
+ * \param A         Pointer to the coeff matrix in block_dCSRmat format
+ * \param b         Pointer to the right hand side in dvector format
+ * \param x         Pointer to the approx solution in dvector format
+ * \param itparam   Pointer to parameters for iterative solvers
+ * \param amgparam  Pointer to parameters for AMG solvers
+ * \param A_diag    Digonal blocks of A
+ *
+ * \return          Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   01/14/2017
+ *
+ * \note only works for 2 by 2 block dCSRmat problems!! -- Xiaozhe Hu
+ */
 INT linear_solver_bdcsr_krylov_biot_2phase (block_dCSRmat *A,
                                             dvector *b,
                                             dvector *x,
@@ -1343,28 +1353,6 @@ INT linear_solver_bdcsr_krylov_biot_2phase (block_dCSRmat *A,
                                             AMG_param *amgparam,
                                             dCSRmat *Mp)
 {
-  /**
-   * \fn INT linear_solver_bdcsr_krylov_biot_2phase (block_dCSRmat *A, dvector *b, dvector *x,
-   *                                           itsolver_param *itparam,
-   *                                           AMG_param *amgparam, dCSRmat *Mp)
-   *
-   * \brief Solve Ax = b by standard Krylov methods
-   *
-   * \param A         Pointer to the coeff matrix in block_dCSRmat format
-   * \param b         Pointer to the right hand side in dvector format
-   * \param x         Pointer to the approx solution in dvector format
-   * \param itparam   Pointer to parameters for iterative solvers
-   * \param amgparam  Pointer to parameters for AMG solvers
-   * \param A_diag    Digonal blocks of A
-   *
-   * \return          Iteration number if converges; ERROR otherwise.
-   *
-   * \author Xiaozhe Hu
-   * \date   01/14/2017
-   *
-   * \note only works for 2 by 2 block dCSRmat problems!! -- Xiaozhe Hu
-   */
-
   const SHORT prtlvl = itparam->linear_print_level;
   const SHORT precond_type = itparam->linear_precond_type;
 
@@ -1494,6 +1482,33 @@ INT linear_solver_bdcsr_krylov_biot_2phase (block_dCSRmat *A,
 
 
 /********************************************************************************************/
+/**
+ * \fn INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A, dvector *b, dvector *x,
+ *                                           itsolver_param *itparam,
+ *                                           AMG_param *amgparam, dCSRmat *A_diag,
+ *                                           dCSRmat *P_curl, dCSRmat *Grad)
+ *
+ * \brief Solve Ax = b by standard Krylov methods
+ *
+ * \param A         Pointer to the coeff matrix in block_dCSRmat format
+ * \param b         Pointer to the right hand side in dvector format
+ * \param x         Pointer to the approx solution in dvector format
+ * \param itparam   Pointer to parameters for iterative solvers
+ * \param amgparam  Pointer to parameters for AMG solvers
+ * \param A_diag    Digonal blocks of A
+ *
+ * \return          Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   02/25/2014
+ *
+ * \note Xiaozhe: this is a special solver only for time dependent Maxwell problem invloving
+ *       magnetic filed B, electrical field E, and pressure p
+ *
+ * \note Xiaozhe: A = [A_BB  A_BE  A_Bp
+ *                     A_EB  A_EE  A_Ep
+ *                     A_pB  A_pE  A_pp]
+ */
 INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A,
                                         dvector *b,
                                         dvector *x,
@@ -1506,35 +1521,7 @@ INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A,
                                         dCSRmat *Kb,
                                         dCSRmat *Gtb,
                                         dCSRmat *Ktb)
-{
-    /**
-     * \fn INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A, dvector *b, dvector *x,
-     *                                           itsolver_param *itparam,
-     *                                           AMG_param *amgparam, dCSRmat *A_diag, 
-     *                                           dCSRmat *P_curl, dCSRmat *Grad)
-     *
-     * \brief Solve Ax = b by standard Krylov methods
-     *
-     * \param A         Pointer to the coeff matrix in block_dCSRmat format
-     * \param b         Pointer to the right hand side in dvector format
-     * \param x         Pointer to the approx solution in dvector format
-     * \param itparam   Pointer to parameters for iterative solvers
-     * \param amgparam  Pointer to parameters for AMG solvers
-     * \param A_diag    Digonal blocks of A
-     *
-     * \return          Iteration number if converges; ERROR otherwise.
-     *
-     * \author Xiaozhe Hu
-     * \date   02/25/2014
-     *
-     * \note Xiaozhe: this is a special solver only for time dependent Maxwell problem invloving
-     *       magnetic filed B, electrical field E, and pressure p
-     *
-     * \note Xiaozhe: A = [A_BB  A_BE  A_Bp
-     *                     A_EB  A_EE  A_Ep
-     *                     A_pB  A_pE  A_pp]
-     */
-    
+{    
     const SHORT prtlvl = itparam->linear_print_level;
     const SHORT precond_type = itparam->linear_precond_type;
     

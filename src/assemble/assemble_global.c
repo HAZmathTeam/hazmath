@@ -15,39 +15,39 @@
 
 // Full Assembly Routines
 /******************************************************************************************************/
+/*!
+ * \fn assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),void (*coeff)(REAL *,REAL *,REAL),REAL time)
+ *
+ * \brief Computes the global stiffness matrix and rhs for any a(u,v) = <f,v> bilinear form using various element
+ *        types (eg. P0, P1, P2, Nedelec, and Raviart-Thomas).
+ *        DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
+ *        This allows for several matrices to be assembled then added or concatenated together.
+ *
+ *        For this problem we compute:
+ *
+ *        Lu = f  ---->   a(u,v) = <f,v>
+ *
+ *        which gives Ax = b,
+ *
+ *        A_ij = a( phi_j, phi_i)
+ *        b_i  = <f,phi_i>
+ *
+ * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
+ *
+ * \param local_assembly Routine to get local matrices
+ * \param FE             FE Space
+ * \param mesh           Mesh Data
+ * \param cq             Quadrature Nodes
+ * \param rhs            Routine to get RHS function (NULL if only assembling matrix)
+ * \param coeff          Function that gives coefficient (for now assume constant)
+ * \param time           Physical Time if time dependent
+ *
+ * \return A              Global stiffness CSR matrix
+ * \return b              Global RHS vector
+ *
+ */
 void assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),void (*coeff)(REAL *,REAL *,REAL),REAL time)
 {
-  /*!
-   * \fn assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),void (*coeff)(REAL *,REAL *,REAL),REAL time)
-   *
-   * \brief Computes the global stiffness matrix and rhs for any a(u,v) = <f,v> bilinear form using various element
-   *        types (eg. P0, P1, P2, Nedelec, and Raviart-Thomas).
-   *        DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
-   *        This allows for several matrices to be assembled then added or concatenated together.
-   *
-   *        For this problem we compute:
-   *
-   *        Lu = f  ---->   a(u,v) = <f,v>
-   *
-   *        which gives Ax = b,
-   *
-   *        A_ij = a( phi_j, phi_i)
-   *        b_i  = <f,phi_i>
-   *
-   * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
-   *
-   * \param local_assembly Routine to get local matrices
-   * \param FE             FE Space
-   * \param mesh           Mesh Data
-   * \param cq             Quadrature Nodes
-   * \param rhs            Routine to get RHS function (NULL if only assembling matrix)
-   * \param coeff          Function that gives coefficient (for now assume constant)
-   * \param time           Physical Time if time dependent
-   *
-   * \return A              Global stiffness CSR matrix
-   * \return b              Global RHS vector
-   *
-   */
 
   INT dof_per_elm = FE->dof_per_elm;
   INT v_per_elm = mesh->v_per_elm;
@@ -123,42 +123,41 @@ void assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace
 /******************************************************************************************************/
 
 /******************************************************************************************************/
+/*!
+ * \fn assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),void (*bc)(REAL *,REAL *,REAL),void (*coeff)(REAL *,REAL *,REAL),REAL time)
+ *
+ * \brief Computes the global stiffness matrix and rhs for any a(u,v) = <f,v> bilinear form using various element
+ *        types (eg. P0, P1, P2, Nedelec, and Raviart-Thomas).
+ *        Also takes care of Dirichlet boundary conditions.  If the node is a boundary the row will be
+ *        zeroed out except for the diagonal entry being 1.  The corresponding column will also be 0 and
+ *        the right-hand side adjusted.
+ *
+ *        For this problem we compute:
+ *
+ *        Lu = f  ---->   a(u,v) = <f,v>
+ *
+ *        which gives Ax = b,
+ *
+ *        A_ij = a( phi_j, phi_i)
+ *        b_i  = <f,phi_i>
+ *
+ * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
+ *
+ * \param local_assembly Routine to get local matrices
+ * \param FE             FE Space
+ * \param mesh           Mesh Data
+ * \param cq             Quadrature Nodes
+ * \param rhs            Routine to get RHS function (NULL if only assembling matrix)
+ * \param bc             Routine to get boundary condition function (NULL if only assembling matrix)
+ * \param coeff          Function that gives coefficient (for now assume constant)
+ * \param time           Physical Time if time dependent
+ *
+ * \return A              Global stiffness CSR matrix
+ * \return b              Global RHS vector
+ *
+ */
 void assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),void (*bc)(REAL *,REAL *,REAL),void (*coeff)(REAL *,REAL *,REAL),REAL time) 
 {
-  /*!
-   * \fn assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),void (*bc)(REAL *,REAL *,REAL),void (*coeff)(REAL *,REAL *,REAL),REAL time)
-   *
-   * \brief Computes the global stiffness matrix and rhs for any a(u,v) = <f,v> bilinear form using various element
-   *        types (eg. P0, P1, P2, Nedelec, and Raviart-Thomas).
-   *        Also takes care of Dirichlet boundary conditions.  If the node is a boundary the row will be
-   *        zeroed out except for the diagonal entry being 1.  The corresponding column will also be 0 and
-   *        the right-hand side adjusted.
-   *
-   *        For this problem we compute:
-   *
-   *        Lu = f  ---->   a(u,v) = <f,v>
-   *
-   *        which gives Ax = b,
-   *
-   *        A_ij = a( phi_j, phi_i)
-   *        b_i  = <f,phi_i>
-   *
-   * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
-   *
-   * \param local_assembly Routine to get local matrices
-   * \param FE             FE Space
-   * \param mesh           Mesh Data
-   * \param cq             Quadrature Nodes
-   * \param rhs            Routine to get RHS function (NULL if only assembling matrix)
-   * \param bc             Routine to get boundary condition function (NULL if only assembling matrix)
-   * \param coeff          Function that gives coefficient (for now assume constant)
-   * \param time           Physical Time if time dependent
-   *
-   * \return A              Global stiffness CSR matrix
-   * \return b              Global RHS vector
-   *
-   */
-
   INT dof_per_elm = FE->dof_per_elm;
   INT v_per_elm = mesh->v_per_elm;
   INT i,j;
@@ -242,42 +241,42 @@ void assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
 /******************************************************************************************************/
 
 /******************************************************************************************************/
+/*!
+ * \fn assemble_global_FE1FE2(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE1, fespace *FE2, trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),void (*coeff)(REAL *,REAL *,REAL),REAL time)
+ *
+ * \brief Computes the global stiffness matrix and rhs for any a(u,v) = <f,v> bilinear form using various element
+ *        types (eg. P0, P1, P2, Nedelec, and Raviart-Thomas).
+ *        Here we can assume u and v come from different FE spaces
+ *        DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
+ *        This allows for several matrices to be assembled then added or concatenated together.
+ *
+ *        For this problem we compute:
+ *
+ *        Lu = f  ---->   a(u,v) = <f,v>
+ *
+ *        which gives Ax = b,
+ *
+ *        A_ij = a( phi_j, psi_i)
+ *        b_i  = <f,psi_i>
+ *
+ * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
+ *
+ * \param local_assembly Routine to get local matrices
+ * \param FE1 	       Finite-Element Space Struct for trial functions (u)
+ * \param FE2            Finite-Element Space Struct for test functions (v)
+ * \param mesh           Mesh Data
+ * \param cq             Quadrature Nodes
+ * \param rhs            Routine to get RHS function (NULL if only assembling matrix)
+ * \param coeff          Function that gives coefficient (for now assume constant)
+ * \param time           Physical Time if time dependent
+ *
+ * \return A              Global stiffness CSR matrix
+ * \return b              Global RHS vector
+ *
+ */
+
 void assemble_global_FE1FE2(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE1, fespace *FE2, trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),void (*coeff)(REAL *,REAL *,REAL),REAL time) 
 {
-  /*!
-   * \fn assemble_global_FE1FE2(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE1, fespace *FE2, trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),void (*coeff)(REAL *,REAL *,REAL),REAL time)
-   *
-   * \brief Computes the global stiffness matrix and rhs for any a(u,v) = <f,v> bilinear form using various element
-   *        types (eg. P0, P1, P2, Nedelec, and Raviart-Thomas).
-   *        Here we can assume u and v come from different FE spaces
-   *        DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
-   *        This allows for several matrices to be assembled then added or concatenated together.
-   *
-   *        For this problem we compute:
-   *
-   *        Lu = f  ---->   a(u,v) = <f,v>
-   *
-   *        which gives Ax = b,
-   *
-   *        A_ij = a( phi_j, psi_i)
-   *        b_i  = <f,psi_i>
-   *
-   * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
-   *
-   * \param local_assembly Routine to get local matrices
-   * \param FE1 	       Finite-Element Space Struct for trial functions (u)
-   * \param FE2            Finite-Element Space Struct for test functions (v)
-   * \param mesh           Mesh Data
-   * \param cq             Quadrature Nodes
-   * \param rhs            Routine to get RHS function (NULL if only assembling matrix)
-   * \param coeff          Function that gives coefficient (for now assume constant)
-   * \param time           Physical Time if time dependent
-   *
-   * \return A              Global stiffness CSR matrix
-   * \return b              Global RHS vector
-   *
-   */
-
   INT dof_per_elm1 = FE1->dof_per_elm;
   INT dof_per_elm2 = FE2->dof_per_elm;
   INT v_per_elm = mesh->v_per_elm;
@@ -359,42 +358,41 @@ void assemble_global_FE1FE2(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
 /******************************************************************************************************/
 
 /******************************************************************************************************/
+/*!
+ * \fn assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,REAL),void (*local_rhs_assembly)(REAL *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+ *
+ * \brief Computes the global stiffness BLOCK matrix and rhs for any a(u,v) = <f,v> bilinear form using various element
+ *        types (eg. P0, P1, P2, Nedelec, and Raviart-Thomas).
+ *        DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
+ *        This allows for several matrices to be assembled then added or concatenated together.
+ *
+ *        For this problem we compute:
+ *
+ *        Lu = f  ---->   a(u,v) = <f,v>
+ *
+ *        which gives Ax = b,
+ *
+ *        A_ij = a( phi_j, psi_i)
+ *        b_i  = <f,psi_i>
+ *
+ * \note All matrices are assumed to be blocks and indexed at 1 in the CSR formatting.
+ *
+ * \param local_assembly     Routine to get local matrices
+ * \param local_rhs_assembly Routine to get local rhs vectors
+ * \param FE                 block FE Space
+ * \param mesh               Mesh Data
+ * \param cq                 Quadrature Nodes
+ * \param rhs                Routine to get RHS function (NULL if only assembling matrix)
+ * \param bc                 Routine to get boundary condition function (NULL if only assembling matrix)
+ * \param coeff              Function that gives coefficient (for now assume constant)
+ * \param time               Physical Time if time dependent
+ *
+ * \return A                 Global stiffness BLOCK CSR matrix
+ * \return b                 Global RHS vector
+ *
+ */
 void assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,REAL),void (*local_rhs_assembly)(REAL *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time)
 {
-  /*!
-   * \fn assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,REAL),void (*local_rhs_assembly)(REAL *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time)
-   *
-   * \brief Computes the global stiffness BLOCK matrix and rhs for any a(u,v) = <f,v> bilinear form using various element
-   *        types (eg. P0, P1, P2, Nedelec, and Raviart-Thomas).
-   *        DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
-   *        This allows for several matrices to be assembled then added or concatenated together.
-   *
-   *        For this problem we compute:
-   *
-   *        Lu = f  ---->   a(u,v) = <f,v>
-   *
-   *        which gives Ax = b,
-   *
-   *        A_ij = a( phi_j, psi_i)
-   *        b_i  = <f,psi_i>
-   *
-   * \note All matrices are assumed to be blocks and indexed at 1 in the CSR formatting.
-   *
-   * \param local_assembly     Routine to get local matrices
-   * \param local_rhs_assembly Routine to get local rhs vectors
-   * \param FE                 block FE Space
-   * \param mesh               Mesh Data
-   * \param cq                 Quadrature Nodes
-   * \param rhs                Routine to get RHS function (NULL if only assembling matrix)
-   * \param bc                 Routine to get boundary condition function (NULL if only assembling matrix)
-   * \param coeff              Function that gives coefficient (for now assume constant)
-   * \param time               Physical Time if time dependent
-   *
-   * \return A                 Global stiffness BLOCK CSR matrix
-   * \return b                 Global RHS vector
-   *
-   */
-
   INT dof_per_elm = 0;
   INT v_per_elm = mesh->v_per_elm;
   INT i,j,k,testdof,trialdof;
@@ -503,45 +501,44 @@ void assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(RE
 /******************************************************************************************************/
 
 /******************************************************************************************************/
+/*!
+ * \fn assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void (*local_assembly)(REAL *,dvector *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,REAL),void (*local_rhs_assembly)(REAL *,dvector *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+ *
+ * \brief Computes the global stiffness BLOCK matrix and rhs for any a(u,v) = <f,v> bilinear form using various element
+ *        types (eg. P0, P1, P2, Nedelec, and Raviart-Thomas).
+ *        Here we assume a system and thus a block FE space and that this is from
+ *        the assembly of a nonlinear problem (computing the Jacobian).
+ *        If it is a linear system, just add NULL for old_sol.
+ *        DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
+ *        This allows for several matrices to be assembled then added or concatenated together.
+ *
+ *        For this problem we compute:
+ *
+ *        Lu = f  ---->   a(u,v) = <f,v>
+ *
+ *        which gives Ax = b,
+ *
+ *        A_ij = a( phi_j, psi_i)
+ *        b_i  = <f,psi_i>
+ *
+ * \note All matrices are assumed to be blocks and indexed at 1 in the CSR formatting.
+ *
+ * \param old_sol            FE approximation of previous nonlinear solution
+ * \param local_assembly     Routine to get local matrices
+ * \param local_rhs_assembly Routine to get local rhs vectors
+ * \param FE                 block FE Space
+ * \param mesh               Mesh Data
+ * \param cq                 Quadrature Nodes
+ * \param rhs                Routine to get RHS function (NULL if only assembling matrix)
+ * \param coeff              Function that gives coefficient (for now assume constant)
+ * \param time               Physical Time if time dependent
+ *
+ * \return A                 Global stiffness BLOCK CSR matrix (Jacobian)
+ * \return b                 Global RHS vector (Nonlinear residual)
+ *
+ */
 void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void (*local_assembly)(REAL *,dvector *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,REAL),void (*local_rhs_assembly)(REAL *,dvector *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time) 
 {
-  /*!
-   * \fn assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void (*local_assembly)(REAL *,dvector *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,REAL),void (*local_rhs_assembly)(REAL *,dvector *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time)
-   *
-   * \brief Computes the global stiffness BLOCK matrix and rhs for any a(u,v) = <f,v> bilinear form using various element
-   *        types (eg. P0, P1, P2, Nedelec, and Raviart-Thomas).
-   *        Here we assume a system and thus a block FE space and that this is from
-   *        the assembly of a nonlinear problem (computing the Jacobian).
-   *        If it is a linear system, just add NULL for old_sol.
-   *        DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
-   *        This allows for several matrices to be assembled then added or concatenated together.
-   *
-   *        For this problem we compute:
-   *
-   *        Lu = f  ---->   a(u,v) = <f,v>
-   *
-   *        which gives Ax = b,
-   *
-   *        A_ij = a( phi_j, psi_i)
-   *        b_i  = <f,psi_i>
-   *
-   * \note All matrices are assumed to be blocks and indexed at 1 in the CSR formatting.
-   *
-   * \param old_sol            FE approximation of previous nonlinear solution
-   * \param local_assembly     Routine to get local matrices
-   * \param local_rhs_assembly Routine to get local rhs vectors
-   * \param FE                 block FE Space
-   * \param mesh               Mesh Data
-   * \param cq                 Quadrature Nodes
-   * \param rhs                Routine to get RHS function (NULL if only assembling matrix)
-   * \param coeff              Function that gives coefficient (for now assume constant)
-   * \param time               Physical Time if time dependent
-   *
-   * \return A                 Global stiffness BLOCK CSR matrix (Jacobian)
-   * \return b                 Global RHS vector (Nonlinear residual)
-   *
-   */
-
   INT dof_per_elm = 0;
   INT v_per_elm = mesh->v_per_elm;
   INT i,j,k,testdof,trialdof;
@@ -651,35 +648,34 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
 
 // Assembles Global RHS vectors (if needed separately)
 /******************************************************************************************************/
+/*!
+ * \fn assemble_global_RHS(dvector *b,fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+ *
+ * \brief Computes the global rhs for any a(u,v) = <f,v> bilinear form using various element types
+ *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
+ *        DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
+ *
+ *        For this problem we compute RHS of:
+ *
+ *        Lu = f  ---->   a(u,v) = <f,v>
+ *
+ *        which gives Ax = b,
+ *
+ *        b_i  = <f,phi_i>
+ *
+ * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
+ *
+ * \param FE             FE Space
+ * \param mesh           Mesh Data
+ * \param cq             Quadrature Nodes
+ * \param rhs            Routine to get RHS function (NULL if only assembling matrix)
+ * \param time           Physical Time if time dependent
+ *
+ * \return b             Global RHS vector
+ *
+ */
 void assemble_global_RHS(dvector *b,fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time) 
 {
-  /*!
-   * \fn assemble_global_RHS(dvector *b,fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time)
-   *
-   * \brief Computes the global rhs for any a(u,v) = <f,v> bilinear form using various element types
-   *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
-   *        DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
-   *
-   *        For this problem we compute RHS of:
-   *
-   *        Lu = f  ---->   a(u,v) = <f,v>
-   *
-   *        which gives Ax = b,
-   *
-   *        b_i  = <f,phi_i>
-   *
-   * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
-   *
-   * \param FE             FE Space
-   * \param mesh           Mesh Data
-   * \param cq             Quadrature Nodes
-   * \param rhs            Routine to get RHS function (NULL if only assembling matrix)
-   * \param time           Physical Time if time dependent
-   *
-   * \return b             Global RHS vector
-   *
-   */
-
   INT dof_per_elm = FE->dof_per_elm;
   INT v_per_elm = mesh->v_per_elm;
   INT i,j,row;
@@ -728,37 +724,36 @@ void assemble_global_RHS(dvector *b,fespace *FE,trimesh *mesh,qcoordinates *cq,v
 /******************************************************************************************************/
 
 /******************************************************************************************************/
+/*!
+ * \fn assemble_global_RHS(dvector *b,fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+ *
+ * \brief Computes the global rhs for any a(u,v) = <f,v> bilinear form using various element types
+ *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
+ *        Here we assume a system and thus a block FE space.
+ *        DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
+ *
+ *        For this problem we compute RHS of:
+ *
+ *        Lu = f  ---->   a(u,v) = <f,v>
+ *
+ *        which gives Ax = b,
+ *
+ *        b_i  = <f,phi_i>
+ *
+ * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
+ *
+ * \param local_rhs_assembly  Routine to assemble local RHS
+ * \param FE                  block FE Space
+ * \param mesh                Mesh Data
+ * \param cq                  Quadrature Nodes
+ * \param rhs                 Routine to get RHS function (NULL if only assembling matrix)
+ * \param time                Physical Time if time dependent
+ *
+ * \return b             Global RHS vector
+ *
+ */
 void assemble_global_RHS_block(dvector *b,void (*local_rhs_assembly)(REAL *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time)
 {
-  /*!
-   * \fn assemble_global_RHS(dvector *b,fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time)
-   *
-   * \brief Computes the global rhs for any a(u,v) = <f,v> bilinear form using various element types
-   *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
-   *        Here we assume a system and thus a block FE space.
-   *        DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
-   *
-   *        For this problem we compute RHS of:
-   *
-   *        Lu = f  ---->   a(u,v) = <f,v>
-   *
-   *        which gives Ax = b,
-   *
-   *        b_i  = <f,phi_i>
-   *
-   * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
-   *
-   * \param local_rhs_assembly  Routine to assemble local RHS
-   * \param FE                  block FE Space
-   * \param mesh                Mesh Data
-   * \param cq                  Quadrature Nodes
-   * \param rhs                 Routine to get RHS function (NULL if only assembling matrix)
-   * \param time                Physical Time if time dependent
-   *
-   * \return b             Global RHS vector
-   *
-   */
-
   INT dof_per_elm = 0;
   INT v_per_elm = mesh->v_per_elm;
   INT i,j,k,row;
@@ -833,39 +828,38 @@ void assemble_global_RHS_block(dvector *b,void (*local_rhs_assembly)(REAL *,bloc
 /******************************************************************************************************/
 
 /******************************************************************************************************/
+/*!
+ * \fn assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_assembly)(REAL *,dvector *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+ *
+ * \brief Computes the global rhs for any a(u,v) = <f,v> bilinear form using various element types
+ *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
+ *        Here we assume a system and thus a block FE space and that this is from
+ *        the assembly of a nonlinear problem (computing the Jacobian).
+ *        If it is a linear system, just add NULL for old_sol.
+ *        DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
+ *
+ *        For this problem we compute RHS of:
+ *
+ *        Lu = f  ---->   a(u,v) = <f,v>
+ *
+ *        which gives Ax = b,
+ *
+ *        b_i  = <f,phi_i>
+ *
+ * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
+ * \param old_sol             FEM solution at previous Newton Step
+ * \param local_rhs_assembly  Routine to assemble local RHS
+ * \param FE                  block FE Space
+ * \param mesh                Mesh Data
+ * \param cq                  Quadrature Nodes
+ * \param rhs                 Routine to get RHS function (NULL if only assembling matrix)
+ * \param time                Physical Time if time dependent
+ *
+ * \return b                  Global RHS vector
+ *
+ */
 void assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_assembly)(REAL *,dvector *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time) 
 {
-  /*!
-   * \fn assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_assembly)(REAL *,dvector *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time)
-   *
-   * \brief Computes the global rhs for any a(u,v) = <f,v> bilinear form using various element types
-   *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
-   *        Here we assume a system and thus a block FE space and that this is from
-   *        the assembly of a nonlinear problem (computing the Jacobian).
-   *        If it is a linear system, just add NULL for old_sol.
-   *        DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
-   *
-   *        For this problem we compute RHS of:
-   *
-   *        Lu = f  ---->   a(u,v) = <f,v>
-   *
-   *        which gives Ax = b,
-   *
-   *        b_i  = <f,phi_i>
-   *
-   * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
-   * \param old_sol             FEM solution at previous Newton Step
-   * \param local_rhs_assembly  Routine to assemble local RHS
-   * \param FE                  block FE Space
-   * \param mesh                Mesh Data
-   * \param cq                  Quadrature Nodes
-   * \param rhs                 Routine to get RHS function (NULL if only assembling matrix)
-   * \param time                Physical Time if time dependent
-   *
-   * \return b                  Global RHS vector
-   *
-   */
-
   INT dof_per_elm = 0;
   INT v_per_elm = mesh->v_per_elm;
   INT i,j,k,row;
@@ -941,44 +935,43 @@ void assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_a
 
 // Assembly over Faces/Boundaries
 /******************************************************************************************************/
+/*!
+ * \fn assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*coeff)(REAL *,REAL *,REAL),void (*rhs)(REAL *,REAL *, REAL),REAL time,INT flag)
+ *
+ * \brief Computes the global stiffness matrix for any "boundary" bilinear form using various element types
+ *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
+ *        This does integration over a surface or boundary (i.e., faces of your domain: faces in 3D, edges in 2D)
+ *        a(u,v)_i, where i denotes a set of faces (or edges) with in a boundary region marked with flag
+ *        DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
+ *        This allows for several matrices to be assembled then added or concatenated together.
+ *
+ *        For this problem we compute:
+ *
+ *        Lu = f  ---->   a(u,v)_bdry = <f,v>_bdry
+ *
+ *        which gives Ax = b,
+ *
+ *        A_ij = a( phi_j, phi_i)_bdry
+ *
+ * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
+ *
+ * \param old_sol                 FE approximation of previous solution if needed
+ * \param local_assembly_face     Routine to get local matrices over each face
+ * \param local_rhs_assembly_face Routine to get local rhs vectors over each face
+ * \param FE                      FE Space
+ * \param mesh                    Mesh Data
+ * \param cq                      Quadrature Nodes
+ * \param rhs                     Routine to get RHS function (NULL if only assembling matrix)
+ * \param coeff                   Function that gives coefficient (for now assume constant)
+ * \param time                    Physical Time if time dependent
+ * \param flag                    Marker for which faces are included in boundary integration
+ *
+ * \return A                      Global stiffness CSR matrix
+ * \return b                      Global RHS vector
+ *
+ */
 void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*coeff)(REAL *,REAL *,REAL),void (*rhs)(REAL *,REAL *, REAL),REAL time,INT flag) 
 {
-  /*!
-   * \fn assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*coeff)(REAL *,REAL *,REAL),void (*rhs)(REAL *,REAL *, REAL),REAL time,INT flag)
-   *
-   * \brief Computes the global stiffness matrix for any "boundary" bilinear form using various element types
-   *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
-   *        This does integration over a surface or boundary (i.e., faces of your domain: faces in 3D, edges in 2D)
-   *        a(u,v)_i, where i denotes a set of faces (or edges) with in a boundary region marked with flag
-   *        DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
-   *        This allows for several matrices to be assembled then added or concatenated together.
-   *
-   *        For this problem we compute:
-   *
-   *        Lu = f  ---->   a(u,v)_bdry = <f,v>_bdry
-   *
-   *        which gives Ax = b,
-   *
-   *        A_ij = a( phi_j, phi_i)_bdry
-   *
-   * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
-   *
-   * \param old_sol                 FE approximation of previous solution if needed
-   * \param local_assembly_face     Routine to get local matrices over each face
-   * \param local_rhs_assembly_face Routine to get local rhs vectors over each face
-   * \param FE                      FE Space
-   * \param mesh                    Mesh Data
-   * \param cq                      Quadrature Nodes
-   * \param rhs                     Routine to get RHS function (NULL if only assembling matrix)
-   * \param coeff                   Function that gives coefficient (for now assume constant)
-   * \param time                    Physical Time if time dependent
-   * \param flag                    Marker for which faces are included in boundary integration
-   *
-   * \return A                      Global stiffness CSR matrix
-   * \return b                      Global RHS vector
-   *
-   */
-
   INT dof_per_elm = FE->dof_per_elm;
   INT v_per_elm = mesh->v_per_elm;
   INT dof_per_face = 0;
@@ -1088,43 +1081,42 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
 /******************************************************************************************************/
 
 /******************************************************************************************************/
+/*!
+ * \fn void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *, REAL),REAL time,INT flag)
+ *
+ * \brief Computes the RHS for any "boundary" bilinear form using various element types
+ *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
+ *        This does integration over a surface or boundary (i.e., faces of your domain: faces in 3D, edges in 2D)
+ *        a(u,v)_i, where i denotes a set of faces (or edges) with in a boundary region marked with flag
+ *        DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
+ *        This allows for several matrices to be assembled then added or concatenated together.
+ *
+ *        For this problem we compute RHS of:
+ *
+ *        Lu = f  ---->   a(u,v)_bdry = <f,v>_bdry
+ *
+ *        which gives Ax = b,
+ *
+ * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
+ * \note Assumes different type of integral for different Element type:
+*       PX -> <f,v>_bdry
+*       Ned -> <f,nxv>_bdry
+*       RT  -> <f,n*v>_bdry
+ *
+ * \param old_sol                 FE approximation of previous solution if needed
+ * \param local_rhs_assembly_face Routine to get local rhs vectors over each face
+ * \param FE                      FE Space
+ * \param mesh                    Mesh Data
+ * \param cq                      Quadrature Nodes
+ * \param rhs                     Routine to get RHS function (NULL if only assembling matrix)
+ * \param time                    Physical Time if time dependent
+ * \param flag                    Marker for which faces are included in boundary integration
+ *
+ * \return b                      Global RHS vector
+ *
+ */
 void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *, REAL),REAL time,INT flag)
 {
-  /*!
-   * \fn void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *, REAL),REAL time,INT flag)
-   *
-   * \brief Computes the RHS for any "boundary" bilinear form using various element types
-   *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
-   *        This does integration over a surface or boundary (i.e., faces of your domain: faces in 3D, edges in 2D)
-   *        a(u,v)_i, where i denotes a set of faces (or edges) with in a boundary region marked with flag
-   *        DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
-   *        This allows for several matrices to be assembled then added or concatenated together.
-   *
-   *        For this problem we compute RHS of:
-   *
-   *        Lu = f  ---->   a(u,v)_bdry = <f,v>_bdry
-   *
-   *        which gives Ax = b,
-   *
-   * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
-   * \note Assumes different type of integral for different Element type:
-  *       PX -> <f,v>_bdry
-  *       Ned -> <f,nxv>_bdry
-  *       RT  -> <f,n*v>_bdry
-   *
-   * \param old_sol                 FE approximation of previous solution if needed
-   * \param local_rhs_assembly_face Routine to get local rhs vectors over each face
-   * \param FE                      FE Space
-   * \param mesh                    Mesh Data
-   * \param cq                      Quadrature Nodes
-   * \param rhs                     Routine to get RHS function (NULL if only assembling matrix)
-   * \param time                    Physical Time if time dependent
-   * \param flag                    Marker for which faces are included in boundary integration
-   *
-   * \return b                      Global RHS vector
-   *
-   */
-
   INT dof_per_elm = FE->dof_per_elm;
   INT v_per_elm = mesh->v_per_elm;
   INT dof_per_face = 0;
@@ -1208,26 +1200,25 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
 /******************************************************************************************************/
 
 /******************************************************************************************************/
+/*!
+ * \fn assemble_global_Ned_GradH1_RHS(dvector *b,fespace *FE_H1,fespace *FE_Ned,trimesh *mesh,qcoordinates *cq,dvector* u)
+ *
+ * \brief Computes the global rhs for any <u,grad v>, where u is a Nedelec FE function and v is in P1
+ *        DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
+ *
+ * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
+ *
+ * \param FE_H1                   H1 FE Space for P1
+ * \param FE_Ned                  H(curl) FE Space for Nedelec
+ * \param mesh                    Mesh Data
+ * \param cq                      Quadrature Nodes
+ * \param u                       Nedelec function for RHS
+ *
+ * \return b                      Global RHS vector
+ *
+ */
 void assemble_global_Ned_GradH1_RHS(dvector *b,fespace *FE_H1,fespace *FE_Ned,trimesh *mesh,qcoordinates *cq,dvector* u) 
 {
-  /*!
-   * \fn assemble_global_Ned_GradH1_RHS(dvector *b,fespace *FE_H1,fespace *FE_Ned,trimesh *mesh,qcoordinates *cq,dvector* u)
-   *
-   * \brief Computes the global rhs for any <u,grad v>, where u is a Nedelec FE function and v is in P1
-   *        DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
-   *
-   * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
-   *
-   * \param FE_H1                   H1 FE Space for P1
-   * \param FE_Ned                  H(curl) FE Space for Nedelec
-   * \param mesh                    Mesh Data
-   * \param cq                      Quadrature Nodes
-   * \param u                       Nedelec function for RHS
-   *
-   * \return b                      Global RHS vector
-   *
-   */
-
   INT ed_per_elm = FE_Ned->dof_per_elm;
   INT v_per_elm = mesh->v_per_elm;
   INT i,j,row;

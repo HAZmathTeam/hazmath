@@ -5,6 +5,7 @@
 #
 # Modified   2015-08-08   --ltz
 # 	     2017-03-05   --ltz
+#	     2017-03-10   — XHu
 #
 ############################################################
 cmake_minimum_required (VERSION 2.8)
@@ -27,7 +28,6 @@ include(CheckIncludeFile)
 set(CMAKE_VERBOSE_MAKEFILE 1) 
 set(GDB 1 CACHE BOOL "debugging or not")
 set(OPENMP 0 CACHE BOOL "Openmp use")
-set(USE_MUMPS 0 CACHE BOOL "MUMPS use")
 
 # Search for C compilers in the specified order. That will determine the rest.
 if(DEFINED ENV{CC}) 
@@ -175,6 +175,48 @@ if (USE_SUITESPARSE)
       message("   WARNING: SUITESPARSE was requested but not supported!")
      endif(SUITESPARSE_FOUND)
 endif(USE_SUITESPARSE)
+
+##################################################################
+# For Doxygen
+##################################################################
+# target generating the HAZMATH documentation with doxygen
+if (USE_DOXYGEN)
+
+   find_package(Doxygen)
+
+   if(DOXYGEN_FOUND)
+      if(EXISTS ${HAZMATH_SOURCE_DIR}/haz_docs/hazmath.Doxygen.cnf.in)
+      configure_file(
+		${HAZMATH_SOURCE_DIR}/haz_docs/hazmath.Doxygen.cnf.in
+	       ${CMAKE_CURRENT_BINARY_DIR}/hazmath.Doxygen.cnf @ONLY
+		)
+        set(DOXY_EXEC "${DOXYGEN_EXECUTABLE}")
+
+        #if(DOXYWIZARD)
+        #  find_program(WIZARD doxywizard)
+        #  if(APPLE AND (NOT WIZARD) )
+        #    find_program(WIZARD 
+	 #      /Applications/Doxygen.app/Contents/MacOS/Doxywizard)
+        #   endif()
+        #  if(WIZARD)
+	 #      set(DOXY_EXEC "${WIZARD}")
+	 #   endif()
+        #endif(DOXYWIZARD)
+
+        add_custom_target(docs ${DOXY_EXEC}
+ 	       ${CMAKE_CURRENT_BINARY_DIR}/hazmath.Doxygen.cnf
+	       WORKING_DIRECTORY 
+	       "${CMAKE_CURRENT_BINARY_DIR}"
+	       COMMENT 
+	       "Generating HAZMATH documentation by Doxygen" 
+	       VERBATIM)
+      else(EXISTS ${HAZMATH_SOURCE_DIR}/haz_docs/hazmath.Doxygen.cnf.in)
+            message("   HAZMATH WARNING: Doxygen configuration file cannot be found!")
+      endif(EXISTS ${HAZMATH_SOURCE_DIR}/haz_docs/hazmath.Doxygen.cnf.in)
+   endif(DOXYGEN_FOUND)
+
+endif(USE_DOXYGEN)
+###############end documentation with doxygen
 
 #################################################################
 # For MATLAB: if want to use Matlab interface

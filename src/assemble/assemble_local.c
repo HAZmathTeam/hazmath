@@ -14,37 +14,36 @@
 #include "hazmath.h"
 
 /******************************************************************************************************/
+/*!
+ * \fn void assemble_DuDv_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
+ *
+ * \brief Computes the local stiffness matrix for coeff*<Du,Dv> = <f,v> bilinear form using various element types
+ *        (eg. P1, P2 -> (grad u, grad v), Nedelec <curl u, curl v>, and Raviart-Thomas <div u, div v>).
+ *
+ *        For this problem we compute:
+ *
+ *        coeff*D*D u = f  ---->   coeff*<D u, D v> = <f,v>
+ *
+ *        which gives Ax = b,
+ *
+ *        A_ij = coeff*<D phi_j,D phi_i>
+ *        b_i  = <f,phi_i>
+ *
+ * \param FE            FE Space
+ * \param mesh          Mesh Data
+ * \param cq            Quadrature Nodes
+ * \param dof_on_elm    Specific DOF on element
+ * \param elm           Current element
+ * \param coeff         Function that gives coefficient (for now assume constant)
+ * \param time          Physical Time if time dependent
+ *
+ * \return ALoc         Local Stiffness Matrix (Full Matrix)
+ *
+ * \note Assumes 2D or 3D only for Nedelec and Raviart-Thomas Elements
+ *
+ */
 void assemble_DuDv_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
 {
-  /*!
-   * \fn void assemble_DuDv_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
-   *
-   * \brief Computes the local stiffness matrix for coeff*<Du,Dv> = <f,v> bilinear form using various element types
-   *        (eg. P1, P2 -> (grad u, grad v), Nedelec <curl u, curl v>, and Raviart-Thomas <div u, div v>).
-   *
-   *        For this problem we compute:
-   *
-   *        coeff*D*D u = f  ---->   coeff*<D u, D v> = <f,v>
-   *
-   *        which gives Ax = b,
-   *
-   *        A_ij = coeff*<D phi_j,D phi_i>
-   *        b_i  = <f,phi_i>
-   *
-   * \param FE            FE Space
-   * \param mesh          Mesh Data
-   * \param cq            Quadrature Nodes
-   * \param dof_on_elm    Specific DOF on element
-   * \param elm           Current element
-   * \param coeff         Function that gives coefficient (for now assume constant)
-   * \param time          Physical Time if time dependent
-   *
-   * \return ALoc         Local Stiffness Matrix (Full Matrix)
-   *
-   * \note Assumes 2D or 3D only for Nedelec and Raviart-Thomas Elements
-   *
-   */
-
   INT dim = mesh->dim;
 
   // Loop Indices
@@ -125,37 +124,36 @@ void assemble_DuDv_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
 /******************************************************************************************************/
 
 /******************************************************************************************************/
+/*!
+ * \fn void assemble_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
+ *
+ * \brief Computes the local mass matrix for coeff*<u,v> = <f,v> bilinear form using various element types
+ *        (eg. P0, P1, P2, Nedelec, and Raviart-Thomas).
+ *
+ *        For this problem we compute:
+ *
+ *        coeff*u = f  ---->   coeff*<u,v> = <f,v>
+ *
+ *        which gives Mx = b,
+ *
+ *        M_ij = coeff*<phi_j,phi_i>
+ *        b_i  = <f,phi_i>
+ *
+ * \param FE            FE Space
+ * \param mesh          Mesh Data
+ * \param cq            Quadrature Nodes
+ * \param dof_on_elm    Specific DOF on element
+ * \param elm           Current element
+ * \param coeff         Function that gives coefficient (for now assume constant)
+ * \param time          Physical Time if time dependent
+ *
+ * \return MLoc         Local Mass Matrix (Full Matrix)
+ *
+ * \note Assumes 2D or 3D only for Nedelec and Raviart-Thomas Elements
+ *
+ */
 void assemble_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
 {
-  /*!
-   * \fn void assemble_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
-   *
-   * \brief Computes the local mass matrix for coeff*<u,v> = <f,v> bilinear form using various element types
-   *        (eg. P0, P1, P2, Nedelec, and Raviart-Thomas).
-   *
-   *        For this problem we compute:
-   *
-   *        coeff*u = f  ---->   coeff*<u,v> = <f,v>
-   *
-   *        which gives Mx = b,
-   *
-   *        M_ij = coeff*<phi_j,phi_i>
-   *        b_i  = <f,phi_i>
-   *
-   * \param FE            FE Space
-   * \param mesh          Mesh Data
-   * \param cq            Quadrature Nodes
-   * \param dof_on_elm    Specific DOF on element
-   * \param elm           Current element
-   * \param coeff         Function that gives coefficient (for now assume constant)
-   * \param time          Physical Time if time dependent
-   *
-   * \return MLoc         Local Mass Matrix (Full Matrix)
-   *
-   * \note Assumes 2D or 3D only for Nedelec and Raviart-Thomas Elements
-   *
-   */
-
   INT dim = mesh->dim;
 
   // Loop Indices
@@ -236,39 +234,38 @@ void assemble_mass_local(REAL* MLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,I
 /******************************************************************************************************/
 
 /******************************************************************************************************/
+/*!
+ * \fn void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
+ *
+ * \brief Computes the local stiffness matrix for coeff1*<Du,Dv> + coeff2*<u,v> = <f,v> bilinear form
+ *        using various element types
+ *        (eg. P1, P2 -> (grad u, grad v) + (u,v), Nedelec <curl u, curl v> + (u,v),
+ *        and Raviart-Thomas <div u, div v>) + (u,v).
+ *
+ *        For this problem we compute:
+ *
+ *        coeff1*D*D u +coeff2 u = f ----> coeff1*<D u, D v> + coeff2*<u,v>= <f,v>
+ *
+ *        which gives Ax = b,
+ *
+ *        A_ij = coeff[0]*<D phi_j,D phi_i> + coeff[1]*<phi_j,phi_i>
+ *        b_i  = <f,phi_i>
+ *
+ * \param FE            FE Space
+ * \param mesh          Mesh Data
+ * \param cq            Quadrature Nodes
+ * \param dof_on_elm    Specific DOF on element
+ * \param elm           Current element
+ * \param coeff         Function that gives coefficient (for now assume constant)
+ * \param time          Physical Time if time dependent
+ *
+ * \return ALoc         Local Stiffness Matrix (Full Matrix)
+ *
+ * \note Assumes 2D or 3D only for Nedelec and Raviart-Thomas Elements
+ *
+ */
 void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
 {
-  /*!
-   * \fn void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
-   *
-   * \brief Computes the local stiffness matrix for coeff1*<Du,Dv> + coeff2*<u,v> = <f,v> bilinear form
-   *        using various element types
-   *        (eg. P1, P2 -> (grad u, grad v) + (u,v), Nedelec <curl u, curl v> + (u,v),
-   *        and Raviart-Thomas <div u, div v>) + (u,v).
-   *
-   *        For this problem we compute:
-   *
-   *        coeff1*D*D u +coeff2 u = f ----> coeff1*<D u, D v> + coeff2*<u,v>= <f,v>
-   *
-   *        which gives Ax = b,
-   *
-   *        A_ij = coeff[0]*<D phi_j,D phi_i> + coeff[1]*<phi_j,phi_i>
-   *        b_i  = <f,phi_i>
-   *
-   * \param FE            FE Space
-   * \param mesh          Mesh Data
-   * \param cq            Quadrature Nodes
-   * \param dof_on_elm    Specific DOF on element
-   * \param elm           Current element
-   * \param coeff         Function that gives coefficient (for now assume constant)
-   * \param time          Physical Time if time dependent
-   *
-   * \return ALoc         Local Stiffness Matrix (Full Matrix)
-   *
-   * \note Assumes 2D or 3D only for Nedelec and Raviart-Thomas Elements
-   *
-   */
-
   INT dim = mesh->dim;
 
   // Error Check
@@ -398,36 +395,35 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinat
 
 /****** Boundary Assemblies *******************/
 /******************************************************************************************************/
+/*!
+ * \fn void boundary_mass_local(REAL* MLoc,dvector* old_sol,fespace *FE,trimesh *mesh,qcoordinates *cq, \
+                       INT *dof_on_f,INT *dof_on_elm,INT *v_on_elm,INT face,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
+ *
+ * \brief Computes the local weak formulation of the mass matrix on a boundary face (3D -> 2D surface; 2D -> 1D curve)
+ *         For this problem we compute the left-hand side of:
+ *
+ *         <u,v>_bdryobstacle    for all v
+ *
+ * \param FE            FE Space
+ * \param old_sol       Old solution on FE space (not used here).
+ * \param mesh          Mesh Data
+ * \param cq            Quadrature Nodes
+ * \param dof_on_f      Specific DOF on the given face
+ * \param dof_on_elm    Specific DOF on the given element
+ * \param v_on_elm      Specific vertices on the given element
+ * \param face          Current face
+ * \param elm           Current element
+ * \param coeff         Function that gives coefficient (for now assume constant)
+ * \param time          Physical Time if time dependent
+ *
+ * \return MLoc         Local Boundary Matrix (Full Matrix)
+ *
+ * \note                Assuming 2D and 3D only
+ *
+ */
 void boundary_mass_local(REAL* MLoc,dvector* old_sol,fespace *FE,trimesh *mesh,qcoordinates *cq, \
                          INT *dof_on_f,INT *dof_on_elm,INT *v_on_elm,INT face,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
 {
-  /*!
-   * \fn void boundary_mass_local(REAL* MLoc,dvector* old_sol,fespace *FE,trimesh *mesh,qcoordinates *cq, \
-                         INT *dof_on_f,INT *dof_on_elm,INT *v_on_elm,INT face,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
-   *
-   * \brief Computes the local weak formulation of the mass matrix on a boundary face (3D -> 2D surface; 2D -> 1D curve)
-   *         For this problem we compute the left-hand side of:
-   *
-   *         <u,v>_bdryobstacle    for all v
-   *
-   * \param FE            FE Space
-   * \param old_sol       Old solution on FE space (not used here).
-   * \param mesh          Mesh Data
-   * \param cq            Quadrature Nodes
-   * \param dof_on_f      Specific DOF on the given face
-   * \param dof_on_elm    Specific DOF on the given element
-   * \param v_on_elm      Specific vertices on the given element
-   * \param face          Current face
-   * \param elm           Current element
-   * \param coeff         Function that gives coefficient (for now assume constant)
-   * \param time          Physical Time if time dependent
-   *
-   * \return MLoc         Local Boundary Matrix (Full Matrix)
-   *
-   * \note                Assuming 2D and 3D only
-   *
-   */
-
   // Mesh and FE data
   INT dim = mesh->dim;
   INT dof_per_f = 0;
@@ -602,29 +598,28 @@ void boundary_mass_local(REAL* MLoc,dvector* old_sol,fespace *FE,trimesh *mesh,q
 /***** RHS Routines *********************************/
 
 /******************************************************************************************************/
+/*!
+ * \fn void FEM_RHS_Local(REAL* bLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+ *
+ * \brief Computes the local Right hand side vector for Galerkin Finite Elements
+ *        b_i  = <f,phi_i>
+ *
+ * \param FE            FE Space
+ * \param mesh          Mesh Data
+ * \param cq            Quadrature Nodes
+ * \param dof_on_elm    Specific DOF on element
+ * \param v_on_elm      Specific Vertices on element
+ * \param elm           Current element
+ * \param rhs           Function that gives RHS
+ * \param time          Physical Time if time dependent
+ *
+ * \return bLoc         Local RHS Vector
+ *
+ * \note Assumes 2D or 3D only for Nedelec and Raviart-Thomas Elements
+ *
+ */
 void FEM_RHS_Local(REAL* bLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL),REAL time)
 {
-  /*!
-   * \fn void FEM_RHS_Local(REAL* bLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL),REAL time)
-   *
-   * \brief Computes the local Right hand side vector for Galerkin Finite Elements
-   *        b_i  = <f,phi_i>
-   *
-   * \param FE            FE Space
-   * \param mesh          Mesh Data
-   * \param cq            Quadrature Nodes
-   * \param dof_on_elm    Specific DOF on element
-   * \param v_on_elm      Specific Vertices on element
-   * \param elm           Current element
-   * \param rhs           Function that gives RHS
-   * \param time          Physical Time if time dependent
-   *
-   * \return bLoc         Local RHS Vector
-   *
-   * \note Assumes 2D or 3D only for Nedelec and Raviart-Thomas Elements
-   *
-   */
-
   // Mesh and FE data
   INT dim = mesh->dim;
 
@@ -692,28 +687,27 @@ void FEM_RHS_Local(REAL* bLoc,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *do
 /******************************************************************************************************/
 
 /******************************************************************************************************/
+/*!
+ * \fn void FEM_RHS_Local(REAL* bLoc,block_fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+ *
+ * \brief Computes the local Right hand side vector for a block FEM system
+ *        b_i  = <f,phi_i>
+ *
+ * \param FE            Block FE Space
+ * \param mesh          Mesh Data
+ * \param cq            Quadrature Nodes
+ * \param dof_on_elm    Specific DOF on element
+ * \param v_on_elm      Specific Vertices on element
+ * \param elm           Current element
+ * \param rhs           Function that gives RHS (in FEM block ordering
+ * \param time          Physical Time if time dependent
+ *
+ * \return bLoc         Local RHS Vector
+ *
+ *
+ */
 void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL),REAL time)
 {
-  /*!
-   * \fn void FEM_RHS_Local(REAL* bLoc,block_fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL),REAL time)
-   *
-   * \brief Computes the local Right hand side vector for a block FEM system
-   *        b_i  = <f,phi_i>
-   *
-   * \param FE            Block FE Space
-   * \param mesh          Mesh Data
-   * \param cq            Quadrature Nodes
-   * \param dof_on_elm    Specific DOF on element
-   * \param v_on_elm      Specific Vertices on element
-   * \param elm           Current element
-   * \param rhs           Function that gives RHS (in FEM block ordering
-   * \param time          Physical Time if time dependent
-   *
-   * \return bLoc         Local RHS Vector
-   *
-   *
-   */
-
   // Loop Indices
   INT i,quad,test;
 
@@ -784,29 +778,28 @@ void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,trimesh *mesh,qcoordinates
 }
 
 /******************************************************************************************************/
+/*!
+ * \fn void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,trimesh *mesh,qcoordinates *cq,INT *ed_on_elm,INT *v_on_elm,INT elm,dvector* u)
+ *
+ * \brief Computes the local weak formulation of <E,grad(q)> where E is a given
+ *         Nedelec approximation and q in H_0^1 (linears)
+ *
+ * \param FE_H1         FE Space for H1 elements
+ * \param FE_Ned        FE Space for Nedelec elements
+ * \param mesh          Mesh Data
+ * \param cq            Quadrature Nodes
+ * \param ed_on_elm     Specific edges on the given element
+ * \param v_on_elm      Specific vertices on the given element
+ * \param elm           Current element
+ * \param u             FEM Function that gives coefficient
+ *
+ * \return bLoc         Local RHS vector (Full Matrix)
+ *
+ * \note                Assuming 2D and 3D only
+ *
+ */
 void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,trimesh *mesh,qcoordinates *cq,INT *ed_on_elm,INT *v_on_elm,INT elm,dvector* u)  
 {
-  /*!
-   * \fn void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,trimesh *mesh,qcoordinates *cq,INT *ed_on_elm,INT *v_on_elm,INT elm,dvector* u)
-   *
-   * \brief Computes the local weak formulation of <E,grad(q)> where E is a given
-   *         Nedelec approximation and q in H_0^1 (linears)
-   *
-   * \param FE_H1         FE Space for H1 elements
-   * \param FE_Ned        FE Space for Nedelec elements
-   * \param mesh          Mesh Data
-   * \param cq            Quadrature Nodes
-   * \param ed_on_elm     Specific edges on the given element
-   * \param v_on_elm      Specific vertices on the given element
-   * \param elm           Current element
-   * \param u             FEM Function that gives coefficient
-   *
-   * \return bLoc         Local RHS vector (Full Matrix)
-   *
-   * \note                Assuming 2D and 3D only
-   *
-   */
-
   // Mesh and FE data
   INT dim = mesh->dim;
   
@@ -849,46 +842,45 @@ void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,trimesh *mes
 
 /****** Boundary Assemblies *********************/
 /******************************************************************************************************/
+/*!
+* \fn void FEM_RHS_Local_face(REAL* bLoc,dvector* old_sol,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_f,INT *dof_on_elm,INT *v_on_elm,INT dof_per_face,INT face,INT elm,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+*
+* \brief Computes the local assembly of a RHS for any "boundary" bilinear form using various element types
+*        (eg. P1, P2, Nedelec, and Raviart-Thomas).
+*        This does integration over a surface or boundary (i.e., faces of your domain: faces in 3D, edges in 2D)
+*        a(u,v)_i, where i denotes a set of faces (or edges) with in a boundary region marked with flag
+*
+*
+*        For this problem we compute local RHS of:
+*
+*        Lu = f  ---->   a(u,v)_bdry = <f,v>_bdry
+*
+*        which gives Ax = b,
+*
+*        A_ij = a( phi_j, phi_i)_bdry
+*
+* \note All matrices are assumed to be indexed at 1 in the CSR formatting.
+* \note Assumes different type of integral for different Element type:
+*       Scalar -> <f,v>_bdry
+*       Vector -> <f,n*v>_bdry
+*
+* \param old_sol                 FE approximation of previous solution if needed
+* \param FE                      FE Space
+* \param mesh                    Mesh Data
+* \param dof_on_f                DOF on the given face
+* \param dof_on_elm              DOF on given element
+* \param v_on_elm                Vertices on given element
+* \param dof_per_f               # of DOF per face
+* \param face                    Given Face
+* \param elm                     Given Element
+* \param rhs                     Routine to get RHS function (NULL if only assembling matrix)
+* \param time                    Physical Time if time dependent
+*
+* \return bLoc                   Local RHS vector
+*
+*/
 void FEM_RHS_Local_face(REAL* bLoc,dvector* old_sol,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_f,INT *dof_on_elm,INT *v_on_elm,INT dof_per_face,INT face,INT elm,void (*rhs)(REAL *,REAL *,REAL),REAL time)
 {
-  /*!
-  * \fn void FEM_RHS_Local_face(REAL* bLoc,dvector* old_sol,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_f,INT *dof_on_elm,INT *v_on_elm,INT dof_per_face,INT face,INT elm,void (*rhs)(REAL *,REAL *,REAL),REAL time)
-  *
-  * \brief Computes the local assembly of a RHS for any "boundary" bilinear form using various element types
-  *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
-  *        This does integration over a surface or boundary (i.e., faces of your domain: faces in 3D, edges in 2D)
-  *        a(u,v)_i, where i denotes a set of faces (or edges) with in a boundary region marked with flag
-  *
-  *
-  *        For this problem we compute local RHS of:
-  *
-  *        Lu = f  ---->   a(u,v)_bdry = <f,v>_bdry
-  *
-  *        which gives Ax = b,
-  *
-  *        A_ij = a( phi_j, phi_i)_bdry
-  *
-  * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
-  * \note Assumes different type of integral for different Element type:
-  *       Scalar -> <f,v>_bdry
-  *       Vector -> <f,n*v>_bdry
-  *
-  * \param old_sol                 FE approximation of previous solution if needed
-  * \param FE                      FE Space
-  * \param mesh                    Mesh Data
-  * \param dof_on_f                DOF on the given face
-  * \param dof_on_elm              DOF on given element
-  * \param v_on_elm                Vertices on given element
-  * \param dof_per_f               # of DOF per face
-  * \param face                    Given Face
-  * \param elm                     Given Element
-  * \param rhs                     Routine to get RHS function (NULL if only assembling matrix)
-  * \param time                    Physical Time if time dependent
-  *
-  * \return bLoc                   Local RHS vector
-  *
-  */
-
   // Mesh and FE data
   INT dim = mesh->dim;
 
@@ -978,37 +970,36 @@ void FEM_RHS_Local_face(REAL* bLoc,dvector* old_sol,fespace *FE,trimesh *mesh,qc
 /****** Special Assemblies *********************/
 
 /******************************************************************************************************/
+/*!
+ * \fn void impedancebdry_local(REAL* ZLoc,dvector *old_sol,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *ed_on_f, \
+                       INT *ed_on_elm,INT *v_on_elm,INT face,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
+ *
+ * \brief Computes the local weak formulation of the Impedance boundary condition for Maxwell's Equations
+ *         Uses midpoint rule to integrate on edges of boundary face
+ *         For this problem we compute the left-hand side of:
+ *
+ *         <n x E,n x F>_bdryobstacle    for all F in H_imp(curl) (Nedelec)
+ *
+ * \param old_sol       Solution at previous step (not needed in this function)
+ * \param FE            FE Space
+ * \param mesh          Mesh Data
+ * \param cq            Quadrature Nodes
+ * \param ed_on_f       Specific edges on the given face
+ * \param ed_on_elm     Specific edges on the given element
+ * \param v_on_elm      Specific vertices on the given element
+ * \param face          Current face
+ * \param elm           Current element
+ * \param coeff         Function that gives coefficient (for now assume constant)
+ * \param time          Physical Time if time dependent
+ *
+ * \return ZLoc         Local Boundary Matrix (Full Matrix)
+ *
+ * \note                ASSUMING 3D ONLY
+ *
+ */
 void impedancebdry_local(REAL* ZLoc,dvector *old_sol,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *ed_on_f, \
                          INT *ed_on_elm,INT *v_on_elm,INT face,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
 {
-  /*!
-   * \fn void impedancebdry_local(REAL* ZLoc,dvector *old_sol,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *ed_on_f, \
-                         INT *ed_on_elm,INT *v_on_elm,INT face,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
-   *
-   * \brief Computes the local weak formulation of the Impedance boundary condition for Maxwell's Equations
-   *         Uses midpoint rule to integrate on edges of boundary face
-   *         For this problem we compute the left-hand side of:
-   *
-   *         <n x E,n x F>_bdryobstacle    for all F in H_imp(curl) (Nedelec)
-   *
-   * \param old_sol       Solution at previous step (not needed in this function)
-   * \param FE            FE Space
-   * \param mesh          Mesh Data
-   * \param cq            Quadrature Nodes
-   * \param ed_on_f       Specific edges on the given face
-   * \param ed_on_elm     Specific edges on the given element
-   * \param v_on_elm      Specific vertices on the given element
-   * \param face          Current face
-   * \param elm           Current element
-   * \param coeff         Function that gives coefficient (for now assume constant)
-   * \param time          Physical Time if time dependent
-   *
-   * \return ZLoc         Local Boundary Matrix (Full Matrix)
-   *
-   * \note                ASSUMING 3D ONLY
-   *
-   */
-
   // Mesh and FE data
   INT ed_per_elm = FE->dof_per_elm;
   INT dim = mesh->dim;

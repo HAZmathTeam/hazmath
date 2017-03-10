@@ -11,6 +11,28 @@
 #include "hazmath.h"
 
 /*************************************************************************************/
+/*!
+ * \fn void python_wrapper_krylov_amg(INT *n, INT *nnz, INT *ia, INT *ja, REAL *a,
+ *                                     REAL *b, REAL *u, REAL *tol, INT *maxit,
+ *                                     INT *ptrlvl)
+ *
+ * \brief Solve Ax=b by Krylov method preconditioned by AMG (this is an interface with PYTHON)
+ *
+ * \param n             Number of cols of A
+ * \param nnz           Number of nonzeros of A
+ * \param ia            IA of A in CSR format
+ * \param ja            JA of A in CSR format
+ * \param a             VAL of A in CSR format
+ * \param b             RHS vector
+ * \param u             Solution vector
+ * \param tol           Tolerance for iterative solvers
+ * \param maxit         Max number of iterations
+ * \param print_lvl     Print level for iterative solvers
+ *
+ * \author Xiaozhe Hu
+ * \date   09/02/2016
+ *
+ */
 void python_wrapper_krylov_amg(INT *n,
                                INT *nnz,
                                INT *ia,
@@ -22,29 +44,6 @@ void python_wrapper_krylov_amg(INT *n,
                                INT *maxit,
                                INT *print_lvl)
 {
-    /*!
-     * \fn void python_wrapper_krylov_amg(INT *n, INT *nnz, INT *ia, INT *ja, REAL *a,
-     *                                     REAL *b, REAL *u, REAL *tol, INT *maxit,
-     *                                     INT *ptrlvl)
-     *
-     * \brief Solve Ax=b by Krylov method preconditioned by AMG (this is an interface with PYTHON)
-     *
-     * \param n             Number of cols of A
-     * \param nnz           Number of nonzeros of A
-     * \param ia            IA of A in CSR format
-     * \param ja            JA of A in CSR format
-     * \param a             VAL of A in CSR format
-     * \param b             RHS vector
-     * \param u             Solution vector
-     * \param tol           Tolerance for iterative solvers
-     * \param maxit         Max number of iterations
-     * \param print_lvl     Print level for iterative solvers
-     *
-     * \author Xiaozhe Hu
-     * \date   09/02/2016
-     *
-     */
-    
     dCSRmat         mat;      // coefficient matrix
     dvector         rhs, sol; // right-hand-side, solution
     AMG_param       amgparam; // parameters for AMG

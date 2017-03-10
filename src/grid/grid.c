@@ -11,17 +11,16 @@
 #include "hazmath.h"
 
 /******************************************************************************/
+/*!
+ * \fn void initialize_mesh(trimesh* mesh)
+ *
+ * \brief Initializes all components of the structure trimesh.
+ *
+ * \return mesh     Struct for Mesh
+ *
+ */
 void initialize_mesh(trimesh* mesh) 
 {
-  /*!
-   * \fn void initialize_mesh(trimesh* mesh)
-   *
-   * \brief Initializes all components of the structure trimesh.
-   *
-   * \return mesh     Struct for Mesh
-   *
-   */
-
   mesh->dim = -666;
   mesh->nelm = -666;
   mesh->cv = NULL;
@@ -59,20 +58,19 @@ void initialize_mesh(trimesh* mesh)
 /******************************************************************************/
 
 /******************************************************************************/
+/*!
+ * \fn void creategrid_fread(FILE *gfid,INT file_type,trimesh* mesh)
+ *
+ * \brief Creates grid by reading in from file.
+ *
+ * \param gfid      Grid FILE ID
+ * \param file_type Type of File Input: 0 - haz format; 1 - vtk format
+ *
+ * \return mesh     Struct for Mesh
+ *
+ */
 void creategrid_fread(FILE *gfid,INT file_type,trimesh* mesh) 
 {
-  /*!
-   * \fn void creategrid_fread(FILE *gfid,INT file_type,trimesh* mesh)
-   *
-   * \brief Creates grid by reading in from file.
-   *
-   * \param gfid      Grid FILE ID
-   * \param file_type Type of File Input: 0 - haz format; 1 - vtk format
-   *
-   * \return mesh     Struct for Mesh
-   *
-   */
-
   // Initialize mesh for read in.
   initialize_mesh(mesh);
   mesh->el_v = malloc(sizeof(struct iCSRmat));
@@ -97,19 +95,18 @@ void creategrid_fread(FILE *gfid,INT file_type,trimesh* mesh)
 /******************************************************************************/
 
 /******************************************************************************/
+/*!
+ * \fn void build_mesh(trimesh* mesh)
+ *
+ * \brief Builds the mesh.
+ * \note Assumes basic info has already been read in or created.
+ *       including dim, el_v, cv, nv, and nbv.
+ *
+ * \return mesh     Struct for Mesh
+ *
+ */
 void build_mesh(trimesh* mesh) 
 {
-  /*!
-   * \fn void build_mesh(trimesh* mesh)
-   *
-   * \brief Builds the mesh.
-   * \note Assumes basic info has already been read in or created.
-   *       including dim, el_v, cv, nv, and nbv.
-   *
-   * \return mesh     Struct for Mesh
-   *
-   */
-
   // Flag for errors
   SHORT status;
 
@@ -255,20 +252,19 @@ void build_mesh(trimesh* mesh)
 /******************************************************************************/
 
 /******************************************************************************/
+/*!
+ * \fn struct coordinates *allocatecoords(INT ndof,INT mydim)
+ *
+ * \brief Allocates memory and properties of coordinates struct
+ *
+ * \param ndof      Total number of coordinates
+ * \param mydim     Dimension of coordinates
+ *
+ * \return A        Coordinate struct
+ *
+ */
 struct coordinates *allocatecoords(INT ndof,INT mydim)
-{
-  /*!
-   * \fn struct coordinates *allocatecoords(INT ndof,INT mydim)
-   *
-   * \brief Allocates memory and properties of coordinates struct
-   *
-   * \param ndof      Total number of coordinates
-   * \param mydim     Dimension of coordinates
-   *
-   * \return A        Coordinate struct
-   *
-   */
-  
+{  
   // Flag for errors
   SHORT status;
 
@@ -304,17 +300,16 @@ struct coordinates *allocatecoords(INT ndof,INT mydim)
 /******************************************************************************/
 
 /******************************************************************************/
+/*!
+ * \fn void free_coords(coordinates* A)
+ *
+ * \brief Frees memory of arrays of coordinate struct
+ *
+ * \param A         Pointer to coordinates struct to be freed
+ *
+ */
 void free_coords(coordinates* A)
 {
-  /*!
-   * \fn void free_coords(coordinates* A)
-   *
-   * \brief Frees memory of arrays of coordinate struct
-   *
-   * \param A         Pointer to coordinates struct to be freed
-   *
-   */
-
   if (A==NULL) return;
 
   if(A->x) {
@@ -337,20 +332,19 @@ void free_coords(coordinates* A)
 /******************************************************************************/
 
 /******************************************************************************/
+/*!
+ * \fn void dump_coords(FILE* fid,coordinates *c)
+ *
+ * \brief Dump the coordinate data to file for plotting purposes
+ *
+ * \param fid         Output FILE ID
+ * \param c           Coordinate struct
+ *
+ * \return coord.dat  Coordinates of node in format: coord(n,dim)
+ *
+ */
 void dump_coords(FILE* fid,coordinates *c) 
 {
-  /*!
-   * \fn void dump_coords(FILE* fid,coordinates *c)
-   *
-   * \brief Dump the coordinate data to file for plotting purposes
-   *
-   * \param fid         Output FILE ID
-   * \param c           Coordinate struct
-   *
-   * \return coord.dat  Coordinates of node in format: coord(n,dim)
-   *
-   */
-
   INT i;
 
   if (c->z) {
@@ -371,17 +365,16 @@ void dump_coords(FILE* fid,coordinates *c)
 /******************************************************************************/
 
 /******************************************************************************/
+/*!
+ * \fn void free_mesh(trimesh* mesh)
+ *
+ * \brief Frees memory of arrays of mesh struct
+ *
+ * \param mesh     Pointer to mesh struct to be freed
+ *
+ */
 void free_mesh(trimesh* mesh)
-{
-  /*!
-   * \fn void free_mesh(trimesh* mesh)
-   *
-   * \brief Frees memory of arrays of mesh struct
-   *
-   * \param mesh     Pointer to mesh struct to be freed
-   *
-   */
-  
+{  
   if(mesh==NULL) return;
 
   if (mesh->cv){

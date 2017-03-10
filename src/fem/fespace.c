@@ -11,17 +11,16 @@
 #include "hazmath.h"
 
 /****************************************************************************************/
+/*!
+ * \fn void initialize_fespace(fespace *FE)
+ *
+ * \brief Initializes all components of the structure FE.
+ *
+ * \return FE     Struct for FE space
+ *
+ */
 void initialize_fespace(fespace *FE)
 {
-  /*!
-   * \fn void initialize_fespace(fespace *FE)
-   *
-   * \brief Initializes all components of the structure FE.
-   *
-   * \return FE     Struct for FE space
-   *
-   */
-
   FE->FEtype = -666;
   FE->nelm = -666;
   FE->cdof = NULL;
@@ -41,21 +40,20 @@ void initialize_fespace(fespace *FE)
 /****************************************************************************************/
 
 /****************************************************************************************/
+/*!
+ * \fn void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
+ *
+ * \brief Allocates memory and properties of fespace struct.
+ *
+ * \param mesh      Mesh struc
+ * \param FEtype    Element Type:
+ *                  0-9 PX | 10-19 QX (not yet) | 20 Ned | 30 RT | -9 - -1 DGX (not yet)
+ *
+ * \return FE       Struct for FE space
+ *
+ */
 void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
 {
-  /*!
-   * \fn void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
-   *
-   * \brief Allocates memory and properties of fespace struct.
-   *
-   * \param mesh      Mesh struc
-   * \param FEtype    Element Type:
-   *                  0-9 PX | 10-19 QX (not yet) | 20 Ned | 30 RT | -9 - -1 DGX (not yet)
-   *
-   * \return FE       Struct for FE space
-   *
-   */
-
   // Flag for errors
   SHORT status;
   INT i;
@@ -216,17 +214,16 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
 /****************************************************************************************/
 
 /****************************************************************************************/
+/*!
+ * \fn void free_fespace(fespace* FE)
+ *
+ * \brief Frees memory of arrays of fespace struct
+ *
+ * \return FE       Struct for FE space to be freed
+ *
+ */
 void free_fespace(fespace* FE)
 {
-  /*!
-   * \fn void free_fespace(fespace* FE)
-   *
-   * \brief Frees memory of arrays of fespace struct
-   *
-   * \return FE       Struct for FE space to be freed
-   *
-   */
-
   if(FE->cdof && (FE->FEtype!=1)) { // If Linears, free_mesh will destroy coordinate struct
     free_coords(FE->cdof);
     free(FE->cdof);
@@ -276,17 +273,16 @@ void free_fespace(fespace* FE)
 /****************************************************************************************/
 
 /****************************************************************************************/
+/*!
+ * \fn void free_blockfespace(block_fespace* FE)
+ *
+ * \brief Frees memory of arrays of block_fespace struct
+ *
+ * \return FE       Struct for BLOCK FE space to be freed
+ *
+ */
 void free_blockfespace(block_fespace* FE)
 {
-  /*!
-   * \fn void free_blockfespace(block_fespace* FE)
-   *
-   * \brief Frees memory of arrays of block_fespace struct
-   *
-   * \return FE       Struct for BLOCK FE space to be freed
-   *
-   */
-
   if (FE == NULL) return; // Nothing need to be freed!
 
   INT i;
@@ -316,19 +312,18 @@ void free_blockfespace(block_fespace* FE)
 
 
 /***********************************************************************************************/
+/*!
+ * \fn void get_P2(fespace* FE,trimesh* mesh)
+ *
+ * \brief Converts mesh data to account for P2 elements
+ *
+ * \param mesh      Mesh struct
+ *
+ * \return FE       Struct for P2 FE space
+ *
+ */
 void get_P2(fespace* FE,trimesh* mesh) 
 {
-  /*!
-   * \fn void get_P2(fespace* FE,trimesh* mesh)
-   *
-   * \brief Converts mesh data to account for P2 elements
-   *
-   * \param mesh      Mesh struct
-   *
-   * \return FE       Struct for P2 FE space
-   *
-   */
-
   // Loop indices
   INT i,j,k,s,jcntr;
   INT n1,n2,n3,va,vb,ea,eb,v1,v2,mye,ed,na,ed1,ed2,face;
@@ -517,20 +512,19 @@ void get_P2(fespace* FE,trimesh* mesh)
 /******************************************************************************************/
 
 /****************************************************************************************/
+/*!
+ * \fn void dump_el_dof(FILE* fid,iCSRmat *el_dof)
+ *
+ * \brief Dump the element to DOF map to file for plotting purposes.
+ *
+ * \param el_dof      Element to DOF map
+ * \param fid         Output FILE ID
+ *
+ * \return el_dof.dat Output file with el_dof data
+ *
+ */
 void dump_el_dof(FILE* fid,iCSRmat *el_dof) 
 {
-  /*!
-   * \fn void dump_el_dof(FILE* fid,iCSRmat *el_dof)
-   *
-   * \brief Dump the element to DOF map to file for plotting purposes.
-   *
-   * \param el_dof      Element to DOF map
-   * \param fid         Output FILE ID
-   *
-   * \return el_dof.dat Output file with el_dof data
-   *
-   */
-
   // Loop indices
   INT i,j,acol,bcol;
 
@@ -548,21 +542,20 @@ void dump_el_dof(FILE* fid,iCSRmat *el_dof)
 /****************************************************************************************/
 
 /****************************************************************************************/
+/*!
+ * \fn void dump_fespace(fespace *FE,char *varname,char *dir)
+ *
+ * \brief Dump the FE space data to file for plotting purposes
+ *
+ * \param FE               FE space to dump
+ * \param varname          Output file name
+ * \param dir              Directory to dump data
+ *
+ * \return dir/varname.dat Output file with FE data
+ *
+ */
 void dump_fespace(fespace *FE,char *varname,char *dir) 
 {
-  /*!
-   * \fn void dump_fespace(fespace *FE,char *varname,char *dir)
-   *
-   * \brief Dump the FE space data to file for plotting purposes
-   *
-   * \param FE               FE space to dump
-   * \param varname          Output file name
-   * \param dir              Directory to dump data
-   *
-   * \return dir/varname.dat Output file with FE data
-   *
-   */
-
   INT i;
   INT totdof = FE->ndof;
   char eldofname[20];
@@ -592,22 +585,21 @@ void dump_fespace(fespace *FE,char *varname,char *dir)
 /****************************************************************************************/
 
 /****************************************************************************************/
+/*!
+ * \fn void set_dirichlet_bdry(fespace* FE,trimesh* mesh,INT flag)
+ *
+ * \brief Determine which boundary DOF are Dirichlet.  Determined by the FE space type
+ *        and by the given flag from the mesh file.
+ *
+ * \param FE               FE space struct
+ * \param mesh             Mesh struct
+ * \param flag             User-input for which Boundary DOF are Dirichlet
+ *
+ * \return FE.dirichlet    Binary boundary array for DOF
+ *
+ */
 void set_dirichlet_bdry(fespace* FE,trimesh* mesh,INT flag) 
 {
-  /*!
-   * \fn void set_dirichlet_bdry(fespace* FE,trimesh* mesh,INT flag)
-   *
-   * \brief Determine which boundary DOF are Dirichlet.  Determined by the FE space type
-   *        and by the given flag from the mesh file.
-   *
-   * \param FE               FE space struct
-   * \param mesh             Mesh struct
-   * \param flag             User-input for which Boundary DOF are Dirichlet
-   *
-   * \return FE.dirichlet    Binary boundary array for DOF
-   *
-   */
-
   INT i;
   for(i=0;i<FE->ndof;i++) {
     if(FE->dof_flag[i]==flag) {
@@ -621,23 +613,22 @@ void set_dirichlet_bdry(fespace* FE,trimesh* mesh,INT flag)
 /****************************************************************************************/
 
 /****************************************************************************************/
+/*!
+ * \fn void set_dirichlet_bdry(fespace* FE,trimesh* mesh,INT flag)
+ *
+ * \brief Determine which boundary DOF are Dirichlet.  Determined by the BLOCK FE space type
+ *        and by the given flag from the mesh file.
+ *
+ * \param FE               BLOCK FE space struct
+ * \param mesh             Mesh struct
+ * \param flag             User-input for which Boundary DOF are Dirichlet
+ *
+ * \return FE.dirichlet    Binary boundary array for DOF
+ * \return FE.dof_flag     Also set DOF flags based on each FE space
+ *
+ */
 void set_dirichlet_bdry_block(block_fespace* FE,trimesh* mesh,INT flag) 
 {
-  /*!
-   * \fn void set_dirichlet_bdry(fespace* FE,trimesh* mesh,INT flag)
-   *
-   * \brief Determine which boundary DOF are Dirichlet.  Determined by the BLOCK FE space type
-   *        and by the given flag from the mesh file.
-   *
-   * \param FE               BLOCK FE space struct
-   * \param mesh             Mesh struct
-   * \param flag             User-input for which Boundary DOF are Dirichlet
-   *
-   * \return FE.dirichlet    Binary boundary array for DOF
-   * \return FE.dof_flag     Also set DOF flags based on each FE space
-   *
-   */
-
   INT i,j,ndof,cnt;
 
   INT* isdirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
@@ -664,20 +655,19 @@ void set_dirichlet_bdry_block(block_fespace* FE,trimesh* mesh,INT flag)
 /****************************************************************************************/
 
 /******************************************************************************/
+/*!
+ * \fn void get_incidence_row(INT row,iCSRmat *fem_map,INT* thisrow)
+ *
+ * \brief Gets single row of an incidence map (i.e., gets vertices of given element from el_v)
+ *
+ * \param row       Row to grab (indexed at 0)
+ * \param fem_map   Incidence matrix to grab
+ *
+ * \return thisrow  Given row of the incidence matrix
+ *
+ */
 void get_incidence_row(INT row,iCSRmat *fem_map,INT* thisrow)
 {
-  /*!
-   * \fn void get_incidence_row(INT row,iCSRmat *fem_map,INT* thisrow)
-   *
-   * \brief Gets single row of an incidence map (i.e., gets vertices of given element from el_v)
-   *
-   * \param row       Row to grab (indexed at 0)
-   * \param fem_map   Incidence matrix to grab
-   *
-   * \return thisrow  Given row of the incidence matrix
-   *
-   */
-
   INT j;
   INT rowa = fem_map->IA[row]-1;
   INT rowb = fem_map->IA[row+1]-1;

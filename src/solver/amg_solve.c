@@ -13,23 +13,20 @@
 /*---------------------------------*/
 /*--      Public Functions       --*/
 /*---------------------------------*/
-
+/**
+ * \fn INT amg_solve (AMG_data *mgl, AMG_param *param)
+ *
+ * \brief AMG -- SOLVE phase
+ *
+ * \param mgl    Pointer to AMG data: AMG_data
+ * \param param  Pointer to AMG parameters: AMG_param
+ *
+ * \return       Iteration number if converges; ERROR otherwise.
+ *
+ */
 INT amg_solve (AMG_data *mgl,
                     AMG_param *param)
-{
-    /**
-     * \fn INT amg_solve (AMG_data *mgl, AMG_param *param)
-     *
-     * \brief AMG -- SOLVE phase
-     *
-     * \param mgl    Pointer to AMG data: AMG_data
-     * \param param  Pointer to AMG parameters: AMG_param
-     *
-     * \return       Iteration number if converges; ERROR otherwise.
-     *
-     */
-
-    
+{ 
     dCSRmat      *ptrA = &mgl[0].A;
     dvector      *b = &mgl[0].b, *x = &mgl[0].x, *r = &mgl[0].w;
     
@@ -82,29 +79,28 @@ INT amg_solve (AMG_data *mgl,
 }
 
 
+/**
+ * \fn INT amg_solve_amli (AMG_data *mgl, AMG_param *param)
+ *
+ * \brief AMLI -- SOLVE phase
+ *
+ * \param mgl    Pointer to AMG data: AMG_data
+ * \param param  Pointer to AMG parameters: AMG_param
+ *
+ * \return       Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   01/23/2011
+ *
+ * \note AMLI polynomial computed by the best approximation of 1/x.
+ *       Refer to Johannes K. Kraus, Panayot S. Vassilevski,
+ *       Ludmil T. Zikatanov, "Polynomial of best uniform approximation to $x^{-1}$
+ *       and smoothing in two-level methods", 2013.
+ *
+ */
 INT amg_solve_amli (AMG_data *mgl,
                          AMG_param *param)
-{
-    /**
-     * \fn INT amg_solve_amli (AMG_data *mgl, AMG_param *param)
-     *
-     * \brief AMLI -- SOLVE phase
-     *
-     * \param mgl    Pointer to AMG data: AMG_data
-     * \param param  Pointer to AMG parameters: AMG_param
-     *
-     * \return       Iteration number if converges; ERROR otherwise.
-     *
-     * \author Xiaozhe Hu
-     * \date   01/23/2011
-     *
-     * \note AMLI polynomial computed by the best approximation of 1/x.
-     *       Refer to Johannes K. Kraus, Panayot S. Vassilevski,
-     *       Ludmil T. Zikatanov, "Polynomial of best uniform approximation to $x^{-1}$
-     *       and smoothing in two-level methods", 2013.
-     *
-     */
-    
+{   
     dCSRmat     *ptrA = &mgl[0].A;
     dvector     *b = &mgl[0].b, *x = &mgl[0].x, *r = &mgl[0].w;
     
@@ -156,29 +152,27 @@ INT amg_solve_amli (AMG_data *mgl,
     return iter;
 }
 
-
+/**
+ * \fn INT amg_solve_nl_amli (AMG_data *mgl, AMG_param *param)
+ *
+ * \brief Nonlinear AMLI -- SOLVE phase
+ *
+ * \param mgl    Pointer to AMG data: AMG_data
+ * \param param  Pointer to AMG parameters: AMG_param
+ *
+ * \return       Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   04/30/2011
+ *
+ * \note Nonlinear AMLI-cycle.
+ *       Refer to Xiazhe Hu, Panayot S. Vassilevski, Jinchao Xu
+ *       "Comparative Convergence Analysis of Nonlinear AMLI-cycle Multigrid", 2013.
+ *
+ */
 INT amg_solve_nl_amli (AMG_data *mgl,
                             AMG_param *param)
-{
-    /**
-     * \fn INT amg_solve_nl_amli (AMG_data *mgl, AMG_param *param)
-     *
-     * \brief Nonlinear AMLI -- SOLVE phase
-     *
-     * \param mgl    Pointer to AMG data: AMG_data
-     * \param param  Pointer to AMG parameters: AMG_param
-     *
-     * \return       Iteration number if converges; ERROR otherwise.
-     *
-     * \author Xiaozhe Hu
-     * \date   04/30/2011
-     *
-     * \note Nonlinear AMLI-cycle.
-     *       Refer to Xiazhe Hu, Panayot S. Vassilevski, Jinchao Xu
-     *       "Comparative Convergence Analysis of Nonlinear AMLI-cycle Multigrid", 2013.
-     *
-     */
-    
+{  
     dCSRmat      *ptrA = &mgl[0].A;
     dvector      *b = &mgl[0].b, *x = &mgl[0].x, *r = &mgl[0].w;
     

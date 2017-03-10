@@ -12,8 +12,21 @@
 /*---------------------------------*/
 /*--      Public Functions       --*/
 /*---------------------------------*/
-
-
+/**
+ * \fn void smoother_dcsr_jacobi (dvector *u, const INT i_1, const INT i_n,
+ *                                     const INT s, dCSRmat *A, dvector *b, INT L)
+ *
+ * \brief Jacobi method as a smoother
+ *
+ * \param u      Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
+ * \param i_1    Starting index
+ * \param i_n    Ending index
+ * \param s      Increasing step
+ * \param A      Pointer to dBSRmat: the coefficient matrix
+ * \param b      Pointer to dvector: the right hand side
+ * \param L      Number of iterations
+ *
+ */
 void smoother_dcsr_jacobi (dvector *u,
                                 const INT i_1,
                                 const INT i_n,
@@ -21,23 +34,7 @@ void smoother_dcsr_jacobi (dvector *u,
                                 dCSRmat *A,
                                 dvector *b,
                                 INT L)
-{
-    /**
-     * \fn void smoother_dcsr_jacobi (dvector *u, const INT i_1, const INT i_n,
-     *                                     const INT s, dCSRmat *A, dvector *b, INT L)
-     *
-     * \brief Jacobi method as a smoother
-     *
-     * \param u      Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
-     * \param i_1    Starting index
-     * \param i_n    Ending index
-     * \param s      Increasing step
-     * \param A      Pointer to dBSRmat: the coefficient matrix
-     * \param b      Pointer to dvector: the right hand side
-     * \param L      Number of iterations
-     *
-     */
-    
+{  
     const INT    N = ABS(i_n - i_1)+1;
     const INT   *ia=A->IA, *ja=A->JA;
     const REAL  *aj=A->val,*bval=b->val;
@@ -91,7 +88,21 @@ void smoother_dcsr_jacobi (dvector *u,
     return;
 }
 
-
+/**
+ * \fn void smoother_dcsr_gs (dvector *u, const INT i_1, const INT i_n,
+ *                                 const INT s, dCSRmat *A, dvector *b, INT L)
+ *
+ * \brief Gauss-Seidel method as a smoother
+ *
+ * \param u    Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
+ * \param i_1  Starting index
+ * \param i_n  Ending index
+ * \param s    Increasing step
+ * \param A    Pointer to dBSRmat: the coefficient matrix
+ * \param b    Pointer to dvector: the right hand side
+ * \param L    Number of iterations
+ *
+ */
 void smoother_dcsr_gs (dvector *u,
                             const INT i_1,
                             const INT i_n,
@@ -100,21 +111,6 @@ void smoother_dcsr_gs (dvector *u,
                             dvector *b,
                             INT L)
 {
-    /**
-     * \fn void smoother_dcsr_gs (dvector *u, const INT i_1, const INT i_n,
-     *                                 const INT s, dCSRmat *A, dvector *b, INT L)
-     *
-     * \brief Gauss-Seidel method as a smoother
-     *
-     * \param u    Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
-     * \param i_1  Starting index
-     * \param i_n  Ending index
-     * \param s    Increasing step
-     * \param A    Pointer to dBSRmat: the coefficient matrix
-     * \param b    Pointer to dvector: the right hand side
-     * \param L    Number of iterations
-     *
-     */
     const INT   *ia=A->IA,*ja=A->JA;
     const REAL  *aj=A->val,*bval=b->val;
     REAL        *uval=u->val;
@@ -182,26 +178,25 @@ void smoother_dcsr_gs (dvector *u,
 }
 
 
+/**
+ * \fn void smoother_dcsr_sgs (dvector *u, dCSRmat *A, dvector *b, INT L)
+ *
+ * \brief Symmetric Gauss-Seidel method as a smoother
+ *
+ * \param u      Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
+ * \param A      Pointer to dBSRmat: the coefficient matrix
+ * \param b      Pointer to dvector: the right hand side
+ * \param L      Number of iterations
+ *
+ * \author Xiaozhe Hu
+ * \date   10/26/2010
+ *
+ */
 void smoother_dcsr_sgs (dvector *u,
                              dCSRmat *A,
                              dvector *b,
                              INT L)
-{
-    /**
-     * \fn void smoother_dcsr_sgs (dvector *u, dCSRmat *A, dvector *b, INT L)
-     *
-     * \brief Symmetric Gauss-Seidel method as a smoother
-     *
-     * \param u      Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
-     * \param A      Pointer to dBSRmat: the coefficient matrix
-     * \param b      Pointer to dvector: the right hand side
-     * \param L      Number of iterations
-     *
-     * \author Xiaozhe Hu
-     * \date   10/26/2010
-     *
-     */
-    
+{ 
     const INT    nm1=b->row-1;
     const INT   *ia=A->IA,*ja=A->JA;
     const REAL  *aj=A->val,*bval=b->val;
@@ -241,6 +236,25 @@ void smoother_dcsr_sgs (dvector *u,
     return;
 }
 
+/**
+ * \fn void smoother_dcsr_sor (dvector *u, const INT i_1, const INT i_n, const INT s,
+ *                                  dCSRmat *A, dvector *b, INT L, const REAL w)
+ *
+ * \brief SOR method as a smoother
+ *
+ * \param u      Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
+ * \param i_1    Starting index
+ * \param i_n    Ending index
+ * \param s      Increasing step
+ * \param A      Pointer to dBSRmat: the coefficient matrix
+ * \param b      Pointer to dvector: the right hand side
+ * \param L      Number of iterations
+ * \param w      Over-relaxation weight
+ *
+ * \author Xiaozhe Hu
+ * \date   10/26/2010
+ *
+ */
 void smoother_dcsr_sor (dvector *u,
                              const INT i_1,
                              const INT i_n,
@@ -249,27 +263,7 @@ void smoother_dcsr_sor (dvector *u,
                              dvector *b,
                              INT L,
                              const REAL w)
-{
-    /**
-     * \fn void smoother_dcsr_sor (dvector *u, const INT i_1, const INT i_n, const INT s,
-     *                                  dCSRmat *A, dvector *b, INT L, const REAL w)
-     *
-     * \brief SOR method as a smoother
-     *
-     * \param u      Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
-     * \param i_1    Starting index
-     * \param i_n    Ending index
-     * \param s      Increasing step
-     * \param A      Pointer to dBSRmat: the coefficient matrix
-     * \param b      Pointer to dvector: the right hand side
-     * \param L      Number of iterations
-     * \param w      Over-relaxation weight
-     *
-     * \author Xiaozhe Hu
-     * \date   10/26/2010
-     *
-     */
-    
+{   
     const INT   *ia=A->IA,*ja=A->JA;
     const REAL  *aj=A->val,*bval=b->val;
     REAL        *uval=u->val;
@@ -313,7 +307,24 @@ void smoother_dcsr_sor (dvector *u,
     return;
 }
 
-
+/**
+ * \fn void smoother_dcsr_L1diag (dvector *u, const INT i_1, const INT i_n, const INT s,
+ *                                     dCSRmat *A, dvector *b, INT L)
+ *
+ * \brief Diagonal scaling (using L1 norm) as a smoother
+ *
+ * \param u      Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
+ * \param i_1    Starting index
+ * \param i_n    Ending index
+ * \param s      Increasing step
+ * \param A      Pointer to dBSRmat: the coefficient matrix
+ * \param b      Pointer to dvector: the right hand side
+ * \param L      Number of iterations
+ *
+ * \author Xiaozhe Hu, James Brannick
+ * \date   01/26/2011
+ *
+ */
 void smoother_dcsr_L1diag (dvector *u,
                                 const INT i_1,
                                 const INT i_n,
@@ -321,26 +332,7 @@ void smoother_dcsr_L1diag (dvector *u,
                                 dCSRmat *A,
                                 dvector *b,
                                 INT L)
-{
-    /**
-     * \fn void smoother_dcsr_L1diag (dvector *u, const INT i_1, const INT i_n, const INT s,
-     *                                     dCSRmat *A, dvector *b, INT L)
-     *
-     * \brief Diagonal scaling (using L1 norm) as a smoother
-     *
-     * \param u      Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
-     * \param i_1    Starting index
-     * \param i_n    Ending index
-     * \param s      Increasing step
-     * \param A      Pointer to dBSRmat: the coefficient matrix
-     * \param b      Pointer to dvector: the right hand side
-     * \param L      Number of iterations
-     *
-     * \author Xiaozhe Hu, James Brannick
-     * \date   01/26/2011
-     *
-     */
-    
+{ 
     const INT    N = ABS(i_n - i_1)+1;
     const INT   *ia=A->IA, *ja=A->JA;
     const REAL  *aj=A->val,*bval=b->val;
