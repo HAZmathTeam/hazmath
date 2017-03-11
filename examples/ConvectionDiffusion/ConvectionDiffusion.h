@@ -45,11 +45,16 @@ void f_rhs(REAL *val,REAL* x, REAL t) {
   *val = 0.0;
 }
 
-// Boundary Conditions
-void bc(REAL *val, REAL* x, REAL t) {
+// ANY Boundary Conditions
+void bc_any(REAL *val, REAL* x, REAL t) {
   *val= 0.0;
   return;
 }
 
+void eafe(const trimesh mesh,					\
+	  void (*scalar_val_d)(REAL *, REAL *, REAL),		\
+	  void (*vector_val_ad)(REAL *, REAL *, REAL),		\
+	  void (*scalar_val_bndnr)(REAL *, REAL *, REAL),	\
+	  dCSRmat *A, dvector *rhs);
 
 
