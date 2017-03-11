@@ -6,12 +6,6 @@
 #define M_PI 3.141592653589793e+00;
 #endif
 
-void poisson_coeff(REAL *val,REAL* x, REAL t) {
-  // a(x)
-  *val = 1.0;
-  return;
-}
-
 // PDE Coefficients
 void diffusion_coeff(REAL *val,REAL* x, REAL t) {
   // a(x)
@@ -51,10 +45,10 @@ void bc_any(REAL *val, REAL* x, REAL t) {
   return;
 }
 
-void eafe(const trimesh mesh,					\
-	  void (*scalar_val_d)(REAL *, REAL *, REAL),		\
-	  void (*vector_val_ad)(REAL *, REAL *, REAL),		\
-	  void (*scalar_val_bndnr)(REAL *, REAL *, REAL),	\
-	  dCSRmat *A, dvector *rhs);
-
-
+void eafe(dCSRmat *A, dvector *rhs,		\
+	  void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL), \
+	  trimesh mesh, fespace FE, qcoordinates *cq,	\
+	  void (*scalar_val_d)(REAL *, REAL *, REAL),			\
+	  void (*scalar_val_rhs)(REAL *, REAL *, REAL),			\
+	  void (*vector_val_ad)(REAL *, REAL *, REAL),			\
+	  void (*scalar_val_bndnr)(REAL *, REAL *, REAL), REAL faketime);

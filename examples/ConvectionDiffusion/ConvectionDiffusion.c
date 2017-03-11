@@ -114,10 +114,13 @@ int main (int argc, char* argv[])
     
   // Assemble the matrix with natural BC. 
   // Diffusion block
-  assemble_global(&A,&b,assemble_DuDv_local,&FE,&mesh,cq,f_rhs,
+  /*  
+      assemble_global(&A,&b,assemble_DuDv_local,&FE,&mesh,cq,f_rhs,
                   poisson_coeff,0.0);
-  eafe(mesh,diffusion_coeff,advection,bc_any,&A,&b);
-
+  */
+  eafe(&A,&b,assemble_DuDv_local,			\
+       mesh,FE,cq,					\
+       diffusion_coeff,f_rhs,advection,bc_any,0.0);
   clock_t clk_assembly_end = clock();
   printf(" --> elapsed CPU time for assembly = %f seconds.\n\n",(REAL)
          (clk_assembly_end-clk_assembly_start)/CLOCKS_PER_SEC);

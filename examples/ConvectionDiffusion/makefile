@@ -16,7 +16,7 @@ MULTIGRAPH_PRECISION_SRC = $(MULTIGRAPH_SRCDIR)/mg0.f
 HEADERS_ADD = $(SRCFILE).h
 
 #OBJS_ADD = solver.o 
-OBJS_ADD = solver.o eafe.o 
+OBJS_ADD = solver.o
 
 EXTRA_DEL = $(MULTIGRAPH_SRCDIR)/mthdef.mod
 
