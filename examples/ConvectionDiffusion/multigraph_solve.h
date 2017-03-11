@@ -1,5 +1,7 @@
 
 /* MULTIGRAPH PARAMETERS for the call to mginit_()*/
+#define MAXJA_MULT 5
+#define MAXA_MULT 5
 INT ispd=0; // is this an SPD problem ?
 INT ncfact=4; // factor for coarsening, should >=2
 INT maxlvl=20; // max number of levels
@@ -14,8 +16,7 @@ INT lvl=-16; // levels counter, set to an unusual value
 REAL eps1=1e-14; // tolerance 
 INT mxcg=1000; // max cg iterations
 REAL relerr=1e0; // check the user manual
-
-/* from multigraph-2.0 source
+/* from multigraph-2.0 sources
   subroutine mginit(n,ispd,nblock,ib,maxja,ja,maxa,a,ncfact,
 	  +      maxlvl,maxfil,ka,lvl,dtol,method,iflag)
 */

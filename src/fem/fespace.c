@@ -60,10 +60,10 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
   SHORT status;
   INT i;
 
-  // Initialize First for good mesure
+  // Initialize First
   initialize_fespace(FE);
 
-  // Start setting parameters
+  // Set parameters
   FE->FEtype = FEtype;
   FE->nelm = mesh->nelm;
   INT dim = mesh->dim;
