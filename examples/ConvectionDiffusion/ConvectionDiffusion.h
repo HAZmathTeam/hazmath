@@ -15,7 +15,7 @@ void poisson_coeff(REAL *val,REAL* x, REAL t) {
 // PDE Coefficients
 void diffusion_coeff(REAL *val,REAL* x, REAL t) {
   // a(x)
-  *val = 1.0;
+  *val = 1.e-4;
   return;
 }
 
@@ -25,7 +25,7 @@ void exactsol(REAL *val,REAL* x, REAL t) {
   // 1D
   //*val = sin(M_PI*x[0])*exp(-M_PI*M_PI*time);
   // 2D
-  *val = sin(M_PI*x[0])*sin(M_PI*x[1]);
+  *val = 1.; //sin(M_PI*x[0])*sin(M_PI*x[1]);
   // 3D
   ///  *val=x[2]*x[2];
   //  *val=10.*x[0]*(1.-x[0]) *x[1]*(1.-x[1])*x[2];
@@ -47,7 +47,7 @@ void f_rhs(REAL *val,REAL* x, REAL t) {
 
 // ANY Boundary Conditions
 void bc_any(REAL *val, REAL* x, REAL t) {
-  *val= 0.0;
+  *val= 1.0;
   return;
 }
 
