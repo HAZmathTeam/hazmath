@@ -27,7 +27,7 @@ void exactsol(REAL *val,REAL* x, REAL t) {
   // 2D
   *val = x[0]; //sin(M_PI*x[0])*sin(M_PI*x[1]);
   // 3D
-  ///  *val=x[2]*x[2];
+  //  *val=x[2]*x[2];
   //  *val=10.*x[0]*(1.-x[0]) *x[1]*(1.-x[1])*x[2];
   // *val= x[2]+x[0];
   return;
@@ -35,8 +35,8 @@ void exactsol(REAL *val,REAL* x, REAL t) {
 
 void advection(REAL *val, REAL *x,REAL t) {
   val[0] = -1.; // or beta_1(x)
-  val[1] = 2.; // or beta_2(x)
-  val[2] = 3.; // or beta_3(x)
+  val[1] = 0.; // or beta_2(x)
+  val[2] = 0.; // or beta_3(x)
   return;
 }
 
