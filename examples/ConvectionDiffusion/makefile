@@ -3,7 +3,8 @@
 ####################################################
 
 # SRC File name
-SRCFILE = multigraph_solve
+SRCFILE = ConvectionDiffusion
+#SRCFILE = multigraph_solve
 
 #Multigraph
 MULTIGRAPH_DIR = $(realpath /Users/ltz1/packages/multigraph_2.0)
@@ -14,7 +15,8 @@ MULTIGRAPH_PRECISION_SRC = $(MULTIGRAPH_SRCDIR)/mg0.f
 
 HEADERS_ADD = $(SRCFILE).h
 
-OBJS_ADD = solver.o
+#OBJS_ADD = solver.o 
+OBJS_ADD = solver.o eafe.o 
 
 EXTRA_DEL = $(MULTIGRAPH_SRCDIR)/mthdef.mod
 
