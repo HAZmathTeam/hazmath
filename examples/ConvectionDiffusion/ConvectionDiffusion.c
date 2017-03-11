@@ -115,7 +115,8 @@ int main (int argc, char* argv[])
   // Assemble the matrix with natural BC. 
   // Diffusion block
   assemble_global(&A,&b,assemble_DuDv_local,&FE,&mesh,cq,f_rhs,
-                  diffusion_coeff,0.0);
+                  poisson_coeff,0.0);
+  eafe(mesh,diffusion_coeff,advection,bc_any,&A,&b);
 
   clock_t clk_assembly_end = clock();
   printf(" --> elapsed CPU time for assembly = %f seconds.\n\n",(REAL)
@@ -142,7 +143,7 @@ int main (int argc, char* argv[])
   param_amg_set(&amgparam, &inparam);
   param_amg_print(&amgparam);
   //}
-  eliminate_DirichletBC(&bc,&FE,&mesh,&b,&A,0.0);
+  eliminate_DirichletBC(&bc_any,&FE,&mesh,&b,&A,0.0);
 
   // Solve
   clock_t clk_solve_start = clock();
