@@ -1,3 +1,4 @@
+
 #ifdef WITH_SUITESPARSE
 #undef WITH_SUITESPARSE
 #endif
@@ -44,11 +45,3 @@ void bc_any(REAL *val, REAL* x, REAL t) {
   *val= x[0];
   return;
 }
-
-void eafe(dCSRmat *A, dvector *rhs,		\
-	  void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL), \
-	  trimesh mesh, fespace FE, qcoordinates *cq,	\
-	  void (*scalar_val_d)(REAL *, REAL *, REAL),			\
-	  void (*scalar_val_rhs)(REAL *, REAL *, REAL),			\
-	  void (*vector_val_ad)(REAL *, REAL *, REAL),			\
-	  void (*scalar_val_bndnr)(REAL *, REAL *, REAL), REAL faketime);
