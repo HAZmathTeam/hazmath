@@ -3,6 +3,11 @@
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 10/06/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
+ *  \note  Done cleanup for releasing -- Xiaozhe Hu 03/12/2017
+ *
+ *  \todo  Add block preconditoners for general size -- Xiaozhe Hu
+ *  \todo  Add inexact block solvers for Stokes/NS equations -- Xiaozhe Hu
+ *
  */
 
 #include "hazmath.h"
@@ -14,7 +19,7 @@
 
 /***********************************************************************************************/
 /**
- * \fn void precond_diag (REAL *r, REAL *z, void *data)
+ * \fn void precond_diag(REAL *r, REAL *z, void *data)
  *
  * \brief Diagonal preconditioner z=inv(D)*r
  *
@@ -52,9 +57,9 @@ void precond_diag (REAL *r,
  * \author Xiaozhe Hu
  * \date   12/30/2015
  */
-void precond_amg (REAL *r,
-                       REAL *z,
-                       void *data)
+void precond_amg(REAL *r,
+                 REAL *z,
+                 void *data)
 {  
     precond_data *pcdata=(precond_data *)data;
     const INT m=pcdata->mgl_data[0].A.row;
@@ -87,9 +92,9 @@ void precond_amg (REAL *r,
  * \author Xiaozhe Hu
  * \date   01/23/2011
  */
-void precond_amli (REAL *r,
-                        REAL *z,
-                        void *data)
+void precond_amli(REAL *r,
+                  REAL *z,
+                  void *data)
 {  
     precond_data *pcdata=(precond_data *)data;
     const INT m=pcdata->mgl_data[0].A.row;
@@ -121,9 +126,9 @@ void precond_amli (REAL *r,
  * \author Xiaozhe Hu
  * \date   04/25/2011
  */
-void precond_nl_amli (REAL *r,
-                           REAL *z,
-                           void *data)
+void precond_nl_amli(REAL *r,
+                     REAL *z,
+                     void *data)
 {    
     precond_data *pcdata=(precond_data *)data;
     const INT m=pcdata->mgl_data[0].A.row;
@@ -156,9 +161,9 @@ void precond_nl_amli (REAL *r,
  * \author Xiaozhe Hu
  * \date   02/10/2016
  */
-void precond_hx_curl_additive (REAL *r,
-                      REAL *z,
-                      void *data)
+void precond_hx_curl_additive(REAL *r,
+                              REAL *z,
+                              void *data)
 {   
     HX_curl_data *hxcurldata=(HX_curl_data *)data;
     INT n = hxcurldata->A->row;
@@ -210,7 +215,7 @@ void precond_hx_curl_additive (REAL *r,
 
 /***********************************************************************************************/
 /**
- * \fn void precond_hx_curl_multiplicative (REAL *r, REAL *z, void *data)
+ * \fn void precond_hx_curl_multiplicative(REAL *r, REAL *z, void *data)
  *
  * \brief HX preconditioner for H(curl): multiplicative version
  *
@@ -221,9 +226,9 @@ void precond_hx_curl_additive (REAL *r,
  * \author Xiaozhe Hu
  * \date   02/10/2016
  */
-void precond_hx_curl_multiplicative (REAL *r,
-                               REAL *z,
-                               void *data)
+void precond_hx_curl_multiplicative(REAL *r,
+                                    REAL *z,
+                                    void *data)
 {   
     HX_curl_data *hxcurldata=(HX_curl_data *)data;
     INT n = hxcurldata->A->row;
@@ -288,7 +293,7 @@ void precond_hx_curl_multiplicative (REAL *r,
 
 /***********************************************************************************************/
 /**
- * \fn void precond_block_diag_2 (REAL *r, REAL *z, void *data)
+ * \fn void precond_block_diag_2(REAL *r, REAL *z, void *data)
  * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
  *        is solved exactly)
  *
@@ -299,9 +304,9 @@ void precond_hx_curl_multiplicative (REAL *r,
  * \author Xiaozhe Hu
  * \date   10/14/2016
  */
-void precond_block_diag_2 (REAL *r,
-                           REAL *z,
-                           void *data)
+void precond_block_diag_2(REAL *r,
+                          REAL *z,
+                          void *data)
 {
 #if WITH_SUITESPARSE
   precond_block_data *precdata=(precond_block_data *)data;
@@ -359,9 +364,9 @@ void precond_block_diag_2 (REAL *r,
  * \author Xiaozhe Hu
  * \date   10/14/2016
  */
-void precond_block_lower_2 (REAL *r,
-                            REAL *z,
-                            void *data)
+void precond_block_lower_2(REAL *r,
+                           REAL *z,
+                           void *data)
 { 
 #if WITH_SUITESPARSE
   
@@ -424,9 +429,9 @@ void precond_block_lower_2 (REAL *r,
  * \author Xiaozhe Hu
  * \date   10/14/2016
  */
-void precond_block_upper_2 (REAL *r,
-                            REAL *z,
-                            void *data)
+void precond_block_upper_2(REAL *r,
+                           REAL *z,
+                           void *data)
 { 
 #if WITH_SUITESPARSE
   
@@ -489,9 +494,9 @@ void precond_block_upper_2 (REAL *r,
  * \author Xiaozhe Hu
  * \date   02/24/2014
  */
-void precond_block_diag_3 (REAL *r,
-                                REAL *z,
-                                void *data)
+void precond_block_diag_3(REAL *r,
+                          REAL *z,
+                          void *data)
 {   
 #if WITH_SUITESPARSE
     precond_block_data *precdata=(precond_block_data *)data;
@@ -549,9 +554,9 @@ void precond_block_diag_3 (REAL *r,
  * \author Xiaozhe Hu
  * \date   02/24/2016
  */
-void precond_block_lower_3 (REAL *r,
-                            REAL *z,
-                            void *data)
+void precond_block_lower_3(REAL *r,
+                           REAL *z,
+                           void *data)
 { 
 #if WITH_SUITESPARSE
     
@@ -623,9 +628,9 @@ void precond_block_lower_3 (REAL *r,
  * \author Xiaozhe Hu
  * \date   02/24/2016
  */
-void precond_block_upper_3 (REAL *r,
-                                 REAL *z,
-                                 void *data)
+void precond_block_upper_3(REAL *r,
+                           REAL *z,
+                           void *data)
 { 
 #if WITH_SUITESPARSE
 
@@ -697,9 +702,9 @@ void precond_block_upper_3 (REAL *r,
  * \author Xiaozhe Hu
  * \date   01/20/2017
  */
-void precond_block_diag_4 (REAL *r,
-                                REAL *z,
-                                void *data)
+void precond_block_diag_4(REAL *r,
+                          REAL *z,
+                          void *data)
 {
 #if WITH_SUITESPARSE
     precond_block_data *precdata=(precond_block_data *)data;
@@ -774,9 +779,9 @@ void precond_block_diag_4 (REAL *r,
  * A[8]  A[9]  A[10] A[11]
  * A[12] A[13] A[14] A[15]
  */
-void precond_block_lower_4 (REAL *r,
-                            REAL *z,
-                            void *data)
+void precond_block_lower_4(REAL *r,
+                           REAL *z,
+                           void *data)
 {
 #if WITH_SUITESPARSE
 
@@ -873,9 +878,9 @@ void precond_block_lower_4 (REAL *r,
  * A[8]  A[9]  A[10] A[11]
  * A[12] A[13] A[14] A[15]
  */
-void precond_block_upper_4 (REAL *r,
-                                 REAL *z,
-                                 void *data)
+void precond_block_upper_4(REAL *r,
+                           REAL *z,
+                           void *data)
 {
 #if WITH_SUITESPARSE
 
@@ -970,9 +975,9 @@ void precond_block_upper_4 (REAL *r,
  * \author Xiaozhe Hu
  * \date   10/14/2016
  */
-void precond_block_diag_mixed_darcy (REAL *r,
-                                     REAL *z,
-                                     void *data)
+void precond_block_diag_mixed_darcy(REAL *r,
+                                    REAL *z,
+                                    void *data)
 {
   precond_block_data *precdata=(precond_block_data *)data;
   dvector *tempr = &(precdata->r);
@@ -1034,9 +1039,9 @@ void precond_block_diag_mixed_darcy (REAL *r,
  * \author Xiaozhe Hu
  * \date   10/14/2016
  */
-void precond_block_lower_mixed_darcy (REAL *r,
-                                     REAL *z,
-                                     void *data)
+void precond_block_lower_mixed_darcy(REAL *r,
+                                    REAL *z,
+                                    void *data)
 {  
   precond_block_data *precdata=(precond_block_data *)data;
   dvector *tempr = &(precdata->r);
@@ -1100,7 +1105,7 @@ void precond_block_lower_mixed_darcy (REAL *r,
  * \author Xiaozhe Hu
  * \date   10/14/2016
  */
-void precond_block_upper_mixed_darcy (REAL *r,
+void precond_block_upper_mixed_darcy(REAL *r,
                                      REAL *z,
                                      void *data)
 {
@@ -1166,9 +1171,9 @@ void precond_block_upper_mixed_darcy (REAL *r,
  * \author Xiaozhe Hu
  * \date   10/14/2016
  */
-void precond_block_diag_mixed_darcy_krylov (REAL *r,
-                                     REAL *z,
-                                     void *data)
+void precond_block_diag_mixed_darcy_krylov(REAL *r,
+                                           REAL *z,
+                                           void *data)
 {
   precond_block_data *precdata=(precond_block_data *)data;
   dvector *tempr = &(precdata->r);
@@ -1234,7 +1239,7 @@ void precond_block_diag_mixed_darcy_krylov (REAL *r,
  * \author Xiaozhe Hu
  * \date   10/14/2016
  */
-void precond_block_lower_mixed_darcy_krylov (REAL *r,
+void precond_block_lower_mixed_darcy_krylov(REAL *r,
                                             REAL *z,
                                             void *data)
 { 
@@ -1304,7 +1309,7 @@ void precond_block_lower_mixed_darcy_krylov (REAL *r,
  * \author Xiaozhe Hu
  * \date   10/14/2016
  */
-void precond_block_upper_mixed_darcy_krylov (REAL *r,
+void precond_block_upper_mixed_darcy_krylov(REAL *r,
                                             REAL *z,
                                             void *data)
 { 
@@ -1376,9 +1381,9 @@ void precond_block_upper_mixed_darcy_krylov (REAL *r,
  * \author Xiaozhe Hu
  * \date   01/14/2017
  */
-void precond_block_diag_biot_2phase (REAL *r,
-                                     REAL *z,
-                                     void *data)
+void precond_block_diag_biot_2phase(REAL *r,
+                                    REAL *z,
+                                    void *data)
 {
   precond_block_data *precdata=(precond_block_data *)data;
   dvector *tempr = &(precdata->r);
@@ -1439,9 +1444,9 @@ void precond_block_diag_biot_2phase (REAL *r,
  * \author Xiaozhe Hu
  * \date   01/14/2017
  */
-void precond_block_lower_biot_2phase (REAL *r,
-                                      REAL *z,
-                                      void *data)
+void precond_block_lower_biot_2phase(REAL *r,
+                                     REAL *z,
+                                     void *data)
 {
   precond_block_data *precdata=(precond_block_data *)data;
   dvector *tempr = &(precdata->r);
@@ -1505,9 +1510,9 @@ void precond_block_lower_biot_2phase (REAL *r,
  * \author Xiaozhe Hu
  * \date   01/14/2017
  */
-void precond_block_upper_biot_2phase (REAL *r,
-                                      REAL *z,
-                                      void *data)
+void precond_block_upper_biot_2phase(REAL *r,
+                                     REAL *z,
+                                     void *data)
 {
   precond_block_data *precdata=(precond_block_data *)data;
   dvector *tempr = &(precdata->r);
@@ -1571,9 +1576,9 @@ void precond_block_upper_biot_2phase (REAL *r,
  * \author Xiaozhe Hu
  * \date   01/14/2017
  */
-void precond_block_diag_biot_2phase_krylov (REAL *r,
-                                            REAL *z,
-                                            void *data)
+void precond_block_diag_biot_2phase_krylov(REAL *r,
+                                           REAL *z,
+                                           void *data)
 {
   precond_block_data *precdata=(precond_block_data *)data;
   dvector *tempr = &(precdata->r);
@@ -1641,7 +1646,7 @@ void precond_block_diag_biot_2phase_krylov (REAL *r,
  * \author Xiaozhe Hu
  * \date   01/14/2017
  */
-void precond_block_lower_biot_2phase_krylov (REAL *r,
+void precond_block_lower_biot_2phase_krylov(REAL *r,
                                             REAL *z,
                                             void *data)
 {
@@ -1713,7 +1718,7 @@ void precond_block_lower_biot_2phase_krylov (REAL *r,
  * \author Xiaozhe Hu
  * \date   01/14/2017
  */
-void precond_block_upper_biot_2phase_krylov (REAL *r,
+void precond_block_upper_biot_2phase_krylov(REAL *r,
                                             REAL *z,
                                             void *data)
 {
@@ -1787,9 +1792,9 @@ void precond_block_upper_biot_2phase_krylov (REAL *r,
  * \author Xiaozhe Hu
  * \date   03/12/2016
  */
-void precond_block_diag_maxwell (REAL *r,
-                                  REAL *z,
-                                  void *data)
+void precond_block_diag_maxwell(REAL *r,
+                                REAL *z,
+                                void *data)
 {   
     precond_block_data *precdata=(precond_block_data *)data;
     //block_dCSRmat *A = precdata->Abcsr;
@@ -1866,9 +1871,9 @@ void precond_block_diag_maxwell (REAL *r,
  * \author Xiaozhe Hu
  * \date   03/12/2016
  */
-void precond_block_lower_maxwell (REAL *r,
-                                  REAL *z,
-                                  void *data)
+void precond_block_lower_maxwell(REAL *r,
+                                 REAL *z,
+                                 void *data)
 {  
     precond_block_data *precdata=(precond_block_data *)data;
     block_dCSRmat *A = precdata->Abcsr;
@@ -1950,9 +1955,9 @@ void precond_block_lower_maxwell (REAL *r,
  * \author Xiaozhe Hu
  * \date   02/25/2016
  */
-void precond_block_upper_maxwell (REAL *r,
-                            REAL *z,
-                            void *data)
+void precond_block_upper_maxwell(REAL *r,
+                                 REAL *z,
+                                 void *data)
 {   
     precond_block_data *precdata=(precond_block_data *)data;
     block_dCSRmat *A = precdata->Abcsr;
@@ -2034,9 +2039,9 @@ void precond_block_upper_maxwell (REAL *r,
  * \author Xiaozhe Hu
  * \date   03/12/2016
  */
-void precond_block_diag_maxwell_krylov (REAL *r,
-                                         REAL *z,
-                                         void *data)
+void precond_block_diag_maxwell_krylov(REAL *r,
+                                       REAL *z,
+                                       void *data)
 {   
     precond_block_data *precdata=(precond_block_data *)data;
     // block_dCSRmat *A = precdata->Abcsr;
@@ -2121,9 +2126,9 @@ void precond_block_diag_maxwell_krylov (REAL *r,
  * \author Xiaozhe Hu
  * \date   02/26/2016
  */
-void precond_block_lower_maxwell_krylov (REAL *r,
-                                         REAL *z,
-                                         void *data)
+void precond_block_lower_maxwell_krylov(REAL *r,
+                                        REAL *z,
+                                        void *data)
 {   
     precond_block_data *precdata=(precond_block_data *)data;
     block_dCSRmat *A = precdata->Abcsr;
@@ -2215,9 +2220,9 @@ void precond_block_lower_maxwell_krylov (REAL *r,
  * \author Xiaozhe Hu
  * \date   02/26/2016
  */
-void precond_block_upper_maxwell_krylov (REAL *r,
-                                  REAL *z,
-                                  void *data)
+void precond_block_upper_maxwell_krylov(REAL *r,
+                                        REAL *z,
+                                        void *data)
 {    
     precond_block_data *precdata=(precond_block_data *)data;
     block_dCSRmat *A = precdata->Abcsr;
@@ -2307,9 +2312,9 @@ void precond_block_upper_maxwell_krylov (REAL *r,
  * \author Xiaozhe Hu
  * \date   03/12/2016
  */
-void precond_block_lower_diag_maxwell (REAL *r,
-                                              REAL *z,
-                                              void *data)
+void precond_block_lower_diag_maxwell(REAL *r,
+                                      REAL *z,
+                                      void *data)
 {   
     precond_block_data *precdata=(precond_block_data *)data;
     dCSRmat *A_diag = precdata->A_diag;
@@ -2398,9 +2403,9 @@ void precond_block_lower_diag_maxwell (REAL *r,
  * \author Xiaozhe Hu
  * \date   03/12/2016
  */
-void precond_block_diag_upper_maxwell (REAL *r,
-                                              REAL *z,
-                                              void *data)
+void precond_block_diag_upper_maxwell(REAL *r,
+                                      REAL *z,
+                                      void *data)
 {   
     precond_block_data *precdata=(precond_block_data *)data;
     dCSRmat *A_diag = precdata->A_diag;
@@ -2490,9 +2495,9 @@ void precond_block_diag_upper_maxwell (REAL *r,
  * \author Xiaozhe Hu
  * \date   03/12/2016
  */
-void precond_block_lower_diag_upper_maxwell (REAL *r,
-                                                    REAL *z,
-                                                    void *data)
+void precond_block_lower_diag_upper_maxwell(REAL *r,
+                                            REAL *z,
+                                            void *data)
 {   
     precond_block_data *precdata=(precond_block_data *)data;
     dCSRmat *A_diag = precdata->A_diag;
@@ -2590,9 +2595,9 @@ void precond_block_lower_diag_upper_maxwell (REAL *r,
  * \author Xiaozhe Hu
  * \date   03/12/2016
  */
-void precond_block_lower_diag_maxwell_krylov (REAL *r,
-                                              REAL *z,
-                                              void *data)
+void precond_block_lower_diag_maxwell_krylov(REAL *r,
+                                             REAL *z,
+                                             void *data)
 {   
     precond_block_data *precdata=(precond_block_data *)data;
     dCSRmat *A_diag = precdata->A_diag;
@@ -2694,9 +2699,9 @@ void precond_block_lower_diag_maxwell_krylov (REAL *r,
  * \author Xiaozhe Hu
  * \date   03/12/2016
  */
-void precond_block_diag_upper_maxwell_krylov (REAL *r,
-                                         REAL *z,
-                                         void *data)
+void precond_block_diag_upper_maxwell_krylov(REAL *r,
+                                             REAL *z,
+                                             void *data)
 {   
     precond_block_data *precdata=(precond_block_data *)data;
     dCSRmat *A_diag = precdata->A_diag;
@@ -2797,9 +2802,9 @@ void precond_block_diag_upper_maxwell_krylov (REAL *r,
  * \author Xiaozhe Hu
  * \date   03/12/2016
  */
-void precond_block_lower_diag_upper_maxwell_krylov (REAL *r,
-                                              REAL *z,
-                                              void *data)
+void precond_block_lower_diag_upper_maxwell_krylov(REAL *r,
+                                                   REAL *z,
+                                                   void *data)
 {   
     precond_block_data *precdata=(precond_block_data *)data;
     dCSRmat *A_diag = precdata->A_diag;

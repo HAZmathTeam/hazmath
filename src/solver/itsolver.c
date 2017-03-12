@@ -3,6 +3,8 @@
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 10/06/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
+ *  \note  Done cleanup for releasing -- Xiaozhe Hu 03/12/2017
+ *
  */
 
 #include "hazmath.h"
@@ -34,11 +36,11 @@
  *
  * \note This is an abstract interface for iterative methods.
  */
-INT solver_dcsr_linear_itsolver (dCSRmat *A,
-                               dvector *b,
-                               dvector *x,
-                               precond *pc,
-                               linear_itsolver_param *itparam)
+INT solver_dcsr_linear_itsolver(dCSRmat *A,
+                                dvector *b,
+                                dvector *x,
+                                precond *pc,
+                                linear_itsolver_param *itparam)
 {   
     const SHORT prtlvl        = itparam->linear_print_level;
     const SHORT itsolver_type = itparam->linear_itsolver_type;
@@ -101,6 +103,7 @@ INT solver_dcsr_linear_itsolver (dCSRmat *A,
         get_time(&solver_end);
         solver_duration = solver_end - solver_start;
         print_cputime("Iterative method", solver_duration);
+        printf("**********************************************************\n");
     }
     
     
@@ -126,11 +129,11 @@ INT solver_dcsr_linear_itsolver (dCSRmat *A,
  * \author Xiaozhe Hu
  * \date   02/17/2016
  */
-INT solver_bdcsr_linear_itsolver (block_dCSRmat *A,
-                                dvector *b,
-                                dvector *x,
-                                precond *pc,
-                                linear_itsolver_param *itparam)
+INT solver_bdcsr_linear_itsolver(block_dCSRmat *A,
+                                 dvector *b,
+                                 dvector *x,
+                                 precond *pc,
+                                 linear_itsolver_param *itparam)
 {
 
     const SHORT prtlvl =        itparam->linear_print_level;
@@ -191,6 +194,7 @@ INT solver_bdcsr_linear_itsolver (block_dCSRmat *A,
         get_time(&solver_end);
         solver_duration = solver_end - solver_start;
         print_cputime("Iterative method", solver_duration);
+        printf("**********************************************************\n");
     }
     
     return iter;
@@ -217,10 +221,10 @@ INT solver_bdcsr_linear_itsolver (block_dCSRmat *A,
  * \note This is an abstract interface for iterative methods.
  */
 INT solver_general_linear_itsolver(matvec *mxv,
-                                 dvector *b,
-                                 dvector *x,
-                                 precond *pc,
-                                 linear_itsolver_param *itparam)
+                                   dvector *b,
+                                   dvector *x,
+                                   precond *pc,
+                                   linear_itsolver_param *itparam)
 {    
     const SHORT prtlvl        = itparam->linear_print_level;
     const SHORT itsolver_type = itparam->linear_itsolver_type;
@@ -284,6 +288,7 @@ INT solver_general_linear_itsolver(matvec *mxv,
         get_time(&solver_end);
         solver_duration = solver_end - solver_start;
         print_cputime("Iterative method", solver_duration);
+        printf("**********************************************************\n");
     }
     
     
@@ -310,7 +315,7 @@ INT solver_general_linear_itsolver(matvec *mxv,
  *
  *
  */
-INT linear_solver_amg (dCSRmat *A,
+INT linear_solver_amg(dCSRmat *A,
                       dvector *b,
                       dvector *x,
                       AMG_param *param)
@@ -387,8 +392,8 @@ INT linear_solver_amg (dCSRmat *A,
     else { // call a backup solver
         
         if ( prtlvl > PRINT_MIN ) {
-            printf("### WARNING: AMG setup failed!\n");
-            printf("### WARNING: Use a backup solver instead.\n");
+            printf("### HAZMATH WARNING: AMG setup failed!\n");
+            printf("### HAZMATH WARNING: Use a backup solver instead.\n");
         }
         status = dcsr_pvgmres(A, b, x, NULL, param->tol, param->maxit,
                               20, 1, prtlvl);
@@ -427,7 +432,7 @@ INT linear_solver_amg (dCSRmat *A,
  * \author Xiaozhe Hu
  * \date   10/06/2015
  */
-INT linear_solver_dcsr_krylov (dCSRmat *A,
+INT linear_solver_dcsr_krylov(dCSRmat *A,
                              dvector *b,
                              dvector *x,
                              linear_itsolver_param *itparam)
@@ -469,10 +474,10 @@ INT linear_solver_dcsr_krylov (dCSRmat *A,
  * \author Xiaozhe Hu
  * \date   10/06/2015
  */
-INT linear_solver_dcsr_krylov_diag (dCSRmat *A,
-                                  dvector *b,
-                                  dvector *x,
-                                  linear_itsolver_param *itparam)
+INT linear_solver_dcsr_krylov_diag(dCSRmat *A,
+                                   dvector *b,
+                                   dvector *x,
+                                   linear_itsolver_param *itparam)
 {
     const SHORT prtlvl = itparam->linear_print_level;
     
@@ -525,11 +530,11 @@ INT linear_solver_dcsr_krylov_diag (dCSRmat *A,
  * \author Xiaozhe Hu
  * \date   10/06/2015
  */
-INT linear_solver_dcsr_krylov_amg (dCSRmat *A,
-                                 dvector *b,
-                                 dvector *x,
-                                 linear_itsolver_param *itparam,
-                                 AMG_param *amgparam)
+INT linear_solver_dcsr_krylov_amg(dCSRmat *A,
+                                  dvector *b,
+                                  dvector *x,
+                                  linear_itsolver_param *itparam,
+                                  AMG_param *amgparam)
 {
     const SHORT prtlvl = itparam->linear_print_level;
     const SHORT max_levels = amgparam->max_levels;
@@ -625,13 +630,13 @@ FINISHED:
  * \author Xiaozhe Hu
  * \date   02/10/2016
  */
-INT linear_solver_dcsr_krylov_hx_curl (dCSRmat *A,
-                                   dvector *b,
-                                   dvector *x,
-                                   linear_itsolver_param *itparam,
-                                   AMG_param *amgparam,
-                                   dCSRmat *P_curl,
-                                   dCSRmat *Grad)
+INT linear_solver_dcsr_krylov_hx_curl(dCSRmat *A,
+                                      dvector *b,
+                                      dvector *x,
+                                      linear_itsolver_param *itparam,
+                                      AMG_param *amgparam,
+                                      dCSRmat *P_curl,
+                                      dCSRmat *Grad)
 {    
     const SHORT prtlvl = itparam->linear_print_level;
     const SHORT max_levels = amgparam->max_levels;
@@ -785,10 +790,10 @@ FINISHED:
  * \author Xiaozhe Hu
  * \date   07/18/2010
  */
-INT linear_solver_bdcsr_krylov (block_dCSRmat *A,
-                                dvector *b,
-                                dvector *x,
-                                linear_itsolver_param *itparam)
+INT linear_solver_bdcsr_krylov(block_dCSRmat *A,
+                               dvector *b,
+                               dvector *x,
+                               linear_itsolver_param *itparam)
 {   
     const SHORT prtlvl = itparam->linear_print_level;
     
@@ -804,9 +809,12 @@ INT linear_solver_bdcsr_krylov (block_dCSRmat *A,
     
     solver_duration = solver_end - solver_start;
     
-    if ( prtlvl >= PRINT_MIN )
+    if ( prtlvl >= PRINT_MIN ){
         print_cputime("Krylov method totally", solver_duration);
+        printf("**********************************************************\n");
+    }
     
+
     return status;
 }
 
@@ -832,12 +840,12 @@ INT linear_solver_bdcsr_krylov (block_dCSRmat *A,
  *
  * \note only works for 2 by 2 block dCSRmat problems!! -- Xiaozhe Hu
  */
-INT linear_solver_bdcsr_krylov_block_2 (block_dCSRmat *A,
-                                        dvector *b,
-                                        dvector *x,
-                                        linear_itsolver_param *itparam,
-                                        AMG_param *amgparam,
-                                        dCSRmat *A_diag)
+INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
+                                       dvector *b,
+                                       dvector *x,
+                                       linear_itsolver_param *itparam,
+                                       AMG_param *amgparam,
+                                       dCSRmat *A_diag)
 {
   const SHORT prtlvl = itparam->linear_print_level;
   const SHORT precond_type = itparam->linear_precond_type;
@@ -921,8 +929,10 @@ INT linear_solver_bdcsr_krylov_block_2 (block_dCSRmat *A,
   
   solver_duration = solver_end - solver_start;
   
-  if ( prtlvl >= PRINT_MIN )
+  if ( prtlvl >= PRINT_MIN ) {
     print_cputime("Krylov method totally", solver_duration);
+    printf("**********************************************************\n");
+  }
   
   // clean
 #if WITH_SUITESPARSE
@@ -954,12 +964,12 @@ INT linear_solver_bdcsr_krylov_block_2 (block_dCSRmat *A,
  *
  * \note only works for 3 by 3 block dCSRmat problems!! -- Xiaozhe Hu
  */
-INT linear_solver_bdcsr_krylov_block_3 (block_dCSRmat *A,
-                                      dvector *b,
-                                      dvector *x,
-                                      linear_itsolver_param *itparam,
-                                      AMG_param *amgparam,
-                                      dCSRmat *A_diag)
+INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
+                                       dvector *b,
+                                       dvector *x,
+                                       linear_itsolver_param *itparam,
+                                       AMG_param *amgparam,
+                                       dCSRmat *A_diag)
 {
     const SHORT prtlvl = itparam->linear_print_level;
     const SHORT precond_type = itparam->linear_precond_type;
@@ -1044,8 +1054,10 @@ INT linear_solver_bdcsr_krylov_block_3 (block_dCSRmat *A,
     
     solver_duration = solver_end - solver_start;
     
-    if ( prtlvl >= PRINT_MIN )
+    if ( prtlvl >= PRINT_MIN ) {
         print_cputime("Krylov method totally", solver_duration);
+        printf("**********************************************************\n");
+    }
     
     // clean
     /* diagonal blocks are solved exactly */
@@ -1079,12 +1091,12 @@ INT linear_solver_bdcsr_krylov_block_3 (block_dCSRmat *A,
  *
  * \note only works for 4 by 4 block dCSRmat problems!! -- Xiaozhe Hu
  */
-INT linear_solver_bdcsr_krylov_block_4 (block_dCSRmat *A,
-                                      dvector *b,
-                                      dvector *x,
-                                      linear_itsolver_param *itparam,
-                                      AMG_param *amgparam,
-                                      dCSRmat *A_diag)
+INT linear_solver_bdcsr_krylov_block_4(block_dCSRmat *A,
+                                       dvector *b,
+                                       dvector *x,
+                                       linear_itsolver_param *itparam,
+                                       AMG_param *amgparam,
+                                       dCSRmat *A_diag)
 {
     const SHORT prtlvl = itparam->linear_print_level;
     const SHORT precond_type = itparam->linear_precond_type;
@@ -1168,8 +1180,10 @@ INT linear_solver_bdcsr_krylov_block_4 (block_dCSRmat *A,
 
     solver_duration = solver_end - solver_start;
 
-    if ( prtlvl >= PRINT_MIN )
+    if ( prtlvl >= PRINT_MIN ) {
         print_cputime("Krylov method totally", solver_duration);
+        printf("**********************************************************\n");
+    }
 
     // clean
     /* diagonal blocks are solved exactly */
@@ -1204,12 +1218,12 @@ INT linear_solver_bdcsr_krylov_block_4 (block_dCSRmat *A,
  *
  * \note only works for 2 by 2 block dCSRmat problems!! -- Xiaozhe Hu
  */
-INT linear_solver_bdcsr_krylov_mixed_darcy (block_dCSRmat *A,
-                                            dvector *b,
-                                            dvector *x,
-                                            linear_itsolver_param *itparam,
-                                            AMG_param *amgparam,
-                                            dvector *el_vol)
+INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
+                                           dvector *b,
+                                           dvector *x,
+                                           linear_itsolver_param *itparam,
+                                           AMG_param *amgparam,
+                                           dvector *el_vol)
 {  
   const SHORT prtlvl = itparam->linear_print_level;
   const SHORT precond_type = itparam->linear_precond_type;
@@ -1308,9 +1322,11 @@ INT linear_solver_bdcsr_krylov_mixed_darcy (block_dCSRmat *A,
   
   solver_duration = solver_end - solver_start;
   
-  if ( prtlvl >= PRINT_MIN )
+  if ( prtlvl >= PRINT_MIN ) {
     print_cputime("Krylov method totally", solver_duration);
-  
+    printf("**********************************************************\n");
+  }
+
   // clean
   dcsr_free(&BTB);
   amg_data_free(mgl[0], amgparam);
@@ -1346,12 +1362,12 @@ INT linear_solver_bdcsr_krylov_mixed_darcy (block_dCSRmat *A,
  *
  * \note only works for 2 by 2 block dCSRmat problems!! -- Xiaozhe Hu
  */
-INT linear_solver_bdcsr_krylov_biot_2phase (block_dCSRmat *A,
-                                            dvector *b,
-                                            dvector *x,
-                                            linear_itsolver_param *itparam,
-                                            AMG_param *amgparam,
-                                            dCSRmat *Mp)
+INT linear_solver_bdcsr_krylov_biot_2phase(block_dCSRmat *A,
+                                           dvector *b,
+                                           dvector *x,
+                                           linear_itsolver_param *itparam,
+                                           AMG_param *amgparam,
+                                           dCSRmat *Mp)
 {
   const SHORT prtlvl = itparam->linear_print_level;
   const SHORT precond_type = itparam->linear_precond_type;
@@ -1464,8 +1480,10 @@ INT linear_solver_bdcsr_krylov_biot_2phase (block_dCSRmat *A,
 
   solver_duration = solver_end - solver_start;
 
-  if ( prtlvl >= PRINT_MIN )
+  if ( prtlvl >= PRINT_MIN ) {
     print_cputime("Krylov method totally", solver_duration);
+    printf("**********************************************************\n");
+  }
 
   // clean
   amg_data_free(mgl[0], amgparam);
@@ -1509,18 +1527,18 @@ INT linear_solver_bdcsr_krylov_biot_2phase (block_dCSRmat *A,
  *                     A_EB  A_EE  A_Ep
  *                     A_pB  A_pE  A_pp]
  */
-INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A,
-                                        dvector *b,
-                                        dvector *x,
-                                        linear_itsolver_param *itparam,
-                                        AMG_param *amgparam,
-                                        dCSRmat *A_diag,
-                                        dCSRmat *P_curl,
-                                        dCSRmat *Grad,
-                                        dCSRmat *Gb,
-                                        dCSRmat *Kb,
-                                        dCSRmat *Gtb,
-                                        dCSRmat *Ktb)
+INT linear_solver_bdcsr_krylov_maxwell(block_dCSRmat *A,
+                                       dvector *b,
+                                       dvector *x,
+                                       linear_itsolver_param *itparam,
+                                       AMG_param *amgparam,
+                                       dCSRmat *A_diag,
+                                       dCSRmat *P_curl,
+                                       dCSRmat *Grad,
+                                       dCSRmat *Gb,
+                                       dCSRmat *Kb,
+                                       dCSRmat *Gtb,
+                                       dCSRmat *Ktb)
 {    
     const SHORT prtlvl = itparam->linear_print_level;
     const SHORT precond_type = itparam->linear_precond_type;
@@ -1864,8 +1882,10 @@ INT linear_solver_bdcsr_krylov_maxwell (block_dCSRmat *A,
     
     solver_duration = solver_end - solver_start;
     
-    if ( prtlvl >= PRINT_MIN )
+    if ( prtlvl >= PRINT_MIN ) {
         print_cputime("Krylov method for Maxwell totally", solver_duration);
+        printf("**********************************************************\n");
+    }
 
 FINISHED:
     // clean

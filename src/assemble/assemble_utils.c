@@ -824,7 +824,7 @@ void eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL),fespace *FE,trimesh *m
     cola = A->IA[i]-1;
     colb = A->IA[i+1]-1;
     if(FE->dirichlet[i]==1) { // Boundary Row
-      // Loop over columns and 0 out row except for diagonal
+      // Loop over columns and 0 out everything in a row except for diagonal
       for(j=cola; j<colb; j++) {
         if(A->JA[j]==i+1)
           A->val[j] = 1.0;

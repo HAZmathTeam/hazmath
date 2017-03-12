@@ -72,14 +72,14 @@ void param_input_init (input_param *inparam)
     
     // AMG method parameters
     inparam->AMG_type                 = UA_AMG;
-    inparam->AMG_levels               = 10;
+    inparam->AMG_levels               = 5;
     inparam->AMG_cycle_type           = V_CYCLE;
     inparam->AMG_smoother             = SMOOTHER_GS;
     inparam->AMG_presmooth_iter       = 1;
     inparam->AMG_postsmooth_iter      = 1;
     inparam->AMG_polynomial_degree    = 2;
     inparam->AMG_relaxation           = 1.2;
-    inparam->AMG_coarse_dof           = 100;
+    inparam->AMG_coarse_dof           = 200;
     inparam->AMG_coarse_solver        = SOLVER_DEFAULT;
     inparam->AMG_tol                  = 1e-6;
     inparam->AMG_maxit                = 1;
@@ -89,7 +89,7 @@ void param_input_init (input_param *inparam)
 
     // Aggregation AMG specific
     inparam->AMG_aggregation_type     = VMB;
-    inparam->AMG_strong_coupled       = 0.00;
+    inparam->AMG_strong_coupled       = 0.08;
     inparam->AMG_max_aggregation      = 20;
 
     // HX Preconditioner
@@ -116,8 +116,8 @@ void param_amg_init (AMG_param *amgparam)
     amgparam->print_level          = PRINT_NONE;
     amgparam->maxit                = 1;
     amgparam->tol                  = 1e-6;
-    amgparam->max_levels           = 10;
-    amgparam->coarse_dof           = 100;
+    amgparam->max_levels           = 5;
+    amgparam->coarse_dof           = 200;
     amgparam->cycle_type           = V_CYCLE;
     amgparam->smoother             = SMOOTHER_GS;
     amgparam->presmooth_iter       = 1;

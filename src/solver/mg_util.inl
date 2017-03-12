@@ -5,14 +5,18 @@
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 12/25/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
+ *  \note  Done cleanup for releasing -- Xiaozhe Hu 03/12/2017
+ *
+ *  \todo Combine pre- and post-smoothing and use a flag to make sure the symmetry whenever is necessary -- Xiaozhe Hu
+ *
  */
 
 /*---------------------------------*/
 /*--      Private Functions      --*/
 /*---------------------------------*/
 /**
- * \fn static void coarse_itsolver (dCSRmat *A, dvector *b, dvector *x,
- *                                       const REAL ctol, const SHORT prt_lvl)
+ * \fn static void coarse_itsolver(dCSRmat *A, dvector *b, dvector *x,
+ *                                 const REAL ctol, const SHORT prt_lvl)
  *
  * \brief Iterative on the coarset level
  *
@@ -22,27 +26,25 @@
  * \param  ctol      tolerance for the coarsest level
  * \param  prt_lvl   level of output
  *
- * \author Chensong Zhang
- * \date   01/10/2012
  */
-static void coarse_itsolver (dCSRmat *A,
-                                  dvector *b,
-                                  dvector *x,
-                                  const REAL ctol,
-                                  const SHORT prt_lvl)
+static void coarse_itsolver(dCSRmat *A,
+                            dvector *b,
+                            dvector *x,
+                            const REAL ctol,
+                            const SHORT prt_lvl)
 { 
     const INT n = A->row;
-    const INT maxit = MAX(250,MIN(n*n, 1000)); // Should NOT be less!
+    const INT maxit = 20*n;
 
     INT status = dcsr_pcg(A, b, x, NULL, ctol, maxit, 1, 0);
 
     // If CG fails to converge, use GMRES as another safe net
     if ( status < 0 ) {
-        status = dcsr_pvgmres(A, b, x, NULL, ctol, maxit, 20, 1, 0);
+        status = dcsr_pvgmres(A, b, x, NULL, ctol, maxit, 30, 1, 0);
     }
 
     if ( status < 0 && prt_lvl >= PRINT_MORE ) {
-        printf("### WARNING: Coarse level solver failed to converge!\n");
+        printf("### HAZMATH WARNING: Coarse level solver failed to converge!\n");
     }
 }
 
@@ -51,9 +53,9 @@ static void coarse_itsolver (dCSRmat *A,
  *                                         dvector *b, dvector *x,
  *                                         const INT nsweeps, const INT istart,
  *                                         const INT iend, const INT istep,
- *                                         const REAL relax, const SHORT ndeg)
+ *                                         const REAL relax)
  *
- * \brief Multigrid presmoothing
+ * \brief  Pre-smoothing
  *
  * \param  smoother  type of smoother
  * \param  A         pointer to matrix data
@@ -64,24 +66,17 @@ static void coarse_itsolver (dCSRmat *A,
  * \param  iend      ending index
  * \param  istep     step size
  * \param  relax     relaxation parameter for SOR-type smoothers
- * \param  ndeg      degree of the polynomial smoother
  *
- * \author Chensong Zhang
- * \date   01/10/2012
- *
- * Modified by Xiaozhe on 06/04/2012: add ndeg as input
- * Modified by Chensong on 02/16/2013: GS -> SMOOTHER_GS, etc
  */
-static void dcsr_presmoothing (const SHORT smoother,
-                                    dCSRmat *A,
-                                    dvector *b,
-                                    dvector *x,
-                                    const INT nsweeps,
-                                    const INT istart,
-                                    const INT iend,
-                                    const INT istep,
-                                    const REAL relax,
-                                    const SHORT ndeg)
+static void dcsr_presmoothing(const SHORT smoother,
+                              dCSRmat *A,
+                              dvector *b,
+                              dvector *x,
+                              const INT nsweeps,
+                              const INT istart,
+                              const INT iend,
+                              const INT istep,
+                              const REAL relax)
 {    
     switch (smoother) {
 
@@ -137,9 +132,9 @@ static void dcsr_presmoothing (const SHORT smoother,
  *                                          dvector *b, dvector *x,
  *                                          const INT nsweeps, const INT istart,
  *                                          const INT iend, const INT istep,
- *                                          const REAL relax, const SHORT ndeg)
+ *                                          const REAL relax)
  *
- * \brief Multigrid presmoothing
+ * \brief  Post-smoothing
  *
  * \param  smoother  type of smoother
  * \param  A         pointer to matrix data
@@ -150,24 +145,17 @@ static void dcsr_presmoothing (const SHORT smoother,
  * \param  iend      ending index
  * \param  istep     step size
  * \param  relax     relaxation parameter for SOR-type smoothers
- * \param  ndeg      degree of the polynomial smoother
  *
- * \author Chensong Zhang
- * \date   01/10/2012
- *
- * Modified by Xiaozhe Hu on 06/04/2012: add ndeg as input
- * Modified by Chensong on 02/16/2013: GS -> SMOOTHER_GS, etc
  */
-static void dcsr_postsmoothing (const SHORT smoother,
-                                     dCSRmat *A,
-                                     dvector *b,
-                                     dvector *x,
-                                     const INT nsweeps,
-                                     const INT istart,
-                                     const INT iend,
-                                     const INT istep,
-                                     const REAL relax,
-                                     const SHORT ndeg)
+static void dcsr_postsmoothing(const SHORT smoother,
+                               dCSRmat *A,
+                               dvector *b,
+                               dvector *x,
+                               const INT nsweeps,
+                               const INT istart,
+                               const INT iend,
+                               const INT istep,
+                               const REAL relax)
 {   
     switch (smoother) {
 

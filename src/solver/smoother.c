@@ -5,6 +5,11 @@
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 12/25/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
+ *  \note  Done cleanup for releasing -- Xiaozhe Hu 03/12/2017
+ *
+ *  \todo allow different ordering in smoothers -- Xiaozhe Hu
+ *  \todo add polynomial smoother, ilu smoothers, and block smoothers -- Xiaozhe Hu
+ *
  */
 
 #include "hazmath.h"
@@ -16,7 +21,7 @@
  * \fn void smoother_dcsr_jacobi (dvector *u, const INT i_1, const INT i_n,
  *                                     const INT s, dCSRmat *A, dvector *b, INT L)
  *
- * \brief Jacobi method as a smoother
+ * \brief Jacobi smoother
  *
  * \param u      Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
  * \param i_1    Starting index
@@ -27,13 +32,13 @@
  * \param L      Number of iterations
  *
  */
-void smoother_dcsr_jacobi (dvector *u,
-                                const INT i_1,
-                                const INT i_n,
-                                const INT s,
-                                dCSRmat *A,
-                                dvector *b,
-                                INT L)
+void smoother_dcsr_jacobi(dvector *u,
+                          const INT i_1,
+                          const INT i_n,
+                          const INT s,
+                          dCSRmat *A,
+                          dvector *b,
+                          INT L)
 {  
     const INT    N = ABS(i_n - i_1)+1;
     const INT   *ia=A->IA, *ja=A->JA;
@@ -59,7 +64,6 @@ void smoother_dcsr_jacobi (dvector *u,
             }
             
             for (i=i_1;i<=i_n;i+=s) {
-                //if (ABS(d[i])>SMALLREAL) uval[i]= w*t[i]/d[i];
                 if (ABS(d[i])>SMALLREAL) uval[i]=(1-w)*uval[i]+ w*t[i]/d[i];
             }
         }
@@ -75,7 +79,6 @@ void smoother_dcsr_jacobi (dvector *u,
             }
 
             for (i=i_1;i>=i_n;i+=s) {
-                //if (ABS(d[i])>SMALLREAL) uval[i]=t[i]/d[i];
                 if (ABS(d[i])>SMALLREAL) uval[i]=(1-w)*uval[i]+ w*t[i]/d[i];
             }
         }
@@ -89,10 +92,10 @@ void smoother_dcsr_jacobi (dvector *u,
 }
 
 /**
- * \fn void smoother_dcsr_gs (dvector *u, const INT i_1, const INT i_n,
+ * \fn void smoother_dcsr_gs(dvector *u, const INT i_1, const INT i_n,
  *                                 const INT s, dCSRmat *A, dvector *b, INT L)
  *
- * \brief Gauss-Seidel method as a smoother
+ * \brief Gauss-Seidel smoother
  *
  * \param u    Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
  * \param i_1  Starting index
@@ -103,13 +106,13 @@ void smoother_dcsr_jacobi (dvector *u,
  * \param L    Number of iterations
  *
  */
-void smoother_dcsr_gs (dvector *u,
-                            const INT i_1,
-                            const INT i_n,
-                            const INT s,
-                            dCSRmat *A,
-                            dvector *b,
-                            INT L)
+void smoother_dcsr_gs(dvector *u,
+                      const INT i_1,
+                      const INT i_n,
+                      const INT s,
+                      dCSRmat *A,
+                      dvector *b,
+                      INT L)
 {
     const INT   *ia=A->IA,*ja=A->JA;
     const REAL  *aj=A->val,*bval=b->val;
@@ -179,23 +182,21 @@ void smoother_dcsr_gs (dvector *u,
 
 
 /**
- * \fn void smoother_dcsr_sgs (dvector *u, dCSRmat *A, dvector *b, INT L)
+ * \fn void smoother_dcsr_sgs(dvector *u, dCSRmat *A, dvector *b, INT L)
  *
- * \brief Symmetric Gauss-Seidel method as a smoother
+ * \brief Symmetric Gauss-Seidel smoother
  *
  * \param u      Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
  * \param A      Pointer to dBSRmat: the coefficient matrix
  * \param b      Pointer to dvector: the right hand side
  * \param L      Number of iterations
  *
- * \author Xiaozhe Hu
- * \date   10/26/2010
  *
  */
-void smoother_dcsr_sgs (dvector *u,
-                             dCSRmat *A,
-                             dvector *b,
-                             INT L)
+void smoother_dcsr_sgs(dvector *u,
+                       dCSRmat *A,
+                       dvector *b,
+                       INT L)
 { 
     const INT    nm1=b->row-1;
     const INT   *ia=A->IA,*ja=A->JA;
@@ -237,10 +238,10 @@ void smoother_dcsr_sgs (dvector *u,
 }
 
 /**
- * \fn void smoother_dcsr_sor (dvector *u, const INT i_1, const INT i_n, const INT s,
- *                                  dCSRmat *A, dvector *b, INT L, const REAL w)
+ * \fn void smoother_dcsr_sor(dvector *u, const INT i_1, const INT i_n, const INT s,
+ *                                 dCSRmat *A, dvector *b, INT L, const REAL w)
  *
- * \brief SOR method as a smoother
+ * \brief SOR smoother
  *
  * \param u      Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
  * \param i_1    Starting index
@@ -251,18 +252,16 @@ void smoother_dcsr_sgs (dvector *u,
  * \param L      Number of iterations
  * \param w      Over-relaxation weight
  *
- * \author Xiaozhe Hu
- * \date   10/26/2010
  *
  */
-void smoother_dcsr_sor (dvector *u,
-                             const INT i_1,
-                             const INT i_n,
-                             const INT s,
-                             dCSRmat *A,
-                             dvector *b,
-                             INT L,
-                             const REAL w)
+void smoother_dcsr_sor(dvector *u,
+                       const INT i_1,
+                       const INT i_n,
+                       const INT s,
+                       dCSRmat *A,
+                       dvector *b,
+                       INT L,
+                       const REAL w)
 {   
     const INT   *ia=A->IA,*ja=A->JA;
     const REAL  *aj=A->val,*bval=b->val;
@@ -308,10 +307,10 @@ void smoother_dcsr_sor (dvector *u,
 }
 
 /**
- * \fn void smoother_dcsr_L1diag (dvector *u, const INT i_1, const INT i_n, const INT s,
+ * \fn void smoother_dcsr_L1diag(dvector *u, const INT i_1, const INT i_n, const INT s,
  *                                     dCSRmat *A, dvector *b, INT L)
  *
- * \brief Diagonal scaling (using L1 norm) as a smoother
+ * \brief Diagonal scaling (using L1 norm) smoother
  *
  * \param u      Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
  * \param i_1    Starting index
@@ -321,17 +320,14 @@ void smoother_dcsr_sor (dvector *u,
  * \param b      Pointer to dvector: the right hand side
  * \param L      Number of iterations
  *
- * \author Xiaozhe Hu, James Brannick
- * \date   01/26/2011
- *
  */
-void smoother_dcsr_L1diag (dvector *u,
-                                const INT i_1,
-                                const INT i_n,
-                                const INT s,
-                                dCSRmat *A,
-                                dvector *b,
-                                INT L)
+void smoother_dcsr_L1diag(dvector *u,
+                          const INT i_1,
+                          const INT i_n,
+                          const INT s,
+                          dCSRmat *A,
+                          dvector *b,
+                          INT L)
 { 
     const INT    N = ABS(i_n - i_1)+1;
     const INT   *ia=A->IA, *ja=A->JA;

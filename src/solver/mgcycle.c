@@ -5,13 +5,12 @@
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 12/25/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
+ * \note   Done cleanup for releasing -- Xiaozhe Hu 03/12/2017
+ *
  */
 
 #include "hazmath.h"
 #include "mg_util.inl"
-
-static SHORT krylov_cycle_dcsr_pgcg(dCSRmat *, dvector *, dvector *, precond *);
-static SHORT krylov_cycle_dcsr_pgcr(dCSRmat *, dvector *, dvector *, precond *);
 
 /*---------------------------------*/
 /*--      Public Functions       --*/
@@ -19,7 +18,7 @@ static SHORT krylov_cycle_dcsr_pgcr(dCSRmat *, dvector *, dvector *, precond *);
 /**
  * \fn void mgcycle (AMG_data *mgl, AMG_param *param)
  *
- * \brief Solve Ax=b with non-recursive multigrid cycle
+ * \brief Solve Ax=b with non-recursive multigrid cycle (V- and W-cycle)
  *
  * \param mgl    Pointer to AMG data: AMG_data
  * \param param  Pointer to AMG parameters: AMG_param
@@ -28,8 +27,8 @@ static SHORT krylov_cycle_dcsr_pgcr(dCSRmat *, dvector *, dvector *, precond *);
  * \date   12/25/2015
  *
  */
-void mgcycle (AMG_data *mgl,
-              AMG_param *param)
+void mgcycle(AMG_data *mgl,
+             AMG_param *param)
 {    
     const SHORT  prtlvl = param->print_level;
     const SHORT  amg_type = param->AMG_type;
@@ -39,7 +38,6 @@ void mgcycle (AMG_data *mgl,
     const SHORT  nl = mgl[0].num_levels;
     const REAL   relax = param->relaxation;
     const REAL   tol = param->tol * 1e-4;
-    const SHORT  ndeg = param->polynomial_degree;    
     
     // local variables
     REAL alpha = 1.0;
@@ -53,7 +51,7 @@ ForwardSweep:
         // pre-smoothing with standard smoothers
         dcsr_presmoothing(smoother, &mgl[l].A, &mgl[l].b, &mgl[l].x,
                           param->presmooth_iter, 0, mgl[l].A.row-1, 1,
-                          relax, ndeg);
+                          relax);
         
         // form residual r = b - A x
         array_cp(mgl[l].A.row, mgl[l].b.val, mgl[l].w.val);
@@ -118,7 +116,7 @@ ForwardSweep:
         // post-smoothing with standard methods
         dcsr_postsmoothing(smoother, &mgl[l].A, &mgl[l].b, &mgl[l].x,
                            param->postsmooth_iter, 0, mgl[l].A.row-1, -1,
-                           relax, ndeg);
+                           relax);
         
         if ( num_lvl[l] < cycle_type ) break;
         else num_lvl[l] = 0;
@@ -148,9 +146,9 @@ ForwardSweep:
  *        two-level methods", 2013.
  *
  */
-void amli (AMG_data *mgl,
-           AMG_param *param,
-           INT level)
+void amli(AMG_data *mgl,
+          AMG_param *param,
+          INT level)
 {    
     const SHORT  amg_type=param->AMG_type;
     const SHORT  prtlvl = param->print_level;
@@ -159,7 +157,6 @@ void amli (AMG_data *mgl,
     const SHORT  degree= param->amli_degree;
     const REAL   relax = param->relaxation;
     const REAL   tol = param->tol*1e-4;
-    const SHORT  ndeg = param->polynomial_degree;
     
     // local variables
     REAL   alpha  = 1.0;
@@ -183,7 +180,7 @@ void amli (AMG_data *mgl,
                 
         // presmoothing
         dcsr_presmoothing(smoother,A0,b0,e0,param->presmooth_iter,
-                          0,m0-1,1,relax,ndeg);
+                          0,m0-1,1,relax);
         
         // form residual r = b - A x
         array_cp(m0,b0->val,r);
@@ -238,7 +235,7 @@ void amli (AMG_data *mgl,
         
         // postsmoothing
         dcsr_postsmoothing(smoother,A0,b0,e0,param->postsmooth_iter,
-                           0,m0-1,-1,relax,ndeg);
+                           0,m0-1,-1,relax);
 
     }
     
@@ -264,8 +261,7 @@ void amli (AMG_data *mgl,
 }
 
 /**
- * \fn void nl_amli (AMG_data *mgl, AMG_param *param,
- *                               INT level, INT num_levels)
+ * \fn void nl_amli(AMG_data *mgl, AMG_param *param, INT level, INT num_levels)
  *
  * \brief Solve Ax=b with recursive nonlinear AMLI-cycle
  *
@@ -291,8 +287,8 @@ void nl_amli (AMG_data *mgl,
     const SHORT  smoother = param->smoother;
     const SHORT  coarse_solver = param->coarse_solver;
     const REAL   relax = param->relaxation;
+    const INT    maxit = param->amli_degree+1;
     const REAL   tol = param->tol*1e-4;
-    const SHORT  ndeg = param->polynomial_degree;
     
     dvector *b0 = &mgl[level].b,   *e0 = &mgl[level].x;   // fine level b and x
     dvector *b1 = &mgl[level+1].b, *e1 = &mgl[level+1].x; // coarse level b and x
@@ -302,10 +298,11 @@ void nl_amli (AMG_data *mgl,
     
     const INT m0 = A0->row, m1 = A1->row;
     
-    REAL     *r        = mgl[level].w.val;      // work array for residual
+    REAL    *r = mgl[level].w.val;      // work array for residual
     
-    dvector uH;  // for coarse level correction
+    dvector uH, bH;  // for coarse level correction
     uH.row = m1; uH.val = mgl[level+1].w.val + m1;
+    bH.row = m1; bH.val = mgl[level+1].w.val + 2*m1;
 
     if ( prtlvl >= PRINT_MOST )
         printf("Nonlinear AMLI level %d, smoother %d.\n", num_levels, smoother);
@@ -314,7 +311,7 @@ void nl_amli (AMG_data *mgl,
         
         // presmoothing
         dcsr_presmoothing(smoother,A0,b0,e0,param->presmooth_iter,
-                          0,m0-1,1,relax,ndeg);
+                          0,m0-1,1,relax);
         
         // form residual r = b - A x
         array_cp(m0,b0->val,r);
@@ -334,13 +331,11 @@ void nl_amli (AMG_data *mgl,
         {
             dvec_set(m1,e1,0.0);
             
-            // V-cycle will be enforced when needed !!!
-            if ( mgl[level+1].cycle_type <= 1 ) {
-                
+            // The coarsest problem is solved exactly.
+            // No need to call krylov method on second coarest level
+            if ( level == num_levels-2 ) {
                 nl_amli(&mgl[level+1], param, 0, num_levels-1);
-                
             }
-            
             else { // recursively call preconditioned Krylov method on coarse grid
                 
                 precond_data pcdata;
@@ -354,20 +349,20 @@ void nl_amli (AMG_data *mgl,
                 pc.data = &pcdata;
                 pc.fct = precond_nl_amli;
                 
-                array_cp (m1, e1->val, uH.val);
+                array_cp(m1, b1->val, bH.val);
+                array_cp(m1, e1->val, uH.val);
                 
                 switch (param->nl_amli_krylov_type) {
-                        
                     case SOLVER_GCG: // Use GCG
-                        krylov_cycle_dcsr_pgcg(A1,b1,&uH,&pc);
-                        break;
-                        
-                    default: // Use GCR
-                        krylov_cycle_dcsr_pgcr(A1,b1,&uH,&pc);
+                        dcsr_pgcg(A1,&bH,&uH,&pc,tol,maxit,1,PRINT_NONE);
+                        break;                      
+                    default: // Use FGMRES
+                        dcsr_pvfgmres(A1,&bH,&uH,&pc,tol,maxit,30,1,PRINT_NONE);
                         break;
                 }
                 
-                array_cp (m1, uH.val, e1->val);
+                array_cp(m1, bH.val, b1->val);
+                array_cp(m1, uH.val, e1->val);
             }
             
         }
@@ -384,7 +379,7 @@ void nl_amli (AMG_data *mgl,
         
         // postsmoothing
         dcsr_postsmoothing(smoother,A0,b0,e0,param->postsmooth_iter,
-                           0,m0-1,-1,relax,ndeg);
+                           0,m0-1,-1,relax);
         
     }
     
@@ -408,212 +403,6 @@ void nl_amli (AMG_data *mgl,
     }
 
 }
-
-/*---------------------------------*/
-/*--     Private Functions       --*/
-/*---------------------------------*/
-/**
- * \fn static SHORT krylov_cycle_dcsr_pgcg (dCSRmat *A, dvector *b,
- *                                               dvector *u, precond *pc)
- *
- * \brief A preconditioned GCR method for solving Au=b
- *
- * \param *A    Pointer to the coefficient matrix
- * \param *b    Pointer to the dvector of right hand side
- * \param *u    Pointer to the dvector of DOFs
- * \param *pre  Pointer to the structure of precondition (precond)
- *
- * \author Zheng Li, Chensong Zhang
- * \date   11/09/2014
- *
- * \note   Specified for unsmoothed aggregation cycle
- */
-static SHORT krylov_cycle_dcsr_pgcg (dCSRmat *A,
-                                     dvector *b,
-                                     dvector *u,
-                                     precond *pc)
-{    
-    REAL   absres, relres, normb;
-    REAL   alpha1, alpha2, gamma1, gamma2, rho1, rho2, beta1, beta2, beta3, beta4;
-    REAL   *work, *r, *x1, *v1, *v2;
-    
-    INT    m=A->row;
-    REAL   *x = u->val;
-    
-    // allocate temp memory
-    work = (REAL *)calloc(4*m,sizeof(REAL));
-    r = work; x1 = r + m; v1 = r + 2*m; v2 = r + 3*m;
-    
-    normb = array_norm2(m, b->val);
-    
-    array_cp(m, b->val, r);
-    
-    // Preconditioning
-    if (pc != NULL)
-        pc->fct(r, x, pc->data);
-    else
-        array_cp(m, r, x);
-    
-    // v1 = A*p
-    dcsr_mxv(A, x, v1);
-    
-    // rho1 = (p,v1)
-    rho1 = array_dotprod (m, x, v1);
-    
-    // alpha1 = (p, r)
-    alpha1 = array_dotprod (m, x, r);
-    
-    beta1 = alpha1/rho1;
-    
-    // r = r - beta1 *v1
-    array_axpy(m, -beta1, v1, r);
-    
-    // norm(r)
-    absres = array_norm2(m, r);
-    
-    // compute relative residual
-    relres = absres/normb;
-    
-    // if relres reaches tol(0.2), pgcg will stop,
-    // otherwise, another one pgcg iteration will do.
-    if (relres < 0.2) {
-        array_ax(m, beta1, x);
-        free(work);
-        return SUCCESS;
-    }
-    
-    // Preconditioning
-    if (pc != NULL)
-        pc->fct(r, x1, pc->data);
-    else
-        array_cp(m, r, x1);
-    
-    //v2 = A*p
-    dcsr_mxv(A, x1, v2);
-    
-    //gamma0 = (x1,v1)
-    gamma1 = array_dotprod (m, x1, v1);
-    
-    //alpha2 = (x1,r)
-    alpha2  = array_dotprod(m, x1, r);
-    
-    //rho2 = (x1,v2)
-    rho2 = array_dotprod(m, x1, v2);
-    
-    gamma2 = gamma1;
-    
-    beta2 = rho2 - gamma1*gamma2/rho1;
-    beta3 = (alpha1 - gamma2*alpha2/beta2)/rho1;
-    beta4 = alpha2/beta2;
-    
-    array_ax(m, beta3, x);
-    
-    array_axpy(m, beta4, x1, x);
-    
-    // free
-    free(work);
-    return SUCCESS;
-}
-
-/**
- * \fn static SHORT krylov_cycle_dcsr_pgcr (dCSRmat *A, dvector *b,
- *                                               dvector *u, precond *pc)
- *
- * \brief A preconditioned GCR method for solving Au=b
- *
- * \param *A    Pointer to the coefficient matrix
- * \param *b    Pointer to the dvector of right hand side
- * \param *u    Pointer to the dvector of DOFs
- * \param *pre  Pointer to the structure of precondition (precond)
- *
- * \author zheng Li, Chensong Zhang
- * \date   11/09/2014
- *
- * \note   Specified for unsmoothed aggregation cycle.
- */
-static SHORT krylov_cycle_dcsr_pgcr (dCSRmat *A,
-                                     dvector *b,
-                                     dvector *u,
-                                     precond *pc)
-{    
-    REAL   absres = BIGREAL;
-    REAL   relres  = BIGREAL, normb  = BIGREAL;
-    REAL   alpha, alpha1, alpha2, alpha3, alpha4, beta, gamma, rho1, rho2;
-    
-    INT    m=A->row;
-    REAL   *x = u->val;
-    
-    // allocate temp memory
-    REAL *work, *r, *x1, *v1, *v2;
-    work = (REAL *)calloc(4*m,sizeof(REAL));
-    r = work; x1 = r + m; v1 = r + 2*m; v2 = r + 3*m;
-    
-    normb=array_norm2(m, b->val);
-    array_cp(m, b->val, r);
-    
-    // Preconditioning
-    if (pc != NULL)
-        pc->fct(r, x, pc->data);
-    else
-        array_cp(m, r, x);
-    
-    // v1 = A*x
-    dcsr_mxv(A, x, v1);
-    // rho1 = (v1,v1)
-    rho1 = array_dotprod (m, v1, v1);
-    // alpha1 = (r, v1)
-    alpha1 = array_dotprod (m, v1, r);
-    
-    alpha = alpha1/rho1;
-    
-    // r = r - alpha *v1
-    array_axpy(m, -alpha, v1, r);
-    
-    // norm(r)
-    absres = array_norm2(m, r);
-    
-    // compute relative residual
-    relres = absres/normb;
-    
-    // if relres reaches tol(0.2), pgcr will stop,
-    // otherwise, another one pgcr iteration will do.
-    if (relres < 0.2) {
-        array_ax(m, alpha, x);
-        free(work);
-        return SUCCESS;
-    }
-    
-    // Preconditioning
-    if (pc != NULL)
-        pc->fct(r, x1, pc->data);
-    else
-        array_cp(m, r, x1);
-    
-    //v2 = A*x1
-    dcsr_mxv(A, x1, v2);
-    
-    //gamma = (v1,v2)
-    gamma = array_dotprod (m, v1, v2);
-    //beta = (v2,v2)
-    beta  = array_dotprod(m, v2, v2);
-    //alpha2 = (r,v2)
-    alpha2 = array_dotprod(m, r, v2);
-    
-    rho2 = beta - gamma*gamma/rho1;
-    
-    alpha3 = alpha1/rho1 - gamma*alpha2/(rho1*rho2);
-    
-    alpha4 = alpha2/rho2;
-    
-    // x = alpha3*x + alpha4*x1
-    array_ax(m, alpha3, x);
-    array_axpy(m, alpha4, x1, x);
-    
-    // free
-    free(work);
-    return SUCCESS;
-}
-
 
 /*---------------------------------*/
 /*--        End of File          --*/

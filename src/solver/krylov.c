@@ -3,59 +3,15 @@
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 5/13/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
+ *  \note  Some implementation ideas for Krylov method are from FASP package -- Xiaozhe Hu
+ *  \note  Done cleanup for releasing -- Xiaozhe Hu 03/12/2017
+ *
+ *  \todo  Need to add convergence check for GCG -- Xiaozhe Hu
+ *
  */
 
 #include "hazmath.h"
-
 #include "itsolver_util.inl"
-
-
-/*! \brief Krylov subspace methods -- Preconditioned conjugate gradient
- *
- *  Abstract algorithm
- *
- *  PCG method to solve A*x=b is to generate {x_k} to approximate x
- *
- *  Step 0. Given A, b, x_0, M
- *
- *  Step 1. Compute residual r_0 = b-A*x_0 and convergence check;
- *
- *  Step 2. Initialization z_0 = M^{-1}*r_0, p_0=z_0;
- *
- *  Step 3. Main loop ...
- *
- *  FOR k = 0:MaxIt
- *      - get step size alpha = f(r_k,z_k,p_k);
- *      - update solution: x_{k+1} = x_k + alpha*p_k;
- *      - perform stagnation check;
- *      - update residual: r_{k+1} = r_k - alpha*(A*p_k);
- *      - perform residual check;
- *      - obtain p_{k+1} using {p_0, p_1, ... , p_k};
- *      - prepare for next iteration;
- *      - print the result of k-th iteration;
- *  END FOR
- *
- *  Convergence check: norm(r)/norm(b) < tol
- *
- *  Stagnation check:
- *      - IF norm(alpha*p_k)/norm(x_{k+1}) < tol_stag
- *          -# compute r=b-A*x_{k+1};
- *          -# convergence check;
- *          -# IF ( not converged & restart_number < Max_Stag_Check ) restart;
- *      - END IF
- *
- *  Residual check:
- *      - IF norm(r_{k+1})/norm(b) < tol
- *          -# compute the real residual r = b-A*x_{k+1};
- *          -# convergence check;
- *          -# IF ( not converged & restart_number < Max_Res_Check ) restart;
- *      - END IF
- *
- *  \note Refer to Y. Saad 2003
- *        Iterative methods for sparse linear systems (2nd Edition), SIAM
- *
- *  \note See spcg.c for a safer version
- */
 
 /***********************************************************************************************/
 /**
@@ -76,6 +32,7 @@
  *
  * \return             Iteration number if converges; ERROR otherwise.
  *
+ * \note there is a check for index starts at 0 or 1
  *
  */
 INT dcsr_pcg (dCSRmat *A,
@@ -109,11 +66,6 @@ INT dcsr_pcg (dCSRmat *A,
   // allocate temp memory (need 4*m REAL numbers)
   REAL *work = (REAL *)calloc(4*m,sizeof(REAL));
   REAL *p = work, *z = work+m, *r = z+m, *t = r+m;
-    
-  //#if DEBUG_MODE > 0
-  //    printf("### DEBUG: %s ...... [Start]\n", __FUNCTION__);
-  //    printf("### DEBUG: maxit = %d, tol = %.4le\n", MaxIt, tol);
-  //#endif
     
   // r = b-A*u
   array_cp(m,b->val,r);
@@ -335,10 +287,6 @@ INT dcsr_pcg (dCSRmat *A,
   // clean up temp memory
   free(work);
     
-#if DEBUG_MODE > 0
-  printf("### DEBUG: %s ...... [Finish]\n", __FUNCTION__);
-#endif
-
   // Fix A back to correct counting if needed
   if(shift_flag==1) {
     dcsr_shift(A, 1);  // shift A back
@@ -680,11 +628,6 @@ INT general_pcg (matvec *mxv,
     REAL *work = (REAL *)calloc(4*m,sizeof(REAL));
     REAL *p = work, *z = work+m, *r = z+m, *t = r+m;
     
-    //#if DEBUG_MODE > 0
-    //    printf("### DEBUG: %s ...... [Start]\n", __FUNCTION__);
-    //    printf("### DEBUG: maxit = %d, tol = %.4le\n", MaxIt, tol);
-    //#endif
-    
     // r = b-A*u
     mxv->fct(mxv->data, u->val, r);
     array_axpby(m, 1.0, b->val, -1.0, r);
@@ -904,16 +847,152 @@ FINISHED:  // finish the iterative method
     
     // clean up temp memory
     free(work);
-    
-#if DEBUG_MODE > 0
-    printf("### DEBUG: %s ...... [Finish]\n", __FUNCTION__);
-#endif
-    
+        
     if ( iter > MaxIt )
         return ERROR_SOLVER_MAXIT;
     else
         return iter;
 }
+
+/***********************************************************************************************/
+/**
+ * \fn INT dcsr_pgcg(dCSRmat *A, dvector *b, dvector *u, precond *pc,
+ *                                const REAL tol, const INT MaxIt,
+ *                                const SHORT stop_type, const SHORT print_level)
+ *
+ * \brief Preconditioned generilzed conjugate gradient (GCG) method for solving Au=b
+ *
+ * \param A            Pointer to the coefficient matrix
+ * \param b            Pointer to the dvector of right hand side
+ * \param u            Pointer to the dvector of DOFs
+ * \param pc           Pointer to the structure of precondition (precond)
+ * \param tol          Tolerance for stopping
+ * \param MaxIt        Maximal number of iterations
+ * \param stop_type    Stopping criteria type -- Not implemented
+ * \param print_level  How much information to print out
+ *
+ * \return             Number of iterations if converged, error message otherwise
+ *
+ * \author Xiaozhe Hu
+ * \date   01/01/2012
+ *
+ */
+INT dcsr_pgcg(dCSRmat *A,
+              dvector *b,
+              dvector *u,
+              precond *pc,
+              const REAL tol,
+              const INT MaxIt,
+              const SHORT stop_type,
+              const SHORT print_level)
+{
+    INT    iter=0, m=A->row, i;
+    REAL   absres0=BIGREAL, absres, relres=BIGREAL, factor;
+    REAL   alpha, normb=BIGREAL;
+
+    // allocate temp memory
+    REAL *work = (REAL *)calloc(2*m+MaxIt+MaxIt*m,sizeof(REAL));
+
+    REAL *r, *Br, *beta, *p;
+    r = work; Br = r + m; beta = Br + m; p = beta + MaxIt;
+
+    normb=array_norm2(m,b->val);
+
+    // -------------------------------------
+    // 1st iteration (Steepest descent)
+    // -------------------------------------
+    // r = b-A*u
+    array_cp(m,b->val,r);
+    dcsr_aAxpy(-1.0,A,u->val,r);
+
+    // Br
+    if (pc != NULL)
+        pc->fct(r,p,pc->data); /* Preconditioning */
+    else
+        array_cp(m,r,p); /* No preconditioner, B=I */
+
+    // alpha = (p'r)/(p'Ap)
+    alpha = array_dotprod (m,r,p) / dcsr_vmv (A, p, p);
+
+    // u = u + alpha *p
+    array_axpy(m, alpha , p, u->val);
+
+    // r = r - alpha *Ap
+    dcsr_aAxpy((-1.0*alpha),A,p,r);
+
+    // norm(r), factor
+    absres = array_norm2(m,r);
+    factor = absres/absres0;
+
+    // compute relative residual
+    relres = absres/normb;
+
+    // output iteration information if needed
+    print_itsolver_info(print_level,stop_type,iter+1,relres,absres,factor);
+
+    // update relative residual here
+    absres0 = absres;
+
+    for ( iter = 1; iter < MaxIt ; iter++) {
+
+        // Br
+        if (pc != NULL)
+            pc->fct(r, Br ,pc->data); // Preconditioning
+        else
+            array_cp(m,r, Br); // No preconditioner, B=I
+
+        // form p
+        array_cp(m, Br, p+iter*m);
+        // loop for orthogonalization
+        for (i=0; i<iter; i++) {
+            beta[i] = (-1.0) * ( dcsr_vmv (A, Br, p+i*m)
+                                 /dcsr_vmv (A, p+i*m, p+i*m) );
+
+            array_axpy(m, beta[i], p+i*m, p+iter*m);
+        }
+
+        // -------------------------------------
+        // next iteration
+        // -------------------------------------
+        // alpha = (p'r)/(p'Ap)
+        alpha = array_dotprod(m,r,p+iter*m)
+            / dcsr_vmv (A, p+iter*m, p+iter*m);
+
+        // u = u + alpha *p
+        array_axpy(m, alpha , p+iter*m, u->val);
+
+        // r = r - alpha *Ap
+        dcsr_aAxpy((-1.0*alpha),A,p+iter*m,r);
+
+        // norm(r), factor
+        absres = array_norm2(m,r);
+        factor = absres/absres0;
+
+        // compute relative residual
+        relres = absres/normb;
+
+        // output iteration information if needed
+        print_itsolver_info(print_level,stop_type,iter+1,relres,absres,factor);
+
+        if (relres < tol) break;
+
+        // update relative residual here
+        absres0 = absres;
+
+    } // end of main GCG loop.
+
+    // finish the iterative method
+    if (print_level>PRINT_NONE) ITS_FINAL(iter,MaxIt,relres);
+
+    // clean up temp memory
+    free(work);
+
+    if (iter>MaxIt)
+        return ERROR_SOLVER_MAXIT;
+    else
+        return iter;
+}
+
 
 /***********************************************************************************************/
 /**
@@ -937,17 +1016,15 @@ FINISHED:  // finish the iterative method
  * \author Xiaozhe Hu
  * \date   12/30/2015
  *
- * \note Rewritten based on the original version by Chensong Zhang 05/01/2012
- *
  */
-INT dcsr_pminres (dCSRmat *A,
-                              dvector *b,
-                              dvector *u,
-                              precond *pc,
-                              const REAL tol,
-                              const INT MaxIt,
-                              const SHORT stop_type,
-                              const SHORT prtlvl)
+INT dcsr_pminres(dCSRmat *A,
+                 dvector *b,
+                 dvector *u,
+                 precond *pc,
+                 const REAL tol,
+                 const INT MaxIt,
+                 const SHORT stop_type,
+                 const SHORT prtlvl)
 {    
     const SHORT  MaxStag = MAX_STAG, MaxRestartStep = MAX_RESTART;
     const INT    m = b->row;
@@ -1307,10 +1384,6 @@ FINISHED:  // finish the iterative method
     // clean up temp memory
     free(work);
     
-#if DEBUG_MODE > 0
-    printf("### DEBUG: %s ...... [Finish]\n", __FUNCTION__);
-#endif
-    
     if ( iter > MaxIt )
         return ERROR_SOLVER_MAXIT;
     else
@@ -1336,20 +1409,18 @@ FINISHED:  // finish the iterative method
  *
  * \return             Iteration number if converges; ERROR otherwise.
  *
- * \author Chensong Zhang
- * \date   05/01/2012
- *
- * \note Rewritten based on the original version by Xiaozhe Hu 05/24/2010
+ * \author Xiaozhe Hu
+ * \date   05/24/2010
  *
  */
-INT bdcsr_pminres (block_dCSRmat *A,
-                               dvector *b,
-                               dvector *u,
-                               precond *pc,
-                               const REAL tol,
-                               const INT MaxIt,
-                               const SHORT stop_type,
-                               const SHORT prtlvl)
+INT bdcsr_pminres(block_dCSRmat *A,
+                  dvector *b,
+                  dvector *u,
+                  precond *pc,
+                  const REAL tol,
+                  const INT MaxIt,
+                  const SHORT stop_type,
+                  const SHORT prtlvl)
 {   
     const SHORT  MaxStag = MAX_STAG, MaxRestartStep = MAX_RESTART;
     const INT    m = b->row;
@@ -1738,8 +1809,8 @@ FINISHED:  // finish the iterative method
  * \date   5/27/2016
  *
  */
-INT general_pminres (matvec *mxv,
-                  dvector *b,
+INT general_pminres(matvec *mxv,
+                    dvector *b,
                   dvector *u,
                   precond *pc,
                   const REAL tol,
@@ -2104,11 +2175,7 @@ FINISHED:  // finish the iterative method
     
     // clean up temp memory
     free(work);
-    
-#if DEBUG_MODE > 0
-    printf("### DEBUG: %s ...... [Finish]\n", __FUNCTION__);
-#endif
-    
+
     if ( iter > MaxIt )
         return ERROR_SOLVER_MAXIT;
     else
@@ -2193,11 +2260,6 @@ INT dcsr_pvgmres (dCSRmat *A,
   REAL  *norms = NULL, *r = NULL, *w = NULL;
   REAL  *work = NULL;
   REAL  **p = NULL, **hh = NULL;
-    
-  //#if DEBUG_MODE > 0
-  //    printf("### DEBUG: %s ...... [Start]\n", __FUNCTION__);
-  //    printf("### DEBUG: maxit = %d, tol = %.4le\n", MaxIt, tol);
-  //#endif
     
   /* allocate memory and setup temp work space */
   work  = (REAL *)calloc(worksize, sizeof(REAL));
@@ -2457,10 +2519,6 @@ INT dcsr_pvgmres (dCSRmat *A,
   free(p);
   free(hh);
   free(norms);
-    
-  //#if DEBUG_MODE > 0
-  //    printf("### DEBUG: %s ...... [Finish]\n", __FUNCTION__);
-  //#endif
 
   // Fix A back to correct counting if needed
   if(shift_flag==1) {
@@ -3171,15 +3229,15 @@ FINISHED:
  * \date   01/04/2012
  *
  */
-INT dcsr_pvfgmres (dCSRmat *A,
-                   dvector *b,
-                   dvector *x,
-                   precond *pc,
-                   const REAL tol,
-                   const INT MaxIt,
-                   const SHORT restart,
-                   const SHORT stop_type,
-                   const SHORT prtlvl)
+INT dcsr_pvfgmres(dCSRmat *A,
+                  dvector *b,
+                  dvector *x,
+                  precond *pc,
+                  const REAL tol,
+                  const INT MaxIt,
+                  const SHORT restart,
+                  const SHORT stop_type,
+                  const SHORT prtlvl)
 {  
     const INT n                 = b->row;
     const INT min_iter          = 0;
@@ -3489,23 +3547,22 @@ FINISHED:
  * \date   01/04/2012
  *
  */
-INT bdcsr_pvfgmres (block_dCSRmat *A,
-                                dvector *b,
-                                dvector *x,
-                                precond *pc,
-                                const REAL tol,
-                                const INT MaxIt,
-                                const SHORT restart,
-                                const SHORT stop_type,
-                                const SHORT prtlvl)
+INT bdcsr_pvfgmres(block_dCSRmat *A,
+                   dvector *b,
+                   dvector *x,
+                   precond *pc,
+                   const REAL tol,
+                   const INT MaxIt,
+                   const SHORT restart,
+                   const SHORT stop_type,
+                   const SHORT prtlvl)
 {  
     const INT n                 = b->row;
     const INT min_iter          = 0;
     
-    //--------------------------------------------//
-    //   Newly added parameters to monitor when   //
-    //   to change the restart parameter          //
-    //--------------------------------------------//
+    //--------------------------------------------------------------//
+    //   Parameters to monitor when to change the restart parameter //
+    //--------------------------------------------------------------//
     const REAL cr_max           = 0.99;    // = cos(8^o)  (experimental)
     const REAL cr_min           = 0.174;   // = cos(80^o) (experimental)
     
@@ -3807,15 +3864,15 @@ FINISHED:
  * \date   05/27/2016
  *
  */
-INT general_pvfgmres (matvec *mxv,
-                   dvector *b,
-                   dvector *x,
-                   precond *pc,
-                   const REAL tol,
-                   const INT MaxIt,
-                   const SHORT restart,
-                   const SHORT stop_type,
-                   const SHORT prtlvl)
+INT general_pvfgmres(matvec *mxv,
+                     dvector *b,
+                     dvector *x,
+                     precond *pc,
+                     const REAL tol,
+                     const INT MaxIt,
+                     const SHORT restart,
+                     const SHORT stop_type,
+                     const SHORT prtlvl)
 {    
     const INT n                 = b->row;
     const INT min_iter          = 0;
