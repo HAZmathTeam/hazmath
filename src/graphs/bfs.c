@@ -1,20 +1,5 @@
 #include "hazmath.h"
 
-typedef struct  
-{
-  REAL val;
-  INT  id; //for the permutation
-} weights;
-
-typedef struct  
-{
-  INT mask;
-  INT val;
-  INT  id; //for the permutation
-} iweights;
-
-typedef INT (*testit)(const void*, const void*);
-
 INT check0(weights *elem1, weights *elem2)
 {
   if ( elem1->val < elem2->val)
@@ -40,7 +25,7 @@ INT check1(iweights *elem1, iweights *elem2)
     return 0;
 }
 
-INT getp(INT *ie, INT *je, REAL *w, INT ne, INT *p)
+void getp(INT *ie, INT *je, REAL *w, INT ne, INT *p)
 {
   INT k;
   weights *tosort=NULL;  
@@ -50,32 +35,15 @@ INT getp(INT *ie, INT *je, REAL *w, INT ne, INT *p)
       tosort[k].val=w[k];
       tosort[k].id=k;
     }
-  // print before
-  /*
-  fprintf(stdout,"\nNot Ordered:\n");
-  for (k=0; k<ne;k++)
-    fprintf(stdout, "id=%4i; value=%10.6f\n", tosort[k].id+1,tosort[k].val);
-  */
   //Sort now.
   qsort((void *) tosort,ne,sizeof(weights),(testit )check0 );                  
-  /* fprintf(stdout,"\nOrdered:\n");
-  for (k=0; k<ne;k++)
-    fprintf(stdout, "id=%d; value=%10.6f\n", tosort[k].id+1,tosort[k].val);
-  fflush(stdout);
-  */
-  // after things are sorted,  we get the permutation
   for (k=0; k<ne;k++)
     p[k]=tosort[k].id;
 
   if(tosort) free(tosort);  
-  //print again, this time ordered
-  
-  //  fprintf(stdout,"\nOrdered:\n");
-  //  for (k=0; k<ne;k++)
-  //    fprintf(stdout, "knew=%4i; idnew=%4i; value=%10.6f\n", k+1,p[k]+1,w[p[k]]);
-  return 0;
+  return;
 }
-INT getpz(REAL *z, INT nv, INT *p)
+void getpz(REAL *z, INT nv, INT *p)
 {
   INT k;
   weights *tosort=NULL;  
@@ -90,9 +58,9 @@ INT getpz(REAL *z, INT nv, INT *p)
   for (k=0; k<nv;k++)
     p[k]=tosort[k].id;
   if(tosort) free(tosort);  
-  return 0;
+  return;
 }
-INT getpi(INT *iz, INT *maskv, INT nv, INT *p)
+void getpi(INT *iz, INT *maskv, INT nv, INT *p)
 {
   INT k;
   iweights *tosort=NULL;  
@@ -104,11 +72,11 @@ INT getpi(INT *iz, INT *maskv, INT nv, INT *p)
       tosort[k].id=k;
     }
   qsort((void *) tosort,nv,sizeof(iweights),(testit )check1 );                  
-  // after things are sorted,  we get the permutation
+  // after things are sorted,  we have the permutation
   for (k=0; k<nv;k++)
     p[k]=tosort[k].id;
   if(tosort) free(tosort);  
-  return 0;
+  return;
 }
 
 void bfs(INT nv, INT *ia, INT *ja, INT *ibfs, INT *jbfs,	\
