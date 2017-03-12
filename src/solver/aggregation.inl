@@ -143,16 +143,17 @@ static void form_boolean_p(ivector *vertices,
     }
 }
 
+
+
 /**
  * \fn static SHORT aggregation_vmb (dCSRmat *A, ivector *vertices, AMG_param *param,
- *                                   INT levelNum, dCSRmat *Neigh, INT *num_aggregations)
+ *                                   dCSRmat *Neigh, INT *num_aggregations)
  *
  * \brief Form aggregation based on strong coupled neighbors
  *
  * \param A                 Pointer to the coefficient matrices
  * \param vertices          Pointer to the aggregation of vertices
  * \param param             Pointer to AMG parameters
- * \param levelNum          Level number
  * \param Neigh             Pointer to strongly coupled neighbors
  * \param num_aggregations  Pointer to number of aggregations
  *
@@ -167,7 +168,6 @@ static void form_boolean_p(ivector *vertices,
 static SHORT aggregation_vmb (dCSRmat *A,
                               ivector *vertices,
                               AMG_param *param,
-                              INT levelNum,
                               dCSRmat *Neigh,
                               INT *num_aggregations)
 {   
@@ -250,7 +250,7 @@ static SHORT aggregation_vmb (dCSRmat *A,
     /*   Step 1.   */
     /*-------------*/
     for ( i = 0; i < row; ++i ) {
-        if ( (AIA[i+1] - AIA[i]) == 1 ) {
+        if ( (NIA[i+1] - NIA[i]) == 1 ) {
             vertices->val[i] = UNPT;
             num_left--;
         }
@@ -345,6 +345,8 @@ END:
     
     return status;
 }
+
+
 
 /*---------------------------------*/
 /*--        End of File          --*/

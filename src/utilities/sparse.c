@@ -689,6 +689,105 @@ void icsr_trans_1(iCSRmat *A,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void dcsr_compress (dCSRmat *A, dCSRmat *B, REAL dtol)
+ *
+ * \brief Compress a CSR matrix A and store in CSR matrix B by
+ *        dropping small entries such that abs(aij)<=dtol
+ *
+ * \param A     Pointer to dCSRmat CSR matrix
+ * \param B     Pointer to dCSRmat CSR matrix (OUTPUT)
+ * \param dtol  Drop tolerance
+ *
+ */
+void dcsr_compress(dCSRmat *A,
+                   dCSRmat *B,
+                   REAL dtol)
+{
+    // local variables
+    INT i, j, k;
+    INT ibegin,iend1;
+
+    // allocate
+    INT *index=(INT*)calloc(A->nnz,sizeof(INT));
+
+    B->row=A->row; B->col=A->col;
+    B->IA=(INT*)calloc(A->row+1,sizeof(INT));
+    B->IA[0]=A->IA[0];
+
+    // first step: determine the size of B
+    k=0;
+    for (i=0;i<A->row;++i) {
+        ibegin=A->IA[i]; iend1=A->IA[i+1];
+        for (j=ibegin;j<iend1;++j)
+            if (ABS(A->val[j])>dtol) {
+                index[k]=j;
+                ++k;
+            } /* end of j */
+        B->IA[i+1]=k;
+    } /* end of i */
+    B->nnz=k;
+
+    // allocate
+    B->JA=(INT*)calloc(B->nnz,sizeof(INT));
+    B->val=(REAL*)calloc(B->nnz,sizeof(REAL));
+
+    // second step: generate the index and element to B
+    for (i=0;i<B->nnz;++i) {
+        B->JA[i]=A->JA[index[i]];
+        B->val[i]=A->val[index[i]];
+    }
+
+    free(index);
+}
+
+/***********************************************************************************************/
+/**
+ * \fn SHORT dcsr_compress_inplace (dCSRmat *A, REAL dtol)
+ *
+ * \brief Compress a CSR matrix A by dropping small entries such abs(aij)<=dtol (still stores in A)
+ *
+ * \param A     Pointer to dCSRmat CSR matrix (OUTPUT)
+ * \param dtol  Drop tolerance
+ *
+ */
+SHORT dcsr_compress_inplace(dCSRmat *A,
+                            REAL dtol)
+{
+    // local variables
+    const INT row=A->row;
+    const INT nnz=A->nnz;
+
+    INT i, j, k;
+    INT ibegin, iend = A->IA[0];
+    SHORT status = SUCCESS;
+
+    k = 0;
+    for ( i=0; i<row; ++i ) {
+        ibegin = iend; iend = A->IA[i+1];
+        for ( j=ibegin; j<iend; ++j )
+            if ( ABS(A->val[j]) > dtol ) {
+                A->JA[k]  = A->JA[j];
+                A->val[k] = A->val[j];
+                ++k;
+            } /* end of j */
+        A->IA[i+1] = k;
+    } /* end of i */
+
+    if ( k <= nnz ) {
+        A->nnz=k;
+        A->JA  = (INT  *)realloc(A->JA,  k*sizeof(INT));
+        A->val = (REAL *)realloc(A->val, k*sizeof(REAL));
+    }
+    else {
+        printf("### HAZMATH ERROR: Size of compressed matrix is larger than the original!\n");
+        status = ERROR_UNKNOWN;
+    }
+
+    return (status);
+}
+
+/***********************************************************************************************/
 /*!
  * \fn void dcsr_shift (dCSRmat *A, INT offset)
  *
