@@ -34,7 +34,7 @@ int main (int argc, char* argv[])
 {
 
   printf("\n===========================================================================\n");	
-  printf("\nBeginning Program to Solve Wave Equation Problem\n");
+  printf("\nBeginning Program to Darcy Flow eqn by RT0-P0 mxed method\n");
   printf("\n===========================================================================\n");
 	
   /****** INITIALIZE PARAMETERS **************************************************/
@@ -188,10 +188,6 @@ int main (int argc, char* argv[])
   // Convert to CSR from Block CSR and then shift back
   dCSRmat A_csr = bdcsr_2_dcsr(&A);
   dcsr_shift(&A_csr,1);
-  /* printf("%d\n\n",A_csr.row); */
-  /* FILE* fid=HAZ_fopen("symm00.coo","w"); */
-  /* csr_print_matlab(fid,&A_csr); */
-  /* fclose(fid); */
   // Time Propagation Operators (if necessary)
   if(time_stepper.tsteps>0) {
     // Get Mass Matrix for h
@@ -213,8 +209,6 @@ int main (int argc, char* argv[])
     dcsr_shift(&Mempty,-1);
     dCSRmat M_csr = bdcsr_2_dcsr(&M);
     dcsr_shift(&M_csr,1);
-    printf("%d\n\n",M_csr.row);
-
     // Create Time Operator (one with BC and one without)
     initialize_timestepper(&time_stepper,&inparam,0,A_csr.row);
     time_stepper.A = &A_csr;
@@ -226,7 +220,6 @@ int main (int argc, char* argv[])
     // Eliminate BCs
     eliminate_DirichletBC_blockFE(bc,&FE,&mesh,&b,&A_csr,0.0);
   }
-  
   //-----------------------------------------------
   // prepare for preconditioners
   // generate dof index

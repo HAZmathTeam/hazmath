@@ -1,3 +1,4 @@
+
 #ifdef WITH_SUITESPARSE
 #undef WITH_SUITESPARSE
 #endif
@@ -5,12 +6,6 @@
 #ifndef M_PI
 #define M_PI 3.141592653589793e+00;
 #endif
-
-void poisson_coeff(REAL *val,REAL* x, REAL t) {
-  // a(x)
-  *val = 1.0;
-  return;
-}
 
 // PDE Coefficients
 void diffusion_coeff(REAL *val,REAL* x, REAL t) {
@@ -27,7 +22,7 @@ void exactsol(REAL *val,REAL* x, REAL t) {
   // 2D
   *val = x[0]; //sin(M_PI*x[0])*sin(M_PI*x[1]);
   // 3D
-  ///  *val=x[2]*x[2];
+  //  *val=x[2]*x[2];
   //  *val=10.*x[0]*(1.-x[0]) *x[1]*(1.-x[1])*x[2];
   // *val= x[2]+x[0];
   return;
@@ -35,8 +30,8 @@ void exactsol(REAL *val,REAL* x, REAL t) {
 
 void advection(REAL *val, REAL *x,REAL t) {
   val[0] = -1.; // or beta_1(x)
-  val[1] = 2.; // or beta_2(x)
-  val[2] = 3.; // or beta_3(x)
+  val[1] = 0.; // or beta_2(x)
+  val[2] = 0.; // or beta_3(x)
   return;
 }
 
@@ -51,10 +46,4 @@ void bc_any(REAL *val, REAL* x, REAL t) {
   return;
 }
 
-void eafe(const trimesh mesh,					\
-	  void (*scalar_val_d)(REAL *, REAL *, REAL),		\
-	  void (*vector_val_ad)(REAL *, REAL *, REAL),		\
-	  void (*scalar_val_bndnr)(REAL *, REAL *, REAL),	\
-	  dCSRmat *A, dvector *rhs);
-
-
+void mgraph_wrap(dCSRmat A, dvector rhs, dvector *sol);
