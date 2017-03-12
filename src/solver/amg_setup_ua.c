@@ -123,7 +123,7 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
             case VMB: // VMB aggregation
                 
                 status = aggregation_vmb(&mgl[lvl].A, &vertices[lvl], param,
-                                         lvl+1, &Neighbor[lvl], &num_aggs[lvl]);
+                                         &Neighbor[lvl], &num_aggs[lvl]);
                 
                 break;
                 
