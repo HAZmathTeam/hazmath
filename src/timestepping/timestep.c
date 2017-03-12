@@ -231,7 +231,8 @@ void get_timeoperator(timestepper* ts,INT first_visit,INT cpyNoBC)
 
   if(first_visit)
     dcsr_alloc(ts->At->row,ts->At->col,ts->At->nnz,ts->At_noBC);
-  dcsr_cp(ts->At,ts->At_noBC);
+  if(cpyNoBC)
+    dcsr_cp(ts->At,ts->At_noBC);
 	
   return;
 }
@@ -508,7 +509,7 @@ void update_blktimestep(block_timestepper *tstepper)
 
 /******************************************************************************************************/
 /*!
-* \fn void get_blktimeoperator(block_timestepper* ts,INT cpNoBC)
+* \fn void get_blktimeoperator(block_timestepper* ts,INT cpyNoBC)
 *
 * \brief Gets the matrix to solve for BLOCK timestepping scheme
 *        Assumes we have: M du/dt + L(u) = b
@@ -516,8 +517,6 @@ void update_blktimestep(block_timestepper *tstepper)
 * \param ts            block Timestepping struct
 * \param first_visit   Indicates if this is the first visit in order to do allocation.
 * \param cpyNoBC       Indicates if you'd like to store the time matrix without BC eliminated
-*
-* \param cpNoBC        Flag to indicate if a non-boundary eliminated matrix needs to be stored
 *
 * \return ts.Atime     Matrix to solve with
 *
