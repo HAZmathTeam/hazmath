@@ -35,6 +35,7 @@ BEGIN {
   print "#include \"nonlinear.h\""
   print "#include \"timestep.h\""
   print "#include \"param.h\""
+  print "#include \"graphs.h\""
   print "// Special Includes"
   print "#if WITH_MATLAB"
   print "#include \"mex.h\""

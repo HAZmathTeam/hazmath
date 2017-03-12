@@ -99,3 +99,5 @@ void initial_conditions(REAL *val,REAL* x, REAL time) {
   //h
   val[3] = myinit_h;
 }
+
+void mgraph_wrap(dCSRmat A, dvector f, dvector *u);

@@ -13,10 +13,10 @@ MULTIGRAPH_SRCDIR = $(MULTIGRAPH_DIR)/src
 MULTIGRAPH_PRECISION_MOD = $(MULTIGRAPH_SRCDIR)/mthdef.mod
 MULTIGRAPH_PRECISION_SRC = $(MULTIGRAPH_SRCDIR)/mg0.f
 
-HEADERS_ADD = $(SRCFILE).h
+HEADERS_ADD = $(SRCFILE).h multigraph_solve.h
 
 #OBJS_ADD = solver.o 
-OBJS_ADD = solver.o eafe.o 
+OBJS_ADD = solver.o  multigraph_solve.o
 
 EXTRA_DEL = $(MULTIGRAPH_SRCDIR)/mthdef.mod
 

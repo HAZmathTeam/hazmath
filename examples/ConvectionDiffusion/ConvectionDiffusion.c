@@ -114,10 +114,13 @@ int main (int argc, char* argv[])
     
   // Assemble the matrix with natural BC. 
   // Diffusion block
-  assemble_global(&A,&b,assemble_DuDv_local,&FE,&mesh,cq,f_rhs,
+  /*  
+      assemble_global(&A,&b,assemble_DuDv_local,&FE,&mesh,cq,f_rhs,
                   poisson_coeff,0.0);
-  eafe(mesh,diffusion_coeff,advection,bc_any,&A,&b);
-
+  */
+  eafe(&A,&b,assemble_DuDv_local,			\
+       mesh,FE,cq,					\
+       diffusion_coeff,f_rhs,advection,bc_any,0.0);
   clock_t clk_assembly_end = clock();
   printf(" --> elapsed CPU time for assembly = %f seconds.\n\n",(REAL)
          (clk_assembly_end-clk_assembly_start)/CLOCKS_PER_SEC);
@@ -136,23 +139,29 @@ int main (int argc, char* argv[])
   param_linear_solver_set(&linear_itparam, &inparam);
   INT solver_flag=-20;
 
-  // Set parameters for algebriac multigrid methods
-  //if (linear_itparam.linear_itsolver_type == SOLVER_AMG || linear_itparam.linear_precond_type== PREC_AMG) {
-  AMG_param amgparam;
-  param_amg_init(&amgparam);
-  param_amg_set(&amgparam, &inparam);
-  param_amg_print(&amgparam);
-  //}
   eliminate_DirichletBC(&bc_any,&FE,&mesh,&b,&A,0.0);
-
   // Solve
   clock_t clk_solve_start = clock();
   dcsr_shift(&A, -1);  // shift A
-  // Use Krylov Iterative Solver
-  solver_flag = linear_solver_dcsr_krylov(&A,&b,&sol,&linear_itparam);
+  switch (linear_itparam.linear_itsolver_type) {      
+      case 3:  // GMRES+ No Preconditioner
+	solver_flag = linear_solver_dcsr_krylov(&A,&b,&sol,&linear_itparam);
+	dcsr_shift(&A, 1);   // shift A back
+	// Error Check
+	if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
+	break;        
+      case 4:  // Multigraph preconditioner
+	mgraph_wrap(A,b,&sol);
+	break;                        
+      default:  //GMRES+ No Preconditioner
+	solver_flag = linear_solver_dcsr_krylov(&A,&b,&sol,&linear_itparam);
+	// Error Check
+	if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
+	break;
+  }
   dcsr_shift(&A, 1);   // shift A back
-  // Error Check
-  if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
+   
+
 
   clock_t clk_solve_end = clock();
   printf("Elapsed CPU Time for Solve = %f seconds.\n\n",(REAL) (clk_solve_end-clk_solve_start)/CLOCKS_PER_SEC);
