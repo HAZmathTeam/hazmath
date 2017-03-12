@@ -14,22 +14,22 @@
 /*!
  * \fn dCSRmat bdcsr_2_dcsr (block_dCSRmat *Ab)
  *
- * \brief Transform a block_dCSRmat matrix to a dCSRmat matrix
+ * \brief   Transform a block_dCSRmat matrix to a dCSRmat matrix
  *
- * \param Ab   Pointer to a block_dCSRmat matrix
+ * \param   Ab   Pointer to a block_dCSRmat matrix
  *
- * \return A   dCSRmat matrix if succeed, NULL if fail
+ * \return  A    dCSRmat matrix if succeed, NULL if fail
  *
- * \note Memory space for the dCSRmat matrix is allocated inside this functions! -- Xiaozhe Hu
+ * \note    Memory space for the dCSRmat matrix is allocated inside this functions! -- Xiaozhe Hu
  *
  */
 dCSRmat bdcsr_2_dcsr (block_dCSRmat *Ab)
 {   
     // local variables
     INT m=0,n=0,nnz=0;
-    const INT mb=Ab->brow, nb=Ab->bcol, nbl=mb*nb;
+    const INT mb=Ab->brow, nb=Ab->bcol, n_blocks=mb*nb;
     dCSRmat **blockptr=Ab->blocks, *blockptrij, A;
-    INT i,j,ij,ir,i1,length,ilength,start,irmrow,irmrow1;
+    INT i,j,ij,ir,i1,length,ilength,start,irmrow,irmrowp1;
     INT *row, *col;
 
     // flag for errors
@@ -81,7 +81,7 @@ dCSRmat bdcsr_2_dcsr (block_dCSRmat *Ab)
     }
     
     // count number of nonzeros
-    for (i=0;i<nbl;++i) {
+    for (i=0;i<n_blocks;++i) {
         if (blockptr[i]) {
             nnz+=blockptr[i]->nnz;
         }
@@ -104,8 +104,8 @@ dCSRmat bdcsr_2_dcsr (block_dCSRmat *Ab)
                 if (blockptrij && blockptrij->nnz>0) {
 
                     start=A.IA[ir]+length;
-                    irmrow=ir-row[i]; irmrow1=irmrow+1;
-                    ilength=blockptrij->IA[irmrow1]-blockptrij->IA[irmrow];
+                    irmrow=ir-row[i];irmrowp1=irmrow+1;
+                    ilength=blockptrij->IA[irmrowp1]-blockptrij->IA[irmrow];
 
                     if (ilength>0) {
                         memcpy(&(A.val[start]),&(blockptrij->val[blockptrij->IA[irmrow]]),ilength*sizeof(REAL));
@@ -132,7 +132,7 @@ dCSRmat bdcsr_2_dcsr (block_dCSRmat *Ab)
 
 /***********************************************************************************************/
 /*!
- * \fn block_dCSRmat dcsr_2_bdcsr (dCSRmat *A)
+ * \fn block_dCSRmat dcsr_2_bdcsr (dCSRmat *A, int bnum, int *bsize)
  *
  * \brief
  *
@@ -146,7 +146,9 @@ dCSRmat bdcsr_2_dcsr (block_dCSRmat *Ab)
  * \note SUM(bsize) = A->row = A->col, i.e., size has to be consistent!!  -- Xiaozhe Hu
  *
  */
-block_dCSRmat dcsr_2_bdcsr (dCSRmat *A, int bnum, int *bsize)
+block_dCSRmat dcsr_2_bdcsr (dCSRmat *A,
+                            int bnum,
+                            int *bsize)
 { 
     // local variable
     int i, j;
@@ -213,27 +215,35 @@ SHORT dcoo_2_dcsr (dCOOmat *A,
     dcsr_alloc(m,n,nnz,B);
     
     // local variable
-    INT * ia = B->IA, i;
-    INT   iind, jind;
+    INT *ia = B->IA;
+    INT *ja = B->JA;
+    REAL *Bval = B->val;
+    INT *row_idx = A->rowind;
+    INT *col_idx = A->colind;
+    REAL *Aval = A->val;
+    INT i, iind, jind;
     
     INT *ind = (INT *) calloc(m+1,sizeof(INT));
     
-    //for (i=0; i<=m; ++i) ind[i]=0; // initialize
+    // initialize
     memset(ind, 0, sizeof(INT)*(m+1));
     
-    for (i=0; i<nnz; ++i) ind[A->rowind[i]+1]++; // count nnz in each row
+    // count number of nonzeros in each row
+    for (i=0; i<nnz; ++i) ind[row_idx[i]+1]++;
     
-    ia[0] = 0; // first index starting from zero
+    // set row pointer
+    ia[0] = 0;
     for (i=1; i<=m; ++i) {
-        ia[i] = ia[i-1]+ind[i]; // set row pointer
+        ia[i] = ia[i-1]+ind[i];
         ind[i] = ia[i];
     }
     
-    // loop over nnz and set column index and value
+    // set column index and values
     for (i=0; i<nnz; ++i) {
-        iind = A->rowind[i]; jind = ind[iind];
-        B->JA [jind] = A->colind[i];
-        B->val[jind] = A->val[i];
+        iind = row_idx[i];
+        jind = ind[iind];
+        ja[jind] = col_idx[i];
+        Bval[jind] = Aval[i];
         ind[iind] = ++jind;
     }
     

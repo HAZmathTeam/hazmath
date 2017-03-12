@@ -1,6 +1,10 @@
 BUILD_HAZ
 lib/libhazmath.*
 include/hazmath.h
+haz_docs/html_docs
+haz_docs/tex_docs
+haz_docs/html_docs/*.*
+haz_docs/tex_docs/*.*
 *.dSYM/
 *.ex
 */*.ex

@@ -2,7 +2,7 @@
 //  grid.h
 //  
 //
-//  Created by James Adler on 2015-01-09.
+//  Created by James Adler, Xiaozhe Hi, and Ludmil Zikatanov 2015-01-09.
 //
 //
 
@@ -39,7 +39,8 @@ typedef struct coordinates{
 
 /**
  * \struct trimesh
- * \brief Builds a triangular/tetrahedral mesh, including all its properties and mappings between vertices, edges, and faces
+ * \brief Builds a triangular/tetrahedral mesh, including all its
+ * properties and mappings between vertices, edges, and faces
  */
 typedef struct trimesh{
     

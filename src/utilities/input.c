@@ -25,7 +25,7 @@
 void param_input (const char *filenm,
                   input_param *inparam)
 {  
-    char     buffer[500]; // Note: max number of char for each line!
+    char     buffer[500]; // max number of char for each line is 500
     int      val;
     SHORT    status = SUCCESS;
     
@@ -55,8 +55,25 @@ void param_input (const char *filenm,
             continue;
         }
     
-        // match keyword and scan for value
-        if (strcmp(buffer,"print_level")==0) {
+        // match the keyword and read in the value
+        // -----------
+        // input
+        // -----------
+        if (strcmp(buffer,"gridfile")==0) {
+            val = fscanf(fp,"%s",buffer);
+            if (val!=1 || strcmp(buffer,"=")!=0){
+                status = ERROR_INPUT_PAR; break;
+            }
+            val = fscanf(fp,"%s",sbuff);
+            if (val!=1) { status = ERROR_INPUT_PAR; break; }
+            strncpy(inparam->gridfile,sbuff,128);
+            fgets(buffer,500,fp); // skip rest of line
+        }
+
+        // -----------
+        // output
+        // -----------
+        else if (strcmp(buffer,"print_level")==0) {
             val = fscanf(fp,"%s",buffer);
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
@@ -64,17 +81,6 @@ void param_input (const char *filenm,
             val = fscanf(fp,"%d",&ibuff);
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->print_level = ibuff;
-            fgets(buffer,500,fp); // skip rest of line
-        }
-
-        else if (strcmp(buffer,"gridfile")==0) {
-            val = fscanf(fp,"%s",buffer);
-            if (val!=1 || strcmp(buffer,"=")!=0) {
-                status = ERROR_INPUT_PAR; break;
-            }
-            val = fscanf(fp,"%s",sbuff);
-            if (val!=1) { status = ERROR_INPUT_PAR; break; }
-            strncpy(inparam->gridfile,sbuff,128);
             fgets(buffer,500,fp); // skip rest of line
         }
 
@@ -89,6 +95,9 @@ void param_input (const char *filenm,
             fgets(buffer,500,fp); // skip rest of line
         }
         
+        // ---------------
+        // finite element
+        // ---------------
         else if (strcmp(buffer,"nquad")==0) {
             val = fscanf(fp,"%s",buffer);
             if (val!=1 || strcmp(buffer,"=")!=0) {
@@ -111,6 +120,9 @@ void param_input (const char *filenm,
             fgets(buffer,500,fp); // skip rest of line
         }
         
+        // --------------
+        // time stepping
+        // --------------
         else if (strcmp(buffer,"time_step_type")==0) {
             val = fscanf(fp,"%s",buffer);
             if (val!=1 || strcmp(buffer,"=")!=0) {
@@ -155,6 +167,9 @@ void param_input (const char *filenm,
             fgets(buffer,500,fp); // skip rest of line
         }
 
+        // -----------------
+        // nonlinear solver
+        // -----------------
         else if (strcmp(buffer,"nonlinear_itsolver_type")==0) {
             val = fscanf(fp,"%s",buffer);
             if (val!=1 || strcmp(buffer,"=")!=0) {
@@ -199,6 +214,9 @@ void param_input (const char *filenm,
             fgets(buffer,500,fp); // skip rest of line
         }
         
+        // --------------
+        // linear solver
+        // --------------
         else if (strcmp(buffer,"linear_itsolver_type")==0) {
             val = fscanf(fp,"%s",buffer);
             if (val!=1 || strcmp(buffer,"=")!=0) {
@@ -209,7 +227,6 @@ void param_input (const char *filenm,
             inparam->linear_itsolver_type = ibuff;
             fgets(buffer,500,fp); // skip rest of line
         }
-
         
         else if (strcmp(buffer,"linear_itsolver_maxit")==0) {
             val = fscanf(fp,"%s",buffer);
@@ -266,6 +283,9 @@ void param_input (const char *filenm,
             fgets(buffer,500,fp); // skip rest of line
         }
         
+        // -----------
+        // AMG
+        // -----------
         else if (strcmp(buffer,"AMG_tol")==0) {
             val = fscanf(fp,"%s",buffer);
             if (val!=1 || strcmp(buffer,"=")!=0) {
@@ -498,7 +518,10 @@ void param_input (const char *filenm,
             inparam->AMG_max_aggregation = ibuff;
             fgets(buffer,500,fp); // skip rest of line
         }
-        
+
+        // ------------------
+        // HX-preconditioner
+        // ------------------
         else if (strcmp(buffer,"HX_smooth_iter")==0) {
             val = fscanf(fp,"%s",buffer);
             if (val!=1 || strcmp(buffer,"=")!=0) {
@@ -511,7 +534,7 @@ void param_input (const char *filenm,
         }
 
         else {
-            printf("### WARNING: Unknown input keyword %s!\n", buffer);
+            printf("### HAZMATH WARNING: Unknown input keyword %s!\n", buffer);
             fgets(buffer,500,fp); // skip rest of line
         }
     }

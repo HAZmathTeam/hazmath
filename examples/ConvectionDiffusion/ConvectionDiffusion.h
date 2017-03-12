@@ -6,10 +6,16 @@
 #define M_PI 3.141592653589793e+00;
 #endif
 
+void poisson_coeff(REAL *val,REAL* x, REAL t) {
+  // a(x)
+  *val = 1.0;
+  return;
+}
+
 // PDE Coefficients
 void diffusion_coeff(REAL *val,REAL* x, REAL t) {
   // a(x)
-  *val = 1.0;
+  *val = 1.e-4;
   return;
 }
 
@@ -19,7 +25,7 @@ void exactsol(REAL *val,REAL* x, REAL t) {
   // 1D
   //*val = sin(M_PI*x[0])*exp(-M_PI*M_PI*time);
   // 2D
-  *val = sin(M_PI*x[0])*sin(M_PI*x[1]);
+  *val = x[0]; //sin(M_PI*x[0])*sin(M_PI*x[1]);
   // 3D
   ///  *val=x[2]*x[2];
   //  *val=10.*x[0]*(1.-x[0]) *x[1]*(1.-x[1])*x[2];
@@ -27,34 +33,28 @@ void exactsol(REAL *val,REAL* x, REAL t) {
   return;
 }
 
-void advection(REAL* x, REAL *advcoeff, REAL t) {
-  advcoeff[0] = 1e2; // or beta_1(x)
-  advcoeff[1] = 0.; // or beta_2(x)
-  advcoeff[2] = -1.; // or beta_3(x)
+void advection(REAL *val, REAL *x,REAL t) {
+  val[0] = -1.; // or beta_1(x)
+  val[1] = 2.; // or beta_2(x)
+  val[2] = 3.; // or beta_3(x)
   return;
 }
 
-REAL bernoulli(const REAL z)
-{
-  // returns B(z) = z/(exp(z)-1)
-  double tolb=1e-12,zlarge=256e+0;  
-  if (fabs(z) < tolb)
-    return (1.-z*0.5); // around 0 this is the asymptotic;
-  else if(z<zlarge)
-    return (z/(exp(z)-1.));
-  else //z>tlarge this is zero pretty much
-    return 0.;
-}
 // Right-hand Side
-void myrhs(REAL *val,REAL* x, REAL t) {
-  *val = 0.0;
+void f_rhs(REAL *val,REAL* x, REAL t) {
+  *val = 1.0;
 }
 
-// Boundary Conditions
-void bc(REAL *val, REAL* x, REAL t) {
-  *val= 0.0;
+// ANY Boundary Conditions
+void bc_any(REAL *val, REAL* x, REAL t) {
+  *val= x[0];
   return;
 }
 
+void eafe(const trimesh mesh,					\
+	  void (*scalar_val_d)(REAL *, REAL *, REAL),		\
+	  void (*vector_val_ad)(REAL *, REAL *, REAL),		\
+	  void (*scalar_val_bndnr)(REAL *, REAL *, REAL),	\
+	  dCSRmat *A, dvector *rhs);
 
 

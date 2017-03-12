@@ -5,11 +5,14 @@
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 12/24/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
+ *  \note   Done cleanup for releasing -- Xiaozhe Hu 03/11/2017
+ *
+ *  \todo   Add safe guard for the overall computatinal complexity -- Xiaozhe Hu
+ *
  */
 
 #include "hazmath.h"
 #include "aggregation.inl"
-
 
 static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *, AMG_param *);
 
@@ -32,7 +35,7 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *, AMG_param *);
  * \date   12/28/2011
  */
 SHORT amg_setup_ua (AMG_data *mgl,
-                         AMG_param *param)
+                    AMG_param *param)
 {
     
     SHORT status = amg_setup_unsmoothP_unsmoothR(mgl, param);
@@ -59,21 +62,15 @@ SHORT amg_setup_ua (AMG_data *mgl,
  * \date   02/21/2011
  *
  */
-static SHORT amg_setup_unsmoothP_unsmoothR (AMG_data *mgl,
-                                            AMG_param *param)
+static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
+                                           AMG_param *param)
 {
-    
+    // local variables
     const SHORT prtlvl     = param->print_level;
     const SHORT cycle_type = param->cycle_type;
     const SHORT csolver    = param->coarse_solver;
     const SHORT min_cdof   = MAX(param->coarse_dof,50);
     const INT   m          = mgl[0].A.row;
-    
-    // empiric value
-    const REAL  cplxmax    = 3.0;
-    const REAL  xsi        = 0.6;
-    INT   icum = 1.0;
-    REAL  eta, fracratio;
     
     // local variables
     SHORT         max_levels = param->max_levels, lvl = 0, status = SUCCESS;
@@ -133,7 +130,7 @@ static SHORT amg_setup_unsmoothP_unsmoothR (AMG_data *mgl,
             default: // wrong aggregation type
                 
                 status = ERROR_AMG_AGG_TYPE;
-                check_error(ERROR_AMG_AGG_TYPE, __FUNCTION__);
+                check_error(status, __FUNCTION__);
                 break;
         }
         
@@ -158,9 +155,9 @@ static SHORT amg_setup_unsmoothP_unsmoothR (AMG_data *mgl,
         
         // Check 2: Is coarse sparse too small?
         if ( mgl[lvl].P.col < MIN_CDOF ) break;
-        
-        // Check 3: Does this coarsening step too aggressive?
+
 #if 0
+        // Check 3: Does this coarsening step too aggressive?
         if ( mgl[lvl].P.row > mgl[lvl].P.col * MAX_CRATE ) {
             if ( prtlvl > PRINT_MIN ) {
                 printf("### HAZMATH WARNING: Coarsening might be too aggressive!\n");
@@ -171,8 +168,8 @@ static SHORT amg_setup_unsmoothP_unsmoothR (AMG_data *mgl,
         }
 #endif
         
-        // Check 4: Is this coarsening ratio too small?
 #if 0
+        // Check 4: Is this coarsening ratio too small?
         if ( (REAL)mgl[lvl].P.col > mgl[lvl].P.row * MIN_CRATE ) {
             if ( prtlvl > PRINT_MIN ) {
                 printf("### WARNING: Coarsening rate is too small!\n");
@@ -203,7 +200,6 @@ static SHORT amg_setup_unsmoothP_unsmoothR (AMG_data *mgl,
     
     // Setup coarse level systems for direct solvers
     switch (csolver) {
-
  
 #if WITH_SUITESPARSE
         case SOLVER_UMFPACK: {
@@ -242,19 +238,6 @@ static SHORT amg_setup_unsmoothP_unsmoothR (AMG_data *mgl,
             mgl[lvl].w = dvec_create(3*mm);
         else
             mgl[lvl].w = dvec_create(2*mm);
-    }
-    
-    // setup for cycle type of unsmoothed aggregation
-    eta = xsi/((1-xsi)*(cplxmax-1));
-    mgl[0].cycle_type = 1;
-    mgl[max_levels-1].cycle_type = 0;
-    
-    for (lvl = 1; lvl < max_levels-1; ++lvl) {
-        fracratio = (REAL)mgl[lvl].A.nnz/mgl[0].A.nnz;
-        mgl[lvl].cycle_type = (INT)(pow((REAL)xsi,(REAL)lvl)/(eta*fracratio*icum));
-        // safe-guard step: make cycle type >= 1 and <= 2
-        mgl[lvl].cycle_type = MAX(1, MIN(2, mgl[lvl].cycle_type));
-        icum = icum * mgl[lvl].cycle_type;
     }
     
     if ( prtlvl > PRINT_NONE ) {

@@ -39,7 +39,6 @@
 #define ERROR_OPEN_FILE       -10  /**< fail to open a file */
 #define ERROR_WRONG_FILE      -11  /**< input contains wrong format */
 #define ERROR_INPUT_PAR       -13  /**< wrong input argument */
-#define ERROR_REGRESS         -14  /**< regression test fail */
 #define ERROR_MAT_SIZE        -15  /**< wrong problem size */
 #define ERROR_BLKMAT_ZERO     -16  /**< block matrix is singular (at least one row or one column is zero) */
 #define ERROR_NUM_BLOCKS      -18  /**< wrong number of blocks */
@@ -68,7 +67,7 @@
 #define ERROR_UNKNOWN         -99  /**< an unknown error type */
 
 /**
- * \brief Definition of logic type
+ * \brief Definition of type "logical"
  */
 #define TRUE                    1  /**< logic TRUE */
 #define FALSE                   0  /**< logic FALSE */

@@ -611,6 +611,7 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,trimesh *mesh
   REAL* xf = (REAL *) calloc(dim,sizeof(REAL));
   REAL* yf = (REAL *) calloc(dim,sizeof(REAL));
   REAL* zf;
+  REAL dimover=(REAL )1./((REAL )dim);
   if(dim==3) {
     zf = calloc(dim,sizeof(REAL));
   }
@@ -686,8 +687,8 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,trimesh *mesh
     /* Compute Area (length if 2D) and get midpt of face */
     if(dim==2) {
       f_area[i] = sqrt(pow(fabs(xf[1]-xf[0]),2)+pow(fabs(yf[1]-yf[0]),2));
-      f_mid[i*dim] = (xf[0]+xf[1])/2.0;
-      f_mid[i*dim+1] = (yf[0]+yf[1])/2.0;
+      f_mid[i*dim] = (xf[0]+xf[1])*dimover;
+      f_mid[i*dim+1] = (yf[0]+yf[1])*dimover;
     } else if(dim==3) {
       e1x = xf[1]-xf[0];
       e1y = yf[1]-yf[0];
@@ -697,9 +698,9 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,trimesh *mesh
       e2z = zf[2]-zf[0];
       f_area[i] = 0.5*sqrt(pow(e1y*e2z-e2y*e1z,2)+pow(e1z*e2x-e2z*e1x,2)+ \
                            pow(e1x*e2y-e2x*e1y,2));
-      f_mid[i*dim] = (xf[0]+xf[1]+xf[2])/3.0;
-      f_mid[i*dim+1] = (yf[0]+yf[1]+yf[2])/3.0;
-      f_mid[i*dim+2] = (zf[0]+zf[1]+zf[2])/3.0;
+      f_mid[i*dim] = (xf[0]+xf[1]+xf[2])*dimover;
+      f_mid[i*dim+1] = (yf[0]+yf[1]+yf[2])*dimover;
+      f_mid[i*dim+2] = (zf[0]+zf[1]+zf[2])*dimover;
     } else {
       status = ERROR_DIM;
       check_error(status, __FUNCTION__);

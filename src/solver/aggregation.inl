@@ -4,9 +4,13 @@
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *  ATTENTION: Do NOT use auto-indentation in this file!!!
  *
+ * \todo    Add maximal weighted matching coarsning -- Xiaozhe Hu
+ * \todo    Add maximal independent set aggregation -- Xiaozhe Hu
+ * \todo    Add heavy edge coarsening               -- Xiaozhe Hu
+ *
+ * \note   Done cleanup for releasing -- Xiaozhe Hu 03/11/2017
+ *
  */
-
-#define SYMMETRIC_PAIRWISE 1 // use symmetric pairwise aggregation
 
 /*---------------------------------*/
 /*--      Private Functions      --*/
@@ -26,13 +30,17 @@
  * \author Xiaozhe Hu
  * \date   09/29/2009
  *
- * Modified by Xiaozhe Hu on 05/25/2014
+ * \note Modified by Xiaozhe Hu on 05/25/2014
+ *
+ * \note this subroutine uses given near-null basis to form tentative prolongation
+ *       and the basis is not necessary constant
+ *
  */
-static void form_tentative_p (ivector *vertices,
-                              dCSRmat *tentp,
-                              REAL **basis,
-                              INT levelNum,
-                              INT num_aggregations)
+static void form_tentative_p(ivector *vertices,
+                             dCSRmat *tentp,
+                             REAL **basis,
+                             INT levelNum,
+                             INT num_aggregations)
 {   
     INT i, j;
     
@@ -90,10 +98,10 @@ static void form_tentative_p (ivector *vertices,
  *
  * Modified by Xiaozhe Hu on 05/25/2014
  */
-static void form_boolean_p (ivector *vertices,
-                            dCSRmat *tentp,
-                            INT levelNum,
-                            INT num_aggregations)
+static void form_boolean_p(ivector *vertices,
+                           dCSRmat *tentp,
+                           INT levelNum,
+                           INT num_aggregations)
 {  
     INT i, j;
     
@@ -207,14 +215,18 @@ static SHORT aggregation_vmb (dCSRmat *A,
         NIA[i] = index;
         row_start = AIA[i]; row_end = AIA[i+1];
         for ( j = row_start; j < row_end; ++j ) {
+
             if ( (AJA[j] == i) 
-			  || (pow(Aval[j],2) >= strongly_coupled2*ABS(diag.val[i]*diag.val[AJA[j]]))) {
+              || ( (pow(Aval[j],2) >= strongly_coupled2*ABS(diag.val[i]*diag.val[AJA[j]])) && (Aval[j] < 0) )
+               )
+            {
                 NJA[index] = AJA[j];
                 Nval[index] = Aval[j];
                 index++;
             }
-        }
-    }
+
+        } // end for ( j = row_start; j < row_end; ++j )
+    } // end for ( index = i = 0; i < row; ++i )
     NIA[row] = index;
     
     Neigh->nnz = index;

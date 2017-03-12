@@ -24,13 +24,13 @@
 void iarray_print(INT *vec,
                   INT n)
 {
-    /* prints a vector of integers of size n */
+    // local variable
     INT *vec_end;
-    
     vec_end  =  vec + n;
     
     fprintf(stdout,"\n");
 
+    // main loop
     for ( ; vec < vec_end; ++vec)
         fprintf(stdout, "%i\n  ",*vec);
     
@@ -52,9 +52,8 @@ void iarray_print(INT *vec,
 void array_print(REAL *vec,
                  INT n)
 {
-    /* prints a vector of integers of size nn */
+    // local variable
     REAL *vec_end;
-    
     vec_end  =  vec + n;
     
     fprintf(stdout,"\n");
@@ -81,9 +80,10 @@ void array_print(REAL *vec,
 void dvector_print(FILE* fid,
                    dvector *b)
 {
-  /* prints a dvector in matlab output*/
-  INT i; /* Loop Indices */
+  // local vairable
+  INT i;
 
+  // main loop
   for(i=0;i<b->row;i++) {
     fprintf(fid,"%25.16e\n",b->val[i]);
   }
@@ -103,16 +103,17 @@ void dvector_print(FILE* fid,
 void csr_print_matlab(FILE* fid,
                       dCSRmat *A)
 {
-  /* prints a csr matrix in matlab output*/
-  INT i,j1,j2,j; /* Loop Indices */
-  INT shift_flag = 0; /* Check if Indexing starts at 0 or 1 */
+  // local variables
+  INT i,j1,j2,j;
+  INT shift_flag = 0; // Check if Indexing starts at 0 or 1
 
   if(A->IA[0]==0) {
-    printf("hello\n\n");
+    //printf("hello\n\n");
     dcsr_shift(A, 1);  // shift A
     shift_flag = 1;
   }
 
+  // main loop
   for(i=0;i<A->row;i++) {
     j1 = A->IA[i]-1;
     j2 = A->IA[i+1]-1;
@@ -137,12 +138,16 @@ void csr_print_matlab(FILE* fid,
  * \param fid  Pointer to the file
  * \param A    Pointer to the iCSRmat format sparse matrix
  *
+ * \todo add shift flag -- Xiaozhe Hu
+ *
  */
-void icsr_print_matlab(FILE* fid,iCSRmat *A)
+void icsr_print_matlab(FILE* fid,
+                       iCSRmat *A)
 {
-  /* prints a csr matrix in matlab output*/
-  INT i,j1,j2,j; /* Loop Indices */
+    // local variables
+    INT i,j1,j2,j;
 
+    // main loop
   for(i=0;i<A->row;i++) {
     j1 = A->IA[i]-1;
     j2 = A->IA[i+1]-1;
@@ -166,19 +171,19 @@ void icsr_print_matlab(FILE* fid,iCSRmat *A)
 void dvec_write (const char *filename,
                  dvector *vec)
 {
+    // local variables
     INT m = vec->row, i;
 
     FILE *fp = fopen(filename,"w");
 
-    if ( fp == NULL ) {
-        printf("### ERROR: Cannot open %s!\n", filename);
+    if ( fp == NULL )
         check_error(ERROR_OPEN_FILE, __FUNCTION__);
-    }
 
-    printf("%s: writing to file %s...\n", __FUNCTION__, filename);
+    printf("%s: HAZMATH is writing to file %s...\n", __FUNCTION__, filename);
 
     fprintf(fp,"%d\n",m);
 
+    //main loop
     for ( i = 0; i < m; ++i ) fprintf(fp,"%0.15e\n",vec->val[i]);
 
     fclose(fp);
@@ -197,18 +202,17 @@ void dvec_write (const char *filename,
 void dcsr_write_dcoo (const char *filename,
                       dCSRmat *A)
 {   
+    // local variables
     const INT m = A->row, n = A->col;
     INT i, j;
     
     FILE *fp = fopen(filename, "w");
     
-    if ( fp == NULL ) {
-        printf("### ERROR: Cannot open %s!\n", filename);
-        check_error(ERROR_OPEN_FILE, __FUNCTION__);
-    }
+    if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
     
-    printf("%s: writing to file %s...\n", __FUNCTION__, filename);
+    printf("%s: HAZMATH is writing to file %s...\n", __FUNCTION__, filename);
     
+    // main loop
     fprintf(fp,"%d  %d  %d\n",m,n,A->nnz);
     for ( i = 0; i < m; ++i ) {
         for ( j = A->IA[i]; j < A->IA[i+1]; j++ )
@@ -219,7 +223,6 @@ void dcsr_write_dcoo (const char *filename,
 }
 
 /*** Auxillary Files (some from Ludmil) *******************************************************/
-
 /****************************************************************************************/
 /*!
  * \fn void rveci_(FILE *fp, INT *vec, INT *nn)
@@ -231,15 +234,19 @@ void dcsr_write_dcoo (const char *filename,
  * \param nn        Size of Vector
  *
  */
-void rveci_(FILE *fp, INT *vec, INT *nn)       
+void rveci_(FILE *fp,
+            INT *vec,
+            INT *nn)
 {	
+  // local variables
   INT n;
   INT *vec_end;
   n = *nn;
   vec_end  =  vec + n;
+
+  // main loop
   for ( ; vec < vec_end; ++vec)
     fscanf(fp,"%i",vec);
-  //fprintf(stdout,"Read %d INTEGERS", n);
   return;
 }
 /****************************************************************************************/
@@ -255,15 +262,19 @@ void rveci_(FILE *fp, INT *vec, INT *nn)
  * \param nn        Size of Vector
  *
  */
-void rvecd_(FILE *fp,  REAL *vec, INT *nn)
+void rvecd_(FILE *fp,
+            REAL *vec,
+            INT *nn)
 {
+    // local variables
   INT n;
   REAL *vec_end;  
   n= *nn;
   vec_end =  vec + n;
+
+  // main loop
   for ( ; vec < vec_end; ++vec)
     fscanf(fp,"%lg",vec);
-  //fprintf(stdout,"Read %d REALS", n);
   return;
 }
 /****************************************************************************************/
@@ -280,8 +291,10 @@ void rvecd_(FILE *fp,  REAL *vec, INT *nn)
  * \param mode      read or write
  *
  */
-FILE* HAZ_fopen( char *fname, char *mode )
+FILE* HAZ_fopen(char *fname,
+                char *mode )
 {
+   // local variable
   FILE   *fp;
 
   fp = fopen(fname,mode);
@@ -305,7 +318,10 @@ FILE* HAZ_fopen( char *fname, char *mode )
  * \param ncomp:   Number of components to the solution
  *
  */
-void dump_sol_onV_vtk(char *namevtk,trimesh *mesh,REAL *sol,INT ncomp)
+void dump_sol_onV_vtk(char *namevtk,
+                      trimesh *mesh,
+                      REAL *sol,
+                      INT ncomp)
 {
   // Basic Quantities
   INT nv = mesh->nv;
@@ -448,7 +464,10 @@ void dump_sol_onV_vtk(char *namevtk,trimesh *mesh,REAL *sol,INT ncomp)
  * \param filetype     Name for types of files (i.e. "timestep")
  *
  */
-void create_pvd(char *namepvd,INT nfiles,char *vtkfilename,char *filetype)
+void create_pvd(char *namepvd,
+                INT nfiles,
+                char *vtkfilename,
+                char *filetype)
 {
   // VTK needed Quantities
   //  What endian?:

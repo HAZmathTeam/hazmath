@@ -5,6 +5,8 @@
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 12/24/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
+ * \note   Done cleanup for releasing -- Xiaozhe Hu 03/12/2017
+ *
  */
 
 #include "hazmath.h"
@@ -16,7 +18,7 @@
 /**
  * \fn INT amg_solve (AMG_data *mgl, AMG_param *param)
  *
- * \brief AMG -- SOLVE phase
+ * \brief Solve phase for AMG method (as standard alone iterative solver)
  *
  * \param mgl    Pointer to AMG data: AMG_data
  * \param param  Pointer to AMG parameters: AMG_param
@@ -24,8 +26,8 @@
  * \return       Iteration number if converges; ERROR otherwise.
  *
  */
-INT amg_solve (AMG_data *mgl,
-                    AMG_param *param)
+INT amg_solve(AMG_data *mgl,
+              AMG_param *param)
 { 
     dCSRmat      *ptrA = &mgl[0].A;
     dvector      *b = &mgl[0].b, *x = &mgl[0].x, *r = &mgl[0].w;
@@ -33,7 +35,7 @@ INT amg_solve (AMG_data *mgl,
     const SHORT   prtlvl = param->print_level;
     const INT     MaxIt  = param->maxit;
     const REAL    tol    = param->tol;
-    const REAL    sumb   = dvec_norm2(b); // L2norm(b)
+    const REAL    sumb   = dvec_norm2(b);
     
     // local variables
     REAL  solve_start, solve_end;
@@ -45,10 +47,10 @@ INT amg_solve (AMG_data *mgl,
     // Print iteration information if needed
     print_itsolver_info(prtlvl, STOP_REL_RES, iter, 1.0, sumb, 0.0);
     
-    // MG solver here
+    // Main loop
     while ( (++iter <= MaxIt) & (sumb > SMALLREAL) ) {
         
-        // Call one multigrid cycle -- non recursive version
+        // Call one multigrid cycle
         mgcycle(mgl, param);
         
         // Form residual r = b - A*x
@@ -56,10 +58,10 @@ INT amg_solve (AMG_data *mgl,
         dcsr_aAxpy(-1.0, ptrA, x->val, r->val);
         
         // Compute norms of r and convergence factor
-        absres  = dvec_norm2(r); // residual ||r||
-        relres1 = absres/sumb;             // relative residual ||r||/||b||
-        factor  = absres/absres0;          // contraction factor
-        absres0 = absres;                  // prepare for next iteration
+        absres  = dvec_norm2(r);
+        relres1 = absres/sumb;
+        factor  = absres/absres0;
+        absres0 = absres;
         
         // Print iteration information if needed
         print_itsolver_info(prtlvl, STOP_REL_RES, iter, relres1, absres, factor);
@@ -82,7 +84,7 @@ INT amg_solve (AMG_data *mgl,
 /**
  * \fn INT amg_solve_amli (AMG_data *mgl, AMG_param *param)
  *
- * \brief AMLI -- SOLVE phase
+ * \brief Solve phase for AMG method using AMLI-cycle (as standard alone iterative solver)
  *
  * \param mgl    Pointer to AMG data: AMG_data
  * \param param  Pointer to AMG parameters: AMG_param
@@ -130,10 +132,10 @@ INT amg_solve_amli (AMG_data *mgl,
         dcsr_aAxpy(-1.0, ptrA, x->val, r->val);
         
         // Compute norms of r and convergence factor
-        absres  = dvec_norm2(r); // residual ||r||
-        relres1 = absres/sumb;             // relative residual ||r||/||b||
-        factor  = absres/absres0;          // contraction factor
-        absres0 = absres;                  // prepare for next iteration
+        absres  = dvec_norm2(r);
+        relres1 = absres/sumb;
+        factor  = absres/absres0;
+        absres0 = absres;
         
         // Print iteration information if needed
         print_itsolver_info(prtlvl, STOP_REL_RES, iter, relres1, absres, factor);
@@ -153,9 +155,9 @@ INT amg_solve_amli (AMG_data *mgl,
 }
 
 /**
- * \fn INT amg_solve_nl_amli (AMG_data *mgl, AMG_param *param)
+ * \fn INT amg_solve_nl_amli(AMG_data *mgl, AMG_param *param)
  *
- * \brief Nonlinear AMLI -- SOLVE phase
+ * \brief Solve phase for AMG method using nonlinear AMLI-cycle (as standard alone iterative solver)
  *
  * \param mgl    Pointer to AMG data: AMG_data
  * \param param  Pointer to AMG parameters: AMG_param
@@ -170,8 +172,8 @@ INT amg_solve_amli (AMG_data *mgl,
  *       "Comparative Convergence Analysis of Nonlinear AMLI-cycle Multigrid", 2013.
  *
  */
-INT amg_solve_nl_amli (AMG_data *mgl,
-                            AMG_param *param)
+INT amg_solve_nl_amli(AMG_data *mgl,
+                      AMG_param *param)
 {  
     dCSRmat      *ptrA = &mgl[0].A;
     dvector      *b = &mgl[0].b, *x = &mgl[0].x, *r = &mgl[0].w;
@@ -193,23 +195,23 @@ INT amg_solve_nl_amli (AMG_data *mgl,
     
     while ( (++iter <= MaxIt) & (sumb > SMALLREAL) ) // MG solver here
     {
-        // one multigrid cycle
+        // Call nonlinear AMLI-cycle
         nl_amli(mgl, param, 0, mgl[0].num_levels);
         
-        // r = b-A*x
+        // Computer r = b-A*x
         dvec_cp(b, r);
         dcsr_aAxpy(-1.0, ptrA, x->val, r->val);
-        
+
         absres  = dvec_norm2(r); // residual ||r||
         relres1 = absres/sumb;       // relative residual ||r||/||b||
         factor  = absres/absres0;    // contraction factor
-        
+        absres0 = absres;
+
+
         // output iteration information if needed
         print_itsolver_info(prtlvl, STOP_REL_RES, iter, relres1, absres, factor);
         
         if ( relres1 < tol ) break; // early exit condition
-        
-        absres0 = absres;
     }
     
     if ( prtlvl > PRINT_NONE ) {

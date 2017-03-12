@@ -132,8 +132,6 @@ void* umfpack_factorize (dCSRmat *ptrA,
                          const SHORT prtlvl)
 {   
     const INT n = ptrA->col;
-    //const INT m = ptrA->row;
-    //const INT nnz = ptrA->nnz;
     
     INT *Ap = ptrA->IA;
     INT *Ai = ptrA->JA;
@@ -186,10 +184,7 @@ INT umfpack_solve (dCSRmat *ptrA,
                         void *Numeric,
                         const SHORT prtlvl)
 {   
-    /* const INT n = ptrA->col; */
-    /* const INT m = ptrA->row; */
-    /* const INT nnz = ptrA->nnz; */
-    
+
     INT *Ap = ptrA->IA;
     INT *Ai = ptrA->JA;
     double *Ax = ptrA->val;
@@ -210,7 +205,7 @@ INT umfpack_solve (dCSRmat *ptrA,
 
 /***************************************************************************************************************************/
 /**
- * \fn INT fasp_umfpack_free_numeric (void *Numeric)
+ * \fn INT umfpack_free_numeric (void *Numeric)
  * \brief Solve Au=b by UMFpack
  *
  * \param Numeric   Pointer to the numerical factorization
