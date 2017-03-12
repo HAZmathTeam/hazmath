@@ -237,8 +237,8 @@ void eafe(dCSRmat *A, dvector *rhs,		\
       }
     }
   }
-  dvec_free(diag0);
-  dvec_free(dmass);
+  dvec_free(&diag0);
+  dvec_free(&dmass);
   return;
 }
 
