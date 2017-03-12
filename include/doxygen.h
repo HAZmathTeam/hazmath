@@ -48,9 +48,9 @@
 /**
  * \page doxygen_comment Doxygen
  *
- * We use Doxygen as our automatically documentation generator which will make our 
- * future maintainance minimized. You can obtain the software (Windows, Linux and 
- * OS X) as well as its manual on the official website 
+ * We use Doxygen as our automatic documentation generator, which will 
+ * minimize future maintenence. You can obtain this software (Windows, Linux and 
+ * OS X) as well as its manual on the official website: 
  * 
  * http://www.doxygen.org
  *
