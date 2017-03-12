@@ -9,6 +9,8 @@ Quick start: 1. Edit "haz_config/hazmath.mk" as needed.
  make config CC=gcc    # set a specific C compiler
  make config debug=yes # compiler's debug options ON
  make headers          # function defs in include/hazmath.h
+ make docs	       # install documentations for HAZMATH
+      		       # (!need to set doxygen=yes!)
  make                  # compile/link libhazmath
  make install          # install libhazmath and examples
  make clean            # remove *.o and *~ files

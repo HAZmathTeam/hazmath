@@ -11,7 +11,8 @@
 #   adjust the settings to your liking, and then type "make help" to
 #   see how to configure/build HAZMATH.
 # 
-#  Modified   2015-08-08   --ltz
+#  Modified   		2015-08-08   	--ltz
+#  Added Doxygen	2017-03-12	--Xiaozhe Hu
 ########################################################################
 sinclude haz_config/hazmath.mk
 
