@@ -2,6 +2,8 @@
 /* MULTIGRAPH PARAMETERS for the call to mginit_()*/
 #define MAXJA_MULT 5
 #define MAXA_MULT 5
+#define LENGTH_HIST 22
+#define ITNUM_FROM_HIST 20
 INT ispd=0; // is this an SPD problem ?
 INT ncfact=4; // factor for coarsening, should >=2
 INT maxlvl=20; // max number of levels

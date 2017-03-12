@@ -45,3 +45,5 @@ void bc_any(REAL *val, REAL* x, REAL t) {
   *val= x[0];
   return;
 }
+
+void mgraph_wrap(dCSRmat A, dvector rhs, dvector *sol);

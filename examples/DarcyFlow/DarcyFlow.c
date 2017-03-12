@@ -28,6 +28,55 @@
 #include "DarcyData.h"
 #include "DarcySystem.h"
 /*********************************************************************************/
+void rescale_a(const trimesh mesh,dCSRmat *A, dvector *b)
+{
+  /* rescales the Darcy system so that it uses different basis for RT*/
+  /* mesh entities: number of faces, number boundary faces and so on */
+  /* indices start from 1 */
+  INT  i=-1,j=-1,ij=-1,iaa,iab,not_found;
+  INT  nv=mesh.nv, nf=mesh.nface,nfb=mesh.nbface,dim=mesh.dim; 
+  /* get areas, normal vectors and barycenters  of faces */
+  REAL *fa=mesh.f_area;
+  REAL aij;
+  printf("\nrescale: Size of A and b: %d, %d\n",A->row,b->row);
+  dvector da = dvec_create(A->row);
+  for (i = 0;i<A->row;i++){
+    iaa=A->IA[i]-1;
+    iab=A->IA[i+1]-1;
+    not_found=1;
+    if(iab>iaa){
+      for(ij=iaa;ij<iab;ij++){
+	j=A->JA[ij]-1;
+	if(j==i) {
+	  aij=A->val[ij];
+	  if(fabs(aij)<1e-10) aij=1.; //protect.
+	  da.val[i]=sqrt(1./aij);
+	  b->val[i]=da.val[i]*b->val[i];
+	  not_found=0;
+	  break;
+	}
+      }
+    }
+    if(not_found) da.val[i]=1e+00;
+  }
+  /* rescale the matrix and the right hand side */
+  for (i = 0;i<A->row;i++){
+    iaa=A->IA[i]-1;
+    iab=A->IA[i+1]-1;
+    if(iab>iaa) {
+      for(ij=iaa;ij<iab;ij++){
+	j=A->JA[ij]-1;
+	//	fprintf(stdout,"rescale:a[%d,%d], da = %f, %f %f\n",i+1,j+1,aij,da.val[i],da.val[j]);
+	A->val[ij]=da.val[i]*A->val[ij]*da.val[j];
+      }
+    }
+  }
+  FILE* fid=HAZ_fopen("symm00.coo","w"); 
+  csr_print_matlab(fid,A); 
+  fclose(fid); 
+  mgraph_wrap((*A),*b,&da);
+  return;
+}
 
 /****** MAIN DRIVER **************************************************************/
 int main (int argc, char* argv[]) 
@@ -188,10 +237,6 @@ int main (int argc, char* argv[])
   // Convert to CSR from Block CSR and then shift back
   dCSRmat A_csr = bdcsr_2_dcsr(&A);
   dcsr_shift(&A_csr,1);
-  /* printf("%d\n\n",A_csr.row); */
-  /* FILE* fid=HAZ_fopen("symm00.coo","w"); */
-  /* csr_print_matlab(fid,&A_csr); */
-  /* fclose(fid); */
   // Time Propagation Operators (if necessary)
   if(time_stepper.tsteps>0) {
     // Get Mass Matrix for h
@@ -213,8 +258,6 @@ int main (int argc, char* argv[])
     dcsr_shift(&Mempty,-1);
     dCSRmat M_csr = bdcsr_2_dcsr(&M);
     dcsr_shift(&M_csr,1);
-    printf("%d\n\n",M_csr.row);
-
     // Create Time Operator (one with BC and one without)
     initialize_timestepper(&time_stepper,&inparam,0,A_csr.row);
     time_stepper.A = &A_csr;
@@ -226,7 +269,7 @@ int main (int argc, char* argv[])
     // Eliminate BCs
     eliminate_DirichletBC_blockFE(bc,&FE,&mesh,&b,&A_csr,0.0);
   }
-  
+  rescale_a(mesh,&A_csr,&b);
   //-----------------------------------------------
   // prepare for preconditioners
   // generate dof index
