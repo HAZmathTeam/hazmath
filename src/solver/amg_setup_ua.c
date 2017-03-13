@@ -117,18 +117,28 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
     // Main AMG setup loop
     while ( (mgl[lvl].A.row > min_cdof) && (lvl < max_levels-1) ) {
         
+        //printf("level = %d\n", lvl);
+        //dcsr_write_dcoo("A.dat", &mgl[lvl].A);
+        //getchar();
+
         /*-- Aggregation --*/
         switch ( param->aggregation_type ) {
                 
-            case VMB: // VMB aggregation
-                
+            case VMB: // VMB aggregation     
                 status = aggregation_vmb(&mgl[lvl].A, &vertices[lvl], param,
                                          &Neighbor[lvl], &num_aggs[lvl]);
-                
+                break;
+
+            case HEC: // Heavy edge coarsening aggregation
+                status = aggregation_hec(&mgl[lvl].A, &vertices[lvl], param,
+                                         &Neighbor[lvl], &num_aggs[lvl]);
+                //printf("level = %d\n", lvl);
+                //ivector_write("vt.dat", &vertices[lvl]);
+                //dcsr_write_dcoo("N.dat", &Neighbor[lvl]);
+                //getchar();
                 break;
                 
             default: // wrong aggregation type
-                
                 status = ERROR_AMG_AGG_TYPE;
                 check_error(status, __FUNCTION__);
                 break;

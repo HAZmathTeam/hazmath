@@ -6,7 +6,6 @@
  *
  * \todo    Add maximal weighted matching coarsning -- Xiaozhe Hu
  * \todo    Add maximal independent set aggregation -- Xiaozhe Hu
- * \todo    Add heavy edge coarsening               -- Xiaozhe Hu
  *
  * \note   Done cleanup for releasing -- Xiaozhe Hu 03/11/2017
  *
@@ -15,6 +14,7 @@
 /*---------------------------------*/
 /*--      Private Functions      --*/
 /*---------------------------------*/
+/***********************************************************************************************/
 /**
  * \fn static void form_tentative_p (ivector *vertices, dCSRmat *tentp,
  *                                   REAL **basis, INT levelNum, INT num_aggregations)
@@ -82,6 +82,7 @@ static void form_tentative_p(ivector *vertices,
     }
 }
 
+/***********************************************************************************************/
 /**
  * \fn static void form_boolean_p (ivector *vertices, dCSRmat *tentp, INT levelNum,
  *                                 INT num_aggregations)
@@ -143,8 +144,65 @@ static void form_boolean_p(ivector *vertices,
     }
 }
 
+/***********************************************************************************************/
+static void construct_strong_couped(dCSRmat *A,
+                                    AMG_param *param,
+                                    dCSRmat *Neigh)
+{
 
+    // local variables
+    const INT  row = A->row, col = A->col, nnz = A->IA[row]-A->IA[0];
+    const INT  *AIA = A->IA, *AJA = A->JA;
+    const REAL *Aval = A->val;
 
+    INT  i, j, index, row_start, row_end;
+    REAL strongly_coupled = param->strong_coupled;
+    REAL strongly_coupled2 = pow(strongly_coupled,2);
+
+    INT  *NIA, *NJA;
+    REAL *Nval;
+
+    // get the diagonal entries
+    dvector diag;
+    dcsr_getdiag(0, A, &diag);
+
+    // allocate Neigh
+    dcsr_alloc(row, col, nnz, Neigh);
+
+    NIA  = Neigh->IA; NJA  = Neigh->JA;
+    Nval = Neigh->val;
+
+    // set IA for Neigh
+    for ( i = row; i >= 0; i-- ) NIA[i] = AIA[i];
+
+    // main loop of finding strongly coupled neighbors
+    for ( index = i = 0; i < row; ++i ) {
+        NIA[i] = index;
+        row_start = AIA[i]; row_end = AIA[i+1];
+        for ( j = row_start; j < row_end; ++j ) {
+
+            if ( (AJA[j] == i)
+              || ( (pow(Aval[j],2) >= strongly_coupled2*ABS(diag.val[i]*diag.val[AJA[j]])) && (Aval[j] < 0) )
+               )
+            {
+                NJA[index] = AJA[j];
+                Nval[index] = Aval[j];
+                index++;
+            }
+
+        } // end for ( j = row_start; j < row_end; ++j )
+    } // end for ( index = i = 0; i < row; ++i )
+    NIA[row] = index;
+
+    Neigh->nnz = index;
+    Neigh->JA  = (INT*) realloc(Neigh->JA,  (Neigh->IA[row])*sizeof(INT));
+    Neigh->val = (REAL*)realloc(Neigh->val, (Neigh->IA[row])*sizeof(REAL));
+
+    dvec_free(&diag);
+
+}
+
+/***********************************************************************************************/
 /**
  * \fn static SHORT aggregation_vmb (dCSRmat *A, ivector *vertices, AMG_param *param,
  *                                   dCSRmat *Neigh, INT *num_aggregations)
@@ -165,15 +223,16 @@ static void form_boolean_p(ivector *vertices,
  *       "Algebraic Multigrid on Unstructured Meshes", 1994
  *
  */
-static SHORT aggregation_vmb (dCSRmat *A,
-                              ivector *vertices,
-                              AMG_param *param,
-                              dCSRmat *Neigh,
-                              INT *num_aggregations)
+static SHORT aggregation_vmb(dCSRmat *A,
+                             ivector *vertices,
+                             AMG_param *param,
+                             dCSRmat *Neigh,
+                             INT *num_aggregations)
 {   
+    // local variables
     const INT    row = A->row, col = A->col, nnz = A->IA[row]-A->IA[0];
-    const INT  * AIA = A->IA, * AJA = A->JA;
-    const REAL * Aval = A->val;
+    const INT    *AIA = A->IA, *AJA = A->JA;
+    const REAL   *Aval = A->val;
     const INT    max_aggregation = param->max_aggregation;
     
     // return status
@@ -182,62 +241,17 @@ static SHORT aggregation_vmb (dCSRmat *A,
     // local variables
     INT    num_left = row;
     INT    subset, count;
-    INT  * num_each_agg;
+    INT    *num_each_agg;
     
-    REAL   strongly_coupled, strongly_coupled2;
-    INT    i, j, index, row_start, row_end;
-    INT  * NIA = NULL, * NJA = NULL;
-    REAL * Nval = NULL;
-    
-    dvector diag;
-    dcsr_getdiag(0, A, &diag);  // get the diagonal entries
-    
-    //if ( GE(param->tentative_smooth, SMALLREAL) ) {
-    //    strongly_coupled = param->strong_coupled * pow(0.5, levelNum-1);
-    //}
-    //else {
-    strongly_coupled = param->strong_coupled;
-    //}
-    strongly_coupled2 = pow(strongly_coupled,2);
-    
-    /*------------------------------------------*/
-    /*    Form strongly coupled neighborhood    */
-    /*------------------------------------------*/
-    dcsr_alloc(row, col, nnz, Neigh);
-    
-    NIA  = Neigh->IA;
-    NJA  = Neigh->JA;
-    Nval = Neigh->val;
-    
-    for ( i = row; i >= 0; i-- ) NIA[i] = AIA[i];
-    
-    for ( index = i = 0; i < row; ++i ) {
-        NIA[i] = index;
-        row_start = AIA[i]; row_end = AIA[i+1];
-        for ( j = row_start; j < row_end; ++j ) {
+    INT    i, j, row_start, row_end;
+    INT    *NIA = NULL, *NJA = NULL;
+    REAL   *Nval = NULL;
 
-            if ( (AJA[j] == i) 
-              || ( (pow(Aval[j],2) >= strongly_coupled2*ABS(diag.val[i]*diag.val[AJA[j]])) && (Aval[j] < 0) )
-               )
-            {
-                NJA[index] = AJA[j];
-                Nval[index] = Aval[j];
-                index++;
-            }
-
-        } // end for ( j = row_start; j < row_end; ++j )
-    } // end for ( index = i = 0; i < row; ++i )
-    NIA[row] = index;
+    // find strongly coupled neighbors
+    construct_strong_couped(A, param, Neigh);
     
-    Neigh->nnz = index;
-    Neigh->JA  = (INT*) realloc(Neigh->JA,  (Neigh->IA[row])*sizeof(INT));
-    Neigh->val = (REAL*)realloc(Neigh->val, (Neigh->IA[row])*sizeof(REAL));
-    
-    NIA  = Neigh->IA;
-    NJA  = Neigh->JA;
+    NIA  = Neigh->IA; NJA  = Neigh->JA;
     Nval = Neigh->val;
-    
-    dvec_free(&diag);
     
     /*------------------------------------------*/
     /*             Initialization               */
@@ -346,7 +360,108 @@ END:
     return status;
 }
 
+/***********************************************************************************************/
+/**
+ * \fn static SHORT aggregation_hec (dCSRmat *A, ivector *vertices, AMG_param *param,
+ *                                   dCSRmat *Neigh, INT *num_aggregations)
+ *
+ * \brief Heavy edge coarsening aggregation based on strong coupled neighbors
+ *
+ * \param A                 Pointer to the coefficient matrices
+ * \param vertices          Pointer to the aggregation of vertices
+ * \param param             Pointer to AMG parameters
+ * \param Neigh             Pointer to strongly coupled neighbors
+ * \param num_aggregations  Pointer to number of aggregations
+ *
+ * \author Xiaozhe Hu
+ * \date   03/12/2017
+ *
+ * \todo Add control of maximal size of each aggregates
+ *
+ * \note Refer to J. Urschel, X. Hu, J. Xu and L. Zikatanov
+ *       "A Cascadic Multigrid Algorithm for Computing the Fiedler Vector of Graph Laplacians", 2015
+ *
+ */
+static SHORT aggregation_hec(dCSRmat *A,
+                             ivector *vertices,
+                             AMG_param *param,
+                             dCSRmat *Neigh,
+                             INT *num_aggregations)
+{
+    // local variables
+    const INT    row = A->row;
+    //const INT    max_aggregation = param->max_aggregation;
 
+    // return status
+    SHORT  status = SUCCESS;
+
+    INT  i, j, k, ii, jj, row_start, row_end;;
+    INT  *NIA = NULL, *NJA = NULL;
+    REAL *Nval = NULL;
+    REAL maxval = 0.0;
+
+    INT *perm =(INT *)calloc(row, sizeof(INT));
+
+    // find strongly coupled neighbors
+    construct_strong_couped(A, param, Neigh);
+
+    NIA  = Neigh->IA; NJA  = Neigh->JA;
+    Nval = Neigh->val;
+
+    /*------------------------------------------*/
+    /*             Initialization               */
+    /*------------------------------------------*/
+    ivec_alloc(row, vertices);
+    iarray_set(row, vertices->val, -2);
+    *num_aggregations = 0;
+
+    // get random permutation
+    for(i=0; i<row; i++) perm[i] = i;
+    iarray_shuffle(row, perm);
+
+    // main loop
+    for ( ii = 0; ii < row; ii++ ) {
+        i = perm[ii];
+        if ( (NIA[i+1] - NIA[i]) == 1 ) {
+            vertices->val[i] = UNPT;
+        }
+        else {
+            // find the most strongly connected neighbor
+            row_start = NIA[i]; row_end = NIA[i+1];
+            maxval = 0.0;
+            for (jj = row_start; jj < row_end; jj++)
+            {
+                if (NJA[jj] != i) {
+                    if ( ABS(Nval[jj]) > maxval ) {
+                        k = jj;
+                        maxval = ABS(Nval[jj]);
+                    }
+                }
+            } // end for (jj = row_start+1; jj < row_end; jj++)
+            j = NJA[k];
+
+            // create a new aggregates if the most strongly conncected neighbor
+            // is still avaliable
+            if (vertices->val[j] < UNPT)
+            {
+                vertices->val[j] = *num_aggregations;
+                vertices->val[i] = *num_aggregations;
+                (*num_aggregations)++;
+            }
+            else
+            {
+                vertices->val[i] = vertices->val[j];
+            } // end if (vertices->val[j] < UNPT)
+        } // end if ( (NIA[i+1] - NIA[i]) == 1 )
+
+    } // end for ( ii = 0; ii < row; ii++ )
+
+    // free spaces
+    free(perm);
+
+    return status;
+
+}
 
 /*---------------------------------*/
 /*--        End of File          --*/

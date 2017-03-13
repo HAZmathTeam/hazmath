@@ -126,6 +126,65 @@ void iarray_cp (const INT n,
 
 /***********************************************************************************************/
 /*!
+ * \fn void array_shuffle(const INT n, REAL *x)
+ *
+ * \brief shuffle a REAL array
+ *
+ * \param n    Number of entries
+ * \param x    Pointer to the REAL array (OUTPUT)
+ *
+ */
+void array_shuffle(const INT n,
+                   REAL *x)
+{
+    if (n > 1) {
+        INT i, j;
+        REAL temp;
+
+        for (i = 0; i < n-1; i++) {
+          j = i + rand() / (RAND_MAX / (n - i) + 1);
+          temp = x[j];
+          x[j] = x[i];
+          x[i] = temp;
+        }
+
+    }
+
+
+}
+
+
+/***********************************************************************************************/
+/*!
+ * \fn void iarray_shuffle(const INT n, INT *x)
+ *
+ * \brief shuffle an INT array
+ *
+ * \param n    Number of entries
+ * \param x    Pointer to the INT array (OUTPUT)
+ *
+ */
+void iarray_shuffle(const INT n,
+                   INT *x)
+{
+    if (n > 1) {
+        INT i, j, temp;
+
+        for (i = 0; i < n-1; i++) {
+          j = i + rand() / (RAND_MAX / (n - i) + 1);
+          temp = x[j];
+          x[j] = x[i];
+          x[i] = temp;
+        }
+
+    }
+
+
+}
+
+
+/***********************************************************************************************/
+/*!
  * \fn void array_ax (const INT n, const REAL a, REAL *x)
  *
  * \brief Compute x = a*x

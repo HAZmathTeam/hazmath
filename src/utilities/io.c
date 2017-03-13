@@ -68,6 +68,38 @@ void array_print(REAL *vec,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn void ivector_write (const char *filename, ivector *vec)
+ *
+ * \brief Write a ivector to disk file in coordinate format
+ *
+ * \param vec       Pointer to the dvector
+ * \param filename  File name
+ *
+ */
+void ivector_write(const char *filename,
+                   ivector *vec)
+{
+    INT m = vec->row, i;
+
+    FILE *fp = fopen(filename,"w");
+
+    if ( fp == NULL ) {
+        check_error(ERROR_OPEN_FILE, __FUNCTION__);
+    }
+
+    printf("%s: writing to file %s...\n", __FUNCTION__, filename);
+
+    // write number of nonzeros
+    fprintf(fp,"%d\n",m);
+
+    // write index and value each line
+    for ( i = 0; i < m; ++i ) fprintf(fp,"%d %d\n",i,vec->val[i]);
+
+    fclose(fp);
+}
+
+/***********************************************************************************************/
 /*!
  * \fn void dvector_print(FILE* fid,dvector *b)
  *
@@ -89,6 +121,31 @@ void dvector_print(FILE* fid,
   }
   return;
 }
+
+/***********************************************************************************************/
+/*!
+ * \fn void ivector_print(FILE* fid,ivector *b)
+ *
+ * \brief print a ivector to a file
+ *
+ * \param fid  Pointer to the file
+ * \param b    Pointer to the Integer dvector
+ *
+ */
+void ivector_print(FILE* fid,
+                   ivector *b)
+{
+  // local vairable
+  INT i;
+
+  // main loop
+  for(i=0;i<b->row;i++) {
+      printf("i = %d\n", i);
+    fprintf(fid,"%d\n",b->val[i]);
+  }
+  return;
+}
+
 
 /***********************************************************************************************/
 /*!
