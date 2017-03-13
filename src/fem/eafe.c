@@ -15,33 +15,32 @@
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************/
 #include "hazmath.h"
 /*********************************************************************/
-
+/*!
+ * \brief Calculates boundary integral using lumped mass.
+ *
+ * \note For an equation in divergence form, the natural boundary condition is: \grad u . n + (b . n)u=g;
+ *
+ * \note A boundary condition such as  \grad u . n = g;
+  is a Robin type condition when the equation is in divergence form.
+ *
+ * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
+ *
+ * \param mesh           Mesh Data
+ *
+ * \param faketime Physical Time if time dependent (not used now)
+ * \param vector_val_ad is a vector valued function giving the advection coefficient
+ * \param scalar_val_bndnr is a scalar valued function for evaluating the right hand side of Neumann or Robin boundary condition
+ *
+ * \note there are some Robin type conditions so we need to compute the addition to the stiffness matrix. We use lumped mass quadrature for this and store the diagonal element of the boundary mass matrix in dmass[*];
+ * \return dmass lumped mass matrix for the boundary.
+ * \return rhs  modified rhs vector if non-zero right hand side for Neumann/Robin boundary condition
+ *
+*/
 static void LumpMassBndry(const trimesh mesh,
 		   void (*vector_val_ad)(REAL *, REAL *, REAL),	\
 		   void (*scalar_val_bndnr)(REAL *, REAL *, REAL),	\
 		   dvector *rhs, dvector *dmass)
 {
-  /*! 
-   * \brief Calculates boundary integral using lumped mass.
-   *
-   * \note For an equation in divergence form, the natural boundary condition is: \grad u . n + (b . n)u=g; 
-   *
-   * \note A boundary condition such as  \grad u . n = g; 
-    is a Robin type condition when the equation is in divergence form.  
-   *
-   * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
-   *
-   * \param mesh           Mesh Data
-   *
-   * \param faketime Physical Time if time dependent (not used now)
-   * \param vector_val_ad is a vector valued function giving the advection coefficient
-   * \param scalar_val_bndnr is a scalar valued function for evaluating the right hand side of Neumann or Robin boundary condition 
-   *
-   * \note there are some Robin type conditions so we need to compute the addition to the stiffness matrix. We use lumped mass quadrature for this and store the diagonal element of the boundary mass matrix in dmass[*];
-   * \return dmass lumped mass matrix for the boundary. 
-   * \return rhs  modified rhs vector if non-zero right hand side for Neumann/Robin boundary condition
-   *
-  */
 #ifndef MARKER_ROBIN
   return;
 #endif
@@ -99,14 +98,14 @@ static void LumpMassBndry(const trimesh mesh,
   return;
 }
 
+/*!
+ *
+ * \fn bernoulli(const REAL z)
+ * \brief returns B(z) = z/(exp(z)-1)
+ *
+ */
 static REAL bernoulli(const REAL z)
 {
-  /*!
-   *
-   * \fn bernoulli(const REAL z)
-   * \brief returns B(z) = z/(exp(z)-1)
-   *
-   */
   double tolb=1e-10,zlarge=37.*2.302;  
   if (fabs(z) < tolb)
     return (1.-z*0.5); // around 0 this is the asymptotic;
@@ -116,17 +115,49 @@ static REAL bernoulli(const REAL z)
     return 0.;
 }
 
+/*!
+ *
+ * \fn poisson_coeff(REAL *val,REAL* x, REAL t)
+ * \brief returns 1;
+ *
+ */
 static void poisson_coeff(REAL *val,REAL* x, REAL t) {
-  /*!
-   *
-   * \fn poisson_coeff(REAL *val,REAL* x, REAL t)
-   * \brief returns 1; 
-   *
-   */
   *val = 1.0;
   return;
 }
 
+/*!
+ * \fn  eafe(dCSRmat *A, dvector *rhs, void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL), trimesh mesh, fespace FE, qcoordinates *cq, void (*scalar_val_d)(REAL *, REAL *, REAL), void (*scalar_val_rhs)(REAL *, REAL *, REAL), void (*vector_val_ad)(REAL *, REAL *, REAL), void (*scalar_val_bndnr)(REAL *, REAL *, REAL), REAL faketime)
+ * \brief Uses Schur product and from the assembled matrix for Poisson
+ * equation with natural boundary conditions makes the EAFE FE
+ * discretization for the equation
+ *
+ *        -div(a(x)*grad(u) - u*b) = f
+ *
+ *        b is an advection vector; a(x) is a diffusion matrix.
+ *        u = 0 on the boundary.
+ *
+ *  \note Details about the EAFE discretization are found in: Jinchao
+ *        Xu and Ludmil Zikatanov: A monotone finite element scheme
+ *        for convection-diffusion equations. Math. Comp. 68 (1999),
+ *        no. 228, 1429–1446.
+ * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
+ *
+ * \param local_assembly Routine to get local matrices
+ * \param FE             FE Space
+ * \param mesh           Mesh Data
+ * \param cq             Quadrature Nodes
+ *
+ *\param faketime Physical Time if time dependent (not used now)
+ * \param scalar_val_d is a scalar valued function -- diffusion coefficient   (should be changed to "matrix_val_d")
+ * \param scalar_val_rhs is a scalar valued function: right hand side
+ * \param vector_val_ad is a vector valued function giving the advection coefficient
+ * \param scalar_val_bndnr is a scalar valued function for evaluating the right hand side of Neumann or Robin boundary condition
+ *
+ * \return A              EAFE stiffness CSR matrix
+ * \return b              RHS vector
+ *
+ */
 void eafe(dCSRmat *A, dvector *rhs,		\
 	  void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL), \
 	  trimesh mesh, fespace FE, qcoordinates *cq,	\
@@ -135,39 +166,6 @@ void eafe(dCSRmat *A, dvector *rhs,		\
 	  void (*vector_val_ad)(REAL *, REAL *, REAL),			\
 	  void (*scalar_val_bndnr)(REAL *, REAL *, REAL), REAL faketime)
 {
-  /*!
-   * \fn  eafe(dCSRmat *A, dvector *rhs, void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL), trimesh mesh, fespace FE, qcoordinates *cq, void (*scalar_val_d)(REAL *, REAL *, REAL), void (*scalar_val_rhs)(REAL *, REAL *, REAL), void (*vector_val_ad)(REAL *, REAL *, REAL), void (*scalar_val_bndnr)(REAL *, REAL *, REAL), REAL faketime)
-   * \brief Uses Schur product and from the assembled matrix for Poisson
-   * equation with natural boundary conditions makes the EAFE FE
-   * discretization for the equation
-   *
-   *        -div(a(x)*grad(u) - u*b) = f
-   *
-   *        b is an advection vector; a(x) is a diffusion matrix. 
-   *        u = 0 on the boundary.
-   *        
-   *  \note Details about the EAFE discretization are found in: Jinchao
-   *        Xu and Ludmil Zikatanov: A monotone finite element scheme
-   *        for convection-diffusion equations. Math. Comp. 68 (1999),
-   *        no. 228, 1429–1446.   
-   * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
-   *
-   * \param local_assembly Routine to get local matrices
-   * \param FE             FE Space
-   * \param mesh           Mesh Data
-   * \param cq             Quadrature Nodes
-   *
-   *\param faketime Physical Time if time dependent (not used now)
-   * \param scalar_val_d is a scalar valued function -- diffusion coefficient   (should be changed to "matrix_val_d")
-   * \param scalar_val_rhs is a scalar valued function: right hand side
-   * \param vector_val_ad is a vector valued function giving the advection coefficient
-   * \param scalar_val_bndnr is a scalar valued function for evaluating the right hand side of Neumann or Robin boundary condition 
-   *
-   * \return A              EAFE stiffness CSR matrix
-   * \return b              RHS vector
-   *
-   */
-
   assemble_global(A,rhs,local_assembly,			\
 		  &FE,&mesh,cq,				\
 		  scalar_val_rhs,poisson_coeff,0.0);

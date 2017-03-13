@@ -376,7 +376,7 @@ void param_amg_to_prec (precond_data *pcdata,
 
 /*************************************************************************************/
 /*!
- * \fn void fasp_param_prec_to_amg (AMG_param *amgparam, precond_data *pcdata)
+ * \fn void param_prec_to_amg (AMG_param *amgparam, precond_data *pcdata)
  *
  * \brief Set AMG parameters using parameters in precond_data
  *

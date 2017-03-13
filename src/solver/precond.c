@@ -1707,7 +1707,7 @@ void precond_block_lower_biot_2phase_krylov(REAL *r,
 
 /***********************************************************************************************/
 /**
- * \fn void precond_block_upper_biot_2phase_darcy (REAL *r, REAL *z, void *data)
+ * \fn void precond_block_upper_biot_2phase_krylov (REAL *r, REAL *z, void *data)
  * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
  *        is solved inexactly by Krylov methods)
  *

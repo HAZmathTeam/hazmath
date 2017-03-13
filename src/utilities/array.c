@@ -404,9 +404,9 @@ REAL array_norminf (const INT n,
  * \return     lp norm of x
  *
  */
-REAL array_normp (const INT n,
-                  const REAL * x,
-                  const INT p)
+REAL array_normp(const INT n,
+                 const REAL * x,
+                 const INT p)
 {
     INT i;
     REAL pnorm = 0.;
