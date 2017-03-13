@@ -44,11 +44,12 @@ tar -rv -f $FILENAME ./src/assemble/*.c \
                      ./src/utilities/*.c \
 
 # Examples
-tar -rv -f $FILENAME ./examples/README \
+tar --exclude=./output/*.* -rv -f $FILENAME ./examples/README \
                      ./examples/examples.mk \
-                     ./examples/HDEquation/*.c ./examples/HDEquation/input.dat ./examples/HDEquation/makefile \
-                     ./examples/HeatEquation/*.c ./examples/HeatEquation/input.dat ./examples/HeatEquation/makefile \
-                     ./examples/Stokes/*.c ./examples/Stokes/*.h ./examples/Stokes/input.dat ./examples/Stokes/makefile \
+                     ./examples/HDEquation/*.c ./examples/HDEquation/input.dat ./examples/HDEquation/makefile ./examples/HDEquation/output \
+                     ./examples/HeatEquation/*.c ./examples/HeatEquation/input.dat ./examples/HeatEquation/makefile ./examples/HeatEquation/output \
+                     ./examples/Stokes/*.c ./examples/Stokes/*.h ./examples/Stokes/input.dat ./examples/Stokes/makefile ./examples/Stokes/output \
+                     ./examples/DarcyFlow/*.c ./examples/DarcyFlow/*.h ./examples/DarcyFlow/input.dat ./examples/DarcyFlow/makefile ./examples/DarcyFlow/output
 
 # Grids
 tar -rv -f $FILENAME ./examples/grids/1D/*.haz \
