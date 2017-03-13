@@ -1,16 +1,13 @@
 TO DO:
 
 Immediate:
-Doxygen testing - H
-Clean up solver part in examples - H
-Clean up input files - H
-Add more test examples (Stokes, Nonlinear Problem (Navier-Stokes)) - A
+Add more test examples (Nonlinear Problem (Navier-Stokes)) - P
+Fix indexing mismatch between FEM and Solver stuff - HA
+Add default grid generator and refinement - HAZ
 
 Long Term:
-Add default grid generator and refinement - HAZ
 Add more elements (i.e., DG, Quads, Higher-Order) - A 
-Add more solvers (i.e., Classical AMG, Monolithic MG, Block Solvers, HX-Div) - H
+Add more solvers (i.e., Monolithic MG, HX-Div) - H
 
 Pipe Dreams:
-Fix indexing mismatch between FEM and Solver stuff - HA
-Add in multigraph code - Z
+Add more graph stuff
