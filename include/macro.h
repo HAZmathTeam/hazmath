@@ -173,12 +173,7 @@
 /**
  * \brief Type of vertices (DOFs) for coarsening
  */
-//#define G0PT                   -5  /**< Cannot fit in aggregates */
 #define UNPT                   -1  /**< Undetermined points */
-//#define FGPT                    0  /**< Fine grid points  */
-//#define CGPT                    1  /**< Coarse grid points */
-//#define ISPT                    2  /**< Isolated points */
-
 
 /**
  * \brief Type of ordering for smoothers

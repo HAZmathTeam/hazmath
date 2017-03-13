@@ -88,8 +88,8 @@ void param_input_init (input_param *inparam)
     inparam->AMG_nl_amli_krylov_type  = 2;
 
     // Aggregation AMG specific
-    inparam->AMG_aggregation_type     = VMB;
-    inparam->AMG_strong_coupled       = 0.08;
+    inparam->AMG_aggregation_type     = HEC;
+    inparam->AMG_strong_coupled       = 0.04;
     inparam->AMG_max_aggregation      = 20;
 
     // HX Preconditioner
@@ -131,8 +131,8 @@ void param_amg_init (AMG_param *amgparam)
     amgparam->nl_amli_krylov_type  = SOLVER_VFGMRES;
     
     // Aggregation AMG specific
-    amgparam->aggregation_type     = VMB;
-    amgparam->strong_coupled       = 0.00;
+    amgparam->aggregation_type     = HEC;
+    amgparam->strong_coupled       = 0.04;
     amgparam->max_aggregation      = 20;
     
 }
@@ -326,10 +326,8 @@ void param_amg_print (AMG_param *amgparam)
 
             default: // UA_AMG
                 printf("Aggregation type:                  %d\n", amgparam->aggregation_type);
-                if ( amgparam->aggregation_type == VMB ) {
-                    printf("Aggregation AMG strong coupling:   %.4f\n", amgparam->strong_coupled);
-                    printf("Aggregation AMG max aggregation:   %d\n", amgparam->max_aggregation);
-                }
+                printf("Aggregation AMG strong coupling:   %.4f\n", amgparam->strong_coupled);
+                printf("Aggregation AMG max aggregation:   %d\n", amgparam->max_aggregation);
                 break;
         }
         
