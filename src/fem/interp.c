@@ -423,7 +423,7 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL),block_fespace *
 
 /****************************************************************************************************************************/
 /*!
- * \fn REAL blockFE_Evaluate_DOF_comp(void (*expr)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,REAL time,INT comp,INT DOF)
+ * \fn REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,REAL time,INT comp,INT DOF)
  *
  * \brief Evaluate a given analytical function on the specific degree of freedom of the block finite-element space given
  *

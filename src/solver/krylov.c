@@ -3522,7 +3522,7 @@ FINISHED:
 
 /***********************************************************************************************/
 /*!
- * \fn INT fasp_solver_bdcsr_pvfgmres (block_dCSRmat *A, dvector *b, dvector *x,
+ * \fn INT bdcsr_pvfgmres (block_dCSRmat *A, dvector *b, dvector *x,
  *                                     precond *pc, const REAL tol, const INT MaxIt,
  *                                     const SHORT restart, const SHORT stop_type,
  *                                     const SHORT prtlvl)
