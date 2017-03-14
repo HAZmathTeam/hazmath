@@ -4,18 +4,22 @@
 
 # SRC File name
 SRCFILE = ConvectionDiffusion
-#SRCFILE = multigraph_solve
+
+HEADERS = $(SRCFILE).h
+
+INCLUDE =
+
+################comment the next two lines if you do not use mutigraph as solver.
+WITH_MGRAPH = yes
+MGRAPH_SRCDIR = $(realpath ../../../../multigraph_2.0/src)
 
 # if you have compiled hazmath with suitesparse support, uncomment the
 # two lines below.
-SSDIR = /usr/local
-SSLIB = -L$(SSDIR)/lib -lsuitesparseconfig -lcholmod -lamd -lcolamd -lccolamd -lcamd -lspqr -lumfpack -lamd -lcxsparse 
+#SSDIR = /usr/local
+#LIBS = -L$(SSDIR)/lib -lsuitesparseconfig -lcholmod -lamd -lcolamd -lccolamd -lcamd -lspqr -lumfpack -lamd -lcxsparse 
 
-LIBS_ADD = $(SSLIB) 
+#INCLUDE = -I$(SSDIR)/include
 
 ##########################################################
-HEADERS_ADD = $(SRCFILE).h
-
-WITH_MGRAPH = yes
 
 sinclude ../examples.mk

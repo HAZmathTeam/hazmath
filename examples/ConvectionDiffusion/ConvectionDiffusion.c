@@ -169,9 +169,9 @@ int main (int argc, char* argv[])
     if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
     break;        
   case 4:  ; //empty first statement
-    //#ifdef MGRAPH
+#ifdef MGRAPH
     // Multigraph preconditioner
-    fprintf(stdout, "\nSolve using multigraph\n");
+    fprintf(stdout, "\nSolving using multigraph\n");
     INT *ka = NULL;
     INT *jareb=NULL;
     REAL *areb=NULL;
@@ -180,7 +180,9 @@ int main (int argc, char* argv[])
     if(ka) free(ka);
     if(jareb) free(jareb);
     if(areb) free(areb);
-    //#endif
+#else
+    fprintf(stdout, "\nMultigraph set as solver of choice, but not defined; Using default solver...\n");
+#endif
     break;                        
   default:  //GMRES+ No Preconditioner
     solver_flag = linear_solver_dcsr_krylov(&A,&b,&sol,&linear_itparam);
