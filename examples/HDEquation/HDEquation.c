@@ -466,7 +466,7 @@ int main (int argc, char* argv[])
   AMG_param amgparam;
   param_amg_init(&amgparam);
   param_amg_set(&amgparam, &inparam);
-  param_amg_print(&amgparam);
+  //param_amg_print(&amgparam);
 
   // Data for HX preconditioner
   dCSRmat P_curl;

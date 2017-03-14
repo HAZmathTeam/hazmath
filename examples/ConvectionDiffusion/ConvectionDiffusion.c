@@ -137,15 +137,33 @@ int main (int argc, char* argv[])
   linear_itsolver_param linear_itparam;
   param_linear_solver_init(&linear_itparam);
   param_linear_solver_set(&linear_itparam, &inparam);
+  
+  // Set parameters for AMG methods
+  AMG_param amgparam;
+  param_amg_init(&amgparam);
+  param_amg_set(&amgparam, &inparam);
+  
   INT solver_flag=-20;
+  
 
   eliminate_DirichletBC(&bc_any,&FE,&mesh,&b,&A,0.0);
   // Solve
   clock_t clk_solve_start = clock();
   dcsr_shift(&A, -1);  // shift A
   switch (linear_itparam.linear_itsolver_type) {      
-  case 3:  // GMRES+ No Preconditioner
-    solver_flag = linear_solver_dcsr_krylov(&A,&b,&sol,&linear_itparam);
+  case 3:
+      
+      switch (linear_itparam.linear_precond_type) {
+       
+        case PREC_AMG: // GMRES + AMG precondtioner
+          solver_flag = linear_solver_dcsr_krylov_amg(&A, &b, &sol, &linear_itparam, &amgparam);
+          break;
+          
+        default: // GMRES+ No Preconditioner
+          solver_flag = linear_solver_dcsr_krylov(&A,&b,&sol,&linear_itparam);
+          break;
+      }
+      
     dcsr_shift(&A, 1);   // shift A back
     // Error Check
     if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
