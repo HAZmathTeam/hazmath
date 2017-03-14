@@ -11,12 +11,6 @@ CXX = g++-6
 CFLAGS = -g 
 FFLAGS = -g -fno-second-underscore
 ExtraFLAGS =
-# SuiteSparse  directory with library
-#JA (Macports)
-#SSDIR = /opt/local
-# Polaris 
-#SSDIR = /usr/local/numerics/suitesparse
-#XH & LZ (Linux | Homebrew)
 
 ##################### no change should be needed below. ###########
 # HAZMATH LIB and INCLUDE
@@ -24,22 +18,35 @@ HAZDIR = $(realpath ../..)
 
 HAZLIB = -L$(HAZDIR)/lib -lhazmath
 
-LIBS = $(HAZLIB) -lm -lblas -llapack -lgfortran $(LIBS_ADD)
+INCLUDE += -I$(HAZDIR)/include
 
-INCLUDE = -I$(HAZDIR)/include  -I$(SSDIR)/include
+LIBS += $(HAZLIB) -lm -lblas -llapack -lgfortran
 
+HEADERS += 
+
+MGRAPH_WRAPPERDIR = $(realpath ../multigraph_wrap)
+DMGRAPH = 
 ifeq ($(WITH_MGRAPH),yes)
-	DMGRAPH = -DMGRAPH
-	MGTARGET=multigraph
-	MGRAPH_SRCDIR = $(realpath ../../../../multigraph_2.0/src)
-	MGRAPH_WRAPPERDIR = $(realpath ../with_multigraph)
-	MGLIBS = $(MGRAPH_WRAPPERDIR)/multigraph_solve.o $(MGRAPH_SRCDIR)/solver.o
+ifneq "$(wildcard $(MGRAPH_SRCDIR) )" ""
+ifneq "$(wildcard $(MGRAPH_WRAPPERDIR) )" ""
+	DMGRAPH := -DMGRAPH=1
 else
-	DMGRAPH =
-	MGTARGET = $(EXE)
+$(warning *** No Multigraph support MGRAPH_WRAPPERDIR="$(MGRAPH_WRAPPERDIR)" ***)
+endif
+else
+$(warning *** No Multigraph support MGRAPH_SRCDIR="$(MGRAPH_SRCDIR)" ***)
+endif
+endif
+
+ifeq ($(DMGRAPH),) 
+	DMGRAPH := -UMGRAPH
+	MGTARGET = 
 	MGRAPH_SRCDIR = 
 	MGRAPH_WRAPPERDIR = 
 	MGLIBS = 
+else
+	MGTARGET := multigraph
+	MGLIBS = $(MGRAPH_WRAPPERDIR)/multigraph_solve.o $(MGRAPH_SRCDIR)/solver.o
 endif
 
 ############### 
@@ -48,22 +55,22 @@ endif
 EXE = $(SRCFILE).$(EXTENSION)
 
 # Source and Object Files
-OBJS = $(SRCFILE).o
+OBJS += $(SRCFILE).o
 
-HEADERS = $(HEADERS_ADD)
+HEADERS += $(HEADERS)
 
 .PHONY:  all
 
 all: $(EXE) 
 
 $(EXE):	$(MGTARGET)	$(OBJS)
-	+$(CC) $(ExtraFLAGS) $(INCLUDE) $(DMGRAPH) $(OBJS) $(MGLIBS) -o $(EXE)  $(LIBS)
+	+$(CC) $(ExtraFLAGS) $(INCLUDE) $(OBJS) $(MGLIBS) -o $@  $(LIBS)
 
 %.o:	%.c
-	+$(CC) $(INCLUDE) $(CFLAGS) -o $@ -c $<
+	+$(CC) $(INCLUDE) $(CFLAGS) $(DMGRAPH) -o $@ -c $<
 
 clean:
-	+rm -rf $(EXE) $(OBJS) output/* ./*.dSYM  $(EXTRA_DEL)
+	+rm -rf $(EXE) $(OBJS) *.mod output/* ./*.dSYM  $(EXTRA_DEL)
 
 multigraph:	
 	@if [  -f  $(MGRAPH_SRCDIR)/mg0.f \
@@ -77,8 +84,8 @@ multigraph:
 	else \
 		echo "*******************************************************************"; \
 		echo "* One or more of the MULTIGRAPH sources were not found. " \
-		echo "  MULTIGRAPH directory: $(MULTIGRAPH_SRCDIR) "; \
-		echo " Setting WITH_MULTIGRAPH=0"; \
+		echo "  MULTIGRAPH directory: $(MGRAPH_SRCDIR) "; \
+		echo " Setting MGRAPH=0"; \
 		echo "*******************************************************************"; \
 	fi
 

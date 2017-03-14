@@ -4,20 +4,20 @@
 
 # SRC File name
 SRCFILE = DarcyFlow
-HEADERS_ADD = DarcySystem.h DarcyData.h
+
+HEADERS = DarcySystem.h DarcyData.h
+
+INCLUDE =
 
 # if you have compiled hazmath with suitesparse support, uncomment the
 # two lines below.
-SSDIR = /usr/local
-SSLIB = -L$(SSDIR)/lib -lsuitesparseconfig -lcholmod -lamd -lcolamd -lccolamd -lcamd -lspqr -lumfpack -lamd -lcxsparse
+#SSDIR = /usr/local
+#LIBS = -L$(SSDIR)/lib -lsuitesparseconfig -lcholmod -lamd -lcolamd -lccolamd -lcamd -lspqr -lumfpack -lamd -lcxsparse 
 
-LIBS_ADD = $(SSLIB)
+#INCLUDE = -I$(SSDIR)/include
 
 sinclude ../examples.mk
 
-# Generate an error message if the HAZmath library is not built
-$(HAZLIB):
-	$(error The HAZmath library is not built or is not up to date)
 
 
 
