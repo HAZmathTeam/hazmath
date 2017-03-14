@@ -72,7 +72,7 @@ void param_input_init (input_param *inparam)
     
     // AMG method parameters
     inparam->AMG_type                 = UA_AMG;
-    inparam->AMG_levels               = 5;
+    inparam->AMG_levels               = 10;
     inparam->AMG_cycle_type           = V_CYCLE;
     inparam->AMG_smoother             = SMOOTHER_GS;
     inparam->AMG_presmooth_iter       = 1;
@@ -116,7 +116,7 @@ void param_amg_init (AMG_param *amgparam)
     amgparam->print_level          = PRINT_NONE;
     amgparam->maxit                = 1;
     amgparam->tol                  = 1e-6;
-    amgparam->max_levels           = 5;
+    amgparam->max_levels           = 10;
     amgparam->coarse_dof           = 200;
     amgparam->cycle_type           = V_CYCLE;
     amgparam->smoother             = SMOOTHER_GS;
