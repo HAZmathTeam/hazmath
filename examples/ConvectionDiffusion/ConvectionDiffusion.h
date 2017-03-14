@@ -46,4 +46,5 @@ void bc_any(REAL *val, REAL* x, REAL t) {
   return;
 }
 
-void mgraph_wrap(dCSRmat A, dvector rhs, dvector *sol);
+//void mgraph_wrap(dCSRmat A, dvector rhs, dvector *sol);
+void mgraph_wrap(INT idoilu, INT nrow, INT *ia, INT *ja, REAL *a, REAL *rhs, REAL *sol, INT *jareb, REAL *areb, INT *ka);

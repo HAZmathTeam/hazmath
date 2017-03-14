@@ -144,20 +144,31 @@ int main (int argc, char* argv[])
   clock_t clk_solve_start = clock();
   dcsr_shift(&A, -1);  // shift A
   switch (linear_itparam.linear_itsolver_type) {      
-      case 3:  // GMRES+ No Preconditioner
-	solver_flag = linear_solver_dcsr_krylov(&A,&b,&sol,&linear_itparam);
-	dcsr_shift(&A, 1);   // shift A back
-	// Error Check
-	if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
-	break;        
-      case 4:  // Multigraph preconditioner
-	mgraph_wrap(A,b,&sol);
-	break;                        
-      default:  //GMRES+ No Preconditioner
-	solver_flag = linear_solver_dcsr_krylov(&A,&b,&sol,&linear_itparam);
-	// Error Check
-	if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
-	break;
+  case 3:  // GMRES+ No Preconditioner
+    solver_flag = linear_solver_dcsr_krylov(&A,&b,&sol,&linear_itparam);
+    dcsr_shift(&A, 1);   // shift A back
+    // Error Check
+    if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
+    break;        
+  case 4:  ; //empty first statement
+    //#ifdef MGRAPH
+    // Multigraph preconditioner
+    fprintf(stdout, "\nSolve using multigraph\n");
+    INT *ka = NULL;
+    INT *jareb=NULL;
+    REAL *areb=NULL;
+    INT idoilu = 1; 
+    mgraph_wrap(idoilu, A.row,A.IA,A.JA,A.val,b.val,sol.val,jareb,areb,ka);
+    if(ka) free(ka);
+    if(jareb) free(jareb);
+    if(areb) free(areb);
+    //#endif
+    break;                        
+  default:  //GMRES+ No Preconditioner
+    solver_flag = linear_solver_dcsr_krylov(&A,&b,&sol,&linear_itparam);
+    // Error Check
+    if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
+    break;
   }
   dcsr_shift(&A, 1);   // shift A back
    
