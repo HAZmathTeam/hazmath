@@ -930,7 +930,7 @@ void bubble_face_basis(REAL *phi, REAL *dphi, REAL *x, INT *v_on_elm, INT *dof, 
 
       // Gradient
       for(j=0;j<dim;j++) {
-        gradp = p[ef1]*dp[ef2*dim+j] + dp[ef1*dim+j]*p[ef2];
+        gradp = 4*(p[ef1]*dp[ef2*dim+j] + dp[ef1*dim+j]*p[ef2]);
       
         dphi[i*dim*dim + j*dim + 0] = gradp * mesh->f_norm[dim*(dof[i]-1)+0];
         dphi[i*dim*dim + j*dim + 1] = gradp * mesh->f_norm[dim*(dof[i]-1)+1];
@@ -961,7 +961,7 @@ void bubble_face_basis(REAL *phi, REAL *dphi, REAL *x, INT *v_on_elm, INT *dof, 
 
       // Gradient
       for(j=0;j<dim;j++) {
-        gradp = p[ef1]*p[ef2]*dp[ef3*dim+j] + p[ef1]*dp[ef2*dim+j]*p[ef3] + dp[ef1*dim+j]*p[ef2]*p[ef3];
+        gradp = 8*(p[ef1]*p[ef2]*dp[ef3*dim+j] + p[ef1]*dp[ef2*dim+j]*p[ef3] + dp[ef1*dim+j]*p[ef2]*p[ef3]);
       
         dphi[i*dim*dim + j*dim + 0] = gradp * mesh->f_norm[dim*(dof[i]-1)+0];
         dphi[i*dim*dim + j*dim + 1] = gradp * mesh->f_norm[dim*(dof[i]-1)+1];
