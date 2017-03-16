@@ -83,7 +83,6 @@ ForwardSweep:
             break;
         }
 #endif
-            
         default:
             // use iterative solver on the coarsest level
             coarse_itsolver(&mgl[nl-1].A, &mgl[nl-1].b, &mgl[nl-1].x, tol, prtlvl);

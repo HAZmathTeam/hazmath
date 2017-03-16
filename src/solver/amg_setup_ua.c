@@ -225,8 +225,7 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
             mgl[lvl].Numeric = umfpack_factorize(&mgl[lvl].A, 0);
             break;
         }
-#endif
-            
+#endif   
         default:
             // Do nothing!
             break;
