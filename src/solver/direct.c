@@ -221,6 +221,17 @@ INT umfpack_free_numeric (void *Numeric)
     
     return status;
 }
+#else
+INT directsolve_UMF(dCSRmat *A, dvector *f,  REAL *x, INT print_level)
+{
+  fprintf(stderr,"\n\n*** FATAL ERROR: direct solver (umfpack) requested,\n");
+  fprintf(stderr,"*** but suitesparse support is not compiled in the hazmath library\n");
+  fprintf(stderr, "*** Either change the solver type ... OR ...\n\n"); 
+  fprintf(stderr,"*** IF you have UMFPACK installed, THEN\n");
+  fprintf(stderr,"*** try RECOMPILING the hazmath library with suitesparse support.\n\n");
+  //  fprintf(stderr,"***by issuing the commands: make config suitesparse=yes; make install\n\n");
+  exit(-1); 
+}
 #endif
 
 /*---------------------------------*/
