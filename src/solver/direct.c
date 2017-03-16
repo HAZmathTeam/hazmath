@@ -14,7 +14,6 @@
 /*! \brief Direct Solver methods -- for now just using UMFPACK Solvers
  *
  */
-#if WITH_SUITESPARSE
 /***************************************************************************************************************************/
 /**
  * \fn directsolve_UMF(dCSRmat *A,dvector *f,REAL *x,INT print_level)
@@ -35,6 +34,8 @@ INT directsolve_UMF(dCSRmat *A,
                     REAL *x,
                     INT print_level)
 { 
+
+#if WITH_SUITESPARSE
   INT i;
   INT shift_flag = 0;
 
@@ -113,6 +114,15 @@ INT directsolve_UMF(dCSRmat *A,
     printf("=======================================================================\n\n");
   }
  return 0;
+#else
+    fprintf(stderr,"\n\n*** HAZMATH FATAL ERROR: direct solver (umfpack) requested,\n");
+    fprintf(stderr,"*** but suitesparse support is not compiled in the hazmath library\n");
+    fprintf(stderr, "*** Either change the solver type ... OR ...\n\n");
+    fprintf(stderr,"*** IF you have UMFPACK installed, THEN\n");
+    fprintf(stderr,"*** try RECOMPILING the hazmath library with suitesparse support.\n\n");
+    //  fprintf(stderr,"***by issuing the commands: make config suitesparse=yes; make install\n\n");
+    exit(-1);
+#endif
 }
 
 /***************************************************************************************************************************/
@@ -131,6 +141,8 @@ INT directsolve_UMF(dCSRmat *A,
 void* umfpack_factorize (dCSRmat *ptrA,
                          const SHORT prtlvl)
 {   
+
+#if WITH_SUITESPARSE
     const INT n = ptrA->col;
     
     INT *Ap = ptrA->IA;
@@ -159,6 +171,16 @@ void* umfpack_factorize (dCSRmat *ptrA,
     }
     
     return Numeric;
+#else
+    fprintf(stderr,"\n\n*** HAZMATH FATAL ERROR: direct solver (umfpack) requested,\n");
+    fprintf(stderr,"*** but suitesparse support is not compiled in the hazmath library\n");
+    fprintf(stderr, "*** Either change the solver type ... OR ...\n\n");
+    fprintf(stderr,"*** IF you have UMFPACK installed, THEN\n");
+    fprintf(stderr,"*** try RECOMPILING the hazmath library with suitesparse support.\n\n");
+    //  fprintf(stderr,"***by issuing the commands: make config suitesparse=yes; make install\n\n");
+    exit(-1);
+#endif
+
 }
 
 /***************************************************************************************************************************/
@@ -185,6 +207,7 @@ INT umfpack_solve (dCSRmat *ptrA,
                         const SHORT prtlvl)
 {   
 
+#if WITH_SUITESPARSE
     INT *Ap = ptrA->IA;
     INT *Ai = ptrA->JA;
     double *Ax = ptrA->val;
@@ -201,6 +224,15 @@ INT umfpack_solve (dCSRmat *ptrA,
     }
     
     return status;
+#else
+    fprintf(stderr,"\n\n*** HAZMATH FATAL ERROR: direct solver (umfpack) requested,\n");
+    fprintf(stderr,"*** but suitesparse support is not compiled in the hazmath library\n");
+    fprintf(stderr, "*** Either change the solver type ... OR ...\n\n");
+    fprintf(stderr,"*** IF you have UMFPACK installed, THEN\n");
+    fprintf(stderr,"*** try RECOMPILING the hazmath library with suitesparse support.\n\n");
+    //  fprintf(stderr,"***by issuing the commands: make config suitesparse=yes; make install\n\n");
+    exit(-1);
+#endif
 }
 
 /***************************************************************************************************************************/
@@ -215,24 +247,23 @@ INT umfpack_solve (dCSRmat *ptrA,
  */
 INT umfpack_free_numeric (void *Numeric)
 {   
+#if WITH_SUITESPARSE
     INT status = SUCCESS;
     
     umfpack_di_free_numeric (&Numeric);
     
     return status;
-}
 #else
-INT directsolve_UMF(dCSRmat *A, dvector *f,  REAL *x, INT print_level)
-{
-  fprintf(stderr,"\n\n*** FATAL ERROR: direct solver (umfpack) requested,\n");
-  fprintf(stderr,"*** but suitesparse support is not compiled in the hazmath library\n");
-  fprintf(stderr, "*** Either change the solver type ... OR ...\n\n"); 
-  fprintf(stderr,"*** IF you have UMFPACK installed, THEN\n");
-  fprintf(stderr,"*** try RECOMPILING the hazmath library with suitesparse support.\n\n");
-  //  fprintf(stderr,"***by issuing the commands: make config suitesparse=yes; make install\n\n");
-  exit(-1); 
-}
+    fprintf(stderr,"\n\n*** HAZMATH FATAL ERROR: direct solver (umfpack) requested,\n");
+    fprintf(stderr,"*** but suitesparse support is not compiled in the hazmath library\n");
+    fprintf(stderr, "*** Either change the solver type ... OR ...\n\n");
+    fprintf(stderr,"*** IF you have UMFPACK installed, THEN\n");
+    fprintf(stderr,"*** try RECOMPILING the hazmath library with suitesparse support.\n\n");
+    //  fprintf(stderr,"***by issuing the commands: make config suitesparse=yes; make install\n\n");
+    exit(-1);
 #endif
+}
+
 
 /*---------------------------------*/
 /*--        End of File          --*/

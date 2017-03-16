@@ -858,6 +858,14 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
   
 #if WITH_SUITESPARSE
   void **LU_diag = (void **)calloc(2, sizeof(void *));
+#else
+    fprintf(stderr,"\n\n*** HAZMATH FATAL ERROR: direct solver (umfpack) requested,\n");
+    fprintf(stderr,"*** but suitesparse support is not compiled in the hazmath library\n");
+    fprintf(stderr, "*** Either change the solver type ... OR ...\n\n");
+    fprintf(stderr,"*** IF you have UMFPACK installed, THEN\n");
+    fprintf(stderr,"*** try RECOMPILING the hazmath library with suitesparse support.\n\n");
+    //  fprintf(stderr,"***by issuing the commands: make config suitesparse=yes; make install\n\n");
+    exit(-1);
 #endif
   
   /* setup preconditioner */
@@ -983,6 +991,14 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
         
 #if WITH_SUITESPARSE
     void **LU_diag = (void **)calloc(3, sizeof(void *));
+#else
+    fprintf(stderr,"\n\n*** HAZMATH FATAL ERROR: direct solver (umfpack) requested,\n");
+    fprintf(stderr,"*** but suitesparse support is not compiled in the hazmath library\n");
+    fprintf(stderr, "*** Either change the solver type ... OR ...\n\n");
+    fprintf(stderr,"*** IF you have UMFPACK installed, THEN\n");
+    fprintf(stderr,"*** try RECOMPILING the hazmath library with suitesparse support.\n\n");
+    //  fprintf(stderr,"***by issuing the commands: make config suitesparse=yes; make install\n\n");
+    exit(-1);
 #endif
     
     /* setup preconditioner */
@@ -1110,6 +1126,14 @@ INT linear_solver_bdcsr_krylov_block_4(block_dCSRmat *A,
 
 #if WITH_SUITESPARSE
     void **LU_diag = (void **)calloc(4, sizeof(void *));
+#else
+    fprintf(stderr,"\n\n*** HAZMATH FATAL ERROR: direct solver (umfpack) requested,\n");
+    fprintf(stderr,"*** but suitesparse support is not compiled in the hazmath library\n");
+    fprintf(stderr, "*** Either change the solver type ... OR ...\n\n");
+    fprintf(stderr,"*** IF you have UMFPACK installed, THEN\n");
+    fprintf(stderr,"*** try RECOMPILING the hazmath library with suitesparse support.\n\n");
+    //  fprintf(stderr,"***by issuing the commands: make config suitesparse=yes; make install\n\n");
+    exit(-1);
 #endif
 
     /* setup preconditioner */
@@ -1588,6 +1612,14 @@ INT linear_solver_bdcsr_krylov_maxwell(block_dCSRmat *A,
         if ( prtlvl >= PRINT_MIN )
             printf("Factorization for magnetic diagonal block: \n");
         LU_diag[0] = umfpack_factorize(&A_diag[0], prtlvl);
+#else
+    fprintf(stderr,"\n\n*** HAZMATH FATAL ERROR: direct solver (umfpack) requested,\n");
+    fprintf(stderr,"*** but suitesparse support is not compiled in the hazmath library\n");
+    fprintf(stderr, "*** Either change the solver type ... OR ...\n\n");
+    fprintf(stderr,"*** IF you have UMFPACK installed, THEN\n");
+    fprintf(stderr,"*** try RECOMPILING the hazmath library with suitesparse support.\n\n");
+    //  fprintf(stderr,"***by issuing the commands: make config suitesparse=yes; make install\n\n");
+    exit(-1);
 #endif
         
     }
