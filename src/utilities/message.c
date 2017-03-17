@@ -238,3 +238,28 @@ void check_error(const SHORT status,
 
   exit(status);
 }
+/***********************************************************************************************/
+/*!
+ * \fn void error_lib(const SHORT status, const char *func_name, const char *libname)
+ *
+ * \brief Exit if a function is called from external library which has
+ * not been compiled in the __HAZMATH__ library.
+ *
+ * \param status   Error status
+ * \param f_name  piinter to the function name where this routine is called
+ * \param library name External library name
+ *
+ */
+void error_extlib(const SHORT status, const char *func_name, \
+		  const char *lib_name)
+{
+  fprintf(stderr,"\n\n******** HAZMATH FATAL ERROR *******\n");
+  fprintf(stderr,"   In function \"%s\":\n",func_name);
+  fprintf(stderr,"   A call to a function from %s library occured,\n",lib_name);
+  fprintf(stderr,"   but %s support was not compiled in the HAZmath library.\n",lib_name);
+  fprintf(stderr,"   IF you have %s installed, THEN RECOMPILE \"libhazmath\"\n",lib_name);
+  fprintf(stderr,"   with %s support.\n",lib_name);
+  fprintf(stderr,"********\n\n",lib_name);
+  //  fprintf(stderr,"***by issuing the commands: make config %s=yes; make install\n\n",lib_name);
+  exit(status);
+}
