@@ -7,7 +7,7 @@
  *
  * \brief This program solves the following PDE using EAFE FE discretization: 
  *
- *        -div(a(x)*grad(u) - u*b) = f
+ *        -div(a(x)*grad(u) + u*b) = f
  *
  *        b is an advection vector; a(x) is a diffusion matrix. 
  *        u = 0 on the boundary.
@@ -145,7 +145,6 @@ int main (int argc, char* argv[])
   
   INT solver_flag=-20;
   
-
   eliminate_DirichletBC(&bc_any,&FE,&mesh,&b,&A,0.0);
   // Solve
   clock_t clk_solve_start = clock();
