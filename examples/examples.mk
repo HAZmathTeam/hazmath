@@ -29,7 +29,7 @@ DMGRAPH =
 ifeq ($(WITH_MGRAPH),yes)
 ifneq "$(wildcard $(MGRAPH_SRCDIR) )" ""
 ifneq "$(wildcard $(MGRAPH_WRAPPERDIR) )" ""
-	DMGRAPH := -DMGRAPH=1
+	DMGRAPH := -DMGRAPH
 else
 $(warning *** No Multigraph support MGRAPH_WRAPPERDIR="$(MGRAPH_WRAPPERDIR)" ***)
 endif
