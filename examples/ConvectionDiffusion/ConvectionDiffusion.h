@@ -35,6 +35,15 @@ void advection(REAL *val, REAL *x,REAL t) {
   return;
 }
 
+void coeff_low_order(REAL *val,
+                    REAL *x,
+                    REAL time)
+{
+    *val = 1.0;
+}
+/****************************************************************************************/
+
+
 // Right-hand Side
 void f_rhs(REAL *val,REAL* x, REAL t) {
   *val = 1.0;

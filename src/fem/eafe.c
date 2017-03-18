@@ -169,7 +169,7 @@ void eafe(dCSRmat *A, dvector *rhs,		\
   assemble_global(A,rhs,local_assembly,			\
 		  &FE,&mesh,cq,				\
 		  scalar_val_rhs,poisson_coeff,0.0);
-  INT i,j,jk,iaa,iab,nv=mesh.nv,dim=mesh.dim;
+  INT i,j,jk,jdim,iaa,iab,nv=mesh.nv,dim=mesh.dim;
   INT *ia=A->IA, *ja=A->JA ;
   REAL *a=A->val;
   coordinates *xyz=mesh.cv;
@@ -180,17 +180,22 @@ void eafe(dCSRmat *A, dvector *rhs,		\
   for (i = 0; i < nv; i++) {
     xi=xyz->x[i];
     yi=xyz->y[i];
-    zi=xyz->z[i];
+    if(dim>2)
+      zi=xyz->z[i];
     iaa=ia[i]-1;
     iab=ia[i+1]-1;
     for (jk=iaa; jk<iab; jk++){
-      j=ja[jk]-1; 
+      j=ja[jk]-1;
+      /*      fprintf(stdout,"aaaaa %i,%i\n",i,j); */
       if(i != j){
 	xj=xyz->x[j];
 	yj=xyz->y[j];
-	zj=xyz->z[j];
-	// compute the advection field at the middle of the edge and
-	// then the bernoulli function
+	if(dim>2) 
+	  zj=xyz->z[j];
+	/* 
+	   compute the advection field at the middle of the edge and
+	   then the bernoulli function
+	*/
 	te[0]  = xi - xj;
 	te[1]  = yi - yj;
 	xm[0] = (xi + xj)*0.5e+0;
@@ -200,7 +205,10 @@ void eafe(dCSRmat *A, dvector *rhs,		\
 	  xm[2] = (zi + zj)*0.5e+0;
 	}
 	vector_val_ad(ad,xm,0.0);
-	bte = ad[0]*te[0]+ ad[1]*te[1]+ ad[2]*te[2];
+	bte=0.;
+	for(jdim=0;jdim<dim;jdim++){
+	  bte += ad[jdim]*te[jdim];
+	}
 	scalar_val_d(&alpe,xm,0.0);
 	// alpe=a(xmid)\approx harmonic_average=|e|/(int_e 1/a);
 	// should be computed by quadrature in general for 1/a(x).

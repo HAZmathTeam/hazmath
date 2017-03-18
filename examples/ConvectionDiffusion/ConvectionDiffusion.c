@@ -23,6 +23,38 @@
 /* local include */
 #include "ConvectionDiffusion.h"
 /*********************************************************************/
+static void lump_mass(dCSRmat *A, dCSRmat M, trimesh mesh)
+{
+  INT i,j,jk,jkd,ndof=A->row,imaa,imab;
+  REAL dd1=(REAL ) 1./(mesh.dim+1);
+  REAL d=0.;
+  for (i=0;i<ndof;i++){
+    imaa=A->IA[i]-1;
+    imab=A->IA[i+1]-1;
+    jkd=-1;
+    for(jk=imaa;jk<imab;jk++){
+      j=A->JA[jk]-1;
+      fprintf(stdout,"i,j= %i %i\n",i,j);
+      if(i==j){
+	jkd=jk;
+	break;
+      }
+    }
+    if(jkd<0){
+      fprintf(stderr,"\nERROR:No diagonal in A is present for node %i\n",i);
+      fprintf(stderr,"\nExiting...\n\n");
+      exit(129);
+    }
+    d=A->val[jkd];
+    imaa=M.IA[i]-1;
+    imab=M.IA[i+1]-1;
+    for(jk=imaa;jk<imab;jk++){
+      d+=M.val[jk];
+    }
+    A->val[jkd]=dd1*d;
+  }
+  return;
+}
 int main (int argc, char* argv[])
 {
   
@@ -121,7 +153,12 @@ int main (int argc, char* argv[])
   eafe(&A,&b,assemble_DuDv_local,			\
        mesh,FE,cq,					\
        diffusion_coeff,f_rhs,advection,bc_any,0.0);
+  dCSRmat M;
+  assemble_global(&M,NULL,assemble_mass_local,&FE,&mesh,cq,NULL,
+                  coeff_low_order,0.0);
+  lump_mass(&A,M,mesh);
   clock_t clk_assembly_end = clock();
+  dcsr_free(&M);
   printf(" --> elapsed CPU time for assembly = %f seconds.\n\n",(REAL)
          (clk_assembly_end-clk_assembly_start)/CLOCKS_PER_SEC);
   /*******************************************************************/
