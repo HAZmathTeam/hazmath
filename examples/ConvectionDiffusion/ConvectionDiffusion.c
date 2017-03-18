@@ -34,7 +34,7 @@ static void lump_mass(dCSRmat *A, dCSRmat M, trimesh mesh)
     jkd=-1;
     for(jk=imaa;jk<imab;jk++){
       j=A->JA[jk]-1;
-      fprintf(stdout,"i,j= %i %i\n",i,j);
+      //      fprintf(stdout,"i,j= %i %i\n",i,j);
       if(i==j){
 	jkd=jk;
 	break;
