@@ -103,7 +103,7 @@ static void form_tentative_p(ivector *vertices,
  *
  * Modified by Xiaozhe Hu on 05/25/2014
  */
-static void form_boolean_p(ivector *vertices,
+void form_boolean_p(ivector *vertices,
                            dCSRmat *tentp,
                            INT levelNum,
                            INT num_aggregations)
