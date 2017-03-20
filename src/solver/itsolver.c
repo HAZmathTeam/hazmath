@@ -9,15 +9,6 @@
 
 #include "hazmath.h"
 
-/*! \file itsolver_util.inl
- *
- *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 5/13/15.
- *  Copyright 2015__HAZMATH__. All rights reserved.
- *
- *  \note  Done cleanup for releasing -- Xiaozhe Hu 03/12/2017
- *
- */
-
 /*---------------------------------*/
 /*--      Private Functions      --*/
 /*---------------------------------*/
@@ -937,9 +928,7 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
   INT status = SUCCESS;
   REAL setup_start, setup_end, setup_duration;
   REAL solver_start, solver_end, solver_duration;
-  
-  INT i;
-  
+    
 #if WITH_SUITESPARSE
   void **LU_diag = (void **)calloc(2, sizeof(void *));
 #else
@@ -1063,9 +1052,6 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
     INT status = SUCCESS;
     REAL setup_start, setup_end, setup_duration;
     REAL solver_start, solver_end, solver_duration;
-    
-    //INT m, n, nnz; 
-    INT i;
         
 #if WITH_SUITESPARSE
     void **LU_diag = (void **)calloc(3, sizeof(void *));
@@ -1192,9 +1178,6 @@ INT linear_solver_bdcsr_krylov_block_4(block_dCSRmat *A,
     INT status = SUCCESS;
     REAL setup_start, setup_end, setup_duration;
     REAL solver_start, solver_end, solver_duration;
-
-    //INT m, n, nnz;
-    INT i;
 
 #if WITH_SUITESPARSE
     void **LU_diag = (void **)calloc(4, sizeof(void *));
@@ -1638,15 +1621,13 @@ INT linear_solver_bdcsr_krylov_maxwell(block_dCSRmat *A,
     REAL solver_start, solver_end, solver_duration;
     
     const SHORT max_levels = amgparam->max_levels;
-    INT m, n, nnz, i;
+    INT m, n, nnz;
     
     void **LU_diag = (void **)calloc(3, sizeof(void *));
     dvector **diag = (dvector **)calloc(3, sizeof(dvector *));
     AMG_data **mgl = (AMG_data **)calloc(3, sizeof(AMG_data *));
     HX_curl_data **hxcurldata = (HX_curl_data **)calloc(3, sizeof(HX_curl_data *));
-    
-    dCSRmat A_tran;
-    
+        
     dCSRmat Pt_curl;
     dCSRmat Gradt;
     dCSRmat A_vgrad;
