@@ -1,27 +1,18 @@
 /*! \file src/solver/mgcycle.c
  *
  *  Abstract multigrid cycle
+ *  Routines for algebraic multigrid cycles
  *
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 12/25/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  * \note   Done cleanup for releasing -- Xiaozhe Hu 03/12/2017
  *
+ * \todo Combine pre- and post-smoothing and use a flag to make sure the symmetry whenever is necessary -- Xiaozhe Hu
+ *
  */
 
 #include "hazmath.h"
-/*! \file mg_util.inl
- *
- *  Routines for algebraic multigrid cycles
- *
- *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 12/25/15.
- *  Copyright 2015__HAZMATH__. All rights reserved.
- *
- *  \note  Done cleanup for releasing -- Xiaozhe Hu 03/12/2017
- *
- *  \todo Combine pre- and post-smoothing and use a flag to make sure the symmetry whenever is necessary -- Xiaozhe Hu
- *
- */
 
 /*---------------------------------*/
 /*--      Private Functions      --*/

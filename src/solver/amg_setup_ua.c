@@ -8,22 +8,12 @@
  *  \note   Done cleanup for releasing -- Xiaozhe Hu 03/11/2017
  *
  *  \todo   Add safe guard for the overall computatinal complexity -- Xiaozhe Hu
+ * \todo    Add maximal weighted matching coarsning -- Xiaozhe Hu
+ * \todo    Add maximal independent set aggregation -- Xiaozhe Hu
  *
  */
 
 #include "hazmath.h"
-/*! \file amg_setup_ua.c
- *
- *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 12/24/15.
- *  Copyright 2015__HAZMATH__. All rights reserved.
- *  ATTENTION: Do NOT use auto-indentation in this file!!!
- *
- * \todo    Add maximal weighted matching coarsning -- Xiaozhe Hu
- * \todo    Add maximal independent set aggregation -- Xiaozhe Hu
- *
- * \note   Done cleanup for releasing -- Xiaozhe Hu 03/11/2017
- *
- */
 
 /*---------------------------------*/
 /*--      Private Functions      --*/
@@ -244,9 +234,7 @@ static SHORT aggregation_vmb(dCSRmat *A,
                              INT *num_aggregations)
 {   
     // local variables
-    const INT    row = A->row, col = A->col, nnz = A->IA[row]-A->IA[0];
-    const INT    *AIA = A->IA, *AJA = A->JA;
-    const REAL   *Aval = A->val;
+    const INT    row = A->row;
     const INT    max_aggregation = param->max_aggregation;
     
     // return status
@@ -259,13 +247,11 @@ static SHORT aggregation_vmb(dCSRmat *A,
     
     INT    i, j, row_start, row_end;
     INT    *NIA = NULL, *NJA = NULL;
-    REAL   *Nval = NULL;
 
     // find strongly coupled neighbors
     construct_strong_couped(A, param, Neigh);
     
     NIA  = Neigh->IA; NJA  = Neigh->JA;
-    Nval = Neigh->val;
     
     /*------------------------------------------*/
     /*             Initialization               */
