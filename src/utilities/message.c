@@ -259,7 +259,7 @@ void error_extlib(const SHORT status, const char *func_name, \
   fprintf(stderr,"   but %s support was not compiled in the HAZmath library.\n",lib_name);
   fprintf(stderr,"   IF you have %s installed, THEN RECOMPILE \"libhazmath\"\n",lib_name);
   fprintf(stderr,"   with %s support.\n",lib_name);
-  fprintf(stderr,"********\n\n",lib_name);
+  fprintf(stderr,"********\n\n");
   //  fprintf(stderr,"***by issuing the commands: make config %s=yes; make install\n\n",lib_name);
   exit(status);
 }
