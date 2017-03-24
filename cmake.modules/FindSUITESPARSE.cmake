@@ -7,7 +7,7 @@
 #
 #  Xiaozhe Hu
 #  02/27/2013
-#  Modified   2015-08-08   --ltz
+#  Modified   2015-08-08   ludmil
 
 # Find packages that SUITESPARSE depends on
 find_package(BLAS)
