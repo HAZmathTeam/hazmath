@@ -48,10 +48,10 @@ static void LumpMassBndry(const trimesh mesh,
   return;
 #endif
   INT i=-1, j=-1,k=-1,ifa=-1,ifb=-1,attri=-16;
-  REAL sixth=1./6.,vol=1e10,bdotn=1e10,rhsi=1e10;
+  REAL vol=1e10,bdotn=1e10,rhsi=1e10;
   /* mesh entities: number of faces, number boundary faces and so on */
   INT  nv=mesh.nv, nf=mesh.nface,nfb=mesh.nbface,dim=mesh.dim; 
-  REAL ad[dim],xm[dim];
+  REAL ccc=1./((REAL ) dim), ad[dim],xm[dim];
   iCSRmat *f2v=mesh.f_v; /* face to vertex map as iCSR */
   INT *fonb=mesh.f_bdry; /* boundary markers for every face */
   /* get areas, normal vectors and barycenters  of faces */
@@ -67,29 +67,36 @@ static void LumpMassBndry(const trimesh mesh,
       dmass->row=nv;
       continue;
     } else { /* this is now Neumann condition */
-      vol=sixth*fa[i];
+      vol=fa[i];//*ccc;
       for(k=0;k<dim;k++)
 	xm[k]=fm[i*dim+k];
       scalar_val_bndnr(&rhsi,xm,0.0);
-      rhsi *= vol;
+      //      fprintf(stdout,"COORDS:%22.16e, %22.16e ; vol=%22.16e\n",xm[0],xm[1],rhsi);
+      rhsi = rhsi*vol*ccc;
+      ifa=f2v->IA[i]-1;
+      ifb=f2v->IA[i+1]-1;
       for(k=ifa;k<ifb;k++){
 	j=f2v->JA[k]-1;
 	rhs->val[j] += rhsi;
+	//	fprintf(stdout,"i,j:%i,%i, rhs_add:%22.16e,vol=%22.16e; tot=%22.16e\n",i+1,j+1,rhsi/vol,vol,rhsi);
       }
     }
   }
+  return;
   if(dmass->row) return;
   dmass->val=(REAL *)calloc(dmass->row,sizeof(REAL));
   for (i = 0; i < nf; i++)   {
     attri=fonb[i];
     if(attri < MARKER_ROBIN || attri >= MARKER_BOUNDARY_NO)
       continue;
-    vol=sixth*fa[i];
+    vol=fa[i];//*ccc;
     for(k=0;k<dim;k++)  xm[k]=fm[i*dim+k];
     vector_val_ad(xm,ad,0.0);
     bdotn=0.;
     for(k=0;k<dim;k++) bdotn += ad[k]*fn[i*dim+k];
     bdotn*=vol;
+    ifa=f2v->IA[i]-1;
+    ifb=f2v->IA[i+1]-1;
     for(k=ifa;k<ifb;k++){
       j=f2v->JA[k]-1;
       dmass->val[j]-= bdotn;
@@ -217,6 +224,7 @@ void eafe(dCSRmat *A, dvector *rhs,		\
 	//	  for (j,i):    B(-beta.t_e/harmonic_average), the minus comes from
 	//     is because t_e=xi-xj;*/
 	a[jk] *= (alpe*(bernoulli(bte/alpe))); 
+	//	fprintf(stdout,"\ndd=%22.14e",(alpe*(bernoulli(bte/alpe))));
 	/* the diagonal is equal to the negative column sum;*/
 	diag0.val[j]-=a[jk];
       }

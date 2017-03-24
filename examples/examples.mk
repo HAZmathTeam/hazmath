@@ -63,7 +63,7 @@ HEADERS += $(HEADERS)
 
 all: $(EXE) 
 
-$(EXE):	$(MGTARGET)	$(OBJS)
+$(EXE):	$(MGTARGET)	$(OBJS)	
 	+$(CC) $(ExtraFLAGS) $(INCLUDE) $(OBJS) $(MGLIBS) -o $@  $(LIBS)
 
 %.o:	%.c
