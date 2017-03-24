@@ -34,7 +34,7 @@ int main (int argc, char* argv[])
 {
 
   printf("\n===========================================================================\n");	
-  printf("\nBeginning Program to Darcy Flow eqn by RT0-P0 mxed method\n");
+  printf("\nBeginning Program to solve Darcy Flow eqn by RT0-P0 mixed FE method\n");
   printf("\n===========================================================================\n");
 	
   /****** INITIALIZE PARAMETERS **************************************************/

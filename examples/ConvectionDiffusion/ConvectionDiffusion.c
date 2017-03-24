@@ -26,7 +26,8 @@
 static void lump_mass(dCSRmat *A, dCSRmat M, trimesh mesh)
 {
   INT i,j,jk,jkd,ndof=A->row,imaa,imab;
-  REAL dd1=(REAL ) 1./(mesh.dim+1);
+  REAL dd1=1./((REAL )(mesh.dim+1));
+  dd1=1.;
   REAL d=0.;
   for (i=0;i<ndof;i++){
     imaa=A->IA[i]-1;
@@ -45,13 +46,13 @@ static void lump_mass(dCSRmat *A, dCSRmat M, trimesh mesh)
       fprintf(stderr,"\nExiting...\n\n");
       exit(129);
     }
-    d=A->val[jkd];
+    d=0.;
     imaa=M.IA[i]-1;
     imab=M.IA[i+1]-1;
     for(jk=imaa;jk<imab;jk++){
       d+=M.val[jk];
     }
-    A->val[jkd]=dd1*d;
+    A->val[jkd]+=dd1*d;
   }
   return;
 }
@@ -144,23 +145,35 @@ int main (int argc, char* argv[])
   dvector b;
   dCSRmat A;
     
-  // Assemble the matrix with natural BC. 
-  // Diffusion block
-  /*  
-      assemble_global(&A,&b,assemble_DuDv_local,&FE,&mesh,cq,f_rhs,
-                  poisson_coeff,0.0);
-  */
+  // Assemble the matrix.
   eafe(&A,&b,assemble_DuDv_local,			\
        mesh,FE,cq,					\
        diffusion_coeff,f_rhs,advection,bc_any,0.0);
+  /* FILE *fp0=HAZ_fopen("A.dat","w+"); */
+  /* csr_print_matlab(fp0,&A); */
+  /* fclose(fp0); */
   dCSRmat M;
-  assemble_global(&M,NULL,assemble_mass_local,&FE,&mesh,cq,NULL,
+  assemble_global(&M,NULL,assemble_mass_local,&FE,&mesh,cq,NULL,	\
                   coeff_low_order,0.0);
+  //  fprintf(stdout,"\nnnz=%i %i",A.nnz,M.nnz);
+  INT i;
+  /* fp0=HAZ_fopen("M.dat","w+"); */
+  /* csr_print_matlab(fp0,&M); */
+  /* fclose(fp0); */
   lump_mass(&A,M,mesh);
+   //  for (i =0;i<A.nnz; ++i) {A.val[i]+=M.val[i]; }
+  /* fp0=HAZ_fopen("ALM.dat","w+"); */
+  /* csr_print_matlab(fp0,&A); */
+  /* fclose(fp0); */
+  /* fp0=HAZ_fopen("b.dat","w+"); */
+  /* for(i=0;i<b.row;i++) { */
+  /*   fprintf(fp0,"%22.16e\n",b.val[i]); */
+  /* } */
+  /* fclose(fp0); */
   clock_t clk_assembly_end = clock();
   dcsr_free(&M);
   printf(" --> elapsed CPU time for assembly = %f seconds.\n\n",(REAL)
-         (clk_assembly_end-clk_assembly_start)/CLOCKS_PER_SEC);
+         (clk_assembly_end - clk_assembly_start)/CLOCKS_PER_SEC);
   /*******************************************************************/
 
   /**************** Solve ********************************************/
@@ -234,7 +247,7 @@ int main (int argc, char* argv[])
   printf("Elapsed CPU Time for Solve = %f seconds.\n\n",(REAL) (clk_solve_end-clk_solve_start)/CLOCKS_PER_SEC);
   // Dump Solution
   // Compute norms of errors
-  REAL uerr = L2error(sol.val,exactsol,&FE,&mesh,cq,0.0);
+  REAL uerr  = L2error(sol.val,exactsol,&FE,&mesh,cq,0.0);
   REAL unorm = L2norm(sol.val,&FE,&mesh,cq);
   printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
   printf("L2 Norm of u            = %26.13e\n",unorm);
