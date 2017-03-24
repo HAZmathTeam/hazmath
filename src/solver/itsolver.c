@@ -925,7 +925,7 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
   const SHORT prtlvl = itparam->linear_print_level;
   const SHORT precond_type = itparam->linear_precond_type;
   
-  INT i;
+  //  INT i;
   INT status = SUCCESS;
   REAL setup_start, setup_end, setup_duration;
   REAL solver_start, solver_end, solver_duration;
@@ -1050,7 +1050,7 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
     const SHORT prtlvl = itparam->linear_print_level;
     const SHORT precond_type = itparam->linear_precond_type;
     
-    INT i;
+    //    INT i;
     INT status = SUCCESS;
     REAL setup_start, setup_end, setup_duration;
     REAL solver_start, solver_end, solver_duration;
@@ -1177,7 +1177,7 @@ INT linear_solver_bdcsr_krylov_block_4(block_dCSRmat *A,
     const SHORT prtlvl = itparam->linear_print_level;
     const SHORT precond_type = itparam->linear_precond_type;
 
-    INT i;
+    //    INT i;
     INT status = SUCCESS;
     REAL setup_start, setup_end, setup_duration;
     REAL solver_start, solver_end, solver_duration;
@@ -1619,7 +1619,7 @@ INT linear_solver_bdcsr_krylov_maxwell(block_dCSRmat *A,
     const SHORT prtlvl = itparam->linear_print_level;
     const SHORT precond_type = itparam->linear_precond_type;
     
-    INT i;
+    //    INT i;
     INT status = SUCCESS;
     REAL setup_start, setup_end, setup_duration;
     REAL solver_start, solver_end, solver_duration;
