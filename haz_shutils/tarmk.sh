@@ -13,7 +13,7 @@ echo "Creating Files for $DNAME on $(date +%Y_%m_%d)"
 set -x
 
 tar \
-    -s:^\.\.\/:${DNAME}/: --exclude-from="z_exclude_from_tar" \
+    -s:^\.\.\/:${DNAME}/: --exclude-from="tar.excl" \
     -zcvf ${FILENAME} ../
 
 set +x
