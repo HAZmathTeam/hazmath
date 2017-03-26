@@ -5,9 +5,9 @@
 # Extension for the Executable Programs
 EXTENSION = ex
 # Machine Specific Compilers and Libraries
-CC = gcc-6
-FC = gfortran-6
-CXX = g++-6
+CC = gcc
+FC = gfortran
+CXX = g++
 CFLAGS = -g 
 FFLAGS = -g -fno-second-underscore
 ExtraFLAGS =
