@@ -4,7 +4,10 @@ tar.excl
 .DS_Store
 .git/
 .git*
+\#*
+.\#*
 lib/
+graphs/
 *.example
 #examples/
 ConvectionDiffusion/
