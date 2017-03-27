@@ -469,10 +469,6 @@ int main (int argc, char* argv[])
   param_amg_init(&amgparam);
   param_amg_set(&amgparam, &inparam);
   //param_amg_print(&amgparam);
-
-  // Data for HX preconditioner
-  dCSRmat P_curl;
-  dCSRmat Grad;
   //=================================================================//
     
 
@@ -490,39 +486,45 @@ int main (int argc, char* argv[])
       solver_flag = linear_solver_amg(&A, &b, &u, &amgparam);
     } else { // Use Krylov Iterative Solver
       // Determine Preconditioner
-      switch (linear_itparam.linear_precond_type) {      
-      case PREC_DIAG:  // Diagonal Preconditioner
-	solver_flag = linear_solver_dcsr_krylov_diag(&A, &b, &u, &linear_itparam);
-	break;        
-      case PREC_AMG:  // AMG preconditioner
-	solver_flag = linear_solver_dcsr_krylov_amg(&A, &b, &u, &linear_itparam, &amgparam);
-	break;                        
-      case PREC_HX_CURL_A: // HX precondtioner
-	get_Pigrad_H1toNed(&P_curl,&mesh);
-	get_grad_H1toNed(&Grad,&mesh);
-	dcsr_shift(&P_curl, -1);  // shift A
-	dcsr_shift(&Grad, -1);  // shift A      
-	solver_flag = linear_solver_dcsr_krylov_hx_curl(&A, &b, &u, &linear_itparam, &amgparam, &P_curl, &Grad);
-	dcsr_shift(&P_curl, 1);   // shift A back
-	dcsr_shift(&Grad, 1);   // shift A back
-	dcsr_free(&P_curl);
-	dcsr_free(&Grad);     
-	break;       
-      case PREC_HX_CURL_M: // HX precondtioner              
-	get_Pigrad_H1toNed(&P_curl,&mesh);
-	get_grad_H1toNed(&Grad,&mesh);
-	dcsr_shift(&P_curl, -1);  // shift A
-	dcsr_shift(&Grad, -1);  // shift A      
-	solver_flag = linear_solver_dcsr_krylov_hx_curl(&A, &b, &u, &linear_itparam, &amgparam, &P_curl, &Grad);
-	dcsr_shift(&P_curl, 1);   // shift A back
-	dcsr_shift(&Grad, 1);   // shift A back            
-	dcsr_free(&P_curl);
-	dcsr_free(&Grad);     
-	break;       
-      default:  // No Preconditioner
-	solver_flag = linear_solver_dcsr_krylov(&A, &b, &u, &linear_itparam);
-	break;
+      // Diagonal preconditioner
+      if (linear_itparam.linear_precond_type == PREC_DIAG) {
+          solver_flag = linear_solver_dcsr_krylov_diag(&A, &b, &u, &linear_itparam);
       }
+      // AMG preconditioner
+      else if (linear_itparam.linear_precond_type == PREC_AMG){
+          solver_flag = linear_solver_dcsr_krylov_amg(&A, &b, &u, &linear_itparam, &amgparam);
+      }
+      // HX preconditioner (for H(curl) problem only)
+      else if (linear_itparam.linear_precond_type == PREC_HX_CURL_A || linear_itparam.linear_precond_type == PREC_HX_CURL_M){
+
+          // declare data
+          dCSRmat P_curl;
+          dCSRmat Grad;
+
+          // get P_curl and Grad
+          get_Pigrad_H1toNed(&P_curl,&mesh);
+          get_grad_H1toNed(&Grad,&mesh);
+
+          // shift
+          dcsr_shift(&P_curl, -1);  // shift P_curl
+          dcsr_shift(&Grad, -1);  // shift Grad
+
+          solver_flag = linear_solver_dcsr_krylov_hx_curl(&A, &b, &u, &linear_itparam, &amgparam, &P_curl, &Grad);
+
+          // shift back
+          dcsr_shift(&P_curl, 1);   // shift P_curl back
+          dcsr_shift(&Grad, 1);   // shift Grad back
+
+          // clean
+          dcsr_free(&P_curl);
+          dcsr_free(&Grad);
+
+      }
+      // No preconditoner
+      else{
+          solver_flag = linear_solver_dcsr_krylov(&A, &b, &u, &linear_itparam);
+      }
+
     }    
     dcsr_shift(&A, 1);   // shift A back
   }
