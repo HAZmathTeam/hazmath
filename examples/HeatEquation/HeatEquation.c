@@ -196,15 +196,6 @@ int main (int argc, char* argv[])
     param_amg_print(&amgparam);
   //}
 
-    /* No ILU
-    // Set parameters for ILU methods
-    //if (linear_itparam.linear_precond_type== PREC_ILU) {
-    ILU_param iluparam;
-    param_ilu_init(&iluparam);
-    param_ilu_set(&iluparam, &inparam);
-    param_ilu_print(&iluparam);
-    //}
-    */
   // Get Initial Conditions
   FE_Evaluate(sol.val,initial_conditions,&FE,&mesh,0.0);
   time_stepper.sol = &sol;

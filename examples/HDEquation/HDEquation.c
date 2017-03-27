@@ -460,7 +460,6 @@ int main (int argc, char* argv[])
   // Set Solver Parameters
   INT solver_flag=-20;
   
-  //============= SHOULD THIS BE IF STATEMENTS? =====================//
   // Set parameters for linear iterative methods
   linear_itsolver_param linear_itparam;
   param_linear_solver_set(&linear_itparam, &inparam);
