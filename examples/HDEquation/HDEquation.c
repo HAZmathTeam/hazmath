@@ -356,9 +356,6 @@ int main (int argc, char* argv[])
     if(FE.FEtype>0 && FE.FEtype<10) { // PX
       assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,
                       rhs_2D_PX,diffusion_coeff,0.0);
-        FILE *fp0=HAZ_fopen("A.dat","w+");
-	csr_print_matlab(fp0,&Diff);
-	fclose(fp0);
     } else if(FE.FEtype==20) { // Nedelec
       assemble_global(&Diff,&b,assemble_DuDv_local,&FE,&mesh,cq,
                       rhs_2D_Ned,diffusion_coeff,0.0);
