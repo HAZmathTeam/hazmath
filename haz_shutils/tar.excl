@@ -12,6 +12,7 @@ graphs/
 #examples/
 ConvectionDiffusion/
 *.o
+*.vtu
 L??.haz
 L??D.haz
 BUILD_HAZ/
