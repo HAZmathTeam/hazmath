@@ -3,22 +3,24 @@
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 8/19/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
+ * \brief Direct Solver methods -- for now just using UMFPACK Solvers
+ *
  */
 
 #include "hazmath.h"
+
 #if WITH_SUITESPARSE
-#include "umfpack.h"
+  #include "umfpack.h"
 #endif
 
 
-/*! \brief Direct Solver methods -- for now just using UMFPACK Solvers
- *
- */
-/***************************************************************************************************************************/
 /**
  * \fn directsolve_UMF(dCSRmat *A,dvector *f,REAL *x,INT print_level)
  *
  * \brief Performs Gaussian Elmination on Ax = f, using UMFPACK (Assumes A is in CSR format)
+ * \note This routine does everything, factorization and solve in one shot.  So it is not
+ *       efficient if you want to solve the same matrix system many times, since it will not
+ *       save the factorization.
  *
  * Input:
  *        	A:	       	Matrix A to be solved
