@@ -189,12 +189,10 @@ int main (int argc, char* argv[])
   INT solver_flag=-20;
 
   // Set parameters for algebriac multigrid methods
-  //if (linear_itparam.linear_itsolver_type == SOLVER_AMG || linear_itparam.linear_precond_type== PREC_AMG) {
-    AMG_param amgparam;
-    param_amg_init(&amgparam);
-    param_amg_set(&amgparam, &inparam);
-    param_amg_print(&amgparam);
-  //}
+  AMG_param amgparam;
+  param_amg_init(&amgparam);
+  param_amg_set(&amgparam, &inparam);
+  param_amg_print(&amgparam);
 
   // Get Initial Conditions
   FE_Evaluate(sol.val,initial_conditions,&FE,&mesh,0.0);
@@ -287,8 +285,8 @@ int main (int argc, char* argv[])
           break;
         }
       }
-      dcsr_shift(time_stepper.At, 1);   // shift A back
     }
+    dcsr_shift(time_stepper.At, 1);   // shift A back
 
     // Error Check
     if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
