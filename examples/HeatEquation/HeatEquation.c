@@ -275,11 +275,6 @@ int main (int argc, char* argv[])
         case PREC_AMG:  // AMG preconditioner
           solver_flag = linear_solver_dcsr_krylov_amg(time_stepper.At,time_stepper.rhs_time,time_stepper.sol, &linear_itparam, &amgparam);
           break;
-	  /* No ILU
-	    case PREC_ILU:  // ILU preconditioner
-	    solver_flag = linear_solver_dcsr_krylov_ilu(time_stepper.At,time_stepper.rhs_time,time_stepper.sol, &linear_itparam, &iluparam);
-	    break;
-	  */
         default:  // No Preconditioner
           solver_flag = linear_solver_dcsr_krylov(time_stepper.At,time_stepper.rhs_time,time_stepper.sol,&linear_itparam);
           break;
