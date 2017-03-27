@@ -14,7 +14,7 @@ set -x
 ## make sure every dir name has backslash at the end of it.
 #
 rsync -auve --progress --existing --exclude='.git*' \
-      --exclude-from='z_exclude_from_tar' \
+      --exclude-from='tar.excl' \
       ../ ${HYDROLENA_HAZ_DIR}/
 
 set +x
