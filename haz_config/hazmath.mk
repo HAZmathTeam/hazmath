@@ -49,20 +49,20 @@
 # If you want to use the GUI of Doxgen instead of command-line,
 # uncomment the next line:
 #
-doxygen=yes
+#doxygen=yes
 #        
 #-------------------------------------------------------------------------
 # If you want to use the SuiteSparse package, uncomment the next 
 # line (and read carefully the instructons below it):
 #
-# suitesparse=yes
+#suitesparse=yes
 #
 # If you have installed SuiteSparse from source or for some other
 # reason you want to specify the path to SuiteSparse libraries and
 # header files, uncomment and edit the definition of "suitesparse_dir"
 # below (and continue reading...)  
 #
-# suitesparse_dir=/opt/local/lib
+#suitesparse_dir=/opt/local/lib
 #
 # IMPORTANT:
 # This defines the path to the SuiteSparse library and include files.

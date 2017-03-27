@@ -31,9 +31,9 @@ set(OPENMP 0 CACHE BOOL "Openmp use")
 
 # Search for C compilers in the specified order. That will determine the rest.
 if(DEFINED ENV{CC}) 
-	find_program(THE_C NAMES $ENV{CC} gcc-6 gcc5 gcc-mp-5 gcc-mp-4.9 gcc-mp-4.8 gcc-mp-4.6 gcc46 gcc45 gcc44 gcc icc clang)
+	find_program(THE_C NAMES $ENV{CC} gcc gcc6 gcc-6 gcc5 gcc-mp-5 gcc-mp-4.9 gcc-mp-4.8 gcc-mp-4.6 gcc46 gcc45 gcc44 gcc icc clang)
 else(DEFINED ENV{CC}) 
-	find_program(THE_C NAMES gcc-6 gcc5 gcc-mp-5 gcc-mp-4.9 gcc-mp-4.8 gcc-mp-4.6 gcc46 gcc45 gcc44 gcc icc clang)
+	find_program(THE_C NAMES gcc gcc6 gcc-6 gcc5 gcc-mp-5 gcc-mp-4.9 gcc-mp-4.8 gcc-mp-4.6 gcc46 gcc45 gcc44 gcc icc clang)
 endif(DEFINED ENV{CC}) 
 
 if( THE_C )
