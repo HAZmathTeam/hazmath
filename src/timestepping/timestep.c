@@ -13,7 +13,7 @@
 //**** NON-BLOCK STUFF ******/
 /******************************************************************************************************/
 /*!
- * \fn void initialize_timestepper(timestepper *tstepper,input_param *inparam)
+ * \fn void initialize_timestepper(timestepper *tstepper,input_param *inparam,INT rhs_timedep,INT ndof)
  *
  * \brief Initialize the timestepping struct.
  *
