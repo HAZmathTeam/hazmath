@@ -962,7 +962,11 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
   precond_block_data precdata;
   precond_block_data_null(&precdata);
 
-  precdata.Abcsr = A;
+  block_dCSRmat Abcsr;
+  bdcsr_alloc(A->brow, A->bcol, &Abcsr);
+  bdcsr_cp(A, &Abcsr);
+  precdata.Abcsr = &Abcsr;
+
   precdata.A_diag = A_diag;
   precdata.r = dvec_create(b->row);
   
@@ -1087,7 +1091,11 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
     precond_block_data precdata;
     precond_block_data_null(&precdata);
 
-    precdata.Abcsr = A;
+    block_dCSRmat Abcsr;
+    bdcsr_alloc(A->brow, A->bcol, &Abcsr);
+    bdcsr_cp(A, &Abcsr);
+    precdata.Abcsr = &Abcsr;
+
     precdata.A_diag = A_diag;
     precdata.r = dvec_create(b->row);
     
@@ -1215,7 +1223,11 @@ INT linear_solver_bdcsr_krylov_block_4(block_dCSRmat *A,
     precond_block_data precdata;
     precond_block_data_null(&precdata);
 
-    precdata.Abcsr = A;
+    block_dCSRmat Abcsr;
+    bdcsr_alloc(A->brow, A->bcol, &Abcsr);
+    bdcsr_cp(A, &Abcsr);
+    precdata.Abcsr = &Abcsr;
+
     precdata.A_diag = A_diag;
     precdata.r = dvec_create(b->row);
 
@@ -1308,9 +1320,10 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
   REAL solver_start, solver_end, solver_duration;
   
   const SHORT max_levels = amgparam->max_levels;
-  INT n;
+  INT i, n;
   
   AMG_data **mgl = (AMG_data **)calloc(2, sizeof(AMG_data *));
+  for (i=0; i<2; i++) mgl[i]=NULL;
   
   dCSRmat BTB;
   
@@ -1342,12 +1355,20 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
   precond_block_data precdata;
   precond_block_data_null(&precdata);
 
-  precdata.Abcsr = A;
+  block_dCSRmat Abcsr;
+  bdcsr_alloc(A->brow, A->bcol, &Abcsr);
+  bdcsr_cp(A, &Abcsr);
+
+  precdata.Abcsr = &Abcsr;
+
   precdata.r = dvec_create(b->row);
   
   precdata.amgparam = amgparam;
   precdata.mgl = mgl;
-  precdata.el_vol = el_vol;
+
+  dvector dvec_el_vol = dvec_create(el_vol->row);
+  dvec_cp(el_vol,&dvec_el_vol);
+  precdata.el_vol = &dvec_el_vol;
 
   precond prec; prec.data = &precdata;
   
@@ -1445,6 +1466,7 @@ INT linear_solver_bdcsr_krylov_biot_2phase(block_dCSRmat *A,
   INT status = SUCCESS;
   REAL setup_start, setup_end, setup_duration;
   REAL solver_start, solver_end, solver_duration;
+  int i;
 
   const SHORT max_levels = amgparam->max_levels;
 
@@ -1496,7 +1518,12 @@ INT linear_solver_bdcsr_krylov_biot_2phase(block_dCSRmat *A,
   precond_block_data precdata;
   precond_block_data_null(&precdata);
 
-  precdata.Abcsr = A;
+  block_dCSRmat Abcsr;
+  bdcsr_alloc(A->brow, A->bcol, &Abcsr);
+  bdcsr_cp(A, &Abcsr);
+
+  precdata.Abcsr = &Abcsr;
+
   precdata.r = dvec_create(b->row);
 
   precdata.amgparam = amgparam;
@@ -1848,7 +1875,11 @@ INT linear_solver_bdcsr_krylov_maxwell(block_dCSRmat *A,
     precond_block_data precdata;
     precond_block_data_null(&precdata);
 
-    precdata.Abcsr = A;
+    block_dCSRmat Abcsr;
+    bdcsr_alloc(A->brow, A->bcol, &Abcsr);
+    bdcsr_cp(A, &Abcsr);
+    precdata.Abcsr = &Abcsr;
+
     precdata.A_diag = A_diag;
     precdata.r = dvec_create(b->row);
     
