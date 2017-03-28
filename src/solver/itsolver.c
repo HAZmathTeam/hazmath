@@ -1074,7 +1074,7 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
         
         for (i=0; i<3; i++){
             
-            A_tran = dcsr_create(A_diag[i].row, A_diag[i].col, A_diag[i].nnz);
+            //A_tran = dcsr_create(A_diag[i].row, A_diag[i].col, A_diag[i].nnz);
             dcsr_trans(&A_diag[i], &A_tran);
             dcsr_cp(&A_tran, &A_diag[i]);
             
