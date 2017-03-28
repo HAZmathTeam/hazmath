@@ -278,15 +278,17 @@ void precond_block_data_free(precond_block_data *precdata, const INT nb)
         if(precdata->diag) dvec_free(precdata->diag[i]);
         if(precdata->mgl) amg_data_free(precdata->mgl[i], &precdata->amgparam[i]);
         if(precdata->hxcurldata) HX_curl_data_free(precdata->hxcurldata[i],TRUE);
-#if WITH_SUITESPARSE
-        umfpack_free_numeric(precdata->LU_diag[i]);
     }
-#endif
 
     if(precdata->diag) free(precdata->diag);
     if(precdata->mgl) free(precdata->mgl);
     if(precdata->hxcurldata) free(precdata->hxcurldata);
+
 #if WITH_SUITESPARSE
+    for (i=0; i<nb; i++)
+    {
+        umfpack_free_numeric(precdata->LU_diag[i]);
+    }
     if(precdata->LU_diag) free(precdata->LU_diag);
 #endif
 
