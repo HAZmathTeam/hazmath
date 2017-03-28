@@ -1081,10 +1081,12 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
             
             printf("Factorization for %d-th diagnol: \n", i);
             LU_diag[i] = umfpack_factorize(&A_diag[i], prtlvl);
+
+            dcsr_free(&A_tran);
             
         }
         
-        dcsr_free(&A_tran);
+
     
 #endif
             
@@ -1143,6 +1145,7 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
     /* diagonal blocks are solved exactly */
 #if WITH_SUITESPARSE
         for (i=0; i<3; i++) umfpack_free_numeric(LU_diag[i]);
+        free(LU_diag);
 #endif
 
     
