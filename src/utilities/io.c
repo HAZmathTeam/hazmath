@@ -510,7 +510,7 @@ void dump_sol_onV_vtk(char *namevtk,
 
 /******************************************************************************/
 /*!
- * \fn void create_pvd(char *namevtk,trimesh *mesh,REAL *sol,INT ncomp)
+ * \fn void create_pvd(char *namepvd, INT nfiles,char *vtkfilename,char *filetype)
  *
  * \brief Dumps solution data in vtk format to a single file.  Useful for timestepping
  * \note  File names of vtk file must have same structure
@@ -521,10 +521,7 @@ void dump_sol_onV_vtk(char *namevtk,
  * \param filetype     Name for types of files (i.e. "timestep")
  *
  */
-void create_pvd(char *namepvd,
-                INT nfiles,
-                char *vtkfilename,
-                char *filetype)
+void create_pvd(char *namepvd, INT nfiles,char *vtkfilename,char *filetype)
 {
   // VTK needed Quantities
   //  What endian?:

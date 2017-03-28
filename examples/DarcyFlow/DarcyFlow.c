@@ -33,17 +33,17 @@
 int main (int argc, char* argv[]) 
 {
 
-  printf("\n===========================================================================\n");	
+  printf("\n===========================================================================\n");
   printf("\nBeginning Program to solve Darcy Flow eqn by RT0-P0 mixed FE method\n");
   printf("\n===========================================================================\n");
-	
+
   /****** INITIALIZE PARAMETERS **************************************************/
   // Loop Indices
   INT i,j,ii;
 
   // Overall Timing
   clock_t clk_overall_start = clock();
-    
+
   // Set Parameters from Reading in Input File
   input_param inparam;
   param_input_init(&inparam);
@@ -52,9 +52,9 @@ int main (int argc, char* argv[])
   // Open gridfile for reading
   printf("\nCreating mesh and FEM spaces:\n");
   FILE* gfid = HAZ_fopen(inparam.gridfile,"r");
-    
+
   // Dimension is needed for all this to work
-    
+
   // Create the mesh (now we assume triangles in 2D or tetrahedra in 3D)
   // File types possible are 0 - old format; 1 - vtk format
   clock_t clk_mesh_start = clock(); // Time mesh generation FE setup
@@ -98,7 +98,7 @@ int main (int argc, char* argv[])
     
     char* namevtk = "output/mesh.vtu";
     dump_mesh_vtk(namevtk,&mesh);
-  }  
+  }
 
   // Set Dirichlet Boundaries
   set_dirichlet_bdry(&FE_q,&mesh,1);
@@ -106,12 +106,12 @@ int main (int argc, char* argv[])
   for(i=0;i<FE_q.ndof;i++) {
     if(FE_q.dirichlet[i]==1 && (mesh.f_mid[i*dim+2]!=1 && mesh.f_mid[i*dim+2]!=0)) {
       FE_q.dirichlet[i] = 0;
-    } 
+    }
   }
 
   // Create Block System with ordering (q,h)
   INT ndof = FE_q.ndof + FE_h.ndof;
-  // Get Global FE Space 
+  // Get Global FE Space
   block_fespace FE;
   FE.ndof = FE_q.ndof + FE_h.ndof;
   FE.nbdof = FE_q.nbdof + FE_h.nbdof;
@@ -169,11 +169,11 @@ int main (int argc, char* argv[])
   dvec_set(FE_q.ndof,&b_bdry,0.0);
 
   // All terms but boundary integral
-  assemble_global_block(&A,&b,steady_state_Darcy,steady_state_Darcy_RHS,&FE,&mesh,cq,source,0.0); 
+  assemble_global_block(&A,&b,steady_state_Darcy,steady_state_Darcy_RHS,&FE,&mesh,cq,source,0.0);
 
-  // Boundary Integral <g,r*n>_boundary 
+  // Boundary Integral <g,r*n>_boundary
   // Flag is which boundary you want to compute this
-  INT flag = 1;  
+  INT flag = 1;
   assemble_global_RHS_face(&b_bdry,NULL,steady_state_Darcy_bdryRHS,&FE_q,&mesh,cq,myg,0.0,flag);
 
   // Add RHS vectors together
@@ -269,7 +269,11 @@ int main (int argc, char* argv[])
   dvector sol = dvec_create(ndof);
   dvector u_q = dvec_create(FE_q.ndof);
   dvector u_h = dvec_create(FE_h.ndof);
-    
+  // Arrays to output to vtk (need to have solution at vertices
+  REAL* h_on_V = (REAL *) calloc(mesh.nv,sizeof(REAL));
+  REAL* q_on_V = (REAL *) calloc(dim*mesh.nv,sizeof(REAL));
+  REAL * sol_on_V = (REAL *) calloc(mesh.nv*(dim+1),sizeof(REAL));
+
   // Set parameters for linear iterative methods
   linear_itsolver_param linear_itparam;
   param_linear_solver_init(&linear_itparam);
@@ -283,15 +287,37 @@ int main (int argc, char* argv[])
 
   // Solver flag
   INT solver_flag;
-    
+
   // If time-stepping
   if(time_stepper.tsteps>0) {
     // Get Initial Conditions
     blockFE_Evaluate(sol.val,initial_conditions,&FE,&mesh,0.0);
     time_stepper.sol = &sol;
+    get_unknown_component(&u_q,&sol,&FE,0);
+    get_unknown_component(&u_h,&sol,&FE,1);
 
     // Store current RHS
     time_stepper.rhs = &b;
+
+    // Dump Initial Condition
+    char solout[8000];
+    if (inparam.output_dir!=NULL) {
+      //solout = strdup("output/solution_ts000.vtu");
+      sprintf(solout,"%s","output/solution_ts000.vtu");
+      // Project h and q to vertices for vtk output
+      Project_to_Vertices(h_on_V,u_h.val,&FE_h,&mesh,1);
+      Project_to_Vertices(q_on_V,u_q.val,&FE_q,&mesh,1);
+
+      // Combine into one solution array at vertices
+      for(i=0;i<mesh.nv;i++) {
+        sol_on_V[i] = h_on_V[i];
+      }
+      for(i=0;i<dim*mesh.nv;i++) {
+        sol_on_V[i+mesh.nv] = q_on_V[i];
+      }
+      // Dump to vtk file
+      dump_sol_onV_vtk(solout,&mesh,sol_on_V,dim+1);
+    }
 
     // Begin Timestepping Loop
     clock_t clk_timeloop_start = clock();
@@ -396,10 +422,31 @@ int main (int argc, char* argv[])
       clock_t clk_timestep_end = clock();
       printf("Elapsed CPU Time for Time Step = %f seconds.\n\n",(REAL) (clk_timestep_end-clk_timestep_start)/CLOCKS_PER_SEC);
 
+      // Output Solutions
+      dvec_cp(time_stepper.sol,&sol);
+      if (inparam.output_dir!=NULL) {
+        // Solution at each timestep
+        get_unknown_component(&u_q,&sol,&FE,0);
+        get_unknown_component(&u_h,&sol,&FE,1);
+        //solout = strdup("output/solution_ts%03d.vtu",time_stepper.current_step);
+        sprintf(solout,"output/solution_ts%03d.vtu",time_stepper.current_step);
+
+        // Project h and q to vertices for vtk output
+        Project_to_Vertices(h_on_V,u_h.val,&FE_h,&mesh,1);
+        Project_to_Vertices(q_on_V,u_q.val,&FE_q,&mesh,1);
+        // Combine into one solution array at vertices
+        for(i=0;i<mesh.nv;i++) {
+          sol_on_V[i] = h_on_V[i];
+        }
+        for(i=0;i<dim*mesh.nv;i++) {
+          sol_on_V[i+mesh.nv] = q_on_V[i];
+        }
+        // Dump to vtk file
+        dump_sol_onV_vtk(solout,&mesh,sol_on_V,dim+1);
+      }
     } // End Timestepping Loop
     clock_t clk_timeloop_end = clock();
     printf("Elapsed CPU Time ALL Time Steps = %f seconds.\n\n",(REAL) (clk_timeloop_end-clk_timeloop_start)/CLOCKS_PER_SEC);
-    dvec_cp(time_stepper.sol,&sol);
   } else { // No timestepping
     /// Set initial guess to be all zero
     dvec_set(sol.row, &sol, 0.0);
@@ -458,26 +505,11 @@ int main (int argc, char* argv[])
   } // If timestepping or Not
   /*******************************************************************************************/
 
-  /******** Computer Errors or Plot *************************************************************/
-  get_unknown_component(&u_q,&sol,&FE,0);
-  get_unknown_component(&u_h,&sol,&FE,1);
+  /******** Compute Errors or Plot *************************************************************/
 
+  // Combine all timestep vtks in
   if(inparam.print_level > 3) {
-
-    REAL* h_on_V = (REAL *) calloc(mesh.nv,sizeof(REAL));
-    REAL* q_on_V = (REAL *) calloc(dim*mesh.nv,sizeof(REAL));
-    
-    char* hdump = "output/hsol.vtu";
-    char* qdump = "output/qsol.vtu";
-   
-    Project_to_Vertices(h_on_V,u_h.val,&FE_h,&mesh,1);
-    dump_sol_onV_vtk(hdump,&mesh,h_on_V,1);
-    Project_to_Vertices(q_on_V,u_q.val,&FE_q,&mesh,1);
-    dump_sol_onV_vtk(qdump,&mesh,q_on_V,dim);
-    
-    /* dvector_print(stdout,&u_h); */
-    /* dvector_print(stdout,&u_q); */
-
+    create_pvd("output/solution.pvd",time_stepper.tsteps+1,"solution_ts","timestep");
   }
   /*******************************************************************************************/
   
@@ -505,10 +537,10 @@ int main (int argc, char* argv[])
   free_mesh(&mesh);
   
   /*****************************************************************************************/
-	
+
   clock_t clk_overall_end = clock();
   printf("\nEnd of Program: Total CPU Time = %f seconds.\n\n",(REAL) (clk_overall_end-clk_overall_start)/CLOCKS_PER_SEC);
-  return 0;	
-	
+  return 0;
+
 }	/* End of Program */
 /*******************************************************************************************/
