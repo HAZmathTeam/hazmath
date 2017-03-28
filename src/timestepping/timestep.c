@@ -578,14 +578,14 @@ void update_blktime_rhs(block_timestepper *ts)
     dvec_ax(0.5*ts->dt,&btmp);
 
     // Obtain M*uprev
-    bdcsr_mxv(ts->M,ts->sol_prev->val,Mu.val);
+    bdcsr_mxv_1(ts->M,ts->sol_prev->val,Mu.val);
 
     // M*uprev + 0.5*dt(b_old+b)
     dvec_axpy(1.0,&Mu,&btmp);
 
     // Obtain L(uprev) (could be nonlinear)
     ts->L(ts->Ldata,ts->sol_prev->val,Lu.val);
-
+printf("HELLO\n\n\n");
     // Compute updated RHS
     dvec_axpyz(-0.5*ts->dt,&Lu,&btmp,ts->rhs_time);
 
@@ -598,7 +598,7 @@ void update_blktime_rhs(block_timestepper *ts)
     dvector btmp = dvec_create(ts->sol->row);
 
     // Get M*uprev
-    bdcsr_mxv(ts->M,ts->sol_prev->val,btmp.val);
+    bdcsr_mxv_1(ts->M,ts->sol_prev->val,btmp.val);
 
     // Compute updated RHS
     dvec_axpyz(ts->dt,ts->rhs,&btmp,ts->rhs_time);
@@ -611,12 +611,12 @@ void update_blktime_rhs(block_timestepper *ts)
     REAL* solprevptr;
 
     // Get (4/3)*M*uprev
-    bdcsr_mxv(ts->M,ts->sol_prev->val,btmp1.val);
+    bdcsr_mxv_1(ts->M,ts->sol_prev->val,btmp1.val);
     dvec_ax(4.0/3.0,&btmp1);
 
     // Get -(1/3)*M*uprevprev
     solprevptr = ts->sol_prev->val + ts->sol->row;
-    bdcsr_mxv(ts->M,solprevptr,btmp2.val);
+    bdcsr_mxv_1(ts->M,solprevptr,btmp2.val);
     dvec_ax(-1.0/3.0,&btmp2);
 
     // Add first two components

@@ -3045,8 +3045,90 @@ void bdcsr_mxv(block_dCSRmat *A,
 }
 
 /***********************************************************************************************/
+
+/***********************************************************************************************/
 /*!
-   * \fn void bdcsr_mxv (block_dCSRmat *A, REAL *x, REAL *y)
+   * \fn void bdcsr_mxv_1 (block_dCSRmat *A, REAL *x, REAL *y)
+   *
+   * \brief Matrix-vector multiplication y = A*x in block_dCSRmat format
+   * \note Assume each dscr blocks indexes at 1.
+   *
+   * \param A      Pointer to block_dCSRmat matrix A
+   * \param x      Pointer to array x
+   * \param y      Pointer to array y
+   *
+   */
+void bdcsr_mxv_1(block_dCSRmat *A,
+               REAL *x,
+               REAL *y)
+{
+  // information of A
+  INT brow = A->brow;
+
+  INT i,j;
+  INT start_row = 0;
+  INT start_col = 0;
+
+
+  for (i=0; i<brow; i++) {
+
+    for (j=0; j<brow; j++){
+
+      if (j==0) {
+        if (A->blocks[i*brow+j]){
+          dcsr_mxv_1(A->blocks[i*brow+j], &(x[start_col]), &(y[start_row]));
+        }
+      }
+      else {
+        if (A->blocks[i*brow+j]){
+          dcsr_aAxpy_1(1.0, A->blocks[i*brow+j], &(x[start_col]), &(y[start_row]));
+        }
+      }
+      start_col = start_col + A->blocks[j*brow+j]->col;
+    }
+
+    start_row = start_row + A->blocks[i*brow+i]->row;
+    start_col = 0;
+  }
+
+}
+
+/***********************************************************************************************/
+
+/***********************************************************************************************/
+/*!
+   * \fn void bdcsr_shift (block_dCSRmat *A, INT shift)
+   *
+   * \brief Shift indexing in block_dCSRmat format
+   *
+   * \param A      Pointer to block_dCSRmat matrix A
+   *
+   */
+void bdcsr_shift(block_dCSRmat *A,INT shift)
+{
+  // information of A
+  INT brow = A->brow;
+
+  INT i,j;
+
+
+  for (i=0; i<brow; i++) {
+
+    for (j=0; j<brow; j++){
+
+      if (A->blocks[i*brow+j]) {
+        dcsr_shift(A->blocks[i*brow+j],shift);
+      }
+
+    }
+
+  }
+}
+
+/***********************************************************************************************/
+
+/*!
+   * \fn void bdcsr_mxv_forts (block_dCSRmat *A, REAL *x, REAL *y)
    *
    * \brief Matrix-vector multiplication y = A*x in block_dCSRmat format
    *
@@ -3065,115 +3147,32 @@ void bdcsr_mxv_forts(void *At,
   // information of A
   INT brow = A->brow;
 
-  // local variables
-  register dCSRmat *A11, *A12, *A21, *A22;
-  register dCSRmat *A13, *A23, *A31, *A32, *A33;
-
-  unsigned INT row1, col1;
-  unsigned INT row2, col2;
-
-  register REAL *x1, *x2, *y1, *y2;
-  register REAL *x3, *y3;
-
   INT i,j;
-  INT start_row;
-  INT start_col;
+  INT start_row = 0;
+  INT start_col = 0;
 
-  switch (brow) {
+printf("HEY YOU!\n\n");
+  for (i=0; i<brow; i++) {
 
-  case 2:
-    A11 = A->blocks[0];
-    A12 = A->blocks[1];
-    A21 = A->blocks[2];
-    A22 = A->blocks[3];
+    for (j=0; j<brow; j++){
 
-    row1 = A11->row;
-    col1 = A11->col;
-
-    x1 = x;
-    x2 = &(x[col1]);
-    y1 = y;
-    y2 = &(y[row1]);
-
-    // y1 = A11*x1 + A12*x2
-    if (A11) dcsr_mxv(A11, x1, y1);
-    if (A12) dcsr_aAxpy(1.0, A12, x2, y1);
-
-    // y2 = A21*x1 + A22*x2
-    if (A21) dcsr_mxv(A21, x1, y2);
-    if (A22) dcsr_aAxpy(1.0, A22, x2, y2);
-
-    break;
-
-  case 3:
-    A11 = A->blocks[0];
-    A12 = A->blocks[1];
-    A13 = A->blocks[2];
-    A21 = A->blocks[3];
-    A22 = A->blocks[4];
-    A23 = A->blocks[5];
-    A31 = A->blocks[6];
-    A32 = A->blocks[7];
-    A33 = A->blocks[8];
-
-    row1 = A11->row;
-    col1 = A11->col;
-    row2 = A22->row;
-    col2 = A22->col;
-
-    x1 = x;
-    x2 = &(x[col1]);
-    x3 = &(x[col1+col2]);
-    y1 = y;
-    y2 = &(y[row1]);
-    y3 = &(y[row1+row2]);
-
-    // y1 = A11*x1 + A12*x2 + A13*x3 + y1
-    if (A11) dcsr_mxv(A11, x1, y1);
-    if (A12) dcsr_aAxpy(1.0, A12, x2, y1);
-    if (A13) dcsr_aAxpy(1.0, A13, x3, y1);
-
-    // y2 = A21*x1 + A22*x2 + A23*x3 + y2
-    if (A21) dcsr_mxv(A21, x1, y2);
-    if (A22) dcsr_aAxpy(1.0, A22, x2, y2);
-    if (A23) dcsr_aAxpy(1.0, A23, x3, y2);
-
-    // y3 = A31*x1 + A32*x2 + A33*x3 + y2
-    if (A31) dcsr_mxv(A31, x1, y3);
-    if (A32) dcsr_aAxpy(1.0, A32, x2, y3);
-    if (A33) dcsr_aAxpy(1.0, A33, x3, y3);
-
-    break;
-
-  default:
-
-    start_row = 0;
-    start_col = 0;
-
-    for (i=0; i<brow; i++) {
-
-      for (j=0; j<brow; j++){
-
-        if (j==0) {
-          if (A->blocks[i*brow+j]){
-            dcsr_mxv(A->blocks[i*brow+j], &(x[start_col]), &(y[start_row]));
-          }
+      if (j==0) {
+        if (A->blocks[i*brow+j]){
+          dcsr_mxv_1(A->blocks[i*brow+j], &(x[start_col]), &(y[start_row]));
         }
-        else {
-          if (A->blocks[i*brow+j]){
-            dcsr_aAxpy(1.0, A->blocks[i*brow+j], &(x[start_col]), &(y[start_row]));
-          }
-        }
-        start_col = start_col + A->blocks[j*brow+j]->col;
       }
-
-      start_row = start_row + A->blocks[i*brow+i]->row;
-      start_col = 0;
+      else {
+        if (A->blocks[i*brow+j]){
+          dcsr_aAxpy_1(1.0, A->blocks[i*brow+j], &(x[start_col]), &(y[start_row]));
+        }
+      }
+      start_col = start_col + A->blocks[j*brow+j]->col;
     }
 
-    break;
+    start_row = start_row + A->blocks[i*brow+i]->row;
+    start_col = 0;
+  }
 
-  } // end of switch
 
 }
 
