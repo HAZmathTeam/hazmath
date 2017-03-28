@@ -275,7 +275,8 @@ int main (int argc, char* argv[])
   // Dump Initial Condition
   char solout[40];
   if (inparam.output_dir!=NULL) {
-    sprintf(solout,"%s","output/solution_ts000.vtu");
+    //    sprintf(solout,"%s","output/solution_ts000.vtu");
+    sprintf(solout,"output/solution_ts000.vtu");
     // Project h and q to vertices for vtk output
     Project_to_Vertices(h_on_V,u_h.val,&FE_h,&mesh,1);
     Project_to_Vertices(q_on_V,u_q.val,&FE_q,&mesh,1);
