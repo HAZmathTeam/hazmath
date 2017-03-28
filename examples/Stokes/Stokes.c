@@ -344,7 +344,7 @@ int main (int argc, char* argv[])
   }
   /************ Free All the Arrays ***********************************************************/
   // CSR
-  //bdcsr_free( &A );
+  bdcsr_free( &A );
   dcsr_free( &Mp);
   for(i=0;i<dim+1;i++)
     dcsr_free( &A_diag[i] );

@@ -242,6 +242,10 @@ void precond_block_data_null(precond_block_data *precdata)
     precdata->A_diag = NULL;
     precdata->diag = NULL;
 
+#if WITH_SUITESPARSE
+    precdata->LU_diag = NULL;
+#endif
+
     precdata->mgl = NULL;
     precdata->amgparam = NULL;
 
@@ -274,10 +278,16 @@ void precond_block_data_free(precond_block_data *precdata, const INT nb)
 
     for (i=0; i<nb; i++)
     {
-        dcsr_free(&precdata->A_diag[i]);
-        if(precdata->diag) dvec_free(precdata->diag[i]);
-        if(precdata->mgl) amg_data_free(precdata->mgl[i], &precdata->amgparam[i]);
-        if(precdata->hxcurldata) HX_curl_data_free(precdata->hxcurldata[i],TRUE);
+        if(precdata->A_diag) dcsr_free(&precdata->A_diag[i]);
+        if(precdata->diag) {
+           if(precdata->diag[i]) dvec_free(precdata->diag[i]);
+        }
+        if(precdata->mgl) {
+            if(precdata->mgl[i]) amg_data_free(precdata->mgl[i], &precdata->amgparam[i]);
+        }
+        if(precdata->hxcurldata) {
+            if(precdata->hxcurldata[i]) HX_curl_data_free(precdata->hxcurldata[i],TRUE);
+        }
     }
 
     if(precdata->diag) free(precdata->diag);
@@ -287,7 +297,9 @@ void precond_block_data_free(precond_block_data *precdata, const INT nb)
 #if WITH_SUITESPARSE
     for (i=0; i<nb; i++)
     {
-        umfpack_free_numeric(precdata->LU_diag[i]);
+        if(precdata->LU_diag){
+           if(precdata->LU_diag[i]) umfpack_free_numeric(precdata->LU_diag[i]);
+        }
     }
     if(precdata->LU_diag) free(precdata->LU_diag);
 #endif
@@ -295,11 +307,12 @@ void precond_block_data_free(precond_block_data *precdata, const INT nb)
     dvec_free(&precdata->r);
     dvec_free(precdata->el_vol);
 
-    dcsr_free(precdata->G);
-    dcsr_free(precdata->K);
-    dcsr_free(precdata->Gt);
-    dcsr_free(precdata->Kt);
+    if(precdata->G)  dcsr_free(precdata->G);
+    if(precdata->K)  dcsr_free(precdata->K);
+    if(precdata->Gt) dcsr_free(precdata->Gt);
+    if(precdata->Kt) dcsr_free(precdata->Kt);
 
+    return;
 }
 
 /*************************************  END  ***************************************************/
