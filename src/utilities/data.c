@@ -298,8 +298,6 @@ void precond_block_data_free(precond_block_data *precdata, const INT nb)
     dcsr_free(precdata->Gt);
     dcsr_free(precdata->Kt);
 
-    printf("hello-6\n");
-
 }
 
 /*************************************  END  ***************************************************/
