@@ -344,13 +344,13 @@ int main (int argc, char* argv[])
   }
   /************ Free All the Arrays ***********************************************************/
   // CSR
-  bdcsr_free( &A );
+  //bdcsr_free( &A );
   dcsr_free( &Mp);
   for(i=0;i<dim+1;i++)
     dcsr_free( &A_diag[i] );
 
   // Vectors
-  if(A_diag) free(A_diag);
+  //if(A_diag) free(A_diag);
   if(solerrL2) free(solerrL2);
   if(solerrH1) free(solerrH1);
   dvec_free( &b );

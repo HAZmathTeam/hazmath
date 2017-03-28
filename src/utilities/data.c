@@ -226,4 +226,80 @@ void precond_null(precond *pcdata)
     pcdata->fct  = NULL;
 }
 
+/**
+ * \fn void precond_block_data_null(precond_block_data *precdata)
+ *
+ * \brief Initialize precond block data (set pointers to NULL)
+ *
+ * \param precdata   Pointer to precond block data
+ *
+ */
+void precond_block_data_null(precond_block_data *precdata)
+{
+
+    precdata->Abcsr = NULL;
+
+    precdata->A_diag = NULL;
+    precdata->diag = NULL;
+
+    precdata->mgl = NULL;
+    precdata->amgparam = NULL;
+
+    precdata->hxcurldata =NULL;
+
+    precdata->el_vol = NULL;
+
+    precdata->G = NULL;
+    precdata->K = NULL;
+    precdata->Gt = NULL;
+    precdata->Kt = NULL;
+
+}
+
+/*!
+ * \fn void precond_block_data_free(precond_block_data *precdata)
+ *
+ * \brief Free precond_block_data structure (set values to 0 and pointers to NULL)
+ *
+ * \param precdata      Pointer to the precond_block_data structure (OUTPUT)
+ * \param nb            number of blocks
+ *
+ */
+void precond_block_data_free(precond_block_data *precdata, const INT nb)
+{
+
+    int i;
+
+    bdcsr_free(precdata->Abcsr);
+
+    for (i=0; i<nb; i++)
+    {
+        dcsr_free(&precdata->A_diag[i]);
+        if(precdata->diag) dvec_free(precdata->diag[i]);
+        if(precdata->mgl) amg_data_free(precdata->mgl[i], &precdata->amgparam[i]);
+        if(precdata->hxcurldata) HX_curl_data_free(precdata->hxcurldata[i],TRUE);
+#if WITH_SUITESPARSE
+        umfpack_free_numeric(precdata->LU_diag[i]);
+    }
+#endif
+
+    if(precdata->diag) free(precdata->diag);
+    if(precdata->mgl) free(precdata->mgl);
+    if(precdata->hxcurldata) free(precdata->hxcurldata);
+#if WITH_SUITESPARSE
+    if(precdata->LU_diag) free(precdata->LU_diag);
+#endif
+
+    dvec_free(&precdata->r);
+    dvec_free(precdata->el_vol);
+
+    dcsr_free(precdata->G);
+    dcsr_free(precdata->K);
+    dcsr_free(precdata->Gt);
+    dcsr_free(precdata->Kt);
+
+    printf("hello-6\n");
+
+}
+
 /*************************************  END  ***************************************************/
