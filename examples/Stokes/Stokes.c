@@ -107,7 +107,7 @@ int main (int argc, char* argv[])
   FE.var_spaces[dim] = &FE_p;
   
   // Set Dirichlet Boundaries
-  set_dirichlet_bdry_block(&FE,&mesh,1,1);
+  set_dirichlet_bdry_block(&FE,&mesh);
 
 
   clock_t clk_mesh_end = clock(); // End of timing for mesh and FE setup
