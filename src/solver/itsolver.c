@@ -1313,9 +1313,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
   const SHORT max_levels = amgparam->max_levels;
   INT n;
   
-  void **LU_diag = (void **)calloc(2, sizeof(void *));
   AMG_data **mgl = (AMG_data **)calloc(2, sizeof(AMG_data *));
-  HX_curl_data **hxcurldata = (HX_curl_data **)calloc(2, sizeof(HX_curl_data *));
   
   dCSRmat BTB;
   
@@ -1453,9 +1451,7 @@ INT linear_solver_bdcsr_krylov_biot_2phase(block_dCSRmat *A,
 
   const SHORT max_levels = amgparam->max_levels;
 
-  void **LU_diag = (void **)calloc(2, sizeof(void *));
   AMG_data **mgl = (AMG_data **)calloc(2, sizeof(AMG_data *));
-  HX_curl_data **hxcurldata = (HX_curl_data **)calloc(2, sizeof(HX_curl_data *));
 
   /* setup preconditioner */
   get_time(&setup_start);
@@ -1613,9 +1609,7 @@ INT linear_solver_bdcsr_krylov_maxwell(block_dCSRmat *A,
     const SHORT prtlvl = itparam->linear_print_level;
     const SHORT precond_type = itparam->linear_precond_type;
     
-#if WITH_SUITESPARSE  
-    INT i;
-#endif
+
     INT status = SUCCESS;
     REAL setup_start, setup_end, setup_duration;
     REAL solver_start, solver_end, solver_duration;
