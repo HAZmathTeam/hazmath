@@ -120,7 +120,7 @@ int main (int argc, char* argv[])
   FE.var_spaces = (fespace **) calloc(2,sizeof(fespace *));
   FE.var_spaces[0] = &FE_q;
   FE.var_spaces[1] = &FE_h;
-  set_dirichlet_bdry_block(&FE,&mesh,1,1);
+  set_dirichlet_bdry_block(&FE,&mesh);
 
   clock_t clk_mesh_end = clock(); // End of timing for mesh and FE setup
   printf(" --> elapsed CPU time for mesh and FEM space construction = %f seconds.\n\n",
