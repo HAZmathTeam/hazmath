@@ -25,7 +25,6 @@ output_dir                          = ./output/
 %---------------%
 
 nquad				= 2	% Quadrature nodes each direction
-FE_type				= -2	% 0 P0 | 1 P1 | 2 P2 | -1 Ned -2 RT 
 
 %---------------%
 % time stepping

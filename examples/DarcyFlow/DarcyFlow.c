@@ -189,6 +189,7 @@ int main (int argc, char* argv[])
   dCSRmat A_csr = bdcsr_2_dcsr(&A);
   dcsr_shift(&A_csr,1);
   // Time Propagation Operators (if necessary)
+  initialize_timestepper(&time_stepper,&inparam,0,A_csr.row);
   if(time_stepper.tsteps>0) {
     // Get Mass Matrix for h
     dCSRmat Mh;
@@ -210,7 +211,6 @@ int main (int argc, char* argv[])
     dCSRmat M_csr = bdcsr_2_dcsr(&M);
     dcsr_shift(&M_csr,1);
     // Create Time Operator (one with BC and one without)
-    initialize_timestepper(&time_stepper,&inparam,0,A_csr.row);
     time_stepper.A = &A_csr;
     time_stepper.Ldata=&A_csr;
     time_stepper.M = &M_csr;
@@ -286,6 +286,7 @@ int main (int argc, char* argv[])
   // If time-stepping
   if(time_stepper.tsteps>0) {
     // Get Initial Conditions
+    printf("FE=%d\tFE=%d\n",FE.var_spaces[0]->FEtype,FE.var_spaces[1]->FEtype);
     blockFE_Evaluate(sol.val,initial_conditions,&FE,&mesh,0.0);
     time_stepper.sol = &sol;
 
