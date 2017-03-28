@@ -83,7 +83,7 @@ int main (int argc, char* argv[])
   create_fespace(&FE_q,&mesh,order_q);
 
   // Time stepping parameters
-  timestepper time_stepper;
+  block_timestepper time_stepper;
 
   if(inparam.print_level > 3) {
     // Dump Mesh and FE data
@@ -181,16 +181,8 @@ int main (int argc, char* argv[])
     b.val[i] += b_bdry.val[i];
   }
 
-  // Shift Matrices for HAZMATH
-  dcsr_shift(&Aqq,-1);
-  dcsr_shift(&Aqh,-1);
-  dcsr_shift(&Ahq,-1);
-
-  // Convert to CSR from Block CSR and then shift back
-  dCSRmat A_csr = bdcsr_2_dcsr(&A);
-  dcsr_shift(&A_csr,1);
   // Time Propagation Operators (if necessary)
-  initialize_timestepper(&time_stepper,&inparam,0,A_csr.row);
+  initialize_blktimestepper(&time_stepper,&inparam,0,FE.ndof,2);
   // Get Mass Matrix for h
   dCSRmat Mh;
   assemble_global(&Mh,NULL,assemble_mass_local,&FE_h,&mesh,cq,NULL,Ss,0.0);
@@ -205,27 +197,15 @@ int main (int argc, char* argv[])
   M.blocks[2] = NULL;
   M.blocks[3] = &Mh;
 
-  // Convert to CSR from Block CSR
-  dcsr_shift(&Mh,-1);
-  dcsr_shift(&Mempty,-1);
-  dCSRmat M_csr = bdcsr_2_dcsr(&M);
-  dcsr_shift(&M_csr,1);
   // Create Time Operator (one with BC and one without)
-  time_stepper.A = &A_csr;
-  time_stepper.Ldata=&A_csr;
-  time_stepper.M = &M_csr;
-  get_timeoperator(&time_stepper,1,1);
+  time_stepper.A = &A;
+  time_stepper.Ldata=&A;
+  time_stepper.M = &M;
+  get_blktimeoperator(&time_stepper,1,1);
 
 
   //-----------------------------------------------
   // prepare for preconditioners
-  // generate dof index
-  ivector q_index = ivec_create(Aqq.row);
-  ivector h_index = ivec_create(Ahq.row);
-  
-  for (i=0; i<q_index.row; i++) q_index.val[i] = i;
-  for (i=0; i<h_index.row; i++) h_index.val[i] = q_index.row + i;
-  
   // prepare diagonal blocks
   dCSRmat *A_diag;
   A_diag = (dCSRmat *)calloc(2, sizeof(dCSRmat));
@@ -296,7 +276,7 @@ int main (int argc, char* argv[])
   for(j=0;j<time_stepper.tsteps;j++) {
     clock_t clk_timestep_start = clock();
     // Update Time Step Data (includes time, counters, solution, and rhs)
-    update_timestep(&time_stepper);
+    update_blktimestep(&time_stepper);
 
     // Recompute RHS if it's time-dependent
     if(time_stepper.rhs_timedep) {
@@ -311,39 +291,30 @@ int main (int argc, char* argv[])
     }
 
     // Update RHS
-    update_time_rhs(&time_stepper);
-
+    update_blktime_rhs(&time_stepper);
+printf("HELOON|N\n\n");
     // For first time step eliminate boundary conditions in matrix and rhs
     if(j==0) {
-      eliminate_DirichletBC_blockFE(bc,&FE,&mesh,time_stepper.rhs_time,time_stepper.At,time_stepper.time);
+      eliminate_DirichletBC_blockFE_blockA(bc,&FE,&mesh,time_stepper.rhs_time,time_stepper.At,time_stepper.time);
     } else {
-      eliminate_DirichletBC_RHS_blockFE(bc,&FE,&mesh,time_stepper.rhs_time,time_stepper.At_noBC,time_stepper.time);
+      eliminate_DirichletBC_RHS_blockFE_blockA(bc,&FE,&mesh,time_stepper.rhs_time,time_stepper.At_noBC,time_stepper.time);
     }
 
     // Solve
     clock_t clk_solve_start = clock();
 
     // Solve the linear system
-    dcsr_shift(time_stepper.At, -1);  // shift A
-
-    // solve in CSR format
-    //solver_flag = linear_solver_dcsr_krylov(time_stepper.At,time_stepper.rhs_time,time_stepper.sol, &linear_itparam);
-
     // solve in block CSR format
-    // get blocks
-    dcsr_getblk(time_stepper.At, q_index.val, q_index.val, q_index.row, q_index.row, A.blocks[0]);
-    dcsr_getblk(time_stepper.At, q_index.val, h_index.val, q_index.row, h_index.row, A.blocks[1]);
-    dcsr_getblk(time_stepper.At, h_index.val, q_index.val, h_index.row, q_index.row, A.blocks[2]);
-    A.blocks[3] = NULL;
+    bdcsr_shift(time_stepper.At, -1);  // shift A
 
     if (linear_itparam.linear_precond_type >= 10 & linear_itparam.linear_precond_type < 13) {
 
       // get preconditioner diagonal blocks
-      dcsr_alloc(A.blocks[0]->row, A.blocks[0]->col, A.blocks[0]->nnz, &A_diag[0]);
-      dcsr_mxm(A.blocks[1],A.blocks[2],&BTB);
-      dcsr_add(&BTB, 100.0, A.blocks[0], 1.0, &A_diag[0]);
+      dcsr_alloc(time_stepper.At->blocks[0]->row, time_stepper.At->blocks[0]->col, time_stepper.At->blocks[0]->nnz, &A_diag[0]);
+      dcsr_mxm(time_stepper.At->blocks[1],time_stepper.At->blocks[2],&BTB);
+      dcsr_add(&BTB, 100.0, time_stepper.At->blocks[0], 1.0, &A_diag[0]);
 
-      dcsr_alloc(h_index.row, h_index.row, h_index.row, &A_diag[1]);
+      dcsr_alloc(FE_h.ndof, FE_h.ndof, FE_h.ndof, &A_diag[1]);
       for (i=0; i<=A_diag[1].row; i++)
         A_diag[1].IA[i] = i;
       for (i=0; i<A_diag[1].row; i++)
@@ -352,7 +323,7 @@ int main (int argc, char* argv[])
         A_diag[1].val[i] = mesh.el_vol[i];
 
       // solve
-      solver_flag = linear_solver_bdcsr_krylov_block_2(&A, time_stepper.rhs_time, time_stepper.sol, &linear_itparam, &amgparam, A_diag);
+      solver_flag = linear_solver_bdcsr_krylov_block_2(time_stepper.At, time_stepper.rhs_time, time_stepper.sol, &linear_itparam, &amgparam, A_diag);
 
       // free spaces
       dcsr_free(&A_diag[0]);
@@ -363,27 +334,22 @@ int main (int argc, char* argv[])
     else if ( (linear_itparam.linear_precond_type >= 20 & linear_itparam.linear_precond_type < 23) || (linear_itparam.linear_precond_type >= 30 & linear_itparam.linear_precond_type < 33) ) {
 
       // element volume (only for RT0-P0)
-      el_vol.row = A.blocks[2]->row;
+      el_vol.row = time_stepper.At->blocks[2]->row;
       el_vol.val = mesh.el_vol;
 
       // solve
-      solver_flag = linear_solver_bdcsr_krylov_mixed_darcy(&A, time_stepper.rhs_time, time_stepper.sol, &linear_itparam, &amgparam, &el_vol);
+      solver_flag = linear_solver_bdcsr_krylov_mixed_darcy(time_stepper.At, time_stepper.rhs_time, time_stepper.sol, &linear_itparam, &amgparam, &el_vol);
 
     }
     // solver without preconditioner
     else {
 
       // solve
-      solver_flag = linear_solver_bdcsr_krylov(&A, &b, &sol, &linear_itparam);
+      solver_flag = linear_solver_bdcsr_krylov(time_stepper.At, time_stepper.rhs_time, time_stepper.sol, &linear_itparam);
 
     }
 
-    // free spaces
-    dcsr_free(A.blocks[0]);
-    dcsr_free(A.blocks[1]);
-    dcsr_free(A.blocks[2]);
-
-    dcsr_shift(time_stepper.At, 1);   // shift A back
+    bdcsr_shift(time_stepper.At, 1);   // shift A back
 
     // Error Check
     if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
@@ -400,7 +366,6 @@ int main (int argc, char* argv[])
       // Solution at each timestep
       get_unknown_component(&u_q,&sol,&FE,0);
       get_unknown_component(&u_h,&sol,&FE,1);
-      //solout = strdup("output/solution_ts%03d.vtu",time_stepper.current_step);
       sprintf(solout,"output/solution_ts%03d.vtu",time_stepper.current_step);
 
       // Project h and q to vertices for vtk output
@@ -435,7 +400,7 @@ int main (int argc, char* argv[])
   /******** Free All the Arrays *************************************************************/
 
   // CSR Matrices
-  if(time_stepper.tsteps>0) free_timestepper(&time_stepper);
+  if(time_stepper.tsteps>0) free_blktimestepper(&time_stepper);
 
 
   // FE Spaces
