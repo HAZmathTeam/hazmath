@@ -948,7 +948,6 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
   
   for (i=0; i<2; i++){
     
-    A_tran = dcsr_create(A_diag[i].row, A_diag[i].col, A_diag[i].nnz);
     dcsr_trans(&A_diag[i], &A_tran);
     dcsr_cp(&A_tran, &A_diag[i]);
     
@@ -1074,7 +1073,6 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
         
         for (i=0; i<3; i++){
             
-            //A_tran = dcsr_create(A_diag[i].row, A_diag[i].col, A_diag[i].nnz);
             dcsr_trans(&A_diag[i], &A_tran);
             dcsr_cp(&A_tran, &A_diag[i]);
             
@@ -1200,7 +1198,6 @@ INT linear_solver_bdcsr_krylov_block_4(block_dCSRmat *A,
 
         for (i=0; i<4; i++){
 
-            A_tran = dcsr_create(A_diag[i].row, A_diag[i].col, A_diag[i].nnz);
             dcsr_trans(&A_diag[i], &A_tran);
             dcsr_cp(&A_tran, &A_diag[i]);
 
@@ -1650,7 +1647,6 @@ INT linear_solver_bdcsr_krylov_maxwell(block_dCSRmat *A,
     if (precond_type < 20){
         
 #if WITH_SUITESPARSE
-        A_tran = dcsr_create(A_diag[0].row, A_diag[0].col, A_diag[0].nnz);
         dcsr_trans(&A_diag[0], &A_tran);
         dcsr_cp(&A_tran, &A_diag[0]);
         if ( prtlvl >= PRINT_MIN )
@@ -1699,7 +1695,6 @@ INT linear_solver_bdcsr_krylov_maxwell(block_dCSRmat *A,
         
 #if WITH_SUITESPARSE
         // direct solver for A_EE
-        A_tran = dcsr_create(A_diag[1].row, A_diag[1].col, A_diag[1].nnz);
         dcsr_trans(&A_diag[1], &A_tran);
         dcsr_cp(&A_tran, &A_diag[1]);
         if ( prtlvl >= PRINT_MIN )
@@ -1816,7 +1811,6 @@ INT linear_solver_bdcsr_krylov_maxwell(block_dCSRmat *A,
         
 #if WITH_SUITESPARSE
         // direct solver for A_pp
-        A_tran = dcsr_create(A_diag[2].row, A_diag[2].col, A_diag[2].nnz);
         dcsr_trans(&A_diag[2], &A_tran);
         dcsr_cp(&A_tran, &A_diag[2]);
         if ( prtlvl >= PRINT_MIN )
