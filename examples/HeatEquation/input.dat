@@ -31,7 +31,7 @@ FE_type				= 1	% 0-9 PX | 10-19 QX (not yet) | 20 Ned | 30 RT | -9--1 DGX (not y
 % time stepping
 %---------------%
 
-time_step_type			= 0	% 0 CN | 1 BDF1 | 2 BDF2 |
+time_step_type			= 1	% 0 CN | 1 BDF1 | 2 BDF2 |
 time_steps			= 10 	% number of time steps
 time_step_size			= 0.01	% time step size
 
