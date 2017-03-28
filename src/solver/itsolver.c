@@ -958,11 +958,11 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
     dcsr_free(&A_tran);
     
   }
-  
-  
 #endif
 
   precond_block_data precdata;
+  precond_block_data_null(&precdata);
+
   precdata.Abcsr = A;
   precdata.A_diag = A_diag;
   precdata.r = dvec_create(b->row);
@@ -1014,10 +1014,7 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
   }
   
   // clean
-#if WITH_SUITESPARSE
-  for (i=0; i<2; i++) umfpack_free_numeric(LU_diag[i]);
-  free(LU_diag);
-#endif
+  precond_block_data_free(&precdata, 2);
 
   return status;
 }
@@ -1086,13 +1083,12 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
 
             dcsr_free(&A_tran);
             
-        }
-        
-
-    
+        }   
 #endif
             
     precond_block_data precdata;
+    precond_block_data_null(&precdata);
+
     precdata.Abcsr = A;
     precdata.A_diag = A_diag;
     precdata.r = dvec_create(b->row);
@@ -1144,12 +1140,7 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
     }
     
     // clean
-    /* diagonal blocks are solved exactly */
-#if WITH_SUITESPARSE
-        for (i=0; i<3; i++) umfpack_free_numeric(LU_diag[i]);
-        free(LU_diag);
-#endif
-
+    precond_block_data_free(&precdata, 3);
     
     return status;
 }
@@ -1225,6 +1216,8 @@ INT linear_solver_bdcsr_krylov_block_4(block_dCSRmat *A,
 #endif
 
     precond_block_data precdata;
+    precond_block_data_null(&precdata);
+
     precdata.Abcsr = A;
     precdata.A_diag = A_diag;
     precdata.r = dvec_create(b->row);
@@ -1275,12 +1268,7 @@ INT linear_solver_bdcsr_krylov_block_4(block_dCSRmat *A,
     }
 
     // clean
-    /* diagonal blocks are solved exactly */
-#if WITH_SUITESPARSE
-        for (i=0; i<4; i++) umfpack_free_numeric(LU_diag[i]);
-        free(LU_diag);
-#endif
-
+    precond_block_data_free(&precdata, 4);
 
     return status;
 }
@@ -1357,6 +1345,8 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
   
 
   precond_block_data precdata;
+  precond_block_data_null(&precdata);
+
   precdata.Abcsr = A;
   precdata.r = dvec_create(b->row);
   
@@ -1419,13 +1409,8 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
 
   // clean
   dcsr_free(&BTB);
-  amg_data_free(mgl[0], amgparam);
 
-  if (LU_diag) free(LU_diag);
-  if (mgl) free(mgl);
-  if (hxcurldata) free(hxcurldata);
-  
-  dvec_free(&precdata.r);
+  precond_block_data_free(&precdata, 2);
 
   return status;
 }
@@ -1516,6 +1501,8 @@ INT linear_solver_bdcsr_krylov_biot_2phase(block_dCSRmat *A,
 
   /* set the whole preconditioner data */
   precond_block_data precdata;
+  precond_block_data_null(&precdata);
+
   precdata.Abcsr = A;
   precdata.r = dvec_create(b->row);
 
@@ -1576,14 +1563,7 @@ INT linear_solver_bdcsr_krylov_biot_2phase(block_dCSRmat *A,
   }
 
   // clean
-  amg_data_free(mgl[0], amgparam);
-  amg_data_free(mgl[1], amgparam);
-
-  if (LU_diag) free(LU_diag);
-  if (mgl) free(mgl);
-  if (hxcurldata) free(hxcurldata);
-
-  dvec_free(&precdata.r);
+  precond_block_data_free(&precdata, 2);
 
   return status;
 }
@@ -1878,6 +1858,8 @@ INT linear_solver_bdcsr_krylov_maxwell(block_dCSRmat *A,
     // setup precond data
     /*--------------------------------------------------------------------- */
     precond_block_data precdata;
+    precond_block_data_null(&precdata);
+
     precdata.Abcsr = A;
     precdata.A_diag = A_diag;
     precdata.r = dvec_create(b->row);
@@ -1985,29 +1967,7 @@ INT linear_solver_bdcsr_krylov_maxwell(block_dCSRmat *A,
 
 FINISHED:
     // clean
-
-    if (precond_type < 20){
-    
-#if WITH_SUITESPARSE
-        dcsr_free(&A_tran);
-        
-        for (i=0; i<3; i++) umfpack_free_numeric(LU_diag[i]);
-#endif
-        
-    }
-    else {
-        dvec_free(diag[0]);
-        //amg_data_free(mgl[0], amgparam);
-        HX_curl_data_free(hxcurldata[1], FALSE);
-        amg_data_free(mgl[2], amgparam);
-    }
-    
-    if (LU_diag) free(LU_diag);
-    if (diag) free(diag);
-    if (mgl) free(mgl);
-    if (hxcurldata) free(hxcurldata);
-    
-    dvec_free(&precdata.r);
+    precond_block_data_free(&precdata,3);
     
     return status;
 }
