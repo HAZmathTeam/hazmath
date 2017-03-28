@@ -116,6 +116,7 @@ int main (int argc, char* argv[])
   FE.ndof = FE_q.ndof + FE_h.ndof;
   FE.nbdof = FE_q.nbdof + FE_h.nbdof;
   FE.nspaces = 2;
+  FE.nun = dim+1;
   FE.var_spaces = (fespace **) calloc(2,sizeof(fespace *));
   FE.var_spaces[0] = &FE_q;
   FE.var_spaces[1] = &FE_h;
@@ -286,7 +287,6 @@ int main (int argc, char* argv[])
   // If time-stepping
   if(time_stepper.tsteps>0) {
     // Get Initial Conditions
-    printf("FE=%d\tFE=%d\n",FE.var_spaces[0]->FEtype,FE.var_spaces[1]->FEtype);
     blockFE_Evaluate(sol.val,initial_conditions,&FE,&mesh,0.0);
     time_stepper.sol = &sol;
 
