@@ -348,6 +348,7 @@ int main (int argc, char* argv[])
   dcsr_free( &Mp);
   for(i=0;i<dim+1;i++)
     dcsr_free( &A_diag[i] );
+  if(A_diag) free(A_diag);
 
   // Vectors
   //if(A_diag) free(A_diag);

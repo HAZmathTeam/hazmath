@@ -10,7 +10,7 @@
 #include "hazmath.h"
 
 #if WITH_SUITESPARSE
-  #include "umfpack.h"
+#include "umfpack.h"
 #endif
 
 
@@ -115,10 +115,10 @@ INT directsolve_UMF(dCSRmat *A,
     printf("\n UMFPACK Solve Complete.\n");
     printf("=======================================================================\n\n");
   }
- return 0;
+  return 0;
 #else
- error_extlib(252, __FUNCTION__, "SuiteSparse");
- return 0;
+  error_extlib(252, __FUNCTION__, "SuiteSparse");
+  return 0;
 #endif
 }
 
@@ -140,37 +140,37 @@ void* umfpack_factorize (dCSRmat *ptrA,
 {   
 
 #if WITH_SUITESPARSE
-    const INT n = ptrA->col;
-    
-    INT *Ap = ptrA->IA;
-    INT *Ai = ptrA->JA;
-    double *Ax = ptrA->val;
-    void *Symbolic;
-    void *Numeric;
-    INT status = SUCCESS;
-    
-    clock_t start_time = clock();
-    
-    status = umfpack_di_symbolic (n, n, Ap, Ai, Ax, &Symbolic, NULL, NULL);
-    if(status<0) {
-	fprintf(stderr,"UMFPACK ERROR in Symbolic, status = %d\n\n",status);
-    }
-    status = umfpack_di_numeric (Ap, Ai, Ax, Symbolic, &Numeric, NULL, NULL);
-    if(status<0) {
-	fprintf(stderr,"UMFPACK ERROR in Numeric, status = %d\n\n",status);
-    }
-    umfpack_di_free_symbolic (&Symbolic);
-        
-    if ( prtlvl > PRINT_MIN ) {
-        clock_t end_time = clock();
-        double fac_time = (double)(end_time - start_time)/(double)(CLOCKS_PER_SEC);
-        printf("UMFPACK factorize costs %f seconds.\n", fac_time);
-    }
-    
-    return Numeric;
+  const INT n = ptrA->col;
+
+  INT *Ap = ptrA->IA;
+  INT *Ai = ptrA->JA;
+  double *Ax = ptrA->val;
+  void *Symbolic;
+  void *Numeric;
+  INT status = SUCCESS;
+
+  clock_t start_time = clock();
+
+  status = umfpack_di_symbolic (n, n, Ap, Ai, Ax, &Symbolic, NULL, NULL);
+  if(status<0) {
+    fprintf(stderr,"UMFPACK ERROR in Symbolic, status = %d\n\n",status);
+  }
+  status = umfpack_di_numeric (Ap, Ai, Ax, Symbolic, &Numeric, NULL, NULL);
+  if(status<0) {
+    fprintf(stderr,"UMFPACK ERROR in Numeric, status = %d\n\n",status);
+  }
+  umfpack_di_free_symbolic (&Symbolic);
+
+  if ( prtlvl > PRINT_MIN ) {
+    clock_t end_time = clock();
+    double fac_time = (double)(end_time - start_time)/(double)(CLOCKS_PER_SEC);
+    printf("UMFPACK factorize costs %f seconds.\n", fac_time);
+  }
+
+  return Numeric;
 #else
-    error_extlib(253, __FUNCTION__, "SuiteSparse");
-    return NULL;
+  error_extlib(253, __FUNCTION__, "SuiteSparse");
+  return NULL;
 #endif
 
 }
@@ -193,32 +193,32 @@ void* umfpack_factorize (dCSRmat *ptrA,
  * Modified by Xiaozhe on 05/10/2014
  */
 INT umfpack_solve (dCSRmat *ptrA,
-                        dvector *b,
-                        dvector *u,
-                        void *Numeric,
-                        const SHORT prtlvl)
+                   dvector *b,
+                   dvector *u,
+                   void *Numeric,
+                   const SHORT prtlvl)
 {   
 
 #if WITH_SUITESPARSE
-    INT *Ap = ptrA->IA;
-    INT *Ai = ptrA->JA;
-    double *Ax = ptrA->val;
-    INT status = SUCCESS;
-    
-    clock_t start_time = clock();
-    
-    status = umfpack_di_solve (UMFPACK_A, Ap, Ai, Ax, u->val, b->val, Numeric, NULL, NULL);
-    
-    if ( prtlvl > PRINT_NONE ) {
-        clock_t end_time = clock();
-        double solve_time = (double)(end_time - start_time)/(double)(CLOCKS_PER_SEC);
-        printf("UMFPACK costs %f seconds.\n", solve_time);
-    }
-    
-    return status;
+  INT *Ap = ptrA->IA;
+  INT *Ai = ptrA->JA;
+  double *Ax = ptrA->val;
+  INT status = SUCCESS;
+
+  clock_t start_time = clock();
+
+  status = umfpack_di_solve (UMFPACK_A, Ap, Ai, Ax, u->val, b->val, Numeric, NULL, NULL);
+
+  if ( prtlvl > PRINT_NONE ) {
+    clock_t end_time = clock();
+    double solve_time = (double)(end_time - start_time)/(double)(CLOCKS_PER_SEC);
+    printf("UMFPACK costs %f seconds.\n", solve_time);
+  }
+
+  return status;
 #else
-    error_extlib(254, __FUNCTION__, "SuiteSparse");
-    return 0;
+  error_extlib(254, __FUNCTION__, "SuiteSparse");
+  return 0;
 #endif
 }
 
@@ -235,14 +235,14 @@ INT umfpack_solve (dCSRmat *ptrA,
 INT umfpack_free_numeric (void *Numeric)
 {   
 #if WITH_SUITESPARSE
-    INT status = SUCCESS;
-    
-    umfpack_di_free_numeric (&Numeric);
-    
-    return status;
+  INT status = SUCCESS;
+
+  umfpack_di_free_numeric (&Numeric);
+
+  return status;
 #else
-    error_extlib(255, __FUNCTION__, "SuiteSparse");
-    return 0;
+  error_extlib(255, __FUNCTION__, "SuiteSparse");
+  return 0;
 #endif
 }
 
