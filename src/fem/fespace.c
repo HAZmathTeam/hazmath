@@ -607,23 +607,26 @@ void dump_fespace(fespace *FE,char *varname,char *dir)
 
 /****************************************************************************************/
 /*!
- * \fn void set_dirichlet_bdry(fespace* FE,trimesh* mesh,INT flag)
+ * \fn void set_dirichlet_bdry(fespace* FE,trimesh* mesh, const INT flag0, const INT flag1)
  *
  * \brief Determine which boundary DOF are Dirichlet.  Determined by the FE space type
  *        and by the given flag from the mesh file.
  *
  * \param FE               FE space struct
  * \param mesh             Mesh struct
- * \param flag             User-input for which Boundary DOF are Dirichlet
+ * \param flag0            min flag value for Dirichlet DOF 
+ *                         (e.g. in fem.h: MARKER_DIRICHLET)
+ * \param flag1            max flag value for Dirichlet DOF  
+ *                         e.g. in fem.h (MARKER_NEUMANN - 1)
  *
  * \return FE.dirichlet    Binary boundary array for DOF
  *
  */
-void set_dirichlet_bdry(fespace* FE,trimesh* mesh,INT flag) 
+void set_dirichlet_bdry(fespace* FE,trimesh* mesh, const INT flag0, const INT flag1) 
 {
   INT i;
   for(i=0;i<FE->ndof;i++) {
-    if(FE->dof_flag[i]==flag) {
+    if((FE->dof_flag[i])>=flag0 && (FE->dof_flag[i]<=flag1)) {
       FE->dirichlet[i] = 1;
     } else {
       FE->dirichlet[i] = 0;
@@ -635,20 +638,23 @@ void set_dirichlet_bdry(fespace* FE,trimesh* mesh,INT flag)
 
 /****************************************************************************************/
 /*!
- * \fn void set_dirichlet_bdry(fespace* FE,trimesh* mesh,INT flag)
+ * \fn void set_dirichlet_bdry_block(fespace* FE,trimesh* mesh,const INT flag0, const INT flag1)
  *
  * \brief Determine which boundary DOF are Dirichlet.  Determined by the BLOCK FE space type
  *        and by the given flag from the mesh file.
  *
  * \param FE               BLOCK FE space struct
  * \param mesh             Mesh struct
- * \param flag             User-input for which Boundary DOF are Dirichlet
+ * \param flag0            min flag value for Dirichlet DOF 
+ *                         (e.g. in fem.h: MARKER_DIRICHLET)
+ * \param flag1            max flag value for Dirichlet DOF  
+ *                         e.g. in fem.h (MARKER_NEUMANN - 1)
  *
  * \return FE.dirichlet    Binary boundary array for DOF
  * \return FE.dof_flag     Also set DOF flags based on each FE space
  *
  */
-void set_dirichlet_bdry_block(block_fespace* FE,trimesh* mesh,INT flag) 
+void set_dirichlet_bdry_block(block_fespace* FE,trimesh* mesh,const INT flag0, const INT flag1) 
 {
   INT i,j,ndof,cnt;
 
@@ -659,7 +665,7 @@ void set_dirichlet_bdry_block(block_fespace* FE,trimesh* mesh,INT flag)
   for(i=0;i<FE->nspaces;i++) {
     ndof = FE->var_spaces[i]->ndof;
     for(j=0;j<ndof;j++) {
-      if(FE->var_spaces[i]->dirichlet[j]==flag) {
+      if((FE->var_spaces[i]->dirichlet[j]>=flag0) && (FE->var_spaces[i]->dirichlet[j]<=flag1)) {
         isdirichlet[cnt+j] = 1;
       } else {
         isdirichlet[cnt+j] = 0;

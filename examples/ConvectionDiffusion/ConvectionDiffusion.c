@@ -60,7 +60,7 @@ int main (int argc, char* argv[])
 {
   
   printf("\n===========================================================================\n");
-  printf("Beginning Program to solve a Convection Diffusion Equation.\n");
+  printf("Solving a Convection Diffusion Equation.\n");
   printf("===========================================================================\n");
   
   /****** INITIALIZE PARAMETERS **************************************/
@@ -106,7 +106,7 @@ int main (int argc, char* argv[])
 
   // Set Dirichlet Boundaries
   // Assume the physical boundaries (flag of 1 in mesh file) are Dirichlet
-  set_dirichlet_bdry(&FE,&mesh,1);
+  set_dirichlet_bdry(&FE,&mesh,1,16);
 
   // Dump some of the data
   if(inparam.print_level > 3) { // && inparam.output_dir != NULL) {
