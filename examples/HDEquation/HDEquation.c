@@ -283,7 +283,7 @@ int main (int argc, char* argv[])
 
   // Set Dirichlet Boundaries
   // Assume physical boundaries (flag of 1 in mesh file) are Dirichlet
-  set_dirichlet_bdry(&FE,&mesh,1);
+  set_dirichlet_bdry(&FE,&mesh,1,1);
 
   // Strings for printing
   char elmtype[8];
