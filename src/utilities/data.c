@@ -274,8 +274,6 @@ void precond_block_data_free(precond_block_data *precdata, const INT nb)
 
     int i;
 
-    bdcsr_free(precdata->Abcsr);
-
     for (i=0; i<nb; i++)
     {
         if(precdata->A_diag) dcsr_free(&precdata->A_diag[i]);
@@ -305,7 +303,6 @@ void precond_block_data_free(precond_block_data *precdata, const INT nb)
 #endif
 
     dvec_free(&precdata->r);
-    dvec_free(precdata->el_vol);
 
     if(precdata->G)  dcsr_free(precdata->G);
     if(precdata->K)  dcsr_free(precdata->K);
