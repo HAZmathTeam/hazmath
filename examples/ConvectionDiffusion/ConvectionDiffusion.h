@@ -7,7 +7,7 @@
 #endif
 
 #ifndef EPS0
-#define EPS0 1e0
+#define EPS0 1e1
 #endif
 
 
@@ -29,7 +29,7 @@ void exactsol(REAL *val,REAL* x, REAL t) {
 }
 
 void advection(REAL *val, REAL *x,REAL t) {
-  val[0] = 0.; // or beta_1(x)
+  val[0] = 1.; // or beta_1(x)
   val[1] = 1.; // or beta_2(x)
   val[2] = 1e10; // or beta_3(x)
   return;
@@ -75,6 +75,7 @@ void bc_any(REAL *val, REAL* x, REAL t) {
   if(fabs(x[0])< 1e-10){
     // n=(-1,0)
     *val=-sj[0];
+    exactsol(val,x,0.0);
   } else if(fabs(x[0]-1.) < 1e-10){
     // n=(1,0)
     *val=sj[0];
@@ -90,7 +91,7 @@ void bc_any(REAL *val, REAL* x, REAL t) {
   //  fprintf(stdout,"%e %e %f %s\n",x[0],x[1],*val,__FUNCTION__);
   //  *val=0.;
   /*Dirichlet:*/
-  //exactsol(val,x,0.0);
+  //  exactsol(val,x,0.0);
   return;
 }
 //void mgraph_wrap(dCSRmat A, dvector rhs, dvector *sol);
