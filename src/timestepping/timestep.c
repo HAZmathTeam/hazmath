@@ -585,7 +585,7 @@ void update_blktime_rhs(block_timestepper *ts)
 
     // Obtain L(uprev) (could be nonlinear)
     ts->L(ts->Ldata,ts->sol_prev->val,Lu.val);
-printf("HELLO\n\n\n");
+
     // Compute updated RHS
     dvec_axpyz(-0.5*ts->dt,&Lu,&btmp,ts->rhs_time);
 

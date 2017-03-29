@@ -400,9 +400,21 @@ printf("HELOON|N\n\n");
 
   /******** Free All the Arrays *************************************************************/
 
-  // CSR Matrices
-  if(time_stepper.tsteps>0) free_blktimestepper(&time_stepper);
+  // Time Stepper (and all the matrices inside)
+  free_blktimestepper(&time_stepper);
+  dvec_free(&b);
+  dvec_free(&b_bdry);
 
+  // Preconditioners
+  if(A_diag) free(A_diag);
+
+  // Extra Vectors and Arrays
+  if(h_on_V) free(h_on_V);
+  if(q_on_V) free(q_on_V);
+  if(sol_on_V) free(sol_on_V);
+  dvec_free(&sol);
+  dvec_free(&u_q);
+  dvec_free(&u_h);
 
   // FE Spaces
   free_fespace(&FE_h);
