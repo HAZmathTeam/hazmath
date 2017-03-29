@@ -163,10 +163,9 @@ int main (int argc, char* argv[])
   A.blocks[3] = NULL;
 
   // Assemble the matrices without BC first
-  dvector b = dvec_create(ndof);
-  dvector b_bdry = dvec_create(FE_q.ndof);
-  dvec_set(ndof,&b,0.0);
-  dvec_set(FE_q.ndof,&b_bdry,0.0);
+  dvector b;
+  dvector b_bdry;/* = dvec_create(FE_q.ndof);
+  dvec_set(FE_q.ndof,&b_bdry,0.0);*/
 
   // All terms but boundary integral
   assemble_global_block(&A,&b,steady_state_Darcy,steady_state_Darcy_RHS,&FE,&mesh,cq,source,0.0);
@@ -293,7 +292,7 @@ int main (int argc, char* argv[])
 
     // Update RHS
     update_blktime_rhs(&time_stepper);
-printf("HELOON|N\n\n");
+
     // For first time step eliminate boundary conditions in matrix and rhs
     if(j==0) {
       eliminate_DirichletBC_blockFE_blockA(bc,&FE,&mesh,time_stepper.rhs_time,time_stepper.At,time_stepper.time);
