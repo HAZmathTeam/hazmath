@@ -164,8 +164,8 @@ int main (int argc, char* argv[])
 
   // Assemble the matrices without BC first
   dvector b;
-  dvector b_bdry;/* = dvec_create(FE_q.ndof);
-  dvec_set(FE_q.ndof,&b_bdry,0.0);*/
+  dvector b_bdry = dvec_create(FE_q.ndof);
+  dvec_set(FE_q.ndof,&b_bdry,0.0);
 
   // All terms but boundary integral
   assemble_global_block(&A,&b,steady_state_Darcy,steady_state_Darcy_RHS,&FE,&mesh,cq,source,0.0);
