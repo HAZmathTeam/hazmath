@@ -81,10 +81,10 @@ int main (int argc, char* argv[])
   create_fespace(&FE_p,&mesh,order_p);
 
   // Set Dirichlet Boundaries
-  set_dirichlet_bdry(&FE_ux,&mesh,1);
-  set_dirichlet_bdry(&FE_uy,&mesh,1);
-  if(dim==3) set_dirichlet_bdry(&FE_uz,&mesh,1);
-  set_dirichlet_bdry(&FE_p,&mesh,1);
+  set_dirichlet_bdry(&FE_ux,&mesh,1,1);
+  set_dirichlet_bdry(&FE_uy,&mesh,1,1);
+  if(dim==3) set_dirichlet_bdry(&FE_uz,&mesh,1,1);
+  set_dirichlet_bdry(&FE_p,&mesh,1,1);
   for(i=0;i<FE_p.ndof;i++) {
     FE_p.dirichlet[i] = 0;
   }
@@ -107,7 +107,7 @@ int main (int argc, char* argv[])
   FE.var_spaces[dim] = &FE_p;
   
   // Set Dirichlet Boundaries
-  set_dirichlet_bdry_block(&FE,&mesh,1);
+  set_dirichlet_bdry_block(&FE,&mesh);
 
 
   clock_t clk_mesh_end = clock(); // End of timing for mesh and FE setup

@@ -22,8 +22,8 @@
    BOUNDARY FACES ARE MARKED WITH 
    trimesh.f_bdry[i]=0 then (i) is an interior face. 
    1 <= trimesh.f_bdry[i] <= 16 (i) is on the DIRICHLET boundary;
-   17 <= thrimesh.f_bndry[i] <=32 (i) is  on the NEUMANN boundary; 
-   33 <= thrimesh.f_bndry[i] <=64 (i) is  on the ROBIN boundary; 
+   17 <= trimesh.f_bndry[i] <=32 (i) is  on the NEUMANN boundary; 
+   33 <= trimesh.f_bndry[i] <=64 (i) is  on the ROBIN boundary; 
 */
 #define MARKER_DIRICHLET 1
 #define MARKER_NEUMANN  17
