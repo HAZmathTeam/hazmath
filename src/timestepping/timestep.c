@@ -385,8 +385,6 @@ void initialize_blktimestepper(block_timestepper *tstepper,input_param *inparam,
   tstepper->rhs_time=malloc(sizeof(struct dvector));
 
   bdcsr_alloc(blksize,blksize,tstepper->At);
-  bdcsr_free(tstepper->At);
-  exit(0);
   bdcsr_alloc(blksize,blksize,tstepper->At_noBC);
   dvec_alloc(tstepper->old_steps*ndof,tstepper->sol_prev);
   dvec_alloc(ndof,tstepper->rhs_prev);
