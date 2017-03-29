@@ -2607,6 +2607,7 @@ void bdcsr_free(block_dCSRmat *A)
 
   for ( i=0; i<num_blocks; i++ ) {
     dcsr_free(A->blocks[i]);
+    free(A->blocks[i]);
     A->blocks[i] = NULL;
   }
 
