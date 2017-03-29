@@ -2942,7 +2942,7 @@ void bdcsr_mxv(block_dCSRmat *A,
   register REAL *x1, *x2, *y1, *y2;
   register REAL *x3, *y3;
 
-  INT i,j;
+  INT i,j,k;
   INT start_row;
   INT start_col;
 
@@ -3031,11 +3031,26 @@ void bdcsr_mxv(block_dCSRmat *A,
             dcsr_aAxpy(1.0, A->blocks[i*brow+j], &(x[start_col]), &(y[start_row]));
           }
         }
-        start_col = start_col + A->blocks[j*brow+j]->col;
+
+        for (k=0; k<brow; k++){
+           if(A->blocks[k*brow+j])
+           {
+               start_col = start_col + A->blocks[k*brow+j]->col;
+               break;
+           }
+        }
       }
 
-      start_row = start_row + A->blocks[i*brow+i]->row;
+      for (k=0; k<brow; k++){
+          if(A->blocks[i*brow+k])
+          {
+            start_row = start_row + A->blocks[i*brow+k]->row;
+            break;
+          }
+      }
+
       start_col = 0;
+
     }
 
     break;
@@ -3065,7 +3080,7 @@ void bdcsr_mxv_1(block_dCSRmat *A,
   // information of A
   INT brow = A->brow;
 
-  INT i,j;
+  INT i,j,k;
   INT start_row = 0;
   INT start_col = 0;
 
@@ -3084,10 +3099,25 @@ void bdcsr_mxv_1(block_dCSRmat *A,
           dcsr_aAxpy_1(1.0, A->blocks[i*brow+j], &(x[start_col]), &(y[start_row]));
         }
       }
-      start_col = start_col + A->blocks[j*brow+j]->col;
+
+      for (k=0; k<brow; k++){
+         if(A->blocks[k*brow+j])
+         {
+             start_col = start_col + A->blocks[k*brow+j]->col;
+             break;
+         }
+      }
+
     }
 
-    start_row = start_row + A->blocks[i*brow+i]->row;
+    for (k=0; k<brow; k++){
+        if(A->blocks[i*brow+k])
+        {
+          start_row = start_row + A->blocks[i*brow+k]->row;
+          break;
+        }
+    }
+
     start_col = 0;
   }
 
@@ -3147,11 +3177,10 @@ void bdcsr_mxv_forts(void *At,
   // information of A
   INT brow = A->brow;
 
-  INT i,j;
+  INT i,j,k;
   INT start_row = 0;
   INT start_col = 0;
 
-printf("HEY YOU!\n\n");
   for (i=0; i<brow; i++) {
 
     for (j=0; j<brow; j++){
@@ -3166,10 +3195,25 @@ printf("HEY YOU!\n\n");
           dcsr_aAxpy_1(1.0, A->blocks[i*brow+j], &(x[start_col]), &(y[start_row]));
         }
       }
-      start_col = start_col + A->blocks[j*brow+j]->col;
+
+      for (k=0; k<brow; k++){
+         if(A->blocks[k*brow+j])
+         {
+             start_col = start_col + A->blocks[k*brow+j]->col;
+             break;
+         }
+      }
+
     }
 
-    start_row = start_row + A->blocks[i*brow+i]->row;
+    for (k=0; k<brow; k++){
+        if(A->blocks[i*brow+k])
+        {
+          start_row = start_row + A->blocks[i*brow+k]->row;
+          break;
+        }
+    }
+
     start_col = 0;
   }
 
