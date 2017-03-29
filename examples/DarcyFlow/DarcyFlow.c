@@ -364,7 +364,7 @@ int main (int argc, char* argv[])
     if (inparam.output_dir!=NULL) {
       // Solution at each timestep
       get_unknown_component(&u_q,time_stepper.sol,&FE,0);
-      get_unknown_component(&u_h,teim_stepper.sol,&FE,1);
+      get_unknown_component(&u_h,time_stepper.sol,&FE,1);
       sprintf(solout,"output/solution_ts%03d.vtu",time_stepper.current_step);
 
       // Project h and q to vertices for vtk output
