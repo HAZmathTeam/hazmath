@@ -1247,7 +1247,7 @@ void dcsr_mxv_1(dCSRmat *A,
 {
   // Shift A
   dcsr_shift(A,-1);
-  
+
   // Perform Matrix Vector Multiply
   dcsr_mxv(A,x,y);
 
@@ -2583,7 +2583,7 @@ void bdcsr_alloc(const INT brow,
     }
     else {
         A->blocks = (dCSRmat **) calloc(brow*bcol,sizeof(dCSRmat *));
-        for (i=0; i<brow*bcol; i++) A->blocks[i] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
+        for (i=0; i<brow*bcol; i++) A->blocks[i] = malloc(sizeof(struct dCSRmat));//(dCSRmat *)calloc(1,sizeof(dCSRmat));
     }
 
 
@@ -2607,7 +2607,6 @@ void bdcsr_free(block_dCSRmat *A)
 
   for ( i=0; i<num_blocks; i++ ) {
     dcsr_free(A->blocks[i]);
-    free(A->blocks[i]);
     A->blocks[i] = NULL;
   }
 
