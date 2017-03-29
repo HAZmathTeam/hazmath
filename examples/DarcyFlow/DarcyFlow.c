@@ -361,11 +361,10 @@ int main (int argc, char* argv[])
     printf("Elapsed CPU Time for Time Step = %f seconds.\n\n",(REAL) (clk_timestep_end-clk_timestep_start)/CLOCKS_PER_SEC);
 
     // Output Solutions
-    dvec_cp(time_stepper.sol,&sol);
     if (inparam.output_dir!=NULL) {
       // Solution at each timestep
-      get_unknown_component(&u_q,&sol,&FE,0);
-      get_unknown_component(&u_h,&sol,&FE,1);
+      get_unknown_component(&u_q,time_stepper.sol,&FE,0);
+      get_unknown_component(&u_h,teim_stepper.sol,&FE,1);
       sprintf(solout,"output/solution_ts%03d.vtu",time_stepper.current_step);
 
       // Project h and q to vertices for vtk output

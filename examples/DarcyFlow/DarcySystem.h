@@ -119,6 +119,7 @@ void steady_state_Darcy(REAL* ALoc,block_fespace *FE,trimesh *mesh,qcoordinates 
   if (h_phi) free(h_phi);
   if (q_phi) free(q_phi);
   if(divq_phi) free(divq_phi);
+  if(K) free(K);
 
   if(qx) free(qx);
   return;
