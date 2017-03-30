@@ -2586,7 +2586,7 @@ void bdcsr_alloc(const INT brow,
         for (i=0; i<brow*bcol; i++) A->blocks[i] = malloc(sizeof(struct dCSRmat));//(dCSRmat *)calloc(1,sizeof(dCSRmat));
     }
 
-
+  return;
 }
 
 /***********************************************************************************************/
@@ -2612,7 +2612,10 @@ void bdcsr_free(block_dCSRmat *A)
 
   free(A->blocks);
   A->blocks = NULL;
+
+  return;
 }
+
 
 /***********************************************************************************************/
 /*!
