@@ -2583,7 +2583,7 @@ void bdcsr_alloc(const INT brow,
     }
     else {
         A->blocks = (dCSRmat **) calloc(brow*bcol,sizeof(dCSRmat *));
-        for (i=0; i<brow*bcol; i++) A->blocks[i] = malloc(sizeof(struct dCSRmat));//(dCSRmat *)calloc(1,sizeof(dCSRmat));
+        for (i=0; i<brow*bcol; i++) A->blocks[i] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
     }
 
   return;
@@ -2771,7 +2771,7 @@ INT bdcsr_add_1(block_dCSRmat *A,
         }
     }
 
-    // non of the matrices is NULL
+    // none of the matrices are NULL
     if (A->brow != B->brow || A->bcol != B->bcol) {
       printf("### ERROR HAZMATH DANGER: Dimensions of block matrices do not match!!! %s\n", __FUNCTION__);
       status = ERROR_MAT_SIZE;
