@@ -33,6 +33,11 @@
 int main (int argc, char* argv[]) 
 {
 
+//  block_dCSRmat Atest;
+//  bdcsr_alloc(3,3,&Atest);
+//  //bdcsr_free(&Atest);
+//  exit(0);
+
   printf("\n===========================================================================\n");
   printf("\nBeginning Program to solve Darcy Flow eqn by RT0-P0 mixed FE method\n");
   printf("\n===========================================================================\n");
