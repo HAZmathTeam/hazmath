@@ -338,7 +338,7 @@ int main (int argc, char* argv[])
     if(uy_on_V) free( uy_on_V );
     if(dim==3)
       if(uz_on_V) free( uz_on_V );
-    if(order_p!=1)    
+    if(order_p!=1)
       if(p_on_V) free( p_on_V );
     if(sol_on_V) free(sol_on_V);
   }
@@ -351,7 +351,6 @@ int main (int argc, char* argv[])
   if(A_diag) free(A_diag);
 
   // Vectors
-  //if(A_diag) free(A_diag);
   if(solerrL2) free(solerrL2);
   if(solerrH1) free(solerrH1);
   dvec_free( &b );

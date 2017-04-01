@@ -3,67 +3,55 @@
  *  Created by Peter Ohm on 1/5/17.
  *  Copyright 2015_HAZMATH__. All rights reserved.
  *
- * \brief This program solves Stokes PDE using finite elements
- *
- *      -laplace(u) + div(p) = f
- *                   grad(u) = 0
- *
- *
- *        in 2D or 3D
- *
- *        Along the boundary of the region, Dirichlet conditions are
- *        imposed for u and Neumann for p.  P2-P1 or P2-P0 can be used.
+ * \brief This contains all the local assembly routines
+ *        for the Stokes example.
  *
  */
 
-/********************** Local Assembly **************************************************/
+/*!
+ * \fn void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, trimesh *mesh, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm, REAL time)
+ *
+ * \brief Computes the local stiffness matrix for the Stokes system.
+ *        For this problem we compute LHS of:
+ *
+ *        <grad u, grad v> - <p, div v> = <f, v>
+ *                   - <div u, q> = 0
+ *
+ *
+ * \param FE            Block FE Space
+ * \param mesh          Mesh Data
+ * \param cq            Quadrature Nodes
+ * \param dof_on_elm    Specific DOF on element
+ * \param v_on_elm      Specific vertices on element
+ * \param elm           Current element
+ * \param time          Physical Time if time dependent
+ *
+ * \return ALoc         Local Stiffness Matrix (Full Matrix) ordered (u1,u2,u3,p)
+ *
+ * \note Assumes 2D or 3D only
+ *
+ */
 void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, trimesh *mesh, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm, REAL time)
 {
 
-  /*!
-   * \fn void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, trimesh *mesh, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm, REAL time)
-*
-   * \brief Computes the local stiffness matrix for the Stokes system.
-   *        For this problem we compute LHS of:
-   *
-   *        <grad u, grad v> - <p, div v> = <f, v>
-   *                   - <div u, q> = 0
-   *
-   *
-   * \param FE            Block FE Space
-   * \param mesh          Mesh Data
-   * \param cq            Quadrature Nodes
-   * \param dof_on_elm    Specific DOF on element
-   * \param v_on_elm      Specific vertices on element
-   * \param elm           Current element
-   * \param time          Physical Time if time dependent
-   *
-   * \return ALoc         Local Stiffness Matrix (Full Matrix) ordered (u1,u2,u3,p)
-   *
-   * \note Assumes 2D or 3D only
-   *
-   */
-
   // Loop indices
-  INT i,j,idim;
+  INT i,j,idim,quad,test,trial;
 
   // Mesh and FE data
   INT dof_per_elm = 0;
   for (i=0; i<FE->nspaces;i++)
     dof_per_elm += FE->var_spaces[i]->dof_per_elm;
   INT* local_dof_on_elm;
-
   INT dim = mesh->dim;
 
-  // Loop Indices
-  INT quad,test,trial;
   // Quadrature Weights and Nodes
   REAL w;
-  REAL* qx = (REAL *) calloc(3,sizeof(REAL));
+  REAL* qx = (REAL *) calloc(dim,sizeof(REAL));
 
   // Stiffness Matrix Entry
   REAL kij = 0.0;
 
+  // Keep track of local indexing
   INT local_row_index, local_col_index;
 
   // Sum over quadrature points
@@ -210,6 +198,7 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, trimesh *mesh, qcoordi
     }
   }
 
+  // Free stuff
   if (qx) free(qx);
 
   return;

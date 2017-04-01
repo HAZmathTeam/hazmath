@@ -2656,7 +2656,34 @@ void bdcsr_free(block_dCSRmat *A)
   return;
 }
 
+/***********************************************************************************************/
+/*!
+   * \fn void bdcsr_dealloc (block_dCSRmat *A)
+   *
+   * \brief Free block dCSR sparse matrix data, which is created from bdcsr_alloc
+   * \note This involves allocating space for each block, since size isn't known ahead of time
+   *
+   * \param A   Pointer to the block_dCSRmat matrix
+   *
+   */
+void bdcsr_dealloc(block_dCSRmat *A)
+{
+  if (A == NULL) return; // Nothing need to be freed!
 
+  INT i;
+  INT num_blocks = (A->brow)*(A->bcol);
+
+  for ( i=0; i<num_blocks; i++ ) {
+    dcsr_free(A->blocks[i]);
+    if(A->blocks[i]) free(A->blocks[i]);
+    A->blocks[i] = NULL;
+  }
+
+  free(A->blocks);
+  A->blocks = NULL;
+
+  return;
+}
 /***********************************************************************************************/
 /*!
    * \fn void bdcsr_cp (block_dCSRmat *A, block_dCSRmat *B)

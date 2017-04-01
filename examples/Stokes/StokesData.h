@@ -1,6 +1,13 @@
-/************** Data Input for StokesFlow ***************/
-
-// Coefficients
+/*! \file StokesData.h
+ *
+ *  Created by Peter Ohm on 1/5/17.
+ *  Copyright 2015_HAZMATH__. All rights reserved.
+ *
+ * \brief This contains all the Data parameters and coefficients
+ *        for the Stokes example.  This includes exact solutions,
+ *        RHS functions, and boundary conditions.
+ *
+ */
 
 // Exact Solutions
 void exact_sol(REAL *val,REAL *x,REAL time) {
