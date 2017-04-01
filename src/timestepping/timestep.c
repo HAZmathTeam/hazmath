@@ -425,13 +425,13 @@ void free_blktimestepper(block_timestepper* ts)
   }
 
   if(ts->At) {
-    bdcsr_free(ts->At);
+    bdcsr_dealloc(ts->At);
     free(ts->At);
     ts->At=NULL;
   }
 
   if(ts->At_noBC) {
-    bdcsr_free(ts->At_noBC);
+    bdcsr_dealloc(ts->At_noBC);
     free(ts->At_noBC);
     ts->At_noBC=NULL;
   }
