@@ -150,16 +150,19 @@ int main (int argc, char* argv[])
   clock_t clk_assembly_start = clock();
 
   // Assemble the matrices
-  dCSRmat Aqq;   /* q-q block */
-  dCSRmat Aqh;   /* q-h block */
-  dCSRmat Ahq;   /* h-q block */
+  //dCSRmat Aqq;   /* q-q block */
+  //dCSRmat Aqh;   /* q-h block */
+  //dCSRmat Ahq;   /* h-q block */
   
   block_dCSRmat A;
   A.brow = 2; A.bcol = 2;
-  A.blocks = (dCSRmat **) calloc(4,sizeof(dCSRmat *));
-  A.blocks[0] = &Aqq;
-  A.blocks[1] = &Aqh;
-  A.blocks[2] = &Ahq;
+  A.blocks = (dCSRmat **)calloc(4,sizeof(dCSRmat *));
+  //A.blocks[0] = &Aqq;
+  //A.blocks[1] = &Aqh;
+  //A.blocks[2] = &Ahq;
+  A.blocks[0] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
+  A.blocks[1] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
+  A.blocks[2] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
   A.blocks[3] = NULL;
 
   // Assemble the matrices without BC first
@@ -182,26 +185,33 @@ int main (int argc, char* argv[])
 
   // Time Propagation Operators (if necessary)
   initialize_blktimestepper(&time_stepper,&inparam,0,FE.ndof,2);
-  // Get Mass Matrix for h
-  dCSRmat Mh;
-  assemble_global(&Mh,NULL,assemble_mass_local,&FE_h,&mesh,cq,NULL,Ss,0.0);
 
   // Create Global Mass Matrix for time-stepping
   block_dCSRmat M;
-  dCSRmat Mempty = dcsr_create_zeromatrix(Aqq.row,Aqq.col,1);
+  //dCSRmat Mempty = dcsr_create_zeromatrix(A.blocks[0]->row,A.blocks[0]->col,1);
   M.brow = 2; M.bcol = 2;
   M.blocks = (dCSRmat **) calloc(4,sizeof(dCSRmat *));
-  M.blocks[0] = &Mempty;
+  //M.blocks[0] = &Mempty;
+  M.blocks[0] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
   M.blocks[1] = NULL;
   M.blocks[2] = NULL;
-  M.blocks[3] = &Mh;
+  //M.blocks[3] = &Mh;
+  M.blocks[3] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
+
+  dcsr_set_zeromatrix(M.blocks[0], A.blocks[0]->row,A.blocks[0]->col,1);
+
+  // Get Mass Matrix for h
+  //dCSRmat Mh;
+  //assemble_global(&Mh,NULL,assemble_mass_local,&FE_h,&mesh,cq,NULL,Ss,0.0);
+  assemble_global(M.blocks[3],NULL,assemble_mass_local,&FE_h,&mesh,cq,NULL,Ss,0.0);
 
   // Create Time Operator (one with BC and one without)
   time_stepper.A = &A;
-  time_stepper.Ldata=&A;
   time_stepper.M = &M;
-  get_blktimeoperator(&time_stepper,1,1);
 
+  time_stepper.Ldata=&A;
+
+  get_blktimeoperator(&time_stepper,1,1);
 
   //-----------------------------------------------
   // prepare for preconditioners

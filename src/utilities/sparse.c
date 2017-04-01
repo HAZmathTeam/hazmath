@@ -90,6 +90,41 @@ dCSRmat dcsr_create_zeromatrix(const INT m,
 }
 
 /***********************************************************************************************/
+/*!
+ * \fn dCSRmat dcsr_create_zeromatrix (const INT m, const INT n, const INT nnz)
+ *
+ * \brief Create a CSR sparse matrix that is all zeros
+ *
+ * \param  A             pointer to the dCSRmat
+ * \param  m             Number of rows
+ * \param  n             Number of columns
+ * \param  index_start   Number from which memory is indexed (1 for fem/assembly, 0 for solver)
+ *
+ *
+ */
+void dcsr_set_zeromatrix(dCSRmat *A,
+                         const INT m,
+                         const INT n,
+                         const INT index_start)
+{
+
+  A->IA = (INT *)calloc(m+1, sizeof(INT));
+  A->JA = (INT *)calloc(1, sizeof(INT));
+  A->val = (REAL *)calloc(1, sizeof(REAL));
+
+  A->row = m; A->col = n; A->nnz = 1;
+
+  INT i;
+  A->IA[0]=index_start;
+  for(i=1;i<m+1;i++) A->IA[i]=index_start+1;
+  A->JA[0]=index_start;
+  A->val[0] = 0.0;
+
+  return;
+}
+
+
+/***********************************************************************************************/
 /**
  * \fn dCSRmat dcsr_create_single_nnz_matrix (const INT m, const INT n, const INT row,
  *                           const INT col, const REAL val, const INT index_start)
@@ -2607,12 +2642,16 @@ void bdcsr_free(block_dCSRmat *A)
 
   for ( i=0; i<num_blocks; i++ ) {
     dcsr_free(A->blocks[i]);
-    free(A->blocks[i]);
-    A->blocks[i] = NULL;
+    if(A->blocks[i]) {
+        free(A->blocks[i]);
+        A->blocks[i] = NULL;
+    }
   }
 
-  free(A->blocks);
-  A->blocks = NULL;
+  if(A->blocks) {
+      free(A->blocks);
+      A->blocks = NULL;
+  }
 }
 
 /***********************************************************************************************/
