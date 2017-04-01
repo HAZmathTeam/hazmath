@@ -1282,7 +1282,7 @@ void dcsr_mxv_1(dCSRmat *A,
 {
   // Shift A
   dcsr_shift(A,-1);
-  
+
   // Perform Matrix Vector Multiply
   dcsr_mxv(A,x,y);
 
@@ -2621,7 +2621,7 @@ void bdcsr_alloc(const INT brow,
         for (i=0; i<brow*bcol; i++) A->blocks[i] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
     }
 
-
+  return;
 }
 
 /***********************************************************************************************/
@@ -2652,7 +2652,10 @@ void bdcsr_free(block_dCSRmat *A)
       free(A->blocks);
       A->blocks = NULL;
   }
+
+  return;
 }
+
 
 /***********************************************************************************************/
 /*!
@@ -2808,7 +2811,7 @@ INT bdcsr_add_1(block_dCSRmat *A,
         }
     }
 
-    // non of the matrices is NULL
+    // none of the matrices are NULL
     if (A->brow != B->brow || A->bcol != B->bcol) {
       printf("### ERROR HAZMATH DANGER: Dimensions of block matrices do not match!!! %s\n", __FUNCTION__);
       status = ERROR_MAT_SIZE;
