@@ -413,6 +413,7 @@ void initialize_blktimestepper(block_timestepper *tstepper,input_param *inparam,
  */
 void free_blktimestepper(block_timestepper* ts)
 {
+
   if(ts->A) {
     bdcsr_free(ts->A);
     ts->A=NULL;
