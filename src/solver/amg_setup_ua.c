@@ -669,7 +669,6 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
         case SOLVER_UMFPACK: {
             // Need to sort the matrix A for UMFPACK to work
             dCSRmat Ac_tran;
-            Ac_tran = dcsr_create(mgl[lvl].A.row, mgl[lvl].A.col, mgl[lvl].A.nnz);
             dcsr_trans(&mgl[lvl].A, &Ac_tran);
             // It is equivalent to do transpose and then sort
             //     fasp_dcsr_trans(&mgl[lvl].A, &Ac_tran);
