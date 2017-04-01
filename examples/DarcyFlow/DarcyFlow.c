@@ -152,20 +152,20 @@ int main (int argc, char* argv[])
   clock_t clk_assembly_start = clock();
 
   // Assemble the matrices
-  //dCSRmat Aqq;   /* q-q block */
-  //dCSRmat Aqh;   /* q-h block */
-  //dCSRmat Ahq;   /* h-q block */
-  
+  // A is a 2 x 2 block system
+  // A[0]=qq-block  A[1]=qh-block
+  // A[2]=hq-block  A[3]=hh-block
   block_dCSRmat A;
-  A.brow = 2; A.bcol = 2;
-  A.blocks = (dCSRmat **)calloc(4,sizeof(dCSRmat *));
-  //A.blocks[0] = &Aqq;
-  //A.blocks[1] = &Aqh;
-  //A.blocks[2] = &Ahq;
-  A.blocks[0] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
-  A.blocks[1] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
-  A.blocks[2] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
-  A.blocks[3] = NULL;
+  bdcsr_alloc(2,2,&A);
+//  A.brow = 2; A.bcol = 2;
+//  A.blocks = (dCSRmat **)calloc(4,sizeof(dCSRmat *));
+//  //A.blocks[0] = &Aqq;
+//  //A.blocks[1] = &Aqh;
+//  //A.blocks[2] = &Ahq;
+//  A.blocks[0] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
+//  A.blocks[1] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
+//  A.blocks[2] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
+//  A.blocks[3] = NULL;
 
   // Assemble the matrices without BC first
   dvector b;
@@ -190,17 +190,18 @@ int main (int argc, char* argv[])
 
   // Create Global Mass Matrix for time-stepping
   block_dCSRmat M;
+  bdcsr_alloc(2,2,&M);
   //dCSRmat Mempty = dcsr_create_zeromatrix(A.blocks[0]->row,A.blocks[0]->col,1);
-  M.brow = 2; M.bcol = 2;
-  M.blocks = (dCSRmat **) calloc(4,sizeof(dCSRmat *));
-  //M.blocks[0] = &Mempty;
-  M.blocks[0] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
-  M.blocks[1] = NULL;
-  M.blocks[2] = NULL;
-  //M.blocks[3] = &Mh;
-  M.blocks[3] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
+//  M.brow = 2; M.bcol = 2;
+//  M.blocks = (dCSRmat **) calloc(4,sizeof(dCSRmat *));
+//  //M.blocks[0] = &Mempty;
+//  M.blocks[0] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
+//  M.blocks[1] = NULL;
+//  M.blocks[2] = NULL;
+//  //M.blocks[3] = &Mh;
+//  M.blocks[3] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
 
-  dcsr_set_zeromatrix(M.blocks[0], A.blocks[0]->row,A.blocks[0]->col,1);
+//  dcsr_set_zeromatrix(M.blocks[0], A.blocks[0]->row,A.blocks[0]->col,1);
 
   // Get Mass Matrix for h
   //dCSRmat Mh;
