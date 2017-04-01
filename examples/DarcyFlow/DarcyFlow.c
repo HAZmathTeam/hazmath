@@ -152,27 +152,21 @@ int main (int argc, char* argv[])
   clock_t clk_assembly_start = clock();
 
   // Assemble the matrices
+
+  // Get RHS ready
+  dvector b;
+  dvector b_bdry = dvec_create(FE_q.ndof);
+  dvec_set(FE_q.ndof,&b_bdry,0.0);
+
+  // Steady-State Part
   // A is a 2 x 2 block system
   // A[0]=qq-block  A[1]=qh-block
   // A[2]=hq-block  A[3]=hh-block
   block_dCSRmat A;
   bdcsr_alloc(2,2,&A);
-//  A.brow = 2; A.bcol = 2;
-//  A.blocks = (dCSRmat **)calloc(4,sizeof(dCSRmat *));
-//  //A.blocks[0] = &Aqq;
-//  //A.blocks[1] = &Aqh;
-//  //A.blocks[2] = &Ahq;
-//  A.blocks[0] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
-//  A.blocks[1] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
-//  A.blocks[2] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
-//  A.blocks[3] = NULL;
-
-  // Assemble the matrices without BC first
-  dvector b;
-  dvector b_bdry = dvec_create(FE_q.ndof);
-  dvec_set(FE_q.ndof,&b_bdry,0.0);
 
   // All terms but boundary integral
+  // Note that this allocates every block based on FEM stencil
   assemble_global_block(&A,&b,steady_state_Darcy,steady_state_Darcy_RHS,&FE,&mesh,cq,source,0.0);
 
   // Boundary Integral <g,r*n>_boundary
@@ -185,35 +179,24 @@ int main (int argc, char* argv[])
     b.val[i] += b_bdry.val[i];
   }
 
-  // Time Propagation Operators (if necessary)
-  initialize_blktimestepper(&time_stepper,&inparam,0,FE.ndof,2);
-
   // Create Global Mass Matrix for time-stepping
   block_dCSRmat M;
   bdcsr_alloc(2,2,&M);
-  //dCSRmat Mempty = dcsr_create_zeromatrix(A.blocks[0]->row,A.blocks[0]->col,1);
-//  M.brow = 2; M.bcol = 2;
-//  M.blocks = (dCSRmat **) calloc(4,sizeof(dCSRmat *));
-//  //M.blocks[0] = &Mempty;
-//  M.blocks[0] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
-//  M.blocks[1] = NULL;
-//  M.blocks[2] = NULL;
-//  //M.blocks[3] = &Mh;
-//  M.blocks[3] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
 
-//  dcsr_set_zeromatrix(M.blocks[0], A.blocks[0]->row,A.blocks[0]->col,1);
+  // Since M matrix is mostly zeros except for (1,1) block, we'll set the remaining blocks to
+  // a zero matrix.  We are not calling a block assembly so this is necessary.
+  dcsr_set_zeromatrix(M.blocks[0], A.blocks[0]->row,A.blocks[0]->col,1);
+  dcsr_set_zeromatrix(M.blocks[1], A.blocks[1]->row,A.blocks[1]->col,1);
+  dcsr_set_zeromatrix(M.blocks[2], A.blocks[2]->row,A.blocks[2]->col,1);
 
   // Get Mass Matrix for h
-  //dCSRmat Mh;
-  //assemble_global(&Mh,NULL,assemble_mass_local,&FE_h,&mesh,cq,NULL,Ss,0.0);
   assemble_global(M.blocks[3],NULL,assemble_mass_local,&FE_h,&mesh,cq,NULL,Ss,0.0);
 
   // Create Time Operator (one with BC and one without)
+  initialize_blktimestepper(&time_stepper,&inparam,0,FE.ndof,2);
   time_stepper.A = &A;
   time_stepper.M = &M;
-
   time_stepper.Ldata=&A;
-
   get_blktimeoperator(&time_stepper,1,1);
 
   //-----------------------------------------------
