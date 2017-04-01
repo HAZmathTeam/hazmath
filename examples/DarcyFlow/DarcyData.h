@@ -1,7 +1,15 @@
-/******** Data Input for DarcyFlow ****************************/
+/*! \file DarcyData.h
+ *
+ *  Created by Adler, Hu, Zikatanov on 8/30/16.
+ *  Copyright 2016_HAZMATH__. All rights reserved.
+ *
+ * \brief This contains all the Data parameters and coefficients
+ *        for the Darcy example.  This includes exact solutions,
+ *        RHS functions, coefficients, and boundary conditions.
+ *
+ */
 
 // Coefficients
-
 // K
 void porosity(REAL *val,REAL* x,REAL time) {
   // K = 3x3 matrix (assuming diagonal for now)

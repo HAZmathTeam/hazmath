@@ -383,8 +383,6 @@ void assemble_global_FE1FE2(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
  * \param mesh               Mesh Data
  * \param cq                 Quadrature Nodes
  * \param rhs                Routine to get RHS function (NULL if only assembling matrix)
- * \param bc                 Routine to get boundary condition function (NULL if only assembling matrix)
- * \param coeff              Function that gives coefficient (for now assume constant)
  * \param time               Physical Time if time dependent
  *
  * \return A                 Global stiffness BLOCK CSR matrix

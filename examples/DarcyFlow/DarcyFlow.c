@@ -1,25 +1,27 @@
-/*
- *  DarcyFlow.c
+/*! \file examples/DarcyFlow/DarcyFlow.c
  *
  *  Created by Adler, Hu, Zikatanov on 8/30/16.
  *  Copyright 2016_HAZMATH__. All rights reserved.
  *
- *  Discussion:
+ * \brief This program creates the Discretization of the Darcy Flow
+ *        System using Mixed Finite Elements
  *
- *    This program creates the Discretization of the Darcy Flow
- *    System using Mixed Finite Elements
+ *          Ss dh/dt - div K(x)grad h = W
  *
- *      Ss dh/dt - div K(x)grad h = W
+ *        ->  Ss dh/dt - div q = W
+ *            K^(-1) q - grad h = 0
  *
- *    -> Ss dh/dt - div q = W
- *        K^(-1) q - grad h = 0
+ *       For now we assume K is a diagonal matrix.  The weak form is:
  *
- *  For now we assume K is a diagonal matrix.  The weak form is:
+ *        <K^(-1) q, r> + <h, div r> = <g,r*n>_boundary
+ *        -<Ss dh/dt, v> + <div q, v> = -<W,v>
  *
- *  <K^(-1) q, r> + <h, div r> = <g,r*n>_boundary
- *  -<Ss dh/dt, v> + <div q, v> = -<W,v>
+ *       where <*,*> is the L2 inner product and we use Crank-Nicolson or BDF1 or 2 for the time stepping
  *
- * where <*,*> is the L2 inner product and we use Crank-Nicolson or Backward Euler for the time stepping
+ * \note This example shows how to build your own bilinear form for a system.
+ *       The forms are found in DarcySystem.h and all Problem Data is found in
+ *       DarcyData.h
+ *
  *
  */
 
@@ -32,11 +34,6 @@
 /****** MAIN DRIVER **************************************************************/
 int main (int argc, char* argv[]) 
 {
-
-//  block_dCSRmat Atest;
-//  bdcsr_alloc(3,3,&Atest);
-//  //bdcsr_free(&Atest);
-//  exit(0);
 
   printf("\n===========================================================================\n");
   printf("\nBeginning Program to solve Darcy Flow eqn by RT0-P0 mixed FE method\n");
