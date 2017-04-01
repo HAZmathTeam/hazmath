@@ -16,19 +16,21 @@
  *        <K^(-1) q, r> + <h, div r> = <g,r*n>_boundary
  *        -<Ss dh/dt, v> + <div q, v> = -<W,v>
  *
- *       where <*,*> is the L2 inner product and we use Crank-Nicolson or BDF1 or 2 for the time stepping
+ *       where <*,*> is the L2 inner product and we use Crank-Nicolson
+ *       or BDF1 or 2 for the time stepping
  *
- * \note This example shows how to build your own bilinear form for a system.
- *       The forms are found in DarcySystem.h and all Problem Data is found in
- *       DarcyData.h
+ * \note This example shows how to build your own bilinear form for a
+ *       system.  The forms are found in Darcy_assemble.h and
+ *       coefficients, right hand side etc problem data is found in
+ *       Darcy_functions.h
  *
  *
  */
 
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************************/
 #include "hazmath.h"
-#include "DarcyData.h"
-#include "DarcySystem.h"
+#include "Darcy_functions.h"
+#include "Darcy_assemble.h"
 /*********************************************************************************/
 
 /****** MAIN DRIVER **************************************************************/
