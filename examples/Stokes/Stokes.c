@@ -138,46 +138,23 @@ int main (int argc, char* argv[])
   clock_t clk_assembly_start = clock();
 
   // Allocate the right-hand and declare the csr matrix
-  // Assemble the matrices (one for each block)
-  dCSRmat Auxux;
-  dCSRmat Auyuy;
-  dCSRmat Auxp;
-  dCSRmat Auyp;
-  dCSRmat Apux;
-  dCSRmat Apuy;
-  dCSRmat Auzuz;
-  dCSRmat Auzp;
-  dCSRmat Apuz;
+  dvector b;
 
   // Put into Block Form
   block_dCSRmat A;
-  A.brow = dim+1; A.bcol = dim+1;
-  A.blocks = (dCSRmat **) calloc((dim+1)*(dim+1),sizeof(dCSRmat *));
-  // Fill blocks
-  if(dim==2) {
-    A.blocks[0] = &Auxux;   A.blocks[1] = NULL;     A.blocks[2] = &Auxp;
-    A.blocks[3] = NULL;     A.blocks[4] = &Auyuy;   A.blocks[5] = &Auyp;
-    A.blocks[6] = &Apux;    A.blocks[7] = &Apuy;    A.blocks[8] = NULL;
-  } else if(dim==3) {
-    A.blocks[0] = &Auxux;   A.blocks[1] = NULL;     A.blocks[2] = NULL;     A.blocks[3] = &Auxp;
-    A.blocks[4] = NULL;     A.blocks[5] = &Auyuy;   A.blocks[6] = NULL;     A.blocks[7] = &Auyp;
-    A.blocks[8] = NULL;     A.blocks[9] = NULL;     A.blocks[10]= &Auzuz;   A.blocks[11]= &Auzp;
-    A.blocks[12]= &Apux;    A.blocks[13]= &Apuy;    A.blocks[14]= &Apuz;    A.blocks[15]= NULL;
-  }
+  bdcsr_alloc(dim+1,dim+1,&A);
 
   // Assemble the matricies without BC first
-  dvector b;
   if(dim==2) assemble_global_block(&A,&b,local_assembly_Stokes,FEM_Block_RHS_Local,&FE,&mesh,cq,source2D,0.0);
   if(dim==3) assemble_global_block(&A,&b,local_assembly_Stokes,FEM_Block_RHS_Local,&FE,&mesh,cq,source3D,0.0);
 
-  //This is to avoid a bug with bdcsr_aAxpy
-  dCSRmat App = dcsr_create_single_nnz_matrix(FE_p.ndof,FE_p.ndof,1,1,0.0,1);
-  if(dim==2) dcsr_free(&App);
-  if(dim==3) A.blocks[15] = &App;
-
   // Eliminate boundary conditions in matrix and rhs
-  if(dim==2) eliminate_DirichletBC_blockFE_blockA(bc2D,&FE,&mesh,&b,&A,0.0);
-  if(dim==3) eliminate_DirichletBC_blockFE_blockA(bc3D,&FE,&mesh,&b,&A,0.0);
+  if(dim==2) {
+    eliminate_DirichletBC_blockFE_blockA(bc2D,&FE,&mesh,&b,&A,0.0);
+  }
+  if(dim==3) {
+    eliminate_DirichletBC_blockFE_blockA(bc3D,&FE,&mesh,&b,&A,0.0);
+  }
 
   /**************************************************/
   //  Apply Pressure "BCs" (removes singularity)
@@ -271,8 +248,8 @@ int main (int argc, char* argv[])
     L2error_block(solerrL2, sol.val, exact_sol2D, &FE, &mesh, cq, 0.0);
     if(order_p > 0) HDerror_block(solerrH1, sol.val, exact_sol2D, Dexact_sol2D, &FE, &mesh, cq, 0.0);
   } else if(dim==3){
-    L2error_block(solerrL2, sol.val, exact_sol, &FE, &mesh, cq, 0.0);
-    if(order_p > 0) HDerror_block(solerrH1, sol.val, exact_sol, Dexact_sol, &FE, &mesh, cq, 0.0);
+    L2error_block(solerrL2, sol.val, exact_sol3D, &FE, &mesh, cq, 0.0);
+    if(order_p > 0) HDerror_block(solerrH1, sol.val, exact_sol3D, Dexact_sol3D, &FE, &mesh, cq, 0.0);
   }
 
   REAL uerrL2 = 0;
