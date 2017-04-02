@@ -13,6 +13,8 @@ graphs/
 ConvectionDiffusion/
 *.o
 *.vtu
+*.vtk
+*.pvd
 L??.haz
 L??D.haz
 BUILD_HAZ/
