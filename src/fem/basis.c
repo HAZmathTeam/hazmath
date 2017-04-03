@@ -939,7 +939,7 @@ void bubble_face_basis(REAL *phi, REAL *dphi, REAL *x, INT *v_on_elm, INT *dof, 
     }
   } else if(dim==3) {
     for (i=0;i<dof_per_elm;i++) {
-      get_incidence_row(dof[i],mesh->f_v,fv);
+      get_incidence_row(dof[i]-1,mesh->f_v,fv);
       // Find orientation of face
       for(j=0;j<v_per_elm;j++){
         elnd = v_on_elm[j];
