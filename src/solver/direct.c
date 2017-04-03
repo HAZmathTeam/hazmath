@@ -84,12 +84,124 @@ INT directsolve_UMF(dCSRmat *A,
 #endif
 }
 
+/**
+ * \fn void* factorize_UMF(dCSRmat *A,INT print_level)
+ *
+ * \brief Performs factorization of A using UMFPACK (Assumes A is in CSR format)
+ * \note This routine does factorization only.
+ *
+ * \param A	       	        Matrix A to be solved (no need of transpose)
+ *
+ * \return Numeric	        Stores LU decomposition of A
+ *
+ */
+void* factorize_UMF(dCSRmat *A,
+                    INT print_level)
+{
+
+#if WITH_SUITESPARSE
+  INT err_flag;
+  INT shift_flag = 0;
+
+  // UMFPACK requires transpose of A
+  dCSRmat At;
+  // Check if counting from 1 or 0 for CSR arrays
+  if(A->IA[0]==1) {
+    dcsr_shift(A, -1);  // shift A
+    shift_flag = 1;
+  }
+  // Transpose A
+  dcsr_trans(A,&At);
+
+  // Fix A back to correct counting
+  if(shift_flag==1) {
+    dcsr_shift(A, 1);  // shift A back
+  }
+
+  // Data for Numerical factorization
+  void* Numeric;
+
+  // Factorize
+  Numeric = umfpack_factorize(&At,print_level);
+
+  // Clean up
+  dcsr_free(&At);
+
+  return Numeric;
+#else
+  error_extlib(252, __FUNCTION__, "SuiteSparse");
+  return 0;
+#endif
+}
+
+/**
+ * \fn INT solve_UMF(dCSRmat *A,dvector *f,dvector *x, void* Numeric, INT print_level)
+ *
+ * \brief Performs Gaussian Elmination on Ax = f, using UMFPACK
+ *        (Assumes A is in CSR format and factorization has been done)
+ *
+ * \note This routine does solve only
+ *
+ * \param A	       	        Matrix A to be solved
+ * \param f	       	        Right hand side vector
+ * \param Numeric           LU decomposition of A
+ * \param print_level       Flag to print messages to screen
+ *
+ * \return x	         	Solution
+ *
+ */
+INT solve_UMF(dCSRmat *A,
+              dvector *f,
+              dvector *x,
+              void *Numeric,
+              INT print_level)
+{
+
+#if WITH_SUITESPARSE
+  INT err_flag;
+  INT shift_flag = 0;
+
+  // UMFPACK requires transpose of A
+  dCSRmat At;
+  // Check if counting from 1 or 0 for CSR arrays
+  if(A->IA[0]==1) {
+    dcsr_shift(A, -1);  // shift A
+    shift_flag = 1;
+  }
+  // Transpose A
+  dcsr_trans(A,&At);
+
+  // Fix A back to correct counting
+  if(shift_flag==1) {
+    dcsr_shift(A, 1);  // shift A back
+  }
+
+  // Solve
+  err_flag = umfpack_solve(&At,f,x,Numeric,print_level);
+
+  // Error Check
+  if(err_flag<0) {
+    printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- UMFPACK SOLVE ERROR!!!\n\n",__FUNCTION__);
+    exit(err_flag);
+  }
+
+  // Clean up
+  dcsr_free(&At);
+
+  return err_flag;
+#else
+  error_extlib(252, __FUNCTION__, "SuiteSparse");
+  return 0;
+#endif
+}
+
+
 /***************************************************************************************************************************/
 /**
  * \fn void* umfpack_factorize (dCSRmat *ptrA, const SHORT prtlvl)
  * \brief factorize A by UMFpack
  *
- * \param ptrA      Pointer to stiffness matrix of levelNum levels
+ * \param ptrA      Pointer to dCSRmat matrix (transpose has been done!)
  * \param Numeric   Pointer to the numerical factorization
  *
  * \author Xiaozhe Hu
