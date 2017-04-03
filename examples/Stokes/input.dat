@@ -14,8 +14,8 @@ print_level			= 4;	% how much information to print out
 % files
 %---------------%
 
-gridfile 			= ../grids/2D/unitSQ_hp03125.haz
-%gridfile 			= ../grids/3D/unitCUBE_v4913.haz
+%gridfile 			= ../grids/2D/unitSQ_hp0625.haz
+gridfile 			= ../grids/3D/unitCUBE_v729.haz
 output_dir			= ./output
 
 %---------------%

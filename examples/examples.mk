@@ -8,8 +8,8 @@ EXTENSION = ex
 CC = gcc
 FC = gfortran
 CXX = g++
-CFLAGS = -g 
-FFLAGS = -g -fno-second-underscore
+CFLAGS += 
+FFLAGS += -fno-second-underscore
 ExtraFLAGS =
 
 ##################### no change should be needed below. ###########
