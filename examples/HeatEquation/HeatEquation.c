@@ -182,6 +182,9 @@ int main (int argc, char* argv[])
   dvector exact_sol = dvec_create(FE.ndof);
   FE_Evaluate(exact_sol.val,exactsol,&FE,&mesh,0.0);
 
+  // Storage for direct solver
+  void* Numeric = NULL;
+
   // Set parameters for linear iterative methods
   linear_itsolver_param linear_itparam;
   param_linear_solver_init(&linear_itparam);
@@ -251,9 +254,22 @@ int main (int argc, char* argv[])
 
     // For first time step eliminate boundary conditions in matrix and rhs
     if(j==0) {
-      eliminate_DirichletBC(bc,&FE,&mesh,time_stepper.rhs_time,time_stepper.At,time_stepper.time);
+      eliminate_DirichletBC(bc,&FE,&mesh,time_stepper.rhs_time,time_stepper.At,time_stepper.time);      
     } else {
       eliminate_DirichletBC_RHS(bc,&FE,&mesh,time_stepper.rhs_time,time_stepper.At_noBC,time_stepper.time);
+    }
+
+    // For first time step, factroize the matrix
+    if (j==0) {
+        if(linear_itparam.linear_itsolver_type == 0) { // Direct Solver
+#if WITH_SUITESPARSE
+          printf(" --> using UMFPACK's Direct Solver: factroziation \n");
+          Numeric = factorize_UMF(time_stepper.At,linear_itparam.linear_print_level);
+#else
+          error_extlib(255,__FUNCTION__,"SuiteSparse");
+          return 0;
+#endif
+        }
     }
 
     // Solve
@@ -261,8 +277,8 @@ int main (int argc, char* argv[])
     dcsr_shift(time_stepper.At, -1);  // shift A
     if(linear_itparam.linear_itsolver_type == 0) { // Direct Solver
 #if WITH_SUITESPARSE
-      printf(" --> using UMFPACK's Direct Solver:\n");
-      solver_flag = directsolve_UMF(time_stepper.At,time_stepper.rhs_time,time_stepper.sol,linear_itparam.linear_print_level);
+      printf(" --> using UMFPACK's Direct Solver: solve\n");
+      solver_flag = solve_UMF(time_stepper.At,time_stepper.rhs_time,time_stepper.sol,Numeric,linear_itparam.linear_print_level);
 #else
       error_extlib(255,__FUNCTION__,"SuiteSparse");
       return 0;
@@ -348,6 +364,7 @@ int main (int argc, char* argv[])
     cq = NULL;
   }
   free_mesh(&mesh);
+  if (Numeric) umfpack_free_numeric(Numeric);
   /*******************************************************************/
     
   clock_t clk_overall_end = clock();
