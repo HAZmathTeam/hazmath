@@ -260,8 +260,13 @@ int main (int argc, char* argv[])
     clock_t clk_solve_start = clock();
     dcsr_shift(time_stepper.At, -1);  // shift A
     if(linear_itparam.linear_itsolver_type == 0) { // Direct Solver
+#if WITH_SUITESPARSE
       printf(" --> using UMFPACK's Direct Solver:\n");
       solver_flag = directsolve_UMF(time_stepper.At,time_stepper.rhs_time,time_stepper.sol,linear_itparam.linear_print_level);
+#else
+      error_extlib(255,__FUNCTION__,"SuiteSparse");
+      return 0;
+#endif
     } else { // Iterative Solver
       // Use AMG as iterative solver
       if (linear_itparam.linear_itsolver_type == SOLVER_AMG){
