@@ -15,30 +15,28 @@
 
 
 /**
- * \fn directsolve_UMF(dCSRmat *A,dvector *f,REAL *x,INT print_level)
+ * \fn directsolve_UMF(dCSRmat *A,dvector *f,dvector *x,INT print_level)
  *
  * \brief Performs Gaussian Elmination on Ax = f, using UMFPACK (Assumes A is in CSR format)
  * \note This routine does everything, factorization and solve in one shot.  So it is not
  *       efficient if you want to solve the same matrix system many times, since it will not
  *       save the factorization.
  *
- * Input:
- *        	A:	       	Matrix A to be solved
- *	       	f:	       	Right hand side vector
- *  print_level:              Flag to print messages to screen
+ * \param A	       	        Matrix A to be solved
+ * \param f	       	        Right hand side vector
+ * \param print_level       Flag to print messages to screen
  *
- * Output:
- *	        x:	       	Solution
+ * \return x	         	Solution
  *
  */
 INT directsolve_UMF(dCSRmat *A,
                     dvector *f,
-                    REAL *x,
+                    dvector *x,
                     INT print_level)
 { 
 
 #if WITH_SUITESPARSE
-  INT i;
+  INT err_flag;
   INT shift_flag = 0;
 
   // UMFPACK requires transpose of A
@@ -56,66 +54,30 @@ INT directsolve_UMF(dCSRmat *A,
     dcsr_shift(A, 1);  // shift A back
   }
 
-  // Reformat to longs
-  long mydof2 = (long) At.row;
-  long* iA = (long *) calloc(At.row+1,sizeof(long));
-  long* jA = (long *) calloc(At.nnz,sizeof(long));
-  for(i=0;i<At.row+1;i++) iA[i] = (long) At.IA[i];
-  for(i=0;i<At.nnz;i++) jA[i] = (long) At.JA[i];
+  // Data for Numerical factorization
+  void* Numeric;
 
-  // Get UMFPACK pointers
-  void *Symbolic=NULL, *Numeric=NULL;
-  double Control [UMFPACK_CONTROL], Info [UMFPACK_INFO];
+  // Factorize
+  Numeric = umfpack_factorize(&At,print_level);
 
-  if(print_level>=PRINT_SOME) {
-    printf("\n=======================================================================");
-    printf("\nUsing UMFPACK LU Factorization for Direct Solve of the System.\n");
-    printf("=======================================================================\n\n");
+  // Solve
+  err_flag = umfpack_solve(&At,f,x,Numeric,print_level);
+
+  // Error Check
+  if(err_flag<0) {
+    printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- UMFPACK SOLVE ERROR!!!\n\n",__FUNCTION__);
+    exit(err_flag);
   }
 
-  /* symbolic analysis */
-  umfpack_dl_symbolic(mydof2,mydof2,iA,jA,At.val,&Symbolic,Control,Info);
-  if(print_level>=PRINT_SOME) {
-    printf("\tSymbolic factorization done  -> ");
-    if(Info[0]==0.0) {
-      printf("No Errors\n");
-    }
-  }
-  if(Info[0]!=0.0) {
-    printf("Error in UMFPACK Symbolic Factorization: Info[0] = %f\n",Info[0]);
-    return Info[0];
-  }
-  
-  /* LU factorization */
-  umfpack_dl_numeric(iA,jA,At.val,Symbolic,&Numeric,Control,Info);
-  umfpack_dl_free_symbolic(&Symbolic);
-
-  if(print_level>=PRINT_SOME) {
-    printf("\tNumeric factorization done   -> ");
-    if(Info[0]==0.0) {
-      printf("No Errors\n");
-    }
-  }
-  if(Info[0]!=0.0) {
-    printf("Error in UMFPACK Numeric Factorization: Info[0] = %f\n",Info[0]);
-    return Info[0];
-  }
-
-  /* solve system */
-  umfpack_dl_solve(UMFPACK_A,iA,jA,At.val,x,f->val,Numeric,Control,Info);
-  umfpack_dl_free_numeric(&Numeric);
-  
   // Clean up
   dcsr_free(&At);
-  if(iA) free(iA);
-  if(jA) free(jA);
-
-  if(print_level>=PRINT_SOME) {
-    printf("\n=======================================================================");
-    printf("\n UMFPACK Solve Complete.\n");
-    printf("=======================================================================\n\n");
+  err_flag = umfpack_free_numeric(Numeric);
+  if(err_flag<0) {
+    printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- UMFPACK FREE ERROR!!!\n\n",__FUNCTION__);
+    exit(err_flag);
   }
-  return 0;
+
+  return err_flag;
 #else
   error_extlib(252, __FUNCTION__, "SuiteSparse");
   return 0;
