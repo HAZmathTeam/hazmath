@@ -190,15 +190,6 @@ int main (int argc, char* argv[])
 
   // For direct solver we can factorize the matrix ahead of time and not each time step
   void* Numeric = NULL;
-  if(linear_itparam.linear_itsolver_type == 0) { // Direct Solver
-#if WITH_SUITESPARSE
-    printf(" --> using UMFPACK's Direct Solver: factroziation \n");
-    Numeric = factorize_UMF(time_stepper.At,linear_itparam.linear_print_level);
-#else
-    error_extlib(255,__FUNCTION__,"SuiteSparse");
-    return 0;
-#endif
-  }
 
   // Set parameters for algebriac multigrid methods
   AMG_param amgparam;
@@ -263,7 +254,17 @@ int main (int argc, char* argv[])
 
     // For first time step eliminate boundary conditions in matrix and rhs
     if(j==0) {
-      eliminate_DirichletBC(bc,&FE,&mesh,time_stepper.rhs_time,time_stepper.At,time_stepper.time);      
+      eliminate_DirichletBC(bc,&FE,&mesh,time_stepper.rhs_time,time_stepper.At,time_stepper.time);
+      // If Direct Solver used only factorize once
+      if(linear_itparam.linear_itsolver_type == 0) { // Direct Solver
+#if WITH_SUITESPARSE
+        printf(" --> using UMFPACK's Direct Solver: factroziation \n");
+        Numeric = factorize_UMF(time_stepper.At,linear_itparam.linear_print_level);
+#else
+        error_extlib(255,__FUNCTION__,"SuiteSparse");
+        return 0;
+#endif
+      }
     } else {
       eliminate_DirichletBC_RHS(bc,&FE,&mesh,time_stepper.rhs_time,time_stepper.At_noBC,time_stepper.time);
     }
