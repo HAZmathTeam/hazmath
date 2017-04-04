@@ -182,14 +182,23 @@ int main (int argc, char* argv[])
   dvector exact_sol = dvec_create(FE.ndof);
   FE_Evaluate(exact_sol.val,exactsol,&FE,&mesh,0.0);
 
-  // Storage for direct solver
-  void* Numeric = NULL;
-
   // Set parameters for linear iterative methods
   linear_itsolver_param linear_itparam;
   param_linear_solver_init(&linear_itparam);
   param_linear_solver_set(&linear_itparam, &inparam);
   INT solver_flag=-20;
+
+  // For direct solver we can factorize the matrix ahead of time and not each time step
+  void* Numeric = NULL;
+  if(linear_itparam.linear_itsolver_type == 0) { // Direct Solver
+#if WITH_SUITESPARSE
+    printf(" --> using UMFPACK's Direct Solver: factroziation \n");
+    Numeric = factorize_UMF(time_stepper.At,linear_itparam.linear_print_level);
+#else
+    error_extlib(255,__FUNCTION__,"SuiteSparse");
+    return 0;
+#endif
+  }
 
   // Set parameters for algebriac multigrid methods
   AMG_param amgparam;
@@ -257,19 +266,6 @@ int main (int argc, char* argv[])
       eliminate_DirichletBC(bc,&FE,&mesh,time_stepper.rhs_time,time_stepper.At,time_stepper.time);      
     } else {
       eliminate_DirichletBC_RHS(bc,&FE,&mesh,time_stepper.rhs_time,time_stepper.At_noBC,time_stepper.time);
-    }
-
-    // For first time step, factroize the matrix
-    if (j==0) {
-        if(linear_itparam.linear_itsolver_type == 0) { // Direct Solver
-#if WITH_SUITESPARSE
-          printf(" --> using UMFPACK's Direct Solver: factroziation \n");
-          Numeric = factorize_UMF(time_stepper.At,linear_itparam.linear_print_level);
-#else
-          error_extlib(255,__FUNCTION__,"SuiteSparse");
-          return 0;
-#endif
-        }
     }
 
     // Solve
@@ -364,7 +360,13 @@ int main (int argc, char* argv[])
     cq = NULL;
   }
   free_mesh(&mesh);
+#if WITH_SUITESPARSE
   if (Numeric) umfpack_free_numeric(Numeric);
+#else
+  error_extlib(255,__FUNCTION__,"SuiteSparse");
+  return 0;
+#endif
+
   /*******************************************************************/
     
   clock_t clk_overall_end = clock();

@@ -100,7 +100,6 @@ void* factorize_UMF(dCSRmat *A,
 {
 
 #if WITH_SUITESPARSE
-  INT err_flag;
   INT shift_flag = 0;
 
   // UMFPACK requires transpose of A
