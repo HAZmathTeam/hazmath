@@ -1043,6 +1043,69 @@ void precond_block_upper_4(REAL *r,
 
 }
 
+/***********************************************************************************************/
+/**
+ * \fn void precond_block_diag(REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (nxn block matrix, each diagonal block
+ *        is solved exactly)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   04/05/2017
+ */
+void precond_block_diag(REAL *r,
+                          REAL *z,
+                          void *data)
+{
+#if WITH_SUITESPARSE
+  precond_block_data *precdata=(precond_block_data *)data;
+  dCSRmat *A_diag = precdata->A_diag;
+  dvector *tempr = &(precdata->r);
+  block_dCSRmat *A = precdata->Abcsr;
+
+  const INT nb = A->brow;
+  const INT N = tempr->row;
+
+  INT i, istart = 0;;
+
+  //const INT N0 = A_diag[0].row;
+  //const INT N1 = A_diag[1].row;
+
+  // back up r, setup z;
+  array_cp(N, r, tempr->val);
+  array_set(N, z, 0.0);
+
+  // prepare
+  void **LU_diag = precdata->LU_diag;
+  dvector ri, zi;
+
+  for (i=0; i<nb; i++)
+  {
+
+      // get dvector for solutions and right hand sides
+      ri.row = A_diag[i].row;
+      zi.row = A_diag[i].row;
+
+      ri.val = &(r[istart]);
+      zi.val = &(z[istart]);
+
+      // solve
+      umfpack_solve(&A_diag[i], &ri, &zi, LU_diag[i], 0);
+
+      // update istart
+      istart = istart + A_diag[i].row;
+
+  }
+
+  // restore r
+  array_cp(N, tempr->val, r);
+
+#endif
+}
+
 
 /*************** Special Preconditioners for Mixed Darcy Flow *********************************/
 
