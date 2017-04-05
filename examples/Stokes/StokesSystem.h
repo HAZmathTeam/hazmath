@@ -14,9 +14,10 @@
  * \brief Computes the local stiffness matrix for the Stokes system.
  *        For this problem we compute LHS of:
  *
- *        <grad u, grad v> - <p, div v> = <f, v>
+ *        <2 nu eps(u), eps(v)> - <p, div v> = <f, v>
  *                   - <div u, q> = 0
  *
+ *        where eps(u) = (grad u + (grad u)^T)/2 is the symmetric gradient.
  *
  * \param FE            Block FE Space
  * \param mesh          Mesh Data
@@ -81,10 +82,22 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, trimesh *mesh, qcoordi
     for (test=0; test<FE->var_spaces[0]->dof_per_elm;test++){
       // Loop over Trial Functions (Columns)
       for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
-        kij=0.0;
+        kij = 1.0*FE->var_spaces[0]->dphi[test*dim]*FE->var_spaces[0]->dphi[trial*dim];
         for(idim=0;idim<dim;idim++){
-          kij += FE->var_spaces[0]->dphi[test*dim+idim]*FE->var_spaces[0]->dphi[trial*dim+idim];
+          kij += 1.0*FE->var_spaces[0]->dphi[test*dim+idim]*FE->var_spaces[0]->dphi[trial*dim+idim];
         }
+        ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
+      }
+    }
+
+    // uy-vx block <grad u, grad v>
+    local_row_index = 0;
+    local_col_index = FE->var_spaces[0]->dof_per_elm;
+    // Loop over Test Functions (Rows)
+    for (test=0; test<FE->var_spaces[0]->dof_per_elm;test++){
+      // Loop over Trial Functions (Columns)
+      for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
+        kij = 1.0*FE->var_spaces[0]->dphi[test*dim+1]*FE->var_spaces[1]->dphi[trial*dim+0];
         ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
       }
     }
@@ -102,15 +115,14 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, trimesh *mesh, qcoordi
       }
     }
 
-    // ux-q block: -<div u, q>
-    local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
-    if(dim==3) local_row_index += FE->var_spaces[2]->dof_per_elm;
+    // ux-vy block <grad u, grad v>
+    local_row_index = FE->var_spaces[0]->dof_per_elm;
     local_col_index = 0;
     // Loop over Test Functions (Rows)
-    for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
+    for (test=0; test<FE->var_spaces[1]->dof_per_elm;test++){
       // Loop over Trial Functions (Columns)
       for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
-        kij = -(FE->var_spaces[0]->dphi[trial*dim+0])*FE->var_spaces[dim]->phi[test];
+        kij = 1.0*FE->var_spaces[1]->dphi[test*dim+0]*FE->var_spaces[0]->dphi[trial*dim+1];
         ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
       }
     }
@@ -122,14 +134,14 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, trimesh *mesh, qcoordi
     for (test=0; test<FE->var_spaces[1]->dof_per_elm;test++){
       // Loop over Trial Functions (Columns)
       for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
-        kij=0.0;
+        kij = 1.0*FE->var_spaces[1]->dphi[test*dim+1]*FE->var_spaces[1]->dphi[trial*dim+1];
         for(idim=0;idim<dim;idim++){
-          kij += FE->var_spaces[1]->dphi[test*dim+idim]*FE->var_spaces[1]->dphi[trial*dim+idim];
+          kij += 1.0*FE->var_spaces[1]->dphi[test*dim+idim]*FE->var_spaces[1]->dphi[trial*dim+idim];
         }
         ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
       }
     }
-
+    
     // p-vy block: -<p, dy(uy)>
     local_row_index = FE->var_spaces[0]->dof_per_elm;
     local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
@@ -139,6 +151,19 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, trimesh *mesh, qcoordi
       // Loop over Trial Functions (Columns)
       for (trial=0; trial<FE->var_spaces[dim]->dof_per_elm;trial++){
         kij = -FE->var_spaces[dim]->phi[trial]*(FE->var_spaces[1]->dphi[test*dim+1]);
+        ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
+      }
+    }
+
+    // ux-q block: -<div u, q>
+    local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+    if(dim==3) local_row_index += FE->var_spaces[2]->dof_per_elm;
+    local_col_index = 0;
+    // Loop over Test Functions (Rows)
+    for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
+      // Loop over Trial Functions (Columns)
+      for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
+        kij = -(FE->var_spaces[0]->dphi[trial*dim+0])*FE->var_spaces[dim]->phi[test];
         ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
       }
     }
@@ -164,7 +189,7 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, trimesh *mesh, qcoordi
       for (test=0; test<FE->var_spaces[2]->dof_per_elm;test++){
         // Loop over Trial Functions (Columns)
         for (trial=0; trial<FE->var_spaces[2]->dof_per_elm;trial++){
-          kij=0.0;
+          kij=FE->var_spaces[2]->dphi[test*dim+2]*FE->var_spaces[2]->dphi[trial*dim+2];
           for(idim=0;idim<dim;idim++){
             kij += FE->var_spaces[2]->dphi[test*dim+idim]*FE->var_spaces[2]->dphi[trial*dim+idim];
           }
@@ -195,6 +220,55 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, trimesh *mesh, qcoordi
           ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
         }
       }
+
+      // ux-vz block <grad u, grad v>
+      local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+      local_col_index = 0;
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[2]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
+          kij = FE->var_spaces[2]->dphi[test*dim+0]*FE->var_spaces[0]->dphi[trial*dim+2];
+          ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
+        }
+      }
+
+      // uz-vx block <grad u, grad v>
+      local_row_index = 0;
+      local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[0]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[2]->dof_per_elm;trial++){
+          kij = FE->var_spaces[0]->dphi[test*dim+2]*FE->var_spaces[2]->dphi[trial*dim+0];
+          ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
+        }
+      }
+
+      // uy-vz block <grad u, grad v>
+      local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+      local_col_index = FE->var_spaces[0]->dof_per_elm;
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[2]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
+          kij = FE->var_spaces[2]->dphi[test*dim+1]*FE->var_spaces[1]->dphi[trial*dim+2];
+          ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
+        }
+      }
+
+      // uz-vy block <grad u, grad v>
+      local_row_index = FE->var_spaces[0]->dof_per_elm;
+      local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[1]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[2]->dof_per_elm;trial++){
+          kij = FE->var_spaces[1]->dphi[test*dim+2]*FE->var_spaces[2]->dphi[trial*dim+1];
+          ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
+        }
+      }
+
     }
   }
 
