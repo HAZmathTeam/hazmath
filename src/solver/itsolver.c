@@ -1272,6 +1272,137 @@ INT linear_solver_bdcsr_krylov_block_4(block_dCSRmat *A,
     return status;
 }
 
+/********************************************************************************************/
+/**
+ * \fn INT linear_solver_bdcsr_krylov_block (block_dCSRmat *A, dvector *b, dvector *x,
+ *                                           itsolver_param *itparam,
+ *                                           AMG_param *amgparam, dCSRmat *A_diag)
+ *
+ * \brief Solve Ax = b by standard Krylov methods
+ *
+ * \param A         Pointer to the coeff matrix in block_dCSRmat format
+ * \param b         Pointer to the right hand side in dvector format
+ * \param x         Pointer to the approx solution in dvector format
+ * \param itparam   Pointer to parameters for iterative solvers
+ * \param amgparam  Pointer to parameters for AMG solvers
+ * \param A_diag    Digonal blocks of A
+ *
+ * \return          Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   04/05/2017
+ *
+ * \note  works for general block dCSRmat problems
+ */
+INT linear_solver_bdcsr_krylov_block(block_dCSRmat *A,
+                                       dvector *b,
+                                       dvector *x,
+                                       linear_itsolver_param *itparam,
+                                       AMG_param *amgparam,
+                                       dCSRmat *A_diag)
+{
+  const SHORT prtlvl = itparam->linear_print_level;
+  const SHORT precond_type = itparam->linear_precond_type;
+
+  const INT nb = A->brow;
+
+#if WITH_SUITESPARSE
+  INT i;
+#endif
+  INT status = SUCCESS;
+  REAL setup_start, setup_end, setup_duration;
+  REAL solver_start, solver_end, solver_duration;
+
+#if WITH_SUITESPARSE
+  void **LU_diag = (void **)calloc(nb, sizeof(void *));
+#else
+    error_extlib(256, __FUNCTION__, "SuiteSparse");
+#endif
+
+  /* setup preconditioner */
+  get_time(&setup_start);
+
+  /* diagonal blocks are solved exactly */
+#if WITH_SUITESPARSE
+  // Need to sort the diagonal blocks for UMFPACK format
+  dCSRmat A_tran;
+
+  for (i=0; i<nb; i++){
+
+    dcsr_trans(&A_diag[i], &A_tran);
+    dcsr_cp(&A_tran, &A_diag[i]);
+
+    printf("Factorization for %d-th diagnol: \n", i);
+    LU_diag[i] = umfpack_factorize(&A_diag[i], prtlvl);
+
+    dcsr_free(&A_tran);
+
+  }
+#endif
+
+  precond_block_data precdata;
+  precond_block_data_null(&precdata);
+
+  precdata.Abcsr = A;
+
+  precdata.A_diag = A_diag;
+  precdata.r = dvec_create(b->row);
+
+#if WITH_SUITESPARSE
+  precdata.LU_diag = LU_diag;
+#endif
+
+  precond prec; prec.data = &precdata;
+
+
+  switch (precond_type)
+  {
+    case 10:
+      prec.fct = precond_block_diag;
+      break;
+
+    /*
+    case 11:
+      prec.fct = precond_block_lower;
+      break;
+
+    case 12:
+      prec.fct = precond_block_upper;
+      break;
+   */
+
+    default:
+      prec.fct = precond_block_diag;
+      break;
+  }
+
+
+  if ( prtlvl >= PRINT_MIN ) {
+    get_time(&setup_end);
+    setup_duration = setup_end - setup_start;
+    print_cputime("Setup totally", setup_duration);
+  }
+
+  // solver part
+  get_time(&solver_start);
+
+  status=solver_bdcsr_linear_itsolver(A,b,x, &prec,itparam);
+
+  get_time(&solver_end);
+
+  solver_duration = solver_end - solver_start;
+
+  if ( prtlvl >= PRINT_MIN ) {
+    print_cputime("Krylov method totally", solver_duration);
+    printf("**********************************************************\n");
+  }
+
+  // clean
+  precond_block_data_free(&precdata, nb);
+
+  return status;
+}
+
 
 /********************************************************************************************/
 /**
