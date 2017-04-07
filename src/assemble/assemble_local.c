@@ -929,7 +929,7 @@ void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,trimesh *mes
     w = cq->w[elm*cq->nq_per_elm+quad];
     
     // Get FEM function at quadrature nodes
-    FE_Interpolation(ucoeff,u->val,qx,ed_on_elm,v_on_elm,FE_Ned,mesh,1);
+    FE_Interpolation(ucoeff,u->val,qx,ed_on_elm,v_on_elm,FE_Ned,mesh);
     
     //  Get the Basis Functions at each quadrature node
     PX_H1_basis(FE_H1->phi,FE_H1->dphi,qx,v_on_elm,FE_H1->FEtype,mesh);

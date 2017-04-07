@@ -68,7 +68,7 @@ int main (int argc, char* argv[])
   // Get info for and create FEM spaces
   // Order of elements: 0 - P0; 1 - P1; 2 - P2; 20 - Nedlec; 30 - Raviart-Thomas
   INT order_u = 2;
-  INT order_p = 1;
+  INT order_p = 0;
 
   // Need Spaces for each component of the velocity plus pressure
   fespace FE_ux; // Velocity in x direction
@@ -280,44 +280,14 @@ int main (int argc, char* argv[])
   
   if(inparam.print_level > 3){
     char* soldump = "output/solution.vtu";
-
-    REAL * sol_on_V = (REAL *) calloc(mesh.nv*(dim+1),sizeof(REAL));
-    REAL * ux_on_V = (REAL *) calloc(mesh.nv,sizeof(REAL));
-    REAL * uy_on_V = (REAL *) calloc(mesh.nv,sizeof(REAL));
-    Project_to_Vertices(ux_on_V,v_ux.val,&FE_ux,&mesh,1);
-    Project_to_Vertices(uy_on_V,v_uy.val,&FE_uy,&mesh,1);
-    REAL * uz_on_V;
-    if(dim==3) {
-      uz_on_V = (REAL *) calloc(mesh.nv,sizeof(REAL));
-      Project_to_Vertices(uz_on_V,v_uz.val,&FE_uz,&mesh,1);
-    }
-    REAL * p_on_V;
-    if(order_p!=1) {
-      p_on_V = (REAL *) calloc(mesh.nv,sizeof(REAL));
-      Project_to_Vertices(p_on_V,v_p.val,&FE_p,&mesh,1);
-    }
-    for(i=0;i<mesh.nv;i++) {
-      sol_on_V[i] = ux_on_V[i];
-      sol_on_V[i+mesh.nv] = uy_on_V[i];
-      if(dim==3) sol_on_V[i+2*mesh.nv] = uz_on_V[i];
-      if(order_p!=1)
-        sol_on_V[i+dim*mesh.nv] = p_on_V[i];
-      else
-        sol_on_V[i+dim*mesh.nv] = v_p.val[i];
-    }
-
-    dump_sol_onV_vtk(soldump,&mesh,sol_on_V,dim+1);
+    char** varname = malloc(10*FE.nspaces*sizeof(char *));
+    varname[0] = "ux";
+    varname[1] = "uy";
+    if(dim==3) varname[2] = "uz";
+    varname[dim] = "p ";
+    dump_blocksol_vtk(soldump,varname,&mesh,&FE,sol.val);
 
     if(dim==3) print_matlab_vector_field(&v_ux,&v_uy,&v_uz,&FE_ux);
-
-    // Data printing free
-    if(ux_on_V) free( ux_on_V );
-    if(uy_on_V) free( uy_on_V );
-    if(dim==3)
-      if(uz_on_V) free( uz_on_V );
-    if(order_p!=1)
-      if(p_on_V) free( p_on_V );
-    if(sol_on_V) free(sol_on_V);
   }
   /************ Free All the Arrays ***********************************************************/
   // CSR

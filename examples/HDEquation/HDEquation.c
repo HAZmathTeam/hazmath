@@ -451,9 +451,6 @@ int main (int argc, char* argv[])
 
   // Create Solution Vector
   dvector u = dvec_create(FE.ndof);
-  // For plotting
-  REAL* sol_on_V = (REAL *) calloc(mesh.nv,sizeof(REAL));
-  REAL* exactsol_on_V = (REAL *) calloc(mesh.nv,sizeof(REAL));
 
   // Set initial guess to be all zero
   dvec_set(u.row, &u, 0.0);
@@ -606,12 +603,7 @@ int main (int argc, char* argv[])
     strncpy(solout,inparam.output_dir,128);
     strcat(solout,"sol.vtu");
 
-    if(FE.FEtype!=1) {
-      Project_to_Vertices(sol_on_V,u.val,&FE,&mesh,1);
-      dump_sol_onV_vtk(solout,&mesh,sol_on_V,1);
-    } else {
-      dump_sol_onV_vtk(solout,&mesh,u.val,1);
-    }
+    dump_sol_vtk(solout,"u",&mesh,&FE,u.val);
 
     dvector exact_sol = dvec_create(FE.ndof);
     if(dim==1) {
@@ -651,12 +643,8 @@ int main (int argc, char* argv[])
     char exactout[128];
     strncpy(exactout,inparam.output_dir,128);
     strcat(exactout,"exact.vtu");
-    if(FE.FEtype!=1) {
-      Project_to_Vertices(exactsol_on_V,exact_sol.val,&FE,&mesh,1);
-      dump_sol_onV_vtk(exactout,&mesh,exactsol_on_V,1);
-    } else {
-      dump_sol_onV_vtk(exactout,&mesh,exact_sol.val,1);
-    }
+    dump_sol_vtk(exactout,"ut",&mesh,&FE,exact_sol.val);
+
     dvec_free(&exact_sol);
   }
   /*******************************************************************/
@@ -665,8 +653,6 @@ int main (int argc, char* argv[])
   dcsr_free(&A);
   if(b.val) free(b.val);
   if(u.val) free(u.val);
-  if(sol_on_V) free(sol_on_V);
-  if(exactsol_on_V) free(exactsol_on_V);
   free_fespace(&FE);
   if(cq) {
     free_qcoords(cq);

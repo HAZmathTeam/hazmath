@@ -206,7 +206,7 @@ int main (int argc, char* argv[])
   char exactout[40];
   if (inparam.output_dir!=NULL) {
     sprintf(solout,"output/solution_ts000.vtu");
-    dump_sol_onV_vtk(solout,&mesh,time_stepper.sol->val,1);
+    dump_sol_vtk(solout,"u",&mesh,&FE,time_stepper.sol->val);
   }
 
   // Store current RHS
@@ -329,9 +329,9 @@ int main (int argc, char* argv[])
 
     if (inparam.output_dir!=NULL) {
       sprintf(solout,"output/solution_ts%03d.vtu",time_stepper.current_step);
-      dump_sol_onV_vtk(solout,&mesh,time_stepper.sol->val,1);
+      dump_sol_vtk(solout,"u",&mesh,&FE,time_stepper.sol->val);
       sprintf(exactout,"output/exact_solution_ts%03d.vtu",time_stepper.current_step);
-      dump_sol_onV_vtk(exactout,&mesh,exact_sol.val,1);
+      dump_sol_vtk(exactout,"ut",&mesh,&FE,exact_sol.val);
     }
     printf("\n");
   } // End Timestepping Loop
@@ -346,6 +346,11 @@ int main (int argc, char* argv[])
   printf("Time Step\tTime\t\t\t||u||\t\t\t\t||u_exact||\t\t\t||error||\n\n");
   for(j=0;j<=time_stepper.tsteps;j++) {
     printf("%02d\t\t%f\t%25.16e\t%25.16e\t%25.16e\n",j,j*time_stepper.dt,unorm[j],utnorm[j],uerr[j]);
+  }
+
+  // Combine all timestep vtks in one file
+  if (inparam.output_dir!=NULL) {
+    create_pvd("output/solution.pvd",time_stepper.tsteps+1,"solution_ts","timestep");
   }
 
   /******** Free All the Arrays **************************************/
