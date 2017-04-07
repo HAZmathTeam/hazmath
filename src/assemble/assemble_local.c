@@ -393,6 +393,114 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinat
 }
 /******************************************************************************************************/
 
+/******************************************************************************************************/
+/*!
+ * \fn void assemble_symmetricDuDv_local(REAL* ALoc, block_fespace *FE, trimesh *mesh, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm, REAL time)
+ *
+ * \brief Computes the local stiffness matrix for a symmetric gradient.
+ *        For this problem we compute LHS of:
+ *
+ *        <eps(u), eps(v)> = <f, v>
+ *
+ *        where eps(u) = (grad u + (grad u)^T)/2 is the symmetric gradient.
+ *
+ * \param FE            Block FE Space
+ * \param mesh          Mesh Data
+ * \param cq            Quadrature Nodes
+ * \param dof_on_elm    Specific DOF on element
+ * \param v_on_elm      Specific vertices on element
+ * \param elm           Current element
+ * \param time          Physical Time if time dependent
+ *
+ * \return ALoc         Local Stiffness Matrix (Full Matrix) ordered (u1,u2,u3,p)
+ *
+ * \note Assumes 2D or 3D only. Only works for Scalar Elements
+ *
+ */
+void assemble_symmetricDuDv_local(REAL* ALoc, block_fespace *FE, trimesh *mesh, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm, REAL time)
+{
+  
+  // Loop indices
+  INT i,j,idim,quad,test,trial;
+
+  //Mesh and FE data
+  INT dof_per_elm = 0;
+  for(i=0;i<FE->nspaces;i++)
+    dof_per_elm += FE->var_spaces[i]->dof_per_elm;
+  INT* local_dof_on_elm;
+  INT dim = mesh->dim;
+
+  // Quadrature Weights and Nodes
+  REAL w;
+  REAL * qx = (REAL *) calloc(dim,sizeof(REAL));
+
+  // Stiffness Matrix Entry
+  REAL kij = 0.0;
+
+  // Keep track of local indexing
+  INT local_row_index, local_col_index;
+
+  // Sum over quadrature points
+  for(quad=0;quad<cq->nq_per_elm;quad++){
+    qx[0] = cq->x[elm*cq->nq_per_elm+quad];
+    qx[1] = cq->y[elm*cq->nq_per_elm+quad];
+    if(dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
+    w = cq->w[elm*cq->nq_per_elm+quad];
+
+    // Get the Basis Functions at each quadrature node
+    local_dof_on_elm = dof_on_elm;
+    for(i=0;i<FE->nspaces;i++){
+      get_FEM_basis(FE->var_spaces[i]->phi,FE->var_spaces[i]->dphi,qx,v_on_elm,dof_on_elm,mesh,FE->var_spaces[i]);
+      // Shift local dof to next finite element space
+      local_dof_on_elm += FE->var_spaces[i]->dof_per_elm;
+    }
+
+    // Assemble blocks
+    local_row_index = 0;
+    // Loop over block rows
+    for(i=0;i<FE->nspaces;i++){
+      // Reset local column indexing
+      local_col_index = 0;
+      // Loop over block columns
+      for(j=0;j<FE->nspaces;j++){
+        if(i==j){
+          // Loop over Test Functions (Rows)
+          for(test=0;test<FE->var_spaces[i]->dof_per_elm;test++){
+            // Loop over Trial Functions (Columns)
+            for(trial=0;trial<FE->var_spaces[j]->dof_per_elm;trial++){
+               kij = 2*0.5*(FE->var_spaces[i]->dphi[test*dim+i]*FE->var_spaces[j]->dphi[trial*dim+j]);
+               for(idim=0;idim<dim;idim++){
+                 kij += 2*0.5*(FE->var_spaces[i]->dphi[test*dim+idim]*FE->var_spaces[j]->dphi[trial*dim+idim]);
+               }
+               ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
+            }
+          }
+        } else {
+          // Loop over Test Functions (Rows)
+          for(test=0;test<FE->var_spaces[i]->dof_per_elm;test++){
+            // Loop over Trial Functions (Columns)
+            for(trial=0;trial<FE->var_spaces[j]->dof_per_elm;trial++){
+               kij = 2*0.5*(FE->var_spaces[i]->dphi[test*dim+j]*FE->var_spaces[j]->dphi[trial*dim+i]);
+               ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
+            }
+          }
+        }
+        // Update local column indexing
+        local_col_index += FE->var_spaces[i]->dof_per_elm;
+      }
+    // Update local row indexing
+    local_row_index += FE->var_spaces[i]->dof_per_elm;
+    }
+
+  }
+
+  // Free
+  if(qx) free(qx);
+
+  return;
+}
+/******************************************************************************************************/
+
 /****** Boundary Assemblies *******************/
 /******************************************************************************************************/
 /*!
