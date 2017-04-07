@@ -255,7 +255,7 @@ REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *me
       (*truesol)(val_true,qx,time);
 
       // Interpolate FE solution to quadrature point
-      FE_Interpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,mesh,1);
+      FE_Interpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,mesh);
 
       // Compute Error on Element
       for(j=0;j<ncomp;j++) {
@@ -692,7 +692,7 @@ REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL),fespace *FE,trime
       (*D_truesol)(val_true,qx,time);
 
       // Interpolate FE solution to quadrature point
-      FE_DerivativeInterpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,mesh,1);
+      FE_DerivativeInterpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,mesh);
 
       // Compute Error on Element
       for(j=0;j<ncomp;j++) {

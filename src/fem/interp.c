@@ -14,11 +14,138 @@
 
 /****************************************************************************************************************************/
 /*!
- * \fn void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,trimesh *mesh,INT nun)
+ * \fn void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,trimesh *mesh)
  *
  * \brief Interpolate a finite-element approximation to any other point in the given element using the given type of elements.
  *
- * \param u 	        Approximation to interpolate
+ * \param u 	      Approximation to interpolate
+ * \param x           Coordinates where to compute value
+ * \param dof_on_elm  DOF belonging to particular element
+ * \param v_on_elm    Vertices belonging to particular element
+ * \param FE          FE Space
+ * \param mesh        Mesh Data
+ * \param val         Pointer to value of approximation at given values
+ *
+ */
+void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,trimesh *mesh)
+{
+  INT i,j,dof;
+
+  // Get FE and Mesh data
+  INT dof_per_elm = FE->dof_per_elm;
+  INT FEtype = FE->FEtype;
+  INT dim = mesh->dim;
+
+  REAL coef[dim];
+
+  get_FEM_basis(FE->phi,FE->dphi,x,v_on_elm,dof_on_elm,mesh,FE);
+
+  if(FEtype<20) { // Scalar Element
+    coef[0] = 0.0;
+    for(j=0; j<dof_per_elm; j++) {
+      dof = dof_on_elm[j] - 1;
+      coef[0] += u[dof]*FE->phi[j];
+    }
+    val[0] = coef[0];
+  } else { // Vector Element
+    for(i=0;i<dim;i++) {
+      coef[i] = 0.0;
+      for(j=0; j<dof_per_elm; j++) {
+        dof = dof_on_elm[j] - 1;
+        coef[i] += u[dof]*FE->phi[j*dim+i];
+      }
+      val[i] = coef[i];
+    }
+  }
+
+  return;
+}
+/****************************************************************************************************************************/
+
+/****************************************************************************************************************************/
+/*!
+ * \fn void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,trimesh *mesh)
+ *
+ * \brief Interpolate the "derivative" of a finite-element approximation to any other point in the given element using the given type of elements.
+ *        Note that for Lagrange Elements this means the Gradient, grad u, for Nedelec it means the Curl, curl u, and for RT it is the Divergence, div u.
+ *
+ * \param u 	      Approximation to interpolate
+ * \param x           Coordinates where to compute value
+ * \param dof_on_elm  DOF belonging to particular element
+ * \param v_on_elm    Vertices belonging to particular element
+ * \param FE          FE Space
+ * \param mesh        Mesh Data
+ * \param val         Pointer to value of approximation at given values
+ *
+ */
+void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,trimesh *mesh)
+{
+  INT dof,j,k;
+
+  // Get FE and Mesh data
+  INT dof_per_elm = FE->dof_per_elm;
+  INT FEtype = FE->FEtype;
+  INT dim = mesh->dim;
+
+  // Basis Functions and its derivatives if necessary
+  REAL coef[dim];
+
+  get_FEM_basis(FE->phi,FE->dphi,x,v_on_elm,dof_on_elm,mesh,FE);
+
+  if(FEtype<20) { // Scalar Element
+    for(j=0;j<dim;j++) {
+      coef[j] = 0.0;
+      for(k=0; k<dof_per_elm; k++) {
+        dof = dof_on_elm[k] - 1;
+        coef[j] += u[dof]*FE->dphi[k*dim+j];
+      }
+      val[j] = coef[j];
+    }
+  } else if (FEtype==20) { // Nedelec
+    for(j=0;j<dim;j++)
+      coef[j] = 0.0;
+    if (dim==2) { // Curl is scalar
+      for (j=0; j<dof_per_elm; j++) {
+        dof = dof_on_elm[j]-1;
+        coef[0] += u[dof]*FE->dphi[j];
+      }
+      val[0] = coef[0];
+    } else if (dim==3) { // Curl is vector
+      for (j=0; j<dof_per_elm; j++) {
+        dof = dof_on_elm[j]-1;
+        coef[0] += u[dof]*FE->dphi[j*dim+0];
+        coef[1] += u[dof]*FE->dphi[j*dim+1];
+        coef[2] += u[dof]*FE->dphi[j*dim+2];
+      }
+      val[0] = coef[0];
+      val[1] = coef[1];
+      val[2] = coef[2];
+    }
+  } else if (FEtype==30) { // Raviart-Thomas (div is scalar)
+    coef[0] = 0.0;
+
+    for (j=0; j<dof_per_elm; j++) {
+      dof = dof_on_elm[j]-1;
+      coef[0] += u[dof]*FE->dphi[j];
+    }
+    val[0] = coef[0];
+  } else {
+    check_error(ERROR_FE_TYPE,__FUNCTION__);
+  }
+
+  return;
+}
+/****************************************************************************************************************************/
+
+/****************************************************************************************************************************/
+/*!
+ * \fn void mult_FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,trimesh *mesh,INT nun)
+ *
+ * \brief Interpolate a finite-element approximation to any other point in the given element using the given type of elements.
+ *
+ * \note This allows you to interpolate multiple approximations at once.  OUTDATED
+ *
+ * \param u 	      Approximation to interpolate
  * \param x           Coordinates where to compute value
  * \param dof_on_elm  DOF belonging to particular element
  * \param v_on_elm    Vertices belonging to particular element
@@ -28,9 +155,9 @@
  * \param val         Pointer to value of approximation at given values
  *
  */
-void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,trimesh *mesh,INT nun)
+void mult_FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,trimesh *mesh,INT nun)
 {
-  INT i,j,dof;
+  INT i,j,k,dof;
 
   // Get FE and Mesh data
   INT dof_per_elm = FE->dof_per_elm;
@@ -52,13 +179,15 @@ void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fe
       val[i] = coef[0];
     }
   } else { // Vector Element
-    for(i=0;i<dim;i++) {
-      coef[i] = 0.0;
-      for(j=0; j<dof_per_elm; j++) {
-        dof = dof_on_elm[j] - 1;
-        coef[i] += u[dof]*FE->phi[j*dim+i];
+    for(k=0; k<nun; k++) {
+      for(i=0;i<dim;i++) {
+        coef[i] = 0.0;
+        for(j=0; j<dof_per_elm; j++) {
+          dof = dof_on_elm[j] - 1;
+          coef[i] += u[dof]*FE->phi[j*dim+i];
+        }
+        val[k*dim + i] = coef[i];
       }
-      val[i] = coef[i];
     }
   }
 
@@ -68,10 +197,12 @@ void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fe
 
 /****************************************************************************************************************************/
 /*!
- * \fn void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,trimesh *mesh,INT nun)
+ * \fn void mult_FE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,trimesh *mesh,INT nun)
  *
  * \brief Interpolate the "derivative" of a finite-element approximation to any other point in the given element using the given type of elements.
  *        Note that for Lagrange Elements this means the Gradient, grad u, for Nedelec it means the Curl, curl u, and for RT it is the Divergence, div u.
+ *
+ * \note This routine allows you to interpolate multiple approximations at once. OUTDATED
  *
  * \param u 	        Approximation to interpolate
  * \param x           Coordinates where to compute value
@@ -83,7 +214,7 @@ void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fe
  * \param val         Pointer to value of approximation at given values
  *
  */
-void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,trimesh *mesh,INT nun)
+void mult_FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,trimesh *mesh,INT nun)
 {
   INT i,dof,j,k;
 
@@ -281,7 +412,7 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,
 
 /****************************************************************************************************************************/
 /*!
- * \fn void blockFE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,block_fespace *FE,trimesh *mesh,INT nun)
+ * \fn void blockFE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,block_fespace *FE,trimesh *mesh)
  *
  * \brief Interpolate a block finite-element approximation to any other point in the given element using the given type of elements.
  *
@@ -305,7 +436,7 @@ void blockFE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_e
   REAL* u_comp = u;
 
   for(k=0;k<FE->nspaces;k++) {
-    FE_Interpolation(val_sol,u_comp,x,local_dof_on_elm,v_on_elm,FE->var_spaces[k],mesh,1);
+    FE_Interpolation(val_sol,u_comp,x,local_dof_on_elm,v_on_elm,FE->var_spaces[k],mesh);
     if(FE->var_spaces[k]->FEtype<20) { // Scalar
       val_sol++;
     } else { // Vector
@@ -321,7 +452,7 @@ void blockFE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_e
 
 /****************************************************************************************************************************/
 /*!
- * \fn void blockFE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,block_fespace *FE,trimesh *mesh,INT nun)
+ * \fn void blockFE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,block_fespace *FE,trimesh *mesh)
  *
  * \brief Interpolate the "derivative" of a block finite-element approximation to any other point in the given
  *        element using the given type of elements.  Note that for Lagrange Elements this means the Gradient, grad u,
@@ -348,7 +479,7 @@ void blockFE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,I
   REAL* u_comp = u;
 
   for(k=0;k<FE->nspaces;k++) {
-    FE_DerivativeInterpolation(val_sol,u_comp,x,local_dof_on_elm,v_on_elm,FE->var_spaces[k],mesh,1);
+    FE_DerivativeInterpolation(val_sol,u_comp,x,local_dof_on_elm,v_on_elm,FE->var_spaces[k],mesh);
     if(FE->var_spaces[k]->FEtype<20) { // Scalar
       val_sol += dim;
     } else if(FE->var_spaces[k]->FEtype==20 && dim==2) { // Curl in 2D is Scalar
@@ -511,10 +642,9 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL),block_fespace *FE,tri
 }
 /****************************************************************************************************************************/
 
-
 /***********************************************************************************************/
 /*!
- * \fn void Project_to_Vertices(REAL* u_on_V,REAL *u,fespace *FE,trimesh *mesh,INT nun)
+ * \fn void Project_to_Vertices(REAL* u_on_V,REAL *u,fespace *FE,trimesh *mesh)
  *
  * \brief Interpolate a finite-element approximation to the vertices of a mesh
  *
@@ -522,12 +652,11 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL),block_fespace *FE,tri
  * \param u       Approximation to Interpolate
  * \param FE      FE space
  * \param mesh    Mesh Data
- * \param nun     Number of unknowns in u (1 is a scalar)
  *
  */
-void Project_to_Vertices(REAL* u_on_V,REAL *u,fespace *FE,trimesh *mesh,INT nun)
+void Project_to_Vertices(REAL* u_on_V,REAL *u,fespace *FE,trimesh *mesh)
 {
-  INT i,k,j,rowa,rowb,jcntr;
+  INT i,k,j;
   REAL* val = NULL;
   INT dim = mesh->dim;
   REAL* x = (REAL *) calloc(dim,sizeof(REAL));
@@ -537,51 +666,34 @@ void Project_to_Vertices(REAL* u_on_V,REAL *u,fespace *FE,trimesh *mesh,INT nun)
   INT v_per_elm = mesh->v_per_elm;
   INT FEtype = FE->FEtype;
   INT nelm = mesh->nelm;
-  //INT ndof = FE->ndof;
   INT nv = mesh->nv;
 
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
   INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
 
   if(FEtype>=0 && FEtype<20) { // Scalar Element
-    val = (REAL *) calloc(nun,sizeof(REAL));
-  } else { // Vector Element (assume only 1 vector unknown)
+    val = (REAL *) calloc(1,sizeof(REAL));
+  } else { // Vector Element
     val = (REAL *) calloc(dim,sizeof(REAL));
   }
 
   // Loop over Elements
   for(i=0;i<nelm;i++) {
+
     // Find DOF for given Element
-    rowa = FE->el_dof->IA[i]-1;
-    rowb = FE->el_dof->IA[i+1]-1;
-    jcntr = 0;
-    for (j=rowa; j<rowb; j++) {
-      dof_on_elm[jcntr] = FE->el_dof->JA[j];
-      jcntr++;
-    }
+    get_incidence_row(i,FE->el_dof,dof_on_elm);
 
     // Find vertices for given Element
-    rowa = mesh->el_v->IA[i]-1;
-    rowb = mesh->el_v->IA[i+1]-1;
-    jcntr = 0;
-    for (j=rowa; j<rowb; j++) {
-      v_on_elm[jcntr] = mesh->el_v->JA[j];
-      jcntr++;
-    }
+    get_incidence_row(i,mesh->el_v,v_on_elm);
 
     // Interpolate FE approximation to vertices
     for(j=0;j<v_per_elm;j++) {
-      x[0] = mesh->cv->x[v_on_elm[j]-1];
-      if(dim==2 || dim==3)
-        x[1] = mesh->cv->y[v_on_elm[j]-1];
-      if(dim==3)
-        x[2] = mesh->cv->z[v_on_elm[j]-1];
-      FE_Interpolation(val,u,x,dof_on_elm,v_on_elm,FE,mesh,nun);
-      if(FEtype>=0) {
-        for(k=0;k<nun;k++) {
-          u_on_V[k*nv + v_on_elm[j]-1] = val[k];
-        }
-      } else { // Only assume 1 vector component
+      get_coords(x,v_on_elm[j]-1,mesh->cv,dim);
+      FE_Interpolation(val,u,x,dof_on_elm,v_on_elm,FE,mesh);
+
+      if(FEtype>=0 && FEtype<20) { // Scalar Element
+        u_on_V[v_on_elm[j]-1] = val[0];
+      } else { // Vector Element
         for(k=0;k<dim;k++) {
           u_on_V[k*nv + v_on_elm[j]-1] = val[k];
         }

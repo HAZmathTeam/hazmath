@@ -699,3 +699,28 @@ void get_incidence_row(INT row,iCSRmat *fem_map,INT* thisrow)
   return;
 }
 /******************************************************************************/
+
+/******************************************************************************/
+/*!
+ * \fn void get_coords(REAL* x,INT dof,coordinates* cdof,INT dim)
+ *
+ * \brief Gets coordinates of a particular DOF
+ *
+ * \param dof       DOF to grab (indexed at 0)
+ * \param cdof      Coordinate struct to grab from
+ * \param dim
+ *
+ * \return x        (x,y,z) coordinates
+ *
+ */
+void get_coords(REAL* x,INT dof,coordinates* cdof,INT dim)
+{
+  x[0] = cdof->x[dof];
+  if(dim==2 || dim==3)
+    x[1] = cdof->y[dof];
+  if(dim==3)
+    x[2] = cdof->z[dof];
+
+  return;
+}
+/******************************************************************************/

@@ -243,30 +243,22 @@ int main (int argc, char* argv[])
   // Get Initial Conditions
   blockFE_Evaluate(sol.val,initial_conditions,&FE,&mesh,0.0);
   time_stepper.sol = &sol;
-  get_unknown_component(&u_q,&sol,&FE,0);
-  get_unknown_component(&u_h,&sol,&FE,1);
+  //get_unknown_component(&u_q,&sol,&FE,0);
+  //get_unknown_component(&u_h,&sol,&FE,1);
 
   // Store current RHS
   time_stepper.rhs = &b;
 
   // Dump Initial Condition
   char solout[40];
+  char** varname = malloc(50*FE.nspaces*sizeof(char *));
+  varname[0] = "q";
+  varname[1] = "h";
   if (inparam.output_dir!=NULL) {
-    //    sprintf(solout,"%s","output/solution_ts000.vtu");
     sprintf(solout,"output/solution_ts000.vtu");
-    // Project h and q to vertices for vtk output
-    Project_to_Vertices(h_on_V,u_h.val,&FE_h,&mesh,1);
-    Project_to_Vertices(q_on_V,u_q.val,&FE_q,&mesh,1);
+    dump_blocksol_vtk(solout,varname,&mesh,&FE,sol.val);
 
-    // Combine into one solution array at vertices
-    for(i=0;i<mesh.nv;i++) {
-      sol_on_V[i] = h_on_V[i];
-    }
-    for(i=0;i<dim*mesh.nv;i++) {
-      sol_on_V[i+mesh.nv] = q_on_V[i];
-    }
-    // Dump to vtk file
-    dump_sol_onV_vtk(solout,&mesh,sol_on_V,dim+1);
+    //if(dim==3) print_matlab_vector_field(&v_ux,&v_uy,&v_uz,&FE_ux);
   }
 
   // Begin Timestepping Loop
@@ -361,22 +353,8 @@ int main (int argc, char* argv[])
     // Output Solutions
     if (inparam.output_dir!=NULL) {
       // Solution at each timestep
-      get_unknown_component(&u_q,time_stepper.sol,&FE,0);
-      get_unknown_component(&u_h,time_stepper.sol,&FE,1);
       sprintf(solout,"output/solution_ts%03d.vtu",time_stepper.current_step);
-
-      // Project h and q to vertices for vtk output
-      Project_to_Vertices(h_on_V,u_h.val,&FE_h,&mesh,1);
-      Project_to_Vertices(q_on_V,u_q.val,&FE_q,&mesh,1);
-      // Combine into one solution array at vertices
-      for(i=0;i<mesh.nv;i++) {
-        sol_on_V[i] = h_on_V[i];
-      }
-      for(i=0;i<dim*mesh.nv;i++) {
-        sol_on_V[i+mesh.nv] = q_on_V[i];
-      }
-      // Dump to vtk file
-      dump_sol_onV_vtk(solout,&mesh,sol_on_V,dim+1);
+      dump_blocksol_vtk(solout,varname,&mesh,&FE,time_stepper.sol->val);
     }
   } // End Timestepping Loop
   clock_t clk_timeloop_end = clock();
@@ -386,7 +364,7 @@ int main (int argc, char* argv[])
 
   /******** Compute Errors or Plot *************************************************************/
 
-  // Combine all timestep vtks in
+  // Combine all timestep vtks in one file
   if(inparam.print_level > 3) {
     create_pvd("output/solution.pvd",time_stepper.tsteps+1,"solution_ts","timestep");
   }
@@ -405,12 +383,7 @@ int main (int argc, char* argv[])
   if(A_diag) free(A_diag);
 
   // Extra Vectors and Arrays
-  if(h_on_V) free(h_on_V);
-  if(q_on_V) free(q_on_V);
-  if(sol_on_V) free(sol_on_V);
   dvec_free(&sol);
-  dvec_free(&u_q);
-  dvec_free(&u_h);
 
   // FE Spaces
   free_fespace(&FE_h);

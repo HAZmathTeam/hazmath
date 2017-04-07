@@ -367,7 +367,7 @@ FILE* HAZ_fopen(char *fname,
 /*!
  * \fn void dump_sol_onV_vtk(char *namevtk,trimesh *mesh,REAL *sol,INT ncomp)
  *
- * \brief Dumps solution data to vtk format
+ * \brief Dumps solution data to vtk format only on vertices
  *
  * \param namevtk  Filename
  * \param mesh     Mesh struct to dump
@@ -477,6 +477,345 @@ void dump_sol_onV_vtk(char *namevtk,
     fprintf(fvtk,"</DataArray>\n");
   }
     fprintf(fvtk,"</PointData>\n");
+
+  // Dump el_v map
+  fprintf(fvtk,"<Cells>\n");
+  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"offsets\" Format=\"ascii\">",tinto);
+  for(k=1;k<=nelm;k++) fprintf(fvtk," %i ",mesh->el_v->IA[k]-1);
+  fprintf(fvtk,"</DataArray>\n");
+  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectivity\" Format=\"ascii\">\n",tinto);
+  for(k=0;k<nelm;k++){
+    kndl=k*v_per_elm;
+    for(j=0;j<v_per_elm;j++) fprintf(fvtk," %i ",mesh->el_v->JA[kndl + j]-1);
+  }
+  fprintf(fvtk,"</DataArray>\n");
+
+  // Dump Element Type
+  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"types\" Format=\"ascii\">",tinto);
+  for(k=1;k<=nelm;k++)
+    fprintf(fvtk," %i ",tcell);
+
+  // Put in remaining headers
+  fprintf(fvtk,"</DataArray>\n");
+  fprintf(fvtk,"</Cells>\n");
+  fprintf(fvtk,"</Piece>\n");
+  fprintf(fvtk,"</UnstructuredGrid>\n");
+  fprintf(fvtk,"</VTKFile>\n");
+
+  fclose(fvtk);
+
+  return;
+}
+/******************************************************************************/
+
+/******************************************************************************/
+/*!
+ * \fn void dump_sol_vtk(char *namevtk,char *varname,trimesh *mesh,fespace *FE,REAL *sol)
+ *
+ * \brief Dumps solution data to vtk format.  Tries to do best interpolation for given FE space.
+ *
+ * \param namevtk  Filename
+ * \param varname  String for variable name
+ * \param mesh     Mesh struct to dump
+ * \param FE       FE space of solution
+ * \param sol      solution vector to dump
+ *
+ */
+void dump_sol_vtk(char *namevtk,char *varname,trimesh *mesh,fespace *FE,REAL *sol)
+{
+  // Basic Quantities
+  INT i;
+  INT nv = mesh->nv;
+  INT nelm = mesh->nelm;
+  INT dim = mesh->dim;
+  INT v_per_elm = mesh->v_per_elm;
+
+  // VTK needed Quantities
+  INT tcell=-10;
+  INT k=-10,j=-10,kndl=-10;
+  char *tfloat="Float64", *tinto="Int64", *endian="LittleEndian";
+
+  /*
+     What endian?:
+
+     Intel x86; OS=MAC OS X: little-endian
+     Intel x86; OS=Windows: little-endian
+     Intel x86; OS=Linux: little-endian
+     Intel x86; OS=Solaris: little-endian
+     Dec Alpha; OS=Digital Unix: little-endian
+     Dec Alpha; OS=VMS: little-endian
+     Hewlett Packard PA-RISC; OS=HP-UX: big-endian
+     IBM RS/6000; OS=AIX: big-endian
+     Motorola PowerPC; OS=Mac OS X:  big-endian
+     SGI R4000 and up; OS=IRIX: big-endian
+     Sun SPARC; OS=Solaris: big-endian
+  */
+
+  /*
+     Types of cells for VTK
+
+     VTK_VERTEX (=1)
+     VTK_POLY_VERTEX (=2)
+     VTK_LINE (=3)
+     VTK_POLY_LINE (=4)
+     VTK_TRIANGLE(=5)
+     VTK_TRIANGLE_STRIP (=6)
+     VTK_POLYGON (=7)
+     VTK_PIXEL (=8)
+     VTK_QUAD (=9)
+     VTK_TETRA (=10)
+     VTK_VOXEL (=11)
+     VTK_HEXAHEDRON (=12)
+     VTK_WEDGE (=13)
+     VTK_PYRAMID (=14)
+  */
+
+  const INT LINE=3;
+  const INT TRI=5;
+  const INT TET=10;
+
+  if(dim==1) {
+    tcell=LINE; /* line */
+  } else if(dim==2) {
+    tcell=TRI; /* triangle */
+  } else {
+    tcell=TET; /* tet */
+  }
+  // Open File for Writing
+  FILE* fvtk = HAZ_fopen(namevtk,"w");
+
+  // Write Headers
+  fprintf(fvtk,"<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"%s\">\n",endian);
+  fprintf(fvtk,"<UnstructuredGrid>\n");
+  fprintf(fvtk,"<Piece NumberOfPoints=\"%i\" NumberOfCells=\"%i\">\n",nv,nelm);
+  fprintf(fvtk,"<Points>\n");
+  fprintf(fvtk,"<DataArray type=\"%s\" NumberOfComponents=\"3\" Format=\"ascii\">",tfloat);
+
+  // Dump vertex coordinates and solution
+  if(dim == 1) {
+    for(k=0;k<nv;k++) {
+      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],0e0,0e0);
+    }
+  } else if(dim == 2) {
+    for(k=0;k<nv;k++) {
+      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],mesh->cv->y[k],0e0);
+    }
+  } else {
+    for(k=0;k<nv;k++) {
+      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],mesh->cv->y[k], \
+              mesh->cv->z[k]);
+    }
+  }
+  fprintf(fvtk,"</DataArray>\n");
+  fprintf(fvtk,"</Points>\n");
+
+  // Dump Solution
+  // Depending on the FE space, we will dump things differently
+  // since we need to project to the vertices
+  REAL* sol_on_V=NULL;
+  if(FE->FEtype==0) { // P0 - only have cell data
+    fprintf(fvtk,"<CellData Scalars=\"scalars\">\n");
+    fprintf(fvtk,"<DataArray type=\"%s\" Name=\"Solution Component - %s\" Format=\"ascii\">",tfloat,varname);
+    for(k=0;k<nelm;k++) fprintf(fvtk," %23.16e ",sol[k]);
+    fprintf(fvtk,"</DataArray>\n");
+    fprintf(fvtk,"</CellData>\n");
+  } else if(FE->FEtype>0 && FE->FEtype<20) { // PX elements (assume sol at vertices comes first)
+    fprintf(fvtk,"<PointData Scalars=\"scalars\">\n");
+    fprintf(fvtk,"<DataArray type=\"%s\" Name=\"Solution Component - %s\" Format=\"ascii\">",tfloat,varname);
+    for(k=0;k<nv;k++) fprintf(fvtk," %23.16e ",sol[k]);
+    fprintf(fvtk,"</DataArray>\n");
+    fprintf(fvtk,"</PointData>\n");
+  } else { // Vector Elements
+    sol_on_V = (REAL *) calloc(dim*mesh->nv,sizeof(REAL));
+    Project_to_Vertices(sol_on_V,sol,FE,mesh);
+    fprintf(fvtk,"<PointData Scalars=\"scalars\">\n");
+    for(i=0;i<dim;i++) {
+      fprintf(fvtk,"<DataArray type=\"%s\" Name=\"Solution Component - %s%i\" Format=\"ascii\">",tfloat,varname,i);
+      for(k=0;k<nv;k++) fprintf(fvtk," %23.16e ",sol_on_V[i*nv+k]);
+      fprintf(fvtk,"</DataArray>\n");
+    }
+    fprintf(fvtk,"</PointData>\n");
+  }
+
+  // Dump el_v map
+  fprintf(fvtk,"<Cells>\n");
+  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"offsets\" Format=\"ascii\">",tinto);
+  for(k=1;k<=nelm;k++) fprintf(fvtk," %i ",mesh->el_v->IA[k]-1);
+  fprintf(fvtk,"</DataArray>\n");
+  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectivity\" Format=\"ascii\">\n",tinto);
+  for(k=0;k<nelm;k++){
+    kndl=k*v_per_elm;
+    for(j=0;j<v_per_elm;j++) fprintf(fvtk," %i ",mesh->el_v->JA[kndl + j]-1);
+  }
+  fprintf(fvtk,"</DataArray>\n");
+
+  // Dump Element Type
+  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"types\" Format=\"ascii\">",tinto);
+  for(k=1;k<=nelm;k++)
+    fprintf(fvtk," %i ",tcell);
+
+  // Put in remaining headers
+  fprintf(fvtk,"</DataArray>\n");
+  fprintf(fvtk,"</Cells>\n");
+  fprintf(fvtk,"</Piece>\n");
+  fprintf(fvtk,"</UnstructuredGrid>\n");
+  fprintf(fvtk,"</VTKFile>\n");
+
+  fclose(fvtk);
+  if(sol_on_V) free(sol_on_V);
+
+  return;
+}
+/******************************************************************************/
+
+/******************************************************************************/
+/*!
+ * \fn void dump_blocksol_vtk(char *namevtk,char *varname,trimesh *mesh,block_fespace *FE,REAL *sol)
+ *
+ * \brief Dumps solution data to vtk format.  Tries to do best interpolation for given FE space.
+ *
+ * \param namevtk  Filename
+ * \param varname  String for variable names
+ * \param mesh     Mesh struct to dump
+ * \param FE       Block FE space of solution
+ * \param sol      solution vector to dump
+ *
+ */
+void dump_blocksol_vtk(char *namevtk,char **varname,trimesh *mesh,block_fespace *FE,REAL *sol)
+{
+  // Basic Quantities
+  INT i,nsp;
+  INT nv = mesh->nv;
+  INT nelm = mesh->nelm;
+  INT dim = mesh->dim;
+  INT v_per_elm = mesh->v_per_elm;
+
+  // VTK needed Quantities
+  INT tcell=-10;
+  INT k=-10,j=-10,kndl=-10;
+  char *tfloat="Float64", *tinto="Int64", *endian="LittleEndian";
+
+  /*
+     What endian?:
+
+     Intel x86; OS=MAC OS X: little-endian
+     Intel x86; OS=Windows: little-endian
+     Intel x86; OS=Linux: little-endian
+     Intel x86; OS=Solaris: little-endian
+     Dec Alpha; OS=Digital Unix: little-endian
+     Dec Alpha; OS=VMS: little-endian
+     Hewlett Packard PA-RISC; OS=HP-UX: big-endian
+     IBM RS/6000; OS=AIX: big-endian
+     Motorola PowerPC; OS=Mac OS X:  big-endian
+     SGI R4000 and up; OS=IRIX: big-endian
+     Sun SPARC; OS=Solaris: big-endian
+  */
+
+  /*
+     Types of cells for VTK
+
+     VTK_VERTEX (=1)
+     VTK_POLY_VERTEX (=2)
+     VTK_LINE (=3)
+     VTK_POLY_LINE (=4)
+     VTK_TRIANGLE(=5)
+     VTK_TRIANGLE_STRIP (=6)
+     VTK_POLYGON (=7)
+     VTK_PIXEL (=8)
+     VTK_QUAD (=9)
+     VTK_TETRA (=10)
+     VTK_VOXEL (=11)
+     VTK_HEXAHEDRON (=12)
+     VTK_WEDGE (=13)
+     VTK_PYRAMID (=14)
+  */
+
+  const INT LINE=3;
+  const INT TRI=5;
+  const INT TET=10;
+
+  if(dim==1) {
+    tcell=LINE; /* line */
+  } else if(dim==2) {
+    tcell=TRI; /* triangle */
+  } else {
+    tcell=TET; /* tet */
+  }
+  // Open File for Writing
+  FILE* fvtk = HAZ_fopen(namevtk,"w");
+
+  // Write Headers
+  fprintf(fvtk,"<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"%s\">\n",endian);
+  fprintf(fvtk,"<UnstructuredGrid>\n");
+  fprintf(fvtk,"<Piece NumberOfPoints=\"%i\" NumberOfCells=\"%i\">\n",nv,nelm);
+  fprintf(fvtk,"<Points>\n");
+  fprintf(fvtk,"<DataArray type=\"%s\" NumberOfComponents=\"3\" Format=\"ascii\">",tfloat);
+
+  // Dump vertex coordinates and solution
+  if(dim == 1) {
+    for(k=0;k<nv;k++) {
+      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],0e0,0e0);
+    }
+  } else if(dim == 2) {
+    for(k=0;k<nv;k++) {
+      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],mesh->cv->y[k],0e0);
+    }
+  } else {
+    for(k=0;k<nv;k++) {
+      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],mesh->cv->y[k], \
+              mesh->cv->z[k]);
+    }
+  }
+  fprintf(fvtk,"</DataArray>\n");
+  fprintf(fvtk,"</Points>\n");
+
+  // Dump Solution for each FE space
+  REAL* sol_on_V=NULL;
+  REAL* solptr=NULL;
+  INT* P0cntr = (INT *) calloc(FE->nspaces,sizeof(INT));
+  INT anyP0=0;
+  INT spcntr = 0;
+  fprintf(fvtk,"<PointData Scalars=\"scalars\">\n");
+  for(nsp=0;nsp<FE->nspaces;nsp++) {
+    // Depending on the FE space, we will dump things differently
+    // since we need to project to the vertices
+    if(FE->var_spaces[nsp]->FEtype==0) { // P0 - only have cell data
+      // We need to save this for later so mark
+      anyP0=1;
+      P0cntr[nsp] = 1;
+    } else if(FE->var_spaces[nsp]->FEtype>0 && FE->var_spaces[nsp]->FEtype<20) { // PX elements (assume sol at vertices comes first)
+      fprintf(fvtk,"<DataArray type=\"%s\" Name=\"Solution Component %i - %s\" Format=\"ascii\">",tfloat,nsp,varname[nsp]);
+      for(k=0;k<nv;k++) fprintf(fvtk," %23.16e ",sol[spcntr + k]);
+      fprintf(fvtk,"</DataArray>\n");
+    } else { // Vector Elements
+      sol_on_V = (REAL *) calloc(dim*mesh->nv,sizeof(REAL));
+      solptr = sol+spcntr;
+      Project_to_Vertices(sol_on_V,solptr,FE->var_spaces[nsp],mesh);
+      for(i=0;i<dim;i++) {
+        fprintf(fvtk,"<DataArray type=\"%s\" Name=\"Solution Component %i - %s%i\" Format=\"ascii\">",tfloat,nsp,varname[nsp],i);
+        for(k=0;k<nv;k++) fprintf(fvtk," %23.16e ",sol_on_V[i*nv+k]);
+        fprintf(fvtk,"</DataArray>\n");
+      }
+      if(sol_on_V) free(sol_on_V);
+    }
+    spcntr += FE->var_spaces[nsp]->ndof;
+  }
+  fprintf(fvtk,"</PointData>\n");
+
+  // Now go back and dump P0 stuff
+  if(anyP0) {
+    spcntr=0;
+    fprintf(fvtk,"<CellData Scalars=\"scalars\">\n");
+    for(nsp=0;nsp<FE->nspaces;nsp++) {
+      if(P0cntr[nsp]==1) {
+        fprintf(fvtk,"<DataArray type=\"%s\" Name=\"Solution Component %i - %s\" Format=\"ascii\">",tfloat,nsp,varname[nsp]);
+        for(k=0;k<nelm;k++) fprintf(fvtk," %23.16e ",sol[spcntr+k]);
+        fprintf(fvtk,"</DataArray>\n");
+      }
+      spcntr += FE->var_spaces[nsp]->ndof;
+    }
+    fprintf(fvtk,"</CellData>\n");
+  }
 
   // Dump el_v map
   fprintf(fvtk,"<Cells>\n");
