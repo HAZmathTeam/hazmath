@@ -219,12 +219,6 @@ int main (int argc, char* argv[])
   /**************** Solve ********************************************************************/
 
   dvector sol = dvec_create(ndof);
-  dvector u_q = dvec_create(FE_q.ndof);
-  dvector u_h = dvec_create(FE_h.ndof);
-  // Arrays to output to vtk (need to have solution at vertices
-  REAL* h_on_V = (REAL *) calloc(mesh.nv,sizeof(REAL));
-  REAL* q_on_V = (REAL *) calloc(dim*mesh.nv,sizeof(REAL));
-  REAL * sol_on_V = (REAL *) calloc(mesh.nv*(dim+1),sizeof(REAL));
 
   // Set parameters for linear iterative methods
   linear_itsolver_param linear_itparam;
@@ -243,8 +237,6 @@ int main (int argc, char* argv[])
   // Get Initial Conditions
   blockFE_Evaluate(sol.val,initial_conditions,&FE,&mesh,0.0);
   time_stepper.sol = &sol;
-  //get_unknown_component(&u_q,&sol,&FE,0);
-  //get_unknown_component(&u_h,&sol,&FE,1);
 
   // Store current RHS
   time_stepper.rhs = &b;
@@ -384,6 +376,7 @@ int main (int argc, char* argv[])
 
   // Extra Vectors and Arrays
   dvec_free(&sol);
+  if(varname) free(varname);
 
   // FE Spaces
   free_fespace(&FE_h);
