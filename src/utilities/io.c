@@ -816,6 +816,7 @@ void dump_blocksol_vtk(char *namevtk,char **varname,trimesh *mesh,block_fespace 
     }
     fprintf(fvtk,"</CellData>\n");
   }
+  if(P0cntr) free(P0cntr);
 
   // Dump el_v map
   fprintf(fvtk,"<Cells>\n");

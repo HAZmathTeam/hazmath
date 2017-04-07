@@ -277,10 +277,11 @@ int main (int argc, char* argv[])
   get_unknown_component(&v_uy,&sol,&FE,1);
   if(dim==3) get_unknown_component(&v_uz,&sol,&FE,2);
   get_unknown_component(&v_p,&sol,&FE,dim);
-  
+ 
+  char** varname; 
   if(inparam.print_level > 3){
     char* soldump = "output/solution.vtu";
-    char** varname = malloc(10*FE.nspaces*sizeof(char *));
+    varname = malloc(10*FE.nspaces*sizeof(char *));
     varname[0] = "ux";
     varname[1] = "uy";
     if(dim==3) varname[2] = "uz";
@@ -323,6 +324,10 @@ int main (int argc, char* argv[])
 
   // Mesh
   free_mesh(&mesh);
+
+  // Strings
+  if(varname) free(varname);  
+
   /*******************************************************************************************/
   clock_t clk_overall_end = clock();
   printf("\nEnd of Program: Total CPU Time = %f seconds.\n\n",
