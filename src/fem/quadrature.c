@@ -448,10 +448,17 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
   if(e_or_f==1) {  // Edges
     w = 0.5*mesh->ed_len[dof]; /* Jacobian = 1/2 |e| */
   } else if(e_or_f==2) { // Faces
-    w = 2*mesh->f_area[dof]; /* Jacobian = 2*|f| */
+    if(dim==2) { // Faces are Edges in 2D
+      w = 0.5*mesh->f_area[dof]; /* Jacobian = 1/2 |e| */
+    } else if(dim==3) {
+      w = 2*mesh->f_area[dof]; /* Jacobian = 2*|f| */
+    } else {
+      status = ERROR_DIM;
+      check_error(status, __FUNCTION__);
+    }
   } else {
-    printf("Unknown type of quadrature\n\n");
-    exit(0);
+    status = ERROR_QUAD_TYPE;
+    check_error(status, __FUNCTION__);
   }
 
   // Get coordinates of vertices for given edge/face
@@ -462,12 +469,12 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
   } else if(e_or_f==2) {
     dof_v = mesh->f_v;
   } else {
-    printf("Unknown type of quadrature\n\n");
-    exit(0);
+    status = ERROR_QUAD_TYPE;
+    check_error(status, __FUNCTION__);
   }
   get_incidence_row(dof,dof_v,thisdof_v);
   if(dim==2) {
-    for (j=0; j<e_or_f+1; j++) {
+    for (j=0; j<dim; j++) {
       cvdof->x[j] = mesh->cv->x[thisdof_v[j]-1];
       cvdof->y[j] = mesh->cv->y[thisdof_v[j]-1];
     }
@@ -497,8 +504,8 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
   } else if(e_or_f==2) {
     triquad_(gp,gw,nq1d);
   } else {
-    printf("Unknown type of quadrature\n\n");
-    exit(0);
+    status = ERROR_QUAD_TYPE;
+    check_error(status, __FUNCTION__);
   }
 
   // Map to Real Edge
@@ -529,11 +536,10 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
     //        z = z1*(1-r-s) + z2*r + z3*s
     //        w = 2*Element Area*wref
     if(dim==2) {
-      for (q=0; q<nq1d*nq1d; q++) {
+      for (q=0; q<nq1d; q++) {
         r = gp[q];
-        s = gp[nq1d*nq1d+q];
-        cqbdry->x[q] = cvdof->x[0]*(1-r-s) + cvdof->x[1]*r + cvdof->x[2]*s;
-        cqbdry->y[q] = cvdof->y[0]*(1-r-s) + cvdof->y[1]*r + cvdof->y[2]*s;
+        cqbdry->x[q] = 0.5*cvdof->x[0]*(1-r) + 0.5*cvdof->x[1]*(1+r);
+        cqbdry->y[q] = 0.5*cvdof->y[0]*(1-r) + 0.5*cvdof->y[1]*(1+r);
         cqbdry->w[q] = w*gw[q];
       }
     } else if(dim==3) {
@@ -547,8 +553,8 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
       }
     }
   } else {
-    printf("Unknown type of quadrature\n\n");
-    exit(0);
+    status = ERROR_QUAD_TYPE;
+    check_error(status, __FUNCTION__);
   }
 
   if(gp) free(gp);
