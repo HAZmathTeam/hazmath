@@ -105,7 +105,7 @@ int main (int argc, char* argv[])
   sprintf(elmtype,"P%d",order);
 
   // Set Dirichlet Boundaries
-  // Assume the physical boundaries (flag of 1 in mesh file) are Dirichlet
+  // Assume the flag=1 in mesh file is a Dirichlet boundary. 
   set_dirichlet_bdry(&FE,&mesh,1,16);
 
   // Dump some of the data
@@ -231,6 +231,9 @@ int main (int argc, char* argv[])
     if(areb) free(areb);
 #else
     fprintf(stdout, "\nMultigraph set as solver of choice, but not defined; Using default solver...\n");
+    solver_flag = linear_solver_dcsr_krylov(&A,&b,&sol,&linear_itparam);
+    // Error Check
+    if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
 #endif
     break;                        
   default:  //GMRES+ No Preconditioner
