@@ -20,7 +20,7 @@ HAZLIB = -L$(HAZDIR)/lib -lhazmath
 
 INCLUDE += -I$(HAZDIR)/include
 
-LIBS += $(HAZLIB) -lm -lblas -llapack -lgfortran
+LIBS += $(HAZLIB) -lm -lblas -llapack #-lgfortran
 
 HEADERS += 
 

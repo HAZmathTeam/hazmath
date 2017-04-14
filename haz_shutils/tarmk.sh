@@ -27,11 +27,11 @@ tar \
     -s:^\.\.:${DNAME}: --exclude-from="tar.excl" \
     -cvf ${FILENAME} ../
 
-echo "Adding directories needed for output to ${FILENAME}"
+#echo "Adding directories needed for output to ${FILENAME}"
 
-tar --no-recursion \
-    -s:^\.\.:${DNAME}: --exclude-from="tar.excl" \
-    -rvf ${FILENAME} ../examples/*/output
+#tar --no-recursion \
+#    -s:^\.\.:${DNAME}: --exclude-from="tar.excl" \
+#    -rvf ${FILENAME} ../examples/*/output
 
 echo "Compressing: ${FILENAME} --> ${FILENAMEz}"
 
