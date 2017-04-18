@@ -12,6 +12,7 @@ graphs/
 *.example
 #examples/
 ConvectionDiffusion/
+SignalsGraphs/
 *.o
 *.vtu
 *.vtk
