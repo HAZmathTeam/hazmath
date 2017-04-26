@@ -300,7 +300,11 @@ void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL),fespace *FE,trimesh 
   // flag for errors
   SHORT status;
 
-  if(FEtype>=0 && FEtype<10) { // Lagrange Elements u[dof] = u[x_i}
+  if(FEtype==0) { // P0 elements u[dof] = 1/elvol \int_el u
+    for(i=0;i<FE->ndof;i++) {
+      val[i] = (1.0/mesh->el_vol[i])*integrate_elm(expr,3,NULL,mesh,time,i);
+    }
+  } else if(FEtype>0 && FEtype<10) { // Lagrange Elements u[dof] = u[x_i}
     valx = (REAL *) calloc(1,sizeof(REAL));
     for(i=0;i<FE->ndof;i++) {
       x[0] = FE->cdof->x[i];
@@ -366,7 +370,9 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,
   INT FEtype = FE->FEtype;
   REAL val=-666e+00;
 
-  if(FEtype>=0 && FEtype<10) { // Lagrange Elements u[dof] = u[x_i}
+  if(FEtype==0) { // P0 elements u[dof] = 1/elvol \int_el u
+    val = (1.0/mesh->el_vol[DOF])*integrate_elm(expr,3,NULL,mesh,time,DOF);
+  } else if(FEtype>0 && FEtype<10) { // Lagrange Elements u[dof] = u[x_i]
     valx = (REAL *) calloc(1,sizeof(REAL));
     x[0] = FE->cdof->x[DOF];
     if(dim==2 || dim==3)
@@ -522,7 +528,11 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL),block_fespace *
   INT local_dim = 0;
 
   for(k=0;k<FE->nspaces;k++) {
-    if(FE->var_spaces[k]->FEtype>=0 && FE->var_spaces[k]->FEtype<10) { // Lagrange Elements u[dof] = u[x_i]
+    if(FE->var_spaces[k]->FEtype==0) { // P0 elements u[dof] = 1/elvol \int_el u
+      for(i=0;i<FE->var_spaces[k]->ndof;i++) {
+        val[entry + i] = (1.0/mesh->el_vol[i])*integrate_elm(expr,3,NULL,mesh,time,i);
+      }
+    } else if(FE->var_spaces[k]->FEtype=0 && FE->var_spaces[k]->FEtype<10) { // Lagrange Elements u[dof] = u[x_i]
       local_dim = 1;
       for(i=0;i<FE->var_spaces[k]->ndof;i++) {
         x[0] = FE->var_spaces[k]->cdof->x[i];
@@ -603,7 +613,9 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL),block_fespace *FE,tri
     }
   }
 
-  if(FE->var_spaces[comp]->FEtype>=0 && FE->var_spaces[comp]->FEtype<10) { // Lagrange Elements u[dof] = u[x_i]
+  if(FE->var_spaces[comp]->FEtype==0) { // P0 elements u[dof] = 1/elvol \int_el u
+    val = (1.0/mesh->el_vol[DOF])*integrate_elm(expr,3,NULL,mesh,time,DOF);
+  } else if(FE->var_spaces[comp]->FEtype>0 && FE->var_spaces[comp]->FEtype<10) { // Lagrange Elements u[dof] = u[x_i]
     x[0] = FE->var_spaces[comp]->cdof->x[DOF];
     if(dim==2 || dim==3)
       x[1] = FE->var_spaces[comp]->cdof->y[DOF];
