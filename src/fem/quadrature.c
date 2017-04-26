@@ -609,6 +609,108 @@ void dump_qcoords(qcoordinates *q)
 /*********************************************************************************/
 
 /*********************************************************************/
+/**** Integration Routines for a given function ********/
+/*********************************************************************/
+/*********************************************************************************/
+/*!
+ * \fn REAL integrate_elm(void (*expr)(REAL *,REAL *,REAL),INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT elm)
+ *
+ * \brief Integrate a given scalar function over an element
+ *
+ * \param expr   Function to be integrated
+ * \param nq1d   Number of quadrature points per direction (2*nq1d-1 is order of quadrature)
+ * \param cq     Precomputed quadrature points and weights
+ * \param mesh   Mesh Information
+ * \param time   If needed for function
+ * \param elm    Element to integrate over (assumes counting at 0)
+ *
+ * \return integral Integral of scalar function over element
+ *
+ * \note If cq is given, we will just use these precomputed values instead of reallocating the quadrature.
+ *       Otherwise, we will allocate a new set of quadrature based on nq1d
+ */
+REAL integrate_elm(void (*expr)(REAL *,REAL *,REAL),INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT elm)
+{
+  // Loop indices
+  INT quad;
+
+  // Function at quadrature node
+  REAL uval=0.0;
+
+  // Integral value
+  REAL integral = 0.0;
+
+  // Quadrature Weights and Nodes
+  REAL w;
+  REAL* qx = (REAL *) calloc(mesh->dim,sizeof(REAL));
+
+  // Quadrature on elm
+  if(cq) { // assuming quadrature is given
+    for (quad=0;quad<cq->nq_per_elm;quad++) {
+      qx[0] = cq->x[elm*cq->nq_per_elm+quad];
+      qx[1] = cq->y[elm*cq->nq_per_elm+quad];
+      if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
+      w = cq->w[elm*cq->nq_per_elm+quad];
+      (*expr)(&uval,qx,time);
+      integral += w*uval;
+    }
+  } else { // assemble quadrature again
+    qcoordinates *cqelm = allocateqcoords(nq1d,1,mesh->dim);
+    quad_elm(cqelm,mesh,nq1d,elm);
+    for (quad=0;quad<cqelm->nq_per_elm;quad++) {
+      qx[0] = cqelm->x[quad];
+      qx[1] = cqelm->y[quad];
+      if(mesh->dim==3) qx[2] = cqelm->z[quad];
+      w = cqelm->w[quad];
+      (*expr)(&uval,qx,time);
+      integral += w*uval;
+    }
+
+    free_qcoords(cqelm);
+  }
+
+  if(qx) free(qx);
+
+  return integral;
+}
+/*********************************************************************************/
+
+/*********************************************************************************/
+/*!
+ * \fn REAL integrate_domain(void (*expr)(REAL *,REAL *,REAL),INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time
+ *
+ * \brief Integrate a given scalar function over the entire mesh
+ *
+ * \param expr   Function to be integrated
+ * \param nq1d   Number of quadrature points per direction (2*nq1d-1 is order of quadrature)
+ * \param cq     Precomputed quadrature points and weights
+ * \param mesh   Mesh Information
+ * \param time   If needed for function
+ * \param elm    Element to integrate over (assumes counting at 0)
+ *
+ * \return integral Integral of scalar function over domain
+ *
+ * \note If cq is given, we will just use these precomputed values instead of reallocating the quadrature.
+ *       Otherwise, we will allocate a new set of quadrature based on nq1d
+ */
+REAL integrate_domain(void (*expr)(REAL *,REAL *,REAL),INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time)
+{
+  // Loop indices
+  INT elm;
+
+  // Integral to return
+  REAL integral = 0.0;
+  // Loop over all elements and call integrate_elm
+  for(elm=0;elm<mesh->nelm;elm++) {
+    integral += integrate_elm(expr,nq1d,cq,mesh,time,elm);
+  }
+
+  return integral;
+}
+/*********************************************************************************/
+
+
+/*********************************************************************/
 /**** Tables of Quadrature Nodes and Weights 1D and 2D and 3D ********/
 /*********************************************************************/
 
