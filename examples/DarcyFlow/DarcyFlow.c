@@ -106,7 +106,6 @@ int main (int argc, char* argv[])
 
   // Set Dirichlet Boundaries
   set_dirichlet_bdry(&FE_q,&mesh,1,1);
-  set_dirichlet_bdry(&FE_h,&mesh,1,1);
   for(i=0;i<FE_q.ndof;i++) {
     if(FE_q.dirichlet[i]==1 && (mesh.f_mid[i*dim+2]!=1 && mesh.f_mid[i*dim+2]!=0)) {
       FE_q.dirichlet[i] = 0;

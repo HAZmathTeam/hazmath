@@ -77,7 +77,7 @@ void steady_state_Darcy(REAL* ALoc,block_fespace *FE,trimesh *mesh,qcoordinates 
     get_FEM_basis(FE->var_spaces[1]->phi,FE->var_spaces[1]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[1]);
     
     // Data
-    porosity(K,qx,0.0);
+    porosity(K,qx,time);
     Kinv1 = 1.0/K[0];
     Kinv2 = 1.0/K[4];
     Kinv3 = 1.0/K[8];
@@ -191,7 +191,7 @@ void steady_state_Darcy_RHS(REAL* bLoc,block_fespace *FE,trimesh *mesh,qcoordina
     // h
     get_FEM_basis(FE->var_spaces[1]->phi,FE->var_spaces[1]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[1]);
 
-    (*rhs)(&rhs_val,qx,0.0);
+    (*rhs)(&rhs_val,qx,time);
 
     // q block: 0
     local_row_index = 0;
@@ -288,7 +288,7 @@ void steady_state_Darcy_bdryRHS(REAL* bLoc,dvector* old_sol,fespace *FE,trimesh 
     get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
 
     // Get RHS at quadrature points
-    (*rhs)(&rhs_val,qx,0.0);
+    (*rhs)(&rhs_val,qx,time);
 
     // Loop over Test Functions (Rows)
     for (test=0; test<dof_per_f;test++) {
