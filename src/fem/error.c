@@ -1070,7 +1070,7 @@ REAL HDerror(REAL *u,void (*truesol)(REAL *,REAL *,REAL),void (*D_truesol)(REAL 
 
 /***************************************************************************/
 /*!
- * \fn void HDerror(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL),void (*D_truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+ * \fn void HDerror_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL),void (*D_truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
  *
  * \brief Computes the H(D) norm of the error of a block FE approximation
  *        and a true solution given by a function using the
