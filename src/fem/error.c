@@ -1098,7 +1098,6 @@ void HDerror_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL),void (*
 
   L2error_block(sumL2,u,truesol,FE,mesh,cq,time);
   HDsemierror_block(sumSemi,u,D_truesol,FE,mesh,cq,time);
-
   for(i=0;i<FE->nspaces;i++)
     err[i] = sqrt(sumL2[i]*sumL2[i] + sumSemi[i]*sumSemi[i]);
 
