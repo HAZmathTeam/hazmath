@@ -92,7 +92,11 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
 
   get_FEM_basis(FE->phi,FE->dphi,x,v_on_elm,dof_on_elm,mesh,FE);
 
-  if(FEtype<20) { // Scalar Element
+  if(FEtype==0) { // Don't compute derivatives of P0 elements (set to 0)
+    for(j=0;j<dim;j++) {
+      val[j] = 0.0;
+    }
+  } else if(FEtype<20 && FEtype!=0) { // Scalar Element
     for(j=0;j<dim;j++) {
       coef[j] = 0.0;
       for(k=0; k<dof_per_elm; k++) {
@@ -229,7 +233,13 @@ void mult_FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,I
 
   get_FEM_basis(FE->phi,FE->dphi,x,v_on_elm,dof_on_elm,mesh,FE);
 
-  if(FEtype<20) { // Scalar Element
+  if(FEtype==0) { // Don't compute derivatives of P0 elements (set to 0)
+    for(i=0; i<nun; i++) {
+      for(j=0;j<dim;j++) {
+        val[i*dim+j] = 0.0;
+      }
+    }
+  } else if(FEtype<20 && FEtype!=0) { // Scalar Element
     for(i=0; i<nun; i++) {
       for(j=0;j<dim;j++) {
         coef[j] = 0.0;
@@ -520,17 +530,32 @@ void blockFE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,I
  */
 void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,REAL time)
 {
-  int i,j,k;
+  int i,j,k,quad;
   REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
   REAL* valx = (REAL *) calloc(FE->nun,sizeof(REAL));
+  REAL* qx = (REAL *) calloc(mesh->dim,sizeof(REAL));
+  REAL w = 0;
   INT dim = mesh->dim;
   INT entry = 0, local_entry = 0;
   INT local_dim = 0;
+  REAL integral=0;
 
   for(k=0;k<FE->nspaces;k++) {
     if(FE->var_spaces[k]->FEtype==0) { // P0 elements u[dof] = 1/elvol \int_el u
       for(i=0;i<FE->var_spaces[k]->ndof;i++) {
-        val[entry + i] = (1.0/mesh->el_vol[i])*integrate_elm(expr,3,NULL,mesh,time,i);
+        integral=0;
+        qcoordinates *cqelm = allocateqcoords(3,1,mesh->dim);
+        quad_elm(cqelm,mesh,3,i);
+        for (quad=0;quad<cqelm->nq_per_elm;quad++) {
+          qx[0] = cqelm->x[quad];
+          qx[1] = cqelm->y[quad];
+          if(mesh->dim==3) qx[2] = cqelm->z[quad];
+          w = cqelm->w[quad];
+          (*expr)(valx,qx,time);
+          integral += w*valx[local_entry];
+        }
+        free_qcoords(cqelm);
+        val[entry + i] = (1.0/mesh->el_vol[i])*integral;
       }
     } else if(FE->var_spaces[k]->FEtype>0 && FE->var_spaces[k]->FEtype<10) { // Lagrange Elements u[dof] = u[x_i]
       local_dim = 1;
@@ -566,14 +591,15 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL),block_fespace *
         for(j=0;j<dim;j++) val[i+entry]+=mesh->f_norm[i*dim+j]*valx[local_entry + j];
       }
     } else {
-    check_error(ERROR_FE_TYPE,__FUNCTION__);
-  }
+      check_error(ERROR_FE_TYPE,__FUNCTION__);
+    }
     entry += FE->var_spaces[k]->ndof;
     local_entry += local_dim;
   }
 
   if (x) free(x);
   if(valx) free(valx);
+  if(qx) free(qx);
   return;
 }
 /****************************************************************************************************************************/
