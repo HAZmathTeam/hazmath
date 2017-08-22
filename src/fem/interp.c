@@ -542,9 +542,9 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL),block_fespace *
 
   for(k=0;k<FE->nspaces;k++) {
     if(FE->var_spaces[k]->FEtype==0) { // P0 elements u[dof] = 1/elvol \int_el u
+      qcoordinates *cqelm = allocateqcoords(3,1,mesh->dim);
       for(i=0;i<FE->var_spaces[k]->ndof;i++) {
         integral=0;
-        qcoordinates *cqelm = allocateqcoords(3,1,mesh->dim);
         quad_elm(cqelm,mesh,3,i);
         for (quad=0;quad<cqelm->nq_per_elm;quad++) {
           qx[0] = cqelm->x[quad];
@@ -554,9 +554,11 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL),block_fespace *
           (*expr)(valx,qx,time);
           integral += w*valx[local_entry];
         }
-        free_qcoords(cqelm);
         val[entry + i] = (1.0/mesh->el_vol[i])*integral;
       }
+      free_qcoords(cqelm);
+      free(cqelm);
+      cqelm=NULL;
     } else if(FE->var_spaces[k]->FEtype>0 && FE->var_spaces[k]->FEtype<10) { // Lagrange Elements u[dof] = u[x_i]
       local_dim = 1;
       for(i=0;i<FE->var_spaces[k]->ndof;i++) {
