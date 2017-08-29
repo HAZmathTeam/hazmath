@@ -201,7 +201,47 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     dphi = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
     FE->dphi = dphi;
     break;
-  case 60: // Bubbles
+  case 60: // Vector Velocity
+    FE->cdof = NULL;
+    FE->ndof = mesh->nv * mesh->dim;
+    FE->nbdof = mesh->nbv * mesh->dim;
+    FE->dof_per_elm = mesh->v_per_elm * mesh->dim;
+    // FE->el_dof = mesh->el_v; // iCSRmat*
+    FE->el_dof = malloc(sizeof(struct iCSRmat));
+    printf("Before Concat\n");
+    icsr_shift(mesh->el_v, -1);
+    icsr_concat(mesh->el_v, mesh->el_v, FE->el_dof);
+    icsr_shift(mesh->el_v, 1);
+    icsr_shift(FE->el_dof, 1);
+    printf("After Concat\n");
+    if(mesh->dim>1) {
+    //  FE->ed_dof = mesh->ed_v; // iCSRmat*
+    FE->ed_dof = malloc(sizeof(struct iCSRmat));
+    icsr_shift(mesh->ed_v, -1);
+    icsr_concat(mesh->ed_v, mesh->ed_v, FE->ed_dof);
+    icsr_shift(mesh->ed_v, 1);
+    icsr_shift(FE->ed_dof, 1);
+    //  FE->f_dof = mesh->f_v; // iCSRmat*
+    FE->f_dof = malloc(sizeof(struct iCSRmat));
+    icsr_shift(mesh->f_v, -1);
+    icsr_concat(mesh->f_v, mesh->f_v, FE->f_dof);
+    icsr_shift(mesh->f_v, 1);
+    icsr_shift(FE->f_dof, 1);
+    }
+    dirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
+    dof_flag = (INT *) calloc(FE->ndof,sizeof(INT));
+    for(i=0;i<FE->ndof;i++) {
+      dirichlet[i] = mesh->v_bdry[i % mesh->nv];
+      dof_flag[i] = mesh->v_bdry[i % mesh->nv];
+    }
+    FE->dirichlet = dirichlet;
+    FE->dof_flag = dof_flag;
+    phi = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL)); // This is basis functions
+    FE->phi = phi;
+    dphi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
+    FE->dphi = dphi;
+    break;
+  case 61: // Bubbles
     FE->cdof = NULL;
     FE->ndof = mesh->nface;
     FE->nbdof = mesh->nbface;

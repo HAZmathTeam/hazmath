@@ -407,7 +407,7 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,
     (*expr)(valx,x,time);
     val = 0.0;
     for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx[j];
-  } else if (FEtype==60) { // Bubbles
+  } else if (FEtype>=60 && FEtype<70) { // Bubbles
     valx = (REAL *) calloc(dim,sizeof(REAL));
     x[0] = mesh->f_mid[DOF*dim];
     x[1] = mesh->f_mid[DOF*dim+1];
@@ -634,7 +634,7 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL),block_fespace *FE,tri
   for(i=0;i<comp;i++) {
     if(FE->var_spaces[i]->FEtype>=0 && FE->var_spaces[i]->FEtype<10) { // Scalar Element
       local_dim += 1;
-    } else if(FE->var_spaces[i]->FEtype == 60) { // Bubble Element
+    } else if(FE->var_spaces[i]->FEtype == 61) { // Bubble Element
       local_dim += 0;
     } else { // Vector Element
       local_dim += dim;
@@ -665,7 +665,7 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL),block_fespace *FE,tri
     (*expr)(valx,x,time);
     val = 0.0;
     for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx[local_dim + j];
-  } else if (FE->var_spaces[comp]->FEtype==60) { // Bubbles
+  } else if (FE->var_spaces[comp]->FEtype>=60 && FE->var_spaces[comp]->FEtype<70) { // Bubbles
     x[0] = mesh->f_mid[DOF*dim];
     x[1] = mesh->f_mid[DOF*dim+1];
     if(dim==3) x[2] = mesh->f_mid[DOF*dim+2];
