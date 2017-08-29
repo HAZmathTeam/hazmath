@@ -1006,6 +1006,7 @@ void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *
 
   // Mesh and FEM Data
   INT FEtype = FE->FEtype;
+  INT offset = FE->dof_per_elm/mesh->dim;
 
   if(FEtype>=0 && FEtype<10) { // PX elements
 
@@ -1019,7 +1020,12 @@ void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *
 
     rt_basis(phi,dphi,x,v_on_elm,dof,mesh);
 
-  } else if(FEtype==60) { // Bubble elements
+  } else if(FEtype==60) { // Vector element
+
+    PX_H1_basis(phi, dphi, x, dof, 1, mesh);
+    PX_H1_basis(phi+offset, dphi+FE->dof_per_elm, x, dof, 1, mesh);
+
+  } else if(FEtype==61) { // Bubble element
 
     bubble_face_basis(phi,dphi,x,v_on_elm,dof,mesh);
 

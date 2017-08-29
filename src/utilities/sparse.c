@@ -725,6 +725,61 @@ void icsr_trans_1(iCSRmat *A,
 }
 
 /***********************************************************************************************/
+/*!
+ * \fn void icsr_concat(iCSRmat* A, iCSRmat* B, iCSRmat* C)
+ *
+ * \brief concat
+ *
+ */
+void icsr_concat(iCSRmat* A,
+                 iCSRmat* B,
+                 iCSRmat* C)
+{
+  INT i,j;
+  INT Arl, Brl;
+
+  // From here copy something similar to dcsr_alloc
+  //C->IA = (INT *)calloc(A->row + B->row + 1, sizeof(INT));
+  C->IA = (INT *)calloc(A->row + 1, sizeof(INT));//Concat so number of rows does not change
+  C->JA = (INT *)calloc(A->nnz + B->nnz, sizeof(INT));
+  C->val = (INT *)calloc(A->nnz + B->nnz, sizeof(INT));
+
+  INT Astart = 0;
+  INT Bstart = 0;
+  INT cnt = 0;
+  for(i=0; i<A->row; i++){
+    // Get row length
+    Arl = A->IA[i+1] - A->IA[i];
+    Brl = B->IA[i+1] - B->IA[i];
+
+    // Fill the row index pointer
+    C->IA[i] = A->IA[i] + B->IA[i]; // Note the -1 to account for indexing starting at 1
+
+    // Fill the column index and val from A
+    for(j=Astart; j<Astart+Arl; j++){
+      C->JA[cnt] = A->JA[j];
+      //C->val[cnt] = A->val[j];
+      cnt++;
+    }
+    Astart = Astart+Arl;
+
+    // Fill the column index and val from B
+    for(j=Bstart; j<Bstart+Brl; j++){
+      C->JA[cnt] = B->JA[j] + (A->col);// is a -1 needed here?
+      //C->val[cnt] = B->val[j];
+      cnt++;
+    }
+    Bstart = Bstart+Brl;
+  }
+
+  C->row = A->row;
+  C->col = A->col + B->col;
+  C->nnz = A->nnz + B->nnz;
+  C->IA[C->row] = C->nnz;
+}
+
+
+/***********************************************************************************************/
 /**
  * \fn void dcsr_compress (dCSRmat *A, dCSRmat *B, REAL dtol)
  *
