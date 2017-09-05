@@ -72,6 +72,8 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
   REAL* dphi;
 
   /**/
+  iCSRmat* temp;
+  temp = (iCSRmat *) malloc(sizeof(struct iCSRmat));
   iCSRmat ed_el;
   iCSRmat f_el;
   iCSRmat ed_f;
@@ -209,24 +211,53 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     // FE->el_dof = mesh->el_v; // iCSRmat*
     FE->el_dof = malloc(sizeof(struct iCSRmat));
     printf("Before Concat\n");
-    icsr_shift(mesh->el_v, -1);
-    icsr_concat(mesh->el_v, mesh->el_v, FE->el_dof);
-    icsr_shift(mesh->el_v, 1);
-    icsr_shift(FE->el_dof, 1);
+    if(mesh->dim==1){
+      FE->el_dof = mesh->el_v;
+    } else if(mesh->dim==2){
+      icsr_shift(mesh->el_v, -1);
+      icsr_concat(mesh->el_v, mesh->el_v, FE->el_dof);
+      icsr_shift(mesh->el_v, 1);
+      icsr_shift(FE->el_dof, 1);
+    } else if(mesh->dim==3){
+      icsr_shift(mesh->el_v, -1);
+      icsr_concat(mesh->el_v,mesh->el_v,temp);
+      icsr_concat(temp,mesh->el_v,FE->el_dof);
+      icsr_shift(mesh->el_v, 1);
+      icsr_shift(FE->el_dof, 1);
+      icsr_free(temp);
+    }
     printf("After Concat\n");
     if(mesh->dim>1) {
-    //  FE->ed_dof = mesh->ed_v; // iCSRmat*
-    FE->ed_dof = malloc(sizeof(struct iCSRmat));
-    icsr_shift(mesh->ed_v, -1);
-    icsr_concat(mesh->ed_v, mesh->ed_v, FE->ed_dof);
-    icsr_shift(mesh->ed_v, 1);
-    icsr_shift(FE->ed_dof, 1);
-    //  FE->f_dof = mesh->f_v; // iCSRmat*
-    FE->f_dof = malloc(sizeof(struct iCSRmat));
-    icsr_shift(mesh->f_v, -1);
-    icsr_concat(mesh->f_v, mesh->f_v, FE->f_dof);
-    icsr_shift(mesh->f_v, 1);
-    icsr_shift(FE->f_dof, 1);
+      //  FE->ed_dof = mesh->ed_v; // iCSRmat*
+      FE->ed_dof = malloc(sizeof(struct iCSRmat));
+      if(mesh->dim==2){
+        icsr_shift(mesh->ed_v, -1);
+        icsr_concat(mesh->ed_v, mesh->ed_v, FE->ed_dof);
+        icsr_shift(mesh->ed_v, 1);
+        icsr_shift(FE->ed_dof, 1);
+      } else if(mesh->dim==3) {
+        icsr_shift(mesh->ed_v, -1);
+        icsr_concat(mesh->ed_v, mesh->ed_v, temp);
+        icsr_concat(temp, mesh->ed_v, FE->ed_dof);
+        icsr_shift(mesh->ed_v, 1);
+        icsr_shift(FE->ed_dof, 1);
+        icsr_free(temp);
+      }
+      //  FE->f_dof = mesh->f_v; // iCSRmat*
+      FE->f_dof = malloc(sizeof(struct iCSRmat));
+      if(mesh->dim==2){
+        icsr_shift(mesh->f_v, -1);
+        icsr_concat(mesh->f_v, mesh->f_v, FE->f_dof);
+        icsr_shift(mesh->f_v, 1);
+        icsr_shift(FE->f_dof, 1);
+      } else if(mesh->dim==3){
+        icsr_shift(mesh->f_v, -1);
+        icsr_concat(mesh->f_v, mesh->f_v, temp);
+        icsr_concat(temp, mesh->f_v, FE->f_dof);
+        icsr_shift(mesh->f_v, 1);
+        icsr_shift(FE->f_dof, 1);
+        icsr_free(temp);
+      }
     }
     dirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
     dof_flag = (INT *) calloc(FE->ndof,sizeof(INT));
