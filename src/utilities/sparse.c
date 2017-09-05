@@ -728,7 +728,14 @@ void icsr_trans_1(iCSRmat *A,
 /*!
  * \fn void icsr_concat(iCSRmat* A, iCSRmat* B, iCSRmat* C)
  *
- * \brief concat
+ * \brief Concatenate two iCSRmat matrices of the same size.
+ *
+ * \param A Pointer to the first iCSRmat matrix
+ * \param B Pointer to the second iCSRmat matrix
+ * \param C Pointer to the concatenated matrix (Memory allocated in function)
+ *
+ * \note Concatenates columns, so the number of rows does not change.
+ * \note Index of the arrays start at 0 -- Peter Ohm
  *
  */
 void icsr_concat(iCSRmat* A,
@@ -738,11 +745,10 @@ void icsr_concat(iCSRmat* A,
   INT i,j;
   INT Arl, Brl;
 
-  // From here copy something similar to dcsr_alloc
-  //C->IA = (INT *)calloc(A->row + B->row + 1, sizeof(INT));
+  // Allocate for concatenation
   C->IA = (INT *)calloc(A->row + 1, sizeof(INT));//Concat so number of rows does not change
   C->JA = (INT *)calloc(A->nnz + B->nnz, sizeof(INT));
-  C->val = (INT *)calloc(A->nnz + B->nnz, sizeof(INT));
+  C->val = (INT *)calloc(A->nnz + B->nnz, sizeof(INT));//allocation might be unneeded
 
   INT Astart = 0;
   INT Bstart = 0;
@@ -753,7 +759,7 @@ void icsr_concat(iCSRmat* A,
     Brl = B->IA[i+1] - B->IA[i];
 
     // Fill the row index pointer
-    C->IA[i] = A->IA[i] + B->IA[i]; // Note the -1 to account for indexing starting at 1
+    C->IA[i] = A->IA[i] + B->IA[i];
 
     // Fill the column index and val from A
     for(j=Astart; j<Astart+Arl; j++){
@@ -765,7 +771,7 @@ void icsr_concat(iCSRmat* A,
 
     // Fill the column index and val from B
     for(j=Bstart; j<Bstart+Brl; j++){
-      C->JA[cnt] = B->JA[j] + (A->col);// is a -1 needed here?
+      C->JA[cnt] = B->JA[j] + (A->col);
       //C->val[cnt] = B->val[j];
       cnt++;
     }
@@ -777,7 +783,6 @@ void icsr_concat(iCSRmat* A,
   C->nnz = A->nnz + B->nnz;
   C->IA[C->row] = C->nnz;
 }
-
 
 /***********************************************************************************************/
 /**
