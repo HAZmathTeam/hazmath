@@ -7,7 +7,7 @@
 #endif
 
 #ifndef EPS0
-#define EPS0 1e00
+#define EPS0 1e-10
 #endif
 
 
