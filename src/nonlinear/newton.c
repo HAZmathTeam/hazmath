@@ -46,6 +46,8 @@ void initialize_newton(newton *n_it,input_param *inparam)
     n_it->sol_prev=malloc(sizeof(struct dvector));
     n_it->update=malloc(sizeof(struct dvector));
     n_it->rhs=NULL;     /* f - A(sol_prev) */
+    n_it->res_norm=0.0;
+    n_it->update_norm=0.0;
 
     return;
 }
@@ -148,7 +150,7 @@ void update_sol_newton(newton *n_it)
 
 /******************************************************************************************************/
 /*!
- * \fn int check_newton_convergence(newton *n_it,fespace* FE,trimesh* mesh, qcoordinates* cq)
+ * \fn INT check_newton_convergence(newton *n_it)
  *
  * \brief Checks if Newton has converged:
  *        If tol_type = 1: Check if ||nonlinear residual (rhs)|| < tol
@@ -156,17 +158,16 @@ void update_sol_newton(newton *n_it)
  *                      0: Check both
  *
  * \param n_it     Newton struct
- * \param FE       FE space
- * \param mesh     Mesh struct
- * \param cq       Quadrature for computing norms
  *
  */
-int check_newton_convergence(newton *n_it,fespace* FE,trimesh* mesh, qcoordinates* cq)
+INT check_newton_convergence(newton *n_it)
 {
-    int newton_stop = 0;
+    INT newton_stop = 0;
     REAL tol = n_it->tol;
-    REAL res_norm = L2norm(n_it->rhs->val,FE,mesh,cq);
-    REAL update_norm = L2norm(n_it->update->val,FE,mesh,cq);
+
+    // Get norms
+    REAL res_norm = n_it->res_norm;
+    REAL update_norm = n_it->update_norm;
 
     if(n_it->current_step>=n_it->max_steps) {
         newton_stop=1;
@@ -202,6 +203,60 @@ int check_newton_convergence(newton *n_it,fespace* FE,trimesh* mesh, qcoordinate
     }
 
     return newton_stop;
+}
+/******************************************************************************************************/
+
+/******************************************************************************************************/
+/*!
+ * \fn void get_residual_norms(newton *n_it,fespace* FE,trimesh* mesh, qcoordinates* cq)
+ *
+ * \brief Computes the norms of the nonlinear residual (rhs) and the update.
+ *
+ * \param n_it     Newton struct
+ * \param FE       FE space
+ * \param mesh     Mesh struct
+ * \param cq       Quadrature for computing norms
+ *
+ * \note Assumes non-block form
+ */
+void get_residual_norms(newton *n_it,fespace* FE,trimesh* mesh, qcoordinates* cq)
+{
+    n_it->res_norm = L2norm(n_it->rhs->val,FE,mesh,cq);
+    n_it->update_norm = L2norm(n_it->update->val,FE,mesh,cq);
+    return;
+}
+/******************************************************************************************************/
+
+/******************************************************************************************************/
+/*!
+ * \fn void get_blockresidual_norms(newton *n_it,block_fespace* FE,trimesh* mesh, qcoordinates* cq)
+ *
+ * \brief Computes the norms of the nonlinear residual (rhs) and the update.
+ *
+ * \param n_it     Newton struct
+ * \param FE       Block FE space
+ * \param mesh     Mesh struct
+ * \param cq       Quadrature for computing norms
+ *
+ * \note Assumes block form (and we store the total (combined) norm)
+ */
+void get_blockresidual_norms(newton *n_it,block_fespace* FE,trimesh* mesh, qcoordinates* cq)
+{
+    REAL* res_norm = (REAL *) calloc(FE->nspaces+1,sizeof(REAL));
+    L2norm_block(res_norm,n_it->rhs->val,FE,mesh,cq);
+    REAL* update_norm = (REAL *) calloc(FE->nspaces+1,sizeof(REAL));
+    L2norm_block(update_norm,n_it->update->val,FE,mesh,cq);
+
+    REAL total_res_norm = 0;
+    REAL total_update_norm = 0;
+
+    for(INT i=0;i<FE->nspaces;i++) {
+      total_res_norm += res_norm[i]*res_norm[i];
+      total_update_norm += update_norm[i]*update_norm[i];
+    }
+    n_it->res_norm = sqrt(total_res_norm);
+    n_it->update_norm = sqrt(total_update_norm);
+    return;
 }
 /******************************************************************************************************/
 
