@@ -57,6 +57,12 @@ typedef struct newton{
 
   //! RHS of Newton Iteration (nonlinear residual f- (A(sol_prev))
   dvector* rhs;
+
+  //! Norm of nonlinear residual (combined total if in block form)
+  REAL res_norm;
+
+  //! Norm of update (combined total if in block form)
+  REAL update_norm;
 	
 } newton;
 
