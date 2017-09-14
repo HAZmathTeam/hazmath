@@ -21,5 +21,6 @@ MGRAPH_SRCDIR = $(realpath ../../../../multigraph_2.0/src)
 #INCLUDE = -I$(SSDIR)/include
 
 ##########################################################
+LIBS = -lgfortran
 
 sinclude ../examples.mk
