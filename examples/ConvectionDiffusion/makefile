@@ -10,7 +10,7 @@ HEADERS = $(SRCFILE).h
 INCLUDE =
 
 ################comment the next two lines if you do not use mutigraph as solver.
-WITH_MGRAPH = no #no is default
+WITH_MGRAPH = yes
 MGRAPH_SRCDIR = $(realpath ../../../../multigraph_2.0/src)
 
 # if you have compiled hazmath with suitesparse support, uncomment the
