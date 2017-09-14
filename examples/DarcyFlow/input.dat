@@ -14,10 +14,9 @@ print_level			= 4;	% how much information to print out
 % files
 %---------------%
 
-%gridfile 			= ../grids/3D/unitCUBE_v27.haz
-%gridfile			= ../grids/3D/unitCUBE_v729.haz
+%gridfile 			= ../grids/3D/unitCUBE_n3.haz
+%gridfile			= ../grids/3D/unitCUBE_n9.haz
 gridfile                        = ../grids/3D/unitCUBE_n17.haz
-%gridfile                        = ../grids/3D/mesh_3d.haz
 output_dir                          = ./output/
 
 %---------------%

@@ -368,9 +368,6 @@ int main (int argc, char* argv[])
   free_mesh(&mesh);
 #if WITH_SUITESPARSE
   if (Numeric) umfpack_free_numeric(Numeric);
-#else
-  error_extlib(255,__FUNCTION__,"SuiteSparse");
-  return 0;
 #endif
 
   /*******************************************************************/
