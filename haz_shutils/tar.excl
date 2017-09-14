@@ -9,6 +9,7 @@ tar.excl
 .\#*
 lib/
 graphs/
+HeatPNP/
 *.example
 #examples/
 ConvectionDiffusion/
