@@ -217,7 +217,7 @@ int main (int argc, char* argv[])
     // Error Check
     if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
     break;        
-  case 4:  ; //empty first statement
+  case 55:  ; //empty first statement
 #ifdef MGRAPH
     // Multigraph preconditioner
     fprintf(stdout, "\nSolving using multigraph\n");
