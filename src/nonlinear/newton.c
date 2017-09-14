@@ -261,7 +261,7 @@ void get_update_norm(newton *n_it,fespace* FE,trimesh* mesh, qcoordinates* cq)
  */
 void get_blockresidual_norm(newton *n_it,block_fespace* FE,trimesh* mesh, qcoordinates* cq)
 {
-    REAL* res_norm = (REAL *) calloc(FE->nspaces+1,sizeof(REAL));
+    REAL* res_norm = (REAL *) calloc(FE->nspaces,sizeof(REAL));
     L2norm_block(res_norm,n_it->rhs->val,FE,mesh,cq);
 
     REAL total_res_norm = 0;
@@ -289,7 +289,7 @@ void get_blockresidual_norm(newton *n_it,block_fespace* FE,trimesh* mesh, qcoord
  */
 void get_blockupdate_norm(newton *n_it,block_fespace* FE,trimesh* mesh, qcoordinates* cq)
 {
-    REAL* update_norm = (REAL *) calloc(FE->nspaces+1,sizeof(REAL));
+    REAL* update_norm = (REAL *) calloc(FE->nspaces,sizeof(REAL));
     L2norm_block(update_norm,n_it->update->val,FE,mesh,cq);
 
     REAL total_update_norm = 0;

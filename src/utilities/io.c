@@ -165,7 +165,6 @@ void csr_print_matlab(FILE* fid,
   INT shift_flag = 0; // Check if Indexing starts at 0 or 1
 
   if(A->IA[0]==0) {
-    //printf("hello\n\n");
     dcsr_shift(A, 1);  // shift A
     shift_flag = 1;
   }
