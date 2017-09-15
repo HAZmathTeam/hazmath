@@ -279,6 +279,8 @@ void get_blockresidual_norm(newton *n_it,block_fespace* FE,trimesh* mesh, qcoord
       total_res_norm += res_norm[i]*res_norm[i];
     }
     n_it->res_norm = sqrt(total_res_norm);
+
+    if(res_norm) free(res_norm);
     return;
 }
 /******************************************************************************************************/
