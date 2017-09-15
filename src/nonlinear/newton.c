@@ -40,8 +40,13 @@ void initialize_newton(newton *n_it,input_param *inparam)
     // Matrices and Vectors
     // Assume the form A(sol) = f gets linearized to
     // Jacobian(sol_prev)[update] = f - A(sol_prev)
-    n_it->Jac=malloc(sizeof(struct dCSRmat));
-    n_it->Jac_block=malloc(sizeof(struct block_dCSRmat));
+    if(n_it->isblock) {// In block form the Jacobian is a block_dCSRmat
+      n_it->Jac=NULL;
+      n_it->Jac_block=malloc(sizeof(struct block_dCSRmat));
+    } else { //The Jacobian is a regular dCSRmat
+      n_it->Jac=malloc(sizeof(struct dCSRmat));
+      n_it->Jac_block=NULL;
+    }
     n_it->sol=malloc(sizeof(struct dvector));
     n_it->sol_prev=malloc(sizeof(struct dvector));
     n_it->update=malloc(sizeof(struct dvector));
@@ -66,16 +71,19 @@ void free_newton(newton* n_it)
 {
     if(n_it->Jac) {
         dcsr_free(n_it->Jac);
+        free(n_it->Jac);
         n_it->Jac=NULL;
     }
 
     if(n_it->Jac_block) {
         bdcsr_free(n_it->Jac_block);
+        free(n_it->Jac_block);
         n_it->Jac_block=NULL;
     }
 
     if(n_it->sol) {
         dvec_free(n_it->sol);
+        free(n_it->sol);
         n_it->sol=NULL;
     }
 
@@ -93,6 +101,7 @@ void free_newton(newton* n_it)
 
     if(n_it->rhs) {
         dvec_free(n_it->rhs);
+        free(n_it->rhs);
         n_it->rhs=NULL;
     }
 
