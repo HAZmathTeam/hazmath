@@ -500,7 +500,7 @@ void assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(RE
 
 /******************************************************************************************************/
 /*!
- * \fn assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void (*local_assembly)(REAL *,dvector *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,REAL),void (*local_rhs_assembly)(REAL *,dvector *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+ * \fn assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void (*local_assembly)(REAL *,REAL *,dvector *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time)
  *
  * \brief Computes the global stiffness BLOCK matrix and rhs for any a(u,v) = <f,v> bilinear form using various element
  *        types (eg. P0, P1, P2, Nedelec, and Raviart-Thomas).
@@ -522,8 +522,7 @@ void assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(RE
  * \note All matrices are assumed to be blocks and indexed at 1 in the CSR formatting.
  *
  * \param old_sol            FE approximation of previous nonlinear solution
- * \param local_assembly     Routine to get local matrices
- * \param local_rhs_assembly Routine to get local rhs vectors
+ * \param local_assembly     Routine to get local matrices and rhs
  * \param FE                 block FE Space
  * \param mesh               Mesh Data
  * \param cq                 Quadrature Nodes
@@ -535,7 +534,7 @@ void assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(RE
  * \return b                 Global RHS vector (Nonlinear residual)
  *
  */
-void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void (*local_assembly)(REAL *,dvector *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,REAL),void (*local_rhs_assembly)(REAL *,dvector *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time) 
+void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void (*local_assembly)(REAL *,REAL *,dvector *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time)
 {
   INT dof_per_elm = 0;
   INT v_per_elm = mesh->v_per_elm;
@@ -552,7 +551,7 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
     printf("You have %d FEM spaces, but only %dx%d blocks.  They must be consistent.\n\n",FE->nspaces,A->brow,A->bcol);
     exit(0);
   }
-  if(rhs!=NULL) {
+  if(b!=NULL) {
     b->row = FE->ndof;
     b->val = (REAL *) calloc(b->row,sizeof(REAL));
   }
@@ -593,7 +592,7 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
   INT local_size = dof_per_elm*dof_per_elm;
   REAL* ALoc = (REAL *) calloc(local_size,sizeof(REAL));
   REAL* bLoc=NULL;
-  if(rhs!=NULL)
+  if(b!=NULL)
     bLoc = (REAL *) calloc(dof_per_elm,sizeof(REAL));
 
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
@@ -605,7 +604,7 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
     for (j=0; j<local_size; j++) {
       ALoc[j]=0;
     }
-    if(rhs!=NULL) {
+    if(b!=NULL) {
       for (j=0; j<dof_per_elm; j++) {
         bLoc[j]=0;
       }
@@ -627,9 +626,12 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
     get_incidence_row(i,mesh->el_v,v_on_elm);
 
     // Compute Local Stiffness Matrix for given Element
-    (*local_assembly)(ALoc,old_sol,FE,mesh,cq,dof_on_elm,v_on_elm,i,time);
-    if(rhs!=NULL)
-      (*local_rhs_assembly)(bLoc,old_sol,FE,mesh,cq,dof_on_elm,v_on_elm,i,rhs,time);
+
+    if(b!=NULL) {
+      (*local_assembly)(ALoc,bLoc,old_sol,FE,mesh,cq,dof_on_elm,v_on_elm,i,rhs,time);
+    } else {
+      (*local_assembly)(ALoc,NULL,old_sol,FE,mesh,cq,dof_on_elm,v_on_elm,i,rhs,time);
+    }
 
     // Loop over DOF and place in appropriate slot globally
     block_LocaltoGlobal(dof_on_elm,FE,b,A,ALoc,bLoc);
