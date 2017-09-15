@@ -58,6 +58,7 @@ void initialize_newton(newton *n_it,input_param *inparam,INT ndof,INT blksize)
     n_it->update_norm=0.0;
 
     dvec_alloc(ndof,n_it->sol);
+    dvec_alloc(ndof,n_it->rhs);
 
     return;
 }
