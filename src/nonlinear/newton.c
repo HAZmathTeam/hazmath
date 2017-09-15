@@ -309,6 +309,8 @@ void get_blockupdate_norm(newton *n_it,block_fespace* FE,trimesh* mesh, qcoordin
       total_update_norm += update_norm[i]*update_norm[i];
     }
     n_it->update_norm = sqrt(total_update_norm);
+
+    if(update_norm) free(update_norm);
     return;
 }
 /******************************************************************************************************/
