@@ -551,8 +551,11 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
     printf("You have %d FEM spaces, but only %dx%d blocks.  They must be consistent.\n\n",FE->nspaces,A->brow,A->bcol);
     exit(0);
   }
-  if(b!=NULL) {
-    b->row = FE->ndof;
+
+  b->row = FE->ndof;
+  if(b->val) {
+    dvec_set(b->row,b,0.0);
+  } else {
     b->val = (REAL *) calloc(b->row,sizeof(REAL));
   }
 
@@ -643,6 +646,8 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
   return;
 }
 /******************************************************************************************************/
+
+
 
 // Assembles Global RHS vectors (if needed separately)
 /******************************************************************************************************/
