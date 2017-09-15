@@ -580,7 +580,8 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
         }
 
         // Set values
-        A->blocks[i*nblocks+j]->val = (REAL *) calloc(A->blocks[i*nblocks+j]->nnz,sizeof(REAL));
+        if(A->blocks[i*nblocks+j]->val==NULL)
+          A->blocks[i*nblocks+j]->val = (REAL *) calloc(A->blocks[i*nblocks+j]->nnz,sizeof(REAL));
         for (k=0; k<A->blocks[i*nblocks+j]->nnz; k++) {
           A->blocks[i*nblocks+j]->val[k] = 0;
         }
