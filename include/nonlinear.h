@@ -23,6 +23,9 @@
  */
 typedef struct newton{
 
+  //! Indicate if matrices are in block form 1=yes 0=no
+  INT isblock;
+
   //! Max number of Newton Steps
   INT max_steps;
 
