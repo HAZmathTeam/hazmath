@@ -12,16 +12,18 @@
 
 /******************************************************************************************************/
 /*!
- * \fn void initialize_newton(newton *n_it,input_param *inparam)
+ * \fn void initialize_newton(newton *n_it,input_param *inparam,INT ndof,INT blksize)
  *
  * \brief Initialize the Newton struct for nonlinear iterations.
  *
  * \param inparam       Input from input parameter list
+ * \param ndof          Number of DOF in system
+ * \param blksize       Block size of if block matrices (assumes square)
  *
  * \return n_it         Struct for Newton Iterations
  *
  */
-void initialize_newton(newton *n_it,input_param *inparam)
+void initialize_newton(newton *n_it,input_param *inparam,INT ndof,INT blksize)
 {
 
     // Number of Newton steps
@@ -43,6 +45,7 @@ void initialize_newton(newton *n_it,input_param *inparam)
     if(n_it->isblock) {// In block form the Jacobian is a block_dCSRmat
       n_it->Jac=NULL;
       n_it->Jac_block=malloc(sizeof(struct block_dCSRmat));
+      bdcsr_alloc(blksize,blksize,n_it->Jac_block);
     } else { //The Jacobian is a regular dCSRmat
       n_it->Jac=malloc(sizeof(struct dCSRmat));
       n_it->Jac_block=NULL;
@@ -53,6 +56,8 @@ void initialize_newton(newton *n_it,input_param *inparam)
     n_it->rhs=malloc(sizeof(struct dvector));     /* f - A(sol_prev) */
     n_it->res_norm=0.0;
     n_it->update_norm=0.0;
+
+    dvec_alloc(ndof,n_it->sol);
 
     return;
 }

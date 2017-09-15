@@ -585,9 +585,8 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
     }
     dof_per_elm += FE->var_spaces[i]->dof_per_elm;
   }
-  
-  // Now Build Global Matrix entries
 
+  // Now Build Global Matrix entries
   /* Loop over all Elements and build local matrix and rhs */
   INT local_size = dof_per_elm*dof_per_elm;
   REAL* ALoc = (REAL *) calloc(local_size,sizeof(REAL));
@@ -626,7 +625,6 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
     get_incidence_row(i,mesh->el_v,v_on_elm);
 
     // Compute Local Stiffness Matrix for given Element
-
     if(b!=NULL) {
       (*local_assembly)(ALoc,bLoc,old_sol,FE,mesh,cq,dof_on_elm,v_on_elm,i,rhs,time);
     } else {
