@@ -13,7 +13,7 @@
 #include "umfpack.h"
 #endif
 
-
+// dCSRmat Routines
 /**
  * \fn directsolve_UMF(dCSRmat *A,dvector *f,dvector *x,INT print_level)
  *
@@ -194,8 +194,125 @@ INT solve_UMF(dCSRmat *A,
 #endif
 }
 
+// block_dCSRmat routines
+/**
+ * \fn block_directsolve_UMF(block_dCSRmat *bA,dvector *f,dvector *x,INT print_level)
+ *
+ * \brief Performs Gaussian Elmination on Ax = f, using UMFPACK (Assumes A is in block_dCSR format)
+ * \note This routine does everything, factorization and solve in one shot.  So it is not
+ *       efficient if you want to solve the same matrix system many times, since it will not
+ *       save the factorization.
+ *
+ * \param A	       	        Matrix A to be solved
+ * \param f	       	        Right hand side vector
+ * \param print_level       Flag to print messages to screen
+ *
+ * \return x	         	Solution
+ *
+ */
+INT block_directsolve_UMF(block_dCSRmat *bA,
+                    dvector *f,
+                    dvector *x,
+                    INT print_level)
+{
+#if WITH_SUITESPARSE
+  INT err_flag;
 
-/***************************************************************************************************************************/
+  // Convert block matrix to regular matrix
+  dCSRmat A = bdcsr_2_dcsr(bA);
+
+  // Call regular solve
+  err_flag = directsolve_UMF(&A,f,x,print_level);
+
+  // Clean up
+  dcsr_free(&A);
+
+  return err_flag;
+#else
+  error_extlib(252, __FUNCTION__, "SuiteSparse");
+  return 0;
+#endif
+}
+
+/**
+ * \fn void* block_factorize_UMF(block_dCSRmat *bA,INT print_level)
+ *
+ * \brief Performs factorization of A using UMFPACK (Assumes A is in block_dCSR format)
+ * \note This routine does factorization only.
+ *
+ * \param A	       	        Matrix A to be solved (no need of transpose)
+ *
+ * \return Numeric	        Stores LU decomposition of A
+ *
+ */
+void* block_factorize_UMF(block_dCSRmat *bA,
+                    INT print_level)
+{
+
+#if WITH_SUITESPARSE
+
+  // Data for Numerical factorization
+  void* Numeric = NULL;
+
+  // Convert block matrix to regular matrix
+  dCSRmat A = bdcsr_2_dcsr(bA);
+
+  // Factorize
+  Numeric = factorize_UMF(&A,print_level);
+
+  // Cleanup
+  dcsr_free(&A);
+
+  return Numeric;
+#else
+  error_extlib(252, __FUNCTION__, "SuiteSparse");
+  return 0;
+#endif
+}
+
+/**
+ * \fn INT block_solve_UMF(block_dCSRmat *bA,dvector *f,dvector *x, void* Numeric, INT print_level)
+ *
+ * \brief Performs Gaussian Elmination on Ax = f, using UMFPACK
+ *        (Assumes A is in block_dCSR format and factorization has been done)
+ *
+ * \note This routine does solve only
+ *
+ * \param A	       	        Matrix A to be solved
+ * \param f	       	        Right hand side vector
+ * \param Numeric           LU decomposition of A
+ * \param print_level       Flag to print messages to screen
+ *
+ * \return x	         	Solution
+ *
+ */
+INT block_solve_UMF(block_dCSRmat *bA,
+              dvector *f,
+              dvector *x,
+              void *Numeric,
+              INT print_level)
+{
+
+#if WITH_SUITESPARSE
+  INT err_flag;
+
+  // Convert block matrix to regular matrix
+  dCSRmat A = bdcsr_2_dcsr(bA);
+
+  // Call regular solve
+  err_flag = solve_UMF(&A,f,x,Numeric,print_level);
+
+  // Clean up
+  dcsr_free(&A);
+
+  return err_flag;
+#else
+  error_extlib(252, __FUNCTION__, "SuiteSparse");
+  return 0;
+#endif
+}
+
+// Suitesparse routines - assumes conversions have been done
 /**
  * \fn void* umfpack_factorize (dCSRmat *ptrA, const SHORT prtlvl)
  * \brief factorize A by UMFpack
