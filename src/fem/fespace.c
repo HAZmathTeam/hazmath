@@ -32,7 +32,6 @@ void initialize_fespace(fespace *FE)
   FE->f_dof = NULL;
   FE->dirichlet = NULL;
   FE->dof_flag = NULL;
-  FE->periodic = NULL;
   FE->phi = NULL;
   FE->dphi = NULL;
 
@@ -301,11 +300,6 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     status = ERROR_FE_TYPE;
     check_error(status, __FUNCTION__);
   }
-
-  // Assume all DOF are not periodic to start
-  for(i=0;i<FE->ndof;i++) {
-    FE->periodic[i] = -1;
-  }
   
   return;
 }
@@ -354,11 +348,6 @@ void free_fespace(fespace* FE)
   if(FE->dof_flag) {
     free(FE->dof_flag);
     FE->dof_flag = NULL;
-  }
-
-  if(FE->periodic) {
-    free(FE->periodic);
-    FE->periodic = NULL;
   }
 
   if(FE->phi) {

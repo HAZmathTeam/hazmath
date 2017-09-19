@@ -22,6 +22,7 @@
  */
 
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************************/
+#include "global.h"
 #include "hazmath.h"
 #include "StokesData.h"
 #include "StokesSystem.h"
