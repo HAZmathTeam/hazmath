@@ -98,6 +98,9 @@ typedef struct fespace{
   //! DOF flags - indicates if the DOF is a special DOF (i.e. on certain boundary)
   INT* dof_flag;
 
+  //! Perioidc Boundaries (For each DOF indicate if it is periodic with another DOF.  Mark -1 for non-periodic)
+  INT* periodic;
+
   //! Basis Functions and Derivatives
   REAL* phi;
   REAL* dphi;

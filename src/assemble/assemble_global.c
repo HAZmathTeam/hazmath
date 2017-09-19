@@ -940,7 +940,7 @@ void assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_a
 // Assembly over Faces/Boundaries
 /******************************************************************************************************/
 /*!
- * \fn assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*coeff)(REAL *,REAL *,REAL),void (*rhs)(REAL *,REAL *, REAL),REAL time,INT flag)
+ * \fn assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*coeff)(REAL *,REAL *,REAL),void (*rhs)(REAL *,REAL *, REAL),REAL time,INT flag0,INT flag1)
  *
  * \brief Computes the global stiffness matrix for any "boundary" bilinear form using various element types
  *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
@@ -968,13 +968,13 @@ void assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_a
  * \param rhs                     Routine to get RHS function (NULL if only assembling matrix)
  * \param coeff                   Function that gives coefficient (for now assume constant)
  * \param time                    Physical Time if time dependent
- * \param flag                    Marker for which faces are included in boundary integration
+ * \param flag0,flag1             Marker for which faces are included in boundary integration (range of faces from flag0 to flag1)
  *
  * \return A                      Global stiffness CSR matrix
  * \return b                      Global RHS vector
  *
  */
-void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*coeff)(REAL *,REAL *,REAL),void (*rhs)(REAL *,REAL *, REAL),REAL time,INT flag) 
+void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*coeff)(REAL *,REAL *,REAL),void (*rhs)(REAL *,REAL *, REAL),REAL time,INT flag0,INT flag1)
 {
   INT dof_per_elm = FE->dof_per_elm;
   INT v_per_elm = mesh->v_per_elm;
@@ -1004,11 +1004,11 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
 
   // Get Sparsity Structure First
   // Non-zeros of A and IA (ignores cancellations, so maybe more than necessary)
-  create_CSR_rows_flag(A,FE,flag);
+  create_CSR_rows_flag(A,FE,flag0,flag1);
 
   // Columns of A -> JA
   A->JA = (INT *) calloc(A->nnz,sizeof(INT));
-  create_CSR_cols_flag(A,FE,flag);
+  create_CSR_cols_flag(A,FE,flag0,flag1);
   
   // Set values
   A->val = (REAL *) calloc(A->nnz,sizeof(REAL));
@@ -1038,7 +1038,7 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
   // Loop over boundary faces
   for (i=0; i<mesh->nface; i++) {
     // Only grab the faces on the flagged boundary
-    if(mesh->f_bdry[i]==flag) {
+    if(mesh->f_bdry[i]>=flag0 && mesh->f_bdry[i]<=flag1) {
       // Zero out local matrices
       for (j=0; j<local_size; j++) {
         ALoc[j]=0;
@@ -1069,7 +1069,7 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
         (*local_rhs_assembly_face)(bLoc,old_sol,FE,mesh,cq,dof_on_f,dof_on_elm,v_on_elm,i,elm,rhs,time);
       
       // Loop over DOF and place in appropriate slot globally
-      LocaltoGlobal_face(dof_on_f,dof_per_face,FE,b,A,ALoc,bLoc,flag);
+      LocaltoGlobal_face(dof_on_f,dof_per_face,FE,b,A,ALoc,bLoc,flag0,flag1);
     }
   }
 
@@ -1086,7 +1086,7 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
 
 /******************************************************************************************************/
 /*!
- * \fn void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *, REAL),REAL time,INT flag)
+ * \fn void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *, REAL),REAL time,INT flag0,INT flag1)
  *
  * \brief Computes the RHS for any "boundary" bilinear form using various element types
  *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
@@ -1114,12 +1114,12 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
  * \param cq                      Quadrature Nodes
  * \param rhs                     Routine to get RHS function (NULL if only assembling matrix)
  * \param time                    Physical Time if time dependent
- * \param flag                    Marker for which faces are included in boundary integration
+ * \param flag0,flag1             Marker for which faces are included in boundary integration (range of faces from flag0 to flag1)
  *
  * \return b                      Global RHS vector
  *
  */
-void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *, REAL),REAL time,INT flag)
+void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *, REAL),REAL time,INT flag0,INT flag1)
 {
   INT dof_per_elm = FE->dof_per_elm;
   INT v_per_elm = mesh->v_per_elm;
@@ -1162,7 +1162,7 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
   // Loop over boundary faces
   for (i=0; i<mesh->nface; i++) {
     // Only grab the faces on the flagged boundary
-    if(mesh->f_bdry[i]==flag) {
+    if(mesh->f_bdry[i]>=flag0 && mesh->f_bdry[i]<=flag1) {
       // Zero out local matrices
       for (j=0; j<dof_per_face; j++) {
         bLoc[j]=0;

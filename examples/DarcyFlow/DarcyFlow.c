@@ -173,7 +173,7 @@ int main (int argc, char* argv[])
   // Boundary Integral <g,r*n>_boundary
   // Flag is which boundary you want to compute this
   INT flag = 1;
-  assemble_global_RHS_face(&b_bdry,NULL,steady_state_Darcy_bdryRHS,&FE_q,&mesh,cq,myg,0.0,flag);
+  assemble_global_RHS_face(&b_bdry,NULL,steady_state_Darcy_bdryRHS,&FE_q,&mesh,cq,myg,0.0,flag,flag);
 
   // Add RHS vectors together
   for(i=0;i<FE_q.ndof;i++) {
@@ -264,7 +264,7 @@ int main (int argc, char* argv[])
       // Interior
       assemble_global_RHS_block(time_stepper.rhs,steady_state_Darcy_RHS,&FE,&mesh,cq,source,time_stepper.time);
       // Boundary Integral <g,r*n>_boundary
-      assemble_global_RHS_face(&b_bdry,NULL,steady_state_Darcy_bdryRHS,&FE_q,&mesh,cq,myg,0.0,flag);
+      assemble_global_RHS_face(&b_bdry,NULL,steady_state_Darcy_bdryRHS,&FE_q,&mesh,cq,myg,0.0,flag,flag);
       // Add RHS vectors together
       for(i=0;i<FE_q.ndof;i++) {
         time_stepper.rhs->val[i] += b_bdry.val[i];
