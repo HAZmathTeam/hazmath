@@ -207,7 +207,7 @@ void create_CSR_rows_withBC(dCSRmat *A, fespace *FE)
 
 /******************************************************************************************************/
 /*!
- * \fn void create_CSR_rows_flag(dCSRmat *A,fespace *FE,INT flag0,INT flag1)
+ * \fn void create_CSR_rows_flag(dCSRmat *A,fespace *FE,INT flag)
  *
  * \brief Computes the "possible" number of nonzeros for the global stiffness matrix
  *        Also takes into account special boundary conditions.  Here if the boundary
@@ -217,12 +217,12 @@ void create_CSR_rows_withBC(dCSRmat *A, fespace *FE)
  *
  * \param FE            FE Space
  * \param A             dCSRmat Stiffness Matrix
- * \param flag0,flag1   Indicates range of boundaries we care about
+ * \param flag          Indicates boundaries we care about
  *
  * \return A.IA         Row structure of CSR matrix
  * \return A.nnz        Number of nonzeros of A
  */
-void create_CSR_rows_flag(dCSRmat *A, fespace *FE,INT flag0,INT flag1)
+void create_CSR_rows_flag(dCSRmat *A, fespace *FE,INT flag)
 {
   INT i,j,k,j_a,j_b,k_a,k_b,mydof,if1,icp;
 
@@ -243,7 +243,7 @@ void create_CSR_rows_flag(dCSRmat *A, fespace *FE,INT flag0,INT flag1)
   for (i=0; i<ndof; i++) {
     A->IA[i] = icp;
     // Check if this is a boundary dof we want
-    if (FE->dof_flag[i]>=flag0 && FE->dof_flag[i]<=flag1) {
+    if (FE->dof_flag[i]==flag) {
       // Loop over all Elements connected to particular edge
       j_a = dof_el.IA[i];
       j_b = dof_el.IA[i+1]-1;
@@ -253,7 +253,7 @@ void create_CSR_rows_flag(dCSRmat *A, fespace *FE,INT flag0,INT flag1)
         k_b = FE->el_dof->IA[if1]-1;
         for (k=k_a; k<=k_b; k++) {
           mydof = FE->el_dof->JA[k-1];
-          if (ix[mydof-1]!=i+1 && (FE->dof_flag[mydof-1]>=flag0 && FE->dof_flag[mydof-1]<=flag1)) { /* We haven't been here AND it is a boundary */
+          if (ix[mydof-1]!=i+1 && FE->dof_flag[mydof-1]==flag) { /* We haven't been here AND it is a boundary */
             icp++;
             ix[mydof-1] = i+1;
           }
@@ -455,7 +455,7 @@ void create_CSR_cols_withBC(dCSRmat *A, fespace *FE)
 
 /******************************************************************************************************/
 /*!
- * \fn void create_CSR_cols_flag(dCSRmat *A, fespace *FE,INT flag0,INT flag1)
+ * \fn void create_CSR_cols_flag(dCSRmat *A, fespace *FE,INT flag)
  *
  * \brief Finds the column sparsity structure of the Global Stiffness Matrix
  *        Also takes into account special boundary conditions.  Here if the boundary
@@ -465,12 +465,12 @@ void create_CSR_cols_withBC(dCSRmat *A, fespace *FE)
  *
  * \param FE            FE Space
  * \param A             dCSRmat Stiffness Matrix
- * \param flag0,flag1   Indicates which range of boundaries DOF to grab
+ * \param flag          Indicates which boundary DOF to grab
  *
  * \return A.JA         Columns of CSR matrix
  *
  */
-void create_CSR_cols_flag(dCSRmat *A, fespace *FE,INT flag0,INT flag1)
+void create_CSR_cols_flag(dCSRmat *A, fespace *FE,INT flag)
 {
   INT i,j,k,j_a,j_b,k_a,k_b,mydof,if1,icp;
 
@@ -489,7 +489,7 @@ void create_CSR_cols_flag(dCSRmat *A, fespace *FE,INT flag0,INT flag1)
   icp=1;
   for (i=0; i<ndof; i++) {
     // Check if this is a boundary edge
-    if (FE->dof_flag[i]>=flag0 && FE->dof_flag[i]<=flag1) {
+    if (FE->dof_flag[i]==flag) {
       // Loop over all Elements connected to particular edge
       j_a = dof_el.IA[i];
       j_b = dof_el.IA[i+1]-1;
@@ -499,7 +499,7 @@ void create_CSR_cols_flag(dCSRmat *A, fespace *FE,INT flag0,INT flag1)
         k_b = FE->el_dof->IA[if1]-1;
         for (k=k_a; k<=k_b; k++) {
           mydof = FE->el_dof->JA[k-1];
-          if (ix[mydof-1]!=i+1 && (FE->dof_flag[mydof-1]>=flag0 && FE->dof_flag[mydof-1]<=flag1)) { /* We haven't been here AND it is a boundary */
+          if (ix[mydof-1]!=i+1 && FE->dof_flag[mydof-1]==flag) { /* We haven't been here AND it is a boundary */
             A->JA[icp-1] = mydof;
             icp++;
             ix[mydof-1] = i+1;
@@ -731,7 +731,7 @@ void LocaltoGlobal_withBC(INT *dof_on_elm,fespace *FE,dvector *b,dCSRmat *A,REAL
 
 /******************************************************************************************************/
 /*!
- * \fn LocaltoGlobal_face(INT *dof_on_f,INT dof_per_f,fespace *FE,dvector *b,dCSRmat *A,REAL *ALoc,REAL *bLoc,INT flag0,INT flag1)
+ * \fn LocaltoGlobal_face(INT *dof_on_f,INT dof_per_f,fespace *FE,dvector *b,dCSRmat *A,REAL *ALoc,REAL *bLoc,INT flag)
  *
  * \brief Maps the local matrix to global matrix considering "special" boundaries
  *        Flag indicates which types of boundaries to consider as Dirichlet
@@ -742,25 +742,25 @@ void LocaltoGlobal_withBC(INT *dof_on_elm,fespace *FE,dvector *b,dCSRmat *A,REAL
  * \param FE            FE Space
  * \param ALoc          Local stiffness matrix (full matrix)
  * \param bLoc          Local RHS vector
- * \param flag0,flag1   Indicates which range of boundaries DOF to grab
+ * \param flag          Indicates which boundary DOF to grab
  *
  * \return A            Global CSR matrix
  * \return b            Global RHS vector
  *
  */
-void LocaltoGlobal_face(INT *dof_on_f,INT dof_per_f,fespace *FE,dvector *b,dCSRmat *A,REAL *ALoc,REAL *bLoc,INT flag0,INT flag1)
+void LocaltoGlobal_face(INT *dof_on_f,INT dof_per_f,fespace *FE,dvector *b,dCSRmat *A,REAL *ALoc,REAL *bLoc,INT flag) 
 {
   INT i,j,k,row,col,col_a,col_b,acol;
 
   for (i=0; i<dof_per_f; i++) { /* Rows of Local Stiffness */
     row = dof_on_f[i]-1;
-    if (FE->dof_flag[row]>=flag0 && FE->dof_flag[row]<=flag1) { /* Only if on special boundary */
+    if (FE->dof_flag[row]==flag) { /* Only if on special boundary */
       if(bLoc!=NULL)
         b->val[row] = b->val[row] + bLoc[i];
 
       for (j=0; j<dof_per_f; j++) { /* Columns of Local Stiffness */
         col = dof_on_f[j]-1;
-        if (FE->dof_flag[col]>=flag0 && FE->dof_flag[col]<=flag1) { /* Only do stuff if hit a special boundary */
+        if (FE->dof_flag[col]==flag) { /* Only do stuff if hit a special boundary */
           col_a = A->IA[row]-1;
           col_b = A->IA[row+1]-1;
           for (k=col_a; k<col_b; k++) { /* Columns of A */

@@ -26,6 +26,7 @@ BEGIN {
   print "#include <unistd.h>"
   print "#include <assert.h>"
   print "// Internal Includes"
+  print "#include \"common.h\""
   print "#include \"macro.h\""
   print "#include \"grid.h\""
   print "#include \"sparse.h\""
