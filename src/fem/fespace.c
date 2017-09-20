@@ -693,12 +693,25 @@ void dump_fespace(fespace *FE,char *varname,char *dir)
  * \return FE.dirichlet    Binary boundary array for DOF
  *
  */
-void set_dirichlet_bdry(fespace* FE,trimesh* mesh, const INT flag0, const INT flag1) 
+void set_dirichlet_bdry(fespace* FE,trimesh* mesh,		\
+			const INT flag0, const INT flag1)
 {
   INT i;
   for(i=0;i<FE->ndof;i++) {
-    if((FE->dof_flag[i])>=flag0 && (FE->dof_flag[i]<=flag1)) {
+    /* in fem.h: 
+       #define MARKER_DIRICHLET 1
+       #define MARKER_NEUMANN  17
+       #define MARKER_ROBIN  33
+       #define MARKER_BOUNDARY_NO  65
+    */
+    /* if((FE->dof_flag[i])>=flag0 && (FE->dof_flag[i]<=flag1)) { */
+    /*(ltz change this to half open interval):*/
+    if((FE->dof_flag[i])>=flag0 && (FE->dof_flag[i] < flag1)) {
       FE->dirichlet[i] = 1;
+      /* (ltz) FE->dirichlet[i] = FE->dof_flag[i]; */ /* we should have here
+					     something like this, so
+					     this is a hack for the
+					     moment */
     } else {
       FE->dirichlet[i] = 0;
     }
