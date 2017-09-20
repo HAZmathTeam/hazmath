@@ -28,26 +28,48 @@ void porosity(REAL *val,REAL* x,REAL time) {
 // W
 void source(REAL *val,REAL* x,REAL time) {
   *val = 0.0;
+  /* fprintf(stdout,"\nin %s: %i %i %i %i %i\n",__FUNCTION__,	\ */
+  /* 	  flag_for_simplex[0],			\ */
+  /* 	  flag_for_simplex[1],			\ */
+  /* 	  flag_for_simplex[2],			\ */
+  /* 	  flag_for_simplex[3],			\ */
+  /* 	  flag_for_simplex[4]			\ */
+  /* 	  );fflush(stdout); */
 }
 
-// Ss : Negative because goes into the 2,2 block after time discretization
-void Ss(REAL *val,REAL* x,REAL time) {
+// Ss (storage coefficient: Negative because goes into the 2,2 block
+// after time discretization
+void storage_coeff(REAL *val,REAL* x,REAL time) {
   *val = -1.0;
+  /* fprintf(stdout,"\nin %s: %i %i %i %i %i\n",__FUNCTION__,	\ */
+  /* 	  flag_for_simplex[0],			\ */
+  /* 	  flag_for_simplex[1],			\ */
+  /* 	  flag_for_simplex[2],			\ */
+  /* 	  flag_for_simplex[3],			\ */
+  /* 	  flag_for_simplex[4]			\ */
+  /* 	  );fflush(stdout); */
 }
 
 // g : Dirichlet conditions for h. 
 void myg(REAL *val,REAL* x,REAL time) {
   *val = 0.0;
+  /* fprintf(stdout,"\nin %s: %i %i %i %i %i\n",__FUNCTION__,	\ */
+  /* 	  flag_for_simplex[0],			\ */
+  /* 	  flag_for_simplex[1],			\ */
+  /* 	  flag_for_simplex[2],			\ */
+  /* 	  flag_for_simplex[3],			\ */
+  /* 	  flag_for_simplex[4]			\ */
+  /* 	  );fflush(stdout); */
 }
 
 // Boundary Conditions
-void bc_q(REAL *val,REAL* x,REAL time) {
+void bcond_q(REAL *val,REAL* x,REAL time) {
   // Known flux on top and bottom
-  if(x[2]==1) { // Rainfall
+  if(flag_for_simplex[0]==22) { // Rainfall
     val[0] = 0.0; 
     val[1] = 0.0;
-    val[2] = -1.0;
-  } else if(x[2]==0) { // No flux in the ground
+    val[2] = -0.01;
+  } else if(flag_for_simplex[0]==19) { // No flux in the ground
     val[0] = 0.0; 
     val[1] = 0.0;
     val[2] = 0.0; 
@@ -56,33 +78,47 @@ void bc_q(REAL *val,REAL* x,REAL time) {
     val[1] = 0.0;
     val[2] = 0.0;
   }
+  /* fprintf(stdout,"\nin %s: %i %i %i %i %i\n",__FUNCTION__,	\ */
+  /* 	  flag_for_simplex[0],			\ */
+  /* 	  flag_for_simplex[1],			\ */
+  /* 	  flag_for_simplex[2],			\ */
+  /* 	  flag_for_simplex[3],			\ */
+  /* 	  flag_for_simplex[4]			\ */
+  /* 	  );fflush(stdout); */
 }
-void bc_h(REAL *val,REAL* x,REAL time) {
+void bcond_h(REAL *val,REAL* x,REAL time) {
   // it is not called
     *val = 0.0;
 }
 // combines the above. 
-void bc(REAL *val,REAL* x, REAL time) {
+void bcond(REAL *val,REAL* x, REAL time) {
   REAL mybc_q[3];
   REAL mybc_h;
-  bc_q(mybc_q,x,time);
-  bc_h(&mybc_h,x,time);
+  bcond_q(mybc_q,x,time);
+  bcond_h(&mybc_h,x,time);
   // q
   val[0] = mybc_q[0];
   val[1] = mybc_q[1];
   val[2] = mybc_q[2];
   //h
   val[3] = mybc_h;
+  /* fprintf(stdout,"\nin %s: %i %i %i %i %i\n",__FUNCTION__,	\ */
+  /* 	  flag_for_simplex[0],			\ */
+  /* 	  flag_for_simplex[1],			\ */
+  /* 	  flag_for_simplex[2],			\ */
+  /* 	  flag_for_simplex[3],			\ */
+  /* 	  flag_for_simplex[4]			\ */
+  /* 	  );fflush(stdout); */
 }
 
 // Initial Conditions
 void initial_q(REAL *val,REAL* x,REAL time) {
   // Known flux on top and bottom
-  if(x[2]==1) { // Rainfall
+  if(flag_for_simplex[0]==22) { // Rainfall
     val[0] = 0.0;
     val[1] = 0.0;
-    val[2] = -1.0;
-  } else if(x[2]==0) { // No flux in the ground
+    val[2] = -0.01;
+  } else if(flag_for_simplex[0]==19){// No flux in the ground
     val[0] = 0.0;
     val[1] = 0.0;
     val[2] = 0.0;
@@ -91,6 +127,13 @@ void initial_q(REAL *val,REAL* x,REAL time) {
     val[1] = 0.0;
     val[2] = 0.0;
   }
+  /* fprintf(stdout,"\nin %s: %i %i %i %i %i\n",__FUNCTION__,	\ */
+  /* 	  flag_for_simplex[0],			\ */
+  /* 	  flag_for_simplex[1],			\ */
+  /* 	  flag_for_simplex[2],			\ */
+  /* 	  flag_for_simplex[3],			\ */
+  /* 	  flag_for_simplex[4]			\ */
+  /* 	  );fflush(stdout); */
 }
 void initial_h(REAL *val,REAL* x,REAL time) {
     *val = 0.0;
@@ -106,6 +149,13 @@ void initial_conditions(REAL *val,REAL* x, REAL time) {
   val[2] = myinit_q[2];
   //h
   val[3] = myinit_h;
+  /* fprintf(stdout,"\nin %s: %i %i %i %i %i\n",__FUNCTION__,	\ */
+  /* 	  flag_for_simplex[0],			\ */
+  /* 	  flag_for_simplex[1],			\ */
+  /* 	  flag_for_simplex[2],			\ */
+  /* 	  flag_for_simplex[3],			\ */
+  /* 	  flag_for_simplex[4]			\ */
+  /* 	  );fflush(stdout); */
 }
 
 void mgraph_wrap(dCSRmat A, dvector f, dvector *u);

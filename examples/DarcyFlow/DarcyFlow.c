@@ -105,14 +105,16 @@ int main (int argc, char* argv[])
     dump_mesh_vtk(namevtk,&mesh);
   }
 
-  // Set Dirichlet Boundaries
-  set_dirichlet_bdry(&FE_q,&mesh,1,1);
-  for(i=0;i<FE_q.ndof;i++) {
+  // Set ESSENTIAL (Dirichlet) Boundaries. For mixed formulation
+  // essential = Neumann.
+  set_dirichlet_bdry(&FE_q,&mesh,(INT )MARKER_NEUMANN,(INT )MARKER_ROBIN);
+  /*(ltz) unclear why weneed this here, it should be gone
+    for(i=0;i<FE_q.ndof;i++) {
     if(FE_q.dirichlet[i]==1 && (mesh.f_mid[i*dim+2]!=1 && mesh.f_mid[i*dim+2]!=0)) {
-      FE_q.dirichlet[i] = 0;
+    FE_q.dirichlet[i] = 0;
     }
-  }
-
+    }
+  */
   // Create Block System with ordering (q,h)
   INT ndof = FE_q.ndof + FE_h.ndof;
   // Get Global FE Space
@@ -173,7 +175,7 @@ int main (int argc, char* argv[])
 
   // Boundary Integral <g,r*n>_boundary
   // Flag is which boundary you want to compute this
-  INT flag = 1;
+  INT flag = 1; //this flag should be irrelevant here. but it is used 
   assemble_global_RHS_face(&b_bdry,NULL,steady_state_Darcy_bdryRHS,&FE_q,&mesh,cq,myg,0.0,flag);
 
   // Add RHS vectors together
@@ -192,9 +194,9 @@ int main (int argc, char* argv[])
   dcsr_set_zeromatrix(M.blocks[2], A.blocks[2]->row,A.blocks[2]->col,1);
 
   // Get Mass Matrix for h
-  assemble_global(M.blocks[3],NULL,assemble_mass_local,&FE_h,&mesh,cq,NULL,Ss,0.0);
+  assemble_global(M.blocks[3],NULL,assemble_mass_local,&FE_h,&mesh,cq,NULL,storage_coeff,0.0);
 
-  // Create Time Operator (one with BC and one without)
+  // Create Time Operator (one with BCOND and one without)
   initialize_blktimestepper(&time_stepper,&inparam,0,FE.ndof,2);
   time_stepper.A = &A;
   time_stepper.M = &M;
@@ -277,9 +279,9 @@ int main (int argc, char* argv[])
 
     // For first time step eliminate boundary conditions in matrix and rhs
     if(j==0) {
-      eliminate_DirichletBC_blockFE_blockA(bc,&FE,&mesh,time_stepper.rhs_time,time_stepper.At,time_stepper.time);
+      eliminate_DirichletBC_blockFE_blockA(bcond,&FE,&mesh,time_stepper.rhs_time,time_stepper.At,time_stepper.time);
     } else {
-      eliminate_DirichletBC_RHS_blockFE_blockA(bc,&FE,&mesh,time_stepper.rhs_time,time_stepper.At_noBC,time_stepper.time);
+      eliminate_DirichletBC_RHS_blockFE_blockA(bcond,&FE,&mesh,time_stepper.rhs_time,time_stepper.At_noBC,time_stepper.time);
     }
 
     // Solve

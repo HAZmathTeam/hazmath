@@ -187,7 +187,7 @@ void create_CSR_rows_withBC(dCSRmat *A, fespace *FE)
         k_b = FE->el_dof->IA[if1]-1;
         for (k=k_a; k<=k_b; k++) {
           mydof = FE->el_dof->JA[k-1];
-          if (ix[mydof-1]!=i+1 && FE->dirichlet[mydof-1]==0) { /* We haven't been here AND it's not a boundary */
+          if (ix[mydof-1]!=i+1 && FE->dirichlet[mydof-1]==0) { /* We haven't been here AND it's not a Dirichlet boundary */
             icp++;
             ix[mydof-1] = i+1;
           }
@@ -253,7 +253,7 @@ void create_CSR_rows_flag(dCSRmat *A, fespace *FE,INT flag)
         k_b = FE->el_dof->IA[if1]-1;
         for (k=k_a; k<=k_b; k++) {
           mydof = FE->el_dof->JA[k-1];
-          if (ix[mydof-1]!=i+1 && FE->dof_flag[mydof-1]==flag) { /* We haven't been here AND it is a boundary */
+          if (ix[mydof-1]!=i+1 && FE->dof_flag[mydof-1]==flag) { /* We haven't been here AND it is a Dirichlet boundary */
             icp++;
             ix[mydof-1] = i+1;
           }
@@ -436,7 +436,7 @@ void create_CSR_cols_withBC(dCSRmat *A, fespace *FE)
         k_b = FE->el_dof->IA[if1]-1;
         for (k=k_a; k<=k_b; k++) {
           mydof = FE->el_dof->JA[k-1];
-          if (ix[mydof-1]!=i+1 && FE->dirichlet[mydof-1]==0) { /* We haven't been here AND it's not a boundary */
+          if (ix[mydof-1]!=i+1 && FE->dirichlet[mydof-1]==0) { /* We haven't been here AND it's not a Dirichlet boundary */
             A->JA[icp-1] = mydof;
             icp++;
             ix[mydof-1] = i+1;
@@ -499,7 +499,7 @@ void create_CSR_cols_flag(dCSRmat *A, fespace *FE,INT flag)
         k_b = FE->el_dof->IA[if1]-1;
         for (k=k_a; k<=k_b; k++) {
           mydof = FE->el_dof->JA[k-1];
-          if (ix[mydof-1]!=i+1 && FE->dof_flag[mydof-1]==flag) { /* We haven't been here AND it is a boundary */
+          if (ix[mydof-1]!=i+1 && FE->dof_flag[mydof-1]==flag) { /* We haven't been here AND it is a Dirichlet boundary */
             A->JA[icp-1] = mydof;
             icp++;
             ix[mydof-1] = i+1;
@@ -881,6 +881,10 @@ void eliminate_DirichletBC_RHS(void (*bc)(REAL *,REAL *,REAL),fespace *FE,trimes
   // Get solution vector that's 0 on interior and boundary value on boundary
   for(i=0; i<ndof; i++) {
     if(FE->dirichlet[i]==1) {
+      //(ltz) grab the boundary number
+      flag_for_simplex[0]=FE->dof_flag[i];
+      flag_for_simplex[1]=0;
+      flag_for_simplex[2]=-1;
       ub[i] = FE_Evaluate_DOF(bc,FE,mesh,time,i);
     } else {
       ub[i] = 0.0;
@@ -1093,6 +1097,11 @@ void eliminate_DirichletBC_RHS_blockFE(void (*bc)(REAL *,REAL *,REAL),block_fesp
     ndof_local = FE->var_spaces[j]->ndof;
     for(i=0; i<ndof_local; i++) {
       if(FE->dirichlet[entry+i]==1) {
+	//(ltz) grab the boundary dof flag
+	flag_for_simplex[0]=FE->dof_flag[entry + i];
+	flag_for_simplex[1]=j;
+	flag_for_simplex[2]=-1;
+      
         ub[entry + i] = blockFE_Evaluate_DOF(bc,FE,mesh,time,j,i);
       } else {
         ub[entry + i] = 0.0;
@@ -1251,6 +1260,10 @@ void eliminate_DirichletBC_RHS_blockFE_blockA(void (*bc)(REAL *,REAL *,REAL),blo
     ndof_local = FE->var_spaces[j]->ndof;
     for(i=0; i<ndof_local; i++) {
       if(FE->dirichlet[entry+i]==1) {
+	//(ltz) grab the boundary dof flag
+	flag_for_simplex[0]=FE->dof_flag[entry + i];
+	flag_for_simplex[1]=j;
+	flag_for_simplex[2]=-1;      
         ub[entry + i] = blockFE_Evaluate_DOF(bc,FE,mesh,time,j,i);
       } else {
         ub[entry + i] = 0.0;
