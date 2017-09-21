@@ -80,10 +80,8 @@ int main (int argc, char* argv[])
   INT order_h = 0;
   INT order_q = 30;
   fespace FE_h;
-  initialize_fespace(&FE_h);
   create_fespace(&FE_h,&mesh,order_h);
   fespace FE_q;
-  initialize_fespace(&FE_q);
   create_fespace(&FE_q,&mesh,order_q);
 
   // Time stepping parameters
