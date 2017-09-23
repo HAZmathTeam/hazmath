@@ -19,7 +19,6 @@
  */
 
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************/
-#include "global.h"
 #include "hazmath.h"
 /* local include */
 #include "ConvectionDiffusion.h"
