@@ -302,10 +302,10 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
   }
 
   // Assume all DOF are not periodic to start
-  FE->periodic = (INT *) calloc(FE->ndof,sizeof(INT));
-  for(i=0;i<FE->ndof;i++) {
-    FE->periodic[i] = -1;
-  }
+  //FE->periodic = (INT *) calloc(FE->ndof,sizeof(INT));
+  //for(i=0;i<FE->ndof;i++) {
+  //  FE->periodic[i] = -1;
+  //}
   
   return;
 }
