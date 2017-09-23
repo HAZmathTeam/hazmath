@@ -14,7 +14,7 @@ FFLAGS = -g
 
 # if you have compiled hazmath with suitesparse support, uncomment the
 # two lines below.
-WITH_SUITESPARSE=0
+WITH_SUITESPARSE=1
 
 ifeq ($(WITH_SUITESPARSE),1)
 	CFLAGS += -DWITH_SUITESPARSE=1
