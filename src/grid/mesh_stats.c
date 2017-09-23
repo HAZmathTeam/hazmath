@@ -176,7 +176,6 @@ void isboundary_ed(iCSRmat* f_ed,iCSRmat* ed_v,INT nedge,INT nface,INT *f_bdry,I
 
   // For every face get edges
   // All edges on a face should have the same property as the face.
-  // (ltz) what if an edge is on two boundaries with different codes?
   for (i=0; i<nface; i++) {
     col_b = f_ed->IA[i]-1;
     col_e = f_ed->IA[i+1]-1;
@@ -197,7 +196,6 @@ void isboundary_ed(iCSRmat* f_ed,iCSRmat* ed_v,INT nedge,INT nface,INT *f_bdry,I
   for (i=0; i<nedge; i++) {
     if(ed_bdry[i]!=0) {
       jcntr++;
-      //(debug)      fprintf(stdout,"\nzzz%i %i",i,ed_bdry[i]);fflush(stdout);
     }
   }
 

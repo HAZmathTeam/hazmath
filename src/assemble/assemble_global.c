@@ -88,13 +88,6 @@ void assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
   INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
   for (i=0; i<FE->nelm; i++) {
-    /*assign the code of the
-      dim-dimensional simplex globally; this
-      is not used. Other codes are asigned
-      for only for boundary data */
-    
-    /*flag_for_simplex[mesh->dim]=1;*/
-
     // Zero out local matrices
     for (j=0; j<local_size; j++) {
       ALoc[j]=0;
@@ -401,7 +394,7 @@ void assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(RE
   INT dof_per_elm = 0;
   INT v_per_elm = mesh->v_per_elm;
   INT i,j,k,testdof,trialdof;
-  //  fprintf(stdout,"\nFUNCTION=%s\n",__FUNCTION__);fflush(stdout);
+
   // Get block data first
   INT nblocks = A->brow;
   // Check for errors
@@ -461,15 +454,7 @@ void assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(RE
   INT rowa,rowb,jcntr;
   // Loop over elements
   for (i=0; i<mesh->nelm; i++) {
-    /*assign the code of the
-      dim-dimensional simplex globally; this
-      is not used. Other codes are asigned
-      for only for boundary data */
-    
-    /*flag_for_simplex[mesh->dim]=1;*/
-
     // Zero out local matrices
-
     for (j=0; j<local_size; j++) {
       ALoc[j]=0;
     }
@@ -496,12 +481,10 @@ void assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(RE
     get_incidence_row(i,mesh->el_v,v_on_elm);
 
     // Compute Local Stiffness Matrix for given Element
-    //      fprintf(stdout,"\nZZZZZZZZZZZZZZ(before_loc_assembly %i) FUNCTION=%s\n",i,__FUNCTION__);fflush(stdout);
     (*local_assembly)(ALoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,time);
-    if(rhs!=NULL){
-      //      fprintf(stdout,"\nXXXXXXXXXXXXX(before_loc_assembly %i) FUNCTION=%s\n",i,__FUNCTION__);fflush(stdout);
+    if(rhs!=NULL)
       (*local_rhs_assembly)(bLoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,rhs,time);
-    }
+
     // Loop over DOF and place in appropriate slot globally
     block_LocaltoGlobal(dof_on_elm,FE,b,A,ALoc,bLoc);
   }
@@ -1030,7 +1013,7 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
   // Set values
   A->val = (REAL *) calloc(A->nnz,sizeof(REAL));
   for (i=0; i<A->nnz; i++) {
-    A->val[i] = 0.;
+    A->val[i] = 0;
   }
 
   // Now Build Global Matrix entries
@@ -1055,20 +1038,14 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
   // Loop over boundary faces
   for (i=0; i<mesh->nface; i++) {
     // Only grab the faces on the flagged boundary
-    //(ltz)    if(mesh->f_bdry[i]==flag) {
-    if(mesh->f_bdry[i]) {
-      flag_for_simplex[0]=mesh->f_bdry[i]; /*[d-1] simplices are
-					     faces in 3D and 2D. */
-      flag_for_simplex[1]=-1;
-      flag_for_simplex[2]=mesh->dim-1; /*[d-1] simplices are faces in
-					 3D and 2D. */
+    if(mesh->f_bdry[i]==flag) {
       // Zero out local matrices
       for (j=0; j<local_size; j++) {
-        ALoc[j]=0.;
+        ALoc[j]=0;
       }
       if(rhs!=NULL) {
         for (j=0; j<dof_per_face; j++) {
-          bLoc[j]=0.;
+          bLoc[j]=0;
         }
       }
 
@@ -1185,13 +1162,7 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
   // Loop over boundary faces
   for (i=0; i<mesh->nface; i++) {
     // Only grab the faces on the flagged boundary
-    //    if(mesh->f_bdry[i]==flag) {
-    if(mesh->f_bdry[i]) {
-      flag_for_simplex[0]=mesh->f_bdry[i]; /*[d-1] simplices are
-					     faces in 3D and 2D. */
-      flag_for_simplex[1]=-1;
-      flag_for_simplex[2]=mesh->dim-1; /*[d-1] simplices are faces in
-					 3D and 2D. */
+    if(mesh->f_bdry[i]==flag) {
       // Zero out local matrices
       for (j=0; j<dof_per_face; j++) {
         bLoc[j]=0;

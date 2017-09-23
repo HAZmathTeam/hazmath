@@ -16,8 +16,7 @@ print_level			= 4;	% how much information to print out
 
 %gridfile 			= ../grids/3D/unitCUBE_n3.haz
 %gridfile			= ../grids/3D/unitCUBE_n9.haz
-%gridfile                        = ../grids/3D/unitCUBE_n17.haz
-gridfile                        = ../grids/3D/hydrolena_mesh_3d.haz
+gridfile                        = ../grids/3D/unitCUBE_n17.haz
 output_dir                          = ./output/
 
 %---------------%
