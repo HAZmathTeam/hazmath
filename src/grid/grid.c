@@ -176,28 +176,16 @@ void build_mesh(trimesh* mesh)
     get_face_maps(mesh->el_v,v_per_elm,&ed_v,nface,dim,f_per_elm,mesh->el_f, \
                   f_bdry,&nbface,&f_v,&f_ed,fel_order);
 
-    // In case v_bdry has different types of boundaries, match the
-    // face boundary to the same:
-    /*(ltz) correction: we need to get the max boundary code for a
-      face, because we can say that a face is on the Neumann boundary
-      (open set) iff the face is on the boundary and at least one of
-      its vertices is on the Neumann boundary */
-    INT maxflag,jk;
+    // In case v_bdry has different types of boundaries, match the face boundary
+    // to the same:
     for(i=0;i<nface;i++) {
-      if(f_bdry[i]==1) {	
+      if(f_bdry[i]==1) {
         j = f_v.IA[i]-1;
         k = f_v.JA[j]-1;
-	maxflag = mesh->v_bdry[k];
-	for(jk=f_v.IA[i];jk<f_v.IA[i+1]-1;jk++){
-	  if(mesh->v_bdry[k] > maxflag) maxflag = mesh->v_bdry[k];
-	}
-        f_bdry[i] = maxflag; /*(old)mesh->v_bdry[k];*/
-	/* 	(debugging) fprintf(stdout,"\nyyy%i %i",i,f_bdry[i]);fflush(stdout); */
-	/* (debugging) } else { */
-	/*(debugging) 	fprintf(stdout,"\nxxx%i %i",i,f_bdry[i]);fflush(stdout); */
+        f_bdry[i] = mesh->v_bdry[k];
       }
     }
-    
+
     // Next get the face data, such as areas, midpoints, and normal vectors
     REAL* f_area = (REAL *) calloc(nface,sizeof(REAL));
     REAL* f_mid = (REAL *) calloc(nface*dim,sizeof(REAL));
