@@ -128,7 +128,7 @@ static REAL bernoulli(const REAL z)
  * \brief returns 1;
  *
  */
-static void poisson_coeff(REAL *val,REAL* x, REAL t) {
+static void poisson_coeff(REAL *val,REAL* x, REAL t,void *param) {
   *val = 1.0;
   return;
 }
@@ -166,12 +166,12 @@ static void poisson_coeff(REAL *val,REAL* x, REAL t) {
  *
  */
 void eafe(dCSRmat *A, dvector *rhs,		\
-	  void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL), \
+      void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL), \
 	  trimesh mesh, fespace FE, qcoordinates *cq,	\
-	  void (*scalar_val_d)(REAL *, REAL *, REAL),			\
-	  void (*scalar_val_rhs)(REAL *, REAL *, REAL),			\
-	  void (*vector_val_ad)(REAL *, REAL *, REAL),			\
-	  void (*scalar_val_bndnr)(REAL *, REAL *, REAL), REAL faketime)
+      void (*scalar_val_d)(REAL *, REAL *, REAL),			\
+      void (*scalar_val_rhs)(REAL *, REAL *, REAL, void *),			\
+      void (*vector_val_ad)(REAL *, REAL *, REAL),			\
+      void (*scalar_val_bndnr)(REAL *, REAL *, REAL), REAL faketime)
 {
   assemble_global(A,rhs,local_assembly,			\
 		  &FE,&mesh,cq,				\

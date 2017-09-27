@@ -621,7 +621,7 @@ void dump_qcoords(qcoordinates *q)
 /*********************************************************************/
 /*********************************************************************************/
 /*!
- * \fn REAL integrate_elm(void (*expr)(REAL *,REAL *,REAL),INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT elm)
+ * \fn REAL integrate_elm(void (*expr)(REAL *,REAL *,REAL,void *),INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT elm)
  *
  * \brief Integrate a given scalar function over an element
  *
@@ -637,8 +637,9 @@ void dump_qcoords(qcoordinates *q)
  * \note If cq is given, we will just use these precomputed values instead of reallocating the quadrature.
  *       Otherwise, we will allocate a new set of quadrature based on nq1d
  */
-REAL integrate_elm(void (*expr)(REAL *,REAL *,REAL),INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT elm)
+REAL integrate_elm(void (*expr)(REAL *,REAL *,REAL,void *),INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT elm)
 {
+
   // Loop indices
   INT quad;
 
@@ -659,7 +660,7 @@ REAL integrate_elm(void (*expr)(REAL *,REAL *,REAL),INT nq1d,qcoordinates *cq,tr
       qx[1] = cq->y[elm*cq->nq_per_elm+quad];
       if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
-      (*expr)(&uval,qx,time);
+      (*expr)(&uval,qx,time,&(mesh->el_flag[elm]));
       integral += w*uval;
     }
   } else { // assemble quadrature again
@@ -670,7 +671,7 @@ REAL integrate_elm(void (*expr)(REAL *,REAL *,REAL),INT nq1d,qcoordinates *cq,tr
       qx[1] = cqelm->y[quad];
       if(mesh->dim==3) qx[2] = cqelm->z[quad];
       w = cqelm->w[quad];
-      (*expr)(&uval,qx,time);
+      (*expr)(&uval,qx,time,&(mesh->el_flag[elm]));
       integral += w*uval;
     }
     free_qcoords(cqelm);
@@ -684,7 +685,7 @@ REAL integrate_elm(void (*expr)(REAL *,REAL *,REAL),INT nq1d,qcoordinates *cq,tr
 
 /*********************************************************************************/
 /*!
- * \fn REAL integrate_domain(void (*expr)(REAL *,REAL *,REAL),INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time
+ * \fn REAL integrate_domain(void (*expr)(REAL *,REAL *,REAL,void *),INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time
  *
  * \brief Integrate a given scalar function over the entire mesh
  *
@@ -700,7 +701,7 @@ REAL integrate_elm(void (*expr)(REAL *,REAL *,REAL),INT nq1d,qcoordinates *cq,tr
  * \note If cq is given, we will just use these precomputed values instead of reallocating the quadrature.
  *       Otherwise, we will allocate a new set of quadrature based on nq1d
  */
-REAL integrate_domain(void (*expr)(REAL *,REAL *,REAL),INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time)
+REAL integrate_domain(void (*expr)(REAL *,REAL *,REAL,void *),INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time)
 {
   // Loop indices
   INT elm;
@@ -718,7 +719,7 @@ REAL integrate_domain(void (*expr)(REAL *,REAL *,REAL),INT nq1d,qcoordinates *cq
 
 /*********************************************************************************/
 /*!
- * \fn REAL integrate_face(void (*expr)(REAL *,REAL *,REAL),INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT face)
+ * \fn REAL integrate_face(void (*expr)(REAL *,REAL *,REAL,void *),INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT face)
  *
  * \brief Integrate a given scalar function over a face
  *
@@ -737,7 +738,7 @@ REAL integrate_domain(void (*expr)(REAL *,REAL *,REAL),INT nq1d,qcoordinates *cq
  * \note In 3D, this is an area (2D) integral.  In 2D, this is a line (1D) integral.
  *
  */
-REAL integrate_face(void (*expr)(REAL *,REAL *,REAL),INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT face)
+REAL integrate_face(void (*expr)(REAL *,REAL *,REAL,void *),INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT face)
 {
   // Loop indices
   INT quad;
@@ -759,7 +760,7 @@ REAL integrate_face(void (*expr)(REAL *,REAL *,REAL),INT nq1d,qcoordinates *cq,t
       qx[1] = cq->y[face*cq->nq_per_elm+quad];
       if(mesh->dim==3) qx[2] = cq->z[face*cq->nq_per_elm+quad];
       w = cq->w[face*cq->nq_per_elm+quad];
-      (*expr)(&uval,qx,time);
+      (*expr)(&uval,qx,time,&(mesh->f_flag[face]));
       integral += w*uval;
     }
   } else { // assemble quadrature again
@@ -770,7 +771,7 @@ REAL integrate_face(void (*expr)(REAL *,REAL *,REAL),INT nq1d,qcoordinates *cq,t
       qx[1] = cqface->y[quad];
       if(mesh->dim==3) qx[2] = cqface->z[quad];
       w = cqface->w[quad];
-      (*expr)(&uval,qx,time);
+      (*expr)(&uval,qx,time,&(mesh->f_flag[face]));
       integral += w*uval;
     }
     free_qcoords(cqface);
@@ -784,7 +785,7 @@ REAL integrate_face(void (*expr)(REAL *,REAL *,REAL),INT nq1d,qcoordinates *cq,t
 
 /*********************************************************************************/
 /*!
- * \fn REAL integrate_edge(void (*expr)(REAL *,REAL *,REAL),INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT edge)
+ * \fn REAL integrate_edge(void (*expr)(REAL *,REAL *,REAL,void *),INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT edge)
  *
  * \brief Integrate a given scalar function over an edge
  *
@@ -803,7 +804,7 @@ REAL integrate_face(void (*expr)(REAL *,REAL *,REAL),INT nq1d,qcoordinates *cq,t
  * \note This is a line integral in any dimension
  *
  */
-REAL integrate_edge(void (*expr)(REAL *,REAL *,REAL),INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT edge)
+REAL integrate_edge(void (*expr)(REAL *,REAL *,REAL,void *),INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT edge)
 {
   // Loop indices
   INT quad;
@@ -825,7 +826,7 @@ REAL integrate_edge(void (*expr)(REAL *,REAL *,REAL),INT nq1d,qcoordinates *cq,t
       qx[1] = cq->y[edge*cq->nq_per_elm+quad];
       if(mesh->dim==3) qx[2] = cq->z[edge*cq->nq_per_elm+quad];
       w = cq->w[edge*cq->nq_per_elm+quad];
-      (*expr)(&uval,qx,time);
+      (*expr)(&uval,qx,time,&(mesh->ed_flag[edge]));
       integral += w*uval;
     }
   } else { // assemble quadrature again
@@ -836,7 +837,7 @@ REAL integrate_edge(void (*expr)(REAL *,REAL *,REAL),INT nq1d,qcoordinates *cq,t
       qx[1] = cqedge->y[quad];
       if(mesh->dim==3) qx[2] = cqedge->z[quad];
       w = cqedge->w[quad];
-      (*expr)(&uval,qx,time);
+      (*expr)(&uval,qx,time,&(mesh->ed_flag[edge]));
       integral += w*uval;
     }
     free_qcoords(cqedge);
