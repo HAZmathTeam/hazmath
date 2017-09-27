@@ -103,12 +103,10 @@ int main (int argc, char* argv[])
   }
 
   // Set Dirichlet Boundaries
-  set_dirichlet_bdry(&FE_q,&mesh,1,1);
-  for(i=0;i<FE_q.ndof;i++) {
-    if(FE_q.dirichlet[i]==1 && (mesh.f_mid[i*dim+2]!=1 && mesh.f_mid[i*dim+2]!=0)) {
-      FE_q.dirichlet[i] = 0;
-    }
-  }
+  set_dirichlet_bdry(&FE_q,&mesh,22,22);
+  set_dirichlet_bdry(&FE_q,&mesh,19,19);
+  // Make sure all conditions on h are NOT Dirichlet
+  set_dirichlet_bdry(&FE_h,&mesh,-1,-1);
 
   // Create Block System with ordering (q,h)
   INT ndof = FE_q.ndof + FE_h.ndof;
@@ -170,8 +168,9 @@ int main (int argc, char* argv[])
 
   // Boundary Integral <g,r*n>_boundary
   // Flag is which boundary you want to compute this
-  INT flag = 1;
-  assemble_global_RHS_face(&b_bdry,NULL,steady_state_Darcy_bdryRHS,&FE_q,&mesh,cq,myg,0.0,flag,flag);
+  INT flag0 = 1;
+  INT flag1 = 15;
+  assemble_global_RHS_face(&b_bdry,NULL,steady_state_Darcy_bdryRHS,&FE_q,&mesh,cq,myg,0.0,flag0,flag1);
 
   // Add RHS vectors together
   for(i=0;i<FE_q.ndof;i++) {
@@ -262,7 +261,7 @@ int main (int argc, char* argv[])
       // Interior
       assemble_global_RHS_block(time_stepper.rhs,steady_state_Darcy_RHS,&FE,&mesh,cq,source,time_stepper.time);
       // Boundary Integral <g,r*n>_boundary
-      assemble_global_RHS_face(&b_bdry,NULL,steady_state_Darcy_bdryRHS,&FE_q,&mesh,cq,myg,0.0,flag,flag);
+      assemble_global_RHS_face(&b_bdry,NULL,steady_state_Darcy_bdryRHS,&FE_q,&mesh,cq,myg,0.0,flag0,flag1);
       // Add RHS vectors together
       for(i=0;i<FE_q.ndof;i++) {
         time_stepper.rhs->val[i] += b_bdry.val[i];
