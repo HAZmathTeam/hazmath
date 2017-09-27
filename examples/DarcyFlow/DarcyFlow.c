@@ -41,6 +41,15 @@ int main (int argc, char* argv[])
   printf("\nBeginning Program to solve Darcy Flow eqn by RT0-P0 mixed FE method\n");
   printf("\n===========================================================================\n");
 
+//  REAL *val = (REAL *) calloc(3,sizeof(REAL));
+//  REAL x[3];
+//  x[0] = 1;
+//  x[1] = 1;
+//  x[2] = 1;
+//  INT bdrycode = 22;
+//  initial_q(val,x,0.0,&bdrycode);
+//  exit(0);
+
   /****** INITIALIZE PARAMETERS **************************************************/
   // Loop Indices
   INT i,j,ii;

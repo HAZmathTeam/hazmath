@@ -191,7 +191,7 @@ void L2_InnerProduct_block(REAL *prod,REAL *u,REAL *v,block_fespace *FE,trimesh 
 
 /***************************************************************************/
 /*!
- * \fn REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+ * \fn REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
  *
  * \brief Computes the L2 Norm of the error of a FE approximation and a true
  *        solution given by a function using quadrature for any type of element.
@@ -206,7 +206,7 @@ void L2_InnerProduct_block(REAL *prod,REAL *u,REAL *v,block_fespace *FE,trimesh 
  * \return error        L2 Error
  *
  */
-REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
 {
   INT dim = mesh->dim;
 
@@ -252,7 +252,7 @@ REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *me
       w = cq->w[elm*cq->nq_per_elm+quad];
 
       // Get True Solution at Quadrature Nodes
-      (*truesol)(val_true,qx,time);
+      (*truesol)(val_true,qx,time,&(mesh->el_flag[elm]));
 
       // Interpolate FE solution to quadrature point
       FE_Interpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,mesh);
@@ -277,7 +277,7 @@ REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *me
 
 /***************************************************************************/
 /*!
- * \fn void L2error_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+ * \fn void L2error_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
  *
  * \brief Computes the L2 Norm of the error of a block FE approximation and a true
  *        solution given by a function using quadrature for any type of element.
@@ -292,7 +292,7 @@ REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *me
  * \return err          L2 Error
  *
  */
-void L2error_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+void L2error_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
 {
   // Loop Indices
   INT i,elm,quad,j,rowa,rowb,jcntr;
@@ -352,7 +352,7 @@ void L2error_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_f
       w = cq->w[elm*cq->nq_per_elm+quad];
 
       // Get True Solution at Quadrature Nodes
-      (*truesol)(val_true,qx,time);
+      (*truesol)(val_true,qx,time,&(mesh->el_flag[elm]));
 
       // Interpolate FE solution to quadrature point
       blockFE_Interpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,mesh);
@@ -385,7 +385,7 @@ void L2error_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_f
 
 /***************************************************************************/
 /*!
-   * \fn L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+   * \fn L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
    *
    * \brief Computes the L2 Norm of the error of a FE approximation and a true
    *        solution given by a function using mass matrix assembly for any type of element.
@@ -400,7 +400,7 @@ void L2error_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_f
    * \return error        L2 Error
    *
    */
-REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
 {
   INT i,j,k;
   REAL sum = 0.0;
@@ -449,7 +449,7 @@ REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimes
 
 /***************************************************************************/
 /*!
- * \fn void L2error_block_mass(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+ * \fn void L2error_block_mass(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
  *
  * \brief Computes the L2 Norm of the error of a block FE approximation and a true
  *        solution given by a function using mass matrix assembly for any type of element.
@@ -464,7 +464,7 @@ REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimes
  * \return err          L2 Error
  *
  */
-void L2error_block_mass(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+void L2error_block_mass(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
 {
   INT i,j,k,elm;
   REAL utk,utj,erk,erj;
@@ -623,7 +623,7 @@ void HDseminorm_block(REAL *norm,REAL *u,block_fespace *FE,trimesh *mesh,qcoordi
 
 /***************************************************************************/
 /*!
- * \fn REAL HDsemierror(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+ * \fn REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
  *
  * \brief Computes the H(D) semi-norm of the error of a FE approximation and a true
  *        solution given by a function using quadrature for any type of element.
@@ -640,7 +640,7 @@ void HDseminorm_block(REAL *norm,REAL *u,block_fespace *FE,trimesh *mesh,qcoordi
  * \return error        Semi-Norm Error
  *
  */
-REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
 {
   INT dim = mesh->dim;
 
@@ -689,7 +689,7 @@ REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL),fespace *FE,trime
       w = cq->w[elm*cq->nq_per_elm+quad];
 
       // Get True Solution at Quadrature Nodes
-      (*D_truesol)(val_true,qx,time);
+      (*D_truesol)(val_true,qx,time,&(mesh->el_flag[elm]));
 
       // Interpolate FE solution to quadrature point
       FE_DerivativeInterpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,mesh);
@@ -714,7 +714,7 @@ REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL),fespace *FE,trime
 
 /***************************************************************************/
 /*!
- * \fn void HDsemierror(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+ * \fn void HDsemierror_block(REAL *err,REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
  *
  * \brief Computes the H(D) semi-norm of the error of a block FE approximation and a true
  *        solution given by a function using quadrature for any type of element.
@@ -731,7 +731,7 @@ REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL),fespace *FE,trime
  * \return err          Semi-Norm Error
  *
  */
-void HDsemierror_block(REAL *err,REAL *u,void (*D_truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+void HDsemierror_block(REAL *err,REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
 {
   // Loop Indices
   INT i,elm,quad,j,rowa,rowb,jcntr;
@@ -795,7 +795,7 @@ void HDsemierror_block(REAL *err,REAL *u,void (*D_truesol)(REAL *,REAL *,REAL),b
       w = cq->w[elm*cq->nq_per_elm+quad];
 
       // Get True Solution at Quadrature Nodes
-      (*D_truesol)(val_true,qx,time);
+      (*D_truesol)(val_true,qx,time,&(mesh->el_flag[elm]));
 
       // Interpolate FE solution to quadrature point
       blockFE_DerivativeInterpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,mesh);
@@ -828,7 +828,7 @@ void HDsemierror_block(REAL *err,REAL *u,void (*D_truesol)(REAL *,REAL *,REAL),b
 
 /***************************************************************************/
 /*!
- * \fn REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+ * \fn REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
  *
  * \brief Computes the H(D) semi-norm of the error of a FE approximation and a true
  *        solution given by a function using the <Du,Dv> matrix assembly for any type of element.
@@ -845,7 +845,7 @@ void HDsemierror_block(REAL *err,REAL *u,void (*D_truesol)(REAL *,REAL *,REAL),b
  * \return error        Semi-Norm Error
  *
  */
-REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
 {
   INT i,j,k;
   REAL sum = 0.0;
@@ -894,7 +894,7 @@ REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,t
 
 /***************************************************************************/
 /*!
- * \fn void HDsemierror_block_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+ * \fn void HDsemierror_block_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
  *
  * \brief Computes the H(D) semi-norm of the error of a block FE approximation and a true
  *        solution given by a function using the <Du,Dv> matrix assembly for any type of element.
@@ -911,7 +911,7 @@ REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL),fespace *FE,t
  * \return err          Semi-Norm Error
  *
  */
-void HDsemierror_block_stiff(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+void HDsemierror_block_stiff(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
 {
   INT i,j,k,elm;
   REAL utk,utj,erk,erj;
@@ -1038,7 +1038,7 @@ void HDnorm_block(REAL *norm,REAL *u,block_fespace *FE,trimesh *mesh,qcoordinate
 
 /***************************************************************************/
 /*!
- * \fn REAL HDerror(REAL *u,void (*truesol)(REAL *,REAL *,REAL),void (*D_truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+ * \fn REAL HDerror(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),void (*D_truesol)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
  *
  * \brief Computes the H(D) norm of the error of a FE approximation
  *        and a true solution given by a function using the
@@ -1058,7 +1058,7 @@ void HDnorm_block(REAL *norm,REAL *u,block_fespace *FE,trimesh *mesh,qcoordinate
  * \return norm         HD Norm of Error
  *
  */
-REAL HDerror(REAL *u,void (*truesol)(REAL *,REAL *,REAL),void (*D_truesol)(REAL *,REAL *,REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+REAL HDerror(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),void (*D_truesol)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
 {
   REAL sumL2 = L2error(u,truesol,FE,mesh,cq,time);
   REAL sumSemi = HDsemierror(u,D_truesol,FE,mesh,cq,time);
@@ -1070,7 +1070,7 @@ REAL HDerror(REAL *u,void (*truesol)(REAL *,REAL *,REAL),void (*D_truesol)(REAL 
 
 /***************************************************************************/
 /*!
- * \fn void HDerror_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL),void (*D_truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+ * \fn void HDerror_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),void (*D_truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
  *
  * \brief Computes the H(D) norm of the error of a block FE approximation
  *        and a true solution given by a function using the
@@ -1090,7 +1090,7 @@ REAL HDerror(REAL *u,void (*truesol)(REAL *,REAL *,REAL),void (*D_truesol)(REAL 
  * \return norm         HD Norm of Error
  *
  */
-void HDerror_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL),void (*D_truesol)(REAL *,REAL *,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
+void HDerror_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),void (*D_truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,trimesh *mesh,qcoordinates *cq,REAL time)
 {
   INT i;
   REAL* sumL2 = (REAL *) calloc(FE->nspaces,sizeof(REAL));
