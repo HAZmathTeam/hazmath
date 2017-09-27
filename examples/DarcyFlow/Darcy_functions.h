@@ -37,25 +37,25 @@ void Ss(REAL *val,REAL* x,REAL time) {
 
 // g : Dirichlet conditions for h. 
 void myg(REAL *val,REAL* x,REAL time) {
-  *val = 0.0;
+  *val = -20.0;
 }
 
 // Boundary Conditions
 void bc_q(REAL *val,REAL* x,REAL time) {
   // Known flux on top and bottom
-  if(x[2]==1) { // Rainfall
+  //if(x[2]==1) { // Rainfall
     val[0] = 0.0; 
     val[1] = 0.0;
     val[2] = -1.0;
-  } else if(x[2]==0) { // No flux in the ground
-    val[0] = 0.0; 
-    val[1] = 0.0;
-    val[2] = 0.0; 
-  } else {
-    val[0] = 0.0;
-    val[1] = 0.0;
-    val[2] = 0.0;
-  }
+//  } else if(x[2]==0) { // No flux in the ground
+//    val[0] = 0.0;
+//    val[1] = 0.0;
+//    val[2] = 0.0;
+//  } else {
+//    val[0] = 0.0;
+//    val[1] = 0.0;
+//    val[2] = 0.0;
+//  }
 }
 void bc_h(REAL *val,REAL* x,REAL time) {
   // it is not called

@@ -131,14 +131,17 @@ typedef struct trimesh{
   //! midpoint of face
   REAL* f_mid;
 
-  //! indicates whether a vertex is on boundary
-  INT* v_bdry;
+  //! indicates a flag for vertex such as whether a vertex is on boundary
+  INT* v_flag;
 
-  //! indicates whether an edge is on boundary
-  INT* ed_bdry;
+  //! indicates a flag for edge such as whether an edge is on boundary
+  INT* ed_flag;
 
-  //! indicates whether a face is on boundary
-  INT* f_bdry;
+  //! indicates a flag for face such as whether a face is on boundary
+  INT* f_flag;
+
+  //! indicates a flag for element such as whether a element is on boundary
+  INT* el_flag;
     
 } trimesh; 
 

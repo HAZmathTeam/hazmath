@@ -1038,7 +1038,7 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
   // Loop over boundary faces
   for (i=0; i<mesh->nface; i++) {
     // Only grab the faces on the flagged boundary
-    if(mesh->f_bdry[i]>=flag0 && mesh->f_bdry[i]<=flag1) {
+    if(mesh->f_flag[i]>=flag0 && mesh->f_flag[i]<=flag1) {
       // Zero out local matrices
       for (j=0; j<local_size; j++) {
         ALoc[j]=0;
@@ -1162,7 +1162,7 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
   // Loop over boundary faces
   for (i=0; i<mesh->nface; i++) {
     // Only grab the faces on the flagged boundary
-    if(mesh->f_bdry[i]>=flag0 && mesh->f_bdry[i]<=flag1) {
+    if(mesh->f_flag[i]>=flag0 && mesh->f_flag[i]<=flag1) {
       // Zero out local matrices
       for (j=0; j<dof_per_face; j++) {
         bLoc[j]=0;

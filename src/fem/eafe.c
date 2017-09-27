@@ -53,7 +53,7 @@ static void LumpMassBndry(const trimesh mesh,
   INT  nv=mesh.nv, nf=mesh.nface,nfb=mesh.nbface,dim=mesh.dim; 
   REAL ccc=1./((REAL ) dim), ad[dim],xm[dim];
   iCSRmat *f2v=mesh.f_v; /* face to vertex map as iCSR */
-  INT *fonb=mesh.f_bdry; /* boundary markers for every face */
+  INT *fonb=mesh.f_flag; /* boundary markers for every face */
   /* get areas, normal vectors and barycenters  of faces */
   REAL *fa=mesh.f_area, *fn=mesh.f_norm, *fm=mesh.f_mid;
   dmass->row=0;  dmass->val=NULL;
