@@ -16,8 +16,8 @@ print_level			= 4;	% how much information to print out
 
 %gridfile 			= ../grids/3D/unitCUBE_n3.haz
 %gridfile			= ../grids/3D/unitCUBE_n9.haz
-gridfile                        = ../grids/3D/unitCUBE_n17.haz
-%gridfile                        = ../grids/3D/hydrolena_grid.grd
+%gridfile                        = ../grids/3D/unitCUBE_n17.haz
+gridfile                        = ../grids/3D/hydrolena_grid.grd
 output_dir                          = ./output/
 
 %---------------%
@@ -56,7 +56,7 @@ linear_restart 			= 100		% restart for GMRes
 % preconditioner
 linear_precond_type		= 62		%  0 Null | 1 Diag | 2 AMG | 4 ILU | 
 						%  6 additive HX for H(curl) | 7 multiplicative HX for H(curl)
-						%%
+						%%%%%%%%% Argumented Lagrange type preconditioners %%%%%%%%%%%%%%%
 						% 10 block diagonal triangular for mixed Darcy (exact block solver)
 						% 11 block lower triangular for mixed Darcy (exact block solver)
 						% 12 block upper triangular for mixed Darcy (exact block solver)
@@ -68,6 +68,14 @@ linear_precond_type		= 62		%  0 Null | 1 Diag | 2 AMG | 4 ILU |
 						% 30 block diagonal triangular for mixed Darcy (inexact krylov block solver)
 						% 31 block lower triangular for mixed Darcy (inexact krylov block solver)
 						% 32 block upper triangular for mixed Darcy (inexact krylov block solver)
+						%%%%%%%%% Pressure Laplacian type preconditioners %%%%%%%%%%%%%%%
+						% 50 block diagonal triangular for mixed Darcy (inexact krylov block solver)
+						% 51 block lower triangular for mixed Darcy (inexact krylov block solver)
+						% 52 block upper triangular for mixed Darcy (inexact krylov block solver)
+						%%
+						% 60 block diagonal triangular for mixed Darcy (inexact krylov block solver)
+						% 61 block lower triangular for mixed Darcy (inexact krylov block solver)
+						% 62 block upper triangular for mixed Darcy (inexact krylov block solver)
 						%%
 
 
