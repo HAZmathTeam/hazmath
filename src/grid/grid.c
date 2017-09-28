@@ -50,9 +50,10 @@ void initialize_mesh(trimesh* mesh)
   mesh->f_area = NULL;
   mesh->f_mid = NULL;
   mesh->f_norm = NULL;
-  mesh->v_bdry = NULL;
-  mesh->ed_bdry = NULL;
-  mesh->f_bdry = NULL;
+  mesh->v_flag = NULL;
+  mesh->ed_flag = NULL;
+  mesh->f_flag = NULL;
+  mesh->el_flag = NULL;
   return;
 }
 /******************************************************************************/
@@ -120,6 +121,12 @@ void build_mesh(trimesh* mesh)
   INT nconn_bdry = mesh->nconn_bdry;
   INT v_per_elm = dim+1;
 
+  // Set flags for elements.  We assume they are all interiors for now
+  INT* el_flag = (INT *) calloc(nelm,sizeof(INT));
+  for(i=0;i<nelm;i++) {
+    el_flag[i] = 0;
+  }
+
   // Stuff for Edges and Faces.  None for 1D
   if(dim==2 || dim==3) {
     INT ed_per_elm = 3*(dim-1);
@@ -170,19 +177,19 @@ void build_mesh(trimesh* mesh)
     //  boundary information.
     iCSRmat f_v = icsr_create(nface,nv,nface*dim);
     iCSRmat f_ed = icsr_create(nface,nedge,nface*(2*dim-3));
-    INT* f_bdry = (INT *) calloc(nface,sizeof(INT));
+    INT* f_flag = (INT *) calloc(nface,sizeof(INT));
     INT nbface;
     mesh->el_f = malloc(sizeof(struct iCSRmat));
     get_face_maps(mesh->el_v,v_per_elm,&ed_v,nface,dim,f_per_elm,mesh->el_f, \
-                  f_bdry,&nbface,&f_v,&f_ed,fel_order);
+                  f_flag,&nbface,&f_v,&f_ed,fel_order);
 
-    // In case v_bdry has different types of boundaries, match the face boundary
+    // In case v_flag has different types of boundaries, match the face boundary
     // to the same:
     for(i=0;i<nface;i++) {
-      if(f_bdry[i]==1) {
+      if(f_flag[i]==1) {
         j = f_v.IA[i]-1;
         k = f_v.JA[j]-1;
-        f_bdry[i] = mesh->v_bdry[k];
+        f_flag[i] = mesh->v_flag[k];
       }
     }
 
@@ -205,8 +212,8 @@ void build_mesh(trimesh* mesh)
 
     /* Get Boundary Edges */
     INT nbedge=0;
-    INT* ed_bdry = (INT *) calloc(nedge,sizeof(INT));
-    isboundary_ed(&f_ed,&ed_v,nedge,nface,f_bdry,mesh->v_bdry,&nbedge,ed_bdry);
+    INT* ed_flag = (INT *) calloc(nedge,sizeof(INT));
+    isboundary_ed(&f_ed,&ed_v,nedge,nface,f_flag,mesh->v_flag,&nbedge,ed_flag);
 
     // Assign components to the mesh
     mesh->nedge = nedge;
@@ -224,8 +231,9 @@ void build_mesh(trimesh* mesh)
     mesh->f_area = f_area;
     mesh->f_mid = f_mid;
     mesh->f_norm = f_norm;
-    mesh->ed_bdry = ed_bdry;
-    mesh->f_bdry = f_bdry;
+    mesh->ed_flag = ed_flag;
+    mesh->f_flag = f_flag;
+    mesh->el_flag = el_flag;
 
     if(fel_order) free(fel_order);
   } else if (dim==1) {
@@ -456,19 +464,24 @@ void free_mesh(trimesh* mesh)
     mesh->f_mid = NULL;
   }
 
-  if(mesh->v_bdry) {
-    free(mesh->v_bdry);
-    mesh->v_bdry = NULL;
+  if(mesh->v_flag) {
+    free(mesh->v_flag);
+    mesh->v_flag = NULL;
   }
   
-  if(mesh->ed_bdry) {
-    free(mesh->ed_bdry);
-    mesh->ed_bdry = NULL;
+  if(mesh->ed_flag) {
+    free(mesh->ed_flag);
+    mesh->ed_flag = NULL;
   }
 
-  if(mesh->f_bdry) {
-    free(mesh->f_bdry);
-    mesh->f_bdry = NULL;
+  if(mesh->f_flag) {
+    free(mesh->f_flag);
+    mesh->f_flag = NULL;
+  }
+
+  if(mesh->el_flag) {
+    free(mesh->el_flag);
+    mesh->el_flag = NULL;
   }
 
   if(mesh->v_component) {

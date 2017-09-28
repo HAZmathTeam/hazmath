@@ -12,7 +12,7 @@
 
 
 // PDE Coefficients
-void diffusion_coeff(REAL *val,REAL* x, REAL t) {
+void diffusion_coeff(REAL *val,REAL* x, REAL t,void *param) {
   // a(x)
   //  fprintf(stdout,"%f %s\n",x[0],__FUNCTION__);
   *val = EPS0;
@@ -20,7 +20,7 @@ void diffusion_coeff(REAL *val,REAL* x, REAL t) {
 }
 
 // Exact Solution (used also to set boundary conditions)
-void exactsol(REAL *val,REAL* x, REAL t) {
+void exactsol(REAL *val,REAL* x, REAL t,void *param) {
   //*val = sin(2*M_PI*x[0])*sin(2*M_PI*x[1]);
   *val = (x[0]-x[0]*x[0])*(x[1]-x[1]*x[1]);
   //  *val = x[0]*x[1];
@@ -28,7 +28,7 @@ void exactsol(REAL *val,REAL* x, REAL t) {
   return;
 }
 
-void advection(REAL *val, REAL *x,REAL t) {
+void advection(REAL *val, REAL *x,REAL t,void *param) {
   val[0] = 1.; // or beta_1(x)
   val[1] = 1.; // or beta_2(x)
   val[2] = 1e10; // or beta_3(x)
@@ -37,18 +37,19 @@ void advection(REAL *val, REAL *x,REAL t) {
 
 void coeff_low_order(REAL *val,
                     REAL *x,
-                    REAL time)
+                    REAL time,
+                     void *param)
 {
     *val = 1.0;
     return;
 }
 /************************************************************************/
 // Right-hand Side
-void f_rhs(REAL *val,REAL* x, REAL t) {
+void f_rhs(REAL *val,REAL* x, REAL t,void *param) {
   REAL divj=-1e20,gg=-1e20,uu=-1e20, ad0[3],gruu[3];
-  advection(ad0,x,0.0);
-  exactsol(&uu,x,0.0);
-  coeff_low_order(&gg,x,0.0);
+  advection(ad0,x,0.0,param);
+  exactsol(&uu,x,0.0,param);
+  coeff_low_order(&gg,x,0.0,param);
   gruu[0]=(1.-2.*x[0])*(x[1]-x[1]*x[1]);
   gruu[1]=(1.-2.*x[1])*(x[0]-x[0]*x[0]);
   gruu[0]=x[1];
@@ -63,11 +64,11 @@ void f_rhs(REAL *val,REAL* x, REAL t) {
   return;
 }
 // ANY Boundary Conditions
-void bc_any(REAL *val, REAL* x, REAL t) {
+void bc_any(REAL *val, REAL* x, REAL t,void *param) {
   REAL uu=-1e20, ad0[3],sj[3];
   //  fprintf(stdout,"%f %s\n",x[0],__FUNCTION__);
-  advection(ad0,x,0.0);
-  exactsol(&uu,x,0.0);
+  advection(ad0,x,0.0,param);
+  exactsol(&uu,x,0.0,param);
   sj[0]=EPS0*(1.-2.*x[0])*(x[1]-x[1]*x[1])+ad0[0]*uu;
   sj[1]=EPS0*(1.-2.*x[1])*(x[0]-x[0]*x[0])+ad0[1]*uu;
   sj[0]=EPS0*(x[1])+ad0[0]*uu;
@@ -75,7 +76,7 @@ void bc_any(REAL *val, REAL* x, REAL t) {
   if(fabs(x[0])< 1e-10){
     // n=(-1,0)
     *val=-sj[0];
-    exactsol(val,x,0.0);
+    exactsol(val,x,0.0,param);
   } else if(fabs(x[0]-1.) < 1e-10){
     // n=(1,0)
     *val=sj[0];

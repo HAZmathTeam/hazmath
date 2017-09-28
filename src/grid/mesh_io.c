@@ -87,10 +87,10 @@ void read_grid_haz(FILE *gfid,trimesh *mesh)
 
   // Get next 1-2 lines for boundary nodes
   INT nbv = 0;
-  INT* v_bdry = (INT *) calloc(nv,sizeof(INT));
-  rveci_(gfid,v_bdry,&nv);
+  INT* v_flag = (INT *) calloc(nv,sizeof(INT));
+  rveci_(gfid,v_flag,&nv);
   for(i=0;i<nv;i++) {
-    if(v_bdry[i]) {
+    if(v_flag[i]) {
       nbv++;
     }
   }
@@ -121,7 +121,7 @@ void read_grid_haz(FILE *gfid,trimesh *mesh)
   mesh->cv = cv;
   *(mesh->el_v) = el_v;
   mesh->v_per_elm = v_per_elm;
-  mesh->v_bdry = v_bdry;
+  mesh->v_flag = v_flag;
 
   return;
 }
@@ -150,7 +150,7 @@ void read_grid_haz(FILE *gfid,trimesh *mesh)
  *        </DataArray>
  *        </Points>
  *        <PointData Scalars="scalars">
- *        <DataArray type="Int64" Name="v_bdry" Format="ascii">
+ *        <DataArray type="Int64" Name="v_flag" Format="ascii">
  *        1  1  1  1  0  1  1  1  1
  *        </DataArray>
  *        <DataArray type="Int64" Name="connectedcomponents" Format="ascii">
@@ -292,8 +292,8 @@ void dump_mesh_haz(char *namehaz,trimesh *mesh)
     fprintf(fhaz,"\n");
   }
 
-  // Dump v_bdry Data to indicate if vertices are boundaries
-  for(i=0;i<nv;i++) fprintf(fhaz,"%i ",mesh->v_bdry[i]);
+  // Dump v_flag Data to indicate if vertices are boundaries
+  for(i=0;i<nv;i++) fprintf(fhaz,"%i ",mesh->v_flag[i]);
   fprintf(fhaz,"\n");
 
   fclose(fhaz);
@@ -325,7 +325,7 @@ void dump_mesh_haz(char *namehaz,trimesh *mesh)
  *        </DataArray>
  *        </Points>
  *        <PointData Scalars="scalars">
- *        <DataArray type="Int64" Name="v_bdry" Format="ascii">
+ *        <DataArray type="Int64" Name="v_flag" Format="ascii">
  *        1  1  1  1  0  1  1  1  1
  *        </DataArray>
  *        <DataArray type="Int64" Name="connectedcomponents" Format="ascii">
@@ -442,10 +442,10 @@ void dump_mesh_vtk(char *namevtk,trimesh *mesh)
   fprintf(fvtk,"</DataArray>\n");
   fprintf(fvtk,"</Points>\n");
 
-  // Dump v_bdry Data to indicate if vertices are boundaries
+  // Dump v_flag Data to indicate if vertices are boundaries
   fprintf(fvtk,"<PointData Scalars=\"scalars\">\n");
-  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"v_bdry\" Format=\"ascii\">",tinto);
-  for(k=0;k<nv;k++) fprintf(fvtk," %i ",mesh->v_bdry[k]);
+  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"v_flag\" Format=\"ascii\">",tinto);
+  for(k=0;k<nv;k++) fprintf(fvtk," %i ",mesh->v_flag[k]);
   fprintf(fvtk,"</DataArray>\n");
 
   // Dump information about connected components.
@@ -528,9 +528,9 @@ void create1Dgrid_Line(trimesh* mesh,REAL left_end,REAL right_end,INT nelm)
   // Allocate arrays for element-vertex map,coordinates, and boundaries
   iCSRmat el_v = icsr_create(nelm,nv,v_per_elm*nelm);
   coordinates *cv = allocatecoords(nv,dim);
-  INT* v_bdry = (INT *) calloc(nv,sizeof(INT));
+  INT* v_flag = (INT *) calloc(nv,sizeof(INT));
 
-  // Build element-vertex map, coordinates, and v_bdry
+  // Build element-vertex map, coordinates, and v_flag
   j=0;
   for(i=0;i<nelm;i++) {
     el_v.IA[i]=i*v_per_elm+1;
@@ -538,12 +538,12 @@ void create1Dgrid_Line(trimesh* mesh,REAL left_end,REAL right_end,INT nelm)
     el_v.JA[j+1]=i+2;
     j=j+2;
     cv->x[i]=left_end+h*i;
-    v_bdry[i]=0;
+    v_flag[i]=0;
   }
   el_v.IA[nelm] = nelm*v_per_elm+1;
   cv->x[nelm] = right_end;
-  v_bdry[0] = 1;
-  v_bdry[nelm] = 1;
+  v_flag[0] = 1;
+  v_flag[nelm] = 1;
   INT nbv = 2;
 
   // Assume no holes
@@ -560,7 +560,7 @@ void create1Dgrid_Line(trimesh* mesh,REAL left_end,REAL right_end,INT nelm)
   mesh->cv = cv;
   *(mesh->el_v) = el_v;
   mesh->v_per_elm = v_per_elm;
-  mesh->v_bdry = v_bdry;
+  mesh->v_flag = v_flag;
 
   // Build rest of mesh
   build_mesh(mesh);

@@ -77,7 +77,7 @@ void steady_state_Darcy(REAL* ALoc,block_fespace *FE,trimesh *mesh,qcoordinates 
     get_FEM_basis(FE->var_spaces[1]->phi,FE->var_spaces[1]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[1]);
     
     // Data
-    porosity(K,qx,time);
+    porosity(K,qx,time,NULL);
     Kinv1 = 1.0/K[0];
     Kinv2 = 1.0/K[4];
     Kinv3 = 1.0/K[8];
@@ -127,7 +127,7 @@ void steady_state_Darcy(REAL* ALoc,block_fespace *FE,trimesh *mesh,qcoordinates 
 }
 
 /*!
- * \fn void steady_state_Darcy_RHS(REAL* bLoc,block_fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+ * \fn void steady_state_Darcy_RHS(REAL* bLoc,block_fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
  *
  * \brief Computes the local volume rhs for the Darcy Flow system
  *        (steady-state part)
@@ -152,7 +152,7 @@ void steady_state_Darcy(REAL* ALoc,block_fespace *FE,trimesh *mesh,qcoordinates 
  * \note Assumes 3D only
  *
  */
-void steady_state_Darcy_RHS(REAL* bLoc,block_fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL),REAL time) 
+void steady_state_Darcy_RHS(REAL* bLoc,block_fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
 {
 
   // Loop Indices
@@ -191,7 +191,7 @@ void steady_state_Darcy_RHS(REAL* bLoc,block_fespace *FE,trimesh *mesh,qcoordina
     // h
     get_FEM_basis(FE->var_spaces[1]->phi,FE->var_spaces[1]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[1]);
 
-    (*rhs)(&rhs_val,qx,time);
+    (*rhs)(&rhs_val,qx,time,NULL);
 
     // q block: 0
     local_row_index = 0;
@@ -212,7 +212,7 @@ void steady_state_Darcy_RHS(REAL* bLoc,block_fespace *FE,trimesh *mesh,qcoordina
 }
 
 /*!
- * \fn steady_state_Darcy_bdryRHS(REAL* bLoc,dvector* old_sol,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_f,INT *dof_on_elm,INT *v_on_elm,INT dof_per_f,INT face,INT elm,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+ * \fn steady_state_Darcy_bdryRHS(REAL* bLoc,dvector* old_sol,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_f,INT *dof_on_elm,INT *v_on_elm,INT dof_per_f,INT face,INT elm,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
  *
  * \brief Computes the local boundary rhs for the Darcy Flow system
  *        (steady-state part)
@@ -241,7 +241,7 @@ void steady_state_Darcy_RHS(REAL* bLoc,block_fespace *FE,trimesh *mesh,qcoordina
  * \note Assumes 3D only
  *
  */
-void steady_state_Darcy_bdryRHS(REAL* bLoc,dvector* old_sol,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_f,INT *dof_on_elm,INT *v_on_elm,INT dof_per_f,INT face,INT elm,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+void steady_state_Darcy_bdryRHS(REAL* bLoc,dvector* old_sol,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *dof_on_f,INT *dof_on_elm,INT *v_on_elm,INT dof_per_f,INT face,INT elm,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
 {
 
   // Loop Indices
@@ -288,7 +288,7 @@ void steady_state_Darcy_bdryRHS(REAL* bLoc,dvector* old_sol,fespace *FE,trimesh 
     get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
 
     // Get RHS at quadrature points
-    (*rhs)(&rhs_val,qx,time);
+    (*rhs)(&rhs_val,qx,time,NULL);
 
     // Loop over Test Functions (Rows)
     for (test=0; test<dof_per_f;test++) {

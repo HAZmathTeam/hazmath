@@ -107,7 +107,7 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     dof_flag = (INT *) calloc(mesh->nelm,sizeof(INT));
     for(i=0;i<mesh->nelm;i++) {
       dirichlet[i] = 0;
-      dof_flag[i] = 0;
+      dof_flag[i] = mesh->el_flag[i];
     }
     FE->dirichlet = dirichlet;
     FE->dof_flag = dof_flag;
@@ -127,8 +127,8 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     dirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
     dof_flag = (INT *) calloc(FE->ndof,sizeof(INT));
     for(i=0;i<FE->ndof;i++) {
-      dirichlet[i] = mesh->v_bdry[i];
-      dof_flag[i] = mesh->v_bdry[i];
+      dirichlet[i] = mesh->v_flag[i];
+      dof_flag[i] = mesh->v_flag[i];
     }
     FE->dirichlet = dirichlet;
     FE->dof_flag = dof_flag;
@@ -167,8 +167,8 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     dirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
     dof_flag = (INT *) calloc(FE->ndof,sizeof(INT));
     for(i=0;i<FE->ndof;i++) {
-      dirichlet[i] = mesh->ed_bdry[i];
-      dof_flag[i] = mesh->ed_bdry[i];
+      dirichlet[i] = mesh->ed_flag[i];
+      dof_flag[i] = mesh->ed_flag[i];
     }
     FE->dirichlet = dirichlet;
     FE->dof_flag = dof_flag;
@@ -194,8 +194,8 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     dirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
     dof_flag = (INT *) calloc(FE->ndof,sizeof(INT));
     for(i=0;i<FE->ndof;i++) {
-      dirichlet[i] = mesh->f_bdry[i];
-      dof_flag[i] = mesh->f_bdry[i];
+      dirichlet[i] = mesh->f_flag[i];
+      dof_flag[i] = mesh->f_flag[i];
     }
     FE->dirichlet = dirichlet;
     FE->dof_flag = dof_flag;
@@ -263,8 +263,8 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     dirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
     dof_flag = (INT *) calloc(FE->ndof,sizeof(INT));
     for(i=0;i<FE->ndof;i++) {
-      dirichlet[i] = mesh->v_bdry[i % mesh->nv];
-      dof_flag[i] = mesh->v_bdry[i % mesh->nv];
+      dirichlet[i] = mesh->v_flag[i % mesh->nv];
+      dof_flag[i] = mesh->v_flag[i % mesh->nv];
     }
     FE->dirichlet = dirichlet;
     FE->dof_flag = dof_flag;
@@ -287,8 +287,8 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     dirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
     dof_flag = (INT *) calloc(FE->ndof,sizeof(INT));
     for(i=0;i<FE->ndof;i++) {
-      dirichlet[i] = mesh->f_bdry[i];
-      dof_flag[i] = mesh->f_bdry[i];
+      dirichlet[i] = mesh->f_flag[i];
+      dof_flag[i] = mesh->f_flag[i];
     }
     FE->dirichlet = dirichlet;
     FE->dof_flag = dof_flag;
@@ -543,8 +543,8 @@ void get_P2(fespace* FE,trimesh* mesh)
   INT* dof_flag = (INT *) calloc(ndof,sizeof(INT));
   // First set of nodes are vertices
   for (i=0; i<nv; i++) {
-    dirichlet[i] = mesh->v_bdry[i];
-    dof_flag[i] = mesh->v_bdry[i];
+    dirichlet[i] = mesh->v_flag[i];
+    dof_flag[i] = mesh->v_flag[i];
   }
   // In 1D rest are interior
   if(dim==1) {
@@ -555,8 +555,8 @@ void get_P2(fespace* FE,trimesh* mesh)
   } else {
     // In 2D or 3D, rest are edges
     for(i=0;i<nedge;i++) {
-      dirichlet[nv+i] = mesh->ed_bdry[i];
-      dof_flag[nv+i] = mesh->ed_bdry[i];
+      dirichlet[nv+i] = mesh->ed_flag[i];
+      dof_flag[nv+i] = mesh->ed_flag[i];
     }
   }
 

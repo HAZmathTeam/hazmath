@@ -22,14 +22,14 @@
 
 /********** Data Input *************************************************/
 // PDE Coefficients
-void diffusion_coeff(REAL *val,REAL* x,REAL time) {
+void diffusion_coeff(REAL *val,REAL* x,REAL time,void *param) {
   // a(x)
   *val = 1.0;
 }
 
 // Exact Solution (if you have one)
 // Change as needed for different dimensions
-void exactsol(REAL *val,REAL* x,REAL time) {
+void exactsol(REAL *val,REAL* x,REAL time,void *param) {
   // 1D
   //*val = sin(M_PI*x[0])*exp(-M_PI*M_PI*time);
   // 2D
@@ -39,18 +39,18 @@ void exactsol(REAL *val,REAL* x,REAL time) {
 }
 
 // Right-hand Side
-void myrhs(REAL *val,REAL* x,REAL time) {
+void myrhs(REAL *val,REAL* x,REAL time,void *param) {
   *val = 0.0;
 }
 
 // Boundary Conditions
-void bc(REAL *val,REAL* x,REAL time) {
+void bc(REAL *val,REAL* x,REAL time,void *param) {
   *val= 0.0;
 }
 
 // Initial Conditions
 // Change as needed for different dimensions
-void initial_conditions(REAL *val,REAL* x,REAL time) {
+void initial_conditions(REAL *val,REAL* x,REAL time,void *param) {
   // 1D
   //*val = sin(M_PI*x[0]);
   // 2D
