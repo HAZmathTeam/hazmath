@@ -1445,33 +1445,104 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
   
   AMG_data **mgl = (AMG_data **)calloc(2, sizeof(AMG_data *));
   for (i=0; i<2; i++) mgl[i]=NULL;
-  
+
   dCSRmat BTB;
-  
+
   /* setup preconditioner */
   get_time(&setup_start);
-  
-  /* set AMG for the flux block */
-  mgl[0] = amg_data_create(max_levels);
-  n = A->blocks[0]->row;
-  dcsr_mxm(A->blocks[1],A->blocks[2],&BTB);
-  dcsr_add(&BTB, 1000.0, A->blocks[0], 1.0, &mgl[0][0].A);
-  mgl[0][0].b=dvec_create(n); mgl[0][0].x=dvec_create(n);
-  
-  switch (amgparam->AMG_type) {
 
-    case UA_AMG: // Unsmoothed Aggregation AMG
-      if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
-      status = amg_setup_ua(mgl[0], amgparam);
-    break;
+  /*----------------------*/
+  /* Use argumented Lagrange type preconditioner */
+  /*----------------------*/
+  if (precond_type < 39)
+  {
+      /* set AMG for the flux block */
+      mgl[0] = amg_data_create(max_levels);
+      n = A->blocks[0]->row;
+      dcsr_mxm(A->blocks[1],A->blocks[2], &BTB);
+      dcsr_add(&BTB, 1000.0, A->blocks[0], 1.0, &mgl[0][0].A);
+      mgl[0][0].b=dvec_create(n); mgl[0][0].x=dvec_create(n);
+  
+      switch (amgparam->AMG_type) {
 
-    default: // Unsmoothed Aggregation AMG
-      if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
-      status = amg_setup_ua(mgl[0], amgparam);
-    break;
+        case UA_AMG: // Unsmoothed Aggregation AMG
+          if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+          status = amg_setup_ua(mgl[0], amgparam);
+          break;
+
+        default: // Unsmoothed Aggregation AMG
+          if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+          status = amg_setup_ua(mgl[0], amgparam);
+          break;
+
+      }
+
+      dcsr_free(&BTB);
 
   }
-  
+  else if (precond_type > 49 && precond_type < 70)
+  {
+      /* set AMG for the flux block */
+      mgl[0] = amg_data_create(max_levels);
+      n = A->blocks[0]->row;
+      mgl[0][0].A = dcsr_create(n, n, A->blocks[0]->nnz);
+      dcsr_cp(A->blocks[0], &mgl[0][0].A);
+      mgl[0][0].b=dvec_create(n); mgl[0][0].x=dvec_create(n);
+
+      switch (amgparam->AMG_type) {
+
+        case UA_AMG: // Unsmoothed Aggregation AMG
+          if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+          status = amg_setup_ua(mgl[0], amgparam);
+          break;
+
+        default: // Unsmoothed Aggregation AMG
+          if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+          status = amg_setup_ua(mgl[0], amgparam);
+          break;
+
+      }
+
+      /* set AMG for the pressure block */
+      mgl[1] = amg_data_create(max_levels);
+      dvector diag_M;
+      dCSRmat invM = dcsr_create(n,n,n);
+
+      dcsr_getdiag(n,A->blocks[0],&diag_M);
+
+      for (i=0;i<n;i++)
+      {
+          invM.IA[i] = i;
+          invM.JA[i] = i;
+          if (diag_M.val[i] > SMALLREAL) invM.val[i]   = 1.0/diag_M.val[i];
+          else invM.val[i] = 1.0;
+      }
+      invM.IA[n] = n;
+      dcsr_rap(A->blocks[2], &invM, A->blocks[1], &mgl[1][0].A);
+      mgl[1][0].b=dvec_create(A->blocks[2]->row); mgl[1][0].x=dvec_create(A->blocks[2]->row);
+
+      switch (amgparam->AMG_type) {
+
+        case UA_AMG: // Unsmoothed Aggregation AMG
+          if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+          status = amg_setup_ua(mgl[1], amgparam);
+          break;
+
+        default: // Unsmoothed Aggregation AMG
+          if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+          status = amg_setup_ua(mgl[1], amgparam);
+          break;
+
+      }
+
+      dcsr_free(&invM);
+      dvec_free(&diag_M);
+
+  }
+  else
+  {
+      check_error(ERROR_SOLVER_PRECTYPE, __FUNCTION__);
+  }
 
   precond_block_data precdata;
   precond_block_data_null(&precdata);
@@ -1509,6 +1580,30 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
     case 32:
       prec.fct = precond_block_upper_mixed_darcy_krylov;
       break;
+
+    case 50:
+      prec.fct = precond_block_diag_mixed_darcy_lap;
+      break;
+
+    case 51:
+      prec.fct = precond_block_lower_mixed_darcy_lap;
+      break;
+
+    case 52:
+      prec.fct = precond_block_upper_mixed_darcy_lap;
+      break;
+
+    case 60:
+      prec.fct = precond_block_diag_mixed_darcy_lap_krylov;
+      break;
+
+    case 61:
+      prec.fct = precond_block_lower_mixed_darcy_lap_krylov;
+      break;
+
+    case 62:
+      prec.fct = precond_block_upper_mixed_darcy_lap_krylov;
+      break;
       
     default:
       break;
@@ -1536,8 +1631,6 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
   }
 
   // clean
-  dcsr_free(&BTB);
-
   precond_block_data_free(&precdata, 2);
 
   return status;
