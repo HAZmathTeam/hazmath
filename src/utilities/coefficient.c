@@ -15,7 +15,7 @@
 
 /****************************************************************************************/
 /*!
- * \fn void constant_coeff_scal(REAL *val, REAL *x, REAL constval)
+ * \fn void constant_coeff_scal(REAL *val, REAL *x, REAL constval, void *param)
  *
  * \brief Assigns constant value (uses "time" slot in assembly routines)
  *
@@ -26,7 +26,8 @@
  */
 void constant_coeff_scal(REAL *val,
                          REAL *x,
-                         REAL constval)
+                         REAL constval,
+                         void *param)
 {
     *val = constval;
 }
@@ -34,7 +35,7 @@ void constant_coeff_scal(REAL *val,
 
 /****************************************************************************************/
 /*!
- * \fn void constant_coeff_vec2D(REAL *val,REAL* x,REAL constval)
+ * \fn void constant_coeff_vec2D(REAL *val,REAL* x,REAL constval,void *param)
  *
  * \brief Assigns constant value (uses "time" slot in assembly routines) in 2D
  *
@@ -45,7 +46,8 @@ void constant_coeff_scal(REAL *val,
  */
 void constant_coeff_vec2D(REAL *val,
                           REAL *x,
-                          REAL constval)
+                          REAL constval,
+                          void *param)
 {
     val[0] = constval;
     val[1] = constval;
@@ -54,7 +56,7 @@ void constant_coeff_vec2D(REAL *val,
 
 /****************************************************************************************/
 /*!
- * \fn void constant_coeff_vec3D(REAL *val,REAL* x,REAL constval)
+ * \fn void constant_coeff_vec3D(REAL *val,REAL* x,REAL constval,void *param)
  *
  * \brief Assigns constant value (uses "time" slot in assembly routines) in 3D
  *
@@ -65,7 +67,8 @@ void constant_coeff_vec2D(REAL *val,
  */
 void constant_coeff_vec3D(REAL *val,
                           REAL *x,
-                          REAL constval)
+                          REAL constval,
+                          void *param)
 {
     val[0] = constval;
     val[1] = constval;
@@ -75,7 +78,7 @@ void constant_coeff_vec3D(REAL *val,
 
 /****************************************************************************************/
 /*!
- * \fn void zero_coeff_scal(REAL *val,REAL* x,REAL time)
+ * \fn void zero_coeff_scal(REAL *val,REAL* x,REAL time,void *param)
  *
  * \brief Assigns zero value
  *
@@ -86,7 +89,8 @@ void constant_coeff_vec3D(REAL *val,
  */
 void zero_coeff_scal(REAL *val,
                      REAL *x,
-                     REAL time)
+                     REAL time,
+                     void *param)
 {
     *val = 0.0;
 }
@@ -94,7 +98,7 @@ void zero_coeff_scal(REAL *val,
 
 /****************************************************************************************/
 /*!
- * \fn void zero_coeff_vec2D(REAL *val,REAL* x,REAL time)
+ * \fn void zero_coeff_vec2D(REAL *val,REAL* x,REAL time,void *param)
  *
  * \brief Assigns zero value in 2D
  *
@@ -105,7 +109,8 @@ void zero_coeff_scal(REAL *val,
  */
 void zero_coeff_vec2D(REAL *val,
                       REAL *x,
-                      REAL time)
+                      REAL time,
+                      void *param)
 {
     val[0] = 0.0;
     val[1] = 0.0;
@@ -114,7 +119,7 @@ void zero_coeff_vec2D(REAL *val,
 
 /****************************************************************************************/
 /*!
- * \fn void zero_coeff_vec3D(REAL *val,REAL* x,REAL time)
+ * \fn void zero_coeff_vec3D(REAL *val,REAL* x,REAL time,void *param)
  *
  * \brief Assigns zero value in 3D
  *
@@ -125,7 +130,8 @@ void zero_coeff_vec2D(REAL *val,
  */
 void zero_coeff_vec3D(REAL *val,
                       REAL *x,
-                      REAL time)
+                      REAL time,
+                      void *param)
 {
     val[0] = 0.0;
     val[1] = 0.0;
@@ -135,7 +141,7 @@ void zero_coeff_vec3D(REAL *val,
 
 /****************************************************************************************/
 /*!
- * \fn void one_coeff_scal(REAL *val,REAL* x,REAL time)
+ * \fn void one_coeff_scal(REAL *val,REAL* x,REAL time,void *param)
  *
  * \brief Assigns value 1
  *
@@ -146,7 +152,8 @@ void zero_coeff_vec3D(REAL *val,
  */
 void one_coeff_scal(REAL *val,
                     REAL *x,
-                    REAL time)
+                    REAL time,
+                    void *param)
 {
     *val = 1.0;
 }
@@ -154,7 +161,7 @@ void one_coeff_scal(REAL *val,
 
 /****************************************************************************************/
 /*!
- * \fn void one_coeff_vec2D(REAL *val,REAL* x,REAL time)
+ * \fn void one_coeff_vec2D(REAL *val,REAL* x,REAL time,void *param)
  *
  * \brief Assigns value 1 in 2D
  *
@@ -165,7 +172,8 @@ void one_coeff_scal(REAL *val,
  */
 void one_coeff_vec2D(REAL *val,
                      REAL *x,
-                     REAL time)
+                     REAL time,
+                     void *param)
 {
     val[0] = 1.0;
     val[1] = 1.0;
@@ -174,7 +182,7 @@ void one_coeff_vec2D(REAL *val,
 
 /****************************************************************************************/
 /*!
- * \fn void one_coeff_vec3D(REAL *val,REAL* x,REAL time)
+ * \fn void one_coeff_vec3D(REAL *val,REAL* x,REAL time,void *param)
  *
  * \brief Assigns value 1 in 3D
  *
@@ -185,7 +193,8 @@ void one_coeff_vec2D(REAL *val,
  */
 void one_coeff_vec3D(REAL *val,
                      REAL *x,
-                     REAL time)
+                     REAL time,
+                     void *param)
 {
     val[0] = 1.0;
     val[1] = 1.0;

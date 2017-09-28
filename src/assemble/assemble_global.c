@@ -16,7 +16,7 @@
 // Full Assembly Routines
 /******************************************************************************************************/
 /*!
- * \fn assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),void (*coeff)(REAL *,REAL *,REAL),REAL time)
+ * \fn assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
  *
  * \brief Computes the global stiffness matrix and rhs for any a(u,v) = <f,v> bilinear form using various element
  *        types (eg. P0, P1, P2, Nedelec, and Raviart-Thomas).
@@ -46,7 +46,7 @@
  * \return b              Global RHS vector
  *
  */
-void assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),void (*coeff)(REAL *,REAL *,REAL),REAL time)
+void assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
 {
 
   INT dof_per_elm = FE->dof_per_elm;
@@ -124,7 +124,7 @@ void assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace
 
 /******************************************************************************************************/
 /*!
- * \fn assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),void (*bc)(REAL *,REAL *,REAL),void (*coeff)(REAL *,REAL *,REAL),REAL time)
+ * \fn assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),void (*bc)(REAL *,REAL *,REAL,void *),void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
  *
  * \brief Computes the global stiffness matrix and rhs for any a(u,v) = <f,v> bilinear form using various element
  *        types (eg. P0, P1, P2, Nedelec, and Raviart-Thomas).
@@ -156,7 +156,7 @@ void assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace
  * \return b              Global RHS vector
  *
  */
-void assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),void (*bc)(REAL *,REAL *,REAL),void (*coeff)(REAL *,REAL *,REAL),REAL time) 
+void assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),void (*bc)(REAL *,REAL *,REAL,void *),void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
 {
   INT dof_per_elm = FE->dof_per_elm;
   INT v_per_elm = mesh->v_per_elm;
@@ -242,7 +242,7 @@ void assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
 
 /******************************************************************************************************/
 /*!
- * \fn assemble_global_FE1FE2(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE1, fespace *FE2, trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),void (*coeff)(REAL *,REAL *,REAL),REAL time)
+ * \fn assemble_global_FE1FE2(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE1, fespace *FE2, trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
  *
  * \brief Computes the global stiffness matrix and rhs for any a(u,v) = <f,v> bilinear form using various element
  *        types (eg. P0, P1, P2, Nedelec, and Raviart-Thomas).
@@ -275,7 +275,7 @@ void assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
  *
  */
 
-void assemble_global_FE1FE2(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE1, fespace *FE2, trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),void (*coeff)(REAL *,REAL *,REAL),REAL time) 
+void assemble_global_FE1FE2(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE1, fespace *FE2, trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
 {
   INT dof_per_elm1 = FE1->dof_per_elm;
   INT dof_per_elm2 = FE2->dof_per_elm;
@@ -359,7 +359,7 @@ void assemble_global_FE1FE2(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
 
 /******************************************************************************************************/
 /*!
- * \fn assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,REAL),void (*local_rhs_assembly)(REAL *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+ * \fn assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,REAL),void (*local_rhs_assembly)(REAL *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
  *
  * \brief Computes the global stiffness BLOCK matrix and rhs for any a(u,v) = <f,v> bilinear form using various element
  *        types (eg. P0, P1, P2, Nedelec, and Raviart-Thomas).
@@ -389,7 +389,7 @@ void assemble_global_FE1FE2(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
  * \return b                 Global RHS vector
  *
  */
-void assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,REAL),void (*local_rhs_assembly)(REAL *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+void assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,REAL),void (*local_rhs_assembly)(REAL *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
 {
   INT dof_per_elm = 0;
   INT v_per_elm = mesh->v_per_elm;
@@ -500,7 +500,7 @@ void assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(RE
 
 /******************************************************************************************************/
 /*!
- * \fn assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void (*local_assembly)(REAL *,REAL *,dvector *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+ * \fn void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void (*local_assembly)(REAL *,REAL *,dvector *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
  *
  * \brief Computes the global stiffness BLOCK matrix and rhs for any a(u,v) = <f,v> bilinear form using various element
  *        types (eg. P0, P1, P2, Nedelec, and Raviart-Thomas).
@@ -534,7 +534,7 @@ void assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(RE
  * \return b                 Global RHS vector (Nonlinear residual)
  *
  */
-void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void (*local_assembly)(REAL *,REAL *,dvector *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void (*local_assembly)(REAL *,REAL *,dvector *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
 {
   INT dof_per_elm = 0;
   INT v_per_elm = mesh->v_per_elm;
@@ -653,7 +653,7 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
 // Assembles Global RHS vectors (if needed separately)
 /******************************************************************************************************/
 /*!
- * \fn assemble_global_RHS(dvector *b,fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+ * \fn assemble_global_RHS(dvector *b,fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
  *
  * \brief Computes the global rhs for any a(u,v) = <f,v> bilinear form using various element types
  *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
@@ -678,7 +678,7 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
  * \return b             Global RHS vector
  *
  */
-void assemble_global_RHS(dvector *b,fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time) 
+void assemble_global_RHS(dvector *b,fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
 {
   INT dof_per_elm = FE->dof_per_elm;
   INT v_per_elm = mesh->v_per_elm;
@@ -729,7 +729,7 @@ void assemble_global_RHS(dvector *b,fespace *FE,trimesh *mesh,qcoordinates *cq,v
 
 /******************************************************************************************************/
 /*!
- * \fn assemble_global_RHS(dvector *b,fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+ * \fn void assemble_global_RHS_block(dvector *b,void (*local_rhs_assembly)(REAL *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
  *
  * \brief Computes the global rhs for any a(u,v) = <f,v> bilinear form using various element types
  *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
@@ -756,7 +756,7 @@ void assemble_global_RHS(dvector *b,fespace *FE,trimesh *mesh,qcoordinates *cq,v
  * \return b             Global RHS vector
  *
  */
-void assemble_global_RHS_block(dvector *b,void (*local_rhs_assembly)(REAL *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+void assemble_global_RHS_block(dvector *b,void (*local_rhs_assembly)(REAL *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
 {
   INT dof_per_elm = 0;
   INT v_per_elm = mesh->v_per_elm;
@@ -833,7 +833,7 @@ void assemble_global_RHS_block(dvector *b,void (*local_rhs_assembly)(REAL *,bloc
 
 /******************************************************************************************************/
 /*!
- * \fn assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_assembly)(REAL *,dvector *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time)
+ * \fn assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_assembly)(REAL *,dvector *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
  *
  * \brief Computes the global rhs for any a(u,v) = <f,v> bilinear form using various element types
  *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
@@ -862,7 +862,7 @@ void assemble_global_RHS_block(dvector *b,void (*local_rhs_assembly)(REAL *,bloc
  * \return b                  Global RHS vector
  *
  */
-void assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_assembly)(REAL *,dvector *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL),REAL time) 
+void assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_assembly)(REAL *,dvector *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
 {
   INT dof_per_elm = 0;
   INT v_per_elm = mesh->v_per_elm;
@@ -940,7 +940,7 @@ void assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_a
 // Assembly over Faces/Boundaries
 /******************************************************************************************************/
 /*!
- * \fn assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*coeff)(REAL *,REAL *,REAL),void (*rhs)(REAL *,REAL *, REAL),REAL time,INT flag0,INT flag1)
+ * \fn assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*coeff)(REAL *,REAL *,REAL,void *),void (*rhs)(REAL *,REAL *, REAL,void *),REAL time,INT flag0,INT flag1)
  *
  * \brief Computes the global stiffness matrix for any "boundary" bilinear form using various element types
  *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
@@ -974,7 +974,7 @@ void assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_a
  * \return b                      Global RHS vector
  *
  */
-void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*coeff)(REAL *,REAL *,REAL),void (*rhs)(REAL *,REAL *, REAL),REAL time,INT flag0,INT flag1)
+void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*coeff)(REAL *,REAL *,REAL,void *),void (*rhs)(REAL *,REAL *, REAL,void *),REAL time,INT flag0,INT flag1)
 {
   INT dof_per_elm = FE->dof_per_elm;
   INT v_per_elm = mesh->v_per_elm;
@@ -1038,7 +1038,7 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
   // Loop over boundary faces
   for (i=0; i<mesh->nface; i++) {
     // Only grab the faces on the flagged boundary
-    if(mesh->f_bdry[i]>=flag0 && mesh->f_bdry[i]<=flag1) {
+    if(mesh->f_flag[i]>=flag0 && mesh->f_flag[i]<=flag1) {
       // Zero out local matrices
       for (j=0; j<local_size; j++) {
         ALoc[j]=0;
@@ -1086,7 +1086,7 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
 
 /******************************************************************************************************/
 /*!
- * \fn void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *, REAL),REAL time,INT flag0,INT flag1)
+ * \fn void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *, REAL,void *),REAL time,INT flag0,INT flag1)
  *
  * \brief Computes the RHS for any "boundary" bilinear form using various element types
  *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
@@ -1119,7 +1119,7 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
  * \return b                      Global RHS vector
  *
  */
-void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,INT,void (*)(REAL *,REAL *,REAL),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *, REAL),REAL time,INT flag0,INT flag1)
+void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assembly_face)(REAL *,dvector *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT *,INT,INT,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *, REAL,void *),REAL time,INT flag0,INT flag1)
 {
   INT dof_per_elm = FE->dof_per_elm;
   INT v_per_elm = mesh->v_per_elm;
@@ -1162,7 +1162,7 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
   // Loop over boundary faces
   for (i=0; i<mesh->nface; i++) {
     // Only grab the faces on the flagged boundary
-    if(mesh->f_bdry[i]>=flag0 && mesh->f_bdry[i]<=flag1) {
+    if(mesh->f_flag[i]>=flag0 && mesh->f_flag[i]<=flag1) {
       // Zero out local matrices
       for (j=0; j<dof_per_face; j++) {
         bLoc[j]=0;
