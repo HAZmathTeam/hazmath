@@ -90,7 +90,7 @@ void read_grid_haz(FILE *gfid,trimesh *mesh)
   INT* v_flag = (INT *) calloc(nv,sizeof(INT));
   rveci_(gfid,v_flag,&nv);
   for(i=0;i<nv;i++) {
-    if(v_flag[i]) {
+    if(v_flag[i]>0) {
       nbv++;
     }
   }
