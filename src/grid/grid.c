@@ -286,22 +286,17 @@ struct coordinates *allocatecoords(INT ndof,INT mydim)
   struct coordinates *A = malloc(sizeof(struct coordinates));
   assert(A != NULL);
 
+  A->x = (REAL *) calloc(mydim*ndof,sizeof(REAL));
+  A->y=NULL;
+  A->z=NULL;
   switch (mydim)
   {
-  case 1:
-    A->x = (REAL *) calloc(ndof,sizeof(REAL));
-    A->y = NULL;
-    A->z = NULL;
-    break;
   case 2:
-    A->x = (REAL *) calloc(ndof,sizeof(REAL));
-    A->y = (REAL *) calloc(ndof,sizeof(REAL));
-    A->z = NULL;
+    A->y = A->x + ndof;
     break;
   case 3:
-    A->x = (REAL *) calloc(ndof,sizeof(REAL));
-    A->y = (REAL *) calloc(ndof,sizeof(REAL));
-    A->z = (REAL *) calloc(ndof,sizeof(REAL));
+    A->y = A->x + ndof;
+    A->z = A->y + ndof;
     break;
   default:
     status = ERROR_DIM;
@@ -332,15 +327,15 @@ void free_coords(coordinates* A)
     A->x = NULL;
   }
 
-  if(A->y) {
-    free(A->y);
-    A->y = NULL;
-  }
+  /* if(A->y) { */
+  /*   free(A->y); */
+  /*   A->y = NULL; */
+  /* } */
 
-  if(A->z) {
-    free(A->z);
-    A->z = NULL;
-  }
+  /* if(A->z) { */
+  /*   free(A->z); */
+  /*   A->z = NULL; */
+  /* } */
   
   return;
 }
