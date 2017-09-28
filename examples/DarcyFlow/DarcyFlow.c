@@ -320,6 +320,17 @@ int main (int argc, char* argv[])
       solver_flag = linear_solver_bdcsr_krylov_mixed_darcy(time_stepper.At, time_stepper.rhs_time, time_stepper.sol, &linear_itparam, &amgparam, &el_vol);
 
     }
+    // solver diaognal blocks inexactly
+    else if ( (linear_itparam.linear_precond_type >= 50 & linear_itparam.linear_precond_type < 53) || (linear_itparam.linear_precond_type >= 60 & linear_itparam.linear_precond_type < 63) ) {
+
+      // element volume (only for RT0-P0)
+      //el_vol.row = time_stepper.At->blocks[2]->row;
+      //el_vol.val = mesh.el_vol;
+
+      // solve
+      solver_flag = linear_solver_bdcsr_krylov_mixed_darcy(time_stepper.At, time_stepper.rhs_time, time_stepper.sol, &linear_itparam, &amgparam, &el_vol);
+
+    }
     // solver without preconditioner
     else {
 
