@@ -1445,6 +1445,9 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
   
   AMG_data **mgl = (AMG_data **)calloc(2, sizeof(AMG_data *));
   for (i=0; i<2; i++) mgl[i]=NULL;
+  dvector **diag = (dvector **)calloc(2, sizeof(dvector *));
+  for (i=0; i<2; i++) diag[i]=NULL;
+
 
   dCSRmat BTB;
 
@@ -1539,6 +1542,46 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
       dvec_free(&diag_M);
 
   }
+  else if (precond_type >= 70)
+  {
+      /* set diagonal preconditioner for the flux block */
+      diag[0] = (dvector *)calloc(1, sizeof(dvector));
+      dcsr_getdiag(0, A->blocks[0], diag[0]);
+
+      /* set AMG for the pressure block */
+      mgl[1] = amg_data_create(max_levels);
+      n = A->blocks[0]->row;
+
+      dCSRmat invM = dcsr_create(n,n,n);
+
+      for (i=0;i<n;i++)
+      {
+          invM.IA[i] = i;
+          invM.JA[i] = i;
+          if (diag[0]->val[i] > SMALLREAL) invM.val[i]   = 1.0/diag[0]->val[i];
+          else invM.val[i] = 1.0;
+      }
+      invM.IA[n] = n;
+      dcsr_rap(A->blocks[2], &invM, A->blocks[1], &mgl[1][0].A);
+      mgl[1][0].b=dvec_create(A->blocks[2]->row); mgl[1][0].x=dvec_create(A->blocks[2]->row);
+
+      switch (amgparam->AMG_type) {
+
+        case UA_AMG: // Unsmoothed Aggregation AMG
+          if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+          status = amg_setup_ua(mgl[1], amgparam);
+          break;
+
+        default: // Unsmoothed Aggregation AMG
+          if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+          status = amg_setup_ua(mgl[1], amgparam);
+          break;
+
+      }
+
+      dcsr_free(&invM);
+
+  }
   else
   {
       check_error(ERROR_SOLVER_PRECTYPE, __FUNCTION__);
@@ -1551,6 +1594,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
   precdata.r = dvec_create(b->row);
   precdata.amgparam = amgparam;
   precdata.mgl = mgl;
+  precdata.diag = diag;
   precdata.el_vol = el_vol;
 
   precond prec; prec.data = &precdata;
@@ -1593,6 +1637,10 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
       prec.fct = precond_block_upper_mixed_darcy_lap;
       break;
 
+    case 53:
+      prec.fct = precond_block_ilu_mixed_darcy_lap;
+      break;
+
     case 60:
       prec.fct = precond_block_diag_mixed_darcy_lap_krylov;
       break;
@@ -1604,6 +1652,15 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
     case 62:
       prec.fct = precond_block_upper_mixed_darcy_lap_krylov;
       break;
+
+    case 63:
+      prec.fct = precond_block_ilu_mixed_darcy_lap_krylov;
+      break;
+
+    case 73:
+      prec.fct = precond_block_ilu_mixed_darcy_graph_lap_krylov;
+      break;
+
       
     default:
       break;
