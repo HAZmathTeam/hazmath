@@ -20,6 +20,13 @@
  *          u*t = 0 for Nedelec
  *          u*n = 0 for Raviart-Thomas
  *
+ * \note This example highlights some of the basic features of HAZmath,
+ * including how to set up finite-element spaces on a given mesh, create
+ * linear systems, and solve those systems using a variety of Krylov and/or
+ * multigrid solvers (a direct solver can also be implemented).  It also
+ * illustrates how to set the problem data, such as boundary conditions and
+ * right-hand sides, and how to output the solution in VTK formats.
+ *
  */
 
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************/

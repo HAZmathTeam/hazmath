@@ -2,11 +2,12 @@
                          HAZMATH		              
 
 This package contains simple C functions to generate finite-element
-discretizations of Poisson's Equation, Maxwell's Equations, and 
-other PDEs. It also contains iterative solvers, including standard
-Krylov and Multigrid methods, as well as linking to MULTIGRAPH and
-SUITESPARSE direct/iterative linear solver libraries.  Several example
-driver routines are contained in the "examples" directory.  
+discretizations of Poisson's Equation, the Heat equation, Stokes' 
+Equations, Maxwell's Equations, and other PDEs. It also contains 
+iterative solvers, including standard Krylov and Multigrid methods, 
+as well as links to MULTIGRAPH and SUITESPARSE direct/iterative linear 
+solver libraries.  Several example driver routines are contained in the 
+"examples" directory.  
 
 -------------------------------------------------------------
 Quick start: 1. Edit "haz_config/hazmath.mk" as needed.

@@ -14,6 +14,11 @@
  *
  *          u = 0 for P1 or P2 elements
  *
+ * \note This example extends the one in HDequation, while also showing
+ *       how to implement a variety of time discretizations, including
+ *       Backward Euler (BDF1), BDF2, and Crank-Nicolson. The timestepper
+ *       struct is introduced here.
+ *
  */
 
 /************* HAZMATH FUNCTIONS and INCLUDES ***************************/
