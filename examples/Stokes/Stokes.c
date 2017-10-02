@@ -12,11 +12,14 @@
  *        in 2D or 3D
  *
  *        Along the boundary of the region, Dirichlet conditions are
- *        imposed for u and Neumann for p.  P2-P1 or P2-P0 can be used.
+ *        imposed for u and Neumann for p.  P2-P1 or P2-P0 can be used,
+ *        though others can be implemented.
  *
  * \note This example shows how to build your own bilinear form for a system.
  *       The forms are found in StokesSystem.h and all Problem Data is found in
- *       StokesData.h
+ *       StokesData.h to simplify the code.  This example also illustrates how to
+ *       construct block versions of the finite-element spaces, linear systems, and
+ *       how to use block solvers.
  *
  *
  */
