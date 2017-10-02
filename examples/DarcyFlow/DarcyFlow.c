@@ -27,7 +27,6 @@
  *       different boundary conditions.  Each FE space is equipped with a flag for each DOF
  *       which can be passed to the problem data functions for this purpose.
  *
- *
  */
 
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************************/
