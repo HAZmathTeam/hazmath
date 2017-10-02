@@ -21,8 +21,11 @@
  *
  * \note This example shows how to build your own bilinear form for a
  *       system.  The forms are found in Darcy_assemble.h and
- *       coefficients, right hand side etc problem data is found in
- *       Darcy_functions.h
+ *       coefficients, right hand side, etc problem data is found in
+ *       Darcy_functions.h.  Additionally, this example illustrates how to use problem
+ *       data with different parameters.  For instance, certain boundaries may take
+ *       different boundary conditions.  Each FE space is equipped with a flag for each DOF
+ *       which can be passed to the problem data functions for this purpose.
  *
  *
  */
@@ -41,15 +44,6 @@ int main (int argc, char* argv[])
   printf("\nBeginning Program to solve Darcy Flow eqn by RT0-P0 mixed FE method\n");
   printf("\n===========================================================================\n");
 
-//  REAL *val = (REAL *) calloc(3,sizeof(REAL));
-//  REAL x[3];
-//  x[0] = 1;
-//  x[1] = 1;
-//  x[2] = 1;
-//  INT bdrycode = 22;
-//  initial_q(val,x,0.0,&bdrycode);
-//  exit(0);
-
   /****** INITIALIZE PARAMETERS **************************************************/
   // Loop Indices
   INT i,j,ii;
@@ -66,8 +60,6 @@ int main (int argc, char* argv[])
   printf("\nCreating mesh and FEM spaces:\n");
   FILE* gfid = HAZ_fopen(inparam.gridfile,"r");
 
-  // Dimension is needed for all this to work
-
   // Create the mesh (now we assume triangles in 2D or tetrahedra in 3D)
   // File types possible are 0 - old format; 1 - vtk format
   clock_t clk_mesh_start = clock(); // Time mesh generation FE setup
@@ -77,7 +69,6 @@ int main (int argc, char* argv[])
   initialize_mesh(&mesh);
   creategrid_fread(gfid,mesh_type,&mesh);
   fclose(gfid);
-
   INT dim = mesh.dim;
 
   // Get Quadrature Nodes for the Mesh
@@ -125,7 +116,7 @@ int main (int argc, char* argv[])
   FE.nbdof = FE_q.nbdof + FE_h.nbdof;
   FE.nspaces = 2;
   FE.nun = dim+1;
-  FE.var_spaces = (fespace **) calloc(2,sizeof(fespace *));
+  FE.var_spaces = (fespace **) calloc(FE.nspaces,sizeof(fespace *));
   FE.var_spaces[0] = &FE_q;
   FE.var_spaces[1] = &FE_h;
   set_dirichlet_bdry_block(&FE,&mesh);
@@ -200,7 +191,7 @@ int main (int argc, char* argv[])
   assemble_global(M.blocks[3],NULL,assemble_mass_local,&FE_h,&mesh,cq,NULL,Ss,0.0);
 
   // Create Time Operator (one with BC and one without)
-  initialize_blktimestepper(&time_stepper,&inparam,0,FE.ndof,2);
+  initialize_blktimestepper(&time_stepper,&inparam,0,FE.ndof,FE.nspaces);
   time_stepper.A = &A;
   time_stepper.M = &M;
   time_stepper.Ldata=&A;
