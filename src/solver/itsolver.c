@@ -1448,7 +1448,6 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
   dvector **diag = (dvector **)calloc(2, sizeof(dvector *));
   for (i=0; i<2; i++) diag[i]=NULL;
 
-
   dCSRmat BTB;
 
   /* setup preconditioner */
@@ -1462,7 +1461,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
       /* set AMG for the flux block */
       mgl[0] = amg_data_create(max_levels);
       n = A->blocks[0]->row;
-      dcsr_mxm(A->blocks[1],A->blocks[2], &BTB);
+      dcsr_mxm(A->blocks[1],A->blocks[2], &BTB);      
       dcsr_add(&BTB, 1000.0, A->blocks[0], 1.0, &mgl[0][0].A);
       mgl[0][0].b=dvec_create(n); mgl[0][0].x=dvec_create(n);
   
@@ -1521,7 +1520,10 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
           else invM.val[i] = 1.0;
       }
       invM.IA[n] = n;
-      dcsr_rap(A->blocks[2], &invM, A->blocks[1], &mgl[1][0].A);
+
+      //dcsr_rap(A->blocks[2], &invM, A->blocks[1], &mgl[1][0].A);
+      dcsr_rap(A->blocks[2], &invM, A->blocks[1], &BTB);
+      dcsr_add(&BTB, 1.0, A->blocks[3], -1.0, &mgl[1][0].A);
       mgl[1][0].b=dvec_create(A->blocks[2]->row); mgl[1][0].x=dvec_create(A->blocks[2]->row);
 
       switch (amgparam->AMG_type) {
@@ -1538,6 +1540,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
 
       }
 
+      dcsr_free(&BTB);
       dcsr_free(&invM);
       dvec_free(&diag_M);
 
@@ -1562,7 +1565,8 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
           else invM.val[i] = 1.0;
       }
       invM.IA[n] = n;
-      dcsr_rap(A->blocks[2], &invM, A->blocks[1], &mgl[1][0].A);
+      dcsr_rap(A->blocks[2], &invM, A->blocks[1], &BTB);
+      dcsr_add(&BTB, 1.0, A->blocks[3], -1.0, &mgl[1][0].A);
       mgl[1][0].b=dvec_create(A->blocks[2]->row); mgl[1][0].x=dvec_create(A->blocks[2]->row);
 
       switch (amgparam->AMG_type) {
@@ -1579,6 +1583,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
 
       }
 
+      dcsr_free(&BTB);
       dcsr_free(&invM);
 
   }
