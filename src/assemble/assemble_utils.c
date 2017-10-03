@@ -1261,7 +1261,7 @@ void eliminate_DirichletBC_RHS_blockFE_blockA(void (*bc)(REAL *,REAL *,REAL,void
 
   // Shift indices for HAZMATH utilities
   for(i=0;i<(FE->nspaces)*(FE->nspaces);i++) {
-    if(A->blocks[i] != NULL)
+    if(A->blocks[i])
       dcsr_shift(A->blocks[i],-1);
   }
 

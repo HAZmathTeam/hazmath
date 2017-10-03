@@ -544,7 +544,6 @@ void get_blktimeoperator(block_timestepper* ts,INT first_visit,INT cpyNoBC)
         status = ERROR_TS_TYPE;
         check_error(status, __FUNCTION__);
     }
-
     if(cpyNoBC)
       bdcsr_cp(ts->At,ts->At_noBC);
 
