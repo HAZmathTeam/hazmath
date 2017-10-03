@@ -19,8 +19,10 @@ print_level			= 4;	% how much information to print out
 %gridfile                        = ../grids/3D/unitCUBE_n17.haz
 %gridfile                        = ../grids/3D/hydrolena_grid.grd
 %gridfile                        = ../grids/3D/1hydrolena_grid.grd
+gridfile                        = ../grids/3D/128hydrolena_grid.grd
 %gridfile                        = ../grids/3D/255hydrolena_grid.grd
-gridfile                        = ../grids/3D/512hydrolena_grid.grd
+%gridfile                        = ../grids/3D/512hydrolena_grid.grd
+%gridfile                        = ../grids/3D/adaptive18.grd
 output_dir                          = ./output/
 
 %---------------%
@@ -92,7 +94,7 @@ linear_precond_type		= 63		%  0 Null | 1 Diag | 2 AMG | 4 ILU |
 
 AMG_type 			= UA	% C classical AMG | UA unsmoothed AMG
 AMG_cycle_type			= V     % V V-cycle | W W-cycle | A AMLI-cycle | NA Nonlinear AMLI-cycle 
-AMG_levels			= 10	% 
+AMG_levels			= 20	% 
 AMG_tol				= 1e-8
 AMG_maxit			= 1
 
@@ -110,7 +112,7 @@ AMG_nl_amli_krylov_type  	= 5	% Krylov method in nonlinear AMLI cycle: 5 GCG |  
 
 % aggregation AMG
 AMG_aggregation_type		= 1     % 1 VMB
-AMG_strong_coupled		= 0.0  % Strong coupled threshold
+AMG_strong_coupled		= 0.00  % Strong coupled threshold
 AMG_max_aggregation		= 100	% Max size of aggregations
 
 %----------------------------------------------%
