@@ -961,7 +961,9 @@ INT dcsr_add(dCSRmat *A,
 
   // both matrices A and B are NULL
   if (A == NULL && B == NULL) {
-    C->row=0; C->col=0; C->nnz=0;
+    //C->row=0; C->col=0; C->nnz=0;
+    C = (dCSRmat *) malloc(sizeof(dCSRmat));
+    C = NULL;
     status=SUCCESS;
     goto FINISHED;
   }
@@ -1134,19 +1136,29 @@ INT dcsr_add_1(dCSRmat *A,
   INT status = SUCCESS;
 
   // shift A
-  dcsr_shift(A, -1);
+  if(A)
+    dcsr_shift(A, -1);
   // shift B
-  dcsr_shift(B, -1);
+  if(B)
+    dcsr_shift(B, -1);
 
   // add
-  status = dcsr_add(A,alpha,B,beta,C);
+  if(A || B) {
+    status = dcsr_add(A,alpha,B,beta,C);
+  } else {
+    C=NULL;
+  }
 
   // shift A back
-  dcsr_shift(A, 1);
+  if(A)
+    dcsr_shift(A, 1);
   // shift B back
-  dcsr_shift(B, 1);
+  if(B)
+    dcsr_shift(B, 1);
   // shift C back
-  dcsr_shift(C, 1);
+  if(C) {
+    dcsr_shift(C, 1);
+  }
 
   return status;
 
