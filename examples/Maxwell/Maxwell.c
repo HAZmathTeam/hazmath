@@ -202,8 +202,9 @@ int main (int argc, char* argv[])
 
   // Block Matrix M;
   block_dCSRmat Mb;
-  Mb.brow = 3; Mb.bcol = 3;
-  Mb.blocks = (dCSRmat **) calloc(9,sizeof(dCSRmat *));
+  bdcsr_alloc(3,3,&Mb);
+//  Mb.brow = 3; Mb.bcol = 3;
+//  Mb.blocks = (dCSRmat **) calloc(9,sizeof(dCSRmat *));
   Mb.blocks[0] = &Me;
   Mb.blocks[1] = NULL;
   Mb.blocks[2] = NULL;
@@ -216,23 +217,24 @@ int main (int argc, char* argv[])
 
   // Block Matrix AZ = A + Z (shifts needed)
   block_dCSRmat AZb;
-  AZb.brow = 3; AZb.bcol = 3;
-  AZb.blocks = (dCSRmat **) calloc(9,sizeof(dCSRmat *));
+  bdcsr_alloc(3,3,&AZb);
+//  AZb.brow = 3; AZb.bcol = 3;
+//  AZb.blocks = (dCSRmat **) calloc(9,sizeof(dCSRmat *));
   AZb.blocks[0] = &Z;
   AZb.blocks[1] = &MKt;
   AZb.blocks[2] = &MG;
   AZb.blocks[3] = &MK;
   AZb.blocks[4] = NULL;
-  AZb.blocks[5] = NULL;
+  //AZb.blocks[5] = NULL;
   AZb.blocks[6] = &MGt;
-  AZb.blocks[7] = NULL;
+  //AZb.blocks[7] = NULL;
   AZb.blocks[8] = NULL;
 
   // Since blocks 5 and 7 are NULL for both A and M, we'll set one to
   // a zero matrix.  We are not calling a block assembly so this is necessary.
-  AZb.blocks[5] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
+  //AZb.blocks[5] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
   dcsr_set_zeromatrix(AZb.blocks[5], FE_B.ndof,FE_p.ndof,1);
-  AZb.blocks[7] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
+  //AZb.blocks[7] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
   dcsr_set_zeromatrix(AZb.blocks[7], FE_p.ndof,FE_B.ndof,1);
 
   // Block RHS (need the current RHS, the updated one for time stepping, and the function evaluted at the new time step (if time-dependent))
@@ -672,7 +674,7 @@ int main (int argc, char* argv[])
   /******** Free All the Arrays *************************************************************/
 
  // Time Stepper
- // free_blktimestepper(&time_stepper);
+  free_blktimestepper(&time_stepper);
 //  // CSR Matrices
 //  //dcsr_free(&Atime);
 //  //dcsr_free(&Atime_noBC);
