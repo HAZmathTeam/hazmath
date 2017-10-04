@@ -206,13 +206,13 @@ int main (int argc, char* argv[])
 //  Mb.brow = 3; Mb.bcol = 3;
 //  Mb.blocks = (dCSRmat **) calloc(9,sizeof(dCSRmat *));
   Mb.blocks[0] = &Me;
-  Mb.blocks[1] = NULL;
-  Mb.blocks[2] = NULL;
-  Mb.blocks[3] = NULL;
+//  Mb.blocks[1] = NULL;
+//  Mb.blocks[2] = NULL;
+//  Mb.blocks[3] = NULL;
   Mb.blocks[4] = &Mf;
-  Mb.blocks[5] = NULL;
-  Mb.blocks[6] = NULL;
-  Mb.blocks[7] = NULL;
+//  Mb.blocks[5] = NULL;
+//  Mb.blocks[6] = NULL;
+//  Mb.blocks[7] = NULL;
   Mb.blocks[8] = &Mv;
 
   // Block Matrix AZ = A + Z (shifts needed)
@@ -224,11 +224,11 @@ int main (int argc, char* argv[])
   AZb.blocks[1] = &MKt;
   AZb.blocks[2] = &MG;
   AZb.blocks[3] = &MK;
-  AZb.blocks[4] = NULL;
+ // AZb.blocks[4] = NULL;
   //AZb.blocks[5] = NULL;
   AZb.blocks[6] = &MGt;
   //AZb.blocks[7] = NULL;
-  AZb.blocks[8] = NULL;
+ // AZb.blocks[8] = NULL;
 
   // Since blocks 5 and 7 are NULL for both A and M, we'll set one to
   // a zero matrix.  We are not calling a block assembly so this is necessary.
