@@ -675,19 +675,20 @@ int main (int argc, char* argv[])
 
  // Time Stepper
   free_blktimestepper(&time_stepper);
+
 //  // CSR Matrices
 //  //dcsr_free(&Atime);
 //  //dcsr_free(&Atime_noBC);
-//  dcsr_free(&Z);
-//  dcsr_free(&K);
-//  dcsr_free(&G);
-// // dcsr_free(&Me);
-// // dcsr_free(&Mf);
-// // dcsr_free(&Mv);
-//  dcsr_free(&MG);
-//  dcsr_free(&MGt);
-//  dcsr_free(&MK);
-//  dcsr_free(&MKt);
+  dcsr_free(&Z);
+  dcsr_free(&K);
+  dcsr_free(&G);
+ // dcsr_free(&Me);
+ // dcsr_free(&Mf);
+ // dcsr_free(&Mv);
+  dcsr_free(&MG);
+  dcsr_free(&MGt);
+  dcsr_free(&MK);
+  dcsr_free(&MKt);
 ////  dcsr_free(&M);
 ////  dcsr_free(&AZ);
   
@@ -750,6 +751,9 @@ int main (int argc, char* argv[])
   
   // Mesh
   free_mesh(&mesh);
+
+  // Arrays
+  if(varname) free(varname);
   
   
   /*****************************************************************************************/
