@@ -80,7 +80,7 @@ void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fe
  */
 void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,trimesh *mesh)
 {
-  INT dof,j,k;
+  INT dof,j,k,i;
 
   // Get FE and Mesh data
   INT dof_per_elm = FE->dof_per_elm;
@@ -88,7 +88,8 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
   INT dim = mesh->dim;
 
   // Basis Functions and its derivatives if necessary
-  REAL coef[dim];
+  //REAL coef[dim];
+  REAL coef[dim*dim];
 
   get_FEM_basis(FE->phi,FE->dphi,x,v_on_elm,dof_on_elm,mesh,FE);
 
@@ -133,6 +134,18 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
       coef[0] += u[dof]*FE->dphi[j];
     }
     val[0] = coef[0];
+  } else if (FEtype==61) { // bubble
+    for(j=0;j<dim;j++) {
+      for(i=0;i<dim;i++) {
+        coef[j*dim + i] = 0.0;
+        for(k=0; k<dof_per_elm; k++) {
+          dof = dof_on_elm[k] - 1;
+          coef[j*dim + i] += u[dof]*FE->dphi[k*dim*dim + j*dim + i];
+        }
+        val[j*dim + i] = coef[j*dim + i];
+      }
+    }
+
   } else {
     check_error(ERROR_FE_TYPE,__FUNCTION__);
   }
@@ -504,6 +517,8 @@ void blockFE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,I
       val_sol+=dim;
     } else if(FE->var_spaces[k]->FEtype==30) { // Div is Scalar
       val_sol++;
+    } else if(FE->var_spaces[k]->FEtype==61) { // bubble
+      val_sol+=dim*dim;
     } else {
       check_error(ERROR_FE_TYPE,__FUNCTION__);
     }
@@ -640,6 +655,7 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
       x[2] = mesh->el_mid[DOF*dim+2];
     (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
     val = valx[local_dim];
+    printf("local_dim = %d\n",local_dim);
   } else if(FE->var_spaces[comp]->FEtype>0 && FE->var_spaces[comp]->FEtype<10) { // Lagrange Elements u[dof] = u[x_i]
     x[0] = FE->var_spaces[comp]->cdof->x[DOF];
     if(dim==2 || dim==3)
