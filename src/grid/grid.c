@@ -183,15 +183,10 @@ void build_mesh(trimesh* mesh)
     get_face_maps(mesh->el_v,v_per_elm,&ed_v,nface,dim,f_per_elm,mesh->el_f, \
                   f_flag,&nbface,&f_v,&f_ed,fel_order);
 
-    // In case v_flag has different types of boundaries, match the face boundary
-    // to the same.
-    for(i=0; i<nface; i++){
-      if( f_flag[i]==1 ) {
-        j = f_v.IA[i]-1;
-        k = f_v.JA[j]-1;
-        f_flag[i] = mesh->v_flag[k];
-      }
-    }
+    /* Get Face and Edge Flags */
+    INT nbedge=0;
+    INT* ed_flag = (INT *) calloc(nedge,sizeof(INT));
+    boundary_f_ed(&f_ed,&ed_v,nedge,nface,f_flag,mesh->v_flag,&nbedge,ed_flag,dim);
 
     // Next get the face data, such as areas, midpoints, and normal vectors
     REAL* f_area = (REAL *) calloc(nface,sizeof(REAL));
@@ -209,11 +204,6 @@ void build_mesh(trimesh* mesh)
     mesh->f_ed = malloc(sizeof(struct iCSRmat));
     *(mesh->f_v) = f_v;
     *(mesh->f_ed) = f_ed;
-
-    /* Get Boundary Edges */
-    INT nbedge=0;
-    INT* ed_flag = (INT *) calloc(nedge,sizeof(INT));
-    isboundary_ed(&f_ed,&ed_v,nedge,nface,f_flag,mesh->v_flag,&nbedge,ed_flag);
 
     // Assign components to the mesh
     mesh->nedge = nedge;

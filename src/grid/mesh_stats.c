@@ -154,47 +154,53 @@ iCSRmat get_edge_v(INT* nedge,iCSRmat* el_v)
 
 /*******************************************************************************/
 /*!
- * \fn void isboundary_ed(iCSRmat* f_ed,iCSRmat* ed_v,INT nedge,INT nface,INT *f_bdry,INT *v_bdry,INT *nbedge,INT *ed_bdry)
+ * \fn void boundary_f_ed(iCSRmat* f_ed,iCSRmat* ed_v,INT nedge,INT nface,INT *f_flag,INT *v_flag,INT *nbedge,INT *ed_flag)
  *
- * \brief Counts the number of boundary edges and indicates whether an edge is
- *        a boundary, using the f_bdry map.
+ * \brief Counts the number of boundary edges and indicates whether an edge and a face is
+ *        a boundary, using the f_flag and v_flag maps.
  *
- * \param f_ed                       Face to Edge Map
+ * \param f_ed                     Face to Edge Map
  * \param ed_v	                   Edge to vertex map in CSR format.
  * \param nedge	                   Number of edges
  * \param nface	                   Number of faces
- * \param f_bdry		               Binary boundary array for faces
- * \param v_bdry                     Binary boundary array for vertices
+ * \param f_flag		           Boundary flag array for faces
+ * \param v_bdry                   Boundary flag array for vertices
  *
- * \return nbedge                    Number of boundary edges
- * \return ed_bdry                   Binary boundary array for edges
+ * \return nbedge                  Number of boundary edges
+ * \return ed_flag                 Boundary flag array for edges
  *
  */
-void isboundary_ed(iCSRmat* f_ed,iCSRmat* ed_v,INT nedge,INT nface,INT *f_bdry,INT *v_bdry,INT *nbedge,INT *ed_bdry) 
+void boundary_f_ed(iCSRmat* f_ed,iCSRmat* ed_v,INT nedge, INT nface,INT *f_flag,INT *v_flag,INT *nbedge,INT *ed_flag,INT dim)
 {
-  INT i,j,ed,v1,v2,col_b,col_e,jcntr; /* Loop indices and counters */
+  INT i,j,ed,v1,v2,jcntr; /* Loop indices and counters */
 
-  // For every face get edges
-  // All edges on a face should have the same property as the face.
-  for (i=0; i<nface; i++) {
-    col_b = f_ed->IA[i]-1;
-    col_e = f_ed->IA[i+1]-1;
-    for(j=col_b;j<col_e;j++) {
-      ed = f_ed->JA[j]-1;
-      v1 = ed_v->JA[ed_v->IA[ed]-1]-1;
-      v2 = ed_v->JA[ed_v->IA[ed]]-1;
-      if(v_bdry[v1]==v_bdry[v2]) {
-        if(f_bdry[i]==v_bdry[v1]) {
-          ed_bdry[ed] = f_bdry[i];
-        }
+  // Edge flag is max of its two vertex flags (assuming both are on boundary)
+  // Face flag is max of its edge flags
+  // This way if one vertex is Neumann the whole edge/face will be Neumann
+  INT ed_per_f = (dim*(dim-1))/2;
+  INT* ed_on_f = (INT *) calloc(ed_per_f,sizeof(INT));
+  INT maxe=0;
+  for(i=0; i<nface; i++) {
+    if( f_flag[i]==1 ) {
+      get_incidence_row(i,f_ed,ed_on_f);
+      maxe = -666;
+      for(j=0; j<ed_per_f; j++) {
+        ed = ed_on_f[j]-1;
+        v1 = ed_v->JA[ed_v->IA[ed]-1]-1;
+        v2 = ed_v->JA[ed_v->IA[ed]]-1;
+        ed_flag[ed] = MAX(v_flag[v1],v_flag[v2]);
+        if(ed_flag[ed]>maxe)
+          maxe = ed_flag[ed];
       }
+      f_flag[i] = maxe;
     }
   }
+  if(ed_on_f) free(ed_on_f);
 
   // Now go back through edges and count how many are on boundary.
   jcntr=0;
   for (i=0; i<nedge; i++) {
-    if(ed_bdry[i]!=0) {
+    if(ed_flag[i]!=0) {
       jcntr++;
     }
   }
