@@ -174,12 +174,21 @@ void isboundary_ed(iCSRmat* f_ed,iCSRmat* ed_v,INT nedge,INT nface,INT *f_bdry,I
 {
   INT i,j,ed,v1,v2,col_b,col_e,jcntr; /* Loop indices and counters */
 
-  // Edge flag is max of its two vertex flags
-  // This way if one vertex is Neumann the whole edge will be Neumann
-  for(i=0;i<nedge;i++) {
-    v1 = ed_v->JA[ed_v->IA[i]-1]-1;
-    v2 = ed_v->JA[ed_v->IA[i]]-1;
-    ed_bdry[i] = MAX(v_bdry[v1],v_bdry[v2]);
+  // For every face get edges
+  // All edges on a face should have the same property as the face.
+  for (i=0; i<nface; i++) {
+    col_b = f_ed->IA[i]-1;
+    col_e = f_ed->IA[i+1]-1;
+    for(j=col_b;j<col_e;j++) {
+      ed = f_ed->JA[j]-1;
+      v1 = ed_v->JA[ed_v->IA[ed]-1]-1;
+      v2 = ed_v->JA[ed_v->IA[ed]]-1;
+      if(v_bdry[v1]==v_bdry[v2]) {
+        if(f_bdry[i]==v_bdry[v1]) {
+          ed_bdry[ed] = f_bdry[i];
+        }
+      }
+    }
   }
 
   // Now go back through edges and count how many are on boundary.

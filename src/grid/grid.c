@@ -184,21 +184,14 @@ void build_mesh(trimesh* mesh)
                   f_flag,&nbface,&f_v,&f_ed,fel_order);
 
     // In case v_flag has different types of boundaries, match the face boundary
-    // to the same.  Face flag is max of its two vertex flags
-    // This way if one vertex is Neumann the whole face will be Neumann
-    INT* v_on_f = (INT *) calloc(dim,sizeof(INT));
-    INT mymax=0;
-    for(i=0;i<nface;i++) {
-      get_incidence_row(i,&f_v,v_on_f);
-      mymax = mesh->v_flag[v_on_f[0]-1];
-      for(j=1;j<dim;j++) {
-        if(mesh->v_flag[v_on_f[j]-1]>mymax) {
-          mymax = mesh->v_flag[v_on_f[j]-1];
-        }
+    // to the same.
+    for(i=0; i<nface; i++){
+      if( f_flag[i]==1 ) {
+        j = f_v.IA[i]-1;
+        k = f_v.JA[j]-1;
+        f_flag[i] = mesh->v_flag[k];
       }
-      f_flag[i] = mymax;
     }
-    if(v_on_f) free(v_on_f);
 
     // Next get the face data, such as areas, midpoints, and normal vectors
     REAL* f_area = (REAL *) calloc(nface,sizeof(REAL));
