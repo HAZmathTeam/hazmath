@@ -65,7 +65,6 @@ int main (int argc, char* argv[])
   INT mesh_type = 0;
   trimesh mesh;
   printf(" --> loading grid from file: %s\n",inparam.gridfile);
-  initialize_mesh(&mesh);
   creategrid_fread(gfid,mesh_type,&mesh);
   fclose(gfid);
   INT dim = mesh.dim;
@@ -104,6 +103,7 @@ int main (int argc, char* argv[])
   // Set Dirichlet Boundaries
   set_dirichlet_bdry(&FE_q,&mesh,22,22);
   set_dirichlet_bdry(&FE_q,&mesh,19,19);
+
   // Make sure all conditions on h are NOT Dirichlet
   set_dirichlet_bdry(&FE_h,&mesh,-1,-1);
 
