@@ -202,40 +202,42 @@ int main (int argc, char* argv[])
 
   // Block Matrix M;
   block_dCSRmat Mb;
-  bdcsr_alloc(3,3,&Mb);
-//  Mb.brow = 3; Mb.bcol = 3;
-//  Mb.blocks = (dCSRmat **) calloc(9,sizeof(dCSRmat *));
+  //bdcsr_alloc(3,3,&Mb);
+  Mb.brow = 3; Mb.bcol = 3;
+  Mb.blocks = (dCSRmat **) calloc(9,sizeof(dCSRmat *));
   Mb.blocks[0] = &Me;
-//  Mb.blocks[1] = NULL;
-//  Mb.blocks[2] = NULL;
-//  Mb.blocks[3] = NULL;
+  Mb.blocks[1] = NULL;
+  Mb.blocks[2] = NULL;
+  Mb.blocks[3] = NULL;
   Mb.blocks[4] = &Mf;
-//  Mb.blocks[5] = NULL;
-//  Mb.blocks[6] = NULL;
-//  Mb.blocks[7] = NULL;
+  Mb.blocks[5] = NULL;
+  Mb.blocks[6] = NULL;
+  Mb.blocks[7] = NULL;
   Mb.blocks[8] = &Mv;
 
   // Block Matrix AZ = A + Z (shifts needed)
   block_dCSRmat AZb;
-  bdcsr_alloc(3,3,&AZb);
-//  AZb.brow = 3; AZb.bcol = 3;
-//  AZb.blocks = (dCSRmat **) calloc(9,sizeof(dCSRmat *));
+  //bdcsr_alloc(3,3,&AZb);
+  AZb.brow = 3; AZb.bcol = 3;
+  AZb.blocks = (dCSRmat **) calloc(9,sizeof(dCSRmat *));
   AZb.blocks[0] = &Z;
   AZb.blocks[1] = &MKt;
   AZb.blocks[2] = &MG;
   AZb.blocks[3] = &MK;
- // AZb.blocks[4] = NULL;
+  AZb.blocks[4] = NULL;
   //AZb.blocks[5] = NULL;
   AZb.blocks[6] = &MGt;
   //AZb.blocks[7] = NULL;
- // AZb.blocks[8] = NULL;
+  AZb.blocks[8] = NULL;
 
   // Since blocks 5 and 7 are NULL for both A and M, we'll set one to
   // a zero matrix.  We are not calling a block assembly so this is necessary.
-  //AZb.blocks[5] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
+  AZb.blocks[5] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
+ // dcsr_set_zeromatrix(AZb.blocks[4], FE_B.ndof,FE_B.ndof,1);
   dcsr_set_zeromatrix(AZb.blocks[5], FE_B.ndof,FE_p.ndof,1);
-  //AZb.blocks[7] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
+  AZb.blocks[7] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
   dcsr_set_zeromatrix(AZb.blocks[7], FE_p.ndof,FE_B.ndof,1);
+  //dcsr_set_zeromatrix(AZb.blocks[8], FE_p.ndof,FE_p.ndof,1);
 
   // Block RHS (need the current RHS, the updated one for time stepping, and the function evaluted at the new time step (if time-dependent))
   dvector b = dvec_create(ndof);
@@ -249,6 +251,7 @@ int main (int argc, char* argv[])
   time_stepper.M = &Mb;
   time_stepper.Ldata = &AZb;
   get_blktimeoperator(&time_stepper,1,1);
+  //debug_print("here",1);
 
   clock_t clk_assembly_end = clock();
   printf(" --> elapsed CPU time for assembly = %f seconds.\n\n",(REAL)
