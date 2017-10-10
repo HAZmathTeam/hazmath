@@ -903,3 +903,24 @@ void create_pvd(char *namepvd, INT nfiles,char *vtkfilename,char *filetype)
   return;
 }
 /******************************************************************************/
+
+/***********************************************************************************************/
+/*!
+ * \fn void debug_print(char *string,INT kill)
+ *
+ * \brief print debug message
+ *
+ * \param string  Pointer to the INT array
+ * \param kill    if 1 kill the program
+ *
+ */
+void debug_print(char* string, INT kill)
+{
+   printf("%s\n",string);fflush(stdout);
+
+   if(kill) exit(0);
+
+    return;
+}
+
+/***********************************************************************************************/

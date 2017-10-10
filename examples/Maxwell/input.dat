@@ -28,7 +28,7 @@ nquad				= 2	% Quadrature nodes each direction
 %---------------%
 
 time_step_type			= 0	% 0 CN | 1 BDF1 | 2 BDF2 |
-time_steps			= 20 	% number of time steps
+time_steps			= 1 	% number of time steps
 time_step_size			= 0.1	% time step size
 
 %---------------%
@@ -45,7 +45,7 @@ nonlinear_itsolver_toltype      = 0
 %---------------%
 
 linear_itsolver_type		= 4		% 0 Direct Solve | 1 CG | 2 MINRES | 3 GMRES | 4 FGMRes		
-linear_itsolver_maxit		= 200    	% maximal iterations of linear iterative solver
+linear_itsolver_maxit		= 2    	% maximal iterations of linear iterative solver
 linear_stop_type		= 1     	% 1 ||r||/||b|| | 2 ||r||_B/||b||_B | % 3 ||r||/||x||
 linear_itsolver_tol		= 1e-8  	% tolerance for linear iterative solver 
 linear_restart 			= 100		% restart for GMRes
