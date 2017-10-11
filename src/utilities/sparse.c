@@ -91,7 +91,7 @@ dCSRmat dcsr_create_zeromatrix(const INT m,
 
 /***********************************************************************************************/
 /*!
- * \fn dCSRmat dcsr_set_zeromatrix(dCSRmat *A,const INT m,const INT n,const INT index_start)
+ * \fn void dcsr_set_zeromatrix(dCSRmat *A,const INT m,const INT n,const INT index_start)
 {
  *
  * \brief Create a CSR sparse matrix that is all zeros
@@ -961,10 +961,8 @@ INT dcsr_add(dCSRmat *A,
 
   // both matrices A and B are NULL
   if (A == NULL && B == NULL) {
-    //C->row=0; C->col=0; C->nnz=0;
-    C = (dCSRmat *) malloc(sizeof(dCSRmat));
-    C = NULL;
-    status=SUCCESS;
+    printf("### ERROR HAZMATH DANGER: both matrices are null, not sure if dimensions match!!! %s\n", __FUNCTION__);
+    status = ERROR_MAT_SIZE;
     goto FINISHED;
   }
 
@@ -1146,7 +1144,9 @@ INT dcsr_add_1(dCSRmat *A,
   if(A || B) {
     status = dcsr_add(A,alpha,B,beta,C);
   } else {
-    C=NULL;
+      printf("### ERROR HAZMATH DANGER: Dimensions of matrices do not match!!! %s\n", __FUNCTION__);
+      status = ERROR_MAT_SIZE;
+      goto FINISHED;
   }
 
   // shift A back
@@ -1160,6 +1160,7 @@ INT dcsr_add_1(dCSRmat *A,
     dcsr_shift(C, 1);
   }
 
+FINISHED:
   return status;
 
 }
@@ -2666,6 +2667,37 @@ void dcsr_bandwith(dCSRmat *A,
 // Block_dCSRmat subroutines starts here!
 /***********************************************************************************************/
 /*!
+   * \fn void bdcsr_alloc_minimal(const INT brow, const INT bcol, block_dCSRmat *A)
+   *
+   * \brief Allocate block dCSRmat sparse matrix memory space (minimal spaces that are needed)
+   *
+   * \param brow      Number of block rows
+   * \param bcol      Number of block columns
+   * \param A         Pointer to the dCSRmat matrix
+   *
+   * \note: this only allocates A->blocks, but does not allocate either each A->block[i] nor each dcsr matrix
+   *
+   */
+void bdcsr_alloc_minimal(const INT brow,
+                 const INT bcol,
+                 block_dCSRmat *A)
+{
+    //SHORT i;
+
+    A->brow = brow;
+    A->bcol = bcol;
+
+    if (brow == 0 || bcol == 0){
+        A->blocks = NULL;
+    }
+    else {
+        A->blocks = (dCSRmat **) calloc(brow*bcol,sizeof(dCSRmat *));
+    }
+
+  return;
+}
+
+/*!
    * \fn void bdcsr_alloc (const INT brow, const INT bcol, block_dCSRmat *A)
    *
    * \brief Allocate block dCSRmat sparse matrix memory space
@@ -2674,7 +2706,7 @@ void dcsr_bandwith(dCSRmat *A,
    * \param bcol      Number of block columns
    * \param A         Pointer to the dCSRmat matrix
    *
-   * \note: this only allocates A->blocks, but does not allocate each block
+   * \note: this allocates A->blocks and each A->block[i], but does not allocate each dcsr matrix
    *
    */
 void bdcsr_alloc(const INT brow,
@@ -2698,6 +2730,34 @@ void bdcsr_alloc(const INT brow,
 }
 
 /***********************************************************************************************/
+/*!
+   * \fn void bdcsr_free_minimal (block_dCSRmat *A)
+   *
+   * \brief Free block dCSR sparse matrix data (which is allocated by bdcsr_alloc_minimal)
+   *
+   * \param A   Pointer to the block_dCSRmat matrix
+   *
+   */
+void bdcsr_free_minimal(block_dCSRmat *A)
+{
+  if (A == NULL) return; // Nothing need to be freed!
+
+  INT i;
+  INT num_blocks = (A->brow)*(A->bcol);
+
+  for ( i=0; i<num_blocks; i++ ) {
+    dcsr_free(A->blocks[i]);
+  }
+
+  if(A->blocks) {
+      free(A->blocks);
+      A->blocks = NULL;
+  }
+
+  return;
+}
+
+
 /*!
    * \fn void bdcsr_free (block_dCSRmat *A)
    *
@@ -2749,7 +2809,10 @@ void bdcsr_cp(block_dCSRmat *A,
     for (i=0; i<(A->brow*A->bcol); i++){
 
         if (A->blocks[i] == NULL){
-            B->blocks[i] = NULL;
+            if (B->blocks[i]) {
+                free(B->blocks[i]);
+                B->blocks[i] = NULL;
+            }
         } else {
             dcsr_alloc(A->blocks[i]->row, A->blocks[i]->col, A->blocks[i]->nnz, B->blocks[i]);
             dcsr_cp(A->blocks[i], B->blocks[i]);
@@ -2821,7 +2884,14 @@ INT bdcsr_add(block_dCSRmat *A,
     // blockwise addition
     for (i=0; i<A->brow; i++){
         for (j=0; j<A->bcol; j++){
-            status = dcsr_add(A->blocks[i*A->brow+j], alpha, B->blocks[i*A->brow+j], beta, C->blocks[i*A->brow+j]);
+            if (A->blocks[i*A->brow+j]==NULL && B->blocks[i*A->brow+j] == NULL) {
+                free(C->blocks[i*A->brow+j]);
+                C->blocks[i*A->brow+j]=NULL;
+                status = SUCCESS;
+            }
+            else {
+                status = dcsr_add(A->blocks[i*A->brow+j], alpha, B->blocks[i*A->brow+j], beta, C->blocks[i*A->brow+j]);
+            }
             if (status < 0) {goto FINISHED;}
         }
     }
@@ -2893,7 +2963,14 @@ INT bdcsr_add_1(block_dCSRmat *A,
     // blockwise addition
     for (i=0; i<A->brow; i++){
         for (j=0; j<A->bcol; j++){
-            status = dcsr_add_1(A->blocks[i*A->brow+j], alpha, B->blocks[i*A->brow+j], beta, C->blocks[i*A->brow+j]);
+            if (A->blocks[i*A->brow+j]==NULL && B->blocks[i*A->brow+j] == NULL) {
+                free(C->blocks[i*A->brow+j]);
+                C->blocks[i*A->brow+j]=NULL;
+                status = SUCCESS;
+            }
+            else {
+                status = dcsr_add_1(A->blocks[i*A->brow+j], alpha, B->blocks[i*A->brow+j], beta, C->blocks[i*A->brow+j]);
+            }
             if (status < 0) {goto FINISHED;}
         }
     }
