@@ -58,7 +58,7 @@ void read_grid_haz(FILE *gfid,trimesh *mesh)
   INT v_per_elm = dim+1;
   mesh->el_v=malloc(sizeof(iCSRmat));
   // Element-Vertex Map
-  mesh->el_v->row=nelm+1;
+  mesh->el_v->row=nelm;
   mesh->el_v->col=nv;
   mesh->el_v->IA = (INT *)calloc(nelm+1, sizeof(INT));
   mesh->el_v->JA = (INT *)calloc(nelm*v_per_elm, sizeof(INT));
