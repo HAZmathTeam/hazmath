@@ -45,7 +45,6 @@
  * \return mesh.el_v       Element to vertex map
  *
  */
-#include "hazmath.h"
 
 void read_grid_haz(FILE *gfid,trimesh *mesh) 
 {
