@@ -142,7 +142,6 @@ iCSRmat get_edge_v(INT* nedge,iCSRmat* el_v)
   /* Free Node Node */
   icsr_free(&v_v);
   icsr_free(&v_el);
-
   ed_v.val=NULL;
   ed_v.row = ned;
   ed_v.col = nv;
@@ -935,6 +934,79 @@ void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
  */
 void get_el_vol(REAL *el_vol,iCSRmat *el_v,coordinates *cv,INT dim,INT v_per_elm)
 {
+  //  old_get_el_vol(el_vol,el_v,cv,dim,v_per_elm);
+  //  return;
+  // Loop Indices
+  INT i,j_a,j_b,j,k,l,jcnt,lv,lnv;
+
+  REAL x2,x3,x4,y2,y3,y4,z2,z3,z4;
+
+  /* Coordinates of nodes on elements */
+  REAL* x = (REAL *) calloc(dim*v_per_elm,sizeof(REAL));
+  REAL *y=NULL, *z=NULL;
+  INT nelm = el_v->row;
+  INT nv = el_v->col;
+  for (i=0;i<nelm;i++) {
+    j_a = el_v->IA[i];
+    j_b = el_v->IA[i+1]-1;
+    for (l=0;l<dim;l++){
+      jcnt=0;lv=l*v_per_elm; lnv=l*nv;
+      for (j=j_a; j<=j_b; j++) {
+	k=el_v->JA[j-1]-1;
+	x[lv+jcnt] = cv->x[lnv+k];
+	jcnt++;
+      }
+    }
+    //    fprintf(stdout,"\n*******jcnt=%d",jcnt);fflush(stdout);
+    if(dim==1) {
+      el_vol[i]=fabs(x[1]-x[0]);
+      //      fprintf(stdout,"dim=%d; diff=%e\n",dim,el_voli-el_vol[i]);
+    } else if(dim==2) {
+      y=x+v_per_elm;
+      el_vol[i] = 0.5*fabs(y[0]*(x[1]-x[2]) + y[1]*(x[2]-x[0]) +	\
+			   y[2]*(x[0]-x[1]));
+      //      fprintf(stdout,"dim=%d; diff=%e\n",dim,el_voli-el_vol[i]);
+    } else if(dim==3) {
+      y=x+v_per_elm;z=y+v_per_elm;
+      x2 = x[1]-x[0];
+      x3 = x[2]-x[0];
+      x4 = x[3]-x[0];
+      y2 = y[1]-y[0];
+      y3 = y[2]-y[0];
+      y4 = y[3]-y[0];
+      z2 = z[1]-z[0];
+      z3 = z[2]-z[0];
+      z4 = z[3]-z[0];   
+      el_vol[i] = fabs(x2*(y3*z4-y4*z3) - y2*(x3*z4-x4*z3) +	\
+		       z2*(x3*y4-x4*y3))/6.0;
+      //      fprintf(stdout,"dim=%d; diff=%e\n",dim,el_voli-el_vol[i]);
+    }
+  }
+
+  if(x) free(x);
+  //  if(y) free(y);
+  //  if(z) free(z);
+  return;
+}
+/********************************************************************************/
+
+
+/********************************************************************************/
+/*!
+ * \fn void old_get_el_vol(REAL *el_vol,iCSRmat *el_v,coordinates *cv,INT dim,INT v_per_elm)
+ *
+ * \brief Compute the area/volume of ALL triangluar/tetrahedral elements using the vertices. OLD VERSION
+ *
+ * \param el_v                   Element to vertex map
+ * \param cv                     Coordinates of vertices
+ * \param dim                    Dimension of problem
+ * \param v_per_elm              Number of vertices per element
+ *
+ * \return el_vol                Area/Volume of each element
+ *
+ */
+void old_get_el_vol(REAL *el_vol,iCSRmat *el_v,coordinates *cv,INT dim,INT v_per_elm)
+{
   // Loop Indices
   INT i,j_a,j_b,j,jcnt;
 
@@ -958,7 +1030,7 @@ void get_el_vol(REAL *el_vol,iCSRmat *el_v,coordinates *cv,INT dim,INT v_per_elm
       el_vol[i] = fabs(x[1]-x[0]);
     }
   } else if(dim==2) {
-    y = x+dim;
+    y = x+v_per_elm;
     for (i=0;i<nelm;i++) {
       j_a = el_v->IA[i];
       j_b = el_v->IA[i+1]-1;
@@ -972,8 +1044,8 @@ void get_el_vol(REAL *el_vol,iCSRmat *el_v,coordinates *cv,INT dim,INT v_per_elm
           y[2]*(x[0]-x[1]));
     }
   } else if(dim==3) {
-    y = x+dim;
-    z = y+dim;
+    y = x+v_per_elm;
+    z = y+v_per_elm;
     for (i=0;i<nelm;i++) {
       j_a = el_v->IA[i];
       j_b = el_v->IA[i+1]-1;
@@ -1000,8 +1072,8 @@ void get_el_vol(REAL *el_vol,iCSRmat *el_v,coordinates *cv,INT dim,INT v_per_elm
   }
 
   if(x) free(x);
-  if(y) free(y);
-  if(z) free(z);
+  //  if(y) free(y);
+  //  if(z) free(z);
   return;
 }
 /********************************************************************************/

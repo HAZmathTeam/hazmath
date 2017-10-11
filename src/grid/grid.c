@@ -74,11 +74,12 @@ void creategrid_fread(FILE *gfid,INT file_type,trimesh* mesh)
 {
   // Initialize mesh for read in.
   initialize_mesh(mesh);
-  mesh->el_v = malloc(sizeof(struct iCSRmat));
+  //  mesh->el_v = malloc(sizeof(struct iCSRmat));
 
   // READ FILE
   if(file_type==0) {
     read_grid_haz(gfid,mesh);
+    fprintf(stdout,"reading complete...\n");fflush(stdout);
   } else if(file_type==1) {
     read_grid_vtk(gfid,mesh);
   } else {
@@ -122,18 +123,27 @@ void build_mesh(trimesh* mesh)
   INT v_per_elm = dim+1;
 
   // Set flags for elements.  We assume they are all interiors for now
-  INT* el_flag = (INT *) calloc(nelm,sizeof(INT));
-  for(i=0;i<nelm;i++) {
-    el_flag[i] = 0;
-  }
+  //  INT* el_flag = (INT *) calloc(nelm,sizeof(INT));
+  //  for(i=0;i<nelm;i++) {
+  //    el_flag[i] = 0;
+  //  }
 
   // Stuff for Edges and Faces.  None for 1D
   if(dim==2 || dim==3) {
-    INT ed_per_elm = 3*(dim-1);
+    INT ed_per_elm = (dim*(dim+1))/2;
     INT f_per_elm = v_per_elm;
 
     // Edge to Vertex Map
     INT nedge = 0;
+    /* fprintf(stdout,"\n"); fflush(stdout); */
+    /* INT j,k; */
+    /* for (i=0;i<v_per_elm;i++) { */
+    /*   for (j=0;j<nelm;j++){ */
+    /* 	k=v_per_elm*j+i; */
+    /* 	fprintf(stdout,"%d ", *(mesh->el_v->JA+k)); fflush(stdout); */
+    /*   } */
+    /*   fprintf(stdout,"\n"); fflush(stdout); */
+    /* } */
     iCSRmat ed_v = get_edge_v(&nedge,mesh->el_v);
 
     /* Element to Edge Map */
@@ -223,7 +233,7 @@ void build_mesh(trimesh* mesh)
     mesh->f_norm = f_norm;
     mesh->ed_flag = ed_flag;
     mesh->f_flag = f_flag;
-    mesh->el_flag = el_flag;
+    //    mesh->el_flag = el_flag;
 
     if(fel_order) free(fel_order);
   } else if (dim==1) {
