@@ -404,23 +404,36 @@ void initialize_blktimestepper(block_timestepper *tstepper,input_param *inparam,
 
 /****************************************************************************************/
 /*!
- * \fn free_blktimestepper(block_timestepper* ts)
+ * \fn free_blktimestepper(block_timestepper* ts, INT flag)
  *
  * \brief Frees memory of arrays of BLOCK timestepping struct
+ *
+ * \param ts      point to the block_timestepper
+ * \param flag    flag of how the block dcsr matrices are allocated (0: minimal | 1: standard)
  *
  * \return n_it   Freed struct for block Timestepping
  *
  */
-void free_blktimestepper(block_timestepper* ts)
+void free_blktimestepper(block_timestepper* ts, INT flag)
 {
 
   if(ts->A) {
-    bdcsr_free(ts->A);
+    if (flag == 0){
+        bdcsr_free_minimal(ts->A);
+    }
+    else {
+        bdcsr_free(ts->A);
+    }
     ts->A=NULL;
   }
 
   if(ts->M) {
-    bdcsr_free(ts->M);
+      if (flag == 0){
+          bdcsr_free_minimal(ts->M);
+      }
+      else {
+        bdcsr_free(ts->M);
+      }
     ts->M=NULL;
   }
 

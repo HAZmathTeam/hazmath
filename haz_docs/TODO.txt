@@ -10,4 +10,12 @@ Add more elements (i.e., DG, Quads, Higher-Order) - A
 Add more solvers (i.e., Monolithic MG, HX-Div) - H
 
 Pipe Dreams:
-Add more graph stuff
+Add edge list for graphs
+Add random graph
+Add uniform graph (2D, 3D)
+Add Dijkstra’s algorithm
+Add maximal independent set
+Add minimal spanning tree (Kruskal & Prim)
+Add matching
+Add format change for graphs
+
