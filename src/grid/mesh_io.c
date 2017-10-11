@@ -45,60 +45,52 @@
  * \return mesh.el_v       Element to vertex map
  *
  */
+#include "hazmath.h"
+
 void read_grid_haz(FILE *gfid,trimesh *mesh) 
 {
+  /* old way without material (or flag) associated with every element */
   // Loop indices
-  INT i,j;
-
-  // Get Number of elements, nodes and boundary edges first
-  INT* line1 = calloc(4,sizeof(INT));
-  INT lenhead = 4;
-  rveci_(gfid,line1,&lenhead);
-  INT dim = line1[2];
-  INT nelm = line1[0];
-  INT nv = line1[1];
-  INT nholes = line1[3];
-  free(line1);
-
+  INT i,j,k;  
+  INT nelm,nv,dim,nholes;
+  i=fscanf(gfid,"%d %d %d %d",&nelm,&nv,&dim,&nholes);
   // Get number of vertices per element
   INT v_per_elm = dim+1;
-
-  // Allocate arrays to read in other data such as coordinate information
-  INT* element_vertex = (INT *) calloc(nelm*v_per_elm,sizeof(INT));
-  coordinates *cv = allocatecoords(nv,dim);
-
-  // Get next 3-4 lines Element-Vertex Map
-  INT* line2 = (INT *) calloc(nelm,sizeof(INT));
-  for (i=0; i<v_per_elm; i++) {
-    rveci_(gfid,line2,&nelm);
-    for (j=0; j<nelm; j++) {
-      element_vertex[j*v_per_elm+i] = line2[j];
+  mesh->el_v=malloc(sizeof(iCSRmat));
+  // Element-Vertex Map
+  mesh->el_v->row=nelm+1;
+  mesh->el_v->col=nv;
+  mesh->el_v->IA = (INT *)calloc(nelm+1, sizeof(INT));
+  mesh->el_v->JA = (INT *)calloc(nelm*v_per_elm, sizeof(INT));
+  for(i=0;i<nelm+1;i++) {
+    mesh->el_v->IA[i] = v_per_elm*i + 1;
+  }  
+  for (i=0;i<v_per_elm;i++) {
+    for (j=0;j<nelm;j++){
+      k=v_per_elm*j+i;
+      fscanf(gfid,"%d", (mesh->el_v->JA+k));
     }
   }
-  free(line2);
-
+  mesh->el_flag = (INT *) calloc(nelm,sizeof(INT));
+  //  for (j=0;j<nelm;j++){
+  //    mesh->el_flag[j]=1;
+  //  }    
+  rveci_(gfid,mesh->el_flag,&nelm);
   // Get next 2-3 lines for coordinate map
-  rvecd_(gfid,cv->x,&nv);
-  if(dim>1) {
-    rvecd_(gfid,cv->y,&nv);
-    if(dim==3)
-      rvecd_(gfid,cv->z,&nv);
-  }
-
-  // Get next 1-2 lines for boundary nodes
+  mesh->cv = allocatecoords(nv,dim);
+  INT nvdim=nv*dim;
+  rvecd_(gfid,mesh->cv->x,&nvdim); // this is the only thing we need
+				   // to read. It reads all
+				   // coordinates by rows.
+  // Get next 1-2 lines for boundary flags
   INT nbv = 0;
-  INT* v_flag = (INT *) calloc(nv,sizeof(INT));
-  rveci_(gfid,v_flag,&nv);
+  mesh->v_flag = (INT *) calloc(nv,sizeof(INT));
+  rveci_(gfid,mesh->v_flag,&nv);
   for(i=0;i<nv;i++) {
-    if(v_flag[i]>0) {
+    if(mesh->v_flag[i]>0) {
       nbv++;
     }
   }
-
-  /* Element Vertex Map */
-  iCSRmat el_v = convert_elmnode(element_vertex,nelm,nv,v_per_elm);
-  if(element_vertex) free(element_vertex);
-
   // This format only allows for 1 connected region and
   // up to 2 connected boundaries (1 hole).
   INT nconn_reg = 0;
@@ -118,11 +110,8 @@ void read_grid_haz(FILE *gfid,trimesh *mesh)
   mesh->nbv = nbv;
   mesh->nconn_reg = nconn_reg;
   mesh->nconn_bdry = nconn_bdry;
-  mesh->cv = cv;
-  *(mesh->el_v) = el_v;
+  //  fprintf(stdout,"\nnv*dimension=%d\n",nvdim);fflush(stdout);
   mesh->v_per_elm = v_per_elm;
-  mesh->v_flag = v_flag;
-
   return;
 }
 /******************************************************************************/
