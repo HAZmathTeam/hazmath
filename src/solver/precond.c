@@ -1537,7 +1537,7 @@ void precond_block_diag_mixed_darcy_lap(REAL *r,
   block_dCSRmat *A = precdata->Abcsr;
   AMG_param *amgparam = precdata->amgparam;
   AMG_data **mgl = precdata->mgl;
-  dvector *el_vol = precdata->el_vol;
+  //dvector *el_vol = precdata->el_vol;
 
   INT i;
 
@@ -1601,7 +1601,7 @@ void precond_block_lower_mixed_darcy_lap(REAL *r,
   block_dCSRmat *A = precdata->Abcsr;
   AMG_param *amgparam = precdata->amgparam;
   AMG_data **mgl = precdata->mgl;
-  dvector *el_vol = precdata->el_vol;
+  //dvector *el_vol = precdata->el_vol;
 
   INT i;
 
@@ -1668,7 +1668,7 @@ void precond_block_upper_mixed_darcy_lap(REAL *r,
   block_dCSRmat *A = precdata->Abcsr;
   AMG_param *amgparam = precdata->amgparam;
   AMG_data **mgl = precdata->mgl;
-  dvector *el_vol = precdata->el_vol;
+  //dvector *el_vol = precdata->el_vol;
 
   INT i;
 
@@ -1735,7 +1735,7 @@ void precond_block_ilu_mixed_darcy_lap(REAL *r,
   block_dCSRmat *A = precdata->Abcsr;
   AMG_param *amgparam = precdata->amgparam;
   AMG_data **mgl = precdata->mgl;
-  dvector *el_vol = precdata->el_vol;
+  //dvector *el_vol = precdata->el_vol;
 
   INT i;
 
@@ -1817,9 +1817,9 @@ void precond_block_diag_mixed_darcy_lap_krylov(REAL *r,
   block_dCSRmat *A = precdata->Abcsr;
   AMG_param *amgparam = precdata->amgparam;
   AMG_data **mgl = precdata->mgl;
-  dvector *el_vol = precdata->el_vol;
+  //dvector *el_vol = precdata->el_vol;
 
-  INT i;
+  //INT i;
 
   const INT N0 = A->blocks[0]->row;
   const INT N1 = A->blocks[2]->row;
@@ -1889,9 +1889,9 @@ void precond_block_lower_mixed_darcy_lap_krylov(REAL *r,
   block_dCSRmat *A = precdata->Abcsr;
   AMG_param *amgparam = precdata->amgparam;
   AMG_data **mgl = precdata->mgl;
-  dvector *el_vol = precdata->el_vol;
+  //dvector *el_vol = precdata->el_vol;
 
-  INT i;
+  //INT i;
 
   const INT N0 = A->blocks[0]->row;
   const INT N1 = A->blocks[2]->row;
@@ -1964,9 +1964,9 @@ void precond_block_upper_mixed_darcy_lap_krylov(REAL *r,
   block_dCSRmat *A = precdata->Abcsr;
   AMG_param *amgparam = precdata->amgparam;
   AMG_data **mgl = precdata->mgl;
-  dvector *el_vol = precdata->el_vol;
+  //dvector *el_vol = precdata->el_vol;
 
-  INT i;
+  //INT i;
 
   const INT N0 = A->blocks[0]->row;
   const INT N1 = A->blocks[2]->row;
@@ -2040,9 +2040,9 @@ void precond_block_ilu_mixed_darcy_lap_krylov(REAL *r,
   block_dCSRmat *A = precdata->Abcsr;
   AMG_param *amgparam = precdata->amgparam;
   AMG_data **mgl = precdata->mgl;
-  dvector *el_vol = precdata->el_vol;
+  //dvector *el_vol = precdata->el_vol;
 
-  INT i;
+  //INT i;
 
   const INT N0 = A->blocks[0]->row;
   const INT N1 = A->blocks[2]->row;
@@ -2127,7 +2127,7 @@ void precond_block_ilu_mixed_darcy_graph_lap_krylov(REAL *r,
   AMG_param *amgparam = precdata->amgparam;
   AMG_data **mgl = precdata->mgl;
   dvector **diag = precdata->diag;
-  dvector *el_vol = precdata->el_vol;
+  //dvector *el_vol = precdata->el_vol;
 
   INT i;
 

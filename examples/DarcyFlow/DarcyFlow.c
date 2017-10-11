@@ -375,7 +375,7 @@ int main (int argc, char* argv[])
   /******** Free All the Arrays *************************************************************/
 
   // Time Stepper (and all the matrices inside)
-  free_blktimestepper(&time_stepper);
+  free_blktimestepper(&time_stepper, 1);
   dvec_free(&b);
   dvec_free(&b_bdry);
 

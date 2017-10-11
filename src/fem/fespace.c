@@ -308,6 +308,12 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
     FE->periodic[i] = -1;
   }
   
+  // clean temp
+  if (temp) {
+      free(temp);
+      temp = NULL;
+  }
+
   return;
 }
 /****************************************************************************************/
