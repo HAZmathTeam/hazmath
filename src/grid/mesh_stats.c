@@ -941,7 +941,7 @@ void get_el_vol(REAL *el_vol,iCSRmat *el_v,coordinates *cv,INT dim,INT v_per_elm
   REAL x2,x3,x4,y2,y3,y4,z2,z3,z4;
 
   /* Coordinates of nodes on elements */
-  REAL* x = (REAL *) calloc(v_per_elm,sizeof(REAL));
+  REAL* x = (REAL *) calloc(dim*v_per_elm,sizeof(REAL));
   REAL* y = NULL;
   REAL* z=NULL;
   INT nelm = el_v->row;
@@ -958,7 +958,7 @@ void get_el_vol(REAL *el_vol,iCSRmat *el_v,coordinates *cv,INT dim,INT v_per_elm
       el_vol[i] = fabs(x[1]-x[0]);
     }
   } else if(dim==2) {
-    y = (REAL *) calloc(v_per_elm,sizeof(REAL));
+    y = x+dim;
     for (i=0;i<nelm;i++) {
       j_a = el_v->IA[i];
       j_b = el_v->IA[i+1]-1;
@@ -972,9 +972,8 @@ void get_el_vol(REAL *el_vol,iCSRmat *el_v,coordinates *cv,INT dim,INT v_per_elm
           y[2]*(x[0]-x[1]));
     }
   } else if(dim==3) {
-    y = (REAL *) calloc(v_per_elm,sizeof(REAL));
-    z = (REAL *) calloc(v_per_elm,sizeof(REAL));
-
+    y = x+dim;
+    z = y+dim;
     for (i=0;i<nelm;i++) {
       j_a = el_v->IA[i];
       j_b = el_v->IA[i+1]-1;

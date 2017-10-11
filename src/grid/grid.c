@@ -270,12 +270,15 @@ struct coordinates *allocatecoords(INT ndof,INT mydim)
   assert(A != NULL);
 
   A->x = (REAL *) calloc(mydim*ndof,sizeof(REAL));
-  A->y=NULL;
-  A->z=NULL;
   switch (mydim)
   {
+  case 1:
+    A->y=NULL;
+    A->z=NULL;
+    break;
   case 2:
     A->y = A->x + ndof;
+    A->z=NULL;
     break;
   case 3:
     A->y = A->x + ndof;
@@ -285,9 +288,7 @@ struct coordinates *allocatecoords(INT ndof,INT mydim)
     status = ERROR_DIM;
     check_error(status, __FUNCTION__);
   }
-
-  A->n = ndof;
-  
+  A->n = ndof;  
   return A;
 }
 /******************************************************************************/

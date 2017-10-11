@@ -140,7 +140,7 @@ typedef struct trimesh{
   //! indicates a flag for face such as whether a face is on boundary
   INT* f_flag;
 
-  //! indicates a flag for element such as whether a element is on boundary
+  //! indicates a flag for element such as in what domain the element is. 
   INT* el_flag;
     
 } trimesh; 
