@@ -2,6 +2,7 @@
 theD="1D"
 
 HAZHOME=..
+
 gcc -O -Wall -Wno-unused-variable -o t_grid -L$HAZHOME/lib -I$HAZHOME/include trans_grids.c -lhazmath -lm
 
 
