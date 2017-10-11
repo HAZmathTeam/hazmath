@@ -202,9 +202,6 @@ int main (int argc, char* argv[])
 
   // Block Matrix M;
   block_dCSRmat Mb;
-  //bdcsr_alloc(3,3,&Mb);
-  //Mb.brow = 3; Mb.bcol = 3;
-  //Mb.blocks = (dCSRmat **) calloc(9,sizeof(dCSRmat *));
   bdcsr_alloc_minimal(3,3,&Mb);
   Mb.blocks[0] = &Me;
   Mb.blocks[1] = NULL;
@@ -218,13 +215,8 @@ int main (int argc, char* argv[])
 
   // Block Matrix AZ = A + Z (shifts needed)
   block_dCSRmat AZb;
-  //bdcsr_alloc(3,3,&AZb);
-  //AZb.brow = 3; AZb.bcol = 3;
-  //AZb.blocks = (dCSRmat **) calloc(9,sizeof(dCSRmat *));
   bdcsr_alloc_minimal(3,3,&AZb);
   AZb.blocks[0] = &Z;
-  //dcsr_alloc(Z.row,Z.col,Z.nnz,AZb.blocks[0]);
-  //dcsr_cp(&Z,AZb.blocks[0]);
   AZb.blocks[1] = &MKt;
   AZb.blocks[2] = &MG;
   AZb.blocks[3] = &MK;
@@ -233,15 +225,6 @@ int main (int argc, char* argv[])
   AZb.blocks[6] = &MGt;
   AZb.blocks[7] = NULL;
   AZb.blocks[8] = NULL;
-
-  // Since blocks 5 and 7 are NULL for both A and M, we'll set one to
-  // a zero matrix.  We are not calling a block assembly so this is necessary.
-  //AZb.blocks[5] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
-  // dcsr_set_zeromatrix(AZb.blocks[4], FE_B.ndof,FE_B.ndof,1);
-  //dcsr_set_zeromatrix(AZb.blocks[5], FE_B.ndof,FE_p.ndof,1);
-  //AZb.blocks[7] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
-  //dcsr_set_zeromatrix(AZb.blocks[7], FE_p.ndof,FE_B.ndof,1);
-  //dcsr_set_zeromatrix(AZb.blocks[8], FE_p.ndof,FE_p.ndof,1);
 
   // Block RHS (need the current RHS, the updated one for time stepping, and the function evaluted at the new time step (if time-dependent))
   dvector b = dvec_create(ndof);
@@ -255,7 +238,6 @@ int main (int argc, char* argv[])
   time_stepper.M = &Mb;
   time_stepper.Ldata = &AZb;
   get_blktimeoperator(&time_stepper,1,1);
-  //debug_print("here",1);
 
   clock_t clk_assembly_end = clock();
   printf(" --> elapsed CPU time for assembly = %f seconds.\n\n",(REAL)
@@ -683,21 +665,14 @@ int main (int argc, char* argv[])
  // Time Stepper
   free_blktimestepper(&time_stepper, 0);
 
-//  // CSR Matrices
-//  //dcsr_free(&Atime);
-//  //dcsr_free(&Atime_noBC);
+  // CSR Matrices
   dcsr_free(&Z);
   dcsr_free(&K);
   dcsr_free(&G);
- // dcsr_free(&Me);
- // dcsr_free(&Mf);
- // dcsr_free(&Mv);
   dcsr_free(&MG);
   dcsr_free(&MGt);
   dcsr_free(&MK);
   dcsr_free(&MKt);
-////  dcsr_free(&M);
-////  dcsr_free(&AZ);
   
 ////  dcsr_free(&A_diag[0]);
 ////  dcsr_free(&A_diag[1]);
@@ -712,37 +687,14 @@ int main (int argc, char* argv[])
 ////  dcsr_free(&Ktb);
 ////  dcsr_free(&Kb);
 ////  dcsr_free(&Gb);
-  
-//  // block CSR Matrices
-// // bdcsr_free(&Mb);
-//  //bdcsr_free(&AZb);
-  
-//  //bdcsr_free(&Atime_bcsr);
-  
-  
-//  // Vectors
-//  if(b_E.val) free(b_E.val);
-//  if(b_B.val) free(b_B.val);
-//  if(b_p.val) free(b_p.val);
+
+  // Vectors
   dvec_free(&b_E);
   dvec_free(&b_B);
   dvec_free(&b_p);
-////  if(b_E_old.val) free(b_E_old.val);
-////  if(b_B_old.val) free(b_B_old.val);
-////  if(b_p_old.val) free(b_p_old.val);
-//  //if(b.val) free(b.val);
-////  if(b_update.val) free(b_update.val);
-////  if(bnew.val) free(bnew.val);
-//  //if(u.val) free(u.val);
-// // if(uprev.val) free(uprev.val);
-//  if(uE.val) free(uE.val);
-//  if(uB.val) free(uB.val);
-//  if(up.val) free(up.val);
   dvec_free(&uE);
   dvec_free(&uB);
   dvec_free(&up);
-
-
 
 ////  if (B_idx.val) free(B_idx.val);
 ////  if (E_idx.val) free(E_idx.val);
