@@ -41,7 +41,7 @@ void diffusion_coeff(REAL *val,REAL* x,REAL time,void *param) {
 }
 void reaction_coeff(REAL *val,REAL* x,REAL time,void *param) {
   // c(x)
-  *val = 1.0;
+  *val = -100.0;
 }
 
 // Exact Solution (if you have one)
@@ -445,6 +445,9 @@ int main (int argc, char* argv[])
     FILE* rhsid = HAZ_fopen("output/rhs.dat","w");
     dvector_print(rhsid,&b);
     fclose(rhsid);
+    matid = HAZ_fopen("output/matcsr.dat","w");
+    csr_print_native(matid,&A,&b);
+    fclose(matid);
   }
     
   clock_t clk_assembly_end = clock();
