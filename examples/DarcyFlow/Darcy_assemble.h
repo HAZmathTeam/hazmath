@@ -48,16 +48,16 @@ void steady_state_Darcy(REAL* ALoc,block_fespace *FE,trimesh *mesh,qcoordinates 
   
   // Quadrature Weights and Nodes
   REAL w;
-  REAL* qx = (REAL *) calloc(dim,sizeof(REAL));
   // Stiffness Matrix Entry
-  REAL kij = 0.0;
+  REAL kij = 0.0,alocpq=-10.;
 
   // Porosity Coefficient Data
-  REAL* K = (REAL *) calloc(dim*dim,sizeof(REAL));
-  REAL Kinv1=0.0;
-  REAL Kinv2=0.0;
-  REAL Kinv3=0.0;
-  
+  REAL *K = (REAL *)calloc(dim*dim+dim,sizeof(REAL));
+  REAL* qx = (REAL *) calloc(dim,sizeof(REAL));
+  REAL *piv=K+dim*dim;
+  REAL *Kinv = (REAL *)calloc(dim*dim,sizeof(REAL));
+  INT *p=(INT *)calloc(dim,sizeof(INT));
+  INT di,pdim,qdim;
   // Keep track of local indexing
   INT local_row_index, local_col_index;
   
@@ -78,23 +78,59 @@ void steady_state_Darcy(REAL* ALoc,block_fespace *FE,trimesh *mesh,qcoordinates 
     
     // Data
     porosity(K,qx,time,NULL);
-    Kinv1 = 1.0/K[0];
-    Kinv2 = 1.0/K[4];
-    Kinv3 = 1.0/K[8];
+    // Invert K:
+    for(i=0;i<dim;i++){
+      di=dim*i;
+      for(j=0;j<dim;j++){
+	Kinv[di+j]=0.;
+      }
+      Kinv[di+i]=1.;
+      // solve with rhs column of the identity;
+      solve_pivot((!i),dim, K, (Kinv+di), p, piv);
+    }
+    //       prtmat(dim,dim,Kinv,"Kinv");
+    //    REAL Kinv1=Kinv[0];
+    //    REAL Kinv2=Kinv[4];
+    //    REAL Kinv3=Kinv[8];
+    //    prtmat(dim,dim,Kinv,"Kinv");
+    //    Kinv1 = 1.0/K[0];
+    //    Kinv2 = 1.0/K[4];
+    //    Kinv3 = 1.0/K[8];
 
     // q-q block: <K^(-1) q, r>
     local_row_index = 0;
     local_col_index = 0;
     // Loop over Test Functions (Rows)
     for (test=0; test<FE->var_spaces[0]->dof_per_elm;test++) {
+      pdim=test*dim;
       // Loop over Trial Functions (Columns)
       for (trial=0; trial<FE->var_spaces[0]->dof_per_elm; trial++) {
-        kij = Kinv1*FE->var_spaces[0]->phi[trial*dim]*FE->var_spaces[0]->phi[test*dim] +
-            Kinv2*FE->var_spaces[0]->phi[trial*dim+1]*FE->var_spaces[0]->phi[test*dim+1];
-        if(dim==3) kij+=Kinv3*FE->var_spaces[0]->phi[trial*dim+2]*FE->var_spaces[0]->phi[test*dim+2];
-        ALoc[(local_row_index+test)*dof_per_elm+(local_col_index+trial)] += w*kij;
+	qdim=trial*dim;
+	alocpq=0.;
+	for(i=0;i<dim;i++){
+	  di=dim*i;
+	  for(j=0;j<dim;j++){	  
+	    alocpq += Kinv[i*dim+j]*FE->var_spaces[0]->phi[qdim+j]*FE->var_spaces[0]->phi[pdim+i];
+	  }
+	}
+        ALoc[(local_row_index+test)*dof_per_elm+(local_col_index+trial)] += w*alocpq;
       }
     }
+/* XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx     */
+
+/*     // q-q block: <K^(-1) q, r> */
+/*     local_row_index = 0; */
+/*     local_col_index = 0; */
+/*     // Loop over Test Functions (Rows) */
+/*     for (test=0; test<FE->var_spaces[0]->dof_per_elm;test++) { */
+/*       // Loop over Trial Functions (Columns) */
+/*       for (trial=0; trial<FE->var_spaces[0]->dof_per_elm; trial++) { */
+/*         kij = Kinv1*FE->var_spaces[0]->phi[trial*dim]*FE->var_spaces[0]->phi[test*dim] + */
+/*             Kinv2*FE->var_spaces[0]->phi[trial*dim+1]*FE->var_spaces[0]->phi[test*dim+1]; */
+/*         if(dim==3) kij+=Kinv3*FE->var_spaces[0]->phi[trial*dim+2]*FE->var_spaces[0]->phi[test*dim+2]; */
+/*         ALoc[(local_row_index+test)*dof_per_elm+(local_col_index+trial)] += w*kij; */
+/*       } */
+/*     } */
     
     // q-h block:  <h, div r>
     local_col_index += FE->var_spaces[0]->dof_per_elm;
