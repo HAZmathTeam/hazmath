@@ -71,6 +71,7 @@ void read_grid_haz(FILE *gfid,trimesh *mesh)
       fscanf(gfid,"%d", (mesh->el_v->JA+k));
     }
   }
+  mesh->el_v->val=NULL;
   /* fprintf(stdout,"\n"); fflush(stdout); */
   /* for (i=0;i<v_per_elm;i++) { */
   /*   for (j=0;j<nelm;j++){ */
