@@ -187,6 +187,42 @@ void csr_print_matlab(FILE* fid,
 
 /***********************************************************************************************/
 /*!
+ * \fn void csr_print_native(FILE* fid,dCSRmat *A)
+ *
+ * \brief print a dCSRmat format sparse matrix to a file in the
+ * follwoing way: number of rows, number of columns, number of
+ * nonzeroes; next line: ia[k] k=0:(nrows+1); last line ja[k],k=1:nnz
+ *
+ * \param fid  Pointer to the file
+ * \param A    Pointer to the dCSRmat format sparse matrix
+ *
+ */
+void csr_print_native(FILE* fid,
+                      dCSRmat *A, dvector *rhs)
+{
+  // local variables
+  INT i,j1,j2,j,shift;
+
+  if(A->IA[0]==0) shift=0; else  shift=-1;
+  // shift -1 if it was fortran, starting from 1. 
+  fprintf(fid,"%d %d %d\n",A->row, A->col, A->nnz);
+  for(i=0;i<(A->row+1);i++)
+    fprintf(fid,"%d ",A->IA[i]+shift);
+  fprintf(fid,"\n");     
+  for(i=0;i<A->nnz;i++) 
+    fprintf(fid,"%d ",A->JA[i]+shift);
+  fprintf(fid,"\n");
+  for(i=0;i<A->nnz;i++) 
+    fprintf(fid,"%23.16e ",A->val[i]);
+  fprintf(fid,"\n");
+  if(rhs)
+    for(i=0;i<rhs->row;i++)
+      fprintf(fid,"%23.16e ",rhs->val[i]);
+  return;
+}
+
+/***********************************************************************************************/
+/*!
  * \fn void icsr_print_matlab(FILE* fid,dCSRmat *A)
  *
  * \brief print a iCSRmat format sparse matrix to a file
