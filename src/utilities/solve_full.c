@@ -2,22 +2,93 @@
  *
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 5/13/15.
  *  Copyright 2016__HAZMATH__. All rights reserved.
- *
+ *  
  *  \note: modified by Xiaozhe Hu on 10/25/2016
  *  \note: modified on 10/12/2017 (ltz1)
  *
- * \note Solves A x = b with scalled partial pivoting for general full
- * n,n A. if dopivot is true it does the decomposition and if dopivot
- * is false assumes A is already LU decomposed and only solves.
- * 
+ *  \note routines to solve Ax=b and calculate inv(A). 
+ *
  */
 
 #include "hazmath.h"
-
+/*******************************************************************/
+/* \fn  void c2r(const INT n, const INT m, const size_t sizeel, void *x)
+ *
+ * \note: converts 2d array stored by columns to a 2d array stored by
+ *     rows (fortran to c); overwrites the input array x with the
+ *     result. sizeel is the size of an element in the array in bytes.
+ *
+*/
+void c2r(const INT n, const INT m, const size_t sizeel, void *x)
+{
+  INT i,j,ij,ji,nms=n*m*sizeel;
+  void *y=(void *)malloc(nms);
+  memcpy(y,x,nms);
+  for (i=0;i<n;i++){
+    for (j=0;j<m;j++){
+      ji=sizeel*(n*j+i);
+      memcpy(x,(y+ji),sizeel);
+      x+=sizeel;
+    }
+  }
+  if(y) free(y);
+  return;
+}
+/*******************************************************************/
+/* \fn void r2c(const INT n, const INT m, const size_t sizeel, void *x)
+ *
+ * \note: converts 2d array stored by rows to a 2d array stored by
+ *        columns (c to fortran). sizeel is the size of an element in
+ *        the array in bytes
+ *
+*/
+void r2c(const INT n, const INT m, const size_t sizeel, void *x)
+{
+  INT i,j,ij,ji,nms=n*m*sizeel;
+  void *y=(void *)malloc(nms);
+  for (i=0;i<n;i++){
+    for (j=0;j<m;j++){
+      ji=sizeel*(n*j+i);
+      memcpy((y+ji),x,sizeel);
+      x+=sizeel;
+    }
+  }
+  memcpy((x-nms),y,nms);
+  if(y) free(y);
+  return;
+}
+/*******************************************************************/
+/*  \fn void print_full_mat(const  INT n, const INT m, REAL *A,const char *varname)
+ *
+ *
+ *  \note: prints a matrix A with (n) rows and (m) columns in matlab
+ *         format e.g. 2 x 2 identity is printed as I2=[1. 0.;0. 1.];
+ *         if th varname= "I2"
+ *
+*/
+void print_full_mat(const  INT n, const INT m, REAL *A,const char *varname)
+{
+  if((n>999)||(n<1)) return;
+  INT i,j,n1=n-1;
+  if(varname==NULL){
+    fprintf(stdout,"\nA=[");
+  }else{
+    fprintf(stdout,"\n%s=[",varname);
+  }
+  for (i = 0; i<n;i++){
+    for(j=0;j<m;j++){
+      fprintf(stdout,"%23.16e ", A[m*i+j]);
+    }
+    if(i!=n1){
+      fprintf(stdout,";");
+    }else{
+      fprintf(stdout,"];\n");
+    }
+  }
+  return;
+}
 INT solve_pivot(INT dopivot, INT n, REAL *A, REAL *b, INT *p,REAL *piv)
 {
-/* solves A x = b using Gaussian elimination with scalled partial
-   pivoting.*/
   INT nm1,i1,k1,pin,kswp,kp,i,j,k;
   REAL r,t,absaij;
   REAL *x=piv;
@@ -72,4 +143,45 @@ INT solve_pivot(INT dopivot, INT n, REAL *A, REAL *b, INT *p,REAL *piv)
   //  if(y) free(y);
   for(k=0;k<n;k++)b[k]=x[k];
   return 0;
+}
+/**************************************************************************/
+/*
+ * \fn void invfull(INT n, REAL *Ainv, REAL *A, void *wrk)
+ *
+ * \brief Inverts a general (nxn) matrix A
+ *
+ * \param n    Number of rows
+ * \param m    Number of columns
+ * \param A    the matrix as a one dim. array by rows
+ * \param Ainv the output inverse. 
+ * 
+ * \param wrk working array of size at least
+ *            n*sizeof(INT)+n*(n+1)*sizeof(REAL)
+ *
+ */
+void invfull(REAL *Ainv,INT n, REAL *A, void *wrk)
+{
+  
+  /*  cast pointers*/
+  REAL *piv=(REAL *)wrk;  REAL *Awrk=piv+n;
+  INT *p=(INT *)(wrk+n*(n+1)*sizeof(REAL));
+  INT i,j,ji,ni;
+  /* first transpose A beacuse we invert by rows;*/
+  for (i=0;i<n;i++){
+    for (j=0;j<n;j++){
+      ji=(n*j+i);
+      Awrk[ji]=*A;
+      A++;
+    }
+  }
+  //  print_full_mat(n,n,Awrk,"At");
+  for(i=0;i<n;i++){
+    ni=n*i;
+    for(j=0;j<n;j++)
+      Ainv[ni+j]=0e0;
+    Ainv[ni+i]=1e0;
+    // solve with rhs a row of the identity;
+    solve_pivot((!i),n, Awrk, (Ainv+ni), p, piv);
+  }
+  return;
 }
