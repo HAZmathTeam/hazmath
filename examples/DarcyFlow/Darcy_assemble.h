@@ -51,15 +51,13 @@ void steady_state_Darcy(REAL* ALoc,block_fespace *FE,trimesh *mesh,qcoordinates 
   // Stiffness Matrix Entry
   REAL kij = 0.0,alocpq=-10.;
 
+  REAL* qx = (REAL *) calloc(dim,sizeof(REAL)); 
   // Porosity Coefficient Data
-  REAL *K = (REAL *)calloc(dim*dim+dim,sizeof(REAL));
-  REAL* qx = (REAL *) calloc(dim,sizeof(REAL));
-  REAL *piv=K+dim*dim;
-  REAL *Kinv = (REAL *)calloc(dim*dim,sizeof(REAL));
-  INT *p=(INT *)calloc(dim,sizeof(INT));
-  INT di,pdim,qdim;
+  REAL *K=(REAL *)calloc(dim*dim,sizeof(REAL)); //ltz1
+  REAL *Kinv=(REAL *)calloc(dim*dim,sizeof(REAL)); //ltz1
+  void *wrk=(void *)calloc(dim*(dim+1)*sizeof(REAL)+dim*sizeof(INT),sizeof(char));//ltz1
   // Keep track of local indexing
-  INT local_row_index, local_col_index;
+  INT local_row_index, local_col_index,di,pdim,qdim;
   
   //  Sum over quadrature points
   for (quad=0;quad<cq->nq_per_elm;quad++) {
@@ -77,17 +75,8 @@ void steady_state_Darcy(REAL* ALoc,block_fespace *FE,trimesh *mesh,qcoordinates 
     get_FEM_basis(FE->var_spaces[1]->phi,FE->var_spaces[1]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[1]);
     
     // Data
-    porosity(K,qx,time,NULL);
-    // Invert K:
-    for(i=0;i<dim;i++){
-      di=dim*i;
-      for(j=0;j<dim;j++){
-	Kinv[di+j]=0.;
-      }
-      Kinv[di+i]=1.;
-      // solve with rhs column of the identity;
-      solve_pivot((!i),dim, K, (Kinv+di), p, piv);
-    }
+    porosity(K,qx,time,NULL); //ltz1
+    invfull(Kinv,dim, K, wrk); //ltz1
     //       prtmat(dim,dim,Kinv,"Kinv");
     //    REAL Kinv1=Kinv[0];
     //    REAL Kinv2=Kinv[4];
