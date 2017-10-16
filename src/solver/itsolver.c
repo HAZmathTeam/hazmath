@@ -2248,6 +2248,139 @@ FINISHED:
     return status;
 }
 
+/********************************************************************************************/
+/**
+ * \fn INT linear_solver_bdcsr_krylov_bubble_stokes (block_dCSRmat *A, dvector *b, dvector *x,
+ *                                           itsolver_param *itparam,
+ *                                           AMG_param *amgparam, dCSRmat *Mp)
+ *
+ * \brief Solve Ax = b by standard Krylov methods
+ *
+ * \param A         Pointer to the coeff matrix in block_dCSRmat format
+ * \param b         Pointer to the right hand side in dvector format
+ * \param x         Pointer to the approx solution in dvector format
+ * \param itparam   Pointer to parameters for iterative solvers
+ * \param amgparam  Pointer to parameters for AMG solvers
+ * \param A_diag    Digonal blocks of A
+ *
+ * \return          Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   01/14/2017
+ *
+ * \note only works for 2 by 2 block dCSRmat problems!! -- Xiaozhe Hu
+ */
+INT linear_solver_bdcsr_krylov_bubble_stokes(block_dCSRmat *A,
+                                           dvector *b,
+                                           dvector *x,
+                                           linear_itsolver_param *itparam,
+                                           AMG_param *amgparam,
+                                           dCSRmat *Mp)
+{
+  const SHORT prtlvl = itparam->linear_print_level;
+  const SHORT precond_type = itparam->linear_precond_type;
+
+  INT status = SUCCESS;
+  REAL setup_start, setup_end, setup_duration;
+  REAL solver_start, solver_end, solver_duration;
+
+  const SHORT max_levels = amgparam->max_levels;
+
+  AMG_data **mgl = (AMG_data **)calloc(2, sizeof(AMG_data *));
+
+  /* setup preconditioner */
+  get_time(&setup_start);
+
+  /* set AMG for the displacement block */
+  mgl[0] = amg_data_create(max_levels);
+  dcsr_alloc(A->blocks[0]->row, A->blocks[0]->row, A->blocks[0]->nnz, &mgl[0][0].A);
+  dcsr_cp(A->blocks[0], &mgl[0][0].A);
+  mgl[0][0].b=dvec_create(A->blocks[0]->row);
+  mgl[0][0].x=dvec_create(A->blocks[0]->row);
+
+  switch (amgparam->AMG_type) {
+
+    case UA_AMG: // Unsmoothed Aggregation AMG
+      if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+      status = amg_setup_ua(mgl[0], amgparam);
+      break;
+
+    default: // UA AMG
+      if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+      status = amg_setup_ua(mgl[0], amgparam);
+    break;
+
+  }
+
+  /* set AMG for the presssure block */
+  mgl[1] = amg_data_create(max_levels);
+  dcsr_alloc(Mp->row,Mp->row,Mp->nnz, &mgl[1][0].A);
+  dcsr_cp(Mp, &mgl[1][0].A);
+  mgl[1][0].b=dvec_create(Mp->row);
+  mgl[1][0].x=dvec_create(Mp->row);
+
+  switch (amgparam->AMG_type) {
+
+    case UA_AMG: // Unsmoothed Aggregation AMG
+      if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+      status = amg_setup_ua(mgl[1], amgparam);
+    break;
+
+    default: // UA AMG
+      if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+      status = amg_setup_ua(mgl[1], amgparam); break;
+  }
+
+  /* set the whole preconditioner data */
+  precond_block_data precdata;
+  precond_block_data_null(&precdata);
+
+  precdata.Abcsr = A;
+  precdata.r = dvec_create(b->row);
+  precdata.amgparam = amgparam;
+  precdata.mgl = mgl;
+
+  precond prec; prec.data = &precdata;
+
+
+  switch (precond_type)
+  {
+    case 20:
+      prec.fct = precond_block_diag_bubble_stokes;
+      break;
+
+    default:
+      prec.fct = precond_block_diag_bubble_stokes;
+      break;
+  }
+
+  if ( prtlvl >= PRINT_MIN ) {
+    get_time(&setup_end);
+    setup_duration = setup_end - setup_start;
+    print_cputime("Setup totally", setup_duration);
+  }
+
+  // solver part
+  get_time(&solver_start);
+
+  status=solver_bdcsr_linear_itsolver(A,b,x, &prec,itparam);
+  //status=solver_bdcsr_linear_itsolver(A,b,x, NULL,itparam);
+
+  get_time(&solver_end);
+
+  solver_duration = solver_end - solver_start;
+
+  if ( prtlvl >= PRINT_MIN ) {
+    print_cputime("Krylov method totally", solver_duration);
+    printf("**********************************************************\n");
+  }
+
+  // clean
+  precond_block_data_free(&precdata, 2);
+
+  return status;
+}
+
 /*---------------------------------*/
 /*--        End of File          --*/
 /*---------------------------------*/

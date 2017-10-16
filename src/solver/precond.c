@@ -3724,6 +3724,70 @@ void precond_block_lower_diag_upper_maxwell_krylov(REAL *r,
     
 }
 
+/* Special preconditioners for bubble stokes */
+
+/**
+ * \fn void precond_block_diag_bubble_stokes (REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+ *        is solved inexactly)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   01/14/2017
+ */
+void precond_block_diag_bubble_stokes(REAL *r,
+                                    REAL *z,
+                                    void *data)
+{
+  precond_block_data *precdata=(precond_block_data *)data;
+  dvector *tempr = &(precdata->r);
+
+  block_dCSRmat *A = precdata->Abcsr;
+  AMG_param *amgparam = precdata->amgparam;
+  AMG_data **mgl = precdata->mgl;
+
+  INT i;
+
+  const INT N0 = A->blocks[0]->row;
+  const INT N1 = A->blocks[3]->row;
+  const INT N = N0 + N1;
+
+  // back up r, setup z;
+  array_cp(N, r, tempr->val);
+  array_set(N, z, 0.0);
+
+  // prepare
+  dvector r0, r1, z0, z1;
+
+  r0.row = N0; z0.row = N0;
+  r1.row = N1; z1.row = N1;
+
+  r0.val = r; r1.val = &(r[N0]);
+  z0.val = z; z1.val = &(z[N0]);
+  //#endif
+
+  // Preconditioning A00 block (displacement)
+  mgl[0]->b.row=N0; array_cp(N0, r0.val, mgl[0]->b.val); // residual is an input
+  mgl[0]->x.row=N0; dvec_set(N0, &mgl[0]->x,0.0);
+
+  for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[0], amgparam);
+  array_cp(N0, mgl[0]->x.val, z0.val);
+
+  // Preconditioning A11 block (pressure)
+  mgl[1]->b.row=N1; array_cp(N1, r1.val, mgl[1]->b.val); // residual is an input
+  mgl[1]->x.row=N1; dvec_set(N1, &mgl[1]->x,0.0);
+
+  for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[1], amgparam);
+  array_cp(N1, mgl[1]->x.val, z1.val);
+
+  // restore r
+  array_cp(N, tempr->val, r);
+
+}
+
 /*---------------------------------*/
 /*--        End of File          --*/
 /*---------------------------------*/
