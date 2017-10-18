@@ -146,6 +146,65 @@ INT solve_pivot(INT dopivot, INT n, REAL *A, REAL *b, INT *p,REAL *piv)
 }
 /**************************************************************************/
 /*
+ * \fn void lufull(INT n, REAL *deta, REAL *A,INT *p,REAL *piv)
+ *
+ * \brief LU decomposition of an (nxn) matrix A. on output returns the
+ *        value of the determinant of A as well. Uses scaled partial
+ *        pivoting.
+ *
+ * \param n    Number of rows
+ * \param deta determinant of A
+ * \param A    the matrix as a one dim. array by rows
+ * \param dopivot flag to indicate whether A is already decomposed in
+ *                LU and we need to compute the determinant only;
+ *
+ */
+void lufull(INT dopivot, INT n, REAL *deta, REAL *A,INT *p,REAL *piv)
+{
+  INT nm1,i1,k1,pin,kswp,kp,i,j,k;
+  REAL det0,r,t,absaij;
+  if(dopivot){
+    for (i=0;i<n;i++){
+      p[i]=i;
+      piv[i] = fabs(A[i*n+0]);
+      for (j=1;j<n;j++){
+	absaij=fabs(A[i*n+j]);
+	if(absaij > piv[i])
+	  piv[i] = absaij;
+      }
+      piv[i]=1./piv[i]; //here we need error stop if too small
+    }
+    nm1 = n-1;
+    for (k = 0;k<nm1;k++){
+      r = fabs(A[p[k]*n+k])*piv[p[k]];
+      kp = k;
+      for (i=k;i<n;i++){
+	t = fabs(A[p[i]*n+k])*piv[p[i]]; 
+	if (t > r){r = t; kp = i;}
+      }
+      kswp = p[kp]; p[kp] = p[k]; p[k] = kswp;
+      k1 = k+1; 
+      for (i = k1;i<n;i++){
+	pin=p[i]*n;
+	A[pin+k] = A[pin+k]/A[p[k]*n+k];
+	for(j = k1;j<n;j++){
+	  A[pin+j] = A[pin+j]-A[pin+k]*A[p[k]*n+j];
+	}
+      }
+    }
+  }
+  nm1=n-1;
+  det0=A[p[nm1]*n+nm1];
+  for (i = nm1;i>0;i--){
+    i1=i-1;
+    pin=p[i1]*n;
+    det0 *= A[pin+i1];
+  }
+  *deta=det0;
+  return;
+}
+/**************************************************************************/
+/*
  * \fn void invfull(INT n, REAL *Ainv, REAL *A, void *wrk)
  *
  * \brief Inverts a general (nxn) matrix A
