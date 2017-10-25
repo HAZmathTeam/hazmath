@@ -655,7 +655,7 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
       x[2] = mesh->el_mid[DOF*dim+2];
     (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
     val = valx[local_dim];
-    printf("local_dim = %d\n",local_dim);
+    //    printf("local_dim = %d\n",local_dim);
   } else if(FE->var_spaces[comp]->FEtype>0 && FE->var_spaces[comp]->FEtype<10) { // Lagrange Elements u[dof] = u[x_i]
     x[0] = FE->var_spaces[comp]->cdof->x[DOF];
     if(dim==2 || dim==3)
