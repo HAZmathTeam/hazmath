@@ -68,7 +68,8 @@ void r2c(const INT n, const INT m, const size_t sizeel, void *x)
 */
 void print_full_mat(const  INT n, const INT m, REAL *A,const char *varname)
 {
-  if((n>999)||(n<1)) return;
+  if( (n<1) || (m<1) ) return;
+  if( (n*m)>(129*129) ) return;
   INT i,j,n1=n-1;
   if(varname==NULL){
     fprintf(stdout,"\nA=[");
