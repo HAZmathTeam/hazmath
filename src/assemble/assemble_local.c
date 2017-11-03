@@ -865,7 +865,18 @@ void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,trimesh *mesh,qcoordinates
           bLoc[(local_row_index+test)] += w*rhs_val[unknown_index]*FE->var_spaces[i]->phi[test];
         }
         unknown_index++;
-
+      
+      } else if (FE->var_spaces[i]->FEtype==61) { // bubble
+        for (test=0; test<FE->var_spaces[i]->dof_per_elm;test++) {
+          bLoc[(local_row_index+test)] += w*(rhs_val[unknown_index]*FE->var_spaces[i]->phi[test*dim] +
+              rhs_val[unknown_index+1]*FE->var_spaces[i]->phi[test*dim+1]);
+          if(dim==3) bLoc[(local_row_index+test)] += w*rhs_val[unknown_index+2]*FE->var_spaces[i]->phi[test*dim+2];
+        }
+        //
+        // no update of unknown_index.
+        // Assuming that bubble is the first FE space and that the space it is enriching
+        // follow immediately
+        //
       } else { // Vector Element
         for (test=0; test<FE->var_spaces[i]->dof_per_elm;test++) {
           bLoc[(local_row_index+test)] += w*(rhs_val[unknown_index]*FE->var_spaces[i]->phi[test*dim] +
