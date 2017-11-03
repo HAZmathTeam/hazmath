@@ -545,12 +545,13 @@ void blockFE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,I
  */
 void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fespace *FE,trimesh *mesh,REAL time)
 {
-  int i,j,k;
+  int i,j,k,m;
   REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
   REAL* valx = (REAL *) calloc(FE->nun,sizeof(REAL));
   INT dim = mesh->dim;
   INT entry = 0, local_entry = 0;
   INT local_dim = 0;
+  INT* face_vertex = (INT *) calloc(dim,sizeof(INT));
 
   for(k=0;k<FE->nspaces;k++) {
     if(FE->var_spaces[k]->FEtype==0) { // P0 elements u[dof] = 1/elvol \int_el u
@@ -597,6 +598,27 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fe
         val[i+entry] = 0.0;
         for(j=0;j<dim;j++) val[i+entry]+=mesh->f_norm[i*dim+j]*valx[local_entry + j];
       }
+    } else if (FE->var_spaces[k]->FEtype==61) { // Bubbles
+      local_dim = 0;
+      for(i=0;i<FE->var_spaces[k]->ndof;i++){
+        val[i+entry] = 0.0;
+        x[0] = mesh->f_mid[i*dim];
+        x[1] = mesh->f_mid[i*dim+1];
+        if(dim==3) x[2] = mesh->f_mid[i*dim+2];
+        (*expr)(valx,x,time,&(FE->var_spaces[0]->dof_flag[i]));
+        for(j=0;j<dim;j++) val[entry+i]+=mesh->f_area[i]*mesh->f_norm[i*dim+j]*valx[local_dim + j];
+
+        get_incidence_row(i,mesh->f_v,face_vertex);
+        for (m=0;m<dim;m++) {
+          x[0] = mesh->cv->x[face_vertex[m]-1];
+          x[1] = mesh->cv->y[face_vertex[m]-1];
+          if(dim==3) x[2] = mesh->cv->z[face_vertex[m]-1];
+          // The following only works for 2D
+          (*expr)(valx,x,time,&(FE->var_spaces[0]->dof_flag[i]));
+          for(j=0;j<dim;j++) val[entry+i]+= -(1.0/dim)*mesh->f_area[i]*mesh->f_norm[i*dim+j]*valx[local_dim + j];
+        }
+
+      }
     } else {
       check_error(ERROR_FE_TYPE,__FUNCTION__);
     }
@@ -604,8 +626,10 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fe
     local_entry += local_dim;
   }
 
+
   if (x) free(x);
   if(valx) free(valx);
+  if (face_vertex) free(face_vertex);
   return;
 }
 /****************************************************************************************************************************/
