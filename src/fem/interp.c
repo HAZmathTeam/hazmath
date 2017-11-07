@@ -654,12 +654,13 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fe
  */
 REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace *FE,trimesh *mesh,REAL time,INT comp,INT DOF)
 {
-  int i,j;
+  int i,j,m;
   REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
   REAL* valx = (REAL *) calloc(mesh->dim*FE->nspaces,sizeof(REAL));
   INT dim = mesh->dim;
   INT local_dim = 0;
   REAL val=-666e+00;
+  INT* face_vertex = (INT *) calloc(dim,sizeof(INT));
 
   for(i=0;i<comp;i++) {
     if(FE->var_spaces[i]->FEtype>=0 && FE->var_spaces[i]->FEtype<10) { // Scalar Element
@@ -709,12 +710,22 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
     (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
     val = 0.0;
     for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx[local_dim + j];
+    get_incidence_row(DOF,mesh->f_v,face_vertex);
+    for (m=0;m<dim;m++) {
+      x[0] = mesh->cv->x[face_vertex[m]-1];
+      x[1] = mesh->cv->y[face_vertex[m]-1];
+      if(dim==3) x[2] = mesh->cv->z[face_vertex[m]-1];
+      // The following only works for 2D
+      (*expr)(valx,x,time,&(FE->var_spaces[0]->dof_flag[DOF]));
+      for(j=0;j<dim;j++) val+= -(1.0/dim)*mesh->f_area[DOF]*mesh->f_norm[DOF*dim+j]*valx[local_dim + j];
+    }
   } else {
     check_error(ERROR_FE_TYPE,__FUNCTION__);
   }
 
   if (x) free(x);
   if(valx) free(valx);
+  if (face_vertex) free(face_vertex);
   return val;
 }
 /****************************************************************************************************************************/
