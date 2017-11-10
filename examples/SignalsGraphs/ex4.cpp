@@ -5,9 +5,15 @@
 #include <iostream>
 #include <numeric>
 #include "graph.hpp"
-#include "lapacke.h"
+//#include "lapacke.h"
 
 using namespace std;
+
+extern "C" {
+
+  void drvdsyev(int ni, double *a, int nj, double *w, int n5, int *info);
+
+}
 
 REAL *InitializeRHS(dCSRmat *A, int num_iterations = 100) {
   assert(A->row == A->col);
@@ -105,11 +111,13 @@ int main(int argc, char *argv[]) {
         }
         a[i][i] = -rowsum;
       }
+      double w[ni];
       // dcsr_write_dcoo("Ai.dat", Ai);
       // print_full_mat(ni, ni, *a, "a");
 
-      double w[ni];
-      int info = LAPACKE_dsyev(LAPACK_ROW_MAJOR, 'V', 'U', ni, *a, ni, w);
+      //      int info = LAPACKE_dsyev(LAPACK_ROW_MAJOR, 'V', 'U', ni, *a, ni, w);
+      int info,n5=5*ni;
+      drvdsyev(ni, *a, ni, w, n5, &info );
       if (info) {
         cout << "Error code: " << info << endl;
         return -1;
