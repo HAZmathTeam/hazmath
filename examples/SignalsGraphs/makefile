@@ -10,7 +10,7 @@ INCLUDE = ../../include
 LIBS = -lhazmath -llapack 
 HAZLIB = ../../lib
 
-CXXFLAGS = -g -Wall -I$(INCLUDE) -L$(HAZLIB)
+CXXFLAGS = -g -Wall -I$(INCLUDE)
 
 
 .PHONY: all examples clean
@@ -18,7 +18,7 @@ CXXFLAGS = -g -Wall -I$(INCLUDE) -L$(HAZLIB)
 all:	$(EXAMPLES)
 
 $(EXAMPLES):	$(OBJECT_FILES)
-	+$(CXX) $(CXXFLAGS) $(OBJECT_FILES) -o ex4 $(LIBS) -Wfatal-errors
+	+$(CXX)  -L$(HAZLIB) $(OBJECT_FILES) -o ex4 $(LIBS) -Wfatal-errors
 
 %.o:	%.cpp   $(HEADERS)
 	+$(CXX) -c $(CXXFLAGS) -o $@ $<  -Wfatal-errors
