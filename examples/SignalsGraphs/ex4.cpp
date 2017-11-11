@@ -11,7 +11,7 @@ using namespace std;
 
 extern "C" {
 
-  void drvdsyev(int ni, double *a, int nj, double *w, int n5, int *info);
+  void drvdsyev(int ni, double *a, int nj, double *w, int *info);
 
 }
 
@@ -116,8 +116,8 @@ int main(int argc, char *argv[]) {
       // print_full_mat(ni, ni, *a, "a");
 
       //      int info = LAPACKE_dsyev(LAPACK_ROW_MAJOR, 'V', 'U', ni, *a, ni, w);
-      int info,n5=5*ni;
-      drvdsyev(ni, *a, ni, w, n5, &info );
+      int info;
+      drvdsyev(ni, *a, ni, w, &info );
       if (info) {
         cout << "Error code: " << info << endl;
         return -1;
@@ -135,7 +135,7 @@ int main(int argc, char *argv[]) {
             ++Qj_coo_ind;
             // ++Qj_coo->nnz;
           }
-          // cout << "Row: " << 2*nj*l + k*nj + i << endl;
+	  // cout << "Row: " << 2*nj*l + k*nj + i << endl;
           // cout << "Values: " << v(0) << " " << v(1) << " " << v.Norml2() << endl;
           ++k;
         }
