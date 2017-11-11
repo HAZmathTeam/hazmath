@@ -119,7 +119,7 @@ int main(int argc, char *argv[]) {
       int info;
       drvdsyev(ni, *a, ni, w, &info );
       if (info) {
-        cout << "Error code: " << info << endl;
+        cout << "Eigenvalue computations error; Error code: " << info << endl;
         return -1;
       }
 
