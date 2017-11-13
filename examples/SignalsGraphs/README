@@ -1,0 +1,6 @@
+****************************************************************
+*	Boost library needs to be installed for this to work.  *
+*	                                                       *
+*	On ubuntu like system:  sudo apt install libboost-dev  *
+****************************************************************
+

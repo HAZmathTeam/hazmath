@@ -5,9 +5,15 @@
 #include <iostream>
 #include <numeric>
 #include "graph.hpp"
-#include "lapacke.h"
+//#include "lapacke.h"
 
 using namespace std;
+
+extern "C" {
+
+  void drvdsyev(int ni, double *a, int nj, double *w, int *info);
+
+}
 
 REAL *InitializeRHS(dCSRmat *A, int num_iterations = 100) {
   assert(A->row == A->col);
@@ -112,13 +118,15 @@ int main(int argc, char *argv[]) {
         }
         a[i][i] = -rowsum;
       }
+      double w[ni];
       // dcsr_write_dcoo("Ai.dat", Ai);
       // print_full_mat(ni, ni, *a, "a");
 
-      double w[ni];
-      int info = LAPACKE_dsyev(LAPACK_ROW_MAJOR, 'V', 'U', ni, *a, ni, w);
+      //      int info = LAPACKE_dsyev(LAPACK_ROW_MAJOR, 'V', 'U', ni, *a, ni, w);
+      int info;
+      drvdsyev(ni, *a, ni, w, &info );
       if (info) {
-        cout << "Error code: " << info << endl;
+        cout << "Eigenvalue computations error; Error code: " << info << endl;
         return -1;
       }
 
@@ -134,7 +142,7 @@ int main(int argc, char *argv[]) {
             ++Qj_coo_ind;
             // ++Qj_coo->nnz;
           }
-          // cout << "Row: " << 2*nj*l + k*nj + i << endl;
+	  // cout << "Row: " << 2*nj*l + k*nj + i << endl;
           // cout << "Values: " << v(0) << " " << v(1) << " " << v.Norml2() << endl;
           ++k;
         }
