@@ -74,13 +74,20 @@ int main(int argc, char *argv[]) {
     Nj_array.push_back(nj);
     int numBlocks = 1 << level;
 
+    int Qj_nnz = 0;
+    for (int i = 0; i < nj; ++i) {
+      vector<int> vertices;
+      graph.GetAggregate(i, &vertices);
+      Qj_nnz += numBlocks * vertices.size() * vertices.size();
+    }
+    Qj_nnz += n - Nj * numBlocks;
     dCOOmat *Qj_coo = (dCOOmat*)malloc(sizeof(dCOOmat));
     Qj_coo->row = n;
     Qj_coo->col = n;
     Qj_coo->nnz = 0;
-    Qj_coo->rowind = (INT*)malloc(sizeof(INT)*n*n);
-    Qj_coo->colind = (INT*)malloc(sizeof(INT)*n*n);
-    Qj_coo->val = (REAL*)malloc(sizeof(REAL)*n*n);
+    Qj_coo->rowind = (INT*)malloc(sizeof(INT)*Qj_nnz);
+    Qj_coo->colind = (INT*)malloc(sizeof(INT)*Qj_nnz);
+    Qj_coo->val = (REAL*)malloc(sizeof(REAL)*Qj_nnz);
     INT Qj_coo_ind = 0;
 
     for (int i = 0, count = 0; i < nj; ++i) {
@@ -167,6 +174,7 @@ int main(int argc, char *argv[]) {
       ++Qj_coo->nnz;
     }
 
+    assert(Qj_coo->nnz == Qj_nnz);
     dCSRmat *Qj = (dCSRmat*)malloc(sizeof(dCSRmat));
     dcoo_2_dcsr(Qj_coo, Qj);
     free(Qj_coo);
