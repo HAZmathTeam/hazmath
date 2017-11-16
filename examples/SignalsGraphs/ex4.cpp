@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
   int level = 0;
   vector<int> Nj_array{n};
   while (graph.Size() > 1) {
-    cout << "Size after matching: " << graph.Size() << endl;
+    cout << "Graph size: " << graph.Size() << endl;
     dCSRmat *A = graph.GetWeightedLaplacian();
 
     Graph c_graph;
