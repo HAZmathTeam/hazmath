@@ -228,6 +228,10 @@ void Graph::DoMatching() {
           chosen = ConnectivityEntry(entry.first, entry.second);
         }
       }
+      if (num_connections_to.empty()) {
+        cout << "Graph not connected. Aborting!" << endl;
+        exit(1);
+      }
       grouping_label[i] = chosen.nbr_index;
       aggregates_new[chosen.nbr_index]->Merge(aggregates[i]);
     }
