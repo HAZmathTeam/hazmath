@@ -104,7 +104,7 @@ config: distclean
 	@-echo "If SUCCESS, run 'make install' to install the library."
 	@-echo "--------------------------------------------------------"
 	@-echo " "
- 
+
 uninstall:
 	@if [ ! -f $(build_dir)/install_manifest.txt ]; then \
 		echo "Installation manifest not found! Nothing to uninstall."; \

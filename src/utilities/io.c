@@ -6,11 +6,34 @@
  *  Routines for reading and writing to file or screen.
  *
  * \note: modified by Xiaozhe Hu on 10/31/2016
- *
+ *\note: modified 20171119 (ltz) added output using scomplex
  */
 
 #include "hazmath.h"
 
+/*
+ * \fn chkn(INT n, const INT nmin, const INT nmax)
+ *
+ * \brief checks if n is in the closed interval [nmin, nmax] and if
+ *    not, changes the value of n to be the closest end of the interval
+ *
+ * \param n     integer to check
+ * \param nmin  min allowed value
+ * \param nmax  max allowed value
+ *
+ */
+INT chkn(INT n, const INT nmin, const INT nmax)
+{
+  INT nnew=n;
+  if(n > nmax) {
+    fprintf(stdout, "\n Iput value too large: %d ; Changing to the max allowed: %d\n",n,nmax);
+    nnew=nmax;
+  } else if(n < nmin) {
+    fprintf(stdout, "\ninput value too small: %d ; Changing to the min allowed: %d\n",n,nmin);
+    nnew=nmin;
+  }
+  return nnew;
+}
 /***********************************************************************************************/
 /*!
  * \fn void iarray_print(INT *vec, INT n)
@@ -959,4 +982,227 @@ void debug_print(char* string, INT kill)
     return;
 }
 
-/***********************************************************************************************/
+/****************************************************************/
+
+/**********************************************************************
+ * Routines to save to file the mesh in different formats.
+ * uses the simplicial complex data structure (scomplex *sc). 
+ *
+ *************************************************************************/
+void hazw(char *nameout,scomplex *sc, const INT nholes, const int shift)
+{
+  FILE *fmesh;
+  INT n=sc->nv,ns=sc->ns, dim=sc->n,ndl=sc->n+1;
+  INT *je = sc->nodes, *ib=sc->bndry;
+  REAL *x = sc->x;
+  INT k=-10,j=-10,kndl=-10;
+  fmesh=HAZ_fopen1(nameout,"w");
+  /* *******************************************
+     HAZMAT way of writing mesh file. 
+     *******************************************    */
+  fprintf(fmesh,"%i %i %i %i\n",ns,n,dim,nholes);
+  /* fprintf(stdout,"%i %i %li\n",n,ns,sizeof(ib)/sizeof(INT)); */
+  for (j=0;j<ndl;j++) {
+    for (k=0;k<ns;k++){
+      kndl=ndl*k+j;
+      /* shift if needed */
+      fprintf(fmesh," %d ", je[kndl]+shift);
+    }
+    fprintf(fmesh,"\n");
+  }
+  for (k=0;k<ns;k++){
+    fprintf(fmesh," %d ", sc->flags[k]);
+  }
+  fprintf(fmesh,"\n");
+  for(j=0;j<dim;j++){
+    for(k=0;k<n;k++){
+      fprintf(fmesh," %23.16g ",x[k*dim+j]);
+      /*      fprintf(stdout," (%i,%i) %23.16g ",k,j,x[k*dim+j]); */
+    }
+    fprintf(fmesh,"\n");
+  }
+  for(k=0;k<n;k++){
+    fprintf(fmesh," %i ", ib[k]);
+  }
+  fprintf(fmesh,"\n");
+  fprintf(stdout,"\n%%Output (hazmath) written on:%s\n",nameout);
+  fclose(fmesh);    
+  return;
+}
+/* WRITE mesh on VTU file*/
+void vtkw(char *namevtk, scomplex *sc, const INT nholes, const INT shift, const REAL zscale)
+{
+  FILE *fvtk;
+  INT nv=sc->nv,ns=sc->ns, n=sc->n,n1=n+1;
+  INT *nodes = sc->nodes, *ib=sc->bndry;
+  REAL *x = sc->x;
+  INT tcell=-10;
+  INT k=-10,j=-10,kn=-10,kn1=-10;
+  char *tfloat="Float64", *tinto="Int64", *endian="LittleEndian";
+  /* 
+     what endian?:
+
+     Intel x86; OS=MAC OS X: little-endian
+     Intel x86; OS=Windows: little-endian
+     Intel x86; OS=Linux: little-endian
+     Intel x86; OS=Solaris: little-endian
+     Dec Alpha; OS=Digital Unix: little-endian
+     Dec Alpha; OS=VMS: little-endian
+     Hewlett Packard PA-RISC; OS=HP-UX: big-endian
+     IBM RS/6000; OS=AIX: big-endian
+     Motorola PowerPC; OS=Mac OS X:  big-endian
+     SGI R4000 and up; OS=IRIX: big-endian
+     Sun SPARC; OS=Solaris: big-endian
+  */
+  /* 
+     Types of cells for VTK 
+
+     VTK_VERTEX (=1) 
+     VTK_POLY_VERTEX (=2)
+     VTK_LINE (=3)
+     VTK_POLY_LINE (=4)
+     VTK_TRIANGLE(=5)
+     VTK_TRIANGLE_STRIP (=6)
+     VTK_POLYGON (=7) 
+     VTK_PIXEL (=8) 
+     VTK_QUAD (=9)
+     VTK_TETRA (=10)
+     VTK_VOXEL (=11)
+     VTK_HEXAHEDRON (=12)
+     VTK_WEDGE (=13) 
+     VTK_PYRAMID (=14)
+  */
+  const INT TRI=5;  
+  const INT TET=10;
+  if(n==2) 
+    tcell=TRI; /* triangle */
+  else 
+    tcell=TET; /* tet */
+
+  /* VTK format writing the mesh for plot */
+  fvtk=HAZ_fopen1(namevtk,"w");  
+  fprintf(fvtk,"<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"%s\">\n",endian);
+  fprintf(fvtk,"<UnstructuredGrid>\n");
+  fprintf(fvtk,"<Piece NumberOfPoints=\"%i\" NumberOfCells=\"%i\">\n",nv,ns);
+  fprintf(fvtk,"<Points>\n");
+  fprintf(fvtk,"<DataArray type=\"%s\" NumberOfComponents=\"3\" Format=\"ascii\">",tfloat);
+  if(n == 2) 
+    for (j=0;j<nv;j++){
+      for (k=0;k<n;k++) {
+	fprintf(fvtk,"%23.16g ",x[j*n+k]);
+      }
+      fprintf(fvtk,"%g ",0.);
+    }
+  else
+    for (j=0;j<nv;j++){
+      for (k=0;k<n-1;k++) {
+	fprintf(fvtk,"%23.16g ",x[j*n+k]);
+      }
+      fprintf(fvtk,"%23.16g ",x[j*n+n-1]*zscale);
+    }
+  fprintf(fvtk,"</DataArray>\n");
+  fprintf(fvtk,"</Points>\n");
+  fprintf(fvtk,"<CellData Scalars=\"scalars\">\n");
+  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"%s (layer)\" Format=\"ascii\">",tfloat,"L");
+  for(k=0;k<ns;k++) fprintf(fvtk," %g ",(REAL )sc->flags[k]);
+  fprintf(fvtk,"</DataArray>\n");
+  fprintf(fvtk,"</CellData>\n");
+  // Dump v_bdry Data to indicate if vertices are boundaries
+  fprintf(fvtk,"<PointData Scalars=\"scalars\">\n");
+  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"v_bdry\" Format=\"ascii\">",tinto);
+  for(k=0;k<nv;k++) fprintf(fvtk," %i ",ib[k]);
+  fprintf(fvtk,"</DataArray>\n");
+
+  // Dump information about connected components.  For now only assume 1 connected region and at most 2 connected boundaries.
+  // Positive integers indicate connected components of a domain
+  // Negative integers indicate connected components of the boundaries
+  // Example: A cube (1 connected domain and 1 connected boundary) 
+  //            would be 1 on the interior and -1 on points on the boundary
+  //          A cube with a hole (1 connected domain and 2 connected boundaries)
+  //          would have 1 on the points in the interior and
+  //          -1 on points on the outer boundary and -2 on the inner boundary
+  // If NULL, then one connected region and boundary.
+  if(nholes) {
+    fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectedcomponents\" Format=\"ascii\">",tinto);
+    for(k=0;k<nv;k++) {
+      if(ib[k]==0) {
+	fprintf(fvtk," %i ",1);
+      } else if(ib[k]==1) {
+	fprintf(fvtk," %i ",-1);
+      } else if(ib[k]==-1) {
+	fprintf(fvtk," %i ",-2);
+      } else {
+	fprintf(fvtk," %i ",ib[k]);
+      }
+    }
+    fprintf(fvtk,"</DataArray>\n");
+  }
+  fprintf(fvtk,"</PointData>\n");
+  fprintf(fvtk,"<Cells>\n");
+  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"offsets\" Format=\"ascii\">",tinto);
+  for(k=1;k<=ns;k++) fprintf(fvtk," %i ",k*n1);
+  fprintf(fvtk,"</DataArray>\n");
+  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectivity\" Format=\"ascii\">\n",tinto);
+  /* for(k=0;k<ns;k++){ */
+  /*   kn1=k*n1; */
+  /*   for(j=0;j<n1;j++) fprintf(fvtk," %i ",nodes[kn1 + j]); */
+  /* } */
+  for (j=0;j<ns;j++){ 
+    /*  for (j=0;j<ns;j++){*/
+    for (k=0;k<n1;k++) {
+      fprintf(fvtk,"%d ",nodes[j*n1+k]+shift);
+    }
+  }
+  fprintf(fvtk,"</DataArray>\n");
+  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"types\" Format=\"ascii\">",tinto);
+  for(k=1;k<=ns;k++)
+    fprintf(fvtk," %i ",tcell);
+  fprintf(fvtk,"</DataArray>\n");
+  fprintf(fvtk,"</Cells>\n");
+  fprintf(fvtk,"</Piece>\n");
+  fprintf(fvtk,"</UnstructuredGrid>\n");
+  fprintf(fvtk,"</VTKFile>\n");
+  fprintf(stdout,"%%Output (vtk) written on:%s\n",namevtk);
+  fclose(fvtk);
+  return;
+}
+void matlw(scomplex *sc, const char *namematl)
+{
+  FILE *fp;
+  INT ns=sc->ns,nv=sc->nv,n=sc->n,n1=n+1,j=-10,k=-10;
+  INT *nodes=sc->nodes;
+  REAL *x=sc->x;
+  fp=HAZ_fopen1(namematl,"w");
+  //  if(!fp) fp=stdout;
+  if(!fp) fp=stdout;
+  fprintf(stdout,"\n%i %i %i\n",ns,nv,n);
+  fflush(stdout);
+  fprintf(fp,"\nt=[");
+  fflush(fp);
+  for (j=0;j<ns;j++){ 
+    /*  for (j=0;j<ns;j++){*/
+    for (k=0;k<n1;k++) {
+      fprintf(fp,"%i ",nodes[j*n1+k]+1);
+    }
+    fprintf(fp,"\n");
+  }
+  fprintf(fp,"];\n"); 
+  fprintf(fp,"\nx=[");
+  for (j=0;j<nv;j++){
+    for (k=0;k<n;k++) {
+      fprintf(fp,"%23.16e ",x[j*n+k]);
+    }
+    fprintf(fp,"\n");
+  }
+  fprintf(fp,"];\n");
+  if(n<3) {
+    fprintf(fp,"\ntriplot(t,x(:,1),x(:,2));hold on");
+  }else {
+    fprintf(fp,"\ntetramesh(t,x(:,1),x(:,2),x(:,3));hold on");
+  }
+  fprintf(fp,"\nplot(x(:,1),x(:,2),'ro');");
+  fprintf(fp,"\nplot(x(:,1),x(:,2),'r*'); hold off\n");
+  fprintf(stdout,"%%Output (matlab) written on:%s\n",namematl);
+  fclose(fp);
+  return;
+}
