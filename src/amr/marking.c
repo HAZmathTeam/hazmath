@@ -142,7 +142,7 @@ void markstar(INT level,scomplex *sc, INT nstar, REAL *xstar)
     mrktst++;
     scnjn = sc->nodes+j*n1;
     for(jstar=0;jstar<nstar;jstar++){
-      //	  fprintf(stdout,"\nel=%d\n",jstar+1);
+      //      fprintf(stdout,"\nel=%d\n",jstar+1);
       xstar0=xstar+jstar*n;
       if(!xins(n,scnjn,sc->x,xstar0)){
 	//	fprintf(stdout,"\nel=%d, found: %d; NOmrk=%d",j,jstar+1,mrkno);

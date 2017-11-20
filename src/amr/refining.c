@@ -188,10 +188,15 @@ void abfstree(INT it, scomplex *sc,INT *wrk)
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
 void refining(INT ref_levels, scomplex *sc, INT nstar, REAL *xstar)
 {
-/* xstar is an array nstar by dim which contains coordinates of
-   points where we want to refine.  */
-  //here n is used instead of dim.
-  /*bail out if no refinement is required*/
+/* ATTN: it refines ref_levels times and then sets ref_levels=0 so
+ *  when called again it will not refine automatically unless
+ *  ref_levels is reset to new value; 
+ *
+ *xstar is an array nstar by dim
+ *  which contains coordinates of points where we want to refine.
+ *  here n is used instead of dim.  bail out if no refinement is
+ *  required
+*/
   if(ref_levels<=0) return;
   INT n=sc->n,j=-1,k=-1;
   INT ns,nv,n1,nsold,nvold,level;
@@ -211,8 +216,10 @@ void refining(INT ref_levels, scomplex *sc, INT nstar, REAL *xstar)
        i.e. whatever was marked and its children stays marked: the
        refinement is automatic up to level=ref_levels.
     */
-    marks(level,sc);
-    markstar(level,sc,nstar,xstar);
+    if(nstar)
+      markstar(level,sc,nstar,xstar);
+    else
+      marks(level,sc);
     for(j = 0;j < nsold;j++) {
       if(sc->marked[j] && (sc->childn[j]<0)){
 	haz_refine_simplex(sc, j, -1);
