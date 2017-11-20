@@ -7,6 +7,7 @@
  *  d-dimeensions for general d.
  *  \note interpolates data on uniform grids
 */
+#include "hazmath.h"
 void coord_lattice(INT *m,const INT dim,			\
 		   const INT kf, const INT nall, const INT *nd)
 {
@@ -178,7 +179,20 @@ void data_transform(const INT nv, const int m,			\
   if(xo) free(xo);
   return; 
 }
-void fdata(unigrid *ug)
+static REAL ff(const INT dim, REAL *x){
+  /* function to interpolate (only for testing) */
+  switch(dim){
+  case 2:
+    return 20e0+ 5.*x[0]-4.*x[1] + 17.*x[0]*x[1];
+  case 3:
+    return 20e0+5.*x[0]-4.*x[1]-0.3456*x[2]+x[0]*x[1];
+  case 4:
+    return 20e0+5.*x[0]-4.*x[1]-0.3456*x[2]-x[3];
+  default:
+    return 1e0;
+  }
+}
+static void fdata(unigrid *ug)
 {
   INT dim=ug->n,k,i,j,kf,nall=ug->nall;
   INT *nd=ug->ndiv;
@@ -416,20 +430,7 @@ static REAL interp0(const INT dim,unsigned int *bits,REAL *u,	\
   }
   return s;
 }
-static REAL ff(const INT dim, REAL *x){
-  /* function to interpolate (only for testing) */
-  switch(dim){
-  case 2:
-    return 20e0+ 5.*x[0]-4.*x[1] + 17.*x[0]*x[1];
-  case 3:
-    return 20e0+5.*x[0]-4.*x[1]-0.3456*x[2]+x[0]*x[1];
-  case 4:
-    return 20e0+5.*x[0]-4.*x[1]-0.3456*x[2]-x[3];
-  default:
-    return 1e0;
-  }
-}
-void fdataf(unigrid *ug)
+static void fdataf(unigrid *ug)
 {
   /*on a uniform grid ug fills a ug->data[] array with values computer with a function ff */ 
   INT dim=ug->n,k,i,j,kf,nall=ug->nall;

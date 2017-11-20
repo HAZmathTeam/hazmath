@@ -38,6 +38,7 @@ BEGIN {
   print "#include \"param.h\""
   print "#include \"graphs.h\""
   print "// Special Includes"
+  print "#include \"fortran_headers.h\""
   print "#if WITH_MATLAB"
   print "#include \"mex.h\""
   print "#endif"
@@ -63,7 +64,7 @@ BEGIN {
   next;
 }
 
-!/^INT|^REAL|^coordinates|^qcoordinates|^FILE|^OFF_T|^size_t|^off_t|^pid_t|^unsigned|^mode_t|^DIR|^user|^int|^char|^uint|^struct|SHORT|^BOOL|^void|^double|^time|^dCSRmat|^dvector|^iCSRmat|^ivector|block_dCSRmat|^AMG_data/ {
+!/^INT|^REAL|^coordinates|^qcoordinates|^FILE|^OFF_T|^size_t|^off_t|^pid_t|^unsigned|^mode_t|^DIR|^user|^int|^char|^uint|^struct|SHORT|^BOOL|^void|^double|^time|^dCSRmat|^dvector|^iCSRmat|^ivector|block_dCSRmat|^AMG_data|^scomplex|^subscomplex|^unigrid|^features|^locdetails/ {
   next;
 }
 

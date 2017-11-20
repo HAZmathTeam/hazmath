@@ -7,8 +7,7 @@
  */
 
 #include "hazmath.h"
-
-/***********************************************************************************************/
+/********************************************************************/
 
 /********************************************************************/
 /*STRAIGHT INSERT sort */
@@ -27,11 +26,10 @@ void isi_sort(INT n, INT *a)
   }
   return;
 }
-
 void isi_sortp(const INT n, INT *a, INT *p, INT *invp)
+{
 //implements STRAIGHT INSERT sort for integers, returns prmutation and
 //inverse permutation.
-{
   INT i,j,aj,pj;
   for (i = 0; i < n; i++){p[i]=i;} 
   for (j = 1; j < n; j++){

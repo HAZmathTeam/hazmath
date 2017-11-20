@@ -6,9 +6,7 @@
  *  \note containing all essentials routines for mesh refinement 
  *
  */
-
 #include "hazmath.h"
-
 REAL chk_sign(const int it, const int nbrit)
 {
 /*
