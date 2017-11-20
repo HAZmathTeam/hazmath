@@ -50,9 +50,9 @@ void read_grid_haz(FILE *gfid,trimesh *mesh)
 {
   /* old way without material (or flag) associated with every element */
   // Loop indices
-  INT i,j,k;  
+  INT i,j,k,l;  
   INT nelm,nv,dim,nholes;
-  i=fscanf(gfid,"%d %d %d %d",&nelm,&nv,&dim,&nholes);
+  l=fscanf(gfid,"%d %d %d %d",&nelm,&nv,&dim,&nholes);
   // Get number of vertices per element
   INT v_per_elm = dim+1;
   mesh->el_v=malloc(sizeof(iCSRmat));
@@ -68,7 +68,7 @@ void read_grid_haz(FILE *gfid,trimesh *mesh)
   for (i=0;i<v_per_elm;i++) {
     for (j=0;j<nelm;j++){
       k=v_per_elm*j+i;
-      fscanf(gfid,"%d", (mesh->el_v->JA+k));
+      l=fscanf(gfid,"%d", (mesh->el_v->JA+k));
     }
   }
   mesh->el_v->val=NULL;
