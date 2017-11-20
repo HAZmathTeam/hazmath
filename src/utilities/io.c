@@ -349,19 +349,17 @@ void dcsr_write_dcoo (const char *filename,
  * \param nn        Size of Vector
  *
  */
-void rveci_(FILE *fp,
-            INT *vec,
-            INT *nn)
+void rveci_(FILE *fp,INT *vec,INT *nn)
 {	
   // local variables
-  INT n;
+  INT n,i;
   INT *vec_end;
   n = *nn;
   vec_end  =  vec + n;
 
   // main loop
   for ( ; vec < vec_end; ++vec)
-    fscanf(fp,"%i",vec);
+    i=fscanf(fp,"%i",vec);
   return;
 }
 /****************************************************************************************/
@@ -382,14 +380,14 @@ void rvecd_(FILE *fp,
             INT *nn)
 {
     // local variables
-  INT n;
+  INT n,i;
   REAL *vec_end;  
   n= *nn;
   vec_end =  vec + n;
 
   // main loop
   for ( ; vec < vec_end; ++vec)
-    fscanf(fp,"%lg",vec);
+    i=fscanf(fp,"%lg",vec);
   return;
 }
 /****************************************************************************************/
@@ -406,8 +404,7 @@ void rvecd_(FILE *fp,
  * \param mode      read or write
  *
  */
-FILE* HAZ_fopen(char *fname,
-                char *mode )
+FILE* HAZ_fopen(char *fname, char *mode )
 {
    // local variable
   FILE   *fp;
@@ -1166,7 +1163,7 @@ void vtkw(char *namevtk, scomplex *sc, const INT nholes, const INT shift, const 
   fclose(fvtk);
   return;
 }
-void matlw(scomplex *sc, const char *namematl)
+void matlw(scomplex *sc, char *namematl)
 {
   FILE *fp;
   INT ns=sc->ns,nv=sc->nv,n=sc->n,n1=n+1,j=-10,k=-10;
