@@ -996,7 +996,7 @@ void hazw(char *nameout,scomplex *sc, const INT nholes, const int shift)
   INT *je = sc->nodes, *ib=sc->bndry;
   REAL *x = sc->x;
   INT k=-10,j=-10,kndl=-10;
-  fmesh=HAZ_fopen1(nameout,"w");
+  fmesh=HAZ_fopen(nameout,"w");
   /* *******************************************
      HAZMAT way of writing mesh file. 
      *******************************************    */
@@ -1080,7 +1080,7 @@ void vtkw(char *namevtk, scomplex *sc, const INT nholes, const INT shift, const 
     tcell=TET; /* tet */
 
   /* VTK format writing the mesh for plot */
-  fvtk=HAZ_fopen1(namevtk,"w");  
+  fvtk=HAZ_fopen(namevtk,"w");  
   fprintf(fvtk,"<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"%s\">\n",endian);
   fprintf(fvtk,"<UnstructuredGrid>\n");
   fprintf(fvtk,"<Piece NumberOfPoints=\"%i\" NumberOfCells=\"%i\">\n",nv,ns);
@@ -1172,7 +1172,7 @@ void matlw(scomplex *sc, const char *namematl)
   INT ns=sc->ns,nv=sc->nv,n=sc->n,n1=n+1,j=-10,k=-10;
   INT *nodes=sc->nodes;
   REAL *x=sc->x;
-  fp=HAZ_fopen1(namematl,"w");
+  fp=HAZ_fopen(namematl,"w");
   //  if(!fp) fp=stdout;
   if(!fp) fp=stdout;
   fprintf(stdout,"\n%i %i %i\n",ns,nv,n);

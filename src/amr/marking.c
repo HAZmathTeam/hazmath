@@ -1,9 +1,10 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <limits.h>
-#include <time.h>
+/*! \file src/amr/marking.c
+ *
+ *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 20170715.
+ *  Copyright 2017__HAZMATH__. All rights reserved.
+ *
+ *   \note routines to mark simplices for refinement
+*/
 
 #include "hazmath.h"
 
@@ -68,7 +69,8 @@ INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)
   if(piv) free(piv);
   return flag;
 }
-void marks(INT level,scomplex *sc){
+void marks(INT level,scomplex *sc)
+{
   /* mark simplices depending on te value of an estimator */
   /* the estimator here is the aspect ratio of the simplex */
   INT n=sc->n,n1=n+1,ns=sc->ns,nv=sc->nv;
@@ -118,7 +120,8 @@ void markstar(INT level,scomplex *sc, INT nstar, REAL *xstar)
 {
   /* 
      from marked simplices, remove any simplex that does not contain a
-     point from xstar[...]. unmarked simplices are left unmarked 
+     point from xstar[...]. simplices which are initially unmarked are
+     left unmarked
   */
 //  fprintf(stdout,"\nNSTAR=%d\n",nstar);fflush(stdout);
   INT n=sc->n,n1=n+1,ns=sc->ns;

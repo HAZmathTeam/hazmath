@@ -6,6 +6,7 @@
  * \note: routines used to refine a simplicial grid grid ref_level times.
 
  */
+#include "hazmath.h"
 unsigned int reflect2(INT n, INT is, INT it,				\
 		      INT* sv1, INT *sv2, INT* stos1, INT* stos2,	\
 		      INT visited, INT *wrk)

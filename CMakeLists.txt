@@ -141,6 +141,7 @@ file(GLOB HAZMATH_C_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR}
 	  		    ${HAZMATH_SOURCE_DIR}/src/assemble/*.c 
 	  		    ${HAZMATH_SOURCE_DIR}/src/fem/*.c 
 	  		    ${HAZMATH_SOURCE_DIR}/src/grid/*.c 
+	  		    ${HAZMATH_SOURCE_DIR}/src/amr/*.c 
 	  		    ${HAZMATH_SOURCE_DIR}/src/solver/*.c
 			    ${HAZMATH_SOURCE_DIR}/src/timestepping/*.c 
 			    ${HAZMATH_SOURCE_DIR}/src/nonlinear/*.c 
@@ -154,6 +155,8 @@ file(GLOB HAZMATH_C_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR}
 			    ${HAZMATH_SOURCE_DIR}/src/timestepping/*.inl 
 			    ${HAZMATH_SOURCE_DIR}/src/nonlinear/*.inl 
 	  		    ${HAZMATH_SOURCE_DIR}/src/utilities/*.inl)
+file(GLOB HAZMATH_F_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR} 
+	  		    ${HAZMATH_SOURCE_DIR}/src/amr/*.f) 
 # auto generating headers if needed
  add_custom_target(headers ./headmk.sh "${HAZMATH_SOURCE_DIR}"
 		   DEPENDS ${HAZMATH_C_SOURCES}
