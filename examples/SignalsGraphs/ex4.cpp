@@ -37,8 +37,8 @@ REAL *InitializeRHS(dCSRmat *A, int num_iterations = 100) {
     for (int i = 0; i < n; ++i) {
       f->val[i] -= sum / n;
     }
+    dvec_ax(1.0 / dvec_norm2(f), f);
   }
-  dvec_ax(1.0 / dvec_norm2(f), f);
   free(zero);
   return f->val;
 }
