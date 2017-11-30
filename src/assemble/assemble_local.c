@@ -1009,7 +1009,7 @@ void FEM_RHS_Local_face(REAL* bLoc,dvector* old_sol,fespace *FE,trimesh *mesh,qc
   // Quadrature Weights and Nodes
 //  qcoordinates *cq_face = allocateqcoords(cq->nq1d,1,dim);
   qcoordinates *cq_face = allocateqcoords_bdry(cq->nq1d,1,dim,2);
-  quad_edgeface(cq_face,mesh,cq->nq1d,face,dim-1);
+  quad_edgeface(cq_face,mesh,cq->nq1d,face,2);
   REAL* qx = (REAL *) calloc(dim,sizeof(REAL));
   REAL w;
 
@@ -1056,11 +1056,12 @@ void FEM_RHS_Local_face(REAL* bLoc,dvector* old_sol,fespace *FE,trimesh *mesh,qc
   } else { // Vector Functions
 
     //  Sum over quadrature points
-    for (quad=0;quad<cq_face->n;quad++) {
-      qx[0] = cq_face->x[quad];
-      qx[1] = cq_face->y[quad];
+    //for (quad=0;quad<cq_face->n;quad++) {
+    for (quad=0;quad<1;quad++) {
+      qx[0] = mesh->f_mid[face*dim];
+      qx[1] = mesh->f_mid[face*dim+1];
       if(dim==3)
-        qx[2] = cq_face->z[quad];
+        qx[1] = mesh->f_mid[face*dim+2];
       w = cq_face->w[quad];
       (*rhs)(&rhs_val,qx,time,&(mesh->f_flag[face]));
 
@@ -1077,7 +1078,7 @@ void FEM_RHS_Local_face(REAL* bLoc,dvector* old_sol,fespace *FE,trimesh *mesh,qc
         }
         kij = rhs_val*(nx*FE->phi[doft*dim] + ny*FE->phi[doft*dim+1]);
         if(dim==3) kij +=rhs_val*nz*FE->phi[doft*dim+2];
-        bLoc[test] += w*kij;
+        bLoc[test] += kij;
       }
     }
   }
