@@ -221,6 +221,8 @@ INT block_directsolve_UMF(block_dCSRmat *bA,
   // Convert block matrix to regular matrix
   dCSRmat A = bdcsr_2_dcsr(bA);
 
+  dcsr_compress_inplace(&A, 1.0e-14);
+
   // Call regular solve
   err_flag = directsolve_UMF(&A,f,x,print_level);
 
