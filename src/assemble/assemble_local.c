@@ -1007,7 +1007,8 @@ void FEM_RHS_Local_face(REAL* bLoc,dvector* old_sol,fespace *FE,trimesh *mesh,qc
   INT j,quad,test,doft;
 
   // Quadrature Weights and Nodes
-  qcoordinates *cq_face = allocateqcoords(cq->nq1d,1,dim);
+//  qcoordinates *cq_face = allocateqcoords(cq->nq1d,1,dim);
+  qcoordinates *cq_face = allocateqcoords_bdry(cq->nq1d,1,dim,2);
   quad_edgeface(cq_face,mesh,cq->nq1d,face,dim-1);
   REAL* qx = (REAL *) calloc(dim,sizeof(REAL));
   REAL w;
