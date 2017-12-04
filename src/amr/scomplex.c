@@ -117,8 +117,11 @@ scomplex *haz_scomplex_read(FILE *fp)
     /* fprintf(stdout,"%i: %i\n",i,sc->bndry[i]); */
   }
   for(i=0;i<nv;i++){
-    dummy=fscanf(fp,"%i",sc->fval+i);
-    /* fprintf(stdout,"%i: %i\n",i,sc->bndry[i]); */
+    dummy=fscanf(fp,"%lg",sc->fval+i);
+    if(dummy<0){
+      fprintf(stderr,"***WARNING(in %s): failed reading the function value at node %d\n                 Continuing with sc->fval=0 for all points\n",__FUNCTION__,i);
+      break;
+    }
   }
   /*************************************************************/
   return sc;
