@@ -1022,6 +1022,11 @@ void hazw(char *nameout,scomplex *sc, const INT nholes, const int shift)
     fprintf(fmesh," %i ", ib[k]);
   }
   fprintf(fmesh,"\n");
+  //NEWNEW: write the surface elevation above every point
+  for(k=0;k<n;k++){
+    fprintf(fmesh," %e23.16 ", sc->fval[k]);
+  }
+  fprintf(fmesh,"\n");
   fprintf(stdout,"\n%%Output (hazmath) written on:%s\n",nameout);
   fclose(fmesh);    
   return;
@@ -1108,6 +1113,9 @@ void vtkw(char *namevtk, scomplex *sc, const INT nholes, const INT shift, const 
   fprintf(fvtk,"<PointData Scalars=\"scalars\">\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"v_bdry\" Format=\"ascii\">",tinto);
   for(k=0;k<nv;k++) fprintf(fvtk," %i ",ib[k]);
+  fprintf(fvtk,"</DataArray>\n");
+  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"ele\" Format=\"ascii\">",tfloat);
+  for(k=0;k<nv;k++) fprintf(fvtk," %e ",sc->fval[k]);
   fprintf(fvtk,"</DataArray>\n");
 
   // Dump information about connected components.  For now only assume 1 connected region and at most 2 connected boundaries.

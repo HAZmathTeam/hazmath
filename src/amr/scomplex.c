@@ -44,6 +44,7 @@ scomplex *haz_scomplex_init(INT n,INT ns, INT nv)
   sc->flags=(INT *)calloc(ns,sizeof(INT));
   sc->x=(REAL *)calloc(nv*n,sizeof(REAL));
   sc->vols=(REAL *)calloc(ns,sizeof(REAL));
+  sc->fval=(REAL *)calloc(nv,sizeof(REAL)); // function values at every vertex; not used in general;
   for (i = 0;i<ns;i++) {
     sc->marked[i] = FALSE; // because first is used for something else. 
     sc->gen[i] = 0;
@@ -59,6 +60,7 @@ scomplex *haz_scomplex_init(INT n,INT ns, INT nv)
   }
   for (i = 0;i<nv;i++) {
     sc->bndry[i]=0;
+    sc->fval[i]=0.;
   }
   sc->nv=nv;
   sc->ns=ns;
@@ -114,6 +116,10 @@ scomplex *haz_scomplex_read(FILE *fp)
     dummy=fscanf(fp,"%i",sc->bndry+i);
     /* fprintf(stdout,"%i: %i\n",i,sc->bndry[i]); */
   }
+  for(i=0;i<nv;i++){
+    dummy=fscanf(fp,"%i",sc->fval+i);
+    /* fprintf(stdout,"%i: %i\n",i,sc->bndry[i]); */
+  }
   /*************************************************************/
   return sc;
 }
@@ -166,6 +172,8 @@ void haz_scomplex_free(scomplex *sc)
   if(sc->flags) free(sc->flags);
   if(sc->nodes) free(sc->nodes);
   if(sc->x) free(sc->x);
+  if(sc->vols) free(sc->vols);
+  if(sc->fval) free(sc->fval);
   if(sc->nbr) free(sc->nbr);
   if(sc) free(sc);
   return;
