@@ -1024,7 +1024,7 @@ void hazw(char *nameout,scomplex *sc, const INT nholes, const int shift)
   fprintf(fmesh,"\n");
   //NEWNEW: write the surface elevation above every point
   for(k=0;k<n;k++){
-    fprintf(fmesh," %e23.16 ", sc->fval[k]);
+    fprintf(fmesh," %23.16g ", sc->fval[k]);
   }
   fprintf(fmesh,"\n");
   fprintf(stdout,"\n%%Output (hazmath) written on:%s\n",nameout);
