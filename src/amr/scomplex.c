@@ -396,7 +396,7 @@ subscomplex *haz_subscomplex_init(scomplex *sc)
       stored in subsc->ns and subsc->elf;
   */
   faces_cnt(subsc);
-  fprintf(stdout,"\nNUMBER of faces=%d dim_faces=%d\n",subsc->ns,subsc->n);fflush(stdout);
+  //  fprintf(stdout,"\nNUMBER of faces=%d dim_faces=%d\n",subsc->ns,subsc->n);fflush(stdout);
   /* allocate other arrays for the subcomplex */
   subsc->nodes=calloc(subsc->ns*(subsc->n+1),sizeof(INT));
   subsc->flags=calloc(subsc->ns,sizeof(INT));
