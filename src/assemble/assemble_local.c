@@ -1056,12 +1056,15 @@ void FEM_RHS_Local_face(REAL* bLoc,dvector* old_sol,fespace *FE,trimesh *mesh,qc
   } else { // Vector Functions
 
     //  Sum over quadrature points
-    //for (quad=0;quad<cq_face->n;quad++) {
-    for (quad=0;quad<1;quad++) {
-      qx[0] = mesh->f_mid[face*dim];
-      qx[1] = mesh->f_mid[face*dim+1];
+    for (quad=0;quad<cq_face->n;quad++) {
+    //for (quad=0;quad<1;quad++) {
+    //  qx[0] = mesh->f_mid[face*dim];
+    //  qx[1] = mesh->f_mid[face*dim+1];
+      qx[0] = cq_face->x[quad];
+      qx[1] = cq_face->y[quad];
       if(dim==3)
-        qx[1] = mesh->f_mid[face*dim+2];
+        qx[2] = cq_face->z[quad];
+//        qx[2] = mesh->f_mid[face*dim+2];
       w = cq_face->w[quad];
       (*rhs)(&rhs_val,qx,time,&(mesh->f_flag[face]));
 
@@ -1078,7 +1081,7 @@ void FEM_RHS_Local_face(REAL* bLoc,dvector* old_sol,fespace *FE,trimesh *mesh,qc
         }
         kij = rhs_val*(nx*FE->phi[doft*dim] + ny*FE->phi[doft*dim+1]);
         if(dim==3) kij +=rhs_val*nz*FE->phi[doft*dim+2];
-        bLoc[test] += kij;
+        bLoc[test] += w*kij;
       }
     }
   }
