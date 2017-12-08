@@ -3788,6 +3788,94 @@ void precond_block_diag_bubble_stokes(REAL *r,
 
 }
 
+/***********************************************************************************************/
+/**
+ * \fn void precond_block_diag_biot_bubble (REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+ *        is solved inexactly by Krylov methods)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   10/14/2016
+ */
+void precond_block_diag_biot_bubble_krylov(REAL *r,
+                                    REAL *z,
+                                    void *data)
+{
+  precond_block_data *precdata=(precond_block_data *)data;
+  dvector *tempr = &(precdata->r);
+  
+  block_dCSRmat *A = precdata->Abcsr;
+  dCSRmat *A_diag = precdata->A_diag;
+  AMG_param *amgparam = precdata->amgparam;
+  AMG_data **mgl = precdata->mgl;
+  
+  INT i;
+  
+  //const INT N0 = A->blocks[0]->row;
+  //const INT N1 = A->blocks[4]->row;
+  //const INT N2 = A->blocks[8]->row;
+  const INT N0 = A_diag[0].row;
+  const INT N1 = A_diag[1].row;
+  const INT N2 = A_diag[2].row;
+  const INT N = N0 + N1 + N2;
+  
+  // back up r, setup z;
+  array_cp(N, r, tempr->val);
+  array_set(N, z, 0.0);
+  
+  // prepare
+  dvector r0, r1, r2, z0, z1, z2;
+  
+  r0.row = N0; z0.row = N0;
+  r1.row = N1; z1.row = N1;
+  r2.row = N2; z2.row = N2;
+  
+  r0.val = r; r1.val = &(r[N0]); r2.val = &(r[N0+N1]);
+  z0.val = z; z1.val = &(z[N0]); z2.val = &(z[N0+N1]);
+  //#endif
+  
+  // Preconditioning A00 block (displacement)
+  precond_data pcdata_u;
+  param_amg_to_prec(&pcdata_u,amgparam);
+  pcdata_u.max_levels = mgl[0][0].num_levels;
+  pcdata_u.mgl_data = mgl[0];
+  
+  precond pc_u; pc_u.data = &pcdata_u;
+  pc_u.fct = precond_amg;
+  
+  //dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc_u, 1e-1, 100, 100, 1, 1);
+  dcsr_pvfgmres(&(A_diag[0]), &r0, &z0, &pc_u, 1e-3, 100, 100, 1, 1);
+
+  
+  // Preconditioning A11 block (darcy)
+  precond_data pcdata_w;
+  param_amg_to_prec(&pcdata_w,amgparam);
+  pcdata_w.max_levels = mgl[1][0].num_levels;
+  pcdata_w.mgl_data = mgl[1];
+  
+  precond pc_w; pc_w.data = &pcdata_w;
+  pc_w.fct = precond_amg;
+  
+  //dcsr_pvfgmres(&mgl[1][0].A, &r1, &z1, &pc_w, 1e-1, 100, 100, 1, 1);
+  dcsr_pvfgmres(&(A_diag[1]), &r1, &z1, &pc_w, 1e-3, 100, 100, 1, 1);
+
+
+  // Preconditioning A22 block (pressure)
+  // Diagonal matrix
+  for(i=0;i<N2;i++){
+    z[N0+N1+i] = r[N0+N1+i]/(A_diag[2].val[i]);
+  }
+
+  // restore r
+  array_cp(N, tempr->val, r);
+  
+}
+
+
 /*---------------------------------*/
 /*--        End of File          --*/
 /*---------------------------------*/
