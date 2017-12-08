@@ -2381,6 +2381,159 @@ INT linear_solver_bdcsr_krylov_bubble_stokes(block_dCSRmat *A,
   return status;
 }
 
+/********************************************************************************************/
+/**
+ * \fn INT linear_solver_bdcsr_biot_bubble (block_dCSRmat *A, 
+ *                                                   dvector *b, 
+ *                                                   dvector *x,
+ *                                                   itsolver_param *itparam,
+ *                                                   AMG_param *amgparam,
+ *                                                   dCSRmat *Mp)
+ *
+ * \brief Solve Ax = b by standard Krylov methods or AMG
+ *
+ * \param A         Pointer to the coeff matrix in block_dCSRmat format
+ * \param b         Pointer to the right hand side in dvector format
+ * \param x         Pointer to the approx solution in dvector format
+ * \param itparam   Pointer to parameters for iterative solvers
+ * \param amgparam  Pointer to parameters for AMG solvers
+ * \param A_diag    Digonal blocks of A
+ *
+ * \return          Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   01/14/2017
+ *
+ * \note only works for 3 by 3 block dCSRmat problems!! -- Peter Ohm
+ */
+INT linear_solver_bdcsr_biot_bubble(block_dCSRmat *A,
+                                           dvector *b,
+                                           dvector *x,
+                                           linear_itsolver_param *itparam,
+                                           AMG_param *amgparam,
+                                           dCSRmat * A_diag)
+{
+  const SHORT prtlvl = itparam->linear_print_level;
+  const SHORT precond_type = itparam->linear_precond_type;
+
+  INT status = SUCCESS;
+  REAL setup_start, setup_end, setup_duration;
+  REAL solver_start, solver_end, solver_duration;
+
+  const SHORT max_levels = amgparam->max_levels;
+
+  AMG_data **mgl = (AMG_data **)calloc(3, sizeof(AMG_data *));
+
+  /* setup preconditioner */
+  get_time(&setup_start);
+
+  /* set AMG for the displacement block */
+  mgl[0] = amg_data_create(max_levels);
+  dcsr_alloc(A_diag[0].row, A_diag[0].row, A_diag[0].nnz, &mgl[0][0].A);
+  dcsr_cp(&(A_diag[0]), &mgl[0][0].A);
+  mgl[0][0].b=dvec_create(A_diag[0].row);
+  mgl[0][0].x=dvec_create(A_diag[0].row);
+
+  switch (amgparam->AMG_type) {
+
+    case UA_AMG: // Unsmoothed Aggregation AMG
+      if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+      status = amg_setup_ua(mgl[0], amgparam);
+      break;
+
+    default: // UA AMG
+      if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+      status = amg_setup_ua(mgl[0], amgparam);
+    break;
+
+  }
+  printf("finished displacement block\n");
+
+  /* set AMG for the darcy block */
+  mgl[1] = amg_data_create(max_levels);
+  dcsr_alloc(A_diag[1].row, A_diag[1].row, A_diag[1].nnz, &mgl[1][0].A);
+  dcsr_cp(&(A_diag[1]), &mgl[1][0].A);
+  mgl[1][0].b=dvec_create(A_diag[1].row);
+  mgl[1][0].x=dvec_create(A_diag[1].row);
+
+  switch (amgparam->AMG_type) {
+
+    case UA_AMG: // Unsmoothed Aggregation AMG
+      if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+      status = amg_setup_ua(mgl[1], amgparam);
+    break;
+
+    default: // UA AMG
+      if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+      status = amg_setup_ua(mgl[1], amgparam); break;
+  }
+
+  /* set AMG for the presssure block */
+  mgl[2] = amg_data_create(max_levels);
+  dcsr_alloc(A_diag[2].row, A_diag[2].row, A_diag[2].nnz, &mgl[2][0].A);
+  dcsr_cp(&(A_diag[2]), &mgl[2][0].A);
+  mgl[2][0].b=dvec_create(A_diag[2].row);
+  mgl[2][0].x=dvec_create(A_diag[2].row);
+
+  //switch (amgparam->AMG_type) {
+
+  //  case UA_AMG: // Unsmoothed Aggregation AMG
+  //    if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+  //    status = amg_setup_ua(mgl[2], amgparam);
+  //  break;
+
+  //  default: // UA AMG
+  //    if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+  //    status = amg_setup_ua(mgl[2], amgparam); break;
+  //}
+
+  /* set the whole preconditioner data */
+  precond_block_data precdata;
+  precond_block_data_null(&precdata);
+
+  precdata.Abcsr = A;
+  precdata.A_diag = A_diag;
+  precdata.r = dvec_create(b->row);
+  precdata.amgparam = amgparam;
+  precdata.mgl = mgl;
+
+  precond prec; prec.data = &precdata;
+
+
+  switch (precond_type)
+  {
+    default:
+      prec.fct = precond_block_diag_biot_bubble_krylov;
+      break;
+  }
+
+  if ( prtlvl >= PRINT_MIN ) {
+    get_time(&setup_end);
+    setup_duration = setup_end - setup_start;
+    print_cputime("Setup totally", setup_duration);
+  }
+
+  // solver part
+  get_time(&solver_start);
+
+  status=solver_bdcsr_linear_itsolver(A,b,x, &prec,itparam);
+  //status=solver_bdcsr_linear_itsolver(A,b,x, NULL,itparam);
+
+  get_time(&solver_end);
+
+  solver_duration = solver_end - solver_start;
+
+  if ( prtlvl >= PRINT_MIN ) {
+    print_cputime("Krylov method totally", solver_duration);
+    printf("**********************************************************\n");
+  }
+
+  // clean
+  precond_block_data_free(&precdata, 2);
+
+  return status;
+}
+
 /*---------------------------------*/
 /*--        End of File          --*/
 /*---------------------------------*/
