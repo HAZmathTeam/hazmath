@@ -13,35 +13,7 @@ extern "C" {
               double *work, int *lwork, int *info);
 }
 
-REAL *InitializeRHS(dCSRmat *A, int num_iterations = 100) {
-  assert(A->row == A->col);
-  int n = A->row;
-  dvector *f = (dvector*)malloc(sizeof(dvector)),
-          *zero = (dvector*)malloc(sizeof(dvector));
-  f->row = n;
-  zero->row = n;
-  f->val = (REAL*)malloc(sizeof(REAL)*n);
-  zero->val = (REAL*)malloc(sizeof(REAL)*n);
-  dvec_set(n, zero, 0.0);
-
-  for (int i = 0; i < n; ++i) {
-    f->val[i] = (double)i / (n - 1);
-  }
-
-  for (int i = 0; i < num_iterations; ++i) {
-    smoother_dcsr_sgs(f, A, zero, 1);
-    REAL sum = 0;
-    for (int i = 0; i < n; ++i) {
-      sum += f->val[i];
-    }
-    for (int i = 0; i < n; ++i) {
-      f->val[i] -= sum / n;
-    }
-    dvec_ax(1.0 / dvec_norm2(f), f);
-  }
-  free(zero);
-  return f->val;
-}
+REAL *InitializeRHS(dCSRmat *A, int num_iterations = 100);
 
 int main(int argc, char *argv[]) {
   assert(argc > 1);
@@ -55,6 +27,11 @@ int main(int argc, char *argv[]) {
   }
   if (threshold > n - 1) {
     threshold = n - 1;
+  }
+
+  double p = 1.0;
+  if (argc > 3) {
+    p = stod(argv[3]);
   }
 
   /*
@@ -303,7 +280,7 @@ int main(int argc, char *argv[]) {
     for (int k = 0; k < (1 << j); ++k) {
       sums[j].push_back(0.0);
       for (int l = 0; l < Nj_array[j]; ++l) {
-        sums[j].back() += abs(vj_array[j][i++]);
+        sums[j].back() += pow(abs(vj_array[j][i++]), p);
       }
       if (j < num_levels - 1) {
         REAL sum_aux = accumulate(

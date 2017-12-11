@@ -1,7 +1,6 @@
-
 CXX = g++
 
-SOURCE_FILES = graph.cpp ex4.cpp
+SOURCE_FILES = graph.cpp utils.cpp ex4.cpp
 OBJECT_FILES = $(SOURCE_FILES:.cpp=.o)
 EXAMPLES = ex4
 

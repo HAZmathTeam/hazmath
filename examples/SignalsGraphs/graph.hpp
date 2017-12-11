@@ -11,7 +11,7 @@
 #include <boost/multi_index/mem_fun.hpp>
 
 extern "C" {
-#include "hazmath.h"
+  #include "hazmath.h"
 }
 
 typedef unsigned int Index;
