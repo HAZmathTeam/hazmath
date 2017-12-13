@@ -75,6 +75,7 @@ int main(int argc, char *argv[]) {
       vector<int> vertices;
       graph.GetAggregate(i, &vertices);
       int ni = vertices.size();
+      sort(vertices.begin(), vertices.end());
 
       dCSRmat *Ai = (dCSRmat*)malloc(sizeof(dCSRmat));
       dcsr_getblk(A, vertices.data(), vertices.data(), ni, ni, Ai);
