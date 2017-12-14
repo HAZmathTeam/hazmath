@@ -157,13 +157,16 @@ int main(int argc, char *argv[]) {
 
     dCSRmat *Qj = (dCSRmat*)malloc(sizeof(dCSRmat));
     dcoo_2_dcsr(Qj_coo, Qj);
+    free(Qj_coo->rowind);
+    free(Qj_coo->colind);
+    free(Qj_coo->val);
     free(Qj_coo);
 
     /*
     dCSRmat *Q1 = (dCSRmat*)malloc(sizeof(dCSRmat));
     dcsr_mxm(Qj, Q, Q1);
-    free(Q);
-    // free(Qj);
+    dcsr_free(Q);
+    // dcsr_free(Qj);
     Q = Q1;
     */
 
@@ -212,8 +215,8 @@ int main(int argc, char *argv[]) {
        << "Relative error ||v-v1||/||v||:  "
        << array_norm2(n, e) / array_norm2(n, v) << endl;
 
-  free(Q);
-  free(Qt);
+  dcsr_free(Q);
+  dcsr_free(Qt);
   */
 
   REAL vj[n];
@@ -243,7 +246,7 @@ int main(int argc, char *argv[]) {
     REAL v_temp[n];
     dcsr_mxv(Qj_t, v2, v_temp);
     array_cp(n, v_temp, v2);
-    free(Qj_t);
+    dcsr_free(Qj_t);
   }
   REAL e2[n];
   array_axpyz(n, -1.0, v, v2, e2);
@@ -371,9 +374,9 @@ int main(int argc, char *argv[]) {
        << "Relative error ||v-v3||/||v||: "
        << array_norm2(n, e3) / array_norm2(n, v) << endl;
 
-  free(A);
+  dcsr_free(A);
   for (auto Qj : Qj_array) {
-    free(Qj);
+    dcsr_free(Qj);
   }
   return 0;
 }

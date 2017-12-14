@@ -2,6 +2,7 @@
 #define SIGNALS_GRAPH
 
 #include <vector>
+#include <utility>
 
 extern "C" {
   #include "hazmath.h"
@@ -19,6 +20,22 @@ public:
   Graph(): A(NULL) {}
 
   Graph(const char* filename);
+
+  Graph(const Graph &other) {
+    A = (iCSRmat *)malloc(sizeof(iCSRmat));
+    *A = icsr_create(other.A->row, other.A->col, other.A->nnz);
+    icsr_cp(other.A, A);
+    aggregates = other.aggregates;
+  }
+
+  ~Graph() { icsr_free(A); }
+
+  Graph & operator= (Graph other) {
+    std::swap(A, other.A);
+    std::swap(aggregates, other.aggregates);
+
+    return *this;
+  }
 
   // Number of vertices
   int Size() const { return A->row; }
