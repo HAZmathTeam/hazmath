@@ -1131,6 +1131,8 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
     dof_per_face = 2*dim - 3; // 3 edges per face in 3D; face is edge in 2D
   } else if(FE->FEtype==30) { // Raviart-Thomas Elements
     dof_per_face = 1;
+  } else if(FE->FEtype==61) { // Bubbles
+    dof_per_face = 1;
   } else {
     printf("Face integration isn't set up for the FEM space you chose\n");
     exit(0);

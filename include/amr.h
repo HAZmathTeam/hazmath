@@ -33,6 +33,8 @@ typedef struct /* n-homogenous simplicial complex */
 		   piece-wise defined functions*/
   REAL *x; /*(nv x n) array to hold the coordinates of vertices */
   REAL *vols; /* volumes of the simplices */
+  REAL *fval; /* function values at vertices (could be ANY, but is
+		 used for elevation in hydrolena */
   REAL factorial; /*n factorial */
 } scomplex;
 
