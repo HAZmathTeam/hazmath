@@ -4,6 +4,8 @@
  */
 #include <iostream>
 #include <numeric>
+#include <algorithm>
+#include <functional>
 #include "graph.hpp"
 
 using namespace std;
@@ -57,15 +59,14 @@ int main(int argc, char *argv[]) {
 
     int Qj_nnz = 0;
     for (int i = 0; i < nj; ++i) {
-      vector<int> vertices;
-      graph.GetAggregate(i, &vertices);
-      Qj_nnz += numBlocks * vertices.size() * vertices.size();
+      int size = graph.GetAggregateSize(i);
+      Qj_nnz += numBlocks * size * size;
     }
     Qj_nnz += n - Nj * numBlocks;
     dCOOmat *Qj_coo = (dCOOmat*)malloc(sizeof(dCOOmat));
     Qj_coo->row = n;
     Qj_coo->col = n;
-    Qj_coo->nnz = 0;
+    Qj_coo->nnz = Qj_nnz;
     Qj_coo->rowind = (INT*)malloc(sizeof(INT)*Qj_nnz);
     Qj_coo->colind = (INT*)malloc(sizeof(INT)*Qj_nnz);
     Qj_coo->val = (REAL*)malloc(sizeof(REAL)*Qj_nnz);
@@ -112,22 +113,18 @@ int main(int argc, char *argv[]) {
       for (int l = 0; l < numBlocks; ++l) {
         int k = 0;
         while (k < 2) {
-          // Qj->SetRow(2*nj*l + k*nj + i, vertices, eigens[k]);
           for (int ind = 0; ind < ni; ++ind) {
             Qj_coo->rowind[Qj_coo_ind] = 2*nj*l + k*nj + i;
             Qj_coo->colind[Qj_coo_ind] = vertices[ind];
             Qj_coo->val[Qj_coo_ind] = a[ind][k];
             if (isnan(a[ind][k])) cout << "Found NaN!" << endl;
             ++Qj_coo_ind;
-            // ++Qj_coo->nnz;
           }
           // cout << "Row: " << 2*nj*l + k*nj + i << endl;
           // cout << "Values: " << v(0) << " " << v(1) << " " << v.Norml2() << endl;
           ++k;
         }
         while (k < ni) {
-          // Qj->SetRow(
-          //     2*nj*numBlocks + l*(Nj-2*nj) + count + (k-2), vertices, eigens[k]);
           for (int ind = 0; ind < ni; ++ind) {
             Qj_coo->rowind[Qj_coo_ind] = 2*nj*numBlocks + l*(Nj-2*nj) + count + (k-2);
             Qj_coo->colind[Qj_coo_ind] = vertices[ind];
@@ -138,7 +135,6 @@ int main(int argc, char *argv[]) {
                    << "k: " << k << endl;
             }
             ++Qj_coo_ind;
-            // ++Qj_coo->nnz;
           }
           // cout << "Row: " << 2*nj*numBlocks + l*(Nj-2*nj) + count + (k-2) << endl;
           ++k;
@@ -149,7 +145,6 @@ int main(int argc, char *argv[]) {
 
         // cout << l << endl;
       }
-      Qj_coo->nnz += ni * ni * numBlocks;
       count += ni - 2;
     }
 
@@ -158,10 +153,8 @@ int main(int argc, char *argv[]) {
       Qj_coo->colind[Qj_coo_ind] = i;
       Qj_coo->val[Qj_coo_ind] = 1.0;
       ++Qj_coo_ind;
-      ++Qj_coo->nnz;
     }
 
-    assert(Qj_coo->nnz == Qj_nnz);
     dCSRmat *Qj = (dCSRmat*)malloc(sizeof(dCSRmat));
     dcoo_2_dcsr(Qj_coo, Qj);
     free(Qj_coo);
