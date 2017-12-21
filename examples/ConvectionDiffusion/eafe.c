@@ -37,8 +37,8 @@
  *
 */
 static void LumpMassBndry(const trimesh mesh,
-		   void (*vector_val_ad)(REAL *, REAL *, REAL),	\
-		   void (*scalar_val_bndnr)(REAL *, REAL *, REAL),	\
+			  void (*vector_val_ad)(REAL *, REAL *, REAL, void *),	\
+			  void (*scalar_val_bndnr)(REAL *, REAL *, REAL, void *), \
 		   dvector *rhs, dvector *dmass)
 {
 #ifndef MARKER_ROBIN
@@ -70,7 +70,7 @@ static void LumpMassBndry(const trimesh mesh,
       vol=fa[i];//*ccc;
       for(k=0;k<dim;k++)
 	xm[k]=fm[i*dim+k];
-      scalar_val_bndnr(&rhsi,xm,0.0);
+      scalar_val_bndnr(&rhsi,xm,0.0,&attri);
       //      fprintf(stdout,"COORDS:%22.16e, %22.16e ; vol=%22.16e\n",xm[0],xm[1],rhsi);
       rhsi = rhsi*vol*ccc;
       ifa=f2v->IA[i]-1;
@@ -91,7 +91,7 @@ static void LumpMassBndry(const trimesh mesh,
       continue;
     vol=fa[i];//*ccc;
     for(k=0;k<dim;k++)  xm[k]=fm[i*dim+k];
-    vector_val_ad(xm,ad,0.0);
+    vector_val_ad(xm,ad,0.0,&attri);
     bdotn=0.;
     for(k=0;k<dim;k++) bdotn += ad[k]*fn[i*dim+k];
     bdotn*=vol;
@@ -166,17 +166,18 @@ static void poisson_coeff(REAL *val,REAL* x, REAL t,void *param) {
  *
  */
 void eafe(dCSRmat *A, dvector *rhs,		\
-      void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL), \
-	  trimesh mesh, fespace FE, qcoordinates *cq,	\
-      void (*scalar_val_d)(REAL *, REAL *, REAL),			\
-      void (*scalar_val_rhs)(REAL *, REAL *, REAL, void *),			\
-      void (*vector_val_ad)(REAL *, REAL *, REAL),			\
-      void (*scalar_val_bndnr)(REAL *, REAL *, REAL), REAL faketime)
+	  void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL), \
+	  trimesh mesh, fespace FE, qcoordinates *cq,			\
+	  void (*scalar_val_d)(REAL *, REAL *, REAL, void *),		\
+	  void (*scalar_val_rhs)(REAL *, REAL *, REAL, void *),		\
+	  void (*vector_val_ad)(REAL *, REAL *, REAL, void *),		\
+	  void (*scalar_val_bndnr)(REAL *, REAL *, REAL, void *), REAL faketime)
 {
   assemble_global(A,rhs,local_assembly,			\
 		  &FE,&mesh,cq,				\
 		  scalar_val_rhs,poisson_coeff,0.0);
   INT i,j,jk,jdim,iaa,iab,nv=mesh.nv,dim=mesh.dim;
+  INT edge_flag=-10;
   INT *ia=A->IA, *ja=A->JA ;
   REAL *a=A->val;
   coordinates *xyz=mesh.cv;
@@ -211,12 +212,12 @@ void eafe(dCSRmat *A, dvector *rhs,		\
 	  te[2]  = zi - zj;
 	  xm[2] = (zi + zj)*0.5e+0;
 	}
-	vector_val_ad(ad,xm,0.0);
+	vector_val_ad(ad,xm,0.0,&edge_flag);
 	bte=0.;
 	for(jdim=0;jdim<dim;jdim++){
 	  bte += ad[jdim]*te[jdim];
 	}
-	scalar_val_d(&alpe,xm,0.0);
+	scalar_val_d(&alpe,xm,0.0,&edge_flag);
 	// alpe=a(xmid)\approx harmonic_average=|e|/(int_e 1/a);
 	// should be computed by quadrature in general for 1/a(x).
 	// a_{ij}=B(beta.t_e/harmonic_average)*harmonic_average*omega_e;
