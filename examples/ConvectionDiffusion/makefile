@@ -11,7 +11,7 @@ INCLUDE =
 
 ################comment the next two lines if you do not use mutigraph as solver.
 WITH_MGRAPH = yes
-MGRAPH_SRCDIR = $(realpath ../../../../multigraph_2.0/src)
+MGRAPH_SRCDIR = $(realpath ../../../../multigraph_2.1/src)
 
 # if you have compiled hazmath with suitesparse support, uncomment the
 # two lines below.

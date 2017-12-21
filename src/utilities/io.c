@@ -1022,11 +1022,13 @@ void hazw(char *nameout,scomplex *sc, const INT nholes, const int shift)
     fprintf(fmesh," %i ", ib[k]);
   }
   fprintf(fmesh,"\n");
-  //NEWNEW: write the surface elevation above every point
-  for(k=0;k<n;k++){
-    fprintf(fmesh," %23.16g ", sc->fval[k]);
+  //NEWNEW: write a function value
+  if(fval){
+    for(k=0;k<n;k++){
+      fprintf(fmesh," %23.16g ", sc->fval[k]);
+    }
+    fprintf(fmesh,"\n");
   }
-  fprintf(fmesh,"\n");
   fprintf(stdout,"\n%%Output (hazmath) written on:%s\n",nameout);
   fclose(fmesh);    
   return;
@@ -1114,19 +1116,21 @@ void vtkw(char *namevtk, scomplex *sc, const INT nholes, const INT shift, const 
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"v_bdry\" Format=\"ascii\">",tinto);
   for(k=0;k<nv;k++) fprintf(fvtk," %i ",ib[k]);
   fprintf(fvtk,"</DataArray>\n");
-  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"ele\" Format=\"ascii\">",tfloat);
-  for(k=0;k<nv;k++) fprintf(fvtk," %e ",sc->fval[k]);
-  fprintf(fvtk,"</DataArray>\n");
-
-  // Dump information about connected components.  For now only assume 1 connected region and at most 2 connected boundaries.
-  // Positive integers indicate connected components of a domain
-  // Negative integers indicate connected components of the boundaries
-  // Example: A cube (1 connected domain and 1 connected boundary) 
-  //            would be 1 on the interior and -1 on points on the boundary
-  //          A cube with a hole (1 connected domain and 2 connected boundaries)
-  //          would have 1 on the points in the interior and
-  //          -1 on points on the outer boundary and -2 on the inner boundary
-  // If NULL, then one connected region and boundary.
+  if(sc->fval){
+    fprintf(fvtk,"<DataArray type=\"%s\" Name=\"ele\" Format=\"ascii\">",tfloat);
+    for(k=0;k<nv;k++) fprintf(fvtk," %e ",sc->fval[k]);
+    fprintf(fvtk,"</DataArray>\n");
+  }
+  // Dump information about connected components.  For now only assume
+  // 1 connected region and at most 2 connected boundaries.  Positive
+  // integers indicate connected components of a domain Negative
+  // integers indicate connected components of the boundaries Example:
+  // A cube (1 connected domain and 1 connected boundary) would be 1
+  // on the interior and -1 on points on the boundary A cube with a
+  // hole (1 connected domain and 2 connected boundaries) would have 1
+  // on the points in the interior and -1 on points on the outer
+  // boundary and -2 on the inner boundary If NULL, then one connected
+  // region and boundary.
   if(nholes) {
     fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectedcomponents\" Format=\"ascii\">",tinto);
     for(k=0;k<nv;k++) {
