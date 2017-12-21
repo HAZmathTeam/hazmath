@@ -22,6 +22,14 @@
 #include "hazmath.h"
 /* local include */
 #include "ConvectionDiffusion.h"
+void eafe(dCSRmat *A, dvector *rhs,					\
+	  void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL), \
+	  trimesh mesh, fespace FE, qcoordinates *cq,			\
+	  void (*scalar_val_d)(REAL *, REAL *, REAL, void *),		\
+	  void (*scalar_val_rhs)(REAL *, REAL *, REAL, void *),		\
+	  void (*vector_val_ad)(REAL *, REAL *, REAL, void *),		\
+	  void (*scalar_val_bndnr)(REAL *, REAL *, REAL, void *), REAL faketime);
+
 /*********************************************************************/
 static void lump_mass(dCSRmat *A, dCSRmat M, trimesh mesh)
 {
