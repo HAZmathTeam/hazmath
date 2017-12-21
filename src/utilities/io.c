@@ -1023,7 +1023,7 @@ void hazw(char *nameout,scomplex *sc, const INT nholes, const int shift)
   }
   fprintf(fmesh,"\n");
   //NEWNEW: write a function value
-  if(fval){
+  if(sc->fval){
     for(k=0;k<n;k++){
       fprintf(fmesh," %23.16g ", sc->fval[k]);
     }

@@ -7,6 +7,8 @@ SRCFILE = ConvectionDiffusion
 
 HEADERS = $(SRCFILE).h
 
+OBJS += eafe.o
+
 INCLUDE =
 
 ################comment the next two lines if you do not use mutigraph as solver.
@@ -24,3 +26,4 @@ MGRAPH_SRCDIR = $(realpath ../../../../multigraph_2.1/src)
 LIBS = -lgfortran
 
 sinclude ../examples.mk
+
