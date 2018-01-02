@@ -1700,7 +1700,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
 
 /********************************************************************************************/
 /**
- * \fn INT linear_solver_bdcsr_krylov_biot_2phase (block_dCSRmat *A, dvector *b, dvector *x,
+ * \fn INT linear_solver_bdcsr_krylov_biot_2field (block_dCSRmat *A, dvector *b, dvector *x,
  *                                           itsolver_param *itparam,
  *                                           AMG_param *amgparam, dCSRmat *Mp)
  *
@@ -1720,7 +1720,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
  *
  * \note only works for 2 by 2 block dCSRmat problems!! -- Xiaozhe Hu
  */
-INT linear_solver_bdcsr_krylov_biot_2phase(block_dCSRmat *A,
+INT linear_solver_bdcsr_krylov_biot_2field(block_dCSRmat *A,
                                            dvector *b,
                                            dvector *x,
                                            linear_itsolver_param *itparam,
@@ -1791,30 +1791,32 @@ INT linear_solver_bdcsr_krylov_biot_2phase(block_dCSRmat *A,
 
   precond prec; prec.data = &precdata;
 
+
+
   switch (precond_type)
   {
     case 20:
-      prec.fct = precond_block_diag_biot_2phase;
+      prec.fct = precond_block_diag_biot_2field;
       break;
 
     case 21:
-      prec.fct = precond_block_lower_biot_2phase;
+      prec.fct = precond_block_lower_biot_2field;
       break;
 
     case 22:
-      prec.fct = precond_block_upper_biot_2phase;
+      prec.fct = precond_block_upper_biot_2field;
       break;
 
     case 30:
-      prec.fct = precond_block_diag_biot_2phase_krylov;
+      prec.fct = precond_block_diag_biot_2field_krylov;
       break;
 
     case 31:
-      prec.fct = precond_block_lower_biot_2phase_krylov;
+      prec.fct = precond_block_lower_biot_2field_krylov;
       break;
 
     case 32:
-      prec.fct = precond_block_upper_biot_2phase_krylov;
+      prec.fct = precond_block_upper_biot_2field_krylov;
       break;
 
     default:
@@ -2383,7 +2385,7 @@ INT linear_solver_bdcsr_krylov_bubble_stokes(block_dCSRmat *A,
 
 /********************************************************************************************/
 /**
- * \fn INT linear_solver_bdcsr_biot_bubble (block_dCSRmat *A, 
+ * \fn INT linear_solver_bdcsr_krylov_biot_3field (block_dCSRmat *A,
  *                                                   dvector *b, 
  *                                                   dvector *x,
  *                                                   itsolver_param *itparam,
@@ -2406,7 +2408,7 @@ INT linear_solver_bdcsr_krylov_bubble_stokes(block_dCSRmat *A,
  *
  * \note only works for 3 by 3 block dCSRmat problems!! -- Peter Ohm
  */
-INT linear_solver_bdcsr_biot_bubble(block_dCSRmat *A,
+INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
                                            dvector *b,
                                            dvector *x,
                                            linear_itsolver_param *itparam,
@@ -2502,8 +2504,33 @@ INT linear_solver_bdcsr_biot_bubble(block_dCSRmat *A,
 
   switch (precond_type)
   {
+
+    case 20:
+      prec.fct = precond_block_diag_biot_3field;
+      break;
+
+    case 21:
+      prec.fct = precond_block_lower_biot_3field;
+      break;
+
+    case 22:
+      prec.fct = precond_block_upper_biot_3field;
+      break;
+
+    case 30:
+      prec.fct = precond_block_diag_biot_3field_krylov;
+      break;
+
+    case 31:
+      prec.fct = precond_block_lower_biot_3field_krylov;
+      break;
+
+    case 32:
+      prec.fct = precond_block_upper_biot_3field_krylov;
+      break;
+
     default:
-      prec.fct = precond_block_diag_biot_bubble_krylov;
+      prec.fct = precond_block_lower_biot_3field_krylov;
       break;
   }
 
