@@ -295,8 +295,8 @@ void get_blockresidual_norm(newton *n_it,block_fespace* FE,trimesh* mesh, qcoord
   L2norm_block(res_norm,n_it->rhs->val,FE,mesh,cq);
 
   REAL total_res_norm = 0;
-
-  for(INT i=0;i<FE->nspaces;i++) {
+  INT i;
+  for(i=0;i<FE->nspaces;i++) {
     total_res_norm += res_norm[i]*res_norm[i];
   }
   n_it->res_norm = sqrt(total_res_norm);
@@ -325,8 +325,8 @@ void get_blockupdate_norm(newton *n_it,block_fespace* FE,trimesh* mesh, qcoordin
   L2norm_block(update_norm,n_it->update->val,FE,mesh,cq);
 
   REAL total_update_norm = 0;
-
-  for(INT i=0;i<FE->nspaces;i++) {
+  INT i;
+  for(i=0;i<FE->nspaces;i++) {
     total_update_norm += update_norm[i]*update_norm[i];
   }
   n_it->update_norm = sqrt(total_update_norm);
