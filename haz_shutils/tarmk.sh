@@ -15,17 +15,33 @@ FILENAME="${DNAME}.tar"
 
 FILENAMEz="${FILENAME}.gz"
 
-#set -x
+set -x
 
-[ -f ${FILENAME} ] && /bin/rm -rf  ${FILENAME}
+[ -f ../tarball/${FILENAME} ] && /bin/rm -rf  ../tarball/${FILENAME}
 
-[ -f ${FILENAMEz} ] && /bin/rm -rf ${FILENAMEz}
+[ -f ../tarball/${FILENAMEz} ] && /bin/rm -rf ../tarball/${FILENAMEz}
+
+if [ -d ../tarball/${DNAME} ] ; then
+    rsync -a \
+	  --delete --force \
+	  --exclude-from='tar.excl' \
+	  ../ ../tarball/${DNAME}/
+else
+    mkdir ../tarball/${DNAME} && rsync -a \
+			    --delete --force \
+			    --exclude-from='tar.excl' \
+			    ../ ../tarball/${DNAME}/
+fi
+
 
 echo "Creating TAR file with the current version of HAZMATH: $DNAME on $(date +%Y_%m_%d)"
 
-tar \
-    -s:^\.\.:${DNAME}: --exclude-from="tar.excl" \
-    -cvf ${FILENAME} ../
+cd ../tarball ; tar  cvf ${FILENAME} ${DNAME} && /bin/rm -rf ${DNAME}
+
+set +x
+###tar -s:^\.\.:${DNAME}: --exclude-from="tar.excl" -cvf ${FILENAME} ../
+
+## create a symbolic link.
 
 #echo "Adding directories needed for output to ${FILENAME}"
 
@@ -37,7 +53,7 @@ echo "Compressing: ${FILENAME} --> ${FILENAMEz}"
 
 [ -f  ${FILENAME} ]  && gzip -S'.gz' -f ${FILENAME}
 
-#set +x
+set +x
 
 if [ $? -eq  0 ] ;  then
        echo "*** $FILENAME successfully created. ***"

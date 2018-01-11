@@ -1,5 +1,7 @@
 tarmk*
 hazmath*.tar.*
+tarball/
+trabajo/
 sync_hydro*
 tar.excl
 .DS_Store
