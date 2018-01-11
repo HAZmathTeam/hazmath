@@ -1,7 +1,9 @@
 tarmk*
+grids.incl
 hazmath*.tar.*
 tarball/
 trabajo/
+examples/grids/
 sync_hydro*
 tar.excl
 .DS_Store
