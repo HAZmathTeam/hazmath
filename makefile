@@ -13,9 +13,13 @@
 # 
 #  Modified   		2015-08-08   	--ltz
 #  Added Doxygen	2017-03-12	--Xiaozhe Hu
+#  Modified cflags to suppress warnings under linux 2017-03-12 --ltz
 ########################################################################
 sinclude haz_config/hazmath.mk
 
+cflags="-Wno-unused-result"
+cxxlags="-Wno-unused-result"
+#fflags="-Wno-unused-result" this is not valid in fortran
 ifeq ($(debug),yes)
 	cflags="-Wall -g"
 	cxxflags="-Wall -g"
@@ -69,6 +73,7 @@ endif
 
 CONFIG_FLAGS+=-DADD_CFLAGS=$(cflags)
 CONFIG_FLAGS+=-DADD_CXXFLAGS=$(cxxflags)
+CONFIG_FLAGS+=-DADD_FFLAGS=$(fflags)
 
 all clean headers docs:
 	@if [ ! -f $(build_dir)/Makefile ] ; then \
