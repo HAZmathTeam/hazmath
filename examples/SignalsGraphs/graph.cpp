@@ -44,6 +44,7 @@ Graph::Graph(const char* filename) {
     edge_count += 2;
   }
   assert(count == nnz);
+  file.close();
 
   A = (iCSRmat *)malloc(sizeof(iCSRmat));
   *A = icsr_create(nrows, ncols, edge_count);
