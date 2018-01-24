@@ -1,0 +1,2 @@
+#/bin/bash
+gcc -I../../include -L../../lib -g tryme.c -o tryme -lhazmath -lm

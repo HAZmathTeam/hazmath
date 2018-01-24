@@ -1,8 +1,8 @@
 CXX = g++
 
-SOURCE_FILES = graph.cpp utils.cpp ex4.cpp
+SOURCE_FILES = graph.cpp utils.cpp ex2.cpp
 OBJECT_FILES = $(SOURCE_FILES:.cpp=.o)
-EXAMPLES = ex4
+EXAMPLES = ex2
 
 HEADERS = graph.hpp
 INCLUDE = ../../include
@@ -17,7 +17,7 @@ CXXFLAGS = -g -Wall -I$(INCLUDE)
 all: $(EXAMPLES)
 
 $(EXAMPLES): $(OBJECT_FILES)
-	+$(CXX) -L$(HAZLIB) $(OBJECT_FILES) -o ex4 $(LIBS) -Wfatal-errors
+	+$(CXX) -L$(HAZLIB) $(OBJECT_FILES) -o ex2 $(LIBS) -Wfatal-errors
 
 %.o: %.cpp $(HEADERS)
 	+$(CXX) -c $(CXXFLAGS) -o $@ $< -Wfatal-errors
