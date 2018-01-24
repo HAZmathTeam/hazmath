@@ -5,15 +5,12 @@
  *
  *\note: sorting routines: straight insert sort. 
  */
-
+/********************************************************************/
 #include "hazmath.h"
-/********************************************************************/
-
-/********************************************************************/
 /*STRAIGHT INSERT sort */
 void isi_sort(INT n, INT *a)
-//implements STRAIGHT  INSERT sort for integers
 {
+//implements STRAIGHT  INSERT sort for integers
   INT i,j,aj;
   for (j = 1; j < n; ++j) {
       aj = *(a + j);

@@ -13,7 +13,6 @@
  *
  * Routines to generate meshes for HAZMATH.  Outputs in a "HAZMATH" format
  * and VTK format.  Can do 2D triangular mesh and 3D tetrahedral mesh.
- * Also capable of making domains with holes.
  *
  *************************************************************************/
 /*******************************************************/

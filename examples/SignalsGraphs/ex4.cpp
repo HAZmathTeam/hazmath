@@ -174,6 +174,7 @@ int main(int argc, char *argv[]) {
 
     graph = c_graph;
     ++level;
+    dcsr_free(A);
   }
 
   // Compress/decompress a smooth vector and compute the error

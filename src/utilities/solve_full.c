@@ -9,7 +9,6 @@
  *  \note routines to solve Ax=b and calculate inv(A). 
  *
  */
-
 #include "hazmath.h"
 /*******************************************************************/
 /* \fn  void c2r(const INT n, const INT m, const size_t sizeel, void *x)
@@ -245,3 +244,88 @@ void invfull(REAL *Ainv,INT n, REAL *A, void *wrk)
   }
   return;
 }
+/**************************************************************************/
+/*
+ * \fn void abybfull(const INT m, const INT p, REAL *c, REAL *a, 
+ *                   REAL *b, const INT n)
+ *
+ * \brief 
+ *
+ * \param 
+ * \param 
+ * \param 
+ *
+ */
+void abybfull(const INT m, const INT p, REAL *c,	\
+	      REAL *a, REAL *b, const INT n)
+{
+  /* matrices c = a*b+c; a is m by n, b is n by p; c is m by p */
+  REAL cij;
+  INT i,j,k,ij,ik,kj,in,ip;
+  for(i=0;i<m;i++){
+    in=i*n;
+    ip=i*p;
+    for(j=0;j<p;j++){
+      cij=0.;
+      for(k=0;k<n;k++){
+	ik=in + k;
+	kj=k*p + j;
+	cij+=a[ik]*b[kj];
+      }
+      ij=ip+j;
+      c[ij]+=cij;
+    }
+  }
+  return;
+}	      
+/**************************************************************************/
+/*
+ * \fn void abyvfull(const INT m, REAL *y,REAL *a, REAL *x, const INT n)
+ *
+ * \brief 
+ *
+ * \param 
+ * \param 
+ * \param 
+ *
+ */
+void abyvfull(const INT m, REAL *y,REAL *a, REAL *x, const INT n)
+{
+  /* matrices y = a*x+y; a is a matrix m by n, x is a vector, y is a
+     vector (m) */
+  REAL yi;
+  INT i,j,in;
+  for(i=0;i<m;i++){
+    in=i*n; yi=0.;
+    for(j=0;j<n;j++){
+      yi+=a[in+j]*x[j];
+    }
+    y[i]+=yi;
+  }
+  return;
+}	      
+/**************************************************************************/
+/*
+ * \fn atbyvfull(const INT m, REAL *y,REAL *a, REAL *x, const INT n)
+ *
+ * \brief 
+ *
+ * \param 
+ * \param 
+ * \param 
+ *
+ */
+void atbyvfull(const INT m, REAL *y,REAL *a, REAL *x, const INT n)
+{
+  /* matrices y = a^t*x+y; a is a matrix m by n, x is m by 1 vector, y
+     is n by 1 */
+  REAL yj;
+  INT i,j,in;
+  for(i=0;i<m;i++){
+    in=i*n;
+    for(j=0;j<n;j++){
+      y[j]+=x[i]*a[in+j];
+    }
+  }
+  return;
+}	      
