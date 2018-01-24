@@ -1268,3 +1268,179 @@ void assemble_global_Ned_GradH1_RHS(dvector *b,fespace *FE_H1,fespace *FE_Ned,tr
 }
 /******************************************************************************************************/
 
+/******************************************************************************************************/
+/*!
+ * \fn void assemble_global_RHS_face_block(dvector *b,void (*local_rhs_assembly)(REAL *,block_fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
+ *
+ * \brief Computes the global rhs for any a(u,v) = <f,v> bilinear form using various element types
+ *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
+ *        Here we assume a system and thus a block FE space.
+ *        DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
+ *
+ *        For this problem we compute RHS of:
+ *
+ *        Lu = f  ---->   a(u,v) = <f,v>
+ *
+ *        which gives Ax = b,
+ *
+ *        b_i  = <f,phi_i>
+ *
+ * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
+ *
+ * \param local_rhs_assembly  Routine to assemble local RHS
+ * \param FE                  block FE Space
+ * \param mesh                Mesh Data
+ * \param cq                  Quadrature Nodes
+ * \param rhs                 Routine to get RHS function (NULL if only assembling matrix)
+ * \param time                Physical Time if time dependent
+ * \param flag0,flag1         Marker for which faces are included in boundary integration (range of faces from flag0 to flag1)
+ *
+ * \return b             Global RHS vector
+ *
+ */
+void assemble_global_RHS_face_block(dvector *b, dvector *old_sol, void (*local_rhs_assembly_face)(REAL *, dvector *, block_fespace *,trimesh *,qcoordinates *,INT *,INT *, INT *, INT, INT, INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,trimesh *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time, INT flag0, INT flag1)
+{
+  INT dof_per_elm = 0;
+  INT v_per_elm = mesh->v_per_elm;
+  INT dim = mesh->dim;
+  INT i,j,k,row;
+
+  // Get block data first
+  INT nblocks = FE->nspaces;
+  
+  // Allocate arrays
+  b->row = FE->ndof;
+  if(b->val) {
+    dvec_set(b->row,b,0.0);
+  } else {
+    b->val = (REAL *) calloc(b->row,sizeof(REAL));
+  }
+
+  // Loop over each block and get dof_per_elm
+  for(i=0;i<FE->nspaces;i++) {
+    dof_per_elm += FE->var_spaces[i]->dof_per_elm;
+  }
+
+  // Loop over each block and get dof_per_face
+  INT dof_per_face = 0;
+  INT* dof_per_face_blk = (INT*)calloc(FE->nspaces,sizeof(INT));
+  INT FEtype;
+  for(i=0;i<FE->nspaces;i++) {
+    FEtype = FE->var_spaces[i]->FEtype;
+    if(FEtype>=1 && FEtype<10) { // PX Elements
+      dof_per_face_blk[i] = dim + (FEtype-1)*(2*dim-3);
+      dof_per_face += dim + (FEtype-1)*(2*dim-3);
+    } else if (FEtype==20) { // Nedelec Elements
+      dof_per_face_blk[i] = 2*dim - 3;
+      dof_per_face += 2*dim - 3;
+    } else if (FEtype==30) { // Raviart-Thomas Elements
+      dof_per_face_blk[i] = 1;
+      dof_per_face += 1;
+    } else if (FEtype==61) { // Bubbles
+      dof_per_face_blk[i] = 1;
+      dof_per_face += 1;
+    } else if (FEtype==0) { // P0
+//      printf("Here we will do questionable handling of P0 for the face integral\n");
+      dof_per_face_blk[i] = 1;
+      dof_per_face += 1;
+    } else {
+      printf("Block face integration isn't set up for the FEM space you chose\n");
+      exit(0);
+    }
+  }
+
+  /* Loop over all Elements and build local rhs */
+  REAL* bLoc = (REAL *) calloc(dof_per_face,sizeof(REAL));
+
+  INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
+  INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
+  INT* dof_on_f = (INT *) calloc(dof_per_face,sizeof(INT));
+
+  // Need face to element map
+  iCSRmat f_el;
+  icsr_trans_1(mesh->el_f,&f_el);
+
+  INT jcntr,rowa,rowb;
+  INT elm;
+  //INT dof_on_f_shift;
+  //INT dof_on_elm_shift;
+
+  // Loop over boundary faces
+  for(i=0;i<mesh->nface;i++) {
+    // Only grab faces on the flagged boundary
+    if(mesh->f_flag[i]>=flag0 && mesh->f_flag[i]<=flag1) {
+      // Zero out local vector
+      for(j=0;j<dof_per_face;j++) {
+        bLoc[j] = 0;
+      }
+
+      // Find DOF for given face
+      jcntr = 0;
+      for(k=0;k<nblocks;k++) {
+        rowa = FE->var_spaces[k]->f_dof->IA[i]-1;
+        rowb = FE->var_spaces[k]->f_dof->IA[i+1]-1;
+        for (j=rowa; j<rowb; j++) {
+          dof_on_f[jcntr] = FE->var_spaces[k]->f_dof->JA[j];
+          jcntr++;
+        }
+      }
+
+      // Find corresponding element associated with the face
+      // Assume only 1 matters (if on boundary)
+      rowa = f_el.IA[i]-1;
+      elm = f_el.JA[rowa]-1;
+
+      // Find DOF for given Element
+      // Note this is "local" ordering for the given FE space of the block
+      // Not global ordering of all DOF
+      jcntr = 0;
+      for(k=0;k<nblocks;k++) {
+        rowa = FE->var_spaces[k]->el_dof->IA[elm]-1;
+        rowb = FE->var_spaces[k]->el_dof->IA[elm+1]-1;
+        for (j=rowa; j<rowb; j++) {
+          dof_on_elm[jcntr] = FE->var_spaces[k]->el_dof->JA[j];
+          jcntr++;
+        }
+      }
+      //// DOF for given Face
+      //// then Find DOF on that element
+      //jcntr = 0;
+      //dof_on_f_shift = 0;
+      //dof_on_elm_shift = 0;
+      //for(k=0;k<nblocks;k++){
+      //  get_incidence_row(i,FE->var_spaces[k]->f_dof,dof_on_f+dof_on_f_shift);
+      //  dof_on_f_shift += dof_per_face_blk[k];
+      //  
+      //  get_incidence_row(elm,FE->var_spaces[k]->el_dof,dof_on_elm+dof_on_elm_shift);
+      //  dof_on_elm_shift += FE->var_spaces[k]->dof_per_elm;
+      //}
+
+      // Find vertices for given element
+      get_incidence_row(elm,mesh->el_v,v_on_elm);
+
+      // Compute Local RHS for given element
+      (*local_rhs_assembly_face)(bLoc,old_sol,FE,mesh,cq,dof_on_f,dof_on_elm,v_on_elm,dof_per_face,i,elm,rhs,time);
+
+      // Put Local RHS in correct location
+      jcntr = 0;
+      rowa = 0;
+      for(k=0;k<nblocks;k++) {
+        for(j=0;j<dof_per_face_blk[k];j++) {
+          row = dof_on_f[jcntr]-1;
+          b->val[row+rowa]+=bLoc[jcntr];
+          jcntr++;
+        }
+        rowa += FE->var_spaces[k]->ndof;
+      }
+    
+    }
+  }
+  
+
+  if(dof_on_elm) free(dof_on_elm);
+  if(v_on_elm) free(v_on_elm);
+  if(bLoc) free(bLoc);
+
+  return;
+}
+/******************************************************************************************************/
