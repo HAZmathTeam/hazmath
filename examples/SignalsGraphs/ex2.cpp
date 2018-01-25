@@ -19,19 +19,19 @@ extern "C" {
 
 int main(int argc, char *argv[]) {
   assert(argc > 1);
-  
-  int n = 512, nnz = (n-1)*n*2, edge_count = 0;
+
+  int side = 512, nnz = (side-1)*side*2, edge_count = 0;
   ofstream tempfile("temp");
-  tempfile << n*n << ' ' << n*n << ' ' << nnz << '\n';
-  for (int i = 0; i < n; ++i) {
-    for (int j = 0; j < n; ++j) {
-      int index = i*n + j + 1;
-      if (j < n - 1) {
+  tempfile << side*side << ' ' << side*side << ' ' << nnz << '\n';
+  for (int i = 0; i < side; ++i) {
+    for (int j = 0; j < side; ++j) {
+      int index = i*side + j + 1;
+      if (j < side - 1) {
         tempfile << index << ' ' << index + 1 << '\n';
         ++edge_count;
       }
-      if (i < n - 1) {
-        tempfile << index << ' ' << index + n << '\n';
+      if (i < side - 1) {
+        tempfile << index << ' ' << index + side << '\n';
         ++edge_count;
       }
     }
@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
 
   // Copied from ex4.cpp
   Graph graph("temp");
-  n = graph.Size();
+  int n = graph.Size();
   dCSRmat *A = graph.GetWeightedLaplacian();
 
   int threshold = 100;
@@ -199,11 +199,12 @@ int main(int argc, char *argv[]) {
   }
 
   // Compress/decompress a smooth vector and compute the error
-  const string filename(argv[1]);
+  const string prefix(argv[1]);
 
   vector<string> months{"01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"};
   for (auto mon : months) {
-    ifstream file((filename+mon).c_str());
+    string filename = prefix+mon;
+    ifstream file(filename.c_str());
     string line;
     vector<vector<double>> matrix;
     while (getline(file, line)) {
@@ -225,43 +226,43 @@ int main(int argc, char *argv[]) {
     }
 
     /*
-      REAL vt[n];
-      dcsr_mxv(Q, v, vt);
+    REAL vt[n];
+    dcsr_mxv(Q, v, vt);
 
-      vector<double> vt_sort(n);
-      for (int i = 0; i < n; ++i) {
-      vt_sort[i] = abs(vt[i]);
-      }
-      sort(vt_sort.begin(), vt_sort.end(), greater<double>());
-      for (int i = 0; i < n; ++i) {
-      if (abs(vt[i]) < vt_sort[threshold]) {
-      vt[i] = 0;
-      }
-      }
+    vector<double> vt_sort(n);
+    for (int i = 0; i < n; ++i) {
+    vt_sort[i] = abs(vt[i]);
+    }
+    sort(vt_sort.begin(), vt_sort.end(), greater<double>());
+    for (int i = 0; i < n; ++i) {
+    if (abs(vt[i]) < vt_sort[threshold]) {
+    vt[i] = 0;
+    }
+    }
 
-      dCSRmat *Qt = (dCSRmat*)malloc(sizeof(dCSRmat));
-      dcsr_trans(Q, Qt);
-      // dcsr_write_dcoo("Q.dat", Q);
-      // dcsr_write_dcoo("Qt.dat", Qt);
-      REAL v1[n];
-      dcsr_mxv(Qt, vt, v1);
-      REAL e[n];
-      array_axpyz(n, -1.0, v, v1, e);
+    dCSRmat *Qt = (dCSRmat*)malloc(sizeof(dCSRmat));
+    dcsr_trans(Q, Qt);
+    // dcsr_write_dcoo("Q.dat", Q);
+    // dcsr_write_dcoo("Qt.dat", Qt);
+    REAL v1[n];
+    dcsr_mxv(Qt, vt, v1);
+    REAL e[n];
+    array_axpyz(n, -1.0, v, v1, e);
 
-      for (int i = 0; i < Q->nnz; ++i) {
-      if (isnan(Q->val[i])) cout << i << " " << Q->JA[i] << endl;
-      }
-      for (int i = 0; i < Qt->nnz; ++i) {
-      if (isnan(Qt->val[i])) cout << i << " " << Qt->JA[i] << endl;
-      }
+    for (int i = 0; i < Q->nnz; ++i) {
+    if (isnan(Q->val[i])) cout << i << " " << Q->JA[i] << endl;
+    }
+    for (int i = 0; i < Qt->nnz; ++i) {
+    if (isnan(Qt->val[i])) cout << i << " " << Qt->JA[i] << endl;
+    }
 
-      cout << "Norm of vector ||v||: " << array_norm2(n, v) << endl
-      << "Norm of error  ||v-v1||: " << array_norm2(n, e) << endl
-      << "Relative error ||v-v1||/||v||:  "
-      << array_norm2(n, e) / array_norm2(n, v) << endl;
+    cout << "Norm of vector ||v||: " << array_norm2(n, v) << endl
+    << "Norm of error  ||v-v1||: " << array_norm2(n, e) << endl
+    << "Relative error ||v-v1||/||v||:  "
+    << array_norm2(n, e) / array_norm2(n, v) << endl;
 
-      dcsr_free(Q);
-      dcsr_free(Qt);
+    dcsr_free(Q);
+    dcsr_free(Qt);
     */
 
     REAL vj[n];
@@ -279,7 +280,7 @@ int main(int argc, char *argv[]) {
     sort(vt_sort.begin(), vt_sort.end(), greater<double>());
     for (int i = 0; i < n; ++i) {
       if (abs(vj[i]) < vt_sort[threshold]) {
-	vj[i] = 0;
+	       vj[i] = 0;
       }
     }
 
@@ -296,11 +297,12 @@ int main(int argc, char *argv[]) {
     REAL e2[n];
     array_axpyz(n, -1.0, v, v2, e2);
 
-    cout << endl << "Plain Encoding" << endl
-	 << "Norm of vector ||v||: " << array_norm2(n, v) << endl
-	 << "Norm of error  ||v-v2||: " << array_norm2(n, e2) << endl
-	 << "Relative error ||v-v2||/||v||: "
-	 << array_norm2(n, e2) / array_norm2(n, v) << endl;
+    cout << endl << endl << "Month" + mon << endl
+    << endl << "Plain Encoding" << endl
+	  << "Norm of vector ||v||: " << array_norm2(n, v) << endl
+	  << "Norm of error  ||v-v2||: " << array_norm2(n, e2) << endl
+	  << "Relative error ||v-v2||/||v||: "
+	  << array_norm2(n, e2) / array_norm2(n, v) << endl;
 
     /* ------------------ Testing adaptive encoding -------------------- */
     vector<vector<REAL>> vj_array{vector<REAL>(v, v+n)};
@@ -316,29 +318,29 @@ int main(int argc, char *argv[]) {
     for (int j = num_levels - 1; j >= 0; --j) {
       int i = 0, aux, offset;
       if (j < num_levels - 1) {
-	aux = Nj_array[j] - 2 * Nj_array[j+1];
-	offset = (1 << (j+1)) * Nj_array[j+1];
+        aux = Nj_array[j] - 2 * Nj_array[j+1];
+        offset = (1 << (j+1)) * Nj_array[j+1];
       }
       for (int k = 0; k < (1 << j); ++k) {
-	sums[j].push_back(0.0);
-	for (int l = 0; l < Nj_array[j]; ++l) {
-	  sums[j].back() += pow(abs(vj_array[j][i++]), p);
-	}
-	if (j < num_levels - 1) {
-	  REAL sum_aux = accumulate(
+        sums[j].push_back(0.0);
+        for (int l = 0; l < Nj_array[j]; ++l) {
+          sums[j].back() += pow(abs(vj_array[j][i++]), p);
+        }
+        if (j < num_levels - 1) {
+          REAL sum_aux = accumulate(
 				    vj_array[j+1].begin() + offset + k*aux,
 				    vj_array[j+1].begin() + offset + (k+1)*aux,
 				    0);
-	  REAL sum_children = sums[j+1][2*k] + sums[j+1][2*k+1] + sum_aux;
-	  if (sum_children >= sums[j][k]) {
-	    labels[j].push_back(true);
-	  } else {
-	    labels[j].push_back(false);
-	    sums[j][k] = sum_children;
-	  }
-	} else {
-	  labels[j].push_back(true);
-	}
+          REAL sum_children = sums[j+1][2*k] + sums[j+1][2*k+1] + sum_aux;
+          if (sum_children >= sums[j][k]) {
+            labels[j].push_back(true);
+          } else {
+            labels[j].push_back(false);
+            sums[j][k] = sum_children;
+          }
+        } else {
+          labels[j].push_back(true);
+        }
       }
     }
     // Encode
@@ -346,19 +348,19 @@ int main(int argc, char *argv[]) {
     v_e.reserve(n);
     function<void(int, int)> encode = [&] (int j, int k) {
       if (labels[j][k]) {
-	v_e.insert(
-		   v_e.end(),
-		   vj_array[j].begin() + k*Nj_array[j],
-		   vj_array[j].begin() + (k+1)*Nj_array[j]);
+        v_e.insert(
+          v_e.end(),
+          vj_array[j].begin() + k*Nj_array[j],
+          vj_array[j].begin() + (k+1)*Nj_array[j]);
       } else {
-	encode(j+1, 2*k);
-	encode(j+1, 2*k+1);
-	int offset = (1 << (j+1)) * Nj_array[j+1];
-	int aux = Nj_array[j] - 2 * Nj_array[j+1];
-	v_e.insert(
-		   v_e.end(),
-		   vj_array[j+1].begin() + offset + k*aux,
-		   vj_array[j+1].begin() + offset + (k+1)*aux);
+        encode(j+1, 2*k);
+        encode(j+1, 2*k+1);
+        int offset = (1 << (j+1)) * Nj_array[j+1];
+        int aux = Nj_array[j] - 2 * Nj_array[j+1];
+        v_e.insert(
+          v_e.end(),
+          vj_array[j+1].begin() + offset + k*aux,
+          vj_array[j+1].begin() + offset + (k+1)*aux);
       }
     };
     encode(0, 0);
@@ -369,55 +371,71 @@ int main(int argc, char *argv[]) {
     sort(vt_sort.begin(), vt_sort.end(), greater<double>());
     for (int j = 0; j < n; ++j) {
       if (abs(v_e[j]) < vt_sort[threshold]) {
-	v_e[j] = 0;
+        v_e[j] = 0;
       }
     }
     // Decompress
     auto it = v_e.begin();
-    function<vector<REAL>(int, int)> decode = [&] (int j, int k) -> vector<REAL> {
+    function<vector<REAL>(int, int)> decode = [&] (int j, int k)
+        -> vector<REAL> {
       if (labels[j][k]) {
-	auto res = vector<REAL>(it, it + Nj_array[j]);
-	it += Nj_array[j];
-	return res;
+        auto res = vector<REAL>(it, it + Nj_array[j]);
+        it += Nj_array[j];
+        return res;
       } else {
-	auto v1 = decode(j+1, 2*k);
-	auto v2 = decode(j+1, 2*k+1);
-	vector<REAL> v_segment;
-	int Nj = Nj_array[j];
-	v_segment.reserve(Nj);
-	v_segment.insert(v_segment.end(), v1.begin(), v1.end());
-	v_segment.insert(v_segment.end(), v2.begin(), v2.end());
-	int aux = Nj - 2 * Nj_array[j+1];
-	v_segment.insert(v_segment.end(), it, it + aux);
-	it += aux;
-	vector<int> Is, Js;
-	for (int i = 0; i < 2*Nj_array[j+1]; ++i) {
-	  Is.push_back(i);
-	  Js.push_back(i);
-	}
-	int offset = (1 << (j+1)) * Nj_array[j+1];
-	for (int i = 0; i < aux; ++i) {
-	  Is.push_back(offset + i);
-	  Js.push_back(2*Nj_array[j+1] + i);
-	}
-	dCSRmat *Qj_block = (dCSRmat *)malloc(sizeof(dCSRmat));
-	dcsr_getblk(Qj_array[j], Is.data(), Js.data(), Nj, Nj, Qj_block);
-	dCSRmat *Qj_block_t = (dCSRmat *)malloc(sizeof(dCSRmat));
-	dcsr_trans(Qj_block, Qj_block_t);
-	vector<REAL> v_res(Nj);
-	dcsr_mxv(Qj_block_t, v_segment.data(), v_res.data());
-	return v_res;
+        auto v1 = decode(j+1, 2*k);
+        auto v2 = decode(j+1, 2*k+1);
+        vector<REAL> v_segment;
+        int Nj = Nj_array[j];
+        v_segment.reserve(Nj);
+        v_segment.insert(v_segment.end(), v1.begin(), v1.end());
+        v_segment.insert(v_segment.end(), v2.begin(), v2.end());
+        int aux = Nj - 2 * Nj_array[j+1];
+        v_segment.insert(v_segment.end(), it, it + aux);
+        it += aux;
+        vector<int> Is, Js;
+        for (int i = 0; i < 2*Nj_array[j+1]; ++i) {
+          Is.push_back(i);
+          Js.push_back(i);
+        }
+        int offset = (1 << (j+1)) * Nj_array[j+1];
+        for (int i = 0; i < aux; ++i) {
+          Is.push_back(offset + i);
+          Js.push_back(2*Nj_array[j+1] + i);
+        }
+        dCSRmat *Qj_block = (dCSRmat *)malloc(sizeof(dCSRmat));
+        dcsr_getblk(Qj_array[j], Is.data(), Js.data(), Nj, Nj, Qj_block);
+        dCSRmat *Qj_block_t = (dCSRmat *)malloc(sizeof(dCSRmat));
+        dcsr_trans(Qj_block, Qj_block_t);
+        vector<REAL> v_res(Nj);
+        dcsr_mxv(Qj_block_t, v_segment.data(), v_res.data());
+        return v_res;
       }
     };
-    auto v3 = decode(0, 0);
+    auto v3_vector = decode(0, 0);
     // Compute the error
     REAL e3[n];
-    array_axpyz(n, -1.0, v, v3.data(), e3);
+    array_axpyz(n, -1.0, v, v3_vector.data(), e3);
     cout << endl << "Adaptive Encoding" << endl
-	 << "Norm of vector ||v||: " << array_norm2(n, v) << endl
-	 << "Norm of error  ||v-v3||: " << array_norm2(n, e3) << endl
-	 << "Relative error ||v-v3||/||v||: "
-	 << array_norm2(n, e3) / array_norm2(n, v) << endl;
+    << "Norm of vector ||v||: " << array_norm2(n, v) << endl
+    << "Norm of error  ||v-v3||: " << array_norm2(n, e3) << endl
+    << "Relative error ||v-v3||/||v||: "
+    << array_norm2(n, e3) / array_norm2(n, v) << endl;
+
+    auto write = [&] (string filename, REAL data[]) {
+      ofstream ofs(filename);
+      for (int i = 0; i < side; ++i) {
+        for (int j = 0; ; ++j) {
+          ofs << data[i*side+j];
+          if (j == side - 1) break;
+          ofs << ' ';
+        }
+        ofs << '\n';
+      }
+      ofs.close();
+    };
+    write(filename+".1", v2);
+    write(filename+".2", v3_vector.data());
   }
 
   dcsr_free(A);

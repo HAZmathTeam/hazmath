@@ -365,10 +365,10 @@ int main(int argc, char *argv[]) {
       return v_res;
     }
   };
-  auto v3 = decode(0, 0);
+  auto v3_vector = decode(0, 0);
   // Compute the error
   REAL e3[n];
-  array_axpyz(n, -1.0, v, v3.data(), e3);
+  array_axpyz(n, -1.0, v, v3_vector.data(), e3);
   cout << endl << "Adaptive Encoding" << endl
        << "Norm of vector ||v||: " << array_norm2(n, v) << endl
        << "Norm of error  ||v-v3||: " << array_norm2(n, e3) << endl
