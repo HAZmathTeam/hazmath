@@ -1,15 +1,15 @@
-CXX = g++
+CXX = mpicxx
 
 SOURCE_FILES = graph.cpp utils.cpp ex2.cpp
 OBJECT_FILES = $(SOURCE_FILES:.cpp=.o)
 EXAMPLES = ex2
 
 HEADERS = graph.hpp
-INCLUDE = ../../include
+INCLUDE = -I../../include -I../../../boost_1_65_1
 LIBS = -lhazmath -llapack
 HAZLIB = ../../lib
 
-CXXFLAGS = -g -Wall -I$(INCLUDE)
+CXXFLAGS = -Wall $(INCLUDE) -std=c++11
 
 
 .PHONY: all examples clean

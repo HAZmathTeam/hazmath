@@ -117,7 +117,7 @@ int main(int argc, char *argv[]) {
             Qj_coo->rowind[Qj_coo_ind] = 2*nj*l + k*nj + i;
             Qj_coo->colind[Qj_coo_ind] = vertices[ind];
             Qj_coo->val[Qj_coo_ind] = a[ind][k];
-            if (isnan(a[ind][k])) cout << "Found NaN!" << endl;
+            // if (isnan(a[ind][k])) cout << "Found NaN!" << endl;
             ++Qj_coo_ind;
           }
           // cout << "Row: " << 2*nj*l + k*nj + i << endl;
@@ -129,11 +129,11 @@ int main(int argc, char *argv[]) {
             Qj_coo->rowind[Qj_coo_ind] = 2*nj*numBlocks + l*(Nj-2*nj) + count + (k-2);
             Qj_coo->colind[Qj_coo_ind] = vertices[ind];
             Qj_coo->val[Qj_coo_ind] = a[ind][k];
-            if (isnan(a[ind][k])) {
+            /* if (isnan(a[ind][k])) {
               cout << "Found NaN!" << endl
                    << "ni: " << ni << endl
                    << "k: " << k << endl;
-            }
+            } */
             ++Qj_coo_ind;
           }
           // cout << "Row: " << 2*nj*numBlocks + l*(Nj-2*nj) + count + (k-2) << endl;
