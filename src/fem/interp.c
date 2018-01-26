@@ -709,7 +709,7 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
     if(dim==3) x[2] = mesh->f_mid[DOF*dim+2];
     (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
     val = 0.0;
-    for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx[local_dim + j];
+    for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx[local_dim + j]*mesh->f_area[DOF];
     get_incidence_row(DOF,mesh->f_v,face_vertex);
     for (m=0;m<dim;m++) {
       x[0] = mesh->cv->x[face_vertex[m]-1];
