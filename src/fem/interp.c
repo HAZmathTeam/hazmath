@@ -606,7 +606,8 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fe
         x[1] = mesh->f_mid[i*dim+1];
         if(dim==3) x[2] = mesh->f_mid[i*dim+2];
         (*expr)(valx,x,time,&(FE->var_spaces[0]->dof_flag[i]));
-        for(j=0;j<dim;j++) val[entry+i]+=mesh->f_area[i]*mesh->f_norm[i*dim+j]*valx[local_dim + j];
+        //for(j=0;j<dim;j++) val[entry+i]+=mesh->f_area[i]*mesh->f_norm[i*dim+j]*valx[local_dim + j];
+        for(j=0;j<dim;j++) val[entry+i]+=mesh->f_norm[i*dim+j]*valx[local_dim + j];
 
         get_incidence_row(i,mesh->f_v,face_vertex);
         for (m=0;m<dim;m++) {
@@ -615,7 +616,8 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fe
           if(dim==3) x[2] = mesh->cv->z[face_vertex[m]-1];
           // The following only works for 2D
           (*expr)(valx,x,time,&(FE->var_spaces[0]->dof_flag[i]));
-          for(j=0;j<dim;j++) val[entry+i]+= -(1.0/dim)*mesh->f_area[i]*mesh->f_norm[i*dim+j]*valx[local_dim + j];
+          //for(j=0;j<dim;j++) val[entry+i]+= -(1.0/dim)*mesh->f_area[i]*mesh->f_norm[i*dim+j]*valx[local_dim + j];
+          for(j=0;j<dim;j++) val[entry+i]+= -(1.0/dim)*mesh->f_norm[i*dim+j]*valx[local_dim + j];
         }
 
       }
@@ -709,7 +711,8 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
     if(dim==3) x[2] = mesh->f_mid[DOF*dim+2];
     (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
     val = 0.0;
-    for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx[local_dim + j]*mesh->f_area[DOF];
+    //for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx[local_dim + j]*mesh->f_area[DOF];
+    for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx[local_dim + j];
     get_incidence_row(DOF,mesh->f_v,face_vertex);
     for (m=0;m<dim;m++) {
       x[0] = mesh->cv->x[face_vertex[m]-1];
@@ -717,7 +720,8 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
       if(dim==3) x[2] = mesh->cv->z[face_vertex[m]-1];
       // The following only works for 2D
       (*expr)(valx,x,time,&(FE->var_spaces[0]->dof_flag[DOF]));
-      for(j=0;j<dim;j++) val+= -(1.0/dim)*mesh->f_area[DOF]*mesh->f_norm[DOF*dim+j]*valx[local_dim + j];
+      //for(j=0;j<dim;j++) val+= -(1.0/dim)*mesh->f_area[DOF]*mesh->f_norm[DOF*dim+j]*valx[local_dim + j];
+      for(j=0;j<dim;j++) val+= -(1.0/dim)*mesh->f_norm[DOF*dim+j]*valx[local_dim + j];
     }
   } else {
     check_error(ERROR_FE_TYPE,__FUNCTION__);
