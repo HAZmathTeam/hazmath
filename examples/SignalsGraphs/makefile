@@ -1,26 +1,26 @@
 CXX = mpicxx
 
-SOURCE_FILES = graph.cpp utils.cpp ex2.cpp
+SOURCE_FILES = graph.cpp utils.cpp algorithm.cpp
 OBJECT_FILES = $(SOURCE_FILES:.cpp=.o)
-EXAMPLES = ex2
+EXAMPLES = ex1 ex2 ex3 ex4
 
 HEADERS = graph.hpp
-INCLUDE = -I../../include -I../../../boost_1_65_1
+INCLUDE = -I../../include
 LIBS = -lhazmath -llapack
 HAZLIB = ../../lib
 
-CXXFLAGS = -Wall $(INCLUDE) -std=c++11
+CXXFLAGS = -Wall -Wfatal-errors -std=c++11
 
 
-.PHONY: all examples clean
+.PHONY: all clean
 
 all: $(EXAMPLES)
 
-$(EXAMPLES): $(OBJECT_FILES)
-	+$(CXX) -L$(HAZLIB) $(OBJECT_FILES) -o ex2 $(LIBS) -Wfatal-errors
-
 %.o: %.cpp $(HEADERS)
-	+$(CXX) -c $(CXXFLAGS) -o $@ $< -Wfatal-errors
+	+$(CXX) -c $(CXXFLAGS) $(INCLUDE) -o $@ $<
+
+$(EXAMPLES) : % : $(OBJECT_FILES) %.cpp
+	+$(CXX) $(CXXFLAGS) $(INCLUDE) $@.cpp $(OBJECT_FILES) -o $@ -L$(HAZLIB) $(LIBS)
 
 clean:
-	+rm -rf *.o $(EXAMPLES)
+	+rm -rf $(EXAMPLES) $(OBJECT_FILES)
