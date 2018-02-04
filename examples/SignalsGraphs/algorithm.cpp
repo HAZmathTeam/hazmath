@@ -161,7 +161,8 @@ void setup_hierarchy(const char *file, dCSRmat *&A, vector<dCSRmat *> &Qj_array,
 }
 
 void comp_decomp(int argc, char *argv[], double *v, dCSRmat *A,
-    const vector<dCSRmat *> &Qj_array, const vector<int> &Nj_array) {
+    const vector<dCSRmat *> &Qj_array, const vector<int> &Nj_array,
+    double* v2, double *v3) {
   int n = A->row;
   int threshold = 100;
 
@@ -241,7 +242,6 @@ void comp_decomp(int argc, char *argv[], double *v, dCSRmat *A,
     }
   }
 
-  REAL v2[n];
   array_cp(n, vj, v2);
   for (auto it = Qj_array.rbegin(); it != Qj_array.rend(); ++it) {
     dCSRmat *Qj_t = (dCSRmat*)malloc(sizeof(dCSRmat));
@@ -368,9 +368,10 @@ void comp_decomp(int argc, char *argv[], double *v, dCSRmat *A,
     }
   };
   auto v3_vector = decode(0, 0);
+  copy(v3_vector.begin(), v3_vector.end(), v3);
   // Compute the error
   REAL e3[n];
-  array_axpyz(n, -1.0, v, v3_vector.data(), e3);
+  array_axpyz(n, -1.0, v, v3, e3);
   cout << endl << "Adaptive Encoding" << endl
        << "Norm of vector ||v||: " << array_norm2(n, v) << endl
        << "Norm of error  ||v-v3||: " << array_norm2(n, e3) << endl

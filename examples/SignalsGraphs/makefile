@@ -2,7 +2,7 @@ CXX = mpicxx
 
 SOURCE_FILES = graph.cpp utils.cpp algorithm.cpp
 OBJECT_FILES = $(SOURCE_FILES:.cpp=.o)
-EXAMPLES = ex1 ex2 ex3 ex4
+EXAMPLES = ex1 ex2
 
 HEADERS = graph.hpp
 INCLUDE = -I../../include
