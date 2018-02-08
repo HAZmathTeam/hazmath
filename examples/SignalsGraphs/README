@@ -1,6 +1,38 @@
-****************************************************************
-*	Boost library needs to be installed for this to work.  *
-*	                                                       *
-*	On ubuntu like system:  sudo apt install libboost-dev  *
-****************************************************************
-
+**********************************************************************
+* This example tests an adaptive algorithm that compresses data on   *
+* graphs. Given a graph G = (V, E) and any data f (considered as a   *
+* function on the vertex set V), the algorithm uses matching to find *
+* an optimal orthogonal basis under which the coefficients of f have *
+* the fastest decay. It then compresses the data f using the largest *
+* few components, and decompresses it back to report the compression *
+* error. Two different methods to come up with the optimal basis are *
+* presented, the first one (plain encoding) uses the orthogonal      *
+* basis at the bottom of the matching hierarchy, the second one      *
+* (adaptive encoding) adaptively chooses the best basis from all     *
+* levels of the hierarchy. The programs report results produced by   *
+* both methods.                                                      *
+*                                                                    *
+* Two examples are provided. Example 1 (ex1) reads an unweighted     *
+* undirected graph from a file in mtx format, then generates some    *
+* random data to test the compression. An example usage is           *
+*                                                                    *
+*   ./ex1 graphs/barth5.mtx n p                                      *
+*                                                                    *
+* This means the program uses the largest n coefficients to compress *
+* the data, and when using the "adaptive encoding" method, the best  *
+* basis is chosen by minimizing the lp-norm of f (under the basis).  *
+* The parameter p is optional and defaults to 1.                     *
+*                                                                    *
+* Example 2 (ex2) reads the precipitation data on a 512x512 lattice  *
+* grid plainly stored in text format, and outputs the data           *
+* compressed using both methods in the same format (with extensions  *
+* .1 and .2 respectively). An example usage is                       *
+*                                                                    *
+*   ./ex2 graphs/Precip/AgMERRA_Precip_by_mo_tot/agp1980_            *
+*                                                                    *
+* The program assumes that the unfinished filename is suffixed by 12 *
+* months, from 01 to 12, and each of the 12 files exists in the      *
+* directory. One can then cd into the folder where the files are     *
+* located and use the MATLAB script save_plot.m to plot all data and *
+* save the images.                                                   *
+**********************************************************************
