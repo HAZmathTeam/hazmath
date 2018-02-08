@@ -1,3 +1,8 @@
+/* Example to compress precipitation data in Punjab and decompress it,
+ * then report the error.
+ * Usage:
+ *   ./ex2 graphs/Precip/AgMERRA_Precip_by_mo_tot/agp1980_
+ */
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -50,6 +55,7 @@ int main(int argc, char *argv[]) {
   vector<dCSRmat *> Qj_array;
   vector<int> Nj_array;
   setup_hierarchy("temp", A, Qj_array, Nj_array);
+  remove("temp");
 
   // Compress/decompress a smooth vector and compute the error
   const string prefix(argv[1]);
