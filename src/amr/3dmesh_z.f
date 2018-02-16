@@ -163,7 +163,8 @@ C (i+1,j+1,k+1)
       return
       end
       subroutine bndry3(ib,nx,ny,nz,
-     >     mini,minj,mink,maxi,maxj,maxk,inumb)
+     >     mini,minj,mink,maxi,maxj,maxk,inumb,
+     >     minneu,maxneu)
       implicit real*8 (a-h,o-z)
       dimension ib(*),inumb(*)
       do k = 1 , nz
@@ -180,12 +181,12 @@ C     ii = (k-1)*nx*ny + (j-1)*nx + i
      >              k.eq.1 .or. k.eq.nz) then
 c     write(*,*) i,j,k
                   if(ii .eq. 0) stop 4
-                  if(i.eq. 1) ib(ii) = 17 ! neumann conditions are > 16; 
-                  if(j.eq. 1) ib(ii) = 18 ! neumann conditions are > 16; 
-                  if(k.eq. 1) ib(ii) = 19 ! neumann conditions are > 16; 
-                  if(i.eq. nx) ib(ii) = 20 ! neumann conditions are > 16; 
-                  if(j.eq. ny) ib(ii) = 21 ! neumann conditions are > 16; 
-                  if(k.eq. nz) ib(ii) = 22 ! neumann conditions are > 16; 
+                  if(i.eq. 1) ib(ii) = minneu ! neumann conditions are > 16; 
+                  if(j.eq. 1) ib(ii) = minneu+1 ! neumann conditions are > 16; 
+                  if(k.eq. 1) ib(ii) = minneu+2 ! neumann conditions are > 16; 
+                  if(i.eq. nx) ib(ii) = minneu+3 ! neumann conditions are > 16 and < 33; 
+                  if(j.eq. ny) ib(ii) = minneu+4 ! neumann conditions are > 16; 
+                  if(k.eq. nz) ib(ii) = minneu+5 ! neumann conditions are > 16; 
                else 
                   if((i.eq.mini .or. i.eq.maxi) .and.
      >                 ((j.ge.minj .and. j.le.maxj) .and.
@@ -213,8 +214,9 @@ c                     write(*,*) i,j,k
 c     read(*,*)
       return
       end      
-      subroutine bess3(ib,nx,ny,nz,inumb,ibess,jbess,kbess,ibcode)
-      implicit real*8 (a-h,o-z)
+      subroutine bess3(ib,nx,ny,nz,inumb,ibess,jbess,kbess,
+     >     ibcode,minneu,maxneu)
+      implicit real*8 (a-h,o-z), integer (i-n)
       dimension ib(*),inumb(*)
       logical doi,doj,dok
 !     sets boundary conditions: First, natural everywhere and then set
@@ -223,11 +225,21 @@ c     read(*,*)
 !     us. Natural boundary conditions are imposed on boundarys of the
 !     form: (ibess,j) and (i,jbess)
       
-!Assume natural conditions are already set.  if we want essential
+!     Assume natural conditions are already set.  if we want essential
 !     conditions everywhere, we need to call this twice with
 !     ibess=jbess=kbess=1 and ibess=jbess=kbess=nx,ny,nz.
-
-      !essential conditions on the left: ibess=1, jbess=kbess=0. 
+!     
+!     essential conditions on the left: ibess=1, jbess=kbess=0.
+!
+!     ibcode() is an array specifying what code to be put on what
+!     boundary. The boundaries are ordered as
+!     ibcode(1:6) = [left,right,front,back, bottom, top]
+!
+!     the minneu and maxneu are the min and max codes used on Neumann
+!     boundaries. any code in the interval [minneu,maxneu] is ignored.
+      
+      if(ibcode .eq. 0) return
+      if(ibcode .ge. minneu .and. ibcode .le. maxneu) return
       doi=(ibess .le. nx .and. ibess .ge. 1)
       doj=(jbess .le. ny .and. jbess .ge. 1)
       dok=(kbess .le. nz .and. kbess .ge. 1)
@@ -269,11 +281,13 @@ c     read(*,*)
 c=====================================================================
       subroutine getm3(nx,ny,nz,nvert,nel,
      >     xcoord,ycoord,zcoord,
-     >     je,iflags,ib,inumb)
+     >     je,iflags,ib,inumb,
+     >     ibcode,minneu,maxneu)
       implicit real*8(a-h,o-z)
       dimension xcoord(*),ycoord(*),zcoord(*)
       dimension je(*),ib(*), inumb(*),iflags(*)
       dimension xyz(8,3),jcub(8),nop(4,6,4)
+      dimension ibcode(*)
 C
 C... Given nx,ny,nz, get the femesh: xcoord,ycoord,zcoord,ie,je ndiv is
 C... an input parameter: if ndiv ne 0 then a hole of size 2*ndiv*h is
@@ -387,27 +401,44 @@ C
       end do
       nel = jjkk  - 1
       call bndry3(ib,nx,ny,nz,
-     >     mini,minj,mink,maxi,maxj,maxk,inumb)
+     >     mini,minj,mink,maxi,maxj,maxk,inumb,
+     >     minneu,maxneu)
+      !Left, x=0 
       ibess=1
       jbess=0
       kbess=0
-      ibcode=1
-      call bess3(ib,nx,ny,nz,inumb,ibess,jbess,kbess,ibcode)
-      ibess=0
-      jbess=1
-      kbess=0
-      ibcode=2
-      call bess3(ib,nx,ny,nz,inumb,ibess,jbess,kbess,ibcode)
+      call bess3(ib,nx,ny,nz,inumb,ibess,jbess,kbess,
+     >     ibcode(1),minneu,maxneu)
+      ! Right, x=xmax
       ibess=nx
       jbess=0
       kbess=0
-      ibcode=3
-      call bess3(ib,nx,ny,nz,inumb,ibess,jbess,kbess,ibcode)
+      call bess3(ib,nx,ny,nz,inumb,ibess,jbess,kbess,
+     >     ibcode(2),minneu,maxneu)
+      ! Front, y=0
+      ibess=0
+      jbess=1
+      kbess=0
+      call bess3(ib,nx,ny,nz,inumb,ibess,jbess,kbess,
+     >     ibcode(3),minneu,maxneu)
+! Back, y=ymax
       ibess=0
       jbess=ny
       kbess=0
-      ibcode=4
-      call bess3(ib,nx,ny,nz,inumb,ibess,jbess,kbess,ibcode)
+      call bess3(ib,nx,ny,nz,inumb,ibess,jbess,kbess,
+     >     ibcode(4),minneu,maxneu)
+! Bottom, nz=1
+      ibess=0
+      jbess=0
+      kbess=1
+      call bess3(ib,nx,ny,nz,inumb,ibess,jbess,kbess,
+     >     ibcode(5),minneu,maxneu)
+! Top, z=zmax
+      ibess=0
+      jbess=0
+      kbess=nz
+      call bess3(ib,nx,ny,nz,inumb,ibess,jbess,kbess,
+     >     ibcode(6),minneu,maxneu)
       !!write(*,'(a,i12,a,i12)') ' Elements=', nel, '  Nodes=', nvert
       return
       end

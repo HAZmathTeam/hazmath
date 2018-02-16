@@ -66,7 +66,8 @@ C (i+1,j+1)
       end
 
       subroutine bndry2(ib,nx,ny,
-     >     mini,minj,maxi,maxj,inumb)
+     >     mini,minj,maxi,maxj,inumb,
+     >     minneu,maxneu)
       implicit real*8 (a-h,o-z)
       dimension ib(*),inumb(*)
       do j = 1 , ny
@@ -81,7 +82,10 @@ C     ii = (k-1)*nx*ny + (j-1)*nx + i
      >           j.eq.1 .or. j.eq.ny) then
 c     write(*,*) i,j,k
                if(ii .eq. 0) stop 4
-               ib(ii) = 20 ! 1-16 dirichlet >16 Neuman condition; >32 Robin
+               if(i.eq. 1) ib(ii) = minneu ! neumann conditions are > 16; 
+               if(j.eq. 1) ib(ii) = minneu+1 ! neumann conditions are > 16; 
+               if(i.eq. nx) ib(ii) = minneu+2 ! neumann conditions are > 16; 
+               if(j.eq. ny) ib(ii) = minneu+3 ! neumann conditions are > 16; 
             else 
                if((i.eq.mini .or. i.eq.maxi) .and.
      >              ((j.ge.minj .and. j.le.maxj))) then
@@ -100,7 +104,8 @@ c     write(*,*) i,j,k
 c     read(*,*)
       return
       end
-      subroutine bess2(ib,nx,ny,inumb,ibess,jbess)
+      subroutine bess2(ib,nx,ny,inumb,ibess,jbess,
+     >     ibcode,minneu,maxneu)
       implicit real*8 (a-h,o-z)
       dimension ib(*),inumb(*)
       logical doi,doj
@@ -113,6 +118,15 @@ c     read(*,*)
       ! with ibess=jbess=1 and ibess=jbess=(nx,ny).
 
 !     We assume the boundary conditions are already set on all boundaries. 
+!     ibcode() is an array specifying what code to be put on what
+!     boundary. The boundaries are ordered as
+!     ibcode(1:6) = [west,east,south,north]
+!
+!     the minneu and maxneu are the min and max codes used on Neumann
+!     boundaries. Any code in the interval [minneu,maxneu] is ignored.
+      
+      if(ibcode .eq. 0) return
+      if(ibcode .ge. minneu .and. ibcode .le. maxneu) return
       doi=(ibess .le. nx .and. ibess .ge. 1)
       doj=(jbess .le. ny .and. jbess .ge. 1)
       if(doi) then
@@ -122,7 +136,7 @@ c     read(*,*)
             iiold = nomxy(i,j,nx,ny)
             ii = inumb(iiold)
 C     ii = (k-1)*nx*ny + (j-1)*nx + i
-            ib(ii) = 1         ! <=16 essential condition;
+            ib(ii) = ibcode         ! <=16 essential condition;
          end do
       end if
       if(doj) then
@@ -130,7 +144,7 @@ C     ii = (k-1)*nx*ny + (j-1)*nx + i
          do i = 1 , nx
             iiold = nomxy(i,j,nx,ny)
             ii = inumb(iiold)
-            ib(ii) = 2         ! <= 16 essential condition;
+            ib(ii) = ibcode         ! <= 16 essential condition;
          end do
       end if
       return
@@ -138,12 +152,14 @@ C     ii = (k-1)*nx*ny + (j-1)*nx + i
 c=====================================================================
       subroutine getm2(nx,ny,nvert,nel,
      >     xcoord,ycoord,
-     >     je,iflags,ib,inumb)
+     >     je,iflags,ib,inumb,
+     >     ibcode,minneu,maxneu)
       implicit real*8(a-h,o-z), integer(i-n)
       dimension xcoord(*),ycoord(*)
       dimension je(*),ib(*), inumb(*),iflags(*)
       dimension xy(4,2),jsqu(4),jcolo(3)
       dimension nop(3,2,2)
+      dimension ibcode(*)
 C
 C... ndl = 3 ! number of degrees of freedom per element
 C
@@ -229,13 +245,31 @@ C
       end do
       nel = jjkk  - 1
       call bndry2(ib,nx,ny,
-     >     mini,minj,maxi,maxj,inumb)
+     >     mini,minj,maxi,maxj,inumb,
+     >     minneu,maxneu)
+!     west(left)
       ibess=1
       jbess=0
-      call bess2(ib,nx,ny,inumb,ibess,jbess)
-      write(*,'(a,i12,a,i12)') ' Elements=', nel, '  Nodes=', nvert
-      write(*,'(a,2i7)') ' Essential conditions on (iess, jess): ',
-     >     ibess,jbess
+      call bess2(ib,nx,ny,inumb,ibess,jbess,
+     >     ibcode(1),minneu,maxneu)
+!     east(right)
+      ibess=0
+      jbess=nx
+      call bess2(ib,nx,ny,inumb,ibess,jbess,
+     >     ibcode(2),minneu,maxneu)
+!     south(front)
+      ibess=0
+      jbess=1
+      call bess2(ib,nx,ny,inumb,ibess,jbess,
+     >     ibcode(3),minneu,maxneu)
+!     north(back)
+      ibess=0
+      jbess=ny
+      call bess2(ib,nx,ny,inumb,ibess,jbess,
+     >     ibcode(4),minneu,maxneu)
+!      write(*,'(a,i12,a,i12)') ' Elements=', nel, '  Nodes=', nvert
+!      write(*,'(a,2i7)') ' Essential conditions on (iess, jess): ',
+!     >     ibess,jbess
       return
       end
       integer function nomxy(i,j,nx,ny)
