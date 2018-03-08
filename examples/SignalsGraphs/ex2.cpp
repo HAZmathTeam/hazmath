@@ -101,8 +101,8 @@ int main(int argc, char *argv[]) {
       }
       ofs.close();
     };
-    write(filename+".1", v2);
-    write(filename+".2", v3);
+    write(filename+"_1", v2);
+    write(filename+"_2", v3);
 
     free(v);
     free(v2);
