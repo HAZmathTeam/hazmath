@@ -2,7 +2,6 @@
 #define SIGNALS_GRAPH
 
 #include <vector>
-#include <utility>
 
 extern "C" {
   #include "hazmath.h"

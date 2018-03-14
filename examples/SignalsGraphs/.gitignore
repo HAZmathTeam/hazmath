@@ -5,4 +5,5 @@ ex4
 get_mat.m
 graphs/Precip/AgMERRA_Precip_by_mo_tot/*_1
 graphs/Precip/AgMERRA_Precip_by_mo_tot/*_2
+graphs/Precip/AgMERRA_Precip_by_mo_tot/*.data
 graphs/Precip/AgMERRA_Precip_by_mo_tot/images/*
