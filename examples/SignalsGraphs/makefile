@@ -4,7 +4,7 @@ SOURCE_FILES = graph.cpp utils.cpp algorithm.cpp
 OBJECT_FILES = $(SOURCE_FILES:.cpp=.o)
 EXAMPLES = ex1 ex2
 
-HEADERS = graph.hpp
+HEADERS = graph.hpp algorithm.hpp
 INCLUDE = -I../../include
 LIBS = -lhazmath -llapack
 HAZLIB = ../../lib

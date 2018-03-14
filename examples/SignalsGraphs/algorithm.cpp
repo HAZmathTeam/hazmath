@@ -1,5 +1,4 @@
 #include <iostream>
-#include <numeric>
 #include <algorithm>
 #include <functional>
 #include "graph.hpp"
@@ -160,23 +159,10 @@ void setup_hierarchy(const char *file, dCSRmat *&A, vector<dCSRmat *> &Qj_array,
   }
 }
 
-void comp_decomp(int argc, char *argv[], double *v, dCSRmat *A,
-    const vector<dCSRmat *> &Qj_array, const vector<int> &Nj_array,
-    double* v2, double *v3) {
+void comp_decomp(double *v, dCSRmat *A, const vector<dCSRmat *> &Qj_array,
+    const vector<int> &Nj_array, int threshold, double p, double* v2,
+    double *v3) {
   int n = A->row;
-  int threshold = 100;
-
-  if (argc > 1) {
-    threshold = stoi(argv[1]);
-  }
-  if (threshold > n - 1) {
-    threshold = n - 1;
-  }
-
-  double p = 1.0;
-  if (argc > 2) {
-    p = stod(argv[2]);
-  }
 
   // Compress/decompress a smooth vector and compute the error
   if (v == NULL) {

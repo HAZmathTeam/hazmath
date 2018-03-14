@@ -6,33 +6,54 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <vector>
 #include <iterator>
-#include <numeric>
-#include <algorithm>
 #include <cassert>
-#include <functional>
-
+#include <unistd.h>
 #include "graph.hpp"
+#include "algorithm.hpp"
 
 using namespace std;
 
-extern "C" {
-  void dsyev_(char *jobz, char *uplo, int *n, double *a, int *lda, double *w,
-              double *work, int *lwork, int *info);
-}
-
-void setup_hierarchy(const char *file, dCSRmat *&A, vector<dCSRmat *> &Qj_array,
-    vector<int> &Nj_array);
-
-void comp_decomp(int argc, char *argv[], double *v, dCSRmat *A,
-    const vector<dCSRmat *> &Qj_array, const vector<int> &Nj_array,
-    double* v2, double *v3);
-
 int main(int argc, char *argv[]) {
-  assert(argc > 1);
+  int c;
+  int threshold = 1000;
+  bool opt_k = false;
+  bool opt_l = false;
+  opterr = 0;
+
+  while ((c = getopt(argc, argv, "k:l")) != -1) {
+    switch (c) {
+      case 'k':
+        threshold = stoi(optarg);
+        opt_k = true;
+        break;
+      case 'l':
+        opt_l = true;
+        break;
+      case '?':
+        if (optopt == 'k') {
+          fprintf(stderr, "Option -%c requires an argument.\n", optopt);
+        }
+        else if (isprint(optopt)) {
+          fprintf(stderr, "Unknown option `-%c'.\n", optopt);
+        }
+        else {
+          fprintf(stderr, "Unknown option character `\\x%x'.\n", optopt);
+        }
+        return 1;
+      default:
+        abort();
+    }
+  }
+  if (opt_k && opt_l) {
+    cerr << "Conflicting options -k and -l." << endl;
+    return 2;
+  }
 
   int side = 512, nnz = (side-1)*side*2, edge_count = 0, n = side*side;
+  if (threshold > n - 1) {
+    threshold = n - 1;
+  }
   ofstream tempfile("temp");
   tempfile << side*side << ' ' << side*side << ' ' << nnz << '\n';
   for (int i = 0; i < side; ++i) {
@@ -58,7 +79,7 @@ int main(int argc, char *argv[]) {
   remove("temp");
 
   // Compress/decompress a smooth vector and compute the error
-  const string prefix(argv[1]);
+  const string prefix(argv[optind]);
 
   vector<string> months{"01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"};
   for (auto mon : months) {
@@ -87,26 +108,41 @@ int main(int argc, char *argv[]) {
     cout << endl << endl << "Month" + mon << endl;
     REAL *v2 = (REAL *)malloc(sizeof(REAL)*n);
     REAL *v3 = (REAL *)malloc(sizeof(REAL)*n);
-    comp_decomp(argc-1, argv+1, v, A, Qj_array, Nj_array, v2, v3);
+    if (!opt_l) {
+      comp_decomp(v, A, Qj_array, Nj_array, threshold, 1.0, v2, v3);
 
-    auto write = [&] (string filename, REAL data[]) {
-      ofstream ofs(filename);
-      for (int i = 0; i < side; ++i) {
-        for (int j = 0; ; ++j) {
-          ofs << data[i*side+j];
-          if (j == side - 1) break;
-          ofs << ' ';
+      auto write = [&] (string filename, REAL data[]) {
+        ofstream ofs(filename);
+        for (int i = 0; i < side; ++i) {
+          for (int j = 0; ; ++j) {
+            ofs << data[i*side+j];
+            if (j == side - 1) break;
+            ofs << ' ';
+          }
+          ofs << '\n';
         }
-        ofs << '\n';
+        ofs.close();
+      };
+      write(filename+"_1", v2);
+      write(filename+"_2", v3);
+    }
+    else {
+      ofstream ofs(filename+".data");
+      ofs << "# Compression results for plain and adaptive encoding" << endl;
+      for (int th = 1; th < n; th <<= 1) {
+        comp_decomp(v, A, Qj_array, Nj_array, th, 1.0, v2, v3);
+        double e2[n], e3[n];
+        array_axpyz(n, -1.0, v, v2, e2);
+        array_axpyz(n, -1.0, v, v3, e3);
+        ofs << th << '\t' << array_norm2(n, v) << '\t' << array_norm2(n, e2)
+            << '\t' << array_norm2(n, e3) << endl;
       }
       ofs.close();
-    };
-    write(filename+"_1", v2);
-    write(filename+"_2", v3);
+    }
 
-    free(v);
     free(v2);
     free(v3);
+    free(v);
   }
 
   dcsr_free(A);
