@@ -1,4 +1,5 @@
 #include <iostream>
+#include <numeric>
 #include <algorithm>
 #include <functional>
 #include "graph.hpp"
