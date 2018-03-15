@@ -127,7 +127,9 @@ int main(int argc, char *argv[]) {
       write(filename+"_2", v3);
     }
     else {
-      ofstream ofs(filename+".data");
+      string ofilename = filename;
+      ofilename.insert(ofilename.rfind('/'), "/levels");
+      ofstream ofs(ofilename + ".data");
       ofs << "# Compression results for plain and adaptive encoding" << endl;
       for (int th = 1; th < n; th <<= 1) {
         comp_decomp(v, A, Qj_array, Nj_array, th, 1.0, v2, v3);
