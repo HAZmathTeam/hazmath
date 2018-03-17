@@ -1,7 +1,8 @@
 /* Example to compress precipitation data in Punjab and decompress it,
  * then report the error.
  * Usage:
- *   ./ex2 graphs/Precip/AgMERRA_Precip_by_mo_tot/agp1980_
+ *   ./ex2 graphs/Precip/AgMERRA_Precip_by_mo_tot/agp1980_ -k 100
+ *   ./ex2 graphs/Precip/AgMERRA_Precip_by_mo_tot/agp1980_ -l
  */
 #include <iostream>
 #include <fstream>
@@ -15,10 +16,10 @@
 using namespace std;
 
 int main(int argc, char *argv[]) {
-  int c;
-  int threshold = 1000;
+  int threshold = 100;
   bool opt_k = false;
   bool opt_l = false;
+  int c;
   opterr = 0;
 
   while ((c = getopt(argc, argv, "k:l")) != -1) {
@@ -45,9 +46,13 @@ int main(int argc, char *argv[]) {
         abort();
     }
   }
+  if (optind != argc - 1) {
+    cerr << "Too many arguments." << endl;
+    return 1;
+  }
   if (opt_k && opt_l) {
     cerr << "Conflicting options -k and -l." << endl;
-    return 2;
+    return 1;
   }
 
   int side = 512, nnz = (side-1)*side*2, edge_count = 0, n = side*side;
