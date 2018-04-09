@@ -12,10 +12,41 @@
 
 
 // PDE Coefficients
-void diffusion_coeff(REAL *val,REAL* x, REAL t,void *param) {
-  // a(x)
-  //  fprintf(stdout,"%f %s\n",x[0],__FUNCTION__);
-  *val = EPS0;
+void diffusion_coeff(REAL *val,REAL *x, REAL t,void *param) {
+  // K = 3x3 matrix
+  // ordered row by row
+  INT elem_code = *(INT *) param; //element code
+  // one integer and 3 reals: the surface elevation and  
+  //scale[k]=(scalex,scaley,scalez,scalet,K_z/K_x), k=1:5;
+  memset(val,0,9*sizeof(REAL));
+  switch(elem_code) {
+    // smaller code, closer to the surface; larger code going towards bottom.
+  case 0:
+    val[0] = 1e-2;  
+    break;
+  case 1:
+    val[0] = 1e-4;  
+    break;
+  case 2:
+    val[0] = 1e-5;  
+    break;
+  case 3:
+    val[0] = 1e-6;  
+    break;
+  case 4:
+    val[0] = 1e-6;  
+    break;
+  case 5:
+    val[0] = 1e-6;  
+    break;
+  default:    
+    val[0] = 1e0;
+    //    fprintf(stderr,"\n***WARNING(in %s): unexpected conductivity value:%i\n",__FUNCTION__,elem_code);
+    break;
+  }
+  val[4] = val[0]; //K_y=K_x=K_{xy}};
+  val[8] = val[0]; //K_z=K_{xy}
+  //  print_full_mat(3,3,val,__FUNCTION__);
   return;
 }
 
@@ -31,7 +62,7 @@ void exactsol(REAL *val,REAL* x, REAL t,void *param) {
 void advection(REAL *val, REAL *x,REAL t,void *param) {
   val[0] = 1.; // or beta_1(x)
   val[1] = 1.; // or beta_2(x)
-  val[2] = 1e10; // or beta_3(x)
+  val[2] = 1.; // or beta_3(x)
   return;
 }
 
@@ -97,3 +128,5 @@ void bc_any(REAL *val, REAL* x, REAL t,void *param) {
 }
 //void mgraph_wrap(dCSRmat A, dvector rhs, dvector *sol);
 void mgraph_wrap(INT idoilu, INT nrow, INT *ia, INT *ja, REAL *a, REAL *rhs, REAL *sol, INT *jareb, REAL *areb, INT *ka);
+
+void eafe1(dCSRmat *ain, dvector *rhs,scomplex *sc);
