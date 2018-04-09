@@ -25,6 +25,7 @@
 
 static REAL bernoulli1(const REAL z){
   REAL tolb=1e-10,zlarge=37.*2.302;  
+  return z/(exp(z)-1.);
   if (fabs(z) < tolb)
     return (1.-z*0.5); // around 0 this is the asymptotic;
   else if(z<zlarge){
@@ -77,19 +78,20 @@ void eafe1(dCSRmat *ain, dvector *rhs,scomplex *sc){
   // assemble the laplacian matrix
   INT dim=sc->n, ns=sc->ns, nv=sc->nv,dim1=dim+1,dim2=dim*dim;
   INT i,j,k,l,jk,jdim,iaa,iab;
-  INT is1,node,jd;
+  INT is1,node,jd,id,ij;
   REAL btmp;
   INT edge_flag=-10,issym=1;
   INT *ia=ain->IA, *ja=ain->JA ;
   REAL *a=ain->val;
   //  dvector diag0 = dvec_create(nv);
   //  for (i=0;i<nv;i++) {diag0.val[i]=0.;}
-  REAL xi,yi,zi,xj,yj,zj,bte,alpe;
+  REAL bte;
+  REAL *aloc=calloc(dim1*dim1,sizeof(REAL));//random size but enough
   // over all elements
   INT nrbits=dim*sizeof(REAL),nibits=dim1*sizeof(INT);
   INT is=(INT )(sizeof(REAL)/sizeof(char));
   void *param=calloc(is*dim2,sizeof(char));//random size but enough
-  void *wrk=calloc(dim1*dim1*16*is,sizeof(char));//random size but enough
+  void *wrk=calloc(dim1*dim1*15*is,sizeof(char));//random size but enough
   INT *nop= (INT *)wrk;
   INT *p= nop+dim1;
   is=(INT )(sizeof(INT)/sizeof(char));
@@ -147,22 +149,26 @@ void eafe1(dCSRmat *ain, dvector *rhs,scomplex *sc){
     *((INT *)param)=sc->flags[is];
     diffusion_coeff(diff,xmass,0.,param);
     advection(ad,xmass,0.,param);
-    // dummy  to make diff somewhat different
-    for(i = 0;i<dim;i++){
-      for(j = 0;j<dim;j++){
-    	btmp=0.;
-    	for (k=0;k<dim;k++){
-    	  btmp+=bs[i*dim+k]*bs[j*dim+k];
-    	}
-    	diff[i*dim+j]=btmp;
-      }
-      diff[i*dim+i]+=1.;
-    }
+    /* dummy  to make diff somewhat different */
+    /* for(i = 0;i<dim;i++){ */
+    /*   for(j = 0;j<dim;j++){ */
+    /* 	btmp=0.; */
+    /* 	for (k=0;k<dim;k++){ */
+    /* 	  btmp+=bs[i*dim+k]*bs[j*dim+k]; */
+    /* 	} */
+    /* 	diff[i*dim+j]=btmp; */
+    /*   } */
+    /*   diff[i*dim+i]+=1.; */
+    /* } */
     print_full_mat(dim,dim,diff,"diff");
-    // inv(B)*a*inv(B')
+    /*******************************************/
+    print_full_mat(1,dim,ad,"ad");
+    /* ad <- D^{-1}\beta */
+    solve_pivot(1, dim, diff, ad, p, piv);
+    print_full_mat(1,dim,ad,"ad1");
+    /* // inv(B)*a*inv(B') */
     if(issym){
-      /* SYMMETRIC*/
-      fprintf(stdout,"\n%% symmetric\n");
+      /* SYMMETRIC */
       for(i = 0;i<dim1;i++){
 	for(j = i;j<dim1;j++){
 	  btmp=0.;
@@ -171,11 +177,11 @@ void eafe1(dCSRmat *ain, dvector *rhs,scomplex *sc){
 	      btmp+=bsinv[i*dim+k]*diff[k*dim+l]*bsinv[j*dim+l];
 	    }
 	  }
-	  piv[i*dim1+j]=btmp;
+	  aloc[i*dim1+j]=btmp;
 	}
       }
       for(i = 1;i<dim1;i++)
-	for(j = 0;j<i;j++) piv[i*dim1+j]=piv[i+j*dim1];
+	for(j = 0;j<i;j++) aloc[i*dim1+j]=aloc[i+j*dim1];
     } else {
       /*NON-SYMMETRIC*/
       for(i = 0;i<dim1;i++){
@@ -186,22 +192,56 @@ void eafe1(dCSRmat *ain, dvector *rhs,scomplex *sc){
 	      btmp+=bsinv[i*dim+k]*diff[k*dim+l]*bsinv[j*dim+l];
 	    }
 	  }
-	  piv[i*dim1+j]=btmp;
+	  aloc[i*dim1+j]=btmp;
 	}
       }
     }
-    /* print_full_mat(1,dim,ad,"ad"); */
-    /* print_full_mat(dim1,dim,bsinv,"bsinv"); */
-    /* print_full_mat(dim1,dim1,piv,"diffnew"); */
+    /**********************************************************************/
+    for(i=0;i<dim1;i++){
+      id=i*dim; // this is for xs, so only dim columns
+      for(j=0;j<dim1;j++){
+	if(i==j) continue;
+	/* \beta\cdot \tau_e */
+	ij=i*dim1+j; // this is for stiff local.
+	jd=j*dim; // this is for xs, so only dim columns
+	bte=0.; 
+	//	if(nop[j]>nop[i]){
+	  for(k=0;k<dim;k++) bte+=ad[k]*(xs[id+k]-xs[jd+k]);
+	  //	  fprintf(stdout,"\nFRW: (%d--%d)bte(%d,%d)=%g",nop[i],nop[j],i,j,bte);fflush(stdout);
+	  //	} else if(nop[j]!=nop[i]) {// reverse tau
+	  //	  for(k=0;k<dim;k++) bte+=ad[k]*(xs[id+k]-xs[jd+k]);
+	  //	  fprintf(stdout,"\nREV: (%d--%d)bte(%d,%d)=%g",nop[i],nop[j],i,j,bte);fflush(stdout);
+	  //      }
+	//old for the above... for(k=0;k<dim;k++) te[k]=xs[jd+k]-xs[id+k];
+	//old for the above... for(k=0;k<dim;k++) te[k]=xs[id+k]-xs[jd+k];
+	/*midpoints*/
+	// mid points on the edges if needed!    for(k=0;k<dim;k++) xm[k]=0.5*(xs[jd+k]+xs[id+k]);
+	aloc[ij] *= bernoulli1(bte); 
+	//	fprintf(stdout,"\ndd=%22.14e",(alpe*(bernoulli(bte/alpe))));
+	/* the diagonal is equal to the negative column sum;*/    
+	piv[j]-=aloc[ij];
+      }
+    }
+    /*DIAGONAL= negative column sum */
+    for(j=0;j<dim1;j++){
+      btmp=0.;
+      for(i=0;i<dim1;i++){
+	if(i==j) continue;
+	ij=i*dim1+j; // 
+	btmp+=aloc[ij];
+      }
+      aloc[j*dim1+j] = -btmp;
+    }
+    //    for (i = 0; i < dim1; i++) aloc[i+dim1+i]=piv[i];
+/***********************************************************************/
+    print_full_mat(dim1,dim,bsinv,"bsinv");
+    print_full_mat(dim1,dim1,aloc,"diffnew");
     // diff is in LU below, so destroyed. and piv too. 
-    solve_pivot(1, dim, diff, ad, p, piv);
-     /*    print_full_mat(1,dim,ad,"ad1"); */
-  }
-  /* matrices c = a*b+c; a is m by n, b is n by p; c is m by p */
-  //
+  }/* end of element loop*/
   fprintf(stdout,"\n%%%% end of element loop...\n");  
   //  dvec_free(&diag0);
-  //  dvec_free(&dmass);
+  if(wrk)free(wrk);
+  if(aloc)free(aloc);
   return;
 }
 
