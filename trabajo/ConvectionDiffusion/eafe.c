@@ -173,9 +173,11 @@ void eafe(dCSRmat *A, dvector *rhs,		\
 	  void (*vector_val_ad)(REAL *, REAL *, REAL, void *),		\
 	  void (*scalar_val_bndnr)(REAL *, REAL *, REAL, void *), REAL faketime)
 {
+  // assemble the laplacian matrix
   assemble_global(A,rhs,local_assembly,			\
 		  &FE,&mesh,cq,				\
 		  scalar_val_rhs,poisson_coeff,0.0);
+  //
   INT i,j,jk,jdim,iaa,iab,nv=mesh.nv,dim=mesh.dim;
   INT edge_flag=-10;
   INT *ia=A->IA, *ja=A->JA ;
