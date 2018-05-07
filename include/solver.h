@@ -241,6 +241,97 @@ typedef struct {
 
 /***********************************************************************************************/
 
+typedef struct {
+    
+    /*!
+     * \struct HX_div_data
+     * \brief Data for HX preconditioner for H(div) problems
+     */
+
+    //! Div Matrix
+    dCSRmat *A;
+
+    /* ---------------------*/
+    /* smoother information */
+    /* ---------------------*/
+    //! Smoother type
+    SHORT smooth_type;
+
+    //! number of smoothing
+    SHORT smooth_iter;
+    
+    /* ---------------------*/
+    /* vector Laplacian information */
+    /* ---------------------*/
+    //! P_curl operator
+    dCSRmat *P_curl;
+    
+    //! transpose of P_curl operator
+    dCSRmat *Pt_curl;
+
+    //! P_div operator
+    dCSRmat *P_div;
+
+    //! transpose of P_div operator
+    dCSRmat *Pt_div;
+    
+    //! vector Laplacian
+    dCSRmat *A_curlgrad;
+    
+    //! vector 
+    dCSRmat *A_divgrad;
+    
+    //! AMG parameters for vector Laplacian
+    AMG_param *amgparam_curlgrad;
+    
+    //! AMG data for vector Laplacian
+    AMG_data *mgl_curlgrad;
+    
+    //! AMG parameters for vector Laplacian
+    AMG_param *amgparam_divgrad;
+    
+    //! AMG data for vector Laplacian
+    AMG_data *mgl_divgrad;
+
+    /* ---------------------*/
+    /* scalar Laplacian information */
+    /* ---------------------*/
+    //! Grad operator
+    dCSRmat *Grad;
+    
+    //! transpose of Grad operator
+    dCSRmat *Gradt;
+
+    //! Curl operator
+    dCSRmat *Curl;
+    
+    //! transpose of Curl operator
+    dCSRmat *Curlt;
+
+    //! vector Laplacian
+    dCSRmat *A_grad;
+
+    //! vecror Curl (CtAC)
+    dCSRmat *A_curl;
+    
+    //! AMG parameters for vector Laplacian
+    AMG_param *amgparam_grad;
+    
+    //! AMG data for vector Laplacian
+    AMG_data *mgl_grad;
+    
+    /* ---------------------*/
+    /* HX preconditioner information */
+    /* ---------------------*/
+    //! backup residual space
+    REAL *backup_r;
+    
+    //! temporary work space for other usage
+    REAL *w;
+    
+} HX_div_data;
+
+/***********************************************************************************************/
 
 /**
  * \brief Data passed to the preconditioner for block preconditioning for block_dCSRmat format

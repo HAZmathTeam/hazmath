@@ -1171,6 +1171,172 @@ void get_Pigrad_H1toNed(dCSRmat* Pgrad,trimesh* mesh)
 
 /***********************************************************************************************/
 /*!
+ * \fn void get_Pigrad_H1toRT( dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl, trimesh* mesh)
+ *
+ * \brief Computes Raviart-Thomas interpolation operator for HX preconditioner
+ *
+ * \param Pgrad 	     dCSRmat matrix that takes the the \Pi for HX preconditioner.
+ * \param mesh         Mesh data
+ *
+ * \note This only makes sense in 2D or 3D and P1 elements.
+ *       Also assumes shuffled ordering.
+ *
+ */
+/***********************************************************************************************/
+void get_Pigrad_H1toRT( dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl, trimesh* mesh)
+{
+  INT i,j,k,rowa,cola;
+  INT v1,v2,v3;
+  INT begin_row,end_row;
+  INT nface = mesh->nface;
+  INT nedge = mesh->nedge;
+  //INT nvert = mesh->nv;
+  INT dim = mesh->dim;
+
+  REAL temp1;
+  REAL temp2;
+  REAL temp3;
+
+  dCSRmat Ptmp;
+
+  Ptmp.row = mesh->f_v->row;
+  Ptmp.col = (mesh->f_v->col)*dim;
+  Ptmp.nnz = (mesh->f_v->nnz)*dim;// ((dim+1)*nface)*dim
+  Ptmp.IA = (INT *) calloc(Ptmp.row+1,sizeof(INT));
+  Ptmp.JA = (INT *) calloc(Ptmp.nnz,sizeof(INT));
+  Ptmp.val = (REAL *) calloc(Ptmp.nnz,sizeof(REAL));
+
+  // Need to get the f-th component of
+  //    -Curl*Pcurl*(y,0,0)^T
+  REAL* PcurlY = (REAL*)calloc(nedge,sizeof(REAL));
+  REAL* PcurlZ = (REAL*)calloc(nedge,sizeof(REAL));
+  REAL* PcurlX = (REAL*)calloc(nedge,sizeof(REAL));
+
+  for(i=0; i<nedge; i++) {
+    rowa = mesh->ed_v->IA[i]-1;
+    v1 = mesh->ed_v->JA[rowa]-1;
+    v2 = mesh->ed_v->JA[rowa+1]-1;
+    // PiV1 * y
+    cola = Pcurl->IA[i]-1;
+    j = Pcurl->JA[cola+1]-1;
+    k = Pcurl->JA[cola+dim+1]-1;
+    PcurlY[i] = (mesh->cv->y[v1])*(Pcurl->val[j]) + (mesh->cv->y[v2])*(Pcurl->val[k]);
+    // PiV2 * z
+    cola = Pcurl->IA[i]-1;
+    j = Pcurl->JA[cola+2]-1;
+    k = Pcurl->JA[cola+dim+2]-1;
+    PcurlZ[i] = (mesh->cv->z[v1])*(Pcurl->val[j]) + (mesh->cv->z[v2])*(Pcurl->val[k]);
+    // PiV3 * x
+    cola = Pcurl->IA[i]-1;
+    j = Pcurl->JA[cola]-1;
+    k = Pcurl->JA[cola+dim]-1;
+    PcurlX[i] = (mesh->cv->x[v1])*(Pcurl->val[j]) + (mesh->cv->x[v2])*(Pcurl->val[k]);
+//    // PiV1 * y
+//    rowa = Pcurl->IA[i]-1;
+//    v1 = Pcurl->JA[rowa]-1; // might actually want JA[rowa+1] for y of v1
+//    v2 = Pcurl->JA[rowa+1]-1;// might actually want JA[rowa+dim+1] for y of v2
+//    PcurlY[i] = (mesh->cv->y[v1])*(Pcurl->val[v1]) + (mesh->cv->y[v2])*(Pcurl->val[v2]);
+//    // PiV2 * z
+//    rowa = Pcurl->IA[i]-1 + nvert;
+//    v1 = Pcurl->JA[rowa]-1;
+//    v2 = Pcurl->JA[rowa+1]-1;
+//    PcurlZ[i] = (mesh->cv->z[v1])*(Pcurl->val[v1]) + (mesh->cv->z[v2])*(Pcurl->val[v2]);
+//    // PiV3 * x
+//    rowa = Pcurl->IA[i]-1 + 2*nvert;
+//    v1 = Pcurl->JA[rowa]-1;
+//    v2 = Pcurl->JA[rowa+1]-1;
+//    PcurlX[i] = (mesh->cv->x[v1])*(Pcurl->val[v1]) + (mesh->cv->x[v2])*(Pcurl->val[v2]);
+  }
+
+
+  for(i=0; i<nface; i++) {
+    temp1 = 0.0;
+    temp2 = 0.0;
+    temp3 = 0.0;
+    //TODO: check if Curl and PcurlX is indexed correctly to do this.
+    begin_row = Curl->IA[i]-1;
+    end_row = Curl->IA[i+1]-1;
+    for(j=begin_row; j<end_row; j++){
+      temp1 += -(Curl->val[j])*PcurlZ[Curl->JA[j]];
+      temp2 += -(Curl->val[j])*PcurlX[Curl->JA[j]];
+      temp3 += -(Curl->val[j])*PcurlY[Curl->JA[j]];
+    }
+    // divide by number of vertices per face
+    temp1 = temp1 / 3;
+    temp2 = temp2 / 3;
+    temp3 = temp3 / 3;
+
+    // Build Pdiv
+    rowa = mesh->f_v->IA[i]-1;
+    Ptmp.IA[i] = rowa+1 + i*3*(dim-1);
+    cola = Ptmp.IA[i]-1;
+
+    v1 = mesh->f_v->JA[rowa];
+    v2 = mesh->f_v->JA[rowa+1];
+    v3 = mesh->f_v->JA[rowa+2];
+
+    Ptmp.JA[cola]       = (v1-1)*dim+1;
+    Ptmp.val[cola]      = temp1;
+    Ptmp.JA[cola+dim]   = (v2-1)*dim+1;
+    Ptmp.val[cola+dim]  = temp1;
+    Ptmp.JA[cola+2*dim] = (v3-1)*dim+1;
+    Ptmp.val[cola+2*dim]= temp1;
+
+    Ptmp.JA[cola+1]       = (v1-1)*dim+2;
+    Ptmp.val[cola+1]      = temp2;
+    Ptmp.JA[cola+dim+1]   = (v2-1)*dim+2;
+    Ptmp.val[cola+dim+1]  = temp2;
+    Ptmp.JA[cola+2*dim+1] = (v3-1)*dim+2;
+    Ptmp.val[cola+2*dim+1]= temp2;
+
+    Ptmp.JA[cola+2]       = (v1-1)*dim+3;
+    Ptmp.val[cola+2]      = temp3;
+    Ptmp.JA[cola+dim+2]   = (v2-1)*dim+3;
+    Ptmp.val[cola+dim+2]  = temp3;
+    Ptmp.JA[cola+2*dim+2] = (v3-1)*dim+3;
+    Ptmp.val[cola+2*dim+2]= temp3;
+//    // Store value
+//    Ptmp.IA[i] = (i*3)*dim + 1; // entries per face
+//    rowa = Ptmp.IA[i]-1;
+//
+//    Ptmp.JA[rowa]   = mesh->f_v->JA[rowa]; // I think these should line up like this
+//    Ptmp.JA[rowa+1] = mesh->f_v->JA[rowa+1]; // I think these should line up like this
+//    Ptmp.JA[rowa+2] = mesh->f_v->JA[rowa+2]; // I think these should line up like this
+//
+//    Ptmp.val[rowa]   = temp1;
+//    Ptmp.val[rowa+1] = temp1;
+//    Ptmp.val[rowa+2] = temp1;
+//    
+//    //
+//    Ptmp.JA[nvert+rowa]   = nvert+mesh->f_v->JA[rowa]; 
+//    Ptmp.JA[nvert+rowa+1] = nvert+mesh->f_v->JA[rowa+1];
+//    Ptmp.JA[nvert+rowa+2] = nvert+mesh->f_v->JA[rowa+2];
+//
+//    Ptmp.val[nvert+rowa]   = temp2;
+//    Ptmp.val[nvert+rowa+1] = temp2;
+//    Ptmp.val[nvert+rowa+2] = temp2;
+//
+//    //
+//    Ptmp.JA[2*nvert+rowa]   = 2*nvert+mesh->f_v->JA[rowa]; 
+//    Ptmp.JA[2*nvert+rowa+1] = 2*nvert+mesh->f_v->JA[rowa+1];
+//    Ptmp.JA[2*nvert+rowa+2] = 2*nvert+mesh->f_v->JA[rowa+2];
+//
+//    Ptmp.val[2*nvert+rowa]   = temp3;
+//    Ptmp.val[2*nvert+rowa+1] = temp3;
+//    Ptmp.val[2*nvert+rowa+2] = temp3;
+  }
+  Ptmp.IA[nface] = Ptmp.nnz+1;
+  //TODO: need to fill IA[end] = nnz; or something like that
+
+  *Pdiv = Ptmp;
+
+  free(PcurlY);
+  free(PcurlZ);
+  free(PcurlX);
+}
+/***********************************************************************************************/
+
+/*!
  * \fn void ProjectOut_Grad(dvector* u,fespace* FE_H1,fespace* FE_Ned,trimesh* mesh,qcoordinates* cq,dCSRmat* G)
  *
  * \brief Takes an approximation in H(curl) using lowest-order Nedelec FE space
