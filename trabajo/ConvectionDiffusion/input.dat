@@ -14,9 +14,11 @@ print_level			= 2;	% how much information to print out: 0 Nothing | >0 Something
 % files
 %---------------%
 
-%gridfile                     = ../grids/3D/unitCUBE_n17.haz
-%gridfile                     = ../grids/3D/unitCUBE_n33.haz	
-gridfile                     = ../grids/2D/L05.haz	
+%gridfile                     = ../../examples/grids/3D/unitCUBE_n17.haz
+%gridfile                     = ../../examples/grids/3D/unitCUBE_n33.haz
+%gridfile                     = ../../examples/grids/2D/L05.haz	
+%gridfile		     = ../../examples/grids/3D/unitCUBE_n3.haz
+gridfile		     = ../../examples/grids/3D/hydrolena_grid.grd
 output_dir                    = ./output/
 
 %---------------%

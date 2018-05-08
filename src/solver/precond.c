@@ -377,6 +377,100 @@ void precond_hx_curl_multiplicative(REAL *r,
 
 /***********************************************************************************************/
 /**
+ * \fn void precond_hx_div_additive (REAL *r, REAL *z, void *data)
+ *
+ * \brief HX preconditioner for H(div): additive version
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   02/10/2016
+ */
+void precond_hx_div_additive(REAL *r,
+                              REAL *z,
+                              void *data)
+{   
+    HX_div_data *hxdivdata=(HX_div_data *)data;
+    INT n = hxdivdata->A->row;
+    SHORT smooth_iter = hxdivdata->smooth_iter;
+    
+    // make sure z is initialzied by zeros
+    array_set(n, z, 0.0);
+    
+    // local variable
+    dvector zz;
+    zz.row = n; zz.val = z;
+    dvector rr;
+    rr.row = n; rr.val = r;
+    
+    SHORT maxit, i;
+    
+    // smoothing
+    smoother_dcsr_sgs(&zz, hxdivdata->A, &rr, smooth_iter);
+    //printf("First Smoothing\n");
+
+    // solve div vector Laplacian
+    AMG_param *amgparam_divgrad = hxdivdata->amgparam_divgrad;
+    AMG_data *mgl_divgrad = hxdivdata->mgl_divgrad;
+    maxit = amgparam_divgrad->maxit;
+    
+    mgl_divgrad->b.row = hxdivdata->A_divgrad->row;
+    dcsr_mxv(hxdivdata->Pt_div, r, mgl_divgrad->b.val);
+    //printf("Pt_div * r = b\n");
+    mgl_divgrad->x.row=hxdivdata->A_divgrad->row;
+    dvec_set(hxdivdata->A_divgrad->row, &mgl_divgrad->x, 0.0);
+    
+    for (i=0;i<maxit;++i) mgcycle(mgl_divgrad, amgparam_divgrad);
+    //printf("Solve A_divgrad\n");
+    
+    dcsr_aAxpy(1.0, hxdivdata->P_div, mgl_divgrad->x.val, z);
+    //printf("P_div * x = z\n");
+    
+    // smoothing
+    //printf("%d\t%d\n",hxdivdata->A_curl->row,hxdivdata->A_curl->col);
+    //printf("%d\t%d\n",hxdivdata->Curl->row,hxdivdata->Curl->col);
+    //printf("%d\t%d\n",hxdivdata->A->row,hxdivdata->A->col);
+    REAL *temp1 = (REAL*)calloc(hxdivdata->Curlt->row,sizeof(REAL));
+    REAL *temp2 = (REAL*)calloc(hxdivdata->Curlt->row,sizeof(REAL));
+    dcsr_mxv(hxdivdata->Curlt,r,temp2);
+    dvector Cz;
+    Cz.row = hxdivdata->A_curl->row;
+    Cz.val = temp1;// initial guess is zero
+    dvector Cr;
+    Cr.row = Cz.row;
+    Cr.val = temp2;
+    smoother_dcsr_sgs(&Cz, hxdivdata->A_curl, &Cr, smooth_iter);
+    dcsr_aAxpy(1.0,hxdivdata->Curl,Cz.val,z);
+    //printf("Second Smoother\n");
+
+    // solve scalar Laplacian
+    AMG_param *amgparam_curlgrad = hxdivdata->amgparam_curlgrad;
+    AMG_data *mgl_curlgrad = hxdivdata->mgl_curlgrad;
+    maxit = amgparam_curlgrad->maxit;
+
+    REAL *temp = (REAL*)calloc(hxdivdata->Curlt->row,sizeof(REAL));
+    dcsr_mxv(hxdivdata->Curlt, r, temp);
+    //printf("Curlt*r\n");
+    mgl_curlgrad->b.row = hxdivdata->Pt_curl->row;//unnecessary, mgl_curlgrad should already be made to correct size?
+    dcsr_mxv(hxdivdata->Pt_curl, temp, mgl_curlgrad->b.val);
+    //printf("Pt_curl*temp\n");
+    dvec_set(hxdivdata->A_curlgrad->row, &mgl_curlgrad->x, 0.0);
+
+    for (i=0;i<maxit;++i) mgcycle(mgl_curlgrad, amgparam_curlgrad);
+    //printf("Solve A_curlgrad\n");
+
+    dcsr_mxv(hxdivdata->P_curl, mgl_curlgrad->x.val, temp);
+    //printf("P_curl*x\n");
+    dcsr_aAxpy(1.0, hxdivdata->Curl, temp, z); 
+    //printf("Curl*temp = z\n");
+
+    // free
+    free(temp);
+}
+/***********************************************************************************************/
+/**
  * \fn void precond_block_diag_2(REAL *r, REAL *z, void *data)
  * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
  *        is solved exactly)

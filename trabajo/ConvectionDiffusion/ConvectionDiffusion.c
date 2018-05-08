@@ -152,7 +152,16 @@ int main (int argc, char* argv[])
   // Allocate the right-hand side and declare the csr matrix
   dvector b;
   dCSRmat A;
-    
+
+  gfid = HAZ_fopen(inparam.gridfile,"r");
+
+  // Dimension is needed for all this to work
+  printf(" --> loading grid from file: %s\n",inparam.gridfile);
+  scomplex *sc=haz_scomplex_read(gfid);  
+  fclose(gfid);
+  printf("Assembling the matrix and right-hand side:\n");
+  eafe1(&A, &b,sc);
+  exit(255);
   // Assemble the matrix.
   eafe(&A,&b,assemble_DuDv_local,			\
        mesh,FE,cq,					\
