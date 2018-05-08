@@ -529,6 +529,37 @@ int main (int argc, char* argv[])
           dcsr_free(&Grad);
 
       }
+      // HX preconditioner (for H(div) problem only)
+      else if (linear_itparam.linear_precond_type == PREC_HX_DIV_A || linear_itparam.linear_precond_type == PREC_HX_DIV_M){
+
+          // declare data
+          dCSRmat P_curl;
+          dCSRmat Curl;
+          dCSRmat P_div;
+
+          // get P_curl and Grad
+          get_Pigrad_H1toNed(&P_curl,&mesh);
+          get_curl_NedtoRT(&Curl,&mesh);
+          get_Pigrad_H1toRT(&P_div,&P_curl,&Curl,&mesh);
+
+          // shift
+          dcsr_shift(&P_curl, -1);  // shift P_curl
+          dcsr_shift(&Curl, -1);  // shift Curl
+          dcsr_shift(&P_div, -1);  // shift P_div
+
+          solver_flag = linear_solver_dcsr_krylov_hx_div(&A, &b, &u, &linear_itparam, &amgparam,&P_curl,&P_div,&Curl);
+
+          // shift back
+          dcsr_shift(&P_curl, 1);  // shift P_curl back
+          dcsr_shift(&Curl, 1);  // shift Curl back
+          dcsr_shift(&P_div, 1);  // shift P_div back
+
+          // clean
+          dcsr_free(&P_curl);
+          dcsr_free(&Curl);
+          dcsr_free(&P_div);
+
+      }
       // No preconditoner
       else{
           solver_flag = linear_solver_dcsr_krylov(&A, &b, &u, &linear_itparam);

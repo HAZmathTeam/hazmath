@@ -7,7 +7,7 @@ SRCFILE = ConvectionDiffusion
 
 HEADERS = $(SRCFILE).h
 
-OBJS += eafe.o
+OBJS += eafe.o eafe1.o
 
 INCLUDE =
 
@@ -25,5 +25,5 @@ MGRAPH_SRCDIR = $(realpath ../../../../multigraph_2.1/src)
 ##########################################################
 LIBS = -lgfortran
 
-sinclude ../examples.mk
+sinclude conv_diff.mk
 

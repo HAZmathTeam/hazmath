@@ -134,6 +134,8 @@
 #define PREC_AMG                2  /**< with AMG precond */
 #define PREC_HX_CURL_A          6  /**< with additive HX preconditioner for H(curl) problem */
 #define PREC_HX_CURL_M          7  /**< with multiplicative HX preconditioner for H(curl) problem */
+#define PREC_HX_DIV_A           8  /**< with additive HX preconditioner for H(div) problem */
+#define PREC_HX_DIV_M           9  /**< with multiplicative HX preconditioner for H(div) problem */
 
 /**
  * \brief Definition of AMG types
