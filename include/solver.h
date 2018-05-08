@@ -364,6 +364,7 @@ typedef struct {
     
     /*--- solver by HX preconditioner */
     HX_curl_data **hxcurldata; /**< HX data for the diagonal CURL blocks */
+    HX_curl_data **hxdivdata; /**< HX data for the diagonal CURL blocks */
   
     /*------------------------------*/
     /* Data for mixed Darcy flow only!! */

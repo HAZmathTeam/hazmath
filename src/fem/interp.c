@@ -1216,36 +1216,26 @@ void get_Pigrad_H1toRT( dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl, trimesh* m
     rowa = mesh->ed_v->IA[i]-1;
     v1 = mesh->ed_v->JA[rowa]-1;
     v2 = mesh->ed_v->JA[rowa+1]-1;
-    // PiV1 * y
     cola = Pcurl->IA[i]-1;
-    j = Pcurl->JA[cola+1]-1;
-    k = Pcurl->JA[cola+dim+1]-1;
-    PcurlY[i] = (mesh->cv->y[v1])*(Pcurl->val[j]) + (mesh->cv->y[v2])*(Pcurl->val[k]);
-    // PiV2 * z
-    cola = Pcurl->IA[i]-1;
-    j = Pcurl->JA[cola+2]-1;
-    k = Pcurl->JA[cola+dim+2]-1;
-    PcurlZ[i] = (mesh->cv->z[v1])*(Pcurl->val[j]) + (mesh->cv->z[v2])*(Pcurl->val[k]);
-    // PiV3 * x
-    cola = Pcurl->IA[i]-1;
-    j = Pcurl->JA[cola]-1;
-    k = Pcurl->JA[cola+dim]-1;
-    PcurlX[i] = (mesh->cv->x[v1])*(Pcurl->val[j]) + (mesh->cv->x[v2])*(Pcurl->val[k]);
+    PcurlY[i] = (mesh->cv->y[v1])*(Pcurl->val[cola])   + (mesh->cv->y[v2])*(Pcurl->val[cola+dim]);
+    PcurlZ[i] = (mesh->cv->z[v1])*(Pcurl->val[cola+1]) + (mesh->cv->z[v2])*(Pcurl->val[cola+dim+1]);
+    PcurlX[i] = (mesh->cv->x[v1])*(Pcurl->val[cola+2]) + (mesh->cv->x[v2])*(Pcurl->val[cola+dim+2]);
+
 //    // PiV1 * y
-//    rowa = Pcurl->IA[i]-1;
-//    v1 = Pcurl->JA[rowa]-1; // might actually want JA[rowa+1] for y of v1
-//    v2 = Pcurl->JA[rowa+1]-1;// might actually want JA[rowa+dim+1] for y of v2
-//    PcurlY[i] = (mesh->cv->y[v1])*(Pcurl->val[v1]) + (mesh->cv->y[v2])*(Pcurl->val[v2]);
+//    cola = Pcurl->IA[i]-1;
+//    j = Pcurl->JA[cola+1]-1;
+//    k = Pcurl->JA[cola+dim+1]-1;
+//    PcurlY[i] = (mesh->cv->y[v1])*(Pcurl->val[j]) + (mesh->cv->y[v2])*(Pcurl->val[k]);
 //    // PiV2 * z
-//    rowa = Pcurl->IA[i]-1 + nvert;
-//    v1 = Pcurl->JA[rowa]-1;
-//    v2 = Pcurl->JA[rowa+1]-1;
-//    PcurlZ[i] = (mesh->cv->z[v1])*(Pcurl->val[v1]) + (mesh->cv->z[v2])*(Pcurl->val[v2]);
+//    cola = Pcurl->IA[i]-1;
+//    j = Pcurl->JA[cola+2]-1;
+//    k = Pcurl->JA[cola+dim+2]-1;
+//    PcurlZ[i] = (mesh->cv->z[v1])*(Pcurl->val[j]) + (mesh->cv->z[v2])*(Pcurl->val[k]);
 //    // PiV3 * x
-//    rowa = Pcurl->IA[i]-1 + 2*nvert;
-//    v1 = Pcurl->JA[rowa]-1;
-//    v2 = Pcurl->JA[rowa+1]-1;
-//    PcurlX[i] = (mesh->cv->x[v1])*(Pcurl->val[v1]) + (mesh->cv->x[v2])*(Pcurl->val[v2]);
+//    cola = Pcurl->IA[i]-1;
+//    j = Pcurl->JA[cola]-1;
+//    k = Pcurl->JA[cola+dim]-1;
+//    PcurlX[i] = (mesh->cv->x[v1])*(Pcurl->val[j]) + (mesh->cv->x[v2])*(Pcurl->val[k]);
   }
 
 
@@ -1265,6 +1255,9 @@ void get_Pigrad_H1toRT( dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl, trimesh* m
     temp1 = temp1 / 3;
     temp2 = temp2 / 3;
     temp3 = temp3 / 3;
+    temp1 = temp1 / mesh->f_area[i];
+    temp2 = temp2 / mesh->f_area[i];
+    temp3 = temp3 / mesh->f_area[i];
 
     // Build Pdiv
     rowa = mesh->f_v->IA[i]-1;
@@ -1295,38 +1288,8 @@ void get_Pigrad_H1toRT( dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl, trimesh* m
     Ptmp.val[cola+dim+2]  = temp3;
     Ptmp.JA[cola+2*dim+2] = (v3-1)*dim+3;
     Ptmp.val[cola+2*dim+2]= temp3;
-//    // Store value
-//    Ptmp.IA[i] = (i*3)*dim + 1; // entries per face
-//    rowa = Ptmp.IA[i]-1;
-//
-//    Ptmp.JA[rowa]   = mesh->f_v->JA[rowa]; // I think these should line up like this
-//    Ptmp.JA[rowa+1] = mesh->f_v->JA[rowa+1]; // I think these should line up like this
-//    Ptmp.JA[rowa+2] = mesh->f_v->JA[rowa+2]; // I think these should line up like this
-//
-//    Ptmp.val[rowa]   = temp1;
-//    Ptmp.val[rowa+1] = temp1;
-//    Ptmp.val[rowa+2] = temp1;
-//    
-//    //
-//    Ptmp.JA[nvert+rowa]   = nvert+mesh->f_v->JA[rowa]; 
-//    Ptmp.JA[nvert+rowa+1] = nvert+mesh->f_v->JA[rowa+1];
-//    Ptmp.JA[nvert+rowa+2] = nvert+mesh->f_v->JA[rowa+2];
-//
-//    Ptmp.val[nvert+rowa]   = temp2;
-//    Ptmp.val[nvert+rowa+1] = temp2;
-//    Ptmp.val[nvert+rowa+2] = temp2;
-//
-//    //
-//    Ptmp.JA[2*nvert+rowa]   = 2*nvert+mesh->f_v->JA[rowa]; 
-//    Ptmp.JA[2*nvert+rowa+1] = 2*nvert+mesh->f_v->JA[rowa+1];
-//    Ptmp.JA[2*nvert+rowa+2] = 2*nvert+mesh->f_v->JA[rowa+2];
-//
-//    Ptmp.val[2*nvert+rowa]   = temp3;
-//    Ptmp.val[2*nvert+rowa+1] = temp3;
-//    Ptmp.val[2*nvert+rowa+2] = temp3;
   }
   Ptmp.IA[nface] = Ptmp.nnz+1;
-  //TODO: need to fill IA[end] = nnz; or something like that
 
   *Pdiv = Ptmp;
 
