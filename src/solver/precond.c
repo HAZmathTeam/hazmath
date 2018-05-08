@@ -409,7 +409,6 @@ void precond_hx_div_additive(REAL *r,
     
     // smoothing
     smoother_dcsr_sgs(&zz, hxdivdata->A, &rr, smooth_iter);
-    //printf("First Smoothing\n");
 
     // solve div vector Laplacian
     AMG_param *amgparam_divgrad = hxdivdata->amgparam_divgrad;
@@ -418,32 +417,35 @@ void precond_hx_div_additive(REAL *r,
     
     mgl_divgrad->b.row = hxdivdata->A_divgrad->row;
     dcsr_mxv(hxdivdata->Pt_div, r, mgl_divgrad->b.val);
-    //printf("Pt_div * r = b\n");
     mgl_divgrad->x.row=hxdivdata->A_divgrad->row;
     dvec_set(hxdivdata->A_divgrad->row, &mgl_divgrad->x, 0.0);
     
-    for (i=0;i<maxit;++i) mgcycle(mgl_divgrad, amgparam_divgrad);
-    //printf("Solve A_divgrad\n");
+    //for (i=0;i<maxit;++i) mgcycle(mgl_divgrad, amgparam_divgrad);
+    //dcsr_pvfgmres(hxdivdata->A_divgrad, &mgl_divgrad->b, &mgl_divgrad->x, NULL, 1e-3, 1000, 1000, 1, 1);
+    directsolve_UMF(hxdivdata->A_divgrad, &(mgl_divgrad->b), &(mgl_divgrad->x), 1);
     
     dcsr_aAxpy(1.0, hxdivdata->P_div, mgl_divgrad->x.val, z);
-    //printf("P_div * x = z\n");
+
+    INT j;
+    for(j=0;j<n;j++){
+      if(z[j]!=z[j]){ printf("DIV z[%d]=%f\n",j,z[j]);}
+    }
     
     // smoothing
-    //printf("%d\t%d\n",hxdivdata->A_curl->row,hxdivdata->A_curl->col);
-    //printf("%d\t%d\n",hxdivdata->Curl->row,hxdivdata->Curl->col);
-    //printf("%d\t%d\n",hxdivdata->A->row,hxdivdata->A->col);
     REAL *temp1 = (REAL*)calloc(hxdivdata->Curlt->row,sizeof(REAL));
     REAL *temp2 = (REAL*)calloc(hxdivdata->Curlt->row,sizeof(REAL));
-    dcsr_mxv(hxdivdata->Curlt,r,temp2);
+
     dvector Cz;
     Cz.row = hxdivdata->A_curl->row;
     Cz.val = temp1;// initial guess is zero
+
     dvector Cr;
     Cr.row = Cz.row;
     Cr.val = temp2;
+
+    dcsr_mxv(hxdivdata->Curlt,r,Cr.val);
     smoother_dcsr_sgs(&Cz, hxdivdata->A_curl, &Cr, smooth_iter);
     dcsr_aAxpy(1.0,hxdivdata->Curl,Cz.val,z);
-    //printf("Second Smoother\n");
 
     // solve scalar Laplacian
     AMG_param *amgparam_curlgrad = hxdivdata->amgparam_curlgrad;
@@ -452,22 +454,24 @@ void precond_hx_div_additive(REAL *r,
 
     REAL *temp = (REAL*)calloc(hxdivdata->Curlt->row,sizeof(REAL));
     dcsr_mxv(hxdivdata->Curlt, r, temp);
-    //printf("Curlt*r\n");
-    mgl_curlgrad->b.row = hxdivdata->Pt_curl->row;//unnecessary, mgl_curlgrad should already be made to correct size?
+    mgl_curlgrad->b.row = hxdivdata->Pt_curl->row;
     dcsr_mxv(hxdivdata->Pt_curl, temp, mgl_curlgrad->b.val);
-    //printf("Pt_curl*temp\n");
     dvec_set(hxdivdata->A_curlgrad->row, &mgl_curlgrad->x, 0.0);
 
-    for (i=0;i<maxit;++i) mgcycle(mgl_curlgrad, amgparam_curlgrad);
-    //printf("Solve A_curlgrad\n");
+    //for (i=0;i<maxit;++i) mgcycle(mgl_curlgrad, amgparam_curlgrad);
+    //dcsr_pvfgmres(hxdivdata->A_curlgrad, &mgl_curlgrad->b, &mgl_curlgrad->x, NULL, 1e-3, 1000, 1000, 1, 1);
+    directsolve_UMF(hxdivdata->A_curlgrad, &(mgl_curlgrad->b), &(mgl_curlgrad->x),1);
 
     dcsr_mxv(hxdivdata->P_curl, mgl_curlgrad->x.val, temp);
-    //printf("P_curl*x\n");
     dcsr_aAxpy(1.0, hxdivdata->Curl, temp, z); 
-    //printf("Curl*temp = z\n");
+    for(j=0;j<n;j++){
+      if(z[j]!=z[j]){ printf("z[%d]=%f\n",j,z[j]);}
+    }
 
     // free
     free(temp);
+    free(temp1);
+    free(temp2);
 }
 /***********************************************************************************************/
 /**
