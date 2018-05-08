@@ -303,4 +303,18 @@ typedef struct {
     
 } matvec; /**< Data for general Matrix-vector multiplication */
 
+/**
+ * \struct solve_stats
+ * \brief statistics about the solve
+ */
+typedef struct{
+
+    INT iteration_count;
+
+    REAL time_setup;
+    REAL time_precondition_setup;
+    REAL time_solve;
+
+} solve_stats; /**< statistics about solve */
+
 #endif

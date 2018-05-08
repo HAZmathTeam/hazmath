@@ -2413,7 +2413,8 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
                                            dvector *x,
                                            linear_itsolver_param *itparam,
                                            AMG_param *amgparam,
-                                           dCSRmat * A_diag)
+                                           dCSRmat * A_diag,
+                                           solve_stats * solve_info)
 {
   const SHORT prtlvl = itparam->linear_print_level;
   const SHORT precond_type = itparam->linear_precond_type;
@@ -2554,6 +2555,10 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
     print_cputime("Krylov method totally", solver_duration);
     printf("**********************************************************\n");
   }
+
+  solve_info->iteration_count = status;
+  solve_info->time_precondition_setup = setup_duration;
+  solve_info->time_solve = solver_duration;
 
   // clean
   precond_block_data_free(&precdata, 2);

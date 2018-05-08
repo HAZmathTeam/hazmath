@@ -2994,7 +2994,7 @@ void precond_block_lower_biot_3field_krylov(REAL *r,
   pc_u.fct = precond_amg;
 
   //dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc_u, 1e-1, 100, 100, 1, 1);
-  dcsr_pvfgmres(&(A_diag[0]), &r0, &z0, &pc_u, 1e-3, 100, 100, 1, 1);
+  dcsr_pvfgmres(&(A_diag[0]), &r0, &z0, &pc_u, 1e-3, 1000, 1000, 1, 1);
 
   // r1 = r1 - A3*z0
   if (A->blocks[3] != NULL)
@@ -3010,7 +3010,7 @@ void precond_block_lower_biot_3field_krylov(REAL *r,
   pc_w.fct = precond_amg;
 
   //dcsr_pvfgmres(&mgl[1][0].A, &r1, &z1, &pc_w, 1e-1, 100, 100, 1, 1);
-  dcsr_pvfgmres(&(A_diag[1]), &r1, &z1, &pc_w, 1e-3, 100, 100, 1, 1);
+  dcsr_pvfgmres(&(A_diag[1]), &r1, &z1, &pc_w, 1e-3, 1000, 1000, 1, 1);
 
   // r2 = r2 - A6*z0 - A7*z1
   if (A->blocks[6] != NULL)
