@@ -392,6 +392,7 @@ void precond_hx_div_additive(REAL *r,
                               REAL *z,
                               void *data)
 {   
+    printf("HX div additive precond\n");
     HX_div_data *hxdivdata=(HX_div_data *)data;
     INT n = hxdivdata->A->row;
     SHORT smooth_iter = hxdivdata->smooth_iter;
@@ -3139,8 +3140,12 @@ void precond_block_diag_biot_3field_krylov(REAL *r,
   pcdata_w.max_levels = mgl[1][0].num_levels;
   pcdata_w.mgl_data = mgl[1];
 
-  precond pc_w; pc_w.data = &pcdata_w;
-  pc_w.fct = precond_amg;
+  //precond pc_w; pc_w.data = &pcdata_w;
+  //pc_w.fct = precond_amg;
+
+  precond pc_w;
+  pc_w.data = precdata->hxdivdata[1];
+  pc_w.fct = precond_hx_div_multiplicative;
 
   //dcsr_pvfgmres(&mgl[1][0].A, &r1, &z1, &pc_w, 1e-1, 100, 100, 1, 1);
   dcsr_pvfgmres(&(A_diag[1]), &r1, &z1, &pc_w, 1e-3, 100, 100, 1, 1);
@@ -3228,8 +3233,12 @@ void precond_block_lower_biot_3field_krylov(REAL *r,
   pcdata_w.max_levels = mgl[1][0].num_levels;
   pcdata_w.mgl_data = mgl[1];
 
-  precond pc_w; pc_w.data = &pcdata_w;
-  pc_w.fct = precond_amg;
+  //precond pc_w; pc_w.data = &pcdata_w;
+  //pc_w.fct = precond_amg;
+
+  precond pc_w;
+  pc_w.data = precdata->hxdivdata[1];
+  pc_w.fct = precond_hx_div_multiplicative;
 
   //dcsr_pvfgmres(&mgl[1][0].A, &r1, &z1, &pc_w, 1e-1, 100, 100, 1, 1);
   dcsr_pvfgmres(&(A_diag[1]), &r1, &z1, &pc_w, 1e-3, 1000, 1000, 1, 1);
@@ -3317,8 +3326,12 @@ void precond_block_upper_biot_3field_krylov(REAL *r,
   pcdata_w.max_levels = mgl[1][0].num_levels;
   pcdata_w.mgl_data = mgl[1];
 
-  precond pc_w; pc_w.data = &pcdata_w;
-  pc_w.fct = precond_amg;
+  //precond pc_w; pc_w.data = &pcdata_w;
+  //pc_w.fct = precond_amg;
+
+  precond pc_w;
+  pc_w.data = precdata->hxdivdata[1];
+  pc_w.fct = precond_hx_div_multiplicative;
 
   //dcsr_pvfgmres(&mgl[1][0].A, &r1, &z1, &pc_w, 1e-1, 100, 100, 1, 1);
   dcsr_pvfgmres(&(A_diag[1]), &r1, &z1, &pc_w, 1e-3, 100, 100, 1, 1);

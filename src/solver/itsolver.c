@@ -2684,6 +2684,8 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
     /*------------------------*/
     // setup preconditioner
     
+    printf("hxdivdata fillng\n");
+    hxdivdata[1] = (HX_div_data *)calloc(1, sizeof(HX_div_data));
     hxdivdata[1]->A = &A_diag[1];
     
     hxdivdata[1]->smooth_type = 1;
@@ -2706,6 +2708,7 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
     
     hxdivdata[1]->backup_r = (REAL*)calloc(A_diag[1].row, sizeof(REAL));
     hxdivdata[1]->w = (REAL*)calloc(A_diag[1].row, sizeof(REAL));
+    printf("hxdivdata filled\n");
 
   /* set AMG for the darcy block */
   mgl[1] = amg_data_create(max_levels);
