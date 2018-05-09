@@ -876,6 +876,7 @@ INT linear_solver_dcsr_krylov_hx_div(dCSRmat *A,
                                       dCSRmat *Curl)
 {    
     const SHORT prtlvl = itparam->linear_print_level;
+    amgparam->max_levels = 2;
     const SHORT max_levels = amgparam->max_levels;
     printf("AMG max levels %d\n",max_levels);
     //amgparam->maxit = 2;
@@ -892,14 +893,9 @@ INT linear_solver_dcsr_krylov_hx_div(dCSRmat *A,
     /*------------------------*/
     /* setup vector Laplacian */
     /*------------------------*/
-    printf("%d\t%d\n",Curl->row,Curl->col);
-    printf("%d\t%d\n",P_curl->row,P_curl->col);
-    printf("%d\t%d\n",P_div->row,P_div->col);
-    
     // get transpose of P_curl
     dCSRmat Pt_curl;
     dcsr_trans(P_curl, &Pt_curl);
-    printf("%d\t%d\n",Curl->row,Curl->col);
     // get transpose of P_div
     dCSRmat Pt_div;
     dcsr_trans(P_div, &Pt_div);
@@ -910,7 +906,6 @@ INT linear_solver_dcsr_krylov_hx_div(dCSRmat *A,
     // get A_curl
     dCSRmat A_curl;
     dcsr_rap(&Curlt, A, Curl, &A_curl);
-    printf("%d\t%d\n",Curl->row,Curl->col);
     // get A_curlgrad
     dCSRmat A_curlgrad;
     dcsr_rap(&Pt_curl, &A_curl, P_curl, &A_curlgrad);
@@ -988,13 +983,13 @@ INT linear_solver_dcsr_krylov_hx_div(dCSRmat *A,
     precond pc; pc.data = &hxdivdata;
     switch (itparam->linear_precond_type) {
             
-        case PREC_HX_CURL_A: //additive HX preconditioner
+        case PREC_HX_DIV_A: //additive HX preconditioner
             pc.fct = precond_hx_div_additive;
             break;
         
         default:  // multiplicative HX preconditioner
-            pc.fct = precond_hx_div_additive;
-//            pc.fct = precond_hx_div_multiplicative;
+//            pc.fct = precond_hx_div_additive;
+            pc.fct = precond_hx_div_multiplicative;
             break;
 
     }
@@ -2583,6 +2578,9 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
                                            linear_itsolver_param *itparam,
                                            AMG_param *amgparam,
                                            dCSRmat * A_diag,
+                                           dCSRmat * P_curl,
+                                           dCSRmat * P_div,
+                                           dCSRmat * Curl,
                                            solve_stats * solve_info)
 {
   const SHORT prtlvl = itparam->linear_print_level;
@@ -2621,6 +2619,93 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
   }
   printf("finished displacement block\n");
 
+  /* setup HX for darcy block */
+    HX_div_data **hxdivdata = (HX_div_data **)calloc(3, sizeof(HX_div_data *));
+    // get transpose of P_curl
+    dCSRmat Pt_curl;
+    dcsr_trans(P_curl, &Pt_curl);
+    // get transpose of P_div
+    dCSRmat Pt_div;
+    dcsr_trans(P_div, &Pt_div);
+    // get transpose of Curl
+    dCSRmat Curlt;
+    dcsr_trans(Curl, &Curlt);
+    
+    // get A_curl
+    dCSRmat A_curl;
+    dcsr_rap(&Curlt, &A_diag[1], Curl, &A_curl);
+    // get A_curlgrad
+    dCSRmat A_curlgrad;
+    dcsr_rap(&Pt_curl, &A_curl, P_curl, &A_curlgrad);
+    // get A_divgrad
+    dCSRmat A_divgrad;
+    dcsr_rap(&Pt_div, &A_diag[1], P_div, &A_divgrad);
+    
+    // initialize A, b, x for mgl_curlgrad[0]
+    AMG_data *mgl_curlgrad = amg_data_create(max_levels);
+    mgl_curlgrad[0].A=dcsr_create(A_curlgrad.row,A_curlgrad.col,A_curlgrad.nnz);
+    dcsr_cp(&A_curlgrad, &mgl_curlgrad[0].A);
+    mgl_curlgrad[0].b=dvec_create(A_curlgrad.col);
+    mgl_curlgrad[0].x=dvec_create(A_curlgrad.row);
+    
+    // setup AMG for vector Laplacian
+    switch (amgparam->AMG_type) {
+            
+        case UA_AMG: // Unsmoothed Aggregation AMG
+            status = amg_setup_ua(mgl_curlgrad, amgparam); break;
+            
+        default: // Classical AMG
+            status = amg_setup_ua(mgl_curlgrad, amgparam); break;
+            
+    }
+    
+    //if (status < 0) goto FINISHED;
+    
+    // initialize A, b, x for mgl_divgrad[0]
+    AMG_data *mgl_divgrad = amg_data_create(max_levels);
+    mgl_divgrad[0].A=dcsr_create(A_divgrad.row,A_divgrad.col,A_divgrad.nnz);
+    dcsr_cp(&A_divgrad, &mgl_divgrad[0].A);
+    mgl_divgrad[0].b=dvec_create(A_divgrad.col);
+    mgl_divgrad[0].x=dvec_create(A_divgrad.row);
+    
+    // setup AMG for vector Laplacian
+    switch (amgparam->AMG_type) {
+            
+        case UA_AMG: // Unsmoothed Aggregation AMG
+            status = amg_setup_ua(mgl_divgrad, amgparam); break;
+            
+        default: // Classical AMG
+            status = amg_setup_ua(mgl_divgrad, amgparam); break;
+            
+    }
+    
+    //if (status < 0) goto FINISHED;
+
+    /*------------------------*/
+    // setup preconditioner
+    
+    hxdivdata[1]->A = &A_diag[1];
+    
+    hxdivdata[1]->smooth_type = 1;
+    hxdivdata[1]->smooth_iter = itparam->HX_smooth_iter;
+    
+    hxdivdata[1]->P_curl = P_curl;
+    hxdivdata[1]->Pt_curl = &Pt_curl;
+    hxdivdata[1]->P_div = P_div;
+    hxdivdata[1]->Pt_div = &Pt_div;
+    hxdivdata[1]->Curl = Curl;
+    hxdivdata[1]->Curlt = &Curlt;
+    hxdivdata[1]->A_curlgrad = &A_curlgrad;
+    hxdivdata[1]->A_divgrad = &A_divgrad;
+    hxdivdata[1]->amgparam_curlgrad = amgparam;
+    hxdivdata[1]->mgl_curlgrad = mgl_curlgrad;
+    hxdivdata[1]->amgparam_divgrad = amgparam;
+    hxdivdata[1]->mgl_divgrad = mgl_divgrad;
+    
+    hxdivdata[1]->A_curl = &A_curl;
+    
+    hxdivdata[1]->backup_r = (REAL*)calloc(A_diag[1].row, sizeof(REAL));
+    hxdivdata[1]->w = (REAL*)calloc(A_diag[1].row, sizeof(REAL));
 
   /* set AMG for the darcy block */
   mgl[1] = amg_data_create(max_levels);
@@ -2669,6 +2754,7 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
   precdata.r = dvec_create(b->row);
   precdata.amgparam = amgparam;
   precdata.mgl = mgl;
+  precdata.hxdivdata = hxdivdata;
 
   precond prec; prec.data = &precdata;
 
