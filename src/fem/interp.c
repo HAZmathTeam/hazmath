@@ -1255,9 +1255,18 @@ void get_Pigrad_H1toRT( dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl, trimesh* m
     temp1 = temp1 / 3;
     temp2 = temp2 / 3;
     temp3 = temp3 / 3;
-    temp1 = temp1 / mesh->f_area[i];
-    temp2 = temp2 / mesh->f_area[i];
-    temp3 = temp3 / mesh->f_area[i];
+//    temp1 = temp1 / mesh->f_area[i];
+//    temp2 = temp2 / mesh->f_area[i];
+//    temp3 = temp3 / mesh->f_area[i];
+    
+    //printf("F_norm(%f,%f,%f)\ttemp(%f,%f,%f)\n",mesh->f_norm[i*dim],mesh->f_norm[i*dim+1],mesh->f_norm[i*dim+2],temp1,temp2,temp3);
+
+    //temp1 = mesh->f_area[i]*mesh->f_norm[i*dim+0]/3;
+    //temp2 = mesh->f_area[i]*mesh->f_norm[i*dim+1]/3;
+    //temp3 = mesh->f_area[i]*mesh->f_norm[i*dim+2]/3;
+    temp1 = mesh->f_norm[i*dim+0]/3;
+    temp2 = mesh->f_norm[i*dim+1]/3;
+    temp3 = mesh->f_norm[i*dim+2]/3;
 
     // Build Pdiv
     rowa = mesh->f_v->IA[i]-1;

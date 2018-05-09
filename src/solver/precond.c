@@ -385,8 +385,8 @@ void precond_hx_curl_multiplicative(REAL *r,
  * \param z     Pointer to preconditioned vector
  * \param data  Pointer to precondition data
  *
- * \author Xiaozhe Hu
- * \date   02/10/2016
+ * \author Peter Ohm
+ * \date   05/10/2018
  */
 void precond_hx_div_additive(REAL *r,
                               REAL *z,
@@ -409,6 +409,7 @@ void precond_hx_div_additive(REAL *r,
     
     // smoothing
     smoother_dcsr_sgs(&zz, hxdivdata->A, &rr, smooth_iter);
+    //smoother_dcsr_jacobi(&zz, 0, n, 1, hxdivdata->A, &rr, smooth_iter);
 
     // solve div vector Laplacian
     AMG_param *amgparam_divgrad = hxdivdata->amgparam_divgrad;
@@ -420,9 +421,9 @@ void precond_hx_div_additive(REAL *r,
     mgl_divgrad->x.row=hxdivdata->A_divgrad->row;
     dvec_set(hxdivdata->A_divgrad->row, &mgl_divgrad->x, 0.0);
     
-    //for (i=0;i<maxit;++i) mgcycle(mgl_divgrad, amgparam_divgrad);
+    for (i=0;i<maxit;++i) mgcycle(mgl_divgrad, amgparam_divgrad);
     //dcsr_pvfgmres(hxdivdata->A_divgrad, &mgl_divgrad->b, &mgl_divgrad->x, NULL, 1e-3, 1000, 1000, 1, 1);
-    directsolve_UMF(hxdivdata->A_divgrad, &(mgl_divgrad->b), &(mgl_divgrad->x), 1);
+    //directsolve_UMF(hxdivdata->A_divgrad, &(mgl_divgrad->b), &(mgl_divgrad->x), 1);
     
     dcsr_aAxpy(1.0, hxdivdata->P_div, mgl_divgrad->x.val, z);
 
@@ -444,7 +445,11 @@ void precond_hx_div_additive(REAL *r,
     Cr.val = temp2;
 
     dcsr_mxv(hxdivdata->Curlt,r,Cr.val);
+//    INT flag;
+//    flag = directsolve_UMF(hxdivdata->A_curl, &Cr, &Cz, 1);
+//    printf("flag=%d\n",flag);
     smoother_dcsr_sgs(&Cz, hxdivdata->A_curl, &Cr, smooth_iter);
+//    //smoother_dcsr_jacobi(&Cz, 0, Cz.row, 1, hxdivdata->A_curl, &Cr, smooth_iter);
     dcsr_aAxpy(1.0,hxdivdata->Curl,Cz.val,z);
 
     // solve scalar Laplacian
@@ -458,15 +463,134 @@ void precond_hx_div_additive(REAL *r,
     dcsr_mxv(hxdivdata->Pt_curl, temp, mgl_curlgrad->b.val);
     dvec_set(hxdivdata->A_curlgrad->row, &mgl_curlgrad->x, 0.0);
 
-    //for (i=0;i<maxit;++i) mgcycle(mgl_curlgrad, amgparam_curlgrad);
+    for (i=0;i<maxit;++i) mgcycle(mgl_curlgrad, amgparam_curlgrad);
     //dcsr_pvfgmres(hxdivdata->A_curlgrad, &mgl_curlgrad->b, &mgl_curlgrad->x, NULL, 1e-3, 1000, 1000, 1, 1);
-    directsolve_UMF(hxdivdata->A_curlgrad, &(mgl_curlgrad->b), &(mgl_curlgrad->x),1);
+    //directsolve_UMF(hxdivdata->A_curlgrad, &(mgl_curlgrad->b), &(mgl_curlgrad->x),1);
 
     dcsr_mxv(hxdivdata->P_curl, mgl_curlgrad->x.val, temp);
     dcsr_aAxpy(1.0, hxdivdata->Curl, temp, z); 
     for(j=0;j<n;j++){
       if(z[j]!=z[j]){ printf("z[%d]=%f\n",j,z[j]);}
     }
+
+    // free
+    free(temp);
+    free(temp1);
+    free(temp2);
+}
+/***********************************************************************************************/
+/**
+ * \fn void precond_hx_div_multiplicative (REAL *r, REAL *z, void *data)
+ *
+ * \brief HX preconditioner for H(div): multiplicative version
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Peter Ohm
+ * \date   05/10/2018
+ */
+void precond_hx_div_multiplicative(REAL *r,
+                              REAL *z,
+                              void *data)
+{   
+    printf("Multiplicative\n");
+    HX_div_data *hxdivdata=(HX_div_data *)data;
+    INT n = hxdivdata->A->row;
+    SHORT smooth_iter = hxdivdata->smooth_iter;
+    
+    // backup r
+    array_cp(n, r, hxdivdata->backup_r);
+    
+    // make sure z is initialzied by zeros
+    array_set(n, z, 0.0);
+    
+    // local variable
+    dvector zz;
+    zz.row = n; zz.val = z;
+    dvector rr;
+    rr.row = n; rr.val = r;
+    
+    SHORT maxit, i;
+    
+    // smoothing
+    smoother_dcsr_sgs(&zz, hxdivdata->A, &rr, smooth_iter);
+    //smoother_dcsr_jacobi(&zz, 0, n, 1, hxdivdata->A, &rr, smooth_iter);
+
+    // update r
+    dcsr_aAxpy(-1.0, hxdivdata->A, zz.val, rr.val);
+
+    // solve div vector Laplacian
+    AMG_param *amgparam_divgrad = hxdivdata->amgparam_divgrad;
+    AMG_data *mgl_divgrad = hxdivdata->mgl_divgrad;
+    maxit = amgparam_divgrad->maxit;
+    
+    mgl_divgrad->b.row = hxdivdata->A_divgrad->row;
+    dcsr_mxv(hxdivdata->Pt_div, r, mgl_divgrad->b.val);
+    mgl_divgrad->x.row=hxdivdata->A_divgrad->row;
+    dvec_set(hxdivdata->A_divgrad->row, &mgl_divgrad->x, 0.0);
+    
+    for (i=0;i<maxit;++i) mgcycle(mgl_divgrad, amgparam_divgrad);
+    //dcsr_pvfgmres(hxdivdata->A_divgrad, &mgl_divgrad->b, &mgl_divgrad->x, NULL, 1e-3, 1000, 1000, 1, 1);
+    //directsolve_UMF(hxdivdata->A_divgrad, &(mgl_divgrad->b), &(mgl_divgrad->x), 1);
+    
+    dcsr_aAxpy(1.0, hxdivdata->P_div, mgl_divgrad->x.val, z);
+
+    // update r
+    array_cp(n, hxdivdata->backup_r, r);
+    dcsr_aAxpy(-1.0, hxdivdata->A, zz.val, rr.val);
+
+    INT j;
+    for(j=0;j<n;j++){
+      if(z[j]!=z[j]){ printf("DIV z[%d]=%f\n",j,z[j]);}
+    }
+    
+    // smoothing
+    REAL *temp1 = (REAL*)calloc(hxdivdata->Curlt->row,sizeof(REAL));
+    REAL *temp2 = (REAL*)calloc(hxdivdata->Curlt->row,sizeof(REAL));
+
+    dvector Cz;
+    Cz.row = hxdivdata->A_curl->row;
+    Cz.val = temp1;// initial guess is zero
+
+    dvector Cr;
+    Cr.row = Cz.row;
+    Cr.val = temp2;
+
+    dcsr_mxv(hxdivdata->Curlt,r,Cr.val);
+    smoother_dcsr_sgs(&Cz, hxdivdata->A_curl, &Cr, smooth_iter);
+    //smoother_dcsr_jacobi(&Cz, 0, Cz.row, 1, hxdivdata->A_curl, &Cr, smooth_iter);
+    dcsr_aAxpy(1.0,hxdivdata->Curl,Cz.val,z);
+
+    // update r
+    array_cp(n, hxdivdata->backup_r, r);
+    dcsr_aAxpy(-1.0, hxdivdata->A, zz.val, rr.val);
+
+    // solve scalar Laplacian
+    AMG_param *amgparam_curlgrad = hxdivdata->amgparam_curlgrad;
+    AMG_data *mgl_curlgrad = hxdivdata->mgl_curlgrad;
+    maxit = amgparam_curlgrad->maxit;
+
+    REAL *temp = (REAL*)calloc(hxdivdata->Curlt->row,sizeof(REAL));
+    dcsr_mxv(hxdivdata->Curlt, r, temp);
+    mgl_curlgrad->b.row = hxdivdata->Pt_curl->row;
+    dcsr_mxv(hxdivdata->Pt_curl, temp, mgl_curlgrad->b.val);
+    dvec_set(hxdivdata->A_curlgrad->row, &mgl_curlgrad->x, 0.0);
+
+    for (i=0;i<maxit;++i) mgcycle(mgl_curlgrad, amgparam_curlgrad);
+    //dcsr_pvfgmres(hxdivdata->A_curlgrad, &mgl_curlgrad->b, &mgl_curlgrad->x, NULL, 1e-3, 1000, 1000, 1, 1);
+    //directsolve_UMF(hxdivdata->A_curlgrad, &(mgl_curlgrad->b), &(mgl_curlgrad->x),1);
+
+    dcsr_mxv(hxdivdata->P_curl, mgl_curlgrad->x.val, temp);
+    dcsr_aAxpy(1.0, hxdivdata->Curl, temp, z); 
+
+    for(j=0;j<n;j++){
+      if(z[j]!=z[j]){ printf("z[%d]=%f\n",j,z[j]);}
+    }
+
+    // store r
+    array_cp(n, hxdivdata->backup_r, r);
 
     // free
     free(temp);
