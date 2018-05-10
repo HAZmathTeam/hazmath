@@ -2620,7 +2620,9 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
   printf("finished displacement block\n");
 
   /* setup HX for darcy block */
-    HX_div_data **hxdivdata = (HX_div_data **)calloc(3, sizeof(HX_div_data *));
+  HX_div_data **hxdivdata = NULL;
+  if(Curl!=NULL){
+    hxdivdata = (HX_div_data **)calloc(3, sizeof(HX_div_data *));
     // get transpose of P_curl
     dCSRmat Pt_curl;
     dcsr_trans(P_curl, &Pt_curl);
@@ -2709,7 +2711,7 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
     hxdivdata[1]->backup_r = (REAL*)calloc(A_diag[1].row, sizeof(REAL));
     hxdivdata[1]->w = (REAL*)calloc(A_diag[1].row, sizeof(REAL));
     printf("hxdivdata filled\n");
-
+  } else {
   /* set AMG for the darcy block */
   mgl[1] = amg_data_create(max_levels);
   dcsr_alloc(A_diag[1].row, A_diag[1].row, A_diag[1].nnz, &mgl[1][0].A);
@@ -2727,6 +2729,7 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
     default: // UA AMG
       if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
       status = amg_setup_ua(mgl[1], amgparam); break;
+  }
   }
 
   /* set AMG for the presssure block */
