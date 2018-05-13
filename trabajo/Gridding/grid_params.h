@@ -11,7 +11,7 @@
 #endif
 
 /* MAX LEVELS of refinement */
-#define MAXREFLEVELS 0
+#define MAXREFLEVELS 7
 
 /* spatial dimension */
 #define DIM 3
@@ -28,7 +28,33 @@
 
 #define USE_FEATURES 0
 #define FEATURES_DIR  "./"
-#define FEATURES_FILE_IN "pts123.csv"
-#define FEATURES_FILE_OUT "opts123.txt"
+#define FEATURES_FILE_IN "pts123.inp"
+#define FEATURES_FILE_OUT "opts123.out"
 
+
+/* 
+   boundary conditions: boundary codes for essential BC and Robin type BC.
+   the last two are ignored in 2D. If they are between 
+1--16 Dirichlet; 17--32 Neumann; 33->64 Robin.
+*/
+// example with analytical solution, if set to 1;
+#ifndef LEFTBC
+#define LEFTBC 1
+#endif
+#ifndef RIGHTBC
+#define RIGHTBC 2
+#endif
+#ifndef FRONTBC
+#define FRONTBC 30
+#endif
+#ifndef BACKBC
+#define BACKBC 31
+#endif
+#ifndef BOTTOMBC
+#define BOTTOMBC 19
+#endif
+#ifndef TOPBC
+#define TOPBC 22
+#endif
+/*********************************************************************/
 

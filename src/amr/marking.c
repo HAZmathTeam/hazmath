@@ -123,7 +123,7 @@ void markstar(INT level,scomplex *sc, INT nstar, REAL *xstar)
      point from xstar[...]. simplices which are initially unmarked are
      left unmarked
   */
-//  fprintf(stdout,"\nNSTAR=%d\n",nstar);fflush(stdout);
+  //  fprintf(stdout,"\nNSTAR=%d\n",nstar);fflush(stdout);
   INT n=sc->n,n1=n+1,ns=sc->ns;
   INT istar,jstar,j=-1;
   if(!nstar){

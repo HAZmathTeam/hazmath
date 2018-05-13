@@ -179,7 +179,7 @@ void abfstree(INT it, scomplex *sc,INT *wrk)
     kbeg=kend; kend=nums;klev++;
     if(nums >= ns)  break;
   }
-  fprintf(stdout,"%%BFS levels for reflect: %d; ",klev-1);
+  //  fprintf(stdout,"%%BFS levels for reflect: %d; ",klev-1);
   for(i=0;i<ns;i++){
     jbfs[i]=-1;
   }

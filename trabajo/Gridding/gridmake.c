@@ -26,11 +26,12 @@ INT main(INT   argc,   char *argv[])
   INT i=-10,j=-10,k=-10;
   // Set Paramaters
   INT ref_levels=MAXREFLEVELS; // export also a vtk file with the mesh
+  INT use_features=(INT )USE_FEATURES;
   INT idovtk=VTKDO; // export also a vtk file with the mesh
   /* Filenames */
   char *nameout=NULL, *namevtk=NULL;
 
-  char *prefix0=NULL; /*prefix for all filenames */
+  char *prefix0=NULL; /* prefix for all filenames */
   size_t lenname, slen;
   /* deal with filenames */ 
   slen=strlen(OPREFIX);
@@ -75,7 +76,7 @@ INT main(INT   argc,   char *argv[])
     i=fscanf(stdin,"%d", &nz);
     nz=chkn(nz, 2, m0z);
     if(!(nz%2)){
-      ny++;
+      nz++;
       fprintf(stdout, "\n%%Even number of points in Z-direction. Changing to ODD., i.e. nz=%d\n",nz);
     }
     nvert = nvert*nz; /* Total of DOF (including the boundary)*/
@@ -109,40 +110,65 @@ INT main(INT   argc,   char *argv[])
   REAL *xo=(REAL *)calloc(2*dim,sizeof(REAL));
   REAL *xn=xo+dim;  
   if(je && ib && mask && (sc->flags) && xcoord && ycoord){
+    // set the boundary codes for all faces of the cube:
+    INT *ibcode=calloc(6,sizeof(INT));
+    ibcode[0]=(INT )LEFTBC;
+    ibcode[1]=(INT )RIGHTBC;
+    ibcode[2]=(INT )FRONTBC;
+    ibcode[3]=(INT )BACKBC;
+    ibcode[4]=0;
+    ibcode[5]=0;
+    INT  minneu=(INT )MARKER_NEUMANN;
+    INT  maxneu=((INT )MARKER_ROBIN)-1;
     if(dim>2 && zcoord) {
+      ibcode[4]=(INT )BOTTOMBC;
+      ibcode[5]=(INT )TOPBC;
       getm3_(&nx,&ny,&nz,&nvert,&nel,xcoord,ycoord,zcoord,	\
-	     je,sc->flags,ib,mask);
+	     je,sc->flags,ib,mask,				\
+	     ibcode,&minneu,&maxneu);
     } else {
       getm2_(&nx,&ny,&nvert,&nel,xcoord,ycoord,	\
-	     je,sc->flags,ib,mask);
+	     je,sc->flags,ib,mask,
+	     ibcode,&minneu,&maxneu);
+    
+      fprintf(stdout,"\nibcode %d %d %d %d %d %d\n",		\
+	      ibcode[0],					\
+	      ibcode[1],					\
+	      ibcode[2],					\
+	      ibcode[3],					\
+	      ibcode[4],					\
+	      ibcode[5]						\
+	      );fflush(stdout);
     }
+    free(ibcode);
     for(j=0;j<(sc->n+1)*sc->ns;j++){
       sc->nodes[j]-=1;
     }
-    r2c(dim,nvert,sizeof(REAL),sc->x); /*
-					 sc->x by cols is the same as
-					 xcoord by rows;   
-				       */
-    //    swne(dim,nvert,xo,xn,sc->x);
+    r2c(dim,nvert,sizeof(REAL),sc->x); /*sc->x by cols is the same as
+					 xcoord by rows;*/
     if(ref_levels){
       /*******************************************/
-      features *feat=malloc(sizeof(feat));
+      features *feat=malloc(sizeof(features));
       feat->nbig=dim;
       feat->n=dim;
-      feat->nf=1;
-      feat->x = (REAL *)calloc(feat->nbig*feat->nf,sizeof(REAL));
-      for(i=0;i<feat->nf;i++){
-	for(j=0;j<dim-1;j++)
-	  feat->x[dim*i+j]=0.5;
-	feat->x[dim*i+(dim-1)]=0.;
-      }
+      REAL vvv=0.;
+      features_r(dim,use_features,feat, vvv);
+	//      feat->nf=1;
+	//      feat->x = (REAL *)calloc(feat->nbig*feat->nf,sizeof(REAL));
+	//      for(i=0;i<feat->nf;i++){
+	//	for(j=0;j<dim-1;j++)
+	//	  feat->x[dim*i+j]=0.5;
+	//	feat->x[dim*i+(dim-1)]=0.;
+	//	}
       find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
-      refining(ref_levels,sc,feat->nf,feat->x);
+      refining(ref_levels,sc,feat->nf,feat->x);     
       free(feat->x);
+      free(feat);
     }
     hazw(nameout,sc,0,1);
     if(idovtk) {
       strcat(namevtk,".vtu");
+      fprintf(stdout,"\nvert=%d; simp=%d",sc->nv,sc->ns);
       vtkw(namevtk,sc,0,0,1.);
     }
   }

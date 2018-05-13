@@ -33,19 +33,25 @@ INT features_r(const INT dim_orig,const INT use_features,features *feat, REAL vf
      boundary. In all cases, feat->x[] here is dimbig by f->n array */
   /*inputs*/
   if(use_features){
+    feat->fpf=NULL;
     char *fname=(char *)calloc(FILENAMESIZE,sizeof(char));  
     size_t lfname=0,lfnamei=0;
-    /* read a file with coordinates on the surface where we refine */
-    lfname=strlen((char *)FEATURES_DIR);
-    lfnamei=strlen((char *)FEATURES_FILE_IN);
-    strcpy(fname,(char *)FEATURES_DIR);
-    strcpy((fname+lfname),(char *)FEATURES_FILE_IN);
-    fname[lfnamei+lfname]='\0';
+    /* read a file with coords where we can refine */
+    lfname=strlen((const char *)FEATURES_DIR);
+    lfnamei=strlen((const char *)FEATURES_FILE_IN);
+    strncpy(fname,(const char *)FEATURES_DIR,lfname);
+    strncpy((fname+lfname),FEATURES_FILE_IN,lfnamei);
     feat->fpf=fopen(fname,"r");
-    feat->nbig=dim_orig; feat->n=2;/* dim_orig or dim_orig- 1 */
+    //    if(feat->fpf)
+    //      {      fprintf(stdout,"\nZZZZZZZZZZZZvfill=%f; lfname,lfnamei=%li ;  %li ; name=%s\n",vfill,lfname,lfnamei,fname);fflush(stdout);}
+    //    else
+    //      {fprintf(stderr,"\n*** ERROR***\n");fflush(stderr);}
+    /*feat nbig or feat*/
+    //    feat->nbig=dim_orig; feat->n=dim_orig;/* dim_orig or dim_orig- 1 */
     feat->fill=vfill;
     if(fname) free(fname);
   } else {
+    //    fprintf(stdout,"\nnbig==%d\n",feat->nbig);fflush(stdout);
     feat->nf=0;
     feat->x=NULL;
     return 5;
@@ -62,7 +68,7 @@ INT features_r(const INT dim_orig,const INT use_features,features *feat, REAL vf
     return 3;
   }
   /* 
-     Read csv file. When exported via excel such file has 3-4 control
+     Read (csv) file. When exported via excel such file has 3-4 control
      chars at the beginning.
   */ 
   /*read special chars if any*/
@@ -88,6 +94,7 @@ INT features_r(const INT dim_orig,const INT use_features,features *feat, REAL vf
     rewind(feat->fpf);
   }
   feat->nf=k;
+  fprintf(stdout,"\nfeatures=%d ; %d ;  %d\n",feat->nf,feat->n,feat->nbig);fflush(stdout);
   /* we allocate always the max of dim or dimbig */
   if(dimbig>dim) {
     feat->x=(REAL *)calloc(dimbig*(feat->nf),sizeof(REAL));
@@ -96,76 +103,79 @@ INT features_r(const INT dim_orig,const INT use_features,features *feat, REAL vf
     feat->x=(REAL *)calloc(dim*(feat->nf),sizeof(REAL));
   }
   for (i=0;i<k;i++){
+    //    fprintf(stdout,"\nnode=%d ; ",i);
     for(j=0;j<dim;j++){
       count = fscanf(feat->fpf,"%lg", (feat->x+dim*i+j));
+      //      fprintf(stdout,"%g ; ",feat->x[dim*i+j]);
     }
   }
-  fprintf(stdout,"Read %i coord pairs\n",k);
+  fprintf(stdout,"\nRead %i coordinate %d-tuples\n",k,dim);
   fclose(feat->fpf);
-  //  fclose(feat->fpf);
-  /* sort so that duplicates */
-  qsort(feat->x,(feat->nf), dim*sizeof(REAL), realcmp);
-  /* Clean up the data by removing all the duplicates */
-  k=feat->nf-1;
-  i=0;j=0;
-  REAL *xc=(REAL *)calloc(dim, sizeof(REAL));
-  REAL dli,dli1; //l1 distance
-  while (i<k){
-    if(fabs(feat->x[dim*i])<1e-6) {i++;continue;}
-    if(j==0) {
-      for(m=0;m<dim;m++){
-	feat->x[m]=feat->x[2*i+m];
-      }
-    }
-    dli=0.;
-    for(m=0;m<dim;m++){
-      xc[m]=feat->x[2*j+m];
-      dli=dli+fabs(xc[m]);
-    }
-    while(1 && i<k) {
-      dli1=0.;
-      for(m=0;m<dim;m++){
-	dli1+=fabs(xc[m]-feat->x[dim*i+dim+m]);
-      }
-      dli1=dli1/dli;
-      if(dli1>1e-6){
-	j++;i++;
-	for(m=0;m<dim;m++){feat->x[dim*j+m]=feat->x[dim*i+m];}
-	break;
-      }
-      i++;
-      //      fprintf(stdout,"i=%i\n",i);
-    }
-    //    fprintf(stdout,"i=%i, j=%i\n",i,j);
-  }
-  i++;j++; feat->nf=j;
-  //  fprintf(stdout,"i=%i, j=%i\n",i,j);
-  for(m=0;m<dim;m++){feat->x[dim*j+m]=feat->x[dim*i+m];}
-  /* fprintf(stdout,"\nSorted Coords:\n");  */
-  /* for (i=0;i<feat->nf;i++){  */
-  /*   fprintf(stdout,"%17.12g %17.12g\n",feat->x[2*i],feat->x[2*i+1]);  fflush(stdout); */
-  /* } */
-  /* if dimbig is larger than dim, i.e. we have read a 2d array but we are in 3D we need to rearrange feat->x so that it is dimbig by feat->nf */
-  /* fprintf(stdout,"\nCoords:\n");  */
-  /* for (i=0;i<feat->nf;i++){  */
-  /*   fprintf(stdout,"%17.12g %17.12g\n",feat->x[2*i],feat->x[2*i+1]);  fflush(stdout); */
-  /* } */
-  if(dimbig > dim) {
+  if(0) { // look for closing of if 0 below. 
+    /* sort so that duplicates */
+    qsort(feat->x,(feat->nf), dim*sizeof(REAL), realcmp);
+    /* Clean up the data by removing all the duplicates */
     k=feat->nf-1;
-    for(i=k;i>0;i--){
-      for(m=dim-1;m>=0;m--){
-  	feat->x[dimbig*i+m]=feat->x[dim*i+m];
-	//	fprintf(stdout,"(%d,%d): %d  %d\n",i,m,dimbig*i+m,dim*i+m);  fflush(stdout);
+    i=0;j=0;
+    REAL *xc=(REAL *)calloc(dim, sizeof(REAL));
+    REAL dli,dli1; //l1 distance
+    while (i<k){
+      if(fabs(feat->x[dim*i])<1e-6) {i++;continue;}
+      if(j==0) {
+	for(m=0;m<dim;m++){
+	  feat->x[m]=feat->x[2*i+m];
+	}
       }
-      for(m=dim;m<dimbig;m++){
-  	feat->x[dimbig*i+m]=feat->fill;
+      dli=0.;
+      for(m=0;m<dim;m++){
+	xc[m]=feat->x[2*j+m];
+	dli=dli+fabs(xc[m]);
+      }
+      while(1 && i<k) {
+	dli1=0.;
+	for(m=0;m<dim;m++){
+	  dli1+=fabs(xc[m]-feat->x[dim*i+dim+m]);
+	}
+	dli1=dli1/dli;
+	if(dli1>1e-6){
+	  j++;i++;
+	  for(m=0;m<dim;m++){feat->x[dim*j+m]=feat->x[dim*i+m];}
+	  break;
+	}
+	i++;
+	//      fprintf(stdout,"i=%i\n",i);
+      }
+      //    fprintf(stdout,"i=%i, j=%i\n",i,j);
+    }
+    i++;j++; feat->nf=j;
+    //  fprintf(stdout,"i=%i, j=%i\n",i,j);
+    for(m=0;m<dim;m++){feat->x[dim*j+m]=feat->x[dim*i+m];}
+    /* fprintf(stdout,"\nSorted Coords:\n");  */
+    /* for (i=0;i<feat->nf;i++){  */
+    /*   fprintf(stdout,"%17.12g %17.12g\n",feat->x[2*i],feat->x[2*i+1]);  fflush(stdout); */
+    /* } */
+    /* if dimbig is larger than dim, i.e. we have read a 2d array but we are in 3D we need to rearrange feat->x so that it is dimbig by feat->nf */
+    /* fprintf(stdout,"\nCoords:\n");  */
+    /* for (i=0;i<feat->nf;i++){  */
+    /*   fprintf(stdout,"%17.12g %17.12g\n",feat->x[2*i],feat->x[2*i+1]);  fflush(stdout); */
+    /* } */
+    if(dimbig > dim) {
+      k=feat->nf-1;
+      for(i=k;i>0;i--){
+	for(m=dim-1;m>=0;m--){
+	  feat->x[dimbig*i+m]=feat->x[dim*i+m];
+	  //	fprintf(stdout,"(%d,%d): %d  %d\n",i,m,dimbig*i+m,dim*i+m);  fflush(stdout);
+	}
+	for(m=dim;m<dimbig;m++){
+	  feat->x[dimbig*i+m]=feat->fill;
+	}
       }
     }
-  }
-  /* fprintf(stdout,"\nCoords:\n"); */
-  /* for (i=0;i<feat->nf;i++){ */
-  /*   fprintf(stdout,"%17.12g %17.12g %10.4g\n",feat->x[3*i],feat->x[3*i+1],feat->x[3*i+2]);  fflush(stdout); */
-  /* } */
+  }// commented out above if(0)
+  fprintf(stdout,"\nCoords:\n");
+  for (i=0;i<feat->nf;i++){ 
+    fprintf(stdout,"%17.12g %17.12g %10.4g\n",feat->x[3*i],feat->x[3*i+1],feat->x[3*i+2]);  fflush(stdout);
+  } 
   return 0;
 }
 INT features_w(features *feat,REAL *extra)

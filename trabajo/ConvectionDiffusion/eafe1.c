@@ -2,7 +2,61 @@
 #include <stdio.h>
 #include <string.h>
 #include "hazmath.h"
-//#include "ConvectionDiffusion.h"
+
+void num_assembly(INT ndof, INT *nop,INT *fflags,	\
+		  dCSRmat *ain, REAL *f,		\
+		  REAL *ae, REAL *fe, INT *ip)
+{
+  //ndof is the LOCAL number of degrees of freedom in this particular
+  //element. then ae is ndof by ndof; ip should be initialized before
+  //the first call of this function which is usually donein element by
+  //element loop.
+// nop here is pointed to by (sc->nop+element_num*ndof)
+  INT *ia=ain->IA,*ja=ain->JA;
+  INT i,j,k,l,ll,iii,iaa,iab,jk;
+  REAL *a=ain->val;
+/*-------------------------------------------------------------------- */
+/*   Numerical assembly */
+/*   Input:   */
+/*     AE, FE - element matrix and vector, respectively, to be */
+/*-------------------------------------------------------------------- */
+  for(l=0;l<ndof;l++){
+    i = nop[l];
+    if (chk_bc(fflags[i],1)) {
+    //      fprintf(stdout,"\ndofs with special bcflag: (i=%d):flag=%d",i,fflags[i]);
+      continue;
+    }
+    k = l - ndof;
+    f[i]+=fe[l];
+    for (ll=0;ll<ndof;ll++){
+      k+=ndof;
+      j=nop[ll];
+      //      fprintf(stdout,"\n%d %d; flags=%d %d",i,j,fflags[i],fflags[j]);
+      if(chk_bc(fflags[j],1)) {
+	//	fprintf(stdout,"\ndofs(2) with special bcflag: (%d,%d):(flagi,flagj)=%d,%d",i,j,fflags[i],fflags[j]);
+	f[i]-=ae[k]*f[j];
+      } else {
+	ip[j] = k;
+	continue;
+      }
+    }
+    iaa = ia[i];
+    iab = ia[i+1];
+    iii = 0;
+    for(jk=iaa;jk<iab;jk++){
+      j=ja[jk];
+      k = ip[j];
+      //      fprintf(stdout,"\nk=%d:",k);
+      if(k < 0) continue;
+      //      fprintf(stdout,"\n(i,j)=%d %d; flags=%d %d",i,j,fflags[i],fflags[j]);
+      a[jk]+=ae[k];
+      ip[j] = -1;
+      iii++;
+      if(iii==ndof) break;
+    }
+  }
+  return;
+}
 /*! \file src/fem/eafe.c
  *
  *  Created by Xiaozhe Hu, James Adler, and Ludmil Zikatanov 20170309
@@ -25,7 +79,6 @@
 
 static REAL bernoulli1(const REAL z){
   REAL tolb=1e-10,zlarge=37.*2.302;  
-  return z/(exp(z)-1.);
   if (fabs(z) < tolb)
     return (1.-z*0.5); // around 0 this is the asymptotic;
   else if(z<zlarge){
@@ -35,15 +88,8 @@ static REAL bernoulli1(const REAL z){
   else //z>tlarge this is zero pretty much
     return 0.;
 }
-
 /*!
- *
- * \fn diff_coeff1(REAL dim, REAL *val,REAL* x, REAL t, void *param)
- * \brief returns 1;
- *
- */
-/*!
- * \fn  eafe(dCSRmat *A, dvector *rhs, void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL), trimesh mesh, fespace FE, qcoordinates *cq, void (*scalar_val_d)(REAL *, REAL *, REAL), void (*scalar_val_rhs)(REAL *, REAL *, REAL), void (*vector_val_ad)(REAL *, REAL *, REAL), void (*scalar_val_bndnr)(REAL *, REAL *, REAL), REAL faketime)
+ * \fn  eafe1(dCSRmat *A, dvector *rhs, void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL), trimesh mesh, fespace FE, qcoordinates *cq, void (*scalar_val_d)(REAL *, REAL *, REAL), void (*scalar_val_rhs)(REAL *, REAL *, REAL), void (*vector_val_ad)(REAL *, REAL *, REAL), void (*scalar_val_bndnr)(REAL *, REAL *, REAL), REAL faketime)
  * \brief Uses Schur product and from the assembled matrix for Poisson
  * equation with natural boundary conditions makes the EAFE FE
  * discretization for the equation
@@ -73,7 +119,6 @@ static REAL bernoulli1(const REAL z){
  * \return b              RHS vector
  *
  */
-
 void eafe1(dCSRmat *ain, dvector *rhs,scomplex *sc){
   // assemble the laplacian matrix
   INT dim=sc->n, ns=sc->ns, nv=sc->nv,dim1=dim+1,dim2=dim*dim;
@@ -236,7 +281,6 @@ void eafe1(dCSRmat *ain, dvector *rhs,scomplex *sc){
 /***********************************************************************/
     print_full_mat(dim1,dim,bsinv,"bsinv");
     print_full_mat(dim1,dim1,aloc,"diffnew");
-    // diff is in LU below, so destroyed. and piv too. 
   }/* end of element loop*/
   fprintf(stdout,"\n%%%% end of element loop...\n");  
   //  dvec_free(&diag0);
@@ -244,4 +288,64 @@ void eafe1(dCSRmat *ain, dvector *rhs,scomplex *sc){
   if(aloc)free(aloc);
   return;
 }
+/*C====================================================================*/
+void symba(scomplex *sc,dCSRmat *ain,INT n,INT *nnz, INT *iwk){
+ /*C====================================================================*/
+  INT *ia=ain->IA,*ja=ain->JA;
+  INT ndof=sc->n+1,i,j,k,l,ll,iii,iaa,iab,jk;
+  REAL *a=ain->val;
+  iCSRmat *ieje=NULL,*iejet=NULL;
+  ieje->IA=calloc(sc->ns*ndof,sizeof(INT));
+    ieje->JA=nodes;
+  /*
+C--------------------------------------------------------------------
+C...  Symbolic assembly of a general nodal assembly matrix.
+C...
+C...  Input:
+C...    IE, JE   - mesh connectivity matrix in RRCU.
+C...    IET, JET - transpose of IE and JE in RRCO.
+C...    N        - number of nodes in the mesh.
+C...    IWK      - array of dimension N+1 which contains the value  
+C...               N+1 in the positions corresponding to Dirichlet 
+C...               nodes and 0 elsewhere.
+C...
+C...  Output:
+C...    IA, JA   - structure of the nodal assembly matrix of 
+C...               dimension NxN, in RRCU form.
+C...
+C...  Note:
+C...    N+1 is the dimension of IA.
+C...    NNZ is the dimension of JA.
+C--------------------------------------------------------------------
+*/
+      np = n + 1
+      nnz = 0
+      jp = 1
+      do 50 i = 1, n
+         jpi = jp
+         if(iwk(i) .eq. np) then
+            ja(jp) = i
+            jp = jp + 1
+            go to 40
+         end if
+         ieta = iet(i)
+         ietb = iet(i+1) - 1
+         do 30 ip = ieta,ietb
+            j = jet(ip)
+            iea = ie(j)
+            ieb = ie(j+1) - 1
+            do 20 kp = iea,ieb
+               k = je(kp)
+               if (iwk(k) .ge. i) go to 20
+               ja(jp) = k
+               jp = jp + 1
+               iwk(k) = i
+ 20         continue
+ 30      continue
+ 40      ia(i) = jpi
+ 50   continue
+      ia(np) = jp
+      nnz = ia(np)-1
+      return
+      end
 
