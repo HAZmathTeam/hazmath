@@ -626,6 +626,8 @@ INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew,INT ibnew,INT nsnew, INT nvn
     if(xnew) free(xnew);
     sc->bndry=realloc(sc->bndry,(nvnew)*sizeof(INT));
     sc->bndry[nv]=ibnew;
+    sc->fval=realloc(sc->fval,(nvnew)*sizeof(REAL));
+    sc->fval[nv]=0.;
   }
   //generation
   sc->gen=realloc(sc->gen,(nsnew)*sizeof(INT));
