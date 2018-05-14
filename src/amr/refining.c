@@ -252,3 +252,67 @@ void refining(INT ref_levels, scomplex *sc, INT nstar, REAL *xstar)
   if(wrk) free(wrk);
   return;
 }
+INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)
+{
+  /* 
+     checks if the point given with coordinates xstar[] is in the
+     simplex defined by "nodes[] and xs[]" in dimension "n" construct the
+     map A from reference simplex and solves linear systems with partial pivoting to determine this 
+  */  
+  INT n1=n+1,i,j,l0n,ln,j1;
+  INT *p=NULL;
+  REAL *A=NULL,*xhat=NULL, *piv=NULL;
+  A=(REAL *)calloc(n*n,sizeof(REAL));
+  xhat=(REAL *)calloc(n,sizeof(REAL));
+  piv=(REAL *)calloc(n,sizeof(REAL));
+  p=(INT *)calloc(n,sizeof(INT));
+  /* fprintf(stdout,"\nj=%d; vertex=%d\n",0+1,nodes[0]+1); fflush(stdout); */
+  /* fprintf(stdout,"\nvertex=%d\n",nodes[0]+1); */
+  /* for(i=0;i<n;i++){ */
+  /*   fprintf(stdout,"xyz=%f ",xs[l0n+i]); */
+  /* } */
+  /* fprintf(stdout,"\n"); */
+  l0n=nodes[0]*n;
+  for (j = 1; j<n1;j++){
+    /* grab the vertex */
+    ln=nodes[j]*n;
+    j1=j-1;
+    for(i=0;i<n;i++){
+      /*A_{ij} = x_{i,nodes(j)}-x0_{i,nodes(j)},j=1:n (skip 0)*/
+      A[i*n+j1] = xs[ln+i]-xs[l0n+i];
+    }
+  }
+  //  fflush(stdout);
+  for(i=0;i<n;i++){
+    xhat[i] = xstar[i]-xs[l0n+i];
+  }
+  //print_full_mat(n,1,xstar,"xstar");
+  //  print_full_mat(n,n,A,"A");
+  //  print_full_mat(n,1,xhat,"xhat0");
+  solve_pivot(1, n, A, xhat, p, piv);
+  //  print_full_mat(n,1,xhat,"xhat");
+  /* check the solution if within bounds */
+  //  fprintf(stdout,"\nSolution:\n");
+  //  print_full_mat(n,1,xhat,"xhat");
+  REAL xhatn=1e0,eps0=1e-10,xmax=1e0+eps0;
+  INT flag = 0;
+  for(j=0;j<n;j++){
+    if((xhat[j]<-eps0) || (xhat[j]>xmax)){
+      flag=(j+1);
+      //      fprintf(stdout,"\nNOT FOUND: xhat(%d)=%e\n\n",flag,xhat[j]);
+      break;
+    }
+    xhatn -= xhat[j];
+    if((xhatn<-eps0) || (xhatn>xmax)) {
+      flag=n+1;
+      //          fprintf(stdout,"\nNOT FOUND: xhat(%d)=%e\n\n",flag,xhatn);
+      break;
+    }
+  }
+  if(A) free(A);
+  if(xhat) free(xhat);
+  if(p) free(p);
+  if(piv) free(piv);
+  return flag;
+}
+

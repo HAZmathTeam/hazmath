@@ -13,9 +13,6 @@
 /* MAX LEVELS of refinement */
 #define MAXREFLEVELS 18
 
-/* spatial dimension */
-#define DIM 3
-
 /* 
    preceeds all file names, so it can be a directory name and a
    prefix, etc
@@ -25,6 +22,10 @@
 #define IPREFIX "./macroel" 
 
 #define VTKDO  1
+
+/* spatial dimension */
+#define DIM 2
+
 
 #define USE_FEATURES 1
 #define FEATURES_DIR  "./"
