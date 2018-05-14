@@ -28,7 +28,12 @@
 
 #define USE_FEATURES 1
 #define FEATURES_DIR  "./"
-#define FEATURES_FILE_IN "sphere.inp"
+
+#define FEATURES_FILE_IN "spiral2d.inp"
+//#define FEATURES_FILE_IN "spiral.inp"
+//#define FEATURES_FILE_IN "circle.inp"
+//#define FEATURES_FILE_IN "sphere.inp"
+
 #define FEATURES_FILE_OUT "opts123.out"
 
 

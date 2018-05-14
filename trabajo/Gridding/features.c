@@ -111,67 +111,66 @@ INT features_r(const INT dim_orig,const INT use_features,features *feat, REAL vf
   }
   fprintf(stdout,"\nRead %i coordinate %d-tuples\n",k,dim);
   fclose(feat->fpf);
-  if(0) { // look for closing of if 0 below. 
-    /* sort so that duplicates */
-    qsort(feat->x,(feat->nf), dim*sizeof(REAL), realcmp);
-    /* Clean up the data by removing all the duplicates */
-    k=feat->nf-1;
-    i=0;j=0;
-    REAL *xc=(REAL *)calloc(dim, sizeof(REAL));
-    REAL dli,dli1; //l1 distance
-    while (i<k){
-      if(fabs(feat->x[dim*i])<1e-6) {i++;continue;}
-      if(j==0) {
-	for(m=0;m<dim;m++){
-	  feat->x[m]=feat->x[2*i+m];
-	}
-      }
-      dli=0.;
+
+  /* sort so that no duplicates are present */
+  qsort(feat->x,(feat->nf), dim*sizeof(REAL), realcmp);
+  /* Clean up the data by removing all the duplicates */
+  k=feat->nf-1;
+  i=0;j=0;
+  REAL *xc=(REAL *)calloc(dim, sizeof(REAL));
+  REAL dli,dli1; //l1 distance
+  while (i<k){
+    if(fabs(feat->x[dim*i])<1e-6) {i++;continue;}
+    if(j==0) {
       for(m=0;m<dim;m++){
-	xc[m]=feat->x[2*j+m];
-	dli=dli+fabs(xc[m]);
-      }
-      while(1 && i<k) {
-	dli1=0.;
-	for(m=0;m<dim;m++){
-	  dli1+=fabs(xc[m]-feat->x[dim*i+dim+m]);
-	}
-	dli1=dli1/dli;
-	if(dli1>1e-6){
-	  j++;i++;
-	  for(m=0;m<dim;m++){feat->x[dim*j+m]=feat->x[dim*i+m];}
-	  break;
-	}
-	i++;
-	//      fprintf(stdout,"i=%i\n",i);
-      }
-      //    fprintf(stdout,"i=%i, j=%i\n",i,j);
-    }
-    i++;j++; feat->nf=j;
-    //  fprintf(stdout,"i=%i, j=%i\n",i,j);
-    for(m=0;m<dim;m++){feat->x[dim*j+m]=feat->x[dim*i+m];}
-    /* fprintf(stdout,"\nSorted Coords:\n");  */
-    /* for (i=0;i<feat->nf;i++){  */
-    /*   fprintf(stdout,"%17.12g %17.12g\n",feat->x[2*i],feat->x[2*i+1]);  fflush(stdout); */
-    /* } */
-    /* if dimbig is larger than dim, i.e. we have read a 2d array but we are in 3D we need to rearrange feat->x so that it is dimbig by feat->nf */
-    /* fprintf(stdout,"\nCoords:\n");  */
-    /* for (i=0;i<feat->nf;i++){  */
-    /*   fprintf(stdout,"%17.12g %17.12g\n",feat->x[2*i],feat->x[2*i+1]);  fflush(stdout); */
-    /* } */
-    if(dimbig > dim) {
-      k=feat->nf-1;
-      for(i=k;i>0;i--){
-	for(m=dim-1;m>=0;m--){
-	  feat->x[dimbig*i+m]=feat->x[dim*i+m];
-	  //	fprintf(stdout,"(%d,%d): %d  %d\n",i,m,dimbig*i+m,dim*i+m);  fflush(stdout);
-	}
-	for(m=dim;m<dimbig;m++){
-	  feat->x[dimbig*i+m]=feat->fill;
-	}
+	feat->x[m]=feat->x[2*i+m];
       }
     }
-  }// commented out above if(0)
+    dli=0.;
+    for(m=0;m<dim;m++){
+      xc[m]=feat->x[2*j+m];
+      dli=dli+fabs(xc[m]);
+    }
+    while(1 && i<k) {
+      dli1=0.;
+      for(m=0;m<dim;m++){
+	dli1+=fabs(xc[m]-feat->x[dim*i+dim+m]);
+      }
+      dli1=dli1/dli;
+      if(dli1>1e-6){
+	j++;i++;
+	for(m=0;m<dim;m++){feat->x[dim*j+m]=feat->x[dim*i+m];}
+	break;
+      }
+      i++;
+      //      fprintf(stdout,"i=%i\n",i);
+    }
+    //    fprintf(stdout,"i=%i, j=%i\n",i,j);
+  }
+  i++;j++; feat->nf=j;
+  //  fprintf(stdout,"i=%i, j=%i\n",i,j);
+  for(m=0;m<dim;m++){feat->x[dim*j+m]=feat->x[dim*i+m];}
+  /* fprintf(stdout,"\nSorted Coords:\n");  */
+  /* for (i=0;i<feat->nf;i++){  */
+  /*   fprintf(stdout,"%17.12g %17.12g\n",feat->x[2*i],feat->x[2*i+1]);  fflush(stdout); */
+  /* } */
+  /* if dimbig is larger than dim, i.e. we have read a 2d array but we are in 3D we need to rearrange feat->x so that it is dimbig by feat->nf */
+  /* fprintf(stdout,"\nCoords:\n");  */
+  /* for (i=0;i<feat->nf;i++){  */
+  /*   fprintf(stdout,"%17.12g %17.12g\n",feat->x[2*i],feat->x[2*i+1]);  fflush(stdout); */
+  /* } */
+  if(dimbig > dim) {
+    k=feat->nf-1;
+    for(i=k;i>0;i--){
+      for(m=dim-1;m>=0;m--){
+	feat->x[dimbig*i+m]=feat->x[dim*i+m];
+	//	fprintf(stdout,"(%d,%d): %d  %d\n",i,m,dimbig*i+m,dim*i+m);  fflush(stdout);
+      }
+      for(m=dim;m<dimbig;m++){
+	feat->x[dimbig*i+m]=feat->fill;
+      }
+    }
+  }
   /* fprintf(stdout,"\nCoords:\n"); */
   /* for (i=0;i<feat->nf;i++){  */
   /*   fprintf(stdout,"%17.12g %17.12g %10.4g\n",feat->x[3*i],feat->x[3*i+1],feat->x[3*i+2]);  fflush(stdout); */
