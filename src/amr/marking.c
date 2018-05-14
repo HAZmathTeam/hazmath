@@ -110,7 +110,7 @@ void marks(INT level,scomplex *sc)
       if(asp>aspmax){kbadel=i;aspmax=asp;}
     }
   }
-  fprintf(stdout,"\nbad:%d, aspectmax=%e (at el=%d)\n",kbad,aspmax,kbadel);
+  //  fprintf(stdout,"\nbad:%d, aspectmax=%e (at el=%d)\n",kbad,aspmax,kbadel);
   //  exit(33);
   if(sl)free(sl);
   return;
