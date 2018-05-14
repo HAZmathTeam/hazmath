@@ -172,10 +172,10 @@ INT features_r(const INT dim_orig,const INT use_features,features *feat, REAL vf
       }
     }
   }// commented out above if(0)
-  fprintf(stdout,"\nCoords:\n");
-  for (i=0;i<feat->nf;i++){ 
-    fprintf(stdout,"%17.12g %17.12g %10.4g\n",feat->x[3*i],feat->x[3*i+1],feat->x[3*i+2]);  fflush(stdout);
-  } 
+  /* fprintf(stdout,"\nCoords:\n"); */
+  /* for (i=0;i<feat->nf;i++){  */
+  /*   fprintf(stdout,"%17.12g %17.12g %10.4g\n",feat->x[3*i],feat->x[3*i+1],feat->x[3*i+2]);  fflush(stdout); */
+  /* }  */
   return 0;
 }
 INT features_w(features *feat,REAL *extra)
