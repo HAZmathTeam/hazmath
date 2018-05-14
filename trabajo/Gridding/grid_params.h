@@ -11,7 +11,7 @@
 #endif
 
 /* MAX LEVELS of refinement */
-#define MAXREFLEVELS 7
+#define MAXREFLEVELS 18
 
 /* spatial dimension */
 #define DIM 3
@@ -26,9 +26,9 @@
 
 #define VTKDO  1
 
-#define USE_FEATURES 0
+#define USE_FEATURES 1
 #define FEATURES_DIR  "./"
-#define FEATURES_FILE_IN "pts123.inp"
+#define FEATURES_FILE_IN "sphere.inp"
 #define FEATURES_FILE_OUT "opts123.out"
 
 
