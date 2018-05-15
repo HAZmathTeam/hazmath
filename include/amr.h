@@ -1,5 +1,5 @@
 //
-//  fem.h
+//  amr.h
 //  
 //
 //  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 20170715
@@ -34,7 +34,7 @@ typedef struct /* n-homogenous simplicial complex */
   REAL *x; /*(nv x n) array to hold the coordinates of vertices */
   REAL *vols; /* volumes of the simplices */
   REAL *fval; /* function values at vertices (could be ANY, but is
-		 used for elevation in hydrolena */
+		 used for elevation in hydrolena) */
   REAL factorial; /*n factorial */
 } scomplex;
 
