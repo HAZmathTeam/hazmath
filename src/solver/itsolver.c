@@ -2620,31 +2620,35 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
   printf("finished displacement block\n");
 
   /* setup HX for darcy block */
-  HX_div_data **hxdivdata = NULL;
+  //HX_div_data **hxdivdata = NULL;
+  HX_div_data **hxdivdata = (HX_div_data **)calloc(3, sizeof(HX_div_data *));
+  dCSRmat Pt_curl;
+  dCSRmat Pt_div;
+  dCSRmat Curlt;
+  dCSRmat A_curl;
+  dCSRmat A_curlgrad;
+  dCSRmat A_divgrad;
+
+  AMG_data *mgl_curlgrad = amg_data_create(max_levels);
+  AMG_data *mgl_divgrad = amg_data_create(max_levels);
+
   if(Curl!=NULL){
-    hxdivdata = (HX_div_data **)calloc(3, sizeof(HX_div_data *));
+    //hxdivdata = (HX_div_data **)calloc(3, sizeof(HX_div_data *));
     // get transpose of P_curl
-    dCSRmat Pt_curl;
     dcsr_trans(P_curl, &Pt_curl);
     // get transpose of P_div
-    dCSRmat Pt_div;
     dcsr_trans(P_div, &Pt_div);
     // get transpose of Curl
-    dCSRmat Curlt;
     dcsr_trans(Curl, &Curlt);
     
     // get A_curl
-    dCSRmat A_curl;
     dcsr_rap(&Curlt, &A_diag[1], Curl, &A_curl);
     // get A_curlgrad
-    dCSRmat A_curlgrad;
     dcsr_rap(&Pt_curl, &A_curl, P_curl, &A_curlgrad);
     // get A_divgrad
-    dCSRmat A_divgrad;
     dcsr_rap(&Pt_div, &A_diag[1], P_div, &A_divgrad);
     
     // initialize A, b, x for mgl_curlgrad[0]
-    AMG_data *mgl_curlgrad = amg_data_create(max_levels);
     mgl_curlgrad[0].A=dcsr_create(A_curlgrad.row,A_curlgrad.col,A_curlgrad.nnz);
     dcsr_cp(&A_curlgrad, &mgl_curlgrad[0].A);
     mgl_curlgrad[0].b=dvec_create(A_curlgrad.col);
@@ -2664,7 +2668,6 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
     //if (status < 0) goto FINISHED;
     
     // initialize A, b, x for mgl_divgrad[0]
-    AMG_data *mgl_divgrad = amg_data_create(max_levels);
     mgl_divgrad[0].A=dcsr_create(A_divgrad.row,A_divgrad.col,A_divgrad.nnz);
     dcsr_cp(&A_divgrad, &mgl_divgrad[0].A);
     mgl_divgrad[0].b=dvec_create(A_divgrad.col);
@@ -2686,8 +2689,10 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
     /*------------------------*/
     // setup preconditioner
     
-    printf("hxdivdata fillng\n");
+    printf("hxdivdata filling\n");
+    hxdivdata[0] = (HX_div_data *)calloc(1, sizeof(HX_div_data));
     hxdivdata[1] = (HX_div_data *)calloc(1, sizeof(HX_div_data));
+    hxdivdata[2] = (HX_div_data *)calloc(1, sizeof(HX_div_data));
     hxdivdata[1]->A = &A_diag[1];
     
     hxdivdata[1]->smooth_type = 1;
@@ -2763,7 +2768,6 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
   precdata.hxdivdata = hxdivdata;
 
   precond prec; prec.data = &precdata;
-
 
   switch (precond_type)
   {

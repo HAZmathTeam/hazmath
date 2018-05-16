@@ -496,7 +496,7 @@ void precond_hx_div_multiplicative(REAL *r,
                               REAL *z,
                               void *data)
 {   
-    printf("Multiplicative\n");
+    //printf("Multiplicative\n");
     HX_div_data *hxdivdata=(HX_div_data *)data;
     INT n = hxdivdata->A->row;
     SHORT smooth_iter = hxdivdata->smooth_iter;
@@ -528,6 +528,7 @@ void precond_hx_div_multiplicative(REAL *r,
     maxit = amgparam_divgrad->maxit;
     
     mgl_divgrad->b.row = hxdivdata->A_divgrad->row;
+
     dcsr_mxv(hxdivdata->Pt_div, r, mgl_divgrad->b.val);
     mgl_divgrad->x.row=hxdivdata->A_divgrad->row;
     dvec_set(hxdivdata->A_divgrad->row, &mgl_divgrad->x, 0.0);
@@ -3095,6 +3096,7 @@ void precond_block_diag_biot_3field_krylov(REAL *r,
   dCSRmat *A_diag = precdata->A_diag;
   AMG_param *amgparam = precdata->amgparam;
   AMG_data **mgl = precdata->mgl;
+  HX_div_data **hxdivdata = precdata->hxdivdata;
 
   INT i;
 
@@ -3136,8 +3138,8 @@ void precond_block_diag_biot_3field_krylov(REAL *r,
 
   // Preconditioning A11 block (darcy)
   precond pc_w;
-  if(precdata->hxdivdata!=NULL){
-    pc_w.data = precdata->hxdivdata[1];
+  if(hxdivdata!=NULL){
+    pc_w.data = hxdivdata[1];
     pc_w.fct = precond_hx_div_multiplicative;
   } else {
     precond_data pcdata_w;
