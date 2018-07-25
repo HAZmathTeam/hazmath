@@ -878,9 +878,6 @@ INT linear_solver_dcsr_krylov_hx_div(dCSRmat *A,
     const SHORT prtlvl = itparam->linear_print_level;
     amgparam->max_levels = 2;
     const SHORT max_levels = amgparam->max_levels;
-    printf("AMG max levels %d\n",max_levels);
-    //amgparam->maxit = 2;
-    printf("AMG max iter %d\n",amgparam->maxit);
     
     /*------------------------*/
     /* Local Variables */
@@ -2689,7 +2686,6 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
     /*------------------------*/
     // setup preconditioner
     
-    printf("hxdivdata filling\n");
     hxdivdata[0] = (HX_div_data *)calloc(1, sizeof(HX_div_data));
     hxdivdata[1] = (HX_div_data *)calloc(1, sizeof(HX_div_data));
     hxdivdata[2] = (HX_div_data *)calloc(1, sizeof(HX_div_data));
@@ -2715,7 +2711,6 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
     
     hxdivdata[1]->backup_r = (REAL*)calloc(A_diag[1].row, sizeof(REAL));
     hxdivdata[1]->w = (REAL*)calloc(A_diag[1].row, sizeof(REAL));
-    printf("hxdivdata filled\n");
   } else {
   /* set AMG for the darcy block */
   mgl[1] = amg_data_create(max_levels);
