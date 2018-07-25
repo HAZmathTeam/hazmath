@@ -42,7 +42,7 @@ void initialize_fespace(fespace *FE)
 
 /****************************************************************************************/
 /*!
- * \fn void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
+ * \fn void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
  *
  * \brief Allocates memory and properties of fespace struct.
  *
@@ -53,7 +53,7 @@ void initialize_fespace(fespace *FE)
  * \return FE       Struct for FE space
  *
  */
-void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
+void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
 {
   // Flag for errors
   SHORT status;
@@ -423,7 +423,7 @@ void free_blockfespace(block_fespace* FE)
 
 /***********************************************************************************************/
 /*!
- * \fn void get_P2(fespace* FE,trimesh* mesh)
+ * \fn void get_P2(fespace* FE,mesh_struct* mesh)
  *
  * \brief Converts mesh data to account for P2 elements
  *
@@ -432,7 +432,7 @@ void free_blockfespace(block_fespace* FE)
  * \return FE       Struct for P2 FE space
  *
  */
-void get_P2(fespace* FE,trimesh* mesh) 
+void get_P2(fespace* FE,mesh_struct* mesh) 
 {
   // Loop indices
   INT i,j,k,s,jcntr;
@@ -696,7 +696,7 @@ void dump_fespace(fespace *FE,char *varname,char *dir)
 
 /****************************************************************************************/
 /*!
- * \fn void set_dirichlet_bdry(fespace* FE,trimesh* mesh, const INT flag0, const INT flag1)
+ * \fn void set_dirichlet_bdry(fespace* FE,mesh_struct* mesh, const INT flag0, const INT flag1)
  *
  * \brief Determine which boundary DOF are Dirichlet.  Determined by the FE space type
  *        and by the given flag from the mesh file.
@@ -711,7 +711,7 @@ void dump_fespace(fespace *FE,char *varname,char *dir)
  * \return FE.dirichlet    Binary boundary array for DOF
  *
  */
-void set_dirichlet_bdry(fespace* FE,trimesh* mesh, const INT flag0, const INT flag1) 
+void set_dirichlet_bdry(fespace* FE,mesh_struct* mesh, const INT flag0, const INT flag1) 
 {
   INT i;
   for(i=0;i<FE->ndof;i++) {
@@ -727,7 +727,7 @@ void set_dirichlet_bdry(fespace* FE,trimesh* mesh, const INT flag0, const INT fl
 
 /****************************************************************************************/
 /*!
- * \fn void set_dirichlet_bdry_block(fespace* FE,trimesh* mesh)
+ * \fn void set_dirichlet_bdry_block(fespace* FE,mesh_struct* mesh)
  *
  * \brief Determine which boundary DOF are Dirichlet.  Determined by the BLOCK FE space type
  *        and by the given flag from the mesh file.
@@ -739,7 +739,7 @@ void set_dirichlet_bdry(fespace* FE,trimesh* mesh, const INT flag0, const INT fl
  * \return FE.dof_flag     Also set DOF flags based on each FE space
  *
  */
-void set_dirichlet_bdry_block(block_fespace* FE,trimesh* mesh)
+void set_dirichlet_bdry_block(block_fespace* FE,mesh_struct* mesh)
 {
   INT i,j,ndof,cnt;
 

@@ -89,7 +89,7 @@ static REAL bernoulli1(const REAL z){
     return 0.;
 }
 /*!
- * \fn  eafe1(dCSRmat *A, dvector *rhs, void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL), trimesh mesh, fespace FE, qcoordinates *cq, void (*scalar_val_d)(REAL *, REAL *, REAL), void (*scalar_val_rhs)(REAL *, REAL *, REAL), void (*vector_val_ad)(REAL *, REAL *, REAL), void (*scalar_val_bndnr)(REAL *, REAL *, REAL), REAL faketime)
+ * \fn  eafe1(dCSRmat *A, dvector *rhs, void (*local_assembly)(REAL *,fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL),REAL), mesh_struct mesh, fespace FE, qcoordinates *cq, void (*scalar_val_d)(REAL *, REAL *, REAL), void (*scalar_val_rhs)(REAL *, REAL *, REAL), void (*vector_val_ad)(REAL *, REAL *, REAL), void (*scalar_val_bndnr)(REAL *, REAL *, REAL), REAL faketime)
  * \brief Uses Schur product and from the assembled matrix for Poisson
  * equation with natural boundary conditions makes the EAFE FE
  * discretization for the equation

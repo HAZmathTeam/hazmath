@@ -19,7 +19,7 @@
 
 /*******************************************************************************************************/
 /*!
- * \fn void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,trimesh *mesh)
+ * \fn void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,mesh_struct *mesh)
  *
  * \brief Compute Standard Lagrange Finite Element Basis Functions (PX) at a particular point in 1, 2 or 3D
  *        For now, we only assume constants, Linears, or Quadratic Elements (P0 or P1 or P2)
@@ -107,7 +107,7 @@
  *    +--0--R--1-------->
  *
  */
-void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,trimesh *mesh)
+void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,mesh_struct *mesh)
 {
   REAL dp1r,dp2r,dp3r,dp4r,dp5r,dp6r,dp7r,dp8r,dp9r,dp10r;
   REAL dp1s,dp2s,dp3s,dp4s,dp5s,dp6s,dp7s,dp8s,dp9s,dp10s;
@@ -397,7 +397,7 @@ void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,trimesh *mesh)
 
 /*******************************************************************************************************/
 /*!
- * \fn void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dpxy,REAL x,REAL y,REAL z,INT *dof,INT porder,trimesh *mesh)
+ * \fn void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dpxy,REAL x,REAL y,REAL z,INT *dof,INT porder,mesh_struct *mesh)
  *
  * \brief Compute Standard Quadratic Finite Element Basis Functions (P2) at a particular point
  *        Also compute the 2nd derivatives for some reason...
@@ -413,7 +413,7 @@ void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,trimesh *mesh)
  *
  *
  */
-void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dpxy,REAL x,REAL y,REAL z,INT *dof,INT porder,trimesh *mesh) 
+void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dpxy,REAL x,REAL y,REAL z,INT *dof,INT porder,mesh_struct *mesh) 
 {
   REAL dp1r,dp2r,dp3r,dp4r,dp5r,dp6r;
   REAL dp1s,dp2s,dp3s,dp4s,dp5s,dp6s;
@@ -538,7 +538,7 @@ void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dp
 
 /*******************************************************************************************************/
 /*!
- * \fn void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
+ * \fn void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh)
  *
  * \brief Compute Nedelec Finite Element Basis Functions (zeroth order) at a particular point in 2 or 3D
  *
@@ -551,7 +551,7 @@ void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dp
  * \return cphi     Curl of basis functions (1 for each edge in 2D, dim for each edge in 3D)
  *
  */
-void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
+void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh)
 {
   // Flag for errors
   SHORT status;
@@ -638,7 +638,7 @@ void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh
 
 /****************************************************************************************************************************/
 /*!
- * \fn void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
+ * \fn void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh)
  *
  * \brief Compute Raviart-Thomas Finite Element Basis Functions (zeroth order) at a particular point in 2 or 3D
  *
@@ -651,7 +651,7 @@ void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh
  * \return dphi     Div of basis functions (1 for each face)
  *
  */
-void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
+void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh)
 {
   // Flag for erros
   SHORT status;
@@ -772,7 +772,7 @@ void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
 
 /****************************************************************************************************************************/
 /*!
- * \fn void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
+ * \fn void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh)
  *
  * \brief Brezzi-Douglas-Marini (BDM) Elements of order 1.
  *
@@ -788,7 +788,7 @@ void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
  * \return dphix    Div of basis functions
  *
  */
-void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
+void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh)
 {
   // Flag for errors
   SHORT status;
@@ -876,7 +876,7 @@ void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof
 
 /****************************************************************************************************************************/
 /*!
- * \fn void bubble_face_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh)
+ * \fn void bubble_face_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh)
  *
  * \brief Compute Bubble Element Finite Element Basis Functions at a particular point in 2 or 3D
  *
@@ -888,7 +888,7 @@ void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof
  * \return phi      Basis functions (dim for each face from reference triangle)
  * \return dphi     Tensor from gradient of basis functions
  */
-void bubble_face_basis(REAL *phi, REAL *dphi, REAL *x, INT *v_on_elm, INT *dof, trimesh *mesh)
+void bubble_face_basis(REAL *phi, REAL *dphi, REAL *x, INT *v_on_elm, INT *dof, mesh_struct *mesh)
 {
   // Flag for errors
   SHORT status;
@@ -985,7 +985,7 @@ void bubble_face_basis(REAL *phi, REAL *dphi, REAL *x, INT *v_on_elm, INT *dof, 
 
 /****************************************************************************************************************************/
 /*!
- * \fn void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh,fespace *FE)
+ * \fn void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh,fespace *FE)
  *
  * \brief Grabs the basis function of a FEM space at a particular point in 2 or 3D
  *
@@ -999,7 +999,7 @@ void bubble_face_basis(REAL *phi, REAL *dphi, REAL *x, INT *v_on_elm, INT *dof, 
  * \return dphi     Derivatives of basis functions (depends on type)
  *
  */
-void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,trimesh *mesh,fespace *FE)
+void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh,fespace *FE)
 {
   // Flag for erros
   SHORT status;

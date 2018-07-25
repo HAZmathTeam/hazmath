@@ -238,7 +238,7 @@ INT check_newton_convergence(newton *n_it)
 
 /******************************************************************************************************/
 /*!
- * \fn void get_residual_norm(newton *n_it,fespace* FE,trimesh* mesh, qcoordinates* cq)
+ * \fn void get_residual_norm(newton *n_it,fespace* FE,mesh_struct* mesh, qcoordinates* cq)
  *
  * \brief Computes the norms of the nonlinear residual (rhs) and the update.
  *
@@ -249,7 +249,7 @@ INT check_newton_convergence(newton *n_it)
  *
  * \note Assumes non-block form
  */
-void get_residual_norm(newton *n_it,fespace* FE,trimesh* mesh, qcoordinates* cq)
+void get_residual_norm(newton *n_it,fespace* FE,mesh_struct* mesh, qcoordinates* cq)
 {
   n_it->res_norm = L2norm(n_it->rhs->val,FE,mesh,cq);
   return;
@@ -258,7 +258,7 @@ void get_residual_norm(newton *n_it,fespace* FE,trimesh* mesh, qcoordinates* cq)
 
 /******************************************************************************************************/
 /*!
- * \fn void get_update_norm(newton *n_it,fespace* FE,trimesh* mesh, qcoordinates* cq)
+ * \fn void get_update_norm(newton *n_it,fespace* FE,mesh_struct* mesh, qcoordinates* cq)
  *
  * \brief Computes the norms of the nonlinear residual (rhs) and the update.
  *
@@ -269,7 +269,7 @@ void get_residual_norm(newton *n_it,fespace* FE,trimesh* mesh, qcoordinates* cq)
  *
  * \note Assumes non-block form
  */
-void get_update_norm(newton *n_it,fespace* FE,trimesh* mesh, qcoordinates* cq)
+void get_update_norm(newton *n_it,fespace* FE,mesh_struct* mesh, qcoordinates* cq)
 {
   n_it->update_norm = L2norm(n_it->update->val,FE,mesh,cq);
   return;
@@ -278,7 +278,7 @@ void get_update_norm(newton *n_it,fespace* FE,trimesh* mesh, qcoordinates* cq)
 
 /******************************************************************************************************/
 /*!
- * \fn void get_blockresidual_norm(newton *n_it,block_fespace* FE,trimesh* mesh, qcoordinates* cq)
+ * \fn void get_blockresidual_norm(newton *n_it,block_fespace* FE,mesh_struct* mesh, qcoordinates* cq)
  *
  * \brief Computes the norms of the nonlinear residual (rhs) and the update.
  *
@@ -289,7 +289,7 @@ void get_update_norm(newton *n_it,fespace* FE,trimesh* mesh, qcoordinates* cq)
  *
  * \note Assumes block form (and we store the total (combined) norm)
  */
-void get_blockresidual_norm(newton *n_it,block_fespace* FE,trimesh* mesh, qcoordinates* cq)
+void get_blockresidual_norm(newton *n_it,block_fespace* FE,mesh_struct* mesh, qcoordinates* cq)
 {
   REAL* res_norm = (REAL *) calloc(FE->nspaces,sizeof(REAL));
   L2norm_block(res_norm,n_it->rhs->val,FE,mesh,cq);
@@ -308,7 +308,7 @@ void get_blockresidual_norm(newton *n_it,block_fespace* FE,trimesh* mesh, qcoord
 
 /******************************************************************************************************/
 /*!
- * \fn void get_blockupdate_norm(newton *n_it,block_fespace* FE,trimesh* mesh, qcoordinates* cq)
+ * \fn void get_blockupdate_norm(newton *n_it,block_fespace* FE,mesh_struct* mesh, qcoordinates* cq)
  *
  * \brief Computes the norms of the nonlinear residual (rhs) and the update.
  *
@@ -319,7 +319,7 @@ void get_blockresidual_norm(newton *n_it,block_fespace* FE,trimesh* mesh, qcoord
  *
  * \note Assumes block form (and we store the total (combined) norm)
  */
-void get_blockupdate_norm(newton *n_it,block_fespace* FE,trimesh* mesh, qcoordinates* cq)
+void get_blockupdate_norm(newton *n_it,block_fespace* FE,mesh_struct* mesh, qcoordinates* cq)
 {
   REAL* update_norm = (REAL *) calloc(FE->nspaces,sizeof(REAL));
   L2norm_block(update_norm,n_it->update->val,FE,mesh,cq);

@@ -14,7 +14,7 @@
 
 /****************************************************************************************************************************/
 /*!
- * \fn void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,trimesh *mesh)
+ * \fn void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,mesh_struct *mesh)
  *
  * \brief Interpolate a finite-element approximation to any other point in the given element using the given type of elements.
  *
@@ -27,7 +27,7 @@
  * \param val         Pointer to value of approximation at given values
  *
  */
-void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,trimesh *mesh)
+void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,mesh_struct *mesh)
 {
   INT i,j,dof;
 
@@ -64,7 +64,7 @@ void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fe
 
 /****************************************************************************************************************************/
 /*!
- * \fn void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,trimesh *mesh)
+ * \fn void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,mesh_struct *mesh)
  *
  * \brief Interpolate the "derivative" of a finite-element approximation to any other point in the given element using the given type of elements.
  *        Note that for Lagrange Elements this means the Gradient, grad u, for Nedelec it means the Curl, curl u, and for RT it is the Divergence, div u.
@@ -78,7 +78,7 @@ void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fe
  * \param val         Pointer to value of approximation at given values
  *
  */
-void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,trimesh *mesh)
+void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,mesh_struct *mesh)
 {
   INT dof,j,k,i;
 
@@ -156,7 +156,7 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
 
 /****************************************************************************************************************************/
 /*!
- * \fn void mult_FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,trimesh *mesh,INT nun)
+ * \fn void mult_FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,mesh_struct *mesh,INT nun)
  *
  * \brief Interpolate a finite-element approximation to any other point in the given element using the given type of elements.
  *
@@ -172,7 +172,7 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
  * \param val         Pointer to value of approximation at given values
  *
  */
-void mult_FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,trimesh *mesh,INT nun)
+void mult_FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,mesh_struct *mesh,INT nun)
 {
   INT i,j,k,dof;
 
@@ -214,7 +214,7 @@ void mult_FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_e
 
 /****************************************************************************************************************************/
 /*!
- * \fn void mult_FE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,trimesh *mesh,INT nun)
+ * \fn void mult_FE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,mesh_struct *mesh,INT nun)
  *
  * \brief Interpolate the "derivative" of a finite-element approximation to any other point in the given element using the given type of elements.
  *        Note that for Lagrange Elements this means the Gradient, grad u, for Nedelec it means the Curl, curl u, and for RT it is the Divergence, div u.
@@ -231,7 +231,7 @@ void mult_FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_e
  * \param val         Pointer to value of approximation at given values
  *
  */
-void mult_FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,trimesh *mesh,INT nun)
+void mult_FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,mesh_struct *mesh,INT nun)
 {
   INT i,dof,j,k;
 
@@ -301,7 +301,7 @@ void mult_FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,I
 
 /****************************************************************************************************************************/
 /*!
- * \fn void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh *mesh,REAL time)
+ * \fn void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,REAL time)
  *
  * \brief Evaluate a given analytical function on the finite-element space given.
  *
@@ -312,7 +312,7 @@ void mult_FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,I
  * \param val         FE approximation of function on fespace
  *
  */
-void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh *mesh,REAL time)
+void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,REAL time)
 {
   int i,j;
   REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
@@ -371,7 +371,7 @@ void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,t
 
 /****************************************************************************************************************************/
 /*!
- * \fn REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh *mesh,REAL time,INT DOF)
+ * \fn REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,REAL time,INT DOF)
  *
  * \brief Evaluate a given analytical function on the specific degree of freedom of the finite-element space given
  *
@@ -384,7 +384,7 @@ void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,t
  * \return val        FE approximation of function on fespace
  *
  */
-REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh *mesh,REAL time,INT DOF)
+REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,REAL time,INT DOF)
 {
   INT j;
   REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
@@ -441,7 +441,7 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh
 
 /****************************************************************************************************************************/
 /*!
- * \fn void blockFE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,block_fespace *FE,trimesh *mesh)
+ * \fn void blockFE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,block_fespace *FE,mesh_struct *mesh)
  *
  * \brief Interpolate a block finite-element approximation to any other point in the given element using the given type of elements.
  *
@@ -455,7 +455,7 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh
  * \param val         Pointer to value of approximation at given values
  *
  */
-void blockFE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,block_fespace *FE,trimesh *mesh)
+void blockFE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,block_fespace *FE,mesh_struct *mesh)
 {
   INT k;
   INT dim = mesh->dim;
@@ -481,7 +481,7 @@ void blockFE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_e
 
 /****************************************************************************************************************************/
 /*!
- * \fn void blockFE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,block_fespace *FE,trimesh *mesh)
+ * \fn void blockFE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,block_fespace *FE,mesh_struct *mesh)
  *
  * \brief Interpolate the "derivative" of a block finite-element approximation to any other point in the given
  *        element using the given type of elements.  Note that for Lagrange Elements this means the Gradient, grad u,
@@ -498,7 +498,7 @@ void blockFE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_e
  * \param val         Pointer to value of approximation at given values
  *
  */
-void blockFE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,block_fespace *FE,trimesh *mesh)
+void blockFE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,block_fespace *FE,mesh_struct *mesh)
 {
   INT k;
   INT dim = mesh->dim;
@@ -532,7 +532,7 @@ void blockFE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,I
 
 /****************************************************************************************************************************/
 /*!
- * \fn void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fespace *FE,trimesh *mesh,REAL time)
+ * \fn void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,REAL time)
  *
  * \brief Evaluate a given analytical function on the block finite-element space given.
  *
@@ -543,7 +543,7 @@ void blockFE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,I
  * \param val         FE approximation of function on fespace
  *
  */
-void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fespace *FE,trimesh *mesh,REAL time)
+void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,REAL time)
 {
   int i,j,k,m;
   REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
@@ -638,7 +638,7 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fe
 
 /****************************************************************************************************************************/
 /*!
- * \fn REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace *FE,trimesh *mesh,REAL time,INT comp,INT DOF)
+ * \fn REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,REAL time,INT comp,INT DOF)
  *
  * \brief Evaluate a given analytical function on the specific degree of freedom of the block finite-element space given
  *
@@ -654,7 +654,7 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fe
  * \note For all "integrals" we use the midpoint rule
  *
  */
-REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace *FE,trimesh *mesh,REAL time,INT comp,INT DOF)
+REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,REAL time,INT comp,INT DOF)
 {
   int i,j,m;
   REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
@@ -736,7 +736,7 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
 
 /***********************************************************************************************/
 /*!
- * \fn void Project_to_Vertices(REAL* u_on_V,REAL *u,fespace *FE,trimesh *mesh)
+ * \fn void Project_to_Vertices(REAL* u_on_V,REAL *u,fespace *FE,mesh_struct *mesh)
  *
  * \brief Interpolate a finite-element approximation to the vertices of a mesh
  *
@@ -746,7 +746,7 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
  * \param mesh    Mesh Data
  *
  */
-void Project_to_Vertices(REAL* u_on_V,REAL *u,fespace *FE,trimesh *mesh)
+void Project_to_Vertices(REAL* u_on_V,REAL *u,fespace *FE,mesh_struct *mesh)
 {
   INT i,k,j;
   REAL* val = NULL;
@@ -861,7 +861,7 @@ void set_unknown_component(dvector* u,dvector* ublock,block_fespace *FE,INT comp
 
 /***********************************************************************************************/
 /*!
- * \fn void get_grad_H1toNed(dCSRmat* Grad,trimesh* mesh)
+ * \fn void get_grad_H1toNed(dCSRmat* Grad,mesh_struct* mesh)
  *
  * \brief Computes Gradient operator.
  *        Applying the resulting matrix computes the gradient of an H1 approximation.
@@ -874,7 +874,7 @@ void set_unknown_component(dvector* u,dvector* ublock,block_fespace *FE,INT comp
  * \note This only makes sense for P1 elements and for dimensions 2 or 3.
  *
  */
-void get_grad_H1toNed(dCSRmat* Grad,trimesh* mesh)
+void get_grad_H1toNed(dCSRmat* Grad,mesh_struct* mesh)
 {
   INT i,j,k,rowa;
   INT nedge = mesh->nedge;
@@ -917,7 +917,7 @@ void get_grad_H1toNed(dCSRmat* Grad,trimesh* mesh)
 
 /***********************************************************************************************/
 /*!
- * \fn void get_curl_NedtoRT(dCSRmat* Curl,trimesh* mesh)
+ * \fn void get_curl_NedtoRT(dCSRmat* Curl,mesh_struct* mesh)
  *
  * \brief Computes Curl operator in 3D ONLY.
  *        Applying the resulting matrix computes the Curl of a Nedelec approximation.
@@ -929,7 +929,7 @@ void get_grad_H1toNed(dCSRmat* Grad,trimesh* mesh)
  * \note This only makes sense in 3D and assuming lowest order elements
  *
  */
-void get_curl_NedtoRT(dCSRmat* Curl,trimesh* mesh)
+void get_curl_NedtoRT(dCSRmat* Curl,mesh_struct* mesh)
 {
   INT i,j,k,s,col_a,nd1,nd2,nd3,rowa,rowb,jcntr;
   INT ndpf = mesh->dim;
@@ -1023,7 +1023,7 @@ void get_curl_NedtoRT(dCSRmat* Curl,trimesh* mesh)
 
 /***********************************************************************************************/
 /*!
- * \fn void get_div_RTtoL2(dCSRmat* Div,trimesh* mesh)
+ * \fn void get_div_RTtoL2(dCSRmat* Div,mesh_struct* mesh)
  *
  * \brief Computes Divergence operator.
  *        Applying the resulting matrix computes the divergence of an RT approximation.
@@ -1038,7 +1038,7 @@ void get_curl_NedtoRT(dCSRmat* Curl,trimesh* mesh)
  * \note This only makes sense for lowest order elements...I think...and 2D or 3D
  *
  */
-void get_div_RTtoL2(dCSRmat* Div,trimesh* mesh)
+void get_div_RTtoL2(dCSRmat* Div,mesh_struct* mesh)
 {
   INT i,j,rowa,rowb,rowc,rowd,face,elm1,elm2,elm_big,n_felm;
   INT nelm = mesh->nelm;
@@ -1102,7 +1102,7 @@ void get_div_RTtoL2(dCSRmat* Div,trimesh* mesh)
 
 /***********************************************************************************************/
 /*!
- * \fn void get_Pigrad_H1toNed(dCSRmat* Pgrad,trimesh* mesh)
+ * \fn void get_Pigrad_H1toNed(dCSRmat* Pgrad,mesh_struct* mesh)
  *
  * \brief Computes Gradient operator into scalar components for HX preconditioner.
  *        Ordering determined by edge to node map: bigger node is +1 smaller is -1
@@ -1114,7 +1114,7 @@ void get_div_RTtoL2(dCSRmat* Div,trimesh* mesh)
  *       Also assumes shuffled ordering.
  *
  */
-void get_Pigrad_H1toNed(dCSRmat* Pgrad,trimesh* mesh)
+void get_Pigrad_H1toNed(dCSRmat* Pgrad,mesh_struct* mesh)
 {
   INT i,j,k,rowa,cola;
   INT nedge = mesh->nedge;
@@ -1171,7 +1171,7 @@ void get_Pigrad_H1toNed(dCSRmat* Pgrad,trimesh* mesh)
 
 /***********************************************************************************************/
 /*!
- * \fn void get_Pigrad_H1toRT( dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl, trimesh* mesh)
+ * \fn void get_Pigrad_H1toRT( dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl, mesh_struct* mesh)
  *
  * \brief Computes Raviart-Thomas interpolation operator for HX preconditioner
  *
@@ -1183,7 +1183,7 @@ void get_Pigrad_H1toNed(dCSRmat* Pgrad,trimesh* mesh)
  *
  */
 /***********************************************************************************************/
-void get_Pigrad_H1toRT( dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl, trimesh* mesh)
+void get_Pigrad_H1toRT( dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl, mesh_struct* mesh)
 {
   INT i,j,k,rowa,cola;
   INT v1,v2,v3;
@@ -1309,7 +1309,7 @@ void get_Pigrad_H1toRT( dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl, trimesh* m
 /***********************************************************************************************/
 
 /*!
- * \fn void ProjectOut_Grad(dvector* u,fespace* FE_H1,fespace* FE_Ned,trimesh* mesh,qcoordinates* cq,dCSRmat* G)
+ * \fn void ProjectOut_Grad(dvector* u,fespace* FE_H1,fespace* FE_Ned,mesh_struct* mesh,qcoordinates* cq,dCSRmat* G)
  *
  * \brief Takes an approximation in H(curl) using lowest-order Nedelec FE space
  *        and projects out the gradient from it's decomposition:
@@ -1331,7 +1331,7 @@ void get_Pigrad_H1toRT( dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl, trimesh* m
  * \note Assumes 2D or 3D.
  *
  */
-void ProjectOut_Grad(dvector* u,fespace* FE_H1,fespace* FE_Ned,trimesh* mesh,qcoordinates* cq,dCSRmat* G)
+void ProjectOut_Grad(dvector* u,fespace* FE_H1,fespace* FE_Ned,mesh_struct* mesh,qcoordinates* cq,dCSRmat* G)
 {
   // Construct the Laplacian using P1 elements: <grad p, grad v>
   dCSRmat Alap;
