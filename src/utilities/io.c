@@ -420,7 +420,7 @@ FILE* HAZ_fopen(char *fname, char *mode )
 
 /******************************************************************************/
 /*!
- * \fn void dump_sol_onV_vtk(char *namevtk,trimesh *mesh,REAL *sol,INT ncomp)
+ * \fn void dump_sol_onV_vtk(char *namevtk,mesh_struct *mesh,REAL *sol,INT ncomp)
  *
  * \brief Dumps solution data to vtk format only on vertices
  *
@@ -431,7 +431,7 @@ FILE* HAZ_fopen(char *fname, char *mode )
  *
  */
 void dump_sol_onV_vtk(char *namevtk,
-                      trimesh *mesh,
+                      mesh_struct *mesh,
                       REAL *sol,
                       INT ncomp)
 {
@@ -565,7 +565,7 @@ void dump_sol_onV_vtk(char *namevtk,
 
 /******************************************************************************/
 /*!
- * \fn void dump_sol_vtk(char *namevtk,char *varname,trimesh *mesh,fespace *FE,REAL *sol)
+ * \fn void dump_sol_vtk(char *namevtk,char *varname,mesh_struct *mesh,fespace *FE,REAL *sol)
  *
  * \brief Dumps solution data to vtk format.  Tries to do best interpolation for given FE space.
  *
@@ -576,7 +576,7 @@ void dump_sol_onV_vtk(char *namevtk,
  * \param sol      solution vector to dump
  *
  */
-void dump_sol_vtk(char *namevtk,char *varname,trimesh *mesh,fespace *FE,REAL *sol)
+void dump_sol_vtk(char *namevtk,char *varname,mesh_struct *mesh,fespace *FE,REAL *sol)
 {
   // Basic Quantities
   INT i;
@@ -725,7 +725,7 @@ void dump_sol_vtk(char *namevtk,char *varname,trimesh *mesh,fespace *FE,REAL *so
 
 /******************************************************************************/
 /*!
- * \fn void dump_blocksol_vtk(char *namevtk,char *varname,trimesh *mesh,block_fespace *FE,REAL *sol)
+ * \fn void dump_blocksol_vtk(char *namevtk,char *varname,mesh_struct *mesh,block_fespace *FE,REAL *sol)
  *
  * \brief Dumps solution data to vtk format.  Tries to do best interpolation for given FE space.
  *
@@ -736,7 +736,7 @@ void dump_sol_vtk(char *namevtk,char *varname,trimesh *mesh,fespace *FE,REAL *so
  * \param sol      solution vector to dump
  *
  */
-void dump_blocksol_vtk(char *namevtk,char **varname,trimesh *mesh,block_fespace *FE,REAL *sol)
+void dump_blocksol_vtk(char *namevtk,char **varname,mesh_struct *mesh,block_fespace *FE,REAL *sol)
 {
   // Basic Quantities
   INT i,nsp;

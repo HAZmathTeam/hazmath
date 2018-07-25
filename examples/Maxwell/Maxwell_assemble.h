@@ -10,7 +10,7 @@
 
 /******************************************************************************************************/
 /*!
- * \fn void impedancebdry_local(REAL* ZLoc,dvector *old_sol,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *ed_on_f, \
+ * \fn void impedancebdry_local(REAL* ZLoc,dvector *old_sol,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT *ed_on_f, \
                        INT *ed_on_elm,INT *v_on_elm,INT face,INT elm,void (*coeff)(REAL *,REAL *,REAL),REAL time)
  *
  * \brief Computes the local weak formulation of the Impedance boundary condition for Maxwell's Equations
@@ -36,7 +36,7 @@
  * \note                ASSUMING 3D ONLY
  *
  */
-void impedancebdry_local(REAL* ZLoc,dvector *old_sol,fespace *FE,trimesh *mesh,qcoordinates *cq,INT *ed_on_f, \
+void impedancebdry_local(REAL* ZLoc,dvector *old_sol,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT *ed_on_f, \
                          INT *ed_on_elm,INT *v_on_elm,INT face,INT elm,void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
 {
   // Mesh and FE data
