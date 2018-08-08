@@ -13,7 +13,7 @@ message(STATUS "Checking for package 'CCOLAMD'")
 
 # Check for header file
 find_path(CCOLAMD_INCLUDE_DIRS ccolamd.h
- HINTS ${SUITESPARSE_DIR}/include ${SUITESPARSE_DIR}/CCOLAMD/include $ENV{SUITESPARSE_DIR}/include $ENV{SUITESPARSE_DIR}/CCOLAMD/include
+ HINTS ${SUITESPARSE_DIR} ${SUITESPARSE_DIR}/include ${SUITESPARSE_DIR}/CCOLAMD/include $ENV{SUITESPARSE_DIR}/include $ENV{SUITESPARSE_DIR}/CCOLAMD/include
  PATH_SUFFIXES suitesparse ufsparse
  DOC "Directory where the CCOLAMD header is located"
  )
@@ -21,7 +21,7 @@ mark_as_advanced(CCOLAMD_INCLUDE_DIRS)
 
 # Check for CCOLAMD library
 find_library(CCOLAMD_LIBRARIES ccolamd
-  HINTS ${SUITESPARSE_DIR}/lib ${SUITESPARSE_DIR}/CCOLAMD/lib $ENV{SUITESPARSE_DIR}/lib $ENV{SUITESPARSE_DIR}/CCOLAMD/lib
+  HINTS ${SUITESPARSE_DIR} ${SUITESPARSE_DIR}/lib ${SUITESPARSE_DIR}/CCOLAMD/lib $ENV{SUITESPARSE_DIR}/lib $ENV{SUITESPARSE_DIR}/CCOLAMD/lib
   DOC "The CCOLAMD library"
   )
 mark_as_advanced(CCOLAMD_LIBRARIES)

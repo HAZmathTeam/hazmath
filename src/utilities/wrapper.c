@@ -77,5 +77,47 @@ void python_wrapper_krylov_amg(INT *n,
     linear_solver_dcsr_krylov_amg(&mat, &rhs, &sol, &itparam, &amgparam);
 
 }
+
+/*!
+ * \fn void python_wrapper_direct(INT *n, INT *nnz, INT *ia, INT *ja, REAL *a,
+ *                                     REAL *b, REAL *u, INT *ptrlvl)
+ *
+ * \brief Solve Ax=b by direct method (this is an interface with PYTHON)
+ *
+ * \param n             Number of cols of A
+ * \param nnz           Number of nonzeros of A
+ * \param ia            IA of A in CSR format
+ * \param ja            JA of A in CSR format
+ * \param a             VAL of A in CSR format
+ * \param b             RHS vector
+ * \param u             Solution vector
+ * \param print_lvl     Print level for iterative solvers
+ *
+ * \author Xiaozhe Hu
+ * \date   08/03/2018
+ *
+ */
+void python_wrapper_direct(INT *n,
+                           INT *nnz,
+                           INT *ia,
+                           INT *ja,
+                           REAL *a,
+                           REAL *b,
+                           REAL *u,
+                           INT *print_lvl)
+{
+    dCSRmat         mat;      // coefficient matrix
+    dvector         rhs, sol; // right-hand-side, solution
+
+    mat.row = *n; mat.col = *n; mat.nnz = *nnz;
+    mat.IA = ia;  mat.JA  = ja; mat.val = a;
+
+    rhs.row = *n; rhs.val = b;
+    sol.row = *n; sol.val = u;
+
+    directsolve_UMF(&mat, &rhs, &sol, *print_lvl);
+}
+
+
 /***************************** END ***************************************************/
 
