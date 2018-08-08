@@ -1086,9 +1086,9 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
   const SHORT prtlvl = itparam->linear_print_level;
   const SHORT precond_type = itparam->linear_precond_type;
 
-#if WITH_SUITESPARSE  
+//#if WITH_SUITESPARSE
   INT i;
-#endif
+//#endif
   INT status = SUCCESS;
   REAL setup_start, setup_end, setup_duration;
   REAL solver_start, solver_end, solver_duration;
@@ -1098,27 +1098,61 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
 #else
     error_extlib(256, __FUNCTION__, "SuiteSparse");
 #endif
+
+  SHORT max_levels;
+  if (amgparam) max_levels = amgparam->max_levels;
+  AMG_data **mgl = (AMG_data **)calloc(3, sizeof(AMG_data *));
   
   /* setup preconditioner */
   get_time(&setup_start);
-  
+
+  if (precond_type > 0 && precond_type < 20) {
   /* diagonal blocks are solved exactly */
 #if WITH_SUITESPARSE
-  // Need to sort the diagonal blocks for UMFPACK format
-  dCSRmat A_tran;
+    // Need to sort the diagonal blocks for UMFPACK format
+    dCSRmat A_tran;
   
-  for (i=0; i<2; i++){
+    for (i=0; i<2; i++){
     
-    dcsr_trans(&A_diag[i], &A_tran);
-    dcsr_cp(&A_tran, &A_diag[i]);
+        dcsr_trans(&A_diag[i], &A_tran);
+        dcsr_cp(&A_tran, &A_diag[i]);
     
-    printf("Factorization for %d-th diagnol: \n", i);
-    LU_diag[i] = umfpack_factorize(&A_diag[i], prtlvl);
+        if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagnol: \n", i);
+        LU_diag[i] = umfpack_factorize(&A_diag[i], prtlvl);
 
-    dcsr_free(&A_tran);
+        dcsr_free(&A_tran);
     
-  }
+    }
 #endif
+  }
+  else {
+
+      for (i=0; i<2; i++){
+          /* set AMG for diagonal blocks */
+          mgl[i] = amg_data_create(max_levels);
+          dcsr_alloc(A_diag[i].row, A_diag[i].row, A_diag[i].nnz, &mgl[i][0].A);
+          dcsr_cp(&(A_diag[i]), &mgl[i][0].A);
+          mgl[i][0].b=dvec_create(A_diag[i].row);
+          mgl[i][0].x=dvec_create(A_diag[i].row);
+
+          switch (amgparam->AMG_type) {
+
+              case UA_AMG: // Unsmoothed Aggregation AMG
+                  if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+                  status = amg_setup_ua(mgl[i], amgparam);
+                  break;
+
+              default: // UA AMG
+                  if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+                  status = amg_setup_ua(mgl[i], amgparam);
+                  break;
+
+          }
+
+      }
+
+  }
+
 
   precond_block_data precdata;
   precond_block_data_null(&precdata);
@@ -1127,13 +1161,19 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
 
   precdata.A_diag = A_diag;
   precdata.r = dvec_create(b->row);
+  if (amgparam) precdata.amgparam = amgparam;
   
+  if (precond_type > 0 && precond_type < 20) {
+  /* diagonal blocks are solved exactly */
 #if WITH_SUITESPARSE
-  precdata.LU_diag = LU_diag;
+      precdata.LU_diag = LU_diag;
 #endif
+  }
+  else {
+      precdata.mgl = mgl;
+  }
   
   precond prec; prec.data = &precdata;
-  
   
   switch (precond_type)
   {
@@ -1147,6 +1187,30 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
       
     case 12:
       prec.fct = precond_block_upper_2;
+      break;
+
+    case 20:
+      prec.fct = precond_block_diag_2_amg;
+      break;
+
+    case 21:
+      prec.fct = precond_block_lower_2_amg;
+      break;
+
+    case 22:
+      prec.fct = precond_block_upper_2_amg;
+      break;
+
+    case 30:
+      prec.fct = precond_block_diag_2_amg_krylov;
+      break;
+
+    case 31:
+      prec.fct = precond_block_lower_2_amg_krylov;
+      break;
+
+    case 32:
+      prec.fct = precond_block_upper_2_amg_krylov;
       break;
       
     default:
@@ -1243,7 +1307,7 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
             dcsr_trans(&A_diag[i], &A_tran);
             dcsr_cp(&A_tran, &A_diag[i]);
             
-            printf("Factorization for %d-th diagnol: \n", i);
+            if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagnol: \n", i);
             LU_diag[i] = umfpack_factorize(&A_diag[i], prtlvl);
 
             dcsr_free(&A_tran);
@@ -1429,7 +1493,7 @@ INT linear_solver_bdcsr_krylov_block_4(block_dCSRmat *A,
             dcsr_trans(&A_diag[i], &A_tran);
             dcsr_cp(&A_tran, &A_diag[i]);
 
-            printf("Factorization for %d-th diagnol: \n", i);
+            if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagnol: \n", i);
             LU_diag[i] = umfpack_factorize(&A_diag[i], prtlvl);
 
             dcsr_free(&A_tran);
@@ -1558,7 +1622,7 @@ INT linear_solver_bdcsr_krylov_block(block_dCSRmat *A,
     dcsr_trans(&A_diag[i], &A_tran);
     dcsr_cp(&A_tran, &A_diag[i]);
 
-    printf("Factorization for %d-th diagnol: \n", i);
+    if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagnol: \n", i);
     LU_diag[i] = umfpack_factorize(&A_diag[i], prtlvl);
 
     dcsr_free(&A_tran);
