@@ -26,7 +26,7 @@ message(STATUS "Checking for package 'CHOLMOD'")
 
 # Check for header file
 find_path(CHOLMOD_INCLUDE_DIRS cholmod.h
- HINTS ${SUITESPARSE_DIR}/include ${SUITESPARSE_DIR}/CHOLMOD/include $ENV{SUITESPARSE_DIR}/include $ENV{SUITESPARSE_DIR}/CHOLMOD/include
+ HINTS ${SUITESPARSE_DIR} ${SUITESPARSE_DIR}/include ${SUITESPARSE_DIR}/CHOLMOD/include $ENV{SUITESPARSE_DIR}/include $ENV{SUITESPARSE_DIR}/CHOLMOD/include
  PATH_SUFFIXES suitesparse ufsparse
  DOC "Directory where the CHOLMOD header is located"
  )
@@ -34,7 +34,7 @@ mark_as_advanced(CHOLMOD_INCLUDE_DIRS)
 
 # Check for CHOLMOD library
 find_library(CHOLMOD_LIBRARY cholmod
-  HINTS ${SUITESPARSE_DIR}/lib ${SUITESPARSE_DIR}/CHOLMOD/lib $ENV{SUITESPARSE_DIR}/lib $ENV{SUITESPARSE_DIR}/CHOLMOD/lib 
+  HINTS ${SUITESPARSE_DIR} ${SUITESPARSE_DIR}/lib ${SUITESPARSE_DIR}/CHOLMOD/lib $ENV{SUITESPARSE_DIR}/lib $ENV{SUITESPARSE_DIR}/CHOLMOD/lib 
   DOC "The CHOLMOD library"
   )
 mark_as_advanced(CHOLMOD_LIBRARY)

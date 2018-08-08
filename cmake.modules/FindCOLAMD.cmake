@@ -13,7 +13,7 @@ message(STATUS "Checking for package 'COLAMD'")
 
 # Check for header file
 find_path(COLAMD_INCLUDE_DIRS colamd.h
- HINTS ${SUITESPARSE_DIR}/include ${SUITESPARSE_DIR}/COLAMD/include $ENV{SUITESPARSE_DIR}/include $ENV{SUITESPARSE_DIR}/COLAMD/include
+ HINTS ${SUITESPARSE_DIR}  ${SUITESPARSE_DIR}/include ${SUITESPARSE_DIR}/COLAMD/include $ENV{SUITESPARSE_DIR}/include $ENV{SUITESPARSE_DIR}/COLAMD/include
  PATH_SUFFIXES suitesparse ufsparse
  DOC "Directory where the COLAMD header is located"
  )
@@ -21,7 +21,7 @@ mark_as_advanced(COLAMD_INCLUDE_DIRS)
 
 # Check for COLAMD library
 find_library(COLAMD_LIBRARIES colamd
-  HINTS ${SUITESPARSE_DIR}/lib ${SUITESPARSE_DIR}/COLAMD/lib $ENV{SUITESPARSE_DIR}/lib $ENV{SUITESPARSE_DIR}/COLAMD/lib
+  HINTS ${SUITESPARSE_DIR}  ${SUITESPARSE_DIR}/lib ${SUITESPARSE_DIR}/COLAMD/lib $ENV{SUITESPARSE_DIR}/lib $ENV{SUITESPARSE_DIR}/COLAMD/lib
   DOC "The COLAMD library"
   )
 mark_as_advanced(COLAMD_LIBRARIES)
