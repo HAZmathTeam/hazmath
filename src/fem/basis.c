@@ -689,7 +689,7 @@ void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *m
       // Get the area and normal vector of the face
       farea = mesh->f_area[myf-1];
 
-      // Loop through Nodes on element to find corresponding nodes and get correct orienation
+      // Loop through Nodes on element to find corresponding nodes and get correct orientation
       for(j=0;j<v_per_elm;j++) {
         elnd = v_on_elm[j];
         if(ipf[0]==elnd) {
