@@ -74,8 +74,8 @@ INT main(int *argc, char **argv) {
     itparam.linear_print_level    = print_lvl;
     itparam.linear_maxit          = maxit;
     /************************************************************/    
-    linear_solver_dcsr_krylov_amg(Acsr, rhs, sol, &itparam, &amgparam);
-    //    directsolve_UMF(&Acsr, &rhs, &sol, *print_lvl);
+    //    linear_solver_dcsr_krylov_amg(Acsr, rhs, sol, &itparam, &amgparam);
+    directsolve_UMF(Acsr, rhs, sol, print_lvl);
     dvec_write("sol.dat",sol);
 }
 /***************************** END ***************************************************/
