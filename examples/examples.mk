@@ -67,7 +67,7 @@ $(EXE):	$(MGTARGET)	$(OBJS)
 	+$(CC) $(ExtraFLAGS) $(INCLUDE) $(OBJS) $(MGLIBS) -o $@  $(LIBS)
 
 %.o:	%.c
-	+$(CC) $(INCLUDE) $(CFLAGS) $(DMGRAPH) -o $@ -c $<
+	+$(CC) $(INCLUDE) -I$(INCLUDESSP) $(CFLAGS) $(DMGRAPH) -o $@ -c $<
 
 clean:
 	+rm -rf $(EXE) $(OBJS) *.mod output/* ./*.dSYM  $(EXTRA_DEL)
