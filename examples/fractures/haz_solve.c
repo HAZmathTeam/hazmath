@@ -21,7 +21,7 @@ INT main(int *argc, char **argv) {
     INT i;
     INT print_lvl=4;
     INT maxit=1000;
-    REAL tol=1e-10;
+    REAL tol=1e-11;
     /***************************************************/
     Acoo=(dCOOmat *)malloc(sizeof(dCOOmat));
     FILE *fin = HAZ_fopen("matrix.ijv","r");
@@ -36,8 +36,14 @@ INT main(int *argc, char **argv) {
       Acoo->rowind[i]--;Acoo->colind[i]--;
       //      fprintf(stdout,"\n%i: %i %i %23.16e",i,Acoo->rowind[i],Acoo->colind[i],Acoo->val[i]);
     }
+    //    fprintf(stdout,"\n");
     fclose(fin);
-    fprintf(stdout,"\n");
+    fin = HAZ_fopen("rhs.dat","r");
+    rhs=(dvector *)malloc(sizeof(dvector));
+    rhs->row = Acoo->row; rhs->val = calloc(rhs->row,sizeof(REAL));
+    rvecd_(fin,rhs->val,&(rhs->row));
+    fclose(fin);
+    /***************************************************/
     Acsr=(dCSRmat *)malloc(sizeof(dCSRmat));
     Acsr->row=Acoo->row;
     Acsr->col=Acoo->col;
@@ -47,10 +53,7 @@ INT main(int *argc, char **argv) {
     //    fclose(fid);
     //    exit(255);
     free(Acoo->val);free(Acoo->rowind);free(Acoo->colind);free(Acoo);
-    rhs=(dvector *)malloc(sizeof(dvector));
     sol=(dvector *)malloc(sizeof(dvector));
-    rhs->row = Acsr->row; rhs->val = calloc(Acsr->col,sizeof(REAL));
-    for(i=0;i<rhs->row;i++){rhs->val[i]=11.e00;}
     sol->row = Acsr->col; sol->val = calloc(Acsr->row,sizeof(REAL));
     //
     param_input_init(&inparam);
@@ -73,6 +76,7 @@ INT main(int *argc, char **argv) {
     /************************************************************/    
     linear_solver_dcsr_krylov_amg(Acsr, rhs, sol, &itparam, &amgparam);
     //    directsolve_UMF(&Acsr, &rhs, &sol, *print_lvl);
+    dvec_write("sol.dat",sol);
 }
 /***************************** END ***************************************************/
 
