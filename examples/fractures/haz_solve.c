@@ -24,7 +24,7 @@ INT main(int *argc, char **argv) {
     REAL tol=1e-11;
     /***************************************************/
     Acoo=(dCOOmat *)malloc(sizeof(dCOOmat));
-    FILE *fin = HAZ_fopen("LS/matrix2.ijv","r");
+    FILE *fin = HAZ_fopen("LS/matrix3.ijv","r");
     i=fscanf(fin,"%i",&(Acoo->row));
     i=fscanf(fin,"%i",&(Acoo->col));
     i=fscanf(fin,"%i",&(Acoo->nnz));
@@ -39,7 +39,7 @@ INT main(int *argc, char **argv) {
     }
     fprintf(stdout,"... %d nonzeroes: DONE.\n",Acoo->nnz);
     fclose(fin);
-    fin = HAZ_fopen("LS/rhs2.dat","r");
+    fin = HAZ_fopen("LS/rhs3.dat","r");
     rhs=(dvector *)malloc(sizeof(dvector));
     rhs->row = Acoo->row; rhs->val = calloc(rhs->row,sizeof(REAL));
     fprintf(stdout,"\nReading the rhs...");
