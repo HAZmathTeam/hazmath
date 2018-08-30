@@ -24,24 +24,27 @@ INT main(int *argc, char **argv) {
     REAL tol=1e-11;
     /***************************************************/
     Acoo=(dCOOmat *)malloc(sizeof(dCOOmat));
-    FILE *fin = HAZ_fopen("matrix.ijv","r");
+    FILE *fin = HAZ_fopen("LS/matrix2.ijv","r");
     i=fscanf(fin,"%i",&(Acoo->row));
     i=fscanf(fin,"%i",&(Acoo->col));
     i=fscanf(fin,"%i",&(Acoo->nnz));
     Acoo->rowind=calloc(Acoo->nnz,sizeof(INT));
     Acoo->colind=calloc(Acoo->nnz,sizeof(INT));
     Acoo->val=calloc(Acoo->nnz,sizeof(REAL));
+    fprintf(stdout,"\nReading the matrix...");
     for(i=0;i<Acoo->nnz;i++){
       fscanf(fin,"%i %i %lg",(Acoo->rowind+i),(Acoo->colind+i),(Acoo->val+i));
       Acoo->rowind[i]--;Acoo->colind[i]--;
       //      fprintf(stdout,"\n%i: %i %i %23.16e",i,Acoo->rowind[i],Acoo->colind[i],Acoo->val[i]);
     }
-    //    fprintf(stdout,"\n");
+    fprintf(stdout,"... %d nonzeroes: DONE.\n",Acoo->nnz);
     fclose(fin);
-    fin = HAZ_fopen("rhs.dat","r");
+    fin = HAZ_fopen("LS/rhs2.dat","r");
     rhs=(dvector *)malloc(sizeof(dvector));
     rhs->row = Acoo->row; rhs->val = calloc(rhs->row,sizeof(REAL));
+    fprintf(stdout,"\nReading the rhs...");
     rvecd_(fin,rhs->val,&(rhs->row));
+    fprintf(stdout,"... %d rows: DONE.\n",rhs->row);
     fclose(fin);
     /***************************************************/
     Acsr=(dCSRmat *)malloc(sizeof(dCSRmat));
@@ -74,8 +77,8 @@ INT main(int *argc, char **argv) {
     itparam.linear_print_level    = print_lvl;
     itparam.linear_maxit          = maxit;
     /************************************************************/    
-    //    linear_solver_dcsr_krylov_amg(Acsr, rhs, sol, &itparam, &amgparam);
-    directsolve_UMF(Acsr, rhs, sol, print_lvl);
+    linear_solver_dcsr_krylov_amg(Acsr, rhs, sol, &itparam, &amgparam);
+    //    directsolve_UMF(Acsr, rhs, sol, print_lvl);
     dvec_write("sol.dat",sol);
 }
 /***************************** END ***************************************************/
