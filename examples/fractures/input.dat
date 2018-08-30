@@ -62,17 +62,17 @@ linear_precond_type		= 4		%  0 Null | 1 Diag | 2 AMG | 4 ILU |
 %----------------------------------------------%
 
 AMG_type 			= UA	% UA unsmoothed AMG
-AMG_cycle_type			= W    % V V-cycle | W W-cycle | A AMLI-cycle | NA Nonlinear AMLI-cycle 
+AMG_cycle_type			= A    % V V-cycle | W W-cycle | A AMLI-cycle | NA Nonlinear AMLI-cycle 
 AMG_levels			= 20	% 
 AMG_tol				= 1e-8
 AMG_maxit			= 1
 
 AMG_smoother			= GS	% JACOBI | GS | SGS | SOR | SSOR | L1DIAG | 
 AMG_relaxation			= 1.2   % Relaxation for SOR
-AMG_presmooth_iter		= 4
-AMG_postsmooth_iter		= 4
+AMG_presmooth_iter		= 1
+AMG_postsmooth_iter		= 1
 
-AMG_coarse_dof			= 10000	
+AMG_coarse_dof			= 7000	
 AMG_coarse_solver		= 32    % coarsest solver: 0 iterative | 32 UMFPACK
 AMG_coarse_scaling		= OFF	% OFF | ON
 
