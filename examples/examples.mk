@@ -10,7 +10,11 @@ FC = gfortran
 CXX = g++
 CFLAGS += 
 FFLAGS += -fno-second-underscore
+
 ExtraFLAGS =
+INCLUDE =
+LIBS =
+
 
 ##################### no change should be needed below. ###########
 # HAZMATH LIB and INCLUDE
@@ -20,7 +24,7 @@ HAZLIB = -L$(HAZDIR)/lib -lhazmath
 
 INCLUDE += -I$(HAZDIR)/include
 
-LIBS += $(HAZLIB) -lm -lblas -llapack #-lgfortran
+LIBS += $(HAZLIB) -lm -lblas -llapack
 
 HEADERS += 
 
@@ -49,6 +53,15 @@ else
 	MGLIBS = $(MGRAPH_WRAPPERDIR)/multigraph_solve.o $(MGRAPH_SRCDIR)/solver.o
 endif
 
+INCLUDESSP=
+ifeq ($(WITH_SUITESPARSE),1)
+	CFLAGS += -DWITH_SUITESPARSE=1
+	SSDIR = /usr/lib/x86_64-linux-gnu
+	INCLUDESSP = -I/usr/include/suitesparse
+	LIBS += -lsuitesparseconfig -lcholmod -lamd -lcolamd -lccolamd -lcamd -lspqr -lumfpack -lamd -lcxsparse 
+endif
+
+
 ############### 
 # Different Executable Programs, but same targets; SRC file needs to be defined
 
@@ -59,6 +72,8 @@ OBJS += $(SRCFILE).o
 
 HEADERS += $(HEADERS)
 
+LIBS += #-lgfortran
+
 .PHONY:  all
 
 all: $(EXE) 
@@ -67,7 +82,7 @@ $(EXE):	$(MGTARGET)	$(OBJS)
 	+$(CC) $(ExtraFLAGS) $(INCLUDE) $(OBJS) $(MGLIBS) -o $@  $(LIBS)
 
 %.o:	%.c
-	+$(CC) $(INCLUDE) -I$(INCLUDESSP) $(CFLAGS) $(DMGRAPH) -o $@ -c $<
+	+$(CC) $(INCLUDE) $(INCLUDESSP) $(CFLAGS) $(DMGRAPH) -o $@ -c $<
 
 clean:
 	+rm -rf $(EXE) $(OBJS) *.mod output/* ./*.dSYM  $(EXTRA_DEL)
