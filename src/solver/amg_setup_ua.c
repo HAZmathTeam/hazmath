@@ -209,7 +209,7 @@ static void construct_strong_couped(dCSRmat *A,
 /***********************************************************************************************/
 /**
  * \fn static SHORT aggregation_vmb (dCSRmat *A, ivector *vertices, AMG_param *param,
- *                                   dCSRmat *Neigh, INT *num_aggregations)
+ *                                   dCSRmat *Neigh, INT *num_aggregations, INT lvl)
  *
  * \brief Form aggregation based on strong coupled neighbors
  *
@@ -218,6 +218,7 @@ static void construct_strong_couped(dCSRmat *A,
  * \param param             Pointer to AMG parameters
  * \param Neigh             Pointer to strongly coupled neighbors
  * \param num_aggregations  Pointer to number of aggregations
+ * \param lvl               Level number
  *
  * \author Xiaozhe Hu
  * \date   09/29/2009
@@ -231,7 +232,7 @@ static SHORT aggregation_vmb(dCSRmat *A,
                              ivector *vertices,
                              AMG_param *param,
                              dCSRmat *Neigh,
-                             INT *num_aggregations)
+                             INT *num_aggregations, INT lvl)
 {   
     // local variables
     const INT    row = A->row;
@@ -263,7 +264,8 @@ static SHORT aggregation_vmb(dCSRmat *A,
     /*-------------*/
     /*   Step 1.   */
     /*-------------*/
-    for ( i = 0; i < row; ++i ) {
+    //    for ( i = 0; i < row; ++i ) {
+    for ( i=row-1; i>=0;i-- ) {      
         if ( (NIA[i+1] - NIA[i]) == 1 ) {
             vertices->val[i] = UNPT;
             num_left--;
@@ -313,7 +315,8 @@ static SHORT aggregation_vmb(dCSRmat *A,
         if ( vertices->val[i] >= 0 ) num_each_agg[vertices->val[i]] ++;
     }
     
-    for ( i = 0; i < row; ++i ) {
+    //    for ( i = 0; i < row; ++i ) {
+    for ( i = row-1; i >= 0; i-- ) {
         if ( vertices->val[i] < UNPT ) {
             row_start = NIA[i]; row_end = NIA[i+1];
             for ( j = row_start; j < row_end; ++j ) {
@@ -327,7 +330,6 @@ static SHORT aggregation_vmb(dCSRmat *A,
             }
         }
     }
-    
     /*-------------*/
     /*   Step 3.   */
     /*-------------*/
@@ -363,7 +365,7 @@ END:
 /***********************************************************************************************/
 /**
  * \fn static SHORT aggregation_hec (dCSRmat *A, ivector *vertices, AMG_param *param,
- *                                   dCSRmat *Neigh, INT *num_aggregations)
+ *                                   dCSRmat *Neigh, INT *num_aggregations,INT lvl)
  *
  * \brief Heavy edge coarsening aggregation based on strong coupled neighbors
  *
@@ -372,6 +374,7 @@ END:
  * \param param             Pointer to AMG parameters
  * \param Neigh             Pointer to strongly coupled neighbors
  * \param num_aggregations  Pointer to number of aggregations
+ * \param lvl               Level number
  *
  * \author Xiaozhe Hu
  * \date   03/12/2017
@@ -386,7 +389,7 @@ static SHORT aggregation_hec(dCSRmat *A,
                              ivector *vertices,
                              AMG_param *param,
                              dCSRmat *Neigh,
-                             INT *num_aggregations)
+                             INT *num_aggregations, INT lvl)
 {
     // local variables
     const INT    row = A->row;
@@ -418,7 +421,12 @@ static SHORT aggregation_hec(dCSRmat *A,
     // get random permutation
     for(i=0; i<row; i++) perm[i] = i;
     iarray_shuffle(row, perm);
-
+    //    fprintf(stdout,"\nlvl=%d",lvl);
+    if(!lvl){
+      for(i=0; i<row; i++) perm[i] = row-i-1;
+    } else {
+      for(i=0; i<row; i++) perm[i] = i;
+    }
     // main loop
     for ( ii = 0; ii < row; ii++ ) {
         i = perm[ii];
@@ -580,16 +588,16 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
                 
             case VMB: // VMB aggregation     
                 status = aggregation_vmb(&mgl[lvl].A, &vertices[lvl], param,
-                                         &Neighbor[lvl], &num_aggs[lvl]);
+                                         &Neighbor[lvl], &num_aggs[lvl],lvl);
                 break;
 
             case HEC: // Heavy edge coarsening aggregation
                 status = aggregation_hec(&mgl[lvl].A, &vertices[lvl], param,
-                                         &Neighbor[lvl], &num_aggs[lvl]);
-                //printf("level = %d\n", lvl);
+                                         &Neighbor[lvl], &num_aggs[lvl],lvl);
+		//                printf("level = %d\n", lvl);
                 //ivector_write("vt.dat", &vertices[lvl]);
-                //dcsr_write_dcoo("N.dat", &Neighbor[lvl]);
-                //getchar();
+		//                dcsr_write_dcoo("N.dat", &Neighbor[lvl]);
+		//                getchar();
                 break;
                 
             default: // wrong aggregation type
