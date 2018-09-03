@@ -13,7 +13,8 @@
 INT main(int *argc, char **argv) {
     dCOOmat         *Acoo;      // matrix
     dCSRmat         *Acsr;      // matrix
-    dvector         *rhs, *sol, *blocks; // right-hand-side, solution, starting index of the block matrices
+    dvector         *rhs, *sol;// right-hand-side, solution
+    ivector         *blocks; // starting index of the block matrices
     /***************************************************/
     AMG_param       amgparam; // parameters for AMG
     linear_itsolver_param  itparam;  // parameters for linear itsolver    
@@ -46,18 +47,18 @@ INT main(int *argc, char **argv) {
     rvecd_(fin,rhs->val,&(rhs->row));
     fprintf(stdout,"... %d rows: DONE.\n",rhs->row);
     fclose(fin);
-
+    
     fin = HAZ_fopen("LS/matrix_structure1.dat","r");
-    blocks=(dvector *)malloc(sizeof(dvector));
+    blocks=(ivector *)malloc(sizeof(ivector));
     i=fscanf(fin,"%i",&(blocks->row));
     //fprintf(stdout,"\n nb blocks %i",blocks->row);
-    blocks->val = calloc(blocks->row,sizeof(REAL));
+    blocks->val = calloc(blocks->row,sizeof(INT));
     fprintf(stdout,"\nReading the matrix structure...");
-    //rvecd_(fin,blocks->val,&(blocks->row));
+    //rveci_(fin,blocks->val,&(blocks->row));
     for(i=0;i<blocks->row;i++){
-      fscanf(fin,"%lg",(blocks->val+i));
+      fscanf(fin,"%i",(blocks->val+i));
       blocks->val[i]--;
-      //  fprintf(stdout,"\n%i: %lg",i,blocks->val[i]);
+      //      fprintf(stdout,"\n%i: %10i",i,blocks->val[i]);
     }
     fprintf(stdout,"... %d rows: DONE.\n",blocks->row);
     fclose(fin);
