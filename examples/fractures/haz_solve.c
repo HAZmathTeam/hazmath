@@ -13,7 +13,7 @@
 INT main(int *argc, char **argv) {
     dCOOmat         *Acoo;      // matrix
     dCSRmat         *Acsr;      // matrix
-    dvector         *rhs, *sol; // right-hand-side, solution
+    dvector         *rhs, *sol, *blocks; // right-hand-side, solution, starting index of the block matrices
     /***************************************************/
     AMG_param       amgparam; // parameters for AMG
     linear_itsolver_param  itparam;  // parameters for linear itsolver    
@@ -24,7 +24,7 @@ INT main(int *argc, char **argv) {
     REAL tol=1e-11;
     /***************************************************/
     Acoo=(dCOOmat *)malloc(sizeof(dCOOmat));
-    FILE *fin = HAZ_fopen("LS/matrix2.ijv","r");
+    FILE *fin = HAZ_fopen("LS/matrix1.ijv","r");
     i=fscanf(fin,"%i",&(Acoo->row));
     i=fscanf(fin,"%i",&(Acoo->col));
     i=fscanf(fin,"%i",&(Acoo->nnz));
@@ -39,13 +39,30 @@ INT main(int *argc, char **argv) {
     }
     fprintf(stdout,"... %d nonzeroes: DONE.\n",Acoo->nnz);
     fclose(fin);
-    fin = HAZ_fopen("LS/rhs2.dat","r");
+    fin = HAZ_fopen("LS/rhs1.dat","r");
     rhs=(dvector *)malloc(sizeof(dvector));
     rhs->row = Acoo->row; rhs->val = calloc(rhs->row,sizeof(REAL));
     fprintf(stdout,"\nReading the rhs...");
     rvecd_(fin,rhs->val,&(rhs->row));
     fprintf(stdout,"... %d rows: DONE.\n",rhs->row);
     fclose(fin);
+
+    fin = HAZ_fopen("LS/matrix_structure1.dat","r");
+    blocks=(dvector *)malloc(sizeof(dvector));
+    i=fscanf(fin,"%i",&(blocks->row));
+    //fprintf(stdout,"\n nb blocks %i",blocks->row);
+    blocks->val = calloc(blocks->row,sizeof(REAL));
+    fprintf(stdout,"\nReading the matrix structure...");
+    //rvecd_(fin,blocks->val,&(blocks->row));
+    for(i=0;i<blocks->row;i++){
+      fscanf(fin,"%lg",(blocks->val+i));
+      blocks->val[i]--;
+      //  fprintf(stdout,"\n%i: %lg",i,blocks->val[i]);
+    }
+    fprintf(stdout,"... %d rows: DONE.\n",blocks->row);
+    fclose(fin);
+
+    
     /***************************************************/
     Acsr=(dCSRmat *)malloc(sizeof(dCSRmat));
     Acsr->row=Acoo->row;
@@ -83,6 +100,7 @@ INT main(int *argc, char **argv) {
     free(Acsr->val);free(Acsr->IA);free(Acsr->JA);free(Acsr);
     free(sol->val);free(sol);
     free(rhs->val);free(rhs);
+    free(blocks->val);free(blocks);
 }
 /***************************** END ***************************************************/
 
