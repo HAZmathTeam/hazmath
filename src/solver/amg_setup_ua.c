@@ -45,36 +45,36 @@ static void form_tentative_p(ivector *vertices,
                              REAL **basis,
                              INT levelNum,
                              INT num_aggregations)
-{   
+{
     INT i, j;
-    
+
     /* Form tentative prolongation */
     tentp->row = vertices->row;
     tentp->col = num_aggregations;
     tentp->nnz = vertices->row;
-    
+
     tentp->IA  = (INT *)calloc(tentp->row+1,sizeof(INT));
-    
+
     // local variables
     INT  *IA = tentp->IA;
     INT  *vval = vertices->val;
     const INT row = tentp->row;
-    
+
     // first run
     for ( i = 0, j = 0; i < row; i++ ) {
         IA[i] = j;
         if (vval[i] > UNPT) j++;
     }
     IA[row] = j;
-    
+
     // allocate memory for P
     tentp->nnz = j;
     tentp->JA  = (INT *)calloc(tentp->nnz, sizeof(INT));
     tentp->val = (REAL *)calloc(tentp->nnz, sizeof(REAL));
-    
+
     INT  *JA = tentp->JA;
     REAL *val = tentp->val;
-    
+
     // second run
     for (i = 0, j = 0; i < row; i ++) {
         IA[i] = j;
@@ -107,36 +107,36 @@ void form_boolean_p(ivector *vertices,
                            dCSRmat *tentp,
                            INT levelNum,
                            INT num_aggregations)
-{  
+{
     INT i, j;
-    
+
     /* Form tentative prolongation */
     tentp->row = vertices->row;
     tentp->col = num_aggregations;
     tentp->nnz = vertices->row;
-    
+
     tentp->IA  = (INT *)calloc(tentp->row+1,sizeof(INT));
-    
+
     // local variables
     INT  *IA = tentp->IA;
     INT  *vval = vertices->val;
     const INT row = tentp->row;
-    
+
     // first run
     for ( i = 0, j = 0; i < row; i++ ) {
         IA[i] = j;
         if (vval[i] > UNPT) j++;
     }
     IA[row] = j;
-    
+
     // allocate memory for P
     tentp->nnz = j;
     tentp->JA  = (INT *)calloc(tentp->nnz, sizeof(INT));
     tentp->val = (REAL *)calloc(tentp->nnz, sizeof(REAL));
-    
+
     INT  *JA = tentp->JA;
     REAL *val = tentp->val;
-    
+
     // second run
     for (i = 0, j = 0; i < row; i ++) {
         IA[i] = j;
@@ -233,39 +233,39 @@ static SHORT aggregation_vmb(dCSRmat *A,
                              AMG_param *param,
                              dCSRmat *Neigh,
                              INT *num_aggregations, INT lvl)
-{   
+{
     // local variables
     const INT    row = A->row;
     const INT    max_aggregation = param->max_aggregation;
-    
+
     // return status
     SHORT  status = SUCCESS;
-    
+
     // local variables
     INT    num_left = row;
     INT    subset, count;
     INT    *num_each_agg;
-    
+
     INT    i, j, row_start, row_end;
     INT    *NIA = NULL, *NJA = NULL;
 
     // find strongly coupled neighbors
     construct_strong_couped(A, param, Neigh);
-    
+
     NIA  = Neigh->IA; NJA  = Neigh->JA;
-    
+
     /*------------------------------------------*/
     /*             Initialization               */
     /*------------------------------------------*/
     ivec_alloc(row, vertices);
     iarray_set(row, vertices->val, -2);
     *num_aggregations = 0;
-    
+
     /*-------------*/
     /*   Step 1.   */
     /*-------------*/
     //    for ( i = 0; i < row; ++i ) {
-    for ( i=row-1; i>=0;i-- ) {      
+    for ( i=row-1; i>=0;i-- ) {
         if ( (NIA[i+1] - NIA[i]) == 1 ) {
             vertices->val[i] = UNPT;
             num_left--;
@@ -296,25 +296,25 @@ static SHORT aggregation_vmb(dCSRmat *A,
             }
         }
     }
-    
+
     /*-------------*/
     /*   Step 2.   */
     /*-------------*/
     INT *temp_C = (INT*)calloc(row,sizeof(INT));
-    
+
     if ( *num_aggregations < MIN_CDOF ) {
         status = ERROR_AMG_COARSEING; goto END;
     }
-    
+
     num_each_agg = (INT*)calloc(*num_aggregations,sizeof(INT));
-    
+
     //for ( i = 0; i < *num_aggregations; i++ ) num_each_agg[i] = 0; // initialize
-    
+
     for ( i = row; i--; ) {
         temp_C[i] = vertices->val[i];
         if ( vertices->val[i] >= 0 ) num_each_agg[vertices->val[i]] ++;
     }
-    
+
     //    for ( i = 0; i < row; ++i ) {
     for ( i = row-1; i >= 0; i-- ) {
         if ( vertices->val[i] < UNPT ) {
@@ -342,7 +342,7 @@ static SHORT aggregation_vmb(dCSRmat *A,
                 count++;
                 row_start = NIA[i]; row_end = NIA[i+1];
                 for ( j = row_start; j < row_end; ++j ) {
-                    if ( (NJA[j]!=i) && (vertices->val[NJA[j]] < UNPT) 
+                    if ( (NJA[j]!=i) && (vertices->val[NJA[j]] < UNPT)
 						             && (count<max_aggregation) ) {
                         vertices->val[NJA[j]] = *num_aggregations;
                         num_left--;
@@ -353,12 +353,12 @@ static SHORT aggregation_vmb(dCSRmat *A,
             }
         }
     }
-    
+
     free(num_each_agg);
-    
+
 END:
     free(temp_C);
-    
+
     return status;
 }
 
@@ -499,9 +499,9 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *, AMG_param *);
 SHORT amg_setup_ua (AMG_data *mgl,
                     AMG_param *param)
 {
-    
+
     SHORT status = amg_setup_unsmoothP_unsmoothR(mgl, param);
-    
+
     return status;
 }
 
@@ -533,34 +533,44 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
     const SHORT csolver    = param->coarse_solver;
     const SHORT min_cdof   = MAX(param->coarse_dof,50);
     const INT   m          = mgl[0].A.row;
-    
+
     // local variables
     SHORT         max_levels = param->max_levels, lvl = 0, status = SUCCESS;
     INT           i;
     REAL          setup_start, setup_end;
-    
+    Schwarz_param swzparam;
+
     get_time(&setup_start);
-    
+
     // level info (fine: 0; coarse: 1)
     ivector *vertices = (ivector *)calloc(max_levels,sizeof(ivector));
-    
+
     // each level stores the information of the number of aggregations
     INT *num_aggs = (INT *)calloc(max_levels,sizeof(INT));
-    
+
     // each level stores the information of the strongly coupled neighborhoods
     dCSRmat *Neighbor = (dCSRmat *)calloc(max_levels,sizeof(dCSRmat));
-    
+
     // Initialize level information
     for ( i = 0; i < max_levels; ++i ) num_aggs[i] = 0;
-    
+
     mgl[0].near_kernel_dim   = 1;
     mgl[0].near_kernel_basis = (REAL **)calloc(mgl->near_kernel_dim,sizeof(REAL*));
-    
+
     for ( i = 0; i < mgl->near_kernel_dim; ++i ) {
         mgl[0].near_kernel_basis[i] = (REAL *)calloc(m,sizeof(REAL));
         array_set(m, mgl[0].near_kernel_basis[i], 1.0);
     }
-    
+
+    // Initialize Schwarz parameters
+    mgl->Schwarz_levels = param->Schwarz_levels;
+    if ( param->Schwarz_levels > 0 ) {
+        swzparam.Schwarz_mmsize = param->Schwarz_mmsize;
+        swzparam.Schwarz_maxlvl = param->Schwarz_maxlvl;
+        swzparam.Schwarz_type   = param->Schwarz_type;
+        swzparam.Schwarz_blksolver = param->Schwarz_blksolver;
+    }
+
     // Initialize AMLI coefficients
     if ( cycle_type == AMLI_CYCLE ) {
         const INT amlideg = param->amli_degree;
@@ -568,25 +578,28 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
         REAL lambda_max = 2.0, lambda_min = lambda_max/4;
         amg_amli_coef(lambda_max, lambda_min, amlideg, param->amli_coef);
     }
-    
+
 #if DIAGONAL_PREF
     dcsr_diagpref(&mgl[0].A); // reorder each row to make diagonal appear first
 #endif
-    
+
     /*----------------------------*/
     /*--- checking aggregation ---*/
     /*----------------------------*/
     // Main AMG setup loop
     while ( (mgl[lvl].A.row > min_cdof) && (lvl < max_levels-1) ) {
-        
-        //printf("level = %d\n", lvl);
-        //dcsr_write_dcoo("A.dat", &mgl[lvl].A);
-        //getchar();
+
+      /*-- Setup Schwarz smoother if necessary */
+      if ( lvl < param->Schwarz_levels ) {
+          mgl[lvl].Schwarz.A=dcsr_sympat(&mgl[lvl].A);
+          dcsr_shift(&(mgl[lvl].Schwarz.A), 1);
+          Schwarz_setup(&mgl[lvl].Schwarz, &swzparam);
+      }
 
         /*-- Aggregation --*/
         switch ( param->aggregation_type ) {
-                
-            case VMB: // VMB aggregation     
+
+            case VMB: // VMB aggregation
                 status = aggregation_vmb(&mgl[lvl].A, &vertices[lvl], param,
                                          &Neighbor[lvl], &num_aggs[lvl],lvl);
                 break;
@@ -594,18 +607,14 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
             case HEC: // Heavy edge coarsening aggregation
                 status = aggregation_hec(&mgl[lvl].A, &vertices[lvl], param,
                                          &Neighbor[lvl], &num_aggs[lvl],lvl);
-		//                printf("level = %d\n", lvl);
-                //ivector_write("vt.dat", &vertices[lvl]);
-		//                dcsr_write_dcoo("N.dat", &Neighbor[lvl]);
-		//                getchar();
                 break;
-                
+
             default: // wrong aggregation type
                 status = ERROR_AMG_AGG_TYPE;
                 check_error(status, __FUNCTION__);
                 break;
         }
-        
+
         /*-- Choose strength threshold adaptively --*/
         if ( num_aggs[lvl]*4 > mgl[lvl].A.row )
             param->strong_coupled /= 2;
@@ -620,11 +629,11 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
             }
             status = SUCCESS; break;
         }
-        
+
         /*-- Form Prolongation --*/
         form_tentative_p(&vertices[lvl], &mgl[lvl].P, mgl[0].near_kernel_basis,
                          lvl+1, num_aggs[lvl]);
-        
+
         // Check 2: Is coarse sparse too small?
         if ( mgl[lvl].P.col < MIN_CDOF ) break;
 
@@ -639,7 +648,7 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
             break;
         }
 #endif
-        
+
 #if 0
         // Check 4: Is this coarsening ratio too small?
         if ( (REAL)mgl[lvl].P.col > mgl[lvl].P.row * MIN_CRATE ) {
@@ -651,28 +660,28 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
             break;
         }
 #endif
-        
+
         /*-- Form restriction --*/
         dcsr_trans(&mgl[lvl].P, &mgl[lvl].R);
-        
+
         /*-- Form coarse level stiffness matrix --*/
         dcsr_rap_agg(&mgl[lvl].R, &mgl[lvl].A, &mgl[lvl].P,
                                &mgl[lvl+1].A);
-        
+
         dcsr_free(&Neighbor[lvl]);
         ivec_free(&vertices[lvl]);
-        
+
         ++lvl;
-        
+
     }
-    
+
 #if DIAGONAL_PREF
     dcsr_diagpref(&mgl[lvl].A); // reorder each row to make diagonal appear first
 #endif
-    
+
     // Setup coarse level systems for direct solvers
     switch (csolver) {
- 
+
 #if WITH_SUITESPARSE
         case SOLVER_UMFPACK: {
             // Need to sort the matrix A for UMFPACK to work
@@ -686,16 +695,16 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
             mgl[lvl].Numeric = umfpack_factorize(&mgl[lvl].A, 0);
             break;
         }
-#endif   
+#endif
         default:
             // Do nothing!
             break;
     }
-    
+
     // setup total level number and current level
     mgl[0].num_levels = max_levels = lvl+1;
     mgl[0].w          = dvec_create(m);
-    
+
     for ( lvl = 1; lvl < max_levels; ++lvl) {
         INT mm = mgl[lvl].A.row;
         mgl[lvl].num_levels = max_levels;
@@ -709,17 +718,17 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
         else
             mgl[lvl].w = dvec_create(2*mm);
     }
-    
+
     if ( prtlvl > PRINT_NONE ) {
         get_time(&setup_end);
         print_amg_complexity(mgl,prtlvl);
         print_cputime("Unsmoothed aggregation setup", setup_end - setup_start);
     }
-    
+
     free(Neighbor);
     free(vertices);
     free(num_aggs);
-    
+
     return status;
 }
 

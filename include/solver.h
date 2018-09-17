@@ -1,6 +1,6 @@
 //
 //  solver.h
-//  
+//
 //
 //  Created by Hu, Xiaozhe on 5/13/15.
 //
@@ -22,14 +22,83 @@
  * \note This is the preconditioner structure for preconditioned iterative methods.
  */
 typedef struct {
-    
+
     //! data for preconditioner, void pointer
     void *data;
-    
+
     //! action for preconditioner, void function pointer
     void (*fct)(REAL *, REAL *, void *);
-    
+
 } precond; /**< Data for general preconditioner passed to iterative solvers */
+
+/***********************************************************************************************/
+
+/**
+ * \struct Schwarz_data
+ * \brief Data for Schwarz methods
+ *
+ * This is needed for the Schwarz preconditioner/smoother.
+ */
+typedef struct {
+
+    /* matrix information */
+
+    //! pointer to the matrix
+    dCSRmat A;  // note: has to be start from 1!! Change later
+
+    /* blocks information */
+    //! number of blocks
+    INT nblk;
+
+    //! row index of blocks
+    INT *iblock;
+
+    //! column index of blocks
+    INT *jblock;
+
+    //! temp work space???
+    REAL *rhsloc;
+
+    //! local right hand side
+    dvector rhsloc1;
+
+    //! local solution
+    dvector xloc1;
+
+    //! LU decomposition: the U block
+    REAL *au;
+
+    //! LU decomposition: the L block
+    REAL *al;
+
+    //! Schwarz method type
+    INT Schwarz_type;
+
+    //! Schwarz block solver
+    INT blk_solver;
+
+    //! working space size
+    INT memt;
+
+    //! mask
+    INT *mask;
+
+    //! maximal block size
+    INT maxbs;
+
+    //! maxa
+    INT *maxa;
+
+    //! matrix for each partition
+    dCSRmat *blk_data;
+
+    //! symbol factorize for UMFPACK
+    void **numeric;
+
+    //! param for Schwarz
+    Schwarz_param *swzparam;
+
+} Schwarz_data;
 
 /***********************************************************************************************/
 
@@ -40,53 +109,58 @@ typedef struct {
  * \note This is needed for the AMG solver/preconditioner.
  */
 typedef struct {
-    
+
     /* Level information */
-    
+
     //! max number of levels
     SHORT max_levels;
-    
+
     //! number of levels in use <= max_levels
     SHORT num_levels;
-    
+
     /* Problem information */
     //! pointer to the matrix at level level_num
     dCSRmat A;
-    
+
     //! restriction operator at level level_num
     dCSRmat R;
-    
+
     //! prolongation operator at level level_num
     dCSRmat P;
-    
+
     //! pointer to the right-hand side at level level_num
     dvector b;
-    
+
     //! pointer to the iterative solution at level level_num
     dvector x;
-    
+
     /* Extra information */
     //! pointer to the numerical factorization from UMFPACK
     void *Numeric;
-    
+
     //! dimension of the near kernel for SAMG
     INT near_kernel_dim;
-    
+
     //! basis of near kernel space for SAMG
     REAL **near_kernel_basis;
-    
-    // Smoother order information    
+
+    //! number of levels use Schwarz smoother
+    INT Schwarz_levels;
+
+    //! data of Schwarz smoother
+    Schwarz_data Schwarz;
+
     //! Temporary work space
     dvector w;
-        
+
     //! cycle type
     INT cycle_type;
-    
+
 } AMG_data; /**< Data for AMG */
 
 
 typedef struct {
-    
+
     /*!
      * \struct precond_data
      *
@@ -95,86 +169,86 @@ typedef struct {
 
     //! type of AMG method
     SHORT AMG_type;
-    
+
     //! print level in AMG preconditioner
     SHORT print_level;
-    
+
     //! max number of iterations of AMG preconditioner
     INT   maxit;
-    
+
     //! max number of AMG levels
     SHORT max_levels;
-    
+
     //! tolerance for AMG preconditioner
     REAL  tol;
-    
+
     //! AMG cycle type
     SHORT cycle_type;
-    
+
     //! AMG smoother type
     SHORT smoother;
-       
+
     //! number of presmoothing
     SHORT presmooth_iter;
-    
+
     //! number of postsmoothing
     SHORT postsmooth_iter;
-    
+
     //! relaxation parameter for SOR smoother
     REAL relaxation;
-    
+
     //! degree of the polynomial smoother
     SHORT polynomial_degree;
 
     //! coarse solver type for AMG
     SHORT coarse_solver;
-    
+
     //! switch of scaling of the coarse grid correction
     SHORT coarse_scaling;
-    
+
     //! degree of the polynomial used by AMLI cycle
     SHORT amli_degree;
-    
+
     //! type of Krylov method used by Nonlinear AMLI cycle
     SHORT nl_amli_krylov_type;
-    
+
     //! coefficients of the polynomial used by AMLI cycle
     REAL *amli_coef;
-    
+
     //! AMG preconditioner data
     AMG_data *mgl_data;
-    
+
     //! Matrix data
     dCSRmat *A;
-    
+
     /****************************/
     /*  extra near kernel space */
     /****************************/
     //! Matrix data for near kernel
     dCSRmat *A_nk;
-    
+
     //! Prolongation for near kernel
     dCSRmat *P_nk;
-    
+
     //! Restriction for near kernel
     dCSRmat *R_nk;
-    
+
     /**************************/
     /*  temporary work space  */
     /****************************/
     //! temporary dvector used to store and restore the residual
     dvector *r;
-    
+
     //! temporary work space for other usage
     REAL *w;
-    
+
 } precond_data; /*! Data for general preconditioner */
 
 
 /***********************************************************************************************/
 
 typedef struct {
-    
+
     /*!
      * \struct HX_curl_data
      * \brief Data for HX preconditioner for H(curl) problems
@@ -182,7 +256,7 @@ typedef struct {
 
     //! Curl Matrix
     dCSRmat *A;
-    
+
     /* ---------------------*/
     /* smoother information */
     /* ---------------------*/
@@ -191,58 +265,58 @@ typedef struct {
 
     //! number of smoothing
     SHORT smooth_iter;
-    
+
     /* ---------------------*/
     /* vector Laplacian information */
     /* ---------------------*/
     //! P_curl operator
     dCSRmat *P_curl;
-    
+
     //! transpose of P_curl operator
     dCSRmat *Pt_curl;
-    
+
     //! vector Laplacian
     dCSRmat *A_vgrad;
-    
+
     //! AMG parameters for vector Laplacian
     AMG_param *amgparam_vgrad;
-    
+
     //! AMG data for vector Laplacian
     AMG_data *mgl_vgrad;
-    
+
     /* ---------------------*/
     /* scalar Laplacian information */
     /* ---------------------*/
     //! Grad operator
     dCSRmat *Grad;
-    
+
     //! transpose of Grad operator
     dCSRmat *Gradt;
-    
+
     //! vector Laplacian
     dCSRmat *A_grad;
-    
+
     //! AMG parameters for vector Laplacian
     AMG_param *amgparam_grad;
-    
+
     //! AMG data for vector Laplacian
     AMG_data *mgl_grad;
-    
+
     /* ---------------------*/
     /* HX preconditioner information */
     /* ---------------------*/
     //! backup residual space
     REAL *backup_r;
-    
+
     //! temporary work space for other usage
     REAL *w;
-    
+
 } HX_curl_data;
 
 /***********************************************************************************************/
 
 typedef struct {
-    
+
     /*!
      * \struct HX_div_data
      * \brief Data for HX preconditioner for H(div) problems
@@ -259,13 +333,13 @@ typedef struct {
 
     //! number of smoothing
     SHORT smooth_iter;
-    
+
     /* ---------------------*/
     /* vector Laplacian information */
     /* ---------------------*/
     //! P_curl operator
     dCSRmat *P_curl;
-    
+
     //! transpose of P_curl operator
     dCSRmat *Pt_curl;
 
@@ -274,22 +348,22 @@ typedef struct {
 
     //! transpose of P_div operator
     dCSRmat *Pt_div;
-    
+
     //! vector Laplacian
     dCSRmat *A_curlgrad;
-    
-    //! vector 
+
+    //! vector
     dCSRmat *A_divgrad;
-    
+
     //! AMG parameters for vector Laplacian
     AMG_param *amgparam_curlgrad;
-    
+
     //! AMG data for vector Laplacian
     AMG_data *mgl_curlgrad;
-    
+
     //! AMG parameters for vector Laplacian
     AMG_param *amgparam_divgrad;
-    
+
     //! AMG data for vector Laplacian
     AMG_data *mgl_divgrad;
 
@@ -298,13 +372,13 @@ typedef struct {
     /* ---------------------*/
     //! Grad operator
     dCSRmat *Grad;
-    
+
     //! transpose of Grad operator
     dCSRmat *Gradt;
 
     //! Curl operator
     dCSRmat *Curl;
-    
+
     //! transpose of Curl operator
     dCSRmat *Curlt;
 
@@ -313,22 +387,22 @@ typedef struct {
 
     //! vecror Curl (CtAC)
     dCSRmat *A_curl;
-    
+
     //! AMG parameters for vector Laplacian
     AMG_param *amgparam_grad;
-    
+
     //! AMG data for vector Laplacian
     AMG_data *mgl_grad;
-    
+
     /* ---------------------*/
     /* HX preconditioner information */
     /* ---------------------*/
     //! backup residual space
     REAL *backup_r;
-    
+
     //! temporary work space for other usage
     REAL *w;
-    
+
 } HX_div_data;
 
 /***********************************************************************************************/
@@ -339,38 +413,38 @@ typedef struct {
  * This is needed for the block preconditioner.
  */
 typedef struct {
-    
+
     /*-------------------------------------*/
     /* Basic data for block preconditioner */
     /*-------------------------------------*/
     block_dCSRmat *Abcsr; /**< problem data, the blocks */
-    
+
     dCSRmat *A_diag;      /**< data for each diagonal block*/
-    
+
     dvector r;            /**< temp work space */
-    
+
     /*------------------------------*/
     /* Data for the diagonal blocks */
     /*------------------------------*/
     /*--- solve by direct solver ---*/
     void **LU_diag;       /**< LU decomposition for the diagonal blocks (for UMFpack) */
-    
+
     /*--- solve by diagonal preconditioner ---*/
     dvector **diag;
-    
+
     /*---  solve by AMG ---*/
     AMG_data **mgl;       /**< AMG data for the diagonal blocks */
     AMG_param *amgparam;  /**< parameters for AMG */
-    
+
     /*--- solver by HX preconditioner */
     HX_curl_data **hxcurldata; /**< HX data for the diagonal CURL blocks */
     HX_div_data **hxdivdata; /**< HX data for the diagonal DIV blocks */
-  
+
     /*------------------------------*/
     /* Data for mixed Darcy flow only!! */
     /*------------------------------*/
     dvector *el_vol;   /**< volume of each element */
-  
+
     /*------------------------------*/
     /* Data for Maxwell problem only!! */
     /*------------------------------*/
@@ -378,7 +452,7 @@ typedef struct {
     dCSRmat *K;         /**< scaled curl operator */
     dCSRmat *Gt;        /**< scaled transpose gradiend operator */
     dCSRmat *Kt;        /**< scaled transpose gradiend operator */
-    
+
 } precond_block_data; /**< Precond data for block matrices */
 
 /**
@@ -386,13 +460,13 @@ typedef struct {
  * \brief Matrix-vector multiplication
  */
 typedef struct {
-    
+
     //! data for Matrix-vector multiplication
     void *data;
-    
+
     //! action for Matrix-vector, should be a pointer to a function
     void (*fct)(void *, REAL *, REAL *);
-    
+
 } matvec; /**< Data for general Matrix-vector multiplication */
 
 /**

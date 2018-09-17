@@ -244,27 +244,27 @@ void bc_3D_RT(REAL *val,REAL* x,REAL time,void *param) {
 /****** MAIN DRIVER **************************************************/
 int main (int argc, char* argv[])
 {
-  
+
   printf("\n===========================================================================\n");
   printf("Beginning Program to solve H(D) problem: <D u, D v> + <u,v> = <f,v>.\n");
   printf("===========================================================================\n");
-  
+
   /****** INITIALIZE PARAMETERS **************************************/
   // Flag for errors
   SHORT status;
 
   // Overall CPU Timing
   clock_t clk_overall_start = clock();
-    
+
   // Set Parameters from Reading in Input File
   input_param inparam;
   param_input_init(&inparam);
-  param_input("./input.dat", &inparam); 
-    
+  param_input("./input.dat", &inparam);
+
   // Open gridfile for reading
   printf("\nCreating mesh and FEM spaces:\n");
   FILE* gfid = HAZ_fopen(inparam.gridfile,"r");
-    
+
   // Create the mesh
   // File types possible are 0 - HAZ format; 1 - VTK format
   INT mesh_type = 0;
@@ -276,11 +276,11 @@ int main (int argc, char* argv[])
 
   // Dimension is needed for all this to work
   INT dim = mesh.dim;
-    
+
   // Get Quadrature Nodes for the Mesh
   INT nq1d = inparam.nquad; // Quadrature points per dimension
   qcoordinates *cq = get_quadrature(&mesh,nq1d);
-    
+
   // Get info for and create FEM spaces
   // Order of Elements:
   //    0 - P0; 1 - P1; 2 - P2; -1 - Nedelec; -2 - Raviart-Thomas
@@ -326,7 +326,7 @@ int main (int argc, char* argv[])
   printf(" --> elapsed CPU time for mesh and FEM space construction = %f seconds.\n\n",
          (REAL) (clk_mesh_end - clk_mesh_start)/CLOCKS_PER_SEC);
   /*******************************************************************/
-    
+
   printf("***********************************************************************************\n");
   printf("Number of Elements = %d\tElement Type = %s\tOrder of Quadrature = %d\n",mesh.nelm,elmtype,2*nq1d-1);
   printf("\n\t--- Degrees of Freedom ---\n");
@@ -336,17 +336,17 @@ int main (int argc, char* argv[])
   printf("Vertices: %-7d\tEdges: %-7d\tFaces: %-7d",mesh.nbv,mesh.nbedge,mesh.nbface);
   printf("\t--> Boundary DOF: %d\n",FE.nbdof);
   printf("***********************************************************************************\n\n");
-    
+
   /*** Assemble the matrix and right hand side ***********************/
   printf("Assembling the matrix and right-hand side:\n");
   clock_t clk_assembly_start = clock();
-    
+
   // Allocate the right-hand side and declare the csr matrix
   dvector b;
   dCSRmat Diff;
   dCSRmat A;
   dCSRmat Mass;
-    
+
   // Assemble the matrix without BC
   // Different cases for dimension and FE of test problem
 
@@ -400,7 +400,7 @@ int main (int argc, char* argv[])
   dcsr_add_1(&Diff,1.0,&Mass,1.0,&A);
   dcsr_free(&Diff);
   dcsr_free(&Mass);
-  
+
   // Eliminate Dirichlet BC
   // Different cases for dimension and FE of test problem
   if(dim==1) {
@@ -446,12 +446,12 @@ int main (int argc, char* argv[])
     dvector_print(rhsid,&b);
     fclose(rhsid);
   }
-    
+
   clock_t clk_assembly_end = clock();
   printf(" --> elapsed CPU time for assembly = %f seconds.\n\n",(REAL)
            (clk_assembly_end-clk_assembly_start)/CLOCKS_PER_SEC);
   /*******************************************************************/
-    
+
   /**************** Solve ********************************************/
   printf("Solving the System:\n");
   clock_t clk_solve_start = clock();
@@ -461,21 +461,21 @@ int main (int argc, char* argv[])
 
   // Set initial guess to be all zero
   dvec_set(u.row, &u, 0.0);
-  
+
   // Set Solver Parameters
   INT solver_flag=-20;
-  
+
   // Set parameters for linear iterative methods
   linear_itsolver_param linear_itparam;
   param_linear_solver_set(&linear_itparam, &inparam);
-    
+
   // Set parameters for algebriac multigrid methods
   AMG_param amgparam;
   param_amg_init(&amgparam);
   param_amg_set(&amgparam, &inparam);
-  //param_amg_print(&amgparam);
+  param_amg_print(&amgparam);
   //=================================================================//
-    
+
 
   // Solve the linear system
   if(linear_itparam.linear_itsolver_type == 0) { // Direct Solver
@@ -489,7 +489,7 @@ int main (int argc, char* argv[])
 #endif
   } else { // Iterative Solver
     dcsr_shift(&A, -1);  // shift A
-      
+
     // Use AMG as iterative solver
     if (linear_itparam.linear_itsolver_type == SOLVER_AMG){
       solver_flag = linear_solver_amg(&A, &b, &u, &amgparam);
@@ -565,18 +565,18 @@ int main (int argc, char* argv[])
           solver_flag = linear_solver_dcsr_krylov(&A, &b, &u, &linear_itparam);
       }
 
-    }    
+    }
     dcsr_shift(&A, 1);   // shift A back
   }
 
   // Error Check
   if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
-    
+
   clock_t clk_solve_end = clock();
   printf("Elapsed CPU Time for Solve = %f seconds.\n\n",
          (REAL) (clk_solve_end-clk_solve_start)/CLOCKS_PER_SEC);
   /*******************************************************************/
-    
+
   /**************** Compute Errors if you have exact solution *********/
   // Again this depends on dimension and FE type
   printf("Computing Exact Solution and Errors:\n");
@@ -624,7 +624,7 @@ int main (int argc, char* argv[])
       check_error(status, __FUNCTION__);
   }
   REAL uH1err = sqrt(uerr*uerr + graduerr*graduerr);
-    
+
   printf("************************************************************************************\n");
   printf("L2 Norm of u error      = %26.13e\n",uerr);
   printf("H1 Semi-Norm of u error = %26.13e\n",graduerr);
@@ -634,7 +634,7 @@ int main (int argc, char* argv[])
   printf("Elapsed CPU time for getting errors = %lf seconds.\n\n",(REAL)
          (clk_error_end-clk_error_start)/CLOCKS_PER_SEC);
   /*******************************************************************/
-    
+
   /**************** Print Results or Dump Results ********************/
   if (inparam.output_dir != NULL) {
     char solout[128];
@@ -686,7 +686,7 @@ int main (int argc, char* argv[])
     dvec_free(&exact_sol);
   }
   /*******************************************************************/
-    
+
   /******** Free All the Arrays **************************************/
   dcsr_free(&A);
   if(b.val) free(b.val);
@@ -699,11 +699,11 @@ int main (int argc, char* argv[])
   }
   free_mesh(&mesh);
   /*******************************************************************/
-    
+
   clock_t clk_overall_end = clock();
   printf("\nEnd of Program: Total CPU Time = %f seconds.\n\n",
          (REAL) (clk_overall_end-clk_overall_start)/CLOCKS_PER_SEC);
   return 0;
-    
+
 }	/* End of Program */
 /*******************************************************************/
