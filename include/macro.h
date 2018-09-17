@@ -1,6 +1,6 @@
 //
 //  macro.h
-//  
+//
 //
 //  Created by Hu, Xiaozhe on 1/10/15.
 //
@@ -157,6 +157,13 @@
 #define W_CYCLE                 2  /**< W-cycle */
 #define AMLI_CYCLE              3  /**< AMLI-cycle */
 #define NL_AMLI_CYCLE           4  /**< Nonlinear AMLI-cycle */
+
+/**
+ * \brief Type of Schwarz smoother
+ */
+#define SCHWARZ_FORWARD         1  /**< Forward ordering */
+#define SCHWARZ_BACKWARD        2  /**< Backward ordering */
+#define SCHWARZ_SYMMETRIC       3  /**< Symmetric smoother */
 
 /**
  * \brief Definition of standard smoother types
