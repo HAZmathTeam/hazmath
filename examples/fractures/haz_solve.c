@@ -25,7 +25,7 @@ INT main(int *argc, char **argv) {
     REAL tol=1e-11;
     /***************************************************/
     Acoo=(dCOOmat *)malloc(sizeof(dCOOmat));
-    FILE *fin = HAZ_fopen("LS/matrix1.ijv","r");
+    FILE *fin = HAZ_fopen("LS/matrix2.ijv","r");
     i=fscanf(fin,"%i",&(Acoo->row));
     i=fscanf(fin,"%i",&(Acoo->col));
     i=fscanf(fin,"%i",&(Acoo->nnz));
@@ -48,7 +48,7 @@ INT main(int *argc, char **argv) {
     fprintf(stdout,"... %d rows: DONE.\n",rhs->row);
     fclose(fin);
     
-    fin = HAZ_fopen("LS/matrix_structure1.dat","r");
+    fin = HAZ_fopen("LS/matrix_structure2.dat","r");
     blocks=(ivector *)malloc(sizeof(ivector));
     i=fscanf(fin,"%i",&(blocks->row));
     //fprintf(stdout,"\n nb blocks %i",blocks->row);
