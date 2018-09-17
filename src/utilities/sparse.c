@@ -447,7 +447,8 @@ dCSRmat dcsr_perm(dCSRmat *A,
   dCSRmat Aperm = dcsr_create(n,n,nnz);
 
   // form the transpose of P
-  INT *Pt = (INT*)calloc(n,sizeof(INT));
+  INT *Pt = NULL;
+  Pt = (INT *) calloc(n,sizeof(INT));
 
   for (i=0; i<n; ++i) Pt[P[i]] = i;
 
@@ -624,6 +625,141 @@ void dcsr_trans_1(dCSRmat *A,
   dcsr_shift(A, 1);
   dcsr_shift(AT, 1);
 
+}
+
+/***********************************************************************************************/
+/**
+ * \fn void dcsr_transz (dCSRmat *A,  INT *p, dCSRmat *AT)
+ *
+ * \brief Generalized transpose of A: (n x m) matrix given in dCSRmat format
+ *
+ * \param A     Pointer to matrix in dCSRmat for transpose, INPUT
+ * \param p     Permutation, INPUT
+ * \param AT    Pointer to matrix AT = transpose(A)  if p = NULL, OR
+ *                                AT = transpose(A)p if p is not NULL
+ *
+ * \note The storage for all pointers in AT should already be allocated,
+ *       i.e. AT->IA, AT->JA and AT->val should be allocated before calling
+ *       this function. If A.val=NULL, then AT->val[] is not changed.
+ *
+ * \note performs AT=transpose(A)p, where p is a permutation. If
+ *       p=NULL then p=I is assumed. Applying twice this procedure one
+ *       gets At=transpose(transpose(A)p)p = transpose(p)Ap, which is the
+ *       same A with rows and columns permutted according to p.
+ *
+ * \note If A=NULL, then only transposes/permutes the structure of A.
+ *
+ * \note For p=NULL, applying this two times A-->AT-->A orders all the
+ *       row indices in A in increasing order.
+ *
+ * Reference: Fred G. Gustavson. Two fast algorithms for sparse
+ *            matrices: multiplication and permuted transposition.
+ *            ACM Trans. Math. Software, 4(3):250–269, 1978.
+ *
+ * \author Ludmil Zikatanov
+ * \date   19951219 (Fortran), 20150912 (C)
+ */
+void dcsr_transz (dCSRmat *A,
+                  INT *p,
+                  dCSRmat *AT)
+{
+    /* tested for permutation and transposition */
+    /* transpose or permute; if A.val is null ===> transpose the
+       structure only */
+    const INT   n=A->row, m=A->col, nnz=A->nnz;
+    const INT *ia=NULL,*ja=NULL;
+    const REAL *a=NULL;
+    INT m1=m+1;
+    ia=A->IA; ja=A->JA; a=A->val;
+    /* introducing few extra pointers hould not hurt too much the speed */
+    INT *iat=NULL, *jat=NULL;
+    REAL *at=NULL;
+
+    /* loop variables */
+    INT i,j,jp,pi,iabeg,iaend,k;
+
+    /* initialize */
+    AT->row=m; AT->col=n; AT->nnz=nnz;
+
+    /* all these should be allocated or change this to allocate them here */
+    iat=AT->IA; jat=AT->JA; at=AT->val;
+    for (i = 0; i < m1; ++i) iat[i] = 0;
+    iaend=ia[n];
+    for (i = 0; i < iaend; ++i) {
+        j = ja[i] + 2;
+        if (j < m1) iat[j]++;
+    }
+    iat[0] = 0;
+    iat[1] = 0;
+    if (m != 1) {
+        for (i= 2; i < m1; ++i) {
+            iat[i] += iat[i-1];
+        }
+    }
+
+    if (p && a) {
+        /* so we permute and also use matrix entries */
+        for (i = 0; i < n; ++i) {
+            pi=p[i];
+            iabeg = ia[pi];
+            iaend = ia[pi+1];
+            if (iaend > iabeg){
+                for (jp = iabeg; jp < iaend; ++jp) {
+                    j = ja[jp]+1;
+                    k = iat[j];
+                    jat[k] = i;
+                    at[k] = a[jp];
+                    iat[j] = k+1;
+                }
+            }
+        }
+    } else if (a && !p) {
+        /* transpose values, no permutation */
+        for (i = 0; i < n; ++i) {
+            iabeg = ia[i];
+            iaend = ia[i+1];
+            if (iaend > iabeg){
+                for (jp = iabeg; jp < iaend; ++jp) {
+                    j = ja[jp]+1;
+                    k = iat[j];
+                    jat[k] = i;
+                    at[k] = a[jp];
+                    iat[j] = k+1;
+                }
+            }
+        }
+    } else if (!a && p) {
+        /* Only integers and permutation (only a is null) */
+        for (i = 0; i < n; ++i) {
+            pi=p[i];
+            iabeg = ia[pi];
+            iaend = ia[pi+1];
+            if (iaend > iabeg){
+                for (jp = iabeg; jp < iaend; ++jp) {
+                    j = ja[jp]+1;
+                    k = iat[j];
+                    jat[k] = i;
+                    iat[j] = k+1;
+                }
+            }
+        }
+    } else {
+        /* Only integers and no permutation (both a and p are null */
+        for (i = 0; i < n; ++i) {
+            iabeg = ia[i];
+            iaend = ia[i+1];
+            if (iaend > iabeg){
+                for (jp = iabeg; jp < iaend; ++jp) {
+                    j = ja[jp]+1;
+                    k = iat[j];
+                    jat[k] = i;
+                    iat[j] = k+1;
+                }
+            }
+        }
+    }
+
+    return;
 }
 
 /***********************************************************************************************/
@@ -2662,6 +2798,38 @@ void dcsr_bandwith(dCSRmat *A,
   *bndwith = max;
 }
 
+/***********************************************************************************************/
+/**
+ * \fn dCSRmat dcsr_sympat(dCSRmat *A)
+ * \brief Get symmetric part of a dCSRmat matrix
+ *
+ * \param *A      pointer to the dCSRmat matrix
+ *
+ * \return symmetrized the dCSRmat matrix
+ *
+ * \author Xiaozhe Hu
+ * \date 03/21/2011
+ */
+dCSRmat dcsr_sympat (dCSRmat *A)
+{
+    //local variable
+    dCSRmat AT;
+
+    //return variable
+    dCSRmat SA;
+
+    // get the transpose of A
+    dcsr_trans (A,  &AT);
+
+    // get symmetrized A
+    dcsr_add (A, 0.5, &AT, 0.5, &SA);
+
+    // clean
+    dcsr_free(&AT);
+
+    // return
+    return SA;
+}
 
 /***********************************************************************************************/
 // Block_dCSRmat subroutines starts here!
@@ -3412,5 +3580,70 @@ void bdcsr_mxv_forts(void *At,
 
 }
 
-/************************************** END ***************************************************/
+/***********************************************************************************************/
 
+/**
+ * \fn ivector sparse_MIS(dCSRmat *A)
+ *
+ * \brief get the maximal independet set of a CSR matrix
+ *
+ * \param A pointer to the matrix
+ *
+ * \note: only use the sparsity of A, index starts from 1 (fortran)!!
+ */
+ivector sparse_MIS(dCSRmat *A)
+{
+
+    //! information of A
+    INT n = A->row;
+    INT *IA = A->IA;
+    INT *JA = A->JA;
+
+    // local variables
+    INT i,j;
+    INT row_begin, row_end;
+    INT count=0;
+    INT *flag;
+    flag = (INT *)calloc(n, sizeof(INT));
+    memset(flag, 0, sizeof(INT)*n);
+
+    //! work space
+    INT *work = (INT*)calloc(n,sizeof(INT));
+
+    //! return
+    ivector MaxIndSet;
+
+    //main loop
+    for (i=0;i<n;i++) {
+        if (flag[i] == 0) {
+            flag[i] = 1;
+            row_begin = IA[i] - 1; row_end = IA[i+1] - 1;
+            for (j = row_begin; j<row_end; j++) {
+                if (flag[JA[j]-1] > 0) {
+                    flag[i] = -1;
+                    break;
+                }
+            }
+            if (flag[i]) {
+                work[count] = i; count++;
+                for (j = row_begin; j<row_end; j++) {
+                    flag[JA[j]-1] = -1;
+                }
+            }
+        } // end if
+    }// end for
+
+    // form Maximal Independent Set
+    MaxIndSet.row = count;
+    work = (INT *)realloc(work, count*sizeof(INT));
+    MaxIndSet.val = work;
+
+    // clean
+    if (flag) free(flag);
+
+    //return
+    return MaxIndSet;
+}
+
+
+/************************************** END ***************************************************/

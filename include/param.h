@@ -1,6 +1,6 @@
 //
 //  param.h
-//  
+//
 //
 //  Created by Hu, Xiaozhe on 06/13/15.
 //
@@ -20,25 +20,25 @@
  * Input parameters, reading from disk file
  */
 typedef struct {
-    
+
     //----------------
     // output flags
     //----------------
     SHORT print_level;   /**< print level */
-    
+
     //----------------
     // files
     //----------------
     char inifile[256];   /**< input parameter file name */
     char gridfile[256];  /**< grid file name */
     char output_dir[256];   /**< output directory */
-    
+
     //--------------------------
     // finite element parameters
     //--------------------------
     // genearal parameters
     INT nquad;          /**< quadature nodes in each direction */
-    
+
     // parameters for H(D) equations (examples only)
     INT FE_type;        /**< finite element type */
 
@@ -49,7 +49,7 @@ typedef struct {
     INT  time_steps;      /**< time steps */
     REAL time_step_size; /**< time step type */
     INT  rhs_time_dep;    /**< indicates if rhs is time-dependent */
-    
+
     //----------------------------
     // nonlinear solver parameters
     //----------------------------
@@ -67,10 +67,16 @@ typedef struct {
     REAL  linear_itsolver_tol;         /**< tolerance for linear iterative solver */
     SHORT linear_stop_type;           /**< stop type of linear iterative solver */
     INT   linear_restart;                      /**< restart number used in GMRES */
-    
+
     // Preconditioner
     INT linear_precond_type;                 /**< type of preconditioner for iterative solvers */
-    
+
+    // parameter for Schwarz method
+    INT Schwarz_mmsize;  /**< maximal block size */
+    INT Schwarz_maxlvl;  /**< maximal levels */
+    INT Schwarz_type;    /**< type of Schwarz method */
+    INT Schwarz_blksolver; /**< type of Schwarz block solver */
+
     // Algebraic Multigrid
     SHORT AMG_type;                /**< Type of AMG */
     SHORT AMG_levels;              /**< maximal number of levels */
@@ -87,6 +93,7 @@ typedef struct {
     SHORT AMG_coarse_scaling;      /**< switch of scaling of the coarse grid correction */
     SHORT AMG_amli_degree;         /**< degree of the polynomial used by AMLI cycle */
     SHORT AMG_nl_amli_krylov_type; /**< type of Krylov method used by nonlinear AMLI cycle */
+    INT AMG_Schwarz_levels;        /**< number of levels use Schwarz smoother */
 
     // Unsmoothed Aggregation AMG (UA AMG)
     SHORT AMG_aggregation_type;    /**< aggregation type */
@@ -95,7 +102,7 @@ typedef struct {
 
     // HX preconditioner
     SHORT HX_smooth_iter;            /**< number of smoothing */
-    
+
 } input_param; /**< Input parameters */
 
 /**
@@ -103,7 +110,7 @@ typedef struct {
  * \brief Parameters passed to linear iterative solvers
  */
 typedef struct {
-    
+
     SHORT linear_itsolver_type; /**< solver type: see message.h */
     SHORT linear_precond_type;  /**< preconditioner type: see message.h */
     SHORT linear_stop_type;     /**< stopping criteria type */
@@ -111,10 +118,10 @@ typedef struct {
     REAL  linear_tol;           /**< convergence tolerance */
     INT   linear_restart;       /**< number of steps for restarting: for GMRES etc */
     SHORT linear_print_level;   /**< print level: 0--10 */
-    
+
     // HX preconditioner
     SHORT HX_smooth_iter;            /**< number of smoothing */
-    
+
 } linear_itsolver_param; /**< Parameters for iterative solvers */
 
 
@@ -125,68 +132,107 @@ typedef struct {
  * \note This is needed for the AMG solver/preconditioner.
  */
 typedef struct {
-    
+
     //! type of AMG method
     SHORT AMG_type;
-    
+
     //! print level for AMG
     SHORT print_level;
-    
+
     //! max number of iterations of AMG
     INT maxit;
-    
+
     //! stopping tolerance for AMG solver
     REAL tol;
-    
+
     //! max number of levels of AMG
     SHORT max_levels;
-    
+
     //! max number of coarsest level DOF
     INT coarse_dof;
-    
+
     //! type of AMG cycle
     SHORT cycle_type;
-       
+
     //! smoother type
     SHORT smoother;
-       
+
     //! number of presmoothers
     SHORT presmooth_iter;
-    
+
     //! number of postsmoothers
     SHORT postsmooth_iter;
-    
+
     //! relaxation parameter for SOR smoother
     REAL relaxation;
-    
+
     //! degree of the polynomial smoother
     SHORT polynomial_degree;
-    
+
     //! coarse solver type
     SHORT coarse_solver;
-    
+
     //! switch of scaling of the coarse grid correction
     SHORT coarse_scaling;
-    
+
     //! degree of the polynomial used by AMLI cycle
     SHORT amli_degree;
-    
+
     //! coefficients of the polynomial used by AMLI cycle
     REAL *amli_coef;
-    
+
     //! type of Krylov method used by Nonlinear AMLI cycle
     SHORT nl_amli_krylov_type;
-    
+
     //! aggregation type
     SHORT aggregation_type;
-           
+
     //! strong coupled threshold for aggregate
     REAL strong_coupled;
-    
+
     //! max size of each aggregate
     INT max_aggregation;
 
+    //! number of levels use Schwarz smoother
+    INT Schwarz_levels;
+
+    //! maximal block size
+    INT Schwarz_mmsize;
+
+    //! maximal levels
+    INT Schwarz_maxlvl;
+
+    //! type of Schwarz method
+    INT Schwarz_type;
+
+    //! type of Schwarz block solver
+    INT Schwarz_blksolver;
+
 } AMG_param; /**< Parameters for AMG */
 
+
+/*!
+ * \struct Schwarz_param
+ * \brief Parameters for Schwarz method
+ *
+ */
+typedef struct {
+
+    //! print leve
+    SHORT print_level;
+
+    //! type for Schwarz method
+    SHORT Schwarz_type;
+
+    //! maximal level for constructing the blocks
+    INT Schwarz_maxlvl;
+
+    //! maximal size of blocks
+    INT Schwarz_mmsize;
+
+    //! type of Schwarz block solver
+    INT Schwarz_blksolver;
+
+} Schwarz_param; /**< Parameters for Schwarz method */
 
 #endif
