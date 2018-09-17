@@ -1,0 +1,25 @@
+Test cases:
+
+1. GeoFFM01_L10:
+
+231 fractures 
+374 intersections 
+87,785 non-zero elements 
+17,325 inner edges
+1,132 intersection edges
+
+2. lcopen_FFM01_seed3_t=2_T=0.6_0_L100_hphy_0_29_LU
+
+19,007 fractures
+28,727 intersections
+91,713,199 non-zero elements
+18,261,300 inner edges
+233,293 intersections edges
+
+3. GeoFFM01_L150_option4
+
+508,339 fractures
+1,031,231 intersections
+60,798,542 non-zero elements
+10,589,272 inner edges
+1,630,682 intersection edges
