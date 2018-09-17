@@ -32,23 +32,23 @@ void param_input_init (input_param *inparam)
     strcpy(inparam->inifile,"./input.dat");
     strcpy(inparam->gridfile,"../grids/2D/unitSQ_hp125.dat");
     strcpy(inparam->output_dir,"./output/");
-    
+
     //--------------------------
     // finite element parameters
     //--------------------------
     // general parameter
     inparam->nquad                    = 2;
-    
+
     // parameters for H(D) equations
     inparam->FE_type                  = 1;
-    
+
     //----------------------------
     // time steppng paramters
     //----------------------------
     inparam->time_step_type           = 0;
     inparam->time_steps               = 0;
     inparam->time_step_size           = 0.01;
-    
+
     //----------------------------
     // nonlinear solver parameters
     //----------------------------
@@ -56,7 +56,7 @@ void param_input_init (input_param *inparam)
     inparam->nonlinear_itsolver_maxit   = 0;
     inparam->nonlinear_itsolver_tol     = 1e-6;
     inparam->nonlinear_itsolver_toltype	= 0;
-    
+
     //-------------------------
     // linear solver parameters
     //-------------------------
@@ -64,12 +64,12 @@ void param_input_init (input_param *inparam)
     inparam->linear_itsolver_type     = SOLVER_VGMRES;
     inparam->linear_precond_type      = PREC_NULL;
     inparam->linear_stop_type         = STOP_REL_RES;
-    
+
     // Solver parameters
     inparam->linear_itsolver_tol      = 1e-6;
     inparam->linear_itsolver_maxit    = 500;
     inparam->linear_restart           = 25;
-    
+
     // AMG method parameters
     inparam->AMG_type                 = UA_AMG;
     inparam->AMG_levels               = 10;
@@ -83,18 +83,25 @@ void param_input_init (input_param *inparam)
     inparam->AMG_coarse_solver        = SOLVER_DEFAULT;
     inparam->AMG_tol                  = 1e-6;
     inparam->AMG_maxit                = 1;
+    inparam->AMG_Schwarz_levels       = 0;
     inparam->AMG_coarse_scaling       = OFF;
     inparam->AMG_amli_degree          = 1;
     inparam->AMG_nl_amli_krylov_type  = 2;
 
-    // Aggregation AMG specific
+    // Aggregation AMG parameters
     inparam->AMG_aggregation_type     = HEC;
     inparam->AMG_strong_coupled       = 0.04;
     inparam->AMG_max_aggregation      = 20;
 
+    // Schwarz method parameters
+    inparam->Schwarz_mmsize           = 200;
+    inparam->Schwarz_maxlvl           = 2;
+    inparam->Schwarz_type             = 1;
+    inparam->Schwarz_blksolver        = SOLVER_DEFAULT;
+
     // HX Preconditioner
     inparam->HX_smooth_iter           = 1;
-    
+
 }
 
 /*************************************************************************************/
@@ -110,7 +117,7 @@ void param_input_init (input_param *inparam)
  *
  */
 void param_amg_init (AMG_param *amgparam)
-{  
+{
     // General AMG parameters
     amgparam->AMG_type             = UA_AMG;
     amgparam->print_level          = PRINT_NONE;
@@ -129,12 +136,40 @@ void param_amg_init (AMG_param *amgparam)
     amgparam->amli_degree          = 2;
     amgparam->amli_coef            = NULL;
     amgparam->nl_amli_krylov_type  = SOLVER_VFGMRES;
-    
-    // Aggregation AMG specific
+
+    // Aggregation AMG parameters
     amgparam->aggregation_type     = HEC;
     amgparam->strong_coupled       = 0.04;
     amgparam->max_aggregation      = 20;
-    
+
+    // Schwarz smoother parameters
+    amgparam->Schwarz_levels       = 0; // how many levels will use Schwarz smoother
+    amgparam->Schwarz_mmsize       = 200;
+    amgparam->Schwarz_maxlvl       = 3; // blocksize -- vertices with smaller distance
+    amgparam->Schwarz_type         = 1;
+    amgparam->Schwarz_blksolver    = SOLVER_DEFAULT;
+
+}
+
+/*************************************************************************************/
+/*!
+ * \fn void param_Schwarz_init (Schwarz_param *schparam)
+ *
+ * \brief Initialize Schwarz parameters
+ *
+ * \param schparam    Parameters for Schwarz method
+ *
+ * \author Xiaozhe Hu
+ * \date   05/22/2012
+ *
+ */
+void param_Schwarz_init (Schwarz_param *schparam)
+{
+    schparam->print_level       = PRINT_NONE;
+    schparam->Schwarz_type      = 3;
+    schparam->Schwarz_maxlvl    = 2;
+    schparam->Schwarz_mmsize    = 200;
+    schparam->Schwarz_blksolver = 0;
 }
 
 
@@ -156,7 +191,7 @@ void param_linear_solver_init (linear_itsolver_param *itsparam)
     itsparam->linear_maxit         = 500;
     itsparam->linear_restart       = 100;
     itsparam->linear_tol           = 1e-6;
-    
+
     // HX preconditioner
     itsparam->HX_smooth_iter       = 1;
 
@@ -174,13 +209,13 @@ void param_linear_solver_init (linear_itsolver_param *itsparam)
  */
 void param_linear_solver_set (linear_itsolver_param *itsparam,
                        input_param *inparam)
-{ 
+{
     itsparam->linear_print_level    = inparam->print_level;
     itsparam->linear_itsolver_type  = inparam->linear_itsolver_type;
     itsparam->linear_stop_type      = inparam->linear_stop_type;
     itsparam->linear_restart        = inparam->linear_restart;
     itsparam->linear_precond_type   = inparam->linear_precond_type;
-    
+
     if ( itsparam->linear_itsolver_type == SOLVER_AMG ) {
         itsparam->linear_tol   = inparam->AMG_tol;
         itsparam->linear_maxit = inparam->AMG_maxit;
@@ -189,9 +224,9 @@ void param_linear_solver_set (linear_itsolver_param *itsparam,
         itsparam->linear_tol   = inparam->linear_itsolver_tol;
         itsparam->linear_maxit = inparam->linear_itsolver_maxit;
     }
-    
+
     itsparam->HX_smooth_iter = inparam->HX_smooth_iter;
-    
+
 }
 
 /*************************************************************************************/
@@ -206,10 +241,10 @@ void param_linear_solver_set (linear_itsolver_param *itsparam,
  */
 void param_amg_set (AMG_param *amgparam,
                     input_param *inparam)
-{  
+{
     amgparam->AMG_type    = inparam->AMG_type;
     amgparam->print_level = inparam->print_level;
-    
+
     if (inparam->linear_itsolver_type == SOLVER_AMG) {
         amgparam->maxit = inparam->linear_itsolver_maxit;
         amgparam->tol   = inparam->linear_itsolver_tol;
@@ -218,7 +253,7 @@ void param_amg_set (AMG_param *amgparam,
         amgparam->maxit = inparam->AMG_maxit;
         amgparam->tol   = inparam->AMG_tol;
     }
-    
+
     amgparam->max_levels           = inparam->AMG_levels;
     amgparam->cycle_type           = inparam->AMG_cycle_type;
     amgparam->smoother             = inparam->AMG_smoother;
@@ -233,11 +268,38 @@ void param_amg_set (AMG_param *amgparam,
     amgparam->amli_degree          = inparam->AMG_amli_degree;
     amgparam->amli_coef            = NULL;
     amgparam->nl_amli_krylov_type  = inparam->AMG_nl_amli_krylov_type;
-    
+
     amgparam->aggregation_type     = inparam->AMG_aggregation_type;
     amgparam->strong_coupled       = inparam->AMG_strong_coupled;
     amgparam->max_aggregation      = inparam->AMG_max_aggregation;
 
+    amgparam->Schwarz_levels       = inparam->AMG_Schwarz_levels;
+    amgparam->Schwarz_mmsize       = inparam->Schwarz_mmsize;
+    amgparam->Schwarz_maxlvl       = inparam->Schwarz_maxlvl;
+    amgparam->Schwarz_type         = inparam->Schwarz_type;
+    amgparam->Schwarz_blksolver    = inparam->Schwarz_blksolver;
+
+}
+
+/**
+ * \fn void param_Schwarz_set (Schwarz_param *schparam, input_param *iniparam)
+ *
+ * \brief Set Schwarz_param with INPUT
+ *
+ * \param schparam    Parameters for Schwarz method
+ * \param iniparam     Input parameters
+ *
+ * \author Xiaozhe Hu
+ * \date   05/22/2012
+ */
+void param_Schwarz_set (Schwarz_param *schparam,
+                             input_param *inparam)
+{
+    schparam->print_level       = inparam->print_level;
+    schparam->Schwarz_type      = inparam->Schwarz_type;
+    schparam->Schwarz_maxlvl    = inparam->Schwarz_maxlvl;
+    schparam->Schwarz_mmsize    = inparam->Schwarz_mmsize;
+    schparam->Schwarz_blksolver = inparam->Schwarz_blksolver;
 }
 
 /*************************************************************************************/
@@ -250,12 +312,12 @@ void param_amg_set (AMG_param *amgparam,
  *
  */
 void param_linear_solver_print (linear_itsolver_param *itsparam)
-{   
+{
     if ( itsparam ) {
-        
+
         printf("\n     Parameters in linear_itsolver_param     \n");
         printf("-----------------------------------------------\n");
-        
+
         printf("Solver print level:                %d\n", itsparam->linear_print_level);
         printf("Solver type:                       %d\n", itsparam->linear_itsolver_type);
         printf("Solver precond type:               %d\n", itsparam->linear_precond_type);
@@ -263,12 +325,12 @@ void param_linear_solver_print (linear_itsolver_param *itsparam)
         printf("Solver tolerance:                  %.2e\n", itsparam->linear_tol);
         printf("Solver stopping type:              %d\n", itsparam->linear_stop_type);
         printf("Solver restart number:             %d\n", itsparam->linear_restart);
-        
+
         if ( (itsparam->linear_precond_type == PREC_HX_CURL_A) || (itsparam->linear_precond_type == PREC_HX_CURL_M) )
             printf("HX precond number of smooth:       %d\n", itsparam->HX_smooth_iter);
-    
+
         printf("-----------------------------------------------\n\n");
-        
+
     }
     else {
         printf("### WARNING HAZMATH DANGER: linear solver parameters have not been set!!! \n");
@@ -289,10 +351,10 @@ void param_linear_solver_print (linear_itsolver_param *itsparam)
 void param_amg_print (AMG_param *amgparam)
 {
    if ( amgparam ) {
-        
+
         printf("\n       Parameters in AMG_param\n");
         printf("-----------------------------------------------\n");
-        
+
         printf("AMG print level:                   %d\n", amgparam->print_level);
         printf("AMG max num of iter:               %d\n", amgparam->maxit);
         printf("AMG type:                          %d\n", amgparam->AMG_type);
@@ -305,23 +367,23 @@ void param_amg_print (AMG_param *amgparam)
         printf("AMG smoother type:                 %d\n", amgparam->smoother);
         printf("AMG num of presmoothing:           %d\n", amgparam->presmooth_iter);
         printf("AMG num of postsmoothing:          %d\n", amgparam->postsmooth_iter);
-        
+
         if ( amgparam->smoother == SMOOTHER_SOR  ||
              amgparam->smoother == SMOOTHER_SSOR ||
              amgparam->smoother == SMOOTHER_GSOR ||
              amgparam->smoother == SMOOTHER_SGSOR ) {
             printf("AMG relax factor:                  %.4f\n", amgparam->relaxation);
         }
-        
+
 
         if ( amgparam->cycle_type == AMLI_CYCLE ) {
             printf("AMG AMLI degree of polynomial:     %d\n", amgparam->amli_degree);
         }
-        
+
         if ( amgparam->cycle_type == NL_AMLI_CYCLE ) {
             printf("AMG Nonlinear AMLI Krylov type:    %d\n", amgparam->nl_amli_krylov_type);
         }
-        
+
         switch (amgparam->AMG_type) {
 
             default: // UA_AMG
@@ -330,16 +392,53 @@ void param_amg_print (AMG_param *amgparam)
                 printf("Aggregation AMG max aggregation:   %d\n", amgparam->max_aggregation);
                 break;
         }
-        
+
+        if (amgparam->Schwarz_levels>0){
+            printf("AMG Schwarz smoother level:        %d\n", amgparam->Schwarz_levels);
+            printf("AMG Schwarz type:                  %d\n", amgparam->Schwarz_type);
+            printf("AMG Schwarz forming block level:   %d\n", amgparam->Schwarz_maxlvl);
+            printf("AMG Schwarz maximal block size:    %d\n", amgparam->Schwarz_mmsize);
+        }
+
         printf("-----------------------------------------------\n\n");
-        
+
     }
     else {
         printf("### WARNING HAZMATH DANGER: AMG parameters have not been set!\n");
         printf("Set AMG parameters to default !!!\n");
         param_amg_init(amgparam);
     } // end if (param)
-    
+
+}
+
+/*************************************************************************************/
+/**
+ * \fn void param_Schwarz_print (Schwarz_param *param)
+ *
+ * \brief Print out Schwarz parameters
+ *
+ * \param param    Parameters for Schwarz
+ *
+ * \author Xiaozhe Hu
+ * \date   05/22/2012
+ */
+void param_Schwarz_print (Schwarz_param *schparam)
+{
+    if ( schparam ) {
+
+        printf("\n       Parameters in Schwarz_param\n");
+        printf("-----------------------------------------------\n");
+        printf("Schwarz print level:               %d\n",   schparam->print_level);
+        printf("Schwarz type:                      %d\n",   schparam->Schwarz_type);
+        printf("Schwarz forming block level:       %d\n",   schparam->Schwarz_maxlvl);
+        printf("Schwarz maximal block size:        %d\n",   schparam->Schwarz_mmsize);
+        printf("Schwarz block solver type:         %d\n",   schparam->Schwarz_blksolver);
+        printf("-----------------------------------------------\n\n");
+
+    }
+    else {
+        printf("### WARNING: param has not been set!\n");
+    }
 }
 
 /*************************************************************************************/
@@ -354,7 +453,7 @@ void param_amg_print (AMG_param *amgparam)
  */
 void param_amg_to_prec (precond_data *pcdata,
                         AMG_param *amgparam)
-{  
+{
     pcdata->AMG_type            = amgparam->AMG_type;
     pcdata->print_level         = amgparam->print_level;
     pcdata->maxit               = amgparam->maxit;
@@ -371,7 +470,7 @@ void param_amg_to_prec (precond_data *pcdata,
     pcdata->amli_degree         = amgparam->amli_degree;
     pcdata->amli_coef           = amgparam->amli_coef;
     pcdata->nl_amli_krylov_type = amgparam->nl_amli_krylov_type;
-    
+
 }
 
 /*************************************************************************************/
@@ -386,7 +485,7 @@ void param_amg_to_prec (precond_data *pcdata,
  */
 void param_prec_to_amg (AMG_param *amgparam,
                         precond_data *pcdata)
-{   
+{
     amgparam->AMG_type            = pcdata->AMG_type;
     amgparam->print_level         = pcdata->print_level;
     amgparam->cycle_type          = pcdata->cycle_type;
@@ -423,57 +522,57 @@ void amg_amli_coef (const REAL lambda_max,
                     const REAL lambda_min,
                     const INT degree,
                     REAL *coef)
-{  
+{
     const REAL mu0 = 1.0/lambda_max, mu1 = 1.0/lambda_min;
     const REAL c = (sqrt(mu0)+sqrt(mu1))*(sqrt(mu0)+sqrt(mu1));
     const REAL a = (4*mu0*mu1)/(c);
-    
+
     const REAL kappa = lambda_max/lambda_min; // condition number
     const REAL delta = (sqrt(kappa) - 1.0)/(sqrt(kappa)+1.0);
     const REAL b = delta*delta;
-    
+
     if (degree == 0) {
         coef[0] = 0.5*(mu0+mu1);
     }
-    
+
     else if (degree == 1) {
         coef[0] = 0.5*c;
         coef[1] = -1.0*mu0*mu1;
     }
-    
+
     else if (degree > 1) {
         INT i;
-        
+
         // allocate memory
         REAL *work = (REAL *)calloc(2*degree-1, sizeof(REAL));
         REAL *coef_k, *coef_km1;
         coef_k = work; coef_km1 = work+degree;
-        
+
         // get q_k
         amg_amli_coef(lambda_max, lambda_min, degree-1, coef_k);
         // get q_km1
         amg_amli_coef(lambda_max, lambda_min, degree-2, coef_km1);
-        
+
         // get coef
         coef[0] = a - b*coef_km1[0] + (1+b)*coef_k[0];
-        
+
         for (i=1; i<degree-1; i++) {
             coef[i] = -b*coef_km1[i] + (1+b)*coef_k[i] - a*coef_k[i-1];
         }
-        
+
         coef[degree-1] = (1+b)*coef_k[degree-1] - a*coef_k[degree-2];
-        
+
         coef[degree] = -a*coef_k[degree-1];
-        
+
         // clean memory
         if (work) free(work);
     }
-    
+
     else {
         printf("### ERROR HAZMATH DANGER: Wrong AMLI degree %d!\n", degree);
         check_error(ERROR_INPUT_PAR, __FUNCTION__);
     }
-    
+
     return;
 }
 
