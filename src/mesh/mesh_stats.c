@@ -3,8 +3,9 @@
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 1/9/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
- *  Obtains routines for generating properties of the mesh,
+ *  \brief Obtains routines for generating properties of the mesh,
  *  including all incidence matrices, element volumes, etc.
+ * \note updated by James Adler 07/25/2018
  *
  */
 

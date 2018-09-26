@@ -3,7 +3,9 @@
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 1/9/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
- *  Obtains routines for reading in meshes via original format and vtk format.
+ *  \brief Obtains routines for reading in meshes via original format and vtk format.
+ *
+ *   \note updated by James Adler 07/25/2018
  *
  */
 
@@ -49,11 +51,11 @@
  *
  */
 
-void read_grid_haz(FILE *gfid,mesh_struct *mesh) 
+void read_grid_haz(FILE *gfid,mesh_struct *mesh)
 {
 
   // Loop indices
-  INT i,j,k,l;  
+  INT i,j,k,l;
 
   // Flag to check if file started counting at 1 or 0.
   INT one_zero_flag = 1;
@@ -74,7 +76,7 @@ void read_grid_haz(FILE *gfid,mesh_struct *mesh)
   mesh->el_v->JA = (INT *)calloc(mesh->el_v->nnz, sizeof(INT));
   for(i=0;i<nelm+1;i++) {
     mesh->el_v->IA[i] = v_per_elm*i;
-  }  
+  }
   for (i=0;i<v_per_elm;i++) {
     for (j=0;j<nelm;j++){
       k=v_per_elm*j+i;
@@ -90,7 +92,7 @@ void read_grid_haz(FILE *gfid,mesh_struct *mesh)
   mesh->el_v->val=NULL;
 
   // Read in Flags for each element
-  mesh->el_flag = (INT *) calloc(nelm,sizeof(INT));   
+  mesh->el_flag = (INT *) calloc(nelm,sizeof(INT));
   rveci_(gfid,mesh->el_flag,&nelm);
 
   // Get next 2-3 lines for coordinate map
@@ -191,7 +193,7 @@ void read_grid_haz(FILE *gfid,mesh_struct *mesh)
  * \return mesh.el_v       Element to vertex map
  *
  */
-void read_grid_vtk(FILE *gfid,mesh_struct *mesh) 
+void read_grid_vtk(FILE *gfid,mesh_struct *mesh)
 {
   fprintf(stderr,"I don't really want to process this vtk file just yet...Come back later...\n\n");
   exit(ERROR_OPEN_FILE);
@@ -578,4 +580,3 @@ void create1Dgrid_Line(mesh_struct* mesh,REAL left_end,REAL right_end,INT nelm)
   return;
 }
 /******************************************************************************/
-
