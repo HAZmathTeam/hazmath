@@ -7,6 +7,7 @@
  *  Copyright 2016__HAZMATH__. All rights reserved.
  *
  *  \note modified by James Adler 11/1/2016
+ *  \note (WORKING) Updated on 9/26/2018 for 0-1 fix.
  *
  */
 
@@ -45,7 +46,7 @@ REAL L2norm(REAL *u,fespace *FE,mesh_struct *mesh,qcoordinates *cq)
 
     // Zero out local matrices
     for (j=0; j<local_size; j++) MLoc[j] = 0.0;
-    
+
     // Find DOF for given Element
     get_incidence_row(i,FE->el_dof,dof_on_elm);
 
@@ -57,7 +58,7 @@ REAL L2norm(REAL *u,fespace *FE,mesh_struct *mesh,qcoordinates *cq)
 
     for(j=0;j<dof_per_elm;j++) {
       for(k=0;k<dof_per_elm;k++) {
-        sum+=u[dof_on_elm[j]-1]*MLoc[j*dof_per_elm+k]*u[dof_on_elm[k]-1];
+        sum+=u[dof_on_elm[j]]*MLoc[j*dof_per_elm+k]*u[dof_on_elm[k]];
       }
     }
   }
@@ -132,7 +133,7 @@ REAL L2_InnerProduct(REAL *u,REAL *v,fespace *FE,mesh_struct *mesh,qcoordinates 
 
     // Zero out local matrices
     for (j=0; j<local_size; j++) MLoc[j] = 0.0;
-    
+
     // Find DOF for given Element
     get_incidence_row(i,FE->el_dof,dof_on_elm);
 
@@ -144,7 +145,7 @@ REAL L2_InnerProduct(REAL *u,REAL *v,fespace *FE,mesh_struct *mesh,qcoordinates 
 
     for(j=0;j<dof_per_elm;j++) {
       for(k=0;k<dof_per_elm;k++) {
-        sum+=v[dof_on_elm[j]-1]*MLoc[j*dof_per_elm+k]*u[dof_on_elm[k]-1];
+        sum+=v[dof_on_elm[j]]*MLoc[j*dof_per_elm+k]*u[dof_on_elm[k]];
       }
     }
   }
@@ -213,7 +214,7 @@ REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,mesh
   // Quadrature Weights and Nodes
   REAL w;
   REAL* qx = (REAL *) calloc(mesh->dim,sizeof(REAL));
-  
+
   // FE Stuff
   INT FEtype = FE->FEtype;
   INT elm,quad,j;
@@ -418,7 +419,7 @@ REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE
 
     // Zero out local matrices
     for (j=0; j<local_size; j++) MLoc[j] = 0.0;
-    
+
     // Find DOF for given Element
     get_incidence_row(i,FE->el_dof,dof_on_elm);
 
@@ -647,7 +648,7 @@ REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,void *),fespace *F
   // Quadrature Weights and Nodes
   REAL w;
   REAL* qx = (REAL *) calloc(mesh->dim,sizeof(REAL));
-  
+
   // FE Stuff
   INT FEtype = FE->FEtype;
   INT elm,quad,j;
