@@ -7,7 +7,7 @@
  *  Copyright 2016__HAZMATH__. All rights reserved.
  *
  *  \note modified by James Adler 11/1/2016
- *  \note (WORKING) Updated on 9/26/2018 for 0-1 fix.
+ *  \note Updated on 9/26/2018 for 0-1 fix.
  *
  */
 
@@ -333,8 +333,8 @@ void L2error_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),
     // Not global ordering of all DOF
     jcntr = 0;
     for(i=0;i<nspaces;i++) {
-      rowa = FE->var_spaces[i]->el_dof->IA[elm]-1;
-      rowb = FE->var_spaces[i]->el_dof->IA[elm+1]-1;
+      rowa = FE->var_spaces[i]->el_dof->IA[elm];
+      rowb = FE->var_spaces[i]->el_dof->IA[elm+1];
       for (j=rowa; j<rowb; j++) {
         dof_on_elm[jcntr] = FE->var_spaces[i]->el_dof->JA[j];
         jcntr++;
@@ -431,10 +431,10 @@ REAL L2error_mass(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE
 
     for(j=0;j<dof_per_elm;j++) {
       for(k=0;k<dof_per_elm;k++) {
-        utj = FE_Evaluate_DOF(truesol,FE,mesh,time,dof_on_elm[j]-1);
-        utk = FE_Evaluate_DOF(truesol,FE,mesh,time,dof_on_elm[k]-1);
-        erj = (utj - u[dof_on_elm[j]-1]);
-        erk = (utk - u[dof_on_elm[k]-1]);
+        utj = FE_Evaluate_DOF(truesol,FE,mesh,time,dof_on_elm[j]);
+        utk = FE_Evaluate_DOF(truesol,FE,mesh,time,dof_on_elm[k]);
+        erj = (utj - u[dof_on_elm[j]]);
+        erk = (utk - u[dof_on_elm[k]]);
         sum+=erj*MLoc[j*dof_per_elm+k]*erk;
       }
     }
@@ -502,10 +502,10 @@ void L2error_block_mass(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL,vo
 
       for(j=0;j<local_size;j++) {
         for(k=0;k<local_size;k++) {
-          utj = blockFE_Evaluate_DOF(truesol,FE,mesh,time,i,dof_on_elm[j]-1);
-          utk = blockFE_Evaluate_DOF(truesol,FE,mesh,time,i,dof_on_elm[k]-1);
-          erj = (utj - u[u_dof + dof_on_elm[j]-1]);
-          erk = (utk - u[u_dof + dof_on_elm[k]-1]);
+          utj = blockFE_Evaluate_DOF(truesol,FE,mesh,time,i,dof_on_elm[j]);
+          utk = blockFE_Evaluate_DOF(truesol,FE,mesh,time,i,dof_on_elm[k]);
+          erj = (utj - u[u_dof + dof_on_elm[j]]);
+          erk = (utk - u[u_dof + dof_on_elm[k]]);
           err[i]+=erj*MLoc[j*local_size+k]*erk;
         }
       }
@@ -571,7 +571,7 @@ REAL HDseminorm(REAL *u,fespace *FE,mesh_struct *mesh,qcoordinates *cq)
 
     for(j=0;j<dof_per_elm;j++) {
       for(k=0;k<dof_per_elm;k++) {
-        sum+=u[dof_on_elm[j]-1]*ALoc[j*dof_per_elm+k]*u[dof_on_elm[k]-1];
+        sum+=u[dof_on_elm[j]]*ALoc[j*dof_per_elm+k]*u[dof_on_elm[k]];
       }
     }
   }
@@ -776,8 +776,8 @@ void HDsemierror_block(REAL *err,REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,vo
     // Not global ordering of all DOF
     jcntr = 0;
     for(i=0;i<nspaces;i++) {
-      rowa = FE->var_spaces[i]->el_dof->IA[elm]-1;
-      rowb = FE->var_spaces[i]->el_dof->IA[elm+1]-1;
+      rowa = FE->var_spaces[i]->el_dof->IA[elm];
+      rowb = FE->var_spaces[i]->el_dof->IA[elm+1];
       for (j=rowa; j<rowb; j++) {
         dof_on_elm[jcntr] = FE->var_spaces[i]->el_dof->JA[j];
         jcntr++;
@@ -876,10 +876,10 @@ REAL HDsemierror_stiff(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespac
 
     for(j=0;j<dof_per_elm;j++) {
       for(k=0;k<dof_per_elm;k++) {
-        utj = FE_Evaluate_DOF(truesol,FE,mesh,time,dof_on_elm[j]-1);
-        utk = FE_Evaluate_DOF(truesol,FE,mesh,time,dof_on_elm[k]-1);
-        erj = (utj - u[dof_on_elm[j]-1]);
-        erk = (utk - u[dof_on_elm[k]-1]);
+        utj = FE_Evaluate_DOF(truesol,FE,mesh,time,dof_on_elm[j]);
+        utk = FE_Evaluate_DOF(truesol,FE,mesh,time,dof_on_elm[k]);
+        erj = (utj - u[dof_on_elm[j]]);
+        erk = (utk - u[dof_on_elm[k]]);
         sum+=erj*ALoc[j*dof_per_elm+k]*erk;
       }
     }
@@ -949,10 +949,10 @@ void HDsemierror_block_stiff(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,RE
 
       for(j=0;j<local_size;j++) {
         for(k=0;k<local_size;k++) {
-          utj = blockFE_Evaluate_DOF(truesol,FE,mesh,time,i,dof_on_elm[j]-1);
-          utk = blockFE_Evaluate_DOF(truesol,FE,mesh,time,i,dof_on_elm[k]-1);
-          erj = (utj - u[u_dof + dof_on_elm[j]-1]);
-          erk = (utk - u[u_dof + dof_on_elm[k]-1]);
+          utj = blockFE_Evaluate_DOF(truesol,FE,mesh,time,i,dof_on_elm[j]);
+          utk = blockFE_Evaluate_DOF(truesol,FE,mesh,time,i,dof_on_elm[k]);
+          erj = (utj - u[u_dof + dof_on_elm[j]]);
+          erk = (utk - u[u_dof + dof_on_elm[k]]);
           err[i]+=erj*ALoc[j*local_size+k]*erk;
         }
       }
