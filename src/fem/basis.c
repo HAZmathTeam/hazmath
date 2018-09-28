@@ -1,114 +1,114 @@
 /*! \file src/fem/basis.c
- *
- * \brief Compute the basis functions for triangles or tetrahedra or 1D FEM
- *
- *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 2/1/15.
- *  Copyright 2015__HAZMATH__. All rights reserved.
- *
- * \note modified by James Adler 11/14/2016
- *
- * \note Typically this involves DOF defined on either the
- *  vertices, edges, or faces.  In most cases, the basis elements are
- *  defined using the standard Lagrange finite-element basis functions
- *  using barycentric coordinates.  See PX_H1_basis for details on the Lagrange
- *  basis functions.
- *
- * \note Updated on 9/26/2018 for 0-1 fix.
- *
- */
+*
+* \brief Compute the basis functions for triangles or tetrahedra or 1D FEM
+*
+*  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 2/1/15.
+*  Copyright 2015__HAZMATH__. All rights reserved.
+*
+* \note modified by James Adler 11/14/2016
+*
+* \note Typically this involves DOF defined on either the
+*  vertices, edges, or faces.  In most cases, the basis elements are
+*  defined using the standard Lagrange finite-element basis functions
+*  using barycentric coordinates.  See PX_H1_basis for details on the Lagrange
+*  basis functions.
+*
+* \note Updated on 9/26/2018 for 0-1 fix.
+*
+*/
 
 #include "hazmath.h"
 
 /*******************************************************************************************************/
 /*!
- * \fn void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,mesh_struct *mesh)
- *
- * \brief Compute Standard Lagrange Finite Element Basis Functions (PX) at a particular point in 1, 2 or 3D
- *        For now, we only assume constants, Linears, or Quadratic Elements (P0 or P1 or P2)
- *
- * \param x       Coordinate on where to compute basis function
- * \param dof       DOF on element
- * \param porder  Order of elements
- * \param mesh    Mesh struct
- *
- * \return p      Basis functions (1 for each DOF on element)
- * \return dp     Derivatives of basis functions (i.e., gradient)
- *
- *  \note For 1D we just compute the basis functions directly
- *        For P1: for element between x_0 and x_1:  x0 ------ x1
- *             phi_0 = (x_1 - x)/(x_1 - x_0)
- *             phi_1 = (x-x_0)/(x_1 - x_0)
- *
- *        For P2: for element between x_0 and x_1: x0 ---- x2 ---- x1
- *             phi_0 = (x_1 - x)/(x_1 - x_0)*(2(x_1 - x)/(x_1 - x_0) - 1)
- *             phi_1 = (x-x_0)/(x_1 - x_0)*(2(x-x_0)/(x_1 - x_0) - 1)
- *             phi_2 = 4(x_1 - x)/(x_1 - x_0)(x-x_0)/(x_1 - x_0)
- *
- *        For 2D, we show an illustration here.
- *
- *        The physical element:
- *
- *        In this picture, we don't mean to suggest that the bottom of
- *        the physical triangle is horizontal.  However, we do assume that
- *        each of the sides is a straight line, and that the intermediate
- *        points are exactly halfway on each side.
- *
- *    |
- *    |
- *    |        2
- *    |       / \
- *    |      /   \
- *    Y    e20    e12
- *    |    /       \
- *    |   /         \
- *    |  0----e01-----1
- *    |
- *    +--------X-------->
- *
- *      Reference element T3:
- *
- *       In this picture of the reference element, we really do assume
- *       that one side is vertical, one horizontal, of length 1.
- *
- *    |
- *    |
- *    1  2
- *    |  |\
- *    |  | \
- *    S e20 e12
- *    |  |   \
- *    |  |    \
- *    0  0-e01-1
- *    |
- *    +--0--R--1-------->
- *
- *     Determine the (R,S) coordinates corresponding to (X,Y).
- *
- *     What is happening here is that we are solving the linear system:
- *
- *      ( X1-X0  X2-X0 ) * ( R ) = ( X - X0 )
- *      ( Y1-Y0  Y2-Y0 )   ( S )   ( Y - Y0 )
- *
- *     by computing the inverse of the coefficient matrix and multiplying
- *     it by the right hand side to get R and S.
- *
- *    The values of dRdX, dRdY, dSdX and dSdY are easily from the formulas
- *    for R and S.
- *
- *    For quadratic elements:
- *
- *    |
- *    1  2
- *    |  |\
- *    |  | \
- *    S  4  5
- *    |  |   \
- *    |  |    \
- *    0  0--3--1
- *    |
- *    +--0--R--1-------->
- *
- */
+* \fn void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,mesh_struct *mesh)
+*
+* \brief Compute Standard Lagrange Finite Element Basis Functions (PX) at a particular point in 1, 2 or 3D
+*        For now, we only assume constants, Linears, or Quadratic Elements (P0 or P1 or P2)
+*
+* \param x       Coordinate on where to compute basis function
+* \param dof       DOF on element
+* \param porder  Order of elements
+* \param mesh    Mesh struct
+*
+* \return p      Basis functions (1 for each DOF on element)
+* \return dp     Derivatives of basis functions (i.e., gradient)
+*
+*  \note For 1D we just compute the basis functions directly
+*        For P1: for element between x_0 and x_1:  x0 ------ x1
+*             phi_0 = (x_1 - x)/(x_1 - x_0)
+*             phi_1 = (x-x_0)/(x_1 - x_0)
+*
+*        For P2: for element between x_0 and x_1: x0 ---- x2 ---- x1
+*             phi_0 = (x_1 - x)/(x_1 - x_0)*(2(x_1 - x)/(x_1 - x_0) - 1)
+*             phi_1 = (x-x_0)/(x_1 - x_0)*(2(x-x_0)/(x_1 - x_0) - 1)
+*             phi_2 = 4(x_1 - x)/(x_1 - x_0)(x-x_0)/(x_1 - x_0)
+*
+*        For 2D, we show an illustration here.
+*
+*        The physical element:
+*
+*        In this picture, we don't mean to suggest that the bottom of
+*        the physical triangle is horizontal.  However, we do assume that
+*        each of the sides is a straight line, and that the intermediate
+*        points are exactly halfway on each side.
+*
+*    |
+*    |
+*    |        2
+*    |       / \
+*    |      /   \
+*    Y    e20    e12
+*    |    /       \
+*    |   /         \
+*    |  0----e01-----1
+*    |
+*    +--------X-------->
+*
+*      Reference element T3:
+*
+*       In this picture of the reference element, we really do assume
+*       that one side is vertical, one horizontal, of length 1.
+*
+*    |
+*    |
+*    1  2
+*    |  |\
+*    |  | \
+*    S e20 e12
+*    |  |   \
+*    |  |    \
+*    0  0-e01-1
+*    |
+*    +--0--R--1-------->
+*
+*     Determine the (R,S) coordinates corresponding to (X,Y).
+*
+*     What is happening here is that we are solving the linear system:
+*
+*      ( X1-X0  X2-X0 ) * ( R ) = ( X - X0 )
+*      ( Y1-Y0  Y2-Y0 )   ( S )   ( Y - Y0 )
+*
+*     by computing the inverse of the coefficient matrix and multiplying
+*     it by the right hand side to get R and S.
+*
+*    The values of dRdX, dRdY, dSdX and dSdY are easily from the formulas
+*    for R and S.
+*
+*    For quadratic elements:
+*
+*    |
+*    1  2
+*    |  |\
+*    |  | \
+*    S  4  5
+*    |  |   \
+*    |  |    \
+*    0  0--3--1
+*    |
+*    +--0--R--1-------->
+*
+*/
 void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,mesh_struct *mesh)
 {
   REAL dp0r,dp1r,dp2r,dp3r,dp4r,dp5r,dp6r,dp7r,dp8r,dp9r;
@@ -124,9 +124,10 @@ void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,mesh_struct *mesh)
   INT v_per_elm = mesh->v_per_elm;
   INT dim = mesh->dim;
 
-  REAL* xp = (REAL *) calloc(v_per_elm,sizeof(REAL));
-  REAL* yp = NULL;
-  REAL* zp = NULL;
+  // Store coordinates of vertices of element (2 in 1D, 3 in 2D, 4 in 3D)
+  REAL xv0,xv1,xv2,xv3;
+  REAL yv0,yv1,yv2,yv3;
+  REAL zv0,zv1,zv2,zv3;
   coordinates* cv = mesh->cv;
 
   // P0 elements are trivial and we just need to return a 1 for each element:
@@ -135,14 +136,15 @@ void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,mesh_struct *mesh)
   } else {
     // The remaining depend on the dimension
     if(dim==1) {
+
       // Get Physical Coordinates of Vertices
-      for (i=0; i<v_per_elm; i++) {
-        xp[i] = cv->x[dof[i]];
-      }
+      xv0 = cv->x[dof[0]];
+      xv1 = cv->x[dof[1]];
+
       // Get Barycentric Coordinates
-      REAL oneoverh = 1.0/(xp[1]-xp[0]);
-      REAL lam0 = (xp[1]-x[0])*oneoverh;
-      REAL lam1 = (x[0]-xp[0])*oneoverh;
+      REAL oneoverh = 1.0/(xv1-xv0);
+      REAL lam0 = (xv1-x[0])*oneoverh;
+      REAL lam1 = (x[0]-xv0)*oneoverh;
 
       // Now Get basis functions
       if(porder==1) {
@@ -162,31 +164,33 @@ void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,mesh_struct *mesh)
         check_error(status, __FUNCTION__);
       }
     } else if(dim==2) {
+
       // Get Physical Coordinates of Vertices
-      yp = (REAL *) calloc(v_per_elm,sizeof(REAL));
-      for (i=0; i<v_per_elm; i++) {
-        xp[i] = cv->x[dof[i]];
-        yp[i] = cv->y[dof[i]];
-      }
+      xv0 = cv->x[dof[0]];
+      xv1 = cv->x[dof[1]];
+      xv2 = cv->x[dof[2]];
+      yv0 = cv->y[dof[0]];
+      yv1 = cv->y[dof[1]];
+      yv2 = cv->y[dof[2]];
 
       // Get coordinates on reference triangle
-      REAL det = (xp[1]-xp[0])*(yp[2]-yp[0]) - (xp[2]-xp[0])*(yp[1]-yp[0]);
+      REAL det = (xv1-xv0)*(yv2-yv0) - (xv2-xv0)*(yv1-yv0);
 
-      REAL r = ((yp[2]-yp[0])*(x[0]-xp[0]) + (xp[0]-xp[2])*(x[1]-yp[0]))/det;
+      REAL r = ((yv2-yv0)*(x[0]-xv0) + (xv0-xv2)*(x[1]-yv0))/det;
 
-      REAL drdx = (yp[2]-yp[0])/det;
-      REAL drdy = (xp[0]-xp[2])/det;
+      REAL drdx = (yv2-yv0)/det;
+      REAL drdy = (xv0-xv2)/det;
 
-      REAL s = ((yp[0]-yp[1])*(x[0]-xp[0]) + (xp[1]-xp[0])*(x[1]-yp[0]))/det;
+      REAL s = ((yv0-yv1)*(x[0]-xv0) + (xv1-xv0)*(x[1]-yv0))/det;
 
-      REAL dsdx = (yp[0]-yp[1])/det;
-      REAL dsdy = (xp[1]-xp[0])/det;
+      REAL dsdx = (yv0-yv1)/det;
+      REAL dsdy = (xv1-xv0)/det;
 
       /*  Get the basis functions for linear elements on each node.
-       *  The basis functions can now be evaluated in terms of the
-       *  reference coordinates R and S.  It's also easy to determine
-       *  the values of the derivatives with respect to R and S.
-       */
+      *  The basis functions can now be evaluated in terms of the
+      *  reference coordinates R and S.  It's also easy to determine
+      *  the values of the derivatives with respect to R and S.
+      */
       onemrst = 1 - r - s;
       if(porder==1) {
         p[0] = onemrst;
@@ -223,8 +227,8 @@ void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,mesh_struct *mesh)
       }
 
       /*  We need to convert the derivative information from (R(X,Y),S(X,Y))
-       *  to (X,Y) using the chain rule.
-       */
+      *  to (X,Y) using the chain rule.
+      */
       dp[0*dim] = dp0r * drdx + dp0s * dsdx;
       dp[0*dim+1] = dp0r * drdy + dp0s * dsdy;
       dp[1*dim] = dp1r * drdx + dp1s * dsdx;
@@ -240,49 +244,55 @@ void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,mesh_struct *mesh)
         dp[5*dim+1] = dp5r * drdy + dp5s * dsdy;
       }
     } else if (dim==3) {
+
       // Get Nodes and Physical Coordinates
-      yp = (REAL *) calloc(v_per_elm,sizeof(REAL));
-      zp = (REAL *) calloc(v_per_elm,sizeof(REAL));
-      for (i=0; i<v_per_elm; i++) {
-        xp[i] = cv->x[dof[i]];
-        yp[i] = cv->y[dof[i]];
-        zp[i] = cv->z[dof[i]];
-      }
+      xv0 = cv->x[dof[0]];
+      xv1 = cv->x[dof[1]];
+      xv2 = cv->x[dof[2]];
+      xv3 = cv->x[dof[3]];
+      yv0 = cv->y[dof[0]];
+      yv1 = cv->y[dof[1]];
+      yv2 = cv->y[dof[2]];
+      yv3 = cv->y[dof[3]];
+      zv0 = cv->z[dof[0]];
+      zv1 = cv->z[dof[1]];
+      zv2 = cv->z[dof[2]];
+      zv3 = cv->z[dof[3]];
 
       // Get coordinates on reference triangle
-      REAL det = (xp[3]-xp[0])*((yp[1]-yp[0])*(zp[2]-zp[0])-(yp[2]-yp[0])*(zp[1]-zp[0])) \
-          - (xp[2]-xp[0])*((yp[1]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(zp[1]-zp[0])) \
-          + (xp[1]-xp[0])*((yp[2]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(zp[2]-zp[0]));
+      REAL det = (xv3-xv0)*((yv1-yv0)*(zv2-zv0)-(yv2-yv0)*(zv1-zv0)) \
+      - (xv2-xv0)*((yv1-yv0)*(zv3-zv0)-(yv3-yv0)*(zv1-zv0)) \
+      + (xv1-xv0)*((yv2-yv0)*(zv3-zv0)-(yv3-yv0)*(zv2-zv0));
 
-      REAL r = ((xp[3]-xp[0])*((x[1]-yp[0])*(zp[2]-zp[0])-(yp[2]-yp[0])*(x[2]-zp[0])) \
-          - (xp[2]-xp[0])*((x[1]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(x[2]-zp[0])) \
-          + (x[0]-xp[0])*((yp[2]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(zp[2]-zp[0])))/det;
+      REAL r = ((xv3-xv0)*((x[1]-yv0)*(zv2-zv0)-(yv2-yv0)*(x[2]-zv0)) \
+      - (xv2-xv0)*((x[1]-yv0)*(zv3-zv0)-(yv3-yv0)*(x[2]-zv0)) \
+      + (x[0]-xv0)*((yv2-yv0)*(zv3-zv0)-(yv3-yv0)*(zv2-zv0)))/det;
 
-      REAL drdx = ((yp[2]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(zp[2]-zp[0]))/det;
-      REAL drdy = ((xp[3]-xp[0])*(zp[2]-zp[0]) - (xp[2]-xp[0])*(zp[3]-zp[0]))/det;
-      REAL drdz = ((xp[2]-xp[0])*(yp[3]-yp[0]) - (xp[3]-xp[0])*(yp[2]-yp[0]))/det;
+      REAL drdx = ((yv2-yv0)*(zv3-zv0)-(yv3-yv0)*(zv2-zv0))/det;
+      REAL drdy = ((xv3-xv0)*(zv2-zv0) - (xv2-xv0)*(zv3-zv0))/det;
+      REAL drdz = ((xv2-xv0)*(yv3-yv0) - (xv3-xv0)*(yv2-yv0))/det;
 
-      REAL s = ((xp[3]-xp[0])*((yp[1]-yp[0])*(x[2]-zp[0])-(x[1]-yp[0])*(zp[1]-zp[0])) \
-          - (x[0]-xp[0])*((yp[1]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(zp[1]-zp[0])) \
-          + (xp[1]-xp[0])*((x[1]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(x[2]-zp[0])))/det;
+      REAL s = ((xv3-xv0)*((yv1-yv0)*(x[2]-zv0)-(x[1]-yv0)*(zv1-zv0)) \
+      - (x[0]-xv0)*((yv1-yv0)*(zv3-zv0)-(yv3-yv0)*(zv1-zv0)) \
+      + (xv1-xv0)*((x[1]-yv0)*(zv3-zv0)-(yv3-yv0)*(x[2]-zv0)))/det;
 
-      REAL dsdx = -((yp[1]-yp[0])*(zp[3]-zp[0])-(yp[3]-yp[0])*(zp[1]-zp[0]))/det;
-      REAL dsdy = ((xp[1]-xp[0])*(zp[3]-zp[0]) - (xp[3]-xp[0])*(zp[1]-zp[0]))/det;
-      REAL dsdz = ((xp[3]-xp[0])*(yp[1]-yp[0]) - (xp[1]-xp[0])*(yp[3]-yp[0]))/det;
+      REAL dsdx = -((yv1-yv0)*(zv3-zv0)-(yv3-yv0)*(zv1-zv0))/det;
+      REAL dsdy = ((xv1-xv0)*(zv3-zv0) - (xv3-xv0)*(zv1-zv0))/det;
+      REAL dsdz = ((xv3-xv0)*(yv1-yv0) - (xv1-xv0)*(yv3-yv0))/det;
 
-      REAL t = ((x[0]-xp[0])*((yp[1]-yp[0])*(zp[2]-zp[0])-(yp[2]-yp[0])*(zp[1]-zp[0])) \
-          - (xp[2]-xp[0])*((yp[1]-yp[0])*(x[2]-zp[0])-(x[1]-yp[0])*(zp[1]-zp[0])) \
-          + (xp[1]-xp[0])*((yp[2]-yp[0])*(x[2]-zp[0])-(x[1]-yp[0])*(zp[2]-zp[0])))/det;
+      REAL t = ((x[0]-xv0)*((yv1-yv0)*(zv2-zv0)-(yv2-yv0)*(zv1-zv0)) \
+      - (xv2-xv0)*((yv1-yv0)*(x[2]-zv0)-(x[1]-yv0)*(zv1-zv0)) \
+      + (xv1-xv0)*((yv2-yv0)*(x[2]-zv0)-(x[1]-yv0)*(zv2-zv0)))/det;
 
-      REAL dtdx = ((yp[1]-yp[0])*(zp[2]-zp[0])-(yp[2]-yp[0])*(zp[1]-zp[0]))/det;
-      REAL dtdy = ((xp[2]-xp[0])*(zp[1]-zp[0]) - (xp[1]-xp[0])*(zp[2]-zp[0]))/det;
-      REAL dtdz = ((xp[1]-xp[0])*(yp[2]-yp[0]) - (xp[2]-xp[0])*(yp[1]-yp[0]))/det;
+      REAL dtdx = ((yv1-yv0)*(zv2-zv0)-(yv2-yv0)*(zv1-zv0))/det;
+      REAL dtdy = ((xv2-xv0)*(zv1-zv0) - (xv1-xv0)*(zv2-zv0))/det;
+      REAL dtdz = ((xv1-xv0)*(yv2-yv0) - (xv2-xv0)*(yv1-yv0))/det;
 
       /*  Get the basis functions for linear elements on each node.
-       *  The basis functions can now be evaluated in terms of the
-       *  reference coordinates R and S.  It's also easy to determine
-       *  the values of the derivatives with respect to R and S.
-       */
+      *  The basis functions can now be evaluated in terms of the
+      *  reference coordinates R and S.  It's also easy to determine
+      *  the values of the derivatives with respect to R and S.
+      */
       onemrst = 1 - r - s - t;
       if(porder==1) {
         p[0] = onemrst;
@@ -349,8 +359,8 @@ void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,mesh_struct *mesh)
       }
 
       /*  We need to convert the derivative information from (R(X,Y),S(X,Y))
-       *  to (X,Y) using the chain rule.
-       */
+      *  to (X,Y) using the chain rule.
+      */
       dp[0*dim] = dp0r * drdx + dp0s * dsdx + dp0t * dtdx;
       dp[0*dim+1] = dp0r * drdy + dp0s * dsdy + dpt * dtdy;
       dp[0*dim+2] = dp0r * drdz + dp0s * dsdz + dp0t * dtdz;
@@ -389,31 +399,27 @@ void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,mesh_struct *mesh)
     }
   }
 
-  if(xp) free(xp);
-  if(yp) free(yp);
-  if(zp) free(zp);
-
   return;
 }
 /*******************************************************************************************************/
 
 /*******************************************************************************************************/
 /*!
- * \fn void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dpxy,REAL x,REAL y,REAL z,INT *dof,INT porder,mesh_struct *mesh)
- *
- * \brief Compute Standard Quadratic Finite Element Basis Functions (P2) at a particular point
- *        Also compute the 2nd derivatives for some reason...
- *
- * \param x,y,z           Coordinate on where to compute basis function
- * \param dof             DOF for the given element (in this case vertices and their global numbering)
- * \param porder          Order of elements
- * \param mesh            Mesh struct
- *
- * \return p              Basis functions (1 for each DOF on element)
- * \return dpx,dpy        Derivatives of basis functions (i.e., gradient)
- * \return dpxx,dpyy,dpxy 2nd Derivatives of basis functions
- *
- */
+* \fn void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dpxy,REAL x,REAL y,REAL z,INT *dof,INT porder,mesh_struct *mesh)
+*
+* \brief Compute Standard Quadratic Finite Element Basis Functions (P2) at a particular point
+*        Also compute the 2nd derivatives for some reason...
+*
+* \param x,y,z           Coordinate on where to compute basis function
+* \param dof             DOF for the given element (in this case vertices and their global numbering)
+* \param porder          Order of elements
+* \param mesh            Mesh struct
+*
+* \return p              Basis functions (1 for each DOF on element)
+* \return dpx,dpy        Derivatives of basis functions (i.e., gradient)
+* \return dpxx,dpyy,dpxy 2nd Derivatives of basis functions
+*
+*/
 void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dpxy,REAL x,REAL y,REAL z,INT *dof,INT porder,mesh_struct *mesh)
 {
   REAL dp0r,dp1r,dp2r,dp3r,dp4r,dp5r;
@@ -421,8 +427,9 @@ void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dp
   REAL onemrs;
   INT i;
   INT v_per_elm = mesh->v_per_elm;
-  REAL* xp = (REAL *) calloc(v_per_elm,sizeof(REAL));
-  REAL* yp = (REAL *) calloc(v_per_elm,sizeof(REAL));
+  REAL xv0,xv1,xv2,yv0,yv1,yv2;
+  REAL* xp = (REAL *) calloc(v_per_elm,sizeof(REAL)); //Note Fix this to not allocate. make xp0 xp1 etc.
+  REAL* yp = (REAL *) calloc(v_per_elm,sizeof(REAL)); //Note Fix this to not allocate. make xp0 xp1 etc.
   REAL dp0rr,dp1rr,dp2rr,dp3rr,dp4rr,dp5rr;
   REAL dp0ss,dp1ss,dp2ss,dp3ss,dp4ss,dp5ss;
   REAL dp0rs,dp1rs,dp2rs,dp3rs,dp4rs,dp5rs;
@@ -430,29 +437,31 @@ void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dp
   coordinates* cv = mesh->cv;
 
   // Get Nodes and Physical Coordinates of vertices only
-  for (i=0; i<3; i++) {
-    xp[i] = cv->x[dof[i]];
-    yp[i] = cv->y[dof[i]];
-  }
+  xv0 = cv->x[dof[0]];
+  xv1 = cv->x[dof[1]];
+  xv2 = cv->x[dof[2]];
+  yv0 = cv->y[dof[0]];
+  yv1 = cv->y[dof[1]];
+  yv2 = cv->y[dof[2]];
 
   // Get coordinates on reference triangle
-  REAL det = (xp[1]-xp[0])*(yp[2]-yp[0]) - (xp[2]-xp[0])*(yp[1]-yp[0]);
+  REAL det = (xv1-xv0)*(yv2-yv0) - (xv2-xv0)*(yv1-yv0);
 
-  REAL r = ((yp[2]-yp[0])*(x-xp[0]) + (xp[0]-xp[2])*(y-yp[0]))/det;
+  REAL r = ((yv2-yv0)*(x-xv0) + (xv0-xv2)*(y-yv0))/det;
 
-  REAL drdx = (yp[2]-yp[0])/det;
-  REAL drdy = (xp[0]-xp[2])/det;
+  REAL drdx = (yv2-yv0)/det;
+  REAL drdy = (xv0-xv2)/det;
 
-  REAL s = ((yp[0]-yp[1])*(x-xp[0]) + (xp[1]-xp[0])*(y-yp[0]))/det;
+  REAL s = ((yv0-yv1)*(x-xv0) + (xv1-xv0)*(y-yv0))/det;
 
-  REAL dsdx = (yp[0]-yp[1])/det;
-  REAL dsdy = (xp[1]-xp[0])/det;
+  REAL dsdx = (yv0-yv1)/det;
+  REAL dsdy = (xv1-xv0)/det;
 
   /*  Get the basis functions for quadratic elements on each node and edge.
-   *  The basis functions can now be evaluated in terms of the
-   *  reference coordinates R and S.  It's also easy to determine
-   *  the values of the derivatives with respect to R and S.
-   */
+  *  The basis functions can now be evaluated in terms of the
+  *  reference coordinates R and S.  It's also easy to determine
+  *  the values of the derivatives with respect to R and S.
+  */
 
   onemrs = 1 - r - s;
   p[0] = 2*onemrs*(onemrs-0.5);
@@ -494,8 +503,8 @@ void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dp
 
 
   /*  We need to convert the derivative information from (R(X,Y),S(X,Y))
-   *  to (X,Y) using the chain rule.
-   */
+  *  to (X,Y) using the chain rule.
+  */
 
   dpx[0] = dp0r * drdx + dp0s * dsdx;
   dpy[0] = dp0r * drdy + dp0s * dsdy;
@@ -530,28 +539,25 @@ void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dp
   dpxy[4] = dp4rr*drdy*drdx + dp4rs*drdy*dsdx + dp4rs*drdx*dsdy + dp4ss*dsdx*dsdy;
   dpxy[5] = dp5rr*drdy*drdx + dp5rs*drdy*dsdx + dp5rs*drdx*dsdy + dp5ss*dsdx*dsdy;
 
-  if(xp) free(xp);
-  if(yp) free(yp);
-
   return;
 }
 /*******************************************************************************************************/
 
 /*******************************************************************************************************/
 /*!
- * \fn void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh)
- *
- * \brief Compute Nedelec Finite Element Basis Functions (zeroth order) at a particular point in 2 or 3D
- *
- * \param x         Coordinate on where to compute basis function
- * \param v_on_elm  Vertices on element
- * \param dof       DOF on element
- * \param mesh      Mesh struct
- *
- * \return phi      Basis functions (dim for each edge from reference triangle)
- * \return cphi     Curl of basis functions (1 for each edge in 2D, dim for each edge in 3D)
- *
- */
+* \fn void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh)
+*
+* \brief Compute Nedelec Finite Element Basis Functions (zeroth order) at a particular point in 2 or 3D
+*
+* \param x         Coordinate on where to compute basis function
+* \param v_on_elm  Vertices on element
+* \param dof       DOF on element
+* \param mesh      Mesh struct
+*
+* \return phi      Basis functions (dim for each edge from reference triangle)
+* \return cphi     Curl of basis functions (1 for each edge in 2D, dim for each edge in 3D)
+*
+*/
 void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh)
 {
   // Flag for errors
@@ -569,16 +575,16 @@ void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *
   REAL* dp;
 
   /* Get Linear Basis Functions for particular element */
-  p = (REAL *) calloc(v_per_elm,sizeof(REAL));
-  dp = (REAL *) calloc(v_per_elm*dim,sizeof(REAL));
+  p = (REAL *) calloc(v_per_elm,sizeof(REAL)); // Note: need to fix this allocation
+  dp = (REAL *) calloc(v_per_elm*dim,sizeof(REAL)); // Note: need to fix this allocation
   PX_H1_basis(p,dp,x,v_on_elm,1,mesh);
 
   REAL elen;
 
   /* Now, with the linear basis functions p, dpx, and dpy, the nedelec elements are
-   * phi_eij = |eij|*(p(i)grad(p(j)) - p(j)grad(p(i)))
-   * |eij| = sqrt(|xj-xi|^2)
-   */
+  * phi_eij = |eij|*(p(i)grad(p(j)) - p(j)grad(p(i)))
+  * |eij| = sqrt(|xj-xi|^2)
+  */
 
   // Go through each edge and get length and find the corresponding nodes
   for (i=0; i<ed_per_elm; i++) {
@@ -610,13 +616,13 @@ void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *
     if(dim==3) phi[i*dim+2] = elen*(p[ilo]*dp[ihi*dim+2] - p[ihi]*dp[ilo*dim+2]);
 
     /* Now compute Curls
-     * In 2D curl v = (-dy,dx)*(v1,v2)^T = (dx,dy)(0 1;-1 0)(v1,v2)^T = div (Jv)
-     * curl phi_eij = |eij|*(grad(p(i))*(J*grad(p(j)))-grad(p(j))*(J*grad(p(i)))
-     * This results from the fact that the p's are linear...
-     *
-     * In 3D, technically the curls are not needed in 3D as <curl u, curl v> operator can be found from Laplacian matrix.
-     * We compute them anyway
-     */
+    * In 2D curl v = (-dy,dx)*(v1,v2)^T = (dx,dy)(0 1;-1 0)(v1,v2)^T = div (Jv)
+    * curl phi_eij = |eij|*(grad(p(i))*(J*grad(p(j)))-grad(p(j))*(J*grad(p(i)))
+    * This results from the fact that the p's are linear...
+    *
+    * In 3D, technically the curls are not needed in 3D as <curl u, curl v> operator can be found from Laplacian matrix.
+    * We compute them anyway
+    */
 
     if(dim==2) {
       cphi[i] = 2*elen*(dp[ilo*dim]*dp[ihi*dim+1] - dp[ilo*dim+1]*dp[ihi*dim]);
@@ -639,19 +645,19 @@ void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *
 
 /****************************************************************************************************************************/
 /*!
- * \fn void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh)
- *
- * \brief Compute Raviart-Thomas Finite Element Basis Functions (zeroth order) at a particular point in 2 or 3D
- *
- * \param x         Coordinate on where to compute basis function
- * \param v_on_elm  Vertices on element
- * \param dof       DOF on element
- * \param mesh      Mesh struct
- *
- * \return phi      Basis functions (dim for each face from reference triangle)
- * \return dphi     Div of basis functions (1 for each face)
- *
- */
+* \fn void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh)
+*
+* \brief Compute Raviart-Thomas Finite Element Basis Functions (zeroth order) at a particular point in 2 or 3D
+*
+* \param x         Coordinate on where to compute basis function
+* \param v_on_elm  Vertices on element
+* \param dof       DOF on element
+* \param mesh      Mesh struct
+*
+* \return phi      Basis functions (dim for each face from reference triangle)
+* \return dphi     Div of basis functions (1 for each face)
+*
+*/
 void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh)
 {
   // Flag for erros
@@ -702,9 +708,9 @@ void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *m
       }
 
       /* Now, with the linear basis functions p, dpx, and dpy, the RT elements are in 2D
-       * phi_fij = |fij|*(p(i)curl(p(j)) - p(j)curl(p(i)))
-       * |fij| = |eij|
-       */
+      * phi_fij = |fij|*(p(i)curl(p(j)) - p(j)curl(p(i)))
+      * |fij| = |eij|
+      */
       phi[i*dim+0] = farea*(p[ef1]*dp[ef2*dim+1] - p[ef2]*dp[ef1*dim+1]);
       phi[i*dim+1] = farea*(-p[ef1]*dp[ef2*dim] + p[ef2]*dp[ef1*dim]);
 
@@ -740,23 +746,23 @@ void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *m
       }
 
       /* Now, with the linear basis functions p, dpx, and dpy, the RT elements are in 3D
-       * phi_fijk = 6*|fijk|*(p(i)(grad(p(j)) x grad(p(k))) - p(j)(grad(p(k)) x grad(p(i))) + p(k)(grad(p(i)) x grad(p(j))))
-       * |fijk| = Area(Face)
-       */
+      * phi_fijk = 6*|fijk|*(p(i)(grad(p(j)) x grad(p(k))) - p(j)(grad(p(k)) x grad(p(i))) + p(k)(grad(p(i)) x grad(p(j))))
+      * |fijk| = Area(Face)
+      */
       phi[i*dim+0] = 2*farea*(p[ef1]*(dp[ef2*dim+1]*dp[ef3*dim+2]-dp[ef2*dim+2]*dp[ef3*dim+1])
-          + p[ef2]*(dp[ef3*dim+1]*dp[ef1*dim+2]-dp[ef3*dim+2]*dp[ef1*dim+1])
-          + p[ef3]*(dp[ef1*dim+1]*dp[ef2*dim+2]-dp[ef1*dim+2]*dp[ef2*dim+1]));
+      + p[ef2]*(dp[ef3*dim+1]*dp[ef1*dim+2]-dp[ef3*dim+2]*dp[ef1*dim+1])
+      + p[ef3]*(dp[ef1*dim+1]*dp[ef2*dim+2]-dp[ef1*dim+2]*dp[ef2*dim+1]));
       phi[i*dim+1] = 2*farea*(p[ef1]*(dp[ef2*dim+2]*dp[ef3*dim]-dp[ef2*dim]*dp[ef3*dim+2])
-          + p[ef2]*(dp[ef3*dim+2]*dp[ef1*dim]-dp[ef3*dim]*dp[ef1*dim+2])
-          + p[ef3]*(dp[ef1*dim+2]*dp[ef2*dim]-dp[ef1*dim]*dp[ef2*dim+2]));
+      + p[ef2]*(dp[ef3*dim+2]*dp[ef1*dim]-dp[ef3*dim]*dp[ef1*dim+2])
+      + p[ef3]*(dp[ef1*dim+2]*dp[ef2*dim]-dp[ef1*dim]*dp[ef2*dim+2]));
       phi[i*dim+2] = 2*farea*(p[ef1]*(dp[ef2*dim]*dp[ef3*dim+1]-dp[ef2*dim+1]*dp[ef3*dim])
-          + p[ef2]*(dp[ef3*dim]*dp[ef1*dim+1]-dp[ef3*dim+1]*dp[ef1*dim])
-          + p[ef3]*(dp[ef1*dim]*dp[ef2*dim+1]-dp[ef1*dim+1]*dp[ef2*dim]));
+      + p[ef2]*(dp[ef3*dim]*dp[ef1*dim+1]-dp[ef3*dim+1]*dp[ef1*dim])
+      + p[ef3]*(dp[ef1*dim]*dp[ef2*dim+1]-dp[ef1*dim+1]*dp[ef2*dim]));
 
       // Compute divs div(phi_fij) = 2*|fij|(dx(p(i))*dy(p(j)) - dx(p(j))*dy(p(i)))
       dphi[i] = 6*farea*(dp[ef1*dim]*(dp[ef2*dim+1]*dp[ef3*dim+2]-dp[ef2*dim+2]*dp[ef3*dim+1])
-          + dp[ef1*dim+1]*(dp[ef2*dim+2]*dp[ef3*dim]-dp[ef2*dim]*dp[ef3*dim+2])
-          + dp[ef1*dim+2]*(dp[ef2*dim]*dp[ef3*dim+1]-dp[ef2*dim+1]*dp[ef3*dim]));
+      + dp[ef1*dim+1]*(dp[ef2*dim+2]*dp[ef3*dim]-dp[ef2*dim]*dp[ef3*dim+2])
+      + dp[ef1*dim+2]*(dp[ef2*dim]*dp[ef3*dim+1]-dp[ef2*dim+1]*dp[ef3*dim]));
     }
   } else {
     status = ERROR_DIM;
@@ -773,22 +779,22 @@ void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *m
 
 /****************************************************************************************************************************/
 /*!
- * \fn void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh)
- *
- * \brief Brezzi-Douglas-Marini (BDM) Elements of order 1.
- *
- * \note ONLY in 2D for now.
- * \note This has NOT been tested.
- *
- * \param x         Coordinate on where to compute basis function
- * \param v_on_elm  Vertices on element
- * \param dof       DOF on element
- * \param mesh      Mesh struct
- *
- * \return phi      Basis functions (2*f_per_elm for each face, 12 total in 2D)
- * \return dphix    Div of basis functions
- *
- */
+* \fn void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh)
+*
+* \brief Brezzi-Douglas-Marini (BDM) Elements of order 1.
+*
+* \note ONLY in 2D for now.
+* \note This has NOT been tested.
+*
+* \param x         Coordinate on where to compute basis function
+* \param v_on_elm  Vertices on element
+* \param dof       DOF on element
+* \param mesh      Mesh struct
+*
+* \return phi      Basis functions (2*f_per_elm for each face, 12 total in 2D)
+* \return dphix    Div of basis functions
+*
+*/
 void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh)
 {
   // Flag for errors
@@ -840,10 +846,10 @@ void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof
       }
 
       /* Now, with the linear basis functions p, dpx, and dpy, the BDM1 elements are in 2D
-       * phi_fij = |fij|*(p(i)curl(p(j)) - p(j)curl(p(i)))
-       * psi_fij = alpha*|fij|*curl(p(i)p(j))
-       * |fij| = |eij|
-       */
+      * phi_fij = |fij|*(p(i)curl(p(j)) - p(j)curl(p(i)))
+      * psi_fij = alpha*|fij|*curl(p(i)p(j))
+      * |fij| = |eij|
+      */
       phi[i*dim*2] = farea*(p[ef1]*dp[ef2*dim+1] - p[ef2]*dp[ef1*dim+1]);
       phi[i*dim*2+1] = farea*(-p[ef1]*dp[ef2*dim] + p[ef2]*dp[ef1*dim]);
       phi[i*dim*2+2] = -6*farea*(p[ef1]*dp[ef2*dim+1] + p[ef2]*dp[ef2*dim+1]);
@@ -877,18 +883,18 @@ void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof
 
 /****************************************************************************************************************************/
 /*!
- * \fn void bubble_face_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh)
- *
- * \brief Compute Bubble Element Finite Element Basis Functions at a particular point in 2 or 3D
- *
- * \param x         Coordinate on where to compute basis function
- * \param v_on_elm  Vertices on element
- * \param dof       DOF on element
- * \param mesh      Mesh struct
- *
- * \return phi      Basis functions (dim for each face from reference triangle)
- * \return dphi     Tensor from gradient of basis functions
- */
+* \fn void bubble_face_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh)
+*
+* \brief Compute Bubble Element Finite Element Basis Functions at a particular point in 2 or 3D
+*
+* \param x         Coordinate on where to compute basis function
+* \param v_on_elm  Vertices on element
+* \param dof       DOF on element
+* \param mesh      Mesh struct
+*
+* \return phi      Basis functions (dim for each face from reference triangle)
+* \return dphi     Tensor from gradient of basis functions
+*/
 void bubble_face_basis(REAL *phi, REAL *dphi, REAL *x, INT *v_on_elm, INT *dof, mesh_struct *mesh)
 {
   // Flag for errors
@@ -986,20 +992,20 @@ void bubble_face_basis(REAL *phi, REAL *dphi, REAL *x, INT *v_on_elm, INT *dof, 
 
 /****************************************************************************************************************************/
 /*!
- * \fn void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh,fespace *FE)
- *
- * \brief Grabs the basis function of a FEM space at a particular point in 2 or 3D
- *
- * \param x         Coordinate on where to compute basis function
- * \param v_on_elm  Vertices on element
- * \param dof       DOF on element
- * \param mesh      Mesh struct
- * \param FE        Fespace struct
- *
- * \return phi      Basis functions
- * \return dphi     Derivatives of basis functions (depends on type)
- *
- */
+* \fn void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh,fespace *FE)
+*
+* \brief Grabs the basis function of a FEM space at a particular point in 2 or 3D
+*
+* \param x         Coordinate on where to compute basis function
+* \param v_on_elm  Vertices on element
+* \param dof       DOF on element
+* \param mesh      Mesh struct
+* \param FE        Fespace struct
+*
+* \return phi      Basis functions
+* \return dphi     Derivatives of basis functions (depends on type)
+*
+*/
 void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh,fespace *FE)
 {
   // Flag for erros
