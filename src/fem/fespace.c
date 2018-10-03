@@ -6,6 +6,7 @@
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  * \note modified by James Adler 11/14/2016
+ * \note Updated on 10/3/2018 for 0-1 fix.
  */
 
 #include "hazmath.h"
@@ -94,12 +95,12 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     FE->nbdof = 0;
     FE->dof_per_elm = 1;
     FE->el_dof = malloc(sizeof(struct iCSRmat));
-    *(FE->el_dof) = icsr_create_identity(mesh->nelm, 1);
+    *(FE->el_dof) = icsr_create_identity(mesh->nelm, 0);
     if(mesh->dim>1) {
-      icsr_trans_1(mesh->el_ed,&ed_el);
+      icsr_trans(mesh->el_ed,&ed_el);
       FE->ed_dof = malloc(sizeof(struct iCSRmat));
       *(FE->ed_dof) = ed_el;
-      icsr_trans_1(mesh->el_f,&f_el);
+      icsr_trans(mesh->el_f,&f_el);
       FE->f_dof = malloc(sizeof(struct iCSRmat));
       *(FE->f_dof) = f_el;
     }
@@ -162,7 +163,7 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     FE->dof_per_elm = mesh->ed_per_elm;
     FE->el_dof = mesh->el_ed;
     FE->ed_dof = malloc(sizeof(struct iCSRmat));
-    *(FE->ed_dof) = icsr_create_identity(mesh->nedge, 1);
+    *(FE->ed_dof) = icsr_create_identity(mesh->nedge, 0);
     FE->f_dof = mesh->f_ed;
     dirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
     dof_flag = (INT *) calloc(FE->ndof,sizeof(INT));
@@ -186,11 +187,11 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     FE->nbdof = mesh->nbface;
     FE->dof_per_elm = mesh->f_per_elm;
     FE->el_dof = mesh->el_f;
-    icsr_trans_1(mesh->f_ed,&ed_f);
+    icsr_trans(mesh->f_ed,&ed_f);
     FE->ed_dof = malloc(sizeof(struct iCSRmat));
     *(FE->ed_dof) = ed_f;
     FE->f_dof = malloc(sizeof(struct iCSRmat));
-    *(FE->f_dof) = icsr_create_identity(mesh->nface, 1);
+    *(FE->f_dof) = icsr_create_identity(mesh->nface, 0);
     dirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
     dof_flag = (INT *) calloc(FE->ndof,sizeof(INT));
     for(i=0;i<FE->ndof;i++) {
@@ -209,54 +210,34 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     FE->ndof = mesh->nv * mesh->dim;
     FE->nbdof = mesh->nbv * mesh->dim;
     FE->dof_per_elm = mesh->v_per_elm * mesh->dim;
-    // FE->el_dof = mesh->el_v; // iCSRmat*
     FE->el_dof = malloc(sizeof(struct iCSRmat));
-    printf("Before Concat\n");
+    //printf("Before Concat\n");
     if(mesh->dim==1){
       FE->el_dof = mesh->el_v;
     } else if(mesh->dim==2){
-      icsr_shift(mesh->el_v, -1);
       icsr_concat(mesh->el_v, mesh->el_v, FE->el_dof);
-      icsr_shift(mesh->el_v, 1);
-      icsr_shift(FE->el_dof, 1);
     } else if(mesh->dim==3){
-      icsr_shift(mesh->el_v, -1);
       icsr_concat(mesh->el_v,mesh->el_v,temp);
       icsr_concat(temp,mesh->el_v,FE->el_dof);
-      icsr_shift(mesh->el_v, 1);
-      icsr_shift(FE->el_dof, 1);
       icsr_free(temp);
     }
-    printf("After Concat\n");
+    //printf("After Concat\n");
     if(mesh->dim>1) {
-      //  FE->ed_dof = mesh->ed_v; // iCSRmat*
       FE->ed_dof = malloc(sizeof(struct iCSRmat));
       if(mesh->dim==2){
-        icsr_shift(mesh->ed_v, -1);
         icsr_concat(mesh->ed_v, mesh->ed_v, FE->ed_dof);
-        icsr_shift(mesh->ed_v, 1);
-        icsr_shift(FE->ed_dof, 1);
       } else if(mesh->dim==3) {
-        icsr_shift(mesh->ed_v, -1);
         icsr_concat(mesh->ed_v, mesh->ed_v, temp);
         icsr_concat(temp, mesh->ed_v, FE->ed_dof);
-        icsr_shift(mesh->ed_v, 1);
-        icsr_shift(FE->ed_dof, 1);
         icsr_free(temp);
       }
       //  FE->f_dof = mesh->f_v; // iCSRmat*
       FE->f_dof = malloc(sizeof(struct iCSRmat));
       if(mesh->dim==2){
-        icsr_shift(mesh->f_v, -1);
         icsr_concat(mesh->f_v, mesh->f_v, FE->f_dof);
-        icsr_shift(mesh->f_v, 1);
-        icsr_shift(FE->f_dof, 1);
       } else if(mesh->dim==3){
-        icsr_shift(mesh->f_v, -1);
         icsr_concat(mesh->f_v, mesh->f_v, temp);
         icsr_concat(temp, mesh->f_v, FE->f_dof);
-        icsr_shift(mesh->f_v, 1);
-        icsr_shift(FE->f_dof, 1);
         icsr_free(temp);
       }
     }
@@ -279,11 +260,11 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     FE->nbdof = mesh->nbface;
     FE->dof_per_elm = mesh->f_per_elm;
     FE->el_dof = mesh->el_f;
-    icsr_trans_1(mesh->f_ed,&ed_f);
+    icsr_trans(mesh->f_ed,&ed_f);
     FE->ed_dof = malloc(sizeof(struct iCSRmat));
     *(FE->ed_dof) = ed_f;
     FE->f_dof = malloc(sizeof(struct iCSRmat));
-    *(FE->f_dof) = icsr_create_identity(mesh->nface, 1);;
+    *(FE->f_dof) = icsr_create_identity(mesh->nface, 0);
     dirichlet = (INT *) calloc(FE->ndof,sizeof(INT));
     dof_flag = (INT *) calloc(FE->ndof,sizeof(INT));
     for(i=0;i<FE->ndof;i++) {
@@ -307,7 +288,7 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
   for(i=0;i<FE->ndof;i++) {
     FE->periodic[i] = -1;
   }
-  
+
   // clean temp
   if (temp) {
       free(temp);
@@ -346,7 +327,7 @@ void free_fespace(fespace* FE)
     free(FE->ed_dof);
     FE->ed_dof = NULL;
   }
-  
+
   if(FE->f_dof && FE->FEtype!=1 && FE->FEtype!=20) { // If Linears or Nedelec, free_mesh will destroy f_dof
     icsr_free(FE->f_dof);
     free(FE->f_dof);
@@ -377,7 +358,7 @@ void free_fespace(fespace* FE)
     free(FE->dphi);
     FE->dphi = NULL;
   }
-  
+
   return;
 }
 /****************************************************************************************/
@@ -415,7 +396,7 @@ void free_blockfespace(block_fespace* FE)
     free(FE->dof_flag);
     FE->dof_flag = NULL;
   }
-  
+
   return;
 }
 /****************************************************************************************/
@@ -432,7 +413,7 @@ void free_blockfespace(block_fespace* FE)
  * \return FE       Struct for P2 FE space
  *
  */
-void get_P2(fespace* FE,mesh_struct* mesh) 
+void get_P2(fespace* FE,mesh_struct* mesh)
 {
   // Loop indices
   INT i,j,k,s,jcntr;
@@ -483,9 +464,9 @@ void get_P2(fespace* FE,mesh_struct* mesh)
     }
   } else { // In 2D or 3D, these are simply the midpoints of the edges
     for (i=0; i<nedge; i++) {
-      ed = ed_v->IA[i]-1;
-      n1 = ed_v->JA[ed]-1;
-      n2 = ed_v->JA[ed+1]-1;
+      ed = ed_v->IA[i];
+      n1 = ed_v->JA[ed];
+      n2 = ed_v->JA[ed+1];
       cdof->x[s] = 0.5*(mesh->cv->x[n1]+mesh->cv->x[n2]);
       cdof->y[s] = 0.5*(mesh->cv->y[n1]+mesh->cv->y[n2]);
       if (dim>2) { cdof->z[s] = 0.5*(mesh->cv->z[n1]+mesh->cv->z[n2]); }
@@ -496,30 +477,30 @@ void get_P2(fespace* FE,mesh_struct* mesh)
   iCSRmat el_n = icsr_create(nelm,ndof,dof_per_elm*nelm);
   // Rows of Element to Node map
   for(i=0;i<nelm+1;i++) {
-    el_n.IA[i] = dof_per_elm*i + 1;
+    el_n.IA[i] = dof_per_elm*i;
   }
   // Columns
   // In 1D just add the midpoint of elements
   if(dim==1) {
     for(i=0;i<nelm;i++) {
-      va = el_v->IA[i]-1;
-      vb = el_v->IA[i+1]-1;
-      na = el_n.IA[i]-1;
+      va = el_v->IA[i];
+      vb = el_v->IA[i+1];
+      na = el_n.IA[i];
       jcntr = 0;
       for(j=va;j<vb;j++) {
         el_n.JA[na + jcntr] = el_v->JA[j];
         jcntr++;
       }
-      el_n.JA[na+jcntr] = nv+i+1;
+      el_n.JA[na+jcntr] = nv+i;
     }
   } else {
     // For 2D or 3D we add the midpoint of the edges
     for(i=0;i<nelm;i++) {
-      va = el_v->IA[i]-1;
-      vb = el_v->IA[i+1]-1;
-      ea = el_ed->IA[i]-1;
-      eb = el_ed->IA[i+1]-1;
-      na = el_n.IA[i]-1;
+      va = el_v->IA[i];
+      vb = el_v->IA[i+1];
+      ea = el_ed->IA[i];
+      eb = el_ed->IA[i+1];
+      na = el_n.IA[i];
       jcntr = 0;
       for(j=va;j<vb;j++) {
         ipv[jcntr] = el_v->JA[j];
@@ -532,8 +513,8 @@ void get_P2(fespace* FE,mesh_struct* mesh)
           v2 = ipv[k];
           for(s=ea;s<eb;s++) {
             mye = el_ed->JA[s];
-            n1 = ed_v->JA[ed_v->IA[mye-1]-1];
-            n2 = ed_v->JA[ed_v->IA[mye-1]];
+            n1 = ed_v->JA[ed_v->IA[mye]];
+            n2 = ed_v->JA[ed_v->IA[mye]+1];
             if ((n1==v1 && n2==v2) || (n2==v1 && n1==v2)) {
               el_n.JA[v_per_elm+na] = mye+nv;
               na++;
@@ -569,18 +550,18 @@ void get_P2(fespace* FE,mesh_struct* mesh)
   // Get edge to DOF map
   if(dim>1) {
     iCSRmat ed_n = icsr_create(nedge,ndof,3*nedge);
-    s = nv+1;
+    s = nv;
     for (i=0; i<nedge; i++) {
-      ed = ed_v->IA[i]-1;
-      ed_n.IA[i] = ed+1+i;
-      n1 = ed_v->JA[ed]-1;
-      n2 = ed_v->JA[ed+1]-1;
-      ed_n.JA[ed+i] = n1+1;
-      ed_n.JA[ed+1+i] = n2+1;
+      ed = ed_v->IA[i];
+      ed_n.IA[i] = ed+i;
+      n1 = ed_v->JA[ed];
+      n2 = ed_v->JA[ed+1];
+      ed_n.JA[ed+i] = n1;
+      ed_n.JA[ed+1+i] = n2;
       ed_n.JA[ed+2+i] = s;
       s++;
     }
-    ed_n.IA[nedge] = 3*nedge+1;
+    ed_n.IA[nedge] = 3*nedge;
 
     // Get face to DOF map
     INT n_per_f = 3*(dim-1);
@@ -588,24 +569,24 @@ void get_P2(fespace* FE,mesh_struct* mesh)
     iCSRmat f_n = icsr_create(nface,ndof,n_per_f*nface);
 
     for (i=0; i<nface; i++) {
-      face = f_v->IA[i]-1;
-      f_n.IA[i] = face+1+(2*dim-3)*i;
-      n1 = f_v->JA[face]-1;
-      n2 = f_v->JA[face+1]-1;
-      if(dim==3) n3 = f_v->JA[face+2]-1;
-      f_n.JA[face+extra_n*i] = n1+1;
-      f_n.JA[face+extra_n*i+1] = n2+1;
-      if(dim==3) f_n.JA[face+extra_n*i+2] = n3+1;
+      face = f_v->IA[i];
+      f_n.IA[i] = face+(2*dim-3)*i;
+      n1 = f_v->JA[face];
+      n2 = f_v->JA[face+1];
+      if(dim==3) n3 = f_v->JA[face+2];
+      f_n.JA[face+extra_n*i] = n1;
+      f_n.JA[face+extra_n*i+1] = n2;
+      if(dim==3) f_n.JA[face+extra_n*i+2] = n3;
       // Fill in rest with edge numbers
-      ed1 = f_ed->IA[i]-1;
-      ed2 = f_ed->IA[i+1]-1;
+      ed1 = f_ed->IA[i];
+      ed2 = f_ed->IA[i+1];
       jcntr = 0;
       for(j=ed1;j<ed2;j++) {
         f_n.JA[face+extra_n*i+dim+jcntr] = f_ed->JA[j]+nv;
         jcntr++;
       }
     }
-    f_n.IA[nface] = n_per_f*nedge+1;
+    f_n.IA[nface] = n_per_f*nedge;
     *(FE->ed_dof) = ed_n;
     *(FE->f_dof) = f_n;
   }
@@ -614,7 +595,7 @@ void get_P2(fespace* FE,mesh_struct* mesh)
   FE->dof_flag = dof_flag;
   *(FE->el_dof) = el_n;
   FE->cdof = cdof;
-  
+
   if(ipv) free(ipv);
 
   return;
@@ -633,14 +614,14 @@ void get_P2(fespace* FE,mesh_struct* mesh)
  * \return el_dof.dat Output file with el_dof data
  *
  */
-void dump_el_dof(FILE* fid,iCSRmat *el_dof) 
+void dump_el_dof(FILE* fid,iCSRmat *el_dof)
 {
   // Loop indices
   INT i,j,acol,bcol;
 
   for (i=0; i<el_dof->row; i++) {
-    acol = el_dof->IA[i]-1;
-    bcol = el_dof->IA[i+1]-1;
+    acol = el_dof->IA[i];
+    bcol = el_dof->IA[i+1];
     for (j=acol; j<bcol; j++) {
       fprintf(fid,"%d\t",el_dof->JA[j]);
     }
@@ -664,7 +645,7 @@ void dump_el_dof(FILE* fid,iCSRmat *el_dof)
  * \return dir/varname.dat Output file with FE data
  *
  */
-void dump_fespace(fespace *FE,char *varname,char *dir) 
+void dump_fespace(fespace *FE,char *varname,char *dir)
 {
   INT i;
   INT totdof = FE->ndof;
@@ -703,15 +684,15 @@ void dump_fespace(fespace *FE,char *varname,char *dir)
  *
  * \param FE               FE space struct
  * \param mesh             Mesh struct
- * \param flag0            min flag value for Dirichlet DOF 
+ * \param flag0            min flag value for Dirichlet DOF
  *                         (e.g. in fem.h: MARKER_DIRICHLET)
- * \param flag1            max flag value for Dirichlet DOF  
+ * \param flag1            max flag value for Dirichlet DOF
  *                         e.g. in fem.h (MARKER_NEUMANN - 1)
  *
  * \return FE.dirichlet    Binary boundary array for DOF
  *
  */
-void set_dirichlet_bdry(fespace* FE,mesh_struct* mesh, const INT flag0, const INT flag1) 
+void set_dirichlet_bdry(fespace* FE,mesh_struct* mesh, const INT flag0, const INT flag1)
 {
   INT i;
   for(i=0;i<FE->ndof;i++) {
@@ -777,8 +758,8 @@ void set_dirichlet_bdry_block(block_fespace* FE,mesh_struct* mesh)
 void get_incidence_row(INT row,iCSRmat *fem_map,INT* thisrow)
 {
   INT j;
-  INT rowa = fem_map->IA[row]-1;
-  INT rowb = fem_map->IA[row+1]-1;
+  INT rowa = fem_map->IA[row];
+  INT rowb = fem_map->IA[row+1];
   INT jcntr = 0;
   for (j=rowa; j<rowb; j++) {
     thisrow[jcntr] = fem_map->JA[j];
