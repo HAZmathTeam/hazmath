@@ -2475,7 +2475,7 @@ void precond_block_diag_mixed_darcy_krylov(REAL *r,
   precond pc_p; pc_p.data = &pcdata_p;
   pc_p.fct = precond_amg;
 
-  dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc_p, 1e-1, 100, 100, 1, 1);
+  dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc_p, 1e-3, 100, 100, 1, 1);
 
 
   // Preconditioning A11 block
@@ -2543,7 +2543,7 @@ void precond_block_lower_mixed_darcy_krylov(REAL *r,
   precond pc_p; pc_p.data = &pcdata_p;
   pc_p.fct = precond_amg;
 
-  dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc_p, 1e-1, 100, 100, 1, 1);
+  dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc_p, 1e-3, 100, 100, 1, 1);
 
   // r1 = r1 - A2*z0
   dcsr_aAxpy(-1.0, A->blocks[2], z0.val, r1.val);
@@ -2622,7 +2622,7 @@ void precond_block_upper_mixed_darcy_krylov(REAL *r,
   precond pc_p; pc_p.data = &pcdata_p;
   pc_p.fct = precond_amg;
 
-  dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc_p, 1e-1, 100, 100, 1, 1);
+  dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc_p, 1e-3, 100, 100, 1, 1);
 
 
   // restore r
