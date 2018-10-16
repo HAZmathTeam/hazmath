@@ -123,7 +123,8 @@ uninstall:
 	fi
 
 distclean:
-	@-rm -rf $(build_dir)   
+	@-rm -rf $(build_dir)
+	@-rm -f ./lib/*	
 	@-find . -name '*~' -exec rm {} \;
 
 help:
