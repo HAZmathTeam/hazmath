@@ -414,6 +414,7 @@ void python_wrapper_krylov_mixed_darcy(INT *nrow00,
                                  INT *ia11,
                                  INT *ja11,
                                  REAL *a11,
+                                 REAL *Mp_diag,
                                  REAL *b,
                                  REAL *u,
                                  REAL *tol,
@@ -460,13 +461,17 @@ void python_wrapper_krylov_mixed_darcy(INT *nrow00,
     mat_bdcsr.blocks[3]->row = *nrow11; mat_bdcsr.blocks[3]->col = *ncol11; mat_bdcsr.blocks[3]->nnz = *nnz11;
     mat_bdcsr.blocks[3]->IA = ia11; mat_bdcsr.blocks[3]->JA = ja11; mat_bdcsr.blocks[3]->val = a11;
 
+    // form mass matrix of pressure (it is diagonal matrix, only diagonal is stores)
+    dvector Mp;
+    Mp.row = *nrow11; Mp.val = Mp_diag;
+
     // form right hand side
     INT n = *nrow00 + *nrow11;
     rhs.row = n; rhs.val = b;
     sol.row = n; sol.val = u;
 
     // solve in 2 by 2 block form
-    *iters = linear_solver_bdcsr_krylov_mixed_darcy(&mat_bdcsr, &rhs, &sol, &itparam, &amgparam, NULL);
+    *iters = linear_solver_bdcsr_krylov_mixed_darcy(&mat_bdcsr, &rhs, &sol, &itparam, &amgparam, &Mp);
 
     // clean memory
 }

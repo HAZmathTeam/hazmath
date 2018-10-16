@@ -37,10 +37,10 @@
 //! Warning for computed relative residual
 #define ITS_COMPRES(relres) printf("### HAZMATH WARNING: The computed relative residual = %e!\n",(relres))
 
-//! Warning for too small sp 
+//! Warning for too small sp
 #define ITS_SMALLSP printf("### HAZMATH WARNING: sp is too small! %s : %d\n", __FUNCTION__, __LINE__)
 
-//! Warning for restore previous iteration 
+//! Warning for restore previous iteration
 #define ITS_RESTORE(iter) printf("### HAZMATH WARNING: Restore iteration %d!\n",(iter));
 
 //! Output relative difference and residual
@@ -58,7 +58,7 @@
  *
  */
 inline static void ITS_CHECK (const INT MaxIt, const REAL tol)
-{    
+{
     if ( tol < SMALLREAL ) {
         printf("### HAZMATH WARNING: Convergence tolerance for iterative solver is too small!\n");
     }
@@ -68,15 +68,15 @@ inline static void ITS_CHECK (const INT MaxIt, const REAL tol)
 }
 
 /**
- * \fn inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres) 
+ * \fn inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres)
  * \brief Print out final status of an iterative method
  *
  * \param iter    Number of iterations
  * \param MaxIt   Maximal number of iterations
- * \param relres  Relative residual 
+ * \param relres  Relative residual
  *
  */
-inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres) 
+inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres)
 {
     if ( iter > MaxIt ) {
         printf("### HAZMATH WARNING: Max iter %d reached with rel. resid. %e.\n", MaxIt, relres);
@@ -90,7 +90,7 @@ inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres
 /*--      Public Functions       --*/
 /*---------------------------------*/
 /********************************************************************************************/
-// general itrative solver for different format          
+// general itrative solver for different format
 /********************************************************************************************/
 /**
  * \fn INT solver_dcsr_linear_itsolver (dCSRmat *A, dvector *b, dvector *x,
@@ -116,23 +116,23 @@ INT solver_dcsr_linear_itsolver(dCSRmat *A,
                                 dvector *x,
                                 precond *pc,
                                 linear_itsolver_param *itparam)
-{   
+{
     const SHORT prtlvl        = itparam->linear_print_level;
     const SHORT itsolver_type = itparam->linear_itsolver_type;
     const SHORT stop_type     = itparam->linear_stop_type;
     const SHORT restart       = itparam->linear_restart;
     const INT   MaxIt         = itparam->linear_maxit;
     const REAL  tol           = itparam->linear_tol;
-    
+
     /* Local Variables */
     REAL solver_start, solver_end, solver_duration;
     INT iter;
-    
+
     get_time(&solver_start);
-    
+
     /* Safe-guard checks on parameters */
     ITS_CHECK ( MaxIt, tol );
-    
+
     /* Choose a desirable Krylov iterative solver */
     switch ( itsolver_type ) {
         case 1:
@@ -142,7 +142,7 @@ INT solver_dcsr_linear_itsolver(dCSRmat *A,
             }
             iter = dcsr_pcg(A, b, x, pc, tol, MaxIt, stop_type, prtlvl);
             break;
-            
+
         case 2:
             if ( prtlvl > PRINT_NONE ) {
                 printf("**********************************************************\n");
@@ -151,7 +151,7 @@ INT solver_dcsr_linear_itsolver(dCSRmat *A,
             iter = dcsr_pminres(A, b, x, pc, tol, MaxIt, stop_type, prtlvl);
             printf(" NOTHING IMPLEMENTED FOR MINRES\n");
             break;
-            
+
         case 3:
             if ( prtlvl > PRINT_NONE )  {
                 printf("**********************************************************\n");
@@ -159,7 +159,7 @@ INT solver_dcsr_linear_itsolver(dCSRmat *A,
             }
             iter = dcsr_pvgmres(A, b, x, pc, tol, MaxIt, restart, stop_type, prtlvl);
             break;
-            
+
         case 4:
             if ( prtlvl > PRINT_NONE ) {
                 printf("**********************************************************\n");
@@ -167,21 +167,21 @@ INT solver_dcsr_linear_itsolver(dCSRmat *A,
             }
             iter = dcsr_pvfgmres(A, b, x, pc, tol, MaxIt, restart, stop_type, prtlvl);
             break;
-            
+
         default:
             printf("### ERROR: Unknown itertive solver type %d!\n", itsolver_type);
             return ERROR_SOLVER_TYPE;
-            
+
     }
-    
+
     if ( (prtlvl >= PRINT_SOME) && (iter >= 0) ) {
         get_time(&solver_end);
         solver_duration = solver_end - solver_start;
         print_cputime("Iterative method", solver_duration);
         printf("**********************************************************\n");
     }
-    
-    
+
+
     return iter;
 }
 
@@ -217,17 +217,17 @@ INT solver_bdcsr_linear_itsolver(block_dCSRmat *A,
     const SHORT restart =       itparam->linear_restart;
     const INT   MaxIt =         itparam->linear_maxit;
     const REAL  tol =           itparam->linear_tol;
-    
+
     REAL  solver_start, solver_end, solver_duration;
     INT   iter = ERROR_SOLVER_TYPE;
-    
+
     get_time(&solver_start);
 
     /* Safe-guard checks on parameters */
     ITS_CHECK ( MaxIt, tol );
-    
+
     switch (itsolver_type) {
-            
+
         case SOLVER_CG:
             if ( prtlvl > PRINT_NONE ) {
                 printf("**********************************************************\n");
@@ -235,7 +235,7 @@ INT solver_bdcsr_linear_itsolver(block_dCSRmat *A,
             }
             iter = bdcsr_pcg(A, b, x, pc, tol, MaxIt, stop_type, prtlvl);
             break;
-            
+
         case SOLVER_MinRes:
             if ( prtlvl > PRINT_NONE ) {
                 printf("**********************************************************\n");
@@ -243,7 +243,7 @@ INT solver_bdcsr_linear_itsolver(block_dCSRmat *A,
             }
             iter = bdcsr_pminres(A, b, x, pc, tol, MaxIt, stop_type, prtlvl);
             break;
-            
+
         case SOLVER_VGMRES:
             if ( prtlvl > PRINT_NONE ) {
                 printf("**********************************************************\n");
@@ -251,7 +251,7 @@ INT solver_bdcsr_linear_itsolver(block_dCSRmat *A,
             }
             iter = bdcsr_pvgmres(A, b, x, pc, tol, MaxIt, restart, stop_type, prtlvl);
             break;
-            
+
         case SOLVER_VFGMRES:
             if ( prtlvl > PRINT_NONE ) {
                 printf("**********************************************************\n");
@@ -259,19 +259,19 @@ INT solver_bdcsr_linear_itsolver(block_dCSRmat *A,
             }
             iter = bdcsr_pvfgmres(A, b, x, pc, tol, MaxIt, restart, stop_type, prtlvl);
             break;
-            
+
         default:
             printf("### ERROR: Unknown itertive solver type %d!\n", itsolver_type);
-            
+
     }
-    
+
     if ( (prtlvl >= PRINT_MIN) && (iter >= 0) ) {
         get_time(&solver_end);
         solver_duration = solver_end - solver_start;
         print_cputime("Iterative method", solver_duration);
         printf("**********************************************************\n");
     }
-    
+
     return iter;
 }
 
@@ -300,23 +300,23 @@ INT solver_general_linear_itsolver(matvec *mxv,
                                    dvector *x,
                                    precond *pc,
                                    linear_itsolver_param *itparam)
-{    
+{
     const SHORT prtlvl        = itparam->linear_print_level;
     const SHORT itsolver_type = itparam->linear_itsolver_type;
     const SHORT stop_type     = itparam->linear_stop_type;
     const SHORT restart       = itparam->linear_restart;
     const INT   MaxIt         = itparam->linear_maxit;
     const REAL  tol           = itparam->linear_tol;
-    
+
     /* Local Variables */
     REAL solver_start, solver_end, solver_duration;
     INT iter;
-    
+
     get_time(&solver_start);
-    
+
     /* Safe-guard checks on parameters */
     ITS_CHECK ( MaxIt, tol );
-    
+
     /* Choose a desirable Krylov iterative solver */
     switch ( itsolver_type ) {
         case 1:
@@ -326,7 +326,7 @@ INT solver_general_linear_itsolver(matvec *mxv,
             }
             iter = general_pcg(mxv, b, x, pc, tol, MaxIt, stop_type, prtlvl);
             break;
-            
+
         case 2:
             if ( prtlvl > PRINT_NONE ) {
                 printf("**********************************************************\n");
@@ -335,7 +335,7 @@ INT solver_general_linear_itsolver(matvec *mxv,
             iter = general_pminres(mxv, b, x, pc, tol, MaxIt, stop_type, prtlvl);
             printf(" NOTHING IMPLEMENTED FOR MINRES\n");
             break;
-            
+
         case 3:
             if ( prtlvl > PRINT_NONE )  {
                 printf("**********************************************************\n");
@@ -343,30 +343,30 @@ INT solver_general_linear_itsolver(matvec *mxv,
             }
             iter = general_pvgmres(mxv, b, x, pc, tol, MaxIt, restart, stop_type, prtlvl);
             break;
-            
+
         case 4:
             if ( prtlvl > PRINT_NONE ) {
                 printf("**********************************************************\n");
                 printf(" --> using Flexible GMRES Method:\n");
             }
-            
+
             iter = general_pvfgmres(mxv, b, x, pc, tol, MaxIt, restart, stop_type, prtlvl);
             break;
-            
+
         default:
             printf("### ERROR: Unknown itertive solver type %d!\n", itsolver_type);
             return ERROR_SOLVER_TYPE;
-            
+
     }
-    
+
     if ( (prtlvl >= PRINT_SOME) && (iter >= 0) ) {
         get_time(&solver_end);
         solver_duration = solver_end - solver_start;
         print_cputime("Iterative method", solver_duration);
         printf("**********************************************************\n");
     }
-    
-    
+
+
     return iter;
 }
 
@@ -394,41 +394,41 @@ INT linear_solver_amg(dCSRmat *A,
                       dvector *b,
                       dvector *x,
                       AMG_param *param)
-{   
+{
     const SHORT   max_levels  = param->max_levels;
     const SHORT   prtlvl      = param->print_level;
     const SHORT   amg_type    = param->AMG_type;
     const SHORT   cycle_type  = param->cycle_type;
     const INT     nnz = A->nnz, m = A->row, n = A->col;
-    
+
     // local variables
     INT      status = SUCCESS;
     AMG_data *    mgl = amg_data_create(max_levels);
     REAL          AMG_start, AMG_end;
-    
+
     if ( prtlvl > PRINT_NONE ) get_time(&AMG_start);
-    
+
     // check matrix data
     if ( m != n ) {
         printf("### ERROR: A is not a square matrix!\n");
         check_error(ERROR_MAT_SIZE, __FUNCTION__);
     }
-    
+
     if ( nnz <= 0 ) {
         printf("### ERROR: A has no nonzero entries!\n");
         check_error(ERROR_MAT_SIZE, __FUNCTION__);
     }
-    
+
     // Step 0: initialize mgl[0] with A, b and x
     mgl[0].A = dcsr_create(m, n, nnz);
     dcsr_cp(A, &mgl[0].A);
-    
+
     mgl[0].b = dvec_create(n);
     dvec_cp(b, &mgl[0].b);
-    
+
     mgl[0].x = dvec_create(n);
     dvec_cp(x, &mgl[0].x);
-    
+
     // Step 1: AMG setup phase
     switch (amg_type) {
 
@@ -436,55 +436,55 @@ INT linear_solver_amg(dCSRmat *A,
             if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
             status = amg_setup_ua(mgl, param);
         break;
-            
+
         default: // Unsmoothed Aggregation AMG setup
             if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
             status = amg_setup_ua(mgl, param);
         break;
-            
+
     }
-    
+
     // Step 2: AMG solve phase
     if ( status == SUCCESS ) { // call a multilevel cycle
-        
+
         switch (cycle_type) {
-            
+
             case AMLI_CYCLE: // AMLI-cycle
                 status = amg_solve_amli(mgl, param); break;
-                
+
             case NL_AMLI_CYCLE: // Nonlinear AMLI-cycle
                 status = amg_solve_nl_amli(mgl, param); break;
-                
+
             default: // V,W-cycles (determined by param)
                 status = amg_solve(mgl, param); break;
-                
+
         }
-        
+
         dvec_cp(&mgl[0].x, x);
-        
+
     }
-    
+
     else { // call a backup solver
-        
+
         if ( prtlvl > PRINT_MIN ) {
             printf("### HAZMATH WARNING: AMG setup failed!\n");
             printf("### HAZMATH WARNING: Use a backup solver instead.\n");
         }
         status = dcsr_pvgmres(A, b, x, NULL, param->tol, param->maxit,
                               20, 1, prtlvl);
-        
+
     }
-    
+
     // clean-up memory
     amg_data_free(mgl, param);
-    
+
     // print out CPU time if needed
     if ( prtlvl > PRINT_NONE ) {
         get_time(&AMG_end);
         print_cputime("AMG totally", AMG_end - AMG_start);
         printf("**********************************************************\n");
     }
-    
+
     return status;
 }
 
@@ -513,22 +513,22 @@ INT linear_solver_dcsr_krylov(dCSRmat *A,
                              linear_itsolver_param *itparam)
 {
     const SHORT prtlvl = itparam->linear_print_level;
-    
+
     /* Local Variables */
     INT      status = SUCCESS;
     REAL     solver_start, solver_end, solver_duration;
-    
+
     get_time(&solver_start);
-    
+
     status = solver_dcsr_linear_itsolver(A,b,x,NULL,itparam);
-    
+
     if ( prtlvl >= PRINT_MIN ) {
         get_time(&solver_end);
         solver_duration = solver_end - solver_start;
         print_cputime("Krylov method totally", solver_duration);
         printf("**********************************************************\n");
     }
-    
+
     return status;
 }
 
@@ -555,25 +555,25 @@ INT linear_solver_dcsr_krylov_diag(dCSRmat *A,
                                    linear_itsolver_param *itparam)
 {
     const SHORT prtlvl = itparam->linear_print_level;
-    
+
     /* Local Variables */
     INT       status = SUCCESS;
     REAL      solver_start, solver_end, solver_duration;
-    
+
     get_time(&solver_start);
-    
+
     // setup preconditioner
     dvector diag; dcsr_getdiag(0,A,&diag);
-    
+
     //dvec_write("diag.dat", &diag);
-    
+
     precond pc;
     pc.data = &diag;
     pc.fct  = precond_diag;
-    
+
     // call iterative solver
     status = solver_dcsr_linear_itsolver(A,b,x,&pc,itparam);
-    
+
     if ( prtlvl >= PRINT_MIN ) {
         get_time(&solver_end);
         solver_duration = solver_end - solver_start;
@@ -581,9 +581,9 @@ INT linear_solver_dcsr_krylov_diag(dCSRmat *A,
         printf("**********************************************************\n");
 
     }
-    
+
     dvec_free(&diag);
-    
+
     return status;
 }
 
@@ -614,44 +614,44 @@ INT linear_solver_dcsr_krylov_amg(dCSRmat *A,
     const SHORT prtlvl = itparam->linear_print_level;
     const SHORT max_levels = amgparam->max_levels;
     const INT nnz = A->nnz, m = A->row, n = A->col;
-    
+
     /* Local Variables */
     INT      status = SUCCESS;
     REAL     solver_start, solver_end, solver_duration;
-    
+
     get_time(&solver_start);
-    
+
     // initialize A, b, x for mgl[0]
     AMG_data *mgl=amg_data_create(max_levels);
     mgl[0].A=dcsr_create(m,n,nnz); dcsr_cp(A,&mgl[0].A);
     mgl[0].b=dvec_create(n); mgl[0].x=dvec_create(n);
-    
-    
+
+
     // setup preconditioner
     switch (amgparam->AMG_type) {
-                    
+
         case UA_AMG: // Unsmoothed Aggregation AMG
             if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
             status = amg_setup_ua(mgl, amgparam);
         break;
-            
+
         default: // Unsmoothed Aggregation AMG
             if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
             status = amg_setup_ua(mgl, amgparam);
         break;
 
     }
-    
+
     if (status < 0) goto FINISHED;
-    
+
     // setup preconditioner
     precond_data pcdata;
     param_amg_to_prec(&pcdata,amgparam);
     pcdata.max_levels = mgl[0].num_levels;
     pcdata.mgl_data = mgl;
-    
+
     precond pc; pc.data = &pcdata;
-    
+
     switch (amgparam->cycle_type) {
 
         case AMLI_CYCLE: // AMLI cycle
@@ -667,20 +667,20 @@ INT linear_solver_dcsr_krylov_amg(dCSRmat *A,
         break;
 
     }
-    
+
     // call iterative solver
     status = solver_dcsr_linear_itsolver(A, b, x, &pc, itparam);
-    
+
     if ( prtlvl >= PRINT_MIN ) {
         get_time(&solver_end);
         solver_duration = solver_end - solver_start;
         print_cputime("AMG_Krylov method totally", solver_duration);
         printf("**********************************************************\n");
     }
-    
+
 FINISHED:
     amg_data_free(mgl, amgparam);
-    
+
     return status;
 }
 
@@ -712,72 +712,72 @@ INT linear_solver_dcsr_krylov_hx_curl(dCSRmat *A,
                                       AMG_param *amgparam,
                                       dCSRmat *P_curl,
                                       dCSRmat *Grad)
-{    
+{
     const SHORT prtlvl = itparam->linear_print_level;
     const SHORT max_levels = amgparam->max_levels;
-    
+
     /*------------------------*/
     /* Local Variables */
     /*------------------------*/
     INT      status = SUCCESS;
     REAL     solver_start, solver_end, solver_duration;
-    
+
     get_time(&solver_start);
-    
+
     /*------------------------*/
     /* setup vector Laplacian */
     /*------------------------*/
-    
+
     // get transpose of P_curl
     dCSRmat Pt_curl;
     dcsr_trans(P_curl, &Pt_curl);
-    
+
     // get A_vgrad
     dCSRmat A_vgrad;
     dcsr_rap(&Pt_curl, A, P_curl, &A_vgrad);
-    
+
     // initialize A, b, x for mgl_vgrad[0]
     AMG_data *mgl_vgrad = amg_data_create(max_levels);
     mgl_vgrad[0].A=dcsr_create(A_vgrad.row,A_vgrad.col,A_vgrad.nnz);
     dcsr_cp(&A_vgrad, &mgl_vgrad[0].A);
     mgl_vgrad[0].b=dvec_create(A_vgrad.col);
     mgl_vgrad[0].x=dvec_create(A_vgrad.row);
-    
+
     // setup AMG for vector Laplacian
     switch (amgparam->AMG_type) {
-            
+
         case UA_AMG: // Unsmoothed Aggregation AMG
             status = amg_setup_ua(mgl_vgrad, amgparam); break;
-            
+
         default: // Classical AMG
             status = amg_setup_ua(mgl_vgrad, amgparam); break;
-            
+
     }
-    
+
     if (status < 0) goto FINISHED;
-    
+
     /*------------------------*/
     /* setup scalar Laplacian */
     /*------------------------*/
-    
+
     // get transpose of Grad
     dCSRmat Gradt;
     dcsr_trans(Grad, &Gradt);
-    
+
     // get A_grad
     dCSRmat A_grad;
     dcsr_rap(&Gradt, A, Grad, &A_grad);
-    
+
     // initialize A, b, x for mgl_grad[0]
     AMG_data *mgl_grad = amg_data_create(max_levels);
     mgl_grad[0].A=dcsr_create(A_grad.row,A_grad.col,A_grad.nnz);
     dcsr_cp(&A_grad, &mgl_grad[0].A);
     mgl_grad[0].b=dvec_create(A_grad.col);
     mgl_grad[0].x=dvec_create(A_grad.row);
-    
+
     // setup AMG for scalar Laplacian
     switch (amgparam->AMG_type) {
-            
+
         case UA_AMG: // Unsmoothed Aggregation AMG
             if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
             status = amg_setup_ua(mgl_grad, amgparam);
@@ -787,61 +787,61 @@ INT linear_solver_dcsr_krylov_hx_curl(dCSRmat *A,
             if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
             status = amg_setup_ua(mgl_grad, amgparam);
         break;
-            
+
     }
-    
+
     if (status < 0) goto FINISHED;
-    
+
     /*------------------------*/
     // setup preconditioner
     HX_curl_data hxcurldata;
-    
+
     hxcurldata.A = A;
-    
+
     hxcurldata.smooth_type = 1;
     hxcurldata.smooth_iter = itparam->HX_smooth_iter;
-    
+
     hxcurldata.P_curl = P_curl;
     hxcurldata.Pt_curl = &Pt_curl;
     hxcurldata.A_vgrad = &A_vgrad;
     hxcurldata.amgparam_vgrad = amgparam;
     hxcurldata.mgl_vgrad = mgl_vgrad;
-    
+
     hxcurldata.Grad = Grad;
     hxcurldata.Gradt = &Gradt;
     hxcurldata.A_grad = &A_grad;
     hxcurldata.amgparam_grad = amgparam;
     hxcurldata.mgl_grad = mgl_grad;
-    
+
     hxcurldata.backup_r = (REAL*)calloc(A->row, sizeof(REAL));
     hxcurldata.w = (REAL*)calloc(A->row, sizeof(REAL));
-    
+
     precond pc; pc.data = &hxcurldata;
     switch (itparam->linear_precond_type) {
-            
+
         case PREC_HX_CURL_A: //additive HX preconditioner
             pc.fct = precond_hx_curl_additive;
             break;
-        
+
         default:  // multiplicative HX preconditioner
             pc.fct = precond_hx_curl_multiplicative;
             break;
 
     }
-    
+
     // call iterative solver
     status = solver_dcsr_linear_itsolver(A, b, x, &pc, itparam);
-    
+
     if ( prtlvl >= PRINT_MIN ) {
         get_time(&solver_end);
         solver_duration = solver_end - solver_start;
         print_cputime("HX_curl_Krylov method totally", solver_duration);
         printf("**********************************************************\n");
     }
-    
+
 FINISHED:
     HX_curl_data_free(&hxcurldata, FALSE);
-    
+
     return status;
 }
 
@@ -874,19 +874,19 @@ INT linear_solver_dcsr_krylov_hx_div(dCSRmat *A,
                                       dCSRmat *P_curl,
                                       dCSRmat *P_div,
                                       dCSRmat *Curl)
-{    
+{
     const SHORT prtlvl = itparam->linear_print_level;
     amgparam->max_levels = 2;
     const SHORT max_levels = amgparam->max_levels;
-    
+
     /*------------------------*/
     /* Local Variables */
     /*------------------------*/
     INT      status = SUCCESS;
     REAL     solver_start, solver_end, solver_duration;
-    
+
     get_time(&solver_start);
-    
+
     /*------------------------*/
     /* setup vector Laplacian */
     /*------------------------*/
@@ -899,7 +899,7 @@ INT linear_solver_dcsr_krylov_hx_div(dCSRmat *A,
     // get transpose of Curl
     dCSRmat Curlt;
     dcsr_trans(Curl, &Curlt);
-    
+
     // get A_curl
     dCSRmat A_curl;
     dcsr_rap(&Curlt, A, Curl, &A_curl);
@@ -909,56 +909,56 @@ INT linear_solver_dcsr_krylov_hx_div(dCSRmat *A,
     // get A_divgrad
     dCSRmat A_divgrad;
     dcsr_rap(&Pt_div, A, P_div, &A_divgrad);
-    
+
     // initialize A, b, x for mgl_curlgrad[0]
     AMG_data *mgl_curlgrad = amg_data_create(max_levels);
     mgl_curlgrad[0].A=dcsr_create(A_curlgrad.row,A_curlgrad.col,A_curlgrad.nnz);
     dcsr_cp(&A_curlgrad, &mgl_curlgrad[0].A);
     mgl_curlgrad[0].b=dvec_create(A_curlgrad.col);
     mgl_curlgrad[0].x=dvec_create(A_curlgrad.row);
-    
+
     // setup AMG for vector Laplacian
     switch (amgparam->AMG_type) {
-            
+
         case UA_AMG: // Unsmoothed Aggregation AMG
             status = amg_setup_ua(mgl_curlgrad, amgparam); break;
-            
+
         default: // Classical AMG
             status = amg_setup_ua(mgl_curlgrad, amgparam); break;
-            
+
     }
-    
+
     if (status < 0) goto FINISHED;
-    
+
     // initialize A, b, x for mgl_divgrad[0]
     AMG_data *mgl_divgrad = amg_data_create(max_levels);
     mgl_divgrad[0].A=dcsr_create(A_divgrad.row,A_divgrad.col,A_divgrad.nnz);
     dcsr_cp(&A_divgrad, &mgl_divgrad[0].A);
     mgl_divgrad[0].b=dvec_create(A_divgrad.col);
     mgl_divgrad[0].x=dvec_create(A_divgrad.row);
-    
+
     // setup AMG for vector Laplacian
     switch (amgparam->AMG_type) {
-            
+
         case UA_AMG: // Unsmoothed Aggregation AMG
             status = amg_setup_ua(mgl_divgrad, amgparam); break;
-            
+
         default: // Classical AMG
             status = amg_setup_ua(mgl_divgrad, amgparam); break;
-            
+
     }
-    
+
     if (status < 0) goto FINISHED;
 
     /*------------------------*/
     // setup preconditioner
     HX_div_data hxdivdata;
-    
+
     hxdivdata.A = A;
-    
+
     hxdivdata.smooth_type = 1;
     hxdivdata.smooth_iter = itparam->HX_smooth_iter;
-    
+
     hxdivdata.P_curl = P_curl;
     hxdivdata.Pt_curl = &Pt_curl;
     hxdivdata.P_div = P_div;
@@ -971,39 +971,39 @@ INT linear_solver_dcsr_krylov_hx_div(dCSRmat *A,
     hxdivdata.mgl_curlgrad = mgl_curlgrad;
     hxdivdata.amgparam_divgrad = amgparam;
     hxdivdata.mgl_divgrad = mgl_divgrad;
-    
+
     hxdivdata.A_curl = &A_curl;
-    
+
     hxdivdata.backup_r = (REAL*)calloc(A->row, sizeof(REAL));
     hxdivdata.w = (REAL*)calloc(A->row, sizeof(REAL));
-    
+
     precond pc; pc.data = &hxdivdata;
     switch (itparam->linear_precond_type) {
-            
+
         case PREC_HX_DIV_A: //additive HX preconditioner
             pc.fct = precond_hx_div_additive;
             break;
-        
+
         default:  // multiplicative HX preconditioner
 //            pc.fct = precond_hx_div_additive;
             pc.fct = precond_hx_div_multiplicative;
             break;
 
     }
-    
+
     // call iterative solver
     status = solver_dcsr_linear_itsolver(A, b, x, &pc, itparam);
-    
+
     if ( prtlvl >= PRINT_MIN ) {
         get_time(&solver_end);
         solver_duration = solver_end - solver_start;
         print_cputime("HX_curl_Krylov method totally", solver_duration);
         printf("**********************************************************\n");
     }
-    
+
 FINISHED:
     //HX_curl_data_free(&hxcurldata, FALSE);
-    
+
     return status;
 }
 
@@ -1030,26 +1030,26 @@ INT linear_solver_bdcsr_krylov(block_dCSRmat *A,
                                dvector *b,
                                dvector *x,
                                linear_itsolver_param *itparam)
-{   
+{
     const SHORT prtlvl = itparam->linear_print_level;
-    
+
     INT status = SUCCESS;
     REAL solver_start, solver_end, solver_duration;
-    
+
     // solver part
     get_time(&solver_start);
-    
+
     status = solver_bdcsr_linear_itsolver(A,b,x,NULL,itparam);
-    
+
     get_time(&solver_end);
-    
+
     solver_duration = solver_end - solver_start;
-    
+
     if ( prtlvl >= PRINT_MIN ){
         print_cputime("Krylov method totally", solver_duration);
         printf("**********************************************************\n");
     }
-    
+
 
     return status;
 }
@@ -1086,23 +1086,27 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
   const SHORT prtlvl = itparam->linear_print_level;
   const SHORT precond_type = itparam->linear_precond_type;
 
-//#if WITH_SUITESPARSE
   INT i;
-//#endif
   INT status = SUCCESS;
   REAL setup_start, setup_end, setup_duration;
   REAL solver_start, solver_end, solver_duration;
-    
+
+  void **LU_diag = (void **)calloc(2, sizeof(void *));
+
+/*
+  if (precond_type > 0 && precond_type < 20) {
 #if WITH_SUITESPARSE
   void **LU_diag = (void **)calloc(2, sizeof(void *));
 #else
     error_extlib(256, __FUNCTION__, "SuiteSparse");
 #endif
+  }
+*/
 
   SHORT max_levels;
   if (amgparam) max_levels = amgparam->max_levels;
   AMG_data **mgl = (AMG_data **)calloc(3, sizeof(AMG_data *));
-  
+
   /* setup preconditioner */
   get_time(&setup_start);
 
@@ -1111,17 +1115,17 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
 #if WITH_SUITESPARSE
     // Need to sort the diagonal blocks for UMFPACK format
     dCSRmat A_tran;
-  
+
     for (i=0; i<2; i++){
-    
+
         dcsr_trans(&A_diag[i], &A_tran);
         dcsr_cp(&A_tran, &A_diag[i]);
-    
+
         if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagnol: \n", i);
         LU_diag[i] = umfpack_factorize(&A_diag[i], prtlvl);
 
         dcsr_free(&A_tran);
-    
+
     }
 #endif
   }
@@ -1162,7 +1166,7 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
   precdata.A_diag = A_diag;
   precdata.r = dvec_create(b->row);
   if (amgparam) precdata.amgparam = amgparam;
-  
+
   if (precond_type > 0 && precond_type < 20) {
   /* diagonal blocks are solved exactly */
 #if WITH_SUITESPARSE
@@ -1172,19 +1176,19 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
   else {
       precdata.mgl = mgl;
   }
-  
+
   precond prec; prec.data = &precdata;
-  
+
   switch (precond_type)
   {
     case 10:
       prec.fct = precond_block_diag_2;
       break;
-      
+
     case 11:
       prec.fct = precond_block_lower_2;
       break;
-      
+
     case 12:
       prec.fct = precond_block_upper_2;
       break;
@@ -1212,32 +1216,32 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
     case 32:
       prec.fct = precond_block_upper_2_amg_krylov;
       break;
-      
+
     default:
       break;
   }
-  
-  
+
+
   if ( prtlvl >= PRINT_MIN ) {
     get_time(&setup_end);
     setup_duration = setup_end - setup_start;
     print_cputime("Setup totally", setup_duration);
   }
-  
+
   // solver part
   get_time(&solver_start);
-  
+
   status=solver_bdcsr_linear_itsolver(A,b,x, &prec,itparam);
-  
+
   get_time(&solver_end);
-  
+
   solver_duration = solver_end - solver_start;
-  
+
   if ( prtlvl >= PRINT_MIN ) {
     print_cputime("Krylov method totally", solver_duration);
     printf("**********************************************************\n");
   }
-  
+
   // clean
   precond_block_data_free(&precdata, 2);
 
@@ -1275,14 +1279,14 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
 {
     const SHORT prtlvl = itparam->linear_print_level;
     const SHORT precond_type = itparam->linear_precond_type;
-    
+
 //#if WITH_SUITESPARSE
     INT i;
 //#endif
     INT status = SUCCESS;
     REAL setup_start, setup_end, setup_duration;
     REAL solver_start, solver_end, solver_duration;
-        
+
 #if WITH_SUITESPARSE
     void **LU_diag = (void **)calloc(3, sizeof(void *));
 #else
@@ -1292,26 +1296,26 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
     SHORT max_levels;
     if (amgparam) max_levels = amgparam->max_levels;
     AMG_data **mgl = (AMG_data **)calloc(3, sizeof(AMG_data *));
-    
+
     /* setup preconditioner */
     get_time(&setup_start);
-    
+
     if (precond_type > 0 && precond_type < 20) {
-    /* diagonal blocks are solved exactly */        
+    /* diagonal blocks are solved exactly */
 #if WITH_SUITESPARSE
         // Need to sort the diagonal blocks for UMFPACK format
         dCSRmat A_tran;
-        
+
         for (i=0; i<3; i++){
-            
+
             dcsr_trans(&A_diag[i], &A_tran);
             dcsr_cp(&A_tran, &A_diag[i]);
-            
+
             if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagnol: \n", i);
             LU_diag[i] = umfpack_factorize(&A_diag[i], prtlvl);
 
             dcsr_free(&A_tran);
-            
+
         }
 
 #endif
@@ -1350,7 +1354,7 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
     precdata.Abcsr = A;
 
     precdata.A_diag = A_diag;
-    precdata.r = dvec_create(b->row); 
+    precdata.r = dvec_create(b->row);
     if (amgparam) precdata.amgparam = amgparam;
 
 
@@ -1365,17 +1369,17 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
     }
 
     precond prec; prec.data = &precdata;
-    
+
     switch (precond_type)
     {
         case 10:
             prec.fct = precond_block_diag_3;
             break;
-            
+
         case 11:
             prec.fct = precond_block_lower_3;
             break;
-            
+
         case 12:
             prec.fct = precond_block_upper_3;
             break;
@@ -1407,31 +1411,31 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
         default:
             break;
     }
-    
-    
+
+
     if ( prtlvl >= PRINT_MIN ) {
         get_time(&setup_end);
         setup_duration = setup_end - setup_start;
         print_cputime("Setup totally", setup_duration);
     }
-    
+
     // solver part
     get_time(&solver_start);
-    
+
     status=solver_bdcsr_linear_itsolver(A,b,x, &prec,itparam);
-    
+
     get_time(&solver_end);
-    
+
     solver_duration = solver_end - solver_start;
-    
+
     if ( prtlvl >= PRINT_MIN ) {
         print_cputime("Krylov method totally", solver_duration);
         printf("**********************************************************\n");
     }
-    
+
     // clean
     precond_block_data_free(&precdata, 3);
-    
+
     return status;
 }
 
@@ -1467,7 +1471,7 @@ INT linear_solver_bdcsr_krylov_block_4(block_dCSRmat *A,
     const SHORT prtlvl = itparam->linear_print_level;
     const SHORT precond_type = itparam->linear_precond_type;
 
-#if WITH_SUITESPARSE  
+#if WITH_SUITESPARSE
     INT i;
 #endif
     INT status = SUCCESS;
@@ -1722,17 +1726,17 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
                                            linear_itsolver_param *itparam,
                                            AMG_param *amgparam,
                                            dvector *el_vol)
-{  
+{
   const SHORT prtlvl = itparam->linear_print_level;
   const SHORT precond_type = itparam->linear_precond_type;
-  
+
   INT status = SUCCESS;
   REAL setup_start, setup_end, setup_duration;
   REAL solver_start, solver_end, solver_duration;
-  
+
   const SHORT max_levels = amgparam->max_levels;
-  INT i, n;
-  
+  INT i, n, np;
+
   AMG_data **mgl = (AMG_data **)calloc(2, sizeof(AMG_data *));
   for (i=0; i<2; i++) mgl[i]=NULL;
   dvector **diag = (dvector **)calloc(2, sizeof(dvector *));
@@ -1751,10 +1755,23 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
       /* set AMG for the flux block */
       mgl[0] = amg_data_create(max_levels);
       n = A->blocks[0]->row;
-      dcsr_mxm(A->blocks[1],A->blocks[2], &BTB);      
+      np = A->blocks[3]->row;
+
+      dCSRmat invMp = dcsr_create(np,np,np);
+      for (i=0;i<np;i++)
+      {
+          invMp.IA[i] = i;
+          invMp.JA[i] = i;
+          if (el_vol->val[i] > SMALLREAL) invMp.val[i]   = 1.0/(el_vol->val[i]);
+          else invMp.val[i] = 1.0;
+      }
+      invMp.IA[np] = np;
+
+      //dcsr_mxm(A->blocks[1], A->blocks[2], &BTB);
+      dcsr_rap(A->blocks[1], &invMp, A->blocks[2], &BTB);
       dcsr_add(&BTB, 1000.0, A->blocks[0], 1.0, &mgl[0][0].A);
       mgl[0][0].b=dvec_create(n); mgl[0][0].x=dvec_create(n);
-  
+
       switch (amgparam->AMG_type) {
 
         case UA_AMG: // Unsmoothed Aggregation AMG
@@ -1895,29 +1912,29 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
   precdata.el_vol = el_vol;
 
   precond prec; prec.data = &precdata;
-  
+
   switch (precond_type)
   {
     case 20:
       prec.fct = precond_block_diag_mixed_darcy;
       break;
-      
+
     case 21:
       prec.fct = precond_block_lower_mixed_darcy;
       break;
-      
+
     case 22:
       prec.fct = precond_block_upper_mixed_darcy;
       break;
-      
+
     case 30:
       prec.fct = precond_block_diag_mixed_darcy_krylov;
       break;
-      
+
     case 31:
       prec.fct = precond_block_lower_mixed_darcy_krylov;
       break;
-      
+
     case 32:
       prec.fct = precond_block_upper_mixed_darcy_krylov;
       break;
@@ -1958,27 +1975,27 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
       prec.fct = precond_block_ilu_mixed_darcy_graph_lap_krylov;
       break;
 
-      
+
     default:
       break;
   }
-  
+
   if ( prtlvl >= PRINT_MIN ) {
     get_time(&setup_end);
     setup_duration = setup_end - setup_start;
     print_cputime("Setup totally", setup_duration);
   }
-  
+
   // solver part
   get_time(&solver_start);
-  
+
   status=solver_bdcsr_linear_itsolver(A,b,x, &prec,itparam);
   //status=solver_bdcsr_linear_itsolver(A,b,x, NULL,itparam);
-  
+
   get_time(&solver_end);
-  
+
   solver_duration = solver_end - solver_start;
-  
+
   if ( prtlvl >= PRINT_MIN ) {
     print_cputime("Krylov method totally", solver_duration);
     printf("**********************************************************\n");
@@ -2183,23 +2200,23 @@ INT linear_solver_bdcsr_krylov_maxwell(block_dCSRmat *A,
                                        dCSRmat *Kb,
                                        dCSRmat *Gtb,
                                        dCSRmat *Ktb)
-{    
+{
     const SHORT prtlvl = itparam->linear_print_level;
     const SHORT precond_type = itparam->linear_precond_type;
-    
+
 
     INT status = SUCCESS;
     REAL setup_start, setup_end, setup_duration;
     REAL solver_start, solver_end, solver_duration;
-    
+
     const SHORT max_levels = amgparam->max_levels;
     INT m, n, nnz;
-    
+
     void **LU_diag = (void **)calloc(3, sizeof(void *));
     dvector **diag = (dvector **)calloc(3, sizeof(dvector *));
     AMG_data **mgl = (AMG_data **)calloc(3, sizeof(AMG_data *));
     HX_curl_data **hxcurldata = (HX_curl_data **)calloc(3, sizeof(HX_curl_data *));
-        
+
     dCSRmat Pt_curl;
     dCSRmat Gradt;
     dCSRmat A_vgrad;
@@ -2207,15 +2224,15 @@ INT linear_solver_bdcsr_krylov_maxwell(block_dCSRmat *A,
 #if WITH_SUITESPARSE
     dCSRmat A_tran;
 #endif
-    
+
     AMG_data *mgl_vgrad;
     AMG_data *mgl_grad;
-    
+
     /*------------------------*/
     /* setup preconditioner */
     /*------------------------*/
     get_time(&setup_start);
-    
+
     /*--------------------------------------------------------------------- */
     /* magnetic filed block A_BB */
     /*--------------------------------------------------------------------- */
@@ -2224,9 +2241,9 @@ INT linear_solver_bdcsr_krylov_maxwell(block_dCSRmat *A,
         printf("Setup for magnetic diagonal block: \n");
         printf("*******************************************\n");
     }
-    
+
     if (precond_type < 20){
-        
+
 #if WITH_SUITESPARSE
         dcsr_trans(&A_diag[0], &A_tran);
         dcsr_cp(&A_tran, &A_diag[0]);
@@ -2236,33 +2253,33 @@ INT linear_solver_bdcsr_krylov_maxwell(block_dCSRmat *A,
 #else
     error_extlib(259, __FUNCTION__, "SuiteSparse");
 #endif
-        
+
     }
     else {
-        
+
         // AMG for A_BB
         /*
         mgl[0] = amg_data_create(max_levels);
         m = A_diag[0].row; n = A_diag[0].col; nnz = A_diag[0].nnz;
         mgl[0][0].A=dcsr_create(m,n,nnz); dcsr_cp(&A_diag[0],&mgl[0][0].A);
         mgl[0][0].b=dvec_create(n); mgl[0][0].x=dvec_create(n);
-        
+
         switch (amgparam->AMG_type) {
             case UA_AMG: // Unsmoothed Aggregation AMG
                 status = amg_setup_ua(mgl[0], amgparam); break;
             default: // Classical AMG
                 status = amg_setup_c(mgl[0], amgparam); break;
         }
-     
+
         if (status < 0) goto FINISHED;
          */
-        
+
         // diagonal precondition for A_BB
         diag[0] = (dvector *)calloc(1, sizeof(dvector));
         dcsr_getdiag(0, &A_diag[0], diag[0]);
-        
+
     }
-    
+
     /*--------------------------------------------------------------------- */
     /* electrical field A_EE */
     /*--------------------------------------------------------------------- */
@@ -2271,9 +2288,9 @@ INT linear_solver_bdcsr_krylov_maxwell(block_dCSRmat *A,
         printf("Setup for electrical diagonal block: \n");
         printf("*******************************************\n");
     }
-    
+
     if (precond_type < 20){
-        
+
 #if WITH_SUITESPARSE
         // direct solver for A_EE
         dcsr_trans(&A_diag[1], &A_tran);
@@ -2282,103 +2299,103 @@ INT linear_solver_bdcsr_krylov_maxwell(block_dCSRmat *A,
             printf("Factorization for electrical diagonal block: \n");
         LU_diag[1] = umfpack_factorize(&A_diag[1], prtlvl);
 #endif
-        
+
     }
     else{
-    
+
         // HX for A_EE
         /*------------------------*/
         /* setup vector Laplacian */
         /*------------------------*/
         // get transpose of P_curl
         dcsr_trans(P_curl, &Pt_curl);
-        
+
         // get A_vgrad
         dcsr_rap(&Pt_curl, &A_diag[1], P_curl, &A_vgrad);
-        
+
         // initialize A, b, x for mgl_vgrad[0]
         mgl_vgrad = amg_data_create(max_levels);
         mgl_vgrad[0].A=dcsr_create(A_vgrad.row,A_vgrad.col,A_vgrad.nnz);
         dcsr_cp(&A_vgrad, &mgl_vgrad[0].A);
         mgl_vgrad[0].b=dvec_create(A_vgrad.col);
         mgl_vgrad[0].x=dvec_create(A_vgrad.row);
-        
+
         // setup AMG for vector Laplacian
         switch (amgparam->AMG_type) {
-                
+
             case UA_AMG: // Unsmoothed Aggregation AMG
                 if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
                 status = amg_setup_ua(mgl_vgrad, amgparam);
             break;
-                
+
             default: // UA AMG
                 if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
                 status = amg_setup_ua(mgl_vgrad, amgparam);
             break;
-                
+
         }
-        
+
         if (status < 0) goto FINISHED;
-        
+
         /*------------------------*/
         /* setup scalar Laplacian */
         /*------------------------*/
-        
+
         // get transpose of Grad
         dcsr_trans(Grad, &Gradt);
-        
+
         // get A_grad
         dcsr_rap(&Gradt, &A_diag[1], Grad, &A_grad);
-        
+
         // initialize A, b, x for mgl_grad[0]
         mgl_grad = amg_data_create(max_levels);
         mgl_grad[0].A=dcsr_create(A_grad.row,A_grad.col,A_grad.nnz);
         dcsr_cp(&A_grad, &mgl_grad[0].A);
         mgl_grad[0].b=dvec_create(A_grad.col);
         mgl_grad[0].x=dvec_create(A_grad.row);
-        
+
         // setup AMG for scalar Laplacian
         switch (amgparam->AMG_type) {
-                
+
             case UA_AMG: // Unsmoothed Aggregation AMG
                 if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
                 status = amg_setup_ua(mgl_grad, amgparam);
             break;
-                
+
             default: // UA AMG
                 if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
                 status = amg_setup_ua(mgl_grad, amgparam);
             break;
-                
+
         }
-        
+
         if (status < 0) goto FINISHED;
-        
+
         // setup HX data
         hxcurldata[1] = (HX_curl_data *)calloc(1, sizeof(HX_curl_data));
 
         hxcurldata[1]->A = &A_diag[1];
-        
+
         hxcurldata[1]->smooth_type = 1;
         hxcurldata[1]->smooth_iter = itparam->HX_smooth_iter;
-        
+
         hxcurldata[1]->P_curl = P_curl;
         hxcurldata[1]->Pt_curl = &Pt_curl;
         hxcurldata[1]->A_vgrad = &A_vgrad;
         hxcurldata[1]->amgparam_vgrad = amgparam;
         hxcurldata[1]->mgl_vgrad = mgl_vgrad;
-        
+
         hxcurldata[1]->Grad = Grad;
         hxcurldata[1]->Gradt = &Gradt;
         hxcurldata[1]->A_grad = &A_grad;
         hxcurldata[1]->amgparam_grad = amgparam;
         hxcurldata[1]->mgl_grad = mgl_grad;
-        
+
         hxcurldata[1]->backup_r = (REAL*)calloc(A_diag[1].row, sizeof(REAL));
         hxcurldata[1]->w = (REAL*)calloc(A_diag[1].row, sizeof(REAL));
-        
+
     }
-    
+
     /*--------------------------------------------------------------------- */
     /* pressue field A_pp */
     /*--------------------------------------------------------------------- */
@@ -2387,9 +2404,9 @@ INT linear_solver_bdcsr_krylov_maxwell(block_dCSRmat *A,
         printf("Setup for pressure diagonal block: \n");
         printf("*******************************************\n");
     }
-    
+
     if (precond_type < 20){
-        
+
 #if WITH_SUITESPARSE
         // direct solver for A_pp
         dcsr_trans(&A_diag[2], &A_tran);
@@ -2398,16 +2415,16 @@ INT linear_solver_bdcsr_krylov_maxwell(block_dCSRmat *A,
         printf("Factorization for pressure diagonal block: \n");
         LU_diag[2] = umfpack_factorize(&A_diag[2], prtlvl);
 #endif
-        
+
     }
     else {
-        
+
         // AMG for A_pp
         mgl[2] = amg_data_create(max_levels);
         m = A_diag[2].row; n = A_diag[2].col; nnz = A_diag[2].nnz;
         mgl[2][0].A=dcsr_create(m,n,nnz); dcsr_cp(&A_diag[2],&mgl[2][0].A);
         mgl[2][0].b=dvec_create(n); mgl[2][0].x=dvec_create(n);
-    
+
         switch (amgparam->AMG_type) {
 
             case UA_AMG: // Unsmoothed Aggregation AMG
@@ -2422,7 +2439,7 @@ INT linear_solver_bdcsr_krylov_maxwell(block_dCSRmat *A,
 
         }
     }
-    
+
     /*--------------------------------------------------------------------- */
     // setup precond data
     /*--------------------------------------------------------------------- */
@@ -2433,103 +2450,103 @@ INT linear_solver_bdcsr_krylov_maxwell(block_dCSRmat *A,
 
     precdata.A_diag = A_diag;
     precdata.r = dvec_create(b->row);
-    
+
     precdata.G = Gb;
     precdata.K = Kb;
     precdata.Gt = Gtb;
     precdata.Kt = Ktb;
-    
+
     precdata.LU_diag = LU_diag;
     precdata.diag = diag;
     precdata.amgparam = amgparam;
     precdata.mgl = mgl;
     precdata.hxcurldata = hxcurldata;
-    
+
     precond prec; prec.data = &precdata;
-    
+
     switch (precond_type)
     {
         case 10:
             prec.fct = precond_block_diag_3;
             break;
-            
+
         case 11:
             prec.fct = precond_block_lower_3;
             break;
-            
+
         case 12:
             prec.fct = precond_block_upper_3;
             break;
-            
+
         case 20:
             prec.fct = precond_block_diag_maxwell;
             break;
-            
+
         case 21:
             prec.fct = precond_block_lower_maxwell;
             break;
-     
+
         case 22:
             prec.fct = precond_block_upper_maxwell;
             break;
-            
+
         case 30:
             prec.fct = precond_block_diag_maxwell_krylov;
             break;
-            
+
         case 31:
             prec.fct = precond_block_lower_maxwell_krylov;
             break;
-            
+
         case 32:
             prec.fct = precond_block_upper_maxwell_krylov;
             break;
-            
+
         case 41:
             prec.fct = precond_block_lower_diag_maxwell;
             break;
-            
+
         case 42:
             prec.fct = precond_block_diag_upper_maxwell;
             break;
-            
+
         case 43:
             prec.fct = precond_block_lower_diag_upper_maxwell;
             break;
-            
+
         case 51:
             prec.fct = precond_block_lower_diag_maxwell_krylov;
             break;
-            
+
         case 52:
             prec.fct = precond_block_diag_upper_maxwell_krylov;
             break;
-            
+
         case 53:
             prec.fct = precond_block_lower_diag_upper_maxwell_krylov;
             break;
-     
+
         default:
             check_error(ERROR_SOLVER_PRECTYPE, __FUNCTION__);
             break;
      }
-    
-    
+
+
     if ( prtlvl >= PRINT_MIN ) {
         get_time(&setup_end);
         setup_duration = setup_end - setup_start;
         print_cputime("Setup totally", setup_duration);
     }
-    
+
     // solver part
     get_time(&solver_start);
-    
+
     status=solver_bdcsr_linear_itsolver(A,b,x, &prec,itparam);
-    
+
     get_time(&solver_end);
-    
+
     solver_duration = solver_end - solver_start;
-    
+
     if ( prtlvl >= PRINT_MIN ) {
         print_cputime("Krylov method for Maxwell totally", solver_duration);
         printf("**********************************************************\n");
@@ -2538,7 +2555,7 @@ INT linear_solver_bdcsr_krylov_maxwell(block_dCSRmat *A,
 FINISHED:
     // clean
     precond_block_data_free(&precdata,3);
-    
+
     return status;
 }
 
@@ -2678,7 +2695,7 @@ INT linear_solver_bdcsr_krylov_bubble_stokes(block_dCSRmat *A,
 /********************************************************************************************/
 /**
  * \fn INT linear_solver_bdcsr_krylov_biot_3field (block_dCSRmat *A,
- *                                                   dvector *b, 
+ *                                                   dvector *b,
  *                                                   dvector *x,
  *                                                   itsolver_param *itparam,
  *                                                   AMG_param *amgparam,
@@ -2769,63 +2786,63 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
     dcsr_trans(P_div, &Pt_div);
     // get transpose of Curl
     dcsr_trans(Curl, &Curlt);
-    
+
     // get A_curl
     dcsr_rap(&Curlt, &A_diag[1], Curl, &A_curl);
     // get A_curlgrad
     dcsr_rap(&Pt_curl, &A_curl, P_curl, &A_curlgrad);
     // get A_divgrad
     dcsr_rap(&Pt_div, &A_diag[1], P_div, &A_divgrad);
-    
+
     // initialize A, b, x for mgl_curlgrad[0]
     mgl_curlgrad[0].A=dcsr_create(A_curlgrad.row,A_curlgrad.col,A_curlgrad.nnz);
     dcsr_cp(&A_curlgrad, &mgl_curlgrad[0].A);
     mgl_curlgrad[0].b=dvec_create(A_curlgrad.col);
     mgl_curlgrad[0].x=dvec_create(A_curlgrad.row);
-    
+
     // setup AMG for vector Laplacian
     switch (amgparam->AMG_type) {
-            
+
         case UA_AMG: // Unsmoothed Aggregation AMG
             status = amg_setup_ua(mgl_curlgrad, amgparam); break;
-            
+
         default: // Classical AMG
             status = amg_setup_ua(mgl_curlgrad, amgparam); break;
-            
+
     }
-    
+
     //if (status < 0) goto FINISHED;
-    
+
     // initialize A, b, x for mgl_divgrad[0]
     mgl_divgrad[0].A=dcsr_create(A_divgrad.row,A_divgrad.col,A_divgrad.nnz);
     dcsr_cp(&A_divgrad, &mgl_divgrad[0].A);
     mgl_divgrad[0].b=dvec_create(A_divgrad.col);
     mgl_divgrad[0].x=dvec_create(A_divgrad.row);
-    
+
     // setup AMG for vector Laplacian
     switch (amgparam->AMG_type) {
-            
+
         case UA_AMG: // Unsmoothed Aggregation AMG
             status = amg_setup_ua(mgl_divgrad, amgparam); break;
-            
+
         default: // Classical AMG
             status = amg_setup_ua(mgl_divgrad, amgparam); break;
-            
+
     }
-    
+
     //if (status < 0) goto FINISHED;
 
     /*------------------------*/
     // setup preconditioner
-    
+
     hxdivdata[0] = (HX_div_data *)calloc(1, sizeof(HX_div_data));
     hxdivdata[1] = (HX_div_data *)calloc(1, sizeof(HX_div_data));
     hxdivdata[2] = (HX_div_data *)calloc(1, sizeof(HX_div_data));
     hxdivdata[1]->A = &A_diag[1];
-    
+
     hxdivdata[1]->smooth_type = 1;
     hxdivdata[1]->smooth_iter = itparam->HX_smooth_iter;
-    
+
     hxdivdata[1]->P_curl = P_curl;
     hxdivdata[1]->Pt_curl = &Pt_curl;
     hxdivdata[1]->P_div = P_div;
@@ -2838,9 +2855,9 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
     hxdivdata[1]->mgl_curlgrad = mgl_curlgrad;
     hxdivdata[1]->amgparam_divgrad = amgparam;
     hxdivdata[1]->mgl_divgrad = mgl_divgrad;
-    
+
     hxdivdata[1]->A_curl = &A_curl;
-    
+
     hxdivdata[1]->backup_r = (REAL*)calloc(A_diag[1].row, sizeof(REAL));
     hxdivdata[1]->w = (REAL*)calloc(A_diag[1].row, sizeof(REAL));
   } else {
