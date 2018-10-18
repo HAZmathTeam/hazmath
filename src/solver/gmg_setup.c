@@ -49,8 +49,8 @@ static void build_linear_R (dCSRmat *R,
     R->val = (REAL *)calloc(R->nnz, sizeof(REAL));
 
     REAL *val = R->val;
-    REAL *JA  = R->JA;
-    REAL *IA  = R->IA;
+    INT *JA  = R->JA;
+    INT *IA  = R->IA;
 
     REAL stencil[] = { 0.5, 0.5, 0.5, 1.0, 0.5, 0.5, 0.5 };
     
@@ -164,7 +164,7 @@ static void build_linear_R (dCSRmat *R,
 
 /***********************************************************************************************/
 /**
- * \fn static void form_constant_R (dCSRmat *tentp,
+ * \fn static void build_constant_R (dCSRmat *tentp,
  *                                  INT     ndof
  *                                  INT     levelNum)
  * \brief Build tentative P for piecewise constant elements
@@ -200,8 +200,8 @@ static void build_constant_R (dCSRmat *R,
     R->val = (REAL *)calloc(R->nnz, sizeof(REAL));
 
     REAL *val = R->val;
-    REAL *JA  = R->JA;
-    REAL *IA  = R->IA;
+    INT *JA  = R->JA;
+    INT *IA  = R->IA;
 
     for(cj = 0; cj<nc1d; cj++){
       for(ci = 0; ci<nc1d; ci=ci+2){
@@ -239,7 +239,7 @@ static void build_constant_R (dCSRmat *R,
 
 /***********************************************************************************************/
 /**
- * \fn static void form_constant_R (dCSRmat *tentp,
+ * \fn static void build_face_R (dCSRmat *tentp,
  *                                  INT     ndof
  *                                  INT     levelNum)
  * \brief Build tentative P for piecewise constant elements
@@ -255,8 +255,6 @@ static void build_constant_R (dCSRmat *R,
  *
  */
 static void build_face_R (dCSRmat *R,
-                             GMG_data mgl,
-                             GMG_param param,
                              trimesh  *fmesh,
                              trimesh  *cmesh,
                              INT      nf1d,
@@ -280,12 +278,17 @@ static void build_face_R (dCSRmat *R,
     // Basis stuff
     INT dim = fmesh->dim;
     REAL* x = (REAL *) calloc(dim,sizeof(REAL));
+    printf("Made it here, now we want to know if cmesh actually exists\n");
     REAL* phi = (REAL *) calloc(dim*cmesh->f_per_elm,sizeof(REAL));
+    printf("Made it here, so cmesh probably exists\n");
     REAL* dphi = (REAL *) calloc(cmesh->f_per_elm,sizeof(REAL));
     REAL value;
 
     INT* v_on_elm = (INT*)calloc(cmesh->v_per_elm,sizeof(INT));
+    printf("Doesn't look like a problem with v_per_elm\n");
     INT* f_on_elm = (INT*)calloc(cmesh->f_per_elm,sizeof(INT));
+    printf("Doesn't look like a problem with f_per_elm\n");
+
 
     //Garbage
     INT* I;
@@ -300,48 +303,54 @@ static void build_face_R (dCSRmat *R,
     R->JA  = (INT *)calloc(R->nnz, sizeof(INT));
     R->val = (REAL *)calloc(R->nnz, sizeof(REAL));
 
+    printf("We allocated all that crap. The loop is next.\n");
+
     REAL *val = R->val;
-    REAL *JA  = R->JA;
-    REAL *IA  = R->IA;
+    INT *JA  = R->JA;
+    INT *IA  = R->IA;
+    // This loops over the coarse and fine elements. Don't question it.
     for(cj = 0; cj<nc1d; cj++){
-      for(ci = 0; ci<nc1d; ci=ci+2){
+      for(ci = 0; ci<nc1d*2; ci=ci+2){
         // Lower Triangle and upper triangle box
         celm = ci + cj*nc1d*2; // TODO: check this
-        felm = ci*4 + cj*nf1d*4; // TODO: check this
+        felm = ci*2 + cj*nf1d*4; // TODO: check this
         // Make list of all fine elms to loop over
         felmList[0] = felm;         // Lower
         felmList[1] = felm+1;       // Lower
         felmList[2] = felm+2;       // Lower
-        felmList[3] = felm+nf1d;    // Lower
+        felmList[3] = felm+nf1d*2;    // Lower
         felmList[4] = felm+3;       // Upper
-        felmList[5] = felm+nf1d+1;  // Upper
-        felmList[6] = felm+nf1d+2;  // Upper
-        felmList[7] = felm+nf1d+3;  // Upper
+        felmList[5] = felm+nf1d*2+1;  // Upper
+        felmList[6] = felm+nf1d*2+2;  // Upper
+        felmList[7] = felm+nf1d*2+3;  // Upper
         for(ii=0;ii<8;ii++){
           felm = felmList[ii];
           if(ii==4) celm = celm+1; // Switch to upper triangle
+          printf("coarse: %d\tfine: %d\n",celm,felm);
 
           // Get Coarse DOF
           get_incidence_row(celm,cmesh->el_v,v_on_elm);
           get_incidence_row(celm,cmesh->el_f,f_on_elm);
-          rowa = fmesh->el_f->IA[celm]-1;
-          rowb = fmesh->el_f->IA[celm+1]-1;
+          rowa = cmesh->el_f->IA[celm]-1;
+          rowb = cmesh->el_f->IA[celm+1]-1;
           for(j=rowa;j<rowb;j++){
-            cface = fmesh->el_f->JA[j]-1;
+            cface = cmesh->el_f->JA[j]-1;
             // Get Fine DOF
             rowaf = fmesh->el_f->IA[felm]-1;
             rowbf = fmesh->el_f->IA[felm+1]-1;
             for(jj=rowaf;jj<rowbf;jj++){
-              fface = fmesh->el_f->JA[j]-1;
+              fface = fmesh->el_f->JA[jj]-1;
               // Fill P
               value = 0.0;
               x[0] = fmesh->f_mid[fface*dim];
               x[1] = fmesh->f_mid[fface*dim+1];
               rt_basis(phi,dphi,x,v_on_elm,f_on_elm,cmesh);
               for(i=0;i<dim;i++) value += fmesh->f_norm[fface*dim+i]*phi[i];
-              I[index] = cface;
-              J[index] = fface;
-              V[index] = value;
+              //printf("This is dumb, the value is %f\n",value);
+              printf("%5d\t%5d\t%f\n",cface,fface,value);
+//              I[index] = cface;
+//              J[index] = fface;
+//              V[index] = value;
             }
           }
         }
@@ -349,9 +358,13 @@ static void build_face_R (dCSRmat *R,
     }
 }
 
+/*---------------------------------*/
+/*--      Public Functions       --*/
+/*---------------------------------*/
+
 /***********************************************************************************************/
 /**
- * \fn static void form_R (dCSRmat *tentp,
+ * \fn SHORT gmg_setup_RT0 (dCSRmat *tentp,
  *                                  INT     ndof
  *                                  INT     levelNum)
  * \brief Build 
@@ -364,31 +377,37 @@ static void build_face_R (dCSRmat *R,
  * \note Modified by Peter Ohm on 10/12/2018
  *
  */
-SHORT gmg_setup_RTO(GMG_data *mgl,
-                    GMG_param *param){
+INT gmg_setup_RT0(trimesh* fine_level_mesh)
+{
+//INT gmg_setup_RT0(GMG_data *mgl,
+//                    GMG_param *param)
   // Things from param
-  SHORT max_levels = param->max_levels;
+  //SHORT max_levels = param->max_levels;
+  SHORT max_levels = 2;
   SHORT lvl = 0;
 
+  // 
   INT i,j;
+  INT fSize, cSize;
+  INT nf1d, nc1d;
+
+  // To read from file
   FILE* cgfid;
-  char cgridfile[50];
+  char cgridfile[500];
 
-  trimesh cmesh;
-  trimesh *fmesh_ptr;
+  trimesh** meshHeirarchy = (trimesh**)calloc(max_levels, sizeof(trimesh*));
+  //meshHeirarchy[0] = mgl->fine_level_mesh;
+  meshHeirarchy[0] = fine_level_mesh;
 
-  trimesh** meshHeirarchy = (trimesh*)calloc(max_levels, sizeof(trimesh*));
-  meshHeirarchy[0] = fmesh;
-
-  dCSRmat* R;
+  dCSRmat R;
 
   // Pre-loop stuff
-  fmesh_ptr = fmesh;
   for(i=0;i<max_levels-1;i++){
-    fSize = sqrt(meshHeirarchy[i]->nv)-1;
+    fSize = sqrt(meshHeirarchy[i]->nv)-1;// Is there a type problem here?
     cSize = (fSize/2);
-    sprintf(cgridfile,"unitSQ_n%d.haz",cSize+1);//Need to customize this to specific directory
-    cgfid = HAZ_fopen(dcgridfile,"r");
+    sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",cSize+1);//Need to customize this to specific directory
+    cgfid = HAZ_fopen(cgridfile,"r");
+    meshHeirarchy[i+1] = (trimesh*)calloc(1, sizeof(trimesh));
     initialize_mesh(meshHeirarchy[i+1]);
     creategrid_fread(cgfid,0,meshHeirarchy[i+1]);
     fclose(cgfid);
@@ -396,25 +415,24 @@ SHORT gmg_setup_RTO(GMG_data *mgl,
     // Let's build here
     nf1d = fSize;
     nc1d = cSize;
-    build_face_R(R, mgl, param, fmesh_ptr, &cmesh, nf1d, nc1d);
+    printf("Let's build the Restriction\n");
+    printf("Sizes are nf1d = %d, and nc1d = %d\n",nf1d, nc1d);
+    build_face_R(&R, meshHeirarchy[i], meshHeirarchy[i+1], nf1d, nc1d);
 
     // Setup for next loop
-    fmesh_ptr = &cmesh;
-    //Need to make a cmesh every loop. 
   }
 
+  return 0;
 
 }
 
-/*---------------------------------*/
-/*--      Public Functions       --*/
-/*---------------------------------*/
 
 /***********************************************************************************************/
 SHORT gmg_setup (GMG_data *mgl,
                  GMG_param *param)
 {
-    SHORT status = gmg_setup_P1(mgl,param);
+    SHORT status;
+    //SHORT status = gmg_setup_P1(mgl,param);
 
     return status;
 }
