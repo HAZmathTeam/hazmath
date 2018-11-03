@@ -63,7 +63,7 @@ struct qcoordinates *allocateqcoords(INT nq1d,INT nelm,INT mydim)
   A->n = nq*nelm;
   A->nq_per_elm = nq;
   A->nq1d = nq1d;
-  
+
   return A;
 }
 /*********************************************************************************/
@@ -124,7 +124,7 @@ struct qcoordinates *allocateqcoords_bdry(INT nq1d,INT nelm,INT dim,INT ed_or_f)
   A->n = nq*nelm;
   A->nq_per_elm = nq;
   A->nq1d = nq1d;
-  
+
   return A;
 }
 /*********************************************************************************/
@@ -161,7 +161,7 @@ void free_qcoords(qcoordinates* A)
     free(A->w);
     A->w = NULL;
   }
-  
+
   return;
 }
 /*********************************************************************************/
@@ -179,8 +179,8 @@ void free_qcoords(qcoordinates* A)
  * \return cq_all      Quadrature struct
  *
  */
-qcoordinates* get_quadrature(mesh_struct *mesh,INT nq1d) 
-{	
+qcoordinates* get_quadrature(mesh_struct *mesh,INT nq1d)
+{
   INT i,j;
 
   INT dim = mesh->dim;
@@ -203,7 +203,7 @@ qcoordinates* get_quadrature(mesh_struct *mesh,INT nq1d)
       }
     }
   }
-  
+
   if(cqelm) {
     free_qcoords(cqelm);
     free(cqelm);
@@ -228,7 +228,7 @@ qcoordinates* get_quadrature(mesh_struct *mesh,INT nq1d)
  * \return cq_elm Quadrature struct on element
  *
  */
-void quad_elm(qcoordinates *cqelm,mesh_struct *mesh,INT nq1d,INT elm) 
+void quad_elm(qcoordinates *cqelm,mesh_struct *mesh,INT nq1d,INT elm)
 {
   // Flag for errors
   SHORT status;
@@ -238,7 +238,7 @@ void quad_elm(qcoordinates *cqelm,mesh_struct *mesh,INT nq1d,INT elm)
 
   /* Dimension */
   INT dim = mesh->dim;
-  
+
   /* Total Number of Quadrature Nodes */
   INT nq = pow(nq1d,dim);
 
@@ -362,7 +362,7 @@ void quad_elm(qcoordinates *cqelm,mesh_struct *mesh,INT nq1d,INT elm)
  * \return cq_all Quadrature struct on boundary
  *
  */
-qcoordinates* get_quadrature_boundary(mesh_struct *mesh,INT nq1d,INT ed_or_f) 
+qcoordinates* get_quadrature_boundary(mesh_struct *mesh,INT nq1d,INT ed_or_f)
 {
   INT i,j;
 
@@ -399,7 +399,7 @@ qcoordinates* get_quadrature_boundary(mesh_struct *mesh,INT nq1d,INT ed_or_f)
       }
     }
   }
-  
+
   if(cq_surf) {
     free_qcoords(cq_surf);
     free(cq_surf);
@@ -426,7 +426,7 @@ qcoordinates* get_quadrature_boundary(mesh_struct *mesh,INT nq1d,INT ed_or_f)
  * \return cq_bdry Quadrature struct on edge/face
  *
  */
-void quad_edgeface(qcoordinates *cqbdry,mesh_struct *mesh,INT nq1d,INT dof,INT e_or_f) 
+void quad_edgeface(qcoordinates *cqbdry,mesh_struct *mesh,INT nq1d,INT dof,INT e_or_f)
 {
   // Flag for errors
   SHORT status;
@@ -589,7 +589,7 @@ void quad_edgeface(qcoordinates *cqbdry,mesh_struct *mesh,INT nq1d,INT dof,INT e
  * \return qcoord.dat File with quadrature in format: qcoord(nq,dim+1)
  *
  */
-void dump_qcoords(qcoordinates *q) 
+void dump_qcoords(qcoordinates *q)
 {
   // Loop indices
   INT i;
@@ -657,24 +657,33 @@ REAL integrate_elm(void (*expr)(REAL *,REAL *,REAL,void *),INT nq1d,qcoordinates
   if(cq) { // assuming quadrature is given
     for (quad=0;quad<cq->nq_per_elm;quad++) {
       qx[0] = cq->x[elm*cq->nq_per_elm+quad];
-      qx[1] = cq->y[elm*cq->nq_per_elm+quad];
+      if(mesh->dim>1) qx[1] = cq->y[elm*cq->nq_per_elm+quad];
       if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
       (*expr)(&uval,qx,time,&(mesh->el_flag[elm]));
       integral += w*uval;
     }
   } else { // assemble quadrature again
-    qcoordinates *cqelm = allocateqcoords(nq1d,1,mesh->dim);
-    quad_elm(cqelm,mesh,nq1d,elm);
-    for (quad=0;quad<cqelm->nq_per_elm;quad++) {
-      qx[0] = cqelm->x[quad];
-      qx[1] = cqelm->y[quad];
-      if(mesh->dim==3) qx[2] = cqelm->z[quad];
-      w = cqelm->w[quad];
+    if(nq1d==1) { // Midpoint rule
+      qx[0] = mesh->el_mid[elm*mesh->dim];
+      if(mesh->dim>1) qx[1] = mesh->el_mid[elm*mesh->dim+1];
+      if(mesh->dim>2) qx[2] = mesh->el_mid[elm*mesh->dim+2];
+      w = mesh->el_vol[elm];
       (*expr)(&uval,qx,time,&(mesh->el_flag[elm]));
-      integral += w*uval;
+      integral = w*uval;
+    } else {
+      qcoordinates *cqelm = allocateqcoords(nq1d,1,mesh->dim);
+      quad_elm(cqelm,mesh,nq1d,elm);
+      for (quad=0;quad<cqelm->nq_per_elm;quad++) {
+        qx[0] = cqelm->x[quad];
+        if(mesh->dim>1) qx[1] = cqelm->y[quad];
+        if(mesh->dim==3) qx[2] = cqelm->z[quad];
+        w = cqelm->w[quad];
+        (*expr)(&uval,qx,time,&(mesh->el_flag[elm]));
+        integral += w*uval;
+      }
+      free_qcoords(cqelm);
     }
-    free_qcoords(cqelm);
   }
 
   if(qx) free(qx);
@@ -2335,4 +2344,3 @@ void tetquad_(REAL *gp, REAL *gc, INT ng1d)
   return;
 }
 /************************************************************************************/
-

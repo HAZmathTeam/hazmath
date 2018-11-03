@@ -7,6 +7,7 @@
  *  Copyright 2016__HAZMATH__. All rights reserved.
  *
  *  \note modified by James Adler 11/1/2016
+ *  \note Updated on 11/3/2018 for 0-1 fix.
  *
  */
 
@@ -43,7 +44,7 @@ void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fe
   if(FEtype<20) { // Scalar Element
     coef[0] = 0.0;
     for(j=0; j<dof_per_elm; j++) {
-      dof = dof_on_elm[j] - 1;
+      dof = dof_on_elm[j];
       coef[0] += u[dof]*FE->phi[j];
     }
     val[0] = coef[0];
@@ -51,7 +52,7 @@ void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fe
     for(i=0;i<dim;i++) {
       coef[i] = 0.0;
       for(j=0; j<dof_per_elm; j++) {
-        dof = dof_on_elm[j] - 1;
+        dof = dof_on_elm[j];
         coef[i] += u[dof]*FE->phi[j*dim+i];
       }
       val[i] = coef[i];
@@ -101,7 +102,7 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
     for(j=0;j<dim;j++) {
       coef[j] = 0.0;
       for(k=0; k<dof_per_elm; k++) {
-        dof = dof_on_elm[k] - 1;
+        dof = dof_on_elm[k];
         coef[j] += u[dof]*FE->dphi[k*dim+j];
       }
       val[j] = coef[j];
@@ -111,13 +112,13 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
       coef[j] = 0.0;
     if (dim==2) { // Curl is scalar
       for (j=0; j<dof_per_elm; j++) {
-        dof = dof_on_elm[j]-1;
+        dof = dof_on_elm[j];
         coef[0] += u[dof]*FE->dphi[j];
       }
       val[0] = coef[0];
     } else if (dim==3) { // Curl is vector
       for (j=0; j<dof_per_elm; j++) {
-        dof = dof_on_elm[j]-1;
+        dof = dof_on_elm[j];
         coef[0] += u[dof]*FE->dphi[j*dim+0];
         coef[1] += u[dof]*FE->dphi[j*dim+1];
         coef[2] += u[dof]*FE->dphi[j*dim+2];
@@ -130,16 +131,16 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
     coef[0] = 0.0;
 
     for (j=0; j<dof_per_elm; j++) {
-      dof = dof_on_elm[j]-1;
+      dof = dof_on_elm[j];
       coef[0] += u[dof]*FE->dphi[j];
     }
     val[0] = coef[0];
-  } else if (FEtype==61) { // bubble
+  } else if (FEtype>=60) { // Vector Lagrange Functions (i.e. bubbles) -> gradients of vectors -> tensor
     for(j=0;j<dim;j++) {
       for(i=0;i<dim;i++) {
         coef[j*dim + i] = 0.0;
         for(k=0; k<dof_per_elm; k++) {
-          dof = dof_on_elm[k] - 1;
+          dof = dof_on_elm[k];
           coef[j*dim + i] += u[dof]*FE->dphi[k*dim*dim + j*dim + i];
         }
         val[j*dim + i] = coef[j*dim + i];
@@ -151,291 +152,6 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
   }
 
   return;
-}
-/****************************************************************************************************************************/
-
-/****************************************************************************************************************************/
-/*!
- * \fn void mult_FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,mesh_struct *mesh,INT nun)
- *
- * \brief Interpolate a finite-element approximation to any other point in the given element using the given type of elements.
- *
- * \note This allows you to interpolate multiple approximations at once.  OUTDATED
- *
- * \param u 	      Approximation to interpolate
- * \param x           Coordinates where to compute value
- * \param dof_on_elm  DOF belonging to particular element
- * \param v_on_elm    Vertices belonging to particular element
- * \param FE          FE Space
- * \param mesh        Mesh Data
- * \param nun         Number of unknowns in u (1 is a scalar)
- * \param val         Pointer to value of approximation at given values
- *
- */
-void mult_FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,mesh_struct *mesh,INT nun)
-{
-  INT i,j,k,dof;
-
-  // Get FE and Mesh data
-  INT dof_per_elm = FE->dof_per_elm;
-  INT FEtype = FE->FEtype;
-  INT dim = mesh->dim;
-  INT ndof = FE->ndof;
-
-  REAL coef[dim];
-
-  get_FEM_basis(FE->phi,FE->dphi,x,v_on_elm,dof_on_elm,mesh,FE);
-
-  if(FEtype<20) { // Scalar Element
-    for(i=0; i<nun; i++) {
-      coef[0] = 0.0;
-      for(j=0; j<dof_per_elm; j++) {
-        dof = i*ndof + dof_on_elm[j] - 1;
-        coef[0] += u[dof]*FE->phi[j];
-      }
-      val[i] = coef[0];
-    }
-  } else { // Vector Element
-    for(k=0; k<nun; k++) {
-      for(i=0;i<dim;i++) {
-        coef[i] = 0.0;
-        for(j=0; j<dof_per_elm; j++) {
-          dof = dof_on_elm[j] - 1;
-          coef[i] += u[dof]*FE->phi[j*dim+i];
-        }
-        val[k*dim + i] = coef[i];
-      }
-    }
-  }
-
-  return;
-}
-/****************************************************************************************************************************/
-
-/****************************************************************************************************************************/
-/*!
- * \fn void mult_FE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,mesh_struct *mesh,INT nun)
- *
- * \brief Interpolate the "derivative" of a finite-element approximation to any other point in the given element using the given type of elements.
- *        Note that for Lagrange Elements this means the Gradient, grad u, for Nedelec it means the Curl, curl u, and for RT it is the Divergence, div u.
- *
- * \note This routine allows you to interpolate multiple approximations at once. OUTDATED
- *
- * \param u 	        Approximation to interpolate
- * \param x           Coordinates where to compute value
- * \param dof_on_elm  DOF belonging to particular element
- * \param v_on_elm    Vertices belonging to particular element
- * \param FE          FE Space
- * \param mesh        Mesh Data
- * \param nun         Number of unknowns in u (1 is a scalar)
- * \param val         Pointer to value of approximation at given values
- *
- */
-void mult_FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,mesh_struct *mesh,INT nun)
-{
-  INT i,dof,j,k;
-
-  // Get FE and Mesh data
-  INT dof_per_elm = FE->dof_per_elm;
-  INT FEtype = FE->FEtype;
-  INT dim = mesh->dim;
-  INT ndof = FE->ndof;
-
-  // Basis Functions and its derivatives if necessary
-  REAL coef[dim];
-
-  get_FEM_basis(FE->phi,FE->dphi,x,v_on_elm,dof_on_elm,mesh,FE);
-
-  if(FEtype==0) { // Don't compute derivatives of P0 elements (set to 0)
-    for(i=0; i<nun; i++) {
-      for(j=0;j<dim;j++) {
-        val[i*dim+j] = 0.0;
-      }
-    }
-  } else if(FEtype<20 && FEtype!=0) { // Scalar Element
-    for(i=0; i<nun; i++) {
-      for(j=0;j<dim;j++) {
-        coef[j] = 0.0;
-        for(k=0; k<dof_per_elm; k++) {
-          dof = i*ndof + dof_on_elm[k] - 1;
-          coef[j] += u[dof]*FE->dphi[k*dim+j];
-        }
-        val[i*dim+j] = coef[j];
-      }
-    }
-  } else if (FEtype==20) { // Nedelec
-    for(j=0;j<dim;j++)
-      coef[j] = 0.0;
-    if (dim==2) { // Curl is scalar
-      for (j=0; j<dof_per_elm; j++) {
-        dof = dof_on_elm[j]-1;
-        coef[0] += u[dof]*FE->dphi[j];
-      }
-      val[0] = coef[0];
-    } else if (dim==3) { // Curl is vector
-      for (j=0; j<dof_per_elm; j++) {
-        dof = dof_on_elm[j]-1;
-        coef[0] += u[dof]*FE->dphi[j*dim+0];
-        coef[1] += u[dof]*FE->dphi[j*dim+1];
-        coef[2] += u[dof]*FE->dphi[j*dim+2];
-      }
-      val[0] = coef[0];
-      val[1] = coef[1];
-      val[2] = coef[2];
-    }
-  } else if (FEtype==30) { // Raviart-Thomas (div is scalar)
-    coef[0] = 0.0;
-
-    for (j=0; j<dof_per_elm; j++) {
-      dof = dof_on_elm[j]-1;
-      coef[0] += u[dof]*FE->dphi[j];
-    }
-    val[0] = coef[0];
-  } else {
-    check_error(ERROR_FE_TYPE,__FUNCTION__);
-  }
-
-  return;
-}
-/****************************************************************************************************************************/
-
-/****************************************************************************************************************************/
-/*!
- * \fn void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,REAL time)
- *
- * \brief Evaluate a given analytical function on the finite-element space given.
- *
- * \param expr 	    Function call to analytical expression
- * \param FE          FE Space
- * \param mesh        Mesh Data
- * \param time        Physical time to evaluate function at
- * \param val         FE approximation of function on fespace
- *
- */
-void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,REAL time)
-{
-  int i,j;
-  REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
-  REAL* valx = NULL;
-  INT dim = mesh->dim;
-  INT FEtype = FE->FEtype;
-
-  // flag for errors
-  SHORT status;
-
-  if(FEtype==0) { // P0 elements u[dof] = 1/elvol \int_el u
-    for(i=0;i<FE->ndof;i++) {
-      val[i] = (1.0/mesh->el_vol[i])*integrate_elm(expr,3,NULL,mesh,time,i);
-    }
-  } else if(FEtype>0 && FEtype<10) { // Lagrange Elements u[dof] = u[x_i}
-    valx = (REAL *) calloc(1,sizeof(REAL));
-    for(i=0;i<FE->ndof;i++) {
-      x[0] = FE->cdof->x[i];
-      if(dim==2 || dim==3)
-        x[1] = FE->cdof->y[i];
-      if(dim==3)
-        x[2] = FE->cdof->z[i];
-      (*expr)(valx,x,time,&(FE->dof_flag[i]));
-      val[i] = valx[0];
-    }
-  } else if (FEtype==20) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
-    valx = (REAL *) calloc(dim,sizeof(REAL));
-    for(i=0;i<FE->ndof;i++) {
-      x[0] = mesh->ed_mid[i*dim];
-      x[1] = mesh->ed_mid[i*dim+1];
-      if(dim==3) x[2] = mesh->ed_mid[i*dim+2];
-      (*expr)(valx,x,time,&(FE->dof_flag[i]));
-      val[i] = 0.0;
-      for(j=0;j<dim;j++) val[i]+=mesh->ed_tau[i*dim+j]*valx[j];
-    }
-  } else if (FEtype==30) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
-    valx = (REAL *) calloc(dim,sizeof(REAL));
-    for(i=0;i<FE->ndof;i++) {
-      x[0] = mesh->f_mid[i*dim];
-      x[1] = mesh->f_mid[i*dim+1];
-      if(dim==3) x[2] = mesh->f_mid[i*dim+2];
-      (*expr)(valx,x,time,&(FE->dof_flag[i]));
-      val[i] = 0.0;
-      for(j=0;j<dim;j++) val[i]+=mesh->f_norm[i*dim+j]*valx[j];
-    }
-  } else {
-    status = ERROR_FE_TYPE;
-    check_error(status, __FUNCTION__);
-  }
-
-  if (x) free(x);
-  if(valx) free(valx);
-  return;
-}
-/****************************************************************************************************************************/
-
-/****************************************************************************************************************************/
-/*!
- * \fn REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,REAL time,INT DOF)
- *
- * \brief Evaluate a given analytical function on the specific degree of freedom of the finite-element space given
- *
- * \param expr 	    Function call to analytical expression
- * \param FE          FE Space
- * \param mesh        Mesh Data
- * \param time        Physical time to evaluate function at
- * \param DOF         DOF index to evaluate (start at 0)
- *
- * \return val        FE approximation of function on fespace
- *
- */
-REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,REAL time,INT DOF)
-{
-  INT j;
-  REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
-  REAL* valx = NULL;
-  INT dim = mesh->dim;
-  INT FEtype = FE->FEtype;
-  REAL val=-666e+00;
-
-  if(FEtype==0) { // P0 elements u[dof] = 1/elvol \int_el u
-    val = (1.0/mesh->el_vol[DOF])*integrate_elm(expr,3,NULL,mesh,time,DOF);
-  } else if(FEtype>0 && FEtype<10) { // Lagrange Elements u[dof] = u[x_i]
-    valx = (REAL *) calloc(1,sizeof(REAL));
-    x[0] = FE->cdof->x[DOF];
-    if(dim==2 || dim==3)
-      x[1] = FE->cdof->y[DOF];
-    if(dim==3)
-      x[2] = FE->cdof->z[DOF];
-    (*expr)(valx,x,time,&(FE->dof_flag[DOF]));
-    val = valx[0];
-  } else if (FEtype==20) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
-    valx = (REAL *) calloc(dim,sizeof(REAL));
-    x[0] = mesh->ed_mid[DOF*dim];
-    x[1] = mesh->ed_mid[DOF*dim+1];
-    if(dim==3) x[2] = mesh->ed_mid[DOF*dim+2];
-    (*expr)(valx,x,time,&(FE->dof_flag[DOF]));
-    val = 0.0;
-    for(j=0;j<dim;j++) val+=mesh->ed_tau[DOF*dim+j]*valx[j];
-  } else if (FEtype==30) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
-    valx = (REAL *) calloc(dim,sizeof(REAL));
-    x[0] = mesh->f_mid[DOF*dim];
-    x[1] = mesh->f_mid[DOF*dim+1];
-    if(dim==3) x[2] = mesh->f_mid[DOF*dim+2];
-    (*expr)(valx,x,time,&(FE->dof_flag[DOF]));
-    val = 0.0;
-    for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx[j];
-  } else if (FEtype>=60 && FEtype<70) { // Bubbles
-    valx = (REAL *) calloc(dim,sizeof(REAL));
-    x[0] = mesh->f_mid[DOF*dim];
-    x[1] = mesh->f_mid[DOF*dim+1];
-    if(dim==3) x[2] = mesh->f_mid[DOF*dim+2];
-    (*expr)(valx,x,time,&(FE->dof_flag[DOF]));
-    val = 0.0;
-    for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx[j];
-  } else {
-    check_error(ERROR_FE_TYPE,__FUNCTION__);
-  }
-
-  if (x) free(x);
-  if(valx) free(valx);
-
-  return val;
 }
 /****************************************************************************************************************************/
 
@@ -517,7 +233,7 @@ void blockFE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,I
       val_sol+=dim;
     } else if(FE->var_spaces[k]->FEtype==30) { // Div is Scalar
       val_sol++;
-    } else if(FE->var_spaces[k]->FEtype==61) { // bubble
+    } else if(FE->var_spaces[k]->FEtype>=60) { // VectorLagrange (i.e., bubbles) Gradient is matrix.
       val_sol+=dim*dim;
     } else {
       check_error(ERROR_FE_TYPE,__FUNCTION__);
@@ -532,57 +248,191 @@ void blockFE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,I
 
 /****************************************************************************************************************************/
 /*!
- * \fn void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,REAL time)
+ * \fn void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,REAL time)
  *
- * \brief Evaluate a given analytical function on the block finite-element space given.
+ * \brief Evaluate (Project) a given analytical function on the finite-element space given.
+ *
+ * \param expr 	      Function call to analytical expression
+ * \param FE          FE Space
+ * \param mesh        Mesh Data
+ * \param time        Physical time to evaluate function at
+ *
+ * \return val         FE approximation of function on fespace
+ *
+ */
+void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,REAL time)
+{
+  INT i,j;
+  INT maxdim=4; // Used to allocate coordinate arrays
+  REAL x[maxdim];
+  INT dim = mesh->dim;
+  INT FEtype = FE->FEtype;
+  REAL valx_s=0.0;
+  REAL valx_v[maxdim];
+
+  // flag for errors
+  SHORT status;
+
+  if(FEtype==0) { // P0 elements u[dof] = 1/elvol \int_el u
+    for(i=0;i<FE->ndof;i++) {
+      val[i] = (1.0/mesh->el_vol[i])*integrate_elm(expr,3,NULL,mesh,time,i);
+    }
+  } else if(FEtype>0 && FEtype<10) { // Lagrange Elements u[dof] = u[x_i]
+    for(i=0;i<FE->ndof;i++) {
+      x[0] = FE->cdof->x[i];
+      if(dim>1) x[1] = FE->cdof->y[i];
+      if(dim>2) x[2] = FE->cdof->z[i];
+      (*expr)(&valx_s,&x,time,&(FE->dof_flag[i]));
+      val[i] = valx_s;
+    }
+  } else if (FEtype==20) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
+    // Using Midpoint Rule Here
+    for(i=0;i<FE->ndof;i++) {
+      x[0] = mesh->ed_mid[i*dim];
+      x[1] = mesh->ed_mid[i*dim+1];
+      if(dim==3) x[2] = mesh->ed_mid[i*dim+2];
+      (*expr)(&valx_v,&x,time,&(FE->dof_flag[i]));
+      val[i] = 0.0;
+      for(j=0;j<dim;j++) val[i]+=mesh->ed_tau[i*dim+j]*valx_v[j];
+    }
+  } else if (FEtype==30) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
+    // Using Midpoint Rule Here
+    for(i=0;i<FE->ndof;i++) {
+      x[0] = mesh->f_mid[i*dim];
+      x[1] = mesh->f_mid[i*dim+1];
+      if(dim==3) x[2] = mesh->f_mid[i*dim+2];
+      (*expr)(&valx_v,&x,time,&(FE->dof_flag[i]));
+      val[i] = 0.0;
+      for(j=0;j<dim;j++) val[i]+=mesh->f_norm[i*dim+j]*valx_v[j];
+    }
+  } else {
+    status = ERROR_FE_TYPE;
+    check_error(status, __FUNCTION__);
+  }
+
+  return;
+}
+/****************************************************************************************************************************/
+
+/****************************************************************************************************************************/
+/*!
+ * \fn REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,REAL time,INT DOF)
+ *
+ * \brief Evaluate a given analytical function on the specific degree of freedom of the finite-element space given
  *
  * \param expr 	    Function call to analytical expression
+ * \param FE          FE Space
+ * \param mesh        Mesh Data
+ * \param time        Physical time to evaluate function at
+ * \param DOF         DOF index to evaluate (start at 0)
+ *
+ * \return val        FE approximation of function on fespace
+ *
+ */
+REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,REAL time,INT DOF)
+{
+  INT j;
+  INT maxdim=4; // Used to allocate coordinate arrays
+  REAL x[maxdim];
+  INT dim = mesh->dim;
+  INT FEtype = FE->FEtype;
+  REAL valx_s=0.0;
+  REAL valx_v[maxdim];
+  REAL val=-666e+00;
+
+  if(FEtype==0) { // P0 elements u[dof] = 1/elvol \int_el u
+    val = (1.0/mesh->el_vol[DOF])*integrate_elm(expr,3,NULL,mesh,time,DOF);
+  } else if(FEtype>0 && FEtype<10) { // Lagrange Elements u[dof] = u[x_i]
+    x[0] = FE->cdof->x[DOF];
+    if(dim>1) x[1] = FE->cdof->y[DOF];
+    if(dim>2) x[2] = FE->cdof->z[DOF];
+    (*expr)(valx_s,&x,time,&(FE->dof_flag[DOF]));
+    val = valx_s;
+  } else if (FEtype==20) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
+    // Using Midpoint Rule Here
+    x[0] = mesh->ed_mid[DOF*dim];
+    x[1] = mesh->ed_mid[DOF*dim+1];
+    if(dim==3) x[2] = mesh->ed_mid[DOF*dim+2];
+    (*expr)(&valx_v,&x,time,&(FE->dof_flag[DOF]));
+    val = 0.0;
+    for(j=0;j<dim;j++) val+=mesh->ed_tau[DOF*dim+j]*valx_v[j];
+  } else if (FEtype==30) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
+    // Using Midpoint Rule Here
+    x[0] = mesh->f_mid[DOF*dim];
+    x[1] = mesh->f_mid[DOF*dim+1];
+    if(dim==3) x[2] = mesh->f_mid[DOF*dim+2];
+    (*expr)(&valx_v,&x,time,&(FE->dof_flag[DOF]));
+    val = 0.0;
+    for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx_v[j];
+  } else if (FEtype>=60 && FEtype<70) { // Vector Lagrange (i.e. Bubbles)
+    // Using Midpoint Rule Here
+    x[0] = mesh->f_mid[DOF*dim];
+    x[1] = mesh->f_mid[DOF*dim+1];
+    if(dim==3) x[2] = mesh->f_mid[DOF*dim+2];
+    (*expr)(&valx_v,&x,time,&(FE->dof_flag[DOF]));
+    val = 0.0;
+    for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx_v[j];
+  } else {
+    check_error(ERROR_FE_TYPE,__FUNCTION__);
+  }
+
+  return val;
+}
+/****************************************************************************************************************************/
+
+/****************************************************************************************************************************/
+/*!
+ * \fn void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,REAL time)
+ *
+ * \brief Evaluate (Project) a given analytical function on the block finite-element space given.
+ *
+ * \param expr 	      Function call to analytical expression
  * \param FE          block FE Space for multiple variables
  * \param mesh        Mesh Data
  * \param time        Physical time to evaluate function at
- * \param val         FE approximation of function on fespace
+ *
+ * \return val         FE approximation of function on fespace
  *
  */
 void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,REAL time)
 {
-  int i,j,k,m;
-  REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
-  REAL* valx = (REAL *) calloc(FE->nun,sizeof(REAL));
+  INT i,j,k,m;
   INT dim = mesh->dim;
+  INT maxdim=4;
+  REAL x[maxdim];
+  REAL valx[FE->nun];
   INT entry = 0, local_entry = 0;
   INT local_dim = 0;
-  INT* face_vertex = (INT *) calloc(dim,sizeof(INT));
+  INT face_vertex[maxdim];
 
   for(k=0;k<FE->nspaces;k++) {
     if(FE->var_spaces[k]->FEtype==0) { // P0 elements u[dof] = 1/elvol \int_el u
       local_dim = 1;
+      // We use the midpoint rule for this
       for(i=0;i<FE->var_spaces[k]->ndof;i++) {
         x[0] = mesh->el_mid[i*dim];
-        if(dim==2 || dim==3)
-          x[1] = mesh->el_mid[i*dim+1];
-        if(dim==3)
-          x[2] = mesh->el_mid[i*dim+2];
-        (*expr)(valx,x,time,&(FE->var_spaces[k]->dof_flag[i]));
+        if(dim>1) x[1] = mesh->el_mid[i*dim+1];
+        if(dim>2) x[2] = mesh->el_mid[i*dim+2];
+        (*expr)(&valx,&x,time,&(FE->var_spaces[k]->dof_flag[i]));
         val[entry + i] = valx[local_entry];
       }
     } else if(FE->var_spaces[k]->FEtype>0 && FE->var_spaces[k]->FEtype<10) { // Lagrange Elements u[dof] = u[x_i]
       local_dim = 1;
       for(i=0;i<FE->var_spaces[k]->ndof;i++) {
         x[0] = FE->var_spaces[k]->cdof->x[i];
-        if(dim==2 || dim==3)
-          x[1] = FE->var_spaces[k]->cdof->y[i];
-        if(dim==3)
-          x[2] = FE->var_spaces[k]->cdof->z[i];
-        (*expr)(valx,x,time,&(FE->var_spaces[k]->dof_flag[i]));
+        if(dim>1) x[1] = FE->var_spaces[k]->cdof->y[i];
+        if(dim>2) x[2] = FE->var_spaces[k]->cdof->z[i];
+        (*expr)(&valx,&x,time,&(FE->var_spaces[k]->dof_flag[i]));
         val[entry + i] = valx[local_entry];
       }
     } else if (FE->var_spaces[k]->FEtype==20) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
       local_dim = dim;
+      // Using Midpoint Rule Here
       for(i=0;i<FE->var_spaces[k]->ndof;i++) {
         x[0] = mesh->ed_mid[i*dim];
         x[1] = mesh->ed_mid[i*dim+1];
-        if(dim==3) x[2] = mesh->ed_mid[i*dim+2];
-        (*expr)(valx,x,time,&(FE->var_spaces[k]->dof_flag[i]));
+        if(dim=>2) x[2] = mesh->ed_mid[i*dim+2];
+        (*expr)(&valx,&x,time,&(FE->var_spaces[k]->dof_flag[i]));
         val[entry + i] = 0.0;
         for(j=0;j<dim;j++) {
           val[entry + i]+=mesh->ed_tau[i*dim+j]*valx[local_entry + j];
@@ -590,32 +440,33 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fe
       }
     } else if (FE->var_spaces[k]->FEtype==30) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
       local_dim = dim;
+      // Using Midpoint Rule Here
       for(i=0;i<FE->var_spaces[k]->ndof;i++) {
         x[0] = mesh->f_mid[i*dim];
         x[1] = mesh->f_mid[i*dim+1];
-        if(dim==3) x[2] = mesh->f_mid[i*dim+2];
-        (*expr)(valx,x,time,(INT *)&(FE->var_spaces[k]->dof_flag[i]));
+        if(dim>2) x[2] = mesh->f_mid[i*dim+2];
+        (*expr)(&valx,&x,time,&(FE->var_spaces[k]->dof_flag[i]));
         val[i+entry] = 0.0;
         for(j=0;j<dim;j++) val[i+entry]+=mesh->f_norm[i*dim+j]*valx[local_entry + j];
       }
-    } else if (FE->var_spaces[k]->FEtype==61) { // Bubbles
+    } else if (FE->var_spaces[k]->FEtype>=60) { // Vector Lagrange (i.e., Bubbles)
       local_dim = 0;
+      // Using Midpoint Rule Here
       for(i=0;i<FE->var_spaces[k]->ndof;i++){
         val[i+entry] = 0.0;
         x[0] = mesh->f_mid[i*dim];
         x[1] = mesh->f_mid[i*dim+1];
-        if(dim==3) x[2] = mesh->f_mid[i*dim+2];
-        (*expr)(valx,x,time,&(FE->var_spaces[0]->dof_flag[i]));
-        //for(j=0;j<dim;j++) val[entry+i]+=mesh->f_area[i]*mesh->f_norm[i*dim+j]*valx[local_dim + j];
+        if(dim>2) x[2] = mesh->f_mid[i*dim+2];
+        (*expr)(&valx,&x,time,&(FE->var_spaces[0]->dof_flag[i]));
         for(j=0;j<dim;j++) val[entry+i]+=mesh->f_norm[i*dim+j]*valx[local_dim + j];
-
-        get_incidence_row(i,mesh->f_v,face_vertex);
+        // TODO: WHAT IS HAPPENING HERE???
+        get_incidence_row(i,mesh->f_v,&face_vertex);
         for (m=0;m<dim;m++) {
           x[0] = mesh->cv->x[face_vertex[m]-1];
           x[1] = mesh->cv->y[face_vertex[m]-1];
-          if(dim==3) x[2] = mesh->cv->z[face_vertex[m]-1];
+          if(dim>2) x[2] = mesh->cv->z[face_vertex[m]-1];
           // The following only works for 2D
-          (*expr)(valx,x,time,&(FE->var_spaces[0]->dof_flag[i]));
+          (*expr)(&valx,&x,time,&(FE->var_spaces[0]->dof_flag[i]));
           //for(j=0;j<dim;j++) val[entry+i]+= -(1.0/dim)*mesh->f_area[i]*mesh->f_norm[i*dim+j]*valx[local_dim + j];
           for(j=0;j<dim;j++) val[entry+i]+= -(1.0/dim)*mesh->f_norm[i*dim+j]*valx[local_dim + j];
         }
@@ -628,10 +479,6 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fe
     local_entry += local_dim;
   }
 
-
-  if (x) free(x);
-  if(valx) free(valx);
-  if (face_vertex) free(face_vertex);
   return;
 }
 /****************************************************************************************************************************/
@@ -657,16 +504,18 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fe
 REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,REAL time,INT comp,INT DOF)
 {
   int i,j,m;
-  REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
-  REAL* valx = (REAL *) calloc(mesh->dim*FE->nspaces,sizeof(REAL));
   INT dim = mesh->dim;
+  INT maxdim=4;
+  REAL x[maxdim];
+  REAL valx[dim*FE->nspaces];
   INT local_dim = 0;
   REAL val=-666e+00;
-  INT* face_vertex = (INT *) calloc(dim,sizeof(INT));
+  INT face_vertex[maxdim];
 
   for(i=0;i<comp;i++) {
     if(FE->var_spaces[i]->FEtype>=0 && FE->var_spaces[i]->FEtype<10) { // Scalar Element
       local_dim += 1;
+      // TODO: EXPLAIN THIS!
     } else if(FE->var_spaces[i]->FEtype == 61) { // Bubble Element
       local_dim += 0;
     } else { // Vector Element
@@ -676,60 +525,51 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
 
   if(FE->var_spaces[comp]->FEtype==0) { // P0 elements u[dof] = 1/elvol \int_el u
     x[0] = mesh->el_mid[DOF*dim];
-    if(dim==2 || dim==3)
-      x[1] = mesh->el_mid[DOF*dim+1];
-    if(dim==3)
-      x[2] = mesh->el_mid[DOF*dim+2];
-    (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
+    if(dim>1) x[1] = mesh->el_mid[DOF*dim+1];
+    if(dim>2) x[2] = mesh->el_mid[DOF*dim+2];
+    (*expr)(&valx,&x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
     val = valx[local_dim];
-    //    printf("local_dim = %d\n",local_dim);
   } else if(FE->var_spaces[comp]->FEtype>0 && FE->var_spaces[comp]->FEtype<10) { // Lagrange Elements u[dof] = u[x_i]
     x[0] = FE->var_spaces[comp]->cdof->x[DOF];
-    if(dim==2 || dim==3)
-      x[1] = FE->var_spaces[comp]->cdof->y[DOF];
-    if(dim==3)
-      x[2] = FE->var_spaces[comp]->cdof->z[DOF];
-    (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
+    if(dim>1) x[1] = FE->var_spaces[comp]->cdof->y[DOF];
+    if(dim>2) x[2] = FE->var_spaces[comp]->cdof->z[DOF];
+    (*expr)(&valx,&x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
     val = valx[local_dim];
   } else if (FE->var_spaces[comp]->FEtype==20) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
     x[0] = mesh->ed_mid[DOF*dim];
     x[1] = mesh->ed_mid[DOF*dim+1];
-    if(dim==3) x[2] = mesh->ed_mid[DOF*dim+2];
-    (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
+    if(dim>2) x[2] = mesh->ed_mid[DOF*dim+2];
+    (*expr)(&valx,&x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
     val = 0.0;
     for(j=0;j<dim;j++) val+=mesh->ed_tau[DOF*dim+j]*valx[local_dim + j];
   } else if (FE->var_spaces[comp]->FEtype==30) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
     x[0] = mesh->f_mid[DOF*dim];
     x[1] = mesh->f_mid[DOF*dim+1];
-    if(dim==3) x[2] = mesh->f_mid[DOF*dim+2];
-    (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
+    if(dim>2) x[2] = mesh->f_mid[DOF*dim+2];
+    (*expr)(&valx,&x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
     val = 0.0;
     for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx[local_dim + j];
   } else if (FE->var_spaces[comp]->FEtype>=60 && FE->var_spaces[comp]->FEtype<70) { // Bubbles
+    // TODO: Again no idea what is happening
     x[0] = mesh->f_mid[DOF*dim];
     x[1] = mesh->f_mid[DOF*dim+1];
-    if(dim==3) x[2] = mesh->f_mid[DOF*dim+2];
-    (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
+    if(dim>2) x[2] = mesh->f_mid[DOF*dim+2];
+    (*expr)(&valx,&x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
     val = 0.0;
-    //for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx[local_dim + j]*mesh->f_area[DOF];
     for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx[local_dim + j];
-    get_incidence_row(DOF,mesh->f_v,face_vertex);
+    get_incidence_row(DOF,mesh->f_v,&face_vertex);
     for (m=0;m<dim;m++) {
       x[0] = mesh->cv->x[face_vertex[m]-1];
       x[1] = mesh->cv->y[face_vertex[m]-1];
-      if(dim==3) x[2] = mesh->cv->z[face_vertex[m]-1];
+      if(dim>2) x[2] = mesh->cv->z[face_vertex[m]-1];
       // The following only works for 2D
-      (*expr)(valx,x,time,&(FE->var_spaces[0]->dof_flag[DOF]));
-      //for(j=0;j<dim;j++) val+= -(1.0/dim)*mesh->f_area[DOF]*mesh->f_norm[DOF*dim+j]*valx[local_dim + j];
+      (*expr)(&valx,&x,time,&(FE->var_spaces[0]->dof_flag[DOF]));
       for(j=0;j<dim;j++) val+= -(1.0/dim)*mesh->f_norm[DOF*dim+j]*valx[local_dim + j];
     }
   } else {
     check_error(ERROR_FE_TYPE,__FUNCTION__);
   }
 
-  if (x) free(x);
-  if(valx) free(valx);
-  if (face_vertex) free(face_vertex);
   return val;
 }
 /****************************************************************************************************************************/
@@ -749,9 +589,10 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
 void Project_to_Vertices(REAL* u_on_V,REAL *u,fespace *FE,mesh_struct *mesh)
 {
   INT i,k,j;
-  REAL* val = NULL;
   INT dim = mesh->dim;
-  REAL* x = (REAL *) calloc(dim,sizeof(REAL));
+  INT maxdim = 4;
+  REAL x[maxdim];
+  REAL val[maxdim];
 
   // Get FE and Mesh data
   INT dof_per_elm = FE->dof_per_elm;
@@ -762,12 +603,6 @@ void Project_to_Vertices(REAL* u_on_V,REAL *u,fespace *FE,mesh_struct *mesh)
 
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
   INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
-
-  if(FEtype>=0 && FEtype<20) { // Scalar Element
-    val = (REAL *) calloc(1,sizeof(REAL));
-  } else { // Vector Element
-    val = (REAL *) calloc(dim,sizeof(REAL));
-  }
 
   // Loop over Elements
   for(i=0;i<nelm;i++) {
@@ -781,20 +616,18 @@ void Project_to_Vertices(REAL* u_on_V,REAL *u,fespace *FE,mesh_struct *mesh)
     // Interpolate FE approximation to vertices
     for(j=0;j<v_per_elm;j++) {
       get_coords(x,v_on_elm[j]-1,mesh->cv,dim);
-      FE_Interpolation(val,u,x,dof_on_elm,v_on_elm,FE,mesh);
+      FE_Interpolation(&val,u,&x,dof_on_elm,v_on_elm,FE,mesh);
 
       if(FEtype>=0 && FEtype<20) { // Scalar Element
-        u_on_V[v_on_elm[j]-1] = val[0];
+        u_on_V[v_on_elm[j]] = val[0];
       } else { // Vector Element
         for(k=0;k<dim;k++) {
-          u_on_V[k*nv + v_on_elm[j]-1] = val[k];
+          u_on_V[k*nv + v_on_elm[j]] = val[k];
         }
       }
     }
   }
 
-  if (x) free(x);
-  if(val) free(val);
   if(v_on_elm) free(v_on_elm);
   if(dof_on_elm) free(dof_on_elm);
   return;
@@ -815,7 +648,7 @@ void Project_to_Vertices(REAL* u_on_V,REAL *u,fespace *FE,mesh_struct *mesh)
  */
 void get_unknown_component(dvector* u,dvector* ublock,block_fespace *FE,INT comp)
 {
-  int i;
+  INT i=0;
   INT entry = 0;
 
   for(i=0;i<comp;i++) {
@@ -844,7 +677,7 @@ void get_unknown_component(dvector* u,dvector* ublock,block_fespace *FE,INT comp
  */
 void set_unknown_component(dvector* u,dvector* ublock,block_fespace *FE,INT comp)
 {
-  int i;
+  INT i=0;
   INT entry = 0;
 
   for(i=0;i<comp;i++) {
@@ -869,7 +702,7 @@ void set_unknown_component(dvector* u,dvector* ublock,block_fespace *FE,INT comp
  *        Ordering determined by edge to node map: bigger node is +1 smaller is -1
  *
  * \param Grad	     dCSRmat matrix that takes the gradient of an H1 approximation
- * \param mesh         Mesh data
+ * \param mesh       Mesh data
  *
  * \note This only makes sense for P1 elements and for dimensions 2 or 3.
  *
@@ -897,7 +730,7 @@ void get_grad_H1toNed(dCSRmat* Grad,mesh_struct* mesh)
 
   for (i=0; i<nedge; i++) {
     oneoverlen = 1.0/(mesh->ed_len[i]);
-    rowa = mesh->ed_v->IA[i]-1;
+    rowa = mesh->ed_v->IA[i];
     j = mesh->ed_v->JA[rowa];
     k = mesh->ed_v->JA[rowa+1];
     if(j>k) {
@@ -962,20 +795,20 @@ void get_curl_NedtoRT(dCSRmat* Curl,mesh_struct* mesh)
     vec3[1] = mesh->f_norm[i*mydim+1];
     vec3[2] = mesh->f_norm[i*mydim+2];
     // Get nodes of Face
-    rowa = mesh->f_v->IA[i]-1;
-    rowb = mesh->f_v->IA[i+1]-1;
+    rowa = mesh->f_v->IA[i];
+    rowb = mesh->f_v->IA[i+1];
     jcntr=0;
     for(j=rowa;j<rowb;j++) {
       inf[jcntr] = mesh->f_v->JA[j];
       jcntr++;
     }
     // Get edges of face
-    rowa = mesh->f_ed->IA[i]-1;
-    rowb = mesh->f_ed->IA[i+1]-1;
+    rowa = mesh->f_ed->IA[i];
+    rowb = mesh->f_ed->IA[i+1];
     for(j=rowa;j<rowb;j++) {
       k = mesh->f_ed->JA[j];
       // Get nodes of edge
-      col_a = mesh->ed_v->IA[k-1]-1;
+      col_a = mesh->ed_v->IA[k];
       nd1 = mesh->ed_v->JA[col_a];
       nd2 = mesh->ed_v->JA[col_a+1];
       // Determine what other node on face is
@@ -984,12 +817,12 @@ void get_curl_NedtoRT(dCSRmat* Curl,mesh_struct* mesh)
           nd3 = inf[s];
         }
       }
-      vec1[0] = mesh->cv->x[nd1-1]-mesh->cv->x[nd3-1];
-      vec2[0] = mesh->cv->x[nd2-1]-mesh->cv->x[nd3-1];
-      vec1[1] = mesh->cv->y[nd1-1]-mesh->cv->y[nd3-1];
-      vec2[1] = mesh->cv->y[nd2-1]-mesh->cv->y[nd3-1];
-      vec1[2] = mesh->cv->z[nd1-1]-mesh->cv->z[nd3-1];
-      vec2[2] = mesh->cv->z[nd2-1]-mesh->cv->z[nd3-1];
+      vec1[0] = mesh->cv->x[nd1]-mesh->cv->x[nd3];
+      vec2[0] = mesh->cv->x[nd2]-mesh->cv->x[nd3];
+      vec1[1] = mesh->cv->y[nd1]-mesh->cv->y[nd3];
+      vec2[1] = mesh->cv->y[nd2]-mesh->cv->y[nd3];
+      vec1[2] = mesh->cv->z[nd1]-mesh->cv->z[nd3];
+      vec2[2] = mesh->cv->z[nd2]-mesh->cv->z[nd3];
       if(nd1>nd2) {
         det3D(&mydet,vec2,vec1,vec3);
       } else {
@@ -1005,10 +838,10 @@ void get_curl_NedtoRT(dCSRmat* Curl,mesh_struct* mesh)
 
   // K -> Df^(-1) K De
   for(i=0;i<nface;i++) {
-    rowa = mesh->f_ed->IA[i]-1;
-    rowb = mesh->f_ed->IA[i+1]-1;
+    rowa = mesh->f_ed->IA[i];
+    rowb = mesh->f_ed->IA[i+1];
     for(j=rowa;j<rowb;j++) {
-      k = mesh->f_ed->JA[j]-1;
+      k = mesh->f_ed->JA[j];
       Ktmp.val[j] = (1.0/(mesh->f_area[i]))*( (REAL) Ktmp.val[j])*(mesh->ed_len[k]);
     }
   }
@@ -1049,7 +882,7 @@ void get_div_RTtoL2(dCSRmat* Div,mesh_struct* mesh)
   // We will need the face to element map as well
   // Each face will have two elements (or one if on boundary).
   iCSRmat f_el;
-  icsr_trans_1(mesh->el_f,&f_el);
+  icsr_trans(mesh->el_f,&f_el);
 
   Dtmp.row = mesh->el_f->row;
   Dtmp.col = mesh->el_f->col;
@@ -1068,20 +901,20 @@ void get_div_RTtoL2(dCSRmat* Div,mesh_struct* mesh)
   for (i=0; i<nelm; i++) {
     oneovervol = 1.0/(mesh->el_vol[i]);
     // Get faces of element
-    rowa = mesh->el_f->IA[i]-1;
-    rowb = mesh->el_f->IA[i+1]-1;
+    rowa = mesh->el_f->IA[i];
+    rowb = mesh->el_f->IA[i+1];
     for(j=rowa;j<rowb;j++) {
-      face = mesh->el_f->JA[j]-1;
+      face = mesh->el_f->JA[j];
       farea = mesh->f_area[face];
       // Get elements of face
-      rowc = f_el.IA[face]-1;
-      rowd = f_el.IA[face+1]-1;
+      rowc = f_el.IA[face];
+      rowd = f_el.IA[face+1];
       n_felm = rowd-rowc;
       if(n_felm==1)
         Dtmp.val[j] = farea*oneovervol;
       else if(n_felm==2) {
-        elm1 = f_el.JA[rowc]-1;
-        elm2 = f_el.JA[rowc+1]-1;
+        elm1 = f_el.JA[rowc];
+        elm2 = f_el.JA[rowc+1];
         elm_big = MAX(elm1,elm2);
         if(i==elm_big)
           Dtmp.val[j] = -farea*oneovervol;
@@ -1131,34 +964,34 @@ void get_Pigrad_H1toNed(dCSRmat* Pgrad,mesh_struct* mesh)
 
   for (i=0; i<nedge; i++) {
     oneoverlen = 1.0/(mesh->ed_len[i]);
-    rowa = mesh->ed_v->IA[i]-1;
-    Ptmp.IA[i] = rowa+1 + i*(dim-1)*2;
-    cola = Ptmp.IA[i]-1;
+    rowa = mesh->ed_v->IA[i];
+    Ptmp.IA[i] = rowa + i*(dim-1)*2;
+    cola = Ptmp.IA[i];
     j = mesh->ed_v->JA[rowa];
     k = mesh->ed_v->JA[rowa+1];
     if(j>k) {
-      xL = 0.5*oneoverlen*((mesh->cv->x[j-1])-(mesh->cv->x[k-1]));
-      yL = 0.5*oneoverlen*((mesh->cv->y[j-1])-(mesh->cv->y[k-1]));
+      xL = 0.5*oneoverlen*((mesh->cv->x[j])-(mesh->cv->x[k]));
+      yL = 0.5*oneoverlen*((mesh->cv->y[j])-(mesh->cv->y[k]));
       if(dim==3)
-        zL = 0.5*oneoverlen*((mesh->cv->z[j-1])-(mesh->cv->z[k-1]));
+        zL = 0.5*oneoverlen*((mesh->cv->z[j])-(mesh->cv->z[k]));
     } else {
-      xL = 0.5*oneoverlen*((mesh->cv->x[k-1])-(mesh->cv->x[j-1]));
-      yL = 0.5*oneoverlen*((mesh->cv->y[k-1])-(mesh->cv->y[j-1]));
+      xL = 0.5*oneoverlen*((mesh->cv->x[k])-(mesh->cv->x[j]));
+      yL = 0.5*oneoverlen*((mesh->cv->y[k])-(mesh->cv->y[j]));
       if(dim==3)
-        zL = 0.5*oneoverlen*((mesh->cv->z[k-1])-(mesh->cv->z[j-1]));
+        zL = 0.5*oneoverlen*((mesh->cv->z[k])-(mesh->cv->z[j]));
     }
-    Ptmp.JA[cola] = (j-1)*dim+1;
+    Ptmp.JA[cola] = j*dim;
     Ptmp.val[cola] = xL;
-    Ptmp.JA[cola+dim] = (k-1)*dim+1;
+    Ptmp.JA[cola+dim] = k*dim;
     Ptmp.val[cola+dim] = xL;
-    Ptmp.JA[cola+1] = (j-1)*dim+2;
+    Ptmp.JA[cola+1] = j*dim+1;
     Ptmp.val[cola+1] = yL;
-    Ptmp.JA[cola+dim+1] = (k-1)*dim+2;
+    Ptmp.JA[cola+dim+1] = k*dim+1;
     Ptmp.val[cola+dim+1] = yL;
     if(dim==3) {
-      Ptmp.JA[cola+2] = (j-1)*dim+3;
+      Ptmp.JA[cola+2] = j*dim+2;
       Ptmp.val[cola+2] = zL;
-      Ptmp.JA[cola+dim+2] = (k-1)*dim+3;
+      Ptmp.JA[cola+dim+2] = k*dim+2;
       Ptmp.val[cola+dim+2] = zL;
     }
   }
@@ -1190,7 +1023,6 @@ void get_Pigrad_H1toRT( dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl, mesh_struc
   INT begin_row,end_row;
   INT nface = mesh->nface;
   INT nedge = mesh->nedge;
-  //INT nvert = mesh->nv;
   INT dim = mesh->dim;
 
   REAL temp1;
@@ -1201,7 +1033,7 @@ void get_Pigrad_H1toRT( dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl, mesh_struc
 
   Ptmp.row = mesh->f_v->row;
   Ptmp.col = (mesh->f_v->col)*dim;
-  Ptmp.nnz = (mesh->f_v->nnz)*dim;// ((dim+1)*nface)*dim
+  Ptmp.nnz = (mesh->f_v->nnz)*dim;
   Ptmp.IA = (INT *) calloc(Ptmp.row+1,sizeof(INT));
   Ptmp.JA = (INT *) calloc(Ptmp.nnz,sizeof(INT));
   Ptmp.val = (REAL *) calloc(Ptmp.nnz,sizeof(REAL));
@@ -1213,10 +1045,10 @@ void get_Pigrad_H1toRT( dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl, mesh_struc
   REAL* PcurlX = (REAL*)calloc(nedge,sizeof(REAL));
 
   for(i=0; i<nedge; i++) {
-    rowa = mesh->ed_v->IA[i]-1;
-    v1 = mesh->ed_v->JA[rowa]-1;
-    v2 = mesh->ed_v->JA[rowa+1]-1;
-    cola = Pcurl->IA[i]-1;
+    rowa = mesh->ed_v->IA[i];
+    v1 = mesh->ed_v->JA[rowa];
+    v2 = mesh->ed_v->JA[rowa+1];
+    cola = Pcurl->IA[i];
     PcurlY[i] = (mesh->cv->y[v1])*(Pcurl->val[cola])   + (mesh->cv->y[v2])*(Pcurl->val[cola+dim]);
     PcurlZ[i] = (mesh->cv->z[v1])*(Pcurl->val[cola+1]) + (mesh->cv->z[v2])*(Pcurl->val[cola+dim+1]);
     PcurlX[i] = (mesh->cv->x[v1])*(Pcurl->val[cola+2]) + (mesh->cv->x[v2])*(Pcurl->val[cola+dim+2]);
@@ -1244,8 +1076,8 @@ void get_Pigrad_H1toRT( dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl, mesh_struc
     temp2 = 0.0;
     temp3 = 0.0;
     //TODO: check if Curl and PcurlX is indexed correctly to do this.
-    begin_row = Curl->IA[i]-1;
-    end_row = Curl->IA[i+1]-1;
+    begin_row = Curl->IA[i];
+    end_row = Curl->IA[i+1];
     for(j=begin_row; j<end_row; j++){
       temp1 += -(Curl->val[j])*PcurlZ[Curl->JA[j]];
       temp2 += -(Curl->val[j])*PcurlX[Curl->JA[j]];
@@ -1258,7 +1090,7 @@ void get_Pigrad_H1toRT( dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl, mesh_struc
 //    temp1 = temp1 / mesh->f_area[i];
 //    temp2 = temp2 / mesh->f_area[i];
 //    temp3 = temp3 / mesh->f_area[i];
-    
+
     //printf("F_norm(%f,%f,%f)\ttemp(%f,%f,%f)\n",mesh->f_norm[i*dim],mesh->f_norm[i*dim+1],mesh->f_norm[i*dim+2],temp1,temp2,temp3);
 
     //temp1 = mesh->f_area[i]*mesh->f_norm[i*dim+0]/3;
@@ -1269,36 +1101,36 @@ void get_Pigrad_H1toRT( dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl, mesh_struc
     temp3 = mesh->f_norm[i*dim+2]/3;
 
     // Build Pdiv
-    rowa = mesh->f_v->IA[i]-1;
-    Ptmp.IA[i] = rowa+1 + i*3*(dim-1);
-    cola = Ptmp.IA[i]-1;
+    rowa = mesh->f_v->IA[i];
+    Ptmp.IA[i] = rowa + i*3*(dim-1);
+    cola = Ptmp.IA[i];
 
     v1 = mesh->f_v->JA[rowa];
     v2 = mesh->f_v->JA[rowa+1];
     v3 = mesh->f_v->JA[rowa+2];
 
-    Ptmp.JA[cola]       = (v1-1)*dim+1;
+    Ptmp.JA[cola]       = v1*dim;
     Ptmp.val[cola]      = temp1;
-    Ptmp.JA[cola+dim]   = (v2-1)*dim+1;
+    Ptmp.JA[cola+dim]   = v2*dim;
     Ptmp.val[cola+dim]  = temp1;
-    Ptmp.JA[cola+2*dim] = (v3-1)*dim+1;
+    Ptmp.JA[cola+2*dim] = v3*dim;
     Ptmp.val[cola+2*dim]= temp1;
 
-    Ptmp.JA[cola+1]       = (v1-1)*dim+2;
+    Ptmp.JA[cola+1]       = v1*dim+1;
     Ptmp.val[cola+1]      = temp2;
-    Ptmp.JA[cola+dim+1]   = (v2-1)*dim+2;
+    Ptmp.JA[cola+dim+1]   = v2*dim+1;
     Ptmp.val[cola+dim+1]  = temp2;
-    Ptmp.JA[cola+2*dim+1] = (v3-1)*dim+2;
+    Ptmp.JA[cola+2*dim+1] = v3*dim+1;
     Ptmp.val[cola+2*dim+1]= temp2;
 
-    Ptmp.JA[cola+2]       = (v1-1)*dim+3;
+    Ptmp.JA[cola+2]       = v1*dim+2;
     Ptmp.val[cola+2]      = temp3;
-    Ptmp.JA[cola+dim+2]   = (v2-1)*dim+3;
+    Ptmp.JA[cola+dim+2]   = v2*dim+2;
     Ptmp.val[cola+dim+2]  = temp3;
-    Ptmp.JA[cola+2*dim+2] = (v3-1)*dim+3;
+    Ptmp.JA[cola+2*dim+2] = v3*dim+2;
     Ptmp.val[cola+2*dim+2]= temp3;
   }
-  Ptmp.IA[nface] = Ptmp.nnz+1;
+  Ptmp.IA[nface] = Ptmp.nnz;
 
   *Pdiv = Ptmp;
 
@@ -1354,7 +1186,7 @@ void ProjectOut_Grad(dvector* u,fespace* FE_H1,fespace* FE_Ned,mesh_struct* mesh
 
   // Multiply by Gradient
   dvector gradp = dvec_create(mesh->nedge);
-  dcsr_mxv_1(G,p.val,gradp.val);
+  dcsr_mxv(G,p.val,gradp.val);
 
   // Update E
   dvec_axpy(-1.0,&gradp,u);
