@@ -6,6 +6,8 @@
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  * \note modified by James Adler 11/14/2016
+ * \note Updated on 11/3/2018 for 0-1 fix.
+ *
  */
 
 #include "hazmath.h"
@@ -194,13 +196,8 @@ qcoordinates* get_quadrature(mesh_struct *mesh,INT nq1d)
     for (j=0; j<nq; j++) {
       cq_all->x[i*nq+j] = cqelm->x[j];
       cq_all->w[i*nq+j] = cqelm->w[j];
-      if(dim==2) {
-        cq_all->y[i*nq+j] = cqelm->y[j];
-      }
-      if(dim==3) {
-        cq_all->y[i*nq+j] = cqelm->y[j];
-        cq_all->z[i*nq+j] = cqelm->z[j];
-      }
+      if(dim>1) cq_all->y[i*nq+j] = cqelm->y[j];
+      if(dim>2) cq_all->z[i*nq+j] = cqelm->z[j];
     }
   }
 
@@ -265,9 +262,8 @@ void quad_elm(qcoordinates *cqelm,mesh_struct *mesh,INT nq1d,INT elm)
   // Get coordinates of vertices for given element
   if(dim==1) {
     for (j=0; j<v_per_elm; j++) {
-      cvelm->x[j] = mesh->cv->x[thiselm_v[j]-1];
+      cvelm->x[j] = mesh->cv->x[thiselm_v[j]];
     }
-
     voldim = 0.5*e_vol;
 
     // Get Quad Nodes and Weights
@@ -283,10 +279,9 @@ void quad_elm(qcoordinates *cqelm,mesh_struct *mesh,INT nq1d,INT elm)
     }
   } else if(dim==2) {
     for (j=0; j<v_per_elm; j++) {
-      cvelm->x[j] = mesh->cv->x[thiselm_v[j]-1];
-      cvelm->y[j] = mesh->cv->y[thiselm_v[j]-1];
+      cvelm->x[j] = mesh->cv->x[thiselm_v[j]];
+      cvelm->y[j] = mesh->cv->y[thiselm_v[j]];
     }
-
     voldim = 2.0*e_vol;
 
     // Get Quad Nodes and Weights
@@ -305,11 +300,10 @@ void quad_elm(qcoordinates *cqelm,mesh_struct *mesh,INT nq1d,INT elm)
     }
   } else if(dim==3) {
     for (j=0; j<v_per_elm; j++) {
-      cvelm->x[j] = mesh->cv->x[thiselm_v[j]-1];
-      cvelm->y[j] = mesh->cv->y[thiselm_v[j]-1];
-      cvelm->z[j] = mesh->cv->z[thiselm_v[j]-1];
+      cvelm->x[j] = mesh->cv->x[thiselm_v[j]];
+      cvelm->y[j] = mesh->cv->y[thiselm_v[j]];
+      cvelm->z[j] = mesh->cv->z[thiselm_v[j]];
     }
-
     voldim = 6.0*e_vol;
 
     // Get Quad Nodes and Weights
@@ -483,14 +477,14 @@ void quad_edgeface(qcoordinates *cqbdry,mesh_struct *mesh,INT nq1d,INT dof,INT e
   get_incidence_row(dof,dof_v,thisdof_v);
   if(dim==2) {
     for (j=0; j<dim; j++) {
-      cvdof->x[j] = mesh->cv->x[thisdof_v[j]-1];
-      cvdof->y[j] = mesh->cv->y[thisdof_v[j]-1];
+      cvdof->x[j] = mesh->cv->x[thisdof_v[j]];
+      cvdof->y[j] = mesh->cv->y[thisdof_v[j]];
     }
   } else if(dim==3){
     for (j=0; j<e_or_f+1; j++) {
-      cvdof->x[j] = mesh->cv->x[thisdof_v[j]-1];
-      cvdof->y[j] = mesh->cv->y[thisdof_v[j]-1];
-      cvdof->z[j] = mesh->cv->z[thisdof_v[j]-1];
+      cvdof->x[j] = mesh->cv->x[thisdof_v[j]];
+      cvdof->y[j] = mesh->cv->y[thisdof_v[j]];
+      cvdof->z[j] = mesh->cv->z[thisdof_v[j]];
     }
   } else {
     status = ERROR_DIM;
@@ -626,7 +620,7 @@ void dump_qcoords(qcoordinates *q)
  * \brief Integrate a given scalar function over an element
  *
  * \param expr   Function to be integrated
- * \param nq1d   Number of quadrature points per direction (2*nq1d-1 is order of quadrature)
+ * \param nq1d   Number of quadrature points per direction (2*nq1d-1 is order of quadrature) 1 = Midpoint Rule
  * \param cq     Precomputed quadrature points and weights
  * \param mesh   Mesh Information
  * \param time   If needed for function
@@ -694,16 +688,15 @@ REAL integrate_elm(void (*expr)(REAL *,REAL *,REAL,void *),INT nq1d,qcoordinates
 
 /*********************************************************************************/
 /*!
- * \fn REAL integrate_domain(void (*expr)(REAL *,REAL *,REAL,void *),INT nq1d,qcoordinates *cq,mesh_struct *mesh,REAL time
+ * \fn REAL integrate_domain(void (*expr)(REAL *,REAL *,REAL,void *),INT nq1d,qcoordinates *cq,mesh_struct *mesh,REAL time)
  *
  * \brief Integrate a given scalar function over the entire mesh
  *
  * \param expr   Function to be integrated
- * \param nq1d   Number of quadrature points per direction (2*nq1d-1 is order of quadrature)
+ * \param nq1d   Number of quadrature points per direction (2*nq1d-1 is order of quadrature) 1 = Midpoint Rule
  * \param cq     Precomputed quadrature points and weights
  * \param mesh   Mesh Information
  * \param time   If needed for function
- * \param elm    Element to integrate over (assumes counting at 0)
  *
  * \return integral Integral of scalar function over domain
  *
