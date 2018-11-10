@@ -21,7 +21,7 @@ TYPE 'make help' for more information.
 )
 endif()
 
-# Helper modules.
+# include helper modules
 include(CheckFunctionExists)
 include(CheckIncludeFile)
 
