@@ -43,7 +43,7 @@ static void build_linear_R (dCSRmat *R,
     // allocate memory for R
     R->row = nc1d;
     R->col = nf1d;
-    R->nnz = nc1d*nc1d; //TODO: FIX THIS
+    R->nnz = (nc1d-2)*(nc1d-2)*7 + 2*3 + 2*4 + 4*(nc1d-2)*5; //TODO: Check THIS
     R->IA  = (INT *)calloc(R->row+1,sizeof(INT));
     R->JA  = (INT *)calloc(R->nnz, sizeof(INT));
     R->val = (REAL *)calloc(R->nnz, sizeof(REAL));
@@ -132,7 +132,7 @@ static void build_linear_R (dCSRmat *R,
                 val[i+jstart] = stencil[i+2];
             }
             jstart = jstart+5; // Update where we start filling val from
-        }else if( cj == nc1d ){
+        }else if( cj == nc1d-1 ){
             JA[0+jstart] = fdof-nf1d;
             JA[1+jstart] = fdof-nf1d+1;
             JA[2+jstart] = fdof-1;
@@ -203,12 +203,14 @@ static void build_constant_R (dCSRmat *R,
     INT *JA  = R->JA;
     INT *IA  = R->IA;
 
+    // This loops over the coarse and fine elements. Don't question it.
     for(cj = 0; cj<nc1d; cj++){
-      for(ci = 0; ci<nc1d; ci=ci+2){
+      for(ci = 0; ci<nc1d*2; ci=ci+2){
+        // Lower Triangle and upper triangle box
         cdof = ci + cj*nc1d*2; // TODO: check this
 
         // Lower Triangle
-        fdof = ci*4 + cj*nf1d*4; // TODO: check this
+        fdof = ci*2 + cj*nf1d*4; // TODO: check this
         //Fill
         JA[0+jstart] = fdof;
         JA[1+jstart] = fdof+1;
@@ -222,9 +224,9 @@ static void build_constant_R (dCSRmat *R,
 
         // Upper Triangle
         cdof = cdof+1;
-        fdof = fdof+nf1d+3;
+        fdof = fdof+nf1d*2+3;
         //Fill
-        JA[0+jstart] = fdof-nf1d-2;
+        JA[0+jstart] = fdof-nf1d*2-2;
         JA[1+jstart] = fdof-2;
         JA[2+jstart] = fdof-1;
         JA[3+jstart] = fdof;
@@ -268,6 +270,7 @@ static void build_face_R (dCSRmat *R,
     INT felmList[8];
     INT jstart=0;
     INT index;
+    INT locFaceId;
     // nf1d is number of elements we would have in 1d (number of vertices in 1d minus 1)
 
     INT rowa;
@@ -333,6 +336,7 @@ static void build_face_R (dCSRmat *R,
           get_incidence_row(celm,cmesh->el_f,f_on_elm);
           rowa = cmesh->el_f->IA[celm]-1;
           rowb = cmesh->el_f->IA[celm+1]-1;
+          locFaceId = 0;
           for(j=rowa;j<rowb;j++){
             cface = cmesh->el_f->JA[j]-1;
             // Get Fine DOF
@@ -345,13 +349,15 @@ static void build_face_R (dCSRmat *R,
               x[0] = fmesh->f_mid[fface*dim];
               x[1] = fmesh->f_mid[fface*dim+1];
               rt_basis(phi,dphi,x,v_on_elm,f_on_elm,cmesh);
-              for(i=0;i<dim;i++) value += fmesh->f_norm[fface*dim+i]*phi[i];
-              //printf("This is dumb, the value is %f\n",value);
-              printf("%5d\t%5d\t%f\n",cface,fface,value);
+              for(i=0;i<dim;i++) value += fmesh->f_norm[fface*dim+i]*phi[locFaceId*dim+i];
+              value = value * fmesh->f_area[fface] / cmesh->f_area[cface];
+              // TODO: normalize this midpoint rule based on face area (should be a ratio between coarse and fine or something like that)
+              printf("%5d\t%5d\t%f\t\t\t%f, %f\t%d\n",cface,fface,value,x[0],x[1],locFaceId);
 //              I[index] = cface;
 //              J[index] = fface;
 //              V[index] = value;
             }
+            locFaceId++;
           }
         }
       }
@@ -422,10 +428,138 @@ INT gmg_setup_RT0(trimesh* fine_level_mesh)
     // Setup for next loop
   }
 
+  // Free mesh
+  for(i=1;i<max_levels;i++){
+    free_mesh(meshHeirarchy[i]);
+  }
+  free(meshHeirarchy);
+
   return 0;
 
 }
 
+/***********************************************************************************************/
+/***********************************************************************************************/
+/***********************************************************************************************/
+/**
+ * \fn static SHORT gmg_setup_lazy (AMG_data *mgl, AMG_param *param)
+ *
+ * \brief Setup phase of plain aggregation AMG, using unsmoothed P and unsmoothed A
+ *
+ * \param mgl    Pointer to AMG_data
+ * \param param  Pointer to AMG_param
+ *
+ * \return       SUCCESS if succeed, error otherwise
+ *
+ * \author Xiaozhe Hu
+ * \date   02/21/2011
+ *
+ */
+static SHORT gmg_setup_lazy(AMG_data *mgl,
+                            AMG_param *param)
+{
+    // local variables
+    const SHORT prtlvl     = param->print_level;
+    const SHORT cycle_type = param->cycle_type;
+    const SHORT csolver    = param->coarse_solver;
+    const SHORT min_cdof   = MAX(param->coarse_dof,50);
+    const INT   m          = mgl[0].A.row;
+
+    // local variables
+    SHORT         max_levels = param->max_levels, lvl = 0, status = SUCCESS;
+    INT           i;
+    REAL          setup_start, setup_end;
+    Schwarz_param swzparam;
+
+    get_time(&setup_start);
+
+    // each level stores the information of the number of aggregations
+    INT *num_aggs = (INT *)calloc(max_levels,sizeof(INT)); //TODO: probs replace with num coarse nodes or elm
+
+    // Initialize level information
+    for ( i = 0; i < max_levels; ++i ) num_aggs[i] = 0;
+
+#if DIAGONAL_PREF
+    dcsr_diagpref(&mgl[0].A); // reorder each row to make diagonal appear first
+#endif
+
+    /*----------------------------*/
+    /*--- checking aggregation ---*/
+    /*----------------------------*/
+    // Main AMG setup loop
+    while ( (mgl[lvl].A.row > min_cdof) && (lvl < max_levels-1) ) {
+
+        /*-- Aggregation --*/
+
+        /*-- Form Prolongation --*/
+//        form_tentative_p(&vertices[lvl], &mgl[lvl].P, mgl[0].near_kernel_basis, lvl+1, num_aggs[lvl]);
+
+        // Check 2: Is coarse sparse too small?
+        if ( mgl[lvl].P.col < MIN_CDOF ) break;
+
+        /*-- Form restriction --*/
+        dcsr_trans(&mgl[lvl].P, &mgl[lvl].R);
+
+        /*-- Form coarse level stiffness matrix --*/
+        dcsr_rap_agg(&mgl[lvl].R, &mgl[lvl].A, &mgl[lvl].P, &mgl[lvl+1].A);
+                               
+        ++lvl;
+    }
+
+#if DIAGONAL_PREF
+    dcsr_diagpref(&mgl[lvl].A); // reorder each row to make diagonal appear first
+#endif
+
+    // Setup coarse level systems for direct solvers
+    switch (csolver) {
+
+#if WITH_SUITESPARSE
+        case SOLVER_UMFPACK: {
+            // Need to sort the matrix A for UMFPACK to work
+            dCSRmat Ac_tran;
+            dcsr_trans(&mgl[lvl].A, &Ac_tran);
+            // It is equivalent to do transpose and then sort
+            //     fasp_dcsr_trans(&mgl[lvl].A, &Ac_tran);
+            //     fasp_dcsr_sort(&Ac_tran);
+            dcsr_cp(&Ac_tran, &mgl[lvl].A);
+            dcsr_free(&Ac_tran);
+            mgl[lvl].Numeric = umfpack_factorize(&mgl[lvl].A, 0);
+            break;
+        }
+#endif
+        default:
+            // Do nothing!
+            break;
+    }
+
+    // setup total level number and current level
+    mgl[0].num_levels = max_levels = lvl+1;
+    mgl[0].w          = dvec_create(m);
+
+    for ( lvl = 1; lvl < max_levels; ++lvl) {
+        INT mm = mgl[lvl].A.row;
+        mgl[lvl].num_levels = max_levels;
+        mgl[lvl].b          = dvec_create(mm);
+        mgl[lvl].x          = dvec_create(mm);
+
+        mgl[lvl].cycle_type     = cycle_type; // initialize cycle type!
+
+        if ( cycle_type == NL_AMLI_CYCLE )
+            mgl[lvl].w = dvec_create(3*mm);
+        else
+            mgl[lvl].w = dvec_create(2*mm);
+    }
+
+    if ( prtlvl > PRINT_NONE ) {
+        get_time(&setup_end);
+        print_amg_complexity(mgl,prtlvl);
+        print_cputime("geometric multigrid setup", setup_end - setup_start);
+    }
+
+    free(num_aggs);
+
+    return status;
+}
 
 /***********************************************************************************************/
 SHORT gmg_setup (GMG_data *mgl,
