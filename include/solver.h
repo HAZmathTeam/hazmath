@@ -158,6 +158,64 @@ typedef struct {
 
 } AMG_data; /**< Data for AMG */
 
+/**
+ * \struct GMG_data
+ * \brief Data for AMG solvers
+ *
+ * \note This is needed for the AMG solver/preconditioner.
+ */
+typedef struct {
+
+    /* Geometric information */
+    trimesh *fine_level_mesh;
+
+    /* Level information */
+
+    //! max number of levels
+    SHORT max_levels;
+
+    //! number of levels in use <= max_levels
+    SHORT num_levels;
+
+    /* Problem information */
+    //! pointer to the matrix at level level_num
+    dCSRmat A;
+
+    //! restriction operator at level level_num
+    dCSRmat R;
+
+    //! prolongation operator at level level_num
+    dCSRmat P;
+
+    //! pointer to the right-hand side at level level_num
+    dvector b;
+
+    //! pointer to the iterative solution at level level_num
+    dvector x;
+
+    /* Extra information */
+    //! pointer to the numerical factorization from UMFPACK
+    void *Numeric;
+
+    //! dimension of the near kernel for SAMG
+    INT near_kernel_dim;
+
+    //! basis of near kernel space for SAMG
+    REAL **near_kernel_basis;
+
+    //! number of levels use Schwarz smoother
+    INT Schwarz_levels;
+
+    //! data of Schwarz smoother
+    Schwarz_data Schwarz;
+
+    //! Temporary work space
+    dvector w;
+
+    //! cycle type
+    INT cycle_type;
+
+} GMG_data; /**< Data for GMG */
 
 typedef struct {
 
