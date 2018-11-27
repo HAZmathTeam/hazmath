@@ -14,14 +14,13 @@
 
 /***********************************************************************************************/
 /**
- * \fn static void form_linear_R (dCSRmat *tentp,
- *                                ivector *vertices,
- *                                INT      levelNum)
+ * \fn static void build_linear_R (dCSRmat *tentp, INT nf1d, INT nc1d )
+ *
  * \brief Build tentative R for piecewise linear elements
  *
  * \param tentp              Pointer to the prolongation operators
- * \param vertices           Pointer to the aggregation of vertices
- * \param levelNum           Level number
+ * \param nf1d               Number of fine vertices in 1d
+ * \param nc1d               Number of coarse vertices in 1d
  *
  * \author Peter Ohm
  * \date   10/12/2018
@@ -30,8 +29,6 @@
  *
  */
 static void build_linear_R (dCSRmat *R,
-                           GMG_data mgl,
-                           GMG_param param,
                            INT      nf1d,
                            INT      nc1d)
 {
@@ -165,13 +162,14 @@ static void build_linear_R (dCSRmat *R,
 /***********************************************************************************************/
 /**
  * \fn static void build_constant_R (dCSRmat *tentp,
- *                                  INT     ndof
- *                                  INT     levelNum)
+ *                              INT      nf1d,
+ *                              INT      nc1d)
+ *
  * \brief Build tentative P for piecewise constant elements
  *
  * \param tentp              Pointer to the prolongation operators
- * \param ndof               number of degrees of freedom
- * \param levelNum           Level number
+ * \param nf1d               Number of fine vertices in 1d
+ * \param nc1d               Number of coarse vertices in 1d
  *
  * \author Peter Ohm
  * \date   10/12/2018
@@ -180,8 +178,6 @@ static void build_linear_R (dCSRmat *R,
  *
  */
 static void build_constant_R (dCSRmat *R,
-                             GMG_data mgl,
-                             GMG_param param,
                              INT      nf1d,
                              INT      nc1d)
 {
@@ -242,13 +238,17 @@ static void build_constant_R (dCSRmat *R,
 /***********************************************************************************************/
 /**
  * \fn static void build_face_R (dCSRmat *tentp,
- *                                  INT     ndof
- *                                  INT     levelNum)
- * \brief Build tentative P for piecewise constant elements
+ *                                  trimesh *fmesh,
+ *                                  trimesh *cmesh,
+ *                                  INT     nf1d,
+ *                                  INT     nc1d)
+ * \brief Build tentative P for RT0 elements
  *
  * \param tentp              Pointer to the prolongation operators
- * \param ndof               number of degrees of freedom
- * \param levelNum           Level number
+ * \param fmesh              Fine Trimesh
+ * \param cmesh              Coarse Trimesh
+ * \param nf1d               Number of fine elements in 1d (one less than the number of vertices in 1d)
+ * \param nc1d               Number of coarse elements in 1d (one less than the number of vertices in 1d)
  *
  * \author Peter Ohm
  * \date   10/12/2018
@@ -281,22 +281,17 @@ static void build_face_R (dCSRmat *R,
     // Basis stuff
     INT dim = fmesh->dim;
     REAL* x = (REAL *) calloc(dim,sizeof(REAL));
-    printf("Made it here, now we want to know if cmesh actually exists\n");
     REAL* phi = (REAL *) calloc(dim*cmesh->f_per_elm,sizeof(REAL));
-    printf("Made it here, so cmesh probably exists\n");
     REAL* dphi = (REAL *) calloc(cmesh->f_per_elm,sizeof(REAL));
     REAL value;
 
     INT* v_on_elm = (INT*)calloc(cmesh->v_per_elm,sizeof(INT));
-    printf("Doesn't look like a problem with v_per_elm\n");
     INT* f_on_elm = (INT*)calloc(cmesh->f_per_elm,sizeof(INT));
-    printf("Doesn't look like a problem with f_per_elm\n");
-
 
     //Garbage
     INT* I;
     INT* J;
-    INT* V;
+    REAL* V;
 
     // allocate memory for R
     R->row = nc1d;
@@ -306,6 +301,9 @@ static void build_face_R (dCSRmat *R,
     R->JA  = (INT *)calloc(R->nnz, sizeof(INT));
     R->val = (REAL *)calloc(R->nnz, sizeof(REAL));
 
+    I = (INT *)calloc(R->nnz,sizeof(INT));
+    J = (INT *)calloc(R->nnz,sizeof(INT));
+    V = (REAL *)calloc(R->nnz,sizeof(REAL));
     printf("We allocated all that crap. The loop is next.\n");
 
     REAL *val = R->val;
@@ -315,8 +313,8 @@ static void build_face_R (dCSRmat *R,
     for(cj = 0; cj<nc1d; cj++){
       for(ci = 0; ci<nc1d*2; ci=ci+2){
         // Lower Triangle and upper triangle box
-        celm = ci + cj*nc1d*2; // TODO: check this
-        felm = ci*2 + cj*nf1d*4; // TODO: check this
+        celm = ci + cj*nc1d*2;
+        felm = ci*2 + cj*nf1d*4;
         // Make list of all fine elms to loop over
         felmList[0] = felm;         // Lower
         felmList[1] = felm+1;       // Lower
@@ -349,13 +347,16 @@ static void build_face_R (dCSRmat *R,
               x[0] = fmesh->f_mid[fface*dim];
               x[1] = fmesh->f_mid[fface*dim+1];
               rt_basis(phi,dphi,x,v_on_elm,f_on_elm,cmesh);
+              // Midpoint Rule: \int phi_{coarse} n_{fine}
               for(i=0;i<dim;i++) value += fmesh->f_norm[fface*dim+i]*phi[locFaceId*dim+i];
+              // Scale midpoint rule based on face area and scale basis function by face area
               value = value * fmesh->f_area[fface] / cmesh->f_area[cface];
-              // TODO: normalize this midpoint rule based on face area (should be a ratio between coarse and fine or something like that)
+
               printf("%5d\t%5d\t%f\t\t\t%f, %f\t%d\n",cface,fface,value,x[0],x[1],locFaceId);
-//              I[index] = cface;
-//              J[index] = fface;
-//              V[index] = value;
+
+              I[index] = cface;
+              J[index] = fface;
+              V[index] = value;
             }
             locFaceId++;
           }
@@ -466,6 +467,7 @@ static SHORT gmg_setup_lazy(AMG_data *mgl,
     const INT   m          = mgl[0].A.row;
 
     // local variables
+    INT           nf1d, nc1d;
     SHORT         max_levels = param->max_levels, lvl = 0, status = SUCCESS;
     INT           i;
     REAL          setup_start, setup_end;
@@ -492,6 +494,9 @@ static SHORT gmg_setup_lazy(AMG_data *mgl,
         /*-- Aggregation --*/
 
         /*-- Form Prolongation --*/
+        nc1d = (nf1d-1)/2 + 1;
+        build_linear_R(&mgl[lvl].P,nf1d,nc1d);
+        // Check region type.
 //        form_tentative_p(&vertices[lvl], &mgl[lvl].P, mgl[0].near_kernel_basis, lvl+1, num_aggs[lvl]);
 
         // Check 2: Is coarse sparse too small?
