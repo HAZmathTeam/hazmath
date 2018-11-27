@@ -1107,3 +1107,66 @@ void HDerror_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),
   return;
 }
 /*******************************************************************************************************************************************************/
+/***************************************************************************/
+/*!
+ * \fn REAL energynorm_discrete(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq, void (*coeff)(REAL *,REAL *,REAL,void *),void (*local_assembly_routine)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL), REAL param)
+ *
+ * \brief Computes the matrix energy norm of a FE approximation using the local matrix
+ *        assembly for any type of element.
+ *
+ * \param u 	    				Numerical Solution at DOF
+ * \param FE      					FE Space
+ * \param mesh    					Mesh Data
+ * \param cq     					Quadrature Nodes
+ * \param coeff   					PDE coefficients
+ * \param local_assembly_routine	local assembly routine for LHS matrix (stiffness/mass matrix)
+ * \param param						extra real param needed by local assemble (could be time)
+ *
+ * \return norm   					energy norm
+ *
+ */
+REAL energynorm_discrete(REAL *u,fespace *FE,trimesh *mesh,qcoordinates *cq, void (*coeff)(REAL *,REAL *,REAL,void *),void (*local_assembly_routine)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL), REAL param)
+{
+
+  INT i,j,k;
+  REAL sum = 0.0;
+
+  INT dof_per_elm = FE->dof_per_elm;
+  INT v_per_elm = mesh->v_per_elm;
+  INT local_size = dof_per_elm*dof_per_elm;
+  REAL* ALoc = calloc(local_size,sizeof(REAL));
+  INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
+  INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
+
+  // Loop over all Elements 
+  for (i=0; i<FE->nelm; i++) {
+
+    // Zero out local matrices
+    for (j=0; j<local_size; j++) ALoc[j] = 0.0;
+    
+    // Find DOF for given Element
+    get_incidence_row(i,FE->el_dof,dof_on_elm);
+
+    // Find Nodes for given Element if not H1 elements
+    get_incidence_row(i,mesh->el_v,v_on_elm);
+
+    // Compute Local Stiffness Matrix(operator associated with energy norm) for given Element
+    (*local_assembly_routine)(ALoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,coeff,param);
+
+	// Loop over DOF
+    for(j=0;j<dof_per_elm;j++) {
+      for(k=0;k<dof_per_elm;k++) { //compute u^T*A*u
+        sum+=u[dof_on_elm[j]-1]*ALoc[j*dof_per_elm+k]*u[dof_on_elm[k]-1];
+      }
+    }
+  }
+
+  if(ALoc) free(ALoc);
+  if(dof_on_elm) free(dof_on_elm);
+  if(v_on_elm) free(v_on_elm);
+
+  return sqrt(sum);
+} 
+
+/***************************************************************************/
+
