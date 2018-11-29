@@ -38,9 +38,9 @@ static void build_linear_R (dCSRmat *R,
     INT jstart=0;
 
     // allocate memory for R
-    R->row = nc1d;
-    R->col = nf1d;
-    R->nnz = (nc1d-2)*(nc1d-2)*7 + 2*3 + 2*4 + 4*(nc1d-2)*5; //TODO: Check THIS
+    R->row = nc1d*nc1d;
+    R->col = nf1d*nf1d;
+    R->nnz = (nc1d-2)*(nc1d-2)*7 + 2*3 + 2*4 + 4*(nc1d-2)*5;
     R->IA  = (INT *)calloc(R->row+1,sizeof(INT));
     R->JA  = (INT *)calloc(R->nnz, sizeof(INT));
     R->val = (REAL *)calloc(R->nnz, sizeof(REAL));
@@ -157,6 +157,17 @@ static void build_linear_R (dCSRmat *R,
         IA[cdof+1] = jstart;
       }//ci
     }//cj
+
+    //Test Print
+    //INT ja,jb;
+    //for(i=0; i<R->row; i++){
+    //    ja = IA[i];
+    //    jb = IA[i+1];
+    //    for(j=ja; j<jb; j++){
+    //        printf("%3d | %3d, %5f\n",i,R->JA[j],R->val[j]);
+    //    }
+    //}
+    //printf("nnz: %d\t jstart: %d\n",R->nnz,jstart);
 }
 
 /***********************************************************************************************/
@@ -168,13 +179,13 @@ static void build_linear_R (dCSRmat *R,
  * \brief Build tentative P for piecewise constant elements
  *
  * \param tentp              Pointer to the prolongation operators
- * \param nf1d               Number of fine vertices in 1d
- * \param nc1d               Number of coarse vertices in 1d
+ * \param nf1d               Number of fine elements in 1d (number of vertices on an edge - 1)
+ * \param nc1d               Number of coarse elements in 1d (number of vertices on an edge - 1)
  *
  * \author Peter Ohm
  * \date   10/12/2018
  *
- * \note Modified by Peter Ohm on 10/12/2018
+ * \note Modified by Peter Ohm on 11/29/2018
  *
  */
 static void build_constant_R (dCSRmat *R,
@@ -188,9 +199,9 @@ static void build_constant_R (dCSRmat *R,
     // nf1d is number of elements we would have in 1d (number of vertices in 1d minus 1)
 
     // allocate memory for R
-    R->row = nc1d;
-    R->col = nf1d;
-    R->nnz = nc1d*nc1d; //TODO: FIX THIS
+    R->row = nc1d*nc1d*2;
+    R->col = nf1d*nf1d*2;
+    R->nnz = nc1d*nc1d*2*4;
     R->IA  = (INT *)calloc(R->row+1,sizeof(INT));
     R->JA  = (INT *)calloc(R->nnz, sizeof(INT));
     R->val = (REAL *)calloc(R->nnz, sizeof(REAL));
@@ -199,40 +210,45 @@ static void build_constant_R (dCSRmat *R,
     INT *JA  = R->JA;
     INT *IA  = R->IA;
 
+    IA[0] = 0;
     // This loops over the coarse and fine elements. Don't question it.
     for(cj = 0; cj<nc1d; cj++){
       for(ci = 0; ci<nc1d*2; ci=ci+2){
-        // Lower Triangle and upper triangle box
-        cdof = ci + cj*nc1d*2; // TODO: check this
+        // Lower Triangle and Upper Triangle that share Diagonal
 
         // Lower Triangle
-        fdof = ci*2 + cj*nf1d*4; // TODO: check this
+        cdof = ci + cj*nc1d*2;
+        fdof = ci*2 + cj*nf1d*4;
         //Fill
         JA[0+jstart] = fdof;
         JA[1+jstart] = fdof+1;
         JA[2+jstart] = fdof+2;
-        JA[3+jstart] = fdof+nf1d;
+        JA[3+jstart] = fdof+nf1d*2;
         for(i=0; i<4; i++){
           val[i+jstart] = 1.0;
         }
         jstart = jstart+4;
         IA[cdof+1] = jstart;
 
+        //printf("C: %4d\tF:%4d, %4d, %4d, %4d\n",cdof,fdof,fdof+1,fdof+2,fdof+nf1d*2);
+
         // Upper Triangle
         cdof = cdof+1;
-        fdof = fdof+nf1d*2+3;
         //Fill
-        JA[0+jstart] = fdof-nf1d*2-2;
-        JA[1+jstart] = fdof-2;
-        JA[2+jstart] = fdof-1;
-        JA[3+jstart] = fdof;
+        JA[0+jstart] = fdof+3;
+        JA[1+jstart] = fdof+nf1d*2+1;
+        JA[2+jstart] = fdof+nf1d*2+2;
+        JA[3+jstart] = fdof+nf1d*2+3;
         for(i=0; i<4; i++){
           val[i+jstart] = 1.0;
         }
         jstart = jstart+4;
         IA[cdof+1] = jstart;
+
+        //printf("C: %4d\tF:%4d, %4d, %4d, %4d\n",cdof,fdof+3,fdof+nf1d*2+1,fdof+nf1d*2+2,fdof+nf1d*2+3);
       }
     }
+    //printf("Row: %d\tCol: %d\tnnz: %d\tIA.end = %d\t%d\n",R->row,R->col,R->nnz,cdof+1,jstart);
 }
 
 /***********************************************************************************************/
@@ -319,7 +335,7 @@ static void build_face_R (dCSRmat *R,
         felmList[0] = felm;         // Lower
         felmList[1] = felm+1;       // Lower
         felmList[2] = felm+2;       // Lower
-        felmList[3] = felm+nf1d*2;    // Lower
+        felmList[3] = felm+nf1d*2;    // Lower //TODO: the *2 is probably wrong. should  just be +nf1d
         felmList[4] = felm+3;       // Upper
         felmList[5] = felm+nf1d*2+1;  // Upper
         felmList[6] = felm+nf1d*2+2;  // Upper
@@ -424,7 +440,10 @@ INT gmg_setup_RT0(trimesh* fine_level_mesh)
     nc1d = cSize;
     printf("Let's build the Restriction\n");
     printf("Sizes are nf1d = %d, and nc1d = %d\n",nf1d, nc1d);
-    build_face_R(&R, meshHeirarchy[i], meshHeirarchy[i+1], nf1d, nc1d);
+
+    //build_constant_R (&R,nf1d,nc1d);
+    build_linear_R (&R,nf1d+1,nc1d+1);
+    //build_face_R(&R, meshHeirarchy[i], meshHeirarchy[i+1], nf1d, nc1d);
 
     // Setup for next loop
   }
