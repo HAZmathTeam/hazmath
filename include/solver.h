@@ -159,7 +159,7 @@ typedef struct {
 } AMG_data; /**< Data for AMG */
 
 /**
- * \struct GMG_data
+ * \struct GMG_blk_data
  * \brief Data for AMG solvers
  *
  * \note This is needed for the AMG solver/preconditioner.
@@ -168,6 +168,9 @@ typedef struct {
 
     /* Geometric information */
     trimesh *fine_level_mesh;
+
+    //! Geometric Type
+    INT *gmg_type;
 
     /* Level information */
 
@@ -179,13 +182,13 @@ typedef struct {
 
     /* Problem information */
     //! pointer to the matrix at level level_num
-    dCSRmat A;
+    block_dCSRmat A;
 
     //! restriction operator at level level_num
-    dCSRmat R;
+    block_dCSRmat R;
 
     //! prolongation operator at level level_num
-    dCSRmat P;
+    block_dCSRmat P;
 
     //! pointer to the right-hand side at level level_num
     dvector b;
@@ -215,7 +218,7 @@ typedef struct {
     //! cycle type
     INT cycle_type;
 
-} GMG_data; /**< Data for GMG */
+} GMG_blk_data; /**< Data for GMG */
 
 typedef struct {
 
