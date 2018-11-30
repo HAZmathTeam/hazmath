@@ -614,7 +614,7 @@ static SHORT gmg_blk_setup(GMG_blk_data *mgl,
 
     // local variables
     INT           nf1d, nc1d;
-    INT           brow;
+    INT           brow,m;
     INT           i,j;
     SHORT         max_levels = param->max_levels, lvl = 0, status = SUCCESS;
     REAL          setup_start, setup_end;
@@ -701,22 +701,29 @@ static SHORT gmg_blk_setup(GMG_blk_data *mgl,
     }
 
     // setup total level number and current level
+    m=0;
+    for(i=0; i<brow; i++){
+      m += mgl[0].A.blocks[i+i*brow]->row;
+    }
     mgl[0].num_levels = max_levels = lvl+1;
-//    mgl[0].w          = dvec_create(m);
+    mgl[0].w          = dvec_create(m);
 
-//    for ( lvl = 1; lvl < max_levels; ++lvl) {
-//        INT mm = mgl[lvl].A.row;
-//        mgl[lvl].num_levels = max_levels;
-//        mgl[lvl].b          = dvec_create(mm);
-//        mgl[lvl].x          = dvec_create(mm);
-//
-//        mgl[lvl].cycle_type     = cycle_type; // initialize cycle type!
-//
-//        if ( cycle_type == NL_AMLI_CYCLE )
-//            mgl[lvl].w = dvec_create(3*mm);
-//        else
-//            mgl[lvl].w = dvec_create(2*mm);
-//    }
+    for ( lvl = 1; lvl < max_levels; ++lvl) {
+        INT mm = 0;
+        for(i=0;i<brow;i++){
+            mm += mgl[lvl].A.blocks[i+i*brow]->row;
+        }
+        mgl[lvl].num_levels = max_levels;
+        mgl[lvl].b          = dvec_create(mm);
+        mgl[lvl].x          = dvec_create(mm);
+
+        mgl[lvl].cycle_type     = cycle_type; // initialize cycle type!
+
+        if ( cycle_type == NL_AMLI_CYCLE )
+            mgl[lvl].w = dvec_create(3*mm);
+        else
+            mgl[lvl].w = dvec_create(2*mm);
+    }
 
     if ( prtlvl > PRINT_NONE ) {
         get_time(&setup_end);
