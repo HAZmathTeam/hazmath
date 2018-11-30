@@ -585,8 +585,150 @@ static SHORT gmg_setup_lazy(AMG_data *mgl,
     return status;
 }
 
+
 /***********************************************************************************************/
-SHORT gmg_setup (GMG_data *mgl,
+/***********************************************************************************************/
+/***********************************************************************************************/
+/**
+ * \fn static SHORT gmg_blk_setup (GMG_blk_data *mgl, AMG_param *param)
+ *
+ * \brief Setup phase of plain aggregation AMG, using unsmoothed P and unsmoothed A
+ *
+ * \param mgl    Pointer to AMG_data
+ * \param param  Pointer to AMG_param
+ *
+ * \return       SUCCESS if succeed, error otherwise
+ *
+ * \author Xiaozhe Hu
+ * \date   02/21/2011
+ *
+ */
+static SHORT gmg_blk_setup(GMG_blk_data *mgl,
+                            AMG_param *param)
+{
+    // local variables
+    const SHORT prtlvl     = param->print_level;
+    const SHORT cycle_type = param->cycle_type;
+    const SHORT csolver    = param->coarse_solver;
+    const SHORT min_cdof   = MAX(param->coarse_dof,50);
+
+    // local variables
+    INT           nf1d, nc1d;
+    INT           brow;
+    INT           i,j;
+    SHORT         max_levels = param->max_levels, lvl = 0, status = SUCCESS;
+    REAL          setup_start, setup_end;
+    Schwarz_param swzparam;
+    
+    INT regionType = 0;
+    // To read from file
+    FILE* cgfid;
+    char cgridfile[500];
+
+    get_time(&setup_start);
+
+    /*-- Main GMG setup loop --*/
+    while ( lvl < max_levels-1 ) {
+      brow = mgl[lvl].A.brow;
+      /*-- Form restriction --*/
+      //TODO: Allocation of the block_csr matrix in mgl?
+      for(i=0; i<brow; i++){
+        //Check gmg type
+        switch( mgl[0].gmg_type[i] ) {
+          case 0://P0
+            nf1d = sqrt(mgl[lvl].A.blocks[i+i*brow]->row/2);
+            nc1d = (nf1d)/2;
+            build_constant_R( mgl[lvl].R.blocks[i+i*brow], nf1d, nc1d);
+            break;
+          case 1://P1
+            nf1d = sqrt(mgl[lvl].A.blocks[i+i*brow]->row);
+            nc1d = (nf1d-1)/2 + 1;
+            build_linear_R( mgl[lvl].R.blocks[i+i*brow], nf1d, nc1d);
+            break;
+          case 2://RT0
+            nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
+            nc1d = (nf1d)/2;
+            //Need to customize this to specific directory
+            sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",nc1d+1);
+            cgfid = HAZ_fopen(cgridfile,"r");
+            mgl[lvl+1].fine_level_mesh = (trimesh*)calloc(1, sizeof(trimesh));
+            initialize_mesh(mgl[lvl+1].fine_level_mesh);
+            creategrid_fread(cgfid,0,mgl[lvl+1].fine_level_mesh);
+            fclose(cgfid);
+            // Build Here
+            build_face_R( mgl[lvl].R.blocks[i+i*brow], mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
+            break;
+          default:
+            printf("### ERROR: Unknown geometric multigrid type: %d!\n",regionType);
+            break;
+        }// switch
+      }//for brow
+
+      /*-- Form Prolongation --*/
+      for(i=0; i<brow; i++){
+          dcsr_trans(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].P.blocks[i+i*brow]);
+      }
+      /*-- Form coarse level stiffness matrix --*/
+      for(i=0; i<brow; i++){
+        for(j=0; j<brow; j++){
+          dcsr_rap(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].A.blocks[i+j*brow], mgl[lvl].P.blocks[j+j*brow], mgl[lvl+1].A.blocks[i+j*brow]);
+        }//j
+      }//i
+                             
+      ++lvl;
+    } // lvl
+
+    // Setup coarse level systems for direct solvers
+    switch (csolver) {
+
+#if WITH_SUITESPARSE
+        case SOLVER_UMFPACK: {
+            // Need to sort the matrix A for UMFPACK to work
+            dCSRmat Ac_tran;
+//            dcsr_trans(&mgl[lvl].A, &Ac_tran);
+            // It is equivalent to do transpose and then sort
+            //     fasp_dcsr_trans(&mgl[lvl].A, &Ac_tran);
+            //     fasp_dcsr_sort(&Ac_tran);
+//            dcsr_cp(&Ac_tran, &mgl[lvl].A);
+//            dcsr_free(&Ac_tran);
+//            mgl[lvl].Numeric = umfpack_factorize(&mgl[lvl].A, 0);
+            break;
+        }
+#endif
+        default:
+            // Do nothing!
+            break;
+    }
+
+    // setup total level number and current level
+    mgl[0].num_levels = max_levels = lvl+1;
+//    mgl[0].w          = dvec_create(m);
+
+//    for ( lvl = 1; lvl < max_levels; ++lvl) {
+//        INT mm = mgl[lvl].A.row;
+//        mgl[lvl].num_levels = max_levels;
+//        mgl[lvl].b          = dvec_create(mm);
+//        mgl[lvl].x          = dvec_create(mm);
+//
+//        mgl[lvl].cycle_type     = cycle_type; // initialize cycle type!
+//
+//        if ( cycle_type == NL_AMLI_CYCLE )
+//            mgl[lvl].w = dvec_create(3*mm);
+//        else
+//            mgl[lvl].w = dvec_create(2*mm);
+//    }
+
+    if ( prtlvl > PRINT_NONE ) {
+        get_time(&setup_end);
+//        print_amg_complexity(mgl,prtlvl);
+        print_cputime("geometric multigrid setup", setup_end - setup_start);
+    }
+
+    return status;
+}
+
+/***********************************************************************************************/
+SHORT gmg_setup (AMG_data *mgl,
                  GMG_param *param)
 {
     SHORT status;
