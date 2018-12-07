@@ -8,10 +8,6 @@
 
 #include "hazmath.h"
 
-/*---------------------------------*/
-/*--      Private Functions      --*/
-/*---------------------------------*/
-
 /***********************************************************************************************/
 /**
  * \fn static void build_linear_R (dCSRmat *tentp, INT nf1d, INT nc1d )
@@ -28,7 +24,7 @@
  * \note Modified by Peter Ohm on 10/12/2018
  *
  */
-static void build_linear_R (dCSRmat *R,
+void build_linear_R (dCSRmat *R,
                            INT      nf1d,
                            INT      nc1d)
 {
@@ -172,7 +168,7 @@ static void build_linear_R (dCSRmat *R,
 
 /***********************************************************************************************/
 /**
- * \fn static void build_constant_R (dCSRmat *tentp,
+ * \fn void build_constant_R (dCSRmat *tentp,
  *                              INT      nf1d,
  *                              INT      nc1d)
  *
@@ -188,7 +184,7 @@ static void build_linear_R (dCSRmat *R,
  * \note Modified by Peter Ohm on 11/29/2018
  *
  */
-static void build_constant_R (dCSRmat *R,
+void build_constant_R (dCSRmat *R,
                              INT      nf1d,
                              INT      nc1d)
 {
@@ -253,7 +249,7 @@ static void build_constant_R (dCSRmat *R,
 
 /***********************************************************************************************/
 /**
- * \fn static void build_face_R (dCSRmat *tentp,
+ * \fn void build_face_R (dCSRmat *tentp,
  *                                  trimesh *fmesh,
  *                                  trimesh *cmesh,
  *                                  INT     nf1d,
@@ -272,7 +268,7 @@ static void build_constant_R (dCSRmat *R,
  * \note Modified by Peter Ohm on 10/12/2018
  *
  */
-static void build_face_R (dCSRmat *R,
+void build_face_R (dCSRmat *R,
                              trimesh  *fmesh,
                              trimesh  *cmesh,
                              INT      nf1d,
@@ -285,7 +281,7 @@ static void build_face_R (dCSRmat *R,
     INT fface, cface;
     INT felmList[8];
     INT jstart=0;
-    INT index;
+    INT index=0;
     INT locFaceId;
     // nf1d is number of elements we would have in 1d (number of vertices in 1d minus 1)
 
@@ -308,11 +304,12 @@ static void build_face_R (dCSRmat *R,
     INT* I;
     INT* J;
     REAL* V;
+    INT* IJfilled;
 
     // allocate memory for R
-    R->row = nc1d;
-    R->col = nf1d;
-    R->nnz = nc1d*nc1d; //TODO: FIX THIS
+    R->row = cmesh->nface;
+    R->col = fmesh->nface;
+    R->nnz = R->row*9; //TODO: FIX THIS
     R->IA  = (INT *)calloc(R->row+1,sizeof(INT));
     R->JA  = (INT *)calloc(R->nnz, sizeof(INT));
     R->val = (REAL *)calloc(R->nnz, sizeof(REAL));
@@ -320,6 +317,8 @@ static void build_face_R (dCSRmat *R,
     I = (INT *)calloc(R->nnz,sizeof(INT));
     J = (INT *)calloc(R->nnz,sizeof(INT));
     V = (REAL *)calloc(R->nnz,sizeof(REAL));
+    IJfilled = (INT *)calloc(R->col*R->row,sizeof(INT));//TODO:BAD!!!!!
+    for(i=0; i<R->row*R->col; i++) IJfilled[i] = -1; // Set all to -1 //TODO:BAD!!!!
     printf("We allocated all that crap. The loop is next.\n");
 
     REAL *val = R->val;
@@ -335,7 +334,7 @@ static void build_face_R (dCSRmat *R,
         felmList[0] = felm;         // Lower
         felmList[1] = felm+1;       // Lower
         felmList[2] = felm+2;       // Lower
-        felmList[3] = felm+nf1d*2;    // Lower //TODO: the *2 is probably wrong. should  just be +nf1d
+        felmList[3] = felm+nf1d*2;    // Lower
         felmList[4] = felm+3;       // Upper
         felmList[5] = felm+nf1d*2+1;  // Upper
         felmList[6] = felm+nf1d*2+2;  // Upper
@@ -343,7 +342,7 @@ static void build_face_R (dCSRmat *R,
         for(ii=0;ii<8;ii++){
           felm = felmList[ii];
           if(ii==4) celm = celm+1; // Switch to upper triangle
-          printf("coarse: %d\tfine: %d\n",celm,felm);
+          //printf("coarse: %d\tfine: %d\n",celm,felm);
 
           // Get Coarse DOF
           get_incidence_row(celm,cmesh->el_v,v_on_elm);
@@ -360,30 +359,54 @@ static void build_face_R (dCSRmat *R,
               fface = fmesh->el_f->JA[jj]-1;
               // Fill P
               value = 0.0;
+              // Evaluate coarse mesh basis function on fine mesh dof.
               x[0] = fmesh->f_mid[fface*dim];
               x[1] = fmesh->f_mid[fface*dim+1];
               rt_basis(phi,dphi,x,v_on_elm,f_on_elm,cmesh);
               // Midpoint Rule: \int phi_{coarse} n_{fine}
               for(i=0;i<dim;i++) value += fmesh->f_norm[fface*dim+i]*phi[locFaceId*dim+i];
               // Scale midpoint rule based on face area and scale basis function by face area
-              value = value * fmesh->f_area[fface] / cmesh->f_area[cface];
+              //value = value * fmesh->f_area[fface] / cmesh->f_area[cface];
+              // TODO: It works without the scaling (why? I don't know)
 
-              printf("%5d\t%5d\t%f\t\t\t%f, %f\t%d\n",cface,fface,value,x[0],x[1],locFaceId);
+              //printf("%5d\t%5d\t%f\t\t%f, %f\t%d\t%f, %f \t%f, %f\n",cface,fface,value,
+              //       fmesh->f_norm[fface*dim+0],fmesh->f_norm[fface*dim+1],locFaceId,
+              //       cmesh->f_norm[cface*dim+0],cmesh->f_norm[cface*dim+1],
+              //       phi[locFaceId*dim+0],phi[locFaceId*dim+1]);
 
-              I[index] = cface;
-              J[index] = fface;
-              V[index] = value;
+              if( IJfilled[cface*R->row + fface] == -1 ) {
+                IJfilled[cface*R->row + fface] = 1;
+                if(ABS(value) > 1e-8){
+                  //printf("Indexing|%3d\t%3d\n",cface,fface);
+                  I[index] = cface;
+                  J[index] = fface;
+                  V[index] = value;
+                  index++;
+                }
+              }
+
             }
             locFaceId++;
-          }
-        }
-      }
-    }
-}
+          }//j
+        }//ii
+      }//ci
+    }//cj
 
-/*---------------------------------*/
-/*--      Public Functions       --*/
-/*---------------------------------*/
+    //printf("index: %d\tnnz: %d\n",index,R->nnz);//TODO: Correct number of nnz in the matrix
+
+    // Fill the CSR matrix format
+    IA[0] = jstart;
+    for(cdof=0; cdof < R->row; cdof++){
+      for(ii=0;ii<index;ii++){
+        if(cdof == I[ii]){
+          JA[jstart] = J[ii];
+          val[jstart] = V[ii];
+          jstart++;
+        }
+      }//ii
+      IA[cdof+1] = jstart;
+    }//i
+}
 
 /***********************************************************************************************/
 /**
@@ -636,6 +659,7 @@ static SHORT gmg_blk_setup(GMG_blk_data *mgl,
         //Check gmg type
         switch( mgl[0].gmg_type[i] ) {
           case 0://P0
+              //TODO: check nf1d and nc1d calculations
             nf1d = sqrt(mgl[lvl].A.blocks[i+i*brow]->row/2);
             nc1d = (nf1d)/2;
             build_constant_R( mgl[lvl].R.blocks[i+i*brow], nf1d, nc1d);
