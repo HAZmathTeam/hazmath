@@ -609,6 +609,7 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fe
         //for(j=0;j<dim;j++) val[entry+i]+=mesh->f_area[i]*mesh->f_norm[i*dim+j]*valx[local_dim + j];
         for(j=0;j<dim;j++) val[entry+i]+=mesh->f_norm[i*dim+j]*valx[local_dim + j];
 
+        // Subtract off the linear part
         get_incidence_row(i,mesh->f_v,face_vertex);
         for (m=0;m<dim;m++) {
           x[0] = mesh->cv->x[face_vertex[m]-1];
