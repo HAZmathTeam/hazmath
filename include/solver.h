@@ -159,10 +159,10 @@ typedef struct {
 } AMG_data; /**< Data for AMG */
 
 /**
- * \struct GMG_blk_data
- * \brief Data for AMG solvers
+ * \struct MG_blk_data
+ * \brief Data for MG solvers
  *
- * \note This is needed for the AMG solver/preconditioner.
+ * \note This is needed for the MG solver/preconditioner.
  */
 typedef struct {
 
@@ -181,6 +181,9 @@ typedef struct {
     SHORT num_levels;
 
     /* Problem information */
+    //! number of FE spaces
+    INT num_spaces;
+
     //! pointer to the matrix at level level_num
     block_dCSRmat A;
 
@@ -206,6 +209,10 @@ typedef struct {
     //! basis of near kernel space for SAMG
     REAL **near_kernel_basis;
 
+    /* Smoother information */
+    //! Block diagional of A
+    dCSRmat *A_diag;
+
     //! number of levels use Schwarz smoother
     INT Schwarz_levels;
 
@@ -218,7 +225,7 @@ typedef struct {
     //! cycle type
     INT cycle_type;
 
-} GMG_blk_data; /**< Data for GMG */
+} MG_blk_data; /**< Data for block MG */
 
 typedef struct {
 
