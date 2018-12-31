@@ -36,7 +36,6 @@ subscomplex *haz_subscomplex_init(scomplex *sc);
 INT haz_refine_simplex(scomplex *sc, const INT is, const INT it);
 void faces_attr(subscomplex *subsc);
 void faces_cnt(subscomplex *subsc);
-void faces_attr(subscomplex *subsc);
 void vol_simplex(INT dim, REAL fact, REAL *xf, REAL *volt, void *wrk);
 void area_face(INT dim, REAL fact, REAL *xf, REAL *sn,	\
 	       REAL *areas,REAL *volt,			\
@@ -61,6 +60,22 @@ void scaleg(INT n, INT nv, REAL *xo, REAL *xn, REAL *x, REAL *scale);
 
 INT features_r(INT dimorig, INT use_features, features *feat, REAL vfill);
 INT features_w(features *feat, REAL *extra);
+
+/* marking */
+void markall(scomplex *sc);
+void markstar(scomplex *sc, dvector *w);
+unsigned int markeql(scomplex *sc, dvector *w);
+
+/* refinement */
+unsigned int reflect2(INT n, INT is, INT it,				\
+		      INT* sv1, INT *sv2, INT* stos1, INT* stos2,	\
+		      INT visited, INT *wrk);
+void abfstree(INT it, scomplex *sc,INT *wrk);
+void refining(INT ref_levels, scomplex *sc, INT nstar, REAL *xstar);
+INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar);
+void n_refine(INT ref_levels, scomplex *sc,dvector *dxstar); 
+void scfinalize(scomplex *sc);
+
 
 
 /* NOT USED void set_filenames (INT nlayers, const char *geofile) */
