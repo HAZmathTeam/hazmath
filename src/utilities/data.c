@@ -140,6 +140,35 @@ void amg_data_free(AMG_data *mgl,
 
 /***********************************************************************************************/
 /*!
+ * \fn MG_blk_data * mg_blk_data_create (SHORT max_levels)
+ *
+ * \brief Create MG_blk_data structure (but all values are 0 and pointers point to NULL)
+ *
+ * \param max_levels   Max number of levels allowed
+ *
+ * \return Pointer to the AMG_data structure
+ *
+ */
+MG_blk_data *mg_blk_data_create(SHORT max_levels)
+{ 
+    max_levels = MAX(1, max_levels); // at least allocate one level
+    
+    MG_blk_data *mgl = (MG_blk_data *)calloc(max_levels,sizeof(MG_blk_data));
+    
+    INT i;
+    for ( i=0; i<max_levels; ++i ) {
+        mgl[i].max_levels = max_levels;
+        mgl[i].num_levels = 0;
+        mgl[i].near_kernel_dim = 0;
+        mgl[i].near_kernel_basis = NULL;
+        mgl[i].cycle_type = 0;
+    }
+    
+    return(mgl);
+}
+
+/***********************************************************************************************/
+/*!
  * \fn void HX_curl_data_null(HX_curl_data *hxcurldata)
  *
  * \brief Initalize HX_curl_data structure (set values to 0 and pointers to NULL) (OUTPUT)

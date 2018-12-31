@@ -28,7 +28,7 @@ void build_linear_R (dCSRmat *R,
                            INT      nf1d,
                            INT      nc1d)
 {
-    INT i,j;
+    INT i;
     INT ci, cj;
     INT fdof, cdof;
     INT jstart=0;
@@ -188,7 +188,7 @@ void build_constant_R (dCSRmat *R,
                              INT      nf1d,
                              INT      nc1d)
 {
-    int i,j;
+    int i;
     int ci, cj;
     int fdof, cdof;
     int jstart=0;
@@ -276,7 +276,7 @@ void build_face_R (dCSRmat *R,
 {
     INT i,j,ii,jj;
     INT ci, cj;
-    INT fdof, cdof;
+    INT cdof;
     INT felm, celm;
     INT fface, cface;
     INT felmList[8];
@@ -319,7 +319,7 @@ void build_face_R (dCSRmat *R,
     V = (REAL *)calloc(R->nnz,sizeof(REAL));
     IJfilled = (INT *)calloc(R->col*R->row,sizeof(INT));//TODO:BAD!!!!!
     for(i=0; i<R->row*R->col; i++) IJfilled[i] = -1; // Set all to -1 //TODO:BAD!!!!
-    printf("We allocated all that. The loop is next.\n");
+//    printf("We allocated all that. The loop is next.\n");
 
     REAL *val = R->val;
     INT *JA  = R->JA;
@@ -413,7 +413,7 @@ INT find_the_fine_vertex_the_hard_way(REAL* midpoint, trimesh* fmesh, INT fface)
 {
   // Finds the fine vertex that corresponds with the midpoint of the coarse edge
   INT dim = fmesh->dim;
-  INT i,j;
+  INT i;
   INT vertex=-1;
   REAL diff;
   REAL diffmin=999;
@@ -436,11 +436,13 @@ INT find_the_fine_vertex_the_hard_way(REAL* midpoint, trimesh* fmesh, INT fface)
 }
 /***********************************************************************************************/
 /**
- * \fn void build_bubble_R (dCSRmat *tentp,
- *                                  trimesh *fmesh,
- *                                  trimesh *cmesh,
- *                                  INT     nf1d,
- *                                  INT     nc1d)
+ * \fn void build_bubble_R (dCSRmat *R,
+ *                          dCSRmat *Rblx,
+ *                          dCSRmat *Rbly,
+ *                          trimesh *fmesh,
+ *                          trimesh *cmesh,
+ *                          INT     nf1d,
+ *                          INT     nc1d)
  * \brief Build tentative P for RT0 elements
  *
  * \param tentp              Pointer to the prolongation operators
@@ -456,14 +458,15 @@ INT find_the_fine_vertex_the_hard_way(REAL* midpoint, trimesh* fmesh, INT fface)
  *
  */
 void build_bubble_R (dCSRmat *R,
-                             trimesh  *fmesh,
-                             trimesh  *cmesh,
-                             INT      nf1d,
-                             INT      nc1d)
+                     dCSRmat *Rblx,
+                     dCSRmat *Rbly,
+                     trimesh  *fmesh,
+                     trimesh  *cmesh,
+                     INT      nf1d,
+                     INT      nc1d)
 {
     // nf1d is number of elements we would have in 1d (number of vertices in 1d minus 1)
     INT i,j,ii,jj;
-    INT m;
     INT ci, cj;
     INT felm, celm;
     INT fface, cface;
@@ -549,7 +552,7 @@ void build_bubble_R (dCSRmat *R,
         for(ii=0;ii<8;ii++){
           felm = felmList[ii];
           if(ii==4) celm = celm+1; // Switch to upper triangle
-          printf("ELEMENT | coarse: %d\tfine: %d\n",celm,felm);
+//          printf("ELEMENT | coarse: %d\tfine: %d\n",celm,felm);
 
           // Get Coarse DOF
           get_incidence_row(celm,cmesh->el_v,v_on_elm);
@@ -578,7 +581,7 @@ void build_bubble_R (dCSRmat *R,
                 value += qval * cqface->w[fface*cqface->nq_per_elm+quad];
               }
               //value = value / cmesh->f_area[cface];
-              value = value / fmesh->f_area[fface];
+              //value = value / fmesh->f_area[fface];
 
               // Get Linear Part
               // note: 2D ONLY: only nonzero value of bubble on vertices is on the vertex in the middle of the coarse edge.
@@ -594,9 +597,13 @@ void build_bubble_R (dCSRmat *R,
               // Subtract off linear part (Bubbles used to enrich P1)
               value = value - lval;
 
+
+              value = value / fmesh->f_area[fface];
+
               // Save in R linear
               vertex = find_the_fine_vertex_the_hard_way(x, fmesh, fface);
               if( VertFilled[vertex] == 0 ){
+//                printf("Vertex | (%d, %d) : %7.4f, %7.4f\n",cface,vertex,phi[locFaceId*dim],phi[locFaceId*dim+1]);
                 VertFilled[vertex] = 1;
                 Il1[indexl] = cface;
                 Jl1[indexl] = vertex;
@@ -610,7 +617,7 @@ void build_bubble_R (dCSRmat *R,
               if( IJfilled[cface*R->row + fface] == -1 ) {
                 IJfilled[cface*R->row + fface] = 1;
                 if(ABS(value) > 1e-8){
-                  printf("Indexing | (%3d, %3d) : %6.4f\n",cface,fface,value);
+//                  printf("Indexing | (%3d, %3d) : %7.4f\n",cface,fface,value);
                   I[index] = cface;
                   J[index] = fface;
                   V[index] = value;
@@ -624,7 +631,7 @@ void build_bubble_R (dCSRmat *R,
       }//ci
     }//cj
 
-    printf("index: %d\tnnz: %d\n",index,R->nnz);//TODO: Correct number of nnz in the matrix
+//    printf("index: %d\tnnz: %d\n",index,R->nnz);//TODO: Correct number of nnz in the matrix
 
     // Fill the CSR matrix format
     INT cdof;
@@ -640,36 +647,36 @@ void build_bubble_R (dCSRmat *R,
       IA[cdof+1] = jstart;
     }//cdof
 
-//    // allocate memory for R
-//    R1->row = cmesh->nface;
-//    R1->col = fmesh->nv;
-//    R1->nnz = R->row*9; //TODO: FIX THIS
-//    R1->IA  = (INT *)calloc(R->row+1,sizeof(INT));
-//    R1->JA  = (INT *)calloc(R->nnz, sizeof(INT));
-//    R1->val = (REAL *)calloc(R->nnz, sizeof(REAL));
-//    // allocate memory for R
-//    R2->row = cmesh->nface;
-//    R2->col = fmesh->nv;
-//    R2->nnz = R->row*9; //TODO: FIX THIS
-//    R2->IA  = (INT *)calloc(R->row+1,sizeof(INT));
-//    R2->JA  = (INT *)calloc(R->nnz, sizeof(INT));
-//    R2->val = (REAL *)calloc(R->nnz, sizeof(REAL));
-//    // Fill CSR matrix for Bubble Linear
-//    R1->IA[0] = jstart;
-//    R2->IA[0] = jstart;
-//    for(cdof=0; cdof< R1->row; cdof++){
-//      for(ii=0;ii<indexl;ii++){
-//        if(cdof == Il1[ii]){
-//          R1->JA[jstart]  = Jl1[ii];
-//          R1->val[jstart] = Vl1[ii];
-//          R2->JA[jstart]  = Jl2[ii];
-//          R2->val[jstart] = Vl2[ii];
-//          jstart++;
-//        }
-//      }//ii
-//      R1->IA[cdof+1] = jstart;
-//      R2->IA[cdof+1] = jstart;
-//    }
+    // allocate memory for R
+    Rblx->row = cmesh->nface;
+    Rblx->col = fmesh->nv;
+    Rblx->nnz = R->row*9; //TODO: FIX THIS
+    Rblx->IA  = (INT *)calloc(R->row+1,sizeof(INT));
+    Rblx->JA  = (INT *)calloc(R->nnz, sizeof(INT));
+    Rblx->val = (REAL *)calloc(R->nnz, sizeof(REAL));
+    // allocate memory for R
+    Rbly->row = cmesh->nface;
+    Rbly->col = fmesh->nv;
+    Rbly->nnz = R->row*9; //TODO: FIX THIS
+    Rbly->IA  = (INT *)calloc(R->row+1,sizeof(INT));
+    Rbly->JA  = (INT *)calloc(R->nnz, sizeof(INT));
+    Rbly->val = (REAL *)calloc(R->nnz, sizeof(REAL));
+    // Fill CSR matrix for Bubble Linear
+    Rblx->IA[0] = jstart;
+    Rbly->IA[0] = jstart;
+    for(cdof=0; cdof< Rblx->row; cdof++){
+      for(ii=0;ii<indexl;ii++){
+        if(cdof == Il1[ii]){
+          Rblx->JA[jstart]  = Jl1[ii];
+          Rblx->val[jstart] = Vl1[ii];
+          Rbly->JA[jstart]  = Jl2[ii];
+          Rbly->val[jstart] = Vl2[ii];
+          jstart++;
+        }
+      }//ii
+      Rblx->IA[cdof+1] = jstart;
+      Rbly->IA[cdof+1] = jstart;
+    }
 
 
     //TODO: FREE!
@@ -698,10 +705,10 @@ INT gmg_setup_RT0(trimesh* fine_level_mesh)
   // Things from param
   //SHORT max_levels = param->max_levels;
   SHORT max_levels = 2;
-  SHORT lvl = 0;
+  //SHORT lvl = 0;
 
   // 
-  INT i,j;
+  INT i;
   INT fSize, cSize;
   INT nf1d, nc1d;
 
@@ -753,134 +760,6 @@ INT gmg_setup_RT0(trimesh* fine_level_mesh)
 /***********************************************************************************************/
 /***********************************************************************************************/
 /**
- * \fn static SHORT gmg_setup_lazy (AMG_data *mgl, AMG_param *param)
- *
- * \brief Setup phase of plain aggregation AMG, using unsmoothed P and unsmoothed A
- *
- * \param mgl    Pointer to AMG_data
- * \param param  Pointer to AMG_param
- *
- * \return       SUCCESS if succeed, error otherwise
- *
- * \author Xiaozhe Hu
- * \date   02/21/2011
- *
- */
-static SHORT gmg_setup_lazy(AMG_data *mgl,
-                            AMG_param *param)
-{
-    // local variables
-    const SHORT prtlvl     = param->print_level;
-    const SHORT cycle_type = param->cycle_type;
-    const SHORT csolver    = param->coarse_solver;
-    const SHORT min_cdof   = MAX(param->coarse_dof,50);
-    const INT   m          = mgl[0].A.row;
-
-    // local variables
-    INT           nf1d, nc1d;
-    SHORT         max_levels = param->max_levels, lvl = 0, status = SUCCESS;
-    INT           i;
-    REAL          setup_start, setup_end;
-    Schwarz_param swzparam;
-
-    get_time(&setup_start);
-
-    // each level stores the information of the number of aggregations
-    INT *num_aggs = (INT *)calloc(max_levels,sizeof(INT)); //TODO: probs replace with num coarse nodes or elm
-
-    // Initialize level information
-    for ( i = 0; i < max_levels; ++i ) num_aggs[i] = 0;
-
-#if DIAGONAL_PREF
-    dcsr_diagpref(&mgl[0].A); // reorder each row to make diagonal appear first
-#endif
-
-    /*----------------------------*/
-    /*--- checking aggregation ---*/
-    /*----------------------------*/
-    // Main AMG setup loop
-    while ( (mgl[lvl].A.row > min_cdof) && (lvl < max_levels-1) ) {
-
-        /*-- Aggregation --*/
-
-        /*-- Form Prolongation --*/
-        nc1d = (nf1d-1)/2 + 1;
-        build_linear_R(&mgl[lvl].P,nf1d,nc1d);
-        // Check region type.
-//        form_tentative_p(&vertices[lvl], &mgl[lvl].P, mgl[0].near_kernel_basis, lvl+1, num_aggs[lvl]);
-
-        // Check 2: Is coarse sparse too small?
-        if ( mgl[lvl].P.col < MIN_CDOF ) break;
-
-        /*-- Form restriction --*/
-        dcsr_trans(&mgl[lvl].P, &mgl[lvl].R);
-
-        /*-- Form coarse level stiffness matrix --*/
-        dcsr_rap_agg(&mgl[lvl].R, &mgl[lvl].A, &mgl[lvl].P, &mgl[lvl+1].A);
-                               
-        ++lvl;
-    }
-
-#if DIAGONAL_PREF
-    dcsr_diagpref(&mgl[lvl].A); // reorder each row to make diagonal appear first
-#endif
-
-    // Setup coarse level systems for direct solvers
-    switch (csolver) {
-
-#if WITH_SUITESPARSE
-        case SOLVER_UMFPACK: {
-            // Need to sort the matrix A for UMFPACK to work
-            dCSRmat Ac_tran;
-            dcsr_trans(&mgl[lvl].A, &Ac_tran);
-            // It is equivalent to do transpose and then sort
-            //     fasp_dcsr_trans(&mgl[lvl].A, &Ac_tran);
-            //     fasp_dcsr_sort(&Ac_tran);
-            dcsr_cp(&Ac_tran, &mgl[lvl].A);
-            dcsr_free(&Ac_tran);
-            mgl[lvl].Numeric = umfpack_factorize(&mgl[lvl].A, 0);
-            break;
-        }
-#endif
-        default:
-            // Do nothing!
-            break;
-    }
-
-    // setup total level number and current level
-    mgl[0].num_levels = max_levels = lvl+1;
-    mgl[0].w          = dvec_create(m);
-
-    for ( lvl = 1; lvl < max_levels; ++lvl) {
-        INT mm = mgl[lvl].A.row;
-        mgl[lvl].num_levels = max_levels;
-        mgl[lvl].b          = dvec_create(mm);
-        mgl[lvl].x          = dvec_create(mm);
-
-        mgl[lvl].cycle_type     = cycle_type; // initialize cycle type!
-
-        if ( cycle_type == NL_AMLI_CYCLE )
-            mgl[lvl].w = dvec_create(3*mm);
-        else
-            mgl[lvl].w = dvec_create(2*mm);
-    }
-
-    if ( prtlvl > PRINT_NONE ) {
-        get_time(&setup_end);
-        print_amg_complexity(mgl,prtlvl);
-        print_cputime("geometric multigrid setup", setup_end - setup_start);
-    }
-
-    free(num_aggs);
-
-    return status;
-}
-
-
-/***********************************************************************************************/
-/***********************************************************************************************/
-/***********************************************************************************************/
-/**
  * \fn static SHORT gmg_blk_setup (MG_blk_data *mgl, AMG_param *param)
  *
  * \brief Setup phase of plain aggregation AMG, using unsmoothed P and unsmoothed A
@@ -894,9 +773,16 @@ static SHORT gmg_setup_lazy(AMG_data *mgl,
  * \date   02/21/2011
  *
  */
-static SHORT gmg_blk_setup(MG_blk_data *mgl,
+//static SHORT gmg_blk_setup(MG_blk_data *mgl,
+SHORT gmg_blk_setup(MG_blk_data *mgl,
                             AMG_param *param)
 {
+    /*
+     * TODO:
+     * - Can't use brow to determine number of FE spaces since linear and bubble will be merged for A.
+     *   Can't use A to determine nf1d for linears and bubbles. (Replace to use mesh?)
+     *
+     */
     // local variables
     const SHORT prtlvl     = param->print_level;
     const SHORT cycle_type = param->cycle_type;
@@ -904,35 +790,55 @@ static SHORT gmg_blk_setup(MG_blk_data *mgl,
     const SHORT min_cdof   = MAX(param->coarse_dof,50);
 
     // local variables
-    INT           nf1d, nc1d;
+    INT           nf1d, nc1d, csize;
     INT           brow,m;
     INT           i,j;
     SHORT         max_levels = param->max_levels, lvl = 0, status = SUCCESS;
+    INT           dim = mgl[lvl].fine_level_mesh->dim;
     REAL          setup_start, setup_end;
     Schwarz_param swzparam;
-    
+
     INT regionType = 0;
     // To read from file
     FILE* cgfid;
     char cgridfile[500];
 
-    // Alloc block matrices here
+    // Alloc temp block matrices here
+    block_dCSRmat tempRblk;// needed to merge bubbles and linears, somehow...
+    dCSRmat Rmerge;
 
     get_time(&setup_start);
 
+    printf("Beginning Main GMG setup loop...\n");
     /*-- Main GMG setup loop --*/
     while ( lvl < max_levels-1 ) {
       brow = mgl[lvl].A.brow;
+      /*-- Build coarse level mesh --*/
+      csize = (sqrt(mgl[lvl].fine_level_mesh->nv)-1)/2 + 1;
+      //Need to customize this to specific directory
+      sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",csize);
+      cgfid = HAZ_fopen(cgridfile,"r");
+      mgl[lvl+1].fine_level_mesh = (trimesh*)calloc(1, sizeof(trimesh));
+      initialize_mesh(mgl[lvl+1].fine_level_mesh);
+      creategrid_fread(cgfid,0,mgl[lvl+1].fine_level_mesh);
+      fclose(cgfid);
+      printf("Mesh Loaded for lvl=%d...\n",lvl);
+      /*-- Allocate for R A P --*/
+      bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].R));
+      bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].P));
+      bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl+1].A));
+      printf("Allocation of R A P for lvl=%d is finished...\n",lvl);
       /*-- Form restriction --*/
-      //TODO: Allocation of the block_csr matrix in mgl?
       for(i=0; i<brow; i++){
         //Check gmg type
-        switch( mgl[0].gmg_type[i] ) {
+        switch( mgl[lvl].gmg_type[i] ) {
           case 0://P0
               //TODO: check nf1d and nc1d calculations
             nf1d = sqrt(mgl[lvl].A.blocks[i+i*brow]->row/2);
             nc1d = (nf1d)/2;
+            printf("Building constant R...\n");
             build_constant_R( mgl[lvl].R.blocks[i+i*brow], nf1d, nc1d);
+            printf("Built constant R...\n");
             break;
           case 1://P1
             nf1d = sqrt(mgl[lvl].A.blocks[i+i*brow]->row);
@@ -942,34 +848,60 @@ static SHORT gmg_blk_setup(MG_blk_data *mgl,
           case 30://RT0
             nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
             nc1d = (nf1d)/2;
-            //Need to customize this to specific directory
-            sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",nc1d+1);
-            cgfid = HAZ_fopen(cgridfile,"r");
-            mgl[lvl+1].fine_level_mesh = (trimesh*)calloc(1, sizeof(trimesh));
-            initialize_mesh(mgl[lvl+1].fine_level_mesh);
-            creategrid_fread(cgfid,0,mgl[lvl+1].fine_level_mesh);
-            fclose(cgfid);
             // Build Here
+            printf("Building RT0 R...\n");
             build_face_R( mgl[lvl].R.blocks[i+i*brow], mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
+            printf("Built RT0 R...\n");
             break;
           case 61://Bubble
+            nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
+            nc1d = (nf1d)/2;
+            // Build Here
+            //build_bubble_R( mgl[lvl].R.blocks[i+i*brow], mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
+            break;
+          case 999:// P1+bubble
+            bdcsr_alloc(dim+1,dim+1,&tempRblk);
+            //P1
+            // TODO:do for each dim
+            nf1d = sqrt(mgl[lvl].fine_level_mesh->nv);
+            nc1d = (nf1d-1)/2 + 1;
+            for(j=1; j<dim+1; j++) build_linear_R( tempRblk.blocks[i+i*tempRblk.brow], nf1d, nc1d);
+            printf("Built Linear R...\n");
+            //Bubble
+            nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
+            nc1d = (nf1d)/2;
+            build_bubble_R( tempRblk.blocks[0], tempRblk.blocks[tempRblk.brow], tempRblk.blocks[2*tempRblk.brow],
+                            mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
+            printf("Built Bubble R...\n");
+            Rmerge = bdcsr_2_dcsr(&tempRblk);
+            printf("Merged Displacement R... storage in %d\n",i+i*brow);
+            dcsr_alloc(Rmerge.row,Rmerge.col,Rmerge.nnz,mgl[lvl].R.blocks[i+i*brow]);
+            dcsr_cp(&Rmerge,mgl[lvl].R.blocks[i+i*brow]);
+            printf("Stored Displacement R...\n");
             break;
           default:
-            printf("### ERROR: Unknown geometric multigrid type: %d!\n",regionType);
+            printf("### ERROR: Unknown geometric multigrid type: %d!\n",mgl[lvl].gmg_type[i]);
             break;
         }// switch
       }//for brow
+
+      printf("Built R for lvl=%d...\n",lvl);
 
       /*-- Form Prolongation --*/
       for(i=0; i<brow; i++){
           dcsr_trans(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].P.blocks[i+i*brow]);
       }
+      printf("Built P for lvl=%d...\n",lvl);
       /*-- Form coarse level stiffness matrix --*/
       for(i=0; i<brow; i++){
         for(j=0; j<brow; j++){
-          dcsr_rap(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].A.blocks[i+j*brow], mgl[lvl].P.blocks[j+j*brow], mgl[lvl+1].A.blocks[i+j*brow]);
+          if(mgl[lvl].A.blocks[i+j*brow]){
+            printf("RAP on block[%d,%d]: TODO: FIX NNZ FOR R(i think)\n",i,j);
+            dcsr_rap(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].A.blocks[i+j*brow], mgl[lvl].P.blocks[j+j*brow], mgl[lvl+1].A.blocks[i+j*brow]);
+          }
         }//j
       }//i
+      printf("Built RAP for lvl=%d...\n",lvl);
                              
       ++lvl;
     } // lvl
@@ -981,16 +913,16 @@ static SHORT gmg_blk_setup(MG_blk_data *mgl,
         case SOLVER_UMFPACK: {
             // Need to sort the matrix A for UMFPACK to work
             // merge blocks
-            // need: mgl[lvl].Ac = merge(A);
+            mgl[lvl].Ac = bdcsr_2_dcsr(&mgl[lvl].A)
             dCSRmat Ac_tran;
-//            dcsr_trans(&mgl[lvl].A, &Ac_tran);
+            dcsr_trans(&mgl[lvl].Ac, &Ac_tran);
             // It is equivalent to do transpose and then sort
             //     fasp_dcsr_trans(&mgl[lvl].A, &Ac_tran);
             //     fasp_dcsr_sort(&Ac_tran);
-//            dcsr_cp(&Ac_tran, &mgl[lvl].Ac);
-//            dcsr_free(&Ac_tran);
-//            mgl[lvl].Numeric = umfpack_factorize(&mgl[lvl].Ac, 0);
-            break;
+            dcsr_cp(&Ac_tran, &mgl[lvl].Ac);
+            dcsr_free(&Ac_tran);
+            mgl[lvl].Numeric = umfpack_factorize(&mgl[lvl].Ac, 0);
+          break;
         }
 #endif
         default:
