@@ -309,7 +309,8 @@ void build_face_R (dCSRmat *R,
     // allocate memory for R
     R->row = cmesh->nface;
     R->col = fmesh->nface;
-    R->nnz = R->row*9; //TODO: FIX THIS
+    R->nnz = R->row*12; //TODO: FIX THIS
+    //R->nnz = R->row*9; //TODO: FIX THIS
     R->IA  = (INT *)calloc(R->row+1,sizeof(INT));
     R->JA  = (INT *)calloc(R->nnz, sizeof(INT));
     R->val = (REAL *)calloc(R->nnz, sizeof(REAL));
@@ -406,6 +407,7 @@ void build_face_R (dCSRmat *R,
       }//ii
       IA[cdof+1] = jstart;
     }//i
+    R->nnz = jstart;
 }
 
 /***********************************************************************************************/
@@ -506,7 +508,8 @@ void build_bubble_R (dCSRmat *R,
     // allocate memory for R
     R->row = cmesh->nface;
     R->col = fmesh->nface;
-    R->nnz = R->row*9; //TODO: FIX THIS
+    //R->nnz = R->row*9; //TODO: FIX THIS
+    R->nnz = R->row*12; //TODO: FIX THIS
     R->IA  = (INT *)calloc(R->row+1,sizeof(INT));
     R->JA  = (INT *)calloc(R->nnz, sizeof(INT));
     R->val = (REAL *)calloc(R->nnz, sizeof(REAL));
@@ -646,19 +649,20 @@ void build_bubble_R (dCSRmat *R,
       }//ii
       IA[cdof+1] = jstart;
     }//cdof
+    R->nnz = jstart;
 
     // allocate memory for R
     Rblx->row = cmesh->nface;
     Rblx->col = fmesh->nv;
-    Rblx->nnz = R->row*9; //TODO: FIX THIS
-    Rblx->IA  = (INT *)calloc(R->row+1,sizeof(INT));
+    Rblx->nnz = R->row*12; //TODO: FIX THIS
+    Rblx->IA  = (INT *)calloc(Rblx->row+1,sizeof(INT));
     Rblx->JA  = (INT *)calloc(R->nnz, sizeof(INT));
     Rblx->val = (REAL *)calloc(R->nnz, sizeof(REAL));
     // allocate memory for R
     Rbly->row = cmesh->nface;
     Rbly->col = fmesh->nv;
-    Rbly->nnz = R->row*9; //TODO: FIX THIS
-    Rbly->IA  = (INT *)calloc(R->row+1,sizeof(INT));
+    Rbly->nnz = R->row*12; //TODO: FIX THIS
+    Rbly->IA  = (INT *)calloc(Rblx->row+1,sizeof(INT));
     Rbly->JA  = (INT *)calloc(R->nnz, sizeof(INT));
     Rbly->val = (REAL *)calloc(R->nnz, sizeof(REAL));
     // Fill CSR matrix for Bubble Linear
@@ -677,6 +681,8 @@ void build_bubble_R (dCSRmat *R,
       Rblx->IA[cdof+1] = jstart;
       Rbly->IA[cdof+1] = jstart;
     }
+    Rblx->nnz = jstart;
+    Rbly->nnz = jstart;
 
 
     //TODO: FREE!
@@ -787,7 +793,6 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
     const SHORT prtlvl     = param->print_level;
     const SHORT cycle_type = param->cycle_type;
     const SHORT csolver    = param->coarse_solver;
-    const SHORT min_cdof   = MAX(param->coarse_dof,50);
 
     // local variables
     INT           nf1d, nc1d, csize;
@@ -796,9 +801,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
     SHORT         max_levels = param->max_levels, lvl = 0, status = SUCCESS;
     INT           dim = mgl[lvl].fine_level_mesh->dim;
     REAL          setup_start, setup_end;
-    Schwarz_param swzparam;
 
-    INT regionType = 0;
     // To read from file
     FILE* cgfid;
     char cgridfile[500];
@@ -870,9 +873,14 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             //Bubble
             nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
             nc1d = (nf1d)/2;
-            build_bubble_R( tempRblk.blocks[0], tempRblk.blocks[tempRblk.brow], tempRblk.blocks[2*tempRblk.brow],
+            build_bubble_R( tempRblk.blocks[0], tempRblk.blocks[1], tempRblk.blocks[2],
                             mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
+            //build_bubble_R( tempRblk.blocks[0], tempRblk.blocks[tempRblk.brow], tempRblk.blocks[2*tempRblk.brow],
+            //                mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
             printf("Built Bubble R...\n");
+            //printf("asdfasdfasdfasdf\n\t%d\t%d\n",tempRblk.blocks[0]->row,tempRblk.blocks[0]->col);
+            //printf("asdfasdfasdfasdf\n\t%d\t%d\n",tempRblk.blocks[tempRblk.brow]->row,tempRblk.blocks[tempRblk.brow]->col);
+            //printf("asdfasdfasdfasdf\n\t%d\t%d\n",tempRblk.blocks[2*tempRblk.brow]->row,tempRblk.blocks[2*tempRblk.brow]->col);
             Rmerge = bdcsr_2_dcsr(&tempRblk);
             printf("Merged Displacement R... storage in %d\n",i+i*brow);
             dcsr_alloc(Rmerge.row,Rmerge.col,Rmerge.nnz,mgl[lvl].R.blocks[i+i*brow]);
@@ -895,9 +903,16 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
       /*-- Form coarse level stiffness matrix --*/
       for(i=0; i<brow; i++){
         for(j=0; j<brow; j++){
-          if(mgl[lvl].A.blocks[i+j*brow]){
+          if(mgl[lvl].A.blocks[j+i*brow]){
             printf("RAP on block[%d,%d]: TODO: FIX NNZ FOR R(i think)\n",i,j);
-            dcsr_rap(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].A.blocks[i+j*brow], mgl[lvl].P.blocks[j+j*brow], mgl[lvl+1].A.blocks[i+j*brow]);
+            printf("Matrix:\n\tA.nnz=%d\tA.row=%d\tA.col=%d\n\tR.nnz=%d\tR.row=%d\tR.col=%d\n\n",
+                    mgl[lvl].A.blocks[j+i*brow]->nnz,
+                    mgl[lvl].A.blocks[j+i*brow]->row,
+                    mgl[lvl].A.blocks[j+i*brow]->col,
+                    mgl[lvl].R.blocks[i+i*brow]->nnz,
+                    mgl[lvl].R.blocks[i+i*brow]->row,
+                    mgl[lvl].R.blocks[i+i*brow]->col);
+            dcsr_rap(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].A.blocks[j+i*brow], mgl[lvl].P.blocks[j+j*brow], mgl[lvl+1].A.blocks[j+i*brow]);
           }
         }//j
       }//i
