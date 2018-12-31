@@ -113,7 +113,7 @@ unsigned int reflect2(INT n, INT is, INT it,				\
 void abfstree(INT it, scomplex *sc,INT *wrk) 
 {
   /* from the scomplex the mask are the marked and the */
-  /* bfs tree rooted at 0 */
+  /* bfs tree rooted at simplex it */
   INT n=sc->n,n1=n+1,ns=sc->ns;
   INT i,j,k,iii,is,isn1,itn1;
   INT i1,in1,kbeg,kend,nums,iai,iai1,klev;
@@ -208,6 +208,13 @@ void refining(INT ref_levels, scomplex *sc, INT nstar, REAL *xstar)
   /* we first mark everything */
   for (j=0;j<sc->ns;j++) {sc->marked[j]=1;}
   fprintf(stdout,"refine: ");
+  if(nstar)
+    markstar(sc,nstar,xstar);
+  else
+    {
+      //	solve and estimate and mark
+      marks(level,sc);
+    }
   while(level < ref_levels){
     nsold=sc->ns;
     nvold=sc->nv;
@@ -216,10 +223,6 @@ void refining(INT ref_levels, scomplex *sc, INT nstar, REAL *xstar)
        i.e. whatever was marked and its children stays marked: the
        refinement is automatic up to level=ref_levels.
     */
-    if(nstar)
-      markstar(level,sc,nstar,xstar);
-    else
-      marks(level,sc);
     for(j = 0;j < nsold;j++) {
       if(sc->marked[j] && (sc->childn[j]<0)){
 	haz_refine_simplex(sc, j, -1);
@@ -248,7 +251,7 @@ void refining(INT ref_levels, scomplex *sc, INT nstar, REAL *xstar)
   }
   sc->ns=ns;
   sc->nv=nv;
-  fprintf(stdout,"%%After %d levels of refinement:\tsimplices=%d ; vertices=%d\n",ref_levels,sc->ns,sc->nv); fflush(stdout);
+  fprintf(stdout,"\n%%After %d levels of refinement:\tsimplices=%d ; vertices=%d\n",ref_levels,sc->ns,sc->nv); fflush(stdout);
   if(wrk) free(wrk);
   return;
 }

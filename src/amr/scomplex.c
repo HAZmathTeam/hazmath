@@ -26,11 +26,12 @@ scomplex *haz_scomplex_init(INT n,INT ns, INT nv)
 
      Future work: we should think of making this for different
      dimensions, e.g. 2-homogenous complex in 3d
-  */
+  */ 
   scomplex *sc=(scomplex *) malloc(sizeof(scomplex));
   sc->nbig=n; sc->n=n;
   INT n1=sc->n+1,i,j,in1;
   sc->factorial=1.;
+  sc->level=0;
   for (j=2;j<n1;j++) sc->factorial *= ((REAL )j);
   // fprintf(stdout,"\nIMPORTANT: NS=%d (%d!)=%f",ns,n,sc->factorial);
   sc->marked=(INT *) calloc(ns,sizeof(INT));
