@@ -94,7 +94,7 @@ INT features_r(const INT dim_orig,const INT use_features,features *feat, REAL vf
     rewind(feat->fpf);
   }
   feat->nf=k;
-  fprintf(stdout,"\nfeatures=%d ; %d ;  %d\n",feat->nf,feat->n,feat->nbig);fflush(stdout);
+  //  fprintf(stdout,"\nfeatures=%d ; %d ;  %d\n",feat->nf,feat->n,feat->nbig);fflush(stdout);
   /* we allocate always the max of dim or dimbig */
   if(dimbig>dim) {
     feat->x=(REAL *)calloc(dimbig*(feat->nf),sizeof(REAL));
@@ -109,7 +109,7 @@ INT features_r(const INT dim_orig,const INT use_features,features *feat, REAL vf
       //      fprintf(stdout,"%g ; ",feat->x[dim*i+j]);
     }
   }
-  fprintf(stdout,"\nRead %i coordinate %d-tuples\n",k,dim);
+  fprintf(stdout,"\nRefinement around points: Read %i coordinate %d-tuples\n",k,dim);
   fclose(feat->fpf);
 
   /* sort so that no duplicates are present */

@@ -279,22 +279,23 @@ c     read(*,*)
       return
       end
 c=====================================================================
-      subroutine getm3(nx,ny,nz,nvert,nel,
+      subroutine getm3(nd,nvert,nel,
      >     xcoord,ycoord,zcoord,
      >     je,iflags,ib,inumb,
      >     ibcode,minneu,maxneu)
       implicit real*8(a-h,o-z)
       dimension xcoord(*),ycoord(*),zcoord(*)
-      dimension je(*),ib(*), inumb(*),iflags(*)
+      ! nd is the number of divisions in every direction
+      dimension nd(*),je(*),ib(*), inumb(*),iflags(*)
       dimension xyz(8,3),jcub(8),nop(4,6,4)
       dimension ibcode(*)
-C
-C... Given nx,ny,nz, get the femesh: xcoord,ycoord,zcoord,ie,je ndiv is
-C... an input parameter: if ndiv ne 0 then a hole of size 2*ndiv*h is
-C... removed from our domain.  
-C...
-C... ndl = 4 ! number of degrees of freedom per element
-C
+C     
+      nx=nd(1)
+      ny=nd(2)
+      nz=nd(3)
+C...  Given nx,ny,nz, get the femesh: xcoord,ycoord,zcoord,ie,je.
+C...  ndl = 4 ! number of degrees of freedom per element
+C     
       do k = 1 , nvert
          inumb(k) = 0
          ib(k) = 0
