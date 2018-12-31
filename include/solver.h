@@ -199,6 +199,10 @@ typedef struct {
     //! pointer to the iterative solution at level level_num
     dvector x;
 
+    /* Solver information */
+    //! pointer to the composite matrix (for coarsest level only)
+    dCSRmat Ac;
+
     /* Extra information */
     //! pointer to the numerical factorization from UMFPACK
     void *Numeric;

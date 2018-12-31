@@ -639,6 +639,96 @@ void nl_amli (AMG_data *mgl,
 
 }
 
+/**
+ * \fn void mgcycle_block (AMG_data *mgl, AMG_param *param)
+ *
+ * \brief Solve Ax=b with non-recursive multigrid cycle (V- and W-cycle)
+ *
+ * \param mgl    Pointer to MG data: MG_blk_data
+ * \param param  Pointer to AMG parameters: AMG_param
+ *
+ * \author Xiaozhe Hu
+ * \date   12/25/2015
+ *
+ */
+void mgcycle_block(MG_blk_data *mgl,
+             AMG_param *param)
+{
+    const SHORT  prtlvl = param->print_level;
+    const SHORT  amg_type = param->AMG_type;
+    const SHORT  smoother = param->smoother;
+    const SHORT  cycle_type = param->cycle_type;
+    const SHORT  coarse_solver = param->coarse_solver;
+    const SHORT  nl = mgl[0].num_levels;
+    const REAL   relax = param->relaxation;
+    const REAL   tol = param->tol * 1e-4;
+
+    // Schwarz parameters
+    Schwarz_param swzparam;
+
+    // local variables
+    REAL alpha = 1.0;
+    INT  num_lvl[MAX_AMG_LVL] = {0}, l = 0;
+
+ForwardSweep:
+    while ( l < nl-1 ) {
+
+        num_lvl[l]++;
+        
+        // pre-smoothing with standard smoothers
+//        bdcsr_presmoothing(&mgl[l], param);
+
+        // form residual r = b - A x
+        array_cp(mgl[l].b.row, mgl[l].b.val, mgl[l].w.val);
+        bdcsr_aAxpy(-1.0,&mgl[l].A, mgl[l].x.val, mgl[l].w.val);
+
+        // restriction r1 = R*r0
+        bdcsr_mxv(&mgl[l].R, mgl[l].w.val, mgl[l+1].b.val);
+
+        // prepare for the next level
+        ++l; dvec_set(mgl[l].x.row, &mgl[l].x, 0.0);
+
+    }
+
+    // If MG only has one level or we have arrived at the coarsest level,
+    // call the coarse space solver:
+    switch ( coarse_solver ) {
+
+#if WITH_SUITESPARSE
+        case SOLVER_UMFPACK: {
+            // use UMFPACK direct solver on the coarsest level
+            umfpack_solve(&mgl[nl-1].Ac, &mgl[nl-1].b, &mgl[nl-1].x, mgl[nl-1].Numeric, 0);
+            break;
+        }
+#endif
+        default:
+//            // use iterative solver on the coarsest level
+//            coarse_itsolver(&mgl[nl-1].A, &mgl[nl-1].b, &mgl[nl-1].x, tol, prtlvl);
+            break;
+
+    }
+
+    // BackwardSweep:
+    while ( l > 0 ) {
+
+        --l;
+
+        // prolongation u = u + alpha*P*e1
+        bdcsr_aAxpy(alpha, &mgl[l].P, mgl[l+1].x.val, mgl[l].x.val);
+
+        // post-smoothing with standard methods
+//        bdcsr_postsmoothing(&mgl[l], param);
+
+        if ( num_lvl[l] < cycle_type ) break;
+        else num_lvl[l] = 0;
+    }
+
+    if ( l > 0 ) goto ForwardSweep;
+
+
+}
+
+
 /*---------------------------------*/
 /*--        End of File          --*/
 /*---------------------------------*/
