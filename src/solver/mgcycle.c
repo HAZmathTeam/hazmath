@@ -697,12 +697,14 @@ ForwardSweep:
 #if WITH_SUITESPARSE
         case SOLVER_UMFPACK: {
             // use UMFPACK direct solver on the coarsest level
+            printf("Solving coarse level with UMFPACK...\n");
             umfpack_solve(&mgl[nl-1].Ac, &mgl[nl-1].b, &mgl[nl-1].x, mgl[nl-1].Numeric, 0);
             break;
         }
 #endif
         default:
-//            // use iterative solver on the coarsest level
+            // use iterative solver on the coarsest level
+            printf("Solving coarse level with coarse_itsolve...\n");
 //            coarse_itsolver(&mgl[nl-1].A, &mgl[nl-1].b, &mgl[nl-1].x, tol, prtlvl);
             break;
 
