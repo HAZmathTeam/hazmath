@@ -815,6 +815,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
     printf("Beginning Main GMG setup loop...\n");
     /*-- Main GMG setup loop --*/
     while ( lvl < max_levels-1 ) {
+      printf("A blocks: %d %d\n",mgl[lvl].A.brow,mgl[lvl].A.bcol);
       brow = mgl[lvl].A.brow;
       /*-- Build coarse level mesh --*/
       csize = (sqrt(mgl[lvl].fine_level_mesh->nv)-1)/2 + 1;
@@ -836,7 +837,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
         //Check gmg type
         switch( mgl[lvl].gmg_type[i] ) {
           case 0://P0
-              //TODO: check nf1d and nc1d calculations
+            //TODO: check nf1d and nc1d calculations
             nf1d = sqrt(mgl[lvl].A.blocks[i+i*brow]->row/2);
             nc1d = (nf1d)/2;
             printf("Building constant R...\n");
@@ -846,6 +847,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
           case 1://P1
             nf1d = sqrt(mgl[lvl].A.blocks[i+i*brow]->row);
             nc1d = (nf1d-1)/2 + 1;
+            printf("+++++++++++++++++++++++++++++++++++++++++++++++++++ %d %d\n",nf1d,nc1d);
             build_linear_R( mgl[lvl].R.blocks[i+i*brow], nf1d, nc1d);
             break;
           case 30://RT0
@@ -868,19 +870,14 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             // TODO:do for each dim
             nf1d = sqrt(mgl[lvl].fine_level_mesh->nv);
             nc1d = (nf1d-1)/2 + 1;
-            for(j=1; j<dim+1; j++) build_linear_R( tempRblk.blocks[i+i*tempRblk.brow], nf1d, nc1d);
+            for(j=1; j<dim+1; j++) build_linear_R( tempRblk.blocks[j+j*tempRblk.brow], nf1d, nc1d);
             printf("Built Linear R...\n");
             //Bubble
             nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
             nc1d = (nf1d)/2;
             build_bubble_R( tempRblk.blocks[0], tempRblk.blocks[1], tempRblk.blocks[2],
                             mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
-            //build_bubble_R( tempRblk.blocks[0], tempRblk.blocks[tempRblk.brow], tempRblk.blocks[2*tempRblk.brow],
-            //                mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
             printf("Built Bubble R...\n");
-            //printf("asdfasdfasdfasdf\n\t%d\t%d\n",tempRblk.blocks[0]->row,tempRblk.blocks[0]->col);
-            //printf("asdfasdfasdfasdf\n\t%d\t%d\n",tempRblk.blocks[tempRblk.brow]->row,tempRblk.blocks[tempRblk.brow]->col);
-            //printf("asdfasdfasdfasdf\n\t%d\t%d\n",tempRblk.blocks[2*tempRblk.brow]->row,tempRblk.blocks[2*tempRblk.brow]->col);
             Rmerge = bdcsr_2_dcsr(&tempRblk);
             printf("Merged Displacement R... storage in %d\n",i+i*brow);
             dcsr_alloc(Rmerge.row,Rmerge.col,Rmerge.nnz,mgl[lvl].R.blocks[i+i*brow]);
@@ -890,8 +887,8 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
           default:
             printf("### ERROR: Unknown geometric multigrid type: %d!\n",mgl[lvl].gmg_type[i]);
             break;
-        }// switch
-      }//for brow
+        }// switch gmg_type
+      }//for i<brow
 
       printf("Built R for lvl=%d...\n",lvl);
 
@@ -905,13 +902,16 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
         for(j=0; j<brow; j++){
           if(mgl[lvl].A.blocks[j+i*brow]){
             printf("RAP on block[%d,%d]: TODO: FIX NNZ FOR R(i think)\n",i,j);
-            printf("Matrix:\n\tA.nnz=%d\tA.row=%d\tA.col=%d\n\tR.nnz=%d\tR.row=%d\tR.col=%d\n\n",
+            printf("Matrix:\n\tR.nnz=%d\tR.row=%d\tR.col=%d\n\tA.nnz=%d\tA.row=%d\tA.col=%d\n\tP.nnz=%d\tP.row=%d\tP.col=%d\n\n",
+                    mgl[lvl].R.blocks[i+i*brow]->nnz,
+                    mgl[lvl].R.blocks[i+i*brow]->row,
+                    mgl[lvl].R.blocks[i+i*brow]->col,
                     mgl[lvl].A.blocks[j+i*brow]->nnz,
                     mgl[lvl].A.blocks[j+i*brow]->row,
                     mgl[lvl].A.blocks[j+i*brow]->col,
-                    mgl[lvl].R.blocks[i+i*brow]->nnz,
-                    mgl[lvl].R.blocks[i+i*brow]->row,
-                    mgl[lvl].R.blocks[i+i*brow]->col);
+                    mgl[lvl].P.blocks[j+j*brow]->nnz,
+                    mgl[lvl].P.blocks[j+j*brow]->row,
+                    mgl[lvl].P.blocks[j+j*brow]->col);
             dcsr_rap(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].A.blocks[j+i*brow], mgl[lvl].P.blocks[j+j*brow], mgl[lvl+1].A.blocks[j+i*brow]);
           }
         }//j
@@ -925,10 +925,11 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
     switch (csolver) {
 
 #if WITH_SUITESPARSE
+        printf("a;slkdjfal;sdjfoajsodj\na;lsjdfajsdkfjasldal;sjd\n");
         case SOLVER_UMFPACK: {
             // Need to sort the matrix A for UMFPACK to work
             // merge blocks
-            mgl[lvl].Ac = bdcsr_2_dcsr(&mgl[lvl].A)
+            mgl[lvl].Ac = bdcsr_2_dcsr(&mgl[lvl].A);
             dCSRmat Ac_tran;
             dcsr_trans(&mgl[lvl].Ac, &Ac_tran);
             // It is equivalent to do transpose and then sort
@@ -941,6 +942,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
         }
 #endif
         default:
+            printf("We are not using SUITESPARSE!\n");
             // Do nothing!
             break;
     }
