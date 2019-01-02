@@ -34,16 +34,10 @@ scomplex *unimesh(INT dim, INT *nd, REAL *xo, REAL *xn,	const INT ishift){
     nd[j]=chkn(nd[j], 2, m0[j]);
     if(!(nd[j]%2)){
       nd[j]++;
-      fprintf(stdout,"\n%%WARNING: Even number of points direction x[%d]. Changing to ODD, i.e. nd[%d]=%d\n",j,j,nd[j]);
+      /*no warning*/
+      /*      fprintf(stdout,"\n%%WARNING: Even number of points direction x[%d]. Changing to ODD, i.e. nd[%d]=%d\n",j,j,nd[j]);*/
     }
   }
-  fprintf(stdout,"\n-------------------------------------------\n");
-  fprintf(stdout,"%% number of points along each axis:\n%% ");
-  for(j=0;j<(dim-1);j++){
-    fprintf(stdout,"nd[%d]=%d, ",j,nd[j]);
-  }
-  fprintf(stdout,"nd[%d]=%d",dim-1,nd[dim-1]);
-  fprintf(stdout,"\n-------------------------------------------\n");    
   nv=nd[0];
   ns=(nd[0]-1);
   dfactorial=1;
@@ -150,13 +144,20 @@ INT main(INT   argc,   char *argv[]){
   // boundary codes
   const INT ishift=1;
   scomplex *sc=unimesh(dim,nd,xo,xn,ishift);
+  fprintf(stdout,"\n-------------------------------------------\n");
+  fprintf(stdout,"%% UNIFORM MESH: ");
+  for(j=0;j<(dim-1);j++){
+    fprintf(stdout,"nd[%d]=%d, ",j,nd[j]);
+  }
+  fprintf(stdout,"nd[%d]=%d",dim-1,nd[dim-1]);
+  fprintf(stdout,"\n-------------------------------------------\n");    
   if(ref_levels){
     dvector *errest=(dvector *)malloc(sizeof(dvector));
     long int lots = (1<<ref_levels)*sc->ns;
     //fprintf(stdout,"\n*** NNN=%li %d\n",lots,(1<<ref_levels));
     /* create a vector to contain the errors of all refinements*/
     /*LOTS=number of element if every element was refined ref_level times*/
-    *errest=dvec_create((int )lots);
+    *errest=dvec_create((INT )lots);
     /*******************************************/
     /* if we have to refine only elements containing points from an
        array called "features array" */

@@ -110,7 +110,7 @@ unsigned int markeql(scomplex *sc, dvector *w)
   /* mark simplices equilibrating errors given by a dvector w*/
   /* w must have length nslast: the number of simplices on the last grid otherwise */
   unsigned int flag;
-  if(!(w->val) || (w->row<=0)) {
+  if((w->row<=0) || !(w->val)) {
     /* for(i=0;i<ns;i++){ */
     /*   if(sc->gen[i] < level) continue; */
     /*   sc->marked[i]=TRUE; */
@@ -125,22 +125,27 @@ unsigned int markeql(scomplex *sc, dvector *w)
   REAL avew=0e0;
   // find the average of the error 
   for(i = 0;i<ns;i++){
-    if(sc->gen[i] < level) continue;
-    avew+=fabs(wval[nslast]);
-    nslast++;
-    if(nslast > ntotal) { fprintf(stderr,"\n***ERROR: nslast > ntotal (%d > %d) in function %s;\n",nslast, ntotal, __FUNCTION__); return 1; }
+    // we look at the elements on the last level:
+    if(sc->childn[i] < 0) {
+      //    if(sc->gen[i] < level) continue;
+      avew+=fabs(wval[nslast]);
+      nslast++;
+      if(nslast > ntotal) { fprintf(stderr,"\n***ERROR: nslast > ntotal (%d > %d) in function %s;\n",nslast, ntotal, __FUNCTION__); return 1; }
+    }
   }
   avew=avew/nslast;
   nslast=0;
-  //mark for refinement every simplex for which error > average error
+  //mark for refinement every unrefined and unmarked simplex for which error > average error
   for(i = 0;i<ns;i++){
-    if(sc->gen[i] < level) continue;    
-    if(fabs(wval[nslast])>avew) {
-      sc->marked[i]=TRUE;
-    } else {
-      sc->marked[i]=FALSE;
+    //    if(sc->gen[i] < level) continue;    
+    if(!(sc->marked[i]) && sc->childn[i] <0) {
+      if(fabs(wval[nslast])>avew) {
+	sc->marked[i]=TRUE;
+      } else {
+	sc->marked[i]=FALSE;
+      }
+      nslast++;
     }
-    nslast++;
   }
   return 0;
 }
@@ -156,9 +161,11 @@ void markall(scomplex *sc){
 INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)
 {
   /* 
-     checks if the point given with coordinates xstar[] is in the
-     simplex defined by "nodes[] and xs[]" in dimension "n" construct the
-     map A from reference simplex and solves linear systems with partial pivoting to determine this 
+     In dimension "n" constructs the map from reference simplex to
+     simplex with coordinates xs[0..n].  Then solves a linear system
+     with partial pivoting to determine if a point given with
+     coordinates xstar[0..n-1] is in the (closed) simplex defined by
+     "nodes[0..n] and xs[0..n]"
   */  
   INT n1=n+1,i,j,l0n,ln,j1;
   INT *p=NULL;
@@ -192,13 +199,13 @@ INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)
   //  print_full_mat(n,1,xhat,"xhat0");
   solve_pivot(1, n, A, xhat, p, piv);
   //  print_full_mat(n,1,xhat,"xhat");
-  /* check the solution if within bounds */
   //  fprintf(stdout,"\nSolution:\n");
   //  print_full_mat(n,1,xhat,"xhat");
   REAL xhatn=1e0,eps0=1e-10,xmax=1e0+eps0;
+  /* check the solution if within bounds */
   INT flag = 0;
   for(j=0;j<n;j++){
-    if((xhat[j]<-eps0) || (xhat[j]>xmax)){
+    if((xhat[j] < -eps0) || (xhat[j] > xmax)){
       flag=(j+1);
       //      fprintf(stdout,"\nNOT FOUND: xhat(%d)=%e\n\n",flag,xhat[j]);
       break;

@@ -26,7 +26,6 @@
 /* spatial dimension */
 #define DIM 3
 
-
 #define USE_FEATURES 0
 #define FEATURES_DIR  "./"
 
