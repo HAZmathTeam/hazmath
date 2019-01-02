@@ -18,7 +18,7 @@ void marks(INT level,scomplex *sc)
   REAL *sl=(REAL *)calloc(ne,sizeof(REAL));
   INT kbad=0;
   for(i = 0;i<ns;i++){
-    if(sc->gen[i] <level) continue;
+    if(sc->gen[i] < level) continue;
     ni=n1*i;
     ke=0;
     for (j = 0; j<n;j++){      
@@ -54,7 +54,7 @@ void marks(INT level,scomplex *sc)
   return;
 }
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
-void markstar(INT level,scomplex *sc, INT nstar, REAL *xstar)
+void markstar(scomplex *sc, INT nstar, REAL *xstar)
 {
   /* 
      from marked simplices, remove any simplex that does not contain a
@@ -78,10 +78,10 @@ void markstar(INT level,scomplex *sc, INT nstar, REAL *xstar)
     if(sc->child0[j]>=0) {continue;}
     if(!sc->marked[j]) {continue;}
     mrktst++;
-    scnjn = sc->nodes+j*n1;
+    scnjn = sc->nodes+j*n1; //beginning of local ertex numbering for simplex j. 
     for(jstar=0;jstar<nstar;jstar++){
       //      fprintf(stdout,"\nel=%d\n",jstar+1);
-      xstar0=xstar+jstar*n;
+      xstar0=xstar+jstar*n; 
       if(!xins(n,scnjn,sc->x,xstar0)){
 	//	fprintf(stdout,"\nel=%d, found: %d; NOmrk=%d",j,jstar+1,mrkno);
 	mrkno--;

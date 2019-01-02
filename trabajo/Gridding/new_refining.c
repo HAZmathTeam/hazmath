@@ -7,6 +7,55 @@
 
  */
 #include "hazmath.h"
+#include "grid_defs.h"
+/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
+void n_refine(INT ref_levels, scomplex *sc,dvector *dxstar)
+{
+/* 
+ * refine ref_levels using marking strategy (below as example it
+ * uses "markstar()" as a function that marks for refinement every
+ * element which contains a point with coordinates stored in *dxstar.
+ *
+ *  If *dxstar is null or if $dxstar->row=0 then uniform refinement
+ *  "ref_levels" time of every element is done. 
+ */
+  if(ref_levels<=0) return;
+  INT n=sc->n,j=-1,k=-1,i123=-10;
+  INT ns,nv,n1,nsold,nvold,level;
+  if(!sc->level){
+    /*form neighboring list; */
+    find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
+    INT *wrk=calloc(5*(sc->n+2),sizeof(INT));
+    /* construct bfs tree for the dual graph */
+    abfstree(0,sc,wrk);
+    if(wrk) free(wrk);
+  }
+  n=sc->n; n1=n+1; level=0;
+  /* we first mark everything */
+  markall(sc);
+  fprintf(stdout,"refine: ");
+  while(sc->level < ref_levels && TRUE){
+    if(dxstar->row && dxstar->val) markstar(sc,dxstar);    
+    nsold=sc->ns;
+    nvold=sc->nv;
+    for(j = 0;j < nsold;j++) {
+      /* 
+       * refine everything that is marked on the finest level
+       * (marked>0 and child<0) and is not refined
+      */
+      if(sc->marked[j] && (sc->childn[j]<0)){
+	/* fprintf(stdout,"\n%d:%d(%d and %d)\n",TRUE,j,sc->marked[j],sc->childn[j]); */
+	haz_refine_simplex(sc, j, -1);
+      }
+    }
+    /* new mesh */
+    ns=sc->ns; nv=sc->nv;
+    sc->level++;
+    fprintf(stdout,".%d.",sc->level);//,nsold,ns,nv);
+  }
+  fprintf(stdout,"\n");
+  return;
+}
 unsigned int reflect2(INT n, INT is, INT it,				\
 		      INT* sv1, INT *sv2, INT* stos1, INT* stos2,	\
 		      INT visited, INT *wrk)
@@ -113,7 +162,7 @@ unsigned int reflect2(INT n, INT is, INT it,				\
 void abfstree(INT it, scomplex *sc,INT *wrk) 
 {
   /* from the scomplex the mask are the marked and the */
-  /* bfs tree rooted at 0 */
+  /* bfs tree rooted at simplex it */
   INT n=sc->n,n1=n+1,ns=sc->ns;
   INT i,j,k,iii,is,isn1,itn1;
   INT i1,in1,kbeg,kend,nums,iai,iai1,klev;
@@ -185,57 +234,20 @@ void abfstree(INT it, scomplex *sc,INT *wrk)
   }
   return;
 }
-/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
-void refining(INT ref_levels, scomplex *sc, INT nstar, REAL *xstar)
+void scfinalize(scomplex *sc)
 {
-/* ATTN: it refines ref_levels times and then sets ref_levels=0 so
- *  when called again it will not refine automatically unless
- *  ref_levels is reset to new value; 
- *
- *xstar is an array nstar by dim
- *  which contains coordinates of points where we want to refine.
- *  here n is used instead of dim.  bail out if no refinement is
- *  required
-*/
-  if(ref_levels<=0) return;
-  INT n=sc->n,j=-1,k=-1;
-  INT ns,nv,n1,nsold,nvold,level;
-  /* working space used in reflect_mesh */
-  INT *wrk=(INT *)calloc(5*(sc->n+2),sizeof(INT));  
-  // longest edge?
-  abfstree(0,sc,wrk);
-  n=sc->n; n1=n+1; level=0;
-  /* we first mark everything */
-  for (j=0;j<sc->ns;j++) {sc->marked[j]=1;}
-  fprintf(stdout,"refine: ");
-  while(level < ref_levels){
-    nsold=sc->ns;
-    nvold=sc->nv;
-    /* 
-       mark some simplices. if nstar=0 nothing is marked additionally,
-       i.e. whatever was marked and its children stays marked: the
-       refinement is automatic up to level=ref_levels.
-    */
-    if(nstar)
-      markstar(level,sc,nstar,xstar);
-    else
-      marks(level,sc);
-    for(j = 0;j < nsold;j++) {
-      if(sc->marked[j] && (sc->childn[j]<0)){
-	haz_refine_simplex(sc, j, -1);
-      }
-    }
-    /* new mesh */
-    ns=sc->ns; nv=sc->nv;
-    level++;
-    fprintf(stdout,".%d.",level);
-  }
-  fprintf(stdout,"\n");
-  ns=0;
+  /* copy the final grid at position 1*/
+  INT ns,j=-10,k=-10,n=sc->n,n1=sc->n+1;
   /*  
-      remove hierarchy, only last sc is needed for computations...
+      store the finest mesh in sc structure. 
+      on input sc has all the hierarchy, on return sc only has the final mesh. 
   */
+  ns=0;
   for (j=0;j<sc->ns;j++){
+    /*
+      On the last grid are all simplices that were not refined, so
+      these are the ones for which child0 and childn are not set. 
+    */
     if(sc->child0[j]<0 || sc->childn[j]<0){
       for (k=0;k<n1;k++) {
 	sc->nodes[ns*n1+k]=sc->nodes[j*n1+k];
@@ -247,72 +259,49 @@ void refining(INT ref_levels, scomplex *sc, INT nstar, REAL *xstar)
     }
   }
   sc->ns=ns;
-  sc->nv=nv;
-  fprintf(stdout,"%%After %d levels of refinement:\tsimplices=%d ; vertices=%d\n",ref_levels,sc->ns,sc->nv); fflush(stdout);
-  if(wrk) free(wrk);
+  //  sc->nv=nv;
+  fprintf(stdout,"\n%%After %d levels of refinement:\tsimplices=%d ; vertices=%d\n",sc->level,sc->ns,sc->nv); fflush(stdout);
   return;
 }
-INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)
+/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
+void sc2mesh(scomplex *sc,trimesh *mesh)
 {
-  /* 
-     checks if the point given with coordinates xstar[] is in the
-     simplex defined by "nodes[] and xs[]" in dimension "n" construct the
-     map A from reference simplex and solves linear systems with partial pivoting to determine this 
-  */  
-  INT n1=n+1,i,j,l0n,ln,j1;
-  INT *p=NULL;
-  REAL *A=NULL,*xhat=NULL, *piv=NULL;
-  A=(REAL *)calloc(n*n,sizeof(REAL));
-  xhat=(REAL *)calloc(n,sizeof(REAL));
-  piv=(REAL *)calloc(n,sizeof(REAL));
-  p=(INT *)calloc(n,sizeof(INT));
-  /* fprintf(stdout,"\nj=%d; vertex=%d\n",0+1,nodes[0]+1); fflush(stdout); */
-  /* fprintf(stdout,"\nvertex=%d\n",nodes[0]+1); */
-  /* for(i=0;i<n;i++){ */
-  /*   fprintf(stdout,"xyz=%f ",xs[l0n+i]); */
-  /* } */
-  /* fprintf(stdout,"\n"); */
-  l0n=nodes[0]*n;
-  for (j = 1; j<n1;j++){
-    /* grab the vertex */
-    ln=nodes[j]*n;
-    j1=j-1;
-    for(i=0;i<n;i++){
-      /*A_{ij} = x_{i,nodes(j)}-x0_{i,nodes(j)},j=1:n (skip 0)*/
-      A[i*n+j1] = xs[ln+i]-xs[l0n+i];
+  /* copy the final grid at position 1*/
+  INT ns,n=sc->n,n1=sc->n+1,jk=-10,k=-10,j=-10;
+  /*  
+      store the finest mesh in trimesh structure. 
+      sc has all the hierarchy, trimesh will have only the last mesh. 
+  */
+  ns=0;
+  for (j=0;j<sc->ns;j++){
+    /*  On the last grid are all simplices that were not refined, so
+      these are the ones for which child0 and childn are not set.  */
+    if(sc->child0[j]<0 || sc->childn[j]<0){
+      mesh->el_flag[ns]=sc->flags[j];
+      mesh->el_vol[ns]=sc->vols[j];
+      ns++;
     }
   }
-  //  fflush(stdout);
-  for(i=0;i<n;i++){
-    xhat[i] = xstar[i]-xs[l0n+i];
+  mesh->nv=sc->nv;
+  for (j=0;j<mesh->nv;j++){
+    mesh->v_flag[j]=sc->bndry[j];
   }
-  //print_full_mat(n,1,xstar,"xstar");
-  //  print_full_mat(n,n,A,"A");
-  //  print_full_mat(n,1,xhat,"xhat0");
-  solve_pivot(1, n, A, xhat, p, piv);
-  //  print_full_mat(n,1,xhat,"xhat");
-  /* check the solution if within bounds */
-  //  fprintf(stdout,"\nSolution:\n");
-  //  print_full_mat(n,1,xhat,"xhat");
-  REAL xhatn=1e0,eps0=1e-10,xmax=1e0+eps0;
-  INT flag = 0;
-  for(j=0;j<n;j++){
-    if((xhat[j]<-eps0) || (xhat[j]>xmax)){
-      flag=(j+1);
-      //      fprintf(stdout,"\nNOT FOUND: xhat(%d)=%e\n\n",flag,xhat[j]);
-      break;
-    }
-    xhatn -= xhat[j];
-    if((xhatn<-eps0) || (xhatn>xmax)) {
-      flag=n+1;
-      //          fprintf(stdout,"\nNOT FOUND: xhat(%d)=%e\n\n",flag,xhatn);
-      break;
-    }
+  mesh->el_v->IA = (INT *) calloc(ns+1,sizeof(INT)); 
+  mesh->el_v->JA = (INT *) calloc(ns*n1,sizeof(INT));
+  mesh->nelm=ns;
+  mesh->el_v->IA[0]=0;   
+  for (j=0;j<mesh->nelm;j++){
+    mesh->el_v->IA[j+1]=mesh->el_v->IA[j]+n1;       
   }
-  if(A) free(A);
-  if(xhat) free(xhat);
-  if(p) free(p);
-  if(piv) free(piv);
-  return flag;
+  jk=0;
+  for (j=0;j<sc->ns;j++){
+    /*  copy el_v map using only the top grid;    */
+    if(sc->child0[j]<0 || sc->childn[j]<0){
+      for (k=0;k<n1;k++)
+	memcpy(mesh->el_v->JA+jk*n1,sc->nbr+j*n1,n1*sizeof(INT));
+      jk++;
+  }
+  fprintf(stdout,"\n%%After %d levels of refinement:\tsimplices=%d ; vertices=%d\n",sc->level,sc->nv,ns); fflush(stdout);
+  }
+  return;
 }
-
