@@ -150,16 +150,19 @@ C     ii = (k-1)*nx*ny + (j-1)*nx + i
       return
       end
 c=====================================================================
-      subroutine getm2(nx,ny,nvert,nel,
+      subroutine getm2(nd,nvert,nel,
      >     xcoord,ycoord,
      >     je,iflags,ib,inumb,
      >     ibcode,minneu,maxneu)
       implicit real*8(a-h,o-z), integer(i-n)
       dimension xcoord(*),ycoord(*)
-      dimension je(*),ib(*), inumb(*),iflags(*)
+!! nd is number of divisions in every direction
+      dimension nd(*),je(*),ib(*), inumb(*),iflags(*)
       dimension xy(4,2),jsqu(4),jcolo(3)
       dimension nop(3,2,2)
       dimension ibcode(*)
+      nx=nd(1)
+      ny=nd(2)
 C
 C... ndl = 3 ! number of degrees of freedom per element
 C

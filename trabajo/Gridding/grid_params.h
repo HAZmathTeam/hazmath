@@ -11,7 +11,7 @@
 #endif
 
 /* MAX LEVELS of refinement */
-#define MAXREFLEVELS 18
+#define MAXREFLEVELS 5
 
 /* 
    preceeds all file names, so it can be a directory name and a
@@ -24,16 +24,15 @@
 #define VTKDO  1
 
 /* spatial dimension */
-#define DIM 2
+#define DIM 3
 
-
-#define USE_FEATURES 1
+#define USE_FEATURES 0
 #define FEATURES_DIR  "./"
 
-#define FEATURES_FILE_IN "spiral2d.inp"
+//#define FEATURES_FILE_IN "spiral2d.inp"
 //#define FEATURES_FILE_IN "spiral.inp"
 //#define FEATURES_FILE_IN "circle.inp"
-//#define FEATURES_FILE_IN "sphere.inp"
+#define FEATURES_FILE_IN "sphere.inp"
 
 #define FEATURES_FILE_OUT "opts123.out"
 

@@ -15,10 +15,11 @@
 
 typedef struct /* n-homogenous simplicial complex */
 {
-  INT nbig; /* spatial dimension in which the SC is embedded*/
-  INT n; /* dimension of SC */
+  INT nbig; /* the dimension of the space in which SC is embedded */
+  INT n; /* the dimension of SC */
   INT nv; /* number of 0-dimensional simplices */
   INT ns; /* number of n-dimensional simplices */
+  INT level; /* level of refinement */
   INT *marked; /*whether marked or not*/
   INT *gen; /* array to hold the simplex generation during refinement */
   INT *nbr; /* array (ns by n+1) to hold the neighbors */
@@ -66,9 +67,9 @@ typedef struct /* n-dimensional uniform grid */
   INT *ndiv; /*number of divisions in each direction ndiv[dim]. 
 	       NOTE: nall=(ndiv[dim-1]+1)*...*(ndiv[0]+1) */
   int nvcube; /* number of vertices on the unit cube in R^n=2^{n}.*/
-  unsigned int *bits; /*the numbers 0 to 2^{n-1} as an array. these are also
-		the coordinates of the vertices of the unit cube in
-		R^n*/
+  unsigned int *bits; /* the binary digits of all the integers from 0
+		to 2^{n-1} as an array. These are also the coordinates
+		of the vertices of the unit cube in R^n*/
   REAL *xo; /* coordinates of the origin xo[dim]*/
   REAL *xn; /* coordinates of the max corner(NE in 2D) xn[dim]*/
   REAL *dx; /*the step sizes in each dimension:
