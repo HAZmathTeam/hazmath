@@ -50,15 +50,15 @@ void iarray_print(INT *vec,
     // local variable
     INT *vec_end;
     vec_end  =  vec + n;
-    
+
     fprintf(stdout,"\n");
 
     // main loop
     for ( ; vec < vec_end; ++vec)
         fprintf(stdout, "%i\n  ",*vec);
-    
+
     fprintf(stdout,"\n");
-    
+
     return;
 }
 
@@ -78,14 +78,14 @@ void array_print(REAL *vec,
     // local variable
     REAL *vec_end;
     vec_end  =  vec + n;
-    
+
     fprintf(stdout,"\n");
-    
+
     for ( ; vec < vec_end; ++vec)
         fprintf(stdout, "%e\n  ",*vec);
-    
+
     fprintf(stdout,"\n");
-    
+
     return;
 
 }
@@ -143,6 +143,86 @@ void dvector_print(FILE* fid,
     fprintf(fid,"%25.16e\n",b->val[i]);
   }
   return;
+}
+
+/***********************************************************************************************/
+/**
+ * \fn void dvector_write (const char *filename, dvector *vec)
+ *
+ * \brief Write a dvector to disk file
+ *
+ * \param vec       Pointer to the dvector
+ * \param filename  File name
+ *
+ * \note File Format:
+ *   - nrow
+ *   - val_j, j=0:nrow-1
+ */
+void dvector_write (const char *filename,
+                    dvector *vec)
+{
+    INT m = vec->row, i;
+
+    FILE *fp = fopen(filename,"w");
+
+    if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
+
+    printf("%s: HAZMATH is writing to file %s...\n", __FUNCTION__, filename);
+
+    fprintf(fp,"%d\n",m);
+
+    for ( i = 0; i < m; ++i ) fprintf(fp,"%0.15e\n",vec->val[i]);
+
+    fclose(fp);
+}
+
+
+/***********************************************************************************************/
+/**
+ * \fn void dvector_read (const char *filename, dvector *b)
+ *
+ * \brief Read b from a disk file in array format
+ *
+ * \param filename  File name for vector b
+ * \param b         Pointer to the dvector b (output)
+ *
+ * \note File Format:
+ *   - nrow
+ *   - val_j, j=0:nrow-1
+ *
+ */
+void dvector_read (const char *filename,
+                   dvector *b)
+{
+
+    int  i, n;
+    REAL value;
+
+    FILE *fp = fopen(filename,"r");
+
+    if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
+
+    printf("%s: HAZMATH is reading file %s...\n", __FUNCTION__, filename);
+
+    fscanf(fp,"%d",&n);
+
+    dvec_alloc(n,b);
+
+    for ( i = 0; i < n; ++i ) {
+
+        fscanf(fp, "%le", &value);
+        b->val[i] = value;
+
+        if ( value > BIGREAL ) {
+            printf("### ERROR: Wrong value = %lf\n", value);
+            dvec_free(b);
+            fclose(fp);
+            exit(ERROR_INPUT_PAR);
+        }
+
+    }
+
+    fclose(fp);
 }
 
 /***********************************************************************************************/
@@ -227,15 +307,15 @@ void csr_print_native(FILE* fid,
   INT i,j1,j2,j,shift;
 
   if(A->IA[0]==0) shift=0; else  shift=-1;
-  // shift -1 if it was fortran, starting from 1. 
+  // shift -1 if it was fortran, starting from 1.
   fprintf(fid,"%d %d %d\n",A->row, A->col, A->nnz);
   for(i=0;i<(A->row+1);i++)
     fprintf(fid,"%d ",A->IA[i]+shift);
-  fprintf(fid,"\n");     
-  for(i=0;i<A->nnz;i++) 
+  fprintf(fid,"\n");
+  for(i=0;i<A->nnz;i++)
     fprintf(fid,"%d ",A->JA[i]+shift);
   fprintf(fid,"\n");
-  for(i=0;i<A->nnz;i++) 
+  for(i=0;i<A->nnz;i++)
     fprintf(fid,"%23.16e ",A->val[i]);
   fprintf(fid,"\n");
   if(rhs)
@@ -316,25 +396,70 @@ void dvec_write (const char *filename,
  */
 void dcsr_write_dcoo (const char *filename,
                       dCSRmat *A)
-{   
+{
     // local variables
     const INT m = A->row, n = A->col;
     INT i, j;
-    
+
     FILE *fp = fopen(filename, "w");
-    
+
     if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
-    
+
     printf("%s: HAZMATH is writing to file %s...\n", __FUNCTION__, filename);
-    
+
     // main loop
     fprintf(fp,"%d  %d  %d\n",m,n,A->nnz);
     for ( i = 0; i < m; ++i ) {
         for ( j = A->IA[i]; j < A->IA[i+1]; j++ )
             fprintf(fp,"%d  %d  %0.15e\n",i,A->JA[j],A->val[j]);
     }
-    
+
     fclose(fp);
+}
+
+/***********************************************************************************************/
+/**
+ * \fn void dcoo_read_dcsr(const char *filename, dCSRmat *A)
+ *
+ * \brief Read A from matrix disk file in IJ format and convert to CSR format
+ *
+ * \param filename  File name for matrix
+ * \param A         Pointer to the CSR matrix
+ *
+ * \note File format:
+ *   - nrow ncol nnz     % number of rows, number of columns, and nnz
+ *   - i  j  a_ij        % i, j a_ij in each line
+ *
+ */
+void dcoo_read_dcsr (const char *filename,
+                     dCSRmat *A)
+{
+    int  i,j,k,m,n,nnz;
+    REAL value;
+
+    FILE *fp = fopen(filename,"r");
+
+    if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
+
+    printf("%s: HAZMATH is reading file %s...\n", __FUNCTION__, filename);
+
+    fscanf(fp,"%d %d %d",&m,&n,&nnz);
+
+    dCOOmat Atmp=dcoo_create(m,n,nnz);
+
+    for ( k = 0; k < nnz; k++ ) {
+        if ( fscanf(fp, "%d %d %le", &i, &j, &value) != EOF ) {
+            Atmp.rowind[k]=i; Atmp.colind[k]=j; Atmp.val[k] = value;
+        }
+        else {
+            check_error(ERROR_WRONG_FILE, "dcoo_read_dcsr");
+        }
+    }
+
+    fclose(fp);
+
+    dcoo_2_dcsr(&Atmp,A);
+    dcoo_free(&Atmp);
 }
 
 /*** Auxillary Files (some from Ludmil) *******************************************************/
@@ -350,7 +475,7 @@ void dcsr_write_dcoo (const char *filename,
  *
  */
 void rveci_(FILE *fp,INT *vec,INT *nn)
-{	
+{
   // local variables
   INT n,i;
   INT *vec_end;
@@ -381,7 +506,7 @@ void rvecd_(FILE *fp,
 {
     // local variables
   INT n,i;
-  REAL *vec_end;  
+  REAL *vec_end;
   n= *nn;
   vec_end =  vec + n;
 
@@ -445,8 +570,8 @@ void dump_sol_onV_vtk(char *namevtk,
   INT tcell=-10;
   INT k=-10,j=-10,kndl=-10;
   char *tfloat="Float64", *tinto="Int64", *endian="LittleEndian";
-   
-  /* 
+
+  /*
      What endian?:
 
      Intel x86; OS=MAC OS X: little-endian
@@ -462,29 +587,29 @@ void dump_sol_onV_vtk(char *namevtk,
      Sun SPARC; OS=Solaris: big-endian
   */
 
-  /* 
-     Types of cells for VTK 
+  /*
+     Types of cells for VTK
 
-     VTK_VERTEX (=1) 
+     VTK_VERTEX (=1)
      VTK_POLY_VERTEX (=2)
      VTK_LINE (=3)
      VTK_POLY_LINE (=4)
      VTK_TRIANGLE(=5)
      VTK_TRIANGLE_STRIP (=6)
-     VTK_POLYGON (=7) 
-     VTK_PIXEL (=8) 
+     VTK_POLYGON (=7)
+     VTK_PIXEL (=8)
      VTK_QUAD (=9)
      VTK_TETRA (=10)
      VTK_VOXEL (=11)
      VTK_HEXAHEDRON (=12)
-     VTK_WEDGE (=13) 
+     VTK_WEDGE (=13)
      VTK_PYRAMID (=14)
   */
 
   const INT LINE=3;
-  const INT TRI=5;  
+  const INT TRI=5;
   const INT TET=10;
-  
+
   if(dim==1) {
     tcell=LINE; /* line */
   } else if(dim==2) {
@@ -493,7 +618,7 @@ void dump_sol_onV_vtk(char *namevtk,
     tcell=TET; /* tet */
   }
   // Open File for Writing
-  FILE* fvtk = HAZ_fopen(namevtk,"w");  
+  FILE* fvtk = HAZ_fopen(namevtk,"w");
 
   // Write Headers
   fprintf(fvtk, \
@@ -983,7 +1108,7 @@ void debug_print(char* string, INT kill)
 
 /**********************************************************************
  * Routines to save to file the mesh in different formats.
- * uses the simplicial complex data structure (scomplex *sc). 
+ * uses the simplicial complex data structure (scomplex *sc).
  *
  *************************************************************************/
 void hazw(char *nameout,scomplex *sc, const INT nholes, const int shift)
@@ -995,7 +1120,7 @@ void hazw(char *nameout,scomplex *sc, const INT nholes, const int shift)
   INT k=-10,j=-10,kndl=-10;
   fmesh=HAZ_fopen(nameout,"w");
   /* *******************************************
-     HAZMAT way of writing mesh file. 
+     HAZMAT way of writing mesh file.
      *******************************************    */
   fprintf(fmesh,"%i %i %i %i\n",ns,n,dim,nholes);
   /* fprintf(stdout,"%i %i %li\n",n,ns,sizeof(ib)/sizeof(INT)); */
@@ -1030,7 +1155,7 @@ void hazw(char *nameout,scomplex *sc, const INT nholes, const int shift)
     fprintf(fmesh,"\n");
   }
   fprintf(stdout,"\n%%Output (hazmath) written on:%s\n",nameout);
-  fclose(fmesh);    
+  fclose(fmesh);
   return;
 }
 /* WRITE mesh on VTU file*/
@@ -1043,7 +1168,7 @@ void vtkw(char *namevtk, scomplex *sc, const INT nholes, const INT shift, const 
   INT tcell=-10;
   INT k=-10,j=-10,kn=-10,kn1=-10;
   char *tfloat="Float64", *tinto="Int64", *endian="LittleEndian";
-  /* 
+  /*
      what endian?:
 
      Intel x86; OS=MAC OS X: little-endian
@@ -1058,39 +1183,39 @@ void vtkw(char *namevtk, scomplex *sc, const INT nholes, const INT shift, const 
      SGI R4000 and up; OS=IRIX: big-endian
      Sun SPARC; OS=Solaris: big-endian
   */
-  /* 
-     Types of cells for VTK 
+  /*
+     Types of cells for VTK
 
-     VTK_VERTEX (=1) 
+     VTK_VERTEX (=1)
      VTK_POLY_VERTEX (=2)
      VTK_LINE (=3)
      VTK_POLY_LINE (=4)
      VTK_TRIANGLE(=5)
      VTK_TRIANGLE_STRIP (=6)
-     VTK_POLYGON (=7) 
-     VTK_PIXEL (=8) 
+     VTK_POLYGON (=7)
+     VTK_PIXEL (=8)
      VTK_QUAD (=9)
      VTK_TETRA (=10)
      VTK_VOXEL (=11)
      VTK_HEXAHEDRON (=12)
-     VTK_WEDGE (=13) 
+     VTK_WEDGE (=13)
      VTK_PYRAMID (=14)
   */
-  const INT TRI=5;  
+  const INT TRI=5;
   const INT TET=10;
-  if(n==2) 
+  if(n==2)
     tcell=TRI; /* triangle */
-  else 
+  else
     tcell=TET; /* tet */
 
   /* VTK format writing the mesh for plot */
-  fvtk=HAZ_fopen(namevtk,"w");  
+  fvtk=HAZ_fopen(namevtk,"w");
   fprintf(fvtk,"<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"%s\">\n",endian);
   fprintf(fvtk,"<UnstructuredGrid>\n");
   fprintf(fvtk,"<Piece NumberOfPoints=\"%i\" NumberOfCells=\"%i\">\n",nv,ns);
   fprintf(fvtk,"<Points>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" NumberOfComponents=\"3\" Format=\"ascii\">",tfloat);
-  if(n == 2) 
+  if(n == 2)
     for (j=0;j<nv;j++){
       for (k=0;k<n;k++) {
 	fprintf(fvtk,"%23.16g ",x[j*n+k]);
@@ -1156,7 +1281,7 @@ void vtkw(char *namevtk, scomplex *sc, const INT nholes, const INT shift, const 
   /*   kn1=k*n1; */
   /*   for(j=0;j<n1;j++) fprintf(fvtk," %i ",nodes[kn1 + j]); */
   /* } */
-  for (j=0;j<ns;j++){ 
+  for (j=0;j<ns;j++){
     /*  for (j=0;j<ns;j++){*/
     for (k=0;k<n1;k++) {
       fprintf(fvtk,"%d ",nodes[j*n1+k]+shift);
@@ -1188,14 +1313,14 @@ void matlw(scomplex *sc, char *namematl)
   fflush(stdout);
   fprintf(fp,"\nt=[");
   fflush(fp);
-  for (j=0;j<ns;j++){ 
+  for (j=0;j<ns;j++){
     /*  for (j=0;j<ns;j++){*/
     for (k=0;k<n1;k++) {
       fprintf(fp,"%i ",nodes[j*n1+k]+1);
     }
     fprintf(fp,"\n");
   }
-  fprintf(fp,"];\n"); 
+  fprintf(fp,"];\n");
   fprintf(fp,"\nx=[");
   for (j=0;j<nv;j++){
     for (k=0;k<n;k++) {
