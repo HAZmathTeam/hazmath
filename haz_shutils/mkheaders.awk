@@ -8,7 +8,7 @@
 BEGIN {
   inheader=0;
   print "/*******************************************************************/  "
-  print "/* This header file was automatically generated with \"make headers\".   */" 
+  print "/* This header file was automatically generated with \"make headers\".   */"
   print "/* WARNING: DO NOT EDIT!!!                               */  "
   print "/*******************************************************************/  "
   print ""
@@ -57,14 +57,14 @@ BEGIN {
 }
 
 /\/*! \\file/ {
-    printf "\n/* In file: %s */\n",$3;  
+    printf "\n/* In file: %s */\n",$3;
 }
 
 /^static|^extern/ || !/^[a-zA-Z]/ || /[;]/ {
   next;
 }
 
-!/^INT|^REAL|^coordinates|^qcoordinates|^FILE|^OFF_T|^size_t|^off_t|^pid_t|^unsigned|^mode_t|^DIR|^user|^int|^char|^uint|^struct|SHORT|^BOOL|^void|^double|^time|^dCSRmat|^dvector|^iCSRmat|^ivector|block_dCSRmat|^AMG_data|^scomplex|^subscomplex|^unigrid|^features|^locdetails/ {
+!/^INT|^REAL|^coordinates|^qcoordinates|^FILE|^OFF_T|^size_t|^off_t|^pid_t|^unsigned|^mode_t|^DIR|^user|^int|^char|^uint|^struct|^SHORT|^BOOL|^void|^double|^time|^dCSRmat|^dvector|^iCSRmat|^ivector|^dCOOmat|^block_dCSRmat|^AMG_data|^scomplex|^subscomplex|^unigrid|^features|^locdetails/ {
   next;
 }
 
