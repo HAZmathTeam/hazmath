@@ -605,8 +605,8 @@ void build_bubble_R (dCSRmat *R,
 
               // Save in R linear
               vertex = find_the_fine_vertex_the_hard_way(x, fmesh, fface);
-              if( VertFilled[vertex] == 0 ){
-//                printf("Vertex | (%d, %d) : %7.4f, %7.4f\n",cface,vertex,phi[locFaceId*dim],phi[locFaceId*dim+1]);
+              if( VertFilled[vertex] == 0 ){//TODO: This needs to become a IJfilled type thing.
+                printf("Vertex | (%d, %d) : %7.4f, %7.4f\n",cface,vertex,phi[locFaceId*dim],phi[locFaceId*dim+1]);
                 VertFilled[vertex] = 1;
                 Il1[indexl] = cface;
                 Jl1[indexl] = vertex;
@@ -666,6 +666,7 @@ void build_bubble_R (dCSRmat *R,
     Rbly->JA  = (INT *)calloc(R->nnz, sizeof(INT));
     Rbly->val = (REAL *)calloc(R->nnz, sizeof(REAL));
     // Fill CSR matrix for Bubble Linear
+    jstart = 0;
     Rblx->IA[0] = jstart;
     Rbly->IA[0] = jstart;
     for(cdof=0; cdof< Rblx->row; cdof++){
@@ -683,7 +684,9 @@ void build_bubble_R (dCSRmat *R,
     }
     Rblx->nnz = jstart;
     Rbly->nnz = jstart;
-
+printf("___________________________________________\n");
+//csr_print_matlab(stdout,tempRblk.blocks[0]);
+printf("___________________________________________\n");
 
     //TODO: FREE!
 }
@@ -871,6 +874,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             nf1d = sqrt(mgl[lvl].fine_level_mesh->nv);
             nc1d = (nf1d-1)/2 + 1;
             for(j=1; j<dim+1; j++) build_linear_R( tempRblk.blocks[j+j*tempRblk.brow], nf1d, nc1d);
+            for(j=1; j<dim+1; j++) csr_print_matlab(stdout,tempRblk.blocks[j+j*tempRblk.brow]);
             printf("Built Linear R...\n");
             //Bubble
             nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
@@ -878,11 +882,18 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             build_bubble_R( tempRblk.blocks[0], tempRblk.blocks[1], tempRblk.blocks[2],
                             mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
             printf("Built Bubble R...\n");
+            csr_print_matlab(stdout,tempRblk.blocks[0]);
+            printf("++ block0\n");
+            csr_print_matlab(stdout,tempRblk.blocks[1]);
+            printf("++ block1\n");
+            csr_print_matlab(stdout,tempRblk.blocks[2]);
+            printf("++ block2\n");
             Rmerge = bdcsr_2_dcsr(&tempRblk);
             printf("Merged Displacement R... storage in %d\n",i+i*brow);
             dcsr_alloc(Rmerge.row,Rmerge.col,Rmerge.nnz,mgl[lvl].R.blocks[i+i*brow]);
             dcsr_cp(&Rmerge,mgl[lvl].R.blocks[i+i*brow]);
             printf("Stored Displacement R...\n");
+            csr_print_matlab(stdout,&Rmerge);
             break;
           default:
             printf("### ERROR: Unknown geometric multigrid type: %d!\n",mgl[lvl].gmg_type[i]);
@@ -902,6 +913,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
         for(j=0; j<brow; j++){
           if(mgl[lvl].A.blocks[j+i*brow]){
             printf("RAP on block[%d,%d]: TODO: FIX NNZ FOR R(i think)\n",i,j);
+//            csr_print_matlab(stdout,mgl[lvl].A.blocks[j+i*brow]);
             printf("Matrix:\n\tR.nnz=%d\tR.row=%d\tR.col=%d\n\tA.nnz=%d\tA.row=%d\tA.col=%d\n\tP.nnz=%d\tP.row=%d\tP.col=%d\n\n",
                     mgl[lvl].R.blocks[i+i*brow]->nnz,
                     mgl[lvl].R.blocks[i+i*brow]->row,
