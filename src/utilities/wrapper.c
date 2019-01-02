@@ -470,6 +470,18 @@ void python_wrapper_krylov_mixed_darcy(INT *nrow00,
     rhs.row = n; rhs.val = b;
     sol.row = n; sol.val = u;
 
+    /*
+    // output matrices
+    dcsr_write_dcoo("A11.dat", mat_bdcsr.blocks[0]);
+    dcsr_write_dcoo("A12.dat", mat_bdcsr.blocks[1]);
+    dcsr_write_dcoo("A21.dat", mat_bdcsr.blocks[2]);
+    dcsr_write_dcoo("A22.dat", mat_bdcsr.blocks[3]);
+
+    // output Mp and right hand side
+    dvec_write("rhs.dat", &rhs);
+    dvec_write("Mp.dat", &Mp);
+    */
+
     // solve in 2 by 2 block form
     *iters = linear_solver_bdcsr_krylov_mixed_darcy(&mat_bdcsr, &rhs, &sol, &itparam, &amgparam, &Mp);
 
