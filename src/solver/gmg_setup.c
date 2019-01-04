@@ -669,6 +669,7 @@ void build_bubble_R (dCSRmat *R,
     jstart = 0;
     Rblx->IA[0] = jstart;
     Rbly->IA[0] = jstart;
+    printf("asdfasdfasdfasdfasdfasdfasdf\n\tindexl=%d  row=%d\n",indexl,Rblx->row);
     for(cdof=0; cdof< Rblx->row; cdof++){
       for(ii=0;ii<indexl;ii++){
         if(cdof == Il1[ii]){
@@ -685,7 +686,9 @@ void build_bubble_R (dCSRmat *R,
     Rblx->nnz = jstart;
     Rbly->nnz = jstart;
 printf("___________________________________________\n");
-//csr_print_matlab(stdout,tempRblk.blocks[0]);
+printf("%d  %d  %d\n",R->row,Rbly->row,Rblx->row);
+printf("%d  %d  %d\n",R->col,Rbly->col,Rblx->col);
+//csr_print_matlab(stdout,Rblx);
 printf("___________________________________________\n");
 
     //TODO: FREE!
@@ -871,12 +874,15 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             break;
           case 999:// P1+bubble
             bdcsr_alloc(dim+1,dim+1,&tempRblk);
+            tempRblk.blocks[3] = NULL;
+            tempRblk.blocks[6] = NULL;
+            tempRblk.blocks[7] = NULL;
             //P1
             // TODO:do for each dim
             nf1d = sqrt(mgl[lvl].fine_level_mesh->nv);
             nc1d = (nf1d-1)/2 + 1;
             for(j=1; j<dim+1; j++) build_linear_R( tempRblk.blocks[j+j*tempRblk.brow], nf1d, nc1d);
-            for(j=1; j<dim+1; j++) csr_print_matlab(stdout,tempRblk.blocks[j+j*tempRblk.brow]);
+//            for(j=1; j<dim+1; j++) csr_print_matlab(stdout,tempRblk.blocks[j+j*tempRblk.brow]);
             printf("Built Linear R...\n");
             //Bubble
             nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
@@ -895,6 +901,12 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             dcsr_alloc(Rmerge.row,Rmerge.col,Rmerge.nnz,mgl[lvl].R.blocks[i+i*brow]);
             dcsr_cp(&Rmerge,mgl[lvl].R.blocks[i+i*brow]);
             printf("Stored Displacement R...\n");
+            printf("Rblk(0,0): %d %d\n",tempRblk.blocks[0]->row,tempRblk.blocks[0]->col);
+            printf("Rblk(0,1): %d %d\n",tempRblk.blocks[1]->row,tempRblk.blocks[1]->col);
+            printf("Rblk(0,2): %d %d\n",tempRblk.blocks[2]->row,tempRblk.blocks[2]->col);
+            printf("Rblk(1,1): %d %d\n",tempRblk.blocks[4]->row,tempRblk.blocks[4]->col);
+            printf("Rblk(2,2): %d %d\n",tempRblk.blocks[8]->row,tempRblk.blocks[8]->col);
+            printf("Rmerge: %d %d\n",Rmerge.row,Rmerge.col);
 //            csr_print_matlab(stdout,&Rmerge);
             dcsr_free(&Rmerge);
             break;
@@ -940,7 +952,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
               dcsr_mxm(&tempRA,mgl[lvl].P.blocks[j+j*brow],mgl[lvl+1].A.blocks[j+i*brow]);
               dcsr_free(&tempRA);
             }
-          }
+          } else { mgl[lvl+1].A.blocks[j+i*brow] = NULL; }
         }//j
       }//i
       printf("Built RAP for lvl=%d...\n",lvl);
