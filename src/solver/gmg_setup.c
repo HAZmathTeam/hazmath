@@ -425,12 +425,12 @@ INT find_the_fine_vertex_the_hard_way(REAL* midpoint, trimesh* fmesh, INT fface)
   get_incidence_row(fface,fmesh->f_v,v_on_f);
 
   for(i=0;i<dim;i++){
-    x = fmesh->cv->x[v_on_f[i]] - midpoint[0];
-    y = fmesh->cv->y[v_on_f[i]] - midpoint[1];
+    x = fmesh->cv->x[v_on_f[i]-1] - midpoint[0];
+    y = fmesh->cv->y[v_on_f[i]-1] - midpoint[1];
     if(dim==3) z = fmesh->cv->z[v_on_f[i]] - midpoint[2];
     diff = ABS(x+y+z);
     if(diff<diffmin){
-      vertex = v_on_f[i];
+      vertex = v_on_f[i]-1;
     }
   }
   if(vertex==-1) printf("\n\nERROR: NO VERTEX MATCHING MIDPOINT FOUND\n\n");
@@ -812,6 +812,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
     // Alloc temp block matrices here
     block_dCSRmat tempRblk;// needed to merge bubbles and linears, somehow...
     dCSRmat Rmerge;
+    dCSRmat tempRA;
 
     get_time(&setup_start);
 
@@ -859,6 +860,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             // Build Here
             printf("Building RT0 R...\n");
             build_face_R( mgl[lvl].R.blocks[i+i*brow], mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
+            //csr_print_matlab(stdout,mgl[lvl].R.blocks[i+i*brow]);
             printf("Built RT0 R...\n");
             break;
           case 61://Bubble
@@ -882,18 +884,19 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             build_bubble_R( tempRblk.blocks[0], tempRblk.blocks[1], tempRblk.blocks[2],
                             mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
             printf("Built Bubble R...\n");
-            csr_print_matlab(stdout,tempRblk.blocks[0]);
-            printf("++ block0\n");
-            csr_print_matlab(stdout,tempRblk.blocks[1]);
-            printf("++ block1\n");
-            csr_print_matlab(stdout,tempRblk.blocks[2]);
-            printf("++ block2\n");
+//            csr_print_matlab(stdout,tempRblk.blocks[0]);
+//            printf("++ block0\n");
+//            csr_print_matlab(stdout,tempRblk.blocks[1]);
+//            printf("++ block1\n");
+//            csr_print_matlab(stdout,tempRblk.blocks[2]);
+//            printf("++ block2\n");
             Rmerge = bdcsr_2_dcsr(&tempRblk);
             printf("Merged Displacement R... storage in %d\n",i+i*brow);
             dcsr_alloc(Rmerge.row,Rmerge.col,Rmerge.nnz,mgl[lvl].R.blocks[i+i*brow]);
             dcsr_cp(&Rmerge,mgl[lvl].R.blocks[i+i*brow]);
             printf("Stored Displacement R...\n");
-            csr_print_matlab(stdout,&Rmerge);
+//            csr_print_matlab(stdout,&Rmerge);
+            dcsr_free(&Rmerge);
             break;
           default:
             printf("### ERROR: Unknown geometric multigrid type: %d!\n",mgl[lvl].gmg_type[i]);
@@ -913,7 +916,12 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
         for(j=0; j<brow; j++){
           if(mgl[lvl].A.blocks[j+i*brow]){
             printf("RAP on block[%d,%d]: TODO: FIX NNZ FOR R(i think)\n",i,j);
+//            printf("R\n");
+//            csr_print_matlab(stdout,mgl[lvl].R.blocks[i+i*brow]);
+//            printf("A\n");
 //            csr_print_matlab(stdout,mgl[lvl].A.blocks[j+i*brow]);
+//            printf("P\n");
+//            csr_print_matlab(stdout,mgl[lvl].P.blocks[j+j*brow]);
             printf("Matrix:\n\tR.nnz=%d\tR.row=%d\tR.col=%d\n\tA.nnz=%d\tA.row=%d\tA.col=%d\n\tP.nnz=%d\tP.row=%d\tP.col=%d\n\n",
                     mgl[lvl].R.blocks[i+i*brow]->nnz,
                     mgl[lvl].R.blocks[i+i*brow]->row,
@@ -924,7 +932,14 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
                     mgl[lvl].P.blocks[j+j*brow]->nnz,
                     mgl[lvl].P.blocks[j+j*brow]->row,
                     mgl[lvl].P.blocks[j+j*brow]->col);
-            dcsr_rap(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].A.blocks[j+i*brow], mgl[lvl].P.blocks[j+j*brow], mgl[lvl+1].A.blocks[j+i*brow]);
+            if(i==j){
+              dcsr_rap(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].A.blocks[j+i*brow], mgl[lvl].P.blocks[j+j*brow], mgl[lvl+1].A.blocks[j+i*brow]);
+              printf("RAP finished on block...\n");
+            } else {
+              dcsr_mxm(mgl[lvl].R.blocks[i+i*brow],mgl[lvl].A.blocks[j+i*brow],&tempRA);
+              dcsr_mxm(&tempRA,mgl[lvl].P.blocks[j+j*brow],mgl[lvl+1].A.blocks[j+i*brow]);
+              dcsr_free(&tempRA);
+            }
           }
         }//j
       }//i
