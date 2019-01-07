@@ -577,7 +577,45 @@ void smoother_dcsr_Schwarz_backward (Schwarz_data *Schwarz,
     }
 }
 
+/**
+ * \fn void smoother_bdcsr_jacobi (dvector *u, const INT s, block_dCSRmat *A, dvector *b, INT L)
+ *
+ * \brief Jacobi smoother
+ *
+ * \param u      Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
+ * \param s      Increasing step
+ * \param A      Pointer to block_dBSRmat: the coefficient matrix
+ * \param b      Pointer to dvector: the right hand side
+ * \param L      Number of iterations
+ *
+ */
+void smoother_bdcsr_jacobi(dvector *u,
+                          const INT s,
+                          block_dCSRmat *A,
+                          dvector *b,
+                          INT L)
+{
+    // Sub-vectors
+    dvector utemp;
+    dvector btemp;
+    // Smooth
+    INT i, istart;
+    INT row;
+    istart = 0;
+    for(i=0; i<A->brow; i++){
+        row = A->blocks[i+i*A->brow]->row;
+        // Get sub-vectors
+        utemp.row = row;
+        utemp.val = u->val+istart;
+        btemp.row = row;
+        btemp.val = b->val+istart;
+        // Call jacobi on specific block
+        smoother_dcsr_jacobi(&utemp,0,row-1,s,A->blocks[i+i*A->brow],&btemp,L);
+        // Move to next block
+        istart += row;
+    }
 
+}
 /*---------------------------------*/
 /*--        End of File          --*/
 /*---------------------------------*/
