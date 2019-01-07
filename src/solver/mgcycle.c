@@ -209,6 +209,60 @@ static void dcsr_postsmoothing(const SHORT smoother,
     }
 }
 
+/**
+ * \fn static void bdcsr_presmoothing ( const INT lvl,
+ *                                          MG_blk_data *mlg,
+ *                                          AMG_param *param)
+ *
+ * \brief  Post-smoothing
+ *
+ * \param lvl       current level
+ * \param mgl       pointer to MG_blk_data structure with matrix information
+ * \param param     pointer to AMG_param parameters 
+ *
+ */
+static void bdcsr_presmoothing(const INT lvl, MG_blk_data *mgl, AMG_param *param)
+{
+    const SHORT smoother = param->smoother;
+    const SHORT nsweeps  = param->presmooth_iter;
+    switch (smoother) {
+
+        case SMOOTHER_JACOBI:
+            smoother_bdcsr_jacobi(&mgl[lvl].x, 1, &mgl[lvl].A, &mgl[lvl].b, nsweeps);
+            break;
+        default:
+            printf("### ERROR: Wrong smoother type %d!\n", smoother);
+            check_error(ERROR_INPUT_PAR, __FUNCTION__);
+    }
+}
+
+/**
+ * \fn static void bdcsr_postsmoothing ( const INT lvl,
+ *                                          MG_blk_data *mlg,
+ *                                          AMG_param *param)
+ *
+ * \brief  Post-smoothing
+ *
+ * \param lvl       current level
+ * \param mgl       pointer to MG_blk_data structure with matrix information
+ * \param param     pointer to AMG_param parameters 
+ *
+ */
+static void bdcsr_postsmoothing(const INT lvl, MG_blk_data *mgl, AMG_param *param)
+{
+    const SHORT smoother = param->smoother;
+    const SHORT nsweeps  = param->presmooth_iter;
+    switch (smoother) {
+
+        case SMOOTHER_JACOBI:
+            smoother_bdcsr_jacobi(&mgl[lvl].x, 1, &mgl[lvl].A, &mgl[lvl].b, nsweeps);
+            break;
+        default:
+            printf("### ERROR: Wrong smoother type %d!\n", smoother);
+            check_error(ERROR_INPUT_PAR, __FUNCTION__);
+    }
+}
+
 /*---------------------------------*/
 /*--      Public Functions       --*/
 /*---------------------------------*/
@@ -676,7 +730,7 @@ ForwardSweep:
         num_lvl[l]++;
         
         // pre-smoothing with standard smoothers
-//        bdcsr_presmoothing(&mgl[l], param);
+        bdcsr_presmoothing(l, &mgl[l], param);
 
         // form residual r = b - A x
         array_cp(mgl[l].b.row, mgl[l].b.val, mgl[l].w.val);
@@ -719,7 +773,7 @@ ForwardSweep:
         bdcsr_aAxpy(alpha, &mgl[l].P, mgl[l+1].x.val, mgl[l].x.val);
 
         // post-smoothing with standard methods
-//        bdcsr_postsmoothing(&mgl[l], param);
+        bdcsr_postsmoothing(l, &mgl[l], param);
 
         if ( num_lvl[l] < cycle_type ) break;
         else num_lvl[l] = 0;
