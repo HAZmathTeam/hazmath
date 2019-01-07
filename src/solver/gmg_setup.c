@@ -606,7 +606,7 @@ void build_bubble_R (dCSRmat *R,
               // Save in R linear
               vertex = find_the_fine_vertex_the_hard_way(x, fmesh, fface);
               if( VertFilled[vertex] == 0 ){//TODO: This needs to become a IJfilled type thing.
-                printf("Vertex | (%d, %d) : %7.4f, %7.4f\n",cface,vertex,phi[locFaceId*dim],phi[locFaceId*dim+1]);
+                //printf("Vertex | (%d, %d) : %7.4f, %7.4f\n",cface,vertex,phi[locFaceId*dim],phi[locFaceId*dim+1]);
                 VertFilled[vertex] = 1;
                 Il1[indexl] = cface;
                 Jl1[indexl] = vertex;
@@ -669,7 +669,6 @@ void build_bubble_R (dCSRmat *R,
     jstart = 0;
     Rblx->IA[0] = jstart;
     Rbly->IA[0] = jstart;
-    printf("asdfasdfasdfasdfasdfasdfasdf\n\tindexl=%d  row=%d\n",indexl,Rblx->row);
     for(cdof=0; cdof< Rblx->row; cdof++){
       for(ii=0;ii<indexl;ii++){
         if(cdof == Il1[ii]){
@@ -685,11 +684,11 @@ void build_bubble_R (dCSRmat *R,
     }
     Rblx->nnz = jstart;
     Rbly->nnz = jstart;
-printf("___________________________________________\n");
-printf("%d  %d  %d\n",R->row,Rbly->row,Rblx->row);
-printf("%d  %d  %d\n",R->col,Rbly->col,Rblx->col);
-//csr_print_matlab(stdout,Rblx);
-printf("___________________________________________\n");
+//printf("___________________________________________\n");
+//printf("%d  %d  %d\n",R->row,Rbly->row,Rblx->row);
+//printf("%d  %d  %d\n",R->col,Rbly->col,Rblx->col);
+////csr_print_matlab(stdout,Rblx);
+//printf("___________________________________________\n");
 
     //TODO: FREE!
 }
@@ -847,9 +846,9 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             //TODO: check nf1d and nc1d calculations
             nf1d = sqrt(mgl[lvl].A.blocks[i+i*brow]->row/2);
             nc1d = (nf1d)/2;
-            printf("Building constant R...\n");
+            printf("\tBuilding constant R...\n");
             build_constant_R( mgl[lvl].R.blocks[i+i*brow], nf1d, nc1d);
-            printf("Built constant R...\n");
+            printf("\tBuilt constant R...\n");
             break;
           case 1://P1
             nf1d = sqrt(mgl[lvl].A.blocks[i+i*brow]->row);
@@ -861,10 +860,10 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
             nc1d = (nf1d)/2;
             // Build Here
-            printf("Building RT0 R...\n");
+            printf("\tBuilding RT0 R...\n");
             build_face_R( mgl[lvl].R.blocks[i+i*brow], mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
             //csr_print_matlab(stdout,mgl[lvl].R.blocks[i+i*brow]);
-            printf("Built RT0 R...\n");
+            printf("\tBuilt RT0 R...\n");
             break;
           case 61://Bubble
             nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
@@ -883,13 +882,13 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             nc1d = (nf1d-1)/2 + 1;
             for(j=1; j<dim+1; j++) build_linear_R( tempRblk.blocks[j+j*tempRblk.brow], nf1d, nc1d);
 //            for(j=1; j<dim+1; j++) csr_print_matlab(stdout,tempRblk.blocks[j+j*tempRblk.brow]);
-            printf("Built Linear R...\n");
+            printf("\tBuilt Linear R...\n");
             //Bubble
             nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
             nc1d = (nf1d)/2;
             build_bubble_R( tempRblk.blocks[0], tempRblk.blocks[1], tempRblk.blocks[2],
                             mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
-            printf("Built Bubble R...\n");
+            printf("\tBuilt Bubble R...\n");
 //            csr_print_matlab(stdout,tempRblk.blocks[0]);
 //            printf("++ block0\n");
 //            csr_print_matlab(stdout,tempRblk.blocks[1]);
@@ -897,16 +896,16 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
 //            csr_print_matlab(stdout,tempRblk.blocks[2]);
 //            printf("++ block2\n");
             Rmerge = bdcsr_2_dcsr(&tempRblk);
-            printf("Merged Displacement R... storage in %d\n",i+i*brow);
+            printf("\tMerged Displacement R... storage in %d\n",i+i*brow);
             dcsr_alloc(Rmerge.row,Rmerge.col,Rmerge.nnz,mgl[lvl].R.blocks[i+i*brow]);
             dcsr_cp(&Rmerge,mgl[lvl].R.blocks[i+i*brow]);
-            printf("Stored Displacement R...\n");
-            printf("Rblk(0,0): %d %d\n",tempRblk.blocks[0]->row,tempRblk.blocks[0]->col);
-            printf("Rblk(0,1): %d %d\n",tempRblk.blocks[1]->row,tempRblk.blocks[1]->col);
-            printf("Rblk(0,2): %d %d\n",tempRblk.blocks[2]->row,tempRblk.blocks[2]->col);
-            printf("Rblk(1,1): %d %d\n",tempRblk.blocks[4]->row,tempRblk.blocks[4]->col);
-            printf("Rblk(2,2): %d %d\n",tempRblk.blocks[8]->row,tempRblk.blocks[8]->col);
-            printf("Rmerge: %d %d\n",Rmerge.row,Rmerge.col);
+//            printf("Stored Displacement R...\n");
+//            printf("Rblk(0,0): %d %d\n",tempRblk.blocks[0]->row,tempRblk.blocks[0]->col);
+//            printf("Rblk(0,1): %d %d\n",tempRblk.blocks[1]->row,tempRblk.blocks[1]->col);
+//            printf("Rblk(0,2): %d %d\n",tempRblk.blocks[2]->row,tempRblk.blocks[2]->col);
+//            printf("Rblk(1,1): %d %d\n",tempRblk.blocks[4]->row,tempRblk.blocks[4]->col);
+//            printf("Rblk(2,2): %d %d\n",tempRblk.blocks[8]->row,tempRblk.blocks[8]->col);
+//            printf("Rmerge: %d %d\n",Rmerge.row,Rmerge.col);
 //            csr_print_matlab(stdout,&Rmerge);
             dcsr_free(&Rmerge);
             break;
@@ -964,7 +963,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
     switch (csolver) {
 
 #if WITH_SUITESPARSE
-        printf("a;slkdjfal;sdjfoajsodj\na;lsjdfajsdkfjasldal;sjd\n");
+        printf("Setting up coarse solve: Using UMFPACK...\n");
         case SOLVER_UMFPACK: {
             // Need to sort the matrix A for UMFPACK to work
             // merge blocks
