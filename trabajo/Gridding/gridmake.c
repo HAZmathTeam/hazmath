@@ -12,6 +12,7 @@
 void scfinalize(scomplex *sc);
 /*****************************************************************/
 scomplex *unimesh(INT dim, INT *nd, REAL *xo, REAL *xn,	const INT ishift){
+  // generates uniform mesh with nd[k] vertices in every direction. 
   INT i,j,dfactorial,nv=-10,ns=-10;
   /*CONSTANTS and BOUNDARY CODES:*/
   /* max points in every direction; max dimension = 10*/  
@@ -42,8 +43,11 @@ scomplex *unimesh(INT dim, INT *nd, REAL *xo, REAL *xn,	const INT ishift){
   ns=(nd[0]-1);
   dfactorial=1;
   for(j=1;j<dim;j++){
+    // prod(nd) vertices in the mesh
     nv *= nd[j];
+    // prod(nd-1) cubes in the mesh
     ns *= (nd[j]-1);
+    // computing (dim factorial)=(dim!)
     dfactorial *= (j+1);
   }
   /*  If the cube has coordinates x[0,...,n-1], where n is the spatial
