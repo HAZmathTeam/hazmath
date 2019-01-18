@@ -730,7 +730,7 @@ ForwardSweep:
         num_lvl[l]++;
         
         // pre-smoothing with standard smoothers
-        bdcsr_presmoothing(l, &mgl[l], param);
+        bdcsr_presmoothing(l, mgl, param);
 
         // form residual r = b - A x
         array_cp(mgl[l].b.row, mgl[l].b.val, mgl[l].w.val);
@@ -773,7 +773,7 @@ ForwardSweep:
         bdcsr_aAxpy(alpha, &mgl[l].P, mgl[l+1].x.val, mgl[l].x.val);
 
         // post-smoothing with standard methods
-        bdcsr_postsmoothing(l, &mgl[l], param);
+        bdcsr_postsmoothing(l, mgl, param);
 
         if ( num_lvl[l] < cycle_type ) break;
         else num_lvl[l] = 0;

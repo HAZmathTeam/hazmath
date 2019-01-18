@@ -527,14 +527,15 @@ void build_bubble_R (dCSRmat *R,
     // allocate memory for Rl1
     // allocate memory for Rl2
     INT vertex;
-    INT* VertFilled = (INT *)calloc(fmesh->nv,sizeof(INT));//TODO:BAD!!!!!
+    INT* VertFilled = (INT *)calloc(fmesh->nv*R->row,sizeof(INT));//TODO:BAD!!!!!
     INT indexl=0;
-    INT*  Il1 = (INT*)calloc(fmesh->nv,sizeof(INT));
-    INT*  Jl1 = (INT*)calloc(fmesh->nv,sizeof(INT));
-    REAL* Vl1 = (REAL*)calloc(fmesh->nv,sizeof(REAL));
-    INT*  Il2 = (INT*)calloc(fmesh->nv,sizeof(INT));
-    INT*  Jl2 = (INT*)calloc(fmesh->nv,sizeof(INT));
-    REAL* Vl2 = (REAL*)calloc(fmesh->nv,sizeof(REAL));
+    //TODO: Fix allocation amount 
+    INT*  Il1 = (INT*)calloc(6*fmesh->nv,sizeof(INT));
+    INT*  Jl1 = (INT*)calloc(6*fmesh->nv,sizeof(INT));
+    REAL* Vl1 = (REAL*)calloc(6*fmesh->nv,sizeof(REAL));
+    INT*  Il2 = (INT*)calloc(6*fmesh->nv,sizeof(INT));
+    INT*  Jl2 = (INT*)calloc(6*fmesh->nv,sizeof(INT));
+    REAL* Vl2 = (REAL*)calloc(6*fmesh->nv,sizeof(REAL));
 
 
     // This loops over the coarse and fine elements. Don't question it.
@@ -595,7 +596,9 @@ void build_bubble_R (dCSRmat *R,
               // Integrate linear part over fine edge (midpoint rule)
               lval = 0.0;
               for(i=0;i<dim;i++) lval += phi[locFaceId*dim+i]*fmesh->f_norm[fface*dim+i];
-              lval = (1.0/dim)*fmesh->f_area[fface] * lval;
+              //lval = (1.0/dim)*fmesh->f_area[fface] * lval; //(This is the midpoint rule part)
+              lval = (1.0/dim)* lval;
+              printf("%f\n",lval);
 
               // Subtract off linear part (Bubbles used to enrich P1)
               value = value - lval;
@@ -605,9 +608,10 @@ void build_bubble_R (dCSRmat *R,
 
               // Save in R linear
               vertex = find_the_fine_vertex_the_hard_way(x, fmesh, fface);
-              if( VertFilled[vertex] == 0 ){//TODO: This needs to become a IJfilled type thing.
-                //printf("Vertex | (%d, %d) : %7.4f, %7.4f\n",cface,vertex,phi[locFaceId*dim],phi[locFaceId*dim+1]);
-                VertFilled[vertex] = 1;
+//              printf("%d, %d     | %d, %d\n",R->col*R->row,fface*R->row+cface,fmesh->nv*R->row,cface+vertex*R->row);
+              if( VertFilled[cface + vertex*R->row] == 0 ){//TODO: This needs to become a IJfilled type thing.
+//                printf("Vertex | (%d, %d) : %7.4f, %7.4f\n",cface,vertex,phi[locFaceId*dim],phi[locFaceId*dim+1]);
+                VertFilled[cface + vertex*R->row] = 1;
                 Il1[indexl] = cface;
                 Jl1[indexl] = vertex;
                 Vl1[indexl] = phi[locFaceId*dim+0];
@@ -617,8 +621,8 @@ void build_bubble_R (dCSRmat *R,
                 indexl++;
               }
 
-              if( IJfilled[cface*R->row + fface] == -1 ) {
-                IJfilled[cface*R->row + fface] = 1;
+              if( IJfilled[fface*R->row + cface] == -1 ) {
+                IJfilled[fface*R->row + cface] = 1;
                 if(ABS(value) > 1e-8){
 //                  printf("Indexing | (%3d, %3d) : %7.4f\n",cface,fface,value);
                   I[index] = cface;
@@ -635,6 +639,7 @@ void build_bubble_R (dCSRmat *R,
     }//cj
 
 //    printf("index: %d\tnnz: %d\n",index,R->nnz);//TODO: Correct number of nnz in the matrix
+//    printf("indexl: %d\tnnz: %d\n",indexl,6*fmesh->nv);//TODO: Correct number of nnz in the matrix
 
     // Fill the CSR matrix format
     INT cdof;
@@ -849,13 +854,13 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             printf("\tBuilding constant R...\n");
             build_constant_R( mgl[lvl].R.blocks[i+i*brow], nf1d, nc1d);
             printf("\tBuilt constant R...\n");
-            break;
+          break;
           case 1://P1
             nf1d = sqrt(mgl[lvl].A.blocks[i+i*brow]->row);
             nc1d = (nf1d-1)/2 + 1;
             printf("+++++++++++++++++++++++++++++++++++++++++++++++++++ %d %d\n",nf1d,nc1d);
             build_linear_R( mgl[lvl].R.blocks[i+i*brow], nf1d, nc1d);
-            break;
+          break;
           case 30://RT0
             nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
             nc1d = (nf1d)/2;
@@ -864,13 +869,27 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             build_face_R( mgl[lvl].R.blocks[i+i*brow], mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
             //csr_print_matlab(stdout,mgl[lvl].R.blocks[i+i*brow]);
             printf("\tBuilt RT0 R...\n");
-            break;
+          break;
           case 61://Bubble
             nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
             nc1d = (nf1d)/2;
             // Build Here
             //build_bubble_R( mgl[lvl].R.blocks[i+i*brow], mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
-            break;
+          break;
+          case 111://P1 for each dim then merge
+            bdcsr_alloc(dim,dim,&tempRblk);
+            nf1d = sqrt(mgl[lvl].fine_level_mesh->nv);
+            nc1d = (nf1d-1)/2 + 1;
+            printf("+++++++++++++++++++++++++++++++++++++++++++++++++++ %d %d\n",nf1d,nc1d);
+            for(j=0; j<dim; j++) build_linear_R( tempRblk.blocks[j+j*tempRblk.brow], nf1d, nc1d);
+            tempRblk.blocks[1] = NULL;
+            tempRblk.blocks[2] = NULL;
+            Rmerge = bdcsr_2_dcsr(&tempRblk);
+            printf("\tMerged Displacement R... storage in %d\n",i+i*brow);
+            dcsr_alloc(Rmerge.row,Rmerge.col,Rmerge.nnz,mgl[lvl].R.blocks[i+i*brow]);
+            dcsr_cp(&Rmerge,mgl[lvl].R.blocks[i+i*brow]);
+            dcsr_free(&Rmerge);
+          break;
           case 999:// P1+bubble
             bdcsr_alloc(dim+1,dim+1,&tempRblk);
             tempRblk.blocks[3] = NULL;
@@ -880,8 +899,8 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             // TODO:do for each dim
             nf1d = sqrt(mgl[lvl].fine_level_mesh->nv);
             nc1d = (nf1d-1)/2 + 1;
+            printf("+++++++++++++++++++++++++++++++++++++++++++++++++++ %d %d\n",nf1d,nc1d);
             for(j=1; j<dim+1; j++) build_linear_R( tempRblk.blocks[j+j*tempRblk.brow], nf1d, nc1d);
-//            for(j=1; j<dim+1; j++) csr_print_matlab(stdout,tempRblk.blocks[j+j*tempRblk.brow]);
             printf("\tBuilt Linear R...\n");
             //Bubble
             nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
@@ -908,10 +927,10 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
 //            printf("Rmerge: %d %d\n",Rmerge.row,Rmerge.col);
 //            csr_print_matlab(stdout,&Rmerge);
             dcsr_free(&Rmerge);
-            break;
+          break;
           default:
             printf("### ERROR: Unknown geometric multigrid type: %d!\n",mgl[lvl].gmg_type[i]);
-            break;
+          break;
         }// switch gmg_type
       }//for i<brow
 
@@ -970,6 +989,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             mgl[lvl].Ac = bdcsr_2_dcsr(&mgl[lvl].A);
             dCSRmat Ac_tran;
             dcsr_trans(&mgl[lvl].Ac, &Ac_tran);
+            printf("Ac stats: row=%d col=%d nnz=%d\n",mgl[lvl].Ac.row,mgl[lvl].Ac.col,mgl[lvl].Ac.nnz);
             // It is equivalent to do transpose and then sort
             //     fasp_dcsr_trans(&mgl[lvl].A, &Ac_tran);
             //     fasp_dcsr_sort(&Ac_tran);
