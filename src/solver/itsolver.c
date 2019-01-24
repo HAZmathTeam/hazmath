@@ -512,7 +512,8 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
                       dvector *x,
                       AMG_param *param,
                       INT * gmg_type,
-                      trimesh* mesh)
+                      trimesh* mesh,
+                      dCSRmat *A_diag)
 {
     const SHORT   max_levels  = param->max_levels;
     const SHORT   prtlvl      = param->print_level;
@@ -563,6 +564,8 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
     mgl[0].A = mglA;
     // or try: bdcsr_alloc_minimal( &(mgl[0].A) ); bdcsr_cp(A,&(mgl[0].A));
 
+    mgl[0].A_diag = A_diag;
+
     mgl[0].b = dvec_create(n);
     dvec_cp(b, &mgl[0].b);
 
@@ -580,6 +583,8 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
         default:
             if ( prtlvl > PRINT_NONE ) printf("\n Calling block GMG ...\n");
             status = gmg_blk_setup(mgl, param);
+            printf("\nFinished gmg_blk_setup... Calling smoother setup...\n");
+            smoother_block_setup(mgl, param);
         break;
 //        default: // Unsmoothed Aggregation AMG setup
 //            printf("### ERROR: No default block MG type!\n");

@@ -153,17 +153,7 @@ void build_linear_R (dCSRmat *R,
         IA[cdof+1] = jstart;
       }//ci
     }//cj
-
-    //Test Print
-    //INT ja,jb;
-    //for(i=0; i<R->row; i++){
-    //    ja = IA[i];
-    //    jb = IA[i+1];
-    //    for(j=ja; j<jb; j++){
-    //        printf("%3d | %3d, %5f\n",i,R->JA[j],R->val[j]);
-    //    }
-    //}
-    //printf("nnz: %d\t jstart: %d\n",R->nnz,jstart);
+    return;
 }
 
 /***********************************************************************************************/
@@ -226,8 +216,6 @@ void build_constant_R (dCSRmat *R,
         jstart = jstart+4;
         IA[cdof+1] = jstart;
 
-        //printf("C: %4d\tF:%4d, %4d, %4d, %4d\n",cdof,fdof,fdof+1,fdof+2,fdof+nf1d*2);
-
         // Upper Triangle
         cdof = cdof+1;
         //Fill
@@ -241,10 +229,9 @@ void build_constant_R (dCSRmat *R,
         jstart = jstart+4;
         IA[cdof+1] = jstart;
 
-        //printf("C: %4d\tF:%4d, %4d, %4d, %4d\n",cdof,fdof+3,fdof+nf1d*2+1,fdof+nf1d*2+2,fdof+nf1d*2+3);
       }
     }
-    //printf("Row: %d\tCol: %d\tnnz: %d\tIA.end = %d\t%d\n",R->row,R->col,R->nnz,cdof+1,jstart);
+    return;
 }
 
 /***********************************************************************************************/
@@ -320,7 +307,6 @@ void build_face_R (dCSRmat *R,
     V = (REAL *)calloc(R->nnz,sizeof(REAL));
     IJfilled = (INT *)calloc(R->col*R->row,sizeof(INT));//TODO:BAD!!!!!
     for(i=0; i<R->row*R->col; i++) IJfilled[i] = -1; // Set all to -1 //TODO:BAD!!!!
-//    printf("We allocated all that. The loop is next.\n");
 
     REAL *val = R->val;
     INT *JA  = R->JA;
@@ -370,13 +356,8 @@ void build_face_R (dCSRmat *R,
               //value = value * fmesh->f_area[fface] / cmesh->f_area[cface];
               // TODO: It works without the scaling (why? I don't know)
 
-              //printf("%5d\t%5d\t%f\t\t%f, %f\t%d\t%f, %f \t%f, %f\n",cface,fface,value,
-              //       fmesh->f_norm[fface*dim+0],fmesh->f_norm[fface*dim+1],locFaceId,
-              //       cmesh->f_norm[cface*dim+0],cmesh->f_norm[cface*dim+1],
-              //       phi[locFaceId*dim+0],phi[locFaceId*dim+1]);
-
-              if( IJfilled[cface*R->row + fface] == -1 ) {
-                IJfilled[cface*R->row + fface] = 1;
+              if( IJfilled[fface*R->row + cface] == -1 ) {
+                IJfilled[fface*R->row + cface] = 1;
                 if(ABS(value) > 1e-8){
                   //printf("Indexing|%3d\t%3d\n",cface,fface);
                   I[index] = cface;
@@ -393,8 +374,6 @@ void build_face_R (dCSRmat *R,
       }//ci
     }//cj
 
-    //printf("index: %d\tnnz: %d\n",index,R->nnz);//TODO: Correct number of nnz in the matrix
-
     // Fill the CSR matrix format
     IA[0] = jstart;
     for(cdof=0; cdof < R->row; cdof++){
@@ -408,6 +387,7 @@ void build_face_R (dCSRmat *R,
       IA[cdof+1] = jstart;
     }//i
     R->nnz = jstart;
+    return;
 }
 
 /***********************************************************************************************/
@@ -508,7 +488,6 @@ void build_bubble_R (dCSRmat *R,
     // allocate memory for R
     R->row = cmesh->nface;
     R->col = fmesh->nface;
-    //R->nnz = R->row*9; //TODO: FIX THIS
     R->nnz = R->row*12; //TODO: FIX THIS
     R->IA  = (INT *)calloc(R->row+1,sizeof(INT));
     R->JA  = (INT *)calloc(R->nnz, sizeof(INT));
@@ -585,7 +564,7 @@ void build_bubble_R (dCSRmat *R,
                 value += qval * cqface->w[fface*cqface->nq_per_elm+quad];
               }
               //value = value / cmesh->f_area[cface];
-              //value = value / fmesh->f_area[fface];
+              value = value / fmesh->f_area[fface];
 
               // Get Linear Part
               // note: 2D ONLY: only nonzero value of bubble on vertices is on the vertex in the middle of the coarse edge.
@@ -598,17 +577,13 @@ void build_bubble_R (dCSRmat *R,
               for(i=0;i<dim;i++) lval += phi[locFaceId*dim+i]*fmesh->f_norm[fface*dim+i];
               //lval = (1.0/dim)*fmesh->f_area[fface] * lval; //(This is the midpoint rule part)
               lval = (1.0/dim)* lval;
-              printf("%f\n",lval);
 
               // Subtract off linear part (Bubbles used to enrich P1)
               value = value - lval;
-
-
-              value = value / fmesh->f_area[fface];
+              //value = value / fmesh->f_area[fface];
 
               // Save in R linear
               vertex = find_the_fine_vertex_the_hard_way(x, fmesh, fface);
-//              printf("%d, %d     | %d, %d\n",R->col*R->row,fface*R->row+cface,fmesh->nv*R->row,cface+vertex*R->row);
               if( VertFilled[cface + vertex*R->row] == 0 ){//TODO: This needs to become a IJfilled type thing.
 //                printf("Vertex | (%d, %d) : %7.4f, %7.4f\n",cface,vertex,phi[locFaceId*dim],phi[locFaceId*dim+1]);
                 VertFilled[cface + vertex*R->row] = 1;
@@ -639,7 +614,6 @@ void build_bubble_R (dCSRmat *R,
     }//cj
 
 //    printf("index: %d\tnnz: %d\n",index,R->nnz);//TODO: Correct number of nnz in the matrix
-//    printf("indexl: %d\tnnz: %d\n",indexl,6*fmesh->nv);//TODO: Correct number of nnz in the matrix
 
     // Fill the CSR matrix format
     INT cdof;
@@ -812,6 +786,8 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
     INT           dim = mgl[lvl].fine_level_mesh->dim;
     REAL          setup_start, setup_end;
 
+    get_time(&setup_start);
+
     // To read from file
     FILE* cgfid;
     char cgridfile[500];
@@ -821,13 +797,12 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
     dCSRmat Rmerge;
     dCSRmat tempRA;
 
-    get_time(&setup_start);
-
     printf("Beginning Main GMG setup loop...\n");
     /*-- Main GMG setup loop --*/
     while ( lvl < max_levels-1 ) {
       printf("A blocks: %d %d\n",mgl[lvl].A.brow,mgl[lvl].A.bcol);
       brow = mgl[lvl].A.brow;
+
       /*-- Build coarse level mesh --*/
       csize = (sqrt(mgl[lvl].fine_level_mesh->nv)-1)/2 + 1;
       //Need to customize this to specific directory
@@ -838,11 +813,13 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
       creategrid_fread(cgfid,0,mgl[lvl+1].fine_level_mesh);
       fclose(cgfid);
       printf("Mesh Loaded for lvl=%d...\n",lvl);
+
       /*-- Allocate for R A P --*/
       bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].R));
       bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].P));
       bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl+1].A));
       printf("Allocation of R A P for lvl=%d is finished...\n",lvl);
+
       /*-- Form restriction --*/
       for(i=0; i<brow; i++){
         //Check gmg type
@@ -893,13 +870,12 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
           case 999:// P1+bubble
             bdcsr_alloc(dim+1,dim+1,&tempRblk);
             tempRblk.blocks[3] = NULL;
+            tempRblk.blocks[5] = NULL;
             tempRblk.blocks[6] = NULL;
             tempRblk.blocks[7] = NULL;
             //P1
-            // TODO:do for each dim
             nf1d = sqrt(mgl[lvl].fine_level_mesh->nv);
             nc1d = (nf1d-1)/2 + 1;
-            printf("+++++++++++++++++++++++++++++++++++++++++++++++++++ %d %d\n",nf1d,nc1d);
             for(j=1; j<dim+1; j++) build_linear_R( tempRblk.blocks[j+j*tempRblk.brow], nf1d, nc1d);
             printf("\tBuilt Linear R...\n");
             //Bubble
@@ -946,12 +922,6 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
         for(j=0; j<brow; j++){
           if(mgl[lvl].A.blocks[j+i*brow]){
             printf("RAP on block[%d,%d]: TODO: FIX NNZ FOR R(i think)\n",i,j);
-//            printf("R\n");
-//            csr_print_matlab(stdout,mgl[lvl].R.blocks[i+i*brow]);
-//            printf("A\n");
-//            csr_print_matlab(stdout,mgl[lvl].A.blocks[j+i*brow]);
-//            printf("P\n");
-//            csr_print_matlab(stdout,mgl[lvl].P.blocks[j+j*brow]);
             printf("Matrix:\n\tR.nnz=%d\tR.row=%d\tR.col=%d\n\tA.nnz=%d\tA.row=%d\tA.col=%d\n\tP.nnz=%d\tP.row=%d\tP.col=%d\n\n",
                     mgl[lvl].R.blocks[i+i*brow]->nnz,
                     mgl[lvl].R.blocks[i+i*brow]->row,
