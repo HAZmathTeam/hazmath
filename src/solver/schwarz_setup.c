@@ -389,7 +389,7 @@ void Schwarz_get_patch_geometric (Schwarz_data *Schwarz,
                                   trimesh *mesh,
                                   INT patchType)
 {
-    INT nblk, ntot;
+    INT nblk, ntot, i;
 
     INT* iblk;
     INT* jblk;
@@ -417,11 +417,21 @@ void Schwarz_get_patch_geometric (Schwarz_data *Schwarz,
         break;
     }
 
-    iblk = (INT*)calloc(p_el.row+1,sizeof(INT));
-    iarray_cp(nblk,p_el.IA,iblk);
+    ///iblk = (INT*)calloc(p_el.row+1,sizeof(INT));
+    iblk = (INT*)calloc(nblk+1,sizeof(INT));
+    iarray_cp(nblk+1,p_el.IA,iblk);
+    // Shift 1
+    for(i=0; i<nblk+1; i++){
+      iblk[i] -= 1;
+    }
 
-    jblk = (INT*)calloc(p_el.nnz,sizeof(INT));
+    //jblk = (INT*)calloc(p_el.nnz,sizeof(INT));
+    jblk = (INT*)calloc(ntot,sizeof(INT));
     iarray_cp(ntot,p_el.JA,jblk);
+    // Shift 1
+    for(i=0; i<ntot; i++){
+      jblk[i] -= 1;
+    }
 
     Schwarz->nblk = nblk;
     Schwarz->iblock = iblk;
@@ -479,7 +489,9 @@ INT Schwarz_setup_geometric (Schwarz_data *Schwarz,
     /*-------------------------------------------*/
     // find the blocks
     /*-------------------------------------------*/
-    Schwarz_get_patch_geometric(Schwarz, mesh, 1);
+    printf("Findeing Schwarz patches\n");
+    Schwarz_get_patch_geometric(Schwarz, mesh, 3);
+    printf("Found Schwarz patches\n");
     nblk = Schwarz->nblk;
 
     /*-------------------------------------------*/
@@ -487,7 +499,10 @@ INT Schwarz_setup_geometric (Schwarz_data *Schwarz,
     /*-------------------------------------------*/
     memset(mask, 0, sizeof(INT)*n);
     Schwarz->blk_data = (dCSRmat*)calloc(nblk, sizeof(dCSRmat));
-    Schwarz_get_block_matrix(Schwarz, nblk, iblock, jblock, mask);
+    printf("Getting block matrix\n");
+    // TODO: There might be a shift problem with iblock and jblock
+    Schwarz_get_block_matrix(Schwarz, nblk, Schwarz->iblock, Schwarz->jblock, mask);
+    printf("Got block matrix\n");
 
     // Setup for each block solver
     switch (block_solver) {
@@ -521,9 +536,9 @@ INT Schwarz_setup_geometric (Schwarz_data *Schwarz,
     /*-------------------------------------------*/
     //  return
     /*-------------------------------------------*/
-    Schwarz->nblk   = nblk;
-    Schwarz->iblock = iblock;
-    Schwarz->jblock = jblock;
+//    Schwarz->nblk   = nblk;
+//    Schwarz->iblock = iblock;
+//    Schwarz->jblock = jblock;
     Schwarz->mask   = mask;
     Schwarz->maxa   = maxa;
     Schwarz->Schwarz_type = param->Schwarz_type;
