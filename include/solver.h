@@ -217,6 +217,9 @@ typedef struct {
     //! Block diagional of A
     dCSRmat *A_diag;
 
+    //! AMG data for A_diag blocks
+    AMG_data **mgl;
+
     //! number of levels use Schwarz smoother
     INT Schwarz_levels;
 
