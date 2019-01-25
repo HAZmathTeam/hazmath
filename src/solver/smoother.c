@@ -631,10 +631,11 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
 {
     // TODO: instead of param, may want a variable in bmgl that tracks params for each block
     // (since we don't want to create the Schwarz for each block, only those that will use it);
-    INT blk, lvl;
+    INT blk, lvl, i;
     INT brow = bmgl[0].A.brow;
     SHORT max_levels = param->max_levels;
-    bmgl[0].mgl = (AMG_data **)calloc(brow,sizeof(AMG_data *));
+    for(i=0;i<max_levels;i++)
+      bmgl[i].mgl = (AMG_data **)calloc(brow,sizeof(AMG_data *));
 
     Schwarz_param swzparam;
 
@@ -644,7 +645,6 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
       bmgl[0].mgl[blk] = amg_data_create(max_levels);
       dcsr_alloc( bmgl[0].A_diag[blk].row, bmgl[0].A_diag[blk].row, bmgl[0].A_diag[blk].nnz, &bmgl[0].mgl[blk][0].A);
       dcsr_cp( &(bmgl[0].A_diag[blk]), &bmgl[0].mgl[blk][0].A );
-      printf("Initialized %d\n",blk);
 
       // Initialize Schwarz parameters
       bmgl->Schwarz_levels = param->Schwarz_levels;
@@ -657,7 +657,7 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
 
       // Fill in levels
       for( lvl=0; lvl<max_levels-1; lvl++ ){
-        printf("LEVEL %d FILLING\n",lvl);
+        printf("\tLEVEL %d FILLING\n",lvl);
         // Copy block mgl R and P into mgl
         bmgl[0].mgl[blk][lvl].R.row = bmgl[lvl].R.blocks[blk+blk*brow]->row;
         bmgl[0].mgl[blk][lvl].R.col = bmgl[lvl].R.blocks[blk+blk*brow]->col;
@@ -672,11 +672,9 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
         bmgl[0].mgl[blk][lvl].P.val = bmgl[lvl].P.blocks[blk+blk*brow]->val;
         bmgl[0].mgl[blk][lvl].P.IA = bmgl[lvl].P.blocks[blk+blk*brow]->IA;
         bmgl[0].mgl[blk][lvl].P.JA = bmgl[lvl].P.blocks[blk+blk*brow]->JA;
-        printf("RP coppied %d\n",blk);
 
         // Compute RAP for mgl
         dcsr_rap( &bmgl[0].mgl[blk][lvl].R, &bmgl[0].mgl[blk][lvl].A, &bmgl[0].mgl[blk][lvl].P, &bmgl[0].mgl[blk][lvl+1].A);
-        printf("RAP done %d\n",blk);
 
         // setup total level number and current level
         bmgl[0].mgl[blk][lvl].num_levels = max_levels;
@@ -684,21 +682,20 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
         bmgl[0].mgl[blk][lvl].b = dvec_create(bmgl[0].mgl[blk][lvl].A.row);
         bmgl[0].mgl[blk][lvl].x = dvec_create(bmgl[0].mgl[blk][lvl].A.row);
         bmgl[0].mgl[blk][lvl].w = dvec_create(2*bmgl[0].mgl[blk][lvl].A.row);
-        printf("level setup done %d\n",blk);
 
         /*-- Setup Schwarz smoother if necessary --*/
         //if( lvl < param->Schwarz_levels && blk == 1 ) { // && use_Schwarz[blk] == 1) or something similar
         if( blk == 1 ) { // && use_Schwarz[blk] == 1) or something similar
-            printf("calling Schwarz setup\n");
+          printf("\tcalling Schwarz setup\n");
           bmgl[0].mgl[blk][lvl].Schwarz.A = dcsr_sympat( &bmgl[0].mgl[blk][lvl].A );
           dcsr_shift(&(bmgl[0].mgl[blk][lvl].Schwarz.A),1);
           Schwarz_setup_geometric( &bmgl[0].mgl[blk][lvl].Schwarz, &swzparam, bmgl[lvl].fine_level_mesh);
         }
-        printf("Past Schwarz setup\n");
       }
-      printf("Levels all filled on [0]\n");
-      // csolve
-      if( lvl == max_levels -1 ){//TODO: when does this need to happen?
+
+      // Set up Coarse level solve 
+      if( lvl == max_levels-1 ){//TODO: is this correct level?
+        printf("Coarse Level Solver Stuff...\n");
         switch ( param->coarse_solver ){
 #if WITH_SUITESPARSE
           case SOLVER_UMFPACK: {
@@ -715,9 +712,9 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
         }
       }
       // Propigate mgl across bmgl levels
-      for( lvl=0; lvl<max_levels-2; lvl++){
-        printf("LVL %d propigated across bmgl levels\n",lvl);
+      for( lvl=1; lvl<max_levels-1; lvl++){
         bmgl[lvl].mgl[blk] = &(bmgl[0].mgl[blk][lvl]);// maybe??
+        printf("\tLVL %d propigated across bmgl levels\n",lvl);
       }
     }// blk
     return;
@@ -732,11 +729,49 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
  * \param param     Pointer to AMG_param
  *
  */
-void smoother_block_biot_3field( MG_blk_data *bmgl, AMG_param *param)
+void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *param)
 {
+    printf("Beginning Block smoother, lvl=%d\n",lvl);
+    // Initialize
+    INT n0, n1, n2, ntot;
+    // Sub-vectors
+    dvector x0, x1, x2;
+    dvector b0, b1, b2;
+
+    n0 = bmgl[lvl].mgl[0][0].A.row;
+    n1 = bmgl[lvl].mgl[1][0].A.row;
+    n2 = bmgl[lvl].mgl[2][0].A.row;
+    ntot = n0+n1+n2;
+
+    x0.row = n0;
+    x0.val = bmgl[lvl].x.val;
+    b0.row = n0;
+    b0.val = bmgl[lvl].b.val;
+
+    x1.row = n1;
+    x1.val = &(bmgl[lvl].x.val[n0]);
+    b1.row = n1;
+    b1.val = &(bmgl[lvl].b.val[n0]);
+
+    x2.row = n2;
+    x2.val = &(bmgl[lvl].x.val[n0+n1]);
+    b2.row = n2;
+    b2.val = &(bmgl[lvl].b.val[n0+n1]);
+
+    printf("\tWhat do we have: n0=%d, n1=%d, n2=%d\n",n0,n1,n2);
     // Block 0: P1 + Bubble
+    smoother_dcsr_gs(&x0, 0, n0-1, 1, &bmgl[lvl].mgl[0][0].A, &b0, 1);
+    printf("\tBlock 0 done...\n");
+
     // Block 1: RT0
+    Schwarz_param swzparam;
+    swzparam.Schwarz_blksolver = bmgl[lvl].mgl[1][0].Schwarz.blk_solver;
+    smoother_dcsr_Schwarz_forward( &(bmgl[lvl].mgl[1][0].Schwarz), &swzparam, &x1, &b1);
+    printf("\tBlock 1 done...\n");
+
     // Block 2: P0
+    smoother_dcsr_gs(&x2, 0, n2-1, 1, &(bmgl[lvl].mgl[2][0].A), &b2, param->presmooth_iter);
+    printf("\tBlock 2 done...\n");
     return;
 }
 

@@ -227,12 +227,14 @@ static void bdcsr_presmoothing(const INT lvl, MG_blk_data *mgl, AMG_param *param
     const SHORT nsweeps  = param->presmooth_iter;
     switch (smoother) {
 
-        case SMOOTHER_JACOBI:
-            smoother_bdcsr_jacobi(&mgl[lvl].x, 1, &mgl[lvl].A, &mgl[lvl].b, nsweeps);
-            break;
+        //case SMOOTHER_JACOBI:
+        //    smoother_bdcsr_jacobi(&mgl[lvl].x, 1, &mgl[lvl].A, &mgl[lvl].b, nsweeps);
+        //    break;
         default:
-            printf("### ERROR: Wrong smoother type %d!\n", smoother);
-            check_error(ERROR_INPUT_PAR, __FUNCTION__);
+            printf("\tCalling Smoother on lvl=%d...\n",lvl);
+            smoother_block_biot_3field(lvl,mgl,param);
+//            printf("### ERROR: Wrong smoother type %d!\n", smoother);
+//            check_error(ERROR_INPUT_PAR, __FUNCTION__);
     }
 }
 
