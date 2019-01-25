@@ -585,6 +585,7 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
             status = gmg_blk_setup(mgl, param);
             printf("\nFinished gmg_blk_setup... Calling smoother setup...\n");
             smoother_block_setup(mgl, param);
+            printf("\nsmoother setup Done...\n");
         break;
 //        default: // Unsmoothed Aggregation AMG setup
 //            printf("### ERROR: No default block MG type!\n");
