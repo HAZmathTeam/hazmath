@@ -329,7 +329,6 @@ void build_face_R (dCSRmat *R,
         for(ii=0;ii<8;ii++){
           felm = felmList[ii];
           if(ii==4) celm = celm+1; // Switch to upper triangle
-          //printf("coarse: %d\tfine: %d\n",celm,felm);
 
           // Get Coarse DOF
           get_incidence_row(celm,cmesh->el_v,v_on_elm);
@@ -359,7 +358,6 @@ void build_face_R (dCSRmat *R,
               if( IJfilled[fface*R->row + cface] == -1 ) {
                 IJfilled[fface*R->row + cface] = 1;
                 if(ABS(value) > 1e-8){
-                  //printf("Indexing|%3d\t%3d\n",cface,fface);
                   I[index] = cface;
                   J[index] = fface;
                   V[index] = value;
@@ -449,6 +447,7 @@ void build_bubble_R (dCSRmat *R,
 {
     // nf1d is number of elements we would have in 1d (number of vertices in 1d minus 1)
     INT i,j,ii,jj;
+    INT ed;
     INT ci, cj;
     INT felm, celm;
     INT fface, cface;
@@ -473,11 +472,17 @@ void build_bubble_R (dCSRmat *R,
     REAL* x = (REAL *) calloc(dim,sizeof(REAL));
     REAL* phi = (REAL *) calloc(dim*cmesh->f_per_elm,sizeof(REAL));
     REAL* dphi = (REAL *) calloc(dim*dim*cmesh->f_per_elm,sizeof(REAL));
+    REAL* Fphi = (REAL *) calloc(dim*cmesh->f_per_elm,sizeof(REAL));
+    REAL* Fdphi = (REAL *) calloc(dim*dim*cmesh->f_per_elm,sizeof(REAL));
     REAL value;
     REAL lval;
+    REAL alpha;
 
     INT* v_on_elm = (INT*)calloc(cmesh->v_per_elm,sizeof(INT));
     INT* f_on_elm = (INT*)calloc(cmesh->f_per_elm,sizeof(INT));
+    INT* v_on_elmF = (INT*)calloc(cmesh->v_per_elm,sizeof(INT));
+    INT* f_on_elmF = (INT*)calloc(cmesh->f_per_elm,sizeof(INT));
+    INT* v_on_f   = (INT*)calloc(dim,sizeof(INT));
 
     //Garbage
     INT* I;
@@ -509,12 +514,12 @@ void build_bubble_R (dCSRmat *R,
     INT* VertFilled = (INT *)calloc(fmesh->nv*R->row,sizeof(INT));//TODO:BAD!!!!!
     INT indexl=0;
     //TODO: Fix allocation amount 
-    INT*  Il1 = (INT*)calloc(6*fmesh->nv,sizeof(INT));
-    INT*  Jl1 = (INT*)calloc(6*fmesh->nv,sizeof(INT));
-    REAL* Vl1 = (REAL*)calloc(6*fmesh->nv,sizeof(REAL));
-    INT*  Il2 = (INT*)calloc(6*fmesh->nv,sizeof(INT));
-    INT*  Jl2 = (INT*)calloc(6*fmesh->nv,sizeof(INT));
-    REAL* Vl2 = (REAL*)calloc(6*fmesh->nv,sizeof(REAL));
+    INT*  Il1 = (INT*) calloc(12*fmesh->nv,sizeof(INT));
+    INT*  Jl1 = (INT*) calloc(12*fmesh->nv,sizeof(INT));
+    REAL* Vl1 = (REAL*)calloc(12*fmesh->nv,sizeof(REAL));
+    INT*  Il2 = (INT*) calloc(12*fmesh->nv,sizeof(INT));
+    INT*  Jl2 = (INT*) calloc(12*fmesh->nv,sizeof(INT));
+    REAL* Vl2 = (REAL*)calloc(12*fmesh->nv,sizeof(REAL));
 
 
     // This loops over the coarse and fine elements. Don't question it.
@@ -535,8 +540,6 @@ void build_bubble_R (dCSRmat *R,
         for(ii=0;ii<8;ii++){
           felm = felmList[ii];
           if(ii==4) celm = celm+1; // Switch to upper triangle
-//          printf("ELEMENT | coarse: %d\tfine: %d\n",celm,felm);
-
           // Get Coarse DOF
           get_incidence_row(celm,cmesh->el_v,v_on_elm);
           get_incidence_row(celm,cmesh->el_f,f_on_elm);
@@ -550,62 +553,109 @@ void build_bubble_R (dCSRmat *R,
             rowbf = fmesh->el_f->IA[felm+1]-1;
             for(jj=rowaf;jj<rowbf;jj++){
               fface = fmesh->el_f->JA[jj]-1;
-              // Fill P
+              // Fill R
               value = 0.0;
-              // Evaluate coarse mesh basis function on fine mesh dof.
-              for(quad=0;quad<cqface->nq_per_elm;quad++){
-                qval = 0.0;
-                x[0] = cqface->x[fface*cqface->nq_per_elm + quad];
-                x[1] = cqface->y[fface*cqface->nq_per_elm + quad];
-                bubble_face_basis(phi,dphi,x,v_on_elm,f_on_elm,cmesh);
-                for(i=0;i<dim;i++){
-                  qval += fmesh->f_norm[fface*dim+i]*phi[locFaceId*dim+i];
-                }
-                value += qval * cqface->w[fface*cqface->nq_per_elm+quad];
-              }
-              //value = value / cmesh->f_area[cface];
-              value = value / fmesh->f_area[fface];
+//////              // Evaluate coarse mesh basis function on fine mesh dof.
+//////              for(quad=0;quad<cqface->nq_per_elm;quad++){
+//////                qval = 0.0;
+//////                x[0] = cqface->x[fface*cqface->nq_per_elm + quad];
+//////                x[1] = cqface->y[fface*cqface->nq_per_elm + quad];
+//////                bubble_face_basis(phi,dphi,x,v_on_elm,f_on_elm,cmesh);
+//////                for(i=0;i<dim;i++){
+//////                  qval += fmesh->f_norm[fface*dim+i]*phi[locFaceId*dim+i];
+//////                }
+//////                value += qval * cqface->w[fface*cqface->nq_per_elm+quad];
+//////              }
+//////              //value = value * fmesh->f_area[fface]; // TODO: bubble scaling. I don't know.
+//////
+//////              // Get Linear Version 2
+//////              // get endpoints of fine edge
+//////              lval = 0.0;
+//////              get_incidence_row(fface,fmesh->f_v,v_on_f);
+//////              for(ed=0;ed<dim;ed++){
+//////                x[0] = fmesh->cv->x[v_on_f[ed]-1]; 
+//////                x[1] = fmesh->cv->y[v_on_f[ed]-1]; 
+//////                // Evaluate Coarse Bubble at endpoints
+//////                bubble_face_basis(phi,dphi,x,v_on_elm,f_on_elm,cmesh);
+//////                // Save in R linear
+//////                vertex = v_on_f[ed]-1;
+//////                if( VertFilled[cface + vertex*R->row] == 0 ){
+//////                  VertFilled[cface + vertex*R->row] = 1;
+//////                  Il1[indexl] = cface;
+//////                  Jl1[indexl] = vertex;
+//////                  Vl1[indexl] = phi[locFaceId*dim+0];
+//////                  Il2[indexl] = cface;
+//////                  Jl2[indexl] = vertex;
+//////                  Vl2[indexl] = phi[locFaceId*dim+1];
+//////                  indexl++;
+//////                }
+//////                // Integrate over fine edge (midpoint rule)
+//////                for(i=0;i<dim;i++) lval += phi[locFaceId*dim+i]*fmesh->f_norm[fface*dim+i];
+//////              }
+//////              lval = lval/dim;// (midpoint rule)
+//////              lval = lval * fmesh->f_area[fface];
+//////              printf("value: %f \tlval: %f\n",value,lval);
+//////              // Subtract off Linear
+//////              value = value - lval;
+//////
+//////              if( IJfilled[fface*R->row + cface] == -1 ) {
+//////                IJfilled[fface*R->row + cface] = 1;
+//////                if(ABS(value) > 1e-8){
+//////                  I[index] = cface;
+//////                  J[index] = fface;
+//////                  V[index] = value;
+//////                  index++;
+//////                }
+//////              }
 
-              // Get Linear Part
-              // note: 2D ONLY: only nonzero value of bubble on vertices is on the vertex in the middle of the coarse edge.
-              x[0] = cmesh->f_mid[cface*dim];  //TODO: is cface the same as given by locFaceId?
-              x[1] = cmesh->f_mid[cface*dim+1];
-              if(dim==3) x[2] = cmesh->f_mid[cface*dim+2];
-              bubble_face_basis(phi,dphi,x,v_on_elm,f_on_elm,cmesh);
-              // Integrate linear part over fine edge (midpoint rule)
+              // The following is a simpson's rule integration, with the endpoints of the function = 0, so only the midpoint is needed.
+              x[0] = fmesh->f_mid[fface*dim];
+              x[1] = fmesh->f_mid[fface*dim+1];
+              bubble_face_basis(Fphi,Fdphi,x,v_on_elm,f_on_elm,cmesh);
+
+              if( ABS(fmesh->f_norm[fface*dim+0]) > 1e-6){
+                  i = 0;
+              } else {
+                  i = 1;
+              }
+
+              get_incidence_row(fface,fmesh->f_v,v_on_f);
               lval = 0.0;
-              for(i=0;i<dim;i++) lval += phi[locFaceId*dim+i]*fmesh->f_norm[fface*dim+i];
-              //lval = (1.0/dim)*fmesh->f_area[fface] * lval; //(This is the midpoint rule part)
-              lval = (1.0/dim)* lval;
-
-              // Subtract off linear part (Bubbles used to enrich P1)
-              value = value - lval;
-              //value = value / fmesh->f_area[fface];
-
-              // Save in R linear
-              vertex = find_the_fine_vertex_the_hard_way(x, fmesh, fface);
-              if( VertFilled[cface + vertex*R->row] == 0 ){//TODO: This needs to become a IJfilled type thing.
-//                printf("Vertex | (%d, %d) : %7.4f, %7.4f\n",cface,vertex,phi[locFaceId*dim],phi[locFaceId*dim+1]);
-                VertFilled[cface + vertex*R->row] = 1;
-                Il1[indexl] = cface;
-                Jl1[indexl] = vertex;
-                Vl1[indexl] = phi[locFaceId*dim+0];
-                Il2[indexl] = cface;
-                Jl2[indexl] = vertex;
-                Vl2[indexl] = phi[locFaceId*dim+1];
-                indexl++;
+              for(ed=0;ed<dim;ed++){
+                x[0] = fmesh->cv->x[v_on_f[ed]-1]; 
+                x[1] = fmesh->cv->y[v_on_f[ed]-1]; 
+                // Evaluate Coarse Bubble at endpoints
+                bubble_face_basis(phi,dphi,x,v_on_elm,f_on_elm,cmesh);
+                // Save in R linear
+                vertex = v_on_f[ed]-1;
+                if( VertFilled[cface + vertex*R->row] == 0 ){
+                  VertFilled[cface + vertex*R->row] = 1;
+                  Il1[indexl] = cface;
+                  Jl1[indexl] = vertex;
+                  Vl1[indexl] = phi[locFaceId*dim+0];
+                  Il2[indexl] = cface;
+                  Jl2[indexl] = vertex;
+                  Vl2[indexl] = phi[locFaceId*dim+1];
+                  indexl++;
+                }
+                // Linear part on fine edge.
+                lval += phi[locFaceId*dim+i]/2;
+                //for(i=0;i<dim;i++) lval += phi[locFaceId*dim+i]*fmesh->f_norm[fface*dim+i];
               }
+
+              value = ( Fphi[locFaceId*dim+i] - lval ) / fmesh->f_norm[fface*dim+i];
 
               if( IJfilled[fface*R->row + cface] == -1 ) {
                 IJfilled[fface*R->row + cface] = 1;
                 if(ABS(value) > 1e-8){
-//                  printf("Indexing | (%3d, %3d) : %7.4f\n",cface,fface,value);
                   I[index] = cface;
                   J[index] = fface;
                   V[index] = value;
                   index++;
                 }
               }
+
+
             }//jj (fface)
             locFaceId++;
           }//j (cface)
@@ -613,7 +663,8 @@ void build_bubble_R (dCSRmat *R,
       }//ci
     }//cj
 
-//    printf("index: %d\tnnz: %d\n",index,R->nnz);//TODO: Correct number of nnz in the matrix
+    //printf("index: %d\tnnz: %d\n",index,R->nnz);//TODO: Correct number of nnz in the matrix
+    //printf("indexl: %d\tnnz: %d\n",indexl,R->row*12);//TODO: Correct number of nnz in the matrix
 
     // Fill the CSR matrix format
     INT cdof;
@@ -635,15 +686,15 @@ void build_bubble_R (dCSRmat *R,
     Rblx->col = fmesh->nv;
     Rblx->nnz = R->row*12; //TODO: FIX THIS
     Rblx->IA  = (INT *)calloc(Rblx->row+1,sizeof(INT));
-    Rblx->JA  = (INT *)calloc(R->nnz, sizeof(INT));
-    Rblx->val = (REAL *)calloc(R->nnz, sizeof(REAL));
+    Rblx->JA  = (INT *)calloc(Rblx->nnz, sizeof(INT));
+    Rblx->val = (REAL *)calloc(Rblx->nnz, sizeof(REAL));
     // allocate memory for R
     Rbly->row = cmesh->nface;
     Rbly->col = fmesh->nv;
     Rbly->nnz = R->row*12; //TODO: FIX THIS
     Rbly->IA  = (INT *)calloc(Rblx->row+1,sizeof(INT));
-    Rbly->JA  = (INT *)calloc(R->nnz, sizeof(INT));
-    Rbly->val = (REAL *)calloc(R->nnz, sizeof(REAL));
+    Rbly->JA  = (INT *)calloc(Rbly->nnz, sizeof(INT));
+    Rbly->val = (REAL *)calloc(Rbly->nnz, sizeof(REAL));
     // Fill CSR matrix for Bubble Linear
     jstart = 0;
     Rblx->IA[0] = jstart;
@@ -666,7 +717,7 @@ void build_bubble_R (dCSRmat *R,
 //printf("___________________________________________\n");
 //printf("%d  %d  %d\n",R->row,Rbly->row,Rblx->row);
 //printf("%d  %d  %d\n",R->col,Rbly->col,Rblx->col);
-////csr_print_matlab(stdout,Rblx);
+//csr_print_matlab(stdout,R);
 //printf("___________________________________________\n");
 
     //TODO: FREE!
@@ -909,7 +960,6 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
           break;
         }// switch gmg_type
       }//for i<brow
-
       printf("Built R for lvl=%d...\n",lvl);
 
       /*-- Form Prolongation --*/
@@ -917,6 +967,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
           dcsr_trans(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].P.blocks[i+i*brow]);
       }
       printf("Built P for lvl=%d...\n",lvl);
+
       /*-- Form coarse level stiffness matrix --*/
       for(i=0; i<brow; i++){
         for(j=0; j<brow; j++){
@@ -944,6 +995,12 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
         }//j
       }//i
       printf("Built RAP for lvl=%d...\n",lvl);
+      // PRINT MATRIX
+      if(lvl==1){
+          FILE* matid = HAZ_fopen("Acoarse.dat","w");
+          csr_print_matlab(matid,mgl[lvl].A.blocks[0]);
+          fclose(matid);
+      }
                              
       ++lvl;
     } // lvl
