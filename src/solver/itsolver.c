@@ -3113,6 +3113,159 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
   return status;
 }
 
+/**
+ * \fn void linear_solver_bdcsr_krylov_gmg (dCSRmat *A, dvector *b, dvector *x,
+ *                           AMG_param *param)
+ *
+ * \brief Solve Ax = b by multigrid methods
+ *
+ * \param A      Pointer to block_dCSRmat: the coefficient matrix
+ * \param b      Pointer to dvector: the right hand side
+ * \param x      Pointer to dvector: the unknowns
+ * \param param  Pointer to AMG_param: AMG parameters
+ *
+ * \author Xiaozhe Hu
+ * \date   12/25/2015
+ *
+ *
+ */
+INT linear_solver_bdcsr_krylov_gmg(block_dCSRmat *A,
+                      dvector *b,
+                      dvector *x,
+                      linear_itsolver_param *itparam,
+                      AMG_param *param,
+                      INT * gmg_type,
+                      trimesh* mesh,
+                      dCSRmat *A_diag)
+{
+    const SHORT prtlvl = itparam->linear_print_level;
+    const SHORT precond_type = itparam->linear_precond_type;
+  
+    const SHORT   max_levels  = param->max_levels;
+    printf( "max_levels: %d\n", max_levels);
+    //const SHORT   mg_type     = param->AMG_type;
+    const SHORT   mg_type     = 111;
+    const SHORT   cycle_type  = param->cycle_type;
+
+    // local variables
+    INT status = SUCCESS;
+    INT i, j;
+    REAL setup_start, setup_end, setup_duration;
+    REAL solver_start, solver_end, solver_duration;
+    REAL MG_start, MG_end;
+
+    get_time(&setup_start);
+
+    // Block matrix variables
+    const INT  bm = A->brow, bn = A->bcol;
+    INT nnz=0, n=0, m=0;
+    // Check block matrix data
+    if ( bm != bn ) {
+        printf("### ERROR: A is not a square block matrix!\n");
+        check_error(ERROR_MAT_SIZE, __FUNCTION__);
+    }
+    for( i=0; i<bm; i++){
+      m += A->blocks[i+i*bm]->row;
+      n += A->blocks[i+i*bn]->col;
+      for( j=0; j<bn; j++){
+        if(A->blocks[j+i*bn])
+            nnz += A->blocks[j+i*bn]->nnz;
+      }//TODO: Put error check to make sure all diagonal blocks contain matrix size information
+    }
+    // Check matrix data
+    if ( m != n ) {
+        printf("### ERROR: A is not a square matrix!\n");
+        check_error(ERROR_MAT_SIZE, __FUNCTION__);
+    }
+    if ( nnz <= 0 ) {
+        printf("### ERROR: A has no nonzero entries!\n");
+        check_error(ERROR_MAT_SIZE, __FUNCTION__);
+    }
+
+    // Step 0: initialize mgl[0] with A, b and x
+    // or try: bdcsr_alloc_minimal( &(mgl[0].A) ); bdcsr_cp(A,&(mgl[0].A));
+    MG_blk_data * mgl = mg_blk_data_create(max_levels);
+
+    block_dCSRmat mglA;
+    bdcsr_alloc(bm,bn,&mglA);
+    bdcsr_cp(A,&mglA);
+    mgl[0].A = mglA;
+
+    mgl[0].A_diag = A_diag;
+
+    mgl[0].b = dvec_create(n);
+    dvec_cp(b, &mgl[0].b);
+
+    mgl[0].x = dvec_create(n);
+    dvec_cp(x, &mgl[0].x);
+
+    mgl[0].fine_level_mesh = mesh;
+
+    for(i=0;i<max_levels;i++) mgl[i].gmg_type = gmg_type;
+
+    // Step 1: MG setup phase
+    switch (mg_type) {
+        case 111: // Geometric
+            if ( prtlvl > PRINT_MIN ) printf("\n Calling block GMG ...\n");
+            status = gmg_blk_setup(mgl, param);
+            printf("\nFinished gmg_blk_setup... Calling smoother setup...\n");
+            smoother_block_setup(mgl, param);
+            printf("\nsmoother setup Done...\n");
+        break;
+        default:
+            printf("### ERROR: No default block MG type!\n");
+            check_error(ERROR_SOLVER_MISC, __FUNCTION__);
+        break;
+    }
+
+    /* set the whole preconditioner data */
+    precond_block_data precdata;
+    precond_block_data_null(&precdata);
+
+    precdata.Abcsr = A;
+    precdata.A_diag = A_diag;
+    precdata.r = dvec_create(b->row);
+    precdata.amgparam = param;
+    precdata.bmgl = mgl;
+
+    precond prec;
+    prec.data = &precdata;
+
+    switch (precond_type)
+    {
+      default:
+        prec.fct = precond_block_monolithic_mg;
+        break;
+    }
+
+    get_time(&setup_end);
+    setup_duration = setup_end - setup_start;
+    if ( prtlvl >= PRINT_MIN ) {
+      print_cputime("Setup totally", setup_duration);
+    }
+
+    /* Solver Call */
+    get_time(&solver_start);
+
+    status=solver_bdcsr_linear_itsolver(A,b,x, &prec,itparam);
+
+    get_time(&solver_end);
+    solver_duration = solver_end - solver_start;
+
+    if ( prtlvl >= PRINT_MIN ) {
+      print_cputime("Krylov method totally", solver_duration);
+      printf("**********************************************************\n");
+    }
+
+    //solve_info->iteration_count = status;
+    //solve_info->time_precondition_setup = setup_duration;
+    //solve_info->time_solve = solver_duration;
+
+    // clean
+    precond_block_data_free(&precdata, 2);
+
+    return status;
+}
 /*---------------------------------*/
 /*--        End of File          --*/
 /*---------------------------------*/
