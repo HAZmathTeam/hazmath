@@ -5457,6 +5457,58 @@ void precond_block_diag_bubble_stokes(REAL *r,
 
 }
 
+/* Special preconditioners for monolithic mg */
+
+/**
+ * \fn void precond_block_monolithic_mg (REAL *r, REAL *z, void *data)
+ *
+ * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+ *        is solved inexactly)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   01/14/2017
+ */
+void precond_block_monolithic_mg (REAL *r, REAL *z, void *data)
+{
+  precond_block_data *precdata=(precond_block_data *)data;
+  dvector *tempr = &(precdata->r);
+
+  MG_blk_data *bmgl = precdata->bmgl;
+  AMG_param  *param = precdata->amgparam;
+
+  // Local Variables
+  INT i, N=0;
+  INT brow = bmgl[0].A.brow;
+
+  for( i=0; i<brow; i++){
+      N += bmgl[0].A.blocks[i+i*brow]->row;
+  }
+
+  // back up r, setup z;
+  array_cp(N, r, tempr->val);
+  array_set(N, z, 0.0);
+
+  // Residual is an input
+  array_cp(N, r, bmgl[0].b.val);
+
+  // Set x
+  dvec_set(N, &bmgl[0].x, 0.0);
+
+  /* Monolithic MG cycle */
+  for(i=0; i<param->maxit; i++) mgcycle_block(bmgl,param);
+
+  // Store x
+  array_cp(N, bmgl[0].x.val, z);
+
+  // restore r
+  array_cp(N, tempr->val, r);
+
+  return;
+}
 /*---------------------------------*/
 /*--        End of File          --*/
 /*---------------------------------*/
