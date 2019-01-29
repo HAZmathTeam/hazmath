@@ -511,6 +511,9 @@ typedef struct {
     AMG_data **mgl;       /**< AMG data for the diagonal blocks */
     AMG_param *amgparam;  /**< parameters for AMG */
 
+    /*---  solve by GMG ---*/
+    MG_blk_data *bmgl;    /**< Block MG data for monolithic */
+
     /*--- solver by HX preconditioner */
     HX_curl_data **hxcurldata; /**< HX data for the diagonal CURL blocks */
     HX_div_data **hxdivdata; /**< HX data for the diagonal DIV blocks */
