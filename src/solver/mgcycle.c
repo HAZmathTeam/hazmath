@@ -231,8 +231,8 @@ static void bdcsr_presmoothing(const INT lvl, MG_blk_data *mgl, AMG_param *param
         //    smoother_bdcsr_jacobi(&mgl[lvl].x, 1, &mgl[lvl].A, &mgl[lvl].b, nsweeps);
         //    break;
         default:
-            printf("\tCalling Smoother on lvl=%d...\n",lvl);
-            smoother_block_biot_3field(lvl,mgl,param);
+            printf("\tCalling pre  Smoother on lvl=%d...\n",lvl);
+            smoother_block_biot_3field(lvl,mgl,param,1);
 //            printf("### ERROR: Wrong smoother type %d!\n", smoother);
 //            check_error(ERROR_INPUT_PAR, __FUNCTION__);
     }
@@ -256,12 +256,14 @@ static void bdcsr_postsmoothing(const INT lvl, MG_blk_data *mgl, AMG_param *para
     const SHORT nsweeps  = param->presmooth_iter;
     switch (smoother) {
 
-        case SMOOTHER_JACOBI:
-            smoother_bdcsr_jacobi(&mgl[lvl].x, 1, &mgl[lvl].A, &mgl[lvl].b, nsweeps);
-            break;
+//        case SMOOTHER_JACOBI:
+//            smoother_bdcsr_jacobi(&mgl[lvl].x, 1, &mgl[lvl].A, &mgl[lvl].b, nsweeps);
+//            break;
         default:
-            printf("### ERROR: Wrong smoother type %d!\n", smoother);
-            check_error(ERROR_INPUT_PAR, __FUNCTION__);
+            printf("\tCalling post Smoother on lvl=%d...\n",lvl);
+            smoother_block_biot_3field(lvl,mgl,param,2);
+//            printf("### ERROR: Wrong smoother type %d!\n", smoother);
+//            check_error(ERROR_INPUT_PAR, __FUNCTION__);
     }
 }
 
@@ -707,7 +709,7 @@ void nl_amli (AMG_data *mgl,
  * \date   12/25/2015
  *
  */
-void mgcycle_block(MG_blk_data *mgl,
+void mgcycle_block(MG_blk_data *bmgl,
              AMG_param *param)
 {
     const SHORT  prtlvl = param->print_level;
@@ -715,7 +717,7 @@ void mgcycle_block(MG_blk_data *mgl,
     const SHORT  smoother = param->smoother;
     const SHORT  cycle_type = param->cycle_type;
     const SHORT  coarse_solver = param->coarse_solver;
-    const SHORT  nl = mgl[0].num_levels;
+    const SHORT  nl = bmgl[0].num_levels;
     const REAL   relax = param->relaxation;
     const REAL   tol = param->tol * 1e-4;
 
@@ -732,17 +734,17 @@ ForwardSweep:
         num_lvl[l]++;
         
         // pre-smoothing with standard smoothers
-        bdcsr_presmoothing(l, mgl, param);
+        bdcsr_presmoothing(l, bmgl, param);
 
         // form residual r = b - A x
-        array_cp(mgl[l].b.row, mgl[l].b.val, mgl[l].w.val);
-        bdcsr_aAxpy(-1.0,&mgl[l].A, mgl[l].x.val, mgl[l].w.val);
+        array_cp(bmgl[l].b.row, bmgl[l].b.val, bmgl[l].w.val);
+        bdcsr_aAxpy(-1.0,&bmgl[l].A, bmgl[l].x.val, bmgl[l].w.val);
 
         // restriction r1 = R*r0
-        bdcsr_mxv(&mgl[l].R, mgl[l].w.val, mgl[l+1].b.val);
+        bdcsr_mxv(&bmgl[l].R, bmgl[l].w.val, bmgl[l+1].b.val);
 
         // prepare for the next level
-        ++l; dvec_set(mgl[l].x.row, &mgl[l].x, 0.0);
+        ++l; dvec_set(bmgl[l].x.row, &bmgl[l].x, 0.0);
 
     }
 
@@ -754,14 +756,14 @@ ForwardSweep:
         case SOLVER_UMFPACK: {
             // use UMFPACK direct solver on the coarsest level
             printf("Solving coarse level with UMFPACK...\n");
-            umfpack_solve(&mgl[nl-1].Ac, &mgl[nl-1].b, &mgl[nl-1].x, mgl[nl-1].Numeric, 0);
+            umfpack_solve(&bmgl[nl-1].Ac, &bmgl[nl-1].b, &bmgl[nl-1].x, bmgl[nl-1].Numeric, 0);
             break;
         }
 #endif
         default:
             // use iterative solver on the coarsest level
             printf("Solving coarse level with coarse_itsolve...\n");
-//            coarse_itsolver(&mgl[nl-1].A, &mgl[nl-1].b, &mgl[nl-1].x, tol, prtlvl);
+//            coarse_itsolver(&bmgl[nl-1].A, &bmgl[nl-1].b, &bmgl[nl-1].x, tol, prtlvl);
             break;
 
     }
@@ -772,10 +774,10 @@ ForwardSweep:
         --l;
 
         // prolongation u = u + alpha*P*e1
-        bdcsr_aAxpy(alpha, &mgl[l].P, mgl[l+1].x.val, mgl[l].x.val);
+        bdcsr_aAxpy(alpha, &bmgl[l].P, bmgl[l+1].x.val, bmgl[l].x.val);
 
         // post-smoothing with standard methods
-        bdcsr_postsmoothing(l, mgl, param);
+        bdcsr_postsmoothing(l, bmgl, param);
 
         if ( num_lvl[l] < cycle_type ) break;
         else num_lvl[l] = 0;
