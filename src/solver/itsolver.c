@@ -3194,10 +3194,10 @@ INT linear_solver_bdcsr_krylov_gmg(block_dCSRmat *A,
     mgl[0].A_diag = A_diag;
 
     mgl[0].b = dvec_create(n);
-    dvec_cp(b, &mgl[0].b);
+//    dvec_cp(b, &mgl[0].b);
 
     mgl[0].x = dvec_create(n);
-    dvec_cp(x, &mgl[0].x);
+//    dvec_cp(x, &mgl[0].x);
 
     mgl[0].fine_level_mesh = mesh;
 

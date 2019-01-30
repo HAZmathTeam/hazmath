@@ -729,9 +729,9 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
  * \param param     Pointer to AMG_param
  *
  */
-void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *param)
+void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *param, INT pre_post)
 {
-    printf("Beginning Block smoother, lvl=%d\n",lvl);
+    printf("\tBeginning Block smoother, lvl=%d\n",lvl);
     // Initialize
     INT n0, n1, n2, ntot;
     // Sub-vectors
@@ -760,17 +760,25 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
 
     printf("\tWhat do we have: n0=%d, n1=%d, n2=%d\n",n0,n1,n2);
     // Block 0: P1 + Bubble
-    smoother_dcsr_gs(&x0, 0, n0-1, 1, &bmgl[lvl].mgl[0][0].A, &b0, 1);
+    //smoother_dcsr_gs(&x0, 0, n0-1, 1, &bmgl[lvl].mgl[0][0].A, &b0, 1);
+    smoother_dcsr_sgs(&x0, &(bmgl[lvl].mgl[0][0].A), &b0, param->presmooth_iter);
     printf("\tBlock 0 done...\n");
 
     // Block 1: RT0
     Schwarz_param swzparam;
     swzparam.Schwarz_blksolver = bmgl[lvl].mgl[1][0].Schwarz.blk_solver;
-    smoother_dcsr_Schwarz_forward( &(bmgl[lvl].mgl[1][0].Schwarz), &swzparam, &x1, &b1);
+    if(pre_post == 1){
+      smoother_dcsr_Schwarz_forward( &(bmgl[lvl].mgl[1][0].Schwarz), &swzparam, &x1, &b1);
+      smoother_dcsr_Schwarz_backward(&(bmgl[lvl].mgl[1][0].Schwarz), &swzparam, &x1, &b1);
+    } else if (pre_post == 2){
+      smoother_dcsr_Schwarz_backward(&(bmgl[lvl].mgl[1][0].Schwarz), &swzparam, &x1, &b1);
+      smoother_dcsr_Schwarz_forward( &(bmgl[lvl].mgl[1][0].Schwarz), &swzparam, &x1, &b1);
+    }
     printf("\tBlock 1 done...\n");
 
     // Block 2: P0
-    smoother_dcsr_gs(&x2, 0, n2-1, 1, &(bmgl[lvl].mgl[2][0].A), &b2, param->presmooth_iter);
+    //smoother_dcsr_gs(&x2, 0, n2-1, 1, &(bmgl[lvl].mgl[2][0].A), &b2, param->presmooth_iter);
+    smoother_dcsr_sgs(&x2, &(bmgl[lvl].mgl[2][0].A), &b2, param->presmooth_iter);
     printf("\tBlock 2 done...\n");
     return;
 }

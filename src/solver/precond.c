@@ -5462,8 +5462,7 @@ void precond_block_diag_bubble_stokes(REAL *r,
 /**
  * \fn void precond_block_monolithic_mg (REAL *r, REAL *z, void *data)
  *
- * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
- *        is solved inexactly)
+ * \brief 
  *
  * \param r     Pointer to the vector needs preconditioning
  * \param z     Pointer to preconditioned vector
