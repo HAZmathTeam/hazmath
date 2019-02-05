@@ -396,22 +396,27 @@ void Schwarz_get_patch_geometric (Schwarz_data *Schwarz,
 
     // patchType to element
     iCSRmat p_el;
+    iCSRmat p_p;
 
     switch ( patchType ) {
       case 1: // vertex
         nblk = mesh->nv;
         icsr_trans_1(mesh->el_v, &p_el);
-        ntot = p_el.nnz;
+        icsr_mxm_1( &p_el, mesh->el_v, &p_p);
+        // want this to be v_el * el_v to get vertex to neighboring vertex map.
+        ntot = p_p.nnz;
         break;
       case 2: // edge
         nblk = mesh->nedge;
         icsr_trans_1(mesh->el_ed,&p_el);
-        ntot = p_el.nnz;
+        icsr_mxm_1( &p_el, mesh->el_ed, &p_p);
+        ntot = p_p.nnz;
         break;
       case 3: // face 
         nblk = mesh->nface;
         icsr_trans_1(mesh->el_f, &p_el);
-        ntot = p_el.nnz;
+        icsr_mxm_1( &p_el, mesh->el_f, &p_p);
+        ntot = p_p.nnz;
         break;
       default:
         break;
@@ -419,7 +424,8 @@ void Schwarz_get_patch_geometric (Schwarz_data *Schwarz,
 
     ///iblk = (INT*)calloc(p_el.row+1,sizeof(INT));
     iblk = (INT*)calloc(nblk+1,sizeof(INT));
-    iarray_cp(nblk+1,p_el.IA,iblk);
+    //iarray_cp(nblk+1,p_el.IA,iblk);
+    iarray_cp(nblk+1,p_p.IA,iblk);
     // Shift 1
     for(i=0; i<nblk+1; i++){
       iblk[i] -= 1;
@@ -427,7 +433,8 @@ void Schwarz_get_patch_geometric (Schwarz_data *Schwarz,
 
     //jblk = (INT*)calloc(p_el.nnz,sizeof(INT));
     jblk = (INT*)calloc(ntot,sizeof(INT));
-    iarray_cp(ntot,p_el.JA,jblk);
+    //iarray_cp(ntot,p_el.JA,jblk);
+    iarray_cp(ntot,p_p.JA,jblk);
     // Shift 1
     for(i=0; i<ntot; i++){
       jblk[i] -= 1;
@@ -461,14 +468,10 @@ INT Schwarz_setup_geometric (Schwarz_data *Schwarz,
     INT n   = A.row;
 
     INT  block_solver = param->Schwarz_blksolver;
-//    INT  maxlev = param->Schwarz_maxlvl;
     Schwarz->swzparam = param;
 
     // local variables
     INT i;
-//    INT inroot = -10, nsizei = -10, nsizeall = -10, nlvl = 0;
-//    INT *jb=NULL;
-//    ivector MaxIndSet;
 
     // data for Schwarz method
     INT nblk;
