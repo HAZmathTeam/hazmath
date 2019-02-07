@@ -652,7 +652,8 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
         swzparam.Schwarz_mmsize = param->Schwarz_mmsize;
         swzparam.Schwarz_maxlvl = param->Schwarz_maxlvl;
         swzparam.Schwarz_type   = param->Schwarz_type;
-        swzparam.Schwarz_blksolver = param->Schwarz_blksolver;
+        //swzparam.Schwarz_blksolver = param->Schwarz_blksolver;
+        swzparam.Schwarz_blksolver = 32;
       //}
 
       // Fill in levels
@@ -762,6 +763,7 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
     // Block 0: P1 + Bubble
     //smoother_dcsr_gs(&x0, 0, n0-1, 1, &bmgl[lvl].mgl[0][0].A, &b0, 1);
     smoother_dcsr_sgs(&x0, &(bmgl[lvl].mgl[0][0].A), &b0, param->presmooth_iter);
+    //directsolve_UMF(&(bmgl[lvl].mgl[0][0].A), &b0, &x0, 10);
     printf("\tBlock 0 done...\n");
 
     // Block 1: RT0
@@ -774,11 +776,13 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
       smoother_dcsr_Schwarz_backward(&(bmgl[lvl].mgl[1][0].Schwarz), &swzparam, &x1, &b1);
       smoother_dcsr_Schwarz_forward( &(bmgl[lvl].mgl[1][0].Schwarz), &swzparam, &x1, &b1);
     }
+//    directsolve_UMF(&(bmgl[lvl].mgl[1][0].A), &b1, &x1, 10);
     printf("\tBlock 1 done...\n");
 
     // Block 2: P0
     //smoother_dcsr_gs(&x2, 0, n2-1, 1, &(bmgl[lvl].mgl[2][0].A), &b2, param->presmooth_iter);
     smoother_dcsr_sgs(&x2, &(bmgl[lvl].mgl[2][0].A), &b2, param->presmooth_iter);
+    //directsolve_UMF(&(bmgl[lvl].mgl[2][0].A), &b2, &x2, 10);
     printf("\tBlock 2 done...\n");
     return;
 }
