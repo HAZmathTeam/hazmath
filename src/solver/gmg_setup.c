@@ -996,9 +996,9 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
       }//i
       printf("Built RAP for lvl=%d...\n",lvl);
       // PRINT MATRIX
-      if(lvl==1){
+      if(lvl==0){
           FILE* matid = HAZ_fopen("Acoarse.dat","w");
-          csr_print_matlab(matid,mgl[lvl].A.blocks[0]);
+          csr_print_matlab(matid,mgl[lvl+1].A.blocks[0]);
           fclose(matid);
       }
                              
