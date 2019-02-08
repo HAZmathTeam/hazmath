@@ -832,12 +832,24 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
     // local variables
     INT           nf1d, nc1d, csize;
     INT           brow,m;
+    INT           bm;
     INT           i,j;
     SHORT         max_levels = param->max_levels, lvl = 0, status = SUCCESS;
     INT           dim = mgl[lvl].fine_level_mesh->dim;
     REAL          setup_start, setup_end;
+    fespace       FE_loc;
 
     get_time(&setup_start);
+
+    // dirichlet
+    mgl[0].dirichlet = (INT*)calloc(mgl[0].FE->ndof,sizeof(INT));
+    bm = 0;
+    for(i=0;i<mgl[0].FE->nspaces;i++){
+      for(j=0;j<mgl[0].FE->var_spaces[i]->ndof;j++){
+        mgl[0].dirichlet[bm] = mgl[0].FE->var_spaces[i]->dirichlet[j];
+        ++bm;
+      }
+    }
 
     // To read from file
     FILE* cgfid;
@@ -854,6 +866,11 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
       printf("A blocks: %d %d\n",mgl[lvl].A.brow,mgl[lvl].A.bcol);
       brow = mgl[lvl].A.brow;
 
+      // Track dirichlet bdry
+      m=0;
+      for(i=0; i<brow; i++) m += mgl[lvl].A.blocks[i+i*brow]->row;
+      mgl[lvl+1].dirichlet = (INT*)calloc(m,sizeof(INT));
+
       /*-- Build coarse level mesh --*/
       csize = (sqrt(mgl[lvl].fine_level_mesh->nv)-1)/2 + 1;
       //Need to customize this to specific directory
@@ -864,6 +881,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
       creategrid_fread(cgfid,0,mgl[lvl+1].fine_level_mesh);
       fclose(cgfid);
       printf("Mesh Loaded for lvl=%d...\n",lvl);
+      mgl[0].set_bdry_flags(mgl[lvl+1].fine_level_mesh);
 
       /*-- Allocate for R A P --*/
       bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].R));
@@ -871,6 +889,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
       bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl+1].A));
       printf("Allocation of R A P for lvl=%d is finished...\n",lvl);
 
+      bm=0; //indexing of dirichlet
       /*-- Form restriction --*/
       for(i=0; i<brow; i++){
         //Check gmg type
@@ -882,6 +901,14 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             printf("\tBuilding constant R...\n");
             build_constant_R( mgl[lvl].R.blocks[i+i*brow], nf1d, nc1d);
             printf("\tBuilt constant R...\n");
+            // dirichlet
+            create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 0);
+            set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, -1,-1); // p
+            for(j=0;j<FE_loc.ndof;j++){
+              mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
+              ++bm;
+            }
+            free_fespace(&FE_loc);
           break;
           case 1://P1
             nf1d = sqrt(mgl[lvl].A.blocks[i+i*brow]->row);
@@ -897,6 +924,14 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             build_face_R( mgl[lvl].R.blocks[i+i*brow], mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
             //csr_print_matlab(stdout,mgl[lvl].R.blocks[i+i*brow]);
             printf("\tBuilt RT0 R...\n");
+            // dirichlet
+            create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 30);
+            set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, 1,5); // w
+            for(j=0;j<FE_loc.ndof;j++){
+              mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
+              ++bm;
+            }
+            free_fespace(&FE_loc);
           break;
           case 61://Bubble
             nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
@@ -954,6 +989,26 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
 //            printf("Rmerge: %d %d\n",Rmerge.row,Rmerge.col);
 //            csr_print_matlab(stdout,&Rmerge);
             dcsr_free(&Rmerge);
+            // BC flag dirichlet elim stuff
+            create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 61);
+            set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, 1,5); //bbl
+            for(j=0;j<FE_loc.ndof;j++){
+              mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
+              ++bm;
+            }
+            free_fespace(&FE_loc);
+            create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 1);
+            set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, 5,5); // Ux
+            for(j=0;j<FE_loc.ndof;j++){
+              mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
+              ++bm;
+            }
+            set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, 1,4); // Uy
+            for(j=0;j<FE_loc.ndof;j++){
+              mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
+              ++bm;
+            }
+            free_fespace(&FE_loc);
           break;
           default:
             printf("### ERROR: Unknown geometric multigrid type: %d!\n",mgl[lvl].gmg_type[i]);
