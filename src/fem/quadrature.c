@@ -510,7 +510,11 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
       gw[2] = gw[0];
     }
   } else if(e_or_f==2) {
-    triquad_(gp,gw,nq1d);
+      if (dim == 2) {
+        quad1d(gp,gw,nq1d);
+      } else {
+        triquad_(gp,gw,nq1d);
+      }
   } else {
     status = ERROR_QUAD_TYPE;
     check_error(status, __FUNCTION__);
