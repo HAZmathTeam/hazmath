@@ -3136,6 +3136,8 @@ INT linear_solver_bdcsr_krylov_gmg(block_dCSRmat *A,
                       AMG_param *param,
                       INT * gmg_type,
                       trimesh* mesh,
+                      block_fespace* FE,
+                      void (*set_bdry_flags)(trimesh* ),
                       dCSRmat *A_diag)
 {
     const SHORT prtlvl = itparam->linear_print_level;
@@ -3200,6 +3202,9 @@ INT linear_solver_bdcsr_krylov_gmg(block_dCSRmat *A,
 //    dvec_cp(x, &mgl[0].x);
 
     mgl[0].fine_level_mesh = mesh;
+
+    mgl[0].FE = FE;
+    mgl[0].set_bdry_flags = set_bdry_flags;
 
     for(i=0;i<max_levels;i++) mgl[i].gmg_type = gmg_type;
 
