@@ -448,7 +448,7 @@ dCSRmat dcsr_perm(dCSRmat *A,
 
   // form the transpose of P
   INT *Pt = NULL;
-  Pt = (INT *) calloc(n,sizeof(INT));
+  Pt =(INT *) calloc(n,sizeof(INT));
 
   for (i=0; i<n; ++i) Pt[P[i]] = i;
 
@@ -2776,6 +2776,84 @@ SHORT dcsr_getblk(dCSRmat *A,
 
 /***********************************************************************************************/
 /*!
+   * \fn SHORT dcsr_delete_rowcol(dCSRmat *A,
+                                  INT *delete_row,
+                                  INT *delete_col,
+                                  dCSRmat *B)
+   *
+   * \brief Delete selected specified rows and columns from a dCSRmat sparse matrix A
+   *
+   * \param A             Pointer to dCSRmat matrix
+   * \param B             Pointer to dCSRmat matrix
+   * \param delete_row    Pointer to rows that need to be deleted
+   * \param delete_col    Pointer to cols that need to be deleted
+   *
+   * \return      SUCCESS if succeeded, otherwise return error information.
+   *
+   * \note Index starts at 0!!! -- Xiaozhe Hu
+   *
+   */
+SHORT dcsr_delete_rowcol(dCSRmat *A,
+                         INT *delete_row,
+                         INT *delete_col,
+                         dCSRmat *B)
+{
+
+  // return variable
+  INT status = SUCCESS;
+
+  // local variables
+  INT i;
+  INT row_count, col_count;
+  INT *row_stay, *col_stay;
+
+  // allocate for row and columns that stays
+  row_stay = (INT*)calloc(A->row,sizeof(INT));
+  col_stay = (INT*)calloc(A->col,sizeof(INT));
+
+  // generate row_stay
+  row_count = 0;
+  for (i=0; i<A->row; i++) {
+
+    // get rows that stay
+    if (delete_row[i] == 0) {
+      row_stay[row_count] = i;
+      row_count++;
+    }
+
+  }
+  // reallocate
+  row_stay = (INT*)realloc(row_stay, sizeof(INT)*row_count);
+
+  // generate col_stay
+  col_count = 0;
+  for (i=0; i<A->col; i++) {
+
+    // get rows that stay
+    if (delete_col[i] == 0) {
+      col_stay[col_count] = i;
+      col_count++;
+    }
+
+  }
+  // reallocate
+  col_stay = (INT*)realloc(col_stay, sizeof(INT)*col_count);
+
+  // get submatrix from original matrix
+  status = dcsr_getblk(A, row_stay, col_stay, row_count, col_count, B);
+
+  // free memory
+  free(row_stay);
+  free(col_stay);
+
+  // return
+  return(status);
+
+}
+
+
+/***********************************************************************************************/
+/*!
    * \fn dcsr_bandwith (dCSRmat *A, INT *bndwith)
    *
    * \brief Get bandwith of a dCSRmat format sparse matrix
@@ -3577,6 +3655,90 @@ void bdcsr_mxv_forts(void *At,
     start_col = 0;
   }
 
+
+}
+
+/***********************************************************************************************/
+/*!
+   * \fn SHORT bdcsr_delete_rowcol(block_dCSRmat *A,
+                                   INT *delete_row,
+                                   INT *delete_col,
+                                   block_dCSRmat *B)
+   *
+   * \brief Delete selected specified rows and columns from a block_dCSRmat sparse matrix A
+   *
+   * \param A             Pointer to block_dCSRmat matrix
+   * \param B             Pointer to block_dCSRmat matrix
+   * \param delete_row    Pointer to rows that need to be deleted (global index)
+   * \param delete_col    Pointer to cols that need to be deleted (global index)
+   *
+   * \return      SUCCESS if succeeded, otherwise return error information.
+   *
+   * \note Index starts at 0!!! -- Xiaozhe Hu
+   *
+   */
+SHORT bdcsr_delete_rowcol(block_dCSRmat *A,
+                         INT *delete_row,
+                         INT *delete_col,
+                         block_dCSRmat *B)
+{
+  // return variable
+  INT status = SUCCESS;
+
+  // local variables
+  INT brow = A->brow;
+  INT bcol = A->bcol;
+
+  INT i,j,ii,jj;
+  INT *row_start, *col_start;
+
+  // allocate row_start and col_start
+  row_start = (INT *)calloc(brow,sizeof(INT));
+  col_start = (INT *)calloc(bcol,sizeof(INT));
+
+  // allocate B
+  bdcsr_alloc(brow, bcol, B);
+
+  // get row_start
+  row_start[0] = 0;
+  for (i=0; i<brow-1; i++){
+    for (j=0; j<bcol; j++){
+      if (A->blocks[i*brow+j]) {
+        row_start[i+1] = row_start[i] + A->blocks[i*brow+j]->row;
+        break;
+      }
+    }
+  }
+
+  // get col_start
+  col_start[0] = 0;
+  for (j=0; j<bcol-1; j++){
+    for (i=0; i<brow; i++){
+      if (A->blocks[i*brow+j]){
+        col_start[j+1] = col_start[j] + A->blocks[i*brow+j]->col;
+        break;
+      }
+    }
+  }
+
+  // main loop
+  for (i=0; i<brow; i++){
+    for (j=0; j<bcol; j++){
+      if (A->blocks[i*brow+j]) {
+        status = dcsr_delete_rowcol(A->blocks[i*brow+j], delete_row+row_start[i],delete_col+col_start[j], B->blocks[i*brow+j]);
+      }
+      else {
+        B->blocks[i*brow+j] = NULL;
+      }
+    }
+  }
+
+  // free memory
+  free(row_start);
+  free(col_start);
+
+  // return
+  return(status);
 
 }
 
