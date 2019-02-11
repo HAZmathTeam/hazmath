@@ -46,7 +46,7 @@ void build_linear_R (dCSRmat *R,
     INT *IA  = R->IA;
 
     REAL stencil[] = { 0.5, 0.5, 0.5, 1.0, 0.5, 0.5, 0.5 };
-    
+
     IA[0] = 0;
     // Stencil for piece-wise linear
     // ia  = [ ptr ], generally 7
@@ -513,7 +513,7 @@ void build_bubble_R (dCSRmat *R,
     INT vertex;
     INT* VertFilled = (INT *)calloc(fmesh->nv*R->row,sizeof(INT));//TODO:BAD!!!!!
     INT indexl=0;
-    //TODO: Fix allocation amount 
+    //TODO: Fix allocation amount
     INT*  Il1 = (INT*) calloc(12*fmesh->nv,sizeof(INT));
     INT*  Jl1 = (INT*) calloc(12*fmesh->nv,sizeof(INT));
     REAL* Vl1 = (REAL*)calloc(12*fmesh->nv,sizeof(REAL));
@@ -573,8 +573,8 @@ void build_bubble_R (dCSRmat *R,
 //////              lval = 0.0;
 //////              get_incidence_row(fface,fmesh->f_v,v_on_f);
 //////              for(ed=0;ed<dim;ed++){
-//////                x[0] = fmesh->cv->x[v_on_f[ed]-1]; 
-//////                x[1] = fmesh->cv->y[v_on_f[ed]-1]; 
+//////                x[0] = fmesh->cv->x[v_on_f[ed]-1];
+//////                x[1] = fmesh->cv->y[v_on_f[ed]-1];
 //////                // Evaluate Coarse Bubble at endpoints
 //////                bubble_face_basis(phi,dphi,x,v_on_elm,f_on_elm,cmesh);
 //////                // Save in R linear
@@ -622,8 +622,8 @@ void build_bubble_R (dCSRmat *R,
               get_incidence_row(fface,fmesh->f_v,v_on_f);
               lval = 0.0;
               for(ed=0;ed<dim;ed++){
-                x[0] = fmesh->cv->x[v_on_f[ed]-1]; 
-                x[1] = fmesh->cv->y[v_on_f[ed]-1]; 
+                x[0] = fmesh->cv->x[v_on_f[ed]-1];
+                x[1] = fmesh->cv->y[v_on_f[ed]-1];
                 // Evaluate Coarse Bubble at endpoints
                 bubble_face_basis(phi,dphi,x,v_on_elm,f_on_elm,cmesh);
                 // Save in R linear
@@ -729,7 +729,7 @@ void build_bubble_R (dCSRmat *R,
  * \fn SHORT gmg_setup_RT0 (dCSRmat *tentp,
  *                                  INT     ndof
  *                                  INT     levelNum)
- * \brief Build 
+ * \brief Build
  *
  * \param tentp              Pointer to the prolongation operators
  *
@@ -748,7 +748,7 @@ INT gmg_setup_RT0(trimesh* fine_level_mesh)
   SHORT max_levels = 2;
   //SHORT lvl = 0;
 
-  // 
+  //
   INT i;
   INT fSize, cSize;
   INT nf1d, nc1d;
@@ -773,7 +773,7 @@ INT gmg_setup_RT0(trimesh* fine_level_mesh)
     initialize_mesh(meshHeirarchy[i+1]);
     creategrid_fread(cgfid,0,meshHeirarchy[i+1]);
     fclose(cgfid);
-    
+
     // Let's build here
     nf1d = fSize;
     nc1d = cSize;
@@ -851,6 +851,11 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
       }
     }
 
+    // To Peter:  this is how to use this fuctions to delete the boundarys -- Xiaozhe 
+    block_dCSRmat *B;
+    B = (block_dCSRmat *)calloc(1, sizeof(block_dCSRmat));
+    bdcsr_delete_rowcol(&mgl[0].A, mgl[0].dirichlet, mgl[0].dirichlet, B);
+
     // To read from file
     FILE* cgfid;
     char cgridfile[500];
@@ -874,7 +879,8 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
       /*-- Build coarse level mesh --*/
       csize = (sqrt(mgl[lvl].fine_level_mesh->nv)-1)/2 + 1;
       //Need to customize this to specific directory
-      sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",csize);
+      //sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",csize);
+      sprintf(cgridfile,"/home/xiaozhehu/Work/Projects/HAZMATH/hazmath/examples/grids/2D/unitSQ_n%d.haz",csize);
       cgfid = HAZ_fopen(cgridfile,"r");
       mgl[lvl+1].fine_level_mesh = (trimesh*)calloc(1, sizeof(trimesh));
       initialize_mesh(mgl[lvl+1].fine_level_mesh);
@@ -1056,7 +1062,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
           csr_print_matlab(matid,mgl[lvl+1].A.blocks[0]);
           fclose(matid);
       }
-                             
+
       ++lvl;
     } // lvl
 
