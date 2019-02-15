@@ -194,6 +194,9 @@ typedef struct {
     //! pointer to the matrix at level level_num
     block_dCSRmat A;
 
+    //! pointer to the matrix without dirichlet boundary elimination at level_num
+    block_dCSRmat A_noBC;
+
     //! restriction operator at level level_num
     block_dCSRmat R;
 
