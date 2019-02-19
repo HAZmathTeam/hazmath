@@ -190,6 +190,7 @@ typedef struct {
     //! bdry flag stuff
     void (*set_bdry_flags)(trimesh*);
     INT *dirichlet;
+    INT **dirichlet_blk;
 
     //! pointer to the matrix at level level_num
     block_dCSRmat A;

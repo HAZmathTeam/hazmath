@@ -846,8 +846,12 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
 
     // dirichlet
     mgl[0].dirichlet = (INT*)calloc(mgl[0].FE->ndof,sizeof(INT));
+    mgl[0].dirichlet_blk = (INT**)calloc(FE_blk.nspaces,sizeof(INT*));
     bm = 0;
     for(i=0;i<mgl[0].FE->nspaces;i++){
+      if(i==0) mgl[0].dirichlet_blk[0] = &mgl[0].dirichlet[bm]; // Bubbles + u1 + u2
+      if(i==3) mgl[0].dirichlet_blk[1] = &mgl[0].dirichlet[bm]; // Darcy (RT0)
+      if(i==4) mgl[0].dirichlet_blk[2] = &mgl[0].dirichlet[bm]; // Pressure
       for(j=0;j<mgl[0].FE->var_spaces[i]->ndof;j++){
         mgl[0].dirichlet[bm] = mgl[0].FE->var_spaces[i]->dirichlet[j];
         ++bm;
@@ -878,6 +882,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
       m=0;
       for(i=0; i<brow; i++) m += mgl[lvl].A.blocks[i+i*brow]->row;
       mgl[lvl+1].dirichlet = (INT*)calloc(m,sizeof(INT));
+      mgl[lvl+1].dirichlet_blk = (INT**)calloc(brow,sizeof(INT*));
 
       /*-- Build coarse level mesh --*/
       csize = (sqrt(mgl[lvl].fine_level_mesh->nv)-1)/2 + 1;
@@ -914,6 +919,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             // dirichlet
             create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 0);
             set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, -1,-1); // p
+            mgl[lvl+1].dirichlet_blk[i] = &mgl[lvl+1].dirichlet[bm];
             for(j=0;j<FE_loc.ndof;j++){
               mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
               ++bm;
@@ -937,6 +943,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             // dirichlet
             create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 30);
             set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, 1,5); // w
+            mgl[lvl+1].dirichlet_blk[i] = &mgl[lvl+1].dirichlet[bm];
             for(j=0;j<FE_loc.ndof;j++){
               mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
               ++bm;
@@ -988,6 +995,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             // BC flag dirichlet elim stuff
             create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 61);
             set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, 1,5); //bbl
+            mgl[lvl+1].dirichlet_blk[i] = &mgl[lvl+1].dirichlet[bm];
             for(j=0;j<FE_loc.ndof;j++){
               mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
               ++bm;
