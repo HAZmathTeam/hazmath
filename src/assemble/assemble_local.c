@@ -8,6 +8,7 @@
  *  Copyright 2016__HAZMATH__. All rights reserved.
  *
  *  \note modified by James Adler 11/2/2016
+ *  \note updated  by James Adler 02/21/2019 for 0-1 fix
  *
  */
 
@@ -51,7 +52,9 @@ void assemble_DuDv_local(REAL* ALoc,fespace *FE,mesh_struct *mesh,qcoordinates *
 
   // Quadrature Weights and Nodes
   REAL w;
-  REAL* qx = (REAL *) calloc(3,sizeof(REAL));
+  INT maxdim=4;
+  REAL qx[maxdim];
+
   // Stiffness Matrix Entry
   REAL kij;
   // Coefficient Value at Quadrature Nodes
@@ -118,7 +121,6 @@ void assemble_DuDv_local(REAL* ALoc,fespace *FE,mesh_struct *mesh,qcoordinates *
     }
   }
 
-  if(qx) free(qx);
   return;
 }
 /******************************************************************************************************/
@@ -161,7 +163,9 @@ void assemble_mass_local(REAL* MLoc,fespace *FE,mesh_struct *mesh,qcoordinates *
 
   // Quadrature Weights and Nodes
   REAL w;
-  REAL* qx = (REAL *) calloc(3,sizeof(REAL));
+  INT maxdim=4;
+  REAL qx[maxdim];
+
   // Stiffness Matrix Entry
   REAL kij;
   // Coefficient Value at Quadrature Nodes
@@ -228,7 +232,6 @@ void assemble_mass_local(REAL* MLoc,fespace *FE,mesh_struct *mesh,qcoordinates *
     }
   }
 
-  if(qx) free(qx);
   return;
 }
 /******************************************************************************************************/
@@ -276,7 +279,8 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,mesh_struct *mesh,qcoord
 
   // Quadrature Weights and Nodes
   REAL w;
-  REAL* qx = (REAL *) calloc(3,sizeof(REAL));
+  INT maxdim=4;
+  REAL qx[maxdim];
   // Stiffness Matrix Entry
   REAL kij;
   // Coefficient Value at Quadrature Nodes
@@ -388,7 +392,6 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,mesh_struct *mesh,qcoord
     check_error(status, __FUNCTION__);
   }
 
-  if(qx) free(qx);
   return;
 }
 /******************************************************************************************************/
@@ -419,7 +422,7 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,mesh_struct *mesh,qcoord
  */
 void assemble_symmetricDuDv_local(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm, REAL time)
 {
-  
+
   // Loop indices
   INT i,j,idim,quad,test,trial;
 
@@ -432,7 +435,8 @@ void assemble_symmetricDuDv_local(REAL* ALoc, block_fespace *FE, mesh_struct *me
 
   // Quadrature Weights and Nodes
   REAL w;
-  REAL * qx = (REAL *) calloc(dim,sizeof(REAL));
+  INT maxdim=4;
+  REAL qx[maxdim];
 
   // Stiffness Matrix Entry
   REAL kij = 0.0;
@@ -494,9 +498,6 @@ void assemble_symmetricDuDv_local(REAL* ALoc, block_fespace *FE, mesh_struct *me
 
   }
 
-  // Free
-  if(qx) free(qx);
-
   return;
 }
 /******************************************************************************************************/
@@ -544,7 +545,8 @@ void boundary_mass_local(REAL* MLoc,dvector* old_sol,fespace *FE,mesh_struct *me
 
   // Quadrature Weights and Nodes
   REAL w;
-  REAL* qx = (REAL *) calloc(3,sizeof(REAL));
+  INT maxdim=4;
+  REAL qx[maxdim];
 
   // Stiffness Matrix Entry
   REAL kij;
@@ -697,8 +699,6 @@ void boundary_mass_local(REAL* MLoc,dvector* old_sol,fespace *FE,mesh_struct *me
     check_error(status, __FUNCTION__);
   }
 
-  if(qx) free(qx);
-
   return;
 }
 /******************************************************************************************************/
@@ -736,7 +736,8 @@ void FEM_RHS_Local(REAL* bLoc,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT
 
   // Quadrature Weights and Nodes
   REAL w;
-  REAL* qx = (REAL *) calloc(dim,sizeof(REAL));
+  INT maxdim=4;
+  REAL qx[maxdim];
 
   // Right-hand side function at Quadrature Nodes
   REAL* rhs_val=NULL;
@@ -787,7 +788,6 @@ void FEM_RHS_Local(REAL* bLoc,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT
     }
   }
 
-  if(qx) free(qx);
   if(rhs_val) free(rhs_val);
 
   return;
@@ -837,8 +837,8 @@ void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,mesh_struct *mesh,qcoordin
 
   // Quadrature Weights and Nodes
   REAL w;
-  REAL* qx = (REAL *) calloc(dim,sizeof(REAL));
-  // Stiffness Matrix Entry
+  INT maxdim=4;
+  REAL qx[maxdim];
 
   // Right-hand side function at Quadrature Nodes
   REAL* rhs_val= (REAL *) calloc(nun,sizeof(REAL));
@@ -865,7 +865,7 @@ void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,mesh_struct *mesh,qcoordin
           bLoc[(local_row_index+test)] += w*rhs_val[unknown_index]*FE->var_spaces[i]->phi[test];
         }
         unknown_index++;
-      
+
       } else if (FE->var_spaces[i]->FEtype==61) { // bubble
         for (test=0; test<FE->var_spaces[i]->dof_per_elm;test++) {
           bLoc[(local_row_index+test)] += w*(rhs_val[unknown_index]*FE->var_spaces[i]->phi[test*dim] +
@@ -891,7 +891,6 @@ void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,mesh_struct *mesh,qcoordin
     }
   }
 
-  if(qx) free(qx);
   if(rhs_val) free(rhs_val);
   return;
 }
@@ -917,31 +916,32 @@ void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,mesh_struct *mesh,qcoordin
  * \note                Assuming 2D and 3D only
  *
  */
-void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,mesh_struct *mesh,qcoordinates *cq,INT *ed_on_elm,INT *v_on_elm,INT elm,dvector* u)  
+void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,mesh_struct *mesh,qcoordinates *cq,INT *ed_on_elm,INT *v_on_elm,INT elm,dvector* u)
 {
   // Mesh and FE data
   INT dim = mesh->dim;
-  
+
   // Loop Indices
   INT quad,test;
-  
+
   // Quadrature Weights and Nodes
   REAL w;
-  REAL* qx = (REAL *) calloc(dim,sizeof(REAL));
-  
+  INT maxdim=4;
+  REAL qx[maxdim];
+
   // Right-hand side function at Quadrature Nodes
-  REAL* ucoeff = (REAL *) calloc(dim,sizeof(REAL));
-  
+  REAL ucoeff[3];
+
   //  Sum over quadrature points
   for (quad=0;quad<cq->nq_per_elm;quad++) {
     qx[0] = cq->x[elm*cq->nq_per_elm+quad];
     qx[1] = cq->y[elm*cq->nq_per_elm+quad];
     if(dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
     w = cq->w[elm*cq->nq_per_elm+quad];
-    
+
     // Get FEM function at quadrature nodes
     FE_Interpolation(ucoeff,u->val,qx,ed_on_elm,v_on_elm,FE_Ned,mesh);
-    
+
     //  Get the Basis Functions at each quadrature node
     PX_H1_basis(FE_H1->phi,FE_H1->dphi,qx,v_on_elm,FE_H1->FEtype,mesh);
 
@@ -951,9 +951,6 @@ void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,mesh_struct 
       if(dim==3) bLoc[test] += w*ucoeff[2]*FE_H1->dphi[test];
     }
   }
-
-  if(qx) free(qx);
-  if(ucoeff) free(ucoeff);
 
   return;
 }
@@ -978,7 +975,8 @@ void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,mesh_struct 
 *
 *        A_ij = a( phi_j, phi_i)_bdry
 *
-* \note All matrices are assumed to be indexed at 1 in the CSR formatting.
+* \note All matrices are assumed to be indexed at 0 in the CSR formatting.
+
 * \note Assumes different type of integral for different Element type:
 *       Scalar -> <f,v>_bdry
 *       Vector -> <f,n*v>_bdry
@@ -1007,10 +1005,10 @@ void FEM_RHS_Local_face(REAL* bLoc,dvector* old_sol,fespace *FE,mesh_struct *mes
   INT j,quad,test,doft;
 
   // Quadrature Weights and Nodes
-//  qcoordinates *cq_face = allocateqcoords(cq->nq1d,1,dim);
   qcoordinates *cq_face = allocateqcoords_bdry(cq->nq1d,1,dim,2);
   quad_edgeface(cq_face,mesh,cq->nq1d,face,2);
-  REAL* qx = (REAL *) calloc(dim,sizeof(REAL));
+  INT maxdim=4;
+  REAL qx[maxdim];
   REAL w;
 
   // Get normal vector components on face if needed
@@ -1086,7 +1084,6 @@ void FEM_RHS_Local_face(REAL* bLoc,dvector* old_sol,fespace *FE,mesh_struct *mes
     }
   }
 
-  if(qx) free(qx);
   return;
 }
 /******************************************************************************************************/
