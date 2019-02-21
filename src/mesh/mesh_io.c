@@ -575,7 +575,7 @@ void create1Dgrid_Line(mesh_struct* mesh,REAL left_end,REAL right_end,INT nelm)
   mesh->v_flag = v_flag;
 
   // Build rest of mesh
-  build_mesh(mesh);
+  build_mesh_all(mesh);
 
   return;
 }

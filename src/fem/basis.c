@@ -360,7 +360,7 @@ void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,mesh_struct *mesh)
       *  to (X,Y) using the chain rule.
       */
       dp[0*dim] = dp0r * drdx + dp0s * dsdx + dp0t * dtdx;
-      dp[0*dim+1] = dp0r * drdy + dp0s * dsdy + dpt * dtdy;
+      dp[0*dim+1] = dp0r * drdy + dp0s * dsdy + dp0t * dtdy;
       dp[0*dim+2] = dp0r * drdz + dp0s * dsdz + dp0t * dtdz;
       dp[1*dim] = dp1r * drdx + dp1s * dsdx + dp1t * dtdx;
       dp[1*dim+1] = dp1r * drdy + dp1s * dsdy + dp1t * dtdy;

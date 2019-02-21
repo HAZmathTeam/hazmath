@@ -282,7 +282,7 @@ void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,m
       x[0] = FE->cdof->x[i];
       if(dim>1) x[1] = FE->cdof->y[i];
       if(dim>2) x[2] = FE->cdof->z[i];
-      (*expr)(&valx_s,&x,time,&(FE->dof_flag[i]));
+      (*expr)(&valx_s,x,time,&(FE->dof_flag[i]));
       val[i] = valx_s;
     }
   } else if (FEtype==20) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
@@ -291,7 +291,7 @@ void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,m
       x[0] = mesh->ed_mid[i*dim];
       x[1] = mesh->ed_mid[i*dim+1];
       if(dim==3) x[2] = mesh->ed_mid[i*dim+2];
-      (*expr)(&valx_v,&x,time,&(FE->dof_flag[i]));
+      (*expr)(valx_v,x,time,&(FE->dof_flag[i]));
       val[i] = 0.0;
       for(j=0;j<dim;j++) val[i]+=mesh->ed_tau[i*dim+j]*valx_v[j];
     }
@@ -301,7 +301,7 @@ void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,m
       x[0] = mesh->f_mid[i*dim];
       x[1] = mesh->f_mid[i*dim+1];
       if(dim==3) x[2] = mesh->f_mid[i*dim+2];
-      (*expr)(&valx_v,&x,time,&(FE->dof_flag[i]));
+      (*expr)(valx_v,x,time,&(FE->dof_flag[i]));
       val[i] = 0.0;
       for(j=0;j<dim;j++) val[i]+=mesh->f_norm[i*dim+j]*valx_v[j];
     }
@@ -346,14 +346,14 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_st
     x[0] = FE->cdof->x[DOF];
     if(dim>1) x[1] = FE->cdof->y[DOF];
     if(dim>2) x[2] = FE->cdof->z[DOF];
-    (*expr)(valx_s,&x,time,&(FE->dof_flag[DOF]));
+    (*expr)(&valx_s,x,time,&(FE->dof_flag[DOF]));
     val = valx_s;
   } else if (FEtype==20) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
     // Using Midpoint Rule Here
     x[0] = mesh->ed_mid[DOF*dim];
     x[1] = mesh->ed_mid[DOF*dim+1];
     if(dim==3) x[2] = mesh->ed_mid[DOF*dim+2];
-    (*expr)(&valx_v,&x,time,&(FE->dof_flag[DOF]));
+    (*expr)(valx_v,x,time,&(FE->dof_flag[DOF]));
     val = 0.0;
     for(j=0;j<dim;j++) val+=mesh->ed_tau[DOF*dim+j]*valx_v[j];
   } else if (FEtype==30) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
@@ -361,7 +361,7 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_st
     x[0] = mesh->f_mid[DOF*dim];
     x[1] = mesh->f_mid[DOF*dim+1];
     if(dim==3) x[2] = mesh->f_mid[DOF*dim+2];
-    (*expr)(&valx_v,&x,time,&(FE->dof_flag[DOF]));
+    (*expr)(valx_v,x,time,&(FE->dof_flag[DOF]));
     val = 0.0;
     for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx_v[j];
   } else if (FEtype>=60 && FEtype<70) { // Vector Lagrange (i.e. Bubbles)
@@ -369,7 +369,7 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_st
     x[0] = mesh->f_mid[DOF*dim];
     x[1] = mesh->f_mid[DOF*dim+1];
     if(dim==3) x[2] = mesh->f_mid[DOF*dim+2];
-    (*expr)(&valx_v,&x,time,&(FE->dof_flag[DOF]));
+    (*expr)(valx_v,x,time,&(FE->dof_flag[DOF]));
     val = 0.0;
     for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx_v[j];
   } else {
@@ -413,7 +413,7 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fe
         x[0] = mesh->el_mid[i*dim];
         if(dim>1) x[1] = mesh->el_mid[i*dim+1];
         if(dim>2) x[2] = mesh->el_mid[i*dim+2];
-        (*expr)(&valx,&x,time,&(FE->var_spaces[k]->dof_flag[i]));
+        (*expr)(valx,x,time,&(FE->var_spaces[k]->dof_flag[i]));
         val[entry + i] = valx[local_entry];
       }
     } else if(FE->var_spaces[k]->FEtype>0 && FE->var_spaces[k]->FEtype<10) { // Lagrange Elements u[dof] = u[x_i]
@@ -422,7 +422,7 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fe
         x[0] = FE->var_spaces[k]->cdof->x[i];
         if(dim>1) x[1] = FE->var_spaces[k]->cdof->y[i];
         if(dim>2) x[2] = FE->var_spaces[k]->cdof->z[i];
-        (*expr)(&valx,&x,time,&(FE->var_spaces[k]->dof_flag[i]));
+        (*expr)(valx,x,time,&(FE->var_spaces[k]->dof_flag[i]));
         val[entry + i] = valx[local_entry];
       }
     } else if (FE->var_spaces[k]->FEtype==20) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
@@ -431,8 +431,8 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fe
       for(i=0;i<FE->var_spaces[k]->ndof;i++) {
         x[0] = mesh->ed_mid[i*dim];
         x[1] = mesh->ed_mid[i*dim+1];
-        if(dim=>2) x[2] = mesh->ed_mid[i*dim+2];
-        (*expr)(&valx,&x,time,&(FE->var_spaces[k]->dof_flag[i]));
+        if(dim>2) x[2] = mesh->ed_mid[i*dim+2];
+        (*expr)(valx,x,time,&(FE->var_spaces[k]->dof_flag[i]));
         val[entry + i] = 0.0;
         for(j=0;j<dim;j++) {
           val[entry + i]+=mesh->ed_tau[i*dim+j]*valx[local_entry + j];
@@ -445,7 +445,7 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fe
         x[0] = mesh->f_mid[i*dim];
         x[1] = mesh->f_mid[i*dim+1];
         if(dim>2) x[2] = mesh->f_mid[i*dim+2];
-        (*expr)(&valx,&x,time,&(FE->var_spaces[k]->dof_flag[i]));
+        (*expr)(valx,x,time,&(FE->var_spaces[k]->dof_flag[i]));
         val[i+entry] = 0.0;
         for(j=0;j<dim;j++) val[i+entry]+=mesh->f_norm[i*dim+j]*valx[local_entry + j];
       }
@@ -457,16 +457,16 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fe
         x[0] = mesh->f_mid[i*dim];
         x[1] = mesh->f_mid[i*dim+1];
         if(dim>2) x[2] = mesh->f_mid[i*dim+2];
-        (*expr)(&valx,&x,time,&(FE->var_spaces[0]->dof_flag[i]));
+        (*expr)(valx,x,time,&(FE->var_spaces[0]->dof_flag[i]));
         for(j=0;j<dim;j++) val[entry+i]+=mesh->f_norm[i*dim+j]*valx[local_dim + j];
         // TODO: WHAT IS HAPPENING HERE???
-        get_incidence_row(i,mesh->f_v,&face_vertex);
+        get_incidence_row(i,mesh->f_v,face_vertex);
         for (m=0;m<dim;m++) {
           x[0] = mesh->cv->x[face_vertex[m]-1];
           x[1] = mesh->cv->y[face_vertex[m]-1];
           if(dim>2) x[2] = mesh->cv->z[face_vertex[m]-1];
           // The following only works for 2D
-          (*expr)(&valx,&x,time,&(FE->var_spaces[0]->dof_flag[i]));
+          (*expr)(valx,x,time,&(FE->var_spaces[0]->dof_flag[i]));
           //for(j=0;j<dim;j++) val[entry+i]+= -(1.0/dim)*mesh->f_area[i]*mesh->f_norm[i*dim+j]*valx[local_dim + j];
           for(j=0;j<dim;j++) val[entry+i]+= -(1.0/dim)*mesh->f_norm[i*dim+j]*valx[local_dim + j];
         }
@@ -527,26 +527,26 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
     x[0] = mesh->el_mid[DOF*dim];
     if(dim>1) x[1] = mesh->el_mid[DOF*dim+1];
     if(dim>2) x[2] = mesh->el_mid[DOF*dim+2];
-    (*expr)(&valx,&x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
+    (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
     val = valx[local_dim];
   } else if(FE->var_spaces[comp]->FEtype>0 && FE->var_spaces[comp]->FEtype<10) { // Lagrange Elements u[dof] = u[x_i]
     x[0] = FE->var_spaces[comp]->cdof->x[DOF];
     if(dim>1) x[1] = FE->var_spaces[comp]->cdof->y[DOF];
     if(dim>2) x[2] = FE->var_spaces[comp]->cdof->z[DOF];
-    (*expr)(&valx,&x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
+    (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
     val = valx[local_dim];
   } else if (FE->var_spaces[comp]->FEtype==20) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
     x[0] = mesh->ed_mid[DOF*dim];
     x[1] = mesh->ed_mid[DOF*dim+1];
     if(dim>2) x[2] = mesh->ed_mid[DOF*dim+2];
-    (*expr)(&valx,&x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
+    (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
     val = 0.0;
     for(j=0;j<dim;j++) val+=mesh->ed_tau[DOF*dim+j]*valx[local_dim + j];
   } else if (FE->var_spaces[comp]->FEtype==30) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
     x[0] = mesh->f_mid[DOF*dim];
     x[1] = mesh->f_mid[DOF*dim+1];
     if(dim>2) x[2] = mesh->f_mid[DOF*dim+2];
-    (*expr)(&valx,&x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
+    (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
     val = 0.0;
     for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx[local_dim + j];
   } else if (FE->var_spaces[comp]->FEtype>=60 && FE->var_spaces[comp]->FEtype<70) { // Bubbles
@@ -554,16 +554,16 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
     x[0] = mesh->f_mid[DOF*dim];
     x[1] = mesh->f_mid[DOF*dim+1];
     if(dim>2) x[2] = mesh->f_mid[DOF*dim+2];
-    (*expr)(&valx,&x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
+    (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
     val = 0.0;
     for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx[local_dim + j];
-    get_incidence_row(DOF,mesh->f_v,&face_vertex);
+    get_incidence_row(DOF,mesh->f_v,face_vertex);
     for (m=0;m<dim;m++) {
       x[0] = mesh->cv->x[face_vertex[m]-1];
       x[1] = mesh->cv->y[face_vertex[m]-1];
       if(dim>2) x[2] = mesh->cv->z[face_vertex[m]-1];
       // The following only works for 2D
-      (*expr)(&valx,&x,time,&(FE->var_spaces[0]->dof_flag[DOF]));
+      (*expr)(valx,x,time,&(FE->var_spaces[0]->dof_flag[DOF]));
       for(j=0;j<dim;j++) val+= -(1.0/dim)*mesh->f_norm[DOF*dim+j]*valx[local_dim + j];
     }
   } else {
@@ -616,7 +616,7 @@ void Project_to_Vertices(REAL* u_on_V,REAL *u,fespace *FE,mesh_struct *mesh)
     // Interpolate FE approximation to vertices
     for(j=0;j<v_per_elm;j++) {
       get_coords(x,v_on_elm[j]-1,mesh->cv,dim);
-      FE_Interpolation(&val,u,&x,dof_on_elm,v_on_elm,FE,mesh);
+      FE_Interpolation(val,u,x,dof_on_elm,v_on_elm,FE,mesh);
 
       if(FEtype>=0 && FEtype<20) { // Scalar Element
         u_on_V[v_on_elm[j]] = val[0];
