@@ -3,12 +3,11 @@
  * \brief This code will build global stiffness matrices for various PDE systems
  *
  * \note It is set up to be generic so that a user could input their own local assembly routines.
- * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
  *
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 4/22/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
- * \note modified by James Adler 11/11/2016
+ * \note modified by James Adler 02/21/2019 for 0-1 fix
  */
 
 #include "hazmath.h"
@@ -32,7 +31,7 @@
  *        A_ij = a( phi_j, phi_i)
  *        b_i  = <f,phi_i>
  *
- * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
+ * \note All matrices are assumed to be indexed at 0 in the CSR formatting.
  *
  * \param local_assembly Routine to get local matrices
  * \param FE             FE Space
@@ -141,7 +140,7 @@ void assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace
  *        A_ij = a( phi_j, phi_i)
  *        b_i  = <f,phi_i>
  *
- * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
+ * \note All matrices are assumed to be indexed at 0 in the CSR formatting.
  *
  * \param local_assembly Routine to get local matrices
  * \param FE             FE Space
@@ -152,8 +151,8 @@ void assemble_global(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace
  * \param coeff          Function that gives coefficient (for now assume constant)
  * \param time           Physical Time if time dependent
  *
- * \return A              Global stiffness CSR matrix
- * \return b              Global RHS vector
+ * \return A             Global stiffness CSR matrix
+ * \return b             Global RHS vector
  *
  */
 void assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),fespace *FE,mesh_struct *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),void (*bc)(REAL *,REAL *,REAL,void *),void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
@@ -178,7 +177,7 @@ void assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
   // Columns of A -> JA
   A->JA = (INT *) calloc(A->nnz,sizeof(INT));
   create_CSR_cols_withBC(A,FE);
-  
+
   // Set values
   A->val = (REAL *) calloc(A->nnz,sizeof(REAL));
   for (i=0; i<A->nnz; i++) {
@@ -189,7 +188,7 @@ void assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
   // First deal with boundary rows
   for (i=0; i<FE->ndof; i++) {
     if (FE->dirichlet[i]==1) { /* This is a boundary row.  Just make identity and fix right hand side */
-      A->val[A->IA[i]-1] = 1.0;
+      A->val[A->IA[i]] = 1.0;
       if(rhs!=NULL)
         b->val[i] = FE_Evaluate_DOF(bc,FE,mesh,time,i);
     }
@@ -259,10 +258,10 @@ void assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
  *        A_ij = a( phi_j, psi_i)
  *        b_i  = <f,psi_i>
  *
- * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
+ * \note All matrices are assumed to be indexed at 0 in the CSR formatting.
  *
  * \param local_assembly Routine to get local matrices
- * \param FE1 	       Finite-Element Space Struct for trial functions (u)
+ * \param FE1 	         Finite-Element Space Struct for trial functions (u)
  * \param FE2            Finite-Element Space Struct for test functions (v)
  * \param mesh           Mesh Data
  * \param cq             Quadrature Nodes
@@ -270,8 +269,8 @@ void assemble_global_withBC(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
  * \param coeff          Function that gives coefficient (for now assume constant)
  * \param time           Physical Time if time dependent
  *
- * \return A              Global stiffness CSR matrix
- * \return b              Global RHS vector
+ * \return A             Global stiffness CSR matrix
+ * \return b             Global RHS vector
  *
  */
 
@@ -298,7 +297,7 @@ void assemble_global_FE1FE2(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
   // Columns of A -> JA
   A->JA = (INT *) calloc(A->nnz,sizeof(INT));
   create_CSR_cols_FE1FE2(A,FE1,FE2);
-  
+
   // Set values
   A->val = (REAL *) calloc(A->nnz,sizeof(REAL));
   for (i=0; i<A->nnz; i++) {
@@ -375,7 +374,7 @@ void assemble_global_FE1FE2(dCSRmat* A,dvector *b,void (*local_assembly)(REAL *,
  *        A_ij = a( phi_j, psi_i)
  *        b_i  = <f,psi_i>
  *
- * \note All matrices are assumed to be blocks and indexed at 1 in the CSR formatting.
+ * \note All matrices are assumed to be blocks and indexed at 0 in the CSR formatting.
  *
  * \param local_assembly     Routine to get local matrices
  * \param local_rhs_assembly Routine to get local rhs vectors
@@ -469,8 +468,8 @@ void assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(RE
     // Not global ordering of all DOF
     jcntr = 0;
     for(k=0;k<nblocks;k++) {
-      rowa = FE->var_spaces[k]->el_dof->IA[i]-1;
-      rowb = FE->var_spaces[k]->el_dof->IA[i+1]-1;
+      rowa = FE->var_spaces[k]->el_dof->IA[i];
+      rowb = FE->var_spaces[k]->el_dof->IA[i+1];
       for (j=rowa; j<rowb; j++) {
         dof_on_elm[jcntr] = FE->var_spaces[k]->el_dof->JA[j];
         jcntr++;
@@ -519,7 +518,7 @@ void assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(RE
  *        A_ij = a( phi_j, psi_i)
  *        b_i  = <f,psi_i>
  *
- * \note All matrices are assumed to be blocks and indexed at 1 in the CSR formatting.
+ * \note All matrices are assumed to be blocks and indexed at 0 in the CSR formatting.
  *
  * \param old_sol            FE approximation of previous nonlinear solution
  * \param local_assembly     Routine to get local matrices and rhs
@@ -618,8 +617,8 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
     // Not global ordering of all DOF
     jcntr = 0;
     for(k=0;k<nblocks;k++) {
-      rowa = FE->var_spaces[k]->el_dof->IA[i]-1;
-      rowb = FE->var_spaces[k]->el_dof->IA[i+1]-1;
+      rowa = FE->var_spaces[k]->el_dof->IA[i];
+      rowb = FE->var_spaces[k]->el_dof->IA[i+1];
       for (j=rowa; j<rowb; j++) {
         dof_on_elm[jcntr] = FE->var_spaces[k]->el_dof->JA[j];
         jcntr++;
@@ -648,8 +647,6 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
 }
 /******************************************************************************************************/
 
-
-
 // Assembles Global RHS vectors (if needed separately)
 /******************************************************************************************************/
 /*!
@@ -667,7 +664,7 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
  *
  *        b_i  = <f,phi_i>
  *
- * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
+ * \note All matrices are assumed to be indexed at 0 in the CSR formatting.
  *
  * \param FE             FE Space
  * \param mesh           Mesh Data
@@ -698,7 +695,7 @@ void assemble_global_RHS(dvector *b,fespace *FE,mesh_struct *mesh,qcoordinates *
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
   INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
   for (i=0; i<FE->nelm; i++) {
-    
+
     for (j=0; j<dof_per_elm; j++) {
       bLoc[j]=0;
     }
@@ -714,7 +711,7 @@ void assemble_global_RHS(dvector *b,fespace *FE,mesh_struct *mesh,qcoordinates *
 
     // Loop over DOF and place in appropriate slot globally
     for (j=0; j<dof_per_elm; j++) {
-      row = dof_on_elm[j]-1;
+      row = dof_on_elm[j];
       b->val[row] = b->val[row] + bLoc[j];
     }
   }
@@ -744,7 +741,7 @@ void assemble_global_RHS(dvector *b,fespace *FE,mesh_struct *mesh,qcoordinates *
  *
  *        b_i  = <f,phi_i>
  *
- * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
+ * \note All matrices are assumed to be indexed at 0 in the CSR formatting.
  *
  * \param local_rhs_assembly  Routine to assemble local RHS
  * \param FE                  block FE Space
@@ -753,7 +750,7 @@ void assemble_global_RHS(dvector *b,fespace *FE,mesh_struct *mesh,qcoordinates *
  * \param rhs                 Routine to get RHS function (NULL if only assembling matrix)
  * \param time                Physical Time if time dependent
  *
- * \return b             Global RHS vector
+ * \return b                  Global RHS vector
  *
  */
 void assemble_global_RHS_block(dvector *b,void (*local_rhs_assembly)(REAL *,block_fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
@@ -764,7 +761,7 @@ void assemble_global_RHS_block(dvector *b,void (*local_rhs_assembly)(REAL *,bloc
 
   // Get block data first
   INT nblocks = FE->nspaces;
-  
+
   // Allocate arrays
   b->row = FE->ndof;
   if(b->val) {
@@ -796,8 +793,8 @@ void assemble_global_RHS_block(dvector *b,void (*local_rhs_assembly)(REAL *,bloc
     // Not global ordering of all DOF
     jcntr = 0;
     for(k=0;k<nblocks;k++) {
-      rowa = FE->var_spaces[k]->el_dof->IA[i]-1;
-      rowb = FE->var_spaces[k]->el_dof->IA[i+1]-1;
+      rowa = FE->var_spaces[k]->el_dof->IA[i];
+      rowb = FE->var_spaces[k]->el_dof->IA[i+1];
       for (j=rowa; j<rowb; j++) {
         dof_on_elm[jcntr] = FE->var_spaces[k]->el_dof->JA[j];
         jcntr++;
@@ -815,7 +812,7 @@ void assemble_global_RHS_block(dvector *b,void (*local_rhs_assembly)(REAL *,bloc
     rowa = 0;
     for(k=0;k<nblocks;k++) {
       for(j=0;j<FE->var_spaces[k]->dof_per_elm;j++) {
-        row = dof_on_elm[jcntr]-1;
+        row = dof_on_elm[jcntr];
         b->val[row+rowa]+=bLoc[jcntr];
         jcntr++;
       }
@@ -850,7 +847,8 @@ void assemble_global_RHS_block(dvector *b,void (*local_rhs_assembly)(REAL *,bloc
  *
  *        b_i  = <f,phi_i>
  *
- * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
+ * \note All matrices are assumed to be indexed at 0 in the CSR formatting.
+ *
  * \param old_sol             FEM solution at previous Newton Step
  * \param local_rhs_assembly  Routine to assemble local RHS
  * \param FE                  block FE Space
@@ -870,7 +868,7 @@ void assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_a
 
   // Get block data first
   INT nblocks = FE->nspaces;
-  
+
   // Allocate arrays
   b->row = FE->ndof;
   if(b->val) {
@@ -902,8 +900,8 @@ void assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_a
     // Not global ordering of all DOF
     jcntr = 0;
     for(k=0;k<nblocks;k++) {
-      rowa = FE->var_spaces[k]->el_dof->IA[i]-1;
-      rowb = FE->var_spaces[k]->el_dof->IA[i+1]-1;
+      rowa = FE->var_spaces[k]->el_dof->IA[i];
+      rowb = FE->var_spaces[k]->el_dof->IA[i+1];
       for (j=rowa; j<rowb; j++) {
         dof_on_elm[jcntr] = FE->var_spaces[k]->el_dof->JA[j];
         jcntr++;
@@ -921,7 +919,7 @@ void assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_a
     rowa = 0;
     for(k=0;k<nblocks;k++) {
       for(j=0;j<FE->var_spaces[k]->dof_per_elm;j++) {
-        row = dof_on_elm[jcntr]-1;
+        row = dof_on_elm[jcntr];
         b->val[row+rowa]+=bLoc[jcntr];
         jcntr++;
       }
@@ -945,7 +943,7 @@ void assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_a
  * \brief Computes the global stiffness matrix for any "boundary" bilinear form using various element types
  *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
  *        This does integration over a surface or boundary (i.e., faces of your domain: faces in 3D, edges in 2D)
- *        a(u,v)_i, where i denotes a set of faces (or edges) with in a boundary region marked with flag
+ *        a(u,v)_i, where i denotes a set of faces (or edges) within a boundary region marked with flag
  *        DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
  *        This allows for several matrices to be assembled then added or concatenated together.
  *
@@ -957,7 +955,7 @@ void assemble_global_RHS_Jacobian(dvector *b,dvector *old_sol,void (*local_rhs_a
  *
  *        A_ij = a( phi_j, phi_i)_bdry
  *
- * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
+ * \note All matrices are assumed to be indexed at 0 in the CSR formatting.
  *
  * \param old_sol                 FE approximation of previous solution if needed
  * \param local_assembly_face     Routine to get local matrices over each face
@@ -1009,7 +1007,7 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
   // Columns of A -> JA
   A->JA = (INT *) calloc(A->nnz,sizeof(INT));
   create_CSR_cols_flag(A,FE,flag0,flag1);
-  
+
   // Set values
   A->val = (REAL *) calloc(A->nnz,sizeof(REAL));
   for (i=0; i<A->nnz; i++) {
@@ -1033,7 +1031,7 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
 
   // We will need the face to element map
   iCSRmat f_el;
-  icsr_trans_1(mesh->el_f,&f_el);
+  icsr_trans(mesh->el_f,&f_el);
 
   // Loop over boundary faces
   for (i=0; i<mesh->nface; i++) {
@@ -1054,12 +1052,12 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
 
       // Find the corresponding element associated with the face
       // Assume only 1 matters (if on boundary)
-      rowa = f_el.IA[i]-1;
-      elm = f_el.JA[rowa]-1;
+      rowa = f_el.IA[i];
+      elm = f_el.JA[rowa];
 
       // Find DOF on that element
       get_incidence_row(elm,FE->el_dof,dof_on_elm);
-      
+
       // Find vertices for given Element
       get_incidence_row(elm,mesh->el_v,v_on_elm);
 
@@ -1067,7 +1065,7 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
       (*local_assembly_face)(ALoc,old_sol,FE,mesh,cq,dof_on_f,dof_on_elm,v_on_elm,i,elm,coeff,time);
       if(rhs!=NULL)
         (*local_rhs_assembly_face)(bLoc,old_sol,FE,mesh,cq,dof_on_f,dof_on_elm,v_on_elm,i,elm,rhs,time);
-      
+
       // Loop over DOF and place in appropriate slot globally
       LocaltoGlobal_face(dof_on_f,dof_per_face,FE,b,A,ALoc,bLoc,flag0,flag1);
     }
@@ -1079,7 +1077,7 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
   if(ALoc) free(ALoc);
   if(bLoc) free(bLoc);
   icsr_free(&f_el);
-  
+
   return;
 }
 /******************************************************************************************************/
@@ -1101,7 +1099,7 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
  *
  *        which gives Ax = b,
  *
- * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
+ * \note All matrices are assumed to be indexed at 0 in the CSR formatting.
  * \note Assumes different type of integral for different Element type:
 *       PX -> <f,v>_bdry
 *       Ned -> <f,nxv>_bdry
@@ -1159,7 +1157,7 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
 
   // We will need the face to element map
   iCSRmat f_el;
-  icsr_trans_1(mesh->el_f,&f_el);
+  icsr_trans(mesh->el_f,&f_el);
 
   // Loop over boundary faces
   for (i=0; i<mesh->nface; i++) {
@@ -1175,8 +1173,8 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
 
       // Find the corresponding element associated with the face
       // Assume only 1 matters (if on boundary)
-      rowa = f_el.IA[i]-1;
-      elm = f_el.JA[rowa]-1;
+      rowa = f_el.IA[i];
+      elm = f_el.JA[rowa];
 
       // Find DOF on that element
       get_incidence_row(elm,FE->el_dof,dof_on_elm);
@@ -1189,7 +1187,7 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
 
       // Loop over DOF and place in appropriate slot globally
       for (j=0; j<dof_per_face; j++) { /* Rows of Local Stiffness */
-        row = dof_on_f[j]-1;
+        row = dof_on_f[j];
         b->val[row] += bLoc[j];
       }
     }
@@ -1200,69 +1198,6 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
   if(dof_on_f) free(dof_on_f);
   if(bLoc) free(bLoc);
   icsr_free(&f_el);
-  
-  return;
-}
-/******************************************************************************************************/
-
-/******************************************************************************************************/
-/*!
- * \fn assemble_global_Ned_GradH1_RHS(dvector *b,fespace *FE_H1,fespace *FE_Ned,mesh_struct *mesh,qcoordinates *cq,dvector* u)
- *
- * \brief Computes the global rhs for any <u,grad v>, where u is a Nedelec FE function and v is in P1
- *        DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
- *
- * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
- *
- * \param FE_H1                   H1 FE Space for P1
- * \param FE_Ned                  H(curl) FE Space for Nedelec
- * \param mesh                    Mesh Data
- * \param cq                      Quadrature Nodes
- * \param u                       Nedelec function for RHS
- *
- * \return b                      Global RHS vector
- *
- */
-void assemble_global_Ned_GradH1_RHS(dvector *b,fespace *FE_H1,fespace *FE_Ned,mesh_struct *mesh,qcoordinates *cq,dvector* u) 
-{
-  INT ed_per_elm = FE_Ned->dof_per_elm;
-  INT v_per_elm = mesh->v_per_elm;
-  INT i,j,row;
-
-  // Allocate Arrays
-  b->row = FE_H1->ndof;
-  b->val = (REAL *) calloc(b->row,sizeof(REAL));
-
-  /* Loop over all Elements and build local rhs */
-  REAL* bLoc= (REAL *) calloc(v_per_elm,sizeof(REAL));
-
-  INT* ed_on_elm = (INT *) calloc(ed_per_elm,sizeof(INT));
-  INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
-  for (i=0; i<FE_H1->nelm; i++) {
-    
-    for (j=0; j<v_per_elm; j++) {
-      bLoc[j]=0;
-    }
-
-    // Find Edges for given Element
-    get_incidence_row(i,FE_Ned->el_dof,ed_on_elm);
-
-    // Find vertices for given Element
-    get_incidence_row(i,mesh->el_v,v_on_elm);
-
-    // Compute Local RHS for given Element
-    Ned_GradH1_RHS_local(bLoc,FE_H1,FE_Ned,mesh,cq,ed_on_elm,v_on_elm,i,u);
-
-    // Loop over DOF and place in appropriate slot globally
-    for (j=0; j<v_per_elm; j++) {
-      row = v_on_elm[j]-1;
-      b->val[row] += bLoc[j];
-    }
-  }
-
-  if(ed_on_elm) free(ed_on_elm);
-  if(v_on_elm) free(v_on_elm);
-  if(bLoc) free(bLoc);
 
   return;
 }
@@ -1285,7 +1220,7 @@ void assemble_global_Ned_GradH1_RHS(dvector *b,fespace *FE_H1,fespace *FE_Ned,me
  *
  *        b_i  = <f,phi_i>
  *
- * \note All matrices are assumed to be indexed at 1 in the CSR formatting.
+ * \note All matrices are assumed to be indexed at 0 in the CSR formatting.
  *
  * \param local_rhs_assembly  Routine to assemble local RHS
  * \param FE                  block FE Space
@@ -1307,7 +1242,7 @@ void assemble_global_RHS_face_block(dvector *b, dvector *old_sol, void (*local_r
 
   // Get block data first
   INT nblocks = FE->nspaces;
-  
+
   // Allocate arrays
   b->row = FE->ndof;
   if(b->val) {
@@ -1340,7 +1275,7 @@ void assemble_global_RHS_face_block(dvector *b, dvector *old_sol, void (*local_r
       dof_per_face_blk[i] = 1;
       dof_per_face += 1;
     } else if (FEtype==0) { // P0
-//      printf("Here we will do questionable handling of P0 for the face integral\n");
+      // Questionable handling of P0 for the face integral
       dof_per_face_blk[i] = 1;
       dof_per_face += 1;
     } else {
@@ -1358,7 +1293,7 @@ void assemble_global_RHS_face_block(dvector *b, dvector *old_sol, void (*local_r
 
   // Need face to element map
   iCSRmat f_el;
-  icsr_trans_1(mesh->el_f,&f_el);
+  icsr_trans(mesh->el_f,&f_el);
 
   INT jcntr,rowa,rowb;
   INT elm;
@@ -1377,8 +1312,8 @@ void assemble_global_RHS_face_block(dvector *b, dvector *old_sol, void (*local_r
       // Find DOF for given face
       jcntr = 0;
       for(k=0;k<nblocks;k++) {
-        rowa = FE->var_spaces[k]->f_dof->IA[i]-1;
-        rowb = FE->var_spaces[k]->f_dof->IA[i+1]-1;
+        rowa = FE->var_spaces[k]->f_dof->IA[i];
+        rowb = FE->var_spaces[k]->f_dof->IA[i+1];
         for (j=rowa; j<rowb; j++) {
           dof_on_f[jcntr] = FE->var_spaces[k]->f_dof->JA[j];
           jcntr++;
@@ -1387,16 +1322,16 @@ void assemble_global_RHS_face_block(dvector *b, dvector *old_sol, void (*local_r
 
       // Find corresponding element associated with the face
       // Assume only 1 matters (if on boundary)
-      rowa = f_el.IA[i]-1;
-      elm = f_el.JA[rowa]-1;
+      rowa = f_el.IA[i];
+      elm = f_el.JA[rowa];
 
       // Find DOF for given Element
       // Note this is "local" ordering for the given FE space of the block
       // Not global ordering of all DOF
       jcntr = 0;
       for(k=0;k<nblocks;k++) {
-        rowa = FE->var_spaces[k]->el_dof->IA[elm]-1;
-        rowb = FE->var_spaces[k]->el_dof->IA[elm+1]-1;
+        rowa = FE->var_spaces[k]->el_dof->IA[elm];
+        rowb = FE->var_spaces[k]->el_dof->IA[elm+1];
         for (j=rowa; j<rowb; j++) {
           dof_on_elm[jcntr] = FE->var_spaces[k]->el_dof->JA[j];
           jcntr++;
@@ -1410,7 +1345,7 @@ void assemble_global_RHS_face_block(dvector *b, dvector *old_sol, void (*local_r
       //for(k=0;k<nblocks;k++){
       //  get_incidence_row(i,FE->var_spaces[k]->f_dof,dof_on_f+dof_on_f_shift);
       //  dof_on_f_shift += dof_per_face_blk[k];
-      //  
+      //
       //  get_incidence_row(elm,FE->var_spaces[k]->el_dof,dof_on_elm+dof_on_elm_shift);
       //  dof_on_elm_shift += FE->var_spaces[k]->dof_per_elm;
       //}
@@ -1426,18 +1361,80 @@ void assemble_global_RHS_face_block(dvector *b, dvector *old_sol, void (*local_r
       rowa = 0;
       for(k=0;k<nblocks;k++) {
         for(j=0;j<dof_per_face_blk[k];j++) {
-          row = dof_on_f[jcntr]-1;
+          row = dof_on_f[jcntr];
           b->val[row+rowa]+=bLoc[jcntr];
           jcntr++;
         }
         rowa += FE->var_spaces[k]->ndof;
       }
-    
     }
   }
-  
+
 
   if(dof_on_elm) free(dof_on_elm);
+  if(v_on_elm) free(v_on_elm);
+  if(bLoc) free(bLoc);
+
+  return;
+}
+/******************************************************************************************************/
+
+/******************************************************************************************************/
+/*!
+ * \fn assemble_global_Ned_GradH1_RHS(dvector *b,fespace *FE_H1,fespace *FE_Ned,mesh_struct *mesh,qcoordinates *cq,dvector* u)
+ *
+ * \brief Computes the global rhs for any <u,grad v>, where u is a Nedelec FE function and v is in P1
+ *        DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
+ *
+ * \note All matrices are assumed to be indexed at 0 in the CSR formatting.
+ *
+ * \param FE_H1                   H1 FE Space for P1
+ * \param FE_Ned                  H(curl) FE Space for Nedelec
+ * \param mesh                    Mesh Data
+ * \param cq                      Quadrature Nodes
+ * \param u                       Nedelec function for RHS
+ *
+ * \return b                      Global RHS vector
+ *
+ */
+void assemble_global_Ned_GradH1_RHS(dvector *b,fespace *FE_H1,fespace *FE_Ned,mesh_struct *mesh,qcoordinates *cq,dvector* u)
+{
+  INT ed_per_elm = FE_Ned->dof_per_elm;
+  INT v_per_elm = mesh->v_per_elm;
+  INT i,j,row;
+
+  // Allocate Arrays
+  b->row = FE_H1->ndof;
+  b->val = (REAL *) calloc(b->row,sizeof(REAL));
+
+  /* Loop over all Elements and build local rhs */
+  REAL* bLoc= (REAL *) calloc(v_per_elm,sizeof(REAL));
+
+  INT* ed_on_elm = (INT *) calloc(ed_per_elm,sizeof(INT));
+  INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
+  for (i=0; i<FE_H1->nelm; i++) {
+
+    for (j=0; j<v_per_elm; j++) {
+      bLoc[j]=0;
+    }
+
+    // Find Edges for given Element
+    get_incidence_row(i,FE_Ned->el_dof,ed_on_elm);
+
+    // Find vertices for given Element
+    get_incidence_row(i,mesh->el_v,v_on_elm);
+
+    // Compute Local RHS for given Element
+    Ned_GradH1_RHS_local(bLoc,FE_H1,FE_Ned,mesh,cq,ed_on_elm,v_on_elm,i,u);
+
+    // Loop over DOF and place in appropriate slot globally
+    for (j=0; j<v_per_elm; j++) {
+      row = v_on_elm[j];
+      b->val[row] += bLoc[j];
+    }
+  }
+
+  if(ed_on_elm) free(ed_on_elm);
   if(v_on_elm) free(v_on_elm);
   if(bLoc) free(bLoc);
 

@@ -5,8 +5,6 @@
 *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 2/1/15.
 *  Copyright 2015__HAZMATH__. All rights reserved.
 *
-* \note modified by James Adler 11/14/2016
-*
 * \note Typically this involves DOF defined on either the
 *  vertices, edges, or faces.  In most cases, the basis elements are
 *  defined using the standard Lagrange finite-element basis functions
