@@ -335,6 +335,3 @@ void get_blockupdate_norm(newton *n_it,block_fespace* FE,mesh_struct* mesh, qcoo
   return;
 }
 /******************************************************************************************************/
-
-
-
