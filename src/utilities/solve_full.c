@@ -2,11 +2,11 @@
  *
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 5/13/15.
  *  Copyright 2016__HAZMATH__. All rights reserved.
- *  
+ *
  *  \note: modified by Xiaozhe Hu on 10/25/2016
  *  \note: modified on 10/12/2017 (ltz1)
  *
- *  \note routines to solve Ax=b and calculate inv(A). 
+ *  \note routines to solve Ax=b and calculate inv(A).
  *
  */
 #include "hazmath.h"
@@ -62,7 +62,7 @@ void r2c(const INT n, const INT m, const size_t sizeel, void *x)
  *
  *  \note: prints a matrix A with (n) rows and (m) columns in matlab
  *         format e.g. 2 x 2 identity is printed as I2=[1. 0.;0. 1.];
- *         if th varname= "I2"
+ *         if the varname= "I2"
  *
 */
 void print_full_mat(const  INT n, const INT m, REAL *A,const char *varname)
@@ -108,11 +108,11 @@ INT solve_pivot(INT dopivot, INT n, REAL *A, REAL *b, INT *p,REAL *piv)
       r = fabs(A[p[k]*n+k])*piv[p[k]];
       kp = k;
       for (i=k;i<n;i++){
-	t = fabs(A[p[i]*n+k])*piv[p[i]]; 
+	t = fabs(A[p[i]*n+k])*piv[p[i]];
 	if (t > r){r = t; kp = i;}
       }
       kswp = p[kp]; p[kp] = p[k]; p[k] = kswp;
-      k1 = k+1; 
+      k1 = k+1;
       for (i = k1;i<n;i++){
 	pin=p[i]*n;
 	A[pin+k] = A[pin+k]/A[p[k]*n+k];
@@ -179,11 +179,11 @@ void lufull(INT dopivot, INT n, REAL *deta, REAL *A,INT *p,REAL *piv)
       r = fabs(A[p[k]*n+k])*piv[p[k]];
       kp = k;
       for (i=k;i<n;i++){
-	t = fabs(A[p[i]*n+k])*piv[p[i]]; 
+	t = fabs(A[p[i]*n+k])*piv[p[i]];
 	if (t > r){r = t; kp = i;}
       }
       kswp = p[kp]; p[kp] = p[k]; p[k] = kswp;
-      k1 = k+1; 
+      k1 = k+1;
       for (i = k1;i<n;i++){
 	pin=p[i]*n;
 	A[pin+k] = A[pin+k]/A[p[k]*n+k];
@@ -212,15 +212,15 @@ void lufull(INT dopivot, INT n, REAL *deta, REAL *A,INT *p,REAL *piv)
  * \param n    Number of rows
  * \param m    Number of columns
  * \param A    the matrix as a one dim. array by rows
- * \param Ainv the output inverse. 
- * 
+ * \param Ainv the output inverse.
+ *
  * \param wrk working array of size at least
  *            n*sizeof(INT)+n*(n+1)*sizeof(REAL)
  *
  */
 void invfull(REAL *Ainv,INT n, REAL *A, void *wrk)
 {
-  
+
   /*  cast pointers*/
   REAL *piv=(REAL *)wrk;  REAL *Awrk=piv+n;
   INT *p=(INT *)(wrk+n*(n+1)*sizeof(REAL));
@@ -246,14 +246,14 @@ void invfull(REAL *Ainv,INT n, REAL *A, void *wrk)
 }
 /**************************************************************************/
 /*
- * \fn void abybfull(const INT m, const INT p, REAL *c, REAL *a, 
+ * \fn void abybfull(const INT m, const INT p, REAL *c, REAL *a,
  *                   REAL *b, const INT n)
  *
- * \brief 
+ * \brief
  *
- * \param 
- * \param 
- * \param 
+ * \param
+ * \param
+ * \param
  *
  */
 void abybfull(const INT m, const INT p, REAL *c,	\
@@ -277,16 +277,16 @@ void abybfull(const INT m, const INT p, REAL *c,	\
     }
   }
   return;
-}	      
+}
 /**************************************************************************/
 /*
  * \fn void abyvfull(const INT m, REAL *y,REAL *a, REAL *x, const INT n)
  *
- * \brief 
+ * \brief
  *
- * \param 
- * \param 
- * \param 
+ * \param
+ * \param
+ * \param
  *
  */
 void abyvfull(const INT m, REAL *y,REAL *a, REAL *x, const INT n)
@@ -303,16 +303,16 @@ void abyvfull(const INT m, REAL *y,REAL *a, REAL *x, const INT n)
     y[i]+=yi;
   }
   return;
-}	      
+}
 /**************************************************************************/
 /*
  * \fn atbyvfull(const INT m, REAL *y,REAL *a, REAL *x, const INT n)
  *
- * \brief 
+ * \brief
  *
- * \param 
- * \param 
- * \param 
+ * \param
+ * \param
+ * \param
  *
  */
 void atbyvfull(const INT m, REAL *y,REAL *a, REAL *x, const INT n)
@@ -328,4 +328,4 @@ void atbyvfull(const INT m, REAL *y,REAL *a, REAL *x, const INT n)
     }
   }
   return;
-}	      
+}

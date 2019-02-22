@@ -77,7 +77,7 @@ void initialize_timestepper(timestepper *tstepper,input_param *inparam,INT rhs_t
 
   // Set L operator for RHS (L=A if linear, otherwise call an assembly)
   if(inparam->nonlinear_itsolver_type==0) { // Linear
-    tstepper->L=dcsr_mxv_1_forts;
+    tstepper->L=dcsr_mxv_forts;
   } else {
     tstepper->L=NULL;
   }
@@ -152,7 +152,7 @@ void free_timestepper(timestepper* ts)
 }
 /****************************************************************************************/
 
-/******************************************************************************************************/
+/****************************************************************************************/
 /*!
  * \fn void update_timestep(timestepper *tstepper)
  *
