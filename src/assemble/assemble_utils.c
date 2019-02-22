@@ -1,11 +1,11 @@
-/*! \file src/assemble/assemble_utils.c   
+/*! \file src/assemble/assemble_utils.c
  *
  * \brief This code will contain all the tools needed to build stiffness matrices
  *
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 4/22/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
- * \note modified by James Adler 11/11/2016
+ * \note modified by James Adler 02/22/2019 for 0-1 fix
  */
 
 #include "hazmath.h"
@@ -32,38 +32,38 @@ void create_CSR_rows(dCSRmat *A, fespace *FE)
 
   // We will need the DOF to element map first
   iCSRmat dof_el;
-  icsr_trans_1(FE->el_dof,&dof_el);
+  icsr_trans(FE->el_dof,&dof_el);
 
   INT ndof = FE->ndof;
 
   INT* ix = (INT *) calloc(ndof,sizeof(INT));
   for (i=0; i<ndof; i++) {
-    ix[i] = 0;
+    ix[i] = -1;
   }
 
   // Loop over all DOF and count possible nonzeros in A
   // Also build A->IA, while you're at it...
-  icp=1;
+  icp=0;
   for (i=0; i<ndof; i++) {
     A->IA[i] = icp;
     // Loop over all Elements connected to particular DOF
     j_a = dof_el.IA[i];
-    j_b = dof_el.IA[i+1]-1;
-    for (j=j_a; j<=j_b; j++) {
-      if1 = dof_el.JA[j-1];
-      k_a = FE->el_dof->IA[if1-1];
-      k_b = FE->el_dof->IA[if1]-1;
-      for (k=k_a; k<=k_b; k++) {
-        mydof = FE->el_dof->JA[k-1];
-        if (ix[mydof-1]!=i+1) { /* We haven't been here  */
+    j_b = dof_el.IA[i+1];
+    for (j=j_a; j<j_b; j++) {
+      if1 = dof_el.JA[j];
+      k_a = FE->el_dof->IA[if1];
+      k_b = FE->el_dof->IA[if1+1];
+      for (k=k_a; k<k_b; k++) {
+        mydof = FE->el_dof->JA[k];
+        if (ix[mydof]!=i) { /* We haven't been here  */
           icp++;
-          ix[mydof-1] = i+1;
+          ix[mydof] = i;
         }
       }
     }
   }
   A->IA[ndof] = icp;
-  A->nnz = icp-1;
+  A->nnz = icp;
 
   if(ix) free(ix);
   icsr_free(&dof_el);
@@ -96,40 +96,40 @@ void create_CSR_rows_FE1FE2(dCSRmat *A, fespace *FE1, fespace *FE2)
 
   // We will need the DOF to element map of the test space
   iCSRmat dof_el_2;
-  icsr_trans_1(FE2->el_dof,&dof_el_2);
+  icsr_trans(FE2->el_dof,&dof_el_2);
 
   INT nrows = FE2->ndof;
   INT ncols = FE1->ndof;
 
   INT* ix = (INT *) calloc(ncols,sizeof(INT));
   for (i=0; i<ncols; i++) {
-    ix[i] = 0;
+    ix[i] = -1;
   }
 
   // Loop over all DOF of test space and count possible nonzeros in A
   // Also build A->IA, while you're at it...
-  icp=1;
+  icp=0;
   for (i=0; i<nrows; i++) {
     A->IA[i] = icp;
     // Loop over all Elements connected to particular DOF of test space
     j_a = dof_el_2.IA[i];
-    j_b = dof_el_2.IA[i+1]-1;
-    for (j=j_a; j<=j_b; j++) {
-      if1 = dof_el_2.JA[j-1];
+    j_b = dof_el_2.IA[i+1];
+    for (j=j_a; j<j_b; j++) {
+      if1 = dof_el_2.JA[j];
       // For this given element grab the DOF in the trial space
-      k_a = FE1->el_dof->IA[if1-1];
-      k_b = FE1->el_dof->IA[if1]-1;
-      for (k=k_a; k<=k_b; k++) {
-        mydof = FE1->el_dof->JA[k-1];
-        if (ix[mydof-1]!=i+1) { /* We haven't been here  */
+      k_a = FE1->el_dof->IA[if1];
+      k_b = FE1->el_dof->IA[if1+1];
+      for (k=k_a; k<k_b; k++) {
+        mydof = FE1->el_dof->JA[k];
+        if (ix[mydof]!=i) { /* We haven't been here  */
           icp++;
-          ix[mydof-1] = i+1;
+          ix[mydof] = i;
         }
       }
     }
   }
   A->IA[nrows] = icp;
-  A->nnz = icp-1;
+  A->nnz = icp;
 
   if(ix) free(ix);
   icsr_free(&dof_el_2);
@@ -160,18 +160,18 @@ void create_CSR_rows_withBC(dCSRmat *A, fespace *FE)
 
   // We will need the DOF to element map first
   iCSRmat dof_el;
-  icsr_trans_1(FE->el_dof,&dof_el);
+  icsr_trans(FE->el_dof,&dof_el);
 
   INT ndof = FE->ndof;
 
   INT* ix = (INT *) calloc(ndof,sizeof(INT));
   for (i=0; i<ndof; i++) {
-    ix[i] = 0;
+    ix[i] = -1;
   }
 
   // Loop over all DOF and count possible nonzeros in A
   // Also build A->IA, while you're at it...
-  icp=1;
+  icp=0;
   for (i=0; i<ndof; i++) {
     A->IA[i] = icp;
     // Check if this is a boundary edge
@@ -180,23 +180,23 @@ void create_CSR_rows_withBC(dCSRmat *A, fespace *FE)
     } else {			/* It's not a boundary and compute as normal */
       // Loop over all Elements connected to particular edge
       j_a = dof_el.IA[i];
-      j_b = dof_el.IA[i+1]-1;
-      for (j=j_a; j<=j_b; j++) {
-        if1 = dof_el.JA[j-1];
-        k_a = FE->el_dof->IA[if1-1];
-        k_b = FE->el_dof->IA[if1]-1;
-        for (k=k_a; k<=k_b; k++) {
-          mydof = FE->el_dof->JA[k-1];
-          if (ix[mydof-1]!=i+1 && FE->dirichlet[mydof-1]==0) { /* We haven't been here AND it's not a boundary */
+      j_b = dof_el.IA[i+1];
+      for (j=j_a; j<j_b; j++) {
+        if1 = dof_el.JA[j];
+        k_a = FE->el_dof->IA[if1];
+        k_b = FE->el_dof->IA[if1+1];
+        for (k=k_a; k<k_b; k++) {
+          mydof = FE->el_dof->JA[k];
+          if (ix[mydof]!=i && FE->dirichlet[mydof]==0) { /* We haven't been here AND it's not a boundary */
             icp++;
-            ix[mydof-1] = i+1;
+            ix[mydof] = i;
           }
         }
       }
     }
   }
   A->IA[ndof] = icp;
-  A->nnz = icp-1;
+  A->nnz = icp;
 
   if(ix) free(ix);
   icsr_free(&dof_el);
@@ -228,41 +228,41 @@ void create_CSR_rows_flag(dCSRmat *A, fespace *FE,INT flag0,INT flag1)
 
   // We will need the DOF to element map first
   iCSRmat dof_el;
-  icsr_trans_1(FE->el_dof,&dof_el);
+  icsr_trans(FE->el_dof,&dof_el);
 
   INT ndof = FE->ndof;
 
   INT* ix = (INT *) calloc(ndof,sizeof(INT));
   for (i=0; i<ndof; i++) {
-    ix[i] = 0;
+    ix[i] = -1;
   }
 
   // Loop over all DOF and count possible nonzeros in A
   // Also build A->IA, while you're at it...
-  icp=1;
+  icp=0;
   for (i=0; i<ndof; i++) {
     A->IA[i] = icp;
     // Check if this is a boundary dof we want
     if (FE->dof_flag[i]>=flag0 && FE->dof_flag[i]<=flag1) {
       // Loop over all Elements connected to particular edge
       j_a = dof_el.IA[i];
-      j_b = dof_el.IA[i+1]-1;
-      for (j=j_a; j<=j_b; j++) {
-        if1 = dof_el.JA[j-1];
-        k_a = FE->el_dof->IA[if1-1];
-        k_b = FE->el_dof->IA[if1]-1;
-        for (k=k_a; k<=k_b; k++) {
-          mydof = FE->el_dof->JA[k-1];
-          if (ix[mydof-1]!=i+1 && (FE->dof_flag[mydof-1]>=flag0 && FE->dof_flag[mydof-1]<=flag1)) { /* We haven't been here AND it is a boundary */
+      j_b = dof_el.IA[i+1];
+      for (j=j_a; j<j_b; j++) {
+        if1 = dof_el.JA[j];
+        k_a = FE->el_dof->IA[if1];
+        k_b = FE->el_dof->IA[if1+1];
+        for (k=k_a; k<k_b; k++) {
+          mydof = FE->el_dof->JA[k];
+          if (ix[mydof]!=i && (FE->dof_flag[mydof]>=flag0 && FE->dof_flag[mydof]<=flag1)) { /* We haven't been here AND it is a boundary */
             icp++;
-            ix[mydof-1] = i+1;
+            ix[mydof] = i;
           }
         }
       }
     }
   }
   A->IA[ndof] = icp;
-  A->nnz = icp-1;
+  A->nnz = icp;
 
   if(ix) free(ix);
   icsr_free(&dof_el);
@@ -291,31 +291,31 @@ void create_CSR_cols(dCSRmat *A, fespace *FE)
 
   // We will need the DOF to element map first
   iCSRmat dof_el;
-  icsr_trans_1(FE->el_dof,&dof_el);
+  icsr_trans(FE->el_dof,&dof_el);
 
   INT ndof = FE->ndof;
 
   INT* ix = (INT *) calloc(ndof,sizeof(INT));
   for (i=0; i<ndof; i++) {
-    ix[i] = 0;
+    ix[i] = -1;
   }
 
   // Loop over all DOF and build A->JA
-  icp=1;
+  icp=0;
   for (i=0; i<ndof; i++) {
     // Loop over all Elements connected to particular edge
     j_a = dof_el.IA[i];
-    j_b = dof_el.IA[i+1]-1;
-    for (j=j_a; j<=j_b; j++) {
-      if1 = dof_el.JA[j-1];
-      k_a = FE->el_dof->IA[if1-1];
-      k_b = FE->el_dof->IA[if1]-1;
-      for (k=k_a; k<=k_b; k++) {
-        mydof = FE->el_dof->JA[k-1];
-        if (ix[mydof-1]!=i+1) { /* We haven't been here */
-          A->JA[icp-1] = mydof;
+    j_b = dof_el.IA[i+1];
+    for (j=j_a; j<j_b; j++) {
+      if1 = dof_el.JA[j];
+      k_a = FE->el_dof->IA[if1];
+      k_b = FE->el_dof->IA[if1+1];
+      for (k=k_a; k<k_b; k++) {
+        mydof = FE->el_dof->JA[k];
+        if (ix[mydof]!=i) { /* We haven't been here */
+          A->JA[icp] = mydof;
           icp++;
-          ix[mydof-1] = i+1;
+          ix[mydof] = i;
         }
       }
     }
@@ -351,32 +351,32 @@ void create_CSR_cols_FE1FE2(dCSRmat *A, fespace *FE1, fespace *FE2)
 
   // We will need the DOF to element map of the test space
   iCSRmat dof_el_2;
-  icsr_trans_1(FE2->el_dof,&dof_el_2);
+  icsr_trans(FE2->el_dof,&dof_el_2);
 
   INT nrows = FE2->ndof;
   INT ncols = FE1->ndof;
 
   INT* ix = (INT *) calloc(ncols,sizeof(INT));
   for (i=0; i<ncols; i++) {
-    ix[i] = 0;
+    ix[i] = -1;
   }
 
   // Loop over all DOF of test space and build A->JA
-  icp=1;
+  icp=0;
   for (i=0; i<nrows; i++) {
     // Loop over all Elements connected to particular edge
     j_a = dof_el_2.IA[i];
-    j_b = dof_el_2.IA[i+1]-1;
-    for (j=j_a; j<=j_b; j++) {
-      if1 = dof_el_2.JA[j-1];
-      k_a = FE1->el_dof->IA[if1-1];
-      k_b = FE1->el_dof->IA[if1]-1;
-      for (k=k_a; k<=k_b; k++) {
-        mydof = FE1->el_dof->JA[k-1];
-        if (ix[mydof-1]!=i+1) { /* We haven't been here */
-          A->JA[icp-1] = mydof;
+    j_b = dof_el_2.IA[i+1];
+    for (j=j_a; j<j_b; j++) {
+      if1 = dof_el_2.JA[j];
+      k_a = FE1->el_dof->IA[if1];
+      k_b = FE1->el_dof->IA[if1+1];
+      for (k=k_a; k<k_b; k++) {
+        mydof = FE1->el_dof->JA[k];
+        if (ix[mydof]!=i) { /* We haven't been here */
+          A->JA[icp] = mydof;
           icp++;
-          ix[mydof-1] = i+1;
+          ix[mydof] = i;
         }
       }
     }
@@ -410,36 +410,36 @@ void create_CSR_cols_withBC(dCSRmat *A, fespace *FE)
 
   // We will need the DOF to element map first
   iCSRmat dof_el;
-  icsr_trans_1(FE->el_dof,&dof_el);
+  icsr_trans(FE->el_dof,&dof_el);
 
   INT ndof = FE->ndof;
 
   INT* ix = (INT *) calloc(ndof,sizeof(INT));
   for (i=0; i<ndof; i++) {
-    ix[i] = 0;
+    ix[i] = -1;
   }
 
   // Loop over all DOF and build A->JA
-  icp=1;
+  icp=0;
   for (i=0; i<ndof; i++) {
     // Check if this is a boundary edge
     if (FE->dirichlet[i]==1) {	/* Only 1 nonzero this row */
-      A->JA[icp-1]=i+1;
+      A->JA[icp]=i;
       icp++;
     } else {			/* It's not a boundary and compute as normal */
       // Loop over all Elements connected to particular edge
       j_a = dof_el.IA[i];
-      j_b = dof_el.IA[i+1]-1;
-      for (j=j_a; j<=j_b; j++) {
-        if1 = dof_el.JA[j-1];
-        k_a = FE->el_dof->IA[if1-1];
-        k_b = FE->el_dof->IA[if1]-1;
-        for (k=k_a; k<=k_b; k++) {
-          mydof = FE->el_dof->JA[k-1];
-          if (ix[mydof-1]!=i+1 && FE->dirichlet[mydof-1]==0) { /* We haven't been here AND it's not a boundary */
-            A->JA[icp-1] = mydof;
+      j_b = dof_el.IA[i+1];
+      for (j=j_a; j<j_b; j++) {
+        if1 = dof_el.JA[j];
+        k_a = FE->el_dof->IA[if1];
+        k_b = FE->el_dof->IA[if1+1];
+        for (k=k_a; k<k_b; k++) {
+          mydof = FE->el_dof->JA[k];
+          if (ix[mydof]!=i && FE->dirichlet[mydof]==0) { /* We haven't been here AND it's not a boundary */
+            A->JA[icp] = mydof;
             icp++;
-            ix[mydof-1] = i+1;
+            ix[mydof] = i;
           }
         }
       }
@@ -476,33 +476,33 @@ void create_CSR_cols_flag(dCSRmat *A, fespace *FE,INT flag0,INT flag1)
 
   // We will need the DOF to element map first
   iCSRmat dof_el;
-  icsr_trans_1(FE->el_dof,&dof_el);
+  icsr_trans(FE->el_dof,&dof_el);
 
   INT ndof = FE->ndof;
 
   INT* ix = (INT *) calloc(ndof,sizeof(INT));
   for (i=0; i<ndof; i++) {
-    ix[i] = 0;
+    ix[i] = -1;
   }
 
   // Loop over all DOF and build A->JA
-  icp=1;
+  icp=0;
   for (i=0; i<ndof; i++) {
     // Check if this is a boundary edge
     if (FE->dof_flag[i]>=flag0 && FE->dof_flag[i]<=flag1) {
       // Loop over all Elements connected to particular edge
       j_a = dof_el.IA[i];
-      j_b = dof_el.IA[i+1]-1;
-      for (j=j_a; j<=j_b; j++) {
-        if1 = dof_el.JA[j-1];
-        k_a = FE->el_dof->IA[if1-1];
-        k_b = FE->el_dof->IA[if1]-1;
-        for (k=k_a; k<=k_b; k++) {
-          mydof = FE->el_dof->JA[k-1];
-          if (ix[mydof-1]!=i+1 && (FE->dof_flag[mydof-1]>=flag0 && FE->dof_flag[mydof-1]<=flag1)) { /* We haven't been here AND it is a boundary */
-            A->JA[icp-1] = mydof;
+      j_b = dof_el.IA[i+1];
+      for (j=j_a; j<j_b; j++) {
+        if1 = dof_el.JA[j];
+        k_a = FE->el_dof->IA[if1];
+        k_b = FE->el_dof->IA[if1+1];
+        for (k=k_a; k<k_b; k++) {
+          mydof = FE->el_dof->JA[k];
+          if (ix[mydof]!=i && (FE->dof_flag[mydof]>=flag0 && FE->dof_flag[mydof]<=flag1)) { /* We haven't been here AND it is a boundary */
+            A->JA[icp] = mydof;
             icp++;
-            ix[mydof-1] = i+1;
+            ix[mydof] = i;
           }
         }
       }
@@ -531,23 +531,23 @@ void create_CSR_cols_flag(dCSRmat *A, fespace *FE,INT flag0,INT flag1)
  * \return b            Global RHS vector
  *
  */
-void LocaltoGlobal(INT *dof_on_elm,fespace *FE,dvector *b,dCSRmat *A,REAL *ALoc,REAL *bLoc) 
+void LocaltoGlobal(INT *dof_on_elm,fespace *FE,dvector *b,dCSRmat *A,REAL *ALoc,REAL *bLoc)
 {
   INT i,j,k,row,col,col_a,col_b,acol;
 
   for (i=0; i<FE->dof_per_elm; i++) { /* Rows of Local Stiffness */
-    row = dof_on_elm[i]-1;
+    row = dof_on_elm[i];
     // Adjust Right-hand side globally
     if(bLoc!=NULL)
       b->val[row] = b->val[row] + bLoc[i];
 
     for (j=0; j<FE->dof_per_elm; j++) { /* Columns of Local Stiffness */
-      col = dof_on_elm[j]-1;
+      col = dof_on_elm[j];
 
-      col_a = A->IA[row]-1;
-      col_b = A->IA[row+1]-1;
+      col_a = A->IA[row];
+      col_b = A->IA[row+1];
       for (k=col_a; k<col_b; k++) { /* Columns of A */
-        acol = A->JA[k]-1;
+        acol = A->JA[k];
         if (acol==col) {	/* If they match, put it in the global matrix */
           A->val[k] = A->val[k] + ALoc[i*FE->dof_per_elm+j];
         }
@@ -577,23 +577,23 @@ void LocaltoGlobal(INT *dof_on_elm,fespace *FE,dvector *b,dCSRmat *A,REAL *ALoc,
  * \return b            Global RHS vector
  *
  */
-void LocaltoGlobal_FE1FE2(INT *dof_on_elm1,fespace *FE1,INT *dof_on_elm2,fespace *FE2,dvector *b,dCSRmat *A,REAL *ALoc,REAL *bLoc) 
+void LocaltoGlobal_FE1FE2(INT *dof_on_elm1,fespace *FE1,INT *dof_on_elm2,fespace *FE2,dvector *b,dCSRmat *A,REAL *ALoc,REAL *bLoc)
 {
   INT i,j,k,row,col,col_a,col_b,acol;
 
   for (i=0; i<FE2->dof_per_elm; i++) { /* Rows of Local Stiffness (test space)*/
-    row = dof_on_elm2[i]-1;
+    row = dof_on_elm2[i];
     // Adjust Right-hand side globally
     if(bLoc!=NULL)
       b->val[row] = b->val[row] + bLoc[i];
 
     for (j=0; j<FE1->dof_per_elm; j++) { /* Columns of Local Stiffness (trial space)*/
-      col = dof_on_elm1[j]-1;
+      col = dof_on_elm1[j];
 
-      col_a = A->IA[row]-1;
-      col_b = A->IA[row+1]-1;
+      col_a = A->IA[row];
+      col_b = A->IA[row+1];
       for (k=col_a; k<col_b; k++) { /* Columns of A */
-        acol = A->JA[k]-1;
+        acol = A->JA[k];
         if (acol==col) {	/* If they match, put it in the global matrix */
           A->val[k] = A->val[k] + ALoc[i*FE1->dof_per_elm+j];
         }
@@ -643,27 +643,27 @@ void block_LocaltoGlobal(INT *dof_on_elm,block_fespace *FE,dvector *b,block_dCSR
   // Loop through all the blocks
   for(block_row=0;block_row<nblocks;block_row++) {
     dof_per_elm_test = FE->var_spaces[block_row]->dof_per_elm;
-    
+
     for(block_col=0;block_col<nblocks;block_col++) {
       dof_per_elm_trial = FE->var_spaces[block_col]->dof_per_elm;
-      
+
 
       /* Rows of Local Stiffness (test space)*/
       for (i=0; i<dof_per_elm_test; i++) {
-        local_row = dof_on_elm[local_row_index+i]-1;
+        local_row = dof_on_elm[local_row_index+i];
         // Adjust Right-hand side globally
         if(bLoc!=NULL && block_col==0)
           b->val[local_row+global_row_index] += bLoc[local_row_index+i];
 
         /* Columns of Local Stiffness (trial space)*/
         for (j=0; j<dof_per_elm_trial; j++) {
-          local_col = dof_on_elm[local_col_index + j]-1;
+          local_col = dof_on_elm[local_col_index + j];
           /* Columns of A */
           if(A->blocks[block_row*nblocks+block_col]) {
-            col_a = A->blocks[block_row*nblocks+block_col]->IA[local_row]-1;
-            col_b = A->blocks[block_row*nblocks+block_col]->IA[local_row+1]-1;
+            col_a = A->blocks[block_row*nblocks+block_col]->IA[local_row];
+            col_b = A->blocks[block_row*nblocks+block_col]->IA[local_row+1];
             for (k=col_a; k<col_b; k++) {
-              acol = A->blocks[block_row*nblocks+block_col]->JA[k]-1;
+              acol = A->blocks[block_row*nblocks+block_col]->JA[k];
               if (acol==local_col) {	/* If they match, put it in the global matrix */
                 A->blocks[block_row*nblocks+block_col]->val[k] += ALoc[(local_row_index+i)*block_dof_per_elm+(local_col_index+j)];
               }
@@ -701,19 +701,19 @@ void LocaltoGlobal_withBC(INT *dof_on_elm,fespace *FE,dvector *b,dCSRmat *A,REAL
   INT i,j,k,row,col,col_a,col_b,acol;
 
   for (i=0; i<FE->dof_per_elm; i++) { /* Rows of Local Stiffness */
-    row = dof_on_elm[i]-1;
+    row = dof_on_elm[i];
     if (FE->dirichlet[row]==0) { /* Only if not on a boundary */
       // Adjust Right-hand side globally
       if(bLoc!=NULL)
         b->val[row] = b->val[row] + bLoc[i];
 
       for (j=0; j<FE->dof_per_elm; j++) { /* Columns of Local Stiffness */
-        col = dof_on_elm[j]-1;
+        col = dof_on_elm[j];
         if (FE->dirichlet[col]==0) { /* Only do stuff if hit a non-boundary edge */
-          col_a = A->IA[row]-1;
-          col_b = A->IA[row+1]-1;
+          col_a = A->IA[row];
+          col_b = A->IA[row+1];
           for (k=col_a; k<col_b; k++) { /* Columns of A */
-            acol = A->JA[k]-1;
+            acol = A->JA[k];
             if (acol==col) {	/* If they match, put it in the global matrix */
               A->val[k] = A->val[k] + ALoc[i*FE->dof_per_elm+j];
             }
@@ -753,18 +753,18 @@ void LocaltoGlobal_face(INT *dof_on_f,INT dof_per_f,fespace *FE,dvector *b,dCSRm
   INT i,j,k,row,col,col_a,col_b,acol;
 
   for (i=0; i<dof_per_f; i++) { /* Rows of Local Stiffness */
-    row = dof_on_f[i]-1;
+    row = dof_on_f[i];
     if (FE->dof_flag[row]>=flag0 && FE->dof_flag[row]<=flag1) { /* Only if on special boundary */
       if(bLoc!=NULL)
         b->val[row] = b->val[row] + bLoc[i];
 
       for (j=0; j<dof_per_f; j++) { /* Columns of Local Stiffness */
-        col = dof_on_f[j]-1;
+        col = dof_on_f[j];
         if (FE->dof_flag[col]>=flag0 && FE->dof_flag[col]<=flag1) { /* Only do stuff if hit a special boundary */
-          col_a = A->IA[row]-1;
-          col_b = A->IA[row+1]-1;
+          col_a = A->IA[row];
+          col_b = A->IA[row+1];
           for (k=col_a; k<col_b; k++) { /* Columns of A */
-            acol = A->JA[k]-1;
+            acol = A->JA[k];
             if (acol==col) {	/* If they match, put it in the global matrix */
               A->val[k] = A->val[k] + ALoc[i*dof_per_f+j];
             }
@@ -821,12 +821,12 @@ void eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE,mes
   // Now fix A
   // Loop over rows of A
   for (i=0; i<ndof; i++) {
-    cola = A->IA[i]-1;
-    colb = A->IA[i+1]-1;
+    cola = A->IA[i];
+    colb = A->IA[i+1];
     if(FE->dirichlet[i]==1) { // Boundary Row
       // Loop over columns and 0 out everything in a row except for diagonal
       for(j=cola; j<colb; j++) {
-        if(A->JA[j]==i+1)
+        if(A->JA[j]==i)
           A->val[j] = 1.0;
         else
           A->val[j] = 0.0;
@@ -834,7 +834,7 @@ void eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE,mes
     } else { // Non-boundary-row
       // Loop over columns and 0 out if column is boundary
       for(j=cola; j<colb; j++) {
-        if(FE->dirichlet[A->JA[j]-1]==1) {
+        if(FE->dirichlet[A->JA[j]]==1) {
           // Zero out matrix entry
           A->val[j] = 0.0;
         }
@@ -888,7 +888,7 @@ void eliminate_DirichletBC_RHS(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE
   }
 
   // b = b - Aub
-  dcsr_aAxpy_1(-1.0,A,ub,b->val);
+  dcsr_aAxpy(-1.0,A,ub,b->val);
 
   // Fix boundary values
   for(i=0;i<ndof;i++) {
@@ -916,7 +916,7 @@ void eliminate_DirichletBC_RHS(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE
  *
  * \note We assume a BLOCK finite-element space and either block or CSR matrix.
  *       If bc=NULL and b=NULL, only eliminate the BC in the matrix.
- *       Assume all matrices are indexed at 1.
+ *       Assume all matrices are indexed at 0.
  *
  * \param bc            Function to get boundary condition at given coordinates.
  * \param FE            block FE Space
@@ -956,7 +956,7 @@ void block_eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL,void *),block_fes
  *        If it's a DOF connected to a boundary row, set f(DOF) = f(DOF) - A(DOF,DOF_BC)*u(DOF)
  *
  * \note We assume a BLOCK finite-element space and either block or CSR matrix.
- *       Assume all matrices are indexed at 1.
+ *       Assume all matrices are indexed at 0.
  *
  * \param bc            Function to get boundary condition at given coordinates.
  * \param FE            block FE Space
@@ -984,7 +984,6 @@ void block_eliminate_DirichletBC_RHS(void (*bc)(REAL *,REAL *,REAL,void *),block
   return;
 }
 /******************************************************************************************************/
-
 
 /******************************************************************************************************/
 /*!
@@ -1021,7 +1020,7 @@ void eliminate_DirichletBC_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),block_f
     status = ERROR_MAT_DOF;
     check_error(status, __FUNCTION__);
   }
-  
+
   // Fix RHS First b_interior = (b - A(0;u_bdry)^T)_interior
   //               b_bdry = u_bdry
   if(b!=NULL)
@@ -1030,12 +1029,12 @@ void eliminate_DirichletBC_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),block_f
   // Now fix A
   // Loop over rows of A
   for (i=0; i<ndof; i++) {
-    cola = A->IA[i]-1;
-    colb = A->IA[i+1]-1;
+    cola = A->IA[i];
+    colb = A->IA[i+1];
     if(FE->dirichlet[i]==1) { // Boundary Row
       // Loop over columns and 0 out row except for diagonal
       for(j=cola; j<colb; j++) {
-        if(A->JA[j]==i+1)
+        if(A->JA[j]==i)
           A->val[j] = 1.0;
         else
           A->val[j] = 0.0;
@@ -1043,7 +1042,7 @@ void eliminate_DirichletBC_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),block_f
     } else { // Non-boundary-row
       // Loop over columns and 0 out if column is boundary
       for(j=cola; j<colb; j++) {
-        if(FE->dirichlet[A->JA[j]-1]==1) {
+        if(FE->dirichlet[A->JA[j]]==1) {
           // Zero out matrix entry
           A->val[j] = 0.0;
         }
@@ -1102,8 +1101,8 @@ void eliminate_DirichletBC_RHS_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),blo
   }
 
   // b = b - Aub
-  dcsr_aAxpy_1(-1.0,A,ub,b->val);
-  
+  dcsr_aAxpy(-1.0,A,ub,b->val);
+
   // Fix boundary values
   for(i=0;i<ndof;i++) {
     if(FE->dirichlet[i]==1) {
@@ -1129,7 +1128,7 @@ void eliminate_DirichletBC_RHS_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),blo
  *
  * \note We assume a BLOCK CSR matrix and a BLOCK finite-element space.
  *       If bc=NULL and b=NULL, only eliminate the BC in the matrix.
- *       We also assume blocks of A are indexed at 1.
+ *       We also assume blocks of A are indexed at 0.
  *
  * \param bc            Function to get boundary condition at given coordinates.
  * \param FE            block FE Space
@@ -1165,7 +1164,6 @@ void eliminate_DirichletBC_blockFE_blockA(void (*bc)(REAL *, REAL *,REAL,void *)
       if(dofshift[j]==0){
         if(A->blocks[i+j*nsp] != NULL){
           dofshift[j] = A->blocks[i+j*nsp]->row;
-          //break;
         }
       }
     }
@@ -1185,18 +1183,18 @@ void eliminate_DirichletBC_blockFE_blockA(void (*bc)(REAL *, REAL *,REAL,void *)
       if(A->blocks[i+j*nsp]!=NULL){
         nrows = A->blocks[i+j*nsp]->row;
         for(k=0;k<nrows;k++){ // Loop over matrix rows
-          cola = A->blocks[i+j*nsp]->IA[k]-1;
-          colb = A->blocks[i+j*nsp]->IA[k+1]-1;
+          cola = A->blocks[i+j*nsp]->IA[k];
+          colb = A->blocks[i+j*nsp]->IA[k+1];
           if(FE->dirichlet[k+rowshift] == 1) { // Boundary Row
             for(l=cola;l<colb;l++){ // Loop over matrix columns
-              if(A->blocks[i+j*nsp]->JA[l]==k+1 && i==j) // diagonal Entry
+              if(A->blocks[i+j*nsp]->JA[l]==k && i==j) // diagonal Entry
                 A->blocks[i+j*nsp]->val[l] = 1.0;
               else
                 A->blocks[i+j*nsp]->val[l] = 0.0;
             }//end for(l)
           } else { // Non-boundary Row
             for(l=cola;l<colb;l++){ // Loop over matrix columns
-              if(FE->dirichlet[A->blocks[i+j*nsp]->JA[l]+colshift-1]==1) { // Boundary Column
+              if(FE->dirichlet[A->blocks[i+j*nsp]->JA[l]+colshift]==1) { // Boundary Column
                 // If column is boundary column, set to zero
                 A->blocks[i+j*nsp]->val[l] = 0.0;
               }//end if(boundary column)
@@ -1227,7 +1225,7 @@ void eliminate_DirichletBC_blockFE_blockA(void (*bc)(REAL *, REAL *,REAL,void *)
  *        If it's a DOF connected to a boundary row, set f(DOF) = f(DOF) - A(DOF,DOF_BC)*u(DOF)
  *
  * \note We assume a BLOCK CSR matrix and a BLOCK finite-element space.
- *       We also assume blocks of A are indexed at 1.
+ *       We also assume blocks of A are indexed at 0.
  *
  * \param bc            Function to get boundary condition at given coordinates.
  * \param FE            block FE Space
@@ -1259,20 +1257,8 @@ void eliminate_DirichletBC_RHS_blockFE_blockA(void (*bc)(REAL *,REAL *,REAL,void
     entry += ndof_local;
   }
 
-  // Shift indices for HAZMATH utilities
-  for(i=0;i<(FE->nspaces)*(FE->nspaces);i++) {
-    if(A->blocks[i])
-      dcsr_shift(A->blocks[i],-1);
-  }
-
   // b = b - Aub
   bdcsr_aAxpy(-1.0,A,ub,b->val);
-  
-  // Shift back
-  for(i=0;i<(FE->nspaces)*(FE->nspaces);i++) {
-    if(A->blocks[i] != NULL)
-      dcsr_shift(A->blocks[i],1);
-  }
 
   // Fix boundary values
   for(i=0;i<ndof;i++) {
@@ -1286,4 +1272,3 @@ void eliminate_DirichletBC_RHS_blockFE_blockA(void (*bc)(REAL *,REAL *,REAL,void
   return;
 }
 /******************************************************************************************************/
-
