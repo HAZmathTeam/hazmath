@@ -5,7 +5,7 @@
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 2/18/16.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
- * \note modified by James Adler 11/11/2016
+ * \note modified by James Adler 02/22/2019 for 0-1 fix
  */
 
 #include "hazmath.h"
@@ -216,13 +216,13 @@ void get_timeoperator(timestepper* ts,INT first_visit,INT cpyNoBC)
 
   switch (time_scheme) {
   case 0: // Crank-Nicolson: (M + 0.5*dt*A)u = (M*uprev - 0.5*dt*L(uprev) + 0.5*dt*(b_old + b)
-    dcsr_add_1(ts->M,1.0,ts->A,0.5*dt,ts->At);
+    dcsr_add(ts->M,1.0,ts->A,0.5*dt,ts->At);
     break;
   case 1: // Backward Euler: (M + dt*A)u = M*uprev + dt*b
-    dcsr_add_1(ts->M,1.0,ts->A,dt,ts->At);
+    dcsr_add(ts->M,1.0,ts->A,dt,ts->At);
     break;
   case 2: // BDF-2: (M + (2/3)*dt*A)u = (4/3)*M*uprev - (1/3)*M*uprevprev+ (2/3)*dt*b
-    dcsr_add_1(ts->M,1.0,ts->A,2.0*dt/3.0,ts->At);
+    dcsr_add(ts->M,1.0,ts->A,2.0*dt/3.0,ts->At);
     break;
   default:
     status = ERROR_TS_TYPE;
@@ -233,7 +233,7 @@ void get_timeoperator(timestepper* ts,INT first_visit,INT cpyNoBC)
     dcsr_alloc(ts->At->row,ts->At->col,ts->At->nnz,ts->At_noBC);
   if(cpyNoBC)
     dcsr_cp(ts->At,ts->At_noBC);
-	
+
   return;
 }
 /******************************************************************************************************/
@@ -266,7 +266,7 @@ void update_time_rhs(timestepper *ts)
     dvec_ax(0.5*ts->dt,&btmp);
 
     // Obtain M*uprev
-    dcsr_mxv_1(ts->M,ts->sol_prev->val,Mu.val);
+    dcsr_mxv(ts->M,ts->sol_prev->val,Mu.val);
 
     // M*uprev + 0.5*dt(b_old+b)
     dvec_axpy(1.0,&Mu,&btmp);
@@ -286,7 +286,7 @@ void update_time_rhs(timestepper *ts)
     dvector btmp = dvec_create(ts->sol->row);
 
     // Get M*uprev
-    dcsr_mxv_1(ts->M,ts->sol_prev->val,btmp.val);
+    dcsr_mxv(ts->M,ts->sol_prev->val,btmp.val);
 
     // Compute updated RHS
     dvec_axpyz(ts->dt,ts->rhs,&btmp,ts->rhs_time);
@@ -299,12 +299,12 @@ void update_time_rhs(timestepper *ts)
     REAL* solprevptr;
 
     // Get (4/3)*M*uprev
-    dcsr_mxv_1(ts->M,ts->sol_prev->val,btmp1.val);
+    dcsr_mxv(ts->M,ts->sol_prev->val,btmp1.val);
     dvec_ax(4.0/3.0,&btmp1);
 
     // Get -(1/3)*M*uprevprev
     solprevptr = ts->sol_prev->val + ts->sol->row;
-    dcsr_mxv_1(ts->M,solprevptr,btmp2.val);
+    dcsr_mxv(ts->M,solprevptr,btmp2.val);
     dvec_ax(-1.0/3.0,&btmp2);
 
     // Add first two components
@@ -545,13 +545,13 @@ void get_blktimeoperator(block_timestepper* ts,INT first_visit,INT cpyNoBC)
 
     switch (time_scheme) {
       case 0: // Crank-Nicolson: (M + 0.5*dt*A)u = (M*uprev - 0.5*dt*L(uprev) + 0.5*dt*(b_old + b)
-        bdcsr_add_1(ts->M,1.0,ts->A,0.5*dt,ts->At);
+        bdcsr_add(ts->M,1.0,ts->A,0.5*dt,ts->At);
         break;
       case 1: // Backward Euler: (M + dt*A)u = M*uprev + dt*b
-        bdcsr_add_1(ts->M,1.0,ts->A,dt,ts->At);
+        bdcsr_add(ts->M,1.0,ts->A,dt,ts->At);
         break;
       case 2: // BDF-2: (M + (2/3)*dt*A)u = (4/3)*M*uprev - (1/3)*M*uprevprev+ (2/3)*dt*b
-        bdcsr_add_1(ts->M,1.0,ts->A,2.0*dt/3.0,ts->At);
+        bdcsr_add(ts->M,1.0,ts->A,2.0*dt/3.0,ts->At);
         break;
       default:
         status = ERROR_TS_TYPE;
@@ -591,7 +591,7 @@ void update_blktime_rhs(block_timestepper *ts)
     dvec_ax(0.5*ts->dt,&btmp);
 
     // Obtain M*uprev
-    bdcsr_mxv_1(ts->M,ts->sol_prev->val,Mu.val);
+    bdcsr_mxv(ts->M,ts->sol_prev->val,Mu.val);
 
     // M*uprev + 0.5*dt(b_old+b)
     dvec_axpy(1.0,&Mu,&btmp);
@@ -611,7 +611,7 @@ void update_blktime_rhs(block_timestepper *ts)
     dvector btmp = dvec_create(ts->sol->row);
 
     // Get M*uprev
-    bdcsr_mxv_1(ts->M,ts->sol_prev->val,btmp.val);
+    bdcsr_mxv(ts->M,ts->sol_prev->val,btmp.val);
 
     // Compute updated RHS
     dvec_axpyz(ts->dt,ts->rhs,&btmp,ts->rhs_time);
@@ -624,12 +624,12 @@ void update_blktime_rhs(block_timestepper *ts)
     REAL* solprevptr;
 
     // Get (4/3)*M*uprev
-    bdcsr_mxv_1(ts->M,ts->sol_prev->val,btmp1.val);
+    bdcsr_mxv(ts->M,ts->sol_prev->val,btmp1.val);
     dvec_ax(4.0/3.0,&btmp1);
 
     // Get -(1/3)*M*uprevprev
     solprevptr = ts->sol_prev->val + ts->sol->row;
-    bdcsr_mxv_1(ts->M,solprevptr,btmp2.val);
+    bdcsr_mxv(ts->M,solprevptr,btmp2.val);
     dvec_ax(-1.0/3.0,&btmp2);
 
     // Add first two components
@@ -693,10 +693,10 @@ void fixrhs_time(dvector* b,dvector* b_old,dCSRmat* M,dCSRmat* A,dvector* uprev,
 
     // Obtain alpha M - A
 
-    dcsr_add_1(M,2.0/dt,A,-1.0,&Atemp);
+    dcsr_add(M,2.0/dt,A,-1.0,&Atemp);
 
     // Compute updated RHS
-    dcsr_aAxpy_1(1.0,&Atemp,uprev->val,b_update->val);
+    dcsr_aAxpy(1.0,&Atemp,uprev->val,b_update->val);
 
     // Free Atemp
     dcsr_free(&Atemp);
@@ -704,7 +704,7 @@ void fixrhs_time(dvector* b,dvector* b_old,dCSRmat* M,dCSRmat* A,dvector* uprev,
   // Backward Euler (alpha = 1/dt): (alpha M + A)u = alpha M uprev + b
   } else if(time_scheme==1) {
 
-    dcsr_aAxpy_1(1.0,M,uprev->val,b_update->val);
+    dcsr_aAxpy(1.0,M,uprev->val,b_update->val);
 
   } else { // Unknown
     printf("Not sure how to do timestepping, so I have decided to give up.\n\n");
@@ -739,12 +739,12 @@ void get_timeoperator_old(dCSRmat* M,dCSRmat* A,INT time_scheme,REAL dt,dCSRmat*
   // Crank-Nicolson (alpha = 2/dt): (alpha M + A)u = (alpha M - A)uprev + (b_old + b)
   if(time_scheme==0) {
 
-    dcsr_add_1(M,2.0/dt,A,1.0,Atime);
+    dcsr_add(M,2.0/dt,A,1.0,Atime);
 
   // Backward Euler (alpha = 1/dt): (alpha M + A)u = alpha M uprev + b
   } else if(time_scheme==1) {
 
-    dcsr_add_1(M,1.0/dt,A,1.0,Atime);
+    dcsr_add(M,1.0/dt,A,1.0,Atime);
 
   } else { // Unknown
     printf("Not sure how to do timestepping, so I have decided to give up.\n\n");
@@ -754,4 +754,3 @@ void get_timeoperator_old(dCSRmat* M,dCSRmat* A,INT time_scheme,REAL dt,dCSRmat*
   return;
 }
 /******************************************************************************************************/
-
