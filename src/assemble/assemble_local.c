@@ -740,11 +740,10 @@ void FEM_RHS_Local(REAL* bLoc,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT
   REAL qx[maxdim];
 
   // Right-hand side function at Quadrature Nodes
-  REAL* rhs_val=NULL;
+  REAL rhs_val_scalar;
+  REAL rhs_val_vector[dim];
 
   if(FE->FEtype<20) { // Scalar Functions
-
-    rhs_val = (REAL *) calloc(1,sizeof(REAL));
 
     //  Sum over quadrature points
     for (quad=0;quad<cq->nq_per_elm;quad++) {
@@ -754,19 +753,17 @@ void FEM_RHS_Local(REAL* bLoc,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT
       if(dim==3)
         qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
-      (*rhs)(rhs_val,qx,time,&(mesh->el_flag[elm]));
+      (*rhs)(&rhs_val_scalar,qx,time,&(mesh->el_flag[elm]));
 
       //  Get the Basis Functions at each quadrature node
       get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
 
       // Loop over test functions and integrate rhs
       for (test=0; test<FE->dof_per_elm;test++) {
-        bLoc[test] += w*rhs_val[0]*FE->phi[test];
+        bLoc[test] += w*rhs_val_scalar*FE->phi[test];
       }
     }
   } else { // Vector Functions
-
-    rhs_val = (REAL *) calloc(dim,sizeof(REAL));
 
     //  Sum over quadrature points
     for (quad=0;quad<cq->nq_per_elm;quad++) {
@@ -774,7 +771,7 @@ void FEM_RHS_Local(REAL* bLoc,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT
       qx[1] = cq->y[elm*cq->nq_per_elm+quad];
       if(dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
-      (*rhs)(rhs_val,qx,time,&(mesh->el_flag[elm]));
+      (*rhs)(rhs_val_vector,qx,time,&(mesh->el_flag[elm]));
 
       //  Get the Basis Functions at each quadrature node
       get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
@@ -782,13 +779,11 @@ void FEM_RHS_Local(REAL* bLoc,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT
       // Loop over test functions and integrate rhs
       for (test=0; test<FE->dof_per_elm;test++) {
         for(idim=0;idim<dim;idim++) {
-          bLoc[test] += w*(rhs_val[idim]*FE->phi[test*dim+idim]);
+          bLoc[test] += w*(rhs_val_vector[idim]*FE->phi[test*dim+idim]);
         }
       }
     }
   }
-
-  if(rhs_val) free(rhs_val);
 
   return;
 }
@@ -841,7 +836,7 @@ void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,mesh_struct *mesh,qcoordin
   REAL qx[maxdim];
 
   // Right-hand side function at Quadrature Nodes
-  REAL* rhs_val= (REAL *) calloc(nun,sizeof(REAL));
+  REAL rhs_val[nun];
 
   //  Sum over quadrature points
   for (quad=0;quad<cq->nq_per_elm;quad++) {
@@ -891,7 +886,6 @@ void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,mesh_struct *mesh,qcoordin
     }
   }
 
-  if(rhs_val) free(rhs_val);
   return;
 }
 
