@@ -19,7 +19,7 @@
  * \return mesh     Struct for Mesh
  *
  */
-void initialize_mesh(mesh_struct* mesh) 
+void initialize_mesh(mesh_struct* mesh)
 {
   mesh->dim = -666;
   mesh->nelm = -666;
@@ -70,11 +70,10 @@ void initialize_mesh(mesh_struct* mesh)
  * \return mesh     Struct for Mesh
  *
  */
-void creategrid_fread(FILE *gfid,INT file_type,mesh_struct* mesh) 
+void creategrid_fread(FILE *gfid,INT file_type,mesh_struct* mesh)
 {
   // Initialize mesh for read in.
   initialize_mesh(mesh);
-  //  mesh->el_v = malloc(sizeof(struct iCSRmat));
 
   // READ FILE
   if(file_type==0) {
@@ -111,9 +110,6 @@ void build_mesh_all(mesh_struct* mesh)
 {
   // Flag for errors
   SHORT status;
-
-  // Loop Indices
-  INT i;
 
   // Get data already built
   INT dim = mesh->dim;
@@ -257,7 +253,7 @@ void build_mesh_all(mesh_struct* mesh)
  *
  */
 struct coordinates *allocatecoords(INT ndof,INT mydim)
-{  
+{
   // Flag for errors
   SHORT status;
 
@@ -283,7 +279,7 @@ struct coordinates *allocatecoords(INT ndof,INT mydim)
     status = ERROR_DIM;
     check_error(status, __FUNCTION__);
   }
-  A->n = ndof;  
+  A->n = ndof;
   return A;
 }
 /******************************************************************************/
@@ -305,7 +301,7 @@ void free_coords(coordinates* A)
     free(A->x);
     A->x = NULL;
   }
-  
+
   return;
 }
 /******************************************************************************/
@@ -322,7 +318,7 @@ void free_coords(coordinates* A)
  * \return coord.dat  Coordinates of node in format: coord(n,dim)
  *
  */
-void dump_coords(FILE* fid,coordinates *c) 
+void dump_coords(FILE* fid,coordinates *c)
 {
   INT i;
 
@@ -353,7 +349,7 @@ void dump_coords(FILE* fid,coordinates *c)
  *
  */
 void free_mesh(mesh_struct* mesh)
-{  
+{
   if(mesh==NULL) return;
 
   if (mesh->cv){
@@ -377,7 +373,7 @@ void free_mesh(mesh_struct* mesh)
     free(mesh->el_f);
     mesh->el_f = NULL;
   }
-  
+
   if(mesh->ed_v) {
     icsr_free(mesh->ed_v);
     free(mesh->ed_v);
@@ -439,7 +435,7 @@ void free_mesh(mesh_struct* mesh)
     free(mesh->v_flag);
     mesh->v_flag = NULL;
   }
-  
+
   if(mesh->ed_flag) {
     free(mesh->ed_flag);
     mesh->ed_flag = NULL;
@@ -459,7 +455,7 @@ void free_mesh(mesh_struct* mesh)
     free(mesh->v_component);
     mesh->v_component = NULL;
   }
-  
+
   return;
 }
 /******************************************************************************/

@@ -215,7 +215,7 @@ void csr_print_native(FILE* fid,
                       dCSRmat *A, dvector *rhs)
 {
   // local variables
-  INT i,j1,j2,j,shift;
+  INT i,shift;
 
   if(A->IA[0]==0) shift=0; else  shift=-1;
   // shift -1 if it was fortran, starting from 1.
@@ -1032,7 +1032,7 @@ void vtkw(char *namevtk, scomplex *sc, const INT nholes, const INT shift, const 
   INT *nodes = sc->nodes, *ib=sc->bndry;
   REAL *x = sc->x;
   INT tcell=-10;
-  INT k=-10,j=-10,kn=-10,kn1=-10;
+  INT k=-10,j=-10;
   char *tfloat="Float64", *tinto="Int64", *endian="LittleEndian";
   /*
      what endian?:
