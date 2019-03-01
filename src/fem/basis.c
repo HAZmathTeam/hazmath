@@ -113,13 +113,11 @@ void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,mesh_struct *mesh)
   REAL dp0s,dp1s,dp2s,dp3s,dp4s,dp5s,dp6s,dp7s,dp8s,dp9s;
   REAL dp0t,dp1t,dp2t,dp3t,dp4t,dp5t,dp6t,dp7t,dp8t,dp9t;
   REAL onemrst;
-  INT i;
 
   // Flag for errors
   SHORT status;
 
   // Get Mesh Data
-  INT v_per_elm = mesh->v_per_elm;
   INT dim = mesh->dim;
 
   // Store coordinates of vertices of element (2 in 1D, 3 in 2D, 4 in 3D)
@@ -423,11 +421,7 @@ void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dp
   REAL dp0r,dp1r,dp2r,dp3r,dp4r,dp5r;
   REAL dp0s,dp1s,dp2s,dp3s,dp4s,dp5s;
   REAL onemrs;
-  INT i;
-  INT v_per_elm = mesh->v_per_elm;
   REAL xv0,xv1,xv2,yv0,yv1,yv2;
-  REAL* xp = (REAL *) calloc(v_per_elm,sizeof(REAL)); //Note Fix this to not allocate. make xp0 xp1 etc.
-  REAL* yp = (REAL *) calloc(v_per_elm,sizeof(REAL)); //Note Fix this to not allocate. make xp0 xp1 etc.
   REAL dp0rr,dp1rr,dp2rr,dp3rr,dp4rr,dp5rr;
   REAL dp0ss,dp1ss,dp2ss,dp3ss,dp4ss,dp5ss;
   REAL dp0rs,dp1rs,dp2rs,dp3rs,dp4rs,dp5rs;

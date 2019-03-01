@@ -20,7 +20,7 @@
 */
 void c2r(const INT n, const INT m, const size_t sizeel, void *x)
 {
-  INT i,j,ij,ji,nms=n*m*sizeel;
+  INT i,j,ji,nms=n*m*sizeel;
   void *y=(void *)malloc(nms);
   memcpy(y,x,nms);
   for (i=0;i<n;i++){
@@ -43,7 +43,7 @@ void c2r(const INT n, const INT m, const size_t sizeel, void *x)
 */
 void r2c(const INT n, const INT m, const size_t sizeel, void *x)
 {
-  INT i,j,ij,ji,nms=n*m*sizeel;
+  INT i,j,ji,nms=n*m*sizeel;
   void *y=(void *)malloc(nms);
   for (i=0;i<n;i++){
     for (j=0;j<m;j++){
@@ -319,7 +319,6 @@ void atbyvfull(const INT m, REAL *y,REAL *a, REAL *x, const INT n)
 {
   /* matrices y = a^t*x+y; a is a matrix m by n, x is m by 1 vector, y
      is n by 1 */
-  REAL yj;
   INT i,j,in;
   for(i=0;i<m;i++){
     in=i*n;

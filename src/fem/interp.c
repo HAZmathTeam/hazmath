@@ -1018,7 +1018,7 @@ void get_Pigrad_H1toNed(dCSRmat* Pgrad,mesh_struct* mesh)
 /***********************************************************************************************/
 void get_Pigrad_H1toRT( dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl, mesh_struct* mesh)
 {
-  INT i,j,k,rowa,cola;
+  INT i,j,rowa,cola;
   INT v1,v2,v3;
   INT begin_row,end_row;
   INT nface = mesh->nface;
