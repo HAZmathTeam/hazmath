@@ -3290,7 +3290,8 @@ INT linear_solver_bdcsr_krylov_gmg(block_dCSRmat *A,
                       trimesh* mesh,
                       block_fespace* FE,
                       void (*set_bdry_flags)(trimesh* ),
-                      dCSRmat *A_diag)
+                      dCSRmat *A_diag,
+                      block_dCSRmat *A_noBC)
 {
     const SHORT prtlvl = itparam->linear_print_level;
     const SHORT precond_type = itparam->linear_precond_type;
@@ -3344,6 +3345,11 @@ INT linear_solver_bdcsr_krylov_gmg(block_dCSRmat *A,
     bdcsr_alloc(bm,bn,&mglA);
     bdcsr_cp(A,&mglA);
     mgl[0].A = mglA;
+
+    block_dCSRmat mglA_noBC;
+    bdcsr_alloc(bm,bn,&mglA_noBC);
+    bdcsr_cp(A_noBC,&mglA_noBC);
+    mgl[0].A_noBC = mglA_noBC;
 
     mgl[0].A_diag = A_diag;
 
