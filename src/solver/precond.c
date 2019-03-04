@@ -377,6 +377,204 @@ void precond_hx_curl_multiplicative(REAL *r,
 
 /***********************************************************************************************/
 /**
+ * \fn void precond_hx_div_additive_2D (REAL *r, REAL *z, void *data)
+ *
+ * \brief HX preconditioner for H(div): additive version in 2D
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   03/03/2019
+ */
+void precond_hx_div_additive_2D(REAL *r,
+                                REAL *z,
+                                void *data)
+{
+    //printf("HX div additive precond 2D\n");
+    HX_div_data *hxdivdata=(HX_div_data *)data;
+    INT n = hxdivdata->A->row;
+    SHORT smooth_iter = hxdivdata->smooth_iter;
+
+    // make sure z is initialzied by zeros
+    array_set(n, z, 0.0);
+
+    // local variable
+    dvector zz;
+    zz.row = n; zz.val = z;
+    dvector rr;
+    rr.row = n; rr.val = r;
+
+    SHORT maxit, i;
+
+    //-----------
+    // smoothing
+    //-----------
+    smoother_dcsr_sgs(&zz, hxdivdata->A, &rr, smooth_iter);
+    //smoother_dcsr_jacobi(&zz, 0, n, 1, hxdivdata->A, &rr, smooth_iter);
+
+    //----------------------------
+    // solve div vector Laplacian
+    //----------------------------
+    AMG_param *amgparam_divgrad = hxdivdata->amgparam_divgrad;
+    AMG_data *mgl_divgrad = hxdivdata->mgl_divgrad;
+    maxit = amgparam_divgrad->maxit;
+
+    mgl_divgrad->b.row = hxdivdata->A_divgrad->row;
+    dcsr_mxv(hxdivdata->Pt_div, r, mgl_divgrad->b.val);
+    mgl_divgrad->x.row = hxdivdata->A_divgrad->row;
+    dvec_set(hxdivdata->A_divgrad->row, &mgl_divgrad->x, 0.0);
+
+    for (i=0;i<maxit;++i) mgcycle(mgl_divgrad, amgparam_divgrad);
+    //dcsr_pvfgmres(hxdivdata->A_divgrad, &mgl_divgrad->b, &mgl_divgrad->x, NULL, 1e-3, 1000, 1000, 1, 1);
+    //directsolve_UMF(hxdivdata->A_divgrad, &(mgl_divgrad->b), &(mgl_divgrad->x), 1);
+
+    //----------------------------
+    // update solution (additive)
+    //----------------------------
+    dcsr_aAxpy(1.0, hxdivdata->P_div, mgl_divgrad->x.val, z);
+
+    //------------------------
+    // solve scalar Laplacian
+    //------------------------
+    AMG_param *amgparam_grad = hxdivdata->amgparam_grad;
+    AMG_data *mgl_grad = hxdivdata->mgl_grad;
+    maxit = amgparam_grad->maxit;
+
+    //REAL *temp = (REAL*)calloc(hxdivdata->Curlt->row,sizeof(REAL)); // need to be updated
+    //dcsr_mxv(hxdivdata->Curlt, r, temp);
+    mgl_grad->b.row = hxdivdata->Curlt->row;
+    dcsr_mxv(hxdivdata->Curlt, r, mgl_grad->b.val);
+    mgl_grad->x.row=hxdivdata->A_grad->row;
+    dvec_set(hxdivdata->A_grad->row, &mgl_grad->x, 0.0);
+
+    for (i=0;i<maxit;++i) mgcycle(mgl_grad, amgparam_grad);
+    //dcsr_pvfgmres(hxdivdata->A_curlgrad, &mgl_curlgrad->b, &mgl_curlgrad->x, NULL, 1e-3, 1000, 1000, 1, 1);
+    //directsolve_UMF(hxdivdata->A_curlgrad, &(mgl_curlgrad->b), &(mgl_curlgrad->x),1);
+
+    //---------------------------
+    // update solution (additive)
+    //---------------------------
+    //dcsr_mxv(hxdivdata->P_curl, mgl_curlgrad->x.val, temp);
+    dcsr_aAxpy(1.0, hxdivdata->Curl, mgl_grad->x.val, z);
+
+    // free
+    //free(temp);
+    //free(temp1);
+    //free(temp2);
+}
+
+/***********************************************************************************************/
+/**
+ * \fn void precond_hx_div_multiplicative_2D (REAL *r, REAL *z, void *data)
+ *
+ * \brief HX preconditioner for H(div): multiplicative version in 2D
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   03/03/2019
+ */
+void precond_hx_div_multiplicative_2D(REAL *r,
+                                      REAL *z,
+                                      void *data)
+{
+    //printf("HX div multiplicative precond 2D\n");
+    HX_div_data *hxdivdata=(HX_div_data *)data;
+    INT n = hxdivdata->A->row;
+    SHORT smooth_iter = hxdivdata->smooth_iter;
+
+    // backup r
+    array_cp(n, r, hxdivdata->backup_r);
+
+    // make sure z is initialzied by zeros
+    array_set(n, z, 0.0);
+
+    // local variable
+    dvector zz;
+    zz.row = n; zz.val = z;
+    dvector rr;
+    rr.row = n; rr.val = r;
+
+    SHORT maxit, i;
+
+    //-----------
+    // smoothing
+    //-----------
+    smoother_dcsr_sgs(&zz, hxdivdata->A, &rr, smooth_iter);
+    //smoother_dcsr_jacobi(&zz, 0, n, 1, hxdivdata->A, &rr, smooth_iter);
+
+    //----------
+    // update r
+    //----------
+    dcsr_aAxpy(-1.0, hxdivdata->A, zz.val, rr.val);
+
+    //----------------------------
+    // solve div vector Laplacian
+    //----------------------------
+    AMG_param *amgparam_divgrad = hxdivdata->amgparam_divgrad;
+    AMG_data *mgl_divgrad = hxdivdata->mgl_divgrad;
+    maxit = amgparam_divgrad->maxit;
+
+    mgl_divgrad->b.row = hxdivdata->A_divgrad->row;
+    dcsr_mxv(hxdivdata->Pt_div, r, mgl_divgrad->b.val);
+    mgl_divgrad->x.row = hxdivdata->A_divgrad->row;
+    dvec_set(hxdivdata->A_divgrad->row, &mgl_divgrad->x, 0.0);
+
+    for (i=0;i<maxit;++i) mgcycle(mgl_divgrad, amgparam_divgrad);
+    //dcsr_pvfgmres(hxdivdata->A_divgrad, &mgl_divgrad->b, &mgl_divgrad->x, NULL, 1e-3, 1000, 1000, 1, 1);
+    //directsolve_UMF(hxdivdata->A_divgrad, &(mgl_divgrad->b), &(mgl_divgrad->x), 1);
+
+    //-----------------
+    // update solution
+    //-----------------
+    dcsr_aAxpy(1.0, hxdivdata->P_div, mgl_divgrad->x.val, z);
+
+    //----------
+    // update r
+    //----------
+    array_cp(n, hxdivdata->backup_r, r);
+    dcsr_aAxpy(-1.0, hxdivdata->A, zz.val, rr.val);
+
+    //------------------------
+    // solve scalar Laplacian
+    //------------------------
+    AMG_param *amgparam_grad = hxdivdata->amgparam_grad;
+    AMG_data *mgl_grad = hxdivdata->mgl_grad;
+    maxit = amgparam_grad->maxit;
+
+    //REAL *temp = (REAL*)calloc(hxdivdata->Curlt->row,sizeof(REAL)); // need to be updated
+    //dcsr_mxv(hxdivdata->Curlt, r, temp);
+    mgl_grad->b.row = hxdivdata->Curlt->row;
+    dcsr_mxv(hxdivdata->Curlt, r, mgl_grad->b.val);
+    mgl_grad->x.row=hxdivdata->A_grad->row;
+    dvec_set(hxdivdata->A_grad->row, &mgl_grad->x, 0.0);
+
+    for (i=0;i<maxit;++i) mgcycle(mgl_grad, amgparam_grad);
+    //dcsr_pvfgmres(hxdivdata->A_curlgrad, &mgl_curlgrad->b, &mgl_curlgrad->x, NULL, 1e-3, 1000, 1000, 1, 1);
+    //directsolve_UMF(hxdivdata->A_curlgrad, &(mgl_curlgrad->b), &(mgl_curlgrad->x),1);
+
+    //-----------------
+    // update solution
+    //-----------------
+    //dcsr_mxv(hxdivdata->P_curl, mgl_curlgrad->x.val, temp);
+    dcsr_aAxpy(1.0, hxdivdata->Curl, mgl_grad->x.val, z);
+
+    // restore r
+    array_cp(n, hxdivdata->backup_r, r);
+
+    // free
+    //free(temp);
+    //free(temp1);
+    //free(temp2);
+}
+
+
+/***********************************************************************************************/
+/**
  * \fn void precond_hx_div_additive (REAL *r, REAL *z, void *data)
  *
  * \brief HX preconditioner for H(div): additive version
@@ -2491,7 +2689,7 @@ void precond_block_diag_mixed_darcy_krylov(REAL *r,
 
 /***********************************************************************************************/
 /**
- * \fn void precond_block_diag_mixed_darcy (REAL *r, REAL *z, void *data)
+ * \fn void precond_block_lower_mixed_darcy (REAL *r, REAL *z, void *data)
  * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
  *        is solved inexactly by Krylov methods)
  *
@@ -2629,6 +2827,215 @@ void precond_block_upper_mixed_darcy_krylov(REAL *r,
   array_cp(N, tempr->val, r);
 
 }
+
+/***********************************************************************************************/
+/**
+ * \fn void precond_block_diag_mixed_darcy_HX(REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+ *        is solved inexactly by Krylov methods) (Use HX preconditioner)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   03/03/2019
+ */
+void precond_block_diag_mixed_darcy_krylov_HX(REAL *r,
+                                              REAL *z,
+                                              void *data)
+{
+  precond_block_data *precdata=(precond_block_data *)data;
+  dvector *tempr = &(precdata->r);
+
+  block_dCSRmat *A = precdata->Abcsr;
+  AMG_param *amgparam = precdata->amgparam;
+  AMG_data **mgl = precdata->mgl;
+  dvector *el_vol = precdata->el_vol;
+  HX_div_data **hxdivdata = precdata->hxdivdata;
+
+  INT i;
+
+  const INT N0 = A->blocks[0]->row;
+  const INT N1 = A->blocks[2]->row;
+  const INT N = N0 + N1;
+
+  // back up r, setup z;
+  array_cp(N, r, tempr->val);
+  array_set(N, z, 0.0);
+
+  // prepare
+  dvector r0, r1, z0, z1;
+
+  r0.row = N0; z0.row = N0;
+  r1.row = N1; z1.row = N1;
+
+  r0.val = r; r1.val = &(r[N0]);
+  z0.val = z; z1.val = &(z[N0]);
+  //#endif
+
+  // Preconditioning A00 block (flux) using HX preconditioner
+  precond pc_flux; pc_flux.data = hxdivdata[0];
+  if (hxdivdata[0]->P_curl == NULL)
+  {
+    //pc_flux.fct = precond_hx_div_additive_2D;
+    pc_flux.fct = precond_hx_div_multiplicative_2D;
+  }
+
+  dcsr_pvfgmres(hxdivdata[0]->A, &r0, &z0, &pc_flux, 1e-3, 100, 100, 1, 1);
+
+  // Preconditioning A11 block
+  memcpy(z1.val,r1.val,N1*sizeof(REAL));
+  for (i=0;i<N1;++i) {
+    z1.val[i]/=el_vol->val[i];
+  }
+
+  // restore r
+  array_cp(N, tempr->val, r);
+
+}
+
+/***********************************************************************************************/
+/**
+ * \fn void precond_block_lower_mixed_darcy_HX(REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+ *        is solved inexactly by Krylov methods) (Use HX preconditioner)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   03/03/2019
+ */
+void precond_block_lower_mixed_darcy_krylov_HX(REAL *r,
+                                               REAL *z,
+                                               void *data)
+{
+  precond_block_data *precdata=(precond_block_data *)data;
+  dvector *tempr = &(precdata->r);
+
+  block_dCSRmat *A = precdata->Abcsr;
+  AMG_param *amgparam = precdata->amgparam;
+  AMG_data **mgl = precdata->mgl;
+  dvector *el_vol = precdata->el_vol;
+  HX_div_data **hxdivdata = precdata->hxdivdata;
+
+  INT i;
+
+  const INT N0 = A->blocks[0]->row;
+  const INT N1 = A->blocks[2]->row;
+  const INT N = N0 + N1;
+
+  // back up r, setup z;
+  array_cp(N, r, tempr->val);
+  array_set(N, z, 0.0);
+
+  // prepare
+  dvector r0, r1, z0, z1;
+
+  r0.row = N0; z0.row = N0;
+  r1.row = N1; z1.row = N1;
+
+  r0.val = r; r1.val = &(r[N0]);
+  z0.val = z; z1.val = &(z[N0]);
+  //#endif
+
+  // Preconditioning A00 block (flux)
+  precond pc_flux; pc_flux.data = hxdivdata[0];
+  if (hxdivdata[0]->P_curl == NULL)
+  {
+    //pc_flux.fct = precond_hx_div_additive_2D;
+    pc_flux.fct = precond_hx_div_multiplicative_2D;
+  }
+
+  dcsr_pvfgmres(hxdivdata[0]->A, &r0, &z0, &pc_flux, 1e-3, 100, 100, 1, 1);
+
+  // r1 = r1 - A2*z0
+  dcsr_aAxpy(-1.0, A->blocks[2], z0.val, r1.val);
+
+  // Preconditioning A11 block
+  memcpy(z1.val,r1.val,N1*sizeof(REAL));
+  for (i=0;i<N1;++i) {
+    z1.val[i]/=el_vol->val[i];
+  }
+
+  // restore r
+  array_cp(N, tempr->val, r);
+
+}
+
+/***********************************************************************************************/
+/**
+ * \fn void precond_block_upper_mixed_darcy_HX(REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+ *        is solved inexactly by Krylov methods) (Use HX preconditioner)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   03/03/2019
+ */
+void precond_block_upper_mixed_darcy_krylov_HX(REAL *r,
+                                               REAL *z,
+                                               void *data)
+{
+  precond_block_data *precdata=(precond_block_data *)data;
+  dvector *tempr = &(precdata->r);
+
+  block_dCSRmat *A = precdata->Abcsr;
+  AMG_param *amgparam = precdata->amgparam;
+  AMG_data **mgl = precdata->mgl;
+  dvector *el_vol = precdata->el_vol;
+  HX_div_data **hxdivdata = precdata->hxdivdata;
+
+  INT i;
+
+  const INT N0 = A->blocks[0]->row;
+  const INT N1 = A->blocks[2]->row;
+  const INT N = N0 + N1;
+
+  // back up r, setup z;
+  array_cp(N, r, tempr->val);
+  array_set(N, z, 0.0);
+
+  // prepare
+  dvector r0, r1, z0, z1;
+
+  r0.row = N0; z0.row = N0;
+  r1.row = N1; z1.row = N1;
+
+  r0.val = r; r1.val = &(r[N0]);
+  z0.val = z; z1.val = &(z[N0]);
+  //#endif
+
+  // Preconditioning A11 block
+  memcpy(z1.val,r1.val,N1*sizeof(REAL));
+  for (i=0;i<N1;++i) {
+    z1.val[i]/=el_vol->val[i];
+  }
+
+  // r0 = r0 - A1*z1
+  dcsr_aAxpy(-1.0, A->blocks[1], z1.val, r0.val);
+
+  // Preconditioning A00 block (flux)
+  precond pc_flux; pc_flux.data = hxdivdata[0];
+  if (hxdivdata[0]->P_curl == NULL)
+  {
+    //pc_flux.fct = precond_hx_div_additive_2D;
+    pc_flux.fct = precond_hx_div_multiplicative_2D;
+  }
+
+  dcsr_pvfgmres(hxdivdata[0]->A, &r0, &z0, &pc_flux, 1e-3, 100, 100, 1, 1);
+
+
+  // restore r
+  array_cp(N, tempr->val, r);
+
+}
+
 
 /***********************************************************************************************/
 /**
@@ -5462,7 +5869,7 @@ void precond_block_diag_bubble_stokes(REAL *r,
 /**
  * \fn void precond_block_monolithic_mg (REAL *r, REAL *z, void *data)
  *
- * \brief 
+ * \brief
  *
  * \param r     Pointer to the vector needs preconditioning
  * \param z     Pointer to preconditioned vector

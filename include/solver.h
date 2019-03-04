@@ -434,7 +434,7 @@ typedef struct {
     //! vector Laplacian
     dCSRmat *A_curlgrad;
 
-    //! vector
+    //! vector Laplacian
     dCSRmat *A_divgrad;
 
     //! AMG parameters for vector Laplacian
@@ -464,7 +464,7 @@ typedef struct {
     //! transpose of Curl operator
     dCSRmat *Curlt;
 
-    //! vector Laplacian
+    //! scalar Laplacian
     dCSRmat *A_grad;
 
     //! vecror Curl (CtAC)
