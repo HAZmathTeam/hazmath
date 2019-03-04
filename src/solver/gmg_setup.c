@@ -838,13 +838,20 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
     INT           dim = mgl[lvl].fine_level_mesh->dim;
     REAL          setup_start, setup_end;
     fespace       FE_loc;
+    block_fespace FE_blk;
+
+    FE_blk.nspaces = mgl[0].A.brow;
 
     get_time(&setup_start);
 
     // dirichlet
     mgl[0].dirichlet = (INT*)calloc(mgl[0].FE->ndof,sizeof(INT));
+    mgl[0].dirichlet_blk = (INT**)calloc(FE_blk.nspaces,sizeof(INT*));
     bm = 0;
     for(i=0;i<mgl[0].FE->nspaces;i++){
+      if(i==0) mgl[0].dirichlet_blk[0] = &mgl[0].dirichlet[bm]; // Bubbles + u1 + u2
+      if(i==3) mgl[0].dirichlet_blk[1] = &mgl[0].dirichlet[bm]; // Darcy (RT0)
+      if(i==4) mgl[0].dirichlet_blk[2] = &mgl[0].dirichlet[bm]; // Pressure
       for(j=0;j<mgl[0].FE->var_spaces[i]->ndof;j++){
         mgl[0].dirichlet[bm] = mgl[0].FE->var_spaces[i]->dirichlet[j];
         ++bm;
@@ -875,12 +882,13 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
       m=0;
       for(i=0; i<brow; i++) m += mgl[lvl].A.blocks[i+i*brow]->row;
       mgl[lvl+1].dirichlet = (INT*)calloc(m,sizeof(INT));
+      mgl[lvl+1].dirichlet_blk = (INT**)calloc(brow,sizeof(INT*));
 
       /*-- Build coarse level mesh --*/
       csize = (sqrt(mgl[lvl].fine_level_mesh->nv)-1)/2 + 1;
       //Need to customize this to specific directory
-      //sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",csize);
-      sprintf(cgridfile,"/home/xiaozhehu/Work/Projects/HAZMATH/hazmath/examples/grids/2D/unitSQ_n%d.haz",csize);
+      sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",csize);
+      //sprintf(cgridfile,"/home/xiaozhehu/Work/Projects/HAZMATH/hazmath/examples/grids/2D/unitSQ_n%d.haz",csize);
       cgfid = HAZ_fopen(cgridfile,"r");
       mgl[lvl+1].fine_level_mesh = (trimesh*)calloc(1, sizeof(trimesh));
       initialize_mesh(mgl[lvl+1].fine_level_mesh);
@@ -893,6 +901,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
       bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].R));
       bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].P));
       bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl+1].A));
+      bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl+1].A_noBC));
       printf("Allocation of R A P for lvl=%d is finished...\n",lvl);
 
       bm=0; //indexing of dirichlet
@@ -910,6 +919,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             // dirichlet
             create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 0);
             set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, -1,-1); // p
+            mgl[lvl+1].dirichlet_blk[i] = &mgl[lvl+1].dirichlet[bm];
             for(j=0;j<FE_loc.ndof;j++){
               mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
               ++bm;
@@ -933,6 +943,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             // dirichlet
             create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 30);
             set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, 1,5); // w
+            mgl[lvl+1].dirichlet_blk[i] = &mgl[lvl+1].dirichlet[bm];
             for(j=0;j<FE_loc.ndof;j++){
               mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
               ++bm;
@@ -976,28 +987,15 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             build_bubble_R( tempRblk.blocks[0], tempRblk.blocks[1], tempRblk.blocks[2],
                             mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
             printf("\tBuilt Bubble R...\n");
-//            csr_print_matlab(stdout,tempRblk.blocks[0]);
-//            printf("++ block0\n");
-//            csr_print_matlab(stdout,tempRblk.blocks[1]);
-//            printf("++ block1\n");
-//            csr_print_matlab(stdout,tempRblk.blocks[2]);
-//            printf("++ block2\n");
             Rmerge = bdcsr_2_dcsr(&tempRblk);
             printf("\tMerged Displacement R... storage in %d\n",i+i*brow);
             dcsr_alloc(Rmerge.row,Rmerge.col,Rmerge.nnz,mgl[lvl].R.blocks[i+i*brow]);
             dcsr_cp(&Rmerge,mgl[lvl].R.blocks[i+i*brow]);
-//            printf("Stored Displacement R...\n");
-//            printf("Rblk(0,0): %d %d\n",tempRblk.blocks[0]->row,tempRblk.blocks[0]->col);
-//            printf("Rblk(0,1): %d %d\n",tempRblk.blocks[1]->row,tempRblk.blocks[1]->col);
-//            printf("Rblk(0,2): %d %d\n",tempRblk.blocks[2]->row,tempRblk.blocks[2]->col);
-//            printf("Rblk(1,1): %d %d\n",tempRblk.blocks[4]->row,tempRblk.blocks[4]->col);
-//            printf("Rblk(2,2): %d %d\n",tempRblk.blocks[8]->row,tempRblk.blocks[8]->col);
-//            printf("Rmerge: %d %d\n",Rmerge.row,Rmerge.col);
-//            csr_print_matlab(stdout,&Rmerge);
             dcsr_free(&Rmerge);
             // BC flag dirichlet elim stuff
             create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 61);
             set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, 1,5); //bbl
+            mgl[lvl+1].dirichlet_blk[i] = &mgl[lvl+1].dirichlet[bm];
             for(j=0;j<FE_loc.ndof;j++){
               mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
               ++bm;
@@ -1045,17 +1043,26 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
                     mgl[lvl].P.blocks[j+j*brow]->row,
                     mgl[lvl].P.blocks[j+j*brow]->col);
             if(i==j){
-              dcsr_rap(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].A.blocks[j+i*brow], mgl[lvl].P.blocks[j+j*brow], mgl[lvl+1].A.blocks[j+i*brow]);
+              dcsr_rap(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].A_noBC.blocks[j+i*brow], mgl[lvl].P.blocks[j+j*brow], mgl[lvl+1].A_noBC.blocks[j+i*brow]);
               printf("RAP finished on block...\n");
             } else {
-              dcsr_mxm(mgl[lvl].R.blocks[i+i*brow],mgl[lvl].A.blocks[j+i*brow],&tempRA);
-              dcsr_mxm(&tempRA,mgl[lvl].P.blocks[j+j*brow],mgl[lvl+1].A.blocks[j+i*brow]);
+              dcsr_mxm(mgl[lvl].R.blocks[i+i*brow],mgl[lvl].A_noBC.blocks[j+i*brow],&tempRA);
+              dcsr_mxm(&tempRA,mgl[lvl].P.blocks[j+j*brow],mgl[lvl+1].A_noBC.blocks[j+i*brow]);
               dcsr_free(&tempRA);
             }
-          } else { mgl[lvl+1].A.blocks[j+i*brow] = NULL; }
+          } else { mgl[lvl+1].A_noBC.blocks[j+i*brow] = NULL; }
         }//j
       }//i
       printf("Built RAP for lvl=%d...\n",lvl);
+      /*-- Eliminate dirichlet boundaries from stiffness matrix --*/
+      bdcsr_cp( &mgl[lvl+1].A_noBC, &mgl[lvl+1].A);
+      FE_blk.dirichlet = mgl[lvl+1].dirichlet;
+      printf("eliminating BC on coarse level\n");
+      bdcsr_shift(&mgl[lvl+1].A,  1);
+      eliminate_DirichletBC_blockFE_blockA(NULL,&FE_blk,&mgl[lvl+1].fine_level_mesh,NULL,&mgl[lvl+1].A,0.0);
+      bdcsr_shift(&mgl[lvl+1].A, -1);
+
+
       // PRINT MATRIX
       if(lvl==0){
           FILE* matid = HAZ_fopen("Acoarse.dat","w");

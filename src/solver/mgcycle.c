@@ -231,7 +231,6 @@ static void bdcsr_presmoothing(const INT lvl, MG_blk_data *mgl, AMG_param *param
         //    smoother_bdcsr_jacobi(&mgl[lvl].x, 1, &mgl[lvl].A, &mgl[lvl].b, nsweeps);
         //    break;
         default:
-            printf("\tCalling pre  Smoother on lvl=%d...\n",lvl);
             smoother_block_biot_3field(lvl,mgl,param,1);
 //            printf("### ERROR: Wrong smoother type %d!\n", smoother);
 //            check_error(ERROR_INPUT_PAR, __FUNCTION__);
@@ -260,7 +259,6 @@ static void bdcsr_postsmoothing(const INT lvl, MG_blk_data *mgl, AMG_param *para
 //            smoother_bdcsr_jacobi(&mgl[lvl].x, 1, &mgl[lvl].A, &mgl[lvl].b, nsweeps);
 //            break;
         default:
-            printf("\tCalling post Smoother on lvl=%d...\n",lvl);
             smoother_block_biot_3field(lvl,mgl,param,2);
 //            printf("### ERROR: Wrong smoother type %d!\n", smoother);
 //            check_error(ERROR_INPUT_PAR, __FUNCTION__);
@@ -727,6 +725,7 @@ void mgcycle_block(MG_blk_data *bmgl,
     // local variables
     REAL alpha = 1.0;
     INT  num_lvl[MAX_AMG_LVL] = {0}, l = 0;
+    INT  i;
 
 ForwardSweep:
     while ( l < nl-1 ) {
@@ -735,13 +734,28 @@ ForwardSweep:
         
         // pre-smoothing with standard smoothers
         bdcsr_presmoothing(l, bmgl, param);
+        // correct bdry
+        for(i=0; i<bmgl[l].x.row; i++){
+          if( bmgl[l].dirichlet[i] == 1 )
+            bmgl[l].x.val[i] = 0.0;
+        }
 
         // form residual r = b - A x
         array_cp(bmgl[l].b.row, bmgl[l].b.val, bmgl[l].w.val);
         bdcsr_aAxpy(-1.0,&bmgl[l].A, bmgl[l].x.val, bmgl[l].w.val);
+        // correct bdry
+        for(i=0; i<bmgl[l].w.row; i++){
+          if( bmgl[l].dirichlet[i] == 1 )
+            bmgl[l].w.val[i] = 0.0;
+        }
 
         // restriction r1 = R*r0
         bdcsr_mxv(&bmgl[l].R, bmgl[l].w.val, bmgl[l+1].b.val);
+        // correct bdry
+        for(i=0; i<bmgl[l+1].b.row; i++){
+          if( bmgl[l+1].dirichlet[i] == 1 )
+            bmgl[l+1].b.val[i] = 0.0;
+        }
 
         // prepare for the next level
         ++l; dvec_set(bmgl[l].x.row, &bmgl[l].x, 0.0);
@@ -773,8 +787,18 @@ ForwardSweep:
 
         --l;
 
+        // correct bdry
+        for(i=0; i<bmgl[l+1].x.row; i++){
+          if( bmgl[l+1].dirichlet[i] == 1 )
+            bmgl[l+1].x.val[i] = 0.0;
+        }
         // prolongation u = u + alpha*P*e1
         bdcsr_aAxpy(alpha, &bmgl[l].P, bmgl[l+1].x.val, bmgl[l].x.val);
+        // correct bdry
+        for(i=0; i<bmgl[l].x.row; i++){
+          if( bmgl[l].dirichlet[i] == 1 )
+            bmgl[l].x.val[i] = 0.0;
+        }
 
         // post-smoothing with standard methods
         bdcsr_postsmoothing(l, bmgl, param);
