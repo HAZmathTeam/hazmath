@@ -390,103 +390,114 @@ void python_wrapper_krylov_block_2by2(INT *n00,
  * \date   10/14/2018
  *
  */
-void python_wrapper_krylov_mixed_darcy(INT *nrow00,
-                                 INT *ncol00,
-                                 INT *nnz00,
-                                 INT *ia00,
-                                 INT *ja00,
-                                 REAL *a00,
-                                 INT *nrow01,
-                                 INT *ncol01,
-                                 INT *nnz01,
-                                 INT *ia01,
-                                 INT *ja01,
-                                 REAL *a01,
-                                 INT *nrow10,
-                                 INT *ncol10,
-                                 INT *nnz10,
-                                 INT *ia10,
-                                 INT *ja10,
-                                 REAL *a10,
-                                 INT *nrow11,
-                                 INT *ncol11,
-                                 INT *nnz11,
-                                 INT *ia11,
-                                 INT *ja11,
-                                 REAL *a11,
-                                 REAL *Mp_diag,
-                                 REAL *b,
-                                 REAL *u,
-                                 REAL *tol,
-                                 INT *maxit,
-                                 INT *print_lvl,
-                                 INT *iters)
-{
-    block_dCSRmat   mat_bdcsr;  // coefficient matrix in block CSR format
-    dvector         rhs, sol; // right-hand-side, solution
-    AMG_param       amgparam; // parameters for AMG
-    linear_itsolver_param  itparam;  // parameters for linear itsolver
+ void python_wrapper_krylov_mixed_darcy(INT *nrow00,
+                                  INT *ncol00,
+                                  INT *nnz00,
+                                  INT *ia00,
+                                  INT *ja00,
+                                  REAL *a00,
+                                  INT *nrow01,
+                                  INT *ncol01,
+                                  INT *nnz01,
+                                  INT *ia01,
+                                  INT *ja01,
+                                  REAL *a01,
+                                  INT *nrow10,
+                                  INT *ncol10,
+                                  INT *nnz10,
+                                  INT *ia10,
+                                  INT *ja10,
+                                  REAL *a10,
+                                  INT *nrow11,
+                                  INT *ncol11,
+                                  INT *nnz11,
+                                  INT *ia11,
+                                  INT *ja11,
+                                  REAL *a11,
+                                  INT *nrowPidiv,
+                                  INT *ncolPidiv,
+                                  INT *nnzPidiv,
+                                  INT *iaPidiv,
+                                  INT *jaPidiv,
+                                  REAL *aPidiv,
+                                  INT *nrowCurl,
+                                  INT *ncolCurl,
+                                  INT *nnzCurl,
+                                  INT *iaCurl,
+                                  INT *jaCurl,
+                                  REAL *aCurl,
+                                  REAL *Mp_diag,
+                                  REAL *b,
+                                  REAL *u,
+                                  REAL *tol,
+                                  INT *maxit,
+                                  INT *print_lvl,
+                                  INT *iters)
+ {
+     block_dCSRmat   mat_bdcsr;  // coefficient matrix in block CSR format
+     dvector         rhs, sol; // right-hand-side, solution
+     AMG_param       amgparam; // parameters for AMG
+     linear_itsolver_param  itparam;  // parameters for linear itsolver
 
-    input_param inparam;
-    param_input_init(&inparam);
-    param_input("./input.dat", &inparam);
+     input_param inparam;
+     param_input_init(&inparam);
+     param_input("./input.dat", &inparam);
 
-    // Set parameters for linear iterative methods
-    param_linear_solver_init(&itparam);
-    param_linear_solver_set(&itparam, &inparam);
-    if (*print_lvl > PRINT_MIN) param_linear_solver_print(&itparam);
+     // Set parameters for linear iterative methods
+     param_linear_solver_init(&itparam);
+     param_linear_solver_set(&itparam, &inparam);
+     if (*print_lvl > PRINT_MIN) param_linear_solver_print(&itparam);
 
-    // Set parameters for algebriac multigrid methods
-    param_amg_init(&amgparam);
-    param_amg_set(&amgparam, &inparam);
-    if (*print_lvl > PRINT_MIN) param_amg_print(&amgparam);
+     // Set parameters for algebriac multigrid methods
+     param_amg_init(&amgparam);
+     param_amg_set(&amgparam, &inparam);
+     if (*print_lvl > PRINT_MIN) param_amg_print(&amgparam);
 
-    amgparam.print_level          = *print_lvl;
-    itparam.linear_tol            = *tol;
-    itparam.linear_print_level    = *print_lvl;
-    itparam.linear_maxit          = *maxit;
+     amgparam.print_level          = *print_lvl;
+     itparam.linear_tol            = *tol;
+     itparam.linear_print_level    = *print_lvl;
+     itparam.linear_maxit          = *maxit;
 
-    // form block CSR matrix
-    bdcsr_alloc(2, 2, &mat_bdcsr);
-    // assgin 00 block
-    mat_bdcsr.blocks[0]->row = *nrow00; mat_bdcsr.blocks[0]->col = *ncol00; mat_bdcsr.blocks[0]->nnz = *nnz00;
-    mat_bdcsr.blocks[0]->IA = ia00; mat_bdcsr.blocks[0]->JA = ja00; mat_bdcsr.blocks[0]->val = a00;
-    // assgin 01 block
-    mat_bdcsr.blocks[1]->row = *nrow01; mat_bdcsr.blocks[1]->col = *ncol01; mat_bdcsr.blocks[1]->nnz = *nnz01;
-    mat_bdcsr.blocks[1]->IA = ia01; mat_bdcsr.blocks[1]->JA = ja01; mat_bdcsr.blocks[1]->val = a01;
-    // assgin 10 block
-    mat_bdcsr.blocks[2]->row = *nrow10; mat_bdcsr.blocks[2]->col = *ncol10; mat_bdcsr.blocks[2]->nnz = *nnz10;
-    mat_bdcsr.blocks[2]->IA = ia10; mat_bdcsr.blocks[2]->JA = ja10; mat_bdcsr.blocks[2]->val = a10;
-    // assgin 11 block
-    mat_bdcsr.blocks[3]->row = *nrow11; mat_bdcsr.blocks[3]->col = *ncol11; mat_bdcsr.blocks[3]->nnz = *nnz11;
-    mat_bdcsr.blocks[3]->IA = ia11; mat_bdcsr.blocks[3]->JA = ja11; mat_bdcsr.blocks[3]->val = a11;
+     // form block CSR matrix
+     bdcsr_alloc(2, 2, &mat_bdcsr);
+     // assign 00 block
+     mat_bdcsr.blocks[0]->row = *nrow00; mat_bdcsr.blocks[0]->col = *ncol00; mat_bdcsr.blocks[0]->nnz = *nnz00;
+     mat_bdcsr.blocks[0]->IA = ia00; mat_bdcsr.blocks[0]->JA = ja00; mat_bdcsr.blocks[0]->val = a00;
+     // assign 01 block
+     mat_bdcsr.blocks[1]->row = *nrow01; mat_bdcsr.blocks[1]->col = *ncol01; mat_bdcsr.blocks[1]->nnz = *nnz01;
+     mat_bdcsr.blocks[1]->IA = ia01; mat_bdcsr.blocks[1]->JA = ja01; mat_bdcsr.blocks[1]->val = a01;
+     // assign 10 block
+     mat_bdcsr.blocks[2]->row = *nrow10; mat_bdcsr.blocks[2]->col = *ncol10; mat_bdcsr.blocks[2]->nnz = *nnz10;
+     mat_bdcsr.blocks[2]->IA = ia10; mat_bdcsr.blocks[2]->JA = ja10; mat_bdcsr.blocks[2]->val = a10;
+     // assign 11 block
+     mat_bdcsr.blocks[3]->row = *nrow11; mat_bdcsr.blocks[3]->col = *ncol11; mat_bdcsr.blocks[3]->nnz = *nnz11;
+     mat_bdcsr.blocks[3]->IA = ia11; mat_bdcsr.blocks[3]->JA = ja11; mat_bdcsr.blocks[3]->val = a11;
 
-    // form mass matrix of pressure (it is diagonal matrix, only diagonal is stores)
-    dvector Mp;
-    Mp.row = *nrow11; Mp.val = Mp_diag;
+     // form Pi_div and Curl matrices for HX preconditioner
+     // assign Pidiv
+     dCSRmat P_div;
+     P_div.row = *nrowPidiv; P_div.col = *ncolPidiv; P_div.nnz = *nnzPidiv;
+     P_div.IA = iaPidiv; P_div.JA = jaPidiv; P_div.val = aPidiv;
+     // assign Curl
+     dCSRmat Curl;
+     Curl.row = *nrowCurl; Curl.col = *ncolCurl; Curl.nnz = *nnzCurl;
+     Curl.IA = iaCurl; Curl.JA = jaCurl; Curl.val = aCurl;
 
-    // form right hand side
-    INT n = *nrow00 + *nrow11;
-    rhs.row = n; rhs.val = b;
-    sol.row = n; sol.val = u;
+     // form mass matrix of pressure (it is diagonal matrix, only diagonal is stored)
+     dvector Mp;
+     Mp.row = *nrow11; Mp.val = Mp_diag;
 
-    /*
-    // output matrices
-    dcsr_write_dcoo("A11.dat", mat_bdcsr.blocks[0]);
-    dcsr_write_dcoo("A12.dat", mat_bdcsr.blocks[1]);
-    dcsr_write_dcoo("A21.dat", mat_bdcsr.blocks[2]);
-    dcsr_write_dcoo("A22.dat", mat_bdcsr.blocks[3]);
+     // form right hand side
+     INT n = *nrow00 + *nrow11;
+     rhs.row = n; rhs.val = b;
+     sol.row = n; sol.val = u;
 
-    // output Mp and right hand side
-    dvec_write("rhs.dat", &rhs);
-    dvec_write("Mp.dat", &Mp);
-    */
+     // solve in 2 by 2 block form
+     *iters = linear_solver_bdcsr_krylov_mixed_darcy(&mat_bdcsr, &rhs, &sol, &itparam, &amgparam, &P_div, &Curl, NULL, &Mp);
 
-    // solve in 2 by 2 block form
-    *iters = linear_solver_bdcsr_krylov_mixed_darcy(&mat_bdcsr, &rhs, &sol, &itparam, &amgparam, &Mp);
+     // clean memory
+ }
 
-    // clean memory
-}
 
 
 /***************************** END ***************************************************/
