@@ -190,9 +190,13 @@ typedef struct {
     //! bdry flag stuff
     void (*set_bdry_flags)(trimesh*);
     INT *dirichlet;
+    INT **dirichlet_blk;
 
     //! pointer to the matrix at level level_num
     block_dCSRmat A;
+
+    //! pointer to the matrix without dirichlet boundary elimination at level_num
+    block_dCSRmat A_noBC;
 
     //! restriction operator at level level_num
     block_dCSRmat R;
