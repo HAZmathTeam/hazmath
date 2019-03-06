@@ -261,7 +261,7 @@ void build_face_R (dCSRmat *R,
                              INT      nf1d,
                              INT      nc1d)
 {
-    INT i,j,ii,jj;
+    INT i,j,ii,jj,kk;
     INT ci, cj;
     INT cdof;
     INT felm, celm;
@@ -305,8 +305,9 @@ void build_face_R (dCSRmat *R,
     I = (INT *)calloc(R->nnz,sizeof(INT));
     J = (INT *)calloc(R->nnz,sizeof(INT));
     V = (REAL *)calloc(R->nnz,sizeof(REAL));
-    IJfilled = (INT *)calloc(R->col*R->row,sizeof(INT));//TODO:BAD!!!!!
-    for(i=0; i<R->row*R->col; i++) IJfilled[i] = -1; // Set all to -1 //TODO:BAD!!!!
+    //IJfilled = (INT *)calloc(R->col*R->row,sizeof(INT));//TODO:BAD!!!!!
+    //for(i=0; i<R->row*R->col; i++) IJfilled[i] = -1; // Set all to -1 //TODO:BAD!!!!
+    INT not_duplicate_entry = 0;
 
     REAL *val = R->val;
     INT *JA  = R->JA;
@@ -354,9 +355,11 @@ void build_face_R (dCSRmat *R,
               // Scale midpoint rule based on face area and scale basis function by face area
               //value = value * fmesh->f_area[fface] / cmesh->f_area[cface];
               // TODO: It works without the scaling (why? I don't know)
-
-              if( IJfilled[fface*R->row + cface] == -1 ) {
-                IJfilled[fface*R->row + cface] = 1;
+              not_duplicate_entry = 1;
+              for(kk=0;kk<index;kk++){
+                if(cface==I[kk] && fface==J[kk]) not_duplicate_entry = 0;
+              }
+              if(not_duplicate_entry){
                 if(ABS(value) > 1e-8){
                   I[index] = cface;
                   J[index] = fface;
@@ -364,6 +367,16 @@ void build_face_R (dCSRmat *R,
                   index++;
                 }
               }
+
+//              if( IJfilled[fface*R->row + cface] == -1 ) {
+//                IJfilled[fface*R->row + cface] = 1;
+//                if(ABS(value) > 1e-8){
+//                  I[index] = cface;
+//                  J[index] = fface;
+//                  V[index] = value;
+//                  index++;
+//                }
+//              }
 
             }
             locFaceId++;
@@ -447,6 +460,7 @@ void build_bubble_R (dCSRmat *R,
 {
     // nf1d is number of elements we would have in 1d (number of vertices in 1d minus 1)
     INT i,j,ii,jj;
+    INT kk;
     INT ed;
     INT ci, cj;
     INT felm, celm;
@@ -502,16 +516,17 @@ void build_bubble_R (dCSRmat *R,
     INT *JA  = R->JA;
     INT *IA  = R->IA;
     // allocate helper arrays.
+    INT not_duplicate_entry = 0;
     I = (INT *)calloc(R->nnz,sizeof(INT));
     J = (INT *)calloc(R->nnz,sizeof(INT));
     V = (REAL *)calloc(R->nnz,sizeof(REAL));
-    IJfilled = (INT *)calloc(R->col*R->row,sizeof(INT));//TODO:BAD!!!!!
-    for(i=0; i<R->row*R->col; i++) IJfilled[i] = -1;
+//    IJfilled = (INT *)calloc(R->col*R->row,sizeof(INT));//TODO:BAD!!!!!
+//    for(i=0; i<R->row*R->col; i++) IJfilled[i] = -1;
 
     // allocate memory for Rl1
     // allocate memory for Rl2
     INT vertex;
-    INT* VertFilled = (INT *)calloc(fmesh->nv*R->row,sizeof(INT));//TODO:BAD!!!!!
+//    INT* VertFilled = (INT *)calloc(fmesh->nv*R->row,sizeof(INT));//TODO:BAD!!!!!
     INT indexl=0;
     //TODO: Fix allocation amount
     INT*  Il1 = (INT*) calloc(12*fmesh->nv,sizeof(INT));
@@ -628,8 +643,15 @@ void build_bubble_R (dCSRmat *R,
                 bubble_face_basis(phi,dphi,x,v_on_elm,f_on_elm,cmesh);
                 // Save in R linear
                 vertex = v_on_f[ed]-1;
-                if( VertFilled[cface + vertex*R->row] == 0 ){
-                  VertFilled[cface + vertex*R->row] = 1;
+
+                not_duplicate_entry = 1;
+                for(kk=0;kk<indexl;kk++){
+                  if(cface==Il1[kk] && vertex==Jl1[kk]) not_duplicate_entry = 0;
+                }
+                if(not_duplicate_entry){
+
+//                if( VertFilled[cface + vertex*R->row] == 0 ){
+//                  VertFilled[cface + vertex*R->row] = 1;
                   Il1[indexl] = cface;
                   Jl1[indexl] = vertex;
                   Vl1[indexl] = phi[locFaceId*dim+0];
@@ -637,6 +659,7 @@ void build_bubble_R (dCSRmat *R,
                   Jl2[indexl] = vertex;
                   Vl2[indexl] = phi[locFaceId*dim+1];
                   indexl++;
+//                }
                 }
                 // Linear part on fine edge.
                 lval += phi[locFaceId*dim+i]/2;
@@ -645,8 +668,11 @@ void build_bubble_R (dCSRmat *R,
 
               value = ( Fphi[locFaceId*dim+i] - lval ) / fmesh->f_norm[fface*dim+i];
 
-              if( IJfilled[fface*R->row + cface] == -1 ) {
-                IJfilled[fface*R->row + cface] = 1;
+              not_duplicate_entry = 1;
+              for(kk=0;kk<index;kk++){
+                if(cface==I[kk] && fface==J[kk]) not_duplicate_entry = 0;
+              }
+              if(not_duplicate_entry){
                 if(ABS(value) > 1e-8){
                   I[index] = cface;
                   J[index] = fface;
@@ -654,6 +680,16 @@ void build_bubble_R (dCSRmat *R,
                   index++;
                 }
               }
+
+//              if( IJfilled[fface*R->row + cface] == -1 ) {
+//                IJfilled[fface*R->row + cface] = 1;
+//                if(ABS(value) > 1e-8){
+//                  I[index] = cface;
+//                  J[index] = fface;
+//                  V[index] = value;
+//                  index++;
+//                }
+//              }
 
 
             }//jj (fface)
@@ -767,7 +803,8 @@ INT gmg_setup_RT0(trimesh* fine_level_mesh)
   for(i=0;i<max_levels-1;i++){
     fSize = sqrt(meshHeirarchy[i]->nv)-1;// Is there a type problem here?
     cSize = (fSize/2);
-    sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",cSize+1);//Need to customize this to specific directory
+    //sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",cSize+1);//Need to customize this to specific directory
+    sprintf(cgridfile,"/home/pohm01/HAZMAT/hazmath/examples/grids/2D/unitSQ_n%d.haz",cSize+1);//Need to customize this to specific directory
     cgfid = HAZ_fopen(cgridfile,"r");
     meshHeirarchy[i+1] = (trimesh*)calloc(1, sizeof(trimesh));
     initialize_mesh(meshHeirarchy[i+1]);
@@ -887,8 +924,9 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
       /*-- Build coarse level mesh --*/
       csize = (sqrt(mgl[lvl].fine_level_mesh->nv)-1)/2 + 1;
       //Need to customize this to specific directory
-      sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",csize);
+      //sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",csize);
       //sprintf(cgridfile,"/home/xiaozhehu/Work/Projects/HAZMATH/hazmath/examples/grids/2D/unitSQ_n%d.haz",csize);
+      sprintf(cgridfile,"/home/pohm01/HAZMAT/hazmath/examples/grids/2D/unitSQ_n%d.haz",csize);
       cgfid = HAZ_fopen(cgridfile,"r");
       mgl[lvl+1].fine_level_mesh = (trimesh*)calloc(1, sizeof(trimesh));
       initialize_mesh(mgl[lvl+1].fine_level_mesh);

@@ -762,6 +762,7 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
     printf("\t\t| using %2d iterations\n",param->presmooth_iter);
     // Initialize
     INT n0, n1, n2, ntot;
+    INT triType = 1;
     // Sub-vectors
     dvector x0, x1, x2;
     dvector b0, b1, b2;
@@ -791,6 +792,12 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
     //directsolve_UMF(&(bmgl[lvl].mgl[0][0].A), &b0, &x0, 10);
     printf("\tBlock 0 done...\n");
 
+    // r1 = r1 - A3*z0
+    if(triType==1){
+      if (bmgl[lvl].A.blocks[3] != NULL)
+        dcsr_aAxpy(-1.0, bmgl[lvl].A.blocks[3], x0.val, b1.val);
+    }
+
     // Block 1: RT0
 //    Schwarz_param swzparam;
 //    swzparam.Schwarz_blksolver = bmgl[lvl].mgl[1][0].Schwarz.blk_solver;
@@ -804,10 +811,23 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
     directsolve_UMF(&(bmgl[lvl].mgl[1][0].A), &b1, &x1, 10);
     printf("\tBlock 1 done...\n");
 
+    if(triType==1){
+      // r2 = r2 - A6*z0 - A7*z1
+      if (bmgl[lvl].A.blocks[6] != NULL)
+          dcsr_aAxpy(-1.0, bmgl[lvl].A.blocks[6], x0.val, b2.val);
+      if (bmgl[lvl].A.blocks[7] != NULL)
+          dcsr_aAxpy(-1.0, bmgl[lvl].A.blocks[7], x1.val, b2.val);
+    }
+
     // Block 2: P0
     smoother_dcsr_sgs(&x2, &(bmgl[lvl].mgl[2][0].A), &b2, param->presmooth_iter);
     //directsolve_UMF(&(bmgl[lvl].mgl[2][0].A), &b2, &x2, 10);
     printf("\tBlock 2 done...\n");
+
+
+
+
+
     return;
 }
 
