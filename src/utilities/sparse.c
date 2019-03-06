@@ -1981,21 +1981,21 @@ void icsr_mxm(iCSRmat *A,
 
   free(JD);
 
-  // step 3: Find the structure A of C
-  C->val=(INT*)calloc(C->IA[C->row],sizeof(INT));
-
-  for (i=0;i<C->row;++i) {
-    for (j=C->IA[i];j<C->IA[i+1];++j) {
-      C->val[j]=0;
-      for (k=A->IA[i];k<A->IA[i+1];++k) {
-        for (l=B->IA[A->JA[k]];l<B->IA[A->JA[k]+1];l++) {
-          if (B->JA[l]==C->JA[j]) {
-            C->val[j]+=A->val[k]*B->val[l];
-          } // end if
-        } // end for l
-      } // end for k
-    } // end for j
-  }    // end for i
+//  // step 3: Find the structure A of C
+//  C->val=(INT*)calloc(C->IA[C->row],sizeof(INT));
+//
+//  for (i=0;i<C->row;++i) {
+//    for (j=C->IA[i];j<C->IA[i+1];++j) {
+//      C->val[j]=0;
+//      for (k=A->IA[i];k<A->IA[i+1];++k) {
+//        for (l=B->IA[A->JA[k]];l<B->IA[A->JA[k]+1];l++) {
+//          if (B->JA[l]==C->JA[j]) {
+//            C->val[j]+=A->val[k]*B->val[l];
+//          } // end if
+//        } // end for l
+//      } // end for k
+//    } // end for j
+//  }    // end for i
 
   C->nnz = C->IA[C->row]-C->IA[0];
 
