@@ -387,7 +387,8 @@ static void Schwarz_levels (INT inroot,
  */
 void Schwarz_get_patch_geometric (Schwarz_data *Schwarz,
                                   trimesh *mesh,
-                                  INT patchType)
+                                  INT patchTypeIN,
+                                  INT patchTypeOUT)
 {
     INT nblk, ntot, i;
 
@@ -398,29 +399,47 @@ void Schwarz_get_patch_geometric (Schwarz_data *Schwarz,
     iCSRmat p_el;
     iCSRmat p_p;
 
-    switch ( patchType ) {
-      case 1: // vertex
+    switch ( patchTypeIN ) {
+      case 0: // vertex
         nblk = mesh->nv;
         icsr_trans_1(mesh->el_v, &p_el);
-        icsr_mxm_1( &p_el, mesh->el_v, &p_p);
-        // want this to be v_el * el_v to get vertex to neighboring vertex map.
-        ntot = p_p.nnz;
         break;
-      case 2: // edge
+      case 1: // edge
         nblk = mesh->nedge;
         icsr_trans_1(mesh->el_ed,&p_el);
+        break;
+      case 2: // face 
+        nblk = mesh->nface;
+        icsr_trans_1(mesh->el_f, &p_el);
+        break;
+      default:
+        // Throw error
+        break;
+    }
+
+    printf("asdfasdfas\n");
+
+    switch ( patchTypeOUT ) {
+      case 0: // vertex
+        icsr_mxm_1( &p_el, mesh->el_v, &p_p);
+        ntot = p_p.nnz;
+        break;
+      case 1: // edge
         icsr_mxm_1( &p_el, mesh->el_ed, &p_p);
         ntot = p_p.nnz;
         break;
-      case 3: // face 
-        nblk = mesh->nface;
-        icsr_trans_1(mesh->el_f, &p_el);
+      case 2: // face 
+      printf("|| %d, %d || %d, %d\n",p_el.row,p_el.col,mesh->el_f->row,mesh->el_f->col);
+      printf("\t%f\n",mesh->el_f->val[0]);
         icsr_mxm_1( &p_el, mesh->el_f, &p_p);
         ntot = p_p.nnz;
         break;
       default:
+        // Throw error
         break;
     }
+
+    printf("Did mxm\n");
 
     ///iblk = (INT*)calloc(p_el.row+1,sizeof(INT));
     iblk = (INT*)calloc(nblk+1,sizeof(INT));
@@ -492,9 +511,9 @@ INT Schwarz_setup_geometric (Schwarz_data *Schwarz,
     /*-------------------------------------------*/
     // find the blocks
     /*-------------------------------------------*/
-    //printf("Findeing Schwarz patches\n");
-    Schwarz_get_patch_geometric(Schwarz, mesh, 3);
-    //printf("Found Schwarz patches\n");
+    printf("Findeing Schwarz patches\n");
+    Schwarz_get_patch_geometric(Schwarz, mesh, 0, 2);
+    printf("Found Schwarz patches\n");
     nblk = Schwarz->nblk;
 
     /*-------------------------------------------*/
@@ -502,10 +521,9 @@ INT Schwarz_setup_geometric (Schwarz_data *Schwarz,
     /*-------------------------------------------*/
     memset(mask, 0, sizeof(INT)*n);
     Schwarz->blk_data = (dCSRmat*)calloc(nblk, sizeof(dCSRmat));
-    //printf("Getting block matrix\n");
-    // TODO: There might be a shift problem with iblock and jblock
+    printf("Getting block matrix\n");
     Schwarz_get_block_matrix(Schwarz, nblk, Schwarz->iblock, Schwarz->jblock, mask);
-    //printf("Got block matrix\n");
+    printf("Got block matrix\n");
 
     // Setup for each block solver
     switch (block_solver) {
