@@ -417,21 +417,17 @@ void Schwarz_get_patch_geometric (Schwarz_data *Schwarz,
         break;
     }
 
-    printf("asdfasdfas\n");
-
     switch ( patchTypeOUT ) {
       case 0: // vertex
-        icsr_mxm_1( &p_el, mesh->el_v, &p_p);
+        icsr_mxm_symb_1( &p_el, mesh->el_v, &p_p);
         ntot = p_p.nnz;
         break;
       case 1: // edge
-        icsr_mxm_1( &p_el, mesh->el_ed, &p_p);
+        icsr_mxm_symb_1( &p_el, mesh->el_ed, &p_p);
         ntot = p_p.nnz;
         break;
       case 2: // face 
-      printf("|| %d, %d || %d, %d\n",p_el.row,p_el.col,mesh->el_f->row,mesh->el_f->col);
-      printf("\t%f\n",mesh->el_f->val[0]);
-        icsr_mxm_1( &p_el, mesh->el_f, &p_p);
+        icsr_mxm_symb_1( &p_el, mesh->el_f, &p_p);
         ntot = p_p.nnz;
         break;
       default:
@@ -439,7 +435,6 @@ void Schwarz_get_patch_geometric (Schwarz_data *Schwarz,
         break;
     }
 
-    printf("Did mxm\n");
 
     ///iblk = (INT*)calloc(p_el.row+1,sizeof(INT));
     iblk = (INT*)calloc(nblk+1,sizeof(INT));
@@ -448,6 +443,7 @@ void Schwarz_get_patch_geometric (Schwarz_data *Schwarz,
     // Shift 1
     for(i=0; i<nblk+1; i++){
       iblk[i] -= 1;
+//      printf("iblk[%d] = %d\n",i,iblk[i]);
     }
 
     //jblk = (INT*)calloc(p_el.nnz,sizeof(INT));
@@ -457,6 +453,7 @@ void Schwarz_get_patch_geometric (Schwarz_data *Schwarz,
     // Shift 1
     for(i=0; i<ntot; i++){
       jblk[i] -= 1;
+//      printf("jblk[%d] = %d\n",i,jblk[i]);
     }
 
     Schwarz->nblk = nblk;
@@ -511,9 +508,9 @@ INT Schwarz_setup_geometric (Schwarz_data *Schwarz,
     /*-------------------------------------------*/
     // find the blocks
     /*-------------------------------------------*/
-    printf("Findeing Schwarz patches\n");
+    //printf("Findeing Schwarz patches\n");
     Schwarz_get_patch_geometric(Schwarz, mesh, 0, 2);
-    printf("Found Schwarz patches\n");
+    //printf("Found Schwarz patches\n");
     nblk = Schwarz->nblk;
 
     /*-------------------------------------------*/
@@ -521,9 +518,9 @@ INT Schwarz_setup_geometric (Schwarz_data *Schwarz,
     /*-------------------------------------------*/
     memset(mask, 0, sizeof(INT)*n);
     Schwarz->blk_data = (dCSRmat*)calloc(nblk, sizeof(dCSRmat));
-    printf("Getting block matrix\n");
+    //printf("Getting block matrix\n");
     Schwarz_get_block_matrix(Schwarz, nblk, Schwarz->iblock, Schwarz->jblock, mask);
-    printf("Got block matrix\n");
+    //printf("Got block matrix\n");
 
     // Setup for each block solver
     switch (block_solver) {
