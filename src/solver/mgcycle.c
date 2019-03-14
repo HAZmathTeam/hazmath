@@ -732,6 +732,11 @@ ForwardSweep:
 
         num_lvl[l]++;
         
+        // correct bdry
+        for(i=0; i<bmgl[l].x.row; i++){
+          if( bmgl[l].dirichlet[i] == 1 )
+            bmgl[l].x.val[i] = 0.0;
+        }
         // pre-smoothing with standard smoothers
         bdcsr_presmoothing(l, bmgl, param);
         // correct bdry
@@ -744,7 +749,7 @@ ForwardSweep:
         array_cp(bmgl[l].b.row, bmgl[l].b.val, bmgl[l].w.val);
         bdcsr_aAxpy(-1.0,&bmgl[l].A, bmgl[l].x.val, bmgl[l].w.val);
         // correct bdry
-        for(i=0; i<bmgl[l].w.row; i++){
+        for(i=0; i<bmgl[l].b.row; i++){
           if( bmgl[l].dirichlet[i] == 1 )
             bmgl[l].w.val[i] = 0.0;
         }
@@ -777,7 +782,7 @@ ForwardSweep:
         default:
             // use iterative solver on the coarsest level
             printf("Solving coarse level with coarse_itsolve...\n");
-//            coarse_itsolver(&bmgl[nl-1].A, &bmgl[nl-1].b, &bmgl[nl-1].x, tol, prtlvl);
+            bdcsr_pvgmres(&bmgl[nl-1].A, &bmgl[nl-1].b, &bmgl[nl-1].x, NULL, tol, 1000, 1000, 1, 0);
             break;
 
     }
@@ -802,6 +807,11 @@ ForwardSweep:
 
         // post-smoothing with standard methods
         bdcsr_postsmoothing(l, bmgl, param);
+        // correct bdry
+        for(i=0; i<bmgl[l].x.row; i++){
+          if( bmgl[l].dirichlet[i] == 1 )
+            bmgl[l].x.val[i] = 0.0;
+        }
 
         if ( num_lvl[l] < cycle_type ) break;
         else num_lvl[l] = 0;
