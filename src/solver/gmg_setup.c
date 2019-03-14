@@ -367,17 +367,6 @@ void build_face_R (dCSRmat *R,
                   index++;
                 }
               }
-
-//              if( IJfilled[fface*R->row + cface] == -1 ) {
-//                IJfilled[fface*R->row + cface] = 1;
-//                if(ABS(value) > 1e-8){
-//                  I[index] = cface;
-//                  J[index] = fface;
-//                  V[index] = value;
-//                  index++;
-//                }
-//              }
-
             }
             locFaceId++;
           }//j
@@ -570,58 +559,6 @@ void build_bubble_R (dCSRmat *R,
               fface = fmesh->el_f->JA[jj]-1;
               // Fill R
               value = 0.0;
-//////              // Evaluate coarse mesh basis function on fine mesh dof.
-//////              for(quad=0;quad<cqface->nq_per_elm;quad++){
-//////                qval = 0.0;
-//////                x[0] = cqface->x[fface*cqface->nq_per_elm + quad];
-//////                x[1] = cqface->y[fface*cqface->nq_per_elm + quad];
-//////                bubble_face_basis(phi,dphi,x,v_on_elm,f_on_elm,cmesh);
-//////                for(i=0;i<dim;i++){
-//////                  qval += fmesh->f_norm[fface*dim+i]*phi[locFaceId*dim+i];
-//////                }
-//////                value += qval * cqface->w[fface*cqface->nq_per_elm+quad];
-//////              }
-//////              //value = value * fmesh->f_area[fface]; // TODO: bubble scaling. I don't know.
-//////
-//////              // Get Linear Version 2
-//////              // get endpoints of fine edge
-//////              lval = 0.0;
-//////              get_incidence_row(fface,fmesh->f_v,v_on_f);
-//////              for(ed=0;ed<dim;ed++){
-//////                x[0] = fmesh->cv->x[v_on_f[ed]-1];
-//////                x[1] = fmesh->cv->y[v_on_f[ed]-1];
-//////                // Evaluate Coarse Bubble at endpoints
-//////                bubble_face_basis(phi,dphi,x,v_on_elm,f_on_elm,cmesh);
-//////                // Save in R linear
-//////                vertex = v_on_f[ed]-1;
-//////                if( VertFilled[cface + vertex*R->row] == 0 ){
-//////                  VertFilled[cface + vertex*R->row] = 1;
-//////                  Il1[indexl] = cface;
-//////                  Jl1[indexl] = vertex;
-//////                  Vl1[indexl] = phi[locFaceId*dim+0];
-//////                  Il2[indexl] = cface;
-//////                  Jl2[indexl] = vertex;
-//////                  Vl2[indexl] = phi[locFaceId*dim+1];
-//////                  indexl++;
-//////                }
-//////                // Integrate over fine edge (midpoint rule)
-//////                for(i=0;i<dim;i++) lval += phi[locFaceId*dim+i]*fmesh->f_norm[fface*dim+i];
-//////              }
-//////              lval = lval/dim;// (midpoint rule)
-//////              lval = lval * fmesh->f_area[fface];
-//////              printf("value: %f \tlval: %f\n",value,lval);
-//////              // Subtract off Linear
-//////              value = value - lval;
-//////
-//////              if( IJfilled[fface*R->row + cface] == -1 ) {
-//////                IJfilled[fface*R->row + cface] = 1;
-//////                if(ABS(value) > 1e-8){
-//////                  I[index] = cface;
-//////                  J[index] = fface;
-//////                  V[index] = value;
-//////                  index++;
-//////                }
-//////              }
 
               // The following is a simpson's rule integration, with the endpoints of the function = 0, so only the midpoint is needed.
               x[0] = fmesh->f_mid[fface*dim];
@@ -649,9 +586,6 @@ void build_bubble_R (dCSRmat *R,
                   if(cface==Il1[kk] && vertex==Jl1[kk]) not_duplicate_entry = 0;
                 }
                 if(not_duplicate_entry){
-
-//                if( VertFilled[cface + vertex*R->row] == 0 ){
-//                  VertFilled[cface + vertex*R->row] = 1;
                   Il1[indexl] = cface;
                   Jl1[indexl] = vertex;
                   Vl1[indexl] = phi[locFaceId*dim+0];
@@ -659,7 +593,6 @@ void build_bubble_R (dCSRmat *R,
                   Jl2[indexl] = vertex;
                   Vl2[indexl] = phi[locFaceId*dim+1];
                   indexl++;
-//                }
                 }
                 // Linear part on fine edge.
                 lval += phi[locFaceId*dim+i]/2;
@@ -680,17 +613,6 @@ void build_bubble_R (dCSRmat *R,
                   index++;
                 }
               }
-
-//              if( IJfilled[fface*R->row + cface] == -1 ) {
-//                IJfilled[fface*R->row + cface] = 1;
-//                if(ABS(value) > 1e-8){
-//                  I[index] = cface;
-//                  J[index] = fface;
-//                  V[index] = value;
-//                  index++;
-//                }
-//              }
-
 
             }//jj (fface)
             locFaceId++;
@@ -992,7 +914,6 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
             nc1d = (nf1d)/2;
             // Build Here
-            //build_bubble_R( mgl[lvl].R.blocks[i+i*brow], mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
           break;
           case 111://P1 for each dim then merge
             bdcsr_alloc(dim,dim,&tempRblk);
@@ -1045,6 +966,8 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
               mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
               ++bm;
             }
+            free_fespace(&FE_loc);
+            create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 1);
             set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, 1,4); // Uy
             for(j=0;j<FE_loc.ndof;j++){
               mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
