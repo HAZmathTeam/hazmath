@@ -652,6 +652,13 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
       dcsr_alloc( bmgl[0].A_diag[blk].row, bmgl[0].A_diag[blk].row, bmgl[0].A_diag[blk].nnz, &bmgl[0].mgl[blk][0].A);
       dcsr_cp( &(bmgl[0].A_diag[blk]), &bmgl[0].mgl[blk][0].A );
 
+      bmgl[0].mgl[blk][0].num_levels = max_levels;
+      bmgl[0].mgl[blk][0].cycle_type = param->cycle_type;
+      bmgl[0].mgl[blk][0].b = dvec_create(bmgl[0].mgl[blk][0].A.row);
+      bmgl[0].mgl[blk][0].x = dvec_create(bmgl[0].mgl[blk][0].A.row);
+      bmgl[0].mgl[blk][0].w = dvec_create(2*bmgl[0].mgl[blk][0].A.row);
+
+      // Remove dirichlet boundaries
       FE_fake.dirichlet = bmgl[0].dirichlet_blk[blk];
       FE_fake.ndof = bmgl[0].A_diag[blk].row;
       dcsr_shift( &bmgl[0].mgl[blk][0].A,  1);
@@ -659,6 +666,7 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
       eliminate_DirichletBC(NULL, &FE_fake , &bmgl[0].fine_level_mesh, NULL, &(bmgl[0].mgl[blk][0].A),0.0);
       printf("Eliminated dirichlet BC for A_diag\n");
       dcsr_shift( &bmgl[0].mgl[blk][0].A, -1);
+
 
       // Initialize Schwarz parameters
       bmgl->Schwarz_levels = param->Schwarz_levels;
@@ -703,11 +711,11 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
 
 
         // setup total level number and current level
-        bmgl[0].mgl[blk][lvl].num_levels = max_levels;
-        bmgl[0].mgl[blk][lvl].cycle_type = param->cycle_type;
-        bmgl[0].mgl[blk][lvl].b = dvec_create(bmgl[0].mgl[blk][lvl].A.row);
-        bmgl[0].mgl[blk][lvl].x = dvec_create(bmgl[0].mgl[blk][lvl].A.row);
-        bmgl[0].mgl[blk][lvl].w = dvec_create(2*bmgl[0].mgl[blk][lvl].A.row);
+        bmgl[0].mgl[blk][lvl+1].num_levels = max_levels;
+        bmgl[0].mgl[blk][lvl+1].cycle_type = param->cycle_type;
+        bmgl[0].mgl[blk][lvl+1].b = dvec_create(bmgl[0].mgl[blk][lvl+1].A.row);
+        bmgl[0].mgl[blk][lvl+1].x = dvec_create(bmgl[0].mgl[blk][lvl+1].A.row);
+        bmgl[0].mgl[blk][lvl+1].w = dvec_create(2*bmgl[0].mgl[blk][lvl+1].A.row);
 
         /*-- Setup Schwarz smoother if necessary --*/
         //if( lvl < param->Schwarz_levels && blk == 1 ) { // && use_Schwarz[blk] == 1) or something similar
@@ -757,12 +765,12 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
  */
 void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *param, INT pre_post)
 {
-    printf("\tBeginning Block smoother, lvl=%d\n",lvl);
+    //printf("\tBeginning Block smoother, lvl=%d\n",lvl);
     param->presmooth_iter = 2;
-    printf("\t\t| using %2d iterations\n",param->presmooth_iter);
+    //printf("\t\t| using %2d iterations\n",param->presmooth_iter);
     // Initialize
     INT n0, n1, n2, ntot;
-    INT triType = 1;
+    INT triType = 0;
     // Sub-vectors
     dvector x0, x1, x2;
     dvector b0, b1, b2;
@@ -788,9 +796,9 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
     b2.val = &(bmgl[lvl].b.val[n0+n1]);
 
     // Block 0: P1 + Bubble
-    smoother_dcsr_sgs(&x0, &(bmgl[lvl].mgl[0][0].A), &b0, param->presmooth_iter);
-    //directsolve_UMF(&(bmgl[lvl].mgl[0][0].A), &b0, &x0, 10);
-    printf("\tBlock 0 done...\n");
+//    smoother_dcsr_sgs(&x0, &(bmgl[lvl].mgl[0][0].A), &b0, param->presmooth_iter);
+    directsolve_UMF(&(bmgl[lvl].mgl[0][0].A), &b0, &x0, 10);
+    //printf("\tBlock 0 done...\n");
 
     // r1 = r1 - A3*z0
     if(triType==1){
@@ -803,13 +811,13 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
 //    swzparam.Schwarz_blksolver = bmgl[lvl].mgl[1][0].Schwarz.blk_solver;
 //    if(pre_post == 1){
 //      smoother_dcsr_Schwarz_forward( &(bmgl[lvl].mgl[1][0].Schwarz), &swzparam, &x1, &b1);
-//      smoother_dcsr_Schwarz_backward(&(bmgl[lvl].mgl[1][0].Schwarz), &swzparam, &x1, &b1);
+////      smoother_dcsr_Schwarz_backward(&(bmgl[lvl].mgl[1][0].Schwarz), &swzparam, &x1, &b1);
 //    } else if (pre_post == 2){
 //      smoother_dcsr_Schwarz_backward(&(bmgl[lvl].mgl[1][0].Schwarz), &swzparam, &x1, &b1);
-//      smoother_dcsr_Schwarz_forward( &(bmgl[lvl].mgl[1][0].Schwarz), &swzparam, &x1, &b1);
+////      smoother_dcsr_Schwarz_forward( &(bmgl[lvl].mgl[1][0].Schwarz), &swzparam, &x1, &b1);
 //    }
     directsolve_UMF(&(bmgl[lvl].mgl[1][0].A), &b1, &x1, 10);
-    printf("\tBlock 1 done...\n");
+    //printf("\tBlock 1 done...\n");
 
     if(triType==1){
       // r2 = r2 - A6*z0 - A7*z1
@@ -820,9 +828,9 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
     }
 
     // Block 2: P0
-    smoother_dcsr_sgs(&x2, &(bmgl[lvl].mgl[2][0].A), &b2, param->presmooth_iter);
-    //directsolve_UMF(&(bmgl[lvl].mgl[2][0].A), &b2, &x2, 10);
-    printf("\tBlock 2 done...\n");
+//    smoother_dcsr_sgs(&x2, &(bmgl[lvl].mgl[2][0].A), &b2, param->presmooth_iter);
+    directsolve_UMF(&(bmgl[lvl].mgl[2][0].A), &b2, &x2, 10);
+    //printf("\tBlock 2 done...\n");
 
 
 
