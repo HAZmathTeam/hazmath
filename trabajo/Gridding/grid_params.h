@@ -11,7 +11,7 @@
 #endif
 
 /* MAX LEVELS of refinement */
-#define MAXREFLEVELS 5
+#define MAXREFLEVELS 0
 
 /* 
    preceeds all file names, so it can be a directory name and a
