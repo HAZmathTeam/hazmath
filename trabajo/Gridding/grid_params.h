@@ -1,5 +1,5 @@
 #ifndef INT
-#define INT int
+1;5202;0c#define INT int
 #endif
 
 #ifndef REAL
@@ -11,7 +11,7 @@
 #endif
 
 /* MAX LEVELS of refinement */
-#define MAXREFLEVELS 0
+#define MAXREFLEVELS 6
 
 /* 
    preceeds all file names, so it can be a directory name and a
