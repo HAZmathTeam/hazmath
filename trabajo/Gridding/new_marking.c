@@ -8,7 +8,7 @@
 
 #include "hazmath.h"
 #include "grid_defs.h"
-void marks(scomplex *sc)
+void marks(scomplex *sc, dvector *errors)
 {
   /* mark simplices depending on the value of an estimator */
   /* the estimator here is the aspect ratio of the simplex */
