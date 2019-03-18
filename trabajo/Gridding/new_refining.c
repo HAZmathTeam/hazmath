@@ -7,47 +7,68 @@
 
  */
 #include "hazmath.h"
-#include "grid_defs.h"
+//#include "grid_defs.h"
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
-void n_refine(INT ref_levels, scomplex *sc,dvector *dxstar)
+void abfstree(INT it, scomplex *sc,INT *wrk);
+/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
+void n_refine(INT ref_type, INT ref_levels, scomplex *sc,	\
+	      dvector *errors, 
+	      void (*solving)(INT , scomplex *, void *),		\
+	      void (*estimating)(INT , scomplex *, void *),	\
+	      void (*marking)(INT , scomplex *, void *))
 {
 /* 
- * refine ref_levels using marking strategy (below as example it
- * uses "markstar()" as a function that marks for refinement every
- * element which contains a point with coordinates stored in *dxstar.
  *
- *  If *dxstar is null or if $dxstar->row=0 then uniform refinement
- *  "ref_levels" time of every element is done. 
+ * refine ref_levels. Follows the algorithm:
+ * SOLVE-->ESTIMATE-->MARK-->REFINE. 
+ *
  */
   if(ref_levels<=0) return;
-  INT n=sc->n,j=-1,k=-1,i123=-10;
+  /* 
+     "anything" is a void pointer to structure or array or bunch of
+     arrays of mixed type which are used in solve, estimate and mark
+     phases.
+  */
+  void *anything = (void *)errors;
+  /**/
+  INT n=sc->n,i=-1,j=-1,k=-1,i123=-10;
   INT ns,nv,n1,nsold,nvold,level;
   if(!sc->level){
     /*form neighboring list; */
     find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
+    //    haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
     INT *wrk=calloc(5*(sc->n+2),sizeof(INT));
     /* construct bfs tree for the dual graph */
     abfstree(0,sc,wrk);
+    //    haz_scomplex_print(sc,0,__FUNCTION__);fflush(stdout);
+    //    exit(100);
     if(wrk) free(wrk);
   }
   n=sc->n; n1=n+1; level=0;
-  /* we first mark everything */
-  markall(sc);
   fprintf(stdout,"refine: ");
   while(sc->level < ref_levels && TRUE){
-    if(dxstar->row && dxstar->val) markstar(sc,dxstar);    
+    //    if(dxstar->row && dxstar->val) markstar(sc,dxstar);
+    /* SOLVE */
+    (*solving)(ref_type, sc, anything);
+    /* ESTIMATE */
+    (*estimating)(ref_type,sc, anything);
+    /* MARK */
+    (*marking)(ref_type, sc, anything);
+      /* for(i = 0;i<sc->ns;i++){ */
+      /* //    if(sc->gen[i] < level) continue;     */
+      /* fprintf(stdout,"\n%s: ZZZZZZZZZZZzsimplex %d (mark=%d, gen=%d, c0=%d)", \ */
+      /* 	      __FUNCTION__,i,sc->marked[i],sc->gen[i],sc->child0[i]); */
+      /* } */
+    /* REFINE FOLLOWS : */
     nsold=sc->ns;
     nvold=sc->nv;
-    for(j = 0;j < nsold;j++) {
-      /* 
-       * refine everything that is marked on the finest level
-       * (marked>0 and child<0) and is not refined
-      */
-      if(sc->marked[j] && (sc->childn[j]<0)){
-	/* fprintf(stdout,"\n%d:%d(%d and %d)\n",TRUE,j,sc->marked[j],sc->childn[j]); */
+    /* 
+     * refine everything that is marked on the finest level and is
+     * not yet refined: (marked>0 and child<0)
+     */
+    for(j = 0;j < nsold;j++)
+      if(sc->marked[j] && (sc->child0[j]<0||sc->childn[j]<0))
 	haz_refine_simplex(sc, j, -1);
-      }
-    }
     /* new mesh */
     ns=sc->ns; nv=sc->nv;
     sc->level++;
