@@ -1,6 +1,10 @@
+!     numbering is first wrt y second to x, it follows the ordering
+!     of the vertices of the unit cube if we consider their vertices as
+!     binary numbers and order the corresponding binary numbers      
+!... SHOULD BE REPLACED BY DIM INDEPENDENT. 
+!=======================================================================
       subroutine squtri(nop)
       dimension nop(3,2,2)
-C
 C... This forms the correspondance between the square numbering (4)
 C...  nodes and the local triangle numbering (2 triangles in the
 C...  square).  THUS: nop(i,j,1) is the GLOBAL number in the square of
