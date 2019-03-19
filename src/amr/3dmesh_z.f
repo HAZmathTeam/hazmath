@@ -1,20 +1,27 @@
+!     numbering is first wrt z second y third x, it follows the ordering
+!     of the vertices of the unit cube if we consider their vertices as
+!     binary numbers and order the corresponding binary numbers      
+!... SHOULD BE REPLACED BY DIM INDEPENDENT. 
+!=======================================================================
       subroutine cubtet(nop)
       dimension nop(4,6,4)
       dimension ip1(8),ip2(8),ip3(8),ip4(8)
-      dimension ip(8,3),ip777(8,3)
+      dimension ip(8,3)
+!!,ip777(8,3)
 !!      data ip1 /4,3,2,1,8,7,6,5/
 !!      data ip2 /2,4,1,3,6,8,5,7/
 !!      data ip3 /3,1,4,2,7,5,8,6/
-      data ip777 /
-     >     3,1,4,2,7,5,8,6,
-     >     2,4,1,3,6,8,5,7,
-     >     4,3,2,1,8,7,6,5
-     >     /
+C... should be replaced by dim independent. 
+c$$$      data ip777 /
+c$$$     >     3,1,4,2,7,5,8,6,
+c$$$     >     2,4,1,3,6,8,5,7,
+c$$$     >     4,3,2,1,8,7,6,5
+c$$$     >     /
 c$$$      data ip /
 c$$$     >     5,1,7,3,6,2,8,4,
 c$$$     >     3,7,1,5,4,8,2,6,
 c$$$     >     7,5,3,1,8,6,4,2
-c$$$     >     /
+c$$$  >     /
       data ip /
      >     5,6,7,8,1,2,3,4,
      >     3,4,1,2,7,8,5,6,
