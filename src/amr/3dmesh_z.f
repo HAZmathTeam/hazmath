@@ -22,11 +22,17 @@ c$$$     >     5,1,7,3,6,2,8,4,
 c$$$     >     3,7,1,5,4,8,2,6,
 c$$$     >     7,5,3,1,8,6,4,2
 c$$$  >     /
+c$$$      data ip /
+c$$$     >     5,6,7,8,1,2,3,4,
+c$$$     >     3,4,1,2,7,8,5,6,
+c$$$     >     2,1,4,3,6,5,8,7
+c$$$     >     /
       data ip /
      >     5,6,7,8,1,2,3,4,
-     >     3,4,1,2,7,8,5,6,
-     >     2,1,4,3,6,5,8,7
+     >     3,4,7,8,1,2,5,6,
+     >     2,4,6,8,1,3,5,7
      >     /
+      
 C
 C... This forms the correspondance between the cube numbering (8) nodes
 C...  and the local tetrahedra numbering (6 tetrahedra in the cube).
@@ -396,6 +402,7 @@ C
      >              k .ge. maxk) then
                   call xyzloc(xyz,jcub,nx,ny,nz,
      >                 i,j,k,hx,hy,hz,xmin,ymin,zmin)
+                  write(*,*) 'element= ', i,j,k,' type=',it
                   do jk = 1 , 6
                      do mm = 1 , 4
                         inode = inumb(jcub(nop(mm,jk,it)))
