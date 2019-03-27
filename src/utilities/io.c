@@ -250,6 +250,68 @@ void ivector_print(FILE* fid,
 }
 
 
+/*******************************************************************/
+/*  \fn void print_full_mat(const  INT n, const INT m, REAL *A,const char *varname)
+ *
+ *
+ *  \note: prints a matrix A with (n) rows and (m) columns in matlab
+ *         format e.g. 2 x 2 identity is printed as I2=[1. 0.;0. 1.];
+ *         if th varname= "I2"
+ *
+*/
+void print_full_mat(const  INT n, const INT m, REAL *A,const char *varname)
+{
+  if( (n<1) || (m<1) ) return;
+  if( (n*m)>(129*129) ) return;
+  INT i,j,n1=n-1;
+  if(varname==NULL){
+    fprintf(stdout,"\nA=[");
+  }else{
+    fprintf(stdout,"\n%s=[",varname);
+  }
+  for (i = 0; i<n;i++){
+    for(j=0;j<m;j++){
+      fprintf(stdout,"%23.16e ", A[m*i+j]);
+    }
+    if(i!=n1){
+      fprintf(stdout,";");
+    }else{
+      fprintf(stdout,"];\n");
+    }
+  }
+  return;
+}
+/*******************************************************************/
+/*  \fn void print_full_mat_int(const  INT n, const INT m, INT *A,const char *varname)
+ *
+ *
+ *  \note: prints an INTEGER matrix A with (n) rows and (m) columns in
+ *         matlab format e.g. 2 x 2 integer matrix is printed as
+ *         X=[1 2; 3 4]; if the varname= "X"
+ *
+*/
+void print_full_mat_int(const  INT n, const INT m, INT *A,const char *varname)
+{
+  if( (n<1) || (m<1) ) return;
+  if( (n*m)>(129*129) ) return;
+  INT i,j,n1=n-1;
+  if(varname==NULL){
+    fprintf(stdout,"\nintA=[");
+  }else{
+    fprintf(stdout,"\n%s=[",varname);
+  }
+  for (i = 0; i<n;i++){
+    for(j=0;j<m;j++){
+      fprintf(stdout,"%16i ", A[m*i+j]);
+    }
+    if(i!=n1){
+      fprintf(stdout,";");
+    }else{
+      fprintf(stdout,"];\n");
+    }
+  }
+  return;
+}
 /***********************************************************************************************/
 /*!
  * \fn void csr_print_matlab(FILE* fid,dCSRmat *A)
@@ -1107,12 +1169,57 @@ void debug_print(char* string, INT kill)
 /****************************************************************/
 
 /**********************************************************************
- * Routines to save to file the mesh in different formats.
+ * Routines to read or save to file the mesh in different formats.
  * uses the simplicial complex data structure (scomplex *sc).
  *
  *************************************************************************/
+scomplex *hazr(char *namein)
+{
+  // READING in hazmath format.
+  FILE *fmeshin;
+  INT nv,ns,dim,nholes=0;
+  INT k=-10,j=-10,m=-10;
+  fmeshin=HAZ_fopen(namein,"r");
+  /* *******************************************
+     read a hazmath mesh file. 
+     *******************************************    */
+  fscanf(fmeshin,"%i %i %i %i\n",&ns,&nv,&dim,&nholes);
+  scomplex *sc = (scomplex *)haz_scomplex_init(dim,ns,nv);
+  INT dim1=sc->n+1;
+  for (j=0;j<dim1;j++) {
+    for (k=0;k<ns;k++){
+      m=dim1*k+j;
+      /* shift if needed */
+      fscanf(fmeshin,"%i", sc->nodes+m);
+      fprintf(stdout,"\n%d",sc->nodes[m]);
+    }
+  }
+  for (k=0;k<sc->ns;k++){
+    fscanf(fmeshin,"%d", sc->flags+k);
+      fprintf(stdout,"\n%d",sc->flags[k]);
+  }
+  for(j=0;j<dim;j++){
+    for(k=0;k<nv;k++){
+      fscanf(fmeshin,"%lg",sc->x+k*dim+j);
+    }
+  }
+  for(k=0;k<nv;k++){
+    fscanf(fmeshin,"%d", sc->bndry+k);
+  }
+  /* //NEWNEW: a function value */
+  /* if(sc->fval){ */
+  /*   for(k=0;k<n;k++){ */
+  /*     fscanf(fmeshin," %23.16g ", sc->fval+k); */
+  /*   } */
+  /* } */
+  fclose(fmeshin);
+  //  haz_scomplex_print(sc,0,"HERE");fflush(stdout);
+  fprintf(stdout,"\n%%INPUT: (hazmath) read on:%s\n",namein);
+  return sc;
+}
 void hazw(char *nameout,scomplex *sc, const INT nholes, const int shift)
 {
+  // WRITING in HAZMATH format. 
   FILE *fmesh;
   INT n=sc->nv,ns=sc->ns, dim=sc->n,ndl=sc->n+1;
   INT *je = sc->nodes, *ib=sc->bndry;
