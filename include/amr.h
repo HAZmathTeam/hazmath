@@ -44,7 +44,7 @@ typedef struct /* a coordinate system */
 {
   INT type; /* the type of the coordinate system: 0 is cartesian, 1 is
 	       polar, 2 is cyllindical and so on */
-  REAL *c; /* coordinates of the origin */
+  REAL *o; /* coordinates of the origin */
   scomplex *parent; /*parent complex */
 } coordsystem;
 
