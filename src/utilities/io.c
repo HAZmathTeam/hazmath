@@ -1191,12 +1191,12 @@ scomplex *hazr(char *namein)
       m=dim1*k+j;
       /* shift if needed */
       fscanf(fmeshin,"%i", sc->nodes+m);
-      fprintf(stdout,"\n%d",sc->nodes[m]);
+      //      fprintf(stdout,"\n%d",sc->nodes[m]);
     }
   }
   for (k=0;k<sc->ns;k++){
     fscanf(fmeshin,"%d", sc->flags+k);
-      fprintf(stdout,"\n%d",sc->flags[k]);
+    //      fprintf(stdout,"\n%d",sc->flags[k]);
   }
   for(j=0;j<dim;j++){
     for(k=0;k<nv;k++){
