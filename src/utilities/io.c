@@ -1167,15 +1167,9 @@ void debug_print(char* string, INT kill)
 }
 
 /****************************************************************/
-
-/**********************************************************************
- * Routines to read or save to file the mesh in different formats.
- * uses the simplicial complex data structure (scomplex *sc).
- *
- *************************************************************************/
 scomplex *hazr(char *namein)
 {
-  // READING in hazmath format.
+  // READING a mesh in hazmath format.
   FILE *fmeshin;
   INT nv,ns,dim,nholes=0;
   INT k=-10,j=-10,m=-10;
@@ -1214,7 +1208,7 @@ scomplex *hazr(char *namein)
   /* } */
   fclose(fmeshin);
   //  haz_scomplex_print(sc,0,"HERE");fflush(stdout);
-  fprintf(stdout,"\n%%INPUT: (hazmath) read on:%s\n",namein);
+  fprintf(stdout,"\n%%INPUT mesh: (hazmath) read from:%s\n",namein);
   return sc;
 }
 void hazw(char *nameout,scomplex *sc, const INT nholes, const int shift)
