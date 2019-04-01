@@ -182,7 +182,17 @@ C (i+1,j,k+1)
 !      jcub(7) = (k)*nx*ny + (j-1)*nx + i+1 
 C (i+1,j+1,k+1)
       jcub(8) = nomxyz(ip1,jp1,kp1,nx,ny,nz)
-!      jcub(8) = (k)*nx*ny + (j)*nx + i + 1 
+!     jcub(8) = (k)*nx*ny + (j)*nx + i + 1
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+c$$$      write(*,*) i,j,k
+c$$$      write(*,*) i,j,kp1
+c$$$      write(*,*) i,jp1,k
+c$$$      write(*,*) i,jp1,kp1
+c$$$      write(*,*) ip1,j,k
+c$$$      write(*,*) ip1,j,kp1
+c$$$      write(*,*) ip1,jp1,k
+c$$$      write(*,*) ip1,jp1,kp1
+c$$$      read(*,*)
       return
       end
       subroutine bndry3(ib,nx,ny,nz,
@@ -402,10 +412,12 @@ C
      >              k .ge. maxk) then
                   call xyzloc(xyz,jcub,nx,ny,nz,
      >                 i,j,k,hx,hy,hz,xmin,ymin,zmin)
-                  write(*,*) 'element= ', i,j,k,' type=',it
+!!!                  write(*,*) 'element= ', i,j,k,' type=',it
+!!!                  write(*,'(a,8i5,a)') '(',(jcub(mm),mm=1,8),')'
                   do jk = 1 , 6
                      do mm = 1 , 4
                         inode = inumb(jcub(nop(mm,jk,it)))
+!!!                        write(*,'(i7$)') inode
                         if(inode .eq. 0) then
                            write(*,*) 'ERROR:i,j,k and inode = 0', 
      >                          i,j,k,inode
@@ -417,6 +429,7 @@ C
                         je(kl) = inode
                         kl = kl + 1
                      end do
+!!                     write(*,*)
                      iflags(jjkk)=k
                      jjkk = jjkk + 1
                   end do

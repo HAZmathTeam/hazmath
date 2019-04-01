@@ -4,7 +4,7 @@
  *  Copyright 2017__HAZMATH__. All rights reserved.
  *
  *   \note routines to initialize construct and destruct uniform grids in
- *  d-dimeensions for general d.
+ *  d-dimensions for general d.
  *  \note interpolates data on uniform grids
 */
 #include "hazmath.h"
