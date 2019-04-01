@@ -56,37 +56,7 @@ void r2c(const INT n, const INT m, const size_t sizeel, void *x)
   if(y) free(y);
   return;
 }
-/*******************************************************************/
-/*  \fn void print_full_mat(const  INT n, const INT m, REAL *A,const char *varname)
- *
- *
- *  \note: prints a matrix A with (n) rows and (m) columns in matlab
- *         format e.g. 2 x 2 identity is printed as I2=[1. 0.;0. 1.];
- *         if th varname= "I2"
- *
-*/
-void print_full_mat(const  INT n, const INT m, REAL *A,const char *varname)
-{
-  if( (n<1) || (m<1) ) return;
-  if( (n*m)>(129*129) ) return;
-  INT i,j,n1=n-1;
-  if(varname==NULL){
-    fprintf(stdout,"\nA=[");
-  }else{
-    fprintf(stdout,"\n%s=[",varname);
-  }
-  for (i = 0; i<n;i++){
-    for(j=0;j<m;j++){
-      fprintf(stdout,"%23.16e ", A[m*i+j]);
-    }
-    if(i!=n1){
-      fprintf(stdout,";");
-    }else{
-      fprintf(stdout,"];\n");
-    }
-  }
-  return;
-}
+/**********************************************************************/
 INT solve_pivot(INT dopivot, INT n, REAL *A, REAL *b, INT *p,REAL *piv)
 {
   INT nm1,i1,k1,pin,kswp,kp,i,j,k;
