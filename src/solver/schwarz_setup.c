@@ -491,7 +491,8 @@ INT Schwarz_setup_geometric (Schwarz_data *Schwarz,
 
     // data for Schwarz method
     INT nblk;
-    INT *iblock = NULL, *jblock = NULL, *mask = NULL, *maxa = NULL;
+    //INT *iblock = NULL, *jblock = NULL;
+    INT *mask = NULL, *maxa = NULL;
 
     // return
     INT flag = SUCCESS;
