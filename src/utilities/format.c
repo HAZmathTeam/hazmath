@@ -132,6 +132,39 @@ dCSRmat bdcsr_2_dcsr (block_dCSRmat *Ab)
 
 /***********************************************************************************************/
 /*!
+ * \fn dCSRmat bdcsr_subblk_2_dcsr (block_dCSRmat *Ab)
+ *
+ * \brief   Transform a block_dCSRmat matrix to a dCSRmat matrix
+ *
+ * \param   Ab   Pointer to a block_dCSRmat matrix
+ *
+ * \return  A    dCSRmat matrix if succeed, NULL if fail
+ *
+ * \note    Memory space for the dCSRmat matrix is allocated inside this functions! -- Xiaozhe Hu
+ *
+ */
+dCSRmat bdcsr_subblk_2_dcsr (block_dCSRmat *Ab, INT brow_start, INT brow_end, INT bcol_start, INT bcol_end)
+{   
+    INT i, j;
+    INT ii, jj;
+    block_dCSRmat Asub;
+    bdcsr_alloc_minimal( brow_end-brow_start+1, bcol_end-bcol_start+1, &Asub);
+
+    for(j = bcol_start; j<bcol_end+1; j++){
+      jj = j-bcol_start;
+      for(i = brow_start; i<brow_end+1; i++){
+        ii = i-brow_start; 
+        Asub.blocks[ii*Asub.bcol + jj] = Ab->blocks[i*Ab->bcol + j];
+      }
+    }
+
+    dCSRmat A = bdcsr_2_dcsr( &Asub );
+//    bdcsr_free_minimal( &Asub );
+    return(A);
+}
+
+/***********************************************************************************************/
+/*!
  * \fn block_dCSRmat dcsr_2_bdcsr (dCSRmat *A, int bnum, int *bsize)
  *
  * \brief
