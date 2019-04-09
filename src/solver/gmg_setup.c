@@ -807,8 +807,12 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
     mgl[0].dirichlet = (INT*)calloc(mgl[0].FE->ndof,sizeof(INT));
     mgl[0].dirichlet_blk = (INT**)calloc(FE_blk.nspaces,sizeof(INT*));
     bm = 0;
-    for(i=0;i<mgl[0].FE->nspaces;i++){
-      if(i==0) mgl[0].dirichlet_blk[0] = &mgl[0].dirichlet[bm]; // Bubbles + u1 + u2
+    INT NoBBL = 0;
+    if( mgl[0].gmg_type[0] == 111 ) NoBBL = 1;
+    for(i=NoBBL;i<mgl[0].FE->nspaces;i++){
+    //for(i=1;i<mgl[0].FE->nspaces;i++){
+      //if(i==0) mgl[0].dirichlet_blk[0] = &mgl[0].dirichlet[bm]; // Bubbles + u1 + u2
+      if(i==NoBBL) mgl[0].dirichlet_blk[0] = &mgl[0].dirichlet[bm]; // Displacement
       if(i==3) mgl[0].dirichlet_blk[1] = &mgl[0].dirichlet[bm]; // Darcy (RT0)
       if(i==4) mgl[0].dirichlet_blk[2] = &mgl[0].dirichlet[bm]; // Pressure
       for(j=0;j<mgl[0].FE->var_spaces[i]->ndof;j++){
@@ -928,6 +932,22 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             dcsr_alloc(Rmerge.row,Rmerge.col,Rmerge.nnz,mgl[lvl].R.blocks[i+i*brow]);
             dcsr_cp(&Rmerge,mgl[lvl].R.blocks[i+i*brow]);
             dcsr_free(&Rmerge);
+
+            create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 1);
+            set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, 5,5); // Ux
+            mgl[lvl+1].dirichlet_blk[i] = &mgl[lvl+1].dirichlet[bm];
+            for(j=0;j<FE_loc.ndof;j++){
+              mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
+              ++bm;
+            }
+            free_fespace(&FE_loc);
+            create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 1);
+            set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, 1,4); // Uy
+            for(j=0;j<FE_loc.ndof;j++){
+              mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
+              ++bm;
+            }
+            free_fespace(&FE_loc);
           break;
           case 999:// P1+bubble
             bdcsr_alloc(dim+1,dim+1,&tempRblk);
@@ -987,6 +1007,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
           dcsr_trans(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].P.blocks[i+i*brow]);
       }
       printf("Built P for lvl=%d...\n",lvl);
+          //csr_print_matlab(stdout,mgl[lvl].A_noBC.blocks[0]);
 
       /*-- Form coarse level stiffness matrix --*/
       for(i=0; i<brow; i++){
@@ -1020,7 +1041,8 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
       FE_blk.dirichlet = mgl[lvl+1].dirichlet;
       printf("eliminating BC on coarse level\n");
       bdcsr_shift(&mgl[lvl+1].A,  1);
-      eliminate_DirichletBC_blockFE_blockA(NULL,&FE_blk,&mgl[lvl+1].fine_level_mesh,NULL,&mgl[lvl+1].A,0.0);
+      //eliminate_DirichletBC_blockFE_blockA(NULL,&FE_blk,&mgl[lvl+1].fine_level_mesh,NULL,&mgl[lvl+1].A,0.0);
+      eliminate_DirichletBC_blockFE_blockA(NULL,&FE_blk,mgl[lvl+1].fine_level_mesh,NULL,&mgl[lvl+1].A,0.0);
       bdcsr_shift(&mgl[lvl+1].A, -1);
 
 
