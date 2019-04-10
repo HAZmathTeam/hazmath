@@ -42,11 +42,23 @@ typedef struct /* n-homogenous simplicial complex */
 
 typedef struct /* a coordinate system */
 {
-  INT type; /* the type of the coordinate system: 0 is cartesian, 1 is
-	       polar, 2 is cyllindical and so on */
+  INT type; /* the type of the coordinate system: 0 is cartesian, 1 if
+	       it is polar, 2 is cyllindical and so on */
   REAL *o; /* coordinates of the origin */
   scomplex *parent; /*parent complex */
 } coordsystem;
+
+typedef struct /* a macroelement (isomrphic to the hypercube
+		  usually) */
+{
+  INT type; /* the type of the macro element: not used at the moment */
+  INT *csys; /* coordinate system for every vertex */
+  REAL *xmac; /* coordinates of the vertices in the corresponding
+		 coordinate system ; */
+  REAL *xemac; /* coordinates of the midpoint of the edges if
+		  needed. These are computed depending on the coord
+		  system and are not an input */
+} macroelement;
 
 typedef struct /* n-homogenous simplicial SUBcomplex */
 {
@@ -100,7 +112,8 @@ typedef struct /* structure to support splitting unit cube into simplices */
   unsigned int *bits; /* the binary digits of all the integers from 0
 		to 2^{n-1} as an array. These are also the coordinates
 		of the vertices of the unit cube in R^n*/
-  int *nodes; /* the array describing each of the n factorial simplices
+  INT *edges; /* the array containing the ends of edges of the unit cube. */
+  INT *nodes; /* the array describing each of the n factorial simplices
 		in the unit cube */
   INT *perms; /* the n by nvcube array describing the permutations
 		which give different orderings of the cube's vertices
