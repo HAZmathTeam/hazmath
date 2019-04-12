@@ -4455,10 +4455,20 @@ void precond_block_diag_biot_3field_krylov(REAL *r,
 
 
   // Preconditioning A22 block (pressure)
-  // Diagonal matrix
-  for(i=0;i<N2;i++){
-    z[N0+N1+i] = r[N0+N1+i]/(A_diag[2].val[i]);
-  }
+  precond_data pcdata_p;
+  param_amg_to_prec(&pcdata_p,amgparam);
+  pcdata_p.max_levels = mgl[2][0].num_levels;
+  pcdata_p.mgl_data = mgl[2];
+
+  precond pc_p; pc_p.data = &pcdata_p;
+  pc_p.fct = precond_amg;
+
+  //dcsr_pvfgmres(&mgl[2][0].A, &r2, &z2, &pc_p, 1e-1, 100, 100, 1, 1);
+  dcsr_pvfgmres(&(A_diag[2]), &r2, &z2, &pc_p, 1e-3, 100, 100, 1, 1);
+  //// Diagonal matrix
+  //for(i=0;i<N2;i++){
+  //  z[N0+N1+i] = r[N0+N1+i]/(A_diag[2].val[i]);
+  //}
 
   // restore r
   array_cp(N, tempr->val, r);
@@ -4555,10 +4565,20 @@ void precond_block_lower_biot_3field_krylov(REAL *r,
       dcsr_aAxpy(-1.0, A->blocks[7], z1.val, r2.val);
 
   // Preconditioning A22 block (pressure)
-  // Diagonal matrix
-  for(i=0;i<N2;i++){
-    z[N0+N1+i] = r[N0+N1+i]/(A_diag[2].val[i]);
-  }
+  precond_data pcdata_p;
+  param_amg_to_prec(&pcdata_p,amgparam);
+  pcdata_p.max_levels = mgl[2][0].num_levels;
+  pcdata_p.mgl_data = mgl[2];
+
+  precond pc_p; pc_p.data = &pcdata_p;
+  pc_p.fct = precond_amg;
+
+  //dcsr_pvfgmres(&mgl[2][0].A, &r2, &z2, &pc_p, 1e-1, 100, 100, 1, 1);
+  dcsr_pvfgmres(&(A_diag[2]), &r2, &z2, &pc_p, 1e-3, 100, 100, 1, 1);
+  //// Diagonal matrix
+  //for(i=0;i<N2;i++){
+  //  z[N0+N1+i] = r[N0+N1+i]/(A_diag[2].val[i]);
+  //}
 
   // restore r
   array_cp(N, tempr->val, r);
@@ -4616,10 +4636,20 @@ void precond_block_upper_biot_3field_krylov(REAL *r,
   //#endif
 
   // Preconditioning A22 block (pressure)
-  // Diagonal matrix
-  for(i=0;i<N2;i++){
-    z[N0+N1+i] = r[N0+N1+i]/(A_diag[2].val[i]);
-  }
+  precond_data pcdata_p;
+  param_amg_to_prec(&pcdata_p,amgparam);
+  pcdata_p.max_levels = mgl[2][0].num_levels;
+  pcdata_p.mgl_data = mgl[2];
+
+  precond pc_p; pc_p.data = &pcdata_p;
+  pc_p.fct = precond_amg;
+
+  //dcsr_pvfgmres(&mgl[2][0].A, &r2, &z2, &pc_p, 1e-1, 100, 100, 1, 1);
+  dcsr_pvfgmres(&(A_diag[2]), &r2, &z2, &pc_p, 1e-3, 100, 100, 1, 1);
+  //// Diagonal matrix
+  //for(i=0;i<N2;i++){
+  //  z[N0+N1+i] = r[N0+N1+i]/(A_diag[2].val[i]);
+  //}
 
   // r1 = r1 - A5*z2
   if (A->blocks[5] != NULL)

@@ -3175,17 +3175,17 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
   mgl[2][0].b=dvec_create(A_diag[2].row);
   mgl[2][0].x=dvec_create(A_diag[2].row);
 
-  //switch (amgparam->AMG_type) {
+  switch (amgparam->AMG_type) {
 
-  //  case UA_AMG: // Unsmoothed Aggregation AMG
-  //    if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
-  //    status = amg_setup_ua(mgl[2], amgparam);
-  //  break;
+    case UA_AMG: // Unsmoothed Aggregation AMG
+      if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+      status = amg_setup_ua(mgl[2], amgparam);
+    break;
 
-  //  default: // UA AMG
-  //    if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
-  //    status = amg_setup_ua(mgl[2], amgparam); break;
-  //}
+    default: // UA AMG
+      if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+      status = amg_setup_ua(mgl[2], amgparam); break;
+  }
 
   printf("finished pressure block\n");
 
