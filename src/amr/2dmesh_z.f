@@ -1,6 +1,10 @@
+!     numbering is first wrt y second to x, it follows the ordering
+!     of the vertices of the unit cube if we consider their vertices as
+!     binary numbers and order the corresponding binary numbers      
+!... SHOULD BE REPLACED BY DIM INDEPENDENT. 
+!=======================================================================
       subroutine squtri(nop)
-      dimension nop(3,2,2)
-C
+      dimension nop(3,2,3)
 C... This forms the correspondance between the square numbering (4)
 C...  nodes and the local triangle numbering (2 triangles in the
 C...  square).  THUS: nop(i,j,1) is the GLOBAL number in the square of
@@ -8,7 +12,7 @@ C...  of the i-th vertex in the j-th triangle . last index is if we have
 C...  diagonal SW-NE or NW-SE
 C
 !     first triangle:
-      it=1 !SW-NE
+      it=1                      !SW-NE
       nop(1,1,it) = 1
       nop(2,1,it) = 3
       nop(3,1,it) = 4
@@ -16,15 +20,25 @@ C
       nop(1,2,it) = 4
       nop(2,2,it) = 2
       nop(3,2,it) = 1
-!
-      it=2                      !SW-NE
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      it=2                      !NW-SE
 !     first triangle:
       nop(1,1,it) = 3
-      nop(2,1,it) = 1
+      nop(2,1,it) = 4
       nop(3,1,it) = 2
 !     second triangle:
+      nop(1,2,it) = 3
+      nop(2,2,it) = 1
+      nop(3,2,it) = 2
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      it=3                      !NW-SE
+!     first triangle:
+      nop(1,1,it) = 2
+      nop(2,1,it) = 4
+      nop(3,1,it) = 3
+!     second triangle:
       nop(1,2,it) = 2
-      nop(2,2,it) = 4
+      nop(2,2,it) = 1
       nop(3,2,it) = 3
       return
       end
@@ -150,16 +164,21 @@ C     ii = (k-1)*nx*ny + (j-1)*nx + i
       return
       end
 c=====================================================================
-      subroutine getm2(nx,ny,nvert,nel,
+      subroutine getm2(nd,nvert,nel,
      >     xcoord,ycoord,
      >     je,iflags,ib,inumb,
      >     ibcode,minneu,maxneu)
       implicit real*8(a-h,o-z), integer(i-n)
       dimension xcoord(*),ycoord(*)
-      dimension je(*),ib(*), inumb(*),iflags(*)
+!! nd is number of divisions in every direction
+      dimension nd(*),je(*),ib(*), inumb(*),iflags(*)
       dimension xy(4,2),jsqu(4),jcolo(3)
-      dimension nop(3,2,2)
+      dimension nop(3,2,3)
       dimension ibcode(*)
+      dimension izz(4)
+      data izz /1,2,3,1/
+      nx=nd(1)
+      ny=nd(2)
 C
 C... ndl = 3 ! number of degrees of freedom per element
 C
@@ -216,6 +235,8 @@ C
          do i = 1 , nxm1
 !     we choose how to orient the quadrilateral now:
             it=mod(iabs(i-j),2)+1
+            it= mod(i+1,2)+1+2*mod(j+1,2)
+            it= izz(it)
 !!            write(*,*) 'it=', it
             if(  i .lt. mini .or.
      >           j .lt. minj .or.
@@ -223,6 +244,7 @@ C
      >           j .ge. maxj) then
                call xyloc(xy,jsqu,nx,ny,
      >              i,j,hx,hy,xmin,ymin)
+!               write(*,*) 'element= ', i,j,' type=',it
                do jk = 1 , 2
                   do mm = 1 , 3
                      inode = inumb(jsqu(nop(mm,jk,it)))

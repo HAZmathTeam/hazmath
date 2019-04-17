@@ -1243,7 +1243,7 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
   }
 
   // clean
-  precond_block_data_free(&precdata, 2);
+  precond_block_data_free(&precdata, 2, TRUE);
 
   return status;
 }
@@ -1434,7 +1434,7 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
     }
 
     // clean
-    precond_block_data_free(&precdata, 3);
+    precond_block_data_free(&precdata, 3, TRUE);
 
     return status;
 }
@@ -1561,7 +1561,7 @@ INT linear_solver_bdcsr_krylov_block_4(block_dCSRmat *A,
     }
 
     // clean
-    precond_block_data_free(&precdata, 4);
+    precond_block_data_free(&precdata, 4, TRUE);
 
     return status;
 }
@@ -1692,7 +1692,7 @@ INT linear_solver_bdcsr_krylov_block(block_dCSRmat *A,
   }
 
   // clean
-  precond_block_data_free(&precdata, nb);
+  precond_block_data_free(&precdata, nb, TRUE);
 
   return status;
 }
@@ -1725,8 +1725,12 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
                                            dvector *x,
                                            linear_itsolver_param *itparam,
                                            AMG_param *amgparam,
+                                           dCSRmat *P_div,
+                                           dCSRmat *Curl,
+                                           dCSRmat *P_curl,
                                            dvector *el_vol)
 {
+  // variables
   const SHORT prtlvl = itparam->linear_print_level;
   const SHORT precond_type = itparam->linear_precond_type;
 
@@ -1737,12 +1741,22 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
   const SHORT max_levels = amgparam->max_levels;
   INT i, n, np;
 
+  // initilize data for preconditioners of each diagnal block
   AMG_data **mgl = (AMG_data **)calloc(2, sizeof(AMG_data *));
   for (i=0; i<2; i++) mgl[i]=NULL;
   dvector **diag = (dvector **)calloc(2, sizeof(dvector *));
   for (i=0; i<2; i++) diag[i]=NULL;
+  HX_div_data **hxdivdata = (HX_div_data **)calloc(2, sizeof(HX_div_data *));
+  for (i=0; i<2; i++) hxdivdata[i] = NULL;
 
+  // matrix for argumented Lagrange type preconditioner
   dCSRmat BTB;
+
+  // data for HX preconditioner
+  dCSRmat A_div, A_grad, A_divgrad;
+  dCSRmat Pt_div, Curlt;
+  AMG_data *mgl_grad = amg_data_create(max_levels);
+  AMG_data *mgl_divgrad = amg_data_create(max_levels);
 
   /* setup preconditioner */
   get_time(&setup_start);
@@ -1750,7 +1764,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
   /*----------------------*/
   /* Use argumented Lagrange type preconditioner */
   /*----------------------*/
-  if (precond_type < 39)
+  if (precond_type < 30)
   {
       /* set AMG for the flux block */
       mgl[0] = amg_data_create(max_levels);
@@ -1769,7 +1783,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
 
       //dcsr_mxm(A->blocks[1], A->blocks[2], &BTB);
       dcsr_rap(A->blocks[1], &invMp, A->blocks[2], &BTB);
-      dcsr_add(&BTB, 1000.0, A->blocks[0], 1.0, &mgl[0][0].A);
+      dcsr_add(&BTB, 1.0, A->blocks[0], 1.0, &mgl[0][0].A);
       mgl[0][0].b=dvec_create(n); mgl[0][0].x=dvec_create(n);
 
       switch (amgparam->AMG_type) {
@@ -1787,6 +1801,125 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
       }
 
       dcsr_free(&BTB);
+
+  }
+  else if (precond_type > 29 && precond_type < 50)
+  {
+    /*  HX preconditioner for the flux block */
+    //-----------------------
+    // form divdiv block
+    //-----------------------
+    n = A->blocks[0]->row;
+    np = A->blocks[3]->row;
+
+    dCSRmat invMp = dcsr_create(np,np,np);
+    for (i=0;i<np;i++)
+    {
+        invMp.IA[i] = i;
+        invMp.JA[i] = i;
+        if (el_vol->val[i] > SMALLREAL) invMp.val[i]   = 1.0/(el_vol->val[i]);
+        else invMp.val[i] = 1.0;
+    }
+    invMp.IA[np] = np;
+
+    //dcsr_mxm(A->blocks[1], A->blocks[2], &BTB);
+    dcsr_rap(A->blocks[1], &invMp, A->blocks[2], &BTB);
+    dcsr_add(&BTB, 1.0, A->blocks[0], 1.0, &A_div);
+
+    // free
+    dcsr_free(&BTB);
+
+    //-----------------------
+    // Setup HX div preconditioner
+    //-----------------------
+    // get transpose of P_div
+    //dCSRmat Pt_div;
+    dcsr_trans(P_div, &Pt_div);
+    // get transpose of Curl
+    //dCSRmat Curlt;
+    dcsr_trans(Curl, &Curlt);
+
+    // 2D case: P_curl = NULL
+    if (P_curl == NULL)
+    {
+      // get A_grad (scalar H(grad))
+      //dCSRmat A_grad;
+      dcsr_rap(&Curlt, &A_div, Curl, &A_grad);
+      // get A_divgrad (vector H(grad))
+      //dCSRmat A_divgrad;
+      dcsr_rap(&Pt_div, &A_div, P_div, &A_divgrad);
+
+      // initialize A, b, x for mgl_grad[0]
+      //AMG_data *mgl_grad = amg_data_create(max_levels);
+      mgl_grad[0].A = dcsr_create(A_grad.row, A_grad.col, A_grad.nnz);
+      dcsr_cp(&A_grad, &mgl_grad[0].A);
+      mgl_grad[0].b=dvec_create(A_grad.col);
+      mgl_grad[0].x=dvec_create(A_grad.row);
+
+      // setup AMG for A_grad (scalar H(grad))
+      switch (amgparam->AMG_type) {
+
+        case UA_AMG: // Unsmoothed Aggregation AMG
+            status = amg_setup_ua(mgl_grad, amgparam); break;
+
+        default: // Classical AMG
+            status = amg_setup_ua(mgl_grad, amgparam); break;
+
+      }
+      if (status < 0) goto FINISHED;
+
+      // initialize A, b, x for mgl_divgrad[0]
+      //AMG_data *mgl_divgrad = amg_data_create(max_levels);
+      mgl_divgrad[0].A=dcsr_create(A_divgrad.row,A_divgrad.col,A_divgrad.nnz);
+      dcsr_cp(&A_divgrad, &mgl_divgrad[0].A);
+      mgl_divgrad[0].b=dvec_create(A_divgrad.col);
+      mgl_divgrad[0].x=dvec_create(A_divgrad.row);
+
+      // setup AMG for vector Laplacian
+      switch (amgparam->AMG_type) {
+
+          case UA_AMG: // Unsmoothed Aggregation AMG
+              status = amg_setup_ua(mgl_divgrad, amgparam); break;
+
+          default: // Classical AMG
+              status = amg_setup_ua(mgl_divgrad, amgparam); break;
+
+      }
+      if (status < 0) goto FINISHED;
+    }
+
+    //------------------------
+    // assign HX preconditioner data
+    //------------------------
+    hxdivdata[0] = (HX_div_data *)calloc(1, sizeof(HX_div_data));
+
+    hxdivdata[0]->A = &A_div;
+    hxdivdata[0]->smooth_type = 1;
+    hxdivdata[0]->smooth_iter = itparam->HX_smooth_iter;
+
+    // 2D case: P_curl = NULL
+    if (P_curl == NULL)
+    {
+      hxdivdata[0]->P_curl = NULL;
+      hxdivdata[0]->Pt_curl = NULL;
+      hxdivdata[0]->P_div = P_div;
+      hxdivdata[0]->Pt_div = &Pt_div;
+      hxdivdata[0]->Curl = Curl;
+      hxdivdata[0]->Curlt = &Curlt;
+      hxdivdata[0]->A_curlgrad = NULL;
+      hxdivdata[0]->amgparam_curlgrad = NULL;
+      hxdivdata[0]->mgl_curlgrad = NULL;
+      hxdivdata[0]->A_divgrad = &A_divgrad;
+      hxdivdata[0]->amgparam_divgrad = amgparam;
+      hxdivdata[0]->mgl_divgrad = mgl_divgrad;
+      hxdivdata[0]->A_curl = NULL;
+      hxdivdata[0]->A_grad = &A_grad;
+      hxdivdata[0]->amgparam_grad = amgparam;
+      hxdivdata[0]->mgl_grad = mgl_grad;
+
+      hxdivdata[0]->backup_r = (REAL*)calloc(A_div.row, sizeof(REAL));
+      hxdivdata[0]->w = (REAL*)calloc(A_div.row, sizeof(REAL));
+    }
 
   }
   /*----------------------*/
@@ -1901,6 +2034,10 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
       check_error(ERROR_SOLVER_PRECTYPE, __FUNCTION__);
   }
 
+  /*----------------------------*/
+  /* Setup  preconditioner data */
+  /*----------------------------*/
+  // overall
   precond_block_data precdata;
   precond_block_data_null(&precdata);
 
@@ -1910,33 +2047,46 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
   precdata.mgl = mgl;
   precdata.diag = diag;
   precdata.el_vol = el_vol;
+  precdata.hxdivdata = hxdivdata;
 
   precond prec; prec.data = &precdata;
 
   switch (precond_type)
   {
-    case 20:
+    case 10:
       prec.fct = precond_block_diag_mixed_darcy;
       break;
 
-    case 21:
+    case 11:
       prec.fct = precond_block_lower_mixed_darcy;
       break;
 
-    case 22:
+    case 12:
       prec.fct = precond_block_upper_mixed_darcy;
       break;
 
-    case 30:
+    case 20:
       prec.fct = precond_block_diag_mixed_darcy_krylov;
       break;
 
-    case 31:
+    case 21:
       prec.fct = precond_block_lower_mixed_darcy_krylov;
       break;
 
-    case 32:
+    case 22:
       prec.fct = precond_block_upper_mixed_darcy_krylov;
+      break;
+
+    case 40:
+      prec.fct = precond_block_diag_mixed_darcy_krylov_HX;
+      break;
+
+    case 41:
+      prec.fct = precond_block_lower_mixed_darcy_krylov_HX;
+      break;
+
+    case 42:
+      prec.fct = precond_block_upper_mixed_darcy_krylov_HX;
       break;
 
     case 50:
@@ -2001,11 +2151,14 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
     printf("**********************************************************\n");
   }
 
+FINISHED:
   // clean
-  precond_block_data_free(&precdata, 2);
+  precond_block_data_free(&precdata, 2, FALSE);
+  dcsr_free(&A_div);
 
   return status;
 }
+
 
 /********************************************************************************************/
 /**
@@ -2154,7 +2307,7 @@ INT linear_solver_bdcsr_krylov_biot_2field(block_dCSRmat *A,
   }
 
   // clean
-  precond_block_data_free(&precdata, 2);
+  precond_block_data_free(&precdata, 2, TRUE);
 
   return status;
 }
@@ -2554,7 +2707,7 @@ INT linear_solver_bdcsr_krylov_maxwell(block_dCSRmat *A,
 
 FINISHED:
     // clean
-    precond_block_data_free(&precdata,3);
+    precond_block_data_free(&precdata,3, FALSE);
 
     return status;
 }
@@ -2687,7 +2840,7 @@ INT linear_solver_bdcsr_krylov_bubble_stokes(block_dCSRmat *A,
   }
 
   // clean
-  precond_block_data_free(&precdata, 2);
+  precond_block_data_free(&precdata, 2, TRUE);
 
   return status;
 }
@@ -2977,7 +3130,7 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
   solve_info->time_solve = solver_duration;
 
   // clean
-  precond_block_data_free(&precdata, 2);
+  precond_block_data_free(&precdata, 3, FALSE);
 
   return status;
 }

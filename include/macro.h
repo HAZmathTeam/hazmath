@@ -3,12 +3,17 @@
 //
 //
 //  Created by Hu, Xiaozhe on 1/10/15.
-//
+//  Modified 20190327 (ltz)
 //
 
 #ifndef _macro_h
 #define _macro_h
 
+/* pi=3.141592653589793238512809e+00; e= 2.718281828459045235428168e+00
+ in long double, below is rounded off a bit
+*/
+#define PI 3.14159265358979323851281e+00
+#define EXP_OF_1  2.71828182845904523542817e+00
 /**
  * \brief Some global constants
  */

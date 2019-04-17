@@ -26,11 +26,12 @@ scomplex *haz_scomplex_init(INT n,INT ns, INT nv)
 
      Future work: we should think of making this for different
      dimensions, e.g. 2-homogenous complex in 3d
-  */
+  */ 
   scomplex *sc=(scomplex *) malloc(sizeof(scomplex));
   sc->nbig=n; sc->n=n;
   INT n1=sc->n+1,i,j,in1;
   sc->factorial=1.;
+  sc->level=0;
   for (j=2;j<n1;j++) sc->factorial *= ((REAL )j);
   // fprintf(stdout,"\nIMPORTANT: NS=%d (%d!)=%f",ns,n,sc->factorial);
   sc->marked=(INT *) calloc(ns,sizeof(INT));
@@ -41,6 +42,8 @@ scomplex *haz_scomplex_init(INT n,INT ns, INT nv)
   sc->childn=(INT *)calloc(ns,sizeof(INT));
   sc->nodes=(INT *)calloc(ns*n1,sizeof(INT));
   sc->bndry=(INT *)calloc(nv,sizeof(INT));
+  sc->csys=(INT *)calloc(nv,sizeof(INT));/* coord sys: 1 is polar, 2
+					    is cyl and so on */
   sc->flags=(INT *)calloc(ns,sizeof(INT));
   sc->x=(REAL *)calloc(nv*n,sizeof(REAL));
   sc->vols=(REAL *)calloc(ns,sizeof(REAL));
@@ -60,6 +63,7 @@ scomplex *haz_scomplex_init(INT n,INT ns, INT nv)
   }
   for (i = 0;i<nv;i++) {
     sc->bndry[i]=0;
+    sc->csys[i]=0;
     sc->fval[i]=0.;
   }
   sc->nv=nv;
@@ -598,7 +602,8 @@ void find_nbr(INT ns,INT nv,INT n,INT *sv,INT *stos)
     return;
 }
 /***********************************************************/
-INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew,INT ibnew,INT nsnew, INT nvnew)
+INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew,INT ibnew,INT csysnew, \
+		    INT nsnew, INT nvnew)
 {
   /* adds nodes and coords as well */
   INT n=sc->n, n1 = n+1,ns=sc->ns,nv=sc->nv;
@@ -626,6 +631,8 @@ INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew,INT ibnew,INT nsnew, INT nvn
     if(xnew) free(xnew);
     sc->bndry=realloc(sc->bndry,(nvnew)*sizeof(INT));
     sc->bndry[nv]=ibnew;
+    sc->csys=realloc(sc->csys,(nvnew)*sizeof(INT));
+    sc->csys[nv]=csysnew;
     sc->fval=realloc(sc->fval,(nvnew)*sizeof(REAL));
     sc->fval[nv]=0.;
   }
@@ -666,7 +673,7 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
   INT n1=n+1,j,i,p,p0,pn,isn,isn1,snbri,snbrp,snbrn,snbr0;
   INT jt,jv0,jvn,ks0,ksn,s0nbri,snnbri;
   REAL *xnew;
-  INT ibnew,ibnd0,ibndn;
+  INT csysnew,csys0,csysn,ibnew,ibnd0,ibndn;
   if(is<0) return 0; 
   if(sc->child0[is] >= 0) return 0; 
   isn=is*n;
@@ -693,6 +700,10 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
       ibnew=sc->bndry[jv0];
     else
       ibnew=sc->bndry[jvn];    
+    if(sc->csys[jv0] < sc->csys[jvn])
+      csysnew=sc->csys[jv0];
+    else
+      csysnew=sc->csys[jvn];    
     /* we have added a vertex, let us indicate this */
     nodnew = nvnew;
     nvnew++;
@@ -705,6 +716,7 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
 				has already been added. */
     nodnew=jv0;
     ibnew=sc->bndry[nodnew];
+    csysnew=sc->csys[nodnew];
     /* fprintf(stdout,"\n no new vertex: is=%d  it=%d; vertex=%d\n",is,it,jv0); fflush(stdout); */
   }
   ks0=nsnew;
@@ -716,7 +728,7 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
   /*
     Add two new simplices and initialize their parents, etc
   */
-  haz_add_simplex(is,sc,xnew,ibnew,nsnew,nvnew);   
+  haz_add_simplex(is,sc,xnew,ibnew,csysnew,nsnew,nvnew);   
   /*
     Initialize all vertex pointers of the children according to the
     scheme. Also initialize all pointers to bring simplices as long
