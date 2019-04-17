@@ -247,6 +247,86 @@ void dcsr_alloc(const INT m,
 
 /***********************************************************************************************/
 /**
+ * \fn dCOOmat dcoo_create (INT m, INT n, INT nnz)
+ *
+ * \brief Create IJ sparse matrix data memory space
+ *
+ * \param m    Number of rows
+ * \param n    Number of columns
+ * \param nnz  Number of nonzeros
+ *
+ * \return A   The new dCOOmat matrix
+ *
+ */
+dCOOmat dcoo_create (INT m,
+                     INT n,
+                     INT nnz)
+{
+    dCOOmat A;
+
+    A.rowind = (INT *)calloc(nnz, sizeof(INT));
+    A.colind = (INT *)calloc(nnz, sizeof(INT));
+    A.val    = (REAL *)calloc(nnz, sizeof(REAL));
+
+    A.row = m; A.col = n; A.nnz = nnz;
+
+    return A;
+}
+
+/***********************************************************************************************/
+/**
+ * \fn void dcoo_alloc (const INT m, const INT n, const INT nnz, dCOOmat *A)
+ *
+ * \brief Allocate COO sparse matrix memory space
+ *
+ * \param m      Number of rows
+ * \param n      Number of columns
+ * \param nnz    Number of nonzeros
+ * \param A      Pointer to the dCSRmat matrix
+ *
+ */
+void dcoo_alloc (const INT m,
+                 const INT n,
+                 const INT nnz,
+                 dCOOmat *A)
+{
+
+    if ( nnz > 0 ) {
+        A->rowind = (INT *)calloc(nnz, sizeof(INT));
+        A->colind = (INT *)calloc(nnz, sizeof(INT));
+        A->val    = (REAL*)calloc(nnz,sizeof(REAL));
+    }
+    else {
+        A->rowind = NULL;
+        A->colind = NULL;
+        A->val    = NULL;
+    }
+
+    A->row = m; A->col = n; A->nnz = nnz;
+
+    return;
+}
+
+/***********************************************************************************************/
+/**
+ * \fn void dcoo_free (dCOOmat *A)
+ *
+ * \brief Free IJ sparse matrix data memory space
+ *
+ * \param A  Pointer to the dCOOmat matrix
+ *
+ */
+void dcoo_free (dCOOmat *A)
+{
+    if (A==NULL) return;
+
+    free(A->rowind); A->rowind= NULL;
+    free(A->colind); A->colind = NULL;
+    free(A->val);    A->val = NULL;
+}
+
+/***********************************************************************************************/
+/**
  * \fn iCSRmat icsr_create (const INT m, const INT n, const INT nnz)
  *
  * \brief Create iCSRmat sparse matrix
