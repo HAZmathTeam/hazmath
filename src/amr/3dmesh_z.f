@@ -1,15 +1,38 @@
+!     numbering is first wrt z second y third x, it follows the ordering
+!     of the vertices of the unit cube if we consider their vertices as
+!     binary numbers and order the corresponding binary numbers      
+!... SHOULD BE REPLACED BY DIM INDEPENDENT. 
+!=======================================================================
       subroutine cubtet(nop)
       dimension nop(4,6,4)
       dimension ip1(8),ip2(8),ip3(8),ip4(8)
       dimension ip(8,3)
+!!,ip777(8,3)
 !!      data ip1 /4,3,2,1,8,7,6,5/
 !!      data ip2 /2,4,1,3,6,8,5,7/
 !!      data ip3 /3,1,4,2,7,5,8,6/
+C... should be replaced by dim independent. 
+c$$$      data ip777 /
+c$$$     >     3,1,4,2,7,5,8,6,
+c$$$     >     2,4,1,3,6,8,5,7,
+c$$$     >     4,3,2,1,8,7,6,5
+c$$$     >     /
+c$$$      data ip /
+c$$$     >     5,1,7,3,6,2,8,4,
+c$$$     >     3,7,1,5,4,8,2,6,
+c$$$     >     7,5,3,1,8,6,4,2
+c$$$  >     /
+c$$$      data ip /
+c$$$     >     5,6,7,8,1,2,3,4,
+c$$$     >     3,4,1,2,7,8,5,6,
+c$$$     >     2,1,4,3,6,5,8,7
+c$$$     >     /
       data ip /
-     >     3,1,4,2,7,5,8,6,
-     >     2,4,1,3,6,8,5,7,
-     >     4,3,2,1,8,7,6,5
+     >     5,6,7,8,1,2,3,4,
+     >     3,4,7,8,1,2,5,6,
+     >     2,4,6,8,1,3,5,7
      >     /
+      
 C
 C... This forms the correspondance between the cube numbering (8) nodes
 C...  and the local tetrahedra numbering (6 tetrahedra in the cube).
@@ -20,15 +43,15 @@ C
 C
       it=1
       nop(1,1,it) = 1
-      nop(2,1,it) = 5
-      nop(3,1,it) = 7
+      nop(2,1,it) = 2
+      nop(3,1,it) = 4
       nop(4,1,it) = 8
 c
 c     second tetrahedra:::
 c
       nop(1,2,it) = 1
-      nop(2,2,it) = 3
-      nop(3,2,it) = 7
+      nop(2,2,it) = 2
+      nop(3,2,it) = 6
       nop(4,2,it) = 8
 c
 c     third tetrahedra:::
@@ -41,21 +64,21 @@ c
 c     fourth tetrahedra:::
 c
       nop(1,4,it) = 1
-      nop(2,4,it) = 5
-      nop(3,4,it) = 6
+      nop(2,4,it) = 3
+      nop(3,4,it) = 7
       nop(4,4,it) = 8
 c
 c     fifth tetrahedra:::
 c
       nop(1,5,it) = 1
-      nop(2,5,it) = 2
+      nop(2,5,it) = 5
       nop(3,5,it) = 6
       nop(4,5,it) = 8
 c
 c     sixth tetrahedra:::
       nop(1,6,it) = 1
-      nop(2,6,it) = 2
-      nop(3,6,it) = 4
+      nop(2,6,it) = 5
+      nop(3,6,it) = 7
       nop(4,6,it) = 8
 C
 !      write(*,'(18i3)') (ip(j,1),j=1,8)
@@ -100,34 +123,34 @@ c
       xyz(1,2) = (j-1)*hy + ymin
       xyz(1,3) = (k-1)*hz + zmin
 c
-      xyz(3,1) = (i)*hx   + xmin
-      xyz(3,2) = (j-1)*hy + ymin
+      xyz(2,1) = (i-1)*hx + xmin
+      xyz(2,2) = (j-1)*hy   + ymin
+      xyz(2,3) = (k)*hz + zmin
+c
+      xyz(3,1) = (i-1)*hx   + xmin
+      xyz(3,2) = (j)*hy + ymin
       xyz(3,3) = (k-1)*hz + zmin
 c
-      xyz(4,1) = (i)*hx   + xmin
+      xyz(4,1) = (i-1)*hx   + xmin
       xyz(4,2) = (j)*hy   + ymin
-      xyz(4,3) = (k-1)*hz + zmin
+      xyz(4,3) = (k)*hz + zmin
 c
-      xyz(2,1) = (i-1)*hx + xmin
-      xyz(2,2) = (j)*hy   + ymin
-      xyz(2,3) = (k-1)*hz + zmin
-c
-      xyz(5,1) = (i-1)*hx + xmin
+      xyz(5,1) = (i)*hx + xmin
       xyz(5,2) = (j-1)*hy + ymin
-      xyz(5,3) = (k)*hz   + zmin
+      xyz(5,3) = (k-1)*hz   + zmin
 c
+      xyz(6,1) = (i)*hx + xmin
+      xyz(6,2) = (j-1)*hy   + ymin
+      xyz(6,3) = (k)*hz   + zmin
+C
       xyz(7,1) = (i)*hx   + xmin
-      xyz(7,2) = (j-1)*hy + ymin
-      xyz(7,3) = (k)*hz   + zmin
+      xyz(7,2) = (j)*hy + ymin
+      xyz(7,3) = (k-1)*hz   + zmin
 c
       xyz(8,1) = (i)*hx   + xmin
       xyz(8,2) = (j)*hy   + ymin
       xyz(8,3) = (k)*hz   + zmin
 c
-      xyz(6,1) = (i-1)*hx + xmin
-      xyz(6,2) = (j)*hy   + ymin
-      xyz(6,3) = (k)*hz   + zmin
-C
       ip1=i+1
       jp1=j+1
       kp1=k+1
@@ -139,27 +162,37 @@ C (i,j,k)
       jcub(1) = nomxyz(i,j,k,nx,ny,nz)
 !      jcub(1) = (k-1)*nx*ny + (j-1)*nx + i
 C (i,j+1,k)
-      jcub(2) = nomxyz(i,jp1,k,nx,ny,nz)
+      jcub(2) = nomxyz(i,j,kp1,nx,ny,nz)
 !      jcub(2) = (k-1)*nx*ny + (j)*nx   + i 
 C (i+1,j,k)
-      jcub(3) = nomxyz(ip1,j,k,nx,ny,nz)
+      jcub(3) = nomxyz(i,jp1,k,nx,ny,nz)
 !      jcub(3) = (k-1)*nx*ny + (j-1)*nx + i+1 
 C (i+1,j+1,k)
-      jcub(4) = nomxyz(ip1,jp1,k,nx,ny,nz)
+      jcub(4) = nomxyz(i,jp1,kp1,nx,ny,nz)
 !      jcub(4) = (k-1)*nx*ny + (j)*nx + i + 1 
 C     
 C (i,j,k+1)
-      jcub(5) = nomxyz(i,j,kp1,nx,ny,nz)
+      jcub(5) = nomxyz(ip1,j,k,nx,ny,nz)
 !      jcub(5) = (k)*nx*ny + (j-1)*nx + i            
 C (i,j+1,k+1)
-      jcub(6) = nomxyz(i,jp1,kp1,nx,ny,nz)
+      jcub(6) = nomxyz(ip1,j,kp1,nx,ny,nz)
 !      jcub(6) = (k)*nx*ny + (j)*nx   + i            
 C (i+1,j,k+1)
-      jcub(7) = nomxyz(ip1,j,kp1,nx,ny,nz)
+      jcub(7) = nomxyz(ip1,jp1,k,nx,ny,nz)
 !      jcub(7) = (k)*nx*ny + (j-1)*nx + i+1 
 C (i+1,j+1,k+1)
       jcub(8) = nomxyz(ip1,jp1,kp1,nx,ny,nz)
-!      jcub(8) = (k)*nx*ny + (j)*nx + i + 1 
+!     jcub(8) = (k)*nx*ny + (j)*nx + i + 1
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+c$$$      write(*,*) i,j,k
+c$$$      write(*,*) i,j,kp1
+c$$$      write(*,*) i,jp1,k
+c$$$      write(*,*) i,jp1,kp1
+c$$$      write(*,*) ip1,j,k
+c$$$      write(*,*) ip1,j,kp1
+c$$$      write(*,*) ip1,jp1,k
+c$$$      write(*,*) ip1,jp1,kp1
+c$$$      read(*,*)
       return
       end
       subroutine bndry3(ib,nx,ny,nz,
@@ -279,22 +312,23 @@ c     read(*,*)
       return
       end
 c=====================================================================
-      subroutine getm3(nx,ny,nz,nvert,nel,
+      subroutine getm3(nd,nvert,nel,
      >     xcoord,ycoord,zcoord,
      >     je,iflags,ib,inumb,
      >     ibcode,minneu,maxneu)
       implicit real*8(a-h,o-z)
       dimension xcoord(*),ycoord(*),zcoord(*)
-      dimension je(*),ib(*), inumb(*),iflags(*)
+      ! nd is the number of divisions in every direction
+      dimension nd(*),je(*),ib(*), inumb(*),iflags(*)
       dimension xyz(8,3),jcub(8),nop(4,6,4)
       dimension ibcode(*)
-C
-C... Given nx,ny,nz, get the femesh: xcoord,ycoord,zcoord,ie,je ndiv is
-C... an input parameter: if ndiv ne 0 then a hole of size 2*ndiv*h is
-C... removed from our domain.  
-C...
-C... ndl = 4 ! number of degrees of freedom per element
-C
+C     
+      nx=nd(1)
+      ny=nd(2)
+      nz=nd(3)
+C...  Given nx,ny,nz, get the femesh: xcoord,ycoord,zcoord,ie,je.
+C...  ndl = 4 ! number of degrees of freedom per element
+C     
       do k = 1 , nvert
          inumb(k) = 0
          ib(k) = 0
@@ -378,9 +412,12 @@ C
      >              k .ge. maxk) then
                   call xyzloc(xyz,jcub,nx,ny,nz,
      >                 i,j,k,hx,hy,hz,xmin,ymin,zmin)
+!!!                  write(*,*) 'element= ', i,j,k,' type=',it
+!!!                  write(*,'(a,8i5,a)') '(',(jcub(mm),mm=1,8),')'
                   do jk = 1 , 6
                      do mm = 1 , 4
                         inode = inumb(jcub(nop(mm,jk,it)))
+!!!                        write(*,'(i7$)') inode
                         if(inode .eq. 0) then
                            write(*,*) 'ERROR:i,j,k and inode = 0', 
      >                          i,j,k,inode
@@ -392,6 +429,7 @@ C
                         je(kl) = inode
                         kl = kl + 1
                      end do
+!!                     write(*,*)
                      iflags(jjkk)=k
                      jjkk = jjkk + 1
                   end do

@@ -32,6 +32,8 @@ EXE = $(GRID).$(EXTENSION)
 
 # Source and Object Files
 OBJS = 	$(SRCDIR)/$(GRID).o \
+	$(SRCDIR)/new_refining.o \
+	$(SRCDIR)/new_marking.o \
 	$(SRCDIR)/auxfuncts.o \
 	$(SRCDIR)/io_geo.o \
 	$(SRCDIR)/features.o
