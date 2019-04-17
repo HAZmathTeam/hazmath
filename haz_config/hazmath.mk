@@ -1,5 +1,5 @@
 #######################################################################
-#                Simple Finite Element Package (HAZMATH) 
+#                Simple Finite Element Package (HAZMATH)
 #
 ################# User Defined Configuration Options #################
 #
@@ -9,7 +9,7 @@
 # 3. Type "make help" to see all build and configuration options.
 ########################################################################
 #
-# The default setting for build type for HAZMATH is RELEASE. The RELEASE 
+# The default setting for build type for HAZMATH is RELEASE. The RELEASE
 # build type by default has the "-O3". You may adjust the optimization
 # compilation options according to your hardware and software setting.
 # For example, on a macbook pro with Intel i7, best options could be
@@ -25,7 +25,7 @@
 #
 # verbose=yes
 #
-# By default, HAZMATH generates static libraries. If you need to generate 
+# By default, HAZMATH generates static libraries. If you need to generate
 # shared libs instead of static libs, uncomment the next line:
 #
 # shared=yes
@@ -49,26 +49,27 @@
 # If you want to use the GUI of Doxgen instead of command-line,
 # uncomment the next line:
 #
-#doxygen=yes
-#        
+# doxygen=yes
+#
 #-------------------------------------------------------------------------
-# If you want to use the SuiteSparse package, uncomment the next 
+# If you want to use the SuiteSparse package, uncomment the next
 # line (and read carefully the instructons below it):
 #
-#suitesparse=yes
+# suitesparse=yes
 #
 # If you have installed SuiteSparse from source or for some other
 # reason you want to specify the path to SuiteSparse libraries and
 # header files, uncomment and edit the definition of "suitesparse_dir"
-# below (and continue reading...)  
+# below (and continue reading...)
 #
-#suitesparse_dir=/opt/local/lib
+# suitesparse_dir=/opt/local/lib
+# suitesparse_dir=/home/xiaozhehu/Work/Projects/HAZMATH/SuiteSparse-5.3.0/SuiteSparse/lib
 #
 # IMPORTANT:
 # This defines the path to the SuiteSparse library and include files.
 # These are expected to be found in $(suitesparse_dir)/lib and
 # $(suitesparse_dir)/include or in the system standard paths for libraries
-# and header files. 
+# and header files.
 # -------------------------------------------------------------------------
 # If you want to use the interface with MATLAB, uncomment the next line:
 #
@@ -79,4 +80,3 @@
 #cflags="-funroll-loops -funswitch-loops"
 #cxxflags="-funroll-loops -funswitch-loops"
 #fflags="-funroll-loops -funswitch-loops"
-

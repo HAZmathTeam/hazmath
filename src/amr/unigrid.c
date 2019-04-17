@@ -4,7 +4,7 @@
  *  Copyright 2017__HAZMATH__. All rights reserved.
  *
  *   \note routines to initialize construct and destruct uniform grids in
- *  d-dimeensions for general d.
+ *  d-dimensions for general d.
  *  \note interpolates data on uniform grids
 */
 #include "hazmath.h"
@@ -96,7 +96,7 @@ unigrid *ugrid_init(INT n, INT *nd, REAL *xo, REAL *xn)
    ug->xn=xn;
  }
  ug->dx = (REAL *)calloc(n,sizeof(REAL));
- ug->nall=1.;
+ ug->nall=1;
  for(j=0;j<n;j++){
    ug->dx[j]=(ug->xn[j]-ug->xo[j])/((REAL )ug->ndiv[j]);
    ug->nall *= (ug->ndiv[j]+1);

@@ -33,7 +33,7 @@ INT directsolve_UMF(dCSRmat *A,
                     dvector *f,
                     dvector *x,
                     INT print_level)
-{ 
+{
 
 #if WITH_SUITESPARSE
   INT err_flag;
@@ -69,6 +69,8 @@ INT directsolve_UMF(dCSRmat *A,
     exit(err_flag);
   }
 
+  printf("hello-before\n");
+
   // Clean up
   dcsr_free(&At);
   err_flag = umfpack_free_numeric(Numeric);
@@ -76,6 +78,8 @@ INT directsolve_UMF(dCSRmat *A,
     printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- UMFPACK FREE ERROR!!!\n\n",__FUNCTION__);
     exit(err_flag);
   }
+
+  printf("hello-after\n");
 
   return err_flag;
 #else
@@ -329,7 +333,7 @@ INT block_solve_UMF(block_dCSRmat *bA,
  */
 void* umfpack_factorize (dCSRmat *ptrA,
                          const SHORT prtlvl)
-{   
+{
 
 #if WITH_SUITESPARSE
   const INT n = ptrA->col;
@@ -389,7 +393,7 @@ INT umfpack_solve (dCSRmat *ptrA,
                    dvector *u,
                    void *Numeric,
                    const SHORT prtlvl)
-{   
+{
 
 #if WITH_SUITESPARSE
   INT *Ap = ptrA->IA;
@@ -425,7 +429,7 @@ INT umfpack_solve (dCSRmat *ptrA,
  * \date   10/20/2010
  */
 INT umfpack_free_numeric (void *Numeric)
-{   
+{
 #if WITH_SUITESPARSE
   INT status = SUCCESS;
 

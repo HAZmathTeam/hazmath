@@ -235,4 +235,26 @@ typedef struct {
 
 } Schwarz_param; /**< Parameters for Schwarz method */
 
+typedef struct {
+  /* this is a structure that contains input data for the input to the
+     simple hazmath mesh generator */
+  INT   dim; /* dimension of the problem */
+  INT   nmacro;         /* number of macroelements */
+  INT   ncsys;           /* number of coordinate systems used */
+  INT   *csys;           /* coordinate systems origins and type */
+  INT   *xmacro;         /* coordinates of macroelement vertices 
+			    xmacro[nmacro*nvcube*dim]  */
+  INT *edges;             /* edges of the macto elements.
+			     edges[2*dim*nmacro*2]: (2*dim) edges for
+			     every macroelement with 2 ends
+			  */
+  INT *neigh; /*
+		bfs tree of neighboring macroelements. the grid is then
+		done by traversing the tree from the root and
+		meshing the macroelements following the tree edges. 
+	      */
+  SHORT gridmake_print_level;   /**< print level: 0--10 */
+} gridmake_param; /**< Parameters for mesh generator solvers */
+
+
 #endif
