@@ -83,7 +83,7 @@ struct qcoordinates *allocateqcoords(INT nq1d,INT nelm,INT mydim)
  * \return A      Quadrature struct
  *
  */
-struct qcoordinates *allocateqcoords_bdry(INT nq1d,INT nelm,INT dim,INT ed_or_f)
+struct qcoordinates *allocateqcoords_bdry(INT nq1d,INT nregion,INT dim,INT ed_or_f)
 {
   // Flag for errors
   SHORT status;
@@ -110,18 +110,18 @@ struct qcoordinates *allocateqcoords_bdry(INT nq1d,INT nelm,INT dim,INT ed_or_f)
     check_error(status, __FUNCTION__);
   }
 
-  A->x = (REAL *) calloc(nq*nelm,sizeof(REAL));
-  A->y = (REAL *) calloc(nq*nelm,sizeof(REAL));
+  A->x = (REAL *) calloc(nq*nregion,sizeof(REAL));
+  A->y = (REAL *) calloc(nq*nregion,sizeof(REAL));
   if(dim==2) {
     A->z = NULL;
   } else if(dim==3) {
-    A->z = (REAL *) calloc(nq*nelm,sizeof(REAL));
+    A->z = (REAL *) calloc(nq*nregion,sizeof(REAL));
   } else {
     status = ERROR_DIM;
     check_error(status, __FUNCTION__);
   }
-  A->w = (REAL *) calloc(nq*nelm,sizeof(REAL));
-  A->n = nq*nelm;
+  A->w = (REAL *) calloc(nq*nregion,sizeof(REAL));
+  A->n = nq*nregion;
   A->nq_per_elm = nq;
   A->nq1d = nq1d;
   
@@ -433,10 +433,31 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
 
   INT q,j,nqdum; /* Loop indices */
   INT dim = mesh->dim;
-  INT nq = pow(nq1d,e_or_f);
+  INT nq = 0;
+  INT e_or_f_dim=1;
+  switch (e_or_f)
+  {
+  case 1:
+    // Compute quadrature on edges
+    nq = nq1d;
+	e_or_f_dim = 1;
+    break;
+  case 2:
+    if(dim==2) { // face is edge in 2D
+      nq = nq1d;
+	  e_or_f_dim = 1;
+    } else {
+      nq = nq1d*nq1d;
+	  e_or_f_dim = 2;
+    }
+    break;
+  default:
+    status = ERROR_DIM;
+    check_error(status, __FUNCTION__);
+  }
 
   /* Coordinates of vertices of edge/face */
-  coordinates *cvdof = allocatecoords(e_or_f+1,dim);
+  coordinates *cvdof = allocatecoords(e_or_f_dim+1,dim);
 
   // Add in for Simpson's Rule if using edges
   if(nq1d==-1) {
@@ -446,7 +467,7 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
 
   // Gaussian points for reference element
   // (edges: [-1,1] faces: tri[(0,0),(1,0),(0,1)])
-  REAL* gp = (REAL *) calloc(e_or_f*nq,sizeof(REAL));
+  REAL* gp = (REAL *) calloc(e_or_f_dim*nq,sizeof(REAL));
   /* Gaussian weights for reference element */
   REAL* gw = (REAL *) calloc(nq,sizeof(REAL));
 
@@ -470,7 +491,7 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
   }
 
   // Get coordinates of vertices for given edge/face
-  INT* thisdof_v = (INT *) calloc(e_or_f+1,sizeof(INT));
+  INT* thisdof_v = (INT *) calloc(e_or_f_dim+1,sizeof(INT));
   iCSRmat* dof_v = NULL;
   if(e_or_f==1) {
     dof_v = mesh->ed_v;
@@ -498,7 +519,7 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
   }
 
   // Get Quad Nodes and Weights
-  if(e_or_f==1) {
+  if(e_or_f_dim==1) {
     if(nqdum>=1) { // Not Simpson's Rule
       quad1d(gp,gw,nq1d);
     } else { // Simpson's Rule
@@ -509,7 +530,7 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
       gw[1] = 4.0/3.0;
       gw[2] = gw[0];
     }
-  } else if(e_or_f==2) {
+  } else if(e_or_f_dim==2) {
     triquad_(gp,gw,nq1d);
   } else {
     status = ERROR_QUAD_TYPE;
@@ -517,7 +538,7 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
   }
 
   // Map to Real Edge
-  if(e_or_f==1) {
+  if(e_or_f_dim==1) {
     // Edges: x = 0.5(x1*(1-r) + x2*(1+r))
     //        y = 0.5(y1*(1-r) + y2*(1+r))
     //        z = 0.5(z1*(1-r) + z2*(1+r))
@@ -538,19 +559,12 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
         cqbdry->w[q] = w*gw[q];
       }
     }
-  } else if(e_or_f==2) {
+  } else if(e_or_f_dim==2) {
     // Faces: x = x1*(1-r-s) + x2*r + x3*s
     //        y = y1*(1-r-s) + y2*r + y3*s
     //        z = z1*(1-r-s) + z2*r + z3*s
     //        w = 2*Element Area*wref
-    if(dim==2) {
-      for (q=0; q<nq1d; q++) {
-        r = gp[q];
-        cqbdry->x[q] = 0.5*cvdof->x[0]*(1-r) + 0.5*cvdof->x[1]*(1+r);
-        cqbdry->y[q] = 0.5*cvdof->y[0]*(1-r) + 0.5*cvdof->y[1]*(1+r);
-        cqbdry->w[q] = w*gw[q];
-      }
-    } else if(dim==3) {
+   if(dim==3) {
       for (q=0; q<nq1d*nq1d; q++) {
         r = gp[q];
         s = gp[nq1d*nq1d+q];
