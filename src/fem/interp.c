@@ -1,16 +1,21 @@
 /*! \file src/fem/interp.c
  *
- *  \brief This code contains functions for interpolating and evaluating FE
- *         approximations using FE basis functions.
+ *  \brief This code contains functions for interpolating FE approximations
+ *         and their derivatives using FE basis functions, as well as routines
+ *         for evaluating expressions on the FE spaces (projections)
  *
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 2/1/15.
  *  Copyright 2016__HAZMATH__. All rights reserved.
  *
- *  \note modified by James Adler 11/1/2016
+ *  \note modified by Casey Cavanaugh 04/18/2019
+ *  \note modified by James Adler     04/19/2019
  *
  */
 
 #include "hazmath.h"
+
+/**************** Interpolation Routines ****************************/
+/********************************************************************/
 
 /****************************************************************************************************************************/
 /*!
@@ -301,146 +306,6 @@ void mult_FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,I
 
 /****************************************************************************************************************************/
 /*!
- * \fn void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh *mesh,REAL time)
- *
- * \brief Evaluate a given analytical function on the finite-element space given.
- *
- * \param expr 	    Function call to analytical expression
- * \param FE          FE Space
- * \param mesh        Mesh Data
- * \param time        Physical time to evaluate function at
- * \param val         FE approximation of function on fespace
- *
- */
-void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh *mesh,REAL time)
-{
-  int i,j;
-  REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
-  REAL* valx = NULL;
-  INT dim = mesh->dim;
-  INT FEtype = FE->FEtype;
-
-  // flag for errors
-  SHORT status;
-
-  if(FEtype==0) { // P0 elements u[dof] = 1/elvol \int_el u
-    for(i=0;i<FE->ndof;i++) {
-      val[i] = (1.0/mesh->el_vol[i])*integrate_elm(expr,3,NULL,mesh,time,i);
-    }
-  } else if(FEtype>0 && FEtype<10) { // Lagrange Elements u[dof] = u[x_i}
-    valx = (REAL *) calloc(1,sizeof(REAL));
-    for(i=0;i<FE->ndof;i++) {
-      x[0] = FE->cdof->x[i];
-      if(dim==2 || dim==3)
-        x[1] = FE->cdof->y[i];
-      if(dim==3)
-        x[2] = FE->cdof->z[i];
-      (*expr)(valx,x,time,&(FE->dof_flag[i]));
-      val[i] = valx[0];
-    }
-  } else if (FEtype==20) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
-    valx = (REAL *) calloc(dim,sizeof(REAL));
-    for(i=0;i<FE->ndof;i++) {
-      x[0] = mesh->ed_mid[i*dim];
-      x[1] = mesh->ed_mid[i*dim+1];
-      if(dim==3) x[2] = mesh->ed_mid[i*dim+2];
-      (*expr)(valx,x,time,&(FE->dof_flag[i]));
-      val[i] = 0.0;
-      for(j=0;j<dim;j++) val[i]+=mesh->ed_tau[i*dim+j]*valx[j];
-    }
-  } else if (FEtype==30) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
-    valx = (REAL *) calloc(dim,sizeof(REAL));
-    for(i=0;i<FE->ndof;i++) {
-      x[0] = mesh->f_mid[i*dim];
-      x[1] = mesh->f_mid[i*dim+1];
-      if(dim==3) x[2] = mesh->f_mid[i*dim+2];
-      (*expr)(valx,x,time,&(FE->dof_flag[i]));
-      val[i] = 0.0;
-      for(j=0;j<dim;j++) val[i]+=mesh->f_norm[i*dim+j]*valx[j];
-    }
-  } else {
-    status = ERROR_FE_TYPE;
-    check_error(status, __FUNCTION__);
-  }
-
-  if (x) free(x);
-  if(valx) free(valx);
-  return;
-}
-/****************************************************************************************************************************/
-
-/****************************************************************************************************************************/
-/*!
- * \fn REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh *mesh,REAL time,INT DOF)
- *
- * \brief Evaluate a given analytical function on the specific degree of freedom of the finite-element space given
- *
- * \param expr 	    Function call to analytical expression
- * \param FE          FE Space
- * \param mesh        Mesh Data
- * \param time        Physical time to evaluate function at
- * \param DOF         DOF index to evaluate (start at 0)
- *
- * \return val        FE approximation of function on fespace
- *
- */
-REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh *mesh,REAL time,INT DOF)
-{
-  INT j;
-  REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
-  REAL* valx = NULL;
-  INT dim = mesh->dim;
-  INT FEtype = FE->FEtype;
-  REAL val=-666e+00;
-
-  if(FEtype==0) { // P0 elements u[dof] = 1/elvol \int_el u
-    val = (1.0/mesh->el_vol[DOF])*integrate_elm(expr,3,NULL,mesh,time,DOF);
-  } else if(FEtype>0 && FEtype<10) { // Lagrange Elements u[dof] = u[x_i]
-    valx = (REAL *) calloc(1,sizeof(REAL));
-    x[0] = FE->cdof->x[DOF];
-    if(dim==2 || dim==3)
-      x[1] = FE->cdof->y[DOF];
-    if(dim==3)
-      x[2] = FE->cdof->z[DOF];
-    (*expr)(valx,x,time,&(FE->dof_flag[DOF]));
-    val = valx[0];
-  } else if (FEtype==20) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
-    valx = (REAL *) calloc(dim,sizeof(REAL));
-    x[0] = mesh->ed_mid[DOF*dim];
-    x[1] = mesh->ed_mid[DOF*dim+1];
-    if(dim==3) x[2] = mesh->ed_mid[DOF*dim+2];
-    (*expr)(valx,x,time,&(FE->dof_flag[DOF]));
-    val = 0.0;
-    for(j=0;j<dim;j++) val+=mesh->ed_tau[DOF*dim+j]*valx[j];
-  } else if (FEtype==30) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
-    valx = (REAL *) calloc(dim,sizeof(REAL));
-    x[0] = mesh->f_mid[DOF*dim];
-    x[1] = mesh->f_mid[DOF*dim+1];
-    if(dim==3) x[2] = mesh->f_mid[DOF*dim+2];
-    (*expr)(valx,x,time,&(FE->dof_flag[DOF]));
-    val = 0.0;
-    for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx[j];
-  } else if (FEtype>=60 && FEtype<70) { // Bubbles
-    valx = (REAL *) calloc(dim,sizeof(REAL));
-    x[0] = mesh->f_mid[DOF*dim];
-    x[1] = mesh->f_mid[DOF*dim+1];
-    if(dim==3) x[2] = mesh->f_mid[DOF*dim+2];
-    (*expr)(valx,x,time,&(FE->dof_flag[DOF]));
-    val = 0.0;
-    for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx[j];
-  } else {
-    check_error(ERROR_FE_TYPE,__FUNCTION__);
-  }
-
-  if (x) free(x);
-  if(valx) free(valx);
-
-  return val;
-}
-/****************************************************************************************************************************/
-
-/****************************************************************************************************************************/
-/*!
  * \fn void blockFE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,block_fespace *FE,trimesh *mesh)
  *
  * \brief Interpolate a block finite-element approximation to any other point in the given element using the given type of elements.
@@ -530,108 +395,92 @@ void blockFE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,I
 }
 /****************************************************************************************************************************/
 
+/**************** Projection Routines *******************************/
+/********************************************************************/
+
 /****************************************************************************************************************************/
 /*!
- * \fn void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fespace *FE,trimesh *mesh,REAL time)
+ * \fn REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh *mesh,REAL time,INT DOF)
  *
- * \brief Evaluate a given analytical function on the block finite-element space given.
+ * \brief Evaluate a given analytical function on the specific degree of freedom of the finite-element space given
  *
  * \param expr 	    Function call to analytical expression
- * \param FE          block FE Space for multiple variables
- * \param mesh        Mesh Data
- * \param time        Physical time to evaluate function at
- * \param val         FE approximation of function on fespace
+ * \param FE        FE Space
+ * \param mesh      Mesh Data
+ * \param time      Physical time to evaluate function at
+ * \param DOF       DOF index to evaluate (start at 0)
+ *
+ * \return val      FE approximation of function on fespace
  *
  */
-void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fespace *FE,trimesh *mesh,REAL time)
+REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh *mesh,REAL time,INT DOF)
 {
-  int i,j,k,m;
   REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
-  REAL* valx = (REAL *) calloc(FE->nun,sizeof(REAL));
   INT dim = mesh->dim;
-  INT entry = 0, local_entry = 0;
-  INT local_dim = 0;
-  INT* face_vertex = (INT *) calloc(dim,sizeof(INT));
+  INT FEtype = FE->FEtype;
+  INT nq1d = 1; // If quadrature not given, fix order.
+  REAL val=-666e+00;
 
-  for(k=0;k<FE->nspaces;k++) {
-    if(FE->var_spaces[k]->FEtype==0) { // P0 elements u[dof] = 1/elvol \int_el u
-      local_dim = 1;
-      for(i=0;i<FE->var_spaces[k]->ndof;i++) {
-        x[0] = mesh->el_mid[i*dim];
-        if(dim==2 || dim==3)
-          x[1] = mesh->el_mid[i*dim+1];
-        if(dim==3)
-          x[2] = mesh->el_mid[i*dim+2];
-        (*expr)(valx,x,time,&(FE->var_spaces[k]->dof_flag[i]));
-        val[entry + i] = valx[local_entry];
-      }
-    } else if(FE->var_spaces[k]->FEtype>0 && FE->var_spaces[k]->FEtype<10) { // Lagrange Elements u[dof] = u[x_i]
-      local_dim = 1;
-      for(i=0;i<FE->var_spaces[k]->ndof;i++) {
-        x[0] = FE->var_spaces[k]->cdof->x[i];
-        if(dim==2 || dim==3)
-          x[1] = FE->var_spaces[k]->cdof->y[i];
-        if(dim==3)
-          x[2] = FE->var_spaces[k]->cdof->z[i];
-        (*expr)(valx,x,time,&(FE->var_spaces[k]->dof_flag[i]));
-        val[entry + i] = valx[local_entry];
-      }
-    } else if (FE->var_spaces[k]->FEtype==20) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
-      local_dim = dim;
-      for(i=0;i<FE->var_spaces[k]->ndof;i++) {
-        x[0] = mesh->ed_mid[i*dim];
-        x[1] = mesh->ed_mid[i*dim+1];
-        if(dim==3) x[2] = mesh->ed_mid[i*dim+2];
-        (*expr)(valx,x,time,&(FE->var_spaces[k]->dof_flag[i]));
-        val[entry + i] = 0.0;
-        for(j=0;j<dim;j++) {
-          val[entry + i]+=mesh->ed_tau[i*dim+j]*valx[local_entry + j];
-        }
-      }
-    } else if (FE->var_spaces[k]->FEtype==30) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
-      local_dim = dim;
-      for(i=0;i<FE->var_spaces[k]->ndof;i++) {
-        x[0] = mesh->f_mid[i*dim];
-        x[1] = mesh->f_mid[i*dim+1];
-        if(dim==3) x[2] = mesh->f_mid[i*dim+2];
-        (*expr)(valx,x,time,(INT *)&(FE->var_spaces[k]->dof_flag[i]));
-        val[i+entry] = 0.0;
-        for(j=0;j<dim;j++) val[i+entry]+=mesh->f_norm[i*dim+j]*valx[local_entry + j];
-      }
-    } else if (FE->var_spaces[k]->FEtype==61) { // Bubbles
-      local_dim = 0;
-      for(i=0;i<FE->var_spaces[k]->ndof;i++){
-        val[i+entry] = 0.0;
-        x[0] = mesh->f_mid[i*dim];
-        x[1] = mesh->f_mid[i*dim+1];
-        if(dim==3) x[2] = mesh->f_mid[i*dim+2];
-        (*expr)(valx,x,time,&(FE->var_spaces[0]->dof_flag[i]));
-        //for(j=0;j<dim;j++) val[entry+i]+=mesh->f_area[i]*mesh->f_norm[i*dim+j]*valx[local_dim + j];
-        for(j=0;j<dim;j++) val[entry+i]+=mesh->f_norm[i*dim+j]*valx[local_dim + j];
+  // P0 elements u[dof] = 1/elvol \int_el u
+  if(FEtype==0) {
+    val = (1.0/mesh->el_vol[DOF])*integrate_elm(expr,0,0,nq1d+2,NULL,mesh,time,DOF);
 
-        get_incidence_row(i,mesh->f_v,face_vertex);
-        for (m=0;m<dim;m++) {
-          x[0] = mesh->cv->x[face_vertex[m]-1];
-          x[1] = mesh->cv->y[face_vertex[m]-1];
-          if(dim==3) x[2] = mesh->cv->z[face_vertex[m]-1];
-          // The following only works for 2D
-          (*expr)(valx,x,time,&(FE->var_spaces[0]->dof_flag[i]));
-          //for(j=0;j<dim;j++) val[entry+i]+= -(1.0/dim)*mesh->f_area[i]*mesh->f_norm[i*dim+j]*valx[local_dim + j];
-          for(j=0;j<dim;j++) val[entry+i]+= -(1.0/dim)*mesh->f_norm[i*dim+j]*valx[local_dim + j];
-        }
+  // Lagrange Elements u[dof] = u[x_i]
+  } else if(FEtype>0 && FEtype<10) {
+    x[0] = FE->cdof->x[DOF];
+    if(dim==2 || dim==3)
+      x[1] = FE->cdof->y[DOF];
+    if(dim==3)
+      x[2] = FE->cdof->z[DOF];
+    (*expr)(&val,x,time,&(FE->dof_flag[DOF]));
 
-      }
-    } else {
-      check_error(ERROR_FE_TYPE,__FUNCTION__);
-    }
-    entry += FE->var_spaces[k]->ndof;
-    local_entry += local_dim;
+  // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
+  } else if (FEtype==20) {
+    val = (1.0/mesh->ed_len[DOF])*integrate_edge_vector_tangent(expr,0,0,nq1d,NULL,mesh,time,DOF);
+
+  // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
+  } else if (FEtype==30) {
+    val = (1.0/mesh->f_area[DOF])*integrate_face_vector_normal(expr,0,0,nq1d,NULL,mesh,time,DOF);
+
+  // Bubbles
+  } else if (FEtype>=60 && FEtype<70) {
+    val = (1.0/mesh->f_area[DOF])*integrate_face_vector_normal(expr,0,0,nq1d,NULL,mesh,time,DOF);
+
+  // No other FEM types implemented
+  } else {
+    check_error(ERROR_FE_TYPE,__FUNCTION__);
   }
 
-
   if (x) free(x);
-  if(valx) free(valx);
-  if (face_vertex) free(face_vertex);
+
+  return val;
+}
+/****************************************************************************************************************************/
+
+/****************************************************************************************************************************/
+/*!
+ * \fn void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh *mesh,REAL time)
+ *
+ * \brief Evaluate a given analytical function on the finite-element space given.
+ *
+ * \param expr 	      Function call to analytical expression
+ * \param FE          FE Space
+ * \param mesh        Mesh Data
+ * \param time        Physical time to evaluate function at
+ *
+ * \return val        FE approximation of function on fespace
+ *
+ * \note Just calls FE_Evalue_DOF in a loop over all DOF
+ *
+ */
+void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh *mesh,REAL time)
+{
+  INT i;
+
+  for(i=0;i<FE->ndof;i++) {
+    val[i] = FE_Evaluate_DOF(expr,FE,mesh,time,i);
+  }
+
   return;
 }
 /****************************************************************************************************************************/
@@ -643,11 +492,11 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fe
  * \brief Evaluate a given analytical function on the specific degree of freedom of the block finite-element space given
  *
  * \param expr 	    Function call to analytical expression
- * \param FE          FE Space
- * \param mesh        Mesh Data
- * \param time        Physical time to evaluate function at
- * \param comp        FE block to consider (indexes at 0)
- * \param DOF         DOF index to evaluate (start at 0)
+ * \param FE        FE Space
+ * \param mesh      Mesh Data
+ * \param time      Physical time to evaluate function at
+ * \param comp      FE block to consider (indexes at 0)
+ * \param DOF       DOF index to evaluate (start at 0)
  *
  * \return val         FE approximation of function on fespace
  *
@@ -657,11 +506,13 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fe
 REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace *FE,trimesh *mesh,REAL time,INT comp,INT DOF)
 {
   int i,j,m;
+  INT nq1d = 1; // Number of quadrature points in 1D if not given.
   REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
-  REAL* valx = (REAL *) calloc(mesh->dim*FE->nspaces,sizeof(REAL));
+  REAL* valx = (REAL *) calloc(FE->nun,sizeof(REAL));
   INT dim = mesh->dim;
   INT local_dim = 0;
   REAL val=-666e+00;
+
   INT* face_vertex = (INT *) calloc(dim,sizeof(INT));
 
   for(i=0;i<comp;i++) {
@@ -674,16 +525,12 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
     }
   }
 
-  if(FE->var_spaces[comp]->FEtype==0) { // P0 elements u[dof] = 1/elvol \int_el u
-    x[0] = mesh->el_mid[DOF*dim];
-    if(dim==2 || dim==3)
-      x[1] = mesh->el_mid[DOF*dim+1];
-    if(dim==3)
-      x[2] = mesh->el_mid[DOF*dim+2];
-    (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
-    val = valx[local_dim];
-    //    printf("local_dim = %d\n",local_dim);
-  } else if(FE->var_spaces[comp]->FEtype>0 && FE->var_spaces[comp]->FEtype<10) { // Lagrange Elements u[dof] = u[x_i]
+  // P0 elements u[dof] = 1/elvol \int_el u
+  if(FE->var_spaces[comp]->FEtype==0) {
+    val = (1.0/mesh->el_vol[DOF])*integrate_elm(expr,FE->nun,local_dim,nq1d+2,NULL,mesh,time,DOF);
+
+  // Lagrange Elements u[dof] = u[x_i]
+  } else if(FE->var_spaces[comp]->FEtype>0 && FE->var_spaces[comp]->FEtype<10) {
     x[0] = FE->var_spaces[comp]->cdof->x[DOF];
     if(dim==2 || dim==3)
       x[1] = FE->var_spaces[comp]->cdof->y[DOF];
@@ -691,27 +538,22 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
       x[2] = FE->var_spaces[comp]->cdof->z[DOF];
     (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
     val = valx[local_dim];
-  } else if (FE->var_spaces[comp]->FEtype==20) { // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
-    x[0] = mesh->ed_mid[DOF*dim];
-    x[1] = mesh->ed_mid[DOF*dim+1];
-    if(dim==3) x[2] = mesh->ed_mid[DOF*dim+2];
-    (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
-    val = 0.0;
-    for(j=0;j<dim;j++) val+=mesh->ed_tau[DOF*dim+j]*valx[local_dim + j];
-  } else if (FE->var_spaces[comp]->FEtype==30) { // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
+
+  // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
+  } else if (FE->var_spaces[comp]->FEtype==20) {
+    val = (1.0/mesh->ed_len[DOF])*integrate_edge_vector_tangent(expr,FE->nun,local_dim,nq1d,NULL,mesh,time,DOF);
+
+  // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
+  } else if (FE->var_spaces[comp]->FEtype==30) {
+    val = (1.0/mesh->f_area[DOF])*integrate_face_vector_normal(expr,FE->nun,local_dim,nq1d,NULL,mesh,time,DOF);
+
+  // Bubbles (PETER HELP??)
+  } else if (FE->var_spaces[comp]->FEtype>=60 && FE->var_spaces[comp]->FEtype<70) {
     x[0] = mesh->f_mid[DOF*dim];
     x[1] = mesh->f_mid[DOF*dim+1];
     if(dim==3) x[2] = mesh->f_mid[DOF*dim+2];
     (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
     val = 0.0;
-    for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx[local_dim + j];
-  } else if (FE->var_spaces[comp]->FEtype>=60 && FE->var_spaces[comp]->FEtype<70) { // Bubbles
-    x[0] = mesh->f_mid[DOF*dim];
-    x[1] = mesh->f_mid[DOF*dim+1];
-    if(dim==3) x[2] = mesh->f_mid[DOF*dim+2];
-    (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
-    val = 0.0;
-    //for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx[local_dim + j]*mesh->f_area[DOF];
     for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx[local_dim + j];
     get_incidence_row(DOF,mesh->f_v,face_vertex);
     for (m=0;m<dim;m++) {
@@ -723,6 +565,8 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
       //for(j=0;j<dim;j++) val+= -(1.0/dim)*mesh->f_area[DOF]*mesh->f_norm[DOF*dim+j]*valx[local_dim + j];
       for(j=0;j<dim;j++) val+= -(1.0/dim)*mesh->f_norm[DOF*dim+j]*valx[local_dim + j];
     }
+
+  // Not a FEM implemented
   } else {
     check_error(ERROR_FE_TYPE,__FUNCTION__);
   }
@@ -730,7 +574,37 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
   if (x) free(x);
   if(valx) free(valx);
   if (face_vertex) free(face_vertex);
+
   return val;
+}
+/****************************************************************************************************************************/
+
+/****************************************************************************************************************************/
+/*!
+ * \fn void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fespace *FE,trimesh *mesh,REAL time)
+ *
+ * \brief Evaluate a given analytical function on the block finite-element space given.
+ *
+ * \param expr 	    Function call to analytical expression
+ * \param FE        block FE Space for multiple variables
+ * \param mesh      Mesh Data
+ * \param time      Physical time to evaluate function at
+ * \param val       FE approximation of function on fespace
+ *
+ */
+void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fespace *FE,trimesh *mesh,REAL time)
+{
+  int i,k;
+  INT entry = 0;
+
+  for(k=0;k<FE->nspaces;k++) {
+    for(i=0;i<FE->var_spaces[k]->ndof;i++) {
+      val[entry] = blockFE_Evaluate_DOF(expr,FE,mesh,time,k,i);
+      entry++;
+    }
+  }
+
+  return;
 }
 /****************************************************************************************************************************/
 
@@ -1185,7 +1059,7 @@ void get_Pigrad_H1toNed(dCSRmat* Pgrad,trimesh* mesh)
 /***********************************************************************************************/
 void get_Pigrad_H1toRT( dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl, trimesh* mesh)
 {
-  INT i,j,k,rowa,cola;
+  INT i,j,rowa,cola;
   INT v1,v2,v3;
   INT begin_row,end_row;
   INT nface = mesh->nface;
@@ -1258,7 +1132,7 @@ void get_Pigrad_H1toRT( dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl, trimesh* m
 //    temp1 = temp1 / mesh->f_area[i];
 //    temp2 = temp2 / mesh->f_area[i];
 //    temp3 = temp3 / mesh->f_area[i];
-    
+
     //printf("F_norm(%f,%f,%f)\ttemp(%f,%f,%f)\n",mesh->f_norm[i*dim],mesh->f_norm[i*dim+1],mesh->f_norm[i*dim+2],temp1,temp2,temp3);
 
     //temp1 = mesh->f_area[i]*mesh->f_norm[i*dim+0]/3;
