@@ -423,7 +423,7 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh
 
   // P0 elements u[dof] = 1/elvol \int_el u
   if(FEtype==0) {
-    val = (1.0/mesh->el_vol[DOF])*integrate_elm(expr,0,0,nq1d+2,NULL,mesh,time,DOF);
+    val = (1.0/mesh->el_vol[DOF])*integrate_elm(expr,1,0,nq1d+2,NULL,mesh,time,DOF);
 
   // Lagrange Elements u[dof] = u[x_i]
   } else if(FEtype>0 && FEtype<10) {
@@ -436,15 +436,15 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh
 
   // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
   } else if (FEtype==20) {
-    val = (1.0/mesh->ed_len[DOF])*integrate_edge_vector_tangent(expr,0,0,nq1d,NULL,mesh,time,DOF);
+    val = (1.0/mesh->ed_len[DOF])*integrate_edge_vector_tangent(expr,1,0,nq1d,NULL,mesh,time,DOF);
 
   // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
   } else if (FEtype==30) {
-    val = (1.0/mesh->f_area[DOF])*integrate_face_vector_normal(expr,0,0,nq1d,NULL,mesh,time,DOF);
+    val = (1.0/mesh->f_area[DOF])*integrate_face_vector_normal(expr,1,0,nq1d,NULL,mesh,time,DOF);
 
   // Bubbles
   } else if (FEtype>=60 && FEtype<70) {
-    val = (1.0/mesh->f_area[DOF])*integrate_face_vector_normal(expr,0,0,nq1d,NULL,mesh,time,DOF);
+    val = (1.0/mesh->f_area[DOF])*integrate_face_vector_normal(expr,1,0,nq1d,NULL,mesh,time,DOF);
 
   // No other FEM types implemented
   } else {
