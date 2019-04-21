@@ -1,6 +1,6 @@
 //
 //  fem.h
-//  
+//
 //
 //  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 2015-02-01
 //
@@ -17,13 +17,13 @@
 #include "vec.h"
 #include "grid.h"
 
-/* markers for boundary conditions: 
-   in the mesh structure these will be the values of the array 
-   BOUNDARY FACES ARE MARKED WITH 
-   trimesh.f_bdry[i]=0 then (i) is an interior face. 
+/* markers for boundary conditions:
+   in the mesh structure these will be the values of the array
+   BOUNDARY FACES ARE MARKED WITH
+   trimesh.f_bdry[i]=0 then (i) is an interior face.
    1 <= trimesh.f_bdry[i] <= 16 (i) is on the DIRICHLET boundary;
-   17 <= trimesh.f_bndry[i] <=32 (i) is  on the NEUMANN boundary; 
-   33 <= trimesh.f_bndry[i] <=64 (i) is  on the ROBIN boundary; 
+   17 <= trimesh.f_bndry[i] <=32 (i) is  on the NEUMANN boundary;
+   33 <= trimesh.f_bndry[i] <=64 (i) is  on the ROBIN boundary;
 */
 #define MARKER_DIRICHLET 1
 #define MARKER_NEUMANN  17
@@ -45,7 +45,7 @@ typedef struct qcoordinates{
   //! z values (if in 3D)
   REAL* z;
 
-  //! weights 
+  //! weights
   REAL* w;
 
   //! Size of arrays (number of quadrature nodes)
@@ -56,7 +56,7 @@ typedef struct qcoordinates{
 
   //! Number of quadrature nodes in one direction
   INT nq1d;
-	
+
 } qcoordinates;
 
 /**
@@ -74,7 +74,7 @@ typedef struct fespace{
   //! Coordinates of DOF
   coordinates* cdof;
 
-  //! number of DOF 
+  //! number of DOF
   INT ndof;
 
   //! number of DOF on boundary
@@ -104,7 +104,7 @@ typedef struct fespace{
   //! Basis Functions and Derivatives
   REAL* phi;
   REAL* dphi;
-	
+
 } fespace;
 
 /**
@@ -113,7 +113,7 @@ typedef struct fespace{
  *
  */
 typedef struct block_fespace {
-    
+
   //! number of FEM spaces in system
   INT nspaces;
 
@@ -125,7 +125,7 @@ typedef struct block_fespace {
 
   //! total number of boundary dof
   INT nbdof;
-  
+
   //! blocks of dCSRmat, point to blocks[brow][bcol]
   fespace **var_spaces;
 
@@ -134,7 +134,7 @@ typedef struct block_fespace {
 
   //! All DOF flags - indicates if the DOF is a special DOF (i.e. on certain boundary)
   INT* dof_flag;
-    
+
 } block_fespace; /**< Matrix of REAL type in Block CSR format */
 
 
