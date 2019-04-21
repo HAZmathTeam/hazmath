@@ -23,7 +23,7 @@ HAZLIB = $(HAZDIR)/lib
 
 HAZINCLUDE = $(HAZDIR)/include
 
-LIBS += -L$(HAZLIB) -lhazmath -lm -lblas -llapack -lgfortran
+LIBS += -L$(HAZLIB) -lhazmath -lm -lgfortran #-lblas -llapack -lgfortran
 
 HEADERS = $(INCLUDE)/grid_defs.h \
 	$(INCLUDE)/grid_params.h
@@ -31,6 +31,7 @@ HEADERS = $(INCLUDE)/grid_defs.h \
 EXE = $(GRID).$(EXTENSION)
 EXEb = b.$(EXTENSION)
 EXEin = ingrid.$(EXTENSION)
+EXElex = lex.$(EXTENSION)
 
 # Source and Object Files
 OBJS = 	$(SRCDIR)/$(GRID).o \
@@ -46,9 +47,11 @@ OBJb = 	newgrids.o \
 
 OBJinp = main_input.o
 
+OBJlex = lex0.o
+
 .PHONY:  all
 
-all: $(EXE) $(EXEb) $(EXEin)
+all: $(EXE) $(EXEb) $(EXEin) $(EXElex)
 
 $(EXE):		$(OBJS)
 		$(CC) $(LDFLAGS)  $(OBJS) -o $@ $(LIBS)
@@ -59,9 +62,12 @@ $(EXEb):	$(OBJb)
 $(EXEin):	$(OBJinp)
 		$(CC) $(LDFLAGS)  $(OBJinp) -o $@ $(LIBS)
 
+$(EXElex):	$(OBJlex)
+		$(CC) $(LDFLAGS)  $(OBJlex) -o $@ $(LIBS)
+
 %.o:	%.c	$(HEADERS)
 	+$(CC) -I$(INCLUDE) -I$(HAZINCLUDE) $(CFLAGS) -o $@ -c $<
 
 clean:
-	+rm -rf $(EXE) $(SRCDIR)/*.o *.mod ./*.dSYM  $(EXTRA_DEL)
+	+rm -rf *.ex $(SRCDIR)/*.o *.mod ./*.dSYM  
 #########################################################
