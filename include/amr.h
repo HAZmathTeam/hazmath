@@ -12,7 +12,9 @@
 #include <math.h>
 #include <limits.h>
 #include <time.h>
-
+#ifndef MAXFILENAMESIZE
+#define MAXFILENAMESIZE 256
+#endif
 typedef struct /* n-homogenous simplicial complex */
 {
   INT nbig; /* the dimension of the space in which SC is embedded */
@@ -39,15 +41,6 @@ typedef struct /* n-homogenous simplicial complex */
 		 used for elevation in hydrolena) */
   REAL factorial; /*n factorial */
 } scomplex;
-
-typedef struct /* a coordinate system */
-{
-  INT type; /* the type of the coordinate system: 0 is cartesian, 1 if
-	       it is polar, 2 is cyllindical and so on */
-  REAL *o; /* coordinates of the origin */
-  scomplex *parent; /*parent complex */
-} coordsystem;
-
 typedef struct /* a macroelement (isomrphic to the hypercube
 		  usually) */
 {
@@ -59,7 +52,34 @@ typedef struct /* a macroelement (isomrphic to the hypercube
 		  needed. These are computed depending on the coord
 		  system and are not an input */
 } macroelement;
-
+/*================================================================*/
+typedef struct {
+  char *title; // the title of the input
+  INT dim; // the dimension of the problem.
+  //----------------
+  // output flags
+  //----------------
+  SHORT print_level;   /**< print level */
+  //----------------
+  // files
+  //----------------
+  char *fgrid;  /**< grid file name */
+  char *dgrid;   /**< output directory */
+  char *fvtu;  /**< grid file name */
+  char *dvtu;   /**< output directory */
+  INT ncsys; /**< number of coordinate systems */
+  REAL *ox; /** origins of the coordinate systems */
+  INT *systypes; /** types for the coord. system */
+  INT *syslabels; /** labels for the coord. system */
+  INT nv; /* number of vertices in the graph describing the
+	     computational domain */
+  REAL *x; /* coordinates for each vertex [nv][dim]*/
+  INT *labels; /* coordinate sys labels for vertices [nv]*/
+  INT *bcodes; /* boundary codes for vertices [nv]*/
+  INT ne; /* number of edges in the graph describing the domain */ 
+  iCSRmat *seg;// icsrmat thing for the  graphof segments.
+} input_grid; /**< Input GRID parameters */
+/*************************************************************/
 typedef struct /* n-homogenous simplicial SUBcomplex */
 {
   INT nbig; /* spatial dimension in which the sub-SC is embedded*/
