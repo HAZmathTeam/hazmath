@@ -418,12 +418,12 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh
   REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
   INT dim = mesh->dim;
   INT FEtype = FE->FEtype;
-  INT nq1d = 1; // If quadrature not given, fix order.
+  INT nq1d = 3; // If quadrature not given, fix order.
   REAL val=-666e+00;
 
   // P0 elements u[dof] = 1/elvol \int_el u
   if(FEtype==0) {
-    val = (1.0/mesh->el_vol[DOF])*integrate_elm(expr,1,0,nq1d+2,NULL,mesh,time,DOF);
+    val = (1.0/mesh->el_vol[DOF])*integrate_elm(expr,1,0,nq1d,NULL,mesh,time,DOF);
 
   // Lagrange Elements u[dof] = u[x_i]
   } else if(FEtype>0 && FEtype<10) {
@@ -506,7 +506,7 @@ void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,t
 REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace *FE,trimesh *mesh,REAL time,INT comp,INT DOF)
 {
   int i,j,m;
-  INT nq1d = 1; // Number of quadrature points in 1D if not given.
+  INT nq1d = 3; // Number of quadrature points in 1D if not given.
   REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
   REAL* valx = (REAL *) calloc(FE->nun,sizeof(REAL));
   INT dim = mesh->dim;
@@ -527,7 +527,7 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
 
   // P0 elements u[dof] = 1/elvol \int_el u
   if(FE->var_spaces[comp]->FEtype==0) {
-    val = (1.0/mesh->el_vol[DOF])*integrate_elm(expr,FE->nun,local_dim,nq1d+2,NULL,mesh,time,DOF);
+    val = (1.0/mesh->el_vol[DOF])*integrate_elm(expr,FE->nun,local_dim,nq1d,NULL,mesh,time,DOF);
 
   // Lagrange Elements u[dof] = u[x_i]
   } else if(FE->var_spaces[comp]->FEtype>0 && FE->var_spaces[comp]->FEtype<10) {
