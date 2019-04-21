@@ -352,21 +352,6 @@ char *get_substring(char *pattern,		\
   }
   return found;
 }
-/***********************************************************************/
-/*
-  dimension{2} 
-  print_level{2} 
-  dir_grid{grids/}
-  dir_vtu{grids_vtu/}
-  gridfile{unitSQ_n17.haz}
-  num_coordsystems{2} 
-  data_coordsystems={1 0. 0. 0 2 -1. -1. 1} 
-  num_vertices{4}  
-  data_vertices{-1. -1. 0  2. 0. 2  2. 45. 2 2. 90. 2}
-  num_edges{4}
-  data_edges{0 1 5  1 3 5 0 2 4 2 3 7}
-*/
-/********************************************************************/
 input_grid *parse_input_grid(const char *input_file_grid)
 {
   INT iread,i,j;
@@ -386,7 +371,6 @@ input_grid *parse_input_grid(const char *input_file_grid)
     *data_vertices=NULL,
     *num_edges=NULL,
     *data_edges=NULL;
-  char info_file[128] ={"P2000.html"};
   size_t length_info_file;
   size_t length_title=0, 
     length_dimension=0, 

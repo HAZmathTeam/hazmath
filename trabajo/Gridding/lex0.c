@@ -11,8 +11,8 @@
 #endif
 
 void d_sort(INT n, REAL *a)
-//implements STRAIGHT  INSERT sort for integers
 {
+//implements STRAIGHT  INSERT sort for integers
   INT i,j;
   REAL aj;
   unsigned int lt=0;
@@ -34,13 +34,13 @@ void d_sort(INT n, REAL *a)
   return;
 }
 void lex_sort(const INT nr, const INT nc, REAL *a, REAL *aj)
+{
 /*
   implements STRAIGHT INSERT sorting to order lexicographically nr
   names with nc components each.  the array a is overwritten. aj[] on
   input should be allocated. aj is a working double array with nc
   elements.
 */
-{
   INT i,j,k,k1;
   unsigned int lt=0;
   for (j = 1; j < nr; ++j) {
