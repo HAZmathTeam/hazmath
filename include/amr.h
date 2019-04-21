@@ -53,6 +53,14 @@ typedef struct /* a macroelement (isomrphic to the hypercube
 		  system and are not an input */
 } macroelement;
 /*================================================================*/
+typedef struct /* a coordinate system */
+{
+  INT type; /* the type of the coordinate system: 0 is cartesian, 1 if
+	       it is polar, 2 is cyllindical and so on */
+  REAL *o; /* coordinates of the origin */
+  scomplex *parent; /*parent complex */
+} coordsystem;
+/*================================================================*/
 typedef struct {
   char *title; // the title of the input
   INT dim; // the dimension of the problem.
