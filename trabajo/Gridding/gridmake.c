@@ -9,12 +9,13 @@
 #include "grid_defs.h"
 #include "grid_params.h"
 /*****************************************************************/
+/*****************************************************************/
 void mock_solve(INT ref_type, scomplex *sc, void *all){
   if(!ref_type) return;
-  //  fprintf(stdout,"\n%s: %d",__FUNCTION__,sc->level);
+  fprintf(stdout,"\n%s: %d",__FUNCTION__,sc->level);
   INT j,k;
   INT dim=sc->n,nv=sc->nv,ns=sc->ns;
-  REAL *u=all;
+  dvector *u=all;
   /* 
      if(u)
      for(j=0;j<ns;j++)
@@ -38,8 +39,8 @@ void mock_estimate(INT ref_type, scomplex *sc, void *all){
     /* in this mock scenario we just have random error on 0th level */
     for(j=0;j<ns;j++){
       errs->val[j]=fabs(errs->val[j]);
-      //      fprintf(stdout,"\n: err[%d]=%e;",	\
-      //	      j,errs->val[j]);    
+      fprintf(stdout,"\n: err[%d]=%e;",		\
+	      j,errs->val[j]);    
     }
   } else {
     /*    assuming that every refined simplex reduces the error by a
@@ -47,22 +48,23 @@ void mock_estimate(INT ref_type, scomplex *sc, void *all){
     for(j=0;j<ns;j++){
       if(sc->child0[j]<0 || sc->childn[j]<0 || sc->gen[j] != lvl_prev)continue;
       errs->val[sc->childn[j]]=errs->val[sc->child0[j]]=gamma*errs->val[j];
-      //      fprintf(stdout,"\ngeneration: %d;j=%d,e=%e (child0[%d]=%e; childn[%d]=%e", \
-//      	      sc->gen[j],					\
-//      	      j,errs->val[j],					\
-//      	      sc->child0[j],errs->val[sc->child0[j]],		\
-//      	      sc->childn[j],errs->val[sc->childn[j]]);
+      fprintf(stdout,"\ngeneration: %d;j=%d,e=%e (child0[%d]=%e; childn[%d]=%e", \
+      	      sc->gen[j],					\
+      	      j,errs->val[j],					\
+      	      sc->child0[j],errs->val[sc->child0[j]],		\
+      	      sc->childn[j],errs->val[sc->childn[j]]);
     }
-    //    for(j=0;j<ns;j++)
-    //      fprintf(stdout,"\nMMMerrs[%d]: %e",j,errs->val[j]);
+    for(j=0;j<ns;j++)
+      fprintf(stdout,"\nMMMerrs[%d]: %e",j,errs->val[j]);
   }
-  //  fprintf(stdout,"\n%s: %d",__FUNCTION__,sc->level);
+  fprintf(stdout,"\n%s: %d",__FUNCTION__,sc->level);
   return;
 }
 void mock_mark(INT ref_type, scomplex *sc,void *all){
   dvector *errs=all;
   //  markeql(sc, errs);
-  markall(sc,1);
+  //  markall(sc,1);
+  markstar(sc,errs);
     //  print_full_mat_int(sc->ns,1,sc->marked,"mark");
     //  fprintf(stdout,"\nXXXXXXXXXX%s: %d\n",__FUNCTION__,sc->level);
   return;
@@ -213,7 +215,10 @@ INT main(INT   argc,   char *argv[]){
     fprintf(stdout,"nd[%d]=%d, ",j,nd[j]);
   }
   fprintf(stdout,"nd[%d]=%d",dim-1,nd[dim-1]);
-  fprintf(stdout,"\n-------------------------------------------\n");    
+  fprintf(stdout,"\n-------------------------------------------\n");
+  //  haz_scomplex_free(sc);
+  //  sc=hazr("newmesh.grd");
+  dim=sc->n;
   if(ref_levels){
     /* lots=number of elements if every element was refined ref_level times*/
     long int lots = (1<<ref_levels)*sc->ns;
