@@ -19,7 +19,7 @@
 #define REAL double
 #endif
 #ifndef DIM
-#define DIM 3
+#define DIM 2
 #endif
 /********************************FINCTIONS:*********************/
 void cube2simp_free(cube2simp *c2s);
@@ -202,42 +202,34 @@ INT main(INT argc, char **argv)
   if(ndd) free(ndd);  
   fprintf(stdout,"\nuniform mesh in dim=%d; vertices: %d, simplexes %d\n",dim,sc->nv,sc->ns);
   fprintf(stdout,"\nedges=%d",c2s->ne);
-  REAL xmac[24]={-1,-1.,-1.,				\
-  		 1.,-1,-1.,				\
-  		 -1., 1.,-1.,				\
-  		 1., 1.,-1.,				\
-  		 -1.,-1., 1.,				\
-  		 1.,-1., 1.,				\
-  		 -1., 1., 1.,				\
-  		 1., 1., 1.};
-  INT ncsys=2;
-  coordsystem **csys=malloc(ncsys*sizeof(coordsystem *));
-  for(i=0;i<ncsys;i++){
-    csys[i]=malloc(sizeof(coordsystem));
-    fprintf(stdout,"\niii=%d",i);fflush(stdout);
-    csys[i]->o=(REAL *)calloc(dim,sizeof(REAL));
-    csys[i]->type=1;
-    csys[i]->parent=sc;
-    memset(csys[i]->o,0,dim*sizeof(REAL));
-  }
+  /* REAL xmac[24]={-1,-1.,-1.,				\ */
+  /* 		 1.,-1,-1.,				\ */
+  /* 		 -1., 1.,-1.,				\ */
+  /* 		 1., 1.,-1.,				\ */
+  /* 		 -1.,-1., 1.,				\ */
+  /* 		 1.,-1., 1.,				\ */
+  /* 		 -1., 1., 1.,				\ */
+  /* 		 1., 1., 1.}; */
+  
   INT k1,k2,j1,j2,l1,l2;
-  if(dim==2){
-    xmac[0]=-1; xmac[1]=-1.;
-    xmac[2]= 1.; xmac[3]=-1.;
-    xmac[4]=-1.; xmac[5]= 1.;
-    xmac[6]= 1.; xmac[7]= 1.;   
-    for(i=8;i<24;i++){
-      xmac[i]=-1e20;
-    }    
-  }  
-  map2mac(sc,c2s,xmac);
+  /* if(dim==2){ */
+  /*   xmac[0]=-1; xmac[1]=-1.; */
+  /*   xmac[2]= 1.; xmac[3]=-1.; */
+  /*   xmac[4]=-1.; xmac[5]= 1.; */
+  /*   xmac[6]= 1.; xmac[7]= 1.;    */
+  /*   for(i=8;i<24;i++){ */
+  /*     xmac[i]=-1e20; */
+  /*   }     */
+  /* }   */
+  input_grid *g=parse_input_grid("input.grid");
+  //  
+  input_grid_print(g);  
+  map2mac(sc,c2s,g->x);
+  input_grid_free(g);
+  exit(129);
   //  haz_scomplex_print(sc,0,"HAHA");
   if(dim==2||dim==3) {
     vtkw("newmesh.vtu",sc,0,0,1.);
-  }
-  for(i=0;i<ncsys;i++){
-    if(csys[i]->o) free(csys[i]->o);
-    if(csys[i]) free(csys[i]);
   }
   cube2simp_free(c2s);
   haz_scomplex_free(sc);
