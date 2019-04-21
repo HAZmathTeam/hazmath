@@ -1,5 +1,5 @@
 #ifndef INT
-1;5202;0c#define INT int
+#define INT int
 #endif
 
 #ifndef REAL
@@ -11,7 +11,7 @@
 #endif
 
 /* MAX LEVELS of refinement */
-#define MAXREFLEVELS 6
+#define MAXREFLEVELS 0
 
 /* 
    preceeds all file names, so it can be a directory name and a
@@ -31,8 +31,8 @@
 
 //#define FEATURES_FILE_IN "spiral2d.inp"
 //#define FEATURES_FILE_IN "spiral.inp"
-//#define FEATURES_FILE_IN "circle.inp"
-#define FEATURES_FILE_IN "sphere.inp"
+#define FEATURES_FILE_IN "circle.inp"
+//#define FEATURES_FILE_IN "sphere.inp"
 
 #define FEATURES_FILE_OUT "opts123.out"
 

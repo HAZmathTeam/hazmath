@@ -29,6 +29,8 @@ HEADERS = $(INCLUDE)/grid_defs.h \
 	$(INCLUDE)/grid_params.h
 
 EXE = $(GRID).$(EXTENSION)
+EXEb = b.$(EXTENSION)
+EXEin = ingrid.$(EXTENSION)
 
 # Source and Object Files
 OBJS = 	$(SRCDIR)/$(GRID).o \
@@ -38,13 +40,24 @@ OBJS = 	$(SRCDIR)/$(GRID).o \
 	$(SRCDIR)/io_geo.o \
 	$(SRCDIR)/features.o
 
+OBJb = 	newgrids.o \
+	bitwise.o \
+	new_refining.o
+
+OBJinp = main_input.o
+
 .PHONY:  all
 
-all: $(EXE)
+all: $(EXE) $(EXEb) $(EXEin)
 
-$(EXE):	$(OBJS)
-	$(CC) $(LDFLAGS)  $(OBJS) -o $@ $(LIBS)
+$(EXE):		$(OBJS)
+		$(CC) $(LDFLAGS)  $(OBJS) -o $@ $(LIBS)
 
+$(EXEb):	$(OBJb)
+		$(CC) $(LDFLAGS)  $(OBJb) -o $@ $(LIBS)
+
+$(EXEin):	$(OBJinp)
+		$(CC) $(LDFLAGS)  $(OBJinp) -o $@ $(LIBS)
 
 %.o:	%.c	$(HEADERS)
 	+$(CC) -I$(INCLUDE) -I$(HAZINCLUDE) $(CFLAGS) -o $@ -c $<
