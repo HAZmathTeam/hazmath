@@ -1,3 +1,9 @@
+%% for given vertices and segments and a given vertex kvertex finds
+%% all vertices opposite to it in each macroelement which have
+%% larger number.  
+kvertex=9;
+dim=2;
+
 xy=[...
     1, 1.5  ,3;
     2, 2.5  ,3;
@@ -36,20 +42,21 @@ A=sparse(seg(:,1),seg(:,2),o,nv,nv);
 ne1 = length(i);
 o=ones(ne1,1);
 A=sparse(i,j,o,nv,nv);
-dim=2;
-k=1;
-I=speye(nv,nv);
-ek=I(:,k);
-%%a=(A+I)*ek; 
-%%a=(A+I)*a-a;
-a=A*(A+I)*ek;
-jj=find(a==dim);
-jj=jj(find(jj!=k))
+
 hold on;
+ek=zeros(nv,1);
+for k=1:nv
+  ek(k)=1;
+  a=A*(A*ek+ek);
+  jj=find(a==dim);
+  jj=jj(find(jj>k));
+  ek(k)=0;
+  disp([int2str(k),':  ',int2str(jj')])
+end
 gplot(A,xy(:,2:3)); 
 plot(xy(:,2),xy(:,3),'ro'); 
 for i=1:nv
-	set(text(xy(i,2)+0.01,xy(i,3)+0.01,int2str(i)),'FontSize',24);
+set(text(xy(i,2)+0.01,xy(i,3)+0.01,int2str(i)),'FontSize',24);
 end
 axis off
 hold off 
