@@ -259,7 +259,7 @@ char *make_string_from_file(FILE *the_file, size_t *length_string)
   i = count*sizeof(char);
   everything = (char *)malloc(i);
   rewind(the_file);
-  fprintf(stderr,"\nNumber of characters in the file %i\n", count);
+  //  fprintf(stderr,"\nNumber of characters in the file %i\n", count);
   i = 0;
   j = 0;
   flag = 1;
