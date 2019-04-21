@@ -35,7 +35,7 @@ void initialize_fespace(fespace *FE)
   FE->periodic = NULL;
   FE->phi = NULL;
   FE->dphi = NULL;
-
+  
   return;
 }
 /****************************************************************************************/
@@ -307,7 +307,7 @@ void create_fespace(fespace *FE,trimesh* mesh,INT FEtype)
   for(i=0;i<FE->ndof;i++) {
     FE->periodic[i] = -1;
   }
-  
+
   // clean temp
   if (temp) {
       free(temp);
@@ -346,7 +346,7 @@ void free_fespace(fespace* FE)
     free(FE->ed_dof);
     FE->ed_dof = NULL;
   }
-  
+
   if(FE->f_dof && FE->FEtype!=1 && FE->FEtype!=20) { // If Linears or Nedelec, free_mesh will destroy f_dof
     icsr_free(FE->f_dof);
     free(FE->f_dof);
@@ -377,7 +377,7 @@ void free_fespace(fespace* FE)
     free(FE->dphi);
     FE->dphi = NULL;
   }
-  
+
   return;
 }
 /****************************************************************************************/
@@ -415,7 +415,7 @@ void free_blockfespace(block_fespace* FE)
     free(FE->dof_flag);
     FE->dof_flag = NULL;
   }
-  
+
   return;
 }
 /****************************************************************************************/
@@ -432,7 +432,7 @@ void free_blockfespace(block_fespace* FE)
  * \return FE       Struct for P2 FE space
  *
  */
-void get_P2(fespace* FE,trimesh* mesh) 
+void get_P2(fespace* FE,trimesh* mesh)
 {
   // Loop indices
   INT i,j,k,s,jcntr;
@@ -614,7 +614,7 @@ void get_P2(fespace* FE,trimesh* mesh)
   FE->dof_flag = dof_flag;
   *(FE->el_dof) = el_n;
   FE->cdof = cdof;
-  
+
   if(ipv) free(ipv);
 
   return;
@@ -633,7 +633,7 @@ void get_P2(fespace* FE,trimesh* mesh)
  * \return el_dof.dat Output file with el_dof data
  *
  */
-void dump_el_dof(FILE* fid,iCSRmat *el_dof) 
+void dump_el_dof(FILE* fid,iCSRmat *el_dof)
 {
   // Loop indices
   INT i,j,acol,bcol;
@@ -664,7 +664,7 @@ void dump_el_dof(FILE* fid,iCSRmat *el_dof)
  * \return dir/varname.dat Output file with FE data
  *
  */
-void dump_fespace(fespace *FE,char *varname,char *dir) 
+void dump_fespace(fespace *FE,char *varname,char *dir)
 {
   INT i;
   INT totdof = FE->ndof;
@@ -703,15 +703,15 @@ void dump_fespace(fespace *FE,char *varname,char *dir)
  *
  * \param FE               FE space struct
  * \param mesh             Mesh struct
- * \param flag0            min flag value for Dirichlet DOF 
+ * \param flag0            min flag value for Dirichlet DOF
  *                         (e.g. in fem.h: MARKER_DIRICHLET)
- * \param flag1            max flag value for Dirichlet DOF  
+ * \param flag1            max flag value for Dirichlet DOF
  *                         e.g. in fem.h (MARKER_NEUMANN - 1)
  *
  * \return FE.dirichlet    Binary boundary array for DOF
  *
  */
-void set_dirichlet_bdry(fespace* FE,trimesh* mesh, const INT flag0, const INT flag1) 
+void set_dirichlet_bdry(fespace* FE,trimesh* mesh, const INT flag0, const INT flag1)
 {
   INT i;
   for(i=0;i<FE->ndof;i++) {
