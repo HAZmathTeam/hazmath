@@ -4437,11 +4437,11 @@ void precond_block_diag_biot_3field_krylov(REAL *r,
 
   // Preconditioning A11 block (darcy)
   precond pc_w;
+  precond_data pcdata_w;
   if(hxdivdata!=NULL){
     pc_w.data = hxdivdata[1];
     pc_w.fct = precond_hx_div_multiplicative;
   } else {
-    precond_data pcdata_w;
     param_amg_to_prec(&pcdata_w,amgparam);
     pcdata_w.max_levels = mgl[1][0].num_levels;
     pcdata_w.mgl_data = mgl[1];
@@ -4542,11 +4542,11 @@ void precond_block_lower_biot_3field_krylov(REAL *r,
 
   // Preconditioning A11 block (darcy)
   precond pc_w;
+  precond_data pcdata_w;
   if(precdata->hxdivdata!=NULL){
     pc_w.data = precdata->hxdivdata[1];
     pc_w.fct = precond_hx_div_multiplicative;
   } else {
-    precond_data pcdata_w;
     param_amg_to_prec(&pcdata_w,amgparam);
     pcdata_w.max_levels = mgl[1][0].num_levels;
     pcdata_w.mgl_data = mgl[1];
@@ -4657,11 +4657,11 @@ void precond_block_upper_biot_3field_krylov(REAL *r,
 
   // Preconditioning A11 block (darcy)
   precond pc_w;
+  precond_data pcdata_w;
   if(precdata->hxdivdata!=NULL){
     pc_w.data = precdata->hxdivdata[1];
     pc_w.fct = precond_hx_div_multiplicative;
   } else {
-    precond_data pcdata_w;
     param_amg_to_prec(&pcdata_w,amgparam);
     pcdata_w.max_levels = mgl[1][0].num_levels;
     pcdata_w.mgl_data = mgl[1];
