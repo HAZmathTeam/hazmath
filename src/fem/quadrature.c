@@ -1,28 +1,28 @@
 /*! \file src/fem/quadrature.c
- *
- * \brief Computes quadrature nodes and weights for each element or for entire domain
- *
- *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 2/11/15.
- *  Copyright 2015__HAZMATH__. All rights reserved.
- *
- * \note modified by James Adler 11/14/2016
- */
+*
+* \brief Computes quadrature nodes and weights for each element or for entire domain
+*
+*  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 2/11/15.
+*  Copyright 2015__HAZMATH__. All rights reserved.
+*
+* \note modified by James Adler 11/14/2016
+*/
 
 #include "hazmath.h"
 
 /*********************************************************************************/
 /*!
- * \fn struct qcoordinates *allocateqcoords(INT nq1d,INT nelm,INT mydim)
- *
- * \brief Allocates memory and properties of quadrature coordinates struct.
- *
- * \param nq1d    Number of quadrature nodes on an element in 1D direction
- * \param nelm    Number of elements to get quadrature on
- * \param mydim   Dimension of problem
- *
- * \return A      Quadrature struct
- *
- */
+* \fn struct qcoordinates *allocateqcoords(INT nq1d,INT nelm,INT mydim)
+*
+* \brief Allocates memory and properties of quadrature coordinates struct.
+*
+* \param nq1d    Number of quadrature nodes on an element in 1D direction
+* \param nelm    Number of elements to get quadrature on
+* \param mydim   Dimension of problem
+*
+* \return A      Quadrature struct
+*
+*/
 struct qcoordinates *allocateqcoords(INT nq1d,INT nelm,INT mydim)
 {
   // Flag for errors
@@ -34,28 +34,28 @@ struct qcoordinates *allocateqcoords(INT nq1d,INT nelm,INT mydim)
   INT nq = 0;
   switch (mydim)
   {
-  case 1:
+    case 1:
     nq = nq1d;
     A->x = (REAL *) calloc(nq*nelm,sizeof(REAL));
     A->y = NULL;
     A->z = NULL;
     break;
-  case 2:
+    case 2:
     nq = nq1d*nq1d;
     A->x = (REAL *) calloc(nq*nelm,sizeof(REAL));
     A->y = (REAL *) calloc(nq*nelm,sizeof(REAL));
     A->z = NULL;
     break;
-  case 3:
+    case 3:
     nq = nq1d*nq1d*nq1d;
     A->x = (REAL *) calloc(nq*nelm,sizeof(REAL));
     A->y = (REAL *) calloc(nq*nelm,sizeof(REAL));
     A->z = (REAL *) calloc(nq*nelm,sizeof(REAL));
     break;
-  case 4:
+    case 4:
     nq = nq1d;
     A->z = (REAL *) calloc(nq*nelm,sizeof(REAL));
-  default:
+    default:
     status = ERROR_DIM;
     check_error(status, __FUNCTION__);
   }
@@ -70,19 +70,19 @@ struct qcoordinates *allocateqcoords(INT nq1d,INT nelm,INT mydim)
 
 /*********************************************************************************/
 /*!
- * \fn struct qcoordinates *allocateqcoords_bdry(INT nq1d,INT nregion,INT dim,INT ed_or_f)
- *
- * \brief Allocates memory and properties of quadrature coordinates struct.
- *        Assumes we are allocated on a boundary, so dimension is 1 or 2 less
- *
- * \param nq1d    Number of quadrature nodes on an element in 1D direction
- * \param nregion    Number of "elements" (faces or edges) to get quadrature on
- * \param dim     Dimension of problem
- * \param ed_or_f Whether we are computing quadrature on faces or edges
- *
- * \return A      Quadrature struct
- *
- */
+* \fn struct qcoordinates *allocateqcoords_bdry(INT nq1d,INT nregion,INT dim,INT ed_or_f)
+*
+* \brief Allocates memory and properties of quadrature coordinates struct.
+*        Assumes we are allocated on a boundary, so dimension is 1 or 2 less
+*
+* \param nq1d    Number of quadrature nodes on an element in 1D direction
+* \param nregion    Number of "elements" (faces or edges) to get quadrature on
+* \param dim     Dimension of problem
+* \param ed_or_f Whether we are computing quadrature on faces or edges
+*
+* \return A      Quadrature struct
+*
+*/
 struct qcoordinates *allocateqcoords_bdry(INT nq1d,INT nregion,INT dim,INT ed_or_f)
 {
   // Flag for errors
@@ -94,18 +94,18 @@ struct qcoordinates *allocateqcoords_bdry(INT nq1d,INT nregion,INT dim,INT ed_or
   INT nq = 0;
   switch (ed_or_f)
   {
-  case 1:
+    case 1:
     // Compute quadrature on edges
     nq = nq1d;
     break;
-  case 2:
+    case 2:
     if(dim==2) { // face is edge in 2D
       nq = nq1d;
     } else {
       nq = nq1d*nq1d;
     }
     break;
-  default:
+    default:
     status = ERROR_DIM;
     check_error(status, __FUNCTION__);
   }
@@ -131,13 +131,13 @@ struct qcoordinates *allocateqcoords_bdry(INT nq1d,INT nregion,INT dim,INT ed_or
 
 /*********************************************************************************/
 /*!
- * \fn void free_qcoords(qcoordinates* A)
- *
- * \brief Frees memory of arrays of quadrature struct
- *
- * \return A       Struct for quadratures to be freed
- *
- */
+* \fn void free_qcoords(qcoordinates* A)
+*
+* \brief Frees memory of arrays of quadrature struct
+*
+* \return A       Struct for quadratures to be freed
+*
+*/
 void free_qcoords(qcoordinates* A)
 {
   if (A==NULL) return;
@@ -168,17 +168,17 @@ void free_qcoords(qcoordinates* A)
 
 /*********************************************************************************/
 /*!
- * \fn qcoordinates* get_quadrature(trimesh *mesh,INT nq1d)
- *
- * \brief Computes quadrature weights and nodes for entire domain using nq1d^(dim)
- *        quadrature nodes per element
- *
- * \param nq1d    Number of quadrature nodes on an element in 1D direction
- * \param mesh    Mesh struct
- *
- * \return cq_all      Quadrature struct
- *
- */
+* \fn qcoordinates* get_quadrature(trimesh *mesh,INT nq1d)
+*
+* \brief Computes quadrature weights and nodes for entire domain using nq1d^(dim)
+*        quadrature nodes per element
+*
+* \param nq1d    Number of quadrature nodes on an element in 1D direction
+* \param mesh    Mesh struct
+*
+* \return cq_all      Quadrature struct
+*
+*/
 qcoordinates* get_quadrature(trimesh *mesh,INT nq1d)
 {
   INT i,j;
@@ -216,18 +216,18 @@ qcoordinates* get_quadrature(trimesh *mesh,INT nq1d)
 
 /*********************************************************************************/
 /*!
- * \fn void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm)
- *
- * \brief Computes quadrature weights and nodes for SINGLE element using nq1d^(dim)
- *        quadrature nodes on simplex
- *
- * \param nq1d    Number of quadrature nodes on an element in 1D direction
- * \param mesh    Mesh struct
- * \param elm     Index of current element
- *
- * \return cq_elm Quadrature struct on element
- *
- */
+* \fn void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm)
+*
+* \brief Computes quadrature weights and nodes for SINGLE element using nq1d^(dim)
+*        quadrature nodes on simplex
+*
+* \param nq1d    Number of quadrature nodes on an element in 1D direction
+* \param mesh    Mesh struct
+* \param elm     Index of current element
+*
+* \return cq_elm Quadrature struct on element
+*
+*/
 void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm)
 {
   // Flag for errors
@@ -349,19 +349,19 @@ void quad_elm(qcoordinates *cqelm,trimesh *mesh,INT nq1d,INT elm)
 
 /*******************************************************************************/
 /*!
- * \fn qcoordinates* get_quadrature_boundary(trimesh *mesh,INT nq1d,INT ed_or_f)
- *
- * \brief Computes quadrature weights and nodes for all faces (surface integral)
- *        or edges (line integral) in entire domain using nq1d quadrature nodes
- *        per 1D direction.
- *
- * \param nq1d    Number of quadrature nodes on an element in 1D direction
- * \param mesh    Mesh struct
- * \param ed_or_f Whether we do an edge integral (1) or face integral (2)
- *
- * \return cq_all Quadrature struct on boundary
- *
- */
+* \fn qcoordinates* get_quadrature_boundary(trimesh *mesh,INT nq1d,INT ed_or_f)
+*
+* \brief Computes quadrature weights and nodes for all faces (surface integral)
+*        or edges (line integral) in entire domain using nq1d quadrature nodes
+*        per 1D direction.
+*
+* \param nq1d    Number of quadrature nodes on an element in 1D direction
+* \param mesh    Mesh struct
+* \param ed_or_f Whether we do an edge integral (1) or face integral (2)
+*
+* \return cq_all Quadrature struct on boundary
+*
+*/
 qcoordinates* get_quadrature_boundary(trimesh *mesh,INT nq1d,INT ed_or_f)
 {
   INT i,j;
@@ -412,50 +412,51 @@ qcoordinates* get_quadrature_boundary(trimesh *mesh,INT nq1d,INT ed_or_f)
 
 /*******************************************************************************/
 /*!
- * \fn void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_f)
- *
- * \brief Computes quadrature weights and nodes for SINGLE Edge/Face using nq1d^(e_or_f)
- *          quadrature nodes on a line/surface.  Can be used to compute integrals on
- *          1D/2D boundaries (curves/surfaces).
- *
- * \param nq1d    Number of quadrature nodes on an element in 1D direction
- * \param mesh    Mesh struct
- * \param dof     Index of current edge/face
- * \param e_or_f  Whether we do an edge integral (1) or face integral (2)
- *
- * \return cq_bdry Quadrature struct on edge/face
- *
- * \note An edge integral is always a 1D integral.  A face integral is a 1D
- *       integral in 2D and a 2D integral in 3D.
- *
- */
+* \fn void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_f)
+*
+* \brief Computes quadrature weights and nodes for SINGLE Edge/Face using nq1d^(e_or_f)
+*          quadrature nodes on a line/surface.  Can be used to compute integrals on
+*          1D/2D boundaries (curves/surfaces).
+*
+* \param nq1d    Number of quadrature nodes on an element in 1D direction
+* \param mesh    Mesh struct
+* \param dof     Index of current edge/face
+* \param e_or_f  Whether we do an edge integral (1) or face integral (2)
+*
+* \return cq_bdry Quadrature struct on edge/face
+*
+* \note An edge integral is always a 1D integral.  A face integral is a 1D
+*       integral in 2D and a 2D integral in 3D.
+*
+*/
 void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_f)
 {
   // Flag for errors
   SHORT status;
 
-  INT q,j,nqdum; /* Loop indices */
+  INT q,j; /* Loop indices */
+  INT nqdum=1; /* Test for Simpson's Rule */
   INT dim = mesh->dim;
   INT nq = 0;
   INT e_or_f_dim=1;
 
   switch (e_or_f)
   {
-  case 1:
+    case 1:
     // Compute quadrature on edges
     nq = nq1d;
-	  e_or_f_dim = 1;  // Always a 1D integral
+    e_or_f_dim = 1;  // Always a 1D integral
     break;
-  case 2:
+    case 2:
     if(dim==2) { // face is edge in 2D
       nq = nq1d;
-	    e_or_f_dim = 1; // 1D integral
+      e_or_f_dim = 1; // 1D integral
     } else {
       nq = nq1d*nq1d;
-	    e_or_f_dim = 2; // 2D integral
+      e_or_f_dim = 2; // 2D integral
     }
     break;
-  default:
+    default:
     status = ERROR_DIM;
     check_error(status, __FUNCTION__);
   }
@@ -525,88 +526,88 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
   // Get Quad Nodes and Weights
   if(e_or_f_dim==1) {
     if(nqdum>=1) { // Not Simpson's Rule
-      quad1d(gp,gw,nq1d);
-    } else { // Simpson's Rule
-      gp[0] = -1.0;
-      gp[1] = 0.0;
-      gp[2] = 1.0;
-      gw[0] = 1.0/3.0;
-      gw[1] = 4.0/3.0;
-      gw[2] = gw[0];
-    }
-  } else if(e_or_f_dim==2) {
-    triquad_(gp,gw,nq1d);
-  } else {
-    status = ERROR_QUAD_TYPE;
-    check_error(status, __FUNCTION__);
-  }
+    quad1d(gp,gw,nq1d);
+  } else { // Simpson's Rule
+  gp[0] = -1.0;
+  gp[1] = 0.0;
+  gp[2] = 1.0;
+  gw[0] = 1.0/3.0;
+  gw[1] = 4.0/3.0;
+  gw[2] = gw[0];
+}
+} else if(e_or_f_dim==2) {
+  triquad_(gp,gw,nq1d);
+} else {
+  status = ERROR_QUAD_TYPE;
+  check_error(status, __FUNCTION__);
+}
 
-  // Map to Real Edge
-  if(e_or_f_dim==1) {
-    // Edges: x = 0.5(x1*(1-r) + x2*(1+r))
-    //        y = 0.5(y1*(1-r) + y2*(1+r))
-    //        z = 0.5(z1*(1-r) + z2*(1+r))
-    //        w = 0.5*Edge Length*wref
-    if(dim==2) {
-      for (q=0; q<nq1d; q++) {
-        r = gp[q];
-        cqbdry->x[q] = 0.5*cvdof->x[0]*(1-r) + 0.5*cvdof->x[1]*(1+r);
-        cqbdry->y[q] = 0.5*cvdof->y[0]*(1-r) + 0.5*cvdof->y[1]*(1+r);
-        cqbdry->w[q] = w*gw[q];
-      }
-    } else if(dim==3) {
-      for (q=0; q<nq1d; q++) {
-        r = gp[q];
-        cqbdry->x[q] = 0.5*cvdof->x[0]*(1-r) + 0.5*cvdof->x[1]*(1+r);
-        cqbdry->y[q] = 0.5*cvdof->y[0]*(1-r) + 0.5*cvdof->y[1]*(1+r);
-        cqbdry->z[q] = 0.5*cvdof->z[0]*(1-r) + 0.5*cvdof->z[1]*(1+r);
-        cqbdry->w[q] = w*gw[q];
-      }
+// Map to Real Edge
+if(e_or_f_dim==1) {
+  // Edges: x = 0.5(x1*(1-r) + x2*(1+r))
+  //        y = 0.5(y1*(1-r) + y2*(1+r))
+  //        z = 0.5(z1*(1-r) + z2*(1+r))
+  //        w = 0.5*Edge Length*wref
+  if(dim==2) {
+    for (q=0; q<nq1d; q++) {
+      r = gp[q];
+      cqbdry->x[q] = 0.5*cvdof->x[0]*(1-r) + 0.5*cvdof->x[1]*(1+r);
+      cqbdry->y[q] = 0.5*cvdof->y[0]*(1-r) + 0.5*cvdof->y[1]*(1+r);
+      cqbdry->w[q] = w*gw[q];
     }
-  } else if(e_or_f_dim==2) {
-    // Faces: x = x1*(1-r-s) + x2*r + x3*s
-    //        y = y1*(1-r-s) + y2*r + y3*s
-    //        z = z1*(1-r-s) + z2*r + z3*s
-    //        w = 2*Element Area*wref
-   if(dim==3) {
-      for (q=0; q<nq1d*nq1d; q++) {
-        r = gp[q];
-        s = gp[nq1d*nq1d+q];
-        cqbdry->x[q] = cvdof->x[0]*(1-r-s) + cvdof->x[1]*r + cvdof->x[2]*s;
-        cqbdry->y[q] = cvdof->y[0]*(1-r-s) + cvdof->y[1]*r + cvdof->y[2]*s;
-        cqbdry->z[q] = cvdof->z[0]*(1-r-s) + cvdof->z[1]*r + cvdof->z[2]*s;
-        cqbdry->w[q] = w*gw[q];
-      }
+  } else if(dim==3) {
+    for (q=0; q<nq1d; q++) {
+      r = gp[q];
+      cqbdry->x[q] = 0.5*cvdof->x[0]*(1-r) + 0.5*cvdof->x[1]*(1+r);
+      cqbdry->y[q] = 0.5*cvdof->y[0]*(1-r) + 0.5*cvdof->y[1]*(1+r);
+      cqbdry->z[q] = 0.5*cvdof->z[0]*(1-r) + 0.5*cvdof->z[1]*(1+r);
+      cqbdry->w[q] = w*gw[q];
     }
-  } else {
-    status = ERROR_QUAD_TYPE;
-    check_error(status, __FUNCTION__);
   }
-
-  if(gp) free(gp);
-  if(gw) free(gw);
-  if(cvdof) {
-    free_coords(cvdof);
-    free(cvdof);
-    cvdof=NULL;
+} else if(e_or_f_dim==2) {
+  // Faces: x = x1*(1-r-s) + x2*r + x3*s
+  //        y = y1*(1-r-s) + y2*r + y3*s
+  //        z = z1*(1-r-s) + z2*r + z3*s
+  //        w = 2*Element Area*wref
+  if(dim==3) {
+    for (q=0; q<nq1d*nq1d; q++) {
+      r = gp[q];
+      s = gp[nq1d*nq1d+q];
+      cqbdry->x[q] = cvdof->x[0]*(1-r-s) + cvdof->x[1]*r + cvdof->x[2]*s;
+      cqbdry->y[q] = cvdof->y[0]*(1-r-s) + cvdof->y[1]*r + cvdof->y[2]*s;
+      cqbdry->z[q] = cvdof->z[0]*(1-r-s) + cvdof->z[1]*r + cvdof->z[2]*s;
+      cqbdry->w[q] = w*gw[q];
+    }
   }
-  if(thisdof_v) free(thisdof_v);
+} else {
+  status = ERROR_QUAD_TYPE;
+  check_error(status, __FUNCTION__);
+}
 
-  return;
+if(gp) free(gp);
+if(gw) free(gw);
+if(cvdof) {
+  free_coords(cvdof);
+  free(cvdof);
+  cvdof=NULL;
+}
+if(thisdof_v) free(thisdof_v);
+
+return;
 }
 /*********************************************************************************/
 
 /*********************************************************************************/
 /*!
- * \fn void dump_qcoords(qcoordinates *q)
- *
- * \brief Dump the quadrature data to file for plotting purposes
- *
- * \param q           Quadrature struct
- *
- * \return qcoord.dat File with quadrature in format: qcoord(nq,dim+1)
- *
- */
+* \fn void dump_qcoords(qcoordinates *q)
+*
+* \brief Dump the quadrature data to file for plotting purposes
+*
+* \param q           Quadrature struct
+*
+* \return qcoord.dat File with quadrature in format: qcoord(nq,dim+1)
+*
+*/
 void dump_qcoords(qcoordinates *q)
 {
   // Loop indices
@@ -639,24 +640,24 @@ void dump_qcoords(qcoordinates *q)
 /*********************************************************************/
 /*********************************************************************************/
 /*!
- * \fn REAL integrate_elm(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT elm)
- *
- * \brief Integrate a given scalar function over an element
- *
- * \param expr   Function to be integrated
- * \param nun    Number of unknowns (all scalar components) in expr (could be from block function)
- * \param comp   Index of unknown we want to integrate
- * \param nq1d   Number of quadrature points per direction (2*nq1d-1 is order of quadrature)
- * \param cq     Precomputed quadrature points and weights
- * \param mesh   Mesh Information
- * \param time   If needed for function
- * \param elm    Element to integrate over (assumes counting at 0)
- *
- * \return integral Integral of scalar function over element
- *
- * \note If cq is given, we will just use these precomputed values instead of reallocating the quadrature.
- *       Otherwise, we will allocate a new set of quadrature based on nq1d
- */
+* \fn REAL integrate_elm(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT elm)
+*
+* \brief Integrate a given scalar function over an element
+*
+* \param expr   Function to be integrated
+* \param nun    Number of unknowns (all scalar components) in expr (could be from block function)
+* \param comp   Index of unknown we want to integrate
+* \param nq1d   Number of quadrature points per direction (2*nq1d-1 is order of quadrature)
+* \param cq     Precomputed quadrature points and weights
+* \param mesh   Mesh Information
+* \param time   If needed for function
+* \param elm    Element to integrate over (assumes counting at 0)
+*
+* \return integral Integral of scalar function over element
+*
+* \note If cq is given, we will just use these precomputed values instead of reallocating the quadrature.
+*       Otherwise, we will allocate a new set of quadrature based on nq1d
+*/
 REAL integrate_elm(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT elm)
 {
 
@@ -695,6 +696,7 @@ REAL integrate_elm(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT 
       integral += w*uval[comp];
     }
     free_qcoords(cqelm);
+    free(cqelm);
   }
 
   if(qx) free(qx);
@@ -706,23 +708,23 @@ REAL integrate_elm(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT 
 
 /*********************************************************************************/
 /*!
- * \fn REAL integrate_domain(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time)
- *
- * \brief Integrate a given scalar function over the entire mesh
- *
- * \param expr   Function to be integrated
- * \param nun    Number of unknowns (all scalar components) in expr (could be from block function)
- * \param comp   Index of unknown we want to integrate
- * \param nq1d   Number of quadrature points per direction (2*nq1d-1 is order of quadrature)
- * \param cq     Precomputed quadrature points and weights
- * \param mesh   Mesh Information
- * \param time   If needed for function
- *
- * \return integral Integral of scalar function over domain
- *
- * \note If cq is given, we will just use these precomputed values instead of reallocating the quadrature.
- *       Otherwise, we will allocate a new set of quadrature based on nq1d
- */
+* \fn REAL integrate_domain(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time)
+*
+* \brief Integrate a given scalar function over the entire mesh
+*
+* \param expr   Function to be integrated
+* \param nun    Number of unknowns (all scalar components) in expr (could be from block function)
+* \param comp   Index of unknown we want to integrate
+* \param nq1d   Number of quadrature points per direction (2*nq1d-1 is order of quadrature)
+* \param cq     Precomputed quadrature points and weights
+* \param mesh   Mesh Information
+* \param time   If needed for function
+*
+* \return integral Integral of scalar function over domain
+*
+* \note If cq is given, we will just use these precomputed values instead of reallocating the quadrature.
+*       Otherwise, we will allocate a new set of quadrature based on nq1d
+*/
 REAL integrate_domain(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time)
 {
   // Loop indices
@@ -741,27 +743,27 @@ REAL integrate_domain(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,I
 
 /*********************************************************************************/
 /*!
- * \fn REAL integrate_face(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT face)
- *
- * \brief Integrate a given scalar function over a face
- *
- * \param expr   Function to be integrated
- * \param nun    Number of unknowns (all scalar components) in expr (could be from block function)
- * \param comp   Index of unknown we want to integrate
- * \param nq1d   Number of quadrature points per direction (2*nq1d-1 is order of quadrature)
- * \param cq     Precomputed quadrature points and weights
- * \param mesh   Mesh Information
- * \param time   If needed for function
- * \param face   Face to integrate over (assumes counting at 0)
- *
- * \return integral Integral of scalar function over face
- *
- * \note If cq is given, we will just use these precomputed values instead of reallocating the quadrature.
- *       Otherwise, we will allocate a new set of quadrature based on nq1d
- *
- * \note In 3D, this is an area (2D) integral.  In 2D, this is a line (1D) integral.
- *
- */
+* \fn REAL integrate_face(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT face)
+*
+* \brief Integrate a given scalar function over a face
+*
+* \param expr   Function to be integrated
+* \param nun    Number of unknowns (all scalar components) in expr (could be from block function)
+* \param comp   Index of unknown we want to integrate
+* \param nq1d   Number of quadrature points per direction (2*nq1d-1 is order of quadrature)
+* \param cq     Precomputed quadrature points and weights
+* \param mesh   Mesh Information
+* \param time   If needed for function
+* \param face   Face to integrate over (assumes counting at 0)
+*
+* \return integral Integral of scalar function over face
+*
+* \note If cq is given, we will just use these precomputed values instead of reallocating the quadrature.
+*       Otherwise, we will allocate a new set of quadrature based on nq1d
+*
+* \note In 3D, this is an area (2D) integral.  In 2D, this is a line (1D) integral.
+*
+*/
 REAL integrate_face(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT face)
 {
   // Loop indices
@@ -799,6 +801,7 @@ REAL integrate_face(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT
       integral += w*uval[comp];
     }
     free_qcoords(cqface);
+    free(cqface);
   }
 
   if(qx) free(qx);
@@ -810,27 +813,27 @@ REAL integrate_face(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT
 
 /*********************************************************************************/
 /*!
- * \fn REAL integrate_edge(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT edge)
- *
- * \brief Integrate a given scalar function over an edge
- *
- * \param expr   Function to be integrated
- * \param nun    Number of unknowns (all scalar components) in expr (could be from block function)
- * \param comp   Index of unknown we want to integrate
- * \param nq1d   Number of quadrature points per direction (2*nq1d-1 is order of quadrature)
- * \param cq     Precomputed quadrature points and weights
- * \param mesh   Mesh Information
- * \param time   If needed for function
- * \param edge   Edge to integrate over (assumes counting at 0)
- *
- * \return integral Integral of scalar function over edge
- *
- * \note If cq is given, we will just use these precomputed values instead of reallocating the quadrature.
- *       Otherwise, we will allocate a new set of quadrature based on nq1d
- *
- * \note This is a line integral in any dimension
- *
- */
+* \fn REAL integrate_edge(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT edge)
+*
+* \brief Integrate a given scalar function over an edge
+*
+* \param expr   Function to be integrated
+* \param nun    Number of unknowns (all scalar components) in expr (could be from block function)
+* \param comp   Index of unknown we want to integrate
+* \param nq1d   Number of quadrature points per direction (2*nq1d-1 is order of quadrature)
+* \param cq     Precomputed quadrature points and weights
+* \param mesh   Mesh Information
+* \param time   If needed for function
+* \param edge   Edge to integrate over (assumes counting at 0)
+*
+* \return integral Integral of scalar function over edge
+*
+* \note If cq is given, we will just use these precomputed values instead of reallocating the quadrature.
+*       Otherwise, we will allocate a new set of quadrature based on nq1d
+*
+* \note This is a line integral in any dimension
+*
+*/
 REAL integrate_edge(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT edge)
 {
   // Loop indices
@@ -868,6 +871,7 @@ REAL integrate_edge(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT
       integral += w*uval[comp];
     }
     free_qcoords(cqedge);
+    free(cqedge);
   }
 
   if(qx) free(qx);
@@ -879,27 +883,27 @@ REAL integrate_edge(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT
 
 /*********************************************************************************/
 /*!
- * \fn REAL integrate_edge_vector_tangent(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT edge)
- *
- * \brief Integrate the tangential component of a given vector function along an edge
- *
- * \param expr   Function to be integrated (vector size dim)
- * \param nun    Number of unknowns (all scalar components) in expr (could be from block function)
- * \param comp   Index of unknown we want to integrate (this is the start of the vector)
- * \param nq1d   Number of quadrature points per direction (2*nq1d-1 is order of quadrature)
- * \param cq     Precomputed quadrature points and weights
- * \param mesh   Mesh Information
- * \param time   If needed for function
- * \param edge   Edge to integrate over (assumes counting at 0)
- *
- * \return integral Integral of vector function along the edge
- *
- * \note If cq is given, we will just use these precomputed values instead of reallocating the quadrature.
- *       Otherwise, we will allocate a new set of quadrature based on nq1d
- *
- * \note This is a tangential line integral in any dimension
- *
- */
+* \fn REAL integrate_edge_vector_tangent(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT edge)
+*
+* \brief Integrate the tangential component of a given vector function along an edge
+*
+* \param expr   Function to be integrated (vector size dim)
+* \param nun    Number of unknowns (all scalar components) in expr (could be from block function)
+* \param comp   Index of unknown we want to integrate (this is the start of the vector)
+* \param nq1d   Number of quadrature points per direction (2*nq1d-1 is order of quadrature)
+* \param cq     Precomputed quadrature points and weights
+* \param mesh   Mesh Information
+* \param time   If needed for function
+* \param edge   Edge to integrate over (assumes counting at 0)
+*
+* \return integral Integral of vector function along the edge
+*
+* \note If cq is given, we will just use these precomputed values instead of reallocating the quadrature.
+*       Otherwise, we will allocate a new set of quadrature based on nq1d
+*
+* \note This is a tangential line integral in any dimension
+*
+*/
 REAL integrate_edge_vector_tangent(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT edge)
 {
   // Loop indices
@@ -937,8 +941,9 @@ REAL integrate_edge_vector_tangent(void (*expr)(REAL *,REAL *,REAL,void *),INT n
       w = cqedge->w[quad];
       (*expr)(uval,qx,time,&(mesh->ed_flag[edge]));
       for(j=0; j<dim; j++) integral += w*uval[comp+j]*mesh->ed_tau[edge*dim+j];
-	}
+    }
     free_qcoords(cqedge);
+    free(cqedge);
   }
 
   if(qx) free(qx);
@@ -950,26 +955,26 @@ REAL integrate_edge_vector_tangent(void (*expr)(REAL *,REAL *,REAL,void *),INT n
 
 /*********************************************************************************/
 /*!
- * \fn REAL integrate_face_vector_normal(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT face)
- *
- * \brief Integrate the normal component of a given vector function across a face
- *
- * \param expr   Function to be integrated (vector size dim)
- * \param nun    Number of unknowns (all scalar components) in expr (could be from block function)
- * \param comp   Index of unknown we want to integrate (start of vector)
- * \param nq1d   Number of quadrature points per direction (2*nq1d-1 is order of quadrature)
- * \param cq     Precomputed quadrature points and weights
- * \param mesh   Mesh Information
- * \param time   If needed for function
- * \param face   face to integrate over (assumes counting at 0)
- *
- * \return integral Integral of vector function across the face
- *
- * \note If cq is given, we will just use these precomputed values instead of reallocating the quadrature.
- *       Otherwise, we will allocate a new set of quadrature based on nq1d
- *
- *
- */
+* \fn REAL integrate_face_vector_normal(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT face)
+*
+* \brief Integrate the normal component of a given vector function across a face
+*
+* \param expr   Function to be integrated (vector size dim)
+* \param nun    Number of unknowns (all scalar components) in expr (could be from block function)
+* \param comp   Index of unknown we want to integrate (start of vector)
+* \param nq1d   Number of quadrature points per direction (2*nq1d-1 is order of quadrature)
+* \param cq     Precomputed quadrature points and weights
+* \param mesh   Mesh Information
+* \param time   If needed for function
+* \param face   face to integrate over (assumes counting at 0)
+*
+* \return integral Integral of vector function across the face
+*
+* \note If cq is given, we will just use these precomputed values instead of reallocating the quadrature.
+*       Otherwise, we will allocate a new set of quadrature based on nq1d
+*
+*
+*/
 REAL integrate_face_vector_normal(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT nq1d,qcoordinates *cq,trimesh *mesh,REAL time,INT face)
 {
   // Loop indices
@@ -994,7 +999,7 @@ REAL integrate_face_vector_normal(void (*expr)(REAL *,REAL *,REAL,void *),INT nu
       qx[1] = cq->y[face*cq->nq_per_elm+quad];
       if(dim==3) qx[2] = cq->z[face*cq->nq_per_elm+quad];
       w = cq->w[face*cq->nq_per_elm+quad];
-      (*expr)(uval,qx,time,&(mesh->ed_flag[face]));
+      (*expr)(uval,qx,time,&(mesh->f_flag[face]));
       for(j=0; j<dim; j++) integral += w*uval[comp+j]*mesh->f_norm[face*dim+j];
     }
   } else { // assemble quadrature again
@@ -1005,10 +1010,12 @@ REAL integrate_face_vector_normal(void (*expr)(REAL *,REAL *,REAL,void *),INT nu
       qx[1] = cqface->y[quad];
       if(dim==3) qx[2] = cqface->z[quad];
       w = cqface->w[quad];
-      (*expr)(uval,qx,time,&(mesh->ed_flag[face]));
+      (*expr)(uval,qx,time,&(mesh->f_flag[face]));
+      printf("HEY!\t%f\n\n",uval[comp+2]);
       for(j=0; j<dim; j++) integral += w*uval[comp+j]*mesh->f_norm[face*dim+j];
-	}
+    }
     free_qcoords(cqface);
+    free(cqface);
   }
 
   if(qx) free(qx);
@@ -1023,18 +1030,18 @@ REAL integrate_face_vector_normal(void (*expr)(REAL *,REAL *,REAL,void *),INT nu
 
 /************************************************************************************/
 /*!
- * \fn void quad1d(REAL *gaussp, REAL *gaussc, INT ng1d)
- *
- * \brief 1D Quadrature on Reference Element [-1,1]
- *
- * \note Up to 5 Gaussian points on the reference domain
- *
- * \param ng1d            Number of Gaussian points in 1 direction
- *
- * \return gaussp         x coordinates of the Gaussian points
- * \return gaussc         Weights of the Gaussian points
- *
- */
+* \fn void quad1d(REAL *gaussp, REAL *gaussc, INT ng1d)
+*
+* \brief 1D Quadrature on Reference Element [-1,1]
+*
+* \note Up to 5 Gaussian points on the reference domain
+*
+* \param ng1d            Number of Gaussian points in 1 direction
+*
+* \return gaussp         x coordinates of the Gaussian points
+* \return gaussc         Weights of the Gaussian points
+*
+*/
 void quad1d(REAL *gaussp, REAL *gaussc, INT ng1d)
 {
   // Check for errors
@@ -1049,17 +1056,18 @@ void quad1d(REAL *gaussp, REAL *gaussc, INT ng1d)
   }
 
   switch (ng1d) {
-  case 1:
+    case 1:
     gaussp[0] = 0.0;
     gaussc[0] = 2.0;
-  case 2:
+    break;
+    case 2:
     gaussp[0] =     -0.57735026918962576450915;
     gaussp[1] =      0.57735026918962576450915;
     gaussc[0] =       1.0000000000000000000000;
     gaussc[1] =       1.0000000000000000000000;
     break;
 
-  default:// case 3:
+    default:// case 3:
     gaussp[  0]=     -0.77459666924148337703585;
     gaussp[  1]=                            0.0;
     gaussp[  2]=      0.77459666924148337703585;
@@ -1067,7 +1075,7 @@ void quad1d(REAL *gaussp, REAL *gaussc, INT ng1d)
     gaussc[  1]=      0.88888888888888888888889;
     gaussc[  2]=      0.55555555555555555555556;
     break;
-  case 4:
+    case 4:
     gaussp[  0]=     -0.86113631159405257522395;
     gaussp[  1]=     -0.33998104358485626480267;
     gaussp[  2]=      0.33998104358485626480267;
@@ -1077,7 +1085,7 @@ void quad1d(REAL *gaussp, REAL *gaussc, INT ng1d)
     gaussc[  2]=      0.65214515486254614289181;
     gaussc[  3]=      0.34785484513745385738355;
     break;
-  case 5:
+    case 5:
     gaussp[  0]=     -0.90617984593866399279763;
     gaussp[  1]=     -0.53846931010568309103631;
     gaussp[  2]=                            0.0;
@@ -1096,18 +1104,18 @@ void quad1d(REAL *gaussp, REAL *gaussc, INT ng1d)
 
 /************************************************************************************/
 /*!
- * \fn void triquad_(REAL *gp, REAL *gc, INT ng1d)
- *
- * \brief 2D Quadrature on Reference Triangle ( Vertices (0,0),(1,0),(0,1) )
- *
- * \note Up to 7x7 Gaussian points on a triangle.
- *
- * \param ng1d        Number of Gaussian points in 1 direction
- *
- * \return gp         (x,y) coordinates of the Gaussian points
- * \return gc         Weights of the Gaussian points
- *
- */
+* \fn void triquad_(REAL *gp, REAL *gc, INT ng1d)
+*
+* \brief 2D Quadrature on Reference Triangle ( Vertices (0,0),(1,0),(0,1) )
+*
+* \note Up to 7x7 Gaussian points on a triangle.
+*
+* \param ng1d        Number of Gaussian points in 1 direction
+*
+* \return gp         (x,y) coordinates of the Gaussian points
+* \return gc         Weights of the Gaussian points
+*
+*/
 void triquad_(REAL *gp, REAL *gc, INT ng1d)
 {
   // Check for errors
@@ -1123,12 +1131,12 @@ void triquad_(REAL *gp, REAL *gc, INT ng1d)
 
   INT ngauss = ng1d*ng1d;
   switch (ng1d) {
-  case 1:
+    case 1:
     gp[0]=   0.3333333333333333333333333E+00;
     gp[ngauss+0]=   0.3333333333333333333333333E+00;
     gc[0]=     0.5000000000000000000000000E+00;
     break;
-  default:
+    default:
     gp[0]=   0.7503111022260811817747560E-01;
     gp[ngauss+0]=   0.6449489742783178098197284E+00;
     gc[0]=   0.9097930912801141530281550E-01;
@@ -1142,7 +1150,7 @@ void triquad_(REAL *gp, REAL *gc, INT ng1d)
     gp[ngauss+3]=   0.1550510257216821901802716E+00;
     gc[3]=   0.1590206908719885846971845E+00;
     break;
-  case 3:
+    case 3:
     gp[0]=   0.2393113228708061896738275E-01;
     gp[ngauss+0]=   0.7876594617608470560252419E+00;
     gc[0]=   0.1939638330595947848163369E-01;
@@ -1171,7 +1179,7 @@ void triquad_(REAL *gp, REAL *gc, INT ng1d)
     gp[ngauss+8]=   0.8858795951270394739554614E-01;
     gc[8]=   0.5581442048304434188116615E-01;
     break;
-  case 4:
+    case 4:
     gp[0]=   0.9703785126946112175961724E-02;
     gp[ngauss+0]=   0.8602401356562194478479129E+00;
     gc[0]=   0.5423225910525254453528332E-02;
@@ -1221,7 +1229,7 @@ void triquad_(REAL *gp, REAL *gc, INT ng1d)
     gp[ngauss+15]=   0.5710419611451768219312119E-01;
     gc[15]=   0.2356836819338233236742181E-01;
     break;
-  case 5:
+    case 5:
     gp[0]=   0.4622288465046428525209780E-02;
     gp[ngauss+0]=   0.9014649142011735738765011E+00;
     gc[0]=   0.1865552166877838436183754E-02;
@@ -1298,7 +1306,7 @@ void triquad_(REAL *gp, REAL *gc, INT ng1d)
     gp[ngauss+24]=   0.3980985705146874234080669E-01;
     gc[24]=   0.1146508035159254779675419E-01;
     break;
-  case 6:
+    case 6:
     gp[0]=   0.2466697152670243054005080E-02;
     gp[ngauss+0]=   0.9269456713197411148518740E+00;
     gc[0]=   0.7485425612363183140950521E-03;
@@ -1408,7 +1416,7 @@ void triquad_(REAL *gp, REAL *gc, INT ng1d)
     gp[ngauss+35]=   0.2931642715978489197205028E-01;
     gc[35]=   0.6194265352658849860014235E-02;
     break;
-  case 7:
+    case 7:
     gp[0]=   0.1431659581332948445688999E-02;
     gp[ngauss+0]=   0.9437374394630778535343478E+00;
     gc[0]=   0.3375907567113747844459523E-03;
@@ -1564,18 +1572,18 @@ void triquad_(REAL *gp, REAL *gc, INT ng1d)
 
 /************************************************************************************/
 /*!
- * \fn void tetquad_(REAL *gp, REAL *gc, INT ng1d)
- *
- * \brief 3D Quadrature on Reference Tetrahedron ( Vertices (0,0,0),(0,1,0),(1,0,0),(0,0,1) )
- *
- * \note Up to 5x5x5 Gaussian points on a tetrahedron.
- *
- * \param ng1d        Number of Gaussian points in 1 direction
- *
- * \return gp         (x,y) coordinates of the Gaussian points
- * \return gc         Weights of the Gaussian points
- *
- */
+* \fn void tetquad_(REAL *gp, REAL *gc, INT ng1d)
+*
+* \brief 3D Quadrature on Reference Tetrahedron ( Vertices (0,0,0),(0,1,0),(1,0,0),(0,0,1) )
+*
+* \note Up to 5x5x5 Gaussian points on a tetrahedron.
+*
+* \param ng1d        Number of Gaussian points in 1 direction
+*
+* \return gp         (x,y) coordinates of the Gaussian points
+* \return gc         Weights of the Gaussian points
+*
+*/
 void tetquad_(REAL *gp, REAL *gc, INT ng1d)
 {
   // Check for errors
@@ -1591,13 +1599,13 @@ void tetquad_(REAL *gp, REAL *gc, INT ng1d)
 
   INT ngauss=ng1d*ng1d*ng1d;
   switch (ng1d) {
-  case 1:
+    case 1:
     gp[0]=    0.2500000000000000000000000E+00;
     gp[ngauss+  0]=   0.2500000000000000000000000E+00;
     gp[2*ngauss+  0]=   0.2500000000000000000000000E+00;
     gc[  0]=   0.1666666666666666666666667E+00;
     break;
-  default:
+    default:
     gp[  0]=   0.3420279323676641430060446E-01;
     gp[ngauss+  0]=   0.2939988006316228658907916E+00;
     gp[2*ngauss+  0]=   0.5441518440112252887999262E+00;
@@ -1631,7 +1639,7 @@ void tetquad_(REAL *gp, REAL *gc, INT ng1d)
     gp[2*ngauss+  7]=   0.1225148226554413778667404E+00;
     gc[  7]=   0.3697985635885291450923809E-01;
     break;
-  case      3:
+    case      3:
     gp[  0]=   0.7059631139554788090931258E-02;
     gp[ngauss+  0]=   0.2323578005798646935907283E+00;
     gp[2*ngauss+  0]=   0.7050022098884983831223985E+00;
@@ -1741,7 +1749,7 @@ void tetquad_(REAL *gp, REAL *gc, INT ng1d)
     gp[2*ngauss+ 26]=   0.7299402407314973215583798E-01;
     gc[ 26]=   0.8770474929651058804317146E-02;
     break;
-  case 4:
+    case 4:
     gp[0]=   0.1981013974700432744909435E-02;
     gp[ngauss +  0]=   0.1756168039625049658342796E+00;
     gp[2*ngauss +  0]=   0.7958514178967728633033780E+00;
@@ -1999,7 +2007,7 @@ void tetquad_(REAL *gp, REAL *gc, INT ng1d)
     gp[2*ngauss+ 63]=   0.4850054944699732929706726E-01;
     gc[ 63]=   0.2613459007507404913181355E-02;
     break;
-  case 5:
+    case 5:
     gp[0]=   0.6884703934122676876048399E-03;
     gp[ngauss+  0]=   0.1342694011463441143815669E+00;
     gp[2*ngauss+  0]=   0.8510542129470164181162242E+00;
