@@ -1011,7 +1011,6 @@ REAL integrate_face_vector_normal(void (*expr)(REAL *,REAL *,REAL,void *),INT nu
       if(dim==3) qx[2] = cqface->z[quad];
       w = cqface->w[quad];
       (*expr)(uval,qx,time,&(mesh->f_flag[face]));
-      printf("HEY!\t%f\n\n",uval[comp+2]);
       for(j=0; j<dim; j++) integral += w*uval[comp+j]*mesh->f_norm[face*dim+j];
     }
     free_qcoords(cqface);
