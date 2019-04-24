@@ -415,11 +415,15 @@ void blockFE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,I
  */
 REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh *mesh,REAL time,INT DOF)
 {
+  INT i,j,m;
   REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
   INT dim = mesh->dim;
   INT FEtype = FE->FEtype;
   INT nq1d = 3; // If quadrature not given, fix order.
   REAL val=-666e+00;
+  REAL* valx=NULL;
+
+  INT* face_vertex = (INT *) calloc(dim,sizeof(INT));
 
   // P0 elements u[dof] = 1/elvol \int_el u
   if(FEtype==0) {
@@ -442,9 +446,34 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh
   } else if (FEtype==30) {
     val = (1.0/mesh->f_area[DOF])*integrate_face_vector_normal(expr,1,0,nq1d,NULL,mesh,time,DOF);
 
-  // Bubbles
+  // Face Bubbles
+  // For now, we assume face bubbles only and only in 2D or 3D.
+  // Here we compute the integral over the face, but then subtract off the
+  // linear components:
+  // u[dof] = (int_f v*n_f - |f|/dim * sum(vertices on face) v(i)*n_f) / int_f phi_f*n_f
+  // Note that since phi_f = 2^d lam_i lam_j ..., we have
+  // int_f phi_f*n_f = 2^d (d-1)! / (2d-1)! |f|
   } else if (FEtype>=60 && FEtype<70) {
-    val = (1.0/mesh->f_area[DOF])*integrate_face_vector_normal(expr,1,0,nq1d,NULL,mesh,time,DOF);
+    valx = (REAL *) calloc(dim,sizeof(REAL));
+    val = integrate_face_vector_normal(expr,1,0,nq1d,NULL,mesh,time,DOF);
+    get_incidence_row(DOF,mesh->f_v,face_vertex);
+    for (m=0;m<dim;m++) {
+      x[0] = mesh->cv->x[face_vertex[m]-1];
+      x[1] = mesh->cv->y[face_vertex[m]-1];
+      if(dim==3) x[2] = mesh->cv->z[face_vertex[m]-1];
+      // The following only works for 2D
+      (*expr)(valx,x,time,&(FE->dof_flag[DOF]));
+      for(j=0;j<dim;j++) val+= -(mesh->f_area[DOF]/dim)*mesh->f_norm[DOF*dim+j]*valx[j];
+    }
+    // Divide by int_f \phi_f*n_f
+    if(dim==2) { // In 2D, int_f \phi_f*n_f = 2/3 |f|
+      val = 1.5*val/(mesh->f_area[DOF]);
+    } else if(dim==3) { // In 3D, int_f \phi_f*n_f = 2/15 |f|
+      val = 7.5*val/(mesh->f_area[DOF]);
+    } else {
+      check_error(ERROR_DIM,__FUNCTION__);
+    }
+
 
   // No other FEM types implemented
   } else {
@@ -452,6 +481,8 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh
   }
 
   if (x) free(x);
+  if (face_vertex) free(face_vertex);
+  if (valx) free(valx);
 
   return val;
 }
@@ -505,7 +536,7 @@ void FE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,t
  */
 REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace *FE,trimesh *mesh,REAL time,INT comp,INT DOF)
 {
-  int i,j,m;
+  INT i,j,m;
   INT nq1d = 3; // Number of quadrature points in 1D if not given.
   REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
   REAL* valx = (REAL *) calloc(FE->nun,sizeof(REAL));
@@ -519,7 +550,7 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
     if(FE->var_spaces[i]->FEtype>=0 && FE->var_spaces[i]->FEtype<10) { // Scalar Element
       local_dim += 1;
     } else if(FE->var_spaces[i]->FEtype == 61) { // Bubble Element
-      local_dim += 0;
+      local_dim += 0; // Assuming bubbles are written such that linears follow it immediately
     } else { // Vector Element
       local_dim += dim;
     }
@@ -547,23 +578,32 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
   } else if (FE->var_spaces[comp]->FEtype==30) {
     val = (1.0/mesh->f_area[DOF])*integrate_face_vector_normal(expr,FE->nun,local_dim,nq1d,NULL,mesh,time,DOF);
 
-  // Bubbles (PETER HELP??)
+  // Face Bubbles
+  // For now, we assume face bubbles only and only in 2D or 3D
+  // Here we compute the integral over the face, but then subtract off the
+  // linear components:
+  // u[dof] = (int_f v*n_f - |f|/dim * sum(vertices on face) v(i)*n_f) / int_f phi_f*n_f
+  // Note that since phi_f = 2^d lam_i lam_j ..., we have
+  // int_f phi_f*n_f = 2^d (d-1)! / (2d-1)! |f|
   } else if (FE->var_spaces[comp]->FEtype>=60 && FE->var_spaces[comp]->FEtype<70) {
-    x[0] = mesh->f_mid[DOF*dim];
-    x[1] = mesh->f_mid[DOF*dim+1];
-    if(dim==3) x[2] = mesh->f_mid[DOF*dim+2];
-    (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
-    val = 0.0;
-    for(j=0;j<dim;j++) val+=mesh->f_norm[DOF*dim+j]*valx[local_dim + j];
+    val = integrate_face_vector_normal(expr,FE->nun,local_dim,nq1d,NULL,mesh,time,DOF);
     get_incidence_row(DOF,mesh->f_v,face_vertex);
     for (m=0;m<dim;m++) {
       x[0] = mesh->cv->x[face_vertex[m]-1];
       x[1] = mesh->cv->y[face_vertex[m]-1];
       if(dim==3) x[2] = mesh->cv->z[face_vertex[m]-1];
       // The following only works for 2D
-      (*expr)(valx,x,time,&(FE->var_spaces[0]->dof_flag[DOF]));
+      (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
       //for(j=0;j<dim;j++) val+= -(1.0/dim)*mesh->f_area[DOF]*mesh->f_norm[DOF*dim+j]*valx[local_dim + j];
-      for(j=0;j<dim;j++) val+= -(1.0/dim)*mesh->f_norm[DOF*dim+j]*valx[local_dim + j];
+      for(j=0;j<dim;j++) val+= -(mesh->f_area[DOF]/dim)*mesh->f_norm[DOF*dim+j]*valx[local_dim + j];
+    }
+    // Divide by int_f \phi_f*n_f
+    if(dim==2) { // In 2D, int_f \phi_f*n_f = 2/3 |f|
+      val = 1.5*val/(mesh->f_area[DOF]);
+    } else if(dim==3) { // In 3D, int_f \phi_f*n_f = 2/15 |f|
+      val = 7.5*val/(mesh->f_area[DOF]);
+    } else {
+      check_error(ERROR_DIM,__FUNCTION__);
     }
 
   // Not a FEM implemented
