@@ -1161,9 +1161,9 @@ void get_Pigrad_H1toRT( dCSRmat* Pdiv, dCSRmat* Pcurl, dCSRmat* Curl, trimesh* m
     begin_row = Curl->IA[i]-1;
     end_row = Curl->IA[i+1]-1;
     for(j=begin_row; j<end_row; j++){
-      temp1 += -(Curl->val[j])*PcurlZ[Curl->JA[j]];
-      temp2 += -(Curl->val[j])*PcurlX[Curl->JA[j]];
-      temp3 += -(Curl->val[j])*PcurlY[Curl->JA[j]];
+      temp1 += -(Curl->val[j])*PcurlZ[Curl->JA[j]-1];
+      temp2 += -(Curl->val[j])*PcurlX[Curl->JA[j]-1];
+      temp3 += -(Curl->val[j])*PcurlY[Curl->JA[j]-1];
     }
     // divide by number of vertices per face
     temp1 = temp1 / 3;

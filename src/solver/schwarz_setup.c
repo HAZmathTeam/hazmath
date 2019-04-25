@@ -374,3 +374,196 @@ static void Schwarz_levels (INT inroot,
 /*---------------------------------*/
 /*--        End of File          --*/
 /*---------------------------------*/
+
+/**
+ * \fn void Schwarz_get_patch_geometric (Schwarz_data *Schwarz,
+ *                                       trimesh *mesh,
+ *                                       INT patchType)
+ *
+ * \brief Form Schwarz partition data
+ *
+ * \param Schwarz Pointer to the Schwarz data
+ *
+ */
+void Schwarz_get_patch_geometric (Schwarz_data *Schwarz,
+                                  trimesh *mesh,
+                                  INT patchTypeIN,
+                                  INT patchTypeOUT)
+{
+    INT nblk, ntot, i;
+
+    INT* iblk;
+    INT* jblk;
+
+    // patchType to element
+    iCSRmat p_el;
+    iCSRmat p_p;
+
+    switch ( patchTypeIN ) {
+      case 0: // vertex
+        nblk = mesh->nv;
+        icsr_trans_1(mesh->el_v, &p_el);
+        break;
+      case 1: // edge
+        nblk = mesh->nedge;
+        icsr_trans_1(mesh->el_ed,&p_el);
+        break;
+      case 2: // face 
+        nblk = mesh->nface;
+        icsr_trans_1(mesh->el_f, &p_el);
+        break;
+      default:
+        // Throw error
+        break;
+    }
+
+    switch ( patchTypeOUT ) {
+      case 0: // vertex
+        icsr_mxm_symb_1( &p_el, mesh->el_v, &p_p);
+        ntot = p_p.nnz;
+        break;
+      case 1: // edge
+        icsr_mxm_symb_1( &p_el, mesh->el_ed, &p_p);
+        ntot = p_p.nnz;
+        break;
+      case 2: // face 
+        icsr_mxm_symb_1( &p_el, mesh->el_f, &p_p);
+        ntot = p_p.nnz;
+        break;
+      default:
+        // Throw error
+        break;
+    }
+
+
+    ///iblk = (INT*)calloc(p_el.row+1,sizeof(INT));
+    iblk = (INT*)calloc(nblk+1,sizeof(INT));
+    //iarray_cp(nblk+1,p_el.IA,iblk);
+    iarray_cp(nblk+1,p_p.IA,iblk);
+    // Shift 1
+    for(i=0; i<nblk+1; i++){
+      iblk[i] -= 1;
+//      printf("iblk[%d] = %d\n",i,iblk[i]);
+    }
+
+    //jblk = (INT*)calloc(p_el.nnz,sizeof(INT));
+    jblk = (INT*)calloc(ntot,sizeof(INT));
+    //iarray_cp(ntot,p_el.JA,jblk);
+    iarray_cp(ntot,p_p.JA,jblk);
+    // Shift 1
+    for(i=0; i<ntot; i++){
+      jblk[i] -= 1;
+//      printf("jblk[%d] = %d\n",i,jblk[i]);
+    }
+
+    Schwarz->nblk = nblk;
+    Schwarz->iblock = iblk;
+    Schwarz->jblock = jblk;
+
+    return;
+}
+
+/**
+ * \fn INT Schwarz_setup_geometric (Schwarz_data *Schwarz, Schwarz_param *param)
+ *
+ * \brief Setup phase for the Schwarz methods
+ *
+ * \param Schwarz    Pointer to the Schwarz data
+ * \param param      Type of the Schwarz method
+ * \param mesh       Pointer to mesh
+ *
+ * \return           SUCCESS if succeed
+ *
+ */
+INT Schwarz_setup_geometric (Schwarz_data *Schwarz,
+                             Schwarz_param *param,
+                             trimesh *mesh)
+{
+    // information about A
+    dCSRmat A = Schwarz->A;
+    INT n   = A.row;
+
+    INT  block_solver = param->Schwarz_blksolver;
+    Schwarz->swzparam = param;
+
+    // local variables
+    INT i;
+
+    // data for Schwarz method
+    INT nblk;
+    //INT *iblock = NULL, *jblock = NULL;
+    INT *mask = NULL, *maxa = NULL;
+
+    // return
+    INT flag = SUCCESS;
+
+    // allocate memory
+    maxa    = (INT *)calloc(n,sizeof(INT));
+    mask    = (INT *)calloc(n,sizeof(INT));
+
+    memset(mask,   0, sizeof(INT)*n);
+    memset(maxa,   0, sizeof(INT)*n);
+
+    maxa[0]=0;
+
+    /*-------------------------------------------*/
+    // find the blocks
+    /*-------------------------------------------*/
+    //printf("Findeing Schwarz patches\n");
+    Schwarz_get_patch_geometric(Schwarz, mesh, 0, 2);
+    //printf("Found Schwarz patches\n");
+    nblk = Schwarz->nblk;
+
+    /*-------------------------------------------*/
+    //  LU decomposition of blocks
+    /*-------------------------------------------*/
+    memset(mask, 0, sizeof(INT)*n);
+    Schwarz->blk_data = (dCSRmat*)calloc(nblk, sizeof(dCSRmat));
+    //printf("Getting block matrix\n");
+    Schwarz_get_block_matrix(Schwarz, nblk, Schwarz->iblock, Schwarz->jblock, mask);
+    //printf("Got block matrix\n");
+
+    // Setup for each block solver
+    switch (block_solver) {
+
+#if WITH_SUITESPARSE
+        case SOLVER_UMFPACK: {
+            /* use UMFPACK direct solver on each block */
+            dCSRmat *blk = Schwarz->blk_data;
+            void **numeric	= (void**)calloc(nblk, sizeof(void*));
+            dCSRmat Ac_tran;
+            //printf("number of blocks = %d\n",nblk);
+            for (i=0; i<nblk; ++i) {
+                Ac_tran = dcsr_create(blk[i].row, blk[i].col, blk[i].nnz);
+                dcsr_transz(&blk[i], NULL, &Ac_tran);
+                dcsr_cp(&Ac_tran, &blk[i]);
+                //printf("size of block %d: nrow=%d, nnz=%d\n",i, blk[i].row, blk[i].nnz);
+                numeric[i] = umfpack_factorize(&blk[i], 0);
+            }
+            Schwarz->numeric = numeric;
+            dcsr_free(&Ac_tran);
+
+            break;
+        }
+#endif
+
+        default: {
+            /* do nothing for iterative methods */
+        }
+    }
+
+    /*-------------------------------------------*/
+    //  return
+    /*-------------------------------------------*/
+//    Schwarz->nblk   = nblk;
+//    Schwarz->iblock = iblock;
+//    Schwarz->jblock = jblock;
+    Schwarz->mask   = mask;
+    Schwarz->maxa   = maxa;
+    Schwarz->Schwarz_type = param->Schwarz_type;
+    Schwarz->blk_solver = param->Schwarz_blksolver;
+
+    printf("Schwarz method setup is done! Find %d blocks\n",nblk);
+
+    return flag;
+}
