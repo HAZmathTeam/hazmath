@@ -305,8 +305,8 @@ void build_face_R (dCSRmat *R,
     I = (INT *)calloc(R->nnz,sizeof(INT));
     J = (INT *)calloc(R->nnz,sizeof(INT));
     V = (REAL *)calloc(R->nnz,sizeof(REAL));
-    //IJfilled = (INT *)calloc(R->col*R->row,sizeof(INT));//TODO:BAD!!!!!
-    //for(i=0; i<R->row*R->col; i++) IJfilled[i] = -1; // Set all to -1 //TODO:BAD!!!!
+    IJfilled = (INT *)calloc(R->row*16,sizeof(INT));//TODO:BAD!!!!!
+    for(i=0; i<R->row*16; i++) IJfilled[i] = -1; // Set all to -1 //TODO:BAD!!!!
     INT not_duplicate_entry = 0;
 
     REAL *val = R->val;
@@ -356,9 +356,21 @@ void build_face_R (dCSRmat *R,
               //value = value * fmesh->f_area[fface] / cmesh->f_area[cface];
               // TODO: It works without the scaling (why? I don't know)
               not_duplicate_entry = 1;
-              for(kk=0;kk<index;kk++){
-                if(cface==I[kk] && fface==J[kk]) not_duplicate_entry = 0;
+              for(kk=0;kk<16;kk++){
+                if( IJfilled[cface*16 + kk] == fface ){
+                  not_duplicate_entry = 0;
+                  break;
+                } else if(IJfilled[cface*16 + kk] == -1){
+                  not_duplicate_entry = 1;
+                  IJfilled[cface*16+kk] = fface;
+                  break;
+                }
               }
+              if( kk == 16 ){ printf("\n\n\n--------------------------------------------------\nNODE NOT STORED!!!!\n");}
+              //not_duplicate_entry = 1;
+              //for(kk=0;kk<index;kk++){
+              //  if(cface==I[kk] && fface==J[kk]) not_duplicate_entry = 0;
+              //}
               if(not_duplicate_entry){
                 if(ABS(value) > 1e-8){
                   I[index] = cface;
@@ -509,13 +521,14 @@ void build_bubble_R (dCSRmat *R,
     I = (INT *)calloc(R->nnz,sizeof(INT));
     J = (INT *)calloc(R->nnz,sizeof(INT));
     V = (REAL *)calloc(R->nnz,sizeof(REAL));
-//    IJfilled = (INT *)calloc(R->col*R->row,sizeof(INT));//TODO:BAD!!!!!
-//    for(i=0; i<R->row*R->col; i++) IJfilled[i] = -1;
+    IJfilled = (INT *)calloc(R->row*16,sizeof(INT));//TODO:BAD!!!!!
+    for(i=0; i<R->row*16; i++) IJfilled[i] = -1;
 
     // allocate memory for Rl1
     // allocate memory for Rl2
     INT vertex;
-//    INT* VertFilled = (INT *)calloc(fmesh->nv*R->row,sizeof(INT));//TODO:BAD!!!!!
+    INT* VertFilled = (INT *)calloc(R->row*9,sizeof(INT));//TODO:BAD!!!!!
+    for(i=0; i<R->row*9; i++) VertFilled[i] = -1;
     INT indexl=0;
     //TODO: Fix allocation amount
     INT*  Il1 = (INT*) calloc(12*fmesh->nv,sizeof(INT));
@@ -582,9 +595,21 @@ void build_bubble_R (dCSRmat *R,
                 vertex = v_on_f[ed]-1;
 
                 not_duplicate_entry = 1;
-                for(kk=0;kk<indexl;kk++){
-                  if(cface==Il1[kk] && vertex==Jl1[kk]) not_duplicate_entry = 0;
+                for(kk=0;kk<9;kk++){
+                  if( VertFilled[cface*9 + kk] == vertex ){
+                    not_duplicate_entry = 0;
+                    break;
+                  } else if(VertFilled[cface*9 + kk] == -1){
+                    not_duplicate_entry = 1;
+                    VertFilled[cface*9+kk] = vertex;
+                    break;
+                  }
                 }
+                if( kk == 16 ){ printf("\n\n\n--------------------------------------------------\nNODE NOT STORED!!!!\n");}
+                //not_duplicate_entry = 1;
+                //for(kk=0;kk<indexl;kk++){
+                //  if(cface==Il1[kk] && vertex==Jl1[kk]) not_duplicate_entry = 0;
+                //}
                 if(not_duplicate_entry){
                   Il1[indexl] = cface;
                   Jl1[indexl] = vertex;
@@ -602,9 +627,21 @@ void build_bubble_R (dCSRmat *R,
               value = ( Fphi[locFaceId*dim+i] - lval ) / fmesh->f_norm[fface*dim+i];
 
               not_duplicate_entry = 1;
-              for(kk=0;kk<index;kk++){
-                if(cface==I[kk] && fface==J[kk]) not_duplicate_entry = 0;
+              for(kk=0;kk<16;kk++){
+                if( IJfilled[cface*16 + kk] == fface ){
+                  not_duplicate_entry = 0;
+                  break;
+                } else if(IJfilled[cface*16 + kk] == -1){
+                  not_duplicate_entry = 1;
+                  IJfilled[cface*16+kk] = fface;
+                  break;
+                }
               }
+              if( kk == 16 ){ printf("\n\n\n--------------------------------------------------\nNODE NOT STORED!!!!\n");}
+              //not_duplicate_entry = 1;
+              //for(kk=0;kk<index;kk++){
+              //  if(cface==I[kk] && fface==J[kk]) not_duplicate_entry = 0;
+              //}
               if(not_duplicate_entry){
                 if(ABS(value) > 1e-8){
                   I[index] = cface;
@@ -850,9 +887,9 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
       /*-- Build coarse level mesh --*/
       csize = (sqrt(mgl[lvl].fine_level_mesh->nv)-1)/2 + 1;
       //Need to customize this to specific directory
-      //sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",csize);
+      sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",csize);
       //sprintf(cgridfile,"/home/xiaozhehu/Work/Projects/HAZMATH/hazmath/examples/grids/2D/unitSQ_n%d.haz",csize);
-      sprintf(cgridfile,"/home/pohm01/HAZMAT/hazmath/examples/grids/2D/unitSQ_n%d.haz",csize);
+      //sprintf(cgridfile,"/home/pohm01/HAZMAT/hazmath/examples/grids/2D/unitSQ_n%d.haz",csize);
       cgfid = HAZ_fopen(cgridfile,"r");
       mgl[lvl+1].fine_level_mesh = (trimesh*)calloc(1, sizeof(trimesh));
       initialize_mesh(mgl[lvl+1].fine_level_mesh);
