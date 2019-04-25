@@ -308,5 +308,72 @@ INT amg_solve_nl_amli(AMG_data *mgl,
 }
 
 /*---------------------------------*/
+/*--   GEOMETRIC **MOVE LATER**  --*/
+/*---------------------------------*/
+/**
+ * \fn INT mg_solve_blk (MG_blk_data *mgl, AMG_param *param)
+ *
+ * \brief Solve phase for AMG method (as standard alone iterative solver)
+ *
+ * \param mgl    Pointer to AMG data: AMG_data
+ * \param param  Pointer to AMG parameters: AMG_param
+ *
+ * \return       Iteration number if converges; ERROR otherwise.
+ *
+ */
+INT mg_solve_blk(MG_blk_data *mgl,
+              AMG_param *param)
+{ 
+    //dCSRmat      *ptrA = &mgl[0].A;
+    dvector      *b = &mgl[0].b, *x = &mgl[0].x, *r = &mgl[0].w;
+    
+    const SHORT   prtlvl = param->print_level;
+    const INT     MaxIt  = param->maxit;
+    const REAL    tol    = param->tol;
+    const REAL    sumb   = dvec_norm2(b);
+    
+    // local variables
+    REAL  solve_start, solve_end;
+    REAL  relres1 = BIGREAL, absres0 = sumb, absres, factor;
+    INT   iter = 0;
+
+    get_time(&solve_start);
+    
+    // Print iteration information if needed
+    print_itsolver_info(prtlvl, STOP_REL_RES, iter, 1.0, sumb, 0.0);
+    
+    // Main loop
+    while ( (++iter <= MaxIt) & (sumb > SMALLREAL) ) {
+        
+        // Call one multigrid cycle
+        mgcycle_block(mgl, param);
+        
+        // Form residual r = b - A*x
+        dvec_cp(b, r);
+        bdcsr_aAxpy(-1.0, &mgl[0].A, x->val, r->val);
+        
+        // Compute norms of r and convergence factor
+        absres  = dvec_norm2(r);
+        relres1 = absres/sumb;
+        factor  = absres/absres0;
+        absres0 = absres;
+        
+        // Print iteration information if needed
+        print_itsolver_info(prtlvl, STOP_REL_RES, iter, relres1, absres, factor);
+        
+        // Check convergence
+        if ( relres1 < tol ) break;
+    }
+    
+    if ( prtlvl > PRINT_NONE ) {
+        ITS_FINAL(iter, MaxIt, relres1);
+        get_time(&solve_end);
+        print_cputime("AMG solve",solve_end - solve_start);
+    }
+
+    
+    return iter;
+}
+/*---------------------------------*/
 /*--        End of File          --*/
 /*---------------------------------*/

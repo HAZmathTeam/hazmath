@@ -489,6 +489,136 @@ INT linear_solver_amg(dCSRmat *A,
 }
 
 /********************************************************************************************/
+// GMG method for block CSR format
+/********************************************************************************************/
+/**
+ * \fn void linear_solver_bdcsr_gmg (dCSRmat *A, dvector *b, dvector *x,
+ *                           AMG_param *param)
+ *
+ * \brief Solve Ax = b by multigrid methods
+ *
+ * \param A      Pointer to block_dCSRmat: the coefficient matrix
+ * \param b      Pointer to dvector: the right hand side
+ * \param x      Pointer to dvector: the unknowns
+ * \param param  Pointer to AMG_param: AMG parameters
+ *
+ * \author Xiaozhe Hu
+ * \date   12/25/2015
+ *
+ *
+ */
+INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
+                      dvector *b,
+                      dvector *x,
+                      AMG_param *param,
+                      INT * gmg_type,
+                      trimesh* mesh,
+                      dCSRmat *A_diag)
+{
+    const SHORT   max_levels  = param->max_levels;
+    const SHORT   prtlvl      = param->print_level;
+    const SHORT   mg_type     = param->AMG_type;
+    const SHORT   cycle_type  = param->cycle_type;
+
+    // local variables
+    INT           status = SUCCESS;
+    MG_blk_data * mgl = mg_blk_data_create(max_levels);
+    REAL          MG_start, MG_end;
+    INT i, j;
+
+    if ( prtlvl > PRINT_NONE ) get_time(&MG_start);
+
+    // Block matrix variables
+    const INT  bm = A->brow, bn = A->bcol;
+    // check block matrix data
+    if ( bm != bn ) {
+        printf("### ERROR: A is not a square block matrix!\n");
+        check_error(ERROR_MAT_SIZE, __FUNCTION__);
+    }
+    INT nnz=0, n=0, m=0;
+    for( i=0; i<bm; i++){
+      m += A->blocks[i+i*bm]->row;
+      n += A->blocks[i+i*bn]->col;
+      for( j=0; j<bn; j++){
+        if(A->blocks[j+i*bn])
+            nnz += A->blocks[j+i*bn]->nnz;
+      }
+      //TODO: Put error check to make sure all diagonal blocks contain matrix size information
+    }
+
+    // check matrix data
+    if ( m != n ) {
+        printf("### ERROR: A is not a square matrix!\n");
+        check_error(ERROR_MAT_SIZE, __FUNCTION__);
+    }
+
+    if ( nnz <= 0 ) {
+        printf("### ERROR: A has no nonzero entries!\n");
+        check_error(ERROR_MAT_SIZE, __FUNCTION__);
+    }
+
+    // Step 0: initialize mgl[0] with A, b and x
+    block_dCSRmat mglA;
+    bdcsr_alloc(bm,bn,&mglA);
+    bdcsr_cp(A,&mglA);
+    mgl[0].A = mglA;
+    // or try: bdcsr_alloc_minimal( &(mgl[0].A) ); bdcsr_cp(A,&(mgl[0].A));
+
+    mgl[0].A_diag = A_diag;
+
+    mgl[0].b = dvec_create(n);
+    dvec_cp(b, &mgl[0].b);
+
+    mgl[0].x = dvec_create(n);
+    dvec_cp(x, &mgl[0].x);
+
+    mgl[0].fine_level_mesh = mesh;
+
+    for(i=0;i<max_levels;i++)
+        mgl[i].gmg_type = gmg_type;
+
+    // Step 1: MG setup phase
+    switch (mg_type) {
+//        case 111: // Geometric
+        default:
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling block GMG ...\n");
+            status = gmg_blk_setup(mgl, param);
+            printf("\nFinished gmg_blk_setup... Calling smoother setup...\n");
+            smoother_block_setup(mgl, param);
+            printf("\nsmoother setup Done...\n");
+        break;
+//        default: // Unsmoothed Aggregation AMG setup
+//            printf("### ERROR: No default block MG type!\n");
+//            check_error(ERROR_SOLVER_MISC, __FUNCTION__);
+//        break;
+    }
+
+    // Step 2: MG solve phase
+    if ( status == SUCCESS ) { // call a multilevel cycle
+        switch (cycle_type) {
+            default: // V,W-cycles (determined by param)
+                status = mg_solve_blk(mgl, param);
+            break;
+        }
+        dvec_cp(&mgl[0].x, x);
+    }
+    else { // call a backup solver
+      printf("### HAZMATH WARNING: block MG setup failed!\n");
+      check_error(ERROR_SOLVER_MISC, __FUNCTION__);
+    }
+
+    // clean-up memory
+
+    // print out CPU time if needed
+    if ( prtlvl > PRINT_NONE ) {
+        get_time(&MG_end);
+        print_cputime("MG totally", MG_end - MG_start);
+        printf("**********************************************************\n");
+    }
+
+    return status;
+}
+/********************************************************************************************/
 // preconditioned Krylov methods for CSR format
 /********************************************************************************************/
 /**
@@ -3032,6 +3162,7 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
       if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
       status = amg_setup_ua(mgl[1], amgparam); break;
   }
+  hxdivdata = NULL;
   }
 
 
@@ -3045,17 +3176,17 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
   mgl[2][0].b=dvec_create(A_diag[2].row);
   mgl[2][0].x=dvec_create(A_diag[2].row);
 
-  //switch (amgparam->AMG_type) {
+  switch (amgparam->AMG_type) {
 
-  //  case UA_AMG: // Unsmoothed Aggregation AMG
-  //    if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
-  //    status = amg_setup_ua(mgl[2], amgparam);
-  //  break;
+    case UA_AMG: // Unsmoothed Aggregation AMG
+      if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+      status = amg_setup_ua(mgl[2], amgparam);
+    break;
 
-  //  default: // UA AMG
-  //    if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
-  //    status = amg_setup_ua(mgl[2], amgparam); break;
-  //}
+    default: // UA AMG
+      if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+      status = amg_setup_ua(mgl[2], amgparam); break;
+  }
 
   printf("finished pressure block\n");
 
@@ -3135,6 +3266,170 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
   return status;
 }
 
+/**
+ * \fn void linear_solver_bdcsr_krylov_gmg (dCSRmat *A, dvector *b, dvector *x,
+ *                           AMG_param *param)
+ *
+ * \brief Solve Ax = b by multigrid methods
+ *
+ * \param A      Pointer to block_dCSRmat: the coefficient matrix
+ * \param b      Pointer to dvector: the right hand side
+ * \param x      Pointer to dvector: the unknowns
+ * \param param  Pointer to AMG_param: AMG parameters
+ *
+ * \author Xiaozhe Hu
+ * \date   12/25/2015
+ *
+ *
+ */
+INT linear_solver_bdcsr_krylov_gmg(block_dCSRmat *A,
+                      dvector *b,
+                      dvector *x,
+                      linear_itsolver_param *itparam,
+                      AMG_param *param,
+                      INT * gmg_type,
+                      trimesh* mesh,
+                      block_fespace* FE,
+                      void (*set_bdry_flags)(trimesh* ),
+                      dCSRmat *A_diag,
+                      block_dCSRmat *A_noBC)
+{
+    const SHORT prtlvl = itparam->linear_print_level;
+    const SHORT precond_type = itparam->linear_precond_type;
+
+    const SHORT   max_levels  = param->max_levels;
+    printf( "max_levels: %d\n", max_levels);
+    //const SHORT   mg_type     = param->AMG_type;
+    const SHORT   mg_type     = 111;
+    const SHORT   cycle_type  = param->cycle_type;
+
+    // local variables
+    INT status = SUCCESS;
+    INT i, j;
+    REAL setup_start, setup_end, setup_duration;
+    REAL solver_start, solver_end, solver_duration;
+    REAL MG_start, MG_end;
+
+    get_time(&setup_start);
+
+    // Block matrix variables
+    const INT  bm = A->brow, bn = A->bcol;
+    INT nnz=0, n=0, m=0;
+    // Check block matrix data
+    if ( bm != bn ) {
+        printf("### ERROR: A is not a square block matrix!\n");
+        check_error(ERROR_MAT_SIZE, __FUNCTION__);
+    }
+    for( i=0; i<bm; i++){
+      m += A->blocks[i+i*bm]->row;
+      n += A->blocks[i+i*bn]->col;
+      for( j=0; j<bn; j++){
+        if(A->blocks[j+i*bn])
+            nnz += A->blocks[j+i*bn]->nnz;
+      }//TODO: Put error check to make sure all diagonal blocks contain matrix size information
+    }
+    // Check matrix data
+    if ( m != n ) {
+        printf("### ERROR: A is not a square matrix!\n");
+        check_error(ERROR_MAT_SIZE, __FUNCTION__);
+    }
+    if ( nnz <= 0 ) {
+        printf("### ERROR: A has no nonzero entries!\n");
+        check_error(ERROR_MAT_SIZE, __FUNCTION__);
+    }
+
+    // Step 0: initialize mgl[0] with A, b and x
+    // or try: bdcsr_alloc_minimal( &(mgl[0].A) ); bdcsr_cp(A,&(mgl[0].A));
+    MG_blk_data * mgl = mg_blk_data_create(max_levels);
+
+    block_dCSRmat mglA;
+    bdcsr_alloc(bm,bn,&mglA);
+    bdcsr_cp(A,&mglA);
+    mgl[0].A = mglA;
+
+    block_dCSRmat mglA_noBC;
+    bdcsr_alloc(bm,bn,&mglA_noBC);
+    bdcsr_cp(A_noBC,&mglA_noBC);
+    mgl[0].A_noBC = mglA_noBC;
+
+    mgl[0].A_diag = A_diag;
+
+    mgl[0].b = dvec_create(n);
+//    dvec_cp(b, &mgl[0].b);
+
+    mgl[0].x = dvec_create(n);
+//    dvec_cp(x, &mgl[0].x);
+
+    mgl[0].fine_level_mesh = mesh;
+
+    mgl[0].FE = FE;
+    mgl[0].set_bdry_flags = set_bdry_flags;
+
+    for(i=0;i<max_levels;i++) mgl[i].gmg_type = gmg_type;
+
+    // Step 1: MG setup phase
+    switch (mg_type) {
+        case 111: // Geometric
+            if ( prtlvl > PRINT_MIN ) printf("\n Calling block GMG ...\n");
+            status = gmg_blk_setup(mgl, param);
+            printf("\nFinished gmg_blk_setup... Calling smoother setup...\n");
+            smoother_block_setup(mgl, param);
+            printf("\nsmoother setup Done...\n");
+        break;
+        default:
+            printf("### ERROR: No default block MG type!\n");
+            check_error(ERROR_SOLVER_MISC, __FUNCTION__);
+        break;
+    }
+
+    /* set the whole preconditioner data */
+    precond_block_data precdata;
+    precond_block_data_null(&precdata);
+
+    precdata.Abcsr = A;
+    precdata.A_diag = A_diag;
+    precdata.r = dvec_create(b->row);
+    precdata.amgparam = param;
+    precdata.bmgl = mgl;
+
+    precond prec;
+    prec.data = &precdata;
+
+    switch (precond_type)
+    {
+      default:
+        prec.fct = precond_block_monolithic_mg;
+        break;
+    }
+
+    get_time(&setup_end);
+    setup_duration = setup_end - setup_start;
+    if ( prtlvl >= PRINT_MIN ) {
+      print_cputime("Setup totally", setup_duration);
+    }
+
+    /* Solver Call */
+    get_time(&solver_start);
+
+    status=solver_bdcsr_linear_itsolver(A,b,x, &prec,itparam);
+
+    get_time(&solver_end);
+    solver_duration = solver_end - solver_start;
+
+    if ( prtlvl >= PRINT_MIN ) {
+      print_cputime("Krylov method totally", solver_duration);
+      printf("**********************************************************\n");
+    }
+
+    //solve_info->iteration_count = status;
+    //solve_info->time_precondition_setup = setup_duration;
+    //solve_info->time_solve = solver_duration;
+
+    // clean
+    precond_block_data_free(&precdata, 2, TRUE);
+
+    return status;
+}
 /*---------------------------------*/
 /*--        End of File          --*/
 /*---------------------------------*/

@@ -158,6 +158,92 @@ typedef struct {
 
 } AMG_data; /**< Data for AMG */
 
+/**
+ * \struct MG_blk_data
+ * \brief Data for MG solvers
+ *
+ * \note This is needed for the MG solver/preconditioner.
+ */
+typedef struct {
+
+    /* Geometric information */
+    trimesh *fine_level_mesh;
+
+    //! Geometric Type
+    INT *gmg_type;
+
+    /* Level information */
+
+    //! max number of levels
+    SHORT max_levels;
+
+    //! number of levels in use <= max_levels
+    SHORT num_levels;
+
+    /* Problem information */
+    //! number of FE spaces
+    INT num_spaces;
+
+    //! FE spaces
+    block_fespace *FE;
+
+    //! bdry flag stuff
+    void (*set_bdry_flags)(trimesh*);
+    INT *dirichlet;
+    INT **dirichlet_blk;
+
+    //! pointer to the matrix at level level_num
+    block_dCSRmat A;
+
+    //! pointer to the matrix without dirichlet boundary elimination at level_num
+    block_dCSRmat A_noBC;
+
+    //! restriction operator at level level_num
+    block_dCSRmat R;
+
+    //! prolongation operator at level level_num
+    block_dCSRmat P;
+
+    //! pointer to the right-hand side at level level_num
+    dvector b;
+
+    //! pointer to the iterative solution at level level_num
+    dvector x;
+
+    /* Solver information */
+    //! pointer to the composite matrix (for coarsest level only)
+    dCSRmat Ac;
+
+    /* Extra information */
+    //! pointer to the numerical factorization from UMFPACK
+    void *Numeric;
+
+    //! dimension of the near kernel for SAMG
+    INT near_kernel_dim;
+
+    //! basis of near kernel space for SAMG
+    REAL **near_kernel_basis;
+
+    /* Smoother information */
+    //! Block diagional of A
+    dCSRmat *A_diag;
+
+    //! AMG data for A_diag blocks
+    AMG_data **mgl;
+
+    //! number of levels use Schwarz smoother
+    INT Schwarz_levels;
+
+    //! data of Schwarz smoother
+    Schwarz_data Schwarz;
+
+    //! Temporary work space
+    dvector w;
+
+    //! cycle type
+    INT cycle_type;
+
+} MG_blk_data; /**< Data for block MG */
 
 typedef struct {
 
@@ -352,7 +438,7 @@ typedef struct {
     //! vector Laplacian
     dCSRmat *A_curlgrad;
 
-    //! vector
+    //! vector Laplacian
     dCSRmat *A_divgrad;
 
     //! AMG parameters for vector Laplacian
@@ -382,7 +468,7 @@ typedef struct {
     //! transpose of Curl operator
     dCSRmat *Curlt;
 
-    //! vector Laplacian
+    //! scalar Laplacian
     dCSRmat *A_grad;
 
     //! vecror Curl (CtAC)
@@ -435,6 +521,9 @@ typedef struct {
     /*---  solve by AMG ---*/
     AMG_data **mgl;       /**< AMG data for the diagonal blocks */
     AMG_param *amgparam;  /**< parameters for AMG */
+
+    /*---  solve by GMG ---*/
+    MG_blk_data *bmgl;    /**< Block MG data for monolithic */
 
     /*--- solver by HX preconditioner */
     HX_curl_data **hxcurldata; /**< HX data for the diagonal CURL blocks */
