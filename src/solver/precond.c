@@ -2689,7 +2689,7 @@ void precond_block_diag_mixed_darcy_krylov(REAL *r,
 
 /***********************************************************************************************/
 /**
- * \fn void precond_block_diag_mixed_darcy (REAL *r, REAL *z, void *data)
+ * \fn void precond_block_lower_mixed_darcy (REAL *r, REAL *z, void *data)
  * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
  *        is solved inexactly by Krylov methods)
  *
@@ -2827,6 +2827,215 @@ void precond_block_upper_mixed_darcy_krylov(REAL *r,
   array_cp(N, tempr->val, r);
 
 }
+
+/***********************************************************************************************/
+///**
+// * \fn void precond_block_diag_mixed_darcy_HX(REAL *r, REAL *z, void *data)
+// * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+// *        is solved inexactly by Krylov methods) (Use HX preconditioner)
+// *
+// * \param r     Pointer to the vector needs preconditioning
+// * \param z     Pointer to preconditioned vector
+// * \param data  Pointer to precondition data
+// *
+// * \author Xiaozhe Hu
+// * \date   03/03/2019
+// */
+//void precond_block_diag_mixed_darcy_krylov_HX(REAL *r,
+//                                              REAL *z,
+//                                              void *data)
+//{
+//  precond_block_data *precdata=(precond_block_data *)data;
+//  dvector *tempr = &(precdata->r);
+//
+//  block_dCSRmat *A = precdata->Abcsr;
+//  AMG_param *amgparam = precdata->amgparam;
+//  AMG_data **mgl = precdata->mgl;
+//  dvector *el_vol = precdata->el_vol;
+//  HX_div_data **hxdivdata = precdata->hxdivdata;
+//
+//  INT i;
+//
+//  const INT N0 = A->blocks[0]->row;
+//  const INT N1 = A->blocks[2]->row;
+//  const INT N = N0 + N1;
+//
+//  // back up r, setup z;
+//  array_cp(N, r, tempr->val);
+//  array_set(N, z, 0.0);
+//
+//  // prepare
+//  dvector r0, r1, z0, z1;
+//
+//  r0.row = N0; z0.row = N0;
+//  r1.row = N1; z1.row = N1;
+//
+//  r0.val = r; r1.val = &(r[N0]);
+//  z0.val = z; z1.val = &(z[N0]);
+//  //#endif
+//
+//  // Preconditioning A00 block (flux) using HX preconditioner
+//  precond pc_flux; pc_flux.data = hxdivdata[0];
+//  if (hxdivdata[0]->P_curl == NULL)
+//  {
+//    //pc_flux.fct = precond_hx_div_additive_2D;
+//    pc_flux.fct = precond_hx_div_multiplicative_2D;
+//  }
+//
+//  dcsr_pvfgmres(hxdivdata[0]->A, &r0, &z0, &pc_flux, 1e-3, 100, 100, 1, 1);
+//
+//  // Preconditioning A11 block
+//  memcpy(z1.val,r1.val,N1*sizeof(REAL));
+//  for (i=0;i<N1;++i) {
+//    z1.val[i]/=el_vol->val[i];
+//  }
+//
+//  // restore r
+//  array_cp(N, tempr->val, r);
+//
+//}
+//
+///***********************************************************************************************/
+///**
+// * \fn void precond_block_lower_mixed_darcy_HX(REAL *r, REAL *z, void *data)
+// * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+// *        is solved inexactly by Krylov methods) (Use HX preconditioner)
+// *
+// * \param r     Pointer to the vector needs preconditioning
+// * \param z     Pointer to preconditioned vector
+// * \param data  Pointer to precondition data
+// *
+// * \author Xiaozhe Hu
+// * \date   03/03/2019
+// */
+//void precond_block_lower_mixed_darcy_krylov_HX(REAL *r,
+//                                               REAL *z,
+//                                               void *data)
+//{
+//  precond_block_data *precdata=(precond_block_data *)data;
+//  dvector *tempr = &(precdata->r);
+//
+//  block_dCSRmat *A = precdata->Abcsr;
+//  AMG_param *amgparam = precdata->amgparam;
+//  AMG_data **mgl = precdata->mgl;
+//  dvector *el_vol = precdata->el_vol;
+//  HX_div_data **hxdivdata = precdata->hxdivdata;
+//
+//  INT i;
+//
+//  const INT N0 = A->blocks[0]->row;
+//  const INT N1 = A->blocks[2]->row;
+//  const INT N = N0 + N1;
+//
+//  // back up r, setup z;
+//  array_cp(N, r, tempr->val);
+//  array_set(N, z, 0.0);
+//
+//  // prepare
+//  dvector r0, r1, z0, z1;
+//
+//  r0.row = N0; z0.row = N0;
+//  r1.row = N1; z1.row = N1;
+//
+//  r0.val = r; r1.val = &(r[N0]);
+//  z0.val = z; z1.val = &(z[N0]);
+//  //#endif
+//
+//  // Preconditioning A00 block (flux)
+//  precond pc_flux; pc_flux.data = hxdivdata[0];
+//  if (hxdivdata[0]->P_curl == NULL)
+//  {
+//    //pc_flux.fct = precond_hx_div_additive_2D;
+//    pc_flux.fct = precond_hx_div_multiplicative_2D;
+//  }
+//
+//  dcsr_pvfgmres(hxdivdata[0]->A, &r0, &z0, &pc_flux, 1e-3, 100, 100, 1, 1);
+//
+//  // r1 = r1 - A2*z0
+//  dcsr_aAxpy(-1.0, A->blocks[2], z0.val, r1.val);
+//
+//  // Preconditioning A11 block
+//  memcpy(z1.val,r1.val,N1*sizeof(REAL));
+//  for (i=0;i<N1;++i) {
+//    z1.val[i]/=el_vol->val[i];
+//  }
+//
+//  // restore r
+//  array_cp(N, tempr->val, r);
+//
+//}
+//
+///***********************************************************************************************/
+///**
+// * \fn void precond_block_upper_mixed_darcy_HX(REAL *r, REAL *z, void *data)
+// * \brief block diagonal preconditioning (2x2 block matrix, each diagonal block
+// *        is solved inexactly by Krylov methods) (Use HX preconditioner)
+// *
+// * \param r     Pointer to the vector needs preconditioning
+// * \param z     Pointer to preconditioned vector
+// * \param data  Pointer to precondition data
+// *
+// * \author Xiaozhe Hu
+// * \date   03/03/2019
+// */
+//void precond_block_upper_mixed_darcy_krylov_HX(REAL *r,
+//                                               REAL *z,
+//                                               void *data)
+//{
+//  precond_block_data *precdata=(precond_block_data *)data;
+//  dvector *tempr = &(precdata->r);
+//
+//  block_dCSRmat *A = precdata->Abcsr;
+//  AMG_param *amgparam = precdata->amgparam;
+//  AMG_data **mgl = precdata->mgl;
+//  dvector *el_vol = precdata->el_vol;
+//  HX_div_data **hxdivdata = precdata->hxdivdata;
+//
+//  INT i;
+//
+//  const INT N0 = A->blocks[0]->row;
+//  const INT N1 = A->blocks[2]->row;
+//  const INT N = N0 + N1;
+//
+//  // back up r, setup z;
+//  array_cp(N, r, tempr->val);
+//  array_set(N, z, 0.0);
+//
+//  // prepare
+//  dvector r0, r1, z0, z1;
+//
+//  r0.row = N0; z0.row = N0;
+//  r1.row = N1; z1.row = N1;
+//
+//  r0.val = r; r1.val = &(r[N0]);
+//  z0.val = z; z1.val = &(z[N0]);
+//  //#endif
+//
+//  // Preconditioning A11 block
+//  memcpy(z1.val,r1.val,N1*sizeof(REAL));
+//  for (i=0;i<N1;++i) {
+//    z1.val[i]/=el_vol->val[i];
+//  }
+//
+//  // r0 = r0 - A1*z1
+//  dcsr_aAxpy(-1.0, A->blocks[1], z1.val, r0.val);
+//
+//  // Preconditioning A00 block (flux)
+//  precond pc_flux; pc_flux.data = hxdivdata[0];
+//  if (hxdivdata[0]->P_curl == NULL)
+//  {
+//    //pc_flux.fct = precond_hx_div_additive_2D;
+//    pc_flux.fct = precond_hx_div_multiplicative_2D;
+//  }
+//
+//  dcsr_pvfgmres(hxdivdata[0]->A, &r0, &z0, &pc_flux, 1e-3, 100, 100, 1, 1);
+//
+//
+//  // restore r
+//  array_cp(N, tempr->val, r);
+//
+//}
+
 
 /***********************************************************************************************/
 /**
@@ -4436,11 +4645,11 @@ void precond_block_diag_biot_3field_krylov(REAL *r,
 
   // Preconditioning A11 block (darcy)
   precond pc_w;
+  precond_data pcdata_w;
   if(hxdivdata!=NULL){
     pc_w.data = hxdivdata[1];
     pc_w.fct = precond_hx_div_multiplicative;
   } else {
-    precond_data pcdata_w;
     param_amg_to_prec(&pcdata_w,amgparam);
     pcdata_w.max_levels = mgl[1][0].num_levels;
     pcdata_w.mgl_data = mgl[1];
@@ -4454,10 +4663,20 @@ void precond_block_diag_biot_3field_krylov(REAL *r,
 
 
   // Preconditioning A22 block (pressure)
-  // Diagonal matrix
-  for(i=0;i<N2;i++){
-    z[N0+N1+i] = r[N0+N1+i]/(A_diag[2].val[i]);
-  }
+  precond_data pcdata_p;
+  param_amg_to_prec(&pcdata_p,amgparam);
+  pcdata_p.max_levels = mgl[2][0].num_levels;
+  pcdata_p.mgl_data = mgl[2];
+
+  precond pc_p; pc_p.data = &pcdata_p;
+  pc_p.fct = precond_amg;
+
+  //dcsr_pvfgmres(&mgl[2][0].A, &r2, &z2, &pc_p, 1e-1, 100, 100, 1, 1);
+  dcsr_pvfgmres(&(A_diag[2]), &r2, &z2, &pc_p, 1e-3, 100, 100, 1, 1);
+  //// Diagonal matrix
+  //for(i=0;i<N2;i++){
+  //  z[N0+N1+i] = r[N0+N1+i]/(A_diag[2].val[i]);
+  //}
 
   // restore r
   array_cp(N, tempr->val, r);
@@ -4531,11 +4750,11 @@ void precond_block_lower_biot_3field_krylov(REAL *r,
 
   // Preconditioning A11 block (darcy)
   precond pc_w;
+  precond_data pcdata_w;
   if(precdata->hxdivdata!=NULL){
     pc_w.data = precdata->hxdivdata[1];
     pc_w.fct = precond_hx_div_multiplicative;
   } else {
-    precond_data pcdata_w;
     param_amg_to_prec(&pcdata_w,amgparam);
     pcdata_w.max_levels = mgl[1][0].num_levels;
     pcdata_w.mgl_data = mgl[1];
@@ -4554,10 +4773,20 @@ void precond_block_lower_biot_3field_krylov(REAL *r,
       dcsr_aAxpy(-1.0, A->blocks[7], z1.val, r2.val);
 
   // Preconditioning A22 block (pressure)
-  // Diagonal matrix
-  for(i=0;i<N2;i++){
-    z[N0+N1+i] = r[N0+N1+i]/(A_diag[2].val[i]);
-  }
+  precond_data pcdata_p;
+  param_amg_to_prec(&pcdata_p,amgparam);
+  pcdata_p.max_levels = mgl[2][0].num_levels;
+  pcdata_p.mgl_data = mgl[2];
+
+  precond pc_p; pc_p.data = &pcdata_p;
+  pc_p.fct = precond_amg;
+
+  //dcsr_pvfgmres(&mgl[2][0].A, &r2, &z2, &pc_p, 1e-1, 100, 100, 1, 1);
+  dcsr_pvfgmres(&(A_diag[2]), &r2, &z2, &pc_p, 1e-3, 100, 100, 1, 1);
+  //// Diagonal matrix
+  //for(i=0;i<N2;i++){
+  //  z[N0+N1+i] = r[N0+N1+i]/(A_diag[2].val[i]);
+  //}
 
   // restore r
   array_cp(N, tempr->val, r);
@@ -4615,10 +4844,20 @@ void precond_block_upper_biot_3field_krylov(REAL *r,
   //#endif
 
   // Preconditioning A22 block (pressure)
-  // Diagonal matrix
-  for(i=0;i<N2;i++){
-    z[N0+N1+i] = r[N0+N1+i]/(A_diag[2].val[i]);
-  }
+  precond_data pcdata_p;
+  param_amg_to_prec(&pcdata_p,amgparam);
+  pcdata_p.max_levels = mgl[2][0].num_levels;
+  pcdata_p.mgl_data = mgl[2];
+
+  precond pc_p; pc_p.data = &pcdata_p;
+  pc_p.fct = precond_amg;
+
+  //dcsr_pvfgmres(&mgl[2][0].A, &r2, &z2, &pc_p, 1e-1, 100, 100, 1, 1);
+  dcsr_pvfgmres(&(A_diag[2]), &r2, &z2, &pc_p, 1e-3, 100, 100, 1, 1);
+  //// Diagonal matrix
+  //for(i=0;i<N2;i++){
+  //  z[N0+N1+i] = r[N0+N1+i]/(A_diag[2].val[i]);
+  //}
 
   // r1 = r1 - A5*z2
   if (A->blocks[5] != NULL)
@@ -4626,11 +4865,11 @@ void precond_block_upper_biot_3field_krylov(REAL *r,
 
   // Preconditioning A11 block (darcy)
   precond pc_w;
+  precond_data pcdata_w;
   if(precdata->hxdivdata!=NULL){
     pc_w.data = precdata->hxdivdata[1];
     pc_w.fct = precond_hx_div_multiplicative;
   } else {
-    precond_data pcdata_w;
     param_amg_to_prec(&pcdata_w,amgparam);
     pcdata_w.max_levels = mgl[1][0].num_levels;
     pcdata_w.mgl_data = mgl[1];
@@ -5863,6 +6102,57 @@ void precond_block_diag_bubble_stokes(REAL *r,
 
 }
 
+/* Special preconditioners for monolithic mg */
+
+/**
+ * \fn void precond_block_monolithic_mg (REAL *r, REAL *z, void *data)
+ *
+ * \brief
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   01/14/2017
+ */
+void precond_block_monolithic_mg (REAL *r, REAL *z, void *data)
+{
+  precond_block_data *precdata=(precond_block_data *)data;
+  dvector *tempr = &(precdata->r);
+
+  MG_blk_data *bmgl = precdata->bmgl;
+  AMG_param  *param = precdata->amgparam;
+
+  // Local Variables
+  INT i, N=0;
+  INT brow = bmgl[0].A.brow;
+
+  for( i=0; i<brow; i++){
+      N += bmgl[0].A.blocks[i+i*brow]->row;
+  }
+
+  // back up r, setup z;
+  array_cp(N, r, tempr->val);
+  array_set(N, z, 0.0);
+
+  // Residual is an input
+  array_cp(N, r, bmgl[0].b.val);
+
+  // Set x
+  dvec_set(N, &bmgl[0].x, 0.0);
+
+  /* Monolithic MG cycle */
+  for(i=0; i<param->maxit; i++) mgcycle_block(bmgl,param);
+
+  // Store x
+  array_cp(N, bmgl[0].x.val, z);
+
+  // restore r
+  array_cp(N, tempr->val, r);
+
+  return;
+}
 /*---------------------------------*/
 /*--        End of File          --*/
 /*---------------------------------*/

@@ -210,6 +210,90 @@ typedef struct {
 
 } AMG_param; /**< Parameters for AMG */
 
+/**
+ * \struct GMG_param
+ * \brief Parameters for AMG solver
+ *
+ * \note This is needed for the AMG solver/preconditioner.
+ */
+typedef struct {
+
+    //! type of AMG method
+    SHORT AMG_type;
+
+    //! print level for AMG
+    SHORT print_level;
+
+    //! max number of iterations of AMG
+    INT maxit;
+
+    //! stopping tolerance for AMG solver
+    REAL tol;
+
+    //! max number of levels of AMG
+    SHORT max_levels;
+
+    //! max number of coarsest level DOF
+    INT coarse_dof;
+
+    //! type of AMG cycle
+    SHORT cycle_type;
+
+    //! smoother type
+    SHORT smoother;
+
+    //! number of presmoothers
+    SHORT presmooth_iter;
+
+    //! number of postsmoothers
+    SHORT postsmooth_iter;
+
+    //! relaxation parameter for SOR smoother
+    REAL relaxation;
+
+    //! degree of the polynomial smoother
+    SHORT polynomial_degree;
+
+    //! coarse solver type
+    SHORT coarse_solver;
+
+    //! switch of scaling of the coarse grid correction
+    SHORT coarse_scaling;
+
+    //! degree of the polynomial used by AMLI cycle
+    SHORT amli_degree;
+
+    //! coefficients of the polynomial used by AMLI cycle
+    REAL *amli_coef;
+
+    //! type of Krylov method used by Nonlinear AMLI cycle
+    SHORT nl_amli_krylov_type;
+
+    //! aggregation type
+    SHORT aggregation_type;
+
+    //! strong coupled threshold for aggregate
+    REAL strong_coupled;
+
+    //! max size of each aggregate
+    INT max_aggregation;
+
+    //! number of levels use Schwarz smoother
+    INT Schwarz_levels;
+
+    //! maximal block size
+    INT Schwarz_mmsize;
+
+    //! maximal levels
+    INT Schwarz_maxlvl;
+
+    //! type of Schwarz method
+    INT Schwarz_type;
+
+    //! type of Schwarz block solver
+    INT Schwarz_blksolver;
+
+} GMG_param; /**< Parameters for AMG */
 
 /*!
  * \struct Schwarz_param
