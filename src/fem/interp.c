@@ -415,7 +415,7 @@ void blockFE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,I
  */
 REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,trimesh *mesh,REAL time,INT DOF)
 {
-  INT i,j,m;
+  INT j,m;
   REAL* x = (REAL *) calloc(mesh->dim,sizeof(REAL));
   INT dim = mesh->dim;
   INT FEtype = FE->FEtype;
