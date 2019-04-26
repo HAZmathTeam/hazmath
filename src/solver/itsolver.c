@@ -3301,14 +3301,14 @@ INT linear_solver_bdcsr_krylov_gmg(block_dCSRmat *A,
     printf( "max_levels: %d\n", max_levels);
     //const SHORT   mg_type     = param->AMG_type;
     const SHORT   mg_type     = 111;
-    const SHORT   cycle_type  = param->cycle_type;
+    //const SHORT   cycle_type  = param->cycle_type;
 
     // local variables
     INT status = SUCCESS;
     INT i, j;
     REAL setup_start, setup_end, setup_duration;
     REAL solver_start, solver_end, solver_duration;
-    REAL MG_start, MG_end;
+    //REAL MG_start, MG_end;
 
     get_time(&setup_start);
 

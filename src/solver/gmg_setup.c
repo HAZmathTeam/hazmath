@@ -477,10 +477,10 @@ void build_bubble_R (dCSRmat *R,
     INT rowbf;
 
     // Quadrature  Stuff
-    INT nq1d = 4;
-    INT quad;
-    REAL qval;
-    qcoordinates *cqface = get_quadrature_boundary(fmesh,nq1d,2);//TODO:free
+    //INT nq1d = 4;
+    //INT quad;
+    //REAL qval;
+    //qcoordinates *cqface = get_quadrature_boundary(fmesh,nq1d,2);//TODO:free
 
     // Basis stuff
     INT dim = fmesh->dim;
@@ -491,12 +491,12 @@ void build_bubble_R (dCSRmat *R,
     REAL* Fdphi = (REAL *) calloc(dim*dim*cmesh->f_per_elm,sizeof(REAL));
     REAL value;
     REAL lval;
-    REAL alpha;
+    //REAL alpha;
 
     INT* v_on_elm = (INT*)calloc(cmesh->v_per_elm,sizeof(INT));
     INT* f_on_elm = (INT*)calloc(cmesh->f_per_elm,sizeof(INT));
-    INT* v_on_elmF = (INT*)calloc(cmesh->v_per_elm,sizeof(INT));
-    INT* f_on_elmF = (INT*)calloc(cmesh->f_per_elm,sizeof(INT));
+    //INT* v_on_elmF = (INT*)calloc(cmesh->v_per_elm,sizeof(INT));
+    //INT* f_on_elmF = (INT*)calloc(cmesh->f_per_elm,sizeof(INT));
     INT* v_on_f   = (INT*)calloc(dim,sizeof(INT));
 
     //Garbage
@@ -1151,11 +1151,11 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
 }
 
 /***********************************************************************************************/
-SHORT gmg_setup (AMG_data *mgl,
-                 GMG_param *param)
-{
-    SHORT status;
-    //SHORT status = gmg_setup_P1(mgl,param);
-
-    return status;
-}
+//SHORT gmg_setup (AMG_data *mgl,
+//                 GMG_param *param)
+//{
+//    SHORT status;
+//    //SHORT status = gmg_setup_P1(mgl,param);
+//
+//    return status;
+//}

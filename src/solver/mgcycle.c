@@ -224,7 +224,7 @@ static void dcsr_postsmoothing(const SHORT smoother,
 static void bdcsr_presmoothing(const INT lvl, MG_blk_data *mgl, AMG_param *param)
 {
     const SHORT smoother = param->smoother;
-    const SHORT nsweeps  = param->presmooth_iter;
+    //const SHORT nsweeps  = param->presmooth_iter;
     switch (smoother) {
 
         //case SMOOTHER_JACOBI:
@@ -252,7 +252,7 @@ static void bdcsr_presmoothing(const INT lvl, MG_blk_data *mgl, AMG_param *param
 static void bdcsr_postsmoothing(const INT lvl, MG_blk_data *mgl, AMG_param *param)
 {
     const SHORT smoother = param->smoother;
-    const SHORT nsweeps  = param->presmooth_iter;
+    //const SHORT nsweeps  = param->presmooth_iter;
     switch (smoother) {
 
 //        case SMOOTHER_JACOBI:
@@ -710,17 +710,17 @@ void nl_amli (AMG_data *mgl,
 void mgcycle_block(MG_blk_data *bmgl,
              AMG_param *param)
 {
-    const SHORT  prtlvl = param->print_level;
-    const SHORT  amg_type = param->AMG_type;
-    const SHORT  smoother = param->smoother;
+    //const SHORT  prtlvl = param->print_level;
+    //const SHORT  amg_type = param->AMG_type;
+    //const SHORT  smoother = param->smoother;
     const SHORT  cycle_type = param->cycle_type;
     const SHORT  coarse_solver = param->coarse_solver;
     const SHORT  nl = bmgl[0].num_levels;
-    const REAL   relax = param->relaxation;
+    //const REAL   relax = param->relaxation;
     const REAL   tol = param->tol * 1e-4;
 
     // Schwarz parameters
-    Schwarz_param swzparam;
+    //Schwarz_param swzparam;
 
     // local variables
     REAL alpha = 1.0;
