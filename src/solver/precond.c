@@ -4599,13 +4599,13 @@ void precond_block_diag_biot_3field_krylov(REAL *r,
   precond_block_data *precdata=(precond_block_data *)data;
   dvector *tempr = &(precdata->r);
 
-  block_dCSRmat *A = precdata->Abcsr;
+  //block_dCSRmat *A = precdata->Abcsr;
   dCSRmat *A_diag = precdata->A_diag;
   AMG_param *amgparam = precdata->amgparam;
   AMG_data **mgl = precdata->mgl;
   HX_div_data **hxdivdata = precdata->hxdivdata;
 
-  INT i;
+  //INT i;
 
   //const INT N0 = A->blocks[0]->row;
   //const INT N1 = A->blocks[4]->row;
@@ -4707,7 +4707,7 @@ void precond_block_lower_biot_3field_krylov(REAL *r,
   AMG_param *amgparam = precdata->amgparam;
   AMG_data **mgl = precdata->mgl;
 
-  INT i;
+  //INT i;
 
   //const INT N0 = A->blocks[0]->row;
   //const INT N1 = A->blocks[4]->row;
@@ -4818,7 +4818,7 @@ void precond_block_upper_biot_3field_krylov(REAL *r,
   AMG_param *amgparam = precdata->amgparam;
   AMG_data **mgl = precdata->mgl;
 
-  INT i;
+  //INT i;
 
   //const INT N0 = A->blocks[0]->row;
   //const INT N1 = A->blocks[4]->row;
