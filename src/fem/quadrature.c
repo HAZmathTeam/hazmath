@@ -471,7 +471,7 @@ void quad_edge(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof)
   /* Gaussian weights for reference element */
   REAL* gw = (REAL *) calloc(nq,sizeof(REAL));
 
-  REAL r,s;      	/* Points on Reference Edge */
+  REAL r;      	/* Points on Reference Edge */
 
   REAL w = 0.5*mesh->ed_len[dof]; /* Jacobian = 1/2 |e| */
 
@@ -590,7 +590,7 @@ void quad_face(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof)
   /* Gaussian weights for reference element */
   REAL* gw = (REAL *) calloc(nq,sizeof(REAL));
 
-  REAL r,s;      	/* Points on Reference Edge */
+  REAL r,s;      	/* Points on Reference Face */
 
   REAL w = 0.0;
   if(dim==2) { // Faces are Edges in 2D
