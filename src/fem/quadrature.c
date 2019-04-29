@@ -432,9 +432,9 @@ qcoordinates* get_quadrature_boundary(trimesh *mesh,INT nq1d,INT ed_or_f)
 *          quadrature nodes on a line/surface.  Can be used to compute integrals on
 *          1D boundaries (curves).
 *
-* \param nq1d    Number of quadrature nodes on an element in 1D direction
+* \param nq1d    Number of quadrature nodes on an edge in 1D direction
 * \param mesh    Mesh struct
-* \param dof     Index of current edge/face
+* \param dof     Index of current edge
 *
 * \return cq_bdry Quadrature struct on edge
 *
@@ -554,7 +554,7 @@ void quad_edge(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof)
 *          quadrature nodes on a line/surface.  Can be used to compute integrals on
 *          1D/2D boundaries (curves/surfaces).
 *
-* \param nq1d    Number of quadrature nodes on an element in 1D direction
+* \param nq1d    Number of quadrature nodes on a face in 1D direction
 * \param mesh    Mesh struct
 * \param dof     Index of current face
 *
