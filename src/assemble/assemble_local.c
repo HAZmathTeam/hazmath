@@ -419,7 +419,7 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,trimesh *mesh,qcoordinat
  */
 void assemble_symmetricDuDv_local(REAL* ALoc, block_fespace *FE, trimesh *mesh, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm, REAL time)
 {
-  
+
   // Loop indices
   INT i,j,idim,quad,test,trial;
 
@@ -865,7 +865,7 @@ void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,trimesh *mesh,qcoordinates
           bLoc[(local_row_index+test)] += w*rhs_val[unknown_index]*FE->var_spaces[i]->phi[test];
         }
         unknown_index++;
-      
+
       } else if (FE->var_spaces[i]->FEtype==61) { // bubble
         for (test=0; test<FE->var_spaces[i]->dof_per_elm;test++) {
           bLoc[(local_row_index+test)] += w*(rhs_val[unknown_index]*FE->var_spaces[i]->phi[test*dim] +
@@ -917,31 +917,31 @@ void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,trimesh *mesh,qcoordinates
  * \note                Assuming 2D and 3D only
  *
  */
-void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,trimesh *mesh,qcoordinates *cq,INT *ed_on_elm,INT *v_on_elm,INT elm,dvector* u)  
+void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,trimesh *mesh,qcoordinates *cq,INT *ed_on_elm,INT *v_on_elm,INT elm,dvector* u)
 {
   // Mesh and FE data
   INT dim = mesh->dim;
-  
+
   // Loop Indices
   INT quad,test;
-  
+
   // Quadrature Weights and Nodes
   REAL w;
   REAL* qx = (REAL *) calloc(dim,sizeof(REAL));
-  
+
   // Right-hand side function at Quadrature Nodes
   REAL* ucoeff = (REAL *) calloc(dim,sizeof(REAL));
-  
+
   //  Sum over quadrature points
   for (quad=0;quad<cq->nq_per_elm;quad++) {
     qx[0] = cq->x[elm*cq->nq_per_elm+quad];
     qx[1] = cq->y[elm*cq->nq_per_elm+quad];
     if(dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
     w = cq->w[elm*cq->nq_per_elm+quad];
-    
+
     // Get FEM function at quadrature nodes
     FE_Interpolation(ucoeff,u->val,qx,ed_on_elm,v_on_elm,FE_Ned,mesh);
-    
+
     //  Get the Basis Functions at each quadrature node
     PX_H1_basis(FE_H1->phi,FE_H1->dphi,qx,v_on_elm,FE_H1->FEtype,mesh);
 
@@ -1009,7 +1009,7 @@ void FEM_RHS_Local_face(REAL* bLoc,dvector* old_sol,fespace *FE,trimesh *mesh,qc
   // Quadrature Weights and Nodes
 //  qcoordinates *cq_face = allocateqcoords(cq->nq1d,1,dim);
   qcoordinates *cq_face = allocateqcoords_bdry(cq->nq1d,1,dim,2);
-  quad_edgeface(cq_face,mesh,cq->nq1d,face,2);
+  quad_face(cq_face,mesh,cq->nq1d,face);
   REAL* qx = (REAL *) calloc(dim,sizeof(REAL));
   REAL w;
 
