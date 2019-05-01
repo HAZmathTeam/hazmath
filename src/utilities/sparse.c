@@ -3832,6 +3832,7 @@ SHORT bdcsr_delete_rowcol(block_dCSRmat *A,
  * \param A pointer to the matrix
  *
  * \note: only use the sparsity of A, index starts from 1 (fortran)!!
+ * \note: changed to start from 0 (ltz);
  */
 ivector sparse_MIS(dCSRmat *A)
 {
@@ -3859,9 +3860,9 @@ ivector sparse_MIS(dCSRmat *A)
     for (i=0;i<n;i++) {
         if (flag[i] == 0) {
             flag[i] = 1;
-            row_begin = IA[i] - 1; row_end = IA[i+1] - 1;
+            row_begin = IA[i]; row_end = IA[i+1];
             for (j = row_begin; j<row_end; j++) {
-                if (flag[JA[j]-1] > 0) {
+                if (flag[JA[j]] > 0) {
                     flag[i] = -1;
                     break;
                 }
@@ -3869,7 +3870,7 @@ ivector sparse_MIS(dCSRmat *A)
             if (flag[i]) {
                 work[count] = i; count++;
                 for (j = row_begin; j<row_end; j++) {
-                    flag[JA[j]-1] = -1;
+                    flag[JA[j]] = -1;
                 }
             }
         } // end if
@@ -3879,7 +3880,6 @@ ivector sparse_MIS(dCSRmat *A)
     MaxIndSet.row = count;
     work = (INT *)realloc(work, count*sizeof(INT));
     MaxIndSet.val = work;
-
     // clean
     if (flag) free(flag);
 
