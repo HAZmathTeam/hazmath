@@ -1,9 +1,69 @@
 #include "hazmath.h"
+/***********************************************************************************************/
 
-/*---------------------------------*/
-/*--      Private Functions      --*/
-/*---------------------------------*/
+/**
+ * \fn ivector sparse_MIS(dCSRmat *A)
+ *
+ * \brief get the maximal independet set of a CSR matrix
+ *
+ * \param A pointer to the matrix
+ *
+ * \note: only use the sparsity of A, index starts from 1 (fortran)!!
+ */
+ivector sparse_MIS0(dCSRmat *A)
+{
 
+    //! information of A
+    INT n = A->row;
+    INT *IA = A->IA;
+    INT *JA = A->JA;
+
+    // local variables
+    INT i,j;
+    INT row_begin, row_end;
+    INT count=0;
+    INT *flag;
+    flag = (INT *)calloc(n, sizeof(INT));
+    memset(flag, 0, sizeof(INT)*n);
+
+    //! work space
+    INT *work = (INT*)calloc(n,sizeof(INT));
+
+    //! return
+    ivector MaxIndSet;
+
+    //main loop
+    for (i=0;i<n;i++) {
+        if (flag[i] == 0) {
+            flag[i] = 1;
+            row_begin = IA[i]; row_end = IA[i+1];
+            for (j = row_begin; j<row_end; j++) {
+                if (flag[JA[j]] > 0) {
+                    flag[i] = -1;
+                    break;
+                }
+            }
+            if (flag[i]) {
+                work[count] = i; count++;
+                for (j = row_begin; j<row_end; j++) {
+                    flag[JA[j]] = -1;
+                }
+            }
+        } // end if
+    }// end for
+
+    // form Maximal Independent Set
+    MaxIndSet.row = count;
+    work = (INT *)realloc(work, count*sizeof(INT));
+    MaxIndSet.val = work;
+    // clean
+    if (flag) free(flag);
+    //return
+    return MaxIndSet;
+}
+
+
+/************************************** END ***************************************************/
 /**
  * \fn static void Schwarz_levels0 (INT inroot, dCSRmat *A, INT *mask, INT *nlvl,
  *                                 INT *iblock, INT *jblock, INT maxlev)
@@ -192,41 +252,59 @@ INT Schwarz_setup0 (Schwarz_data *Schwarz,
 {
   // information about A
   dCSRmat A = Schwarz->A;
-  INT n   = A.row;
-
+  INT n = A.row;
   INT  block_solver = param->Schwarz_blksolver;
   INT  maxlev = param->Schwarz_maxlvl;
   Schwarz->swzparam = param;
-
   // local variables
-  INT i;
-  INT inroot = -10, nsizei = -10, nsizeall = -10, nlvl = 0;
-  INT *jb=NULL;
+  INT n1=n+1,i,ij,j,							\
+    ibegin=0,								\
+    inroot = -10, nsizei = -10, nsizeall = -10, nlvl = 0;
+  INT *jbegin=NULL;
+  //
+  // these must be set previously; set to 0 if no blocks were defined
+  // so far
+  INT nblk=Schwarz->nblk;
+  INT *iblock=NULL,*jblock=NULL;
   ivector MaxIndSet;
-
+  //
   // data for Schwarz method
-  INT nblk;
-  INT *iblock = NULL, *jblock = NULL, *mask = NULL, *maxa = NULL;
+  INT *mask = NULL, *maxa = NULL;
 
   // return
   INT flag = SUCCESS;
-
   // allocate memory
-  maxa    = (INT *)calloc(n,sizeof(INT));
-  mask    = (INT *)calloc(n,sizeof(INT));
-  iblock  = (INT *)calloc(n,sizeof(INT));
-  jblock  = (INT *)calloc(n,sizeof(INT));
-
+  maxa    = (INT *)calloc(n1,sizeof(INT));
+  mask    = (INT *)calloc(n1,sizeof(INT));
+  // if we have already allocated some blocks, here we define some more. 
+  fprintf(stdout,"\nSchwarz method(solver=%d ; MIS levels=%d)\n",	\
+	  block_solver,				\
+	  maxlev);fflush(stdout);
+  fprintf(stdout,"\nSchwarz method(nblk=%d; ",nblk);fflush(stdout);
+  if(nblk>0){
+    iblock=Schwarz->iblock;
+    fprintf(stdout," 1end=%d; nblk+1+n1=%d)\n",iblock[nblk],nblk+1+n1);fflush(stdout);
+    iblock=(INT *)realloc(iblock,(nblk+1+n1)*sizeof(INT));
+    fprintf(stdout," 2end=%d)\n",iblock[nblk]);fflush(stdout);
+    jblock=Schwarz->jblock;
+    jblock=(INT *)realloc(jblock,(iblock[nblk]+n1)*sizeof(INT));
+    memset((iblock+nblk+1), 0, sizeof(INT)*n1);
+    ibegin=nblk;
+  }else{
+    iblock=(INT *)calloc(n1,sizeof(INT));
+    jblock=(INT *)calloc(n1,sizeof(INT));
+    memset(iblock, 0, sizeof(INT)*n1);
+    ibegin=0;
+    fprintf(stdout,"\nend=NA");fflush(stdout);
+  }  
+  maxa    = (INT *)calloc(n1,sizeof(INT));
+  mask    = (INT *)calloc(n1,sizeof(INT));
+  memset(mask,   0, sizeof(INT)*n1);
+  memset(maxa,   0, sizeof(INT)*n1);
   nsizeall=0;
-  memset(mask,   0, sizeof(INT)*n);
-  memset(iblock, 0, sizeof(INT)*n);
-  memset(maxa,   0, sizeof(INT)*n);
-
   maxa[0]=0;
-  //    INT *perm=maxa; // use maxa for working space:
-  //    for(i=0;i<n;i++) perm[i]=n-i-1;
-  //    MaxIndSet = sparse_MISp(&A,perm,mask);
-  //    memset(maxa,   0, sizeof(INT)*n);
+  MaxIndSet = sparse_MIS(&A);
+  memset(maxa,   0, sizeof(INT)*n);
   /*-------------------------------------------*/
   // find the blocks
   /*-------------------------------------------*/
@@ -239,31 +317,37 @@ INT Schwarz_setup0 (Schwarz_data *Schwarz,
     nsizeall+=nsizei;
   }
   /* We only calculated the size of this up to here. So we can reallocate jblock */
-  jblock = (INT *)realloc(jblock,(nsizeall+n)*sizeof(INT));
+  jblock = (INT *)realloc(jblock,(iblock[nblk]+nsizeall+n)*sizeof(INT));
   // second pass: redo the same again, but this time we store in jblock
   maxa[0]=0;
-  iblock[0]=0;
   nsizeall=0;
-  jb=jblock;
+  jbegin=jblock+iblock[nblk];
   for (i=0;i<MaxIndSet.row;i++) {
     inroot = MaxIndSet.val[i];
-    Schwarz_levels0(inroot,&A,mask,&nlvl,maxa,jb,maxlev);
+    Schwarz_levels0(inroot,&A,mask,&nlvl,maxa,jbegin,maxlev);
     nsizei=maxa[nlvl];
-    iblock[i+1]=iblock[i]+nsizei;
+    iblock[ibegin+i+1]=iblock[ibegin+i]+nsizei;
     nsizeall+=nsizei;
-    jb+=nsizei;
+    jbegin+=nsizei;
   }
-  nblk = MaxIndSet.row;
+  nblk += MaxIndSet.row;
+  fprintf(stdout,"\nBlocks print: Number of blocks=%d\n",nblk);
+  for(i=0;i<nblk;i++){
+    fprintf(stdout,"\nblock=%d; nodes=(",i);
+    for(ij=iblock[i];ij<iblock[i+1];ij++){
+      fprintf(stdout," %d ",jblock[ij]);
+    }
+    fprintf(stdout,")");
+  }
+  fprintf(stdout,"\n");
   /*-------------------------------------------*/
   //  LU decomposition of blocks
   /*-------------------------------------------*/
-  memset(mask, 0, sizeof(INT)*n);
+  memset(mask, 0, sizeof(INT)*n1);
   Schwarz->blk_data = (dCSRmat*)calloc(nblk, sizeof(dCSRmat));
   Schwarz_get_block_matrix0(Schwarz, nblk, iblock, jblock, mask);
-
   // Setup for each block solver
   switch (block_solver) {
-
 #if WITH_SUITESPARSE
   case SOLVER_UMFPACK: {
     /* use UMFPACK direct solver on each block */
@@ -289,9 +373,9 @@ INT Schwarz_setup0 (Schwarz_data *Schwarz,
     /* do nothing for iterative methods */
   }
   }
-
+  
   /*-------------------------------------------*/
-  //  return
+  //  return and reassign the pointers and the added blocks. 
   /*-------------------------------------------*/
   Schwarz->nblk   = nblk;
   Schwarz->iblock = iblock;
@@ -318,7 +402,6 @@ INT main (int argc, char* argv[])
   dCSRmat A;
   dvector b;
   dvector x;
-
   printf("\n===========================================================================\n");
   printf("Reading the matrix, right hand side, and parameters\n");
   printf("===========================================================================\n");
@@ -328,7 +411,7 @@ INT main (int argc, char* argv[])
   //  dvector_read("b.dat", &b);
   /****************************READING (fractures)******************************************/
   INT i,j,k,ij,jk,ik;
-  SHORT  ifile=2;
+  SHORT  ifile=1;
   char *fname=(char *)malloc(256*sizeof(char));  
   char *dirname=strdup("../fractures/LS/");  
   i=sprintf(fname,"%smatrix%1d.ijv",dirname,ifile);
@@ -361,25 +444,24 @@ INT main (int argc, char* argv[])
   fin = HAZ_fopen(fname,"r");
   INT nblk,ibl0,ibl1;
   i=fscanf(fin,"%i",&nblk);
-  INT *iblk=(INT *)calloc(nblk+1,sizeof(INT)); 
-  //fprintf(stdout,"\n nb blocks %i",blocks.row);
-  iblk[nblk]=Acoo.row;
+  INT *iblock=(INT *)calloc(nblk+1,sizeof(INT)); 
+  iblock[nblk]=Acoo.row;
   fprintf(stdout,"\nReading the matrix structure...");fflush(stdout);
   for(i=0;i<nblk;i++){
-    fscanf(fin,"%i",(iblk+i));
-    iblk[i]--;
+    fscanf(fin,"%i",(iblock+i));
+    iblock[i]--;
   }
   fclose(fin);
   if(fname)free(fname);
-  INT *jblk=(INT *)calloc(iblk[nblk],sizeof(INT)); 
+  INT *jblock=(INT *)calloc(iblock[nblk],sizeof(INT)); 
   for(i=0;i<nblk;i++){
-    ibl0=iblk[i];
-    ibl1=iblk[i+1];
+    ibl0=iblock[i];
+    ibl1=iblock[i+1];
     for(ij=ibl0;ij<ibl1;ij++){
-      jblk[ij]=ij;
+      jblock[ij]=ij;
     }
   }
-  INT nbmax=19,flag=0;
+  INT nbmax=1,flag=0;
   INT mbi,mbsize[20],imax[20];
   for(j=0;j<nbmax;j++){
     imax[j]=-1;mbsize[j]=0;
@@ -389,25 +471,34 @@ INT main (int argc, char* argv[])
 	if((i-1)==imax[k]) {flag=1;break;}
       }
       if(flag) continue;
-      mbi=(iblk[i]-iblk[i-1]);
+      mbi=(iblock[i]-iblock[i-1]);
       if(mbsize[j]<mbi){mbsize[j]=mbi;imax[j]=i-1;}
     }
     fprintf(stdout,"\n...pass=%d; max size=%d at block %d;",j,mbsize[j],imax[j]);fflush(stdout);
   }
   fprintf(stdout,"\nDONE.\n");
   // let us see if we can solve the largest block:
-  exit(129);
   INT *mask=(INT *)calloc(Acoo.row+1,sizeof(INT)); 
   A.row=Acoo.row;
   A.col=Acoo.col;
   dcoo_2_dcsr(&Acoo,&A);
-  /*****************************************************************************************/
   /*****************************************************************************************/
   /* set Parameters from Reading in Input File */
   input_param inparam;
   param_input_init(&inparam);
   param_input("./input.dat", &inparam);
 
+  Schwarz_data *swz=malloc(sizeof(Schwarz_data));
+  Schwarz_param *swzparam=malloc(sizeof(Schwarz_param));
+  swz->A=A;
+  swz->nblk=nblk;
+  swz->iblock=iblock;
+  swz->jblock=jblock;
+  swzparam->Schwarz_blksolver=inparam.Schwarz_blksolver;
+  swzparam->Schwarz_maxlvl=inparam.Schwarz_maxlvl;
+  /*********************************/
+  Schwarz_setup0(swz,swzparam);
+  /*****************************************************************************************/
   /* set initial guess */
   dvec_alloc(A.row, &x);
   dvec_set(x.row, &x, 0.0);
@@ -428,6 +519,7 @@ INT main (int argc, char* argv[])
   printf("\n===========================================================================\n");
   printf("Solving the linear system \n");
   printf("===========================================================================\n");
+  exit(129);
 
   // Use AMG as iterative solver
   if (linear_itparam.linear_itsolver_type == SOLVER_AMG){

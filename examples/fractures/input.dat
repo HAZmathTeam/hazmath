@@ -87,7 +87,7 @@ AMG_max_aggregation		= 20	% Max size of aggregations
 %----------------------------------------------%
 % parameters for Schwarz methods       %
 %----------------------------------------------%
-Schwarz_mmsize           = 200    % max block size
-Schwarz_maxlvl           = 2      % level used to form blocks
+Schwarz_mmsize           = 2000   % max block size
+Schwarz_maxlvl           = 1      % level used to form blocks
 Schwarz_type             = 1      % 1 forward | 2 backward | 3 symmetric
 Schwarz_blksolver        = 32     % sub-block solvers: 0 iterative | 32 UMFPack |
