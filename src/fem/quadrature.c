@@ -388,14 +388,28 @@ qcoordinates* get_quadrature_boundary(trimesh *mesh,INT nq1d,INT ed_or_f)
   qcoordinates *cq_all = allocateqcoords_bdry(nq1d,ndof,dim,ed_or_f);
   qcoordinates *cq_surf = allocateqcoords_bdry(nq1d,1,dim,ed_or_f);
 
-  for (i=0; i<ndof; i++) {
-    quad_edgeface(cq_surf,mesh,nq1d,i,ed_or_f);
-    for (j=0; j<nq; j++) {
-      cq_all->x[i*nq+j] = cq_surf->x[j];
-      cq_all->y[i*nq+j] = cq_surf->y[j];
-      cq_all->w[i*nq+j] = cq_surf->w[j];
-      if(dim==3) {
-        cq_all->z[i*nq+j] = cq_surf->z[j];
+  if(ed_or_f==1) { // Edges
+    for (i=0; i<ndof; i++) {
+      quad_edge(cq_surf,mesh,nq1d,i);
+      for (j=0; j<nq; j++) {
+        cq_all->x[i*nq+j] = cq_surf->x[j];
+        cq_all->y[i*nq+j] = cq_surf->y[j];
+        cq_all->w[i*nq+j] = cq_surf->w[j];
+        if(dim==3) {
+          cq_all->z[i*nq+j] = cq_surf->z[j];
+        }
+      }
+    }
+  } else { // Faces
+    for (i=0; i<ndof; i++) {
+      quad_face(cq_surf,mesh,nq1d,i);
+      for (j=0; j<nq; j++) {
+        cq_all->x[i*nq+j] = cq_surf->x[j];
+        cq_all->y[i*nq+j] = cq_surf->y[j];
+        cq_all->w[i*nq+j] = cq_surf->w[j];
+        if(dim==3) {
+          cq_all->z[i*nq+j] = cq_surf->z[j];
+        }
       }
     }
   }
@@ -412,108 +426,67 @@ qcoordinates* get_quadrature_boundary(trimesh *mesh,INT nq1d,INT ed_or_f)
 
 /*******************************************************************************/
 /*!
-* \fn void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_f)
+* \fn void quad_edge(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof)
 *
-* \brief Computes quadrature weights and nodes for SINGLE Edge/Face using nq1d^(e_or_f)
+* \brief Computes quadrature weights and nodes for SINGLE Edge using nq1d
 *          quadrature nodes on a line/surface.  Can be used to compute integrals on
-*          1D/2D boundaries (curves/surfaces).
+*          1D boundaries (curves).
 *
-* \param nq1d    Number of quadrature nodes on an element in 1D direction
+* \param nq1d    Number of quadrature nodes on an edge in 1D direction
 * \param mesh    Mesh struct
-* \param dof     Index of current edge/face
-* \param e_or_f  Whether we do an edge integral (1) or face integral (2)
+* \param dof     Index of current edge
 *
-* \return cq_bdry Quadrature struct on edge/face
+* \return cq_bdry Quadrature struct on edge
 *
-* \note An edge integral is always a 1D integral.  A face integral is a 1D
-*       integral in 2D and a 2D integral in 3D.
+* \note An edge integral is always a 1D integral.
 *
 */
-void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_f)
+void quad_edge(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof)
 {
   // Flag for errors
   SHORT status;
 
   INT q,j; /* Loop indices */
-  INT nqdum=1; /* Test for Simpson's Rule */
   INT dim = mesh->dim;
-  INT nq = 0;
-  INT e_or_f_dim=1;
 
-  switch (e_or_f)
-  {
-    case 1:
-    // Compute quadrature on edges
-    nq = nq1d;
-    e_or_f_dim = 1;  // Always a 1D integral
-    break;
-    case 2:
-    if(dim==2) { // face is edge in 2D
-      nq = nq1d;
-      e_or_f_dim = 1; // 1D integral
-    } else {
-      nq = nq1d*nq1d;
-      e_or_f_dim = 2; // 2D integral
-    }
-    break;
-    default:
-    status = ERROR_DIM;
-    check_error(status, __FUNCTION__);
-  }
-
-  /* Coordinates of vertices of edge/face */
-  coordinates *cvdof = allocatecoords(e_or_f_dim+1,dim);
-
-  // Add in for Simpson's Rule if using edges
+  // Test for Simpson's Rule
+  INT nqdum=1;
   if(nq1d==-1) {
     nqdum = -1;
     nq1d = 3;
   }
 
+  // Get total quadrature points
+  INT nq = nq1d;
+
+  /* Coordinates of vertices of edge/face */
+  coordinates *cvdof = allocatecoords(2,dim);
+
+  // Add in for Simpson's Rule if using edges
+
+
   // Gaussian points for reference element
-  // (edges: [-1,1] faces: tri[(0,0),(1,0),(0,1)])
-  REAL* gp = (REAL *) calloc(e_or_f_dim*nq,sizeof(REAL));
+  // (edges: [-1,1]
+  REAL* gp = (REAL *) calloc(nq,sizeof(REAL));
   /* Gaussian weights for reference element */
   REAL* gw = (REAL *) calloc(nq,sizeof(REAL));
 
-  REAL r,s;      	/* Points on Reference Edge */
+  REAL r;      	/* Points on Reference Edge */
 
-  REAL w = 0.0;
-  if(e_or_f==1) {  // Edges
-    w = 0.5*mesh->ed_len[dof]; /* Jacobian = 1/2 |e| */
-  } else if(e_or_f==2) { // Faces
-    if(dim==2) { // Faces are Edges in 2D
-      w = 0.5*mesh->f_area[dof]; /* Jacobian = 1/2 |e| */
-    } else if(dim==3) {
-      w = 2*mesh->f_area[dof]; /* Jacobian = 2*|f| */
-    } else {
-      status = ERROR_DIM;
-      check_error(status, __FUNCTION__);
-    }
-  } else {
-    status = ERROR_QUAD_TYPE;
-    check_error(status, __FUNCTION__);
-  }
+  REAL w = 0.5*mesh->ed_len[dof]; /* Jacobian = 1/2 |e| */
 
-  // Get coordinates of vertices for given edge/face
-  INT* thisdof_v = (INT *) calloc(e_or_f_dim+1,sizeof(INT));
+  // Get coordinates of vertices for given edge
+  INT* thisdof_v = (INT *) calloc(2,sizeof(INT));
   iCSRmat* dof_v = NULL;
-  if(e_or_f==1) {
-    dof_v = mesh->ed_v;
-  } else if(e_or_f==2) {
-    dof_v = mesh->f_v;
-  } else {
-    status = ERROR_QUAD_TYPE;
-    check_error(status, __FUNCTION__);
-  }
+  dof_v = mesh->ed_v;
   get_incidence_row(dof,dof_v,thisdof_v);
   if(dim==2) {
-    for (j=0; j<dim; j++) {
+    for (j=0; j<2; j++) {
       cvdof->x[j] = mesh->cv->x[thisdof_v[j]-1];
       cvdof->y[j] = mesh->cv->y[thisdof_v[j]-1];
     }
-  } else if(dim==3){
-    for (j=0; j<e_or_f+1; j++) {
+  } else if(dim==3) {
+    for (j=0; j<2; j++) {
       cvdof->x[j] = mesh->cv->x[thisdof_v[j]-1];
       cvdof->y[j] = mesh->cv->y[thisdof_v[j]-1];
       cvdof->z[j] = mesh->cv->z[thisdof_v[j]-1];
@@ -524,26 +497,18 @@ void quad_edgeface(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof,INT e_or_
   }
 
   // Get Quad Nodes and Weights
-  if(e_or_f_dim==1) {
-    if(nqdum>=1) { // Not Simpson's Rule
+  if(nqdum==-1) { // Simpsons Rule
+    gp[0] = -1.0;
+    gp[1] = 0.0;
+    gp[2] = 1.0;
+    gw[0] = 1.0/3.0;
+    gw[1] = 4.0/3.0;
+    gw[2] = gw[0];
+  } else {
     quad1d(gp,gw,nq1d);
-  } else { // Simpson's Rule
-  gp[0] = -1.0;
-  gp[1] = 0.0;
-  gp[2] = 1.0;
-  gw[0] = 1.0/3.0;
-  gw[1] = 4.0/3.0;
-  gw[2] = gw[0];
-}
-} else if(e_or_f_dim==2) {
-  triquad_(gp,gw,nq1d);
-} else {
-  status = ERROR_QUAD_TYPE;
-  check_error(status, __FUNCTION__);
-}
+  }
 
-// Map to Real Edge
-if(e_or_f_dim==1) {
+  // Map to Real Edge
   // Edges: x = 0.5(x1*(1-r) + x2*(1+r))
   //        y = 0.5(y1*(1-r) + y2*(1+r))
   //        z = 0.5(z1*(1-r) + z2*(1+r))
@@ -563,13 +528,128 @@ if(e_or_f_dim==1) {
       cqbdry->z[q] = 0.5*cvdof->z[0]*(1-r) + 0.5*cvdof->z[1]*(1+r);
       cqbdry->w[q] = w*gw[q];
     }
+  } else {
+    status = ERROR_DIM;
+    check_error(status, __FUNCTION__);
   }
-} else if(e_or_f_dim==2) {
-  // Faces: x = x1*(1-r-s) + x2*r + x3*s
-  //        y = y1*(1-r-s) + y2*r + y3*s
-  //        z = z1*(1-r-s) + z2*r + z3*s
-  //        w = 2*Element Area*wref
-  if(dim==3) {
+
+  if(gp) free(gp);
+  if(gw) free(gw);
+  if(cvdof) {
+    free_coords(cvdof);
+    free(cvdof);
+    cvdof=NULL;
+  }
+  if(thisdof_v) free(thisdof_v);
+
+  return;
+}
+/*********************************************************************************/
+
+/*******************************************************************************/
+/*!
+* \fn void quad_face(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof)
+*
+* \brief Computes quadrature weights and nodes for SINGLE Face using nq1d^(dim-1)
+*          quadrature nodes on a line/surface.  Can be used to compute integrals on
+*          1D/2D boundaries (curves/surfaces).
+*
+* \param nq1d    Number of quadrature nodes on a face in 1D direction
+* \param mesh    Mesh struct
+* \param dof     Index of current face
+*
+* \return cq_bdry Quadrature struct on face
+*
+* \note A face integral is a 1D integral in 2D and a 2D integral in 3D.
+*
+*/
+void quad_face(qcoordinates *cqbdry,trimesh *mesh,INT nq1d,INT dof)
+{
+  // Flag for errors
+  SHORT status;
+
+  INT q,j; /* Loop indices */
+  INT dim = mesh->dim;
+  INT nq = 0;
+
+  if(dim==2) { // face is edge in 2D
+    nq = nq1d;
+  } else if(dim==3) {
+    nq = nq1d*nq1d;
+  } else {
+    status = ERROR_DIM;
+    check_error(status, __FUNCTION__);
+  }
+
+  /* Coordinates of vertices of face */
+  coordinates *cvdof = allocatecoords(dim,dim);
+
+  // Gaussian points for reference element
+  // (edges: [-1,1] faces: tri[(0,0),(1,0),(0,1)])
+  REAL* gp = (REAL *) calloc((dim-1)*nq,sizeof(REAL));
+  /* Gaussian weights for reference element */
+  REAL* gw = (REAL *) calloc(nq,sizeof(REAL));
+
+  REAL r,s;      	/* Points on Reference Face */
+
+  REAL w = 0.0;
+  if(dim==2) { // Faces are Edges in 2D
+    w = 0.5*mesh->f_area[dof]; /* Jacobian = 1/2 |e| */
+  } else if(dim==3) {
+    w = 2*mesh->f_area[dof]; /* Jacobian = 2*|f| */
+  } else {
+    status = ERROR_DIM;
+    check_error(status, __FUNCTION__);
+  }
+
+  // Get coordinates of vertices for given edge/face
+  INT* thisdof_v = (INT *) calloc(dim,sizeof(INT));
+  iCSRmat* dof_v = NULL;
+  dof_v = mesh->f_v;
+  get_incidence_row(dof,dof_v,thisdof_v);
+  if(dim==2) {
+    for (j=0; j<dim; j++) {
+      cvdof->x[j] = mesh->cv->x[thisdof_v[j]-1];
+      cvdof->y[j] = mesh->cv->y[thisdof_v[j]-1];
+    }
+  } else if(dim==3){
+    for (j=0; j<dim; j++) {
+      cvdof->x[j] = mesh->cv->x[thisdof_v[j]-1];
+      cvdof->y[j] = mesh->cv->y[thisdof_v[j]-1];
+      cvdof->z[j] = mesh->cv->z[thisdof_v[j]-1];
+    }
+  } else {
+    status = ERROR_DIM;
+    check_error(status, __FUNCTION__);
+  }
+
+  // Get Quad Nodes and Weights
+  if(dim==2) { // face is an edge
+    quad1d(gp,gw,nq1d);
+  } else if(dim==3) { // face is a face
+    triquad_(gp,gw,nq1d);
+  } else {
+    status = ERROR_DIM;
+    check_error(status, __FUNCTION__);
+  }
+
+  // Map to Real Edge
+  if(dim==2) {
+    // Edges: x = 0.5(x1*(1-r) + x2*(1+r))
+    //        y = 0.5(y1*(1-r) + y2*(1+r))
+    //        z = 0.5(z1*(1-r) + z2*(1+r))
+    //        w = 0.5*Edge Length*wref
+    for (q=0; q<nq1d; q++) {
+      r = gp[q];
+      cqbdry->x[q] = 0.5*cvdof->x[0]*(1-r) + 0.5*cvdof->x[1]*(1+r);
+      cqbdry->y[q] = 0.5*cvdof->y[0]*(1-r) + 0.5*cvdof->y[1]*(1+r);
+      cqbdry->w[q] = w*gw[q];
+    }
+  } else if(dim==3) {
+    // Faces: x = x1*(1-r-s) + x2*r + x3*s
+    //        y = y1*(1-r-s) + y2*r + y3*s
+    //        z = z1*(1-r-s) + z2*r + z3*s
+    //        w = 2*Element Area*wref
     for (q=0; q<nq1d*nq1d; q++) {
       r = gp[q];
       s = gp[nq1d*nq1d+q];
@@ -578,22 +658,21 @@ if(e_or_f_dim==1) {
       cqbdry->z[q] = cvdof->z[0]*(1-r-s) + cvdof->z[1]*r + cvdof->z[2]*s;
       cqbdry->w[q] = w*gw[q];
     }
+  } else {
+    status = ERROR_DIM;
+    check_error(status, __FUNCTION__);
   }
-} else {
-  status = ERROR_QUAD_TYPE;
-  check_error(status, __FUNCTION__);
-}
 
-if(gp) free(gp);
-if(gw) free(gw);
-if(cvdof) {
-  free_coords(cvdof);
-  free(cvdof);
-  cvdof=NULL;
-}
-if(thisdof_v) free(thisdof_v);
+  if(gp) free(gp);
+  if(gw) free(gw);
+  if(cvdof) {
+    free_coords(cvdof);
+    free(cvdof);
+    cvdof=NULL;
+  }
+  if(thisdof_v) free(thisdof_v);
 
-return;
+  return;
 }
 /*********************************************************************************/
 
@@ -791,7 +870,7 @@ REAL integrate_face(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT
     }
   } else { // assemble quadrature again
     qcoordinates *cqface = allocateqcoords_bdry(nq1d,1,mesh->dim,2);
-    quad_edgeface(cqface,mesh,nq1d,face,2);
+    quad_face(cqface,mesh,nq1d,face);
     for (quad=0;quad<cqface->nq_per_elm;quad++) {
       qx[0] = cqface->x[quad];
       qx[1] = cqface->y[quad];
@@ -861,7 +940,7 @@ REAL integrate_edge(void (*expr)(REAL *,REAL *,REAL,void *),INT nun,INT comp,INT
     }
   } else { // assemble quadrature again
     qcoordinates *cqedge = allocateqcoords_bdry(nq1d,1,mesh->dim,1);
-    quad_edgeface(cqedge,mesh,nq1d,edge,1);
+    quad_edge(cqedge,mesh,nq1d,edge);
     for (quad=0;quad<cqedge->nq_per_elm;quad++) {
       qx[0] = cqedge->x[quad];
       qx[1] = cqedge->y[quad];
@@ -933,7 +1012,7 @@ REAL integrate_edge_vector_tangent(void (*expr)(REAL *,REAL *,REAL,void *),INT n
     }
   } else { // assemble quadrature again
     qcoordinates *cqedge = allocateqcoords_bdry(nq1d,1,dim,1);
-    quad_edgeface(cqedge,mesh,nq1d,edge,1);
+    quad_edge(cqedge,mesh,nq1d,edge);
     for (quad=0;quad<cqedge->nq_per_elm;quad++) {
       qx[0] = cqedge->x[quad];
       qx[1] = cqedge->y[quad];
@@ -1004,7 +1083,7 @@ REAL integrate_face_vector_normal(void (*expr)(REAL *,REAL *,REAL,void *),INT nu
     }
   } else { // assemble quadrature again
     qcoordinates *cqface = allocateqcoords_bdry(nq1d,1,dim,2);
-    quad_edgeface(cqface,mesh,nq1d,face,2);
+    quad_face(cqface,mesh,nq1d,face);
     for (quad=0;quad<cqface->nq_per_elm;quad++) {
       qx[0] = cqface->x[quad];
       qx[1] = cqface->y[quad];
