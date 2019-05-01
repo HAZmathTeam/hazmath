@@ -22,70 +22,70 @@
  *
  */
 static void Schwarz_levels0 (INT inroot,
-                            dCSRmat *A,
-                            INT *mask,
-                            INT *nlvl,
-                            INT *iblock,
-                            INT *jblock,
-                            INT maxlev)
+			     dCSRmat *A,
+			     INT *mask,
+			     INT *nlvl,
+			     INT *iblock,
+			     INT *jblock,
+			     INT maxlev)
 {
-    INT *ia = A->IA;
-    INT *ja = A->JA;
-    INT nnz = A->nnz;
-    INT i, j, lvl, lbegin, lvlend, nsize, node;
-    INT jstrt, jstop, nbr, lvsize;
+  INT *ia = A->IA;
+  INT *ja = A->JA;
+  INT nnz = A->nnz;
+  INT i, j, lvl, lbegin, lvlend, nsize, node;
+  INT jstrt, jstop, nbr, lvsize;
 
-    // This is diagonal
-    if (ia[inroot+1]-ia[inroot] <= 1) {
-        lvl = 0;
-        iblock[lvl] = 0;
-        jblock[iblock[lvl]] = inroot;
-        lvl ++;
-        iblock[lvl] = 1;
-    }
-    else {
-        // input node as root node (level 0)
-        lvl = 0;
-        jblock[0] = inroot;
-        lvlend = 0;
-        nsize  = 1;
-        // mark root node
-        mask[inroot] = 1;
+  // This is diagonal
+  if (ia[inroot+1]-ia[inroot] <= 1) {
+    lvl = 0;
+    iblock[lvl] = 0;
+    jblock[iblock[lvl]] = inroot;
+    lvl ++;
+    iblock[lvl] = 1;
+  }
+  else {
+    // input node as root node (level 0)
+    lvl = 0;
+    jblock[0] = inroot;
+    lvlend = 0;
+    nsize  = 1;
+    // mark root node
+    mask[inroot] = 1;
 
-        lvsize = nnz;
+    lvsize = nnz;
 
-        // start to form the level hierarchy for root node(level1, level2, ... maxlev)
-        while (lvsize > 0 && lvl < maxlev) {
-            lbegin = lvlend;
-            lvlend = nsize;
-            iblock[lvl] = lbegin;
-            lvl ++;
-            for(i=lbegin; i<lvlend; ++i) {
-                node = jblock[i];
-                jstrt = ia[node]-1;
-                jstop = ia[node+1]-1;
-                for (j = jstrt; j<jstop; ++j) {
-                    nbr = ja[j]-1;
-                    if (mask[nbr] == 0) {
-                        jblock[nsize] = nbr;
-                        mask[nbr] = lvl;
-                        nsize ++;
-                    }
-                }
-            }
-            lvsize = nsize - lvlend;
-        }
-
-        iblock[lvl] = nsize;
-
-        // reset mask array
-        for (i = 0; i< nsize; ++i) {
-            node = jblock[i];
-            mask[node] = 0;
-        }
+    // start to form the level hierarchy for root node(level1, level2, ... maxlev)
+    while (lvsize > 0 && lvl < maxlev) {
+      lbegin = lvlend;
+      lvlend = nsize;
+      iblock[lvl] = lbegin;
+      lvl ++;
+      for(i=lbegin; i<lvlend; ++i) {
+	node = jblock[i];
+	jstrt = ia[node]-1;
+	jstop = ia[node+1]-1;
+	for (j = jstrt; j<jstop; ++j) {
+	  nbr = ja[j]-1;
+	  if (mask[nbr] == 0) {
+	    jblock[nsize] = nbr;
+	    mask[nbr] = lvl;
+	    nsize ++;
+	  }
+	}
+      }
+      lvsize = nsize - lvlend;
     }
 
-    *nlvl = lvl;
+    iblock[lvl] = nsize;
+
+    // reset mask array
+    for (i = 0; i< nsize; ++i) {
+      node = jblock[i];
+      mask[node] = 0;
+    }
+  }
+
+  *nlvl = lvl;
 }
 /*! \file examples/Solver/Solver.c
  *
@@ -99,79 +99,79 @@ static void Schwarz_levels0 (INT inroot,
  */
 
 void Schwarz_get_block_matrix0 (Schwarz_data *Schwarz,
-                                    INT nblk,
-                                    INT *iblock,
-                                    INT *jblock,
-                                    INT *mask)
+				INT nblk,
+				INT *iblock,
+				INT *jblock,
+				INT *mask)
 {
-    INT i, j, iblk, ki, kj, kij, is, ibl0, ibl1, nloc, iaa, iab;
-    INT maxbs = 0, count, nnz;
+  INT i, j, iblk, ki, kj, kij, is, ibl0, ibl1, nloc, iaa, iab;
+  INT maxbs = 0, count, nnz;
 
-    dCSRmat A = Schwarz->A;
-    dCSRmat *blk = Schwarz->blk_data;
+  dCSRmat A = Schwarz->A;
+  dCSRmat *blk = Schwarz->blk_data;
 
-    INT  *ia  = A.IA;
-    INT  *ja  = A.JA;
-    REAL *val = A.val;
+  INT  *ia  = A.IA;
+  INT  *ja  = A.JA;
+  REAL *val = A.val;
 
-    // get maximal block size
-    for (is=0; is<nblk; ++is) {
-        ibl0 = iblock[is];
-        ibl1 = iblock[is+1];
-        nloc = ibl1-ibl0;
-        maxbs = MAX(maxbs, nloc);
+  // get maximal block size
+  for (is=0; is<nblk; ++is) {
+    ibl0 = iblock[is];
+    ibl1 = iblock[is+1];
+    nloc = ibl1-ibl0;
+    maxbs = MAX(maxbs, nloc);
+  }
+
+  Schwarz->maxbs = maxbs;
+  fprintf(stdout,"\nmax_blk_size=%d",maxbs);
+  // allocate memory for each sub_block's right hand
+  Schwarz->xloc1   = dvec_create(maxbs);
+  Schwarz->rhsloc1 = dvec_create(maxbs);
+
+  for (is=0; is<nblk; ++is) {
+    ibl0 = iblock[is];
+    ibl1 = iblock[is+1];
+    nloc = ibl1-ibl0;
+    count = 0;
+    for (i=0; i<nloc; ++i ) {
+      iblk = ibl0 + i;
+      ki   = jblock[iblk];
+      iaa  = ia[ki];
+      iab  = ia[ki+1];
+      count += iab - iaa;
+      mask[ki] = i+1;
     }
 
-    Schwarz->maxbs = maxbs;
-    fprintf(stdout,"\nmax_blk_size=%d",maxbs);
-    // allocate memory for each sub_block's right hand
-    Schwarz->xloc1   = dvec_create(maxbs);
-    Schwarz->rhsloc1 = dvec_create(maxbs);
+    blk[is] = dcsr_create(nloc, nloc, count);
+    blk[is].IA[0] = 0;
+    nnz = 0;
 
-    for (is=0; is<nblk; ++is) {
-        ibl0 = iblock[is];
-        ibl1 = iblock[is+1];
-        nloc = ibl1-ibl0;
-        count = 0;
-        for (i=0; i<nloc; ++i ) {
-            iblk = ibl0 + i;
-            ki   = jblock[iblk];
-            iaa  = ia[ki];
-            iab  = ia[ki+1];
-            count += iab - iaa;
-            mask[ki] = i+1;
-        }
-
-        blk[is] = dcsr_create(nloc, nloc, count);
-        blk[is].IA[0] = 0;
-        nnz = 0;
-
-        for (i=0; i<nloc; ++i) {
-            iblk = ibl0 + i;
-            ki = jblock[iblk];
-            iaa = ia[ki];
-            iab = ia[ki+1];
-            for (kij = iaa; kij<iab; ++kij) {
-                kj = ja[kij];
-                j  = mask[kj];
-                if(j != 0) {
-                    blk[is].JA[nnz] = j-1;
-                    blk[is].val[nnz] = val[kij];
-                    nnz ++;
-                }
-            }
-            blk[is].IA[i+1] = nnz;
-        }
-
-        blk[is].nnz = nnz;
-
-        // zero the mask so that everyting is as it was
-        for (i=0; i<nloc; ++i) {
-            iblk = ibl0 + i;
-            ki   = jblock[iblk];
-            mask[ki] = 0;
-        }
+    for (i=0; i<nloc; ++i) {
+      iblk = ibl0 + i;
+      ki = jblock[iblk];
+      iaa = ia[ki];
+      iab = ia[ki+1];
+      for (kij = iaa; kij<iab; ++kij) {
+	kj = ja[kij];
+	j  = mask[kj];
+	if(j != 0) {
+	  blk[is].JA[nnz] = j-1;
+	  blk[is].val[nnz] = val[kij];
+	  nnz ++;
+	}
+      }
+      blk[is].IA[i+1] = nnz;
     }
+
+    blk[is].nnz = nnz;
+
+    // zero the mask so that everyting is as it was
+    for (i=0; i<nloc; ++i) {
+      iblk = ibl0 + i;
+      ki   = jblock[iblk];
+      mask[ki] = 0;
+    }
+  }
 }
 
 /**
@@ -186,125 +186,321 @@ void Schwarz_get_block_matrix0 (Schwarz_data *Schwarz,
  *
  */
 INT Schwarz_setup0 (Schwarz_data *Schwarz,
-                   Schwarz_param *param)
+		    Schwarz_param *param)
 {
-    // information about A
-    dCSRmat A = Schwarz->A;
-    INT n   = A.row;
+  // information about A
+  dCSRmat A = Schwarz->A;
+  INT n   = A.row;
 
-    INT  block_solver = param->Schwarz_blksolver;
-    INT  maxlev = param->Schwarz_maxlvl;
-    Schwarz->swzparam = param;
+  INT  block_solver = param->Schwarz_blksolver;
+  INT  maxlev = param->Schwarz_maxlvl;
+  Schwarz->swzparam = param;
 
-    // local variables
-    INT i;
-    INT inroot = -10, nsizei = -10, nsizeall = -10, nlvl = 0;
-    INT *jb=NULL;
-    ivector MaxIndSet;
+  // local variables
+  INT i;
+  INT inroot = -10, nsizei = -10, nsizeall = -10, nlvl = 0;
+  INT *jb=NULL;
+  ivector MaxIndSet;
 
-    // data for Schwarz method
-    INT nblk;
-    INT *iblock = NULL, *jblock = NULL, *mask = NULL, *maxa = NULL;
+  // data for Schwarz method
+  INT nblk;
+  INT *iblock = NULL, *jblock = NULL, *mask = NULL, *maxa = NULL;
 
-    // return
-    INT flag = SUCCESS;
+  // return
+  INT flag = SUCCESS;
 
-    // allocate memory
-    maxa    = (INT *)calloc(n,sizeof(INT));
-    mask    = (INT *)calloc(n,sizeof(INT));
-    iblock  = (INT *)calloc(n,sizeof(INT));
-    jblock  = (INT *)calloc(n,sizeof(INT));
+  // allocate memory
+  maxa    = (INT *)calloc(n,sizeof(INT));
+  mask    = (INT *)calloc(n,sizeof(INT));
+  iblock  = (INT *)calloc(n,sizeof(INT));
+  jblock  = (INT *)calloc(n,sizeof(INT));
 
-    nsizeall=0;
-    memset(mask,   0, sizeof(INT)*n);
-    memset(iblock, 0, sizeof(INT)*n);
-    memset(maxa,   0, sizeof(INT)*n);
+  nsizeall=0;
+  memset(mask,   0, sizeof(INT)*n);
+  memset(iblock, 0, sizeof(INT)*n);
+  memset(maxa,   0, sizeof(INT)*n);
 
-    maxa[0]=0;
-    //    INT *perm=maxa; // use maxa for working space:
-    //    for(i=0;i<n;i++) perm[i]=n-i-1;
-    //    MaxIndSet = sparse_MISp(&A,perm,mask);
-    //    memset(maxa,   0, sizeof(INT)*n);
-    /*-------------------------------------------*/
-    // find the blocks
-    /*-------------------------------------------*/
-    // first pass: do a maxlev level sets out for each node from MIS,
-    // or perhaps from the last block.
-    for ( i = 0; i < MaxIndSet.row; i++ ) {
-        inroot = MaxIndSet.val[i];
-        Schwarz_levels0(inroot,&A,mask,&nlvl,maxa,jblock,maxlev);
-        nsizei=maxa[nlvl];
-        nsizeall+=nsizei;
-    }
-    /* We only calculated the size of this up to here. So we can reallocate jblock */
-    jblock = (INT *)realloc(jblock,(nsizeall+n)*sizeof(INT));
-    // second pass: redo the same again, but this time we store in jblock
-    maxa[0]=0;
-    iblock[0]=0;
-    nsizeall=0;
-    jb=jblock;
-    for (i=0;i<MaxIndSet.row;i++) {
-        inroot = MaxIndSet.val[i];
-        Schwarz_levels0(inroot,&A,mask,&nlvl,maxa,jb,maxlev);
-        nsizei=maxa[nlvl];
-        iblock[i+1]=iblock[i]+nsizei;
-        nsizeall+=nsizei;
-        jb+=nsizei;
-    }
-    nblk = MaxIndSet.row;
-    /*-------------------------------------------*/
-    //  LU decomposition of blocks
-    /*-------------------------------------------*/
-    memset(mask, 0, sizeof(INT)*n);
-    Schwarz->blk_data = (dCSRmat*)calloc(nblk, sizeof(dCSRmat));
-    Schwarz_get_block_matrix0(Schwarz, nblk, iblock, jblock, mask);
+  maxa[0]=0;
+  //    INT *perm=maxa; // use maxa for working space:
+  //    for(i=0;i<n;i++) perm[i]=n-i-1;
+  //    MaxIndSet = sparse_MISp(&A,perm,mask);
+  //    memset(maxa,   0, sizeof(INT)*n);
+  /*-------------------------------------------*/
+  // find the blocks
+  /*-------------------------------------------*/
+  // first pass: do a maxlev level sets out for each node from MIS,
+  // or perhaps from the last block.
+  for ( i = 0; i < MaxIndSet.row; i++ ) {
+    inroot = MaxIndSet.val[i];
+    Schwarz_levels0(inroot,&A,mask,&nlvl,maxa,jblock,maxlev);
+    nsizei=maxa[nlvl];
+    nsizeall+=nsizei;
+  }
+  /* We only calculated the size of this up to here. So we can reallocate jblock */
+  jblock = (INT *)realloc(jblock,(nsizeall+n)*sizeof(INT));
+  // second pass: redo the same again, but this time we store in jblock
+  maxa[0]=0;
+  iblock[0]=0;
+  nsizeall=0;
+  jb=jblock;
+  for (i=0;i<MaxIndSet.row;i++) {
+    inroot = MaxIndSet.val[i];
+    Schwarz_levels0(inroot,&A,mask,&nlvl,maxa,jb,maxlev);
+    nsizei=maxa[nlvl];
+    iblock[i+1]=iblock[i]+nsizei;
+    nsizeall+=nsizei;
+    jb+=nsizei;
+  }
+  nblk = MaxIndSet.row;
+  /*-------------------------------------------*/
+  //  LU decomposition of blocks
+  /*-------------------------------------------*/
+  memset(mask, 0, sizeof(INT)*n);
+  Schwarz->blk_data = (dCSRmat*)calloc(nblk, sizeof(dCSRmat));
+  Schwarz_get_block_matrix0(Schwarz, nblk, iblock, jblock, mask);
 
-    // Setup for each block solver
-    switch (block_solver) {
+  // Setup for each block solver
+  switch (block_solver) {
 
 #if WITH_SUITESPARSE
-        case SOLVER_UMFPACK: {
-            /* use UMFPACK direct solver on each block */
-            dCSRmat *blk = Schwarz->blk_data;
-            void **numeric	= (void**)calloc(nblk, sizeof(void*));
-            dCSRmat Ac_tran;
-            //printf("number of blocks = %d\n",nblk);
-            for (i=0; i<nblk; ++i) {
-                Ac_tran = dcsr_create(blk[i].row, blk[i].col, blk[i].nnz);
-                dcsr_transz(&blk[i], NULL, &Ac_tran);
-                dcsr_cp(&Ac_tran, &blk[i]);
-                //printf("size of block %d: nrow=%d, nnz=%d\n",i, blk[i].row, blk[i].nnz);
-                numeric[i] = umfpack_factorize(&blk[i], 0);
-            }
-            Schwarz->numeric = numeric;
-            dcsr_free(&Ac_tran);
+  case SOLVER_UMFPACK: {
+    /* use UMFPACK direct solver on each block */
+    dCSRmat *blk = Schwarz->blk_data;
+    void **numeric	= (void**)calloc(nblk, sizeof(void*));
+    dCSRmat Ac_tran;
+    //printf("number of blocks = %d\n",nblk);
+    for (i=0; i<nblk; ++i) {
+      Ac_tran = dcsr_create(blk[i].row, blk[i].col, blk[i].nnz);
+      dcsr_transz(&blk[i], NULL, &Ac_tran);
+      dcsr_cp(&Ac_tran, &blk[i]);
+      //printf("size of block %d: nrow=%d, nnz=%d\n",i, blk[i].row, blk[i].nnz);
+      numeric[i] = umfpack_factorize(&blk[i], 0);
+    }
+    Schwarz->numeric = numeric;
+    dcsr_free(&Ac_tran);
 
-            break;
-        }
+    break;
+  }
 #endif
 
-        default: {
-            /* do nothing for iterative methods */
-        }
-    }
+  default: {
+    /* do nothing for iterative methods */
+  }
+  }
 
-    /*-------------------------------------------*/
-    //  return
-    /*-------------------------------------------*/
-    Schwarz->nblk   = nblk;
-    Schwarz->iblock = iblock;
-    Schwarz->jblock = jblock;
-    Schwarz->mask   = mask;
-    Schwarz->maxa   = maxa;
-    Schwarz->Schwarz_type = param->Schwarz_type;
-    Schwarz->blk_solver = param->Schwarz_blksolver;
+  /*-------------------------------------------*/
+  //  return
+  /*-------------------------------------------*/
+  Schwarz->nblk   = nblk;
+  Schwarz->iblock = iblock;
+  Schwarz->jblock = jblock;
+  Schwarz->mask   = mask;
+  Schwarz->maxa   = maxa;
+  Schwarz->Schwarz_type = param->Schwarz_type;
+  Schwarz->blk_solver = param->Schwarz_blksolver;
 
-    printf("Schwarz method setup is done! Find %d blocks\n",nblk);
+  printf("Schwarz method setup is done! Find %d blocks\n",nblk);
 
-    return flag;
+  return flag;
 }
 
 
+/****************************************/
+/****************************************/
+/**
+ * \fn void smoother_dcsr_Schwarz_forward0 (Schwarz_data  *Schwarz,
+ *                                         Schwarz_param *param,
+ *                                         dvector *x, dvector *b)
+ *
+ * \brief Schwarz smoother: forward sweep
+ *
+ * \param Schwarz Pointer to the Schwarz data
+ * \param param   Pointer to the Schwarz parameter
+ * \param x       Pointer to solution vector
+ * \param b       Pointer to right hand
+ *
+ * \note Needs improvment -- Xiaozhe
+ * \note Improved (Ludmil)
+ */
+void smoother_dcsr_Schwarz_forward0 (Schwarz_data  *Schwarz,
+				     Schwarz_param *param,
+				     dvector       *x,
+				     dvector       *b)
+{
+  INT i, j, iblk, ki, kj, kij, is, ibl0, ibl1, nloc, iaa, iab;
+
+  // Schwarz partition
+  INT  nblk = Schwarz->nblk;
+  dCSRmat *blk = Schwarz->blk_data;
+  INT  *iblock = Schwarz->iblock;
+  INT  *jblock = Schwarz->jblock;
+  INT  *mask   = Schwarz->mask;
+  INT  block_solver = param->Schwarz_blksolver;
+
+
+  // Schwarz data
+  dCSRmat A = Schwarz->A;
+  INT *ia = A.IA;
+  INT *ja = A.JA;
+  REAL *val = A.val;
+
+  // Local solution and right hand vectors
+  dvector rhs = Schwarz->rhsloc1;
+  dvector u   = Schwarz->xloc1;
+
+#if WITH_SUITESPARSE
+  void **numeric = Schwarz->numeric;
+#endif
+
+  for (is=0; is<nblk; ++is) {
+    // Form the right hand of eack block
+    ibl0 = iblock[is];
+    ibl1 = iblock[is+1];
+    nloc = ibl1-ibl0;
+    for (i=0; i<nloc; ++i ) {
+      iblk = ibl0 + i;
+      ki   = jblock[iblk];
+      mask[ki] = i+1;
+    }
+
+    for (i=0; i<nloc; ++i) {
+      iblk = ibl0 + i;
+      ki = jblock[iblk];
+      rhs.val[i] = b->val[ki];
+      iaa = ia[ki];
+      iab = ia[ki+1];
+      for (kij = iaa; kij<iab; ++kij) {
+	kj = ja[kij];
+	j  = mask[kj];
+	if(j == 0) {
+	  rhs.val[i] -= val[kij]*x->val[kj];
+	}
+      }
+    }
+    // Solve each block
+    switch (block_solver) {
+#if WITH_SUITESPARSE
+    case SOLVER_UMFPACK: {
+      /* use UMFPACK direct solver on each block */
+      umfpack_solve(&blk[is], &rhs, &u, numeric[is], 0);
+      break;
+    }
+#endif
+    default:
+      /* use iterative solver on each block */
+      u.row = blk[is].row;
+      rhs.row = blk[is].row;
+      dvec_set(u.row, &u, 0);
+      dcsr_pvgmres(&blk[is], &rhs, &u, NULL, 1e-8, 20, 20, 1, 0);
+    }
+
+    //zero the mask so that everyting is as it was
+    for (i=0; i<nloc; ++i) {
+      iblk = ibl0 + i;
+      ki   = jblock[iblk];
+      mask[ki] = 0;
+      x->val[ki] = u.val[i];
+    }
+  }
+}
+
+/**
+ * \fn void smoother_dcsr_Schwarz_backward0 (Schwarz_data  *Schwarz,
+ *                                          Schwarz_param *param,
+ *                                          dvector *x, dvector *b)
+ *
+ * \brief Schwarz smoother: backward sweep
+ *
+ * \param Schwarz Pointer to the Schwarz data
+ * \param param   Pointer to the Schwarz parameter
+ * \param x       Pointer to solution vector
+ * \param b       Pointer to right hand
+ *
+ * \note Needs improvment -- Xiaozhe
+ */
+void smoother_dcsr_Schwarz_backward0 (Schwarz_data *Schwarz,
+                                     Schwarz_param *param,
+                                     dvector *x,
+                                     dvector *b)
+{
+  INT i, j, iblk, ki, kj, kij, is, ibl0, ibl1, nloc, iaa, iab;
+
+  // Schwarz partition
+  INT  nblk = Schwarz->nblk;
+  dCSRmat *blk = Schwarz->blk_data;
+  INT  *iblock = Schwarz->iblock;
+  INT  *jblock = Schwarz->jblock;
+  INT  *mask   = Schwarz->mask;
+  INT  block_solver = param->Schwarz_blksolver;
+
+
+  // Schwarz data
+  dCSRmat A = Schwarz->A;
+  INT *ia = A.IA;
+  INT *ja = A.JA;
+  REAL *val = A.val;
+
+  // Local solution and right hand vectors
+  dvector rhs = Schwarz->rhsloc1;
+  dvector u   = Schwarz->xloc1;
+
+#if WITH_SUITESPARSE
+  void **numeric = Schwarz->numeric;
+#endif
+
+  for (is=nblk-1; is>=0; --is) {
+    // Form the right hand of eack block
+    ibl0 = iblock[is];
+    ibl1 = iblock[is+1];
+    nloc = ibl1-ibl0;
+    for (i=0; i<nloc; ++i ) {
+      iblk = ibl0 + i;
+      ki   = jblock[iblk];
+      mask[ki] = i+1;
+    }
+
+    for (i=0; i<nloc; ++i) {
+      iblk = ibl0 + i;
+      ki = jblock[iblk];
+      rhs.val[i] = b->val[ki];
+      iaa = ia[ki]-1;
+      iab = ia[ki+1]-1;
+      for (kij = iaa; kij<iab; ++kij) {
+	kj = ja[kij]-1;
+	j  = mask[kj];
+	if(j == 0) {
+	  rhs.val[i] -= val[kij]*x->val[kj];
+	}
+      }
+    }
+
+    // Solve each block
+    switch (block_solver) {
+
+#if WITH_SUITESPARSE
+    case SOLVER_UMFPACK: {
+      /* use UMFPACK direct solver on each block */
+      umfpack_solve(&blk[is], &rhs, &u, numeric[is], 0);
+      break;
+    }
+#endif
+    default:
+      /* use iterative solver on each block */
+      rhs.row = blk[is].row;
+      u.row   = blk[is].row;
+      dvec_set(u.row, &u, 0);
+      dcsr_pvgmres (&blk[is], &rhs, &u, NULL, 1e-8, 20, 20, 1, 0);
+    }
+
+    //zero the mask so that everyting is as it was
+    for (i=0; i<nloc; ++i) {
+      iblk = ibl0 + i;
+      ki   = jblock[iblk];
+      mask[ki] = 0;
+      x->val[ki] = u.val[i];
+    }
+  }
+}
 /************* HAZMATH FUNCTIONS and INCLUDES ***************************/
 INT main (int argc, char* argv[])
 {
@@ -435,15 +631,15 @@ INT main (int argc, char* argv[])
   } else { // Use Krylov Iterative Solver
     // Diagonal preconditioner
     if (linear_itparam.linear_precond_type == PREC_DIAG) {
-        solver_flag = linear_solver_dcsr_krylov_diag(&A, &b, &x, &linear_itparam);
+      solver_flag = linear_solver_dcsr_krylov_diag(&A, &b, &x, &linear_itparam);
     }
     // AMG preconditioner
     else if (linear_itparam.linear_precond_type == PREC_AMG){
-        solver_flag = linear_solver_dcsr_krylov_amg(&A, &b, &x, &linear_itparam, &amgparam);
+      solver_flag = linear_solver_dcsr_krylov_amg(&A, &b, &x, &linear_itparam, &amgparam);
     }
     // No preconditoner
     else{
-        solver_flag = linear_solver_dcsr_krylov(&A, &b, &x, &linear_itparam);
+      solver_flag = linear_solver_dcsr_krylov(&A, &b, &x, &linear_itparam);
     }
   }
 
