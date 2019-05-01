@@ -5,6 +5,8 @@
 # SRC File name
 SRCFILE = haz_solve
 
+OBJS = smooth.o
+
 HEADERS = 
 
 INCLUDE =
