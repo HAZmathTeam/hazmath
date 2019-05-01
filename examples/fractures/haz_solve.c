@@ -1,4 +1,12 @@
 #include "hazmath.h"
+void smoother_dcsr_Schwarz_forward0(Schwarz_data  *Schwarz,
+				     Schwarz_param *param,
+				     dvector       *x,
+				     dvector       *b);
+void smoother_dcsr_Schwarz_backward0(Schwarz_data  *Schwarz,
+				     Schwarz_param *param,
+				     dvector       *x,
+				     dvector       *b);
 /***********************************************************************************************/
 /**
  * \fn static void Schwarz_levels0 (INT inroot, dCSRmat *A, INT *mask, INT *nlvl,
@@ -60,10 +68,10 @@ static void Schwarz_levels0 (INT inroot,
       lvl ++;
       for(i=lbegin; i<lvlend; ++i) {
 	node = jblock[i];
-	jstrt = ia[node]-1;
-	jstop = ia[node+1]-1;
+	jstrt = ia[node];
+	jstop = ia[node+1];
 	for (j = jstrt; j<jstop; ++j) {
-	  nbr = ja[j]-1;
+	  nbr = ja[j];
 	  if (mask[nbr] == 0) {
 	    jblock[nsize] = nbr;
 	    mask[nbr] = lvl;
@@ -219,19 +227,21 @@ INT Schwarz_setup0 (Schwarz_data *Schwarz,
   fprintf(stdout,"\nSchwarz method(nblk=%d; ",nblk);fflush(stdout);
   if(nblk>0){
     iblock=Schwarz->iblock;
-    fprintf(stdout," 1end=%d; nblk+1+n1=%d)\n",iblock[nblk],nblk+1+n1);fflush(stdout);
+    fprintf(stdout,"end=%d)\n",iblock[nblk]);fflush(stdout);
     iblock=(INT *)realloc(iblock,(nblk+1+n1)*sizeof(INT));
-    fprintf(stdout," 2end=%d)\n",iblock[nblk]);fflush(stdout);
+    //    fprintf(stdout," 2end=%d)\n",iblock[nblk]);fflush(stdout);
     jblock=Schwarz->jblock;
     jblock=(INT *)realloc(jblock,(iblock[nblk]+n1)*sizeof(INT));
     memset((iblock+nblk+1), 0, sizeof(INT)*n1);
     ibegin=nblk;
   }else{
+    if(Schwarz->iblock) free(Schwarz->iblock);
+    if(Schwarz->jblock) free(Schwarz->jblock);
     iblock=(INT *)calloc(n1,sizeof(INT));
     jblock=(INT *)calloc(n1,sizeof(INT));
     memset(iblock, 0, sizeof(INT)*n1);
     ibegin=0;
-    fprintf(stdout,"\nend=NA");fflush(stdout);
+    fprintf(stdout,"end=NA)\n");fflush(stdout);
   }  
   maxa    = (INT *)calloc(n1,sizeof(INT));
   mask    = (INT *)calloc(n1,sizeof(INT));
@@ -268,14 +278,14 @@ INT Schwarz_setup0 (Schwarz_data *Schwarz,
   }
   nblk += MaxIndSet.row;
   fprintf(stdout,"\nBlocks print: Number of blocks=%d\n",nblk);
-  for(i=0;i<nblk;i++){
-    fprintf(stdout,"\nblock=%d; nodes=(",i);
-    for(ij=iblock[i];ij<iblock[i+1];ij++){
-      fprintf(stdout," %d ",jblock[ij]);
-    }
-    fprintf(stdout,")");
-  }
-  fprintf(stdout,"\n");
+  /* for(i=0;i<nblk;i++){ */
+  /*   fprintf(stdout,"\nblock=%d; nodes=(",i); */
+  /*   for(ij=iblock[i];ij<iblock[i+1];ij++){ */
+  /*     fprintf(stdout," %d ",jblock[ij]); */
+  /*   } */
+  /*   fprintf(stdout,")"); */
+  /* } */
+  /* fprintf(stdout,"\n"); */
   /*-------------------------------------------*/
   //  LU decomposition of blocks
   /*-------------------------------------------*/
@@ -336,7 +346,7 @@ INT main (int argc, char* argv[])
   /* matrix and right hand side */
   dCOOmat Acoo;
   dCSRmat A;
-  dvector b;
+  dvector b,r;
   dvector x;
   printf("\n===========================================================================\n");
   printf("Reading the matrix, right hand side, and parameters\n");
@@ -380,13 +390,16 @@ INT main (int argc, char* argv[])
   fin = HAZ_fopen(fname,"r");
   INT nblk,ibl0,ibl1;
   i=fscanf(fin,"%i",&nblk);
+  // ignore the last block:
+  nblk--;
   INT *iblock=(INT *)calloc(nblk+1,sizeof(INT)); 
-  iblock[nblk]=Acoo.row;
   fprintf(stdout,"\nReading the matrix structure...");fflush(stdout);
   for(i=0;i<nblk;i++){
     fscanf(fin,"%i",(iblock+i));
     iblock[i]--;
   }
+  //  iblock[nblk]=Acoo.row;
+  fscanf(fin,"%i",(iblock+nblk));
   fclose(fin);
   if(fname)free(fname);
   INT *jblock=(INT *)calloc(iblock[nblk],sizeof(INT)); 
@@ -397,22 +410,6 @@ INT main (int argc, char* argv[])
       jblock[ij]=ij;
     }
   }
-  INT nbmax=1,flag=0;
-  INT mbi,mbsize[20],imax[20];
-  for(j=0;j<nbmax;j++){
-    imax[j]=-1;mbsize[j]=0;
-    for(i=1;i<=(nblk);i++){
-      flag=0;
-      for(k=0;k<j;k++){
-	if((i-1)==imax[k]) {flag=1;break;}
-      }
-      if(flag) continue;
-      mbi=(iblock[i]-iblock[i-1]);
-      if(mbsize[j]<mbi){mbsize[j]=mbi;imax[j]=i-1;}
-    }
-    fprintf(stdout,"\n...pass=%d; max size=%d at block %d;",j,mbsize[j],imax[j]);fflush(stdout);
-  }
-  fprintf(stdout,"\nDONE.\n");
   // let us see if we can solve the largest block:
   INT *mask=(INT *)calloc(Acoo.row+1,sizeof(INT)); 
   A.row=Acoo.row;
@@ -434,28 +431,72 @@ INT main (int argc, char* argv[])
   swzparam->Schwarz_maxlvl=inparam.Schwarz_maxlvl;
   /*********************************/
   Schwarz_setup0(swz,swzparam);
+  nblk=swz->nblk;
+  iblock=swz->iblock;
+  jblock=swz->jblock;
+  INT nbmax=1,flag=0;
+  INT mbi,mbsize[20],imax[20];
+  for(j=0;j<nbmax;j++){
+    imax[j]=-1;mbsize[j]=0;
+    for(i=1;i<=(nblk);i++){
+      flag=0;
+      for(k=0;k<j;k++){
+	if((i-1)==imax[k]) {flag=1;break;}
+      }
+      if(flag) continue;
+      mbi=(iblock[i]-iblock[i-1]);
+      if(mbsize[j]<mbi){mbsize[j]=mbi;imax[j]=i-1;}
+    }
+    fprintf(stdout,"\n...pass=%d; max size=%d at block %d;",j,mbsize[j],imax[j]);fflush(stdout);
+  }
+  fprintf(stdout,"\nDONE.\n");
   /*****************************************************************************************/
-  /* set initial guess */
-  dvec_alloc(A.row, &x);
-  dvec_set(x.row, &x, 0.0);
-
   /* Set Solver Parameters */
   INT solver_flag=-20;
-
   /* Set parameters for linear iterative methods */
   linear_itsolver_param linear_itparam;
   param_linear_solver_set(&linear_itparam, &inparam);
 
+  printf("\n===========================================================================\n");
+  printf("Solving the linear system \n");
+  printf("===========================================================================\n");
+  // Main loop
+  /* set initial guess */
+  dvec_alloc(A.row, &x);
+  dvec_set(x.row, &x, 0.0);
+  dvec_alloc(A.row, &r);
+  const REAL    sumb   = dvec_norm2(&b);  
+  REAL  relres1 = BIGREAL, absres0 = sumb, absres, factor;
+  INT   iter = 0;
+  while ( (++iter <= 50000) & (sumb > SMALLREAL) ) {    
+    // Form residual r = b - A*x
+    dvec_cp(&b, &r);
+    dcsr_aAxpy(-1.0, &A, x.val, r.val);        
+    // Call Schwarz method:
+    smoother_dcsr_Schwarz_forward0 (swz,
+				    swzparam,
+				    &x,
+				    &b);        
+    // Compute norms of r and convergence factor
+    absres  = dvec_norm2(&r);
+    relres1 = absres/sumb;
+    factor  = absres/absres0;
+    absres0 = absres;
+        
+    // Print iteration information if needed
+    print_itsolver_info(2, STOP_REL_RES, iter, relres1, absres, factor);
+    iter++;    
+    if ( relres1 < 1e-6 ) break;
+  }
+  
+  exit(129);
+  /**************************************************************/
   /* Set parameters for algebriac multigrid methods */
   AMG_param amgparam;
   param_amg_init(&amgparam);
   param_amg_set(&amgparam, &inparam);
   param_amg_print(&amgparam);
 
-  printf("\n===========================================================================\n");
-  printf("Solving the linear system \n");
-  printf("===========================================================================\n");
-  exit(129);
 
   // Use AMG as iterative solver
   if (linear_itparam.linear_itsolver_type == SOLVER_AMG){
