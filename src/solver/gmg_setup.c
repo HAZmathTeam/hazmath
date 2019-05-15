@@ -845,10 +845,8 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
     mgl[0].dirichlet_blk = (INT**)calloc(FE_blk.nspaces,sizeof(INT*));
     bm = 0;
     INT NoBBL = 0;
-    if( mgl[0].gmg_type[0] == 111 ) NoBBL = 1;
+    if( mgl[0].gmg_type[0] == 111 ) NoBBL = 1; // If bubble is eliminated skip that FE space
     for(i=NoBBL;i<mgl[0].FE->nspaces;i++){
-    //for(i=1;i<mgl[0].FE->nspaces;i++){
-      //if(i==0) mgl[0].dirichlet_blk[0] = &mgl[0].dirichlet[bm]; // Bubbles + u1 + u2
       if(i==NoBBL) mgl[0].dirichlet_blk[0] = &mgl[0].dirichlet[bm]; // Displacement
       if(i==3) mgl[0].dirichlet_blk[1] = &mgl[0].dirichlet[bm]; // Darcy (RT0)
       if(i==4) mgl[0].dirichlet_blk[2] = &mgl[0].dirichlet[bm]; // Pressure
@@ -930,7 +928,6 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
           case 1://P1
             nf1d = sqrt(mgl[lvl].A.blocks[i+i*brow]->row);
             nc1d = (nf1d-1)/2 + 1;
-            printf("+++++++++++++++++++++++++++++++++++++++++++++++++++ %d %d\n",nf1d,nc1d);
             build_linear_R( mgl[lvl].R.blocks[i+i*brow], nf1d, nc1d);
           break;
           case 30://RT0
@@ -960,12 +957,10 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             bdcsr_alloc(dim,dim,&tempRblk);
             nf1d = sqrt(mgl[lvl].fine_level_mesh->nv);
             nc1d = (nf1d-1)/2 + 1;
-            printf("+++++++++++++++++++++++++++++++++++++++++++++++++++ %d %d\n",nf1d,nc1d);
             for(j=0; j<dim; j++) build_linear_R( tempRblk.blocks[j+j*tempRblk.brow], nf1d, nc1d);
             tempRblk.blocks[1] = NULL;
             tempRblk.blocks[2] = NULL;
             Rmerge = bdcsr_2_dcsr(&tempRblk);
-            printf("\tMerged Displacement R... storage in %d\n",i+i*brow);
             dcsr_alloc(Rmerge.row,Rmerge.col,Rmerge.nnz,mgl[lvl].R.blocks[i+i*brow]);
             dcsr_cp(&Rmerge,mgl[lvl].R.blocks[i+i*brow]);
             dcsr_free(&Rmerge);
@@ -1004,7 +999,6 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
                             mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
             printf("\tBuilt Bubble R...\n");
             Rmerge = bdcsr_2_dcsr(&tempRblk);
-            printf("\tMerged Displacement R... storage in %d\n",i+i*brow);
             dcsr_alloc(Rmerge.row,Rmerge.col,Rmerge.nnz,mgl[lvl].R.blocks[i+i*brow]);
             dcsr_cp(&Rmerge,mgl[lvl].R.blocks[i+i*brow]);
             dcsr_free(&Rmerge);
@@ -1050,20 +1044,8 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
       for(i=0; i<brow; i++){
         for(j=0; j<brow; j++){
           if(mgl[lvl].A.blocks[j+i*brow]){
-            printf("RAP on block[%d,%d]: TODO: FIX NNZ FOR R(i think)\n",i,j);
-            printf("Matrix:\n\tR.nnz=%d\tR.row=%d\tR.col=%d\n\tA.nnz=%d\tA.row=%d\tA.col=%d\n\tP.nnz=%d\tP.row=%d\tP.col=%d\n\n",
-                    mgl[lvl].R.blocks[i+i*brow]->nnz,
-                    mgl[lvl].R.blocks[i+i*brow]->row,
-                    mgl[lvl].R.blocks[i+i*brow]->col,
-                    mgl[lvl].A.blocks[j+i*brow]->nnz,
-                    mgl[lvl].A.blocks[j+i*brow]->row,
-                    mgl[lvl].A.blocks[j+i*brow]->col,
-                    mgl[lvl].P.blocks[j+j*brow]->nnz,
-                    mgl[lvl].P.blocks[j+j*brow]->row,
-                    mgl[lvl].P.blocks[j+j*brow]->col);
             if(i==j){
               dcsr_rap(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].A_noBC.blocks[j+i*brow], mgl[lvl].P.blocks[j+j*brow], mgl[lvl+1].A_noBC.blocks[j+i*brow]);
-              printf("RAP finished on block...\n");
             } else {
               dcsr_mxm(mgl[lvl].R.blocks[i+i*brow],mgl[lvl].A_noBC.blocks[j+i*brow],&tempRA);
               dcsr_mxm(&tempRA,mgl[lvl].P.blocks[j+j*brow],mgl[lvl+1].A_noBC.blocks[j+i*brow]);
@@ -1078,7 +1060,6 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
       FE_blk.dirichlet = mgl[lvl+1].dirichlet;
       printf("eliminating BC on coarse level\n");
       bdcsr_shift(&mgl[lvl+1].A,  1);
-      //eliminate_DirichletBC_blockFE_blockA(NULL,&FE_blk,&mgl[lvl+1].fine_level_mesh,NULL,&mgl[lvl+1].A,0.0);
       eliminate_DirichletBC_blockFE_blockA(NULL,&FE_blk,mgl[lvl+1].fine_level_mesh,NULL,&mgl[lvl+1].A,0.0);
       bdcsr_shift(&mgl[lvl+1].A, -1);
 
@@ -1143,7 +1124,6 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
 
     if ( prtlvl > PRINT_NONE ) {
         get_time(&setup_end);
-//        print_amg_complexity(mgl,prtlvl);
         print_cputime("geometric multigrid setup", setup_end - setup_start);
     }
 

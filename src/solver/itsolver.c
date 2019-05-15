@@ -576,10 +576,8 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
 
     mgl[0].b = dvec_create(n);
     dvec_cp(b, &mgl[0].b);
-    //bdcsr_aAxpy(-1.0,&mgl[0].A,x->val,mgl[0].b.val);
 
     mgl[0].x = dvec_create(n);
-    //dvec_set(n,&mgl[0].x,0.0);
     dvec_cp(x, &mgl[0].x);
 
     mgl[0].fine_level_mesh = mesh;
@@ -617,7 +615,6 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
                 status = mg_solve_blk(mgl, param);
             break;
         }
-        //dvec_axpy( 1.0, &mgl[0].x, x);
         dvec_cp(&mgl[0].x, x);
     }
     else { // call a backup solver
