@@ -513,7 +513,10 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
                       AMG_param *param,
                       INT * gmg_type,
                       trimesh* mesh,
-                      dCSRmat *A_diag)
+                      block_fespace* FE,
+                      void (*set_bdry_flags)(trimesh*),
+                      dCSRmat *A_diag,
+                      block_dCSRmat *A_noBC)
 {
     const SHORT   max_levels  = param->max_levels;
     const SHORT   prtlvl      = param->print_level;
@@ -558,28 +561,42 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
     }
 
     // Step 0: initialize mgl[0] with A, b and x
+    // or try: bdcsr_alloc_minimal( &(mgl[0].A) ); bdcsr_cp(A,&(mgl[0].A));
     block_dCSRmat mglA;
     bdcsr_alloc(bm,bn,&mglA);
     bdcsr_cp(A,&mglA);
     mgl[0].A = mglA;
-    // or try: bdcsr_alloc_minimal( &(mgl[0].A) ); bdcsr_cp(A,&(mgl[0].A));
+
+    block_dCSRmat mglA_noBC;
+    bdcsr_alloc(bm,bn,&mglA_noBC);
+    bdcsr_cp(A_noBC,&mglA_noBC);
+    mgl[0].A_noBC = mglA_noBC;
 
     mgl[0].A_diag = A_diag;
 
     mgl[0].b = dvec_create(n);
     dvec_cp(b, &mgl[0].b);
+    //bdcsr_aAxpy(-1.0,&mgl[0].A,x->val,mgl[0].b.val);
 
     mgl[0].x = dvec_create(n);
+    //dvec_set(n,&mgl[0].x,0.0);
     dvec_cp(x, &mgl[0].x);
 
     mgl[0].fine_level_mesh = mesh;
 
-    for(i=0;i<max_levels;i++)
-        mgl[i].gmg_type = gmg_type;
+    mgl[0].FE = FE;
+    mgl[0].set_bdry_flags = set_bdry_flags;
+
+    for(i=0;i<max_levels;i++) mgl[i].gmg_type = gmg_type;
 
     // Step 1: MG setup phase
     switch (mg_type) {
-//        case 111: // Geometric
+        case 111: // Geometric
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling block GMG ...\n");
+            status = gmg_blk_setup(mgl, param);
+            printf("\nFinished gmg_blk_setup... Calling smoother setup...\n");
+            smoother_block_setup(mgl, param);
+            printf("\nsmoother setup Done...\n");
         default:
             if ( prtlvl > PRINT_NONE ) printf("\n Calling block GMG ...\n");
             status = gmg_blk_setup(mgl, param);
@@ -600,6 +617,7 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
                 status = mg_solve_blk(mgl, param);
             break;
         }
+        //dvec_axpy( 1.0, &mgl[0].x, x);
         dvec_cp(&mgl[0].x, x);
     }
     else { // call a backup solver
