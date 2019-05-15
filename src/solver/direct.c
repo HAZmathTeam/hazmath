@@ -69,8 +69,6 @@ INT directsolve_UMF(dCSRmat *A,
     exit(err_flag);
   }
 
-  printf("hello-before\n");
-
   // Clean up
   dcsr_free(&At);
   err_flag = umfpack_free_numeric(Numeric);
@@ -78,8 +76,6 @@ INT directsolve_UMF(dCSRmat *A,
     printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- UMFPACK FREE ERROR!!!\n\n",__FUNCTION__);
     exit(err_flag);
   }
-
-  printf("hello-after\n");
 
   return err_flag;
 #else
