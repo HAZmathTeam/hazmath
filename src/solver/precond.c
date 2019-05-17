@@ -948,7 +948,6 @@ void precond_block_diag_2_amg_krylov(REAL *r,
     array_set(N, z, 0.0);
 
     // prepare
-    INT i;
     AMG_param *amgparam = precdata->amgparam;
     AMG_data **mgl = precdata->mgl;
     dvector r0, r1, z0, z1;
@@ -1141,7 +1140,7 @@ void precond_block_lower_2_amg_krylov(REAL *r,
 
     const INT N0 = A_diag[0].row;
     const INT N1 = A_diag[1].row;
-    const INT N2 = A_diag[2].row;
+    //const INT N2 = A_diag[2].row;
     const INT N = N0 + N1;
 
     // back up r, setup z;
@@ -1149,7 +1148,6 @@ void precond_block_lower_2_amg_krylov(REAL *r,
     array_set(N, z, 0.0);
 
     // prepare
-    INT i;
     AMG_param *amgparam = precdata->amgparam;
     AMG_data **mgl = precdata->mgl;
     dvector r0, r1, z0, z1;
@@ -1351,7 +1349,6 @@ void precond_block_upper_2_amg_krylov(REAL *r,
     array_set(N, z, 0.0);
 
     // prepare
-    INT i;
     AMG_param *amgparam = precdata->amgparam;
     AMG_data **mgl = precdata->mgl;
     dvector r0, r1, z0, z1;
@@ -1552,7 +1549,6 @@ void precond_block_diag_3_amg_krylov(REAL *r,
     array_set(N, z, 0.0);
 
     // prepare
-    INT i;
     AMG_param *amgparam = precdata->amgparam;
     AMG_data **mgl = precdata->mgl;
     dvector r0, r1, r2, z0, z1, z2;
@@ -1785,7 +1781,6 @@ void precond_block_lower_3_amg_krylov(REAL *r,
     array_set(N, z, 0.0);
 
     // prepare
-    INT i;
     AMG_param *amgparam = precdata->amgparam;
     AMG_data **mgl = precdata->mgl;
     dvector r0, r1, r2, z0, z1, z2;
@@ -2028,7 +2023,6 @@ void precond_block_upper_3_amg_krylov(REAL *r,
     array_set(N, z, 0.0);
 
     // prepare
-    INT i;
     AMG_param *amgparam = precdata->amgparam;
     AMG_data **mgl = precdata->mgl;
     dvector r0, r1, r2, z0, z1, z2;
@@ -3122,8 +3116,8 @@ void precond_block_diag_mixed_darcy_krylov_HX(REAL *r,
   dvector *tempr = &(precdata->r);
 
   block_dCSRmat *A = precdata->Abcsr;
-  AMG_param *amgparam = precdata->amgparam;
-  AMG_data **mgl = precdata->mgl;
+  //AMG_param *amgparam = precdata->amgparam;
+  //AMG_data **mgl = precdata->mgl;
   dvector *el_vol = precdata->el_vol;
   HX_div_data **hxdivdata = precdata->hxdivdata;
 
@@ -3189,8 +3183,8 @@ void precond_block_lower_mixed_darcy_krylov_HX(REAL *r,
   dvector *tempr = &(precdata->r);
 
   block_dCSRmat *A = precdata->Abcsr;
-  AMG_param *amgparam = precdata->amgparam;
-  AMG_data **mgl = precdata->mgl;
+  //AMG_param *amgparam = precdata->amgparam;
+  //AMG_data **mgl = precdata->mgl;
   dvector *el_vol = precdata->el_vol;
   HX_div_data **hxdivdata = precdata->hxdivdata;
 
@@ -3259,8 +3253,8 @@ void precond_block_upper_mixed_darcy_krylov_HX(REAL *r,
   dvector *tempr = &(precdata->r);
 
   block_dCSRmat *A = precdata->Abcsr;
-  AMG_param *amgparam = precdata->amgparam;
-  AMG_data **mgl = precdata->mgl;
+  //AMG_param *amgparam = precdata->amgparam;
+  //AMG_data **mgl = precdata->mgl;
   dvector *el_vol = precdata->el_vol;
   HX_div_data **hxdivdata = precdata->hxdivdata;
 
@@ -4355,7 +4349,7 @@ void precond_block_diag_biot_3field(REAL *r,
   precond_block_data *precdata=(precond_block_data *)data;
   dvector *tempr = &(precdata->r);
 
-  block_dCSRmat *A = precdata->Abcsr;
+  //block_dCSRmat *A = precdata->Abcsr;
   dCSRmat *A_diag = precdata->A_diag;
   AMG_param *amgparam = precdata->amgparam;
   AMG_data **mgl = precdata->mgl;
@@ -4375,14 +4369,15 @@ void precond_block_diag_biot_3field(REAL *r,
   array_set(N, z, 0.0);
 
   // prepare
-  dvector r0, r1, r2, z0, z1, z2;
+  //dvector r0, r1, r2, z0, z1, z2;
+  dvector r0, r1,z0, z1;
 
   r0.row = N0; z0.row = N0;
   r1.row = N1; z1.row = N1;
-  r2.row = N2; z2.row = N2;
+  //r2.row = N2; z2.row = N2;
 
-  r0.val = r; r1.val = &(r[N0]); r2.val = &(r[N0+N1]);
-  z0.val = z; z1.val = &(z[N0]); z2.val = &(z[N0+N1]);
+  r0.val = r; r1.val = &(r[N0]);// r2.val = &(r[N0+N1]);
+  z0.val = z; z1.val = &(z[N0]);// z2.val = &(z[N0+N1]);
   //#endif
 
   // Preconditioning A00 block (displacement)
@@ -4450,14 +4445,15 @@ void precond_block_lower_biot_3field(REAL *r,
   array_set(N, z, 0.0);
 
   // prepare
-  dvector r0, r1, r2, z0, z1, z2;
+  //dvector r0, r1, r2, z0, z1, z2;
+  dvector r0, r1, r2, z0, z1;
 
   r0.row = N0; z0.row = N0;
   r1.row = N1; z1.row = N1;
-  r2.row = N2; z2.row = N2;
+  r2.row = N2;// z2.row = N2;
 
   r0.val = r; r1.val = &(r[N0]); r2.val = &(r[N0+N1]);
-  z0.val = z; z1.val = &(z[N0]); z2.val = &(z[N0+N1]);
+  z0.val = z; z1.val = &(z[N0]);// z2.val = &(z[N0+N1]);
   //#endif
 
   // Preconditioning A00 block (displacement)
@@ -4534,13 +4530,15 @@ void precond_block_upper_biot_3field(REAL *r,
   array_set(N, z, 0.0);
 
   // prepare
-  dvector r0, r1, r2, z0, z1, z2;
+  //dvector r0, r1, r2, z0, z1, z2;
+  dvector r0, r1, z0, z1, z2;
 
   r0.row = N0; z0.row = N0;
   r1.row = N1; z1.row = N1;
-  r2.row = N2; z2.row = N2;
+  //r2.row = N2;
+  z2.row = N2;
 
-  r0.val = r; r1.val = &(r[N0]); r2.val = &(r[N0+N1]);
+  r0.val = r; r1.val = &(r[N0]);// r2.val = &(r[N0+N1]);
   z0.val = z; z1.val = &(z[N0]); z2.val = &(z[N0+N1]);
   //#endif
 
