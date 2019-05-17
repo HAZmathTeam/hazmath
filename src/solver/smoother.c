@@ -635,6 +635,7 @@ void smoother_bdcsr_jacobi(dvector *u,
 void smoother_bdcsr_bsr(dvector *u,
                         dvector *b,
                         REAL alpha,
+                        REAL w,
                         block_dCSRmat *A,
                         dCSRmat *C,
                         dCSRmat *B,
@@ -697,7 +698,7 @@ printf("Beginning BSR\n");
     dcsr_aAxpy( 1.0, B, temp.val, rhs.val );
 
     dvec_alloc( n1, &q);
-    directsolve_UMF( &S, &rhs, &q, 2); // SOLVE
+    directsolve_UMF( &S, &rhs, &q, 0); // SOLVE
     //dcsr_pvgmres(&S, &rhs, &q, NULL, 1e-8, 20, 20, 1, 0);
     //smoother_dcsr_sgs(&q, &S, &rhs, 2);
 
@@ -708,10 +709,10 @@ printf("Beginning BSR\n");
 
     // update u = u + [v, q]
     for( i=0; i<n0; i++ ){
-      u->val[i] += v.val[i];
+      u->val[i] += w * v.val[i];
     }
     for( i=0; i<n1; i++ ){
-      u->val[i+n0] += q.val[i];
+      u->val[i+n0] += w * q.val[i];
       //u->val[i+n0] -= q.val[i]; ///------------?
     }
 
@@ -873,7 +874,7 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
 void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *param, INT pre_post)
 {
     //printf("\tBeginning Block smoother, lvl=%d\n",lvl);
-    param->presmooth_iter = 5;
+    //param->presmooth_iter = 5;
     //printf("\t\t| using %2d iterations\n",param->presmooth_iter);
     // Initialize
     INT n0, n1, n2;
@@ -901,7 +902,7 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
     b2.row = n2;
     b2.val = &(bmgl[lvl].b.val[n0+n1]);
 
-    if(1){
+    if(0){
     // Block 0: P1 + Bubble
 //    smoother_dcsr_sgs(&x0, &(bmgl[lvl].mgl[0][0].A), &b0, param->presmooth_iter);
     directsolve_UMF(&(bmgl[lvl].mgl[0][0].A), &b0, &x0, 10);
@@ -956,7 +957,7 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
     
     dCSRmat B = bdcsr_subblk_2_dcsr ( &bmgl[lvl].A, 2, 2, 0, 1);
 
-    smoother_bdcsr_bsr( &bmgl[lvl].x, &bmgl[lvl].b, 3.2484, &bmgl[lvl].A, &C, &B, bmgl[lvl].A.blocks[8], 1);
+    smoother_bdcsr_bsr( &bmgl[lvl].x, &bmgl[lvl].b, 0.5340, 0.3127, &bmgl[lvl].A, &C, &B, bmgl[lvl].A.blocks[8], 1);
     }
 
 

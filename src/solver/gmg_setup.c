@@ -1069,6 +1069,12 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
           FILE* matid = HAZ_fopen("Acoarse.dat","w");
           csr_print_matlab(matid,mgl[lvl+1].A.blocks[0]);
           fclose(matid);
+          matid = HAZ_fopen("P.dat","w");
+          csr_print_matlab(matid,mgl[lvl].P.blocks[0]);
+          fclose(matid);
+          matid = HAZ_fopen("R.dat","w");
+          csr_print_matlab(matid,mgl[lvl].R.blocks[0]);
+          fclose(matid);
       }
 
       ++lvl;
@@ -1078,8 +1084,8 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
     switch (csolver) {
 
 #if WITH_SUITESPARSE
-        printf("Setting up coarse solve: Using UMFPACK...\n");
         case SOLVER_UMFPACK: {
+            printf("Setting up coarse solve: Using UMFPACK...\n");
             // Need to sort the matrix A for UMFPACK to work
             // merge blocks
             mgl[lvl].Ac = bdcsr_2_dcsr(&mgl[lvl].A);
