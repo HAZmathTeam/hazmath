@@ -76,8 +76,8 @@ void marks(scomplex *sc,dvector *errors)
 {
   /* mark simplices depending on the value of an estimator */
   /* the estimator here is the aspect ratio of the simplex */
-  INT n=sc->n,n1=n+1,ns=sc->ns,nv=sc->nv,level=sc->level;
-  INT kbadel,ke,i,j,j1,k,p,q,ni,node1,node2,mj,mk;
+  INT n=sc->n,n1=n+1,ns=sc->ns,level=sc->level;
+  INT kbadel,ke,i,j,j1,k,p,ni,mj,mk;
   INT ne=(INT )((n*n1)/2);
   REAL slmin,slmax,asp,aspmax=-10.;;
   REAL *sl=(REAL *)calloc(ne,sizeof(REAL));
