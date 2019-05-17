@@ -113,7 +113,7 @@ void build_mesh(trimesh* mesh)
   SHORT status;
 
   // Loop Indices
-  INT i;
+  //INT i;
 
   // Get data already built
   INT dim = mesh->dim;
