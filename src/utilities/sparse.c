@@ -3769,7 +3769,7 @@ SHORT bdcsr_delete_rowcol(block_dCSRmat *A,
   INT brow = A->brow;
   INT bcol = A->bcol;
 
-  INT i,j,ii,jj;
+  INT i,j;
   INT *row_start, *col_start;
 
   // allocate row_start and col_start
