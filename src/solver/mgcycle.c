@@ -805,6 +805,7 @@ ForwardSweep:
             bmgl[l+1].x.val[i] = 0.0;
         }
         // prolongation u = u + alpha*P*e1
+//        bdcsr_aAxpy(alpha, &bmgl[l].P, bmgl[l+1].x.val, bmgl[l].x.val);
         dvec_set(bmgl[l].w.row, &bmgl[l].w, 0.0);
         bdcsr_mxv(&bmgl[l].P, bmgl[l+1].x.val, bmgl[l].w.val);
         // correct bdry
@@ -814,23 +815,8 @@ ForwardSweep:
         }
         array_axpy(bmgl[l].x.row, alpha, bmgl[l].w.val, bmgl[l].x.val);
 
-//        bdcsr_aAxpy(alpha, &bmgl[l].P, bmgl[l+1].x.val, bmgl[l].x.val);
-//        // correct bdry
-//        for(i=0; i<bmgl[l].x.row; i++){
-//          if( bmgl[l].dirichlet[i] == 1 )
-//            bmgl[l].x.val[i] = 0.0;
-//        }
-        // form residual r = b - A x
-        array_cp(bmgl[l].b.row, bmgl[l].b.val, bmgl[l].w.val);
-        bdcsr_aAxpy(-1.0,&bmgl[l].A, bmgl[l].x.val, bmgl[l].w.val);
-
         // post-smoothing with standard methods
         bdcsr_postsmoothing(l, bmgl, param);
-        // correct bdry
-//        for(i=0; i<bmgl[l].x.row; i++){
-//          if( bmgl[l].dirichlet[i] == 1 )
-//            bmgl[l].x.val[i] = 0.0;
-//        }
 
         if ( num_lvl[l] < cycle_type ) break;
         else num_lvl[l] = 0;
