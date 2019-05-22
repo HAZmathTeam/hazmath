@@ -629,7 +629,7 @@ void smoother_bdcsr_jacobi(dvector *u,
  * \param L      Number of iterations
  *
  * [ alpha C  B^T ] [v] = [d]
- * [   B      0   ] [q] = [e]
+ * [   B      M   ] [q] = [e]
  *
  */
 void smoother_bdcsr_bsr(dvector *u,
@@ -725,7 +725,7 @@ printf("Beginning BSR\n");
 /**
  * \fn void smoother_bdcsr_uzawa (dvector *u, const INT s, block_dCSRmat *A, dvector *b, INT L)
  *
- * \brief BSR
+ * \brief UZAWA
  *
  * \param u      Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
  * \param s      Increasing step
@@ -734,7 +734,7 @@ printf("Beginning BSR\n");
  * \param L      Number of iterations
  *
  * [ alpha C  B^T ] [v] = [d]
- * [   B      0   ] [q] = [e]
+ * [   B      M   ] [q] = [e]
  *
  */
 void smoother_bdcsr_uzawa(dvector *u,
