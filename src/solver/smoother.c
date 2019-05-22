@@ -723,6 +723,103 @@ printf("Beginning BSR\n");
 }
 
 /**
+ * \fn void smoother_bdcsr_uzawa (dvector *u, const INT s, block_dCSRmat *A, dvector *b, INT L)
+ *
+ * \brief BSR
+ *
+ * \param u      Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
+ * \param s      Increasing step
+ * \param A      Pointer to block_dBSRmat: the coefficient matrix
+ * \param b      Pointer to dvector: the right hand side
+ * \param L      Number of iterations
+ *
+ * [ alpha C  B^T ] [v] = [d]
+ * [   B      0   ] [q] = [e]
+ *
+ */
+void smoother_bdcsr_uzawa(dvector *u,
+                          dvector *b,
+                          REAL alpha,
+                          REAL w,
+                          block_dCSRmat *A,
+                          dCSRmat *C,
+                          dCSRmat *B,
+                          dCSRmat *M,
+                          INT L)
+{
+printf("Beginning UZAWA\n");
+    // Local variables
+    INT i;
+    INT n0, n1;
+    dvector r;
+    dvector rhs;
+    dvector v;
+    dvector q;
+    dvector d;
+    dvector e;
+
+    dCSRmat BT;
+    dcsr_trans(B, &BT);
+    dcsr_axm(&BT, -1.0); // Not symmetric
+
+    dCSRmat Cinv;
+    dcsr_alloc( C->row, C->col, C->nnz, &Cinv);
+    dcsr_cp( C, &Cinv);
+    for(i=0; i<Cinv.row; i++){ // Assuming C is diag
+      if( ABS( Cinv.val[i] ) > SMALLREAL ) Cinv.val[i] = 1.0 / (alpha*Cinv.val[i]);
+    }
+
+    dCSRmat S; // S = M - BC^{-1}B^T
+    dCSRmat Stemp;
+    dcsr_rap( B, &Cinv, &BT, &S);
+    if( M ){
+      dcsr_alloc( S.row, S.col, S.nnz, &Stemp);
+      dcsr_cp( &S, &Stemp);
+      dcsr_free( &S );
+      dcsr_add( &Stemp, -1.0, M, 1.0, &S); // ( M - S )
+    }
+
+    // fill local var
+    n0 = B->col;
+    n1 = B->row;
+
+    // solver loop
+    dvec_alloc( b->row, &r);
+    dvec_cp( b, &r);
+    bdcsr_aAxpy( -1.0, A, u->val, r.val); // r = b - Au
+
+    d.row = n0;
+    d.val = r.val;
+    e.row = n1;
+    e.val = r.val + n0;
+
+    // v = C^{-1} (d)
+    dvec_alloc( n0, &v);
+    dcsr_aAxpy( 1.0, &Cinv, d.val, v.val);
+    // update u = u + [v, q]
+    for( i=0; i<n0; i++ ){
+      u->val[i] += w * v.val[i];
+    }
+
+    // (B C^{-1} B^T) q = e - B C^{-1} d
+    dvec_alloc( e.row, &rhs);
+    dvec_axpy( 1.0, &e, &rhs);
+    dcsr_aAxpy( -1.0, B, v.val, rhs.val );
+
+    dvec_alloc( n1, &q);
+    directsolve_UMF( &S, &rhs, &q, 0); // SOLVE
+
+    // update u = u + [v, q]
+    for( i=0; i<n1; i++ ){
+      u->val[i+n0] += w * q.val[i];
+    }
+
+    // free
+    dcsr_free(&BT);
+    dcsr_free(&S);
+}
+
+/**
  * \fn void smoother_block_setup( MG_blk_data *mgl, AMG_param *param)
  *
  * \brief Setup of block smoothers
@@ -957,7 +1054,8 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
     
     dCSRmat B = bdcsr_subblk_2_dcsr ( &bmgl[lvl].A, 2, 2, 0, 1);
 
-    smoother_bdcsr_bsr( &bmgl[lvl].x, &bmgl[lvl].b, 3.2484, 1.8119, &bmgl[lvl].A, &C, &B, bmgl[lvl].A.blocks[8], 1);
+    //smoother_bdcsr_bsr( &bmgl[lvl].x, &bmgl[lvl].b, 3.2484, 1.8119, &bmgl[lvl].A, &C, &B, bmgl[lvl].A.blocks[8], 1);
+    smoother_bdcsr_uzawa( &bmgl[lvl].x, &bmgl[lvl].b, 1.8118, 1.0550, &bmgl[lvl].A, &C, &B, bmgl[lvl].A.blocks[8], 1);
     }
 
 
