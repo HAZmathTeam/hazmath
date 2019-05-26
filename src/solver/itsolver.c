@@ -2192,7 +2192,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
   precdata.mgl = mgl;
   precdata.diag = diag;
   precdata.el_vol = el_vol;
-  precdata.hxdivdata = hxdivdata;
+  if (precond_type > 29 && precond_type < 50) precdata.hxdivdata = hxdivdata;
 
   precond prec; prec.data = &precdata;
 
