@@ -2299,7 +2299,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
 FINISHED:
   // clean
   precond_block_data_free(&precdata, 2, FALSE);
-  dcsr_free(&A_div);
+  if (precond_type > 29 && precond_type < 50) dcsr_free(&A_div);
 
   return status;
 }
