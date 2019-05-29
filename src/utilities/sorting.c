@@ -41,9 +41,6 @@ void isi_sortp(const INT n, INT *a, INT *p, INT *invp)
   for(i=0;i<n;i++){
     invp[p[i]]=i;
   }  
-  for(i=0;i<n;i++){
-    a[i]=a[invp[i]];
-  }
   return;
 }
 void dsi_sortp(const INT n, REAL *a, INT *p, INT *invp)
