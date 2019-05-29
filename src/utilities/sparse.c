@@ -519,7 +519,7 @@ void icsr_null(iCSRmat *A)
 dCSRmat dcsr_perm(dCSRmat *A,
                   INT *P)
 {
-  const INT n=A->row,nnz=A->nnz;
+  const unsigned INT n=A->row,nnz=A->nnz;
   const INT *ia=A->IA, *ja=A->JA;
   const REAL *Aval=A->val;
   INT i,j,k,jaj,i1,i2,start;
