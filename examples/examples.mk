@@ -49,6 +49,14 @@ else
 	MGLIBS = $(MGRAPH_WRAPPERDIR)/multigraph_solve.o $(MGRAPH_SRCDIR)/solver.o
 endif
 
+INCLUDESSP=
+ifeq ($(WITH_SUITESPARSE),1)
+    CFLAGS += -DWITH_SUITESPARSE=1
+    SSDIR = /usr/lib/x86_64-linux-gnu
+    INCLUDESSP = -I/usr/include/suitesparse
+    LIBS += -lsuitesparseconfig -lcholmod -lamd -lcolamd -lccolamd -lcamd -lspqr -lumfpack -lamd -lcxsparse
+endif
+
 ############### 
 # Different Executable Programs, but same targets; SRC file needs to be defined
 
