@@ -140,7 +140,7 @@ if(${REAL_C} MATCHES "GNU.*" AND  ${THE_C} MATCHES "gcc.*")
 file(GLOB HAZMATH_C_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR} 
 	  		    ${HAZMATH_SOURCE_DIR}/src/assemble/*.c 
 	  		    ${HAZMATH_SOURCE_DIR}/src/fem/*.c 
-	  		    ${HAZMATH_SOURCE_DIR}/src/grid/*.c 
+	  		    ${HAZMATH_SOURCE_DIR}/src/mesh/*.c 
 	  		    ${HAZMATH_SOURCE_DIR}/src/amr/*.c 
 	  		    ${HAZMATH_SOURCE_DIR}/src/solver/*.c
 			    ${HAZMATH_SOURCE_DIR}/src/timestepping/*.c 
@@ -150,7 +150,7 @@ file(GLOB HAZMATH_C_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR}
 			    ${HAZMATH_SOURCE_DIR}/src/graphs/*.c
 	  		    ${HAZMATH_SOURCE_DIR}/src/assemble/*.inl 
 	  		    ${HAZMATH_SOURCE_DIR}/src/fem/*.inl
-	  		    ${HAZMATH_SOURCE_DIR}/src/grid/*.inl
+	  		    ${HAZMATH_SOURCE_DIR}/src/mesh/*.inl
 	  		    ${HAZMATH_SOURCE_DIR}/src/solver/*.inl 
 			    ${HAZMATH_SOURCE_DIR}/src/timestepping/*.inl 
 			    ${HAZMATH_SOURCE_DIR}/src/nonlinear/*.inl 

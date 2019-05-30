@@ -57,7 +57,7 @@ int main (int argc, char* argv[])
   // File types possible are 0 - old format; 1 - vtk format
   INT mesh_type = 0;
   clock_t clk_mesh_start = clock(); // Time mesh generation FE setup
-  trimesh mesh;
+  mesh_struct mesh;
   printf(" --> loading grid from file: %s\n",inparam.gridfile);
   initialize_mesh(&mesh);
   creategrid_fread(gfid,mesh_type,&mesh);

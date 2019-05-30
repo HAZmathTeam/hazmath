@@ -237,15 +237,15 @@ void build_constant_R (dCSRmat *R,
 /***********************************************************************************************/
 /**
  * \fn void build_face_R (dCSRmat *tentp,
- *                                  trimesh *fmesh,
- *                                  trimesh *cmesh,
+ *                                  mesh_struct *fmesh,
+ *                                  mesh_struct *cmesh,
  *                                  INT     nf1d,
  *                                  INT     nc1d)
  * \brief Build tentative P for RT0 elements
  *
  * \param tentp              Pointer to the prolongation operators
- * \param fmesh              Fine Trimesh
- * \param cmesh              Coarse Trimesh
+ * \param fmesh              Fine mesh_struct
+ * \param cmesh              Coarse mesh_struct
  * \param nf1d               Number of fine elements in 1d (one less than the number of vertices in 1d)
  * \param nc1d               Number of coarse elements in 1d (one less than the number of vertices in 1d)
  *
@@ -256,8 +256,8 @@ void build_constant_R (dCSRmat *R,
  *
  */
 void build_face_R (dCSRmat *R,
-                             trimesh  *fmesh,
-                             trimesh  *cmesh,
+                             mesh_struct  *fmesh,
+                             mesh_struct  *cmesh,
                              INT      nf1d,
                              INT      nc1d)
 {
@@ -403,7 +403,7 @@ void build_face_R (dCSRmat *R,
 }
 
 /***********************************************************************************************/
-INT find_the_fine_vertex_the_hard_way(REAL* midpoint, trimesh* fmesh, INT fface)
+INT find_the_fine_vertex_the_hard_way(REAL* midpoint, mesh_struct* fmesh, INT fface)
 {
   // Finds the fine vertex that corresponds with the midpoint of the coarse edge
   INT dim = fmesh->dim;
@@ -433,15 +433,15 @@ INT find_the_fine_vertex_the_hard_way(REAL* midpoint, trimesh* fmesh, INT fface)
  * \fn void build_bubble_R (dCSRmat *R,
  *                          dCSRmat *Rblx,
  *                          dCSRmat *Rbly,
- *                          trimesh *fmesh,
- *                          trimesh *cmesh,
+ *                          mesh_struct *fmesh,
+ *                          mesh_struct *cmesh,
  *                          INT     nf1d,
  *                          INT     nc1d)
  * \brief Build tentative P for RT0 elements
  *
  * \param tentp              Pointer to the prolongation operators
- * \param fmesh              Fine Trimesh
- * \param cmesh              Coarse Trimesh
+ * \param fmesh              Fine mesh_struct
+ * \param cmesh              Coarse mesh_struct
  * \param nf1d               Number of fine elements in 1d (one less than the number of vertices in 1d)
  * \param nc1d               Number of coarse elements in 1d (one less than the number of vertices in 1d)
  *
@@ -454,8 +454,8 @@ INT find_the_fine_vertex_the_hard_way(REAL* midpoint, trimesh* fmesh, INT fface)
 void build_bubble_R (dCSRmat *R,
                      dCSRmat *Rblx,
                      dCSRmat *Rbly,
-                     trimesh  *fmesh,
-                     trimesh  *cmesh,
+                     mesh_struct  *fmesh,
+                     mesh_struct  *cmesh,
                      INT      nf1d,
                      INT      nc1d)
 {
@@ -734,7 +734,7 @@ void build_bubble_R (dCSRmat *R,
  * \note Modified by Peter Ohm on 10/12/2018
  *
  */
-INT gmg_setup_RT0(trimesh* fine_level_mesh)
+INT gmg_setup_RT0(mesh_struct* fine_level_mesh)
 {
 //INT gmg_setup_RT0(GMG_data *mgl,
 //                    GMG_param *param)
@@ -752,7 +752,7 @@ INT gmg_setup_RT0(trimesh* fine_level_mesh)
   FILE* cgfid;
   char cgridfile[500];
 
-  trimesh** meshHeirarchy = (trimesh**)calloc(max_levels, sizeof(trimesh*));
+  mesh_struct** meshHeirarchy = (mesh_struct**)calloc(max_levels, sizeof(mesh_struct*));
   //meshHeirarchy[0] = mgl->fine_level_mesh;
   meshHeirarchy[0] = fine_level_mesh;
 
@@ -765,7 +765,7 @@ INT gmg_setup_RT0(trimesh* fine_level_mesh)
     //sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",cSize+1);//Need to customize this to specific directory
     sprintf(cgridfile,"/home/pohm01/HAZMAT/hazmath/examples/grids/2D/unitSQ_n%d.haz",cSize+1);//Need to customize this to specific directory
     cgfid = HAZ_fopen(cgridfile,"r");
-    meshHeirarchy[i+1] = (trimesh*)calloc(1, sizeof(trimesh));
+    meshHeirarchy[i+1] = (mesh_struct*)calloc(1, sizeof(mesh_struct));
     initialize_mesh(meshHeirarchy[i+1]);
     creategrid_fread(cgfid,0,meshHeirarchy[i+1]);
     fclose(cgfid);
@@ -856,7 +856,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
       }
     }
 
-    // To Peter:  this is how to use this fuctions to delete the boundarys -- Xiaozhe 
+    // To Peter:  this is how to use this fuctions to delete the boundarys -- Xiaozhe
     block_dCSRmat *B;
     B = (block_dCSRmat *)calloc(1, sizeof(block_dCSRmat));
     bdcsr_delete_rowcol(&mgl[0].A, mgl[0].dirichlet, mgl[0].dirichlet, B);
@@ -889,7 +889,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
       //sprintf(cgridfile,"/home/xiaozhehu/Work/Projects/HAZMATH/hazmath/examples/grids/2D/unitSQ_n%d.haz",csize);
       //sprintf(cgridfile,"/home/pohm01/HAZMAT/hazmath/examples/grids/2D/unitSQ_n%d.haz",csize);
       cgfid = HAZ_fopen(cgridfile,"r");
-      mgl[lvl+1].fine_level_mesh = (trimesh*)calloc(1, sizeof(trimesh));
+      mgl[lvl+1].fine_level_mesh = (mesh_struct*)calloc(1, sizeof(mesh_struct));
       initialize_mesh(mgl[lvl+1].fine_level_mesh);
       creategrid_fread(cgfid,0,mgl[lvl+1].fine_level_mesh);
       fclose(cgfid);

@@ -6,7 +6,8 @@
  *  Routines for reading and writing to file or screen.
  *
  * \note: modified by Xiaozhe Hu on 10/31/2016
- *\note: modified 20171119 (ltz) added output using scomplex
+ * \note: modified 20171119 (ltz) added output using scomplex
+ * \note: modifided by jha on 02/22/2019 for 0-1 fix.  need somone to check last three functions by ltz
  */
 
 #include "hazmath.h"
@@ -26,10 +27,10 @@ INT chkn(INT n, const INT nmin, const INT nmax)
 {
   INT nnew=n;
   if(n > nmax) {
-    fprintf(stdout, "\n Iput value too large: %d ; Changing to the max allowed: %d\n",n,nmax);
+    fprintf(stdout, "\n Input value too large: %d ; Changing to the max allowed: %d\n",n,nmax);
     nnew=nmax;
   } else if(n < nmin) {
-    fprintf(stdout, "\ninput value too small: %d ; Changing to the min allowed: %d\n",n,nmin);
+    fprintf(stdout, "\n Input value too small: %d ; Changing to the min allowed: %d\n",n,nmin);
     nnew=nmin;
   }
   return nnew;
@@ -327,24 +328,14 @@ void csr_print_matlab(FILE* fid,
 {
   // local variables
   INT i,j1,j2,j;
-  INT shift_flag = 0; // Check if Indexing starts at 0 or 1
-
-  if(A->IA[0]==0) {
-    dcsr_shift(A, 1);  // shift A
-    shift_flag = 1;
-  }
 
   // main loop
   for(i=0;i<A->row;i++) {
-    j1 = A->IA[i]-1;
-    j2 = A->IA[i+1]-1;
+    j1 = A->IA[i];
+    j2 = A->IA[i+1];
     for(j=j1;j<j2;j++) {
-      fprintf(fid,"%d\t%d\t%25.16e\n",i+1,A->JA[j],A->val[j]);
+      fprintf(fid,"%d\t%d\t%25.16e\n",i+1,A->JA[j]+1,A->val[j]);
     }
-  }
-
-  if(shift_flag==1) {
-    dcsr_shift(A, -1);  // shift A back
   }
 
   return;
@@ -406,10 +397,10 @@ void icsr_print_matlab(FILE* fid,
 
     // main loop
   for(i=0;i<A->row;i++) {
-    j1 = A->IA[i]-1;
-    j2 = A->IA[i+1]-1;
+    j1 = A->IA[i];
+    j2 = A->IA[i+1];
     for(j=j1;j<j2;j++) {
-      fprintf(fid,"%d\t%d\n",i+1,A->JA[j]);
+      fprintf(fid,"%d\t%d\n",i+1,A->JA[j]+1);
     }
   }
   return;
@@ -607,7 +598,7 @@ FILE* HAZ_fopen(char *fname, char *mode )
 
 /******************************************************************************/
 /*!
- * \fn void dump_sol_onV_vtk(char *namevtk,trimesh *mesh,REAL *sol,INT ncomp)
+ * \fn void dump_sol_onV_vtk(char *namevtk,mesh_struct *mesh,REAL *sol,INT ncomp)
  *
  * \brief Dumps solution data to vtk format only on vertices
  *
@@ -618,7 +609,7 @@ FILE* HAZ_fopen(char *fname, char *mode )
  *
  */
 void dump_sol_onV_vtk(char *namevtk,
-                      trimesh *mesh,
+                      mesh_struct *mesh,
                       REAL *sol,
                       INT ncomp)
 {
@@ -723,12 +714,12 @@ void dump_sol_onV_vtk(char *namevtk,
   // Dump el_v map
   fprintf(fvtk,"<Cells>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"offsets\" Format=\"ascii\">",tinto);
-  for(k=1;k<=nelm;k++) fprintf(fvtk," %i ",mesh->el_v->IA[k]-1);
+  for(k=1;k<=nelm;k++) fprintf(fvtk," %i ",mesh->el_v->IA[k]);
   fprintf(fvtk,"</DataArray>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectivity\" Format=\"ascii\">\n",tinto);
   for(k=0;k<nelm;k++){
     kndl=k*v_per_elm;
-    for(j=0;j<v_per_elm;j++) fprintf(fvtk," %i ",mesh->el_v->JA[kndl + j]-1);
+    for(j=0;j<v_per_elm;j++) fprintf(fvtk," %i ",mesh->el_v->JA[kndl + j]);
   }
   fprintf(fvtk,"</DataArray>\n");
 
@@ -752,7 +743,7 @@ void dump_sol_onV_vtk(char *namevtk,
 
 /******************************************************************************/
 /*!
- * \fn void dump_sol_vtk(char *namevtk,char *varname,trimesh *mesh,fespace *FE,REAL *sol)
+ * \fn void dump_sol_vtk(char *namevtk,char *varname,mesh_struct *mesh,fespace *FE,REAL *sol)
  *
  * \brief Dumps solution data to vtk format.  Tries to do best interpolation for given FE space.
  *
@@ -763,7 +754,7 @@ void dump_sol_onV_vtk(char *namevtk,
  * \param sol      solution vector to dump
  *
  */
-void dump_sol_vtk(char *namevtk,char *varname,trimesh *mesh,fespace *FE,REAL *sol)
+void dump_sol_vtk(char *namevtk,char *varname,mesh_struct *mesh,fespace *FE,REAL *sol)
 {
   // Basic Quantities
   INT i;
@@ -882,12 +873,12 @@ void dump_sol_vtk(char *namevtk,char *varname,trimesh *mesh,fespace *FE,REAL *so
   // Dump el_v map
   fprintf(fvtk,"<Cells>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"offsets\" Format=\"ascii\">",tinto);
-  for(k=1;k<=nelm;k++) fprintf(fvtk," %i ",mesh->el_v->IA[k]-1);
+  for(k=1;k<=nelm;k++) fprintf(fvtk," %i ",mesh->el_v->IA[k]);
   fprintf(fvtk,"</DataArray>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectivity\" Format=\"ascii\">\n",tinto);
   for(k=0;k<nelm;k++){
     kndl=k*v_per_elm;
-    for(j=0;j<v_per_elm;j++) fprintf(fvtk," %i ",mesh->el_v->JA[kndl + j]-1);
+    for(j=0;j<v_per_elm;j++) fprintf(fvtk," %i ",mesh->el_v->JA[kndl + j]);
   }
   fprintf(fvtk,"</DataArray>\n");
 
@@ -912,7 +903,7 @@ void dump_sol_vtk(char *namevtk,char *varname,trimesh *mesh,fespace *FE,REAL *so
 
 /******************************************************************************/
 /*!
- * \fn void dump_blocksol_vtk(char *namevtk,char *varname,trimesh *mesh,block_fespace *FE,REAL *sol)
+ * \fn void dump_blocksol_vtk(char *namevtk,char *varname,mesh_struct *mesh,block_fespace *FE,REAL *sol)
  *
  * \brief Dumps solution data to vtk format.  Tries to do best interpolation for given FE space.
  *
@@ -923,7 +914,7 @@ void dump_sol_vtk(char *namevtk,char *varname,trimesh *mesh,fespace *FE,REAL *so
  * \param sol      solution vector to dump
  *
  */
-void dump_blocksol_vtk(char *namevtk,char **varname,trimesh *mesh,block_fespace *FE,REAL *sol)
+void dump_blocksol_vtk(char *namevtk,char **varname,mesh_struct *mesh,block_fespace *FE,REAL *sol)
 {
   // Basic Quantities
   INT i,nsp;
@@ -1063,12 +1054,12 @@ void dump_blocksol_vtk(char *namevtk,char **varname,trimesh *mesh,block_fespace 
   // Dump el_v map
   fprintf(fvtk,"<Cells>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"offsets\" Format=\"ascii\">",tinto);
-  for(k=1;k<=nelm;k++) fprintf(fvtk," %i ",mesh->el_v->IA[k]-1);
+  for(k=1;k<=nelm;k++) fprintf(fvtk," %i ",mesh->el_v->IA[k]);
   fprintf(fvtk,"</DataArray>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectivity\" Format=\"ascii\">\n",tinto);
   for(k=0;k<nelm;k++){
     kndl=k*v_per_elm;
-    for(j=0;j<v_per_elm;j++) fprintf(fvtk," %i ",mesh->el_v->JA[kndl + j]-1);
+    for(j=0;j<v_per_elm;j++) fprintf(fvtk," %i ",mesh->el_v->JA[kndl + j]);
   }
   fprintf(fvtk,"</DataArray>\n");
 
@@ -1211,6 +1202,12 @@ scomplex *hazr(char *namein)
   fprintf(stdout,"\n%%INPUT mesh: (hazmath) read from:%s\n",namein);
   return sc;
 }
+
+/**********************************************************************
+ * Routines to save to file the mesh in different formats.
+ * uses the simplicial complex data structure (scomplex *sc).
+ *
+ *************************************************************************/
 void hazw(char *nameout,scomplex *sc, const INT nholes, const int shift)
 {
   // WRITING in HAZMATH format. 
@@ -1267,7 +1264,6 @@ void vtkw(char *namevtk, scomplex *sc, const INT nholes, const INT shift, const 
   INT *nodes = sc->nodes, *ib=sc->bndry;
   REAL *x = sc->x;
   INT tcell=-10;
-  //INT k=-10,j=-10,kn=-10,kn1=-10;
   INT k=-10,j=-10;
   char *tfloat="Float64", *tinto="Int64", *endian="LittleEndian";
   /*
