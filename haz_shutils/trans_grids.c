@@ -9,7 +9,7 @@
 
 #include "hazmath.h"
 
-void read_grid_haz0(FILE *gfid,trimesh *mesh) 
+void read_grid_haz0(FILE *gfid,mesh_struct *mesh) 
 {
   /* old way without material (or flag) associated with every element */
   // Loop indices
@@ -81,7 +81,7 @@ void read_grid_haz0(FILE *gfid,trimesh *mesh)
   return;
 }
 void hazw1(FILE *fmesh,				\
-	   const trimesh mesh,			\
+	   const mesh_struct mesh,			\
 	   const INT nholes, const int shift)
 {
   INT n=mesh.nv,ns=mesh.nelm, dim=mesh.dim,ndl=mesh.dim+1;
@@ -138,7 +138,7 @@ int main(int argc,char *argv[])
   /* for(k=0;k<argc;k++){ */
   /*   fprintf(stdout,"\narg %i: %s\n",k,argv[k]); */
   /* } */
-  trimesh *mesh0=malloc(sizeof(trimesh));
+  mesh_struct *mesh0=malloc(sizeof(mesh_struct));
   fmesh=HAZ_fopen(argv[1],"r");
   fprintf(stdout,"\n%%Reading %s\n",argv[1]);
   read_grid_haz0(fmesh,mesh0);

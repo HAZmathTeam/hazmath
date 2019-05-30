@@ -23,15 +23,15 @@
 /* local include */
 #include "ConvectionDiffusion.h"
 void eafe(dCSRmat *A, dvector *rhs,					\
-	  void (*local_assembly)(REAL *,fespace *,trimesh *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL), \
-	  trimesh mesh, fespace FE, qcoordinates *cq,			\
+	  void (*local_assembly)(REAL *,fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL), \
+	  mesh_struct mesh, fespace FE, qcoordinates *cq,			\
 	  void (*scalar_val_d)(REAL *, REAL *, REAL, void *),		\
 	  void (*scalar_val_rhs)(REAL *, REAL *, REAL, void *),		\
 	  void (*vector_val_ad)(REAL *, REAL *, REAL, void *),		\
 	  void (*scalar_val_bndnr)(REAL *, REAL *, REAL, void *), REAL faketime);
 
 /*********************************************************************/
-static void lump_mass(dCSRmat *A, dCSRmat M, trimesh mesh)
+static void lump_mass(dCSRmat *A, dCSRmat M, mesh_struct mesh)
 {
   INT i,j,jk,jkd,ndof=A->row,imaa,imab;
   REAL dd1=1./((REAL )(mesh.dim+1));
@@ -91,7 +91,7 @@ int main (int argc, char* argv[])
   // File types possible are 0 - HAZ format; 1 - VTK format
   clock_t clk_mesh_start = clock(); // Time mesh generation FE setup
   INT mesh_type = 0;
-  trimesh mesh;
+  mesh_struct mesh;
   printf(" --> loading grid from file: %s\n",inparam.gridfile);
   creategrid_fread(gfid,mesh_type,&mesh);
   fclose(gfid);

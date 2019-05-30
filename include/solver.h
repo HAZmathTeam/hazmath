@@ -167,7 +167,7 @@ typedef struct {
 typedef struct {
 
     /* Geometric information */
-    trimesh *fine_level_mesh;
+    mesh_struct *fine_level_mesh;
 
     //! Geometric Type
     INT *gmg_type;
@@ -188,7 +188,7 @@ typedef struct {
     block_fespace *FE;
 
     //! bdry flag stuff
-    void (*set_bdry_flags)(trimesh*);
+    void (*set_bdry_flags)(mesh_struct*);
     INT *dirichlet;
     INT **dirichlet_blk;
 

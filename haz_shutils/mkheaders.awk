@@ -27,7 +27,7 @@ BEGIN {
   print "#include <assert.h>"
   print "// Internal Includes"
   print "#include \"macro.h\""
-  print "#include \"grid.h\""
+  print "#include \"mesh.h\""
   print "#include \"amr.h\""
   print "#include \"sparse.h\""
   print "#include \"vec.h\""
