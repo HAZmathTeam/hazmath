@@ -1,5 +1,5 @@
 //
-//  grid.h
+//  mesh.h
 //  
 //
 //  Created by James Adler, Xiaozhe Hi, and Ludmil Zikatanov 2015-01-09.
@@ -10,8 +10,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifndef _grid_h
-#define _grid_h
+#ifndef _mesh_h
+#define _mesh_h
 
 #include "sparse.h"
 #include "vec.h"
@@ -38,11 +38,11 @@ typedef struct coordinates{
 
 
 /**
- * \struct trimesh
+ * \struct mesh_struct
  * \brief Builds a triangular/tetrahedral mesh, including all its
  * properties and mappings between vertices, edges, and faces
  */
-typedef struct trimesh{
+typedef struct mesh_struct{
     
   //! dimension
   INT dim;
@@ -143,7 +143,7 @@ typedef struct trimesh{
   //! indicates a flag for element such as in what domain the element is. 
   INT* el_flag;
     
-} trimesh; 
+} mesh_struct; 
 
 
 #endif

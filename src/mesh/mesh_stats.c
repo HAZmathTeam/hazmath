@@ -1,10 +1,11 @@
-/*! \file src/grid/mesh_stats.c
+/*! \file src/mesh/mesh_stats.c
  *
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 1/9/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
- *  Obtains routines for generating properties of the mesh,
+ *  \brief Obtains routines for generating properties of the mesh,
  *  including all incidence matrices, element volumes, etc.
+ * \note updated by James Adler 07/25/2018
  *
  */
 
@@ -24,10 +25,11 @@
  *
  * \return el_v:	                   Element to vertex map in CSR format.  Rows
  *                                   are all elements, columns are all vertices.
- *                                   Entries are 1 if there's a connection.
+ *
+ * \note Not currently used
  *
  */
-iCSRmat convert_elmnode(INT *element_vertex,INT nelm,INT nv,INT nve) 
+iCSRmat convert_elmnode(INT *element_vertex,INT nelm,INT nv,INT nve)
 {
   // Loop indices
   INT i,j,k;
@@ -42,7 +44,7 @@ iCSRmat convert_elmnode(INT *element_vertex,INT nelm,INT nv,INT nve)
     el_v.IA = NULL;
   }
   for(i=0;i<nelm+1;i++) {
-    el_v.IA[i] = nve*i + 1;
+    el_v.IA[i] = nve*i;
   }
 
   /* Columns are extracted directly from input array */
@@ -59,7 +61,7 @@ iCSRmat convert_elmnode(INT *element_vertex,INT nelm,INT nv,INT nve)
       k=k+1;
     }
   }
-  
+
   el_v.val = NULL;
   el_v.row = nelm; el_v.col = nv; el_v.nnz = nelm*nve;
 
@@ -89,11 +91,11 @@ iCSRmat get_edge_v(INT* nedge,iCSRmat* el_v)
 
   /* Get Transpose of el_v -> v_el */
   iCSRmat v_el;
-  icsr_trans_1(el_v,&v_el);
+  icsr_trans(el_v,&v_el);
 
   /* Create Vertex to Vertex Map by v_el*el_v */
   iCSRmat v_v;
-  icsr_mxm_symb_1(&v_el,el_v,&v_v);
+  icsr_mxm_symb(&v_el,el_v,&v_v);
   INT* iv_v = v_v.IA;
   INT* jv_v = v_v.JA;
 
@@ -128,16 +130,16 @@ iCSRmat get_edge_v(INT* nedge,iCSRmat* el_v)
     col_b = iv_v[i];
     col_e = iv_v[i+1]-1;
     for(j=col_b;j<=col_e;j++) {
-      if((jv_v[j-1]-1)>i) {
-        ed_v.IA[icntr] = jcntr+1;
-        ed_v.JA[jcntr] = jv_v[j-1];
-        ed_v.JA[jcntr+1] = i+1;
+      if(jv_v[j]>i) {
+        ed_v.IA[icntr] = jcntr;
+        ed_v.JA[jcntr] = jv_v[j];
+        ed_v.JA[jcntr+1] = i;
         jcntr=jcntr+2;
         icntr++;
       }
     }
   }
-  ed_v.IA[icntr] = jcntr+1;
+  ed_v.IA[icntr] = jcntr;
 
   /* Free Node Node */
   icsr_free(&v_v);
@@ -184,9 +186,9 @@ void boundary_f_ed(iCSRmat* f_ed,iCSRmat* ed_v,INT nedge, INT nface,INT *f_flag,
       get_incidence_row(i,f_ed,ed_on_f);
       maxe = -666;
       for(j=0; j<ed_per_f; j++) {
-        ed = ed_on_f[j]-1;
-        v1 = ed_v->JA[ed_v->IA[ed]-1]-1;
-        v2 = ed_v->JA[ed_v->IA[ed]]-1;
+        ed = ed_on_f[j];
+        v1 = ed_v->JA[ed_v->IA[ed]];
+        v2 = ed_v->JA[ed_v->IA[ed]+1];
         ed_flag[ed] = MAX(v_flag[v1],v_flag[v2]);
         if(ed_flag[ed]>maxe)
           maxe = ed_flag[ed];
@@ -225,11 +227,11 @@ void boundary_f_ed(iCSRmat* f_ed,iCSRmat* ed_v,INT nedge, INT nface,INT *f_flag,
 iCSRmat get_el_ed(iCSRmat* el_v,iCSRmat* ed_v)
 {
   iCSRmat el_ed;
-  
+
   // Get transpose of edge to vertex
   iCSRmat v_ed;
-  icsr_trans_1(ed_v,&v_ed);
-  icsr_mxm_symb_max_1(el_v,&v_ed,&el_ed,2);
+  icsr_trans(ed_v,&v_ed);
+  icsr_mxm_symb_max(el_v,&v_ed,&el_ed,2);
 
   icsr_free(&v_ed);
 
@@ -251,6 +253,7 @@ iCSRmat get_el_ed(iCSRmat* el_v,iCSRmat* ed_v)
  * \return ed_tau                    Tangent vector or each edge, ordered (tx1,ty1,tz1,tx2,ty2,tz2,...)
  * \return ed_mid                    Midpoint of each edge, ordered (mx1,my1,mz1,mx2,my2,mz2,...)
  *
+ *
  */
 void edge_stats_all(REAL *ed_len,REAL *ed_tau,REAL *ed_mid,coordinates *cv,iCSRmat* ed_v,INT dim)
 {
@@ -268,15 +271,15 @@ void edge_stats_all(REAL *ed_len,REAL *ed_tau,REAL *ed_mid,coordinates *cv,iCSRm
   for(i=0;i<nedge;i++) {
 
     /* Find Nodes in given Edge */
-    j_a = ed_v->IA[i]-1;
-    j_b = ed_v->IA[i+1]-1;
+    j_a = ed_v->IA[i];
+    j_b = ed_v->IA[i+1];
     jcnt = 0;
     for (j=j_a; j<j_b;j++) {
       ip[jcnt] = ed_v->JA[j];
-      x[jcnt] = cv->x[ip[jcnt]-1];
-      y[jcnt] = cv->y[ip[jcnt]-1];
+      x[jcnt] = cv->x[ip[jcnt]];
+      y[jcnt] = cv->y[ip[jcnt]];
       if (dim==3) {
-        z[jcnt] = cv->z[ip[jcnt]-1];
+        z[jcnt] = cv->z[ip[jcnt]];
       } else {
         z[jcnt] = 0;
       }
@@ -321,11 +324,11 @@ void edge_stats_all(REAL *ed_len,REAL *ed_tau,REAL *ed_mid,coordinates *cv,iCSRm
  *
  * \brief Gets the face ordering on element
  *
- *               3
+ *               2
  *             /   \
- *            2     1
+ *            1     0
  *           /       \
- *          1 ---3----2
+ *          0 ---2----1
  *
  * \param el_order                   Number of nodes per element
  * \param dim                        Dimension of problem
@@ -333,22 +336,23 @@ void edge_stats_all(REAL *ed_len,REAL *ed_tau,REAL *ed_mid,coordinates *cv,iCSRm
  *
  * \return fel_order                 Indicates order of faces on an element
  *
+ *
  */
 void get_face_ordering(INT el_order,INT dim,INT f_order,INT *fel_order)
 {
   // Loop indices
   INT i,j,jcntr,col_b;
 
-  // First order the faces per element.  Start with node 1 and indicate
-  // opposite face as face 1.  Then loop over nodes
+  // First order the faces per element.  Start with node 0 and indicate
+  // opposite face as face 0.  Then loop over nodes
   for(j=0;j<f_order;j++) {
     for(i=0;i<dim;i++) {
       jcntr = j+i+2;
       col_b = j*dim+i;
       if(jcntr>el_order) {
-        fel_order[col_b] = jcntr-el_order;
+        fel_order[col_b] = jcntr-el_order-1;
       } else {
-        fel_order[col_b] = jcntr;
+        fel_order[col_b] = jcntr-1;
       }
     }
   }
@@ -363,11 +367,11 @@ void get_face_ordering(INT el_order,INT dim,INT f_order,INT *fel_order)
  * \brief Gets the Element to Face, Face to Node, Face to Boundary mapping in CSR
  *        format as well as face ordering on element (Should be dim independent)
  *
- *               3
+ *               2
  *             /   \
- *            2     1
+ *            1     0
  *           /       \
- *          1 ---3----2
+ *          0 ---2----1
  *
  * \param el_v                       Element to vertex map
  * \param el_order                   Number of nodes per element
@@ -400,10 +404,10 @@ void get_face_maps(iCSRmat* el_v,INT el_order,iCSRmat* ed_v,INT nface,INT dim,IN
 
   // We will build face to element map first and then transpose it
   iCSRmat f_el = icsr_create (nface,nelm,nelm*f_order);
-  
+
   /* Get Transpose of el_v -> v_el */
   iCSRmat v_el;
-  icsr_trans_1(el_v,&v_el);
+  icsr_trans(el_v,&v_el);
 
   // Get interior faces first
   // Loop over All elements and each face on the element
@@ -415,25 +419,25 @@ void get_face_maps(iCSRmat* el_v,INT el_order,iCSRmat* ed_v,INT nface,INT dim,IN
   iflag=0;
   for(i=0;i<nelm;i++) {
     // Get first node of element
-    col_b = el_v->IA[i]-1;
+    col_b = el_v->IA[i];
     // Now loop over all faces of element
     for(j=0;j<f_order;j++) {
       // Get appropriate nodes on face
       for(k=0;k<dim;k++) {
-        jk = col_b+fel_order[j*dim+k]-1;
+        jk = col_b+fel_order[j*dim+k];
         nd[k] = el_v->JA[jk];
       }
       // Next Loop over all elements that touch the first node
-      ncol1 = v_el.IA[nd[0]-1]-1;
-      ncol2 = v_el.IA[nd[0]]-1;
+      ncol1 = v_el.IA[nd[0]];
+      ncol2 = v_el.IA[nd[0]+1];
       for(k=ncol1;k<ncol2;k++) {
-        el1 = v_el.JA[k]-1;
+        el1 = v_el.JA[k];
         // If not the same element we started in then check other nodes elements
         if(el1!=i) {
-          ncol3 = v_el.IA[nd[1]-1]-1;
-          ncol4 = v_el.IA[nd[1]]-1;
+          ncol3 = v_el.IA[nd[1]];
+          ncol4 = v_el.IA[nd[1]+1];
           for(m=ncol3;m<ncol4;m++) {
-            el2 = v_el.JA[m]-1;
+            el2 = v_el.JA[m];
             // Our two nodes share the element!  In 2D this is the face!
             // In 3D, we check third guy
             if(el2==el1) {
@@ -443,10 +447,10 @@ void get_face_maps(iCSRmat* el_v,INT el_order,iCSRmat* ed_v,INT nface,INT dim,IN
                 iflag = 1;
                 el = el1;
               } else if(dim==3) {
-                ncol5 = v_el.IA[nd[2]-1]-1;
-                ncol6 = v_el.IA[nd[2]]-1;
+                ncol5 = v_el.IA[nd[2]];
+                ncol6 = v_el.IA[nd[2]+1];
                 for(p=ncol5;p<ncol6;p++) {
-                  el3 = v_el.JA[p]-1;
+                  el3 = v_el.JA[p];
                   if(el3==el2) {
                     // Mark the element that shares the face as well as
                     // the nodes that are shared
@@ -463,15 +467,15 @@ void get_face_maps(iCSRmat* el_v,INT el_order,iCSRmat* ed_v,INT nface,INT dim,IN
         }
       }
       if(iflag && el>i) {
-        f_el.IA[icntr] = jcntr+1;
-        f_el.JA[jcntr] = i+1;
-        f_el.val[jcntr] = j+1;
-        f_el.JA[jcntr+1] = el+1;
+        f_el.IA[icntr] = jcntr;
+        f_el.JA[jcntr] = i;
+        f_el.val[jcntr] = j;
+        f_el.JA[jcntr+1] = el;
         // Find face number for other element
-        find_facenumber(el_v,el+1,nd,dim,&f_num);
+        find_facenumber(el_v,el+1,nd,dim,&f_num); // NEED TO CHECK!!!!!!
         f_el.val[jcntr+1] = f_num;
         f_bdry[icntr] = 0;
-        f_v->IA[icntr] = kcntr+1;
+        f_v->IA[icntr] = kcntr;
         f_v->JA[kcntr] = nd[0];
         f_v->JA[kcntr+1] = nd[1];
         kcntr+=2;
@@ -483,11 +487,11 @@ void get_face_maps(iCSRmat* el_v,INT el_order,iCSRmat* ed_v,INT nface,INT dim,IN
         jcntr+=2;
       } else if(!iflag){  // this must be a boundary face!
         nbf++;
-        f_el.IA[icntr] = jcntr+1;
-        f_el.JA[jcntr] = i+1;
-        f_el.val[jcntr] = j+1;
+        f_el.IA[icntr] = jcntr;
+        f_el.JA[jcntr] = i;
+        f_el.val[jcntr] = j;
         f_bdry[icntr] = 1;
-        f_v->IA[icntr] = kcntr+1;
+        f_v->IA[icntr] = kcntr;
         f_v->JA[kcntr] = nd[0];
         f_v->JA[kcntr+1] = nd[1];
         kcntr+=2;
@@ -502,32 +506,32 @@ void get_face_maps(iCSRmat* el_v,INT el_order,iCSRmat* ed_v,INT nface,INT dim,IN
     }
   }
 
-  f_el.IA[icntr] = jcntr+1;
-  f_v->IA[icntr] = kcntr+1;
+  f_el.IA[icntr] = jcntr;
+  f_v->IA[icntr] = kcntr;
 
   /* Get Transpose of f_el -> el_f */
-  icsr_trans_1(&f_el,el_f);
+  icsr_trans(&f_el,el_f);
 
   /* Transpose face_node and back again to order nodes in increasing order
    * (from global structure) */
   iCSRmat v_f;
-  icsr_trans_1(f_v,&v_f);
+  icsr_trans(f_v,&v_f);
   icsr_free(f_v);
-  icsr_trans_1(&v_f,f_v);
+  icsr_trans(&v_f,f_v);
 
   /* Get Face to Edge Map */
   iCSRmat face_ed;
   iCSRmat v_ed;
-  icsr_trans_1(ed_v,&v_ed);
-  icsr_mxm_symb_max_1(f_v,&v_ed,&face_ed,2);
+  icsr_trans(ed_v,&v_ed);
+  icsr_mxm_symb_max(f_v,&v_ed,&face_ed,2);
   for(i=0;i<nface+1;i++)
     f_ed->IA[i] = face_ed.IA[i];
-  
+
   for(i=0;i<nface*edpf;i++)
     f_ed->JA[i] = face_ed.JA[i];
   icsr_free(&face_ed);
   icsr_free(&v_ed);
-  
+
   *nbface = nbf;
 
   icsr_free(&v_el);
@@ -551,16 +555,17 @@ void get_face_maps(iCSRmat* el_v,INT el_order,iCSRmat* ed_v,INT nface,INT dim,IN
  *
  * \return f_num                     Face number for that element
  *
+ *
  */
 void find_facenumber(iCSRmat* el_v,INT elm,INT* nd,INT dim,INT *f_num)
 {
   INT cola,colb,mark,icnt,i,j,mynd;
   INT fntmp=-1;
 
-  cola = el_v->IA[elm-1]-1;
-  colb = el_v->IA[elm]-1;
+  cola = el_v->IA[elm];
+  colb = el_v->IA[elm+1];
   mark = 0;
-  icnt=0;
+  icnt=-1;
   for(i=cola;i<colb;i++) {
     icnt++;
     mynd = el_v->JA[i];
@@ -583,7 +588,7 @@ void find_facenumber(iCSRmat* el_v,INT elm,INT* nd,INT dim,INT *f_num)
 
 /*******************************************************************************/
 /*!
- * \fn void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,trimesh *mesh)
+ * \fn void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,mesh_struct *mesh)
  *
  * \brief Get area, normal vector, and midpoints for all faces
  *
@@ -593,8 +598,9 @@ void find_facenumber(iCSRmat* el_v,INT elm,INT* nd,INT dim,INT *f_num)
  * \return f_norm                    Normal vector or each face
  * \return f_mid                     Midpoint of each face
  *
+ *
  */
-void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,trimesh *mesh) 
+void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,mesh_struct *mesh)
 {
   // Flag for errors
   SHORT status;
@@ -633,24 +639,24 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,trimesh *mesh
   REAL* p = (REAL *) calloc(el_order,sizeof(REAL));
   REAL* dp = (REAL *) calloc(el_order*dim,sizeof(REAL));
   REAL grad_mag,e1x,e1y,e1z,e2x,e2y,e2z;
-  
+
   /* Get Face to Element Map */
   /* Get Transpose of f_el -> el_f */
   iCSRmat f_el;
-  icsr_trans_1(el_f,&f_el);
+  icsr_trans(el_f,&f_el);
 
   // Loop over all Faces
   for(i=0;i<nface;i++) {
     /* Find Vertices in given Face */
-    j_a = f_v->IA[i]-1;
-    j_b = f_v->IA[i+1]-1;
+    j_a = f_v->IA[i];
+    j_b = f_v->IA[i+1];
     jcnt = 0;
     for (j=j_a; j<j_b;j++) {
       ipf[jcnt] = f_v->JA[j];
-      xf[jcnt] = cv->x[ipf[jcnt]-1];
-      yf[jcnt] = cv->y[ipf[jcnt]-1];
+      xf[jcnt] = cv->x[ipf[jcnt]];
+      yf[jcnt] = cv->y[ipf[jcnt]];
       if (dim==3) {
-        zf[jcnt] = cv->z[ipf[jcnt]-1];
+        zf[jcnt] = cv->z[ipf[jcnt]];
       }
       jcnt++;
     }
@@ -659,13 +665,13 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,trimesh *mesh
     // Also picks correct opposite node to form vector
     // normal vectors point from lower number element to higher one
     // or outward from external boundary
-    j_a = f_el.IA[i]-1;
-    j_b = f_el.IA[i+1]-1;
+    j_a = f_el.IA[i];
+    j_b = f_el.IA[i+1];
     jcnt=0;
     for (j=j_a; j<j_b; j++) {
       notbdry = j_b-j_a-1;
       ie[jcnt] = f_el.JA[j];
-      op_n[jcnt] = f_el.val[j]-1;
+      op_n[jcnt] = f_el.val[j];
       jcnt++;
     }
     if(notbdry && (ie[1]<ie[0])) {
@@ -676,17 +682,17 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,trimesh *mesh
       myel = ie[0];
     }
     // Get Nodes of this chosen element
-    j_a = el_v->IA[myel-1]-1;
-    j_b = el_v->IA[myel]-1;
+    j_a = el_v->IA[myel];
+    j_b = el_v->IA[myel+1];
     jcnt=0;
     for(j=j_a;j<j_b;j++) {
       myel_n[jcnt] = el_v->JA[j];
       jcnt++;
     }
-    myx[0] = cv->x[myel_n[myopn]-1];
-    myx[1] = cv->y[myel_n[myopn]-1];
+    myx[0] = cv->x[myel_n[myopn]];
+    myx[1] = cv->y[myel_n[myopn]];
     if(dim==3) {
-      myx[2] = cv->z[myel_n[myopn]-1];
+      myx[2] = cv->z[myel_n[myopn]];
     }
 
     /* Compute Area (length if 2D) and get midpt of face */
@@ -746,7 +752,7 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,trimesh *mesh
 
 /********************************************************************************/
 /*!
- * \fn void sync_facenode(iCSRmat *f_v,REAL* f_norm,trimesh *mesh)
+ * \fn void sync_facenode(iCSRmat *f_v,REAL* f_norm,mesh_struct *mesh)
  *
  * \brief Reorder the Face-Node mapping so it has positive orientation with
  *        respect to the face's normal vector
@@ -757,8 +763,8 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,trimesh *mesh
  * \return f_v                       Reordered face to vertex map
  *
  */
-void sync_facenode(iCSRmat *f_v,REAL* f_norm,trimesh *mesh)           
-{ 
+void sync_facenode(iCSRmat *f_v,REAL* f_norm,mesh_struct *mesh)
+{
   // Loop indices
   INT i,j;
 
@@ -766,7 +772,7 @@ void sync_facenode(iCSRmat *f_v,REAL* f_norm,trimesh *mesh)
   INT dim = mesh->dim;
   INT ndpf = dim;
   coordinates *cv = mesh->cv;
-  
+
   REAL nx,ny,nz,tx,ty,tz,mysign;
   INT nd,rowa,rowb,jcnt,nf1,nf2,nf3;
   REAL* xf = calloc(ndpf,sizeof(REAL));
@@ -780,11 +786,11 @@ void sync_facenode(iCSRmat *f_v,REAL* f_norm,trimesh *mesh)
       ny = f_norm[(i)*dim+1];
 
       // Get Coordinates of Nodes
-      rowa = f_v->IA[i]-1;
-      rowb = f_v->IA[i+1]-1;
+      rowa = f_v->IA[i];
+      rowb = f_v->IA[i+1];
       jcnt=0;
       for(j=rowa;j<rowb;j++) {
-        nd = f_v->JA[j]-1;
+        nd = f_v->JA[j];
         xf[jcnt] = cv->x[nd];
         yf[jcnt] = cv->y[nd];
         jcnt++;
@@ -809,11 +815,11 @@ void sync_facenode(iCSRmat *f_v,REAL* f_norm,trimesh *mesh)
       nz = f_norm[(i)*dim+2];
 
       // Get Coordinates of Nodes
-      rowa = f_v->IA[i]-1;
-      rowb = f_v->IA[i+1]-1;
+      rowa = f_v->IA[i];
+      rowb = f_v->IA[i+1];
       jcnt=0;
       for(j=rowa;j<rowb;j++) {
-        nd = f_v->JA[j]-1;
+        nd = f_v->JA[j];
         xf[jcnt] = cv->x[nd];
         yf[jcnt] = cv->y[nd];
         zf[jcnt] = cv->z[nd];
@@ -852,6 +858,7 @@ void sync_facenode(iCSRmat *f_v,REAL* f_norm,trimesh *mesh)
  *
  * \return el_mid                Midpoint of elements
  *
+ *
  */
 void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
 {
@@ -863,12 +870,12 @@ void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
 
   if (dim==1) {
     for (i=0; i<nelm; i++) {
-      acol = el_v->IA[i]-1;
-      bcol = el_v->IA[i+1]-1;
+      acol = el_v->IA[i];
+      bcol = el_v->IA[i+1];
       cnt=0;
       el_mid[i]=0;
       for (j=acol; j<bcol; j++) {
-        nd = el_v->JA[j]-1;
+        nd = el_v->JA[j];
         el_mid[i] += cv->x[nd];
         cnt++;
       }
@@ -876,13 +883,13 @@ void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
     }
   } else if (dim==2) {
     for (i=0; i<nelm; i++) {
-      acol = el_v->IA[i]-1;
-      bcol = el_v->IA[i+1]-1;
+      acol = el_v->IA[i];
+      bcol = el_v->IA[i+1];
       cnt=0;
       el_mid[i*dim]=0;
       el_mid[i*dim+1]=0;
       for (j=acol; j<bcol; j++) {
-        nd = el_v->JA[j]-1;
+        nd = el_v->JA[j];
         el_mid[i*dim] += cv->x[nd];
         el_mid[i*dim+1] += cv->y[nd];
         cnt++;
@@ -892,14 +899,14 @@ void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
     }
   } else if (dim==3) {
     for (i=0; i<nelm; i++) {
-      acol = el_v->IA[i]-1;
-      bcol = el_v->IA[i+1]-1;
+      acol = el_v->IA[i];
+      bcol = el_v->IA[i+1];
       cnt=0;
       el_mid[i*dim]=0;
       el_mid[i*dim+1]=0;
       el_mid[i*dim+2]=0;
       for (j=acol; j<bcol; j++) {
-        nd = el_v->JA[j]-1;
+        nd = el_v->JA[j];
         el_mid[i*dim] += cv->x[nd];
         el_mid[i*dim+1] += cv->y[nd];
         el_mid[i*dim+2] += cv->z[nd];;
@@ -931,6 +938,7 @@ void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
  *
  * \return el_vol                Area/Volume of each element
  *
+ *
  */
 void get_el_vol(REAL *el_vol,iCSRmat *el_v,coordinates *cv,INT dim,INT v_per_elm)
 {
@@ -948,16 +956,17 @@ void get_el_vol(REAL *el_vol,iCSRmat *el_v,coordinates *cv,INT dim,INT v_per_elm
   INT nv = el_v->col;
   for (i=0;i<nelm;i++) {
     j_a = el_v->IA[i];
-    j_b = el_v->IA[i+1]-1;
+    j_b = el_v->IA[i+1];
     for (l=0;l<dim;l++){
-      jcnt=0;lv=l*v_per_elm; lnv=l*nv;
-      for (j=j_a; j<=j_b; j++) {
-	k=el_v->JA[j-1]-1;
-	x[lv+jcnt] = cv->x[lnv+k];
-	jcnt++;
+      jcnt=0;
+      lv=l*v_per_elm;
+      lnv=l*nv;
+      for (j=j_a; j<j_b; j++) {
+        k=el_v->JA[j];
+        x[lv+jcnt] = cv->x[lnv+k];
+        jcnt++;
       }
     }
-    //    fprintf(stdout,"\n*******jcnt=%d",jcnt);fflush(stdout);
     if(dim==1) {
       el_vol[i]=fabs(x[1]-x[0]);
       //      fprintf(stdout,"dim=%d; diff=%e\n",dim,el_voli-el_vol[i]);
@@ -976,16 +985,14 @@ void get_el_vol(REAL *el_vol,iCSRmat *el_v,coordinates *cv,INT dim,INT v_per_elm
       y4 = y[3]-y[0];
       z2 = z[1]-z[0];
       z3 = z[2]-z[0];
-      z4 = z[3]-z[0];   
+      z4 = z[3]-z[0];
       el_vol[i] = fabs(x2*(y3*z4-y4*z3) - y2*(x3*z4-x4*z3) +	\
 		       z2*(x3*y4-x4*y3))/6.0;
-      //      fprintf(stdout,"dim=%d; diff=%e\n",dim,el_voli-el_vol[i]);
     }
   }
 
   if(x) free(x);
-  //  if(y) free(y);
-  //  if(z) free(z);
+
   return;
 }
 /**************************************************************************/

@@ -1,25 +1,25 @@
-/*! \file src/grid/grid.c
+/*! \file src/mesh/mesh_create.c
  *
- * \brief Obtains generic routines for initializing, building, and creating mesh data.
+ * \brief Contains generic routines for initializing, building, and creating mesh data.
  *
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 1/9/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
- * \note modified by James Adler 11/14/2016
+ * \note updated by James Adler 07/25/2018
  */
 
 #include "hazmath.h"
 
 /******************************************************************************/
 /*!
- * \fn void initialize_mesh(trimesh* mesh)
+ * \fn void initialize_mesh(mesh_struct* mesh)
  *
- * \brief Initializes all components of the structure trimesh.
+ * \brief Initializes all components of the structure mesh_struct.
  *
  * \return mesh     Struct for Mesh
  *
  */
-void initialize_mesh(trimesh* mesh) 
+void initialize_mesh(mesh_struct* mesh)
 {
   mesh->dim = -666;
   mesh->nelm = -666;
@@ -60,7 +60,7 @@ void initialize_mesh(trimesh* mesh)
 
 /******************************************************************************/
 /*!
- * \fn void creategrid_fread(FILE *gfid,INT file_type,trimesh* mesh)
+ * \fn void creategrid_fread(FILE *gfid,INT file_type,mesh_struct* mesh)
  *
  * \brief Creates grid by reading in from file.
  *
@@ -70,11 +70,10 @@ void initialize_mesh(trimesh* mesh)
  * \return mesh     Struct for Mesh
  *
  */
-void creategrid_fread(FILE *gfid,INT file_type,trimesh* mesh) 
+void creategrid_fread(FILE *gfid,INT file_type,mesh_struct* mesh)
 {
   // Initialize mesh for read in.
   initialize_mesh(mesh);
-  //  mesh->el_v = malloc(sizeof(struct iCSRmat));
 
   // READ FILE
   if(file_type==0) {
@@ -90,7 +89,7 @@ void creategrid_fread(FILE *gfid,INT file_type,trimesh* mesh)
   }
 
   // Build rest of mesh
-  build_mesh(mesh);
+  build_mesh_all(mesh);
 
   return;
 }
@@ -98,22 +97,19 @@ void creategrid_fread(FILE *gfid,INT file_type,trimesh* mesh)
 
 /******************************************************************************/
 /*!
- * \fn void build_mesh(trimesh* mesh)
+ * \fn void build_mesh_all(mesh_struct* mesh)
  *
- * \brief Builds the mesh.
+ * \brief Builds the mesh and ALL components of the struct.
  * \note Assumes basic info has already been read in or created.
  *       including dim, el_v, cv, nv, and nbv.
  *
  * \return mesh     Struct for Mesh
  *
  */
-void build_mesh(trimesh* mesh) 
+void build_mesh_all(mesh_struct* mesh)
 {
   // Flag for errors
   SHORT status;
-
-  // Loop Indices
-  //INT i;
 
   // Get data already built
   INT dim = mesh->dim;
@@ -122,12 +118,6 @@ void build_mesh(trimesh* mesh)
   INT nconn_bdry = mesh->nconn_bdry;
   INT v_per_elm = dim+1;
 
-  // Set flags for elements.  We assume they are all interiors for now
-  //  INT* el_flag = (INT *) calloc(nelm,sizeof(INT));
-  //  for(i=0;i<nelm;i++) {
-  //    el_flag[i] = 0;
-  //  }
-
   // Stuff for Edges and Faces.  None for 1D
   if(dim==2 || dim==3) {
     INT ed_per_elm = (dim*(dim+1))/2;
@@ -135,15 +125,6 @@ void build_mesh(trimesh* mesh)
 
     // Edge to Vertex Map
     INT nedge = 0;
-    /* fprintf(stdout,"\n"); fflush(stdout); */
-    /* INT j,k; */
-    /* for (i=0;i<v_per_elm;i++) { */
-    /*   for (j=0;j<nelm;j++){ */
-    /* 	k=v_per_elm*j+i; */
-    /* 	fprintf(stdout,"%d ", *(mesh->el_v->JA+k)); fflush(stdout); */
-    /*   } */
-    /*   fprintf(stdout,"\n"); fflush(stdout); */
-    /* } */
     iCSRmat ed_v = get_edge_v(&nedge,mesh->el_v);
 
     /* Element to Edge Map */
@@ -233,9 +214,9 @@ void build_mesh(trimesh* mesh)
     mesh->f_norm = f_norm;
     mesh->ed_flag = ed_flag;
     mesh->f_flag = f_flag;
-    //    mesh->el_flag = el_flag;
 
     if(fel_order) free(fel_order);
+
   } else if (dim==1) {
     mesh->nedge = 0;
     mesh->ed_per_elm = 0;
@@ -272,7 +253,7 @@ void build_mesh(trimesh* mesh)
  *
  */
 struct coordinates *allocatecoords(INT ndof,INT mydim)
-{  
+{
   // Flag for errors
   SHORT status;
 
@@ -298,7 +279,7 @@ struct coordinates *allocatecoords(INT ndof,INT mydim)
     status = ERROR_DIM;
     check_error(status, __FUNCTION__);
   }
-  A->n = ndof;  
+  A->n = ndof;
   return A;
 }
 /******************************************************************************/
@@ -321,16 +302,6 @@ void free_coords(coordinates* A)
     A->x = NULL;
   }
 
-  /* if(A->y) { */
-  /*   free(A->y); */
-  /*   A->y = NULL; */
-  /* } */
-
-  /* if(A->z) { */
-  /*   free(A->z); */
-  /*   A->z = NULL; */
-  /* } */
-  
   return;
 }
 /******************************************************************************/
@@ -347,7 +318,7 @@ void free_coords(coordinates* A)
  * \return coord.dat  Coordinates of node in format: coord(n,dim)
  *
  */
-void dump_coords(FILE* fid,coordinates *c) 
+void dump_coords(FILE* fid,coordinates *c)
 {
   INT i;
 
@@ -370,15 +341,15 @@ void dump_coords(FILE* fid,coordinates *c)
 
 /******************************************************************************/
 /*!
- * \fn void free_mesh(trimesh* mesh)
+ * \fn void free_mesh(mesh_struct* mesh)
  *
  * \brief Frees memory of arrays of mesh struct
  *
  * \param mesh     Pointer to mesh struct to be freed
  *
  */
-void free_mesh(trimesh* mesh)
-{  
+void free_mesh(mesh_struct* mesh)
+{
   if(mesh==NULL) return;
 
   if (mesh->cv){
@@ -402,7 +373,7 @@ void free_mesh(trimesh* mesh)
     free(mesh->el_f);
     mesh->el_f = NULL;
   }
-  
+
   if(mesh->ed_v) {
     icsr_free(mesh->ed_v);
     free(mesh->ed_v);
@@ -464,7 +435,7 @@ void free_mesh(trimesh* mesh)
     free(mesh->v_flag);
     mesh->v_flag = NULL;
   }
-  
+
   if(mesh->ed_flag) {
     free(mesh->ed_flag);
     mesh->ed_flag = NULL;
@@ -484,7 +455,7 @@ void free_mesh(trimesh* mesh)
     free(mesh->v_component);
     mesh->v_component = NULL;
   }
-  
+
   return;
 }
 /******************************************************************************/

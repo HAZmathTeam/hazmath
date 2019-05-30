@@ -1,6 +1,6 @@
 /*! \file examples/HDEquation/HDEquation.c
  *
- *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov 20150109.
+ *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov 2015/01/09.
  *  Copyright 2015_HAZMATH__. All rights reserved.
  *
  * \brief This program solves the following PDE using finite elements
@@ -269,7 +269,7 @@ int main (int argc, char* argv[])
   // File types possible are 0 - HAZ format; 1 - VTK format
   INT mesh_type = 0;
   clock_t clk_mesh_start = clock(); // Time mesh generation FE setup
-  trimesh mesh;
+  mesh_struct mesh;
   printf(" --> loading grid from file: %s\n",inparam.gridfile);
   creategrid_fread(gfid,mesh_type,&mesh);
   fclose(gfid);
@@ -397,7 +397,7 @@ int main (int argc, char* argv[])
                   reaction_coeff,0.0);
 
   // Add M + D
-  dcsr_add_1(&Diff,1.0,&Mass,1.0,&A);
+  dcsr_add(&Diff,1.0,&Mass,1.0,&A);
   dcsr_free(&Diff);
   dcsr_free(&Mass);
 
@@ -473,13 +473,11 @@ int main (int argc, char* argv[])
   AMG_param amgparam;
   param_amg_init(&amgparam);
   param_amg_set(&amgparam, &inparam);
-  param_amg_print(&amgparam);
+  //param_amg_print(&amgparam);
   //=================================================================//
-
 
   // Solve the linear system
   if(linear_itparam.linear_itsolver_type == 0) { // Direct Solver
-    //printf("ARE WE REALLY HERE? %d\n\n\n",WITH_SUITESPARSE);
 #if WITH_SUITESPARSE
     printf(" --> using UMFPACK's Direct Solver:\n");
     solver_flag = directsolve_UMF(&A,&b,&u,linear_itparam.linear_print_level);
@@ -488,7 +486,6 @@ int main (int argc, char* argv[])
     return 0;
 #endif
   } else { // Iterative Solver
-    dcsr_shift(&A, -1);  // shift A
 
     // Use AMG as iterative solver
     if (linear_itparam.linear_itsolver_type == SOLVER_AMG){
@@ -514,15 +511,7 @@ int main (int argc, char* argv[])
           get_Pigrad_H1toNed(&P_curl,&mesh);
           get_grad_H1toNed(&Grad,&mesh);
 
-          // shift
-          dcsr_shift(&P_curl, -1);  // shift P_curl
-          dcsr_shift(&Grad, -1);  // shift Grad
-
           solver_flag = linear_solver_dcsr_krylov_hx_curl(&A, &b, &u, &linear_itparam, &amgparam, &P_curl, &Grad);
-
-          // shift back
-          dcsr_shift(&P_curl, 1);   // shift P_curl back
-          dcsr_shift(&Grad, 1);   // shift Grad back
 
           // clean
           dcsr_free(&P_curl);
@@ -542,17 +531,7 @@ int main (int argc, char* argv[])
           get_curl_NedtoRT(&Curl,&mesh);
           get_Pigrad_H1toRT(&P_div,&P_curl,&Curl,&mesh);
 
-          // shift
-          dcsr_shift(&P_curl, -1);  // shift P_curl
-          dcsr_shift(&Curl, -1);  // shift Curl
-          dcsr_shift(&P_div, -1);  // shift P_div
-
           solver_flag = linear_solver_dcsr_krylov_hx_div(&A, &b, &u, &linear_itparam, &amgparam,&P_curl,&P_div,&Curl);
-
-          // shift back
-          dcsr_shift(&P_curl, 1);  // shift P_curl back
-          dcsr_shift(&Curl, 1);  // shift Curl back
-          dcsr_shift(&P_div, 1);  // shift P_div back
 
           // clean
           dcsr_free(&P_curl);
@@ -566,7 +545,6 @@ int main (int argc, char* argv[])
       }
 
     }
-    dcsr_shift(&A, 1);   // shift A back
   }
 
   // Error Check

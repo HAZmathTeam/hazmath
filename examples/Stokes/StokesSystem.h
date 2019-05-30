@@ -9,7 +9,7 @@
  */
 
 /*!
- * \fn void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, trimesh *mesh, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm, REAL time)
+ * \fn void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm, REAL time)
  *
  * \brief Computes the local stiffness matrix for the Stokes system.
  *        For this problem we compute LHS of:
@@ -32,7 +32,7 @@
  * \note Assumes 2D or 3D only
  *
  */
-void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, trimesh *mesh, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm, REAL time)
+void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm, REAL time)
 {
 
   // Loop indices
