@@ -512,9 +512,9 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
                       dvector *x,
                       AMG_param *param,
                       INT * gmg_type,
-                      trimesh* mesh,
+                      mesh_struct* mesh,
                       block_fespace* FE,
-                      void (*set_bdry_flags)(trimesh*),
+                      void (*set_bdry_flags)(mesh_struct*),
                       dCSRmat *A_diag,
                       block_dCSRmat *A_noBC)
 {
@@ -3303,9 +3303,9 @@ INT linear_solver_bdcsr_krylov_gmg(block_dCSRmat *A,
                       linear_itsolver_param *itparam,
                       AMG_param *param,
                       INT * gmg_type,
-                      trimesh* mesh,
+                      mesh_struct* mesh,
                       block_fespace* FE,
-                      void (*set_bdry_flags)(trimesh* ),
+                      void (*set_bdry_flags)(mesh_struct* ),
                       dCSRmat *A_diag,
                       block_dCSRmat *A_noBC)
 {

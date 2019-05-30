@@ -15,15 +15,15 @@
 
 #include "sparse.h"
 #include "vec.h"
-#include "grid.h"
+#include "mesh.h"
 
-/* markers for boundary conditions:
-   in the mesh structure these will be the values of the array
-   BOUNDARY FACES ARE MARKED WITH
-   trimesh.f_bdry[i]=0 then (i) is an interior face.
-   1 <= trimesh.f_bdry[i] <= 16 (i) is on the DIRICHLET boundary;
-   17 <= trimesh.f_bndry[i] <=32 (i) is  on the NEUMANN boundary;
-   33 <= trimesh.f_bndry[i] <=64 (i) is  on the ROBIN boundary;
+/* markers for boundary conditions: 
+   in the mesh structure these will be the values of the array 
+   BOUNDARY FACES ARE MARKED WITH 
+   mesh_struct.f_bdry[i]=0 then (i) is an interior face. 
+   1 <= mesh_struct.f_bdry[i] <= 16 (i) is on the DIRICHLET boundary;
+   17 <= mesh_struct.f_bndry[i] <=32 (i) is  on the NEUMANN boundary; 
+   33 <= mesh_struct.f_bndry[i] <=64 (i) is  on the ROBIN boundary; 
 */
 #define MARKER_DIRICHLET 1
 #define MARKER_NEUMANN  17

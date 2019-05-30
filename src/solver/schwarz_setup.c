@@ -377,7 +377,7 @@ static void Schwarz_levels (INT inroot,
 
 /**
  * \fn void Schwarz_get_patch_geometric (Schwarz_data *Schwarz,
- *                                       trimesh *mesh,
+ *                                       mesh_struct *mesh,
  *                                       INT patchType)
  *
  * \brief Form Schwarz partition data
@@ -386,7 +386,7 @@ static void Schwarz_levels (INT inroot,
  *
  */
 void Schwarz_get_patch_geometric (Schwarz_data *Schwarz,
-                                  trimesh *mesh,
+                                  mesh_struct *mesh,
                                   INT patchTypeIN,
                                   INT patchTypeOUT)
 {
@@ -402,15 +402,15 @@ void Schwarz_get_patch_geometric (Schwarz_data *Schwarz,
     switch ( patchTypeIN ) {
       case 0: // vertex
         nblk = mesh->nv;
-        icsr_trans_1(mesh->el_v, &p_el);
+        icsr_trans(mesh->el_v, &p_el);
         break;
       case 1: // edge
         nblk = mesh->nedge;
-        icsr_trans_1(mesh->el_ed,&p_el);
+        icsr_trans(mesh->el_ed,&p_el);
         break;
-      case 2: // face 
+      case 2: // face
         nblk = mesh->nface;
-        icsr_trans_1(mesh->el_f, &p_el);
+        icsr_trans(mesh->el_f, &p_el);
         break;
       default:
         // Throw error
@@ -419,15 +419,15 @@ void Schwarz_get_patch_geometric (Schwarz_data *Schwarz,
 
     switch ( patchTypeOUT ) {
       case 0: // vertex
-        icsr_mxm_symb_1( &p_el, mesh->el_v, &p_p);
+        icsr_mxm_symb( &p_el, mesh->el_v, &p_p);
         ntot = p_p.nnz;
         break;
       case 1: // edge
-        icsr_mxm_symb_1( &p_el, mesh->el_ed, &p_p);
+        icsr_mxm_symb( &p_el, mesh->el_ed, &p_p);
         ntot = p_p.nnz;
         break;
-      case 2: // face 
-        icsr_mxm_symb_1( &p_el, mesh->el_f, &p_p);
+      case 2: // face
+        icsr_mxm_symb( &p_el, mesh->el_f, &p_p);
         ntot = p_p.nnz;
         break;
       default:
@@ -477,7 +477,7 @@ void Schwarz_get_patch_geometric (Schwarz_data *Schwarz,
  */
 INT Schwarz_setup_geometric (Schwarz_data *Schwarz,
                              Schwarz_param *param,
-                             trimesh *mesh)
+                             mesh_struct *mesh)
 {
     // information about A
     dCSRmat A = Schwarz->A;

@@ -1,9 +1,11 @@
-/*! \file src/grid/mesh_io.c   
+/*! \file src/mesh/mesh_io.c
  *
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 1/9/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
- *  Obtains routines for reading in meshes via original format and vtk format.
+ *  \brief Obtains routines for reading in meshes via original format and vtk format.
+ *
+ *   \note updated by James Adler 07/25/2018
  *
  */
 
@@ -11,7 +13,7 @@
 
 /******************************************************************************/
 /*!
- * \fn void read_grid_haz(FILE *gfid,trimesh *mesh)
+ * \fn void read_grid_haz(FILE *gfid,mesh_struct *mesh)
  *
  * \brief Reads in gridfile of the following form:
  *
@@ -44,53 +46,60 @@
  * \return mesh.cv         Coordinates of mesh vertices
  * \return mesh.el_v       Element to vertex map
  *
+ * \note This code will check if the file starts counting nodes at 0 or 1.
+ *       We assume that if there is a hole, the 0th or 1st node is not eliminated
+ *
  */
 
-void read_grid_haz(FILE *gfid,trimesh *mesh) 
+void read_grid_haz(FILE *gfid,mesh_struct *mesh)
 {
-  /* old way without material (or flag) associated with every element */
+
   // Loop indices
-  INT i,j,k,l;  
+  INT i,j,k,l;
+
+  // Flag to check if file started counting at 1 or 0.
+  INT one_zero_flag = 1;
+
+  // Get basic data
   INT nelm,nv,dim,nholes;
   l=fscanf(gfid,"%d %d %d %d",&nelm,&nv,&dim,&nholes);
+
   // Get number of vertices per element
   INT v_per_elm = dim+1;
-  mesh->el_v=malloc(sizeof(iCSRmat));
+
   // Element-Vertex Map
+  mesh->el_v=malloc(sizeof(iCSRmat));
   mesh->el_v->row=nelm;
   mesh->el_v->col=nv;
   mesh->el_v->nnz=nelm*v_per_elm;
   mesh->el_v->IA = (INT *)calloc(nelm+1, sizeof(INT));
   mesh->el_v->JA = (INT *)calloc(mesh->el_v->nnz, sizeof(INT));
   for(i=0;i<nelm+1;i++) {
-    mesh->el_v->IA[i] = v_per_elm*i + 1;
-  }  
+    mesh->el_v->IA[i] = v_per_elm*i;
+  }
   for (i=0;i<v_per_elm;i++) {
     for (j=0;j<nelm;j++){
       k=v_per_elm*j+i;
       l=fscanf(gfid,"%d", (mesh->el_v->JA+k));
+      if(mesh->el_v->JA[k]==0 && one_zero_flag==1)
+        one_zero_flag = 0;
     }
   }
+  if(one_zero_flag==1)
+    for(i=0;i<mesh->el_v->nnz;i++)
+      mesh->el_v->JA[i]-=1;
+
   mesh->el_v->val=NULL;
-  /* fprintf(stdout,"\n"); fflush(stdout); */
-  /* for (i=0;i<v_per_elm;i++) { */
-  /*   for (j=0;j<nelm;j++){ */
-  /*     k=v_per_elm*j+i; */
-  /*     fprintf(stdout,"%d ", *(mesh->el_v->JA+k)); fflush(stdout); */
-  /*   } */
-  /*   fprintf(stdout,"\n"); fflush(stdout); */
-  /* } */
+
+  // Read in Flags for each element
   mesh->el_flag = (INT *) calloc(nelm,sizeof(INT));
-  //  for (j=0;j<nelm;j++){
-  //    mesh->el_flag[j]=1;
-  //  }    
   rveci_(gfid,mesh->el_flag,&nelm);
+
   // Get next 2-3 lines for coordinate map
   mesh->cv = allocatecoords(nv,dim);
   INT nvdim=nv*dim;
-  rvecd_(gfid,mesh->cv->x,&nvdim); // this is the only thing we need
-				   // to read. It reads all
-				   // coordinates by rows.
+  rvecd_(gfid,mesh->cv->x,&nvdim); // This actually reads in all dimensions
+
   // Get next 1-2 lines for boundary flags
   INT nbv = 0;
   mesh->v_flag = (INT *) calloc(nv,sizeof(INT));
@@ -100,6 +109,8 @@ void read_grid_haz(FILE *gfid,trimesh *mesh)
       nbv++;
     }
   }
+
+  // Check for holes
   // This format only allows for 1 connected region and
   // up to 2 connected boundaries (1 hole).
   INT nconn_reg = 0;
@@ -119,15 +130,15 @@ void read_grid_haz(FILE *gfid,trimesh *mesh)
   mesh->nbv = nbv;
   mesh->nconn_reg = nconn_reg;
   mesh->nconn_bdry = nconn_bdry;
-  //  fprintf(stdout,"\nnv*dimension=%d\n",nvdim);fflush(stdout);
   mesh->v_per_elm = v_per_elm;
+
   return;
 }
 /******************************************************************************/
 
 /******************************************************************************/
 /*!
- * \fn void read_grid_vtk(FILE *gfid,trimesh *mesh)
+ * \fn void read_grid_vtk(FILE *gfid,mesh_struct *mesh)
  *
  * \brief Reads in gridfile in vtk (really vtu) format.  Example follows:
  *
@@ -182,7 +193,7 @@ void read_grid_haz(FILE *gfid,trimesh *mesh)
  * \return mesh.el_v       Element to vertex map
  *
  */
-void read_grid_vtk(FILE *gfid,trimesh *mesh) 
+void read_grid_vtk(FILE *gfid,mesh_struct *mesh)
 {
   fprintf(stderr,"I don't really want to process this vtk file just yet...Come back later...\n\n");
   exit(ERROR_OPEN_FILE);
@@ -193,7 +204,7 @@ void read_grid_vtk(FILE *gfid,trimesh *mesh)
 
 /******************************************************************************/
 /*!
- * \fn void dump_mesh_haz(char *namehaz,trimesh *mesh)
+ * \fn void dump_mesh_haz(char *namehaz,mesh_struct *mesh)
  *
  * \brief Dumps mesh data to haz format
  *
@@ -220,8 +231,10 @@ void read_grid_vtk(FILE *gfid,trimesh *mesh)
  *
  * \return namehaz.haz     File with mesh data.
  *
+ * \note Dumps with numbering starting at 0.
+ *
  */
-void dump_mesh_haz(char *namehaz,trimesh *mesh)
+void dump_mesh_haz(char *namehaz,mesh_struct *mesh)
 {
   // Basic Quantities
   INT i,j,ja,jb,jcnt;
@@ -239,8 +252,8 @@ void dump_mesh_haz(char *namehaz,trimesh *mesh)
   // Write Next 2-4 lines for element->vertex map
   INT* nodes = (INT *) calloc(nelm*v_per_elm,sizeof(INT));
   for(i=0;i<nelm;i++) {
-    ja = mesh->el_v->IA[i]-1;
-    jb = mesh->el_v->IA[i+1]-1;
+    ja = mesh->el_v->IA[i];
+    jb = mesh->el_v->IA[i+1];
     jcnt=0;
     for(j=ja;j<jb;j++) {
       nodes[i*v_per_elm+jcnt] = mesh->el_v->JA[j];
@@ -250,6 +263,7 @@ void dump_mesh_haz(char *namehaz,trimesh *mesh)
     fprintf(fhaz," %d ",nodes[i*v_per_elm]);
   }
   fprintf(fhaz,"\n");
+
   // Print Second Node
   for(i=0;i<nelm;i++) {
     fprintf(fhaz," %d ",nodes[i*v_per_elm+1]);
@@ -302,7 +316,7 @@ void dump_mesh_haz(char *namehaz,trimesh *mesh)
 
 /******************************************************************************/
 /*!
- * \fn void dump_mesh_vtk(char *namevtk,trimesh *mesh)
+ * \fn void dump_mesh_vtk(char *namevtk,mesh_struct *mesh)
  *
  * \brief Dumps mesh data to vtk format. Example follows:
  *
@@ -351,7 +365,7 @@ void dump_mesh_haz(char *namehaz,trimesh *mesh)
  * \return namevtk.vtu     File with mesh data.
  *
  */
-void dump_mesh_vtk(char *namevtk,trimesh *mesh)
+void dump_mesh_vtk(char *namevtk,mesh_struct *mesh)
 {
   // Basic Quantities
   INT nv = mesh->nv;
@@ -465,12 +479,12 @@ void dump_mesh_vtk(char *namevtk,trimesh *mesh)
   // Dump el_v map
   fprintf(fvtk,"<Cells>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"offsets\" Format=\"ascii\">",tinto);
-  for(k=1;k<=nelm;k++) fprintf(fvtk," %i ",mesh->el_v->IA[k]-1);
+  for(k=1;k<=nelm;k++) fprintf(fvtk," %i ",mesh->el_v->IA[k]);
   fprintf(fvtk,"</DataArray>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectivity\" Format=\"ascii\">\n",tinto);
   for(k=0;k<nelm;k++){
     kndl=k*v_per_elm;
-    for(j=0;j<v_per_elm;j++) fprintf(fvtk," %i ",mesh->el_v->JA[kndl + j]-1);
+    for(j=0;j<v_per_elm;j++) fprintf(fvtk," %i ",mesh->el_v->JA[kndl + j]);
   }
   fprintf(fvtk,"</DataArray>\n");
 
@@ -495,7 +509,7 @@ void dump_mesh_vtk(char *namevtk,trimesh *mesh)
 // Create Mesh from Scratch Routines
 /******************************************************************************/
 /*!
- * \fn void create1Dgrid_Line(trimesh* mesh,REAL left_end,REAL right_end,INT nelm)
+ * \fn void create1Dgrid_Line(mesh_struct* mesh,REAL left_end,REAL right_end,INT nelm)
  *
  * \brief Creates a 1D grid from scratch [left_end,right_end] with no holes.
  *
@@ -506,7 +520,7 @@ void dump_mesh_vtk(char *namevtk,trimesh *mesh)
  * \return mesh       Mesh struct and all its properties.
  *
  */
-void create1Dgrid_Line(trimesh* mesh,REAL left_end,REAL right_end,INT nelm)
+void create1Dgrid_Line(mesh_struct* mesh,REAL left_end,REAL right_end,INT nelm)
 {
   // Initialize mesh for read in.
   initialize_mesh(mesh);
@@ -531,14 +545,14 @@ void create1Dgrid_Line(trimesh* mesh,REAL left_end,REAL right_end,INT nelm)
   // Build element-vertex map, coordinates, and v_flag
   j=0;
   for(i=0;i<nelm;i++) {
-    el_v.IA[i]=i*v_per_elm+1;
-    el_v.JA[j]=i+1;
-    el_v.JA[j+1]=i+2;
+    el_v.IA[i]=i*v_per_elm;
+    el_v.JA[j]=i;
+    el_v.JA[j+1]=i+1;
     j=j+2;
     cv->x[i]=left_end+h*i;
     v_flag[i]=0;
   }
-  el_v.IA[nelm] = nelm*v_per_elm+1;
+  el_v.IA[nelm] = nelm*v_per_elm;
   cv->x[nelm] = right_end;
   v_flag[0] = 1;
   v_flag[nelm] = 1;
@@ -561,9 +575,8 @@ void create1Dgrid_Line(trimesh* mesh,REAL left_end,REAL right_end,INT nelm)
   mesh->v_flag = v_flag;
 
   // Build rest of mesh
-  build_mesh(mesh);
+  build_mesh_all(mesh);
 
   return;
 }
 /******************************************************************************/
-
