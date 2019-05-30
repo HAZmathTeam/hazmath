@@ -108,7 +108,7 @@ int main (int argc, char* argv[])
   FE.var_spaces[1] = &FE_uy;
   if(dim==3) FE.var_spaces[2] = &FE_uz;
   FE.var_spaces[dim] = &FE_p;
-  
+
   // Set Dirichlet Boundaries
   set_dirichlet_bdry_block(&FE,&mesh);
 
@@ -169,14 +169,8 @@ int main (int argc, char* argv[])
   printf(" --> elapsed CPU time for assembly = %f seconds.\n\n",(REAL)
          (clk_assembly_end-clk_assembly_start)/CLOCKS_PER_SEC);
   /*******************************************************************************************/
-  
+
   /************ Prepare Preconditioners **************************************************/
-  
-  // Shift for HAZMATH
-  for(i=0;i<(FE.nspaces)*(FE.nspaces);i++) {
-    if(A.blocks[i])
-      dcsr_shift(A.blocks[i],-1);
-  }
 
   // Prepare diagonal blocks
   dCSRmat *A_diag;
@@ -190,7 +184,6 @@ int main (int argc, char* argv[])
   // Get Mass Matrix for p
   dCSRmat Mp;
   assemble_global(&Mp,NULL,assemble_mass_local,&FE_p,&mesh,cq,NULL,one_coeff_scal,0.0);
-  dcsr_shift(&Mp,-1);
   dcsr_alloc(Mp.row, Mp.col, Mp.nnz, &A_diag[dim]);
   dcsr_cp(&Mp, &A_diag[dim]);
   /*******************************************************************************************/
@@ -208,7 +201,7 @@ int main (int argc, char* argv[])
   dvector v_uz;
   if(dim==3) v_uz = dvec_create(FE_uz.ndof);
   dvector v_p = dvec_create(FE_p.ndof);
-  
+
   // Set initial guess to be all zero
   dvec_set(sol.row, &sol, 0.0);
   // Set initial guess for pressure to match the known "boundary condition" for pressure
@@ -237,12 +230,12 @@ int main (int argc, char* argv[])
 
   // Error Check
   if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n",solver_flag);
-  
+
   clock_t clk_solve_end = clock();
   printf("Elapsed CPU Time for Solve = %f seconds.\n\n",
          (REAL) (clk_solve_end-clk_solve_start)/CLOCKS_PER_SEC);
   /*******************************************************************************************/
-  
+
   /********************* Compute Errors if you have exact solution ****************************/
   clock_t clk_error_start = clock();
   REAL* solerrL2 = (REAL *) calloc(dim+1, sizeof(REAL));
@@ -280,8 +273,8 @@ int main (int argc, char* argv[])
   get_unknown_component(&v_uy,&sol,&FE,1);
   if(dim==3) get_unknown_component(&v_uz,&sol,&FE,2);
   get_unknown_component(&v_p,&sol,&FE,dim);
- 
-  char** varname; 
+
+  char** varname;
   if(inparam.print_level > 3){
     char* soldump = "output/solution.vtu";
     varname = malloc(10*FE.nspaces*sizeof(char *));
@@ -329,7 +322,7 @@ int main (int argc, char* argv[])
   free_mesh(&mesh);
 
   // Strings
-  if(varname) free(varname);  
+  if(varname) free(varname);
 
   /*******************************************************************************************/
   clock_t clk_overall_end = clock();
