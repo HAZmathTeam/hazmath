@@ -1898,9 +1898,10 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
   dCSRmat BTB;
 
   // data for HX preconditioner
-  dCSRmat A_div, A_grad, A_divgrad;
-  dCSRmat Pt_div, Curlt;
+  dCSRmat A_div, A_curl, A_grad, A_divgrad, A_curlgrad;
+  dCSRmat Pt_div, Curlt, Pt_curl;
   AMG_data *mgl_grad = amg_data_create(max_levels);
+  AMG_data *mgl_curlgrad = amg_data_create(max_levels);
   AMG_data *mgl_divgrad = amg_data_create(max_levels);
 
   /* setup preconditioner */
@@ -1988,10 +1989,8 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
     if (P_curl == NULL)
     {
       // get A_grad (scalar H(grad))
-      //dCSRmat A_grad;
       dcsr_rap(&Curlt, &A_div, Curl, &A_grad);
       // get A_divgrad (vector H(grad))
-      //dCSRmat A_divgrad;
       dcsr_rap(&Pt_div, &A_div, P_div, &A_divgrad);
 
       // initialize A, b, x for mgl_grad[0]
@@ -2015,6 +2014,55 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
 
       // initialize A, b, x for mgl_divgrad[0]
       //AMG_data *mgl_divgrad = amg_data_create(max_levels);
+      mgl_divgrad[0].A=dcsr_create(A_divgrad.row,A_divgrad.col,A_divgrad.nnz);
+      dcsr_cp(&A_divgrad, &mgl_divgrad[0].A);
+      mgl_divgrad[0].b=dvec_create(A_divgrad.col);
+      mgl_divgrad[0].x=dvec_create(A_divgrad.row);
+
+      // setup AMG for vector Laplacian
+      switch (amgparam->AMG_type) {
+
+          case UA_AMG: // Unsmoothed Aggregation AMG
+              status = amg_setup_ua(mgl_divgrad, amgparam); break;
+
+          default: // Classical AMG
+              status = amg_setup_ua(mgl_divgrad, amgparam); break;
+
+      }
+      if (status < 0) goto FINISHED;
+    }
+    // 3D case: P_curl exists
+    else
+    {
+      // get transpose of P_curl
+      dcsr_trans(P_curl, &Pt_curl);
+
+      // get A_curl
+      dcsr_rap(&Curlt, &A_div, Curl, &A_curl);
+      // get A_curlgrad (vector H(grad) from curl)
+      dcsr_rap(&Pt_curl, &A_curl, P_curl, &A_curlgrad);
+      // get A_divgrad (vector H(grad) from div)
+      dcsr_rap(&Pt_div, &A_div, P_div, &A_divgrad);
+
+      // initialize A, b, x for mgl_curlgrad[0]
+      mgl_curlgrad[0].A=dcsr_create(A_curlgrad.row,A_curlgrad.col,A_curlgrad.nnz);
+      dcsr_cp(&A_curlgrad, &mgl_curlgrad[0].A);
+      mgl_curlgrad[0].b=dvec_create(A_curlgrad.col);
+      mgl_curlgrad[0].x=dvec_create(A_curlgrad.row);
+
+      // setup AMG for vector Laplacian
+      switch (amgparam->AMG_type) {
+
+          case UA_AMG: // Unsmoothed Aggregation AMG
+              status = amg_setup_ua(mgl_curlgrad, amgparam); break;
+
+          default: // Classical AMG
+              status = amg_setup_ua(mgl_curlgrad, amgparam); break;
+
+      }
+      if (status < 0) goto FINISHED;
+
+      // initialize A, b, x for mgl_divgrad[0]
       mgl_divgrad[0].A=dcsr_create(A_divgrad.row,A_divgrad.col,A_divgrad.nnz);
       dcsr_cp(&A_divgrad, &mgl_divgrad[0].A);
       mgl_divgrad[0].b=dvec_create(A_divgrad.col);
@@ -2061,6 +2109,29 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
       hxdivdata[0]->A_grad = &A_grad;
       hxdivdata[0]->amgparam_grad = amgparam;
       hxdivdata[0]->mgl_grad = mgl_grad;
+
+      hxdivdata[0]->backup_r = (REAL*)calloc(A_div.row, sizeof(REAL));
+      hxdivdata[0]->w = (REAL*)calloc(A_div.row, sizeof(REAL));
+    }
+    // 3D case : P_curl exists
+    else
+    {
+      hxdivdata[0]->P_curl = P_curl;
+      hxdivdata[0]->Pt_curl = &Pt_curl;
+      hxdivdata[0]->P_div = P_div;
+      hxdivdata[0]->Pt_div = &Pt_div;
+      hxdivdata[0]->Curl = Curl;
+      hxdivdata[0]->Curlt = &Curlt;
+      hxdivdata[0]->A_curlgrad = &A_curlgrad;
+      hxdivdata[0]->amgparam_curlgrad = amgparam;
+      hxdivdata[0]->mgl_curlgrad = mgl_curlgrad;
+      hxdivdata[0]->A_divgrad = &A_divgrad;
+      hxdivdata[0]->amgparam_divgrad = amgparam;
+      hxdivdata[0]->mgl_divgrad = mgl_divgrad;
+      hxdivdata[0]->A_curl = &A_curl;
+      hxdivdata[0]->A_grad = NULL;
+      hxdivdata[0]->amgparam_grad = amgparam;
+      hxdivdata[0]->mgl_grad = NULL;
 
       hxdivdata[0]->backup_r = (REAL*)calloc(A_div.row, sizeof(REAL));
       hxdivdata[0]->w = (REAL*)calloc(A_div.row, sizeof(REAL));

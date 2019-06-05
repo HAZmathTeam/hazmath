@@ -3143,10 +3143,17 @@ void precond_block_diag_mixed_darcy_krylov_HX(REAL *r,
 
   // Preconditioning A00 block (flux) using HX preconditioner
   precond pc_flux; pc_flux.data = hxdivdata[0];
+  // 2D case
   if (hxdivdata[0]->P_curl == NULL)
   {
     //pc_flux.fct = precond_hx_div_additive_2D;
     pc_flux.fct = precond_hx_div_multiplicative_2D;
+  }
+  // 3D case
+  else
+  {
+    //pc_fluc.fct = precond_hx_div_additive;
+    pc_flux.fct = precond_hx_div_multiplicative;
   }
 
   dcsr_pvfgmres(hxdivdata[0]->A, &r0, &z0, &pc_flux, 1e-3, 100, 100, 1, 1);
