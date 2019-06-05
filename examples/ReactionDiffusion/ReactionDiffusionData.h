@@ -1,22 +1,56 @@
 
 /******** Data Input Reaction-Diffusion****************************************/
-// PDE Coefficients
-
-  //Scalar array of dim^2 x 1, A(x)
+  // PDE Coefficients, RHS, and BCs
+  
+  // Scalar array of dim^2 x 1, A(x)
+  /*
+  Example of array ordering in 3D
+  
+        | a_11  a_12  a_13 | 
+   A =  | a_21  a_22  a_23 |   => val = [a_11, a_12, a_13, a_21, a_22, a_23, a_31, a_32, a_33]
+		| a_31  a_32  a_33 |
+  */
+  
 void diffusion_coeff(REAL *val,REAL* x,REAL time,void *dim) {
+ // EXAMPLE 1: 2D POISSON, A=I
   val[0] = 1.0;
   val[1] = 0.0;
   val[2] = 0.0;
-  val[3] = 1.0;
+  val[3] = 1.0; 
   
+ // EXAMPLE 2: 2D ISOTROPIC DIFFUSION
+ /* val[0] = x[0] + x[1] + 1;
+  val[1] = x[0]*x[1];
+  val[2] = x[0]*x[1];
+  val[3] = exp(x[0]+x[1]);
+  */
+  
+ // EXAMPLE 3: 3D ANISOTROPIC DIFFUSION
+ /*val[0] = 100;
+ val[1] = 0;
+ val[2] = 0;
+ val[3] = 0;
+ val[4] = 1;
+ val[5] = 0;
+ val[6] = 0;
+ val[7] = 0;
+ val[8] = 1;
+ */
 }
 
-  //scalar fuction, c(x)
+// scalar fuction, c(x)
 void reaction_coeff(REAL *val,REAL* x,REAL time,void *dim) {
+ // EXAMPLE 1: POISSON
 	*val = 0.0;
+
+ // EXAMPLE 2: 2D ISOTROPIC DIFFUSION
+	//*val = exp(x[0]+x[1]);
+	
+ // EXAMPLE 3: 3D ANISOTROPIC DIFFUSION
+	//*val = 1.0;
 }
 
-//combines coeff into one struct. Don't need to change anything here
+// combines coeff into one array. Do not change anything here
 void pde_coeff(REAL *val,REAL* x,REAL time,void *dim){
 int d = *((int *) dim);
 diffusion_coeff(val, x, time, &d);
@@ -57,6 +91,7 @@ void rhs_1D(REAL *val,REAL* x,REAL time,void *param) {
   diffusion_coeff(&mya,x,time,param);
   exactsol_1D(&myu,x,time,param);
   
+  // 1D POISSON
   *val = (mya*M_PI*M_PI + myc)*myu;		// A=I
 
 }
@@ -66,7 +101,17 @@ void rhs_2D(REAL *val,REAL* x,REAL time,void *param) {
   reaction_coeff(&myc,x,time,param);
   exactsol_2D(&myu,x,time,param);
   
-  *val = (2*M_PI*M_PI + myc)*myu; // A=I
+ // EXAMPLE 1: 2D POISSON
+ *val = (2*M_PI*M_PI + myc)*myu; // A=I
+ 
+ // EXAMPLE 2: ISOTROPIC DIFFUSION
+/*  REAL ss = sin(M_PI*x[0])*sin(M_PI*x[1]);
+ REAL cc = cos(M_PI*x[0])*cos(M_PI*x[1]);
+ REAL sc = sin(M_PI*x[0])*cos(M_PI*x[1]);
+ REAL cs = cos(M_PI*x[0])*sin(M_PI*x[1]);
+ REAL myexp = exp(x[0]+x[1]);
+  
+ *val = M_PI*M_PI*(x[0] + x[1] + 1 + myexp)*ss - 2*M_PI*M_PI*x[0]*x[1]*cc - M_PI*(myexp + x[1])*sc - M_PI*(1+x[0])*cs + myexp*ss; */
  
 }
 void rhs_3D(REAL *val,REAL* x,REAL time,void *param) {
@@ -75,7 +120,11 @@ void rhs_3D(REAL *val,REAL* x,REAL time,void *param) {
   reaction_coeff(&myc,x,time,param);
   exactsol_3D(&myu,x,time,param);
   
+  // 3D POISSON
   *val = (3*M_PI*M_PI + myc)*myu; // A=I
+  
+  // EXAMPLE 3: 3D ANISOTROPIC DIFFUSION
+	//*val = (102*M_PI*M_PI + myc)*myu; 
 
 }
 // Boundary Conditions
