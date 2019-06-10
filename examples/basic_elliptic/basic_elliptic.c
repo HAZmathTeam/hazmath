@@ -1,4 +1,4 @@
-/*! \file examples/HDEquation/HDEquation.c
+/*! \file examples/basic_elliptic/basic_elliptic.c
  *
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov 2015/01/09.
  *  Copyright 2015_HAZMATH__. All rights reserved.
