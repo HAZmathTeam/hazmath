@@ -1,9 +1,9 @@
 #####################################################
-# Modified 2017-04-03 --jha & xh
-# Last Modified 2018-08-30 --ltz1
+# Last Modified 2019-06-10 --jha 
 ####################################################
+
 # SRC File name
-SRCFILE = HeatEquation
+SRCFILE = heat_equation
 
 HEADERS = 
 
