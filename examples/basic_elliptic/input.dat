@@ -1,5 +1,7 @@
 %----------------------------------------------%
-% input parameters: Laplacian_Simple_Test      %
+% input parameters for basic_elliptic example  %
+% This can simulate the grad grad, curl curl,  %
+% or div div operator as a test problem.       %
 % lines starting with % are comments           %
 % must have spaces around the equal sign "="   %
 %----------------------------------------------%
