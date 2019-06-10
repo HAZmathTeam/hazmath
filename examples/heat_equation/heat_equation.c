@@ -1,4 +1,4 @@
-/*! \file examples/HeatEquation/HeatEqn.c
+/*! \file examples/heat_equation/heat_equation.c
  *
  *  Created by James Adler and Xiaozhe Hu on 10/16/16.
  *  Copyright 2015_HAZMATH__. All rights reserved.
@@ -7,14 +7,14 @@
  *
  *        du/dt - div(a(x)grad(u)) = 0
  *
- *        where du/dt is discretized with Crank-Nicolson or
- *        BDF-1 (Backward Euler) in 1D, 2D, or 3D.
+ *        where du/dt is discretized with Crank-Nicolson,
+ *        BDF-1 (Backward Euler), or BDF-2 in 1D, 2D, or 3D.
  *
  *        Along the boundary of the region, Dirichlet conditions are imposed:
  *
  *          u = 0 for P1 or P2 elements
  *
- * \note This example extends the one in HDequation, while also showing
+ * \note This example extends the one in basic_elliptic, while also showing
  *       how to implement a variety of time discretizations, including
  *       Backward Euler (BDF1), BDF2, and Crank-Nicolson. The timestepper
  *       struct is introduced here.
@@ -167,12 +167,21 @@ int main (int argc, char* argv[])
                   one_coeff_scal,0.0);
 
   // Create Time Operator (one with BC and one without)
+  // We solve operators of the form du/dt + L(u) = f
+  // Thus our discretization would be of the form d/dt Mu + Au = b
   // Note that since this is linear, L(u) = Au, so we set Ldata to A
   timestepper time_stepper;
-  initialize_timestepper(&time_stepper,&inparam,0,b.row);
+  // The RHS is not time-dependent, so this makes our life a bit easier
+  // The code can skip some steps and not build <f,v> each time step
+  INT rhs_timedep = 0;
+  initialize_timestepper(&time_stepper,&inparam,rhs_timedep,b.row);
   time_stepper.A = &A;
   time_stepper.Ldata=&A;
   time_stepper.M = &M;
+  // Create the time operator.  Note this is the first time we create it,
+  // so the 2nd argument is 1, and we need to copy the operator to apply
+  // the boundary conditions correctly at each time step, so the 3rd argument
+  // is also 1.
   get_timeoperator(&time_stepper,1,1);
 
   clock_t clk_assembly_end = clock();
@@ -185,7 +194,8 @@ int main (int argc, char* argv[])
   // Create Solution Vector
   dvector sol = dvec_create(FE.ndof);
   dvector exact_sol = dvec_create(FE.ndof);
-  FE_Evaluate(exact_sol.val,exactsol,&FE,&mesh,0.0);
+  REAL current_time = 0.0;
+  FE_Evaluate(exact_sol.val,exactsol,&FE,&mesh,current_time);
 
   // Set parameters for linear iterative methods
   linear_itsolver_param linear_itparam;
@@ -203,7 +213,7 @@ int main (int argc, char* argv[])
   param_amg_print(&amgparam);
 
   // Get Initial Conditions
-  FE_Evaluate(sol.val,initial_conditions,&FE,&mesh,0.0);
+  FE_Evaluate(sol.val,initial_conditions,&FE,&mesh,current_time);
   time_stepper.sol = &sol;
 
   // Dump Solution
@@ -276,7 +286,6 @@ int main (int argc, char* argv[])
 
     // Solve
     clock_t clk_solve_start = clock();
-    dcsr_shift(time_stepper.At, -1);  // shift A
     if(linear_itparam.linear_itsolver_type == 0) { // Direct Solver
 #if WITH_SUITESPARSE
       printf(" --> using UMFPACK's Direct Solver: solve\n");
@@ -304,7 +313,6 @@ int main (int argc, char* argv[])
         }
       }
     }
-    dcsr_shift(time_stepper.At, 1);   // shift A back
 
     // Error Check
     if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
