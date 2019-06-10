@@ -4,6 +4,7 @@
 
 # Extension for the Executable Programs
 EXTENSION = ex
+
 # Machine Specific Compilers and Libraries
 CC = gcc
 FC = gfortran
