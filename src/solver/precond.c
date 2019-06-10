@@ -504,7 +504,8 @@ void precond_hx_div_multiplicative_2D(REAL *r,
     //-----------
     // smoothing
     //-----------
-    smoother_dcsr_sgs(&zz, hxdivdata->A, &rr, smooth_iter);
+    //smoother_dcsr_sgs(&zz, hxdivdata->A, &rr, smooth_iter);
+    smoother_dcsr_sgs(&zz, hxdivdata->A, &rr, 10);
     //smoother_dcsr_jacobi(&zz, 0, n, 1, hxdivdata->A, &rr, smooth_iter);
 
     //----------
@@ -524,7 +525,8 @@ void precond_hx_div_multiplicative_2D(REAL *r,
     mgl_divgrad->x.row = hxdivdata->A_divgrad->row;
     dvec_set(hxdivdata->A_divgrad->row, &mgl_divgrad->x, 0.0);
 
-    for (i=0;i<maxit;++i) mgcycle(mgl_divgrad, amgparam_divgrad);
+    //for (i=0;i<maxit;++i) mgcycle(mgl_divgrad, amgparam_divgrad);
+    for (i=0;i<1;++i) mgcycle(mgl_divgrad, amgparam_divgrad);
     //dcsr_pvfgmres(hxdivdata->A_divgrad, &mgl_divgrad->b, &mgl_divgrad->x, NULL, 1e-3, 1000, 1000, 1, 1);
     //directsolve_UMF(hxdivdata->A_divgrad, &(mgl_divgrad->b), &(mgl_divgrad->x), 1);
 
@@ -553,7 +555,8 @@ void precond_hx_div_multiplicative_2D(REAL *r,
     mgl_grad->x.row=hxdivdata->A_grad->row;
     dvec_set(hxdivdata->A_grad->row, &mgl_grad->x, 0.0);
 
-    for (i=0;i<maxit;++i) mgcycle(mgl_grad, amgparam_grad);
+    //for (i=0;i<maxit;++i) mgcycle(mgl_grad, amgparam_grad);
+    for (i=0;i<1;++i) mgcycle(mgl_grad, amgparam_grad);
     //dcsr_pvfgmres(hxdivdata->A_curlgrad, &mgl_curlgrad->b, &mgl_curlgrad->x, NULL, 1e-3, 1000, 1000, 1, 1);
     //directsolve_UMF(hxdivdata->A_curlgrad, &(mgl_curlgrad->b), &(mgl_curlgrad->x),1);
 
@@ -714,7 +717,8 @@ void precond_hx_div_multiplicative(REAL *r,
     SHORT maxit, i;
 
     // smoothing
-    smoother_dcsr_sgs(&zz, hxdivdata->A, &rr, smooth_iter);
+    //smoother_dcsr_sgs(&zz, hxdivdata->A, &rr, smooth_iter);
+    smoother_dcsr_sgs(&zz, hxdivdata->A, &rr, 10);
     //smoother_dcsr_jacobi(&zz, 0, n, 1, hxdivdata->A, &rr, smooth_iter);
 
     // update r
@@ -741,10 +745,10 @@ void precond_hx_div_multiplicative(REAL *r,
     array_cp(n, hxdivdata->backup_r, r);
     dcsr_aAxpy(-1.0, hxdivdata->A, zz.val, rr.val);
 
-    INT j;
-    for(j=0;j<n;j++){
-      if(z[j]!=z[j]){ printf("DIV z[%d]=%f\n",j,z[j]);}
-    }
+    //INT j;
+    //for(j=0;j<n;j++){
+    //  if(z[j]!=z[j]){ printf("DIV z[%d]=%f\n",j,z[j]);}
+    //}
 
     // smoothing
     REAL *temp1 = (REAL*)calloc(hxdivdata->Curlt->row,sizeof(REAL));
@@ -785,9 +789,9 @@ void precond_hx_div_multiplicative(REAL *r,
     dcsr_mxv(hxdivdata->P_curl, mgl_curlgrad->x.val, temp);
     dcsr_aAxpy(1.0, hxdivdata->Curl, temp, z);
 
-    for(j=0;j<n;j++){
-      if(z[j]!=z[j]){ printf("z[%d]=%f\n",j,z[j]);}
-    }
+    //for(j=0;j<n;j++){
+    //  if(z[j]!=z[j]){ printf("z[%d]=%f\n",j,z[j]);}
+    //}
 
     // store r
     array_cp(n, hxdivdata->backup_r, r);
@@ -3222,6 +3226,12 @@ void precond_block_lower_mixed_darcy_krylov_HX(REAL *r,
     //pc_flux.fct = precond_hx_div_additive_2D;
     pc_flux.fct = precond_hx_div_multiplicative_2D;
   }
+  // 3D case
+  else
+  {
+    //pc_fluc.fct = precond_hx_div_additive;
+    pc_flux.fct = precond_hx_div_multiplicative;
+  }
 
   dcsr_pvfgmres(hxdivdata[0]->A, &r0, &z0, &pc_flux, 1e-3, 100, 100, 1, 1);
 
@@ -3300,6 +3310,12 @@ void precond_block_upper_mixed_darcy_krylov_HX(REAL *r,
   {
     //pc_flux.fct = precond_hx_div_additive_2D;
     pc_flux.fct = precond_hx_div_multiplicative_2D;
+  }
+  // 3D case
+  else
+  {
+    //pc_fluc.fct = precond_hx_div_additive;
+    pc_flux.fct = precond_hx_div_multiplicative;
   }
 
   dcsr_pvfgmres(hxdivdata[0]->A, &r0, &z0, &pc_flux, 1e-3, 100, 100, 1, 1);
