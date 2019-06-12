@@ -3,9 +3,9 @@
 # Last Modified 2018-08-30 --ltz1
 ####################################################
 # SRC File name
-SRCFILE = ReactionDiffusion
+SRCFILE = reaction_diffusion
 
-HEADERS = ReactionDiffusionData.h ReactionDiffusionSystem.h
+HEADERS = rd_data.h rd_system.h
 
 INCLUDE =
 
