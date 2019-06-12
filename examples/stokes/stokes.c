@@ -1,23 +1,24 @@
-/*! \file examples/Stokes/Stokes.c
+/*! \file examples/stokes/stokes.c
  *
  *  Created by Peter Ohm on 2/5/17.
  *  Copyright 2015_HAZMATH__. All rights reserved.
  *
  * \brief This program solves Stokes PDE using finite elements
  *
- *      -laplace(u) + div(p) = f
- *                   grad(u) = 0
+ *      -2*div(eps(u)) + grad(p) = f
+ *                 div(u)           = 0
  *
+ *        where eps(u) = (grad u + (grad u)^T)/2 is the symmetric gradient,
  *
- *        in 2D or 3D
+ *        in 2D or 3D.
  *
  *        Along the boundary of the region, Dirichlet conditions are
  *        imposed for u and Neumann for p.  P2-P1 or P2-P0 can be used,
  *        though others can be implemented.
  *
  * \note This example shows how to build your own bilinear form for a system.
- *       The forms are found in StokesSystem.h and all Problem Data is found in
- *       StokesData.h to simplify the code.  This example also illustrates how to
+ *       The forms are found in stokes_system.h and all Problem Data is found in
+ *       stokes_data.h to simplify the code.  This example also illustrates how to
  *       construct block versions of the finite-element spaces, linear systems, and
  *       how to use block solvers.
  *
@@ -26,8 +27,8 @@
 
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************************/
 #include "hazmath.h"
-#include "StokesData.h"
-#include "StokesSystem.h"
+#include "stokes_data.h"
+#include "stokes_system.h"
 /*********************************************************************************/
 
 /****** MAIN DRIVER **************************************************************/
@@ -134,7 +135,7 @@ int main (int argc, char* argv[])
   /* Here we assemble the discrete system:
    *  The weak form is:
    *
-   *  <grad u, grad v> - <p, div v> = <f, v>
+   *  <2*eps(u), eps(v)> - <p, div v> = <f, v>
    *                   - <div u, q> = 0
    */
   printf("Assembling the matrix and right-hand side:\n");
@@ -284,6 +285,7 @@ int main (int argc, char* argv[])
     varname[dim] = "p ";
     dump_blocksol_vtk(soldump,varname,&mesh,&FE,sol.val);
 
+    // Print in Matlab format to show vector field in nice way.
     if(dim==3) print_matlab_vector_field(&v_ux,&v_uy,&v_uz,&FE_ux);
   }
   /************ Free All the Arrays ***********************************************************/

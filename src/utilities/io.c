@@ -1166,7 +1166,7 @@ scomplex *hazr(char *namein)
   INT k=-10,j=-10,m=-10;
   fmeshin=HAZ_fopen(namein,"r");
   /* *******************************************
-     read a hazmath mesh file. 
+     read a hazmath mesh file.
      *******************************************    */
   fscanf(fmeshin,"%i %i %i %i\n",&ns,&nv,&dim,&nholes);
   scomplex *sc = (scomplex *)haz_scomplex_init(dim,ns,nv);
@@ -1210,7 +1210,7 @@ scomplex *hazr(char *namein)
  *************************************************************************/
 void hazw(char *nameout,scomplex *sc, const INT nholes, const int shift)
 {
-  // WRITING in HAZMATH format. 
+  // WRITING in HAZMATH format.
   FILE *fmesh;
   INT n=sc->nv,ns=sc->ns, dim=sc->n,ndl=sc->n+1;
   INT *je = sc->nodes, *ib=sc->bndry;
@@ -1436,5 +1436,28 @@ void matlw(scomplex *sc, char *namematl)
   fprintf(fp,"\nplot(x(:,1),x(:,2),'r*'); hold off\n");
   fprintf(stdout,"%%Output (matlab) written on:%s\n",namematl);
   fclose(fp);
+  return;
+}
+
+/*!
+ * \fn void print_matlab_vector_field(dvector* ux, dvector* uy, dvector* uz, fespace* FE )
+ *
+ * \brief print a vector field of functions in a PX space in Matlab format.
+ *
+ * \param ux   Point to x component of vector field.
+ * \param uy   Point to y component of vector field.
+ * \param ux   Point to z component of vector field.
+ * \param FE   FE space of each component (must be the same)
+ *
+ * \note Only designed for 3D for now.
+ */
+void print_matlab_vector_field(dvector* ux, dvector* uy, dvector* uz, fespace* FE )
+{
+  FILE *fid = fopen("output/usol_vfield.mat","w");
+  INT i;
+  for(i=0; i<ux->row; i++) {
+    fprintf(fid,"%f\t%f\t%f\t%f\t%f\t%f\n",FE->cdof->x[i],FE->cdof->y[i],FE->cdof->z[i],ux->val[i],uy->val[i],uz->val[i]);
+  }
+  fclose(fid);
   return;
 }
