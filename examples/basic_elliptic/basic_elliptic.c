@@ -27,6 +27,9 @@
  * illustrates how to set the problem data, such as boundary conditions and
  * right-hand sides, and how to output the solution in VTK formats.
  *
+ * \note This is intended to give you different examples in different dimensions
+ *       and with different types of coefficients.  There are lots of if statements
+ *       that would be unnecessary in your own program.
  */
 
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************/
