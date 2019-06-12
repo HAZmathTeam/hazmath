@@ -17,13 +17,13 @@
 #include "vec.h"
 #include "mesh.h"
 
-/* markers for boundary conditions: 
-   in the mesh structure these will be the values of the array 
-   BOUNDARY FACES ARE MARKED WITH 
-   mesh_struct.f_bdry[i]=0 then (i) is an interior face. 
+/* markers for boundary conditions:
+   in the mesh structure these will be the values of the array
+   BOUNDARY FACES ARE MARKED WITH
+   mesh_struct.f_bdry[i]=0 then (i) is an interior face.
    1 <= mesh_struct.f_bdry[i] <= 16 (i) is on the DIRICHLET boundary;
-   17 <= mesh_struct.f_bndry[i] <=32 (i) is  on the NEUMANN boundary; 
-   33 <= mesh_struct.f_bndry[i] <=64 (i) is  on the ROBIN boundary; 
+   17 <= mesh_struct.f_bndry[i] <=32 (i) is  on the NEUMANN boundary;
+   33 <= mesh_struct.f_bndry[i] <=64 (i) is  on the ROBIN boundary;
 */
 #define MARKER_DIRICHLET 1
 #define MARKER_NEUMANN  17
@@ -126,7 +126,7 @@ typedef struct block_fespace {
   //! total number of boundary dof
   INT nbdof;
 
-  //! blocks of dCSRmat, point to blocks[brow][bcol]
+  //! blocks of fespaces
   fespace **var_spaces;
 
   //! Dirichlet Boundaries (1 if Dirichlet; 0 if not) for ALL unknowns

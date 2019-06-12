@@ -1,4 +1,4 @@
-/*! \file StokesSystem.h
+/*! \file examples/stokes/stokes_system.h
  *
  *  Created by Peter Ohm on 1/5/17.
  *  Copyright 2015_HAZMATH__. All rights reserved.
@@ -14,7 +14,7 @@
  * \brief Computes the local stiffness matrix for the Stokes system.
  *        For this problem we compute LHS of:
  *
- *        <2 nu eps(u), eps(v)> - <p, div v> = <f, v>
+ *        <2 eps(u), eps(v)> - <p, div v> = <f, v>
  *                   - <div u, q> = 0
  *
  *        where eps(u) = (grad u + (grad u)^T)/2 is the symmetric gradient.
@@ -47,7 +47,7 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qco
 
   // Quadrature Weights and Nodes
   REAL w;
-  REAL* qx = (REAL *) calloc(dim,sizeof(REAL));
+  REAL qx[dim];
 
   // Stiffness Matrix Entry
   REAL kij = 0.0;
@@ -74,7 +74,7 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qco
     // p
     local_dof_on_elm += FE->var_spaces[dim-1]->dof_per_elm;
     get_FEM_basis(FE->var_spaces[dim]->phi,FE->var_spaces[dim]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[dim]);
-    
+
     // ux-vx block: <grad u, grad v>
     local_row_index = 0;
     local_col_index = 0;
@@ -141,7 +141,7 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qco
         ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
       }
     }
-    
+
     // p-vy block: -<p, dy(uy)>
     local_row_index = FE->var_spaces[0]->dof_per_elm;
     local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
@@ -268,12 +268,8 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qco
           ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
         }
       }
-
     }
   }
-
-  // Free stuff
-  if (qx) free(qx);
 
   return;
 }
