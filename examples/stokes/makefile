@@ -3,9 +3,9 @@
 # Last Modified 2018-08-30 --ltz1
 ####################################################
 # SRC File name
-SRCFILE = Stokes
+SRCFILE = stokes
 
-HEADERS = StokesData.h StokesSystem.h
+HEADERS = stokes_data.h stokes_system.h
 
 INCLUDE =
 
