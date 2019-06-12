@@ -1,4 +1,4 @@
-/*! \file StokesData.h
+/*! \file examples/stokes/stokes_data.h
  *
  *  Created by Peter Ohm on 1/5/17.
  *  Copyright 2015_HAZMATH__. All rights reserved.
@@ -6,6 +6,8 @@
  * \brief This contains all the Data parameters and coefficients
  *        for the Stokes example.  This includes exact solutions,
  *        RHS functions, and boundary conditions.
+ *
+ * \note We include different examples for a 2D and 3D problem.
  *
  */
 
@@ -80,20 +82,8 @@ void bc2D(REAL *val, REAL *x, REAL time,void *param) {
   exact_sol2D(val,x,time,param);
   return;
 }
-
 void bc3D(REAL *val, REAL *x, REAL time,void *param) {
 
   exact_sol3D(val,x,time,param);
-  return;
-}
-
-// Matlab Dump
-void print_matlab_vector_field(dvector* ux, dvector* uy, dvector* uz, fespace* FE ){
-  FILE *fid = fopen("output/usol_vfield.mat","w");
-  INT i;
-  for(i=0; i<ux->row; i++) {
-    fprintf(fid,"%f\t%f\t%f\t%f\t%f\t%f\n",FE->cdof->x[i],FE->cdof->y[i],FE->cdof->z[i],ux->val[i],uy->val[i],uz->val[i]);
-  }
-  fclose(fid);
   return;
 }
