@@ -3,7 +3,7 @@
 # Last Modified 2018-08-30 --ltz1
 ####################################################
 # SRC File name
-SRCFILE = Solver
+SRCFILE = solvers
 
 HEADERS = 
 
