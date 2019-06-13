@@ -457,10 +457,10 @@ typedef struct {
     /* scalar Laplacian information */
     /* ---------------------*/
     //! Grad operator
-    dCSRmat *Grad;
+    //dCSRmat *Grad;
 
     //! transpose of Grad operator
-    dCSRmat *Gradt;
+    //dCSRmat *Gradt;
 
     //! Curl operator
     dCSRmat *Curl;
