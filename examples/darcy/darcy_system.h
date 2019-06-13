@@ -1,4 +1,4 @@
-/*! \file DarcySystem.h
+/*! \file examples/darcy/darcy_system.h
  *
  *  Created by Adler, Hu, Zikatanov on 8/30/16.
  *  Copyright 2016_HAZMATH__. All rights reserved.
@@ -33,7 +33,7 @@
  * \note Assumes 3D only
  *
  */
-void steady_state_Darcy(REAL* ALoc,block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,REAL time) 
+void steady_state_Darcy(REAL* ALoc,block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,REAL time)
 {
 
   // Loop indices
@@ -45,27 +45,27 @@ void steady_state_Darcy(REAL* ALoc,block_fespace *FE,mesh_struct *mesh,qcoordina
     dof_per_elm += FE->var_spaces[i]->dof_per_elm;
   INT* local_dof_on_elm = NULL;
   INT dim = mesh->dim;
-  
+
   // Quadrature Weights and Nodes
   REAL w;
   // Stiffness Matrix Entry
   REAL kij = 0.0,alocpq=-10.;
 
-  REAL* qx = (REAL *) calloc(dim,sizeof(REAL)); 
+  REAL* qx = (REAL *) calloc(dim,sizeof(REAL));
   // Porosity Coefficient Data
   REAL *K=(REAL *)calloc(dim*dim,sizeof(REAL)); //ltz1
   REAL *Kinv=(REAL *)calloc(dim*dim,sizeof(REAL)); //ltz1
   void *wrk=(void *)calloc(dim*(dim+1)*sizeof(REAL)+dim*sizeof(INT),sizeof(char));//ltz1
   // Keep track of local indexing
   INT local_row_index, local_col_index,di,pdim,qdim;
-  
+
   //  Sum over quadrature points
   for (quad=0;quad<cq->nq_per_elm;quad++) {
     qx[0] = cq->x[elm*cq->nq_per_elm+quad];
     qx[1] = cq->y[elm*cq->nq_per_elm+quad];
     if(dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
     w = cq->w[elm*cq->nq_per_elm+quad];
-    
+
     //  Get the Basis Functions at each quadrature node
     // q
     get_FEM_basis(FE->var_spaces[0]->phi,FE->var_spaces[0]->dphi,qx,v_on_elm,dof_on_elm,mesh,FE->var_spaces[0]);
@@ -73,7 +73,7 @@ void steady_state_Darcy(REAL* ALoc,block_fespace *FE,mesh_struct *mesh,qcoordina
     // h (need to shift local index)
     local_dof_on_elm = dof_on_elm + FE->var_spaces[0]->dof_per_elm;
     get_FEM_basis(FE->var_spaces[1]->phi,FE->var_spaces[1]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[1]);
-    
+
     // Data
     porosity(K,qx,time,NULL); //ltz1
     invfull(Kinv,dim, K, wrk); //ltz1
@@ -98,7 +98,7 @@ void steady_state_Darcy(REAL* ALoc,block_fespace *FE,mesh_struct *mesh,qcoordina
 	alocpq=0.;
 	for(i=0;i<dim;i++){
 	  di=dim*i;
-	  for(j=0;j<dim;j++){	  
+	  for(j=0;j<dim;j++){
 	    alocpq += Kinv[i*dim+j]*FE->var_spaces[0]->phi[qdim+j]*FE->var_spaces[0]->phi[pdim+i];
 	  }
 	}
@@ -120,7 +120,7 @@ void steady_state_Darcy(REAL* ALoc,block_fespace *FE,mesh_struct *mesh,qcoordina
 /*         ALoc[(local_row_index+test)*dof_per_elm+(local_col_index+trial)] += w*kij; */
 /*       } */
 /*     } */
-    
+
     // q-h block:  <h, div r>
     local_col_index += FE->var_spaces[0]->dof_per_elm;
     // Loop over Test Functions (Rows)
@@ -189,7 +189,7 @@ void steady_state_Darcy_RHS(REAL* bLoc,block_fespace *FE,mesh_struct *mesh,qcoor
     dof_per_elm += FE->var_spaces[i]->dof_per_elm;
   INT* local_dof_on_elm = NULL;
   INT dim = mesh->dim;
-  
+
   // Quadrature Weights and Nodes
   REAL w;
   REAL* qx = (REAL *) calloc(dim,sizeof(REAL));
@@ -209,7 +209,7 @@ void steady_state_Darcy_RHS(REAL* bLoc,block_fespace *FE,mesh_struct *mesh,qcoor
     qx[1] = cq->y[elm*cq->nq_per_elm+quad];
     if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
     w = cq->w[elm*cq->nq_per_elm+quad];
-    
+
     //  Get the Basis Functions at each quadrature node
     // q
     local_dof_on_elm = dof_on_elm + FE->var_spaces[0]->dof_per_elm;
@@ -274,7 +274,7 @@ void steady_state_Darcy_bdryRHS(REAL* bLoc,dvector* old_sol,fespace *FE,mesh_str
   // Mesh and FE data
   INT dof_per_elm = FE->dof_per_elm;
   INT dim = mesh->dim;
-  
+
   // Quadrature Weights and Nodes
   INT nq = 2*dim-3; // = ed_per_face
   REAL* qx = (REAL *) calloc(nq,sizeof(REAL));
@@ -282,8 +282,8 @@ void steady_state_Darcy_bdryRHS(REAL* bLoc,dvector* old_sol,fespace *FE,mesh_str
   REAL w = mesh->f_area[face]/3.0;
   // Find the edges for the given face
   INT* ed_on_f = (INT *) calloc(nq,sizeof(INT));
-  rowa = mesh->f_ed->IA[face]-1;
-  rowb = mesh->f_ed->IA[face+1]-1;
+  rowa = mesh->f_ed->IA[face];
+  rowb = mesh->f_ed->IA[face+1];
   jcntr = 0;
   for(i=rowa;i<rowb;i++) {
     ed_on_f[jcntr] = mesh->f_ed->JA[i];
@@ -304,11 +304,11 @@ void steady_state_Darcy_bdryRHS(REAL* bLoc,dvector* old_sol,fespace *FE,mesh_str
 
   //  Sum over midpoints of edges
   for (quad=0;quad<nq;quad++) {
-    ed = ed_on_f[quad]-1;
+    ed = ed_on_f[quad];
     qx[0] = mesh->ed_mid[ed*dim];
     qx[1] = mesh->ed_mid[ed*dim+1];
     if(mesh->dim==3) qx[2] = mesh->ed_mid[ed*dim+2];
-    
+
     //  Get the Basis Functions at each quadrature node
     get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
 

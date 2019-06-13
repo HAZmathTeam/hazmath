@@ -20,9 +20,9 @@
  *       or BDF1 or 2 for the time stepping
  *
  * \note This example shows how to build your own bilinear form for a
- *       system.  The forms are found in Darcy_assemble.h and
+ *       system.  The forms are found in darcy_system.h and
  *       coefficients, right hand side, etc problem data is found in
- *       Darcy_functions.h.  Additionally, this example illustrates how to use problem
+ *       darcy_data.h.  Additionally, this example illustrates how to use problem
  *       data with different parameters.  For instance, certain boundaries may take
  *       different boundary conditions.  Each FE space is equipped with a flag for each DOF
  *       which can be passed to the problem data functions for this purpose.
@@ -31,12 +31,12 @@
 
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************************/
 #include "hazmath.h"
-#include "Darcy_functions.h"
-#include "Darcy_assemble.h"
+#include "darcy_data.h"
+#include "darcy_system.h"
 /*********************************************************************************/
 
 /****** MAIN DRIVER **************************************************************/
-int main (int argc, char* argv[]) 
+int main (int argc, char* argv[])
 {
 
   printf("\n===========================================================================\n");
@@ -54,7 +54,7 @@ int main (int argc, char* argv[])
   input_param inparam;
   param_input_init(&inparam);
   param_input("./input.dat", &inparam);
-  
+
   // Open gridfile for reading
   printf("\nCreating mesh and FEM spaces:\n");
   FILE* gfid = HAZ_fopen(inparam.gridfile,"r");
@@ -72,7 +72,7 @@ int main (int argc, char* argv[])
   // Get Quadrature Nodes for the Mesh
   INT nq1d = inparam.nquad; /* Quadrature points per dimension */
   qcoordinates *cq = get_quadrature(&mesh,nq1d);
-  
+
   // Get info for and create FEM spaces
   // Order of Elements: 0 - P0; 1 - P1; 2 - P2; 20 - Nedelec; 30 - Raviart-Thomas
   INT order_h = 0;
@@ -95,7 +95,7 @@ int main (int argc, char* argv[])
     FILE* fid = fopen("output/coords.dat","w");
     dump_coords(fid,mesh.cv);
     fclose(fid);
-    
+
     char* namevtk = "output/mesh.vtu";
     dump_mesh_vtk(namevtk,&mesh);
   }
@@ -201,11 +201,11 @@ int main (int argc, char* argv[])
   // prepare diagonal blocks
   dCSRmat *A_diag;
   A_diag = (dCSRmat *)calloc(2, sizeof(dCSRmat));
-  
+
   dCSRmat BTB;
   dvector el_vol;
   //-----------------------------------------------
-  
+
   clock_t clk_assembly_end = clock();
   printf(" --> elapsed CPU time for assembly = %f seconds.\n\n",(REAL)
          (clk_assembly_end-clk_assembly_start)/CLOCKS_PER_SEC);
@@ -282,8 +282,6 @@ int main (int argc, char* argv[])
 
     // Solve the linear system
     // solve in block CSR format
-    bdcsr_shift(time_stepper.At, -1);  // shift A
-
     if (linear_itparam.linear_precond_type >= 10 & linear_itparam.linear_precond_type < 13) {
 
       // get preconditioner diagonal blocks
@@ -305,7 +303,6 @@ int main (int argc, char* argv[])
       // free spaces
       dcsr_free(&A_diag[0]);
       dcsr_free(&A_diag[1]);
-
     }
     // solver diaognal blocks inexactly
     else if ( (linear_itparam.linear_precond_type >= 20 & linear_itparam.linear_precond_type < 23) || (linear_itparam.linear_precond_type >= 30 & linear_itparam.linear_precond_type < 33) ) {
@@ -339,8 +336,6 @@ int main (int argc, char* argv[])
 
     }
 
-    bdcsr_shift(time_stepper.At, 1);   // shift A back
-
     // Error Check
     if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
 
@@ -369,7 +364,7 @@ int main (int argc, char* argv[])
     create_pvd("output/solution.pvd",time_stepper.tsteps+1,"solution_ts","timestep");
   }
   /*******************************************************************************************/
-  
+
 
 
   /******** Free All the Arrays *************************************************************/
@@ -400,7 +395,7 @@ int main (int argc, char* argv[])
 
   // Mesh
   free_mesh(&mesh);
-  
+
   /*****************************************************************************************/
 
   clock_t clk_overall_end = clock();
