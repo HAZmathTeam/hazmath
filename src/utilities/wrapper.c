@@ -806,6 +806,21 @@ void python_wrapper_krylov_block_2by2(INT *n00,
       rhs.row = n; rhs.val = b;
       sol.row = n; sol.val = u;
 
+      // Output matrices and right hand side
+      /*
+      dcsr_write_dcoo("A00.dat",mat_bdcsr.blocks[0]);
+      dcsr_write_dcoo("A01.dat",mat_bdcsr.blocks[1]);
+      dcsr_write_dcoo("A10.dat",mat_bdcsr.blocks[2]);
+      dcsr_write_dcoo("A11.dat",mat_bdcsr.blocks[3]);
+
+      dcsr_write_dcoo("Pdiv.dat", &P_div);
+      dcsr_write_dcoo("Curl.dat", &Curl);
+      dcsr_write_dcoo("Pcurl.dat", &P_curl);
+      dvec_write("Mp.dat", &Mp);
+
+      dvec_write("b.dat", &rhs);
+      */
+
       // solve in 2 by 2 block form
       *iters = linear_solver_bdcsr_krylov_mixed_darcy(&mat_bdcsr, &rhs, &sol, &itparam, &amgparam, &P_div, &Curl, &P_curl, &Mp);
 
