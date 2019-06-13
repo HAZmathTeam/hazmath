@@ -354,8 +354,8 @@ void HX_div_data_null (HX_div_data *hxdivdata)
     hxdivdata->amgparam_divgrad  = NULL;
     hxdivdata->mgl_divgrad       = NULL;
 
-    hxdivdata->Grad            = NULL;
-    hxdivdata->Gradt           = NULL;
+    //hxdivdata->Grad            = NULL;
+    //hxdivdata->Gradt           = NULL;
     hxdivdata->Curl            = NULL;
     hxdivdata->Curlt           = NULL;
     hxdivdata->A_grad          = NULL;
@@ -389,7 +389,7 @@ void HX_div_data_free (HX_div_data *hxdivdata,
         dcsr_free(hxdivdata->P_curl);
         dcsr_free(hxdivdata->P_div);
         dcsr_free(hxdivdata->Curl);
-        dcsr_free(hxdivdata->Grad);
+        //dcsr_free(hxdivdata->Grad);
     }
 
     dcsr_free(hxdivdata->Pt_curl);
@@ -401,7 +401,7 @@ void HX_div_data_free (HX_div_data *hxdivdata,
     if (hxdivdata->mgl_curlgrad) amg_data_free(hxdivdata->mgl_curlgrad, hxdivdata->amgparam_curlgrad);
     if (hxdivdata->mgl_divgrad) amg_data_free(hxdivdata->mgl_divgrad, hxdivdata->amgparam_divgrad);
 
-    dcsr_free(hxdivdata->Gradt);
+    //dcsr_free(hxdivdata->Gradt);
     dcsr_free(hxdivdata->Curlt);
     dcsr_free(hxdivdata->A_grad);
     dcsr_free(hxdivdata->A_curl);
@@ -487,13 +487,25 @@ void precond_block_data_free(precond_block_data *precdata,
            if(precdata->diag[i]) dvec_free(precdata->diag[i]);
         }
         if(precdata->mgl) {
-            if(precdata->mgl[i]) amg_data_free(precdata->mgl[i], &precdata->amgparam[i]);
+            if(precdata->mgl[i])
+            {
+              amg_data_free(precdata->mgl[i], &precdata->amgparam[i]);
+              free(precdata->mgl[i]);
+            }
         }
         if(precdata->hxcurldata) {
-            if(precdata->hxcurldata[i]) HX_curl_data_free(precdata->hxcurldata[i],flag);
+            if(precdata->hxcurldata[i])
+            {
+              HX_curl_data_free(precdata->hxcurldata[i],flag);
+              free(precdata->hxcurldata[i]);
+            }
         }
         if(precdata->hxdivdata) {
-            if(precdata->hxdivdata[i]) HX_div_data_free(precdata->hxdivdata[i],flag);
+            if(precdata->hxdivdata[i])
+            {
+              HX_div_data_free(precdata->hxdivdata[i],flag);
+              free(precdata->hxdivdata[i]);
+            }
         }
     }
 
