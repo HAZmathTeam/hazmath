@@ -1,11 +1,10 @@
 #####################################################
-# Modified 2017-04-03 --jha & xh
-# Last Modified 2018-08-30 --ltz1
+# Last Modified 2019-06-13 --ltz1
 ####################################################
 # SRC File name
-SRCFILE = DarcyFlow
+SRCFILE = darcy
 
-HEADERS = Darcy_assemble.h Darcy_functions.h
+HEADERS = darcy_system.h darcy_data.h
 
 INCLUDE =
 
@@ -18,4 +17,3 @@ FFLAGS = -g
 WITH_SUITESPARSE=1
 
 sinclude ../examples.mk
-
