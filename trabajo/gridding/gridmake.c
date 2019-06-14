@@ -249,7 +249,7 @@ INT main(INT   argc,   char *argv[]){
     scfinalize(sc);
   }
   // write the output mesh file:    
-  hazw(nameout,sc,0,1);
+  hazw(nameout,sc,0,0);
   if(idovtk) {
     strcat(namevtk,".vtu");
     //    fprintf(stdout,"\nvert=%d; simp=%d",sc->nv,sc->ns);
