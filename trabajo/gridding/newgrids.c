@@ -258,12 +258,12 @@ INT main(INT argc, char **argv)
   INT ns=c2s->ns,dim1=c2s->n+1;
   INT *nd=(INT *)calloc(dim,sizeof(INT));  
   INT *ndd=(INT *)calloc(dim,sizeof(INT));  
-  for(i=0;i<dim;i++) nd[i]=33;
+  for(i=0;i<dim;i++) nd[i]=3;
   INT memx=dim;
   for(i=0;i<dim;i++) memx*=(nd[i]+1);
   /*------------------------------------------------------*/
   scomplex *sc;
-  INT intype=-2;
+  INT intype=0;
   /*------------------------------------------------------*/
   if(intype<-1){
     for(i=0;i<dim;i++) ndd[i]=1;
