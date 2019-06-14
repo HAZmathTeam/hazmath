@@ -4,6 +4,8 @@ hazmath*.tar.*
 tarball/
 trabajo/
 examples/grids/
+fractures/LS/*.ijv
+fractures/LS/*.dat
 sync_hydro*
 tar.excl
 .DS_Store

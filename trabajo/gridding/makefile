@@ -47,7 +47,7 @@ OBJb = 	newgrids.o \
 
 OBJinp = main_input.o
 
-OBJlex = lex0.o
+OBJlex = lex1.o
 
 .PHONY:  all
 

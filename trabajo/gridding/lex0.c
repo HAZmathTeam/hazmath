@@ -42,6 +42,7 @@ void lex_sort(const INT nr, const INT nc, REAL *a, REAL *aj)
   elements.
 */
   INT i,j,k,k1;
+  size_t elsize=sizeof(REAL);
   unsigned int lt=0;
   for (j = 1; j < nr; ++j) {
     //    for(k=0;k<nc;k++)aj[k] = a[j*nc+k];
