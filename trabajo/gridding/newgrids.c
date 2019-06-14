@@ -21,14 +21,44 @@
 #ifndef DIM
 #define DIM 2
 #endif
+/********************************************************************/
+typedef struct /* general cell complex (like hexagonal, etc) */
+{
+  INT n; /* the dimension of GC */
+  INT nv; /* number of 0-dimensional cells (vertices) */
+  INT ne; /* number of 1-dimensional cells (edges) */
+  INT ncells; /* number of n-dimensional cells or elements */
+  INT *nodes; /* array (depending on faces) to hold the neighbors */
+  INT *nbr; /* array (depending on faces) to hold the neighbors */
+  INT *bndry; /* nv boundary codes for vertices */
+  INT *csys; /* nv coord system for a point */
+  REAL *x; /*(nv x n) array to hold the coordinates of vertices all in
+	     cartesian coordinates*/
+  REAL *xe; /*(ne x n) array to hold the coordinates of midpoints of the edges
+	     in cartesian coordinates*/
+} gcomplex;
 /********************************FINCTIONS:*********************/
 void cube2simp_free(cube2simp *c2s);
 INT reverse(void *arr,INT length, size_t elsize);
 cube2simp *cube2simplex(INT dim);
 scomplex *umesh(const INT dim, INT *nd, cube2simp *c2s, const INT intype);
 void polar2cart(INT dim, REAL *px, REAL *cx);
+void lexsort(const INT nr, const INT nc,REAL *a,INT *p);
 //////////////////////////////////////////////////////////////////////
 void unirefine(INT *nd,scomplex *sc);
+/***************************************************************/
+gcomplex *form_macro(input_grid *g){
+  gcomplex *gc=malloc(sizeof(gcomplex));
+  gc->ncells=1; //one macroelement only
+  gc->n=g->dim;
+  gc->nv=g->nv;
+  gc->ne=g->ne;
+  gc->x=g->x;
+  gc->xe=g->xe;
+  // the array entries of nodes[] are determined by an external
+  // function which constructs macroelements from edges(segments).  
+  return gc;
+}
 /***************************************************************/
 REAL interp4(cube2simp *c2s, REAL *u, REAL *xhat)
 {
@@ -266,10 +296,10 @@ INT main(INT argc, char **argv)
   /*   }     */
   /* }   */
   input_grid *g=parse_input_grid("input.grid");
-  //  
-  //input_grid_print(g);  
+  INT nmacs=0;
+  gcomplex *macs=form_macro(g);
   map2mac(sc,c2s,g);
-  input_grid_free(g);
+  input_grid_free(g); 
   fprintf(stdout,"\nDone.\n");
   //  haz_scomplex_print(sc,0,"HAHA");
   if(dim==2||dim==3) {
