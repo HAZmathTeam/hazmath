@@ -1,0 +1,2 @@
+#/bin/bash
+gcc -c -I../../include -L../../lib -g eafe1.c -lhazmath -lm

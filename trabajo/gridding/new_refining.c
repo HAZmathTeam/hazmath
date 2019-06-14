@@ -285,13 +285,13 @@ void scfinalize(scomplex *sc)
   return;
 }
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
-void sc2mesh(scomplex *sc,trimesh *mesh)
+void sc2mesh(scomplex *sc,mesh_struct *mesh)
 {
   /* copy the final grid at position 1*/
   INT ns,n=sc->n,n1=sc->n+1,jk=-10,k=-10,j=-10;
   /*  
-      store the finest mesh in trimesh structure. 
-      sc has all the hierarchy, trimesh will have only the last mesh. 
+      store the finest mesh in mesh_struct structure.  sc has all the
+      hierarchy, mesh_struct will have only the last mesh.
   */
   ns=0;
   for (j=0;j<sc->ns;j++){
