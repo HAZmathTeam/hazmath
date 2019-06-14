@@ -8,8 +8,3 @@ extern void xyzloc_(REAL *xyz,INT *jcub,INT *nx,INT *ny,INT *nz,INT *i,INT *j,IN
 extern void bndry3_(INT *ib,INT *nx,INT *ny,INT *nz,INT *mini,INT *minj,INT *mink,INT *maxi,INT *maxj,INT *maxk,INT *inumb,INT *minneu,INT *maxneu);
 extern void bess3_(INT *ib,INT *nx,INT *ny,INT *nz,INT *inumb,INT *ibess,INT *jbess,INT *kbess,INT *ibcode,INT *minneu,INT *maxneu);
 extern void getm3_(INT *nd,INT *nvert,INT *nel,REAL *xcoord,REAL *ycoord,REAL *zcoord,INT *je,INT *iflags,INT *ib,INT *inumb,INT *ibcode,INT *minneu,INT *maxneu);
-extern void cubtet_(INT *nop);
-extern void xyzloc_(REAL *xyz,INT *jcub,INT *nx,INT *ny,INT *nz,INT *i,INT *j,INT *k,REAL *hx,REAL *hy,REAL *hz,REAL *xmin,REAL *ymin,REAL *zmin);
-extern void bndry3_(INT *ib,INT *nx,INT *ny,INT *nz,INT *mini,INT *minj,INT *mink,INT *maxi,INT *maxj,INT *maxk,INT *inumb,INT *minneu,INT *maxneu);
-extern void bess3_(INT *ib,INT *nx,INT *ny,INT *nz,INT *inumb,INT *ibess,INT *jbess,INT *kbess,INT *ibcode,INT *minneu,INT *maxneu);
-extern void getm3_(INT *nd,INT *nvert,INT *nel,REAL *xcoord,REAL *ycoord,REAL *zcoord,INT *je,INT *iflags,INT *ib,INT *inumb,INT *ibcode,INT *minneu,INT *maxneu);
