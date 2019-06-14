@@ -125,12 +125,12 @@ scomplex *unimesh(INT dim, INT *nd, REAL *xo, REAL *xn,	const INT ishift){
   REAL *xcoord = sc->x;
   REAL *ycoord = xcoord+nv;
   REAL *zcoord = ycoord+nv;
-  if(dim<=2) {
+  if(dim<=2) {// still using fortran...
     getm2_(nd,&nv,&ns,xcoord,ycoord,		\
 	   sc->nodes,sc->flags,sc->bndry,mask,	\
 	   ibcode,&minneu,&maxneu);
     zcoord=NULL;
-  } else {
+  } else {// still using fortran...
     getm3_(nd,&nv,&ns,xcoord,ycoord,zcoord,	\
 	   sc->nodes,sc->flags,sc->bndry,mask,	\
 	   ibcode,&minneu,&maxneu);
