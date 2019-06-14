@@ -57,17 +57,23 @@ num_vertices{4} %number of vertices
 %---------------%
 %coords: for every node 1:numvertices: coords[0:dim-1],
 % coord system for every vertex and also its boundary code;
-If two points on an edge are in the same coordinate system,
+% If two points on an edge are in the same coordinate system,
 % then all points on this edge are in polar coordinate system.
 % if two points on an edge are in in different coordinate systems,
 % then the points on the edge are on a straight
 %% line connecting the two vertices.  
 %---------------%
 
-data_vertices{-1.   -1.   0 1	%% coords, coord_system. 
-	       2.    0.   2 1   %% for a polar system: 
-	       2.   90.   2 1   %% angles are in degrees.
-	       2.   45.   2 1}
+%data_vertices{-1.   -1.   0 0	%% coords, coord_system. 
+%	       2.    0.   2 1   %% for a polar system: 
+%	       2.   90.   2 1   %% angles are in degrees.
+%	       2.   45.   2 1}
+%
+
+data_vertices{-1.   -1.   0 1	%% coords, coord_system, bcode
+	       1.   -1.   0 1
+	       -1.   1.   0 1   
+	       1.   1.   0 1}
 
 %---------------%
 % edges and number of divisions for every edge.
@@ -77,8 +83,8 @@ data_vertices{-1.   -1.   0 1	%% coords, coord_system.
 
 num_edges{4} % 
 
-data_edges{0   1	5 %% edge: 1st vertex, 2nd vertex, number of divisions.
-           1 2 		5
-           0 3 		4
-  	   2 3 7	}
+data_edges{0  1	1 %% edge: 1st vertex, 2nd vertex, number of divisions.
+           1 2 		1
+           0 3 		3
+  	   2 3     1	      }
       
