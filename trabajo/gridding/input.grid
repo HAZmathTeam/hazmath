@@ -64,16 +64,16 @@ num_vertices{4} %number of vertices
 %% line connecting the two vertices.
 %---------------%
 
-data_vertices{-1.   -1.   0 0	%% coords, coord_system.
-	       2.    0.   2 1   %% for a polar system:
-	       2.   90.   2 1   %% angles are in degrees.
-	       2.   45.   2 1}
+%data_vertices{-1.   -1.   0 0	%% coords, coord_system.
+%	       2.    0.   2 1   %% for a polar system:
+%	       2.   90.   2 1   %% angles are in degrees.
+%	       2.   45.   2 1}
 
 
-%data_vertices{-1.   -1.   0 1	%% coords, coord_system, bcode
-%	       1.   -1.   0 1
-%	       -1.   1.   0 1
-%	       1.   1.   0 1}
+data_vertices{-1.   -1.   0 1	%% coords, coord_system, bcode
+	       1.   -1.   0 1
+	       -1.   1.   0 1
+	       1.   1.   0 1}
 
 %---------------%
 % edges and number of divisions for every edge.
