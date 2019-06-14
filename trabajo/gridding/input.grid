@@ -16,7 +16,7 @@ print_level{1}	% how much information to print out: 0 Nothing | >0 Something
 % files: output is in dir_grid/** where ** is nD for spatial dimension n.
 %  	 the dir_grid/1D, dir_grid/2D ... should exist as
 % 	 directories writeable by the user
-% vtu files for plotting follow the same convention. 
+% vtu files for plotting follow the same convention.
 %---------------%
 
 dir_grid{grids/}
@@ -33,7 +33,7 @@ file_vtu{unitSQ_n17.vtu}
 %---------------%
 % coordinate systems: Each has coordinates of the origin o[0:dim-1]
 %                     type (0=cartesian, 1=polar)
-%                
+%
 %---------------%
 
 num_coordsystems{3} % number of coordinate systems
@@ -44,7 +44,7 @@ num_coordsystems{3} % number of coordinate systems
 %% separated values
 
 data_coordsystems{0 0. 0.  0
-		  1 0. 0.  1 
+		  1 0. 0.  1
 		  2 -1. -1.  1}
 %---------------%
 % graph which describes the domain. The input are
@@ -61,19 +61,19 @@ num_vertices{4} %number of vertices
 % then all points on this edge are in polar coordinate system.
 % if two points on an edge are in in different coordinate systems,
 % then the points on the edge are on a straight
-%% line connecting the two vertices.  
+%% line connecting the two vertices.
 %---------------%
 
-%data_vertices{-1.   -1.   0 0	%% coords, coord_system. 
-%	       2.    0.   2 1   %% for a polar system: 
-%	       2.   90.   2 1   %% angles are in degrees.
-%	       2.   45.   2 1}
-%
+data_vertices{-1.   -1.   0 0	%% coords, coord_system.
+	       2.    0.   2 1   %% for a polar system:
+	       2.   90.   2 1   %% angles are in degrees.
+	       2.   45.   2 1}
 
-data_vertices{-1.   -1.   0 1	%% coords, coord_system, bcode
-	       1.   -1.   0 1
-	       -1.   1.   0 1   
-	       1.   1.   0 1}
+
+%data_vertices{-1.   -1.   0 1	%% coords, coord_system, bcode
+%	       1.   -1.   0 1
+%	       -1.   1.   0 1
+%	       1.   1.   0 1}
 
 %---------------%
 % edges and number of divisions for every edge.
@@ -81,10 +81,9 @@ data_vertices{-1.   -1.   0 1	%% coords, coord_system, bcode
 % then the max number of divisions is taken.
 %---------------%
 
-num_edges{4} % 
+num_edges{4} %
 
 data_edges{0  1	1 %% edge: 1st vertex, 2nd vertex, number of divisions.
            1 2 		1
            0 3 		3
   	   2 3     1	      }
-      
