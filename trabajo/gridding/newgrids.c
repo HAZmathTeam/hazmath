@@ -263,7 +263,7 @@ INT main(INT argc, char **argv)
   for(i=0;i<dim;i++) memx*=(nd[i]+1);
   /*------------------------------------------------------*/
   scomplex *sc;
-  INT intype=0;
+  INT intype=-2;
   /*------------------------------------------------------*/
   if(intype<-1){
     for(i=0;i<dim;i++) ndd[i]=1;
