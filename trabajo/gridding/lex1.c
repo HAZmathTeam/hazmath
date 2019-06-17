@@ -14,12 +14,12 @@ void lexsort(const INT nr, const INT nc,REAL *a,INT *p)
 {
   /*
     implements STRAIGHT INSERT sorting to order lexicographically nr
-    names with nc components each.  the array a is overwritten. aj[] on
-    input should be allocated. aj is a working double array with nc
-    elements. used to sort coordinates of the vertices of the
-    macroelements lexicographically.  on output, a is ordered, p is the
-    permutation used to order a. The ogiginal a is recovered with inf
-    permutation aorig[]=a[invp[i]];
+    names with nc components each.  the array a is overwritten.  aj is
+    a working double array with nc (this will be dim in our most
+    common case) elements. used to sort coordinates of the vertices of
+    the macroelements lexicographically.  on output, a is ordered, p
+    is the permutation used to order a. The ogiginal a is recovered
+    with inf permutation aorig[]=a[invp[i]];
   */
   INT i,j,k,k1,pj;
   unsigned int lt=0;
@@ -54,10 +54,10 @@ void lexsort(const INT nr, const INT nc,REAL *a,INT *p)
   return;
 }
 INT main(int argc, char **argv){
-  INT i,j,k,n=17,dim=4;
+  INT i,j,k,n=16,dim=4;
   REAL *a=calloc((n*dim),sizeof(REAL));
   INT *p=(INT *)calloc(n,sizeof(INT));
-  FILE *fp=fopen("test4.input","r");
+  FILE *fp=fopen("test0.input","r");
   for (i=0;i<n;i++){
     fprintf(stdout,"a(%i,:)=",i);
     for (j=0;j<dim;j++){
