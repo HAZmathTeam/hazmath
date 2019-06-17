@@ -43,8 +43,8 @@ INT reverse(void *arr,INT length, size_t elsize);
 cube2simp *cube2simplex(INT dim);
 scomplex *umesh(const INT dim, INT *nd, cube2simp *c2s, const INT intype);
 void polar2cart(INT dim, REAL *px, REAL *cx);
-void lexsort(const INT nr, const INT nc,REAL *a,INT *p);
-//////////////////////////////////////////////////////////////////////
+REAL interp8(cube2simp *c2s, REAL *u, REAL *ue, REAL *xhat);
+REAL interp4(cube2simp *c2s, REAL *u, REAL *xhat);
 void unirefine(INT *nd,scomplex *sc);
 /***************************************************************/
 gcomplex *form_macro(input_grid *g){
@@ -59,97 +59,7 @@ gcomplex *form_macro(input_grid *g){
   // function which constructs macroelements from edges(segments).  
   return gc;
 }
-/***************************************************************/
-REAL interp4(cube2simp *c2s, REAL *u, REAL *xhat)
-{
-  /*INTerpolate d-linearly in d dimensions on the UNIT cube */
-  INT dim=c2s->n,k,i,kdim;
-  REAL phik;
-  REAL s=0.;
-  for(k = 0;k<c2s->nvcube;k++){
-    kdim=k*dim;
-    phik=1e0;
-    for(i = 0;i<dim;++i){      
-      if(!c2s->bits[kdim+i])
-	phik*=(1e0-xhat[i]);
-      else	
-	phik*=xhat[i];
-    }
-    s+=u[k]*phik;
-  }
-  return s;
-}
-REAL interp8(cube2simp *c2s, REAL *u, REAL *ue, REAL *xhat)
-{
-  /*INTerpolate quadratically in d dimensions on the UNIT cube */
-  INT dim=c2s->n,k,i,j,l,k1,k2,kdim;  
-  REAL rl,phik,zmid,psimid;
-  REAL s=0.;
-  for(k = 0;k<c2s->nvcube;k++){
-    kdim=k*dim;
-    phik=1e0;
-    for(i = 0;i<dim;++i){      
-      if(!c2s->bits[kdim+i]){
-	phik*=(1e0-xhat[i]);
-	//	fprintf(stdout,"\nold:%d:vert:(1-x[%d])",k,i);
-      } else {
-	phik*=xhat[i];
-	//	fprintf(stdout,"\nold:%d:vert:x[%d]",k,i);
-      }
-    }
-    psimid=0.;zmid=0.;
-    //    fprintf(stdout,"\nvertex=%d; normal=",k);
-    for(i=0;i<dim;++i){
-      if(!c2s->bits[kdim+i]){
-	psimid-=xhat[i];
-	zmid+=0.25e00;
-	//	fprintf(stdout,"\n%d:vert:(-x[%d])",k,i);
-      } else {
-	psimid+=xhat[i];
-	zmid-=0.75e00;
-	//	fprintf(stdout,"\n%d:vert:x[%d]",k,i);
-      }
-    }
-    //    fprintf(stdout,"\n%d:zmid=%5.1f",k,zmid);
-    phik*=2e00*(zmid+psimid);
-    s+=u[k]*phik;
-  }
-  REAL se,phie,xe1,xe2;
-  se=0.;
-  for(k=0;k<c2s->ne;k++){
-    k2=c2s->edges[2*k];    
-    k1=c2s->edges[2*k+1];
-    //    fprintf(stdout,"\nmid=(%d,%d);",k1,k2);
-    phie=1e0;
-    for(i = 0;i<dim;++i){      
-      if(!c2s->bits[k1*dim+i]){
-	phie*=(1e0-xhat[i]);
-	//	fprintf(stdout,"\n1:(1-x[%d])",i);
-      } else {
-	phie*=xhat[i];
-	//	fprintf(stdout,"\n1:x[%d]",i);
-      }
-    }
-    for(i = 0;i<dim;++i){      
-      if(c2s->bits[k2*dim+i]==c2s->bits[k1*dim+i]) continue;
-      if(!c2s->bits[k2*dim+i]){
-	phie*=(1e0-xhat[i]);
-	//	fprintf(stdout,"\n2:(1-x[%d])=%e",i,1.-xhat[i]);
-      } else {
-	phie*=xhat[i];
-	//	fprintf(stdout,"\n2:x[%d]=%e",i,xhat[i]);
-      }
-    }
-    phie*=4e00;
-    //    fprintf(stdout,"\nedge=(%d,%d),coord=%e,phie=%e",k1,k2,ue[k],phie);
-    se+=ue[k]*phie;
-  }
-  //  fprintf(stdout,"\n");
-  //  fprintf(stdout,"\n***************** xhat=(%e,%e):%e",xhat[0],xhat[1],se);
-  //  fprintf(stdout,"\ns=%e",s);
-  //  fprintf(stdout,"\n");
-  return (s+se);
-}
+/***********************************************************************/
 void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
 {
   /* 
@@ -258,7 +168,7 @@ INT main(INT argc, char **argv)
   INT ns=c2s->ns,dim1=c2s->n+1;
   INT *nd=(INT *)calloc(dim,sizeof(INT));  
   INT *ndd=(INT *)calloc(dim,sizeof(INT));  
-  for(i=0;i<dim;i++) nd[i]=33;
+  for(i=0;i<dim;i++) nd[i]=3+2*i;
   INT memx=dim;
   for(i=0;i<dim;i++) memx*=(nd[i]+1);
   /*------------------------------------------------------*/
@@ -295,7 +205,7 @@ INT main(INT argc, char **argv)
   /*     xmac[i]=-1e20; */
   /*   }     */
   /* }   */
-  input_grid *g=parse_input_grid("input.grid");
+  input_grid *g=parse_input_grid("grid.input");
   INT nmacs=0;
   gcomplex *macs=form_macro(g);
   map2mac(sc,c2s,g);
