@@ -30,8 +30,9 @@
 /* 		    char *the_string); */
 /* input_grid *parse_input_grid(const char *input_file_grid); */
 /********************************************************************/
+/***************************************************************/
 int main(int argc, char **argv){
-  char input_grid_file[256]={"input.grid"};
+  char input_grid_file[256]={"grid.input"};
   input_grid *g=parse_input_grid(input_grid_file);
   input_grid_print(g);  
   input_grid_free(g);
