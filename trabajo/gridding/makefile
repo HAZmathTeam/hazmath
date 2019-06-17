@@ -45,7 +45,7 @@ OBJb = 	newgrids.o \
 	bitwise.o \
 	new_refining.o
 
-OBJinp = main_input.o
+OBJinp = main_input.o	bitwise.o	new_refining.o
 
 OBJlex = lex1.o
 
