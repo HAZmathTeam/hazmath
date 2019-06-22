@@ -23,12 +23,13 @@ void input_grid_free(input_grid *g)
   if(g->bcodes) free(g->bcodes);
   if(g->x) free(g->x);
   if(g) free(g);
+  icoo_free(g->seg);
   return;
 }
 /**********************************************************************/
 void input_grid_print(input_grid *g)
 {
-  // prints output
+  // prints input grid. 
   INT i,j,dim=g->dim;
   fprintf(stdout,"\n\nTITLE: %s",g->title);
   fprintf(stdout,"\ndimension=%d",g->dim);
@@ -56,15 +57,20 @@ void input_grid_print(input_grid *g)
     fprintf(stdout,")");
   }
   fprintf(stdout,"\n\nnum_edges=%d\n",g->ne);
-  INT iaa,iab;
-  for(i=0;i<(g->seg->row);i++){
-    iaa=g->seg->IA[i];
-    iab=g->seg->IA[i+1];
-    for(j=iaa;j<iab;j++){
-      fprintf(stdout,"\nedge=(%d,%d) div=%d",i,g->seg->JA[j],g->seg->val[j]);
-    }
+  /* INT iaa,iab; */
+  /* for(i=0;i<(g->seg->row);i++){ */
+  /*   iaa=g->seg->IA[i]; */
+  /*   iab=g->seg->IA[i+1]; */
+  /*   for(j=iaa;j<iab;j++){ */
+  /*     fprintf(stdout,"\nedge=(%d,%d) div=%d",i,g->seg->JA[j],g->seg->val[j]); */
+  /*   } */
+  /* } */
+  /* fprintf(stdout,"\n\n"); */
+  for(i=0;i<(g->seg)->nnz;i++){
+    fprintf(stdout,"\nedge=(%d,%d) div=%d",g->seg->rowind[i],g->seg->colind[i],g->seg->val[i]);
   }
   fprintf(stdout,"\n\n");
+  
   return;
 }
 /*---------------------------------------------------------------------*/
@@ -174,9 +180,9 @@ void read_data(char *data_coordsystems,		\
   }
   /***** edges *****/
   w=splits(data_edges," ",&num);
-  INT *ir=(INT *)calloc(2*g->ne,sizeof(INT));
-  INT *ic=(INT *)calloc(2*g->ne,sizeof(INT));
-  INT *ndiv=(INT *)calloc(2*g->ne,sizeof(INT));
+  INT *ir=(INT *)calloc(g->ne,sizeof(INT));
+  INT *ic=(INT *)calloc(g->ne,sizeof(INT));
+  INT *ndiv=(INT *)calloc(g->ne,sizeof(INT));
   k=0;
   for(count=0;count<g->ne;count++){
     if(w[k]==NULL) break;
@@ -190,47 +196,68 @@ void read_data(char *data_coordsystems,		\
     if(w[k]) free(w[k]);
     k++;
   }
-  INT ne = 0;
+  INT ne = 0,iri,ici;
   // no selfedges
   for(i=0;i<g->ne;i++){
-    if(ir[i]==ic[i]) continue;
-    ir[ne]=ir[i];
-    ic[ne]=ic[i];
+    iri=ir[i];ici=ic[i];
+    if(iri==ici) continue;
+    if(iri<ici){
+      ir[ne]=iri;
+      ic[ne]=ici;
+    } else {
+      ir[ne]=ici;
+      ic[ne]=iri;
+    }
     ndiv[ne]=ndiv[i];
     ne++;
   }
-  // transpose:
   if(ne<g->ne){
-    ir=realloc(ir,2*ne*sizeof(INT));
-    ic=realloc(ic,2*ne*sizeof(INT));
-    ndiv=realloc(ndiv,2*ne*sizeof(INT));
-    g->ne=ne; 
-  }  
-  for(i=0;i<g->ne;i++){
-    ir[g->ne+i]=ic[i];
-    ic[g->ne+i]=ir[i];
-    ndiv[g->ne+i]=ndiv[i];
-    ne++;
+    ir=realloc(ir,ne*sizeof(INT));
+    ic=realloc(ic,ne*sizeof(INT));
+    ndiv=realloc(ndiv,ne*sizeof(INT));
+    g->ne=ne;
   }
+  /*uncomment the block below if CSR is used later. */
+  // transpose:
+  /* if(ne<g->ne){ */
+  /*   ir=realloc(ir,2*ne*sizeof(INT)); */
+  /*   ic=realloc(ic,2*ne*sizeof(INT)); */
+  /*   ndiv=realloc(ndiv,2*ne*sizeof(INT)); */
+  /*   g->ne=ne;  */
+  /* } */
+  /* for(i=0;i<g->ne;i++){ */
+  /*   ir[g->ne+i]=ic[i]; */
+  /*   ic[g->ne+i]=ir[i]; */
+  /*   ndiv[g->ne+i]=ndiv[i]; */
+  /*   ne++; */
+  /* } */
   g->ne=ne;
-  g->seg=malloc(sizeof(iCSRmat));
+  g->seg=malloc(sizeof(iCOOmat));
   (g->seg)->row=(g->seg)->col=g->nv;
   (g->seg)->nnz=g->ne;
-  (g->seg)->IA=calloc((g->seg)->row+1,sizeof(INT));
-  (g->seg)->JA=calloc((g->seg)->nnz,sizeof(INT));
-  (g->seg)->val=calloc((g->seg)->nnz,sizeof(INT));
-  coo2csr((g->seg)->row,			\
-	  (g->seg)->col,			\
-	  (g->seg)->nnz,			\
-	  ir,ic,ndiv,				\
-	  (g->seg)->IA,				\
-	  (g->seg)->JA,				\
-	  (g->seg)->val,			\
-	  sizeof(INT));
+  (g->seg)->rowind=ir;
+  (g->seg)->colind=ic;
+  (g->seg)->val=ndiv;
+  /* g->seg=malloc(sizeof(iCSRmat)); */
+  /* (g->seg)->row=(g->seg)->col=g->nv; */
+  /* (g->seg)->nnz=g->ne; */
+  /* (g->seg)->IA=calloc((g->seg)->row+1,sizeof(INT)); */
+  /* (g->seg)->JA=calloc((g->seg)->nnz,sizeof(INT)); */
+  /* (g->seg)->val=calloc((g->seg)->nnz,sizeof(INT)); */
+  /* coo2csr((g->seg)->row,			\ */
+  /* 	  (g->seg)->col,			\ */
+  /* 	  (g->seg)->nnz,			\ */
+  /* 	  ir,ic,ndiv,				\ */
+  /* 	  (g->seg)->IA,				\ */
+  /* 	  (g->seg)->JA,				\ */
+  /* 	  (g->seg)->val,			\ */
+  /* 	  sizeof(INT)); */
+  /* fix the ndiv; if in a edge */
+  /* for(i=0;i<g->seg->nnz;i++){ */
+  /*   fprintf(stdout,"\ndiff=%d; (%d,%d)",ic[i]-ir[i],ir[i],ic[i]); */
+  /* } */
+  /* fprintf(stdout,"\n"); */
   if(w) free(w);
-  if(ir) free(ir);
-  if(ic) free(ic);
-  if(ndiv) free(ndiv);
   return;
 }
 /********************************************************************/
