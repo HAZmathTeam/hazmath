@@ -4,7 +4,7 @@
 # Creates a tar file with the latest hazmath sources and examples. 
 
 
-VERSION="0.0.0"
+VERSION="1.0.0"
 DNAME="hazmath-${VERSION}"
 ##FILENAME="hazmath_$(date +%Y_%m_%d)_$VERSION.tar.gz"
 ###FILENAME="${DNAME}_$(date +%Y_%m_%d).tar.gz"
