@@ -36,7 +36,7 @@ void initialize_fespace(fespace *FE)
   FE->periodic = NULL;
   FE->phi = NULL;
   FE->dphi = NULL;
-  
+
   return;
 }
 /****************************************************************************************/
@@ -739,6 +739,132 @@ void set_dirichlet_bdry_block(block_fespace* FE,mesh_struct* mesh)
 
   FE->dirichlet = isdirichlet;
   FE->dof_flag = dof_flags;
+  return;
+}
+/****************************************************************************************/
+
+/****************************************************************************************/
+/*!
+ * \fn void set_periodic_bdry(fespace* FE,mesh_struct* mesh, const REAL minx,const REAL maxx,const REAL miny,const REAL maxy,const REAL minz,const REAL maxz)
+ *
+ * \brief Determine which boundary DOF are periodic, and for each DOF which is
+ *        the corresponding periodic DOF.
+ *
+ * \param FE                  FE space struct
+ * \param mesh                Mesh struct
+ * \param minx, miny, minz    Min values of x, y and z
+ * \param maxx, maxy, maxz    Max values of x, y and z
+ *
+ * \return FE.periodic     Array for each DOF, which contains the corresponding
+ *                         periodic DOF on the "other side".
+ *
+ * \note If Max and Min values are the same, the user indicates that that
+ *       dimension is not periodic.
+ *
+ */
+void set_periodic_bdry(fespace* FE,mesh_struct* mesh,const REAL minx,const REAL maxx,const REAL miny,const REAL maxy,const REAL minz,const REAL maxz)
+{
+  // Flag for errors
+  SHORT status;
+
+  // Loop indices
+  INT i,j;
+
+  // Indicator for periodicity
+  INT xper=1,yper=1,zper=1;
+
+  // Check which dimensions we are periodic in
+  if(minx==maxx) xper=0;
+  if(miny==maxy) yper=0;
+  if(minz==maxz) zper=0;
+
+  // Array to hold values of other dimensions
+  REAL* xvals = (REAL *) calloc(FE->ndof,sizeof(REAL));
+  REAL* yvals = (REAL *) calloc(FE->ndof,sizeof(REAL));
+  REAL* zvals=NULL;
+  if(mesh->dim==3) zvals = (REAL *) calloc(FE->ndof,sizeof(REAL));
+  for(i=0;i<FE->ndof;i++) {
+    xvals[i] = -666.66;
+    yvals[i] = -666.66;
+    if(mesh->dim==3) zvals[i] = -666.66;
+  }
+
+  // Cycle through DOF finding corresponding values.
+  // This depends on the FE, but we assume FE->cdof contains the Coordinates
+  // TODO: NOT TRUE for RT and Nedelec...
+  if(mesh->dim==1) {
+    for(i=0;i<FE->ndof;i++) {
+      if(xper && FE->cdof->x[i]==minx) {
+        for(j=0;j<FE->ndof;j++) {
+          if(FE->cdof->x[j]==maxx) {
+            FE->periodic[i]=j;
+            FE->periodic[j]=i;
+          }
+        }
+      }
+    }
+  } else if(mesh->dim==2) {
+    for(i=0;i<FE->ndof;i++) {
+      if(xper && FE->cdof->x[i]==minx) {
+        yvals[i] = FE->cdof->y[i];
+        for(j=0;j<FE->ndof;j++) {
+          if(FE->cdof->x[j]==maxx && FE->cdof->y[j]==yvals[i]) {
+            FE->periodic[i]=j;
+            FE->periodic[j]=i;
+          }
+        }
+      }
+      if(yper && FE->cdof->y[i]==miny) {
+        xvals[i] = FE->cdof->x[i];
+        for(j=0;j<FE->ndof;j++) {
+          if(FE->cdof->y[j]==maxy && FE->cdof->x[j]==xvals[i]) {
+            FE->periodic[i]=j;
+            FE->periodic[j]=i;
+          }
+        }
+      }
+    }
+  } else if(mesh->dim==3) {
+    for(i=0;i<FE->ndof;i++) {
+      if(xper && FE->cdof->x[i]==minx) {
+        yvals[i] = FE->cdof->y[i];
+        zvals[i] = FE->cdof->z[i];
+        for(j=0;j<FE->ndof;j++) {
+          if(FE->cdof->x[j]==maxx && FE->cdof->y[j]==yvals[i] && FE->cdof->z[j]==zvals[i]) {
+            FE->periodic[i]=j;
+            FE->periodic[j]=i;
+          }
+        }
+      }
+      if(yper && FE->cdof->y[i]==miny) {
+        xvals[i] = FE->cdof->x[i];
+        zvals[i] = FE->cdof->z[i];
+        for(j=0;j<FE->ndof;j++) {
+          if(FE->cdof->y[j]==maxy && FE->cdof->x[j]==xvals[i] && FE->cdof->z[j]==zvals[i]) {
+            FE->periodic[i]=j;
+            FE->periodic[j]=i;
+          }
+        }
+      }
+      if(zper && FE->cdof->z[i]==minz) {
+        xvals[i] = FE->cdof->x[i];
+        yvals[i] = FE->cdof->y[i];
+        for(j=0;j<FE->ndof;j++) {
+          if(FE->cdof->z[j]==maxz && FE->cdof->x[j]==xvals[i] && FE->cdof->y[j]==yvals[i]) {
+            FE->periodic[i]=j;
+            FE->periodic[j]=i;
+          }
+        }
+      }
+    }
+  } else {
+    status = ERROR_DIM;
+    check_error(status, __FUNCTION__);
+  }
+
+  if(xvals) free(xvals);
+  if(yvals) free(yvals);
+  if(zvals) free(zvals);
   return;
 }
 /****************************************************************************************/
