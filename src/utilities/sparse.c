@@ -328,6 +328,24 @@ void dcoo_free (dCOOmat *A)
 
 /***********************************************************************************************/
 /**
+ * \fn void icoo_free (dCOOmat *A)
+ *
+ * \brief Free IJ sparse matrix data memory space
+ *
+ * \param A  Pointer to the dCOOmat matrix
+ *
+ */
+void icoo_free (iCOOmat *A)
+{
+    if (A==NULL) return;
+
+    free(A->rowind); A->rowind= NULL;
+    free(A->colind); A->colind = NULL;
+    free(A->val);    A->val = NULL;
+}
+
+/***********************************************************************************************/
+/**
  * \fn iCSRmat icsr_create (const INT m, const INT n, const INT nnz)
  *
  * \brief Create iCSRmat sparse matrix
