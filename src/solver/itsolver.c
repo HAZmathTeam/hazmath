@@ -2073,7 +2073,6 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
       // initialize A, b, x for mgl_divgrad[0]
       mgl_divgrad[0].A=dcsr_create(A_divgrad.row,A_divgrad.col,A_divgrad.nnz);
       dcsr_cp(&A_divgrad, &mgl_divgrad[0].A);
-      //dcsr_write_dcoo("A_divgrad_1.dat", &mgl_divgrad[0].A);
       mgl_divgrad[0].b=dvec_create(A_divgrad.col);
       mgl_divgrad[0].x=dvec_create(A_divgrad.row);
 
