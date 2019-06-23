@@ -32,15 +32,25 @@
 /********************************************************************/
 void lexsort(const INT nr, const INT nc,REAL *a,INT *p);
 /***************************************************************/
-int main(int argc, char **argv){
+void set_input_grid(input_grid *g)
+{
   INT i,j,k,iri,ici;
-  char input_grid_file[256]={"grid.input"};
-  input_grid *g=parse_input_grid(input_grid_file);
-  INT *p=calloc(g->nv,sizeof(INT));
+  INT *p=calloc(2*g->nv,sizeof(INT));// permutation and inverse permutation;
   lexsort(g->nv, g->dim,g->x,p);
+  //  for (i=0;i<g->nv;i++)fprintf(stdout,"\n%d-->%d",p[i],i);  
+  //  fprintf(stdout,"\n"); 
+  // use p as a working array to store labels;
+  INT *invp=p+g->nv; // inverse permutation;
+  for (i=0;i<g->nv;i++){
+    invp[p[i]]=i;
+    p[i]=g->labels[i];
+  }
+  /* permute labels (coordinate systems for vertices */
+  for (i=0;i<g->nv;i++)
+    g->labels[i]=p[invp[i]]; // fix coord systems;
   for (i=0;i<g->seg->nnz;i++){
-    iri=p[g->seg->rowind[i]];
-    ici=p[g->seg->colind[i]];
+    iri=invp[g->seg->rowind[i]];
+    ici=invp[g->seg->colind[i]];
     if(iri<ici){
       g->seg->rowind[i]=iri;
       g->seg->colind[i]=ici;
@@ -48,9 +58,27 @@ int main(int argc, char **argv){
       g->seg->rowind[i]=ici;
       g->seg->colind[i]=iri;
     }
+    //    fprintf(stdout,"\n(%d,%d)-->[%d,%d]: div=%d",g->seg->rowind[i],g->seg->colind[i],iri,ici,g->seg->val[i]);
+    /* set up divisions */
+    j=g->seg->colind[i]-g->seg->rowind[i]; // should be always positive;
+    if(g->seg->val[i]>p[j])
+      p[j]=g->seg->val[i];
+  }  
+  for (i=0;i<g->seg->nnz;i++){
+    j=g->seg->colind[i]-g->seg->rowind[i];
+    g->seg->val[i]=p[j]; 
+    //    fprintf(stdout,"\n[%d,%d]:div=%d",g->seg->rowind[i],g->seg->colind[i],g->seg->val[i]);
   }
+  if(p) free(p); // this also frees invp;
+  return;
+}
+/*********************************************************************/
+int main(int argc, char **argv){
+  char input_grid_file[256]={"grid.input"};
+  input_grid *g=parse_input_grid(input_grid_file);
+  input_grid_print(g);
+  set_input_grid(g);
   input_grid_print(g);
   input_grid_free(g);
-  if(p) free(p);
   return 0;
 }
