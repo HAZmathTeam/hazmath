@@ -1892,9 +1892,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
   dvector **diag = (dvector **)calloc(2, sizeof(dvector *));
   for (i=0; i<2; i++) diag[i]=NULL;
   HX_div_data **hxdivdata = (HX_div_data **)calloc(2, sizeof(HX_div_data *));
-  //for (i=0; i<2; i++) hxdivdata[i] = NULL;
-  hxdivdata[0] = (HX_div_data *)calloc(1, sizeof(HX_div_data));
-  hxdivdata[1] = NULL;
+  for (i=0; i<2; i++) hxdivdata[i] = NULL;
 
   // matrix for argumented Lagrange type preconditioner
   dCSRmat BTB;
@@ -1955,6 +1953,8 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
   else if (precond_type > 29 && precond_type < 50)
   {
     /*  HX preconditioner for the flux block */
+    hxdivdata[0] = (HX_div_data *)calloc(1, sizeof(HX_div_data));
+
     //-----------------------
     // form divdiv block
     //-----------------------
@@ -2143,7 +2143,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
       hxdivdata[0]->mgl_grad = NULL;
 
       hxdivdata[0]->backup_r = (REAL*)calloc(A_div.row, sizeof(REAL));
-      hxdivdata[0]->w = (REAL*)calloc(A_div.row, sizeof(REAL));
+      hxdivdata[0]->w = (REAL*)calloc(2*A_curl.row, sizeof(REAL));
     }
 
   }
@@ -2273,10 +2273,6 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
   precdata.diag = diag;
   precdata.el_vol = el_vol;
   if (precond_type > 29 && precond_type < 50) precdata.hxdivdata = hxdivdata;
-
-  //printf("write_A in iter\n");
-  //printf("hxdivdata.A.row = %d, hxdivdata.A.col = %d, hxdivdata.A.nnz = %d\n", hxdivdata[0]->A->row,hxdivdata[0]->A->col,hxdivdata[0]->A->nnz);
-  //dcsr_write_dcoo("A.dat", hxdivdata[0]->A);
 
   precond prec; prec.data = &precdata;
 
