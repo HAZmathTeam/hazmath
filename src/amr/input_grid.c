@@ -22,8 +22,9 @@ void input_grid_free(input_grid *g)
   if(g->labels) free(g->labels);
   if(g->bcodes) free(g->bcodes);
   if(g->x) free(g->x);
+  if(g->xe) free(g->xe);
+  if(g->seg) free(g->seg);
   if(g) free(g);
-  icoo_free(g->seg);
   return;
 }
 /**********************************************************************/
@@ -57,57 +58,48 @@ void input_grid_print(input_grid *g)
     fprintf(stdout,")");
   }
   fprintf(stdout,"\n\nnum_edges=%d\n",g->ne);
-  /* INT iaa,iab; */
-  /* for(i=0;i<(g->seg->row);i++){ */
-  /*   iaa=g->seg->IA[i]; */
-  /*   iab=g->seg->IA[i+1]; */
-  /*   for(j=iaa;j<iab;j++){ */
-  /*     fprintf(stdout,"\nedge=(%d,%d) div=%d",i,g->seg->JA[j],g->seg->val[j]); */
-  /*   } */
-  /* } */
-  /* fprintf(stdout,"\n\n"); */
-  for(i=0;i<(g->seg)->nnz;i++){
-    fprintf(stdout,"\nedge=(%d,%d) div=%d",g->seg->rowind[i],g->seg->colind[i],g->seg->val[i]);
+  for(i=0;i<g->ne;i++){
+    fprintf(stdout,"\nedge=(%d,%d) div=%d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
   }
-  fprintf(stdout,"\n\n");
+  fprintf(stdout,"\n\n");fflush(stdout);
   
   return;
 }
-/*---------------------------------------------------------------------*/
-void coo2csr(INT nrow,INT ncol,INT nnz,					\
-	     INT *row_idx,INT *col_idx, void *aval,			\
-	     INT *ia,INT *ja, void *bval,				\
-	     size_t elsize)
-{
-  // converts (i,j,value) to (ia,ja,bval) for matrices matrices whose
-  // elements have elsize bytes
-  //
-  // get dimensions of the matrix
-  //
-  const INT m=nrow, n=ncol;
-  INT i, iind, jind;  
-  INT *ind = (INT *) calloc(m+1,sizeof(INT));
-  // initialize
-  memset(ind, 0, sizeof(INT)*(m+1));    
-  // count number of nonzeros in each row
-  for (i=0; i<nnz; ++i) ind[row_idx[i]+1]++;    
-  // set row pointer
-  ia[0] = 0;
-  for (i=1; i<=m; ++i) {
-    ia[i] = ia[i-1]+ind[i];
-    ind[i] = ia[i];
-  }    
-  // set column index and values
-  for (i=0; i<nnz; ++i) {
-    iind = row_idx[i];
-    jind = ind[iind];
-    ja[jind] = col_idx[i];
-    memcpy((bval+jind*elsize),(aval+i*elsize),elsize);
-    ind[iind] = ++jind;
-  }    
-  if (ind) free(ind);    
-  return;
-}
+/* /\*---------------------------------------------------------------------*\/ */
+/* void coo2csr(INT nrow,INT ncol,INT nnz,					\ */
+/* 	     INT *row_idx,INT *col_idx, void *aval,			\ */
+/* 	     INT *ia,INT *ja, void *bval,				\ */
+/* 	     size_t elsize) */
+/* { */
+/*   // converts (i,j,value) to (ia,ja,bval) for matrices matrices whose */
+/*   // elements have elsize bytes */
+/*   // */
+/*   // get dimensions of the matrix */
+/*   // */
+/*   const INT m=nrow, n=ncol; */
+/*   INT i, iind, jind;   */
+/*   INT *ind = (INT *) calloc(m+1,sizeof(INT)); */
+/*   // initialize */
+/*   memset(ind, 0, sizeof(INT)*(m+1));     */
+/*   // count number of nonzeros in each row */
+/*   for (i=0; i<nnz; ++i) ind[row_idx[i]+1]++;     */
+/*   // set row pointer */
+/*   ia[0] = 0; */
+/*   for (i=1; i<=m; ++i) { */
+/*     ia[i] = ia[i-1]+ind[i]; */
+/*     ind[i] = ia[i]; */
+/*   }     */
+/*   // set column index and values */
+/*   for (i=0; i<nnz; ++i) { */
+/*     iind = row_idx[i]; */
+/*     jind = ind[iind]; */
+/*     ja[jind] = col_idx[i]; */
+/*     memcpy((bval+jind*elsize),(aval+i*elsize),elsize); */
+/*     ind[iind] = ++jind; */
+/*   }     */
+/*   if (ind) free(ind);     */
+/*   return; */
+/* } */
 /*---------------------------------------------------------------------*/
 char **splits(char *s, const char *d, INT *num)
 {
@@ -180,88 +172,42 @@ void read_data(char *data_coordsystems,		\
   }
   /***** edges *****/
   w=splits(data_edges," ",&num);
-  INT *ir=(INT *)calloc(g->ne,sizeof(INT));
-  INT *ic=(INT *)calloc(g->ne,sizeof(INT));
-  INT *ndiv=(INT *)calloc(g->ne,sizeof(INT));
   k=0;
   for(count=0;count<g->ne;count++){
     if(w[k]==NULL) break;
-    iread=sscanf(w[k],"%d",ir+count);
+    iread=sscanf(w[k],"%d",g->seg+3*count);
     if(w[k]) free(w[k]);
     k++;
-    iread=sscanf(w[k],"%d",ic+count);
+    iread=sscanf(w[k],"%d",g->seg+3*count+1);
     if(w[k]) free(w[k]);
     k++;
-    iread=sscanf(w[k],"%d",ndiv+count);
+    iread=sscanf(w[k],"%d",g->seg+3*count+2);
     if(w[k]) free(w[k]);
     k++;
   }
-  INT ne = 0,iri,ici;
+  INT ne = 0,iri,ici,ndd;
   // no selfedges
   for(i=0;i<g->ne;i++){
-    iri=ir[i];ici=ic[i];
+    iri=g->seg[3*i];ici=g->seg[3*i+1];ndd=g->seg[3*i+2];
     if(iri==ici) continue;
     if(iri<ici){
-      ir[ne]=iri;
-      ic[ne]=ici;
+      g->seg[3*ne]=iri;
+      g->seg[3*ne+1]=ici;
     } else {
-      ir[ne]=ici;
-      ic[ne]=iri;
+      g->seg[3*ne]=ici;
+      g->seg[3*ne+1]=iri;
     }
-    ndiv[ne]=ndiv[i];
+    g->seg[3*ne+2]=ndd;
     ne++;
   }
-  if(ne<g->ne){
-    ir=realloc(ir,ne*sizeof(INT));
-    ic=realloc(ic,ne*sizeof(INT));
-    ndiv=realloc(ndiv,ne*sizeof(INT));
-    g->ne=ne;
-  }
-  /*uncomment the block below if CSR is used later. */
-  // transpose:
-  /* if(ne<g->ne){ */
-  /*   ir=realloc(ir,2*ne*sizeof(INT)); */
-  /*   ic=realloc(ic,2*ne*sizeof(INT)); */
-  /*   ndiv=realloc(ndiv,2*ne*sizeof(INT)); */
-  /*   g->ne=ne;  */
-  /* } */
-  /* for(i=0;i<g->ne;i++){ */
-  /*   ir[g->ne+i]=ic[i]; */
-  /*   ic[g->ne+i]=ir[i]; */
-  /*   ndiv[g->ne+i]=ndiv[i]; */
-  /*   ne++; */
-  /* } */
-  g->ne=ne;
-  g->seg=malloc(sizeof(iCOOmat));
-  (g->seg)->row=(g->seg)->col=g->nv;
-  (g->seg)->nnz=g->ne;
-  (g->seg)->rowind=ir;
-  (g->seg)->colind=ic;
-  (g->seg)->val=ndiv;
-  /* g->seg=malloc(sizeof(iCSRmat)); */
-  /* (g->seg)->row=(g->seg)->col=g->nv; */
-  /* (g->seg)->nnz=g->ne; */
-  /* (g->seg)->IA=calloc((g->seg)->row+1,sizeof(INT)); */
-  /* (g->seg)->JA=calloc((g->seg)->nnz,sizeof(INT)); */
-  /* (g->seg)->val=calloc((g->seg)->nnz,sizeof(INT)); */
-  /* coo2csr((g->seg)->row,			\ */
-  /* 	  (g->seg)->col,			\ */
-  /* 	  (g->seg)->nnz,			\ */
-  /* 	  ir,ic,ndiv,				\ */
-  /* 	  (g->seg)->IA,				\ */
-  /* 	  (g->seg)->JA,				\ */
-  /* 	  (g->seg)->val,			\ */
-  /* 	  sizeof(INT)); */
-  /* fix the ndiv; if in a edge */
-  /* for(i=0;i<g->seg->nnz;i++){ */
-  /*   fprintf(stdout,"\ndiff=%d; (%d,%d)",ic[i]-ir[i],ir[i],ic[i]); */
-  /* } */
-  /* fprintf(stdout,"\n"); */
+  if(ne<g->ne)
+    g->seg=realloc(g->seg,3*ne*sizeof(INT));
+  g->ne=ne;  
   if(w) free(w);
   return;
 }
 /********************************************************************/
-void get_out(char *pattern, size_t le)
+void get_out(const char *pattern, size_t le)
 {
   /* prints a string cutting it at the closest blank space <= le*/
   int i;
@@ -345,7 +291,7 @@ char *make_string_from_file(FILE *the_file, size_t *length_string)
   return everything;
 }
 /********************************************************************/
-char *get_substring(char *pattern,		\
+char *get_substring(const char *pattern,		\
 		    size_t *length_substring,	\
 		    char *the_string)
 {
@@ -470,6 +416,8 @@ input_grid *parse_input_grid(const char *input_file_grid)
   g->labels=(INT *)calloc(g->nv,sizeof(INT)); 
   g->bcodes=(INT *)calloc(g->nv,sizeof(INT)); 
   g->x=(REAL *)calloc(g->dim*g->nv,sizeof(REAL)); 
+  g->xe=(REAL *)calloc(g->dim*g->ne,sizeof(REAL)); 
+  g->seg=(INT *)calloc(3*g->ne,sizeof(INT)); 
   /*  iCSRmat *graph;// icsrmat thing for the macroelement graph. */
   /* read arrays and convert data */
   read_data(data_coordsystems,data_vertices, data_edges,g);

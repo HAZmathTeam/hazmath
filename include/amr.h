@@ -86,9 +86,9 @@ typedef struct {
   INT *bcodes; /* boundary codes for vertices [nv]*/
   INT ne; /* number of edges in the graph describing the domain */ 
   REAL *xe; /* coordinates for each midpoint of an edge [ne][dim]*/
-  iCOOmat *seg;// icoomat (upper triangular matrix in coo format) for
-	       // the graph of segments.
-} input_grid; /**< Input GRID parameters */
+  INT *seg;/* segments array of size ne by 3. For every edge:
+	      (v1,v2,divisions) here v1<v2 always */
+} input_grid; /** Input GRID parameters */
 /*************************************************************/
 typedef struct /* n-homogenous simplicial SUBcomplex */
 {
