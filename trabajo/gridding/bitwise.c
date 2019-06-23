@@ -19,8 +19,8 @@
 #define REAL double
 #endif
 /************************************************************************/
-void abfstree(INT it, scomplex *sc,INT *wrk);
-void scfinalize(scomplex *sc);
+//void abfstree(INT it, scomplex *sc,INT *wrk);
+//void scfinalize(scomplex *sc);
 /***************************************************************/
 void lexsort(const INT nr, const INT nc,REAL *a,INT *p)
 {
