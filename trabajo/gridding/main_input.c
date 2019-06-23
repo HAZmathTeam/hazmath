@@ -48,26 +48,26 @@ void set_input_grid(input_grid *g)
   /* permute labels (coordinate systems for vertices */
   for (i=0;i<g->nv;i++)
     g->labels[i]=p[invp[i]]; // fix coord systems;
-  for (i=0;i<g->seg->nnz;i++){
-    iri=invp[g->seg->rowind[i]];
-    ici=invp[g->seg->colind[i]];
+  for (i=0;i<g->ne;i++){
+    iri=invp[g->seg[3*i]];
+    ici=invp[g->seg[3*i+1]];
+    //    fprintf(stdout,"\n(%d,%d)-->[%d,%d]: div=%d",g->seg[3*i],g->seg[3*i+1],iri,ici,g->seg[3*i+2]);
     if(iri<ici){
-      g->seg->rowind[i]=iri;
-      g->seg->colind[i]=ici;
+      g->seg[3*i]=iri;
+      g->seg[3*i+1]=ici;
     } else {
-      g->seg->rowind[i]=ici;
-      g->seg->colind[i]=iri;
+      g->seg[3*i]=ici;
+      g->seg[3*i+1]=iri;
     }
-    //    fprintf(stdout,"\n(%d,%d)-->[%d,%d]: div=%d",g->seg->rowind[i],g->seg->colind[i],iri,ici,g->seg->val[i]);
     /* set up divisions */
-    j=g->seg->colind[i]-g->seg->rowind[i]; // should be always positive;
-    if(g->seg->val[i]>p[j])
-      p[j]=g->seg->val[i];
+    j=g->seg[3*i+1]-g->seg[3*i]; // should be always positive;
+    if(g->seg[3*i+2]>p[j])
+      p[j]=g->seg[3*i+2];
   }  
-  for (i=0;i<g->seg->nnz;i++){
-    j=g->seg->colind[i]-g->seg->rowind[i];
-    g->seg->val[i]=p[j]; 
-    //    fprintf(stdout,"\n[%d,%d]:div=%d",g->seg->rowind[i],g->seg->colind[i],g->seg->val[i]);
+  for (i=0;i<g->ne;i++){
+    j=g->seg[3*i+1]-g->seg[3*i];
+    g->seg[3*i+2]=p[j]; 
+    //    fprintf(stdout,"\n[%d,%d]:div=%d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
   }
   if(p) free(p); // this also frees invp;
   return;
@@ -76,8 +76,8 @@ void set_input_grid(input_grid *g)
 int main(int argc, char **argv){
   char input_grid_file[256]={"grid.input"};
   input_grid *g=parse_input_grid(input_grid_file);
-  input_grid_print(g);
   set_input_grid(g);
+  //
   input_grid_print(g);
   input_grid_free(g);
   return 0;

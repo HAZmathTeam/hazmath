@@ -47,6 +47,9 @@ REAL interp8(cube2simp *c2s, REAL *u, REAL *ue, REAL *xhat);
 REAL interp4(cube2simp *c2s, REAL *u, REAL *xhat);
 void unirefine(INT *nd,scomplex *sc);
 /***************************************************************/
+/********************************************************************/
+void lexsort(const INT nr, const INT nc,REAL *a,INT *p);
+/***************************************************************/
 gcomplex *form_macro(input_grid *g){
   gcomplex *gc=malloc(sizeof(gcomplex));
   gc->ncells=1; //one macroelement only
@@ -60,6 +63,47 @@ gcomplex *form_macro(input_grid *g){
   return gc;
 }
 /***********************************************************************/
+void set_input_grid(input_grid *g)
+{
+  INT i,j,k,iri,ici;
+  INT *p=calloc(2*g->nv,sizeof(INT));// permutation and inverse permutation;
+  lexsort(g->nv, g->dim,g->x,p);
+  //  for (i=0;i<g->nv;i++)fprintf(stdout,"\n%d-->%d",p[i],i);  
+  //  fprintf(stdout,"\n"); 
+  // use p as a working array to store labels;
+  INT *invp=p+g->nv; // inverse permutation;
+  for (i=0;i<g->nv;i++){
+    invp[p[i]]=i;
+    p[i]=g->labels[i];
+  }
+  /* permute labels (coordinate systems for vertices */
+  for (i=0;i<g->nv;i++)
+    g->labels[i]=p[invp[i]]; // fix coord systems;
+  for (i=0;i<g->ne;i++){
+    iri=invp[g->seg[3*i]];
+    ici=invp[g->seg[3*i+1]];
+    //    fprintf(stdout,"\n(%d,%d)-->[%d,%d]: div=%d",g->seg[3*i],g->seg[3*i+1],iri,ici,g->seg[3*i+2]);
+    if(iri<ici){
+      g->seg[3*i]=iri;
+      g->seg[3*i+1]=ici;
+    } else {
+      g->seg[3*i]=ici;
+      g->seg[3*i+1]=iri;
+    }
+    /* set up divisions */
+    j=g->seg[3*i+1]-g->seg[3*i]; // should be always positive;
+    if(g->seg[3*i+2]>p[j])
+      p[j]=g->seg[3*i+2];
+  }  
+  for (i=0;i<g->ne;i++){
+    j=g->seg[3*i+1]-g->seg[3*i];
+    g->seg[3*i+2]=p[j]; 
+    //    fprintf(stdout,"\n[%d,%d]:div=%d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
+  }
+  if(p) free(p); // this also frees invp;
+  return;
+}
+/*********************************************************************/
 void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
 {
   /* 
@@ -124,26 +168,6 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
       xemac[i*dim+j]=0.5*(xmac[k1*dim+j]+xmac[k2*dim+j]);
     }
   }
-  //  print_full_mat(c2s->nvcube,dim,xmac,"p");
-  //  print_full_mat(c2s->ne,dim,xemac,"p2");
-  /*********** PRINTING */
-  /* for(i=0;i<c2s->ne;i++){ */
-  /*   k1=c2s->edges[2*i]; */
-  /*   k2=c2s->edges[2*i+1]; */
-  /*   fprintf(stdout,"\nedge=(%d,%d); mid=(",k1,k2); */
-  /*   for(j=0;j<dim-1;j++)fprintf(stdout,"%10.3e,",xemac[i*dim+j]); */
-  /*   fprintf(stdout,"%10.3e); [",xemac[i*dim+dim-1]); */
-  /*   for(j=0;j<dim-1;j++)fprintf(stdout,"%d,",c2s->bits[k1*dim+j]); */
-  /*   fprintf(stdout,"%d]---[",c2s->bits[k1*dim+dim-1]); */
-  /*   for(j=0;j<dim-1;j++) fprintf(stdout," %d ",c2s->bits[k2*dim+j]); */
-  /*   fprintf(stdout,"%d]; (",c2s->bits[k2*dim+dim-1]); */
-  /*   for(j=0;j<dim-1;j++)fprintf(stdout,"%5.1f,",xmac[k1*dim+j]); */
-  /*   fprintf(stdout,"%5.1f)===(",xmac[k1*dim+dim-1]); */
-  /*   for(j=0;j<dim-1;j++) fprintf(stdout," %5.1f ",xmac[k2*dim+j]); */
-  /*   fprintf(stdout,"%5.1f)",xmac[k2*dim+dim-1]); */
-  /* }   */
-  /* fprintf(stdout,"\n\n"); */
-  /*********** END PRINTING */
   r2c(c2s->nvcube,dim,sizeof(REAL),xmac); // we need xmac by rows here
   r2c(c2s->ne,dim,sizeof(REAL),xemac); // we need xemac (mid points of
 				       // edges) also by rows
@@ -155,10 +179,10 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
       //      sc->x[kf*dim+i]=interp4(c2s,xmac+i*c2s->nvcube,xhat);
     }
   }
-  r2c(dim,c2s->nvcube,sizeof(REAL),xmac); // we need xmac by columns here
-  r2c(dim,c2s->ne,sizeof(REAL),xemac); // we need xemac by rows agin
-  if(xhat) free(xhat);
-  if(xemac) free(xemac);
+  //  r2c(dim,c2s->nvcube,sizeof(REAL),xmac); // we need xmac by columns here
+  //  r2c(dim,c2s->ne,sizeof(REAL),xemac); // we need xemac by rows agin
+  //  if(xhat) free(xhat);
+  //  if(xemac) free(xemac);
   return;
 }
 INT main(INT argc, char **argv)
@@ -206,6 +230,7 @@ INT main(INT argc, char **argv)
   /*   }     */
   /* }   */
   input_grid *g=parse_input_grid("grid.input");
+  set_input_grid(g);
   INT nmacs=0;
   gcomplex *macs=form_macro(g);
   map2mac(sc,c2s,g);
