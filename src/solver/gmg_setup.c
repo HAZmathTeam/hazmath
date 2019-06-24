@@ -334,16 +334,16 @@ void build_face_R (dCSRmat *R,
           // Get Coarse DOF
           get_incidence_row(celm,cmesh->el_v,v_on_elm);
           get_incidence_row(celm,cmesh->el_f,f_on_elm);
-          rowa = cmesh->el_f->IA[celm]-1;
-          rowb = cmesh->el_f->IA[celm+1]-1;
+          rowa = cmesh->el_f->IA[celm];
+          rowb = cmesh->el_f->IA[celm+1];
           locFaceId = 0;
           for(j=rowa;j<rowb;j++){
-            cface = cmesh->el_f->JA[j]-1;
+            cface = cmesh->el_f->JA[j];
             // Get Fine DOF
-            rowaf = fmesh->el_f->IA[felm]-1;
-            rowbf = fmesh->el_f->IA[felm+1]-1;
+            rowaf = fmesh->el_f->IA[felm];
+            rowbf = fmesh->el_f->IA[felm+1];
             for(jj=rowaf;jj<rowbf;jj++){
-              fface = fmesh->el_f->JA[jj]-1;
+              fface = fmesh->el_f->JA[jj];
               // Fill P
               value = 0.0;
               // Evaluate coarse mesh basis function on fine mesh dof.
@@ -560,16 +560,16 @@ void build_bubble_R (dCSRmat *R,
           // Get Coarse DOF
           get_incidence_row(celm,cmesh->el_v,v_on_elm);
           get_incidence_row(celm,cmesh->el_f,f_on_elm);
-          rowa = cmesh->el_f->IA[celm]-1;
-          rowb = cmesh->el_f->IA[celm+1]-1;
+          rowa = cmesh->el_f->IA[celm];
+          rowb = cmesh->el_f->IA[celm+1];
           locFaceId = 0;
           for(j=rowa;j<rowb;j++){
-            cface = cmesh->el_f->JA[j]-1;
+            cface = cmesh->el_f->JA[j];
             // Get Fine DOF
-            rowaf = fmesh->el_f->IA[felm]-1;
-            rowbf = fmesh->el_f->IA[felm+1]-1;
+            rowaf = fmesh->el_f->IA[felm];
+            rowbf = fmesh->el_f->IA[felm+1];
             for(jj=rowaf;jj<rowbf;jj++){
-              fface = fmesh->el_f->JA[jj]-1;
+              fface = fmesh->el_f->JA[jj];
               // Fill R
               value = 0.0;
 
@@ -587,12 +587,12 @@ void build_bubble_R (dCSRmat *R,
               get_incidence_row(fface,fmesh->f_v,v_on_f);
               lval = 0.0;
               for(ed=0;ed<dim;ed++){
-                x[0] = fmesh->cv->x[v_on_f[ed]-1];
-                x[1] = fmesh->cv->y[v_on_f[ed]-1];
+                x[0] = fmesh->cv->x[v_on_f[ed]];
+                x[1] = fmesh->cv->y[v_on_f[ed]];
                 // Evaluate Coarse Bubble at endpoints
                 bubble_face_basis(phi,dphi,x,v_on_elm,f_on_elm,cmesh);
                 // Save in R linear
-                vertex = v_on_f[ed]-1;
+                vertex = v_on_f[ed];
 
                 not_duplicate_entry = 1;
                 for(kk=0;kk<9;kk++){
@@ -605,7 +605,7 @@ void build_bubble_R (dCSRmat *R,
                     break;
                   }
                 }
-                if( kk == 16 ){ printf("\n\n\n--------------------------------------------------\nNODE NOT STORED!!!!\n");}
+                if( kk == 9 ){ printf("\n\n\n--------------------------------------------------\nVERT NOT STORED!!!!\n");}
                 //not_duplicate_entry = 1;
                 //for(kk=0;kk<indexl;kk++){
                 //  if(cface==Il1[kk] && vertex==Jl1[kk]) not_duplicate_entry = 0;
@@ -637,7 +637,7 @@ void build_bubble_R (dCSRmat *R,
                   break;
                 }
               }
-              if( kk == 16 ){ printf("\n\n\n--------------------------------------------------\nNODE NOT STORED!!!!\n");}
+              if( kk == 16 ){ printf("\n\n\n--------------------------------------------------\nEDGE NOT STORED!!!!\n");}
               //not_duplicate_entry = 1;
               //for(kk=0;kk<index;kk++){
               //  if(cface==I[kk] && fface==J[kk]) not_duplicate_entry = 0;
@@ -885,9 +885,9 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
       /*-- Build coarse level mesh --*/
       csize = (sqrt(mgl[lvl].fine_level_mesh->nv)-1)/2 + 1;
       //Need to customize this to specific directory
-      sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",csize);
+      //sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",csize);
       //sprintf(cgridfile,"/home/xiaozhehu/Work/Projects/HAZMATH/hazmath/examples/grids/2D/unitSQ_n%d.haz",csize);
-      //sprintf(cgridfile,"/home/pohm01/HAZMAT/hazmath/examples/grids/2D/unitSQ_n%d.haz",csize);
+      sprintf(cgridfile,"/home/pohm01/HAZMAT/hazmath/examples/grids/2D/unitSQ_n%d.haz",csize);
       cgfid = HAZ_fopen(cgridfile,"r");
       mgl[lvl+1].fine_level_mesh = (mesh_struct*)calloc(1, sizeof(mesh_struct));
       initialize_mesh(mgl[lvl+1].fine_level_mesh);
@@ -1059,9 +1059,9 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
       bdcsr_cp( &mgl[lvl+1].A_noBC, &mgl[lvl+1].A);
       FE_blk.dirichlet = mgl[lvl+1].dirichlet;
       printf("eliminating BC on coarse level\n");
-      bdcsr_shift(&mgl[lvl+1].A,  1);
+      //bdcsr_shift(&mgl[lvl+1].A,  1);
       eliminate_DirichletBC_blockFE_blockA(NULL,&FE_blk,mgl[lvl+1].fine_level_mesh,NULL,&mgl[lvl+1].A,0.0);
-      bdcsr_shift(&mgl[lvl+1].A, -1);
+      //bdcsr_shift(&mgl[lvl+1].A, -1);
 
 
       // PRINT MATRIX
