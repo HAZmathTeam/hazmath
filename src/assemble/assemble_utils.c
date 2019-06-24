@@ -1272,3 +1272,136 @@ void eliminate_DirichletBC_RHS_blockFE_blockA(void (*bc)(REAL *,REAL *,REAL,void
   return;
 }
 /******************************************************************************************************/
+
+/******************************************************************************************************/
+/*!
+ * \fn generate_periodic_P(fespace* FE, dCSRmat* P_periodic)
+ *
+ * \brief generate (prolongation )matrix P_priodic for applying periodic boundary conditions later
+ *
+ * \param FE            FE Space
+ *
+ * \return P_periodic   P_periodic matrix in dCSRformat
+ *
+ */
+void generate_periodic_P(fespace* FE, dCSRmat* P_periodic)
+{
+
+  // local variables
+  INT i,j;
+  INT ndof = FE->ndof;
+  INT nfreedof;
+  SHORT stop;
+
+  INT* flag = calloc(FE->ndof, sizeof(INT));
+
+  // set flag array to -1
+  iarray_set(ndof, flag, -1);
+
+  // loop 1: initialize flag array
+  for (i=0; i<ndof; i++)
+  {
+    j = FE->periodic[i]; // get the corresponding boundary index
+
+    if (j != -1)
+    {
+      if (flag[i]==-1 & flag[j]==-1) // both boundaries have not been touched
+      {
+        flag[i] = MIN(i,j);
+        flag[j] = MIN(i,j);
+      }
+      else if (flag[i]==-1 & flag[j]>-1) // boundary j has been touched
+      {
+        flag[i] = flag[j];
+      }
+      else if (flag[i]>-1 & flag[j]==-1) // boudanry i has been touched
+      {
+        flag[j] = flag[i];
+      }
+      else // both boundaries have not been touched
+      {
+        if (flag[i] < flag[j])
+        {
+          flag[flag[j]] = flag[i];
+          flag[j] = flag[i];
+        }
+        else
+        {
+          flag[flag[i]] = flag[j];
+          flag[i] = flag[j];
+        }
+      }
+    }
+  }
+
+  // loop 2: fix flag array
+  stop = 0;
+  while (stop == 0){
+    stop = 1;
+    for (i=0; i<ndof; i++)
+    {
+      if (flag[i]==-1)
+      {
+        flag[i]=i;
+      }
+      else if (flag[i] != i)
+      {
+        if (flag[flag[i]] != flag[i])
+        {
+          stop = 0;
+          flag[i] = flag[flag[i]];
+        }
+      }
+    }
+  }
+
+  // count how many dofs after apply periodic boundary condition and form JA for P_periodic
+  INT* JA = calloc(ndof, sizeof(INT));
+  // loop 3: counting
+  nfreedof = 0;
+  for (i=0; i<ndof; i++)
+  {
+    if (flag[i]==i)
+    {
+      JA[i] = nfreedof;
+      nfreedof = nfreedof+1;
+    }
+  }
+
+  // loop 4: generating JA
+  for (i=0; i<ndof; i++)
+  {
+    if (flag[i] !=i )
+    {
+      JA[i] = JA[flag[i]];
+    }
+  }
+
+  //free flag
+  free(flag);
+
+  /*
+  for (i=0; i<ndof; i++) printf("flag[%d]=%d\n",i, flag[i]);
+  for (i=0; i<ndof; i++) printf("JA[%d]=%d\n",i, JA[i]);
+  */
+
+  // generating IA
+  INT* IA = calloc(ndof+1, sizeof(INT));
+  for (i=0; i<ndof+1; i++) IA[i]=i;
+
+  // generating val
+  REAL* val = calloc(ndof, sizeof(REAL));
+  for (i=0; i<ndof; i++) val[i] = 1.0;
+
+  // form P_periodic
+  P_periodic->row = ndof;
+  P_periodic->col = nfreedof;
+  P_periodic->nnz = ndof;
+
+  P_periodic->IA = IA;
+  P_periodic->JA = JA;
+  P_periodic->val = val;
+
+
+}
+ /******************************************************************************************************/

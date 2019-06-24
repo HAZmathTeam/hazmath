@@ -115,6 +115,10 @@ int main (int argc, char* argv[])
   set_periodic_bdry(&FE,&mesh,0.0,1.0,0.0,1.0,0.0,1.0);
   for(INT i=0;i<FE.ndof;i++)
     printf("periodic[%d]=%d\n",i,FE.periodic[i]);
+
+  dCSRmat P_periodic;
+  generate_periodic_P(&FE, &P_periodic);
+  dcsr_write_dcoo("P.dat", &P_periodic);
   exit(0);
 
   // Strings for printing
