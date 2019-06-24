@@ -558,14 +558,14 @@ void rvecd_(FILE *fp,
             INT *nn)
 {
     // local variables
-  INT n,i;
+  INT n;
   REAL *vec_end;
   n= *nn;
   vec_end =  vec + n;
 
   // main loop
   for ( ; vec < vec_end; ++vec)
-    i=fscanf(fp,"%lg",vec);
+    fscanf(fp,"%lg",vec);
   return;
 }
 /****************************************************************************************/
