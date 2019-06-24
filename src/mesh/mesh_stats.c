@@ -472,7 +472,7 @@ void get_face_maps(iCSRmat* el_v,INT el_order,iCSRmat* ed_v,INT nface,INT dim,IN
         f_el.val[jcntr] = j;
         f_el.JA[jcntr+1] = el;
         // Find face number for other element
-        find_facenumber(el_v,el+1,nd,dim,&f_num); // NEED TO CHECK!!!!!!
+        find_facenumber(el_v,el,nd,dim,&f_num); 
         f_el.val[jcntr+1] = f_num;
         f_bdry[icntr] = 0;
         f_v->IA[icntr] = kcntr;
