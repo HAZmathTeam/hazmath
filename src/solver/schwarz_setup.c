@@ -254,7 +254,7 @@ void Schwarz_get_patch_geometric (Schwarz_data *Schwarz,
                                   INT patchTypeIN,
                                   INT patchTypeOUT)
 {
-    INT nblk, ntot, i;
+    INT nblk, ntot;
 
     INT* iblk;
     INT* jblk;

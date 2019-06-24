@@ -55,14 +55,14 @@ void read_grid_haz(FILE *gfid,mesh_struct *mesh)
 {
 
   // Loop indices
-  INT i,j,k,l;
+  INT i,j,k;
 
   // Flag to check if file started counting at 1 or 0.
   INT one_zero_flag = 1;
 
   // Get basic data
   INT nelm,nv,dim,nholes;
-  l=fscanf(gfid,"%d %d %d %d",&nelm,&nv,&dim,&nholes);
+  fscanf(gfid,"%d %d %d %d",&nelm,&nv,&dim,&nholes);
 
   // Get number of vertices per element
   INT v_per_elm = dim+1;
@@ -80,7 +80,7 @@ void read_grid_haz(FILE *gfid,mesh_struct *mesh)
   for (i=0;i<v_per_elm;i++) {
     for (j=0;j<nelm;j++){
       k=v_per_elm*j+i;
-      l=fscanf(gfid,"%d", (mesh->el_v->JA+k));
+      fscanf(gfid,"%d", (mesh->el_v->JA+k));
       if(mesh->el_v->JA[k]==0 && one_zero_flag==1)
         one_zero_flag = 0;
     }
