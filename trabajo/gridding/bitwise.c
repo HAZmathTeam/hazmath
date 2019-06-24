@@ -493,13 +493,13 @@ cube2simp *cube2simplex(INT dim)
 scomplex *umesh(const INT dim, INT *nd, cube2simp *c2s, const INT intype)
 {
   /* 
-     uniform simplicial mesh of the unit cube in dimension dim.
-     dim is the dimension, nd is the number of grid points in each
+     uniform simplicial mesh of the unit cube in dimension dim.  dim
+     is the dimension, nd is the number of grid points in each
      dimension.  ordering is lexicographically by
      name=(x[0],...,x[n]).  more than 3D is not fully tested xmacro[]
-     are the coordinats of a domain isomorphic to the cube via a
-     bilinear change of coordinates.
-     output is a simplicial complex sc. 
+     are the coordinates of a domain isomorphic to the cube via a
+     bilinear or "Q2" change of coordinates. output is a simplicial
+     complex sc.
 
      if(intype == -2) use unirefine() function 
 
@@ -507,8 +507,8 @@ scomplex *umesh(const INT dim, INT *nd, cube2simp *c2s, const INT intype)
      0-7(0...0)-->(1...1).
 
      if (intype>0) starting with intype the mesh is constructed like
-     criss-cross grid. This works in 2D and 3D, and is unclear in 4D
-     and further.
+     criss-cross grid. This works in 2D and 3D, and is unclear whether
+     it works in d>3.
   */
   INT iz1;
   INT jperm,k,i,j,flag,kf,type;
