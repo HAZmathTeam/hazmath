@@ -530,14 +530,14 @@ void dcoo_read_dcsr (const char *filename,
 void rveci_(FILE *fp,INT *vec,INT *nn)
 {
   // local variables
-  INT n,i;
+  INT n;
   INT *vec_end;
   n = *nn;
   vec_end  =  vec + n;
 
   // main loop
   for ( ; vec < vec_end; ++vec)
-    i=fscanf(fp,"%i",vec);
+    fscanf(fp,"%i",vec);
   return;
 }
 /****************************************************************************************/
