@@ -204,13 +204,15 @@ REAL energyerror(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *), void (*D_tr
   }
 
 
+  if(qx) free(qx);
   if(dof_on_elm) free(dof_on_elm);
   if(v_on_elm) free(v_on_elm);
-  if(qx) free(qx);
+  if(coeff_val) free(coeff_val);
   if(val_true) free(val_true);
   if(val_sol) free(val_sol);
   if(d_val_true) free(d_val_true);
   if(d_val_sol) free(d_val_sol);
 
   return sqrt(sum + d_sum);
+
 }
