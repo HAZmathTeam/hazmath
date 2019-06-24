@@ -862,12 +862,12 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
       // Remove dirichlet boundaries
       FE_fake.dirichlet = bmgl[0].dirichlet_blk[blk];
       FE_fake.ndof = bmgl[0].A_diag[blk].row;
-      dcsr_shift( &bmgl[0].mgl[blk][0].A,  1);
+      //dcsr_shift( &bmgl[0].mgl[blk][0].A,  1);
       printf("Eliminating dirichlet BC for A_diag\n");
       //eliminate_DirichletBC(NULL, &FE_fake , &bmgl[0].fine_level_mesh, NULL, &(bmgl[0].mgl[blk][0].A),0.0);
       eliminate_DirichletBC(NULL, &FE_fake , bmgl[0].fine_level_mesh, NULL, &(bmgl[0].mgl[blk][0].A),0.0);
       printf("Eliminated dirichlet BC for A_diag\n");
-      dcsr_shift( &bmgl[0].mgl[blk][0].A, -1);
+      //dcsr_shift( &bmgl[0].mgl[blk][0].A, -1);
 
 
       // Initialize Schwarz parameters
@@ -907,10 +907,10 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
         dcsr_cp( &(bmgl[lvl+1].A_diag[blk]), &bmgl[0].mgl[blk][lvl+1].A );
         FE_fake.dirichlet = bmgl[lvl+1].dirichlet_blk[blk];
         FE_fake.ndof      = bmgl[lvl+1].A_diag[blk].row;
-        dcsr_shift( &bmgl[0].mgl[blk][lvl+1].A,  1);
+        //dcsr_shift( &bmgl[0].mgl[blk][lvl+1].A,  1);
         //eliminate_DirichletBC(NULL, &FE_fake , &bmgl[lvl+1].fine_level_mesh, NULL, &(bmgl[0].mgl[blk][lvl+1].A),0.0);
         eliminate_DirichletBC(NULL, &FE_fake , bmgl[lvl+1].fine_level_mesh, NULL, &(bmgl[0].mgl[blk][lvl+1].A),0.0);
-        dcsr_shift( &bmgl[0].mgl[blk][lvl+1].A, -1);
+        //dcsr_shift( &bmgl[0].mgl[blk][lvl+1].A, -1);
         printf("ELIM on A_diag fine\n");
 
 
@@ -1054,8 +1054,8 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
     
     dCSRmat B = bdcsr_subblk_2_dcsr ( &bmgl[lvl].A, 2, 2, 0, 1);
 
-    //smoother_bdcsr_bsr( &bmgl[lvl].x, &bmgl[lvl].b, 3.2484, 1.8119, &bmgl[lvl].A, &C, &B, bmgl[lvl].A.blocks[8], 1);
-    smoother_bdcsr_uzawa( &bmgl[lvl].x, &bmgl[lvl].b, 1.8118, 1.0550, &bmgl[lvl].A, &C, &B, bmgl[lvl].A.blocks[8], 1);
+    smoother_bdcsr_bsr( &bmgl[lvl].x, &bmgl[lvl].b, 3.2484, 1.8119, &bmgl[lvl].A, &C, &B, bmgl[lvl].A.blocks[8], 1);
+    //smoother_bdcsr_uzawa( &bmgl[lvl].x, &bmgl[lvl].b, 1.8118, 1.0550, &bmgl[lvl].A, &C, &B, bmgl[lvl].A.blocks[8], 1);
     }
 
 
