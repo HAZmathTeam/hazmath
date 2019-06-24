@@ -18,9 +18,6 @@
 #ifndef REAL
 #define REAL double
 #endif
-#ifndef DIM
-#define DIM 2
-#endif
 /********************************************************************/
 typedef struct /* general cell complex (like hexagonal, etc) */
 {
@@ -58,13 +55,25 @@ gcomplex *form_macro(input_grid *g){
   gc->ne=g->ne;
   gc->x=g->x;
   gc->xe=g->xe;
-  // the array entries of nodes[] are determined by an external
-  // function which constructs macroelements from edges(segments).  
+  /* 
+     the array entries of nodes[] are determined (not written yet) by
+     an external function which constructs macroelements from
+     edges(segments).
+  */
   return gc;
 }
 /***********************************************************************/
-void set_input_grid(input_grid *g)
+INT *set_input_grid(input_grid *g)
 {
+  /* 
+     reorders the vertices lexicographically, uses this ordering and
+     the input to define the edges of the macroelement.  Every edge is
+     put into a subset, i.e. two edges (i1,i2) and (j1,j2) are
+     considered equivalent iff (i2-i1)=(j2-j1).  The number of
+     divisions in an equivalent set of edges is taken to be the
+     largest from the equivalence class.  OUTPUT array is a "dim"
+     array and for each direction gives the number of partitions.
+  */
   INT i,j,k,iri,ici;
   INT *p=calloc(2*g->nv,sizeof(INT));// permutation and inverse permutation;
   lexsort(g->nv, g->dim,g->x,p);
@@ -100,8 +109,22 @@ void set_input_grid(input_grid *g)
     g->seg[3*i+2]=p[j]; 
     //    fprintf(stdout,"\n[%d,%d]:div=%d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
   }
-  if(p) free(p); // this also frees invp;
-  return;
+  for (i=0;i<g->ne;i++){
+    j=g->seg[3*i+1]-g->seg[3*i];
+    g->seg[3*i+2]=p[j]; 
+    //    fprintf(stdout,"\n[%d,%d]:div=%d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
+  }
+  for (i=0;i<g->ne;i++){
+    if(g->seg[3*i]) continue;
+    j=g->seg[3*i+1]-g->seg[3*i]-1;
+    p[j]=g->seg[3*i+2]; 
+    fprintf(stdout,"\n[%d,%d]:div=%d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
+  }
+  p=realloc(p,g->dim*sizeof(INT)); // realloc to dimension g->dim
+  for (i=0;i<g->dim;i++){
+    fprintf(stdout,"\ndirection:%d; div=%d",i,p[i]);
+  }
+  return p;
 }
 /*********************************************************************/
 void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
@@ -187,51 +210,30 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
 }
 INT main(INT argc, char **argv)
 {
-  INT i=-1,j=-1,k=-1,kperm,dim=DIM;
+  INT i=-1,j=-1,k=-1,kperm;
+  input_grid *g=parse_input_grid("grid.input");
+  INT dim=g->dim;
   cube2simp *c2s=cube2simplex(dim);
   INT ns=c2s->ns,dim1=c2s->n+1;
-  INT *nd=(INT *)calloc(dim,sizeof(INT));  
-  INT *ndd=(INT *)calloc(dim,sizeof(INT));  
-  for(i=0;i<dim;i++) nd[i]=3+2*i;
-  INT memx=dim;
-  for(i=0;i<dim;i++) memx*=(nd[i]+1);
   /*------------------------------------------------------*/
   scomplex *sc;
   INT intype=0;
   /*------------------------------------------------------*/
-  if(intype<-1){
-    for(i=0;i<dim;i++) ndd[i]=1;
-    sc=umesh(dim,ndd,c2s,intype);
-    unirefine(nd,sc);    
-  }else{
-    sc=umesh(dim,nd,c2s,intype);
-  }
+  INT *nd=set_input_grid(g);  
+  /*this can be used to generate grids in a different way, but not now:*/
+  /* if(intype<-1){ */
+  /*   for(i=0;i<dim;i++) ndd[i]=1; */
+  /*   sc=umesh(dim,ndd,c2s,intype); */
+  /*   unirefine(nd,sc);     */
+  /* }else{ */
+  /*   sc=umesh(dim,nd,c2s,intype); */
+  /* } */
+  /*GENERATE UNIFORM GRID: nodes in each direction: ND*/
+  sc=umesh(dim,nd,c2s,intype);
   if(nd) free(nd);
-  if(ndd) free(ndd);  
   fprintf(stdout,"\nuniform mesh in dim=%d; vertices: %d, simplexes %d\n",dim,sc->nv,sc->ns);
   fprintf(stdout,"\nedges=%d",c2s->ne);
-  /* REAL xmac[24]={-1,-1.,-1.,				\ */
-  /* 		 1.,-1,-1.,				\ */
-  /* 		 -1., 1.,-1.,				\ */
-  /* 		 1., 1.,-1.,				\ */
-  /* 		 -1.,-1., 1.,				\ */
-  /* 		 1.,-1., 1.,				\ */
-  /* 		 -1., 1., 1.,				\ */
-  /* 		 1., 1., 1.}; */
-  
   INT k1,k2,j1,j2,l1,l2;
-  /* if(dim==2){ */
-  /*   xmac[0]=-1; xmac[1]=-1.; */
-  /*   xmac[2]= 1.; xmac[3]=-1.; */
-  /*   xmac[4]=-1.; xmac[5]= 1.; */
-  /*   xmac[6]= 1.; xmac[7]= 1.;    */
-  /*   for(i=8;i<24;i++){ */
-  /*     xmac[i]=-1e20; */
-  /*   }     */
-  /* }   */
-  input_grid *g=parse_input_grid("grid.input");
-  set_input_grid(g);
-  INT nmacs=0;
   gcomplex *macs=form_macro(g);
   map2mac(sc,c2s,g);
   input_grid_free(g); 
