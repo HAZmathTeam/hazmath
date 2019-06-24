@@ -29,7 +29,7 @@ static void Schwarz_levels (INT, dCSRmat *, INT *, INT *, INT *, INT *, INT);
  * \param jblock  Pointer to vertices of each level
  * \param mask    Pointer to flag array
  *
- * \note  This needs to be written -- Xiaozhe
+ * \note  This needs to be rewritten -- Xiaozhe
  */
 void Schwarz_get_block_matrix (Schwarz_data *Schwarz,
                                     INT nblk,
@@ -69,10 +69,10 @@ void Schwarz_get_block_matrix (Schwarz_data *Schwarz,
         for (i=0; i<nloc; ++i ) {
             iblk = ibl0 + i;
             ki   = jblock[iblk];
-            iaa  = ia[ki]-1;
-            iab  = ia[ki+1]-1;
+            iaa  = ia[ki];
+            iab  = ia[ki+1];
             count += iab - iaa;
-            mask[ki] = i+1;
+            mask[ki] = i;  // ??
         }
 
         blk[is] = dcsr_create(nloc, nloc, count);
@@ -82,13 +82,13 @@ void Schwarz_get_block_matrix (Schwarz_data *Schwarz,
         for (i=0; i<nloc; ++i) {
             iblk = ibl0 + i;
             ki = jblock[iblk];
-            iaa = ia[ki]-1;
-            iab = ia[ki+1]-1;
+            iaa = ia[ki];
+            iab = ia[ki+1];
             for (kij = iaa; kij<iab; ++kij) {
-                kj = ja[kij]-1;
+                kj = ja[kij];
                 j  = mask[kj];
                 if(j != 0) {
-                    blk[is].JA[nnz] = j-1;
+                    blk[is].JA[nnz] = j;
                     blk[is].val[nnz] = val[kij];
                     nnz ++;
                 }
@@ -155,50 +155,8 @@ INT Schwarz_setup (Schwarz_data *Schwarz,
 
     maxa[0]=0;
 
-    // // get stongly connected matrix
-    // dCSRmat S;
-    //
-    // dvector diag;
-    // dcsr_getdiag(0, &A, &diag);  // get the diagonal entries
-    //
-    // dcsr_alloc(A.row, A.col, A.nnz, &S);
-    //
-    // INT *SIA  = S.IA;
-    // INT *SJA  = S.JA;
-    // REAL *Sval = S.val;
-    //
-    // INT *AIA = A.IA;
-    // INT *AJA = A.JA;
-    // REAL *Aval = A.val;
-    //
-    // INT j, index, row_start, row_end;
-    //
-    // for (i=n; i >= 0; i-- ) SIA[i] = A.IA[i];
-    //
-    // for ( index = i = 0; i < n; ++i ) {
-    //   SIA[i] = index;
-    //   row_start = AIA[i]; row_end = AIA[i+1];
-    //   for ( j = row_start; j < row_end; ++j ) {
-    //     if ( (AJA[j] == i)
-    //         || (pow(Aval[j],2) >= 0.2*ABS(diag.val[i]*diag.val[AJA[j]]))) {
-    //       SJA[index] = AJA[j];
-    //       Sval[index] = Aval[j];
-    //       index++;
-    //     }
-    //   }
-    // }
-    // SIA[n] = index;
-    //
-    // S.nnz = index;
-    // S.JA  = (INT*) realloc(S.JA,  (S.IA[n])*sizeof(INT));
-    // S.val = (REAL*)realloc(S.val, (S.IA[n])*sizeof(REAL));
-
     // select root nodes.
     MaxIndSet = sparse_MIS(&A);
-
-    // free
-    // dcsr_free(&S);
-    // dvec_free(&diag);
 
     /*-------------------------------------------*/
     // find the blocks
@@ -281,100 +239,6 @@ INT Schwarz_setup (Schwarz_data *Schwarz,
     return flag;
 }
 
-
-
-/*---------------------------------*/
-/*--      Private Functions      --*/
-/*---------------------------------*/
-
-/**
- * \fn static void Schwarz_levels (INT inroot, dCSRmat *A, INT *mask, INT *nlvl,
- *                                 INT *iblock, INT *jblock, INT maxlev)
- *
- * \brief Form the level hierarchy of input root node
- *
- * \param inroot  Root node
- * \param A       Pointer to CSR matrix
- * \param mask    Pointer to flag array
- * \param nlvl    The number of levels to expand from root node
- * \param iblock  Pointer to vertices number of each level
- * \param jblock  Pointer to vertices of each level
- * \param maxlev  The maximal number of levels to expand from root node
- *
- * \note  This needs to be rewritten -- Xiaozhe
- *
- */
-static void Schwarz_levels (INT inroot,
-                            dCSRmat *A,
-                            INT *mask,
-                            INT *nlvl,
-                            INT *iblock,
-                            INT *jblock,
-                            INT maxlev)
-{
-    INT *ia = A->IA;
-    INT *ja = A->JA;
-    INT nnz = A->nnz;
-    INT i, j, lvl, lbegin, lvlend, nsize, node;
-    INT jstrt, jstop, nbr, lvsize;
-
-    // This is diagonal
-    if (ia[inroot+1]-ia[inroot] <= 1) {
-        lvl = 0;
-        iblock[lvl] = 0;
-        jblock[iblock[lvl]] = inroot;
-        lvl ++;
-        iblock[lvl] = 1;
-    }
-    else {
-        // input node as root node (level 0)
-        lvl = 0;
-        jblock[0] = inroot;
-        lvlend = 0;
-        nsize  = 1;
-        // mark root node
-        mask[inroot] = 1;
-
-        lvsize = nnz;
-
-        // start to form the level hierarchy for root node(level1, level2, ... maxlev)
-        while (lvsize > 0 && lvl < maxlev) {
-            lbegin = lvlend;
-            lvlend = nsize;
-            iblock[lvl] = lbegin;
-            lvl ++;
-            for(i=lbegin; i<lvlend; ++i) {
-                node = jblock[i];
-                jstrt = ia[node]-1;
-                jstop = ia[node+1]-1;
-                for (j = jstrt; j<jstop; ++j) {
-                    nbr = ja[j]-1;
-                    if (mask[nbr] == 0) {
-                        jblock[nsize] = nbr;
-                        mask[nbr] = lvl;
-                        nsize ++;
-                    }
-                }
-            }
-            lvsize = nsize - lvlend;
-        }
-
-        iblock[lvl] = nsize;
-
-        // reset mask array
-        for (i = 0; i< nsize; ++i) {
-            node = jblock[i];
-            mask[node] = 0;
-        }
-    }
-
-    *nlvl = lvl;
-}
-
-/*---------------------------------*/
-/*--        End of File          --*/
-/*---------------------------------*/
-
 /**
  * \fn void Schwarz_get_patch_geometric (Schwarz_data *Schwarz,
  *                                       mesh_struct *mesh,
@@ -435,26 +299,11 @@ void Schwarz_get_patch_geometric (Schwarz_data *Schwarz,
         break;
     }
 
-
-    ///iblk = (INT*)calloc(p_el.row+1,sizeof(INT));
     iblk = (INT*)calloc(nblk+1,sizeof(INT));
-    //iarray_cp(nblk+1,p_el.IA,iblk);
     iarray_cp(nblk+1,p_p.IA,iblk);
-    // Shift 1
-    for(i=0; i<nblk+1; i++){
-      iblk[i] -= 1;
-//      printf("iblk[%d] = %d\n",i,iblk[i]);
-    }
 
-    //jblk = (INT*)calloc(p_el.nnz,sizeof(INT));
     jblk = (INT*)calloc(ntot,sizeof(INT));
-    //iarray_cp(ntot,p_el.JA,jblk);
     iarray_cp(ntot,p_p.JA,jblk);
-    // Shift 1
-    for(i=0; i<ntot; i++){
-      jblk[i] -= 1;
-//      printf("jblk[%d] = %d\n",i,jblk[i]);
-    }
 
     Schwarz->nblk = nblk;
     Schwarz->iblock = iblk;
@@ -555,9 +404,6 @@ INT Schwarz_setup_geometric (Schwarz_data *Schwarz,
     /*-------------------------------------------*/
     //  return
     /*-------------------------------------------*/
-//    Schwarz->nblk   = nblk;
-//    Schwarz->iblock = iblock;
-//    Schwarz->jblock = jblock;
     Schwarz->mask   = mask;
     Schwarz->maxa   = maxa;
     Schwarz->Schwarz_type = param->Schwarz_type;
@@ -567,3 +413,95 @@ INT Schwarz_setup_geometric (Schwarz_data *Schwarz,
 
     return flag;
 }
+
+/*---------------------------------*/
+/*--      Private Functions      --*/
+/*---------------------------------*/
+
+/**
+ * \fn static void Schwarz_levels (INT inroot, dCSRmat *A, INT *mask, INT *nlvl,
+ *                                 INT *iblock, INT *jblock, INT maxlev)
+ *
+ * \brief Form the level hierarchy of input root node
+ *
+ * \param inroot  Root node
+ * \param A       Pointer to CSR matrix
+ * \param mask    Pointer to flag array
+ * \param nlvl    The number of levels to expand from root node
+ * \param iblock  Pointer to vertices number of each level
+ * \param jblock  Pointer to vertices of each level
+ * \param maxlev  The maximal number of levels to expand from root node
+ *
+ * \note  This needs to be rewritten -- Xiaozhe
+ *
+ */
+static void Schwarz_levels (INT inroot,
+                            dCSRmat *A,
+                            INT *mask,
+                            INT *nlvl,
+                            INT *iblock,
+                            INT *jblock,
+                            INT maxlev)
+{
+    INT *ia = A->IA;
+    INT *ja = A->JA;
+    INT nnz = A->nnz;
+    INT i, j, lvl, lbegin, lvlend, nsize, node;
+    INT jstrt, jstop, nbr, lvsize;
+
+    // This is diagonal
+    if (ia[inroot+1]-ia[inroot] <= 1) {
+        lvl = 0;
+        iblock[lvl] = 0;
+        jblock[iblock[lvl]] = inroot;
+        lvl ++;
+        iblock[lvl] = 1;
+    }
+    else {
+        // input node as root node (level 0)
+        lvl = 0;
+        jblock[0] = inroot;
+        lvlend = 0;
+        nsize  = 1;
+        // mark root node
+        mask[inroot] = 1; //??
+
+        lvsize = nnz;
+
+        // start to form the level hierarchy for root node(level1, level2, ... maxlev)
+        while (lvsize > 0 && lvl < maxlev) {
+            lbegin = lvlend;
+            lvlend = nsize;
+            iblock[lvl] = lbegin;
+            lvl ++;
+            for(i=lbegin; i<lvlend; ++i) {
+                node = jblock[i];
+                jstrt = ia[node];
+                jstop = ia[node+1];
+                for (j = jstrt; j<jstop; ++j) {
+                    nbr = ja[j];
+                    if (mask[nbr] == 0) {
+                        jblock[nsize] = nbr;
+                        mask[nbr] = lvl;
+                        nsize ++;
+                    }
+                }
+            }
+            lvsize = nsize - lvlend;
+        }
+
+        iblock[lvl] = nsize;
+
+        // reset mask array
+        for (i = 0; i< nsize; ++i) {
+            node = jblock[i];
+            mask[node] = 0;
+        }
+    }
+
+    *nlvl = lvl;
+}
+
+/*---------------------------------*/
+/*--        End of File          --*/
+/*---------------------------------*/
