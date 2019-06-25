@@ -1,15 +1,10 @@
 %----------------------------------------------%
 % input parameters: for grid generation        %
 %----------------------------------------------%
-title{Square grid, or any other descriptive title}
+title{Square grid, or any other more or less descriptive title}
 %
-
-dimension{3}   % spatial dimension in which the grid has to be generated
-
-%---------------%
-% output flags
-%---------------%
-
+dimension{2}   % spatial dimension in which the grid has to be generated
+%
 print_level{1}	% how much information to print out: 0 Nothing | >0 Something
 
 %---------------%
@@ -43,16 +38,16 @@ num_coordsystems{3} % number of coordinate systems
 %% from 0 the values of the above quantities are given as space tab
 %% separated values
 
-data_coordsystems{0 0. 0.  0. 0
-		  1 0. 0.  0. 1
-		  2 -1. -1.  -1. 1}
+data_coordsystems{0 0. 0.  0
+		  1 0. 0.  1
+		  2 -1. -1.  1}
 %---------------%
 % graph which describes the domain. The input are
 % vertices and edges. The graph has to be a union of polygons,
 % of polyhedrons that are isomorphic to an n-dimensional cube.
 %---------------%
 
-num_vertices{8} %number of vertices
+num_vertices{4} %number of vertices
 
 %---------------%
 %coords: for every node 1:numvertices: coords[0:dim-1],
@@ -64,24 +59,16 @@ num_vertices{8} %number of vertices
 %% line connecting the two vertices.
 %---------------%
 
-data_vertices{ -1.  -1.   -1. 0 1	%% coords, coord_system, bcode
-	        1. -1    1.   0 1
-	       -1.  1.    1.  0 1
-	        1.    1.    -1. 0 1
-	       -1.  -1.   1.  	0 1
-	        1.   -1.   -1.	 0 1
-	        1.   1.   1. 	 0 1
-	       -1.   1.   -1. 	 0 1}
-%%%%%
+%data_vertices{-1.   -1.   0 0	%% coords, coord_system.
+%	       2.    0.   2 1   %% for a polar system:
+%	       2.   90.   2 1   %% angles are in degrees.
+%	       2.   45.   2 1}
 
-%data_vertices{-1  -1  -1  0  1
-%  0.5322480912504846  -2.098567647995197  1.108403402965748  0  1
-%  -1.715298540450513  -0.4818480775298473  1.686980942111396  0  1
-%  0.6204177203908412  0.6816145236912885  0.5957502953638669  0  1
-%  -1.401734084795435  -2.131015124608167  0.5998170248566386  0  1
-%  0.9339821760459193  -0.9675525233870308  -0.4914136218908909  0  1
-%  0.2186836355954065  -0.4494006009168781  2.195567320220506  0  1
-%  -1.313564455655078  0.6491670470783193  0.08716391725475781  0  1}
+
+data_vertices{-1.   -1.   0 1	%% coords, coord_system, bcode
+	       1.   -1.   0 1
+	       -1.   1.   0 1
+	       1.   1.   0 1}
 
 %---------------%
 % edges and number of divisions for every edge.
@@ -89,17 +76,12 @@ data_vertices{ -1.  -1.   -1. 0 1	%% coords, coord_system, bcode
 % then the max number of divisions is taken.
 %---------------%
 
-num_edges{12} %
+num_edges{4} %
 
-data_edges{    0 7 3 %% edge: 1st vertex, 2nd vertex, number of divisions.
-  	    6 1     1	      
-	0 4	5 
-	    6 3 	1 
-	    1 4 	9
-            3 7 		3
-            0 5		3
-  	    7 2     3	      
-  	    3 5     1	      
-  	    5 1     2	      
-  	    4 	    2     7	      
-            6 2	    1}	    
+data_edges{0 1	31 %% edge: 1st vertex, 2nd vertex, number of divisions.
+           1 3 		41
+           0 2 		41
+  	   2 3     	31	      }
+
+%% number of refinements:
+%% refinement type:
