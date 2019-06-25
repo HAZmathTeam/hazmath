@@ -1236,7 +1236,12 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
   REAL setup_start, setup_end, setup_duration;
   REAL solver_start, solver_end, solver_duration;
 
-  void **LU_diag = (void **)calloc(2, sizeof(void *));
+//void **LU_diag = (void **)calloc(2, sizeof(void *));
+#if WITH_SUITESPARSE
+    void **LU_diag = (void **)calloc(2, sizeof(void *));
+#else
+    error_extlib(257, __FUNCTION__, "SuiteSparse");
+#endif
 
 /*
   if (precond_type > 0 && precond_type < 20) {
