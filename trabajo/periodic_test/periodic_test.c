@@ -113,13 +113,13 @@ int main (int argc, char* argv[])
   // Set periodic Boundaries
   // TODO
   set_periodic_bdry(&FE,&mesh,0.0,1.0,0.0,1.0,0.0,1.0);
-  for(INT i=0;i<FE.ndof;i++)
-    printf("periodic[%d]=%d\n",i,FE.periodic[i]);
+  //for(INT i=0;i<FE.ndof;i++)
+  //  printf("periodic[%d]=%d\n",i,FE.periodic[i]);
 
   dCSRmat P_periodic;
   generate_periodic_P(&FE, &P_periodic);
-  dcsr_write_dcoo("P.dat", &P_periodic);
-  exit(0);
+  //dcsr_write_dcoo("P.dat", &P_periodic);
+  //exit(0);
 
   // Strings for printing
   char elmtype[8];
@@ -192,6 +192,9 @@ int main (int argc, char* argv[])
 
   // Eliminate Dirichlet BC
   eliminate_DirichletBC(bc,&FE,&mesh,&b,&A,0.0);
+  dcsr_write_dcoo("A.dat", &A);
+  // Eliminate Periodic BC
+  eliminate_PeriodicBC(&P_periodic, &A, &b);
 
   // Dump matrices for testing
   if(inparam.print_level > 3) {
@@ -213,7 +216,7 @@ int main (int argc, char* argv[])
   clock_t clk_solve_start = clock();
 
   // Create Solution Vector
-  dvector u = dvec_create(FE.ndof);
+  dvector u = dvec_create(A.col);
 
   // Set initial guess to be all zero
   dvec_set(u.row, &u, 0.0);
@@ -305,6 +308,9 @@ int main (int argc, char* argv[])
 
   // Error Check
   if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
+
+  // apply periodic BC
+  apply_PeriodicBC(&P_periodic, &u);
 
   clock_t clk_solve_end = clock();
   printf("Elapsed CPU Time for Solve = %f seconds.\n\n",
