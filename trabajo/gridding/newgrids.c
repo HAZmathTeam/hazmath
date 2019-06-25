@@ -44,9 +44,6 @@ REAL interp8(cube2simp *c2s, REAL *u, REAL *ue, REAL *xhat);
 REAL interp4(cube2simp *c2s, REAL *u, REAL *xhat);
 void unirefine(INT *nd,scomplex *sc);
 /***************************************************************/
-/********************************************************************/
-void lexsort(const INT nr, const INT nc,REAL *a,INT *p);
-/***************************************************************/
 gcomplex *form_macro(input_grid *g){
   gcomplex *gc=malloc(sizeof(gcomplex));
   gc->ncells=1; //one macroelement only
@@ -76,7 +73,7 @@ INT *set_input_grid(input_grid *g)
   */
   INT i,j,k,iri,ici;
   INT *p=calloc(2*g->nv,sizeof(INT));// permutation and inverse permutation;
-  lexsort(g->nv, g->dim,g->x,p);
+  dlexsort(g->nv, g->dim,g->x,p);
   //  for (i=0;i<g->nv;i++)fprintf(stdout,"\n%d-->%d",p[i],i);  
   //  fprintf(stdout,"\n"); 
   // use p as a working array to store labels;
@@ -114,10 +111,13 @@ INT *set_input_grid(input_grid *g)
     g->seg[3*i+2]=p[j]; 
     //    fprintf(stdout,"\n[%d,%d]:div=%d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
   }
+  ilexsort(g->ne, 3,g->seg,p);
+  k=0;
   for (i=0;i<g->ne;i++){
     if(g->seg[3*i]) continue;
     j=g->seg[3*i+1]-g->seg[3*i]-1;
-    p[j]=g->seg[3*i+2]; 
+    p[k]=g->seg[3*i+2];
+    k++;
     fprintf(stdout,"\n[%d,%d]:div=%d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
   }
   p=realloc(p,g->dim*sizeof(INT)); // realloc to dimension g->dim
@@ -230,16 +230,18 @@ INT main(INT argc, char **argv)
   /* } */
   /*GENERATE UNIFORM GRID: nodes in each direction: ND*/
   sc=umesh(dim,nd,c2s,intype);
+  fprintf(stdout,"\nGenerated a uniform mesh in dim=%d; vertices: %d, simplexes %d",dim,sc->nv,sc->ns);
   if(nd) free(nd);
-  fprintf(stdout,"\nuniform mesh in dim=%d; vertices: %d, simplexes %d\n",dim,sc->nv,sc->ns);
   fprintf(stdout,"\nedges=%d",c2s->ne);
   INT k1,k2,j1,j2,l1,l2;
   gcomplex *macs=form_macro(g);
+  fprintf(stdout,"\nMapping back to the macroelement...\n");
   map2mac(sc,c2s,g);
   input_grid_free(g); 
   fprintf(stdout,"\nDone.\n");
   //  haz_scomplex_print(sc,0,"HAHA");
   if(dim==2||dim==3) {
+    fprintf(stdout,"Writing vtk file...\n");
     vtkw("newmesh.vtu",sc,0,0,1.);
   }
   cube2simp_free(c2s);
