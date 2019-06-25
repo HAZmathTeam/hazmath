@@ -29,14 +29,12 @@
 /* 		    size_t *length_substring,	\ */
 /* 		    char *the_string); */
 /* input_grid *parse_input_grid(const char *input_file_grid); */
-/********************************************************************/
-void lexsort(const INT nr, const INT nc,REAL *a,INT *p);
 /***************************************************************/
 void set_input_grid(input_grid *g)
 {
   INT i,j,k,iri,ici;
   INT *p=calloc(2*g->nv,sizeof(INT));// permutation and inverse permutation;
-  lexsort(g->nv, g->dim,g->x,p);
+  dlexsort(g->nv, g->dim,g->x,p);
   //  for (i=0;i<g->nv;i++)fprintf(stdout,"\n%d-->%d",p[i],i);  
   //  fprintf(stdout,"\n"); 
   // use p as a working array to store labels;
