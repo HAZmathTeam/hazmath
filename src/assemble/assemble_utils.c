@@ -1305,16 +1305,16 @@ void generate_periodic_P(fespace* FE, dCSRmat* P_periodic)
 
     if (j != -1)
     {
-      if (flag[i]==-1 & flag[j]==-1) // both boundaries have not been touched
+      if ( (flag[i]==-1) & (flag[j]==-1) ) // both boundaries have not been touched
       {
         flag[i] = MIN(i,j);
         flag[j] = MIN(i,j);
       }
-      else if (flag[i]==-1 & flag[j]>-1) // boundary j has been touched
+      else if ( (flag[i]==-1) & (flag[j]>-1) ) // boundary j has been touched
       {
         flag[i] = flag[j];
       }
-      else if (flag[i]>-1 & flag[j]==-1) // boudanry i has been touched
+      else if ( (flag[i]>-1) & (flag[j]==-1) ) // boudanry i has been touched
       {
         flag[j] = flag[i];
       }
@@ -1405,3 +1405,89 @@ void generate_periodic_P(fespace* FE, dCSRmat* P_periodic)
 
 }
  /******************************************************************************************************/
+
+ /******************************************************************************************************/
+ /*!
+  * \fn eliminate_PeriodicBC(dCSRmat* P_periodic, dCSRmat* A, dvector* b)
+  *
+  * \brief Eliminate periodic boundary conditions. A = P_periodic'*A*P_periodic and b = P_periodic'*b;
+  *
+  * \param P_periodic    P_periodic matrix in dCSR format
+  * \param A             stiffness matrix in dCSR format
+  * \param b             right hand side
+  *
+  * \return A            stiffness matrix after elimination
+  * \return b            right hand side after elimination
+  *
+  */
+void eliminate_PeriodicBC(dCSRmat* P_periodic, dCSRmat* A, dvector* b)
+{
+
+  // local variables
+  dCSRmat Atemp;
+  dvector btemp;
+
+  // copy stiffness matrix
+  dcsr_alloc(A->row, A->col, A->nnz, &Atemp);
+  dcsr_cp(A, &Atemp);
+
+  // copy right hand side
+  dvec_alloc(b->row, &btemp);
+  dvec_cp (b, &btemp);
+
+  // free original A and b
+  if (A->IA) free(A->IA);
+  if (A->JA) free(A->JA);
+  if (A->val) free(A->val);
+
+  // transpose P_periodic
+  dCSRmat R_periodic;
+  dcsr_trans(P_periodic, &R_periodic);
+
+  // eliminate boundary
+  dcsr_rap(&R_periodic, &Atemp, P_periodic, A);
+
+  b->row = R_periodic.row;
+  b->val = (REAL* )realloc(b->val, b->row*sizeof(REAL));
+  dcsr_mxv(&R_periodic, btemp.val, b->val);
+
+  // free
+  dcsr_free(&Atemp);
+  dcsr_free(&R_periodic);
+  dvec_free(&btemp);
+
+
+}
+/******************************************************************************************************/
+
+/******************************************************************************************************/
+/*!
+ * \fn apply_PeriodicBC(dCSRmat* P_periodic, dvector* u)
+ *
+ * \brief Apply the boundary conditions so that the vector contains periodic BC dofs: u = P_periodic'*u;
+ *
+ * \param P_periodic    P_periodic matrix in dCSR format
+ * \param u             dvector
+ *
+ * \return u            dvector after apply the periodic BC
+ *
+ */
+void apply_PeriodicBC(dCSRmat* P_periodic, dvector* u)
+{
+  // local variable
+  dvector utemp;
+
+  // copy
+  dvec_alloc(u->row, &utemp);
+  dvec_cp(u, &utemp);
+
+  // apply peeriodic BC
+  u->row = P_periodic->row;
+  u->val = (REAL* )realloc(u->val, u->row*sizeof(REAL));
+  dcsr_mxv_agg(P_periodic, utemp.val, u->val);
+
+  // free
+  dvec_free(&utemp);
+
+}
+/******************************************************************************************************/
