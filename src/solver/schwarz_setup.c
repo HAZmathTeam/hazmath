@@ -336,7 +336,7 @@ INT Schwarz_setup_geometric (Schwarz_data *Schwarz,
     Schwarz->swzparam = param;
 
     // local variables
-    INT i;
+    //INT i;
 
     // data for Schwarz method
     INT nblk;
