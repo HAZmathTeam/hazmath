@@ -37,9 +37,9 @@ EXElex = lex.$(EXTENSION)
 OBJS = 	$(SRCDIR)/$(GRID).o \
 	$(SRCDIR)/new_refining.o \
 	$(SRCDIR)/new_marking.o \
-	$(SRCDIR)/auxfuncts.o \
-	$(SRCDIR)/io_geo.o \
 	$(SRCDIR)/features.o
+##	$(SRCDIR)/auxfuncts.o 
+##	$(SRCDIR)/io_geo.o \
 
 OBJb = 	newgrids.o \
 	bitwise.o \
