@@ -160,8 +160,8 @@ int main (int argc, char* argv[])
   scomplex *sc=haz_scomplex_read(gfid);  
   fclose(gfid);
   printf("Assembling the matrix and right-hand side:\n");
-  eafe1(&A, &b,sc);
-  exit(255);
+  //  eafe1(&A, &b,sc);
+  //  exit(255);
   // Assemble the matrix.
   eafe(&A,&b,assemble_DuDv_local,			\
        mesh,FE,cq,					\

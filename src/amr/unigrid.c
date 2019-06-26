@@ -43,6 +43,7 @@ INT num_lattice(INT *m,const INT dim,INT *nd)
 
 void binary1(const INT dim, unsigned int *bits, INT *nvloc)
 {
+  // coordinates of the vertices of the unit dim-cube as arrays of 0/1 
   INT i,k,kdim=-10,nbits=dim-1;
   *nvloc = (1 << dim);
   for(k = 0;k<(*nvloc);k++){

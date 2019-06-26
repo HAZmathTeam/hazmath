@@ -479,7 +479,8 @@ scomplex *umesh(const INT dim, INT *nd, cube2simp *c2s, const INT intype)
     nv*=(nd[i]+1);
     ns*=nd[i];
   }
-  ns*=c2s->ns; /**/
+  ns*=c2s->ns; /*multiply by the number of simplices in the unit cube
+		 (2 in 2D and 6 in 3d and 24 in 4d*/
   scomplex *sc = (scomplex *)haz_scomplex_init(dim,ns,nv);
   //  fprintf(stdout,"\nGenerating uniform mesh in dim=%d; vertices: %d, simplices %d\n",dim,nv,ns);fflush(stdout);
   nv=0;
@@ -539,6 +540,7 @@ scomplex *umesh(const INT dim, INT *nd, cube2simp *c2s, const INT intype)
     }    
   }
   if(m) free(m);
+  if(mm) free(mm);
   return sc;
 }
   
