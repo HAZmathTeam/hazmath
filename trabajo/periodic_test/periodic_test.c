@@ -29,14 +29,15 @@ void reaction_coeff(REAL *val,REAL* x,REAL time,void *param) {
 // Exact Solution (if you have one)
 void exactsol(REAL *val,REAL* x,REAL time,void *param) {
   // 2D
-  *val = sin(M_PI*x[0])*sin(M_PI*x[1]);
+  //*val = sin(M_PI*x[0])*sin(M_PI*x[1]);
+  *val = sin(2*M_PI*x[0])*sin(2*M_PI*x[1]);
 }
 
 // Derivative of Exact Solution (if you have one)
 void D_exactsol(REAL *val,REAL* x,REAL time,void *param) {
   // 2D
-  val[0] = M_PI*cos(M_PI*x[0])*sin(M_PI*x[1]);
-  val[1] = M_PI*sin(M_PI*x[0])*cos(M_PI*x[1]);
+  val[0] = 2*M_PI*cos(2*M_PI*x[0])*sin(2*M_PI*x[1]);
+  val[1] = 2*M_PI*sin(2*M_PI*x[0])*cos(2*M_PI*x[1]);
 }
 
 // Right-hand Side
@@ -48,7 +49,7 @@ void rhs(REAL *val,REAL* x,REAL time,void *param) {
   reaction_coeff(&myc,x,time,param);
   diffusion_coeff(&mya,x,time,param);
   exactsol(&myu,x,time,param);
-  *val = (mya*2*M_PI*M_PI + myc)*myu;
+  *val = (mya*8*M_PI*M_PI + myc)*myu;
 }
 
 // Boundary Conditions
@@ -193,10 +194,10 @@ int main (int argc, char* argv[])
   // Eliminate Dirichlet BC
   //eliminate_DirichletBC(bc,&FE,&mesh,&b,&A,0.0);
   // Eliminate Periodic BC
-  dvec_write("b0.dat", &b);
+  //dvec_write("b0.dat", &b);
   eliminate_PeriodicBC(&P_periodic, &A, &b);
-  dcsr_write_dcoo("A.dat", &A);
-  dvec_write("b.dat", &b);
+  //dcsr_write_dcoo("A.dat", &A);
+  //dvec_write("b.dat", &b);
 
 
   // Dump matrices for testing
