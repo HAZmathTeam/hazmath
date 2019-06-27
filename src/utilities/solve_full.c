@@ -298,3 +298,61 @@ void atbyvfull(const INT m, REAL *y,REAL *a, REAL *x, const INT n)
   }
   return;
 }
+/**************************************************************************/
+
+/**************************************************************************/
+/*
+ * \fn qr_full(const INT m, const INT n, REAL *A, REAL *Q, REAL *R)
+ *
+ * \brief QR decomposition of A: A=QR
+ *
+ * \param m     number of rows
+ * \param n     number of columns
+ * \param A     full matrix
+ *
+ * \return Q    orthogonal full matrix from QR decomposition
+ * \return R    upper triangular matrix from QR decomposition
+ */
+void qr_full(const INT m, const INT n, REAL *A, REAL *Q, REAL *R)
+{
+
+  // local variables
+  INT i,j;
+  REAL *qj = (REAL *)calloc(m, sizeof(REAL));
+  REAL *aj;
+
+  // main loop
+  for (j=0; j<n; j++)
+  {
+
+      // qj = aj
+      aj = &A[j*m];
+      array_cp(m, aj, qj);
+
+      // inner loop
+      for (i=0; i<j; i++)
+      {
+
+        // rij = qi'*qj
+        R[i*n+j] = array_dotprod(m, &Q[i*m], qj);
+
+        // qj = qj - rij*qi
+        array_axpy(m, -R[i*n+j], &Q[i*m], qj);
+
+      }
+
+      // rjj = ||qj||_2
+      R[j*n+j] = array_norm2(m, qj);
+
+      // qj = qj/rjj
+      array_cp(m, qj, &Q[j*m]);
+      array_ax(m, 1./R[j*n+j], &Q[j*m]);
+
+  }
+
+  // free
+  free (qj);
+
+}
+
+ /**************************************************************************/

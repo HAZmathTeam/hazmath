@@ -932,7 +932,7 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
         }
       }
 
-      // Set up Coarse level solve 
+      // Set up Coarse level solve
       if( lvl == max_levels-1 ){//TODO: is this correct level?
         printf("Coarse Level Solver Stuff...\n");
         switch ( param->coarse_solver ){
@@ -1051,7 +1051,7 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
     dvector diagvec;
     dcsr_getdiag( A.row, &A, &diagvec);
     C.val = diagvec.val;
-    
+
     dCSRmat B = bdcsr_subblk_2_dcsr ( &bmgl[lvl].A, 2, 2, 0, 1);
 
     smoother_bdcsr_bsr( &bmgl[lvl].x, &bmgl[lvl].b, 3.2484, 1.8119, &bmgl[lvl].A, &C, &B, bmgl[lvl].A.blocks[8], 1);
@@ -1063,6 +1063,151 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
     return;
 }
 
+/************************************************************************************************/
+/**
+ * \fn void smoother_dcsr_gs_graph_eigen(dvector *u, dCSRmat *A, const INT i_1, const INT i_n, const INT s, INT nsmooth, INT num_eigen)
+ *
+ * \brief Symmetric Gauss-Seidel smoother for graph Laplacian (used for eigenvalue solver)
+ *
+ * \param u      Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
+ * \param A      Pointer to dBSRmat: the coefficient matrix
+ * \param b      Pointer to dvector: has to be a zero vector
+ * \param i_1  Starting index
+ * \param i_n  Ending index
+ * \param s    Increasing step
+ * \param nsmooth      Number of iterations
+ * \param num_eigen    Number of eigenvectors
+ *
+ *
+ */
+void smoother_dcsr_gs_graph_eigen(dvector *u,
+                                  dCSRmat *A,
+                                  dvector *b,
+                                  const INT i_1,
+                                  const INT i_n,
+                                  const INT s,
+                                  const INT nsmooth,
+                                  const INT num_eigen)
+{
+
+  // local variables
+  INT n = A->row;
+
+  INT i, j;
+  dvector x;
+  x.row = n;
+
+  // space for QR
+  REAL *Q = (REAL *)calloc(n*num_eigen, sizeof(REAL));
+  REAL *R = (REAL *)calloc(num_eigen*num_eigen, sizeof(REAL));
+
+  // zero right hand side for eigenvalue problem
+  //dvector b = dvec_create(n);
+  //dvec_set(n, &b, 0.0);
+
+  // main loop
+  for (i=0; i<nsmooth; i++)
+  {
+
+    // loop over approximate eigenvectors
+    for (j=0; j<num_eigen; j++)
+    {
+
+      // assign x
+      x.val = &(u->val[j*n]);
+
+      // GS smoothing
+      smoother_dcsr_gs(&x, i_1, i_n, s, A, b, 1);
+
+      // orthogonalize to the constant vector
+      dvec_orthog_const(&x);
+
+    }
+
+    // Use QR decomposition to find x (orthonormal basis)
+    // orthogonalize eigenvectors
+    qr_full(n, num_eigen, u->val, Q, R);
+
+    // copy orthonormal basis Q to x
+    array_cp(n*num_eigen, Q, u->val);
+
+  }
+
+  // free
+  free(Q);
+  free(R);
+
+  //dvec_free(&b);
+
+}
+
+/************************************************************************************************/
+/**
+ * \fn void smoother_dcsr_sgs_graph_eigen(dvector *u, dCSRmat *A, INT nsmooth, INT num_eigen)
+ *
+ * \brief Symmetric Gauss-Seidel smoother for graph Laplacian (used for eigenvalue solver)
+ *
+ * \param u      Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
+ * \param A      Pointer to dBSRmat: the coefficient matrix
+ * \param b      Pointer to dvector: has to be a zero vector
+ * \param nsmooth      Number of iterations
+ * \param num_eigen    Number of eigenvectors
+ *
+ *
+ */
+void smoother_dcsr_sgs_graph_eigen(dvector *u, dCSRmat *A, dvector *b, const INT nsmooth, const INT num_eigen)
+{
+
+  // local variables
+  INT n = A->row;
+
+  INT i, j;
+  dvector x;
+  x.row = n;
+
+  // space for QR
+  REAL *Q = (REAL *)calloc(n*num_eigen, sizeof(REAL));
+  REAL *R = (REAL *)calloc(num_eigen*num_eigen, sizeof(REAL));
+
+  // zero right hand side for eigenvalue problem
+  //dvector b = dvec_create(n);
+  //dvec_set(n, &b, 0.0);
+
+  // main loop
+  for (i=0; i<nsmooth; i++)
+  {
+
+    // loop over approximate eigenvectors
+    for (j=0; j<num_eigen; j++)
+    {
+
+      // assign x
+      x.val = &(u->val[j*n]);
+
+      // SGS smoothing
+      smoother_dcsr_sgs(&x, A, b, 1);
+
+      // orthogonalize to the constant vector
+      dvec_orthog_const(&x);
+
+    }
+
+    // Use QR decomposition to find x (orthonormal basis)
+    // orthogonalize eigenvectors
+    qr_full(n, num_eigen, u->val, Q, R);
+
+    // copy orthonormal basis Q to x
+    array_cp(n*num_eigen, Q, u->val);
+
+  }
+
+  // free
+  free(Q);
+  free(R);
+
+  //dvec_free(&b);
+
+}
 /*---------------------------------*/
 /*--        End of File          --*/
 /*---------------------------------*/
