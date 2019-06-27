@@ -191,10 +191,13 @@ int main (int argc, char* argv[])
   dcsr_free(&Mass);
 
   // Eliminate Dirichlet BC
-  eliminate_DirichletBC(bc,&FE,&mesh,&b,&A,0.0);
-  dcsr_write_dcoo("A.dat", &A);
+  //eliminate_DirichletBC(bc,&FE,&mesh,&b,&A,0.0);
   // Eliminate Periodic BC
+  dvec_write("b0.dat", &b);
   eliminate_PeriodicBC(&P_periodic, &A, &b);
+  dcsr_write_dcoo("A.dat", &A);
+  dvec_write("b.dat", &b);
+
 
   // Dump matrices for testing
   if(inparam.print_level > 3) {
