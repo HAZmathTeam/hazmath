@@ -827,4 +827,113 @@ void python_wrapper_krylov_block_2by2(INT *n00,
       // clean memory
   }
 
+  /*************************************************************************************/
+  /*!
+   * \fn void python_wrapper_cascadic_eigen(INT *n, INT *nnz, INT *ia, INT *ja, REAL *a,
+   *                                        REAL *u, INT *num_eigen, INT *ptrlvl)
+   *
+   * \brief Solve Ax=b by Krylov method preconditioned by AMG (this is an interface with PYTHON)
+   *
+   * \param n             Number of cols of A
+   * \param nnz           Number of nonzeros of A
+   * \param ia            IA of A in CSR format
+   * \param ja            JA of A in CSR format
+   * \param a             VAL of A in CSR format
+   * \param u             eigenvector
+   * \param num_eigen     Number of eigenvalues needs to be computed
+   * \param print_lvl     Print level for iterative solvers
+   *
+   * \author Xiaozhe Hu
+   * \date   06/26/2016
+   *
+   */
+  void python_wrapper_cascadic_eigen(INT *n,
+                                     INT *nnz,
+                                     INT *ia,
+                                     INT *ja,
+                                     REAL *a,
+                                     REAL *u,
+                                     INT *num_eigen,
+                                     INT *print_lvl)
+  {
+      dCSRmat         mat;      // coefficient matrix
+      dvector         eigenvec;      // right-hand-side, solution
+      AMG_param       amgparam; // parameters for AMG
+      //linear_itsolver_param  itparam;  // parameters for linear itsolver
+
+      input_param inparam;
+      param_input_init(&inparam);
+      param_input("./input.dat", &inparam);
+
+      // Set parameters for algebriac multigrid methods
+      param_amg_init(&amgparam);
+      param_amg_set(&amgparam, &inparam);
+      if (*print_lvl > PRINT_MIN) param_amg_print(&amgparam);
+
+      amgparam.print_level          = *print_lvl;
+
+      mat.row = *n; mat.col = *n; mat.nnz = *nnz;
+      mat.IA = ia;  mat.JA  = ja; mat.val = a;
+
+      //dcsr_write_dcoo("mat.dat", &mat);
+
+      //printf("n=%d, nnz=%d, num_eigen=%d\n", *n, *nnz, *num_eigen);
+
+      eigenvec.row = (*n)*(*num_eigen); eigenvec.val = u;
+
+      /*---------------------*/
+      /*       setup         */
+      /*---------------------*/
+      // initialize multigrid
+      AMG_data *mgl = amg_data_create(amgparam.max_levels);
+
+      // initialize mgl[0] with A, b and x
+      mgl[0].A = dcsr_create(mat.row, mat.col, mat.nnz);
+      dcsr_cp(&mat, &mgl[0].A);
+      mgl[0].b = dvec_create(mat.row);
+      mgl[0].x = dvec_create((*num_eigen)*mat.row);
+
+      // amg setup
+      INT status = amg_setup_ua(mgl, &amgparam);
+
+      if (status != SUCCESS)
+      {
+        printf("Setup AMG failed!!\n");
+        exit(0);
+      }
+
+      // more space for x
+      INT level;
+      for ( level = 1; level < amgparam.max_levels; ++level)
+      {
+          mgl[level].x.row = (*num_eigen)*mgl[level].A.row;
+          mgl[level].x.val = (REAL *)realloc(mgl[level].x.val, (*num_eigen)*mgl[level].A.row*sizeof(REAL));
+      }
+
+      /*---------------------*/
+      /*       solve         */
+      /*---------------------*/
+      // cascadic MG
+      cascadic_eigen(mgl, &amgparam, 0, *num_eigen);
+
+      // copy approximate eigenvectors
+      dvec_cp(&mgl[0].x, &eigenvec);
+
+      if (*print_lvl > PRINT_MIN)
+      {
+        INT i;
+        for (i=0; i<(*num_eigen); i++)
+        {
+          printf("eigenvalue[%d]=%f\n", i, dcsr_vmv(&mat, &(eigenvec.val[i*mat.row]), &(eigenvec.val[i*mat.row])));
+        }
+      }
+
+      /*---------------------*/
+      /*       clean         */
+      /*---------------------*/
+      amg_data_free(mgl, &amgparam);
+
+  }
+
+
 /***************************** END ***************************************************/
