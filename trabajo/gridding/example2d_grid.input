@@ -50,8 +50,22 @@ data_coordsystems{0 0. 0.  0
 num_vertices{4} %number of vertices
 
 %---------------%
-%coords: for every node 1:numvertices: coords[0:dim-1],
-% coord system for every vertex and also its boundary code;
+%coords (see way below): for every node 1:numvertices give coords (dim
+% coords per node) the vertices should be ordered so that the
+% macroelement (polyhedron) is mapped to the unit cube without
+% "twisting". This can be done by consistently labeling all faces. In
+% dimension d, if the vertices are numbered from 0 to (2^d-1) each
+% face corresponds to fixing exactly one bit in the binary
+% representation of the vertex label.
+
+%  For example in 3D we have [000:111] as vertex labels, i.e. [0:7]
+% (this has nothing to do with coordinates) and the faces are:
+% (000,001,010,011)= fixing the first bit to be 0; and
+% (011,010,110,111)= fixing the second bit to be 1; and so on. The
+% ordering of the labels in the faces follows the same convention. In
+% the example we gave, the face for which the second bit is fixed is
+% numbered incorrectly, it should be (010,011,110,111).
+
 % If two points on an edge are in the same coordinate system,
 % then all points on this edge are in polar coordinate system.
 % if two points on an edge are in in different coordinate systems,

@@ -73,22 +73,24 @@ INT *set_input_grid(input_grid *g)
   */
   INT i,j,k,iri,ici;
   INT *p=calloc(2*g->nv,sizeof(INT));// permutation and inverse permutation;
-  dlexsort(g->nv, g->dim,g->x,p);
+  //  dlexsort(g->nv, g->dim,g->x,p);
   //  for (i=0;i<g->nv;i++)fprintf(stdout,"\n%d-->%d",p[i],i);  
   //  fprintf(stdout,"\n"); 
   // use p as a working array to store labels;
   INT *invp=p+g->nv; // inverse permutation;
-  for (i=0;i<g->nv;i++){
-    invp[p[i]]=i;
-    p[i]=g->labels[i];
-  }
+  //  for (i=0;i<g->nv;i++){
+  //    invp[p[i]]=i;
+  //    p[i]=g->labels[i];
+  //  }
   /* permute labels (coordinate systems for vertices */
-  for (i=0;i<g->nv;i++)
-    g->labels[i]=p[invp[i]]; // fix coord systems;
+  //no  for (i=0;i<g->nv;i++)
+  //no    g->labels[i]=p[invp[i]]; // fix coord systems;
   for (i=0;i<g->ne;i++){
-    iri=invp[g->seg[3*i]];
-    ici=invp[g->seg[3*i+1]];
-    //    fprintf(stdout,"\n(%d,%d)-->[%d,%d]: div=%d",g->seg[3*i],g->seg[3*i+1],iri,ici,g->seg[3*i+2]);
+    iri=g->seg[3*i];
+    ici=g->seg[3*i+1];
+    /* iri=invp[g->seg[3*i]]; */
+    /* ici=invp[g->seg[3*i+1]]; */
+    /* fprintf(stdout,"\n(%d,%d)-->[%d,%d]: div=%d",g->seg[3*i],g->seg[3*i+1],iri,ici,g->seg[3*i+2]); */
     if(iri<ici){
       g->seg[3*i]=iri;
       g->seg[3*i+1]=ici;
@@ -100,7 +102,7 @@ INT *set_input_grid(input_grid *g)
     j=g->seg[3*i+1]-g->seg[3*i]; // should be always positive;
     if(g->seg[3*i+2]>p[j])
       p[j]=g->seg[3*i+2];
-  }  
+  } 
   for (i=0;i<g->ne;i++){
     j=g->seg[3*i+1]-g->seg[3*i];
     g->seg[3*i+2]=p[j]; 
