@@ -13,9 +13,9 @@
 void mock_solve(INT ref_type, scomplex *sc, void *all){
   if(!ref_type) return;
   fprintf(stdout,"\n%s: %d",__FUNCTION__,sc->level);
-  INT j,k;
-  INT dim=sc->n,nv=sc->nv,ns=sc->ns;
-  dvector *u=all;
+  //  INT j,k;
+  //  INT dim=sc->n,nv=sc->nv,ns=sc->ns;
+  //  dvector *u=all;
   /* 
      if(u)
      for(j=0;j<ns;j++)
@@ -24,8 +24,7 @@ void mock_solve(INT ref_type, scomplex *sc, void *all){
   return;
 }
 void mock_estimate(INT ref_type, scomplex *sc, void *all){
-  INT j,k;
-  INT dim=sc->n,nv=sc->nv,ns=sc->ns,lvl_prev=(sc->level-1);
+  INT j,lvl_prev=(sc->level-1);
   REAL gamma=5e-1;
   dvector *errs=all;
   if(ref_type<2)return;
@@ -33,11 +32,11 @@ void mock_estimate(INT ref_type, scomplex *sc, void *all){
     /*on the coarsest grid generate random errors */
     INT ntotal=errs->row;
     dvec_set(ntotal,errs,0e0);
-    dvec_rand_true(ns,errs);
-    memset(sc->marked,0x0,sizeof(INT)*ns);
+    dvec_rand_true(sc->ns,errs);
+    memset(sc->marked,0x0,sizeof(INT)*sc->ns);
     errs->row=ntotal;
     /* in this mock scenario we just have random error on 0th level */
-    for(j=0;j<ns;j++){
+    for(j=0;j<sc->ns;j++){
       errs->val[j]=fabs(errs->val[j]);
       fprintf(stdout,"\n: err[%d]=%e;",		\
 	      j,errs->val[j]);    
@@ -45,7 +44,7 @@ void mock_estimate(INT ref_type, scomplex *sc, void *all){
   } else {
     /*    assuming that every refined simplex reduces the error by a
 	  factor of gamma */
-    for(j=0;j<ns;j++){
+    for(j=0;j<sc->ns;j++){
       if(sc->child0[j]<0 || sc->childn[j]<0 || sc->gen[j] != lvl_prev)continue;
       errs->val[sc->childn[j]]=errs->val[sc->child0[j]]=gamma*errs->val[j];
       fprintf(stdout,"\ngeneration: %d;j=%d,e=%e (child0[%d]=%e; childn[%d]=%e", \
@@ -54,7 +53,7 @@ void mock_estimate(INT ref_type, scomplex *sc, void *all){
       	      sc->child0[j],errs->val[sc->child0[j]],		\
       	      sc->childn[j],errs->val[sc->childn[j]]);
     }
-    for(j=0;j<ns;j++)
+    for(j=0;j<sc->ns;j++)
       fprintf(stdout,"\nMMMerrs[%d]: %e",j,errs->val[j]);
   }
   fprintf(stdout,"\n%s: %d",__FUNCTION__,sc->level);
@@ -72,7 +71,7 @@ void mock_mark(INT ref_type, scomplex *sc,void *all){
 /*****************************************************************/
 scomplex *unimesh(INT dim, INT *nd, REAL *xo, REAL *xn,	const INT ishift){
   // generates uniform mesh with nd[k] vertices in every direction. 
-  INT i,j,dfactorial,nv=-10,ns=-10;
+  INT j,dfactorial,nv=-10,ns=-10;
   /*CONSTANTS and BOUNDARY CODES:*/
   /* max points in every direction; max dimension = 10*/  
   INT m0[10]={1025,1025,1025,1,1,1,1,1,1,1};  
@@ -154,7 +153,7 @@ scomplex *unimesh(INT dim, INT *nd, REAL *xo, REAL *xn,	const INT ishift){
  *************************************************************************/
 /*******************************************************/
 INT main(INT   argc,   char *argv[]){
-  INT dim=DIM;
+  INT i,j,dim=DIM;
   // Set Paramaters
   INT ref_levels=MAXREFLEVELS; // export also a vtk file with the mesh
   INT use_features=(INT )USE_FEATURES;
@@ -196,12 +195,12 @@ INT main(INT   argc,   char *argv[]){
 
   /* // Create the mesh */
   /**********************************************************************************/
-  INT i,j;
   INT *nd=(INT *)calloc(dim,sizeof(INT));
   fprintf(stdout,"%%Creating mesh: output goes on: mesh-out=%s",nameout);
   for(j=0;j<dim;j++){
     fprintf(stdout, "\n%%INPUT number of points in direction x[%d]:\n",j);
     i=fscanf(stdin,"%d", (nd+j));
+    if(i<0) continue;
   }
   // coordinates of the point where (0,0,...,0) needs to be mapped;
   // coordinates of the point where (1,1,...,1) is mapped;
