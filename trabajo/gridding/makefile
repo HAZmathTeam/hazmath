@@ -15,7 +15,7 @@ EXTENSION = ex
 CC = gcc
 FC = gfortran
 CXX = g++
-CFLAGS = -g
+CFLAGS = -g -Wall
 FFLAGS = -g -fno-second-underscore
 ExtraFLAGS =
 

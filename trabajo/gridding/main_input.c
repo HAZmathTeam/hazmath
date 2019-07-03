@@ -32,7 +32,7 @@
 /***************************************************************/
 void set_input_grid(input_grid *g)
 {
-  INT i,j,k,iri,ici;
+  INT i,j,iri,ici;
   INT *p=calloc(2*g->nv,sizeof(INT));// permutation and inverse permutation;
   dlexsort(g->nv, g->dim,g->x,p);
   //  for (i=0;i<g->nv;i++)fprintf(stdout,"\n%d-->%d",p[i],i);  

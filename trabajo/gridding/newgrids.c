@@ -77,7 +77,7 @@ INT *set_input_grid(input_grid *g)
   //  for (i=0;i<g->nv;i++)fprintf(stdout,"\n%d-->%d",p[i],i);  
   //  fprintf(stdout,"\n"); 
   // use p as a working array to store labels;
-  INT *invp=p+g->nv; // inverse permutation;
+  //XXXXXXXXX  INT *invp=p+g->nv; // inverse permutation;
   //  for (i=0;i<g->nv;i++){
   //    invp[p[i]]=i;
   //    p[i]=g->labels[i];
@@ -136,8 +136,7 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
      macroelement given by its coordinates xmacro[1:nvcube*dim]
      xmac[nvcube][dim]
   */
-  INT i,j,k1,k2,k1c,k2c,kf,dim=sc->n,dim1 =sc->n+1;
-  INT nv=sc->nv,ns=sc->ns;
+  INT i,j,k1,k2,k1c,k2c,kf,dim=sc->n;
   INT ksys;
   REAL *xmac=g->x;  
   REAL *xhat = (REAL *)calloc(dim,sizeof(REAL));
@@ -212,11 +211,10 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
 }
 INT main(INT argc, char **argv)
 {
-  INT i=-1,j=-1,k=-1,kperm;
+  //  INT j=-1;
   input_grid *g=parse_input_grid("grid.input");
   INT dim=g->dim;
   cube2simp *c2s=cube2simplex(dim);
-  INT ns=c2s->ns,dim1=c2s->n+1;
   /*------------------------------------------------------*/
   scomplex *sc;
   INT intype=0;
@@ -235,8 +233,8 @@ INT main(INT argc, char **argv)
   fprintf(stdout,"\nGenerated a uniform mesh in dim=%d; vertices: %d, simplexes %d",dim,sc->nv,sc->ns);
   if(nd) free(nd);
   fprintf(stdout,"\nedges=%d",c2s->ne);
-  INT k1,k2,j1,j2,l1,l2;
-  gcomplex *macs=form_macro(g);
+  //  INT k1,k2,j1,j2,l1,l2;
+  //KEEP KEEP  gcomplex *macs=form_macro(g);
   fprintf(stdout,"\nMapping back to the macroelement...\n");
   map2mac(sc,c2s,g);
   input_grid_free(g); 

@@ -45,8 +45,8 @@ REAL interp4(cube2simp *c2s, REAL *u, REAL *xhat)
 REAL interp8(cube2simp *c2s, REAL *u, REAL *ue, REAL *xhat)
 {
   /*INTerpolate quadratically in d dimensions on the UNIT cube */
-  INT dim=c2s->n,k,i,j,l,k1,k2,kdim;  
-  REAL rl,phik,zmid,psimid;
+  INT dim=c2s->n,k,i,k1,k2,kdim;  
+  REAL phik,zmid,psimid;
   REAL s=0.;
   for(k = 0;k<c2s->nvcube;k++){
     kdim=k*dim;
@@ -77,7 +77,7 @@ REAL interp8(cube2simp *c2s, REAL *u, REAL *ue, REAL *xhat)
     phik*=2e00*(zmid+psimid);
     s+=u[k]*phik;
   }
-  REAL se,phie,xe1,xe2;
+  REAL se,phie;
   se=0.;
   for(k=0;k<c2s->ne;k++){
     k2=c2s->edges[2*k];    
@@ -121,7 +121,7 @@ static void coord_perm(SHORT type, INT n,void *x, size_t elsize)
     if type=1: x[0],x[1]...x[n-1]--> x[1]...x[n-1],x[0] 
     if type=0(inverse): y[0],y[1]...y[n-1]--> y[n-1],y[0]...y[n-2] 
   */
-  INT i,ntotal;  
+  INT i;  
   void *xx0n=(void *)calloc(1,elsize*sizeof(void));
   if(type){
     memcpy(xx0n,x,elsize);
@@ -169,7 +169,7 @@ void polar2cart(INT dim, REAL *px, REAL *cx)
 /************************************************************************/
 INT cart2polar(INT dim, REAL *c,REAL *p)
 {
-  INT i,j,dimm1=dim-1;
+  INT i,dimm1=dim-1;
   REAL rl,r;
   // first put c[n-1] first to agree with the polar ordering;
   coord_perm(0,dim,c,sizeof(REAL));
@@ -209,7 +209,7 @@ void unirefine(INT *nd,scomplex *sc)
  2^{l} such that 2^{l}>max_m nd[m]. then remove all x such that
  x[k]>nd[k]*2^{-l} and then remap to the unit square. 
 */
-  INT n=sc->n,ndmax=-1,i=-1,j=-1,k=-1,i123=-10;
+  INT ndmax=-1,i=-1,j=-1;
   for(i=0;i<sc->n;i++)
     if(ndmax<nd[i]) ndmax=nd[i];
   fprintf(stdout,"\nmax split=%d",ndmax);
@@ -222,9 +222,9 @@ void unirefine(INT *nd,scomplex *sc)
   fprintf(stdout,"\nlog2 of the max=%e, l=%d",log2((REAL )ndmax)+1,ref_levels);
   ref_levels=0;
   if(ref_levels<=0) return;
-  INT ns,nv,n1,nsold,nvold,level;
+  INT nsold;//ns,nvold,level;
   if(!sc->level){
-    /*form neighboring list; */
+    /* form neighboring list; */
     find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
     //    haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
     INT *wrk=calloc(5*(sc->n+2),sizeof(INT));
@@ -234,17 +234,17 @@ void unirefine(INT *nd,scomplex *sc)
     //    exit(100);
     if(wrk) free(wrk);
   }
-  n=sc->n; n1=n+1; level=0;
+  //INT n=sc->n, n1=n+1,level=0;
   fprintf(stdout,"refine: ");
   while(sc->level < ref_levels && TRUE){
     nsold=sc->ns;
-    nvold=sc->nv;
+    //    nvold=sc->nv;
     for(j = 0;j < nsold;j++)sc->marked[j]=TRUE;
     for(j = 0;j < nsold;j++)
       if(sc->marked[j] && (sc->child0[j]<0||sc->childn[j]<0))
 	haz_refine_simplex(sc, j, -1);
     /* new mesh */
-    ns=sc->ns; nv=sc->nv;
+    //    ns=sc->ns; 
     sc->level++;
     fprintf(stdout,"u%du",sc->level);//,nsold,ns,nv);
   }
@@ -268,8 +268,8 @@ static void binary0(cube2simp *c2s)
   // cube in dimension (dim). Lexicographical ordering from 0,0,...0
   // to 1,1,...,1
   
-  INT dim=c2s->n,nvcube=c2s->nvcube;
-  INT shift,oposite,i,j,k,kn,nbits=c2s->n-1;
+  INT nvcube=c2s->nvcube;
+  INT shift,i,j,k,kn,nbits=c2s->n-1;
   for(k = 0;k<nvcube;k++){
     kn=k*c2s->n;
     for (i=nbits ; i >=0; --i){
@@ -325,7 +325,7 @@ void reverse(void *arr,INT length, size_t elsize)
      permutes a void array whose elements are of size elsize 
      a[0],...a_[length-1]-->a[length-1],...a[0]. 
   */
-  INT i,j,k,nnn=(INT)(length/2);
+  INT i,nnn=(INT)(length/2);
   void *swap=(void *)malloc(elsize);
   //  reverses ordering in an INT array;
   void *arrk=arr+elsize*(length-1);
@@ -366,7 +366,7 @@ cube2simp *cube2simplex(INT dim)
   memset(c2s->nodes,0,(c2s->n+1)*c2s->ns*sizeof(INT));
   /*end of allocation*/
   INT k1,kn1,k2,kn2,dim1=c2s->n+1,		\
-    ns=c2s->ns,nvcube=c2s->nvcube;
+    nvcube=c2s->nvcube;
   binary0(c2s);
   INT *edges=c2s->edges;
   memset(edges,0,c2s->ne*sizeof(INT));
@@ -467,7 +467,7 @@ scomplex *umesh(const INT dim, INT *nd, cube2simp *c2s, const INT intype)
      it works in d>3.
   */
   INT iz1;
-  INT jperm,k,i,j,flag,kf,type;
+  INT jperm,i,j,flag,kf,type;
   INT dim1 = dim+1;
   // m is dim+1 so that we can handle even dimensions
   INT *m = (INT *)calloc(dim1,sizeof(INT));
