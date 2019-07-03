@@ -31,8 +31,7 @@ void n_refine(INT ref_type, INT ref_levels, scomplex *sc,	\
   */
   void *anything = (void *)errors;
   /**/
-  INT n=sc->n,i=-1,j=-1,k=-1,i123=-10;
-  INT ns,nv,n1,nsold,nvold,level;
+  INT j=-1,nsold;
   if(!sc->level){
     /*form neighboring list; */
     find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
@@ -44,7 +43,7 @@ void n_refine(INT ref_type, INT ref_levels, scomplex *sc,	\
     //    exit(100);
     if(wrk) free(wrk);
   }
-  n=sc->n; n1=n+1; level=0;
+  //INT  n=sc->n;
   fprintf(stdout,"refine: ");
   while(sc->level < ref_levels && TRUE){
     //    if(dxstar->row && dxstar->val) markstar(sc,dxstar);
@@ -61,7 +60,6 @@ void n_refine(INT ref_type, INT ref_levels, scomplex *sc,	\
       /* } */
     /* REFINE FOLLOWS : */
     nsold=sc->ns;
-    nvold=sc->nv;
     /* 
      * refine everything that is marked on the finest level and is
      * not yet refined: (marked>0 and child<0)
@@ -70,7 +68,6 @@ void n_refine(INT ref_type, INT ref_levels, scomplex *sc,	\
       if(sc->marked[j] && (sc->child0[j]<0||sc->childn[j]<0))
 	haz_refine_simplex(sc, j, -1);
     /* new mesh */
-    ns=sc->ns; nv=sc->nv;
     sc->level++;
     fprintf(stdout,".%d.",sc->level);//,nsold,ns,nv);
   }
@@ -81,7 +78,7 @@ void n_refine(INT ref_type, INT ref_levels, scomplex *sc,	\
 void sc2mesh(scomplex *sc,mesh_struct *mesh)
 {
   /* copy the final grid at position 1*/
-  INT ns,n=sc->n,n1=sc->n+1,jk=-10,k=-10,j=-10;
+  INT ns,n1=sc->n+1,jk=-10,k=-10,j=-10;
   /*  
       store the finest mesh in mesh_struct structure.  sc has all the
       hierarchy, mesh_struct will have only the last mesh.
