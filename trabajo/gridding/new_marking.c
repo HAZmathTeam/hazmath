@@ -18,7 +18,7 @@ void markstar(scomplex *sc,dvector *w)
   if(!(w->row) || !(w->val)) return;
   INT n=sc->n,n1=n+1,ns=sc->ns,nstar=w->row;
   //  fprintf(stdout,"\nNSTAR=%d\n",nstar);fflush(stdout);
-  INT istar,jstar,j=-1;
+  INT jstar,j=-1;
   REAL *xstar = w->val;
   INT *scnjn=NULL,mrkno=0,mrktst=0,flagmrk=0;  
   REAL *xstar0=NULL;
@@ -62,13 +62,10 @@ unsigned int markeql(scomplex *sc, dvector *w)
   /* ON RETURN: a nonzero value indicates wrong input and all simplices are marked */
   /* mark simplices equilibrating errors given by a dvector w*/
   /* w is a vector with errors on the last level...*/
-  unsigned int flag;
   if((w->row<=0) || !(w->val)) {
     return 2;
   }
-  INT n=sc->n,n1=n+1,ns=sc->ns,nv=sc->nv,level=sc->level;
-  INT i,nslast=0;
-  INT ntotal=w->row;
+  INT ns=sc->ns,i,nslast=0,ntotal=w->row;
   REAL *wval=w->val;
   REAL avew=0e0;
   // find the average of the error 
@@ -86,8 +83,8 @@ unsigned int markeql(scomplex *sc, dvector *w)
   for(i = 0;i<ns;i++){
     if((sc->gen[i]!=sc->level) && (sc->child0[i]>=0 && sc->childn[i]>=0)) continue;
     sc->marked[i]=0;
-    //    fprintf(stdout,"\n%s: BEFORE: simplex %d (level=%d,mark=%d, gen=%d, c0=%d)", \
-    //	    __FUNCTION__,i,sc->level,sc->marked[i],sc->gen[i],sc->child0[i]);
+    /*    fprintf(stdout,"\n%s: BEFORE: simplex %d (level=%d,mark=%d, gen=%d, c0=%d)",__FUNCTION__,i,sc->level,sc->marked[i],sc->gen[i],sc->child0[i]);
+*/
   }
   INT nmark=0;
   //mark for refinement every unrefined and unmarked simplex for which error > average error  
@@ -111,8 +108,8 @@ void markall(scomplex *sc, const INT amark){
      mark everything with "amark"; amark could be 0 or 1 or true or
      false. if 1 (true) then every simplex is marked for refinement. If 0 no simplex is marked for refinement. 
  */
-  INT ns=sc->ns,level=sc->level;
-  INT i,nslast;
+  INT ns=sc->ns;
+  INT i;
   for(i=0;i<ns;i++)
     sc->marked[i]=amark;
   return;
