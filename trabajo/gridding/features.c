@@ -179,7 +179,7 @@ INT features_r(const INT dim_orig,const INT use_features,features *feat, REAL vf
 }
 INT features_w(features *feat,REAL *extra)
 {
-  INT dimbig=feat->nbig, dim=feat->n;
+  INT dimbig=feat->nbig;
   INT i,j;
   size_t lfname=strlen((char *)FEATURES_DIR);
   size_t lfnamei=strlen((char *)FEATURES_FILE_OUT);
