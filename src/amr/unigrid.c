@@ -26,7 +26,7 @@ void coord_lattice(INT *m,const INT dim,			\
 }
 INT num_lattice(INT *m,const INT dim,INT *nd)
 {
-  INT i,j,k,kf;
+  INT i,kf;
   /*
     given the lattice coordinates m[i],i=0:n-1 of a vertex, in
     dimension n, finds the global number kf of a vertex on a
@@ -57,7 +57,7 @@ void binary1(const INT dim, unsigned int *bits, INT *nvloc)
 
 unigrid *ugrid_init(INT n, INT *nd, REAL *xo, REAL *xn)
 {
-  INT j,i,k;
+  INT j;
   unigrid *ug=(unigrid *)malloc(sizeof(unigrid));
   /* fprintf(stdout,"\n"); */
   /* for(j=0;j<n;j++){ */
@@ -180,38 +180,6 @@ void data_transform(const INT nv, const int m,			\
   if(xo) free(xo);
   return; 
 }
-static REAL ff(const INT dim, REAL *x){
-  /* function to interpolate (only for testing) */
-  switch(dim){
-  case 2:
-    return 20e0+ 5.*x[0]-4.*x[1] + 17.*x[0]*x[1];
-  case 3:
-    return 20e0+5.*x[0]-4.*x[1]-0.3456*x[2]+x[0]*x[1];
-  case 4:
-    return 20e0+5.*x[0]-4.*x[1]-0.3456*x[2]-x[3];
-  default:
-    return 1e0;
-  }
-}
-static void fdata(unigrid *ug)
-{
-  INT dim=ug->n,k,i,j,kf,nall=ug->nall;
-  INT *nd=ug->ndiv;
-  REAL *dx = ug->dx, *xo=ug->xo, *xn=ug->xn;
-  REAL *x = (REAL *)calloc(dim,sizeof(REAL));
-  INT *m = (INT *)calloc(dim,sizeof(INT));
-  for (kf=0;kf<nall;kf++){
-    //    j=floor(((double )nall)/((double )nd[dim-1]));
-    coord_lattice(m,dim,kf,ug->nall,ug->ndiv);
-    for(i=0;i<dim;i++){
-      x[i]=xo[i]+m[i]*dx[i];
-    }
-    ug->data[kf]=ff(dim,x);
-  }
-  if(m) free(m);
-  if(x) free(x);
-  return;
-}
 REAL interp01(const INT dim,unsigned int *bits,REAL *u,	\
 	      REAL *xhat)
 {
@@ -243,10 +211,10 @@ void interp1(const INT dimbig, REAL *fi, unigrid *ug,	\
   /*  find the values of ug->data at x by interpolation.  ug->data is
   given on a uniform grid.
   */
-  INT dim = ug->n,i,j,mi1,k,kdim,kf;
-  REAL xoj,s;
-  unsigned int bi,bi1;
-  REAL *xo = ug->xo, *xn = ug->xn, *dx = ug->dx;
+  INT dim = ug->n,i,j,k,kdim,kf;
+  REAL xoj;
+  //  unsigned int bi,bi1;
+  REAL *xo = ug->xo,*dx = ug->dx;// *xn = ug->xn;
   unsigned int *bits=ug->bits;
   INT nvcube=ug->nvcube;
   //    fprintf(stderr,"\nnvcube=%d\n",nvcube);
@@ -344,10 +312,9 @@ void interp2(REAL *fi, unigrid ug, REAL *x, const INT nvert, INT *mask)
       given on a uniform grid.
       fi is vector to store the interpolation results 
   */
-  INT dim = ug.n,i,j,mi1,k,kdim,kf;
-  REAL xoj,s;
-  uint bi,bi1;
-  REAL *xo = ug.xo, *xn = ug.xn, *dx = ug.dx;
+  INT dim = ug.n,i,j,k,kdim,kf;
+  REAL xoj;
+  REAL *xo = ug.xo,  *dx = ug.dx;//,*xn = ug.xn;
   uint *bits=ug.bits;
   INT nvcube=ug.nvcube;
   //    fprintf(stderr,"\nnvcube=%d\n",nvcube);
@@ -410,47 +377,82 @@ void interp2(REAL *fi, unigrid ug, REAL *x, const INT nvert, INT *mask)
   if(xhat) free(xhat);
   return;
 }
-static REAL interp0(const INT dim,unsigned int *bits,REAL *u,	\
-	    REAL *xo, REAL *dx, REAL *xstar)
-{
-  /*interpolate d-linearly in d dimensions on a single parallelepiped with
-    one vertex given by xo[.] and edge lengths = dx[k], k=1:d*/
-  INT k,i,kdim,nvloc=(1<<dim);
-  REAL phik;
-  REAL s=0.;
-  for(k = 0;k<nvloc;k++){
-    kdim=k*dim;
-    phik=1e0;
-    for(i = 0;i<dim;++i){      
-      if(bits[kdim+i])
-	phik*=(1e0-(xstar[i]-xo[i])/dx[i]);
-      else	
-	phik*=((xstar[i]-xo[i])/dx[i]);
-    }
-    s+=u[k]*phik;
-  }
-  return s;
-}
-static void fdataf(unigrid *ug)
-{
-  /*on a uniform grid ug fills a ug->data[] array with values computer with a function ff */ 
-  INT dim=ug->n,k,i,j,kf,nall=ug->nall;
-  INT *nd=ug->ndiv;
-  REAL *dx = ug->dx, *xo=ug->xo, *xn=ug->xn;
-  REAL *x = (REAL *)calloc(dim,sizeof(REAL));
-  INT *m = (INT *)calloc(dim,sizeof(INT));
-  for (kf=0;kf<nall;kf++){
-    //    j=floor(((double )nall)/((double )nd[dim-1]));
-    coord_lattice(m,dim,kf,ug->nall,ug->ndiv);
-    for(i=0;i<dim;i++){
-      x[i]=xo[i]+m[i]*dx[i];
-    }
-    ug->data[kf]=ff(dim,x);
-  }
-  if(m) free(m);
-  if(x) free(x);
-  return;
-}
+/*********************************************************************/
+/*COMMENTED BELLOW AS USED ONLY FOR TESTING */
+/*********************************************************************/
+/* static REAL ff(const INT dim, REAL *x){ */
+/*   /\* function to interpolate (only for testing) *\/ */
+/*   switch(dim){ */
+/*   case 2: */
+/*     return 20e0+ 5.*x[0]-4.*x[1] + 17.*x[0]*x[1]; */
+/*   case 3: */
+/*     return 20e0+5.*x[0]-4.*x[1]-0.3456*x[2]+x[0]*x[1]; */
+/*   case 4: */
+/*     return 20e0+5.*x[0]-4.*x[1]-0.3456*x[2]-x[3]; */
+/*   default: */
+/*     return 1e0; */
+/*   } */
+/* } */
+/* static void fdata(unigrid *ug) */
+/* { */
+/*   INT dim=ug->n,k,i,j,kf,nall=ug->nall; */
+/*   INT *nd=ug->ndiv; */
+/*   REAL *dx = ug->dx, *xo=ug->xo, *xn=ug->xn; */
+/*   REAL *x = (REAL *)calloc(dim,sizeof(REAL)); */
+/*   INT *m = (INT *)calloc(dim,sizeof(INT)); */
+/*   for (kf=0;kf<nall;kf++){ */
+/*     //    j=floor(((double )nall)/((double )nd[dim-1])); */
+/*     coord_lattice(m,dim,kf,ug->nall,ug->ndiv); */
+/*     for(i=0;i<dim;i++){ */
+/*       x[i]=xo[i]+m[i]*dx[i]; */
+/*     } */
+/*     ug->data[kf]=ff(dim,x); */
+/*   } */
+/*   if(m) free(m); */
+/*   if(x) free(x); */
+/*   return; */
+/* } */
+/* static REAL interp0(const INT dim,unsigned int *bits,REAL *u,	\ */
+/* 	    REAL *xo, REAL *dx, REAL *xstar) */
+/* { */
+/*   /\*interpolate d-linearly in d dimensions on a single parallelepiped with */
+/*     one vertex given by xo[.] and edge lengths = dx[k], k=1:d*\/ */
+/*   INT k,i,kdim,nvloc=(1<<dim); */
+/*   REAL phik; */
+/*   REAL s=0.; */
+/*   for(k = 0;k<nvloc;k++){ */
+/*     kdim=k*dim; */
+/*     phik=1e0; */
+/*     for(i = 0;i<dim;++i){       */
+/*       if(bits[kdim+i]) */
+/* 	phik*=(1e0-(xstar[i]-xo[i])/dx[i]); */
+/*       else	 */
+/* 	phik*=((xstar[i]-xo[i])/dx[i]); */
+/*     } */
+/*     s+=u[k]*phik; */
+/*   } */
+/*   return s; */
+/* } */
+/* static void fdataf(unigrid *ug) */
+/* { */
+/*   /\*on a uniform grid ug fills a ug->data[] array with values computer with a function ff *\/  */
+/*   INT dim=ug->n,k,i,j,kf,nall=ug->nall; */
+/*   INT *nd=ug->ndiv; */
+/*   REAL *dx = ug->dx, *xo=ug->xo, *xn=ug->xn; */
+/*   REAL *x = (REAL *)calloc(dim,sizeof(REAL)); */
+/*   INT *m = (INT *)calloc(dim,sizeof(INT)); */
+/*   for (kf=0;kf<nall;kf++){ */
+/*     //    j=floor(((double )nall)/((double )nd[dim-1])); */
+/*     coord_lattice(m,dim,kf,ug->nall,ug->ndiv); */
+/*     for(i=0;i<dim;i++){ */
+/*       x[i]=xo[i]+m[i]*dx[i]; */
+/*     } */
+/*     ug->data[kf]=ff(dim,x); */
+/*   } */
+/*   if(m) free(m); */
+/*   if(x) free(x); */
+/*   return; */
+/* } */
 /************************ example of main.c to interpolate */
 /* INT main(INT argc, char *argv[]) */
 /* { */
