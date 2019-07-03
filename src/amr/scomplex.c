@@ -77,7 +77,7 @@ void vol_simplex(INT dim, REAL fact, REAL *xf, REAL *volt, void *wrk)
      computes the volume of a simplex; wrk should be at least
      dim*(dim+1) REALS and dim integers.
   */
-  INT dim1 = dim+1,i,j,k,j1,ln,ln1;
+  INT dim1 = dim+1,i,j,ln,ln1;
   REAL *bt=(REAL *)wrk;
   REAL *piv=bt+dim*dim;
   INT *p = (INT *)(wrk+(dim*dim + dim)*sizeof(REAL));
@@ -98,7 +98,7 @@ scomplex *haz_scomplex_read(FILE *fp)
 {
   INT i,ns,nv,n,dummy;
   i=fscanf(fp,"%d %d %d %d",&ns,&nv,&n,&dummy);
-  INT n1=n+1,j,k,inj,in,in1j,in1,n1kj=-10;
+  INT n1=n+1,j,k,n1kj=-10;
   scomplex *sc=(scomplex *)haz_scomplex_init(n,ns,nv);
   for (j=0;j<n1;j++) {
     for (k=0;k<ns;k++){
@@ -135,7 +135,7 @@ void haz_scomplex_print(scomplex *sc, const INT ns0,\
 			const char *infor)
 {
   // print simplicial complex, starting with ns0.
-  INT i,j,k,in,in1,inj,in1j;
+  INT i,j,in,in1;
   INT n=sc->n,n1=n+1,ns=sc->ns,nv=sc->nv;
   if (ns0 < 0 || ns0>ns) return;
   fprintf(stdout,"\n%s printout: %s\n",__FUNCTION__,infor);
@@ -201,7 +201,7 @@ n-dimensional simplicial grid so it is also used here to construct
 
 */
   INT dim=subsc->nbig, dim1=dim+1;
-  INT is,it,ir,di,dj,i,j,k;
+  INT is,it,ir,di,dj,j,k;
   scomplex *sc=subsc->parent;
   INT ns=sc->ns;
   INT *nbr=sc->nbr, *elf=subsc->elf;
@@ -255,7 +255,7 @@ void area_face(INT dim, REAL fact, REAL *xf, REAL *sn,	\
      work space: wrk should be at least dim*(dim+1) REALS and dim
      integers.
   */
-  INT dim1 = dim+1,i,j,k,j1,ln,ln1;
+  INT dim1 = dim+1,i,j,j1,ln,ln1;
   REAL *bt=(REAL *)wrk;
   REAL *piv=bt+dim*dim;
   INT *p = (INT *)(wrk+(dim*dim + dim)*sizeof(REAL));
@@ -303,9 +303,8 @@ void faces_attr(subscomplex *subsc)
   size_t nbits=dim*sizeof(REAL);
   scomplex *sc=subsc->parent;
   INT *nbr=sc->nbr, *elf=subsc->elf;
-  INT nf=0;
-  INT is,it,ir,di,dj,i,j,k;
-  INT*fflags=subsc->flags;
+  INT is,it,di,i,j,k;
+  INT *fflags=subsc->flags;
   INT l,node,bflag,j1,jf;
   //  find the minimal vertex bounday flag:
   INT minvflag=sc->bndry[0];
@@ -418,9 +417,8 @@ subscomplex *haz_subscomplex_init(scomplex *sc)
 void haz_subscomplex_print(subscomplex *subsc, const INT ns0, const char *infor)
 {
   // print simplicial subcomplex, starting with ns0.
-  INT i,j,k,in,in1,inj,in1j;
+  INT i,j,in1;
   scomplex *sc=subsc->parent;
-  INT nv=sc->nv;
   if (ns0 < 0 || ns0>subsc->ns) return;
   fprintf(stdout,"\nSubsc info: %s\n",infor);fflush(stdout);
   fprintf(stdout,"\nFace list:\n");
@@ -527,7 +525,7 @@ void find_nbr(INT ns,INT nv,INT n,INT *sv,INT *stos)
   // find neighboring list
   INT* ivs=NULL, *jvs=NULL, *stosi=NULL, *stosk=NULL, *svi=NULL, *svk=NULL;
   INT i,j,k,jp,jia,jib,iabeg,iaend,ibbeg,ibend,kn1;
-  INT n1 = n+1,nv1=nv+1,ns1=ns+1,nsv=ns*n1;
+  INT n1 = n+1,nv1=nv+1,nsv=ns*n1;
   /* allocate */
   ivs=(INT *) calloc(nv1,sizeof(INT));
   jvs=(INT *) calloc(nsv,sizeof(INT));
@@ -571,7 +569,6 @@ void find_nbr(INT ns,INT nv,INT n,INT *sv,INT *stos)
   /*
    */
   INT *icp=(INT *) calloc(ns,sizeof(INT));
-  INT j123=-10;
   for (i = 0; i < ns; ++i) icp[i] = -1;
   for (i = 0; i < nsv; ++i) stos[i] = -1;
   for (i = 0; i < ns; ++i) {
@@ -606,10 +603,10 @@ INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew,INT ibnew,INT csysnew, \
 		    INT nsnew, INT nvnew)
 {
   /* adds nodes and coords as well */
-  INT n=sc->n, n1 = n+1,ns=sc->ns,nv=sc->nv;
+  INT n=sc->n, n1 = n+1,nv=sc->nv;//ns=sc->ns;
   INT ks0=sc->child0[is], ksn=sc->childn[is];
   INT isc0=ks0*n1, iscn=ksn*n1;
-  INT *dsti, *srci;
+  //  INT *dsti,*srci;
   INT j,j0,jn;
   REAL *dstr;
   /* nodes  AND neighbors */
@@ -670,13 +667,13 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
   INT n=sc->n, ns=sc->ns,nv=sc->nv;
   INT nsnew=ns,nvnew=nv;
   INT itype,nodnew=-10;
-  INT n1=n+1,j,i,p,p0,pn,isn,isn1,snbri,snbrp,snbrn,snbr0;
-  INT jt,jv0,jvn,ks0,ksn,s0nbri,snnbri;
+  INT n1=n+1,j,i,p,p0,pn,isn1,snbri,snbrp,snbrn,snbr0;
+  INT jt,jv0,jvn,ks0,ksn,s0nbri,snnbri;//,isn;
   REAL *xnew;
-  INT csysnew,csys0,csysn,ibnew,ibnd0,ibndn;
+  INT csysnew,ibnew;
   if(is<0) return 0; 
   if(sc->child0[is] >= 0) return 0; 
-  isn=is*n;
+  //  isn=is*n;
   isn1=is*n1;
   haz_scomplex_print(sc,-10,__FUNCTION__);
   for (i=1;i<n;i++){

@@ -126,20 +126,23 @@ void read_data(char *data_coordsystems,		\
 {
   // read first the data related to coord systems. 
   char **w;
-  INT i,iread,count,k,j,ksys,num;
+  INT i,iread,count,k,j,num;
   w=splits(data_coordsystems," ",&num);
   k=0;
   for(count=0;count<g->ncsys;count++){
     if(w[k]==NULL) break;
     iread=sscanf(w[k],"%d",&g->syslabels[count]);
+    if(iread<0) iread=0;
     free(w[k]);
     k++;
     for(j=0;j<g->dim;j++){
       iread=sscanf(w[k],"%lg",(g->ox +count*g->dim+j));
+      if(iread<0) iread=0;
       free(w[k]);
       k++;
     }
     iread=sscanf(w[k],"%d",&g->systypes[count]);
+    if(iread<0) iread=0;
     free(w[k]);
     k++;
   }
@@ -151,13 +154,16 @@ void read_data(char *data_coordsystems,		\
     if(w[k]==NULL) break;
     for(j=0;j<g->dim;j++){
       iread=sscanf(w[k],"%lg",(g->x + count*g->dim+j));
+      if(iread<0) iread=0;
       if(w[k]) free(w[k]);
       k++;
     }
     iread=sscanf(w[k],"%d",&g->labels[count]);
+    if(iread<0) iread=0;
     if(w[k]) free(w[k]);
     k++;
     iread=sscanf(w[k],"%d",&g->bcodes[count]);
+    if(iread<0) iread=0;
     if(w[k]) free(w[k]);
     k++;
   }
@@ -176,12 +182,15 @@ void read_data(char *data_coordsystems,		\
   for(count=0;count<g->ne;count++){
     if(w[k]==NULL) break;
     iread=sscanf(w[k],"%d",g->seg+3*count);
+    if(iread<0) iread=0;
     if(w[k]) free(w[k]);
     k++;
     iread=sscanf(w[k],"%d",g->seg+3*count+1);
+    if(iread<0) iread=0;
     if(w[k]) free(w[k]);
     k++;
     iread=sscanf(w[k],"%d",g->seg+3*count+2);
+    if(iread<0) iread=0;
     if(w[k]) free(w[k]);
     k++;
   }
@@ -303,7 +312,7 @@ char *get_substring(const char *pattern,		\
   size_t le;
   INT i;
   char *found, *wrk;
-  char ch;
+  //  char ch;
   le = strlen(pattern);
   found = (char *) strstr(the_string,pattern);
   if(found != NULL){
@@ -327,7 +336,7 @@ char *get_substring(const char *pattern,		\
 }
 input_grid *parse_input_grid(const char *input_file_grid)
 {
-  INT iread,i,j;
+  INT iread;
   FILE *the_file;
   char *everything;
   size_t length_string=0;
@@ -344,7 +353,7 @@ input_grid *parse_input_grid(const char *input_file_grid)
     *data_vertices=NULL,
     *num_edges=NULL,
     *data_edges=NULL;
-  size_t length_info_file;
+  //  size_t length_info_file;
   size_t length_title=0, 
     length_dimension=0, 
     length_print_level=0, 
@@ -395,6 +404,7 @@ input_grid *parse_input_grid(const char *input_file_grid)
   input_grid *g=malloc(1*sizeof(input_grid));
   iread=sscanf(dimension,"%d",&g->dim); // the dimension of the problem.
   iread=sscanf(print_level,"%hd",&g->print_level);//
+  if(iread<0) iread=0;
   g->title=(char *)calloc(strlen(title),sizeof(char));
   g->dgrid=(char *)calloc(strlen(dir_grid),sizeof(char));
   g->fgrid=(char *)calloc(strlen(file_grid),sizeof(char));
@@ -409,6 +419,7 @@ input_grid *parse_input_grid(const char *input_file_grid)
   iread=sscanf(num_coordsystems,"%d",&g->ncsys);//
   iread=sscanf(num_vertices,"%d",&g->nv);//
   iread=sscanf(num_edges,"%d",&g->ne);//
+  if(iread<0) iread=0;
   //mixed
   g->ox=(REAL *)calloc(g->dim*g->ncsys,sizeof(REAL));
   g->systypes=(INT *)calloc(g->ncsys,sizeof(INT)); 
