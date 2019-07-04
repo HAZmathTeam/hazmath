@@ -43,10 +43,9 @@ OBJS = 	$(SRCDIR)/$(GRID).o \
 
 OBJb = 	newgrids.o \
 	bitwise.o \
-	input_grid1.o \
 	new_refining.o
 
-OBJinp = main_input.o	input_grid1.o 	bitwise.o	new_refining.o
+OBJinp = main_input.o	sorting1.c input_grid1.o
 
 OBJlex = lex1.o
 
@@ -61,7 +60,7 @@ $(EXEb):	$(OBJb)
 		$(CC) $(LDFLAGS)  $(OBJb) -o $@ $(LIBS)
 
 $(EXEin):	$(OBJinp)
-		$(CC) $(LDFLAGS)  $(OBJinp) -o $@ $(LIBS)
+		$(CC) $(LDFLAGS)  $(OBJinp) -o $@
 
 $(EXElex):	$(OBJlex)
 		$(CC) $(LDFLAGS)  $(OBJlex) -o $@ $(LIBS)
