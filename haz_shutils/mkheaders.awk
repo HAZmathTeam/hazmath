@@ -17,6 +17,7 @@ BEGIN {
   print "#include <stdio.h>"
   print "#include <stdbool.h>"
   print "#include <string.h>"
+  print "#include <ctype.h>"
   print "#include <math.h>"
   print "#include <float.h>"
   print "#include <limits.h>"
