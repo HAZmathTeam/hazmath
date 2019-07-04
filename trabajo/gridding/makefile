@@ -43,9 +43,10 @@ OBJS = 	$(SRCDIR)/$(GRID).o \
 
 OBJb = 	newgrids.o \
 	bitwise.o \
+	input_grid1.o \
 	new_refining.o
 
-OBJinp = main_input.o	bitwise.o	new_refining.o
+OBJinp = main_input.o	input_grid1.o 	bitwise.o	new_refining.o
 
 OBJlex = lex1.o
 
