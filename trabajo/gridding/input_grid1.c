@@ -7,7 +7,8 @@
  *  generation mesh refinement
  *
  */
-#include "hazmath.h"
+/**********************************************************************/
+#include "header_input.h"
 /**********************************************************************/
 void input_grid_free(input_grid *g)
 {
@@ -19,11 +20,13 @@ void input_grid_free(input_grid *g)
   if(g->ox) free(g->ox);
   if(g->systypes) free(g->systypes);
   if(g->syslabels) free(g->syslabels);
-  if(g->labels) free(g->labels);
-  if(g->bcodes) free(g->bcodes);
-  if(g->x) free(g->x);
+  if(g->csysv) free(g->csysv);
+  if(g->bcodesv) free(g->bcodesv);
+  if(g->xv) free(g->xv);
   if(g->xe) free(g->xe);
   if(g->seg) free(g->seg);
+  //  if(g->macroel) free(g->macroel);
+  //  if(g->macrofaces) free(g->macrofaces);
   if(g) free(g);
   return;
 }
@@ -47,13 +50,13 @@ void input_grid_print(input_grid *g)
   }
   fprintf(stdout,"\n\nnum_vertices=%d",g->nv);
   for(i=0;i<g->nv;i++){
-    fprintf(stdout,"\nvertex=%d, coord_system=%d, bcode=%d, coords(",i,g->labels[i],g->bcodes[i]);
-    if(g->systypes[g->labels[i]]==1){
-      fprintf(stdout," %6.2f ",g->x[i*dim]);
+    fprintf(stdout,"\nvertex=%d, coord_system=%d, bcode=%d, coords(",i,g->csysv[i],g->bcodesv[i]);
+    if(g->systypes[g->csysv[i]]==1){
+      fprintf(stdout," %6.2f ",g->xv[i*dim]);
       for(j=1;j<g->dim;j++)	
-	fprintf(stdout," %6.2f ",(g->x[i*dim+j])/((REAL )PI)*180.);
+	fprintf(stdout," %6.2f ",(g->xv[i*dim+j])/((REAL )PI)*180.);
     }else{
-      for(j=0;j<g->dim;j++) fprintf(stdout," %6.2f ",g->x[i*dim+j]);
+      for(j=0;j<g->dim;j++) fprintf(stdout," %6.2f ",g->xv[i*dim+j]);
     }
     fprintf(stdout,")");
   }
@@ -153,26 +156,26 @@ void read_data(char *data_coordsystems,		\
   for(count=0;count<g->nv;count++){
     if(w[k]==NULL) break;
     for(j=0;j<g->dim;j++){
-      iread=sscanf(w[k],"%lg",(g->x + count*g->dim+j));
+      iread=sscanf(w[k],"%lg",(g->xv + count*g->dim+j));
       if(iread<0) iread=0;
       if(w[k]) free(w[k]);
       k++;
     }
-    iread=sscanf(w[k],"%d",&g->labels[count]);
+    iread=sscanf(w[k],"%d",&g->csysv[count]);
     if(iread<0) iread=0;
     if(w[k]) free(w[k]);
     k++;
-    iread=sscanf(w[k],"%d",&g->bcodes[count]);
+    iread=sscanf(w[k],"%d",&g->bcodesv[count]);
     if(iread<0) iread=0;
     if(w[k]) free(w[k]);
     k++;
   }
   if(w) free(w);
   for(count=0;count<g->nv;count++){
-    if(g->systypes[g->labels[count]]==1){
+    if(g->systypes[g->csysv[count]]==1){
       for(j=1;j<g->dim;j++){
-	//	fprintf(stdout,"\n(%d%d) x=%f",count,j,g->x[count*g->dim + j]);
-	g->x[count*g->dim + j]*=(((REAL )PI)/180.);
+	//	fprintf(stdout,"\n(%d%d) x=%f",count,j,g->xv[count*g->dim + j]);
+	g->xv[count*g->dim + j]*=(((REAL )PI)/180.);
       }
     }
   }
@@ -293,10 +296,12 @@ char *make_string_from_file(FILE *the_file, size_t *length_string)
   *(everything+i) = '\0';
   *length_string = i;
   everything = (char *)realloc(everything,i*sizeof(char));
-  /*  fprintf(stderr,"\nNumber of characters in the supressed string
-      %i\n", i); */
-  /* fprintf(stderr,"\nNumber of characters in the supressed string
-     %li\n",strlen(everything)); */
+  for(j=0;j<i;j++){
+    if(!everything[j]) continue;
+    everything[i]=tolower(toupper(everything[j]));
+  }
+  fprintf(stderr,"\nNumber of characters in the supressed string %li\n",strlen(everything));
+  fprintf(stdout,"\nString=%s\n",everything);
   return everything;
 }
 /********************************************************************/
@@ -424,9 +429,9 @@ input_grid *parse_input_grid(const char *input_file_grid)
   g->ox=(REAL *)calloc(g->dim*g->ncsys,sizeof(REAL));
   g->systypes=(INT *)calloc(g->ncsys,sizeof(INT)); 
   g->syslabels=(INT *)calloc(g->ncsys,sizeof(INT)); 
-  g->labels=(INT *)calloc(g->nv,sizeof(INT)); 
-  g->bcodes=(INT *)calloc(g->nv,sizeof(INT)); 
-  g->x=(REAL *)calloc(g->dim*g->nv,sizeof(REAL)); 
+  g->csysv=(INT *)calloc(g->nv,sizeof(INT)); 
+  g->bcodesv=(INT *)calloc(g->nv,sizeof(INT)); 
+  g->xv=(REAL *)calloc(g->dim*g->nv,sizeof(REAL)); 
   g->xe=(REAL *)calloc(g->dim*g->ne,sizeof(REAL)); 
   g->seg=(INT *)calloc(3*g->ne,sizeof(INT)); 
   /*  iCSRmat *graph;// icsrmat thing for the macroelement graph. */
@@ -473,26 +478,26 @@ void read_data1(char *data_coordsystems,		\
   for(count=0;count<g->nv;count++){
     if(w[k]==NULL) break;
     for(j=0;j<g->dim;j++){
-      iread=sscanf(w[k],"%lg",(g->x + count*g->dim+j));
+      iread=sscanf(w[k],"%lg",(g->xv + count*g->dim+j));
       if(iread<0) iread=0;
       if(w[k]) free(w[k]);
       k++;
     }
-    iread=sscanf(w[k],"%d",&g->labels[count]);
+    iread=sscanf(w[k],"%d",&g->csysv[count]);
     if(iread<0) iread=0;
     if(w[k]) free(w[k]);
     k++;
-    iread=sscanf(w[k],"%d",&g->bcodes[count]);
+    iread=sscanf(w[k],"%d",&g->bcodesv[count]);
     if(iread<0) iread=0;
     if(w[k]) free(w[k]);
     k++;
   }
   if(w) free(w);
   for(count=0;count<g->nv;count++){
-    if(g->systypes[g->labels[count]]==1){
+    if(g->systypes[g->csysv[count]]==1){
       for(j=1;j<g->dim;j++){
-	//	fprintf(stdout,"\n(%d%d) x=%f",count,j,g->x[count*g->dim + j]);
-	g->x[count*g->dim + j]*=(((REAL )PI)/180.);
+	//	fprintf(stdout,"\n(%d%d) x=%f",count,j,g->xv[count*g->dim + j]);
+	g->xv[count*g->dim + j]*=(((REAL )PI)/180.);
       }
     }
   }
