@@ -19,9 +19,9 @@ void input_grid_free(input_grid *g)
   if(g->ox) free(g->ox);
   if(g->systypes) free(g->systypes);
   if(g->syslabels) free(g->syslabels);
-  if(g->csysv) free(g->csysv);
-  if(g->bcodesv) free(g->bcodesv);
-  if(g->xv) free(g->xv);
+  if(g->labels) free(g->labels);
+  if(g->bcodes) free(g->bcodes);
+  if(g->x) free(g->x);
   if(g->xe) free(g->xe);
   if(g->seg) free(g->seg);
   if(g) free(g);
@@ -47,13 +47,13 @@ void input_grid_print(input_grid *g)
   }
   fprintf(stdout,"\n\nnum_vertices=%d",g->nv);
   for(i=0;i<g->nv;i++){
-    fprintf(stdout,"\nvertex=%d, coord_system=%d, bcode=%d, coords(",i,g->csysv[i],g->bcodesv[i]);
-    if(g->systypes[g->csysv[i]]==1){
-      fprintf(stdout," %6.2f ",g->xv[i*dim]);
+    fprintf(stdout,"\nvertex=%d, coord_system=%d, bcode=%d, coords(",i,g->labels[i],g->bcodes[i]);
+    if(g->systypes[g->labels[i]]==1){
+      fprintf(stdout," %6.2f ",g->x[i*dim]);
       for(j=1;j<g->dim;j++)	
-	fprintf(stdout," %6.2f ",(g->xv[i*dim+j])/((REAL )PI)*180.);
+	fprintf(stdout," %6.2f ",(g->x[i*dim+j])/((REAL )PI)*180.);
     }else{
-      for(j=0;j<g->dim;j++) fprintf(stdout," %6.2f ",g->xv[i*dim+j]);
+      for(j=0;j<g->dim;j++) fprintf(stdout," %6.2f ",g->x[i*dim+j]);
     }
     fprintf(stdout,")");
   }
@@ -153,26 +153,26 @@ void read_data(char *data_coordsystems,		\
   for(count=0;count<g->nv;count++){
     if(w[k]==NULL) break;
     for(j=0;j<g->dim;j++){
-      iread=sscanf(w[k],"%lg",(g->xv + count*g->dim+j));
+      iread=sscanf(w[k],"%lg",(g->x + count*g->dim+j));
       if(iread<0) iread=0;
       if(w[k]) free(w[k]);
       k++;
     }
-    iread=sscanf(w[k],"%d",&g->csysv[count]);
+    iread=sscanf(w[k],"%d",&g->labels[count]);
     if(iread<0) iread=0;
     if(w[k]) free(w[k]);
     k++;
-    iread=sscanf(w[k],"%d",&g->bcodesv[count]);
+    iread=sscanf(w[k],"%d",&g->bcodes[count]);
     if(iread<0) iread=0;
     if(w[k]) free(w[k]);
     k++;
   }
   if(w) free(w);
   for(count=0;count<g->nv;count++){
-    if(g->systypes[g->csysv[count]]==1){
+    if(g->systypes[g->labels[count]]==1){
       for(j=1;j<g->dim;j++){
-	//	fprintf(stdout,"\n(%d%d) x=%f",count,j,g->xv[count*g->dim + j]);
-	g->xv[count*g->dim + j]*=(((REAL )PI)/180.);
+	//	fprintf(stdout,"\n(%d%d) x=%f",count,j,g->x[count*g->dim + j]);
+	g->x[count*g->dim + j]*=(((REAL )PI)/180.);
       }
     }
   }
@@ -424,9 +424,9 @@ input_grid *parse_input_grid(const char *input_file_grid)
   g->ox=(REAL *)calloc(g->dim*g->ncsys,sizeof(REAL));
   g->systypes=(INT *)calloc(g->ncsys,sizeof(INT)); 
   g->syslabels=(INT *)calloc(g->ncsys,sizeof(INT)); 
-  g->csysv=(INT *)calloc(g->nv,sizeof(INT)); 
-  g->bcodesv=(INT *)calloc(g->nv,sizeof(INT)); 
-  g->xv=(REAL *)calloc(g->dim*g->nv,sizeof(REAL)); 
+  g->labels=(INT *)calloc(g->nv,sizeof(INT)); 
+  g->bcodes=(INT *)calloc(g->nv,sizeof(INT)); 
+  g->x=(REAL *)calloc(g->dim*g->nv,sizeof(REAL)); 
   g->xe=(REAL *)calloc(g->dim*g->ne,sizeof(REAL)); 
   g->seg=(INT *)calloc(3*g->ne,sizeof(INT)); 
   /*  iCSRmat *graph;// icsrmat thing for the macroelement graph. */
@@ -436,3 +436,102 @@ input_grid *parse_input_grid(const char *input_file_grid)
   return g;
 }
 /********************************************************************/
+/*==========================================================*/
+void read_data1(char *data_coordsystems,		\
+	       char *data_vertices,		\
+	       char *data_edges,		\
+	       char *data_faces,		\
+	       char *data_macro,		\
+	       input_grid *g)
+{
+  // read first the data related to coord systems. 
+  char **w;
+  INT i,iread,count,k,j,num;
+  w=splits(data_coordsystems," ",&num);
+  k=0;
+  for(count=0;count<g->ncsys;count++){
+    if(w[k]==NULL) break;
+    iread=sscanf(w[k],"%d",&g->syslabels[count]);
+    if(iread<0) iread=0;
+    free(w[k]);
+    k++;
+    for(j=0;j<g->dim;j++){
+      iread=sscanf(w[k],"%lg",(g->ox +count*g->dim+j));
+      if(iread<0) iread=0;
+      free(w[k]);
+      k++;
+    }
+    iread=sscanf(w[k],"%d",&g->systypes[count]);
+    if(iread<0) iread=0;
+    free(w[k]);
+    k++;
+  }
+  if(w) free(w);
+  /***** vertices *****/
+  w=splits(data_vertices," ",&num);
+  k=0;
+  for(count=0;count<g->nv;count++){
+    if(w[k]==NULL) break;
+    for(j=0;j<g->dim;j++){
+      iread=sscanf(w[k],"%lg",(g->x + count*g->dim+j));
+      if(iread<0) iread=0;
+      if(w[k]) free(w[k]);
+      k++;
+    }
+    iread=sscanf(w[k],"%d",&g->labels[count]);
+    if(iread<0) iread=0;
+    if(w[k]) free(w[k]);
+    k++;
+    iread=sscanf(w[k],"%d",&g->bcodes[count]);
+    if(iread<0) iread=0;
+    if(w[k]) free(w[k]);
+    k++;
+  }
+  if(w) free(w);
+  for(count=0;count<g->nv;count++){
+    if(g->systypes[g->labels[count]]==1){
+      for(j=1;j<g->dim;j++){
+	//	fprintf(stdout,"\n(%d%d) x=%f",count,j,g->x[count*g->dim + j]);
+	g->x[count*g->dim + j]*=(((REAL )PI)/180.);
+      }
+    }
+  }
+  /***** edges *****/
+  w=splits(data_edges," ",&num);
+  k=0;
+  for(count=0;count<g->ne;count++){
+    if(w[k]==NULL) break;
+    iread=sscanf(w[k],"%d",g->seg+3*count);
+    if(iread<0) iread=0;
+    if(w[k]) free(w[k]);
+    k++;
+    iread=sscanf(w[k],"%d",g->seg+3*count+1);
+    if(iread<0) iread=0;
+    if(w[k]) free(w[k]);
+    k++;
+    iread=sscanf(w[k],"%d",g->seg+3*count+2);
+    if(iread<0) iread=0;
+    if(w[k]) free(w[k]);
+    k++;
+  }
+  INT ne = 0,iri,ici,ndd;
+  // no selfedges
+  for(i=0;i<g->ne;i++){
+    iri=g->seg[3*i];ici=g->seg[3*i+1];ndd=g->seg[3*i+2];
+    if(iri==ici) continue;
+    if(iri<ici){
+      g->seg[3*ne]=iri;
+      g->seg[3*ne+1]=ici;
+    } else {
+      g->seg[3*ne]=ici;
+      g->seg[3*ne+1]=iri;
+    }
+    g->seg[3*ne+2]=ndd;
+    ne++;
+  }
+  if(ne<g->ne)
+    g->seg=realloc(g->seg,3*ne*sizeof(INT));
+  g->ne=ne;  
+  if(w) free(w);
+  return;
+}
