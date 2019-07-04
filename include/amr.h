@@ -71,24 +71,31 @@ typedef struct {
   //----------------
   // files
   //----------------
-  char *fgrid;  /**< grid file name */
-  char *dgrid;   /**< output directory */
-  char *fvtu;  /**< grid file name */
-  char *dvtu;   /**< output directory */
-  INT ncsys; /**< number of coordinate systems */
-  REAL *ox; /** origins of the coordinate systems */
+  char *fgrid;  /* grid file name */
+  char *dgrid;   /* output directory */
+  char *fvtu;  /* grid file name */
+  char *dvtu;   /* output directory */
+  INT ncsys; /* number of coordinate systems */
+  REAL *ox; /* origins of the coordinate systems */
   INT *systypes; /** types for the coord. system */
   INT *syslabels; /** labels for the coord. system */
   INT nv; /* number of vertices in the graph describing the
 	     computational domain */
-  REAL *x; /* coordinates for each vertex [nv][dim]*/
-  INT *labels; /* coordinate sys labels for vertices [nv]*/
-  INT *bcodes; /* boundary codes for vertices [nv]*/
-  INT ne; /* number of edges in the graph describing the domain */ 
+  REAL *xv; /* coordinates for each vertex [nv][dim]*/
+  INT *csysv; /* coordinate system labels for vertices [nv]*/
+  INT *bcodesv; /* boundary codes for vertices [nv]*/
+  INT ne; /* number of edges/segments */ 
   REAL *xe; /* coordinates for each midpoint of an edge [ne][dim]*/
   INT *seg;/* segments array of size ne by 3. For every edge:
-	      (v1,v2,divisions) here v1<v2 always */
-} input_grid; /** Input GRID parameters */
+	      (v1,v2,divisions) with v1<v2 */
+  INT nmacro;/*number of macroelements*/
+  INT *macroel; /* macroelements: macroelement label, vertices forming
+		   a macro element, macroelement material */ 
+  INT nmacrofaces;  /*number of macroelement faces that are marked
+		      with codes; boundary or internal it does not
+		      matter */
+  INT *macrofaces;   /* faces and boundary codes of faces */ 
+}input_grid; /** Input GRID parameters */
 /*************************************************************/
 typedef struct /* n-homogenous simplicial SUBcomplex */
 {

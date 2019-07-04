@@ -50,7 +50,7 @@ gcomplex *form_macro(input_grid *g){
   gc->n=g->dim;
   gc->nv=g->nv;
   gc->ne=g->ne;
-  gc->x=g->x;
+  gc->x=g->xv;
   gc->xe=g->xe;
   /* 
      the array entries of nodes[] are determined (not written yet) by
@@ -63,28 +63,26 @@ gcomplex *form_macro(input_grid *g){
 INT *set_input_grid(input_grid *g)
 {
   /* 
-     reorders the vertices lexicographically, uses this ordering and
-     the input to define the edges of the macroelement.  Every edge is
-     put into a subset, i.e. two edges (i1,i2) and (j1,j2) are
-     considered equivalent iff (i2-i1)=(j2-j1).  The number of
+     Every edge is put into a subset, i.e. two edges (i1,i2) and (j1,j2)
+     are considered equivalent iff (i2-i1)=(j2-j1).  The number of
      divisions in an equivalent set of edges is taken to be the
      largest from the equivalence class.  OUTPUT array is a "dim"
      array and for each direction gives the number of partitions.
   */
   INT i,j,k,iri,ici;
   INT *p=calloc(2*g->nv,sizeof(INT));// permutation and inverse permutation;
-  //  dlexsort(g->nv, g->dim,g->x,p);
+  //  dlexsort(g->nv, g->dim,g->xv,p);
   //  for (i=0;i<g->nv;i++)fprintf(stdout,"\n%d-->%d",p[i],i);  
   //  fprintf(stdout,"\n"); 
   // use p as a working array to store labels;
   //XXXXXXXXX  INT *invp=p+g->nv; // inverse permutation;
   //  for (i=0;i<g->nv;i++){
   //    invp[p[i]]=i;
-  //    p[i]=g->labels[i];
+  //    p[i]=g->csysv[i];
   //  }
   /* permute labels (coordinate systems for vertices */
   //no  for (i=0;i<g->nv;i++)
-  //no    g->labels[i]=p[invp[i]]; // fix coord systems;
+  //no    g->csysv[i]=p[invp[i]]; // fix coord systems;
   for (i=0;i<g->ne;i++){
     iri=g->seg[3*i];
     ici=g->seg[3*i+1];
@@ -138,17 +136,17 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
   */
   INT i,j,k1,k2,k1c,k2c,kf,dim=sc->n;
   INT ksys;
-  REAL *xmac=g->x;  
+  REAL *xmac=g->xv;  
   REAL *xhat = (REAL *)calloc(dim,sizeof(REAL));
   REAL *xemac=(REAL *)calloc(c2s->ne*dim,sizeof(REAL));
   // convert midpoints from polar to cartesian.
   for(i=0;i<c2s->ne;i++){
     k1=c2s->edges[2*i];
     k2=c2s->edges[2*i+1];
-    k1c=g->systypes[g->labels[k1]];
-    k2c=g->systypes[g->labels[k2]];
+    k1c=g->systypes[g->csysv[k1]];
+    k2c=g->systypes[g->csysv[k2]];
     fprintf(stdout,"\nverts=(%d,%d); coord_sys=(%d,%d)",k1,k2,k1c,k2c);fflush(stdout);
-    if(g->labels[k1]==g->labels[k2] && k1c==1){
+    if(g->csysv[k1]==g->csysv[k2] && k1c==1){
       //use xhat as a temp array:
       xhat[0]=0.5*(xmac[k1*dim]+xmac[k2*dim]);// this is rho
       // take half angles;
@@ -157,8 +155,8 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
       }
       polar2cart(dim,xhat,xemac+(i*dim));
       // translate by adding the origin. 
-      ksys=g->labels[k1];// k1c and k2c should be the same below. 
-			      //      k2c=g->labels[k2];
+      ksys=g->csysv[k1];// k1c and k2c should be the same below. 
+			      //      k2c=g->csysv[k2];
       for(j=0;j<dim;j++) {
 	xemac[i*dim+j]+=g->ox[ksys*dim+j];
       }
@@ -167,13 +165,13 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
   // end of mid points in polar;
   // now convert all vertices in cartesian as well. 
   for(i=0;i<c2s->nvcube;i++){
-    k1c=g->systypes[g->labels[i]];
+    k1c=g->systypes[g->csysv[i]];
     if(k1c==1){
       memcpy(xhat,xmac+i*dim,dim*sizeof(REAL));
       polar2cart(dim,xhat,xmac+(i*dim));
       //      translate
     }
-    ksys=g->labels[i];
+    ksys=g->csysv[i];
     for(j=0;j<dim;j++) {
       xmac[i*dim+j]+=g->ox[ksys*dim+j];
     }
@@ -183,10 +181,10 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
   for(i=0;i<c2s->ne;i++){
     k1=c2s->edges[2*i];
     k2=c2s->edges[2*i+1];
-    k1c=g->systypes[g->labels[k1]];
-    k2c=g->systypes[g->labels[k2]];
+    k1c=g->systypes[g->csysv[k1]];
+    k2c=g->systypes[g->csysv[k2]];
     //skip all polar mid points
-    if(g->labels[k1]==g->labels[k2] && k1c==1) continue;
+    if(g->csysv[k1]==g->csysv[k2] && k1c==1) continue;
     fprintf(stdout,"\ncart:verts=(%d,%d); coord_sys=(%d,%d)",k1,k2,k1c,k2c);fflush(stdout);
     for(j=0;j<dim;j++) {
       xemac[i*dim+j]=0.5*(xmac[k1*dim+j]+xmac[k2*dim+j]);
@@ -248,5 +246,4 @@ INT main(INT argc, char **argv)
   haz_scomplex_free(sc);
   return 0;
 }
-  
-/***********************************************************/
+/*********************EOF**********************************/
