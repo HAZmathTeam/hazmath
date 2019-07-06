@@ -482,7 +482,7 @@ void python_wrapper_krylov_block_2by2(INT *n00,
                                         INT *nrow01, INT *ncol01, INT *nnz01, INT *ia01, INT *ja01, REAL *a01,
                                         INT *nrow10, INT *ncol10, INT *nnz10, INT *ia10, INT *ja10, REAL *a10,
                                         INT *nrow11, INT *ncol11, INT *nnz11, INT *ia11, INT *ja11, REAL *a11,
-                                        REAL *b, REAL *u, REAL *tol, INT *maxit, INT *ptrlvl)
+                                        REAL *b, REAL *u, REAL *alpha, REAL *tol, INT *maxit, INT *ptrlvl)
  *
  * \brief Solve Ax=b by Krylov method preconditioned in 2 by 2 block form (this is an interface with PYTHON)
  *
@@ -512,6 +512,7 @@ void python_wrapper_krylov_block_2by2(INT *n00,
  * \param a11             VAL of A[1][1] in CSR format
  * \param b             RHS vector
  * \param u             Solution vector
+ * \param alpha         scaling parameters in front of divdiv term (Argumented Lagrange type blocl preconditioner)
  * \param tol           Tolerance for iterative solvers
  * \param maxit         Max number of iterations
  * \param print_lvl     Print level for iterative solvers
@@ -559,6 +560,7 @@ void python_wrapper_krylov_block_2by2(INT *n00,
                                   REAL *Mp_diag,
                                   REAL *b,
                                   REAL *u,
+                                  REAL *alpha,
                                   REAL *tol,
                                   INT *maxit,
                                   INT *print_lvl,
@@ -587,6 +589,7 @@ void python_wrapper_krylov_block_2by2(INT *n00,
      itparam.linear_tol            = *tol;
      itparam.linear_print_level    = *print_lvl;
      itparam.linear_maxit          = *maxit;
+     itparam.AL_scaling_param      = *alpha;
 
      // form block CSR matrix
      bdcsr_alloc(2, 2, &mat_bdcsr);
@@ -637,7 +640,7 @@ void python_wrapper_krylov_block_2by2(INT *n00,
                                          INT *nrowCurl, INT *ncolCurl, INT *nnzCurl, INT *iaCurl, INT *jaCurl, REAL *aCurl,
                                          INT *nrowPicurl, INT *ncolPicurl, INT *nnzPicurl, INT *iaPicurl, INT *jaPicurl, REAL *aPicurl,
                                          REAL *Mp_diag,
-                                         REAL *b, REAL *u, REAL *tol, INT *maxit, INT *ptrlvl)
+                                         REAL *b, REAL *u, REAL *alpha, REAL *tol, INT *maxit, INT *ptrlvl)
   *
   * \brief Solve Ax=b by Krylov method preconditioned in 2 by 2 block form (this is an interface with PYTHON)
   *
@@ -686,6 +689,7 @@ void python_wrapper_krylov_block_2by2(INT *n00,
   * \param Mp_diag         Diagonal of Mp
   * \param b               RHS vector
   * \param u               Solution vector
+  * \param alpha         scaling parameters in front of divdiv term (Argumented Lagrange type blocl preconditioner)
   * \param tol             Tolerance for iterative solvers
   * \param maxit           Max number of iterations
   * \param print_lvl       Print level for iterative solvers
@@ -739,6 +743,7 @@ void python_wrapper_krylov_block_2by2(INT *n00,
                                    REAL *Mp_diag,
                                    REAL *b,
                                    REAL *u,
+                                   REAL *alpha,
                                    REAL *tol,
                                    INT *maxit,
                                    INT *print_lvl,
@@ -767,6 +772,7 @@ void python_wrapper_krylov_block_2by2(INT *n00,
       itparam.linear_tol            = *tol;
       itparam.linear_print_level    = *print_lvl;
       itparam.linear_maxit          = *maxit;
+      itparam.AL_scaling_param      = *alpha;
 
       // form block CSR matrix
       bdcsr_alloc(2, 2, &mat_bdcsr);
@@ -807,7 +813,6 @@ void python_wrapper_krylov_block_2by2(INT *n00,
       sol.row = n; sol.val = u;
 
       // Output matrices and right hand side
-      /*
       dcsr_write_dcoo("A00.dat",mat_bdcsr.blocks[0]);
       dcsr_write_dcoo("A01.dat",mat_bdcsr.blocks[1]);
       dcsr_write_dcoo("A10.dat",mat_bdcsr.blocks[2]);
@@ -819,7 +824,6 @@ void python_wrapper_krylov_block_2by2(INT *n00,
       dvec_write("Mp.dat", &Mp);
 
       dvec_write("b.dat", &rhs);
-      */
 
       // solve in 2 by 2 block form
       *iters = linear_solver_bdcsr_krylov_mixed_darcy(&mat_bdcsr, &rhs, &sol, &itparam, &amgparam, &P_div, &Curl, &P_curl, &Mp);
