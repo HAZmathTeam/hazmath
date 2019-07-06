@@ -3099,16 +3099,8 @@ void precond_block_diag_mixed_darcy_krylov_HX(REAL *r,
   dvector *tempr = &(precdata->r);
 
   block_dCSRmat *A = precdata->Abcsr;
-  //AMG_param *amgparam = precdata->amgparam;
-  //AMG_data **mgl = precdata->mgl;
   dvector *el_vol = precdata->el_vol;
   HX_div_data **hxdivdata = precdata->hxdivdata;
-
-  /*
-  printf("write A in prec diag\n");
-  printf("hxdivdata.A.row = %d, hxdivdata.A.col = %d, hxdivdata.A.nnz = %d\n", hxdivdata[0]->A->row,hxdivdata[0]->A->col,hxdivdata[0]->A->nnz);
-  dcsr_write_dcoo("A.dat", hxdivdata[0]->A);
-  */
 
   INT i;
 
@@ -3128,7 +3120,6 @@ void precond_block_diag_mixed_darcy_krylov_HX(REAL *r,
 
   r0.val = r; r1.val = &(r[N0]);
   z0.val = z; z1.val = &(z[N0]);
-  //#endif
 
   // Preconditioning A00 block (flux) using HX preconditioner
   precond pc_flux; pc_flux.data = hxdivdata[0];
@@ -3179,8 +3170,6 @@ void precond_block_lower_mixed_darcy_krylov_HX(REAL *r,
   dvector *tempr = &(precdata->r);
 
   block_dCSRmat *A = precdata->Abcsr;
-  //AMG_param *amgparam = precdata->amgparam;
-  //AMG_data **mgl = precdata->mgl;
   dvector *el_vol = precdata->el_vol;
   HX_div_data **hxdivdata = precdata->hxdivdata;
 
@@ -3255,8 +3244,6 @@ void precond_block_upper_mixed_darcy_krylov_HX(REAL *r,
   dvector *tempr = &(precdata->r);
 
   block_dCSRmat *A = precdata->Abcsr;
-  //AMG_param *amgparam = precdata->amgparam;
-  //AMG_data **mgl = precdata->mgl;
   dvector *el_vol = precdata->el_vol;
   HX_div_data **hxdivdata = precdata->hxdivdata;
 
@@ -3303,7 +3290,7 @@ void precond_block_upper_mixed_darcy_krylov_HX(REAL *r,
     pc_flux.fct = precond_hx_div_multiplicative;
   }
 
-  dcsr_pvfgmres(hxdivdata[0]->A, &r0, &z0, &pc_flux, 1e-3, 100, 100, 1, 3);
+  dcsr_pvfgmres(hxdivdata[0]->A, &r0, &z0, &pc_flux, 1e-3, 100, 100, 1, 1);
 
 
   // restore r
