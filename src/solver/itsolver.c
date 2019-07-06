@@ -1899,7 +1899,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
   HX_div_data **hxdivdata = (HX_div_data **)calloc(2, sizeof(HX_div_data *));
   for (i=0; i<2; i++) hxdivdata[i] = NULL;
 
-  // matrix for argumented Lagrange type preconditioner
+  // data for argumented Lagrange type preconditioner
   dCSRmat BTB;
 
   // data for HX preconditioner
@@ -1935,6 +1935,7 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
       //dcsr_mxm(A->blocks[1], A->blocks[2], &BTB);
       dcsr_rap(A->blocks[1], &invMp, A->blocks[2], &BTB);
       dcsr_add(&BTB, 1.0, A->blocks[0], 1.0, &mgl[0][0].A);
+
       mgl[0][0].b=dvec_create(n); mgl[0][0].x=dvec_create(n);
 
       switch (amgparam->AMG_type) {
@@ -1978,7 +1979,8 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
 
     //dcsr_mxm(A->blocks[1], A->blocks[2], &BTB);
     dcsr_rap(A->blocks[1], &invMp, A->blocks[2], &BTB);
-    dcsr_add(&BTB, 1, A->blocks[0], 1.0, &A_div);
+    //dcsr_add(&BTB, 1, A->blocks[0], 1.0, &A_div);
+    dcsr_add(&BTB, itparam->AL_scaling_param, A->blocks[0], 1.0, &A_div);
 
     // free
     dcsr_free(&BTB);
@@ -2276,8 +2278,19 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
   precdata.amgparam = amgparam;
   precdata.mgl = mgl;
   precdata.diag = diag;
-  precdata.el_vol = el_vol;
-  if (precond_type > 29 && precond_type < 50) precdata.hxdivdata = hxdivdata;
+
+  if (precond_type > 29 && precond_type < 50)
+  {
+    // scale el_vol
+    dvec_ax(1./itparam->AL_scaling_param, el_vol);
+    precdata.el_vol = el_vol;
+
+    precdata.hxdivdata = hxdivdata;
+  }
+  else
+  {
+    precdata.el_vol = el_vol;
+  }
 
   precond prec; prec.data = &precdata;
 
@@ -2384,7 +2397,11 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
 FINISHED:
   // clean
   precond_block_data_free(&precdata, 2, FALSE);
-  if (precond_type > 29 && precond_type < 50) dcsr_free(&A_div);
+  if (precond_type > 29 && precond_type < 50)
+  {
+    dcsr_free(&A_div);
+    dvec_ax(itparam->AL_scaling_param, el_vol);
+  }
 
   return status;
 }
