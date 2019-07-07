@@ -367,7 +367,9 @@ cube2simp *cube2simplex(INT dim)
   /*end of allocation*/
   INT k1,kn1,k2,kn2,dim1=c2s->n+1,		\
     nvcube=c2s->nvcube;
+  /***********************************************/
   binary0(c2s);
+  /***********************************************/
   INT *edges=c2s->edges;
   memset(edges,0,c2s->ne*sizeof(INT));
   unsigned INT numbits=22;
@@ -543,4 +545,4 @@ scomplex *umesh(const INT dim, INT *nd, cube2simp *c2s, const INT intype)
   if(mm) free(mm);
   return sc;
 }
-  
+
