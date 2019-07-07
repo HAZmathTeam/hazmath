@@ -3,6 +3,7 @@
 void input_grid_free(input_grid *g);
 void input_grid_print(input_grid *g);
 input_grid *parse_input_grid(const char *input_file_grid);
+const char **input_strings();
 /***********************************************************************/
 INT *set_input_grid(input_grid *g)
 {
@@ -74,10 +75,10 @@ INT *set_input_grid(input_grid *g)
 int main(int argc, char **argv){
   char input_grid_file[256]={"grid.input"};
   input_grid *g=parse_input_grid(input_grid_file);
-  INT *nd=set_input_grid(g);
+  //YES  INT *nd=set_input_grid(g);
   //
-  input_grid_print(g);
-  input_grid_free(g);
-  free(nd);
+  //YES  input_grid_print(g);
+  //YES  input_grid_free(g);
+  //YES  free(nd);
   return 0;
 }
