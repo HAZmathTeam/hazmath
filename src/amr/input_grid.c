@@ -43,7 +43,7 @@ void input_grid_arrays(input_grid *g)
   g->xv=(REAL *)calloc(g->dim*g->nv,sizeof(REAL)); 
   g->xe=(REAL *)calloc(g->dim*g->ne,sizeof(REAL)); 
   g->seg=(INT *)calloc(3*g->ne,sizeof(INT));
-  g->mnodes=(INT *)calloc(g->ne*(nvcube+1),sizeof(INT));
+  g->mnodes=(INT *)calloc(g->nel*(nvcube+1),sizeof(INT));
   g->mfaces=(INT *)calloc(g->nf*(nvface+1),sizeof(INT));
   return;
 }
@@ -324,7 +324,7 @@ void  read_data(char **clndata,input_grid *g)
   }/*  else { */
   /*   free(g->mfaces); g->mfaces=NULL; */
   /* } */
-  input_grid_print(g);
+  //  input_grid_print(g);
   return;
 }
 /********************************************************************/
