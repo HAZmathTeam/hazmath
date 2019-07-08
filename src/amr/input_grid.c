@@ -74,58 +74,58 @@ void input_grid_print(input_grid *g)
 {
   // prints what was read from the inpput grid file. 
   INT i,j,dim=g->dim;
-  fprintf(stdout,"\n\nTITLE: %s",g->title);
-  fprintf(stdout,"\ndimension=%d",g->dim);
-  fprintf(stdout,"\ndir_grid=%s",g->dgrid);
-  fprintf(stdout,"\ndir_vtu=%s",g->dvtu);
-  fprintf(stdout,"\nfile_grid=%s",g->fgrid);
-  fprintf(stdout,"\nfile_vtu=%s",g->fvtu);
-  fprintf(stdout,"\nprint_level=%d",g->print_level);
-  fprintf(stdout,"\nnum_refinements=%d",g->nref);
-  fprintf(stdout,"\nrefinement_type=%d",g->ref_type);
-  fprintf(stdout,"\nerr_stop_amr=%.3g",g->err_stop);
+  fprintf(stdout,"\n\nTITLE: %s",g->title);fflush(stdout);
+  fprintf(stdout,"\ndimension=%d",g->dim);fflush(stdout);
+  fprintf(stdout,"\ndir_grid=%s",g->dgrid);fflush(stdout);
+  fprintf(stdout,"\ndir_vtu=%s",g->dvtu);fflush(stdout);
+  fprintf(stdout,"\nfile_grid=%s",g->fgrid);fflush(stdout);
+  fprintf(stdout,"\nfile_vtu=%s",g->fvtu);fflush(stdout);
+  fprintf(stdout,"\nprint_level=%d",g->print_level);fflush(stdout);
+  fprintf(stdout,"\nnum_refinements=%d",g->nref);fflush(stdout);
+  fprintf(stdout,"\nrefinement_type=%d",g->ref_type);fflush(stdout);
+  fprintf(stdout,"\nerr_stop_amr=%.3g",g->err_stop);fflush(stdout);
   /*ARRAYS*/
   fprintf(stdout,"\n\nnum_coordsystems=%d",g->ncsys);
   for(i=0;i<g->ncsys;i++){
-    fprintf(stdout,"\nlabel=%d,type=%d, origin(",g->syslabels[i],g->systypes[i]);
-    for(j=0;j<g->dim;j++) fprintf(stdout," %6.2f ",g->ox[i*dim+j]);
+    fprintf(stdout,"\nlabel=%d,type=%d, origin(",g->syslabels[i],g->systypes[i]);fflush(stdout);
+    for(j=0;j<g->dim;j++) fprintf(stdout," %6.2f ",g->ox[i*dim+j]);fflush(stdout);
     fprintf(stdout,")");
   }
-  fprintf(stdout,"\n\nnum_vertices=%d",g->nv);
+  fprintf(stdout,"\n\nnum_vertices=%d\n",g->nv);fflush(stdout);
   for(i=0;i<g->nv;i++){
-    fprintf(stdout,"\nvertex=%d, coord_system=%d, bcode=%d, coords(",i,g->csysv[i],g->bcodesv[i]);
+    fprintf(stdout,"\nvertex=%d, coord_system=%d, bcode=%d, coords(",i,g->csysv[i],g->bcodesv[i]);fflush(stdout);
     if(g->systypes[g->csysv[i]]==1){
       fprintf(stdout," %6.2f ",g->xv[i*dim]);
       for(j=1;j<g->dim;j++)	
-	fprintf(stdout," %6.2f ",(g->xv[i*dim+j])/((REAL )PI)*180.);
+	fprintf(stdout," %6.2f ",(g->xv[i*dim+j])/((REAL )PI)*180.);fflush(stdout);
     }else{
-      for(j=0;j<g->dim;j++) fprintf(stdout," %6.2f ",g->xv[i*dim+j]);
+      for(j=0;j<g->dim;j++) fprintf(stdout," %6.2f ",g->xv[i*dim+j]);fflush(stdout);
     }
     fprintf(stdout,")");
   }
   fprintf(stdout,"\n\nnum_edges=%d\n",g->ne);
   for(i=0;i<g->ne;i++){
-    fprintf(stdout,"\nedge=(%d,%d) div=%d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
+    fprintf(stdout,"\nedge=(%d,%d) div=%d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);fflush(stdout);
   }
   INT nvcube=(1<<g->dim),nvcube1=nvcube+1;
-  fprintf(stdout,"\n\nnum_macroelements=%d\n",g->nel);
+  fprintf(stdout,"\n\nnum_macroelements=%d\n",g->nel);fflush(stdout);
   for(i=0;i<g->nel;i++){
     fprintf(stdout,"\nmacroel=%d; code=%d; vertices=(",i,g->mnodes[i*nvcube1+nvcube]);
     for(j=0;j<nvcube;j++){
-      fprintf(stdout,"%d ",g->mnodes[nvcube1*i+j]);
+      fprintf(stdout,"%d ",g->mnodes[nvcube1*i+j]);fflush(stdout);
     }
-    fprintf(stdout,")");
+    fprintf(stdout,")");fflush(stdout);
   }
   INT nvface=(1<<(g->dim-1)),nvface1=nvface+1;
   fprintf(stdout,"\n\nnum_faces=%d\n",g->nf);
   for(i=0;i<g->nf;i++){
-    fprintf(stdout,"\nmacroface=%d; code=%d; vertices=(",i,g->mfaces[i*nvface1+nvface]);
+    fprintf(stdout,"\nmacroface=%d; code=%d; vertices=(",i,g->mfaces[i*nvface1+nvface]);fflush(stdout);
     for(j=0;j<nvface;j++){
-      fprintf(stdout,"%d ",g->mfaces[nvface1*i+j]);
+      fprintf(stdout,"%d ",g->mfaces[nvface1*i+j]);fflush(stdout);
     }
     fprintf(stdout,")");
   }
-  fprintf(stdout,"\n\n");fflush(stdout);  
+  fprintf(stdout,"\n\n");fflush(stdout);  fflush(stdout);
   return;
 }
 /**********************************************************************/
