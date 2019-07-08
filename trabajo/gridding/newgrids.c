@@ -18,22 +18,6 @@
 #ifndef REAL
 #define REAL double
 #endif
-/********************************************************************/
-typedef struct /* general cell complex (like hexagonal, etc) */
-{
-  INT n; /* the dimension of GC */
-  INT nv; /* number of 0-dimensional cells (vertices) */
-  INT ne; /* number of 1-dimensional cells (edges) */
-  INT ncells; /* number of n-dimensional cells or elements */
-  INT *nodes; /* array (depending on faces) to hold the neighbors */
-  INT *nbr; /* array (depending on faces) to hold the neighbors */
-  INT *bndry; /* nv boundary codes for vertices */
-  INT *csys; /* nv coord system for a point */
-  REAL *x; /*(nv x n) array to hold the coordinates of vertices all in
-	     cartesian coordinates*/
-  REAL *xe; /*(ne x n) array to hold the coordinates of midpoints of the edges
-	     in cartesian coordinates*/
-} gcomplex;
 /********************************FINCTIONS:*********************/
 void cube2simp_free(cube2simp *c2s);
 INT reverse(void *arr,INT length, size_t elsize);
@@ -43,24 +27,45 @@ void polar2cart(INT dim, REAL *px, REAL *cx);
 REAL interp8(cube2simp *c2s, REAL *u, REAL *ue, REAL *xhat);
 REAL interp4(cube2simp *c2s, REAL *u, REAL *xhat);
 void unirefine(INT *nd,scomplex *sc);
-/***************************************************************/
-gcomplex *form_macro(input_grid *g){
-  gcomplex *gc=malloc(sizeof(gcomplex));
-  gc->ncells=1; //one macroelement only
-  gc->n=g->dim;
-  gc->nv=g->nv;
-  gc->ne=g->ne;
-  gc->x=g->xv;
-  gc->xe=g->xe;
+/***********************************************************************/
+scomplex *macro_split(input_grid *g0,cube2simp *c2s)
+{
   /* 
-     the array entries of nodes[] are determined (not written yet) by
-     an external function which constructs macroelements from
-     edges(segments).
+     from an input grid read from a file, creates an array of input
+     grids each having a single macroelement
   */
-  return gc;
+  input_grid *g;
+  scomplex *sc;
+  INT i,j0,j1,k,nel0=g0->nel,nvcube=c2s->nvcube,nvface=c2s->nvcube;
+  g=malloc(1*sizeof(input_grid *));
+  g->ncsys=g0->ncsys;
+  g->ox=g0->ox;
+  g->systypes=g0->systypes;
+  g->syslabels=g0->syslabels;
+  g->nv=c2s->nvcube;
+  g->nf=c2s->nvface;
+  g->ne=c2s->ne;
+  g->mnodes=(INT *)calloc(g->nel*(nvcube+1),sizeof(INT));
+  memcpy(g->mndodes,g0->mnodes(
+
+  for(i=0;i<c2s->ne;i++){
+    k=
+    j0=c2s->edges[2*i];
+    j1=c2s->edges[2*i+1];
+  }
+  g->edges=c2s->edges;
+  
+  g->xv=(REAL *)calloc(g->dim*g->nv,sizeof(REAL)); 
+  g->xe=(REAL *)calloc(g->dim*g->ne,sizeof(REAL)); 
+  g->seg=(INT *)calloc(3*g->ne,sizeof(INT));
+  
+  for(i=0;i<nel0;i++){
+    // get the macroelement:
+  }
+  return sc;  
 }
 /***********************************************************************/
-INT *set_input_grid(input_grid *g)
+INT *set_input_grid1(cube2simp *c2s,input_grid *g)
 {
   /* 
      Every edge is put into a subset, i.e. two edges (i1,i2) and (j1,j2)
@@ -69,26 +74,16 @@ INT *set_input_grid(input_grid *g)
      largest from the equivalence class.  OUTPUT array is a "dim"
      array and for each direction gives the number of partitions.
   */
-  INT i,j,k,iri,ici;
-  INT *p=calloc(2*g->nv,sizeof(INT));// permutation and inverse permutation;
-  //  dlexsort(g->nv, g->dim,g->xv,p);
-  //  for (i=0;i<g->nv;i++)fprintf(stdout,"\n%d-->%d",p[i],i);  
-  //  fprintf(stdout,"\n"); 
-  // use p as a working array to store labels;
-  //XXXXXXXXX  INT *invp=p+g->nv; // inverse permutation;
-  //  for (i=0;i<g->nv;i++){
-  //    invp[p[i]]=i;
-  //    p[i]=g->csysv[i];
-  //  }
-  /* permute labels (coordinate systems for vertices */
-  //no  for (i=0;i<g->nv;i++)
-  //no    g->csysv[i]=p[invp[i]]; // fix coord systems;
+  INT i,j,k,iri,ici,pmem;
+  pmem=2*g->nv;
+  if(pmem<g->ne) pmem=2*g->ne;
+  if(pmem<g->nel) pmem=2*g->nel;
+  if(pmem<g->nf) pmem=2*g->nf;
+  INT *p=calloc(pmem,sizeof(INT));// permutation and inverse permutation;
+  //
   for (i=0;i<g->ne;i++){
     iri=g->seg[3*i];
     ici=g->seg[3*i+1];
-    /* iri=invp[g->seg[3*i]]; */
-    /* ici=invp[g->seg[3*i+1]]; */
-    /* fprintf(stdout,"\n(%d,%d)-->[%d,%d]: div=%d",g->seg[3*i],g->seg[3*i+1],iri,ici,g->seg[3*i+2]); */
     if(iri<ici){
       g->seg[3*i]=iri;
       g->seg[3*i+1]=ici;
@@ -111,7 +106,10 @@ INT *set_input_grid(input_grid *g)
     g->seg[3*i+2]=p[j]; 
     //    fprintf(stdout,"\n[%d,%d]:div=%d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
   }
+  /*ORDER*/
   ilexsort(g->ne, 3,g->seg,p);
+  ilexsort(g->nel,(c2s->nvcube+1),g->mnodes,p);
+  ilexsort(g->nf, (c2s->nvface+1),g->mfaces,p);
   k=0;
   for (i=0;i<g->ne;i++){
     if(g->seg[3*i]) continue;
@@ -124,6 +122,10 @@ INT *set_input_grid(input_grid *g)
   for (i=0;i<g->dim;i++){
     fprintf(stdout,"\ndirection:%d; div=%d",i,p[i]);
   }
+  //  input_grid_print(g);
+  print_full_mat_int(g->ne,3,g->seg,"med");
+  print_full_mat_int(g->nf,(c2s->nvface+1),g->mfaces,"mf");
+  print_full_mat_int(g->nel,(c2s->nvcube+1),g->mnodes,"mel");
   return p;
 }
 /*********************************************************************/
@@ -203,8 +205,8 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
   }
   //  r2c(dim,c2s->nvcube,sizeof(REAL),xmac); // we need xmac by columns here
   //  r2c(dim,c2s->ne,sizeof(REAL),xemac); // we need xemac by rows agin
-  //  if(xhat) free(xhat);
-  //  if(xemac) free(xemac);
+  if(xhat) free(xhat);
+  if(xemac) free(xemac);
   return;
 }
 INT main(INT argc, char **argv)
@@ -217,7 +219,7 @@ INT main(INT argc, char **argv)
   scomplex *sc;
   INT intype=0;
   /*------------------------------------------------------*/
-  INT *nd=set_input_grid(g);  
+  INT *nd=set_input_grid1(c2s,g);  
   /*this can be used to generate grids in a different way, but not now:*/
   /* if(intype<-1){ */
   /*   for(i=0;i<dim;i++) ndd[i]=1; */
@@ -227,6 +229,7 @@ INT main(INT argc, char **argv)
   /*   sc=umesh(dim,nd,c2s,intype); */
   /* } */
   /*GENERATE UNIFORM GRID: nodes in each direction: ND*/
+  exit(22);
   sc=umesh(dim,nd,c2s,intype);
   fprintf(stdout,"\nGenerated a uniform mesh in dim=%d; vertices: %d, simplexes %d",dim,sc->nv,sc->ns);
   if(nd) free(nd);
