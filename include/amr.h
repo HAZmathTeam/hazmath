@@ -174,6 +174,8 @@ typedef struct /* n-dimensional uniform grid */
 typedef struct /* structure to support splitting unit cube into simplices */
 { INT n; /* spatial dimension of the grid */
   INT nvcube; /* number of vertices on the unit cube in R^n=2^{n}.*/
+  INT nvface; /* number of vertices on a face of the the unit cube in
+		 R^n=2^{n-1}.*/
   INT ns; /* number of n dimensional simplices in the unit
 	     cube(n_factorial of them) */
   INT ne; // number of edges in the cube.
@@ -182,6 +184,8 @@ typedef struct /* structure to support splitting unit cube into simplices */
 		to 2^{n-1} as an array. These are also the coordinates
 		of the vertices of the unit cube in R^n*/
   INT *edges; /* the array containing the ends of edges of the unit cube. */
+  INT *faces; /* the array containing faces (consistantly ordered)
+		 unit cube. */
   INT *nodes; /* the array describing each of the n factorial simplices
 		in the unit cube */
   INT *perms; /* the n by nvcube array describing the permutations
@@ -193,7 +197,6 @@ typedef struct /* structure to support splitting unit cube into simplices */
 		give consistent splitting of neighboring cubes.
 	     */
 } cube2simp;
-
 typedef struct /* features (to refine around these) */
 {
   INT nbig; /* dimension in which this is "embedded", i.e. one

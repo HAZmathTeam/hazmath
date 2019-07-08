@@ -257,6 +257,8 @@ void cube2simp_free(cube2simp *c2s)
 {
   if(c2s->bits)free(c2s->bits);
   if(c2s->nodes)free(c2s->nodes);
+  if(c2s->edges)free(c2s->edges);
+  if(c2s->faces)free(c2s->faces);
   if(c2s->perms)free(c2s->perms);
   if(c2s)free(c2s);
   return;
@@ -355,12 +357,14 @@ cube2simp *cube2simplex(INT dim)
   c2s->n=dim;
   c2s->ns=1;
   c2s->nvcube = (1 << c2s->n);
+  c2s->nvface = (1 << (c2s->n-1));
   i=1; for(i=1;i<=c2s->n;i++)c2s->ns*=i;
   c2s->ne=c2s->n*(1<<(c2s->n-1)); /* number of edges in the cube.*/
   c2s->nf=2*c2s->n; /* number of n-1 dimensional faces in the cube */
   /////////////////////////////////////////////////////
   c2s->edges=(INT *)calloc(2*c2s->ne,sizeof(INT));
   c2s->bits=(unsigned INT *)calloc(c2s->n*c2s->nvcube,sizeof(unsigned INT));
+  c2s->faces=(INT *)calloc(2*c2s->n*c2s->nvface,sizeof(INT));
   c2s->nodes=(INT *)calloc(c2s->ns*(c2s->n+1),sizeof(unsigned INT));
   c2s->perms=(INT *)calloc(c2s->nvcube*(c2s->n+1),sizeof(unsigned INT));
   memset(c2s->nodes,0,(c2s->n+1)*c2s->ns*sizeof(INT));
@@ -370,13 +374,14 @@ cube2simp *cube2simplex(INT dim)
   /***********************************************/
   binary0(c2s);
   /***********************************************/
+  /****EDGES**********/
   INT *edges=c2s->edges;
   memset(edges,0,c2s->ne*sizeof(INT));
   unsigned INT numbits=22;
   unsigned INT *b1,*b2;
   //  fprintf(stdout,"Memory: edges=%d,ns=%d\n",ne,ns);
-  INT nedge=0,nvcube1=nvcube-1;
-  for(k1 = 0;k1<nvcube1;k1++){
+  INT nedge=0,nvcubem1=nvcube-1;
+  for(k1 = 0;k1<nvcubem1;k1++){
     kn1=k1*dim;
     b1=c2s->bits+kn1;
     for(k2 = k1+1;k2<nvcube;k2++){
@@ -390,6 +395,7 @@ cube2simp *cube2simplex(INT dim)
       nedge++;
     }
   }
+  /****SIMPLICES**********/
   INT root=0,j,m,node,nq0,nq;
   m=2; for(i=2;i<dim1;i++) m=1+i*m;
   INT *queue=(INT *)calloc(m,sizeof(INT));
@@ -404,7 +410,7 @@ cube2simp *cube2simplex(INT dim)
     m=nq;
     for(j=nq0;j<nq;j++){
       node=queue[j];
-      if(node==(nvcube1)) continue;
+      if(node==(nvcubem1)) continue;
       for(i=0;i<c2s->ne;i++){
 	/*
 	  for a given first end of an edge, collect all the second
@@ -445,6 +451,29 @@ cube2simp *cube2simplex(INT dim)
     /* for(i=0;i<dim;i++){ */
     /*   fprintf(stdout,"%d",c2s->bits[dim*j+i]); */
     /* } */
+  }
+  /****FACES**********/
+  INT *faces=c2s->faces;
+  INT j0,j1;
+  memset(faces,0,c2s->nf*sizeof(INT));
+  //  fprintf(stdout,"\n");
+  //    fprintf(stdout,"\nk2=%d bits=(",k2);
+  //	fprintf(stdout,"%d,",k1);
+  //    fprintf(stdout,")");
+  //  fprintf(stdout,"\n");fflush(stdout);
+  for(k2 = 0;k2<c2s->n;k2++){
+    kn2=k2*c2s->nvface;
+    j0=0;j1=0;
+    for(k1 = 0;k1<nvcube;k1++){
+      kn1=k1*c2s->n;
+      if(!c2s->bits[kn1+k2]){
+	c2s->faces[kn2+j0]=k1;
+	j0++;
+      } else {
+	c2s->faces[kn2+c2s->n*c2s->nvface+j1]=k1;
+	j1++;
+      }
+    }
   }
   return c2s;
 }
