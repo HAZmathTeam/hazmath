@@ -122,6 +122,9 @@ typedef struct {
     // HX preconditioner
     SHORT HX_smooth_iter;            /**< number of smoothing */
 
+    // scaling parameter used in Argumented Lagrange type block preconditioners
+    REAL AL_scaling_param;
+
 } linear_itsolver_param; /**< Parameters for iterative solvers */
 
 

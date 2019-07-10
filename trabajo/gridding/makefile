@@ -15,7 +15,7 @@ EXTENSION = ex
 CC = gcc
 FC = gfortran
 CXX = g++
-CFLAGS = -g
+CFLAGS = -g -Wall
 FFLAGS = -g -fno-second-underscore
 ExtraFLAGS =
 
@@ -37,15 +37,15 @@ EXElex = lex.$(EXTENSION)
 OBJS = 	$(SRCDIR)/$(GRID).o \
 	$(SRCDIR)/new_refining.o \
 	$(SRCDIR)/new_marking.o \
-	$(SRCDIR)/auxfuncts.o \
-	$(SRCDIR)/io_geo.o \
 	$(SRCDIR)/features.o
+##	$(SRCDIR)/auxfuncts.o 
+##	$(SRCDIR)/io_geo.o \
 
 OBJb = 	newgrids.o \
 	bitwise.o \
 	new_refining.o
 
-OBJinp = main_input.o	bitwise.o	new_refining.o
+OBJinp = main_input.o	sorting1.o input_grid1.o
 
 OBJlex = lex1.o
 
@@ -60,7 +60,7 @@ $(EXEb):	$(OBJb)
 		$(CC) $(LDFLAGS)  $(OBJb) -o $@ $(LIBS)
 
 $(EXEin):	$(OBJinp)
-		$(CC) $(LDFLAGS)  $(OBJinp) -o $@ $(LIBS)
+		$(CC) $(LDFLAGS)  $(OBJinp) -o $@
 
 $(EXElex):	$(OBJlex)
 		$(CC) $(LDFLAGS)  $(OBJlex) -o $@ $(LIBS)
