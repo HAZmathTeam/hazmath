@@ -1000,6 +1000,11 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
     b2.val = &(bmgl[lvl].b.val[n0+n1]);
 
     if(0){
+      // Calculate Residual, then smooth on residual
+      dvector res = dvec_create(bmgl[lvl].b.row);
+      dvec_cp(&(bmgl[lvl].b),&res);
+      bdcsr_aAxpy(-1.0,&bmgl[lvl].A,bmgl[lvl].x.val,res.val);
+
     // Block 0: P1 + Bubble
 //    smoother_dcsr_sgs(&x0, &(bmgl[lvl].mgl[0][0].A), &b0, param->presmooth_iter);
     directsolve_UMF(&(bmgl[lvl].mgl[0][0].A), &b0, &x0, 10);
@@ -1054,7 +1059,7 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
     
     dCSRmat B = bdcsr_subblk_2_dcsr ( &bmgl[lvl].A, 2, 2, 0, 1);
 
-    smoother_bdcsr_bsr( &bmgl[lvl].x, &bmgl[lvl].b, 3.2484, 1.8119, &bmgl[lvl].A, &C, &B, bmgl[lvl].A.blocks[8], 1);
+    smoother_bdcsr_bsr( &bmgl[lvl].x, &bmgl[lvl].b, 3.06, 1.78, &bmgl[lvl].A, &C, &B, bmgl[lvl].A.blocks[8], 1);
     //smoother_bdcsr_uzawa( &bmgl[lvl].x, &bmgl[lvl].b, 1.8118, 1.0550, &bmgl[lvl].A, &C, &B, bmgl[lvl].A.blocks[8], 1);
     }
 
