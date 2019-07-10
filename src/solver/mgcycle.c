@@ -218,7 +218,7 @@ static void dcsr_postsmoothing(const SHORT smoother,
  *
  * \param lvl       current level
  * \param mgl       pointer to MG_blk_data structure with matrix information
- * \param param     pointer to AMG_param parameters 
+ * \param param     pointer to AMG_param parameters
  *
  */
 static void bdcsr_presmoothing(const INT lvl, MG_blk_data *mgl, AMG_param *param)
@@ -249,7 +249,7 @@ static void bdcsr_presmoothing(const INT lvl, MG_blk_data *mgl, AMG_param *param
  *
  * \param lvl       current level
  * \param mgl       pointer to MG_blk_data structure with matrix information
- * \param param     pointer to AMG_param parameters 
+ * \param param     pointer to AMG_param parameters
  *
  */
 static void bdcsr_postsmoothing(const INT lvl, MG_blk_data *mgl, AMG_param *param)
@@ -737,7 +737,7 @@ ForwardSweep:
     while ( l < nl-1 ) {
 
         num_lvl[l]++;
-        
+
 //        // correct bdry
 //        for(i=0; i<bmgl[l].x.row; i++){
 //          if( bmgl[l].dirichlet[i] == 1 )
@@ -827,6 +827,85 @@ ForwardSweep:
 
 }
 
+
+
+/**
+ * \fn void cascadic_eigen(AMG_data *mgl, AMG_param *param, INT level, INT num_levels)
+ *
+ * \brief Solve Ax=\lambda x using cascadic multigrid
+ *
+ * \param mgl         Pointer to AMG_data data
+ * \param param       Pointer to AMG parameters
+ * \param level       Current level
+ * \param num_levels  Total number of levels
+ *
+ * \author Xiaozhe Hu
+ * \date   06/25/2019
+ *
+ * \note Refer to John Urschel, Xiaozhe Hu, Jinchao Xu, and Ludmil Zikatanov
+ *       "A Cascadic Multigrid Algorithm for Computing the Fiedler Vector of Graph Laplacians", 2015.
+ *
+ */
+void cascadic_eigen(AMG_data *mgl,
+                    AMG_param *param,
+                    INT level,
+                    const INT num_eigen)
+{
+
+  // local variables
+  INT i;
+
+  dvector *b0 = &mgl[level].b,   *e0 = &mgl[level].x;   // fine level b and x
+  //dvector *b1 = &mgl[level+1].b, // coarse level b
+  dvector *e1 = &mgl[level+1].x; // coarse level x
+
+  dCSRmat *A0 = &mgl[level].A;   // fine level matrix
+  dCSRmat *A1 = &mgl[level+1].A; // coarse level matrix
+
+  const INT n0 = A0->row, n1 = A1->row;
+
+  INT nsmooth = pow(2, level-1)*param->postsmooth_iter;
+
+  if ( level < mgl[level].num_levels-1 )
+  {
+
+    // coarse grid correction
+    cascadic_eigen(mgl, param, level+1, num_eigen);
+
+    // prolongation
+    dvec_set(e0->row, e0, 0.0);
+    for (i=0; i<num_eigen; i++)
+    {
+      dcsr_aAxpy(1.0, &mgl[level].P, &(e1->val[i*n1]), &(e0->val[i*n0]));
+    }
+    //dcsr_write_dcoo("P.dat", &mgl[level].P);
+
+    // set zero right hand side
+    dvec_set(A0->row, b0, 0.0);
+
+    // postsmoothing
+    smoother_dcsr_sgs_graph_eigen(e0, A0, b0, nsmooth, num_eigen);
+
+  }
+  else // coarsest grid
+  {
+
+    // random initial guess
+    dvec_rand(num_eigen*A0->row, e0);
+
+    // set zero right hand side
+    dvec_set(A0->row, b0, 0.0);
+
+    // solve eigenvalue problem on coarsest grid
+    smoother_dcsr_sgs_graph_eigen(e0, A0, b0, 10*A0->row, num_eigen);
+
+    //dcsr_write_dcoo("Ac.dat", A0);
+    //dvec_write("ec.dat", e0);
+
+
+  }
+
+}
 
 /*---------------------------------*/
 /*--        End of File          --*/

@@ -59,6 +59,20 @@ void r2c(const INT n, const INT m, const size_t sizeel, void *x)
 /**********************************************************************/
 INT solve_pivot(INT dopivot, INT n, REAL *A, REAL *b, INT *p,REAL *piv)
 {
+
+/* \brief Solution of a linear system A*x = b with scaled partial
+   pivoting. The right hand side is overwritten on output with the
+   solution, that is x[] is the same as b[] on return.
+ *
+ * \param dopivot (switch [0/1]; if idopivot=1 then do the LU
+ * decomposition of A. The L and U factors are stored in the lower and
+ * upper triangle of A respectively.  if dopivot=0, then A is assumed
+ * to be already LU decomposed and this only performs the forward and
+ * backward substitutions.
+ * \param n    number of rows (and columns) of A.
+ * \param A    the matrix as a one dimensional array by rows
+ *
+ */
   INT nm1,i1,k1,pin,kswp,kp,i,j,k;
   REAL r,t,absaij;
   REAL *x=piv;
@@ -122,9 +136,9 @@ INT solve_pivot(INT dopivot, INT n, REAL *A, REAL *b, INT *p,REAL *piv)
  *        value of the determinant of A as well. Uses scaled partial
  *        pivoting.
  *
- * \param n    Number of rows
- * \param deta determinant of A
- * \param A    the matrix as a one dim. array by rows
+ * \param n    Number of rows and columns in A.
+ * \param deta is the determinant of A
+ * \param A    the matrix as a one dimensional array by rows
  * \param dopivot flag to indicate whether A is already decomposed in
  *                LU and we need to compute the determinant only;
  *
@@ -191,7 +205,6 @@ void lufull(INT dopivot, INT n, REAL *deta, REAL *A,INT *p,REAL *piv)
 void invfull(REAL *Ainv,INT n, REAL *A, void *wrk)
 {
 
-  /*  cast pointers*/
   REAL *piv=(REAL *)wrk;  REAL *Awrk=piv+n;
   INT *p=(INT *)(wrk+n*(n+1)*sizeof(REAL));
   INT i,j,ji,ni;
@@ -219,11 +232,14 @@ void invfull(REAL *Ainv,INT n, REAL *A, void *wrk)
  * \fn void abybfull(const INT m, const INT p, REAL *c, REAL *a,
  *                   REAL *b, const INT n)
  *
- * \brief
+ * \brief Computes c = a*b+c; for matrices
  *
- * \param
- * \param
- * \param
+ * \param m is the number of row in a and c
+ * \param p is the number of columns in b and c
+ * \param a is an m by n matrix
+ * \param b is an n by p matrix
+ * \param c is an m by p matrix. 
+ * \param n is the number of columns in a and number of rows in b. 
  *
  */
 void abybfull(const INT m, const INT p, REAL *c,	\
@@ -252,17 +268,18 @@ void abybfull(const INT m, const INT p, REAL *c,	\
 /*
  * \fn void abyvfull(const INT m, REAL *y,REAL *a, REAL *x, const INT n)
  *
- * \brief
- *
- * \param
- * \param
- * \param
+ * \brief Computes y = a*x+y; where x and y are vectors and a is a martix. 
+ *  
+ * \param m is the number of rows in a and the number of elements in x. 
+ * \param a is an m by n matrix
+ * \param x is an n by 1 vector
+ * \param y is an m by 1 vector
+ * \param n is the number of columns in a and number of elements in x
  *
  */
 void abyvfull(const INT m, REAL *y,REAL *a, REAL *x, const INT n)
 {
-  /* matrices y = a*x+y; a is a matrix m by n, x is a vector, y is a
-     vector (m) */
+  /* */
   REAL yi;
   INT i,j,in;
   for(i=0;i<m;i++){
@@ -278,17 +295,16 @@ void abyvfull(const INT m, REAL *y,REAL *a, REAL *x, const INT n)
 /*
  * \fn atbyvfull(const INT m, REAL *y,REAL *a, REAL *x, const INT n)
  *
- * \brief
+ * \brief Computes y = transpose(a)*x+y; 
  *
- * \param
- * \param
- * \param
+ * \param m is the number of rows in a (columns in transpose(a)).
+ * \param a is an matrix m by n, 
+ * \param x is an m by 1 vector, 
+ * \param y is an n by 1 vector.
  *
  */
 void atbyvfull(const INT m, REAL *y,REAL *a, REAL *x, const INT n)
 {
-  /* matrices y = a^t*x+y; a is a matrix m by n, x is m by 1 vector, y
-     is n by 1 */
   INT i,j,in;
   for(i=0;i<m;i++){
     in=i*n;
@@ -298,3 +314,61 @@ void atbyvfull(const INT m, REAL *y,REAL *a, REAL *x, const INT n)
   }
   return;
 }
+/**************************************************************************/
+
+/**************************************************************************/
+/*
+ * \fn qr_full(const INT m, const INT n, REAL *A, REAL *Q, REAL *R)
+ *
+ * \brief QR decomposition of A: A=QR
+ *
+ * \param m     number of rows
+ * \param n     number of columns
+ * \param A     full matrix
+ *
+ * \return Q    orthogonal full matrix from QR decomposition
+ * \return R    upper triangular matrix from QR decomposition
+ */
+void qr_full(const INT m, const INT n, REAL *A, REAL *Q, REAL *R)
+{
+
+  // local variables
+  INT i,j;
+  REAL *qj = (REAL *)calloc(m, sizeof(REAL));
+  REAL *aj;
+
+  // main loop
+  for (j=0; j<n; j++)
+  {
+
+      // qj = aj
+      aj = &A[j*m];
+      array_cp(m, aj, qj);
+
+      // inner loop
+      for (i=0; i<j; i++)
+      {
+
+        // rij = qi'*qj
+        R[i*n+j] = array_dotprod(m, &Q[i*m], qj);
+
+        // qj = qj - rij*qi
+        array_axpy(m, -R[i*n+j], &Q[i*m], qj);
+
+      }
+
+      // rjj = ||qj||_2
+      R[j*n+j] = array_norm2(m, qj);
+
+      // qj = qj/rjj
+      array_cp(m, qj, &Q[j*m]);
+      array_ax(m, 1./R[j*n+j], &Q[j*m]);
+
+  }
+
+  // free
+  free (qj);
+
+}
+
+ /**************************************************************************/

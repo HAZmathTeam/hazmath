@@ -13,7 +13,11 @@
  */
 
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************/
+// this below is probably not needed except for defining dCSR and
+// assemble for the Laplace equation.
+
 #include "hazmath.h"
+
 /*********************************************************************/
 /*!
  * \brief Calculates boundary integral using lumped mass.
@@ -83,6 +87,8 @@ static void LumpMassBndry(const mesh_struct mesh,
     }
   }
   return;
+  // this is obviously not included as it only has something to do
+  // with Neumann bc.
   if(dmass->row) return;
   dmass->val=(REAL *)calloc(dmass->row,sizeof(REAL));
   for (i = 0; i < nf; i++)   {
@@ -173,7 +179,7 @@ void eafe(dCSRmat *A, dvector *rhs,		\
 	  void (*vector_val_ad)(REAL *, REAL *, REAL, void *),		\
 	  void (*scalar_val_bndnr)(REAL *, REAL *, REAL, void *), REAL faketime)
 {
-  // assemble the laplacian matrix
+  // assemble the Laplacian matrix. USE YOUR OWN. It should output a dCSR matrix with the laplacian. 
   assemble_global(A,rhs,local_assembly,			\
 		  &FE,&mesh,cq,				\
 		  scalar_val_rhs,poisson_coeff,0.0);

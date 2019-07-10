@@ -29,14 +29,15 @@ void reaction_coeff(REAL *val,REAL* x,REAL time,void *param) {
 // Exact Solution (if you have one)
 void exactsol(REAL *val,REAL* x,REAL time,void *param) {
   // 2D
-  *val = sin(M_PI*x[0])*sin(M_PI*x[1]);
+  //*val = sin(M_PI*x[0])*sin(M_PI*x[1]);
+  *val = sin(2*M_PI*x[0])*sin(2*M_PI*x[1]);
 }
 
 // Derivative of Exact Solution (if you have one)
 void D_exactsol(REAL *val,REAL* x,REAL time,void *param) {
   // 2D
-  val[0] = M_PI*cos(M_PI*x[0])*sin(M_PI*x[1]);
-  val[1] = M_PI*sin(M_PI*x[0])*cos(M_PI*x[1]);
+  val[0] = 2*M_PI*cos(2*M_PI*x[0])*sin(2*M_PI*x[1]);
+  val[1] = 2*M_PI*sin(2*M_PI*x[0])*cos(2*M_PI*x[1]);
 }
 
 // Right-hand Side
@@ -48,7 +49,7 @@ void rhs(REAL *val,REAL* x,REAL time,void *param) {
   reaction_coeff(&myc,x,time,param);
   diffusion_coeff(&mya,x,time,param);
   exactsol(&myu,x,time,param);
-  *val = (mya*2*M_PI*M_PI + myc)*myu;
+  *val = (mya*8*M_PI*M_PI + myc)*myu;
 }
 
 // Boundary Conditions
@@ -113,13 +114,13 @@ int main (int argc, char* argv[])
   // Set periodic Boundaries
   // TODO
   set_periodic_bdry(&FE,&mesh,0.0,1.0,0.0,1.0,0.0,1.0);
-  for(INT i=0;i<FE.ndof;i++)
-    printf("periodic[%d]=%d\n",i,FE.periodic[i]);
+  //for(INT i=0;i<FE.ndof;i++)
+  //  printf("periodic[%d]=%d\n",i,FE.periodic[i]);
 
   dCSRmat P_periodic;
   generate_periodic_P(&FE, &P_periodic);
-  dcsr_write_dcoo("P.dat", &P_periodic);
-  exit(0);
+  //dcsr_write_dcoo("P.dat", &P_periodic);
+  //exit(0);
 
   // Strings for printing
   char elmtype[8];
@@ -191,7 +192,13 @@ int main (int argc, char* argv[])
   dcsr_free(&Mass);
 
   // Eliminate Dirichlet BC
-  eliminate_DirichletBC(bc,&FE,&mesh,&b,&A,0.0);
+  //eliminate_DirichletBC(bc,&FE,&mesh,&b,&A,0.0);
+  // Eliminate Periodic BC
+  //dvec_write("b0.dat", &b);
+  eliminate_PeriodicBC(&P_periodic, &A, &b);
+  //dcsr_write_dcoo("A.dat", &A);
+  //dvec_write("b.dat", &b);
+
 
   // Dump matrices for testing
   if(inparam.print_level > 3) {
@@ -213,7 +220,7 @@ int main (int argc, char* argv[])
   clock_t clk_solve_start = clock();
 
   // Create Solution Vector
-  dvector u = dvec_create(FE.ndof);
+  dvector u = dvec_create(A.col);
 
   // Set initial guess to be all zero
   dvec_set(u.row, &u, 0.0);
@@ -305,6 +312,9 @@ int main (int argc, char* argv[])
 
   // Error Check
   if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
+
+  // apply periodic BC
+  apply_PeriodicBC(&P_periodic, &u);
 
   clock_t clk_solve_end = clock();
   printf("Elapsed CPU Time for Solve = %f seconds.\n\n",
