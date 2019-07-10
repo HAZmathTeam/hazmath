@@ -322,7 +322,9 @@ INT amg_solve_nl_amli(AMG_data *mgl,
  *
  */
 INT mg_solve_blk(MG_blk_data *mgl,
-              AMG_param *param)
+              AMG_param *param,
+              REAL* rho1,
+              REAL* rho2)
 { 
     //dCSRmat      *ptrA = &mgl[0].A;
     dvector      *b = &mgl[0].b, *x = &mgl[0].x, *r = &mgl[0].w;
@@ -336,6 +338,11 @@ INT mg_solve_blk(MG_blk_data *mgl,
     REAL  solve_start, solve_end;
     REAL  relres1 = BIGREAL, absres0 = sumb, absres, factor;
     INT   iter = 0;
+
+    dvector r0 = dvec_create(b->row);
+    dvec_cp(b,&r0);
+    bdcsr_aAxpy(-1.0,&mgl[0].A,x->val,r0.val);
+    REAL res0 = dvec_norm2(&r0);
 
     get_time(&solve_start);
     
@@ -360,6 +367,9 @@ INT mg_solve_blk(MG_blk_data *mgl,
         
         // Print iteration information if needed
         print_itsolver_info(prtlvl, STOP_REL_RES, iter, relres1, absres, factor);
+
+        *rho1 = factor;
+        *rho2 = pow(absres / res0, 1.0/iter);
         
         // Check convergence
         if ( relres1 < tol ) break;

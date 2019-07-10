@@ -570,6 +570,9 @@ typedef struct{
     REAL time_precondition_setup;
     REAL time_solve;
 
+    REAL rho1;
+    REAL rho2;
+
 } solve_stats; /**< statistics about solve */
 
 #endif
