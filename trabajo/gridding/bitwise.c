@@ -359,8 +359,8 @@ cube2simp *cube2simplex(INT dim)
   c2s->nvcube = (1 << c2s->n);
   c2s->nvface = (1 << (c2s->n-1));
   i=1; for(i=1;i<=c2s->n;i++)c2s->ns*=i;
-  c2s->ne=c2s->n*(1<<(c2s->n-1)); /* number of edges in the cube.*/
-  c2s->nf=2*c2s->n; /* number of n-1 dimensional faces in the cube */
+  c2s->ne=c2s->n*(1<<(c2s->n-1)); /* number of edges in the n-cube.*/
+  c2s->nf=2*c2s->n; /* number of n-1 dimensional faces in the n-cube */
   /////////////////////////////////////////////////////
   c2s->edges=(INT *)calloc(2*c2s->ne,sizeof(INT));
   c2s->bits=(unsigned INT *)calloc(c2s->n*c2s->nvcube,sizeof(unsigned INT));

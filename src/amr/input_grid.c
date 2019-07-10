@@ -258,6 +258,7 @@ void  read_data(char **clndata,input_grid *g)
     /* fprintf(stdout,"\n"); */
     r2c(g->nv,2,sizeof(INT),idata);// vertex labels and coord systems by rows.
     memcpy(g->xv,(mdata+g->nv*2*sizeof(INT)),g->nv*g->dim*sizeof(REAL));
+    //    print_full_mat(g->nv,g->dim,g->xv,"x1");
     /* for(count=0;count<g->nv;count++){ */
     /*   fprintf(stdout,"\nrec=%d (",count); */
     /*   for(j=0;j<g->dim;j++){ */
