@@ -77,8 +77,23 @@ unsigned int reflect2(INT n, INT is, INT it,				\
 void refining(INT ref_levels, scomplex *sc, INT nstar, REAL *xstar);
 void scfinalize(scomplex *sc);
 
-
-
+/*******************************************************************/
+/*INPUT GRID*/
+/***********************************************************/
+/* void input_grid_free(input_grid *g); */
+/* void input_grid_print(input_grid *g); */
+/* char **splits(char *s, const char *d, INT *num); */
+/* void read_data(char *data_coordsystems,		\ */
+/* 	       char *data_vertices,		\ */
+/* 	       char *data_edges,		\ */
+/* 	       input_grid *g); */
+/* void get_out(const char *pattern, size_t le); */
+/* char *make_string_from_file(FILE *the_file, size_t *length_string); */
+/* /\********************************************************************\/ */
+/* char *get_substring(const char *pattern,	\ */
+/* 		    size_t *length_substring,	\ */
+/* 		    char *the_string); */
+/* input_grid *parse_input_grid(const char *input_file_grid); */
 /* NOT USED void set_filenames (INT nlayers, const char *geofile) */
 /* { */
 /*   INT i; */
