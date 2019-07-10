@@ -297,11 +297,11 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_st
 
   // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
   } else if (FEtype==20) {
-    val = (1.0/mesh->ed_len[DOF])*integrate_edge_vector_tangent(expr,1,0,nq1d,NULL,mesh,time,DOF);
+    val = (1.0/mesh->ed_len[DOF])*integrate_edge_vector_tangent(expr,dim,0,nq1d,NULL,mesh,time,DOF);
 
   // Raviart-Thomas u[dof] = 1/farea \int_face u*n_face
   } else if (FEtype==30) {
-    val = (1.0/mesh->f_area[DOF])*integrate_face_vector_normal(expr,1,0,nq1d,NULL,mesh,time,DOF);
+    val = (1.0/mesh->f_area[DOF])*integrate_face_vector_normal(expr,dim,0,nq1d,NULL,mesh,time,DOF);
 
   // Face Bubbles
   // For now, we assume face bubbles only and only in 2D or 3D.
@@ -312,7 +312,7 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_st
   // int_f phi_f*n_f = 2^d (d-1)! / (2d-1)! |f|
   } else if (FEtype>=60 && FEtype<70) {
     valx = (REAL *) calloc(dim,sizeof(REAL));
-    val = integrate_face_vector_normal(expr,1,0,nq1d,NULL,mesh,time,DOF);
+    val = integrate_face_vector_normal(expr,dim,0,nq1d,NULL,mesh,time,DOF);
     get_incidence_row(DOF,mesh->f_v,face_vertex);
     for (m=0;m<dim;m++) {
       x[0] = mesh->cv->x[face_vertex[m]];
@@ -515,7 +515,7 @@ void Project_to_Vertices(REAL* u_on_V,REAL *u,fespace *FE,mesh_struct *mesh)
   INT i,k,j;
   INT dim = mesh->dim;
   INT maxdim = 4;
-  REAL x[maxdim];
+  REAL* x = (REAL *) calloc(maxdim,sizeof(REAL));
   REAL val[maxdim];
 
   // Get FE and Mesh data
@@ -539,7 +539,7 @@ void Project_to_Vertices(REAL* u_on_V,REAL *u,fespace *FE,mesh_struct *mesh)
 
     // Interpolate FE approximation to vertices
     for(j=0;j<v_per_elm;j++) {
-      get_coords(x,v_on_elm[j]-1,mesh->cv,dim);
+      get_coords(x,v_on_elm[j],mesh->cv,dim);
       FE_Interpolation(val,u,x,dof_on_elm,v_on_elm,FE,mesh);
 
       if(FEtype>=0 && FEtype<20) { // Scalar Element
@@ -554,6 +554,7 @@ void Project_to_Vertices(REAL* u_on_V,REAL *u,fespace *FE,mesh_struct *mesh)
 
   if(v_on_elm) free(v_on_elm);
   if(dof_on_elm) free(dof_on_elm);
+  if(x) free(x);
   return;
 }
 /***********************************************************************************************/
