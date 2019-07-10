@@ -516,7 +516,8 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
                       block_fespace* FE,
                       void (*set_bdry_flags)(mesh_struct*),
                       dCSRmat *A_diag,
-                      block_dCSRmat *A_noBC)
+                      block_dCSRmat *A_noBC,
+                      solve_stats *solve_info)
 {
     const SHORT   max_levels  = param->max_levels;
     const SHORT   prtlvl      = param->print_level;
@@ -608,11 +609,12 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
 //        break;
     }
 
+    REAL rho1, rho2;
     // Step 2: MG solve phase
     if ( status == SUCCESS ) { // call a multilevel cycle
         switch (cycle_type) {
             default: // V,W-cycles (determined by param)
-                status = mg_solve_blk(mgl, param);
+                status = mg_solve_blk(mgl, param, &rho1, &rho2);
             break;
         }
         dvec_cp(&mgl[0].x, x);
@@ -623,6 +625,12 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
     }
 
     // clean-up memory
+    solve_info->iteration_count = status;
+    solve_info->time_precondition_setup = 999.99;
+    solve_info->time_solve = 999.99;
+
+    solve_info->rho1 = rho1;
+    solve_info->rho2 = rho2;
 
     // print out CPU time if needed
     if ( prtlvl > PRINT_NONE ) {
