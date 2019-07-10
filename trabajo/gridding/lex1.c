@@ -21,7 +21,7 @@ void lexsort(const INT nr, const INT nc,REAL *a,INT *p)
     is the permutation used to order a. The ogiginal a is recovered
     with inf permutation aorig[]=a[invp[i]];
   */
-  INT i,j,k,k1,pj;
+  INT i,j,k,pj;
   unsigned int lt=0;
   REAL *aj=(REAL *)calloc(nc,sizeof(REAL));
   for (i = 0; i < nr; i++){p[i]=i;} 
@@ -54,14 +54,15 @@ void lexsort(const INT nr, const INT nc,REAL *a,INT *p)
   return;
 }
 INT main(int argc, char **argv){
-  INT i,j,k,n=16,dim=4;
+  INT i,j,n=16,dim=4,k=-1;
   REAL *a=calloc((n*dim),sizeof(REAL));
   INT *p=(INT *)calloc(n,sizeof(INT));
   FILE *fp=fopen("test0.input","r");
   for (i=0;i<n;i++){
     fprintf(stdout,"a(%i,:)=",i);
     for (j=0;j<dim;j++){
-      k=fscanf(fp,"%lg", (a+i*dim+j));    
+      k=fscanf(fp,"%lg", (a+i*dim+j));
+      if(k==-1) continue;
       fprintf(stdout,"%g ",a[i*dim+j]);
     }
     fprintf(stdout,";\n");    

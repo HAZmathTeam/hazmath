@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "hazmath.h"
+#include "ConvectionDiffusion.h"
 
 void num_assembly(INT ndof, INT *nop,INT *fflags,	\
 		  dCSRmat *ain, REAL *f,		\
@@ -288,64 +289,64 @@ void eafe1(dCSRmat *ain, dvector *rhs,scomplex *sc){
   if(aloc)free(aloc);
   return;
 }
-/*C====================================================================*/
-void symba(scomplex *sc,dCSRmat *ain,INT n,INT *nnz, INT *iwk){
- /*C====================================================================*/
-  INT *ia=ain->IA,*ja=ain->JA;
-  INT ndof=sc->n+1,i,j,k,l,ll,iii,iaa,iab,jk;
-  REAL *a=ain->val;
-  iCSRmat *ieje=NULL,*iejet=NULL;
-  ieje->IA=calloc(sc->ns*ndof,sizeof(INT));
-    ieje->JA=nodes;
-  /*
-C--------------------------------------------------------------------
-C...  Symbolic assembly of a general nodal assembly matrix.
-C...
-C...  Input:
-C...    IE, JE   - mesh connectivity matrix in RRCU.
-C...    IET, JET - transpose of IE and JE in RRCO.
-C...    N        - number of nodes in the mesh.
-C...    IWK      - array of dimension N+1 which contains the value  
-C...               N+1 in the positions corresponding to Dirichlet 
-C...               nodes and 0 elsewhere.
-C...
-C...  Output:
-C...    IA, JA   - structure of the nodal assembly matrix of 
-C...               dimension NxN, in RRCU form.
-C...
-C...  Note:
-C...    N+1 is the dimension of IA.
-C...    NNZ is the dimension of JA.
-C--------------------------------------------------------------------
-*/
-      np = n + 1
-      nnz = 0
-      jp = 1
-      do 50 i = 1, n
-         jpi = jp
-         if(iwk(i) .eq. np) then
-            ja(jp) = i
-            jp = jp + 1
-            go to 40
-         end if
-         ieta = iet(i)
-         ietb = iet(i+1) - 1
-         do 30 ip = ieta,ietb
-            j = jet(ip)
-            iea = ie(j)
-            ieb = ie(j+1) - 1
-            do 20 kp = iea,ieb
-               k = je(kp)
-               if (iwk(k) .ge. i) go to 20
-               ja(jp) = k
-               jp = jp + 1
-               iwk(k) = i
- 20         continue
- 30      continue
- 40      ia(i) = jpi
- 50   continue
-      ia(np) = jp
-      nnz = ia(np)-1
-      return
-      end
+/* /\*C====================================================================*\/ */
+/* void symba(scomplex *sc,dCSRmat *ain,INT n,INT *nnz, INT *iwk){ */
+/*  /\*C====================================================================*\/ */
+/*   INT *ia=ain->IA,*ja=ain->JA; */
+/*   INT ndof=sc->n+1,i,j,k,l,ll,iii,iaa,iab,jk; */
+/*   REAL *a=ain->val; */
+/*   iCSRmat *ieje=NULL,*iejet=NULL; */
+/*   ieje->IA=calloc(sc->ns*ndof,sizeof(INT)); */
+/*     ieje->JA=sc->nodes; */
+/*   /\* */
+/* C-------------------------------------------------------------------- */
+/* C...  Symbolic assembly of a general nodal assembly matrix. */
+/* C... */
+/* C...  Input: */
+/* C...    IE, JE   - mesh connectivity matrix in RRCU. */
+/* C...    IET, JET - transpose of IE and JE in RRCO. */
+/* C...    N        - number of nodes in the mesh. */
+/* C...    IWK      - array of dimension N+1 which contains the value   */
+/* C...               N+1 in the positions corresponding to Dirichlet  */
+/* C...               nodes and 0 elsewhere. */
+/* C... */
+/* C...  Output: */
+/* C...    IA, JA   - structure of the nodal assembly matrix of  */
+/* C...               dimension NxN, in RRCU form. */
+/* C... */
+/* C...  Note: */
+/* C...    N+1 is the dimension of IA. */
+/* C...    NNZ is the dimension of JA. */
+/* C-------------------------------------------------------------------- */
+/* *\/ */
+/*     np = n + 1; */
+/*     nnz = 0 */
+/*       jp = 1 */
+/*       do 50 i = 1, n */
+/* 	   jpi = jp */
+/*          if(iwk(i) .eq. np) then */
+/*             ja(jp) = i */
+/*             jp = jp + 1 */
+/*             go to 40 */
+/*          end if */
+/*          ieta = iet(i) */
+/*          ietb = iet(i+1) - 1 */
+/*          do 30 ip = ieta,ietb */
+/*             j = jet(ip) */
+/*             iea = ie(j) */
+/*             ieb = ie(j+1) - 1 */
+/*             do 20 kp = iea,ieb */
+/*                k = je(kp) */
+/*                if (iwk(k) .ge. i) go to 20 */
+/*                ja(jp) = k */
+/*                jp = jp + 1 */
+/*                iwk(k) = i */
+/*  20         continue */
+/*  30      continue */
+/*  40      ia(i) = jpi */
+/*  50   continue */
+/*       ia(np) = jp */
+/*       nnz = ia(np)-1 */
+/*       return */
+/*       end */
 
