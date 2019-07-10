@@ -9,12 +9,40 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include <math.h>
 #include <limits.h>
 #include <time.h>
 #ifndef MAXFILENAMESIZE
-#define MAXFILENAMESIZE 256
+#define MAXFILENAMESIZE 1024
 #endif
+/*******************************************************************/
+/* define strings used to describe a macroelement grid in the INPUT */
+/* file with grid data. used in src/amr/input_grid.c                */
+/*******************************************************************/
+#ifndef INPUT_GRID_DATA_
+#define INPUT_GRID_DATA_ "title{",		\
+    "dir_grid{",				\
+    "dir_vtu{",					\
+    "file_grid{",				\
+    "file_vtu{",				\
+    "data_coordsystems{",			\
+    "data_vertices{",				\
+    "data_edges{",				\
+    "data_macroelements{",			\
+    "data_macrofaces{",				\
+    "dimension{",				\
+    "num_coordsystems{",			\
+    "num_vertices{",				\
+    "num_edges{",				\
+    "num_macroelements{",			\
+    "num_macrofaces{",				\
+    "num_refinements{",				\
+    "refinement_type{",				\
+    "err_stop_refinement{",			\
+    "print_level{"
+#endif
+/*******************************************************************/
 typedef struct /* n-homogenous simplicial complex */
 {
   INT nbig; /* the dimension of the space in which SC is embedded */
@@ -71,24 +99,35 @@ typedef struct {
   //----------------
   // files
   //----------------
-  char *fgrid;  /**< grid file name */
-  char *dgrid;   /**< output directory */
-  char *fvtu;  /**< grid file name */
-  char *dvtu;   /**< output directory */
-  INT ncsys; /**< number of coordinate systems */
-  REAL *ox; /** origins of the coordinate systems */
+  char *fgrid;  /* grid file name */
+  char *dgrid;   /* output directory */
+  char *fvtu;  /* grid file name */
+  char *dvtu;   /* output directory */
+  INT ncsys; /* number of coordinate systems */
+  REAL *ox; /* origins of the coordinate systems */
   INT *systypes; /** types for the coord. system */
   INT *syslabels; /** labels for the coord. system */
   INT nv; /* number of vertices in the graph describing the
 	     computational domain */
-  REAL *x; /* coordinates for each vertex [nv][dim]*/
-  INT *labels; /* coordinate sys labels for vertices [nv]*/
-  INT *bcodes; /* boundary codes for vertices [nv]*/
-  INT ne; /* number of edges in the graph describing the domain */ 
+  REAL *xv; /* coordinates for each vertex [nv][dim]*/
+  INT *csysv; /* coordinate system labels for vertices [nv]*/
+  INT *labelsv; /* coordinate system labels for vertices [nv]*/
+  INT *bcodesv; /* boundary codes for vertices [nv]*/
+  INT ne; /* number of edges/segments */ 
   REAL *xe; /* coordinates for each midpoint of an edge [ne][dim]*/
   INT *seg;/* segments array of size ne by 3. For every edge:
-	      (v1,v2,divisions) here v1<v2 always */
-} input_grid; /** Input GRID parameters */
+	      (v1,v2,divisions) with v1<v2 */
+  INT nel;/*number of macroelements*/
+  INT *mnodes; /* macroelements: macroelement label, vertices forming
+		   a macro element, macroelement material */ 
+  INT nf;  /*number of macroelement faces that are marked
+	     with codes; boundary or internal it does not
+	     matter */
+  INT *mfaces;   /* faces and boundary codes of faces */ 
+  INT nref;   /* number of refinements (AMR)*/
+  INT ref_type;   /* refinement type -2,-1,0,1,2,3,4,... */ 
+  REAL err_stop;   /* stop tolerance for AMR */ 
+}input_grid; /** Input GRID parameters */
 /*************************************************************/
 typedef struct /* n-homogenous simplicial SUBcomplex */
 {
@@ -135,6 +174,8 @@ typedef struct /* n-dimensional uniform grid */
 typedef struct /* structure to support splitting unit cube into simplices */
 { INT n; /* spatial dimension of the grid */
   INT nvcube; /* number of vertices on the unit cube in R^n=2^{n}.*/
+  INT nvface; /* number of vertices on a face of the the unit cube in
+		 R^n=2^{n-1}.*/
   INT ns; /* number of n dimensional simplices in the unit
 	     cube(n_factorial of them) */
   INT ne; // number of edges in the cube.
@@ -143,6 +184,8 @@ typedef struct /* structure to support splitting unit cube into simplices */
 		to 2^{n-1} as an array. These are also the coordinates
 		of the vertices of the unit cube in R^n*/
   INT *edges; /* the array containing the ends of edges of the unit cube. */
+  INT *faces; /* the array containing faces (consistantly ordered)
+		 unit cube. */
   INT *nodes; /* the array describing each of the n factorial simplices
 		in the unit cube */
   INT *perms; /* the n by nvcube array describing the permutations
@@ -154,7 +197,6 @@ typedef struct /* structure to support splitting unit cube into simplices */
 		give consistent splitting of neighboring cubes.
 	     */
 } cube2simp;
-
 typedef struct /* features (to refine around these) */
 {
   INT nbig; /* dimension in which this is "embedded", i.e. one

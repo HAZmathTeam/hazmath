@@ -7,13 +7,13 @@ SRCFILE = ConvectionDiffusion
 
 HEADERS = $(SRCFILE).h
 
-OBJS += eafe.o eafe1.o
+OBJS += eafe.o
 
 INCLUDE =
 
 ################comment the next two lines if you do not use mutigraph as solver.
 WITH_MGRAPH = yes
-MGRAPH_SRCDIR = $(realpath ../../../../multigraph_2.1/src)
+MGRAPH_SRCDIR = $(realpath /home/ltz1/packages/multigraph_2.1)
 
 # if you have compiled hazmath with suitesparse support, uncomment the
 # two lines below.

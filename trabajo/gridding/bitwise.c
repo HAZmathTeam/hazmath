@@ -21,51 +21,7 @@
 /************************************************************************/
 //void abfstree(INT it, scomplex *sc,INT *wrk);
 //void scfinalize(scomplex *sc);
-/***************************************************************/
-void lexsort(const INT nr, const INT nc,REAL *a,INT *p)
-{
-  /*
-    implements STRAIGHT INSERT sorting to order lexicographically nr
-    names with nc components each.  the array a is overwritten.  aj is
-    a working double array with nc (this will be dim in our most
-    common case) elements. used to sort coordinates of the vertices of
-    the macroelements lexicographically.  on output, a is ordered, p
-    is the permutation used to order a. The ogiginal a is recovered
-    with inf permutation aorig[]=a[invp[i]];
-  */
-  INT i,j,k,k1,pj;
-  unsigned int lt=0;
-  REAL *aj=(REAL *)calloc(nc,sizeof(REAL));
-  for (i = 0; i < nr; i++){p[i]=i;} 
-  for (j = 1; j < nr; ++j) {
-    //    for(k=0;k<nc;k++)aj[k] = a[j*nc+k];
-    memcpy(aj,(a+j*nc),nc*sizeof(REAL)); pj = *(p + j);
-    i = j - 1;
-    lt=0;
-    for(k=0;k<nc;k++) {
-      if(aj[k]>a[i*nc+k]){lt=0;break;}
-      else if(aj[k]<a[i*nc+k]){lt=1;break;}
-      else {continue;}	
-    }
-    //    while ((i >=0) && (aj<a[i])){
-    while ((i>=0) && (lt)){
-      memcpy((a+(i+1)*nc),(a+i*nc),nc*sizeof(REAL)); *(p+i+1)=*(p+i);
-      //      for(k=0;k<nc;k++) a[(i + 1)*nc+k] = a[i*nc+k];
-      --i;
-      if(i<0) break;
-      lt=0;
-      for(k=0;k<nc;k++) {
-	if(aj[k]>a[i*nc+k]){lt=0;break;}
-	else if(aj[k]<a[i*nc+k]){lt=1;break;}
-	else{continue;}
-      }
-    }
-    memcpy((a+(i+1)*nc),aj,nc*sizeof(REAL)); *(p+i+1)=pj;
-  }
-  if(aj) free(aj);
-  return;
-}
-/***************************************************************/
+/***********************************************************************/
 REAL interp4(cube2simp *c2s, REAL *u, REAL *xhat)
 {
   /*INTerpolate d-linearly in d dimensions on the UNIT cube */
@@ -89,8 +45,8 @@ REAL interp4(cube2simp *c2s, REAL *u, REAL *xhat)
 REAL interp8(cube2simp *c2s, REAL *u, REAL *ue, REAL *xhat)
 {
   /*INTerpolate quadratically in d dimensions on the UNIT cube */
-  INT dim=c2s->n,k,i,j,l,k1,k2,kdim;  
-  REAL rl,phik,zmid,psimid;
+  INT dim=c2s->n,k,i,k1,k2,kdim;  
+  REAL phik,zmid,psimid;
   REAL s=0.;
   for(k = 0;k<c2s->nvcube;k++){
     kdim=k*dim;
@@ -121,7 +77,7 @@ REAL interp8(cube2simp *c2s, REAL *u, REAL *ue, REAL *xhat)
     phik*=2e00*(zmid+psimid);
     s+=u[k]*phik;
   }
-  REAL se,phie,xe1,xe2;
+  REAL se,phie;
   se=0.;
   for(k=0;k<c2s->ne;k++){
     k2=c2s->edges[2*k];    
@@ -165,7 +121,7 @@ static void coord_perm(SHORT type, INT n,void *x, size_t elsize)
     if type=1: x[0],x[1]...x[n-1]--> x[1]...x[n-1],x[0] 
     if type=0(inverse): y[0],y[1]...y[n-1]--> y[n-1],y[0]...y[n-2] 
   */
-  INT i,ntotal;  
+  INT i;  
   void *xx0n=(void *)calloc(1,elsize*sizeof(void));
   if(type){
     memcpy(xx0n,x,elsize);
@@ -213,7 +169,7 @@ void polar2cart(INT dim, REAL *px, REAL *cx)
 /************************************************************************/
 INT cart2polar(INT dim, REAL *c,REAL *p)
 {
-  INT i,j,dimm1=dim-1;
+  INT i,dimm1=dim-1;
   REAL rl,r;
   // first put c[n-1] first to agree with the polar ordering;
   coord_perm(0,dim,c,sizeof(REAL));
@@ -253,7 +209,7 @@ void unirefine(INT *nd,scomplex *sc)
  2^{l} such that 2^{l}>max_m nd[m]. then remove all x such that
  x[k]>nd[k]*2^{-l} and then remap to the unit square. 
 */
-  INT n=sc->n,ndmax=-1,i=-1,j=-1,k=-1,i123=-10;
+  INT ndmax=-1,i=-1,j=-1;
   for(i=0;i<sc->n;i++)
     if(ndmax<nd[i]) ndmax=nd[i];
   fprintf(stdout,"\nmax split=%d",ndmax);
@@ -266,9 +222,9 @@ void unirefine(INT *nd,scomplex *sc)
   fprintf(stdout,"\nlog2 of the max=%e, l=%d",log2((REAL )ndmax)+1,ref_levels);
   ref_levels=0;
   if(ref_levels<=0) return;
-  INT ns,nv,n1,nsold,nvold,level;
+  INT nsold;//ns,nvold,level;
   if(!sc->level){
-    /*form neighboring list; */
+    /* form neighboring list; */
     find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
     //    haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
     INT *wrk=calloc(5*(sc->n+2),sizeof(INT));
@@ -278,17 +234,17 @@ void unirefine(INT *nd,scomplex *sc)
     //    exit(100);
     if(wrk) free(wrk);
   }
-  n=sc->n; n1=n+1; level=0;
+  //INT n=sc->n, n1=n+1,level=0;
   fprintf(stdout,"refine: ");
   while(sc->level < ref_levels && TRUE){
     nsold=sc->ns;
-    nvold=sc->nv;
+    //    nvold=sc->nv;
     for(j = 0;j < nsold;j++)sc->marked[j]=TRUE;
     for(j = 0;j < nsold;j++)
       if(sc->marked[j] && (sc->child0[j]<0||sc->childn[j]<0))
 	haz_refine_simplex(sc, j, -1);
     /* new mesh */
-    ns=sc->ns; nv=sc->nv;
+    //    ns=sc->ns; 
     sc->level++;
     fprintf(stdout,"u%du",sc->level);//,nsold,ns,nv);
   }
@@ -301,6 +257,8 @@ void cube2simp_free(cube2simp *c2s)
 {
   if(c2s->bits)free(c2s->bits);
   if(c2s->nodes)free(c2s->nodes);
+  if(c2s->edges)free(c2s->edges);
+  if(c2s->faces)free(c2s->faces);
   if(c2s->perms)free(c2s->perms);
   if(c2s)free(c2s);
   return;
@@ -312,8 +270,8 @@ static void binary0(cube2simp *c2s)
   // cube in dimension (dim). Lexicographical ordering from 0,0,...0
   // to 1,1,...,1
   
-  INT dim=c2s->n,nvcube=c2s->nvcube;
-  INT shift,oposite,i,j,k,kn,nbits=c2s->n-1;
+  INT nvcube=c2s->nvcube;
+  INT shift,i,j,k,kn,nbits=c2s->n-1;
   for(k = 0;k<nvcube;k++){
     kn=k*c2s->n;
     for (i=nbits ; i >=0; --i){
@@ -369,7 +327,7 @@ void reverse(void *arr,INT length, size_t elsize)
      permutes a void array whose elements are of size elsize 
      a[0],...a_[length-1]-->a[length-1],...a[0]. 
   */
-  INT i,j,k,nnn=(INT)(length/2);
+  INT i,nnn=(INT)(length/2);
   void *swap=(void *)malloc(elsize);
   //  reverses ordering in an INT array;
   void *arrk=arr+elsize*(length-1);
@@ -399,26 +357,31 @@ cube2simp *cube2simplex(INT dim)
   c2s->n=dim;
   c2s->ns=1;
   c2s->nvcube = (1 << c2s->n);
+  c2s->nvface = (1 << (c2s->n-1));
   i=1; for(i=1;i<=c2s->n;i++)c2s->ns*=i;
-  c2s->ne=c2s->n*(1<<(c2s->n-1)); /* number of edges in the cube.*/
-  c2s->nf=2*c2s->n; /* number of n-1 dimensional faces in the cube */
+  c2s->ne=c2s->n*(1<<(c2s->n-1)); /* number of edges in the n-cube.*/
+  c2s->nf=2*c2s->n; /* number of n-1 dimensional faces in the n-cube */
   /////////////////////////////////////////////////////
   c2s->edges=(INT *)calloc(2*c2s->ne,sizeof(INT));
   c2s->bits=(unsigned INT *)calloc(c2s->n*c2s->nvcube,sizeof(unsigned INT));
+  c2s->faces=(INT *)calloc(2*c2s->n*c2s->nvface,sizeof(INT));
   c2s->nodes=(INT *)calloc(c2s->ns*(c2s->n+1),sizeof(unsigned INT));
   c2s->perms=(INT *)calloc(c2s->nvcube*(c2s->n+1),sizeof(unsigned INT));
   memset(c2s->nodes,0,(c2s->n+1)*c2s->ns*sizeof(INT));
   /*end of allocation*/
   INT k1,kn1,k2,kn2,dim1=c2s->n+1,		\
-    ns=c2s->ns,nvcube=c2s->nvcube;
+    nvcube=c2s->nvcube;
+  /***********************************************/
   binary0(c2s);
+  /***********************************************/
+  /****EDGES**********/
   INT *edges=c2s->edges;
   memset(edges,0,c2s->ne*sizeof(INT));
   unsigned INT numbits=22;
   unsigned INT *b1,*b2;
   //  fprintf(stdout,"Memory: edges=%d,ns=%d\n",ne,ns);
-  INT nedge=0,nvcube1=nvcube-1;
-  for(k1 = 0;k1<nvcube1;k1++){
+  INT nedge=0,nvcubem1=nvcube-1;
+  for(k1 = 0;k1<nvcubem1;k1++){
     kn1=k1*dim;
     b1=c2s->bits+kn1;
     for(k2 = k1+1;k2<nvcube;k2++){
@@ -432,6 +395,7 @@ cube2simp *cube2simplex(INT dim)
       nedge++;
     }
   }
+  /****SIMPLICES**********/
   INT root=0,j,m,node,nq0,nq;
   m=2; for(i=2;i<dim1;i++) m=1+i*m;
   INT *queue=(INT *)calloc(m,sizeof(INT));
@@ -446,7 +410,7 @@ cube2simp *cube2simplex(INT dim)
     m=nq;
     for(j=nq0;j<nq;j++){
       node=queue[j];
-      if(node==(nvcube1)) continue;
+      if(node==(nvcubem1)) continue;
       for(i=0;i<c2s->ne;i++){
 	/*
 	  for a given first end of an edge, collect all the second
@@ -488,6 +452,29 @@ cube2simp *cube2simplex(INT dim)
     /*   fprintf(stdout,"%d",c2s->bits[dim*j+i]); */
     /* } */
   }
+  /****FACES**********/
+  INT *faces=c2s->faces;
+  INT j0,j1;
+  memset(faces,0,c2s->nf*sizeof(INT));
+  //  fprintf(stdout,"\n");
+  //    fprintf(stdout,"\nk2=%d bits=(",k2);
+  //	fprintf(stdout,"%d,",k1);
+  //    fprintf(stdout,")");
+  //  fprintf(stdout,"\n");fflush(stdout);
+  for(k2 = 0;k2<c2s->n;k2++){
+    kn2=k2*c2s->nvface;
+    j0=0;j1=0;
+    for(k1 = 0;k1<nvcube;k1++){
+      kn1=k1*c2s->n;
+      if(!c2s->bits[kn1+k2]){
+	c2s->faces[kn2+j0]=k1;
+	j0++;
+      } else {
+	c2s->faces[kn2+c2s->n*c2s->nvface+j1]=k1;
+	j1++;
+      }
+    }
+  }
   return c2s;
 }
 scomplex *umesh(const INT dim, INT *nd, cube2simp *c2s, const INT intype)
@@ -511,7 +498,7 @@ scomplex *umesh(const INT dim, INT *nd, cube2simp *c2s, const INT intype)
      it works in d>3.
   */
   INT iz1;
-  INT jperm,k,i,j,flag,kf,type;
+  INT jperm,i,j,flag,kf,type;
   INT dim1 = dim+1;
   // m is dim+1 so that we can handle even dimensions
   INT *m = (INT *)calloc(dim1,sizeof(INT));
@@ -523,9 +510,10 @@ scomplex *umesh(const INT dim, INT *nd, cube2simp *c2s, const INT intype)
     nv*=(nd[i]+1);
     ns*=nd[i];
   }
-  ns*=c2s->ns; /**/
+  ns*=c2s->ns; /*multiply by the number of simplices in the unit cube
+		 (2 in 2D and 6 in 3d and 24 in 4d*/
   scomplex *sc = (scomplex *)haz_scomplex_init(dim,ns,nv);
-  fprintf(stdout,"\nGenerating uniform mesh in dim=%d; vertices: %d, simplexes %d\n",dim,nv,ns);fflush(stdout);
+  //  fprintf(stdout,"\nGenerating uniform mesh in dim=%d; vertices: %d, simplices %d\n",dim,nv,ns);fflush(stdout);
   nv=0;
   //  icycle[dim]=0;
   for(kf=0;kf<sc->nv;kf++){
@@ -583,6 +571,7 @@ scomplex *umesh(const INT dim, INT *nd, cube2simp *c2s, const INT intype)
     }    
   }
   if(m) free(m);
+  if(mm) free(mm);
   return sc;
 }
-  
+

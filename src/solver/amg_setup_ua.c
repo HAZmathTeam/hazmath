@@ -421,12 +421,14 @@ static SHORT aggregation_hec(dCSRmat *A,
     // get random permutation
     for(i=0; i<row; i++) perm[i] = i;
     iarray_shuffle(row, perm);
+    /*
     //    fprintf(stdout,"\nlvl=%d",lvl);
     if(!lvl){
       for(i=0; i<row; i++) perm[i] = row-i-1;
     } else {
       for(i=0; i<row; i++) perm[i] = i;
     }
+    */
     // main loop
     for ( ii = 0; ii < row; ii++ ) {
         i = perm[ii];

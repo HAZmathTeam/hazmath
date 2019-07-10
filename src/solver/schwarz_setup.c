@@ -336,7 +336,7 @@ INT Schwarz_setup_geometric (Schwarz_data *Schwarz,
     Schwarz->swzparam = param;
 
     // local variables
-    INT i;
+    //INT i;
 
     // data for Schwarz method
     INT nblk;
@@ -382,6 +382,7 @@ INT Schwarz_setup_geometric (Schwarz_data *Schwarz,
             void **numeric	= (void**)calloc(nblk, sizeof(void*));
             dCSRmat Ac_tran;
             //printf("number of blocks = %d\n",nblk);
+            INT i;
             for (i=0; i<nblk; ++i) {
                 Ac_tran = dcsr_create(blk[i].row, blk[i].col, blk[i].nnz);
                 dcsr_transz(&blk[i], NULL, &Ac_tran);
