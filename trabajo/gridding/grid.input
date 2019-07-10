@@ -56,8 +56,9 @@ num_vertices{8} %number of vertices
 %% line connecting the two vertices.
 %---------------%
 
-%%% verter number, coord system; 
-data_vertices{0 0 -1.   -1. 	%% coords, coord_system
+%%% vertex number, coord system, vertex coords. Polar coords are in
+%%%    degrees.
+data_vertices{0 0 -1.   -1. 	%% vertex number, coord system, coords
 	      1 0 -1.   0.  
 	      2 0  0.   -1. 
 	      3 0  0.   0.   
@@ -82,8 +83,10 @@ data_edges{0 1	3
            0 2	4
   	   2 3  1
   	   3 7  5
-  	   3 5  7
+  	   4 5  7
+  	   6 7  7
 	   }
+
 
 
 % the vertices should be ordered so that the
@@ -103,9 +106,13 @@ data_edges{0 1	3
 
 num_macroelements{3}
 
-data_macroelements{1 4 3 5 1
+%%% vertices forming the macroelement ordered as explained in the
+%%% README.  vertex numbers (v[0]...v[2^{d}-1]) and the material for
+%%% the macroelement.
+
+data_macroelements{2 4 3 5 1
 	      0 1 2 3 2
-	      6 7 2 3 -8
+	      6 7 1 3 -8
 	      }
 
 num_macrofaces{10}
