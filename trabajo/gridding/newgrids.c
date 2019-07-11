@@ -245,22 +245,75 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
     fprintf(stderr,"\n\n***ERR in %s: the divisions of the edges cannod be inconsistent during second call of set_ndiv_edges()\n\n",__FUNCTION__);
     exit(4);
   }
-  //  print_full_mat(g0->nv,g0->dim,g0->xv,"xv0"); fflush(stdout);
-  free(efound);
-  free(ffound);
-  ///
+  // form macroelement neighboring list. Use transposition
+  iCSRmat *el2v=malloc(1*sizeof(iCSRmat));
+  el2v[0]=icsr_create(g0->nel,g0->nv,nvcube*g0->nel);
+  //  iCSRmat el2v=icsr_create(g0->nel,g0->nv,nvcube*g0->nel);
+  el2v->IA[0]=0;
+  for(kel=0;kel<nel0;kel++){
+    memcpy((el2v->JA+el2v->IA[kel]),(g0->mnodes+kel*(nvcube+1)),nvcube*sizeof(INT));
+    el2v->IA[kel+1]=el2v->IA[kel]+nvcube;
+  }
+  for(i=0;i<el2v->IA[nel0];i++)
+    el2v->val[i]=1;
+  //  fprintf(stdout,"\nel2v=[");
+  //  icsr_print_matlab_val(stdout,el2v);
+  //  fprintf(stdout,"];");
+  iCSRmat *v2el=malloc(1*sizeof(iCSRmat));
+  icsr_trans(el2v,v2el);	
+  //  fprintf(stdout,"\nv2el=[");
+  //  icsr_print_matlab_val(stdout,v2el);
+  //  fprintf(stdout,"];\n");
+  iCSRmat *el2el=malloc(1*sizeof(iCSRmat));
+  icsr_mxm(el2v,v2el,el2el);
+  //  fprintf(stdout,"\nel2el0=[");
+  //  icsr_print_matlab_val(stdout,el2el);
+  //  fprintf(stdout,"];\n\n");
+  icsr_free(el2v); icsr_free(v2el);
+  // shrink the el2el matrix;
+  INT jel;
+  el2el->nnz=el2el->IA[0];
+  for(kel=0;kel<nel0;kel++){    
+    j0=el2el->IA[kel];
+    j1=el2el->IA[kel+1];
+    el2el->IA[kel]=el2el->nnz;
+    for(ke=j0;ke<j1;ke++){
+      jel=el2el->JA[ke];
+      if((jel==kel) || (el2el->val[ke]!=nvface)) continue;
+      el2el->JA[el2el->nnz]=el2el->JA[ke];
+      el2el->val[el2el->nnz]=el2el->val[ke];
+      el2el->nnz++;
+    }
+  }
+  el2el->IA[nel0]=el2el->nnz;
+  el2el->JA=realloc(el2el->JA,el2el->nnz*sizeof(INT));
+  el2el->val=realloc(el2el->val,el2el->nnz*sizeof(INT));
+  //    fprintf(stdout,"\nel2el=[");
+  //    icsr_print_matlab_val(stdout,el2el);
+  //    fprintf(stdout,"];\n\n");
+  for(kel=0;kel<nel0;kel++){
+    memcpy(g->mnodes,(g0->mnodes+kel*(nvcube+1)),(nvcube+1)*sizeof(INT));
+    for(i=0;i<g->nf;i++){
+      for(ke=0;ke<nvface;ke++){
+	g->mfaces[i*(nvface+1)+ke]=c2s->faces[i*nvface+ke];
+      }
+      g->mfaces[i*(nvface+1)+nvface]=-1;
+    }
+    //    print_full_mat_int(g->nf,(nvface+1),g->mfaces,"mf{1}"); fflush(stdout);
+  }
   for(kel=0;kel<nel0;kel++){
     memcpy(g->mnodes,(g0->mnodes+kel*(nvcube+1)),(nvcube+1)*sizeof(INT));
     for(i=0;i<g->nv;i++){
       j0=g->mnodes[i];// vertex number (global)
       g->csysv[i]=g0->csysv[j0]; 
       g->labelsv[i]=g0->csysv[j0];
-      for(j1=0;j1<g->dim;j1++)
-	g->xv[i*g->dim+j1]=g0->xv[j0*g0->dim+j1];
+      memcpy((g->xv+i*g->dim),(g0->xv+j0*g0->dim),g->dim*sizeof(REAL));
     }
-    print_full_mat(g->nv,g->dim,g->xv,"x");
-    print_full_mat_int(c2s->nf,nvface,c2s->faces,"f");
+    //    print_full_mat(g->nv,g->dim,g->xv,"xv{1}"); fflush(stdout);
   }
+  //////
+  free(efound);
+  free(ffound);
   for(i=0;i<g0->nel;i++) {
     free(nd[i]);
     free(nfcodes[i]);
