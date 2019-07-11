@@ -395,12 +395,41 @@ void icsr_print_matlab(FILE* fid,
     // local variables
     INT i,j1,j2,j;
 
-    // main loop
+    // main loop; comma separated
   for(i=0;i<A->row;i++) {
     j1 = A->IA[i];
     j2 = A->IA[i+1];
     for(j=j1;j<j2;j++) {
-      fprintf(fid,"%d\t%d\n",i+1,A->JA[j]+1);
+      fprintf(fid,"%d,%d\n",i+1,A->JA[j]+1);
+    }
+  }
+  return;
+}
+
+/***********************************************************************************************/
+/*!
+ * \fn void icsr_print_matlab_val(FILE* fid,dCSRmat *A)
+ *
+ * \brief print a iCSRmat format sparse matrix to a file with VALUES
+ *
+ * \param fid  Pointer to the file
+ * \param A    Pointer to the iCSRmat format sparse matrix
+ *
+ * \todo 
+ *
+ */
+void icsr_print_matlab_val(FILE* fid,
+			   iCSRmat *A)
+{
+    // local variables
+    INT i,j1,j2,j;
+
+    // main loop; comma separated
+  for(i=0;i<A->row;i++) {
+    j1 = A->IA[i];
+    j2 = A->IA[i+1];
+    for(j=j1;j<j2;j++) {
+      fprintf(fid,"%d,%d,%d\n",i+1,A->JA[j]+1,A->val[j]);
     }
   }
   return;
