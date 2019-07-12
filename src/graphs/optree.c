@@ -1,4 +1,12 @@
-  /*  Kruskal algorithm for min weighted tree input is the signed
+/*! \file src/graphs/optree.c
+ *
+ *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 20190115.
+ *  Copyright 2017__HAZMATH__. All rights reserved.
+ *
+ *  \note Kruskal algorithm;
+ *
+ */
+/*  Kruskal algorithm for min weighted tree input is the signed
       edge<->vertex incidence matrix and a permutation vector p which
       shows in what order the edges have to be examined in the Kruskal
       algorithm */
