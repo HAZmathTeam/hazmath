@@ -1,3 +1,11 @@
+/*! \file src/graphs/dfs.c
+ *
+ *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 20190715.
+ *  Copyright 2017__HAZMATH__. All rights reserved.
+ *
+ *  \note depth first search and related routines. 
+ *
+ */
 #include "hazmath.h"
 
 void dfs00_(INT *nin, INT *ia, INT *ja, INT *nblko,INT *iblk, INT *jblk)
