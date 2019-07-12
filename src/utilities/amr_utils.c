@@ -7,6 +7,25 @@
  *
  */
 #include "hazmath.h"
+/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx*/
+INT aresame(INT *a, INT *b, INT n)
+{
+  /* checks (n^2 algorithm) if two arrays are the same */
+  INT i,j,flag,ai,bj;
+  for (i=0;i<n;i++){
+    ai=a[i];
+    flag=0;
+    for(j=0;j<n;j++){
+      bj=b[j];
+      if(ai==bj){
+	flag=1; break;
+      }
+    }
+    if(!flag) return 0;
+  }
+  return 1;
+}
+/****************************************************************/
 INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)
 {
   /* 

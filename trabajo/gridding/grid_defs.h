@@ -41,7 +41,7 @@ void area_face(INT dim, REAL fact, REAL *xf, REAL *sn,	\
 	       REAL *areas,REAL *volt,			\
 	       void *wrk);
 void longest(scomplex *sc);
-void bfstree(INT it, scomplex *sc,INT *wrk);
+//void bfstree(INT it, scomplex *sc,INT *wrk);
 void refining(INT ref_levels, scomplex *sc, INT nstar, REAL *xstar);
 unsigned int reflect2(INT n, INT is, INT it,				\
 		      INT* sv1, INT *sv2, INT* stos1, INT* stos2,	\
