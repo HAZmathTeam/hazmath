@@ -2648,7 +2648,7 @@ void icsr_nodiag(iCSRmat *a)
      (done in-inplace, a is overwritten) */
   INT k,j,kj,kj0,kj1;
   a->nnz=a->IA[0];
-  for(k=0;k<a->row;k++){    
+  for(k=0;k<a->row;k++){
     kj0=a->IA[k];
     kj1=a->IA[k+1];
     a->IA[k]=a->nnz;
@@ -2656,7 +2656,7 @@ void icsr_nodiag(iCSRmat *a)
       j=a->JA[kj];
       if(k!=j){
 	a->JA[a->nnz]=j;
-	a->val[a->nnz]=a->val[kj];	
+	a->val[a->nnz]=a->val[kj];
 	a->nnz++;
       }
     }
@@ -2668,13 +2668,13 @@ void icsr_nodiag(iCSRmat *a)
 }
 void icsr_tri(iCSRmat *a,const char loup)
 {
-  /* 
+  /*
    *extracting the lower/upper triangle of an icsr matrix
-   (done in-place, a is overwritten ). 
-   * loup='u' or 'U': upper triangle; 
+   (done in-place, a is overwritten ).
+   * loup='u' or 'U': upper triangle;
    * loup='l' or 'L': extract lower triangle
    * if loup is anything else: do nothing;
-   * the diagonal is included. 
+   * the diagonal is included.
   */
   INT lu;
   if(loup=='u' || loup=='U')
@@ -2685,7 +2685,7 @@ void icsr_tri(iCSRmat *a,const char loup)
     return;
   INT k,j,kj,kj0,kj1;
   a->nnz=a->IA[0];
-  for(k=0;k<a->row;k++){    
+  for(k=0;k<a->row;k++){
     kj0=a->IA[k];
     kj1=a->IA[k+1];
     a->IA[k]=a->nnz;
@@ -2694,7 +2694,7 @@ void icsr_tri(iCSRmat *a,const char loup)
       //      if(k<=j) for upper; (k>=j) for lower;
       if((k-j)*lu>0) continue; // lower is rowind>=colind
       a->JA[a->nnz]=j;
-      a->val[a->nnz]=a->val[kj];	
+      a->val[a->nnz]=a->val[kj];
       a->nnz++;
     }
   }
@@ -2858,6 +2858,50 @@ void bdcsr_cp(block_dCSRmat *A,
         }
     }
 }
+
+/***********************************************************************************************/
+/*!
+   * \fn void bdcsr_trans (block_dCSRmat *A, block_dCSRmat *AT)
+   *
+   * \brief Transpose a block_dCSRmat matrix A
+   *
+   * \param A   Pointer to the block_dCSRmat matrix
+   * \param AT  Pointer to the transpose of block_dCSRmat matrix A (output)
+   *
+   */
+void bdcsr_trans(block_dCSRmat *A,
+                 block_dCSRmat *AT)
+{
+
+  // local variables
+  INT i,j;
+
+  // allocate AT
+  bdcsr_alloc(A->bcol, A->brow, AT);
+
+  // transpose
+  for (i=0; i<AT->brow; i++)
+  {
+
+    for (j=0; j<AT->bcol; j++)
+    {
+
+      if (A->blocks[j*A->bcol+i] == NULL)
+      {
+        AT->blocks[i*AT->bcol+j] = NULL;
+      }
+      else
+      {
+        dcsr_trans(A->blocks[j*A->bcol+i], AT->blocks[i*AT->bcol+j]);
+      }
+
+    }
+
+  }
+
+
+}
+
 
 /***********************************************************************************************/
 /*!
