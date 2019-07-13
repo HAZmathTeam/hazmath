@@ -228,6 +228,7 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   /* g->xv=(REAL *)calloc(g->dim*g->nv,sizeof(REAL));  */
   /* g->xe=(REAL *)calloc(g->dim*g->ne,sizeof(REAL)); */
   INT chng=1,iter=0,maxiter=1024;  
+  INT je,kj,k2,iel2v,jel2v,k1,kface,kbnd,found;
   while(chng&&(iter<maxiter)){
     iter++;
     // make the divisions in g0->seg consistent;
@@ -297,6 +298,15 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   dfs00_(&nel0,el2el->IA, el2el->JA,&nblkdom,iblk,jblk);
   iblk=realloc(iblk,(nblkdom+1)*sizeof(INT));
   fprintf(stdout,"\nDFS(domains): %d connected components",nblkdom);
+  /* for(ke=nblkdom;ke>0;ke--){ */
+  /*   fprintf(stdout,"\ncc=%d:  v=",ke-1); */
+  /*   j0=iblk[ke-1]; */
+  /*   j1=iblk[ke]; */
+  /*   for(kj=j1;kj>j0;kj--){ */
+  /*     fprintf(stdout,"%d ",jblk[kj-1]); */
+  /*   } */
+  /* } */
+  /* fprintf(stdout,"\n"); */
   icsr_nodiag(el2el);
   //  fprintf(stdout,"\n\n ************ nonzeroes in el2el=%d *************",el2el->nnz);fflush(stdout);
   /*FACES******************************************************/
@@ -318,7 +328,6 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   /* fprintf(stdout,"\n *** all_faces: %d ?= %d; (nnznew?=nnz):%d?=%d\n",nfaceall,f2v->row,f2v->nnz,f2v->IA[f2v->row]);   */
   INT *facei=calloc(2*nvface,sizeof(INT));
   INT *facej=facei+nvface;
-  INT je,kj,k2,iel2v,jel2v,k1,kface,kbnd,found;
   kface=0;
   for(kel=0;kel<nel0;kel++){
     iel2v=el2v->IA[kel];
@@ -460,39 +469,45 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   dfs00_(&nfaceall,f2f->IA, f2f->JA,&nblkbnd,iblk,jblk);
   fprintf(stdout,"\nDFS(boundaries): %d connected components",nblkbnd-nfacei);
   icsr_nodiag(f2f);
+  icsr_free(f2f);
+  free(iblk); 
+  free(jblk);   
   /* fprintf(stdout,"\nf2fb=["); */
   /* icsr_print_matlab_val(stdout,f2f); */
   /* fprintf(stdout,"];"); */
   /* fprintf(stdout,"\nf2f=sparse(f2fb(:,1),f2fb(:,2),f2fb(:,3));\n"); */
   //
-  INT *etree=calloc((el2el->row+1),sizeof(INT));
-  iCSRmat *junk0=bfs00(0,el2el,etree);
-  for(i=junk0->row;i>0;i--){
-    j1=junk0->IA[i];
-    j0=junk0->IA[i-1];
-    for(kj=j1;kj>j0;kj--) {
-      k1=junk0->JA[kj-1];
-      if(etree[k1]<-1) continue;
-      while(1){
-	fprintf(stdout,"\nvisiting element=%d",k1);
-	k2=k1;
-	k1=etree[k2];
-	if(k1<0) break;
-	etree[k2]=-2;
-      }
-    }
-  }
-  fprintf(stdout,"\n");
-  /* fprintf(stdout,"\nbfs00=["); */
-  /* icsr_print_matlab_val(stdout,junk0); */
-  /* fprintf(stdout,"];"); */
-  /* fprintf(stdout,"\nbfs=sparse(bfs00(:,1),bfs00(:,2),bfs00(:,3));\n"); */
-  icsr_free(junk0);
-  free(etree);
-  free(iblk);
-  free(jblk);
+  /* INT *etree=calloc((el2el->row+1),sizeof(INT)); */
+  /* iCSRmat *bfs0=bfs00(0,el2el,etree); */
+  /* for(i=bfs0->row;i>0;i--){ */
+  /*   j1=bfs0->IA[i]; */
+  /*   j0=bfs0->IA[i-1]; */
+  /*   for(kj=j1;kj>j0;kj--) { */
+  /*     k1=bfs0->JA[kj-1]; */
+  /*     for(ke=0;ke<bfs0->nnz;ke++){ */
+  /* 	fprintf(stdout,"\nv=%d;et=%d",bfs0->JA[ke],etree[bfs0->JA[ke]]); */
+  /*     } */
+  /*     fprintf(stdout,":: %d(%d)\n",k1,etree[k1]); */
+  /*     if(etree[k1]<-1) continue; */
+  /*     while(1){ */
+  /* 	fprintf(stdout,"\nvisiting element=%d",k1); */
+  /* 	k2=k1; */
+  /* 	k1=etree[k2]; */
+  /* 	etree[k2]--; */
+  /* 	if(k1<0) {break;} */
+  /*     } */
+  /*   } */
+  /* } */
+  /* fprintf(stdout,"\n"); */
+  /* /\* fprintf(stdout,"\nbfs00=["); *\/ */
+  /* /\* icsr_print_matlab_val(stdout,bfs0); *\/ */
+  /* /\* fprintf(stdout,"];"); *\/ */
+  /* /\* fprintf(stdout,"\nbfs=sparse(bfs00(:,1),bfs00(:,2),bfs00(:,3));\n"); *\/ */
+  /* icsr_free(bfs0); */
+  /* free(etree); */
   icsr_free(el2el);
-  icsr_free(f2f);
+  for(kel=0;kel<el2el->row;kel++){
+  }
   /*****************************************************/    
   fprintf(stdout,"\n"); 
   /*****************************************************/    
