@@ -1277,7 +1277,7 @@ void eliminate_DirichletBC_RHS_blockFE_blockA(void (*bc)(REAL *,REAL *,REAL,void
 /*!
  * \fn generate_periodic_P(fespace* FE, dCSRmat* P_periodic)
  *
- * \brief generate (prolongation )matrix P_priodic for applying periodic boundary conditions later
+ * \brief generate (prolongation )matrix P_periodic for applying periodic boundary conditions later
  *
  * \param FE            FE Space
  *
@@ -1408,6 +1408,44 @@ void generate_periodic_P(fespace* FE, dCSRmat* P_periodic)
 
  /******************************************************************************************************/
  /*!
+  * \fn generate_periodic_R_scaled(dCSRmat* P_periodic, dCSRmat* R_periodic_scaled)
+  *
+  * \brief generate (scaled restriction) matrix R_periodic_scaled (R_periodic_scaled u = u_periodic)
+  *
+  * \param P_periodic    P_periodic matrix in dCSRformat
+  *
+  * \return R_periodic_scaled   R_periodic_scaled matrix in dCSRformat
+  *
+  */
+ void generate_periodic_R_scaled(dCSRmat* P_periodic, dCSRmat* R_periodic_scaled)
+ {
+
+   // local variables
+   INT i, j, nnz_row;
+
+   // transpose to get unscaled R_periodic
+   dcsr_trans(P_periodic, R_periodic_scaled);
+
+   // scale R_periodic_scaled
+   for (i=0; i<R_periodic_scaled->row; i++)
+   {
+     // number of ones in each row
+     nnz_row = R_periodic_scaled->IA[i+1]-R_periodic_scaled->IA[i];
+
+     // scaling each row
+     for (j=R_periodic_scaled->IA[i]; j<R_periodic_scaled->IA[i+1]; j++)
+     {
+       R_periodic_scaled->val[j] = R_periodic_scaled->val[j]/nnz_row;
+     }
+
+   }
+
+ }
+
+  /******************************************************************************************************/
+
+ /******************************************************************************************************/
+ /*!
   * \fn eliminate_PeriodicBC(dCSRmat* P_periodic, dCSRmat* A, dvector* b)
   *
   * \brief Eliminate periodic boundary conditions. A = P_periodic'*A*P_periodic and b = P_periodic'*b;
@@ -1464,7 +1502,7 @@ void eliminate_PeriodicBC(dCSRmat* P_periodic, dCSRmat* A, dvector* b)
 /*!
  * \fn apply_PeriodicBC(dCSRmat* P_periodic, dvector* u)
  *
- * \brief Apply the boundary conditions so that the vector contains periodic BC dofs: u = P_periodic'*u;
+ * \brief Apply the boundary conditions so that the vector contains periodic BC dofs: u = P_periodic*u;
  *
  * \param P_periodic    P_periodic matrix in dCSR format
  * \param u             dvector
@@ -1485,6 +1523,174 @@ void apply_PeriodicBC(dCSRmat* P_periodic, dvector* u)
   u->row = P_periodic->row;
   u->val = (REAL* )realloc(u->val, u->row*sizeof(REAL));
   dcsr_mxv_agg(P_periodic, utemp.val, u->val);
+
+  // free
+  dvec_free(&utemp);
+
+}
+/******************************************************************************************************/
+
+/******************************************************************************************************/
+/*!
+ * \fn generate_periodic_P_blockFE(block_fespace* FE, block_dCSRmat* P_periodic)
+ *
+ * \brief generate (prolongation) matrix P_periodic for applying periodic boundary conditions later
+ *
+ * \param FE            block FE Space
+ *
+ * \return P_periodic   P_periodic matrix in dCSRformat
+ *
+ */
+void generate_periodic_P_blockFE(block_fespace* FE, block_dCSRmat* P_periodic)
+{
+  // local variables
+  INT i, nspaces=FE->nspaces;
+
+  // allocate block dCSRmat
+  bdcsr_alloc_minimal(nspaces, nspaces, P_periodic);
+
+  // allocate diagonal blocks (other blocks are set to be NULL)
+  for (i=0; i<(nspaces*nspaces); i++) P_periodic->blocks[i] = NULL;
+  for (i=0; i<nspaces; i++) P_periodic->blocks[i*nspaces+i] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
+
+  // generate P_periodic
+  for (i=0; i<nspaces; i++) generate_periodic_P(FE->var_spaces[i], P_periodic->blocks[i*nspaces+i]);
+
+}
+/******************************************************************************************************/
+
+/******************************************************************************************************/
+/*!
+ * \fn generate_periodic_R_scaled_blockFE(dCSRmat* P_periodic, dCSRmat* R_periodic_scaled)
+ *
+ * \brief generate (scaled restriction) matrix R_periodic_scaled (R_periodic_scaled u = u_periodic)
+ *
+ * \param P_periodic    P_periodic matrix in dCSRformat
+ *
+ * \return R_periodic_scaled   R_periodic_scaled matrix in dCSRformat
+ *
+ */
+void generate_periodic_R_scaled_blockFE(block_dCSRmat* P_periodic, block_dCSRmat* R_periodic_scaled)
+{
+  // local variables
+  INT i, nspaces = P_periodic->brow;
+
+  // allocate block dCSRmat
+  bdcsr_alloc_minimal(nspaces, nspaces, R_periodic_scaled);
+
+  // allocate diagonal blocks (other blocks are set to be NULL)
+  for (i=0; i<(nspaces*nspaces); i++) R_periodic_scaled->blocks[i] = NULL;
+  for (i=0; i<nspaces; i++) R_periodic_scaled->blocks[i*nspaces+i] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
+
+  // generate P_periodic
+  for (i=0; i<nspaces; i++) generate_periodic_R_scaled(P_periodic->blocks[i*nspaces+i], R_periodic_scaled->blocks[i*nspaces+i]);
+
+}
+
+/******************************************************************************************************/
+
+/******************************************************************************************************/
+/*!
+ * \fn eliminate_PeriodicBC_blockFE(block_dCSRmat* P_periodic, block_dCSRmat* A, dvector* b)
+ *
+ * \brief Eliminate periodic boundary conditions (block version). A = P_periodic'*A*P_periodic and b = P_periodic'*b;
+ *
+ * \param P_periodic    P_periodic matrix in block_dCSR format
+ * \param A             stiffness matrix in block_dCSR format
+ * \param b             right hand side
+ *
+ * \return A            stiffness matrix after elimination
+ * \return b            right hand side after elimination
+ *
+ */
+void eliminate_PeriodicBC_blockFE(block_dCSRmat* P_periodic, block_dCSRmat* A, dvector* b)
+{
+
+ // local variables
+ INT i, j;
+ block_dCSRmat Atemp;
+ dvector btemp;
+
+ // copy stiffness matrix
+ bdcsr_alloc(A->brow, A->bcol, &Atemp);
+ bdcsr_cp(A, &Atemp);
+
+ // copy right hand side
+ dvec_alloc(b->row, &btemp);
+ dvec_cp (b, &btemp);
+
+ // free original A and b
+ for (i=0; i<(A->brow*A->bcol); i++)
+ {
+   if (A->blocks[i]->IA) free(A->blocks[i]->IA);
+   if (A->blocks[i]->JA) free(A->blocks[i]->JA);
+   if (A->blocks[i]->val) free(A->blocks[i]->val);
+ }
+
+ // transpose P_periodic
+ block_dCSRmat R_periodic;
+ bdcsr_trans(P_periodic, &R_periodic);
+
+ // eliminate boundary (use the fact that both P and R are block diagonal)
+ for (i=0; i<A->brow; i++)
+ {
+
+   for (j=0; i<A->bcol; j++)
+   {
+
+     if ( (R_periodic.blocks[i*R_periodic.brow+i] == NULL) && (Atemp.blocks[i*A->brow+j] == NULL) && (P_periodic->blocks[j*P_periodic->brow+j]) )
+     {
+       A->blocks[i*A->brow+j] == NULL;
+     }
+     else
+     {
+       dcsr_rap(R_periodic.blocks[i*R_periodic.brow+i], Atemp.blocks[i*A->brow+j], P_periodic->blocks[j*P_periodic->brow+j], A->blocks[i*A->brow+j]);
+     }
+
+   }
+
+ }
+
+ b->row = 0;
+ for (i=0; i<R_periodic.brow; i++) b->row = b->row + R_periodic.blocks[i*R_periodic.brow+i]->row;
+ b->val = (REAL* )realloc(b->val, b->row*sizeof(REAL));
+ bdcsr_mxv(&R_periodic, btemp.val, b->val);
+
+ // free
+ bdcsr_free(&Atemp);
+ bdcsr_free(&R_periodic);
+ dvec_free(&btemp);
+
+}
+/******************************************************************************************************/
+
+/******************************************************************************************************/
+/*!
+ * \fn apply_PeriodicBC_blockFE(block_dCSRmat* P_periodic, dvector* u)
+ *
+ * \brief Apply the boundary conditions so that the vector contains periodic BC dofs: u = P_periodic*u (block version)
+ *
+ * \param P_periodic    P_periodic matrix in block_dCSR format
+ * \param u             dvector
+ *
+ * \return u            dvector after apply the periodic BC
+ *
+ */
+void apply_PeriodicBC_blockFE(block_dCSRmat* P_periodic, dvector* u)
+{
+  // local variable
+  INT i;
+  dvector utemp;
+
+  // copy
+  dvec_alloc(u->row, &utemp);
+  dvec_cp(u, &utemp);
+
+  // apply peeriodic BC
+  u->row = 0;
+  for (i=0; i<P_periodic->brow;i++) u->row = u->row + P_periodic->blocks[i*P_periodic->brow+i]->row;
+  u->val = (REAL* )realloc(u->val, u->row*sizeof(REAL));
+  bdcsr_mxv(P_periodic, utemp.val, u->val);
 
   // free
   dvec_free(&utemp);

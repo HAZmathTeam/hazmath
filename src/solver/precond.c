@@ -689,6 +689,9 @@ void precond_hx_div_multiplicative(REAL *r,
                               void *data)
 {
     //printf("Multiplicative\n");
+    //--------------------------
+    // preparation
+    //--------------------------
     HX_div_data *hxdivdata=(HX_div_data *)data;
     INT n = hxdivdata->A->row;
     SHORT smooth_iter = hxdivdata->smooth_iter;
@@ -707,18 +710,24 @@ void precond_hx_div_multiplicative(REAL *r,
 
     SHORT maxit, i;
 
+    //--------------------------
     // smoothing
+    //--------------------------
     smoother_dcsr_sgs(&zz, hxdivdata->A, &rr, smooth_iter);
     //smoother_dcsr_jacobi(&zz, 0, n, 1, hxdivdata->A, &rr, smooth_iter);
 
     // update r
     dcsr_aAxpy(-1.0, hxdivdata->A, zz.val, rr.val);
 
+    //----------------------------
     // solve div vector Laplacian
+    //----------------------------
+    //printf("div grad\n");
     AMG_param *amgparam_divgrad = hxdivdata->amgparam_divgrad;
     AMG_data *mgl_divgrad = hxdivdata->mgl_divgrad;
     maxit = amgparam_divgrad->maxit;
 
+    /*
     // solve with AMG only
     mgl_divgrad->b.row = hxdivdata->A_divgrad->row;
     dcsr_mxv(hxdivdata->Pt_div, r, mgl_divgrad->b.val);
@@ -726,18 +735,46 @@ void precond_hx_div_multiplicative(REAL *r,
     mgl_divgrad->x.row=hxdivdata->A_divgrad->row;
     dvec_set(hxdivdata->A_divgrad->row, &mgl_divgrad->x, 0.0);
 
-    //dcsr_write_dcoo("A_divgrad_before.dat", &mgl_divgrad->A);
     for (i=0;i<maxit;++i) mgcycle(mgl_divgrad, amgparam_divgrad);
     //dcsr_pvfgmres(hxdivdata->A_divgrad, &mgl_divgrad->b, &mgl_divgrad->x, NULL, 1e-6, 1000, 1000, 1, 1);
-    //directsolve_UMF(hxdivdata->A_divgrad, &(mgl_divgrad->b), &(mgl_divgrad->x), 1);
+    //directsolve_UMF(hxdivdata->A_divgrad, &(mgl_divgrad->b), &(mgl_divgrad->x), 0);
 
     dcsr_aAxpy(1.0, hxdivdata->P_div, mgl_divgrad->x.val, z);
+    */
+
+    // solve wth AMG+krylov
+    dvector r_divgrad;
+    dvec_alloc(hxdivdata->A_divgrad->row, &r_divgrad);
+    dcsr_mxv(hxdivdata->Pt_div, r, r_divgrad.val);
+
+    dvector x_divgrad;
+    dvec_alloc(hxdivdata->A_divgrad->row, &x_divgrad);
+    dvec_set(hxdivdata->A_divgrad->row, &x_divgrad, 0.0);
+
+    precond_data pcdata_divgrad;
+    param_amg_to_prec(&pcdata_divgrad,amgparam_divgrad);
+    precond pc_divgrad;
+    pc_divgrad.fct = precond_amg;
+
+    pcdata_divgrad.max_levels = mgl_divgrad->num_levels;
+    pcdata_divgrad.mgl_data = mgl_divgrad;
+
+    pc_divgrad.data = &pcdata_divgrad;
+
+    dcsr_pvfgmres(hxdivdata->A_divgrad, &r_divgrad, &x_divgrad, &pc_divgrad, 1e-1, 1, 1, 1, 0);
+
+    dcsr_aAxpy(1.0, hxdivdata->P_div, x_divgrad.val, z);
+
+    dvec_free(&r_divgrad);
+    dvec_free(&x_divgrad);
 
     // update r
     array_cp(n, hxdivdata->backup_r, r);
     dcsr_aAxpy(-1.0, hxdivdata->A, zz.val, rr.val);
 
+    //--------------------------
     // smoothing
+    //--------------------------
     dvector Cz;
     Cz.row = hxdivdata->A_curl->row;
     Cz.val = hxdivdata->w;
@@ -756,7 +793,10 @@ void precond_hx_div_multiplicative(REAL *r,
     array_cp(n, hxdivdata->backup_r, r);
     dcsr_aAxpy(-1.0, hxdivdata->A, zz.val, rr.val);
 
+    //-----------------------------
     // solve vector curl Laplacian
+    //-----------------------------
+    //printf("curl grad\n");
     AMG_param *amgparam_curlgrad = hxdivdata->amgparam_curlgrad;
     AMG_data *mgl_curlgrad = hxdivdata->mgl_curlgrad;
     maxit = amgparam_curlgrad->maxit;
@@ -764,6 +804,7 @@ void precond_hx_div_multiplicative(REAL *r,
     REAL *temp = hxdivdata->w;
     dcsr_mxv(hxdivdata->Curlt, r, temp);
 
+    /*
     // solve with AMG only
     mgl_curlgrad->b.row = hxdivdata->Pt_curl->row;
     dcsr_mxv(hxdivdata->Pt_curl, temp, mgl_curlgrad->b.val);
@@ -771,12 +812,42 @@ void precond_hx_div_multiplicative(REAL *r,
 
     for (i=0;i<maxit;++i) mgcycle(mgl_curlgrad, amgparam_curlgrad);
     //dcsr_pvfgmres(hxdivdata->A_curlgrad, &mgl_curlgrad->b, &mgl_curlgrad->x, NULL, 1e-6, 1000, 1000, 1, 1);
-    //directsolve_UMF(hxdivdata->A_curlgrad, &(mgl_curlgrad->b), &(mgl_curlgrad->x),1);
+    //directsolve_UMF(hxdivdata->A_curlgrad, &(mgl_curlgrad->b), &(mgl_curlgrad->x),0);
 
     dcsr_mxv(hxdivdata->P_curl, mgl_curlgrad->x.val, temp);
     dcsr_aAxpy(1.0, hxdivdata->Curl, temp, z);
+    */
 
+    // solve wth AMG+krylov
+    dvector r_curlgrad;
+    dvec_alloc(hxdivdata->A_curlgrad->row, &r_curlgrad);
+    dcsr_mxv(hxdivdata->Pt_curl, temp, r_curlgrad.val);
+
+    dvector x_curlgrad;
+    dvec_alloc(hxdivdata->A_curlgrad->row, &x_curlgrad);
+    dvec_set(hxdivdata->A_curlgrad->row, &x_curlgrad, 0.0);
+
+    precond_data pcdata_curlgrad;
+    param_amg_to_prec(&pcdata_curlgrad,amgparam_curlgrad);
+    precond pc_curlgrad;
+    pc_curlgrad.fct = precond_amg;
+
+    pcdata_curlgrad.max_levels = mgl_curlgrad->num_levels;
+    pcdata_curlgrad.mgl_data = mgl_curlgrad;
+
+    pc_curlgrad.data = &pcdata_curlgrad;
+
+    dcsr_pvfgmres(hxdivdata->A_curlgrad, &r_curlgrad, &x_curlgrad, &pc_curlgrad, 1e-1, 1, 1, 1, 0);
+
+    dcsr_mxv(hxdivdata->P_curl, x_curlgrad.val, temp);
+    dcsr_aAxpy(1.0, hxdivdata->Curl, temp, z);
+
+    dvec_free(&r_curlgrad);
+    dvec_free(&x_curlgrad);
+
+    //--------------------------
     // store r
+    //--------------------------
     array_cp(n, hxdivdata->backup_r, r);
 
 }
