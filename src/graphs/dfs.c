@@ -46,7 +46,7 @@ void dfs00_(INT *nin, INT *ia, INT *ja, INT *nblko,INT *iblk, INT *jblk)
   lowlink[n] = -1;
   myflag=10;
   while (1) { //10 continue
-    //    fprintf(stdout," myflag=%i %i, %i %i\n",myflag,nblk,count,n);
+    //    fprintf(stdout," myflag=%i %i, %i %i\n",myflag,nblk,count,n);fflush(stdout);
     if(myflag==10){
   /*
     C...  Get out when the  renumbering is done;
@@ -98,6 +98,7 @@ void dfs00_(INT *nin, INT *ia, INT *ja, INT *nblko,INT *iblk, INT *jblk)
       if(myflag == 60) {
 	wp = iedge[v];
 	w = ja[wp];
+	//	fprintf(stdout,"\nv=%d myflag=%i wp=%i, count=%i n=%i\n",v,myflag,wp,count,n);fflush(stdout);
 	iedge[v] = wp+1;
 	if(numb[w] >= numb[v])  {
 	  myflag=70;

@@ -8,7 +8,7 @@
  */
 #include "hazmath.h"
 /***********************************************************************/
-iCSRmat *bfs00(const INT croot, iCSRmat *a)
+iCSRmat *bfs00(const INT croot, iCSRmat *a, INT *et)
 {
   /* partial bfs for the graph given by a rooted at root. If root is
    * negative or bigger than the number of vertices, then root is
@@ -33,6 +33,7 @@ iCSRmat *bfs00(const INT croot, iCSRmat *a)
       exit(129);
     }
   }
+  et[root]=-1;
   iCSRmat *bfs=malloc(1*sizeof(iCSRmat));
   bfs[0]=icsr_create(nv,nv,nv);
   INT *ibfs=bfs->IA, *jbfs=bfs->JA;
@@ -63,6 +64,7 @@ iCSRmat *bfs00(const INT croot, iCSRmat *a)
 	if(!mask[j]){
 	  jbfs[ipoint]=j;
 	  mask[j]=klev+1;
+	  et[j]=i; // tree back edge pointing to ancestor
 	  ipoint++;
 	}
       }	   
@@ -82,6 +84,7 @@ iCSRmat *bfs00(const INT croot, iCSRmat *a)
       if(mask[i]) continue;
       mask[i]=klev+1;
       jbfs[ipoint]=i;
+      et[i]=-1;
       ipoint++;      
     }
     klev++;

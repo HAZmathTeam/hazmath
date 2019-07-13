@@ -2662,9 +2662,14 @@ void icsr_nodiag(iCSRmat *a)
     }
   }
   a->IA[a->row]=a->nnz;
-  a->JA=realloc(a->JA,a->nnz*sizeof(INT));
-  a->val=realloc(a->val,a->nnz*sizeof(INT));
-  return;
+    if(a->nnz>0){
+      a->JA=realloc(a->JA,a->nnz*sizeof(INT));
+      a->val=realloc(a->val,a->nnz*sizeof(INT));
+    }else{
+      a->JA=NULL;
+      a->val=NULL;
+    }
+    return;
 }
 void icsr_tri(iCSRmat *a,const char loup)
 {
