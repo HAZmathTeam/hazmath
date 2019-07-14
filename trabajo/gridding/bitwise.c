@@ -475,6 +475,7 @@ cube2simp *cube2simplex(INT dim)
       }
     }
   }
+  //  print_full_mat_int(c2s->nf,c2s->nvface,c2s->faces,"UCubef");
   return c2s;
 }
 scomplex *umesh(const INT dim, INT *nd, cube2simp *c2s, const INT intype)
