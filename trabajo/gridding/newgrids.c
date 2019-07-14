@@ -28,6 +28,19 @@ REAL interp8(cube2simp *c2s, REAL *u, REAL *ue, REAL *xhat);
 REAL interp4(cube2simp *c2s, REAL *u, REAL *xhat);
 void unirefine(INT *nd,scomplex *sc);
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx*/
+INT locate0(INT needle, INT *haystack, INT n)
+{
+  /* 
+     finds an element in an array. on output gives the index in the
+     array where the element is found
+   */
+  INT i;
+  for (i=0;i<n;i++)
+    if(needle==haystack[i])
+      return i;
+  return -1;
+}
+/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx*/
 INT *set_input_grid1(input_grid *g,cube2simp *c2s)
 {
   /* 
@@ -149,13 +162,13 @@ INT set_ndiv_edges(input_grid *g,		\
       //	  fprintf(stdout,"\nElement:%d, edge=(%d,%d);",kel,j0,j1);
     }
       //    input_grid_print(g);
-    nd[kel]=set_input_grid1(g,c2s);
+    nd[kel]=set_input_grid1(g,c2s);    
     for(i=0;i<g->ne;i++){      
       if(efound[i]<0) continue;
       ke=efound[i];
       g0->seg[3*ke+2]=g->seg[3*i+2];
     }
-    //    print_full_mat_int(g0->ne,3,g0->seg,"edglob");
+    //    print_full_mat_int(1,c2s->n,nd[kel],"ndnd");
   }
   INT chng=0;
   for(ke=0;ke<g0->ne;ke++){
@@ -176,7 +189,7 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   */
   input_grid *g;
   scomplex *sc;
-  INT i,j0,j1,kel,ke,pmem;
+  INT i,j0,j1,kel,jel,ke,pmem;
   INT nel0=g0->nel,nvcube=c2s->nvcube,nvface=c2s->nvface;
   pmem=2*g0->nv;
   if(pmem<2*g0->ne) pmem=2*g0->ne;
@@ -190,11 +203,28 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   INT *ffound=calloc(c2s->nf+g0->nf,sizeof(INT));
   /*-------------------------------------------------------------------*/
   INT **nd=calloc(g0->nel,sizeof(INT *));
+  INT **elneib=calloc(g0->nel,sizeof(INT *));// element neighboring
+					    // list where the position
+					    // of the neighbor is the
+					    // same as the position of
+					    // the face in c2s->faces
+					    // shared by the two el.
+  INT **el2fnum=calloc(g0->nel,sizeof(INT *)); // for every element
+					       // this gives the local
+					       // to grobal face
+					       // number map;
   for(i=0;i<g0->nel;i++){
     nd[i]=calloc(c2s->n,sizeof(INT)); /* to hold the number of
-					 divisions in every coordinate
+ 					 divisions in every coordinate
 					 direction */
-  }
+    elneib[i]=calloc(c2s->nf,sizeof(INT)); /* to hold the neighbors */
+    el2fnum[i]=calloc(c2s->nf,sizeof(INT)); /* to hold the neighbors */
+ }
+  for(kel=0;kel<g0->nel;kel++)
+    for(i=0;i<c2s->nf;i++){
+      elneib[kel][i]=-1;
+      el2fnum[kel][i]=-1;
+    }
   /*-------------------------------------------------------------------*/
   g=malloc(1*sizeof(input_grid));
   /**/
@@ -219,14 +249,6 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   free(g->systypes);   g->systypes=g0->systypes;
   free(g->syslabels);   g->syslabels=g0->syslabels;
   free(g->ox); g->ox=g0->ox;
-  /* g->mnodes=(INT *)calloc(nvcube+1,sizeof(INT)); */
-  /* g->mfaces=(INT *)calloc(nvface+1,sizeof(INT)); */
-  /* g->seg=(INT *)calloc(3*g->ne,sizeof(INT)); */
-  /* g->csysv=(INT *)calloc(g->nv,sizeof(INT)); */
-  /* g->labelsv=(INT *)calloc(g->nv,sizeof(INT)); */
-  /* g->bcodesv=(INT *)calloc(g->nv,sizeof(INT)); */
-  /* g->xv=(REAL *)calloc(g->dim*g->nv,sizeof(REAL));  */
-  /* g->xe=(REAL *)calloc(g->dim*g->ne,sizeof(REAL)); */
   INT chng=1,iter=0,maxiter=1024;  
   INT je,kj,k2,iel2v,jel2v,k1,kface,kbnd,found;
   while(chng&&(iter<maxiter)){
@@ -240,20 +262,22 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
     fprintf(stderr,"\n\n***ERR in %s: the divisions of the edges cannod be inconsistent during second call of set_ndiv_edges()\n\n",__FUNCTION__);
     exit(4);
   }
-  // form macroelement neighboring list. Use transposition
+  for(kel=0;kel<g0->nel;kel++)
+    for(i=0;i<c2s->n;i++)
+      if(nd[kel][i]<=0) nd[kel][i]=1;  
+  // form macroelement neighboring list. Use transposition; the sparse
+  // matrices here are only used to compute the number of connected
+  // components in the domain or on the boundary.
   iCSRmat *el2v=malloc(1*sizeof(iCSRmat));
   el2v[0]=icsr_create(g0->nel,g0->nv,nvcube*g0->nel);
-  //  iCSRmat el2v=icsr_create(g0->nel,g0->nv,nvcube*g0->nel);
   el2v->IA[0]=0;
   for(kel=0;kel<nel0;kel++){
     memcpy((el2v->JA+el2v->IA[kel]),(g0->mnodes+kel*(nvcube+1)),nvcube*sizeof(INT));
     el2v->IA[kel+1]=el2v->IA[kel]+nvcube;
   }
+  fprintf(stdout,"\n\n YYY************ %d %d *************",el2v->nnz,el2v->IA[nel0]);fflush(stdout);
   for(i=0;i<el2v->IA[nel0];i++)
     el2v->val[i]=1;
-  /* fprintf(stdout,"\nel2v=["); */
-  /* icsr_print_matlab_val(stdout,el2v); */
-  /* fprintf(stdout,"];"); */
   iCSRmat *v2el=malloc(1*sizeof(iCSRmat));
   icsr_trans(el2v,v2el);	
   /* fprintf(stdout,"\nv2el=["); */
@@ -261,13 +285,9 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   /* fprintf(stdout,"];\n"); */
   iCSRmat *el2el=malloc(1*sizeof(iCSRmat));
   icsr_mxm(el2v,v2el,el2el);
-  /* fprintf(stdout,"\nel2el0=[");  */
-  /* icsr_print_matlab_val(stdout,el2el);  */
-  /* fprintf(stdout,"];\n\n");  */
   icsr_free(v2el);
   /*   shrink the el2el matrix by removing any entry with value not
        equal to nvface; */
-  INT jel;
   el2el->nnz=el2el->IA[0];
   for(kel=0;kel<nel0;kel++){    
     j0=el2el->IA[kel];
@@ -286,10 +306,13 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
       el2el->nnz++;
     }
   }
-  //  fprintf(stdout,"\n\n XXX************ %d %d *************",el2el->nnz,nel0);fflush(stdout);
   el2el->IA[nel0]=el2el->nnz;
   el2el->JA=realloc(el2el->JA,el2el->nnz*sizeof(INT));
   el2el->val=realloc(el2el->val,el2el->nnz*sizeof(INT));
+  /* fprintf(stdout,"\nel2el0=["); */
+  /* icsr_print_matlab_val(stdout,el2el); */
+  /* fprintf(stdout,"];el2el=sparse(el2el0(:,1),el2el0(:,2),el2el0(:,3),%d,%d);\n\n",g0->nel,g0->nel); */
+  /* fprintf(stdout,"\n\n XXX************ %d %d *************",el2el->nnz,nel0);fflush(stdout); */
   // find the connected components:
   INT *iblk=calloc((nel0+1),sizeof(INT));
   INT *jblk=calloc((nel0),sizeof(INT));
@@ -308,7 +331,10 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   /* } */
   /* fprintf(stdout,"\n"); */
   icsr_nodiag(el2el);
-  //  fprintf(stdout,"\n\n ************ nonzeroes in el2el=%d *************",el2el->nnz);fflush(stdout);
+  fprintf(stdout,"\nel2el0=[");
+  icsr_print_matlab_val(stdout,el2el);
+  fprintf(stdout,"];el2el=sparse(el2el0(:,1),el2el0(:,2),el2el0(:,3),%d,%d);\n\n",g0->nel,g0->nel);
+  fprintf(stdout,"\n\n ************ nonzeroes in el2el=%d (%d) *************",el2el->nnz,el2el->IA[nel0]);fflush(stdout);
   /*FACES******************************************************/
   INT nfaceall=g0->nel*c2s->nf-(el2el->nnz/2);
   INT nfacei=(INT )(el2el->nnz/2);
@@ -354,6 +380,10 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
 	      /* print_full_mat_int(1,nvface,facej,"facej"); */
 	      /* fprintf(stdout,"\nadd nonzero at:%d ",f2v->IA[kface]); */
 	      memcpy((f2v->JA+f2v->IA[kface]),facei,nvface*sizeof(INT));
+	      elneib[kel][ke]=jel;
+	      elneib[jel][je]=kel;
+	      el2fnum[kel][ke]=kface;
+	      el2fnum[jel][je]=kface;
 	      kface++;// pointer for the face2 vertex matrix
 	    }
 	    found=1;
@@ -366,6 +396,10 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
 	/* fprintf(stdout,"\nadd nonzero at:%d",f2v->IA[kface]); */
 	isbface[kface]=1;
 	memcpy((f2v->JA+f2v->IA[kface]),facei,nvface*sizeof(INT));
+/* 
+in this way bcodesf[1-elneib[kel][ke]] gives us the code of the corresponding face;; this can also be linked to f2v and so on. 
+*/
+	el2fnum[kel][ke]=kface;
 	kface++;
       }     
     }
@@ -374,7 +408,7 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   for(i=0;i<f2v->IA[nfaceall];i++)
     f2v->val[i]=1;
   /*******************************************************************/    
-  //  fprintf(stdout,"\nkface=%d  ? = ? %d\n",kface,f2v->nnz);
+  fprintf(stdout,"\nkface=%d  ? = ? %d\n",kface,f2v->nnz);
   /*ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ*/
   for(i=0;i<nfaceall;i++){
     bcodesf[i]=-1;
@@ -394,6 +428,10 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
 	}
       }
     }
+  }
+  for (i=0;i<nel0;i++){
+    print_full_mat_int(1,c2s->nf,elneib[i],"elneib");
+    print_full_mat_int(1,c2s->n,nd[i],"nd");fflush(stdout);
   }
   /***********************************************************************/    
   iCSRmat *v2f=malloc(1*sizeof(iCSRmat));
@@ -459,8 +497,6 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   f2f->JA=realloc(f2f->JA,f2f->nnz*sizeof(INT));
   f2f->val=realloc(f2f->val,f2f->nnz*sizeof(INT));
   /*******************************************************************/    
-  icsr_free(el2v);
-  icsr_free(f2v);
   icsr_free(v2f);
   icsr_free(el2f);
   /*connected comps on the boundary*/
@@ -468,7 +504,7 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   jblk=realloc(jblk,(nfaceall)*sizeof(INT));
   dfs00_(&nfaceall,f2f->IA, f2f->JA,&nblkbnd,iblk,jblk);
   fprintf(stdout,"\nDFS(boundaries): %d connected components",nblkbnd-nfacei);
-  icsr_nodiag(f2f);
+  //icsr_nodiag(f2f);
   icsr_free(f2f);
   free(iblk); 
   free(jblk);   
@@ -477,37 +513,61 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   /* fprintf(stdout,"];"); */
   /* fprintf(stdout,"\nf2f=sparse(f2fb(:,1),f2fb(:,2),f2fb(:,3));\n"); */
   //
-  /* INT *etree=calloc((el2el->row+1),sizeof(INT)); */
-  /* iCSRmat *bfs0=bfs00(0,el2el,etree); */
-  /* for(i=bfs0->row;i>0;i--){ */
-  /*   j1=bfs0->IA[i]; */
-  /*   j0=bfs0->IA[i-1]; */
-  /*   for(kj=j1;kj>j0;kj--) { */
-  /*     k1=bfs0->JA[kj-1]; */
-  /*     for(ke=0;ke<bfs0->nnz;ke++){ */
-  /* 	fprintf(stdout,"\nv=%d;et=%d",bfs0->JA[ke],etree[bfs0->JA[ke]]); */
-  /*     } */
-  /*     fprintf(stdout,":: %d(%d)\n",k1,etree[k1]); */
-  /*     if(etree[k1]<-1) continue; */
-  /*     while(1){ */
-  /* 	fprintf(stdout,"\nvisiting element=%d",k1); */
-  /* 	k2=k1; */
-  /* 	k1=etree[k2]; */
-  /* 	etree[k2]--; */
-  /* 	if(k1<0) {break;} */
-  /*     } */
-  /*   } */
-  /* } */
-  /* fprintf(stdout,"\n"); */
-  /* /\* fprintf(stdout,"\nbfs00=["); *\/ */
-  /* /\* icsr_print_matlab_val(stdout,bfs0); *\/ */
-  /* /\* fprintf(stdout,"];"); *\/ */
-  /* /\* fprintf(stdout,"\nbfs=sparse(bfs00(:,1),bfs00(:,2),bfs00(:,3));\n"); *\/ */
-  /* icsr_free(bfs0); */
-  /* free(etree); */
-  icsr_free(el2el);
-  for(kel=0;kel<el2el->row;kel++){
+  INT *etree=calloc((el2el->row+1),sizeof(INT));
+  iCSRmat *bfs0=bfs00(0,el2el,etree);
+  // we first split the root element;
+  INT lvl,keok,swp,keswp;
+  for(lvl=0;lvl<bfs0->row;lvl++){
+    j0=bfs0->IA[lvl];
+    j1=bfs0->IA[lvl+1];
+    for(kj=j0;kj<j1;kj++){
+      jel=bfs0->JA[kj];
+      kel=etree[jel];// ancestor, this stays unchanged
+      if(kel<0){
+	fprintf(stdout,"\nsplitting element=%d",jel);
+      } else {
+	je=locate0(jel,elneib[kel], c2s->nf);
+	ke=locate0(kel,elneib[jel], c2s->nf);	  
+	fprintf(stdout,"\nel=%d on face %d in el %d",jel,je,kel);
+	keok=(je+c2s->n)%c2s->nf;
+	if(keok!=ke){
+	  fprintf(stdout,"\nel=%d on face %d (should be %d) in el *** %d ***",kel,ke,keok,jel);
+	  //	  swap in jel:
+	  swp=elneib[jel][ke];
+	  elneib[jel][ke]=elneib[jel][keok];
+	  elneib[jel][keok]=swp;	  
+	  swp=el2fnum[jel][ke];
+	  el2fnum[jel][ke]=el2fnum[jel][keok];
+	  el2fnum[jel][keok]=swp;	  
+	  // we now need to swap vertices in g0->mnodes
+	  for(i=0;i<nvface;i++){
+	    facei[i]=c2s->faces[ke*nvface+i];
+	    keswp=(ke+c2s->n)%c2s->nf;
+	    facei[i+nvface]=c2s->faces[keswp*nvface+i];
+	    // use g->mnodes as work space here;
+	    g->mnodes[i]=c2s->faces[keok*nvface+i];
+	    keswp=(keok+c2s->n)%c2s->nf;
+	    g->mnodes[i+nvface]=c2s->faces[keswp*nvface+i];	    
+	  }
+	  for(i=0;i<nvcube;i++)
+	    el2v->JA[i]=g0->mnodes[jel*(nvcube+1)+facei[i]];	  
+	  for(i=0;i<nvcube;i++)
+	    g0->mnodes[jel*(nvcube+1)+g->mnodes[i]]=el2v->JA[i];
+	  fprintf(stdout,"\nEL=%d: ",jel);
+	  for(i=0;i<nvcube;i++){
+	    k1=g0->mnodes[jel*(nvcube+1)+i];
+	    fprintf(stdout,"%d ",k1);
+	  }
+	}
+      }
+    }
   }
+  print_full_mat_int(g0->nel,c2s->nvcube+1,g0->mnodes,"mel");
+  icsr_free(bfs0);
+  free(etree);
+  icsr_free(el2v);
+  icsr_free(f2v);
+  icsr_free(el2el);
   /*****************************************************/    
   fprintf(stdout,"\n"); 
   /*****************************************************/    
