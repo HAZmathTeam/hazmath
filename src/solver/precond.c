@@ -761,7 +761,7 @@ void precond_hx_div_multiplicative(REAL *r,
 
     pc_divgrad.data = &pcdata_divgrad;
 
-    dcsr_pvfgmres(hxdivdata->A_divgrad, &r_divgrad, &x_divgrad, &pc_divgrad, 1e-1, 1, 1, 1, 0);
+    dcsr_pvfgmres(hxdivdata->A_divgrad, &r_divgrad, &x_divgrad, &pc_divgrad, 1e-1, 10, 10, 1, 0);
 
     dcsr_aAxpy(1.0, hxdivdata->P_div, x_divgrad.val, z);
 
@@ -837,7 +837,7 @@ void precond_hx_div_multiplicative(REAL *r,
 
     pc_curlgrad.data = &pcdata_curlgrad;
 
-    dcsr_pvfgmres(hxdivdata->A_curlgrad, &r_curlgrad, &x_curlgrad, &pc_curlgrad, 1e-1, 1, 1, 1, 0);
+    dcsr_pvfgmres(hxdivdata->A_curlgrad, &r_curlgrad, &x_curlgrad, &pc_curlgrad, 1e-1, 10, 10, 1, 0);
 
     dcsr_mxv(hxdivdata->P_curl, x_curlgrad.val, temp);
     dcsr_aAxpy(1.0, hxdivdata->Curl, temp, z);
