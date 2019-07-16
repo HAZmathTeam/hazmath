@@ -109,6 +109,7 @@ iCSRmat *bfs01(INT nblk,INT *iblk, INT *jblk, iCSRmat *a, INT *et)
 {
   /* 
      bfs for the graph with possibly multiple connected components;
+     uses bfs00 to traverse every connected component.
   */
   INT *ia=a->IA;
   INT nv=a->row;
@@ -164,7 +165,7 @@ iCSRmat *bfs01(INT nblk,INT *iblk, INT *jblk, iCSRmat *a, INT *et)
     }
   }
   ib--;
-  fprintf(stdout,"\nlvlend=%d; ib=%d",lvlend,ib);
+  //  fprintf(stdout,"\nlvlend=%d; ib=%d",lvlend,ib);
   bfs->row=ib;
   bfs->col=nv;  
   bfs->nnz=bfs->IA[bfs->row];
@@ -189,7 +190,6 @@ iCSRmat *bfs01(INT nblk,INT *iblk, INT *jblk, iCSRmat *a, INT *et)
   /* fprintf(stdout,"\nbfs0=["); */
   /* icsr_print_matlab_val(stdout,bfs); */
   /* fprintf(stdout,"];bfs=sparse(bfs0(:,1),bfs0(:,2),bfs0(:,3),%d,%d);\n\n",bfs->row,bfs->col); */
-  /* exit(77); */
   return bfs;
 }
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx*/
@@ -441,7 +441,7 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
     memcpy((el2v->JA+el2v->IA[kel]),(g0->mnodes+kel*(nvcube+1)),nvcube*sizeof(INT));
     el2v->IA[kel+1]=el2v->IA[kel]+nvcube;
   }
-  fprintf(stdout,"\n\n YYY************ %d %d *************",el2v->nnz,el2v->IA[nel0]);fflush(stdout);
+  //  fprintf(stdout,"\n\n YYY************ %d %d *************",el2v->nnz,el2v->IA[nel0]);fflush(stdout);
   for(i=0;i<el2v->IA[nel0];i++)
     el2v->val[i]=1;
   iCSRmat *v2el=malloc(1*sizeof(iCSRmat));
@@ -488,29 +488,29 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   // boundaries
   dfs00_(&nel0,el2el->IA, el2el->JA,&nblkdom,iblk,jblk);
   iblk=realloc(iblk,(nblkdom+1)*sizeof(INT));
-  fprintf(stdout,"\nDFS(domains): %d connected components",nblkdom);  
-  for(ke=0;ke<nblkdom;ke++){
-    fprintf(stdout,"\ncc=%d:  v=",ke);
-    j0=iblk[ke];
-    j1=iblk[ke+1];
-    for(kj=j0;kj<j1;kj++){
-      fprintf(stdout,"%d ",jblk[kj]);
-    }
-  }
-  fprintf(stdout,"\n");
+  fprintf(stdout,"\n%%DFS(domains): %d connected components",nblkdom);  
+  /* for(ke=0;ke<nblkdom;ke++){ */
+  /*   fprintf(stdout,"\ncc=%d:  v=",ke); */
+  /*   j0=iblk[ke]; */
+  /*   j1=iblk[ke+1]; */
+  /*   for(kj=j0;kj<j1;kj++){ */
+  /*     fprintf(stdout,"%d ",jblk[kj]); */
+  /*   } */
+  /* } */
+  /* fprintf(stdout,"\n"); */
   /* fprintf(stdout,"\nel2elx=["); */
   /* icsr_print_matlab_val(stdout,el2el); */
   /* fprintf(stdout,"];el2el=sparse(el2elx(:,1),el2elx(:,2),el2elx(:,3),%d,%d);\n\n",g0->nel,g0->nel); */
   /* fprintf(stdout,"\n\n ************ nonzeroes in el2el=%d (%d) *************",el2el->nnz,el2el->IA[nel0]);fflush(stdout); */
-  icsr_nodiag(el2el);
   //  print_full_mat_int(1,el2el->row+1,el2el->IA,"iaeee");
   //  print_full_mat_int(1,el2el->nnz,el2el->JA,"jaeee");
+  icsr_nodiag(el2el);
   INT *etree=calloc((el2el->row+1),sizeof(INT));
   iCSRmat *bfs0=bfs01(nblkdom,iblk,jblk,el2el,etree);  
-  fprintf(stdout,"\nbfs0=[");
-  icsr_print_matlab_val(stdout,bfs0);
-  fprintf(stdout,"];bfs=sparse(bfs0(:,1),bfs0(:,2),bfs0(:,3),%d,%d);\n\n",bfs0->row,bfs0->col);
-  fprintf(stdout,"\n\n ************ nonzeroes in el2el=%d (%d) *************",el2el->nnz,el2el->IA[nel0]);fflush(stdout);
+  /* fprintf(stdout,"\nbfs0=["); */
+  /* icsr_print_matlab_val(stdout,bfs0); */
+  /* fprintf(stdout,"];bfs=sparse(bfs0(:,1),bfs0(:,2),bfs0(:,3),%d,%d);\n\n",bfs0->row,bfs0->col); */
+  /* fprintf(stdout,"\n\n ************ nonzeroes in el2el=%d (%d) *************",el2el->nnz,el2el->IA[nel0]);fflush(stdout); */
   /*FACES******************************************************/
   INT nfaceall=g0->nel*c2s->nf-(el2el->nnz/2);
   INT nfacei=(INT )(el2el->nnz/2);
@@ -584,7 +584,7 @@ in this way bcodesf[1-elneib[kel][ke]] gives us the code of the corresponding fa
   for(i=0;i<f2v->IA[nfaceall];i++)
     f2v->val[i]=1;
   /*******************************************************************/    
-  fprintf(stdout,"\nkface=%d  ? = ? %d\n",kface,f2v->nnz);
+  //  fprintf(stdout,"\nkface=%d  ? = ? %d\n",kface,f2v->nnz);
   /*ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ*/
   for(i=0;i<nfaceall;i++){
     bcodesf[i]=-1;
@@ -605,10 +605,10 @@ in this way bcodesf[1-elneib[kel][ke]] gives us the code of the corresponding fa
       }
     }
   }
-  for (i=0;i<nel0;i++){
-    print_full_mat_int(1,c2s->nf,elneib[i],"elneib");
-    //    print_full_mat_int(1,c2s->n,nd[i],"nd");fflush(stdout);
-  }
+  //  for (i=0;i<nel0;i++){
+  //    print_full_mat_int(1,c2s->nf,elneib[i],"elneib");
+  //    print_full_mat_int(1,c2s->n,nd[i],"nd");fflush(stdout);
+  //}
   /***********************************************************************/    
   iCSRmat *v2f=malloc(1*sizeof(iCSRmat));
   icsr_trans(f2v,v2f);
@@ -679,7 +679,7 @@ in this way bcodesf[1-elneib[kel][ke]] gives us the code of the corresponding fa
   iblk=realloc(iblk,(nfaceall+1)*sizeof(INT));
   jblk=realloc(jblk,(nfaceall)*sizeof(INT));
   dfs00_(&nfaceall,f2f->IA, f2f->JA,&nblkbnd,iblk,jblk);
-  fprintf(stdout,"\nDFS(boundaries): %d connected components",nblkbnd-nfacei);
+  fprintf(stdout,"\n%%DFS(boundaries): %d connected components",nblkbnd-nfacei);
   //icsr_nodiag(f2f);
   icsr_free(f2f);
   free(iblk); 
@@ -698,15 +698,13 @@ in this way bcodesf[1-elneib[kel][ke]] gives us the code of the corresponding fa
     for(kj=j0;kj<j1;kj++){
       jel=bfs0->JA[kj];
       kel=etree[jel];// ancestor, this stays unchanged
-      if(kel<0){
-	fprintf(stdout,"\nsplitting element=%d",jel);
-      } else {
+      if(kel>=0){
 	je=locate0(jel,elneib[kel], c2s->nf);
 	ke=locate0(kel,elneib[jel], c2s->nf);	  
-	fprintf(stdout,"\nel=%d on face %d in el %d",jel,je,kel);
+	//	fprintf(stdout,"\nel=%d on face %d in el %d",jel,je,kel);
 	keok=(je+c2s->n)%c2s->nf;
 	if(keok!=ke){
-	  fprintf(stdout,"\nel=%d on face %d (should be %d) in el *** %d ***",kel,ke,keok,jel);
+	  //	  fprintf(stdout,"\nel=%d on face %d (should be %d) in el *** %d ***",kel,ke,keok,jel);
 	  //	  swap in jel:
 	  swp=elneib[jel][ke];
 	  elneib[jel][ke]=elneib[jel][keok];
@@ -728,16 +726,18 @@ in this way bcodesf[1-elneib[kel][ke]] gives us the code of the corresponding fa
 	    el2v->JA[i]=g0->mnodes[jel*(nvcube+1)+facei[i]];	  
 	  for(i=0;i<nvcube;i++)
 	    g0->mnodes[jel*(nvcube+1)+g->mnodes[i]]=el2v->JA[i];
-	  fprintf(stdout,"\nEL=%d: ",jel);
-	  for(i=0;i<nvcube;i++){
-	    k1=g0->mnodes[jel*(nvcube+1)+i];
-	    fprintf(stdout,"%d ",k1);
-	  }
+	  /* fprintf(stdout,"\nEL=%d: ",jel); */
+	  /* for(i=0;i<nvcube;i++){ */
+	  /*   k1=g0->mnodes[jel*(nvcube+1)+i]; */
+	  /*   fprintf(stdout,"%d ",k1); */
+	  /* } */
 	}
       }
     }
   }
-  /**** FINAL REORDER ***/
+  print_full_mat_int(g0->nel,c2s->nvcube+1,g0->mnodes,"mel0");
+  /**** FINAL REORDER: make the vertices order in shared faces the
+	same!!! ***/
   for(lvl=0;lvl<bfs0->row;lvl++){
     j0=bfs0->IA[lvl];
     j1=bfs0->IA[lvl+1];
@@ -745,45 +745,47 @@ in this way bcodesf[1-elneib[kel][ke]] gives us the code of the corresponding fa
       jel=bfs0->JA[kj];
       kel=etree[jel];// ancestor, this stays unchanged
       if(kel<0){
-	fprintf(stdout,"\nsplitting element=%d",jel);
+	fprintf(stdout,"\n%%splitting element=%d",jel);
       } else {
 	je=locate0(jel,elneib[kel], c2s->nf);
 	ke=locate0(kel,elneib[jel], c2s->nf);	  
-	fprintf(stdout,"\nel=%d on face %d in el %d",jel,je,kel);
-	keok=(je+c2s->n)%c2s->nf;
-	if(keok!=ke){
-	  fprintf(stdout,"\nel=%d on face %d (should be %d) in el *** %d ***",kel,ke,keok,jel);
-	  //	  swap in jel:
-	  swp=elneib[jel][ke];
-	  elneib[jel][ke]=elneib[jel][keok];
-	  elneib[jel][keok]=swp;	  
-	  swp=el2fnum[jel][ke];
-	  el2fnum[jel][ke]=el2fnum[jel][keok];
-	  el2fnum[jel][keok]=swp;	  
-	  // we now need to swap vertices in g0->mnodes
-	  for(i=0;i<nvface;i++){
-	    facei[i]=c2s->faces[ke*nvface+i];
+	/* 
+	   in kel, we have the face je; in jel we have the face ke. we
+	   want to make ke in jel same as je in kel; also the opposite
+	   face needs to be reordered. 
+	*/
+	for(i=0;i<nvface;i++){
+	  facei[i]=c2s->faces[ke*nvface+i];
+	  facei[i]=g0->mnodes[jel*(nvcube+1)+facei[i]];
+	  g->mnodes[i]=c2s->faces[je*nvface+i];
+	  g->mnodes[i]=g0->mnodes[kel*(nvcube+1)+g->mnodes[i]];
+	}	
+	k1=aresamep(g->mnodes,facei,nvface,p);
+	if(!k1){
+	  fprintf(stderr,"\nERROR: faces must have same vertices in: %s\n",__FUNCTION__);
+	  exit(127);
+	} else{
+	  /* fprintf(stdout,"\nface(%d)in el %d",ke,jel); */
+	  /* fprintf(stdout,"\nOLD face(%d)in el %d",je,kel); */
+	  /* print_full_mat_int(1,nvface,facei,"faceswp"); */
+	  /* print_full_mat_int(1,nvface,p,"p");	 */
+	  for(i=0;i<nvface;i++){ 
+	    facei[c2s->faces[ke*nvface+p[i]]]=c2s->faces[ke*nvface+i];
 	    keswp=(ke+c2s->n)%c2s->nf;
-	    facei[i+nvface]=c2s->faces[keswp*nvface+i];
-	    // use g->mnodes as work space here;
-	    g->mnodes[i]=c2s->faces[keok*nvface+i];
-	    keswp=(keok+c2s->n)%c2s->nf;
-	    g->mnodes[i+nvface]=c2s->faces[keswp*nvface+i];	    
+	    facei[c2s->faces[keswp*nvface+p[i]]]=c2s->faces[keswp*nvface+i]; 
 	  }
+	  /* fprintf(stdout,"\nface(%d)in el %d",ke,jel); */
+	  /* print_full_mat_int(1,nvcube,facei,"facei"); */
 	  for(i=0;i<nvcube;i++)
-	    el2v->JA[i]=g0->mnodes[jel*(nvcube+1)+facei[i]];	  
+	    el2v->JA[i]=g0->mnodes[jel*(nvcube+1)+facei[i]];
 	  for(i=0;i<nvcube;i++)
-	    g0->mnodes[jel*(nvcube+1)+g->mnodes[i]]=el2v->JA[i];
-	  fprintf(stdout,"\nEL=%d: ",jel);
-	  for(i=0;i<nvcube;i++){
-	    k1=g0->mnodes[jel*(nvcube+1)+i];
-	    fprintf(stdout,"%d ",k1);
-	  }
+	    g0->mnodes[jel*(nvcube+1)+i]=el2v->JA[i];
 	}
       }
     }
   }
-  print_full_mat_int(g0->nel,c2s->nvcube+1,g0->mnodes,"mel");
+  print_full_mat_int(g0->nel,c2s->nvcube+1,g0->mnodes,"mel1");
+  free(p);
   icsr_free(bfs0);
   free(etree);
   icsr_free(el2v);
