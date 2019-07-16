@@ -10,6 +10,27 @@
 
 #include "hazmath.h"
 
+/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx*/
+/***********************************************************************************************/
+/*!
+ * \fn INT locate0(INT needle, INT *haystack, INT n)
+ *
+ * \brief finds an element in an array. Returns the index in the array
+ *        where the element is found. If not found, returns (-1).
+ *
+ * \param haystack array of integers (INPUT)
+ * \param needle element to find (INPUT)
+ *
+ */
+INT locate0(INT needle, INT *haystack, INT n)
+{
+  /*   */
+  INT i;
+  for (i=0;i<n;i++)
+    if(needle==haystack[i])
+      return i;
+  return -1;
+}
 /***********************************************************************************************/
 /*!
  * \fn void array_null (REAL *x)
