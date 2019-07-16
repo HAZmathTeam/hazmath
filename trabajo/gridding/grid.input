@@ -43,7 +43,7 @@ data_coordsystems{0 0. 0.  0
 % of polyhedrons that are isomorphic to an n-dimensional cube.
 %---------------%
 
-num_vertices{15} %number of vertices
+num_vertices{16} %number of vertices
 
 %---------------%
 %coords (see way below): for every node 1:numvertices give coords (dim
@@ -61,7 +61,7 @@ num_vertices{15} %number of vertices
 data_vertices{0 0 -1.   -1. 	%% vertex number, coord system, coords
 	      1 0 -1.   0.  
 	      2 0  1.5   1.5
-	      3 0  0.   0.   
+	      3 0  -0.25   2.1   
 	      4 0  1.   -1.  	
 	      5 0  1.    0.  
 	      6 0 -1.   1.  
@@ -74,6 +74,7 @@ data_vertices{0 0 -1.   -1. 	%% vertex number, coord system, coords
 	      12 0  1.5   1.  	
 	      13 0  2.    1.  
 	      14 0  1.    1.5  
+	      15 0  0.    0.  
 	      }
 
 %---------------%
@@ -112,16 +113,17 @@ data_edges{0 1	3
 % the example we gave, the face for which the second bit is fixed is
 % numbered incorrectly, it should be (010,011,110,111).
 
-num_macroelements{6}
+num_macroelements{7}
 
 %%% vertices forming the macroelement ordered as explained in the
 %%% README.  vertex numbers (v[0]...v[2^{d}-1]) and the material for
 %%% the macroelement.
 
 data_macroelements{
-	      10 4 3 5 1
-	      0 1 10 3 2
-	      6 7 1 3 -8
+	      10 4 15 5 1
+	      0 1 10 15 2
+	      6 7 1 15 -8
+	      14 2 3 9 -8
 	      
 	      7 12 14 2 1
 	      11 8 2 9 -8
