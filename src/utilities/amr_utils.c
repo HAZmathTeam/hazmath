@@ -10,7 +10,10 @@
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx*/
 INT aresame(INT *a, INT *b, INT n)
 {
-  /* checks (n^2 algorithm) if two arrays are the same */
+  /* 
+     checks (n^2 algorithm) if two have the same elements (up to a
+     permutation), if they are returns 1, otherwise 0
+  */
   INT i,j,flag,ai,bj;
   for (i=0;i<n;i++){
     ai=a[i];
@@ -24,6 +27,32 @@ INT aresame(INT *a, INT *b, INT n)
     if(!flag) return 0;
   }
   return 1;
+}
+/****************************************************************/
+/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx*/
+INT aresamep(INT *a, INT *b, INT n, INT *p)
+{
+  /* checks (n^2 algorithm) if two have the same elements (up to a
+     permutation); if they do, then returns 2 and p is the permutation
+     a[i]=b[p[i]] if there is no permutation, i.e. p[i]=i, then returns 1*/
+  INT i,j,ai,bj;
+  INT flag=-1,iret=1;
+  for (i=0;i<n;i++)p[i]=-1;    
+  for (i=0;i<n;i++){
+    ai=a[i];
+    flag=0;
+    for(j=0;j<n;j++){
+      bj=b[j];
+      if(ai==bj){
+	p[i]=j;
+	flag=1;
+	if(p[i]!=i) iret=2;
+	break;
+      }
+    }
+    if(!flag) return 0;
+  }
+  return iret;
 }
 /****************************************************************/
 INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)
