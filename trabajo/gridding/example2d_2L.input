@@ -43,7 +43,7 @@ data_coordsystems{0 0. 0.  0
 % of polyhedrons that are isomorphic to an n-dimensional cube.
 %---------------%
 
-num_vertices{16} %number of vertices
+num_vertices{15} %number of vertices
 
 %---------------%
 %coords (see way below): for every node 1:numvertices give coords (dim
@@ -56,24 +56,24 @@ num_vertices{16} %number of vertices
 %% line connecting the two vertices.
 %---------------%
 
-%%% vertex number, coord system, vertex coords. Polar coords are in
+%%% vertex number (consequtive), coord system, vertex coords. Polar coords are in
 %%%    degrees.
 data_vertices{0 0 -1.   -1. 	%% vertex number, coord system, coords
 	      1 0 -1.   0.  
-	      2 0  0.   -1. 
+	      2 0  1.5   1.5
 	      3 0  0.   0.   
 	      4 0  1.   -1.  	
 	      5 0  1.    0.  
 	      6 0 -1.   1.  
 	      7 0  0.   1.
-	      8 0 1.   1.
-	      9 0 1.   2.  
-	      10 0  2.   1. 
-	      11 0  2.   2.   
-	      12 0  3.   1.  	
-	      13 0  3.    2.  
-	      14 0 1.   3.  
-	      15 0  2.   3.
+
+	      8 0 2.   2.
+	      9 0 1.5   2.  
+	      10 0  0. -1.  
+	      11 0  2.   1.5   
+	      12 0  1.5   1.  	
+	      13 0  2.    1.  
+	      14 0  1.    1.5  
 	      }
 
 %---------------%
@@ -88,8 +88,8 @@ num_edges{6} %
 
 data_edges{0 1	3 
            1 3	4
-           0 2	4
-  	   2 3  1
+           0 10 4
+	   10 3  1
   	   3 7  5
   	   4 5  7
   	   6 7  7
@@ -119,13 +119,13 @@ num_macroelements{6}
 %%% the macroelement.
 
 data_macroelements{
-	      2 4 3 5 1
-	      0 1 2 3 2
+	      10 4 3 5 1
+	      0 1 10 3 2
 	      6 7 1 3 -8
 	      
-	      10 12 11 13 1
-	      14 15 9 11 -8
-	      8 9 10 11 2
+	      7 12 14 2 1
+	      11 8 2 9 -8
+	      12 13 2 11 2
 	      }
 
 num_macrofaces{10}
@@ -136,10 +136,10 @@ num_macrofaces{10}
 % here have a code 0. Faces given here and not found in the
 % macroelement list are ignored.
 
-data_macrofaces{0 2  1 %boundary face with code 1
+data_macrofaces{0 10  1 %boundary face with code 1
 		1 4  0 % iterior face
-		3 2  4
-		2 3  0
+		3 10  4
+		10 3  0
 		0 1  32
 		1 4  24
 		4 5  17

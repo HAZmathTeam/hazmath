@@ -28,6 +28,171 @@ REAL interp8(cube2simp *c2s, REAL *u, REAL *ue, REAL *xhat);
 REAL interp4(cube2simp *c2s, REAL *u, REAL *xhat);
 void unirefine(INT *nd,scomplex *sc);
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx*/
+/***********************************************************************/
+void bfs00(const INT croot,			\
+	   iCSRmat *a, iCSRmat *bfs,		\
+	    INT *et, INT *mask)
+{
+  /* bfs for the connected component of the graph "a" containing
+   * root. If root is negative or bigger than the number of vertices,
+   * then root is chosen to be the max degree vertex.  on exit: the
+   * number of rows in the returned icsrmat equals the number of
+   * levels in bfs; the number of columns equals the number of rows in
+   * a.
+*/
+  INT *ia=a->IA, *ja=a->JA;
+  INT root=croot,nv=a->row,i,ih;
+  if(root<0){
+    fprintf(stderr,"ERROR: could not use %d as a root for bfs\n",root);
+    exit(129);
+  }
+  et[root]=-1;
+  INT *ibfs=bfs->IA, *jbfs=bfs->JA;
+  INT i1,j,k,iai,iai1,ipoint,klev,kbeg,kend;
+  /*************************************************************/
+  // initialization
+  klev=1; //level number ; for indexing this should be klev-1;
+  ibfs[0]=0;
+  ibfs[1]=1;
+  jbfs[ibfs[0]]=root;
+  mask[root]=klev;//;
+  //  fprintf(stdout,"ia,ja %i:  %i, root=%i\n",ia[root],ia[root+1],root);
+  ipoint=ibfs[1];
+  kbeg=ibfs[0];
+  kend=ibfs[1];
+  while(1) {
+    for(i1=kbeg;i1<kend;++i1){
+      i=jbfs[i1];
+      iai = ia[i];
+      iai1=ia[i+1];
+      ih=iai1-iai-1;
+      //      fprintf(stdout,"ih=%d,iai=%d,iai1=%d;i=%d\n",ih,iai,iai1,i);
+      if(ih<0) continue; //diagonals only or empty rows are ignored;
+      for(k=iai;k<iai1;++k){
+	j=ja[k];
+	if(i==j) continue; // no self edges are counted;
+	//	fprintf(stdout,"\ni=%d,j=%d,mask[%d]=%d; ipoint=%d",i,j,j,mask[j],ipoint);
+	if(!mask[j]){
+	  jbfs[ipoint]=j;
+	  mask[j]=klev+1;
+	  et[j]=i; // tree back edge pointing to ancestor
+	  ipoint++;
+	}
+      }	   
+    }
+    if(ipoint==ibfs[klev]){
+      /* fprintf(stdout,"\nexiting before the end: ipoint=%d\n;",ipoint);fflush(stdout); */
+      /* print_full_mat_int(1,klev,ibfs,"ibfs1"); */
+      /* print_full_mat_int(1,ibfs[klev],jbfs,"jbfs1"); */
+      break;
+    }
+    kbeg=kend;
+    klev++;
+    ibfs[klev]=ipoint;
+    kend=ipoint;
+    if(ipoint>=nv){
+      /* fprintf(stdout,"\nexiting at the end: ipoint=%d\n;",ipoint); */
+      /* fflush(stdout); */
+      /* print_full_mat_int(1,klev,ibfs,"ibfs2"); */
+      /* print_full_mat_int(1,ibfs[klev],jbfs,"jbfs2"); */
+      break;
+    }
+  }
+  bfs->row=klev;
+  bfs->col=nv;
+  bfs->nnz=ibfs[klev];
+  return;
+}
+/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx*/
+/***********************************************************************/
+iCSRmat *bfs01(INT nblk,INT *iblk, INT *jblk, iCSRmat *a, INT *et)
+{
+  /* 
+     bfs for the graph with possibly multiple connected components;
+  */
+  INT *ia=a->IA;
+  INT nv=a->row;
+  INT root,lvlend,bfsend,nvblk,i0,ib,ijb,i,ih,maxdeg,iablki,iablki1;
+  iCSRmat *bfs=malloc(1*sizeof(iCSRmat));
+  bfs[0]=icsr_create(nv+nblk,nv,nv);
+  iCSRmat *bfstmp=malloc(1*sizeof(iCSRmat));
+  bfstmp[0]=icsr_create(0,0,0);  
+  bfstmp->IA=bfs->IA;
+  bfstmp->JA=bfs->JA;
+  INT *mask=bfs->val;// this will be the val in the bfs.
+  bfsend=0;
+  lvlend=0;
+  //  INT nblk1=nblk-1,iablki11=-22;
+  for(ib=0;ib<nblk;ib++){
+    iablki=iblk[ib];
+    iablki1=iblk[ib+1];
+    //    fprintf(stdout,"\nnodes=%d",iablki1-iablki);
+    for(ijb=iablki;ijb<iablki;ijb++){
+      //      fprintf(stdout,"\nzzzzz=jblk[%d]=%d",ijb,jblk[ijb]);
+      mask[jblk[ijb]]=0;
+      et[jblk[ijb]]=-1;
+    }
+    maxdeg=-1;root=-1;
+    for(ijb=iablki;ijb<iablki1;ijb++){
+      i=jblk[ijb];
+      ih=ia[i+1]-ia[i];
+      if(maxdeg<ih){
+    	maxdeg=ih;
+    	root=i;
+      }
+    }
+    //    root=jblk[iablki]; 
+    nvblk=iablki1-iablki;
+    bfstmp->row=nvblk;
+    bfstmp->col=nvblk;
+    bfstmp->nnz=nvblk;
+    bfs00(root,a,bfstmp,et,mask);
+    //    print_full_mat_int(1,a->row,mask,"mask");
+    //    print_full_mat_int(1,a->row,et,"etree");
+    //    print_full_mat_int(1,bfstmp->IA[bfs->row],bfstmp->JA,"bfstmpja");
+    bfstmp->IA+=(bfstmp->row+1);
+    bfstmp->JA+=(bfstmp->nnz);
+    bfsend+=bfstmp->nnz;
+    lvlend+=(bfstmp->row+1);
+  }
+  //  print_full_mat_int(1,lvlend,bfs->IA,"bfsia");
+  ib=1;
+  for(i=1;i<lvlend;i++){
+    if(bfs->IA[i]) {
+      bfs->IA[ib]=bfs->IA[ib-1]+(bfs->IA[i]-bfs->IA[i-1]);
+      ib++;
+    }
+  }
+  ib--;
+  fprintf(stdout,"\nlvlend=%d; ib=%d",lvlend,ib);
+  bfs->row=ib;
+  bfs->col=nv;  
+  bfs->nnz=bfs->IA[bfs->row];
+  /**/
+  //  print_full_mat_int(1,(bfs->row+1),bfs->IA,"bfsia");
+  //  print_full_mat_int(1,bfs->nnz,bfs->JA,"bfsja");
+  /**/
+  bfs->IA=realloc(bfs->IA,(bfs->row+1)*sizeof(INT));
+  bfs->JA=realloc(bfs->JA,(bfs->nnz)*sizeof(INT));
+  bfs->val=realloc(bfs->val,(bfs->nnz)*sizeof(INT));
+  /**/
+  i0=0;
+  for(i=0;i<bfs->row;i++){
+    ih=i0;
+    for(ijb=bfs->IA[i];ijb<bfs->IA[i+1];ijb++){
+      ib=bfs->JA[ijb];
+      if(et[ib]<0) {i0=i;}
+      //      fprintf(stdout,"\netree[%d]=%d; mask[%d]=%d; mmm=%d ; i0=%d, ih=%d", ib,et[ib],ib,mask[ib],mask[ib]+i0,ih);
+      mask[ib]+=i0;
+    }
+  }
+  /* fprintf(stdout,"\nbfs0=["); */
+  /* icsr_print_matlab_val(stdout,bfs); */
+  /* fprintf(stdout,"];bfs=sparse(bfs0(:,1),bfs0(:,2),bfs0(:,3),%d,%d);\n\n",bfs->row,bfs->col); */
+  /* exit(77); */
+  return bfs;
+}
+/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx*/
 INT locate0(INT needle, INT *haystack, INT n)
 {
   /* 
@@ -122,8 +287,8 @@ INT set_ndiv_edges(input_grid *g,		\
      scalar values set.
      nd is the array with the divisions, it must be g0->nel by c2s->n. 
   */
-  INT kel0,i,j0,j1,swp,kel,ke,k0,k1,ndiv,pmem;
-  INT nel0=g0->nel,nvcube=c2s->nvcube,nvface=c2s->nvface;
+  INT kel0,i,j0,j1,swp,kel,ke,k0,k1,ndiv;
+  INT nel0=g0->nel,nvcube=c2s->nvcube;
   INT *e0found=efound + c2s->ne;
   INT *f0found=ffound + c2s->nf;
   /*foe easier reference*/
@@ -197,6 +362,7 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   if(pmem<2*g0->nf) pmem=2*g0->nf;
   INT *p=calloc(pmem,sizeof(INT));
   ilexsort(g0->nel,(c2s->nvcube+1),g0->mnodes,p);
+  //  print_full_mat_int(g0->nel,(c2s->nvcube+1),g0->mnodes,"ex");
   ilexsort(g0->nf, (c2s->nvface+1),g0->mfaces,p);
   /*-------------------------------------------------------------------*/
   INT *efound=calloc(c2s->ne+g0->ne,sizeof(INT));
@@ -296,19 +462,21 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
     for(ke=j0;ke<j1;ke++){
       jel=el2el->JA[ke];
       if(jel==kel) {
-	el2el->val[el2el->nnz]=0;
+	el2el->JA[el2el->nnz]=kel;
+	el2el->val[el2el->nnz]=1;
 	el2el->nnz++;
 	continue;
       }
       if(el2el->val[ke]!=nvface) continue;
       el2el->JA[el2el->nnz]=jel;
-      el2el->val[el2el->nnz]=el2el->val[ke];	
+      el2el->val[el2el->nnz]=el2el->val[ke];
       el2el->nnz++;
     }
-  }
+  }  
   el2el->IA[nel0]=el2el->nnz;
   el2el->JA=realloc(el2el->JA,el2el->nnz*sizeof(INT));
   el2el->val=realloc(el2el->val,el2el->nnz*sizeof(INT));
+  //  print_full_mat_int(1,el2el->nnz,el2el->JA,"JA");
   /* fprintf(stdout,"\nel2el0=["); */
   /* icsr_print_matlab_val(stdout,el2el); */
   /* fprintf(stdout,"];el2el=sparse(el2el0(:,1),el2el0(:,2),el2el0(:,3),%d,%d);\n\n",g0->nel,g0->nel); */
@@ -320,20 +488,28 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   // boundaries
   dfs00_(&nel0,el2el->IA, el2el->JA,&nblkdom,iblk,jblk);
   iblk=realloc(iblk,(nblkdom+1)*sizeof(INT));
-  fprintf(stdout,"\nDFS(domains): %d connected components",nblkdom);
-  /* for(ke=nblkdom;ke>0;ke--){ */
-  /*   fprintf(stdout,"\ncc=%d:  v=",ke-1); */
-  /*   j0=iblk[ke-1]; */
-  /*   j1=iblk[ke]; */
-  /*   for(kj=j1;kj>j0;kj--){ */
-  /*     fprintf(stdout,"%d ",jblk[kj-1]); */
-  /*   } */
-  /* } */
-  /* fprintf(stdout,"\n"); */
+  fprintf(stdout,"\nDFS(domains): %d connected components",nblkdom);  
+  for(ke=0;ke<nblkdom;ke++){
+    fprintf(stdout,"\ncc=%d:  v=",ke);
+    j0=iblk[ke];
+    j1=iblk[ke+1];
+    for(kj=j0;kj<j1;kj++){
+      fprintf(stdout,"%d ",jblk[kj]);
+    }
+  }
+  fprintf(stdout,"\n");
+  /* fprintf(stdout,"\nel2elx=["); */
+  /* icsr_print_matlab_val(stdout,el2el); */
+  /* fprintf(stdout,"];el2el=sparse(el2elx(:,1),el2elx(:,2),el2elx(:,3),%d,%d);\n\n",g0->nel,g0->nel); */
+  /* fprintf(stdout,"\n\n ************ nonzeroes in el2el=%d (%d) *************",el2el->nnz,el2el->IA[nel0]);fflush(stdout); */
   icsr_nodiag(el2el);
-  fprintf(stdout,"\nel2el0=[");
-  icsr_print_matlab_val(stdout,el2el);
-  fprintf(stdout,"];el2el=sparse(el2el0(:,1),el2el0(:,2),el2el0(:,3),%d,%d);\n\n",g0->nel,g0->nel);
+  //  print_full_mat_int(1,el2el->row+1,el2el->IA,"iaeee");
+  //  print_full_mat_int(1,el2el->nnz,el2el->JA,"jaeee");
+  INT *etree=calloc((el2el->row+1),sizeof(INT));
+  iCSRmat *bfs0=bfs01(nblkdom,iblk,jblk,el2el,etree);  
+  fprintf(stdout,"\nbfs0=[");
+  icsr_print_matlab_val(stdout,bfs0);
+  fprintf(stdout,"];bfs=sparse(bfs0(:,1),bfs0(:,2),bfs0(:,3),%d,%d);\n\n",bfs0->row,bfs0->col);
   fprintf(stdout,"\n\n ************ nonzeroes in el2el=%d (%d) *************",el2el->nnz,el2el->IA[nel0]);fflush(stdout);
   /*FACES******************************************************/
   INT nfaceall=g0->nel*c2s->nf-(el2el->nnz/2);
@@ -431,7 +607,7 @@ in this way bcodesf[1-elneib[kel][ke]] gives us the code of the corresponding fa
   }
   for (i=0;i<nel0;i++){
     print_full_mat_int(1,c2s->nf,elneib[i],"elneib");
-    print_full_mat_int(1,c2s->n,nd[i],"nd");fflush(stdout);
+    //    print_full_mat_int(1,c2s->n,nd[i],"nd");fflush(stdout);
   }
   /***********************************************************************/    
   iCSRmat *v2f=malloc(1*sizeof(iCSRmat));
@@ -513,10 +689,55 @@ in this way bcodesf[1-elneib[kel][ke]] gives us the code of the corresponding fa
   /* fprintf(stdout,"];"); */
   /* fprintf(stdout,"\nf2f=sparse(f2fb(:,1),f2fb(:,2),f2fb(:,3));\n"); */
   //
-  INT *etree=calloc((el2el->row+1),sizeof(INT));
-  iCSRmat *bfs0=bfs00(0,el2el,etree);
+  /*now use the bfs*/
   // we first split the root element;
   INT lvl,keok,swp,keswp;
+  for(lvl=0;lvl<bfs0->row;lvl++){
+    j0=bfs0->IA[lvl];
+    j1=bfs0->IA[lvl+1];
+    for(kj=j0;kj<j1;kj++){
+      jel=bfs0->JA[kj];
+      kel=etree[jel];// ancestor, this stays unchanged
+      if(kel<0){
+	fprintf(stdout,"\nsplitting element=%d",jel);
+      } else {
+	je=locate0(jel,elneib[kel], c2s->nf);
+	ke=locate0(kel,elneib[jel], c2s->nf);	  
+	fprintf(stdout,"\nel=%d on face %d in el %d",jel,je,kel);
+	keok=(je+c2s->n)%c2s->nf;
+	if(keok!=ke){
+	  fprintf(stdout,"\nel=%d on face %d (should be %d) in el *** %d ***",kel,ke,keok,jel);
+	  //	  swap in jel:
+	  swp=elneib[jel][ke];
+	  elneib[jel][ke]=elneib[jel][keok];
+	  elneib[jel][keok]=swp;	  
+	  swp=el2fnum[jel][ke];
+	  el2fnum[jel][ke]=el2fnum[jel][keok];
+	  el2fnum[jel][keok]=swp;	  
+	  // we now need to swap vertices in g0->mnodes
+	  for(i=0;i<nvface;i++){
+	    facei[i]=c2s->faces[ke*nvface+i];
+	    keswp=(ke+c2s->n)%c2s->nf;
+	    facei[i+nvface]=c2s->faces[keswp*nvface+i];
+	    // use g->mnodes as work space here;
+	    g->mnodes[i]=c2s->faces[keok*nvface+i];
+	    keswp=(keok+c2s->n)%c2s->nf;
+	    g->mnodes[i+nvface]=c2s->faces[keswp*nvface+i];	    
+	  }
+	  for(i=0;i<nvcube;i++)
+	    el2v->JA[i]=g0->mnodes[jel*(nvcube+1)+facei[i]];	  
+	  for(i=0;i<nvcube;i++)
+	    g0->mnodes[jel*(nvcube+1)+g->mnodes[i]]=el2v->JA[i];
+	  fprintf(stdout,"\nEL=%d: ",jel);
+	  for(i=0;i<nvcube;i++){
+	    k1=g0->mnodes[jel*(nvcube+1)+i];
+	    fprintf(stdout,"%d ",k1);
+	  }
+	}
+      }
+    }
+  }
+  /**** FINAL REORDER ***/
   for(lvl=0;lvl<bfs0->row;lvl++){
     j0=bfs0->IA[lvl];
     j1=bfs0->IA[lvl+1];
