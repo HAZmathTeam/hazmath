@@ -979,6 +979,10 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
     // Sub-vectors
     dvector x0, x1, x2;
     dvector b0, b1, b2;
+    //dvector res = dvec_create(bmgl[lvl].b.row);
+    dvector res, y;
+    dvector r0, r1, r2;
+    dvector y0, y1, y2;
 
     n0 = bmgl[lvl].mgl[0][0].A.row;
     n1 = bmgl[lvl].mgl[1][0].A.row;
@@ -1000,14 +1004,23 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
     b2.val = &(bmgl[lvl].b.val[n0+n1]);
 
     if(0){
-      // Calculate Residual, then smooth on residual
-      dvector res = dvec_create(bmgl[lvl].b.row);
-      dvec_cp(&(bmgl[lvl].b),&res);
-      bdcsr_aAxpy(-1.0,&bmgl[lvl].A,bmgl[lvl].x.val,res.val);
+      // Alloc for correction
+      dvec_alloc(bmgl[lvl].x.row, &y);
+      y0.row = n0; y0.val = y.val;
+      y1.row = n1; y1.val = &(y.val[n0]);
+      y2.row = n2; y2.val = &(y.val[n0+n1]);
 
-    // Block 0: P1 + Bubble
+      // Calculate Residual, then smooth on residual
+      dvec_alloc(bmgl[lvl].b.row, &res);
+      dvec_cp(&(bmgl[lvl].b),&res);
+      bdcsr_aAxpy(-1.0, &bmgl[lvl].A, bmgl[lvl].x.val, res.val);
+      r0.row = n0; r0.val = res.val;
+      r1.row = n1; r1.val = &(res.val[n0]);
+      r2.row = n2; r2.val = &(res.val[n0+n1]);
+
+      // Block 0: P1 + Bubble
 //    smoother_dcsr_sgs(&x0, &(bmgl[lvl].mgl[0][0].A), &b0, param->presmooth_iter);
-    directsolve_UMF(&(bmgl[lvl].mgl[0][0].A), &b0, &x0, 10);
+      directsolve_UMF(&(bmgl[lvl].mgl[0][0].A), &r0, &y0, 10);
 //    bmgl[lvl].mgl[0]->b.row=n0; array_cp(n0, b0.val, bmgl[lvl].mgl[0]->b.val); // residual is an input
 //    bmgl[lvl].mgl[0]->x.row=n0; dvec_set(n0, &bmgl[lvl].mgl[0]->x,0.0);
 //    param->AMG_type = -1;
@@ -1017,13 +1030,13 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
 //    array_cp(n0, bmgl[lvl].mgl[0]->x.val, x0.val);
     //printf("\tBlock 0 done...\n");
 
-    // r1 = r1 - A3*z0
-    if(triType==1){
-      if (bmgl[lvl].A.blocks[3] != NULL)
-        dcsr_aAxpy(-1.0, bmgl[lvl].A.blocks[3], x0.val, b1.val);
-    }
+      if(triType==1){
+        // r1 = r1 - A3*z0
+        if (bmgl[lvl].A.blocks[3] != NULL)
+          dcsr_aAxpy(-1.0, bmgl[lvl].A.blocks[3], y0.val, b1.val);
+      }
 
-    // Block 1: RT0
+      // Block 1: RT0
 //    Schwarz_param swzparam;
 //    swzparam.Schwarz_blksolver = bmgl[lvl].mgl[1][0].Schwarz.blk_solver;
 //    if(pre_post == 1){
@@ -1033,21 +1046,25 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
 //      smoother_dcsr_Schwarz_backward(&(bmgl[lvl].mgl[1][0].Schwarz), &swzparam, &x1, &b1);
 ////      smoother_dcsr_Schwarz_forward( &(bmgl[lvl].mgl[1][0].Schwarz), &swzparam, &x1, &b1);
 //    }
-    directsolve_UMF(&(bmgl[lvl].mgl[1][0].A), &b1, &x1, 10);
-    //printf("\tBlock 1 done...\n");
+      directsolve_UMF(&(bmgl[lvl].mgl[1][0].A), &r1, &y1, 10);
+      //printf("\tBlock 1 done...\n");
 
-    if(triType==1){
-      // r2 = r2 - A6*z0 - A7*z1
-      if (bmgl[lvl].A.blocks[6] != NULL)
-          dcsr_aAxpy(-1.0, bmgl[lvl].A.blocks[6], x0.val, b2.val);
-      if (bmgl[lvl].A.blocks[7] != NULL)
-          dcsr_aAxpy(-1.0, bmgl[lvl].A.blocks[7], x1.val, b2.val);
-    }
+      if(triType==1){
+        // r2 = r2 - A6*z0 - A7*z1
+        if (bmgl[lvl].A.blocks[6] != NULL)
+            dcsr_aAxpy(-1.0, bmgl[lvl].A.blocks[6], y0.val, r2.val);
+        if (bmgl[lvl].A.blocks[7] != NULL)
+            dcsr_aAxpy(-1.0, bmgl[lvl].A.blocks[7], y1.val, r2.val);
+      }
 
-    // Block 2: P0
+      // Block 2: P0
 //    smoother_dcsr_sgs(&x2, &(bmgl[lvl].mgl[2][0].A), &b2, param->presmooth_iter);
-    directsolve_UMF(&(bmgl[lvl].mgl[2][0].A), &b2, &x2, 10);
-    //printf("\tBlock 2 done...\n");
+      directsolve_UMF(&(bmgl[lvl].mgl[2][0].A), &r2, &y2, 10);
+      //printf("\tBlock 2 done...\n");
+
+      // Update Solution
+      dvec_axpy(1.0, &y, &bmgl[lvl].x);
+
     } else {
 
     // BSR
