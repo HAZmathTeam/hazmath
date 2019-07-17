@@ -927,7 +927,7 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
         if( blk == 1 ) { // && use_Schwarz[blk] == 1) or something similar
           printf("\tcalling Schwarz setup\n");
           bmgl[0].mgl[blk][lvl].Schwarz.A = dcsr_sympat( &bmgl[0].mgl[blk][lvl].A );
-          dcsr_shift(&(bmgl[0].mgl[blk][lvl].Schwarz.A),1);
+//          dcsr_shift(&(bmgl[0].mgl[blk][lvl].Schwarz.A),1);
           Schwarz_setup_geometric( &bmgl[0].mgl[blk][lvl].Schwarz, &swzparam, bmgl[lvl].fine_level_mesh);
         }
       }
@@ -1059,7 +1059,7 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
 
     dCSRmat B = bdcsr_subblk_2_dcsr ( &bmgl[lvl].A, 2, 2, 0, 1);
 
-    smoother_bdcsr_bsr( &bmgl[lvl].x, &bmgl[lvl].b, 3.06, 1.78, &bmgl[lvl].A, &C, &B, bmgl[lvl].A.blocks[8], 1);
+    smoother_bdcsr_bsr( &bmgl[lvl].x, &bmgl[lvl].b, 3.28, 1.90, &bmgl[lvl].A, &C, &B, bmgl[lvl].A.blocks[8], 1);
     //smoother_bdcsr_uzawa( &bmgl[lvl].x, &bmgl[lvl].b, 1.8118, 1.0550, &bmgl[lvl].A, &C, &B, bmgl[lvl].A.blocks[8], 1);
     }
 
