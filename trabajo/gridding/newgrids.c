@@ -28,66 +28,123 @@ REAL interp8(cube2simp *c2s, REAL *u, REAL *ue, REAL *xhat);
 REAL interp4(cube2simp *c2s, REAL *u, REAL *xhat);
 void unirefine(INT *nd,scomplex *sc);
 /*********************************************************************/
+void scomplex_merge(scomplex **sc0,			\
+		    const INT nsall, const INT nvall,	\
+		    input_grid *g0,cube2simp *c2s)
+{
+  /* combains an array of simplicial complexes together */
+  if(g0->nel==1) return;
+  scomplex *sc=sc0[0];
+  INT n1=(sc->n+1),nv0,ns0,nv=nvall,ns=nsall;
+  INT kel,i,ii,j,in1,iin1;
+  sc->marked=realloc(sc->marked,ns*sizeof(INT));
+  sc->gen=realloc(sc->gen,ns*sizeof(INT));
+  sc->nbr=realloc(sc->nbr,ns*n1*sizeof(INT));
+  sc->parent=realloc(sc->parent,ns*sizeof(INT));
+  sc->child0=realloc(sc->child0,ns*sizeof(INT));
+  sc->childn=realloc(sc->childn,ns*sizeof(INT));
+  sc->nodes=realloc(sc->nodes,ns*n1*sizeof(INT));
+  sc->bndry=realloc(sc->bndry,nv*sizeof(INT));
+  sc->csys=realloc(sc->csys,nv*sizeof(INT));/* coord sys: 1 is polar, 2
+					    is cyl and so on */
+  sc->flags=(INT *)realloc(sc->flags,ns*sizeof(INT));
+  sc->x=(REAL *)realloc(sc->x,nv*(sc->n)*sizeof(REAL));
+  sc->vols=(REAL *)realloc(sc->vols,ns*sizeof(REAL));
+  sc->fval=(REAL *)realloc(sc->fval,nv*sizeof(REAL)); // function values at every vertex; not used in general;
+  fprintf(stdout,"\nnsall=%d,nvall=%d",nsall,nvall);fflush(stdout);
+  for(kel=1;kel<g0->nel;kel++){
+    ns0=sc->ns;nv0=sc->nv;
+    for (ii = 0;ii<sc0[kel]->ns;ii++) {
+      i=ii+ns0;
+      sc->marked[i] = sc0[kel]->marked[ii];
+      sc->gen[i] = sc0[kel]->gen[ii];
+      sc->parent[i]=sc0[kel]->parent[ii];
+      sc->child0[i]=sc0[kel]->child0[ii];
+      sc->childn[i]=sc0[kel]->childn[ii];
+      sc->flags[i]=sc0[kel]->flags[ii];
+      sc->vols[i]=sc0[kel]->vols[ii];
+      in1=i*n1;
+      iin1=ii*n1;
+      for(j=0;j<n1;j++){
+	sc->nodes[in1+j]=sc0[kel]->nodes[iin1+j]+nv0;
+	sc->nbr[in1+j]=sc0[kel]->nbr[iin1+j]+ns0;
+      }
+    }
+    for (ii = 0;ii<sc0[kel]->nv;ii++) {
+      i=ii+nv0;
+      sc->bndry[i]=sc0[kel]->bndry[ii];
+      sc->csys[i]=sc0[kel]->csys[ii];
+      sc->fval[i]=sc0[kel]->fval[ii];
+      in1=i*sc->n;
+      iin1=ii*sc->n;
+      for(j=0;j<sc->n;j++)
+	sc->x[in1+j]=sc0[kel]->x[iin1+j];
+    }
+    sc->nv+=sc0[kel]->nv;
+    sc->ns+=sc0[kel]->ns;
+    haz_scomplex_free(sc0[kel]);
+  }
+  //  fprintf(stdout,"\nsc->nv=%d,sc->ns=%d; nvall=%d,nsall=%d\n",sc->nv,sc->ns,nvall,nsall);fflush(stdout);
+  return;
+}
+/*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 void set_edges(input_grid *g0,cube2simp *c2s)
 {
-  /*adds missing edges to g0->seg*/
-  INT *newseg=calloc(3*c2s->ne*g0->nel,sizeof(INT));
+  /*adds missing edges to input grid*/
+  INT newne,i,j,k,kel,k0,k1,ke,swp,cols;
+  INT j01[2],k01[2];
+  INT nvcube=c2s->nvcube;
+  cols=3;
+  INT *newseg=calloc(cols*c2s->ne*g0->nel,sizeof(INT));
   INT *mnodes=calloc(c2s->nvcube,sizeof(INT));
-  INT newne,i,j,k,kel,j0,j1,k0,k1,ke,swp,nvcube=c2s->nvcube;
   newne=0;
   INT found=0;
   for(kel=0;kel<g0->nel;kel++){
     memcpy(mnodes,(g0->mnodes+kel*(nvcube+1)),(nvcube+1)*sizeof(INT));
     for(i=0;i<c2s->ne;i++){
-      j0=mnodes[c2s->edges[2*i]];
-      j1=mnodes[c2s->edges[2*i+1]];
-      if(j0>j1){swp=j0;j0=j1;j1=swp;}
+      j01[0]=mnodes[c2s->edges[2*i]];
+      j01[1]=mnodes[c2s->edges[2*i+1]];
+      if(j01[0]>j01[1]){swp=j01[0];j01[0]=j01[1];j01[1]=swp;}
       found=0;
       for(ke=0;ke<g0->ne;ke++){
-	k0=g0->seg[3*ke];
-	k1=g0->seg[3*ke+1];
-	if((k0==j0)&&(k1==j1)){
-  	  fprintf(stdout,"\n%%FOUND:**** e=(%d,%d),[%d,%d]",j0,j1,k0,k1); fflush(stdout);
+	k01[0]=g0->seg[cols*ke];
+	k01[1]=g0->seg[cols*ke+1];
+	if((k01[0]==j01[0])&&(k01[1]==j01[1])){
 	  found=1;break;
 	}      
       }
       if(!found){
-	newseg[3*newne]=j0;
-	newseg[3*newne+1]=j1;
-	newseg[3*newne+2]=1;
+	newseg[cols*newne]=j01[0];
+	newseg[cols*newne+1]=j01[1];
+	newseg[cols*newne+2]=1;
 	newne++;
       }
     }
   }
-  fprintf(stdout,"\n**** newne=%d",newne); fflush(stdout);
+  //  fprintf(stdout,"\n**** newne=%d",newne); fflush(stdout);
   if(!newne){
     free(newseg);
     free(mnodes);
     return;
   }
-  newseg=realloc(newseg,3*newne*sizeof(INT));
+  newseg=realloc(newseg,cols*newne*sizeof(INT));
   INT *p=calloc(newne,sizeof(INT));
-  ilexsort(newne, 3,newseg,p);  
-  //  print_full_mat_int(newne,3,newseg,"newseg");
+  ilexsort(newne, cols,newseg,p);  
+  // print_full_mat_int(newne,cols,newseg,"newseg");
   free(p);
   // remove dupps
-  INT m,li1,ic[3]; //l1 distance
+  INT m,li1,ic[cols];
   k=newne-1;
   i=0;j=0;
   while (i<k){
-    if(j==0)
-      for(m=0;m<3;m++)
-  	newseg[m]=newseg[3*i+m];
-    for(m=0;m<3;m++)
-      ic[m]=newseg[3*j+m];
-    while(1 && i<k) {
+    if(j==0) {for(m=0;m<cols;m++) {newseg[m]=newseg[cols*i+m];}}
+    for(m=0;m<cols;m++)  {ic[m]=newseg[cols*j+m];}
+    while(i<k) {
       li1=0;
-      for(m=0;m<3;m++){
-  	li1+=abs(ic[m]-newseg[3*i+3+m]);
-      }
+      for(m=0;m<cols;m++){li1+=abs(ic[m]-newseg[cols*i+cols+m]);}
       if(li1>0){
   	j++;i++;
-  	for(m=0;m<3;m++){newseg[3*j+m]=newseg[3*i+m];}
+  	for(m=0;m<cols;m++){newseg[cols*j+m]=newseg[cols*i+m];}
   	break;
       }
       i++;
@@ -96,13 +153,12 @@ void set_edges(input_grid *g0,cube2simp *c2s)
     //    fprintf(stdout,"i=%i, j=%i\n",i,j);
   }
   i++;j++; newne=j;
-  //  print_full_mat_int(g0->ne,3,g0->seg,"newseg");
-  g0->seg=realloc(g0->seg,(3*(g0->ne+newne))*sizeof(INT));
-  memcpy((g0->seg+3*g0->ne),newseg,3*newne*sizeof(INT));
+  //  print_full_mat_int(g0->ne,cols,g0->seg,"newseg");
+  g0->seg=realloc(g0->seg,(cols*(g0->ne+newne))*sizeof(INT));
+  memcpy((g0->seg+cols*g0->ne),newseg,cols*newne*sizeof(INT));
   g0->ne+=newne;
   free(newseg);
   free(mnodes);
-  //  print_full_mat_int(g0->ne,3,g0->seg,"newseg");
   return;
 }
 void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
@@ -120,6 +176,7 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
   REAL *xhat = (REAL *)calloc(dim,sizeof(REAL));
   REAL *xemac=(REAL *)calloc(c2s->ne*dim,sizeof(REAL));
   // convert midpoints from polar to cartesian.
+  //  print_full_mat(c2s->nvcube,c2s->n,g->xv,"X{1}");
   for(i=0;i<c2s->ne;i++){
     k1=c2s->edges[2*i];
     k2=c2s->edges[2*i+1];
@@ -176,11 +233,16 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
 				       // edges) also by rows
   for(kf=0;kf<sc->nv;kf++){
     for(i=0;i<dim;i++)xhat[i]=sc->x[kf*dim+i];
+    //    print_full_mat(1,dim,xhat,"Xhat{1}");
+    //    fprintf(stdout,"\nkf=%d",kf);
     for(i=0;i<dim;i++){
-      //      fprintf(stdout,"coordinate:%d",i);
       sc->x[kf*dim+i]=interp8(c2s,xmac+i*c2s->nvcube,xemac+i*c2s->ne,xhat);
       //      sc->x[kf*dim+i]=interp4(c2s,xmac+i*c2s->nvcube,xhat);
     }
+    //    for(i=0;i<dim;i++){
+      //      fprintf(stdout,"-->sc->x[kf*dim+i]=interp8(c2s,xmac+i*c2s->nvcube,xemac+i*c2s->ne,xhat);
+      //      sc->x[kf*dim+i]=interp4(c2s,xmac+i*c2s->nvcube,xhat);
+    //    }
   }
   //  r2c(dim,c2s->nvcube,sizeof(REAL),xmac); // we need xmac by columns here
   //  r2c(dim,c2s->ne,sizeof(REAL),xemac); // we need xemac by rows agin
@@ -598,7 +660,7 @@ in this way bcodesf[1-elneib[kel][ke]] gives us the code of the corresponding fa
       }
     }
   }
-  print_full_mat_int(g0->nel,c2s->nvcube+1,g0->mnodes,"mel0");
+  //  print_full_mat_int(g0->nel,c2s->nvcube+1,g0->mnodes,"mel0");
   /**** FINAL REORDER: make the vertices order in shared faces the
 	same!!! ***/
   for(lvl=0;lvl<bfs0->row;lvl++){
@@ -607,9 +669,10 @@ in this way bcodesf[1-elneib[kel][ke]] gives us the code of the corresponding fa
     for(kj=j0;kj<j1;kj++){
       jel=bfs0->JA[kj];
       kel=etree[jel];// ancestor, this stays unchanged
-      if(kel<0){
-	fprintf(stdout,"\n%%splitting element=%d",jel);
-      } else {
+      //      if(kel<0){
+      //	fprintf(stdout,"\n%%splitting element=%d",jel);
+      //      } else {
+      if(kel>=0){
 	je=locate0(jel,elneib[kel], c2s->nf);
 	ke=locate0(kel,elneib[jel], c2s->nf);	  
 	/* 
@@ -647,7 +710,7 @@ in this way bcodesf[1-elneib[kel][ke]] gives us the code of the corresponding fa
       }
     }
   }
-  print_full_mat_int(g0->nel,c2s->nvcube+1,g0->mnodes,"mel1");
+  //  print_full_mat_int(g0->nel,c2s->nvcube+1,g0->mnodes,"mel1");
   icsr_free(el2v);
   icsr_free(f2v);
   icsr_free(el2el);
@@ -657,7 +720,7 @@ in this way bcodesf[1-elneib[kel][ke]] gives us the code of the corresponding fa
   return bfs0;
 }
 /*******************************************************************/
-scomplex **macro_split(input_grid *g0,cube2simp *c2s)
+scomplex *macro_split(input_grid *g0,cube2simp *c2s)
 {
   /* 
      From an input grid loops over the macroelements and sets up the
@@ -720,6 +783,7 @@ scomplex **macro_split(input_grid *g0,cube2simp *c2s)
     // make the divisions in g0->seg consistent;
     chng=set_ndiv_edges(g,g0,c2s,nd,iter);
   }
+  //  print_full_mat_int(g0->ne,3,g0->seg,"newseg");  
   /*-------------------------------------------------------------------*/
   // here we should end the function which sets all divisions
   /*-------------------------------------------------------------------*/  
@@ -772,10 +836,11 @@ scomplex **macro_split(input_grid *g0,cube2simp *c2s)
     for(i=0;i<c2s->n;i++){
       if(nd[kel][i]<=0) nd[kel][i]=1;
     }
-    print_full_mat_int(1,c2s->n,nd[kel],"ndnd");
+    //    print_full_mat_int(1,c2s->n,nd[kel],"ndnd"); 
   }
   // use bfs to split elements:
-  INT lvl,intype=1,kj,je,jel;  
+  if(g0->print_level>3) input_grid_print(g0);
+  INT lvl,intype=-1,kj,je,jel;  
   INT nsall,nvall;
   nsall=0;
   nvall=0;
@@ -785,8 +850,7 @@ scomplex **macro_split(input_grid *g0,cube2simp *c2s)
     for(kj=j0;kj<j1;kj++){
       jel=bfs0->JA[kj];
       //      fprintf(stdout,"\n **** %d",jel);
-      //      print_full_matrix_int(1,c2s->nf,elneib[jel],"neib");
-      //      print_full_mat_int(1,c2s->n,nd[jel],"ndnd");
+      //      print_full_mat_int(1,c2s->nf,elneib[jel],"neib");
       kel=etree->val[jel];// ancestor, this stays unchanged
       memcpy(g->mnodes,(g0->mnodes+jel*(nvcube+1)),(nvcube+1)*sizeof(INT));
       for(i=0;i<c2s->nvcube;i++){
@@ -798,7 +862,6 @@ scomplex **macro_split(input_grid *g0,cube2simp *c2s)
       //      print_full_mat(g->nv,g->dim,g->xv,"xv{1}"); fflush(stdout);
       if(kel<0){
 	sc[jel]=umesh(g->dim,nd[jel],c2s,intype);
-	//        print_full_mat_int(1,c2s->n,nd[jel],"ndnd");
       } else {
 	je=locate0(jel,elneib[kel], c2s->nf);
 	ke=locate0(kel,elneib[jel], c2s->nf);
@@ -808,13 +871,18 @@ scomplex **macro_split(input_grid *g0,cube2simp *c2s)
       /*copy vertices and coord systems*/
       nsall+=sc[jel]->ns;
       nvall+=sc[jel]->nv;
-      fprintf(stdout,"\n%%Generated a uniform mesh in dim=%d; vertices: %d, simplexes %d",g->dim,sc[jel]->nv,sc[jel]->ns);      
-      fprintf(stdout,"\n%%Mapping back to the macroelement...\n");
+      //      fprintf(stdout,"\n%%Mapping back to the macroelement...\n");
       map2mac(sc[jel],c2s,g);
+      fprintf(stdout,"\n%%mesh(macroelement=%d): nv=%d; nsimp=%d",jel,sc[jel]->nv,sc[jel]->ns);      
       //      haz_scomplex_print(sc[jel],0,"HAHA");
     }
   }
-  /**/
+  //  fprintf(stdout,"\n%%Generated a uniform mesh in dim=%d; total number of simplices=%d",g->dim,nsall);      
+  scomplex_merge(sc,			\
+		 nsall, nvall,		\
+		 g0,c2s);
+  fprintf(stdout,"\n%%\n");
+  //  haz_scomplex_print(sc[0],0,"MERGED");
   //  for(i=0;i<g0->nel;i++){
   //    
   //  }
@@ -831,81 +899,25 @@ scomplex **macro_split(input_grid *g0,cube2simp *c2s)
   free(nd);
   free(elneib);
   free(el2fnum);
-  return sc;  
+  return sc[0];  
 }
 /****************************************************************/
-/*   sc->nbig=n; sc->n=n; */
-/*   INT n1=sc->n+1,i,j,in1; */
-/*   sc->factorial=1.; */
-/*   sc->level=0; */
-/*   for (j=2;j<n1;j++) sc->factorial *= ((REAL )j); */
-/*   // fprintf(stdout,"\nIMPORTANT: NS=%d (%d!)=%f",ns,n,sc->factorial); */
-/*   sc->marked=(INT *) calloc(ns,sizeof(INT)); */
-/*   sc->gen=(INT *) calloc(ns,sizeof(INT)); */
-/*   sc->nbr=(INT *) calloc(ns*n1,sizeof(INT)); */
-/*   sc->parent=(INT *)calloc(ns,sizeof(INT)); */
-/*   sc->child0=(INT *)calloc(ns,sizeof(INT)); */
-/*   sc->childn=(INT *)calloc(ns,sizeof(INT)); */
-/*   sc->nodes=(INT *)calloc(ns*n1,sizeof(INT)); */
-/*   sc->bndry=(INT *)calloc(nv,sizeof(INT)); */
-/*   sc->csys=(INT *)calloc(nv,sizeof(INT));/\* coord sys: 1 is polar, 2 */
-/* 					    is cyl and so on *\/ */
-/*   sc->flags=(INT *)calloc(ns,sizeof(INT)); */
-/*   sc->x=(REAL *)calloc(nv*n,sizeof(REAL)); */
-/*   sc->vols=(REAL *)calloc(ns,sizeof(REAL)); */
-/*   sc->fval=(REAL *)calloc(nv,sizeof(REAL)); // function values at every vertex; not used in general; */
-/*   for (i = 0;i<ns;i++) { */
-/*     sc->marked[i] = FALSE; // because first is used for something else.  */
-/*     sc->gen[i] = 0; */
-/*     sc->parent[i]=-1; */
-/*     sc->child0[i]=-1; */
-/*     sc->childn[i]=-1; */
-/*     sc->flags[i]=-1; */
-/*     in1=i*n1; */
-/*     for(j=0;j<n1;j++){ */
-/*       sc->nodes[in1+j]=-1; */
-/*       sc->nbr[in1+j]=-1; */
-/*     } */
-/*   } */
-/*   for (i = 0;i<nv;i++) { */
-/*     sc->bndry[i]=0; */
-/*     sc->csys[i]=0; */
-/*     sc->fval[i]=0.; */
-/*   } */
-/*   sc->nv=nv; */
-/*   sc->ns=ns; */
-/*   return sc; */
-/* } */
-/**/
 INT main(INT argc, char **argv)
 {
   INT i=-1;
   input_grid *g=parse_input_grid("grid.input");
   INT dim=g->dim;
   cube2simp *c2s=cube2simplex(dim);
-  scomplex **sc=macro_split(g,c2s);
-  /*this can be used to generate grids in a different way, but not now:*/
-  /* if(intype<-1){ */
-  /*   for(i=0;i<dim;i++) ndd[i]=1; */
-  /*   sc[0]=umesh(dim,ndd,c2s,intype); */
-  /*   unirefine(nd,sc);     */
-  /* }else{ */
-  /*   sc[0]=umesh(dim,nd,c2s,intype); */
-  /* } */
-  /*GENERATE UNIFORM GRID: nodes in each direction: ND*/
-  /*OUTPUT */
+  scomplex *sc=macro_split(g,c2s);
   if(dim==2||dim==3) {
     fprintf(stdout,"Writing vtk file...\n");
-    vtkw("newmesh.vtu",sc[0],0,0,1.);
+    vtkw("newmesh.vtu",sc,0,0,1.);
   }
   /*FREE*/
-  /* for(i=0;i<g->nel;i++){ */
-  /*       haz_scomplex_free(sc[i]); */
-  /* } */
-  free(sc);
+  haz_scomplex_free(sc);
   input_grid_free(g); 
-  fprintf(stdout,"\nDone.\n");
   cube2simp_free(c2s);
+  fprintf(stdout,"\nDone.\n");
   return 0;
 }
 /*********************EOF**********************************/
