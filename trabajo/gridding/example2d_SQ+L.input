@@ -83,17 +83,19 @@ data_vertices{0 0 -1.   -1. 	%% vertex number, coord system, coords
 % then the max number of divisions is taken.
 %---------------%
 
-num_edges{6} %
+num_edges{9} %
 
 %% edge: 1st vertex, 2nd vertex, number of divisions. Does not have to contain all edges. Edges that are not listed here and are not parallel to any of the edges listed here are not divided. 
 
 data_edges{0 1	3 
-           1 3	4
+           1 15	4
            0 10 4
-	   10 3  1
-  	   3 7  5
+	   10 4  1
+  	   3 9  5
+  	   7 12  11
   	   4 5  7
   	   6 7  7
+  	   13 11  6
 	   }
 
 
