@@ -162,6 +162,7 @@ MG_blk_data *mg_blk_data_create(SHORT max_levels)
         mgl[i].near_kernel_dim = 0;
         mgl[i].near_kernel_basis = NULL;
         mgl[i].cycle_type = 0;
+        mgl[i].periodic_BC = false;
     }
 
     return(mgl);

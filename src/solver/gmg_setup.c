@@ -812,7 +812,7 @@ INT gmg_setup_RT0(mesh_struct* fine_level_mesh)
  */
 //static SHORT gmg_blk_setup(MG_blk_data *mgl,
 SHORT gmg_blk_setup(MG_blk_data *mgl,
-                            AMG_param *param)
+                    AMG_param *param)
 {
     /*
      * TODO:
@@ -837,6 +837,8 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
     block_fespace FE_blk;
 
     FE_blk.nspaces = mgl[0].A.brow;
+    FE_blk.var_spaces = (fespace **) calloc( FE_blk.nspaces, sizeof(fespace *));
+    FE_blk.var_spaces[0] = (fespace *) calloc(1, sizeof(fespace));
 
     get_time(&setup_start);
 
@@ -856,11 +858,6 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
       }
     }
 
-    // To Peter:  this is how to use this fuctions to delete the boundarys -- Xiaozhe
-    block_dCSRmat *B;
-    B = (block_dCSRmat *)calloc(1, sizeof(block_dCSRmat));
-    bdcsr_delete_rowcol(&mgl[0].A, mgl[0].dirichlet, mgl[0].dirichlet, B);
-
     // To read from file
     FILE* cgfid;
     char cgridfile[500];
@@ -870,8 +867,8 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
     dCSRmat Rmerge;
     dCSRmat tempRA;
 
-    printf("Beginning Main GMG setup loop...\n");
     /*-- Main GMG setup loop --*/
+    printf("Beginning Main GMG setup loop...\n");
     while ( lvl < max_levels-1 ) {
       printf("A blocks: %d %d\n",mgl[lvl].A.brow,mgl[lvl].A.bcol);
       brow = mgl[lvl].A.brow;
@@ -929,6 +926,14 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
             nf1d = sqrt(mgl[lvl].A.blocks[i+i*brow]->row);
             nc1d = (nf1d-1)/2 + 1;
             build_linear_R( mgl[lvl].R.blocks[i+i*brow], nf1d, nc1d);
+            // dirichlet
+            create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 1);
+            set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, 1,1);
+            for(j=0;j<FE_loc.ndof;j++){
+              mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
+              ++bm;
+            }
+            free_fespace(&FE_loc);
           break;
           case 30://RT0
             nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
@@ -1035,7 +1040,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
 
       /*-- Form Prolongation --*/
       for(i=0; i<brow; i++){
-          dcsr_trans(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].P.blocks[i+i*brow]);
+        dcsr_trans(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].P.blocks[i+i*brow]);
       }
       printf("Built P for lvl=%d...\n",lvl);
           //csr_print_matlab(stdout,mgl[lvl].A_noBC.blocks[0]);
@@ -1055,13 +1060,40 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
         }//j
       }//i
       printf("Built RAP for lvl=%d...\n",lvl);
+
       /*-- Eliminate dirichlet boundaries from stiffness matrix --*/
       bdcsr_cp( &mgl[lvl+1].A_noBC, &mgl[lvl+1].A);
       FE_blk.dirichlet = mgl[lvl+1].dirichlet;
       printf("eliminating BC on coarse level\n");
-      //bdcsr_shift(&mgl[lvl+1].A,  1);
       eliminate_DirichletBC_blockFE_blockA(NULL,&FE_blk,mgl[lvl+1].fine_level_mesh,NULL,&mgl[lvl+1].A,0.0);
-      //bdcsr_shift(&mgl[lvl+1].A, -1);
+      
+      /*-- Apply Periodic boundaries --*/
+      if (mgl[0].periodic_BC == true) {
+        // TODO: This needs a block version!
+        set_periodic_bdry(mgl[lvl].FE->var_spaces[0], mgl[lvl].fine_level_mesh,0.0,1.0,0.0,1.0,0.0,1.0);
+        set_periodic_bdry(mgl[lvl].FE->var_spaces[1], mgl[lvl].fine_level_mesh,0.0,1.0,0.0,1.0,0.0,1.0);
+        set_periodic_bdry(mgl[lvl].FE->var_spaces[2], mgl[lvl].fine_level_mesh,0.0,1.0,0.0,1.0,0.0,1.0);
+        set_periodic_bdry(mgl[lvl].FE->var_spaces[3], mgl[lvl].fine_level_mesh,0.0,1.0,0.0,1.0,0.0,1.0);
+        set_periodic_bdry(mgl[lvl].FE->var_spaces[4], mgl[lvl].fine_level_mesh,0.0,1.0,0.0,1.0,0.0,1.0);
+
+        // Create fake blockFE space that matches the 3x3 block matrix (put all displacements together)
+
+        bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].A_periodic));
+        bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].P_periodic));
+        bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].R_periodic));
+        bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].R_periodic_scaled));
+
+        generate_periodic_P_blockFE( mgl[lvl].FE, &(mgl[lvl].P_periodic) );
+        generate_periodic_R_scaled_blockFE( &(mgl[lvl].P_periodic), &(mgl[lvl].R_periodic_scaled) );
+        for(i=0; i<brow; i++){
+          dcsr_trans( mgl[lvl].P_periodic.blocks[i+i*brow], mgl[lvl].R_periodic.blocks[i+i*brow] );
+        }
+
+        // Form triple matrix product on level for A_periodic
+        // Form triple matrix product on level for P_periodic (for lvl-1)
+        // Form triple matrix product on level for R_periodic (for lvl-1)
+      }
+
 
 
       // PRINT MATRIX
