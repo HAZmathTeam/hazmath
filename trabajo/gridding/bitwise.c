@@ -520,7 +520,14 @@ scomplex *umesh(const INT dim, INT *nd, cube2simp *c2s, const INT intype)
   for(kf=0;kf<sc->nv;kf++){
     coord_lattice(m,dim,kf,sc->nv,nd);
     for(i=0;i<dim;i++){
-      sc->x[kf*dim+i]=((REAL )m[i])/((REAL )nd[i]);
+      /* THIS HERE HAS THE X COORD FIRST WHICH IS NOT WHAT ONE HAS IF
+	 USING THE BIJECTION BETWEEN BINARY NUMBERS AND THE
+	 COORDINATES OF VERTICES IN THE UNIT CUBE> SO WE REVERSE THE
+	 ORDERING OF DIVISIONS SO THAT WE PARTITION FIRST X and so
+	 on. so basically we come here with the last coordinate
+	 first. That is why we also have (dim-i-1) instaed of i*/
+      sc->x[kf*dim+(dim-i-1)]=((REAL )m[i])/((REAL )nd[i]);
+      /* OLD: sc->x[kf*dim+i]=((REAL )m[i])/((REAL )nd[i]); */
     }    
   }
   ns=0;
