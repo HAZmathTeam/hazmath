@@ -243,6 +243,22 @@ typedef struct {
     //! cycle type
     INT cycle_type;
 
+    /* Periodic Boundary */
+    //! Periodic
+    bool periodic_BC;
+
+    //! Ap = Pp^T (A_neuman) Pp
+    block_dCSRmat A_periodic;
+
+    //! prolongation to periodic BC
+    block_dCSRmat P_periodic;
+
+    //! prolongation to periodic BC
+    block_dCSRmat R_periodic;
+
+    //! restriction for going from r_coarse to r_coarse_periodic
+    block_dCSRmat R_periodic_scaled;
+
 } MG_blk_data; /**< Data for block MG */
 
 typedef struct {
