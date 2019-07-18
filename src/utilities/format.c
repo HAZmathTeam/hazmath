@@ -285,5 +285,51 @@ SHORT dcoo_2_dcsr (dCOOmat *A,
     return SUCCESS;
 }
 
+/***********************************************************************************************/
+/*!
+ * \fn coordinates* array_2_coord (REAL *xyz, INT ndof, INT dim)
+ *
+ * \brief Transform an array of coordinates from [x0,y0,z0,x1,y1,z1,...] to a coordinates structure 
+ *
+ * \param xyz  Array with coordinate values
+ * \param ndof Number of degrees of freedom
+ * \param dim  Dimension
+ *
+ * \return cv Coordinate struct
+ *
+ */
+coordinates* array_2_coord ( REAL* xyz, INT ndof, INT dim)
+{
+  // Local Variables
+  INT dof,i,j;
+  // Allocate
+  coordinates* cv = allocatecoords(ndof, dim);
+  // Fill
+  switch (dim)
+  {
+  case 1:
+    for( dof=0; dof<ndof; dof++){
+      cv->x[dof] = xyz[dof*dim+0];
+    }
+    break;
+  case 2:
+    for( dof=0; dof<ndof; dof++){
+      cv->x[dof] = xyz[dof*dim+0];
+      cv->y[dof] = xyz[dof*dim+1];
+    }
+    break;
+  case 3:
+    for( dof=0; dof<ndof; dof++){
+      cv->x[dof] = xyz[dof*dim+0];
+      cv->y[dof] = xyz[dof*dim+1];
+      cv->z[dof] = xyz[dof*dim+2];
+    }
+    break;
+  default:
+    check_error( ERROR_DIM, __FUNCTION__);
+  }
+  return cv;
+}
+
 /********************************  END  ********************************************************/
 

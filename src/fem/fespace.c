@@ -182,7 +182,8 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     FE->dphi = dphi;
     break;
   case 30: // Raviart-Thomas Elements
-    FE->cdof = NULL;
+    FE->cdof = array_2_coord ( mesh->f_mid, mesh->nface, mesh->dim);
+    //FE->cdof = NULL;
     FE->ndof = mesh->nface;
     FE->nbdof = mesh->nbface;
     FE->dof_per_elm = mesh->f_per_elm;
@@ -255,7 +256,8 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     FE->dphi = dphi;
     break;
   case 61: // Bubbles
-    FE->cdof = NULL;
+    FE->cdof = array_2_coord ( mesh->f_mid, mesh->nface, mesh->dim);
+    //FE->cdof = NULL;
     FE->ndof = mesh->nface;
     FE->nbdof = mesh->nbface;
     FE->dof_per_elm = mesh->f_per_elm;
