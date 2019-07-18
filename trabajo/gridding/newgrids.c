@@ -20,70 +20,11 @@
 #endif
 /********************************FINCTIONS:*********************/
 /*********************************************************************/
-void scomplex_merge(scomplex **sc0,			\
-		    const INT nsall, const INT nvall,	\
-		    input_grid *g0,cube2simp *c2s)
-{
-  /* combains an array of simplicial complexes together */
-  if(g0->nel==1) return;
-  scomplex *sc=sc0[0];
-  INT n1=(sc->n+1),nv0,ns0,nv=nvall,ns=nsall;
-  INT kel,i,ii,j,in1,iin1;
-  sc->marked=realloc(sc->marked,ns*sizeof(INT));
-  sc->gen=realloc(sc->gen,ns*sizeof(INT));
-  sc->nbr=realloc(sc->nbr,ns*n1*sizeof(INT));
-  sc->parent=realloc(sc->parent,ns*sizeof(INT));
-  sc->child0=realloc(sc->child0,ns*sizeof(INT));
-  sc->childn=realloc(sc->childn,ns*sizeof(INT));
-  sc->nodes=realloc(sc->nodes,ns*n1*sizeof(INT));
-  sc->bndry=realloc(sc->bndry,nv*sizeof(INT));
-  sc->csys=realloc(sc->csys,nv*sizeof(INT));/* coord sys: 1 is polar, 2
-					    is cyl and so on */
-  sc->flags=(INT *)realloc(sc->flags,ns*sizeof(INT));
-  sc->x=(REAL *)realloc(sc->x,nv*(sc->n)*sizeof(REAL));
-  sc->vols=(REAL *)realloc(sc->vols,ns*sizeof(REAL));
-  sc->fval=(REAL *)realloc(sc->fval,nv*sizeof(REAL)); // function values at every vertex; not used in general;
-  //  fprintf(stdout,"\nnsall=%d,nvall=%d",nsall,nvall);fflush(stdout);
-  for(kel=1;kel<g0->nel;kel++){
-    ns0=sc->ns;nv0=sc->nv;
-    for (ii = 0;ii<sc0[kel]->ns;ii++) {
-      i=ii+ns0;
-      sc->marked[i] = sc0[kel]->marked[ii];
-      sc->gen[i] = sc0[kel]->gen[ii];
-      sc->parent[i]=sc0[kel]->parent[ii];
-      sc->child0[i]=sc0[kel]->child0[ii];
-      sc->childn[i]=sc0[kel]->childn[ii];
-      sc->flags[i]=sc0[kel]->flags[ii];
-      sc->vols[i]=sc0[kel]->vols[ii];
-      in1=i*n1;
-      iin1=ii*n1;
-      for(j=0;j<n1;j++){
-	sc->nodes[in1+j]=sc0[kel]->nodes[iin1+j]+nv0;
-	sc->nbr[in1+j]=sc0[kel]->nbr[iin1+j]+ns0;
-      }
-    }
-    for (ii = 0;ii<sc0[kel]->nv;ii++) {
-      i=ii+nv0;
-      sc->bndry[i]=sc0[kel]->bndry[ii];
-      sc->csys[i]=sc0[kel]->csys[ii];
-      sc->fval[i]=sc0[kel]->fval[ii];
-      in1=i*sc->n;
-      iin1=ii*sc->n;
-      for(j=0;j<sc->n;j++)
-	sc->x[in1+j]=sc0[kel]->x[iin1+j];
-    }
-    sc->nv+=sc0[kel]->nv;
-    sc->ns+=sc0[kel]->ns;
-    haz_scomplex_free(sc0[kel]);
-  }
-  //  fprintf(stdout,"\nsc->nv=%d,sc->ns=%d; nvall=%d,nsall=%d\n",sc->nv,sc->ns,nvall,nsall);fflush(stdout);
-  return;
-}
 /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 void set_edges(input_grid *g0,cube2simp *c2s)
 {
   /*adds missing edges to input grid*/
-  INT newne,i,j,k,kel,k0,k1,ke,swp,cols;
+  INT newne,i,j,k,kel,ke,swp,cols;
   INT j01[2],k01[2];
   INT nvcube=c2s->nvcube;
   cols=3;
