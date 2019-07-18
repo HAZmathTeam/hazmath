@@ -5,6 +5,7 @@
 HAZDIR = ../..
 SRCDIR = .
 ##
+OLDGRID = oldgridmake
 GRID = gridmake
 
 INCLUDE = .
@@ -29,21 +30,23 @@ HEADERS = $(INCLUDE)/grid_defs.h \
 	$(INCLUDE)/grid_params.h
 
 EXE = $(GRID).$(EXTENSION)
-EXEb = b.$(EXTENSION)
+EXEold = $(OLDGRID).$(EXTENSION)
 EXEin = ingrid.$(EXTENSION)
 EXElex = lex.$(EXTENSION)
 
 # Source and Object Files
-OBJS = 	$(SRCDIR)/$(GRID).o \
-	$(SRCDIR)/new_refining.o \
-	$(SRCDIR)/new_marking.o \
-	$(SRCDIR)/features.o
+OBJ =	$(SRCDIR)/main_grid.o	\
+	$(SRCDIR)/newgrids.o \
+	$(SRCDIR)/bitwise.o \
+	$(SRCDIR)/new_refining.o		
+
+OBJold =	$(SRCDIR)/$(GRID).o \
+		$(SRCDIR)/new_refining.o \
+		$(SRCDIR)/new_marking.o \
+		$(SRCDIR)/features.o
 ##	$(SRCDIR)/auxfuncts.o 
 ##	$(SRCDIR)/io_geo.o \
 
-OBJb = 	newgrids.o \
-	bitwise.o \
-	new_refining.o
 
 OBJinp = main_input.o	sorting1.o input_grid1.o
 
@@ -51,13 +54,13 @@ OBJlex = lex1.o
 
 .PHONY:  all
 
-all: $(EXE) $(EXEb) $(EXEin) $(EXElex)
+all: $(EXE) $(EXEold) $(EXEin) $(EXElex)
 
-$(EXE):		$(OBJS)
-		$(CC) $(LDFLAGS)  $(OBJS) -o $@ $(LIBS)
+$(EXE):		$(OBJ)
+		$(CC) $(LDFLAGS)  $(OBJ) -o $@ $(LIBS)
 
-$(EXEb):	$(OBJb)
-		$(CC) $(LDFLAGS)  $(OBJb) -o $@ $(LIBS)
+$(EXEold):	$(OBJold)
+		$(CC) $(LDFLAGS)  $(OBJold) -o $@ $(LIBS)
 
 $(EXEin):	$(OBJinp)
 		$(CC) $(LDFLAGS)  $(OBJinp) -o $@
