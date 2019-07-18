@@ -243,7 +243,7 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
   return;
 }
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
-static INT *set_input_grid1(input_grid *g,cube2simp *c2s)
+INT *set_input_grid1(input_grid *g,cube2simp *c2s)
 {
   /* 
      Every edge is put into a subset, i.e. two edges (v(i1),v(i2)) and
@@ -307,11 +307,11 @@ static INT *set_input_grid1(input_grid *g,cube2simp *c2s)
   return p;
 }
 /***********************************************************************/
-static INT set_ndiv_edges(input_grid *g,	\
-			  input_grid *g0,	\
-			  cube2simp *c2s,	\
-			  INT **nd,		\
-			  const INT iter)
+INT set_ndiv_edges(input_grid *g,		\
+		   input_grid *g0,		\
+		   cube2simp *c2s,		\
+		   INT **nd,			\
+		   const INT iter)
 {
   /* 
      For a given global input grid g0 creates local input grids for
