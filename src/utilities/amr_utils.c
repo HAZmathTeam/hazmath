@@ -373,4 +373,229 @@ void scfinalize(scomplex *sc)
   fprintf(stdout,"\n%%After %d levels of refinement:\tsimplices=%d ; vertices=%d\n",sc->level,sc->ns,sc->nv); fflush(stdout);
   return;
 }
+void cube2simp_free(cube2simp *c2s)
+{
+  if(c2s->bits)free(c2s->bits);
+  if(c2s->nodes)free(c2s->nodes);
+  if(c2s->edges)free(c2s->edges);
+  if(c2s->faces)free(c2s->faces);
+  if(c2s->perms)free(c2s->perms);
+  if(c2s)free(c2s);
+  return;
+}
+
+static void binary0(cube2simp *c2s)
+{
+  // stores in an array the coordinates of the vertices of the unit  
+  // cube in dimension (dim). Lexicographical ordering from 0,0,...0
+  // to 1,1,...,1
+  
+  INT nvcube=c2s->nvcube;
+  INT shift,i,j,k,kn,nbits=c2s->n-1;
+  for(k = 0;k<nvcube;k++){
+    kn=k*c2s->n;
+    for (i=nbits ; i >=0; --i){
+      c2s->bits[kn+i] = (unsigned INT )((k >> i & 1));
+    }    
+  }
+  shift=(1<<(c2s->n-1));
+  INT nperm,jp=-22,jpo=-22,mid=(int)(c2s->nvcube/2);
+  for(k=0;k<nvcube;k++) c2s->perms[k]=k;
+  /* form all n+1 permutations in reverse order! it is unclear why in reverse order...*/
+  nperm=1;
+  for(j=c2s->n-1;j>=0;j--){
+    jp=nperm*nvcube; jpo=jp+mid;
+    //    fprintf(stdout,"\nnperm=%d,jp=%d,jpo=%d,face=%d; shift=%d",nperm,jp,jpo,c2s->n-j-1,shift);
+    for(k = 0;k<nvcube;k++){
+      kn=k*c2s->n;
+      if((int)c2s->bits[kn+j]){
+	c2s->perms[jp]=k;
+	c2s->perms[jpo]=k-shift;
+	jp++;jpo++;
+      }
+    }
+    shift>>=1;
+    nperm++;
+  }
+  /* fprintf(stdout,"\nNumber of permutations=%d",nperm); */
+  /* for(j=0;j<nperm;j++){ */
+  /*   jp=j*nvcube; */
+  /*   fprintf(stdout,"\nPermutation=%d:",j+1); */
+  /*   for(i=0;i<nvcube;i++){ */
+  /*     fprintf(stdout," %d",c2s->perms[jp+i]+1); */
+  /*   } */
+  /* } */
+  /* fprintf(stdout,"\n"); */
+  return;
+}
+static unsigned INT bitdiff(const INT dim, unsigned INT *bits1,unsigned INT *bits2){
+  /*
+    returns the l1-norm of the difference two arrays of unsigned 
+    integers.  this should be changed to have a void array as input.
+  */
+  INT j;
+  unsigned INT numbits=0;
+  for(j=0;j<dim;j++){
+    numbits+=abs(bits1[j]-bits2[j]);
+  }
+  return numbits;
+}
+/************************************************************************/
+void reverse(void *arr,INT length, size_t elsize)
+{
+  /* 
+     permutes a void array whose elements are of size elsize 
+     a[0],...a_[length-1]-->a[length-1],...a[0]. 
+  */
+  INT i,nnn=(INT)(length/2);
+  void *swap=(void *)malloc(elsize);
+  //  reverses ordering in an INT array;
+  void *arrk=arr+elsize*(length-1);
+  void *arri=arr;
+  for(i=0;i<nnn;i++){
+    memcpy(swap,arri,elsize);
+    memcpy(arri,arrk,elsize);
+    memcpy(arrk,swap,elsize);
+    arri+=elsize;
+    arrk-=elsize;
+  }
+  if(swap)free(swap);
+  return;
+}
+/************************************************************************/
+cube2simp *cube2simplex(INT dim)
+{
+  /*
+    in dimension dim splits the cube in dim factorial dim-dimensional
+    simplices. stores everything in a structure cube2simp. It also
+    outputs all local permutations of vertices which can be used to
+    create a criss-cross mesh. 
+  */
+  INT i;
+  /* allocation */
+  cube2simp *c2s=malloc(sizeof(cube2simp));
+  c2s->n=dim;
+  c2s->ns=1;
+  c2s->nvcube = (1 << c2s->n);
+  c2s->nvface = (1 << (c2s->n-1));
+  i=1; for(i=1;i<=c2s->n;i++)c2s->ns*=i;
+  c2s->ne=c2s->n*(1<<(c2s->n-1)); /* number of edges in the n-cube.*/
+  c2s->nf=2*c2s->n; /* number of n-1 dimensional faces in the n-cube */
+  /////////////////////////////////////////////////////
+  c2s->edges=(INT *)calloc(2*c2s->ne,sizeof(INT));
+  c2s->bits=(unsigned INT *)calloc(c2s->n*c2s->nvcube,sizeof(unsigned INT));
+  c2s->faces=(INT *)calloc(2*c2s->n*c2s->nvface,sizeof(INT));
+  c2s->nodes=(INT *)calloc(c2s->ns*(c2s->n+1),sizeof(unsigned INT));
+  c2s->perms=(INT *)calloc(c2s->nvcube*(c2s->n+1),sizeof(unsigned INT));
+  memset(c2s->nodes,0,(c2s->n+1)*c2s->ns*sizeof(INT));
+  /*end of allocation*/
+  INT k1,kn1,k2,kn2,dim1=c2s->n+1,		\
+    nvcube=c2s->nvcube;
+  /***********************************************/
+  binary0(c2s);
+  /***********************************************/
+  /****EDGES**********/
+  INT *edges=c2s->edges;
+  memset(edges,0,c2s->ne*sizeof(INT));
+  unsigned INT numbits=22;
+  unsigned INT *b1,*b2;
+  //  fprintf(stdout,"Memory: edges=%d,ns=%d\n",ne,ns);
+  INT nedge=0,nvcubem1=nvcube-1;
+  for(k1 = 0;k1<nvcubem1;k1++){
+    kn1=k1*dim;
+    b1=c2s->bits+kn1;
+    for(k2 = k1+1;k2<nvcube;k2++){
+      kn2=k2*dim;
+      b2=c2s->bits+kn2;
+      numbits=bitdiff(dim,b1,b2)-1;
+      if(numbits) continue;
+      /* we found an edge, store it. */
+      edges[nedge*2]=k1;
+      edges[nedge*2+1]=k2;
+      nedge++;
+    }
+  }
+  /****SIMPLICES**********/
+  INT root=0,j,m,node,nq0,nq;
+  m=2; for(i=2;i<dim1;i++) m=1+i*m;
+  INT *queue=(INT *)calloc(m,sizeof(INT));
+  memset(queue,0,m*sizeof(INT));
+  INT *parent=(INT *)calloc(m,sizeof(INT));
+  memset(parent,0,m*sizeof(INT));
+  // form a tree. every path in the tree is a simplex. the tree has
+  // dim_factorial leaves.  
+  nq0=0;nq=1;parent[0]=-1;
+  queue[nq0]=root;
+  while(1){
+    m=nq;
+    for(j=nq0;j<nq;j++){
+      node=queue[j];
+      if(node==(nvcubem1)) continue;
+      for(i=0;i<c2s->ne;i++){
+	/*
+	  for a given first end of an edge, collect all the second
+	  ends in the queue;
+	*/
+	if(edges[2*i]==node){
+	  queue[m]=edges[2*i+1];
+	  parent[m]=j;
+	  //	  fprintf(stdout,"(m=%d;%d)",m,edges[2*i+1]);
+	  m++;
+	}
+      }
+    }
+    if(nq>=m) break;
+    nq0=nq;
+    nq=m;
+  }        
+  //  fprintf(stdout,"\nlast:=%d\n",nq-nq0);
+  k1=0;// simplex number;
+  for(j=nq0;j<nq;j++){
+    i=c2s->n;
+    node=queue[j];
+    m=j;
+    while(parent[m]>=0){
+      c2s->nodes[k1*dim1+i]=queue[m];
+      m=parent[m];
+      i--;
+    }
+    k1++;// increment simplex number;
+  }
+  if(queue)free(queue);
+  if(parent)free(parent);
+  // finally reverse all bits to have the last coordinate ordered first
+  // in the local numbering.
+  for(j=0;j<c2s->nvcube;j++){
+    reverse((c2s->bits+dim*j),dim,sizeof(INT));
+    /* fprintf(stdout,"\nj:%d ",j); */
+    /* for(i=0;i<dim;i++){ */
+    /*   fprintf(stdout,"%d",c2s->bits[dim*j+i]); */
+    /* } */
+  }
+  /****FACES**********/
+  INT *faces=c2s->faces;
+  INT j0,j1;
+  memset(faces,0,c2s->nf*sizeof(INT));
+  //  fprintf(stdout,"\n");
+  //    fprintf(stdout,"\nk2=%d bits=(",k2);
+  //	fprintf(stdout,"%d,",k1);
+  //    fprintf(stdout,")");
+  //  fprintf(stdout,"\n");fflush(stdout);
+  for(k2 = 0;k2<c2s->n;k2++){
+    kn2=k2*c2s->nvface;
+    j0=0;j1=0;
+    for(k1 = 0;k1<nvcube;k1++){
+      kn1=k1*c2s->n;
+      if(!c2s->bits[kn1+k2]){
+	c2s->faces[kn2+j0]=k1;
+	j0++;
+      } else {
+	c2s->faces[kn2+c2s->n*c2s->nvface+j1]=k1;
+	j1++;
+      }
+    }
+  }
+  //  print_full_mat_int(c2s->nf,c2s->nvface,c2s->faces,"UCubef");
+  return c2s;
+}
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
