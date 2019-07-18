@@ -68,6 +68,8 @@ typedef struct /* n-homogenous simplicial complex */
   REAL *fval; /* function values at vertices (could be ANY, but is
 		 used for elevation in hydrolena) */
   REAL factorial; /*n factorial */
+  INT cc; /*n connected components */
+  INT bndry_cc; /*connected components on the boundary */
 } scomplex;
 typedef struct /* a macroelement (isomrphic to the hypercube
 		  usually) */
