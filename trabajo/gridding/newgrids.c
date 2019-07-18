@@ -19,17 +19,11 @@
 #define REAL double
 #endif
 /********************************FINCTIONS:*********************/
-void cube2simp_free(cube2simp *c2s);
-INT reverse(void *arr,INT length, size_t elsize);
-cube2simp *cube2simplex(INT dim);
 scomplex *umesh(const INT dim, INT *nd, cube2simp *c2s,	\
 		const INT face, const INT face_parent,	\
 		const scomplex *sc_parent,		\
 		INT *nd_parent,			\
 		const INT intype);
-void polar2cart(INT dim, REAL *px, REAL *cx);
-REAL interp8(cube2simp *c2s, REAL *u, REAL *ue, REAL *xhat);
-REAL interp4(cube2simp *c2s, REAL *u, REAL *xhat);
 void unirefine(INT *nd,scomplex *sc);
 /*********************************************************************/
 void scomplex_merge(scomplex **sc0,			\
