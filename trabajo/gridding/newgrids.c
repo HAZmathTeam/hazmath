@@ -22,7 +22,11 @@
 void cube2simp_free(cube2simp *c2s);
 INT reverse(void *arr,INT length, size_t elsize);
 cube2simp *cube2simplex(INT dim);
-scomplex *umesh(const INT dim, INT *nd, cube2simp *c2s, const INT intype);
+scomplex *umesh(const INT dim, INT *nd, cube2simp *c2s,	\
+		const INT face, const INT face_parent,	\
+		const scomplex *sc_parent,		\
+		INT *nd_parent,			\
+		const INT intype);
 void polar2cart(INT dim, REAL *px, REAL *cx);
 REAL interp8(cube2simp *c2s, REAL *u, REAL *ue, REAL *xhat);
 REAL interp4(cube2simp *c2s, REAL *u, REAL *xhat);
@@ -51,7 +55,7 @@ void scomplex_merge(scomplex **sc0,			\
   sc->x=(REAL *)realloc(sc->x,nv*(sc->n)*sizeof(REAL));
   sc->vols=(REAL *)realloc(sc->vols,ns*sizeof(REAL));
   sc->fval=(REAL *)realloc(sc->fval,nv*sizeof(REAL)); // function values at every vertex; not used in general;
-  fprintf(stdout,"\nnsall=%d,nvall=%d",nsall,nvall);fflush(stdout);
+  //  fprintf(stdout,"\nnsall=%d,nvall=%d",nsall,nvall);fflush(stdout);
   for(kel=1;kel<g0->nel;kel++){
     ns0=sc->ns;nv0=sc->nv;
     for (ii = 0;ii<sc0[kel]->ns;ii++) {
@@ -861,12 +865,15 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
       }
       //      print_full_mat(g->nv,g->dim,g->xv,"xv{1}"); fflush(stdout);
       if(kel<0){
-	sc[jel]=umesh(g->dim,nd[jel],c2s,intype);
+	je=kel;
+	ke=kel;	
+	sc[jel]=umesh(g->dim,nd[jel],c2s,kel,kel,NULL,NULL,intype);
       } else {
 	je=locate0(jel,elneib[kel], c2s->nf);
 	ke=locate0(kel,elneib[jel], c2s->nf);
-	//	fprintf(stdout,"\nface(%d) in a divided el(%d) is also face(%d) in the current el(%d)",je,kel,ke,jel);
-	sc[jel]=umesh(g->dim,nd[jel],c2s,intype);
+	fprintf(stdout,"\nface(%d) in a divided el(%d) is also face(%d) in the current el(%d)",je,kel,ke,jel);
+	/* je=face_parent (was divide),ke= face (to be divided now)*/
+	sc[jel]=umesh(g->dim,nd[jel],c2s,ke,je,sc[kel],nd[kel],intype);
       }
       /*copy vertices and coord systems*/
       nsall+=sc[jel]->ns;
@@ -881,6 +888,8 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   scomplex_merge(sc,			\
 		 nsall, nvall,		\
 		 g0,c2s);
+  fprintf(stdout,"\n%%");
+  fprintf(stdout,"\n%%merged(macroelements=%d:%d): nv=%d; nsimp=%d",0,g0->nel-1,sc[0]->nv,sc[0]->ns);      
   fprintf(stdout,"\n%%\n");
   //  haz_scomplex_print(sc[0],0,"MERGED");
   //  for(i=0;i<g0->nel;i++){
@@ -901,23 +910,3 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   free(el2fnum);
   return sc[0];  
 }
-/****************************************************************/
-INT main(INT argc, char **argv)
-{
-  INT i=-1;
-  input_grid *g=parse_input_grid("grid.input");
-  INT dim=g->dim;
-  cube2simp *c2s=cube2simplex(dim);
-  scomplex *sc=macro_split(g,c2s);
-  if(dim==2||dim==3) {
-    fprintf(stdout,"Writing vtk file...\n");
-    vtkw("newmesh.vtu",sc,0,0,1.);
-  }
-  /*FREE*/
-  haz_scomplex_free(sc);
-  input_grid_free(g); 
-  cube2simp_free(c2s);
-  fprintf(stdout,"\nDone.\n");
-  return 0;
-}
-/*********************EOF**********************************/
