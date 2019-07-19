@@ -21,28 +21,15 @@
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
-scomplex *umesh(INT *iindex,				\
-		INT *nsall0,				\
-		INT *nvall0,				\
-		const INT nsall,			\
-		const INT nvall,			\
-		const INT dim,				\
+scomplex *umesh(const INT dim,				\
 		INT *nd, cube2simp *c2s,		\
 		INT *isbndf, INT *codef,		\
 		INT elflag,				\
-		const INT face, const INT face_parent,	\
-		const scomplex *sc_parent,		\
-		INT *nd_parent,				\
-		INT *iindex_parent,			\
 		const INT intype);
 void unirefine(INT *nd,scomplex *sc);
-iCSRmat *set_mmesh(input_grid *g0,					\
-		   cube2simp *c2s,					\
-		   ivector *etree0,					\
-		   INT **elneib, INT **el2fnum,				\
-		   ivector *isbface0, ivector *bcodesf0,		\
-		   INT *cc,  INT *bndry_cc,				\
-		   INT *wrk);
+macrocomplex *set_mmesh(input_grid *g0,		\
+			cube2simp *c2s,		\
+			INT *wrk);
 void set_edges(input_grid *g0,cube2simp *c2s);
 INT set_ndiv_edges(input_grid *g,		\
 		   input_grid *g0,		\
@@ -51,6 +38,27 @@ INT set_ndiv_edges(input_grid *g,		\
 		   const INT iter);
 void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g);
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
+void macrocomplex_free(macrocomplex *mc)
+{
+  INT i;
+  for(i=0;i<mc->nel;i++){
+    free(mc->nd[i]);
+    free(mc->elneib[i]);
+    free(mc->el2fnum[i]);
+    free(mc->iindex[i]);
+  }
+  free(mc->nd);
+  free(mc->elneib);
+  free(mc->el2fnum);
+  free(mc->iindex);
+  free(mc->isbface);
+  free(mc->bcodesf);
+  free(mc->flags);
+  free(mc->etree);
+  icsr_free(mc->bfs);
+  icsr_free(mc->fullel2el);
+  return;
+}
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
 void scomplex_merge(scomplex **sc0,			\
@@ -177,48 +185,34 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
     // make the divisions in g0->seg consistent;
     chng=set_ndiv_edges(g,g0,c2s,nd,iter);
   }
-  //  print_full_mat_int(g0->ne,3,g0->seg,"newseg");  
-  /*-------------------------------------------------------------------*/
-  // here we should end the function which sets all divisions
-  /*-------------------------------------------------------------------*/  
-  // form macroelement neighboring list. Use transposition; the sparse
-  // matrices here are only used to compute the number of connected
-  // components in the domain or on the boundary.  
-  INT **elneib=calloc(g0->nel,sizeof(INT *));/* element neighboring
-					       list where the
-					       position of the
-					       neighbor is the same
-					       as the position of the
-					       face in c2s->faces
-					       shared by the two
-					       el.
-					    */
-  INT **el2fnum=calloc(g0->nel,sizeof(INT *)); /* for every element
-						 this gives the local
-						 to global face number
-						 map;
-					      */
-  for(i=0;i<g0->nel;i++){
-    elneib[i]=calloc(c2s->nf,sizeof(INT)); /* to hold the neighbors */
-    el2fnum[i]=calloc(c2s->nf,sizeof(INT)); /* to hold the face
-					       numbers for every
-					       element */
-  }
-  ivector *bcodesf=malloc(1*sizeof(ivector));
-  ivector *isbface=malloc(1*sizeof(ivector));
-  ivector *etree=malloc(1*sizeof(ivector));
-  INT cc=1, bndry_cc=1;
-  iCSRmat *bfs0=set_mmesh(g0,c2s,etree,		\
-			  elneib, el2fnum,	\
-			  isbface, bcodesf,&cc,&bndry_cc,p);
-  fprintf(stdout,"\n%%DFS(domains): %d connected components",cc);
-  fprintf(stdout,"\n%%DFS(boundaries): %d connected components",bndry_cc);
+  //  print_full_mat_int(g0->ne,3,g0->seg,"newseg");
+  // get the macroelement mesh in a structure
+  macrocomplex *mc=set_mmesh(g0,c2s,p);
+  /*PLACE HOLDERS*/
+  INT **elneib=mc->elneib;
+  INT **el2fnum=mc->el2fnum;
+  INT *isbface=mc->isbface;
+  INT *bcodesf=mc->bcodesf;
+  INT *etree=mc->etree;
+  iCSRmat *bfs0=mc->bfs;
+  iCSRmat *fullel2el=mc->fullel2el;
+  fprintf(stdout,"\n%%DFS(domains): %d connected components",mc->cc);
+  fprintf(stdout,"\n%%DFS(boundaries): %d connected components",mc->bndry_cc);
   /* fprintf(stdout,"\nbfs0=["); */
   /* icsr_print_matlab_val(stdout,bfs0); */
   /* fprintf(stdout,"];"); */
   /* fprintf(stdout,"\nbfs=sparse(bfs0(:,1),bfs0(:,2),bfs0(:,3));\n"); */
-  /* print_full_mat_int(1,isbface->row,isbface->val,"isbface"); */
-  /* fprintf(stdout,"\n*****   nf=%d (%d)******* \n",g0->nf,isbface->row); */
+  /* print_full_mat_int(1,mc->nf,mc->isbface,"isbface"); */
+  /* print_full_mat_int(1,mc->nf,mc->bcodesf,"bcodesf"); */
+  /* fprintf(stdout,"\n*****   nf=%d (%d)******* \n",g0->nf,mc->nf); */
+  /*full el2el*/
+  fprintf(stdout,"\nfel2el0=[");
+  icsr_print_matlab_val(stdout,mc->fullel2el);
+  fprintf(stdout,"];");
+  fprintf(stdout,"\nfel2el=sparse(fel2el0(:,1),fel2el0(:,2),fel2el0(:,3));\n");
+  /* print_full_mat_int(1,mc->nf,mc->isbface,"isbface"); */
+  /* print_full_mat_int(1,mc->nf,mc->bcodesf,"bcodesf"); */
+  fprintf(stdout,"\n*****   nf=%d (%d)******* \n",g0->nf,mc->nf);
   /***********************************************************************/    
   /* set the divisions on every edge now; since they are consistent we
    have: */
@@ -229,83 +223,59 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   /* for(kel=0;kel<g0->nel;kel++){ */
   /*   print_full_mat_int(1,c2s->nf,elneib[kel],"neib"); */
   /* } */
+  mc->nd=nd;
   for(kel=0;kel<g0->nel;kel++){
     for(i=0;i<c2s->n;i++){
       if(nd[kel][i]<=0) nd[kel][i]=1;
     }
-    //    print_full_mat_int(1,c2s->n,nd[kel],"ndnd"); 
+    print_full_mat_int(1,c2s->n,mc->nd[kel],"ndnd"); 
   }
   // use bfs to split elements:
   if(g0->print_level>3) input_grid_print(g0);
-  INT lvl,intype=-1,kj,je,jel;  
-  INT nsall,nvall,nsall0,nvall0,elflag;
-  INT *codef=calloc(c2s->nf,sizeof(INT));
-  INT *isbndf=calloc(c2s->nf,sizeof(INT));
-  INT **iindex=malloc(g0->nel*sizeof(INT *));
+  INT nsall,nvall;
+  nsall=0;nvall=0;
+  /* now nd is known, let us allocate iindex */
   for(kel=0;kel<g0->nel;kel++){
     nvall=1;
     for(i=0;i<g0->dim;i++)
       nvall*=(nd[kel][i]+1);
-    iindex[kel]=calloc(nvall,sizeof(INT));
+    mc->iindex[kel]=calloc(nvall,sizeof(INT));
+    // TRUE    mc->flags[kel]=g0->mnodes[nvcube+kel*(nvcube+1)];
+    mc->flags[kel]=2*kel+1;
   }
-  nsall0=0;nvall0=0;
-  nsall=0;
-  nvall=0;
-  for(lvl=0;lvl<bfs0->row;lvl++){    
-    j0=bfs0->IA[lvl];
-    j1=bfs0->IA[lvl+1];
-    for(kj=j0;kj<j1;kj++){
-      jel=bfs0->JA[kj];
-      //      fprintf(stdout,"\n **** %d",jel);
-      //      print_full_mat_int(1,c2s->nf,elneib[jel],"neib");
-      kel=etree->val[jel];// ancestor, this stays unchanged
-      memcpy(g->mnodes,(g0->mnodes+jel*(nvcube+1)),(nvcube+1)*sizeof(INT));
-      for(i=0;i<c2s->nvcube;i++){
-	j=g->mnodes[i];// vertex number (global)
-	g->csysv[i]=g0->csysv[j]; 
-	g->labelsv[i]=g0->csysv[j];
-	memcpy((g->xv+i*g->dim),(g0->xv+j*g0->dim),g->dim*sizeof(REAL));
-      }
-      /***************************************************/
-      /*elment and face codes:*/
-      elflag=g->mnodes[nvcube];
-      for(i=0;i<c2s->nf;i++){
-	codef[i]=bcodesf->val[el2fnum[jel][i]];
-	// locally: is boundary face?
-	isbndf[i]=isbface->val[el2fnum[jel][i]];       
-      }      
-      //      print_full_mat_int(1,c2s->nf,codef,"bcodes"); fflush(stdout);
-      //      print_full_mat_int(1,c2s->nf,isbndf,"isbnd"); fflush(stdout);
-      if(kel<0){
-	sc[jel]=umesh(iindex[jel],	                \
-		      &nsall0,&nvall0,nsall,nvall,	\
-		      g->dim,nd[jel],c2s,		\
-		      isbndf,codef,elflag,		\
-		      -1,-1,NULL,NULL,NULL,intype);
-      } else {
-	je=locate0(jel,elneib[kel], c2s->nf);
-	ke=locate0(kel,elneib[jel], c2s->nf);
-	fprintf(stdout,"\nface(%d) in a divided el(%d) is also face(%d) in the current el(%d)",je,kel,ke,jel);
-	/* je=face_parent (was divide),ke= face (to be divided now)*/
-	sc[jel]=umesh(iindex[jel],					\
-		      &nsall0,&nvall0,nsall,nvall,			\
-		      g->dim,nd[jel],c2s,				\
-		      isbndf,codef,elflag,				\
-		      ke,je,sc[kel],nd[kel],iindex[kel],intype);
-      }
-      /*copy vertices and coord systems*/
-      nsall+=sc[jel]->ns;
-      nvall+=sc[jel]->nv;
-      //      fprintf(stdout,"\n%%Mapping back to the macroelement...\n");
-      map2mac(sc[jel],c2s,g);
-      fprintf(stdout,"\n%%mesh(macroelement=%d): nv=%d; nsimp=%d",jel,sc[jel]->nv,sc[jel]->ns);      
-      //      haz_scomplex_print(sc[jel],0,"HAHA");
+  INT lvl,intype=-1,kj,je,jel;  
+  INT *codef=calloc(c2s->nf,sizeof(INT));
+  INT *isbndf=calloc(c2s->nf,sizeof(INT));  
+  for(kj=0;kj<bfs0->nnz;kj++){    
+    jel=bfs0->JA[kj];
+    print_full_mat_int(1,c2s->nf,elneib[jel],"neib");
+    /*copy vertices and coord systems*/
+    memcpy(g->mnodes,(g0->mnodes+jel*(nvcube+1)),(nvcube+1)*sizeof(INT));
+    for(i=0;i<c2s->nvcube;i++){
+      j=g->mnodes[i];// vertex number (global)
+      g->csysv[i]=g0->csysv[j]; 
+      g->labelsv[i]=g0->csysv[j];
+      memcpy((g->xv+i*g->dim),(g0->xv+j*g0->dim),g->dim*sizeof(REAL));
     }
+    /***************************************************/
+    /*element code is in mc->flags[]; we now do the face codes:*/      
+    for(i=0;i<c2s->nf;i++){
+      codef[i]=bcodesf[el2fnum[jel][i]];
+      isbndf[i]=isbface[el2fnum[jel][i]];       
+    }      
+    sc[jel]=umesh(g->dim,nd[jel],c2s,					\
+		  isbndf,codef,mc->flags[jel],				\
+		  intype);
+    nsall+=sc[jel]->ns;
+    nvall+=sc[jel]->nv;
+    //      fprintf(stdout,"\n%%Mapping back to the macroelement...\n");
+    map2mac(sc[jel],c2s,g);
+    fprintf(stdout,"\n%%mesh(macroelement=%d): nv=%d; nsimp=%d",jel,sc[jel]->nv,sc[jel]->ns);      
+    //      haz_scomplex_print(sc[jel],0,"HAHA");
   }
-  //  fprintf(stdout,"\n%%Generated a uniform mesh in dim=%d; total number of simplices=%d",g->dim,nsall);      
   scomplex_merge(sc,			\
 		 nsall, nvall,		\
-		 cc, bndry_cc,		\
+		 mc->cc, mc->bndry_cc,		\
 		 g0,c2s);
   fprintf(stdout,"\n%%");
   fprintf(stdout,"\n%%merged(macroelements=%d:%d): nv=%d; nsimp=%d",0,g0->nel-1,sc[0]->nv,sc[0]->ns);      
@@ -317,20 +287,7 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   free(p);
   free(isbndf);
   free(codef);
-  icsr_free(bfs0);
-  ivec_free(etree);
-  ivec_free(bcodesf);
-  ivec_free(isbface);
-  for(i=0;i<g0->nel;i++){
-    free(nd[i]);
-    free(elneib[i]);
-    free(el2fnum[i]);
-    free(iindex[i]);
-  }
-  free(nd);
-  free(elneib);
-  free(el2fnum);
-  free(iindex);
+  macrocomplex_free(mc);
   return sc[0];  
 }
 /****************************************************************/
