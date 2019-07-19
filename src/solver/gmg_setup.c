@@ -837,8 +837,6 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
     block_fespace FE_blk;
 
     FE_blk.nspaces = mgl[0].A.brow;
-    FE_blk.var_spaces = (fespace **) calloc( FE_blk.nspaces, sizeof(fespace *));
-    FE_blk.var_spaces[0] = (fespace *) calloc(1, sizeof(fespace));
 
     get_time(&setup_start);
 
@@ -1069,12 +1067,32 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
       
       /*-- Apply Periodic boundaries --*/
       if (mgl[0].periodic_BC == true) {
+        FE_blk.var_spaces = (fespace **) calloc( FE_blk.nspaces, sizeof(fespace *));
+
+        FE_blk.var_spaces[0] = (fespace *) calloc(1, sizeof(fespace));
+        create_fespace(FE_blk.var_spaces[0], mgl[lvl].fine_level_mesh, 61);
+
+        FE_blk.var_spaces[1] = (fespace *) calloc(1, sizeof(fespace));
+        create_fespace(FE_blk.var_spaces[1], mgl[lvl].fine_level_mesh, 1);
+
+        FE_blk.var_spaces[2] = (fespace *) calloc(1, sizeof(fespace));
+        create_fespace(FE_blk.var_spaces[2], mgl[lvl].fine_level_mesh, 1);
+
+        FE_blk.var_spaces[3] = (fespace *) calloc(1, sizeof(fespace));
+        create_fespace(FE_blk.var_spaces[3], mgl[lvl].fine_level_mesh, 30);
+
+        FE_blk.var_spaces[4] = (fespace *) calloc(1, sizeof(fespace));
         // TODO: This needs a block version!
         set_periodic_bdry(mgl[lvl].FE->var_spaces[0], mgl[lvl].fine_level_mesh,0.0,1.0,0.0,1.0,0.0,1.0);
+        printf("0\n");
         set_periodic_bdry(mgl[lvl].FE->var_spaces[1], mgl[lvl].fine_level_mesh,0.0,1.0,0.0,1.0,0.0,1.0);
+        printf("1\n");
         set_periodic_bdry(mgl[lvl].FE->var_spaces[2], mgl[lvl].fine_level_mesh,0.0,1.0,0.0,1.0,0.0,1.0);
+        printf("2\n");
         set_periodic_bdry(mgl[lvl].FE->var_spaces[3], mgl[lvl].fine_level_mesh,0.0,1.0,0.0,1.0,0.0,1.0);
+        printf("3\n");
         set_periodic_bdry(mgl[lvl].FE->var_spaces[4], mgl[lvl].fine_level_mesh,0.0,1.0,0.0,1.0,0.0,1.0);
+        printf("4\n");
 
         // Create fake blockFE space that matches the 3x3 block matrix (put all displacements together)
 
