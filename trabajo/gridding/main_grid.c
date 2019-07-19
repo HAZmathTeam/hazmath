@@ -21,17 +21,27 @@
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
-scomplex *umesh(const INT dim, INT *nd, cube2simp *c2s,	\
+scomplex *umesh(INT *iindex,				\
+		INT *nsall0,				\
+		INT *nvall0,				\
+		const INT nsall,			\
+		const INT nvall,			\
+		const INT dim,				\
+		INT *nd, cube2simp *c2s,		\
+		INT *isbndf, INT *codef,		\
+		INT elflag,				\
 		const INT face, const INT face_parent,	\
 		const scomplex *sc_parent,		\
-		INT *nd_parent,			\
+		INT *nd_parent,				\
+		INT *iindex_parent,			\
 		const INT intype);
 void unirefine(INT *nd,scomplex *sc);
-iCSRmat *set_mmesh(input_grid *g0,				\
-		   cube2simp *c2s,				\
-		   ivector *etree0,				\
+iCSRmat *set_mmesh(input_grid *g0,					\
+		   cube2simp *c2s,					\
+		   ivector *etree0,					\
 		   INT **elneib, INT **el2fnum,				\
 		   ivector *isbface0, ivector *bcodesf0,		\
+		   INT *cc,  INT *bndry_cc,				\
 		   INT *wrk);
 void set_edges(input_grid *g0,cube2simp *c2s);
 INT set_ndiv_edges(input_grid *g,		\
@@ -45,6 +55,7 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g);
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
 void scomplex_merge(scomplex **sc0,			\
 		    const INT nsall, const INT nvall,	\
+		    const INT cc, const INT bndry_cc,	\
 		    input_grid *g0,cube2simp *c2s)
 {
   /* combains an array of simplicial complexes together */
@@ -62,6 +73,8 @@ void scomplex_merge(scomplex **sc0,			\
   sc->bndry=realloc(sc->bndry,nv*sizeof(INT));
   sc->csys=realloc(sc->csys,nv*sizeof(INT));/* coord sys: 1 is polar, 2
 					    is cyl and so on */
+  /*connected components*/
+  sc->cc=cc;sc->bndry_cc=bndry_cc;
   sc->flags=(INT *)realloc(sc->flags,ns*sizeof(INT));
   sc->x=(REAL *)realloc(sc->x,nv*(sc->n)*sizeof(REAL));
   sc->vols=(REAL *)realloc(sc->vols,ns*sizeof(REAL));
@@ -194,9 +207,12 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   ivector *bcodesf=malloc(1*sizeof(ivector));
   ivector *isbface=malloc(1*sizeof(ivector));
   ivector *etree=malloc(1*sizeof(ivector));
+  INT cc=1, bndry_cc=1;
   iCSRmat *bfs0=set_mmesh(g0,c2s,etree,		\
 			  elneib, el2fnum,	\
-			  isbface, bcodesf,p);
+			  isbface, bcodesf,&cc,&bndry_cc,p);
+  fprintf(stdout,"\n%%DFS(domains): %d connected components",cc);
+  fprintf(stdout,"\n%%DFS(boundaries): %d connected components",bndry_cc);
   /* fprintf(stdout,"\nbfs0=["); */
   /* icsr_print_matlab_val(stdout,bfs0); */
   /* fprintf(stdout,"];"); */
@@ -222,7 +238,17 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   // use bfs to split elements:
   if(g0->print_level>3) input_grid_print(g0);
   INT lvl,intype=-1,kj,je,jel;  
-  INT nsall,nvall;
+  INT nsall,nvall,nsall0,nvall0,elflag;
+  INT *codef=calloc(c2s->nf,sizeof(INT));
+  INT *isbndf=calloc(c2s->nf,sizeof(INT));
+  INT **iindex=malloc(g0->nel*sizeof(INT *));
+  for(kel=0;kel<g0->nel;kel++){
+    nvall=1;
+    for(i=0;i<g0->dim;i++)
+      nvall*=(nd[kel][i]+1);
+    iindex[kel]=calloc(nvall,sizeof(INT));
+  }
+  nsall0=0;nvall0=0;
   nsall=0;
   nvall=0;
   for(lvl=0;lvl<bfs0->row;lvl++){    
@@ -240,17 +266,32 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
 	g->labelsv[i]=g0->csysv[j];
 	memcpy((g->xv+i*g->dim),(g0->xv+j*g0->dim),g->dim*sizeof(REAL));
       }
-      //      print_full_mat(g->nv,g->dim,g->xv,"xv{1}"); fflush(stdout);
+      /***************************************************/
+      /*elment and face codes:*/
+      elflag=g->mnodes[nvcube];
+      for(i=0;i<c2s->nf;i++){
+	codef[i]=bcodesf->val[el2fnum[jel][i]];
+	// locally: is boundary face?
+	isbndf[i]=isbface->val[el2fnum[jel][i]];       
+      }      
+      //      print_full_mat_int(1,c2s->nf,codef,"bcodes"); fflush(stdout);
+      //      print_full_mat_int(1,c2s->nf,isbndf,"isbnd"); fflush(stdout);
       if(kel<0){
-	je=kel;
-	ke=kel;	
-	sc[jel]=umesh(g->dim,nd[jel],c2s,kel,kel,NULL,NULL,intype);
+	sc[jel]=umesh(iindex[jel],	                \
+		      &nsall0,&nvall0,nsall,nvall,	\
+		      g->dim,nd[jel],c2s,		\
+		      isbndf,codef,elflag,		\
+		      -1,-1,NULL,NULL,NULL,intype);
       } else {
 	je=locate0(jel,elneib[kel], c2s->nf);
 	ke=locate0(kel,elneib[jel], c2s->nf);
 	fprintf(stdout,"\nface(%d) in a divided el(%d) is also face(%d) in the current el(%d)",je,kel,ke,jel);
 	/* je=face_parent (was divide),ke= face (to be divided now)*/
-	sc[jel]=umesh(g->dim,nd[jel],c2s,ke,je,sc[kel],nd[kel],intype);
+	sc[jel]=umesh(iindex[jel],					\
+		      &nsall0,&nvall0,nsall,nvall,			\
+		      g->dim,nd[jel],c2s,				\
+		      isbndf,codef,elflag,				\
+		      ke,je,sc[kel],nd[kel],iindex[kel],intype);
       }
       /*copy vertices and coord systems*/
       nsall+=sc[jel]->ns;
@@ -264,6 +305,7 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   //  fprintf(stdout,"\n%%Generated a uniform mesh in dim=%d; total number of simplices=%d",g->dim,nsall);      
   scomplex_merge(sc,			\
 		 nsall, nvall,		\
+		 cc, bndry_cc,		\
 		 g0,c2s);
   fprintf(stdout,"\n%%");
   fprintf(stdout,"\n%%merged(macroelements=%d:%d): nv=%d; nsimp=%d",0,g0->nel-1,sc[0]->nv,sc[0]->ns);      
@@ -273,6 +315,8 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   //    
   //  }
   free(p);
+  free(isbndf);
+  free(codef);
   icsr_free(bfs0);
   ivec_free(etree);
   ivec_free(bcodesf);
@@ -281,10 +325,12 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
     free(nd[i]);
     free(elneib[i]);
     free(el2fnum[i]);
+    free(iindex[i]);
   }
   free(nd);
   free(elneib);
   free(el2fnum);
+  free(iindex);
   return sc[0];  
 }
 /****************************************************************/
