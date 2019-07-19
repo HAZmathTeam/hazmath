@@ -475,8 +475,7 @@ input_grid *parse_input_grid(const char *input_file_grid)
     clndata[k][lengths[k]] = '\0';
   /* initialize */
   input_grid *g=malloc(1*sizeof(input_grid));    
-  /* ... PARSE ... */
-  /* strings */
+  /* ... PARSE ... strings */
   g->title=strdup(clndata[0]);
   g->dgrid=strdup(clndata[1]);
   g->fgrid=strdup(clndata[2]);
@@ -486,7 +485,7 @@ input_grid *parse_input_grid(const char *input_file_grid)
   iread=sscanf( clndata[10],"%d",&g->dim); // the dimension of the problem.
   iread=sscanf( clndata[11],"%d",&g->ncsys);//
   iread=sscanf( clndata[12],"%d",&g->nv);//
-  iread=sscanf( clndata[13],"%d",&g->ne);//
+  iread=sscanf( clndata[13],"%d",&g->ne);//  
   iread=sscanf( clndata[14],"%d",&g->nel);//
   iread=sscanf(clndata[15],"%d",&g->nf);//  
   iread=sscanf(clndata[16],"%d",&g->nref);//

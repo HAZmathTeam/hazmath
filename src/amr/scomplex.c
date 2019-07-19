@@ -159,7 +159,7 @@ void haz_scomplex_print(scomplex *sc, const INT ns0,\
   }
   for(i=0;i<nv;i++){
     in=i*n;
-    fprintf(stdout,"Node: %d ; COORDS=",i);
+    fprintf(stdout,"Node: %d ; Code: %d ; COORDS=",i,sc->bndry[i]);
     for(j=0;j<n;j++){
       fprintf(stdout,"%e  ",sc->x[in+j]);
     }
