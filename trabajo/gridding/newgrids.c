@@ -325,11 +325,12 @@ INT set_ndiv_edges(input_grid *g,		\
   return chng;
 }
 /************************************************************************/
-iCSRmat *set_mmesh(input_grid *g0,				\
-		   cube2simp *c2s,				\
-		   ivector *etree0,				\
+iCSRmat *set_mmesh(input_grid *g0,					\
+		   cube2simp *c2s,					\
+		   ivector *etree0,					\
 		   INT **elneib, INT **el2fnum,				\
 		   ivector *isbface0, ivector *bcodesf0,		\
+		   INT *cc,  INT *bndry_cc,				\
 		   INT *wrk)
 {
   /*prepare macro element mesh (mmesh) for passing to the mesh generator*/
@@ -385,16 +386,14 @@ iCSRmat *set_mmesh(input_grid *g0,				\
   INT *iblk=calloc((nel0+1),sizeof(INT));
   INT *jblk=calloc((nel0),sizeof(INT));
   // number of connected domains and boundaries;
-  INT nblkdom,nblkbnd;
-  dfs00_(&nel0,el2el->IA, el2el->JA,&nblkdom,iblk,jblk);
-  iblk=realloc(iblk,(nblkdom+1)*sizeof(INT));
-  fprintf(stdout,"\n%%DFS(domains): %d connected components",nblkdom);
+  dfs00_(&nel0,el2el->IA, el2el->JA,cc,iblk,jblk);
+  iblk=realloc(iblk,(*cc+1)*sizeof(INT));
   /*  prepare for bfs: remove diagonal in el2el */
   icsr_nodiag(el2el);
   etree0->row=el2el->row+1;
   etree0->val=calloc(etree0->row,sizeof(INT));
   INT *etree=etree0->val;
-  iCSRmat *bfs0=bfscc(nblkdom,iblk,jblk,el2el,etree);
+  iCSRmat *bfs0=bfscc(*cc,iblk,jblk,el2el,etree);
   /* construct element to face to element maps for macroelements */
   /*FACES******************************************************/
   INT nfaceall=g0->nel*c2s->nf-(el2el->nnz/2);
@@ -469,7 +468,7 @@ iCSRmat *set_mmesh(input_grid *g0,				\
 	isbface[kface]=1;
 	memcpy((f2v->JA+f2v->IA[kface]),facei,nvface*sizeof(INT));
 /* 
-in this way bcodesf[1-elneib[kel][ke]] gives us the code of the corresponding face;; this can also be linked to f2v and so on. 
+in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding face;; this can also be linked to f2v and so on. 
 */
 	el2fnum[kel][ke]=kface;
 	kface++;
@@ -482,8 +481,9 @@ in this way bcodesf[1-elneib[kel][ke]] gives us the code of the corresponding fa
   /*******************************************************************/    
   //  fprintf(stdout,"\nkface=%d  ? = ? %d\n",kface,f2v->nnz);
   /*ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ*/
+  INT cfbig=((INT )MARKER_BOUNDARY_NO)+1;
   for(i=0;i<nfaceall;i++){
-    bcodesf[i]=-1;
+    bcodesf[i]=-cfbig;
     j1=f2v->IA[i+1]-f2v->IA[i];
     //    fprintf(stdout,"\nnnz(%d)=%d",i,j1); 
     if(j1>0){
@@ -492,6 +492,7 @@ in this way bcodesf[1-elneib[kel][ke]] gives us the code of the corresponding fa
 	memcpy(facej,(g0->mfaces+je*(nvface+1)),nvface*sizeof(INT));
 	kbnd=g0->mfaces[je*(nvface+1)+nvface];
 	if(aresame(facei,facej,nvface)){
+	  // if the face was in the list, take its code.
 	  bcodesf[i]=kbnd;
 	  //	  fprintf(stdout,"\ncode:%d ",bcodesf[i]);
 	  //	  print_full_mat_int(1,nvface,facei,"facei");
@@ -501,6 +502,18 @@ in this way bcodesf[1-elneib[kel][ke]] gives us the code of the corresponding fa
       }
     }
   }
+  // set all interior faces faces with no code to 0 code and all
+  // boundary faces with no code to dirichlet code 1.
+  for(i=0;i<nfaceall;i++){
+    fprintf(stdout,"\n[%d]=%d",i,bcodesf[i]);
+    if(bcodesf[i]<(1-cfbig)){
+      if(isbface[i])bcodesf[i]=1;
+      else bcodesf[i]=0;
+    }
+  }
+  for(i=0;i<nfaceall;i++){
+    if(isbface[i] && (bcodesf[i]==0))bcodesf[i]=1;
+  }
   /***********************************************************************/
   /*Connected components on the boundaries. First find face to face map*/
   iCSRmat *v2f=malloc(1*sizeof(iCSRmat));
@@ -508,9 +521,11 @@ in this way bcodesf[1-elneib[kel][ke]] gives us the code of the corresponding fa
   iCSRmat *f2f=malloc(1*sizeof(iCSRmat));
   /*******************************************************************/    
   icsr_mxm(f2v,v2f,f2f);
-  /* now remove all rows in f2f that correspond to interior faces and
+  /* 
+     now remove all rows in f2f that correspond to interior faces and
      all entries that are not nvface/2, i.e. the number of vertices in
-     a (n-2) cube; */
+     a (n-2) cube;
+  */
   f2f->nnz=f2f->IA[0];
   for(i=0;i<f2f->row;i++){    
     j0=f2f->IA[i];
@@ -537,12 +552,11 @@ in this way bcodesf[1-elneib[kel][ke]] gives us the code of the corresponding fa
   f2f->val=realloc(f2f->val,f2f->nnz*sizeof(INT));
   /*******************************************************************/    
   icsr_free(v2f);
-  /* icsr_free(el2f); NOT USED */
   /*connected comps on the boundary*/
   iblk=realloc(iblk,(nfaceall+1)*sizeof(INT));
   jblk=realloc(jblk,(nfaceall)*sizeof(INT));
-  dfs00_(&nfaceall,f2f->IA, f2f->JA,&nblkbnd,iblk,jblk);
-  fprintf(stdout,"\n%%DFS(boundaries): %d connected components",nblkbnd-nfacei);
+  dfs00_(&nfaceall,f2f->IA, f2f->JA,bndry_cc,iblk,jblk);
+  *bndry_cc-=nfacei;
   //icsr_nodiag(f2f);
   icsr_free(f2f);
   free(iblk); 
