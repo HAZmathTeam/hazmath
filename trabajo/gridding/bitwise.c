@@ -1,18 +1,8 @@
 /************************************************************************/
 #include "hazmath.h"
-scomplex *umesh(INT *iindex,				\
-		INT *nsall0,				\
-		INT *nvall0,				\
-		const INT nsall,			\
-		const INT nvall,			\
-		const INT dim,				\
+scomplex *umesh(const INT dim,		\
 		INT *nd, cube2simp *c2s,		\
-		INT *isbndf, INT *codef,		\
-		INT elflag,				\
-		const INT face, const INT face_parent,	\
-		const scomplex *sc_parent,		\
-		INT *nd_parent,				\
-		INT *iindex_parent,			\
+		INT *isbndf, INT *codef,INT elflag,	\
 		const INT intype)
 {
   /* face is the face that matches the face_parent in the neighboring
@@ -39,7 +29,6 @@ scomplex *umesh(INT *iindex,				\
   // m is dim+1 so that we can handle even dimensions
   INT *m = (INT *)calloc(dim1,sizeof(INT));
   INT *mm = (INT *)calloc(dim1,sizeof(INT));
-  INT *mp = (INT *)calloc(dim1,sizeof(INT));
   INT *cnodes = (INT *)calloc(c2s->nvcube,sizeof(INT));  
   //  INT *icycle = (INT *)calloc(dim+1,sizeof(INT));
   INT nv=1,ns=1;
@@ -116,8 +105,8 @@ scomplex *umesh(INT *iindex,				\
     }    
   }
   INT cfbig=((INT )MARKER_BOUNDARY_NO)+100;
-  INT facei,isbf,bf,cf;
-  INT kfp,ijk,mi,mip,toskip,toadd;
+  INT facei,isbf,bf,cf,mi;
+  //  INT kfp,ijk,mi,mip,toskip,toadd;
   /******************************************************************/
   /*  
    *  when we come here, all boundary faces have codes and they are
@@ -172,67 +161,6 @@ scomplex *umesh(INT *iindex,				\
   for(kf=0;kf<sc->nv;kf++)
     if(sc->bndry[kf]>=cfbig) sc->bndry[kf]=0;      
   /******************************************************************/
-  /****************************************************************/
-  if(face>=0 && face_parent>=0 && (sc_parent!=NULL)){
-    //haz_scomplex_print(sc,0,"A123");
-    //    exit(55);
-    //    print_full_mat_int(1,c2s->nvface,(c2s->faces+face*c2s->nvface),"face");
-    //print_full_mat_int(1,c2s->nvface,(c2s->faces+face_parent*c2s->nvface),"facep");
-    if(face<dim){
-      mi=dim-(face+1);
-      toskip=0;
-    } else {
-      mi=dim-((face%dim)+1);
-      toskip=nd[mi];
-    }
-    if(face_parent<dim){
-      mip=dim-(face_parent+1);
-      toadd=0;
-    } else {
-      mip=dim-((face_parent%dim)+1);
-      toadd=nd_parent[mip];
-    }
-    //    fprintf(stdout,"\ntoskip =%d, toadd=%d,mi=%d,mip=%d",toskip,toadd,mi,mip);
-    nv=0;
-    for(kf=0;kf<sc->nv;kf++){
-      coord_lattice(m,dim,kf,sc->nv,nd);
-      if(m[mi]==toskip){
-	memcpy(mp,m,dim*sizeof(INT));
-	mp[mip]=toadd;
-	kfp=num_lattice(mp,dim,nd_parent);
-	//	fprintf(stdout,"\n%d<-->%d",kf+(*nvall0)+sc->nv,kfp+(*nvall0));
-	iindex[kf]=-abs(iindex_parent[kfp]);
-	//	print_full_mat_int(1,c2s->n,nd,"ndnd");
-	//	print_full_mat_int(1,c2s->n,nd_parent,"ndndp");
-	//	print_full_mat_int(1,c2s->n,m,"m");
-	//	print_full_mat_int(1,c2s->n,mp,"mp");
-	/* fprintf(stdout,"\nskipping kf=%d, kfp=%d",kf,kfp); */
-	/* fprintf(stdout,"\noldx=("); */
-	/* for(ijk=0;ijk<dim;ijk++) */
-	/*   fprintf(stdout,"%.5e ", sc_parent->x[kfp*dim+ijk]); */
-	/* fprintf(stdout,"); newx=["); */
-	/* for(ijk=0;ijk<dim;ijk++) */
-	/*   fprintf(stdout,"%.5e ", sc->x[kf*dim+ijk]); */
-      } else {
-	iindex[kf]=nv+(*nvall0);
-	nv++;
-      }
-    }    
-  } else {
-    for(kf=0;kf<sc->nv;kf++) iindex[kf]=kf+(*nvall0);
-  }
-  INT neg=0;
-  for(kf=0;kf<sc->nv;kf++){
-    if(iindex[kf]<0) neg++;
-    fprintf(stdout,"\n%d<-->%d",kf,iindex[kf]);
-  }
-  *nvall0+=nv;
-  *nsall0+=sc->ns;
-  fprintf(stdout,"\nthis element: %d; negative: %d; nv: %d; nvall0: %d",sc->nv,neg,nv,*nvall0);
-  fprintf(stdout,"\n");
-  if(m) free(m);
-  if(mp) free(mp);
-  if(mm) free(mm);
   return sc;
 }
 /**************************************************************************/
