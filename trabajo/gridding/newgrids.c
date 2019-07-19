@@ -18,8 +18,7 @@
 #ifndef REAL
 #define REAL double
 #endif
-/********************************FINCTIONS:*********************/
-/*********************************************************************/
+/********************************FINCTIONS:****************************/
 /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 void set_edges(input_grid *g0,cube2simp *c2s)
 {
@@ -325,22 +324,49 @@ INT set_ndiv_edges(input_grid *g,		\
   return chng;
 }
 /************************************************************************/
-iCSRmat *set_mmesh(input_grid *g0,					\
-		   cube2simp *c2s,					\
-		   ivector *etree0,					\
-		   INT **elneib, INT **el2fnum,				\
-		   ivector *isbface0, ivector *bcodesf0,		\
-		   INT *cc,  INT *bndry_cc,				\
-		   INT *wrk)
+macrocomplex *set_mmesh(input_grid *g0,					\
+		cube2simp *c2s,						\
+		INT *wrk)
 {
   /*prepare macro element mesh (mmesh) for passing to the mesh generator*/
   /*wrk is working integer array should have at least size 2*nvcube+2 */
   INT i,j0,j1,kel,jel,ke;
-  INT nel0=g0->nel,nvcube=c2s->nvcube,nvface=c2s->nvface;
-  INT je,kj,k2,iel2v,jel2v,k1,kface,kbnd,found;
+  INT nvcube=c2s->nvcube,nvface=c2s->nvface;
+  INT nel0,je,kj,k2,iel2v,jel2v,k1,kface,kbnd,found;
   INT *p=wrk; 
-  INT *mnodes=p+nvcube+1; 
-  //  print_full_mat_int(g0->nel,(c2s->nvcube+1),g0->mnodes,"ex");
+  INT *mnodes=p+nvcube+1;
+  /*macro complex creation:)*/
+  macrocomplex *mc=malloc(1*sizeof(macrocomplex));
+  mc->nel=nel0=g0->nel; //important to set;
+  mc->cc=mc->bndry_cc=1;
+  mc->nf=mc->nfi=mc->nfb=-1;
+  /*macro complex allocation*/
+  /********************************************************************/
+  mc->flags=calloc(mc->nel,sizeof(INT));
+  /**/
+  mc->nd=NULL;//later.
+  mc->elneib=calloc(mc->nel,sizeof(INT *));
+  mc->el2fnum=calloc(mc->nel,sizeof(INT *)); 
+  mc->iindex=calloc(mc->nel,sizeof(INT *)); 
+  for(i=0;i<g0->nel;i++){
+    mc->elneib[i]=calloc(c2s->nf,sizeof(INT)); /* to hold the neighbors */
+    mc->el2fnum[i]=calloc(c2s->nf,sizeof(INT)); /* to hold the face
+						   numbers for every
+						   element */
+    mc->iindex[i]=NULL;//later, when nd is known;
+  }
+  /**/
+  INT **elneib=mc->elneib;
+  INT **el2fnum=mc->el2fnum;
+  mc->etree=calloc((mc->nel+1),sizeof(INT));
+  INT *etree=mc->etree;
+  mc->bcodesf=NULL; /* later when num faces is known*/
+  mc->isbface=NULL; /* later when num faces is known*/
+  mc->bfs=NULL; /* later when bfs is called*/
+  mc->fullel2el=NULL; /* later when el2el is formed*/
+  /********************************************************************/
+  /* let us also allocate all the rest here */
+  /*  print_full_mat_int(g0->nel,(c2s->nvcube+1),g0->mnodes,"ex");*/
   ilexsort(g0->nf, (c2s->nvface+1),g0->mfaces,p);
   ilexsort(g0->nel,(c2s->nvcube+1),g0->mnodes,p);
   /*-------------------------------------------------------------------*/
@@ -358,6 +384,18 @@ iCSRmat *set_mmesh(input_grid *g0,					\
   iCSRmat *el2el=malloc(1*sizeof(iCSRmat));
   icsr_mxm(el2v,v2el,el2el);
   icsr_free(v2el);
+  /* create fullel2el for later and work here with the copy */
+  iCSRmat *fullel2el=malloc(1*sizeof(iCSRmat));
+  fullel2el[0]=icsr_create(el2el->row,el2el->col,el2el->nnz);  
+  memcpy(fullel2el->IA,el2el->IA,(fullel2el->row+1)*sizeof(INT));
+  memcpy(fullel2el->JA,el2el->JA,(fullel2el->nnz)*sizeof(INT));
+  memcpy(fullel2el->val,el2el->val,(fullel2el->nnz)*sizeof(INT));
+  /***********************************************************/  
+  icsr_tri(fullel2el,'u');
+  icsr_nodiag(fullel2el);
+  /***********************************************************/  
+  mc->fullel2el=fullel2el;
+  /***********************************************************/  
   /*   shrink the el2el matrix by removing any entry with value not
        equal to nvface; */
   el2el->nnz=el2el->IA[0];
@@ -386,29 +424,24 @@ iCSRmat *set_mmesh(input_grid *g0,					\
   INT *iblk=calloc((nel0+1),sizeof(INT));
   INT *jblk=calloc((nel0),sizeof(INT));
   // number of connected domains and boundaries;
-  dfs00_(&nel0,el2el->IA, el2el->JA,cc,iblk,jblk);
-  iblk=realloc(iblk,(*cc+1)*sizeof(INT));
+  dfs00_(&nel0,el2el->IA, el2el->JA,&mc->cc,iblk,jblk);
+  iblk=realloc(iblk,(mc->cc+1)*sizeof(INT));
   /*  prepare for bfs: remove diagonal in el2el */
   icsr_nodiag(el2el);
-  etree0->row=el2el->row+1;
-  etree0->val=calloc(etree0->row,sizeof(INT));
-  INT *etree=etree0->val;
-  iCSRmat *bfs0=bfscc(*cc,iblk,jblk,el2el,etree);
+  mc->bfs=bfscc(mc->cc,iblk,jblk,el2el,etree);
   /* construct element to face to element maps for macroelements */
   /*FACES******************************************************/
-  INT nfaceall=g0->nel*c2s->nf-(el2el->nnz/2);
-  INT nfacei=(INT )(el2el->nnz/2);
-  INT nfaceb=nfaceall-nfacei;
+  mc->nf=g0->nel*c2s->nf-(el2el->nnz/2);
+  mc->nfi=(INT )(el2el->nnz/2);
+  mc->nfb=mc->nf-mc->nfi;
   // face to vertex:
   iCSRmat *f2v=malloc(sizeof(iCSRmat));
-  f2v[0]=icsr_create(nfaceall,g0->nv,nvface*nfaceall);
+  f2v[0]=icsr_create(mc->nf,g0->nv,nvface*mc->nf);
   /**/
-  bcodesf0->val=calloc(nfaceall,sizeof(INT));
-  isbface0->val=calloc(nfaceall,sizeof(INT));
-  INT *bcodesf=bcodesf0->val;
-  INT *isbface=isbface0->val;
-  isbface0->row=nfaceall;
-  bcodesf0->row=nfaceall;
+  mc->bcodesf=calloc(mc->nf,sizeof(INT));
+  mc->isbface=calloc(mc->nf,sizeof(INT));
+  INT *bcodesf=mc->bcodesf;
+  INT *isbface=mc->isbface;
   /*init*/
   /*-------------------------------------------------------------------*/
   for(kel=0;kel<g0->nel;kel++){
@@ -419,7 +452,7 @@ iCSRmat *set_mmesh(input_grid *g0,					\
   }
   /*-------------------------------------------------------------------*/
   f2v->IA[0]=0;
-  for(i=0;i<nfaceall;i++){
+  for(i=0;i<mc->nf;i++){
     f2v->IA[i+1]=f2v->IA[i]+nvface;
     isbface[i]=0;
   }
@@ -476,13 +509,13 @@ in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding fa
     }
   }
   /*****************************************************/
-  for(i=0;i<f2v->IA[nfaceall];i++)
+  for(i=0;i<f2v->IA[mc->nf];i++)
     f2v->val[i]=1;
   /*******************************************************************/    
   //  fprintf(stdout,"\nkface=%d  ? = ? %d\n",kface,f2v->nnz);
   /*ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ*/
   INT cfbig=((INT )MARKER_BOUNDARY_NO)+1;
-  for(i=0;i<nfaceall;i++){
+  for(i=0;i<mc->nf;i++){
     bcodesf[i]=-cfbig;
     j1=f2v->IA[i+1]-f2v->IA[i];
     //    fprintf(stdout,"\nnnz(%d)=%d",i,j1); 
@@ -504,14 +537,14 @@ in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding fa
   }
   // set all interior faces faces with no code to 0 code and all
   // boundary faces with no code to dirichlet code 1.
-  for(i=0;i<nfaceall;i++){
+  for(i=0;i<mc->nf;i++){
     fprintf(stdout,"\n[%d]=%d",i,bcodesf[i]);
     if(bcodesf[i]<(1-cfbig)){
       if(isbface[i])bcodesf[i]=1;
       else bcodesf[i]=0;
     }
   }
-  for(i=0;i<nfaceall;i++){
+  for(i=0;i<mc->nf;i++){
     if(isbface[i] && (bcodesf[i]==0))bcodesf[i]=1;
   }
   /***********************************************************************/
@@ -553,10 +586,10 @@ in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding fa
   /*******************************************************************/    
   icsr_free(v2f);
   /*connected comps on the boundary*/
-  iblk=realloc(iblk,(nfaceall+1)*sizeof(INT));
-  jblk=realloc(jblk,(nfaceall)*sizeof(INT));
-  dfs00_(&nfaceall,f2f->IA, f2f->JA,bndry_cc,iblk,jblk);
-  *bndry_cc-=nfacei;
+  iblk=realloc(iblk,(mc->nf+1)*sizeof(INT));
+  jblk=realloc(jblk,(mc->nf)*sizeof(INT));
+  dfs00_(&mc->nf,f2f->IA, f2f->JA,&mc->bndry_cc,iblk,jblk);
+  mc->bndry_cc-=mc->nfi;
   //icsr_nodiag(f2f);
   icsr_free(f2f);
   free(iblk); 
@@ -564,11 +597,11 @@ in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding fa
 
   /*now use the bfs*/
   INT lvl,keok,swp,keswp;
-  for(lvl=0;lvl<bfs0->row;lvl++){
-    j0=bfs0->IA[lvl];
-    j1=bfs0->IA[lvl+1];
+  for(lvl=0;lvl<mc->bfs->row;lvl++){
+    j0=mc->bfs->IA[lvl];
+    j1=mc->bfs->IA[lvl+1];
     for(kj=j0;kj<j1;kj++){
-      jel=bfs0->JA[kj];
+      jel=mc->bfs->JA[kj];
       kel=etree[jel];// ancestor, this stays unchanged
       if(kel>=0){
 	je=locate0(jel,elneib[kel], c2s->nf);
@@ -610,11 +643,11 @@ in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding fa
   //  print_full_mat_int(g0->nel,c2s->nvcube+1,g0->mnodes,"mel0");
   /**** FINAL REORDER: make the vertices order in shared faces the
 	same!!! ***/
-  for(lvl=0;lvl<bfs0->row;lvl++){
-    j0=bfs0->IA[lvl];
-    j1=bfs0->IA[lvl+1];
+  for(lvl=0;lvl<mc->bfs->row;lvl++){
+    j0=mc->bfs->IA[lvl];
+    j1=mc->bfs->IA[lvl+1];
     for(kj=j0;kj<j1;kj++){
-      jel=bfs0->JA[kj];
+      jel=mc->bfs->JA[kj];
       kel=etree[jel];// ancestor, this stays unchanged
       //      if(kel<0){
       //	fprintf(stdout,"\n%%splitting element=%d",jel);
@@ -658,12 +691,14 @@ in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding fa
     }
   }
   //  print_full_mat_int(g0->nel,c2s->nvcube+1,g0->mnodes,"mel1");
-  icsr_free(el2v);
-  icsr_free(f2v);
-  icsr_free(el2el);
   /*****************************************************/    
   fprintf(stdout,"\n"); 
   /*****************************************************/
-  return bfs0;
+  icsr_free(el2v);
+  icsr_free(f2v);
+  icsr_free(el2el);
+  mc->elneib=elneib;
+  mc->el2fnum=el2fnum;
+  return mc;
 }
 /*******************************************************************/
