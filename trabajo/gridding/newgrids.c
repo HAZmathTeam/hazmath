@@ -19,6 +19,80 @@
 #define REAL double
 #endif
 /********************************FINCTIONS:****************************/
+/************************************************************************/
+REAL interp8(cube2simp *c2s, REAL *u, REAL *ue, REAL *xhat)
+{
+  /*INTerpolate quadratically in d dimensions on the UNIT cube */
+  INT dim=c2s->n,k,i,k1,k2,kdim;  
+  REAL phik,zmid,psimid;
+  REAL s=0.;
+  for(k = 0;k<c2s->nvcube;k++){
+    kdim=k*dim;
+    phik=1e0;
+    for(i = 0;i<dim;++i){      
+      if(!c2s->bits[kdim+i]){
+	phik*=(1e0-xhat[i]);
+	//	fprintf(stdout,"\nold:%d:vert:(1-x[%d])",k,i);
+      } else {
+	phik*=xhat[i];
+	//	fprintf(stdout,"\nold:%d:vert:x[%d]",k,i);
+      }
+    }
+    psimid=0.;zmid=0.;
+    //    fprintf(stdout,"\nvertex=%d; normal=",k);
+    for(i=0;i<dim;++i){
+      if(!c2s->bits[kdim+i]){
+	psimid-=xhat[i];
+	zmid+=0.25e00;
+	//	fprintf(stdout,"\n%d:vert:(-x[%d])",k,i);
+      } else {
+	psimid+=xhat[i];
+	zmid-=0.75e00;
+	//	fprintf(stdout,"\n%d:vert:x[%d]",k,i);
+      }
+    }
+    //    fprintf(stdout,"\n%d:zmid=%5.1f",k,zmid);
+    phik*=2e00*(zmid+psimid);
+    s+=u[k]*phik;
+  }
+  REAL se,phie;
+  se=0.;
+  for(k=0;k<c2s->ne;k++){
+    k2=c2s->edges[2*k];    
+    k1=c2s->edges[2*k+1];
+    //    fprintf(stdout,"\nmid=(%d,%d);",k1,k2);
+    phie=1e0;
+    for(i = 0;i<dim;++i){      
+      if(!c2s->bits[k1*dim+i]){
+	phie*=(1e0-xhat[i]);
+	//	fprintf(stdout,"\n1:(1-x[%d])",i);
+      } else {
+	phie*=xhat[i];
+	//	fprintf(stdout,"\n1:x[%d]",i);
+      }
+    }
+    for(i = 0;i<dim;++i){      
+      if(c2s->bits[k2*dim+i]==c2s->bits[k1*dim+i]) continue;
+      if(!c2s->bits[k2*dim+i]){
+	phie*=(1e0-xhat[i]);
+	//	fprintf(stdout,"\n2:(1-x[%d])=%e",i,1.-xhat[i]);
+      } else {
+	phie*=xhat[i];
+	//	fprintf(stdout,"\n2:x[%d]=%e",i,xhat[i]);
+      }
+    }
+    phie*=4e00;
+    fprintf(stdout,"\nedge=(%d,%d),coord=%e,phie=%e",k1,k2,ue[k],phie);
+    se+=ue[k]*phie;
+  }
+  //  fprintf(stdout,"\n");
+  //  fprintf(stdout,"\n***************** xhat=(%e,%e):%e",xhat[0],xhat[1],se);
+  //  fprintf(stdout,"\ns=%e",s);
+  //  fprintf(stdout,"\n");
+  exit(99);
+  return (s+se);
+}
+/**********************************************************************/
 /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 void set_edges(input_grid *g0,cube2simp *c2s)
 {
@@ -159,20 +233,18 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
       xemac[i*dim+j]=0.5*(xmac[k1*dim+j]+xmac[k2*dim+j]);
     }
   }
-  //  print_full_mat(c2s->nvcube,dim,xmac,"X");
+  print_full_mat(c2s->nvcube,dim,xmac,"X");
+  print_full_mat(c2s->ne,dim,xemac,"XE");
   r2c(c2s->nvcube,dim,sizeof(REAL),xmac); // we need xmac by rows here
   r2c(c2s->ne,dim,sizeof(REAL),xemac); // we need xemac (mid points of
 				       // edges) also by rows
   for(kf=0;kf<sc->nv;kf++){
     for(i=0;i<dim;i++)xhat[i]=sc->x[kf*dim+i];
-    //    print_full_mat(1,dim,xhat,"Xhat{1}");
-    //    fprintf(stdout,"\nkf=%d",kf);
     for(i=0;i<dim;i++){
       sc->x[kf*dim+i]=interp8(c2s,xmac+i*c2s->nvcube,xemac+i*c2s->ne,xhat);
-      //      sc->x[kf*dim+i]=interp4(c2s,xmac+i*c2s->nvcube,xhat);
+      //sc->x[kf*dim+i]=interp4(c2s,xmac+i*c2s->nvcube,xhat);
     }
     //    for(i=0;i<dim;i++){
-      //      fprintf(stdout,"-->sc->x[kf*dim+i]=interp8(c2s,xmac+i*c2s->nvcube,xemac+i*c2s->ne,xhat);
       //      sc->x[kf*dim+i]=interp4(c2s,xmac+i*c2s->nvcube,xhat);
     //    }
   }
