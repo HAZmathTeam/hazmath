@@ -32,7 +32,9 @@ REAL interp4(cube2simp *c2s, REAL *u, REAL *xhat)
 REAL interp8(cube2simp *c2s, REAL *u, REAL *ue, REAL *xhat)
 {
   /*INTerpolate quadratically in d dimensions on the UNIT cube */
-  INT dim=c2s->n,k,i,k1,k2,kdim;  
+  INT dim=c2s->n,k,i,k1,k2,kdim;
+  REAL c1mid_guess=0.5/((REAL )dim);
+  REAL c2mid_guess=1.-c1mid_guess;
   REAL phik,zmid,psimid;
   REAL s=0.;
   for(k = 0;k<c2s->nvcube;k++){
@@ -52,18 +54,18 @@ REAL interp8(cube2simp *c2s, REAL *u, REAL *ue, REAL *xhat)
     for(i=0;i<dim;++i){
       if(!c2s->bits[kdim+i]){
 	psimid-=xhat[i];
-	zmid+=0.25e00;
+	zmid+=c1mid_guess;//was 0.25e00;
 	//	fprintf(stdout,"\n%d:vert:(-x[%d])",k,i);
       } else {
 	psimid+=xhat[i];
-	zmid-=0.75e00;
+	zmid-=c2mid_guess;//was 0.75
 	//	fprintf(stdout,"\n%d:vert:x[%d]",k,i);
       }
     }
     //    fprintf(stdout,"\n%d:zmid=%5.1f",k,zmid);
     phik*=2e00*(zmid+psimid);
     s+=u[k]*phik;
-  }
+  }  
   REAL se,phie;
   se=0.;
   for(k=0;k<c2s->ne;k++){
@@ -98,6 +100,7 @@ REAL interp8(cube2simp *c2s, REAL *u, REAL *ue, REAL *xhat)
   //  fprintf(stdout,"\n***************** xhat=(%e,%e):%e",xhat[0],xhat[1],se);
   //  fprintf(stdout,"\ns=%e",s);
   //  fprintf(stdout,"\n");
+  //  exit(99);
   return (s+se);
 }
 /**********************************************************************/
