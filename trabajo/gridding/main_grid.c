@@ -208,7 +208,7 @@ void *fix_grid(macrocomplex *mc,		\
 	      fprintf(stdout,": oldx=(");
 	      for(ijk=0;ijk<dim;ijk++)
 		fprintf(stdout,"%.5e ", scp->x[kfp*dim+ijk]);
-	      sc->bndry[kfp]=-100;
+	      scp->bndry[kfp]=-100;
 	      fprintf(stdout,"); newx=[");
 	      for(ijk=0;ijk<dim;ijk++)
 		fprintf(stdout,"%.5e ", sc->x[kf*dim+ijk]);
@@ -447,14 +447,14 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
     nvall+=sc[jel]->nv;
     //      fprintf(stdout,"\n%%Mapping back to the macroelement...\n");
     map2mac(sc[jel],c2s,g);
-    fprintf(stdout,"\n%%mesh(macroelement=%d): nv=%d; nsimp=%d",jel,sc[jel]->nv,sc[jel]->ns);      
-    haz_scomplex_print(sc[jel],0,"HAHA");
+    //    fprintf(stdout,"\n%%mesh(macroelement=%d): nv=%d; nsimp=%d",jel,sc[jel]->nv,sc[jel]->ns);      
+    //    haz_scomplex_print(sc[jel],0,"HAHA");
   }
   fix_grid(mc,			\
 	   sc,			\
 	   c2s,			\
 	   g0);
-  scomplex_merge(sc,			\
+  scomplex_merge(sc,				\
 		 nsall, nvall,			\
 		 mc->cc, mc->bndry_cc,		\
 		 g0,c2s);
