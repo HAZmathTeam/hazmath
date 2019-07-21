@@ -16,8 +16,8 @@ EXTENSION = ex
 CC = gcc
 FC = gfortran
 CXX = g++
-CFLAGS = -g -Wall
-FFLAGS = -g -fno-second-underscore
+CFLAGS = -O -Wall
+FFLAGS = -O -fno-second-underscore
 ExtraFLAGS =
 
 HAZLIB = $(HAZDIR)/lib

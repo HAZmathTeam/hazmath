@@ -177,29 +177,29 @@ void unirefine(INT *nd,scomplex *sc)
   INT ndmax=-1,i=-1,j=-1;
   for(i=0;i<sc->n;i++)
     if(ndmax<nd[i]) ndmax=nd[i];
-  fprintf(stdout,"\nmax split=%d",ndmax);
+  //  fprintf(stdout,"\nmax split=%d",ndmax);
   REAL sref=log2((REAL )ndmax);
   if(sref-floor(sref)<1e-3)
     sref=floor(sref);
   else
     sref=floor(sref)+1.;
   INT ref_levels= sc->n*((INT )sref);
-  fprintf(stdout,"\nlog2 of the max=%e, l=%d",log2((REAL )ndmax)+1,ref_levels);
+  //  fprintf(stdout,"\nlog2 of the max=%e, l=%d",log2((REAL )ndmax)+1,ref_levels);
   find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
   haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
   INT *wrk=calloc(5*(sc->n+2),sizeof(INT));
   /* construct bfs tree for the dual graph */
-  abfstree(0,sc,wrk);
+  abfstree(0,sc,wrk,0);
   free(wrk);
   ref_levels=0;
   if(ref_levels<=0) return;
-  INT nsold;//ns,nvold,level;
+  INT nsold,print_level=0;//ns,nvold,level;
   if(!sc->level){
     /* form neighboring list; */
     find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
     //    haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
     /* construct bfs tree for the dual graph */
-    abfstree(0,sc,wrk);
+    abfstree(0,sc,wrk,print_level=0);
     //    haz_scomplex_print(sc,0,__FUNCTION__);fflush(stdout);
     //    exit(100);
   }
