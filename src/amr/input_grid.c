@@ -505,3 +505,307 @@ input_grid *parse_input_grid(const char *input_file_grid)
   return g;
 }
 /********************************************************************/
+/********************************FINCTIONS:****************************/
+/*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
+void set_edges(input_grid *g0,cube2simp *c2s)
+{
+  /*adds missing edges to input grid*/
+  INT newne,i,j,k,kel,ke,swp,cols;
+  INT j01[2],k01[2];
+  INT nvcube=c2s->nvcube;
+  cols=3;
+  INT *newseg=calloc(cols*c2s->ne*g0->nel,sizeof(INT));
+  INT *mnodes=calloc(c2s->nvcube,sizeof(INT));
+  newne=0;
+  INT found=0;
+  for(kel=0;kel<g0->nel;kel++){
+    memcpy(mnodes,(g0->mnodes+kel*(nvcube+1)),(nvcube+1)*sizeof(INT));
+    for(i=0;i<c2s->ne;i++){
+      j01[0]=mnodes[c2s->edges[2*i]];
+      j01[1]=mnodes[c2s->edges[2*i+1]];
+      if(j01[0]>j01[1]){swp=j01[0];j01[0]=j01[1];j01[1]=swp;}
+      found=0;
+      for(ke=0;ke<g0->ne;ke++){
+	k01[0]=g0->seg[cols*ke];
+	k01[1]=g0->seg[cols*ke+1];
+	if((k01[0]==j01[0])&&(k01[1]==j01[1])){
+	  found=1;break;
+	}      
+      }
+      if(!found){
+	newseg[cols*newne]=j01[0];
+	newseg[cols*newne+1]=j01[1];
+	newseg[cols*newne+2]=1;
+	newne++;
+      }
+    }
+  }
+  //  fprintf(stdout,"\n**** newne=%d",newne); fflush(stdout);
+  if(!newne){
+    free(newseg);
+    free(mnodes);
+    return;
+  }
+  newseg=realloc(newseg,cols*newne*sizeof(INT));
+  INT *p=calloc(newne,sizeof(INT));
+  ilexsort(newne, cols,newseg,p);  
+  // print_full_mat_int(newne,cols,newseg,"newseg");
+  free(p);
+  // remove dupps
+  INT m,li1,ic[cols];
+  k=newne-1;
+  i=0;j=0;
+  while (i<k){
+    if(j==0) {for(m=0;m<cols;m++) {newseg[m]=newseg[cols*i+m];}}
+    for(m=0;m<cols;m++)  {ic[m]=newseg[cols*j+m];}
+    while(i<k) {
+      li1=0;
+      for(m=0;m<cols;m++){li1+=abs(ic[m]-newseg[cols*i+cols+m]);}
+      if(li1>0){
+  	j++;i++;
+  	for(m=0;m<cols;m++){newseg[cols*j+m]=newseg[cols*i+m];}
+  	break;
+      }
+      i++;
+      //      fprintf(stdout,"i=%i\n",i);
+    }
+    //    fprintf(stdout,"i=%i, j=%i\n",i,j);
+  }
+  i++;j++; newne=j;
+  //  print_full_mat_int(g0->ne,cols,g0->seg,"newseg");
+  g0->seg=realloc(g0->seg,(cols*(g0->ne+newne))*sizeof(INT));
+  memcpy((g0->seg+cols*g0->ne),newseg,cols*newne*sizeof(INT));
+  g0->ne+=newne;
+  free(newseg);
+  free(mnodes);
+  return;
+}
+void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
+{
+  /* 
+     maps a uniform grid from the n-dimensional cube to a hexagonal 
+     macroelement from an initial grid of macroelements 
+     given by its coordinates xmac[1:nvcube*dim]
+     xmac[nvcube][dim]
+  */
+  INT i,j,k1,k2,k1c,kf,dim=sc->n;
+  //  INT k2c;
+  INT ksys;
+  REAL *xmac=g->xv;  
+  REAL *xhat = (REAL *)calloc(dim,sizeof(REAL));
+  REAL *xemac=(REAL *)calloc(c2s->ne*dim,sizeof(REAL));
+  // convert midpoints from polar to cartesian.
+  //  print_full_mat(c2s->nvcube,c2s->n,g->xv,"X{1}");
+  for(i=0;i<c2s->ne;i++){
+    k1=c2s->edges[2*i];
+    k2=c2s->edges[2*i+1];
+    k1c=g->systypes[g->csysv[k1]];
+    //    k2c=g->systypes[g->csysv[k2]];
+    //    fprintf(stdout,"\nverts=(%d,%d); coord_sys=(%d,%d)",k1,k2,k1c,k2c);fflush(stdout);
+    if(g->csysv[k1]==g->csysv[k2] && k1c==1){
+      //use xhat as a temp array:
+      xhat[0]=0.5*(xmac[k1*dim]+xmac[k2*dim]);// this is rho
+      // take half angles;
+      for(j=1;j<dim;j++) {
+	xhat[j]=0.5*(xmac[k1*dim+j]+xmac[k2*dim+j]);
+      }
+      polar2cart(dim,xhat,xemac+(i*dim));
+      // translate by adding the origin. 
+      ksys=g->csysv[k1];// k1c and k2c should be the same below. 
+			      //      k2c=g->csysv[k2];
+      for(j=0;j<dim;j++) {
+	xemac[i*dim+j]+=g->ox[ksys*dim+j];
+      }
+    }
+  }
+  // end of mid points in polar;
+  // now convert all vertices in cartesian as well. 
+  for(i=0;i<c2s->nvcube;i++){
+    k1c=g->systypes[g->csysv[i]];
+    if(k1c==1){
+      memcpy(xhat,xmac+i*dim,dim*sizeof(REAL));
+      polar2cart(dim,xhat,xmac+(i*dim));
+      //      translate
+    }
+    ksys=g->csysv[i];
+    for(j=0;j<dim;j++) {
+      xmac[i*dim+j]+=g->ox[ksys*dim+j];
+    }
+  }
+  // now everything is in cartesian, so midpoints that are
+  // not yet attended to are just averages.
+  for(i=0;i<c2s->ne;i++){
+    k1=c2s->edges[2*i];
+    k2=c2s->edges[2*i+1];
+    k1c=g->systypes[g->csysv[k1]];
+    //    k2c=g->systypes[g->csysv[k2]];
+    //skip all polar mid points
+    if(g->csysv[k1]==g->csysv[k2] && k1c==1) continue;
+    //    fprintf(stdout,"\ncart:verts=(%d,%d); coord_sys=(%d,%d)",k1,k2,k1c,k2c);fflush(stdout);
+    for(j=0;j<dim;j++) {
+      xemac[i*dim+j]=0.5*(xmac[k1*dim+j]+xmac[k2*dim+j]);
+    }
+  }
+  //print_full_mat(c2s->nvcube,dim,xmac,"X");
+  //print_full_mat(c2s->ne,dim,xemac,"XE");
+  r2c(c2s->nvcube,dim,sizeof(REAL),xmac); // we need xmac by rows here
+  r2c(c2s->ne,dim,sizeof(REAL),xemac); // we need xemac (mid points of
+				       // edges) also by rows
+  for(kf=0;kf<sc->nv;kf++){
+    for(i=0;i<dim;i++)xhat[i]=sc->x[kf*dim+i];
+    for(i=0;i<dim;i++){
+      sc->x[kf*dim+i]=interp8(c2s,xmac+i*c2s->nvcube,xemac+i*c2s->ne,xhat);
+      //sc->x[kf*dim+i]=interp4(c2s,xmac+i*c2s->nvcube,xhat);
+    }
+    //    for(i=0;i<dim;i++){
+      //      sc->x[kf*dim+i]=interp4(c2s,xmac+i*c2s->nvcube,xhat);
+    //    }
+  }
+  //  r2c(dim,c2s->nvcube,sizeof(REAL),xmac); // we need xmac by columns here
+  //  r2c(dim,c2s->ne,sizeof(REAL),xemac); // we need xemac by rows agin
+  if(xhat) free(xhat);
+  if(xemac) free(xemac);
+  return;
+}
+/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
+INT *set_input_grid(input_grid *g,cube2simp *c2s)
+{
+  /* 
+     Every edge is put into a subset, i.e. two edges (v(i1),v(i2)) and
+     (v(j1),v(j2)) are considered equivalent iff (i2-i1)=(j2-j1).  The
+     number of divisions in an equivalent set of edges is taken to be
+     the largest from the equivalence class.  OUTPUT array is a "dim"
+     array and for each direction gives the number of partitions.
+  */
+  INT i,j,k,iri,ici,pmem;
+  pmem=2*g->nv;
+  if(pmem<2*g->ne) pmem=2*g->ne;
+  if(pmem<2*g->nel) pmem=2*g->nel;
+  if(pmem<2*g->nf) pmem=2*g->nf;
+  INT *p=calloc(pmem,sizeof(INT));// permutation and inverse permutation;
+  //
+  memset(p,0,pmem);
+  for (i=0;i<g->ne;i++){
+    iri=g->seg[3*i];
+    ici=g->seg[3*i+1];
+    if(iri<ici){
+      g->seg[3*i]=iri;
+      g->seg[3*i+1]=ici;
+    } else {
+      g->seg[3*i]=ici;
+      g->seg[3*i+1]=iri;
+    }
+    /* set up divisions */
+    j=g->seg[3*i+1]-g->seg[3*i]; // should be always positive;
+    //    fprintf(stdout,"\n%%z123=%d:(%d,%d);%d",i,3*i,3*i+1,g0->seg[3*efound[i]+2]);
+    if(g->seg[3*i+2]>p[j])
+      p[j]=g->seg[3*i+2];
+  } 
+  for (i=0;i<g->ne;i++){
+    j=g->seg[3*i+1]-g->seg[3*i];
+    g->seg[3*i+2]=p[j]; 
+    //    fprintf(stdout,"\n[%d,%d]:div=%d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
+  }
+  for (i=0;i<g->ne;i++){
+    j=g->seg[3*i+1]-g->seg[3*i];
+    g->seg[3*i+2]=p[j]; 
+    //    fprintf(stdout,"\n[%d,%d]:div=%d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
+  }
+  /*ORDER*/
+  ilexsort(g->ne, 3,g->seg,p);
+  k=0;
+  for (i=0;i<g->ne;i++){
+    if(g->seg[3*i]) continue;
+    //    j=g->seg[3*i+1]-g->seg[3*i]-1;
+    p[k]=g->seg[3*i+2];
+    k++;
+    //    fprintf(stdout,"\n[%d,%d]:div=%d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
+  }
+  p=realloc(p,g->dim*sizeof(INT)); // realloc to dimension g->dim
+  //  for (i=0;i<g->dim;i++){
+  //    fprintf(stdout,"\ndirection:%d; div=%d",i,p[i]);
+  //  }
+  //  input_grid_print(g);
+  //  print_full_mat_int(g->ne,3,g->seg,"med");
+  //  print_full_mat_int(g->nf,(c2s->nvface+1),g->mfaces,"mf");
+  //  print_full_mat_int(g->nel,(c2s->nvcube+1),g->mnodes,"mel");
+  return p;
+}
+/***********************************************************************/
+INT set_ndiv_edges(input_grid *g,		\
+		   input_grid *g0,		\
+		   cube2simp *c2s,		\
+		   INT **nd,			\
+		   const INT iter)
+{
+  /* 
+     For a given global input grid g0 creates local input grids for
+     every macroelement and computes the divisions in each direction
+     for it. It is used iteratively in macro_split to se the correct
+     divisions for every macroelement.  The input_grid *g0 should be
+     all set, and the input_grid *g should have all its scalar values
+     set.  nd is the array with the divisions, it must be g0->nel by
+     c2s->n.
+  */
+  INT kel0,i,j0,j1,swp,kel,ke,k0,k1,ndiv;
+  INT nel0=g0->nel,nvcube=c2s->nvcube;
+  /*for easier reference*/
+  INT *efound=calloc(c2s->ne*(g0->nel+1),sizeof(INT));
+  INT *e0found=efound + c2s->ne;
+  for(i=0;i<g0->ne;i++)e0found[i]=-1;
+  // make all divisions > 0
+  for(ke=0;ke<g0->ne;ke++){
+    ndiv=abs(g0->seg[3*ke+2]);
+    if(ndiv<=0)ndiv=1;
+    g0->seg[3*ke+2]=ndiv;
+  }
+  for(ke=0;ke<g0->ne;ke++)      
+    e0found[ke]=g0->seg[3*ke+2];
+  //  print_full_mat_int(g0->ne,3,g0->seg,"seg0");
+  for(kel0=0;kel0<nel0;kel0++){
+    if((iter%2)) kel=nel0-kel0-1; else kel=kel0;
+    // macroelement by macroelement try to find the edge divisions 
+    for(i=0;i<c2s->ne;i++){
+      g->seg[3*i]=c2s->edges[2*i];
+      g->seg[3*i+1]=c2s->edges[2*i+1];
+      g->seg[3*i+2]=-1;
+      efound[i]=-1;
+    }
+    memcpy(g->mnodes,(g0->mnodes+kel*(nvcube+1)),(nvcube+1)*sizeof(INT));
+    for(i=0;i<c2s->ne;i++){
+      j0=g->mnodes[c2s->edges[2*i]];
+      j1=g->mnodes[c2s->edges[2*i+1]];
+      if(j0>j1){swp=j0;j0=j1;j1=swp;}
+      for(ke=0;ke<g0->ne;ke++){
+	k0=g0->seg[3*ke];
+	k1=g0->seg[3*ke+1];
+	if((k0==j0)&&(k1==j1)){
+	  g->seg[3*i+2]=g0->seg[3*ke+2];
+	  efound[i]=ke;
+	}
+      }
+      //      if(iter==0)
+      //fprintf(stdout,"\n%%iter=%d;Element:%d, edge=(%d,%d);",iter,kel,j0,j1);
+    }
+    //    if(iter==0)
+    //      input_grid_print(g);
+    nd[kel]=set_input_grid(g,c2s);
+    for(i=0;i<g->ne;i++){      
+      if(efound[i]<0)
+	continue;
+      ke=efound[i];
+      g0->seg[3*ke+2]=g->seg[3*i+2];
+    }
+  }
+  INT chng=0;
+  for(ke=0;ke<g0->ne;ke++){
+    k1=abs(e0found[ke]-g0->seg[3*ke+2]);
+    if(k1>chng)chng=k1;
+  }
+  //  print_full_mat_int(g0->ne,3,g0->seg,"seg1");
+  //print_full_mat_int(1,c2s->n,nd[kel],"ndnd");
+  //  fprintf(stderr,"\nchng=%d",chng);
+  free(efound);
+  return chng;
+}
+/************************************************************************/
