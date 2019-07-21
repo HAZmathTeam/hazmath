@@ -19,6 +19,23 @@
 #define REAL double
 #endif
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
+scomplex *umesh(const INT dim,				\
+		INT *nd, cube2simp *c2s,		\
+		INT *isbndf, INT *codef,		\
+		INT elflag,				\
+		const INT intype);
+void unirefine(INT *nd,scomplex *sc);
+macrocomplex *set_mmesh(input_grid *g0,		\
+			cube2simp *c2s,		\
+			INT *wrk);
+void set_edges(input_grid *g0,cube2simp *c2s);
+INT set_ndiv_edges(input_grid *g,		\
+		   input_grid *g0,		\
+		   cube2simp *c2s,		\
+		   INT **nd,			\
+		   const INT iter);
+void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g);
+/*LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL*/
 void scomplex_merge1(const INT nvall,		\
 		     const INT nsall,		\
 		     macrocomplex *mc,		\
@@ -83,7 +100,7 @@ void scomplex_merge1(const INT nvall,		\
     haz_scomplex_free(sc0[kel]);
   }
   sc->nv=nvall;
-  fprintf(stdout,"\nsc->nv=%d,sc->ns=%d; nvall=%d,nsall=%d\n",sc->nv,sc->ns,nvall,nsall);fflush(stdout);
+  //  fprintf(stdout,"\nsc->nv=%d,sc->ns=%d; nvall=%d,nsall=%d\n",sc->nv,sc->ns,nvall,nsall);fflush(stdout);
   return;
 }
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
@@ -129,23 +146,6 @@ INT locate1(INT *b,
   return nb;
 }
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
-scomplex *umesh(const INT dim,				\
-		INT *nd, cube2simp *c2s,		\
-		INT *isbndf, INT *codef,		\
-		INT elflag,				\
-		const INT intype);
-void unirefine(INT *nd,scomplex *sc);
-macrocomplex *set_mmesh(input_grid *g0,		\
-			cube2simp *c2s,		\
-			INT *wrk);
-void set_edges(input_grid *g0,cube2simp *c2s);
-INT set_ndiv_edges(input_grid *g,		\
-		   input_grid *g0,		\
-		   cube2simp *c2s,		\
-		   INT **nd,			\
-		   const INT iter);
-void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g);
-/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
 void macrocomplex_free(macrocomplex *mc)
 {
   INT i;
@@ -179,7 +179,7 @@ void fix_grid(macrocomplex *mc,		\
      elements making the numbering of the  vertices a valid numbering;
   */
   if(mc->nel<=1) return;
-  scomplex *sc,*scp;
+  scomplex *scp;
   INT dim=c2s->n,dim1=c2s->n+1;
 // at most dim (n-1)dimensional faces may intersect to form a vertex
   INT *mp = (INT *)calloc(dim1,sizeof(INT));
@@ -190,8 +190,8 @@ void fix_grid(macrocomplex *mc,		\
   INT *vertj = (INT *)calloc(dim1,sizeof(INT));
   INT *ti=vertj,*tip=vertk;
   //scalars
-  INT nv,kel, jel,nk,nj,flag;
-  INT numv,kf,kfp,kz,kdim,kj,ijk;
+  INT nv=-10,kel, jel,nk,nj,flag;
+  INT numv,kf,kfp,kz,kdim,kj;
   INT i,j,k,iaa, iab;
   INT *nodesj=NULL,*nodesk=NULL;
   // place holders (short hand)
@@ -200,7 +200,8 @@ void fix_grid(macrocomplex *mc,		\
   //  INT **elneib=mc->elneib;
   //  INT **el2fnum=mc->el2fnum;
   INT *iindex,*iindexp;
-  INT knnz,nvc=c2s->nvcube,nvc1=c2s->nvcube+1;
+  //  INT knnz,nvc=c2s->nvcube,nvc1=c2s->nvcube+1;
+  INT nvc1=c2s->nvcube+1;
   //  for(kz=(dim-1);kz>=0;kz--){
   //serching for intersection of kz-dimensional faces.
   //    kdim=(1<<kz);
@@ -218,7 +219,8 @@ void fix_grid(macrocomplex *mc,		\
     iaa=fel2el->IA[kel];
     iab=fel2el->IA[kel+1];
     if((iab-iaa)<=0){
-      fprintf(stdout,"\nkel=%d; total=%d; negative=%d, remaining=%d",kel,scin[kel]->nv,neg,scin[kel]->nv-neg);
+      if(g0->print_level>4)
+	fprintf(stdout,"\nmacroelement=%d; vertices=%d; overlaps=%d;",kel,scin[kel]->nv,neg);
       nvall+=scin[kel]->nv;      
       nsall+=scin[kel]->ns;
       continue;
@@ -233,7 +235,7 @@ void fix_grid(macrocomplex *mc,		\
       //	if(fel2el->val[kj]!=kdim) continue;
       kdim=fel2el->val[kj];
       kz=((INT )floor(log2(((REAL) kdim)-1e-3)))+1;
-      sc=scin[jel];
+      //      scomplex *sc=scin[jel];
       iindex=mc->iindex[jel];
       //      fprintf(stdout,"\nkel=%d,jel=%d,kz=%d,kdim=%d\n",kel,jel,kz,kdim);
       // find now how many times these two elements intersect:
@@ -284,21 +286,11 @@ void fix_grid(macrocomplex *mc,		\
 	    memcpy(m,mp,dim*sizeof(INT));
 	    for(k=0;k<nk;k++)m[mi[k]]=ti[k];
 	    kf=num_lattice(m,dim,nd[jel]);
-	    //	      sc->bndry[kf]=100;
-	    //	    fprintf(stdout,"\nSkipping %d<-->%d",kf,kfp,kel,jel);
-	    //fprintf(stdout,": oldx=(");
-	    //for(ijk=0;ijk<dim;ijk++)
-	    //fprintf(stdout,"%.5e ", scp->x[kfp*dim+ijk]);
-	    //	      scp->bndry[kfp]=-100;
-	    //	      fprintf(stdout,"); newx=[");
-	    //	      for(ijk=0;ijk<dim;ijk++)
-	    // fprintf(stdout,"%.5e ", sc->x[kf*dim+ijk]);
 	    //	    fprintf(stdout,"\nkel=%d; jel=%d,kfp=%d,iindexp=%d,iindex=%d",kel,jel,kfp,iindexp[kfp],iindex[kf]);fflush(stdout);
 	    if(iindexp[kfp]>=nvold){
 	      iindexp[kfp]=iindex[kf];
 	      neg++;
 	    }
-	    fprintf(stdout,"\nXkel=%d; jel=%d,kfp=%d,iindexp=%d,iindex=%d",kel,jel,kfp,iindexp[kfp],iindex[kf]);fflush(stdout);
 	  } else {
 	    //	    fprintf(stdout,"\nkel=%d; jel=%d,kfp=%d",kel,jel,kfp);fflush(stdout);
 	    if(iindexp[kfp]>=nvold) {
@@ -307,47 +299,35 @@ void fix_grid(macrocomplex *mc,		\
 	    }
 	  }
 	}
-	/*>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
-	/*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<*/
-	// now we have numv vertices which we want to match to faces. 
-	/* print_full_mat_int(1,nk,mip,"mip");  */
-	/* print_full_mat_int(1,nk,tip,"tip");  */
-	/* print_full_mat_int(1,nj,mi,"mi");  */
-	/* print_full_mat_int(1,nj,ti,"ti");  */
+	/*>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<*/
       } else {
 	fprintf(stderr,"\n*** An error in counting overlaps in %s ***\n",__FUNCTION__);
       }
     }
-    fprintf(stdout,"\nkel=%d; total=%d; negative=%d; remaining:%d",kel,scp->nv,neg,scp->nv-neg);
-    /* for(i=0;i<sc->nv;i++){ */
-    /*   if(iindex[i]<scp->nv){ */
-    /* 	fprintf(stdout,"\nSkipping %d<-->%d",i,iindex[i]); */
-    /*   }else{ */
-    /* 	fprintf(stdout,"\nRenum. %d<-->%d",i,iindex[i]); */
-    /*   } */
-    /* } */
-    //    fprintf(stdout,"\n");
+    if(g0->print_level>2)
+      fprintf(stdout,"\nmacroelement=%d; total=%d; overlaps:%d",kel,scp->nv,neg);
     nvall+=nv;
     nsall+=scin[kel]->ns;
-    fprintf(stdout,"\nGLOBALLY:v_total=%d; s_total=%d",nvall,nsall);fflush(stdout);
+    //    fprintf(stdout,"\nGLOBALLY:v_total=%d; s_total=%d",nvall,nsall);fflush(stdout);
   }
-  for(kel=0;kel<mc->nel;kel++){
-    fprintf(stdout,"\nelement:%d;",kel);
-    for(i=0;i<scin[kel]->nv;i++){
-      coord_lattice(m,dim,i,scin[kel]->nv,nd[kel]);
-      fprintf(stdout,"\n\t[%d=( ",i);
-      for(j=0;j<dim;j++){
-	fprintf(stdout,"%d ",m[j]);
+  if(g0->print_level>5){
+    for(kel=0;kel<mc->nel;kel++){
+      fprintf(stdout,"\nelement:%d;",kel);
+      for(i=0;i<scin[kel]->nv;i++){
+	coord_lattice(m,dim,i,scin[kel]->nv,nd[kel]);
+	fprintf(stdout,"\n\t[%d=( ",i);
+	for(j=0;j<dim;j++){
+	  fprintf(stdout,"%d ",m[j]);
+	}
+	fprintf(stdout,")]<-->%d",mc->iindex[kel][i]);
+	fprintf(stdout,"; x=(");
+	for(j=0;j<dim;j++)
+	  fprintf(stdout,"%.3f ", scin[kel]->x[i*dim+j]);
+	fprintf(stdout,")");
       }
-      fprintf(stdout,")]<-->%d",mc->iindex[kel][i]);
-      fprintf(stdout,"; x=(");
-      for(j=0;j<dim;j++)
-	fprintf(stdout,"%.3f ", scin[kel]->x[i*dim+j]);
-      fprintf(stdout,")");
     }
+    fprintf(stdout,"\n");
   }
-  /*}*/
-  fprintf(stdout,"\n");      
   free(m);
   free(mp);
   free(mi);
@@ -361,7 +341,7 @@ void fix_grid(macrocomplex *mc,		\
 }
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
 /*ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ*/
-scomplex *macro_split(input_grid *g0,cube2simp *c2s)
+scomplex *generate_grid(input_grid *g0)
 {
   /* 
      From an input grid loops over the macroelements and generates
@@ -369,6 +349,9 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   */
   input_grid *g;
   INT i,j,kel,pmem;
+  /***************************************************************************/
+  cube2simp *c2s=cube2simplex(g0->dim);
+  /***************************************************************************/
   INT nvcube=c2s->nvcube;
   scomplex **sc=malloc(g0->nel*sizeof(scomplex *));
   pmem=2*g0->nv;
@@ -428,30 +411,30 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   /*PLACE HOLDERS*/
   /* iCSRmat *fullel2el=mc->fullel2el; */
   /* INT **elneib=mc->elneib; */
-  INT *etree=mc->etree;
+  //  INT *etree=mc->etree;
   INT **el2fnum=mc->el2fnum;
   INT *isbface=mc->isbface;
   INT *bcodesf=mc->bcodesf;
   iCSRmat *bfs0=mc->bfs;
   fprintf(stdout,"\n%%DFS(domains): %d connected components",mc->cc);
   fprintf(stdout,"\n%%DFS(boundaries): %d connected components",mc->bndry_cc);
-  /* fprintf(stdout,"\nbfs0=["); */
-  /* icsr_print_matlab_val(stdout,bfs0); */
-  /* fprintf(stdout,"];"); */
-  /* fprintf(stdout,"\nbfs=sparse(bfs0(:,1),bfs0(:,2),bfs0(:,3));\n"); */
-  /* print_full_mat_int(1,mc->nf,mc->isbface,"isbface"); */
-  /* print_full_mat_int(1,mc->nf,mc->bcodesf,"bcodesf"); */
-  /* fprintf(stdout,"\n*****   nf=%d (%d)******* \n",g0->nf,mc->nf); */
-  /*full el2el*/
-  fprintf(stdout,"\nfel2el0=[");
-  icsr_print_matlab_val(stdout,mc->fullel2el);
-  fprintf(stdout,"];");
-  fprintf(stdout,"\nfel2el=sparse(fel2el0(:,1),fel2el0(:,2),fel2el0(:,3));\n");
-  /* print_full_mat_int(1,mc->nf,mc->isbface,"isbface"); */
-  /* print_full_mat_int(1,mc->nf,mc->bcodesf,"bcodesf"); */
-
-  if(g0->print_level>3)
+  if(g0->print_level>3){
     fprintf(stdout,"\n%%Input faces with codes: %d; Total number of faces:%d\n",g0->nf,mc->nf);
+  }else if(g0->print_level>10){
+    fprintf(stdout,"\nbfs0=[");
+    icsr_print_matlab_val(stdout,bfs0);
+    fprintf(stdout,"];");
+    fprintf(stdout,"\nbfs=sparse(bfs0(:,1),bfs0(:,2),bfs0(:,3));\n");
+    print_full_mat_int(1,mc->nf,mc->isbface,"isbface");
+    print_full_mat_int(1,mc->nf,mc->bcodesf,"bcodesf");
+    fprintf(stdout,"\n*****   nf=%d (%d)******* \n",g0->nf,mc->nf);
+    fprintf(stdout,"\nfel2el0=[");
+    icsr_print_matlab_val(stdout,mc->fullel2el);
+    fprintf(stdout,"];");
+    fprintf(stdout,"\nfel2el=sparse(fel2el0(:,1),fel2el0(:,2),fel2el0(:,3));\n");
+    print_full_mat_int(1,mc->nf,mc->isbface,"isbface");
+    print_full_mat_int(1,mc->nf,mc->bcodesf,"bcodesf");
+  }
   /***********************************************************************/    
   /* set the divisions on every edge now; since they are consistent we
    have: */
@@ -513,38 +496,25 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
     //    fprintf(stdout,"\n%%mesh(macroelement=%d): nv=%d; nsimp=%d",jel,sc[jel]->nv,sc[jel]->ns);      
     //    haz_scomplex_print(sc[jel],0,"HAHA");
   }
-  fprintf(stdout,"\n%%--------------------------Set Index:------------------------------");
+  //  fprintf(stdout,"\n%%Removing overlaps...");
   fix_grid(mc,sc,c2s,g0);  
-  fprintf(stdout,"\n%%--------------------------Renumbering:------------------------------");
-  /* for(kel=0;kel<mc->nel;kel++){ */
-  /*   for(i=0;i<sc[kel]->nv;i++){ */
-  /*     if(mc->iindex[kel][i]<0){ */
-  /* 	fprintf(stdout,"\nSkipping %d<-->%d",i,mc->iindex[kel][i]); */
-  /*     }else{ */
-  /* 	fprintf(stdout,"\nRenum. kel=%d, %d<-->%d",kel,i,mc->iindex[kel][i]); */
-  /*     } */
-  /*   } */
-  /*   fprintf(stdout,"\n"); */
-  /* } */
-  //  fprintf(stdout,"\nface(%d) in a divided el(%d) is also face(%d) in the current el(%d)",je,kel,ke,jel);
-  /* scomplex_merge(sc,				\ */
-  /* 		 nsall, nvall,			\ */
-  /* 		 mc->cc, mc->bndry_cc,		\ */
-  /* 		 g0,c2s); */
-  fprintf(stdout,"\n%%");
-  fprintf(stdout,"\n%%merged(macroelements=%d:%d): nv=%d; nsimp=%d",	\
-	  0,mc->nel-1,sc[0]->nv,sc[0]->ns);  
-  fprintf(stdout,"\n%%\n");
+  //  fprintf(stdout,"..\tdone");
+  if(g0->print_level>0){
+    fprintf(stdout,"\n%%merged(macroelements=[%d..%d]): vertices=%d; simplices=%d", \
+	    0,mc->nel-1,sc[0]->nv,sc[0]->ns);  
+    fprintf(stdout," ..done.\n\n");
+  }
   free(p);
   free(isbndf);
   free(codef);
   macrocomplex_free(mc);
-  //  find_nbr(sc[0]->ns,sc[0]->nv,sc[0]->n,sc[0]->nodes,sc[0]->nbr);
-  //  haz_scomplex_print(sc[0],0,__FUNCTION__);  fflush(stdout);
-  //  INT *wrk1=calloc(5*(sc[0]->n+2),sizeof(INT));
+  cube2simp_free(c2s);
+  /* prepare for adaptive refinement */
+  find_nbr(sc[0]->ns,sc[0]->nv,sc[0]->n,sc[0]->nodes,sc[0]->nbr);
+  INT *wrk1=calloc(5*(sc[0]->n+2),sizeof(INT));
   //  /* construct bfs tree for the dual graph */
-  //  abfstree(0,sc[0],wrk1);
-  //  free(wrk1);
+  abfstree(0,sc[0],wrk1,g0->print_level);
+  free(wrk1);
   return sc[0];  
 }
 /****************************************************************/
@@ -552,18 +522,14 @@ INT main(INT argc, char **argv)
 {
   //  INT i=-1;
   input_grid *g=parse_input_grid("grid.input");
-  INT dim=g->dim;
-  cube2simp *c2s=cube2simplex(dim);
-  scomplex *sc=macro_split(g,c2s);
-  if(dim==2||dim==3) {
-    fprintf(stdout,"Writing vtk file...\n");
-    vtkw("newmesh.vtu",sc,0,0,1.);
-  }
+  if(g->print_level>3)
+    input_grid_print(g);
+  scomplex *sc=generate_grid(g);
+  fprintf(stdout,"Writing vtk file...\n");
+  vtkw("newmesh.vtu",sc,0,0,1.);
   /*FREE*/
   haz_scomplex_free(sc);
-  input_grid_free(g); 
-  cube2simp_free(c2s);
-  fprintf(stdout,"\nDone.\n");
+  input_grid_free(g);  
   return 0;
 }
 /*********************EOF**********************************/
