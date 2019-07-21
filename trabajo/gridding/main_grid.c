@@ -32,7 +32,7 @@ INT locate1(INT *b,
      contained in any row returns 0; in case no row contains ALL
      elements, returns 0; b should have size n2*sizeof(INT);
   */
-  INT ii,i,j,im,nb,aj,bi;
+  INT i,j,im,nb,aj,bi;
   for(i=0;i<n2;i++) b[i]=i;
   for(j=0;j<n;j++){    
     aj=a[j];
@@ -101,7 +101,7 @@ void macrocomplex_free(macrocomplex *mc)
   return;
 }
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
-void *fix_grid(macrocomplex *mc,		\
+void fix_grid(macrocomplex *mc,		\
 	       scomplex **scin,			\
 	       cube2simp *c2s,			\
 	       input_grid *g0)
@@ -111,9 +111,9 @@ void *fix_grid(macrocomplex *mc,		\
      this piece of code removes all repeated vertices in macro
      elements making the numbering of the  vertices a valid numbering;
   */
-  if(mc->nel==1) return;
+  if(mc->nel<=1) return;
   scomplex *sc,*scp;
-  INT dim=c2s->n,nel=mc->nel,dim1=c2s->n+1;
+  INT dim=c2s->n,dim1=c2s->n+1;
 // at most dim (n-1)dimensional faces may intersect to form a vertex
   INT *mp = (INT *)calloc(dim1,sizeof(INT));
   INT *m = (INT *)calloc(dim1,sizeof(INT));
@@ -121,116 +121,140 @@ void *fix_grid(macrocomplex *mc,		\
   INT *mip = (INT *)calloc(dim1,sizeof(INT));
   INT *vertk = (INT *)calloc(dim1,sizeof(INT));
   INT *vertj = (INT *)calloc(dim1,sizeof(INT));
-  INT *mm = (INT *)calloc(dim1,sizeof(INT));
   INT *ti=vertj,*tip=vertk;
   //scalars
   INT nv,kel, jel,nk,nj,flag;
   INT numv,kf,kfp,kz,kdim,kj,ijk;
   INT i,j,k,iaa, iab;
-  INT isbf,bf,cf,knnz;
   INT *nodesj=NULL,*nodesk=NULL;
   // place holders (short hand)
   iCSRmat *fel2el=mc->fullel2el;
   INT **nd=mc->nd;
-  INT **elneib=mc->elneib;
-  INT **el2fnum=mc->el2fnum;
+  //  INT **elneib=mc->elneib;
+  //  INT **el2fnum=mc->el2fnum;
   INT *iindex,*iindexp;
-  INT nvc=c2s->nvcube,nvc1=c2s->nvcube+1;
-  for(kz=(dim-1);kz>=0;kz--){
-    //serching for intersection of kz-dimensional faces.
-    kdim=(1<<kz);
-    //    fprintf(stdout,"\nkdim=%d",kdim);
-    for(knnz=0;knnz<mc->bfs->nnz;knnz++){    
-      kel=mc->bfs->JA[knnz];
-      scp=scin[kel];
-      iindexp=mc->iindex[kel];
-      nodesk=(g0->mnodes+kel*nvc1);
-      iaa=fel2el->IA[kel];
-      iab=fel2el->IA[kel+1];
-      for (kj=iaa;kj<iab;kj++){
-	jel=fel2el->JA[kj];
-	nodesj=(g0->mnodes+jel*nvc1);
-	numv=0;
-	if(fel2el->val[kj]!=kdim) continue;
-	sc=scin[jel];
-	iindex==mc->iindex[jel];
-	fprintf(stdout,"\nkel=%d,jel=%d,kz=%d\n",kel,jel,kz);
-	// find now how many times these two elements intersect:
-	for(k=0;k<c2s->nvcube;k++){
-	  i=nodesk[k];
-	  i=locate0(i,nodesj,c2s->nvcube);
-	  if(i<0) continue;
-	  vertk[numv]=k;
-	  vertj[numv]=i;
-	  numv++;
-	}
-	nk=locate1(mip,vertk,numv,c2s->faces,c2s->nf,c2s->nvface);
-	nj=locate1(mi,vertj,numv,c2s->faces,c2s->nf,c2s->nvface);
-	if((nk == nj) && nk==(dim-kz) && nj==(dim-kz)) {
-	  /* print_full_mat_int(1,nvc,nodesk,"nodesk");  */
-	  /* print_full_mat_int(1,numv,vertk,"vertk");  */
-	  /* print_full_mat_int(1,nvc,nodesj,"nodesj");  */
-	  /* print_full_mat_int(1,numv,vertj,"vertj");  */
-	  for(j=0;j<nj;j++){
-	    /* 
-	       for two macroelements kel and jel, from faces mi[] and
-	       mip[] whose intersection forms the intersection kel and jel
-	       macroelements get the ti[] and tip[] arrays which
-	       describe on which boundary using the number of
-	       divisions we have the corresponding vertices lying
-	    */
-	    if(mi[j]<dim){
-	      mi[j]=dim-(mi[j]+1);
-	      ti[j]=0;
-	    } else {
-	      mi[j]=dim-((mi[j]%dim)+1);
-	      ti[j]=nd[jel][mi[j]];
-	    }
-	    if(mip[j]<dim){
-	      mip[j]=dim-(mip[j]+1);
-	      tip[j]=0;
-	    } else {
-	      mip[j]=dim-((mip[j]%dim)+1);
-	      tip[j]=nd[kel][mip[j]];
-	    }	    
+  INT knnz,nvc=c2s->nvcube,nvc1=c2s->nvcube+1,nvall;
+  //  for(kz=(dim-1);kz>=0;kz--){
+  //serching for intersection of kz-dimensional faces.
+  //    kdim=(1<<kz);
+  //  for(knnz=0;knnz<mc->bfs->nnz;knnz++){    
+  //    kel=mc->bfs->JA[knnz];
+  INT neg;
+  for(kel=0;kel<mc->nel;kel++){
+    neg=0;
+    iaa=fel2el->IA[kel];
+    iab=fel2el->IA[kel+1];
+    if((iab-iaa)<=0){
+      fprintf(stdout,"\nkel=%d; total=%d; negative=%d, remaining=%d",kel,scin[kel]->nv,neg,scin[kel]->nv-neg);
+      for(i=0;i<scin[kel]->nv;i++){
+	mc->iindex[kel][i]=i;
+      }
+      continue;
+    } 
+    scp=scin[kel];
+    iindexp=mc->iindex[kel];
+    nodesk=(g0->mnodes+kel*nvc1);
+    for (kj=iaa;kj<iab;kj++){
+      jel=fel2el->JA[kj];
+      nodesj=(g0->mnodes+jel*nvc1);
+      numv=0;
+      //	if(fel2el->val[kj]!=kdim) continue;
+      kdim=fel2el->val[kj];
+      kz=((INT )floor(log2(((REAL) kdim)-1e-3)))+1;
+      sc=scin[jel];
+      iindex=mc->iindex[jel];
+      //      fprintf(stdout,"\nkel=%d,jel=%d,kz=%d,kdim=%d\n",kel,jel,kz,kdim);
+      // find now how many times these two elements intersect:
+      for(k=0;k<c2s->nvcube;k++){
+	i=nodesk[k];
+	i=locate0(i,nodesj,c2s->nvcube);
+	if(i<0) continue;
+	vertk[numv]=k;
+	vertj[numv]=i;
+	numv++;
+      }
+      nk=locate1(mip,vertk,numv,c2s->faces,c2s->nf,c2s->nvface);
+      nj=locate1(mi,vertj,numv,c2s->faces,c2s->nf,c2s->nvface);
+      if((nk == nj) && nk==(dim-kz) && nj==(dim-kz)) {
+	/* print_full_mat_int(1,nvc,nodesk,"nodesk");  */
+	/* print_full_mat_int(1,numv,vertk,"vertk");  */
+	/* print_full_mat_int(1,nvc,nodesj,"nodesj");  */
+	/* print_full_mat_int(1,numv,vertj,"vertj");  */
+	for(j=0;j<nj;j++){
+	  /* 
+	     for two macroelements kel and jel, from faces mi[] and
+	     mip[] whose intersection forms the intersection kel and jel
+	     macroelements get the ti[] and tip[] arrays which
+	     describe on which boundary using the number of
+	     divisions we have the corresponding vertices lying
+	  */
+	  if(mi[j]<dim){
+	    mi[j]=dim-(mi[j]+1);
+	    ti[j]=0;
+	  } else {
+	    mi[j]=dim-((mi[j]%dim)+1);
+	    ti[j]=nd[jel][mi[j]];
 	  }
-	  nv=0;
-	  for(kf=0;kf<sc->nv;kf++){
-	    coord_lattice(m,dim,kf,sc->nv,nd[jel]);
-	    flag=1;
-	    for(j=0;j<nj;j++) if(m[mi[j]]!=ti[j]){flag=0;break;}
-	    if(flag){
-	      memcpy(mp,m,dim*sizeof(INT));
-	      for(k=0;k<nk;k++)mp[mip[k]]=tip[k];
-	      kfp=num_lattice(mp,dim,nd[kel]);
-	      sc->bndry[kf]=100;
-	      fprintf(stdout,"Skipping %d<-->%d",kf,kfp);
-	      fprintf(stdout,": oldx=(");
-	      for(ijk=0;ijk<dim;ijk++)
-		fprintf(stdout,"%.5e ", scp->x[kfp*dim+ijk]);
-	      scp->bndry[kfp]=-100;
-	      fprintf(stdout,"); newx=[");
-	      for(ijk=0;ijk<dim;ijk++)
-		fprintf(stdout,"%.5e ", sc->x[kf*dim+ijk]);
-	      //	iindex[kf]=-abs(iindex_parent[kfp]);
-	      fprintf(stdout,"]\n");
-	    } else {
-	      //	iindex[kf]=nv+(*nvall0);
+	  if(mip[j]<dim){
+	    mip[j]=dim-(mip[j]+1);
+	    tip[j]=0;
+	  } else {
+	    mip[j]=dim-((mip[j]%dim)+1);
+	    tip[j]=nd[kel][mip[j]];
+	  }	    
+	}
+	nv=0;
+	for(kfp=0;kfp<scp->nv;kfp++){
+	  coord_lattice(mp,dim,kfp,scp->nv,nd[kel]);
+	  flag=1;
+	  for(j=0;j<nj;j++) if(mp[mi[j]]!=tip[j]){flag=0;break;}
+	  if(flag){
+	    memcpy(m,mp,dim*sizeof(INT));
+	    for(k=0;k<nk;k++)m[mi[k]]=ti[k];
+	    kf=num_lattice(m,dim,nd[jel]);
+	    //	      sc->bndry[kf]=100;
+	    //fprintf(stdout,"\nSkipping %d<-->%d",kf,kfp);
+	    //fprintf(stdout,": oldx=(");
+	    //for(ijk=0;ijk<dim;ijk++)
+	    //fprintf(stdout,"%.5e ", scp->x[kfp*dim+ijk]);
+	    //	      scp->bndry[kfp]=-100;
+	    //	      fprintf(stdout,"); newx=[");
+	    //	      for(ijk=0;ijk<dim;ijk++)
+	    // fprintf(stdout,"%.5e ", sc->x[kf*dim+ijk]);
+	    if(iindexp[kfp]>=0){
+	      iindexp[kfp]=-1-iindex[kf];
+	      neg++;
+	    }
+	  } else {
+	    //	    fprintf(stdout,"\nkel=%d; jel=%d,kfp=%d",kel,jel,kfp);fflush(stdout);
+	    if(iindexp[kfp]>=0) {
+	      iindexp[kfp]=nv;
 	      nv++;
 	    }
 	  }
-	  // now we have numv vertices which we want to match to faces. 
-	  /* print_full_mat_int(1,nk,mip,"mip");  */
-	  /* print_full_mat_int(1,nk,tip,"tip");  */
-	  /* print_full_mat_int(1,nj,mi,"mi");  */
-	  /* print_full_mat_int(1,nj,ti,"ti");  */
-	} else {
-	  fprintf(stderr,"\n*** An error in counting overlaps in %s ***\n",__FUNCTION__);
 	}
+	/*>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
+	/*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<*/
+	// now we have numv vertices which we want to match to faces. 
+	/* print_full_mat_int(1,nk,mip,"mip");  */
+	/* print_full_mat_int(1,nk,tip,"tip");  */
+	/* print_full_mat_int(1,nj,mi,"mi");  */
+	/* print_full_mat_int(1,nj,ti,"ti");  */
+      } else {
+	fprintf(stderr,"\n*** An error in counting overlaps in %s ***\n",__FUNCTION__);
       }
     }
+    fprintf(stdout,"\nkel=%d; total=%d; negative=%d; remaining:%d",kel,scp->nv,neg,scp->nv-neg);
+    /* for(i=0;i<sc->nv;i++){ */
+    /*   if(iindex[i]<scp->nv){ */
+    /* 	fprintf(stdout,"\nSkipping %d<-->%d",i,iindex[i]); */
+    /*   }else{ */
+    /* 	fprintf(stdout,"\nRenum. %d<-->%d",i,iindex[i]); */
+    /*   } */
+    /* } */
+    fprintf(stdout,"\n");      
   }
-  //  fprintf(stdout,"\nface(%d) in a divided el(%d) is also face(%d) in the current el(%d)",je,kel,ke,jel);
+  /*}*/
   free(m);
   free(mp);
   free(mi);
@@ -312,8 +336,8 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
      meshes depending on the division given in every dimension. 
   */
   input_grid *g;
-  INT i,j,j0,j1,kel,ke,pmem;
-  INT nvcube=c2s->nvcube,nvface=c2s->nvface;
+  INT i,j,kel,pmem;
+  INT nvcube=c2s->nvcube;
   scomplex **sc=malloc(g0->nel*sizeof(scomplex *));
   pmem=2*g0->nv;
   if(pmem<2*g0->ne) pmem=2*g0->ne;
@@ -370,13 +394,13 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   // get the macroelement mesh in a structure
   macrocomplex *mc=set_mmesh(g0,c2s,p);
   /*PLACE HOLDERS*/
-  INT **elneib=mc->elneib;
+  /* iCSRmat *fullel2el=mc->fullel2el; */
+  /* INT **elneib=mc->elneib; */
+  INT *etree=mc->etree;
   INT **el2fnum=mc->el2fnum;
   INT *isbface=mc->isbface;
   INT *bcodesf=mc->bcodesf;
-  INT *etree=mc->etree;
   iCSRmat *bfs0=mc->bfs;
-  iCSRmat *fullel2el=mc->fullel2el;
   fprintf(stdout,"\n%%DFS(domains): %d connected components",mc->cc);
   fprintf(stdout,"\n%%DFS(boundaries): %d connected components",mc->bndry_cc);
   /* fprintf(stdout,"\nbfs0=["); */
@@ -393,7 +417,9 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   fprintf(stdout,"\nfel2el=sparse(fel2el0(:,1),fel2el0(:,2),fel2el0(:,3));\n");
   /* print_full_mat_int(1,mc->nf,mc->isbface,"isbface"); */
   /* print_full_mat_int(1,mc->nf,mc->bcodesf,"bcodesf"); */
-  fprintf(stdout,"\n*****   nf=%d (%d)******* \n",g0->nf,mc->nf);
+
+  if(g0->print_level>3)
+    fprintf(stdout,"\n%%Input faces with codes: %d; Total number of faces:%d\n",g0->nf,mc->nf);
   /***********************************************************************/    
   /* set the divisions on every edge now; since they are consistent we
    have: */
@@ -420,12 +446,12 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
     // TRUE    mc->flags[kel]=g0->mnodes[nvcube+kel*(nvcube+1)];
     mc->flags[kel]=2*kel+1;
   }
-  INT lvl,intype=-1,kj,je,jel;  
+  INT intype=-1,kj,jel;  
   INT *codef=calloc(c2s->nf,sizeof(INT));
   INT *isbndf=calloc(c2s->nf,sizeof(INT));
   // here this can be also done without bfs
   for(kj=0;kj<bfs0->nnz;kj++){    
-    jel=bfs0->JA[kj];
+    jel=bfs0->JA[kj];    
     //    print_full_mat_int(1,c2s->nf,elneib[kel],"neib");
     memcpy(g->mnodes,(g0->mnodes+jel*(nvcube+1)),(nvcube+1)*sizeof(INT));
     for(i=0;i<c2s->nvcube;i++){
@@ -445,15 +471,33 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
 		  intype);
     nsall+=sc[jel]->ns;
     nvall+=sc[jel]->nv;
+    //    if((mc->fullel2el->IA[jel+1]-mc->fullel2el->IA[jel])<=0){
+    for(i=0;i<sc[jel]->nv;i++){
+      mc->iindex[jel][i]=i;
+    }
+    //}
     //      fprintf(stdout,"\n%%Mapping back to the macroelement...\n");
     map2mac(sc[jel],c2s,g);
     //    fprintf(stdout,"\n%%mesh(macroelement=%d): nv=%d; nsimp=%d",jel,sc[jel]->nv,sc[jel]->ns);      
     //    haz_scomplex_print(sc[jel],0,"HAHA");
   }
+  fprintf(stdout,"\n%%--------------------------Set Index:------------------------------");
   fix_grid(mc,			\
 	   sc,			\
 	   c2s,			\
-	   g0);
+	   g0);  
+  fprintf(stdout,"\n%%--------------------------Renumbering:------------------------------");
+  /* for(kel=0;kel<mc->nel;kel++){ */
+  /*   for(i=0;i<sc[kel]->nv;i++){ */
+  /*     if(mc->iindex[kel][i]<0){ */
+  /* 	fprintf(stdout,"\nSkipping %d<-->%d",i,mc->iindex[kel][i]); */
+  /*     }else{ */
+  /* 	fprintf(stdout,"\nRenum. kel=%d, %d<-->%d",kel,i,mc->iindex[kel][i]); */
+  /*     } */
+  /*   } */
+  /*   fprintf(stdout,"\n"); */
+  /* } */
+  //  fprintf(stdout,"\nface(%d) in a divided el(%d) is also face(%d) in the current el(%d)",je,kel,ke,jel);
   scomplex_merge(sc,				\
 		 nsall, nvall,			\
 		 mc->cc, mc->bndry_cc,		\
