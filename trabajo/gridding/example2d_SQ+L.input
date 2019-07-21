@@ -1,7 +1,7 @@
 %----------------------------------------------%
 % input parameters: for grid generation        %
 %----------------------------------------------%
-title{Lshaped grid, or any other more or less descriptive title}
+title{Grid with two connected components and connected bndry}
 %
 dimension{2}   % spatial dimension in which the grid has to be generated
 %
