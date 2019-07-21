@@ -33,10 +33,7 @@ EXE = $(GRID).$(EXTENSION)
 EXEold = $(OLDGRID).$(EXTENSION)
 
 # Source and Object Files
-OBJ =	$(SRCDIR)/main_grid.o	\
-	$(SRCDIR)/newgrids.o \
-	$(SRCDIR)/bitwise.o \
-	$(SRCDIR)/new_refining.o		
+OBJ =	$(SRCDIR)/main_grid.o
 
 OBJold =	$(SRCDIR)/$(GRID).o \
 		$(SRCDIR)/new_refining.o \
