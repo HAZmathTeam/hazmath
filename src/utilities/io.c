@@ -1288,6 +1288,8 @@ void hazw(char *nameout,scomplex *sc, const INT nholes, const int shift)
 /* WRITE mesh on VTU file*/
 void vtkw(char *namevtk, scomplex *sc, const INT nholes, const INT shift, const REAL zscale)
 {
+  if((sc->n!=2)&&(sc->n!=3))
+    fprintf(stderr,"\n*** ERR(%s; dim=%d): NO vtk files for dim .eq. 1 or (dim .gt. 3).\n",__FUNCTION__,sc->n);
   FILE *fvtk;
   INT nv=sc->nv,ns=sc->ns, n=sc->n,n1=n+1;
   INT *nodes = sc->nodes, *ib=sc->bndry;
