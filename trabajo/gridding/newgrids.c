@@ -389,7 +389,7 @@ macrocomplex *set_mmesh(input_grid *g0,					\
   memcpy(fullel2el->JA,el2el->JA,(fullel2el->nnz)*sizeof(INT));
   memcpy(fullel2el->val,el2el->val,(fullel2el->nnz)*sizeof(INT));
   /***********************************************************/  
-  icsr_tri(fullel2el,'u');
+  icsr_tri(fullel2el,'l');
   icsr_nodiag(fullel2el);
   /***********************************************************/  
   mc->fullel2el=fullel2el;
