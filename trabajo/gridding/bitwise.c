@@ -185,6 +185,12 @@ void unirefine(INT *nd,scomplex *sc)
     sref=floor(sref)+1.;
   INT ref_levels= sc->n*((INT )sref);
   fprintf(stdout,"\nlog2 of the max=%e, l=%d",log2((REAL )ndmax)+1,ref_levels);
+  find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
+  haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
+  INT *wrk=calloc(5*(sc->n+2),sizeof(INT));
+  /* construct bfs tree for the dual graph */
+  abfstree(0,sc,wrk);
+  free(wrk);
   ref_levels=0;
   if(ref_levels<=0) return;
   INT nsold;//ns,nvold,level;
@@ -192,12 +198,10 @@ void unirefine(INT *nd,scomplex *sc)
     /* form neighboring list; */
     find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
     //    haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
-    INT *wrk=calloc(5*(sc->n+2),sizeof(INT));
     /* construct bfs tree for the dual graph */
     abfstree(0,sc,wrk);
     //    haz_scomplex_print(sc,0,__FUNCTION__);fflush(stdout);
     //    exit(100);
-    if(wrk) free(wrk);
   }
   //INT n=sc->n, n1=n+1,level=0;
   fprintf(stdout,"refine: ");

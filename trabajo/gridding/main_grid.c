@@ -19,6 +19,73 @@
 #define REAL double
 #endif
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
+void scomplex_merge1(const INT nvall,		\
+		     const INT nsall,		\
+		     macrocomplex *mc,		\
+		     scomplex **sc0,		\
+		     cube2simp *c2s)
+{
+  /* combines an array of simplicial complexes constructed from a
+     macro complex together. the mc->iindex array should contain all
+     vertex numbers without repetitions
+*/
+  if(mc->nel==1) return;
+  scomplex *sc=sc0[0];
+  INT n1=(sc->n+1),ns0,nv=nvall,ns=nsall;
+  INT kel,i,ii,j,in1,iin1,newv;
+  sc->marked=realloc(sc->marked,ns*sizeof(INT));
+  sc->gen=realloc(sc->gen,ns*sizeof(INT));
+  sc->nbr=realloc(sc->nbr,ns*n1*sizeof(INT));
+  sc->parent=realloc(sc->parent,ns*sizeof(INT));
+  sc->child0=realloc(sc->child0,ns*sizeof(INT));
+  sc->childn=realloc(sc->childn,ns*sizeof(INT));
+  sc->nodes=realloc(sc->nodes,ns*n1*sizeof(INT));
+  sc->bndry=realloc(sc->bndry,nv*sizeof(INT));
+  sc->csys=realloc(sc->csys,nv*sizeof(INT));/* coord sys: 1 is polar, 2
+					    is cyl and so on */
+  /*connected components*/
+  sc->cc=mc->cc;sc->bndry_cc=mc->bndry_cc;
+  sc->flags=(INT *)realloc(sc->flags,ns*sizeof(INT));
+  sc->x=(REAL *)realloc(sc->x,nv*(sc->n)*sizeof(REAL));
+  sc->vols=(REAL *)realloc(sc->vols,ns*sizeof(REAL));
+  sc->fval=(REAL *)realloc(sc->fval,nv*sizeof(REAL)); // function values at every vertex; not used in general;
+  //  fprintf(stdout,"\nnsall=%d,nvall=%d",nsall,nvall);fflush(stdout);
+  for(kel=1;kel<mc->nel;kel++){
+    ns0=sc->ns;
+    for (ii = 0;ii<sc0[kel]->ns;ii++) {
+      i=ii+ns0;
+      sc->marked[i] = sc0[kel]->marked[ii];
+      sc->gen[i] = sc0[kel]->gen[ii];
+      sc->parent[i]=sc0[kel]->parent[ii];
+      sc->child0[i]=sc0[kel]->child0[ii];
+      sc->childn[i]=sc0[kel]->childn[ii];
+      sc->flags[i]=sc0[kel]->flags[ii];
+      sc->vols[i]=sc0[kel]->vols[ii];
+      in1=i*n1;
+      iin1=ii*n1;
+      for(j=0;j<n1;j++){
+	newv=mc->iindex[kel][sc0[kel]->nodes[iin1+j]];
+	sc->nodes[in1+j]=newv;
+	sc->nbr[in1+j]=sc0[kel]->nbr[iin1+j]+ns0;
+      }
+    }
+    for (ii = 0;ii<sc0[kel]->nv;ii++) {
+      i=mc->iindex[kel][ii];
+      sc->bndry[i]=sc0[kel]->bndry[ii];
+      sc->csys[i]=sc0[kel]->csys[ii];
+      sc->fval[i]=sc0[kel]->fval[ii];
+      in1=i*sc->n;
+      iin1=ii*sc->n;
+      for(j=0;j<sc->n;j++)
+	sc->x[in1+j]=sc0[kel]->x[iin1+j];
+    }
+    sc->ns+=sc0[kel]->ns;
+    haz_scomplex_free(sc0[kel]);
+  }
+  sc->nv=nvall;
+  fprintf(stdout,"\nsc->nv=%d,sc->ns=%d; nvall=%d,nsall=%d\n",sc->nv,sc->ns,nvall,nsall);fflush(stdout);
+  return;
+}
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
 INT locate1(INT *b,
 	    INT *a,INT n,			\
@@ -133,22 +200,27 @@ void fix_grid(macrocomplex *mc,		\
   //  INT **elneib=mc->elneib;
   //  INT **el2fnum=mc->el2fnum;
   INT *iindex,*iindexp;
-  INT knnz,nvc=c2s->nvcube,nvc1=c2s->nvcube+1,nvall;
+  INT knnz,nvc=c2s->nvcube,nvc1=c2s->nvcube+1;
   //  for(kz=(dim-1);kz>=0;kz--){
   //serching for intersection of kz-dimensional faces.
   //    kdim=(1<<kz);
   //  for(knnz=0;knnz<mc->bfs->nnz;knnz++){    
   //    kel=mc->bfs->JA[knnz];
-  INT neg;
+  INT neg,nsall,nvall,nvold;
+  nvall=0;nsall=0;
   for(kel=0;kel<mc->nel;kel++){
+    // we have not been here, so let us set the initial indexing to be the original indexing; 
+    nvold=nvall;
+    for(i=0;i<scin[kel]->nv;i++){
+      mc->iindex[kel][i]=i+nvall;// this is the global number if there are no removals of vertices. 
+    }
     neg=0;
     iaa=fel2el->IA[kel];
     iab=fel2el->IA[kel+1];
     if((iab-iaa)<=0){
       fprintf(stdout,"\nkel=%d; total=%d; negative=%d, remaining=%d",kel,scin[kel]->nv,neg,scin[kel]->nv-neg);
-      for(i=0;i<scin[kel]->nv;i++){
-	mc->iindex[kel][i]=i;
-      }
+      nvall+=scin[kel]->nv;      
+      nsall+=scin[kel]->ns;
       continue;
     } 
     scp=scin[kel];
@@ -207,13 +279,13 @@ void fix_grid(macrocomplex *mc,		\
 	for(kfp=0;kfp<scp->nv;kfp++){
 	  coord_lattice(mp,dim,kfp,scp->nv,nd[kel]);
 	  flag=1;
-	  for(j=0;j<nj;j++) if(mp[mi[j]]!=tip[j]){flag=0;break;}
+	  for(j=0;j<nj;j++) if(mp[mip[j]]!=tip[j]){flag=0;break;}
 	  if(flag){
 	    memcpy(m,mp,dim*sizeof(INT));
 	    for(k=0;k<nk;k++)m[mi[k]]=ti[k];
 	    kf=num_lattice(m,dim,nd[jel]);
 	    //	      sc->bndry[kf]=100;
-	    //fprintf(stdout,"\nSkipping %d<-->%d",kf,kfp);
+	    //	    fprintf(stdout,"\nSkipping %d<-->%d",kf,kfp,kel,jel);
 	    //fprintf(stdout,": oldx=(");
 	    //for(ijk=0;ijk<dim;ijk++)
 	    //fprintf(stdout,"%.5e ", scp->x[kfp*dim+ijk]);
@@ -221,14 +293,16 @@ void fix_grid(macrocomplex *mc,		\
 	    //	      fprintf(stdout,"); newx=[");
 	    //	      for(ijk=0;ijk<dim;ijk++)
 	    // fprintf(stdout,"%.5e ", sc->x[kf*dim+ijk]);
-	    if(iindexp[kfp]>=0){
-	      iindexp[kfp]=-1-iindex[kf];
+	    //	    fprintf(stdout,"\nkel=%d; jel=%d,kfp=%d,iindexp=%d,iindex=%d",kel,jel,kfp,iindexp[kfp],iindex[kf]);fflush(stdout);
+	    if(iindexp[kfp]>=nvold){
+	      iindexp[kfp]=iindex[kf];
 	      neg++;
 	    }
+	    fprintf(stdout,"\nXkel=%d; jel=%d,kfp=%d,iindexp=%d,iindex=%d",kel,jel,kfp,iindexp[kfp],iindex[kf]);fflush(stdout);
 	  } else {
 	    //	    fprintf(stdout,"\nkel=%d; jel=%d,kfp=%d",kel,jel,kfp);fflush(stdout);
-	    if(iindexp[kfp]>=0) {
-	      iindexp[kfp]=nv;
+	    if(iindexp[kfp]>=nvold) {
+	      iindexp[kfp]=nv+nvold;
 	      nv++;
 	    }
 	  }
@@ -252,9 +326,28 @@ void fix_grid(macrocomplex *mc,		\
     /* 	fprintf(stdout,"\nRenum. %d<-->%d",i,iindex[i]); */
     /*   } */
     /* } */
-    fprintf(stdout,"\n");      
+    //    fprintf(stdout,"\n");
+    nvall+=nv;
+    nsall+=scin[kel]->ns;
+    fprintf(stdout,"\nGLOBALLY:v_total=%d; s_total=%d",nvall,nsall);fflush(stdout);
+  }
+  for(kel=0;kel<mc->nel;kel++){
+    fprintf(stdout,"\nelement:%d;",kel);
+    for(i=0;i<scin[kel]->nv;i++){
+      coord_lattice(m,dim,i,scin[kel]->nv,nd[kel]);
+      fprintf(stdout,"\n\t[%d=( ",i);
+      for(j=0;j<dim;j++){
+	fprintf(stdout,"%d ",m[j]);
+      }
+      fprintf(stdout,")]<-->%d",mc->iindex[kel][i]);
+      fprintf(stdout,"; x=(");
+      for(j=0;j<dim;j++)
+	fprintf(stdout,"%.3f ", scin[kel]->x[i*dim+j]);
+      fprintf(stdout,")");
+    }
   }
   /*}*/
+  fprintf(stdout,"\n");      
   free(m);
   free(mp);
   free(mi);
@@ -263,71 +356,10 @@ void fix_grid(macrocomplex *mc,		\
   free(vertj);
   //  free(ti); //same as vertk
   //  free(tip); //same as vertj
+  scomplex_merge1(nvall,nsall,mc,scin,c2s);
   return;
 }
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
-void scomplex_merge(scomplex **sc0,			\
-		    const INT nsall, const INT nvall,	\
-		    const INT cc, const INT bndry_cc,	\
-		    input_grid *g0,cube2simp *c2s)
-{
-  /* combains an array of simplicial complexes together */
-  if(g0->nel==1) return;
-  scomplex *sc=sc0[0];
-  INT n1=(sc->n+1),nv0,ns0,nv=nvall,ns=nsall;
-  INT kel,i,ii,j,in1,iin1;
-  sc->marked=realloc(sc->marked,ns*sizeof(INT));
-  sc->gen=realloc(sc->gen,ns*sizeof(INT));
-  sc->nbr=realloc(sc->nbr,ns*n1*sizeof(INT));
-  sc->parent=realloc(sc->parent,ns*sizeof(INT));
-  sc->child0=realloc(sc->child0,ns*sizeof(INT));
-  sc->childn=realloc(sc->childn,ns*sizeof(INT));
-  sc->nodes=realloc(sc->nodes,ns*n1*sizeof(INT));
-  sc->bndry=realloc(sc->bndry,nv*sizeof(INT));
-  sc->csys=realloc(sc->csys,nv*sizeof(INT));/* coord sys: 1 is polar, 2
-					    is cyl and so on */
-  /*connected components*/
-  sc->cc=cc;sc->bndry_cc=bndry_cc;
-  sc->flags=(INT *)realloc(sc->flags,ns*sizeof(INT));
-  sc->x=(REAL *)realloc(sc->x,nv*(sc->n)*sizeof(REAL));
-  sc->vols=(REAL *)realloc(sc->vols,ns*sizeof(REAL));
-  sc->fval=(REAL *)realloc(sc->fval,nv*sizeof(REAL)); // function values at every vertex; not used in general;
-  //  fprintf(stdout,"\nnsall=%d,nvall=%d",nsall,nvall);fflush(stdout);
-  for(kel=1;kel<g0->nel;kel++){
-    ns0=sc->ns;nv0=sc->nv;
-    for (ii = 0;ii<sc0[kel]->ns;ii++) {
-      i=ii+ns0;
-      sc->marked[i] = sc0[kel]->marked[ii];
-      sc->gen[i] = sc0[kel]->gen[ii];
-      sc->parent[i]=sc0[kel]->parent[ii];
-      sc->child0[i]=sc0[kel]->child0[ii];
-      sc->childn[i]=sc0[kel]->childn[ii];
-      sc->flags[i]=sc0[kel]->flags[ii];
-      sc->vols[i]=sc0[kel]->vols[ii];
-      in1=i*n1;
-      iin1=ii*n1;
-      for(j=0;j<n1;j++){
-	sc->nodes[in1+j]=sc0[kel]->nodes[iin1+j]+nv0;
-	sc->nbr[in1+j]=sc0[kel]->nbr[iin1+j]+ns0;
-      }
-    }
-    for (ii = 0;ii<sc0[kel]->nv;ii++) {
-      i=ii+nv0;
-      sc->bndry[i]=sc0[kel]->bndry[ii];
-      sc->csys[i]=sc0[kel]->csys[ii];
-      sc->fval[i]=sc0[kel]->fval[ii];
-      in1=i*sc->n;
-      iin1=ii*sc->n;
-      for(j=0;j<sc->n;j++)
-	sc->x[in1+j]=sc0[kel]->x[iin1+j];
-    }
-    sc->nv+=sc0[kel]->nv;
-    sc->ns+=sc0[kel]->ns;
-    haz_scomplex_free(sc0[kel]);
-  }
-  //  fprintf(stdout,"\nsc->nv=%d,sc->ns=%d; nvall=%d,nsall=%d\n",sc->nv,sc->ns,nvall,nsall);fflush(stdout);
-  return;
-}
 /*ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ*/
 scomplex *macro_split(input_grid *g0,cube2simp *c2s)
 {
@@ -482,10 +514,7 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
     //    haz_scomplex_print(sc[jel],0,"HAHA");
   }
   fprintf(stdout,"\n%%--------------------------Set Index:------------------------------");
-  fix_grid(mc,			\
-	   sc,			\
-	   c2s,			\
-	   g0);  
+  fix_grid(mc,sc,c2s,g0);  
   fprintf(stdout,"\n%%--------------------------Renumbering:------------------------------");
   /* for(kel=0;kel<mc->nel;kel++){ */
   /*   for(i=0;i<sc[kel]->nv;i++){ */
@@ -498,22 +527,24 @@ scomplex *macro_split(input_grid *g0,cube2simp *c2s)
   /*   fprintf(stdout,"\n"); */
   /* } */
   //  fprintf(stdout,"\nface(%d) in a divided el(%d) is also face(%d) in the current el(%d)",je,kel,ke,jel);
-  scomplex_merge(sc,				\
-		 nsall, nvall,			\
-		 mc->cc, mc->bndry_cc,		\
-		 g0,c2s);
+  /* scomplex_merge(sc,				\ */
+  /* 		 nsall, nvall,			\ */
+  /* 		 mc->cc, mc->bndry_cc,		\ */
+  /* 		 g0,c2s); */
   fprintf(stdout,"\n%%");
   fprintf(stdout,"\n%%merged(macroelements=%d:%d): nv=%d; nsimp=%d",	\
-	  0,g0->nel-1,sc[0]->nv,sc[0]->ns);  
+	  0,mc->nel-1,sc[0]->nv,sc[0]->ns);  
   fprintf(stdout,"\n%%\n");
-  //  haz_scomplex_print(sc[0],0,"MERGED");
-  //  for(i=0;i<g0->nel;i++){
-  //    
-  //  }
   free(p);
   free(isbndf);
   free(codef);
   macrocomplex_free(mc);
+  //  find_nbr(sc[0]->ns,sc[0]->nv,sc[0]->n,sc[0]->nodes,sc[0]->nbr);
+  //  haz_scomplex_print(sc[0],0,__FUNCTION__);  fflush(stdout);
+  //  INT *wrk1=calloc(5*(sc[0]->n+2),sizeof(INT));
+  //  /* construct bfs tree for the dual graph */
+  //  abfstree(0,sc[0],wrk1);
+  //  free(wrk1);
   return sc[0];  
 }
 /****************************************************************/
