@@ -536,7 +536,6 @@ in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding fa
   // set all interior faces faces with no code to 0 code and all
   // boundary faces with no code to dirichlet code 1.
   for(i=0;i<mc->nf;i++){
-    fprintf(stdout,"\n[%d]=%d",i,bcodesf[i]);
     if(bcodesf[i]<(1-cfbig)){
       if(isbface[i])bcodesf[i]=1;
       else bcodesf[i]=0;
@@ -544,6 +543,7 @@ in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding fa
   }
   for(i=0;i<mc->nf;i++){
     if(isbface[i] && (bcodesf[i]==0))bcodesf[i]=1;
+    //    fprintf(stdout,"\n[%d]=%d",i,bcodesf[i]);
   }
   /***********************************************************************/
   /*Connected components on the boundaries. First find face to face map*/
