@@ -105,7 +105,7 @@ scomplex *umesh(const INT dim,		\
     }    
   }
   INT cfbig=((INT )MARKER_BOUNDARY_NO)+100;
-  INT facei,isbf,bf,cf,mi;
+  INT facei,bf,cf,mi;
   //  INT kfp,ijk,mi,mip,toskip,toadd;
   /******************************************************************/
   /*  
@@ -146,7 +146,7 @@ scomplex *umesh(const INT dim,		\
       bf=nd[mi];
     }
     cf=codef[facei];
-    isbf=isbndf[facei];
+    /* INT isbf=isbndf[facei]; */
     if(isbndf[facei]){
       for(kf=0;kf<sc->nv;kf++){
 	coord_lattice(m,dim,kf,sc->nv,nd);
