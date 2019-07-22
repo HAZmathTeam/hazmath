@@ -37,7 +37,8 @@ num_coordsystems{3} % number of coordinate systems
 %% data for the coord systems: coord-system label, coords of the
 %% origin, type. the labels should be integers, consequtive and start
 %% from 0 the values of the above quantities are given as space/tab
-%% separated values
+%% separated values. type=1 is polar coordinate system centered at the
+%% specified origin.
 
 data_coordsystems{0 0. 0.  0. 0
 		  1 0. 0.  0. 1
@@ -141,7 +142,7 @@ data_macrofaces{0 1 2 3 1
 %%%%%%%%%%%%%%AMR %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 num_refinements{1}
 
-refinement_type{0}
+refinement_type{1}
 
 err_stop_refinement{        -1.e-10        }
 

@@ -329,11 +329,11 @@ void  read_data(char **clndata,input_grid *g)
   return;
 }
 /********************************************************************/
-void get_out(const char *pattern, size_t le)
+void x_out(const char *pattern, size_t le)
 {
   /* prints a string cutting it at the closest blank space <= le*/
   int i;
-  fprintf(stderr, "\n\n\n           *** ERROR::::   \n     UNBALANCED \"{}\" near or before \"");
+  fprintf(stderr, "\n\n\n *** ERROR(%s)::::   \n     UNBALANCED \"{}\" near or before \"",__FUNCTION__);
   for (i=0;i<(le-1);++i)
     fprintf(stderr, "%c",*(pattern+i));
   fprintf(stderr, "\"\n");  
@@ -410,8 +410,10 @@ char *make_string_from_file(FILE *the_file, size_t *length_string)
   /*   if(!everything[j]) continue; */
   /*   everything[j]=toupper(tolower(everything[j])); */
   /* } */
-  /* fprintf(stderr,"\nNumber of characters in the supressed string %li\n",strlen(everything)); */
-  /* fprintf(stdout,"\nString=%s\n",everything); */
+  /*  
+      fprintf(stderr,"\nNumber of characters in the supressed string %li\n",strlen(everything));
+      fprintf(stdout,"\nString=%s\n",everything);
+  */
   return everything;
 }
 /********************************************************************/
@@ -433,12 +435,12 @@ char *get_substring(const char *pattern,		\
     //    found = &(*(found + le));
     found += le;
     wrk = (char *) strstr(found,"}");
-    if(wrk == NULL ){ get_out(pattern,le);}
+    if(wrk == NULL ){ x_out(pattern,le);}
     *length_substring=strlen(found)-strlen(wrk);
     *wrk = '\t';
     wrk = (char *) strstr(found,"\t");
     i = strlen(found)-strlen(wrk);
-    if(i != *length_substring ){ get_out(pattern,le); }
+    if(i != *length_substring ){ x_out(pattern,le); }
   }else{
     fprintf(stderr, "\n\n\n *** WARNING: \"" );
     for (i=0;i<le-1;++i)
@@ -450,19 +452,19 @@ char *get_substring(const char *pattern,		\
   return found;
 }
 /********************************************************************/
-input_grid *parse_input_grid(const char *input_file_grid)
+input_grid *parse_input_grid(FILE *the_file)
 {
+  /* read all the input from a file on strem "the_file" and parse the input. */
+  /*in the char below, tabs need to be tabs not spaces. */
+  char *default_e=strdup("title{Grid on a cube (-1,1)x(-1,1)x(-1,1)\tdimension{3\tprint_level{1\t  dir_grid{\tdir_vtu{\tfile_grid{\tfile_vtu{\tnum_edges{3\tdata_edges{0 1 2  0 2 2 0 4 2\tnum_vertices{8\t data_vertices{0 0 -1. -1. -1. 1 0 -1. -1 1. 2 0 -1. 1. -1. 3 0 -1. 1. 1. 4 0 1. -1. -1. 5 0 1. -1. 1. 6 0 1. 1. -1. 7 0 1. 1. 1.\t  num_macroelements{1\t  data_macroelements{0 1 2 3 4 5 6 7 10\tnum_macrofaces{1\t data_macrofaces{0 1 2 3 1\tnum_coordsystems{1\tdata_coordsystems{0 0. 0. 0. 0\tnum_refinements{0\trefinement_type{0\terr_stop_refinement{-1.e-10\t");
   INT iread,numel_data,k;
-  FILE *the_file;
   char *everything;
   size_t length_string=0;
   char **indata;
   char **clndata;
   size_t *lengths;
-  the_file = fopen(input_file_grid,"r");
   everything = make_string_from_file(the_file, &length_string);
   fclose(the_file);
-  //  fprintf(stdout,"\n%s\n",everything);
   indata=input_strings(&numel_data);
   clndata=malloc(numel_data*sizeof(char *));
   lengths=calloc(numel_data,sizeof(size_t));
@@ -470,13 +472,16 @@ input_grid *parse_input_grid(const char *input_file_grid)
   /* get all substrings */
   for(k=0;k<numel_data;k++){
     clndata[k] = get_substring(indata[k],(lengths+k), everything);
+    if(!clndata[k] || !lengths[k]){
+      fprintf(stderr,"\n\n***ERROR in reading input data. Please fix the grid input file.");
+      exit(13);
+    }
   }
   for(k=0;k<numel_data;k++)
     clndata[k][lengths[k]] = '\0';
   /* initialize */
   input_grid *g=malloc(1*sizeof(input_grid));    
-  /* ... PARSE ... */
-  /* strings */
+  /* ... PARSE ... strings */
   g->title=strdup(clndata[0]);
   g->dgrid=strdup(clndata[1]);
   g->fgrid=strdup(clndata[2]);
@@ -486,7 +491,7 @@ input_grid *parse_input_grid(const char *input_file_grid)
   iread=sscanf( clndata[10],"%d",&g->dim); // the dimension of the problem.
   iread=sscanf( clndata[11],"%d",&g->ncsys);//
   iread=sscanf( clndata[12],"%d",&g->nv);//
-  iread=sscanf( clndata[13],"%d",&g->ne);//
+  iread=sscanf( clndata[13],"%d",&g->ne);//  
   iread=sscanf( clndata[14],"%d",&g->nel);//
   iread=sscanf(clndata[15],"%d",&g->nf);//  
   iread=sscanf(clndata[16],"%d",&g->nref);//
@@ -495,7 +500,7 @@ input_grid *parse_input_grid(const char *input_file_grid)
   iread=sscanf(clndata[19],"%hd",&g->print_level);//
   if(iread<0) iread=0;
   input_grid_arrays(g);
-  read_data(clndata,g);  
+  read_data(clndata,g);
   /*FREE*/
   if(everything)free(everything);
   for(k=0;k<numel_data;k++){
@@ -503,6 +508,227 @@ input_grid *parse_input_grid(const char *input_file_grid)
   }
   free(indata);
   free(clndata);
+  if(g->print_level>0)
+    fprintf(stdout,"\nEXAMPLE: %s\n",g->title);
+  if(g->print_level>3)
+    input_grid_print(g);
   return g;
 }
 /********************************************************************/
+/********************************FINCTIONS:****************************/
+/*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
+void set_edges(input_grid *g0,cube2simp *c2s)
+{
+  /*adds missing edges to input grid*/
+  INT newne,i,j,k,kel,ke,swp,cols;
+  INT j01[2],k01[2];
+  INT nvcube=c2s->nvcube;
+  cols=3;
+  INT *newseg=calloc(cols*c2s->ne*g0->nel,sizeof(INT));
+  INT *mnodes=calloc(c2s->nvcube,sizeof(INT));
+  newne=0;
+  INT found=0;
+  for(kel=0;kel<g0->nel;kel++){
+    memcpy(mnodes,(g0->mnodes+kel*(nvcube+1)),(nvcube+1)*sizeof(INT));
+    for(i=0;i<c2s->ne;i++){
+      j01[0]=mnodes[c2s->edges[2*i]];
+      j01[1]=mnodes[c2s->edges[2*i+1]];
+      if(j01[0]>j01[1]){swp=j01[0];j01[0]=j01[1];j01[1]=swp;}
+      found=0;
+      for(ke=0;ke<g0->ne;ke++){
+	k01[0]=g0->seg[cols*ke];
+	k01[1]=g0->seg[cols*ke+1];
+	if((k01[0]==j01[0])&&(k01[1]==j01[1])){
+	  found=1;break;
+	}      
+      }
+      if(!found){
+	newseg[cols*newne]=j01[0];
+	newseg[cols*newne+1]=j01[1];
+	newseg[cols*newne+2]=1;
+	newne++;
+      }
+    }
+  }
+  //  fprintf(stdout,"\n**** newne=%d",newne); fflush(stdout);
+  if(!newne){
+    free(newseg);
+    free(mnodes);
+    return;
+  }
+  newseg=realloc(newseg,cols*newne*sizeof(INT));
+  INT *p=calloc(newne,sizeof(INT));
+  ilexsort(newne, cols,newseg,p);  
+  // print_full_mat_int(newne,cols,newseg,"newseg");
+  free(p);
+  // remove dupps
+  INT m,li1,ic[cols];
+  k=newne-1;
+  i=0;j=0;
+  while (i<k){
+    if(j==0) {for(m=0;m<cols;m++) {newseg[m]=newseg[cols*i+m];}}
+    for(m=0;m<cols;m++)  {ic[m]=newseg[cols*j+m];}
+    while(i<k) {
+      li1=0;
+      for(m=0;m<cols;m++){li1+=abs(ic[m]-newseg[cols*i+cols+m]);}
+      if(li1>0){
+  	j++;i++;
+  	for(m=0;m<cols;m++){newseg[cols*j+m]=newseg[cols*i+m];}
+  	break;
+      }
+      i++;
+      //      fprintf(stdout,"i=%i\n",i);
+    }
+    //    fprintf(stdout,"i=%i, j=%i\n",i,j);
+  }
+  i++;j++; newne=j;
+  //  print_full_mat_int(g0->ne,cols,g0->seg,"newseg");
+  g0->seg=realloc(g0->seg,(cols*(g0->ne+newne))*sizeof(INT));
+  memcpy((g0->seg+cols*g0->ne),newseg,cols*newne*sizeof(INT));
+  g0->ne+=newne;
+  free(newseg);
+  free(mnodes);
+  return;
+}
+/*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
+INT *set_input_grid(input_grid *g,cube2simp *c2s)
+{
+  /* 
+     Every edge is put into a subset, i.e. two edges (v(i1),v(i2)) and
+     (v(j1),v(j2)) are considered equivalent iff (i2-i1)=(j2-j1).  The
+     number of divisions in an equivalent set of edges is taken to be
+     the largest from the equivalence class.  OUTPUT array is a "dim"
+     array and for each direction gives the number of partitions.
+  */
+  INT i,j,k,iri,ici,pmem;
+  pmem=2*g->nv;
+  if(pmem<2*g->ne) pmem=2*g->ne;
+  if(pmem<2*g->nel) pmem=2*g->nel;
+  if(pmem<2*g->nf) pmem=2*g->nf;
+  INT *p=calloc(pmem,sizeof(INT));// permutation and inverse permutation;
+  //
+  memset(p,0,pmem);
+  for (i=0;i<g->ne;i++){
+    iri=g->seg[3*i];
+    ici=g->seg[3*i+1];
+    if(iri<ici){
+      g->seg[3*i]=iri;
+      g->seg[3*i+1]=ici;
+    } else {
+      g->seg[3*i]=ici;
+      g->seg[3*i+1]=iri;
+    }
+    /* set up divisions */
+    j=g->seg[3*i+1]-g->seg[3*i]; // should be always positive;
+    //    fprintf(stdout,"\n%%z123=%d:(%d,%d);%d",i,3*i,3*i+1,g0->seg[3*efound[i]+2]);
+    if(g->seg[3*i+2]>p[j])
+      p[j]=g->seg[3*i+2];
+  } 
+  for (i=0;i<g->ne;i++){
+    j=g->seg[3*i+1]-g->seg[3*i];
+    g->seg[3*i+2]=p[j]; 
+    //    fprintf(stdout,"\n[%d,%d]:div=%d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
+  }
+  for (i=0;i<g->ne;i++){
+    j=g->seg[3*i+1]-g->seg[3*i];
+    g->seg[3*i+2]=p[j]; 
+    //    fprintf(stdout,"\n[%d,%d]:div=%d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
+  }
+  /*ORDER*/
+  ilexsort(g->ne, 3,g->seg,p);
+  k=0;
+  for (i=0;i<g->ne;i++){
+    if(g->seg[3*i]) continue;
+    //    j=g->seg[3*i+1]-g->seg[3*i]-1;
+    p[k]=g->seg[3*i+2];
+    k++;
+    //    fprintf(stdout,"\n[%d,%d]:div=%d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
+  }
+  p=realloc(p,g->dim*sizeof(INT)); // realloc to dimension g->dim
+  //  for (i=0;i<g->dim;i++){
+  //    fprintf(stdout,"\ndirection:%d; div=%d",i,p[i]);
+  //  }
+  //  input_grid_print(g);
+  //  print_full_mat_int(g->ne,3,g->seg,"med");
+  //  print_full_mat_int(g->nf,(c2s->nvface+1),g->mfaces,"mf");
+  //  print_full_mat_int(g->nel,(c2s->nvcube+1),g->mnodes,"mel");
+  return p;
+}
+/***********************************************************************/
+INT set_ndiv_edges(input_grid *g,		\
+		   input_grid *g0,		\
+		   cube2simp *c2s,		\
+		   INT **nd,			\
+		   const INT iter)
+{
+  /* 
+     For a given global input grid g0 creates local input grids for
+     every macroelement and computes the divisions in each direction
+     for it. It is used iteratively in macro_split to se the correct
+     divisions for every macroelement.  The input_grid *g0 should be
+     all set, and the input_grid *g should have all its scalar values
+     set.  nd is the array with the divisions, it must be g0->nel by
+     c2s->n.
+  */
+  INT kel0,i,j0,j1,swp,kel,ke,k0,k1,ndiv;
+  INT nel0=g0->nel,nvcube=c2s->nvcube;
+  /*for easier reference*/
+  INT *efound=calloc(c2s->ne*(g0->nel+1),sizeof(INT));
+  INT *e0found=efound + c2s->ne;
+  for(i=0;i<g0->ne;i++)e0found[i]=-1;
+  // make all divisions > 0
+  for(ke=0;ke<g0->ne;ke++){
+    ndiv=abs(g0->seg[3*ke+2]);
+    if(ndiv<=0)ndiv=1;
+    g0->seg[3*ke+2]=ndiv;
+  }
+  for(ke=0;ke<g0->ne;ke++)      
+    e0found[ke]=g0->seg[3*ke+2];
+  //  print_full_mat_int(g0->ne,3,g0->seg,"seg0");
+  for(kel0=0;kel0<nel0;kel0++){
+    if((iter%2)) kel=nel0-kel0-1; else kel=kel0;
+    // macroelement by macroelement try to find the edge divisions 
+    for(i=0;i<c2s->ne;i++){
+      g->seg[3*i]=c2s->edges[2*i];
+      g->seg[3*i+1]=c2s->edges[2*i+1];
+      g->seg[3*i+2]=-1;
+      efound[i]=-1;
+    }
+    memcpy(g->mnodes,(g0->mnodes+kel*(nvcube+1)),(nvcube+1)*sizeof(INT));
+    for(i=0;i<c2s->ne;i++){
+      j0=g->mnodes[c2s->edges[2*i]];
+      j1=g->mnodes[c2s->edges[2*i+1]];
+      if(j0>j1){swp=j0;j0=j1;j1=swp;}
+      for(ke=0;ke<g0->ne;ke++){
+	k0=g0->seg[3*ke];
+	k1=g0->seg[3*ke+1];
+	if((k0==j0)&&(k1==j1)){
+	  g->seg[3*i+2]=g0->seg[3*ke+2];
+	  efound[i]=ke;
+	}
+      }
+      //      if(iter==0)
+      //fprintf(stdout,"\n%%iter=%d;Element:%d, edge=(%d,%d);",iter,kel,j0,j1);
+    }
+    //    if(iter==0)
+    //      input_grid_print(g);
+    nd[kel]=set_input_grid(g,c2s);
+    for(i=0;i<g->ne;i++){      
+      if(efound[i]<0)
+	continue;
+      ke=efound[i];
+      g0->seg[3*ke+2]=g->seg[3*i+2];
+    }
+  }
+  INT chng=0;
+  for(ke=0;ke<g0->ne;ke++){
+    k1=abs(e0found[ke]-g0->seg[3*ke+2]);
+    if(k1>chng)chng=k1;
+  }
+  //  print_full_mat_int(g0->ne,3,g0->seg,"seg1");
+  //print_full_mat_int(1,c2s->n,nd[kel],"ndnd");
+  //  fprintf(stderr,"\nchng=%d",chng);
+  free(efound);
+  return chng;
+}
+/************************************************************************/
