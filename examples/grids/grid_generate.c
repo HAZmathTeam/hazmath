@@ -1,32 +1,28 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdbool.h>
-#include <string.h>
-#include <math.h>
-#include <float.h>
-#include <limits.h>
-#include <getopt.h>
-#include <sys/types.h>
-#include <time.h>
-#include <unistd.h>
-#include <assert.h>
+/*! \file examples/basic_elliptic/grid_generate.c
+ *
+ *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov 2015/01/09.
+ *  Copyright 2015_HAZMATH__. All rights reserved.
+ *
+ * \brief This program generates simple grids formed by
+ * macroelements. Each macroelement is assumed to be isomorphic to the
+ * n-dimensional unit cube. 
+ *
+ * \note This example is just to generate grids for testing. In
+ * general one can use any generator to generate such grids.
+ *
+ */
+/*********** HAZMATH FUNCTIONS and INCLUDES ***************************/
 #include "hazmath.h"
-//#include "grid_defs.h"
-#ifndef INT
-#define INT int
-#endif
-#ifndef REAL
-#define REAL double
-#endif
+/*********************************************************************/
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
 INT main(INT argc, char **argv)
 {
   //  INT i=-1;
-  input_grid *g=parse_input_grid("grid.input");
-  if(g->print_level>3)
-    input_grid_print(g);
+  FILE *fp=stdin;  /* OR:   fp=HAZ_fopen("grid.input","r"); */
+  input_grid *g=parse_input_grid(fp);
+  input_grid_print(g);
   scomplex *sc=generate_grid(g);
-  fprintf(stdout,"Writing vtk file...\n");
+    fprintf(stdout,"Writing a vtk file...\n");
   vtkw("newmesh.vtu",sc,0,0,1.);
   /*FREE*/
   haz_scomplex_free(sc);

@@ -2,58 +2,37 @@
 % input parameters: for grid generation        %
 %----------------------------------------------%
 %
-title{Cube grid}
+title{Grid on a cube (-1,1)x(-1,1)x(-1,1)}
 %
-
 dimension{3}   % spatial dimension in which the grid has to be generated
-
-%---------------%
-% output flags
+print_level{5}	% how much information to print out: 0 little | >0 more
 %---------------%
 
-print_level{1}	% how much information to print out: 0 Nothing | >0 Something
+%%% files: should exist as
+%%% 	 directories writeable by the user
+%%% vtu files for plotting follow the same convention.
 
 %---------------%
-% files: output is in dir_grid/** where ** is nD for spatial dimension n.
-%  	 the dir_grid/1D, dir_grid/2D ... should exist as
-% 	 directories writeable by the user
-% vtu files for plotting follow the same convention.
-%---------------%
-
-dir_grid{grids/}
-dir_vtu{grids_vtu/}
+dir_grid{ }
+dir_vtu{ }
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-file_grid{unitCUBE_n17.haz}
-file_vtu{unitCUBE_n17.vtu}
+file_grid{ }
+file_vtu{ }
 
-%---------------%
-% coordinate systems: Each has coordinates of the origin o[0:dim-1]
-%                     type (0=cartesian, 1=polar)
-%
-%---------------%
+%%%num_edges{12}
+%%% it is enough to specify 3 divisions only for the 3
+%%% edges of the cube which span 3D.
 
-num_coordsystems{3} % number of coordinate systems
+num_edges{3}
 
-%% data for the coord systems: coord-system label, coords of the
-%% origin, type. the labels should be integers, consequtive and start
-%% from 0 the values of the above quantities are given as space/tab
-%% separated values
-
-data_coordsystems{0 0. 0.  0. 0
-		  1 0. 0.  0. 1
-		  2 -1. -1.  -1. 1}
-
-%%%---------------%
-%%% graph which describes the domain. The input are vertices and edges
-%%% and d-1 dimensional faces. The graph has to be a union of
-%%% polygons, of polyhedrons that are isomorphic to a d-dimensional
-%%% cube.
-%%%---------------%
-
+data_edges{0 1 2 %% edge: 1st vertex, 2nd vertex, number of divisions.
+  	   0 2 2
+	   0 4 2
+	   }
+%%% ====================VERTICES=========================
 num_vertices{8} %number of vertices
 
 %---------------%
-
 %%% coords: for every node 1:numvertices give coords (dim
 %%% coords per node)
 %%%
@@ -63,8 +42,6 @@ num_vertices{8} %number of vertices
 %%% then the points on the edge are on a straight
 %%% line connecting the two vertices.
 %---------------%
-
-
 %%% vertex number (label) coord_system, coords
 data_vertices{0 0 -1.  -1.   -1. 
 	      1 0 -1.  -1     1. 
@@ -76,28 +53,8 @@ data_vertices{0 0 -1.  -1.   -1.
 	      7 0  1.   1.    1. }
 %%%%%
 
-%---------------%
-% edges and number of divisions for every edge.
-% opposite edges have the same number of divisions. if they do not,
-% then the max number of divisions is taken.
-%---------------%
-
-num_edges{12} %
-
-data_edges{0 1 3 %% edge: 1st vertex, 2nd vertex, number of divisions.
-  	   4 0     1	      
-	0 2	5 
-	    1 3 	1 
-	    1 5 	9
-            3 7 		3
-            7 5		3
-  	    2 6     3	      
-  	    4 6     1	      
-  	    3 2     2	      
-  	    7  6     7	      
-            4 5	    1}	    
-
 %%% ====================MACROELEMENTS=========================
+
 num_macroelements{1}
 
 %%% Numbering (ordering) of the vertices describing a macroelement:
@@ -105,26 +62,29 @@ num_macroelements{1}
 
 %%% MACROELEMENT: its 2^d vertices and a macroelement code.
 
-data_macroelements{0 1 2 3 4 5 6 7  10
-	       }
+data_macroelements{0 1 2 3 4 5 6 7  10  }
 
-num_macrofaces{6}
-
+ num_macrofaces{6}
 % any face which needs a code (for example boundary faces: face
 % number. If a face is not included here and is a boundary face then
 % its code is set to Dirichlet (i.e. 1...16). Internal faces not found
 % here have a code 0. Faces given here and not found in the
 % macroelement list are ignored.
+% If no faces are given then every boundary point gets a code of 1 (Dirichlet); 
+ data_macrofaces{0 1 2 3 1
+ 		0 4 1 5 3
+ 		4 7 5 6 2
+ 		2 6 3 7 4
+ 		0 4 2 6 12
+ 		1 5 7 3 17
+ 		   }
 
-data_macrofaces{0 1 2 3 1
-		0 4 1 5 3
-		4 7 5 6 2
-		2 6 3 7 4
-		0 4 2 6 12
-		1 5 7 3 17
-		   }
+num_coordsystems{1}
 
-%%%%%%%%%%%%%%AMR %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+data_coordsystems{0 0. 0.  0. 0}
+
+
+%%%%%%%%%%%%%%AMR not used yet. %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 num_refinements{1}
 
 refinement_type{0}
