@@ -830,6 +830,7 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
     INT           brow,m;
     INT           bm;
     INT           i,j;
+    INT           ndof, tdof;
     SHORT         max_levels = param->max_levels, lvl = 0, status = SUCCESS;
     INT           dim = mgl[lvl].fine_level_mesh->dim;
     REAL          setup_start, setup_end;
@@ -1067,21 +1068,22 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
       
       /*-- Apply Periodic boundaries --*/
       if (mgl[0].periodic_BC == true) {
-        FE_blk.var_spaces = (fespace **) calloc( FE_blk.nspaces, sizeof(fespace *));
 
-        FE_blk.var_spaces[0] = (fespace *) calloc(1, sizeof(fespace));
-        create_fespace(FE_blk.var_spaces[0], mgl[lvl].fine_level_mesh, 61);
+        // Allocate and create FE spaces if needed.
+        if(lvl>0){
+          mgl[lvl].FE->var_spaces = (fespace **) calloc( mgl[0].FE->nspaces, sizeof(fespace *));
+          mgl[lvl].FE->var_spaces[0] = (fespace *) calloc(1, sizeof(fespace));
+          create_fespace(mgl[lvl].FE->var_spaces[0], mgl[lvl].fine_level_mesh, 61);
+          mgl[lvl].FE->var_spaces[1] = (fespace *) calloc(1, sizeof(fespace));
+          create_fespace(mgl[lvl].FE->var_spaces[1], mgl[lvl].fine_level_mesh, 1);
+          mgl[lvl].FE->var_spaces[2] = (fespace *) calloc(1, sizeof(fespace));
+          create_fespace(mgl[lvl].FE->var_spaces[2], mgl[lvl].fine_level_mesh, 1);
+          mgl[lvl].FE->var_spaces[3] = (fespace *) calloc(1, sizeof(fespace));
+          create_fespace(mgl[lvl].FE->var_spaces[3], mgl[lvl].fine_level_mesh, 30);
+          mgl[lvl].FE->var_spaces[4] = (fespace *) calloc(1, sizeof(fespace));
+          create_fespace(mgl[lvl].FE->var_spaces[4], mgl[lvl].fine_level_mesh, 0);
+        }
 
-        FE_blk.var_spaces[1] = (fespace *) calloc(1, sizeof(fespace));
-        create_fespace(FE_blk.var_spaces[1], mgl[lvl].fine_level_mesh, 1);
-
-        FE_blk.var_spaces[2] = (fespace *) calloc(1, sizeof(fespace));
-        create_fespace(FE_blk.var_spaces[2], mgl[lvl].fine_level_mesh, 1);
-
-        FE_blk.var_spaces[3] = (fespace *) calloc(1, sizeof(fespace));
-        create_fespace(FE_blk.var_spaces[3], mgl[lvl].fine_level_mesh, 30);
-
-        FE_blk.var_spaces[4] = (fespace *) calloc(1, sizeof(fespace));
         // TODO: This needs a block version!
         set_periodic_bdry(mgl[lvl].FE->var_spaces[0], mgl[lvl].fine_level_mesh,0.0,1.0,0.0,1.0,0.0,1.0);
         printf("0\n");
@@ -1095,20 +1097,60 @@ SHORT gmg_blk_setup(MG_blk_data *mgl,
         printf("4\n");
 
         // Create fake blockFE space that matches the 3x3 block matrix (put all displacements together)
+        // This should make everything the right size. Most values in the FE space will be garbage
+        FE_blk.var_spaces = (fespace **) calloc( FE_blk.nspaces, sizeof(fespace*));
+
+        // Displacement Block
+        FE_blk.var_spaces[0] = (fespace *) calloc(1, sizeof(fespace));
+        ndof = 0;
+        for(i=NoBBL; i<dim+1; i++){ ndof += mgl[lvl].FE->var_spaces[i]->ndof; }
+        FE_blk.var_spaces[0]->periodic = (INT *) calloc(ndof, sizeof(INT));
+        FE_blk.var_spaces[0]->ndof = ndof;
+        tdof = 0;
+        for(i=NoBBL; i<dim+1; i++){
+          for(j=0; j<mgl[lvl].FE->var_spaces[i]->ndof; j++){
+            FE_blk.var_spaces[0]->periodic[tdof] = mgl[lvl].FE->var_spaces[i]->periodic[j];
+            tdof++;
+          }
+        }
+        // Darcy Block
+        FE_blk.var_spaces[1] = mgl[lvl].FE->var_spaces[3];
+        // Pressure Block
+        FE_blk.var_spaces[2] = mgl[lvl].FE->var_spaces[4];
 
         bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].A_periodic));
         bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].P_periodic));
         bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].R_periodic));
         bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].R_periodic_scaled));
 
-        generate_periodic_P_blockFE( mgl[lvl].FE, &(mgl[lvl].P_periodic) );
+        printf("\tGenerating periodic P\n");
+        generate_periodic_P_blockFE( &FE_blk, &(mgl[lvl].P_periodic) );
+        printf("\tGenerating periodic R scaled\n");
         generate_periodic_R_scaled_blockFE( &(mgl[lvl].P_periodic), &(mgl[lvl].R_periodic_scaled) );
+        printf("\tGenerating periodic R\n");
         for(i=0; i<brow; i++){
+          printf("\t\tTransposing... i=%d\n",i);
           dcsr_trans( mgl[lvl].P_periodic.blocks[i+i*brow], mgl[lvl].R_periodic.blocks[i+i*brow] );
         }
+        printf("\tTransposed P_periodic\n");
 
         // Form triple matrix product on level for A_periodic
+        eliminate_PeriodicBC_blockFE( &(mgl[lvl].P_periodic), &(mgl[lvl].A), &(mgl[lvl].b));
         // Form triple matrix product on level for P_periodic (for lvl-1)
+        if(lvl>0){
+          for(i=0; i< brow; i++){
+            for(j=0; j < brow; j++){
+              if(i==j){
+                dcsr_mxm(mgl[lvl].R_periodic_scaled.blocks[i+i*brow],mgl[lvl-1].R.blocks[j+i*brow],&tempRA);
+                dcsr_mxm(&tempRA,mgl[lvl-1].P_periodic.blocks[j+j*brow],mgl[lvl-1].R.blocks[j+i*brow]);
+                dcsr_free(&tempRA);
+                dcsr_mxm(mgl[lvl].R_periodic_scaled.blocks[i+i*brow],mgl[lvl-1].P.blocks[j+i*brow],&tempRA);
+                dcsr_mxm(&tempRA,mgl[lvl-1].P_periodic.blocks[j+j*brow],mgl[lvl-1].P.blocks[j+i*brow]);
+                dcsr_free(&tempRA);
+              }
+            }
+          }
+        }
         // Form triple matrix product on level for R_periodic (for lvl-1)
       }
 
