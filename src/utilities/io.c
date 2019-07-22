@@ -1247,9 +1247,20 @@ void hazw(char *nameout,scomplex *sc, const INT nholes, const int shift)
   INT k=-10,j=-10,kndl=-10;
   fmesh=HAZ_fopen(nameout,"w");
   /* *******************************************
-     HAZMAT way of writing mesh file.
-     *******************************************    */
-  fprintf(fmesh,"%i %i %i %i\n",ns,n,dim,nholes);
+     HAZMAT way of writing mesh file. sc->bndry_cc is the number of
+     connected components on the boundary. sc->cc is the number of
+     connected components domains. 
+     * TODO add sc->cc to the reading. 
+  */  
+  fprintf(fmesh,"%i %i %i %i\n",ns,n,dim,sc->bndry_cc); /* this is the
+							   number of
+							   holes; but
+							   we should
+							   also have
+							   the number
+							   of
+							   connected
+							   components.*/ 
   /* fprintf(stdout,"%i %i %li\n",n,ns,sizeof(ib)/sizeof(INT)); */
   for (j=0;j<ndl;j++) {
     for (k=0;k<ns;k++){
@@ -1288,6 +1299,8 @@ void hazw(char *nameout,scomplex *sc, const INT nholes, const int shift)
 /* WRITE mesh on VTU file*/
 void vtkw(char *namevtk, scomplex *sc, const INT nholes, const INT shift, const REAL zscale)
 {
+  if((sc->n!=2)&&(sc->n!=3))
+    fprintf(stderr,"\n*** ERR(%s; dim=%d): NO vtk files for dim .eq. 1 or (dim .gt. 3).\n",__FUNCTION__,sc->n);
   FILE *fvtk;
   INT nv=sc->nv,ns=sc->ns, n=sc->n,n1=n+1;
   INT *nodes = sc->nodes, *ib=sc->bndry;

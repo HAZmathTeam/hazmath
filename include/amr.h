@@ -71,18 +71,19 @@ typedef struct /* n-homogenous simplicial complex */
   INT cc; /*n connected components */
   INT bndry_cc; /*connected components on the boundary */
 } scomplex;
-typedef struct /* a macroelement (isomrphic to the hypercube
-		  usually) */
-{
-  INT type; /* the type of the macro element: not used at the moment */
-  INT *csys; /* coordinate system for every vertex */
-  REAL *xmac; /* coordinates of the vertices in the corresponding
-		 coordinate system ; */
-  REAL *xemac; /* coordinates of the midpoint of the edges if
-		  needed. These are computed depending on the coord
-		  system and are not an input */
-} macroelement;
-/*================================================================*/
+/* /\*================================================================*\/ */
+/* typedef struct /\* a macroelement (isomrphic to the hypercube */
+/* 		  usually) *\/ */
+/* { */
+/*   INT type; /\* the type of the macro element: not used at the moment *\/ */
+/*   INT *csys; /\* coordinate system for every vertex *\/ */
+/*   REAL *xmac; /\* coordinates of the vertices in the corresponding */
+/* 		 coordinate system ; *\/ */
+/*   REAL *xemac; /\* coordinates of the midpoint of the edges if */
+/* 		  needed. These are computed depending on the coord */
+/* 		  system and are not an input *\/ */
+/* } macroelement; */
+/* /\*================================================================*\/ */
 typedef struct /* a coordinate system */
 {
   INT type; /* the type of the coordinate system: 0 is cartesian, 1 if
@@ -199,6 +200,36 @@ typedef struct /* structure to support splitting unit cube into simplices */
 		give consistent splitting of neighboring cubes.
 	     */
 } cube2simp;
+/*=================================================================*/
+typedef struct /* macroelement complex (isomorphic to
+		  parallelepiped w 2^{n} vertices) */
+{
+  INT nel; /*number of macro elements*/
+  INT nf; /*number of macro faces*/
+  INT nfi; /*number of interior faces*/
+  INT nfb; /*number of boundary faces*/
+  INT **nd; /*number of divisions for every macro element*/
+  INT **elneib; /* 
+		   element neighboring list where the position of the
+		   neighbor is the same as the position of the face in
+		   cube2simp->faces shared by the two el.
+		*/
+  INT **el2fnum; /* for every element this gives the local to global
+		    face number map;   */
+  INT **iindex; /* used to remove repeated vertices */
+  iCSRmat *fullel2el; /* full element to element which has also the
+			 number of common vertices as entries; */
+  INT *bcodesf; /* codes for boundary faces */
+  INT *isbface; /* indicator if a face is on the boundary */
+  INT *flags; /*flags (material) of the macro elements*/  
+  INT cc; /*n connected components */
+  INT bndry_cc; /*connected components on the boundary */
+  iCSRmat *bfs; /* bfs levels structure for the mesh el2el only if
+		   they share a face; */
+  INT *etree; /* bfs tree (el by el only if the elems share a face) */
+} macrocomplex;
+/*********************************************************************/
+/*==================================================================*/
 typedef struct /* features (to refine around these) */
 {
   INT nbig; /* dimension in which this is "embedded", i.e. one

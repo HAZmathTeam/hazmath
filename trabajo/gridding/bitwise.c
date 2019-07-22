@@ -1,9 +1,8 @@
 /************************************************************************/
 #include "hazmath.h"
-scomplex *umesh(const INT dim, INT *nd, cube2simp *c2s,	\
-		const INT face, const INT face_parent,	\
-		const scomplex *sc_parent,		\
-		INT *nd_parent,			\
+scomplex *umesh(const INT dim,		\
+		INT *nd, cube2simp *c2s,		\
+		INT *isbndf, INT *codef,INT elflag,	\
 		const INT intype)
 {
   /* face is the face that matches the face_parent in the neighboring
@@ -30,7 +29,6 @@ scomplex *umesh(const INT dim, INT *nd, cube2simp *c2s,	\
   // m is dim+1 so that we can handle even dimensions
   INT *m = (INT *)calloc(dim1,sizeof(INT));
   INT *mm = (INT *)calloc(dim1,sizeof(INT));
-  INT *mp = (INT *)calloc(dim1,sizeof(INT));
   INT *cnodes = (INT *)calloc(c2s->nvcube,sizeof(INT));  
   //  INT *icycle = (INT *)calloc(dim+1,sizeof(INT));
   INT nv=1,ns=1;
@@ -102,54 +100,67 @@ scomplex *umesh(const INT dim, INT *nd, cube2simp *c2s,	\
 	//	fprintf(stdout,"\ntype=%d,ns=%d,jperm=%d,iz1=%d",type,ns,jperm,iz1);
 	sc->nodes[ns*dim1+j]=cnodes[jperm];
       }
-      ns++;
+      sc->flags[ns]=elflag;
+      ns++;      
     }    
   }
-  if(face>=0 && face_parent>=0 && (sc_parent!=NULL)){
-    //    REAL shift[2]={0.,-1.};
-    INT kfp,ijk,mi,mip,toskip,toadd;
-    //    print_full_mat_int(1,c2s->nvface,(c2s->faces+face*c2s->nvface),"face");
-    //print_full_mat_int(1,c2s->nvface,(c2s->faces+face_parent*c2s->nvface),"facep");
-    if(face<dim){
-      mi=dim-(face+1);
-      toskip=0;
-    } else {
-      mi=dim-((face%dim)+1);
-      toskip=nd[mi];
+  INT cfbig=((INT )MARKER_BOUNDARY_NO)+100;
+  INT facei,bf,cf,mi;
+  //  INT kfp,ijk,mi,mip,toskip,toadd;
+  /******************************************************************/
+  /*  
+   *  when we come here, all boundary faces have codes and they are
+   *  non-zero. All interior faces shoudl have a code zero.
+   */
+  /******************************************************************/
+  for(kf=0;kf<sc->nv;kf++) sc->bndry[kf]=cfbig;
+  /* for(facei=0;facei<c2s->nf;facei++){ */
+  /*   if(facei<dim){ */
+  /*     mi=dim-(facei+1); */
+  /*     bf=0; */
+  /*   } else{ */
+  /*     mi=dim-((facei%dim)+1); */
+  /*     bf=nd[mi]; */
+  /*   } */
+  /*   cf=codef[facei]; */
+  /*   if(!isbndf[facei]){ */
+  /*     // first pass: set the interior faces; */
+  /*     for(kf=0;kf<sc->nv;kf++){ */
+  /* 	coord_lattice(m,dim,kf,sc->nv,nd); */
+  /* 	if(m[mi]==bf){ */
+  /* 	  if(sc->bndry[kf]>cf && (cf !=0)) sc->bndry[kf]=cf; */
+  /* 	} */
+  /*     } */
+  /*   } */
+  /* } */
+  /******************************************************************/
+  // second pass: set boundaries, so that the bondaries are the ones
+  // that we care about:
+  /******************************************************************/
+  for(facei=0;facei<c2s->nf;facei++){
+    if(facei<dim){
+      mi=dim-(facei+1);
+      bf=0;
+    } else{
+      mi=dim-((facei%dim)+1);
+      bf=nd[mi];
     }
-    if(face_parent<dim){
-      mip=dim-(face_parent+1);
-      toadd=0;
-    } else {
-      mip=dim-((face_parent%dim)+1);
-      toadd=nd_parent[mip];
-    }
-    //    fprintf(stdout,"\ntoskip =%d, toadd=%d,mi=%d,mip=%d",toskip,toadd,mi,mip);
-    nv=0;  
-    for(kf=0;kf<sc->nv;kf++){
-      coord_lattice(m,dim,kf,sc->nv,nd);
-      if(m[mi]==toskip){
-	memcpy(mp,m,dim*sizeof(INT));
-	mp[mip]=toadd;
-	kfp=num_lattice(mp,dim,nd_parent);
-	//	print_full_mat_int(1,c2s->n,nd,"ndnd");
-	//	print_full_mat_int(1,c2s->n,nd_parent,"ndndp");
-	//	print_full_mat_int(1,c2s->n,m,"m");
-	//	print_full_mat_int(1,c2s->n,mp,"mp");
-	/* fprintf(stdout,"\nskipping kf=%d, kfp=%d",kf,kfp); */
-	/* fprintf(stdout,"\noldx=("); */
-	/* for(ijk=0;ijk<dim;ijk++) */
-	/*   fprintf(stdout,"%.5e ", sc_parent->x[kfp*dim+ijk]); */
-	/* fprintf(stdout,"); newx=["); */
-	/* for(ijk=0;ijk<dim;ijk++) */
-	/*   fprintf(stdout,"%.5e ", sc->x[kf*dim+ijk]); */
-	/* fprintf(stdout,"]\n"); */
-      }
+    cf=codef[facei];
+    /* INT isbf=isbndf[facei]; */
+    if(isbndf[facei]){
+      for(kf=0;kf<sc->nv;kf++){
+	coord_lattice(m,dim,kf,sc->nv,nd);
+	if(m[mi]==bf){
+	  if(sc->bndry[kf]>cf) sc->bndry[kf]=cf;
+	}
+      } 
     }
   }
-  if(m) free(m);
-  if(mp) free(mp);
-  if(mm) free(mm);
+  /******************************************************************/
+  // Only interior points should now be left; set them to 0:
+  for(kf=0;kf<sc->nv;kf++)
+    if(sc->bndry[kf]>=cfbig) sc->bndry[kf]=0;      
+  /******************************************************************/
   return sc;
 }
 /**************************************************************************/
@@ -157,35 +168,40 @@ void unirefine(INT *nd,scomplex *sc)
 {
 /* 
  * refine uniformly l levels, where 2^l>max_m nd[m] using the generic
- * algorithm for refinement.
- Works in the following way: first construct a grid with refinements up to
- 2^{l} such that 2^{l}>max_m nd[m]. then remove all x such that
- x[k]>nd[k]*2^{-l} and then remap to the unit square. 
+ * algorithm for refinement.  Works in the following way: first
+ * construct a grid with refinements up to 2^{l} such that 2^{l}>max_m
+ * nd[m]. then remove all x such that x[k]>nd[k]*2^{-l} and then remap
+ * to the unit square.
+ * (20180718)--ltz
 */
   INT ndmax=-1,i=-1,j=-1;
   for(i=0;i<sc->n;i++)
     if(ndmax<nd[i]) ndmax=nd[i];
-  fprintf(stdout,"\nmax split=%d",ndmax);
+  //  fprintf(stdout,"\nmax split=%d",ndmax);
   REAL sref=log2((REAL )ndmax);
   if(sref-floor(sref)<1e-3)
     sref=floor(sref);
   else
     sref=floor(sref)+1.;
   INT ref_levels= sc->n*((INT )sref);
-  fprintf(stdout,"\nlog2 of the max=%e, l=%d",log2((REAL )ndmax)+1,ref_levels);
+  //  fprintf(stdout,"\nlog2 of the max=%e, l=%d",log2((REAL )ndmax)+1,ref_levels);
+  find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
+  haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
+  INT *wrk=calloc(5*(sc->n+2),sizeof(INT));
+  /* construct bfs tree for the dual graph */
+  abfstree(0,sc,wrk,0);
+  free(wrk);
   ref_levels=0;
   if(ref_levels<=0) return;
-  INT nsold;//ns,nvold,level;
+  INT nsold,print_level=0;//ns,nvold,level;
   if(!sc->level){
     /* form neighboring list; */
     find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
     //    haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
-    INT *wrk=calloc(5*(sc->n+2),sizeof(INT));
     /* construct bfs tree for the dual graph */
-    abfstree(0,sc,wrk);
+    abfstree(0,sc,wrk,print_level=0);
     //    haz_scomplex_print(sc,0,__FUNCTION__);fflush(stdout);
     //    exit(100);
-    if(wrk) free(wrk);
   }
   //INT n=sc->n, n1=n+1,level=0;
   fprintf(stdout,"refine: ");
