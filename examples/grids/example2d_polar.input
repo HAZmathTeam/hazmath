@@ -95,7 +95,7 @@ num_macroelements{4}
 %%% macroelement number, vertices forming the macroelement, macroelement code.
 
 data_macroelements{
-0 1 2 3  3 
+1 0 3 2  3 
 4 5 6 7  2 
 5 1 7 3  2 
 0 4 2 6  3 
