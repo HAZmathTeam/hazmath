@@ -16,8 +16,8 @@ EXTENSION = ex
 CC = gcc
 FC = gfortran
 CXX = g++
-CFLAGS = -g -Wall
-FFLAGS = -g -fno-second-underscore
+CFLAGS = -O -Wall
+FFLAGS = -O -fno-second-underscore
 ExtraFLAGS =
 
 HAZLIB = $(HAZDIR)/lib
@@ -33,10 +33,7 @@ EXE = $(GRID).$(EXTENSION)
 EXEold = $(OLDGRID).$(EXTENSION)
 
 # Source and Object Files
-OBJ =	$(SRCDIR)/main_grid.o	\
-	$(SRCDIR)/newgrids.o \
-	$(SRCDIR)/bitwise.o \
-	$(SRCDIR)/new_refining.o		
+OBJ =	$(SRCDIR)/main_grid.o
 
 OBJold =	$(SRCDIR)/$(GRID).o \
 		$(SRCDIR)/new_refining.o \
