@@ -329,11 +329,11 @@ void  read_data(char **clndata,input_grid *g)
   return;
 }
 /********************************************************************/
-void get_out(const char *pattern, size_t le)
+void x_out(const char *pattern, size_t le)
 {
   /* prints a string cutting it at the closest blank space <= le*/
   int i;
-  fprintf(stderr, "\n\n\n           *** ERROR::::   \n     UNBALANCED \"{}\" near or before \"");
+  fprintf(stderr, "\n\n\n *** ERROR(%s)::::   \n     UNBALANCED \"{}\" near or before \"",__FUNCTION__);
   for (i=0;i<(le-1);++i)
     fprintf(stderr, "%c",*(pattern+i));
   fprintf(stderr, "\"\n");  
@@ -410,8 +410,10 @@ char *make_string_from_file(FILE *the_file, size_t *length_string)
   /*   if(!everything[j]) continue; */
   /*   everything[j]=toupper(tolower(everything[j])); */
   /* } */
-  /* fprintf(stderr,"\nNumber of characters in the supressed string %li\n",strlen(everything)); */
-  /* fprintf(stdout,"\nString=%s\n",everything); */
+  /*  
+      fprintf(stderr,"\nNumber of characters in the supressed string %li\n",strlen(everything));
+      fprintf(stdout,"\nString=%s\n",everything);
+  */
   return everything;
 }
 /********************************************************************/
@@ -433,12 +435,12 @@ char *get_substring(const char *pattern,		\
     //    found = &(*(found + le));
     found += le;
     wrk = (char *) strstr(found,"}");
-    if(wrk == NULL ){ get_out(pattern,le);}
+    if(wrk == NULL ){ x_out(pattern,le);}
     *length_substring=strlen(found)-strlen(wrk);
     *wrk = '\t';
     wrk = (char *) strstr(found,"\t");
     i = strlen(found)-strlen(wrk);
-    if(i != *length_substring ){ get_out(pattern,le); }
+    if(i != *length_substring ){ x_out(pattern,le); }
   }else{
     fprintf(stderr, "\n\n\n *** WARNING: \"" );
     for (i=0;i<le-1;++i)
@@ -450,19 +452,19 @@ char *get_substring(const char *pattern,		\
   return found;
 }
 /********************************************************************/
-input_grid *parse_input_grid(const char *input_file_grid)
+input_grid *parse_input_grid(FILE *the_file)
 {
+  /* read all the input from a file on strem "the_file" and parse the input. */
+  /*in the char below, tabs need to be tabs not spaces. */
+  char *default_e=strdup("title{Grid on a cube (-1,1)x(-1,1)x(-1,1)\tdimension{3\tprint_level{1\t  dir_grid{\tdir_vtu{\tfile_grid{\tfile_vtu{\tnum_edges{3\tdata_edges{0 1 2  0 2 2 0 4 2\tnum_vertices{8\t data_vertices{0 0 -1. -1. -1. 1 0 -1. -1 1. 2 0 -1. 1. -1. 3 0 -1. 1. 1. 4 0 1. -1. -1. 5 0 1. -1. 1. 6 0 1. 1. -1. 7 0 1. 1. 1.\t  num_macroelements{1\t  data_macroelements{0 1 2 3 4 5 6 7 10\tnum_macrofaces{1\t data_macrofaces{0 1 2 3 1\tnum_coordsystems{1\tdata_coordsystems{0 0. 0. 0. 0\tnum_refinements{0\trefinement_type{0\terr_stop_refinement{-1.e-10\t");
   INT iread,numel_data,k;
-  FILE *the_file;
   char *everything;
   size_t length_string=0;
   char **indata;
   char **clndata;
   size_t *lengths;
-  the_file = fopen(input_file_grid,"r");
   everything = make_string_from_file(the_file, &length_string);
   fclose(the_file);
-  //  fprintf(stdout,"\n%s\n",everything);
   indata=input_strings(&numel_data);
   clndata=malloc(numel_data*sizeof(char *));
   lengths=calloc(numel_data,sizeof(size_t));
@@ -470,6 +472,10 @@ input_grid *parse_input_grid(const char *input_file_grid)
   /* get all substrings */
   for(k=0;k<numel_data;k++){
     clndata[k] = get_substring(indata[k],(lengths+k), everything);
+    if(!clndata[k] || !lengths[k]){
+      fprintf(stderr,"\n\n***ERROR in reading input data. Please fix the grid input file.");
+      exit(13);
+    }
   }
   for(k=0;k<numel_data;k++)
     clndata[k][lengths[k]] = '\0';
@@ -494,7 +500,7 @@ input_grid *parse_input_grid(const char *input_file_grid)
   iread=sscanf(clndata[19],"%hd",&g->print_level);//
   if(iread<0) iread=0;
   input_grid_arrays(g);
-  read_data(clndata,g);  
+  read_data(clndata,g);
   /*FREE*/
   if(everything)free(everything);
   for(k=0;k<numel_data;k++){
@@ -502,6 +508,10 @@ input_grid *parse_input_grid(const char *input_file_grid)
   }
   free(indata);
   free(clndata);
+  if(g->print_level>0)
+    fprintf(stdout,"\nEXAMPLE: %s\n",g->title);
+  if(g->print_level>3)
+    input_grid_print(g);
   return g;
 }
 /********************************************************************/
@@ -580,94 +590,7 @@ void set_edges(input_grid *g0,cube2simp *c2s)
   free(mnodes);
   return;
 }
-void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
-{
-  /* 
-     maps a uniform grid from the n-dimensional cube to a hexagonal 
-     macroelement from an initial grid of macroelements 
-     given by its coordinates xmac[1:nvcube*dim]
-     xmac[nvcube][dim]
-  */
-  INT i,j,k1,k2,k1c,kf,dim=sc->n;
-  //  INT k2c;
-  INT ksys;
-  REAL *xmac=g->xv;  
-  REAL *xhat = (REAL *)calloc(dim,sizeof(REAL));
-  REAL *xemac=(REAL *)calloc(c2s->ne*dim,sizeof(REAL));
-  // convert midpoints from polar to cartesian.
-  //  print_full_mat(c2s->nvcube,c2s->n,g->xv,"X{1}");
-  for(i=0;i<c2s->ne;i++){
-    k1=c2s->edges[2*i];
-    k2=c2s->edges[2*i+1];
-    k1c=g->systypes[g->csysv[k1]];
-    //    k2c=g->systypes[g->csysv[k2]];
-    //    fprintf(stdout,"\nverts=(%d,%d); coord_sys=(%d,%d)",k1,k2,k1c,k2c);fflush(stdout);
-    if(g->csysv[k1]==g->csysv[k2] && k1c==1){
-      //use xhat as a temp array:
-      xhat[0]=0.5*(xmac[k1*dim]+xmac[k2*dim]);// this is rho
-      // take half angles;
-      for(j=1;j<dim;j++) {
-	xhat[j]=0.5*(xmac[k1*dim+j]+xmac[k2*dim+j]);
-      }
-      polar2cart(dim,xhat,xemac+(i*dim));
-      // translate by adding the origin. 
-      ksys=g->csysv[k1];// k1c and k2c should be the same below. 
-			      //      k2c=g->csysv[k2];
-      for(j=0;j<dim;j++) {
-	xemac[i*dim+j]+=g->ox[ksys*dim+j];
-      }
-    }
-  }
-  // end of mid points in polar;
-  // now convert all vertices in cartesian as well. 
-  for(i=0;i<c2s->nvcube;i++){
-    k1c=g->systypes[g->csysv[i]];
-    if(k1c==1){
-      memcpy(xhat,xmac+i*dim,dim*sizeof(REAL));
-      polar2cart(dim,xhat,xmac+(i*dim));
-      //      translate
-    }
-    ksys=g->csysv[i];
-    for(j=0;j<dim;j++) {
-      xmac[i*dim+j]+=g->ox[ksys*dim+j];
-    }
-  }
-  // now everything is in cartesian, so midpoints that are
-  // not yet attended to are just averages.
-  for(i=0;i<c2s->ne;i++){
-    k1=c2s->edges[2*i];
-    k2=c2s->edges[2*i+1];
-    k1c=g->systypes[g->csysv[k1]];
-    //    k2c=g->systypes[g->csysv[k2]];
-    //skip all polar mid points
-    if(g->csysv[k1]==g->csysv[k2] && k1c==1) continue;
-    //    fprintf(stdout,"\ncart:verts=(%d,%d); coord_sys=(%d,%d)",k1,k2,k1c,k2c);fflush(stdout);
-    for(j=0;j<dim;j++) {
-      xemac[i*dim+j]=0.5*(xmac[k1*dim+j]+xmac[k2*dim+j]);
-    }
-  }
-  //print_full_mat(c2s->nvcube,dim,xmac,"X");
-  //print_full_mat(c2s->ne,dim,xemac,"XE");
-  r2c(c2s->nvcube,dim,sizeof(REAL),xmac); // we need xmac by rows here
-  r2c(c2s->ne,dim,sizeof(REAL),xemac); // we need xemac (mid points of
-				       // edges) also by rows
-  for(kf=0;kf<sc->nv;kf++){
-    for(i=0;i<dim;i++)xhat[i]=sc->x[kf*dim+i];
-    for(i=0;i<dim;i++){
-      sc->x[kf*dim+i]=interp8(c2s,xmac+i*c2s->nvcube,xemac+i*c2s->ne,xhat);
-      //sc->x[kf*dim+i]=interp4(c2s,xmac+i*c2s->nvcube,xhat);
-    }
-    //    for(i=0;i<dim;i++){
-      //      sc->x[kf*dim+i]=interp4(c2s,xmac+i*c2s->nvcube,xhat);
-    //    }
-  }
-  //  r2c(dim,c2s->nvcube,sizeof(REAL),xmac); // we need xmac by columns here
-  //  r2c(dim,c2s->ne,sizeof(REAL),xemac); // we need xemac by rows agin
-  if(xhat) free(xhat);
-  if(xemac) free(xemac);
-  return;
-}
-/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
+/*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 INT *set_input_grid(input_grid *g,cube2simp *c2s)
 {
   /* 
