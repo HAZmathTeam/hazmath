@@ -901,12 +901,17 @@ scomplex *generate_grid(input_grid *g0)
     // TRUE    mc->flags[kel]=g0->mnodes[nvcube+kel*(nvcube+1)];
     mc->flags[kel]=2*kel+1;
   }
-  INT intype=1,kj,jel;  
+  INT intype=g0->ref_type-1,kj,jel;  
   INT *codef=calloc(c2s->nf,sizeof(INT));
   INT *isbndf=calloc(c2s->nf,sizeof(INT));
   // here this can be also done without bfs
-  for(kj=0;kj<bfs0->nnz;kj++){    
-    jel=bfs0->JA[kj];    
+  INT kjj;
+  for(kj=0;kj<bfs0->row;kj++){
+    if(g0->ref_type>=0) intype++;
+    else intype=-1;
+    for(kjj=bfs0->IA[kj];kjj<bfs0->IA[kj+1];kjj++){
+      if((intype>=0) && (mc->etree[jel]<0)) intype=g0->ref_type; //reset reftype;
+      jel=bfs0->JA[kjj];    
     //    print_full_mat_int(1,c2s->nf,elneib[kel],"neib");
     memcpy(g->mnodes,(g0->mnodes+jel*(nvcube+1)),(nvcube+1)*sizeof(INT));
     for(i=0;i<c2s->nvcube;i++){
@@ -935,6 +940,7 @@ scomplex *generate_grid(input_grid *g0)
         map2mac(sc[jel],c2s,g);
     //    fprintf(stdout,"\n%%mesh(macroelement=%d): nv=%d; nsimp=%d",jel,sc[jel]->nv,sc[jel]->ns);      
     //    haz_scomplex_print(sc[jel],0,"HAHA");
+    }
   }
   //  fprintf(stdout,"\n%%Removing overlaps...");
   fix_grid(mc,sc,c2s,g0);  
@@ -951,9 +957,9 @@ scomplex *generate_grid(input_grid *g0)
   cube2simp_free(c2s);
   /* prepare for adaptive refinement */
   find_nbr(sc[0]->ns,sc[0]->nv,sc[0]->n,sc[0]->nodes,sc[0]->nbr);
-  //  INT *wrk1=calloc(5*(sc[0]->n+2),sizeof(INT));
-  //  /* construct bfs tree for the dual graph */
-  //  abfstree(0,sc[0],wrk1,g0->print_level);
-  //  free(wrk1);
+  INT *wrk1=calloc(5*(sc[0]->n+2),sizeof(INT));
+  /* construct bfs tree for the dual graph */
+  abfstree(0,sc[0],wrk1,g0->print_level);
+  free(wrk1);
   return sc[0];  
 }
