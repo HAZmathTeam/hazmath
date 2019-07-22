@@ -8,6 +8,7 @@
  *  \note interpolates data on uniform grids
 */
 #include "hazmath.h"
+/*=============================================================================*/
 void coord_lattice(INT *m,const INT dim,			\
 		   const INT kf, const INT nall, const INT *nd)
 {
@@ -55,6 +56,228 @@ void binary1(const INT dim, unsigned int *bits, INT *nvloc)
   return;
 }
 
+/************************************************************************/
+scomplex *umesh(const INT dim,		\
+		INT *nd, cube2simp *c2s,		\
+		INT *isbndf, INT *codef,INT elflag,	\
+		const INT intype)
+{
+  /* face is the face that matches the face_parent in the neighboring
+     element.  uniform simplicial mesh of the unit cube in dimension
+     dim.  dim is the dimension, nd is the number of grid points in
+     each dimension.  ordering is lexicographically by
+     name=(x[0],...,x[n]).  more than 3D is not fully tested xmacro[]
+     are the coordinates of a domain isomorphic to the cube via a
+     bilinear or "Q2" change of coordinates. output is a simplicial
+     complex sc.
+
+     if(intype == -2) use unirefine() function (from unigrid.c in src/amr)
+
+     if(intype == -1)construct grid using diagonals pointing
+     0-7(0...0)-->(1...1).
+
+     if (intype>0) starting with intype the mesh is constructed like
+     criss-cross grid. This works in 2D and 3D, and is unclear whether
+     it works in d>3.
+  */
+  INT iz1;
+  INT jperm,i,j,flag,kf,type;
+  INT dim1 = dim+1;
+  // m is dim+1 so that we can handle even dimensions
+  INT *m = (INT *)calloc(dim1,sizeof(INT));
+  INT *mm = (INT *)calloc(dim1,sizeof(INT));
+  INT *cnodes = (INT *)calloc(c2s->nvcube,sizeof(INT));  
+  //  INT *icycle = (INT *)calloc(dim+1,sizeof(INT));
+  INT nv=1,ns=1;
+  for(i=0;i<dim;i++){
+    nv*=(nd[i]+1);
+    ns*=nd[i];
+  }
+  ns*=c2s->ns; /*multiply by the number of simplices in the unit cube
+		 (2 in 2D and 6 in 3d and 24 in 4d*/
+  scomplex *sc = (scomplex *)haz_scomplex_init(dim,ns,nv);
+  //  fprintf(stdout,"\nFaces=(%d,%d)=(face,face_parent)\n",face,face_parent);fflush(stdout);
+  for(kf=0;kf<sc->nv;kf++){
+    coord_lattice(m,dim,kf,sc->nv,nd);
+    for(i=0;i<dim;i++){
+      /* THIS HERE HAS THE X COORD FIRST WHICH IS NOT WHAT ONE HAS IF
+	 USING THE BIJECTION BETWEEN BINARY NUMBERS AND THE
+	 COORDINATES OF VERTICES IN THE UNIT CUBE> SO WE REVERSE THE
+	 ORDERING OF DIVISIONS SO THAT WE PARTITION FIRST X and so
+	 on. so basically we come here with the last coordinate
+	 first. That is why we also have (dim-i-1) instaed of i*/
+      sc->x[kf*dim+(dim-i-1)]=((REAL )m[i])/((REAL )nd[i]);
+      /* OLD: sc->x[kf*dim+i]=((REAL )m[i])/((REAL )nd[i]); */
+    }    
+    //      print_full_mat_int(1,dim,m,"m1=");
+    //      fprintf(stdout,"; iglobal=%d;",kf);
+  }
+  ns=0;
+  for(kf=0;kf<sc->nv;kf++){
+    coord_lattice(m,dim,kf,sc->nv,nd);
+    flag=0;
+    for(i=0;i<dim;i++){
+      if(m[i]==nd[i]) {flag=1; break;}
+    }
+    if(flag) continue;
+    if(intype==-1) {
+      type=0;
+    }else{
+      /*criss-cross in any D*/
+      /* determine type; this is not fully rigorously justified, but
+       works in d=2,3*/
+      type=(m[0]+intype)%2;
+      for(i=1;i<dim-1;i++){
+	type+=2*(m[i]%2);
+      }
+      // this is a hack here to work in 2D. unclear how to do in 2D yet or 4D. 
+      if(dim==2){type=(abs(m[1]-m[0])+intype)%dim;}
+      if((m[dim-1]%2)) type=dim-type;
+      if((!(dim%2)) && (type>=(dim))) {type%=(dim);}
+      if(dim%2 && (type>(dim+1))) {type%=(dim+1);}
+    }
+    //    type=0;
+    /*depending on the type, split a cube in simplices*/
+    //    fprintf(stdout,"\ntype=%d\n",type+1);
+    for(j=0;j<c2s->nvcube;j++){
+      //            fprintf(stdout,"j:%d; ",j+1);
+      for(i=0;i<dim;i++){
+    	mm[i]=m[i]+(c2s->bits[dim*j+i]);
+	//		fprintf(stdout,"mm[%d]=%d; ",i+1,mm[i]+1);
+      }
+      cnodes[j]=num_lattice(mm,dim,nd);
+      //            fprintf(stdout,"\n"); fflush(stdout);
+    }   
+    //    fprintf(stdout,"\n"); fflush(stdout);
+    //  
+    for(i=0;i<c2s->ns;i++){
+      for(j=0;j<dim1;j++){
+	iz1=c2s->nodes[i*dim1+j];
+	jperm=c2s->perms[type*c2s->nvcube+iz1];
+	//	fprintf(stdout,"\ntype=%d,ns=%d,jperm=%d,iz1=%d",type,ns,jperm,iz1);
+	sc->nodes[ns*dim1+j]=cnodes[jperm];
+      }
+      sc->flags[ns]=elflag;
+      ns++;      
+    }    
+  }
+  INT cfbig=((INT )MARKER_BOUNDARY_NO)+100;
+  INT facei,bf,cf,mi;
+  //  INT kfp,ijk,mi,mip,toskip,toadd;
+  /******************************************************************/
+  /*  
+   *  when we come here, all boundary faces have codes and they are
+   *  non-zero. All interior faces shoudl have a code zero.
+   */
+  /******************************************************************/
+  for(kf=0;kf<sc->nv;kf++) sc->bndry[kf]=cfbig;
+  /* for(facei=0;facei<c2s->nf;facei++){ */
+  /*   if(facei<dim){ */
+  /*     mi=dim-(facei+1); */
+  /*     bf=0; */
+  /*   } else{ */
+  /*     mi=dim-((facei%dim)+1); */
+  /*     bf=nd[mi]; */
+  /*   } */
+  /*   cf=codef[facei]; */
+  /*   if(!isbndf[facei]){ */
+  /*     // first pass: set the interior faces; */
+  /*     for(kf=0;kf<sc->nv;kf++){ */
+  /* 	coord_lattice(m,dim,kf,sc->nv,nd); */
+  /* 	if(m[mi]==bf){ */
+  /* 	  if(sc->bndry[kf]>cf && (cf !=0)) sc->bndry[kf]=cf; */
+  /* 	} */
+  /*     } */
+  /*   } */
+  /* } */
+  /******************************************************************/
+  // second pass: set boundaries, so that the bondaries are the ones
+  // that we care about:
+  /******************************************************************/
+  for(facei=0;facei<c2s->nf;facei++){
+    if(facei<dim){
+      mi=dim-(facei+1);
+      bf=0;
+    } else{
+      mi=dim-((facei%dim)+1);
+      bf=nd[mi];
+    }
+    cf=codef[facei];
+    /* INT isbf=isbndf[facei]; */
+    if(isbndf[facei]){
+      for(kf=0;kf<sc->nv;kf++){
+	coord_lattice(m,dim,kf,sc->nv,nd);
+	if(m[mi]==bf){
+	  if(sc->bndry[kf]>cf) sc->bndry[kf]=cf;
+	}
+      } 
+    }
+  }
+  /******************************************************************/
+  // Only interior points should now be left; set them to 0:
+  for(kf=0;kf<sc->nv;kf++)
+    if(sc->bndry[kf]>=cfbig) sc->bndry[kf]=0;      
+  /******************************************************************/
+  return sc;
+}
+/**************************************************************************/
+void unirefine(INT *nd,scomplex *sc)  
+{
+/* 
+ * refine uniformly l levels, where 2^l>max_m nd[m] using the generic
+ * algorithm for refinement.  Works in the following way: first
+ * construct a grid with refinements up to 2^{l} such that 2^{l}>max_m
+ * nd[m]. then remove all x such that x[k]>nd[k]*2^{-l} and then remap
+ * to the unit square.
+ * (20180718)--ltz
+*/
+  INT ndmax=-1,i=-1,j=-1;
+  for(i=0;i<sc->n;i++)
+    if(ndmax<nd[i]) ndmax=nd[i];
+  //  fprintf(stdout,"\nmax split=%d",ndmax);
+  REAL sref=log2((REAL )ndmax);
+  if(sref-floor(sref)<1e-3)
+    sref=floor(sref);
+  else
+    sref=floor(sref)+1.;
+  INT ref_levels= sc->n*((INT )sref);
+  //  fprintf(stdout,"\nlog2 of the max=%e, l=%d",log2((REAL )ndmax)+1,ref_levels);
+  find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
+  haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
+  INT *wrk=calloc(5*(sc->n+2),sizeof(INT));
+  /* construct bfs tree for the dual graph */
+  abfstree(0,sc,wrk,0);
+  free(wrk);
+  ref_levels=0;
+  if(ref_levels<=0) return;
+  INT nsold,print_level=0;//ns,nvold,level;
+  if(!sc->level){
+    /* form neighboring list; */
+    find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
+    //    haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
+    /* construct bfs tree for the dual graph */
+    abfstree(0,sc,wrk,print_level=0);
+    //    haz_scomplex_print(sc,0,__FUNCTION__);fflush(stdout);
+    //    exit(100);
+  }
+  //INT n=sc->n, n1=n+1,level=0;
+  fprintf(stdout,"refine: ");
+  while(sc->level < ref_levels && TRUE){
+    nsold=sc->ns;
+    //    nvold=sc->nv;
+    for(j = 0;j < nsold;j++)sc->marked[j]=TRUE;
+    for(j = 0;j < nsold;j++)
+      if(sc->marked[j] && (sc->child0[j]<0||sc->childn[j]<0))
+	haz_refine_simplex(sc, j, -1);
+    /* new mesh */
+    //    ns=sc->ns; 
+    sc->level++;
+    fprintf(stdout,"u%du",sc->level);//,nsold,ns,nv);
+  }
+  fprintf(stdout,"\n");
+  scfinalize(sc);
+  return;
+}
 unigrid *ugrid_init(INT n, INT *nd, REAL *xo, REAL *xn)
 {
   INT j;
@@ -152,345 +375,3 @@ void ugrid_transform(const INT n,unigrid *ug,	\
   }
   return;
 }
-/* general transform: maps data */
-void data_transform(const INT nv, const int m,			\
-		     REAL *data, REAL *xodst, REAL *xndst)
-{
-  /* transform each column of a REAL data given in (nv x m) matrix to
-     the intervals xodst[j],xndst[j], j=1:m*/
-  INT i,j;
-  REAL *xo=(REAL *)calloc(2*m,sizeof(REAL));
-  REAL *xn=xo+m;
-  REAL dxsrc,a,b;
-  for(j=0;j<m;j++){
-    xn[j]=xo[j]=data[j];
-    for(i=1;i<nv;i++){
-      if(data[m*i+j]<xo[j]) xo[j]=data[m*i+j];
-      if(data[m*i+j]>xn[j]) xn[j]=data[m*i+j];
-    }
-  }  
-  for(j=0;j<m;j++){
-    dxsrc=xn[j]-xo[j];
-    a=(xndst[j]-xodst[j])/dxsrc;
-    b=(xodst[j]*xn[j]-xndst[j]*xo[j])/dxsrc;    
-    for(i=0;i<nv;i++){
-      data[m*i+j] = a*data[m*i+j] +b;
-    }
-  }
-  if(xo) free(xo);
-  return; 
-}
-REAL interp01(const INT dim,unsigned int *bits,REAL *u,	\
-	      REAL *xhat)
-{
-  /*INTerpolate d-linearly in d dimensions on the UNIT cube */
-  INT k,i,kdim,nvloc=(1<<dim);
-  REAL phik;
-  REAL s=0.;
-  for(k = 0;k<nvloc;k++){
-    kdim=k*dim;
-    phik=1e0;
-    for(i = 0;i<dim;++i){      
-      if(bits[kdim+i])
-	phik*=(1e0-xhat[i]);
-      else	
-	phik*=xhat[i];
-    }
-    s+=u[k]*phik;
-  }
-  return s;
-}
-/********************************************************************/
-/* interpolates using data from lattice grid. Anything outside the
-   lattice is moved to the closest lattice boundary in L_1 and
-   interpolated too.  */
-void interp1(const INT dimbig, REAL *fi, unigrid *ug,	\
-	     REAL *x, const INT nvert, INT *mask)
-/* here x is (dimbig) x nvert; but only first dim columns of it are used */
-{  
-  /*  find the values of ug->data at x by interpolation.  ug->data is
-  given on a uniform grid.
-  */
-  INT dim = ug->n,i,j,k,kdim,kf;
-  REAL xoj;
-  //  unsigned int bi,bi1;
-  REAL *xo = ug->xo,*dx = ug->dx;// *xn = ug->xn;
-  unsigned int *bits=ug->bits;
-  INT nvcube=ug->nvcube;
-  //    fprintf(stderr,"\nnvcube=%d\n",nvcube);
-  INT *nd=ug->ndiv;
-  INT *mo=(INT *)calloc(dim,sizeof(INT));
-  REAL *u=(REAL *)calloc(nvcube,sizeof(REAL));
-  REAL *xhat=(REAL *)calloc(dim,sizeof(REAL));
-  /*NOTE: nd[] are the number of DIVISIONS (not number of vertices)
-    for every direction */
-  unsigned int found;
-  REAL eps0=1e-8;
-  for (i = 0; i<nvert;i++){
-    if(mask != NULL) {
-      if(mask[i]) continue; /* mask false means do not mask */
-    }
-    found=FALSE;
-    for(j=0;j<dim;j++){ 
-      xhat[j] = (x[dimbig*i+j]-xo[j])/dx[j];
-      mo[j] = (INT )floor(xhat[j]-eps0);
-      if(mo[j]<0 && fabs(xhat[j])<eps0*2.) {mo[j]=0;}
-      else if(mo[j]<0) {mo[j]=0; continue;}
-      if(mo[j]>nd[j]) {mo[j]=nd[j]; continue;}
-      found=TRUE;
-    }   
-    if(!found){
-      fprintf(stdout,"\nvertex=%i NOT found. x (xhat)=",i); fflush(stdout);
-      for(j=0;j<dim;j++){ 
-	fprintf(stdout," %12.6e (%10.5f)",x[dimbig*i+j],xhat[j]);
-      }
-      fprintf(stdout,"\n");
-      //    }else{
-      //      fprintf(stdout,"\nvertex=%i found.",i); fflush(stdout);
-    }
-    //    if(!found)continue;
-    for(j=0;j<dim;j++){
-      xoj=xo[j]+((REAL )mo[j])*dx[j];
-      xhat[j] = (x[dimbig*i+j]-xoj)/dx[j];
-    }
-    /* for(j=0;j<dim;j++){ */
-    /*   fprintf(stdout,"xo=%10.5e; dx=%12.3e ; xhat=%10.5f (%10.5f)\n ",xo[j],dx[j],xhat[j],x[dim*i+j]); fflush(stdout); */
-    /* } */
-    for(k = 0;k<nvcube;k++){
-      kdim=k*dim;	
-      for (j=0;j<dim; j++){mo[j]+=(INT )(!bits[kdim+j]);}
-      /* compute the global index */
-      kf=num_lattice(mo,dim,nd);
-      /* return to the previous state */
-      for (j=0;j<dim; j++){mo[j]-=(INT )(!bits[kdim+j]); }
-      /* set the local values at the vertices */
-      u[k]=ug->data[kf];
-    }
-    /* for(j=0;j<nvcube;j++){ */
-    /*   fprintf(stdout,"u=%10.5e ",u[j]); fflush(stdout); */
-    /* } */
-    fi[i] = interp01(dim,bits,u,xhat);
-    /*    fprintf(stdout,"Err(%i)=%12.3e;\n",i+1,fi[i]-ff(dim,(x+dim*i)));*/
-  }
-  if(u) free(u);
-  if(mo) free(mo);
-  if(xhat) free(xhat);
-  return;
-}
-REAL interp02(const INT dim, uint *bits, REAL *u,	\
-	      REAL *xhat)
-{
-  /*Interpolate d-linearly in d dimensions on the UNIT cube */
-  // given a point with coordinates xhat[j],j=0:dim-1 in the unit
-  // cube. and function values u[k] at the vertices of the unit cube
-  // (k=0:2^{dim}-1)  this returns the value of the interpolant at xhat[]. 
-  INT k,i,kdim,nvloc=(1<<dim);
-  REAL phik;
-  REAL s=0.;
-  for(k = 0;k<nvloc;k++){
-    kdim=k*dim;
-    phik=1e0;
-    for(i = 0;i<dim;++i){      
-      if(bits[kdim+i])
-	phik*=(1e0-xhat[i]);
-      else	
-	phik*=xhat[i];
-    }
-    s+=u[k]*phik;
-  }
-  return s;
-}
-
-
-/********************************************************************/
-/* interpolates using data from lattice grid. Anything outside the
-   lattice is moved to the closest lattice boundary in L_1 and
-   interpolated too.  */
-void interp2(REAL *fi, unigrid ug, REAL *x, const INT nvert, INT *mask)
-{  
-  /*  find the values of ug->data at array x by interpolation.  ug->data is
-      given on a uniform grid.
-      fi is vector to store the interpolation results 
-  */
-  INT dim = ug.n,i,j,k,kdim,kf;
-  REAL xoj;
-  REAL *xo = ug.xo,  *dx = ug.dx;//,*xn = ug.xn;
-  uint *bits=ug.bits;
-  INT nvcube=ug.nvcube;
-  //    fprintf(stderr,"\nnvcube=%d\n",nvcube);
-  INT *nd=ug.ndiv;
-  INT *mo=(INT *)calloc(dim,sizeof(INT));
-  REAL *u=(REAL *)calloc(nvcube,sizeof(REAL));
-  REAL *xhat=(REAL *)calloc(dim,sizeof(REAL));
-  /*NOTE: nd[] are the number of DIVISIONS (not number of vertices)
-    for every direction */
-  uint found;
-  REAL eps0=1e-8;
-  for (i = 0; i<nvert;i++){
-    if(mask != NULL) {
-      if(mask[i]) continue; /* mask false means do not mask */
-    }
-    found=FALSE;
-    for(j=0;j<dim;j++){ 
-      xhat[j] = (x[dim*i+j]-xo[j])/dx[j];
-      mo[j] = (INT )floor(xhat[j]-eps0);
-      if(mo[j]<0 && fabs(xhat[j])<eps0*2.) {mo[j]=0;}
-      else if(mo[j]<0) {mo[j]=0; continue;}
-      if(mo[j]>nd[j]) {mo[j]=nd[j]; continue;}
-      found=TRUE;
-    }   
-    if(!found){
-      fprintf(stdout,"\nvertex=%i NOT found. x (xhat)=",i); fflush(stdout);
-      for(j=0;j<dim;j++){ 
-	fprintf(stdout," %12.6e (%10.5f)",x[dim*i+j],xhat[j]);
-      }
-      fprintf(stdout,"\n");
-      //    }else{
-      //      fprintf(stdout,"\nvertex=%i found.",i); fflush(stdout);
-    }
-    //    if(!found)continue;
-    for(j=0;j<dim;j++){
-      xoj=xo[j]+((REAL )mo[j])*dx[j];
-      xhat[j] = (x[dim*i+j]-xoj)/dx[j];
-    }
-    /* for(j=0;j<dim;j++){ */
-    /*   fprintf(stdout,"xo=%10.5e; dx=%12.3e ; xhat=%10.5f (%10.5f)\n ",xo[j],dx[j],xhat[j],x[dim*i+j]); fflush(stdout); */
-    /* } */
-    for(k = 0;k<nvcube;k++){
-      kdim=k*dim;	
-      for (j=0;j<dim; j++){mo[j]+=(INT )(!bits[kdim+j]);}
-      /* compute the global index */
-      kf=num_lattice(mo,dim,nd);
-      /* return to the previous state */
-      for (j=0;j<dim; j++){mo[j]-=(INT )(!bits[kdim+j]); }
-      /* set the local values at the vertices */
-      u[k]=ug.data[kf];
-    }
-    /* for(j=0;j<nvcube;j++){ */
-    /*   fprintf(stdout,"u=%10.5e ",u[j]); fflush(stdout); */
-    /* } */
-    fi[i] = interp01(dim,bits,u,xhat);
-    /*    fprintf(stdout,"Err(%i)=%12.3e;\n",i+1,fi[i]-ff(dim,(x+dim*i)));*/
-  }
-  if(u) free(u);
-  if(mo) free(mo);
-  if(xhat) free(xhat);
-  return;
-}
-/*********************************************************************/
-/*COMMENTED BELLOW AS USED ONLY FOR TESTING */
-/*********************************************************************/
-/* static REAL ff(const INT dim, REAL *x){ */
-/*   /\* function to interpolate (only for testing) *\/ */
-/*   switch(dim){ */
-/*   case 2: */
-/*     return 20e0+ 5.*x[0]-4.*x[1] + 17.*x[0]*x[1]; */
-/*   case 3: */
-/*     return 20e0+5.*x[0]-4.*x[1]-0.3456*x[2]+x[0]*x[1]; */
-/*   case 4: */
-/*     return 20e0+5.*x[0]-4.*x[1]-0.3456*x[2]-x[3]; */
-/*   default: */
-/*     return 1e0; */
-/*   } */
-/* } */
-/* static void fdata(unigrid *ug) */
-/* { */
-/*   INT dim=ug->n,k,i,j,kf,nall=ug->nall; */
-/*   INT *nd=ug->ndiv; */
-/*   REAL *dx = ug->dx, *xo=ug->xo, *xn=ug->xn; */
-/*   REAL *x = (REAL *)calloc(dim,sizeof(REAL)); */
-/*   INT *m = (INT *)calloc(dim,sizeof(INT)); */
-/*   for (kf=0;kf<nall;kf++){ */
-/*     //    j=floor(((double )nall)/((double )nd[dim-1])); */
-/*     coord_lattice(m,dim,kf,ug->nall,ug->ndiv); */
-/*     for(i=0;i<dim;i++){ */
-/*       x[i]=xo[i]+m[i]*dx[i]; */
-/*     } */
-/*     ug->data[kf]=ff(dim,x); */
-/*   } */
-/*   if(m) free(m); */
-/*   if(x) free(x); */
-/*   return; */
-/* } */
-/* static REAL interp0(const INT dim,unsigned int *bits,REAL *u,	\ */
-/* 	    REAL *xo, REAL *dx, REAL *xstar) */
-/* { */
-/*   /\*interpolate d-linearly in d dimensions on a single parallelepiped with */
-/*     one vertex given by xo[.] and edge lengths = dx[k], k=1:d*\/ */
-/*   INT k,i,kdim,nvloc=(1<<dim); */
-/*   REAL phik; */
-/*   REAL s=0.; */
-/*   for(k = 0;k<nvloc;k++){ */
-/*     kdim=k*dim; */
-/*     phik=1e0; */
-/*     for(i = 0;i<dim;++i){       */
-/*       if(bits[kdim+i]) */
-/* 	phik*=(1e0-(xstar[i]-xo[i])/dx[i]); */
-/*       else	 */
-/* 	phik*=((xstar[i]-xo[i])/dx[i]); */
-/*     } */
-/*     s+=u[k]*phik; */
-/*   } */
-/*   return s; */
-/* } */
-/* static void fdataf(unigrid *ug) */
-/* { */
-/*   /\*on a uniform grid ug fills a ug->data[] array with values computer with a function ff *\/  */
-/*   INT dim=ug->n,k,i,j,kf,nall=ug->nall; */
-/*   INT *nd=ug->ndiv; */
-/*   REAL *dx = ug->dx, *xo=ug->xo, *xn=ug->xn; */
-/*   REAL *x = (REAL *)calloc(dim,sizeof(REAL)); */
-/*   INT *m = (INT *)calloc(dim,sizeof(INT)); */
-/*   for (kf=0;kf<nall;kf++){ */
-/*     //    j=floor(((double )nall)/((double )nd[dim-1])); */
-/*     coord_lattice(m,dim,kf,ug->nall,ug->ndiv); */
-/*     for(i=0;i<dim;i++){ */
-/*       x[i]=xo[i]+m[i]*dx[i]; */
-/*     } */
-/*     ug->data[kf]=ff(dim,x); */
-/*   } */
-/*   if(m) free(m); */
-/*   if(x) free(x); */
-/*   return; */
-/* } */
-/************************ example of main.c to interpolate */
-/* INT main(INT argc, char *argv[]) */
-/* { */
-/*   INT j,i; */
-/*   INT dim = 3; */
-
-/*   /\*TESTING*\/ */
-/*   //  REAL xo[4]={0.,-1.,1.,1.};/\*SW corner coordinates*\/ */
-/*   //  REAL xn[4]={1.,2.,3.,5.}; /\*NE corner coordinates*\/ */
-
-/*   REAL xo[4]={0.,-1.,1.};/\*SW corner coordinates*\/ */
-/*   REAL xn[4]={1.,2.,3.}; /\*NE corner coordinates*\/ */
-
-/*   INT nd[4]={3,4,5}; /\*number of divisions in every direction*\/ */
-/*   INT nvert=3; /\*number of points to interpolate. coordinates below *\/  */
-/*   REAL x[9]={0.123,0.,1.1,				\ */
-/*   	     0.51,1.2345,1.5,				\ */
-/*   	     0.1,1.8,2.5}; */
-  
-/*   unigrid *ug=ugrid_init(dim,nd, xo, xn); */
-
-/*   fdataf(ug);  /\*calculate ff on uniform grid*\/ */
-  
-/*   REAL *fi=(REAL *)calloc(nvert, sizeof(REAL));  */
-/*   interp1(fi,*ug,x,nvert,NULL); */
-  
-/*   // compute max norm error */
-/*   REAL err0=-1., diff=-10.; */
-/*   for(j=0;j<nvert;j++){ */
-/*     diff=fabs(ff(dim,(x + j*dim))-fi[j]); */
-/*     if(err0 < diff) err0=diff;  //err0 stores the largest difference */
-/*   } */
-/*   fprintf(stdout,"ERR=%e\n",err0); */
-
-/*   /\*END TESTING*\/ */
-/*   if(fi) free(fi); */
-/*   //if(ug)  ugrid_free(ug); //THIS CAUSES ERROR */
-/*   // if(ug) fprintf(stdout,"ug is here"); */
-  
-/*   return 0; */
-/* } */
