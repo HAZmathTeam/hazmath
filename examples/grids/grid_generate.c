@@ -18,11 +18,12 @@
 INT main(INT argc, char **argv)
 {
   //  INT i=-1;
-  FILE *fp=stdin;  /* OR:   fp=HAZ_fopen("grid.input","r"); */
+  FILE *fp=stdin;     
+  //  fp=HAZ_fopen("polar.input","r"); 
   input_grid *g=parse_input_grid(fp);
-  input_grid_print(g);
+  //  input_grid_print(g);
   scomplex *sc=generate_grid(g);
-    fprintf(stdout,"Writing a vtk file...\n");
+  fprintf(stdout,"Writing a vtk file...\n");
   vtkw("newmesh.vtu",sc,0,0,1.);
   /*FREE*/
   haz_scomplex_free(sc);
