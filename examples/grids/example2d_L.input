@@ -1,7 +1,7 @@
 %----------------------------------------------%
 % input parameters: for grid generation        %
 %----------------------------------------------%
-title{Grid with two connected components and connected bndry}
+title{Lshaped grid, or any other more or less descriptive title}
 %
 dimension{2}   % spatial dimension in which the grid has to be generated
 %
@@ -16,10 +16,10 @@ print_level{1}	% how much information to print out: 0 Nothing | >0 Something
 
 dir_grid{grids/}
 dir_vtu{grids/}
-file_grid{2D2L.haz}
+file_grid{2DL.haz}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 dir_vtu{grids_vtu/}
-file_vtu{2D2L.vtu}
+file_vtu{2DL.vtu}
 
 %---------------%
 % coordinate systems: Each has coordinates of the origin o[0:dim-1]
@@ -43,7 +43,7 @@ data_coordsystems{0 0. 0.  0
 % of polyhedrons that are isomorphic to an n-dimensional cube.
 %---------------%
 
-num_vertices{16} %number of vertices
+num_vertices{8} %number of vertices
 
 %---------------%
 %coords (see way below): for every node 1:numvertices give coords (dim
@@ -56,25 +56,16 @@ num_vertices{16} %number of vertices
 %% line connecting the two vertices.
 %---------------%
 
-%%% vertex number (consequtive), coord system, vertex coords. Polar coords are in
+%%% vertex number, coord system, vertex coords. Polar coords are in
 %%%    degrees.
-data_vertices{0 0   -1.   -1. 	%% vertex number, coord system, coords
-	      1 0   -1.   0.  
-	      2 0    1.5   1.5
-	      3 0    -0.25   2.1   
-	      4 0    1.   -1.  	
-	      5 0    1.    0.  
-	      6 0   -1.   1.  
-	      7 0    0.   1.
-
-	      8 0 2.   2.
-	      9 0 1.5   2.  
-	      10 0  0. -1.  
-	      11 0  2.   1.5   
-	      12 0  1.5   1.  	
-	      13 0  2.    1.  
-	      14 0  0.    1.5  
-	      15 0  0.    0.  
+data_vertices{0 0 -1.   -1. 	%% vertex number, coord system, coords
+	      1 0 -1.   0.  
+	      2 0  0.   -1. 
+	      3 0  0.   0.   
+	      4 0  1.   -1.  	
+	      5 0  1.    0.  
+	      6 0 -1.   1.  
+	      7 0  0.   1.
 	      }
 
 %---------------%
@@ -83,19 +74,17 @@ data_vertices{0 0   -1.   -1. 	%% vertex number, coord system, coords
 % then the max number of divisions is taken.
 %---------------%
 
-num_edges{9} %
+num_edges{6} %
 
 %% edge: 1st vertex, 2nd vertex, number of divisions. Does not have to contain all edges. Edges that are not listed here and are not parallel to any of the edges listed here are not divided. 
 
-data_edges{0 1	3
-           1 15	1
-           0 10 1
-	   10 4  1
-  	   3 9  5
-  	   7 12  2
-  	   4 5  2
-  	   6 7  2
-  	   13 11  3
+data_edges{0 1	3 
+           1 3	4
+           0 2	4
+  	   2 3  1
+  	   3 7  5
+  	   4 5  7
+  	   6 7  7
 	   }
 
 
@@ -115,21 +104,15 @@ data_edges{0 1	3
 % the example we gave, the face for which the second bit is fixed is
 % numbered incorrectly, it should be (010,011,110,111).
 
-num_macroelements{7}
+num_macroelements{3}
 
 %%% vertices forming the macroelement ordered as explained in the
 %%% README.  vertex numbers (v[0]...v[2^{d}-1]) and the material for
 %%% the macroelement.
 
-data_macroelements{
-	      10 4 15 5 4
-	      0 1 10 15 2
-	      6 7 1 15 6
-	      14 2 3 9 8
-	      
-	      7 12 14 2 14
-	      11 8 2 9 12
-	      12 13 2 11 10
+data_macroelements{2 4 3 5 1
+	      0 1 2 3 2
+	      6 7 1 3 -8
 	      }
 
 num_macrofaces{10}
@@ -140,10 +123,10 @@ num_macrofaces{10}
 % here have a code 0. Faces given here and not found in the
 % macroelement list are ignored.
 
-data_macrofaces{0 10  1 %boundary face with code 1
+data_macrofaces{0 2  1 %boundary face with code 1
 		1 4  0 % iterior face
-		3 10  4
-		10 3  0
+		3 2  4
+		2 3  0
 		0 1  32
 		1 4  24
 		4 5  17

@@ -269,81 +269,121 @@ unsigned int reflect2(INT n, INT is, INT it,				\
 }
 /******************************************************************/
 /*using bfs to get the reflected mesh*/
-void abfstree(INT it, scomplex *sc,INT *wrk) 
+void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level) 
 {
-  /* from the scomplex the mask are the marked and the */
-  /* bfs tree rooted at simplex it */
-  INT n=sc->n,n1=n+1,ns=sc->ns;
+  /* 
+   * bfs tree: constructs all bfs trees for each connected componend of the element neighboring list. 
+   * in the connected component containing it;
+  */
+  //  haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
+  INT it=it0, n=sc->n,n1=n+1,ns=sc->ns,cc=sc->cc;
   INT i,j,k,iii,is,isn1,itn1;
-  INT i1,in1,kbeg,kend,nums,iai,iai1,klev;
-  INT *mask = sc->marked;
-  INT *jbfs = sc->child0;
-  INT ireflect=-10;
+  INT i1,kcc,in1,kbeg,kend,nums,iai,iai1,klev;
+  iCSRmat *neib=malloc(1*sizeof(iCSRmat));
+  neib[0]=icsr_create(ns,ns,4*ns+ns);
+  iii=0;
+  neib->IA[0]=iii;
+  for(i=0;i<ns;i++){
+    neib->JA[iii]=i;
+    iii++;
+    isn1=i*n1;
+    for(j=0;j<n1;j++){
+      is=sc->nbr[isn1+j];
+      if(is>=0){
+	neib->JA[iii]=is;
+	iii++;
+      }
+    }
+    neib->IA[i+1]=iii;
+  }
+  //  fprintf(stdout,"\nns=%d, elemnts=%d (%d)",ns,neib->IA[ns],neib->nnz); fflush(stdout);
+  //  fprintf(stdout,"\nneib0=[");
+  //  icsr_print_matlab_val(stdout,neib);
+  //  fprintf(stdout,"];");
+  //  fprintf(stdout,"\nneib=sparse(neib0(:,1),neib0(:,2),neib0(:,3));\n");
+  //  fprintf(stdout,"\nneib=sparse(neib0(:,1),neib0(:,2),ones(size(neib0(:,3),1)));\n");
+  //  exit(55);
+  INT *mask = neib->val;
+  INT *jbfs = mask+ns;
+  INT *jblk=jbfs+ns+1;
+  INT *iblk=jblk+ns+1;
+  dfs00_(&ns,neib->IA, neib->JA,&cc,iblk,jblk);
+  INT ireflect;
   // initialization
   /*************************************************************/
   INT *isnbr,*itnbr,*isv,*itv;
-  /* caution: uses sc->marked as working array of size ns */
   memset(mask,0,ns*sizeof(INT));
   //  is=0;//(INT )(ns/2);
-  nums=0;
-  klev=1; //level number ; for indexing this should be klev-1;
-  jbfs[nums]=it; // thit it an input simplex where to begin. 
-  mask[it]=klev;
-  nums++;
-  kbeg=0; kend=1;
-  while(1) {
-    for(i1=kbeg;i1<kend;++i1){
-      it=jbfs[i1];
-      iai  = it*n1;
-      iai1 = iai+n1;
-      itn1 = it*n1;
-      itnbr=(sc->nbr+itn1); 
-      itv=(sc->nodes+itn1);
-      for(k=iai;k<iai1;++k){
-	is=sc->nbr[k];
-	//	fprintf(stdout,"%i(nbr=%i) ",i,j);fflush(stdout);	  
-	if(is<0) continue;
-	isn1=is*n1;
-	isnbr=(sc->nbr+isn1);
-	isv=(sc->nodes+isn1);
-	ireflect = reflect2(n,is,it,isv,itv,isnbr,itnbr,mask[is],wrk);
-	switch(ireflect) {
-	case 2 :
-	case 3 :
-	  exit(ireflect);
-	  break;
-	case 0 :
-	  /* if it was visited and all is OK, we just return */
-	  /* if(mask[it]) { */
-	  /*   return 0; */
-	  /* } else { */
-	  /*   break; */
-	  /* } */
-	  break;
-	default :
-	  fprintf(stderr,						\
-		  "Invalid return from reflect2 in %s; return value = %d\n", \
-		  __FUNCTION__,ireflect);
-	  exit(4);
+  for(kcc=0;kcc<cc;kcc++){
+    ireflect=-10;
+    it=jblk[iblk[kcc]];
+    if(print_level>3){
+      fprintf(stdout,
+	      "\n%s: Component=%d; root=%d;\n",__FUNCTION__,kcc,it);fflush(stdout);  }
+    nums=0;
+    klev=1; //level number ; for indexing this should be klev-1;
+    jbfs[nums]=it; // thit it an input simplex where to begin. 
+    mask[it]=klev;
+    nums++;
+    kbeg=0; kend=1;
+    while(1) {
+      for(i1=kbeg;i1<kend;++i1){
+	it=jbfs[i1];
+	iai  = it*n1;
+	iai1 = iai+n1;
+	itn1 = it*n1;
+	itnbr=(sc->nbr+itn1); 
+	itv=(sc->nodes+itn1);
+	for(k=iai;k<iai1;++k){
+	  is=sc->nbr[k];
+	  //	fprintf(stdout,"%i(nbr=%i) ",i,j);fflush(stdout);	  
+	  if(is<0) continue;
+	  isn1=is*n1;
+	  isnbr=(sc->nbr+isn1);
+	  isv=(sc->nodes+isn1);
+	  ireflect = reflect2(n,is,it,isv,itv,isnbr,itnbr,mask[is],wrk);
+	  switch(ireflect) {
+	  case 2 :
+	  case 3 :
+	    exit(ireflect);
+	    break;
+	  case 0 :
+	    /* if it was visited and all is OK, we just return */
+	    /* if(mask[it]) { */
+	    /*   return 0; */
+	    /* } else { */
+	    /*   break; */
+	    /* } */
+	    break;
+	  default :
+	    fprintf(stderr,						\
+		    "Invalid return from reflect2 in %s; return value = %d\n", \
+		    __FUNCTION__,ireflect);
+	    exit(4);
+	  }
+	  if(!mask[is]){
+	    jbfs[nums]=is;
+	    mask[is]=klev;
+	    //	  fprintf(stdout,"%i(%i,%i)",i,j,mask[j]);fflush(stdout);      
+	    nums++;
+	  }	
 	}
-	if(!mask[is]){
-	  jbfs[nums]=is;
-	  mask[is]=klev;
-	  //	  fprintf(stdout,"%i(%i,%i)",i,j,mask[j]);fflush(stdout);      
-	  nums++;
-	}
-	
       }
+      //    fprintf(stdout,"\nkbeg=%i,kend=%i,nums=%i",kbeg,kend,nums);fflush(stdout);
+      if(kend>=nums) break;/* exit here even if we have not visited all simplices as they could be disconnected */
+      kbeg=kend; kend=nums;klev++;
+      // this below only works if the domain is connected;
+      if(nums >= ns)  break;
     }
-    kbeg=kend; kend=nums;klev++;
-    if(nums >= ns)  break;
   }
   //  fprintf(stdout,"%%BFS levels for reflect: %d; ",klev-1);
-  for(i=0;i<ns;i++){
-    jbfs[i]=-1;
-  }
+  //  for(i=0;i<ns;i++){
+  //    jbfs[i]=-1;
+  //  }
+  icsr_free(neib);
   return;
 }
+/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
 void scfinalize(scomplex *sc)
 {
   /* copy the final grid at position 1*/

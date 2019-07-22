@@ -9,8 +9,6 @@
 #include "hazmath.h"
 //#include "grid_defs.h"
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
-void abfstree(INT it, scomplex *sc,INT *wrk);
-/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
 void n_refine(INT ref_type, INT ref_levels, scomplex *sc,	\
 	      dvector *errors, 
 	      void (*solving)(INT , scomplex *, void *),		\
@@ -31,14 +29,14 @@ void n_refine(INT ref_type, INT ref_levels, scomplex *sc,	\
   */
   void *anything = (void *)errors;
   /**/
-  INT j=-1,nsold;
+  INT j=-1,nsold,print_level=0;
   if(!sc->level){
     /*form neighboring list; */
     find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
     //    haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
     INT *wrk=calloc(5*(sc->n+2),sizeof(INT));
     /* construct bfs tree for the dual graph */
-    abfstree(0,sc,wrk);
+    abfstree(0,sc,wrk,print_level);
     //    haz_scomplex_print(sc,0,__FUNCTION__);fflush(stdout);
     //    exit(100);
     if(wrk) free(wrk);
