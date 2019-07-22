@@ -1,4 +1,4 @@
-/*! \file src/amr/amr_coords.c
+/*! \file src/amr/interpolate.c
  *
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 20190420.
  *  Copyright 2019__HAZMATH__. All rights reserved.
