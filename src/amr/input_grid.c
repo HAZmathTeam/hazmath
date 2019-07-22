@@ -277,12 +277,12 @@ void  read_data(char **clndata,input_grid *g)
     /* } */
     /* fprintf(stdout,"\n");fflush(stdout); */
   }
-  /* convert the degree coordinates to radian coordinates */
-  for(count=0;count<g->nv;count++){
+  /* convert the degree coordinates to radian coordinates (polar); also convert all angls to be in [0,2*PI] */
+  for(count=0;count<g->nv;count++){    
     if(g->systypes[g->csysv[count]]==1){
       for(j=1;j<g->dim;j++){
   	//	fprintf(stdout,"\n(%d%d) x=%f",count,j,g->xv[count*g->dim + j]);
-  	g->xv[count*g->dim + j]*=(((REAL )PI)/180.);
+  	g->xv[count*g->dim + j]=zero_twopi_deg(g->xv[count*g->dim + j]);
       }
     }
   }
