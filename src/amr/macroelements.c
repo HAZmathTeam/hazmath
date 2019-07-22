@@ -8,95 +8,6 @@
  *
  */
 #include "hazmath.h"
-/*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
-void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
-{
-  /* 
-     maps a uniform grid from the n-dimensional cube to a hexagonal 
-     macroelement from an initial grid of macroelements 
-     given by its coordinates xmac[1:nvcube*dim]
-     xmac[nvcube][dim]
-  */
-  INT i,j,k1,k2,k1c,kf,dim=sc->n;
-  //  INT k2c;
-  INT ksys;
-  REAL *xmac=g->xv;  
-  REAL *xhat = (REAL *)calloc(dim,sizeof(REAL));
-  REAL *xemac=(REAL *)calloc(c2s->ne*dim,sizeof(REAL));
-  // convert midpoints from polar to cartesian.
-  //  print_full_mat(c2s->nvcube,c2s->n,g->xv,"X{1}");
-  for(i=0;i<c2s->ne;i++){
-    k1=c2s->edges[2*i];
-    k2=c2s->edges[2*i+1];
-    k1c=g->systypes[g->csysv[k1]];
-    //    k2c=g->systypes[g->csysv[k2]];
-    //    fprintf(stdout,"\nverts=(%d,%d); coord_sys=(%d,%d)",k1,k2,k1c,k2c);fflush(stdout);
-    if(g->csysv[k1]==g->csysv[k2] && k1c==1){
-      //use xhat as a temp array:
-      xhat[0]=0.5*(xmac[k1*dim]+xmac[k2*dim]);// this is rho
-      // take half angles;
-      for(j=1;j<dim;j++) {
-	xhat[j]=0.5*(xmac[k1*dim+j]+xmac[k2*dim+j]);
-      }
-      polar2cart(dim,xhat,xemac+(i*dim));
-      // translate by adding the origin. 
-      ksys=g->csysv[k1];// k1c and k2c should be the same below. 
-			      //      k2c=g->csysv[k2];
-      for(j=0;j<dim;j++) {
-	xemac[i*dim+j]+=g->ox[ksys*dim+j];
-      }
-    }
-  }
-  // end of mid points in polar;
-  // now convert all vertices in cartesian as well. 
-  for(i=0;i<c2s->nvcube;i++){
-    k1c=g->systypes[g->csysv[i]];
-    if(k1c==1){
-      memcpy(xhat,xmac+i*dim,dim*sizeof(REAL));
-      polar2cart(dim,xhat,xmac+(i*dim));
-      //      translate
-    }
-    ksys=g->csysv[i];
-    for(j=0;j<dim;j++) {
-      xmac[i*dim+j]+=g->ox[ksys*dim+j];
-    }
-  }
-  // now everything is in cartesian, so midpoints that are
-  // not yet attended to are just averages.
-  for(i=0;i<c2s->ne;i++){
-    k1=c2s->edges[2*i];
-    k2=c2s->edges[2*i+1];
-    k1c=g->systypes[g->csysv[k1]];
-    //    k2c=g->systypes[g->csysv[k2]];
-    //skip all polar mid points
-    if(g->csysv[k1]==g->csysv[k2] && k1c==1) continue;
-    //    fprintf(stdout,"\ncart:verts=(%d,%d); coord_sys=(%d,%d)",k1,k2,k1c,k2c);fflush(stdout);
-    for(j=0;j<dim;j++) {
-      xemac[i*dim+j]=0.5*(xmac[k1*dim+j]+xmac[k2*dim+j]);
-    }
-  }
-  //print_full_mat(c2s->nvcube,dim,xmac,"X");
-  //print_full_mat(c2s->ne,dim,xemac,"XE");
-  r2c(c2s->nvcube,dim,sizeof(REAL),xmac); // we need xmac by rows here
-  r2c(c2s->ne,dim,sizeof(REAL),xemac); // we need xemac (mid points of
-				       // edges) also by rows
-  for(kf=0;kf<sc->nv;kf++){
-    for(i=0;i<dim;i++)xhat[i]=sc->x[kf*dim+i];
-    for(i=0;i<dim;i++){
-      sc->x[kf*dim+i]=interp8(c2s,xmac+i*c2s->nvcube,xemac+i*c2s->ne,xhat);
-      //sc->x[kf*dim+i]=interp4(c2s,xmac+i*c2s->nvcube,xhat);
-    }
-    //    for(i=0;i<dim;i++){
-      //      sc->x[kf*dim+i]=interp4(c2s,xmac+i*c2s->nvcube,xhat);
-    //    }
-  }
-  //  r2c(dim,c2s->nvcube,sizeof(REAL),xmac); // we need xmac by columns here
-  //  r2c(dim,c2s->ne,sizeof(REAL),xemac); // we need xemac by rows agin
-  if(xhat) free(xhat);
-  if(xemac) free(xemac);
-  return;
-}
-/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
 /************************************************************************/
 macrocomplex *set_mmesh(input_grid *g0,					\
 		cube2simp *c2s,						\
@@ -904,42 +815,41 @@ scomplex *generate_grid(input_grid *g0)
   INT intype=g0->ref_type-1,kj,jel;  
   INT *codef=calloc(c2s->nf,sizeof(INT));
   INT *isbndf=calloc(c2s->nf,sizeof(INT));
-  // here this can be also done without bfs
   INT kjj;
   for(kj=0;kj<bfs0->row;kj++){
     if(g0->ref_type>=0) intype++;
     else intype=-1;
     for(kjj=bfs0->IA[kj];kjj<bfs0->IA[kj+1];kjj++){
-      if((intype>=0) && (mc->etree[jel]<0)) intype=g0->ref_type; //reset reftype;
       jel=bfs0->JA[kjj];    
-    //    print_full_mat_int(1,c2s->nf,elneib[kel],"neib");
-    memcpy(g->mnodes,(g0->mnodes+jel*(nvcube+1)),(nvcube+1)*sizeof(INT));
-    for(i=0;i<c2s->nvcube;i++){
-      j=g->mnodes[i];// vertex number (global)
-      g->csysv[i]=g0->csysv[j]; 
-      g->labelsv[i]=g0->csysv[j];
-      memcpy((g->xv+i*g->dim),(g0->xv+j*g0->dim),g->dim*sizeof(REAL));
-    }
-    /***************************************************/
-    /*element code is in mc->flags[]; we now do the face codes:*/      
-    for(i=0;i<c2s->nf;i++){
-      codef[i]=bcodesf[el2fnum[jel][i]];
-      isbndf[i]=isbface[el2fnum[jel][i]];       
-    }      
-    sc[jel]=umesh(g->dim,nd[jel],c2s,					\
-		  isbndf,codef,mc->flags[jel],				\
-		  intype);
-    nsall+=sc[jel]->ns;
-    nvall+=sc[jel]->nv;
-    //    if((mc->fullel2el->IA[jel+1]-mc->fullel2el->IA[jel])<=0){
-    for(i=0;i<sc[jel]->nv;i++){
-      mc->iindex[jel][i]=i;
-    }
-    //}
-    //      fprintf(stdout,"\n%%Mapping back to the macroelement...\n");
-        map2mac(sc[jel],c2s,g);
-    //    fprintf(stdout,"\n%%mesh(macroelement=%d): nv=%d; nsimp=%d",jel,sc[jel]->nv,sc[jel]->ns);      
-    //    haz_scomplex_print(sc[jel],0,"HAHA");
+      if((intype>=0) && (mc->etree[jel]<0)) intype=g0->ref_type; //reset reftype;
+      //    print_full_mat_int(1,c2s->nf,elneib[kel],"neib");
+      memcpy(g->mnodes,(g0->mnodes+jel*(nvcube+1)),(nvcube+1)*sizeof(INT));
+      for(i=0;i<c2s->nvcube;i++){
+	j=g->mnodes[i];// vertex number (global)
+	g->csysv[i]=g0->csysv[j]; 
+	g->labelsv[i]=g0->csysv[j];
+	memcpy((g->xv+i*g->dim),(g0->xv+j*g0->dim),g->dim*sizeof(REAL));
+      }
+      /***************************************************/
+      /*element code is in mc->flags[]; we now do the face codes:*/      
+      for(i=0;i<c2s->nf;i++){
+	codef[i]=bcodesf[el2fnum[jel][i]];
+	isbndf[i]=isbface[el2fnum[jel][i]];       
+      }      
+      sc[jel]=umesh(g->dim,nd[jel],c2s,					\
+		    isbndf,codef,mc->flags[jel],			\
+		    intype);
+      nsall+=sc[jel]->ns;
+      nvall+=sc[jel]->nv;
+      //    if((mc->fullel2el->IA[jel+1]-mc->fullel2el->IA[jel])<=0){
+      for(i=0;i<sc[jel]->nv;i++){
+	mc->iindex[jel][i]=i;
+      }
+      //}
+      //      fprintf(stdout,"\n%%Mapping back to the macroelement...\n");
+      map2mac(sc[jel],c2s,g);
+      //    fprintf(stdout,"\n%%mesh(macroelement=%d): nv=%d; nsimp=%d",jel,sc[jel]->nv,sc[jel]->ns);      
+      //    haz_scomplex_print(sc[jel],0,"HAHA");
     }
   }
   //  fprintf(stdout,"\n%%Removing overlaps...");
@@ -959,7 +869,7 @@ scomplex *generate_grid(input_grid *g0)
   find_nbr(sc[0]->ns,sc[0]->nv,sc[0]->n,sc[0]->nodes,sc[0]->nbr);
   INT *wrk1=calloc(5*(sc[0]->n+2),sizeof(INT));
   /* construct bfs tree for the dual graph */
-  abfstree(0,sc[0],wrk1,g0->print_level);
+  //  abfstree(0,sc[0],wrk1,g0->print_level);
   free(wrk1);
   return sc[0];  
 }
