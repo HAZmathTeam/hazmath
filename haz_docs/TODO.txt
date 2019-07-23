@@ -11,8 +11,7 @@ In the Works:
   3. Periodic Boundary Conditions:
     a. simple P1 Laplace works, now get other elements - PHA
   4. Clean up callocs - HA
-    a. basis.c: calloc P1 basis in ned, rt, bdm, bubble stuff...
-    b. assemble_local.c: FEM_RHS_Local_face calloc of cqface qcoordinates
+    a. assemble_local.c: FEM_RHS_Local_face calloc of cqface qcoordinates
 
 Immediate:
   1. Move Multigraph and UMFpack stuff to "interfaces" and clean up - HZ

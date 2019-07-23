@@ -54,6 +54,8 @@ void initialize_mesh(mesh_struct* mesh)
   mesh->ed_flag = NULL;
   mesh->f_flag = NULL;
   mesh->el_flag = NULL;
+  mesh->dwork = NULL;
+  mesh->iwork = NULL;
   return;
 }
 /******************************************************************************/
@@ -117,6 +119,13 @@ void build_mesh_all(mesh_struct* mesh)
   INT nv = mesh->nv;
   INT nconn_bdry = mesh->nconn_bdry;
   INT v_per_elm = dim+1;
+
+  // Build Work Arrays.
+  // For now, the double array is used to store P1 basis functions at quadrature
+  // in order to build Nedelec and RT Elements
+  mesh->dwork = (REAL *) calloc(v_per_elm*(dim+1),sizeof(REAL));
+  //mesh->iwork = (INT *) calloc(NONE,sizeof(INT));
+
 
   // Stuff for Edges and Faces.  None for 1D
   if(dim==2 || dim==3) {
@@ -454,6 +463,16 @@ void free_mesh(mesh_struct* mesh)
   if(mesh->v_component) {
     free(mesh->v_component);
     mesh->v_component = NULL;
+  }
+
+  if(mesh->dwork) {
+    free(mesh->dwork);
+    mesh->dwork = NULL;
+  }
+
+  if(mesh->iwork) {
+    free(mesh->iwork);
+    mesh->iwork = NULL;
   }
 
   return;

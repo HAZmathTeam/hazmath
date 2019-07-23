@@ -1640,7 +1640,7 @@ void eliminate_PeriodicBC_blockFE(block_dCSRmat* P_periodic, block_dCSRmat* A, d
 
      if ( (R_periodic.blocks[i*R_periodic.brow+i] == NULL) && (Atemp.blocks[i*A->brow+j] == NULL) && (P_periodic->blocks[j*P_periodic->brow+j]) )
      {
-       A->blocks[i*A->brow+j] == NULL;
+       A->blocks[i*A->brow+j] = NULL;
      }
      else
      {
