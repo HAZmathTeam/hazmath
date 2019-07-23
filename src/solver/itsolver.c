@@ -521,7 +521,8 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
 {
     const SHORT   max_levels  = param->max_levels;
     const SHORT   prtlvl      = param->print_level;
-    const SHORT   mg_type     = param->AMG_type;
+    //const SHORT   mg_type     = param->AMG_type;
+    const SHORT   mg_type     = 111;
     const SHORT   cycle_type  = param->cycle_type;
 
     // local variables
@@ -591,8 +592,9 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
     // Step 1: MG setup phase
     switch (mg_type) {
         case 111: // Geometric
-            if ( prtlvl > PRINT_NONE ) printf("\n Calling block GMG ...\n");
-            status = gmg_blk_setup(mgl, param);
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling block GMG bubble specific setup...\n");
+            //status = gmg_blk_setup(mgl, param);
+            status = gmg_blk_setup_biot_bubble(mgl, param);
             printf("\nFinished gmg_blk_setup... Calling smoother setup...\n");
             smoother_block_setup(mgl, param);
             printf("\nsmoother setup Done...\n");
