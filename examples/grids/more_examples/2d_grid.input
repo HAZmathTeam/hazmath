@@ -1,11 +1,14 @@
 %----------------------------------------------%
 % input parameters: for grid generation        %
 %----------------------------------------------%
-title{Square grid, or any other more or less descriptive title}
+title{2d Sector}
 %
 dimension{2}   % spatial dimension in which the grid has to be generated
 %
-print_level{1}	% how much information to print out: 0 Nothing | >0 Something
+print_level{0}	% how much information to print out: 0 Nothing | >0 Something
+
+refinement_type{0}
+
 
 %---------------%
 % files: output is in dir_grid/** where ** is nD for spatial dimension n.
@@ -14,16 +17,10 @@ print_level{1}	% how much information to print out: 0 Nothing | >0 Something
 % vtu files for plotting follow the same convention.
 %---------------%
 
-dir_grid{grids/}
-dir_vtu{grids/}
-%file_grid{unitLINE_n17.haz}
-file_grid{unitSQ_n17.haz}
-%file_grid{unitCUBE_n17.haz}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-dir_vtu{grids_vtu/}
-%file_vtu{unitLINE_n17.vtu}
-file_vtu{unitSQ_n17.vtu}
-%file_vtu{unitCUBE_n17.vtu}
+dir_grid{./}
+dir_vtu{./}
+file_grid{untitled.haz}
+file_vtu{untitled.vtu}
 
 %---------------%
 % coordinate systems: Each has coordinates of the origin o[0:dim-1]
@@ -104,7 +101,5 @@ data_macrofaces{0 1  1
 
 %%%%%%%%%%%%%%AMR %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 num_refinements{1}
-
-refinement_type{0}
 
 err_stop_refinement{        -1.e-10        }
