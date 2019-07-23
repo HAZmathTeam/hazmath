@@ -17,8 +17,8 @@ print_level			= 2;	% how much information to print out: 0 Nothing | >0 Something
 %---------------%
 
 %gridfile                     = ../grids/1D/unitLINE_n17.haz
-gridfile                      = ../grids/2D/unitSQ_n33.haz
-%gridfile                     = ../grids/3D/unitCUBE_n17.haz
+gridfile                      = ../grids/2D/unitSQ_n17.haz
+%gridfile                     = ../grids/3D/unitCUBE_n9.haz
 output_dir                    = ./output/
 
 %---------------%
@@ -27,7 +27,7 @@ output_dir                    = ./output/
 
 nquad				= 2	% Quadrature nodes each direction
 
-FE_type				= 2	% 0-9 PX | 10-19 QX (not yet) | 20 Ned | 30 RT | -9--1 DGX (not yet) 
+FE_type				= 20	% 0-9 PX | 10-19 QX (not yet) | 20 Ned | 30 RT | -9--1 DGX (not yet) 
 
 %---------------%
 % time stepping
@@ -51,7 +51,7 @@ nonlinear_itsolver_toltype	= 0 	% type of tolerance for nonlinear solver 1 - ||n
 %---------------%
 
 linear_itsolver_type		= 1    	% 0 Direct Solve | 1 CG | 2 MINRES | 3 GMRES
-linear_itsolver_maxit		= 9000  	% maximal iterations of linear iterative solver
+linear_itsolver_maxit		= 900  	% maximal iterations of linear iterative solver
 linear_itsolver_tol		= 1e-8  % tolerance for linear iterative solver 
 linear_stop_type		= 1     	% 1 ||r||/||b|| | 2 ||r||_B/||b||_B | % 3 ||r||/||x||
 linear_restart 			= 100		% restart for GMRes
