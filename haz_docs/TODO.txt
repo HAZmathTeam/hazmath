@@ -3,13 +3,14 @@ Updated 2019-07-23 by A
 TO DO:
 
 In the Works:
-  0. Add default grid generator and refinement - HAZ
-  1. Clean up Examples:
+  0. Add default grid generator - Z
+  1. Add refinement - HAZ
+  2. Clean up Examples:
     a. darcy - needs to be fixed with new Stuff - H
     b. solvers - clean up and add multigraph example - H
-  2. Periodic Boundary Conditions:
+  3. Periodic Boundary Conditions:
     a. simple P1 Laplace works, now get other elements - PHA
-  3. Clean up callocs - HA
+  4. Clean up callocs - HA
     a. basis.c: calloc P1 basis in ned, rt, bdm, bubble stuff...
     b. assemble_local.c: FEM_RHS_Local_face calloc of cqface qcoordinates
 
