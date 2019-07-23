@@ -1,21 +1,35 @@
+Updated 2019-07-23 by A
+
 TO DO:
 
+In the Works:
+  0. Add default grid generator and refinement - HAZ
+  1. Clean up Examples:
+    a. darcy - needs to be fixed with new Stuff - H
+    b. solvers - clean up and add multigraph example - H
+  2. Periodic Boundary Conditions:
+    a. simple P1 Laplace works, now get other elements - PHA
+  3. Clean up callocs - HA
+    a. basis.c: calloc P1 basis in ned, rt, bdm, bubble stuff...
+    b. assemble_local.c: FEM_RHS_Local_face calloc of cqface qcoordinates
+
 Immediate:
-Add more test examples (Nonlinear Problem (Navier-Stokes)) - P
-Fix indexing mismatch between FEM and Solver stuff - HA
-Add default grid generator and refinement - HAZ
+  1. Move Multigraph and UMFpack stuff to "interfaces" and clean up - HZ
+  2. Add more test examples (Nonlinear Problem (Navier-Stokes)) - P
+  3. Add dim to expressions functions - A
+  4. Add nested iteration example - A
 
 Long Term:
-Add more elements (i.e., DG, Quads, Higher-Order) - A 
-Add more solvers (i.e., Monolithic MG, HX-Div) - H
+  1. Add more elements (i.e., DG, Quads, Higher-Order) - A
+  2. Add more solvers (i.e., Monolithic MG) - HP
 
 Pipe Dreams:
-Add edge list for graphs
-Add random graph
-Add uniform graph (2D, 3D)
-Add Dijkstra’s algorithm
-Add maximal independent set
-Add minimal spanning tree (Kruskal & Prim)
-Add matching
-Add format change for graphs
-
+  1. Graph stuff
+    a. Add edge list for graphs
+    b. Add random graph
+    c. Add uniform graph (2D, 3D)
+    d. Add Dijkstra’s algorithm
+    e. Add maximal independent set
+    f. Add minimal spanning tree (Kruskal & Prim)
+    g. Add matching
+    h. Add format change for graphs
