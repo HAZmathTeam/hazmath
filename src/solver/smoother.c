@@ -862,12 +862,9 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
       // Remove dirichlet boundaries
       FE_fake.dirichlet = bmgl[0].dirichlet_blk[blk];
       FE_fake.ndof = bmgl[0].A_diag[blk].row;
-      //dcsr_shift( &bmgl[0].mgl[blk][0].A,  1);
       printf("Eliminating dirichlet BC for A_diag\n");
-      //eliminate_DirichletBC(NULL, &FE_fake , &bmgl[0].fine_level_mesh, NULL, &(bmgl[0].mgl[blk][0].A),0.0);
       eliminate_DirichletBC(NULL, &FE_fake , bmgl[0].fine_level_mesh, NULL, &(bmgl[0].mgl[blk][0].A),0.0);
       printf("Eliminated dirichlet BC for A_diag\n");
-      //dcsr_shift( &bmgl[0].mgl[blk][0].A, -1);
 
 
       // Initialize Schwarz parameters
@@ -905,12 +902,10 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
         printf("RAP on A_diag\n");
         dcsr_alloc( bmgl[lvl+1].A_diag[blk].row, bmgl[lvl+1].A_diag[blk].row, bmgl[lvl+1].A_diag[blk].nnz, &bmgl[0].mgl[blk][lvl+1].A);
         dcsr_cp( &(bmgl[lvl+1].A_diag[blk]), &bmgl[0].mgl[blk][lvl+1].A );
+        printf("Setting fake dirichlet flags\n");
         FE_fake.dirichlet = bmgl[lvl+1].dirichlet_blk[blk];
         FE_fake.ndof      = bmgl[lvl+1].A_diag[blk].row;
-        //dcsr_shift( &bmgl[0].mgl[blk][lvl+1].A,  1);
-        //eliminate_DirichletBC(NULL, &FE_fake , &bmgl[lvl+1].fine_level_mesh, NULL, &(bmgl[0].mgl[blk][lvl+1].A),0.0);
         eliminate_DirichletBC(NULL, &FE_fake , bmgl[lvl+1].fine_level_mesh, NULL, &(bmgl[0].mgl[blk][lvl+1].A),0.0);
-        //dcsr_shift( &bmgl[0].mgl[blk][lvl+1].A, -1);
         printf("ELIM on A_diag fine\n");
 
 
