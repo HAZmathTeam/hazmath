@@ -1145,7 +1145,8 @@ void eliminate_DirichletBC_blockFE_blockA(void (*bc)(REAL *, REAL *,REAL,void *)
                                           block_dCSRmat *A,REAL time)
 {
   INT i,j,k,cola,colb;
-  INT nsp = FE->nspaces;
+  //INT nsp = FE->nspaces;
+  INT nsp = A->brow;
 
   INT nrows;
   INT rowshift, colshift;
