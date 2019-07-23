@@ -1,6 +1,6 @@
 //
 //  mesh.h
-//  
+//
 //
 //  Created by James Adler, Xiaozhe Hi, and Ludmil Zikatanov 2015-01-09.
 //
@@ -33,7 +33,7 @@ typedef struct coordinates{
 
   //! Size of arrays (number of nodes)
   INT n;
-	
+
 } coordinates;
 
 
@@ -43,7 +43,7 @@ typedef struct coordinates{
  * properties and mappings between vertices, edges, and faces
  */
 typedef struct mesh_struct{
-    
+
   //! dimension
   INT dim;
 
@@ -55,13 +55,13 @@ typedef struct mesh_struct{
 
   //! number of vertices per element
   INT v_per_elm;
-    
+
   //! number of edges
   INT nedge;
 
   //! number of edges per element
   INT ed_per_elm;
-    
+
   //! number of faces (in 2D faces=edges)
   INT nface;
 
@@ -79,7 +79,7 @@ typedef struct mesh_struct{
 
   //! coordinates of vertices
   coordinates* cv;
-    
+
   //! number of vertices on boundary
   INT nbv;
 
@@ -113,7 +113,7 @@ typedef struct mesh_struct{
   //! barycenter of element
   REAL* el_mid;
 
-  //! edge lengths 
+  //! edge lengths
   REAL* ed_len;
 
   //! tangent vectors on edges
@@ -140,10 +140,16 @@ typedef struct mesh_struct{
   //! indicates a flag for face such as whether a face is on boundary
   INT* f_flag;
 
-  //! indicates a flag for element such as in what domain the element is. 
+  //! indicates a flag for element such as in what domain the element is.
   INT* el_flag;
-    
-} mesh_struct; 
+
+  //! extra double working array for random things
+  REAL* dwork;
+
+  //! extra int working array for random things
+  INT* iwork;
+
+} mesh_struct;
 
 
 #endif
