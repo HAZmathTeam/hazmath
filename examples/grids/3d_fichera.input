@@ -2,7 +2,7 @@
 % input parameters: for grid generation        %
 %----------------------------------------------%
 %
-title{Two cubes sharing an edge}
+title{Fichera corner}
 %
 dimension{3}   % spatial dimension in which the grid has to be generated
 %---------------%
