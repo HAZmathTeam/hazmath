@@ -6,12 +6,10 @@ In the Works:
   0. Add default grid generator - Z
   1. Add refinement - HAZ
   2. Clean up Examples:
-    a. darcy - needs to be fixed with new Stuff - H
+    a. darcy - needs to be fixed with new Stuff, and deal with boundary integrals better - HA
     b. solvers - clean up and add multigraph example - H
   3. Periodic Boundary Conditions:
     a. simple P1 Laplace works, now get other elements - PHA
-  4. Clean up callocs - HA
-    a. assemble_local.c: FEM_RHS_Local_face calloc of cqface qcoordinates
 
 Immediate:
   1. Move Multigraph and UMFpack stuff to "interfaces" and clean up - HZ
