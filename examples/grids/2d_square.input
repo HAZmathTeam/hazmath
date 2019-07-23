@@ -1,7 +1,7 @@
 %----------------------------------------------%
 % input parameters: for grid generation        %
 %----------------------------------------------%
-title{Unit square}
+title{Unit square in 2D}
 
 dimension{2}   % spatial dimension in which the grid has to be generated
 
