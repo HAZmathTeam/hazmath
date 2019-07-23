@@ -869,7 +869,7 @@ scomplex *generate_grid(input_grid *g0)
   find_nbr(sc[0]->ns,sc[0]->nv,sc[0]->n,sc[0]->nodes,sc[0]->nbr);
   INT *wrk1=calloc(5*(sc[0]->n+2),sizeof(INT));
   /* construct bfs tree for the dual graph */
-  //  abfstree(0,sc[0],wrk1,g0->print_level);
+  abfstree(0,sc[0],wrk1,g0->print_level);
   free(wrk1);
   return sc[0];  
 }

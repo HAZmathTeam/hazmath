@@ -7,7 +7,7 @@ dimension{2}   % spatial dimension in which the grid has to be generated
 %
 print_level{0}	% how much information to print out: 0 Nothing | >0 Something
 
-refinement_type{-1}
+refinement_type{-2} % -1 is usual 
 
 %---------------%
 % files: output is in dir_grid/** where ** is nD for spatial dimension n.
@@ -72,7 +72,7 @@ data_vertices{
 num_edges{8} %
 
 %% edge: 1st vertex, 2nd vertex, number of divisions.
-data_edges{4 0 	6 
+data_edges{4 0 	6
            5 1 	6
            6 2 	6
   	   3 7  6
