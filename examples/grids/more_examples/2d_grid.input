@@ -1,7 +1,7 @@
 %----------------------------------------------%
 % input parameters: for grid generation        %
 %----------------------------------------------%
-title{2d Sector}
+title{2D Sector (polar coords)}
 %
 dimension{2}   % spatial dimension in which the grid has to be generated
 %
