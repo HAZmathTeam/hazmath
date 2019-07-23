@@ -975,6 +975,10 @@ void Ned_GradH1_RHS_local(REAL* bLoc,fespace *FE_H1,fespace *FE_Ned,mesh_struct 
 *       Scalar -> <f,v>_bdry
 *       Vector -> <f,n*v>_bdry
 *
+* \note This reallocates the quadrature on each face for every call to this function.
+*       This is not optimal, and the quadrature should be set outside if you are
+*       building your own local assembly.
+*
 * \param old_sol                 FE approximation of previous solution if needed
 * \param FE                      FE Space
 * \param mesh                    Mesh Data
