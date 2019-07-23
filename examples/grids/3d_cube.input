@@ -5,7 +5,7 @@
 title{Grid on a cube (-1,1)x(-1,1)x(-1,1)}
 %
 dimension{3}   % spatial dimension in which the grid has to be generated
-print_level{5}	% how much information to print out: 0 little | >0 more
+print_level{0}	% how much information to print out: 0 little | >0 more
 %---------------%
 
 %%% files: should exist as
@@ -13,11 +13,11 @@ print_level{5}	% how much information to print out: 0 little | >0 more
 %%% vtu files for plotting follow the same convention.
 
 %---------------%
-dir_grid{ }
-dir_vtu{ }
+dir_grid{./}
+dir_vtu{./}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-file_grid{ }
-file_vtu{ }
+file_grid{mesh3d.haz}
+file_vtu{mesh3d.vtu}
 
 %%%num_edges{12}
 %%% it is enough to specify 3 divisions only for the 3
