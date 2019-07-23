@@ -708,8 +708,6 @@ void precond_hx_div_multiplicative(REAL *r,
     dvector rr;
     rr.row = n; rr.val = r;
 
-    SHORT maxit, i;
-
     //--------------------------
     // smoothing
     //--------------------------
@@ -725,7 +723,6 @@ void precond_hx_div_multiplicative(REAL *r,
     //printf("div grad\n");
     AMG_param *amgparam_divgrad = hxdivdata->amgparam_divgrad;
     AMG_data *mgl_divgrad = hxdivdata->mgl_divgrad;
-    maxit = amgparam_divgrad->maxit;
 
     /*
     // solve with AMG only
@@ -799,8 +796,7 @@ void precond_hx_div_multiplicative(REAL *r,
     //printf("curl grad\n");
     AMG_param *amgparam_curlgrad = hxdivdata->amgparam_curlgrad;
     AMG_data *mgl_curlgrad = hxdivdata->mgl_curlgrad;
-    maxit = amgparam_curlgrad->maxit;
-
+    
     REAL *temp = hxdivdata->w;
     dcsr_mxv(hxdivdata->Curlt, r, temp);
 

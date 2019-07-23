@@ -563,12 +563,12 @@ void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *
   INT i,k,ica,n1,n2,ihi,ilo;
   INT mark1 = -1;
   INT mark2 = -1;
-  REAL* p;
-  REAL* dp;
 
   /* Get Linear Basis Functions for particular element */
-  p = (REAL *) calloc(v_per_elm,sizeof(REAL)); // Note: need to fix this allocation
-  dp = (REAL *) calloc(v_per_elm*dim,sizeof(REAL)); // Note: need to fix this allocation
+  // We use the working double arrays in mesh to store the values
+  // This way we do not need to reallocate each time this is called.
+  REAL* p = mesh->dwork;
+  REAL* dp = mesh->dwork + v_per_elm;
   PX_H1_basis(p,dp,x,v_on_elm,1,mesh);
 
   REAL elen;
@@ -628,8 +628,8 @@ void ned_basis(REAL *phi,REAL *cphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *
     }
   }
 
-  if(p) free(p);
-  if(dp) free(dp);
+  // Clean up working array for next person to use.
+  array_set(v_per_elm*(dim+1),mesh->dwork,0.0);
 
   return;
 }
@@ -661,16 +661,16 @@ void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *m
   INT dim = mesh->dim;
 
   INT i,j,ica,icb,jcnt;
-  REAL* p;
-  REAL* dp;
-  INT* ipf = (INT *) calloc(dim,sizeof(INT));
+  INT ipf[dim];
   INT myf;
   REAL farea;
   INT elnd,ef1,ef2,ef3;
 
   /* Get Linear Basis Functions for particular element */
-  p = (REAL *) calloc(v_per_elm,sizeof(REAL));
-  dp = (REAL *) calloc(v_per_elm*dim,sizeof(REAL));
+  // We use the working double arrays in mesh to store the values
+  // This way we do not need to reallocate each time this is called.
+  REAL* p = mesh->dwork;
+  REAL* dp = mesh->dwork + v_per_elm;
   PX_H1_basis(p,dp,x,v_on_elm,1,mesh);
 
   // Go through each face and find the corresponding nodes
@@ -761,9 +761,8 @@ void rt_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *m
     check_error(status, __FUNCTION__);
   }
 
-  if(p) free(p);
-  if(dp) free(dp);
-  if(ipf) free(ipf);
+  // Clean up working array for next person to use.
+  array_set(v_per_elm*(dim+1),mesh->dwork,0.0);
 
   return;
 }
@@ -799,16 +798,16 @@ void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof
 
   INT i,j,ica,icb,jcnt;
   REAL a1,a2,a3,a4;
-  REAL* p;
-  REAL* dp;
-  INT* ipf = (INT *) calloc(dim,sizeof(INT));
+  INT ipf[dim];
   INT myf;
   REAL farea;
   INT elnd,ef1,ef2;
 
   /* Get Linear Basis Functions for particular element */
-  p = (REAL *) calloc(v_per_elm,sizeof(REAL));
-  dp = (REAL *) calloc(v_per_elm*dim,sizeof(REAL));
+  // We use the working double arrays in mesh to store the values
+  // This way we do not need to reallocate each time this is called.
+  REAL* p = mesh->dwork;
+  REAL* dp = mesh->dwork + v_per_elm;
   PX_H1_basis(p,dp,x,v_on_elm,1,mesh);
 
   // Go through each face and find the corresponding nodes
@@ -866,8 +865,8 @@ void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof
     check_error(status, __FUNCTION__); // 3D not implemented
   }
 
-  if(p) free(p);
-  if(dp) free(dp);
+  // Clean up working array for next person to use.
+  array_set(v_per_elm*(dim+1),mesh->dwork,0.0);
 
   return;
 }
@@ -899,12 +898,14 @@ void bubble_face_basis(REAL *phi, REAL *dphi, REAL *x, INT *v_on_elm, INT *dof, 
   INT i,j;
 
   /* Get Linear Basis Functions for particular element */
-  REAL* p = (REAL *) calloc(v_per_elm,sizeof(REAL));
-  REAL* dp = (REAL *) calloc(v_per_elm*dim,sizeof(REAL));
+  // We use the working double arrays in mesh to store the values
+  // This way we do not need to reallocate each time this is called.
+  REAL* p = mesh->dwork;
+  REAL* dp = mesh->dwork + v_per_elm;
   PX_H1_basis(p,dp,x,v_on_elm,1,mesh);
 
   // face to vertex map
-  INT* fv = (INT *)calloc(dim,sizeof(INT));
+  INT fv[dim];// = (INT *)calloc(dim,sizeof(INT));
   INT elnd,ef1,ef2,ef3;//face endpoint vertex tracking numbers
 
   REAL gradp;
@@ -973,10 +974,8 @@ void bubble_face_basis(REAL *phi, REAL *dphi, REAL *x, INT *v_on_elm, INT *dof, 
     check_error(status, __FUNCTION__);
   }
 
-
-  if(p) free(p);
-  if(dp) free(dp);
-  if(fv) free(fv);
+  // Clean up working array for next person to use.
+  array_set(v_per_elm*(dim+1),mesh->dwork,0.0);
 
   return;
 }
