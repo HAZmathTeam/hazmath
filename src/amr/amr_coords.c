@@ -70,18 +70,18 @@ void polar2cart(INT dim, REAL *px, REAL *cx)
   REAL rho = px[0];
   REAL cend=rho; 
   switch(dim){
-  case 1:
-    cx[0]=px[0];
-    return;
-  case 2:
-    cx[0]=rho*cos(px[1]);
-    cx[1]=rho*sin(px[1]);
-    return;
-  case 3:
-    cx[0]=rho*sin(px[1])*cos(px[2]);
-    cx[1]=rho*sin(px[1])*sin(px[2]);
-    cx[2]=rho*cos(px[1]);
-    return;
+  /* case 1: */
+  /*   cx[0]=px[0]; */
+  /*   return; */
+  /* case 2: */
+  /*   cx[0]=rho*cos(px[1]); */
+  /*   cx[1]=rho*sin(px[1]); */
+  /*   return; */
+  /* case 3: */
+  /*   cx[0]=rho*sin(px[1])*cos(px[2]); */
+  /*   cx[1]=rho*sin(px[1])*sin(px[2]); */
+  /*   cx[2]=rho*cos(px[1]); */
+  /*   return; */
   default:
     memset(cx,0,dim*sizeof(REAL));
     for(i=0;i<(dim-1);i++){

@@ -473,7 +473,7 @@ input_grid *parse_input_grid(FILE *the_file)
   for(k=0;k<numel_data;k++){
     clndata[k] = get_substring(indata[k],(lengths+k), everything);
     if(!clndata[k] || !lengths[k]){
-      fprintf(stderr,"\n\n***ERROR in reading input data. Please fix the grid input file.");
+      fprintf(stderr,"\n\n***ERROR in reading input data. Please fix the grid input file.\n\n");
       exit(13);
     }
   }
