@@ -96,8 +96,14 @@ void polar2cart(INT dim, REAL *px, REAL *cx)
     cx[dim-1]=cend;
     // the conversion above puts cx[n-1] first, so put it back at the end.  
     coord_perm(1,dim,cx,sizeof(REAL));
-    //  print_full_mat(1,dim,cx,"cx");
-    //  fprintf(stdout,"\nxc=[%e  %e]",px[0]*cos(px[1]),px[0]*sin(px[1]));
+    //        print_full_mat(1,dim,cx,"cx");
+    //2d    fprintf(stdout,"\nxc=[%e  %e]",px[0]*cos(px[1]),px[0]*sin(px[1]));
+    //    fprintf(stdout,"\nxc=[%e  %e  %e]",			\
+    //	    px[0]*sin(px[1])*cos(px[2]),			\
+    // px[0]*sin(px[1])*sin(px[2]),				\
+    //	    px[0]*cos(px[1])					\
+    //	    );
+    return;
   }
   return;
 }
@@ -151,7 +157,7 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
   REAL *xhat = (REAL *)calloc(dim,sizeof(REAL));
   REAL *xemac=(REAL *)calloc(c2s->ne*dim,sizeof(REAL));
   // convert midpoints from polar to cartesian.
-  //  print_full_mat(c2s->nvcube,c2s->n,g->xv,"X{1}");
+  //  print_full_mat(c2s->nvcube,c2s->n,g->xv,"P");
   for(i=0;i<c2s->ne;i++){
     k1=c2s->edges[2*i];
     k2=c2s->edges[2*i+1];
