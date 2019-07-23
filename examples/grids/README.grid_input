@@ -45,3 +45,5 @@
 % the example we gave, the face for which the second bit is fixed is
 % numbered incorrectly, it should be (010,011,110,111).
 
+%%% POLAR COORDINATES have all angles in [0,pi] except the last one
+%%% which is in 0,2pi
