@@ -15,7 +15,7 @@ print_level			= 2;	% how much information to print out: 0 Nothing | >0 Something
 %---------------%
 
 %gridfile                     = ../grids/1D/unitLINE_n17.haz
-gridfile                      = ../grids/2D/unitSQ_n65.haz
+gridfile                      = ../grids/2D/unitSQ_n33.haz
 %gridfile                     = ../grids/3D/unitCUBE_n17.haz
 output_dir                    = ./output/
 
@@ -32,8 +32,8 @@ FE_type				= 1	% 0-9 PX | 10-19 QX (not yet) | 20 Ned | 30 RT | -9--1 DGX (not y
 %---------------%
 
 time_step_type			= 0	% 0 CN | 1 BDF1 | 2 BDF2 |
-time_steps			= 100 	% number of time steps
-time_step_size			= 0.01	% time step size
+time_steps			= 10 	% number of time steps
+time_step_size			= 0.1	% time step size
 
 %---------------%
 % nonlinear solver
