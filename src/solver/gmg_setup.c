@@ -1342,6 +1342,110 @@ SHORT gmg_build_coarse_FE_spaces( MG_blk_data *mgl,
 }
 
 /***********************************************************************************************/
+/**
+ * \fn SHORT gmg_apply_periodic_BC (MG_blk_data *mgl, AMG_param *param)
+ *
+ * \brief 
+ *
+ * \param mgl    Pointer to AMG_data
+ * \param param  Pointer to AMG_param
+ *
+ * \return       SUCCESS if succeed, error otherwise
+ *
+ * \author Peter Ohm
+ * \date   07/22/2019
+ *
+ */
+SHORT gmg_apply_periodic_BC( MG_blk_data *mgl,
+                             AMG_param *param,
+                             INT NoBBL)
+{
+  // local variables
+  const SHORT prtlvl     = param->print_level;
+  const SHORT cycle_type = param->cycle_type;
+  const SHORT csolver    = param->coarse_solver;
+  const SHORT max_levels = param->max_levels;
+
+  INT lvl = 0;
+  INT status = SUCCESS;
+  INT dim = mgl[0].fine_level_mesh->dim;
+  INT i,j,nf1d,nc1d,csize;
+  INT ndof, cnt;
+  INT brow = mgl[0].A.brow;
+
+  dCSRmat tempRA;
+
+  block_fespace FE_blk;
+  FE_blk.nspaces = mgl[0].A.brow;
+  FE_blk.var_spaces = (fespace **) calloc( FE_blk.nspaces, sizeof(fespace*));
+
+  for( lvl = 0; lvl < max_levels; lvl++){
+    set_periodic_bdry(mgl[lvl].FE->var_spaces[0], mgl[lvl].fine_level_mesh,0.0,1.0,0.0,1.0,0.0,1.0);
+    set_periodic_bdry(mgl[lvl].FE->var_spaces[1], mgl[lvl].fine_level_mesh,0.0,1.0,0.0,1.0,0.0,1.0);
+    set_periodic_bdry(mgl[lvl].FE->var_spaces[2], mgl[lvl].fine_level_mesh,0.0,1.0,0.0,1.0,0.0,1.0);
+    set_periodic_bdry(mgl[lvl].FE->var_spaces[3], mgl[lvl].fine_level_mesh,0.0,1.0,0.0,1.0,0.0,1.0);
+    set_periodic_bdry(mgl[lvl].FE->var_spaces[4], mgl[lvl].fine_level_mesh,0.0,1.0,0.0,1.0,0.0,1.0);
+
+    // Create fake blockFE space that matches the 3x3 block matrix (put all displacements together)
+
+    // Displacement Block
+    FE_blk.var_spaces[0] = (fespace *) calloc(1, sizeof(fespace));
+    ndof = 0;
+    for(i=NoBBL; i<dim+1; i++){ ndof += mgl[lvl].FE->var_spaces[i]->ndof; }
+    FE_blk.var_spaces[0]->periodic = (INT *) calloc(ndof, sizeof(INT));
+    FE_blk.var_spaces[0]->ndof = ndof;
+    cnt = 0;
+    for(i=NoBBL; i<dim+1; i++){
+      for(j=0; j<mgl[lvl].FE->var_spaces[i]->ndof; j++){
+        FE_blk.var_spaces[0]->periodic[cnt] = mgl[lvl].FE->var_spaces[i]->periodic[j];
+        cnt++;
+      }
+    }
+    // Darcy Block
+    FE_blk.var_spaces[1] = mgl[lvl].FE->var_spaces[3];
+    // Pressure Block
+    FE_blk.var_spaces[2] = mgl[lvl].FE->var_spaces[4];
+
+    bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].A_periodic));
+    bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].P_periodic));
+    bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].R_periodic));
+    bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].R_periodic_scaled));
+
+    printf("\tGenerating periodic P\n");
+    generate_periodic_P_blockFE( &FE_blk, &(mgl[lvl].P_periodic) );
+    printf("\tGenerating periodic R scaled\n");
+    generate_periodic_R_scaled_blockFE( &(mgl[lvl].P_periodic), &(mgl[lvl].R_periodic_scaled) );
+    printf("\tGenerating periodic R\n");
+    for(i=0; i<brow; i++){
+      dcsr_trans( mgl[lvl].P_periodic.blocks[i+i*brow], mgl[lvl].R_periodic.blocks[i+i*brow] );
+    }
+
+    // Form triple matrix product on level for A_periodic
+    printf("\tEliminating PeriodicBC...\n");
+    eliminate_PeriodicBC_blockFE( &(mgl[lvl].P_periodic), &(mgl[lvl].A), NULL);
+    printf("\tEliminated PeriodicBC...\n");
+    // Form triple matrix product on level for P_periodic (for lvl-1)
+    printf("\tForming Prolongation and Restriction matrices for periodic problem\n");
+    if(lvl>0){
+      for(i=0; i< brow; i++){
+        for(j=0; j < brow; j++){
+          if(i==j){
+            dcsr_mxm(mgl[lvl].R_periodic_scaled.blocks[i+i*brow],mgl[lvl-1].R.blocks[j+i*brow],&tempRA);
+            dcsr_mxm(&tempRA,mgl[lvl-1].P_periodic.blocks[j+j*brow],mgl[lvl-1].R.blocks[j+i*brow]);
+            dcsr_free(&tempRA);
+            dcsr_mxm(mgl[lvl].R_periodic_scaled.blocks[i+i*brow],mgl[lvl-1].P.blocks[j+i*brow],&tempRA);
+            dcsr_mxm(&tempRA,mgl[lvl-1].P_periodic.blocks[j+j*brow],mgl[lvl-1].P.blocks[j+i*brow]);
+            dcsr_free(&tempRA);
+          }
+        }
+      }
+    }
+
+  }
+  return status;
+}
+
+/***********************************************************************************************/
 /***********************************************************************************************/
 /***********************************************************************************************/
 /**
@@ -1559,7 +1663,6 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
     bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].P));
     bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl+1].A));
     bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl+1].A_noBC));
-    printf("Allocation of R A P for lvl=%d is finished...\n",lvl);
 
     mgl[lvl+1].dirichlet_blk = (INT**)calloc(brow,sizeof(INT*));//remove eventually
 
@@ -1629,13 +1732,13 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
           break;
       }// switch gmg_type
     }// for i<brow
-    printf("Built R for lvl=%d...\n",lvl);
+    printf("\tBuilt R for lvl=%d...\n",lvl);
 
     /*-- Form Prolongation --*/
     for(i=0; i<brow; i++){
       dcsr_trans(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].P.blocks[i+i*brow]);
     }
-    printf("Built P for lvl=%d...\n",lvl);
+    printf("\tBuilt P for lvl=%d...\n",lvl);
 
     /*-- Form coarse level stiffness matrix --*/
     for(i=0; i<brow; i++){
@@ -1649,15 +1752,13 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
         }
       }//j
     }//i
-    printf("Built RAP for lvl=%d...\n",lvl);
+    printf("\tBuilt RAP for lvl=%d...\n",lvl);
 
     /*-- Eliminate dirichlet boundaries from stiffness matrix --*/
     bdcsr_cp( &mgl[lvl+1].A_noBC, &mgl[lvl+1].A);
     set_dirichlet_bdry_block(mgl[lvl+1].FE, mgl[lvl+1].fine_level_mesh);
-    printf("\t|lvl=%d|Eliminating BC...",lvl+1);
     eliminate_DirichletBC_blockFE_blockA(NULL, mgl[lvl+1].FE, mgl[lvl+1].fine_level_mesh,NULL,&mgl[lvl+1].A,0.0);
-    printf("\t|lvl=%d|Eliminated BC\n",lvl+1);
-    // Need to write this: Need to fill dirichlet BC array for each level.
+
     bm = 0;
     mgl[lvl+1].dirichlet_blk = (INT**)calloc(brow,sizeof(INT*));
     for(i=NoBBL; i<nspaces; i++){
@@ -1669,7 +1770,12 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
 
     lvl++;
   }
-  // Setup coarse level systems for direct solvers
+
+  /*-- Apply periodic boundary condition operators --*/
+  status = gmg_apply_periodic_BC( mgl, param, NoBBL);
+  printf("Finished applying periodic BC\n");
+
+  /*-- Setup coarse level systems for direct solvers --*/
   switch (csolver) {
 
 #if WITH_SUITESPARSE
