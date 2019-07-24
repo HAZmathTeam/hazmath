@@ -738,25 +738,15 @@ ForwardSweep:
 
         num_lvl[l]++;
 
-//        // correct bdry
-//        for(i=0; i<bmgl[l].x.row; i++){
-//          if( bmgl[l].dirichlet[i] == 1 )
-//            bmgl[l].x.val[i] = 0.0;
-//        }
         // pre-smoothing with standard smoothers
         bdcsr_presmoothing(l, bmgl, param);
-//        // correct bdry
-//        for(i=0; i<bmgl[l].x.row; i++){
-//          if( bmgl[l].dirichlet[i] == 1 )
-//            bmgl[l].x.val[i] = 0.0;
-//        }
 
         // form residual r = b - A x
         array_cp(bmgl[l].b.row, bmgl[l].b.val, bmgl[l].w.val);
         bdcsr_aAxpy(-1.0,&bmgl[l].A, bmgl[l].x.val, bmgl[l].w.val);
         // correct bdry
         for(i=0; i<bmgl[l].b.row; i++){
-          if( bmgl[l].dirichlet[i] == 1 )
+          if( bmgl[l].FE->dirichlet[i] == 1 )
             bmgl[l].w.val[i] = 0.0;
         }
 
@@ -765,7 +755,7 @@ ForwardSweep:
         bdcsr_mxv(&bmgl[l].R, bmgl[l].w.val, bmgl[l+1].b.val);
         // correct bdry
         for(i=0; i<bmgl[l+1].b.row; i++){
-          if( bmgl[l+1].dirichlet[i] == 1 )
+          if( bmgl[l+1].FE->dirichlet[i] == 1 )
             bmgl[l+1].b.val[i] = 0.0;
         }
 
@@ -801,7 +791,7 @@ ForwardSweep:
 
         // correct bdry
         for(i=0; i<bmgl[l+1].x.row; i++){
-          if( bmgl[l+1].dirichlet[i] == 1 )
+          if( bmgl[l+1].FE->dirichlet[i] == 1 )
             bmgl[l+1].x.val[i] = 0.0;
         }
         // prolongation u = u + alpha*P*e1
@@ -810,7 +800,7 @@ ForwardSweep:
         bdcsr_mxv(&bmgl[l].P, bmgl[l+1].x.val, bmgl[l].w.val);
         // correct bdry
         for(i=0; i<bmgl[l].x.row; i++){
-          if( bmgl[l].dirichlet[i] == 1 )
+          if( bmgl[l].FE->dirichlet[i] == 1 )
             bmgl[l].w.val[i] = 0.0;
         }
         array_axpy(bmgl[l].x.row, alpha, bmgl[l].w.val, bmgl[l].x.val);
