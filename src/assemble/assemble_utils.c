@@ -1471,8 +1471,10 @@ void eliminate_PeriodicBC(dCSRmat* P_periodic, dCSRmat* A, dvector* b)
   dcsr_cp(A, &Atemp);
 
   // copy right hand side
-  dvec_alloc(b->row, &btemp);
-  dvec_cp (b, &btemp);
+  if( b ){
+    dvec_alloc(b->row, &btemp);
+    dvec_cp (b, &btemp);
+  }
 
   // free original A and b
   if (A->IA) free(A->IA);
@@ -1486,9 +1488,11 @@ void eliminate_PeriodicBC(dCSRmat* P_periodic, dCSRmat* A, dvector* b)
   // eliminate boundary
   dcsr_rap(&R_periodic, &Atemp, P_periodic, A);
 
-  b->row = R_periodic.row;
-  b->val = (REAL* )realloc(b->val, b->row*sizeof(REAL));
-  dcsr_mxv(&R_periodic, btemp.val, b->val);
+  if(b){
+    b->row = R_periodic.row;
+    b->val = (REAL* )realloc(b->val, b->row*sizeof(REAL));
+    dcsr_mxv(&R_periodic, btemp.val, b->val);
+  }
 
   // free
   dcsr_free(&Atemp);
@@ -1610,6 +1614,7 @@ void eliminate_PeriodicBC_blockFE(block_dCSRmat* P_periodic, block_dCSRmat* A, d
  // local variables
  INT i, j;
  block_dCSRmat Atemp;
+ dCSRmat RAtemp;
  dvector btemp;
 
  // copy stiffness matrix
@@ -1617,15 +1622,19 @@ void eliminate_PeriodicBC_blockFE(block_dCSRmat* P_periodic, block_dCSRmat* A, d
  bdcsr_cp(A, &Atemp);
 
  // copy right hand side
- dvec_alloc(b->row, &btemp);
- dvec_cp (b, &btemp);
+ if( b ){
+   dvec_alloc(b->row, &btemp);
+   dvec_cp (b, &btemp);
+ }
 
  // free original A and b
  for (i=0; i<(A->brow*A->bcol); i++)
  {
-   if (A->blocks[i]->IA) free(A->blocks[i]->IA);
-   if (A->blocks[i]->JA) free(A->blocks[i]->JA);
-   if (A->blocks[i]->val) free(A->blocks[i]->val);
+   if (A->blocks[i]){
+     if (A->blocks[i]->IA) free(A->blocks[i]->IA);
+     if (A->blocks[i]->JA) free(A->blocks[i]->JA);
+     if (A->blocks[i]->val) free(A->blocks[i]->val);
+   }
  }
 
  // transpose P_periodic
@@ -1636,31 +1645,36 @@ void eliminate_PeriodicBC_blockFE(block_dCSRmat* P_periodic, block_dCSRmat* A, d
  for (i=0; i<A->brow; i++)
  {
 
-   for (j=0; i<A->bcol; j++)
+   for (j=0; j<A->bcol; j++)
    {
 
-     if ( (R_periodic.blocks[i*R_periodic.brow+i] == NULL) && (Atemp.blocks[i*A->brow+j] == NULL) && (P_periodic->blocks[j*P_periodic->brow+j]) )
+     //if ( (R_periodic.blocks[i*R_periodic.brow+i] == NULL) || (Atemp.blocks[i*A->brow+j] == NULL) || (P_periodic->blocks[j*P_periodic->brow+j]) )
+     if ( (Atemp.blocks[i*A->brow+j] == NULL)  )
      {
        A->blocks[i*A->brow+j] = NULL;
      }
      else
      {
-       dcsr_rap(R_periodic.blocks[i*R_periodic.brow+i], Atemp.blocks[i*A->brow+j], P_periodic->blocks[j*P_periodic->brow+j], A->blocks[i*A->brow+j]);
+       dcsr_mxm(R_periodic.blocks[i*R_periodic.brow+i], Atemp.blocks[i*A->brow+j], &RAtemp);
+       dcsr_mxm(&RAtemp, P_periodic->blocks[j*P_periodic->brow+j], A->blocks[i*A->brow+j]);
+//       dcsr_rap(R_periodic.blocks[i*R_periodic.brow+i], Atemp.blocks[i*A->brow+j], P_periodic->blocks[j*P_periodic->brow+j], A->blocks[i*A->brow+j]);
      }
 
    }
 
  }
 
- b->row = 0;
- for (i=0; i<R_periodic.brow; i++) b->row = b->row + R_periodic.blocks[i*R_periodic.brow+i]->row;
- b->val = (REAL* )realloc(b->val, b->row*sizeof(REAL));
- bdcsr_mxv(&R_periodic, btemp.val, b->val);
+ if( b ){
+   b->row = 0;
+   for (i=0; i<R_periodic.brow; i++) b->row = b->row + R_periodic.blocks[i*R_periodic.brow+i]->row;
+   b->val = (REAL* )realloc(b->val, b->row*sizeof(REAL));
+   bdcsr_mxv(&R_periodic, btemp.val, b->val);
+ }
 
  // free
  bdcsr_free(&Atemp);
  bdcsr_free(&R_periodic);
- dvec_free(&btemp);
+ if(b){dvec_free(&btemp);}
 
 }
 /******************************************************************************************************/

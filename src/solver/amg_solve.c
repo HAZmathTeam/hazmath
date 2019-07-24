@@ -339,6 +339,14 @@ INT mg_solve_blk(MG_blk_data *mgl,
     REAL  relres1 = BIGREAL, absres0 = sumb, absres, factor;
     INT   iter = 0;
 
+    // PERIODIC STUFF
+    INT i;
+    b->row=0;
+    for(i=0; i<mgl[0].A.brow; i++){
+    b->row += mgl[0].A.blocks[i+i*mgl[0].A.brow]->row;
+    }
+    x->row = b->row;
+
     dvector r0 = dvec_create(b->row);
     dvec_cp(b,&r0);
     bdcsr_aAxpy(-1.0,&mgl[0].A,x->val,r0.val);
