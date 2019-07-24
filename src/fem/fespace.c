@@ -157,7 +157,7 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     FE->dphi = dphi;
     break;
   case 20: // Nedelec Elements
-    FE->cdof = NULL;
+    FE->cdof = array_2_coord ( mesh->ed_mid, mesh->nedge, mesh->dim);
     FE->ndof = mesh->nedge;
     FE->nbdof = mesh->nbedge;
     FE->dof_per_elm = mesh->ed_per_elm;
@@ -183,7 +183,6 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     break;
   case 30: // Raviart-Thomas Elements
     FE->cdof = array_2_coord ( mesh->f_mid, mesh->nface, mesh->dim);
-    //FE->cdof = NULL;
     FE->ndof = mesh->nface;
     FE->nbdof = mesh->nbface;
     FE->dof_per_elm = mesh->f_per_elm;
@@ -232,7 +231,6 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
         icsr_concat(temp, mesh->ed_v, FE->ed_dof);
         icsr_free(temp);
       }
-      //  FE->f_dof = mesh->f_v; // iCSRmat*
       FE->f_dof = malloc(sizeof(struct iCSRmat));
       if(mesh->dim==2){
         icsr_concat(mesh->f_v, mesh->f_v, FE->f_dof);
@@ -257,7 +255,6 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     break;
   case 61: // Bubbles
     FE->cdof = array_2_coord ( mesh->f_mid, mesh->nface, mesh->dim);
-    //FE->cdof = NULL;
     FE->ndof = mesh->nface;
     FE->nbdof = mesh->nbface;
     FE->dof_per_elm = mesh->f_per_elm;
@@ -793,7 +790,6 @@ void set_periodic_bdry(fespace* FE,mesh_struct* mesh,const REAL minx,const REAL 
 
   // Cycle through DOF finding corresponding values.
   // This depends on the FE, but we assume FE->cdof contains the Coordinates
-  // TODO: NOT TRUE for RT and Nedelec...
   if(mesh->dim==1) {
     for(i=0;i<FE->ndof;i++) {
       if(xper && FE->cdof->x[i]==minx) {
