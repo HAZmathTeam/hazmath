@@ -979,9 +979,12 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
     dvector r0, r1, r2;
     dvector y0, y1, y2;
 
-    n0 = bmgl[lvl].mgl[0][0].A.row;
-    n1 = bmgl[lvl].mgl[1][0].A.row;
-    n2 = bmgl[lvl].mgl[2][0].A.row;
+    //n0 = bmgl[lvl].mgl[0][0].A.row;
+    n0 = bmgl[lvl].A.blocks[0]->row;
+    //n1 = bmgl[lvl].mgl[1][0].A.row;
+    n1 = bmgl[lvl].A.blocks[4]->row;
+    //n2 = bmgl[lvl].mgl[2][0].A.row;
+    n2 = bmgl[lvl].A.blocks[8]->row;
 
     x0.row = n0;
     x0.val = bmgl[lvl].x.val;

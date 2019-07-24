@@ -596,8 +596,10 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
             //status = gmg_blk_setup(mgl, param);
             status = gmg_blk_setup_biot_bubble(mgl, param);
             printf("\nFinished gmg_blk_setup... Calling smoother setup...\n");
-            smoother_block_setup(mgl, param);
+            printf("SKIPPING SMOOTHER SETUP...\n");
+            //smoother_block_setup(mgl, param);
             printf("\nsmoother setup Done...\n");
+            break;
         default:
             if ( prtlvl > PRINT_NONE ) printf("\n Calling block GMG ...\n");
             status = gmg_blk_setup(mgl, param);
