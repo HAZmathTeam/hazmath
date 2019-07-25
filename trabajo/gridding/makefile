@@ -33,7 +33,8 @@ EXE = $(GRID).$(EXTENSION)
 EXEold = $(OLDGRID).$(EXTENSION)
 
 # Source and Object Files
-OBJ =	$(SRCDIR)/main_grid.o
+OBJ =	$(SRCDIR)/grid_generate.o \
+	$(SRCDIR)/macroelements0.o
 
 OBJold =	$(SRCDIR)/$(GRID).o \
 		$(SRCDIR)/new_refining.o \
