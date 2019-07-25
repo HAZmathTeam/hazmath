@@ -151,7 +151,7 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
      xmac[nvcube][dim]
   */
   INT i,j,k1,k2,k1c,kf,dim=sc->n;
-  //  INT k2c;
+    INT k2c;
   INT ksys;
   REAL *xmac=g->xv;  
   REAL *xhat = (REAL *)calloc(dim,sizeof(REAL));
@@ -162,7 +162,7 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
     k1=c2s->edges[2*i];
     k2=c2s->edges[2*i+1];
     k1c=g->systypes[g->csysv[k1]];
-    //k2c=g->systypes[g->csysv[k2]];
+    k2c=g->systypes[g->csysv[k2]];
     if(g->csysv[k1]==g->csysv[k2] && k1c==1){
       //use xhat as a temp array:
       xhat[0]=0.5*(xmac[k1*dim]+xmac[k2*dim]);// this is rho
@@ -170,11 +170,11 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
       for(j=1;j<dim;j++) {
 	xhat[j]=0.5*(xmac[k1*dim+j]+xmac[k2*dim+j]);
       }
-      //      print_full_mat(1,dim,xhat,"xhat");
+      print_full_mat(1,dim,xhat,"xhat");
       polar2cart(dim,xhat,xemac+(i*dim));
       // translate by adding the origin. 
       ksys=g->csysv[k1];// k1c and k2c should be the same below. 
-			      //      k2c=g->csysv[k2];
+			     k2c=g->csysv[k2];
       for(j=0;j<dim;j++) {
 	xemac[i*dim+j]+=g->ox[ksys*dim+j];
       }
@@ -201,7 +201,7 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
     k1=c2s->edges[2*i];
     k2=c2s->edges[2*i+1];
     k1c=g->systypes[g->csysv[k1]];
-    //    k2c=g->systypes[g->csysv[k2]];
+    k2c=g->systypes[g->csysv[k2]];
     //check all  mid points in polar and skip them; if necessary invert the sign...
     if(g->csysv[k1]==g->csysv[k2] && k1c==1) {      
       REAL scpr1=0.,scpr2=0.;
@@ -216,15 +216,15 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
 	for(j=0;j<dim;j++)
 	  xemac[i*dim+j]=2e0*g->ox[ksys*dim+j] - xemac[i*dim+j];
       }
+      fprintf(stdout,"\ncart:verts=(%d,%d); coord_sys=(%d,%d)",k1,k2,k1c,k2c);fflush(stdout);
       continue;
     }
-    //    fprintf(stdout,"\ncart:verts=(%d,%d); coord_sys=(%d,%d)",k1,k2,k1c,k2c);fflush(stdout);
     for(j=0;j<dim;j++) {
       xemac[i*dim+j]=0.5*(xmac[k1*dim+j]+xmac[k2*dim+j]);
     }
   }
-  //  print_full_mat(c2s->nvcube,dim,xmac,"X");
-  //print_full_mat(c2s->ne,dim,xemac,"XE");
+  print_full_mat(c2s->nvcube,dim,xmac,"X");
+  print_full_mat(c2s->ne,dim,xemac,"XE");
   r2c(c2s->nvcube,dim,sizeof(REAL),xmac); // we need xmac by rows here
   r2c(c2s->ne,dim,sizeof(REAL),xemac); // we need xemac (mid points of
 				       // edges) also by rows
