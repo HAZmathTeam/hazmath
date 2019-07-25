@@ -1428,14 +1428,20 @@ SHORT gmg_apply_periodic_BC( MG_blk_data *mgl,
     printf("\tForming Prolongation and Restriction matrices for periodic problem\n");
     if(lvl>0){
       for(i=0; i< brow; i++){
+    printf("-----------------------------------------------------------------------\n");
+//    csr_print_matlab(stdout,mgl[lvl-1].R_periodic_scaled.blocks[i+i*brow]);
         for(j=0; j < brow; j++){
           if(i==j){
             dcsr_mxm(mgl[lvl].R_periodic_scaled.blocks[i+i*brow],mgl[lvl-1].R.blocks[j+i*brow],&tempRA);
             dcsr_mxm(&tempRA,mgl[lvl-1].P_periodic.blocks[j+j*brow],mgl[lvl-1].R.blocks[j+i*brow]);
             dcsr_free(&tempRA);
-            dcsr_mxm(mgl[lvl].R_periodic_scaled.blocks[i+i*brow],mgl[lvl-1].P.blocks[j+i*brow],&tempRA);
-            dcsr_mxm(&tempRA,mgl[lvl-1].P_periodic.blocks[j+j*brow],mgl[lvl-1].P.blocks[j+i*brow]);
+//    printf("******************************\n");
+//    csr_print_matlab(stdout,mgl[lvl-1].P.blocks[j+i*brow]);
+            dcsr_mxm(mgl[lvl-1].R_periodic_scaled.blocks[i+i*brow],mgl[lvl-1].P.blocks[j+i*brow],&tempRA);
+            dcsr_mxm(&tempRA,mgl[lvl].P_periodic.blocks[j+j*brow],mgl[lvl-1].P.blocks[j+i*brow]);
             dcsr_free(&tempRA);
+    printf("______________________________\n");
+//    csr_print_matlab(stdout,mgl[lvl-1].P.blocks[j+i*brow]);
           }
         }
       }
@@ -1714,9 +1720,12 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
           dcsr_cp(&Rmerge,mgl[lvl].R.blocks[i+i*brow]);
           dcsr_free(&Rmerge);
 
-          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[0], mgl[lvl+1].fine_level_mesh, 1,5); //bbl
-          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[1], mgl[lvl+1].fine_level_mesh, 5,5); // Ux
-          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[2], mgl[lvl+1].fine_level_mesh, 1,4); // Uy
+          printf("\n\n****************************************************************************************************\n");
+          printf("Dirichlet boundary conditions for GMG have been butchered to make periodic BC work in GMG\n");
+          printf("****************************************************************************************************\n\n");
+          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[0], mgl[lvl+1].fine_level_mesh, -1,-5); //bbl
+          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[1], mgl[lvl+1].fine_level_mesh, -5,-5); // Ux
+          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[2], mgl[lvl+1].fine_level_mesh, -1,-4); // Uy
 
           break;
         case 30:// RT0
@@ -1724,7 +1733,7 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
           nc1d = (nf1d)/2;
           build_face_R( mgl[lvl].R.blocks[i+i*brow], mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
 
-          set_dirichlet_bdry(mgl[lvl].FE->var_spaces[3], mgl[lvl+1].fine_level_mesh, 1,5); // w
+          set_dirichlet_bdry(mgl[lvl].FE->var_spaces[3], mgl[lvl+1].fine_level_mesh, -1,-5); // w
 
           break;
         default:

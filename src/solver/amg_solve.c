@@ -332,7 +332,8 @@ INT mg_solve_blk(MG_blk_data *mgl,
     const SHORT   prtlvl = param->print_level;
     const INT     MaxIt  = param->maxit;
     const REAL    tol    = param->tol;
-    const REAL    sumb   = dvec_norm2(b);
+    //const REAL    sumb   = dvec_norm2(b);
+    const REAL    sumb   = 1.0;
     
     // local variables
     REAL  solve_start, solve_end;
