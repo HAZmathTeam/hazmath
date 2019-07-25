@@ -528,16 +528,20 @@ void set_edges(input_grid *g0,cube2simp *c2s)
   INT *mnodes=calloc(c2s->nvcube,sizeof(INT));
   newne=0;
   INT found=0;
-  for(kel=0;kel<g0->nel;kel++){
-    memcpy(mnodes,(g0->mnodes+kel*(nvcube+1)),(nvcube+1)*sizeof(INT));
+  for(kel=0;kel<g0->nel;kel++){    
+    memcpy(mnodes,(g0->mnodes+kel*(nvcube+1)),(nvcube+1)*sizeof(INT));    
+    //    fprintf(stdout,"\n*EEE*EEEE kel=%d",kel);
+    //    print_full_mat_int(1,nvcube+1,g0->mnodes+kel*(nvcube+1),"mnodes");
     for(i=0;i<c2s->ne;i++){
       j01[0]=mnodes[c2s->edges[2*i]];
       j01[1]=mnodes[c2s->edges[2*i+1]];
+      //      fprintf(stdout,"\n*YYY*YYY j01=(%d,%d)",j01[0],j01[1]);
       if(j01[0]>j01[1]){swp=j01[0];j01[0]=j01[1];j01[1]=swp;}
       found=0;
       for(ke=0;ke<g0->ne;ke++){
 	k01[0]=g0->seg[cols*ke];
 	k01[1]=g0->seg[cols*ke+1];
+	//	fprintf(stdout,"\n*YYY*YYY k01=(%d,%d)?=?(%d,%d)",k01[0],k01[1],j01[0],j01[1]);
 	if((k01[0]==j01[0])&&(k01[1]==j01[1])){
 	  found=1;break;
 	}      
@@ -559,7 +563,7 @@ void set_edges(input_grid *g0,cube2simp *c2s)
   newseg=realloc(newseg,cols*newne*sizeof(INT));
   INT *p=calloc(newne,sizeof(INT));
   ilexsort(newne, cols,newseg,p);  
-  // print_full_mat_int(newne,cols,newseg,"newseg");
+  //  print_full_mat_int(newne,cols,newseg,"newseg");
   free(p);
   // remove dupps
   INT m,li1,ic[cols];
