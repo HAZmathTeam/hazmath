@@ -1370,7 +1370,7 @@ SHORT gmg_apply_periodic_BC( MG_blk_data *mgl,
   INT status = SUCCESS;
   INT dim = mgl[0].fine_level_mesh->dim;
   INT i,j,nf1d,nc1d,csize;
-  INT ndof, cnt;
+  INT ndof, cnt, dof_shift;
   INT brow = mgl[0].A.brow;
 
   dCSRmat tempRA;
@@ -1395,12 +1395,26 @@ SHORT gmg_apply_periodic_BC( MG_blk_data *mgl,
     FE_blk.var_spaces[0]->periodic = (INT *) calloc(ndof, sizeof(INT));
     FE_blk.var_spaces[0]->ndof = ndof;
     cnt = 0;
+    dof_shift = 0;
     for(i=NoBBL; i<dim+1; i++){
       for(j=0; j<mgl[lvl].FE->var_spaces[i]->ndof; j++){
-        FE_blk.var_spaces[0]->periodic[cnt] = mgl[lvl].FE->var_spaces[i]->periodic[j];
+        if( mgl[lvl].FE->var_spaces[i]->periodic[j] > -1 ){
+          FE_blk.var_spaces[0]->periodic[cnt] = mgl[lvl].FE->var_spaces[i]->periodic[j]+dof_shift;
+        } else {
+          FE_blk.var_spaces[0]->periodic[cnt] = mgl[lvl].FE->var_spaces[i]->periodic[j];
+        }
         cnt++;
       }
+      dof_shift =cnt;
+      printf("CHECK: cnt %d,  ndof %d, total ndof %d\n", cnt, mgl[lvl].FE->var_spaces[i]->ndof,ndof);
     }
+//    for(i=0;i<mgl[lvl].FE->var_spaces[0]->ndof;i++){
+//      if(mgl[lvl].FE->var_spaces[0]->periodic[i] != mgl[lvl].FE->var_spaces[3]->periodic[i])
+//      {  printf("EDGE %d does not agree between Bubbles and RT\n",i);}
+//      if(FE_blk.var_spaces[0]->periodic[i] != mgl[lvl].FE->var_spaces[3]->periodic[i])
+//      {  printf("asd;lfkajsdf;ljasd;lkfjas;ldkfjas;dlkfajsd;lfkja %d\n",i);
+//      }
+//    }
     // Darcy Block
     FE_blk.var_spaces[1] = mgl[lvl].FE->var_spaces[3];
     // Pressure Block
@@ -1429,7 +1443,8 @@ SHORT gmg_apply_periodic_BC( MG_blk_data *mgl,
     if(lvl>0){
       for(i=0; i< brow; i++){
     printf("-----------------------------------------------------------------------\n");
-//    csr_print_matlab(stdout,mgl[lvl-1].R_periodic_scaled.blocks[i+i*brow]);
+    csr_print_matlab(stdout,mgl[lvl-1].R_periodic_scaled.blocks[i+i*brow]);
+    printf("-----------------------------------------------------------------------\n");
         for(j=0; j < brow; j++){
           if(i==j){
             dcsr_mxm(mgl[lvl].R_periodic_scaled.blocks[i+i*brow],mgl[lvl-1].R.blocks[j+i*brow],&tempRA);
@@ -1440,8 +1455,12 @@ SHORT gmg_apply_periodic_BC( MG_blk_data *mgl,
             dcsr_mxm(mgl[lvl-1].R_periodic_scaled.blocks[i+i*brow],mgl[lvl-1].P.blocks[j+i*brow],&tempRA);
             dcsr_mxm(&tempRA,mgl[lvl].P_periodic.blocks[j+j*brow],mgl[lvl-1].P.blocks[j+i*brow]);
             dcsr_free(&tempRA);
-    printf("______________________________\n");
+//    printf("******************************\n");
+//    csr_print_matlab(stdout,mgl[lvl-1].R.blocks[j+i*brow]);
+//    printf("______________________________\n");
 //    csr_print_matlab(stdout,mgl[lvl-1].P.blocks[j+i*brow]);
+    printf("P Matrix[%d,%d] size: %d %d\n",i,j,mgl[lvl-1].P.blocks[j+i*brow]->row,mgl[lvl-1].P.blocks[j+i*brow]->col);
+    printf("R Matrix[%d,%d] size: %d %d\n",i,j,mgl[lvl-1].R.blocks[j+i*brow]->row,mgl[lvl-1].R.blocks[j+i*brow]->col);
           }
         }
       }
@@ -1681,7 +1700,7 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
           nc1d = sqrt(mgl[lvl+1].fine_level_mesh->nelm/2);
           build_constant_R( mgl[lvl].R.blocks[i+i*brow], nf1d, nc1d);
 
-          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[1], mgl[lvl+1].fine_level_mesh, -1,-1); // P
+          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[4], mgl[lvl+1].fine_level_mesh, -1,-1); // P
 
           break;
         case 111:// P1 combined as a vector space to form single block matrix
