@@ -86,7 +86,6 @@ void scomplex_merge1(const INT nvall,		\
 		     macrocomplex *mc,		\
 		     scomplex **sc0,		\
 		     cube2simp *c2s);
-}
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
 INT locate1(INT *b,				\
 	    INT *a,INT n,			\
