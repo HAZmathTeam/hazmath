@@ -5,8 +5,7 @@
 HAZDIR = ../..
 SRCDIR = .
 ##
-OLDGRID = oldgridmake
-GRID = gridmake
+GRID = oldgridmake
 
 INCLUDE = .
 LIBS = 
