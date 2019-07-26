@@ -223,8 +223,8 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
       xemac[i*dim+j]=0.5*(xmac[k1*dim+j]+xmac[k2*dim+j]);
     }
   }
-  print_full_mat(c2s->nvcube,dim,xmac,"X");
-  print_full_mat(c2s->ne,dim,xemac,"XE");
+  //  print_full_mat(c2s->nvcube,dim,xmac,"X");
+  //  print_full_mat(c2s->ne,dim,xemac,"XE");
   r2c(c2s->nvcube,dim,sizeof(REAL),xmac); // we need xmac by rows here
   r2c(c2s->ne,dim,sizeof(REAL),xemac); // we need xemac (mid points of
 				       // edges) also by rows
