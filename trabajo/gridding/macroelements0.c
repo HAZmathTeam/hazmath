@@ -399,6 +399,7 @@ INT locate1(INT *b,
     b[nb]=b[i];
     //    fprintf(stdout,"XZXZ=b[%d]=%d;",nb,b[nb]); 
     nb++;
+    b[i]=-1;
   }
   //  fprintf(stdout,"\n");
   return nb;
@@ -442,8 +443,8 @@ void fix_grid(macrocomplex *mc,		\
 // at most dim (n-1)dimensional faces may intersect to form a vertex
   INT *mp = (INT *)calloc(dim1,sizeof(INT));
   INT *m = (INT *)calloc(dim1,sizeof(INT));
-  INT *mi = (INT *)calloc(dim1,sizeof(INT));
-  INT *mip = (INT *)calloc(dim1,sizeof(INT));
+  INT *mi = (INT *)calloc(2*dim1,sizeof(INT));
+  INT *mip = (INT *)calloc(2*dim1,sizeof(INT));
   INT *vertk = (INT *)calloc(dim1,sizeof(INT));
   INT *vertj = (INT *)calloc(dim1,sizeof(INT));
   INT *facesk = (INT *)calloc(2*dim*nvface,sizeof(INT));
@@ -466,7 +467,11 @@ void fix_grid(macrocomplex *mc,		\
   //  for(knnz=0;knnz<mc->bfs->nnz;knnz++){    
   //    kel=mc->bfs->JA[knnz];
   INT neg,nsall,nvall,nvold;
+
   nvall=0;nsall=0;
+
+  print_full_mat_int(g0->nel,c2s->nvcube+1,g0->mnodes,"mel0");
+  
   for(kel=0;kel<mc->nel;kel++){
     // we have not been here, so let us set the initial indexing to be the original indexing; 
     nvold=nvall;
@@ -525,15 +530,15 @@ void fix_grid(macrocomplex *mc,		\
       nj=locate1(mi,vertj,numv,facesj,c2s->nf,c2s->nvface);
       if((nk == nj) && nk==(dim-kz) && nj==(dim-kz)) {
 	if(nk==1){
-	  fprintf(stdout,"\nkel=%d,jel=%d,mik=%d,mij=%d;",kel,jel,mip[0],mi[0]); 
+	  fprintf(stdout,"\nkel=%d,jel=%d,mik=%d,mij=%d;",kel,jel,mip[0],mi[0]);
 	  print_full_mat_int(1,nvcube,nodesk,"nodesk");
 	  print_full_mat_int(1,numv,vertk,"vertk");
 	  print_full_mat_int(c2s->nf,nvface,facesk,"facesk");
-	  //	  print_full_mat_int(1,dim,mip,"mik");	
+	  print_full_mat_int(1,dim,mip,"mik");
 	  print_full_mat_int(1,nvcube,nodesj,"nodesj");
 	  print_full_mat_int(1,numv,vertj,"vertj");
 	  print_full_mat_int(c2s->nf,nvface,facesj,"facesj");
-	  //	  print_full_mat_int(1,dim,mi,"mij");	
+	  print_full_mat_int(1,dim,mi,"mij");
  	}
 	for(j=0;j<nj;j++){
 	  /* 
@@ -544,7 +549,7 @@ void fix_grid(macrocomplex *mc,		\
 	     divisions we have the corresponding vertices lying
 	  */
 	  if(mi[j]<dim){
-	    mi[j]=dim-(mi[j]+1);
+	    mi[j]=dim-(mi[j]+1);// which place in the array m[] this face corresponds to.
 	    ti[j]=0;
 	  } else {
 	    mi[j]=dim-((mi[j]%dim)+1);
@@ -567,13 +572,17 @@ void fix_grid(macrocomplex *mc,		\
 	    memcpy(m,mp,dim*sizeof(INT));
 	    for(k=0;k<nk;k++)m[mi[k]]=ti[k];
 	    kf=num_lattice(m,dim,nd[jel]);
-	    //	    fprintf(stdout,"\nkel=%d; jel=%d,kfp=%d,iindexp=%d,iindex=%d",kel,jel,kfp,iindexp[kfp],iindex[kf]);fflush(stdout);
+	    if(kz==2){
+	      fprintf(stdout,"\nkel=%d; jel=%d,kfp=%d,iindexp=%d,iindex=%d",kel,jel,kfp,iindexp[kfp],iindex[kf]);fflush(stdout);
+	    }
 	    if(iindexp[kfp]>=nvold){
 	      iindexp[kfp]=iindex[kf];
 	      neg++;
 	    }
 	  } else {
-	    //	    fprintf(stdout,"\nkel=%d; jel=%d,kfp=%d",kel,jel,kfp);fflush(stdout);
+	    if(kz==2){
+	      fprintf(stdout,"\nkel=%d; jel=%d,kfp=%d",kel,jel,kfp);fflush(stdout);
+	    }
 	    if(iindexp[kfp]>=nvold) {
 	      iindexp[kfp]=nv+nvold;
 	      nv++;
