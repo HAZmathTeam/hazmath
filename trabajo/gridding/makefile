@@ -5,7 +5,8 @@
 HAZDIR = ../..
 SRCDIR = .
 ##
-GRID = oldgridmake
+OLDGRID = oldgridmake
+GRID = grid_generate
 
 INCLUDE = .
 LIBS = 
@@ -15,8 +16,8 @@ EXTENSION = ex
 CC = gcc
 FC = gfortran
 CXX = g++
-CFLAGS = -O -Wall
-FFLAGS = -O -fno-second-underscore
+CFLAGS = -g -Wall
+FFLAGS = -g -fno-second-underscore
 ExtraFLAGS =
 
 HAZLIB = $(HAZDIR)/lib
@@ -32,10 +33,10 @@ EXE = $(GRID).$(EXTENSION)
 EXEold = $(OLDGRID).$(EXTENSION)
 
 # Source and Object Files
-OBJ =	$(SRCDIR)/grid_generate.o \
+OBJ =	$(SRCDIR)/$(GRID).o \
 	$(SRCDIR)/macroelements0.o
 
-OBJold =	$(SRCDIR)/$(GRID).o \
+OBJold =	$(SRCDIR)/$(OLDGRID).o \
 		$(SRCDIR)/new_refining.o \
 		$(SRCDIR)/new_marking.o \
 		$(SRCDIR)/features.o
