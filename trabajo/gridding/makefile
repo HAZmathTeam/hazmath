@@ -34,7 +34,7 @@ EXEold = $(OLDGRID).$(EXTENSION)
 
 # Source and Object Files
 OBJ =	$(SRCDIR)/$(GRID).o \
-	$(SRCDIR)/macroelements0.o
+	$(SRCDIR)/macroelements.o
 
 OBJold =	$(SRCDIR)/$(OLDGRID).o \
 		$(SRCDIR)/new_refining.o \
