@@ -382,17 +382,19 @@ in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding fa
       }
     }
   }
-  /* print_full_mat_int(g0->nel,c2s->nvcube+1,g0->mnodes,"mel0"); */
-  for(lvl=0;lvl<mc->bfs->row;lvl++){
-    j0=mc->bfs->IA[lvl];
-    j1=mc->bfs->IA[lvl+1];
-    for(kj=j0;kj<j1;kj++){
-      jel=mc->bfs->JA[kj];
-      kel=etree[jel];// ancestor, this stays unchanged
-      fprintf(stdout,"** (%d--%d)",kel,jel);
+  if(g0->print_level>10){
+    fprintf(stdout,"\nbfs tree(in %s):\n",__FUNCTION__);
+    for(lvl=0;lvl<mc->bfs->row;lvl++){
+      j0=mc->bfs->IA[lvl];
+      j1=mc->bfs->IA[lvl+1];
+      for(kj=j0;kj<j1;kj++){
+	jel=mc->bfs->JA[kj];
+	kel=etree[jel];// ancestor, this stays unchanged
+	fprintf(stdout,"** (%d--%d)",kel,jel);
+      }
     }
+    fprintf(stdout,"\n");
   }
-  fprintf(stdout,"\n");
   /**** FINAL REORDER: make the vertices order in shared faces the
   	same!!! ***/
   for(lvl=0;lvl<mc->bfs->row;lvl++){
@@ -656,8 +658,8 @@ void fix_grid(macrocomplex *mc,		\
     iaa=fel2el->IA[kel];
     iab=fel2el->IA[kel+1];
     if((iab-iaa)<=0){
-      if(g0->print_level>4)
-	fprintf(stdout,"\nmacroelement=%d; vertices=%d; overlaps=%d;",kel,scin[kel]->nv,neg);
+      if(g0->print_level>5)
+	fprintf(stdout,"\nin %s: macroelement=%d; vertices=%d; overlaps=%d;",__FUNCTION__,kel,scin[kel]->nv,neg);
       nvall+=scin[kel]->nv;      
       nsall+=scin[kel]->ns;
       continue;
@@ -791,8 +793,8 @@ void fix_grid(macrocomplex *mc,		\
 	exit(128);
       }
     }
-    if(g0->print_level>0)
-      fprintf(stdout,"\nmacroelement=%d; total=%d; overlaps=%d",kel,scp->nv,neg);
+    if(g0->print_level>5)
+      fprintf(stdout,"\nin %s: macroelement=%d; total=%d; overlaps=%d",__FUNCTION__,kel,scp->nv,neg);
     nvall+=nv;
     nsall+=scin[kel]->ns;
     //fprintf(stdout,"\nGLOBALLY:v_total=%d; s_total=%d",nvall,nsall);fflush(stdout);
@@ -1009,7 +1011,7 @@ scomplex *generate_grid(input_grid *g0)
       //}
       //      fprintf(stdout,"\n%%Mapping back to the macroelement...\n");
       map2mac(sc[jel],c2s,g);
-      fprintf(stdout,"\n%%mesh(macroelement=%d): nv=%d; nsimp=%d",jel,sc[jel]->nv,sc[jel]->ns);      
+      //fprintf(stdout,"\n%%in %s: mesh(macroelement=%d): nv=%d; nsimp=%d",__FUNCTION__,jel,sc[jel]->nv,sc[jel]->ns);      
     }
   }
   //  fprintf(stdout,"\n%%Removing overlaps...");
@@ -1028,11 +1030,11 @@ scomplex *generate_grid(input_grid *g0)
   /* prepare for adaptive refinement */
 
   //  haz_scomplex_print(sc[0],0,"TTT");
-   find_nbr(sc[0]->ns,sc[0]->nv,sc[0]->n,sc[0]->nodes,sc[0]->nbr);
-   INT *wrk1=calloc(5*(sc[0]->n+2),sizeof(INT));
-   //  construct bfs tree for the dual graph
-   abfstree(0,sc[0],wrk1,g0->print_level);
-   free(wrk1);
+  find_nbr(sc[0]->ns,sc[0]->nv,sc[0]->n,sc[0]->nodes,sc[0]->nbr);
+  INT *wrk1=calloc(5*(sc[0]->n+2),sizeof(INT));
+  //  construct bfs tree for the dual graph
+  abfstree(0,sc[0],wrk1,g0->print_level);
+  free(wrk1);
   return sc[0];  
 }
 /****************************************************************************************/
