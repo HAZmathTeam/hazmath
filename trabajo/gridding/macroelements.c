@@ -9,6 +9,17 @@
  *  \modified 20190715 (ltz);
  */
 #include "hazmath.h"
+/*LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL*/
+void input_grid_arrays(input_grid *g);
+void input_grid_print(input_grid *g);
+void set_edges(input_grid *g0,cube2simp *c2s);
+INT *set_input_grid(input_grid *g,cube2simp *c2s);
+INT set_ndiv_edges(input_grid *g,		\
+		   input_grid *g0,		\
+		   cube2simp *c2s,		\
+		   INT **nd,			\
+		   const INT iter);
+void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g);
 /************************************************************************/
 static INT ilog2(const INT k)
 {

@@ -104,3 +104,28 @@ void scomplex_merge(scomplex **sc0,			\
 		    const INT nsall, const INT nvall,	\
 		    const INT cc, const INT bndry_cc,	\
 		    input_grid *g0,cube2simp *c2s);
+/*********************************************************************/
+/* char **input_strings(INT *nall_out); */
+/* char **splits(char *s, const char *d, INT *num); */
+/* void *read_mixed_data(INT nrec, INT ni, INT nr, char *the_string); */
+/* void  read_data(char **clndata,input_grid *g); */
+/* void x_out(const char *pattern, size_t le); */
+/* char *make_string_from_file(FILE *the_file, size_t *length_string); */
+/* char *get_substring(const char *pattern,		\ */
+/* 		    size_t *length_substring,	\ */
+/* 		    char *the_string); */
+/*********************************************************************/
+input_grid *parse_input_grid(FILE *the_file);
+void input_grid_free(input_grid *g);
+void input_grid_print(input_grid *g);
+/************************************************************************/
+//static long double pi=4e00*atanl(1e00);
+//static void coord_perm(SHORT type, INT n,void *x, size_t elsize);
+/**********************************************************************/
+REAL deg2rad(REAL alpha_deg);
+REAL zero_twopi(REAL alpha);
+///REAL zero_twopi_deg(REAL alpha_deg);
+void polar2cart(INT dim, REAL *px, REAL *cx);
+/************************************************************************/
+INT cart2polar(INT dim, REAL *c,REAL *p);
+/*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
