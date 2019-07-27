@@ -5,7 +5,8 @@
  *
  *  \note all files related to constructing mesh of macroelements and
  *  splitting it into simplices
- *
+ *  \date 20170715 
+ *  \modified 20190715 (ltz);
  */
 #include "hazmath.h"
 /************************************************************************/

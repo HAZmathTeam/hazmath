@@ -34,6 +34,8 @@ EXEold = $(OLDGRID).$(EXTENSION)
 
 # Source and Object Files
 OBJ =	$(SRCDIR)/$(GRID).o \
+	$(SRCDIR)/amr_coords.o \
+	$(SRCDIR)/input_grid.o \
 	$(SRCDIR)/macroelements.o
 
 OBJold =	$(SRCDIR)/$(OLDGRID).o \
