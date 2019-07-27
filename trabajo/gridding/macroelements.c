@@ -382,7 +382,7 @@ in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding fa
       }
     }
   }
-  print_full_mat_int(g0->nel,c2s->nvcube+1,g0->mnodes,"mel0");
+  /* print_full_mat_int(g0->nel,c2s->nvcube+1,g0->mnodes,"mel0"); */
   for(lvl=0;lvl<mc->bfs->row;lvl++){
     j0=mc->bfs->IA[lvl];
     j1=mc->bfs->IA[lvl+1];
@@ -644,7 +644,7 @@ void fix_grid(macrocomplex *mc,		\
 
   nvall=0;nsall=0;
 
-  print_full_mat_int(g0->nel,c2s->nvcube+1,g0->mnodes,"mel0");
+  //  print_full_mat_int(g0->nel,c2s->nvcube+1,g0->mnodes,"mel0");
   
   for(kel=0;kel<mc->nel;kel++){
     // we have not been here, so let us set the initial indexing to be the original indexing; 
@@ -705,17 +705,17 @@ void fix_grid(macrocomplex *mc,		\
       if((nk == nj) && nk==(dim-kz) && nj==(dim-kz)) {
 	//fprintf(stdout,"\nkel=%d; jel=%d",kel,jel);
 	pd=align_lattice(numv,nd[jel],nodesj,nd[kel],nodesk,c2s);
-	//	if(nk==2){ 
-	  fprintf(stdout,"\n%%W1: kel=%d,jel=%d;",kel,jel);
-	  print_full_mat_int(1,nvcube,nodesk,"nodesk");
-	  print_full_mat_int(1,numv,vertk,"vertk");
-	  print_full_mat_int(c2s->nf,nvface,facesk,"facesk");
-	  print_full_mat_int(1,nk,mip,"mip");
-	  print_full_mat_int(1,nvcube,nodesj,"nodesj");
-	  print_full_mat_int(1,numv,vertj,"vertj");
-	  print_full_mat_int(c2s->nf,nvface,facesj,"facesj");
-	  print_full_mat_int(1,nj,mi,"mi");
-	  //	} 
+	/* if(nk==2){  */
+	/*   fprintf(stdout,"\n%%W1: kel=%d,jel=%d;",kel,jel); */
+	/*   print_full_mat_int(1,nvcube,nodesk,"nodesk"); */
+	/*   print_full_mat_int(1,numv,vertk,"vertk"); */
+	/*   print_full_mat_int(c2s->nf,nvface,facesk,"facesk"); */
+	/*   print_full_mat_int(1,nk,mip,"mip"); */
+	/*   print_full_mat_int(1,nvcube,nodesj,"nodesj"); */
+	/*   print_full_mat_int(1,numv,vertj,"vertj"); */
+	/*   print_full_mat_int(c2s->nf,nvface,facesj,"facesj"); */
+	/*   print_full_mat_int(1,nj,mi,"mi"); */
+	/* }  */
 	for(j=0;j<nj;j++){
 	  /* 
 	     for two macroelements kel and jel, from faces mi[] and
@@ -754,31 +754,31 @@ void fix_grid(macrocomplex *mc,		\
 	    for(k=0;k<dim;k++) m[k]=mwrk[abs(pd[k])-1];
 	    for(k=0;k<nk;k++) m[mi[k]]=ti[k];
 	    kf=num_lattice(m,dim,nd[jel]);
-	    //	    if(kz==2){
-	    fprintf(stdout,"\ndim_int=%d,kel=%d; jel=%d,kfp=%d,kf=%d,iindexp=%d,iindex=%d",kz,kel,jel,kfp,kf,iindexp[kfp],iindex[kf]);fflush(stdout);
-	    print_full_mat_int(1,nvcube,nodesj,"nodesj");
-	    print_full_mat_int(1,nvcube,nodesk,"nodesk");
-	    //	    print_full_mat_int(1,dim,pd,"pd");
-	    fprintf(stdout,"\n %d=( ",kfp);
-	    for(j=0;j<dim;j++) fprintf(stdout,"%d ",mp[j]);
-	    fprintf(stdout,")<--%d=( ",kf);
-	    for(j=0;j<dim;j++) fprintf(stdout,"%d ",m[j]);
-	    fprintf(stdout,");");
-	    //	      print_full_mat_int(1,nj,mip,"mip");
-	    //	      print_full_mat_int(1,nj,tip,"tip");
-	    //	      print_full_mat_int(1,nk,mi,"mi");
-	    //	      print_full_mat_int(1,nk,ti,"ti");
-	    //	  }
+	    /* if(kz==2){ */
+	    /* fprintf(stdout,"\ndim_int=%d,kel=%d; jel=%d,kfp=%d,kf=%d,iindexp=%d,iindex=%d",kz,kel,jel,kfp,kf,iindexp[kfp],iindex[kf]);fflush(stdout); */
+	    /* print_full_mat_int(1,nvcube,nodesj,"nodesj"); */
+	    /* print_full_mat_int(1,nvcube,nodesk,"nodesk"); */
+	    /* print_full_mat_int(1,dim,pd,"pd"); */
+	    /* fprintf(stdout,"\n %d=( ",kfp); */
+	    /* for(j=0;j<dim;j++) fprintf(stdout,"%d ",mp[j]); */
+	    /* fprintf(stdout,")<--%d=( ",kf); */
+	    /* for(j=0;j<dim;j++) fprintf(stdout,"%d ",m[j]); */
+	    /* fprintf(stdout,");"); */
+	    /*     print_full_mat_int(1,nj,mip,"mip"); */
+	    /*     print_full_mat_int(1,nj,tip,"tip"); */
+	    /*     print_full_mat_int(1,nk,mi,"mi"); */
+	    /*     print_full_mat_int(1,nk,ti,"ti"); */
+	    /* } */
 	    if(iindexp[kfp]>=nvold){
 	      iindexp[kfp]=iindex[kf];
 	      neg++;
 	    }
 	  } else {
-	    //	    if(kz==2){
-	    //	    print_full_mat_int(1,dim,mp,"mp");
-	    //	    print_full_mat_int(1,dim,m,"m");
-	    //	    }
-	    //	    fprintf(stdout,"\ndim_int=%d,kel=%d; jel=%d,kfp=%d,iindexp=%d,indexxx=%d",kz,kel,jel,kfp,iindexp[kfp],nv+nvold);fflush(stdout);
+	    /* if(kz==2){ */
+	    /* print_full_mat_int(1,dim,mp,"mp"); */
+	    /* print_full_mat_int(1,dim,m,"m"); */
+	    /* } */
+	    /* fprintf(stdout,"\ndim_int=%d,kel=%d; jel=%d,kfp=%d,iindexp=%d,indexxx=%d",kz,kel,jel,kfp,iindexp[kfp],nv+nvold);fflush(stdout); */
 	    if(iindexp[kfp]>=nvold) {
 	      iindexp[kfp]=nv+nvold;
 	      nv++;
@@ -830,6 +830,9 @@ void fix_grid(macrocomplex *mc,		\
   free(vertj);
   //  free(ti); //same as vertk
   //  free(tip); //same as vertj
+  scomplex_merge1(nvall,nsall,mc,scin,c2s);
+  return;
+  /***OLDOLDOLD**/
   /* nvall=0;nsall=0; */
   /* INT nvloc,nsloc; */
   /* for(kel=0;kel<g0->nel;kel++){ */
@@ -845,8 +848,6 @@ void fix_grid(macrocomplex *mc,		\
   /* 		 nsall, nvall,			\ */
   /* 		 scin[0]->cc, scin[0]->bndry_cc,	\ */
   /* 		 g0,c2s); */
-  scomplex_merge1(nvall,nsall,mc,scin,c2s);
-  return;
 }
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
 /*ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ*/
