@@ -10,6 +10,8 @@
 /*********************************************************************/
 #include "hazmath.h"
 /*********************************************************************/
+REAL zero_twopi_deg(REAL alpha_deg);
+/*********************************************************************/
 char **input_strings(INT *nall_out)
 {
   /* take as input the strings in INPUT_GRID_DATA and on output has an
@@ -457,8 +459,7 @@ char *get_substring(const char *pattern,		\
 input_grid *parse_input_grid(FILE *the_file)
 {
   /* read all the input from a file on strem "the_file" and parse the input. */
-  /*in the char below, tabs need to be tabs not spaces. */
-  char *default_e=strdup("title{Grid on a cube (-1,1)x(-1,1)x(-1,1)\tdimension{3\tprint_level{1\t  dir_grid{\tdir_vtu{\tfile_grid{\tfile_vtu{\tnum_edges{3\tdata_edges{0 1 2  0 2 2 0 4 2\tnum_vertices{8\t data_vertices{0 0 -1. -1. -1. 1 0 -1. -1 1. 2 0 -1. 1. -1. 3 0 -1. 1. 1. 4 0 1. -1. -1. 5 0 1. -1. 1. 6 0 1. 1. -1. 7 0 1. 1. 1.\t  num_macroelements{1\t  data_macroelements{0 1 2 3 4 5 6 7 10\tnum_macrofaces{1\t data_macrofaces{0 1 2 3 1\tnum_coordsystems{1\tdata_coordsystems{0 0. 0. 0. 0\tnum_refinements{0\trefinement_type{0\terr_stop_refinement{-1.e-10\t");
+  /* in the char below, tabs need to be tabs not spaces. */
   INT iread,numel_data,k;
   char *everything;
   size_t length_string=0;
@@ -518,6 +519,70 @@ input_grid *parse_input_grid(FILE *the_file)
 }
 /********************************************************************/
 /********************************FINCTIONS:****************************/
+/*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
+INT *set_input_grid(input_grid *g,cube2simp *c2s)
+{
+  /* 
+     Every edge is put into a subset, i.e. two edges (v(i1),v(i2)) and
+     (v(j1),v(j2)) are considered equivalent iff (i2-i1)=(j2-j1).  The
+     number of divisions in an equivalent set of edges is taken to be
+     the largest from the equivalence class.  OUTPUT array is a "dim"
+     array and for each direction gives the number of partitions.
+  */
+  INT i,j,k,iri,ici,pmem;
+  pmem=2*g->nv;
+  if(pmem<2*g->ne) pmem=2*g->ne;
+  if(pmem<2*g->nel) pmem=2*g->nel;
+  if(pmem<2*g->nf) pmem=2*g->nf;
+  INT *p=calloc(pmem,sizeof(INT));// permutation and inverse permutation;
+  //
+  memset(p,0,pmem);
+  for (i=0;i<g->ne;i++){
+    iri=g->seg[3*i];
+    ici=g->seg[3*i+1];
+    if(iri<ici){
+      g->seg[3*i]=iri;
+      g->seg[3*i+1]=ici;
+    } else {
+      g->seg[3*i]=ici;
+      g->seg[3*i+1]=iri;
+    }
+    /* set up divisions */
+    j=g->seg[3*i+1]-g->seg[3*i]; // should be always positive;
+    //    fprintf(stdout,"\n%%z123=%d:(%d,%d);%d",i,3*i,3*i+1,g0->seg[3*efound[i]+2]);
+    if(g->seg[3*i+2]>p[j])
+      p[j]=g->seg[3*i+2];
+  } 
+  for (i=0;i<g->ne;i++){
+    j=g->seg[3*i+1]-g->seg[3*i];
+    g->seg[3*i+2]=p[j]; 
+    //    fprintf(stdout,"\n[%d,%d]:div=%d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
+  }
+  for (i=0;i<g->ne;i++){
+    j=g->seg[3*i+1]-g->seg[3*i];
+    g->seg[3*i+2]=p[j]; 
+    //    fprintf(stdout,"\n[%d,%d]:div=%d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
+  }
+  /*ORDER*/
+  ilexsort(g->ne, 3,g->seg,p);
+  k=0;
+  for (i=0;i<g->ne;i++){
+    if(g->seg[3*i]) continue;
+    //    j=g->seg[3*i+1]-g->seg[3*i]-1;
+    p[k]=g->seg[3*i+2];
+    k++;
+    //    fprintf(stdout,"\n[%d,%d]:div=%d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
+  }
+  p=realloc(p,g->dim*sizeof(INT)); // realloc to dimension g->dim
+  //  for (i=0;i<g->dim;i++){
+  //    fprintf(stdout,"\ndirection:%d; div=%d",i,p[i]);
+  //  }
+  //  input_grid_print(g);
+  //  print_full_mat_int(g->ne,3,g->seg,"med");
+  //  print_full_mat_int(g->nf,(c2s->nvface+1),g->mfaces,"mf");
+  //  print_full_mat_int(g->nel,(c2s->nvcube+1),g->mnodes,"mel");
+  return p;
+}
 /*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
 void set_edges(input_grid *g0,cube2simp *c2s)
 {
@@ -596,70 +661,7 @@ void set_edges(input_grid *g0,cube2simp *c2s)
   free(mnodes);
   return;
 }
-/*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
-INT *set_input_grid(input_grid *g,cube2simp *c2s)
-{
-  /* 
-     Every edge is put into a subset, i.e. two edges (v(i1),v(i2)) and
-     (v(j1),v(j2)) are considered equivalent iff (i2-i1)=(j2-j1).  The
-     number of divisions in an equivalent set of edges is taken to be
-     the largest from the equivalence class.  OUTPUT array is a "dim"
-     array and for each direction gives the number of partitions.
-  */
-  INT i,j,k,iri,ici,pmem;
-  pmem=2*g->nv;
-  if(pmem<2*g->ne) pmem=2*g->ne;
-  if(pmem<2*g->nel) pmem=2*g->nel;
-  if(pmem<2*g->nf) pmem=2*g->nf;
-  INT *p=calloc(pmem,sizeof(INT));// permutation and inverse permutation;
-  //
-  memset(p,0,pmem);
-  for (i=0;i<g->ne;i++){
-    iri=g->seg[3*i];
-    ici=g->seg[3*i+1];
-    if(iri<ici){
-      g->seg[3*i]=iri;
-      g->seg[3*i+1]=ici;
-    } else {
-      g->seg[3*i]=ici;
-      g->seg[3*i+1]=iri;
-    }
-    /* set up divisions */
-    j=g->seg[3*i+1]-g->seg[3*i]; // should be always positive;
-    //    fprintf(stdout,"\n%%z123=%d:(%d,%d);%d",i,3*i,3*i+1,g0->seg[3*efound[i]+2]);
-    if(g->seg[3*i+2]>p[j])
-      p[j]=g->seg[3*i+2];
-  } 
-  for (i=0;i<g->ne;i++){
-    j=g->seg[3*i+1]-g->seg[3*i];
-    g->seg[3*i+2]=p[j]; 
-    //    fprintf(stdout,"\n[%d,%d]:div=%d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
-  }
-  for (i=0;i<g->ne;i++){
-    j=g->seg[3*i+1]-g->seg[3*i];
-    g->seg[3*i+2]=p[j]; 
-    //    fprintf(stdout,"\n[%d,%d]:div=%d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
-  }
-  /*ORDER*/
-  ilexsort(g->ne, 3,g->seg,p);
-  k=0;
-  for (i=0;i<g->ne;i++){
-    if(g->seg[3*i]) continue;
-    //    j=g->seg[3*i+1]-g->seg[3*i]-1;
-    p[k]=g->seg[3*i+2];
-    k++;
-    //    fprintf(stdout,"\n[%d,%d]:div=%d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
-  }
-  p=realloc(p,g->dim*sizeof(INT)); // realloc to dimension g->dim
-  //  for (i=0;i<g->dim;i++){
-  //    fprintf(stdout,"\ndirection:%d; div=%d",i,p[i]);
-  //  }
-  //  input_grid_print(g);
-  //  print_full_mat_int(g->ne,3,g->seg,"med");
-  //  print_full_mat_int(g->nf,(c2s->nvface+1),g->mfaces,"mf");
-  //  print_full_mat_int(g->nel,(c2s->nvcube+1),g->mnodes,"mel");
-  return p;
-}
+/************************************************************************/
 /***********************************************************************/
 INT set_ndiv_edges(input_grid *g,		\
 		   input_grid *g0,		\
