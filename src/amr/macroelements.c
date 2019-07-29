@@ -10,16 +10,16 @@
  */
 #include "hazmath.h"
 /*LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL*/
-void input_grid_arrays(input_grid *g);
-void input_grid_print(input_grid *g);
-void set_edges(input_grid *g0,cube2simp *c2s);
-INT *set_input_grid(input_grid *g,cube2simp *c2s);
-INT set_ndiv_edges(input_grid *g,		\
-		   input_grid *g0,		\
-		   cube2simp *c2s,		\
-		   INT **nd,			\
-		   const INT iter);
-void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g);
+/* void input_grid_arrays(input_grid *g); */
+/* void input_grid_print(input_grid *g); */
+/* void set_edges(input_grid *g0,cube2simp *c2s); */
+/* INT *set_input_grid(input_grid *g,cube2simp *c2s); */
+/* INT set_ndiv_edges(input_grid *g,		\ */
+/* 		   input_grid *g0,		\ */
+/* 		   cube2simp *c2s,		\ */
+/* 		   INT **nd,			\ */
+/* 		   const INT iter); */
+/* void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g); */
 /************************************************************************/
 static INT ilog2(const INT k)
 {
@@ -89,7 +89,7 @@ macrocomplex *set_mmesh(input_grid *g0,					\
   INT nvcube=c2s->nvcube,nvface=c2s->nvface;
   INT nel0,je,kj,k2,iel2v,jel2v,k1,kface,kbnd,found;
   INT *p=wrk; 
-  //  INT *mnodes=p+nvcube+1;
+  INT *mnodes=p+nvcube+1;
   /*macro complex creation:)*/
   macrocomplex *mc=malloc(1*sizeof(macrocomplex));
   mc->nel=nel0=g0->nel; //important to set;
@@ -350,127 +350,127 @@ in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding fa
   free(iblk); 
   free(jblk);   
   /*now use the bfs*/
-  /* INT lvl,keok,swp,keswp; */
-  /* for(lvl=0;lvl<mc->bfs->row;lvl++){ */
-  /*   j0=mc->bfs->IA[lvl]; */
-  /*   j1=mc->bfs->IA[lvl+1]; */
-  /*   for(kj=j0;kj<j1;kj++){ */
-  /*     jel=mc->bfs->JA[kj]; */
-  /*     kel=etree[jel];// ancestor, this stays unchanged */
-  /*     if(kel>=0){ */
-  /* 	je=locate0(jel,elneib[kel], c2s->nf); */
-  /* 	ke=locate0(kel,elneib[jel], c2s->nf); */
-  /* 	//	fprintf(stdout,"\nel=%d on face %d in el %d",jel,je,kel); */
-  /* 	keok=(je+c2s->n)%c2s->nf; */
-  /* 	if(keok!=ke){ */
-  /* 	  //	  fprintf(stdout,"\nel=%d on face %d (should be %d) in el *** %d ***",kel,ke,keok,jel); */
-  /* 	  //	  swap in jel: */
-  /* 	  swp=elneib[jel][ke]; */
-  /* 	  elneib[jel][ke]=elneib[jel][keok]; */
-  /* 	  elneib[jel][keok]=swp; */
-  /* 	  swp=el2fnum[jel][ke]; */
-  /* 	  el2fnum[jel][ke]=el2fnum[jel][keok]; */
-  /* 	  el2fnum[jel][keok]=swp; */
-  /* 	  // we now need to swap vertices in g0->mnodes */
-  /* 	  for(i=0;i<nvface;i++){ */
-  /* 	    facei[i]=c2s->faces[ke*nvface+i]; */
-  /* 	    keswp=(ke+c2s->n)%c2s->nf; */
-  /* 	    facei[i+nvface]=c2s->faces[keswp*nvface+i]; */
-  /* 	    // use mnodes as work space here; */
-  /* 	    mnodes[i]=c2s->faces[keok*nvface+i]; */
-  /* 	    keswp=(keok+c2s->n)%c2s->nf; */
-  /* 	    mnodes[i+nvface]=c2s->faces[keswp*nvface+i]; */
-  /* 	  } */
-  /* 	  for(i=0;i<nvcube;i++) */
-  /* 	    el2v->JA[i]=g0->mnodes[jel*(nvcube+1)+facei[i]]; */
-  /* 	  for(i=0;i<nvcube;i++) */
-  /* 	    g0->mnodes[jel*(nvcube+1)+mnodes[i]]=el2v->JA[i]; */
-  /* 	  /\* fprintf(stdout,"\nEL=%d: ",jel); *\/ */
-  /* 	  /\* for(i=0;i<nvcube;i++){ *\/ */
-  /* 	  /\*   k1=g0->mnodes[jel*(nvcube+1)+i]; *\/ */
-  /* 	  /\*   fprintf(stdout,"%d ",k1); *\/ */
-  /* 	  /\* } *\/ */
-  /* 	} */
-  /*     } */
-  /*   } */
-  /* } */
-  /* if(g0->print_level>10){ */
-  /*   fprintf(stdout,"\nbfs tree(in %s):\n",__FUNCTION__); */
-  /*   for(lvl=0;lvl<mc->bfs->row;lvl++){ */
-  /*     j0=mc->bfs->IA[lvl]; */
-  /*     j1=mc->bfs->IA[lvl+1]; */
-  /*     for(kj=j0;kj<j1;kj++){ */
-  /* 	jel=mc->bfs->JA[kj]; */
-  /* 	kel=etree[jel];// ancestor, this stays unchanged */
-  /* 	fprintf(stdout,"** (%d--%d)",kel,jel); */
-  /*     } */
-  /*   } */
-  /*   fprintf(stdout,"\n"); */
-  /* } */
-  /* /\**** FINAL REORDER: make the vertices order in shared faces the */
-  /* 	same!!! ***\/ */
-  /* for(lvl=0;lvl<mc->bfs->row;lvl++){ */
-  /*   j0=mc->bfs->IA[lvl]; */
-  /*   j1=mc->bfs->IA[lvl+1]; */
-  /*   for(kj=j0;kj<j1;kj++){ */
-  /*     jel=mc->bfs->JA[kj]; */
-  /*     kel=etree[jel];// ancestor, this stays unchanged */
-  /*     //      if(kel<0){ */
-  /*     //	fprintf(stdout,"\n%%splitting element=%d",jel); */
-  /*     //      } else { */
-  /*     if(kel>=0){ */
-  /* 	je=locate0(jel,elneib[kel], c2s->nf); */
-  /* 	ke=locate0(kel,elneib[jel], c2s->nf); */
-  /* 	/\* */
-  /* 	   in kel, we have the face je; in jel we have the face ke. we */
-  /* 	   want to make ke in jel same as je in kel; also the opposite */
-  /* 	   face needs to be reordered. */
-  /* 	*\/ */
-  /* 	for(i=0;i<nvface;i++){ */
-  /* 	  facei[i]=c2s->faces[ke*nvface+i]; */
-  /* 	  facei[i]=g0->mnodes[jel*(nvcube+1)+facei[i]]; */
-  /* 	  mnodes[i]=c2s->faces[je*nvface+i]; */
-  /* 	  mnodes[i]=g0->mnodes[kel*(nvcube+1)+mnodes[i]]; */
-  /* 	} */
-  /* 	k1=aresamep(mnodes,facei,nvface,p); */
-  /* 	if(!k1){ */
-  /* 	  for(i=0;i<nvface;i++)p[i]=i; */
-  /* 	} */
-  /* 	/\* fprintf(stderr,"\nE=%d--->%d; f=[%d,%d]",kel,jel,je,ke); *\/ */
-  /* 	/\* print_full_mat_int(1,c2s->nvface,c2s->faces+je*nvface,"c2sf_kel"); *\/ */
-  /* 	/\* print_full_mat_int(1,c2s->nvface,c2s->faces+ke*nvface,"c2sf_jel"); *\/ */
-  /* 	/\* print_full_mat_int(1,c2s->nf,elneib[kel],"kelneib"); *\/ */
-  /* 	/\* print_full_mat_int(1,c2s->nf,elneib[jel],"jelneib"); *\/ */
-  /* 	/\* print_full_mat_int(1,nvcube+1,g0->mnodes+kel*(nvcube+1),"kel"); *\/ */
-  /* 	/\* print_full_mat_int(1,nvcube+1,g0->mnodes+jel*(nvcube+1),"jel"); *\/ */
-  /* 	/\* print_full_mat_int(1,nvface,mnodes,"face_m"); *\/ */
-  /* 	/\* print_full_mat_int(1,nvface,facei,"face_i"); *\/ */
-  /* 	/\* fprintf(stderr,"\nERROR: faces must have same vertices in: %s\n",__FUNCTION__); *\/ */
-  /* 	//	  exit(127); */
-  /* 	//  	  continue; */
-  /* 	//  	} else{ */
-  /* 	/\* fprintf(stdout,"\nface(%d)in el %d",ke,jel); *\/ */
-  /* 	/\* fprintf(stdout,"\nOLD face(%d)in el %d",je,kel); *\/ */
-  /* 	/\* print_full_mat_int(1,nvface,facei,"faceswp"); *\/ */
-  /* 	/\* print_full_mat_int(1,nvface,p,"p");	 *\/ */
-  /* 	for(i=0;i<nvface;i++){ */
-  /* 	  facei[c2s->faces[ke*nvface+p[i]]]=c2s->faces[ke*nvface+i]; */
-  /* 	  keswp=(ke+c2s->n)%c2s->nf; */
-  /* 	  facei[c2s->faces[keswp*nvface+p[i]]]=c2s->faces[keswp*nvface+i]; */
-  /* 	} */
-  /* 	/\* fprintf(stdout,"\nface(%d)in el %d",ke,jel); *\/ */
-  /* 	/\* print_full_mat_int(1,nvcube,facei,"facei"); *\/ */
-  /* 	for(i=0;i<nvcube;i++) */
-  /* 	  el2v->JA[i]=g0->mnodes[jel*(nvcube+1)+facei[i]]; */
-  /* 	for(i=0;i<nvcube;i++) */
-  /* 	  g0->mnodes[jel*(nvcube+1)+i]=el2v->JA[i]; */
-  /* 	//      } */
-  /*     } */
-  /*   } */
-  /* } */
-  /* /\* /\\*****************************************************\\/     *\/ */
-  /* /\* fprintf(stdout,"\n");  *\/ */
-  /* /\* /\\*****************************************************\\/ *\/ */
+  INT lvl,keok,swp,keswp;
+  for(lvl=0;lvl<mc->bfs->row;lvl++){
+    j0=mc->bfs->IA[lvl];
+    j1=mc->bfs->IA[lvl+1];
+    for(kj=j0;kj<j1;kj++){
+      jel=mc->bfs->JA[kj];
+      kel=etree[jel];// ancestor, this stays unchanged
+      if(kel>=0){
+  	je=locate0(jel,elneib[kel], c2s->nf);
+  	ke=locate0(kel,elneib[jel], c2s->nf);
+  	//	fprintf(stdout,"\nel=%d on face %d in el %d",jel,je,kel);
+  	keok=(je+c2s->n)%c2s->nf;
+  	if(keok!=ke){
+  	  //	  fprintf(stdout,"\nel=%d on face %d (should be %d) in el *** %d ***",kel,ke,keok,jel);
+  	  //	  swap in jel:
+  	  swp=elneib[jel][ke];
+  	  elneib[jel][ke]=elneib[jel][keok];
+  	  elneib[jel][keok]=swp;
+  	  swp=el2fnum[jel][ke];
+  	  el2fnum[jel][ke]=el2fnum[jel][keok];
+  	  el2fnum[jel][keok]=swp;
+  	  // we now need to swap vertices in g0->mnodes
+  	  for(i=0;i<nvface;i++){
+  	    facei[i]=c2s->faces[ke*nvface+i];
+  	    keswp=(ke+c2s->n)%c2s->nf;
+  	    facei[i+nvface]=c2s->faces[keswp*nvface+i];
+  	    // use mnodes as work space here;
+  	    mnodes[i]=c2s->faces[keok*nvface+i];
+  	    keswp=(keok+c2s->n)%c2s->nf;
+  	    mnodes[i+nvface]=c2s->faces[keswp*nvface+i];
+  	  }
+  	  for(i=0;i<nvcube;i++)
+  	    el2v->JA[i]=g0->mnodes[jel*(nvcube+1)+facei[i]];
+  	  for(i=0;i<nvcube;i++)
+  	    g0->mnodes[jel*(nvcube+1)+mnodes[i]]=el2v->JA[i];
+  	  /* fprintf(stdout,"\nEL=%d: ",jel); */
+  	  /* for(i=0;i<nvcube;i++){ */
+  	  /*   k1=g0->mnodes[jel*(nvcube+1)+i]; */
+  	  /*   fprintf(stdout,"%d ",k1); */
+  	  /* } */
+  	}
+      }
+    }
+  }
+  if(g0->print_level>10){
+    fprintf(stdout,"\nbfs tree(in %s):\n",__FUNCTION__);
+    for(lvl=0;lvl<mc->bfs->row;lvl++){
+      j0=mc->bfs->IA[lvl];
+      j1=mc->bfs->IA[lvl+1];
+      for(kj=j0;kj<j1;kj++){
+  	jel=mc->bfs->JA[kj];
+  	kel=etree[jel];// ancestor, this stays unchanged
+  	fprintf(stdout,"** (%d--%d)",kel,jel);
+      }
+    }
+    fprintf(stdout,"\n");
+  }
+  /**** FINAL REORDER: make the vertices order in shared faces the
+  	same!!! ***/
+  for(lvl=0;lvl<mc->bfs->row;lvl++){
+    j0=mc->bfs->IA[lvl];
+    j1=mc->bfs->IA[lvl+1];
+    for(kj=j0;kj<j1;kj++){
+      jel=mc->bfs->JA[kj];
+      kel=etree[jel];// ancestor, this stays unchanged
+      //      if(kel<0){
+      //	fprintf(stdout,"\n%%splitting element=%d",jel);
+      //      } else {
+      if(kel>=0){
+  	je=locate0(jel,elneib[kel], c2s->nf);
+  	ke=locate0(kel,elneib[jel], c2s->nf);
+  	/*
+  	   in kel, we have the face je; in jel we have the face ke. we
+  	   want to make ke in jel same as je in kel; also the opposite
+  	   face needs to be reordered.
+  	*/
+  	for(i=0;i<nvface;i++){
+  	  facei[i]=c2s->faces[ke*nvface+i];
+  	  facei[i]=g0->mnodes[jel*(nvcube+1)+facei[i]];
+  	  mnodes[i]=c2s->faces[je*nvface+i];
+  	  mnodes[i]=g0->mnodes[kel*(nvcube+1)+mnodes[i]];
+  	}
+  	k1=aresamep(mnodes,facei,nvface,p);
+  	if(!k1){
+  	  for(i=0;i<nvface;i++)p[i]=i;
+  	}
+  	/* fprintf(stderr,"\nE=%d--->%d; f=[%d,%d]",kel,jel,je,ke); */
+  	/* print_full_mat_int(1,c2s->nvface,c2s->faces+je*nvface,"c2sf_kel"); */
+  	/* print_full_mat_int(1,c2s->nvface,c2s->faces+ke*nvface,"c2sf_jel"); */
+  	/* print_full_mat_int(1,c2s->nf,elneib[kel],"kelneib"); */
+  	/* print_full_mat_int(1,c2s->nf,elneib[jel],"jelneib"); */
+  	/* print_full_mat_int(1,nvcube+1,g0->mnodes+kel*(nvcube+1),"kel"); */
+  	/* print_full_mat_int(1,nvcube+1,g0->mnodes+jel*(nvcube+1),"jel"); */
+  	/* print_full_mat_int(1,nvface,mnodes,"face_m"); */
+  	/* print_full_mat_int(1,nvface,facei,"face_i"); */
+  	/* fprintf(stderr,"\nERROR: faces must have same vertices in: %s\n",__FUNCTION__); */
+  	//	  exit(127);
+  	//  	  continue;
+  	//  	} else{
+  	/* fprintf(stdout,"\nface(%d)in el %d",ke,jel); */
+  	/* fprintf(stdout,"\nOLD face(%d)in el %d",je,kel); */
+  	/* print_full_mat_int(1,nvface,facei,"faceswp"); */
+  	/* print_full_mat_int(1,nvface,p,"p");	 */
+  	for(i=0;i<nvface;i++){
+  	  facei[c2s->faces[ke*nvface+p[i]]]=c2s->faces[ke*nvface+i];
+  	  keswp=(ke+c2s->n)%c2s->nf;
+  	  facei[c2s->faces[keswp*nvface+p[i]]]=c2s->faces[keswp*nvface+i];
+  	}
+  	/* fprintf(stdout,"\nface(%d)in el %d",ke,jel); */
+  	/* print_full_mat_int(1,nvcube,facei,"facei"); */
+  	for(i=0;i<nvcube;i++)
+  	  el2v->JA[i]=g0->mnodes[jel*(nvcube+1)+facei[i]];
+  	for(i=0;i<nvcube;i++)
+  	  g0->mnodes[jel*(nvcube+1)+i]=el2v->JA[i];
+  	//      }
+      }
+    }
+  }
+  /* /\*****************************************************\/     */
+  /* fprintf(stdout,"\n");  */
+  /* /\*****************************************************\/ */
   icsr_free(el2v);
   icsr_free(f2v);
   icsr_free(el2el);
@@ -485,7 +485,7 @@ void scomplex_merge(scomplex **sc0,			\
 		    const INT cc, const INT bndry_cc,	\
 		    input_grid *g0,cube2simp *c2s)
 {
-  /* combains an array of simplicial complexes together */
+  /* combains an array of simplicial complexes together. DOES NOT REMOVE common vertices */
   if(g0->nel==1) return;
   scomplex *sc=sc0[0];
   INT n1=(sc->n+1),nv0,ns0,nv=nvall,ns=nsall;
@@ -764,6 +764,7 @@ void fix_grid(macrocomplex *mc,		\
       //	if(fel2el->val[kj]!=kdim) continue;
       kdim=fel2el->val[kj];
       kz=((INT )floor(log2(((REAL) kdim)-1e-3)))+1;
+      //      kz=ilog2(kdim);
       //      scomplex *sc=scin[jel];
       iindex=mc->iindex[jel];
       //      fprintf(stdout,"\nkel=%d,jel=%d,kz=%d,kdim=%d\n",kel,jel,kz,kdim);
