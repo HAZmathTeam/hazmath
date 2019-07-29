@@ -18,10 +18,10 @@ refinement_type{-2} % -1 is usual
 
 dir_grid{./}
 dir_vtu{./}
-file_grid{x}
+file_grid{ }
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 dir_vtu{./}
-file_vtu{x}
+file_vtu{ }
 
 %---------------%
 % coordinate systems: Each has coordinates of the origin o[0:dim-1]

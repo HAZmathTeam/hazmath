@@ -10,8 +10,6 @@
 /*********************************************************************/
 #include "hazmath.h"
 /*********************************************************************/
-REAL zero_twopi_deg(REAL alpha_deg);
-/*********************************************************************/
 char **input_strings(INT *nall_out)
 {
   /* take as input the strings in INPUT_GRID_DATA and on output has an
@@ -166,10 +164,20 @@ void input_grid_example_file(input_grid *g)
   fprintf(stdout,"\nnum_vertices{%d}",g->nv);
   fprintf(stdout,"\ndata_vertices{");
   fprintf(stdout,"%d %d ",0,g->csysv[0]);
-  for(j=0;j<g->dim;j++) fprintf(stdout," %.4e ",g->xv[j]);
+  if(g->systypes[g->csysv[0]]==1){
+    fprintf(stdout," %.4e ",g->xv[0]);
+    for(j=1;j<g->dim;j++) fprintf(stdout," %.4e ",g->xv[j]/(PI)*180e00);
+  }else{
+    for(j=0;j<g->dim;j++) fprintf(stdout," %.4e ",g->xv[j]);
+  }
   for(i=1;i<g->nv;i++){
     fprintf(stdout,"\n%d %d ",i,g->csysv[i]);
-    for(j=0;j<g->dim;j++) fprintf(stdout," %.4e ",g->xv[i*dim+j]);
+    if(g->systypes[g->csysv[i]]==1){
+      fprintf(stdout," %.4e ",g->xv[i*dim]);
+      for(j=1;j<g->dim;j++) fprintf(stdout," %.4e ",g->xv[i*dim+j]/(PI)*180);
+    }else{
+      for(j=0;j<g->dim;j++) fprintf(stdout," %.4e ",g->xv[i*dim+j]);
+    }
   }
   fprintf(stdout,"}\n");
   /*EDGES*/
@@ -202,7 +210,7 @@ void input_grid_example_file(input_grid *g)
       fprintf(stdout,"%d ",g->mfaces[i*nvface1+j]);
   }
   fprintf(stdout,"}");fflush(stdout);  
-  fprintf(stderr,"\n%%%s%s\n",						\
+  fprintf(stderr,"\n%%%s%s",						\
 	  "---------------------------------------------------",	\
 	  "---------------------------------------------------");
   return;
@@ -701,6 +709,7 @@ input_grid *parse_input_grid(FILE *the_file)
   case 0:
     if(g->print_level>0)
       fprintf(stdout,"\nEXAMPLE: %s\n",g->title);
+    input_grid_example_file(g);
     return g;
   default:
     break;
