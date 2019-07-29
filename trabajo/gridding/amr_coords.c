@@ -155,7 +155,10 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
   INT ksys;
   REAL *xmac=g->xv;  
   REAL *xhat = (REAL *)calloc(dim,sizeof(REAL));
+  REAL *c1 = (REAL *)calloc(dim,sizeof(REAL));
+  REAL *c2 = (REAL *)calloc(dim,sizeof(REAL));
   REAL *xemac=(REAL *)calloc(c2s->ne*dim,sizeof(REAL));
+  REAL rho;
   // convert midpoints from polar to cartesian.
   //  print_full_mat(c2s->nvcube,c2s->n,g->xv,"P");
   for(i=0;i<c2s->ne;i++){
@@ -165,12 +168,17 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
     k2c=g->systypes[g->csysv[k2]];
     if(g->csysv[k1]==g->csysv[k2] && k1c==1){
       //use xhat as a temp array:
-      xhat[0]=0.5*(xmac[k1*dim]+xmac[k2*dim]);// this is rho
-      // take half angles;
-      for(j=1;j<dim;j++) {
-	xhat[j]=0.5*(xmac[k1*dim+j]+xmac[k2*dim+j]);
-      }
+      rho=0.5*(xmac[k1*dim]+xmac[k2*dim]);// this is the rho we will use
+      //      for(j=1;j<dim;j++) {
+      //	xhat[j]=0.5*(xmac[k1*dim+j]+xmac[k2*dim+j]);
+      //     }
+      //uuuuuuuuuuuuuuuuuuuuu
+      polar2cart(dim,xmac+k1*dim,c1); polar2cart(dim,xmac+k2*dim,c2);
+      for(j=0;j<dim;j++)
+	c1[j]=0.5*(c1[j]+c2[j]);
+      cart2polar(dim,c1,xhat);      
       print_full_mat(1,dim,xhat,"xhat");
+      xhat[0]=rho;
       polar2cart(dim,xhat,xemac+(i*dim));
       // translate by adding the origin. 
       ksys=g->csysv[k1];// k1c and k2c should be the same below. 
@@ -240,8 +248,10 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
   }
   //  r2c(dim,c2s->nvcube,sizeof(REAL),xmac); // we need xmac by columns here
   //  r2c(dim,c2s->ne,sizeof(REAL),xemac); // we need xemac by rows agin
-  if(xhat) free(xhat);
-  if(xemac) free(xemac);
+  free(xhat);
+  free(xemac);
+  free(c1);
+  free(c2);
   return;
 }
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
