@@ -9,18 +9,19 @@
  *  \modified 20190715 (ltz);
  */
 #include "hazmath.h"
-/*LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL*/
-/* void input_grid_arrays(input_grid *g); */
-/* void input_grid_print(input_grid *g); */
-/* void set_edges(input_grid *g0,cube2simp *c2s); */
-/* INT *set_input_grid(input_grid *g,cube2simp *c2s); */
-/* INT set_ndiv_edges(input_grid *g,		\ */
-/* 		   input_grid *g0,		\ */
-/* 		   cube2simp *c2s,		\ */
-/* 		   INT **nd,			\ */
-/* 		   const INT iter); */
-/* void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g); */
-/************************************************************************/
+/**********************************************************************/
+/*!
+ * \fn static INT ilog2(const INT k)
+ *
+ * \brief integer log for an integer. For example 1=ilog2(2);
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 static INT ilog2(const INT k)
 {
   /* integer log of an integer */
@@ -29,13 +30,26 @@ static INT ilog2(const INT k)
   else
     return -(1<<30);
 }
+/**********************************************************************/
+/*!
+ * \fn INT *align_lattice(const INT nkj,INT *nd0, INT *nodes0,
+ *		   INT *nd1, INT *nodes1, cube2simp *c2s)
+ *
+ * \brief constructs permutation of the vertices of an element based
+ *        on the numbering in a neighboring element.
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note We may need to remove this in the future (ltz)
+ *
+ */
 INT *align_lattice(const INT nkj,		\
 		   INT *nd0, INT *nodes0,	\
 		   INT *nd1, INT *nodes1,	\
 		   cube2simp *c2s)
 {
-  /* constructs permutation of the vertices of an element based on the
-     numbering in a neighboring element. */
   INT dim=c2s->n,i;
   INT *pd=(INT *)calloc(dim,sizeof(INT));
   //  fprintf(stdout,"\n****%d ^^^\n",nkj);
@@ -77,14 +91,23 @@ INT *align_lattice(const INT nkj,		\
   /* find edges common within vertj and they should also be common between vertj */
   return pd;
 }
-/************************************************************************/
-
-macrocomplex *set_mmesh(input_grid *g0,					\
-		cube2simp *c2s,						\
-		INT *wrk)
+/**********************************************************************/
+/*!
+ * \fn macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk) 
+ *
+ * \brief prepare macro element mesh (mmesh) for passing to the mesh
+ *        generator. wrk is working integer array should have at least
+ *        size 2*nvcube+2
+ *
+ * \param wrk (working array of size 2*nvcube +2)
+ *
+ * \return
+ *
+ * \note
+ *
+ */
+macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
 {
-  /*prepare macro element mesh (mmesh) for passing to the mesh generator*/
-  /*wrk is working integer array should have at least size 2*nvcube+2 */
   INT i,j0,j1,kel,jel,ke;
   INT nvcube=c2s->nvcube,nvface=c2s->nvface;
   INT nel0,je,kj,k2,iel2v,jel2v,k1,kface,kbnd,found;
@@ -478,14 +501,28 @@ in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding fa
   mc->el2fnum=el2fnum;
   return mc;
 }
-/*******************************************************************/
-/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
+/**********************************************************************/
+/*!
+ * \fn void scomplex_merge(scomplex **sc0, const INT nsall, const INT
+ *		    nvall, const INT cc, const INT bndry_cc,
+ *		    input_grid *g0,cube2simp *c2s)
+ *
+ * \brief combines an array of simplicial complexes together. DOES NOT
+ *        REMOVE common vertices and is used only for debugging if
+ *        needed.
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 void scomplex_merge(scomplex **sc0,			\
 		    const INT nsall, const INT nvall,	\
 		    const INT cc, const INT bndry_cc,	\
 		    input_grid *g0,cube2simp *c2s)
 {
-  /* combains an array of simplicial complexes together. DOES NOT REMOVE common vertices */
   if(g0->nel==1) return;
   scomplex *sc=sc0[0];
   INT n1=(sc->n+1),nv0,ns0,nv=nvall,ns=nsall;
@@ -542,18 +579,30 @@ void scomplex_merge(scomplex **sc0,			\
    fprintf(stdout,"\nsc->nv=%d,sc->ns=%d; nvall=%d,nsall=%d\n",sc->nv,sc->ns,nvall,nsall);fflush(stdout);
   return;
 }
-/*ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ*/
-/*LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL*/
+/**********************************************************************/
+/*!
+ * \fn void scomplex_merge1(const INT nvall, const INT nsall,
+ *		     macrocomplex *mc, scomplex **sc0, cube2simp *c2s)
+ *
+ * \brief combines an array of simplicial complexes together. REMOVES
+ *        the common vertices.  Combines an array of simplicial
+ *        complexes constructed from a macro complex together. the
+ *        mc->iindex array should contain all global vertex numbers
+ *        without repetitions.
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 void scomplex_merge1(const INT nvall,		\
 		     const INT nsall,		\
 		     macrocomplex *mc,		\
 		     scomplex **sc0,		\
 		     cube2simp *c2s)
 {
-  /* combines an array of simplicial complexes constructed from a
-     macro complex together. the mc->iindex array should contain all
-     vertex numbers without repetitions
-*/
   if(mc->nel==1) return;
   scomplex *sc=sc0[0];
   INT n1=(sc->n+1),ns0,nv=nvall,ns=nsall;
@@ -614,19 +663,27 @@ void scomplex_merge1(const INT nvall,		\
   //  fprintf(stdout,"\nsc->nv=%d,sc->ns=%d; nvall=%d,nsall=%d\n",sc->nv,sc->ns,nvall,nsall);fflush(stdout);
   return;
 }
-/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
-INT locate1(INT *b,
-	    INT *a,INT n,			\
-	    INT *a2,INT n2,INT m2)
+/**********************************************************************/
+/*!
+ * \fn INT locate1(INT *b,INT *a,INT n,INT *a2,INT n2,INT m2) 
+ *
+ * \brief locates the elements of an array a in a two dimensional
+ *     array a2. a has n elements and a2 is n2 by m2.  returns the the
+ *     number of the rows(a2) that contain ALL elements of a; and b
+ *     contains the indices of these rows; in case there is an element
+ *     of a not contained in any row returns 0; in case no row
+ *     contains ALL elements, returns 0; b should have size
+ *     n2*sizeof(INT);
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
+INT locate1(INT *b,INT *a,INT n,INT *a2,INT n2,INT m2)
 {  
-  /* 
-     locates the elements of an array a in a two dimensional array
-     a2. a has n elements and a2 is n2 by m2.  returns the the number
-     of the rows(a2) that contain ALL elements of a; and b contains
-     the indices of these rows; in case there is an element of a not
-     contained in any row returns 0; in case no row contains ALL
-     elements, returns 0; b should have size n2*sizeof(INT);
-  */
   INT i,j,im,nb,aj,bi;
   for(i=0;i<n2;i++) b[i]=i;
   for(j=0;j<n;j++){    
@@ -656,7 +713,19 @@ INT locate1(INT *b,
   //  fprintf(stdout,"\n");
   return nb;
 }
-/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
+/**********************************************************************/
+/*!
+ * \fn void macrocomplex_free(macrocomplex *mc) 
+ *
+ * \brief free the structure macroelements. 
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 void macrocomplex_free(macrocomplex *mc)
 {
   INT i;
@@ -678,17 +747,29 @@ void macrocomplex_free(macrocomplex *mc)
   icsr_free(mc->fullel2el);
   return;
 }
-/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
+/**********************************************************************/
+/*!
+ * \fn void fix_grid(macrocomplex *mc, scomplex **scin,cube2simp *c2s,
+ *                   input_grid *g0)
+ *
+ * \brief A loop over all macroelements and generates array
+ *        mc->iindex[kel][] for kel=1:nel (number of
+ *        macroelements=nel). Each of the entries in iindex gives the
+ *        global number of a local vertex.
+ *
+ * \param scin is an array of simplicial complexes each generated
+ *        independently in a macroelement. this program combines them
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 void fix_grid(macrocomplex *mc,		\
 	       scomplex **scin,			\
 	       cube2simp *c2s,			\
 	       input_grid *g0)
 {
-  /****************************************************************/
-  /* 
-     this piece of code removes all repeated vertices in macro
-     elements making the numbering of the  vertices a valid numbering;
-  */
   if(mc->nel<=1) return;
   scomplex *scp;
   INT dim=c2s->n,dim1=c2s->n+1,nvface=c2s->nvface,nvcube=c2s->nvcube;
@@ -933,13 +1014,26 @@ void fix_grid(macrocomplex *mc,		\
   /* 		 g0,c2s); */
   /* return; */
 }
-/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
-/*ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ*/
+/**********************************************************************/
+/*!
+ * \fn scomplex *generate_grid(input_grid *g0) 
+ *
+ * \brief From the data from input_grid g0 generates the global
+ *        simplicial complex with the grid based on the macroelements
+ *        and the divisions given by *g0.
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 scomplex *generate_grid(input_grid *g0)
 {
   /* 
      From an input grid loops over the macroelements and generates
-     meshes depending on the division given in every dimension. 
+     meshes depending on the number of divisions  in every dimension. 
   */
   input_grid *g;
   INT i,j,kel,pmem;
@@ -1119,5 +1213,4 @@ scomplex *generate_grid(input_grid *g0)
    free(wrk1);
   return sc[0];  
 }
-/****************************************************************************************/
-/****************************************************************************************/
+/*EOF*/
