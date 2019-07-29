@@ -13,9 +13,7 @@
  */
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************/
 #include "hazmath.h"
-#include "grid_defs.h"
-/*********************************************************************/
-/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
+/**********************************************************************/
 INT main(INT argc, char **argv)
 {
   //  INT i=-1;
