@@ -3,26 +3,46 @@
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 20190420.
  *  Copyright 2019__HAZMATH__. All rights reserved.
  *
- *  \note containing all routines for polar to cartesian; cartesian to
- *  polar, etc. It also has the routing that maps "quadratically" a macroelement. 
- *  Works in dimension n. 
+ *  \note: containing all routines for polar to cartesian; cartesian to
+ *  polar, etc. in any spatial dimension. It also has the routine
+ *  mapping "quadratically" the unit square to a macroelement.  Works in dimension n.
  *
- * \todo add cyllindrical and other coords. (Ludmil)
-
+ * \todo test the polar and add  cyllindrical and other more general coords. (Ludmil)
+ *
+ * \note created 20190327 (ltz)
+ * \note modified 20190727 (ltz)
  */
 #include "hazmath.h"
 /**********************************************************************/
+/*decaring pi for this scope here*/
 static long double pi=4e00*atanl(1e00);
 /**********************************************************************/
+/*!
+ * \fn REAL deg2rad(REAL alpha_deg)
+ *
+ * \param alpha_deg   angle in degrees
+ *  
+ * \return alpha in radians
+ *  
+ */
 REAL deg2rad(REAL alpha_deg)
 {
   // degrees to radians;
   return (REAL ) ((long double )alpha_deg)*(pi/180e00);
 }
 /**********************************************************************/
+/*!
+ * \fn REAL zero_twopi(REAL alpha)
+ *
+ * \brief map alpha in radians from [-pi,pi) to [0,2*pi]
+ *
+ * \param alpha   angle in [-pi,pi) in radians
+ *
+ * \return alpha in [0,2*pi)
+ *
+ */
 REAL zero_twopi(REAL alpha)
 {
-  // map alpha in radians to [0,2*pi]
   long double angle=(long double )alpha;
   angle=atan2l(sinl(angle),cosl(angle));
   if(fabsl(angle)<1e-15) angle=0e0;
@@ -30,19 +50,33 @@ REAL zero_twopi(REAL alpha)
     return (REAL )(angle+pi+pi);
   return (REAL )angle;
 }
+/**********************************************************************/
+/*!
+ * \fn REAL zero_twopi_deg(REAL alpha_deg)
+ *
+ * \brief map alpha (in degrees) from [-pi,pi) to [0,2*pi) (in radians)
+ *
+ * \param alpha   angle in [-pi,pi) in degrees
+ *
+ * \return alpha in [0,2*pi) (in radians)
+ *
+ */
 REAL zero_twopi_deg(REAL alpha_deg)
 {
-  // map alpha in degrees to [0,2pi)
   return zero_twopi(deg2rad(alpha_deg));
 }
 /**********************************************************************/
+/*!
+ *\fn static void coord_perm(SHORT type, INT n,void *x, size_t elsize)
+ *
+ * \brief permutes coordinate arrays (or any array whose elements
+ * are of size): if type=1: x[0],x[1]...x[n-1]-->
+ * x[1]...x[n-1],x[0]; if type=0(inverse): y[0],y[1]...y[n-1]-->
+ * y[n-1],y[0]...y[n-2]
+ *
+ */
 static void coord_perm(SHORT type, INT n,void *x, size_t elsize)
 {
-  /*
-    permutes coordinate arrays (or any array whose elements are of size): 
-    if type=1: x[0],x[1]...x[n-1]--> x[1]...x[n-1],x[0] 
-    if type=0(inverse): y[0],y[1]...y[n-1]--> y[n-1],y[0]...y[n-2] 
-  */
   INT i;  
   void *xx0n=(void *)calloc(1,elsize*sizeof(void));
   if(type){
@@ -59,60 +93,76 @@ static void coord_perm(SHORT type, INT n,void *x, size_t elsize)
   if(xx0n)free(xx0n);
   return;
 }
+/**********************************************************************/
+/*!
+ *\fn polar2cart(INT dim, REAL *px, REAL *cx)
+ *
+ * \brief Converts POLAR (px) TO CARTESIAN(cx) coordinates in any spatial
+ *        dimension; Here on input rho=px[0] and px[1],...,px[n-1] are
+ *        the angles with px[1] in [0,2*pi) and px[k] in [0,pi],
+ *        k=2:(n-1); On output the cartesian coords are x[0]...x[n-1].
+ *        The origin is set at (0,...,0).
+ *
+ *        \param
+ *
+ * \return
+ *
+ * \note
+ */
 /************************************************************************/
 void polar2cart(INT dim, REAL *px, REAL *cx)
 {
-  // polar is r, theta1,...theta[n-1]; cart is x[0]...x[n-1] px are
-  // n-coordinates in polar coord system converts polar coordnates to
-  // cartesian in d dimensions.  origin is set at 0,0,0 so if it is
-  // different, translation needs to be done after return from here.
   INT i,j;
   REAL rho = px[0];
-  REAL cend=rho; 
-  switch(dim){
-  /* case 1: */
+  REAL cend=rho;
+  /* /\* 1D *\/ */
   /*   cx[0]=px[0]; */
   /*   return; */
-  /* case 2: */
+  /* /\* 2D *\/ */
   /*   cx[0]=rho*cos(px[1]); */
   /*   cx[1]=rho*sin(px[1]); */
   /*   return; */
-  /* case 3: */
+  /*   /\*  3D*\/ */
   /*   cx[0]=rho*sin(px[1])*cos(px[2]); */
   /*   cx[1]=rho*sin(px[1])*sin(px[2]); */
   /*   cx[2]=rho*cos(px[1]); */
   /*   return; */
-  default:
-    memset(cx,0,dim*sizeof(REAL));
-    for(i=0;i<(dim-1);i++){
-      cx[i]=rho*cos(px[i+1]);
-      for(j=0;j<i;j++){
-	cx[i]*=sin(px[j+1]);
-	//      fprintf(stdout,"\niiiii=%d,jjjjj=%d",i,j+1);
-      }
-      //    print_full_mat(1,dim,cx,"c1");
-      cend*=sin(px[i+1]);    
+  memset(cx,0,dim*sizeof(REAL));
+  for(i=0;i<(dim-1);i++){
+    cx[i]=rho*cos(px[i+1]);
+    for(j=0;j<i;j++){
+      cx[i]*=sin(px[j+1]);
     }
-    cx[dim-1]=cend;
-    // the conversion above puts cx[n-1] first, so put it back at the end.  
-    coord_perm(1,dim,cx,sizeof(REAL));
-    /*        print_full_mat(1,dim,cx,"cx"); */
-    /* 2d    fprintf(stdout,"\nxc=[%e  %e]",px[0]*cos(px[1]),px[0]*sin(px[1])); */
-    /*    fprintf(stdout,"\nxc=[%e  %e  %e]",			\ */
-    /* 	    px[0]*sin(px[1])*cos(px[2]),			\ */
-    /*  px[0]*sin(px[1])*sin(px[2]),				\ */
-    /* 	    px[0]*cos(px[1])					\ */
-    /* 	    ); */
-    return;
+    cend*=sin(px[i+1]);
   }
+  cx[dim-1]=cend;
+  // the conversion above puts cx[n-1] first, so put it back at the end.
+  coord_perm(1,dim,cx,sizeof(REAL));
   return;
 }
-/************************************************************************/
+/*Z!ZZ!Z!ZZ!Z!!Z!Z!Z*/
+/**********************************************************************/
+/*!
+ *\fn INT cart2polar(INT dim, REAL *c,REAL *p)
+ *
+ * \brief Converts CARTESIAN(c) TO POLAR(p) coordinates in any spatial
+ *        dimension; Here, on OUTPUT rho=px[0] and px[1],...,px[n-1]
+ *        are the angles with px[1] in [0,2*pi) and px[k] in [0,pi],
+ *        k=2:(n-1);
+ *
+ *
+ * \param
+ *
+ * \return
+ *
+ * \note
+ */
 INT cart2polar(INT dim, REAL *c,REAL *p)
 {
+  /*
+   */
   INT i,dimm1=dim-1;
   REAL rl,r;
-  // first put c[n-1] first to agree with the polar ordering;
   coord_perm(0,dim,c,sizeof(REAL));
   r=0.;
   for(i=0;i<dim;i++){
@@ -140,15 +190,22 @@ INT cart2polar(INT dim, REAL *c,REAL *p)
   coord_perm(1,dim,c,sizeof(REAL));
   return 0;
 }
-/************************************************************************/
-/*^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/**********************************************************************/
+/*!
+ *\fn void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
+ *
+ *  \brief Maps n-dimensional cube to a macroelement specified by "g". 
+ *
+ * \param
+ *
+ * \return
+ *
+ * \todo make all boundaries that are given in polar coordinates to be
+ * in the same polar coordinates (ltz).
+ */
 void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
 {
   /* 
-     maps a uniform grid from the n-dimensional cube to a hexagonal 
-     macroelement from an initial grid of macroelements 
-     given by its coordinates xmac[1:nvcube*dim]
-     xmac[nvcube][dim]
   */
   INT i,j,k1,k2,k1c,kf,dim=sc->n;
     INT k2c;
@@ -169,20 +226,22 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
     if(g->csysv[k1]==g->csysv[k2] && k1c==1){
       //use xhat as a temp array:
       rho=0.5*(xmac[k1*dim]+xmac[k2*dim]);// this is the rho we will use
-      //      for(j=1;j<dim;j++) {
-      //	xhat[j]=0.5*(xmac[k1*dim+j]+xmac[k2*dim+j]);
-      //     }
-      //uuuuuuuuuuuuuuuuuuuuu
+      /* 
+	 To find the mid point in polar: convert the vertices k1 and
+	 k2 to cartesian, take the middle point (in cartesian) and
+	 then use the angles defined for the middle point and average
+	 radius rho
+      */
       polar2cart(dim,xmac+k1*dim,c1); polar2cart(dim,xmac+k2*dim,c2);
       for(j=0;j<dim;j++)
 	c1[j]=0.5*(c1[j]+c2[j]);
       cart2polar(dim,c1,xhat);      
-      print_full_mat(1,dim,xhat,"xhat");
+      //      print_full_mat(1,dim,xhat,"xhat");
       xhat[0]=rho;
       polar2cart(dim,xhat,xemac+(i*dim));
       // translate by adding the origin. 
       ksys=g->csysv[k1];// k1c and k2c should be the same below. 
-			     k2c=g->csysv[k2];
+      k2c=g->csysv[k2];
       for(j=0;j<dim;j++) {
 	xemac[i*dim+j]+=g->ox[ksys*dim+j];
       }
@@ -203,30 +262,14 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
     }
   }
   // now everything is in cartesian, check if  xe are in the convex hull of xmac;
-  //midpoints that are
-  // not yet attended to are just averages.
+  //midpoints that are not yet attended to are just averages.
   for(i=0;i<c2s->ne;i++){
     k1=c2s->edges[2*i];
     k2=c2s->edges[2*i+1];
     k1c=g->systypes[g->csysv[k1]];
     k2c=g->systypes[g->csysv[k2]];
-    //check all  mid points in polar and skip them; if necessary invert the sign...
-    if(g->csysv[k1]==g->csysv[k2] && k1c==1) {      
-      REAL scpr1=0.,scpr2=0.;
-      for(j=0;j<dim;j++) {
-	scpr1+=(xemac[i*dim+j]-g->ox[ksys*dim+j])*(xmac[k1*dim+j]-g->ox[ksys*dim+j]);
-	scpr2+=(xemac[i*dim+j]-g->ox[ksys*dim+j])*(xmac[k2*dim+j]-g->ox[ksys*dim+j]);
-      }
-      // reverse sign if one of the projections on the two vectors forming the arc is negative.
-      if(scpr1<0e0 || scpr2<0e00) {
-	//	fprintf(stdout,"\nee(%d,%d:%d)=[%d,%d];",i,1,2,k1,k2);
-	//	fprintf(stdout,"\n(sc(%d,%d:%d)=(%.16e,%.16e)",i,1,2,scpr1,scpr2);
-	for(j=0;j<dim;j++)
-	  xemac[i*dim+j]=2e0*g->ox[ksys*dim+j] - xemac[i*dim+j];
-      }
-      fprintf(stdout,"\ncart:verts=(%d,%d); coord_sys=(%d,%d)",k1,k2,k1c,k2c);fflush(stdout);
-      continue;
-    }
+    //skip all  mid points in polar
+    if(g->csysv[k1]==g->csysv[k2] && k1c==1) continue;
     for(j=0;j<dim;j++) {
       xemac[i*dim+j]=0.5*(xmac[k1*dim+j]+xmac[k2*dim+j]);
     }
@@ -254,4 +297,4 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
   free(c2);
   return;
 }
-/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
+/*EOF*/
