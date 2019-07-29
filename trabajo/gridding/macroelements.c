@@ -89,7 +89,7 @@ macrocomplex *set_mmesh(input_grid *g0,					\
   INT nvcube=c2s->nvcube,nvface=c2s->nvface;
   INT nel0,je,kj,k2,iel2v,jel2v,k1,kface,kbnd,found;
   INT *p=wrk; 
-  INT *mnodes=p+nvcube+1;
+  //  INT *mnodes=p+nvcube+1;
   /*macro complex creation:)*/
   macrocomplex *mc=malloc(1*sizeof(macrocomplex));
   mc->nel=nel0=g0->nel; //important to set;
