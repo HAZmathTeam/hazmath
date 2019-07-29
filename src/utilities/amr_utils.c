@@ -7,7 +7,19 @@
  *
  */
 #include "hazmath.h"
-/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx*/
+/**********************************************************************/
+/*!
+ * \fn INT aresame(INT *a, INT *b, INT n)
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 INT aresame(INT *a, INT *b, INT n)
 {
   /* 
@@ -28,8 +40,19 @@ INT aresame(INT *a, INT *b, INT n)
   }
   return 1;
 }
-/****************************************************************/
-/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx*/
+/**********************************************************************/
+/*!
+ * \fn INT aresamep(INT *a, INT *b, INT n, INT *p)
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 INT aresamep(INT *a, INT *b, INT n, INT *p)
 {
   /* checks (n^2 algorithm) if two have the same elements (up to a
@@ -54,7 +77,19 @@ INT aresamep(INT *a, INT *b, INT n, INT *p)
   }
   return iret;
 }
-/****************************************************************/
+/**********************************************************************/
+/*!
+ * \fn INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)
 {
   /* 
@@ -120,6 +155,19 @@ INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)
   if(piv) free(piv);
   return flag;
 }
+/**********************************************************************/
+/*!
+ * \fn void marks(scomplex *sc,dvector *errors)
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 void marks(scomplex *sc,dvector *errors)
 {
   /* mark simplices depending on the value of an estimator */
@@ -166,6 +214,21 @@ void marks(scomplex *sc,dvector *errors)
   if(sl)free(sl);
   return;
 }
+/**********************************************************************/
+/*!
+ * \fn unsigned int reflect2(INT n, INT is, INT it, INT* sv1, INT
+ *		      *sv2, INT* stos1, INT* stos2, INT visited, INT
+ *		      *wrk)
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 unsigned int reflect2(INT n, INT is, INT it,				\
 		      INT* sv1, INT *sv2, INT* stos1, INT* stos2,	\
 		      INT visited, INT *wrk)
@@ -267,12 +330,25 @@ unsigned int reflect2(INT n, INT is, INT it,				\
   }
   return 0;
 }
-/******************************************************************/
+/**********************************************************************/
+/*!
+ * \fn void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT
+ *                   print_level)
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 /*using bfs to get the reflected mesh*/
 void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level) 
 {
   /* 
-   * bfs tree: constructs all bfs trees for each connected componend of the element neighboring list. 
+   * bfs tree: constructs all bfs trees for each connected componend of the element neighboring list
    * in the connected component containing it;
   */
   //  haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
@@ -307,6 +383,7 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
   INT *jbfs = mask+ns;
   INT *jblk=jbfs+ns+1;
   INT *iblk=jblk+ns+1;
+  // find the connected components.
   dfs00_(&ns,neib->IA, neib->JA,&cc,iblk,jblk);
   INT ireflect;
   // initialization
@@ -383,7 +460,19 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
   icsr_free(neib);
   return;
 }
-/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
+/**********************************************************************/
+/*!
+ * \fn void scfinalize(scomplex *sc)
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 void scfinalize(scomplex *sc)
 {
   /* copy the final grid at position 1*/
@@ -413,6 +502,19 @@ void scfinalize(scomplex *sc)
   fprintf(stdout,"\n%%After %d levels of refinement:\tsimplices=%d ; vertices=%d\n",sc->level,sc->ns,sc->nv); fflush(stdout);
   return;
 }
+/**********************************************************************/
+/*!
+ * \fn void cube2simp_free(cube2simp *c2s)
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 void cube2simp_free(cube2simp *c2s)
 {
   if(c2s->bits)free(c2s->bits);
@@ -423,7 +525,19 @@ void cube2simp_free(cube2simp *c2s)
   if(c2s)free(c2s);
   return;
 }
-
+/**********************************************************************/
+/*!
+ * \fn static void binary0(cube2simp *c2s)
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 static void binary0(cube2simp *c2s)
 {
   // stores in an array the coordinates of the vertices of the unit  
@@ -468,7 +582,21 @@ static void binary0(cube2simp *c2s)
   /* fprintf(stdout,"\n"); */
   return;
 }
-static unsigned INT bitdiff(const INT dim, unsigned INT *bits1,unsigned INT *bits2){
+/***************************************************************************/
+/*!
+ * \fn static unsigned INT bitdiff(const INT dim, unsigned INT *bits1,unsigned INT *bits2)
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
+static unsigned INT bitdiff(const INT dim, unsigned INT *bits1,unsigned INT *bits2)
+{
   /*
     returns the l1-norm of the difference two arrays of unsigned 
     integers.  this should be changed to have a void array as input.
@@ -480,7 +608,19 @@ static unsigned INT bitdiff(const INT dim, unsigned INT *bits1,unsigned INT *bit
   }
   return numbits;
 }
-/************************************************************************/
+/**********************************************************************/
+/*!
+ * \fn void reverse(void *arr,INT length, size_t elsize)
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 void reverse(void *arr,INT length, size_t elsize)
 {
   /* 
@@ -502,7 +642,19 @@ void reverse(void *arr,INT length, size_t elsize)
   if(swap)free(swap);
   return;
 }
-/************************************************************************/
+/**********************************************************************/
+/*!
+ * \fn cube2simp *cube2simplex(INT dim)
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 cube2simp *cube2simplex(INT dim)
 {
   /*
@@ -638,4 +790,4 @@ cube2simp *cube2simplex(INT dim)
   //  print_full_mat_int(c2s->nf,c2s->nvface,c2s->faces,"UCubef");
   return c2s;
 }
-/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
+/*EOF*/

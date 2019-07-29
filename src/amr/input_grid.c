@@ -4,17 +4,30 @@
  *  Copyright 2019__HAZMATH__. All rights reserved.
  *
  *  \note containing all essential routines for input for the mesh
- *  generation mesh refinement
+ *  generation and mesh refinement
+ *
+ *  \note: modified by ltz on 20190327
+ *  \note: modified by ltz on 20190728
  *
  */
 /*********************************************************************/
 #include "hazmath.h"
 /*********************************************************************/
+/*!
+ * \fn char **input_strings(INT *nall_out)
+ *
+ * \brief take as input the strings in INPUT_GRID_DATA_ (see amr.h) and on output
+ *        has an array with all such strings which are used in parsing
+ *        the input file for grid generation.
+ *
+ * \param nall_out=how many strings are in the INPUT_GRID_DATA;
+ *
+ * \return 
+ *
+ * \note
+ */
 char **input_strings(INT *nall_out)
 {
-  /* take as input the strings in INPUT_GRID_DATA and on output has an
-     array with all such strings which are used in parsing the input
-     file for grid generation. */
   INT k,nall;
   const char *indata_const[]= { INPUT_GRID_DATA_ ,  "\0" };
   nall=0;
@@ -27,11 +40,22 @@ char **input_strings(INT *nall_out)
   return indata;
 }
 /*********************************************************************/
+/*!
+ * \fn void input_grid_arrays(input_grid *g)
+ *
+ * \brief Allocate the arrays used in input grid. Some of the values
+ *        have abs() because they could be negative if their values
+ *        were missing or were not read correctly from the input file.
+ *
+ * \param initial macroelement grid g.
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 void input_grid_arrays(input_grid *g)
 {
-  //allocate the arrays used in input grid. Some of the values have
-  //abs because they could be negative if their values were missing in
-  //the input file.
   INT nvcube=(1 << g->dim),nvface=(1 << (g->dim-1));
   g->ox=(REAL *)calloc(g->dim*abs(g->ncsys),sizeof(REAL));
   g->systypes=(INT *)calloc(g->ncsys,sizeof(INT)); 
@@ -47,9 +71,20 @@ void input_grid_arrays(input_grid *g)
   return;
 }
 /******************************************************************/
+/*!
+ * \fn void input_grid_free(input_grid *g)
+ *
+ * \brief frees all arrays in a structure input_grid *
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 void input_grid_free(input_grid *g)
 {
-  //free input grid structure. 
   if(g->title) free(g->title);
   if(g->dgrid) free(g->dgrid);
   if(g->fgrid) free(g->fgrid);
@@ -69,9 +104,20 @@ void input_grid_free(input_grid *g)
   return;
 }
 /**********************************************************************/
+/*!
+ * \fn void input_grid_print(input_grid *g) 
+ *
+ * \brief prints what was read from the input grid file.
+ *
+ * \param input grid of macroelements g (read usually from a file)
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 void input_grid_print(input_grid *g)
 {
-  // prints what was read from the inpput grid file. 
   INT i,j,dim=g->dim;
   fprintf(stdout,"\n\nTITLE: %s",g->title);fflush(stdout);
   fprintf(stdout,"\ndimension=%d",g->dim);fflush(stdout);
@@ -130,9 +176,24 @@ void input_grid_print(input_grid *g)
   return;
 }
 /**********************************************************************/
+/*!
+ * \fn void input_grid_example_file(input_grid *g) 
+ *
+ * \brief For a given input grid g, it outputs to stderr the file
+ *        which could have generated such macroelement grid. It is
+ *        used to print an example of an input file for the partition
+ *        of unit cube in 3D when errors are found in the user input
+ *        (basically fail-safe strategy)
+ *
+ * \param input grid g. 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 void input_grid_example_file(input_grid *g)
 {
-  // prints what was read from the example input.
   INT i,j,dim=g->dim;
   fprintf(stderr,"\n%s\n%s","%%%%%% An *example of an input file* follows.",
 	  "For a lattice grid on the unit cube in 3D:\nCopy and paste in a file the text between %=== and %---):");
@@ -216,9 +277,20 @@ void input_grid_example_file(input_grid *g)
   return;
 }
 /**********************************************************************/
+/*!
+ * \fn static char **splits(char *s, const char *d, INT *num) 
+ *
+ * \brief splits a string s into pieces using as delimiter d.
+ *
+ * \param num (number of pieces)
+ *
+ * \return the array of strings after splitting s. 
+ *
+ * \note
+ *
+ */
 static char **splits(char *s, const char *d, INT *num)
 {
-  // splits a string in an array. splitting delimiter is a char d
   INT k;
   char **w=calloc(strlen(s)+1,sizeof(char *));
   char *work=strtok(s,d);
@@ -234,15 +306,24 @@ static char **splits(char *s, const char *d, INT *num)
   *num=k;
   return w;
 }
-/*==========================================================*/
+/**********************************************************************/
+/*!
+ * \fn void *read_mixed_data(INT nrec, INT ni, INT nr, char *the_string) 
+ *
+ * \brief Read nrec records from a string the_string. Each record has
+ *        strings which describe n_i INTs and n_r REALs. Store the
+ *        output in idata[] and rdata[] all together in a void array
+ *        which is the return value of the function.
+ *
+ * \param 
+ *
+ * \return void array with the data read (mixed, int and double)
+ *
+ * \note
+ *
+ */
 void *read_mixed_data(INT nrec, INT ni, INT nr, char *the_string)
 {
-  /* 
-   * \note read nrec records from a string the_string. Each record has
-   * strings which describe n_i INTs and n_r REALs. Store the output
-   * in idata[] and rdata[] all together in a void array which is the
-   * return value of the function
-  */
   if(nrec<0||ni<0||nr<0 ||(the_string==NULL)) return NULL;
   char **w;
   INT iread,count,cni,cnr,k,j,num;
@@ -289,11 +370,22 @@ void *read_mixed_data(INT nrec, INT ni, INT nr, char *the_string)
   free(w);
   return out;
 }
-/*==========================================================*/
+/*****************************************************************/
+/*!
+ * \fn static INT  read_data(char **clndata,input_grid *g) 
+ *
+ * \brief reads data from an array of strings which was created from a
+ *        input file for the grid generator.
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 static INT  read_data(char **clndata,input_grid *g)
 {
-  // read first the data related to coord systems.
-  // correspondence is below: very important
   /* title=clndata[0]; */
   /* dir_grid=clndata[1]; */
   /* dir_vtu=clndata[2]; */
@@ -451,10 +543,22 @@ static INT  read_data(char **clndata,input_grid *g)
   //  input_grid_print(g);
   return status;
 }
-/********************************************************************/
+/**********************************************************************/
+/*!
+ * \fn void x_out(const char *pattern, size_t le) 
+ *
+ * \brief prints a string cutting it at the closest blank space
+ *        with location <=le.
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 void x_out(const char *pattern, size_t le)
 {
-  /* prints a string cutting it at the closest blank space <= le*/
   int i;
   fprintf(stderr, "\n\n\n *** ERROR(%s)::::   \n     UNBALANCED \"{}\" near or before \"",__FUNCTION__);
   for (i=0;i<(le-1);++i)
@@ -462,7 +566,21 @@ void x_out(const char *pattern, size_t le)
   fprintf(stderr, "\"\n");  
   exit(12);
 }
-/***********************************************************************/
+/**********************************************************************/
+/*!
+ * \fn char *make_string_from_file(FILE *the_file, size_t *length_string) 
+ *
+ * \brief puts the content of a file in a string, ignoring all comments which start with %. 
+ *
+ * \param the_file is the input channel we read from. 
+ *
+ * \return a string formed by at most of
+ *         MAX_CHARS_INPUT_GRID_FILE(macro.h) are read with all empty
+ *         lines consequtive spaces and comments ignored.
+ *
+ * \note
+ *
+ */
 char *make_string_from_file(FILE *the_file, size_t *length_string)
 {
   char *file2str;
@@ -548,7 +666,21 @@ char *make_string_from_file(FILE *the_file, size_t *length_string)
   */
   return file2str;
 }
-/********************************************************************/
+/**********************************************************************/
+/*!
+ * \fn char *get_substring(const char *pattern, size_t
+ * *length_substring, char *the_string)
+ *
+ * \brief Finds the  pattern in the_string.
+ *
+ * \param 
+ *
+ * \return returns a pointer to the part of the string after
+ * pattern. if the pattern is not found returns '\0'
+ *
+ * \note
+ *
+ */
 char *get_substring(const char *pattern,	\
 		    size_t *length_substring,	\
 		    char *the_string)
@@ -584,7 +716,26 @@ char *get_substring(const char *pattern,	\
   }
   return found;
 }
-/********************************************************************/
+/**********************************************************************/
+/*!
+ * \fn char *safe_parse(const char *sinp, const char *warn0,
+ *		 const char *default_s, const INT max_length)
+ *
+ * \brief If sinp is not empty returns a copy of it up to max_length
+ *        chars; if sinp is empty then returns default_s and issues a
+ *        standard warning
+ *
+ * \param default_s default string
+ *
+ * \param warn0 string to be included in the warning message.
+ *
+ * \param sinp is the input string
+ *
+ * \return either the  default string (if sinp is null) or the input string. 
+ *
+ * \note
+ *
+ */
 char *safe_parse(const char *sinp,		\
 		 const char *warn0,		\
 		 const char *default_s,		\
@@ -602,7 +753,29 @@ char *safe_parse(const char *sinp,		\
   }
   return s;
 }
-/********************************************************************/
+/**********************************************************************/
+/*!
+ * \fn static INT check_input(char * file2str, input_grid *g, 
+		char **indata, char **notes, INT numel_data)
+ *
+ * \brief reads all mixed data (strings, int and double) from the
+ *        string file2str. If the data is read OK, then the values are
+ *        stored in the input_grid structure g. If success, returns 0;
+ *        if there is a problem reading the data a warning is issued
+ *        and the function returns nonzero value
+ *
+ * \param file2str a string with input data; 
+ *
+ * \param indata are the patterns we look for to extract the
+ *         corresponding values
+ *
+ * \param notes are strings used in the warning messages. 
+ *
+ * \return 0 on successful reading of all data; non- there is a problem. 
+ *
+ * \note
+ *
+ */
 static INT check_input(char * file2str, input_grid *g,	\
 		char **indata, char **notes,	\
 		INT numel_data)
@@ -670,11 +843,23 @@ static INT check_input(char * file2str, input_grid *g,	\
   free(clndata);
   return status;
 }
-/********************************************************************/
+/**********************************************************************/
+/*!
+ * \fn input_grid *parse_input_grid(FILE *the_file) 
+ *
+ * \brief parses the input for grid generation from a file on the
+ *        stream "the_file".
+ *
+ * \param  the_file is a stream open with fopen. 
+ *
+ * \return returns a pointer to a structure describing the
+ *         macroelement grid.
+ *
+ * \note
+ *
+ */
 input_grid *parse_input_grid(FILE *the_file)
 {
-  /* read all the input from a file on strem "the_file" and parse the input. */
-  /* in the char below, tabs need to be tabs not spaces. */
   input_grid *g=malloc(1*sizeof(input_grid));    
   INT numel_data,k,knext;
   char *file2str;
@@ -709,7 +894,7 @@ input_grid *parse_input_grid(FILE *the_file)
   case 0:
     if(g->print_level>0)
       fprintf(stdout,"\nEXAMPLE: %s\n",g->title);
-    input_grid_example_file(g);
+    //    input_grid_example_file(g);
     return g;
   default:
     break;
@@ -735,17 +920,26 @@ input_grid *parse_input_grid(FILE *the_file)
     //    return g;
   }
 }
-/********************************FINCTIONS:****************************/
-/*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
+/**********************************************************************/
+/*!
+ * \fn INT *set_input_grid(input_grid *g,cube2simp *c2s) 
+ *
+ * \brief Every edge is put into a subset, i.e. two edges
+ *        (v(i1),v(i2)) and (v(j1),v(j2)) are considered equivalent
+ *        iff (i2-i1)=(j2-j1).  The number of divisions in an
+ *        equivalent set of edges is taken to be the largest from the
+ *        equivalence class.  OUTPUT array is a "dim" array and for
+ *        each direction gives the number of partitions.
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 INT *set_input_grid(input_grid *g,cube2simp *c2s)
-{
-  /* 
-     Every edge is put into a subset, i.e. two edges (v(i1),v(i2)) and
-     (v(j1),v(j2)) are considered equivalent iff (i2-i1)=(j2-j1).  The
-     number of divisions in an equivalent set of edges is taken to be
-     the largest from the equivalence class.  OUTPUT array is a "dim"
-     array and for each direction gives the number of partitions.
-  */
+{ 
   INT i,j,k,iri,ici,pmem;
   pmem=2*g->nv;
   if(pmem<2*g->ne) pmem=2*g->ne;
@@ -800,7 +994,20 @@ INT *set_input_grid(input_grid *g,cube2simp *c2s)
   //  print_full_mat_int(g->nel,(c2s->nvcube+1),g->mnodes,"mel");
   return p;
 }
-/*%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*/
+/**********************************************************************/
+/*!
+ * \fn void set_edges(input_grid *g0,cube2simp *c2s) 
+ *
+ * \brief adds missing edges to input grid g0 so that all edges are
+ *        present.
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 void set_edges(input_grid *g0,cube2simp *c2s)
 {
   /*adds missing edges to input grid*/
@@ -878,23 +1085,29 @@ void set_edges(input_grid *g0,cube2simp *c2s)
   free(mnodes);
   return;
 }
-/************************************************************************/
-/***********************************************************************/
-INT set_ndiv_edges(input_grid *g,		\
-		   input_grid *g0,		\
-		   cube2simp *c2s,		\
-		   INT **nd,			\
-		   const INT iter)
+/**********************************************************************/
+/*!
+ * \fn INT set_ndiv_edges(input_grid *g, input_grid *g0, 
+ *         cube2simp *c2s, INT **nd, const INT iter)
+ *
+ * \brief For a given global input grid g0 creates local input grids
+ *        for every macroelement and computes the divisions in each
+ *        direction for it. It is used iteratively in macro_split to
+ *        set the correct divisions for every macroelement.  The
+ *        input_grid *g0 should be all set, and the input_grid *g
+ *        should have all its scalar values set.  nd is the array with
+ *        the divisions, it must be g0->nel by c2s->n.
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
+INT set_ndiv_edges(input_grid *g, input_grid *g0,		\
+		   cube2simp *c2s, INT **nd, const INT iter)
 {
-  /* 
-     For a given global input grid g0 creates local input grids for
-     every macroelement and computes the divisions in each direction
-     for it. It is used iteratively in macro_split to se the correct
-     divisions for every macroelement.  The input_grid *g0 should be
-     all set, and the input_grid *g should have all its scalar values
-     set.  nd is the array with the divisions, it must be g0->nel by
-     c2s->n.
-  */
   INT kel0,i,j0,j1,swp,kel,ke,k0,k1,ndiv;
   INT nel0=g0->nel,nvcube=c2s->nvcube;
   /*for easier reference*/
@@ -956,4 +1169,4 @@ INT set_ndiv_edges(input_grid *g,		\
   free(efound);
   return chng;
 }
-/************************************************************************/
+/*EOF*/
