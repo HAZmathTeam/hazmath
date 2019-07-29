@@ -3,14 +3,24 @@
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 20170715.
  *  Copyright 2017__HAZMATH__. All rights reserved.
  *
- *   \note routines to initialize construct and destruct uniform grids in
- *  d-dimensions for general d.
- *  \note interpolates data on uniform grids
+ *   \note routines to initialize construct and destruct uniform grids
+ *  in d-dimensions for general d. 
 */
 #include "hazmath.h"
-/*=============================================================================*/
-void coord_lattice(INT *m,const INT dim,			\
-		   const INT kf, const INT nall, const INT *nd)
+/**********************************************************************/
+/*!
+ * \fn
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
+void coord_lattice(INT *m,const INT dim,const INT kf, const INT nall, const INT *nd)
 {
   INT i,j,k;
   /*
@@ -25,6 +35,19 @@ void coord_lattice(INT *m,const INT dim,			\
   }
   return;
 }
+/**********************************************************************/
+/*!
+ * \fn
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 INT num_lattice(INT *m,const INT dim,INT *nd)
 {
   INT i,kf;
@@ -56,7 +79,19 @@ void binary1(const INT dim, unsigned int *bits, INT *nvloc)
   return;
 }
 
-/************************************************************************/
+/**********************************************************************/
+/*!
+ * \fn
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 scomplex *umesh(const INT dim,		\
 		INT *nd, cube2simp *c2s,		\
 		INT *isbndf, INT *codef,INT elflag,	\
@@ -220,7 +255,19 @@ scomplex *umesh(const INT dim,		\
   /******************************************************************/
   return sc;
 }
-/**************************************************************************/
+/**********************************************************************/
+/*!
+ * \fn
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 void unirefine(INT *nd,scomplex *sc)  
 {
 /* 
@@ -278,6 +325,19 @@ void unirefine(INT *nd,scomplex *sc)
   scfinalize(sc);
   return;
 }
+/**********************************************************************/
+/*!
+ * \fn
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 unigrid *ugrid_init(INT n, INT *nd, REAL *xo, REAL *xn)
 {
   INT j;
@@ -356,8 +416,20 @@ void ugrid_free(unigrid *ug)
   ug=NULL;
   return; 
 }
-void ugrid_transform(const INT n,unigrid *ug,	\
-		     REAL *xodst, REAL *xndst)
+/**********************************************************************/
+/*!
+ * \fn
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
+void ugrid_transform(const INT n,unigrid *ug,REAL *xodst, REAL *xndst)
 {
   /* transform the unform grid ug to be over a parallelepiped with
      corners xodst and xndst */
@@ -375,3 +447,4 @@ void ugrid_transform(const INT n,unigrid *ug,	\
   }
   return;
 }
+/*EOF*/

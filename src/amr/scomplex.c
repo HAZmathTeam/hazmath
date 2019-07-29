@@ -7,6 +7,19 @@
  *
  */
 #include "hazmath.h"
+/**********************************************************************/
+/*!
+ * \fn REAL chk_sign(const int it, const int nbrit)
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 REAL chk_sign(const int it, const int nbrit)
 {
 /*
@@ -18,7 +31,19 @@ REAL chk_sign(const int it, const int nbrit)
   if(it>nbrit) return 1e0;
   return -1e0;
 }
-/********************************************************************/
+/**********************************************************************/
+/*!
+ * \fn scomplex *haz_scomplex_init(INT n,INT ns, INT nv)
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 scomplex *haz_scomplex_init(INT n,INT ns, INT nv)
 {
   /* 
@@ -70,7 +95,19 @@ scomplex *haz_scomplex_init(INT n,INT ns, INT nv)
   sc->ns=ns;
   return sc;
 }
-/*******************************************************************/
+/**********************************************************************/
+/*!
+ * \fn void vol_simplex(INT dim, REAL fact, REAL *xf, REAL *volt, void *wrk)
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 void vol_simplex(INT dim, REAL fact, REAL *xf, REAL *volt, void *wrk)
 {
   /* 
@@ -93,7 +130,19 @@ void vol_simplex(INT dim, REAL fact, REAL *xf, REAL *volt, void *wrk)
   *volt=fabs(*volt)/fact;
   return;
 }
-/*******************************************************************/
+/**********************************************************************/
+/*!
+ * \fn scomplex *haz_scomplex_read(FILE *fp)
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 scomplex *haz_scomplex_read(FILE *fp)
 {
   INT i,ns,nv,n,dummy;
@@ -130,9 +179,20 @@ scomplex *haz_scomplex_read(FILE *fp)
   /*************************************************************/
   return sc;
 }
-/***********************************************************/
-void haz_scomplex_print(scomplex *sc, const INT ns0,\
-			const char *infor)
+/**********************************************************************/
+/*!
+ * \fn void haz_scomplex_print(scomplex *sc, const INT ns0,const char *infor)
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
+void haz_scomplex_print(scomplex *sc, const INT ns0,const char *infor)
 {
   // print simplicial complex, starting with ns0.
   INT i,j,in,in1;
@@ -168,7 +228,19 @@ void haz_scomplex_print(scomplex *sc, const INT ns0,\
   fflush(stdout);
   return;
 }
-/***********************************************************/
+/**********************************************************************/
+/*!
+ * \fn void haz_scomplex_free(scomplex *sc)
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 void haz_scomplex_free(scomplex *sc)
 {
   if(sc->gen) free(sc->gen);
@@ -185,7 +257,19 @@ void haz_scomplex_free(scomplex *sc)
   if(sc) free(sc);
   return;
 }
-/***********************************************************/
+/**********************************************************************/
+/*!
+ * \fn void faces_cnt(subscomplex *subsc)
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 void faces_cnt(subscomplex *subsc)
 {
   /* 
@@ -198,7 +282,6 @@ void faces_cnt(subscomplex *subsc)
      Such ordering (for sc->nbr) is needed for the refinement of an
 n-dimensional simplicial grid so it is also used here to construct
 "face-face", etc.
-
 */
   INT dim=subsc->nbig, dim1=dim+1;
   INT is,it,ir,di,dj,j,k;
@@ -242,7 +325,21 @@ n-dimensional simplicial grid so it is also used here to construct
   subsc->ns=nf;
   return;
 }
-/*******************************************************************/
+/**********************************************************************/
+/*!
+ * \fn void area_face(INT dim, REAL fact, REAL *xf, REAL *sn,  REAL
+ *	       *areas,REAL *volt,  void *wrk)
+ *
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 void area_face(INT dim, REAL fact, REAL *xf, REAL *sn,	\
 	       REAL *areas,REAL *volt,			\
 	       void *wrk)
@@ -296,7 +393,19 @@ void area_face(INT dim, REAL fact, REAL *xf, REAL *sn,	\
   //  print_full_mat(dim1,dim,sn,"snsn33");
   return;
 }
-/*******************************************************************/
+/**********************************************************************/
+/*!
+ * \fn void faces_attr(subscomplex *subsc)
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 void faces_attr(subscomplex *subsc)
 {
   INT dim=subsc->nbig, dim1=dim+1;
@@ -379,7 +488,19 @@ void faces_attr(subscomplex *subsc)
   //  haz_subscomplex_print(subsc,0,__FUNCTION__);
   return;
 }
-/*******************************************************************/
+/**********************************************************************/
+/*!
+ * \fn subscomplex *haz_subscomplex_init(scomplex *sc)
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 subscomplex *haz_subscomplex_init(scomplex *sc)
 {
   /* 
@@ -414,6 +535,19 @@ subscomplex *haz_subscomplex_init(scomplex *sc)
    read a simplicial complex (a mesh) in haz format and initialize the
    rest of the structure scomplex. 
 */
+/**********************************************************************/
+/*!
+ * \fn void haz_subscomplex_print(subscomplex *subsc, const INT ns0, const char *infor)
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 void haz_subscomplex_print(subscomplex *subsc, const INT ns0, const char *infor)
 {
   // print simplicial subcomplex, starting with ns0.
@@ -443,7 +577,19 @@ void haz_subscomplex_print(subscomplex *subsc, const INT ns0, const char *infor)
   }
   return;
 }
-/***********************************************************/
+/**********************************************************************/
+/*!
+ * \fn
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 void haz_subscomplex_free(subscomplex *subsc)
 {
   if(subsc->elf) free(subsc->elf);
@@ -454,7 +600,20 @@ void haz_subscomplex_free(subscomplex *subsc)
   if(subsc) free(subsc); 
   return;
 }
-/************************************************************/
+/**********************************************************************/
+/*!
+ * \fn static unsigned int cmp_simplex(INT n, INT sim1, INT sim2, INT
+ *			 *sv1, INT *sv2, INT *stos1, INT *stos2)
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 static unsigned int cmp_simplex(INT n, INT sim1, INT sim2,	\
 			 INT *sv1, INT *sv2, INT *stos1, INT *stos2)
 {
@@ -520,6 +679,19 @@ static unsigned int cmp_simplex(INT n, INT sim1, INT sim2,	\
     return 1;
   }
 }
+/**********************************************************************/
+/*!
+ * \fn void find_nbr(INT ns,INT nv,INT n,INT *sv,INT *stos)
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 void find_nbr(INT ns,INT nv,INT n,INT *sv,INT *stos)
 {
   // find neighboring list
@@ -598,7 +770,20 @@ void find_nbr(INT ns,INT nv,INT n,INT *sv,INT *stos)
     //  }
     return;
 }
-/***********************************************************/
+/**********************************************************************/
+/*!
+ * \fn INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew,INT
+ *		    ibnew,INT csysnew,INT nsnew, INT nvnew)
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew,INT ibnew,INT csysnew, \
 		    INT nsnew, INT nvnew)
 {
@@ -661,7 +846,19 @@ INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew,INT ibnew,INT csysnew, \
   sc->nv=nvnew;
   return 0;
 }
-/*******************************************************************/
+/**********************************************************************/
+/*!
+ * \fn INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
+ *
+ * \brief
+ *
+ * \param 
+ *
+ * \return
+ *
+ * \note
+ *
+ */
 INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
 {
   INT n=sc->n, ns=sc->ns,nv=sc->nv;
@@ -877,4 +1074,4 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
   }
   return 0;
 }
-
+/*EOF*/
