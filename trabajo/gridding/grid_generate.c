@@ -23,7 +23,7 @@ INT main(INT argc, char **argv)
   //  fp=HAZ_fopen("3d_cube.input","r"); 
   input_grid *g=parse_input_grid(fp);
   fclose(fp);
-  input_grid_print(g);
+  //  input_grid_print(g);
   scomplex *sc=generate_grid(g);
   fprintf(stdout,"\n\n%%Writing a vtk file...\n");
   vtkw("newmesh.vtu",sc,0,0,1.);
