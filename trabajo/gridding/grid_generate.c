@@ -20,8 +20,9 @@ INT main(INT argc, char **argv)
 {
   //  INT i=-1;
   FILE *fp=stdin;     
-  //  fp=HAZ_fopen("polar0.input","r"); 
+  //  fp=HAZ_fopen("3d_cube.input","r"); 
   input_grid *g=parse_input_grid(fp);
+  fclose(fp);
   //  input_grid_print(g);
   scomplex *sc=generate_grid(g);
   fprintf(stdout,"\n\n%%Writing a vtk file...\n");
