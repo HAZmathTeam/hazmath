@@ -136,6 +136,11 @@ void input_grid_example_file(input_grid *g)
 {
   // prints what was read from the example input.
   INT i,j,dim=g->dim;
+  fprintf(stderr,"\n%s\n%s","%%%%%% An *example of an input file* follows.",
+	  "For a lattice grid on the unit cube in 3D:\nCopy and paste in a file the text between %=== and %---):");
+  fprintf(stderr,"\n%%%s%s",						\
+	  "===================================================",	\
+	  "===================================================");
   fprintf(stdout,"\ntitle{%s}",g->title);
   fprintf(stdout,"\ndimension{%d}",g->dim);
   fprintf(stdout,"\ndir_grid{%s}",g->dgrid);
@@ -196,7 +201,10 @@ void input_grid_example_file(input_grid *g)
     for(j=0;j<nvface1;j++)
       fprintf(stdout,"%d ",g->mfaces[i*nvface1+j]);
   }
-  fprintf(stdout,"}\n");fflush(stdout);  
+  fprintf(stdout,"}");fflush(stdout);  
+  fprintf(stderr,"\n%%%s%s\n",						\
+	  "---------------------------------------------------",	\
+	  "---------------------------------------------------");
   return;
 }
 /**********************************************************************/
@@ -649,7 +657,8 @@ static INT check_input(char * file2str, input_grid *g,	\
   input_grid_arrays(g);
   /**/
   status=read_data(clndata,g);
-  /*FREE*/  
+  /*FREE*/
+  free(lengths);
   free(clndata);
   return status;
 }
@@ -673,7 +682,7 @@ input_grid *parse_input_grid(FILE *the_file)
     if(ll>0) notes[k][ll-1]='\0'; else notes[k][0]='\0';
   }
   /* get all substrings */
-  size_t *lengths;
+  //  size_t *lengths;
   file2str = strndup(make_string_from_file(the_file, &length_string), (size_t )((MAX_CHARS_INPUT_GRID_FILE )+1));
   length_string=strlen(file2str);
   file2str=realloc(file2str,(length_string+1)*sizeof(char));
@@ -707,19 +716,12 @@ input_grid *parse_input_grid(FILE *the_file)
                    "   Consult examples of input files and re-run. ***");
     exit(12);
   }  else {
-    fprintf(stderr,"\n\n%s\n%s\n%s\n%s","%%%%%% ****ERROR in input file. One of the following",
+    fprintf(stderr,"\n\n%s\n%s\n%s\n","%%%%%% ****ERROR in input file. One of the following",
 	    "%%%%%%     (dimension), (data_macroelements), (data_vertices)",
-	    "%%%%%% could not be read or is incorrectly entered.",
-	    "%%%%%% Please follow the example of an input file below (enclosed between %=== and %---):");
-    fprintf(stderr,"\n%%%s%s\n",					\
-	    "===================================================",	\
-	    "===================================================");
+	    "%%%%%% could not be read or is incorrectly entered.");
     //    if(g->print_level>3)
     //      input_grid_print(g);
     input_grid_example_file(g);
-    fprintf(stderr,"\n%%%s%s\n",					\
-	    "---------------------------------------------------",	\
-	    "---------------------------------------------------");
     exit(16);
     //    return g;
   }
