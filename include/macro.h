@@ -4,6 +4,7 @@
 //
 //  Created by Hu, Xiaozhe on 1/10/15.
 //  Modified 20190327 (ltz)
+//  Modified 20190728 (ltz)
 //
 
 #ifndef _macro_h
@@ -14,6 +15,7 @@
 */
 #define PI 3.14159265358979323851281e+00
 #define EXP_OF_1  2.71828182845904523542817e+00
+#define MAX_CHARS_INPUT_GRID_FILE   ((1<<15) - 1)
 /**
  * \brief Some global constants
  */
