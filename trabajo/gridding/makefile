@@ -7,6 +7,7 @@ SRCDIR = .
 ##
 OLDGRID = oldgridmake
 GRID = grid_generate
+AMR = amr
 
 INCLUDE = .
 LIBS = 
@@ -30,11 +31,17 @@ HEADERS = $(INCLUDE)/grid_defs.h \
 	$(INCLUDE)/grid_params.h
 
 EXE = $(GRID).$(EXTENSION)
+EXEamr = $(AMR).$(EXTENSION)
 EXEold = $(OLDGRID).$(EXTENSION)
 
 # Source and Object Files
 OBJ =	$(SRCDIR)/$(GRID).o
 ### 	$(SRCDIR)/macroelements.o	$(SRCDIR)/input_grid.o	$(SRCDIR)/amr_coords_z.o 
+
+OBJamr =	$(SRCDIR)/$(AMR).o \
+		$(SRCDIR)/new_refining.o \
+		$(SRCDIR)/new_marking.o \
+		$(SRCDIR)/features.o
 
 OBJold =	$(SRCDIR)/$(OLDGRID).o \
 		$(SRCDIR)/new_refining.o \
@@ -42,10 +49,13 @@ OBJold =	$(SRCDIR)/$(OLDGRID).o \
 		$(SRCDIR)/features.o
 .PHONY:  all
 
-all: $(EXE) $(EXEold)	
+all: $(EXE) $(EXEold)	$(EXEamr)
 
 $(EXE):		$(OBJ)
 		$(CC) $(LDFLAGS)  $(OBJ) -o $@ $(LIBS)
+
+$(EXEamr):	$(OBJamr)
+		$(CC) $(LDFLAGS)  $(OBJamr) -o $@ $(LIBS)
 
 $(EXEold):	$(OBJold)
 		$(CC) $(LDFLAGS)  $(OBJold) -o $@ $(LIBS)
