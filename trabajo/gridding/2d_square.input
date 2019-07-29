@@ -60,6 +60,6 @@ data_macrofaces{0 1   1
 		   }
 
 %%%%%%%%%%%%%%AMR %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-num_refinements{1}
+num_refinements{4}
 
 err_stop_refinement{        -1.e-10        }
