@@ -22,7 +22,7 @@ INT main(INT argc, char **argv)
   input_grid *g=parse_input_grid(fp);
   fclose(fp);
   //  input_grid_print(g);
-  scomplex *sc=generate_grid(g);
+  scomplex *sc=generate_initial_grid(g);
   fprintf(stdout,"\n\n%%Writing a vtk file...\n");
   vtkw("newmesh.vtu",sc,0,0,1.);
   /*FREE*/

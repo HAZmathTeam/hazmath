@@ -11,7 +11,7 @@ file_grid{2DL.haz}
 file_vtu{2DL.vtu}
 
 %%%%%%%%%%%%%%AMR %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-num_refinements{6}
+num_refinements{16}
 err_stop_refinement{        -1.e-10        }
 
 
