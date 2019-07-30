@@ -39,9 +39,9 @@ OBJ =	$(SRCDIR)/$(GRID).o
 ### 	$(SRCDIR)/macroelements.o	$(SRCDIR)/input_grid.o	$(SRCDIR)/amr_coords_z.o 
 
 OBJamr =	$(SRCDIR)/$(AMR).o \
-		$(SRCDIR)/new_refining.o \
-		$(SRCDIR)/new_marking.o \
-		$(SRCDIR)/features.o
+		$(SRCDIR)/refining.o \
+		$(SRCDIR)/marking.o 
+###		$(SRCDIR)/features.o
 
 OBJold =	$(SRCDIR)/$(OLDGRID).o \
 		$(SRCDIR)/new_refining.o \
