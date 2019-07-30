@@ -12,9 +12,8 @@ INCLUDE =
 LIBS =
 
 # Switch between debug or optimized
-CFLAGS = -g
-FFLAGS = -g
+CFLAGS = -O
 
-WITH_SUITESPARSE=1
+WITH_SUITESPARSE=0
 
 sinclude ../examples.mk
