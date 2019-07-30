@@ -39,7 +39,6 @@ BEGIN {
   print "#include \"param.h\""
   print "#include \"graphs.h\""
   print "// Special Includes"
-  print "#include \"fortran_headers.h\""
   print "#if WITH_MATLAB"
   print "#include \"mex.h\""
   print "#endif"
