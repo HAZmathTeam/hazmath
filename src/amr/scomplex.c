@@ -35,7 +35,8 @@ REAL chk_sign(const int it, const int nbrit)
 /*!
  * \fn scomplex *haz_scomplex_init(INT n,INT ns, INT nv)
  *
- * \brief
+ * \brief Initialize simplicial complex in dimension n with ns
+ *        simplices and nv vertices.
  *
  * \param 
  *
@@ -1073,5 +1074,86 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
         haz_scomplex_print(sc,-10,"\nEND OF haz_refine\n");
   }
   return 0;
+}
+/******************************************************************/
+/*!
+ * \fn void refine(const INT ref_levels, scomplex *sc,ivector *marked)
+ *
+ * \brief Refines a simplicial complex.
+ *
+ * \param sc: scomplex containing the whole hierarchy of refinements
+ *
+ * \param marked: input ivector containing all simplices from the
+ *               finest level which are marked for refinement; If
+ *               marked is null then uniformly renfines the grid
+ *               ref_levels.
+ *
+ *
+ * \param ref_levels number of refinements. If marked is not null,
+ * then this is ignored and only one refinement is done;
+ *
+ * \return void
+ *
+ */
+void refine(const INT ref_levels, scomplex *sc,ivector *marked)
+{
+  if(ref_levels<=0) return;
+  /*somethind to be done*/
+  INT j=-1,i,nsold,print_level=0,nsfine=-1;
+  if(!sc->level){
+    /* sc->level this is set to 0 in haz_scomplex_init */
+    /* form neighboring list on the coarsest level */
+    find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
+    //    haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
+    INT *wrk=calloc(5*(sc->n+2),sizeof(INT));
+    /* construct bfs tree for the dual graph */
+    abfstree(0,sc,wrk,print_level);
+    //    haz_scomplex_print(sc,0,__FUNCTION__);fflush(stdout);
+    //    exit(100);
+    if(wrk) free(wrk);
+  }
+  if((!marked)){
+    // just refine everything that was not refined:
+    for (i=0;i<ref_levels;i++){
+      nsold=sc->ns;    
+      for(j = 0;j < nsold;j++)
+	if((sc->child0[j]<0||sc->childn[j]<0))
+	  haz_refine_simplex(sc, j, -1);
+      sc->level++;
+    }
+    for(j=0;j<sc->ns;j++) sc->marked[j]=TRUE; // not sure we need this.
+    // we are done here;
+    return;
+  } else if(!sc->level){
+    // we have not refined anything yet and marked is set, so 
+    if((marked->row)&&(marked->val))
+      for(j=0;j<sc->ns;j++) sc->marked[j]=marked->val[j];
+    else {
+      //      issue a warning and mark everything for refinement;
+      for(j=0;j<sc->ns;j++) sc->marked[j]=TRUE;
+    }
+  } else {
+    /* we come here if we have refined few times and in such case we
+       need to re-mark our simplices on the finest level using the
+       values of marked at abs(sc->child0[j]+1) which were set from
+       the previous visit here */
+    for(j=0;j<sc->ns;j++) {
+      if(sc->child0[j]<0||sc->childn[j]<0)
+	nsfine=abs(sc->child0[j]+1);
+      // if(nsfine>sc->ns) issue an error and exit;
+	sc->marked[j]=marked->val[nsfine];
+    }
+  }
+  /* 
+   * refine everything that is marked on the finest level and is
+   * not yet refined: (marked>0 and child<0)
+   */
+  nsold=sc->ns;
+  for(j = 0;j < nsold;j++)
+    if(sc->marked[j] && (sc->child0[j]<0||sc->childn[j]<0))
+      haz_refine_simplex(sc, j, -1);
+  sc->level++;
+  //  fprintf(stdout,".%d.",sc->level);
+  //  fprintf(stdout,"\n");
 }
 /*EOF*/
