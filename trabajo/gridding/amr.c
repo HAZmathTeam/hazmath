@@ -13,14 +13,14 @@ INT main(INT   argc,   char *argv[])
   //  fp=HAZ_fopen("3d_cube.input","r"); 
   input_grid *g=parse_input_grid(fp);
   fclose(fp);
-  //  input_grid_print(g);
+  //    input_grid_print(g);
+  //    exit(44);
   scomplex *sc=generate_initial_grid(g);
   scomplex *sctop=NULL;
-  INT ref_levels=g->nref, amr_marking_type,j; 
+  INT ref_levels=g->nref, amr_marking_type=g->mark_type,j; 
   dvector *solfem=NULL,*estimator=NULL;
   ivector *marked=NULL;
   void *all=NULL;
-  amr_marking_type=1;
   if(amr_marking_type){
     // all here can pass data around. so we make it 4 dvectors worth and one ivector (as an example)
     all=(void *)malloc(5*sizeof(dvector)+sizeof(ivector)); 
