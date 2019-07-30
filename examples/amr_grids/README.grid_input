@@ -1,4 +1,6 @@
-%%%
+
+Below we descri
+
 
 %%%================================================================
 %%% NUMBERING OF VERTICES DESCRIBING A MACROELEMENT: The vertices
@@ -9,6 +11,7 @@
 %%% macroelement vertices are: (l[0]...l[(2^d-1)]). Such macroelement
 %%% is mapped to the cube with coordinates the binary representation
 %%% of [0...(2^d-1)] i.e. in coordinates,
+
 %%% (x[0]...x[2^d-1])-->[(0,..,0)...(1,...,1)]. We call the numbering
 %%% of the macroelement vertices consistent if each k-dimansional face
 %%% of the macroelement is mapped to a k-dimensional face in the unit
