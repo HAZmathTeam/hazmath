@@ -140,5 +140,5 @@ err_stop_refinement{        -1.e-10        }
 %%%  marking strategy as in the examples given in the file
 %%%  solve_estimate_mark.h
 
-amr_marking_type={0}
+amr_marking_type{1}
 
