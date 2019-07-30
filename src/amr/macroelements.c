@@ -1016,7 +1016,7 @@ void fix_grid(macrocomplex *mc,		\
 }
 /**********************************************************************/
 /*!
- * \fn scomplex *generate_grid(input_grid *g0) 
+ * \fn scomplex *generate_initial_grid(input_grid *g0) 
  *
  * \brief From the data from input_grid g0 generates the global
  *        simplicial complex with the grid based on the macroelements
@@ -1029,7 +1029,7 @@ void fix_grid(macrocomplex *mc,		\
  * \note
  *
  */
-scomplex *generate_grid(input_grid *g0)
+scomplex *generate_initial_grid(input_grid *g0)
 {
   /* 
      From an input grid loops over the macroelements and generates
