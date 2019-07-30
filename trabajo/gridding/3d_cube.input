@@ -8,10 +8,13 @@ dimension{3}   % spatial dimension in which the grid has to be generated
 print_level{0}	% how much information to print out: 0 little | >0 more
 %---------------%
 
-%%% files: should exist as
-%%% 	 directories writeable by the user
-%%% vtu files for plotting follow the same convention.
+num_refinements{6}
 
+refinement_type{0}
+
+err_stop_refinement{        -1.e-10        }
+%%% files:  directories should be writeable by the user
+%%% vtu files for plotting follow the same convention.
 %---------------%
 dir_grid{./}
 dir_vtu{./}
@@ -85,11 +88,6 @@ data_coordsystems{0 0. 0.  0. 0}
 
 
 %%%%%%%%%%%%%%AMR not used yet. %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-num_refinements{1}
-
-refinement_type{0}
-
-err_stop_refinement{        -1.e-10        }
 
 
 
