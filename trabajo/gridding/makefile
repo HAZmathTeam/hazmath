@@ -5,7 +5,6 @@
 HAZDIR = ../..
 SRCDIR = .
 ##
-GRID = grid_generate
 AMR = amr
 
 INCLUDE = .
@@ -24,29 +23,19 @@ HAZLIB = $(HAZDIR)/lib
 
 HAZINCLUDE = $(HAZDIR)/include
 
-LIBS += -L$(HAZLIB) -lhazmath -lm -lgfortran #-lblas -llapack -lgfortran
+LIBS += -L$(HAZLIB) -lhazmath -lm #-lblas -llapack -lgfortran
 
-HEADERS = $(INCLUDE)/grid_defs.h \
-	$(INCLUDE)/grid_params.h
+HEADERS = $(INCLUDE)/solve_estimate_mark.h
 
-EXE = $(GRID).$(EXTENSION)
 EXEamr = $(AMR).$(EXTENSION)
 
 # Source and Object Files
-OBJ =	$(SRCDIR)/$(GRID).o
-### 	$(SRCDIR)/macroelements.o	$(SRCDIR)/input_grid.o	$(SRCDIR)/amr_coords_z.o 
-
-OBJamr =	$(SRCDIR)/$(AMR).o \
-		$(SRCDIR)/refining.o \
-		$(SRCDIR)/marking.o 
+OBJamr =	$(SRCDIR)/$(AMR).o
 ###		$(SRCDIR)/features.o
 
 .PHONY:  all
 
 all: $(EXE) $(EXEold)	$(EXEamr)
-
-$(EXE):		$(OBJ)
-		$(CC) $(LDFLAGS)  $(OBJ) -o $@ $(LIBS)
 
 $(EXEamr):	$(OBJamr)
 		$(CC) $(LDFLAGS)  $(OBJamr) -o $@ $(LIBS)
