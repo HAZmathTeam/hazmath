@@ -128,6 +128,7 @@ void input_grid_print(input_grid *g)
   fprintf(stdout,"\nprint_level=%d",g->print_level);fflush(stdout);
   fprintf(stdout,"\nnum_refinements=%d",g->nref);fflush(stdout);
   fprintf(stdout,"\nrefinement_type=%d",g->ref_type);fflush(stdout);
+  fprintf(stdout,"\namr_marking_type=%d",g->mark_type);fflush(stdout);
   fprintf(stdout,"\nerr_stop_amr=%.3g",g->err_stop);fflush(stdout);
   /*ARRAYS*/
   fprintf(stdout,"\n\nnum_coordsystems=%d",g->ncsys);
@@ -209,6 +210,7 @@ void input_grid_example_file(input_grid *g)
   fprintf(stdout,"\nprint_level{%d}",g->print_level);
   fprintf(stdout,"\nnum_refinements{%d}",g->nref);
   fprintf(stdout,"\nrefinement_type{%d}",g->ref_type);
+  fprintf(stdout,"\namr_marking_type{%d}",g->mark_type);
   fprintf(stdout,"\nerr_stop_amr{%.3g}",g->err_stop);
   //
   /*COORDSYSTEMS*/
@@ -404,8 +406,9 @@ static INT  read_data(char **clndata,input_grid *g)
   /* num_macrofaces=clndata[15]; */
   /* num_refinements=clndata[16]; */
   /* refinement_type=clndata[17]; */
-  /* err_stop_refinement=clndata[18]; */
-  /* print_level=clndata[19]; */
+  /* amr_marking_type=clndata[18]; */
+  /* err_stop_refinement=clndata[19]; */
+  /* print_level=clndata[20]; */
   //  
   INT i,count,j,status=0;
   void *mdata;
@@ -822,11 +825,14 @@ static INT check_input(char * file2str, input_grid *g,	\
   iread[17]=sscanf(clndata[17],"%d",&g->ref_type);//
   if(iread[17]<0)g->ref_type=-1;//ok
   //
-  iread[18]=sscanf(clndata[18],"%lg",&g->err_stop);//
-  if(iread[18]<0)g->err_stop=-1e-10;//ok
+  iread[18]=sscanf(clndata[18],"%d",&g->mark_type);//
+  if(iread[18]<0)g->mark_type=0;//ok
   //
-  iread[19]=sscanf(clndata[19],"%hd",&g->print_level);//
-  if(iread[19]<0)g->print_level=0;//ok
+  iread[19]=sscanf(clndata[19],"%lg",&g->err_stop);//
+  if(iread[19]<0)g->err_stop=-1e-10;//ok
+  //
+  iread[20]=sscanf(clndata[20],"%hd",&g->print_level);//
+  if(iread[20]<0)g->print_level=0;//ok
   /*FREE*/  
   free(iread);
   /*FIX*/
