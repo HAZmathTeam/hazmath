@@ -39,11 +39,12 @@
     "num_macrofaces{",				\
     "num_refinements{",				\
     "refinement_type{",				\
+    "amr_marking_type{",			\
     "err_stop_refinement{",			\
     "print_level{"
 #endif
 #ifndef DEFAULT_GRID_DATA_
-#define DEFAULT_GRID_DATA_ "title{Grid on a cube (-1,1)x(-1,1)x(-1,1);5x4x3 lattice}dimension{3}print_level{0}  dir_grid{./}dir_vtu{./}file_grid{mesh3d.haz}file_vtu{mesh3d.vtu} num_edges{3}data_edges{0 1 3  0 2 4 0 4 5}num_vertices{8} data_vertices{0 0 0. 0. 0. 1 0 0. 0. 1. 2 0 0. 1. 0. 3 0 0. 1. 1. 4 0 1. 0. 0. 5 0 1. 0. 1. 6 0 1. 1. 0. 7 0 1. 1. 1.}  num_macroelements{1}  data_macroelements{0 1 2 3 4 5 6 7 -1}num_macrofaces{6} data_macrofaces{0 1 2 3 1 0 4 1 5 1 4 7 5 6 1 2 6 3 7 1 0 4 2 6 1 1 5 7 3 1}num_coordsystems{1}data_coordsystems{0 0. 0. 0. 0}num_refinements{0}refinement_type{0}err_stop_refinement{-1.e-10}\0"
+#define DEFAULT_GRID_DATA_ "title{Grid on a cube (-1,1)x(-1,1)x(-1,1);5x4x3 lattice}dimension{3}print_level{0}  dir_grid{./}dir_vtu{./}file_grid{mesh3d.haz}file_vtu{mesh3d.vtu} num_edges{3}data_edges{0 1 3  0 2 4 0 4 5}num_vertices{8} data_vertices{0 0 0. 0. 0. 1 0 0. 0. 1. 2 0 0. 1. 0. 3 0 0. 1. 1. 4 0 1. 0. 0. 5 0 1. 0. 1. 6 0 1. 1. 0. 7 0 1. 1. 1.}  num_macroelements{1}  data_macroelements{0 1 2 3 4 5 6 7 -1}num_macrofaces{6} data_macrofaces{0 1 2 3 1 0 4 1 5 1 4 7 5 6 1 2 6 3 7 1 0 4 2 6 1 1 5 7 3 1}num_coordsystems{1}data_coordsystems{0 0. 0. 0. 0}num_refinements{0}refinement_type{0}err_stop_refinement{-1.e-10}{amr_marking_type{0}\0"
 #endif
 /* defaults to unit cube in 3d and criss-cross grid 3x4x5 . */
 //INT max_chars_input_grid_file=((1<<15) - 1); //maxcount=(1<<15-1);
@@ -133,7 +134,9 @@ typedef struct {
 	     matter */
   INT *mfaces;   /* faces and boundary codes of faces */ 
   INT nref;   /* number of refinements (AMR)*/
-  INT ref_type;   /* refinement type -2,-1,0,1,2,3,4,... */ 
+  INT ref_type;   /* INIT refinement type -2,-1,0,1,2,3,4; which way
+		     the edges should point in initial grid: left, right forth, back, etc */ 
+  INT mark_type;   /* AMR marking type (0)uniform; nonzero: user defined.. */ 
   REAL err_stop;   /* stop tolerance for AMR */ 
 }input_grid; /** Input GRID parameters */
 /*************************************************************/
