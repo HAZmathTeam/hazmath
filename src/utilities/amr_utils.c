@@ -460,11 +460,81 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
   icsr_free(neib);
   return;
 }
+/******************************************************************/
+/*!
+ * \fn scomplex *scfinest(scomplex *sc)
+ *
+ * \brief 
+ *
+ * \param sc: scomplex containing the whole hierarchy of refinements
+ *
+ * \return the simplicial complex corresponding to all simplices which
+ *         were not refined.
+ *
+ */
+scomplex *scfinest(scomplex *sc)
+{
+  INT ns,i=0,j=-10,k=-10,n=sc->n,n1=sc->n+1,nv=sc->nv;
+  scomplex *sctop=NULL;
+  /*  
+      store the finest mesh in and return the sc structure. save the
+      correspondence between elements in an sc->child0[] as a negative
+      number.  sc has all the hierarchy, on return sctop only has
+      only the final mesh.
+  */  
+  /*firt step: compute the number of simplices on the final level */  
+  ns=0;
+  for (j=0;j<sc->ns;j++){
+    /* On the last grid are all simplices that were not refined,
+       so these are the ones for which child0 and childn are not
+       set. */
+    if(sc->child0[j]<0 || sc->childn[j]<0)ns++;
+  }
+  /*allocate the scomplex for the finest level*/
+  sctop=haz_scomplex_init(n,ns,nv);
+  /* we dont need bunch of these, at least for assembly, so we free them*/
+  free(sctop->parent);sctop->parent=NULL;
+  free(sctop->childn);sctop->childn=NULL;
+  free(sctop->child0);sctop->child0=NULL;
+  ns=0;
+  for (j=0;j<sc->ns;j++){
+    if(sc->child0[j]<0 || sc->childn[j]<0){
+      sc->child0[j]=-(ns+1); //save this for future reference;
+      for (k=0;k<n1;k++) {
+	sctop->nodes[ns*n1+k]=sc->nodes[j*n1+k];
+	sctop->nbr[ns*n1+k]=sc->nbr[j*n1+k];
+      }
+      sctop->flags[ns]=sc->flags[j];
+      sctop->marked[ns]=sc->marked[j];// making sure nothing is marked on the top for refinement;
+      ns++;
+    }
+  }
+  //  if(sctop->ns!=ns) {
+    /*    issue an error here and stop */
+  //  }
+  /* connected components, these should not change */
+  sctop->cc=sc->cc; 
+  sctop->bndry_cc=sc->bndry_cc; 
+  /* copy the boudary codes and the coordinates*/
+  for(i=0;i<nv;i++){
+    sctop->bndry[i]=sc->bndry[i];
+    for(j=0;j<n;j++)
+      sctop->x[i*n+j]=sc->x[i*n+j];
+  }
+  free(sctop->csys);sctop->csys=NULL;
+  free(sctop->fval);sctop->fval=NULL;
+  /* for(i=0;i<nv;i++){ */
+  /*   sctop->csys[i]=sc->csys[i];  */
+  /*   sctop->fval[i]=sc->fval[i];  */
+  /* } */
+  return sctop;
+}
 /**********************************************************************/
 /*!
  * \fn void scfinalize(scomplex *sc)
  *
- * \brief
+ * \brief Remove all hierachy and make sc to represent only the final
+ *        grid.
  *
  * \param 
  *
@@ -475,7 +545,6 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
  */
 void scfinalize(scomplex *sc)
 {
-  /* copy the final grid at position 1*/
   INT ns,j=-10,k=-10,n=sc->n,n1=sc->n+1;
   /*  
       store the finest mesh in sc structure. 
@@ -789,5 +858,42 @@ cube2simp *cube2simplex(INT dim)
   }
   //  print_full_mat_int(c2s->nf,c2s->nvface,c2s->faces,"UCubef");
   return c2s;
+}
+/******************************************************************/
+/*!
+ * \fn INT dvec_set_amr(const REAL value, scomplex *sc, dvector *pts,
+ * dvector *toset)
+ *
+ * \brief given a dvector of size sc->ns sets the values of a vector
+ *        to equal value at every simplex that is on the last level of
+ *        refinement (not refined simplex) and contains a point from
+ *        dvector pts (note that the size of pts->val should be
+ *        sc->n*pts->row)
+ *
+ * \param dvector toset; 
+ *
+ * \return number of simplices where the value was assigned
+ *
+ */
+INT dvec_set_amr(const REAL value, scomplex *sc, dvector *pts, REAL *toset)
+{
+  INT j,k,jpts,n=sc->n,n1=sc->n+1,ns=sc->ns;
+  REAL *pval0=NULL; /*place holder*/
+  INT *scnjn=NULL; /*place holder*/
+  k=0;
+  for(j=0;j<ns;j++) {
+    scnjn = sc->nodes+j*n1; /* beginning of local vertex numbering for
+			       simplex j.*/
+    for(jpts=0;jpts<pts->row;jpts++){
+      pval0=pts->val+jpts*n; 
+      if(!xins(n,scnjn,sc->x,pval0)){
+	//	fprintf(stdout,"\nel=%d, found: %d",j,jpts);
+	toset[j]=value;
+	k++;
+	break;
+      }
+    }
+  }
+  return k;
 }
 /*EOF*/
