@@ -5,7 +5,6 @@
 HAZDIR = ../..
 SRCDIR = .
 ##
-OLDGRID = oldgridmake
 GRID = grid_generate
 AMR = amr
 
@@ -32,7 +31,6 @@ HEADERS = $(INCLUDE)/grid_defs.h \
 
 EXE = $(GRID).$(EXTENSION)
 EXEamr = $(AMR).$(EXTENSION)
-EXEold = $(OLDGRID).$(EXTENSION)
 
 # Source and Object Files
 OBJ =	$(SRCDIR)/$(GRID).o
@@ -43,10 +41,6 @@ OBJamr =	$(SRCDIR)/$(AMR).o \
 		$(SRCDIR)/marking.o 
 ###		$(SRCDIR)/features.o
 
-OBJold =	$(SRCDIR)/$(OLDGRID).o \
-		$(SRCDIR)/new_refining.o \
-		$(SRCDIR)/new_marking.o \
-		$(SRCDIR)/features.o
 .PHONY:  all
 
 all: $(EXE) $(EXEold)	$(EXEamr)

@@ -19,4 +19,4 @@ FFLAGS = -g
 
 WITH_SUITESPARSE=1
 
-sinclude ../examples.mk
+sinclude solve.mk
