@@ -87,13 +87,9 @@ num_coordsystems{1}
 data_coordsystems{0 0. 0.  0. 0}
 
 
-%%%%%%%%%%%%%%AMR not used yet. %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
 %%% marking type: 0 everything is marked; not zero can be user defined
 %%%  marking strategy as in the examples given in the file
 %%%  solve_estimate_mark.h
 
-amr_marking_type={0}
+amr_marking_type{1}
 
