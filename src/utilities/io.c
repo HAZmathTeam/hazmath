@@ -1291,7 +1291,7 @@ void hazw(char *nameout,scomplex *sc, const int shift)
   return;
 }
 /* WRITE mesh on VTU file*/
-void vtkw(const char *namevtk, scomplex *sc, const INT shift, const REAL zscale)
+void vtkw(char *namevtk, scomplex *sc, const INT shift, const REAL zscale)
 {
   if((sc->n!=2)&&(sc->n!=3))
     fprintf(stderr,"\n*** ERR(%s; dim=%d): NO vtk files for dim .eq. 1 or (dim .gt. 3).\n",__FUNCTION__,sc->n);
