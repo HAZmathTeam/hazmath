@@ -62,9 +62,9 @@ INT main(INT   argc,   char *argv[])
   //  shrink the sc to hold the finest grid only
   scfinalize(sc);
   // write the output mesh file:    
-  //  hazw(g->fgrid,sc,0,0);
-  fprintf(stdout,"\n\n%%Writing a vtk on file...%s\n",g->fvtu);
-  vtkw(g->fvtu,sc,0,0,1.);
+  hazw(g->fgrid,sc,0);
+  //  fprintf(stdout,"\n\n%%Writing a vtk on file...%s\n",g->fvtu);
+  vtkw(g->fvtu,sc,0,1.);
   /*FREE*/
   input_grid_free(g);
   free(all);
