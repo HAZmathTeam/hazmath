@@ -10,7 +10,7 @@
 INT main(INT   argc,   char *argv[])
 {
   FILE *fp=stdin;     
-  //  fp=HAZ_fopen("3d_cube.input","r"); 
+  //  fp=HAZ_fopen("2d_square.input","r"); 
   input_grid *g=parse_input_grid(fp);
   fclose(fp);
   //    input_grid_print(g);
@@ -59,14 +59,14 @@ INT main(INT   argc,   char *argv[])
     // refine ref_levels;
     refine(ref_levels,sc,NULL);
   }
-  input_grid_free(g);
   //  shrink the sc to hold the finest grid only
   scfinalize(sc);
   // write the output mesh file:    
   //  hazw(g->fgrid,sc,0,0);
-  fprintf(stdout,"\n\n%%Writing a vtk file...\n");
-  vtkw("newamr.vtu",sc,0,0,1.);
+  fprintf(stdout,"\n\n%%Writing a vtk on file...%s\n",g->fvtu);
+  vtkw(g->fvtu,sc,0,0,1.);
   /*FREE*/
+  input_grid_free(g);
   free(all);
   haz_scomplex_free(sc);
   return 0;
