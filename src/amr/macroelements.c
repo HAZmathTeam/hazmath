@@ -543,7 +543,7 @@ void scomplex_merge(scomplex **sc0,			\
   sc->x=(REAL *)realloc(sc->x,nv*(sc->n)*sizeof(REAL));
   sc->vols=(REAL *)realloc(sc->vols,ns*sizeof(REAL));
   sc->fval=(REAL *)realloc(sc->fval,nv*sizeof(REAL)); // function values at every vertex; not used in general;
-  fprintf(stdout,"\nnsall=%d,nvall=%d",nsall,nvall);fflush(stdout);
+  //  fprintf(stdout,"\nnsall=%d,nvall=%d",nsall,nvall);fflush(stdout);
   for(kel=1;kel<g0->nel;kel++){
     ns0=sc->ns;nv0=sc->nv;
     for (ii = 0;ii<sc0[kel]->ns;ii++) {
@@ -576,7 +576,7 @@ void scomplex_merge(scomplex **sc0,			\
     sc->ns+=sc0[kel]->ns;
     haz_scomplex_free(sc0[kel]);
   }
-   fprintf(stdout,"\nsc->nv=%d,sc->ns=%d; nvall=%d,nsall=%d\n",sc->nv,sc->ns,nvall,nsall);fflush(stdout);
+  //   fprintf(stdout,"\nsc->nv=%d,sc->ns=%d; nvall=%d,nsall=%d\n",sc->nv,sc->ns,nvall,nsall);fflush(stdout);
   return;
 }
 /**********************************************************************/
@@ -1068,9 +1068,7 @@ scomplex *generate_initial_grid(input_grid *g0)
   g=malloc(1*sizeof(input_grid));
   /**/
   g->title=g0->title;
-  g->dgrid=g0->dgrid;
   g->fgrid=g0->fgrid;
-  g->dvtu=g0->dvtu;
   g->fvtu=g0->fvtu;
   g->print_level=g0->print_level;
   g->ref_type=g0->ref_type;

@@ -20,23 +20,17 @@ refinement_type{1}
 
 amr_marking_type{1}
 
- num_refinements{15}
+num_refinements{15}
 
 err_stop_refinement{        -1.e-10        }
 
 
 %---------------%
-% files: output is in dir_grid/** where ** is nD for spatial dimension n.
-%  	 the dir_grid/1D, dir_grid/2D ... should exist as
-% 	 directories writeable by the user
-% vtu files for plotting follow the same convention.
+% files(grid and vtu): should exist as  and be writeable by the user
+% vtu files for plotting follow the same convention. Spaces in names should be escaped. 
 %---------------%
-
-dir_grid{grids/}
-dir_vtu{grids_vtu/}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-file_grid{unitCUBE_n17.haz}
-file_vtu{unitCUBE_n17.vtu}
+file_grid{grid vtu/fichera.grid}
+file_vtu{grid vtu/fichera.vtu}
 
 %---------------%
 % coordinate systems: Each has coordinates of the origin o[0:dim-1]
