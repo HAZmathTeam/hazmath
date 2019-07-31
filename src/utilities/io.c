@@ -1237,7 +1237,7 @@ scomplex *hazr(char *namein)
  * uses the simplicial complex data structure (scomplex *sc).
  *
  *************************************************************************/
-void hazw(char *nameout,scomplex *sc, const INT nholes, const int shift)
+void hazw(char *nameout,scomplex *sc, const int shift)
 {
   // WRITING in HAZMATH format.
   FILE *fmesh;
@@ -1254,13 +1254,7 @@ void hazw(char *nameout,scomplex *sc, const INT nholes, const int shift)
   */  
   fprintf(fmesh,"%i %i %i %i\n",ns,n,dim,sc->bndry_cc); /* this is the
 							   number of
-							   holes; but
-							   we should
-							   also have
-							   the number
-							   of
-							   connected
-							   components.*/ 
+							   holes;*/
   /* fprintf(stdout,"%i %i %li\n",n,ns,sizeof(ib)/sizeof(INT)); */
   for (j=0;j<ndl;j++) {
     for (k=0;k<ns;k++){
@@ -1297,7 +1291,7 @@ void hazw(char *nameout,scomplex *sc, const INT nholes, const int shift)
   return;
 }
 /* WRITE mesh on VTU file*/
-void vtkw(char *namevtk, scomplex *sc, const INT nholes, const INT shift, const REAL zscale)
+void vtkw(const char *namevtk, scomplex *sc, const INT shift, const REAL zscale)
 {
   if((sc->n!=2)&&(sc->n!=3))
     fprintf(stderr,"\n*** ERR(%s; dim=%d): NO vtk files for dim .eq. 1 or (dim .gt. 3).\n",__FUNCTION__,sc->n);
@@ -1396,7 +1390,7 @@ void vtkw(char *namevtk, scomplex *sc, const INT nholes, const INT shift, const 
   // on the points in the interior and -1 on points on the outer
   // boundary and -2 on the inner boundary If NULL, then one connected
   // region and boundary.
-  if(nholes) {
+  if(sc->bndry_cc>1) {
     fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectedcomponents\" Format=\"ascii\">",tinto);
     for(k=0;k<nv;k++) {
       if(ib[k]==0) {

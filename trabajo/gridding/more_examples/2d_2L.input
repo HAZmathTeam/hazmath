@@ -8,16 +8,10 @@ dimension{2}   % spatial dimension in which the grid has to be generated
 print_level{0}	% how much information to print out: 0 less | >0 Something
 
 %---------------%
-% files: output is in dir_grid/** where ** is nD for spatial dimension n.
-%  	 the dir_grid/1D, dir_grid/2D ... should exist as
-% 	 directories writeable by the user
+% files: writeable by the user
 % vtu files for plotting follow the same convention.
 %---------------%
-
-dir_grid{./}
 file_grid{2D2L.haz}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-dir_vtu{./}
 file_vtu{2D2L.vtu}
 
 %---------------%

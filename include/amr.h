@@ -16,14 +16,15 @@
 #ifndef MAXFILENAMESIZE
 #define MAXFILENAMESIZE 1024
 #endif
-/*******************************************************************/
-/* define strings used to describe a macroelement grid in the INPUT */
-/* file with grid data. used in src/amr/input_grid.c                */
-/*******************************************************************/
+#ifndef _amr_h
+#define _amr_h
+#endif
+/******************************************************************
+ * INPUT_GRID_DATA_: define strings used to describe a macroelement
+ * grid in the INPUT file with grid data. used in src/amr/input_grid.c
+ *******************************************************************/
 #ifndef INPUT_GRID_DATA_
 #define INPUT_GRID_DATA_ "title{",		\
-    "dir_grid{",				\
-    "dir_vtu{",					\
     "file_grid{",				\
     "file_vtu{",				\
     "data_coordsystems{",			\
@@ -44,7 +45,7 @@
     "print_level{"
 #endif
 #ifndef DEFAULT_GRID_DATA_
-#define DEFAULT_GRID_DATA_ "title{Grid on a cube (-1,1)x(-1,1)x(-1,1);5x4x3 lattice}dimension{3}print_level{0}  dir_grid{./}dir_vtu{./}file_grid{mesh3d.haz}file_vtu{mesh3d.vtu} num_edges{3}data_edges{0 1 3  0 2 4 0 4 5}num_vertices{8} data_vertices{0 0 0. 0. 0. 1 0 0. 0. 1. 2 0 0. 1. 0. 3 0 0. 1. 1. 4 0 1. 0. 0. 5 0 1. 0. 1. 6 0 1. 1. 0. 7 0 1. 1. 1.}  num_macroelements{1}  data_macroelements{0 1 2 3 4 5 6 7 -1}num_macrofaces{6} data_macrofaces{0 1 2 3 1 0 4 1 5 1 4 7 5 6 1 2 6 3 7 1 0 4 2 6 1 1 5 7 3 1}num_coordsystems{1}data_coordsystems{0 0. 0. 0. 0}num_refinements{0}refinement_type{0}err_stop_refinement{-1.e-10}{amr_marking_type{0}\0"
+#define DEFAULT_GRID_DATA_ "title{Grid on a cube (-1,1)x(-1,1)x(-1,1);5x4x3 lattice}dimension{3}print_level{0}file_grid{mesh3d.haz}file_vtu{mesh3d.vtu} num_edges{3}data_edges{0 1 3  0 2 4 0 4 5}num_vertices{8} data_vertices{0 0 0. 0. 0. 1 0 0. 0. 1. 2 0 0. 1. 0. 3 0 0. 1. 1. 4 0 1. 0. 0. 5 0 1. 0. 1. 6 0 1. 1. 0. 7 0 1. 1. 1.}  num_macroelements{1}  data_macroelements{0 1 2 3 4 5 6 7 -1}num_macrofaces{6} data_macrofaces{0 1 2 3 1 0 4 1 5 1 4 7 5 6 1 2 6 3 7 1 0 4 2 6 1 1 5 7 3 1}num_coordsystems{1}data_coordsystems{0 0. 0. 0. 0}num_refinements{0}refinement_type{0}err_stop_refinement{-1.e-10}{amr_marking_type{0}\0"
 #endif
 /* defaults to unit cube in 3d and criss-cross grid 3x4x5 . */
 //INT max_chars_input_grid_file=((1<<15) - 1); //maxcount=(1<<15-1);
@@ -109,9 +110,7 @@ typedef struct {
   // files
   //----------------
   char *fgrid;  /* grid file name */
-  char *dgrid;   /* output directory */
   char *fvtu;  /* grid file name */
-  char *dvtu;   /* output directory */
   INT ncsys; /* number of coordinate systems */
   REAL *ox; /* origins of the coordinate systems */
   INT *systypes; /** types for the coord. system */
