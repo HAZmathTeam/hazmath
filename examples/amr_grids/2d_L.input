@@ -5,8 +5,6 @@ title{L-shaped domain}
 dimension{2}   % spatial dimension in which the grid has to be generated
 print_level{1}	% how much information to print out: 0 less | >0 more
 refinement_type{1} %% -1 (edges going left to right in the unit cube; 1 (criss-cross).
-dir_grid{./}
-dir_vtu{./}
 file_grid{2DL.haz}
 file_vtu{2DL.vtu}
 

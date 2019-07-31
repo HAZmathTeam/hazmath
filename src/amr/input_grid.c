@@ -86,9 +86,7 @@ void input_grid_arrays(input_grid *g)
 void input_grid_free(input_grid *g)
 {
   if(g->title) free(g->title);
-  if(g->dgrid) free(g->dgrid);
   if(g->fgrid) free(g->fgrid);
-  if(g->dvtu) free(g->dvtu);
   if(g->fvtu) free(g->fvtu);
   if(g->ox) free(g->ox);
   if(g->systypes) free(g->systypes);
@@ -121,8 +119,6 @@ void input_grid_print(input_grid *g)
   INT i,j,dim=g->dim;
   fprintf(stdout,"\n\nTITLE: %s",g->title);fflush(stdout);
   fprintf(stdout,"\ndimension=%d",g->dim);fflush(stdout);
-  fprintf(stdout,"\ndir_grid=%s",g->dgrid);fflush(stdout);
-  fprintf(stdout,"\ndir_vtu=%s",g->dvtu);fflush(stdout);
   fprintf(stdout,"\nfile_grid=%s",g->fgrid);fflush(stdout);
   fprintf(stdout,"\nfile_vtu=%s",g->fvtu);fflush(stdout);
   fprintf(stdout,"\nprint_level=%d",g->print_level);fflush(stdout);
@@ -203,8 +199,6 @@ void input_grid_example_file(input_grid *g)
 	  "===================================================");
   fprintf(stdout,"\ntitle{%s}",g->title);
   fprintf(stdout,"\ndimension{%d}",g->dim);
-  fprintf(stdout,"\ndir_grid{%s}",g->dgrid);
-  fprintf(stdout,"\ndir_vtu{%s}",g->dvtu);
   fprintf(stdout,"\nfile_grid{%s}",g->fgrid);
   fprintf(stdout,"\nfile_vtu{%s}",g->fvtu);
   fprintf(stdout,"\nprint_level{%d}",g->print_level);
@@ -389,32 +383,30 @@ void *read_mixed_data(INT nrec, INT ni, INT nr, char *the_string)
 static INT  read_data(char **clndata,input_grid *g)
 {
   /* title=clndata[0]; */
-  /* dir_grid=clndata[1]; */
-  /* dir_vtu=clndata[2]; */
-  /* file_grid=clndata[3]; */
-  /* file_vtu=clndata[4]; */  
-  /* data_coordsystems=clndata[5]; */
-  /* data_vertices=clndata[6]; */
-  /* data_edges=clndata[7]; */
-  /* data_macroelements=clndata[8]; */
-  /* data_macrofaces=clndata[9]; */
-  /* dimension=clndata[10];		 */
-  /* num_coordsystems=clndata[11]; */
-  /* num_vertices=clndata[12]; */
-  /* num_edges=clndata[13]; */
-  /* num_macroelements=clndata[14]; */
-  /* num_macrofaces=clndata[15]; */
-  /* num_refinements=clndata[16]; */
-  /* refinement_type=clndata[17]; */
-  /* amr_marking_type=clndata[18]; */
-  /* err_stop_refinement=clndata[19]; */
-  /* print_level=clndata[20]; */
+  /* file_grid=clndata[1]; */
+  /* file_vtu=clndata[2]; */  
+  /* data_coordsystems=clndata[3]; */
+  /* data_vertices=clndata[4]; */
+  /* data_edges=clndata[5]; */
+  /* data_macroelements=clndata[6]; */
+  /* data_macrofaces=clndata[7]; */
+  /* dimension=clndata[8];		 */
+  /* num_coordsystems=clndata[9]; */
+  /* num_vertices=clndata[10]; */
+  /* num_edges=clndata[11]; */
+  /* num_macroelements=clndata[12]; */
+  /* num_macrofaces=clndata[13]; */
+  /* num_refinements=clndata[14]; */
+  /* refinement_type=clndata[15]; */
+  /* amr_marking_type=clndata[16]; */
+  /* err_stop_refinement=clndata[17]; */
+  /* print_level=clndata[18]; */
   //  
   INT i,count,j,status=0;
   void *mdata;
   INT *idata=NULL;
   /********************* coord_systems*****************/
-  mdata=read_mixed_data(g->ncsys,2,g->dim,clndata[5]);
+  mdata=read_mixed_data(g->ncsys,2,g->dim,clndata[3]);
   if(mdata!=NULL){
     idata=(INT *)mdata;
     r2c(g->ncsys,2,sizeof(INT),idata);// by rows. 
@@ -437,7 +429,7 @@ static INT  read_data(char **clndata,input_grid *g)
     g->syslabels[0]=0;g->systypes[0]=0;
   }
   /***** vertices: same as coordinate systems *****/
-  mdata=read_mixed_data(g->nv,2,g->dim,clndata[6]);
+  mdata=read_mixed_data(g->nv,2,g->dim,clndata[4]);
   if(mdata!=NULL){
     idata=(INT *)mdata;
     /* for(count=0;count<g->nv;count++){ */
@@ -482,7 +474,7 @@ static INT  read_data(char **clndata,input_grid *g)
     return 12;
   }
   /* /\***** edges *****\/ */
-  mdata=read_mixed_data(g->ne,3,0,clndata[7]);
+  mdata=read_mixed_data(g->ne,3,0,clndata[5]);
   if(mdata!=NULL){
     memcpy(g->seg,mdata,3*g->ne*sizeof(INT));
     free(mdata); mdata=NULL; 
@@ -517,7 +509,7 @@ static INT  read_data(char **clndata,input_grid *g)
   g->ne=ne;
   /* end edges */
   INT nvcube=(1<<g->dim);
-  mdata=read_mixed_data(g->nel,(nvcube+1),0,clndata[8]);
+  mdata=read_mixed_data(g->nel,(nvcube+1),0,clndata[6]);
   if(mdata!=NULL){
     memcpy(g->mnodes,mdata,g->nel*(nvcube+1)*sizeof(INT));
     free(mdata); mdata=NULL;
@@ -525,7 +517,7 @@ static INT  read_data(char **clndata,input_grid *g)
     return 14;
   }
   INT nvface=(1<<(g->dim-1));
-  mdata=read_mixed_data(g->nf,(nvface+1),0,clndata[9]);
+  mdata=read_mixed_data(g->nf,(nvface+1),0,clndata[7]);
   if(mdata!=NULL){
     memcpy(g->mfaces,mdata,g->nf*(nvface+1)*sizeof(INT));
     free(mdata); mdata=NULL;
@@ -796,43 +788,41 @@ static INT check_input(char * file2str, input_grid *g,	\
   /* initialize */
   /* ... PARSE ... strings */
   g->title=safe_parse(clndata[0],"Title","Untitled",256);
-  g->dgrid=safe_parse(clndata[1],"Directory for the grid file","./",256);
-  g->fgrid=safe_parse(clndata[2],"Filename for the grid file","mesh.haz",256);
-  g->dvtu=safe_parse(clndata[3],"Directory for the VTU file","./",256);
-  g->fvtu=safe_parse(clndata[4],"Filename for the VTU file","mesh.vtu",256);
+  g->fgrid=safe_parse(clndata[1],"Filename for the grid file","mesh.haz",256);
+  g->fvtu=safe_parse(clndata[2],"Filename for the VTU file","mesh.vtu",256);
   /*INTEGERS*/
-  iread[10]=sscanf( clndata[10],"%d",&g->dim); // the dimension of the problem.
+  iread[8]=sscanf( clndata[8],"%d",&g->dim); // the dimension of the problem.
+  if(iread[8]<0) return 8;
+  //
+  iread[9]=sscanf( clndata[9],"%d",&g->ncsys);//
+  if(iread[9]<0) g->ncsys=-1; // this is fixable fixable;
+  //
+  iread[10]=sscanf( clndata[10],"%d",&g->nv);//
   if(iread[10]<0) return 10;
   //
-  iread[11]=sscanf( clndata[11],"%d",&g->ncsys);//
-  if(iread[11]<0) g->ncsys=-1; // this is fixable fixable;
-  //
-  iread[12]=sscanf( clndata[12],"%d",&g->nv);//
-  if(iread[12]<0) return 12;
-  //
-  iread[13]=sscanf( clndata[13],"%d",&g->ne);//  
+  iread[11]=sscanf( clndata[11],"%d",&g->ne);//  
   if(iread[11]<0) g->ne=-1; // this is fixable;
   //
-  iread[14]=sscanf( clndata[14],"%d",&g->nel);//
-  if(iread[14]<0) return 14;// no
+  iread[12]=sscanf( clndata[12],"%d",&g->nel);//
+  if(iread[12]<0) return 12;// no
   //
-  iread[15]=sscanf(clndata[15],"%d",&g->nf);//
-  if(iread[15]<0) g->nf=-1;//ok with some check
+  iread[13]=sscanf(clndata[13],"%d",&g->nf);//
+  if(iread[13]<0) g->nf=-1;//ok with some check
   //
-  iread[16]=sscanf(clndata[16],"%d",&g->nref);//
-  if(iread[16]<0)g->nref=0;//ok
+  iread[14]=sscanf(clndata[14],"%d",&g->nref);//
+  if(iread[14]<0)g->nref=0;//ok
   //
-  iread[17]=sscanf(clndata[17],"%d",&g->ref_type);//
-  if(iread[17]<0)g->ref_type=-1;//ok
+  iread[15]=sscanf(clndata[15],"%d",&g->ref_type);//
+  if(iread[15]<0)g->ref_type=-1;//ok
   //
-  iread[18]=sscanf(clndata[18],"%d",&g->mark_type);//
-  if(iread[18]<0)g->mark_type=0;//ok
+  iread[16]=sscanf(clndata[16],"%d",&g->mark_type);//
+  if(iread[16]<0)g->mark_type=0;//ok
   //
-  iread[19]=sscanf(clndata[19],"%lg",&g->err_stop);//
-  if(iread[19]<0)g->err_stop=-1e-10;//ok
+  iread[17]=sscanf(clndata[17],"%lg",&g->err_stop);//
+  if(iread[17]<0)g->err_stop=-1e-10;//ok
   //
-  iread[20]=sscanf(clndata[20],"%hd",&g->print_level);//
-  if(iread[20]<0)g->print_level=0;//ok
+  iread[18]=sscanf(clndata[18],"%hd",&g->print_level);//
+  if(iread[18]<0)g->print_level=0;//ok
   /*FREE*/  
   free(iread);
   /*FIX*/
@@ -889,7 +879,7 @@ input_grid *parse_input_grid(FILE *the_file)
   //  fprintf(stdout,"\neve[%ld]=%s\n",length_string,file2str);
   k=check_input(file2str,g,indata,notes,numel_data);
   switch(k){
-  case 10: case 12: case 14:
+  case 8: case 10: case 12:
    // issue a warning message and switch to the unit cube in 3D.
     file2str = strndup( DEFAULT_GRID_DATA_ , 1024);
     length_string=strlen(file2str);
