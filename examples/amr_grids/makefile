@@ -3,7 +3,7 @@
 ####################################################
 
 # SRC File name
-SRCFILE = amr
+SRCFILE = amr_grids
 
 HEADERS = solve_estimate_mark.h
 
@@ -12,7 +12,7 @@ INCLUDE =
 LIBS =
 
 # Switch between debug or optimized
-CFLAGS = -O
+CFLAGS = -g
 
 WITH_SUITESPARSE=0
 

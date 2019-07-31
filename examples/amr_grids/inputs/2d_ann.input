@@ -5,23 +5,16 @@ title{Annulus in 2D}
 %
 dimension{2}   % spatial dimension in which the grid has to be generated
 %
-print_level{0}	% how much information to print out: 0 Nothing | >0 Something
+print_level{0}	% how much information to print out: 0 less | >0 more
 
 refinement_type{-2} % -1 is usual 
 
 %---------------%
-% files: output is in dir_grid/** where ** is nD for spatial dimension n.
-%  	 the dir_grid/1D, dir_grid/2D ... should exist as
-% 	 directories writeable by the user
-% vtu files for plotting follow the same convention.
+% files: writeable by the user
+%% vtu files for plotting follow the same convention.
 %---------------%
-
-dir_grid{./}
-dir_vtu{./}
-file_grid{ }
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-dir_vtu{./}
-file_vtu{ }
+file_grid{ann.haz}
+file_vtu{ann.vtu}
 
 %---------------%
 % coordinate systems: Each has coordinates of the origin o[0:dim-1]

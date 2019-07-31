@@ -13,14 +13,11 @@ num_refinements{6}
 refinement_type{0}
 
 err_stop_refinement{        -1.e-10        }
-%%% files:  directories should be writeable by the user
+%%% files:  should be writeable by the user
 %%% vtu files for plotting follow the same convention.
-%---------------%
-dir_grid{./}
-dir_vtu{./}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-file_grid{mesh3d.haz}
-file_vtu{mesh3d.vtu}
+file_grid{3dcube.haz}
+file_vtu{3dcube.vtu}
 
 %%%num_edges{12}
 %%% it is enough to specify 3 divisions only for the 3
