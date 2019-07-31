@@ -623,7 +623,7 @@ void scomplex_merge1(const INT nvall,		\
   sc->x=(REAL *)realloc(sc->x,nv*(sc->n)*sizeof(REAL));
   sc->vols=(REAL *)realloc(sc->vols,ns*sizeof(REAL));
   sc->fval=(REAL *)realloc(sc->fval,nv*sizeof(REAL)); // function values at every vertex; not used in general;
-  fprintf(stdout,"\nnsall=%d,nvall=%d",nsall,nvall);fflush(stdout);
+  //  fprintf(stdout,"\nnsall=%d,nvall=%d",nsall,nvall);fflush(stdout);
   for(kel=1;kel<mc->nel;kel++){
     //    fprintf(stdout,"\n*********YYYYYYYYYY nv[%d]=%d\n",kel,sc0[kel]->nv);
     //    haz_scomplex_print(sc,0,"Z"); fflush(stdout);
@@ -1104,9 +1104,10 @@ scomplex *generate_initial_grid(input_grid *g0)
   INT *isbface=mc->isbface;
   INT *bcodesf=mc->bcodesf;
   iCSRmat *bfs0=mc->bfs;
-  fprintf(stdout,"\n%%DFS(domains): %d connected components",mc->cc);
-  fprintf(stdout,"\n%%DFS(boundaries): %d connected components",mc->bndry_cc);
-  if(g0->print_level>3){
+  if(g0->print_level>0){
+    fprintf(stdout,"\n%%DFS(domains): %d connected components",mc->cc);
+    fprintf(stdout,"\n%%DFS(boundaries): %d connected components",mc->bndry_cc);
+  }else if (g0->print_level>3){
     fprintf(stdout,"\n%%Input faces with codes: %d; Total number of faces:%d\n",g0->nf,mc->nf);
   }else if(g0->print_level>10){
     fprintf(stdout,"\nbfs0=[");
@@ -1191,7 +1192,7 @@ scomplex *generate_initial_grid(input_grid *g0)
   //  fprintf(stdout,"\n%%Removing overlaps...");
   fix_grid(mc,sc,c2s,g0);
   //  fprintf(stdout,"\n%%..\tdone\n\n");
-  if(g0->print_level>0){
+  if(g0->print_level>4){
     fprintf(stdout,"\n%%merged(macroelements=[%d..%d]): vertices=%d; simplices=%d", \
 	    0,mc->nel-1,sc[0]->nv,sc[0]->ns);  
     fprintf(stdout," ..done.\n\n");
