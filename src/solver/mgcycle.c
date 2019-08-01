@@ -732,6 +732,7 @@ void mgcycle_block(MG_blk_data *bmgl,
     REAL alpha = 1.0;
     INT  num_lvl[MAX_AMG_LVL] = {0}, l = 0;
     INT  i;
+    INT status;
 
 ForwardSweep:
     while ( l < nl-1 ) {
@@ -744,6 +745,9 @@ ForwardSweep:
         // form residual r = b - A x
         array_cp(bmgl[l].b.row, bmgl[l].b.val, bmgl[l].w.val);
         bdcsr_aAxpy(-1.0,&bmgl[l].A, bmgl[l].x.val, bmgl[l].w.val);
+            //printf("|RESID=================================================\n");
+            //dvector_print(stdout,&bmgl[l].w);
+            //printf("|======================================================\n");
         // correct bdry
         for(i=0; i<bmgl[l].b.row; i++){
           if( bmgl[l].FE->dirichlet[i] == 1 )
@@ -772,14 +776,16 @@ ForwardSweep:
         case SOLVER_UMFPACK: {
             // use UMFPACK direct solver on the coarsest level
             printf("Solving coarse level with UMFPACK...\n");
-            umfpack_solve(&bmgl[nl-1].Ac, &bmgl[nl-1].b, &bmgl[nl-1].x, bmgl[nl-1].Numeric, 0);
+            status = umfpack_solve(&bmgl[nl-1].Ac, &bmgl[nl-1].b, &bmgl[nl-1].x, bmgl[nl-1].Numeric, 0);
+            printf("UMFPACK status: %d\n",status);
+            //dvector_print(stdout,&bmgl[nl-1].x);
             break;
         }
 #endif
         default:
             // use iterative solver on the coarsest level
             printf("Solving coarse level with coarse_itsolve...\n");
-            bdcsr_pvgmres(&bmgl[nl-1].A, &bmgl[nl-1].b, &bmgl[nl-1].x, NULL, tol, 1000, 1000, 1, 0);
+            bdcsr_pvgmres(&bmgl[nl-1].A, &bmgl[nl-1].b, &bmgl[nl-1].x, NULL, tol, 1000, 1000, 1, 10);
             break;
 
     }

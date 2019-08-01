@@ -691,8 +691,7 @@ printf("Beginning BSR\n");
 
     // (B C^{-1} B^T) q = B C^{-1} d - alpha e
     dvec_alloc( e.row, &rhs);
-    //dvec_axpy( -alpha, &e, &rhs);
-    dvec_axpy( alpha, &e, &rhs); ///////---------
+    dvec_axpy( alpha, &e, &rhs);
     dvec_alloc( Cinv.row, &temp);
     dcsr_aAxpy( 1.0, &Cinv, d.val, temp.val );
     dcsr_aAxpy( 1.0, B, temp.val, rhs.val );
@@ -713,7 +712,6 @@ printf("Beginning BSR\n");
     }
     for( i=0; i<n1; i++ ){
       u->val[i+n0] += w * q.val[i];
-      //u->val[i+n0] -= q.val[i]; ///------------?
     }
 
 
@@ -1074,7 +1072,7 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
 
     dCSRmat B = bdcsr_subblk_2_dcsr ( &bmgl[lvl].A, 2, 2, 0, 1);
 
-    smoother_bdcsr_bsr( &bmgl[lvl].x, &bmgl[lvl].b, 3.28, 1.90, &bmgl[lvl].A, &C, &B, bmgl[lvl].A.blocks[8], 1);
+    smoother_bdcsr_bsr( &bmgl[lvl].x, &bmgl[lvl].b, 3.06, 1.78, &bmgl[lvl].A, &C, &B, bmgl[lvl].A.blocks[8], 1);
     //smoother_bdcsr_uzawa( &bmgl[lvl].x, &bmgl[lvl].b, 1.8118, 1.0550, &bmgl[lvl].A, &C, &B, bmgl[lvl].A.blocks[8], 1);
     }
 
