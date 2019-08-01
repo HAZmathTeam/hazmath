@@ -594,6 +594,7 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
         case 111: // Geometric
             if ( prtlvl > PRINT_NONE ) printf("\n Calling block GMG bubble specific setup...\n");
             //status = gmg_blk_setup(mgl, param);
+            mgl[0].periodic_BC = true;
             status = gmg_blk_setup_biot_bubble(mgl, param);
             printf("\nFinished gmg_blk_setup... Calling smoother setup...\n");
             printf("SKIPPING SMOOTHER SETUP...\n");
