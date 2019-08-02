@@ -1252,7 +1252,7 @@ void hazw(char *nameout,scomplex *sc, const int shift)
      connected components domains. 
      * TODO add sc->cc to the reading. 
   */  
-  fprintf(fmesh,"%i %i %i %i\n",ns,n,dim,sc->bndry_cc); /* this is the
+  fprintf(fmesh,"%i %i %i %i\n",ns,n,dim,(sc->bndry_cc-1)); /* this is the
 							   number of
 							   holes;*/
   /* fprintf(stdout,"%i %i %li\n",n,ns,sizeof(ib)/sizeof(INT)); */
