@@ -5,7 +5,7 @@
 HAZDIR = ../..
 SRCDIR = .
 ##
-AMR = amr
+AMR = amr_grids
 
 INCLUDE = .
 LIBS = 
