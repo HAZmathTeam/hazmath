@@ -174,7 +174,7 @@ void input_grid_print(input_grid *g)
 }
 /**********************************************************************/
 /*!
- * \fn void input_grid_example_file(input_grid *g) 
+ * \fn void input_grid_example_file(FILE *fp,input_grid *g) 
  *
  * \brief For a given input grid g, it outputs to stderr the file
  *        which could have generated such macroelement grid. It is
@@ -189,87 +189,89 @@ void input_grid_print(input_grid *g)
  * \note
  *
  */
-void input_grid_example_file(input_grid *g)
+void input_grid_example_file(FILE *fp,input_grid *g)
 {
   INT i,j,dim=g->dim;
-  fprintf(stderr,"\n%s\n%s","%%%%%% An *example of an input file* follows.",
+  fprintf(fp,"\n%s\n%s","%%%%%% An *example of an input file* follows.",
 	  "For a lattice grid on the unit cube in 3D:\nCopy and paste in a file the text between %=== and %---):");
-  fprintf(stderr,"\n%%%s%s",						\
+  fprintf(fp,"\n%%%s%s\n%%%s",					\
 	  "===================================================",	\
-	  "===================================================");
-  fprintf(stdout,"\ntitle{%s}",g->title);
-  fprintf(stdout,"\ndimension{%d}",g->dim);
-  fprintf(stdout,"\nfile_grid{%s}",g->fgrid);
-  fprintf(stdout,"\nfile_vtu{%s}",g->fvtu);
-  fprintf(stdout,"\nprint_level{%d}",g->print_level);
-  fprintf(stdout,"\nnum_refinements{%d}",g->nref);
-  fprintf(stdout,"\nrefinement_type{%d}",g->ref_type);
-  fprintf(stdout,"\namr_marking_type{%d}",g->mark_type);
-  fprintf(stdout,"\nerr_stop_amr{%.3g}",g->err_stop);
+	  "===================================================",	\
+	  "%%%%BEGIN(input grid file)");
+  fprintf(fp,"\ntitle{%s}",g->title);
+  fprintf(fp,"\ndimension{%d}",g->dim);
+  fprintf(fp,"\nfile_grid{%s}",g->fgrid);
+  fprintf(fp,"\nfile_vtu{%s}",g->fvtu);
+  fprintf(fp,"\nprint_level{%d}",g->print_level);
+  fprintf(fp,"\nnum_refinements{%d}",g->nref);
+  fprintf(fp,"\nrefinement_type{%d}",g->ref_type);
+  fprintf(fp,"\namr_marking_type{%d}",g->mark_type);
+  fprintf(fp,"\nerr_stop_amr{%.3g}",g->err_stop);
   //
   /*COORDSYSTEMS*/
-  fprintf(stdout,"\nnum_coordsystems{%d}",g->ncsys);
-  fprintf(stdout,"\ndata_coordsystems{");
-  fprintf(stdout,"%d %d ",g->syslabels[0],g->systypes[0]);
-  for(j=0;j<g->dim;j++) fprintf(stdout," %.4e ",g->ox[j]);
+  fprintf(fp,"\nnum_coordsystems{%d}",g->ncsys);
+  fprintf(fp,"\ndata_coordsystems{");
+  fprintf(fp,"%d %d ",g->syslabels[0],g->systypes[0]);
+  for(j=0;j<g->dim;j++) fprintf(fp," %.4e ",g->ox[j]);
   for(i=1;i<g->ncsys;i++){
-    fprintf(stdout,"\n%d %d ",g->syslabels[i],g->systypes[i]);
-    for(j=0;j<g->dim;j++) fprintf(stdout," %.4e ",g->ox[i*dim+j]);
+    fprintf(fp,"\n%d %d ",g->syslabels[i],g->systypes[i]);
+    for(j=0;j<g->dim;j++) fprintf(fp," %.4e ",g->ox[i*dim+j]);
   }
-  fprintf(stdout,"}\n");
+  fprintf(fp,"}\n");
   /*VERTICES */
-  fprintf(stdout,"\nnum_vertices{%d}",g->nv);
-  fprintf(stdout,"\ndata_vertices{");
-  fprintf(stdout,"%d %d ",0,g->csysv[0]);
+  fprintf(fp,"\nnum_vertices{%d}",g->nv);
+  fprintf(fp,"\ndata_vertices{");
+  fprintf(fp,"%d %d ",0,g->csysv[0]);
   if(g->systypes[g->csysv[0]]==1){
-    fprintf(stdout," %.4e ",g->xv[0]);
-    for(j=1;j<g->dim;j++) fprintf(stdout," %.4e ",g->xv[j]/(PI)*180e00);
+    fprintf(fp," %.4e ",g->xv[0]);
+    for(j=1;j<g->dim;j++) fprintf(fp," %.4e ",g->xv[j]/(PI)*180e00);
   }else{
-    for(j=0;j<g->dim;j++) fprintf(stdout," %.4e ",g->xv[j]);
+    for(j=0;j<g->dim;j++) fprintf(fp," %.4e ",g->xv[j]);
   }
   for(i=1;i<g->nv;i++){
-    fprintf(stdout,"\n%d %d ",i,g->csysv[i]);
+    fprintf(fp,"\n%d %d ",i,g->csysv[i]);
     if(g->systypes[g->csysv[i]]==1){
-      fprintf(stdout," %.4e ",g->xv[i*dim]);
-      for(j=1;j<g->dim;j++) fprintf(stdout," %.4e ",g->xv[i*dim+j]/(PI)*180);
+      fprintf(fp," %.4e ",g->xv[i*dim]);
+      for(j=1;j<g->dim;j++) fprintf(fp," %.4e ",g->xv[i*dim+j]/(PI)*180);
     }else{
-      for(j=0;j<g->dim;j++) fprintf(stdout," %.4e ",g->xv[i*dim+j]);
+      for(j=0;j<g->dim;j++) fprintf(fp," %.4e ",g->xv[i*dim+j]);
     }
   }
-  fprintf(stdout,"}\n");
+  fprintf(fp,"}\n");
   /*EDGES*/
-  fprintf(stdout,"\nnum_edges{%d}",g->ne);
-  fprintf(stdout,"\ndata_edges{%d %d %d",g->seg[0],g->seg[1],g->seg[2]);
+  fprintf(fp,"\nnum_edges{%d}",g->ne);
+  fprintf(fp,"\ndata_edges{%d %d %d",g->seg[0],g->seg[1],g->seg[2]);
   for(i=1;i<g->ne;i++)
-    fprintf(stdout,"\n%d %d   %d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
-  fprintf(stdout,"}\n");
+    fprintf(fp,"\n%d %d   %d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
+  fprintf(fp,"}\n");
   /*MACROELEMENTS*/  
   INT nvcube=(1<<g->dim),nvcube1=nvcube+1;
-  fprintf(stdout,"\nnum_macroelements{%d}\n",g->nel);
-  fprintf(stdout,"\ndata_macroelements{");
+  fprintf(fp,"\nnum_macroelements{%d}\n",g->nel);
+  fprintf(fp,"\ndata_macroelements{");
   for(j=0;j<nvcube1;j++)
-    fprintf(stdout,"%d ",g->mnodes[j]);  
+    fprintf(fp,"%d ",g->mnodes[j]);  
   for(i=1;i<g->nel;i++){
-    fprintf(stdout,"\n");
+    fprintf(fp,"\n");
     for(j=0;j<nvcube1;j++)
-      fprintf(stdout,"%d ",g->mnodes[nvcube1*i+j]);
+      fprintf(fp,"%d ",g->mnodes[nvcube1*i+j]);
   }
-    fprintf(stdout,"}\n");
+    fprintf(fp,"}\n");
   /*MACROFACES */
   INT nvface=(1<<(g->dim-1)),nvface1=nvface+1;
-  fprintf(stdout,"\nnum_macrofaces{%d}\n",g->nf);
-  fprintf(stdout,"\ndata_macrofaces{");
+  fprintf(fp,"\nnum_macrofaces{%d}\n",g->nf);
+  fprintf(fp,"\ndata_macrofaces{");
   for(j=0;j<nvface1;j++)
-    fprintf(stdout,"%d ",g->mfaces[j]);
+    fprintf(fp,"%d ",g->mfaces[j]);
   for(i=1;i<g->nf;i++){
-    fprintf(stdout,"\n");
+    fprintf(fp,"\n");
     for(j=0;j<nvface1;j++)
-      fprintf(stdout,"%d ",g->mfaces[i*nvface1+j]);
+      fprintf(fp,"%d ",g->mfaces[i*nvface1+j]);
   }
-  fprintf(stdout,"}");fflush(stdout);  
-  fprintf(stderr,"\n%%%s%s",						\
+  fprintf(fp,"}");fflush(stdout);  
+  fprintf(fp,"\n%%%%%s\n%%%s%s",					\
+	  "END(input grid file)",					\
 	  "---------------------------------------------------",	\
-	  "---------------------------------------------------");
+	  "---------------------------------------------------\n");
   return;
 }
 /**********************************************************************/
@@ -619,12 +621,14 @@ char *make_string_from_file(FILE *the_file, size_t *length_string)
 	break; 
     } else {
       if(ch == '\n' || ch == '\t') ch = ' ';
+      //      if(ch == ' ' || ch == '{' || ch ==  '}'){
       if(ch == ' ' || ch == '{' || ch ==  '}' || ch == '='){
 	do{
 	  ch_next = fgetc(the_file);
 	  if(ch_next == '\n' || ch_next == '\t') ch_next = ' ';
 	  ++j;
 	}  while(ch_next == ' ');
+	//	if((ch == ' ')&& (ch_next ==  '{' || ch_next ==  '}')){
 	if((ch == ' ' || ch=='=')&& (ch_next ==  '{' || ch_next ==  '}')){
 	  ch = ch_next;
 	  flag=0;
@@ -745,7 +749,7 @@ char *safe_parse(const char *sinp,		\
   char *s;
   if(strlen(sinp)<=0){
     s=strndup(default_s,max_length);
-    fprintf(stderr,"\n%%%%%%WARNING: %s is an empty string. Setting it to the default value: %s",warn0,s);
+    fprintf(stderr,"\n%%%%%%WARNING (input file): %s is not set correctly. Setting it to the default value: %s",warn0,s);
   } else {
     s=strndup(sinp,max_length);
     //  fprintf(stdout,"\n%%%%%%%s={%s}",warn0,s);
@@ -906,16 +910,16 @@ input_grid *parse_input_grid(FILE *the_file)
   free(file2str);
   if(knext){
     //issue an error message and exit
-    fprintf(stderr,"\n%s\n%s\n","%%%% **** FATAL ERROR: the input is not as expected.",
+    fprintf(stderr,"\n%s\n%s\n","%%%% **** ERROR: the input is not as expected.",
                    "   Consult examples of input files and re-run. ***");
     exit(12);
   }  else {
-    fprintf(stderr,"\n\n%s\n%s\n%s\n","%%%%%% ****ERROR in input file. One of the following",
-	    "%%%%%%     (dimension), (data_macroelements), (data_vertices)",
-	    "%%%%%% could not be read or is incorrectly entered.");
+    fprintf(stderr,"\n\n%s\n%s\n%s\n","%%%%%% ****ERROR(input file): One of the following", \
+	    "%%%%%%     (dimension), (data_macroelements), (data_vertices)", \
+	    "%%%%%%     could is incorrect read. EXITING.");
     //    if(g->print_level>3)
     //      input_grid_print(g);
-    input_grid_example_file(g);
+    input_grid_example_file(stderr,g);
     exit(16);
     //    return g;
   }
