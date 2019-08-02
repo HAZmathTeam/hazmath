@@ -585,11 +585,15 @@ char *make_string_from_file(FILE *the_file, size_t *length_string)
     {
       ch = fgetc(the_file);
       if(ch) count++;
+      if(count>maxcount) {
+	fprintf(stderr,"\n%%%%%% WARNING (in %s): The grid input file is too large. Truncating the input to %d chars\n",__FUNCTION__,count);
+	break;
+      }
     }
   count--;
   //  fprintf(stdout,"\n%%%%%%count=%d",count);
-  if(count<0) count=0;
-  else if(count>maxcount) {count=maxcount;}  
+  //  if(count<0) count=0;
+  //  else if(count>maxcount) {count=maxcount;}  
   //  fprintf(stdout,"\n%%%%%%*** count=%d",count);
   i = count*sizeof(char);
   file2str = (char *)malloc(i);
@@ -615,13 +619,13 @@ char *make_string_from_file(FILE *the_file, size_t *length_string)
 	break; 
     } else {
       if(ch == '\n' || ch == '\t') ch = ' ';
-      if(ch == ' ' || ch == '{' || ch ==  '}'){
+      if(ch == ' ' || ch == '{' || ch ==  '}' || ch == '='){
 	do{
 	  ch_next = fgetc(the_file);
 	  if(ch_next == '\n' || ch_next == '\t') ch_next = ' ';
 	  ++j;
 	}  while(ch_next == ' ');
-	if(ch == ' ' && (ch_next ==  '{' || ch_next ==  '}')){
+	if((ch == ' ' || ch=='=')&& (ch_next ==  '{' || ch_next ==  '}')){
 	  ch = ch_next;
 	  flag=0;
 	} else {
