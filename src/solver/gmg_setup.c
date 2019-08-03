@@ -1406,15 +1406,7 @@ SHORT gmg_apply_periodic_BC( MG_blk_data *mgl,
         cnt++;
       }
       dof_shift =cnt;
-      printf("CHECK: cnt %d,  ndof %d, total ndof %d\n", cnt, mgl[lvl].FE->var_spaces[i]->ndof,ndof);
     }
-//    for(i=0;i<mgl[lvl].FE->var_spaces[0]->ndof;i++){
-//      if(mgl[lvl].FE->var_spaces[0]->periodic[i] != mgl[lvl].FE->var_spaces[3]->periodic[i])
-//      {  printf("EDGE %d does not agree between Bubbles and RT\n",i);}
-//      if(FE_blk.var_spaces[0]->periodic[i] != mgl[lvl].FE->var_spaces[3]->periodic[i])
-//      {  printf("asd;lfkajsdf;ljasd;lkfjas;ldkfjas;dlkfajsd;lfkja %d\n",i);
-//      }
-//    }
     // Darcy Block
     FE_blk.var_spaces[1] = mgl[lvl].FE->var_spaces[3];
     // Pressure Block
@@ -1442,28 +1434,37 @@ SHORT gmg_apply_periodic_BC( MG_blk_data *mgl,
     printf("\tForming Prolongation and Restriction matrices for periodic problem\n");
     if(lvl>0){
       for(i=0; i< brow; i++){
-    printf("-----------------------------------------------------------------------\n");
-    csr_print_matlab(stdout,mgl[lvl-1].R_periodic_scaled.blocks[i+i*brow]);
-    printf("-----------------------------------------------------------------------\n");
-        for(j=0; j < brow; j++){
-          if(i==j){
-            dcsr_mxm(mgl[lvl].R_periodic_scaled.blocks[i+i*brow],mgl[lvl-1].R.blocks[j+i*brow],&tempRA);
-            dcsr_mxm(&tempRA,mgl[lvl-1].P_periodic.blocks[j+j*brow],mgl[lvl-1].R.blocks[j+i*brow]);
-            dcsr_free(&tempRA);
-//    printf("******************************\n");
-//    csr_print_matlab(stdout,mgl[lvl-1].P.blocks[j+i*brow]);
-            dcsr_mxm(mgl[lvl-1].R_periodic_scaled.blocks[i+i*brow],mgl[lvl-1].P.blocks[j+i*brow],&tempRA);
-            dcsr_mxm(&tempRA,mgl[lvl].P_periodic.blocks[j+j*brow],mgl[lvl-1].P.blocks[j+i*brow]);
-            dcsr_free(&tempRA);
-//    printf("******************************\n");
-//    csr_print_matlab(stdout,mgl[lvl-1].R.blocks[j+i*brow]);
-//    printf("______________________________\n");
-//    csr_print_matlab(stdout,mgl[lvl-1].P.blocks[j+i*brow]);
-    printf("P Matrix[%d,%d] size: %d %d\n",i,j,mgl[lvl-1].P.blocks[j+i*brow]->row,mgl[lvl-1].P.blocks[j+i*brow]->col);
-    printf("R Matrix[%d,%d] size: %d %d\n",i,j,mgl[lvl-1].R.blocks[j+i*brow]->row,mgl[lvl-1].R.blocks[j+i*brow]->col);
-          }
-        }
+        // Take advantage of the fact that R and P are block diagonal
+        printf("-----------------------------------------------------------------------\n");
+        //csr_print_matlab(stdout,mgl[lvl-1].R_periodic_scaled.blocks[i+i*brow]);
+        //printf("-----------------------------------------------------------------------\n");
+          // Create R with periodic BC
+        dcsr_mxm(mgl[lvl].R_periodic_scaled.blocks[i+i*brow],mgl[lvl-1].R.blocks[i+i*brow],&tempRA);
+        dcsr_mxm(&tempRA,mgl[lvl-1].P_periodic.blocks[i+i*brow],mgl[lvl-1].R.blocks[i+i*brow]);
+        dcsr_free(&tempRA);
+        // Create P with periodic BC
+        dcsr_mxm(mgl[lvl-1].R_periodic_scaled.blocks[i+i*brow],mgl[lvl-1].P.blocks[i+i*brow],&tempRA);
+        dcsr_mxm(&tempRA,mgl[lvl].P_periodic.blocks[i+i*brow],mgl[lvl-1].P.blocks[i+i*brow]);
+        dcsr_free(&tempRA);
+        //printf("******************************\n");
+        //csr_print_matlab(stdout,mgl[lvl-1].R.blocks[i+i*brow]);
+        //printf("______________________________\n");
+        //csr_print_matlab(stdout,mgl[lvl-1].P.blocks[i+i*brow]);
+        printf("P Matrix[%d,%d] size: %d %d\n",i,i,mgl[lvl-1].P.blocks[i+i*brow]->row,mgl[lvl-1].P.blocks[i+i*brow]->col);
+        printf("R Matrix[%d,%d] size: %d %d\n",i,i,mgl[lvl-1].R.blocks[i+i*brow]->row,mgl[lvl-1].R.blocks[i+i*brow]->col);
       }
+    }
+
+    dof_shift = 0;
+    cnt =  0;
+    for(i=0; i<brow; i++){
+      for(j=0; j<mgl[lvl].P_periodic.blocks[i+i*brow]->nnz; j++){
+        mgl[lvl].FE->dirichlet[ mgl[lvl].P_periodic.blocks[i+i*brow]->JA[j] + dof_shift ] = mgl[lvl].FE->dirichlet[cnt];
+        //printf("|%d| PERIODIC[%d] = %d\n", i, j, mgl[lvl].P_periodic.blocks[i+i*brow]->JA[j]);
+        //printf("\t|%d| PERIODIC[%d] = %d [%d]\n",i, cnt, mgl[lvl].P_periodic.blocks[i+i*brow]->JA[j]+dof_shift, mgl[lvl].P_periodic.blocks[i+i*brow]->JA[j]);
+        cnt++;
+      }
+      dof_shift += mgl[lvl].P_periodic.blocks[i+i*brow]->col;
     }
 
   }
@@ -1699,8 +1700,13 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
           nf1d = sqrt(mgl[lvl].fine_level_mesh->nelm/2);
           nc1d = sqrt(mgl[lvl+1].fine_level_mesh->nelm/2);
           build_constant_R( mgl[lvl].R.blocks[i+i*brow], nf1d, nc1d);
-
-          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[4], mgl[lvl+1].fine_level_mesh, -1,-1); // P
+          
+          if(mgl[0].periodic_BC){
+            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[4], mgl[lvl+1].fine_level_mesh, -1,-1); // P
+            //mgl[lvl+1].FE->var_spaces[4]->dirichlet[0] = 1;
+          } else {
+            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[4], mgl[lvl+1].fine_level_mesh, -1,-1); // P
+          }
 
           break;
         case 111:// P1 combined as a vector space to form single block matrix
@@ -1742,9 +1748,21 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
           printf("\n\n****************************************************************************************************\n");
           printf("Dirichlet boundary conditions for GMG have been butchered to make periodic BC work in GMG\n");
           printf("****************************************************************************************************\n\n");
-          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[0], mgl[lvl+1].fine_level_mesh, -1,-5); //bbl
-          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[1], mgl[lvl+1].fine_level_mesh, -5,-5); // Ux
-          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[2], mgl[lvl+1].fine_level_mesh, -1,-4); // Uy
+          if( mgl[0].periodic_BC ){
+            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[0], mgl[lvl+1].fine_level_mesh, -1,-1); //bbl
+            //mgl[lvl+1].FE->var_spaces[0]->dirichlet[0] = 1;
+            mgl[lvl+1].FE->var_spaces[0]->dirichlet[3] = 1;
+
+            nc1d = sqrt(mgl[lvl+1].fine_level_mesh->nv);
+            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[1], mgl[lvl+1].fine_level_mesh, -1,-1); // Ux
+            mgl[lvl+1].FE->var_spaces[1]->dirichlet[nc1d+1] = 1;
+            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[2], mgl[lvl+1].fine_level_mesh, -1,-1); // Uy
+            mgl[lvl+1].FE->var_spaces[2]->dirichlet[nc1d+1] = 1;
+          } else {
+            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[0], mgl[lvl+1].fine_level_mesh, 1, 5); //bbl
+            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[1], mgl[lvl+1].fine_level_mesh, 5, 5); // Ux
+            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[2], mgl[lvl+1].fine_level_mesh, 1, 4); // Uy
+          }
 
           break;
         case 30:// RT0
@@ -1752,7 +1770,13 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
           nc1d = (nf1d)/2;
           build_face_R( mgl[lvl].R.blocks[i+i*brow], mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
 
-          set_dirichlet_bdry(mgl[lvl].FE->var_spaces[3], mgl[lvl+1].fine_level_mesh, -1,-5); // w
+          if( mgl[0].periodic_BC ){
+            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[3], mgl[lvl+1].fine_level_mesh, -1,-1); // w
+            //mgl[lvl+1].FE->var_spaces[3]->dirichlet[0] = 1;
+            mgl[lvl+1].FE->var_spaces[3]->dirichlet[3] = 1;
+          } else {
+            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[3], mgl[lvl+1].fine_level_mesh, 1, 5); // w
+          }
 
           break;
         default:
@@ -1800,8 +1824,11 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
   }
 
   /*-- Apply periodic boundary condition operators --*/
-  status = gmg_apply_periodic_BC( mgl, param, NoBBL);
-  printf("Finished applying periodic BC\n");
+  if( mgl[0].periodic_BC ){
+    printf("Applying periodic BC\n");
+    status = gmg_apply_periodic_BC( mgl, param, NoBBL);
+    printf("Finished applying periodic BC\n");
+  }
 
   /*-- Setup coarse level systems for direct solvers --*/
   switch (csolver) {
@@ -1811,9 +1838,17 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
           printf("Setting up coarse solve: Using UMFPACK...\n");
           // Need to sort the matrix A for UMFPACK to work
           // merge blocks
+          // // Add a small I to each diagonal block
           mgl[lvl].Ac = bdcsr_2_dcsr(&mgl[lvl].A);
           dCSRmat Ac_tran;
+          //if(0){
+          //dCSRmat I1 = dcsr_create_identity_matrix(mgl[lvl].Ac.row,0);
+          //dCSRmat ApE;
+          //dcsr_add( &mgl[lvl].Ac, 1.0, &I1, 1e-10, &ApE);
+          //dcsr_trans(&ApE, &Ac_tran);
+          //} else {
           dcsr_trans(&mgl[lvl].Ac, &Ac_tran);
+          //}
           printf("Ac stats: row=%d col=%d nnz=%d\n",mgl[lvl].Ac.row,mgl[lvl].Ac.col,mgl[lvl].Ac.nnz);
           // It is equivalent to do transpose and then sort
           //     fasp_dcsr_trans(&mgl[lvl].A, &Ac_tran);
