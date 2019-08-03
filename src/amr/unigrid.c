@@ -81,13 +81,25 @@ void binary1(const INT dim, unsigned int *bits, INT *nvloc)
 
 /**********************************************************************/
 /*!
- * \fn
+ * \fn scomplex *umesh(const INT dim,INT *nd, cube2simp *c2s, INT
+		*isbndf, INT *codef,INT elflag, const INT intype)
  *
- * \brief
+ * \brief Uniform simplicial mesh of the unit cube in dimension dim.nd
+ *        is the number of grid points in each dimension.  ordering is
+ *        lexicographically by name=(x[0],...,x[n]).  more than 3D is
+ *        not fully tested xmacro[] are the coordinates of a domain
+ *        isomorphic to the cube via a bilinear or "Q2" change of
+ *        coordinates. output is a simplicial complex sc.
  *
- * \param 
+ * \param intype: type of uniform grid. 
  *
- * \return
+ *    if(intype == -2) use unirefine() function (from unigrid.c in
+ *   src/amr) if(intype == -1)construct grid using diagonals pointing
+ *   0-7(0...0)-->(1...1).  if (intype>0) starting with intype the
+ *   mesh is constructed like criss-cross grid. This works in 2D and
+ *   3D, and is unclear whether it works in d>3.
+ *
+ * \return scomplex containing the simplicial grid. 
  *
  * \note
  *
@@ -97,24 +109,7 @@ scomplex *umesh(const INT dim,		\
 		INT *isbndf, INT *codef,INT elflag,	\
 		const INT intype)
 {
-  /* face is the face that matches the face_parent in the neighboring
-     element.  uniform simplicial mesh of the unit cube in dimension
-     dim.  dim is the dimension, nd is the number of grid points in
-     each dimension.  ordering is lexicographically by
-     name=(x[0],...,x[n]).  more than 3D is not fully tested xmacro[]
-     are the coordinates of a domain isomorphic to the cube via a
-     bilinear or "Q2" change of coordinates. output is a simplicial
-     complex sc.
-
-     if(intype == -2) use unirefine() function (from unigrid.c in src/amr)
-
-     if(intype == -1)construct grid using diagonals pointing
-     0-7(0...0)-->(1...1).
-
-     if (intype>0) starting with intype the mesh is constructed like
-     criss-cross grid. This works in 2D and 3D, and is unclear whether
-     it works in d>3.
-  */
+  /*   */
   INT iz1;
   INT jperm,i,j,flag,kf,type;
   INT dim1 = dim+1;
@@ -140,7 +135,7 @@ scomplex *umesh(const INT dim,		\
 	 COORDINATES OF VERTICES IN THE UNIT CUBE> SO WE REVERSE THE
 	 ORDERING OF DIVISIONS SO THAT WE PARTITION FIRST X and so
 	 on. so basically we come here with the last coordinate
-	 first. That is why we also have (dim-i-1) instaed of i*/
+	 first. That is why we also have (dim-i-1) instead of i*/
       sc->x[kf*dim+(dim-i-1)]=((REAL )m[i])/((REAL )nd[i]);
       /* OLD: sc->x[kf*dim+i]=((REAL )m[i])/((REAL )nd[i]); */
     }    
