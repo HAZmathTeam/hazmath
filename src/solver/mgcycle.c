@@ -734,6 +734,9 @@ void mgcycle_block(MG_blk_data *bmgl,
     INT  i;
     INT status;
 
+    dvector b_disp;
+    dvector b_darcy;
+
 ForwardSweep:
     while ( l < nl-1 ) {
 
@@ -785,7 +788,15 @@ ForwardSweep:
         default:
             // use iterative solver on the coarsest level
             printf("Solving coarse level with coarse_itsolve...\n");
-            bdcsr_pvgmres(&bmgl[nl-1].A, &bmgl[nl-1].b, &bmgl[nl-1].x, NULL, tol, 1000, 1000, 1, 10);
+            bdcsr_pvgmres(&bmgl[nl-1].A, &bmgl[nl-1].b, &bmgl[nl-1].x, NULL, tol, 1000, 1000, 1, 0);
+        // project out constant
+        b_disp.row = 0;
+        for ( i=0; i<3; i++ ){  b_disp.row += bmgl[nl-1].FE->var_spaces[i]->ndof; }
+        b_disp.val = bmgl[nl-1].x.val;
+        b_darcy.row = bmgl[nl-1].FE->var_spaces[3]->ndof;
+        b_darcy.val = bmgl[nl-1].x.val + b_disp.row;
+        dvec_orthog_const(&b_disp);
+        dvec_orthog_const(&b_darcy);
             break;
 
     }
