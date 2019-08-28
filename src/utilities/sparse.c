@@ -3177,6 +3177,15 @@ void bdcsr_mxv(block_dCSRmat *A,
   INT start_row;
   INT start_col;
 
+  k=0;
+  for(i=0; i<brow; i++){
+    for(j=0; j<A->blocks[i*brow+i]->row; j++){
+      y[k] = 0.0;
+      k++;
+    }
+  }
+
+
   switch (brow) {
 
   case 2:
