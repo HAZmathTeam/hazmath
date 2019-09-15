@@ -296,7 +296,7 @@ void mgcycle(AMG_data *mgl,
     const SHORT  coarse_solver = param->coarse_solver;
     const SHORT  nl = mgl[0].num_levels;
     const REAL   relax = param->relaxation;
-    const REAL   tol = param->tol * 1e-4;
+    const REAL   tol = param->tol * 1e-2;
 
     // Schwarz parameters
     Schwarz_param swzparam;
