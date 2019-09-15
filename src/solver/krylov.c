@@ -49,10 +49,10 @@
 //! Warning for computed relative residual
 #define ITS_COMPRES(relres) printf("### HAZMATH WARNING: The computed relative residual = %e!\n",(relres))
 
-//! Warning for too small sp 
+//! Warning for too small sp
 #define ITS_SMALLSP printf("### HAZMATH WARNING: sp is too small! %s : %d\n", __FUNCTION__, __LINE__)
 
-//! Warning for restore previous iteration 
+//! Warning for restore previous iteration
 #define ITS_RESTORE(iter) printf("### HAZMATH WARNING: Restore iteration %d!\n",(iter));
 
 //! Output relative difference and residual
@@ -70,7 +70,7 @@
  *
  */
 inline static void ITS_CHECK (const INT MaxIt, const REAL tol)
-{    
+{
     if ( tol < SMALLREAL ) {
         printf("### HAZMATH WARNING: Convergence tolerance for iterative solver is too small!\n");
     }
@@ -80,15 +80,15 @@ inline static void ITS_CHECK (const INT MaxIt, const REAL tol)
 }
 
 /**
- * \fn inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres) 
+ * \fn inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres)
  * \brief Print out final status of an iterative method
  *
  * \param iter    Number of iterations
  * \param MaxIt   Maximal number of iterations
- * \param relres  Relative residual 
+ * \param relres  Relative residual
  *
  */
-inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres) 
+inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres)
 {
     if ( iter > MaxIt ) {
         printf("### HAZMATH WARNING: Max iter %d reached with rel. resid. %e.\n", MaxIt, relres);
@@ -130,7 +130,7 @@ INT dcsr_pcg (dCSRmat *A,
               const INT MaxIt,
               const SHORT stop_type,
               const SHORT prtlvl)
-{   
+{
   // Check if matrix counting from 1 or 0 for CSR arrays (James vs. Xiaozhe code)
   INT shift_flag = 0;
   if(A->IA[0]==1) {
@@ -142,27 +142,27 @@ INT dcsr_pcg (dCSRmat *A,
   const INT    m = b->row;
   const REAL   maxdiff = tol*STAG_RATIO; // stagnation tolerance
   const REAL   sol_inf_tol = SMALLREAL; // infinity norm tolerance
-    
+
   // local variables
   INT          iter = 0, stag = 1, more_step = 1, restart_step = 1;
   REAL         absres0 = BIGREAL, absres = BIGREAL;
   REAL         relres  = BIGREAL, normu  = BIGREAL, normr0 = BIGREAL;
   REAL         reldiff, factor, infnormu;
   REAL         alpha, beta, temp1, temp2;
-    
+
   // allocate temp memory (need 4*m REAL numbers)
   REAL *work = (REAL *)calloc(4*m,sizeof(REAL));
   REAL *p = work, *z = work+m, *r = z+m, *t = r+m;
-    
+
   // r = b-A*u
   array_cp(m,b->val,r);
   dcsr_aAxpy(-1.0,A,u->val,r);
-    
+
   if ( pc != NULL )
     pc->fct(r,z,pc->data); /* Apply preconditioner */
   else
     array_cp(m,r,z); /* No preconditioner */
-    
+
   // compute initial residuals
   switch ( stop_type ) {
   case STOP_REL_RES:
@@ -184,32 +184,32 @@ INT dcsr_pcg (dCSRmat *A,
     printf("### ERROR: Unrecognised stopping type for %s!\n", __FUNCTION__);
     goto FINISHED;
   }
-    
+
   // if initial residual is small, no need to iterate!
   if ( relres < tol || absres0 < 1e-3*tol ) goto FINISHED;
-    
+
   // output iteration information if needed
   print_itsolver_info(prtlvl,stop_type,iter,relres,absres0,0.0);
-    
+
   array_cp(m,z,p);
   temp1 = array_dotprod(m,z,r);
-    
+
   // main PCG loop
   while ( iter++ < MaxIt ) {
-        
+
     // t=A*p
     dcsr_mxv(A,p,t);
-        
+
     // alpha_k=(z_{k-1},r_{k-1})/(A*p_{k-1},p_{k-1})
     temp2 = array_dotprod(m,t,p);
     alpha = temp1/temp2;
-        
+
     // u_k=u_{k-1} + alpha_k*p_{k-1}
     array_axpy(m,alpha,p,u->val);
-        
+
     // r_k=r_{k-1} - alpha_k*A*p_{k-1}
     array_axpy(m,-alpha,t,r);
-        
+
     // compute residuals
     switch ( stop_type ) {
     case STOP_REL_RES:
@@ -230,13 +230,13 @@ INT dcsr_pcg (dCSRmat *A,
       relres = absres/normu;
       break;
     }
-        
+
     // compute reduction factor of residual ||r||
     factor = absres/absres0;
-        
+
     // output iteration information if needed
     print_itsolver_info(prtlvl,stop_type,iter,relres,absres,factor);
-        
+
     // Check I: if solution is close to zero, return ERROR_SOLVER_SOLSTAG
     infnormu = array_norminf(m, u->val);
     if ( infnormu <= sol_inf_tol ) {
@@ -244,22 +244,22 @@ INT dcsr_pcg (dCSRmat *A,
       iter = ERROR_SOLVER_SOLSTAG;
       break;
     }
-        
+
     // Check II: if stagnated, try to restart
     normu   = dvec_norm2(u);
-        
+
     // compute relative difference
     reldiff = ABS(alpha)*array_norm2(m,p)/normu;
     if ( (stag <= MaxStag) & (reldiff < maxdiff) ) {
-            
+
       if ( prtlvl >= PRINT_MORE ) {
 	ITS_DIFFRES(reldiff,relres);
 	ITS_RESTART;
       }
-            
+
       array_cp(m,b->val,r);
       dcsr_aAxpy(-1.0,A,u->val,r);
-            
+
       // compute residuals
       switch ( stop_type ) {
       case STOP_REL_RES:
@@ -280,9 +280,9 @@ INT dcsr_pcg (dCSRmat *A,
 	relres = absres/normu;
 	break;
       }
-            
+
       if ( prtlvl >= PRINT_MORE ) ITS_REALRES(relres);
-            
+
       if ( relres < tol )
 	break;
       else {
@@ -296,16 +296,16 @@ INT dcsr_pcg (dCSRmat *A,
 	++restart_step;
       }
     } // end of stagnation check!
-        
+
     // Check III: prevent false convergence
     if ( relres < tol ) {
-            
+
       REAL computed_relres = relres;
-            
+
       // compute residual r = b - Ax again
       array_cp(m,b->val,r);
       dcsr_aAxpy(-1.0,A,u->val,r);
-            
+
       // compute residuals
       switch ( stop_type ) {
       case STOP_REL_RES:
@@ -326,30 +326,30 @@ INT dcsr_pcg (dCSRmat *A,
 	relres = absres/normu;
 	break;
       }
-            
+
       // check convergence
       if ( relres < tol ) break;
-            
+
       if ( prtlvl >= PRINT_MORE ) {
 	ITS_COMPRES(computed_relres); ITS_REALRES(relres);
       }
-            
+
       if ( more_step >= MaxRestartStep ) {
 	if ( prtlvl > PRINT_MIN ) ITS_ZEROTOL;
 	iter = ERROR_SOLVER_TOLSMALL;
 	break;
       }
-            
+
       // prepare for restarting the method
       array_set(m,p,0.0);
       ++more_step;
       ++restart_step;
-            
+
     } // end of safe-guard check!
-        
+
     // save residual for next iteration
     absres0 = absres;
-        
+
     // compute z_k = B(r_k)
     if ( stop_type != STOP_REL_PRECRES ) {
       if ( pc != NULL )
@@ -357,28 +357,28 @@ INT dcsr_pcg (dCSRmat *A,
       else
 	array_cp(m,r,z); /* No preconditioner, B=I */
     }
-        
+
     // compute beta_k = (z_k, r_k)/(z_{k-1}, r_{k-1})
     temp2 = array_dotprod(m,z,r);
     beta  = temp2/temp1;
     temp1 = temp2;
-        
+
     // compute p_k = z_k + beta_k*p_{k-1}
     array_axpby(m,1.0,z,beta,p);
-        
+
   } // end of main PCG loop.
-    
+
  FINISHED:  // finish the iterative method
   if ( prtlvl > PRINT_NONE ) ITS_FINAL(iter,MaxIt,relres);
-    
+
   // clean up temp memory
   free(work);
-    
+
   // Fix A back to correct counting if needed
   if(shift_flag==1) {
     dcsr_shift(A, 1);  // shift A back
   }
-    
+
   if ( iter > MaxIt )
     return ERROR_SOLVER_MAXIT;
   else
@@ -416,32 +416,32 @@ INT bdcsr_pcg (block_dCSRmat *A,
                const INT MaxIt,
                const SHORT stop_type,
                const SHORT prtlvl)
-{  
+{
     const SHORT  MaxStag = MAX_STAG, MaxRestartStep = MAX_RESTART;
     const INT    m = b->row;
     const REAL   maxdiff = tol*STAG_RATIO; // stagnation tolerance
     const REAL   sol_inf_tol = SMALLREAL; // infinity norm tolerance
-    
+
     // local variables
     INT          iter = 0, stag = 1, more_step = 1;
     REAL         absres0 = BIGREAL, absres = BIGREAL;
     REAL         relres  = BIGREAL, unorm2 = BIGREAL, normr0 = BIGREAL;
     REAL         reldiff, factor, unorminf;
     REAL         alpha, beta, temp1, temp2;
-    
+
     // allocate temp memory (need 4*m REAL numbers)
     REAL *work = (REAL *)calloc(4*m,sizeof(REAL));
     REAL *p = work, *z = work+m, *r = z+m, *t = r+m;
-    
+
     // r = b-A*u
     array_cp(m,b->val,r);
     bdcsr_aAxpy(-1.0,A,u->val,r);
-    
+
     if ( pc != NULL )
         pc->fct(r,z,pc->data); /* Apply preconditioner */
     else
         array_cp(m,r,z); /* No preconditioner */
-    
+
     // compute initial residuals
     switch ( stop_type ) {
         case STOP_REL_RES:
@@ -463,22 +463,22 @@ INT bdcsr_pcg (block_dCSRmat *A,
             printf("### ERROR: Unrecognised stopping type for %s!\n", __FUNCTION__);
             goto FINISHED;
     }
-    
+
     // if initial residual is small, no need to iterate!
     if ( relres < tol || absres0 < 1e-3*tol ) goto FINISHED;
-    
+
     // output iteration information if needed
     print_itsolver_info(prtlvl,stop_type,iter,relres,absres0,0.0);
-    
+
     array_cp(m,z,p);
     temp1 = array_dotprod(m,z,r);
-    
+
     // main PCG loop
     while ( iter++ < MaxIt ) {
-        
+
         // t = A*p
         bdcsr_mxv(A,p,t);
-        
+
         // alpha_k = (z_{k-1},r_{k-1})/(A*p_{k-1},p_{k-1})
         temp2 = array_dotprod(m,t,p);
         if ( ABS(temp2) > SMALLREAL2 ) {
@@ -487,13 +487,13 @@ INT bdcsr_pcg (block_dCSRmat *A,
         else { // Possible breakdown
             ITS_DIVZERO; goto FINISHED;
         }
-        
+
         // u_k = u_{k-1} + alpha_k*p_{k-1}
         array_axpy(m,alpha,p,u->val);
-        
+
         // r_k = r_{k-1} - alpha_k*A*p_{k-1}
         array_axpy(m,-alpha,t,r);
-        
+
         // compute norm of residual
         switch ( stop_type ) {
             case STOP_REL_RES:
@@ -514,15 +514,15 @@ INT bdcsr_pcg (block_dCSRmat *A,
                 relres = absres/unorm2;
                 break;
         }
-        
+
         // compute reduction factor of residual ||r||
         factor = absres/absres0;
-        
+
         // output iteration information if needed
         print_itsolver_info(prtlvl,stop_type,iter,relres,absres,factor);
-        
+
         if ( factor > 0.9 ) {
-            
+
             // Check I: if solution is close to zero, return ERROR_SOLVER_SOLSTAG
             unorminf = array_norminf(m, u->val);
             if ( unorminf <= sol_inf_tol ) {
@@ -530,22 +530,22 @@ INT bdcsr_pcg (block_dCSRmat *A,
                 iter = ERROR_SOLVER_SOLSTAG;
                 break;
             }
-            
+
             // Check II: if stagnated, try to restart
             unorm2 = dvec_norm2(u);
-            
+
             // compute relative difference
             reldiff = ABS(alpha)*array_norm2(m,p)/unorm2;
             if ( (stag <= MaxStag) & (reldiff < maxdiff) ) {
-                
+
                 if ( prtlvl >= PRINT_MORE ) {
                     ITS_DIFFRES(reldiff,relres);
                     ITS_RESTART;
                 }
-                
+
                 array_cp(m,b->val,r);
                 bdcsr_aAxpy(-1.0,A,u->val,r);
-                
+
                 // compute residual norms
                 switch ( stop_type ) {
                     case STOP_REL_RES:
@@ -566,9 +566,9 @@ INT bdcsr_pcg (block_dCSRmat *A,
                         relres = absres/unorm2;
                         break;
                 }
-                
+
                 if ( prtlvl >= PRINT_MORE ) ITS_REALRES(relres);
-                
+
                 if ( relres < tol )
                     break;
                 else {
@@ -580,20 +580,20 @@ INT bdcsr_pcg (block_dCSRmat *A,
                     array_set(m,p,0.0);
                     ++stag;
                 }
-                
+
             } // end of stagnation check!
-            
+
         } // end of check I and II
-        
+
         // Check III: prevent false convergence
         if ( relres < tol ) {
-            
+
             REAL updated_relres = relres;
-            
+
             // compute true residual r = b - Ax and update residual
             array_cp(m,b->val,r);
             bdcsr_aAxpy(-1.0,A,u->val,r);
-            
+
             // compute residual norms
             switch ( stop_type ) {
                 case STOP_REL_RES:
@@ -614,29 +614,29 @@ INT bdcsr_pcg (block_dCSRmat *A,
                     relres = absres/unorm2;
                     break;
             }
-            
+
             // check convergence
             if ( relres < tol ) break;
-            
+
             if ( prtlvl >= PRINT_MORE ) {
                 ITS_COMPRES(updated_relres); ITS_REALRES(relres);
             }
-            
+
             if ( more_step >= MaxRestartStep ) {
                 if ( prtlvl > PRINT_MIN ) ITS_ZEROTOL;
                 iter = ERROR_SOLVER_TOLSMALL;
                 break;
             }
-            
+
             // prepare for restarting the method
             array_set(m,p,0.0);
             ++more_step;
-            
+
         } // end of safe-guard check!
-        
+
         // save residual for next iteration
         absres0 = absres;
-        
+
         // compute z_k = B(r_k)
         if ( stop_type != STOP_REL_PRECRES ) {
             if ( pc != NULL )
@@ -644,23 +644,23 @@ INT bdcsr_pcg (block_dCSRmat *A,
             else
                 array_cp(m,r,z); /* No preconditioner, B=I */
         }
-        
+
         // compute beta_k = (z_k, r_k)/(z_{k-1}, r_{k-1})
         temp2 = array_dotprod(m,z,r);
         beta  = temp2/temp1;
         temp1 = temp2;
-        
+
         // compute p_k = z_k + beta_k*p_{k-1}
         array_axpby(m,1.0,z,beta,p);
-        
+
     } // end of main PCG loop.
-    
+
 FINISHED:  // finish the iterative method
     if ( prtlvl > PRINT_NONE ) ITS_FINAL(iter,MaxIt,relres);
-    
+
     // clean up temp memory
     free(work);
-    
+
     if ( iter > MaxIt )
         return ERROR_SOLVER_MAXIT;
     else
@@ -698,32 +698,32 @@ INT general_pcg (matvec *mxv,
                  const INT MaxIt,
                  const SHORT stop_type,
                  const SHORT prtlvl)
-{  
+{
     const SHORT  MaxStag = MAX_STAG, MaxRestartStep = MAX_RESTART;
     const INT    m = b->row;
     const REAL   maxdiff = tol*STAG_RATIO; // stagnation tolerance
     const REAL   sol_inf_tol = SMALLREAL; // infinity norm tolerance
-    
+
     // local variables
     INT          iter = 0, stag = 1, more_step = 1, restart_step = 1;
     REAL         absres0 = BIGREAL, absres = BIGREAL;
     REAL         relres  = BIGREAL, normu  = BIGREAL, normr0 = BIGREAL;
     REAL         reldiff, factor, infnormu;
     REAL         alpha, beta, temp1, temp2;
-    
+
     // allocate temp memory (need 4*m REAL numbers)
     REAL *work = (REAL *)calloc(4*m,sizeof(REAL));
     REAL *p = work, *z = work+m, *r = z+m, *t = r+m;
-    
+
     // r = b-A*u
     mxv->fct(mxv->data, u->val, r);
     array_axpby(m, 1.0, b->val, -1.0, r);
-    
+
     if ( pc != NULL )
         pc->fct(r,z,pc->data); /* Apply preconditioner */
     else
         array_cp(m,r,z); /* No preconditioner */
-    
+
     // compute initial residuals
     switch ( stop_type ) {
         case STOP_REL_RES:
@@ -745,32 +745,32 @@ INT general_pcg (matvec *mxv,
             printf("### ERROR: Unrecognised stopping type for %s!\n", __FUNCTION__);
             goto FINISHED;
     }
-    
+
     // if initial residual is small, no need to iterate!
     if ( relres < tol || absres0 < 1e-3*tol ) goto FINISHED;
-    
+
     // output iteration information if needed
     print_itsolver_info(prtlvl,stop_type,iter,relres,absres0,0.0);
-    
+
     array_cp(m,z,p);
     temp1 = array_dotprod(m,z,r);
-    
+
     // main PCG loop
     while ( iter++ < MaxIt ) {
-        
+
         // t=A*p
         mxv->fct(mxv->data, p, t);
-        
+
         // alpha_k=(z_{k-1},r_{k-1})/(A*p_{k-1},p_{k-1})
         temp2 = array_dotprod(m,t,p);
         alpha = temp1/temp2;
-        
+
         // u_k=u_{k-1} + alpha_k*p_{k-1}
         array_axpy(m,alpha,p,u->val);
-        
+
         // r_k=r_{k-1} - alpha_k*A*p_{k-1}
         array_axpy(m,-alpha,t,r);
-        
+
         // compute residuals
         switch ( stop_type ) {
             case STOP_REL_RES:
@@ -791,13 +791,13 @@ INT general_pcg (matvec *mxv,
                 relres = absres/normu;
                 break;
         }
-        
+
         // compute reduction factor of residual ||r||
         factor = absres/absres0;
-        
+
         // output iteration information if needed
         print_itsolver_info(prtlvl,stop_type,iter,relres,absres,factor);
-        
+
         // Check I: if solution is close to zero, return ERROR_SOLVER_SOLSTAG
         infnormu = array_norminf(m, u->val);
         if ( infnormu <= sol_inf_tol ) {
@@ -805,22 +805,22 @@ INT general_pcg (matvec *mxv,
             iter = ERROR_SOLVER_SOLSTAG;
             break;
         }
-        
+
         // Check II: if stagnated, try to restart
         normu   = dvec_norm2(u);
-        
+
         // compute relative difference
         reldiff = ABS(alpha)*array_norm2(m,p)/normu;
         if ( (stag <= MaxStag) & (reldiff < maxdiff) ) {
-            
+
             if ( prtlvl >= PRINT_MORE ) {
                 ITS_DIFFRES(reldiff,relres);
                 ITS_RESTART;
             }
-            
+
             mxv->fct(mxv->data, u->val, r);
             array_axpby(m, 1.0, b->val, -1.0, r);
-            
+
             // compute residuals
             switch ( stop_type ) {
                 case STOP_REL_RES:
@@ -841,9 +841,9 @@ INT general_pcg (matvec *mxv,
                     relres = absres/normu;
                     break;
             }
-            
+
             if ( prtlvl >= PRINT_MORE ) ITS_REALRES(relres);
-            
+
             if ( relres < tol )
                 break;
             else {
@@ -857,16 +857,16 @@ INT general_pcg (matvec *mxv,
                 ++restart_step;
             }
         } // end of stagnation check!
-        
+
         // Check III: prevent false convergence
         if ( relres < tol ) {
-            
+
             REAL computed_relres = relres;
-            
+
             // compute residual r = b - Ax again
             mxv->fct(mxv->data, u->val, r);
             array_axpby(m, 1.0, b->val, -1.0, r);
-            
+
             // compute residuals
             switch ( stop_type ) {
                 case STOP_REL_RES:
@@ -887,30 +887,30 @@ INT general_pcg (matvec *mxv,
                     relres = absres/normu;
                     break;
             }
-            
+
             // check convergence
             if ( relres < tol ) break;
-            
+
             if ( prtlvl >= PRINT_MORE ) {
                 ITS_COMPRES(computed_relres); ITS_REALRES(relres);
             }
-            
+
             if ( more_step >= MaxRestartStep ) {
                 if ( prtlvl > PRINT_MIN ) ITS_ZEROTOL;
                 iter = ERROR_SOLVER_TOLSMALL;
                 break;
             }
-            
+
             // prepare for restarting the method
             array_set(m,p,0.0);
             ++more_step;
             ++restart_step;
-            
+
         } // end of safe-guard check!
-        
+
         // save residual for next iteration
         absres0 = absres;
-        
+
         // compute z_k = B(r_k)
         if ( stop_type != STOP_REL_PRECRES ) {
             if ( pc != NULL )
@@ -918,23 +918,23 @@ INT general_pcg (matvec *mxv,
             else
                 array_cp(m,r,z); /* No preconditioner, B=I */
         }
-        
+
         // compute beta_k = (z_k, r_k)/(z_{k-1}, r_{k-1})
         temp2 = array_dotprod(m,z,r);
         beta  = temp2/temp1;
         temp1 = temp2;
-        
+
         // compute p_k = z_k + beta_k*p_{k-1}
         array_axpby(m,1.0,z,beta,p);
-        
+
     } // end of main PCG loop.
-    
+
 FINISHED:  // finish the iterative method
     if ( prtlvl > PRINT_NONE ) ITS_FINAL(iter,MaxIt,relres);
-    
+
     // clean up temp memory
     free(work);
-        
+
     if ( iter > MaxIt )
         return ERROR_SOLVER_MAXIT;
     else
@@ -1112,37 +1112,37 @@ INT dcsr_pminres(dCSRmat *A,
                  const INT MaxIt,
                  const SHORT stop_type,
                  const SHORT prtlvl)
-{    
+{
     const SHORT  MaxStag = MAX_STAG, MaxRestartStep = MAX_RESTART;
     const INT    m = b->row;
     const REAL   maxdiff = tol*STAG_RATIO; // staganation tolerance
     const REAL   sol_inf_tol = SMALLREAL; // infinity norm tolerance
-    
+
     // local variables
     INT          iter = 0, stag = 1, more_step = 1, restart_step = 1;
     REAL         absres0 = BIGREAL, absres = BIGREAL;
     REAL         normr0  = BIGREAL, relres  = BIGREAL;
     REAL         normu2, normuu, normp, infnormu, factor;
     REAL         alpha, alpha0, alpha1, temp2;
-    
+
     // allocate temp memory (need 11*m REAL)
     REAL *work=(REAL *)calloc(11*m,sizeof(REAL));
     REAL *p0=work, *p1=work+m, *p2=p1+m, *z0=p2+m, *z1=z0+m;
     REAL *t0=z1+m, *t1=t0+m, *t=t1+m, *tp=t+m, *tz=tp+m, *r=tz+m;
-    
+
     // p0 = 0
     array_set(m,p0,0.0);
-    
+
     // r = b-A*u
     array_cp(m,b->val,r);
     dcsr_aAxpy(-1.0,A,u->val,r);
-    
+
     // p1 = B(r)
     if ( pc != NULL )
         pc->fct(r,p1,pc->data); /* Apply preconditioner */
     else
         array_cp(m,r,p1); /* No preconditioner */
-    
+
     // compute initial residuals
     switch ( stop_type ) {
         case STOP_REL_RES:
@@ -1164,94 +1164,94 @@ INT dcsr_pminres(dCSRmat *A,
             printf("### ERROR: Unrecognized stopping type for %s!\n", __FUNCTION__);
             goto FINISHED;
     }
-    
+
     // if initial residual is small, no need to iterate!
     if ( relres < tol || absres0 < 1e-3*tol ) goto FINISHED;
-    
+
     // output iteration information if needed
     print_itsolver_info(prtlvl,stop_type,iter,relres,absres0,0.0);
-    
+
     // tp = A*p1
     dcsr_mxv(A,p1,tp);
-    
+
     // tz = B(tp)
     if ( pc != NULL )
         pc->fct(tp,tz,pc->data); /* Apply preconditioner */
     else
         array_cp(m,tp,tz); /* No preconditioner */
-    
+
     // p1 = p1/normp
     normp = ABS(array_dotprod(m,tz,tp));
     normp = sqrt(normp);
     array_cp(m,p1,t);
     array_set(m,p1,0.0);
     array_axpy(m,1/normp,t,p1);
-    
+
     // t0 = A*p0 = 0
     array_set(m,t0,0.0);
     array_cp(m,t0,z0);
     array_cp(m,t0,t1);
     array_cp(m,t0,z1);
-    
+
     // t1 = tp/normp, z1 = tz/normp
     array_axpy(m,1.0/normp,tp,t1);
     array_axpy(m,1.0/normp,tz,z1);
-    
+
     // main MinRes loop
     while ( iter++ < MaxIt ) {
-        
+
         // alpha = <r,z1>
         alpha = array_dotprod(m,r,z1);
-        
+
         // u = u+alpha*p1
         array_axpy(m,alpha,p1,u->val);
-        
+
         // r = r-alpha*Ap1
         array_axpy(m,-alpha,t1,r);
-        
+
         // compute t = A*z1 alpha1 = <z1,t>
         dcsr_mxv(A,z1,t);
         alpha1 = array_dotprod(m,z1,t);
-        
+
         // compute t = A*z0 alpha0 = <z1,t>
         dcsr_mxv(A,z0,t);
         alpha0 = array_dotprod(m,z1,t);
-        
+
         // p2 = z1-alpha1*p1-alpha0*p0
         array_cp(m,z1,p2);
         array_axpy(m,-alpha1,p1,p2);
         array_axpy(m,-alpha0,p0,p2);
-        
+
         // tp = A*p2
         dcsr_mxv(A,p2,tp);
-        
+
         // tz = B(tp)
         if ( pc != NULL )
             pc->fct(tp,tz,pc->data); /* Apply preconditioner */
         else
             array_cp(m,tp,tz); /* No preconditioner */
-        
+
         // p2 = p2/normp
         normp = ABS(array_dotprod(m,tz,tp));
         normp = sqrt(normp);
         array_cp(m,p2,t);
         array_set(m,p2,0.0);
         array_axpy(m,1/normp,t,p2);
-        
+
         // prepare for the next iteration
         array_cp(m,p1,p0);
         array_cp(m,p2,p1);
         array_cp(m,t1,t0);
         array_cp(m,z1,z0);
-        
+
         // t1=tp/normp,z1=tz/normp
         array_set(m,t1,0.0);
         array_cp(m,t1,z1);
         array_axpy(m,1/normp,tp,t1);
         array_axpy(m,1/normp,tz,z1);
-        
+
         normu2 = array_norm2(m,u->val);
-        
+
         // compute residuals
         switch ( stop_type ) {
             case STOP_REL_RES:
@@ -1274,13 +1274,13 @@ INT dcsr_pminres(dCSRmat *A,
                 relres = absres/normu2;
                 break;
         }
-        
+
         // compute reducation factor of residual ||r||
         factor = absres/absres0;
-        
+
         // output iteration information if needed
         print_itsolver_info(prtlvl,stop_type,iter,relres,absres,factor);
-        
+
         // Check I: if soultion is close to zero, return ERROR_SOLVER_SOLSTAG
         infnormu = array_norminf(m, u->val);
         if (infnormu <= sol_inf_tol) {
@@ -1288,23 +1288,23 @@ INT dcsr_pminres(dCSRmat *A,
             iter = ERROR_SOLVER_SOLSTAG;
             break;
         }
-        
+
         // Check II: if staggenated, try to restart
         normuu = array_norm2(m,p1);
         normuu = ABS(alpha)*(normuu/normu2);
-        
+
         if ( normuu < maxdiff ) {
-            
+
             if ( stag < MaxStag ) {
                 if ( prtlvl >= PRINT_MORE ) {
                     ITS_DIFFRES(normuu,relres);
                     ITS_RESTART;
                 }
             }
-            
+
             array_cp(m,b->val,r);
             dcsr_aAxpy(-1.0,A,u->val,r);
-            
+
             // compute residuals
             switch (stop_type) {
                 case STOP_REL_RES:
@@ -1327,9 +1327,9 @@ INT dcsr_pminres(dCSRmat *A,
                     relres = absres/normu2;
                     break;
             }
-            
+
             if ( prtlvl >= PRINT_MORE ) ITS_REALRES(relres);
-            
+
             if ( relres < tol )
                 break;
             else {
@@ -1341,51 +1341,51 @@ INT dcsr_pminres(dCSRmat *A,
                 array_set(m,p0,0.0);
                 ++stag;
                 ++restart_step;
-                
+
                 // p1 = B(r)
                 if ( pc != NULL )
                     pc->fct(r,p1,pc->data); /* Apply preconditioner */
                 else
                     array_cp(m,r,p1); /* No preconditioner */
-                
+
                 // tp = A*p1
                 dcsr_mxv(A,p1,tp);
-                
+
                 // tz = B(tp)
                 if ( pc != NULL )
                     pc->fct(tp,tz,pc->data); /* Apply rreconditioner */
                 else
                     array_cp(m,tp,tz); /* No preconditioner */
-                
+
                 // p1 = p1/normp
                 normp = array_dotprod(m,tz,tp);
                 normp = sqrt(normp);
                 array_cp(m,p1,t);
-                
+
                 // t0 = A*p0=0
                 array_set(m,t0,0.0);
                 array_cp(m,t0,z0);
                 array_cp(m,t0,t1);
                 array_cp(m,t0,z1);
                 array_cp(m,t0,p1);
-                
+
                 array_axpy(m,1/normp,t,p1);
-                
+
                 // t1 = tp/normp, z1 = tz/normp
                 array_axpy(m,1/normp,tp,t1);
                 array_axpy(m,1/normp,tz,z1);
             }
         }
-        
+
         // Check III: prevent false convergence
         if ( relres < tol ) {
-            
+
             if ( prtlvl >= PRINT_MORE ) ITS_COMPRES(relres);
-            
+
             // compute residual r = b - Ax again
             array_cp(m,b->val,r);
             dcsr_aAxpy(-1.0,A,u->val,r);
-            
+
             // compute residuals
             switch (stop_type) {
                 case STOP_REL_RES:
@@ -1408,69 +1408,69 @@ INT dcsr_pminres(dCSRmat *A,
                     relres = absres/normu2;
                     break;
             }
-            
+
             if ( prtlvl >= PRINT_MORE ) ITS_REALRES(relres);
-            
+
             // check convergence
             if ( relres < tol ) break;
-            
+
             if ( more_step >= MaxRestartStep ) {
                 if ( prtlvl > PRINT_MIN ) ITS_ZEROTOL;
                 iter = ERROR_SOLVER_TOLSMALL;
                 break;
             }
-            
+
             // prepare for restarting the method
             array_set(m,p0,0.0);
             ++more_step;
             ++restart_step;
-            
+
             // p1 = B(r)
             if ( pc != NULL )
                 pc->fct(r,p1,pc->data); /* Apply preconditioner */
             else
                 array_cp(m,r,p1); /* No preconditioner */
-            
+
             // tp = A*p1
             dcsr_mxv(A,p1,tp);
-            
+
             // tz = B(tp)
             if ( pc != NULL )
                 pc->fct(tp,tz,pc->data); /* Apply rreconditioner */
             else
                 array_cp(m,tp,tz); /* No preconditioner */
-            
+
             // p1 = p1/normp
             normp = array_dotprod(m,tz,tp);
             normp = sqrt(normp);
             array_cp(m,p1,t);
-            
+
             // t0 = A*p0 = 0
             array_set(m,t0,0.0);
             array_cp(m,t0,z0);
             array_cp(m,t0,t1);
             array_cp(m,t0,z1);
             array_cp(m,t0,p1);
-            
+
             array_axpy(m,1/normp,t,p1);
-            
+
             // t1=tp/normp,z1=tz/normp
             array_axpy(m,1/normp,tp,t1);
             array_axpy(m,1/normp,tz,z1);
-            
+
         } // end of convergence check
-        
+
         // update relative residual here
         absres0 = absres;
-        
+
     } // end of the main loop
-    
+
 FINISHED:  // finish the iterative method
     if ( prtlvl > PRINT_NONE ) ITS_FINAL(iter,MaxIt,relres);
-    
+
     // clean up temp memory
     free(work);
-    
+
     if ( iter > MaxIt )
         return ERROR_SOLVER_MAXIT;
     else
@@ -1508,37 +1508,37 @@ INT bdcsr_pminres(block_dCSRmat *A,
                   const INT MaxIt,
                   const SHORT stop_type,
                   const SHORT prtlvl)
-{   
+{
     const SHORT  MaxStag = MAX_STAG, MaxRestartStep = MAX_RESTART;
     const INT    m = b->row;
     const REAL   maxdiff = tol*STAG_RATIO; // staganation tolerance
     const REAL   sol_inf_tol = SMALLREAL; // infinity norm tolerance
-    
+
     // local variables
     INT          iter = 0, stag = 1, more_step = 1, restart_step = 1;
     REAL         absres0 = BIGREAL, absres = BIGREAL;
     REAL         normr0  = BIGREAL, relres  = BIGREAL;
     REAL         normu2, normuu, normp, infnormu, factor;
     REAL         alpha, alpha0, alpha1, temp2;
-    
+
     // allocate temp memory (need 11*m REAL)
     REAL *work=(REAL *)calloc(11*m,sizeof(REAL));
     REAL *p0=work, *p1=work+m, *p2=p1+m, *z0=p2+m, *z1=z0+m;
     REAL *t0=z1+m, *t1=t0+m, *t=t1+m, *tp=t+m, *tz=tp+m, *r=tz+m;
-    
+
     // p0 = 0
     array_set(m,p0,0.0);
-    
+
     // r = b-A*u
     array_cp(m,b->val,r);
     bdcsr_aAxpy(-1.0,A,u->val,r);
-    
+
     // p1 = B(r)
     if ( pc != NULL )
         pc->fct(r,p1,pc->data); /* Apply preconditioner */
     else
         array_cp(m,r,p1); /* No preconditioner */
-    
+
     // compute initial residuals
     switch ( stop_type ) {
         case STOP_REL_RES:
@@ -1560,94 +1560,94 @@ INT bdcsr_pminres(block_dCSRmat *A,
             printf("### ERROR: Unrecognized stopping type for %s!\n", __FUNCTION__);
             goto FINISHED;
     }
-    
+
     // if initial residual is small, no need to iterate!
     if ( relres < tol || absres0 < 1e-3*tol ) goto FINISHED;
-    
+
     // output iteration information if needed
     print_itsolver_info(prtlvl,stop_type,iter,relres,absres0,0.0);
-    
+
     // tp = A*p1
     bdcsr_mxv(A,p1,tp);
-    
+
     // tz = B(tp)
     if ( pc != NULL )
         pc->fct(tp,tz,pc->data); /* Apply preconditioner */
     else
         array_cp(m,tp,tz); /* No preconditioner */
-    
+
     // p1 = p1/normp
     normp = ABS(array_dotprod(m,tz,tp));
     normp = sqrt(normp);
     array_cp(m,p1,t);
     array_set(m,p1,0.0);
     array_axpy(m,1/normp,t,p1);
-    
+
     // t0 = A*p0 = 0
     array_set(m,t0,0.0);
     array_cp(m,t0,z0);
     array_cp(m,t0,t1);
     array_cp(m,t0,z1);
-    
+
     // t1 = tp/normp, z1 = tz/normp
     array_axpy(m,1.0/normp,tp,t1);
     array_axpy(m,1.0/normp,tz,z1);
-    
+
     // main MinRes loop
     while ( iter++ < MaxIt ) {
-        
+
         // alpha = <r,z1>
         alpha=array_dotprod(m,r,z1);
-        
+
         // u = u+alpha*p1
         array_axpy(m,alpha,p1,u->val);
-        
+
         // r = r-alpha*Ap1
         array_axpy(m,-alpha,t1,r);
-        
+
         // compute t = A*z1 alpha1 = <z1,t>
         bdcsr_mxv(A,z1,t);
         alpha1=array_dotprod(m,z1,t);
-        
+
         // compute t = A*z0 alpha0 = <z1,t>
         bdcsr_mxv(A,z0,t);
         alpha0=array_dotprod(m,z1,t);
-        
+
         // p2 = z1-alpha1*p1-alpha0*p0
         array_cp(m,z1,p2);
         array_axpy(m,-alpha1,p1,p2);
         array_axpy(m,-alpha0,p0,p2);
-        
+
         // tp = A*p2
         bdcsr_mxv(A,p2,tp);
-        
+
         // tz = B(tp)
         if ( pc != NULL )
             pc->fct(tp,tz,pc->data); /* Apply preconditioner */
         else
             array_cp(m,tp,tz); /* No preconditioner */
-        
+
         // p2 = p2/normp
         normp = ABS(array_dotprod(m,tz,tp));
         normp = sqrt(normp);
         array_cp(m,p2,t);
         array_set(m,p2,0.0);
         array_axpy(m,1/normp,t,p2);
-        
+
         // prepare for the next iteration
         array_cp(m,p1,p0);
         array_cp(m,p2,p1);
         array_cp(m,t1,t0);
         array_cp(m,z1,z0);
-        
+
         // t1=tp/normp,z1=tz/normp
         array_set(m,t1,0.0);
         array_cp(m,t1,z1);
         array_axpy(m,1/normp,tp,t1);
         array_axpy(m,1/normp,tz,z1);
-        
+
         normu2 = array_norm2(m,u->val);
-        
+
         // compute residuals
         switch ( stop_type ) {
             case STOP_REL_RES:
@@ -1670,13 +1670,13 @@ INT bdcsr_pminres(block_dCSRmat *A,
                 relres = absres/normu2;
                 break;
         }
-        
+
         // compute reducation factor of residual ||r||
         factor = absres/absres0;
-        
+
         // output iteration information if needed
         print_itsolver_info(prtlvl,stop_type,iter,relres,absres,factor);
-        
+
         // Check I: if soultion is close to zero, return ERROR_SOLVER_SOLSTAG
         infnormu = array_norminf(m, u->val);
         if (infnormu <= sol_inf_tol) {
@@ -1684,23 +1684,23 @@ INT bdcsr_pminres(block_dCSRmat *A,
             iter = ERROR_SOLVER_SOLSTAG;
             break;
         }
-        
+
         // Check II: if staggenated, try to restart
         normuu = array_norm2(m,p1);
         normuu = ABS(alpha)*(normuu/normu2);
-        
+
         if ( normuu < maxdiff ) {
-            
+
             if ( stag < MaxStag ) {
                 if ( prtlvl >= PRINT_MORE ) {
                     ITS_DIFFRES(normuu,relres);
                     ITS_RESTART;
                 }
             }
-            
+
             array_cp(m,b->val,r);
             bdcsr_aAxpy(-1.0,A,u->val,r);
-            
+
             // compute residuals
             switch (stop_type) {
                 case STOP_REL_RES:
@@ -1723,9 +1723,9 @@ INT bdcsr_pminres(block_dCSRmat *A,
                     relres = absres/normu2;
                     break;
             }
-            
+
             if ( prtlvl >= PRINT_MORE ) ITS_REALRES(relres);
-            
+
             if ( relres < tol )
                 break;
             else {
@@ -1737,51 +1737,51 @@ INT bdcsr_pminres(block_dCSRmat *A,
                 array_set(m,p0,0.0);
                 ++stag;
                 ++restart_step;
-                
+
                 // p1 = B(r)
                 if ( pc != NULL )
                     pc->fct(r,p1,pc->data); /* Apply preconditioner */
                 else
                     array_cp(m,r,p1); /* No preconditioner */
-                
+
                 // tp = A*p1
                 bdcsr_mxv(A,p1,tp);
-                
+
                 // tz = B(tp)
                 if ( pc != NULL )
                     pc->fct(tp,tz,pc->data); /* Apply rreconditioner */
                 else
                     array_cp(m,tp,tz); /* No preconditioner */
-                
+
                 // p1 = p1/normp
                 normp = array_dotprod(m,tz,tp);
                 normp = sqrt(normp);
                 array_cp(m,p1,t);
-                
+
                 // t0 = A*p0=0
                 array_set(m,t0,0.0);
                 array_cp(m,t0,z0);
                 array_cp(m,t0,t1);
                 array_cp(m,t0,z1);
                 array_cp(m,t0,p1);
-                
+
                 array_axpy(m,1/normp,t,p1);
-                
+
                 // t1 = tp/normp, z1 = tz/normp
                 array_axpy(m,1/normp,tp,t1);
                 array_axpy(m,1/normp,tz,z1);
             }
         }
-        
+
         // Check III: prevent false convergence
         if ( relres < tol ) {
-            
+
             if ( prtlvl >= PRINT_MORE ) ITS_COMPRES(relres);
-            
+
             // compute residual r = b - Ax again
             array_cp(m,b->val,r);
             bdcsr_aAxpy(-1.0,A,u->val,r);
-            
+
             // compute residuals
             switch (stop_type) {
                 case STOP_REL_RES:
@@ -1804,69 +1804,69 @@ INT bdcsr_pminres(block_dCSRmat *A,
                     relres = absres/normu2;
                     break;
             }
-            
+
             if ( prtlvl >= PRINT_MORE ) ITS_REALRES(relres);
-            
+
             // check convergence
             if ( relres < tol ) break;
-            
+
             if ( more_step >= MaxRestartStep ) {
                 if ( prtlvl > PRINT_MIN ) ITS_ZEROTOL;
                 iter = ERROR_SOLVER_TOLSMALL;
                 break;
             }
-            
+
             // prepare for restarting the method
             array_set(m,p0,0.0);
             ++more_step;
             ++restart_step;
-            
+
             // p1 = B(r)
             if ( pc != NULL )
                 pc->fct(r,p1,pc->data); /* Apply preconditioner */
             else
                 array_cp(m,r,p1); /* No preconditioner */
-            
+
             // tp = A*p1
             bdcsr_mxv(A,p1,tp);
-            
+
             // tz = B(tp)
             if ( pc != NULL )
                 pc->fct(tp,tz,pc->data); /* Apply rreconditioner */
             else
                 array_cp(m,tp,tz); /* No preconditioner */
-            
+
             // p1 = p1/normp
             normp = array_dotprod(m,tz,tp);
             normp = sqrt(normp);
             array_cp(m,p1,t);
-            
+
             // t0 = A*p0 = 0
             array_set(m,t0,0.0);
             array_cp(m,t0,z0);
             array_cp(m,t0,t1);
             array_cp(m,t0,z1);
             array_cp(m,t0,p1);
-            
+
             array_axpy(m,1/normp,t,p1);
-            
+
             // t1=tp/normp,z1=tz/normp
             array_axpy(m,1/normp,tp,t1);
             array_axpy(m,1/normp,tz,z1);
-            
+
         } // end of convergence check
-        
+
         // update relative residual here
         absres0 = absres;
-        
+
     } // end of the main loop
-    
+
 FINISHED:  // finish the iterative method
     if ( prtlvl > PRINT_NONE ) ITS_FINAL(iter,MaxIt,relres);
-    
+
     // clean up temp memory
     free(work);
-    
+
     if ( iter > MaxIt )
         return ERROR_SOLVER_MAXIT;
     else
@@ -1904,37 +1904,37 @@ INT general_pminres(matvec *mxv,
                   const INT MaxIt,
                   const SHORT stop_type,
                   const SHORT prtlvl)
-{    
+{
     const SHORT  MaxStag = MAX_STAG, MaxRestartStep = MAX_RESTART;
     const INT    m = b->row;
     const REAL   maxdiff = tol*STAG_RATIO; // staganation tolerance
     const REAL   sol_inf_tol = SMALLREAL; // infinity norm tolerance
-    
+
     // local variables
     INT          iter = 0, stag = 1, more_step = 1, restart_step = 1;
     REAL         absres0 = BIGREAL, absres = BIGREAL;
     REAL         normr0  = BIGREAL, relres  = BIGREAL;
     REAL         normu2, normuu, normp, infnormu, factor;
     REAL         alpha, alpha0, alpha1, temp2;
-    
+
     // allocate temp memory (need 11*m REAL)
     REAL *work=(REAL *)calloc(11*m,sizeof(REAL));
     REAL *p0=work, *p1=work+m, *p2=p1+m, *z0=p2+m, *z1=z0+m;
     REAL *t0=z1+m, *t1=t0+m, *t=t1+m, *tp=t+m, *tz=tp+m, *r=tz+m;
-    
+
     // p0 = 0
     array_set(m,p0,0.0);
-    
+
     // r = b-A*u
     mxv->fct(mxv->data, u->val, r);
     array_axpby(m, 1.0, b->val, -1.0, r);
-    
+
     // p1 = B(r)
     if ( pc != NULL )
         pc->fct(r,p1,pc->data); /* Apply preconditioner */
     else
         array_cp(m,r,p1); /* No preconditioner */
-    
+
     // compute initial residuals
     switch ( stop_type ) {
         case STOP_REL_RES:
@@ -1956,94 +1956,94 @@ INT general_pminres(matvec *mxv,
             printf("### ERROR: Unrecognized stopping type for %s!\n", __FUNCTION__);
             goto FINISHED;
     }
-    
+
     // if initial residual is small, no need to iterate!
     if ( relres < tol || absres0 < 1e-3*tol ) goto FINISHED;
-    
+
     // output iteration information if needed
     print_itsolver_info(prtlvl,stop_type,iter,relres,absres0,0.0);
-    
+
     // tp = A*p1
     mxv->fct(mxv->data, p1, tp);
-    
+
     // tz = B(tp)
     if ( pc != NULL )
         pc->fct(tp,tz,pc->data); /* Apply preconditioner */
     else
         array_cp(m,tp,tz); /* No preconditioner */
-    
+
     // p1 = p1/normp
     normp = ABS(array_dotprod(m,tz,tp));
     normp = sqrt(normp);
     array_cp(m,p1,t);
     array_set(m,p1,0.0);
     array_axpy(m,1/normp,t,p1);
-    
+
     // t0 = A*p0 = 0
     array_set(m,t0,0.0);
     array_cp(m,t0,z0);
     array_cp(m,t0,t1);
     array_cp(m,t0,z1);
-    
+
     // t1 = tp/normp, z1 = tz/normp
     array_axpy(m,1.0/normp,tp,t1);
     array_axpy(m,1.0/normp,tz,z1);
-    
+
     // main MinRes loop
     while ( iter++ < MaxIt ) {
-        
+
         // alpha = <r,z1>
         alpha = array_dotprod(m,r,z1);
-        
+
         // u = u+alpha*p1
         array_axpy(m,alpha,p1,u->val);
-        
+
         // r = r-alpha*Ap1
         array_axpy(m,-alpha,t1,r);
-        
+
         // compute t = A*z1 alpha1 = <z1,t>
         mxv->fct(mxv->data, z1, t);
         alpha1 = array_dotprod(m,z1,t);
-        
+
         // compute t = A*z0 alpha0 = <z1,t>
         mxv->fct(mxv->data,z0,t);
         alpha0 = array_dotprod(m,z1,t);
-        
+
         // p2 = z1-alpha1*p1-alpha0*p0
         array_cp(m,z1,p2);
         array_axpy(m,-alpha1,p1,p2);
         array_axpy(m,-alpha0,p0,p2);
-        
+
         // tp = A*p2
         mxv->fct(mxv->data,p2,tp);
-        
+
         // tz = B(tp)
         if ( pc != NULL )
             pc->fct(tp,tz,pc->data); /* Apply preconditioner */
         else
             array_cp(m,tp,tz); /* No preconditioner */
-        
+
         // p2 = p2/normp
         normp = ABS(array_dotprod(m,tz,tp));
         normp = sqrt(normp);
         array_cp(m,p2,t);
         array_set(m,p2,0.0);
         array_axpy(m,1/normp,t,p2);
-        
+
         // prepare for the next iteration
         array_cp(m,p1,p0);
         array_cp(m,p2,p1);
         array_cp(m,t1,t0);
         array_cp(m,z1,z0);
-        
+
         // t1=tp/normp,z1=tz/normp
         array_set(m,t1,0.0);
         array_cp(m,t1,z1);
         array_axpy(m,1/normp,tp,t1);
         array_axpy(m,1/normp,tz,z1);
-        
+
         normu2 = array_norm2(m,u->val);
-        
+
         // compute residuals
         switch ( stop_type ) {
             case STOP_REL_RES:
@@ -2066,13 +2066,13 @@ INT general_pminres(matvec *mxv,
                 relres = absres/normu2;
                 break;
         }
-        
+
         // compute reducation factor of residual ||r||
         factor = absres/absres0;
-        
+
         // output iteration information if needed
         print_itsolver_info(prtlvl,stop_type,iter,relres,absres,factor);
-        
+
         // Check I: if soultion is close to zero, return ERROR_SOLVER_SOLSTAG
         infnormu = array_norminf(m, u->val);
         if (infnormu <= sol_inf_tol) {
@@ -2080,23 +2080,23 @@ INT general_pminres(matvec *mxv,
             iter = ERROR_SOLVER_SOLSTAG;
             break;
         }
-        
+
         // Check II: if staggenated, try to restart
         normuu = array_norm2(m,p1);
         normuu = ABS(alpha)*(normuu/normu2);
-        
+
         if ( normuu < maxdiff ) {
-            
+
             if ( stag < MaxStag ) {
                 if ( prtlvl >= PRINT_MORE ) {
                     ITS_DIFFRES(normuu,relres);
                     ITS_RESTART;
                 }
             }
-            
+
             mxv->fct(mxv->data, u->val, r);
             array_axpby(m, 1.0, b->val, -1.0, r);
-            
+
             // compute residuals
             switch (stop_type) {
                 case STOP_REL_RES:
@@ -2119,9 +2119,9 @@ INT general_pminres(matvec *mxv,
                     relres = absres/normu2;
                     break;
             }
-            
+
             if ( prtlvl >= PRINT_MORE ) ITS_REALRES(relres);
-            
+
             if ( relres < tol )
                 break;
             else {
@@ -2133,51 +2133,51 @@ INT general_pminres(matvec *mxv,
                 array_set(m,p0,0.0);
                 ++stag;
                 ++restart_step;
-                
+
                 // p1 = B(r)
                 if ( pc != NULL )
                     pc->fct(r,p1,pc->data); /* Apply preconditioner */
                 else
                     array_cp(m,r,p1); /* No preconditioner */
-                
+
                 // tp = A*p1
                 mxv->fct(mxv->data,p1,tp);
-                
+
                 // tz = B(tp)
                 if ( pc != NULL )
                     pc->fct(tp,tz,pc->data); /* Apply rreconditioner */
                 else
                     array_cp(m,tp,tz); /* No preconditioner */
-                
+
                 // p1 = p1/normp
                 normp = array_dotprod(m,tz,tp);
                 normp = sqrt(normp);
                 array_cp(m,p1,t);
-                
+
                 // t0 = A*p0=0
                 array_set(m,t0,0.0);
                 array_cp(m,t0,z0);
                 array_cp(m,t0,t1);
                 array_cp(m,t0,z1);
                 array_cp(m,t0,p1);
-                
+
                 array_axpy(m,1/normp,t,p1);
-                
+
                 // t1 = tp/normp, z1 = tz/normp
                 array_axpy(m,1/normp,tp,t1);
                 array_axpy(m,1/normp,tz,z1);
             }
         }
-        
+
         // Check III: prevent false convergence
         if ( relres < tol ) {
-            
+
             if ( prtlvl >= PRINT_MORE ) ITS_COMPRES(relres);
-            
+
             // compute residual r = b - Ax again
             mxv->fct(mxv->data, u->val, r);
             array_axpby(m, 1.0, b->val, -1.0, r);
-            
+
             // compute residuals
             switch (stop_type) {
                 case STOP_REL_RES:
@@ -2200,66 +2200,66 @@ INT general_pminres(matvec *mxv,
                     relres = absres/normu2;
                     break;
             }
-            
+
             if ( prtlvl >= PRINT_MORE ) ITS_REALRES(relres);
-            
+
             // check convergence
             if ( relres < tol ) break;
-            
+
             if ( more_step >= MaxRestartStep ) {
                 if ( prtlvl > PRINT_MIN ) ITS_ZEROTOL;
                 iter = ERROR_SOLVER_TOLSMALL;
                 break;
             }
-            
+
             // prepare for restarting the method
             array_set(m,p0,0.0);
             ++more_step;
             ++restart_step;
-            
+
             // p1 = B(r)
             if ( pc != NULL )
                 pc->fct(r,p1,pc->data); /* Apply preconditioner */
             else
                 array_cp(m,r,p1); /* No preconditioner */
-            
+
             // tp = A*p1
             mxv->fct(mxv->data,p1,tp);
-            
+
             // tz = B(tp)
             if ( pc != NULL )
                 pc->fct(tp,tz,pc->data); /* Apply rreconditioner */
             else
                 array_cp(m,tp,tz); /* No preconditioner */
-            
+
             // p1 = p1/normp
             normp = array_dotprod(m,tz,tp);
             normp = sqrt(normp);
             array_cp(m,p1,t);
-            
+
             // t0 = A*p0 = 0
             array_set(m,t0,0.0);
             array_cp(m,t0,z0);
             array_cp(m,t0,t1);
             array_cp(m,t0,z1);
             array_cp(m,t0,p1);
-            
+
             array_axpy(m,1/normp,t,p1);
-            
+
             // t1=tp/normp,z1=tz/normp
             array_axpy(m,1/normp,tp,t1);
             array_axpy(m,1/normp,tz,z1);
-            
+
         } // end of convergence check
-        
+
         // update relative residual here
         absres0 = absres;
-        
+
     } // end of the main loop
-    
+
 FINISHED:  // finish the iterative method
     if ( prtlvl > PRINT_NONE ) ITS_FINAL(iter,MaxIt,relres);
-    
+
     // clean up temp memory
     free(work);
 
@@ -2305,7 +2305,7 @@ INT dcsr_pvgmres (dCSRmat *A,
                   const SHORT restart,
                   const SHORT stop_type,
                   const SHORT prtlvl)
-{   
+{
   // Check if matrix counting from 1 or 0 for CSR arrays (James vs. Xiaozhe code)
   INT shift_flag = 0;
   if(A->IA[0]==1) {
@@ -2316,41 +2316,41 @@ INT dcsr_pvgmres (dCSRmat *A,
   const INT   n          = b->row;
   const INT   MIN_ITER   = 0;
   const REAL  epsmac     = SMALLREAL;
-    
+
   //--------------------------------------------//
   //   Newly added parameters to monitor when   //
   //   to change the restart parameter          //
   //--------------------------------------------//
   const REAL cr_max      = 0.99;    // = cos(8^o)  (experimental)
   const REAL cr_min      = 0.174;   // = cos(80^o) (experimental)
-    
+
   // local variables
   INT    iter            = 0;
   INT    i, j, k;
-    
+
   REAL   r_norm, r_normb, gamma, t;
   REAL   absres0 = BIGREAL, absres = BIGREAL;
   REAL   relres  = BIGREAL, normu  = BIGREAL;
-    
+
   REAL   cr           = 1.0;     // convergence rate
   REAL   r_norm_old   = 0.0;     // save the residual norm of the previous restart cycle
   INT    d            = 3;       // reduction for the restart parameter
   INT    restart_max  = restart; // upper bound for restart in each restart cycle
   INT    restart_min  = 3;       // lower bound for restart in each restart cycle
-    
+
   unsigned INT  Restart  = restart; // the real restart in some fixed restarted cycle
   unsigned INT  Restart1 = Restart + 1;
   unsigned LONG worksize = (Restart+4)*(Restart+n)+1-n;
-    
+
   // allocate temp memory (need about (restart+4)*n REAL numbers)
   REAL  *c = NULL, *s = NULL, *rs = NULL;
   REAL  *norms = NULL, *r = NULL, *w = NULL;
   REAL  *work = NULL;
   REAL  **p = NULL, **hh = NULL;
-    
+
   /* allocate memory and setup temp work space */
   work  = (REAL *)calloc(worksize, sizeof(REAL));
-    
+
   /* check whether memory is enough for GMRES */
   while ( (work == NULL) && (Restart > 5) ) {
     Restart = Restart - 5;
@@ -2358,33 +2358,33 @@ INT dcsr_pvgmres (dCSRmat *A,
     work = (REAL *)calloc(worksize, sizeof(REAL));
     Restart1 = Restart + 1;
   }
-    
+
   if ( work == NULL ) {
     printf("### ERROR: No enough memory for vGMRES %s : %s : %d!\n",
 	   __FILE__, __FUNCTION__, __LINE__ );
     exit(ERROR_ALLOC_MEM);
   }
-    
+
   if ( prtlvl > PRINT_MIN && Restart < restart ) {
     printf("### WARNING: vGMRES restart number set to %d!\n", Restart);
   }
-    
+
   p     = (REAL **)calloc(Restart1, sizeof(REAL *));
   hh    = (REAL **)calloc(Restart1, sizeof(REAL *));
   norms = (REAL *) calloc(MaxIt+1, sizeof(REAL));
-    
+
   r = work; w = r + n; rs = w + n; c = rs + Restart1; s = c + Restart;
-    
+
   for ( i = 0; i < Restart1; i++ ) p[i] = s + Restart + i*n;
-    
+
   for ( i = 0; i < Restart1; i++ ) hh[i] = p[Restart] + n + i*Restart;
-    
+
   // r = b-A*x
   array_cp(n, b->val, p[0]);
   dcsr_aAxpy(-1.0, A, x->val, p[0]);
-    
+
   r_norm = array_norm2(n, p[0]);
-    
+
   // compute initial residuals
   switch (stop_type) {
   case STOP_REL_RES:
@@ -2409,25 +2409,25 @@ INT dcsr_pvgmres (dCSRmat *A,
     printf("### ERROR: Unrecognised stopping type for %s!\n", __FUNCTION__);
     goto FINISHED;
   }
-    
+
   // if initial residual is small, no need to iterate!
   if ( relres < tol || absres0 < 1e-3*tol ) goto FINISHED;
-    
+
   // output iteration information if needed
   print_itsolver_info(prtlvl,stop_type,0,relres,absres0,0);
-    
+
   // store initial residual
   norms[0] = relres;
-    
+
   /* outer iteration cycle */
   while ( iter < MaxIt ) {
-        
+
     rs[0] = r_norm_old = r_norm;
-        
+
     t = 1.0 / r_norm;
-        
+
     array_ax(n, t, p[0]);
-        
+
     //-----------------------------------//
     //   adjust the restart parameter    //
     //-----------------------------------//
@@ -2445,21 +2445,21 @@ INT dcsr_pvgmres (dCSRmat *A,
 	Restart = restart_max;
       }
     }
-        
+
     /* RESTART CYCLE (right-preconditioning) */
     i = 0;
     while ( i < Restart && iter < MaxIt ) {
-            
+
       i++;  iter++;
-            
+
       /* apply the preconditioner */
       if (pc == NULL)
 	array_cp(n, p[i-1], r);
       else
 	pc->fct(p[i-1], r, pc->data);
-            
+
       dcsr_mxv(A, r, p[i]);
-            
+
       /* modified Gram_Schmidt */
       for (j = 0; j < i; j ++) {
 	hh[j][i-1] = array_dotprod(n, p[j], p[i]);
@@ -2471,7 +2471,7 @@ INT dcsr_pvgmres (dCSRmat *A,
 	t = 1.0/t;
 	array_ax(n, t, p[i]);
       }
-            
+
       for (j = 1; j < i; ++j) {
 	t = hh[j-1][i-1];
 	hh[j-1][i-1] = s[j-1]*hh[j][i-1] + c[j-1]*t;
@@ -2479,7 +2479,7 @@ INT dcsr_pvgmres (dCSRmat *A,
       }
       t= hh[i][i-1]*hh[i][i-1];
       t+= hh[i-1][i-1]*hh[i-1][i-1];
-            
+
       gamma = sqrt(t);
       if (gamma == 0.0) gamma = epsmac;
       c[i-1]  = hh[i-1][i-1] / gamma;
@@ -2487,57 +2487,57 @@ INT dcsr_pvgmres (dCSRmat *A,
       rs[i]   = -s[i-1]*rs[i-1];
       rs[i-1] = c[i-1]*rs[i-1];
       hh[i-1][i-1] = s[i-1]*hh[i][i-1] + c[i-1]*hh[i-1][i-1];
-            
+
       absres = r_norm = fabs(rs[i]);
-            
+
       relres = absres/absres0;
-            
+
       norms[iter] = relres;
-            
+
       // output iteration information if needed
       print_itsolver_info(prtlvl, stop_type, iter, relres, absres,
 			  norms[iter]/norms[iter-1]);
-            
+
       // should we exit the restart cycle
       if ( relres < tol && iter >= MIN_ITER ) break;
-            
+
     } /* end of restart cycle */
-        
+
     /* now compute solution, first solve upper triangular system */
     rs[i-1] = rs[i-1] / hh[i-1][i-1];
     for (k = i-2; k >= 0; k --) {
       t = 0.0;
       for (j = k+1; j < i; j ++)  t -= hh[k][j]*rs[j];
-            
+
       t += rs[k];
       rs[k] = t / hh[k][k];
     }
-        
+
     array_cp(n, p[i-1], w);
-        
+
     array_ax(n, rs[i-1], w);
-        
+
     for ( j = i-2; j >= 0; j-- ) array_axpy(n, rs[j], p[j], w);
-        
+
     /* apply the preconditioner */
     if ( pc == NULL )
       array_cp(n, w, r);
     else
       pc->fct(w, r, pc->data);
-        
+
     array_axpy(n, 1.0, r, x->val);
-        
+
     // Check: prevent false convergence
     if ( relres < tol && iter >= MIN_ITER ) {
-            
+
       REAL computed_relres = relres;
-            
+
       // compute current residual
       array_cp(n, b->val, r);
       dcsr_aAxpy(-1.0, A, x->val, r);
-            
+
       r_norm = array_norm2(n, r);
-            
+
       switch ( stop_type ) {
       case STOP_REL_RES:
 	absres = r_norm;
@@ -2557,9 +2557,9 @@ INT dcsr_pvgmres (dCSRmat *A,
 	relres = absres/normu;
 	break;
       }
-            
+
       norms[iter] = relres;
-            
+
       if ( relres < tol ) {
 	break;
       }
@@ -2567,38 +2567,38 @@ INT dcsr_pvgmres (dCSRmat *A,
 	// Need to restart
 	array_cp(n, r, p[0]); i = 0;
       }
-            
+
       if ( prtlvl >= PRINT_MORE ) {
 	ITS_COMPRES(computed_relres); ITS_REALRES(relres);
       }
-            
+
     } /* end of convergence check */
-        
+
     /* compute residual vector and continue loop */
     for ( j = i; j > 0; j-- ) {
       rs[j-1] = -s[j-1]*rs[j];
       rs[j]   = c[j-1]*rs[j];
     }
-        
+
     if ( i ) array_axpy(n, rs[i]-1.0, p[i], p[i]);
-        
+
     for ( j = i-1 ; j > 0; j-- ) array_axpy(n, rs[j], p[j], p[i]);
-        
+
     if ( i ) {
       array_axpy(n, rs[0]-1.0, p[0], p[0]);
       array_axpy(n, 1.0, p[i], p[0]);
     }
-        
+
     //-----------------------------------//
     //   compute the convergence rate    //
     //-----------------------------------//
     cr = r_norm / r_norm_old;
-        
+
   } /* end of iteration while loop */
-    
+
  FINISHED:
   if ( prtlvl > PRINT_NONE ) ITS_FINAL(iter,MaxIt,relres);
-    
+
   /*-------------------------------------------
    * Free some stuff
    *------------------------------------------*/
@@ -2611,7 +2611,7 @@ INT dcsr_pvgmres (dCSRmat *A,
   if(shift_flag==1) {
     dcsr_shift(A, 1);  // shift A back
   }
-    
+
   if (iter>=MaxIt)
     return ERROR_SOLVER_MAXIT;
   else
@@ -2651,45 +2651,45 @@ INT bdcsr_pvgmres (block_dCSRmat *A,
                                const SHORT restart,
                                const SHORT stop_type,
                                const SHORT prtlvl)
-{  
+{
     const INT   n          = b->row;
     const INT   MIN_ITER   = 0;
     const REAL  epsmac     = SMALLREAL;
-    
+
     //--------------------------------------------//
     //   Newly added parameters to monitor when   //
     //   to change the restart parameter          //
     //--------------------------------------------//
     const REAL cr_max      = 0.99;    // = cos(8^o)  (experimental)
     const REAL cr_min      = 0.174;   // = cos(80^o) (experimental)
-    
+
     // local variables
     INT    iter            = 0;
     INT    i, j, k;
-    
+
     REAL   r_norm, r_normb, gamma, t;
     REAL   absres0 = BIGREAL, absres = BIGREAL;
     REAL   relres  = BIGREAL, normu  = BIGREAL;
-    
+
     REAL   cr           = 1.0;     // convergence rate
     REAL   r_norm_old   = 0.0;     // save the residual norm of the previous restart cycle
     INT    d            = 3;       // reduction for the restart parameter
     INT    restart_max  = restart; // upper bound for restart in each restart cycle
     INT    restart_min  = 3;       // lower bound for restart in each restart cycle (should be small)
-    
+
     unsigned INT  Restart  = restart; // the real restart in some fixed restarted cycle
     unsigned INT  Restart1 = Restart + 1;
     unsigned LONG worksize = (Restart+4)*(Restart+n)+1-n;
-    
+
     // allocate temp memory (need about (restart+4)*n REAL numbers)
     REAL  *c = NULL, *s = NULL, *rs = NULL;
     REAL  *norms = NULL, *r = NULL, *w = NULL;
     REAL  *work = NULL;
     REAL  **p = NULL, **hh = NULL;
-    
+
     /* allocate memory and setup temp work space */
     work  = (REAL *) calloc(worksize, sizeof(REAL));
-    
+
     /* check whether memory is enough for GMRES */
     while ( (work == NULL) && (Restart > 5) ) {
         Restart = Restart - 5;
@@ -2697,33 +2697,33 @@ INT bdcsr_pvgmres (block_dCSRmat *A,
         work = (REAL *) calloc(worksize, sizeof(REAL));
         Restart1 = Restart + 1;
     }
-    
+
     if ( work == NULL ) {
         printf("### ERROR: No enough memory for vGMRES %s : %s : %d!\n",
                __FILE__, __FUNCTION__, __LINE__ );
         exit(ERROR_ALLOC_MEM);
     }
-    
+
     if ( prtlvl > PRINT_MIN && Restart < restart ) {
         printf("### WARNING: vGMRES restart number set to %d!\n", Restart);
     }
-    
+
     p     = (REAL **)calloc(Restart1, sizeof(REAL *));
     hh    = (REAL **)calloc(Restart1, sizeof(REAL *));
     norms = (REAL *) calloc(MaxIt+1, sizeof(REAL));
-    
+
     r = work; w = r + n; rs = w + n; c = rs + Restart1; s = c + Restart;
-    
+
     for ( i = 0; i < Restart1; i++ ) p[i] = s + Restart + i*n;
-    
+
     for ( i = 0; i < Restart1; i++ ) hh[i] = p[Restart] + n + i*Restart;
-    
+
     // r = b-A*x
     array_cp(n, b->val, p[0]);
     bdcsr_aAxpy(-1.0, A, x->val, p[0]);
-    
+
     r_norm = array_norm2(n, p[0]);
-    
+
     // compute initial residuals
     switch (stop_type) {
         case STOP_REL_RES:
@@ -2748,25 +2748,25 @@ INT bdcsr_pvgmres (block_dCSRmat *A,
             printf("### ERROR: Unrecognised stopping type for %s!\n", __FUNCTION__);
             goto FINISHED;
     }
-    
+
     // if initial residual is small, no need to iterate!
     if ( relres < tol || absres0 < 1e-3*tol ) goto FINISHED;
-    
+
     // output iteration information if needed
     print_itsolver_info(prtlvl,stop_type,0,relres,absres0,0);
-    
+
     // store initial residual
     norms[0] = relres;
-    
+
     /* outer iteration cycle */
     while ( iter < MaxIt ) {
-        
+
         rs[0] = r_norm_old = r_norm;
-        
+
         t = 1.0 / r_norm;
-        
+
         array_ax(n, t, p[0]);
-        
+
         //-----------------------------------//
         //   adjust the restart parameter    //
         //-----------------------------------//
@@ -2784,21 +2784,21 @@ INT bdcsr_pvgmres (block_dCSRmat *A,
                 Restart = restart_max;
             }
         }
-        
+
         /* RESTART CYCLE (right-preconditioning) */
         i = 0;
         while ( i < Restart && iter < MaxIt ) {
-            
+
             i++;  iter++;
-            
+
             /* apply the preconditioner */
             if (pc == NULL)
                 array_cp(n, p[i-1], r);
             else
                 pc->fct(p[i-1], r, pc->data);
-            
+
             bdcsr_mxv(A, r, p[i]);
-            
+
             /* modified Gram_Schmidt */
             for (j = 0; j < i; j ++) {
                 hh[j][i-1] = array_dotprod(n, p[j], p[i]);
@@ -2810,7 +2810,7 @@ INT bdcsr_pvgmres (block_dCSRmat *A,
                 t = 1.0/t;
                 array_ax(n, t, p[i]);
             }
-            
+
             for (j = 1; j < i; ++j) {
                 t = hh[j-1][i-1];
                 hh[j-1][i-1] = s[j-1]*hh[j][i-1] + c[j-1]*t;
@@ -2818,7 +2818,7 @@ INT bdcsr_pvgmres (block_dCSRmat *A,
             }
             t= hh[i][i-1]*hh[i][i-1];
             t+= hh[i-1][i-1]*hh[i-1][i-1];
-            
+
             gamma = sqrt(t);
             if (gamma == 0.0) gamma = epsmac;
             c[i-1]  = hh[i-1][i-1] / gamma;
@@ -2826,57 +2826,57 @@ INT bdcsr_pvgmres (block_dCSRmat *A,
             rs[i]   = -s[i-1]*rs[i-1];
             rs[i-1] = c[i-1]*rs[i-1];
             hh[i-1][i-1] = s[i-1]*hh[i][i-1] + c[i-1]*hh[i-1][i-1];
-            
+
             absres = r_norm = fabs(rs[i]);
-            
+
             relres = absres/absres0;
-            
+
             norms[iter] = relres;
-            
+
             // output iteration information if needed
             print_itsolver_info(prtlvl, stop_type, iter, relres, absres,
                          norms[iter]/norms[iter-1]);
-            
+
             // should we exit the restart cycle
             if ( relres < tol && iter >= MIN_ITER ) break;
-            
+
         } /* end of restart cycle */
-        
+
         /* now compute solution, first solve upper triangular system */
         rs[i-1] = rs[i-1] / hh[i-1][i-1];
         for (k = i-2; k >= 0; k --) {
             t = 0.0;
             for (j = k+1; j < i; j ++)  t -= hh[k][j]*rs[j];
-            
+
             t += rs[k];
             rs[k] = t / hh[k][k];
         }
-        
+
         array_cp(n, p[i-1], w);
-        
+
         array_ax(n, rs[i-1], w);
-        
+
         for ( j = i-2; j >= 0; j-- )  array_axpy(n, rs[j], p[j], w);
-        
+
         /* apply the preconditioner */
         if ( pc == NULL )
             array_cp(n, w, r);
         else
             pc->fct(w, r, pc->data);
-        
+
         array_axpy(n, 1.0, r, x->val);
-        
+
         // Check: prevent false convergence
         if ( relres < tol && iter >= MIN_ITER ) {
-            
+
             REAL computed_relres = relres;
-            
+
             // compute current residual
             array_cp(n, b->val, r);
             bdcsr_aAxpy(-1.0, A, x->val, r);
-            
+
             r_norm = array_norm2(n, r);
-            
+
             switch ( stop_type ) {
                 case STOP_REL_RES:
                     absres = r_norm;
@@ -2896,9 +2896,9 @@ INT bdcsr_pvgmres (block_dCSRmat *A,
                     relres = absres/normu;
                     break;
             }
-            
+
             norms[iter] = relres;
-            
+
             if ( relres < tol ) {
                 break;
             }
@@ -2906,38 +2906,38 @@ INT bdcsr_pvgmres (block_dCSRmat *A,
                 // Need to restart
                 array_cp(n, r, p[0]); i = 0;
             }
-            
+
             if ( prtlvl >= PRINT_MORE ) {
                 ITS_COMPRES(computed_relres); ITS_REALRES(relres);
             }
-            
+
         } /* end of convergence check */
-        
+
         /* compute residual vector and continue loop */
         for ( j = i; j > 0; j-- ) {
             rs[j-1] = -s[j-1]*rs[j];
             rs[j]   = c[j-1]*rs[j];
         }
-        
+
         if ( i ) array_axpy(n, rs[i]-1.0, p[i], p[i]);
-        
+
         for ( j = i-1 ; j > 0; j-- ) array_axpy(n, rs[j], p[j], p[i]);
-        
+
         if ( i ) {
             array_axpy(n, rs[0]-1.0, p[0], p[0]);
             array_axpy(n, 1.0, p[i], p[0]);
         }
-        
+
         //-----------------------------------//
         //   compute the convergence rate    //
         //-----------------------------------//
         cr = r_norm / r_norm_old;
-        
+
     } /* end of iteration while loop */
-    
+
 FINISHED:
     if ( prtlvl > PRINT_NONE ) ITS_FINAL(iter,MaxIt,relres);
-    
+
     /*-------------------------------------------
      * Free some stuff
      *------------------------------------------*/
@@ -2945,7 +2945,7 @@ FINISHED:
     free(p);
     free(hh);
     free(norms);
-    
+
     if (iter>=MaxIt)
         return ERROR_SOLVER_MAXIT;
     else
@@ -2989,45 +2989,45 @@ INT general_pvgmres (matvec *mxv,
                   const SHORT restart,
                   const SHORT stop_type,
                   const SHORT prtlvl)
-{ 
+{
     const INT   n          = b->row;
     const INT   MIN_ITER   = 0;
     const REAL  epsmac     = SMALLREAL;
-    
+
     //--------------------------------------------//
     //   Newly added parameters to monitor when   //
     //   to change the restart parameter          //
     //--------------------------------------------//
     const REAL cr_max      = 0.99;    // = cos(8^o)  (experimental)
     const REAL cr_min      = 0.174;   // = cos(80^o) (experimental)
-    
+
     // local variables
     INT    iter            = 0;
     INT    i, j, k;
-    
+
     REAL   r_norm, r_normb, gamma, t;
     REAL   absres0 = BIGREAL, absres = BIGREAL;
     REAL   relres  = BIGREAL, normu  = BIGREAL;
-    
+
     REAL   cr           = 1.0;     // convergence rate
     REAL   r_norm_old   = 0.0;     // save the residual norm of the previous restart cycle
     INT    d            = 3;       // reduction for the restart parameter
     INT    restart_max  = restart; // upper bound for restart in each restart cycle
     INT    restart_min  = 3;       // lower bound for restart in each restart cycle
-    
+
     unsigned INT  Restart  = restart; // the real restart in some fixed restarted cycle
     unsigned INT  Restart1 = Restart + 1;
     unsigned LONG worksize = (Restart+4)*(Restart+n)+1-n;
-    
+
     // allocate temp memory (need about (restart+4)*n REAL numbers)
     REAL  *c = NULL, *s = NULL, *rs = NULL;
     REAL  *norms = NULL, *r = NULL, *w = NULL;
     REAL  *work = NULL;
     REAL  **p = NULL, **hh = NULL;
-    
+
     /* allocate memory and setup temp work space */
     work  = (REAL *)calloc(worksize, sizeof(REAL));
-    
+
     /* check whether memory is enough for GMRES */
     while ( (work == NULL) && (Restart > 5) ) {
         Restart = Restart - 5;
@@ -3035,33 +3035,33 @@ INT general_pvgmres (matvec *mxv,
         work = (REAL *)calloc(worksize, sizeof(REAL));
         Restart1 = Restart + 1;
     }
-    
+
     if ( work == NULL ) {
         printf("### ERROR: No enough memory for vGMRES %s : %s : %d!\n",
                __FILE__, __FUNCTION__, __LINE__ );
         exit(ERROR_ALLOC_MEM);
     }
-    
+
     if ( prtlvl > PRINT_MIN && Restart < restart ) {
         printf("### WARNING: vGMRES restart number set to %d!\n", Restart);
     }
-    
+
     p     = (REAL **)calloc(Restart1, sizeof(REAL *));
     hh    = (REAL **)calloc(Restart1, sizeof(REAL *));
     norms = (REAL *) calloc(MaxIt+1, sizeof(REAL));
-    
+
     r = work; w = r + n; rs = w + n; c = rs + Restart1; s = c + Restart;
-    
+
     for ( i = 0; i < Restart1; i++ ) p[i] = s + Restart + i*n;
-    
+
     for ( i = 0; i < Restart1; i++ ) hh[i] = p[Restart] + n + i*Restart;
-    
+
     // r = b-A*x
     mxv->fct(mxv->data, x->val, r);
     array_axpby(n, 1.0, b->val, -1.0, r);
-    
+
     r_norm = array_norm2(n, p[0]);
-    
+
     // compute initial residuals
     switch (stop_type) {
         case STOP_REL_RES:
@@ -3086,25 +3086,25 @@ INT general_pvgmres (matvec *mxv,
             printf("### ERROR: Unrecognised stopping type for %s!\n", __FUNCTION__);
             goto FINISHED;
     }
-    
+
     // if initial residual is small, no need to iterate!
     if ( relres < tol || absres0 < 1e-3*tol ) goto FINISHED;
-    
+
     // output iteration information if needed
     print_itsolver_info(prtlvl,stop_type,0,relres,absres0,0);
-    
+
     // store initial residual
     norms[0] = relres;
-    
+
     /* outer iteration cycle */
     while ( iter < MaxIt ) {
-        
+
         rs[0] = r_norm_old = r_norm;
-        
+
         t = 1.0 / r_norm;
-        
+
         array_ax(n, t, p[0]);
-        
+
         //-----------------------------------//
         //   adjust the restart parameter    //
         //-----------------------------------//
@@ -3122,21 +3122,21 @@ INT general_pvgmres (matvec *mxv,
                 Restart = restart_max;
             }
         }
-        
+
         /* RESTART CYCLE (right-preconditioning) */
         i = 0;
         while ( i < Restart && iter < MaxIt ) {
-            
+
             i++;  iter++;
-            
+
             /* apply the preconditioner */
             if (pc == NULL)
                 array_cp(n, p[i-1], r);
             else
                 pc->fct(p[i-1], r, pc->data);
-            
+
             mxv->fct(mxv->data,r, p[i]);
-            
+
             /* modified Gram_Schmidt */
             for (j = 0; j < i; j ++) {
                 hh[j][i-1] = array_dotprod(n, p[j], p[i]);
@@ -3148,7 +3148,7 @@ INT general_pvgmres (matvec *mxv,
                 t = 1.0/t;
                 array_ax(n, t, p[i]);
             }
-            
+
             for (j = 1; j < i; ++j) {
                 t = hh[j-1][i-1];
                 hh[j-1][i-1] = s[j-1]*hh[j][i-1] + c[j-1]*t;
@@ -3156,7 +3156,7 @@ INT general_pvgmres (matvec *mxv,
             }
             t= hh[i][i-1]*hh[i][i-1];
             t+= hh[i-1][i-1]*hh[i-1][i-1];
-            
+
             gamma = sqrt(t);
             if (gamma == 0.0) gamma = epsmac;
             c[i-1]  = hh[i-1][i-1] / gamma;
@@ -3164,57 +3164,57 @@ INT general_pvgmres (matvec *mxv,
             rs[i]   = -s[i-1]*rs[i-1];
             rs[i-1] = c[i-1]*rs[i-1];
             hh[i-1][i-1] = s[i-1]*hh[i][i-1] + c[i-1]*hh[i-1][i-1];
-            
+
             absres = r_norm = fabs(rs[i]);
-            
+
             relres = absres/absres0;
-            
+
             norms[iter] = relres;
-            
+
             // output iteration information if needed
             print_itsolver_info(prtlvl, stop_type, iter, relres, absres,
                                 norms[iter]/norms[iter-1]);
-            
+
             // should we exit the restart cycle
             if ( relres < tol && iter >= MIN_ITER ) break;
-            
+
         } /* end of restart cycle */
-        
+
         /* now compute solution, first solve upper triangular system */
         rs[i-1] = rs[i-1] / hh[i-1][i-1];
         for (k = i-2; k >= 0; k --) {
             t = 0.0;
             for (j = k+1; j < i; j ++)  t -= hh[k][j]*rs[j];
-            
+
             t += rs[k];
             rs[k] = t / hh[k][k];
         }
-        
+
         array_cp(n, p[i-1], w);
-        
+
         array_ax(n, rs[i-1], w);
-        
+
         for ( j = i-2; j >= 0; j-- ) array_axpy(n, rs[j], p[j], w);
-        
+
         /* apply the preconditioner */
         if ( pc == NULL )
             array_cp(n, w, r);
         else
             pc->fct(w, r, pc->data);
-        
+
         array_axpy(n, 1.0, r, x->val);
-        
+
         // Check: prevent false convergence
         if ( relres < tol && iter >= MIN_ITER ) {
-            
+
             REAL computed_relres = relres;
-            
+
             // compute current residual
             mxv->fct(mxv->data, x->val, r);
             array_axpby(n, 1.0, b->val, -1.0, r);
-            
+
             r_norm = array_norm2(n, r);
-            
+
             switch ( stop_type ) {
                 case STOP_REL_RES:
                     absres = r_norm;
@@ -3234,9 +3234,9 @@ INT general_pvgmres (matvec *mxv,
                     relres = absres/normu;
                     break;
             }
-            
+
             norms[iter] = relres;
-            
+
             if ( relres < tol ) {
                 break;
             }
@@ -3244,38 +3244,38 @@ INT general_pvgmres (matvec *mxv,
                 // Need to restart
                 array_cp(n, r, p[0]); i = 0;
             }
-            
+
             if ( prtlvl >= PRINT_MORE ) {
                 ITS_COMPRES(computed_relres); ITS_REALRES(relres);
             }
-            
+
         } /* end of convergence check */
-        
+
         /* compute residual vector and continue loop */
         for ( j = i; j > 0; j-- ) {
             rs[j-1] = -s[j-1]*rs[j];
             rs[j]   = c[j-1]*rs[j];
         }
-        
+
         if ( i ) array_axpy(n, rs[i]-1.0, p[i], p[i]);
-        
+
         for ( j = i-1 ; j > 0; j-- ) array_axpy(n, rs[j], p[j], p[i]);
-        
+
         if ( i ) {
             array_axpy(n, rs[0]-1.0, p[0], p[0]);
             array_axpy(n, 1.0, p[i], p[0]);
         }
-        
+
         //-----------------------------------//
         //   compute the convergence rate    //
         //-----------------------------------//
         cr = r_norm / r_norm_old;
-        
+
     } /* end of iteration while loop */
-    
+
 FINISHED:
     if ( prtlvl > PRINT_NONE ) ITS_FINAL(iter,MaxIt,relres);
-    
+
     /*-------------------------------------------
      * Free some stuff
      *------------------------------------------*/
@@ -3283,7 +3283,7 @@ FINISHED:
     free(p);
     free(hh);
     free(norms);
-    
+
     if (iter>=MaxIt)
         return ERROR_SOLVER_MAXIT;
     else
@@ -3325,42 +3325,42 @@ INT dcsr_pvfgmres(dCSRmat *A,
                   const SHORT restart,
                   const SHORT stop_type,
                   const SHORT prtlvl)
-{  
+{
     const INT n                 = b->row;
     const INT min_iter          = 0;
-    
+
     //--------------------------------------------//
     //   Newly added parameters to monitor when   //
     //   to change the restart parameter          //
     //--------------------------------------------//
     const REAL cr_max           = 0.99;    // = cos(8^o)  (experimental)
     const REAL cr_min           = 0.174;   // = cos(80^o) (experimental)
-    
+
     // local variables
     INT    iter                 = 0;
     INT    i,j,k;
-    
+
     REAL   epsmac               = SMALLREAL;
     REAL   r_norm, b_norm, den_norm;
     REAL   epsilon, gamma, t;
     REAL   relres, normu, r_normb;
-    
+
     REAL   *c = NULL, *s = NULL, *rs = NULL, *norms = NULL, *r = NULL;
     REAL   **p = NULL, **hh = NULL, **z=NULL;
-    
+
     REAL   cr          = 1.0;     // convergence rate
     REAL   r_norm_old  = 0.0;     // save the residual norm of the previous restart cycle
     INT    d           = 3;       // reduction for the restart parameter
     INT    restart_max = restart; // upper bound for restart in each restart cycle
     INT    restart_min = 3;       // lower bound for restart in each restart cycle
-    
+
     unsigned INT  Restart  = restart; // the real restart in some fixed restarted cycle
     unsigned INT  Restart1 = Restart + 1;
     unsigned LONG worksize = (Restart+4)*(Restart+n)+1-n+Restart*n;
-    
+
     /* allocate memory and setup temp work space */
     REAL *work  = (REAL *) calloc(worksize, sizeof(REAL));
-    
+
     /* check whether memory is enough for GMRES */
     while ( (work == NULL) && (Restart > 5) ) {
         Restart = Restart - 5;
@@ -3368,58 +3368,58 @@ INT dcsr_pvfgmres(dCSRmat *A,
         work = (REAL *) calloc(worksize, sizeof(REAL));
         Restart1 = Restart + 1;
     }
-    
+
     if ( work == NULL ) {
         printf("### ERROR: No enough memory for vFGMRES %s : %s : %d!\n",
                __FILE__, __FUNCTION__, __LINE__ );
         exit(ERROR_ALLOC_MEM);
     }
-    
+
     if ( prtlvl > PRINT_MIN && Restart < restart ) {
         printf("### WARNING: vFGMRES restart number set to %d!\n", Restart);
     }
-    
+
     p  = (REAL **)calloc(Restart1, sizeof(REAL *));
     hh = (REAL **)calloc(Restart1, sizeof(REAL *));
     z  = (REAL **)calloc(Restart1, sizeof(REAL *));
     norms = (REAL *)calloc(MaxIt+1, sizeof(REAL));
-    
+
     r = work; rs = r + n; c = rs + Restart1; s = c + Restart;
     for ( i = 0; i < Restart1; i++ ) p[i] = s + Restart + i*n;
     for ( i = 0; i < Restart1; i++ ) hh[i] = p[Restart] + n + i*Restart;
     for ( i = 0; i < Restart1; i++ ) z[i] = hh[Restart] + Restart + i*n;
-    
+
     /* initialization */
     array_cp(n, b->val, p[0]);
     dcsr_aAxpy(-1.0, A, x->val, p[0]);
-    
+
     b_norm = array_norm2(n, b->val);
     r_norm = array_norm2(n, p[0]);
     norms[0] = r_norm;
-    
+
     if ( prtlvl >= PRINT_SOME) {
         ITS_PUTNORM("right-hand side", b_norm);
         ITS_PUTNORM("residual", r_norm);
     }
-    
+
     if ( b_norm > 0.0 ) den_norm = b_norm;
     else                den_norm = r_norm;
-    
+
     epsilon = tol*den_norm;
-    
+
     // if initial residual is small, no need to iterate!
     if ( r_norm < epsilon || r_norm < 1e-3*tol ) goto FINISHED;
-    
+
     if ( b_norm > 0.0 ) {
         print_itsolver_info(prtlvl,stop_type,iter,norms[iter]/b_norm,norms[iter],0);
     }
     else {
         print_itsolver_info(prtlvl,stop_type,iter,norms[iter],norms[iter],0);
     }
-    
+
     /* outer iteration cycle */
     while ( iter < MaxIt ) {
-        
+
         rs[0] = r_norm;
         r_norm_old = r_norm;
         if ( r_norm == 0.0 ) {
@@ -3430,11 +3430,11 @@ INT dcsr_pvfgmres(dCSRmat *A,
             free(z);
             return iter;
         }
-        
+
         //-----------------------------------//
         //   adjust the restart parameter    //
         //-----------------------------------//
-        
+
         if ( cr > cr_max || iter == 0 ) {
             Restart = restart_max;
         }
@@ -3449,26 +3449,26 @@ INT dcsr_pvfgmres(dCSRmat *A,
                 Restart = restart_max;
             }
         }
-        
+
         // Always entry the cycle at the first iteration
         // For at least one iteration step
         t = 1.0 / r_norm;
         array_ax(n, t, p[0]);
         i = 0;
-        
+
         // RESTART CYCLE (right-preconditioning)
         while ( i < Restart && iter < MaxIt ) {
-            
+
             i ++;  iter ++;
-            
+
             /* apply the preconditioner */
             if ( pc == NULL )
                 array_cp(n, p[i-1], z[i-1]);
             else
                 pc->fct(p[i-1], z[i-1], pc->data);
-            
+
             dcsr_mxv(A, z[i-1], p[i]);
-            
+
             /* modified Gram_Schmidt */
             for ( j = 0; j < i; j++ ) {
                 hh[j][i-1] = array_dotprod(n, p[j], p[i]);
@@ -3480,7 +3480,7 @@ INT dcsr_pvfgmres(dCSRmat *A,
                 t = 1.0 / t;
                 array_ax(n, t, p[i]);
             }
-            
+
             for ( j = 1; j < i; ++j ) {
                 t = hh[j-1][i-1];
                 hh[j-1][i-1] = s[j-1]*hh[j][i-1] + c[j-1]*t;
@@ -3495,10 +3495,10 @@ INT dcsr_pvfgmres(dCSRmat *A,
             rs[i]   = -s[i-1]*rs[i-1];
             rs[i-1] = c[i-1]*rs[i-1];
             hh[i-1][i-1] = s[i-1]*hh[i][i-1] + c[i-1]*hh[i-1][i-1];
-            
+
             r_norm = fabs(rs[i]);
             norms[iter] = r_norm;
-            
+
             if ( b_norm > 0 ) {
                 print_itsolver_info(prtlvl,stop_type,iter,norms[iter]/b_norm,
                              norms[iter],norms[iter]/norms[iter-1]);
@@ -3507,35 +3507,35 @@ INT dcsr_pvfgmres(dCSRmat *A,
                 print_itsolver_info(prtlvl,stop_type,iter,norms[iter],norms[iter],
                              norms[iter]/norms[iter-1]);
             }
-            
+
             /* should we exit the restart cycle? */
             if (r_norm <= epsilon && iter >= min_iter) break;
-            
+
         } /* end of restart cycle */
-        
+
         /* now compute solution, first solve upper triangular system */
-        
+
         rs[i-1] = rs[i-1] / hh[i-1][i-1];
         for ( k = i-2; k >= 0; k-- ) {
             t = 0.0;
             for (j = k+1; j < i; j ++)  t -= hh[k][j]*rs[j];
-            
+
             t += rs[k];
             rs[k] = t / hh[k][k];
         }
-        
+
         array_cp(n, z[i-1], r);
         array_ax(n, rs[i-1], r);
-        
+
         for ( j = i-2; j >= 0; j-- ) array_axpy(n, rs[j], z[j], r);
-        
+
         array_axpy(n, 1.0, r, x->val);
-        
+
         if ( r_norm <= epsilon && iter >= min_iter ) {
             array_cp(n, b->val, r);
             dcsr_aAxpy(-1.0, A, x->val, r);
             r_norm = array_norm2(n, r);
-            
+
             switch (stop_type) {
                 case STOP_REL_RES:
                     relres  = r_norm/den_norm;
@@ -3556,7 +3556,7 @@ INT dcsr_pvfgmres(dCSRmat *A,
                     printf("### ERROR: Unrecognised stopping type for %s!\n", __FUNCTION__);
                     goto FINISHED;
             }
-            
+
             if ( relres <= tol ) {
                 break;
             }
@@ -3564,33 +3564,33 @@ INT dcsr_pvfgmres(dCSRmat *A,
                 if ( prtlvl >= PRINT_SOME ) ITS_FACONV;
                 array_cp(n, r, p[0]); i = 0;
             }
-            
+
         } /* end of convergence check */
-        
+
         /* compute residual vector and continue loop */
         for ( j = i; j > 0; j-- ) {
             rs[j-1] = -s[j-1]*rs[j];
             rs[j] = c[j-1]*rs[j];
         }
-        
+
         if (i) array_axpy(n, rs[i]-1.0, p[i], p[i]);
-        
+
         for ( j = i-1; j > 0; j-- ) array_axpy(n, rs[j], p[j], p[i]);
-        
+
         if (i) {
             array_axpy(n, rs[0]-1.0, p[0], p[0]);
             array_axpy(n, 1.0, p[i], p[0]);
         }
-        
+
         //-----------------------------------//
         //   compute the convergence rate    //
         //-----------------------------------//
         cr = r_norm / r_norm_old;
-        
+
     } /* end of iteration while loop */
-    
+
     if ( prtlvl > PRINT_NONE ) ITS_FINAL(iter,MaxIt,r_norm/den_norm);
-    
+
 FINISHED:
     /*-------------------------------------------
      * Free some stuff
@@ -3600,7 +3600,7 @@ FINISHED:
     free(hh);
     free(norms);
     free(z);
-    
+
     if ( iter >= MaxIt )
         return ERROR_SOLVER_MAXIT;
     else
@@ -3643,41 +3643,41 @@ INT bdcsr_pvfgmres(block_dCSRmat *A,
                    const SHORT restart,
                    const SHORT stop_type,
                    const SHORT prtlvl)
-{  
+{
     const INT n                 = b->row;
     const INT min_iter          = 0;
-    
+
     //--------------------------------------------------------------//
     //   Parameters to monitor when to change the restart parameter //
     //--------------------------------------------------------------//
     const REAL cr_max           = 0.99;    // = cos(8^o)  (experimental)
     const REAL cr_min           = 0.174;   // = cos(80^o) (experimental)
-    
+
     // local variables
     INT    iter                 = 0;
     INT    i,j,k;
-    
+
     REAL   epsmac               = SMALLREAL;
     REAL   r_norm, b_norm, den_norm;
     REAL   epsilon, gamma, t;
     REAL   relres, normu, r_normb;
-    
+
     REAL   *c = NULL, *s = NULL, *rs = NULL, *norms = NULL, *r = NULL;
     REAL   **p = NULL, **hh = NULL, **z=NULL;
-    
+
     REAL   cr          = 1.0;     // convergence rate
     REAL   r_norm_old  = 0.0;     // save the residual norm of the previous restart cycle
     INT    d           = 3;       // reduction for the restart parameter
     INT    restart_max = restart; // upper bound for restart in each restart cycle
     INT    restart_min = 3;       // lower bound for restart in each restart cycle
-    
+
     unsigned INT  Restart  = restart; // the real restart in some fixed restarted cycle
     unsigned INT  Restart1 = Restart + 1;
     unsigned LONG worksize = (Restart+4)*(Restart+n)+1-n+Restart*n;
-    
+
     /* allocate memory and setup temp work space */
     REAL *work  = (REAL *) calloc(worksize, sizeof(REAL));
-    
+
     /* check whether memory is enough for GMRES */
     while ( (work == NULL) && (Restart > 5) ) {
         Restart = Restart - 5;
@@ -3685,58 +3685,58 @@ INT bdcsr_pvfgmres(block_dCSRmat *A,
         work = (REAL *) calloc(worksize, sizeof(REAL));
         Restart1 = Restart + 1;
     }
-    
+
     if ( work == NULL ) {
         printf("### ERROR: No enough memory for vFGMRES %s : %s : %d!\n",
                __FILE__, __FUNCTION__, __LINE__ );
         exit(ERROR_ALLOC_MEM);
     }
-    
+
     if ( prtlvl > PRINT_MIN && Restart < restart ) {
         printf("### WARNING: vFGMRES restart number set to %d!\n", Restart);
     }
-    
+
     p  = (REAL **)calloc(Restart1, sizeof(REAL *));
     hh = (REAL **)calloc(Restart1, sizeof(REAL *));
     z  = (REAL **)calloc(Restart1, sizeof(REAL *));
     norms = (REAL *)calloc(MaxIt+1, sizeof(REAL));
-    
+
     r = work; rs = r + n; c = rs + Restart1; s = c + Restart;
     for ( i = 0; i < Restart1; i++ ) p[i] = s + Restart + i*n;
     for ( i = 0; i < Restart1; i++ ) hh[i] = p[Restart] + n + i*Restart;
     for ( i = 0; i < Restart1; i++ ) z[i] = hh[Restart] + Restart + i*n;
-    
+
     /* initialization */
     array_cp(n, b->val, p[0]);
     bdcsr_aAxpy(-1.0, A, x->val, p[0]);
-    
+
     b_norm = array_norm2(n, b->val);
     r_norm = array_norm2(n, p[0]);
     norms[0] = r_norm;
-    
+
     if ( prtlvl >= PRINT_SOME) {
         ITS_PUTNORM("right-hand side", b_norm);
         ITS_PUTNORM("residual", r_norm);
     }
-    
+
     if ( b_norm > 0.0 ) den_norm = b_norm;
     else                den_norm = r_norm;
-    
+
     epsilon = tol*den_norm;
-    
+
     // if initial residual is small, no need to iterate!
     if ( r_norm < epsilon || r_norm < 1e-3*tol ) goto FINISHED;
-    
+
     if ( b_norm > 0.0 ) {
         print_itsolver_info(prtlvl,stop_type,iter,norms[iter]/b_norm,norms[iter],0);
     }
     else {
         print_itsolver_info(prtlvl,stop_type,iter,norms[iter],norms[iter],0);
     }
-    
+
     /* outer iteration cycle */
     while ( iter < MaxIt ) {
-        
+
         rs[0] = r_norm;
         r_norm_old = r_norm;
         if ( r_norm == 0.0 ) {
@@ -3747,11 +3747,11 @@ INT bdcsr_pvfgmres(block_dCSRmat *A,
             free(z);
             return iter;
         }
-        
+
         //-----------------------------------//
         //   adjust the restart parameter    //
         //-----------------------------------//
-        
+
         if ( cr > cr_max || iter == 0 ) {
             Restart = restart_max;
         }
@@ -3766,26 +3766,26 @@ INT bdcsr_pvfgmres(block_dCSRmat *A,
                 Restart = restart_max;
             }
         }
-        
+
         // Always entry the cycle at the first iteration
         // For at least one iteration step
         t = 1.0 / r_norm;
         array_ax(n, t, p[0]);
         i = 0;
-        
+
         // RESTART CYCLE (right-preconditioning)
         while ( i < Restart && iter < MaxIt ) {
-            
+
             i ++;  iter ++;
-            
+
             /* apply the preconditioner */
             if ( pc == NULL )
                 array_cp(n, p[i-1], z[i-1]);
             else
                 pc->fct(p[i-1], z[i-1], pc->data);
-            
+
             bdcsr_mxv(A, z[i-1], p[i]);
-            
+
             /* modified Gram_Schmidt */
             for ( j = 0; j < i; j++ ) {
                 hh[j][i-1] = array_dotprod(n, p[j], p[i]);
@@ -3797,7 +3797,7 @@ INT bdcsr_pvfgmres(block_dCSRmat *A,
                 t = 1.0 / t;
                 array_ax(n, t, p[i]);
             }
-            
+
             for ( j = 1; j < i; ++j ) {
                 t = hh[j-1][i-1];
                 hh[j-1][i-1] = s[j-1]*hh[j][i-1] + c[j-1]*t;
@@ -3812,10 +3812,10 @@ INT bdcsr_pvfgmres(block_dCSRmat *A,
             rs[i]   = -s[i-1]*rs[i-1];
             rs[i-1] = c[i-1]*rs[i-1];
             hh[i-1][i-1] = s[i-1]*hh[i][i-1] + c[i-1]*hh[i-1][i-1];
-            
+
             r_norm = fabs(rs[i]);
             norms[iter] = r_norm;
-            
+
             if ( b_norm > 0 ) {
                 print_itsolver_info(prtlvl,stop_type,iter,norms[iter]/b_norm,
                              norms[iter],norms[iter]/norms[iter-1]);
@@ -3824,35 +3824,35 @@ INT bdcsr_pvfgmres(block_dCSRmat *A,
                 print_itsolver_info(prtlvl,stop_type,iter,norms[iter],norms[iter],
                              norms[iter]/norms[iter-1]);
             }
-            
+
             /* should we exit the restart cycle? */
             if (r_norm <= epsilon && iter >= min_iter) break;
-            
+
         } /* end of restart cycle */
-        
+
         /* now compute solution, first solve upper triangular system */
-        
+
         rs[i-1] = rs[i-1] / hh[i-1][i-1];
         for ( k = i-2; k >= 0; k-- ) {
             t = 0.0;
             for (j = k+1; j < i; j ++)  t -= hh[k][j]*rs[j];
-            
+
             t += rs[k];
             rs[k] = t / hh[k][k];
         }
-        
+
         array_cp(n, z[i-1], r);
         array_ax(n, rs[i-1], r);
-        
+
         for ( j = i-2; j >= 0; j-- ) array_axpy(n, rs[j], z[j], r);
-        
+
         array_axpy(n, 1.0, r, x->val);
-        
+
         if ( r_norm <= epsilon && iter >= min_iter ) {
             array_cp(n, b->val, r);
             bdcsr_aAxpy(-1.0, A, x->val, r);
             r_norm = array_norm2(n, r);
-            
+
             switch (stop_type) {
                 case STOP_REL_RES:
                     relres  = r_norm/den_norm;
@@ -3873,7 +3873,7 @@ INT bdcsr_pvfgmres(block_dCSRmat *A,
                     printf("### ERROR: Unrecognised stopping type for %s!\n", __FUNCTION__);
                     goto FINISHED;
             }
-            
+
             if ( relres <= tol ) {
                 break;
             }
@@ -3881,33 +3881,33 @@ INT bdcsr_pvfgmres(block_dCSRmat *A,
                 if ( prtlvl >= PRINT_SOME ) ITS_FACONV;
                 array_cp(n, r, p[0]); i = 0;
             }
-            
+
         } /* end of convergence check */
-        
+
         /* compute residual vector and continue loop */
         for ( j = i; j > 0; j-- ) {
             rs[j-1] = -s[j-1]*rs[j];
             rs[j] = c[j-1]*rs[j];
         }
-        
+
         if (i) array_axpy(n, rs[i]-1.0, p[i], p[i]);
-        
+
         for ( j = i-1; j > 0; j-- ) array_axpy(n, rs[j], p[j], p[i]);
-        
+
         if (i) {
             array_axpy(n, rs[0]-1.0, p[0], p[0]);
             array_axpy(n, 1.0, p[i], p[0]);
         }
-        
+
         //-----------------------------------//
         //   compute the convergence rate    //
         //-----------------------------------//
         cr = r_norm / r_norm_old;
-        
+
     } /* end of iteration while loop */
-    
+
     if ( prtlvl > PRINT_NONE ) ITS_FINAL(iter,MaxIt,r_norm/den_norm);
-    
+
 FINISHED:
     /*-------------------------------------------
      * Free some stuff
@@ -3917,7 +3917,7 @@ FINISHED:
     free(hh);
     free(norms);
     free(z);
-    
+
     if ( iter >= MaxIt )
         return ERROR_SOLVER_MAXIT;
     else
@@ -3960,42 +3960,42 @@ INT general_pvfgmres(matvec *mxv,
                      const SHORT restart,
                      const SHORT stop_type,
                      const SHORT prtlvl)
-{    
+{
     const INT n                 = b->row;
     const INT min_iter          = 0;
-    
+
     //--------------------------------------------//
     //   Newly added parameters to monitor when   //
     //   to change the restart parameter          //
     //--------------------------------------------//
     const REAL cr_max           = 0.99;    // = cos(8^o)  (experimental)
     const REAL cr_min           = 0.174;   // = cos(80^o) (experimental)
-    
+
     // local variables
     INT    iter                 = 0;
     INT    i,j,k;
-    
+
     REAL   epsmac               = SMALLREAL;
     REAL   r_norm, b_norm, den_norm;
     REAL   epsilon, gamma, t;
     REAL   relres, normu, r_normb;
-    
+
     REAL   *c = NULL, *s = NULL, *rs = NULL, *norms = NULL, *r = NULL;
     REAL   **p = NULL, **hh = NULL, **z=NULL;
-    
+
     REAL   cr          = 1.0;     // convergence rate
     REAL   r_norm_old  = 0.0;     // save the residual norm of the previous restart cycle
     INT    d           = 3;       // reduction for the restart parameter
     INT    restart_max = restart; // upper bound for restart in each restart cycle
     INT    restart_min = 3;       // lower bound for restart in each restart cycle
-    
+
     unsigned INT  Restart  = restart; // the real restart in some fixed restarted cycle
     unsigned INT  Restart1 = Restart + 1;
     unsigned LONG worksize = (Restart+4)*(Restart+n)+1-n+Restart*n;
-    
+
     /* allocate memory and setup temp work space */
     REAL *work  = (REAL *) calloc(worksize, sizeof(REAL));
-    
+
     /* check whether memory is enough for GMRES */
     while ( (work == NULL) && (Restart > 5) ) {
         Restart = Restart - 5;
@@ -4003,62 +4003,62 @@ INT general_pvfgmres(matvec *mxv,
         work = (REAL *) calloc(worksize, sizeof(REAL));
         Restart1 = Restart + 1;
     }
-    
+
     if ( work == NULL ) {
         printf("### ERROR: No enough memory for vFGMRES %s : %s : %d!\n",
                __FILE__, __FUNCTION__, __LINE__ );
         exit(ERROR_ALLOC_MEM);
     }
-    
+
     if ( prtlvl > PRINT_MIN && Restart < restart ) {
         printf("### WARNING: vFGMRES restart number set to %d!\n", Restart);
     }
-    
+
     p  = (REAL **)calloc(Restart1, sizeof(REAL *));
     hh = (REAL **)calloc(Restart1, sizeof(REAL *));
     z  = (REAL **)calloc(Restart1, sizeof(REAL *));
     norms = (REAL *)calloc(MaxIt+1, sizeof(REAL));
-    
+
     r = work; rs = r + n; c = rs + Restart1; s = c + Restart;
     for ( i = 0; i < Restart1; i++ ) p[i] = s + Restart + i*n;
     for ( i = 0; i < Restart1; i++ ) hh[i] = p[Restart] + n + i*Restart;
     for ( i = 0; i < Restart1; i++ ) z[i] = hh[Restart] + Restart + i*n;
-    
+
     /* initialization */
     //for (i = 0; i < x->row; i++) printf("x[%d] = %f\n", i, x->val[i]);
     //for (i = 0; i < x->row; i++) printf("p[%d] = %f\n", i, p[0][i]);
-    
+
     mxv->fct(mxv->data, x->val, p[0]);
-        
+
     array_axpby(n, 1.0, b->val, -1.0, p[0]);
-    
+
     b_norm = array_norm2(n, b->val);
     r_norm = array_norm2(n, p[0]);
     norms[0] = r_norm;
-    
+
     if ( prtlvl >= PRINT_SOME) {
         ITS_PUTNORM("right-hand side", b_norm);
         ITS_PUTNORM("residual", r_norm);
     }
-    
+
     if ( b_norm > 0.0 ) den_norm = b_norm;
     else                den_norm = r_norm;
-    
+
     epsilon = tol*den_norm;
-    
+
     // if initial residual is small, no need to iterate!
     if ( r_norm < epsilon || r_norm < 1e-3*tol ) goto FINISHED;
-    
+
     if ( b_norm > 0.0 ) {
         print_itsolver_info(prtlvl,stop_type,iter,norms[iter]/b_norm,norms[iter],0);
     }
     else {
         print_itsolver_info(prtlvl,stop_type,iter,norms[iter],norms[iter],0);
     }
-    
+
     /* outer iteration cycle */
     while ( iter < MaxIt ) {
-        
+
         rs[0] = r_norm;
         r_norm_old = r_norm;
         if ( r_norm == 0.0 ) {
@@ -4069,11 +4069,11 @@ INT general_pvfgmres(matvec *mxv,
             free(z);
             return iter;
         }
-        
+
         //-----------------------------------//
         //   adjust the restart parameter    //
         //-----------------------------------//
-        
+
         if ( cr > cr_max || iter == 0 ) {
             Restart = restart_max;
         }
@@ -4088,26 +4088,26 @@ INT general_pvfgmres(matvec *mxv,
                 Restart = restart_max;
             }
         }
-        
+
         // Always entry the cycle at the first iteration
         // For at least one iteration step
         t = 1.0 / r_norm;
         array_ax(n, t, p[0]);
         i = 0;
-        
+
         // RESTART CYCLE (right-preconditioning)
         while ( i < Restart && iter < MaxIt ) {
-            
+
             i ++;  iter ++;
-            
+
             /* apply the preconditioner */
             if ( pc == NULL )
                 array_cp(n, p[i-1], z[i-1]);
             else
                 pc->fct(p[i-1], z[i-1], pc->data);
-            
+
             mxv->fct(mxv->data, z[i-1], p[i]);
-            
+
             /* modified Gram_Schmidt */
             for ( j = 0; j < i; j++ ) {
                 hh[j][i-1] = array_dotprod(n, p[j], p[i]);
@@ -4119,7 +4119,7 @@ INT general_pvfgmres(matvec *mxv,
                 t = 1.0 / t;
                 array_ax(n, t, p[i]);
             }
-            
+
             for ( j = 1; j < i; ++j ) {
                 t = hh[j-1][i-1];
                 hh[j-1][i-1] = s[j-1]*hh[j][i-1] + c[j-1]*t;
@@ -4134,10 +4134,10 @@ INT general_pvfgmres(matvec *mxv,
             rs[i]   = -s[i-1]*rs[i-1];
             rs[i-1] = c[i-1]*rs[i-1];
             hh[i-1][i-1] = s[i-1]*hh[i][i-1] + c[i-1]*hh[i-1][i-1];
-            
+
             r_norm = fabs(rs[i]);
             norms[iter] = r_norm;
-            
+
             if ( b_norm > 0 ) {
                 print_itsolver_info(prtlvl,stop_type,iter,norms[iter]/b_norm,
                                     norms[iter],norms[iter]/norms[iter-1]);
@@ -4146,36 +4146,36 @@ INT general_pvfgmres(matvec *mxv,
                 print_itsolver_info(prtlvl,stop_type,iter,norms[iter],norms[iter],
                                     norms[iter]/norms[iter-1]);
             }
-            
+
             /* should we exit the restart cycle? */
             if (r_norm <= epsilon && iter >= min_iter) break;
-            
+
         } /* end of restart cycle */
-        
+
         /* now compute solution, first solve upper triangular system */
-        
+
         rs[i-1] = rs[i-1] / hh[i-1][i-1];
         for ( k = i-2; k >= 0; k-- ) {
             t = 0.0;
             for (j = k+1; j < i; j ++)  t -= hh[k][j]*rs[j];
-            
+
             t += rs[k];
             rs[k] = t / hh[k][k];
         }
-        
+
         array_cp(n, z[i-1], r);
         array_ax(n, rs[i-1], r);
-        
+
         for ( j = i-2; j >= 0; j-- ) array_axpy(n, rs[j], z[j], r);
-        
+
         array_axpy(n, 1.0, r, x->val);
-        
+
         if ( r_norm <= epsilon && iter >= min_iter ) {
-            
+
             mxv->fct(mxv->data, x->val, r);
             array_axpby(n, 1.0, b->val, -1.0, r);
             r_norm = array_norm2(n, r);
-            
+
             switch (stop_type) {
                 case STOP_REL_RES:
                     relres  = r_norm/den_norm;
@@ -4196,7 +4196,7 @@ INT general_pvfgmres(matvec *mxv,
                     printf("### ERROR: Unrecognised stopping type for %s!\n", __FUNCTION__);
                     goto FINISHED;
             }
-            
+
             if ( relres <= tol ) {
                 break;
             }
@@ -4204,33 +4204,33 @@ INT general_pvfgmres(matvec *mxv,
                 if ( prtlvl >= PRINT_SOME ) ITS_FACONV;
                 array_cp(n, r, p[0]); i = 0;
             }
-            
+
         } /* end of convergence check */
-        
+
         /* compute residual vector and continue loop */
         for ( j = i; j > 0; j-- ) {
             rs[j-1] = -s[j-1]*rs[j];
             rs[j] = c[j-1]*rs[j];
         }
-        
+
         if (i) array_axpy(n, rs[i]-1.0, p[i], p[i]);
-        
+
         for ( j = i-1; j > 0; j-- ) array_axpy(n, rs[j], p[j], p[i]);
-        
+
         if (i) {
             array_axpy(n, rs[0]-1.0, p[0], p[0]);
             array_axpy(n, 1.0, p[i], p[0]);
         }
-        
+
         //-----------------------------------//
         //   compute the convergence rate    //
         //-----------------------------------//
         cr = r_norm / r_norm_old;
-        
+
     } /* end of iteration while loop */
-    
+
     if ( prtlvl > PRINT_NONE ) ITS_FINAL(iter,MaxIt,r_norm/den_norm);
-    
+
 FINISHED:
     /*-------------------------------------------
      * Free some stuff
@@ -4240,7 +4240,7 @@ FINISHED:
     free(hh);
     free(norms);
     free(z);
-    
+
     if ( iter >= MaxIt )
         return ERROR_SOLVER_MAXIT;
     else
