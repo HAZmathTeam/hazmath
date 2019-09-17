@@ -6,6 +6,7 @@
  * \brief This contains all the local assembly routines
  *        for the Stokes example.
  *
+ * \note Updated by James Adler on 9/16/19
  */
 
 /*!
@@ -30,6 +31,16 @@
  * \return ALoc         Local Stiffness Matrix (Full Matrix) ordered (u1,u2,u3,p)
  *
  * \note Assumes 2D or 3D only
+ *
+ * \note We provide the computation for the 0-0 block:
+ *       <2 eps(u), eps(v)> =
+ *                <2 dx(u1),dx(v1)> + <dy(u1),dy(v1)>  +     <dx(u2),dy(v1)>
+ *                <dy(u1),dx(v2)>                      +     <dx(u2),dx(v2)> + <2 dy(u2),dy(v2)>
+ *
+ *       for Dirichlet boundary conditions and when div u = 0 exactly, then
+ *       <2 eps(u), eps(v)> = <grad u, grad v>
+ *
+ * \note For this example we assume viscosity is 1.
  *
  */
 void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm, REAL time)
@@ -63,7 +74,7 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qco
     w = cq->w[elm*cq->nq_per_elm+quad];
 
     //  Get the Basis Functions at each quadrature node
-    // u
+    // u = (u1,u2,u3) and v = (v1,v2,v3)
     get_FEM_basis(FE->var_spaces[0]->phi,FE->var_spaces[0]->dphi,qx,v_on_elm,dof_on_elm,mesh,FE->var_spaces[0]);
     local_dof_on_elm = dof_on_elm + FE->var_spaces[0]->dof_per_elm;
     get_FEM_basis(FE->var_spaces[1]->phi,FE->var_spaces[1]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[1]);
@@ -75,7 +86,7 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qco
     local_dof_on_elm += FE->var_spaces[dim-1]->dof_per_elm;
     get_FEM_basis(FE->var_spaces[dim]->phi,FE->var_spaces[dim]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[dim]);
 
-    // ux-vx block: <grad u, grad v>
+    // u1-v1 block: 2*<dx(u1),dx(v1)> + <dy(u1),dy(v1)>
     local_row_index = 0;
     local_col_index = 0;
     // Loop over Test Functions (Rows)
@@ -90,7 +101,7 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qco
       }
     }
 
-    // uy-vx block <grad u, grad v>
+    // u2-v1 block <dx(u2),dy(v1)>>
     local_row_index = 0;
     local_col_index = FE->var_spaces[0]->dof_per_elm;
     // Loop over Test Functions (Rows)
@@ -102,7 +113,7 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qco
       }
     }
 
-    // p-vx block: -<p, dx(ux)>
+    // p-v1 block: -<p, dx(u1)>
     local_row_index = 0;
     local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
     if(dim==3) local_col_index += FE->var_spaces[2]->dof_per_elm;
@@ -115,7 +126,7 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qco
       }
     }
 
-    // ux-vy block <grad u, grad v>
+    // u1-v2 block <dy(u1),dx(v2)>
     local_row_index = FE->var_spaces[0]->dof_per_elm;
     local_col_index = 0;
     // Loop over Test Functions (Rows)
@@ -127,7 +138,7 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qco
       }
     }
 
-    // uy-vy block <grad u, grad v>
+    // u2-v2 block <dx(u2),dx(v2)> + 2*<dy(u2),dy(v2)>
     local_row_index = FE->var_spaces[0]->dof_per_elm;
     local_col_index = FE->var_spaces[0]->dof_per_elm;
     // Loop over Test Functions (Rows)
@@ -142,7 +153,7 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qco
       }
     }
 
-    // p-vy block: -<p, dy(uy)>
+    // p-v2 block: -<p, dy(uy)>
     local_row_index = FE->var_spaces[0]->dof_per_elm;
     local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
     if(dim==3) local_col_index += FE->var_spaces[2]->dof_per_elm;
@@ -155,7 +166,7 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qco
       }
     }
 
-    // ux-q block: -<div u, q>
+    // u1-q block: -<dx(u1), q>
     local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
     if(dim==3) local_row_index += FE->var_spaces[2]->dof_per_elm;
     local_col_index = 0;
@@ -168,7 +179,7 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qco
       }
     }
 
-    // uy-q block: -<div u, q>
+    // u2-q block: -<dy(u2), q>
     local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
     if(dim==3) local_row_index += FE->var_spaces[2]->dof_per_elm;
     local_col_index = FE->var_spaces[0]->dof_per_elm;
@@ -182,7 +193,7 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qco
     }
 
     if(dim==3){
-      // uz-vz block <grad u, grad v>
+      // u3-v3 block <dx(u3),dx(v3)> + <dy(u3),dy(v3)> + 2*<dz(u3),dz(v3)>
       local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
       local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
       // Loop over Test Functions (Rows)
@@ -197,7 +208,7 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qco
         }
       }
 
-      // p-vz block: -<p, dz(uz)>
+      // p-v3 block: -<p, dz(u3)>
       local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
       local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
       // Loop over Test Functions (Rows)
@@ -209,7 +220,7 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qco
         }
       }
 
-      // uz-q block: -<div u, q>
+      // u3-q block: -<dz(u3), q>
       local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
       local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
       // Loop over Test Functions (Rows)
@@ -221,7 +232,7 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qco
         }
       }
 
-      // ux-vz block <grad u, grad v>
+      // u1-v3 block <dz(u1),dx(v3)>
       local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
       local_col_index = 0;
       // Loop over Test Functions (Rows)
@@ -233,7 +244,7 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qco
         }
       }
 
-      // uz-vx block <grad u, grad v>
+      // u3-v1 block <dx(u3),dz(v1)>
       local_row_index = 0;
       local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
       // Loop over Test Functions (Rows)
@@ -245,7 +256,7 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qco
         }
       }
 
-      // uy-vz block <grad u, grad v>
+      // u2-v3 block <dz(u2),dy(v3)>
       local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
       local_col_index = FE->var_spaces[0]->dof_per_elm;
       // Loop over Test Functions (Rows)
@@ -257,7 +268,7 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qco
         }
       }
 
-      // uz-vy block <grad u, grad v>
+      // u3-v2 block <dy(u3),dz(v2)>
       local_row_index = FE->var_spaces[0]->dof_per_elm;
       local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
       // Loop over Test Functions (Rows)
