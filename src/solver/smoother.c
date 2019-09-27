@@ -1072,7 +1072,8 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
     dCSRmat BT = bdcsr_subblk_2_dcsr ( &bmgl[lvl].A, 0, 1, 2, 2);
 
     //smoother_bdcsr_bsr( &bmgl[lvl].x, &bmgl[lvl].b, 2.58, 1.79, &bmgl[lvl].A, &C, &B, &BT, bmgl[lvl].A.blocks[8], 1);
-    smoother_bdcsr_bsr( &bmgl[lvl].x, &bmgl[lvl].b, 5.06, 1.99, &bmgl[lvl].A, &C, &B, &BT, bmgl[lvl].A.blocks[8], 1);
+    //smoother_bdcsr_bsr( &bmgl[lvl].x, &bmgl[lvl].b, 5.06, 1.99, &bmgl[lvl].A, &C, &B, &BT, bmgl[lvl].A.blocks[8], 1);
+    smoother_bdcsr_bsr( &bmgl[lvl].x, &bmgl[lvl].b, param->BSR_alpha, param->BSR_omega, &bmgl[lvl].A, &C, &B, &BT, bmgl[lvl].A.blocks[8], 1);
     //smoother_bdcsr_uzawa( &bmgl[lvl].x, &bmgl[lvl].b, 1.8118, 1.0550, &bmgl[lvl].A, &C, &B, bmgl[lvl].A.blocks[8], 1);
     }
 
