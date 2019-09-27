@@ -103,6 +103,10 @@ typedef struct {
     // HX preconditioner
     SHORT HX_smooth_iter;            /**< number of smoothing */
 
+    // BSR preconditioner
+    REAL BSR_alpha;                 /**< weight on diagonal matrix alpha*D approx of A */
+    REAL BSR_omega;                 /**< weight on update x = x + omega*Binv*(Ax-b) */
+
 } input_param; /**< Input parameters */
 
 /**
@@ -210,6 +214,10 @@ typedef struct {
 
     //! type of Schwarz block solver
     INT Schwarz_blksolver;
+
+    // BSR preconditioner
+    REAL BSR_alpha;                 /**< weight on diagonal matrix alpha*D approx of A */
+    REAL BSR_omega;                 /**< weight on update x = x + omega*Binv*(Ax-b) */
 
 } AMG_param; /**< Parameters for AMG */
 

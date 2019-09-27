@@ -598,6 +598,30 @@ void param_input (const char *filenm,		\
             fgets(buffer,maxb,fp); // skip rest of line
         }
 
+        // ------------------
+        // BSR-preconditioner
+        // ------------------
+        else if (strcmp(buffer,"BSR_alpha")==0) {
+            val = fscanf(fp,"%s",buffer);
+            if (val!=1 || strcmp(buffer,"=")!=0) {
+                status = ERROR_INPUT_PAR; break;
+            }
+            val = fscanf(fp,"%lf",&dbuff);
+            if (val!=1) { status = ERROR_INPUT_PAR; break; }
+            inparam->BSR_alpha = dbuff;
+            fgets(buffer,maxb,fp); // skip rest of line
+        }
+        else if (strcmp(buffer,"BSR_omega")==0) {
+            val = fscanf(fp,"%s",buffer);
+            if (val!=1 || strcmp(buffer,"=")!=0) {
+                status = ERROR_INPUT_PAR; break;
+            }
+            val = fscanf(fp,"%lf",&dbuff);
+            if (val!=1) { status = ERROR_INPUT_PAR; break; }
+            inparam->BSR_omega = dbuff;
+            fgets(buffer,maxb,fp); // skip rest of line
+        }
+
         else {
             printf("### HAZMATH WARNING: Unknown input keyword %s!\n", buffer);
             fgets(buffer,maxb,fp); // skip rest of line
