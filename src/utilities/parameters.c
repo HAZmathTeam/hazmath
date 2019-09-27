@@ -279,6 +279,8 @@ void param_amg_set (AMG_param *amgparam,
     amgparam->Schwarz_type         = inparam->Schwarz_type;
     amgparam->Schwarz_blksolver    = inparam->Schwarz_blksolver;
 
+    amgparam->BSR_alpha            = inparam->BSR_alpha;
+    amgparam->BSR_omega            = inparam->BSR_omega;
 }
 
 /**
