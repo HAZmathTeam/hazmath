@@ -925,15 +925,15 @@ void bubble_face_basis(REAL *phi, REAL *dphi, REAL *x, INT *v_on_elm, INT *dof, 
       }
 
       // Multiply basis function by normal vector
-      phi[i*dim] = mesh->f_norm[dim*(dof[i])] * 4*p[ef1]*p[ef2];
-      phi[i*dim+1] = mesh->f_norm[dim*(dof[i])+1] * 4*p[ef1]*p[ef2];
+      phi[i*dim] =   ABS(mesh->f_norm[dim*(dof[i])]  )* 4*p[ef1]*p[ef2];
+      phi[i*dim+1] = ABS(mesh->f_norm[dim*(dof[i])+1]) * 4*p[ef1]*p[ef2];
 
       // Gradient
       for(j=0;j<dim;j++) {
         gradp = 4*(p[ef1]*dp[ef2*dim+j] + dp[ef1*dim+j]*p[ef2]);
 
-        dphi[i*dim*dim + j*dim + 0] = gradp * mesh->f_norm[dim*(dof[i])+0];
-        dphi[i*dim*dim + j*dim + 1] = gradp * mesh->f_norm[dim*(dof[i])+1];
+        dphi[i*dim*dim + j*dim + 0] = gradp * ABS(mesh->f_norm[dim*(dof[i])+0]);
+        dphi[i*dim*dim + j*dim + 1] = gradp * ABS(mesh->f_norm[dim*(dof[i])+1]);
       }
 
     }
