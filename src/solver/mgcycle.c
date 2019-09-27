@@ -736,21 +736,34 @@ void mgcycle_block(MG_blk_data *bmgl,
 
     dvector b_disp;
     dvector b_darcy;
+    dvector b_pressure;
 
 ForwardSweep:
     while ( l < nl-1 ) {
 
         num_lvl[l]++;
 
+        array_cp(bmgl[l].x.row, bmgl[l].x.val, bmgl[l].w.val);
         // pre-smoothing with standard smoothers
         bdcsr_presmoothing(l, bmgl, param);
+
+//        // PROJECT
+//        b_disp.row     = bmgl[l].FE->var_spaces[1]->ndof;
+//        b_disp.val     = bmgl[l].x.val + bmgl[l].FE->var_spaces[0]->ndof;
+//        dvec_orthog_const(&b_disp);
+//        b_disp.row     = bmgl[l].FE->var_spaces[2]->ndof;
+//        b_disp.val     = b_disp.val + bmgl[l].FE->var_spaces[1]->ndof;
+//        dvec_orthog_const(&b_disp);
+
+        // correct bdry
+        for(i=0; i<bmgl[l].x.row; i++){
+          if( bmgl[l].FE->dirichlet[i] == 1 )
+            bmgl[l].x.val[i] = bmgl[l].w.val[i];
+        }
 
         // form residual r = b - A x
         array_cp(bmgl[l].b.row, bmgl[l].b.val, bmgl[l].w.val);
         bdcsr_aAxpy(-1.0,&bmgl[l].A, bmgl[l].x.val, bmgl[l].w.val);
-            //printf("|RESID=================================================\n");
-            //dvector_print(stdout,&bmgl[l].w);
-            //printf("|======================================================\n");
         // correct bdry
         for(i=0; i<bmgl[l].b.row; i++){
           if( bmgl[l].FE->dirichlet[i] == 1 )
@@ -781,22 +794,25 @@ ForwardSweep:
             printf("Solving coarse level with UMFPACK...\n");
             status = umfpack_solve(&bmgl[nl-1].Ac, &bmgl[nl-1].b, &bmgl[nl-1].x, bmgl[nl-1].Numeric, 0);
             printf("UMFPACK status: %d\n",status);
-            //dvector_print(stdout,&bmgl[nl-1].x);
+//        b_disp.row     = bmgl[nl-1].FE->var_spaces[1]->ndof;
+//        b_disp.val     = bmgl[nl-1].x.val + bmgl[nl-1].FE->var_spaces[0]->ndof;
+//        dvec_orthog_const(&b_disp);
+//        b_disp.row     = bmgl[nl-1].FE->var_spaces[2]->ndof;
+//        b_disp.val     = b_disp.val + bmgl[nl-1].FE->var_spaces[1]->ndof;
+//        dvec_orthog_const(&b_disp);
             break;
         }
 #endif
         default:
             // use iterative solver on the coarsest level
             printf("Solving coarse level with coarse_itsolve...\n");
-            bdcsr_pvgmres(&bmgl[nl-1].A, &bmgl[nl-1].b, &bmgl[nl-1].x, NULL, tol, 1000, 1000, 1, 0);
-        // project out constant
-        b_disp.row = 0;
-        for ( i=0; i<3; i++ ){  b_disp.row += bmgl[nl-1].FE->var_spaces[i]->ndof; }
-        b_disp.val = bmgl[nl-1].x.val;
-        b_darcy.row = bmgl[nl-1].FE->var_spaces[3]->ndof;
-        b_darcy.val = bmgl[nl-1].x.val + b_disp.row;
+            bdcsr_pvgmres(&bmgl[nl-1].A, &bmgl[nl-1].b, &bmgl[nl-1].x, NULL, tol, 1000, 500, 1, 10);
+        b_disp.row     = bmgl[nl-1].FE->var_spaces[1]->ndof;
+        b_disp.val     = bmgl[nl-1].x.val + bmgl[nl-1].FE->var_spaces[0]->ndof;
         dvec_orthog_const(&b_disp);
-        dvec_orthog_const(&b_darcy);
+        b_disp.row     = bmgl[nl-1].FE->var_spaces[2]->ndof;
+        b_disp.val     = b_disp.val + bmgl[nl-1].FE->var_spaces[1]->ndof;
+        dvec_orthog_const(&b_disp);
             break;
 
     }
@@ -812,7 +828,6 @@ ForwardSweep:
             bmgl[l+1].x.val[i] = 0.0;
         }
         // prolongation u = u + alpha*P*e1
-//        bdcsr_aAxpy(alpha, &bmgl[l].P, bmgl[l+1].x.val, bmgl[l].x.val);
         dvec_set(bmgl[l].w.row, &bmgl[l].w, 0.0);
         bdcsr_mxv(&bmgl[l].P, bmgl[l+1].x.val, bmgl[l].w.val);
         // correct bdry
@@ -822,8 +837,27 @@ ForwardSweep:
         }
         array_axpy(bmgl[l].x.row, alpha, bmgl[l].w.val, bmgl[l].x.val);
 
+        array_cp(bmgl[l].x.row, bmgl[l].x.val, bmgl[l].w.val);
         // post-smoothing with standard methods
         bdcsr_postsmoothing(l, bmgl, param);
+        // correct bdry
+        for(i=0; i<bmgl[l].x.row; i++){
+          if( bmgl[l].FE->dirichlet[i] == 1 )
+            bmgl[l].x.val[i] = bmgl[l].w.val[i];
+        }
+
+//        // PROJECT
+//        b_disp.row     = bmgl[l].FE->var_spaces[1]->ndof;
+//        b_disp.val     = bmgl[l].x.val + bmgl[l].FE->var_spaces[0]->ndof;
+//        dvec_orthog_const(&b_disp);
+//        b_disp.row     = bmgl[l].FE->var_spaces[2]->ndof;
+//        b_disp.val     = b_disp.val + bmgl[l].FE->var_spaces[1]->ndof;
+//        dvec_orthog_const(&b_disp);
+        // correct bdry
+        for(i=0; i<bmgl[l].x.row; i++){
+          if( bmgl[l].FE->dirichlet[i] == 1 )
+            bmgl[l].x.val[i] = bmgl[l].w.val[i];
+        }
 
         if ( num_lvl[l] < cycle_type ) break;
         else num_lvl[l] = 0;

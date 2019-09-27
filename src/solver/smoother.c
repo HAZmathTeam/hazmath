@@ -639,6 +639,7 @@ void smoother_bdcsr_bsr(dvector *u,
                         block_dCSRmat *A,
                         dCSRmat *C,
                         dCSRmat *B,
+                        dCSRmat *BT,
                         dCSRmat *M,
                         INT L)
 {
@@ -654,10 +655,6 @@ printf("Beginning BSR\n");
     dvector d;
     dvector e;
 
-    dcsr_axm(B, -1.0); /////////------------ TODO: biot not symmetric. need to deal with this.
-    dCSRmat BT;
-    dcsr_trans(B, &BT);
-
     dCSRmat Cinv;
     dcsr_alloc( C->row, C->col, C->nnz, &Cinv);
     dcsr_cp( C, &Cinv);
@@ -665,9 +662,10 @@ printf("Beginning BSR\n");
       if( ABS( Cinv.val[i] ) > SMALLREAL ) Cinv.val[i] = 1.0 / Cinv.val[i];
     }
 
-    dCSRmat S; // S = BC^{-1}B^T
+    dCSRmat S; // S = -BC^{-1}B^T
     dCSRmat Stemp;
-    dcsr_rap( B, &Cinv, &BT, &S);
+    dcsr_rap( B, &Cinv, BT, &S);
+    dcsr_axm(&S, -1.0);
     if( M ){
       dcsr_alloc( S.row, S.col, S.nnz, &Stemp);
       dcsr_cp( &S, &Stemp);
@@ -676,7 +674,7 @@ printf("Beginning BSR\n");
     }
 
     // fill local var
-    n0 = BT.row;
+    n0 = BT->row;
     n1 = B->row;
 
     // solver loop
@@ -691,10 +689,10 @@ printf("Beginning BSR\n");
 
     // (B C^{-1} B^T) q = B C^{-1} d - alpha e
     dvec_alloc( e.row, &rhs);
-    dvec_axpy( alpha, &e, &rhs);
+    dvec_axpy( alpha, &e, &rhs);// rhs = alpha*e
     dvec_alloc( Cinv.row, &temp);
-    dcsr_aAxpy( 1.0, &Cinv, d.val, temp.val );
-    dcsr_aAxpy( 1.0, B, temp.val, rhs.val );
+    dcsr_aAxpy( 1.0, &Cinv, d.val, temp.val );// temp = Cinv*d
+    dcsr_aAxpy( -1.0, B, temp.val, rhs.val );// rhs = alpha*e - B*Cinv*d
 
     dvec_alloc( n1, &q);
     directsolve_UMF( &S, &rhs, &q, 0); // SOLVE
@@ -703,7 +701,7 @@ printf("Beginning BSR\n");
 
     // v = 1/alpha C^{-1} (d - B^T q)
     dvec_alloc( n0, &v);
-    dcsr_aAxpy( -1.0, &BT, q.val, d.val );
+    dcsr_aAxpy( -1.0, BT, q.val, d.val );// d - BT*q
     dcsr_aAxpy( 1.0/alpha, &Cinv, d.val, v.val);
 
     // update u = u + [v, q]
@@ -716,7 +714,7 @@ printf("Beginning BSR\n");
 
 
     // free
-    dcsr_free(&BT);
+    //dcsr_free(&BT);
     dcsr_free(&S);
 }
 
@@ -1070,9 +1068,11 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
     dcsr_getdiag( A.row, &A, &diagvec);
     C.val = diagvec.val;
 
-    dCSRmat B = bdcsr_subblk_2_dcsr ( &bmgl[lvl].A, 2, 2, 0, 1);
+    dCSRmat B = bdcsr_subblk_2_dcsr (  &bmgl[lvl].A, 2, 2, 0, 1);
+    dCSRmat BT = bdcsr_subblk_2_dcsr ( &bmgl[lvl].A, 0, 1, 2, 2);
 
-    smoother_bdcsr_bsr( &bmgl[lvl].x, &bmgl[lvl].b, 3.06, 1.78, &bmgl[lvl].A, &C, &B, bmgl[lvl].A.blocks[8], 1);
+    //smoother_bdcsr_bsr( &bmgl[lvl].x, &bmgl[lvl].b, 2.58, 1.79, &bmgl[lvl].A, &C, &B, &BT, bmgl[lvl].A.blocks[8], 1);
+    smoother_bdcsr_bsr( &bmgl[lvl].x, &bmgl[lvl].b, 5.06, 1.99, &bmgl[lvl].A, &C, &B, &BT, bmgl[lvl].A.blocks[8], 1);
     //smoother_bdcsr_uzawa( &bmgl[lvl].x, &bmgl[lvl].b, 1.8118, 1.0550, &bmgl[lvl].A, &C, &B, bmgl[lvl].A.blocks[8], 1);
     }
 
