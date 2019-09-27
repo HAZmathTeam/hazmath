@@ -333,20 +333,32 @@ INT mg_solve_blk(MG_blk_data *mgl,
     const INT     MaxIt  = param->maxit;
     const REAL    tol    = param->tol;
     //const REAL    sumb   = dvec_norm2(b);
-    const REAL    sumb   = 1.0;
+    const REAL    sumb   =1.0;// dvec_norm2(x);
     
     // local variables
     REAL  solve_start, solve_end;
     REAL  relres1 = BIGREAL, absres0 = sumb, absres, factor;
     INT   iter = 0;
+    REAL  fac10[10];
+    REAL  avgFac;
+    REAL xn1, xn2;
+    xn1 = 1.0;
 
     // PERIODIC STUFF
+    dvector b_disp;
     INT i;
-    b->row=0;
-    for(i=0; i<mgl[0].A.brow; i++){
-    b->row += mgl[0].A.blocks[i+i*mgl[0].A.brow]->row;
-    }
-    x->row = b->row;
+//    b->row=0;
+//    for(i=0; i<mgl[0].A.brow; i++){
+//    b->row += mgl[0].A.blocks[i+i*mgl[0].A.brow]->row;
+//    }
+//    x->row = b->row;
+//    r->row = b->row;
+
+       // correct bdry
+       for(i=0; i<mgl[0].x.row; i++){
+         if( mgl[0].FE->dirichlet[i] == 1 )
+           mgl[0].x.val[i] = 0.0;
+       }
 
     dvector r0 = dvec_create(b->row);
     dvec_cp(b,&r0);
@@ -361,9 +373,15 @@ INT mg_solve_blk(MG_blk_data *mgl,
     // Main loop
     while ( (++iter <= MaxIt) & (sumb > SMALLREAL) ) {
         
+//       // correct bdry
+//       for(i=0; i<mgl[0].x.row; i++){
+//         if( mgl[0].FE->dirichlet[i] == 1 )
+//           mgl[0].x.val[i] = 0.0;
+//       }
+
         // Call one multigrid cycle
         mgcycle_block(mgl, param);
-        
+
         // Form residual r = b - A*x
         dvec_cp(b, r);
         bdcsr_aAxpy(-1.0, &mgl[0].A, x->val, r->val);
@@ -375,14 +393,29 @@ INT mg_solve_blk(MG_blk_data *mgl,
         absres0 = absres;
         
         // Print iteration information if needed
-        print_itsolver_info(prtlvl, STOP_REL_RES, iter, relres1, absres, factor);
+        //print_itsolver_info(prtlvl, STOP_REL_RES, iter, relres1, absres, factor);
+        print_itsolver_info(prtlvl, STOP_REL_RES, iter, dvec_norm2(x), absres, factor);
 
         *rho1 = factor;
+        fac10[iter%10] = factor;
         *rho2 = pow(absres / res0, 1.0/iter);
-        
+
+        xn2 = xn1;
+        xn1 = dvec_norm2(x);
+        printf("\t\t\t\t\t\t%f\n",xn1/xn2);
+
+
         // Check convergence
         if ( relres1 < tol ) break;
     }
+    avgFac=0.0;
+    for(i=0;i<10;i++){
+        avgFac+=fac10[i];
+    }
+    avgFac = avgFac/10;
+    printf("~~~~~~~~~~~~~~~~~~~~\nAverage convergence factor over 10 previous iterations: %f\n~~~~~~~~~~~~~~~~~~~~\n",avgFac);
+    *rho2 = avgFac;
+
     
     if ( prtlvl > PRINT_NONE ) {
         ITS_FINAL(iter, MaxIt, relres1);

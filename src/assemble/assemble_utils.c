@@ -1648,7 +1648,6 @@ void eliminate_PeriodicBC_blockFE(block_dCSRmat* P_periodic, block_dCSRmat* A, d
    for (j=0; j<A->bcol; j++)
    {
 
-     //if ( (R_periodic.blocks[i*R_periodic.brow+i] == NULL) || (Atemp.blocks[i*A->brow+j] == NULL) || (P_periodic->blocks[j*P_periodic->brow+j]) )
      if ( (Atemp.blocks[i*A->brow+j] == NULL)  )
      {
        A->blocks[i*A->brow+j] = NULL;
@@ -1657,7 +1656,7 @@ void eliminate_PeriodicBC_blockFE(block_dCSRmat* P_periodic, block_dCSRmat* A, d
      {
        dcsr_mxm(R_periodic.blocks[i*R_periodic.brow+i], Atemp.blocks[i*A->brow+j], &RAtemp);
        dcsr_mxm(&RAtemp, P_periodic->blocks[j*P_periodic->brow+j], A->blocks[i*A->brow+j]);
-//       dcsr_rap(R_periodic.blocks[i*R_periodic.brow+i], Atemp.blocks[i*A->brow+j], P_periodic->blocks[j*P_periodic->brow+j], A->blocks[i*A->brow+j]);
+       dcsr_free(&RAtemp);
      }
 
    }
