@@ -403,31 +403,32 @@ void build_face_R (dCSRmat *R,
 }
 
 /***********************************************************************************************/
-INT find_the_fine_vertex_the_hard_way(REAL* midpoint, mesh_struct* fmesh, INT fface)
-{
-  // Finds the fine vertex that corresponds with the midpoint of the coarse edge
-  INT dim = fmesh->dim;
-  INT i;
-  INT vertex=-1;
-  REAL diff;
-  REAL diffmin=999;
-  REAL x,y,z=0.0;
-  // Allocate
-  INT* v_on_f = (INT*)calloc(dim,sizeof(INT));
-  get_incidence_row(fface,fmesh->f_v,v_on_f);
-
-  for(i=0;i<dim;i++){
-    x = fmesh->cv->x[v_on_f[i]-1] - midpoint[0];
-    y = fmesh->cv->y[v_on_f[i]-1] - midpoint[1];
-    if(dim==3) z = fmesh->cv->z[v_on_f[i]] - midpoint[2];
-    diff = ABS(x+y+z);
-    if(diff<diffmin){
-      vertex = v_on_f[i]-1;
-    }
-  }
-  if(vertex==-1) printf("\n\nERROR: NO VERTEX MATCHING MIDPOINT FOUND\n\n");
-  return vertex;
-}
+//TODO
+//INT find_the_fine_vertex_the_hard_way(REAL* midpoint, mesh_struct* fmesh, INT fface)
+//{
+//  // Finds the fine vertex that corresponds with the midpoint of the coarse edge
+//  INT dim = fmesh->dim;
+//  INT i;
+//  INT vertex=-1;
+//  REAL diff;
+//  REAL diffmin=999;
+//  REAL x,y,z=0.0;
+//  // Allocate
+//  INT* v_on_f = (INT*)calloc(dim,sizeof(INT));
+//  get_incidence_row(fface,fmesh->f_v,v_on_f);
+//
+//  for(i=0;i<dim;i++){
+//    x = fmesh->cv->x[v_on_f[i]-1] - midpoint[0];
+//    y = fmesh->cv->y[v_on_f[i]-1] - midpoint[1];
+//    if(dim==3) z = fmesh->cv->z[v_on_f[i]] - midpoint[2];
+//    diff = ABS(x+y+z);
+//    if(diff<diffmin){
+//      vertex = v_on_f[i]-1;
+//    }
+//  }
+//  if(vertex==-1) printf("\n\nERROR: NO VERTEX MATCHING MIDPOINT FOUND\n\n");
+//  return vertex;
+//}
 /***********************************************************************************************/
 /**
  * \fn void build_bubble_R (dCSRmat *R,
@@ -624,7 +625,7 @@ void build_bubble_R (dCSRmat *R,
                 //for(i=0;i<dim;i++) lval += phi[locFaceId*dim+i]*fmesh->f_norm[fface*dim+i];
               }
 
-              value = ( Fphi[locFaceId*dim+i] - lval ) / fmesh->f_norm[fface*dim+i];
+              value = ( Fphi[locFaceId*dim+i] - lval ) / ABS(fmesh->f_norm[fface*dim+i]);
 
               not_duplicate_entry = 1;
               for(kk=0;kk<16;kk++){
@@ -762,8 +763,8 @@ INT gmg_setup_RT0(mesh_struct* fine_level_mesh)
   for(i=0;i<max_levels-1;i++){
     fSize = sqrt(meshHeirarchy[i]->nv)-1;// Is there a type problem here?
     cSize = (fSize/2);
-    //sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",cSize+1);//Need to customize this to specific directory
-    sprintf(cgridfile,"/home/pohm01/HAZMAT/hazmath/examples/grids/2D/unitSQ_n%d.haz",cSize+1);//Need to customize this to specific directory
+    sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",cSize+1);//Need to customize this to specific directory
+    //sprintf(cgridfile,"/home/pohm01/HAZMAT/hazmath/examples/grids/2D/unitSQ_n%d.haz",cSize+1);//Need to customize this to specific directory
     cgfid = HAZ_fopen(cgridfile,"r");
     meshHeirarchy[i+1] = (mesh_struct*)calloc(1, sizeof(mesh_struct));
     initialize_mesh(meshHeirarchy[i+1]);
@@ -793,452 +794,452 @@ INT gmg_setup_RT0(mesh_struct* fine_level_mesh)
 
 }
 
-/***********************************************************************************************/
-/***********************************************************************************************/
-/***********************************************************************************************/
-/**
- * \fn static SHORT gmg_blk_setup (MG_blk_data *mgl, AMG_param *param)
- *
- * \brief Setup phase of plain aggregation AMG, using unsmoothed P and unsmoothed A
- *
- * \param mgl    Pointer to AMG_data
- * \param param  Pointer to AMG_param
- *
- * \return       SUCCESS if succeed, error otherwise
- *
- * \author Xiaozhe Hu
- * \date   02/21/2011
- *
- */
-//static SHORT gmg_blk_setup(MG_blk_data *mgl,
-SHORT gmg_blk_setup(MG_blk_data *mgl,
-                    AMG_param *param)
-{
-    /*
-     * TODO:
-     * - Can't use brow to determine number of FE spaces since linear and bubble will be merged for A.
-     *   Can't use A to determine nf1d for linears and bubbles. (Replace to use mesh?)
-     *
-     */
-    // local variables
-    const SHORT prtlvl     = param->print_level;
-    const SHORT cycle_type = param->cycle_type;
-    const SHORT csolver    = param->coarse_solver;
-
-    // local variables
-    INT           nf1d, nc1d, csize;
-    INT           brow,m;
-    INT           bm;
-    INT           i,j;
-    INT           ndof, tdof;
-    SHORT         max_levels = param->max_levels, lvl = 0, status = SUCCESS;
-    INT           dim = mgl[lvl].fine_level_mesh->dim;
-    REAL          setup_start, setup_end;
-    fespace       FE_loc;
-    block_fespace FE_blk;
-
-    FE_blk.nspaces = mgl[0].A.brow;
-
-    get_time(&setup_start);
-
-    // dirichlet
-    mgl[0].dirichlet = (INT*)calloc(mgl[0].FE->ndof,sizeof(INT));
-    mgl[0].dirichlet_blk = (INT**)calloc(FE_blk.nspaces,sizeof(INT*));
-    bm = 0;
-    INT NoBBL = 0;
-    if( mgl[0].gmg_type[0] == 111 ) NoBBL = 1; // If bubble is eliminated skip that FE space
-    for(i=NoBBL;i<mgl[0].FE->nspaces;i++){
-      if(i==NoBBL) mgl[0].dirichlet_blk[0] = &mgl[0].dirichlet[bm]; // Displacement
-      if(i==3) mgl[0].dirichlet_blk[1] = &mgl[0].dirichlet[bm]; // Darcy (RT0)
-      if(i==4) mgl[0].dirichlet_blk[2] = &mgl[0].dirichlet[bm]; // Pressure
-      for(j=0;j<mgl[0].FE->var_spaces[i]->ndof;j++){
-        mgl[0].dirichlet[bm] = mgl[0].FE->var_spaces[i]->dirichlet[j];
-        ++bm;
-      }
-    }
-
-    // To read from file
-    FILE* cgfid;
-    char cgridfile[500];
-
-    // Alloc temp block matrices here
-    block_dCSRmat tempRblk;// needed to merge bubbles and linears, somehow...
-    dCSRmat Rmerge;
-    dCSRmat tempRA;
-
-    /*-- Main GMG setup loop --*/
-    printf("Beginning Main GMG setup loop...\n");
-    while ( lvl < max_levels-1 ) {
-      printf("A blocks: %d %d\n",mgl[lvl].A.brow,mgl[lvl].A.bcol);
-      brow = mgl[lvl].A.brow;
-
-      // Track dirichlet bdry
-      m=0;
-      for(i=0; i<brow; i++) m += mgl[lvl].A.blocks[i+i*brow]->row;
-      mgl[lvl+1].dirichlet = (INT*)calloc(m,sizeof(INT));
-      mgl[lvl+1].dirichlet_blk = (INT**)calloc(brow,sizeof(INT*));
-
-      /*-- Build coarse level mesh --*/
-      csize = (sqrt(mgl[lvl].fine_level_mesh->nv)-1)/2 + 1;
-      //Need to customize this to specific directory
-      //sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",csize);
-      //sprintf(cgridfile,"/home/xiaozhehu/Work/Projects/HAZMATH/hazmath/examples/grids/2D/unitSQ_n%d.haz",csize);
-      sprintf(cgridfile,"/home/pohm01/HAZMAT/hazmath/examples/grids/2D/unitSQ_n%d.haz",csize);
-      cgfid = HAZ_fopen(cgridfile,"r");
-      mgl[lvl+1].fine_level_mesh = (mesh_struct*)calloc(1, sizeof(mesh_struct));
-      initialize_mesh(mgl[lvl+1].fine_level_mesh);
-      creategrid_fread(cgfid,0,mgl[lvl+1].fine_level_mesh);
-      fclose(cgfid);
-      printf("Mesh Loaded for lvl=%d...\n",lvl);
-      mgl[0].set_bdry_flags(mgl[lvl+1].fine_level_mesh);
-
-      /*-- Allocate for R A P --*/
-      bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].R));
-      bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].P));
-      bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl+1].A));
-      bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl+1].A_noBC));
-      printf("Allocation of R A P for lvl=%d is finished...\n",lvl);
-
-      bm=0; //indexing of dirichlet
-      /*-- Form restriction --*/
-      for(i=0; i<brow; i++){
-        //Check gmg type
-        switch( mgl[lvl].gmg_type[i] ) {
-          case 0://P0
-            //TODO: check nf1d and nc1d calculations
-            nf1d = sqrt(mgl[lvl].A.blocks[i+i*brow]->row/2);
-            nc1d = (nf1d)/2;
-            printf("\tBuilding constant R...\n");
-            build_constant_R( mgl[lvl].R.blocks[i+i*brow], nf1d, nc1d);
-            printf("\tBuilt constant R...\n");
-            // dirichlet
-            create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 0);
-            set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, -1,-1); // p
-            mgl[lvl+1].dirichlet_blk[i] = &mgl[lvl+1].dirichlet[bm];
-            for(j=0;j<FE_loc.ndof;j++){
-              mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
-              ++bm;
-            }
-            free_fespace(&FE_loc);
-          break;
-          case 1://P1
-            nf1d = sqrt(mgl[lvl].A.blocks[i+i*brow]->row);
-            nc1d = (nf1d-1)/2 + 1;
-            build_linear_R( mgl[lvl].R.blocks[i+i*brow], nf1d, nc1d);
-            // dirichlet
-            create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 1);
-            set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, 1,1);
-            for(j=0;j<FE_loc.ndof;j++){
-              mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
-              ++bm;
-            }
-            free_fespace(&FE_loc);
-          break;
-          case 30://RT0
-            nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
-            nc1d = (nf1d)/2;
-            // Build Here
-            printf("\tBuilding RT0 R...\n");
-            build_face_R( mgl[lvl].R.blocks[i+i*brow], mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
-            //csr_print_matlab(stdout,mgl[lvl].R.blocks[i+i*brow]);
-            printf("\tBuilt RT0 R...\n");
-            // dirichlet
-            create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 30);
-            set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, 1,5); // w
-            mgl[lvl+1].dirichlet_blk[i] = &mgl[lvl+1].dirichlet[bm];
-            for(j=0;j<FE_loc.ndof;j++){
-              mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
-              ++bm;
-            }
-            free_fespace(&FE_loc);
-          break;
-          case 61://Bubble
-            nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
-            nc1d = (nf1d)/2;
-            // Build Here
-          break;
-          case 111://P1 for each dim then merge
-            bdcsr_alloc(dim,dim,&tempRblk);
-            nf1d = sqrt(mgl[lvl].fine_level_mesh->nv);
-            nc1d = (nf1d-1)/2 + 1;
-            for(j=0; j<dim; j++) build_linear_R( tempRblk.blocks[j+j*tempRblk.brow], nf1d, nc1d);
-            tempRblk.blocks[1] = NULL;
-            tempRblk.blocks[2] = NULL;
-            Rmerge = bdcsr_2_dcsr(&tempRblk);
-            dcsr_alloc(Rmerge.row,Rmerge.col,Rmerge.nnz,mgl[lvl].R.blocks[i+i*brow]);
-            dcsr_cp(&Rmerge,mgl[lvl].R.blocks[i+i*brow]);
-            dcsr_free(&Rmerge);
-
-            create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 1);
-            set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, 5,5); // Ux
-            mgl[lvl+1].dirichlet_blk[i] = &mgl[lvl+1].dirichlet[bm];
-            for(j=0;j<FE_loc.ndof;j++){
-              mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
-              ++bm;
-            }
-            free_fespace(&FE_loc);
-            create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 1);
-            set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, 1,4); // Uy
-            for(j=0;j<FE_loc.ndof;j++){
-              mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
-              ++bm;
-            }
-            free_fespace(&FE_loc);
-          break;
-          case 999:// P1+bubble
-            bdcsr_alloc(dim+1,dim+1,&tempRblk);
-            tempRblk.blocks[3] = NULL;
-            tempRblk.blocks[5] = NULL;
-            tempRblk.blocks[6] = NULL;
-            tempRblk.blocks[7] = NULL;
-            //P1
-            nf1d = sqrt(mgl[lvl].fine_level_mesh->nv);
-            nc1d = (nf1d-1)/2 + 1;
-            for(j=1; j<dim+1; j++) build_linear_R( tempRblk.blocks[j+j*tempRblk.brow], nf1d, nc1d);
-            printf("\tBuilt Linear R...\n");
-            //Bubble
-            nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
-            nc1d = (nf1d)/2;
-            build_bubble_R( tempRblk.blocks[0], tempRblk.blocks[1], tempRblk.blocks[2],
-                            mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
-            printf("\tBuilt Bubble R...\n");
-            Rmerge = bdcsr_2_dcsr(&tempRblk);
-            dcsr_alloc(Rmerge.row,Rmerge.col,Rmerge.nnz,mgl[lvl].R.blocks[i+i*brow]);
-            dcsr_cp(&Rmerge,mgl[lvl].R.blocks[i+i*brow]);
-            dcsr_free(&Rmerge);
-            // BC flag dirichlet elim stuff
-            create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 61);
-            set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, 1,5); //bbl
-            mgl[lvl+1].dirichlet_blk[i] = &mgl[lvl+1].dirichlet[bm];
-            for(j=0;j<FE_loc.ndof;j++){
-              mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
-              ++bm;
-            }
-            free_fespace(&FE_loc);
-            create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 1);
-            set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, 5,5); // Ux
-            for(j=0;j<FE_loc.ndof;j++){
-              mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
-              ++bm;
-            }
-            free_fespace(&FE_loc);
-            create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 1);
-            set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, 1,4); // Uy
-            for(j=0;j<FE_loc.ndof;j++){
-              mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
-              ++bm;
-            }
-            free_fespace(&FE_loc);
-          break;
-          default:
-            printf("### ERROR: Unknown geometric multigrid type: %d!\n",mgl[lvl].gmg_type[i]);
-          break;
-        }// switch gmg_type
-      }//for i<brow
-      printf("Built R for lvl=%d...\n",lvl);
-
-      /*-- Form Prolongation --*/
-      for(i=0; i<brow; i++){
-        dcsr_trans(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].P.blocks[i+i*brow]);
-      }
-      printf("Built P for lvl=%d...\n",lvl);
-          //csr_print_matlab(stdout,mgl[lvl].A_noBC.blocks[0]);
-
-      /*-- Form coarse level stiffness matrix --*/
-      for(i=0; i<brow; i++){
-        for(j=0; j<brow; j++){
-          if(mgl[lvl].A.blocks[j+i*brow]){
-            if(i==j){
-              dcsr_rap(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].A_noBC.blocks[j+i*brow], mgl[lvl].P.blocks[j+j*brow], mgl[lvl+1].A_noBC.blocks[j+i*brow]);
-            } else {
-              dcsr_mxm(mgl[lvl].R.blocks[i+i*brow],mgl[lvl].A_noBC.blocks[j+i*brow],&tempRA);
-              dcsr_mxm(&tempRA,mgl[lvl].P.blocks[j+j*brow],mgl[lvl+1].A_noBC.blocks[j+i*brow]);
-              dcsr_free(&tempRA);
-            }
-          } else { mgl[lvl+1].A_noBC.blocks[j+i*brow] = NULL; }
-        }//j
-      }//i
-      printf("Built RAP for lvl=%d...\n",lvl);
-
-      /*-- Eliminate dirichlet boundaries from stiffness matrix --*/
-      bdcsr_cp( &mgl[lvl+1].A_noBC, &mgl[lvl+1].A);
-      FE_blk.dirichlet = mgl[lvl+1].dirichlet;
-      printf("eliminating BC on coarse level\n");
-      eliminate_DirichletBC_blockFE_blockA(NULL,&FE_blk,mgl[lvl+1].fine_level_mesh,NULL,&mgl[lvl+1].A,0.0);
-      
-      /*-- Apply Periodic boundaries --*/
-      if (mgl[0].periodic_BC == true) {
-
-        // Allocate and create FE spaces if needed.
-        if(lvl>0){
-          mgl[lvl].FE->var_spaces = (fespace **) calloc( mgl[0].FE->nspaces, sizeof(fespace *));
-          mgl[lvl].FE->var_spaces[0] = (fespace *) calloc(1, sizeof(fespace));
-          create_fespace(mgl[lvl].FE->var_spaces[0], mgl[lvl].fine_level_mesh, 61);
-          mgl[lvl].FE->var_spaces[1] = (fespace *) calloc(1, sizeof(fespace));
-          create_fespace(mgl[lvl].FE->var_spaces[1], mgl[lvl].fine_level_mesh, 1);
-          mgl[lvl].FE->var_spaces[2] = (fespace *) calloc(1, sizeof(fespace));
-          create_fespace(mgl[lvl].FE->var_spaces[2], mgl[lvl].fine_level_mesh, 1);
-          mgl[lvl].FE->var_spaces[3] = (fespace *) calloc(1, sizeof(fespace));
-          create_fespace(mgl[lvl].FE->var_spaces[3], mgl[lvl].fine_level_mesh, 30);
-          mgl[lvl].FE->var_spaces[4] = (fespace *) calloc(1, sizeof(fespace));
-          create_fespace(mgl[lvl].FE->var_spaces[4], mgl[lvl].fine_level_mesh, 0);
-        }
-
-        // TODO: This needs a block version!
-        set_periodic_bdry(mgl[lvl].FE->var_spaces[0], mgl[lvl].fine_level_mesh,0.0,1.0,0.0,1.0,0.0,1.0);
-        printf("0\n");
-        set_periodic_bdry(mgl[lvl].FE->var_spaces[1], mgl[lvl].fine_level_mesh,0.0,1.0,0.0,1.0,0.0,1.0);
-        printf("1\n");
-        set_periodic_bdry(mgl[lvl].FE->var_spaces[2], mgl[lvl].fine_level_mesh,0.0,1.0,0.0,1.0,0.0,1.0);
-        printf("2\n");
-        set_periodic_bdry(mgl[lvl].FE->var_spaces[3], mgl[lvl].fine_level_mesh,0.0,1.0,0.0,1.0,0.0,1.0);
-        printf("3\n");
-        set_periodic_bdry(mgl[lvl].FE->var_spaces[4], mgl[lvl].fine_level_mesh,0.0,1.0,0.0,1.0,0.0,1.0);
-        printf("4\n");
-
-        // Create fake blockFE space that matches the 3x3 block matrix (put all displacements together)
-        // This should make everything the right size. Most values in the FE space will be garbage
-        FE_blk.var_spaces = (fespace **) calloc( FE_blk.nspaces, sizeof(fespace*));
-
-        // Displacement Block
-        FE_blk.var_spaces[0] = (fespace *) calloc(1, sizeof(fespace));
-        ndof = 0;
-        for(i=NoBBL; i<dim+1; i++){ ndof += mgl[lvl].FE->var_spaces[i]->ndof; }
-        FE_blk.var_spaces[0]->periodic = (INT *) calloc(ndof, sizeof(INT));
-        FE_blk.var_spaces[0]->ndof = ndof;
-        tdof = 0;
-        for(i=NoBBL; i<dim+1; i++){
-          for(j=0; j<mgl[lvl].FE->var_spaces[i]->ndof; j++){
-            FE_blk.var_spaces[0]->periodic[tdof] = mgl[lvl].FE->var_spaces[i]->periodic[j];
-            tdof++;
-          }
-        }
-        // Darcy Block
-        FE_blk.var_spaces[1] = mgl[lvl].FE->var_spaces[3];
-        // Pressure Block
-        FE_blk.var_spaces[2] = mgl[lvl].FE->var_spaces[4];
-
-        bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].A_periodic));
-        bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].P_periodic));
-        bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].R_periodic));
-        bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].R_periodic_scaled));
-
-        printf("\tGenerating periodic P\n");
-        generate_periodic_P_blockFE( &FE_blk, &(mgl[lvl].P_periodic) );
-        printf("\tGenerating periodic R scaled\n");
-        generate_periodic_R_scaled_blockFE( &(mgl[lvl].P_periodic), &(mgl[lvl].R_periodic_scaled) );
-        printf("\tGenerating periodic R\n");
-        for(i=0; i<brow; i++){
-          printf("\t\tTransposing... i=%d\n",i);
-          dcsr_trans( mgl[lvl].P_periodic.blocks[i+i*brow], mgl[lvl].R_periodic.blocks[i+i*brow] );
-        }
-        printf("\tTransposed P_periodic\n");
-
-        // Form triple matrix product on level for A_periodic
-        eliminate_PeriodicBC_blockFE( &(mgl[lvl].P_periodic), &(mgl[lvl].A), &(mgl[lvl].b));
-        // Form triple matrix product on level for P_periodic (for lvl-1)
-        if(lvl>0){
-          for(i=0; i< brow; i++){
-            for(j=0; j < brow; j++){
-              if(i==j){
-                dcsr_mxm(mgl[lvl].R_periodic_scaled.blocks[i+i*brow],mgl[lvl-1].R.blocks[j+i*brow],&tempRA);
-                dcsr_mxm(&tempRA,mgl[lvl-1].P_periodic.blocks[j+j*brow],mgl[lvl-1].R.blocks[j+i*brow]);
-                dcsr_free(&tempRA);
-                dcsr_mxm(mgl[lvl].R_periodic_scaled.blocks[i+i*brow],mgl[lvl-1].P.blocks[j+i*brow],&tempRA);
-                dcsr_mxm(&tempRA,mgl[lvl-1].P_periodic.blocks[j+j*brow],mgl[lvl-1].P.blocks[j+i*brow]);
-                dcsr_free(&tempRA);
-              }
-            }
-          }
-        }
-        // Form triple matrix product on level for R_periodic (for lvl-1)
-      }
-
-
-
-      // PRINT MATRIX
-      if(lvl==0){
-          FILE* matid = HAZ_fopen("Acoarse.dat","w");
-          csr_print_matlab(matid,mgl[lvl+1].A.blocks[0]);
-          fclose(matid);
-          matid = HAZ_fopen("P.dat","w");
-          csr_print_matlab(matid,mgl[lvl].P.blocks[0]);
-          fclose(matid);
-          matid = HAZ_fopen("R.dat","w");
-          csr_print_matlab(matid,mgl[lvl].R.blocks[0]);
-          fclose(matid);
-      }
-
-      ++lvl;
-    } // lvl
-
-    // Setup coarse level systems for direct solvers
-    switch (csolver) {
-
-#if WITH_SUITESPARSE
-        case SOLVER_UMFPACK: {
-            printf("Setting up coarse solve: Using UMFPACK...\n");
-            // Need to sort the matrix A for UMFPACK to work
-            // merge blocks
-            mgl[lvl].Ac = bdcsr_2_dcsr(&mgl[lvl].A);
-            dCSRmat Ac_tran;
-            dcsr_trans(&mgl[lvl].Ac, &Ac_tran);
-            printf("Ac stats: row=%d col=%d nnz=%d\n",mgl[lvl].Ac.row,mgl[lvl].Ac.col,mgl[lvl].Ac.nnz);
-            // It is equivalent to do transpose and then sort
-            //     fasp_dcsr_trans(&mgl[lvl].A, &Ac_tran);
-            //     fasp_dcsr_sort(&Ac_tran);
-            dcsr_cp(&Ac_tran, &mgl[lvl].Ac);
-            dcsr_free(&Ac_tran);
-            mgl[lvl].Numeric = umfpack_factorize(&mgl[lvl].Ac, 0);
-          break;
-        }
-#endif
-        default:
-            printf("We are not using SUITESPARSE!\n");
-            // Do nothing!
-            break;
-    }
-
-    // setup total level number and current level
-    m=0;
-    for(i=0; i<brow; i++) m += mgl[0].A.blocks[i+i*brow]->row;
-    mgl[0].num_levels = max_levels = lvl+1;
-    mgl[0].w          = dvec_create(m);
-
-    for ( lvl = 1; lvl < max_levels; ++lvl) {
-        INT mm = 0;
-        for(i=0;i<brow;i++) mm += mgl[lvl].A.blocks[i+i*brow]->row;
-        mgl[lvl].num_levels = max_levels;
-        mgl[lvl].b          = dvec_create(mm);
-        mgl[lvl].x          = dvec_create(mm);
-
-        mgl[lvl].cycle_type     = cycle_type; // initialize cycle type!
-
-        if ( cycle_type == NL_AMLI_CYCLE )
-            mgl[lvl].w = dvec_create(3*mm);
-        else
-            mgl[lvl].w = dvec_create(2*mm);
-    }
-
-    if ( prtlvl > PRINT_NONE ) {
-        get_time(&setup_end);
-        print_cputime("geometric multigrid setup", setup_end - setup_start);
-    }
-
-    return status;
-}
-
-/***********************************************************************************************/
-//SHORT gmg_setup (AMG_data *mgl,
-//                 GMG_param *param)
+///***********************************************************************************************/
+///***********************************************************************************************/
+///***********************************************************************************************/
+///**
+// * \fn static SHORT gmg_blk_setup (MG_blk_data *mgl, AMG_param *param)
+// *
+// * \brief Setup phase of plain aggregation AMG, using unsmoothed P and unsmoothed A
+// *
+// * \param mgl    Pointer to AMG_data
+// * \param param  Pointer to AMG_param
+// *
+// * \return       SUCCESS if succeed, error otherwise
+// *
+// * \author Xiaozhe Hu
+// * \date   02/21/2011
+// *
+// */
+////static SHORT gmg_blk_setup(MG_blk_data *mgl,
+//SHORT gmg_blk_setup(MG_blk_data *mgl,
+//                    AMG_param *param)
 //{
-//    SHORT status;
-//    //SHORT status = gmg_setup_P1(mgl,param);
+//    /*
+//     * TODO:
+//     * - Can't use brow to determine number of FE spaces since linear and bubble will be merged for A.
+//     *   Can't use A to determine nf1d for linears and bubbles. (Replace to use mesh?)
+//     *
+//     */
+//    // local variables
+//    const SHORT prtlvl     = param->print_level;
+//    const SHORT cycle_type = param->cycle_type;
+//    const SHORT csolver    = param->coarse_solver;
+//
+//    // local variables
+//    INT           nf1d, nc1d, csize;
+//    INT           brow,m;
+//    INT           bm;
+//    INT           i,j;
+//    INT           ndof, tdof;
+//    SHORT         max_levels = param->max_levels, lvl = 0, status = SUCCESS;
+//    INT           dim = mgl[lvl].fine_level_mesh->dim;
+//    REAL          setup_start, setup_end;
+//    fespace       FE_loc;
+//    block_fespace FE_blk;
+//
+//    FE_blk.nspaces = mgl[0].A.brow;
+//
+//    get_time(&setup_start);
+//
+//    // dirichlet
+//    mgl[0].dirichlet = (INT*)calloc(mgl[0].FE->ndof,sizeof(INT));
+//    mgl[0].dirichlet_blk = (INT**)calloc(FE_blk.nspaces,sizeof(INT*));
+//    bm = 0;
+//    INT NoBBL = 0;
+//    if( mgl[0].gmg_type[0] == 111 ) NoBBL = 1; // If bubble is eliminated skip that FE space
+//    for(i=NoBBL;i<mgl[0].FE->nspaces;i++){
+//      if(i==NoBBL) mgl[0].dirichlet_blk[0] = &mgl[0].dirichlet[bm]; // Displacement
+//      if(i==3) mgl[0].dirichlet_blk[1] = &mgl[0].dirichlet[bm]; // Darcy (RT0)
+//      if(i==4) mgl[0].dirichlet_blk[2] = &mgl[0].dirichlet[bm]; // Pressure
+//      for(j=0;j<mgl[0].FE->var_spaces[i]->ndof;j++){
+//        mgl[0].dirichlet[bm] = mgl[0].FE->var_spaces[i]->dirichlet[j];
+//        ++bm;
+//      }
+//    }
+//
+//    // To read from file
+//    FILE* cgfid;
+//    char cgridfile[500];
+//
+//    // Alloc temp block matrices here
+//    block_dCSRmat tempRblk;// needed to merge bubbles and linears, somehow...
+//    dCSRmat Rmerge;
+//    dCSRmat tempRA;
+//
+//    /*-- Main GMG setup loop --*/
+//    printf("Beginning Main GMG setup loop...\n");
+//    while ( lvl < max_levels-1 ) {
+//      printf("A blocks: %d %d\n",mgl[lvl].A.brow,mgl[lvl].A.bcol);
+//      brow = mgl[lvl].A.brow;
+//
+//      // Track dirichlet bdry
+//      m=0;
+//      for(i=0; i<brow; i++) m += mgl[lvl].A.blocks[i+i*brow]->row;
+//      mgl[lvl+1].dirichlet = (INT*)calloc(m,sizeof(INT));
+//      mgl[lvl+1].dirichlet_blk = (INT**)calloc(brow,sizeof(INT*));
+//
+//      /*-- Build coarse level mesh --*/
+//      csize = (sqrt(mgl[lvl].fine_level_mesh->nv)-1)/2 + 1;
+//      //Need to customize this to specific directory
+//      sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",csize);
+//      //sprintf(cgridfile,"/home/xiaozhehu/Work/Projects/HAZMATH/hazmath/examples/grids/2D/unitSQ_n%d.haz",csize);
+//      //sprintf(cgridfile,"/home/pohm01/HAZMAT/hazmath/examples/grids/2D/unitSQ_n%d.haz",csize);
+//      cgfid = HAZ_fopen(cgridfile,"r");
+//      mgl[lvl+1].fine_level_mesh = (mesh_struct*)calloc(1, sizeof(mesh_struct));
+//      initialize_mesh(mgl[lvl+1].fine_level_mesh);
+//      creategrid_fread(cgfid,0,mgl[lvl+1].fine_level_mesh);
+//      fclose(cgfid);
+//      printf("Mesh Loaded for lvl=%d...\n",lvl);
+//      mgl[0].set_bdry_flags(mgl[lvl+1].fine_level_mesh);
+//
+//      /*-- Allocate for R A P --*/
+//      bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].R));
+//      bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].P));
+//      bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl+1].A));
+//      bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl+1].A_noBC));
+//      printf("Allocation of R A P for lvl=%d is finished...\n",lvl);
+//
+//      bm=0; //indexing of dirichlet
+//      /*-- Form restriction --*/
+//      for(i=0; i<brow; i++){
+//        //Check gmg type
+//        switch( mgl[lvl].gmg_type[i] ) {
+//          case 0://P0
+//            //TODO: check nf1d and nc1d calculations
+//            nf1d = sqrt(mgl[lvl].A.blocks[i+i*brow]->row/2);
+//            nc1d = (nf1d)/2;
+//            printf("\tBuilding constant R...\n");
+//            build_constant_R( mgl[lvl].R.blocks[i+i*brow], nf1d, nc1d);
+//            printf("\tBuilt constant R...\n");
+//            // dirichlet
+//            create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 0);
+//            set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, -1,-1); // p
+//            mgl[lvl+1].dirichlet_blk[i] = &mgl[lvl+1].dirichlet[bm];
+//            for(j=0;j<FE_loc.ndof;j++){
+//              mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
+//              ++bm;
+//            }
+//            free_fespace(&FE_loc);
+//          break;
+//          case 1://P1
+//            nf1d = sqrt(mgl[lvl].A.blocks[i+i*brow]->row);
+//            nc1d = (nf1d-1)/2 + 1;
+//            build_linear_R( mgl[lvl].R.blocks[i+i*brow], nf1d, nc1d);
+//            // dirichlet
+//            create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 1);
+//            set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, 1,1);
+//            for(j=0;j<FE_loc.ndof;j++){
+//              mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
+//              ++bm;
+//            }
+//            free_fespace(&FE_loc);
+//          break;
+//          case 30://RT0
+//            nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
+//            nc1d = (nf1d)/2;
+//            // Build Here
+//            printf("\tBuilding RT0 R...\n");
+//            build_face_R( mgl[lvl].R.blocks[i+i*brow], mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
+//            //csr_print_matlab(stdout,mgl[lvl].R.blocks[i+i*brow]);
+//            printf("\tBuilt RT0 R...\n");
+//            // dirichlet
+//            create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 30);
+//            set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, 1,5); // w
+//            mgl[lvl+1].dirichlet_blk[i] = &mgl[lvl+1].dirichlet[bm];
+//            for(j=0;j<FE_loc.ndof;j++){
+//              mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
+//              ++bm;
+//            }
+//            free_fespace(&FE_loc);
+//          break;
+//          case 61://Bubble
+//            nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
+//            nc1d = (nf1d)/2;
+//            // Build Here
+//          break;
+//          case 111://P1 for each dim then merge
+//            bdcsr_alloc(dim,dim,&tempRblk);
+//            nf1d = sqrt(mgl[lvl].fine_level_mesh->nv);
+//            nc1d = (nf1d-1)/2 + 1;
+//            for(j=0; j<dim; j++) build_linear_R( tempRblk.blocks[j+j*tempRblk.brow], nf1d, nc1d);
+//            tempRblk.blocks[1] = NULL;
+//            tempRblk.blocks[2] = NULL;
+//            Rmerge = bdcsr_2_dcsr(&tempRblk);
+//            dcsr_alloc(Rmerge.row,Rmerge.col,Rmerge.nnz,mgl[lvl].R.blocks[i+i*brow]);
+//            dcsr_cp(&Rmerge,mgl[lvl].R.blocks[i+i*brow]);
+//            dcsr_free(&Rmerge);
+//
+//            create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 1);
+//            set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, 5,5); // Ux
+//            mgl[lvl+1].dirichlet_blk[i] = &mgl[lvl+1].dirichlet[bm];
+//            for(j=0;j<FE_loc.ndof;j++){
+//              mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
+//              ++bm;
+//            }
+//            free_fespace(&FE_loc);
+//            create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 1);
+//            set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, 1,4); // Uy
+//            for(j=0;j<FE_loc.ndof;j++){
+//              mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
+//              ++bm;
+//            }
+//            free_fespace(&FE_loc);
+//          break;
+//          case 999:// P1+bubble
+//            bdcsr_alloc(dim+1,dim+1,&tempRblk);
+//            tempRblk.blocks[3] = NULL;
+//            tempRblk.blocks[5] = NULL;
+//            tempRblk.blocks[6] = NULL;
+//            tempRblk.blocks[7] = NULL;
+//            //P1
+//            nf1d = sqrt(mgl[lvl].fine_level_mesh->nv);
+//            nc1d = (nf1d-1)/2 + 1;
+//            for(j=1; j<dim+1; j++) build_linear_R( tempRblk.blocks[j+j*tempRblk.brow], nf1d, nc1d);
+//            printf("\tBuilt Linear R...\n");
+//            //Bubble
+//            nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
+//            nc1d = (nf1d)/2;
+//            build_bubble_R( tempRblk.blocks[0], tempRblk.blocks[1], tempRblk.blocks[2],
+//                            mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
+//            printf("\tBuilt Bubble R...\n");
+//            Rmerge = bdcsr_2_dcsr(&tempRblk);
+//            dcsr_alloc(Rmerge.row,Rmerge.col,Rmerge.nnz,mgl[lvl].R.blocks[i+i*brow]);
+//            dcsr_cp(&Rmerge,mgl[lvl].R.blocks[i+i*brow]);
+//            dcsr_free(&Rmerge);
+//            // BC flag dirichlet elim stuff
+//            create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 61);
+//            set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, 1,5); //bbl
+//            mgl[lvl+1].dirichlet_blk[i] = &mgl[lvl+1].dirichlet[bm];
+//            for(j=0;j<FE_loc.ndof;j++){
+//              mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
+//              ++bm;
+//            }
+//            free_fespace(&FE_loc);
+//            create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 1);
+//            set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, 5,5); // Ux
+//            for(j=0;j<FE_loc.ndof;j++){
+//              mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
+//              ++bm;
+//            }
+//            free_fespace(&FE_loc);
+//            create_fespace(&FE_loc, mgl[lvl+1].fine_level_mesh, 1);
+//            set_dirichlet_bdry(&FE_loc, mgl[lvl+1].fine_level_mesh, 1,4); // Uy
+//            for(j=0;j<FE_loc.ndof;j++){
+//              mgl[lvl+1].dirichlet[bm] = FE_loc.dirichlet[j];
+//              ++bm;
+//            }
+//            free_fespace(&FE_loc);
+//          break;
+//          default:
+//            printf("### ERROR: Unknown geometric multigrid type: %d!\n",mgl[lvl].gmg_type[i]);
+//          break;
+//        }// switch gmg_type
+//      }//for i<brow
+//      printf("Built R for lvl=%d...\n",lvl);
+//
+//      /*-- Form Prolongation --*/
+//      for(i=0; i<brow; i++){
+//        dcsr_trans(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].P.blocks[i+i*brow]);
+//      }
+//      printf("Built P for lvl=%d...\n",lvl);
+//          //csr_print_matlab(stdout,mgl[lvl].A_noBC.blocks[0]);
+//
+//      /*-- Form coarse level stiffness matrix --*/
+//      for(i=0; i<brow; i++){
+//        for(j=0; j<brow; j++){
+//          if(mgl[lvl].A.blocks[j+i*brow]){
+//            if(i==j){
+//              dcsr_rap(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].A_noBC.blocks[j+i*brow], mgl[lvl].P.blocks[j+j*brow], mgl[lvl+1].A_noBC.blocks[j+i*brow]);
+//            } else {
+//              dcsr_mxm(mgl[lvl].R.blocks[i+i*brow],mgl[lvl].A_noBC.blocks[j+i*brow],&tempRA);
+//              dcsr_mxm(&tempRA,mgl[lvl].P.blocks[j+j*brow],mgl[lvl+1].A_noBC.blocks[j+i*brow]);
+//              dcsr_free(&tempRA);
+//            }
+//          } else { mgl[lvl+1].A_noBC.blocks[j+i*brow] = NULL; }
+//        }//j
+//      }//i
+//      printf("Built RAP for lvl=%d...\n",lvl);
+//
+//      /*-- Eliminate dirichlet boundaries from stiffness matrix --*/
+//      bdcsr_cp( &mgl[lvl+1].A_noBC, &mgl[lvl+1].A);
+//      FE_blk.dirichlet = mgl[lvl+1].dirichlet;
+//      printf("eliminating BC on coarse level\n");
+//      eliminate_DirichletBC_blockFE_blockA(NULL,&FE_blk,mgl[lvl+1].fine_level_mesh,NULL,&mgl[lvl+1].A,0.0);
+//      
+//      /*-- Apply Periodic boundaries --*/
+//      if (mgl[0].periodic_BC == true) {
+//
+//        // Allocate and create FE spaces if needed.
+//        if(lvl>0){
+//          mgl[lvl].FE->var_spaces = (fespace **) calloc( mgl[0].FE->nspaces, sizeof(fespace *));
+//          mgl[lvl].FE->var_spaces[0] = (fespace *) calloc(1, sizeof(fespace));
+//          create_fespace(mgl[lvl].FE->var_spaces[0], mgl[lvl].fine_level_mesh, 61);
+//          mgl[lvl].FE->var_spaces[1] = (fespace *) calloc(1, sizeof(fespace));
+//          create_fespace(mgl[lvl].FE->var_spaces[1], mgl[lvl].fine_level_mesh, 1);
+//          mgl[lvl].FE->var_spaces[2] = (fespace *) calloc(1, sizeof(fespace));
+//          create_fespace(mgl[lvl].FE->var_spaces[2], mgl[lvl].fine_level_mesh, 1);
+//          mgl[lvl].FE->var_spaces[3] = (fespace *) calloc(1, sizeof(fespace));
+//          create_fespace(mgl[lvl].FE->var_spaces[3], mgl[lvl].fine_level_mesh, 30);
+//          mgl[lvl].FE->var_spaces[4] = (fespace *) calloc(1, sizeof(fespace));
+//          create_fespace(mgl[lvl].FE->var_spaces[4], mgl[lvl].fine_level_mesh, 0);
+//        }
+//
+//        // TODO: This needs a block version!
+//        set_periodic_bdry(mgl[lvl].FE->var_spaces[0], mgl[lvl].fine_level_mesh,0.0,1.0,0.0,1.0,0.0,1.0);
+//        printf("0\n");
+//        set_periodic_bdry(mgl[lvl].FE->var_spaces[1], mgl[lvl].fine_level_mesh,0.0,1.0,0.0,1.0,0.0,1.0);
+//        printf("1\n");
+//        set_periodic_bdry(mgl[lvl].FE->var_spaces[2], mgl[lvl].fine_level_mesh,0.0,1.0,0.0,1.0,0.0,1.0);
+//        printf("2\n");
+//        set_periodic_bdry(mgl[lvl].FE->var_spaces[3], mgl[lvl].fine_level_mesh,0.0,1.0,0.0,1.0,0.0,1.0);
+//        printf("3\n");
+//        set_periodic_bdry(mgl[lvl].FE->var_spaces[4], mgl[lvl].fine_level_mesh,0.0,1.0,0.0,1.0,0.0,1.0);
+//        printf("4\n");
+//
+//        // Create fake blockFE space that matches the 3x3 block matrix (put all displacements together)
+//        // This should make everything the right size. Most values in the FE space will be garbage
+//        FE_blk.var_spaces = (fespace **) calloc( FE_blk.nspaces, sizeof(fespace*));
+//
+//        // Displacement Block
+//        FE_blk.var_spaces[0] = (fespace *) calloc(1, sizeof(fespace));
+//        ndof = 0;
+//        for(i=NoBBL; i<dim+1; i++){ ndof += mgl[lvl].FE->var_spaces[i]->ndof; }
+//        FE_blk.var_spaces[0]->periodic = (INT *) calloc(ndof, sizeof(INT));
+//        FE_blk.var_spaces[0]->ndof = ndof;
+//        tdof = 0;
+//        for(i=NoBBL; i<dim+1; i++){
+//          for(j=0; j<mgl[lvl].FE->var_spaces[i]->ndof; j++){
+//            FE_blk.var_spaces[0]->periodic[tdof] = mgl[lvl].FE->var_spaces[i]->periodic[j];
+//            tdof++;
+//          }
+//        }
+//        // Darcy Block
+//        FE_blk.var_spaces[1] = mgl[lvl].FE->var_spaces[3];
+//        // Pressure Block
+//        FE_blk.var_spaces[2] = mgl[lvl].FE->var_spaces[4];
+//
+//        bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].A_periodic));
+//        bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].P_periodic));
+//        bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].R_periodic));
+//        bdcsr_alloc(mgl[lvl].A.brow, mgl[lvl].A.bcol, &(mgl[lvl].R_periodic_scaled));
+//
+//        printf("\tGenerating periodic P\n");
+//        generate_periodic_P_blockFE( &FE_blk, &(mgl[lvl].P_periodic) );
+//        printf("\tGenerating periodic R scaled\n");
+//        generate_periodic_R_scaled_blockFE( &(mgl[lvl].P_periodic), &(mgl[lvl].R_periodic_scaled) );
+//        printf("\tGenerating periodic R\n");
+//        for(i=0; i<brow; i++){
+//          printf("\t\tTransposing... i=%d\n",i);
+//          dcsr_trans( mgl[lvl].P_periodic.blocks[i+i*brow], mgl[lvl].R_periodic.blocks[i+i*brow] );
+//        }
+//        printf("\tTransposed P_periodic\n");
+//
+//        // Form triple matrix product on level for A_periodic
+//        //eliminate_PeriodicBC_blockFE( &(mgl[lvl].P_periodic), &(mgl[lvl].A), &(mgl[lvl].b));
+//        // Form triple matrix product on level for P_periodic (for lvl-1)
+//        if(lvl>0){
+//          for(i=0; i< brow; i++){
+//            for(j=0; j < brow; j++){
+//              if(i==j){
+//                dcsr_mxm(mgl[lvl].R_periodic_scaled.blocks[i+i*brow],mgl[lvl-1].R.blocks[j+i*brow],&tempRA);
+//                dcsr_mxm(&tempRA,mgl[lvl-1].P_periodic.blocks[j+j*brow],mgl[lvl-1].R.blocks[j+i*brow]);
+//                dcsr_free(&tempRA);
+//                dcsr_mxm(mgl[lvl].R_periodic_scaled.blocks[i+i*brow],mgl[lvl-1].P.blocks[j+i*brow],&tempRA);
+//                dcsr_mxm(&tempRA,mgl[lvl-1].P_periodic.blocks[j+j*brow],mgl[lvl-1].P.blocks[j+i*brow]);
+//                dcsr_free(&tempRA);
+//              }
+//            }
+//          }
+//        }
+//        // Form triple matrix product on level for R_periodic (for lvl-1)
+//      }
+//
+//
+//
+//      // PRINT MATRIX
+//      if(lvl==0){
+//          FILE* matid = HAZ_fopen("Acoarse.dat","w");
+//          csr_print_matlab(matid,mgl[lvl+1].A.blocks[0]);
+//          fclose(matid);
+//          matid = HAZ_fopen("P.dat","w");
+//          csr_print_matlab(matid,mgl[lvl].P.blocks[0]);
+//          fclose(matid);
+//          matid = HAZ_fopen("R.dat","w");
+//          csr_print_matlab(matid,mgl[lvl].R.blocks[0]);
+//          fclose(matid);
+//      }
+//
+//      ++lvl;
+//    } // lvl
+//
+//    // Setup coarse level systems for direct solvers
+//    switch (csolver) {
+//
+//#if WITH_SUITESPARSE
+//        case SOLVER_UMFPACK: {
+//            printf("Setting up coarse solve: Using UMFPACK...\n");
+//            // Need to sort the matrix A for UMFPACK to work
+//            // merge blocks
+//            mgl[lvl].Ac = bdcsr_2_dcsr(&mgl[lvl].A);
+//            dCSRmat Ac_tran;
+//            dcsr_trans(&mgl[lvl].Ac, &Ac_tran);
+//            printf("Ac stats: row=%d col=%d nnz=%d\n",mgl[lvl].Ac.row,mgl[lvl].Ac.col,mgl[lvl].Ac.nnz);
+//            // It is equivalent to do transpose and then sort
+//            //     fasp_dcsr_trans(&mgl[lvl].A, &Ac_tran);
+//            //     fasp_dcsr_sort(&Ac_tran);
+//            dcsr_cp(&Ac_tran, &mgl[lvl].Ac);
+//            dcsr_free(&Ac_tran);
+//            mgl[lvl].Numeric = umfpack_factorize(&mgl[lvl].Ac, 0);
+//          break;
+//        }
+//#endif
+//        default:
+//            printf("We are not using SUITESPARSE!\n");
+//            // Do nothing!
+//            break;
+//    }
+//
+//    // setup total level number and current level
+//    m=0;
+//    for(i=0; i<brow; i++) m += mgl[0].A.blocks[i+i*brow]->row;
+//    mgl[0].num_levels = max_levels = lvl+1;
+//    mgl[0].w          = dvec_create(m);
+//
+//    for ( lvl = 1; lvl < max_levels; ++lvl) {
+//        INT mm = 0;
+//        for(i=0;i<brow;i++) mm += mgl[lvl].A.blocks[i+i*brow]->row;
+//        mgl[lvl].num_levels = max_levels;
+//        mgl[lvl].b          = dvec_create(mm);
+//        mgl[lvl].x          = dvec_create(mm);
+//
+//        mgl[lvl].cycle_type     = cycle_type; // initialize cycle type!
+//
+//        if ( cycle_type == NL_AMLI_CYCLE )
+//            mgl[lvl].w = dvec_create(3*mm);
+//        else
+//            mgl[lvl].w = dvec_create(2*mm);
+//    }
+//
+//    if ( prtlvl > PRINT_NONE ) {
+//        get_time(&setup_end);
+//        print_cputime("geometric multigrid setup", setup_end - setup_start);
+//    }
 //
 //    return status;
 //}
-/***********************************************************************************************/
-/***********************************************************************************************/
+//
+///***********************************************************************************************/
+////SHORT gmg_setup (AMG_data *mgl,
+////                 GMG_param *param)
+////{
+////    SHORT status;
+////    //SHORT status = gmg_setup_P1(mgl,param);
+////
+////    return status;
+////}
+///***********************************************************************************************/
+///***********************************************************************************************/
 
 
 /***********************************************************************************************/
@@ -1280,9 +1281,9 @@ SHORT gmg_load_coarse_grids_from_file( MG_blk_data *mgl,
     mgl[lvl+1].fine_level_mesh = (mesh_struct*)calloc(1, sizeof(mesh_struct));
     initialize_mesh(mgl[lvl+1].fine_level_mesh);
     /*-- Need to customize this to specific directory --*/
-    //sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",csize);
+    sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",csize);
     //sprintf(cgridfile,"/home/xiaozhehu/Work/Projects/HAZMATH/hazmath/examples/grids/2D/unitSQ_n%d.haz",csize);
-    sprintf(cgridfile,"/home/pohm01/HAZMAT/hazmath/examples/grids/2D/unitSQ_n%d.haz",csize);
+    //sprintf(cgridfile,"/home/pohm01/HAZMAT/hazmath/examples/grids/2D/unitSQ_n%d.haz",csize);
     cgfid = HAZ_fopen(cgridfile,"r");
     creategrid_fread(cgfid,0,mgl[lvl+1].fine_level_mesh);
     fclose(cgfid);
@@ -1435,39 +1436,33 @@ SHORT gmg_apply_periodic_BC( MG_blk_data *mgl,
     if(lvl>0){
       for(i=0; i< brow; i++){
         // Take advantage of the fact that R and P are block diagonal
-        printf("-----------------------------------------------------------------------\n");
-        //csr_print_matlab(stdout,mgl[lvl-1].R_periodic_scaled.blocks[i+i*brow]);
-        //printf("-----------------------------------------------------------------------\n");
-          // Create R with periodic BC
-        dcsr_mxm(mgl[lvl].R_periodic_scaled.blocks[i+i*brow],mgl[lvl-1].R.blocks[i+i*brow],&tempRA);
-        dcsr_mxm(&tempRA,mgl[lvl-1].P_periodic.blocks[i+i*brow],mgl[lvl-1].R.blocks[i+i*brow]);
-        dcsr_free(&tempRA);
+        // Create R with periodic BC
+        // TODO
+        //dcsr_mxm(mgl[lvl].R_periodic_scaled.blocks[i+i*brow],mgl[lvl-1].R.blocks[i+i*brow],&tempRA);
+        //dcsr_mxm(&tempRA,mgl[lvl-1].P_periodic.blocks[i+i*brow],mgl[lvl-1].R.blocks[i+i*brow]);
+        //dcsr_free(&tempRA);
         // Create P with periodic BC
         dcsr_mxm(mgl[lvl-1].R_periodic_scaled.blocks[i+i*brow],mgl[lvl-1].P.blocks[i+i*brow],&tempRA);
         dcsr_mxm(&tempRA,mgl[lvl].P_periodic.blocks[i+i*brow],mgl[lvl-1].P.blocks[i+i*brow]);
         dcsr_free(&tempRA);
-        //printf("******************************\n");
-        //csr_print_matlab(stdout,mgl[lvl-1].R.blocks[i+i*brow]);
-        //printf("______________________________\n");
-        //csr_print_matlab(stdout,mgl[lvl-1].P.blocks[i+i*brow]);
-        printf("P Matrix[%d,%d] size: %d %d\n",i,i,mgl[lvl-1].P.blocks[i+i*brow]->row,mgl[lvl-1].P.blocks[i+i*brow]->col);
-        printf("R Matrix[%d,%d] size: %d %d\n",i,i,mgl[lvl-1].R.blocks[i+i*brow]->row,mgl[lvl-1].R.blocks[i+i*brow]->col);
+        /////////////////////
+        dcsr_trans( mgl[lvl-1].P.blocks[i+i*brow], mgl[lvl-1].R.blocks[i+i*brow] );
       }
     }
 
     dof_shift = 0;
     cnt =  0;
+    cnt = NoBBL*mgl[lvl].FE->var_spaces[0]->ndof;
     for(i=0; i<brow; i++){
       for(j=0; j<mgl[lvl].P_periodic.blocks[i+i*brow]->nnz; j++){
         mgl[lvl].FE->dirichlet[ mgl[lvl].P_periodic.blocks[i+i*brow]->JA[j] + dof_shift ] = mgl[lvl].FE->dirichlet[cnt];
-        //printf("|%d| PERIODIC[%d] = %d\n", i, j, mgl[lvl].P_periodic.blocks[i+i*brow]->JA[j]);
-        //printf("\t|%d| PERIODIC[%d] = %d [%d]\n",i, cnt, mgl[lvl].P_periodic.blocks[i+i*brow]->JA[j]+dof_shift, mgl[lvl].P_periodic.blocks[i+i*brow]->JA[j]);
         cnt++;
       }
       dof_shift += mgl[lvl].P_periodic.blocks[i+i*brow]->col;
     }
 
   }
+
   return status;
 }
 
@@ -1700,10 +1695,10 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
           nf1d = sqrt(mgl[lvl].fine_level_mesh->nelm/2);
           nc1d = sqrt(mgl[lvl+1].fine_level_mesh->nelm/2);
           build_constant_R( mgl[lvl].R.blocks[i+i*brow], nf1d, nc1d);
-          
+
           if(mgl[0].periodic_BC){
             set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[4], mgl[lvl+1].fine_level_mesh, -1,-1); // P
-            //mgl[lvl+1].FE->var_spaces[4]->dirichlet[0] = 1;
+//            mgl[lvl+1].FE->var_spaces[4]->dirichlet[0] = 1;
           } else {
             set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[4], mgl[lvl+1].fine_level_mesh, -1,-1); // P
           }
@@ -1721,8 +1716,16 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
           dcsr_cp(&Rmerge,mgl[lvl].R.blocks[i+i*brow]);
           dcsr_free(&Rmerge);
 
-          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[1], mgl[lvl+1].fine_level_mesh, 5,5); // Ux
-          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[2], mgl[lvl+1].fine_level_mesh, 1,4); // Uy
+          if( mgl[0].periodic_BC ){
+            nc1d = sqrt(mgl[lvl+1].fine_level_mesh->nv);
+            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[1], mgl[lvl+1].fine_level_mesh, -1,-1); // Ux
+            mgl[lvl+1].FE->var_spaces[1]->dirichlet[nc1d+1] = 1;
+            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[2], mgl[lvl+1].fine_level_mesh, -1,-1); // Uy
+            mgl[lvl+1].FE->var_spaces[2]->dirichlet[nc1d+1] = 1;
+          } else {
+            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[1], mgl[lvl+1].fine_level_mesh, 5,5); // Ux
+            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[2], mgl[lvl+1].fine_level_mesh, 1,4); // Uy
+          }
 
           break;
         case 999:// P1 + bubbles combined as a single block matrix
@@ -1750,18 +1753,20 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
           printf("****************************************************************************************************\n\n");
           if( mgl[0].periodic_BC ){
             set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[0], mgl[lvl+1].fine_level_mesh, -1,-1); //bbl
-            //mgl[lvl+1].FE->var_spaces[0]->dirichlet[0] = 1;
-            mgl[lvl+1].FE->var_spaces[0]->dirichlet[3] = 1;
+//            mgl[lvl+1].FE->var_spaces[0]->dirichlet[3] = 1;
 
             nc1d = sqrt(mgl[lvl+1].fine_level_mesh->nv);
             set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[1], mgl[lvl+1].fine_level_mesh, -1,-1); // Ux
-            mgl[lvl+1].FE->var_spaces[1]->dirichlet[nc1d+1] = 1;
+//            mgl[lvl+1].FE->var_spaces[1]->dirichlet[nc1d+1] = 1;
             set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[2], mgl[lvl+1].fine_level_mesh, -1,-1); // Uy
-            mgl[lvl+1].FE->var_spaces[2]->dirichlet[nc1d+1] = 1;
+//            mgl[lvl+1].FE->var_spaces[2]->dirichlet[nc1d+1] = 1;
           } else {
-            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[0], mgl[lvl+1].fine_level_mesh, 1, 5); //bbl
-            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[1], mgl[lvl+1].fine_level_mesh, 5, 5); // Ux
-            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[2], mgl[lvl+1].fine_level_mesh, 1, 4); // Uy
+            //set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[0], mgl[lvl+1].fine_level_mesh, 1, 5); //bbl
+            //set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[1], mgl[lvl+1].fine_level_mesh, 4, 5); // Ux
+            //set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[2], mgl[lvl+1].fine_level_mesh, 1, 4); // Uy
+            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[0], mgl[lvl+1].fine_level_mesh, 1, 10); //bbl
+            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[1], mgl[lvl+1].fine_level_mesh, 1, 10); // Ux
+            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[2], mgl[lvl+1].fine_level_mesh, 1, 10); // Uy
           }
 
           break;
@@ -1772,10 +1777,10 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
 
           if( mgl[0].periodic_BC ){
             set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[3], mgl[lvl+1].fine_level_mesh, -1,-1); // w
-            //mgl[lvl+1].FE->var_spaces[3]->dirichlet[0] = 1;
-            mgl[lvl+1].FE->var_spaces[3]->dirichlet[3] = 1;
+//            mgl[lvl+1].FE->var_spaces[3]->dirichlet[3] = 1;
           } else {
-            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[3], mgl[lvl+1].fine_level_mesh, 1, 5); // w
+            //set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[3], mgl[lvl+1].fine_level_mesh, 1, 5); // w
+            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[3], mgl[lvl+1].fine_level_mesh, 1, 10); // w
           }
 
           break;
@@ -1808,8 +1813,10 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
 
     /*-- Eliminate dirichlet boundaries from stiffness matrix --*/
     bdcsr_cp( &mgl[lvl+1].A_noBC, &mgl[lvl+1].A);
-    set_dirichlet_bdry_block(mgl[lvl+1].FE, mgl[lvl+1].fine_level_mesh);
+    set_dirichlet_bdry_block(mgl[lvl+1].FE, mgl[lvl+1].fine_level_mesh);//TODO: this will not work in elim case. bbl in FE struct
+    mgl[lvl+1].FE->dirichlet = mgl[lvl+1].FE->dirichlet + NoBBL*mgl[lvl+1].FE->var_spaces[0]->ndof;
     eliminate_DirichletBC_blockFE_blockA(NULL, mgl[lvl+1].FE, mgl[lvl+1].fine_level_mesh,NULL,&mgl[lvl+1].A,0.0);
+    mgl[lvl+1].FE->dirichlet = mgl[lvl+1].FE->dirichlet - NoBBL*mgl[lvl+1].FE->var_spaces[0]->ndof;
 
     bm = 0;
     mgl[lvl+1].dirichlet_blk = (INT**)calloc(brow,sizeof(INT*));
@@ -1818,6 +1825,10 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
       if(i==3)     mgl[lvl+1].dirichlet_blk[1] = &mgl[lvl+1].FE->dirichlet[bm]; // Darcy (RT0)
       if(i==4)     mgl[lvl+1].dirichlet_blk[2] = &mgl[lvl+1].FE->dirichlet[bm]; // Pressure
       bm += mgl[lvl+1].FE->var_spaces[i]->ndof;
+    }
+
+    if( !mgl[0].periodic_BC ){
+      mgl[lvl+1].FE->dirichlet = mgl[lvl+1].FE->dirichlet + NoBBL*mgl[lvl+1].FE->var_spaces[0]->ndof;
     }
 
     lvl++;
@@ -1830,6 +1841,7 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
     printf("Finished applying periodic BC\n");
   }
 
+
   /*-- Setup coarse level systems for direct solvers --*/
   switch (csolver) {
 
@@ -1841,15 +1853,14 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
           // // Add a small I to each diagonal block
           mgl[lvl].Ac = bdcsr_2_dcsr(&mgl[lvl].A);
           dCSRmat Ac_tran;
-          //if(0){
-          //dCSRmat I1 = dcsr_create_identity_matrix(mgl[lvl].Ac.row,0);
-          //dCSRmat ApE;
-          //dcsr_add( &mgl[lvl].Ac, 1.0, &I1, 1e-10, &ApE);
-          //dcsr_trans(&ApE, &Ac_tran);
-          //} else {
-          dcsr_trans(&mgl[lvl].Ac, &Ac_tran);
-          //}
-          printf("Ac stats: row=%d col=%d nnz=%d\n",mgl[lvl].Ac.row,mgl[lvl].Ac.col,mgl[lvl].Ac.nnz);
+          if(0){
+            dCSRmat I1 = dcsr_create_identity_matrix(mgl[lvl].Ac.row,0);
+            dCSRmat ApE;
+            dcsr_add( &mgl[lvl].Ac, 1.0, &I1, 1e-10, &ApE);
+            dcsr_trans(&ApE, &Ac_tran);
+          } else {
+            dcsr_trans(&mgl[lvl].Ac, &Ac_tran);
+          }
           // It is equivalent to do transpose and then sort
           //     fasp_dcsr_trans(&mgl[lvl].A, &Ac_tran);
           //     fasp_dcsr_sort(&Ac_tran);
