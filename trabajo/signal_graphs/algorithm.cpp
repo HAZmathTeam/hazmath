@@ -2,7 +2,8 @@
 #include <numeric>
 #include <algorithm>
 #include <functional>
-#include "graph.hpp"
+
+#include "graph.h"
 
 using namespace std;
 
@@ -27,6 +28,8 @@ void setup_hierarchy(const char *file, dCSRmat *&A, vector<dCSRmat *> &Qj_array,
 
   int level = 0;
   Nj_array.push_back(n);
+  // Recursively perform aggregation algorithm until there is only one vertex in
+  // the graph.
   while (graph.Size() > 1) {
     cout << "Graph size: " << graph.Size() << endl;
     dCSRmat *A = graph.GetWeightedLaplacian();
@@ -54,6 +57,7 @@ void setup_hierarchy(const char *file, dCSRmat *&A, vector<dCSRmat *> &Qj_array,
     Qj_coo->val = (REAL*)malloc(sizeof(REAL)*Qj_nnz);
     INT Qj_coo_ind = 0;
 
+    // Iterate over the aggregates in the coarse graph.
     for (int i = 0, count = 0; i < nj; ++i) {
       vector<int> vertices;
       graph.GetAggregate(i, &vertices);
@@ -364,4 +368,17 @@ void comp_decomp(double *v, dCSRmat *A, const vector<dCSRmat *> &Qj_array,
        << "Norm of error  ||v-v3||: " << array_norm2(n, e3) << endl
        << "Relative error ||v-v3||/||v||: "
        << array_norm2(n, e3) / array_norm2(n, v) << endl;
+}
+
+vector<int> get_hamiltonian_path(Tree&& tree) {
+  if (tree.children.empty()) {
+    return vector<int>({tree.vertex});
+  }
+  int rand_idx = rand() % tree.children.size();
+  auto child = tree.children[rand_idx];
+  tree.children.erase(tree.children.begin() + rand_idx);
+  vector<int> path1 = get_hamiltonian_path(std::move(tree));
+  auto&& path2 = get_hamiltonian_path(std::move(child));
+  path1.insert(path1.end(), path2.rbegin(), path2.rend());
+  return path1;
 }
