@@ -10,8 +10,8 @@
 #include <iterator>
 #include <cassert>
 #include <unistd.h>
-#include "graph.hpp"
-#include "algorithm.hpp"
+#include "graph.h"
+#include "algorithm.h"
 
 using namespace std;
 

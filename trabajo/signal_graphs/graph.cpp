@@ -5,8 +5,11 @@
 #include <unordered_map>
 #include <set>
 #include <cassert>
+#include <random>
+#include <queue>
 
-#include "graph.hpp"
+#include "algorithm.h"
+#include "graph.h"
 
 using namespace std;
 
@@ -61,6 +64,23 @@ Graph::Graph(const char* filename) {
   assert(ind == A->nnz);
 
   cout << "Graph Reading Done..." << endl;
+}
+
+std::vector<int> Graph::GetNeighbors(int i) const {
+  return std::vector<int>(A->JA + A->IA[i], A->JA + A->IA[i + 1]);
+}
+
+Graph::Graph(const Graph& other) {
+  A = (iCSRmat*)malloc(sizeof(iCSRmat));
+  *A = icsr_create(other.A->row, other.A->col, other.A->nnz);
+  icsr_cp(other.A, A);
+  aggregates = other.aggregates;
+}
+
+Graph & Graph::operator= (Graph other) {
+  std::swap(A, other.A);
+  std::swap(aggregates, other.aggregates);
+  return *this;
 }
 
 void Graph::DoMatching(Graph *c_graph) {
@@ -227,4 +247,29 @@ dCSRmat *Graph::GetWeightedLaplacian() const {
   L->IA[n] = L_ind;
   assert(L_ind == nnz);
   return L;
+}
+
+vector<int> Graph::GetHamiltonianPath(int seed) const {
+  int size = Size();
+  srand(seed);
+  INT root = rand() % size;
+
+  // Build spanning tree.
+  Tree tree(root);
+  queue<Tree*> q;
+  q.push(&tree);
+  vector<bool> visited(size, false);
+  while (!q.empty()) {
+    auto curr = q.front();
+    for (auto i : GetNeighbors(curr->vertex)) {
+      if (!visited[i]) {
+        Tree* tree = new Tree(i);
+        curr->children.push_back(*tree);
+        q.push(tree);
+      }
+    }
+    q.pop();
+  }
+
+  return get_hamiltonian_path(std::move(tree));
 }
