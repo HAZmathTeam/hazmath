@@ -1,11 +1,14 @@
 #ifndef SIGNALS_GRAPH
 #define SIGNALS_GRAPH
 
-#include <vector>
-
+#ifndef EXTERN_C
+#define EXTERN_C
 extern "C" {
   #include "hazmath.h"
 }
+#endif
+
+#include <vector>
 
 class Graph {
 private:
@@ -15,44 +18,54 @@ private:
   // The aggregates after matching
   std::vector<std::vector<int>> aggregates;
 
+  std::vector<int> GetNeighbors(int i) const;
+
 public:
   Graph(): A(NULL) {}
 
   Graph(const char* filename);
 
-  Graph(const Graph &other) {
-    A = (iCSRmat *)malloc(sizeof(iCSRmat));
-    *A = icsr_create(other.A->row, other.A->col, other.A->nnz);
-    icsr_cp(other.A, A);
-    aggregates = other.aggregates;
-  }
+  Graph(const Graph& other);
 
   ~Graph() { icsr_free(A); }
 
-  Graph & operator= (Graph other) {
-    std::swap(A, other.A);
-    std::swap(aggregates, other.aggregates);
-
-    return *this;
-  }
+  Graph & operator= (Graph other);
 
   // Number of vertices
-  int Size() const { return A->row; }
+  int Size() const {
+    return A->row;
+  }
 
   // Perform matching algorithm and construct the coarse graph
   void DoMatching(Graph *c_graph);
 
   // Get number of aggregates in the graph
-  int NumOfAggregates() const { return aggregates.size(); }
+  int NumOfAggregates() const {
+    return aggregates.size();
+  }
 
   // Get the vertices in an aggregate
   void GetAggregate(int i, std::vector<int> *vertices) const;
 
   // Get the number of vertices in an aggregate
-  int GetAggregateSize(int i) const { return aggregates[i].size(); }
+  int GetAggregateSize(int i) const {
+    return aggregates[i].size();
+  }
 
   // Get the graph Laplacian
   dCSRmat *GetWeightedLaplacian() const;
+
+  // Get Hamiltonian path
+  std::vector<int> GetHamiltonianPath(int seed = 0) const;
+};
+
+class Tree {
+public:
+  int vertex;
+  std::vector<Tree> children;
+
+  Tree(int vertex, std::vector<Tree>&& children = {})
+    : vertex(vertex), children(children) {}
 };
 
 #endif
