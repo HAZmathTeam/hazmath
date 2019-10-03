@@ -370,15 +370,18 @@ void comp_decomp(double *v, dCSRmat *A, const vector<dCSRmat *> &Qj_array,
        << array_norm2(n, e3) / array_norm2(n, v) << endl;
 }
 
-vector<int> get_hamiltonian_path(Tree&& tree) {
-  if (tree.children.empty()) {
-    return vector<int>({tree.vertex});
+vector<int> get_hamiltonian_path(Tree* tree) {
+  if (tree->children.empty()) {
+    auto vertex = tree->vertex;
+    delete tree;
+    return vector<int>({vertex});
   }
-  int rand_idx = rand() % tree.children.size();
-  auto child = tree.children[rand_idx];
-  tree.children.erase(tree.children.begin() + rand_idx);
-  vector<int> path1 = get_hamiltonian_path(std::move(tree));
-  auto&& path2 = get_hamiltonian_path(std::move(child));
+  int rand_idx = rand() % tree->children.size();
+
+  auto&& path2 = get_hamiltonian_path(tree->children[rand_idx]);
+  tree->children.erase(tree->children.begin() + rand_idx);
+  auto path1 = get_hamiltonian_path(tree);
+
   path1.insert(path1.end(), path2.rbegin(), path2.rend());
   return path1;
 }

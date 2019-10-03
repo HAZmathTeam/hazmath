@@ -1,14 +1,17 @@
 #ifndef SIGNALS_GRAPH
 #define SIGNALS_GRAPH
 
-#ifndef EXTERN_C
-#define EXTERN_C
-extern "C" {
-  #include "hazmath.h"
-}
-#endif
-
 #include <vector>
+#include "hazmath_include.h"
+
+class Tree {
+public:
+  int vertex;
+  std::vector<Tree*> children;
+
+  Tree(int vertex, std::vector<Tree*>&& children = {})
+    : vertex(vertex), children(children) {}
+};
 
 class Graph {
 private:
@@ -57,15 +60,6 @@ public:
 
   // Get Hamiltonian path
   std::vector<int> GetHamiltonianPath(int seed = 0) const;
-};
-
-class Tree {
-public:
-  int vertex;
-  std::vector<Tree> children;
-
-  Tree(int vertex, std::vector<Tree>&& children = {})
-    : vertex(vertex), children(children) {}
 };
 
 #endif
