@@ -255,21 +255,22 @@ vector<int> Graph::GetHamiltonianPath(int seed) const {
   INT root = rand() % size;
 
   // Build spanning tree.
-  Tree tree(root);
+  Tree* tree = new Tree(root);
   queue<Tree*> q;
-  q.push(&tree);
-  vector<bool> visited(size, false);
+  q.push(tree);
+  vector<bool> discovered(size, false);
+  discovered[root] = true;
   while (!q.empty()) {
     auto curr = q.front();
-    for (auto i : GetNeighbors(curr->vertex)) {
-      if (!visited[i]) {
-        Tree* tree = new Tree(i);
-        curr->children.push_back(*tree);
-        q.push(tree);
+    for (auto neighbor : GetNeighbors(curr->vertex)) {
+      if (!discovered[neighbor]) {
+        curr->children.push_back(new Tree(neighbor));
+        q.push(curr->children.back());
+        discovered[neighbor] = true;
       }
     }
     q.pop();
   }
 
-  return get_hamiltonian_path(std::move(tree));
+  return get_hamiltonian_path(tree);
 }

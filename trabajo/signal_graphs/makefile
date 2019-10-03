@@ -4,7 +4,7 @@ INCLUDE = -I../../include
 LIBS = -lhazmath -llapack
 HAZLIB = ../../lib
 
-HEADERS = graph.h algorithm.h
+HEADERS = hazmath_include.h graph.h algorithm.h
 
 SOURCE_FILES = graph.cpp utils.cpp algorithm.cpp
 OBJECT_FILES = $(SOURCE_FILES:.cpp=.o)
