@@ -1,8 +1,7 @@
-#include <iostream>
-#include <numeric>
 #include <algorithm>
 #include <functional>
-
+#include <iostream>
+#include <numeric>
 #include "graph.h"
 
 using namespace std;
