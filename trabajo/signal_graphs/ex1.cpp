@@ -46,14 +46,14 @@ int main(int argc, char *argv[]) {
   dCSRmat *A;
   vector<dCSRmat *> Qj_array;
   vector<int> Nj_array;
-  setup_hierarchy(argv[optind], A, Qj_array, Nj_array);
+  setupHierarchy(argv[optind], A, Qj_array, Nj_array);
   int n = A->row;
   if (threshold > n - 1) {
     threshold = n - 1;
   }
   REAL *v2 = (REAL *)malloc(sizeof(REAL)*n);
   REAL *v3 = (REAL *)malloc(sizeof(REAL)*n);
-  comp_decomp(NULL, A, Qj_array, Nj_array, threshold, p, v2, v3);
+  compAndDecomp(NULL, A, Qj_array, Nj_array, threshold, p, v2, v3);
 
   dcsr_free(A);
   for (auto Qj : Qj_array) {
