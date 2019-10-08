@@ -11,13 +11,13 @@ extern "C" {
               double *work, int *lwork, int *info);
 }
 
-REAL *InitializeRHS(dCSRmat *A, int num_iterations = 100);
+REAL *initializeRhs(dCSRmat *A, int num_iterations = 100);
 
-void setup_hierarchy(const char *file, dCSRmat *&A, vector<dCSRmat *> &Qj_array,
+void setupHierarchy(const char *file, dCSRmat *&A, vector<dCSRmat *> &Qj_array,
     vector<int> &Nj_array) {
   Graph graph(file);
-  int n = graph.Size();
-  A = graph.GetWeightedLaplacian();
+  int n = graph.size();
+  A = graph.getWeightedLaplacian();
 
   /*
   dCSRmat *Q = (dCSRmat*)malloc(sizeof(dCSRmat));
@@ -29,21 +29,21 @@ void setup_hierarchy(const char *file, dCSRmat *&A, vector<dCSRmat *> &Qj_array,
   Nj_array.push_back(n);
   // Recursively perform aggregation algorithm until there is only one vertex in
   // the graph.
-  while (graph.Size() > 1) {
-    cout << "Graph size: " << graph.Size() << endl;
-    dCSRmat *A = graph.GetWeightedLaplacian();
+  while (graph.size() > 1) {
+    cout << "Graph size: " << graph.size() << endl;
+    dCSRmat *A = graph.getWeightedLaplacian();
 
     Graph c_graph;
-    graph.DoMatching(&c_graph);
-    assert(graph.NumOfAggregates() == c_graph.Size());
-    int Nj = graph.Size();
-    int nj = c_graph.Size();
+    graph.doMatching(&c_graph);
+    assert(graph.numOfAggregates() == c_graph.size());
+    int Nj = graph.size();
+    int nj = c_graph.size();
     Nj_array.push_back(nj);
     int numBlocks = 1 << level;
 
     int Qj_nnz = 0;
     for (int i = 0; i < nj; ++i) {
-      int size = graph.GetAggregateSize(i);
+      int size = graph.getAggregateSize(i);
       Qj_nnz += numBlocks * size * size;
     }
     Qj_nnz += n - Nj * numBlocks;
@@ -59,7 +59,7 @@ void setup_hierarchy(const char *file, dCSRmat *&A, vector<dCSRmat *> &Qj_array,
     // Iterate over the aggregates in the coarse graph.
     for (int i = 0, count = 0; i < nj; ++i) {
       vector<int> vertices;
-      graph.GetAggregate(i, &vertices);
+      graph.getAggregate(i, &vertices);
       int ni = vertices.size();
       sort(vertices.begin(), vertices.end());
 
@@ -163,14 +163,14 @@ void setup_hierarchy(const char *file, dCSRmat *&A, vector<dCSRmat *> &Qj_array,
   }
 }
 
-void comp_decomp(double *v, dCSRmat *A, const vector<dCSRmat *> &Qj_array,
+void compAndDecomp(double *v, dCSRmat *A, const vector<dCSRmat *> &Qj_array,
     const vector<int> &Nj_array, int threshold, double p, double* v2,
     double *v3) {
   int n = A->row;
 
   // Compress/decompress a smooth vector and compute the error
   if (v == NULL) {
-    v = InitializeRHS(A);
+    v = initializeRhs(A);
   }
 
   /*
@@ -369,7 +369,7 @@ void comp_decomp(double *v, dCSRmat *A, const vector<dCSRmat *> &Qj_array,
        << array_norm2(n, e3) / array_norm2(n, v) << endl;
 }
 
-vector<int> get_hamiltonian_path(Tree* tree) {
+vector<int> getHamiltonianPath(Tree* tree) {
   if (tree->children.empty()) {
     auto vertex = tree->vertex;
     delete tree;
@@ -377,9 +377,9 @@ vector<int> get_hamiltonian_path(Tree* tree) {
   }
   int rand_idx = rand() % tree->children.size();
 
-  auto&& path2 = get_hamiltonian_path(tree->children[rand_idx]);
+  auto&& path2 = getHamiltonianPath(tree->children[rand_idx]);
   tree->children.erase(tree->children.begin() + rand_idx);
-  auto path1 = get_hamiltonian_path(tree);
+  auto path1 = getHamiltonianPath(tree);
 
   path1.insert(path1.end(), path2.rbegin(), path2.rend());
   return path1;

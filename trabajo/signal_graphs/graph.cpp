@@ -66,7 +66,7 @@ Graph::Graph(const char* filename) {
   cout << "Graph Reading Done..." << endl;
 }
 
-std::vector<int> Graph::GetNeighbors(int i) const {
+std::vector<int> Graph::getNeighbors(int i) const {
   return std::vector<int>(A->JA + A->IA[i], A->JA + A->IA[i + 1]);
 }
 
@@ -83,8 +83,8 @@ Graph & Graph::operator= (Graph other) {
   return *this;
 }
 
-void Graph::DoMatching(Graph *c_graph) {
-  int n = Size();
+void Graph::doMatching(Graph *c_graph) {
+  int n = size();
   if (n == 1) {
     throw runtime_error("Only 1 node, no matching is performed!");
     return;
@@ -200,14 +200,14 @@ void Graph::DoMatching(Graph *c_graph) {
   c_graph->A = c_A;
 }
 
-void Graph::GetAggregate(int i, std::vector<int> *vertices) const {
+void Graph::getAggregate(int i, std::vector<int> *vertices) const {
   for (auto v : aggregates[i]) {
     vertices->push_back(v);
   }
 }
 
-dCSRmat *Graph::GetWeightedLaplacian() const {
-  int n = Size();
+dCSRmat *Graph::getWeightedLaplacian() const {
+  int n = size();
   int nnz = A->nnz + n;
 
   dCSRmat *L  = (dCSRmat *)malloc(sizeof(dCSRmat));
@@ -249,20 +249,19 @@ dCSRmat *Graph::GetWeightedLaplacian() const {
   return L;
 }
 
-vector<int> Graph::GetHamiltonianPath(int seed) const {
-  int size = Size();
+vector<int> Graph::getHamiltonianPath(int seed) const {
   srand(seed);
-  INT root = rand() % size;
+  INT root = rand() % size();
 
   // Build spanning tree.
   Tree* tree = new Tree(root);
   queue<Tree*> q;
   q.push(tree);
-  vector<bool> discovered(size, false);
+  vector<bool> discovered(size(), false);
   discovered[root] = true;
   while (!q.empty()) {
     auto curr = q.front();
-    for (auto neighbor : GetNeighbors(curr->vertex)) {
+    for (auto neighbor : getNeighbors(curr->vertex)) {
       if (!discovered[neighbor]) {
         curr->children.push_back(new Tree(neighbor));
         q.push(curr->children.back());
@@ -272,5 +271,5 @@ vector<int> Graph::GetHamiltonianPath(int seed) const {
     q.pop();
   }
 
-  return get_hamiltonian_path(tree);
+  return ::getHamiltonianPath(tree);
 }

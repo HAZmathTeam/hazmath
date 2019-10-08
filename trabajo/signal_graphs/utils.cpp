@@ -2,7 +2,7 @@ extern "C" {
   #include "hazmath.h"
 }
 
-REAL *InitializeRHS(dCSRmat *A, int num_iterations) {
+REAL *initializeRhs(dCSRmat *A, int num_iterations) {
   assert(A->row == A->col);
   int n = A->row;
   dvector *f = (dvector*)malloc(sizeof(dvector)),
