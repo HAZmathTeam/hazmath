@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
   dCSRmat *A;
   vector<dCSRmat *> Qj_array;
   vector<int> Nj_array;
-  setup_hierarchy("temp", A, Qj_array, Nj_array);
+  setupHierarchy("temp", A, Qj_array, Nj_array);
   remove("temp");
 
   // Compress/decompress a smooth vector and compute the error
@@ -114,7 +114,7 @@ int main(int argc, char *argv[]) {
     REAL *v2 = (REAL *)malloc(sizeof(REAL)*n);
     REAL *v3 = (REAL *)malloc(sizeof(REAL)*n);
     if (!opt_l) {
-      comp_decomp(v, A, Qj_array, Nj_array, threshold, 1.0, v2, v3);
+      compAndDecomp(v, A, Qj_array, Nj_array, threshold, 1.0, v2, v3);
 
       auto write = [&] (string filename, REAL data[]) {
         ofstream ofs(filename);
@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
       ofstream ofs(ofilename + ".data");
       ofs << "# Compression results for plain and adaptive encoding" << endl;
       for (int th = 1; th < n; th <<= 1) {
-        comp_decomp(v, A, Qj_array, Nj_array, th, 1.0, v2, v3);
+        compAndDecomp(v, A, Qj_array, Nj_array, th, 1.0, v2, v3);
         double e2[n], e3[n];
         array_axpyz(n, -1.0, v, v2, e2);
         array_axpyz(n, -1.0, v, v3, e3);
