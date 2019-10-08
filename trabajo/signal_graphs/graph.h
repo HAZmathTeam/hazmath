@@ -21,7 +21,7 @@ private:
   // The aggregates after matching
   std::vector<std::vector<int>> aggregates;
 
-  std::vector<int> GetNeighbors(int i) const;
+  std::vector<int> getNeighbors(int i) const;
 
 public:
   Graph(): A(NULL) {}
@@ -35,31 +35,31 @@ public:
   Graph & operator= (Graph other);
 
   // Number of vertices
-  int Size() const {
+  int size() const {
     return A->row;
   }
 
   // Perform matching algorithm and construct the coarse graph
-  void DoMatching(Graph *c_graph);
+  void doMatching(Graph *c_graph);
 
   // Get number of aggregates in the graph
-  int NumOfAggregates() const {
+  int numOfAggregates() const {
     return aggregates.size();
   }
 
   // Get the vertices in an aggregate
-  void GetAggregate(int i, std::vector<int> *vertices) const;
+  void getAggregate(int i, std::vector<int> *vertices) const;
 
   // Get the number of vertices in an aggregate
-  int GetAggregateSize(int i) const {
+  int getAggregateSize(int i) const {
     return aggregates[i].size();
   }
 
   // Get the graph Laplacian
-  dCSRmat *GetWeightedLaplacian() const;
+  dCSRmat *getWeightedLaplacian() const;
 
   // Get Hamiltonian path
-  std::vector<int> GetHamiltonianPath(int seed = 0) const;
+  std::vector<int> getHamiltonianPath(int seed = 0) const;
 };
 
 #endif
