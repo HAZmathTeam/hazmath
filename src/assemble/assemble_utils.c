@@ -1497,7 +1497,7 @@ void eliminate_PeriodicBC(dCSRmat* P_periodic, dCSRmat* A, dvector* b)
   // free
   dcsr_free(&Atemp);
   dcsr_free(&R_periodic);
-  dvec_free(&btemp);
+  if(b){dvec_free(&btemp);}
 
 
 }
