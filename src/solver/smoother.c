@@ -719,6 +719,134 @@ printf("Beginning BSR\n");
 }
 
 /**
+ * \fn void smoother_bdcsr_bsr_biot3 (dvector *u, const INT s, block_dCSRmat *A, dvector *b, INT L)
+ *
+ * \brief BSR
+ *
+ * \param u      Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
+ * \param s      Increasing step
+ * \param A      Pointer to block_dBSRmat: the coefficient matrix
+ * \param b      Pointer to dvector: the right hand side
+ * \param L      Number of iterations
+ *
+ * [   C   0    B   ] [v] = [d]
+ * [   0   M    B   ] [w] = [e]
+ * [   BT  BT   M   ] [q] = [f]
+ *
+ */
+void smoother_bdcsr_bsr_biot3(dvector *u,
+                              dvector *b,
+                              REAL alpha,
+                              REAL w,
+                              block_dCSRmat *A,
+                              INT L)
+{
+printf("Beginning BSR for Biot\n");
+    // Local variables
+    INT i;
+    INT n0, n1, n2;
+    n0 = A->blocks[0]->row;
+    n1 = A->blocks[4]->row;
+    n2 = A->blocks[8]->row;
+    dvector r;
+    dvector rhs;
+    dvector temp;
+
+    dvector v;
+    dvector y;
+    dvector q;
+
+    dvector d;
+    dvector e;
+    dvector f;
+
+    // Problem Var...
+    REAL M = 1e6;
+    REAL nu = 0.499;
+    REAL mu =  (3e4) / (1+2*nu);
+    REAL lam = (3e4)*nu / ((1-2*nu)*(1+nu));
+    REAL factor = (1.0) / (lam+(2*mu/2.0));
+
+    // Approx Ainv with diag(A)^{-1}
+    dCSRmat Ainv = dcsr_create_identity_matrix( A->blocks[0]->row, 0);
+    dvector diagvec2;
+    dcsr_getdiag( A->blocks[0]->row, A->blocks[0], &diagvec2);
+    Ainv.val = diagvec2.val;
+    for( i=0; i<Ainv.row; i++){ if( (Ainv.val[i]) > SMALLREAL ) Ainv.val[i] = 1.0/Ainv.val[i];}
+    // Approx Mwinv with diag(Mw)^{-1}
+    dCSRmat Mwinv = dcsr_create_identity_matrix( A->blocks[4]->row, 0);
+    dvector diagvec;
+    dcsr_getdiag( A->blocks[4]->row, A->blocks[4], &diagvec);
+    Mwinv.val = diagvec.val;
+    for( i=0; i<Mwinv.row; i++){ if( (Mwinv.val[i]) > SMALLREAL ) Mwinv.val[i] = 1.0/Mwinv.val[i];}
+    // Form Schur complement. Using diag(Mw) and that BuT*Au^{-1}*Bu is spectrally equivalent to Mp
+    dCSRmat S;
+    dCSRmat Ap;
+    dcsr_rap( A->blocks[7], &Mwinv, A->blocks[5], &Ap);
+    dcsr_add( A->blocks[8], M*(factor+1.0/M), &Ap, -1.0, &S);// Mp is negative, probably...
+
+
+    // Start
+    dvec_alloc( b->row, &r);
+    dvec_cp( b, &r);
+    bdcsr_aAxpy( -1.0, A, u->val, r.val); // r = b - Au
+
+    d.row = n0;
+    d.val = r.val;
+    e.row = n1;
+    e.val = r.val + n0;
+    f.row = n2;
+    f.val = r.val + n0 + n1;
+
+    // Get RHS
+    dvec_alloc( f.row, &rhs);
+    dvec_cp( &f, &rhs);
+
+    dvec_alloc( e.row, &y);
+    dcsr_aAxpy( 1.0, &Mwinv, e.val, y.val );
+    dcsr_aAxpy( -1.0, A->blocks[7], y.val, rhs.val );// rhs = rhs - B*Mwinv*e
+
+    dvec_alloc( d.row, &temp);
+    dvec_cp( &d, &temp);
+//    dvec_set( d.row, &d, 0.0);////////////////////////////
+//    dcsr_aAxpy( 1.0, &Ainv, temp.val, d.val);/////////////
+    directsolve_UMF( A->blocks[0], &temp, &d, 0); // SOLVE
+    dcsr_aAxpy( -1.0, A->blocks[6], d.val, rhs.val );//rhs = rhs - BT*q
+
+    dvec_alloc( n2, &q);
+    directsolve_UMF( &S, &rhs, &q, 0); // SOLVE
+
+    // propigate back
+    dvec_alloc( d.row, &v);
+    dvec_cp( &d, &v);
+
+    dvec_alloc( d.row, &temp);
+    dcsr_aAxpy( 1.0, A->blocks[2], q.val, temp.val );
+    directsolve_UMF( A->blocks[0], &temp, &d, 0); // SOLVE
+//    dvec_set( d.row, &d, 0.0);//////////////////////////////
+//    dcsr_aAxpy( 1.0, &Ainv, temp.val, d.val);///////////////
+    dvec_axpy( -1.0, &d, &v);// v = v - d
+
+    // propigate back
+    dvec_alloc( d.row, &temp);
+    dcsr_aAxpy( 1.0, A->blocks[5], q.val, temp.val );
+    dcsr_aAxpy( -1.0, &Mwinv, temp.val, y.val);
+
+    // update u = u + [v, q]
+    for( i=0; i<n0; i++ ){
+      u->val[i] += w * v.val[i];
+    }
+    for( i=0; i<n1; i++ ){
+      u->val[i+n0] += w * y.val[i];
+    }
+    for( i=0; i<n2; i++ ){
+      u->val[i+n0+n1] += w * q.val[i];
+    }
+
+    return;
+}
+
+/**
  * \fn void smoother_bdcsr_uzawa (dvector *u, const INT s, block_dCSRmat *A, dvector *b, INT L)
  *
  * \brief UZAWA
@@ -846,6 +974,12 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
       // Initialize AMG for diagonal blocks
       bmgl[0].mgl[blk] = amg_data_create(max_levels);
 
+      // Compute RAP for mgl
+      if( bmgl[0].periodic_BC ){
+        printf("Applying periodic BC to block smoother, block %d\n",blk);
+        eliminate_PeriodicBC( bmgl[0].P_periodic.blocks[blk*brow + blk], &bmgl[0].A_diag[blk], NULL);
+        printf("Finished periodic BC to block smoother, block %d\n",blk);
+      }
       dcsr_alloc( bmgl[0].A_diag[blk].row, bmgl[0].A_diag[blk].row, bmgl[0].A_diag[blk].nnz, &bmgl[0].mgl[blk][0].A);
       dcsr_cp( &(bmgl[0].A_diag[blk]), &bmgl[0].mgl[blk][0].A );
 
@@ -891,7 +1025,6 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
         bmgl[0].mgl[blk][lvl].P.IA = bmgl[lvl].P.blocks[blk+blk*brow]->IA;
         bmgl[0].mgl[blk][lvl].P.JA = bmgl[lvl].P.blocks[blk+blk*brow]->JA;
 
-        // Compute RAP for mgl
         //dcsr_rap( &bmgl[0].mgl[blk][lvl].R, &bmgl[0].mgl[blk][lvl].A, &bmgl[0].mgl[blk][lvl].P, &bmgl[0].mgl[blk][lvl+1].A);
         dcsr_rap( &bmgl[0].mgl[blk][lvl].R, &bmgl[lvl].A_diag[blk], &bmgl[0].mgl[blk][lvl].P, &bmgl[lvl+1].A_diag[blk]);
 
@@ -914,12 +1047,14 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
         bmgl[0].mgl[blk][lvl+1].w = dvec_create(2*bmgl[0].mgl[blk][lvl+1].A.row);
 
         /*-- Setup Schwarz smoother if necessary --*/
+        if(0){//removed for now
         //if( lvl < param->Schwarz_levels && blk == 1 ) { // && use_Schwarz[blk] == 1) or something similar
         if( blk == 1 ) { // && use_Schwarz[blk] == 1) or something similar
           printf("\tcalling Schwarz setup\n");
           bmgl[0].mgl[blk][lvl].Schwarz.A = dcsr_sympat( &bmgl[0].mgl[blk][lvl].A );
 //          dcsr_shift(&(bmgl[0].mgl[blk][lvl].Schwarz.A),1);
           Schwarz_setup_geometric( &bmgl[0].mgl[blk][lvl].Schwarz, &swzparam, bmgl[lvl].fine_level_mesh);
+        }
         }
       }
 
@@ -966,7 +1101,7 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
     //printf("\t\t| using %2d iterations\n",param->presmooth_iter);
     // Initialize
     INT n0, n1, n2;
-    INT triType = 0;
+    INT triType = 1;
     // Sub-vectors
     dvector x0, x1, x2;
     dvector b0, b1, b2;
@@ -997,7 +1132,10 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
     b2.row = n2;
     b2.val = &(bmgl[lvl].b.val[n0+n1]);
 
+    dvector b_disp;
+
     if(0){
+      printf("Block relaxation. Type = %d\n",triType);
       // Alloc for correction
       dvec_alloc(bmgl[lvl].x.row, &y);
       y0.row = n0; y0.val = y.val;
@@ -1014,7 +1152,7 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
 
       // Block 0: P1 + Bubble
 //    smoother_dcsr_sgs(&x0, &(bmgl[lvl].mgl[0][0].A), &b0, param->presmooth_iter);
-      directsolve_UMF(&(bmgl[lvl].mgl[0][0].A), &r0, &y0, 10);
+      directsolve_UMF(&(bmgl[lvl].mgl[0][0].A), &r0, &y0, 0);
 //    bmgl[lvl].mgl[0]->b.row=n0; array_cp(n0, b0.val, bmgl[lvl].mgl[0]->b.val); // residual is an input
 //    bmgl[lvl].mgl[0]->x.row=n0; dvec_set(n0, &bmgl[lvl].mgl[0]->x,0.0);
 //    param->AMG_type = -1;
@@ -1027,7 +1165,7 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
       if(triType==1){
         // r1 = r1 - A3*z0
         if (bmgl[lvl].A.blocks[3] != NULL)
-          dcsr_aAxpy(-1.0, bmgl[lvl].A.blocks[3], y0.val, b1.val);
+          dcsr_aAxpy(-1.0, bmgl[lvl].A.blocks[3], y0.val, r1.val);
       }
 
       // Block 1: RT0
@@ -1040,7 +1178,7 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
 //      smoother_dcsr_Schwarz_backward(&(bmgl[lvl].mgl[1][0].Schwarz), &swzparam, &x1, &b1);
 ////      smoother_dcsr_Schwarz_forward( &(bmgl[lvl].mgl[1][0].Schwarz), &swzparam, &x1, &b1);
 //    }
-      directsolve_UMF(&(bmgl[lvl].mgl[1][0].A), &r1, &y1, 10);
+      directsolve_UMF(&(bmgl[lvl].mgl[1][0].A), &r1, &y1, 0);
       //printf("\tBlock 1 done...\n");
 
       if(triType==1){
@@ -1053,13 +1191,16 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
 
       // Block 2: P0
 //    smoother_dcsr_sgs(&x2, &(bmgl[lvl].mgl[2][0].A), &b2, param->presmooth_iter);
-      directsolve_UMF(&(bmgl[lvl].mgl[2][0].A), &r2, &y2, 10);
+      directsolve_UMF(&(bmgl[lvl].mgl[2][0].A), &r2, &y2, 0);
       //printf("\tBlock 2 done...\n");
 
       // Update Solution
-      dvec_axpy(1.0, &y, &bmgl[lvl].x);
+      //dvec_axpy(1.0, &y, &bmgl[lvl].x);
+      dvec_axpy(0.99, &y, &bmgl[lvl].x);
 
-    } else {
+    } else if (1) {
+    smoother_bdcsr_bsr_biot3( &bmgl[lvl].x, &bmgl[lvl].b, param->BSR_alpha, param->BSR_omega, &bmgl[lvl].A, 1);
+    }else {
 
     // BSR
     dCSRmat A = bdcsr_subblk_2_dcsr ( &bmgl[lvl].A, 0, 1, 0, 1);
