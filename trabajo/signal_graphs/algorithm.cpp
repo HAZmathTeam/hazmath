@@ -1,20 +1,20 @@
+#include "graph.h"
 #include <algorithm>
 #include <functional>
 #include <iostream>
 #include <numeric>
-#include "graph.h"
 
 using namespace std;
 
 extern "C" {
-  void dsyev_(char *jobz, char *uplo, int *n, double *a, int *lda, double *w,
-              double *work, int *lwork, int *info);
+void dsyev_(char *jobz, char *uplo, int *n, double *a, int *lda, double *w,
+            double *work, int *lwork, int *info);
 }
 
 REAL *initializeRhs(dCSRmat *A, int num_iterations = 100);
 
 void setupHierarchy(const char *file, dCSRmat *&A, vector<dCSRmat *> &Qj_array,
-    vector<int> &Nj_array) {
+                    vector<int> &Nj_array) {
   Graph graph(file);
   int n = graph.size();
   A = graph.getWeightedLaplacian();
@@ -47,13 +47,13 @@ void setupHierarchy(const char *file, dCSRmat *&A, vector<dCSRmat *> &Qj_array,
       Qj_nnz += numBlocks * size * size;
     }
     Qj_nnz += n - Nj * numBlocks;
-    dCOOmat *Qj_coo = (dCOOmat*)malloc(sizeof(dCOOmat));
+    dCOOmat *Qj_coo = (dCOOmat *)malloc(sizeof(dCOOmat));
     Qj_coo->row = n;
     Qj_coo->col = n;
     Qj_coo->nnz = Qj_nnz;
-    Qj_coo->rowind = (INT*)malloc(sizeof(INT)*Qj_nnz);
-    Qj_coo->colind = (INT*)malloc(sizeof(INT)*Qj_nnz);
-    Qj_coo->val = (REAL*)malloc(sizeof(REAL)*Qj_nnz);
+    Qj_coo->rowind = (INT *)malloc(sizeof(INT) * Qj_nnz);
+    Qj_coo->colind = (INT *)malloc(sizeof(INT) * Qj_nnz);
+    Qj_coo->val = (REAL *)malloc(sizeof(REAL) * Qj_nnz);
     INT Qj_coo_ind = 0;
 
     // Iterate over the aggregates in the coarse graph.
@@ -63,14 +63,14 @@ void setupHierarchy(const char *file, dCSRmat *&A, vector<dCSRmat *> &Qj_array,
       int ni = vertices.size();
       sort(vertices.begin(), vertices.end());
 
-      dCSRmat *Ai = (dCSRmat*)malloc(sizeof(dCSRmat));
+      dCSRmat *Ai = (dCSRmat *)malloc(sizeof(dCSRmat));
       dcsr_getblk(A, vertices.data(), vertices.data(), ni, ni, Ai);
 
       double a[ni][ni];
-      memset(*a, 0, ni*ni*sizeof(REAL));
+      memset(*a, 0, ni * ni * sizeof(REAL));
       for (INT i = 0; i < Ai->row; ++i) {
         double rowsum = 0.0;
-        for (INT ind = Ai->IA[i]; ind < Ai->IA[i+1]; ++ind) {
+        for (INT ind = Ai->IA[i]; ind < Ai->IA[i + 1]; ++ind) {
           INT j = Ai->JA[ind];
           if (j != i) {
             // cout << i << " "<< j << " " << Ai->val[ind] << endl;
@@ -86,7 +86,7 @@ void setupHierarchy(const char *file, dCSRmat *&A, vector<dCSRmat *> &Qj_array,
       char jobz = 'V', uplo = 'U';
       double w[ni];
       int n5 = 5 * ni;
-      double *work = (double *)calloc(n5,sizeof(double));
+      double *work = (double *)calloc(n5, sizeof(double));
       int info;
       dsyev_(&jobz, &uplo, &ni, *a, &ni, w, work, &n5, &info);
       free(work);
@@ -99,19 +99,21 @@ void setupHierarchy(const char *file, dCSRmat *&A, vector<dCSRmat *> &Qj_array,
         int k = 0;
         while (k < 2) {
           for (int ind = 0; ind < ni; ++ind) {
-            Qj_coo->rowind[Qj_coo_ind] = 2*nj*l + k*nj + i;
+            Qj_coo->rowind[Qj_coo_ind] = 2 * nj * l + k * nj + i;
             Qj_coo->colind[Qj_coo_ind] = vertices[ind];
             Qj_coo->val[Qj_coo_ind] = a[ind][k];
             // if (isnan(a[ind][k])) cout << "Found NaN!" << endl;
             ++Qj_coo_ind;
           }
           // cout << "Row: " << 2*nj*l + k*nj + i << endl;
-          // cout << "Values: " << v(0) << " " << v(1) << " " << v.Norml2() << endl;
+          // cout << "Values: " << v(0) << " " << v(1) << " " << v.Norml2() <<
+          // endl;
           ++k;
         }
         while (k < ni) {
           for (int ind = 0; ind < ni; ++ind) {
-            Qj_coo->rowind[Qj_coo_ind] = 2*nj*numBlocks + l*(Nj-2*nj) + count + (k-2);
+            Qj_coo->rowind[Qj_coo_ind] =
+                2 * nj * numBlocks + l * (Nj - 2 * nj) + count + (k - 2);
             Qj_coo->colind[Qj_coo_ind] = vertices[ind];
             Qj_coo->val[Qj_coo_ind] = a[ind][k];
             /* if (isnan(a[ind][k])) {
@@ -121,7 +123,8 @@ void setupHierarchy(const char *file, dCSRmat *&A, vector<dCSRmat *> &Qj_array,
             } */
             ++Qj_coo_ind;
           }
-          // cout << "Row: " << 2*nj*numBlocks + l*(Nj-2*nj) + count + (k-2) << endl;
+          // cout << "Row: " << 2*nj*numBlocks + l*(Nj-2*nj) + count + (k-2) <<
+          // endl;
           ++k;
         }
         for (auto i = 0; i < ni; ++i) {
@@ -133,14 +136,14 @@ void setupHierarchy(const char *file, dCSRmat *&A, vector<dCSRmat *> &Qj_array,
       count += ni - 2;
     }
 
-    for (int i = Nj*numBlocks; i < n; ++i) {
+    for (int i = Nj * numBlocks; i < n; ++i) {
       Qj_coo->rowind[Qj_coo_ind] = i;
       Qj_coo->colind[Qj_coo_ind] = i;
       Qj_coo->val[Qj_coo_ind] = 1.0;
       ++Qj_coo_ind;
     }
 
-    dCSRmat *Qj = (dCSRmat*)malloc(sizeof(dCSRmat));
+    dCSRmat *Qj = (dCSRmat *)malloc(sizeof(dCSRmat));
     dcoo_2_dcsr(Qj_coo, Qj);
     free(Qj_coo->rowind);
     free(Qj_coo->colind);
@@ -164,8 +167,8 @@ void setupHierarchy(const char *file, dCSRmat *&A, vector<dCSRmat *> &Qj_array,
 }
 
 void compAndDecomp(double *v, dCSRmat *A, const vector<dCSRmat *> &Qj_array,
-    const vector<int> &Nj_array, int threshold, double p, double* v2,
-    double *v3) {
+                   const vector<int> &Nj_array, int threshold, double p,
+                   double *v2, double *v3) {
   int n = A->row;
 
   // Compress/decompress a smooth vector and compute the error
@@ -234,7 +237,7 @@ void compAndDecomp(double *v, dCSRmat *A, const vector<dCSRmat *> &Qj_array,
 
   array_cp(n, vj, v2);
   for (auto it = Qj_array.rbegin(); it != Qj_array.rend(); ++it) {
-    dCSRmat *Qj_t = (dCSRmat*)malloc(sizeof(dCSRmat));
+    dCSRmat *Qj_t = (dCSRmat *)malloc(sizeof(dCSRmat));
     dcsr_trans(*it, Qj_t);
     REAL v_temp[n];
     dcsr_mxv(Qj_t, v2, v_temp);
@@ -244,17 +247,18 @@ void compAndDecomp(double *v, dCSRmat *A, const vector<dCSRmat *> &Qj_array,
   REAL e2[n];
   array_axpyz(n, -1.0, v, v2, e2);
 
-  cout << endl << "Plain Encoding" << endl
+  cout << endl
+       << "Plain Encoding" << endl
        << "Norm of vector ||v||: " << array_norm2(n, v) << endl
        << "Norm of error  ||v-v2||: " << array_norm2(n, e2) << endl
        << "Relative error ||v-v2||/||v||: "
        << array_norm2(n, e2) / array_norm2(n, v) << endl;
 
   /* ------------------ Testing adaptive encoding -------------------- */
-  vector<vector<REAL>> vj_array{vector<REAL>(v, v+n)};
+  vector<vector<REAL>> vj_array{vector<REAL>(v, v + n)};
   for (auto Qj : Qj_array) {
     vj_array.push_back(vector<REAL>(n));
-    dcsr_mxv(Qj, (vj_array.rbegin()+1)->data(), vj_array.back().data());
+    dcsr_mxv(Qj, (vj_array.rbegin() + 1)->data(), vj_array.back().data());
   }
   // Finding the optimal basis
   assert(Nj_array.size() == vj_array.size());
@@ -264,8 +268,8 @@ void compAndDecomp(double *v, dCSRmat *A, const vector<dCSRmat *> &Qj_array,
   for (int j = num_levels - 1; j >= 0; --j) {
     int i = 0, aux, offset;
     if (j < num_levels - 1) {
-      aux = Nj_array[j] - 2 * Nj_array[j+1];
-      offset = (1 << (j+1)) * Nj_array[j+1];
+      aux = Nj_array[j] - 2 * Nj_array[j + 1];
+      offset = (1 << (j + 1)) * Nj_array[j + 1];
     }
     for (int k = 0; k < (1 << j); ++k) {
       sums[j].push_back(0.0);
@@ -273,11 +277,11 @@ void compAndDecomp(double *v, dCSRmat *A, const vector<dCSRmat *> &Qj_array,
         sums[j].back() += pow(abs(vj_array[j][i++]), p);
       }
       if (j < num_levels - 1) {
-        REAL sum_aux = accumulate(
-            vj_array[j+1].begin() + offset + k*aux,
-            vj_array[j+1].begin() + offset + (k+1)*aux,
-            0);
-        REAL sum_children = sums[j+1][2*k] + sums[j+1][2*k+1] + sum_aux;
+        REAL sum_aux =
+            accumulate(vj_array[j + 1].begin() + offset + k * aux,
+                       vj_array[j + 1].begin() + offset + (k + 1) * aux, 0);
+        REAL sum_children =
+            sums[j + 1][2 * k] + sums[j + 1][2 * k + 1] + sum_aux;
         if (sum_children >= sums[j][k]) {
           labels[j].push_back(true);
         } else {
@@ -292,21 +296,17 @@ void compAndDecomp(double *v, dCSRmat *A, const vector<dCSRmat *> &Qj_array,
   // Encode
   vector<REAL> v_e;
   v_e.reserve(n);
-  function<void(int, int)> encode = [&] (int j, int k) {
+  function<void(int, int)> encode = [&](int j, int k) {
     if (labels[j][k]) {
-      v_e.insert(
-          v_e.end(),
-          vj_array[j].begin() + k*Nj_array[j],
-          vj_array[j].begin() + (k+1)*Nj_array[j]);
+      v_e.insert(v_e.end(), vj_array[j].begin() + k * Nj_array[j],
+                 vj_array[j].begin() + (k + 1) * Nj_array[j]);
     } else {
-      encode(j+1, 2*k);
-      encode(j+1, 2*k+1);
-      int offset = (1 << (j+1)) * Nj_array[j+1];
-      int aux = Nj_array[j] - 2 * Nj_array[j+1];
-      v_e.insert(
-          v_e.end(),
-          vj_array[j+1].begin() + offset + k*aux,
-          vj_array[j+1].begin() + offset + (k+1)*aux);
+      encode(j + 1, 2 * k);
+      encode(j + 1, 2 * k + 1);
+      int offset = (1 << (j + 1)) * Nj_array[j + 1];
+      int aux = Nj_array[j] - 2 * Nj_array[j + 1];
+      v_e.insert(v_e.end(), vj_array[j + 1].begin() + offset + k * aux,
+                 vj_array[j + 1].begin() + offset + (k + 1) * aux);
     }
   };
   encode(0, 0);
@@ -322,31 +322,31 @@ void compAndDecomp(double *v, dCSRmat *A, const vector<dCSRmat *> &Qj_array,
   }
   // Decompress
   auto it = v_e.begin();
-  function<vector<REAL>(int, int)> decode = [&] (int j, int k) -> vector<REAL> {
+  function<vector<REAL>(int, int)> decode = [&](int j, int k) -> vector<REAL> {
     if (labels[j][k]) {
       auto res = vector<REAL>(it, it + Nj_array[j]);
       it += Nj_array[j];
       return res;
     } else {
-      auto v1 = decode(j+1, 2*k);
-      auto v2 = decode(j+1, 2*k+1);
+      auto v1 = decode(j + 1, 2 * k);
+      auto v2 = decode(j + 1, 2 * k + 1);
       vector<REAL> v_segment;
       int Nj = Nj_array[j];
       v_segment.reserve(Nj);
       v_segment.insert(v_segment.end(), v1.begin(), v1.end());
       v_segment.insert(v_segment.end(), v2.begin(), v2.end());
-      int aux = Nj - 2 * Nj_array[j+1];
+      int aux = Nj - 2 * Nj_array[j + 1];
       v_segment.insert(v_segment.end(), it, it + aux);
       it += aux;
       vector<int> Is, Js;
-      for (int i = 0; i < 2*Nj_array[j+1]; ++i) {
+      for (int i = 0; i < 2 * Nj_array[j + 1]; ++i) {
         Is.push_back(i);
         Js.push_back(i);
       }
-      int offset = (1 << (j+1)) * Nj_array[j+1];
+      int offset = (1 << (j + 1)) * Nj_array[j + 1];
       for (int i = 0; i < aux; ++i) {
         Is.push_back(offset + i);
-        Js.push_back(2*Nj_array[j+1] + i);
+        Js.push_back(2 * Nj_array[j + 1] + i);
       }
       dCSRmat *Qj_block = (dCSRmat *)malloc(sizeof(dCSRmat));
       dcsr_getblk(Qj_array[j], Is.data(), Js.data(), Nj, Nj, Qj_block);
@@ -362,14 +362,15 @@ void compAndDecomp(double *v, dCSRmat *A, const vector<dCSRmat *> &Qj_array,
   // Compute the error
   REAL e3[n];
   array_axpyz(n, -1.0, v, v3, e3);
-  cout << endl << "Adaptive Encoding" << endl
+  cout << endl
+       << "Adaptive Encoding" << endl
        << "Norm of vector ||v||: " << array_norm2(n, v) << endl
        << "Norm of error  ||v-v3||: " << array_norm2(n, e3) << endl
        << "Relative error ||v-v3||/||v||: "
        << array_norm2(n, e3) / array_norm2(n, v) << endl;
 }
 
-vector<int> getHamiltonianPath(Tree* tree) {
+vector<int> getHamiltonianPath(Tree *tree) {
   if (tree->children.empty()) {
     auto vertex = tree->vertex;
     delete tree;
@@ -377,7 +378,7 @@ vector<int> getHamiltonianPath(Tree* tree) {
   }
   int rand_idx = rand() % tree->children.size();
 
-  auto&& path2 = getHamiltonianPath(tree->children[rand_idx]);
+  auto &&path2 = getHamiltonianPath(tree->children[rand_idx]);
   tree->children.erase(tree->children.begin() + rand_idx);
   auto path1 = getHamiltonianPath(tree);
 
