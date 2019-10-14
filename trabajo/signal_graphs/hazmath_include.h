@@ -2,7 +2,7 @@
 #define EXTERN_C_HAZMATH
 
 extern "C" {
-  #include "hazmath.h"
+#include "hazmath.h"
 }
 
 #endif

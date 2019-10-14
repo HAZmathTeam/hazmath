@@ -1,5 +1,5 @@
-#include "utils.h"
 #include "../hamiltonian_algorithm.h"
+#include "utils.h"
 
 int main() {
   auto samples = getRandomProlongation(3, 5, 0);

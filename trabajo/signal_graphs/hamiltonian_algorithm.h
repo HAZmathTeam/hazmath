@@ -1,3 +1,4 @@
+#include "hazmath_include.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -6,27 +7,23 @@
 #include <queue>
 #include <random>
 #include <vector>
-#include "hazmath_include.h"
 
 std::vector<int> getRandomProlongation(int n, int N, int seed) {
   assert(n <= N);
 
   std::vector<int> samples(N);
   std::iota(samples.begin(), samples.begin() + n, 0);
-  std::shuffle(
-      samples.begin(),
-      samples.begin() + n,
-      std::default_random_engine(seed));
+  std::shuffle(samples.begin(), samples.begin() + n,
+               std::default_random_engine(seed));
   std::iota(samples.begin() + N - n, samples.end(), 0);
   std::sort(samples.begin(), samples.end());
 
   return samples;
 }
 
-std::vector<REAL> prolongate(
-    const std::vector<REAL>& v,
-    const std::vector<int>& permutation,
-    const std::vector<int>& samples) {
+std::vector<REAL> prolongate(const std::vector<REAL> &v,
+                             const std::vector<int> &permutation,
+                             const std::vector<int> &samples) {
   int n = permutation.size();
   int N = samples.size();
 
@@ -43,12 +40,12 @@ std::vector<REAL> prolongate(
   return prolongated_v;
 }
 
-std::vector<REAL*> getWalshBasis(int L) {
+std::vector<REAL *> getWalshBasis(int L) {
   assert(L >= 0);
 
   const int N = 1 << L;
-  std::vector<REAL*> basis(N);
-  basis[0] = (REAL*)malloc(N * sizeof(REAL));
+  std::vector<REAL *> basis(N);
+  basis[0] = (REAL *)malloc(N * sizeof(REAL));
   for (int j = 0; j < N; ++j) {
     basis[0][j] = 1;
   }
@@ -60,7 +57,7 @@ std::vector<REAL*> getWalshBasis(int L) {
     int i = q.front().first;
     int l = q.front().second;
     const int b = i - (1 << l);
-    basis[i] = (REAL*)malloc(N * sizeof(REAL));
+    basis[i] = (REAL *)malloc(N * sizeof(REAL));
     for (int j = 0; j < N; ++j) {
       basis[i][j] = basis[b][j] * ((j >> (L - l)) % 2 ? -1 : 1);
     }
@@ -77,14 +74,13 @@ std::vector<REAL*> getWalshBasis(int L) {
   return basis;
 }
 
-template<typename T>
-void deleteArray(const std::vector<T*>& array) {
+template <typename T> void deleteArray(const std::vector<T *> &array) {
   for (auto e : array) {
     delete e;
   }
 }
 
-std::vector<REAL> approximate(const std::vector<REAL>& v, int L, int k) {
+std::vector<REAL> approximate(const std::vector<REAL> &v, int L, int k) {
   int N = 1 << L;
   auto basis = getWalshBasis(L);
   std::vector<REAL> inner_products;
@@ -117,10 +113,9 @@ std::vector<REAL> approximate(const std::vector<REAL>& v, int L, int k) {
   return compression;
 }
 
-std::vector<REAL> project(
-    const std::vector<REAL>& k_term_approximation,
-    const std::vector<int>& samples,
-    const std::vector<int>& permutation) {
+std::vector<REAL> project(const std::vector<REAL> &k_term_approximation,
+                          const std::vector<int> &samples,
+                          const std::vector<int> &permutation) {
   int n = permutation.size();
 
   std::vector<REAL> projection;
@@ -146,11 +141,9 @@ std::vector<REAL> project(
   return approximation;
 }
 
-std::vector<REAL> compress(
-    const std::vector<REAL>& v,
-    const std::vector<int> permutation,
-    int k,
-    int seed) {
+std::vector<REAL> compress(const std::vector<REAL> &v,
+                           const std::vector<int> permutation, int k,
+                           int seed) {
   int n = permutation.size();
   int N = 1;
   int L = 0;
@@ -161,7 +154,8 @@ std::vector<REAL> compress(
 
   const auto samples = getRandomProlongation(n, N, seed);
   const std::vector<REAL> prolongated_v = prolongate(v, permutation, samples);
-  const std::vector<REAL> k_term_approximation = approximate(prolongated_v, L, k);
+  const std::vector<REAL> k_term_approximation =
+      approximate(prolongated_v, L, k);
   std::vector<REAL> approximation =
       project(k_term_approximation, samples, permutation);
 
