@@ -4,12 +4,14 @@ INCLUDE = -I../../include
 LIBS = -lhazmath -llapack
 HAZLIB = ../../lib
 
-HEADERS = algorithm.h graph.h hamiltonian_algorithm.h hazmath_include.h tests/utils.h
+HEADERS = algorithm.h graph.h hamiltonian_algorithm.h hazmath_include.h \
+		tests/utils.h
 
 SOURCE_FILES = algorithm.cpp graph.cpp utils.cpp
 OBJECT_FILES = $(SOURCE_FILES:.cpp=.o)
 
-TESTS = get_hamiltonian_path_test get_random_prolongation_test get_walsh_basis_test degree_based_matching_test
+TESTS = get_hamiltonian_path_test get_random_prolongation_test \
+		get_walsh_basis_test degree_based_matching_test
 TEST_FILES = $(addprefix tests/, $(TESTS))
 
 EXAMPLES = ex1 ex2

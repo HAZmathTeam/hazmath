@@ -2,10 +2,10 @@
  * Usage:
  *   ./ex1 graphs/power.mtx -k 100 -p 1.0
  */
+#include "algorithm.h"
+#include "graph.h"
 #include <iostream>
 #include <string>
-#include "graph.h"
-#include "algorithm.h"
 
 using namespace std;
 
@@ -17,25 +17,23 @@ int main(int argc, char *argv[]) {
 
   while ((c = getopt(argc, argv, "k:p:")) != -1) {
     switch (c) {
-      case 'k':
-        threshold = stoi(optarg);
-        break;
-      case 'p':
-        p = stod(optarg);
-        break;
-      case '?':
-        if (optopt == 'k' || optopt == 'p') {
-          fprintf(stderr, "Option -%c requires an argument.\n", optopt);
-        }
-        else if (isprint(optopt)) {
-          fprintf(stderr, "Unknown option `-%c'.\n", optopt);
-        }
-        else {
-          fprintf(stderr, "Unknown option character `\\x%x'.\n", optopt);
-        }
-        return 1;
-      default:
-        abort();
+    case 'k':
+      threshold = stoi(optarg);
+      break;
+    case 'p':
+      p = stod(optarg);
+      break;
+    case '?':
+      if (optopt == 'k' || optopt == 'p') {
+        fprintf(stderr, "Option -%c requires an argument.\n", optopt);
+      } else if (isprint(optopt)) {
+        fprintf(stderr, "Unknown option `-%c'.\n", optopt);
+      } else {
+        fprintf(stderr, "Unknown option character `\\x%x'.\n", optopt);
+      }
+      return 1;
+    default:
+      abort();
     }
   }
   if (optind != argc - 1) {
@@ -51,8 +49,8 @@ int main(int argc, char *argv[]) {
   if (threshold > n - 1) {
     threshold = n - 1;
   }
-  REAL *v2 = (REAL *)malloc(sizeof(REAL)*n);
-  REAL *v3 = (REAL *)malloc(sizeof(REAL)*n);
+  REAL *v2 = (REAL *)malloc(sizeof(REAL) * n);
+  REAL *v3 = (REAL *)malloc(sizeof(REAL) * n);
   compAndDecomp(NULL, A, Qj_array, Nj_array, threshold, p, v2, v3);
 
   dcsr_free(A);

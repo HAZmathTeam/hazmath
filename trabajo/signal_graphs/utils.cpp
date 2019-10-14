@@ -1,12 +1,10 @@
-extern "C" {
-  #include "hazmath.h"
-}
+#include "hazmath_include.h"
 
 REAL *initializeRhs(dCSRmat *A, int num_iterations) {
   assert(A->row == A->col);
   int n = A->row;
-  dvector *f = (dvector*)malloc(sizeof(dvector)),
-          *zero = (dvector*)malloc(sizeof(dvector));
+  dvector *f = (dvector *)malloc(sizeof(dvector)),
+          *zero = (dvector *)malloc(sizeof(dvector));
   dvec_alloc(n, f);
   dvec_alloc(n, zero);
   dvec_set(n, zero, 0.0);
