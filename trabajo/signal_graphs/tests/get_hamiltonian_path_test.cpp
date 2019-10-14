@@ -1,7 +1,7 @@
 #include "../graph.h"
 #include "../algorithm.h"
 
-int main(int argc, char *argv[]) {
+int main() {
   auto&& path1 =
     getHamiltonianPath(new Tree(1, {new Tree(2, {new Tree(3)})}));
   assert(path1 == std::vector<int>({1, 3, 2}));

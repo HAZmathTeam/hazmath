@@ -1,7 +1,7 @@
 #include "utils.h"
 #include "../hamiltonian_algorithm.h"
 
-int main(int argc, char *argv[]) {
+int main() {
   const std::vector<std::vector<std::vector<double>>> expected_bases(
       {{{1}},
        {{1, 1}, {1, -1}},

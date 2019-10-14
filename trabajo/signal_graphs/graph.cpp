@@ -1,12 +1,13 @@
-#include <iostream>
-#include <fstream>
-#include <sstream>
 #include <algorithm>
-#include <unordered_map>
-#include <set>
 #include <cassert>
-#include <random>
+#include <climits>
+#include <fstream>
+#include <iostream>
 #include <queue>
+#include <random>
+#include <set>
+#include <sstream>
+#include <unordered_map>
 
 #include "algorithm.h"
 #include "graph.h"
@@ -195,6 +196,132 @@ void Graph::doMatching(Graph *c_graph) {
     }
   }
   c_A->IA[count] = ind;
+  assert(ind == nnz);
+
+  c_graph->A = c_A;
+}
+
+void Graph::doMatchingDegreeBased(Graph *c_graph, int seed) {
+  int n = size();
+  if (n == 1) {
+    throw runtime_error("Only 1 node, no matching is performed!");
+    return;
+  }
+
+  vector<int> degrees(n, 0);
+  for (int i = 0; i < A->row; ++i) {
+    for (int ind = A->IA[i]; ind < A->IA[i+1]; ++ind) {
+      int j = A->JA[ind];
+      int w = A->val[ind];
+      degrees[i] += w;
+      degrees[j] += w;
+    }
+  }
+
+  vector<int> vertices(n);
+  std::iota(vertices.begin(), vertices.end(), 0);
+  // Randomly shuffle vertices.
+  std::shuffle(
+      vertices.begin(),
+      vertices.end(),
+      std::default_random_engine(seed));
+
+  vector<int> grouping_label(n, -1);
+  vector<int> cardinalities;
+  int agg_count = 0;
+  std::mt19937 gen(seed);
+  std::uniform_real_distribution<> dis(0.0, 1.0);
+  for (auto i : vertices) {
+    if (grouping_label[i] != -1) {
+      continue;
+    }
+
+    // Randomly pick the neighboring vertex with smallest degree.
+    int selected_nbr = -1;
+    int min = INT_MAX;
+    int num_min = 0;
+    std::set<int> nbr_aggregates;
+    for (int ind = A->IA[i]; ind < A->IA[i+1]; ++ind) {
+      int j = A->JA[ind];
+      if (grouping_label[j] == -1) {
+        if (degrees[j] == min) {
+          if (dis(gen) < 1.0 / ++num_min) {
+            selected_nbr = j;
+          }
+        }
+        else if (degrees[j] < min) {
+          selected_nbr = j;
+          num_min = 1;
+          min = degrees[j];
+        }
+      }
+      else {
+        nbr_aggregates.insert(grouping_label[j]);
+      }
+    }
+
+    // If all neighbors are already matched.
+    if (selected_nbr == -1) {
+      // Randomly pick the neighboring aggregate with smallest cardinality.
+      int selected_agg;
+      int min = INT_MAX;
+      int num_min = 0;
+      for (auto agg : nbr_aggregates) {
+        if (cardinalities[agg] == min) {
+          ++num_min;
+          if (dis(gen) < 1.0 / num_min) {
+            selected_agg = agg;
+          }
+        }
+        else if (cardinalities[agg] < min) {
+          selected_agg = agg;
+          num_min = 1;
+          min = cardinalities[agg];
+        }
+      }
+      grouping_label[i] = selected_agg;
+      aggregates[selected_agg].push_back(i);
+      ++cardinalities[selected_agg];
+    }
+    else {
+      aggregates.push_back(vector<int>{i, selected_nbr});
+      grouping_label[i] = agg_count;
+      grouping_label[selected_nbr] = agg_count;
+      --degrees[i];
+      --degrees[selected_nbr];
+      cardinalities.push_back(2);
+      ++agg_count;
+    }
+  }
+
+  vector<set<int>> c_adjacency_table(agg_count);
+  for (int i = 0; i < A->row; ++i) {
+    for (int ind = A->IA[i]; ind < A->IA[i+1]; ++ind) {
+      int j = A->JA[ind];
+      int I = grouping_label[i];
+      int J = grouping_label[j];
+      if (I != J) {
+        c_adjacency_table[I].insert(J);
+      }
+    }
+  }
+  int nnz = 0;
+  for (auto nbs : c_adjacency_table) {
+    nnz += nbs.size();
+  }
+  iCSRmat *c_A = (iCSRmat *)malloc(sizeof(iCSRmat));
+  *c_A = icsr_create(agg_count, agg_count, nnz);
+
+  int ind = 0;
+  for (int i = 0; i < agg_count; ++i) {
+    c_A->IA[i] = ind;
+    for (auto nb : c_adjacency_table[i]) {
+      c_A->JA[ind] = nb;
+      c_A->val[ind] = 1;
+      ++ind;
+    }
+  }
+  c_A->IA[agg_count] = ind;
   assert(ind == nnz);
 
   c_graph->A = c_A;
