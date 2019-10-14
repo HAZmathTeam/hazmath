@@ -226,11 +226,26 @@ void Graph::doMatchingDegreeBased(Graph *c_graph, int seed) {
   std::shuffle(vertices.begin(), vertices.end(),
                std::default_random_engine(seed));
 
+  // Set up uniform distribution on [0, 1).
+  std::mt19937 gen(seed);
+  std::uniform_real_distribution<> dis(0.0, 1.0);
+
+  auto pickMinUniformly = [&](int value, int &min, int &num_min) -> bool {
+    if (value == min) {
+      if (dis(gen) < 1.0 / ++num_min) {
+        return true;
+      }
+    } else if (value < min) {
+      num_min = 1;
+      min = value;
+      return true;
+    }
+    return false;
+  };
+
   vector<int> grouping_label(n, -1);
   vector<int> cardinalities;
   int agg_count = 0;
-  std::mt19937 gen(seed);
-  std::uniform_real_distribution<> dis(0.0, 1.0);
   for (auto i : vertices) {
     if (grouping_label[i] != -1) {
       continue;
@@ -244,14 +259,8 @@ void Graph::doMatchingDegreeBased(Graph *c_graph, int seed) {
     for (int ind = A->IA[i]; ind < A->IA[i + 1]; ++ind) {
       int j = A->JA[ind];
       if (grouping_label[j] == -1) {
-        if (degrees[j] == min) {
-          if (dis(gen) < 1.0 / ++num_min) {
-            selected_nbr = j;
-          }
-        } else if (degrees[j] < min) {
+        if (pickMinUniformly(degrees[j], min, num_min)) {
           selected_nbr = j;
-          num_min = 1;
-          min = degrees[j];
         }
       } else {
         nbr_aggregates.insert(grouping_label[j]);
@@ -265,15 +274,8 @@ void Graph::doMatchingDegreeBased(Graph *c_graph, int seed) {
       int min = INT_MAX;
       int num_min = 0;
       for (auto agg : nbr_aggregates) {
-        if (cardinalities[agg] == min) {
-          ++num_min;
-          if (dis(gen) < 1.0 / num_min) {
-            selected_agg = agg;
-          }
-        } else if (cardinalities[agg] < min) {
+        if (pickMinUniformly(cardinalities[agg], min, num_min)) {
           selected_agg = agg;
-          num_min = 1;
-          min = cardinalities[agg];
         }
       }
       grouping_label[i] = selected_agg;
