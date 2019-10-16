@@ -313,6 +313,124 @@ void Schwarz_get_patch_geometric (Schwarz_data *Schwarz,
 }
 
 /**
+ * \fn void Schwarz_get_patch_geometric_multiple_DOFtype (Schwarz_data *Schwarz,
+ *                                                        mesh_struct *mesh,
+ *                                                        INT patchTypeIN,
+ *                                                        INT* patchTypeOUT,
+ *                                                        INT nptype)
+ *
+ * \brief Form Schwarz partition data
+ *
+ * \param Schwarz       Pointer to the Schwarz data
+ * \param mesh
+ * \param patchTypeIN   Generating DOF type (0 vertex, 1 edge, 2 face) for patch
+ * \param patchTypeOUT  Pointer to array of DOF types in patch. nptype entries.
+ * \param nptype        Number of DOF types in patch.
+ *
+ * \note example:
+ *       For use in something like bubble-enriched P1 in 2D.
+ *       patchTypeOUT = {1,0,0}; nptype = 3;
+ *       Results in a patch that is edges, vertices, vertices. Each vertex will then appear twice.
+ *       The DOFs are indexed up by the number of DOFs in the previous patch type.
+ *
+ */
+void Schwarz_get_patch_geometric_multiple_DOFtype (Schwarz_data *Schwarz,
+                                                   mesh_struct *mesh,
+                                                   INT patchTypeIN,
+                                                   INT* patchTypeOUT,
+                                                   INT nptype)
+{
+    INT nblk, ntot;
+    INT i,blk;
+    INT* ntotpatch = (INT*)calloc(nptype,sizeof(INT));
+    INT* dofshift  = (INT*)calloc(nptype+1,sizeof(INT));
+    dofshift[0] = 0;
+
+    INT* iblk;
+    INT* jblk;
+
+    // patchType to element
+    iCSRmat p_el;
+    //iCSRmat p_p;
+    iCSRmat *p_p = (iCSRmat*)calloc(nptype,sizeof(iCSRmat));
+
+    switch ( patchTypeIN ) {
+      case 0: // vertex
+        nblk = mesh->nv;
+        icsr_trans(mesh->el_v, &p_el);
+        break;
+      case 1: // edge
+        nblk = mesh->nedge;
+        icsr_trans(mesh->el_ed,&p_el);
+        break;
+      case 2: // face
+        nblk = mesh->nface;
+        icsr_trans(mesh->el_f, &p_el);
+        break;
+      default:
+        // Throw error
+        break;
+    }
+
+    ntot = 0;
+    for( i=0; i<nptype; i++){
+      switch ( patchTypeOUT[i] ) {
+        case 0: // vertex
+          icsr_mxm_symb( &p_el, mesh->el_v, p_p+i);
+          ntot += p_p[i].nnz;
+          dofshift[i+1] = mesh->nv + dofshift[i];
+          break;
+        case 1: // edge
+          icsr_mxm_symb( &p_el, mesh->el_ed, p_p+i);
+          ntot += p_p[i].nnz;
+          dofshift[i+1] = mesh->nedge + dofshift[i];
+          break;
+        case 2: // face
+          icsr_mxm_symb( &p_el, mesh->el_f, p_p+i);
+          ntot += p_p[i].nnz;
+          dofshift[i+1] = mesh->nface + dofshift[i];
+          break;
+        default:
+          // Throw error
+          break;
+      }
+    }
+
+    iblk = (INT*)calloc(nblk+1,sizeof(INT));
+    for( blk=0; blk<nblk+1; blk++){
+      for( i=0; i<nptype; i++){
+        iblk[blk] += p_p[i].IA[blk];
+      }
+    }
+//    iarray_cp(nblk+1,p_p.IA,iblk);
+//
+    INT ia, ib;
+    INT j;
+    INT cnt = 0;
+    jblk = (INT*)calloc(ntot,sizeof(INT));
+    for( blk=0; blk<nblk; blk++){
+      for( i=0; i<nptype; i++){
+
+        ia = p_p[i].IA[blk];
+        ib = p_p[i].IA[blk+1];
+
+        for( j=ia; j<ib; j++ ){
+          jblk[ cnt ] = p_p[i].JA[ j ] + dofshift[i];
+          cnt++;
+        }
+
+      }
+    }
+//    iarray_cp(ntot,p_p.JA,jblk);
+//
+    Schwarz->nblk = nblk;
+    Schwarz->iblock = iblk;
+    Schwarz->jblock = jblk;
+
+    return;
+}
+
+/**
  * \fn INT Schwarz_setup_geometric (Schwarz_data *Schwarz, Schwarz_param *param)
  *
  * \brief Setup phase for the Schwarz methods
@@ -358,9 +476,11 @@ INT Schwarz_setup_geometric (Schwarz_data *Schwarz,
     /*-------------------------------------------*/
     // find the blocks
     /*-------------------------------------------*/
-    //printf("Findeing Schwarz patches\n");
-    Schwarz_get_patch_geometric(Schwarz, mesh, 0, 2);
-    //printf("Found Schwarz patches\n");
+    printf("Findeing Schwarz patches\n");
+    INT patch_type_out[] = {1,0,0};
+    //Schwarz_get_patch_geometric(Schwarz, mesh, 0, 2);
+    Schwarz_get_patch_geometric_multiple_DOFtype( Schwarz, mesh, 0, patch_type_out, 3);
+    printf("Found Schwarz patches\n");
     nblk = Schwarz->nblk;
 
     /*-------------------------------------------*/
