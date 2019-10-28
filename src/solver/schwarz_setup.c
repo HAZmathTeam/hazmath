@@ -72,7 +72,7 @@ void Schwarz_get_block_matrix (Schwarz_data *Schwarz,
             iaa  = ia[ki];
             iab  = ia[ki+1];
             count += iab - iaa;
-            mask[ki] = i;  // ??
+            mask[ki] = i+1;  // The +1 -Peter
         }
 
         blk[is] = dcsr_create(nloc, nloc, count);
@@ -88,7 +88,7 @@ void Schwarz_get_block_matrix (Schwarz_data *Schwarz,
                 kj = ja[kij];
                 j  = mask[kj];
                 if(j != 0) {
-                    blk[is].JA[nnz] = j;
+                    blk[is].JA[nnz] = j-1; // The -1 corresponds with +1 above. -Peter
                     blk[is].val[nnz] = val[kij];
                     nnz ++;
                 }
