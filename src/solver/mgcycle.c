@@ -793,7 +793,6 @@ ForwardSweep:
             // use UMFPACK direct solver on the coarsest level
             printf("Solving coarse level with UMFPACK...\n");
             status = umfpack_solve(&bmgl[nl-1].Ac, &bmgl[nl-1].b, &bmgl[nl-1].x, bmgl[nl-1].Numeric, 0);
-            printf("UMFPACK status: %d\n",status);
 //        b_disp.row     = bmgl[nl-1].FE->var_spaces[1]->ndof;
 //        b_disp.val     = bmgl[nl-1].x.val + bmgl[nl-1].FE->var_spaces[0]->ndof;
 //        dvec_orthog_const(&b_disp);
