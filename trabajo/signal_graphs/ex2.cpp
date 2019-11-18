@@ -16,7 +16,7 @@
 using namespace std;
 
 int main(int argc, char *argv[]) {
-  int threshold = 100;
+  int largestK = 100;
   bool opt_k = false;
   bool opt_l = false;
   int c;
@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
   while ((c = getopt(argc, argv, "k:l")) != -1) {
     switch (c) {
     case 'k':
-      threshold = stoi(optarg);
+      largestK = stoi(optarg);
       opt_k = true;
       break;
     case 'l':
@@ -54,8 +54,8 @@ int main(int argc, char *argv[]) {
   }
 
   int side = 512, nnz = (side - 1) * side * 2, edge_count = 0, n = side * side;
-  if (threshold > n - 1) {
-    threshold = n - 1;
+  if (largestK > n - 1) {
+    largestK = n - 1;
   }
   ofstream tempfile("temp");
   tempfile << side * side << ' ' << side * side << ' ' << nnz << '\n';
@@ -75,11 +75,12 @@ int main(int argc, char *argv[]) {
   assert(edge_count == nnz);
   tempfile.close();
 
-  dCSRmat *A;
+  Graph graph("temp");
+  remove("temp");
+
   vector<dCSRmat *> Qj_array;
   vector<int> Nj_array;
-  setupHierarchy("temp", A, Qj_array, Nj_array);
-  remove("temp");
+  setupHierarchy(graph, Qj_array, Nj_array, Adaptive());
 
   // Compress/decompress a smooth vector and compute the error
   const string prefix(argv[optind]);
@@ -113,7 +114,8 @@ int main(int argc, char *argv[]) {
     REAL *v2 = (REAL *)malloc(sizeof(REAL) * n);
     REAL *v3 = (REAL *)malloc(sizeof(REAL) * n);
     if (!opt_l) {
-      compAndDecomp(v, A, Qj_array, Nj_array, threshold, 1.0, v2, v3);
+      compAndDecomp(n, v, Qj_array, largestK, 1.0, v2);
+      compAndDecomp(n, v, Qj_array, Nj_array, largestK, 1.0, v3);
 
       auto write = [&](string filename, REAL data[]) {
         ofstream ofs(filename);
@@ -136,7 +138,8 @@ int main(int argc, char *argv[]) {
       ofstream ofs(ofilename + ".data");
       ofs << "# Compression results for plain and adaptive encoding" << endl;
       for (int th = 1; th < n; th <<= 1) {
-        compAndDecomp(v, A, Qj_array, Nj_array, th, 1.0, v2, v3);
+        compAndDecomp(n, v, Qj_array, Nj_array, th, 1.0, v2);
+        compAndDecomp(n, v, Qj_array, th, 1.0, v3);
         double e2[n], e3[n];
         array_axpyz(n, -1.0, v, v2, e2);
         array_axpyz(n, -1.0, v, v3, e3);
@@ -151,7 +154,6 @@ int main(int argc, char *argv[]) {
     free(v);
   }
 
-  dcsr_free(A);
   for (auto Qj : Qj_array) {
     dcsr_free(Qj);
   }
