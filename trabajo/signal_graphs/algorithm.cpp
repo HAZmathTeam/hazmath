@@ -1,3 +1,4 @@
+#include "algorithm.h"
 #include "graph.h"
 #include <algorithm>
 #include <functional>
@@ -11,13 +12,9 @@ void dsyev_(char *jobz, char *uplo, int *n, double *a, int *lda, double *w,
             double *work, int *lwork, int *info);
 }
 
-REAL *initializeRhs(dCSRmat *A, int num_iterations = 100);
-
-void setupHierarchy(const char *file, dCSRmat *&A, vector<dCSRmat *> &Qj_array,
-                    vector<int> &Nj_array) {
-  Graph graph(file);
+void setupHierarchy(Graph graph, vector<dCSRmat *> &Qj_array,
+                    vector<int> &Nj_array, const Algorithm &algorithm) {
   int n = graph.size();
-  A = graph.getWeightedLaplacian();
 
   /*
   dCSRmat *Q = (dCSRmat*)malloc(sizeof(dCSRmat));
@@ -39,7 +36,7 @@ void setupHierarchy(const char *file, dCSRmat *&A, vector<dCSRmat *> &Qj_array,
     int Nj = graph.size();
     int nj = c_graph.size();
     Nj_array.push_back(nj);
-    int numBlocks = 1 << level;
+    int numBlocks = algorithm.numBlocks(1 << level);
 
     int Qj_nnz = 0;
     for (int i = 0; i < nj; ++i) {
@@ -102,12 +99,13 @@ void setupHierarchy(const char *file, dCSRmat *&A, vector<dCSRmat *> &Qj_array,
             Qj_coo->rowind[Qj_coo_ind] = 2 * nj * l + k * nj + i;
             Qj_coo->colind[Qj_coo_ind] = vertices[ind];
             Qj_coo->val[Qj_coo_ind] = a[ind][k];
-            // if (isnan(a[ind][k])) cout << "Found NaN!" << endl;
+            // if (isnan(a[ind][k]))
+            //   cout << "Found NaN!" << endl;
             ++Qj_coo_ind;
           }
-          // cout << "Row: " << 2*nj*l + k*nj + i << endl;
-          // cout << "Values: " << v(0) << " " << v(1) << " " << v.Norml2() <<
-          // endl;
+          // cout << "Row: " << 2 * nj * l + k * nj + i << endl;
+          // cout << "Values: " << v(0) << " " << v(1) << " " << v.Norml2()
+          //      << endl;
           ++k;
         }
         while (k < ni) {
@@ -123,8 +121,9 @@ void setupHierarchy(const char *file, dCSRmat *&A, vector<dCSRmat *> &Qj_array,
             } */
             ++Qj_coo_ind;
           }
-          // cout << "Row: " << 2*nj*numBlocks + l*(Nj-2*nj) + count + (k-2) <<
-          // endl;
+          // cout << "Row: "
+          //      << 2 * nj * numBlocks + l * (Nj - 2 * nj) + count + (k - 2)
+          //      << endl;
           ++k;
         }
         for (auto i = 0; i < ni; ++i) {
@@ -166,16 +165,8 @@ void setupHierarchy(const char *file, dCSRmat *&A, vector<dCSRmat *> &Qj_array,
   }
 }
 
-void compAndDecomp(double *v, dCSRmat *A, const vector<dCSRmat *> &Qj_array,
-                   const vector<int> &Nj_array, int threshold, double p,
-                   double *v2, double *v3) {
-  int n = A->row;
-
-  // Compress/decompress a smooth vector and compute the error
-  if (v == NULL) {
-    v = initializeRhs(A);
-  }
-
+void compAndDecomp(int n, double *v, const vector<dCSRmat *> &Qj_array,
+                   int largestK, double p, double *v2) {
   /*
   REAL vt[n];
   dcsr_mxv(Q, v, vt);
@@ -186,7 +177,7 @@ void compAndDecomp(double *v, dCSRmat *A, const vector<dCSRmat *> &Qj_array,
   }
   sort(vt_sort.begin(), vt_sort.end(), greater<double>());
   for (int i = 0; i < n; ++i) {
-    if (abs(vt[i]) < vt_sort[threshold]) {
+    if (abs(vt[i]) < vt_sort[largestK]) {
       vt[i] = 0;
     }
   }
@@ -230,7 +221,7 @@ void compAndDecomp(double *v, dCSRmat *A, const vector<dCSRmat *> &Qj_array,
   }
   sort(vt_sort.begin(), vt_sort.end(), greater<double>());
   for (int i = 0; i < n; ++i) {
-    if (abs(vj[i]) < vt_sort[threshold]) {
+    if (abs(vj[i]) < vt_sort[largestK]) {
       vj[i] = 0;
     }
   }
@@ -253,7 +244,11 @@ void compAndDecomp(double *v, dCSRmat *A, const vector<dCSRmat *> &Qj_array,
        << "Norm of error  ||v-v2||: " << array_norm2(n, e2) << endl
        << "Relative error ||v-v2||/||v||: "
        << array_norm2(n, e2) / array_norm2(n, v) << endl;
+}
 
+void compAndDecomp(int n, double *v, const vector<dCSRmat *> &Qj_array,
+                   const vector<int> &Nj_array, int largestK, double p,
+                   double *v3) {
   /* ------------------ Testing adaptive encoding -------------------- */
   vector<vector<REAL>> vj_array{vector<REAL>(v, v + n)};
   for (auto Qj : Qj_array) {
@@ -311,12 +306,13 @@ void compAndDecomp(double *v, dCSRmat *A, const vector<dCSRmat *> &Qj_array,
   };
   encode(0, 0);
   // Trunk
+  vector<double> vt_sort(n);
   for (int j = 0; j < n; ++j) {
     vt_sort[j] = abs(v_e[j]);
   }
   sort(vt_sort.begin(), vt_sort.end(), greater<double>());
   for (int j = 0; j < n; ++j) {
-    if (abs(v_e[j]) < vt_sort[threshold]) {
+    if (abs(v_e[j]) < vt_sort[largestK]) {
       v_e[j] = 0;
     }
   }
@@ -384,4 +380,24 @@ vector<int> getHamiltonianPath(Tree *tree) {
 
   path1.insert(path1.end(), path2.rbegin(), path2.rend());
   return path1;
+}
+
+void compAndDecomp(const Graph &graph, REAL *v, const int largestK,
+                   const double p, const Algorithm &algorithm) {
+  int n = graph.size();
+  vector<dCSRmat *> Qj_array;
+  vector<int> Nj_array;
+  setupHierarchy(graph, Qj_array, Nj_array, algorithm);
+  REAL *v2 = (REAL *)malloc(sizeof(REAL) * n);
+  REAL *v3 = (REAL *)malloc(sizeof(REAL) * n);
+  compAndDecomp(n, v, Qj_array, largestK, p, v2);
+  if (dynamic_cast<const Adaptive *>(&algorithm)) {
+    compAndDecomp(n, v, Qj_array, Nj_array, largestK, p, v3);
+  }
+
+  for (auto Qj : Qj_array) {
+    dcsr_free(Qj);
+  }
+  free(v2);
+  free(v3);
 }
