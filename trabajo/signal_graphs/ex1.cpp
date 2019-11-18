@@ -4,13 +4,14 @@
  */
 #include "algorithm.h"
 #include "graph.h"
+#include "utils.h"
 #include <iostream>
 #include <string>
 
 using namespace std;
 
 int main(int argc, char *argv[]) {
-  int threshold = 100;
+  int largestK = 100;
   double p = 1.0;
   int c;
   opterr = 0;
@@ -18,7 +19,7 @@ int main(int argc, char *argv[]) {
   while ((c = getopt(argc, argv, "k:p:")) != -1) {
     switch (c) {
     case 'k':
-      threshold = stoi(optarg);
+      largestK = stoi(optarg);
       break;
     case 'p':
       p = stod(optarg);
@@ -41,23 +42,17 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  dCSRmat *A;
-  vector<dCSRmat *> Qj_array;
-  vector<int> Nj_array;
-  setupHierarchy(argv[optind], A, Qj_array, Nj_array);
-  int n = A->row;
-  if (threshold > n - 1) {
-    threshold = n - 1;
-  }
-  REAL *v2 = (REAL *)malloc(sizeof(REAL) * n);
-  REAL *v3 = (REAL *)malloc(sizeof(REAL) * n);
-  compAndDecomp(NULL, A, Qj_array, Nj_array, threshold, p, v2, v3);
-
+  const Graph graph(argv[optind]);
+  dCSRmat *A = graph.getWeightedLaplacian();
+  REAL *v = initializeRhs(A);
   dcsr_free(A);
-  for (auto Qj : Qj_array) {
-    dcsr_free(Qj);
+  if (largestK > graph.size() - 1) {
+    largestK = graph.size() - 1;
   }
-  free(v2);
-  free(v3);
+
+  compAndDecomp(graph, v, largestK, p, Adaptive());
+  compAndDecomp(graph, v, largestK, p, Gtbwt());
+
+  free(v);
   return 0;
 }
