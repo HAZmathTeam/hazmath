@@ -27,7 +27,7 @@ int main() {
 
   Graph graph("graphs/simple.mtx");
   Graph c_graph;
-  graph.doMatchingDegreeBased(&c_graph);
+  graph.doDegreeBasedMatching(&c_graph);
 
   assert(graph.getAggregates() ==
          std::vector<std::vector<int>>({{1, 2, 3}, {0, 4}}));
