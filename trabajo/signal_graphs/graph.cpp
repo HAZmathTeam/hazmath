@@ -203,7 +203,7 @@ void Graph::doMatching(Graph *c_graph) {
   c_graph->A = c_A;
 }
 
-void Graph::doMatchingDegreeBased(Graph *c_graph, int seed) {
+void Graph::doDegreeBasedMatching(Graph *c_graph, int seed) {
   int n = size();
   if (n == 1) {
     throw runtime_error("Only 1 node, no matching is performed!");
