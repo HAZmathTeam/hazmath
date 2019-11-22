@@ -12,8 +12,8 @@ void dsyev_(char *jobz, char *uplo, int *n, double *a, int *lda, double *w,
             double *work, int *lwork, int *info);
 }
 
-void setupHierarchy(Graph graph, vector<dCSRmat *> &Qj_array,
-                    vector<int> &Nj_array, const Algorithm &algorithm) {
+void Algorithm::setupHierarchy(Graph graph, vector<dCSRmat *> &Qj_array,
+                               vector<int> &Nj_array) const {
   int n = graph.size();
 
   /*
@@ -36,7 +36,7 @@ void setupHierarchy(Graph graph, vector<dCSRmat *> &Qj_array,
     int Nj = graph.size();
     int nj = c_graph.size();
     Nj_array.push_back(nj);
-    int numBlocks = algorithm.numBlocks(1 << level);
+    int numBlocks = getNumBlocks(1 << level);
 
     int Qj_nnz = 0;
     for (int i = 0; i < nj; ++i) {
@@ -165,8 +165,9 @@ void setupHierarchy(Graph graph, vector<dCSRmat *> &Qj_array,
   }
 }
 
-void compAndDecomp(int n, double *v, const vector<dCSRmat *> &Qj_array,
-                   int largestK, double p, double *v2) {
+void Algorithm::compAndDecomp(int n, double *v,
+                              const vector<dCSRmat *> &Qj_array, int largestK,
+                              double p, double *v2) const {
   /*
   REAL vt[n];
   dcsr_mxv(Q, v, vt);
@@ -246,9 +247,10 @@ void compAndDecomp(int n, double *v, const vector<dCSRmat *> &Qj_array,
        << array_norm2(n, e2) / array_norm2(n, v) << endl;
 }
 
-void compAndDecomp(int n, double *v, const vector<dCSRmat *> &Qj_array,
-                   const vector<int> &Nj_array, int largestK, double p,
-                   double *v3) {
+void Algorithm::compAndDecomp(int n, double *v,
+                              const vector<dCSRmat *> &Qj_array,
+                              const vector<int> &Nj_array, int largestK,
+                              double p, double *v3) const {
   /* ------------------ Testing adaptive encoding -------------------- */
   vector<vector<REAL>> vj_array{vector<REAL>(v, v + n)};
   for (auto Qj : Qj_array) {
@@ -382,16 +384,16 @@ vector<int> getHamiltonianPath(Tree *tree) {
   return path1;
 }
 
-void compAndDecomp(const Graph &graph, REAL *v, const int largestK,
-                   const double p, const Algorithm &algorithm) {
+void Algorithm::compAndDecomp(const Graph &graph, REAL *v, const int largestK,
+                              const double p) const {
   int n = graph.size();
   vector<dCSRmat *> Qj_array;
   vector<int> Nj_array;
-  setupHierarchy(graph, Qj_array, Nj_array, algorithm);
+  setupHierarchy(graph, Qj_array, Nj_array);
   REAL *v2 = (REAL *)malloc(sizeof(REAL) * n);
   REAL *v3 = (REAL *)malloc(sizeof(REAL) * n);
   compAndDecomp(n, v, Qj_array, largestK, p, v2);
-  if (dynamic_cast<const Adaptive *>(&algorithm)) {
+  if (isAdaptive()) {
     compAndDecomp(n, v, Qj_array, Nj_array, largestK, p, v3);
   }
 
