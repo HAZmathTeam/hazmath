@@ -50,8 +50,8 @@ int main(int argc, char *argv[]) {
     largestK = graph.size() - 1;
   }
 
-  compAndDecomp(graph, v, largestK, p, Adaptive());
-  compAndDecomp(graph, v, largestK, p, Gtbwt());
+  Adaptive().compAndDecomp(graph, v, largestK, p);
+  Gtbwt().compAndDecomp(graph, v, largestK, p);
 
   free(v);
   return 0;
