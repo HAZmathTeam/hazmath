@@ -46,7 +46,7 @@ public:
   // Perform matching algorithm and construct the coarse graph
   void doMatching(Graph *c_graph);
 
-  void doMatchingDegreeBased(Graph *c_graph, int seed = 0);
+  void doDegreeBasedMatching(Graph *c_graph, int seed = 0);
 
   // Get number of aggregates in the graph
   int numOfAggregates() const { return aggregates.size(); }
