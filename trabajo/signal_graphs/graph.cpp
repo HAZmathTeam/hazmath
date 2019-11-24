@@ -87,7 +87,7 @@ Graph &Graph::operator=(Graph other) {
   return *this;
 }
 
-void Graph::doMatching(Graph *c_graph) {
+void Graph::doConnectionBasedMatching(Graph *c_graph) {
   int n = size();
   if (n == 1) {
     throw runtime_error("Only 1 node, no matching is performed!");
@@ -136,6 +136,7 @@ void Graph::doMatching(Graph *c_graph) {
     if (grouping_label[i] != -1)
       continue;
     int max = 0, j = -1;
+    // Pick the neighboring vertex with most connections.
     for (auto entry : connectivity_table[i]) {
       if (grouping_label[entry.nbr_index] == -1 &&
           entry.num_connections > max) {
