@@ -1,6 +1,6 @@
 /* Example to apply data compression algorithm on graphs
  * Usage:
- *   ./ex1 graphs/power.mtx -k 100 -p 1.0
+ *   ./ex1 -k 100 -p 1.0 graphs/power.mtx
  */
 #include "algorithm.h"
 #include "graph.h"
@@ -50,8 +50,14 @@ int main(int argc, char *argv[]) {
     largestK = graph.size() - 1;
   }
 
-  Adaptive().compAndDecomp(graph, v, largestK, p);
-  Gtbwt().compAndDecomp(graph, v, largestK, p);
+  std::cout << std::endl << std::endl;
+  ConnectionMatchingAdaptive().compAndDecomp(graph, v, largestK, p);
+  std::cout << std::endl << std::endl;
+  DegreeMatchingAdaptive().compAndDecomp(graph, v, largestK, p);
+  std::cout << std::endl << std::endl;
+  ConnectionMatchingGtbwt().compAndDecomp(graph, v, largestK, p);
+  std::cout << std::endl << std::endl;
+  DegreeMatchingGtbwt().compAndDecomp(graph, v, largestK, p);
 
   free(v);
   return 0;

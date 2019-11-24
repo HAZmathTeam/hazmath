@@ -44,7 +44,7 @@ public:
   int size() const { return A->row; }
 
   // Perform matching algorithm and construct the coarse graph
-  void doMatching(Graph *c_graph);
+  void doConnectionBasedMatching(Graph *c_graph);
 
   void doDegreeBasedMatching(Graph *c_graph, int seed = 0);
 
