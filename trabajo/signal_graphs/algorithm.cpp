@@ -31,7 +31,7 @@ void Algorithm::setupHierarchy(Graph graph, vector<dCSRmat *> &Qj_array,
     dCSRmat *A = graph.getWeightedLaplacian();
 
     Graph c_graph;
-    graph.doMatching(&c_graph);
+    doMatching(graph, &c_graph);
     assert(graph.numOfAggregates() == c_graph.size());
     int Nj = graph.size();
     int nj = c_graph.size();
@@ -368,6 +368,29 @@ void Algorithm::compAndDecomp(int n, double *v,
        << array_norm2(n, e3) / array_norm2(n, v) << endl;
 }
 
+void Algorithm::compAndDecomp(const Graph &graph, REAL *v, const int largestK,
+                              const double p) const {
+  int n = graph.size();
+  vector<dCSRmat *> Qj_array;
+  vector<int> Nj_array;
+  std::cout << "Matching algorithm: " << matchingAlgorithm() << std::endl;
+  std::cout << "Compression algorithm: " << compressionAlgorithm() << std::endl;
+  std::cout << std::endl;
+  setupHierarchy(graph, Qj_array, Nj_array);
+  REAL *v2 = (REAL *)malloc(sizeof(REAL) * n);
+  REAL *v3 = (REAL *)malloc(sizeof(REAL) * n);
+  compAndDecomp(n, v, Qj_array, largestK, p, v2);
+  if (isAdaptive()) {
+    compAndDecomp(n, v, Qj_array, Nj_array, largestK, p, v3);
+  }
+
+  for (auto Qj : Qj_array) {
+    dcsr_free(Qj);
+  }
+  free(v2);
+  free(v3);
+}
+
 vector<int> getHamiltonianPath(Tree *tree) {
   if (tree->children.empty()) {
     auto vertex = tree->vertex;
@@ -382,24 +405,4 @@ vector<int> getHamiltonianPath(Tree *tree) {
 
   path1.insert(path1.end(), path2.rbegin(), path2.rend());
   return path1;
-}
-
-void Algorithm::compAndDecomp(const Graph &graph, REAL *v, const int largestK,
-                              const double p) const {
-  int n = graph.size();
-  vector<dCSRmat *> Qj_array;
-  vector<int> Nj_array;
-  setupHierarchy(graph, Qj_array, Nj_array);
-  REAL *v2 = (REAL *)malloc(sizeof(REAL) * n);
-  REAL *v3 = (REAL *)malloc(sizeof(REAL) * n);
-  compAndDecomp(n, v, Qj_array, largestK, p, v2);
-  if (isAdaptive()) {
-    compAndDecomp(n, v, Qj_array, Nj_array, largestK, p, v3);
-  }
-
-  for (auto Qj : Qj_array) {
-    dcsr_free(Qj);
-  }
-  free(v2);
-  free(v3);
 }
