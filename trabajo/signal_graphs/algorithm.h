@@ -3,6 +3,7 @@
 
 #include "graph.h"
 #include "hazmath_include.h"
+#include <string>
 
 class Algorithm {
 public:
@@ -22,21 +23,57 @@ public:
                      const double p) const;
 
 private:
+  virtual std::string matchingAlgorithm() const = 0;
+
+  virtual std::string compressionAlgorithm() const = 0;
+
+  virtual void doMatching(Graph &graph, Graph *c_graph) const = 0;
+
   virtual int getNumBlocks(int numBlocks) const = 0;
 };
 
-class Adaptive : public Algorithm {
+class ConnectionBasedMatching : virtual public Algorithm {
+private:
+  std::string matchingAlgorithm() const { return "connection-based"; };
+
+  void doMatching(Graph &graph, Graph *c_graph) const {
+    graph.doConnectionBasedMatching(c_graph);
+  }
+};
+
+class DegreeBasedMatching : virtual public Algorithm {
+private:
+  std::string matchingAlgorithm() const { return "degree-based"; };
+
+  void doMatching(Graph &graph, Graph *c_graph) const {
+    graph.doDegreeBasedMatching(c_graph);
+  }
+};
+
+class Adaptive : virtual public Algorithm {
 public:
   bool isAdaptive() const { return true; }
 
 private:
+  std::string compressionAlgorithm() const { return "adaptive"; };
+
   int getNumBlocks(int numBlocks) const { return numBlocks; }
 };
 
-class Gtbwt : public Algorithm {
+class Gtbwt : virtual public Algorithm {
 private:
+  std::string compressionAlgorithm() const { return "GTBWT"; };
+
   int getNumBlocks(int numBlocks) const { return 1; }
 };
+
+class ConnectionMatchingAdaptive : public ConnectionBasedMatching, Adaptive {};
+
+class DegreeMatchingAdaptive : public DegreeBasedMatching, Adaptive {};
+
+class ConnectionMatchingGtbwt : public ConnectionBasedMatching, Gtbwt {};
+
+class DegreeMatchingGtbwt : public DegreeBasedMatching, Gtbwt {};
 
 std::vector<int> getHamiltonianPath(Tree *tree);
 
