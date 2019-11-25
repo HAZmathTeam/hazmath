@@ -58,6 +58,8 @@ int main(int argc, char *argv[]) {
   ConnectionMatchingGtbwt().compAndDecomp(graph, v, largestK, p);
   std::cout << std::endl << std::endl;
   DegreeMatchingGtbwt().compAndDecomp(graph, v, largestK, p);
+  std::cout << std::endl << std::endl;
+  HamiltonianAlgorithm().compAndDecomp(graph, v, largestK, p);
 
   free(v);
   return 0;

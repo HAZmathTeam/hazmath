@@ -7,6 +7,12 @@
 
 class Algorithm {
 public:
+  virtual void compAndDecomp(const Graph &graph, REAL *v, const int largestK,
+                             const double p) const = 0;
+};
+
+class AggregationBasedAlgorithm : public Algorithm {
+public:
   virtual bool isAdaptive() const { return false; }
 
   void setupHierarchy(Graph graph, std::vector<dCSRmat *> &Qj_array,
@@ -32,7 +38,7 @@ private:
   virtual int getNumBlocks(int numBlocks) const = 0;
 };
 
-class ConnectionBasedMatching : virtual public Algorithm {
+class ConnectionBasedMatching : virtual public AggregationBasedAlgorithm {
 private:
   std::string matchingAlgorithm() const { return "connection-based"; };
 
@@ -41,7 +47,7 @@ private:
   }
 };
 
-class DegreeBasedMatching : virtual public Algorithm {
+class DegreeBasedMatching : virtual public AggregationBasedAlgorithm {
 private:
   std::string matchingAlgorithm() const { return "degree-based"; };
 
@@ -50,7 +56,7 @@ private:
   }
 };
 
-class Adaptive : virtual public Algorithm {
+class Adaptive : virtual public AggregationBasedAlgorithm {
 public:
   bool isAdaptive() const { return true; }
 
@@ -60,7 +66,7 @@ private:
   int getNumBlocks(int numBlocks) const { return numBlocks; }
 };
 
-class Gtbwt : virtual public Algorithm {
+class Gtbwt : virtual public AggregationBasedAlgorithm {
 private:
   std::string compressionAlgorithm() const { return "GTBWT"; };
 
@@ -74,5 +80,11 @@ class DegreeMatchingAdaptive : public DegreeBasedMatching, Adaptive {};
 class ConnectionMatchingGtbwt : public ConnectionBasedMatching, Gtbwt {};
 
 class DegreeMatchingGtbwt : public DegreeBasedMatching, Gtbwt {};
+
+class HamiltonianAlgorithm : public Algorithm {
+public:
+  void compAndDecomp(const Graph &graph, REAL *v, const int largestK,
+                     const double p) const;
+};
 
 #endif
