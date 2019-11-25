@@ -53,6 +53,7 @@ Graph::Graph(const char *filename) {
   assert(count == nnz);
   file.close();
 
+  abs_card_ = std::vector<int>(nrows, 1);
   A = (iCSRmat *)malloc(sizeof(iCSRmat));
   *A = icsr_create(nrows, ncols, edge_count);
   int ind = 0;
@@ -79,11 +80,13 @@ Graph::Graph(const Graph &other) {
   *A = icsr_create(other.A->row, other.A->col, other.A->nnz);
   icsr_cp(other.A, A);
   aggregates = other.aggregates;
+  abs_card_ = other.abs_card_;
 }
 
-Graph &Graph::operator=(Graph other) {
+Graph &Graph::operator=(Graph &&other) {
   std::swap(A, other.A);
   std::swap(aggregates, other.aggregates);
+  std::swap(abs_card_, other.abs_card_);
   return *this;
 }
 
@@ -171,6 +174,13 @@ void Graph::doConnectionBasedMatching(Graph *c_graph) {
     }
   }
 
+  // Get `abs_card_` for the coarse graph.
+  c_graph->abs_card_.resize(count, 0);
+  for (int i = 0; i < n; ++i) {
+    c_graph->abs_card_[grouping_label[i]] += abs_card_[i];
+  }
+
+  // Get the adjacency table for the coarse graph (adjacency weights = 1)
   vector<set<int>> c_adjacency_table(count);
   for (int i = 0; i < A->row; ++i) {
     for (int ind = A->IA[i]; ind < A->IA[i + 1]; ++ind) {
@@ -188,7 +198,6 @@ void Graph::doConnectionBasedMatching(Graph *c_graph) {
   }
   iCSRmat *c_A = (iCSRmat *)malloc(sizeof(iCSRmat));
   *c_A = icsr_create(count, count, nnz);
-
   int ind = 0;
   for (int i = 0; i < count; ++i) {
     c_A->IA[i] = ind;
@@ -200,7 +209,6 @@ void Graph::doConnectionBasedMatching(Graph *c_graph) {
   }
   c_A->IA[count] = ind;
   assert(ind == nnz);
-
   c_graph->A = c_A;
 }
 
@@ -293,6 +301,13 @@ void Graph::doDegreeBasedMatching(Graph *c_graph, int seed) {
     }
   }
 
+  // Get `abs_card_` for the coarse graph.
+  c_graph->abs_card_.resize(agg_count, 0);
+  for (int i = 0; i < n; ++i) {
+    c_graph->abs_card_[grouping_label[i]] += abs_card_[i];
+  }
+
+  // Get the adjacency table for the coarse graph (adjacency weights = 1)
   vector<set<int>> c_adjacency_table(agg_count);
   for (int i = 0; i < A->row; ++i) {
     for (int ind = A->IA[i]; ind < A->IA[i + 1]; ++ind) {
@@ -310,7 +325,6 @@ void Graph::doDegreeBasedMatching(Graph *c_graph, int seed) {
   }
   iCSRmat *c_A = (iCSRmat *)malloc(sizeof(iCSRmat));
   *c_A = icsr_create(agg_count, agg_count, nnz);
-
   int ind = 0;
   for (int i = 0; i < agg_count; ++i) {
     c_A->IA[i] = ind;
@@ -322,7 +336,6 @@ void Graph::doDegreeBasedMatching(Graph *c_graph, int seed) {
   }
   c_A->IA[agg_count] = ind;
   assert(ind == nnz);
-
   c_graph->A = c_A;
 }
 
@@ -332,7 +345,7 @@ void Graph::getAggregate(int i, std::vector<int> *vertices) const {
   }
 }
 
-dCSRmat *Graph::getWeightedLaplacian() const {
+dCSRmat *Graph::getLaplacian() const {
   int n = size();
   int nnz = A->nnz + n;
 
@@ -343,13 +356,14 @@ dCSRmat *Graph::getWeightedLaplacian() const {
   for (int i = 0; i < n; ++i) {
     L->IA[i] = L_ind;
     REAL sum = 0;
-    int L_ind_diag;
+    int L_ind_diag = -1;
     int ind = A->IA[i];
     while (ind < A->IA[i + 1]) {
       int j = A->JA[ind];
       assert(j != i);
-      if (j > i) {
-        break;
+      if (j > i && L_ind_diag == -1) {
+        L_ind_diag = L_ind++;
+        continue;
       }
       L->JA[L_ind] = j;
       L->val[L_ind] = -A->val[ind];
@@ -357,15 +371,8 @@ dCSRmat *Graph::getWeightedLaplacian() const {
       ++L_ind;
       ++ind;
     }
-    L_ind_diag = L_ind++;
-    while (ind < A->IA[i + 1]) {
-      int j = A->JA[ind];
-      assert(j != i);
-      L->JA[L_ind] = j;
-      L->val[L_ind] = -A->val[ind];
-      sum += A->val[ind];
-      ++L_ind;
-      ++ind;
+    if (L_ind_diag == -1) {
+      L_ind_diag = L_ind++;
     }
     L->JA[L_ind_diag] = i;
     L->val[L_ind_diag] = sum;
