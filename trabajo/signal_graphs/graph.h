@@ -15,11 +15,15 @@ public:
 
 class Graph {
 private:
-  // Adjacency matrix of vertices
+  // Unweighted (weights = 1) adjacency matrix of the graph.
   iCSRmat *A;
 
-  // The aggregates after matching
+  // The aggregates (represented as vertex indices in the current graph) in the
+  // subgraph after matching is performed on the current graph.
   std::vector<std::vector<int>> aggregates;
+
+  // Number of vertices in each aggregate from the finest graph.
+  std::vector<int> abs_card_;
 
   std::vector<int> getNeighbors(int i) const;
 
@@ -32,7 +36,7 @@ public:
 
   ~Graph() { icsr_free(A); }
 
-  Graph &operator=(Graph other);
+  Graph &operator=(Graph &&other);
 
   const iCSRmat *getAdjacencyMat() const { return A; }
 
@@ -57,8 +61,10 @@ public:
   // Get the number of vertices in an aggregate
   int getAggregateSize(int i) const { return aggregates[i].size(); }
 
-  // Get the graph Laplacian
-  dCSRmat *getWeightedLaplacian() const;
+  int getAbsCard(int i) const { return abs_card_[i]; }
+
+  // Get the unweighted graph Laplacian matrix.
+  dCSRmat *getLaplacian() const;
 
   // Get Hamiltonian path
   std::vector<int> getHamiltonianPath(int seed = 0) const;
