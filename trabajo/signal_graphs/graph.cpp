@@ -9,8 +9,8 @@
 #include <sstream>
 #include <unordered_map>
 
-#include "algorithm.h"
 #include "graph.h"
+#include "hamiltonian_algorithm.h"
 
 using namespace std;
 

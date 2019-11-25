@@ -1,5 +1,5 @@
-#include "../algorithm.h"
 #include "../graph.h"
+#include "../hamiltonian_algorithm.h"
 
 int main() {
   auto &&path1 = getHamiltonianPath(new Tree(1, {new Tree(2, {new Tree(3)})}));
