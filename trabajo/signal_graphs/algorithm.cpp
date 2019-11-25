@@ -15,7 +15,8 @@ void dsyev_(char *jobz, char *uplo, int *n, double *a, int *lda, double *w,
 
 void AggregationBasedAlgorithm::setupHierarchy(Graph graph,
                                                vector<dCSRmat *> &Qj_array,
-                                               vector<int> &Nj_array) const {
+                                               vector<int> &Nj_array,
+                                               bool weighted) const {
   int n = graph.size();
 
   /*
@@ -30,7 +31,7 @@ void AggregationBasedAlgorithm::setupHierarchy(Graph graph,
   // the graph.
   while (graph.size() > 1) {
     cout << "Graph size: " << graph.size() << endl;
-    dCSRmat *A = graph.getWeightedLaplacian();
+    dCSRmat *A = graph.getLaplacian();
 
     Graph c_graph;
     doMatching(graph, &c_graph);
@@ -72,12 +73,17 @@ void AggregationBasedAlgorithm::setupHierarchy(Graph graph,
         for (INT ind = Ai->IA[i]; ind < Ai->IA[i + 1]; ++ind) {
           INT j = Ai->JA[ind];
           if (j != i) {
-            // cout << i << " "<< j << " " << Ai->val[ind] << endl;
             a[i][j] = Ai->val[ind];
+            if (weighted) {
+              a[i][j] /= graph.getAbsCard(i) * graph.getAbsCard(j);
+            };
             rowsum += Ai->val[ind];
           }
         }
         a[i][i] = -rowsum;
+        if (weighted) {
+          a[i][i] /= graph.getAbsCard(i) * graph.getAbsCard(i);
+        };
       }
       // dcsr_write_dcoo("Ai.dat", Ai);
       // print_full_mat(ni, ni, *a, "a");
@@ -161,7 +167,7 @@ void AggregationBasedAlgorithm::setupHierarchy(Graph graph,
 
     Qj_array.push_back(Qj);
 
-    graph = c_graph;
+    graph = std::move(c_graph);
     ++level;
     dcsr_free(A);
   }
@@ -400,7 +406,6 @@ void HamiltonianAlgorithm::compAndDecomp(const Graph &graph, REAL *v,
                                          const int largestK,
                                          const double p) const {
   std::cout << "Hamiltonian algorithm: " << std::endl;
-  std::cout << std::endl;
   auto permutation = graph.getHamiltonianPath();
   int n = permutation.size();
   int N = 1;
