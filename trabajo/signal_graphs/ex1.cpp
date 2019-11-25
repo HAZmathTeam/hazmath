@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
   std::cout << std::endl << std::endl;
   DegreeMatchingGtbwt().compAndDecomp(graph, v, largestK, p);
   std::cout << std::endl << std::endl;
-  HamiltonianAlgorithm().compAndDecomp(graph, v, largestK, p);
+  HamiltonianAlgorithm().compAndDecomp(graph, v, largestK);
 
   free(v);
   return 0;
