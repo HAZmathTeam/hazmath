@@ -1,5 +1,6 @@
 #include "algorithm.h"
 #include "graph.h"
+#include "hamiltonian_algorithm.h"
 #include <algorithm>
 #include <functional>
 #include <iostream>
@@ -12,8 +13,9 @@ void dsyev_(char *jobz, char *uplo, int *n, double *a, int *lda, double *w,
             double *work, int *lwork, int *info);
 }
 
-void Algorithm::setupHierarchy(Graph graph, vector<dCSRmat *> &Qj_array,
-                               vector<int> &Nj_array) const {
+void AggregationBasedAlgorithm::setupHierarchy(Graph graph,
+                                               vector<dCSRmat *> &Qj_array,
+                                               vector<int> &Nj_array) const {
   int n = graph.size();
 
   /*
@@ -165,9 +167,10 @@ void Algorithm::setupHierarchy(Graph graph, vector<dCSRmat *> &Qj_array,
   }
 }
 
-void Algorithm::compAndDecomp(int n, double *v,
-                              const vector<dCSRmat *> &Qj_array, int largestK,
-                              double p, double *v2) const {
+void AggregationBasedAlgorithm::compAndDecomp(int n, double *v,
+                                              const vector<dCSRmat *> &Qj_array,
+                                              int largestK, double p,
+                                              double *v2) const {
   /*
   REAL vt[n];
   dcsr_mxv(Q, v, vt);
@@ -247,10 +250,11 @@ void Algorithm::compAndDecomp(int n, double *v,
        << array_norm2(n, e2) / array_norm2(n, v) << endl;
 }
 
-void Algorithm::compAndDecomp(int n, double *v,
-                              const vector<dCSRmat *> &Qj_array,
-                              const vector<int> &Nj_array, int largestK,
-                              double p, double *v3) const {
+void AggregationBasedAlgorithm::compAndDecomp(int n, double *v,
+                                              const vector<dCSRmat *> &Qj_array,
+                                              const vector<int> &Nj_array,
+                                              int largestK, double p,
+                                              double *v3) const {
   /* ------------------ Testing adaptive encoding -------------------- */
   vector<vector<REAL>> vj_array{vector<REAL>(v, v + n)};
   for (auto Qj : Qj_array) {
@@ -368,8 +372,9 @@ void Algorithm::compAndDecomp(int n, double *v,
        << array_norm2(n, e3) / array_norm2(n, v) << endl;
 }
 
-void Algorithm::compAndDecomp(const Graph &graph, REAL *v, const int largestK,
-                              const double p) const {
+void AggregationBasedAlgorithm::compAndDecomp(const Graph &graph, REAL *v,
+                                              const int largestK,
+                                              const double p) const {
   int n = graph.size();
   vector<dCSRmat *> Qj_array;
   vector<int> Nj_array;
@@ -389,4 +394,36 @@ void Algorithm::compAndDecomp(const Graph &graph, REAL *v, const int largestK,
   }
   free(v2);
   free(v3);
+}
+
+void HamiltonianAlgorithm::compAndDecomp(const Graph &graph, REAL *v,
+                                         const int largestK,
+                                         const double p) const {
+  std::cout << "Hamiltonian algorithm: " << std::endl;
+  std::cout << std::endl;
+  auto permutation = graph.getHamiltonianPath();
+  int n = permutation.size();
+  int N = 1;
+  int L = 0;
+  while (N < n) {
+    N <<= 1;
+    ++L;
+  }
+
+  const auto samples = getRandomProlongation(n, N, 0);
+  const std::vector<REAL> prolongated_v =
+      prolongate(std::vector<REAL>(v, v + n), permutation, samples);
+  const std::vector<REAL> k_term_approximation =
+      approximate(prolongated_v, L, largestK);
+  std::vector<REAL> approximation =
+      project(k_term_approximation, samples, permutation);
+
+  REAL e2[n];
+  array_axpyz(n, -1.0, v, approximation.data(), e2);
+
+  cout << endl
+       << "Norm of vector ||v||: " << array_norm2(n, v) << endl
+       << "Norm of error  ||v-v2||: " << array_norm2(n, e2) << endl
+       << "Relative error ||v-v2||/||v||: "
+       << array_norm2(n, e2) / array_norm2(n, v) << endl;
 }
