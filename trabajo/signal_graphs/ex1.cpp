@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
   }
 
   const Graph graph(argv[optind]);
-  dCSRmat *A = graph.getWeightedLaplacian();
+  dCSRmat *A = graph.getLaplacian();
   REAL *v = initializeRhs(A);
   dcsr_free(A);
   if (largestK > graph.size() - 1) {
