@@ -175,8 +175,7 @@ void AggregationBasedAlgorithm::setupHierarchy(Graph graph,
 
 void AggregationBasedAlgorithm::compAndDecomp(int n, double *v,
                                               const vector<dCSRmat *> &Qj_array,
-                                              int largestK, double p,
-                                              double *v2) const {
+                                              int largestK, double *v2) const {
   /*
   REAL vt[n];
   dcsr_mxv(Q, v, vt);
@@ -390,7 +389,7 @@ void AggregationBasedAlgorithm::compAndDecomp(const Graph &graph, REAL *v,
   setupHierarchy(graph, Qj_array, Nj_array);
   REAL *v2 = (REAL *)malloc(sizeof(REAL) * n);
   REAL *v3 = (REAL *)malloc(sizeof(REAL) * n);
-  compAndDecomp(n, v, Qj_array, largestK, p, v2);
+  compAndDecomp(n, v, Qj_array, largestK, v2);
   if (isAdaptive()) {
     compAndDecomp(n, v, Qj_array, Nj_array, largestK, p, v3);
   }
@@ -403,8 +402,7 @@ void AggregationBasedAlgorithm::compAndDecomp(const Graph &graph, REAL *v,
 }
 
 void HamiltonianAlgorithm::compAndDecomp(const Graph &graph, REAL *v,
-                                         const int largestK,
-                                         const double p) const {
+                                         const int largestK) const {
   std::cout << "Hamiltonian algorithm: " << std::endl;
   auto permutation = graph.getHamiltonianPath();
   int n = permutation.size();
