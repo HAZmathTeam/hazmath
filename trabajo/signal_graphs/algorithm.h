@@ -56,7 +56,7 @@ private:
   }
 };
 
-class Adaptive : virtual public AggregationBasedAlgorithm {
+class Walsh : virtual public AggregationBasedAlgorithm {
 public:
   bool isAdaptive() const { return true; }
 
@@ -73,9 +73,9 @@ private:
   int getNumBlocks(int numBlocks) const { return 1; }
 };
 
-class ConnectionMatchingAdaptive : public ConnectionBasedMatching, Adaptive {};
+class ConnectionMatchingWalsh : public ConnectionBasedMatching, Walsh {};
 
-class DegreeMatchingAdaptive : public DegreeBasedMatching, Adaptive {};
+class DegreeMatchingWalsh : public DegreeBasedMatching, Walsh {};
 
 class ConnectionMatchingGtbwt : public ConnectionBasedMatching, Gtbwt {};
 
