@@ -16,7 +16,7 @@ public:
   virtual bool isAdaptive() const { return false; }
 
   void setupHierarchy(Graph graph, std::vector<dCSRmat *> &Qj_array,
-                      std::vector<int> &Nj_array) const;
+                      std::vector<int> &Nj_array, bool weighted = true) const;
 
   void compAndDecomp(int n, double *v, const std::vector<dCSRmat *> &Qj_array,
                      int largestK, double p, double *v2) const;
