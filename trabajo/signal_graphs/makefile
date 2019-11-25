@@ -7,7 +7,7 @@ HAZLIB = ../../lib
 HEADERS = algorithm.h graph.h hamiltonian_algorithm.h hazmath_include.h \
 		tests/utils.h utils.h
 
-SOURCE_FILES = algorithm.cpp graph.cpp utils.cpp
+SOURCE_FILES = algorithm.cpp graph.cpp hamiltonian_algorithm.cpp utils.cpp
 OBJECT_FILES = $(SOURCE_FILES:.cpp=.o)
 
 TESTS = get_hamiltonian_path_test get_random_prolongation_test \
