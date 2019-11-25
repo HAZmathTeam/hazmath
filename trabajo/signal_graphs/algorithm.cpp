@@ -390,19 +390,3 @@ void Algorithm::compAndDecomp(const Graph &graph, REAL *v, const int largestK,
   free(v2);
   free(v3);
 }
-
-vector<int> getHamiltonianPath(Tree *tree) {
-  if (tree->children.empty()) {
-    auto vertex = tree->vertex;
-    delete tree;
-    return vector<int>({vertex});
-  }
-  int rand_idx = rand() % tree->children.size();
-
-  auto &&path2 = getHamiltonianPath(tree->children[rand_idx]);
-  tree->children.erase(tree->children.begin() + rand_idx);
-  auto path1 = getHamiltonianPath(tree);
-
-  path1.insert(path1.end(), path2.rbegin(), path2.rend());
-  return path1;
-}
