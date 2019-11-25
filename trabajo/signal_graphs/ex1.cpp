@@ -51,9 +51,9 @@ int main(int argc, char *argv[]) {
   }
 
   std::cout << std::endl << std::endl;
-  ConnectionMatchingAdaptive().compAndDecomp(graph, v, largestK, p);
+  ConnectionMatchingWalsh().compAndDecomp(graph, v, largestK, p);
   std::cout << std::endl << std::endl;
-  DegreeMatchingAdaptive().compAndDecomp(graph, v, largestK, p);
+  DegreeMatchingWalsh().compAndDecomp(graph, v, largestK, p);
   std::cout << std::endl << std::endl;
   ConnectionMatchingGtbwt().compAndDecomp(graph, v, largestK, p);
   std::cout << std::endl << std::endl;
