@@ -75,6 +75,4 @@ class ConnectionMatchingGtbwt : public ConnectionBasedMatching, Gtbwt {};
 
 class DegreeMatchingGtbwt : public DegreeBasedMatching, Gtbwt {};
 
-std::vector<int> getHamiltonianPath(Tree *tree);
-
 #endif
