@@ -61,7 +61,7 @@ public:
   bool isAdaptive() const { return true; }
 
 private:
-  std::string compressionAlgorithm() const { return "adaptive"; };
+  std::string compressionAlgorithm() const { return "Walsh"; };
 
   int getNumBlocks(int numBlocks) const { return numBlocks; }
 };
