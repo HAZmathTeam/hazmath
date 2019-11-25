@@ -19,7 +19,7 @@ public:
                       std::vector<int> &Nj_array, bool weighted = true) const;
 
   void compAndDecomp(int n, double *v, const std::vector<dCSRmat *> &Qj_array,
-                     int largestK, double p, double *v2) const;
+                     int largestK, double *v2) const;
 
   void compAndDecomp(int n, double *v, const std::vector<dCSRmat *> &Qj_array,
                      const std::vector<int> &Nj_array, int largestK, double p,
@@ -81,10 +81,9 @@ class ConnectionMatchingGtbwt : public ConnectionBasedMatching, Gtbwt {};
 
 class DegreeMatchingGtbwt : public DegreeBasedMatching, Gtbwt {};
 
-class HamiltonianAlgorithm : public Algorithm {
+class HamiltonianAlgorithm {
 public:
-  void compAndDecomp(const Graph &graph, REAL *v, const int largestK,
-                     const double p) const;
+  void compAndDecomp(const Graph &graph, REAL *v, const int largestK) const;
 };
 
 #endif
