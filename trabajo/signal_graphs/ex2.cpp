@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
 
   vector<dCSRmat *> Qj_array;
   vector<int> Nj_array;
-  ConnectionMatchingAdaptive algorithm;
+  ConnectionMatchingWalsh algorithm;
   algorithm.setupHierarchy(graph, Qj_array, Nj_array);
 
   // Compress/decompress a smooth vector and compute the error
