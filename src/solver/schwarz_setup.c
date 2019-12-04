@@ -355,15 +355,19 @@ void Schwarz_get_patch_geometric_multiple_DOFtype (Schwarz_data *Schwarz,
     iCSRmat *p_p = (iCSRmat*)calloc(nptype,sizeof(iCSRmat));
 
     switch ( patchTypeIN ) {
-      case 0: // vertex
+      case 0: // elm
+        nblk = mesh->nelm;
+        p_el = icsr_create_identity(nblk,0);
+        break;
+      case 1: // vertex
         nblk = mesh->nv;
         icsr_trans(mesh->el_v, &p_el);
         break;
-      case 1: // edge
+      case 2: // edge
         nblk = mesh->nedge;
         icsr_trans(mesh->el_ed,&p_el);
         break;
-      case 2: // face
+      case 3: // face
         nblk = mesh->nface;
         icsr_trans(mesh->el_f, &p_el);
         break;
@@ -374,18 +378,26 @@ void Schwarz_get_patch_geometric_multiple_DOFtype (Schwarz_data *Schwarz,
 
     ntot = 0;
     for( i=0; i<nptype; i++){
+      printf("working through %d, patch type %d\n",i,patchTypeOUT[i]);
       switch ( patchTypeOUT[i] ) {
-        case 0: // vertex
+        case 0: // elm
+          p_p[i] = icsr_create( p_el.row, p_el.col, p_el.nnz);//TODO: Replace with smarter allocation
+          iarray_cp (p_p[i].row+1, p_el.IA, p_p[i].IA);
+          iarray_cp (p_p[i].nnz, p_el.JA, p_p[i].JA);
+          ntot += p_p[i].nnz;
+          dofshift[i+1] = mesh->nelm + dofshift[i];
+          break;
+        case 1: // vertex
           icsr_mxm_symb( &p_el, mesh->el_v, p_p+i);
           ntot += p_p[i].nnz;
           dofshift[i+1] = mesh->nv + dofshift[i];
           break;
-        case 1: // edge
+        case 2: // edge
           icsr_mxm_symb( &p_el, mesh->el_ed, p_p+i);
           ntot += p_p[i].nnz;
           dofshift[i+1] = mesh->nedge + dofshift[i];
           break;
-        case 2: // face
+        case 3: // face
           icsr_mxm_symb( &p_el, mesh->el_f, p_p+i);
           ntot += p_p[i].nnz;
           dofshift[i+1] = mesh->nface + dofshift[i];
@@ -476,10 +488,12 @@ INT Schwarz_setup_geometric (Schwarz_data *Schwarz,
     /*-------------------------------------------*/
     // find the blocks
     /*-------------------------------------------*/
-    printf("Findeing Schwarz patches\n");
-    INT patch_type_out[] = {1,0,0};
+    printf("Finding Schwarz patches\n");
     //Schwarz_get_patch_geometric(Schwarz, mesh, 0, 2);
-    Schwarz_get_patch_geometric_multiple_DOFtype( Schwarz, mesh, 0, patch_type_out, 3);
+    //INT patch_type_out[] = {2,1,1};
+    //Schwarz_get_patch_geometric_multiple_DOFtype( Schwarz, mesh, 1, patch_type_out, 3);
+    INT patch_type_out[] = {2,1,1,2,0};
+    Schwarz_get_patch_geometric_multiple_DOFtype( Schwarz, mesh, 1, patch_type_out, 5);
     printf("Found Schwarz patches\n");
     nblk = Schwarz->nblk;
 
