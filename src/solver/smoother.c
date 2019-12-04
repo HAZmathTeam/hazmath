@@ -770,7 +770,7 @@ printf("Beginning BSR for Biot\n");
     INT Au_solve_TYPE = 2;
     // Problem Var...
     REAL M = 1e6;
-    REAL nu = 0.0;
+    REAL nu = 0.2;
     REAL mu =  (3e4) / (1+2*nu);
     REAL lam = (3e4)*nu / ((1-2*nu)*(1+nu));
     REAL factor = (1.0) / (lam+(2*mu/2.0));
@@ -780,13 +780,13 @@ printf("Beginning BSR for Biot\n");
     dvector diagvec2;
     dcsr_getdiag( A->blocks[0]->row, A->blocks[0], &diagvec2);
     Ainv.val = diagvec2.val;
-    for( i=0; i<Ainv.row; i++){ if( (Ainv.val[i]) > SMALLREAL ) Ainv.val[i] = 1.0/Ainv.val[i];}
+    for( i=0; i<Ainv.row; i++){ if( ABS(Ainv.val[i]) > SMALLREAL ) Ainv.val[i] = 1.0/Ainv.val[i];}
     // Approx Mwinv with diag(Mw)^{-1}
     dCSRmat Mwinv = dcsr_create_identity_matrix( A->blocks[4]->row, 0);
     dvector diagvec;
     dcsr_getdiag( A->blocks[4]->row, A->blocks[4], &diagvec);
     Mwinv.val = diagvec.val;
-    for( i=0; i<Mwinv.row; i++){ if( (Mwinv.val[i]) > SMALLREAL ) Mwinv.val[i] = 1.0/Mwinv.val[i];}
+    for( i=0; i<Mwinv.row; i++){ if( ABS(Mwinv.val[i]) > SMALLREAL ) Mwinv.val[i] = 1.0/Mwinv.val[i];}
     // Form Schur complement. Using diag(Mw) and that BuT*Au^{-1}*Bu is spectrally equivalent to Mp
     dCSRmat S;
     dCSRmat Ap;
@@ -823,14 +823,15 @@ printf("Beginning BSR for Biot\n");
           break;
         case 1: // GS
           dvec_set( d.row, &d, 0.0);////////////////////////////
-          //smoother_dcsr_sgs(&d, A->blocks[0], &temp, 1);
-          smoother_dcsr_gs(&d,0,A->blocks[0]->row,1, A->blocks[0], &temp, 2);
+          smoother_dcsr_sgs(&d, A->blocks[0], &temp, 1);
+          //smoother_dcsr_gs(&d,0,A->blocks[0]->row,1, A->blocks[0], &temp, 2);
           break;
         case 2: // Schwarz
           dvec_set( d.row, &d, 0.0);////////////////////////////
-          for(i=0; i<2; i++){
-          smoother_dcsr_Schwarz_forward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
-          smoother_dcsr_Schwarz_backward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
+          if(L==1){
+            smoother_dcsr_Schwarz_forward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
+          } else {
+            smoother_dcsr_Schwarz_backward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
           }
           break;
         default: //Direct
@@ -841,6 +842,8 @@ printf("Beginning BSR for Biot\n");
 
     dvec_alloc( n2, &q);
     directsolve_UMF( &S, &rhs, &q, 0); // SOLVE
+    //dvec_set( q.row, &q, 0.0);////////////////////////////
+    //smoother_dcsr_sgs(&q, &S, &rhs, 1);//////////////////
 
     // propigate back
     dvec_alloc( d.row, &v);
@@ -855,14 +858,15 @@ printf("Beginning BSR for Biot\n");
           break;
         case 1: // GS
           dvec_set( d.row, &d, 0.0);//////////////////////////////
-          //smoother_dcsr_sgs(&d, A->blocks[0], &temp, 1);
-          smoother_dcsr_gs(&d,0,A->blocks[0]->row,1, A->blocks[0], &temp, 2);
+          smoother_dcsr_sgs(&d, A->blocks[0], &temp, 1);
+          //smoother_dcsr_gs(&d,0,A->blocks[0]->row,1, A->blocks[0], &temp, 2);
           break;
         case 2: // Schwarz
           dvec_set( d.row, &d, 0.0);//////////////////////////////
-          for(i=0; i<2; i++){
-          smoother_dcsr_Schwarz_backward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
-          smoother_dcsr_Schwarz_forward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
+          if(L==1){
+            smoother_dcsr_Schwarz_forward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
+          } else {
+            smoother_dcsr_Schwarz_backward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
           }
           break;
         default: // Direct
@@ -1098,7 +1102,6 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
           printf("\tcalling Schwarz setup\n");
 //          bmgl[0].mgl[blk][lvl].Schwarz.A = dcsr_sympat( &bmgl[0].mgl[blk][lvl].A );
           bmgl[0].mgl[blk][lvl].Schwarz.A = dcsr_sympat( bmgl[0].A.blocks[0] );
-//          dcsr_shift(&(bmgl[0].mgl[blk][lvl].Schwarz.A),1);
           Schwarz_setup_geometric( &bmgl[0].mgl[blk][lvl].Schwarz, &swzparam, bmgl[lvl].fine_level_mesh);
         }
         }
@@ -1245,7 +1248,7 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
       dvec_axpy(0.99, &y, &bmgl[lvl].x);
 
     } else if (1) {
-    smoother_bdcsr_bsr_biot3( &bmgl[lvl].x, &bmgl[lvl].b, param->BSR_alpha, param->BSR_omega, &bmgl[lvl].A, 1, &bmgl[lvl].mgl[0][0]);
+    smoother_bdcsr_bsr_biot3( &bmgl[lvl].x, &bmgl[lvl].b, param->BSR_alpha, param->BSR_omega, &bmgl[lvl].A, pre_post, &bmgl[lvl].mgl[0][0]);
     }else {
 
     // BSR
