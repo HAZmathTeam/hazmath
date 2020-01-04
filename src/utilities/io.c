@@ -415,7 +415,7 @@ void icsr_print_matlab(FILE* fid,
  * \param fid  Pointer to the file
  * \param A    Pointer to the iCSRmat format sparse matrix
  *
- * \todo 
+ * \todo
  *
  */
 void icsr_print_matlab_val(FILE* fid,
@@ -1249,9 +1249,9 @@ void hazw(char *nameout,scomplex *sc, const int shift)
   /* *******************************************
      HAZMAT way of writing mesh file. sc->bndry_cc is the number of
      connected components on the boundary. sc->cc is the number of
-     connected components domains. 
-     * TODO add sc->cc to the reading. 
-  */  
+     connected components domains.
+     * TODO add sc->cc to the reading.
+  */
   fprintf(fmesh,"%i %i %i %i\n",ns,n,dim,(sc->bndry_cc-1)); /* this is the
 							   number of
 							   holes;*/
