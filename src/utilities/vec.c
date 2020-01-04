@@ -626,4 +626,27 @@ void dvec_orthog_const(dvector *x)
 
 }
 
+/***********************************************************************************************/
+/*!
+ * \fn void dvec_orthog(dvector *x, dvector *y)
+ *
+ * \brief make x orthgonal to y: x = x - (x'*y)*y;
+ *
+ * \param x   pointer to dvector x
+ * \param y   pointer to dvector y
+ *
+ * \return x  new x that is orthogonal to y
+ *
+ */
+void dvec_orthog(dvector *x, dvector *y)
+{
+
+  // local variable
+  REAL alpha = dvec_dotprod(x, y);
+
+  // make it orthogonal
+  dvec_axpy(-alpha, y, x);
+
+}
+
 /********************************** END *************************************************/
