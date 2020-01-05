@@ -742,7 +742,8 @@ void smoother_bdcsr_bsr_biot3(dvector *u,
                               REAL w,
                               block_dCSRmat *A,
                               INT L,
-                              AMG_data* mgl_disp)
+                              AMG_data* mgl_disp,
+                              MG_blk_data *bmgl)
 {
 printf("Beginning BSR for Biot\n");
     // Local variables
@@ -770,10 +771,11 @@ printf("Beginning BSR for Biot\n");
     INT Au_solve_TYPE = 2;
     // Problem Var...
     REAL M = 1e6;
-    REAL nu = 0.2;
+    REAL nu = 0.499;
     REAL mu =  (3e4) / (1+2*nu);
     REAL lam = (3e4)*nu / ((1-2*nu)*(1+nu));
     REAL factor = (1.0) / (lam+(2*mu/2.0));
+    REAL lamS = lam;
 
     // Approx Ainv with diag(A)^{-1}
     dCSRmat Ainv = dcsr_create_identity_matrix( A->blocks[0]->row, 0);
@@ -811,8 +813,11 @@ printf("Beginning BSR for Biot\n");
     dvec_cp( &f, &rhs);
 
     dvec_alloc( e.row, &y);
-    dcsr_aAxpy( 1.0, &Mwinv, e.val, y.val );
+    dcsr_aAxpy( 1.0, &Mwinv, e.val, y.val ); //y = Mwinv*e
     dcsr_aAxpy( -1.0, A->blocks[7], y.val, rhs.val );// rhs = rhs - B*Mwinv*e
+
+    dvector rhs_stokes, sol_stokes, rhs_elast, sol_elast;
+    linear_itsolver_param linear_itparam;
 
     dvec_alloc( d.row, &temp);
     dvec_cp( &d, &temp);
@@ -834,6 +839,30 @@ printf("Beginning BSR for Biot\n");
             smoother_dcsr_Schwarz_backward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
           }
           break;
+        case 3: // Strange Thing
+          dvec_alloc(n0+n2, &rhs_stokes);
+          dvec_alloc(n0+n2, &sol_stokes);
+          dvec_alloc(n0, &rhs_elast);
+          dvec_alloc(n0, &sol_elast);
+          for( i=0; i<n0; i++){
+            rhs_stokes.val[i] = temp.val[i];
+            sol_stokes.val[i] = 0.0;//d.val[i];
+            rhs_elast.val[i]  = temp.val[i];
+            sol_elast.val[i]  = 1.0;d.val[i];
+          }
+          for( i=n0; i<(n0+n2); i++){
+            rhs_stokes.val[i] = 0.0;
+            sol_stokes.val[i] = 1.0;
+          }
+
+          block_directsolve_UMF( bmgl->As, &rhs_stokes, &sol_stokes, 0);
+          directsolve_UMF( bmgl->As->blocks[0], &rhs_elast, &sol_elast, 0);
+          //directsolve_UMF( A->blocks[0], &temp, &d, 0); // SOLVE
+          for( i=0; i<n0; i++ ){
+            //d.val[i] = ( lamS/(lamS+1) * (factor)*sol_stokes.val[i] + 1.0/(lamS+1) * sol_elast.val[i] /(2*mu) )/(2*mu);
+            d.val[i] = ( lamS/((2*mu)*(lamS+2*mu)) * sol_stokes.val[i] + 1.0/(lamS+2*mu) * sol_elast.val[i] );
+          }
+          break;
         default: //Direct
           directsolve_UMF( A->blocks[0], &temp, &d, 0); // SOLVE
           break;
@@ -847,7 +876,7 @@ printf("Beginning BSR for Biot\n");
 
     // propigate back
     dvec_alloc( d.row, &v);
-    dvec_cp( &d, &v);
+    dvec_cp( &d, &v); // d = Au\r for displacement, so now v is as well (v=Au\d).
 
     dvec_alloc( d.row, &temp);
     dcsr_aAxpy( 1.0, A->blocks[2], q.val, temp.val );
@@ -868,6 +897,29 @@ printf("Beginning BSR for Biot\n");
           } else {
             smoother_dcsr_Schwarz_backward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
           }
+          break;
+        case 3: // Strange Thing
+          dvec_alloc(n0+n2, &rhs_stokes);
+          dvec_alloc(n0+n2, &sol_stokes);
+          dvec_alloc(n0, &rhs_elast);
+          dvec_alloc(n0, &sol_elast);
+          for( i=0; i<(n0); i++){
+            rhs_stokes.val[i] = temp.val[i];
+            sol_stokes.val[i] = d.val[i];
+            rhs_elast.val[i] = temp.val[i];
+            sol_elast.val[i] = d.val[i];
+          }
+          for( i=n0; i<(n0+n2); i++){
+            rhs_stokes.val[i] = 0.0;
+            sol_stokes.val[i] = 0.0;
+          }
+          block_directsolve_UMF( bmgl->As, &rhs_stokes, &sol_stokes, 0);
+          directsolve_UMF( bmgl->As->blocks[0], &rhs_elast, &sol_elast, 0);
+          for( i=0; i<n0; i++ ){
+            //d.val[i] = lamS/(lamS+1) * sol_stokes.val[i] + 1.0/(lamS+1) * sol_elast.val[i];
+            d.val[i] = ( (lamS/(2*mu))/(lamS+2*mu) * sol_stokes.val[i] + 1.0/(lamS+2*mu) * sol_elast.val[i] );
+          }
+          directsolve_UMF( A->blocks[0], &temp, &d, 0); // SOLVE
           break;
         default: // Direct
           directsolve_UMF( A->blocks[0], &temp, &d, 0); // SOLVE
@@ -1200,6 +1252,32 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
       r2.row = n2; r2.val = &(res.val[n0+n1]);
 
       // Block 0: P1 + Bubble
+    //dvector rhs_stokes, sol_stokes, rhs_elast, sol_elast;
+    //REAL nu = 0.49;
+    //REAL mu =  (3e4) / (1+2*nu);
+    //REAL lam = (3e4)*nu / ((1-2*nu)*(1+nu));
+    //REAL factor = (1.0) / (lam+(2*mu/2.0));
+    //REAL lamS = lam;
+    //INT i;
+    //      dvec_alloc(n0+n2, &rhs_stokes);
+    //      dvec_alloc(n0+n2, &sol_stokes);
+    //      dvec_alloc(n0, &rhs_elast);
+    //      dvec_alloc(n0, &sol_elast);
+    //      for( i=0; i<(n0); i++){
+    //        rhs_stokes.val[i] = r0.val[i];
+    //        sol_stokes.val[i] = 0.0;
+    //        rhs_elast.val[i] = r0.val[i];
+    //        sol_elast.val[i] = 0.0;
+    //      }
+    //      for( i=n0; i<(n0+n2); i++){
+    //        rhs_stokes.val[i] = 0.0;
+    //        sol_stokes.val[i] = 0.0;
+    //      }
+    //      block_directsolve_UMF( bmgl[lvl].As, &rhs_stokes, &sol_stokes, 0);
+    //      directsolve_UMF( bmgl[lvl].As->blocks[0], &rhs_elast, &sol_elast, 0);
+    //      for( i=0; i<n0; i++ ){
+    //        y0.val[i] = ( (lamS/(2*mu))/(lamS+2*mu) * sol_stokes.val[i] + 1.0/(lamS+2*mu) * sol_elast.val[i] );
+    //      }
 //    smoother_dcsr_sgs(&x0, &(bmgl[lvl].mgl[0][0].A), &b0, param->presmooth_iter);
       directsolve_UMF(&(bmgl[lvl].mgl[0][0].A), &r0, &y0, 0);
 //    bmgl[lvl].mgl[0]->b.row=n0; array_cp(n0, b0.val, bmgl[lvl].mgl[0]->b.val); // residual is an input
@@ -1245,10 +1323,10 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
 
       // Update Solution
       //dvec_axpy(1.0, &y, &bmgl[lvl].x);
-      dvec_axpy(0.99, &y, &bmgl[lvl].x);
+      dvec_axpy(0.7, &y, &bmgl[lvl].x);
 
     } else if (1) {
-    smoother_bdcsr_bsr_biot3( &bmgl[lvl].x, &bmgl[lvl].b, param->BSR_alpha, param->BSR_omega, &bmgl[lvl].A, pre_post, &bmgl[lvl].mgl[0][0]);
+    smoother_bdcsr_bsr_biot3( &bmgl[lvl].x, &bmgl[lvl].b, param->BSR_alpha, param->BSR_omega, &bmgl[lvl].A, pre_post, &bmgl[lvl].mgl[0][0],&bmgl[lvl]);
     }else {
 
     // BSR
