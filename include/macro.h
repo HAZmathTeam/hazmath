@@ -16,6 +16,7 @@
 #define PI 3.14159265358979323851281e+00
 #define EXP_OF_1  2.71828182845904523542817e+00
 #define MAX_CHARS_INPUT_GRID_FILE   ((1<<15) - 1)
+
 /**
  * \brief Some global constants
  */
@@ -214,5 +215,11 @@
 #define LS(a,b) (((a)<(b))?(TRUE):(FALSE))   /**< is a < b? */
 #define LE(a,b) (((a)<=(b))?(TRUE):(FALSE))  /**< is a <= b? */
 #define ISNAN(a) (((a)!=(a))?(TRUE):(FALSE)) /**< is a == NAN? */
+
+/**
+ * \brief Definition of Norms
+ */
+#define ONENORM                 1  /**< 1 norm */
+#define TWONORM                 2  /**< 2 norm */
 
 #endif
