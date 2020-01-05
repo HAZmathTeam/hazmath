@@ -589,6 +589,10 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
 
     for(i=0;i<max_levels;i++) mgl[i].gmg_type = gmg_type;
 
+    mgl[0].As = solve_info->As;
+    mgl[0].nAs = solve_info->nAs;
+    mgl[0].FES = solve_info->FES;
+
     // Step 1: MG setup phase
     switch (mg_type) {
         case 111: // Geometric
@@ -596,8 +600,9 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
             //mgl[0].periodic_BC = true;
             status = gmg_blk_setup_biot_bubble(mgl, param);
             printf("\nFinished gmg_blk_setup... Calling smoother setup...\n");
-            printf("SKIPPING SMOOTHER SETUP...\n");
+            //printf("SKIPPING SMOOTHER SETUP...\n");
             //smoother_block_setup(mgl, param);
+            smoother_setup_biot_monolithic( mgl, param);
             printf("\nsmoother setup Done...\n");
             break;
         default:
