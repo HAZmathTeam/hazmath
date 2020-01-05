@@ -1430,3 +1430,28 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
 
   return status;
 }
+
+/**
+ * \fn void smoother_block_setup( MG_blk_data *mgl, AMG_param *param)
+ *
+ * \brief Setup of block smoothers
+ *
+ * \param mgl       Pointer to MG_blk_data
+ * \param param     Pointer to AMG_param
+ *
+ */
+void smoother_setup_biot_monolithic( MG_blk_data *bmgl, AMG_param *param)
+{
+  // Initialize Schwarz parameters
+  Schwarz_param swzparam;
+  bmgl->Schwarz_levels = param->Schwarz_levels;
+  swzparam.Schwarz_mmsize = param->Schwarz_mmsize;
+  swzparam.Schwarz_maxlvl = param->Schwarz_maxlvl;
+  swzparam.Schwarz_type   = param->Schwarz_type;
+  swzparam.Schwarz_blksolver = 32;
+  bmgl[0].Schwarz.blk_solver = 32;
+
+  dCSRmat Amerge = bdcsr_2_dcsr(&bmgl[0].A);
+  bmgl[0].Schwarz.A = dcsr_sympat( &Amerge );
+  Schwarz_setup_geometric( &bmgl[0].Schwarz, &swzparam, bmgl[0].fine_level_mesh);
+}
