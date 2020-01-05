@@ -9,8 +9,9 @@
 
 #include "hazmath.h"
 
+/***********************************************************************************************/
 /*!
- * \fn get_adjacency_from_transition(dCSRmat *P, dvector *weighted_degree)
+ * \fn dCSRmat get_adjacency_from_transition(dCSRmat *P, dvector *weighted_degree)
  *
  * \brief get adjacency matrix from transition matrix (A = D*P)
  *
@@ -39,8 +40,9 @@ dCSRmat get_adjacency_from_transition(dCSRmat *P,
   return A;
 }
 
+/***********************************************************************************************/
 /*!
- * \fn get_graphLaplacian_from_adj_wdeg(dCSRmat *A, dvector *weighted_degree)
+ * \fn dCSRmat get_graphLaplacian_from_adj_wdeg(dCSRmat *A, dvector *weighted_degree)
  *
  * \brief get graph Laplacian from adjacency matrix and weighted degree matrix (L = D-A)
  *
@@ -71,8 +73,9 @@ dCSRmat get_graphLaplacian_from_adjacency(dCSRmat *A,
   return L;
 }
 
+/***********************************************************************************************/
 /*!
- * \fn get_normalizedgraphLaplacian_from_L_wdeg_inv(dCSRmat *L, dvector *weighted_degree_half_inv)
+ * \fn dCSRmat get_normalizedgraphLaplacian_from_L_wdeg_inv(dCSRmat *L, dvector *weighted_degree_half_inv)
  *
  * \brief get normalized graph Laplacian from graph Laplacian and inverse half weighted degree matrix (N = D^-1/2*L*D^-1/2)
  *
@@ -101,4 +104,71 @@ dCSRmat get_normalizedgraphLaplacian_from_L_wdeg_inv(dCSRmat *L,
 
   // return adjacency matrix
   return N;
+}
+
+/***********************************************************************************************/
+/*!
+ * \fn dvector pairwise_distance(dDENSEmat *X, const INT norm_type)
+ *
+ * \brief compute pairwise distance of the nodes
+ *
+ * \param X             pointer to the coordinate matrix of the nodes (each row corresponds to one node)
+ * \param norm_type     use what type of norm to compute the distance
+ *
+ * \return distance     pointer to the distance vector with ordering: (0,1),(0,2),... (0,n-1),(1,2),...(1,n),...(n-2,n-1)
+ *
+ * \author Xiaozhe Hu
+ * \date   01/05/2020
+ */
+dvector pairwise_distance(dDENSEmat *X,
+                           const INT norm_type)
+{
+
+  // local variable
+  INT i,j,count;
+  const INT n = X->row; // number of nodes
+  const INT d = X->col; // dimension
+
+  dvector Xi, Xj;
+  Xi.row = d; Xj.row = d;
+
+  dvector diff = dvec_create(d);
+
+  // allocate memory
+  const INT n_dis = (n*(n-1))/2;
+  dvector distance = dvec_create(n_dis);
+
+  // compute the distance
+  count = 0;
+  for (i=0;i<(n-1);i++){
+    for (j=i+1;j<n;j++){
+
+      // get coordinate of node i and node j
+      Xi.val = &(X->val[i*d]);
+      Xj.val = &(X->val[j*d]);
+
+      // diff = Xi - Xj
+      dvec_axpyz(-1.0, &Xj, &Xi, &diff);
+
+      // compute diffusion distance between node i and node j
+      switch (norm_type) {
+        case TWONORM:
+          distance.val[count] = dvec_norm2(&diff);
+          break;
+
+        default:
+          distance.val[count] = dvec_norm1(&diff);
+      }
+
+      // update count
+      count = count + 1;
+
+    }
+  }
+
+  // clean and return
+  dvec_free(&diff);
+
+  return distance;
+
 }
