@@ -73,9 +73,9 @@ void iarray_null(INT *x)
 void array_set (const INT n,
                 REAL *x,
                 const REAL val)
-{  
+{
     INT i;
-    
+
     if (val == 0.0) {
         memset(x, 0x0, sizeof(REAL)*n);
     }
@@ -100,7 +100,7 @@ void iarray_set (const INT n,
                  const INT val)
 {
     INT i;
-    
+
     if (val == 0) {
         memset(x, 0, sizeof(INT)*n);
     }
@@ -123,7 +123,7 @@ void iarray_set (const INT n,
 void array_cp (const INT n,
                REAL *x,
                REAL *y)
-{   
+{
     memcpy(y, x, n*sizeof(REAL));
 }
 
@@ -138,10 +138,10 @@ void array_cp (const INT n,
  * \param y    Pointer to the destination INT array (OUTPUT)
  *
  */
-void iarray_cp (const INT n, 
+void iarray_cp (const INT n,
                 INT *x,
                 INT *y)
-{   
+{
     memcpy(y, x, n*sizeof(INT));
 }
 
@@ -219,9 +219,9 @@ void iarray_shuffle(const INT n,
 void array_ax (const INT n,
                const REAL a,
                REAL *x)
-{  
+{
     INT i;
-    
+
     if (a != 1.0) {
         for (i=0; i<n; ++i) x[i] *= a;
     }
@@ -245,9 +245,9 @@ void array_axpy (const INT n,
                  const REAL a,
                  REAL *x,
                  REAL *y)
-{   
+{
     INT i;
-    
+
     if (a==1.0) {
         for (i=0; i<n; ++i) y[i] += x[i];
     }
@@ -278,9 +278,9 @@ void array_axpyz (const INT n,
                   REAL *x,
                   REAL *y,
                   REAL *z)
-{ 
+{
     INT i;
-    
+
     if (a==1.0){
         for (i=0; i<n; ++i) z[i] = x[i]+y[i];
     }
@@ -312,11 +312,11 @@ void array_axpby (const INT n,
                   REAL *x,
                   const REAL b,
                   REAL *y)
-{   
+{
     INT i;
 
     for (i=0; i<n; ++i) y[i] = a*x[i]+b*y[i];
-    
+
 }
 
 /***********************************************************************************************/
@@ -335,12 +335,12 @@ void array_axpby (const INT n,
 REAL array_dotprod (const INT n,
                     const REAL * x,
                     const REAL * y)
-{    
+{
     INT i;
     REAL value = 0.0;
-    
+
     for (i=0; i<n; ++i) value += x[i]*y[i];
-    
+
     return value;
 }
 
@@ -358,12 +358,12 @@ REAL array_dotprod (const INT n,
  */
 REAL array_norm1 (const INT n,
                   const REAL * x)
-{   
+{
     INT i;
     REAL onenorm = 0.;
-    
+
     for (i=0;i<n;++i) onenorm+=ABS(x[i]);
-    
+
     return onenorm;
 }
 
@@ -381,12 +381,12 @@ REAL array_norm1 (const INT n,
  */
 REAL array_norm2 (const INT n,
                   const REAL * x)
-{  
+{
     INT i;
     REAL twonorm = 0.;
-    
+
     for (i=0;i<n;++i) twonorm+=x[i]*x[i];
-    
+
     return sqrt(twonorm);
 }
 
@@ -404,12 +404,12 @@ REAL array_norm2 (const INT n,
  */
 REAL array_norminf (const INT n,
                     const REAL * x)
-{ 
+{
     INT i;
     REAL infnorm = 0.0;
-    
+
     for (i=0;i<n;++i) infnorm=MAX(infnorm,ABS(x[i]));
-    
+
     return infnorm;
 }
 
