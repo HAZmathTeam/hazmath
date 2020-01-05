@@ -223,14 +223,21 @@ static void dcsr_postsmoothing(const SHORT smoother,
  */
 static void bdcsr_presmoothing(const INT lvl, MG_blk_data *mgl, AMG_param *param)
 {
-    const SHORT smoother = param->smoother;
+    const SHORT smoother = 1000;//param->smoother;
     const SHORT nsweeps  = param->presmooth_iter;
     INT i;
+    Schwarz_param swzparam;
     switch (smoother) {
 
         //case SMOOTHER_JACOBI:
         //    smoother_bdcsr_jacobi(&mgl[lvl].x, 1, &mgl[lvl].A, &mgl[lvl].b, nsweeps);
         //    break;
+        case 1000:
+          swzparam.Schwarz_blksolver = mgl[lvl].Schwarz.blk_solver;
+          printf("Presmooth Schwarz Start. solver %d\n",swzparam.Schwarz_blksolver);
+          smoother_dcsr_Schwarz_forward(&mgl[lvl].Schwarz, &swzparam, &mgl[lvl].x, &mgl[lvl].b);
+          printf("Presmooth Schwarz Done.\n");
+          break;
         default:
           for(i=0;i<nsweeps;i++){
             smoother_block_biot_3field(lvl,mgl,param,1);
@@ -254,14 +261,19 @@ static void bdcsr_presmoothing(const INT lvl, MG_blk_data *mgl, AMG_param *param
  */
 static void bdcsr_postsmoothing(const INT lvl, MG_blk_data *mgl, AMG_param *param)
 {
-    const SHORT smoother = param->smoother;
+    const SHORT smoother = 1000;//param->smoother;
     const SHORT nsweeps  = param->postsmooth_iter;
     INT i;
+    Schwarz_param swzparam;
     switch (smoother) {
 
 //        case SMOOTHER_JACOBI:
 //            smoother_bdcsr_jacobi(&mgl[lvl].x, 1, &mgl[lvl].A, &mgl[lvl].b, nsweeps);
 //            break;
+        case 1000:
+          swzparam.Schwarz_blksolver = mgl[lvl].Schwarz.blk_solver;
+          smoother_dcsr_Schwarz_backward(&mgl[lvl].Schwarz, &swzparam, &mgl[lvl].x, &mgl[lvl].b);
+          break;
         default:
           for(i=0;i<nsweeps;i++){
             smoother_block_biot_3field(lvl,mgl,param,2);

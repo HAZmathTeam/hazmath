@@ -259,6 +259,12 @@ typedef struct {
     //! restriction for going from r_coarse to r_coarse_periodic
     block_dCSRmat R_periodic_scaled;
 
+    /* Other Info */
+    //! Stokes system for Biot
+    block_dCSRmat *As;
+    block_dCSRmat *nAs;
+    block_fespace *FES;
+
 } MG_blk_data; /**< Data for block MG */
 
 typedef struct {
@@ -588,6 +594,11 @@ typedef struct{
 
     REAL rho1;
     REAL rho2;
+
+    // Lazy way to pass in variables that I need.
+    block_dCSRmat *As;
+    block_dCSRmat *nAs;
+    block_fespace *FES;
 
 } solve_stats; /**< statistics about solve */
 
