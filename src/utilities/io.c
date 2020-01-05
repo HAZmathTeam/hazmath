@@ -435,7 +435,7 @@ void icsr_print_matlab(FILE* fid,
  * \param fid  Pointer to the file
  * \param A    Pointer to the iCSRmat format sparse matrix
  *
- * \todo 
+ * \todo
  *
  */
 void icsr_print_matlab_val(FILE* fid,
@@ -482,6 +482,39 @@ void dvec_write (const char *filename,
 
     //main loop
     for ( i = 0; i < m; ++i ) fprintf(fp,"%0.15e\n",vec->val[i]);
+
+    fclose(fp);
+}
+
+/***********************************************************************************************/
+/*!
+ * \fn void ddense_write(const char *filename, dDENSEmat *A)
+ *
+ * \brief Write a dDENSEmat matrix to disk file in row-wise format
+ *
+ * \param A         pointer to the dDENSEmat matrix
+ * \param filename  char for file name
+ *
+ */
+void ddense_write(const char *filename,
+                  dDENSEmat *A)
+{
+    // local variables
+    const INT n = A->row, m = A->col;
+    const INT nnz = n*m;
+    INT i, j;
+
+    FILE *fp = fopen(filename, "w");
+
+    if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
+
+    printf("%s: HAZMATH is writing to file %s...\n", __FUNCTION__, filename);
+
+    // main loop
+    fprintf(fp,"%d  %d\n", n, m);
+    for (i = 0; i < nnz; ++i) {
+      fprintf(fp,"%0.15e\n", A->val[i]);
+    }
 
     fclose(fp);
 }
@@ -1269,9 +1302,9 @@ void hazw(char *nameout,scomplex *sc, const int shift)
   /* *******************************************
      HAZMAT way of writing mesh file. sc->bndry_cc is the number of
      connected components on the boundary. sc->cc is the number of
-     connected components domains. 
-     * TODO add sc->cc to the reading. 
-  */  
+     connected components domains.
+     * TODO add sc->cc to the reading.
+  */
   fprintf(fmesh,"%i %i %i %i\n",ns,n,dim,(sc->bndry_cc-1)); /* this is the
 							   number of
 							   holes;*/

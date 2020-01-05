@@ -788,7 +788,6 @@ INT linear_solver_dcsr_krylov_amg(dCSRmat *A,
     mgl[0].A=dcsr_create(m,n,nnz); dcsr_cp(A,&mgl[0].A);
     mgl[0].b=dvec_create(n); mgl[0].x=dvec_create(n);
 
-
     // setup preconditioner
     switch (amgparam->AMG_type) {
 
