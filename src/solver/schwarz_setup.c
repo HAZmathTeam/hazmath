@@ -351,6 +351,7 @@ void Schwarz_get_patch_geometric_multiple_DOFtype (Schwarz_data *Schwarz,
 
     // patchType to element
     iCSRmat p_el;
+    iCSRmat temp;
     //iCSRmat p_p;
     iCSRmat *p_p = (iCSRmat*)calloc(nptype,sizeof(iCSRmat));
 
@@ -371,6 +372,10 @@ void Schwarz_get_patch_geometric_multiple_DOFtype (Schwarz_data *Schwarz,
         nblk = mesh->nface;
         icsr_trans(mesh->el_f, &p_el);
         break;
+      case 4: // elm_face_elm
+        nblk = mesh->nelm;
+        icsr_trans(mesh->el_f, &temp);
+        icsr_mxm_symb( mesh->el_f, &temp, &p_el);
       default:
         // Throw error
         break;
@@ -393,9 +398,15 @@ void Schwarz_get_patch_geometric_multiple_DOFtype (Schwarz_data *Schwarz,
           dofshift[i+1] = mesh->nv + dofshift[i];
           break;
         case 2: // edge
-          icsr_mxm_symb( &p_el, mesh->el_ed, p_p+i);
-          ntot += p_p[i].nnz;
-          dofshift[i+1] = mesh->nedge + dofshift[i];
+          if( patchTypeIN == 1){
+            icsr_trans(mesh->ed_v, p_p+i);
+            ntot += p_p[i].nnz;
+            dofshift[i+1] = mesh->nedge + dofshift[i];
+          } else {
+            icsr_mxm_symb( &p_el, mesh->el_ed, p_p+i);
+            ntot += p_p[i].nnz;
+            dofshift[i+1] = mesh->nedge + dofshift[i];
+          }
           break;
         case 3: // face
           icsr_mxm_symb( &p_el, mesh->el_f, p_p+i);
@@ -491,9 +502,9 @@ INT Schwarz_setup_geometric (Schwarz_data *Schwarz,
     printf("Finding Schwarz patches\n");
     //Schwarz_get_patch_geometric(Schwarz, mesh, 0, 2);
     //INT patch_type_out[] = {2,1,1};
-    //Schwarz_get_patch_geometric_multiple_DOFtype( Schwarz, mesh, 1, patch_type_out, 3);
+    //Schwarz_get_patch_geometric_multiple_DOFtype( Schwarz, mesh, 4, patch_type_out, 3);
     INT patch_type_out[] = {2,1,1,2,0};
-    Schwarz_get_patch_geometric_multiple_DOFtype( Schwarz, mesh, 1, patch_type_out, 5);
+    Schwarz_get_patch_geometric_multiple_DOFtype( Schwarz, mesh, 4, patch_type_out, 5);
     printf("Found Schwarz patches\n");
     nblk = Schwarz->nblk;
 
