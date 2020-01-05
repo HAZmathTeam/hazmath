@@ -2050,6 +2050,37 @@ void icsr_mxm_symb_max(iCSRmat *A,
 
 /***********************************************************************************************/
 /*!
+   * \fn dCSRmat dcsr_create_diagonal_matrix(dvector *diag)
+   *
+   * \brief create diagonal matrix using diag as diagonal entres
+   *
+   * \param diag  Pointer to the diagonal as a dvector
+   *
+   * \return D     Pointer to dCSRmat CSR diagonal matrix
+   *
+   */
+dCSRmat dcsr_create_diagonal_matrix(dvector *diag)
+{
+  //local variable
+  INT n = diag->row;
+  INT i;
+
+  // form the diaongal matrix
+  dCSRmat D = dcsr_create(n,n,n);
+  for (i=0;i<n;i++)
+  {
+    D.IA[i] = i;
+    D.JA[i] = i;
+    D.val[i]   = diag->val[i];
+  }
+  D.IA[n] = n;
+
+  // return
+  return D;
+}
+
+/***********************************************************************************************/
+/*!
    * \fn void dcsr_getdiag (INT n, dCSRmat *A, dvector *diag)
    *
    * \brief Get first n diagonal entries of a dCSRmat sparse matrix A
@@ -2077,6 +2108,34 @@ void dcsr_getdiag(INT n,
         diag->val[i] = A->val[k];
         break;
       } // end if
+    } // end for k
+  } // end for i
+
+}
+
+/***********************************************************************************************/
+/*!
+   * \fn void dcsr_row_scale(dCSRmat *A, dvector *row_scale)
+   *
+   * \brief row scaling of matrix A
+   *
+   * \param A           Pointer to dCSRmat CSR matrix
+   * \param diag_scale  Pointer to the diagonal scaling
+   *
+   */
+void dcsr_row_scale(dCSRmat *A,
+                    dvector *row_scale)
+{
+  // local variables
+  INT i,k,ibegin,iend;
+  INT n= A->row;
+
+  // TODO: need to check the size of A and row_scale -- Xiaozhe Hu
+
+  for (i=0;i<n;++i) {
+    ibegin=A->IA[i]; iend=A->IA[i+1];
+    for (k=ibegin;k<iend;++k) {
+      A->val[k] = row_scale->val[i]*A->val[k];
     } // end for k
   } // end for i
 
