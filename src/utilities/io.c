@@ -340,6 +340,26 @@ void csr_print_matlab(FILE* fid,
 
   return;
 }
+/***********************************************************************************************/
+/*!
+ * \fn void bdcsr_print_matlab(FILE* fid,dCSRmat *A)
+ *
+ * \brief print a dCSRmat format sparse matrix to a file
+ *
+ * \param fid  Pointer to the file
+ * \param A    Pointer to the dCSRmat format sparse matrix
+ *
+ */
+void bdcsr_print_matlab(FILE* fid,
+                        block_dCSRmat *A)
+{
+  // local variables
+  dCSRmat Amerge = bdcsr_2_dcsr(A);
+  csr_print_matlab(fid,&Amerge);
+  dcsr_free(&Amerge);
+
+  return;
+}
 
 /***********************************************************************************************/
 /*!
