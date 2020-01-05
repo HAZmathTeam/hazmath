@@ -19,6 +19,8 @@
  *
  * \return A               pointer to the adjacency matrix
  *
+ * \author Xiaozhe Hu
+ * \date   01/02/2020
  */
 dCSRmat get_adjacency_from_transition(dCSRmat *P,
                                       dvector *weighted_degree)
@@ -47,6 +49,8 @@ dCSRmat get_adjacency_from_transition(dCSRmat *P,
  *
  * \return L               pointer to the graph Laplacian
  *
+ * \author Xiaozhe Hu
+ * \date   01/03/2020
  */
 dCSRmat get_graphLaplacian_from_adjacency(dCSRmat *A,
                                           dvector *weighted_degree)
@@ -77,6 +81,8 @@ dCSRmat get_graphLaplacian_from_adjacency(dCSRmat *A,
  *
  * \return N               pointer to the normalized graph Laplacian
  *
+ * \author Xiaozhe Hu
+ * \date   01/03/2020
  */
 dCSRmat get_normalizedgraphLaplacian_from_L_wdeg_inv(dCSRmat *L,
                                                      dvector *weighted_degree_half_inv)
