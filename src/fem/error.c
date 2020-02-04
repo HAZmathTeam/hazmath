@@ -542,6 +542,8 @@ void L2error_block_mass(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,REAL,vo
  *
  * \return norm   HD Semi Norm
  *
+ * \note Return 0.0 if P0 elements are used.
+ *
  */
 REAL HDseminorm(REAL *u,fespace *FE,mesh_struct *mesh,qcoordinates *cq)
 {
@@ -554,24 +556,28 @@ REAL HDseminorm(REAL *u,fespace *FE,mesh_struct *mesh,qcoordinates *cq)
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
   INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
 
-  /* Loop over all Elements */
-  for (i=0; i<FE->nelm; i++) {
+  if(FE->FEtype==0) {
+    sum=0.0;
+  } else {
+    /* Loop over all Elements */
+    for (i=0; i<FE->nelm; i++) {
 
-    // Zero out local matrices
-    for (j=0; j<local_size; j++) ALoc[j] = 0.0;
+      // Zero out local matrices
+      for (j=0; j<local_size; j++) ALoc[j] = 0.0;
 
-    // Find DOF for given Element
-    get_incidence_row(i,FE->el_dof,dof_on_elm);
+      // Find DOF for given Element
+      get_incidence_row(i,FE->el_dof,dof_on_elm);
 
-    //Find Nodes for given Element if not H1 elements
-    get_incidence_row(i,mesh->el_v,v_on_elm);
+      //Find Nodes for given Element if not H1 elements
+      get_incidence_row(i,mesh->el_v,v_on_elm);
 
-    // Compute Local Stiffness Matrix for given Element
-    assemble_DuDv_local(ALoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
+      // Compute Local Stiffness Matrix for given Element
+      assemble_DuDv_local(ALoc,FE,mesh,cq,dof_on_elm,v_on_elm,i,constant_coeff_scal,1.0);
 
-    for(j=0;j<dof_per_elm;j++) {
-      for(k=0;k<dof_per_elm;k++) {
-        sum+=u[dof_on_elm[j]]*ALoc[j*dof_per_elm+k]*u[dof_on_elm[k]];
+      for(j=0;j<dof_per_elm;j++) {
+        for(k=0;k<dof_per_elm;k++) {
+          sum+=u[dof_on_elm[j]]*ALoc[j*dof_per_elm+k]*u[dof_on_elm[k]];
+        }
       }
     }
   }
@@ -606,6 +612,8 @@ REAL HDseminorm(REAL *u,fespace *FE,mesh_struct *mesh,qcoordinates *cq)
  * \param cq      Quadrature Nodes
  *
  * \return norm   HD Semi Norm
+ *
+ * \note Return 0.0 if P0 elements are used for that block.
  *
  */
 void HDseminorm_block(REAL *norm,REAL *u,block_fespace *FE,mesh_struct *mesh,qcoordinates *cq)
@@ -989,6 +997,8 @@ void HDsemierror_block_stiff(REAL *err, REAL *u,void (*truesol)(REAL *,REAL *,RE
  *
  * \return norm   HD Norm
  *
+ * \note Return just L2 norm if P0 elements are used.
+ *
  */
 REAL HDnorm(REAL *u,fespace *FE,mesh_struct *mesh,qcoordinates *cq)
 {
@@ -1016,6 +1026,8 @@ REAL HDnorm(REAL *u,fespace *FE,mesh_struct *mesh,qcoordinates *cq)
  * \param cq      Quadrature Nodes
  *
  * \return norm   HD Norm
+ *
+ * \note Return just L2 norm if P0 elements are used for that block.
  *
  */
 void HDnorm_block(REAL *norm,REAL *u,block_fespace *FE,mesh_struct *mesh,qcoordinates *cq)
