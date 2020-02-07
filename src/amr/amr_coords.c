@@ -15,7 +15,7 @@
 #include "hazmath.h"
 /**********************************************************************/
 /*decaring pi for this scope here*/
-static long double pi=4e00*atanl(1e00);
+static long double pi=M_PI;
 /**********************************************************************/
 /*!
  * \fn REAL deg2rad(REAL alpha_deg)
