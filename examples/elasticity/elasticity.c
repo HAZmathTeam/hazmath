@@ -1,29 +1,24 @@
 /*! \file examples/elasticity/elasticity.c
- *
- *  Created by Peter Ohm on 2/5/20.
- *  Copyright 2015_HAZMATH__. All rights reserved.
- *
- * \brief This program solves Stokes PDE using finite elements
- *
- *      -2*div(eps(u)+div(u)) + grad(p)    = f
- *             div(u)               = 0
- *
- *        where eps(u) = (grad u + (grad u)^T)/2 is the symmetric gradient,
- *
- *        in 2D or 3D.
- *
- *        Along the boundary of the region, Dirichlet conditions are
- *        imposed for u and Neumann for p.  P2-P1 or P2-P0 can be used,
- *        though others can be implemented.
- *
- * \note This example shows how to build your own bilinear form for a system.
- *       The forms are found in stokes_system.h and all Problem Data is found in
- *       stokes_data.h to simplify the code.  This example also illustrates how to
- *       construct block versions of the finite-element spaces, linear systems, and
- *       how to use block solvers.
- *
- *
- */
+*
+*  Created by Peter Ohm on 2/5/20.
+*  Copyright 2015_HAZMATH__. All rights reserved.
+*
+* \brief This program solves Elasticity using finite elements
+*
+*      -2*div(mu*eps(u)+lam*div(u)) + grad(p)    = f
+*             div(u)               = 0
+*
+*        where eps(u) = (grad u + (grad u)^T)/2 is the symmetric gradient,
+*
+*        in 2D or 3D.
+*
+*        Along the boundary of the region, Dirichlet conditions are
+*        imposed for u and Neumann for p.  P2-P1 or P2-P0 can be used,
+*        though others can be implemented.
+*
+*
+*
+*/
 
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************************/
 #include "hazmath.h"
@@ -31,32 +26,43 @@
 
 /******** Data Input *************************************************/
 // PDE variables
+
+// Youngs Modulus
+void get_young(REAL *val,REAL* x,REAL time,void *param) {
+  *val = 3e4;
+}
+// Poisson Ratio
 void get_nu(REAL *val,REAL* x,REAL time,void *param) {
-    *val = 0.2;
-}
-void get_lam(REAL *val,REAL* x,REAL time,void *param) {
-    REAL E = 3e4; REAL nu;
-    get_nu(&nu,x,time,param);
-    *val = E*nu/((1-2*nu)*(1+nu));
-}
-void  get_mu(REAL *val,REAL* x,REAL time,void *param) {
-    REAL E = 3e4; REAL nu;
-    get_nu(&nu,x,time,param);
-    *val = E/(1+2*nu);
-}
-void get_alpha(REAL *val,REAL* x,REAL time,void *param) {
-    *val = 1.0;
+  *val = 0.2;
 }
 
+// Lame Coefficients
+void get_lam(REAL *val,REAL* x,REAL time,void *param) {
+  REAL E;
+  REAL nu;
+  get_nu(&nu,x,time,param);
+  get_young(&E,x,time,param);
+  *val = E*nu/((1-2*nu)*(1+nu));
+}
+void  get_mu(REAL *val,REAL* x,REAL time,void *param) {
+  REAL E;
+  REAL nu;
+  get_nu(&nu,x,time,param);
+  get_young(&E,x,time,param);
+  *val = E/(1+2*nu);
+}
+
+// Right-hand side
 void source2D(REAL *val,REAL* x,REAL time,void *param) {
-  // a(x)
-  val[0] = 0.0;// x
-  val[1] = 0.0;// y
+  val[0] = 0.0;// ux
+  val[1] = 0.0;// uy
   val[2] = 0.0;// p
 }
+
+// Boundary Conditions
 void bc2D(REAL *val,REAL* x,REAL time,void *param) {
-  val[0] = 0.0;// x
-  val[1] = 0.0;// y
+  val[0] = 0.0;// ux
+  val[1] = 0.0;// uy
   val[2] = 0.0;// p
 }
 
@@ -165,11 +171,11 @@ int main (int argc, char* argv[])
 
   /******************** Assemble the matrix and right hand side ******************************/
   /* Here we assemble the discrete system:
-   *  The weak form is:
-   *
-   *  2*mu*<eps(u), eps(v)> + lam*<div u, div v> - <p, div v> = <f, v>
-   *  - <div u, q>                                            = 0
-   */
+  *  The weak form is:
+  *
+  *  2*mu*<eps(u), eps(v)> + lam*<div u, div v> - <p, div v> = <f, v>
+  *  - <div u, q>                                            = 0
+  */
   printf("Assembling the matrix and right-hand side:\n");
   clock_t clk_assembly_start = clock();
 
@@ -259,7 +265,7 @@ int main (int argc, char* argv[])
 
   clock_t clk_solve_end = clock();
   printf("Elapsed CPU Time for Solve = %f seconds.\n\n",
-         (REAL) (clk_solve_end-clk_solve_start)/CLOCKS_PER_SEC);
+  (REAL) (clk_solve_end-clk_solve_start)/CLOCKS_PER_SEC);
   /*******************************************************************************************/
 
   /********************* Compute Errors if you have exact solution ***************************/
@@ -271,7 +277,7 @@ int main (int argc, char* argv[])
   bdcsr_free( &A );
   dcsr_free( &Mp);
   for(i=0;i<2;i++)
-    dcsr_free( &A_diag[i] );
+  dcsr_free( &A_diag[i] );
   if(A_diag) free(A_diag);
 
   // Vectors
@@ -299,7 +305,7 @@ int main (int argc, char* argv[])
   /*******************************************************************************************/
   clock_t clk_overall_end = clock();
   printf("\nEnd of Program: Total CPU Time = %f seconds.\n\n",
-         (REAL) (clk_overall_end-clk_overall_start)/CLOCKS_PER_SEC);
+  (REAL) (clk_overall_end-clk_overall_start)/CLOCKS_PER_SEC);
   return 0;
 }  /* End of Program */
 /*********************************************************************************************/

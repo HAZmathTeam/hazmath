@@ -5,8 +5,8 @@
  *
  * \brief This program solves the following PDE using finite elements
  *
- *        2*mu*<eps(u),eps(v)> + lam*<div u,div v> - alpha*<p,div v> = <f1,v>
- *        alpha*<div u,q>                                            = 0
+ *        2*mu*<eps(u),eps(v)> + lam*<div u,div v> - <p,div v> = <f1,v>
+ *        <div u,q>                                            = 0
  *
  */
 
@@ -19,8 +19,8 @@ void Elasticity_system(REAL* ALoc,block_fespace *FE,mesh_struct *mesh,qcoordinat
    * \brief Computes the local stiffness matrix for Elasticity
    *        For this problem we compute LHS of:
    *
-   *        2*mu*<eps(u),eps(v)> + lam*<div u,div v> - alpha*<p,div v> = <f1,v>
-   *        alpha*<div u,q>                                            = 0
+   *        2*mu*<eps(u),eps(v)> + lam*<div u,div v> - <p,div v> = <f1,v>
+   *        <div u,q>                                            = 0
    *
    *        where eps(u) = 0.5*(grad u + (grad u)^T) =
    *                       u1x            0.5*(u2x+u1y)  0.5*(u3x+u1z)
@@ -69,7 +69,7 @@ void Elasticity_system(REAL* ALoc,block_fespace *FE,mesh_struct *mesh,qcoordinat
 
   // Stiffness Matrix Entry
   REAL aij = 0.0;
-  
+
   REAL divbbl = 0.0;
   REAL divbbl2= 0.0;
 
@@ -78,7 +78,6 @@ void Elasticity_system(REAL* ALoc,block_fespace *FE,mesh_struct *mesh,qcoordinat
   REAL mu   =0;
   REAL mu_f =0;
   REAL lam  =0;
-  REAL alpha=0;
   REAL tau  =1;
 
   INT local_row_index, local_col_index;
@@ -103,14 +102,13 @@ void Elasticity_system(REAL* ALoc,block_fespace *FE,mesh_struct *mesh,qcoordinat
       get_mu(&mu,qx,time,NULL);
       mu_f = 1.0;//viscosity(&mu_f,qx,time,NULL);
       get_lam(&lam,qx,time,NULL);
-      get_alpha(&alpha,qx,time,NULL);
 
       // b-b block: 2*mu*<eps(b),eps(b)> + lam*<div b,div b>
       // u-b block:
       // u-b block:
       // b-v block:
       // u-v block: 2*mu*<eps(u),eps(v)> + lam*<div u,div v>
-      // p-v block: -alpha*<p,div v>
+      // p-v block: -<p,div v>
       // b-q block:
       // u-q block:
       // p-q block: 0
@@ -138,7 +136,7 @@ void Elasticity_system(REAL* ALoc,block_fespace *FE,mesh_struct *mesh,qcoordinat
           ALoc[(local_row_index+test)*dof_per_elm+(local_col_index+trial)] += w*aij;
         }
       }
-      
+
       // u1-b block: 2*mu*<eps(u1),eps(b)> + lam*<div1 b,div b>
       local_col_index += FE->var_spaces[bbl]->dof_per_elm;
       // Loop over Test Functions (Rows)
@@ -177,7 +175,7 @@ void Elasticity_system(REAL* ALoc,block_fespace *FE,mesh_struct *mesh,qcoordinat
         }
       }
 
-      // p-b block: -alpha*<p, div b>
+      // p-b block: -<p, div b>
       local_col_index += FE->var_spaces[ds2]->dof_per_elm;
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->var_spaces[bbl]->dof_per_elm;test++) {
@@ -187,7 +185,7 @@ void Elasticity_system(REAL* ALoc,block_fespace *FE,mesh_struct *mesh,qcoordinat
           for (i=0;i<dim;i++) {
             aij += (FE->var_spaces[bbl]->dphi[test*dim*dim+i*dim+i]*FE->var_spaces[prs]->phi[trial]);
           }
-          aij = -alpha*aij;
+          aij = -aij;
           ALoc[(local_row_index+test)*dof_per_elm+(local_col_index+trial)] += w*aij;
         }
       }
@@ -240,13 +238,13 @@ void Elasticity_system(REAL* ALoc,block_fespace *FE,mesh_struct *mesh,qcoordinat
         }
       }
 
-      // p-v1 block: -alpha*<p,v1x>
+      // p-v1 block: -<p,v1x>
       local_col_index += FE->var_spaces[ds2]->dof_per_elm;
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->var_spaces[ds1]->dof_per_elm;test++) {
         // Loop over Trial Functions (Columns)
         for (trial=0; trial<FE->var_spaces[prs]->dof_per_elm; trial++) {
-          aij = -alpha*FE->var_spaces[prs]->phi[trial]*FE->var_spaces[ds1]->dphi[test*dim];
+          aij = -FE->var_spaces[prs]->phi[trial]*FE->var_spaces[ds1]->dphi[test*dim];
           ALoc[(local_row_index+test)*dof_per_elm+(local_col_index+trial)] += w*aij;
         }
       }
@@ -299,13 +297,13 @@ void Elasticity_system(REAL* ALoc,block_fespace *FE,mesh_struct *mesh,qcoordinat
         }
       }
 
-      // p-v2 block: -alpha*<p,v2y>
+      // p-v2 block: -<p,v2y>
       local_col_index += FE->var_spaces[ds2]->dof_per_elm;
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->var_spaces[ds2]->dof_per_elm;test++) {
         // Loop over Trial Functions (Columns)
         for (trial=0; trial<FE->var_spaces[prs]->dof_per_elm; trial++) {
-          aij = -alpha*FE->var_spaces[prs]->phi[trial]*FE->var_spaces[ds2]->dphi[test*dim+1];
+          aij = -FE->var_spaces[prs]->phi[trial]*FE->var_spaces[ds2]->dphi[test*dim+1];
           ALoc[(local_row_index+test)*dof_per_elm+(local_col_index+trial)] += w*aij;
         }
       }
@@ -314,7 +312,7 @@ void Elasticity_system(REAL* ALoc,block_fespace *FE,mesh_struct *mesh,qcoordinat
       ////////////////////////////////////////////////////
       local_row_index += FE->var_spaces[ds2]->dof_per_elm;
 
-      // b-q block: alpha*<div b,q>
+      // b-q block: <div b,q>
       local_col_index = 0;
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->var_spaces[prs]->dof_per_elm;test++) {
@@ -324,29 +322,29 @@ void Elasticity_system(REAL* ALoc,block_fespace *FE,mesh_struct *mesh,qcoordinat
           for (i=0;i<dim;i++) {
             aij += (FE->var_spaces[bbl]->dphi[trial*dim*dim+i*dim+i]*FE->var_spaces[prs]->phi[test]);
           }
-          aij = alpha*aij;
+          aij = aij;
           ALoc[(local_row_index+test)*dof_per_elm+(local_col_index+trial)] += w*aij;
         }
       }
 
-      // u1-q block: alpha*<u1x,q>
+      // u1-q block: <u1x,q>
       local_col_index += FE->var_spaces[bbl]->dof_per_elm;
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->var_spaces[prs]->dof_per_elm;test++) {
         // Loop over Trial Functions (Columns)
         for (trial=0; trial<FE->var_spaces[ds1]->dof_per_elm; trial++) {
-          aij = alpha*FE->var_spaces[ds1]->dphi[trial*dim]*FE->var_spaces[prs]->phi[test];
+          aij = FE->var_spaces[ds1]->dphi[trial*dim]*FE->var_spaces[prs]->phi[test];
           ALoc[(local_row_index+test)*dof_per_elm+(local_col_index+trial)] += w*aij;
         }
       }
 
-      // u2-q block: alpha*<u2y,q>
+      // u2-q block: <u2y,q>
       local_col_index += FE->var_spaces[ds1]->dof_per_elm;
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->var_spaces[prs]->dof_per_elm;test++) {
         // Loop over Trial Functions (Columns)
         for (trial=0; trial<FE->var_spaces[ds2]->dof_per_elm; trial++) {
-          aij = alpha*FE->var_spaces[ds2]->dphi[trial*dim+1]*FE->var_spaces[prs]->phi[test];
+          aij = FE->var_spaces[ds2]->dphi[trial*dim+1]*FE->var_spaces[prs]->phi[test];
           ALoc[(local_row_index+test)*dof_per_elm+(local_col_index+trial)] += w*aij;
         }
       }
