@@ -1009,7 +1009,7 @@ printf("Beginning BSR for Biot\n");
     INT Au_solve_TYPE = 2;
     // Problem Var...
     REAL M = 1e6;
-    REAL nu = 0.499;
+    REAL nu = 0.4;
     REAL mu =  (3e4) / (1+2*nu);
     REAL lam = (3e4)*nu / ((1-2*nu)*(1+nu));
     REAL factor = (1.0) / (lam+(2*mu/2.0));
