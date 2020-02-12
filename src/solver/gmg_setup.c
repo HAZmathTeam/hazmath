@@ -787,15 +787,16 @@ SHORT gmg_load_coarse_grids_from_file( MG_blk_data *mgl,
                                        AMG_param *param)
 {
   // local variables
-  const SHORT prtlvl     = param->print_level;
-  const SHORT cycle_type = param->cycle_type;
-  const SHORT csolver    = param->coarse_solver;
+  //const SHORT prtlvl     = param->print_level;
+  //const SHORT cycle_type = param->cycle_type;
+  //const SHORT csolver    = param->coarse_solver;
   const SHORT max_levels = param->max_levels;
 
   INT lvl = 0;
   INT status = SUCCESS;
-  INT dim = mgl[0].fine_level_mesh->dim;
-  INT i,j,nf1d,nc1d,csize;
+  //INT dim = mgl[0].fine_level_mesh->dim;
+  //INT i,j,nf1d,nc1d,csize;
+  INT csize;
 
   // To Read from file
   FILE* cgfid;
@@ -815,7 +816,9 @@ SHORT gmg_load_coarse_grids_from_file( MG_blk_data *mgl,
     fclose(cgfid);
     printf("Coarse grid loaded for lvl=%d...\n",lvl);
     /*-- Set boundary flags on the coarse mesh --*/
-    mgl[0].set_bdry_flags(mgl[lvl+1].fine_level_mesh);
+    if( mgl[0].set_bdry_flags ){
+      mgl[0].set_bdry_flags(mgl[lvl+1].fine_level_mesh);
+    }
   }
 
   return status;
@@ -840,15 +843,16 @@ SHORT gmg_build_coarse_FE_spaces( MG_blk_data *mgl,
                                   AMG_param *param)
 {
   // local variables
-  const SHORT prtlvl     = param->print_level;
-  const SHORT cycle_type = param->cycle_type;
-  const SHORT csolver    = param->coarse_solver;
+  //const SHORT prtlvl     = param->print_level;
+  //const SHORT cycle_type = param->cycle_type;
+  //const SHORT csolver    = param->coarse_solver;
   const SHORT max_levels = param->max_levels;
 
   INT lvl = 0;
   INT status = SUCCESS;
-  INT dim = mgl[0].fine_level_mesh->dim;
-  INT i,j,nf1d,nc1d,csize;
+  //INT dim = mgl[0].fine_level_mesh->dim;
+  //INT i,j,nf1d,nc1d,csize;
+  INT i;
 
   INT nspaces = mgl[0].FE->nspaces;
 
@@ -888,15 +892,15 @@ SHORT gmg_apply_periodic_BC( MG_blk_data *mgl,
                              INT NoBBL)
 {
   // local variables
-  const SHORT prtlvl     = param->print_level;
-  const SHORT cycle_type = param->cycle_type;
-  const SHORT csolver    = param->coarse_solver;
+  //const SHORT prtlvl     = param->print_level;
+  //const SHORT cycle_type = param->cycle_type;
+  //const SHORT csolver    = param->coarse_solver;
   const SHORT max_levels = param->max_levels;
 
   INT lvl = 0;
   INT status = SUCCESS;
   INT dim = mgl[0].fine_level_mesh->dim;
-  INT i,j,nf1d,nc1d,csize;
+  INT i,j;//,nf1d,nc1d,csize;
   INT ndof, cnt, dof_shift;
   INT brow = mgl[0].A.brow;
 
@@ -1023,8 +1027,26 @@ SHORT gmg_blk_setup_generic(MG_blk_data *mgl,
   INT   dim     = mgl[0].fine_level_mesh->dim;
   INT   brow    = mgl[0].A.brow;
   INT   nspaces = mgl[0].FE->nspaces;
-  INT   i,j,nf1d,nc1d,csize;
+  INT   i,j,nf1d,nc1d;//,csize;
   REAL  setup_start, setup_end;
+
+  INT bm = 0;
+  INT blk = 0;
+  INT blk_fill = 0;
+  mgl[0].dirichlet_blk = (INT**)calloc(brow,sizeof(INT*));
+  for(i=0; i<mgl[0].FE->nspaces; i++){
+    if(i == blk_fill) mgl[0].dirichlet_blk[blk] = &(mgl[0].FE->dirichlet[bm]); // Displacement
+
+    if( mgl[0].gmg_type[blk] == 999 && i == blk_fill ){
+      blk_fill += dim+1; // Skip all dofs in merged blocks
+      blk += 1;
+    } else {
+      blk_fill += 1; // Move to next block
+      blk += 1;
+    }
+
+    bm += mgl[0].FE->var_spaces[i]->ndof;
+  }
 
   dCSRmat tempRA;
   dCSRmat Rmerge;
@@ -1116,6 +1138,24 @@ SHORT gmg_blk_setup_generic(MG_blk_data *mgl,
     set_dirichlet_bdry_block(mgl[lvl+1].FE, mgl[lvl+1].fine_level_mesh);
     eliminate_DirichletBC_blockFE_blockA(NULL, mgl[lvl+1].FE, mgl[lvl+1].fine_level_mesh,NULL,&mgl[lvl+1].A,0.0);
 
+    bm = 0;
+    blk = 0;
+    blk_fill = 0;
+    mgl[lvl+1].dirichlet_blk = (INT**)calloc(brow,sizeof(INT*));
+    for(i=0; i<mgl[lvl+1].FE->nspaces; i++){
+      if(i == blk_fill) mgl[lvl+1].dirichlet_blk[blk] = &(mgl[lvl+1].FE->dirichlet[bm]); // Displacement
+
+      if( mgl[lvl+1].gmg_type[blk] == 999 && i == blk_fill ){
+        blk_fill += dim+1; // Skip all dofs in merged blocks
+        blk += 1;
+      } else {
+        blk_fill += 1; // Move to next block
+        blk += 1;
+      }
+
+      bm += mgl[lvl+1].FE->var_spaces[i]->ndof;
+    }
+
     lvl++;
   }
 
@@ -1203,7 +1243,7 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
   INT dim     = mgl[0].fine_level_mesh->dim;
   INT nspaces = mgl[0].FE->nspaces;
   INT brow    = mgl[0].A.brow;
-  INT i,j,nf1d,nc1d,csize,m;
+  INT i,j,nf1d,nc1d,m;
   REAL  setup_start, setup_end;
 
   mgl[0].dirichlet_blk = (INT**)calloc(brow,sizeof(INT*));
@@ -1583,10 +1623,12 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
 
         /*-- Setup Schwarz smoother if necessary --*/
         if( param->Schwarz_on_blk[blk] == 1 ) {
-          printf("\tcalling Schwarz setup\n");
+          printf("\tCalling Schwarz setup on block: %d\n",blk);
           bmgl[0].mgl[blk][lvl].Schwarz.A = dcsr_sympat( &bmgl[0].mgl[blk][lvl].A );
+          //bmgl[0].mgl[blk][lvl].Schwarz.A = dcsr_sympat( &bmgl[0].A_diag[0] );
           //bmgl[0].mgl[blk][lvl].Schwarz.A = dcsr_sympat( bmgl[0].A.blocks[0] );
           Schwarz_setup_geometric( &bmgl[0].mgl[blk][lvl].Schwarz, &swzparam, bmgl[lvl].fine_level_mesh);
+          printf("\tFinished Schwarz setup on block: %d\n",blk);
         }
       }
 

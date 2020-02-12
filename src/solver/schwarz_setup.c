@@ -342,7 +342,7 @@ void Schwarz_get_patch_geometric_multiple_DOFtype (Schwarz_data *Schwarz,
 {
     INT nblk, ntot;
     INT i,blk;
-    INT* ntotpatch = (INT*)calloc(nptype,sizeof(INT));
+    //INT* ntotpatch = (INT*)calloc(nptype,sizeof(INT));
     INT* dofshift  = (INT*)calloc(nptype+1,sizeof(INT));
     dofshift[0] = 0;
 

@@ -502,7 +502,6 @@ void smoother_dcsr_Schwarz_forward_additive (Schwarz_data  *Schwarz,
                                     REAL       w)
 {
     INT i, j, iblk, ki, kj, kij, is, ibl0, ibl1, nloc, iaa, iab;
-    INT status;
 
     // Schwarz partition
     INT  nblk = Schwarz->nblk;
@@ -1055,7 +1054,7 @@ printf("Beginning BSR for Biot\n");
     dcsr_aAxpy( -1.0, A->blocks[7], y.val, rhs.val );// rhs = rhs - B*Mwinv*e
 
     dvector rhs_stokes, sol_stokes, rhs_elast, sol_elast;
-    linear_itsolver_param linear_itparam;
+    //linear_itsolver_param linear_itparam;
 
     dvec_alloc( d.row, &temp);
     dvec_cp( &d, &temp);
@@ -1091,7 +1090,7 @@ printf("Beginning BSR for Biot\n");
             rhs_stokes.val[i] = temp.val[i];
             sol_stokes.val[i] = 0.0;//d.val[i];
             rhs_elast.val[i]  = temp.val[i];
-            sol_elast.val[i]  = 1.0;d.val[i];
+            sol_elast.val[i]  = 1.0;//d.val[i];
           }
           for( i=n0; i<(n0+n2); i++){
             rhs_stokes.val[i] = 0.0;
@@ -1307,8 +1306,8 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
     INT n0, n1, n2;
     INT triType = 1;
     // Sub-vectors
-    dvector x0, x1, x2;
-    dvector b0, b1, b2;
+//    dvector x0, x1, x2;
+//    dvector b0, b1, b2;
     //dvector res = dvec_create(bmgl[lvl].b.row);
     dvector res, y;
     dvector r0, r1, r2;
@@ -1321,22 +1320,22 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
     //n2 = bmgl[lvl].mgl[2][0].A.row;
     n2 = bmgl[lvl].A.blocks[8]->row;
 
-    x0.row = n0;
-    x0.val = bmgl[lvl].x.val;
-    b0.row = n0;
-    b0.val = bmgl[lvl].b.val;
-
-    x1.row = n1;
-    x1.val = &(bmgl[lvl].x.val[n0]);
-    b1.row = n1;
-    b1.val = &(bmgl[lvl].b.val[n0]);
-
-    x2.row = n2;
-    x2.val = &(bmgl[lvl].x.val[n0+n1]);
-    b2.row = n2;
-    b2.val = &(bmgl[lvl].b.val[n0+n1]);
-
-    dvector b_disp;
+//    x0.row = n0;
+//    x0.val = bmgl[lvl].x.val;
+//    b0.row = n0;
+//    b0.val = bmgl[lvl].b.val;
+//
+//    x1.row = n1;
+//    x1.val = &(bmgl[lvl].x.val[n0]);
+//    b1.row = n1;
+//    b1.val = &(bmgl[lvl].b.val[n0]);
+//
+//    x2.row = n2;
+//    x2.val = &(bmgl[lvl].x.val[n0+n1]);
+//    b2.row = n2;
+//    b2.val = &(bmgl[lvl].b.val[n0+n1]);
+//
+//    dvector b_disp;
 
     if(0){
       printf("Block relaxation. Type = %d\n",triType);
