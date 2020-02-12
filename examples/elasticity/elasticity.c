@@ -81,6 +81,7 @@ int main (int argc, char* argv[])
   /****** INITIALIZE PARAMETERS **************************************************/
   // Loop Indices
   INT i;
+  bool SOLVE_GMG = true;
 
   // Overall CPU Timing
   clock_t clk_overall_start = clock();
@@ -189,6 +190,18 @@ int main (int argc, char* argv[])
   // Assemble the matricies without BC first
   if(dim==2) assemble_global_block(&A,&b,Elasticity_system,FEM_Block_RHS_Local,&FE,&mesh,cq,source2D,0.0);
 
+  // Merge Displacement into single block without BC
+  block_dCSRmat A2_noBC;
+  bdcsr_alloc(2, 2, &A2_noBC);
+  dCSRmat Ablk11_noBC = bdcsr_subblk_2_dcsr(&A,     0,   dim,     0,   dim);
+  dCSRmat Ablk12_noBC = bdcsr_subblk_2_dcsr(&A,     0,   dim, dim+1, dim+1);
+  dCSRmat Ablk21_noBC = bdcsr_subblk_2_dcsr(&A, dim+1, dim+1,     0,   dim);
+  dCSRmat Ablk22_noBC = bdcsr_subblk_2_dcsr(&A, dim+1, dim+1, dim+1, dim+1);
+  A2_noBC.blocks[0] = &Ablk11_noBC;
+  A2_noBC.blocks[1] = &Ablk12_noBC;
+  A2_noBC.blocks[2] = &Ablk21_noBC;
+  A2_noBC.blocks[3] = &Ablk22_noBC;
+
   // Eliminate boundary conditions in matrix and rhs
   if(dim==2) {
     eliminate_DirichletBC_blockFE_blockA(bc2D,&FE,&mesh,&b,&A,0.0);
@@ -217,8 +230,8 @@ int main (int argc, char* argv[])
   A_diag = (dCSRmat *)calloc(2, sizeof(dCSRmat));
 
   for(i=0;i<1;i++){ // copy block diagonal to A_diag
-    dcsr_alloc(A.blocks[i*(dim+2)]->row, A.blocks[i*(dim+2)]->col, A.blocks[i*(dim+2)]->nnz, &A_diag[i]);
-    dcsr_cp(A.blocks[i*(dim+2)], &A_diag[i]);
+    dcsr_alloc(A2.blocks[i*(dim+2)]->row, A2.blocks[i*(dim+2)]->col, A2.blocks[i*(dim+2)]->nnz, &A_diag[i]);
+    dcsr_cp(A2.blocks[i*(dim+2)], &A_diag[i]);
   }
 
   // Get Mass Matrix for p
@@ -245,18 +258,47 @@ int main (int argc, char* argv[])
   param_linear_solver_init(&linear_itparam);
   param_linear_solver_set(&linear_itparam,&inparam);
 
+  // Set parameters for AMG
+  AMG_param amgparam;
+  param_amg_init(&amgparam);
+  param_amg_set(&amgparam, &inparam);
+
   // Solve
-  if(dim==2){
-    if (linear_itparam.linear_precond_type == PREC_NULL) {
-      solver_flag = linear_solver_bdcsr_krylov(&A2, &b, &sol, &linear_itparam);
-    } else {
-      solver_flag = linear_solver_bdcsr_krylov_block_3(&A2, &b, &sol, &linear_itparam, NULL, A_diag);
-    }
-  } else if (dim==3) {
-    if (linear_itparam.linear_precond_type == PREC_NULL) {
-      solver_flag = linear_solver_bdcsr_krylov(&A, &b, &sol, &linear_itparam);
-    } else {
-      solver_flag = linear_solver_bdcsr_krylov_block_4(&A, &b, &sol, &linear_itparam, NULL, A_diag);
+  if( SOLVE_GMG ){
+  /*====================================================================================================*/
+  solve_stats solve_info;
+  solve_info.iteration_count = 0;
+  solve_info.time_setup = 0.0;
+  solve_info.time_precondition_setup = 0.0;
+  solve_info.time_solve = 0.0;
+  // POINTERS FOR STUFF
+  INT gmg_type[]          = {999,30,0};
+  INT Schwarz_on_blk[]    = {1,0,0};
+  amgparam.Schwarz_on_blk = Schwarz_on_blk;
+
+  amgparam.max_levels = 2;
+
+  // SET SOLN and RANDOM INIT
+  dvec_set(b.row,&b,0.0);// solve zero
+  dvec_rand(sol.row,&sol);
+  for(i=0; i<sol.row; i++){ if( FE.dirichlet[i] == 1){ sol.val[i] = 0.0; } }
+
+  solver_flag = linear_solver_bdcsr_gmg(&A2,&b,&sol,&amgparam,gmg_type,&mesh,&FE,NULL,A_diag,&A2_noBC,&linear_itparam,&solve_info);
+  //dvector_print(stdout, &sol_vec);
+  /*====================================================================================================*/
+  } else {
+    if(dim==2){
+      if (linear_itparam.linear_precond_type == PREC_NULL) {
+        solver_flag = linear_solver_bdcsr_krylov(&A2, &b, &sol, &linear_itparam);
+      } else {
+        solver_flag = linear_solver_bdcsr_krylov_block_3(&A2, &b, &sol, &linear_itparam, NULL, A_diag);
+      }
+    } else if (dim==3) {
+      if (linear_itparam.linear_precond_type == PREC_NULL) {
+        solver_flag = linear_solver_bdcsr_krylov(&A, &b, &sol, &linear_itparam);
+      } else {
+        solver_flag = linear_solver_bdcsr_krylov_block_4(&A, &b, &sol, &linear_itparam, NULL, A_diag);
+      }
     }
   }
 
