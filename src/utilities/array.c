@@ -336,10 +336,13 @@ REAL array_dotprod (const INT n,
                     const REAL * x,
                     const REAL * y)
 {
+
     INT i;
     REAL value = 0.0;
 
-    for (i=0; i<n; ++i) value += x[i]*y[i];
+    for (i=0; i<n; ++i) {
+      value += x[i]*y[i];
+    }
 
     return value;
 }
