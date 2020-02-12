@@ -396,6 +396,7 @@ void HX_div_data_free (HX_div_data *hxdivdata,
     dcsr_free(hxdivdata->Pt_curl);
     dcsr_free(hxdivdata->Pt_div);
     dcsr_free(hxdivdata->Curlt);
+    dcsr_free(hxdivdata->A_curl);
     dcsr_free(hxdivdata->A_curlgrad);
     dcsr_free(hxdivdata->A_divgrad);
 
@@ -403,11 +404,11 @@ void HX_div_data_free (HX_div_data *hxdivdata,
     if (hxdivdata->mgl_divgrad) amg_data_free(hxdivdata->mgl_divgrad, hxdivdata->amgparam_divgrad);
 
     //dcsr_free(hxdivdata->Gradt);
-    dcsr_free(hxdivdata->Curlt);
-    dcsr_free(hxdivdata->A_grad);
-    dcsr_free(hxdivdata->A_curl);
+    //dcsr_free(hxdivdata->Curlt);
+    //dcsr_free(hxdivdata->A_grad);
+    //dcsr_free(hxdivdata->A_curl);
 
-    if (hxdivdata->mgl_grad) amg_data_free(hxdivdata->mgl_grad, hxdivdata->amgparam_grad);
+    //if (hxdivdata->mgl_grad) amg_data_free(hxdivdata->mgl_grad, hxdivdata->amgparam_grad);
 
     if (hxdivdata->backup_r) free(hxdivdata->backup_r);
     if (hxdivdata->w) free(hxdivdata->w);
