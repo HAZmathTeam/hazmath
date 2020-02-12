@@ -482,6 +482,127 @@ void smoother_dcsr_Schwarz_forward (Schwarz_data  *Schwarz,
 }
 
 /**
+ * \fn void smoother_dcsr_Schwarz_forward_additive (Schwarz_data  *Schwarz,
+ *                                         Schwarz_param *param,
+ *                                         dvector *x, dvector *b)
+ *
+ * \brief Schwarz smoother: forward sweep
+ *
+ * \param Schwarz Pointer to the Schwarz data
+ * \param param   Pointer to the Schwarz parameter
+ * \param x       Pointer to solution vector
+ * \param b       Pointer to right hand
+ *
+ * \note Needs improvment -- Xiaozhe
+ */
+void smoother_dcsr_Schwarz_forward_additive (Schwarz_data  *Schwarz,
+                                    Schwarz_param *param,
+                                    dvector       *x,
+                                    dvector       *b,
+                                    REAL       w)
+{
+    INT i, j, iblk, ki, kj, kij, is, ibl0, ibl1, nloc, iaa, iab;
+    INT status;
+
+    // Schwarz partition
+    INT  nblk = Schwarz->nblk;
+    dCSRmat *blk = Schwarz->blk_data;
+    INT  *iblock = Schwarz->iblock;
+    INT  *jblock = Schwarz->jblock;
+    INT  *mask   = Schwarz->mask;
+    INT  block_solver = param->Schwarz_blksolver;
+
+
+    // Schwarz data
+    dCSRmat A = Schwarz->A;
+    INT *ia = A.IA;
+    INT *ja = A.JA;
+    REAL *val = A.val;
+
+    // Local solution and right hand vectors
+    dvector rhs = Schwarz->rhsloc1;
+    dvector u   = Schwarz->xloc1;
+    // Local solution storage
+    dvector averaging_factor = dvec_create( x->row );
+    dvector xout = dvec_create( x->row );//TODO: need to allocate
+
+#if WITH_SUITESPARSE
+    void **numeric = Schwarz->numeric;
+#endif
+
+    for (is=0; is<nblk; ++is) {
+        // Form the right hand of eack block
+        ibl0 = iblock[is];
+        ibl1 = iblock[is+1];
+        nloc = ibl1-ibl0;
+        for (i=0; i<nloc; ++i ) {
+            iblk = ibl0 + i;
+            ki   = jblock[iblk];
+            mask[ki] = i+1;// TODO: zero-one fix?
+        }// for i<nloc
+
+        for (i=0; i<nloc; ++i) {
+            iblk = ibl0 + i;
+            ki = jblock[iblk];
+            rhs.val[i] = b->val[ki];
+            iaa = ia[ki];//-1; // TODO: zero-one fix?
+            iab = ia[ki+1];//-1; // TODO: zero-one fix?
+            for (kij = iaa; kij<iab; ++kij) {
+                kj = ja[kij];//-1; // TODO: zero-one fix?
+                j  = mask[kj];
+                //if(j == 0) {
+                    rhs.val[i] -= val[kij]*x->val[kj];
+                //}
+            }
+        }// for i<nloc
+
+        // Solve each block
+        switch (block_solver) {
+
+#if WITH_SUITESPARSE
+            case SOLVER_UMFPACK: {
+                /* use UMFPACK direct solver on each block */
+                umfpack_solve(&blk[is], &rhs, &u, numeric[is], 0);
+                break;
+            }
+#endif
+            default:
+                /* use iterative solver on each block */
+                u.row = blk[is].row;
+                rhs.row = blk[is].row;
+                dvec_set(u.row, &u, 0);
+                dcsr_pvgmres(&blk[is], &rhs, &u, NULL, 1e-8, 20, 20, 1, 0);
+        }
+
+        //zero the mask so that everyting is as it was
+        for (i=0; i<nloc; ++i) {
+            iblk = ibl0 + i;
+            ki   = jblock[iblk];
+            mask[ki] = 0;
+            ///////////////////////////////////////////// Option 1
+            // averaging factor computed here, need loop later to sum over and apply.
+            xout.val[ki] += u.val[i];//TODO: changed here
+            averaging_factor.val[ki] += 1;
+            ///////////////////////////////////////////// Option 2
+            // averaging factor is precomputed. Averaging is done in the sum
+            //xout.val[ki] += u.val[i] * averaging_factor.val[ki];
+            //printf("%f\t\tu.row = %d, i=%d, ki=%d, ___rhs %f\n",u.val[i],u.row,i,ki,rhs.val[i]);
+        }
+    }
+    // Copy xout into x
+    printf("Addings\n");
+    // Lazy way for now (memcpy or something is probably better)
+    for (i=0; i<x->row; i++){
+      // Using Option 1
+      x->val[i] += w*xout.val[i]/averaging_factor.val[i];
+      // Using Option 2
+      //x->val[i] = xout.val[i];
+    }
+    dvec_free(&xout);
+    dvec_free(&averaging_factor);
+}
+
+/**
  * \fn void smoother_dcsr_Schwarz_backward (Schwarz_data  *Schwarz,
  *                                          Schwarz_param *param,
  *                                          dvector *x, dvector *b)
@@ -577,6 +698,124 @@ void smoother_dcsr_Schwarz_backward (Schwarz_data *Schwarz,
             x->val[ki] = u.val[i];
         }
     }
+}
+
+/**
+ * \fn void smoother_dcsr_Schwarz_backward_additive (Schwarz_data  *Schwarz,
+ *                                          Schwarz_param *param,
+ *                                          dvector *x, dvector *b)
+ *
+ * \brief Schwarz smoother: backward sweep
+ *
+ * \param Schwarz Pointer to the Schwarz data
+ * \param param   Pointer to the Schwarz parameter
+ * \param x       Pointer to solution vector
+ * \param b       Pointer to right hand
+ *
+ * \note Needs improvment -- Xiaozhe
+ */
+void smoother_dcsr_Schwarz_backward_additive (Schwarz_data *Schwarz,
+                                     Schwarz_param *param,
+                                     dvector *x,
+                                     dvector *b,
+                                     REAL w)
+{
+    INT i, j, iblk, ki, kj, kij, is, ibl0, ibl1, nloc, iaa, iab;
+
+    // Schwarz partition
+    INT  nblk = Schwarz->nblk;
+    dCSRmat *blk = Schwarz->blk_data;
+    INT  *iblock = Schwarz->iblock;
+    INT  *jblock = Schwarz->jblock;
+    INT  *mask   = Schwarz->mask;
+    INT  block_solver = param->Schwarz_blksolver;
+
+
+    // Schwarz data
+    dCSRmat A = Schwarz->A;
+    INT *ia = A.IA;
+    INT *ja = A.JA;
+    REAL *val = A.val;
+
+    // Local solution and right hand vectors
+    dvector rhs = Schwarz->rhsloc1;
+    dvector u   = Schwarz->xloc1;
+    // Local solution storage
+    dvector averaging_factor = dvec_create( x->row );
+    dvector xout = dvec_create( x->row );//TODO: need to allocate
+
+#if WITH_SUITESPARSE
+    void **numeric = Schwarz->numeric;
+#endif
+
+    for (is=nblk-1; is>=0; --is) {
+        // Form the right hand of eack block
+        ibl0 = iblock[is];
+        ibl1 = iblock[is+1];
+        nloc = ibl1-ibl0;
+        for (i=0; i<nloc; ++i ) {
+            iblk = ibl0 + i;
+            ki   = jblock[iblk];
+            mask[ki] = i+1;
+        }
+
+        for (i=0; i<nloc; ++i) {
+            iblk = ibl0 + i;
+            ki = jblock[iblk];
+            rhs.val[i] = b->val[ki];
+            iaa = ia[ki];//-1;
+            iab = ia[ki+1];//-1;
+            for (kij = iaa; kij<iab; ++kij) {
+                kj = ja[kij];//-1;
+                j  = mask[kj];
+                //if(j == 0) {
+                    rhs.val[i] -= val[kij]*x->val[kj];
+                //}
+            }
+        }
+
+        // Solve each block
+        switch (block_solver) {
+
+#if WITH_SUITESPARSE
+            case SOLVER_UMFPACK: {
+                /* use UMFPACK direct solver on each block */
+                umfpack_solve(&blk[is], &rhs, &u, numeric[is], 0);
+                break;
+            }
+#endif
+            default:
+                /* use iterative solver on each block */
+                rhs.row = blk[is].row;
+                u.row   = blk[is].row;
+                dvec_set(u.row, &u, 0);
+                dcsr_pvgmres (&blk[is], &rhs, &u, NULL, 1e-8, 20, 20, 1, 0);
+        }
+
+        //zero the mask so that everyting is as it was
+        for (i=0; i<nloc; ++i) {
+            iblk = ibl0 + i;
+            ki   = jblock[iblk];
+            mask[ki] = 0;
+            // Option 1
+            xout.val[ki] += u.val[i];
+            averaging_factor.val[ki] += 1.0;
+            //if(ki==0){ printf("ki=0 | i=%d | patch=%d\n",i,is);}
+        }
+    }
+    // Copy xout into x
+    printf("Addings\n");
+    // Lazy way for now (memcpy or something is probably better)
+    for (i=0; i<x->row; i++){
+      // Using Option 1
+      //printf("%f %f\n",x->val[i],xout.val[i]/averaging_factor.val[i]);
+      x->val[i] += w*xout.val[i]/averaging_factor.val[i];
+      //printf("\t AF[%d] = %f\n",i,averaging_factor.val[i]);
+      // Using Option 2
+      //x->val[i] = xout.val[i];
+    }
+    dvec_free(&xout);
+    dvec_free(&averaging_factor);
 }
 
 /**
@@ -766,7 +1005,6 @@ printf("Beginning BSR for Biot\n");
 
     Schwarz_param swzparam;
     swzparam.Schwarz_blksolver = mgl_disp->Schwarz.blk_solver;
-//      smoother_dcsr_Schwarz_forward( &(bmgl[lvl].mgl[1][0].Schwarz), &swzparam, &x1, &b1);
 
     INT Au_solve_TYPE = 2;
     // Problem Var...
@@ -834,10 +1072,15 @@ printf("Beginning BSR for Biot\n");
         case 2: // Schwarz
           dvec_set( d.row, &d, 0.0);////////////////////////////
           if(L==1){
-            smoother_dcsr_Schwarz_forward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
+            //smoother_dcsr_Schwarz_backward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
+            //smoother_dcsr_Schwarz_forward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
+            smoother_dcsr_Schwarz_forward_additive( &(mgl_disp->Schwarz), &swzparam, &d, &temp, 1.0);
           } else {
-            smoother_dcsr_Schwarz_backward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
+            //smoother_dcsr_Schwarz_forward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
+            //smoother_dcsr_Schwarz_backward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
+            smoother_dcsr_Schwarz_backward_additive( &(mgl_disp->Schwarz), &swzparam, &d, &temp, 1.0);
           }
+          //dcsr_pvfgmres( A->blocks[0], &temp, &d, NULL, 1e-3, 1000, 1000, 1, 1);
           break;
         case 3: // Strange Thing
           dvec_alloc(n0+n2, &rhs_stokes);
@@ -893,9 +1136,11 @@ printf("Beginning BSR for Biot\n");
         case 2: // Schwarz
           dvec_set( d.row, &d, 0.0);//////////////////////////////
           if(L==1){
-            smoother_dcsr_Schwarz_forward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
+            //smoother_dcsr_Schwarz_forward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
+            smoother_dcsr_Schwarz_forward_additive( &(mgl_disp->Schwarz), &swzparam, &d, &temp, 1.0);
           } else {
-            smoother_dcsr_Schwarz_backward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
+            //smoother_dcsr_Schwarz_backward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
+            smoother_dcsr_Schwarz_backward_additive( &(mgl_disp->Schwarz), &swzparam, &d, &temp, 1.0);
           }
           break;
         case 3: // Strange Thing
@@ -919,7 +1164,7 @@ printf("Beginning BSR for Biot\n");
             //d.val[i] = lamS/(lamS+1) * sol_stokes.val[i] + 1.0/(lamS+1) * sol_elast.val[i];
             d.val[i] = ( (lamS/(2*mu))/(lamS+2*mu) * sol_stokes.val[i] + 1.0/(lamS+2*mu) * sol_elast.val[i] );
           }
-          directsolve_UMF( A->blocks[0], &temp, &d, 0); // SOLVE
+          //directsolve_UMF( A->blocks[0], &temp, &d, 0); // SOLVE
           break;
         default: // Direct
           directsolve_UMF( A->blocks[0], &temp, &d, 0); // SOLVE
@@ -1323,7 +1568,7 @@ void smoother_block_biot_3field( const INT lvl, MG_blk_data *bmgl, AMG_param *pa
 
       // Update Solution
       //dvec_axpy(1.0, &y, &bmgl[lvl].x);
-      dvec_axpy(0.7, &y, &bmgl[lvl].x);
+      dvec_axpy(0.99, &y, &bmgl[lvl].x);
 
     } else if (1) {
     smoother_bdcsr_bsr_biot3( &bmgl[lvl].x, &bmgl[lvl].b, param->BSR_alpha, param->BSR_omega, &bmgl[lvl].A, pre_post, &bmgl[lvl].mgl[0][0],&bmgl[lvl]);
