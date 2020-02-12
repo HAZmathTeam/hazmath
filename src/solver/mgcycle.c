@@ -232,10 +232,11 @@ static void bdcsr_presmoothing(const INT lvl, MG_blk_data *mgl, AMG_param *param
         //case SMOOTHER_JACOBI:
         //    smoother_bdcsr_jacobi(&mgl[lvl].x, 1, &mgl[lvl].A, &mgl[lvl].b, nsweeps);
         //    break;
-        case 1000:
+        case 1001:
           swzparam.Schwarz_blksolver = mgl[lvl].Schwarz.blk_solver;
           printf("Presmooth Schwarz Start. solver %d\n",swzparam.Schwarz_blksolver);
           smoother_dcsr_Schwarz_forward(&mgl[lvl].Schwarz, &swzparam, &mgl[lvl].x, &mgl[lvl].b);
+          //smoother_dcsr_Schwarz_forward_additive(&mgl[lvl].Schwarz, &swzparam, &mgl[lvl].x, &mgl[lvl].b,0.88);
           printf("Presmooth Schwarz Done.\n");
           break;
         default:
@@ -270,9 +271,10 @@ static void bdcsr_postsmoothing(const INT lvl, MG_blk_data *mgl, AMG_param *para
 //        case SMOOTHER_JACOBI:
 //            smoother_bdcsr_jacobi(&mgl[lvl].x, 1, &mgl[lvl].A, &mgl[lvl].b, nsweeps);
 //            break;
-        case 1000:
+        case 1001:
           swzparam.Schwarz_blksolver = mgl[lvl].Schwarz.blk_solver;
           smoother_dcsr_Schwarz_backward(&mgl[lvl].Schwarz, &swzparam, &mgl[lvl].x, &mgl[lvl].b);
+          //smoother_dcsr_Schwarz_backward_additive(&mgl[lvl].Schwarz, &swzparam, &mgl[lvl].x, &mgl[lvl].b,0.88);
           break;
         default:
           for(i=0;i<nsweeps;i++){
@@ -864,11 +866,11 @@ ForwardSweep:
 //        b_disp.row     = bmgl[l].FE->var_spaces[2]->ndof;
 //        b_disp.val     = b_disp.val + bmgl[l].FE->var_spaces[1]->ndof;
 //        dvec_orthog_const(&b_disp);
-        // correct bdry
-        for(i=0; i<bmgl[l].x.row; i++){
-          if( bmgl[l].FE->dirichlet[i] == 1 )
-            bmgl[l].x.val[i] = bmgl[l].w.val[i];
-        }
+//        // correct bdry
+//        for(i=0; i<bmgl[l].x.row; i++){
+//          if( bmgl[l].FE->dirichlet[i] == 1 )
+//            bmgl[l].x.val[i] = bmgl[l].w.val[i];
+//        }
 
         if ( num_lvl[l] < cycle_type ) break;
         else num_lvl[l] = 0;
