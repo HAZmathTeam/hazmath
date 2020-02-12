@@ -1029,6 +1029,7 @@ SHORT gmg_blk_setup_generic(MG_blk_data *mgl,
   INT   nspaces = mgl[0].FE->nspaces;
   INT   i,j,nf1d,nc1d;//,csize;
   REAL  setup_start, setup_end;
+  INT fe_blk = 0;
 
   INT bm = 0;
   INT blk = 0;
@@ -1066,26 +1067,29 @@ SHORT gmg_blk_setup_generic(MG_blk_data *mgl,
     printf("Allocation of R A P for lvl=%d is finished...\n",lvl);
 
     /*-- Form restriction matrix R for each FE space--*/
-    for( i = 0; i<nspaces; i++ ){
+    for( i = 0; i<brow; i++ ){
       // Check gmg type, this could be replaced with checking FE type
       switch( mgl[lvl].gmg_type[i] ){
         case 0:// P0
           nf1d = sqrt(mgl[lvl].fine_level_mesh->nelm/2);
           nc1d = sqrt(mgl[lvl+1].fine_level_mesh->nelm/2);
-          build_constant_R( mgl[lvl].R.blocks[i+i*nspaces], nf1d, nc1d);
-          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[i], mgl[lvl+1].fine_level_mesh, 1,1);
+          build_constant_R( mgl[lvl].R.blocks[i+i*brow], nf1d, nc1d);
+          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[fe_blk], mgl[lvl+1].fine_level_mesh, 1,1);
+          fe_blk += 1;
           break;
         case 1:// P1
           nf1d = sqrt(mgl[lvl].fine_level_mesh->nv);
           nc1d = sqrt(mgl[lvl+1].fine_level_mesh->nv);
-          build_linear_R( mgl[lvl].R.blocks[i+i*nspaces], nf1d, nc1d);
-          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[i], mgl[lvl+1].fine_level_mesh, 1,1);
+          build_linear_R( mgl[lvl].R.blocks[i+i*brow], nf1d, nc1d);
+          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[fe_blk], mgl[lvl+1].fine_level_mesh, 1,1);
+          fe_blk += 1;
           break;
         case 30:// RT0
           nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
           nc1d = (nf1d)/2;
-          build_face_R( mgl[lvl].R.blocks[i+i*nspaces], mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
-          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[i], mgl[lvl+1].fine_level_mesh, 1,1);
+          build_face_R( mgl[lvl].R.blocks[i+i*brow], mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
+          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[fe_blk], mgl[lvl+1].fine_level_mesh, 1,1);
+          fe_blk += 1;
           break;
         case 999:// P1 + bubbles combined as a single block matrix
           bdcsr_alloc(dim+1,dim+1,&tempRblk);
@@ -1103,30 +1107,33 @@ SHORT gmg_blk_setup_generic(MG_blk_data *mgl,
           Rmerge = bdcsr_2_dcsr(&tempRblk);
           dcsr_alloc(Rmerge.row,Rmerge.col,Rmerge.nnz,mgl[lvl].R.blocks[i+i*brow]);
           dcsr_cp(&Rmerge,mgl[lvl].R.blocks[i+i*brow]);
-          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[0], mgl[lvl+1].fine_level_mesh, 1, 10); //bbl
-          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[1], mgl[lvl+1].fine_level_mesh, 1, 10); // Ux
-          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[2], mgl[lvl+1].fine_level_mesh, 1, 10); // Uy
+          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[fe_blk], mgl[lvl+1].fine_level_mesh, 1, 10); //bbl
+          fe_blk += 1;
+          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[fe_blk], mgl[lvl+1].fine_level_mesh, 1, 10); // Ux
+          fe_blk += 1;
+          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[fe_blk], mgl[lvl+1].fine_level_mesh, 1, 10); // Uy
+          fe_blk += 1;
           dcsr_free(&Rmerge);
           break;
       }// switch gmg_type
-    }// for i<nspaces
+    }// for i<brow
     printf("Built R for lvl=%d...\n",lvl);
 
     /*-- Form Prolongation --*/
-    for(i=0; i<nspaces; i++){
-      dcsr_trans(mgl[lvl].R.blocks[i+i*nspaces], mgl[lvl].P.blocks[i+i*nspaces]);
+    for(i=0; i<brow; i++){
+      dcsr_trans(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].P.blocks[i+i*brow]);
     }
     printf("Built P for lvl=%d...\n",lvl);
 
     /*-- Form coarse level stiffness matrix --*/
-    for(i=0; i<nspaces; i++){
-      for(j=0; j<nspaces; j++){
-        if(mgl[lvl].A.blocks[j+i*nspaces]){
-          dcsr_mxm(mgl[lvl].R.blocks[i+i*nspaces], mgl[lvl].A_noBC.blocks[j+i*nspaces], &tempRA);
-          dcsr_mxm(&tempRA, mgl[lvl].P.blocks[j+j*nspaces], mgl[lvl+1].A_noBC.blocks[j+i*nspaces]);
+    for(i=0; i<brow; i++){
+      for(j=0; j<brow; j++){
+        if(mgl[lvl].A.blocks[j+i*brow]){
+          dcsr_mxm(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].A_noBC.blocks[j+i*brow], &tempRA);
+          dcsr_mxm(&tempRA, mgl[lvl].P.blocks[j+j*brow], mgl[lvl+1].A_noBC.blocks[j+i*brow]);
           dcsr_free(&tempRA);
         } else {
-          mgl[lvl+1].A_noBC.blocks[j+i*nspaces] = NULL;
+          mgl[lvl+1].A_noBC.blocks[j+i*brow] = NULL;
         }
       }//j
     }//i
@@ -1188,13 +1195,13 @@ SHORT gmg_blk_setup_generic(MG_blk_data *mgl,
 
   // setup total level number and current level
   INT m=0;
-  for(i=0; i<nspaces; i++) m += mgl[0].A.blocks[i+i*nspaces]->row;
+  for(i=0; i<brow; i++) m += mgl[0].A.blocks[i+i*brow]->row;
   mgl[0].num_levels = max_levels = lvl+1;
   mgl[0].w          = dvec_create(m);
 
   for ( lvl = 1; lvl < max_levels; ++lvl) {
       INT mm = 0;
-      for(i=0;i<nspaces;i++) mm += mgl[lvl].A.blocks[i+i*nspaces]->row;
+      for(i=0;i<brow;i++) mm += mgl[lvl].A.blocks[i+i*brow]->row;
       mgl[lvl].num_levels = max_levels;
       mgl[lvl].b          = dvec_create(mm);
       mgl[lvl].x          = dvec_create(mm);
