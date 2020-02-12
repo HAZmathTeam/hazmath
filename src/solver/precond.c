@@ -314,6 +314,7 @@ void precond_hx_curl_multiplicative(REAL *r,
                                     REAL *z,
                                     void *data)
 {
+
     HX_curl_data *hxcurldata=(HX_curl_data *)data;
     INT n = hxcurldata->A->row;
     SHORT smooth_iter = hxcurldata->smooth_iter;
@@ -638,7 +639,7 @@ void precond_hx_div_additive(REAL *r,
                               REAL *z,
                               void *data)
 {
-    printf("HX div additive precond\n");
+    //printf("HX div additive precond\n");
     HX_div_data *hxdivdata=(HX_div_data *)data;
     INT n = hxdivdata->A->row;
     SHORT smooth_iter = hxdivdata->smooth_iter;
@@ -674,10 +675,12 @@ void precond_hx_div_additive(REAL *r,
 
     dcsr_aAxpy(1.0, hxdivdata->P_div, mgl_divgrad->x.val, z);
 
+    /*
     INT j;
     for(j=0;j<n;j++){
       if(z[j]!=z[j]){ printf("DIV z[%d]=%f\n",j,z[j]);}
     }
+    */
 
     // smoothing
     REAL *temp1 = (REAL*)calloc(hxdivdata->Curlt->row,sizeof(REAL));
@@ -716,9 +719,11 @@ void precond_hx_div_additive(REAL *r,
 
     dcsr_mxv(hxdivdata->P_curl, mgl_curlgrad->x.val, temp);
     dcsr_aAxpy(1.0, hxdivdata->Curl, temp, z);
+    /*
     for(j=0;j<n;j++){
       if(z[j]!=z[j]){ printf("z[%d]=%f\n",j,z[j]);}
     }
+    */
 
     // free
     free(temp);
@@ -762,6 +767,8 @@ void precond_hx_div_multiplicative(REAL *r,
     dvector rr;
     rr.row = n; rr.val = r;
 
+    SHORT maxit, i;
+
     //--------------------------
     // smoothing
     //--------------------------
@@ -778,7 +785,6 @@ void precond_hx_div_multiplicative(REAL *r,
     AMG_param *amgparam_divgrad = hxdivdata->amgparam_divgrad;
     AMG_data *mgl_divgrad = hxdivdata->mgl_divgrad;
 
-    /*
     // solve with AMG only
     mgl_divgrad->b.row = hxdivdata->A_divgrad->row;
     dcsr_mxv(hxdivdata->Pt_div, r, mgl_divgrad->b.val);
@@ -791,8 +797,8 @@ void precond_hx_div_multiplicative(REAL *r,
     //directsolve_UMF(hxdivdata->A_divgrad, &(mgl_divgrad->b), &(mgl_divgrad->x), 0);
 
     dcsr_aAxpy(1.0, hxdivdata->P_div, mgl_divgrad->x.val, z);
-    */
 
+    /*
     // solve wth AMG+krylov
     dvector r_divgrad;
     dvec_alloc(hxdivdata->A_divgrad->row, &r_divgrad);
@@ -818,6 +824,7 @@ void precond_hx_div_multiplicative(REAL *r,
 
     dvec_free(&r_divgrad);
     dvec_free(&x_divgrad);
+    */
 
     // update r
     array_cp(n, hxdivdata->backup_r, r);
@@ -854,7 +861,6 @@ void precond_hx_div_multiplicative(REAL *r,
     REAL *temp = hxdivdata->w;
     dcsr_mxv(hxdivdata->Curlt, r, temp);
 
-    /*
     // solve with AMG only
     mgl_curlgrad->b.row = hxdivdata->Pt_curl->row;
     dcsr_mxv(hxdivdata->Pt_curl, temp, mgl_curlgrad->b.val);
@@ -866,8 +872,8 @@ void precond_hx_div_multiplicative(REAL *r,
 
     dcsr_mxv(hxdivdata->P_curl, mgl_curlgrad->x.val, temp);
     dcsr_aAxpy(1.0, hxdivdata->Curl, temp, z);
-    */
 
+    /*
     // solve wth AMG+krylov
     dvector r_curlgrad;
     dvec_alloc(hxdivdata->A_curlgrad->row, &r_curlgrad);
@@ -894,11 +900,14 @@ void precond_hx_div_multiplicative(REAL *r,
 
     dvec_free(&r_curlgrad);
     dvec_free(&x_curlgrad);
+    */
 
     //--------------------------
     // store r
     //--------------------------
+    //printf("restore r\n");
     array_cp(n, hxdivdata->backup_r, r);
+    //printf("preconditioner done\n");
 
 }
 
