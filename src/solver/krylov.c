@@ -2454,28 +2454,28 @@ INT dcsr_pvgmres (dCSRmat *A,
 
       /* apply the preconditioner */
       if (pc == NULL)
-	array_cp(n, p[i-1], r);
+        array_cp(n, p[i-1], r);
       else
-	pc->fct(p[i-1], r, pc->data);
+      	pc->fct(p[i-1], r, pc->data);
 
       dcsr_mxv(A, r, p[i]);
 
       /* modified Gram_Schmidt */
       for (j = 0; j < i; j ++) {
-	hh[j][i-1] = array_dotprod(n, p[j], p[i]);
-	array_axpy(n, -hh[j][i-1], p[j], p[i]);
+        hh[j][i-1] = array_dotprod(n, p[j], p[i]);
+        array_axpy(n, -hh[j][i-1], p[j], p[i]);
       }
       t = array_norm2(n, p[i]);
       hh[i][i-1] = t;
       if (t != 0.0) {
-	t = 1.0/t;
-	array_ax(n, t, p[i]);
+        t = 1.0/t;
+        array_ax(n, t, p[i]);
       }
 
       for (j = 1; j < i; ++j) {
-	t = hh[j-1][i-1];
-	hh[j-1][i-1] = s[j-1]*hh[j][i-1] + c[j-1]*t;
-	hh[j][i-1] = -s[j-1]*t + c[j-1]*hh[j][i-1];
+        t = hh[j-1][i-1];
+        hh[j-1][i-1] = s[j-1]*hh[j][i-1] + c[j-1]*t;
+        hh[j][i-1] = -s[j-1]*t + c[j-1]*hh[j][i-1];
       }
       t= hh[i][i-1]*hh[i][i-1];
       t+= hh[i-1][i-1]*hh[i-1][i-1];
