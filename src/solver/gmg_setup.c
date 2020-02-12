@@ -1026,6 +1026,8 @@ SHORT gmg_blk_setup_generic(MG_blk_data *mgl,
   REAL  setup_start, setup_end;
 
   dCSRmat tempRA;
+  dCSRmat Rmerge;
+  block_dCSRmat tempRblk;// To merge bbl and P1 blocks
   
   get_time(&setup_start);// Timing
 
@@ -1061,6 +1063,28 @@ SHORT gmg_blk_setup_generic(MG_blk_data *mgl,
           nc1d = (nf1d)/2;
           build_face_R( mgl[lvl].R.blocks[i+i*nspaces], mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
           set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[i], mgl[lvl+1].fine_level_mesh, 1,1);
+          break;
+        case 999:// P1 + bubbles combined as a single block matrix
+          bdcsr_alloc(dim+1,dim+1,&tempRblk);
+          tempRblk.blocks[3] = NULL; tempRblk.blocks[5] = NULL;
+          tempRblk.blocks[6] = NULL; tempRblk.blocks[7] = NULL;
+          //P1 both x and Y components
+          nf1d = sqrt(mgl[lvl].fine_level_mesh->nv);
+          nc1d = sqrt(mgl[lvl+1].fine_level_mesh->nv);
+          for(j=1; j<dim+1; j++) build_linear_R( tempRblk.blocks[j+j*tempRblk.brow], nf1d, nc1d);
+          //Bubble
+          nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
+          nc1d = (nf1d)/2;
+          build_bubble_R( tempRblk.blocks[0], tempRblk.blocks[1], tempRblk.blocks[2],
+                          mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
+          Rmerge = bdcsr_2_dcsr(&tempRblk);
+          dcsr_alloc(Rmerge.row,Rmerge.col,Rmerge.nnz,mgl[lvl].R.blocks[i+i*brow]);
+          dcsr_cp(&Rmerge,mgl[lvl].R.blocks[i+i*brow]);
+          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[0], mgl[lvl+1].fine_level_mesh, 1, 10); //bbl
+          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[1], mgl[lvl+1].fine_level_mesh, 1, 10); // Ux
+          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[2], mgl[lvl+1].fine_level_mesh, 1, 10); // Uy
+          dcsr_free(&Rmerge);
+          break;
       }// switch gmg_type
     }// for i<nspaces
     printf("Built R for lvl=%d...\n",lvl);
