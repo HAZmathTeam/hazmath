@@ -252,6 +252,10 @@ int main (int argc, char* argv[])
 
   // Set initial guess to be all zero
   dvec_set(sol.row, &sol, 0.0);
+  // SET SOLN and RANDOM INIT
+  dvec_set(b.row,&b,0.0);// solve zero
+  dvec_rand(sol.row,&sol);
+  for(i=0; i<sol.row; i++){ if( FE.dirichlet[i] == 1){ sol.val[i] = 0.0; } }
 
   // Set parameters for linear iterative methods
   linear_itsolver_param linear_itparam;
@@ -265,27 +269,26 @@ int main (int argc, char* argv[])
 
   // Solve
   if( SOLVE_GMG ){
-  /*====================================================================================================*/
-  solve_stats solve_info;
-  solve_info.iteration_count = 0;
-  solve_info.time_setup = 0.0;
-  solve_info.time_precondition_setup = 0.0;
-  solve_info.time_solve = 0.0;
-  // POINTERS FOR STUFF
-  INT gmg_type[]          = {999,30,0};
-  INT Schwarz_on_blk[]    = {1,0,0};
-  amgparam.Schwarz_on_blk = Schwarz_on_blk;
+/*====================================================================================================*/
+    solve_stats solve_info;
+    solve_info.iteration_count = 0;
+    solve_info.time_setup = 0.0;
+    solve_info.time_precondition_setup = 0.0;
+    solve_info.time_solve = 0.0;
+    // POINTERS FOR STUFF
+    INT gmg_type[]          = {999,0};
+    INT Schwarz_on_blk[]    = {1,0};
+    amgparam.Schwarz_on_blk = Schwarz_on_blk;
 
-  amgparam.max_levels = 2;
+    FILE* fid;
+    fid = fopen("A_matrix.dat","w");
+    bdcsr_print_matlab(fid,&A2);
+    fclose(fid);
 
-  // SET SOLN and RANDOM INIT
-  dvec_set(b.row,&b,0.0);// solve zero
-  dvec_rand(sol.row,&sol);
-  for(i=0; i<sol.row; i++){ if( FE.dirichlet[i] == 1){ sol.val[i] = 0.0; } }
 
-  solver_flag = linear_solver_bdcsr_gmg(&A2,&b,&sol,&amgparam,gmg_type,&mesh,&FE,NULL,A_diag,&A2_noBC,&linear_itparam,&solve_info);
-  //dvector_print(stdout, &sol_vec);
-  /*====================================================================================================*/
+    solver_flag = linear_solver_bdcsr_gmg(&A2,&b,&sol,&amgparam,gmg_type,&mesh,&FE,NULL,A_diag,&A2_noBC,&linear_itparam,&solve_info);
+    //dvector_print(stdout, &sol_vec);
+/*====================================================================================================*/
   } else {
     if(dim==2){
       if (linear_itparam.linear_precond_type == PREC_NULL) {
