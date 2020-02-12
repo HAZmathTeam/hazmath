@@ -409,9 +409,20 @@ void Schwarz_get_patch_geometric_multiple_DOFtype (Schwarz_data *Schwarz,
           }
           break;
         case 3: // face
-          icsr_mxm_symb( &p_el, mesh->el_f, p_p+i);
+          if( patchTypeIN == 1){//TODO: REMOVE THIS EDIT, change back to == 1
+            icsr_trans(mesh->f_v, p_p+i);
+            ntot += p_p[i].nnz;
+            dofshift[i+1] = mesh->nface + dofshift[i];
+          } else {
+            icsr_mxm_symb( &p_el, mesh->el_f, p_p+i);
+            ntot += p_p[i].nnz;
+            dofshift[i+1] = mesh->nface + dofshift[i];
+          }
+          break;
+        case 11: // Single Vertex //TODO: This only works if seed is vertex
+          *(p_p+i) = icsr_create_identity( mesh->nv, 0 );
           ntot += p_p[i].nnz;
-          dofshift[i+1] = mesh->nface + dofshift[i];
+          dofshift[i+1] = mesh->nv + dofshift[i];
           break;
         default:
           // Throw error
@@ -501,10 +512,10 @@ INT Schwarz_setup_geometric (Schwarz_data *Schwarz,
     /*-------------------------------------------*/
     printf("Finding Schwarz patches\n");
     //Schwarz_get_patch_geometric(Schwarz, mesh, 0, 2);
-    //INT patch_type_out[] = {2,1,1};
-    //Schwarz_get_patch_geometric_multiple_DOFtype( Schwarz, mesh, 4, patch_type_out, 3);
-    INT patch_type_out[] = {2,1,1,2,0};
-    Schwarz_get_patch_geometric_multiple_DOFtype( Schwarz, mesh, 4, patch_type_out, 5);
+    INT patch_type_out[] = {3,11,11};
+    Schwarz_get_patch_geometric_multiple_DOFtype( Schwarz, mesh, 1, patch_type_out, 3);
+    //INT patch_type_out[] = {3,1,1,3,0};
+    //Schwarz_get_patch_geometric_multiple_DOFtype( Schwarz, mesh, 1, patch_type_out, 5);
     printf("Found Schwarz patches\n");
     nblk = Schwarz->nblk;
 

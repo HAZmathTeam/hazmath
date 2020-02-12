@@ -347,18 +347,14 @@ INT mg_solve_blk(MG_blk_data *mgl,
     // PERIODIC STUFF
     dvector b_disp;
     INT i;
-//    b->row=0;
-//    for(i=0; i<mgl[0].A.brow; i++){
-//    b->row += mgl[0].A.blocks[i+i*mgl[0].A.brow]->row;
-//    }
-//    x->row = b->row;
-//    r->row = b->row;
-
-       // correct bdry
-       for(i=0; i<mgl[0].x.row; i++){
-         if( mgl[0].FE->dirichlet[i] == 1 )
-           mgl[0].x.val[i] = 0.0;
-       }
+    if(mgl[0].periodic_BC){
+      b->row=0;
+      for(i=0; i<mgl[0].A.brow; i++){
+      b->row += mgl[0].A.blocks[i+i*mgl[0].A.brow]->row;
+      }
+      x->row = b->row;
+      r->row = b->row;
+    }
 
     dvector r0 = dvec_create(b->row);
     dvec_cp(b,&r0);
@@ -373,12 +369,6 @@ INT mg_solve_blk(MG_blk_data *mgl,
     // Main loop
     while ( (++iter <= MaxIt) & (sumb > SMALLREAL) ) {
         
-//       // correct bdry
-//       for(i=0; i<mgl[0].x.row; i++){
-//         if( mgl[0].FE->dirichlet[i] == 1 )
-//           mgl[0].x.val[i] = 0.0;
-//       }
-
         // Call one multigrid cycle
         mgcycle_block(mgl, param);
 
@@ -402,7 +392,14 @@ INT mg_solve_blk(MG_blk_data *mgl,
 
         xn2 = xn1;
         xn1 = dvec_norm2(x);
-        printf("\t\t\t\t\t\t%f\n",xn1/xn2);
+        if( iter>10 ){
+          avgFac=0.0;
+          for(i=0;i<10;i++){
+              avgFac+=fac10[i];
+          }
+          avgFac = avgFac/10;
+          printf("\t\t\t\t\t\t%f\n",avgFac);
+        }
 
 
         // Check convergence

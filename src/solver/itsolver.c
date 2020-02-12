@@ -517,6 +517,7 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
                       void (*set_bdry_flags)(mesh_struct*),
                       dCSRmat *A_diag,
                       block_dCSRmat *A_noBC,
+                             linear_itsolver_param *itparam,////////////////////////////////
                       solve_stats *solve_info)
 {
     const SHORT   max_levels  = param->max_levels;
@@ -589,9 +590,10 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
 
     for(i=0;i<max_levels;i++) mgl[i].gmg_type = gmg_type;
 
-    mgl[0].As = solve_info->As;
-    mgl[0].nAs = solve_info->nAs;
-    mgl[0].FES = solve_info->FES;
+    // Ignore this lazy workaround.
+    //mgl[0].As = solve_info->As;
+    //mgl[0].nAs = solve_info->nAs;
+    //mgl[0].FES = solve_info->FES;
 
     // Step 1: MG setup phase
     switch (mg_type) {
@@ -601,8 +603,8 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
             status = gmg_blk_setup_biot_bubble(mgl, param);
             printf("\nFinished gmg_blk_setup... Calling smoother setup...\n");
             //printf("SKIPPING SMOOTHER SETUP...\n");
-            //smoother_block_setup(mgl, param);
-            smoother_setup_biot_monolithic( mgl, param);
+            smoother_block_setup(mgl, param);
+            //smoother_setup_biot_monolithic( mgl, param);
             printf("\nsmoother setup Done...\n");
             break;
         default:
@@ -617,6 +619,21 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
 //            check_error(ERROR_SOLVER_MISC, __FUNCTION__);
 //        break;
     }
+
+
+//  // KRYLOV BIOT
+//  precond_block_data precdata;
+//  precond_block_data_null(&precdata);
+//  precdata.Abcsr = A;
+//  precdata.A_diag = A_diag;
+//  precdata.r = dvec_create(b->row);
+//  precdata.amgparam = param;
+//  precdata.bmgl = mgl;
+//  precond prec; prec.data = &precdata;
+//  prec.fct = precond_block_monolithic_mg;
+//  status=solver_bdcsr_linear_itsolver(A,b,x, &prec,itparam);
+//  printf("\n\n BLAHBLAHBALH\n");
+//  return status;
 
     REAL rho1, rho2;
     // Step 2: MG solve phase
