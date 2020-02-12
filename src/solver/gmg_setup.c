@@ -1480,3 +1480,139 @@ void smoother_setup_biot_monolithic( MG_blk_data *bmgl, AMG_param *param)
   bmgl[0].Schwarz.A = dcsr_sympat( &Amerge );
   Schwarz_setup_geometric( &bmgl[0].Schwarz, &swzparam, bmgl[0].fine_level_mesh);
 }
+
+/**
+ * \fn void smoother_block_setup( MG_blk_data *mgl, AMG_param *param)
+ *
+ * \brief Setup of block smoothers
+ *
+ * \param mgl       Pointer to MG_blk_data
+ * \param param     Pointer to AMG_param
+ *
+ */
+void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
+{
+    // TODO: instead of param, may want a variable in bmgl that tracks params for each block
+    // (since we don't want to create the Schwarz for each block, only those that will use it);
+    INT blk, lvl, i;
+    INT brow = bmgl[0].A.brow;
+    SHORT max_levels = param->max_levels;
+    fespace FE_fake;
+    for(i=0;i<max_levels;i++){
+      bmgl[i].mgl = (AMG_data **)calloc(brow,sizeof(AMG_data *));
+    }
+    for(i=1;i<max_levels;i++){
+      bmgl[i].A_diag = (dCSRmat *)calloc(3,sizeof(dCSRmat));
+    }
+
+    Schwarz_param swzparam;
+
+    for( blk=0; blk<brow; blk++ ){
+      printf("Start %d\n",blk);
+      // Initialize AMG for diagonal blocks
+      bmgl[0].mgl[blk] = amg_data_create(max_levels);
+
+      // Compute RAP for mgl
+      if( bmgl[0].periodic_BC ){
+        printf("Applying periodic BC to block smoother, block %d\n",blk);
+        eliminate_PeriodicBC( bmgl[0].P_periodic.blocks[blk*brow + blk], &bmgl[0].A_diag[blk], NULL);
+        printf("Finished periodic BC to block smoother, block %d\n",blk);
+      }
+      dcsr_alloc( bmgl[0].A_diag[blk].row, bmgl[0].A_diag[blk].row, bmgl[0].A_diag[blk].nnz, &bmgl[0].mgl[blk][0].A);
+      dcsr_cp( &(bmgl[0].A_diag[blk]), &bmgl[0].mgl[blk][0].A );
+
+      bmgl[0].mgl[blk][0].num_levels = max_levels;
+      bmgl[0].mgl[blk][0].cycle_type = param->cycle_type;
+      bmgl[0].mgl[blk][0].b = dvec_create(bmgl[0].mgl[blk][0].A.row);
+      bmgl[0].mgl[blk][0].x = dvec_create(bmgl[0].mgl[blk][0].A.row);
+      bmgl[0].mgl[blk][0].w = dvec_create(2*bmgl[0].mgl[blk][0].A.row);
+
+      // Remove dirichlet boundaries
+      FE_fake.dirichlet = bmgl[0].dirichlet_blk[blk];
+      FE_fake.ndof = bmgl[0].A_diag[blk].row;
+      printf("Eliminating dirichlet BC for A_diag\n");
+      eliminate_DirichletBC(NULL, &FE_fake , bmgl[0].fine_level_mesh, NULL, &(bmgl[0].mgl[blk][0].A),0.0);
+      printf("Eliminated dirichlet BC for A_diag\n");
+
+
+      // Initialize Schwarz parameters
+      bmgl->Schwarz_levels = param->Schwarz_levels;
+      swzparam.Schwarz_mmsize = param->Schwarz_mmsize;
+      swzparam.Schwarz_maxlvl = param->Schwarz_maxlvl;
+      swzparam.Schwarz_type   = param->Schwarz_type;
+      //swzparam.Schwarz_blksolver = param->Schwarz_blksolver;
+      swzparam.Schwarz_blksolver = 32;
+
+      // Fill in levels
+      for( lvl=0; lvl<max_levels-1; lvl++ ){
+        printf("\tLEVEL %d FILLING\n",lvl);
+        // Copy block mgl R and P into mgl
+        bmgl[0].mgl[blk][lvl].R.row = bmgl[lvl].R.blocks[blk+blk*brow]->row;
+        bmgl[0].mgl[blk][lvl].R.col = bmgl[lvl].R.blocks[blk+blk*brow]->col;
+        bmgl[0].mgl[blk][lvl].R.nnz = bmgl[lvl].R.blocks[blk+blk*brow]->nnz;
+        bmgl[0].mgl[blk][lvl].R.val = bmgl[lvl].R.blocks[blk+blk*brow]->val;
+        bmgl[0].mgl[blk][lvl].R.IA = bmgl[lvl].R.blocks[blk+blk*brow]->IA;
+        bmgl[0].mgl[blk][lvl].R.JA = bmgl[lvl].R.blocks[blk+blk*brow]->JA;
+
+        bmgl[0].mgl[blk][lvl].P.row = bmgl[lvl].P.blocks[blk+blk*brow]->row;
+        bmgl[0].mgl[blk][lvl].P.col = bmgl[lvl].P.blocks[blk+blk*brow]->col;
+        bmgl[0].mgl[blk][lvl].P.nnz = bmgl[lvl].P.blocks[blk+blk*brow]->nnz;
+        bmgl[0].mgl[blk][lvl].P.val = bmgl[lvl].P.blocks[blk+blk*brow]->val;
+        bmgl[0].mgl[blk][lvl].P.IA = bmgl[lvl].P.blocks[blk+blk*brow]->IA;
+        bmgl[0].mgl[blk][lvl].P.JA = bmgl[lvl].P.blocks[blk+blk*brow]->JA;
+
+        dcsr_rap( &bmgl[0].mgl[blk][lvl].R, &bmgl[lvl].A_diag[blk], &bmgl[0].mgl[blk][lvl].P, &bmgl[lvl+1].A_diag[blk]);
+
+        printf("RAP on A_diag\n");
+        dcsr_alloc( bmgl[lvl+1].A_diag[blk].row, bmgl[lvl+1].A_diag[blk].row, bmgl[lvl+1].A_diag[blk].nnz, &bmgl[0].mgl[blk][lvl+1].A);
+        dcsr_cp( &(bmgl[lvl+1].A_diag[blk]), &bmgl[0].mgl[blk][lvl+1].A );
+        printf("Setting fake dirichlet flags\n");
+        FE_fake.dirichlet = bmgl[lvl+1].dirichlet_blk[blk];
+        FE_fake.ndof      = bmgl[lvl+1].A_diag[blk].row;
+        eliminate_DirichletBC(NULL, &FE_fake , bmgl[lvl+1].fine_level_mesh, NULL, &(bmgl[0].mgl[blk][lvl+1].A),0.0);
+        printf("ELIM on A_diag fine\n");
+
+
+
+        // setup total level number and current level
+        bmgl[0].mgl[blk][lvl+1].num_levels = max_levels;
+        bmgl[0].mgl[blk][lvl+1].cycle_type = param->cycle_type;
+        bmgl[0].mgl[blk][lvl+1].b = dvec_create(bmgl[0].mgl[blk][lvl+1].A.row);
+        bmgl[0].mgl[blk][lvl+1].x = dvec_create(bmgl[0].mgl[blk][lvl+1].A.row);
+        bmgl[0].mgl[blk][lvl+1].w = dvec_create(2*bmgl[0].mgl[blk][lvl+1].A.row);
+
+        /*-- Setup Schwarz smoother if necessary --*/
+        if( param->Schwarz_on_blk[blk] == 1 ) {
+          printf("\tcalling Schwarz setup\n");
+          bmgl[0].mgl[blk][lvl].Schwarz.A = dcsr_sympat( &bmgl[0].mgl[blk][lvl].A );
+          //bmgl[0].mgl[blk][lvl].Schwarz.A = dcsr_sympat( bmgl[0].A.blocks[0] );
+          Schwarz_setup_geometric( &bmgl[0].mgl[blk][lvl].Schwarz, &swzparam, bmgl[lvl].fine_level_mesh);
+        }
+      }
+
+      // Set up Coarse level solve
+      if( lvl == max_levels-1 ){
+        printf("Coarse Level Solver Stuff...\n");
+        switch ( param->coarse_solver ){
+#if WITH_SUITESPARSE
+          case SOLVER_UMFPACK: {
+              dCSRmat Ac_tran;
+              dcsr_trans(&bmgl[0].mgl[blk][lvl].A, &Ac_tran);
+              dcsr_cp(&Ac_tran, &bmgl[0].mgl[blk][lvl].A);
+              dcsr_free(&Ac_tran);
+              bmgl[0].mgl[blk][lvl].Numeric = umfpack_factorize(&bmgl[0].mgl[blk][lvl].A, 0);
+              break;}
+#endif
+          default:
+              // Do nothing!
+              break;
+        }
+      }
+      // Propigate mgl across bmgl levels
+      for( lvl=1; lvl<max_levels-1; lvl++){
+        bmgl[lvl].mgl[blk] = &(bmgl[0].mgl[blk][lvl]);// maybe??
+        printf("\tLVL %d propigated across bmgl levels\n",lvl);
+      }
+    }// blk
+    return;
+}
