@@ -1053,8 +1053,9 @@ INT linear_solver_dcsr_krylov_hx_div(dCSRmat *A,
                                       dCSRmat *P_div,
                                       dCSRmat *Curl)
 {
+
     const SHORT prtlvl = itparam->linear_print_level;
-    amgparam->max_levels = 2;
+    //amgparam->max_levels = 2;
     const SHORT max_levels = amgparam->max_levels;
 
     /*------------------------*/
@@ -1153,7 +1154,7 @@ INT linear_solver_dcsr_krylov_hx_div(dCSRmat *A,
     hxdivdata.A_curl = &A_curl;
 
     hxdivdata.backup_r = (REAL*)calloc(A->row, sizeof(REAL));
-    hxdivdata.w = (REAL*)calloc(A->row, sizeof(REAL));
+    hxdivdata.w = (REAL*)calloc(2*(A_curl.row)+A->row, sizeof(REAL));
 
     precond pc; pc.data = &hxdivdata;
     switch (itparam->linear_precond_type) {
@@ -1163,7 +1164,6 @@ INT linear_solver_dcsr_krylov_hx_div(dCSRmat *A,
             break;
 
         default:  // multiplicative HX preconditioner
-//            pc.fct = precond_hx_div_additive;
             pc.fct = precond_hx_div_multiplicative;
             break;
 
@@ -1180,7 +1180,7 @@ INT linear_solver_dcsr_krylov_hx_div(dCSRmat *A,
     }
 
 FINISHED:
-    //HX_curl_data_free(&hxcurldata, FALSE);
+    HX_div_data_free(&hxdivdata, FALSE);
 
     return status;
 }
