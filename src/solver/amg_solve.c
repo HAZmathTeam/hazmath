@@ -341,11 +341,10 @@ INT mg_solve_blk(MG_blk_data *mgl,
     INT   iter = 0;
     REAL  fac10[10];
     REAL  avgFac;
-    REAL xn1, xn2;
+    REAL xn1;//, xn2;
     xn1 = 1.0;
 
     // PERIODIC STUFF
-    dvector b_disp;
     INT i;
     if(mgl[0].periodic_BC){
       b->row=0;
@@ -360,14 +359,25 @@ INT mg_solve_blk(MG_blk_data *mgl,
     dvec_cp(b,&r0);
     bdcsr_aAxpy(-1.0,&mgl[0].A,x->val,r0.val);
     REAL res0 = dvec_norm2(&r0);
+    printf("-------------------------RESINIT: %e\n",res0);
 
     get_time(&solve_start);
     
     // Print iteration information if needed
     print_itsolver_info(prtlvl, STOP_REL_RES, iter, 1.0, sumb, 0.0);
     
+//    dvector b_pressure;
+
     // Main loop
     while ( (++iter <= MaxIt) & (sumb > SMALLREAL) ) {
+
+///        if( iter>1 ){
+///          b_pressure.row     = mgl[0].FE->var_spaces[3]->ndof;
+///          b_pressure.val     = mgl[0].x.val + mgl[0].FE->var_spaces[0]->ndof + 2*mgl[0].FE->var_spaces[1]->ndof;
+///          //b_pressure.row     = mgl[0].FE->var_spaces[4]->ndof;
+///          //b_pressure.val     = mgl[0].x.val + 2*mgl[0].FE->var_spaces[0]->ndof + 2*mgl[0].FE->var_spaces[1]->ndof;
+///          dvec_orthog_const(&b_pressure);
+///        }
         
         // Call one multigrid cycle
         mgcycle_block(mgl, param);
@@ -390,7 +400,7 @@ INT mg_solve_blk(MG_blk_data *mgl,
         fac10[iter%10] = factor;
         *rho2 = pow(absres / res0, 1.0/iter);
 
-        xn2 = xn1;
+        //xn2 = xn1;
         xn1 = dvec_norm2(x);
         if( iter>10 ){
           avgFac=0.0;
