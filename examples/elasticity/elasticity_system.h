@@ -322,7 +322,7 @@ void Elasticity_system(REAL* ALoc,block_fespace *FE,mesh_struct *mesh,qcoordinat
           for (i=0;i<dim;i++) {
             aij += (FE->var_spaces[bbl]->dphi[trial*dim*dim+i*dim+i]*FE->var_spaces[prs]->phi[test]);
           }
-          aij = aij;
+          aij = -aij;
           ALoc[(local_row_index+test)*dof_per_elm+(local_col_index+trial)] += w*aij;
         }
       }
@@ -333,7 +333,7 @@ void Elasticity_system(REAL* ALoc,block_fespace *FE,mesh_struct *mesh,qcoordinat
       for (test=0; test<FE->var_spaces[prs]->dof_per_elm;test++) {
         // Loop over Trial Functions (Columns)
         for (trial=0; trial<FE->var_spaces[ds1]->dof_per_elm; trial++) {
-          aij = FE->var_spaces[ds1]->dphi[trial*dim]*FE->var_spaces[prs]->phi[test];
+          aij = -FE->var_spaces[ds1]->dphi[trial*dim]*FE->var_spaces[prs]->phi[test];
           ALoc[(local_row_index+test)*dof_per_elm+(local_col_index+trial)] += w*aij;
         }
       }
@@ -344,7 +344,7 @@ void Elasticity_system(REAL* ALoc,block_fespace *FE,mesh_struct *mesh,qcoordinat
       for (test=0; test<FE->var_spaces[prs]->dof_per_elm;test++) {
         // Loop over Trial Functions (Columns)
         for (trial=0; trial<FE->var_spaces[ds2]->dof_per_elm; trial++) {
-          aij = FE->var_spaces[ds2]->dphi[trial*dim+1]*FE->var_spaces[prs]->phi[test];
+          aij = -FE->var_spaces[ds2]->dphi[trial*dim+1]*FE->var_spaces[prs]->phi[test];
           ALoc[(local_row_index+test)*dof_per_elm+(local_col_index+trial)] += w*aij;
         }
       }
