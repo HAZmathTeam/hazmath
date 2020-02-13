@@ -1034,7 +1034,7 @@ SHORT gmg_blk_setup_generic(MG_blk_data *mgl,
   INT   status  = SUCCESS;
   INT   dim     = mgl[0].fine_level_mesh->dim;
   INT   brow    = mgl[0].A.brow;
-  INT   nspaces = mgl[0].FE->nspaces;
+  //INT   nspaces = mgl[0].FE->nspaces;
   INT   i,j,nf1d,nc1d;//,csize;
   REAL  setup_start, setup_end;
   INT fe_blk = 0;
