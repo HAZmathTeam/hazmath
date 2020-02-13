@@ -33,7 +33,7 @@ void get_young(REAL *val,REAL* x,REAL time,void *param) {
 }
 // Poisson Ratio
 void get_nu(REAL *val,REAL* x,REAL time,void *param) {
-  *val = 0.2;
+  *val = 0.499999999;
 }
 
 // Lame Coefficients
@@ -279,6 +279,7 @@ int main (int argc, char* argv[])
     INT gmg_type[]          = {999,0};
     INT Schwarz_on_blk[]    = {1,0};
     amgparam.Schwarz_on_blk = Schwarz_on_blk;
+    amgparam.AMG_type       = -1;
 
     FILE* fid;
     fid = fopen("A_matrix.dat","w");
@@ -287,14 +288,14 @@ int main (int argc, char* argv[])
 
 
     solver_flag = linear_solver_bdcsr_gmg(&A2,&b,&sol,&amgparam,gmg_type,&mesh,&FE,NULL,A_diag,&A2_noBC,&linear_itparam,&solve_info);
-    //dvector_print(stdout, &sol_vec);
+    //dvector_print(stdout, &sol);
 /*====================================================================================================*/
   } else {
     if(dim==2){
       if (linear_itparam.linear_precond_type == PREC_NULL) {
         solver_flag = linear_solver_bdcsr_krylov(&A2, &b, &sol, &linear_itparam);
       } else {
-        solver_flag = linear_solver_bdcsr_krylov_block_3(&A2, &b, &sol, &linear_itparam, NULL, A_diag);
+        solver_flag = linear_solver_bdcsr_krylov_block_2(&A2, &b, &sol, &linear_itparam, NULL, A_diag);
       }
     } else if (dim==3) {
       if (linear_itparam.linear_precond_type == PREC_NULL) {
