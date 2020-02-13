@@ -801,6 +801,7 @@ SHORT gmg_load_coarse_grids_from_file( MG_blk_data *mgl,
   // To Read from file
   FILE* cgfid;
   char cgridfile[500];
+  char hazdir[500];
 
   for( lvl = 0; lvl < max_levels-1; lvl++){
     /*-- Build coarse level mesh --*/
@@ -808,10 +809,17 @@ SHORT gmg_load_coarse_grids_from_file( MG_blk_data *mgl,
     mgl[lvl+1].fine_level_mesh = (mesh_struct*)calloc(1, sizeof(mesh_struct));
     initialize_mesh(mgl[lvl+1].fine_level_mesh);
     /*-- Need to customize this to specific directory --*/
-    sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",csize);
+    printf("--------\n");
+    printf("PARAMDIR: %s\n",param->HAZDIR);
+    strcpy(hazdir, param->HAZDIR);
+    sprintf(cgridfile,"unitSQ_n%d.haz",csize);
+    strcat(hazdir,cgridfile);
+    //sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",csize);
     //sprintf(cgridfile,"/home/xiaozhehu/Work/Projects/HAZMATH/hazmath/examples/grids/2D/unitSQ_n%d.haz",csize);
     //sprintf(cgridfile,"/home/pohm01/HAZMAT/hazmath/examples/grids/2D/unitSQ_n%d.haz",csize);
-    cgfid = HAZ_fopen(cgridfile,"r");
+    //cgfid = HAZ_fopen(cgridfile,"r");
+    printf("DIR: %s\n",hazdir);
+    cgfid = HAZ_fopen(hazdir,"r");
     creategrid_fread(cgfid,0,mgl[lvl+1].fine_level_mesh);
     fclose(cgfid);
     printf("Coarse grid loaded for lvl=%d...\n",lvl);
