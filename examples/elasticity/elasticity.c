@@ -95,6 +95,7 @@ int main (int argc, char* argv[])
   printf("\nCreating mesh and FEM spaces:\n");
   FILE* gfid = HAZ_fopen(inparam.gridfile,"r");
 
+  i = 0;
   char GRIDDIR[200];// THIS GETS THE LOCATION OF THE GRID DIRECTORY
   while( inparam.gridfile[i] != '\0'){
     GRIDDIR[i] = inparam.gridfile[i];
