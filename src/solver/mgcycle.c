@@ -240,7 +240,7 @@ static void bdcsr_presmoothing(const INT lvl, MG_blk_data *mgl, AMG_param *param
           break;
         case 1001:
           swzparam.Schwarz_blksolver = mgl[lvl].Schwarz.blk_solver;
-          smoother_dcsr_Schwarz_forward_additive(&mgl[lvl].Schwarz, &swzparam, &mgl[lvl].x, &mgl[lvl].b,0.58);
+          smoother_dcsr_Schwarz_forward_additive(&mgl[lvl].Schwarz, &swzparam, &mgl[lvl].x, &mgl[lvl].b,0.78);
           break;
         default:
           for(i=0;i<nsweeps;i++){
@@ -280,7 +280,7 @@ static void bdcsr_postsmoothing(const INT lvl, MG_blk_data *mgl, AMG_param *para
           break;
         case 1001:
           swzparam.Schwarz_blksolver = mgl[lvl].Schwarz.blk_solver;
-          smoother_dcsr_Schwarz_backward_additive(&mgl[lvl].Schwarz, &swzparam, &mgl[lvl].x, &mgl[lvl].b,0.48);
+          smoother_dcsr_Schwarz_backward_additive(&mgl[lvl].Schwarz, &swzparam, &mgl[lvl].x, &mgl[lvl].b,0.78);
           break;
         default:
           for(i=0;i<nsweeps;i++){
@@ -752,7 +752,7 @@ void mgcycle_block(MG_blk_data *bmgl,
     REAL alpha = 1.0;
     INT  num_lvl[MAX_AMG_LVL] = {0}, l = 0;
     INT  i;
-    INT status;
+    //INT status;
 
 //    dvector b_disp;
 //    dvector b_darcy;
@@ -812,7 +812,7 @@ ForwardSweep:
         case SOLVER_UMFPACK: {
             // use UMFPACK direct solver on the coarsest level
             printf("Solving coarse level with UMFPACK...\n");
-            status = umfpack_solve(&bmgl[nl-1].Ac, &bmgl[nl-1].b, &bmgl[nl-1].x, bmgl[nl-1].Numeric, 0);
+            umfpack_solve(&bmgl[nl-1].Ac, &bmgl[nl-1].b, &bmgl[nl-1].x, bmgl[nl-1].Numeric, 0);
 //        b_pressure.row     = bmgl[nl-1].FE->var_spaces[3]->ndof;
 //        b_pressure.val     = bmgl[nl-1].x.val + bmgl[nl-1].FE->var_spaces[0]->ndof + 2*bmgl[nl-1].FE->var_spaces[1]->ndof;
 //        dvec_orthog_const(&b_pressure);
