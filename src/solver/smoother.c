@@ -401,7 +401,6 @@ void smoother_dcsr_Schwarz_forward (Schwarz_data  *Schwarz,
                                     dvector       *b)
 {
     INT i, j, iblk, ki, kj, kij, is, ibl0, ibl1, nloc, iaa, iab;
-    INT status;
 
     // Schwarz partition
     INT  nblk = Schwarz->nblk;
@@ -501,7 +500,8 @@ void smoother_dcsr_Schwarz_forward_additive (Schwarz_data  *Schwarz,
                                     dvector       *b,
                                     REAL       w)
 {
-    INT i, j, iblk, ki, kj, kij, is, ibl0, ibl1, nloc, iaa, iab;
+    //INT i, j, iblk, ki, kj, kij, is, ibl0, ibl1, nloc, iaa, iab;
+    INT i, iblk, ki, kj, kij, is, ibl0, ibl1, nloc, iaa, iab;
 
     // Schwarz partition
     INT  nblk = Schwarz->nblk;
@@ -548,7 +548,7 @@ void smoother_dcsr_Schwarz_forward_additive (Schwarz_data  *Schwarz,
             iab = ia[ki+1];//-1; // TODO: zero-one fix?
             for (kij = iaa; kij<iab; ++kij) {
                 kj = ja[kij];//-1; // TODO: zero-one fix?
-                j  = mask[kj];
+                //j  = mask[kj];
                 //if(j == 0) {
                     rhs.val[i] -= val[kij]*x->val[kj];
                 //}
@@ -719,7 +719,8 @@ void smoother_dcsr_Schwarz_backward_additive (Schwarz_data *Schwarz,
                                      dvector *b,
                                      REAL w)
 {
-    INT i, j, iblk, ki, kj, kij, is, ibl0, ibl1, nloc, iaa, iab;
+    //INT i, j, iblk, ki, kj, kij, is, ibl0, ibl1, nloc, iaa, iab;
+    INT i, iblk, ki, kj, kij, is, ibl0, ibl1, nloc, iaa, iab;
 
     // Schwarz partition
     INT  nblk = Schwarz->nblk;
@@ -766,7 +767,7 @@ void smoother_dcsr_Schwarz_backward_additive (Schwarz_data *Schwarz,
             iab = ia[ki+1];//-1;
             for (kij = iaa; kij<iab; ++kij) {
                 kj = ja[kij];//-1;
-                j  = mask[kj];
+                //j  = mask[kj];
                 //if(j == 0) {
                     rhs.val[i] -= val[kij]*x->val[kj];
                 //}
