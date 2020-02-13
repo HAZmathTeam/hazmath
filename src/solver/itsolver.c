@@ -522,8 +522,8 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
 {
     const SHORT   max_levels  = param->max_levels;
     const SHORT   prtlvl      = param->print_level;
-    //const SHORT   mg_type     = param->AMG_type;
-    const SHORT   mg_type     = 111;
+    const SHORT   mg_type     = param->AMG_type;
+    //const SHORT   mg_type     = 111;
     const SHORT   cycle_type  = param->cycle_type;
 
     // local variables
@@ -603,15 +603,16 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
             status = gmg_blk_setup_biot_bubble(mgl, param);
             printf("\nFinished gmg_blk_setup... Calling smoother setup...\n");
             //printf("SKIPPING SMOOTHER SETUP...\n");
-            smoother_block_setup(mgl, param);
-            //smoother_setup_biot_monolithic( mgl, param);
+            //smoother_block_setup(mgl, param);
+            smoother_setup_biot_monolithic( mgl, param);
             printf("\nsmoother setup Done...\n");
             break;
         default:
             if ( prtlvl > PRINT_NONE ) printf("\n Calling block GMG ...\n");
             status = gmg_blk_setup_generic(mgl, param);
             printf("\nFinished gmg_blk_setup... Calling smoother setup...\n");
-            smoother_block_setup(mgl, param);
+            //smoother_block_setup(mgl, param);
+            smoother_setup_biot_monolithic( mgl, param);
             printf("\nsmoother setup Done...\n");
         break;
 //        default: // Unsmoothed Aggregation AMG setup
