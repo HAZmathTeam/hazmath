@@ -216,6 +216,8 @@ typedef struct {
     INT Schwarz_blksolver;
 
     /* Hacking in parameters for gmg smoothers */
+    //! HAZMATH install dir
+    char* HAZDIR;
     //! Track if schwarz should be used as a relaxation method on a block
     INT* Schwarz_on_blk;
 
