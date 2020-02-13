@@ -80,7 +80,7 @@ int main (int argc, char* argv[])
 
   /****** INITIALIZE PARAMETERS **************************************************/
   // Loop Indices
-  INT i;
+  INT i, j;
   bool SOLVE_GMG = true;
 
   // Overall CPU Timing
@@ -94,6 +94,15 @@ int main (int argc, char* argv[])
   // Open gridfile for reading
   printf("\nCreating mesh and FEM spaces:\n");
   FILE* gfid = HAZ_fopen(inparam.gridfile,"r");
+
+  char GRIDDIR[200];// THIS GETS THE LOCATION OF THE GRID DIRECTORY
+  while( inparam.gridfile[i] != '\0'){
+    GRIDDIR[i] = inparam.gridfile[i];
+    if(inparam.gridfile[i] == '\\' || inparam.gridfile[i] == '/'){ j=0;} else { j++;}
+    i++;
+  }
+  GRIDDIR[i-j] = '\0';
+  printf("Path to mesh directory: %s\n",GRIDDIR);
 
   // Create the mesh (now we assume triangles in 2D or tetrahedra in 3D)
   // File types possible are 0 - old format; 1 - vtk format
@@ -280,6 +289,7 @@ int main (int argc, char* argv[])
     INT Schwarz_on_blk[]    = {1,0};
     amgparam.Schwarz_on_blk = Schwarz_on_blk;
     amgparam.AMG_type       = -1;
+    amgparam.HAZDIR         = GRIDDIR;
 
     FILE* fid;
     fid = fopen("A_matrix.dat","w");
