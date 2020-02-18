@@ -108,7 +108,8 @@ void bc_test(REAL *val,REAL* x,REAL time,void *param) {
 /*!
 * \fn void find_det_4( REAL* A, REAL deta)
 *
-* \brief find det of 4x4 matrix
+* \brief find det of 4x4 matrix using expansion by minors once, \
+			then direct computation of det of 3x3 matrices
 *
 * \param A            vectorized matrix
 *
@@ -153,39 +154,46 @@ void find_det_4( REAL* A, REAL* deta)
 
 void compute_Voronoi_nodes(mesh_struct* mesh, coordinates* cv_vor)
 {
+  //mesh info of Delaunay mesh
   INT nelm = mesh->nelm;
   INT nv = mesh->nv;
   INT dim = mesh->dim;
-  coordinates* cv_del = mesh->cv;
   iCSRmat* el_v = mesh->el_v;
-
-
-
+  
+  //create coord struct for Voronoi nodes
+  coordinates* cv_del = mesh->cv;
+  
+  //temp variables
   INT i,j,k;
+  INT* index = (INT *)calloc(4,sizeof(INT));
+  //coords of each element
   REAL elm_coords[12];
+  //matrices we have to take determinants of
   REAL* A = (REAL *)calloc(16,sizeof(REAL));
   REAL* Dx =(REAL *)calloc(16,sizeof(REAL));
   REAL* Dy =(REAL *)calloc(16,sizeof(REAL));
   REAL* Dz =(REAL *)calloc(16,sizeof(REAL));
+  //determinants
   REAL a = 666;
   REAL dx = -666;
   REAL dy = -666;
   REAL dz = -666;
-  INT p[4];
-  REAL piv[4];
-  INT* index = (INT *)calloc(4,sizeof(INT));
 
 
   for(i = 0; i < nelm; i++){
-    get_incidence_row(i,el_v,index);	//find Del nodes on each elm
+	  
+	  //Delaunay node-element map
+    get_incidence_row(i,el_v,index);	
 	
-    for(j=0; j<4; j++){							//get Del coords on each elm
+	
+    for(j=0; j<4; j++){							
       elm_coords[3*j] = cv_del->x[index[j]];
       elm_coords[3*j+1] = cv_del->y[index[j]];
       elm_coords[3*j+2] = cv_del->z[index[j]];
     }
 	
-    for(j=0; j<4; j++){							//fill in matrices we need to compute det of
+	//fill in matrices we need to compute det of
+    for(j=0; j<4; j++){							
       for(k=0; k<4; k++){
         if(k == 0){
           A[4*j+k] = elm_coords[3*j+k];
@@ -220,7 +228,7 @@ void compute_Voronoi_nodes(mesh_struct* mesh, coordinates* cv_vor)
     find_det_4(Dy, &dy);
     find_det_4(Dz, &dz);
 	
-	//fill in voronoi pts
+	//store voronoi pts
     cv_vor->x[i] = dx/(2*a);
     cv_vor->y[i] = -dy/(2*a);
     cv_vor->z[i] = dz/(2*a);
@@ -230,21 +238,24 @@ void compute_Voronoi_nodes(mesh_struct* mesh, coordinates* cv_vor)
 }
 
 /*!
-* \fn  REAL compute_Voronoi_edges(mesh_struct * mesh, coordinates* cv_vor, REAL* vor_edge_length)
+* \fn  REAL compute_Voronoi_edges(mesh_struct * mesh, coordinates* cv_vor, dvector* vor_edge_length)
 *
-* \brief Computes the length of Voronoi edges
+* \brief Computes the length of Voronoi edges using subtraction (interior edges)
+		 or projections (boundary edges)
 *
 * \param mesh				Delaunay mesh struct
 * \param cv_vor				coord struct with Voronoi nodes
 *
 * \return vor_edge_length		vector of voronoi edge length (in ordering of Del faces)
 */
-void compute_Voronoi_edges(mesh_struct * mesh, coordinates* cv_vor, REAL* vor_edge_length)
+void compute_Voronoi_edges(mesh_struct * mesh, coordinates* cv_vor, dvector* vor_edge_length)
 {
+  //Delaunay mesh info
   INT nface = mesh->nface;
   iCSRmat f_el;
   icsr_trans(mesh->el_f, &f_el);
   coordinates* cv_del = mesh->cv;
+  //temp variables
   INT i,j;
   REAL x, y, z, vx, vy, vz;
   REAL nx, ny, nz;
@@ -254,25 +265,28 @@ void compute_Voronoi_edges(mesh_struct * mesh, coordinates* cv_vor, REAL* vor_ed
   REAL proj;
 
   for(i=0; i<nface; i++){
-	 
-    get_incidence_row(i,&f_el,index); //incident del elm on face = vor nodes on edge
- 
-    flag = mesh->f_flag[i];		//check if boundary del face = vor boundary edge
 	
-    if(flag == 0){	//if face is not on boundary, |edge| = |p1 - p2|
+	//Delaunay elm-face maps = vor node-edge map
+	get_incidence_row(i,&f_el,index); 
+	
+	//check if boundary del face = vor boundary edge
+    flag = mesh->f_flag[i];		
+	
+	//if face is not on boundary, |edge| = |p1 - p2|
+    if(flag == 0){	
 								
       x = cv_vor->x[index[0]] - cv_vor->x[index[1]];
       y = cv_vor->y[index[0]] - cv_vor->y[index[1]];
       z = cv_vor->z[index[0]] - cv_vor->z[index[1]];
 	  
-      vor_edge_length[i] = sqrt(x*x + y*y + z*z);
+      vor_edge_length->val[i] = sqrt(x*x + y*y + z*z);
 
     }
+	//face is on boundary, so edge is chopped off
+    //compute distance from point to the plane using projections
     else{
-      //face is on boundary, so edge is chopped off
-      //compute distance from point to the plane using projections
-      //f_v face to vertex map, grab a point on the face, normal vec n
 
+	  //look at face to vertex map, grab a point on the face, normal vec n
       get_incidence_row(i,mesh->f_v,index_f);
 	  
       vx = cv_vor->x[index[0]] - cv_del->x[index_f[0]];
@@ -289,7 +303,7 @@ void compute_Voronoi_edges(mesh_struct * mesh, coordinates* cv_vor, REAL* vor_ed
 		proj = -proj;  
 	  }
 
-	  vor_edge_length[i] = proj;
+	  vor_edge_length->val[i] = proj;
 
     }
   }
@@ -300,7 +314,7 @@ void compute_Voronoi_edges(mesh_struct * mesh, coordinates* cv_vor, REAL* vor_ed
 /*!
 * \fn void cross_product(REAL u, REAL v, REAL cross, REAL mag)
 *
-* \brief Computes the cross product and it's magnitude of two vectors R3
+* \brief Computes the cross product of two vectors R3 and its magnitude
 *
 * \param u 			vector in R3
 * \param v 			vector in R3
@@ -336,24 +350,32 @@ void cross_product(REAL* u, REAL* v, REAL* cross, REAL* mag)
 */
 void neighbor_elm (mesh_struct * mesh, INT n, INT m, INT* ind, INT* f)
 {
-  if (n == m){	//if same element, return ind = 0, not neighbors
+  //if same element, return ind = 0, not neighbors
+  if (n == m){	
     *ind =0;
     return;
   }
-  iCSRmat* el_f = mesh->el_f;	//elm to face map
-  INT* face_n =(INT *)calloc(4,sizeof(INT));	//indices of 4 faces on n
-  INT* face_m =(INT *)calloc(4,sizeof(INT));	//indices of 4 faces on m
+  //elm to face map
+  iCSRmat* el_f = mesh->el_f;	
+  //indices of 4 faces on n
+  INT* face_n =(INT *)calloc(4,sizeof(INT));
+  //indices of 4 faces on m  
+  INT* face_m =(INT *)calloc(4,sizeof(INT));
+  //temp variables  
   INT i = 0;
   INT j = 0;
   INT temp = 0;
   *f = -666;
-  get_incidence_row(n,el_f,face_n);	//get faces on n
-  get_incidence_row(m,el_f,face_m);	//get faces on m
+  //get faces on n
+  get_incidence_row(n,el_f,face_n);	
+  //get faces on m
+  get_incidence_row(m,el_f,face_m);	
 
   while (i<4 && temp == 0){
     j=0;
     while(j<4 && temp ==0){
-      if (face_n[i] == face_m[j]){		//find if face i of elm n is in face set of m
+	  //find if face i of elm n is in face set of m
+      if (face_n[i] == face_m[j]){		
         temp = 1;
         *f = face_n[i];
       }
@@ -368,9 +390,10 @@ void neighbor_elm (mesh_struct * mesh, INT n, INT m, INT* ind, INT* f)
 
 
 /*!
-* \fn REAL compute_Voronoi_faces(mesh_struct* mesh,coordinates* cv_vor, REAL* pt_on_face, REAL* vor_face_area)
+* \fn REAL compute_Voronoi_faces(mesh_struct* mesh,coordinates* cv_vor, REAL* pt_on_face, dvec* vor_face_area)
 *
-* \brief Computes the area of Voronoi faces
+* \brief Computes the area of Voronoi faces by partitioning the polygon into triangles
+			and computing the area of each triangle using cross products
 *
 * \param mesh 				Delaunay triangulation mesh struct
 * \param cv_vor				Voronoi coord struct
@@ -379,15 +402,19 @@ void neighbor_elm (mesh_struct * mesh, INT n, INT m, INT* ind, INT* f)
 * \return pt_on_face		a point on each face--use for compute_Voronoi_volumes
 *
 */
-void compute_Voronoi_faces(mesh_struct* mesh,coordinates* cv_vor, REAL* pt_on_face, REAL* vor_face_area)
+void compute_Voronoi_faces(mesh_struct* mesh,coordinates* cv_vor, REAL* pt_on_face, dvector* vor_face_area)
 {
-	
+//Delaunay mesh info	
 INT nface = mesh->nface;
 INT nedge = mesh->nedge;
-
 iCSRmat ed_el;
 icsr_trans(mesh->el_ed,&ed_el);
+iCSRmat ed_f;
+icsr_trans(mesh->f_ed, &ed_f);
+iCSRmat f_el;
+icsr_trans(mesh->el_f, &f_el);
 
+//temp variables
 INT i,j;
 REAL cross[3];
 REAL* u = (REAL *)calloc(3,sizeof(REAL));
@@ -405,56 +432,62 @@ INT* order = NULL;
 INT* temp = NULL;
 INT count;
 
-iCSRmat ed_f;
-icsr_trans(mesh->f_ed, &ed_f);
-
-iCSRmat f_el;
-icsr_trans(mesh->el_f, &f_el);
 
 //get coord of an endpt of the edge
 INT* endpt =(INT *)calloc(2,sizeof(INT));
 INT* faces =(INT *)calloc(2,sizeof(INT));
 
 for(i=0; i<nedge; i++){
-	//printf("face1\n");
 	
-	nnz	= ed_el.IA[i+1] - ed_el.IA[i];		//number of del elements incident to edge = num vor pts per face
-	index =(INT *)calloc(nnz,sizeof(INT));	//indices of del elements = vor pts
+	//number of del elements incident to edge = num vor pts per face
+	nnz	= ed_el.IA[i+1] - ed_el.IA[i];		
+	//indices of del elements = vor pts
+	index =(INT *)calloc(nnz,sizeof(INT));	
 	get_incidence_row(i,&ed_el,index);
-	//printf("face2\n");
 	
-	order = (INT *)calloc(nnz,sizeof(INT));	//stores ordered nodes
-	temp =(INT *)calloc(nnz,sizeof(INT));	//marker for ordered or not
-
-	order[0] = index[0];			//choose p1 = first elm in index
-	temp[0] = 1;					//mark it ordered
-
-	//do ordering of points I have
+	//stores ordered nodes
+	order = (INT *)calloc(nnz,sizeof(INT));	
+	//marker for ordered or not
+	temp =(INT *)calloc(nnz,sizeof(INT));	
+	//choose p1 = first elm in index
+	order[0] = index[0];	
+	//mark it ordered	
+	temp[0] = 1;						
+	//count of points I've ordered
 	count = 0;
-	while (count < nnz-1){			//count of points I've ordered
-		//printf("face3\n");	
-		a = order[count];		//grab last one I've ordered
+	//do ordering of points I have
+	while (count < nnz-1){			
+		//grab last one I've ordered	
+		a = order[count];		
 		j = -1;
-		ind = 0;									//loop over all elms in index
+		ind = 0;	
+		//loop over all elms in index		
 		while (ind == 0 && j<nnz-1){
 			j++;
-			if (temp[j] == 0){		//if it hasn't been marked, see if it's a neighbor
-			neighbor_elm(mesh, a, index[j], &ind, &f);	//check if a and ind[j] share a face
+			//if it hasn't been marked, see if it's a neighbor
+			if (temp[j] == 0){	
+			//check if a and ind[j] share a face			
+			neighbor_elm(mesh, a, index[j], &ind, &f);	
 			}
 		}
-		order[count+1] = index[j];		//when ind = 1, add index j to ordered points
-		temp[j] = 1;					//label it as ordered
-		count++;						//update counter
+		//when ind = 1, add index j to ordered points
+		order[count+1] = index[j];	
+		//label it as ordered
+		temp[j] = 1;	
+		//update counter		
+		count++;						
 	}
 	
-	
-	if(mesh->ed_flag[i] == 1){			//boundary edge--find intersection of face with boundary
-		//	printf("face4\n");
-			num_nodes = nnz+3;			//we need 3 extra points
+	//boundary edge--find intersection of face with boundary
+	if(mesh->ed_flag[i] == 1){			
+			//we need 3 extra points
+			num_nodes = nnz+3;			
 
-			coords =(REAL *)calloc(3*(nnz+3),sizeof(REAL));		//stores coords of points of face
-
-			get_incidence_row(i,mesh->ed_v,endpt);		//grab a point on the del edge = pt on vor face
+			//stores coords of points of face
+			coords =(REAL *)calloc(3*(nnz+3),sizeof(REAL));		
+			
+			//grab a point on the del edge = pt on vor face
+			get_incidence_row(i,mesh->ed_v,endpt);		
 			x = mesh->cv->x[endpt[0]];
 			y = mesh->cv->y[endpt[0]];
 			z = mesh->cv->z[endpt[0]];
@@ -462,26 +495,28 @@ for(i=0; i<nedge; i++){
 			//get the incident faces
 			get_incidence_row(i,&ed_f,faces);
 			
-			//printf("face5\n");
-		for(j=0; j<2; j++){		//compute points on faces -- add to beginning and end
-			//printf("face6\n");
+
+		//compute points on faces -- add to beginning and end
+		for(j=0; j<2; j++){		
+
 			REAL vx,vy,vz;
 			
 			f = faces[j];
 			nx = mesh->f_norm[3*f];
 			ny = mesh->f_norm[3*f+1];
 			nz = mesh->f_norm[3*f+2];
-
-			INT elm[1];					//if boundary face, only belongs to one element
+			
+			//if boundary face, only belongs to one element
+			INT elm[1];					
 			get_incidence_row(f,&f_el,elm);
-			//printf("face7\n");
 			vx = cv_vor->x[elm[0]];
 			vy = cv_vor->y[elm[0]];
 			vz = cv_vor->z[elm[0]];
 
 			mag = nx* (vx-x) + ny*(vy-y) + nz*(vz-z);
 
-			if(elm[0] == order[0]){    //determine whether we add the point to the beg or the end
+			//determine whether we add the point to the beg or the end
+			if(elm[0] == order[0]){    
 				coords[3] = mag*nx + vx ;
 				coords[4] = mag*ny + vy;
 				coords[5] = mag*nz + vz;
@@ -492,12 +527,13 @@ for(i=0; i<nedge; i++){
 				coords[3*(nnz+3)-1] = mag*nz + vz;
 			}
 		}
-
-			coords[0] = mesh->ed_mid[3*i];	//compute point on the boundary edge -- just the midpoint.
+			//compute point on the boundary edge -- just the midpoint.
+			coords[0] = mesh->ed_mid[3*i];	
 			coords[1] = mesh->ed_mid[3*i +1];
 			coords[2] = mesh->ed_mid[3*i+2];
 
-		for(k=0; k< nnz; k++){			//get coords of pts we ordered		
+		for(k=0; k< nnz; k++){			
+			//get coords of pts we ordered		
 			elmi = order[k];
 			coords[3*k+6] = cv_vor->x[elmi];
 			coords[3*k+6+1] = cv_vor->y[elmi];
@@ -505,7 +541,8 @@ for(i=0; i<nedge; i++){
 			}
 	}
 
-	else{		//get coords of the ordered points
+	else{		
+		//get coords of the ordered points
 		num_nodes = nnz;
 		coords =(REAL *)calloc(3*nnz,sizeof(REAL));
 		for(k=0; k<nnz; k++){
@@ -514,27 +551,24 @@ for(i=0; i<nedge; i++){
 			coords[3*k+1] = cv_vor->y[elmi];
 			coords[3*k+2] = cv_vor->z[elmi];
 		}
-		//printf("face8\n");
 	}
 
 	area = 0;
-	for(j=0; j<num_nodes-2; j++){		//compute area of vor face using cross products
-			//printf("face9\n");
+	for(j=0; j<num_nodes-2; j++){	
+	
+			//compute area of vor face using cross products
 			u[0] = coords[3*(j+1)] - coords[0];
 			u[1] = coords[3*(j+1)+1] - coords[1];
 			u[2] = coords[3*(j+1)+2] - coords[2];
-		//	printf("u: %f  %f  %f\n", u[0], u[1], u[2]);
 			v[0] = coords[3*(j+2)] - coords[0];
 			v[1] = coords[3*(j+2)+1] - coords[1];
 			v[2] = coords[3*(j+2)+2] - coords[2];
-		//	printf("v: %f  %f  %f\n", v[0], v[1], v[2]);
 			cross_product(u, v, cross, &mag);
-		//	printf("mag u x v: %f\n", mag);
 			area += .5*mag;
 
 }
 
-	vor_face_area[i] = area;	
+	vor_face_area->val[i] = area;	
 	pt_on_face[3*i] = coords[0];
 	pt_on_face[3*i+1] = coords[1];
 	pt_on_face[3*i+2] = coords[2];
@@ -562,9 +596,9 @@ return;
 }
 
 /*!
-* \fn void compute_Voronoi_volumes(mesh_struct* mesh,coordinates* cv_vor, REAL* vor_face_area, REAL* pt_on_face, REAL* vor_el_vol)
+* \fn void compute_Voronoi_volumes(mesh_struct* mesh,coordinates* cv_vor, dvec* vor_face_area, REAL* pt_on_face, dvector* vor_el_vol)
 *
-* \brief Computes the volume of the Voronoi polyhedra
+* \brief Computes the volume of the Voronoi polyhedra by partitioning Voronoi polyhedra into tetrahedra
 *
 * \param mesh 				Delaunay triangulation mesh struct
 * \param cv_vor 			Voronoi coord struct
@@ -574,17 +608,17 @@ return;
 * \return vor_el_vol			vector of Voronoi element volumes (in ordering of Del nodes)
 *
 */
-void compute_Voronoi_volumes(mesh_struct* mesh, coordinates* cv_vor, REAL* vor_face_area, REAL* pt_on_face, REAL* vor_el_vol)
+void compute_Voronoi_volumes(mesh_struct* mesh, coordinates* cv_vor, dvector* vor_face_area, REAL* pt_on_face, dvector* vor_el_vol)
 {
-
+   //Delaunay and Voronoi mesh info
   INT nv_del = mesh->nv;
   coordinates* cv_del = mesh->cv;
   iCSRmat* el_ed = mesh->el_ed;
   iCSRmat v_ed;
   icsr_trans(mesh->ed_v,&v_ed);
-
+  //temp variables
   INT i,j;
-  INT* index = NULL; 		//preallocate?
+  INT* index = NULL; 		
   REAL tx, ty, tz, x, y, z;
   REAL volume;
   INT f, nnz;
@@ -592,30 +626,38 @@ void compute_Voronoi_volumes(mesh_struct* mesh, coordinates* cv_vor, REAL* vor_f
   
   for(i=0; i<nv_del; i++){
     nnz	= v_ed.IA[i+1] - v_ed.IA[i];
-	//printf("%d \n", nnz);
     index = (INT*)calloc(nnz, sizeof(INT));
-    get_incidence_row(i,&v_ed,index);	//get indices of incident edges
+	
+	//get indices of incident edges
+    get_incidence_row(i,&v_ed,index);	
     volume = 0;
-    for(j=0; j<nnz; j++){		//loop over faces/poly = edges/del node
-      f = index[j];				//what face we're on
-      tx = mesh->ed_tau[3*f]; 	// get tangent vector to edge = normal to face
+	//loop over faces/poly = edges/del node
+    for(j=0; j<nnz; j++){
+		
+	  //what face we're on	
+      f = index[j];	
+	  
+	  // get tangent vector to Delaunay edge = normal toCoronoi face	  
+      tx = mesh->ed_tau[3*f]; 	
       ty = mesh->ed_tau[3*f+1];
       tz = mesh->ed_tau[3*f+2];
-      x = cv_del->x[i] - pt_on_face[3*f];	//find vector from face to del pt
+	  
+	  //find vector from face to del pt
+      x = cv_del->x[i] - pt_on_face[3*f];	
       y = cv_del->y[i] - pt_on_face[3*f+1];
       z = cv_del->z[i] - pt_on_face[3*f+2];
 	  
-	  height = x*tx + y*ty + z*tz;			//project it in direction of normal to face (tan to del edge)
+	  //project it in direction of normal to face (tan to Del edge)
+	  height = x*tx + y*ty + z*tz;			
 	  
 	   if(height<0){
 		  height = -height;
 	  }
 	  
-	  volume+= height*vor_face_area[f]/3;
-	  // printf("height = %f, base = %f, vol = %f  \n", height, vor_face_area[f], volume);
+	  volume+= height*vor_face_area->val[f]/3;
     }
 	
-    vor_el_vol[i] = volume;
+    vor_el_vol->val[i] = volume;
 	
     if(index) {
       free(index);
@@ -624,37 +666,3 @@ void compute_Voronoi_volumes(mesh_struct* mesh, coordinates* cv_vor, REAL* vor_f
   }
   return;
 }
-
-/***********************************************************************************************/
-/*!
-* \fn dCSRmat dcsr_create_diagonal_matrix (const INT m, const INT n, const INT index_start, REAL* vec)
-*
-* \brief Create a dCSRmat sparse matrix that is diagonal
-*
-* \param m             Number of rows
-* \param index_start   Number from which memory is indexed (1 for fortran, 0 for C)
-*
-* \return A            the new dCSRmat matrix
-*
-*/
-dCSRmat dcsr_create_diagonal_matrix(const INT m,
-  const INT index_start, REAL* vec)
-  {
-    dCSRmat A;
-
-    A.IA = (INT *)calloc(m+1, sizeof(INT));
-    A.JA = (INT *)calloc(m, sizeof(INT));
-    A.val = (REAL *)calloc(m, sizeof(REAL));
-
-    A.row = m; A.col = m; A.nnz = m;
-
-    INT i;
-    for(i=0;i<m;i++){
-      A.IA[i]=i + index_start;
-      A.JA[i]=i + index_start;
-      A.val[i] = vec[i];
-    }
-    A.IA[m] = m + index_start;
-
-    return A;
-  }
