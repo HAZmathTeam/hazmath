@@ -467,4 +467,28 @@ void det3D(REAL *mydet,
   return;
 }
 
+/*!
+* \fn void cross_product(REAL u, REAL v, REAL cross, REAL mag)
+*
+* \brief Computes the cross product of two vectors in R3 and its magnitude
+*
+* \param u 			vector in R3
+* \param v 			vector in R3
+*
+* \return cross		  u x v
+* \return mag 		| u x v |
+*
+*/
+void cross_product(REAL* u, REAL* v, REAL* cross, REAL* mag)
+{
+  cross[0] = u[1]*v[2] - u[2]*v[1];
+  cross[1] = u[2]*v[0] - u[0]*v[2];
+  cross[2] = u[0]*v[1] - u[1]*v[0];
+
+  *mag = sqrt(cross[0]*cross[0] + cross[1]*cross[1] + cross[2]*cross[2]);
+
+  return;
+}
+
+
 /*************************************  END  ******************************************************/
