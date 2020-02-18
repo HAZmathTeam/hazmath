@@ -162,31 +162,23 @@ int main (int argc, char* argv[])
   
   coordinates* cv_vor;
   cv_vor =  allocatecoords(mesh.nelm,mesh.dim);
-
-  REAL* vor_edge_length = (REAL *) calloc(mesh.nface,sizeof(REAL)); 
+  dvector vor_edge_length = dvec_create(mesh.nface);
   
-
-  REAL* vor_face_area=(REAL *)calloc(mesh.nedge,sizeof(REAL));
+  dvector vor_face_area = dvec_create(mesh.nedge);
+  
   REAL* pt_on_face=(REAL *)calloc(3*mesh.nedge,sizeof(REAL));
   
-
-  REAL* vor_el_vol = (REAL *) calloc(mesh.nv,sizeof(REAL));
+  
+ dvector vor_el_vol = dvec_create(mesh.nv);
 
  compute_Voronoi_nodes(&mesh, cv_vor);
-// printf("made it here 1\n");
- compute_Voronoi_edges(&mesh, cv_vor, vor_edge_length);
-//  printf("made it here 2\n");
- compute_Voronoi_faces(&mesh, cv_vor, pt_on_face, vor_face_area);
- // printf("made it here 3\n");
- compute_Voronoi_volumes(&mesh, cv_vor, vor_face_area, pt_on_face, vor_el_vol);
- // printf("made it here 4\n");
- 
- //for(i=0; i<mesh.nv; i++){ printf("%f\n",vor_el_vol[i]);}
- 
- 
- 
 
-// exit(0);
+ compute_Voronoi_edges(&mesh, cv_vor, &vor_edge_length);
+
+ compute_Voronoi_faces(&mesh, cv_vor, pt_on_face, &vor_face_area);
+
+ compute_Voronoi_volumes(&mesh, cv_vor, &vor_face_area, pt_on_face, &vor_el_vol);
+
  
  //Matrices with mesh info
  dCSRmat Vv;
@@ -201,12 +193,26 @@ int main (int argc, char* argv[])
  dCSRmat MbL;
  dCSRmat MpL;
  
-Vv = dcsr_create_diagonal_matrix(mesh.nv, 0, vor_el_vol);
-Va = dcsr_create_diagonal_matrix(mesh.nedge, 0, vor_face_area);
-Ve = dcsr_create_diagonal_matrix(mesh.nface, 0, vor_edge_length);
-Dv = dcsr_create_diagonal_matrix(mesh.nelm, 0, mesh.el_vol);
-Da = dcsr_create_diagonal_matrix(mesh.nface, 0, mesh.f_area);
-De = dcsr_create_diagonal_matrix(mesh.nedge, 0, mesh.ed_len);
+Vv = dcsr_create_diagonal_matrix(&vor_el_vol);
+Va = dcsr_create_diagonal_matrix(&vor_face_area);
+Ve = dcsr_create_diagonal_matrix(&vor_edge_length);
+
+dvector del_el_vol;
+del_el_vol.row = mesh.nelm;
+del_el_vol.val = mesh.el_vol;
+
+dvector del_face_area;
+del_face_area.row = mesh.nface;
+del_face_area.val = mesh.f_area;
+
+dvector del_edge_length;
+del_edge_length.row = mesh.nedge;
+del_edge_length.val = mesh.ed_len;
+
+
+Dv = dcsr_create_diagonal_matrix(&del_el_vol);
+Da = dcsr_create_diagonal_matrix(&del_face_area);
+De = dcsr_create_diagonal_matrix(&del_edge_length);
  
   
   // Grad and Curl matrices
