@@ -517,12 +517,13 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
                       void (*set_bdry_flags)(mesh_struct*),
                       dCSRmat *A_diag,
                       block_dCSRmat *A_noBC,
+                             linear_itsolver_param *itparam,////////////////////////////////
                       solve_stats *solve_info)
 {
     const SHORT   max_levels  = param->max_levels;
     const SHORT   prtlvl      = param->print_level;
-    //const SHORT   mg_type     = param->AMG_type;
-    const SHORT   mg_type     = 111;
+    const SHORT   mg_type     = param->AMG_type;
+    //const SHORT   mg_type     = 111;
     const SHORT   cycle_type  = param->cycle_type;
 
     // local variables
@@ -589,9 +590,10 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
 
     for(i=0;i<max_levels;i++) mgl[i].gmg_type = gmg_type;
 
-    mgl[0].As = solve_info->As;
-    mgl[0].nAs = solve_info->nAs;
-    mgl[0].FES = solve_info->FES;
+    // Ignore this lazy workaround.
+    //mgl[0].As = solve_info->As;
+    //mgl[0].nAs = solve_info->nAs;
+    //mgl[0].FES = solve_info->FES;
 
     // Step 1: MG setup phase
     switch (mg_type) {
@@ -609,7 +611,8 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
             if ( prtlvl > PRINT_NONE ) printf("\n Calling block GMG ...\n");
             status = gmg_blk_setup_generic(mgl, param);
             printf("\nFinished gmg_blk_setup... Calling smoother setup...\n");
-            smoother_block_setup(mgl, param);
+            //smoother_block_setup(mgl, param);
+            smoother_setup_biot_monolithic( mgl, param);
             printf("\nsmoother setup Done...\n");
         break;
 //        default: // Unsmoothed Aggregation AMG setup
@@ -617,6 +620,21 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
 //            check_error(ERROR_SOLVER_MISC, __FUNCTION__);
 //        break;
     }
+
+
+//  // KRYLOV BIOT
+//  precond_block_data precdata;
+//  precond_block_data_null(&precdata);
+//  precdata.Abcsr = A;
+//  precdata.A_diag = A_diag;
+//  precdata.r = dvec_create(b->row);
+//  precdata.amgparam = param;
+//  precdata.bmgl = mgl;
+//  precond prec; prec.data = &precdata;
+//  prec.fct = precond_block_monolithic_mg;
+//  status=solver_bdcsr_linear_itsolver(A,b,x, &prec,itparam);
+//  printf("\n\n BLAHBLAHBALH\n");
+//  return status;
 
     REAL rho1, rho2;
     // Step 2: MG solve phase
@@ -1036,8 +1054,9 @@ INT linear_solver_dcsr_krylov_hx_div(dCSRmat *A,
                                       dCSRmat *P_div,
                                       dCSRmat *Curl)
 {
+
     const SHORT prtlvl = itparam->linear_print_level;
-    amgparam->max_levels = 2;
+    //amgparam->max_levels = 2;
     const SHORT max_levels = amgparam->max_levels;
 
     /*------------------------*/
@@ -1136,7 +1155,7 @@ INT linear_solver_dcsr_krylov_hx_div(dCSRmat *A,
     hxdivdata.A_curl = &A_curl;
 
     hxdivdata.backup_r = (REAL*)calloc(A->row, sizeof(REAL));
-    hxdivdata.w = (REAL*)calloc(A->row, sizeof(REAL));
+    hxdivdata.w = (REAL*)calloc(2*(A_curl.row)+A->row, sizeof(REAL));
 
     precond pc; pc.data = &hxdivdata;
     switch (itparam->linear_precond_type) {
@@ -1146,7 +1165,6 @@ INT linear_solver_dcsr_krylov_hx_div(dCSRmat *A,
             break;
 
         default:  // multiplicative HX preconditioner
-//            pc.fct = precond_hx_div_additive;
             pc.fct = precond_hx_div_multiplicative;
             break;
 
@@ -1163,7 +1181,7 @@ INT linear_solver_dcsr_krylov_hx_div(dCSRmat *A,
     }
 
 FINISHED:
-    //HX_curl_data_free(&hxcurldata, FALSE);
+    HX_div_data_free(&hxdivdata, FALSE);
 
     return status;
 }

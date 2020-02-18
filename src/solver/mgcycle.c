@@ -223,20 +223,24 @@ static void dcsr_postsmoothing(const SHORT smoother,
  */
 static void bdcsr_presmoothing(const INT lvl, MG_blk_data *mgl, AMG_param *param)
 {
-    const SHORT smoother = 1000;//param->smoother;
+    const SHORT smoother = 1001;//param->smoother;
     const SHORT nsweeps  = param->presmooth_iter;
     INT i;
     Schwarz_param swzparam;
     switch (smoother) {
 
-        //case SMOOTHER_JACOBI:
-        //    smoother_bdcsr_jacobi(&mgl[lvl].x, 1, &mgl[lvl].A, &mgl[lvl].b, nsweeps);
-        //    break;
+        case SMOOTHER_JACOBI:
+            smoother_bdcsr_jacobi(&mgl[lvl].x, 1, &mgl[lvl].A, &mgl[lvl].b, nsweeps);
+            break;
         case 1000:
           swzparam.Schwarz_blksolver = mgl[lvl].Schwarz.blk_solver;
           printf("Presmooth Schwarz Start. solver %d\n",swzparam.Schwarz_blksolver);
           smoother_dcsr_Schwarz_forward(&mgl[lvl].Schwarz, &swzparam, &mgl[lvl].x, &mgl[lvl].b);
           printf("Presmooth Schwarz Done.\n");
+          break;
+        case 1001:
+          swzparam.Schwarz_blksolver = mgl[lvl].Schwarz.blk_solver;
+          smoother_dcsr_Schwarz_forward_additive(&mgl[lvl].Schwarz, &swzparam, &mgl[lvl].x, &mgl[lvl].b,0.78);
           break;
         default:
           for(i=0;i<nsweeps;i++){
@@ -261,18 +265,22 @@ static void bdcsr_presmoothing(const INT lvl, MG_blk_data *mgl, AMG_param *param
  */
 static void bdcsr_postsmoothing(const INT lvl, MG_blk_data *mgl, AMG_param *param)
 {
-    const SHORT smoother = 1000;//param->smoother;
+    const SHORT smoother = 1001;//param->smoother;
     const SHORT nsweeps  = param->postsmooth_iter;
     INT i;
     Schwarz_param swzparam;
     switch (smoother) {
 
-//        case SMOOTHER_JACOBI:
-//            smoother_bdcsr_jacobi(&mgl[lvl].x, 1, &mgl[lvl].A, &mgl[lvl].b, nsweeps);
-//            break;
+        case SMOOTHER_JACOBI:
+            smoother_bdcsr_jacobi(&mgl[lvl].x, 1, &mgl[lvl].A, &mgl[lvl].b, nsweeps);
+            break;
         case 1000:
           swzparam.Schwarz_blksolver = mgl[lvl].Schwarz.blk_solver;
           smoother_dcsr_Schwarz_backward(&mgl[lvl].Schwarz, &swzparam, &mgl[lvl].x, &mgl[lvl].b);
+          break;
+        case 1001:
+          swzparam.Schwarz_blksolver = mgl[lvl].Schwarz.blk_solver;
+          smoother_dcsr_Schwarz_backward_additive(&mgl[lvl].Schwarz, &swzparam, &mgl[lvl].x, &mgl[lvl].b,0.78);
           break;
         default:
           for(i=0;i<nsweeps;i++){
@@ -744,11 +752,11 @@ void mgcycle_block(MG_blk_data *bmgl,
     REAL alpha = 1.0;
     INT  num_lvl[MAX_AMG_LVL] = {0}, l = 0;
     INT  i;
-    INT status;
+    //INT status;
 
-    dvector b_disp;
-    dvector b_darcy;
-    dvector b_pressure;
+//    dvector b_disp;
+//    dvector b_darcy;
+//    dvector b_pressure;
 
 ForwardSweep:
     while ( l < nl-1 ) {
@@ -804,7 +812,10 @@ ForwardSweep:
         case SOLVER_UMFPACK: {
             // use UMFPACK direct solver on the coarsest level
             printf("Solving coarse level with UMFPACK...\n");
-            status = umfpack_solve(&bmgl[nl-1].Ac, &bmgl[nl-1].b, &bmgl[nl-1].x, bmgl[nl-1].Numeric, 0);
+            umfpack_solve(&bmgl[nl-1].Ac, &bmgl[nl-1].b, &bmgl[nl-1].x, bmgl[nl-1].Numeric, 0);
+//        b_pressure.row     = bmgl[nl-1].FE->var_spaces[3]->ndof;
+//        b_pressure.val     = bmgl[nl-1].x.val + bmgl[nl-1].FE->var_spaces[0]->ndof + 2*bmgl[nl-1].FE->var_spaces[1]->ndof;
+//        dvec_orthog_const(&b_pressure);
 //        b_disp.row     = bmgl[nl-1].FE->var_spaces[1]->ndof;
 //        b_disp.val     = bmgl[nl-1].x.val + bmgl[nl-1].FE->var_spaces[0]->ndof;
 //        dvec_orthog_const(&b_disp);
@@ -818,12 +829,12 @@ ForwardSweep:
             // use iterative solver on the coarsest level
             printf("Solving coarse level with coarse_itsolve...\n");
             bdcsr_pvgmres(&bmgl[nl-1].A, &bmgl[nl-1].b, &bmgl[nl-1].x, NULL, tol, 1000, 500, 1, 10);
-        b_disp.row     = bmgl[nl-1].FE->var_spaces[1]->ndof;
-        b_disp.val     = bmgl[nl-1].x.val + bmgl[nl-1].FE->var_spaces[0]->ndof;
-        dvec_orthog_const(&b_disp);
-        b_disp.row     = bmgl[nl-1].FE->var_spaces[2]->ndof;
-        b_disp.val     = b_disp.val + bmgl[nl-1].FE->var_spaces[1]->ndof;
-        dvec_orthog_const(&b_disp);
+//        b_disp.row     = bmgl[nl-1].FE->var_spaces[1]->ndof;
+//        b_disp.val     = bmgl[nl-1].x.val + bmgl[nl-1].FE->var_spaces[0]->ndof;
+//        dvec_orthog_const(&b_disp);
+//        b_disp.row     = bmgl[nl-1].FE->var_spaces[2]->ndof;
+//        b_disp.val     = b_disp.val + bmgl[nl-1].FE->var_spaces[1]->ndof;
+//        dvec_orthog_const(&b_disp);
             break;
 
     }
@@ -864,11 +875,11 @@ ForwardSweep:
 //        b_disp.row     = bmgl[l].FE->var_spaces[2]->ndof;
 //        b_disp.val     = b_disp.val + bmgl[l].FE->var_spaces[1]->ndof;
 //        dvec_orthog_const(&b_disp);
-        // correct bdry
-        for(i=0; i<bmgl[l].x.row; i++){
-          if( bmgl[l].FE->dirichlet[i] == 1 )
-            bmgl[l].x.val[i] = bmgl[l].w.val[i];
-        }
+//        // correct bdry
+//        for(i=0; i<bmgl[l].x.row; i++){
+//          if( bmgl[l].FE->dirichlet[i] == 1 )
+//            bmgl[l].x.val[i] = bmgl[l].w.val[i];
+//        }
 
         if ( num_lvl[l] < cycle_type ) break;
         else num_lvl[l] = 0;
