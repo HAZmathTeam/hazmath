@@ -182,11 +182,12 @@ void compute_Voronoi_nodes(mesh_struct* mesh, coordinates* cv_vor)
 
   for(i = 0; i < nelm; i++){
 	  
-	  //Delaunay node-element map
+	//Delaunay node-element map
     get_incidence_row(i,el_v,index);	
 	
 	
     for(j=0; j<4; j++){							
+
       elm_coords[3*j] = cv_del->x[index[j]];
       elm_coords[3*j+1] = cv_del->y[index[j]];
       elm_coords[3*j+2] = cv_del->z[index[j]];
@@ -221,13 +222,13 @@ void compute_Voronoi_nodes(mesh_struct* mesh, coordinates* cv_vor)
         }
       }
     }
-	
+
 	//get determinants
     find_det_4(A, &a);
     find_det_4(Dx, &dx);
     find_det_4(Dy, &dy);
     find_det_4(Dz, &dz);
-	
+
 	//store voronoi pts
     cv_vor->x[i] = dx/(2*a);
     cv_vor->y[i] = -dy/(2*a);
@@ -280,7 +281,6 @@ void compute_Voronoi_edges(mesh_struct * mesh, coordinates* cv_vor, dvector* vor
       z = cv_vor->z[index[0]] - cv_vor->z[index[1]];
 	  
       vor_edge_length->val[i] = sqrt(x*x + y*y + z*z);
-
     }
 	//face is on boundary, so edge is chopped off
     //compute distance from point to the plane using projections
@@ -288,26 +288,26 @@ void compute_Voronoi_edges(mesh_struct * mesh, coordinates* cv_vor, dvector* vor
 
 	  //look at face to vertex map, grab a point on the face, normal vec n
       get_incidence_row(i,mesh->f_v,index_f);
-	  
+
       vx = cv_vor->x[index[0]] - cv_del->x[index_f[0]];
       vy = cv_vor->y[index[0]] - cv_del->y[index_f[0]];
       vz = cv_vor->z[index[0]] - cv_del->z[index_f[0]];
-	  
+
       nx = mesh->f_norm[3*i];
       ny = mesh->f_norm[3*i+1];
       nz = mesh->f_norm[3*i+2];
-	  
+
 	  proj = vx*nx+ vy*ny + vz*nz;
-	  
+
 	  if(proj < 0){
-		proj = -proj;  
+		proj = -proj;
 	  }
 
 	  vor_edge_length->val[i] = proj;
 
     }
   }
-  
+
   return;
 }
 
@@ -401,18 +401,22 @@ void neighbor_elm (mesh_struct * mesh, INT n, INT m, INT* ind, INT* f)
 * \return vor_face_area		vector of Voronoi face area (in ordering of Del edges)
 * \return pt_on_face		a point on each face--use for compute_Voronoi_volumes
 *
+* \note
+*
 */
 void compute_Voronoi_faces(mesh_struct* mesh,coordinates* cv_vor, REAL* pt_on_face, dvector* vor_face_area)
 {
 //Delaunay mesh info	
 INT nface = mesh->nface;
 INT nedge = mesh->nedge;
+// Get transposes of incident matrices
 iCSRmat ed_el;
 icsr_trans(mesh->el_ed,&ed_el);
 iCSRmat ed_f;
 icsr_trans(mesh->f_ed, &ed_f);
 iCSRmat f_el;
 icsr_trans(mesh->el_f, &f_el);
+
 
 //temp variables
 INT i,j;
@@ -431,7 +435,6 @@ INT* index = NULL;
 INT* order = NULL;
 INT* temp = NULL;
 INT count;
-
 
 //get coord of an endpt of the edge
 INT* endpt =(INT *)calloc(2,sizeof(INT));
@@ -482,7 +485,6 @@ for(i=0; i<nedge; i++){
 	if(mesh->ed_flag[i] == 1){			
 			//we need 3 extra points
 			num_nodes = nnz+3;			
-
 			//stores coords of points of face
 			coords =(REAL *)calloc(3*(nnz+3),sizeof(REAL));		
 			
@@ -491,16 +493,15 @@ for(i=0; i<nedge; i++){
 			x = mesh->cv->x[endpt[0]];
 			y = mesh->cv->y[endpt[0]];
 			z = mesh->cv->z[endpt[0]];
-			
+
 			//get the incident faces
 			get_incidence_row(i,&ed_f,faces);
-			
 
 		//compute points on faces -- add to beginning and end
 		for(j=0; j<2; j++){		
 
 			REAL vx,vy,vz;
-			
+
 			f = faces[j];
 			nx = mesh->f_norm[3*f];
 			ny = mesh->f_norm[3*f+1];
@@ -532,8 +533,10 @@ for(i=0; i<nedge; i++){
 			coords[1] = mesh->ed_mid[3*i +1];
 			coords[2] = mesh->ed_mid[3*i+2];
 
+
 		for(k=0; k< nnz; k++){			
 			//get coords of pts we ordered		
+
 			elmi = order[k];
 			coords[3*k+6] = cv_vor->x[elmi];
 			coords[3*k+6+1] = cv_vor->y[elmi];
@@ -569,11 +572,13 @@ for(i=0; i<nedge; i++){
 }
 
 	vor_face_area->val[i] = area;	
+
 	pt_on_face[3*i] = coords[0];
 	pt_on_face[3*i+1] = coords[1];
 	pt_on_face[3*i+2] = coords[2];
 
 
+  // Free temporary arrays
 	if(index) {
       free(index);
       index=NULL;
@@ -623,7 +628,7 @@ void compute_Voronoi_volumes(mesh_struct* mesh, coordinates* cv_vor, dvector* vo
   REAL volume;
   INT f, nnz;
   REAL height;
-  
+
   for(i=0; i<nv_del; i++){
     nnz	= v_ed.IA[i+1] - v_ed.IA[i];
     index = (INT*)calloc(nnz, sizeof(INT));
@@ -659,6 +664,7 @@ void compute_Voronoi_volumes(mesh_struct* mesh, coordinates* cv_vor, dvector* vo
 	
     vor_el_vol->val[i] = volume;
 	
+
     if(index) {
       free(index);
       index=NULL;
