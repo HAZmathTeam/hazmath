@@ -215,6 +215,12 @@ typedef struct {
     //! type of Schwarz block solver
     INT Schwarz_blksolver;
 
+    /* Hacking in parameters for gmg smoothers */
+    //! HAZMATH install dir
+    char* HAZDIR;
+    //! Track if schwarz should be used as a relaxation method on a block
+    INT* Schwarz_on_blk;
+
     // BSR preconditioner
     REAL BSR_alpha;                 /**< weight on diagonal matrix alpha*D approx of A */
     REAL BSR_omega;                 /**< weight on update x = x + omega*Binv*(Ax-b) */
