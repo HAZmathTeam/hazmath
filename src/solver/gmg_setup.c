@@ -787,19 +787,21 @@ SHORT gmg_load_coarse_grids_from_file( MG_blk_data *mgl,
                                        AMG_param *param)
 {
   // local variables
-  const SHORT prtlvl     = param->print_level;
-  const SHORT cycle_type = param->cycle_type;
-  const SHORT csolver    = param->coarse_solver;
+  //const SHORT prtlvl     = param->print_level;
+  //const SHORT cycle_type = param->cycle_type;
+  //const SHORT csolver    = param->coarse_solver;
   const SHORT max_levels = param->max_levels;
 
   INT lvl = 0;
   INT status = SUCCESS;
-  INT dim = mgl[0].fine_level_mesh->dim;
-  INT i,j,nf1d,nc1d,csize;
+  //INT dim = mgl[0].fine_level_mesh->dim;
+  //INT i,j,nf1d,nc1d,csize;
+  INT csize;
 
   // To Read from file
   FILE* cgfid;
   char cgridfile[500];
+  char hazdir[500];
 
   for( lvl = 0; lvl < max_levels-1; lvl++){
     /*-- Build coarse level mesh --*/
@@ -807,15 +809,24 @@ SHORT gmg_load_coarse_grids_from_file( MG_blk_data *mgl,
     mgl[lvl+1].fine_level_mesh = (mesh_struct*)calloc(1, sizeof(mesh_struct));
     initialize_mesh(mgl[lvl+1].fine_level_mesh);
     /*-- Need to customize this to specific directory --*/
-    sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",csize);
+    printf("--------\n");
+    printf("PARAMDIR: %s\n",param->HAZDIR);
+    strcpy(hazdir, param->HAZDIR);
+    sprintf(cgridfile,"unitSQ_n%d.haz",csize);
+    strcat(hazdir,cgridfile);
+    //sprintf(cgridfile,"/Users/Yggdrasill/Research/HAZMAT/hazmat/examples/grids/2D/unitSQ_n%d.haz",csize);
     //sprintf(cgridfile,"/home/xiaozhehu/Work/Projects/HAZMATH/hazmath/examples/grids/2D/unitSQ_n%d.haz",csize);
     //sprintf(cgridfile,"/home/pohm01/HAZMAT/hazmath/examples/grids/2D/unitSQ_n%d.haz",csize);
-    cgfid = HAZ_fopen(cgridfile,"r");
+    //cgfid = HAZ_fopen(cgridfile,"r");
+    printf("DIR: %s\n",hazdir);
+    cgfid = HAZ_fopen(hazdir,"r");
     creategrid_fread(cgfid,0,mgl[lvl+1].fine_level_mesh);
     fclose(cgfid);
     printf("Coarse grid loaded for lvl=%d...\n",lvl);
     /*-- Set boundary flags on the coarse mesh --*/
-    mgl[0].set_bdry_flags(mgl[lvl+1].fine_level_mesh);
+    if( mgl[0].set_bdry_flags ){
+      mgl[0].set_bdry_flags(mgl[lvl+1].fine_level_mesh);
+    }
   }
 
   return status;
@@ -840,15 +851,16 @@ SHORT gmg_build_coarse_FE_spaces( MG_blk_data *mgl,
                                   AMG_param *param)
 {
   // local variables
-  const SHORT prtlvl     = param->print_level;
-  const SHORT cycle_type = param->cycle_type;
-  const SHORT csolver    = param->coarse_solver;
+  //const SHORT prtlvl     = param->print_level;
+  //const SHORT cycle_type = param->cycle_type;
+  //const SHORT csolver    = param->coarse_solver;
   const SHORT max_levels = param->max_levels;
 
   INT lvl = 0;
   INT status = SUCCESS;
-  INT dim = mgl[0].fine_level_mesh->dim;
-  INT i,j,nf1d,nc1d,csize;
+  //INT dim = mgl[0].fine_level_mesh->dim;
+  //INT i,j,nf1d,nc1d,csize;
+  INT i;
 
   INT nspaces = mgl[0].FE->nspaces;
 
@@ -888,15 +900,15 @@ SHORT gmg_apply_periodic_BC( MG_blk_data *mgl,
                              INT NoBBL)
 {
   // local variables
-  const SHORT prtlvl     = param->print_level;
-  const SHORT cycle_type = param->cycle_type;
-  const SHORT csolver    = param->coarse_solver;
+  //const SHORT prtlvl     = param->print_level;
+  //const SHORT cycle_type = param->cycle_type;
+  //const SHORT csolver    = param->coarse_solver;
   const SHORT max_levels = param->max_levels;
 
   INT lvl = 0;
   INT status = SUCCESS;
   INT dim = mgl[0].fine_level_mesh->dim;
-  INT i,j,nf1d,nc1d,csize;
+  INT i,j;//,nf1d,nc1d,csize;
   INT ndof, cnt, dof_shift;
   INT brow = mgl[0].A.brow;
 
@@ -1018,14 +1030,36 @@ SHORT gmg_blk_setup_generic(MG_blk_data *mgl,
   const SHORT csolver    = param->coarse_solver;
   SHORT       max_levels = param->max_levels;
 
-  INT   lvl = 0;
-  INT   status = SUCCESS;
-  INT   dim = mgl[0].fine_level_mesh->dim;
-  INT   nspaces = mgl[0].FE->nspaces;
-  INT   i,j,nf1d,nc1d,csize;
+  INT   lvl     = 0;
+  INT   status  = SUCCESS;
+  INT   dim     = mgl[0].fine_level_mesh->dim;
+  INT   brow    = mgl[0].A.brow;
+  //INT   nspaces = mgl[0].FE->nspaces;
+  INT   i,j,nf1d,nc1d;//,csize;
   REAL  setup_start, setup_end;
+  INT fe_blk = 0;
+
+  INT bm = 0;
+  INT blk = 0;
+  INT blk_fill = 0;
+  mgl[0].dirichlet_blk = (INT**)calloc(brow,sizeof(INT*));
+  for(i=0; i<mgl[0].FE->nspaces; i++){
+    if(i == blk_fill) mgl[0].dirichlet_blk[blk] = &(mgl[0].FE->dirichlet[bm]); // Displacement
+
+    if( mgl[0].gmg_type[blk] == 999 && i == blk_fill ){
+      blk_fill += dim+1; // Skip all dofs in merged blocks
+      blk += 1;
+    } else {
+      blk_fill += 1; // Move to next block
+      blk += 1;
+    }
+
+    bm += mgl[0].FE->var_spaces[i]->ndof;
+  }
 
   dCSRmat tempRA;
+  dCSRmat Rmerge;
+  block_dCSRmat tempRblk;// To merge bbl and P1 blocks
   
   get_time(&setup_start);// Timing
 
@@ -1041,45 +1075,73 @@ SHORT gmg_blk_setup_generic(MG_blk_data *mgl,
     printf("Allocation of R A P for lvl=%d is finished...\n",lvl);
 
     /*-- Form restriction matrix R for each FE space--*/
-    for( i = 0; i<nspaces; i++ ){
+    for( i = 0; i<brow; i++ ){
       // Check gmg type, this could be replaced with checking FE type
       switch( mgl[lvl].gmg_type[i] ){
         case 0:// P0
           nf1d = sqrt(mgl[lvl].fine_level_mesh->nelm/2);
           nc1d = sqrt(mgl[lvl+1].fine_level_mesh->nelm/2);
-          build_constant_R( mgl[lvl].R.blocks[i+i*nspaces], nf1d, nc1d);
-          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[i], mgl[lvl+1].fine_level_mesh, 1,1);
+          build_constant_R( mgl[lvl].R.blocks[i+i*brow], nf1d, nc1d);
+          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[fe_blk], mgl[lvl+1].fine_level_mesh, 1,1);
+          fe_blk += 1;
           break;
         case 1:// P1
           nf1d = sqrt(mgl[lvl].fine_level_mesh->nv);
           nc1d = sqrt(mgl[lvl+1].fine_level_mesh->nv);
-          build_linear_R( mgl[lvl].R.blocks[i+i*nspaces], nf1d, nc1d);
-          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[i], mgl[lvl+1].fine_level_mesh, 1,1);
+          build_linear_R( mgl[lvl].R.blocks[i+i*brow], nf1d, nc1d);
+          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[fe_blk], mgl[lvl+1].fine_level_mesh, 1,1);
+          fe_blk += 1;
           break;
         case 30:// RT0
           nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
           nc1d = (nf1d)/2;
-          build_face_R( mgl[lvl].R.blocks[i+i*nspaces], mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
-          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[i], mgl[lvl+1].fine_level_mesh, 1,1);
+          build_face_R( mgl[lvl].R.blocks[i+i*brow], mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
+          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[fe_blk], mgl[lvl+1].fine_level_mesh, 1,1);
+          fe_blk += 1;
+          break;
+        case 999:// P1 + bubbles combined as a single block matrix
+          bdcsr_alloc(dim+1,dim+1,&tempRblk);
+          tempRblk.blocks[3] = NULL; tempRblk.blocks[5] = NULL;
+          tempRblk.blocks[6] = NULL; tempRblk.blocks[7] = NULL;
+          //P1 both x and Y components
+          nf1d = sqrt(mgl[lvl].fine_level_mesh->nv);
+          nc1d = sqrt(mgl[lvl+1].fine_level_mesh->nv);
+          for(j=1; j<dim+1; j++) build_linear_R( tempRblk.blocks[j+j*tempRblk.brow], nf1d, nc1d);
+          //Bubble
+          nf1d = sqrt(mgl[lvl].fine_level_mesh->nv)-1;
+          nc1d = (nf1d)/2;
+          build_bubble_R( tempRblk.blocks[0], tempRblk.blocks[1], tempRblk.blocks[2],
+                          mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh, nf1d, nc1d);
+          Rmerge = bdcsr_2_dcsr(&tempRblk);
+          dcsr_alloc(Rmerge.row,Rmerge.col,Rmerge.nnz,mgl[lvl].R.blocks[i+i*brow]);
+          dcsr_cp(&Rmerge,mgl[lvl].R.blocks[i+i*brow]);
+          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[fe_blk], mgl[lvl+1].fine_level_mesh, 1, 10); //bbl
+          fe_blk += 1;
+          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[fe_blk], mgl[lvl+1].fine_level_mesh, 1, 10); // Ux
+          fe_blk += 1;
+          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[fe_blk], mgl[lvl+1].fine_level_mesh, 1, 10); // Uy
+          fe_blk += 1;
+          dcsr_free(&Rmerge);
+          break;
       }// switch gmg_type
-    }// for i<nspaces
+    }// for i<brow
     printf("Built R for lvl=%d...\n",lvl);
 
     /*-- Form Prolongation --*/
-    for(i=0; i<nspaces; i++){
-      dcsr_trans(mgl[lvl].R.blocks[i+i*nspaces], mgl[lvl].P.blocks[i+i*nspaces]);
+    for(i=0; i<brow; i++){
+      dcsr_trans(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].P.blocks[i+i*brow]);
     }
     printf("Built P for lvl=%d...\n",lvl);
 
     /*-- Form coarse level stiffness matrix --*/
-    for(i=0; i<nspaces; i++){
-      for(j=0; j<nspaces; j++){
-        if(mgl[lvl].A.blocks[j+i*nspaces]){
-          dcsr_mxm(mgl[lvl].R.blocks[i+i*nspaces], mgl[lvl].A_noBC.blocks[j+i*nspaces], &tempRA);
-          dcsr_mxm(&tempRA, mgl[lvl].P.blocks[j+j*nspaces], mgl[lvl+1].A_noBC.blocks[j+i*nspaces]);
+    for(i=0; i<brow; i++){
+      for(j=0; j<brow; j++){
+        if(mgl[lvl].A.blocks[j+i*brow]){
+          dcsr_mxm(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].A_noBC.blocks[j+i*brow], &tempRA);
+          dcsr_mxm(&tempRA, mgl[lvl].P.blocks[j+j*brow], mgl[lvl+1].A_noBC.blocks[j+i*brow]);
           dcsr_free(&tempRA);
         } else {
-          mgl[lvl+1].A_noBC.blocks[j+i*nspaces] = NULL;
+          mgl[lvl+1].A_noBC.blocks[j+i*brow] = NULL;
         }
       }//j
     }//i
@@ -1090,6 +1152,24 @@ SHORT gmg_blk_setup_generic(MG_blk_data *mgl,
     bdcsr_cp( &mgl[lvl+1].A_noBC, &mgl[lvl+1].A);
     set_dirichlet_bdry_block(mgl[lvl+1].FE, mgl[lvl+1].fine_level_mesh);
     eliminate_DirichletBC_blockFE_blockA(NULL, mgl[lvl+1].FE, mgl[lvl+1].fine_level_mesh,NULL,&mgl[lvl+1].A,0.0);
+
+    bm = 0;
+    blk = 0;
+    blk_fill = 0;
+    mgl[lvl+1].dirichlet_blk = (INT**)calloc(brow,sizeof(INT*));
+    for(i=0; i<mgl[lvl+1].FE->nspaces; i++){
+      if(i == blk_fill) mgl[lvl+1].dirichlet_blk[blk] = &(mgl[lvl+1].FE->dirichlet[bm]); // Displacement
+
+      if( mgl[lvl+1].gmg_type[blk] == 999 && i == blk_fill ){
+        blk_fill += dim+1; // Skip all dofs in merged blocks
+        blk += 1;
+      } else {
+        blk_fill += 1; // Move to next block
+        blk += 1;
+      }
+
+      bm += mgl[lvl+1].FE->var_spaces[i]->ndof;
+    }
 
     lvl++;
   }
@@ -1123,13 +1203,13 @@ SHORT gmg_blk_setup_generic(MG_blk_data *mgl,
 
   // setup total level number and current level
   INT m=0;
-  for(i=0; i<nspaces; i++) m += mgl[0].A.blocks[i+i*nspaces]->row;
+  for(i=0; i<brow; i++) m += mgl[0].A.blocks[i+i*brow]->row;
   mgl[0].num_levels = max_levels = lvl+1;
   mgl[0].w          = dvec_create(m);
 
   for ( lvl = 1; lvl < max_levels; ++lvl) {
       INT mm = 0;
-      for(i=0;i<nspaces;i++) mm += mgl[lvl].A.blocks[i+i*nspaces]->row;
+      for(i=0;i<brow;i++) mm += mgl[lvl].A.blocks[i+i*brow]->row;
       mgl[lvl].num_levels = max_levels;
       mgl[lvl].b          = dvec_create(mm);
       mgl[lvl].x          = dvec_create(mm);
@@ -1178,7 +1258,7 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
   INT dim     = mgl[0].fine_level_mesh->dim;
   INT nspaces = mgl[0].FE->nspaces;
   INT brow    = mgl[0].A.brow;
-  INT i,j,nf1d,nc1d,csize,m;
+  INT i,j,nf1d,nc1d,m;
   REAL  setup_start, setup_end;
 
   mgl[0].dirichlet_blk = (INT**)calloc(brow,sizeof(INT*));
@@ -1454,4 +1534,142 @@ void smoother_setup_biot_monolithic( MG_blk_data *bmgl, AMG_param *param)
   dCSRmat Amerge = bdcsr_2_dcsr(&bmgl[0].A);
   bmgl[0].Schwarz.A = dcsr_sympat( &Amerge );
   Schwarz_setup_geometric( &bmgl[0].Schwarz, &swzparam, bmgl[0].fine_level_mesh);
+}
+
+/**
+ * \fn void smoother_block_setup( MG_blk_data *mgl, AMG_param *param)
+ *
+ * \brief Setup of block smoothers
+ *
+ * \param mgl       Pointer to MG_blk_data
+ * \param param     Pointer to AMG_param
+ *
+ */
+void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
+{
+    // TODO: instead of param, may want a variable in bmgl that tracks params for each block
+    // (since we don't want to create the Schwarz for each block, only those that will use it);
+    INT blk, lvl, i;
+    INT brow = bmgl[0].A.brow;
+    SHORT max_levels = param->max_levels;
+    fespace FE_fake;
+    for(i=0;i<max_levels;i++){
+      bmgl[i].mgl = (AMG_data **)calloc(brow,sizeof(AMG_data *));
+    }
+    for(i=1;i<max_levels;i++){
+      bmgl[i].A_diag = (dCSRmat *)calloc(3,sizeof(dCSRmat));
+    }
+
+    Schwarz_param swzparam;
+
+    for( blk=0; blk<brow; blk++ ){
+      printf("Start %d\n",blk);
+      // Initialize AMG for diagonal blocks
+      bmgl[0].mgl[blk] = amg_data_create(max_levels);
+
+      // Compute RAP for mgl
+      if( bmgl[0].periodic_BC ){
+        printf("Applying periodic BC to block smoother, block %d\n",blk);
+        eliminate_PeriodicBC( bmgl[0].P_periodic.blocks[blk*brow + blk], &bmgl[0].A_diag[blk], NULL);
+        printf("Finished periodic BC to block smoother, block %d\n",blk);
+      }
+      dcsr_alloc( bmgl[0].A_diag[blk].row, bmgl[0].A_diag[blk].row, bmgl[0].A_diag[blk].nnz, &bmgl[0].mgl[blk][0].A);
+      dcsr_cp( &(bmgl[0].A_diag[blk]), &bmgl[0].mgl[blk][0].A );
+
+      bmgl[0].mgl[blk][0].num_levels = max_levels;
+      bmgl[0].mgl[blk][0].cycle_type = param->cycle_type;
+      bmgl[0].mgl[blk][0].b = dvec_create(bmgl[0].mgl[blk][0].A.row);
+      bmgl[0].mgl[blk][0].x = dvec_create(bmgl[0].mgl[blk][0].A.row);
+      bmgl[0].mgl[blk][0].w = dvec_create(2*bmgl[0].mgl[blk][0].A.row);
+
+      // Remove dirichlet boundaries
+      FE_fake.dirichlet = bmgl[0].dirichlet_blk[blk];
+      FE_fake.ndof = bmgl[0].A_diag[blk].row;
+      printf("Eliminating dirichlet BC for A_diag\n");
+      eliminate_DirichletBC(NULL, &FE_fake , bmgl[0].fine_level_mesh, NULL, &(bmgl[0].mgl[blk][0].A),0.0);
+      printf("Eliminated dirichlet BC for A_diag\n");
+
+
+      // Initialize Schwarz parameters
+      bmgl->Schwarz_levels = param->Schwarz_levels;
+      swzparam.Schwarz_mmsize = param->Schwarz_mmsize;
+      swzparam.Schwarz_maxlvl = param->Schwarz_maxlvl;
+      swzparam.Schwarz_type   = param->Schwarz_type;
+      //swzparam.Schwarz_blksolver = param->Schwarz_blksolver;
+      swzparam.Schwarz_blksolver = 32;
+
+      // Fill in levels
+      for( lvl=0; lvl<max_levels-1; lvl++ ){
+        printf("\tLEVEL %d FILLING\n",lvl);
+        // Copy block mgl R and P into mgl
+        bmgl[0].mgl[blk][lvl].R.row = bmgl[lvl].R.blocks[blk+blk*brow]->row;
+        bmgl[0].mgl[blk][lvl].R.col = bmgl[lvl].R.blocks[blk+blk*brow]->col;
+        bmgl[0].mgl[blk][lvl].R.nnz = bmgl[lvl].R.blocks[blk+blk*brow]->nnz;
+        bmgl[0].mgl[blk][lvl].R.val = bmgl[lvl].R.blocks[blk+blk*brow]->val;
+        bmgl[0].mgl[blk][lvl].R.IA = bmgl[lvl].R.blocks[blk+blk*brow]->IA;
+        bmgl[0].mgl[blk][lvl].R.JA = bmgl[lvl].R.blocks[blk+blk*brow]->JA;
+
+        bmgl[0].mgl[blk][lvl].P.row = bmgl[lvl].P.blocks[blk+blk*brow]->row;
+        bmgl[0].mgl[blk][lvl].P.col = bmgl[lvl].P.blocks[blk+blk*brow]->col;
+        bmgl[0].mgl[blk][lvl].P.nnz = bmgl[lvl].P.blocks[blk+blk*brow]->nnz;
+        bmgl[0].mgl[blk][lvl].P.val = bmgl[lvl].P.blocks[blk+blk*brow]->val;
+        bmgl[0].mgl[blk][lvl].P.IA = bmgl[lvl].P.blocks[blk+blk*brow]->IA;
+        bmgl[0].mgl[blk][lvl].P.JA = bmgl[lvl].P.blocks[blk+blk*brow]->JA;
+
+        dcsr_rap( &bmgl[0].mgl[blk][lvl].R, &bmgl[lvl].A_diag[blk], &bmgl[0].mgl[blk][lvl].P, &bmgl[lvl+1].A_diag[blk]);
+
+        printf("RAP on A_diag\n");
+        dcsr_alloc( bmgl[lvl+1].A_diag[blk].row, bmgl[lvl+1].A_diag[blk].row, bmgl[lvl+1].A_diag[blk].nnz, &bmgl[0].mgl[blk][lvl+1].A);
+        dcsr_cp( &(bmgl[lvl+1].A_diag[blk]), &bmgl[0].mgl[blk][lvl+1].A );
+        printf("Setting fake dirichlet flags\n");
+        FE_fake.dirichlet = bmgl[lvl+1].dirichlet_blk[blk];
+        FE_fake.ndof      = bmgl[lvl+1].A_diag[blk].row;
+        eliminate_DirichletBC(NULL, &FE_fake , bmgl[lvl+1].fine_level_mesh, NULL, &(bmgl[0].mgl[blk][lvl+1].A),0.0);
+        printf("ELIM on A_diag fine\n");
+
+
+
+        // setup total level number and current level
+        bmgl[0].mgl[blk][lvl+1].num_levels = max_levels;
+        bmgl[0].mgl[blk][lvl+1].cycle_type = param->cycle_type;
+        bmgl[0].mgl[blk][lvl+1].b = dvec_create(bmgl[0].mgl[blk][lvl+1].A.row);
+        bmgl[0].mgl[blk][lvl+1].x = dvec_create(bmgl[0].mgl[blk][lvl+1].A.row);
+        bmgl[0].mgl[blk][lvl+1].w = dvec_create(2*bmgl[0].mgl[blk][lvl+1].A.row);
+
+        /*-- Setup Schwarz smoother if necessary --*/
+        if( param->Schwarz_on_blk[blk] == 1 ) {
+          printf("\tCalling Schwarz setup on block: %d\n",blk);
+          bmgl[0].mgl[blk][lvl].Schwarz.A = dcsr_sympat( &bmgl[0].mgl[blk][lvl].A );
+          //bmgl[0].mgl[blk][lvl].Schwarz.A = dcsr_sympat( &bmgl[0].A_diag[0] );
+          //bmgl[0].mgl[blk][lvl].Schwarz.A = dcsr_sympat( bmgl[0].A.blocks[0] );
+          Schwarz_setup_geometric( &bmgl[0].mgl[blk][lvl].Schwarz, &swzparam, bmgl[lvl].fine_level_mesh);
+          printf("\tFinished Schwarz setup on block: %d\n",blk);
+        }
+      }
+
+      // Set up Coarse level solve
+      if( lvl == max_levels-1 ){
+        printf("Coarse Level Solver Stuff...\n");
+        switch ( param->coarse_solver ){
+#if WITH_SUITESPARSE
+          case SOLVER_UMFPACK: {
+              dCSRmat Ac_tran;
+              dcsr_trans(&bmgl[0].mgl[blk][lvl].A, &Ac_tran);
+              dcsr_cp(&Ac_tran, &bmgl[0].mgl[blk][lvl].A);
+              dcsr_free(&Ac_tran);
+              bmgl[0].mgl[blk][lvl].Numeric = umfpack_factorize(&bmgl[0].mgl[blk][lvl].A, 0);
+              break;}
+#endif
+          default:
+              // Do nothing!
+              break;
+        }
+      }
+      // Propigate mgl across bmgl levels
+      for( lvl=1; lvl<max_levels-1; lvl++){
+        bmgl[lvl].mgl[blk] = &(bmgl[0].mgl[blk][lvl]);// maybe??
+        printf("\tLVL %d propigated across bmgl levels\n",lvl);
+      }
+    }// blk
+    return;
 }

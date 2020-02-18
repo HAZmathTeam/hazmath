@@ -342,7 +342,7 @@ void Schwarz_get_patch_geometric_multiple_DOFtype (Schwarz_data *Schwarz,
 {
     INT nblk, ntot;
     INT i,blk;
-    INT* ntotpatch = (INT*)calloc(nptype,sizeof(INT));
+    //INT* ntotpatch = (INT*)calloc(nptype,sizeof(INT));
     INT* dofshift  = (INT*)calloc(nptype+1,sizeof(INT));
     dofshift[0] = 0;
 
@@ -376,6 +376,7 @@ void Schwarz_get_patch_geometric_multiple_DOFtype (Schwarz_data *Schwarz,
         nblk = mesh->nelm;
         icsr_trans(mesh->el_f, &temp);
         icsr_mxm_symb( mesh->el_f, &temp, &p_el);
+        break;
       default:
         // Throw error
         break;
@@ -409,9 +410,20 @@ void Schwarz_get_patch_geometric_multiple_DOFtype (Schwarz_data *Schwarz,
           }
           break;
         case 3: // face
-          icsr_mxm_symb( &p_el, mesh->el_f, p_p+i);
+          if( patchTypeIN == 1){//TODO: REMOVE THIS EDIT, change back to == 1
+            icsr_trans(mesh->f_v, p_p+i);
+            ntot += p_p[i].nnz;
+            dofshift[i+1] = mesh->nface + dofshift[i];
+          } else {
+            icsr_mxm_symb( &p_el, mesh->el_f, p_p+i);
+            ntot += p_p[i].nnz;
+            dofshift[i+1] = mesh->nface + dofshift[i];
+          }
+          break;
+        case 11: // Single Vertex //TODO: This only works if seed is vertex
+          *(p_p+i) = icsr_create_identity( mesh->nv, 0 );
           ntot += p_p[i].nnz;
-          dofshift[i+1] = mesh->nface + dofshift[i];
+          dofshift[i+1] = mesh->nv + dofshift[i];
           break;
         default:
           // Throw error
@@ -501,10 +513,12 @@ INT Schwarz_setup_geometric (Schwarz_data *Schwarz,
     /*-------------------------------------------*/
     printf("Finding Schwarz patches\n");
     //Schwarz_get_patch_geometric(Schwarz, mesh, 0, 2);
-    //INT patch_type_out[] = {2,1,1};
-    //Schwarz_get_patch_geometric_multiple_DOFtype( Schwarz, mesh, 4, patch_type_out, 3);
-    INT patch_type_out[] = {2,1,1,2,0};
-    Schwarz_get_patch_geometric_multiple_DOFtype( Schwarz, mesh, 4, patch_type_out, 5);
+//    INT patch_type_out[] = {3,11,11};
+//    Schwarz_get_patch_geometric_multiple_DOFtype( Schwarz, mesh, 1, patch_type_out, 3);
+    //INT patch_type_out[] = {3,1,1,3,0};
+    //Schwarz_get_patch_geometric_multiple_DOFtype( Schwarz, mesh, 4, patch_type_out, 5);
+    INT patch_type_out[] = {3,1,1,0};
+    Schwarz_get_patch_geometric_multiple_DOFtype( Schwarz, mesh, 0, patch_type_out, 4);
     printf("Found Schwarz patches\n");
     nblk = Schwarz->nblk;
 
@@ -513,9 +527,9 @@ INT Schwarz_setup_geometric (Schwarz_data *Schwarz,
     /*-------------------------------------------*/
     memset(mask, 0, sizeof(INT)*n);
     Schwarz->blk_data = (dCSRmat*)calloc(nblk, sizeof(dCSRmat));
-    //printf("Getting block matrix\n");
+    printf("Getting block matrix\n");
     Schwarz_get_block_matrix(Schwarz, nblk, Schwarz->iblock, Schwarz->jblock, mask);
-    //printf("Got block matrix\n");
+    printf("Got block matrix\n");
 
     // Setup for each block solver
     switch (block_solver) {
@@ -531,6 +545,8 @@ INT Schwarz_setup_geometric (Schwarz_data *Schwarz,
             for (i=0; i<nblk; ++i) {
                 Ac_tran = dcsr_create(blk[i].row, blk[i].col, blk[i].nnz);
                 dcsr_transz(&blk[i], NULL, &Ac_tran);
+  //printf("BLK: %d\n",i);
+  //csr_print_matlab(stdout,&blk[i]);
                 dcsr_cp(&Ac_tran, &blk[i]);
                 //printf("size of block %d: nrow=%d, nnz=%d\n",i, blk[i].row, blk[i].nnz);
                 numeric[i] = umfpack_factorize(&blk[i], 0);
