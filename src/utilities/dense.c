@@ -193,6 +193,43 @@ dDENSEmat ddense_random_JL(const INT k,
 
 }
 
+/***********************************************************************************************/
+/*!
+* \fn void find_det_4( REAL* A, REAL deta)
+*
+* \brief find det of 4x4 matrix using expansion by minors once, 
+			then direct computation of det of 3x3 matrices
+*
+* \param A            vectorized matrix (row-wise)
+*
+* \return deta        determinant
+*
+*/
+
+void find_det_4( REAL* A, REAL* deta)
+{
+
+  REAL s0p, s0m, s1p, s1m, s2p, s2m, s3p, s3m;
+
+  s0p = A[5]*A[10]*A[15] + A[6]*A[11]*A[13] + A[7]*A[9]*A[14];
+  s0m = A[13]*A[10]*A[7] + A[14]*A[11]*A[5] + A[15]*A[9]*A[6];
+
+  s1p = A[4]*A[10]*A[15] + A[6]*A[11]*A[12] + A[7]*A[8]*A[14];
+  s1m = A[12]*A[10]*A[7] + A[14]*A[11]*A[4] + A[15]*A[8]*A[6];
+
+  s2p = A[4]*A[9]*A[15] + A[5]*A[11]*A[12] + A[7]*A[8]*A[13];
+  s2m = A[12]*A[9]*A[7] + A[13]*A[11]*A[4] + A[15]*A[8]*A[5];
+
+  s3p = A[4]*A[9]*A[14] + A[5]*A[10]*A[12] + A[6]*A[8]*A[13];
+  s3m = A[12]*A[9]*A[6] + A[13]*A[10]*A[4] + A[14]*A[8]*A[5];
+
+  *deta = A[0]*(s0p-s0m) - A[1]*(s1p-s1m) + A[2]*(s2p-s2m) - A[3]*(s3p-s3m);
+
+  return;
+
+}
+
+
 
 
 
