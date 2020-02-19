@@ -21,8 +21,8 @@ output_dir                        = ./output/
 % finite element
 %---------------%
 
-nquad				= 3	% Quadrature nodes each direction
-FE_type				= 100% 100 mass-lumping, otherwise mixed-FE 
+nquad				= 3		%Quadrature nodes each direction
+Mass_lump			= 1		% 0 for mixed FE, 1 for mass-lumping (MFD)
 %---------------%
 % time stepping
 %---------------%

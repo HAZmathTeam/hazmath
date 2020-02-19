@@ -169,13 +169,9 @@ int main (int argc, char* argv[])
   The mass-lumped system is equivalent to the mimetic-finite difference method for Maxwell. 
   Use diagonal matrices to approximate the mass matrices.
   */
-  INT mass_lump =0;
-  if(inparam.FE_type == 100){
-	  mass_lump = 1;
-  }	 
   
   //assemble the block matrices for the system using mixed FEM or mass-lumping
-  if (mass_lump == 1){ //mass-lumped FEM
+  if (inparam.Mass_lump == 1){ //mass-lumped FEM
 	  
 	printf("\n\n******ASSEMBLING MASS-LUMPED SYSTEM******\n\n");
 	
