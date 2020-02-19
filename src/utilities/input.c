@@ -125,6 +125,17 @@ void param_input (const char *filenm,		\
             fgets(buffer,maxb,fp); // skip rest of line
         }
 
+        else if (strcmp(buffer,"Mass_lump")==0) {
+            val = fscanf(fp,"%s",buffer);
+            if (val!=1 || strcmp(buffer,"=")!=0) {
+                status = ERROR_INPUT_PAR; break;
+            }
+            val = fscanf(fp,"%d",&ibuff);
+            if (val!=1) { status = ERROR_INPUT_PAR; break; }
+            inparam->Mass_lump = ibuff;
+            fgets(buffer,maxb,fp); // skip rest of line
+        }
+
         // --------------
         // time stepping
         // --------------
