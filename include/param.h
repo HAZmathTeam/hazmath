@@ -42,6 +42,9 @@ typedef struct {
     // parameters for H(D) equations (examples only)
     INT FE_type;        /**< finite element type */
 
+    // Mass lumping
+    INT Mass_lump;     /** < whether to do mass lumping or not */
+
     //----------------------------
     // time steppng paramters
     //----------------------------
