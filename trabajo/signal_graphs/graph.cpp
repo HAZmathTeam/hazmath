@@ -19,7 +19,7 @@ using namespace std;
  * 2. For each edge (i,j) (i < j), the entry (j,i) is not recorded
  * 3. Neighbors of a vertex appear in ascending order
  */
-Graph::Graph(const char *filename) {
+Graph::Graph(const char *filename) : filename(filename) {
   ifstream file(filename);
   string line;
   while (getline(file, line) && (line.empty() || line[0] == '%'))

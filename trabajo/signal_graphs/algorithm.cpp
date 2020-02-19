@@ -13,6 +13,14 @@ void dsyev_(char *jobz, char *uplo, int *n, double *a, int *lda, double *w,
             double *work, int *lwork, int *info);
 }
 
+// std::string genFilePrefix(const std::string &filename,
+//                           const std::string &matching_alg,
+//                           const std::string &compression_alg) {
+//   return filename.substr(0, filename.find_last_of(".")) + "_" + matching_alg
+//   +
+//          "_" + compression_alg + "_";
+// }
+
 void AggregationBasedAlgorithm::setupHierarchy(Graph graph,
                                                vector<dCSRmat *> &Qj_array,
                                                vector<int> &Nj_array,
@@ -173,7 +181,23 @@ void AggregationBasedAlgorithm::setupHierarchy(Graph graph,
   }
 }
 
-void AggregationBasedAlgorithm::compAndDecomp(int n, double *v,
+// void AggregationBasedAlgorithm::readStoredHierarchy(
+//     Graph graph, std::string matching_alg, std::string compression_alg,
+//     std::vector<dCSRmat *> &Qj_array, std::vector<int> &Nj_array) const {
+//   const std::string prefix =
+//       genFilePrefix(graph.getFilename(), matching_alg, compression_alg);
+//   int n = graph.size();
+// }
+
+// void AggregationBasedAlgorithm::saveHierarchy(
+//     Graph graph, std::string matching_alg, std::string compression_alg,
+//     std::vector<dCSRmat *> &Qj_array, std::vector<int> &Nj_array) const {
+//   const std::string prefix =
+//       genFilePrefix(graph.getFilename(), matching_alg, compression_alg);
+//   const int n = graph.size();
+// }
+
+REAL AggregationBasedAlgorithm::compAndDecomp(int n, double *v,
                                               const vector<dCSRmat *> &Qj_array,
                                               int largestK, double *v2) const {
   /*
@@ -247,19 +271,21 @@ void AggregationBasedAlgorithm::compAndDecomp(int n, double *v,
   REAL e2[n];
   array_axpyz(n, -1.0, v, v2, e2);
 
-  cout << endl
-       << "Plain Encoding" << endl
-       << "Norm of vector ||v||: " << array_norm2(n, v) << endl
-       << "Norm of error  ||v-v2||: " << array_norm2(n, e2) << endl
-       << "Relative error ||v-v2||/||v||: "
-       << array_norm2(n, e2) / array_norm2(n, v) << endl;
+  if (print_level == 0) {
+    cout << endl
+         << "Plain Encoding" << endl
+         << "Norm of vector ||v||: " << array_norm2(n, v) << endl
+         << "Norm of error  ||v-v2||: " << array_norm2(n, e2) << endl
+         << "Relative error ||v-v2||/||v||: "
+         << array_norm2(n, e2) / array_norm2(n, v) << endl;
+  }
+
+  return array_norm2(n, e2) / array_norm2(n, v);
 }
 
-void AggregationBasedAlgorithm::compAndDecomp(int n, double *v,
-                                              const vector<dCSRmat *> &Qj_array,
-                                              const vector<int> &Nj_array,
-                                              int largestK, double p,
-                                              double *v3) const {
+void AggregationBasedAlgorithm::compAndDecompAdaptive(
+    int n, double *v, const vector<dCSRmat *> &Qj_array,
+    const vector<int> &Nj_array, int largestK, double p, double *v3) const {
   /* ------------------ Testing adaptive encoding -------------------- */
   vector<vector<REAL>> vj_array{vector<REAL>(v, v + n)};
   for (auto Qj : Qj_array) {
@@ -369,30 +395,46 @@ void AggregationBasedAlgorithm::compAndDecomp(int n, double *v,
   // Compute the error
   REAL e3[n];
   array_axpyz(n, -1.0, v, v3, e3);
-  cout << endl
-       << "Adaptive Encoding" << endl
-       << "Norm of vector ||v||: " << array_norm2(n, v) << endl
-       << "Norm of error  ||v-v3||: " << array_norm2(n, e3) << endl
-       << "Relative error ||v-v3||/||v||: "
-       << array_norm2(n, e3) / array_norm2(n, v) << endl;
+  if (print_level == 0) {
+    cout << endl
+         << "Adaptive Encoding" << endl
+         << "Norm of vector ||v||: " << array_norm2(n, v) << endl
+         << "Norm of error  ||v-v3||: " << array_norm2(n, e3) << endl
+         << "Relative error ||v-v3||/||v||: "
+         << array_norm2(n, e3) / array_norm2(n, v) << endl;
+  }
 }
 
-void AggregationBasedAlgorithm::compAndDecomp(const Graph &graph, REAL *v,
+void AggregationBasedAlgorithm::compAndDecomp(const Graph &graph,
+                                              std::vector<REAL *> vectors,
                                               const int largestK,
                                               const double p) const {
-  int n = graph.size();
-  vector<dCSRmat *> Qj_array;
-  vector<int> Nj_array;
   std::cout << "Matching algorithm: " << matchingAlgorithm() << std::endl;
   std::cout << "Compression algorithm: " << compressionAlgorithm() << std::endl;
   std::cout << std::endl;
+  vector<dCSRmat *> Qj_array;
+  vector<int> Nj_array;
+  // try {
+  //   // readStoredHierarchy(graph.getFilename(), matchingAlgorithm(),
+  //   //                     compressionAlgorithm(), Qj_array, Nj_array);
+  // } catch (exception &e) {
+  // setupHierarchy(graph, Qj_array, Nj_array);
+  // saveHierarchy(graph.getFilename(), matchingAlgorithm(),
+  //               compressionAlgorithm(), Qj_array, Nj_array);
+  // }
   setupHierarchy(graph, Qj_array, Nj_array);
+  int n = graph.size();
   REAL *v2 = (REAL *)malloc(sizeof(REAL) * n);
   REAL *v3 = (REAL *)malloc(sizeof(REAL) * n);
-  compAndDecomp(n, v, Qj_array, largestK, v2);
-  if (isAdaptive()) {
-    compAndDecomp(n, v, Qj_array, Nj_array, largestK, p, v3);
+  REAL error_sum = 0.0;
+  for (REAL *v : vectors) {
+    error_sum += compAndDecomp(n, v, Qj_array, largestK, v2);
+    if (isAdaptive()) {
+      compAndDecompAdaptive(n, v, Qj_array, Nj_array, largestK, p, v3);
+    }
   }
+
+  std::cout << endl << "Average error: " << error_sum / vectors.size() << endl;
 
   for (auto Qj : Qj_array) {
     dcsr_free(Qj);
@@ -401,9 +443,10 @@ void AggregationBasedAlgorithm::compAndDecomp(const Graph &graph, REAL *v,
   free(v3);
 }
 
-void HamiltonianAlgorithm::compAndDecomp(const Graph &graph, REAL *v,
+void HamiltonianAlgorithm::compAndDecomp(const Graph &graph,
+                                         std::vector<REAL *> vectors,
                                          const int largestK) const {
-  std::cout << "Hamiltonian algorithm: " << std::endl;
+  std::cout << "Hamiltonian algorithm: ";
   auto permutation = graph.getHamiltonianPath();
   int n = permutation.size();
   int N = 1;
@@ -414,19 +457,27 @@ void HamiltonianAlgorithm::compAndDecomp(const Graph &graph, REAL *v,
   }
 
   const auto samples = getRandomProlongation(n, N, 0);
-  const std::vector<REAL> prolongated_v =
-      prolongate(std::vector<REAL>(v, v + n), permutation, samples);
-  const std::vector<REAL> k_term_approximation =
-      approximate(prolongated_v, L, largestK);
-  std::vector<REAL> approximation =
-      project(k_term_approximation, samples, permutation);
+  REAL error_sum = 0.0;
+  for (REAL *v : vectors) {
+    const std::vector<REAL> prolongated_v =
+        prolongate(std::vector<REAL>(v, v + n), permutation, samples);
+    const std::vector<REAL> k_term_approximation =
+        approximate(prolongated_v, L, largestK);
+    std::vector<REAL> approximation =
+        project(k_term_approximation, samples, permutation);
 
-  REAL e2[n];
-  array_axpyz(n, -1.0, v, approximation.data(), e2);
+    REAL e2[n];
+    array_axpyz(n, -1.0, v, approximation.data(), e2);
 
-  cout << endl
-       << "Norm of vector ||v||: " << array_norm2(n, v) << endl
-       << "Norm of error  ||v-v2||: " << array_norm2(n, e2) << endl
-       << "Relative error ||v-v2||/||v||: "
-       << array_norm2(n, e2) / array_norm2(n, v) << endl;
+    if (print_level == 0) {
+      cout << endl
+           << "Norm of vector ||v||: " << array_norm2(n, v) << endl
+           << "Norm of error  ||v-v2||: " << array_norm2(n, e2) << endl
+           << "Relative error ||v-v2||/||v||: "
+           << array_norm2(n, e2) / array_norm2(n, v) << endl;
+    }
+
+    error_sum += array_norm2(n, e2) / array_norm2(n, v);
+  }
+  std::cout << endl << "Average error: " << error_sum / vectors.size() << endl;
 }
