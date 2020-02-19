@@ -151,68 +151,17 @@ int main (int argc, char* argv[])
   dCSRmat MGt;               /* G'*Me */
   dCSRmat MK;                /* Mf*K */
   dCSRmat MKt;               /* K'*Mf */
-
-  // Assemble the matrices without BC first
-
-  // Mass matrices
-  assemble_global(&Me,&b_E,assemble_mass_local,&FE_E,&mesh,cq,current_density,permitivity,0.0);
-  assemble_global(&Mf,&b_B,assemble_mass_local,&FE_B,&mesh,cq,zero_coeff_vec3D,oneovermu,0.0);
-  assemble_global(&Mv,&b_p,assemble_mass_local,&FE_p,&mesh,cq,zero_coeff_scal,one_coeff_scal,0.0);
-  
-  
-  coordinates* cv_vor;
-  cv_vor =  allocatecoords(mesh.nelm,mesh.dim);
-
-  REAL* vor_edge_length = (REAL *) calloc(mesh.nface,sizeof(REAL)); 
-  
-
-  REAL* vor_face_area=(REAL *)calloc(mesh.nedge,sizeof(REAL));
-  REAL* pt_on_face=(REAL *)calloc(3*mesh.nedge,sizeof(REAL));
-  
-
-  REAL* vor_el_vol = (REAL *) calloc(mesh.nv,sizeof(REAL));
-
- compute_Voronoi_nodes(&mesh, cv_vor);
-// printf("made it here 1\n");
- compute_Voronoi_edges(&mesh, cv_vor, vor_edge_length);
-//  printf("made it here 2\n");
- compute_Voronoi_faces(&mesh, cv_vor, pt_on_face, vor_face_area);
- // printf("made it here 3\n");
- compute_Voronoi_volumes(&mesh, cv_vor, vor_face_area, pt_on_face, vor_el_vol);
- // printf("made it here 4\n");
- 
- //for(i=0; i<mesh.nv; i++){ printf("%f\n",vor_el_vol[i]);}
- 
- 
- 
-
-// exit(0);
- 
- //Matrices with mesh info
- dCSRmat Vv;
- dCSRmat Va;
- dCSRmat Ve;
- dCSRmat Dv;
- dCSRmat Da;
- dCSRmat De;
+  block_dCSRmat Mb;		/* Global block Mass matrix */
+  block_dCSRmat Ab;		/* Global block stiffness matrix */
  
  //lumped mass matrices
- dCSRmat MeL;
- dCSRmat MbL;
- dCSRmat MpL;
- 
-Vv = dcsr_create_diagonal_matrix(mesh.nv, 0, vor_el_vol);
-Va = dcsr_create_diagonal_matrix(mesh.nedge, 0, vor_face_area);
-Ve = dcsr_create_diagonal_matrix(mesh.nface, 0, vor_edge_length);
-Dv = dcsr_create_diagonal_matrix(mesh.nelm, 0, mesh.el_vol);
-Da = dcsr_create_diagonal_matrix(mesh.nface, 0, mesh.f_area);
-De = dcsr_create_diagonal_matrix(mesh.nedge, 0, mesh.ed_len);
- 
+	dCSRmat MeL;
+	dCSRmat MbL;
+	dCSRmat MpL;
+	
+
   
-  // Grad and Curl matrices
-  get_grad_H1toNed(&G,&mesh);
-  get_curl_NedtoRT(&K,&mesh);
-  
+    
 
   // Start Combining
   //  A =   0        -K^T Mf          Med G
@@ -228,92 +177,181 @@ De = dcsr_create_diagonal_matrix(mesh.nedge, 0, mesh.ed_len);
   //               0
   // M du/dt + Au = f
   
-  
-  //create lumped matrices
-  dcsr_mxm(&Va,&De,&MeL); //MeL = vor area * del edge
-  dcsr_mxm(&Da,&Ve,&MbL); //MbL = del face * vor edge
-  MpL = Vv;				//MpL = vor volumes
-  
-  dcsr_mxm(&MeL,&G,&MG); // Me*G
-  dcsr_trans(&MG,&MGt); // G'*Me
-  dcsr_axm(&MGt,-1); // -G'*Me
-  dcsr_mxm(&MbL,&K,&MK); // Mf*K
-  dcsr_trans(&MK,&MKt); // K'*Mf
-  dcsr_axm(&MKt,-1); // -K'*Mf
-  
-/*   dcsr_mxm(&Me,&G,&MG); // Me*G
-  dcsr_trans(&MG,&MGt); // G'*Me
-  dcsr_axm(&MGt,-1); // -G'*Me
-  dcsr_mxm(&Mf,&K,&MK); // Mf*K
-  dcsr_trans(&MK,&MKt); // K'*Mf
-  dcsr_axm(&MKt,-1); // -K'*Mf */
+  INT mass_lump =0;
+  if(inparam.FE_type == 100){
+	  mass_lump = 1;
+  }	  
+  //mass-lumped FEM
+  if (mass_lump == 1)
+  {
+	printf("\n\n******ASSEMBLING MASS-LUMPED SYSTEM******\n\n");
+	assemble_global_RHS(&b_E,&FE_E,&mesh,cq,current_density,0.0);
+	printf("1\n\n");
+    assemble_global_RHS(&b_B,&FE_B,&mesh,cq,zero_coeff_vec3D,0.0);
+	printf("2\n\n");
+    assemble_global_RHS(&b_p,&FE_p,&mesh,cq,zero_coeff_scal,0.0);
+	printf("3\n\n");
+	
+	//assemble_global(&Me,&b_E,assemble_mass_local,&FE_E,&mesh,cq,current_density,permitivity,0.0);
+	//assemble_global(&Mf,&b_B,assemble_mass_local,&FE_B,&mesh,cq,zero_coeff_vec3D,oneovermu,0.0);
+	//assemble_global(&Mv,&b_p,assemble_mass_local,&FE_p,&mesh,cq,zero_coeff_scal,one_coeff_scal,0.0);
+	
+	//declare Voronoi info
+	coordinates* cv_vor;
+	cv_vor =  allocatecoords(mesh.nelm,mesh.dim);
+	dvector vor_edge_length = dvec_create(mesh.nface);
+	dvector vor_face_area = dvec_create(mesh.nedge);
+	dvector vor_el_vol = dvec_create(mesh.nv);
+	REAL* pt_on_face=(REAL *)calloc(3*mesh.nedge,sizeof(REAL));
+	
+	//Compute Voronoi info
+	compute_Voronoi_nodes(&mesh, cv_vor);
+	compute_Voronoi_edges(&mesh, cv_vor, &vor_edge_length);
+	compute_Voronoi_faces(&mesh, cv_vor, pt_on_face, &vor_face_area);
+	compute_Voronoi_volumes(&mesh, cv_vor, &vor_face_area, pt_on_face, &vor_el_vol);
 
-/*   // Block Matrix M;
-  block_dCSRmat Mb;
-  bdcsr_alloc_minimal(3,3,&Mb);
-  Mb.blocks[0] = &Me;
-  Mb.blocks[1] = NULL;
-  Mb.blocks[2] = NULL;
-  Mb.blocks[3] = NULL;
-  Mb.blocks[4] = &Mf;
-  Mb.blocks[5] = NULL;
-  Mb.blocks[6] = NULL;
-  Mb.blocks[7] = NULL;
-  Mb.blocks[8] = &Mv; */
-  
-  
-/*     // Block Matrix M;
-  block_dCSRmat Mb;
-  bdcsr_alloc_minimal(3,3,&Mb);
-  Mb.blocks[0] = &Me;
-  Mb.blocks[1] = NULL;
-  Mb.blocks[2] = NULL;
-  Mb.blocks[3] = NULL;
-  Mb.blocks[4] = &Mf;
-  Mb.blocks[5] = NULL;
-  Mb.blocks[6] = NULL;
-  Mb.blocks[7] = NULL;
-  Mb.blocks[8] = &Mv;
+	//Create the block matrices with mesh info
+	dCSRmat Vv;
+	dCSRmat Va;
+	dCSRmat Ve;
+	dCSRmat Dv;
+	dCSRmat Da;
+	dCSRmat De;
+ 
+	//create diagonal matrices with Voronoi mesh info
+ 	Vv = dcsr_create_diagonal_matrix(&vor_el_vol);
+	Va = dcsr_create_diagonal_matrix(&vor_face_area);
+	Ve = dcsr_create_diagonal_matrix(&vor_edge_length);
 
-  // Block Matrix A(shifts needed)
-  block_dCSRmat Ab;
-  bdcsr_alloc_minimal(3,3,&Ab);
-  Ab.blocks[0] = NULL;
-  Ab.blocks[1] = &MKt;
-  Ab.blocks[2] = &MG;
-  Ab.blocks[3] = &MK;
-  Ab.blocks[4] = NULL;
-  Ab.blocks[5] = NULL;
-  Ab.blocks[6] = &MGt;
-  Ab.blocks[7] = NULL;
-  Ab.blocks[8] = NULL; */
-  
-  
-      // Block Matrix M;
-  block_dCSRmat Mb;
-  bdcsr_alloc_minimal(3,3,&Mb);
-  Mb.blocks[0] = &MeL;
-  Mb.blocks[1] = NULL;
-  Mb.blocks[2] = NULL;
-  Mb.blocks[3] = NULL;
-  Mb.blocks[4] = &MbL;
-  Mb.blocks[5] = NULL;
-  Mb.blocks[6] = NULL;
-  Mb.blocks[7] = NULL;
-  Mb.blocks[8] = &MpL;
+	//create dvecs with Delaunay mesh info
+	dvector del_el_vol;
+	del_el_vol.row = mesh.nelm;
+	del_el_vol.val = mesh.el_vol;
 
-  // Block Matrix A(shifts needed)
-  block_dCSRmat Ab;
-  bdcsr_alloc_minimal(3,3,&Ab);
-  Ab.blocks[0] = NULL;
-  Ab.blocks[1] = &MKt;
-  Ab.blocks[2] = &MG;
-  Ab.blocks[3] = &MK;
-  Ab.blocks[4] = NULL;
-  Ab.blocks[5] = NULL;
-  Ab.blocks[6] = &MGt;
-  Ab.blocks[7] = NULL;
-  Ab.blocks[8] = NULL;
+	dvector del_face_area;
+	del_face_area.row = mesh.nface;
+	del_face_area.val = mesh.f_area;
+
+	dvector del_edge_length;
+	del_edge_length.row = mesh.nedge;
+	del_edge_length.val = mesh.ed_len;
+	
+	//create diagonal matrices with Delaunay mesh info
+	Dv = dcsr_create_diagonal_matrix(&del_el_vol);
+	Da = dcsr_create_diagonal_matrix(&del_face_area);
+	De = dcsr_create_diagonal_matrix(&del_edge_length);
+	
+	//create lumped matrices
+	dcsr_mxm(&Va,&De,&MeL); //MeL = vor area * del edge
+	dcsr_mxm(&Da,&Ve,&MbL); //MbL = del face * vor edge
+	MpL = Vv;				//MpL = vor volumes
+	
+	// Grad and Curl matrices
+	get_grad_H1toNed(&G,&mesh);
+	get_curl_NedtoRT(&K,&mesh);
+  
+	//Create blocks for MFD linear system
+	dcsr_mxm(&MeL,&G,&MG); // MeL*G
+	dcsr_trans(&MG,&MGt); // G'*MeL
+	dcsr_axm(&MGt,-1); // -G'*MeL
+	dcsr_mxm(&MbL,&K,&MK); // MbL*K
+	dcsr_trans(&MK,&MKt); // K'*MbL
+	dcsr_axm(&MKt,-1); // -K'*MbL
+	
+	// Block Matrix M;
+	bdcsr_alloc_minimal(3,3,&Mb);
+	Mb.blocks[0] = &MeL;
+	Mb.blocks[1] = NULL;
+	Mb.blocks[2] = NULL;
+	Mb.blocks[3] = NULL;
+	Mb.blocks[4] = &MbL;
+	Mb.blocks[5] = NULL;
+	Mb.blocks[6] = NULL;
+	Mb.blocks[7] = NULL;
+	Mb.blocks[8] = &MpL;
+
+	// Block Matrix A(shifts needed)
+	bdcsr_alloc_minimal(3,3,&Ab);
+	Ab.blocks[0] = NULL;
+	Ab.blocks[1] = &MKt;
+	Ab.blocks[2] = &MG;
+	Ab.blocks[3] = &MK;
+	Ab.blocks[4] = NULL;
+	Ab.blocks[5] = NULL;
+	Ab.blocks[6] = &MGt;
+	Ab.blocks[7] = NULL;
+	Ab.blocks[8] = NULL;
+	
+
+	
+	// CSR Matrices
+	//dcsr_free(&Vv);
+	dcsr_free(&Va);
+	dcsr_free(&Ve);
+	dcsr_free(&Dv);
+	dcsr_free(&Da);
+	dcsr_free(&De);
+	
+	//Voronoi Coords
+	free_coords(cv_vor);
+    free(cv_vor);
+    cv_vor = NULL;
+	
+	// Vectors
+	dvec_free(&vor_edge_length);
+	dvec_free(&vor_el_vol);
+	dvec_free(&vor_face_area);
+	
+  }
+  //Regular FEM (no lumping)
+  else{  
+  
+  	// Assemble the matrices without BC first
+	// Mass matrices
+	assemble_global(&Me,&b_E,assemble_mass_local,&FE_E,&mesh,cq,current_density,permitivity,0.0);
+	assemble_global(&Mf,&b_B,assemble_mass_local,&FE_B,&mesh,cq,zero_coeff_vec3D,oneovermu,0.0);
+	assemble_global(&Mv,&b_p,assemble_mass_local,&FE_p,&mesh,cq,zero_coeff_scal,one_coeff_scal,0.0);
+  
+	// Grad and Curl matrices
+	get_grad_H1toNed(&G,&mesh);
+	get_curl_NedtoRT(&K,&mesh);
+	
+	dcsr_mxm(&Me,&G,&MG); // Me*G
+	dcsr_trans(&MG,&MGt); // G'*Me
+	dcsr_axm(&MGt,-1); // -G'*Me
+	dcsr_mxm(&Mf,&K,&MK); // Mf*K
+	dcsr_trans(&MK,&MKt); // K'*Mf
+	dcsr_axm(&MKt,-1); // -K'*Mf 
+
+	// Block Matrix M;
+	bdcsr_alloc_minimal(3,3,&Mb);
+	Mb.blocks[0] = &Me;
+	Mb.blocks[1] = NULL;
+	Mb.blocks[2] = NULL;
+	Mb.blocks[3] = NULL;
+	Mb.blocks[4] = &Mf;
+	Mb.blocks[5] = NULL;
+	Mb.blocks[6] = NULL;
+	Mb.blocks[7] = NULL;
+	Mb.blocks[8] = &Mv;
+	;
+
+	// Block Matrix A(shifts needed)
+	bdcsr_alloc_minimal(3,3,&Ab);
+	Ab.blocks[0] = NULL;
+	Ab.blocks[1] = &MKt;
+	Ab.blocks[2] = &MG;
+	Ab.blocks[3] = &MK;
+	Ab.blocks[4] = NULL;
+	Ab.blocks[5] = NULL;
+	Ab.blocks[6] = &MGt;
+	Ab.blocks[7] = NULL;
+	Ab.blocks[8] = NULL; 
+	printf("5\n\n");
+	
+
+	
+  }
 
   // Block RHS (need the current RHS, the updated one for time stepping, and the function evaluted at the new time step (if time-dependent))
   dvector b = dvec_create(ndof);
@@ -380,11 +418,6 @@ De = dcsr_create_diagonal_matrix(mesh.nedge, 0, mesh.ed_len);
   
   // Get components for error computing
   get_unknown_component(&uE,&u,&FE,0);
-/*   for (i=0;i<uE.row;i++) {
-	  printf("uE[%d] = %f, mid_x=%f, mid_y=%f, mid_z=%f, tan_x = %f, tan_y = %f, tan_z = %f\n", i, uE.val[i], mesh.ed_mid[i*dim+0], mesh.ed_mid[i*dim+1], mesh.ed_mid[i*dim+2], mesh.ed_tau[i*dim+0], mesh.ed_tau[i*dim+1], mesh.ed_tau[i*dim+2]);
-	  } 
-   */
-  
   get_unknown_component(&uB,&u,&FE,1);
   get_unknown_component(&up,&u,&FE,2);
   
@@ -449,7 +482,6 @@ De = dcsr_create_diagonal_matrix(mesh.nedge, 0, mesh.ed_len);
 
     // Update RHS
     update_blktime_rhs(&time_stepper);
-
     // For first time step eliminate boundary conditions in matrix and rhs
     if(i==0) {
       eliminate_DirichletBC_blockFE_blockA(bc,&FE,&mesh,time_stepper.rhs_time,time_stepper.At,time_stepper.time);

@@ -14,7 +14,7 @@ print_level			= 0;	% how much information to print out
 % files
 %---------------%
 
-gridfile 			  = ./delaunay_n2.haz
+gridfile 			  = ./delaunay_n5.haz
 output_dir                        = ./output/
 
 %---------------%
@@ -22,7 +22,7 @@ output_dir                        = ./output/
 %---------------%
 
 nquad				= 3	% Quadrature nodes each direction
-
+FE_type				= 100% 100 mass-lumping, otherwise mixed-FE 
 %---------------%
 % time stepping
 %---------------%
