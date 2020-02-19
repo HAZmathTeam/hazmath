@@ -15,6 +15,8 @@ public:
 
 class Graph {
 private:
+  const char *filename;
+
   // Unweighted (weights = 1) adjacency matrix of the graph.
   iCSRmat *A;
 
@@ -37,6 +39,8 @@ public:
   ~Graph() { icsr_free(A); }
 
   Graph &operator=(Graph &&other);
+
+  // const std::string getFilename() const { return std::string(filename); }
 
   const iCSRmat *getAdjacencyMat() const { return A; }
 
