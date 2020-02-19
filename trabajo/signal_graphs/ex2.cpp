@@ -116,7 +116,8 @@ int main(int argc, char *argv[]) {
     REAL *v3 = (REAL *)malloc(sizeof(REAL) * n);
     if (!opt_l) {
       algorithm.compAndDecomp(n, v, Qj_array, largestK, v2);
-      algorithm.compAndDecomp(n, v, Qj_array, Nj_array, largestK, 1.0, v3);
+      algorithm.compAndDecompAdaptive(n, v, Qj_array, Nj_array, largestK, 1.0,
+                                      v3);
 
       auto write = [&](string filename, REAL data[]) {
         ofstream ofs(filename);
@@ -140,7 +141,7 @@ int main(int argc, char *argv[]) {
       ofs << "# Compression results for plain and adaptive encoding" << endl;
       for (int th = 1; th < n; th <<= 1) {
         algorithm.compAndDecomp(n, v, Qj_array, th, v2);
-        algorithm.compAndDecomp(n, v, Qj_array, Nj_array, th, 1.0, v3);
+        algorithm.compAndDecompAdaptive(n, v, Qj_array, Nj_array, th, 1.0, v3);
         double e2[n], e3[n];
         array_axpyz(n, -1.0, v, v2, e2);
         array_axpyz(n, -1.0, v, v3, e3);

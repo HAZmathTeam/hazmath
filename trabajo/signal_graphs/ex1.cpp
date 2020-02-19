@@ -43,24 +43,27 @@ int main(int argc, char *argv[]) {
   }
 
   const Graph graph(argv[optind]);
-  dCSRmat *A = graph.getLaplacian();
-  REAL *v = initializeRhs(A);
-  dcsr_free(A);
+
+  dCSRmat *L = graph.getLaplacian();
+  std::vector<REAL *> vectors = getRandomSmoothVectors(L);
+  dcsr_free(L);
+
   if (largestK > graph.size() - 1) {
     largestK = graph.size() - 1;
   }
+  std::cout << std::endl << std::endl;
+  ConnectionMatchingWalsh().compAndDecomp(graph, vectors, largestK, p);
+  std::cout << std::endl << std::endl;
+  DegreeMatchingWalsh().compAndDecomp(graph, vectors, largestK, p);
+  std::cout << std::endl << std::endl;
+  ConnectionMatchingGtbwt().compAndDecomp(graph, vectors, largestK, p);
+  std::cout << std::endl << std::endl;
+  DegreeMatchingGtbwt().compAndDecomp(graph, vectors, largestK, p);
+  std::cout << std::endl << std::endl;
+  HamiltonianAlgorithm().compAndDecomp(graph, vectors, largestK);
 
-  std::cout << std::endl << std::endl;
-  ConnectionMatchingWalsh().compAndDecomp(graph, v, largestK, p);
-  std::cout << std::endl << std::endl;
-  DegreeMatchingWalsh().compAndDecomp(graph, v, largestK, p);
-  std::cout << std::endl << std::endl;
-  ConnectionMatchingGtbwt().compAndDecomp(graph, v, largestK, p);
-  std::cout << std::endl << std::endl;
-  DegreeMatchingGtbwt().compAndDecomp(graph, v, largestK, p);
-  std::cout << std::endl << std::endl;
-  HamiltonianAlgorithm().compAndDecomp(graph, v, largestK);
-
-  free(v);
+  for (REAL *v : vectors) {
+    free(v);
+  }
   return 0;
 }
