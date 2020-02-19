@@ -7,8 +7,11 @@
 
 class Algorithm {
 public:
-  virtual void compAndDecomp(const Graph &graph, REAL *v, const int largestK,
-                             const double p) const = 0;
+  virtual void compAndDecomp(const Graph &graph, std::vector<REAL *> vectors,
+                             const int largestK, const double p) const = 0;
+
+protected:
+  int print_level = 1;
 };
 
 class AggregationBasedAlgorithm : public Algorithm {
@@ -18,15 +21,24 @@ public:
   void setupHierarchy(Graph graph, std::vector<dCSRmat *> &Qj_array,
                       std::vector<int> &Nj_array, bool weighted = true) const;
 
-  void compAndDecomp(int n, double *v, const std::vector<dCSRmat *> &Qj_array,
+  void readStoredHierarchy(Graph graph, std::string matching_alg,
+                           std::string compression_alg,
+                           std::vector<dCSRmat *> &Qj_array,
+                           std::vector<int> &Nj_array) const;
+
+  void getHierarchy(Graph graph, std::vector<dCSRmat *> &Qj_array,
+                    std::vector<int> &Nj_array) const;
+
+  REAL compAndDecomp(int n, double *v, const std::vector<dCSRmat *> &Qj_array,
                      int largestK, double *v2) const;
 
-  void compAndDecomp(int n, double *v, const std::vector<dCSRmat *> &Qj_array,
-                     const std::vector<int> &Nj_array, int largestK, double p,
-                     double *v3) const;
+  void compAndDecompAdaptive(int n, double *v,
+                             const std::vector<dCSRmat *> &Qj_array,
+                             const std::vector<int> &Nj_array, int largestK,
+                             double p, double *v3) const;
 
-  void compAndDecomp(const Graph &graph, REAL *v, const int largestK,
-                     const double p) const;
+  void compAndDecomp(const Graph &graph, std::vector<REAL *> vectors,
+                     const int largestK, const double p) const;
 
 private:
   virtual std::string matchingAlgorithm() const = 0;
@@ -83,7 +95,11 @@ class DegreeMatchingGtbwt : public DegreeBasedMatching, Gtbwt {};
 
 class HamiltonianAlgorithm {
 public:
-  void compAndDecomp(const Graph &graph, REAL *v, const int largestK) const;
+  void compAndDecomp(const Graph &graph, std::vector<REAL *> vectors,
+                     const int largestK) const;
+
+private:
+  int print_level = 1;
 };
 
 #endif
