@@ -153,49 +153,36 @@ int main (int argc, char* argv[])
   dCSRmat MKt;               /* K'*Mf */
   block_dCSRmat Mb;		/* Global block Mass matrix */
   block_dCSRmat Ab;		/* Global block stiffness matrix */
- 
- //lumped mass matrices
-	dCSRmat MeL;
-	dCSRmat MbL;
-	dCSRmat MpL;
+  
+  //allocate memory for assemble RHS function in mass-lumping routine
+  b_E.row = mesh.nedge;
+  b_E.val = (REAL*)calloc(mesh.nedge, sizeof(REAL));  
 	
-
+  b_B.row = mesh.nedge;
+  b_B.val = (REAL*)calloc(mesh.nface, sizeof(REAL)); 
+	
+  b_p.row = mesh.nv;
+  b_p.val = (REAL*)calloc(mesh.nedge, sizeof(REAL)); 
   
-    
-
-  // Start Combining
-  //  A =   0        -K^T Mf          Med G
-  //      Mf K         0                0
-  //    -G^T Med       0                0
-  //
-  //  M ->    <eps E,F>
-  //         <(1/mu) B,C>
-  //            <pt,q>
-  //
-  //    f ->     <-j,F>
-  //               0
-  //               0
-  // M du/dt + Au = f
-  
+  /*
+  Check the mass lumping paramater. 
+  The mass-lumped system is equivalent to the mimetic-finite difference method for Maxwell. 
+  Use diagonal matrices to approximate the mass matrices.
+  */
   INT mass_lump =0;
   if(inparam.FE_type == 100){
 	  mass_lump = 1;
-  }	  
-  //mass-lumped FEM
-  if (mass_lump == 1)
-  {
+  }	 
+  
+  //assemble the block matrices for the system using mixed FEM or mass-lumping
+  if (mass_lump == 1){ //mass-lumped FEM
+	  
 	printf("\n\n******ASSEMBLING MASS-LUMPED SYSTEM******\n\n");
+	
 	assemble_global_RHS(&b_E,&FE_E,&mesh,cq,current_density,0.0);
-	printf("1\n\n");
     assemble_global_RHS(&b_B,&FE_B,&mesh,cq,zero_coeff_vec3D,0.0);
-	printf("2\n\n");
     assemble_global_RHS(&b_p,&FE_p,&mesh,cq,zero_coeff_scal,0.0);
-	printf("3\n\n");
-	
-	//assemble_global(&Me,&b_E,assemble_mass_local,&FE_E,&mesh,cq,current_density,permitivity,0.0);
-	//assemble_global(&Mf,&b_B,assemble_mass_local,&FE_B,&mesh,cq,zero_coeff_vec3D,oneovermu,0.0);
-	//assemble_global(&Mv,&b_p,assemble_mass_local,&FE_p,&mesh,cq,zero_coeff_scal,one_coeff_scal,0.0);
-	
+
 	//declare Voronoi info
 	coordinates* cv_vor;
 	cv_vor =  allocatecoords(mesh.nelm,mesh.dim);
@@ -242,47 +229,9 @@ int main (int argc, char* argv[])
 	De = dcsr_create_diagonal_matrix(&del_edge_length);
 	
 	//create lumped matrices
-	dcsr_mxm(&Va,&De,&MeL); //MeL = vor area * del edge
-	dcsr_mxm(&Da,&Ve,&MbL); //MbL = del face * vor edge
-	MpL = Vv;				//MpL = vor volumes
-	
-	// Grad and Curl matrices
-	get_grad_H1toNed(&G,&mesh);
-	get_curl_NedtoRT(&K,&mesh);
-  
-	//Create blocks for MFD linear system
-	dcsr_mxm(&MeL,&G,&MG); // MeL*G
-	dcsr_trans(&MG,&MGt); // G'*MeL
-	dcsr_axm(&MGt,-1); // -G'*MeL
-	dcsr_mxm(&MbL,&K,&MK); // MbL*K
-	dcsr_trans(&MK,&MKt); // K'*MbL
-	dcsr_axm(&MKt,-1); // -K'*MbL
-	
-	// Block Matrix M;
-	bdcsr_alloc_minimal(3,3,&Mb);
-	Mb.blocks[0] = &MeL;
-	Mb.blocks[1] = NULL;
-	Mb.blocks[2] = NULL;
-	Mb.blocks[3] = NULL;
-	Mb.blocks[4] = &MbL;
-	Mb.blocks[5] = NULL;
-	Mb.blocks[6] = NULL;
-	Mb.blocks[7] = NULL;
-	Mb.blocks[8] = &MpL;
-
-	// Block Matrix A(shifts needed)
-	bdcsr_alloc_minimal(3,3,&Ab);
-	Ab.blocks[0] = NULL;
-	Ab.blocks[1] = &MKt;
-	Ab.blocks[2] = &MG;
-	Ab.blocks[3] = &MK;
-	Ab.blocks[4] = NULL;
-	Ab.blocks[5] = NULL;
-	Ab.blocks[6] = &MGt;
-	Ab.blocks[7] = NULL;
-	Ab.blocks[8] = NULL;
-	
-
+	dcsr_mxm(&Va,&De,&Me); //MeL = vor area * del edge
+	dcsr_mxm(&Da,&Ve,&Mf); //MbL = del face * vor edge
+	Mv = Vv;				//MpL = vor volumes
 	
 	// CSR Matrices
 	//dcsr_free(&Vv);
@@ -302,17 +251,30 @@ int main (int argc, char* argv[])
 	dvec_free(&vor_el_vol);
 	dvec_free(&vor_face_area);
 	
-  }
-  //Regular FEM (no lumping)
-  else{  
+  } else { //Regular FEM (no lumping) 
   
   	// Assemble the matrices without BC first
 	// Mass matrices
 	assemble_global(&Me,&b_E,assemble_mass_local,&FE_E,&mesh,cq,current_density,permitivity,0.0);
 	assemble_global(&Mf,&b_B,assemble_mass_local,&FE_B,&mesh,cq,zero_coeff_vec3D,oneovermu,0.0);
 	assemble_global(&Mv,&b_p,assemble_mass_local,&FE_p,&mesh,cq,zero_coeff_scal,one_coeff_scal,0.0);
+  }
   
-	// Grad and Curl matrices
+  // Start Combining
+  //  A =   0        -K^T Mf          Med G
+  //      Mf K         0                0
+  //    -G^T Med       0                0
+  //
+  //  M ->    <eps E,F>
+  //         <(1/mu) B,C>
+  //            <pt,q>
+  //
+  //    f ->     <-j,F>
+  //               0
+  //               0
+  // M du/dt + Au = f
+  
+  // Grad and Curl matrices
 	get_grad_H1toNed(&G,&mesh);
 	get_curl_NedtoRT(&K,&mesh);
 	
@@ -347,11 +309,7 @@ int main (int argc, char* argv[])
 	Ab.blocks[6] = &MGt;
 	Ab.blocks[7] = NULL;
 	Ab.blocks[8] = NULL; 
-	printf("5\n\n");
 	
-
-	
-  }
 
   // Block RHS (need the current RHS, the updated one for time stepping, and the function evaluted at the new time step (if time-dependent))
   dvector b = dvec_create(ndof);
@@ -359,13 +317,6 @@ int main (int argc, char* argv[])
   for(i=0;i<mesh.nface;i++) b.val[i+mesh.nedge] = b_B.val[i];
   for(i=0;i<mesh.nv;i++) b.val[i+mesh.nedge+mesh.nv] = b_p.val[i];
   
-  
-  /*
-  
-  Scale before timestepping
-  
-  */
-
   // Create Time Operator
   initialize_blktimestepper(&time_stepper,&inparam,1,FE.ndof,FE.nspaces);
   time_stepper.A = &Ab;
@@ -523,7 +474,6 @@ int main (int argc, char* argv[])
     printf("||p-ptrue||_0 = %25.16e\n",perr);
 	printf("||p||_inf = %25.16e\n",plinf);
     printf("------------------------------------------------------------\n");
-    //fprintf(nid,"%d&%1.3f&%1.3f&%1.3f\\\\ \n",i+1,EL2,BL2,pL2);
 
 	if (inparam.output_dir!=NULL) {
       sprintf(solout,"output/solution_ts%03d.vtu",time_stepper.current_step);
