@@ -1082,7 +1082,7 @@ SHORT gmg_blk_setup_generic(MG_blk_data *mgl,
           nf1d = sqrt(mgl[lvl].fine_level_mesh->nelm/2);
           nc1d = sqrt(mgl[lvl+1].fine_level_mesh->nelm/2);
           build_constant_R( mgl[lvl].R.blocks[i+i*brow], nf1d, nc1d);
-          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[fe_blk], mgl[lvl+1].fine_level_mesh, 1,1);
+          set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[fe_blk], mgl[lvl+1].fine_level_mesh, -1,-1);
           fe_blk += 1;
           break;
         case 1:// P1
