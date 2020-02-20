@@ -1598,6 +1598,40 @@ void smoother_dcsr_sgs_graph_eigen(dvector *u, dCSRmat *A, dvector *b, const INT
   //dvec_free(&b);
 
 }
+
+
+/************************************************************************************************/
+/**
+ * \fn void smoother_block_elasticity( MG_blk_data *mgl, AMG_param *param)
+ *
+ * \brief Setup of block smoothers
+ *
+ * \param mgl       Pointer to MG_blk_data
+ * \param param     Pointer to AMG_param
+ *
+ */
+void smoother_block_elasticity( const INT lvl, MG_blk_data *bmgl, AMG_param *param, INT pre_post)
+{
+    INT n0, n1;
+
+    n0 = bmgl[lvl].A.blocks[1]->row;
+    n1 = bmgl[lvl].A.blocks[2]->row;
+
+    // BSR
+    dvector diagvec;
+    dcsr_getdiag( bmgl[lvl].A.blocks[0]->row, bmgl[lvl].A.blocks[0], &diagvec);
+    dCSRmat C = dcsr_create_identity_matrix( n0, 0);
+    C.val = diagvec.val;
+
+    smoother_bdcsr_bsr( &bmgl[lvl].x, &bmgl[lvl].b, param->BSR_alpha, param->BSR_omega,
+                        &bmgl[lvl].A,
+                        &C,
+                        bmgl[lvl].A.blocks[2],
+                        bmgl[lvl].A.blocks[1],
+                        NULL, pre_post);
+
+    return;
+}
 /*---------------------------------*/
 /*--        End of File          --*/
 /*---------------------------------*/
