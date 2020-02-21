@@ -279,7 +279,7 @@ REAL mag = 0;
 REAL area;
 INT ind = 0;
 INT f = -666;
-INT a,k, elmi, nnz;
+INT a,k,l, elmi, nnz;
 REAL x, y,z, nx, ny, nz;
 INT num_nodes = 0;
 REAL* coords = NULL;
@@ -290,7 +290,11 @@ INT count;
 
 //get coord of an endpt of the edge
 INT* endpt =(INT *)calloc(2,sizeof(INT));
+//faces for boundary edges (only 2)
 INT* faces =(INT *)calloc(2,sizeof(INT));
+
+INT* f_temp = (INT *) calloc(10, sizeof(INT));
+
 
 for(i=0; i<nedge; i++){
 	
@@ -334,7 +338,9 @@ for(i=0; i<nedge; i++){
 	}
 	
 	//boundary edge--find intersection of face with boundary
-	if(mesh->ed_flag[i] == 1){			
+	if(mesh->ed_flag[i] == 1){		
+
+			
 			//we need 3 extra points
 			num_nodes = nnz+3;			
 			//stores coords of points of face
@@ -345,16 +351,33 @@ for(i=0; i<nedge; i++){
 			x = mesh->cv->x[endpt[0]];
 			y = mesh->cv->y[endpt[0]];
 			z = mesh->cv->z[endpt[0]];
-
+			
 			//get the incident faces
-			get_incidence_row(i,&ed_f,faces);
+			for(k=0; k<10; k++) {
+				f_temp[k] = -1;
+			}
+			get_incidence_row(i,&ed_f,f_temp);
+			//only store boundary faces in faces
+			l=0;
+			for(k=0; k<10; k++){
+				if(f_temp[k] >-1){
+					if(mesh->f_flag[f_temp[k]] == 1){
+						faces[l] = f_temp[k];	
+						l++;
+					}
+				}
+			}
+			if(l!=2){
+				printf("HAZMATH DANGER: MORE BOUNDARY FACES!!\n");
+				exit(0);
+			}
 
 		//compute points on faces -- add to beginning and end
-		for(j=0; j<2; j++){		
-
+		for(j=0; j<2; j++){
+			
+			f = faces[j];		
 			REAL vx,vy,vz;
 
-			f = faces[j];
 			nx = mesh->f_norm[3*f];
 			ny = mesh->f_norm[3*f+1];
 			nz = mesh->f_norm[3*f+2];
@@ -394,6 +417,7 @@ for(i=0; i<nedge; i++){
 			coords[3*k+6+1] = cv_vor->y[elmi];
 			coords[3*k+6+2] = cv_vor->z[elmi];
 			}
+		
 	}
 
 	else{		
