@@ -111,8 +111,8 @@ void compute_Voronoi_nodes(mesh_struct* mesh, coordinates* cv_vor)
   free(index);
   index=NULL;
 	  
-  free(elm_coords);
-  elm_coords=NULL;
+  //free(elm_coords);
+  //elm_coords=NULL;
 	  
   free(A);
   A=NULL;
