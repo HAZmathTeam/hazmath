@@ -108,7 +108,24 @@ void compute_Voronoi_nodes(mesh_struct* mesh, coordinates* cv_vor)
     cv_vor->y[i] = -dy/(2*a);
     cv_vor->z[i] = dz/(2*a);
   }
-
+  free(index);
+  index=NULL;
+	  
+  free(elm_coords);
+  elm_coords=NULL;
+	  
+  free(A);
+  A=NULL;
+	  
+  free(Dx);
+  Dx=NULL;
+	  
+  free(Dy);
+  Dy=NULL;
+	  
+  free(Dz);
+  Dz=NULL;
+	  
   return;
 }
 
@@ -287,6 +304,7 @@ INT* index = NULL;
 INT* order = NULL;
 INT* temp = NULL;
 INT count;
+REAL vx,vy,vz;
 
 //get coord of an endpt of the edge
 INT* endpt =(INT *)calloc(2,sizeof(INT));
@@ -353,6 +371,7 @@ for(i=0; i<nedge; i++){
 			z = mesh->cv->z[endpt[0]];
 			
 			//get the incident faces
+			//don't know how many, so fill f_temp with -1's
 			for(k=0; k<10; k++) {
 				f_temp[k] = -1;
 			}
@@ -368,7 +387,7 @@ for(i=0; i<nedge; i++){
 				}
 			}
 			if(l!=2){
-				printf("HAZMATH DANGER: MORE BOUNDARY FACES!!\n");
+				printf("HAZMATH DANGER: MORE BOUNDARY FACES THAN POSSIBLE!!\n");
 				exit(0);
 			}
 
@@ -376,7 +395,6 @@ for(i=0; i<nedge; i++){
 		for(j=0; j<2; j++){
 			
 			f = faces[j];		
-			REAL vx,vy,vz;
 
 			nx = mesh->f_norm[3*f];
 			ny = mesh->f_norm[3*f+1];
@@ -411,7 +429,6 @@ for(i=0; i<nedge; i++){
 
 		for(k=0; k< nnz; k++){			
 			//get coords of pts we ordered		
-
 			elmi = order[k];
 			coords[3*k+6] = cv_vor->x[elmi];
 			coords[3*k+6+1] = cv_vor->y[elmi];
