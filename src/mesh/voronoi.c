@@ -39,14 +39,14 @@ void compute_Voronoi_nodes(mesh_struct* mesh, coordinates* cv_vor)
   
   //temp variables
   INT i,j,k;
-  INT* index = (INT *)calloc(4,sizeof(INT));
+  INT index[4];
   //coords of each element
   REAL elm_coords[12];
   //matrices we have to take determinants of
-  REAL* A = (REAL *)calloc(16,sizeof(REAL));
-  REAL* Dx =(REAL *)calloc(16,sizeof(REAL));
-  REAL* Dy =(REAL *)calloc(16,sizeof(REAL));
-  REAL* Dz =(REAL *)calloc(16,sizeof(REAL));
+  REAL A[16];
+  REAL Dx[16];
+  REAL Dy[16];
+  REAL Dz[16];
   //determinants
   REAL a = 666;
   REAL dx = -666;
@@ -108,23 +108,8 @@ void compute_Voronoi_nodes(mesh_struct* mesh, coordinates* cv_vor)
     cv_vor->y[i] = -dy/(2*a);
     cv_vor->z[i] = dz/(2*a);
   }
-  free(index);
-  index=NULL;
 	  
-  //free(elm_coords);
-  //elm_coords=NULL;
-	  
-  free(A);
-  A=NULL;
-	  
-  free(Dx);
-  Dx=NULL;
-	  
-  free(Dy);
-  Dy=NULL;
-	  
-  free(Dz);
-  Dz=NULL;
+
 	  
   return;
 }
@@ -147,6 +132,7 @@ void compute_Voronoi_edges(mesh_struct * mesh, coordinates* cv_vor, dvector* vor
   iCSRmat f_el;
   icsr_trans(mesh->el_f, &f_el);
   coordinates* cv_del = mesh->cv;
+  
   //temp variables
   INT i,j;
   REAL x, y, z, vx, vy, vz;
@@ -198,6 +184,7 @@ void compute_Voronoi_edges(mesh_struct * mesh, coordinates* cv_vor, dvector* vor
 
     }
   }
+  
 
   return;
 }
@@ -227,9 +214,9 @@ void neighbor_elm (mesh_struct * mesh, INT n, INT m, INT* ind, INT* f)
   //elm to face map
   iCSRmat* el_f = mesh->el_f;	
   //indices of 4 faces on n
-  INT* face_n =(INT *)calloc(4,sizeof(INT));
+  INT face_n[4];
   //indices of 4 faces on m  
-  INT* face_m =(INT *)calloc(4,sizeof(INT));
+  INT face_m[4];
   //temp variables  
   INT i = 0;
   INT j = 0;
@@ -290,8 +277,8 @@ icsr_trans(mesh->el_f, &f_el);
 //temp variables
 INT i,j;
 REAL cross[3];
-REAL* u = (REAL *)calloc(3,sizeof(REAL));
-REAL* v =(REAL *)calloc(3,sizeof(REAL));
+REAL u[3];
+REAL v[3];
 REAL mag = 0;
 REAL area;
 INT ind = 0;
