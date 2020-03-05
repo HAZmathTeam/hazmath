@@ -184,7 +184,7 @@ void compute_Voronoi_edges(mesh_struct * mesh, coordinates* cv_vor, dvector* vor
 
     }
   }
-  
+  icsr_free(&f_el);
 
   return;
 }
@@ -475,6 +475,9 @@ for(i=0; i<nedge; i++){
       free(temp);
       temp=NULL;
     }
+	icsr_free(&ed_el);
+	icsr_free(&f_el);
+	icsr_free(&ed_f);
 }
 return;
 
@@ -550,5 +553,6 @@ void compute_Voronoi_volumes(mesh_struct* mesh, coordinates* cv_vor, dvector* vo
       index=NULL;
     }
   }
+  icsr_free(&v_ed);
   return;
 }
