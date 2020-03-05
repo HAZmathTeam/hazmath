@@ -30,8 +30,6 @@ void compute_Voronoi_nodes(mesh_struct* mesh, coordinates* cv_vor)
 {
   //mesh info of Delaunay mesh
   INT nelm = mesh->nelm;
-  INT nv = mesh->nv;
-  INT dim = mesh->dim;
   iCSRmat* el_v = mesh->el_v;
   
   //create coord struct for Voronoi nodes
@@ -134,7 +132,7 @@ void compute_Voronoi_edges(mesh_struct * mesh, coordinates* cv_vor, dvector* vor
   coordinates* cv_del = mesh->cv;
   
   //temp variables
-  INT i,j;
+  INT i;
   REAL x, y, z, vx, vy, vz;
   REAL nx, ny, nz;
   INT index[2];
@@ -263,7 +261,6 @@ void neighbor_elm (mesh_struct * mesh, INT n, INT m, INT* ind, INT* f)
 void compute_Voronoi_faces(mesh_struct* mesh,coordinates* cv_vor, REAL* pt_on_face, dvector* vor_face_area)
 {
 //Delaunay mesh info	
-INT nface = mesh->nface;
 INT nedge = mesh->nedge;
 // Get transposes of incident matrices
 iCSRmat ed_el;
@@ -502,7 +499,6 @@ void compute_Voronoi_volumes(mesh_struct* mesh, coordinates* cv_vor, dvector* vo
    //Delaunay and Voronoi mesh info
   INT nv_del = mesh->nv;
   coordinates* cv_del = mesh->cv;
-  iCSRmat* el_ed = mesh->el_ed;
   iCSRmat v_ed;
   icsr_trans(mesh->ed_v,&v_ed);
   //temp variables
