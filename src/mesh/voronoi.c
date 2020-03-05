@@ -294,11 +294,11 @@ INT count;
 REAL vx,vy,vz;
 
 //get coord of an endpt of the edge
-INT* endpt =(INT *)calloc(2,sizeof(INT));
+INT endpt[2];
 //faces for boundary edges (only 2)
-INT* faces =(INT *)calloc(2,sizeof(INT));
-
-INT* f_temp = (INT *) calloc(10, sizeof(INT));
+INT faces[2];
+//temp vector for potential boundary faces
+INT f_temp[10];
 
 
 for(i=0; i<nedge; i++){
