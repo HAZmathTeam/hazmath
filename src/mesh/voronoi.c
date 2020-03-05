@@ -475,10 +475,11 @@ for(i=0; i<nedge; i++){
       free(temp);
       temp=NULL;
     }
+
+}
 	icsr_free(&ed_el);
 	icsr_free(&f_el);
 	icsr_free(&ed_f);
-}
 return;
 
 }
