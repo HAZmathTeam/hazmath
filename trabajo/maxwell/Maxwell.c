@@ -59,6 +59,7 @@ int main (int argc, char* argv[])
   creategrid_fread(gfid,mesh_type,&mesh);
   fclose(gfid);
   INT dim = mesh.dim;
+  REAL* pt_on_face = NULL; //for use in MFD system
 
   
   // Get Quadrature Nodes for the Mesh
@@ -185,7 +186,7 @@ int main (int argc, char* argv[])
 	dvector vor_edge_length = dvec_create(mesh.nface);
 	dvector vor_face_area = dvec_create(mesh.nedge);
 	dvector vor_el_vol = dvec_create(mesh.nv);
-	REAL* pt_on_face=(REAL *)calloc(3*mesh.nedge,sizeof(REAL));
+	pt_on_face=(REAL *)calloc(3*mesh.nedge,sizeof(REAL));
 	
 	//Compute Voronoi info
 	compute_Voronoi_nodes(&mesh, cv_vor);
@@ -512,7 +513,7 @@ int main (int argc, char* argv[])
   dcsr_free(&MK);
   dcsr_free(&MKt);
   
-  // Vectors
+  // dvectors
   dvec_free(&b_E);
   dvec_free(&b_B);
   dvec_free(&b_p);
@@ -520,6 +521,12 @@ int main (int argc, char* argv[])
   dvec_free(&uB);
   dvec_free(&up);
   dvec_free(&tsol);
+  
+  //vectors
+  if(pt_on_face){
+	free(pt_on_face);
+	pt_on_face = NULL;
+  }
   
   // FE Spaces
   free_fespace(&FE_E);
