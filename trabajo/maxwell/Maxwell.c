@@ -164,14 +164,14 @@ int main (int argc, char* argv[])
   b_p.row = mesh.nv;
   b_p.val = (REAL*)calloc(mesh.nedge, sizeof(REAL)); 
   
-  /*
-  Check the mass lumping paramater. 
-  The mass-lumped system is equivalent to the mimetic-finite difference method for Maxwell. 
-  Use diagonal matrices to approximate the mass matrices.
-  */
+
   
   //assemble the block matrices for the system using mixed FEM or mass-lumping
   if (inparam.Mass_lump == 1){ //mass-lumped FEM
+   /*
+  The mass-lumped system is equivalent to the mimetic-finite difference method for Maxwell. 
+  Use diagonal matrices to approximate the mass matrices.
+  */
 	  
 	printf("\n\n******ASSEMBLING MASS-LUMPED SYSTEM******\n\n");
 	
@@ -193,7 +193,7 @@ int main (int argc, char* argv[])
 	compute_Voronoi_faces(&mesh, cv_vor, pt_on_face, &vor_face_area);
 	compute_Voronoi_volumes(&mesh, cv_vor, &vor_face_area, pt_on_face, &vor_el_vol);
 
-	//Create the block matrices with mesh info
+	//Create the matrices with mesh info
 	dCSRmat Vv;
 	dCSRmat Va;
 	dCSRmat Ve;
@@ -219,12 +219,17 @@ int main (int argc, char* argv[])
 	del_edge_length.row = mesh.nedge;
 	del_edge_length.val = mesh.ed_len;
 	
+	/*for(INT k = 0; k<mesh.nedge; k++){
+		printf("edge length = %f \n\n", del_edge_length.val[k]);
+	}
+	*/
+	
 	//create diagonal matrices with Delaunay mesh info
 	Dv = dcsr_create_diagonal_matrix(&del_el_vol);
 	Da = dcsr_create_diagonal_matrix(&del_face_area);
 	De = dcsr_create_diagonal_matrix(&del_edge_length);
 	
-	//create lumped matrices
+	//create lumped mass matrices
 	dcsr_mxm(&Va,&De,&Me); //MeL = vor area * del edge
 	dcsr_mxm(&Da,&Ve,&Mf); //MbL = del face * vor edge
 	Mv = Vv;				//MpL = vor volumes
@@ -250,7 +255,7 @@ int main (int argc, char* argv[])
   } else { //Regular FEM (no lumping) 
   
   	// Assemble the matrices without BC first
-	// Mass matrices
+	// Mass matrices for mixed-FEM
 	assemble_global(&Me,&b_E,assemble_mass_local,&FE_E,&mesh,cq,current_density,permitivity,0.0);
 	assemble_global(&Mf,&b_B,assemble_mass_local,&FE_B,&mesh,cq,zero_coeff_vec3D,oneovermu,0.0);
 	assemble_global(&Mv,&b_p,assemble_mass_local,&FE_p,&mesh,cq,zero_coeff_scal,one_coeff_scal,0.0);
@@ -292,7 +297,7 @@ int main (int argc, char* argv[])
 	Mb.blocks[6] = NULL;
 	Mb.blocks[7] = NULL;
 	Mb.blocks[8] = &Mv;
-	;
+	
 
 	// Block Matrix A(shifts needed)
 	bdcsr_alloc_minimal(3,3,&Ab);
@@ -447,7 +452,7 @@ int main (int argc, char* argv[])
     clock_t clk_solve_end = clock();
     printf("Elapsed CPU Time for Solve = %f seconds.\n\n",(REAL) (clk_solve_end-clk_solve_start)/CLOCKS_PER_SEC);
 
-//    // Update time steps
+    // Update time steps
     get_unknown_component(&uE,time_stepper.sol,&FE,0);
     get_unknown_component(&uB,time_stepper.sol,&FE,1);
     get_unknown_component(&up,time_stepper.sol,&FE,2);
@@ -514,6 +519,7 @@ int main (int argc, char* argv[])
   dvec_free(&uE);
   dvec_free(&uB);
   dvec_free(&up);
+  dvec_free(&tsol);
   
   // FE Spaces
   free_fespace(&FE_E);
