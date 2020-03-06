@@ -1505,6 +1505,42 @@ void eliminate_PeriodicBC(dCSRmat* P_periodic, dCSRmat* A, dvector* b)
 
 /******************************************************************************************************/
 /*!
+ * \fn eliminate_PeriodicBC_nonoverwrite(dCSRmat* P_periodic, dCSRmat* A, dvector* b, dCSRmat* PTAP, dvector* PTb)
+ *
+ * \brief Eliminate periodic boundary conditions. PTAP = P_periodic'*A*P_periodic and PTb = P_periodic'*b;
+ *
+ * \param P_periodic    P_periodic matrix in dCSR format
+ * \param A             stiffness matrix in dCSR format
+ * \param b             right hand side
+ *
+ * \return A            stiffness matrix after elimination
+ * \return b            right hand side after elimination
+ *
+ */
+void eliminate_PeriodicBC_nonoverwrite(dCSRmat* P_periodic, dCSRmat* A, dvector* b, dCSRmat* PTAP, dvector* PTb)
+{
+
+ // transpose P_periodic
+ dCSRmat R_periodic;
+ dcsr_trans(P_periodic, &R_periodic);
+
+ // eliminate boundary
+ dcsr_rap(&R_periodic, A, P_periodic, PTAP);
+
+ if(b){
+   b->row = R_periodic.row;
+   b->val = (REAL* )realloc(b->val, b->row*sizeof(REAL));
+   dcsr_mxv(&R_periodic, b->val, PTb->val);
+ }
+
+ // free
+ dcsr_free(&R_periodic);
+
+}
+/******************************************************************************************************/
+
+/******************************************************************************************************/
+/*!
  * \fn apply_PeriodicBC(dCSRmat* P_periodic, dvector* u)
  *
  * \brief Apply the boundary conditions so that the vector contains periodic BC dofs: u = P_periodic*u;
@@ -1674,6 +1710,66 @@ void eliminate_PeriodicBC_blockFE(block_dCSRmat* P_periodic, block_dCSRmat* A, d
  bdcsr_free(&Atemp);
  bdcsr_free(&R_periodic);
  if(b){dvec_free(&btemp);}
+
+}
+/******************************************************************************************************/
+
+/******************************************************************************************************/
+/*!
+ * \fn eliminate_PeriodicBC_blockFE_nonoverwrite(block_dCSRmat* P_periodic, block_dCSRmat* A, dvector* b)
+ *
+ * \brief Eliminate periodic boundary conditions (block version). A = P_periodic'*A*P_periodic and b = P_periodic'*b;
+ *
+ * \param P_periodic    P_periodic matrix in block_dCSR format
+ * \param A             stiffness matrix in block_dCSR format
+ * \param b             right hand side
+ *
+ * \return A            stiffness matrix after elimination
+ * \return b            right hand side after elimination
+ *
+ */
+void eliminate_PeriodicBC_blockFE_nonoverwrite(block_dCSRmat* P_periodic, block_dCSRmat* A, dvector* b, block_dCSRmat* PTAP, dvector* PTb)
+{
+
+ // local variables
+ INT i, j;
+ dCSRmat RAtemp;
+
+ // transpose P_periodic
+ block_dCSRmat R_periodic;
+ bdcsr_trans(P_periodic, &R_periodic);
+
+ // eliminate boundary (use the fact that both P and R are block diagonal)
+ for (i=0; i<A->brow; i++)
+ {
+
+   for (j=0; j<A->bcol; j++)
+   {
+
+     if ( (A->blocks[i*A->brow+j] == NULL)  )
+     {
+       PTAP->blocks[i*A->brow+j] = NULL;
+     }
+     else
+     {
+       dcsr_mxm(R_periodic.blocks[i*R_periodic.brow+i], A->blocks[i*A->brow+j], &RAtemp);
+       dcsr_mxm(&RAtemp, P_periodic->blocks[j*P_periodic->brow+j], PTAP->blocks[i*A->brow+j]);
+       dcsr_free(&RAtemp);
+     }
+
+   }
+
+ }
+
+ if( b ){
+   PTb->row = 0;
+   for (i=0; i<R_periodic.brow; i++) PTb->row = PTb->row + R_periodic.blocks[i*R_periodic.brow+i]->row;
+   PTb->val = (REAL* )realloc(PTb->val, PTb->row*sizeof(REAL));
+   bdcsr_mxv(&R_periodic, b->val, PTb->val);
+ }
+
+ // free
+ bdcsr_free(&R_periodic);
 
 }
 /******************************************************************************************************/
