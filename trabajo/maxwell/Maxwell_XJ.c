@@ -34,7 +34,7 @@
 /*********************************************************************************/
 
 /****** MAIN DRIVER **************************************************************/
-int main (int argc, char* argv[]) 
+int main (int argc, char* argv[])
 {
 
   printf("\n===========================================================================\n");
@@ -84,7 +84,7 @@ int main (int argc, char* argv[])
     sprintf(time_scheme_str,"BDF-%d",time_scheme);
   }
   INT rhs_timedep = 0;                       /* Indicates if RHS function is time-dependent */
-  
+
   // Get info for and create FEM spaces
   // Order of Elements: 0 - P0; 1 - P1; 2 - P2; 20 - Nedelec; 30 - Raviart-Thomas
   INT order_E = 20;
@@ -112,7 +112,7 @@ int main (int argc, char* argv[])
     dump_coords(fid,mesh.cv);
     fclose(fid);
   }
-  
+
   // Fix boundary conditions for interior obstacle and far-away boundary
   // Far Boundary (marked as 1 in mesh): E, p, B all Dirichlet
   // Obstacle Boundary (marked as -1 in mesh): p, Dirichlet, E & B Impedance
@@ -166,7 +166,7 @@ int main (int argc, char* argv[])
   //  De = diag(|e|)    Df = diag(|f|)
   //  G = De^(-1) ed_v    K = Df^(-1) face_ed De
   //
-  
+
   printf("Assembling the matrix and right-hand side:\n");
   clock_t clk_assembly_start = clock();
 
@@ -198,7 +198,7 @@ int main (int argc, char* argv[])
   // Grad and Curl matrices
   get_grad_H1toNed(&G,&mesh);
   get_curl_NedtoRT(&K,&mesh);
-  
+
   // Build Z (actually (1+gamma)*Z for gamma NOT time-dependent)
   assemble_global_face(&Z,NULL,NULL,impedancebdry_local,NULL,&FE_E,&mesh,cq,oneplusgamm,NULL,0.0,-1,-1);
 
@@ -304,7 +304,7 @@ int main (int argc, char* argv[])
   linear_itsolver_param linear_itparam;
   param_linear_solver_init(&linear_itparam);
   param_linear_solver_set(&linear_itparam, &inparam);
-  
+
   // Set parameters for algebriac multigrid methods
   AMG_param amgparam;
   param_amg_init(&amgparam);
@@ -316,15 +316,15 @@ int main (int argc, char* argv[])
   dvector up = dvec_create(mesh.nv);
   dvector u = dvec_create(ndof);
   dvector uprev = dvec_create(ndof);
-  
+
   blockFE_Evaluate(u.val,truesol,&FE,&mesh,0.0);
   dvec_cp(&u,&uprev);
-  
+
   // Get components for error computing
   get_unknown_component(&uE,&u,&FE,0);
   get_unknown_component(&uB,&u,&FE,1);
   get_unknown_component(&up,&u,&FE,2);
-  
+
   // Clean up divergence of E
   ProjectOut_Grad(&uE,&FE_p,&FE_E,&mesh,cq,&G);
   // Update B accordingly B = 1/r curl E
@@ -337,7 +337,7 @@ int main (int argc, char* argv[])
   set_unknown_component(&uB,&u,&FE,1);
   set_unknown_component(&uE,&uprev,&FE,0);
   set_unknown_component(&uB,&uprev,&FE,1);
-  
+
 
   printf("*******************************************\n");
   printf("Initial Condition:\t Actual Time = 0.0\n");
@@ -357,7 +357,7 @@ int main (int argc, char* argv[])
   printf("||B-Btrue||_0 = %25.16e\n",Berr);
   printf("||p-ptrue||_0 = %25.16e\n",perr);
   printf("------------------------------------------------------------\n");
-  
+
   FILE* nid = fopen("output/norms.tex","w");
   fprintf(nid,"\\begin{table}\n");
   fprintf(nid,"\\begin{tabular}{|c|ccc|}\n");
@@ -371,56 +371,6 @@ int main (int argc, char* argv[])
   // ----------------------------------
   // In this test, the matrix does not depends on time, we can do this outside the timestepping
   eliminate_DirichletBC_blockFE(NULL,&FE,&mesh,NULL,&Atime,0.0);
-
-  // ----------------------------------
-  // data for solvers
-  // ----------------------------------
-  // data for block csr format solver
-  block_dCSRmat Atime_bcsr;
-  dvector b_update_bcsr = dvec_create(ndof);
-  dvector u_bcsr = dvec_create(ndof);
-
-  // indecis for different unknows
-  ivector E_idx = ivec_create(mesh.nedge);
-  ivector B_idx = ivec_create(mesh.nface);
-  ivector p_idx = ivec_create(mesh.nv);
-
-  for(i=0;i<mesh.nedge;i++) E_idx.val[i] = i;
-  for(i=0;i<mesh.nface;i++) B_idx.val[i] = mesh.nedge + i;
-  for(i=0;i<mesh.nv;i++)    p_idx.val[i] = mesh.nedge + mesh.nface + i;
-
-  // change to block CSR format
-  // shift
-  dcsr_shift(&Atime,-1);
-  // allocate
-  Atime_bcsr.brow = 3; Atime_bcsr.bcol = 3;
-  Atime_bcsr.blocks = (dCSRmat **) calloc(9,sizeof(dCSRmat *));
-  for (ii=0; ii<9 ;ii++) {
-    Atime_bcsr.blocks[ii] = (dCSRmat *)calloc(1, sizeof(dCSRmat));
-  }
-
-  // assign each block
-  // A_BB
-  dcsr_getblk(&Atime, B_idx.val, B_idx.val, mesh.nface, mesh.nface, Atime_bcsr.blocks[0]);
-  // A_BE
-  dcsr_getblk(&Atime, B_idx.val, E_idx.val, mesh.nface, mesh.nedge, Atime_bcsr.blocks[1]);
-  // A_Bp
-  dcsr_getblk(&Atime, B_idx.val, p_idx.val, mesh.nface, mesh.nv,    Atime_bcsr.blocks[2]);
-  // A_EB
-  dcsr_getblk(&Atime, E_idx.val, B_idx.val, mesh.nedge, mesh.nface, Atime_bcsr.blocks[3]);
-  // A_EE
-  dcsr_getblk(&Atime, E_idx.val, E_idx.val, mesh.nedge, mesh.nedge, Atime_bcsr.blocks[4]);
-  // A_Ep
-  dcsr_getblk(&Atime, E_idx.val, p_idx.val, mesh.nedge, mesh.nv,    Atime_bcsr.blocks[5]);
-  // A_pB
-  dcsr_getblk(&Atime, p_idx.val, B_idx.val, mesh.nv,    mesh.nface, Atime_bcsr.blocks[6]);
-  // A_pE
-  dcsr_getblk(&Atime, p_idx.val, E_idx.val, mesh.nv,    mesh.nedge, Atime_bcsr.blocks[7]);
-  // A_pp
-  dcsr_getblk(&Atime, p_idx.val, p_idx.val, mesh.nv,    mesh.nv,    Atime_bcsr.blocks[8]);
-
-  // shift
-  dcsr_shift(&Atime,1);
 
   //-------------------------------
   // prepare block preconditioner
@@ -601,7 +551,7 @@ int main (int argc, char* argv[])
 
     eliminate_DirichletBC_RHS_blockFE(bc,&FE,&mesh,&b_update,&Atime_noBC,time);
 
-    
+
     //Let's dump matrix for comparison
     if(i==0) {
       FILE* matid = fopen("output/mat.dat","w");
@@ -610,7 +560,7 @@ int main (int argc, char* argv[])
     }
 
     // Solve
-  
+
     //---------------------
     // solve in bcsr format
     //---------------------
@@ -640,7 +590,7 @@ int main (int argc, char* argv[])
     for(ii=0;ii<mesh.nface;ii++) u.val[ii+mesh.nedge] = u_bcsr.val[ii];
     for(ii=0;ii<mesh.nv;ii++)    u.val[ii+mesh.nface+mesh.nedge] = u_bcsr.val[ii+mesh.nface+mesh.nedge];
 
-    
+
     // Update time steps
     dvec_cp(&u,&uprev);
     dvec_cp(&bnew,&b);
@@ -673,7 +623,7 @@ int main (int argc, char* argv[])
   fprintf(nid,"\\caption{Sphere Obstacle. $\\gamma = %f$.  $h = 1/8$.}\n",0.05);
   fprintf(nid,"\\end{table}");
   fclose(nid);
-  
+
   clock_t clk2 = clock();
 
   printf("Elapsed CPU Time for Assembling = %f seconds.\n\n",(REAL) (clk2-clk1 - clk_linear_total)/CLOCKS_PER_SEC);
@@ -700,13 +650,13 @@ int main (int argc, char* argv[])
   dcsr_free(&MKt);
   dcsr_free(&M);
   dcsr_free(&AZ);
-  
+
   dcsr_free(&A_diag[0]);
   dcsr_free(&A_diag[1]);
   dcsr_free(&A_diag[2]);
-  
+
   if (A_diag) free(A_diag);
-  
+
   dcsr_free(&P_curl);
   dcsr_free(&Grad);
 
@@ -714,14 +664,14 @@ int main (int argc, char* argv[])
   dcsr_free(&Ktb);
   dcsr_free(&Kb);
   dcsr_free(&Gb);
-  
+
   // block CSR Matrices
   bdcsr_free(&Mb);
   bdcsr_free(&AZb);
-  
+
   bdcsr_free(&Atime_bcsr);
-  
-  
+
+
   // Vectors
   if(b_E.val) free(b_E.val);
   if(b_B.val) free(b_B.val);
@@ -744,25 +694,25 @@ int main (int argc, char* argv[])
 
   if (u_bcsr.val) free(u_bcsr.val);
   if (b_update_bcsr.val) free(b_update_bcsr.val);
-  
+
   // FE Spaces
   free_fespace(&FE_E);
   free_fespace(&FE_B);
   free_fespace(&FE_p);
   free_blockfespace(&FE);
-  
+
   // Quadrature
   if(cq) {
     free_qcoords(cq);
     free(cq);
     cq = NULL;
   }
-  
+
 
   // Mesh
   free_mesh(&mesh);
-  
-  
+
+
   /*****************************************************************************************/
 
   clock_t clk_overall_end = clock();
