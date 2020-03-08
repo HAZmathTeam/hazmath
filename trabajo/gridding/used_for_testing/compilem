@@ -1,0 +1,4 @@
+#!/bin/sh
+set -x
+gcc -g -L../../lib -I. -I../../include main0.c -o m.ex -lhazmath -lm
+set +x
