@@ -1,4 +1,4 @@
-#####################################################
+####################################################
 # Last Modified 2017-03-08 --ltz
 ####################################################
 
@@ -80,7 +80,7 @@ LIBS += #-lgfortran
 all: $(EXE) 
 
 $(EXE):	$(MGTARGET)	$(OBJS)	
-	+$(CC) $(ExtraFLAGS) $(INCLUDE) $(OBJS) $(MGLIBS) -o $@  $(LIBS)
+	+$(CC) $(CFLAGS) $(ExtraFLAGS) $(INCLUDE) $(OBJS) $(MGLIBS) -o $@  $(LIBS)
 
 %.o:	%.c
 	+$(CC) $(INCLUDE) $(INCLUDESSP) $(CFLAGS) $(DMGRAPH) -o $@ -c $<

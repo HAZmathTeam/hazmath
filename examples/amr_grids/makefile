@@ -12,7 +12,7 @@ INCLUDE =
 LIBS =
 
 # Switch between debug or optimized
-CFLAGS = -g
+CFLAGS = -pg
 
 WITH_SUITESPARSE=0
 

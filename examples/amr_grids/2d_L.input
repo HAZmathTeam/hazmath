@@ -15,7 +15,7 @@ file_vtu{2DL.vtu}
 
 amr_marking_type{1}
 
-num_refinements{16}
+num_refinements{20}
 
 err_stop_refinement{        -1.e-10        }
 
