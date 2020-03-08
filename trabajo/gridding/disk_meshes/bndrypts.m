@@ -1,6 +1,4 @@
-%%function [VT,n1,nT1] = tri_to_graph1(t);
-R=1; level=0;
-[t,x,y]=disk_mesh(R,level)
+function [VT,EV,ET,TT] = bndrypts(t);
 t=transpose(t); %% this is fake just to get the incidence matrices.
 [idummy,nel]=size(t);
 iT=[[1:nel];[1:nel];[1:nel]];
@@ -8,8 +6,9 @@ iT=reshape(iT,3*nel,1);
 t=reshape(t(1:3,1:nel),3*nel,1);
 %% incidence vertex -- triangle 
 VT=sparse(t,iT,ones(3*nel,1));
-t=reshape(t,3,nel);t=transpose(t);
-[nv,nt]=size(VT)
+t=reshape(t,3,nel);
+t=transpose(t);
+[nv,nt]=size(VT);
 %% incidence: edge--vertex
 A=sparse(VT*transpose(VT));
 [iw,jw]=find(triu(A,1));
