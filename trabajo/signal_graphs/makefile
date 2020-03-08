@@ -1,4 +1,4 @@
-CXX = mpicxx
+CXX = c++
 CXXFLAGS = -Wall -Wfatal-errors -std=c++11
 INCLUDE = -I../../include
 LIBS = -lhazmath -llapack
