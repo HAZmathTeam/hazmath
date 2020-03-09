@@ -17,8 +17,9 @@ print_level			= 2;	% how much information to print out: 0 Nothing | >0 Something
 %---------------%
 
 %gridfile                     = ../grids/1D/unitLINE_n17.haz
-gridfile                      = ../grids/2D/unitSQ_n17.haz
+%gridfile                      = ../grids/2D/unitSQ_n17.haz
 %gridfile                     = ../grids/3D/unitCUBE_n9.haz
+gridfile                     = ../../trabajo/gridding/disk_meshes/circle_level2.haz
 output_dir                    = ./output/
 
 %---------------%
@@ -27,7 +28,7 @@ output_dir                    = ./output/
 
 nquad				= 2	% Quadrature nodes each direction
 
-FE_type				= 20	% 0-9 PX | 10-19 QX (not yet) | 20 Ned | 30 RT | -9--1 DGX (not yet) 
+FE_type				= 1	% 1-9 PX | 10-19 QX (not yet) | 20 Ned | 30 RT | -9--1 DGX (not yet) 
 
 %---------------%
 % time stepping
