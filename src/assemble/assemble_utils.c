@@ -1524,12 +1524,19 @@ void eliminate_PeriodicBC_nonoverwrite(dCSRmat* P_periodic, dCSRmat* A, dvector*
  dCSRmat R_periodic;
  dcsr_trans(P_periodic, &R_periodic);
 
+ // free PTAP
+ if (PTAP->IA)  free(PTAP->IA);
+ if (PTAP->JA)  free(PTAP->JA);
+ if (PTAP->val) free(PTAP->val);
+
  // eliminate boundary
  dcsr_rap(&R_periodic, A, P_periodic, PTAP);
 
- if(b){
-   b->row = R_periodic.row;
-   b->val = (REAL* )calloc(b->row, sizeof(REAL));
+ if(PTb){
+   PTb->row = R_periodic.row;
+   if (PTb->val == NULL) {
+     PTb->val = (REAL* )calloc(PTb->row, sizeof(REAL));
+   }
    dcsr_mxv(&R_periodic, b->val, PTb->val);
  }
 
@@ -1589,7 +1596,9 @@ void apply_PeriodicBC_nonoverwrite(dCSRmat* P_periodic, dvector* u_periodic, dve
 
   // apply peeriodic BC
   u->row = P_periodic->row;
-  u->val = (REAL* )calloc(u->row, sizeof(REAL));
+  if (u->val == NULL){
+    u->val = (REAL* )calloc(u->row, sizeof(REAL));
+  }
   dcsr_mxv_agg(P_periodic, u_periodic->val, u->val);
 
 }
@@ -1759,6 +1768,16 @@ void eliminate_PeriodicBC_blockFE_nonoverwrite(block_dCSRmat* P_periodic, block_
  INT i, j;
  dCSRmat RAtemp;
 
+ // free PTAP
+ for (i=0; i<(PTAP->brow*PTAP->bcol); i++)
+ {
+   if (PTAP->blocks[i]){
+     if (PTAP->blocks[i]->IA)  free(PTAP->blocks[i]->IA);
+     if (PTAP->blocks[i]->JA)  free(PTAP->blocks[i]->JA);
+     if (PTAP->blocks[i]->val) free(PTAP->blocks[i]->val);
+   }
+ }
+
  // transpose P_periodic
  block_dCSRmat R_periodic;
  bdcsr_trans(P_periodic, &R_periodic);
@@ -1785,10 +1804,10 @@ void eliminate_PeriodicBC_blockFE_nonoverwrite(block_dCSRmat* P_periodic, block_
 
  }
 
- if( b ){
+ if( PTb ){
    PTb->row = 0;
    for (i=0; i<R_periodic.brow; i++) PTb->row = PTb->row + R_periodic.blocks[i*R_periodic.brow+i]->row;
-   PTb->val = (REAL* )calloc(PTb->row, sizeof(REAL));
+   if (PTb->val == NULL) PTb->val = (REAL* )calloc(PTb->row, sizeof(REAL));
    bdcsr_mxv(&R_periodic, b->val, PTb->val);
  }
 
@@ -1854,7 +1873,7 @@ void apply_PeriodicBC_blockFE_nonoverwrite(block_dCSRmat* P_periodic, dvector* u
   // apply peeriodic BC
   u->row = 0;
   for (i=0; i<P_periodic->brow;i++) u->row = u->row + P_periodic->blocks[i*P_periodic->brow+i]->row;
-  u->val = (REAL* )calloc(u->row, sizeof(REAL));
+  if (u->val == NULL)  u->val = (REAL* )calloc(u->row, sizeof(REAL));
   bdcsr_mxv(P_periodic, u_periodic->val, u->val);
 
 }
