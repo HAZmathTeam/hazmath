@@ -1769,7 +1769,7 @@ void eliminate_PeriodicBC_blockFE_nonoverwrite(block_dCSRmat* P_periodic, block_
  dCSRmat RAtemp;
 
  // free PTAP
- for (i=0; i<(PTAP->brow*PTAP->bcol); i++)
+ for (i=0; i<(A->brow*A->bcol); i++)
  {
    if (PTAP->blocks[i]){
      if (PTAP->blocks[i]->IA)  free(PTAP->blocks[i]->IA);
