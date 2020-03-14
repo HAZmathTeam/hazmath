@@ -3,7 +3,7 @@
 ####################################################
 
 # SRC File name
-SRCFILE = ConvectionDiffusion
+SRCFILE = convectiondiffusion
 
 HEADERS = $(SRCFILE).h
 
