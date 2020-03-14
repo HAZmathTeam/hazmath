@@ -1612,10 +1612,10 @@ void smoother_dcsr_sgs_graph_eigen(dvector *u, dCSRmat *A, dvector *b, const INT
  */
 void smoother_block_elasticity( const INT lvl, MG_blk_data *bmgl, AMG_param *param, INT pre_post)
 {
-    INT n0, n1;
+    INT n0;//, n1;
 
     n0 = bmgl[lvl].A.blocks[1]->row;
-    n1 = bmgl[lvl].A.blocks[2]->row;
+  //  n1 = bmgl[lvl].A.blocks[2]->row;
 
     // BSR
     dvector diagvec;

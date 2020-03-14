@@ -21,9 +21,9 @@ static long double pi=M_PI;
  * \fn REAL deg2rad(REAL alpha_deg)
  *
  * \param alpha_deg   angle in degrees
- *  
+ *
  * \return alpha in radians
- *  
+ *
  */
 REAL deg2rad(REAL alpha_deg)
 {
@@ -77,7 +77,7 @@ REAL zero_twopi_deg(REAL alpha_deg)
  */
 static void coord_perm(SHORT type, INT n,void *x, size_t elsize)
 {
-  INT i;  
+  INT i;
   void *xx0n=(void *)calloc(1,elsize*sizeof(void));
   if(type){
     memcpy(xx0n,x,elsize);
@@ -168,7 +168,7 @@ INT cart2polar(INT dim, REAL *c,REAL *p)
   for(i=0;i<dim;i++){
     r+=(c[i]*c[i]);
     p[i]=0e0;
-  }  
+  }
   if(fabs(r)<1e-14){
     for(i=1;i<dim;i++) p[i]=-1e20;
     return 1;
@@ -181,7 +181,7 @@ INT cart2polar(INT dim, REAL *c,REAL *p)
     if(fabs(sin(p[i]))<1e-14){
       flag=0;
       break;
-    }    
+    }
     rl/=sin(p[i]);
   }
   if(flag) p[dimm1]=atan2(c[dimm1],c[dimm1-1]);
@@ -194,7 +194,7 @@ INT cart2polar(INT dim, REAL *c,REAL *p)
 /*!
  *\fn void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
  *
- *  \brief Maps n-dimensional cube to a macroelement specified by "g". 
+ *  \brief Maps n-dimensional cube to a macroelement specified by "g".
  *
  * \param
  *
@@ -205,12 +205,12 @@ INT cart2polar(INT dim, REAL *c,REAL *p)
  */
 void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
 {
-  /* 
+  /*
   */
   INT i,j,k1,k2,k1c,kf,dim=sc->n;
-    INT k2c;
+  //INT k2c;
   INT ksys;
-  REAL *xmac=g->xv;  
+  REAL *xmac=g->xv;
   REAL *xhat = (REAL *)calloc(dim,sizeof(REAL));
   REAL *c1 = (REAL *)calloc(dim,sizeof(REAL));
   REAL *c2 = (REAL *)calloc(dim,sizeof(REAL));
@@ -222,11 +222,11 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
     k1=c2s->edges[2*i];
     k2=c2s->edges[2*i+1];
     k1c=g->systypes[g->csysv[k1]];
-    k2c=g->systypes[g->csysv[k2]];
+    //k2c=g->systypes[g->csysv[k2]];
     if(g->csysv[k1]==g->csysv[k2] && k1c==1){
       //use xhat as a temp array:
       rho=0.5*(xmac[k1*dim]+xmac[k2*dim]);// this is the rho we will use
-      /* 
+      /*
 	 To find the mid point in polar: convert the vertices k1 and
 	 k2 to cartesian, take the middle point (in cartesian) and
 	 then use the angles defined for the middle point and average
@@ -235,20 +235,20 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
       polar2cart(dim,xmac+k1*dim,c1); polar2cart(dim,xmac+k2*dim,c2);
       for(j=0;j<dim;j++)
 	c1[j]=0.5*(c1[j]+c2[j]);
-      cart2polar(dim,c1,xhat);      
+      cart2polar(dim,c1,xhat);
       //      print_full_mat(1,dim,xhat,"xhat");
       xhat[0]=rho;
       polar2cart(dim,xhat,xemac+(i*dim));
-      // translate by adding the origin. 
-      ksys=g->csysv[k1];// k1c and k2c should be the same below. 
-      k2c=g->csysv[k2];
+      // translate by adding the origin.
+      ksys=g->csysv[k1];// k1c and k2c should be the same below.
+      //k2c=g->csysv[k2];
       for(j=0;j<dim;j++) {
 	xemac[i*dim+j]+=g->ox[ksys*dim+j];
       }
     }
   }
   // end of mid points in polar;
-  // now convert all vertices in cartesian as well. 
+  // now convert all vertices in cartesian as well.
   for(i=0;i<c2s->nvcube;i++){
     k1c=g->systypes[g->csysv[i]];
     if(k1c==1){
@@ -267,7 +267,7 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
     k1=c2s->edges[2*i];
     k2=c2s->edges[2*i+1];
     k1c=g->systypes[g->csysv[k1]];
-    k2c=g->systypes[g->csysv[k2]];
+    //k2c=g->systypes[g->csysv[k2]];
     //skip all  mid points in polar
     if(g->csysv[k1]==g->csysv[k2] && k1c==1) continue;
     for(j=0;j<dim;j++) {
