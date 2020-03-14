@@ -24,7 +24,7 @@
  *
  */
 dCSRmat bdcsr_2_dcsr (block_dCSRmat *Ab)
-{   
+{
     // local variables
     INT m=0,n=0,nnz=0;
     const INT mb=Ab->brow, nb=Ab->bcol, n_blocks=mb*nb;
@@ -34,16 +34,16 @@ dCSRmat bdcsr_2_dcsr (block_dCSRmat *Ab)
 
     // flag for errors
     SHORT status = SUCCESS;
-    
+
     row = (INT *)calloc(mb+1,sizeof(INT));
     col = (INT *)calloc(nb+1,sizeof(INT));
-    
+
     // get the size of A
     row[0]=0; col[0]=0;
 
     // count number of rows
     for (i=0;i<mb;++i) {
-        
+
         status = ERROR_BLKMAT_ZERO;
 
         for (j=0; j<nb; ++j){
@@ -59,10 +59,10 @@ dCSRmat bdcsr_2_dcsr (block_dCSRmat *Ab)
         if (status < SUCCESS) check_error(ERROR_BLKMAT_ZERO, __FUNCTION__);
 
     }
-    
+
     // count number of columns
     for (i=0;i<nb;++i) {
-        
+
         status = ERROR_BLKMAT_ZERO;
 
         for (j=0;j<mb;++j){
@@ -72,35 +72,35 @@ dCSRmat bdcsr_2_dcsr (block_dCSRmat *Ab)
                 status = SUCCESS;
                 break;
             }
-            
+
         }
 
         // check error
         if (status < SUCCESS) check_error(ERROR_BLKMAT_ZERO, __FUNCTION__);
 
     }
-    
+
     // count number of nonzeros
     for (i=0;i<n_blocks;++i) {
         if (blockptr[i]) {
             nnz+=blockptr[i]->nnz;
         }
     }
-    
+
     // memory space allocation
     A = dcsr_create(m,n,nnz);
-    
+
     // set dCSRmat for A
     A.IA[0]=0;
     for (i=0;i<mb;++i) {
-        
+
         for (ir=row[i];ir<row[i+1];ir++) {
-            
+
             for (length=j=0;j<nb;++j) {
-                
+
                 ij=i*nb+j;
                 blockptrij=blockptr[ij];
-                
+
                 if (blockptrij && blockptrij->nnz>0) {
 
                     start=A.IA[ir]+length;
@@ -115,18 +115,18 @@ dCSRmat bdcsr_2_dcsr (block_dCSRmat *Ab)
                     }
 
                  }
-                
+
             } // end for j
-            
+
             A.IA[ir+1]=A.IA[ir]+length;
 
         } // end for ir
-        
+
     } // end for i
-    
+
     free(row);
     free(col);
-    
+
     return(A);
 }
 
@@ -144,7 +144,7 @@ dCSRmat bdcsr_2_dcsr (block_dCSRmat *Ab)
  *
  */
 dCSRmat bdcsr_subblk_2_dcsr (block_dCSRmat *Ab, INT brow_start, INT brow_end, INT bcol_start, INT bcol_end)
-{   
+{
     INT i, j;
     INT ii, jj;
     block_dCSRmat Asub;
@@ -153,7 +153,7 @@ dCSRmat bdcsr_subblk_2_dcsr (block_dCSRmat *Ab, INT brow_start, INT brow_end, IN
     for(j = bcol_start; j<bcol_end+1; j++){
       jj = j-bcol_start;
       for(i = brow_start; i<brow_end+1; i++){
-        ii = i-brow_start; 
+        ii = i-brow_start;
         Asub.blocks[ii*Asub.bcol + jj] = Ab->blocks[i*Ab->bcol + j];
       }
     }
@@ -182,47 +182,47 @@ dCSRmat bdcsr_subblk_2_dcsr (block_dCSRmat *Ab, INT brow_start, INT brow_end, IN
 block_dCSRmat dcsr_2_bdcsr (dCSRmat *A,
                             int bnum,
                             int *bsize)
-{ 
+{
     // local variable
     int i, j;
     SHORT status = SUCCESS;
-    
+
     // allocate block dCSRmat
     block_dCSRmat Ab;
     Ab.brow = bnum; Ab.bcol = bnum;
-    
+
     Ab.blocks = (dCSRmat **)calloc(bnum*bnum, sizeof(dCSRmat));
     for (i=0; i<bnum*bnum; i++) Ab.blocks[i] = (dCSRmat *) calloc(1, sizeof(dCSRmat));
 
-    
+
     // allocate
     int *idx_row = (int *)calloc(A->row, sizeof(INT));
     int *idx_col = (int *)calloc(A->col, sizeof(INT));
 
     for (i=0; i<A->row; i++) idx_row[i] = i;  // generate row index
     for (i=0; i<A->col; i++) idx_col[i] = i;  // generate col index
-    
+
     int *idx_start = (int *)calloc(bnum, sizeof(INT));
     idx_start[0] = 0;
     for (i=0; i<bnum-1; i++) idx_start[i+1] = idx_start[i] + bsize[i];
-    
+
     for (i=0; i<bnum; i++){
-        
-        for (j=0; j<bnum; j++) {   
+
+        for (j=0; j<bnum; j++) {
 
             status = dcsr_getblk(A, idx_row+idx_start[i], idx_col+idx_start[j], bsize[i], bsize[j], Ab.blocks[i*bnum+j]);
             if (status < SUCCESS) check_error(status, __FUNCTION__);
 
         }
-        
+
     }
 
-    
+
     // free memory
     free(idx_row);
     free(idx_col);
     free(idx_start);
-    
+
     return Ab;
 }
 
@@ -240,13 +240,13 @@ block_dCSRmat dcsr_2_bdcsr (dCSRmat *A,
  */
 SHORT dcoo_2_dcsr (dCOOmat *A,
                    dCSRmat *B)
-{   
+{
     // get size
     const INT m=A->row, n=A->col, nnz=A->nnz;
 
     // allocate
     dcsr_alloc(m,n,nnz,B);
-    
+
     // local variable
     INT *ia = B->IA;
     INT *ja = B->JA;
@@ -255,22 +255,22 @@ SHORT dcoo_2_dcsr (dCOOmat *A,
     INT *col_idx = A->colind;
     REAL *Aval = A->val;
     INT i, iind, jind;
-    
+
     INT *ind = (INT *) calloc(m+1,sizeof(INT));
-    
+
     // initialize
     memset(ind, 0, sizeof(INT)*(m+1));
-    
+
     // count number of nonzeros in each row
     for (i=0; i<nnz; ++i) ind[row_idx[i]+1]++;
-    
+
     // set row pointer
     ia[0] = 0;
     for (i=1; i<=m; ++i) {
         ia[i] = ia[i-1]+ind[i];
         ind[i] = ia[i];
     }
-    
+
     // set column index and values
     for (i=0; i<nnz; ++i) {
         iind = row_idx[i];
@@ -279,9 +279,9 @@ SHORT dcoo_2_dcsr (dCOOmat *A,
         Bval[jind] = Aval[i];
         ind[iind] = ++jind;
     }
-    
+
     if (ind) free(ind);
-    
+
     return SUCCESS;
 }
 
@@ -289,7 +289,7 @@ SHORT dcoo_2_dcsr (dCOOmat *A,
 /*!
  * \fn coordinates* array_2_coord (REAL *xyz, INT ndof, INT dim)
  *
- * \brief Transform an array of coordinates from [x0,y0,z0,x1,y1,z1,...] to a coordinates structure 
+ * \brief Transform an array of coordinates from [x0,y0,z0,x1,y1,z1,...] to a coordinates structure
  *
  * \param xyz  Array with coordinate values
  * \param ndof Number of degrees of freedom
@@ -301,7 +301,7 @@ SHORT dcoo_2_dcsr (dCOOmat *A,
 coordinates* array_2_coord ( REAL* xyz, INT ndof, INT dim)
 {
   // Local Variables
-  INT dof,i,j;
+  INT dof;//,i,j;
   // Allocate
   coordinates* cv = allocatecoords(ndof, dim);
   // Fill
@@ -332,4 +332,3 @@ coordinates* array_2_coord ( REAL* xyz, INT ndof, INT dim)
 }
 
 /********************************  END  ********************************************************/
-
