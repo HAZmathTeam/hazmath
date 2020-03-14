@@ -2975,7 +2975,7 @@ void bdcsr_trans(block_dCSRmat *A,
   INT i,j;
 
   // allocate AT
-  bdcsr_alloc(A->bcol, A->brow, AT);
+  bdcsr_alloc_minimal(A->bcol, A->brow, AT);
 
   // transpose
   for (i=0; i<AT->brow; i++)
@@ -2990,6 +2990,7 @@ void bdcsr_trans(block_dCSRmat *A,
       }
       else
       {
+        AT->blocks[i*AT->bcol+j] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
         dcsr_trans(A->blocks[j*A->bcol+i], AT->blocks[i*AT->bcol+j]);
       }
 
