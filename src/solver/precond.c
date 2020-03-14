@@ -500,7 +500,7 @@ void precond_hx_div_multiplicative_2D(REAL *r,
     dvector rr;
     rr.row = n; rr.val = r;
 
-    SHORT maxit, i;
+    SHORT maxit;
 
     //-----------
     // smoothing
@@ -784,6 +784,7 @@ void precond_hx_div_multiplicative(REAL *r,
     //printf("div grad\n");
     AMG_param *amgparam_divgrad = hxdivdata->amgparam_divgrad;
     AMG_data *mgl_divgrad = hxdivdata->mgl_divgrad;
+    maxit = amgparam_divgrad->maxit;
 
     // solve with AMG only
     mgl_divgrad->b.row = hxdivdata->A_divgrad->row;
