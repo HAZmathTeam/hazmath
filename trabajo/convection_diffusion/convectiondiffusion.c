@@ -21,7 +21,7 @@
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************/
 #include "hazmath.h"
 /* local include */
-#include "ConvectionDiffusion.h"
+#include "convectiondiffusion.h"
 void eafe(dCSRmat *A, dvector *rhs,					\
 	  void (*local_assembly)(REAL *,fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL), \
 	  mesh_struct mesh, fespace FE, qcoordinates *cq,			\
