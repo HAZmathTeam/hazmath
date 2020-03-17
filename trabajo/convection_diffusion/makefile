@@ -3,7 +3,7 @@
 ####################################################
 
 # SRC File name
-SRCFILE = ConvectionDiffusion
+SRCFILE = convectiondiffusion
 
 HEADERS = $(SRCFILE).h
 
@@ -13,17 +13,18 @@ INCLUDE =
 
 ################comment the next two lines if you do not use mutigraph as solver.
 WITH_MGRAPH = yes
-MGRAPH_SRCDIR = $(realpath /home/ltz1/packages/multigraph_2.1)
+MGRAPH_SRCDIR = $(realpath /home/ltz1/packages/multigraph_2.1/src)
 
 # if you have compiled hazmath with suitesparse support, uncomment the
 # two lines below.
 #SSDIR = /usr/local
-#LIBS = -L$(SSDIR)/lib -lsuitesparseconfig -lcholmod -lamd -lcolamd -lccolamd -lcamd -lspqr -lumfpack -lamd -lcxsparse 
+SSLIB = /usr/lib/x86_64-linux-gnu
+LIBSADD = -L$(SSLIB) -lsuitesparseconfig -lcholmod -lamd -lcolamd -lccolamd -lcamd -lspqr -lumfpack -lamd -lcxsparse 
 
-#INCLUDE = -I$(SSDIR)/include
+INCLUDEADD = -I/usr/include
 
 ##########################################################
-LIBS = -lgfortran
+#LIBS = -lgfortran
 
 sinclude conv_diff.mk
 
