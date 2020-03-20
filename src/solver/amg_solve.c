@@ -47,10 +47,10 @@
 //! Warning for computed relative residual
 #define ITS_COMPRES(relres) printf("### HAZMATH WARNING: The computed relative residual = %e!\n",(relres))
 
-//! Warning for too small sp 
+//! Warning for too small sp
 #define ITS_SMALLSP printf("### HAZMATH WARNING: sp is too small! %s : %d\n", __FUNCTION__, __LINE__)
 
-//! Warning for restore previous iteration 
+//! Warning for restore previous iteration
 #define ITS_RESTORE(iter) printf("### HAZMATH WARNING: Restore iteration %d!\n",(iter));
 
 //! Output relative difference and residual
@@ -68,7 +68,7 @@
  *
  */
 inline static void ITS_CHECK (const INT MaxIt, const REAL tol)
-{    
+{
     if ( tol < SMALLREAL ) {
         printf("### HAZMATH WARNING: Convergence tolerance for iterative solver is too small!\n");
     }
@@ -78,15 +78,15 @@ inline static void ITS_CHECK (const INT MaxIt, const REAL tol)
 }
 
 /**
- * \fn inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres) 
+ * \fn inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres)
  * \brief Print out final status of an iterative method
  *
  * \param iter    Number of iterations
  * \param MaxIt   Maximal number of iterations
- * \param relres  Relative residual 
+ * \param relres  Relative residual
  *
  */
-inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres) 
+inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres)
 {
     if ( iter > MaxIt ) {
         printf("### HAZMATH WARNING: Max iter %d reached with rel. resid. %e.\n", MaxIt, relres);
@@ -112,55 +112,55 @@ inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres
  */
 INT amg_solve(AMG_data *mgl,
               AMG_param *param)
-{ 
+{
     dCSRmat      *ptrA = &mgl[0].A;
     dvector      *b = &mgl[0].b, *x = &mgl[0].x, *r = &mgl[0].w;
-    
+
     const SHORT   prtlvl = param->print_level;
     const INT     MaxIt  = param->maxit;
     const REAL    tol    = param->tol;
     const REAL    sumb   = dvec_norm2(b);
-    
+
     // local variables
     REAL  solve_start, solve_end;
     REAL  relres1 = BIGREAL, absres0 = sumb, absres, factor;
     INT   iter = 0;
 
     get_time(&solve_start);
-    
+
     // Print iteration information if needed
     print_itsolver_info(prtlvl, STOP_REL_RES, iter, 1.0, sumb, 0.0);
-    
+
     // Main loop
     while ( (++iter <= MaxIt) & (sumb > SMALLREAL) ) {
-        
+
         // Call one multigrid cycle
         mgcycle(mgl, param);
-        
+
         // Form residual r = b - A*x
         dvec_cp(b, r);
         dcsr_aAxpy(-1.0, ptrA, x->val, r->val);
-        
+
         // Compute norms of r and convergence factor
         absres  = dvec_norm2(r);
         relres1 = absres/sumb;
         factor  = absres/absres0;
         absres0 = absres;
-        
+
         // Print iteration information if needed
         print_itsolver_info(prtlvl, STOP_REL_RES, iter, relres1, absres, factor);
-        
+
         // Check convergence
         if ( relres1 < tol ) break;
     }
-    
+
     if ( prtlvl > PRINT_NONE ) {
         ITS_FINAL(iter, MaxIt, relres1);
         get_time(&solve_end);
         print_cputime("AMG solve",solve_end - solve_start);
     }
 
-    
+
     return iter;
 }
 
@@ -186,55 +186,55 @@ INT amg_solve(AMG_data *mgl,
  */
 INT amg_solve_amli (AMG_data *mgl,
                          AMG_param *param)
-{   
+{
     dCSRmat     *ptrA = &mgl[0].A;
     dvector     *b = &mgl[0].b, *x = &mgl[0].x, *r = &mgl[0].w;
-    
+
     const INT    MaxIt  = param->maxit;
     const SHORT  prtlvl = param->print_level;
     const REAL   tol    = param->tol;
     const REAL   sumb   = dvec_norm2(b); // L2norm(b)
-    
+
     // local variables
     REAL         solve_start, solve_end, solve_time;
     REAL         relres1 = BIGREAL, absres0 = sumb, absres, factor;
     INT          iter = 0;
-    
+
     get_time(&solve_start);
 
     // Print iteration information if needed
     print_itsolver_info(prtlvl, STOP_REL_RES, iter, 1.0, sumb, 0.0);
-    
+
     // MG solver here
     while ( (++iter <= MaxIt) & (sumb > SMALLREAL) ) {
-        
+
         // Call one AMLI cycle
         amli(mgl, param, 0);
-        
+
         // Form residual r = b-A*x
         dvec_cp(b, r);
         dcsr_aAxpy(-1.0, ptrA, x->val, r->val);
-        
+
         // Compute norms of r and convergence factor
         absres  = dvec_norm2(r);
         relres1 = absres/sumb;
         factor  = absres/absres0;
         absres0 = absres;
-        
+
         // Print iteration information if needed
         print_itsolver_info(prtlvl, STOP_REL_RES, iter, relres1, absres, factor);
-        
+
         // Check convergence
         if ( relres1 < tol ) break;
     }
-    
+
     if ( prtlvl > PRINT_NONE ) {
         ITS_FINAL(iter, MaxIt, relres1);
         get_time(&solve_end);
         solve_time = solve_end - solve_start;
         print_cputime("AMLI solve", solve_time);
     }
-    
+
     return iter;
 }
 
@@ -258,30 +258,30 @@ INT amg_solve_amli (AMG_data *mgl,
  */
 INT amg_solve_nl_amli(AMG_data *mgl,
                       AMG_param *param)
-{  
+{
     dCSRmat      *ptrA = &mgl[0].A;
     dvector      *b = &mgl[0].b, *x = &mgl[0].x, *r = &mgl[0].w;
-    
+
     const INT     MaxIt  = param->maxit;
     const SHORT   prtlvl = param->print_level;
     const REAL    tol    = param->tol;
     const REAL    sumb   = dvec_norm2(b); // L2norm(b)
-    
+
     // local variables
     REAL          solve_start, solve_end;
     REAL          relres1 = BIGREAL, absres0 = BIGREAL, absres, factor;
     INT           iter = 0;
-    
+
     get_time(&solve_start);
-    
+
     // Print iteration information if needed
     print_itsolver_info(prtlvl, STOP_REL_RES, iter, 1.0, sumb, 0.0);
-    
+
     while ( (++iter <= MaxIt) & (sumb > SMALLREAL) ) // MG solver here
     {
         // Call nonlinear AMLI-cycle
         nl_amli(mgl, param, 0, mgl[0].num_levels);
-        
+
         // Computer r = b-A*x
         dvec_cp(b, r);
         dcsr_aAxpy(-1.0, ptrA, x->val, r->val);
@@ -294,16 +294,16 @@ INT amg_solve_nl_amli(AMG_data *mgl,
 
         // output iteration information if needed
         print_itsolver_info(prtlvl, STOP_REL_RES, iter, relres1, absres, factor);
-        
+
         if ( relres1 < tol ) break; // early exit condition
     }
-    
+
     if ( prtlvl > PRINT_NONE ) {
         ITS_FINAL(iter, MaxIt, relres1);
         get_time(&solve_end);
         print_cputime("Nonlinear AMLI solve", solve_end - solve_start);
     }
-    
+
     return iter;
 }
 
@@ -327,13 +327,13 @@ INT mg_solve_blk(MG_blk_data *mgl,
               REAL* rho2)
 { 
     dvector      *b = &mgl[0].b, *x = &mgl[0].x, *r = &mgl[0].w;
-    
+
     const SHORT   prtlvl = param->print_level;
     const INT     MaxIt  = param->maxit;
     const REAL    tol    = param->tol;
     //const REAL    sumb   = dvec_norm2(b);
     const REAL    sumb   =1.0;// dvec_norm2(x);
-    
+
     // local variables
     REAL  solve_start, solve_end;
     REAL  relres1 = BIGREAL, absres0 = sumb, absres, factor;
@@ -359,7 +359,7 @@ INT mg_solve_blk(MG_blk_data *mgl,
     printf("-------------------------RESINIT: %e\n",res0);
 
     get_time(&solve_start);
-    
+
     // Print iteration information if needed
     print_itsolver_info(prtlvl, STOP_REL_RES, iter, 1.0, sumb, 0.0);
     
@@ -372,13 +372,13 @@ INT mg_solve_blk(MG_blk_data *mgl,
         // Form residual r = b - A*x
         dvec_cp(b, r);
         bdcsr_aAxpy(-1.0, &mgl[0].A, x->val, r->val);
-        
+
         // Compute norms of r and convergence factor
         absres  = dvec_norm2(r);
         relres1 = absres/sumb;
         factor  = absres/absres0;
         absres0 = absres;
-        
+
         // Print iteration information if needed
         //print_itsolver_info(prtlvl, STOP_REL_RES, iter, relres1, absres, factor);
         print_itsolver_info(prtlvl, STOP_REL_RES, iter, dvec_norm2(x), absres, factor);
@@ -414,14 +414,14 @@ INT mg_solve_blk(MG_blk_data *mgl,
     printf("|| %e ||\n",dvec_norm2(r));
     *rho2 = avgFac;
 
-    
+
     if ( prtlvl > PRINT_NONE ) {
         ITS_FINAL(iter, MaxIt, relres1);
         get_time(&solve_end);
         print_cputime("AMG solve",solve_end - solve_start);
     }
 
-    
+
     return iter;
 }
 /*---------------------------------*/

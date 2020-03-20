@@ -130,11 +130,12 @@ INT solve_pivot(INT dopivot, INT n, REAL *A, REAL *b, INT *p,REAL *piv)
 }
 /**************************************************************************/
 /*
- * \fn void lufull(INT n, REAL *deta, REAL *A,INT *p,REAL *piv)
+ * \fn SHORT lufull(INT n, REAL *deta, REAL *A,INT *p,REAL *piv)
  *
  * \brief LU decomposition of an (nxn) matrix A. on output returns the
  *        value of the determinant of A as well. Uses scaled partial
- *        pivoting.
+ *        pivoting. The return is non-zero (1 or 2) if a diagonal element
+ *        is very small.
  *
  * \param n    Number of rows and columns in A.
  * \param deta is the determinant of A
@@ -143,50 +144,62 @@ INT solve_pivot(INT dopivot, INT n, REAL *A, REAL *b, INT *p,REAL *piv)
  *                LU and we need to compute the determinant only;
  *
  */
-void lufull(INT dopivot, INT n, REAL *deta, REAL *A,INT *p,REAL *piv)
+SHORT lufull(INT dopivot, INT n, REAL *deta, REAL *A,INT *p,REAL *piv)
 {
-  INT nm1,i1,k1,pin,kswp,kp,i,j,k;
-  REAL det0,r,t,absaij;
-  if(dopivot){
-    for (i=0;i<n;i++){
-      p[i]=i;
-      piv[i] = fabs(A[i*n+0]);
-      for (j=1;j<n;j++){
-	absaij=fabs(A[i*n+j]);
-	if(absaij > piv[i])
-	  piv[i] = absaij;
-      }
-      piv[i]=1./piv[i]; //here we need error stop if too small
-    }
-    nm1 = n-1;
-    for (k = 0;k<nm1;k++){
-      r = fabs(A[p[k]*n+k])*piv[p[k]];
-      kp = k;
-      for (i=k;i<n;i++){
-	t = fabs(A[p[i]*n+k])*piv[p[i]];
-	if (t > r){r = t; kp = i;}
-      }
-      kswp = p[kp]; p[kp] = p[k]; p[k] = kswp;
-      k1 = k+1;
-      for (i = k1;i<n;i++){
-	pin=p[i]*n;
-	A[pin+k] = A[pin+k]/A[p[k]*n+k];
-	for(j = k1;j<n;j++){
-	  A[pin+j] = A[pin+j]-A[pin+k]*A[p[k]*n+j];
-	}
-      }
-    }
-  }
-  nm1=n-1;
-  det0=A[p[nm1]*n+nm1];
-  for (i = nm1;i>0;i--){
-    i1=i-1;
-    pin=p[i1]*n;
-    det0 *= A[pin+i1];
-  }
-  *deta=det0;
-  return;
-}
+   // return 0 if all is OK and returns 1 or 2 if there is a division by a very small number...<tol
+   INT nm1,i1,k1,pin,kswp,kp,i,j,k;
+   REAL det0,r,t,absaij,tol=1e-10;
+   if(dopivot){
+     for (i=0;i<n;i++){
+       p[i]=i;
+       piv[i] = fabs(A[i*n+0]);
+       for (j=1;j<n;j++){
+ 	       absaij=fabs(A[i*n+j]);
+ 	       if(absaij > piv[i]) piv[i] = absaij;
+       }
+       if(fabs(piv[i])<tol) {
+         return (SHORT )1;
+       }
+       piv[i]=1./piv[i]; //here we need error stop if too small
+ //      fprintf(stderr,"\n*** i=%i; pivot=%g\n",i,piv[i]);
+     }
+     nm1 = n-1;
+     for (k = 0;k<nm1;k++){
+       r = fabs(A[p[k]*n+k])*piv[p[k]];
+       kp = k;
+       for (i=k;i<n;i++){
+ 	t = fabs(A[p[i]*n+k])*piv[p[i]];
+ 	if (t > r){r = t; kp = i;}
+       }
+       kswp = p[kp]; p[kp] = p[k]; p[k] = kswp;
+       k1 = k+1;
+       for (i = k1;i<n;i++){
+ 	pin=p[i]*n;
+   if(fabs(A[p[k]*n+k])<tol) {
+     *deta=0e0;
+     //print_full_mat(n,n,A,"A");
+     //fprintf(stderr,"\n*** ERR: zero diagonal in lufull; pivot=%e\n",A[p[k]*n+k]);
+     return (SHORT )2;
+   }
+ 	A[pin+k] = A[pin+k]/A[p[k]*n+k];
+ 	for(j = k1;j<n;j++){
+ 	  A[pin+j] = A[pin+j]-A[pin+k]*A[p[k]*n+j];
+ 	}
+       }
+     }
+   }
+   nm1=n-1;
+   det0=A[p[nm1]*n+nm1];
+   for (i = nm1;i>0;i--){
+     i1=i-1;
+     pin=p[i1]*n;
+     det0 *= A[pin+i1];
+   }
+   *deta=det0;
+ //  print_full_mat(n,n,A,"A");
+ //  fprintf(stderr,"\n*** det=%e\n",*deta);
+   return (SHORT )0;
+ }
 /**************************************************************************/
 /*
  * \fn void invfull(INT n, REAL *Ainv, REAL *A, void *wrk)
@@ -238,8 +251,8 @@ void invfull(REAL *Ainv,INT n, REAL *A, void *wrk)
  * \param p is the number of columns in b and c
  * \param a is an m by n matrix
  * \param b is an n by p matrix
- * \param c is an m by p matrix. 
- * \param n is the number of columns in a and number of rows in b. 
+ * \param c is an m by p matrix.
+ * \param n is the number of columns in a and number of rows in b.
  *
  */
 void abybfull(const INT m, const INT p, REAL *c,	\
@@ -268,9 +281,9 @@ void abybfull(const INT m, const INT p, REAL *c,	\
 /*
  * \fn void abyvfull(const INT m, REAL *y,REAL *a, REAL *x, const INT n)
  *
- * \brief Computes y = a*x+y; where x and y are vectors and a is a martix. 
- *  
- * \param m is the number of rows in a and the number of elements in x. 
+ * \brief Computes y = a*x+y; where x and y are vectors and a is a martix.
+ *
+ * \param m is the number of rows in a and the number of elements in x.
  * \param a is an m by n matrix
  * \param x is an n by 1 vector
  * \param y is an m by 1 vector
@@ -295,11 +308,11 @@ void abyvfull(const INT m, REAL *y,REAL *a, REAL *x, const INT n)
 /*
  * \fn atbyvfull(const INT m, REAL *y,REAL *a, REAL *x, const INT n)
  *
- * \brief Computes y = transpose(a)*x+y; 
+ * \brief Computes y = transpose(a)*x+y;
  *
  * \param m is the number of rows in a (columns in transpose(a)).
- * \param a is an matrix m by n, 
- * \param x is an m by 1 vector, 
+ * \param a is an matrix m by n,
+ * \param x is an m by 1 vector,
  * \param y is an n by 1 vector.
  *
  */
