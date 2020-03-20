@@ -502,7 +502,7 @@ void ddense_write(const char *filename,
     // local variables
     const INT n = A->row, m = A->col;
     const INT nnz = n*m;
-    INT i, j;
+    INT i;
 
     FILE *fp = fopen(filename, "w");
 
