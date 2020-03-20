@@ -1631,7 +1631,6 @@ void smoother_block_elasticity( const INT lvl, MG_blk_data *bmgl, AMG_param *par
     INT n0;//, n1;
 
     n0 = bmgl[lvl].A.blocks[1]->row;
-    //n1 = bmgl[lvl].A.blocks[2]->row;
 
     // BSR
     dvector diagvec;

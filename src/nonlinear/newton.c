@@ -168,18 +168,16 @@ void update_sol_newton(newton *n_it)
  * \fn INT check_newton_convergence(newton *n_it)
  *
  * \brief Checks if Newton has converged:
- *        If tol_type = 1: Check if ||nonlinear residual (rhs)|| < tol
- *                      2: Check if ||update|| < tol
- *                      0: Check both
+ *        If tol_type = 1: Check if ||update||_L2 < tol
+ *                      2: Check if ||nonlinear residual (rhs)||_l2 < tol
+ *                      3: Check both 1 and 2 (either)
  *
  * \param n_it     Newton struct
  *
  */
 INT check_newton_convergence(newton *n_it)
 {
-  INT i;
-  INT ndof=n_it->sol->row;
-  REAL sum=0.0;
+
   INT newton_stop = 0;
   REAL tol = n_it->tol;
 
@@ -197,27 +195,15 @@ INT check_newton_convergence(newton *n_it)
 
   switch (n_it->tol_type)
   {
-  default: // Compute ||uk - u_{k-1}||
-    for(i=0;i<ndof;i++) {
-      sum += (n_it->sol->val[i] - n_it->sol_prev->val[i])*(n_it->sol->val[i] - n_it->sol_prev->val[i]);
-    }
-    sum = sqrt(sum);
-    printf("\n||uk-uk-1||=%25.16e\n",sum);
-    if(sum<tol || res_norm<tol) {
-      newton_stop=1;
-      printf("Convergence met after %d Newton Steps.\n",n_it->current_step);
-      printf("Final Nonlinear Residual = %25.16e\tLast Update Norm = %25.16e\t ||u_k - u_{k-1}||_l2 = %25.16e\n",res_norm,update_norm,sum);
-    }
-    break;
-  case 1:
-    if(res_norm<tol) {
+  default:
+    if(update_norm<tol) {
       newton_stop=1;
       printf("Convergence met after %d Newton Steps.\n",n_it->current_step);
       printf("Final Nonlinear Residual = %25.16e\tLast Update Norm = %25.16e\n",res_norm,update_norm);
     }
     break;
   case 2:
-    if(update_norm<tol) {
+    if(res_norm<tol) {
       newton_stop=1;
       printf("Convergence met after %d Newton Steps.\n",n_it->current_step);
       printf("Final Nonlinear Residual = %25.16e\tLast Update Norm = %25.16e\n",res_norm,update_norm);
@@ -240,18 +226,26 @@ INT check_newton_convergence(newton *n_it)
 /*!
  * \fn void get_residual_norm(newton *n_it,fespace* FE,mesh_struct* mesh, qcoordinates* cq)
  *
- * \brief Computes the norms of the nonlinear residual (rhs) and the update.
+ * \brief Computes the (little) l2 norm of the nonlinear residual (rhs).
  *
  * \param n_it     Newton struct
  * \param FE       FE space
  * \param mesh     Mesh struct
  * \param cq       Quadrature for computing norms
  *
- * \note Assumes non-block form
+ * \note This uses the little l2 norm, though it probably should be a dual space
+ *       norm for the entire block system instead.  One should avoid this as a
+ *       stopping tolerance check regardless.
  */
-void get_residual_norm(newton *n_it,fespace* FE,mesh_struct* mesh, qcoordinates* cq)
+void get_residual_norm(newton *n_it)
 {
-  n_it->res_norm = L2norm(n_it->rhs->val,FE,mesh,cq);
+  INT ndof = n_it->rhs->row;
+  INT i=0;
+  REAL resnorm = 0.0;
+  for(i=0;i<ndof;i++) {
+    resnorm += n_it->rhs->val[i]*n_it->rhs->val[i];
+  }
+  n_it->res_norm = sqrt(resnorm);
   return;
 }
 /******************************************************************************************************/
@@ -260,7 +254,7 @@ void get_residual_norm(newton *n_it,fespace* FE,mesh_struct* mesh, qcoordinates*
 /*!
  * \fn void get_update_norm(newton *n_it,fespace* FE,mesh_struct* mesh, qcoordinates* cq)
  *
- * \brief Computes the norms of the nonlinear residual (rhs) and the update.
+ * \brief Computes the L2 norm of the update.
  *
  * \param n_it     Newton struct
  * \param FE       FE space
@@ -275,42 +269,42 @@ void get_update_norm(newton *n_it,fespace* FE,mesh_struct* mesh, qcoordinates* c
   return;
 }
 /******************************************************************************************************/
-
+// OUTDATED
 /******************************************************************************************************/
-/*!
- * \fn void get_blockresidual_norm(newton *n_it,block_fespace* FE,mesh_struct* mesh, qcoordinates* cq)
- *
- * \brief Computes the norms of the nonlinear residual (rhs) and the update.
- *
- * \param n_it     Newton struct
- * \param FE       Block FE space
- * \param mesh     Mesh struct
- * \param cq       Quadrature for computing norms
- *
- * \note Assumes block form (and we store the total (combined) norm)
- */
-void get_blockresidual_norm(newton *n_it,block_fespace* FE,mesh_struct* mesh, qcoordinates* cq)
-{
-  REAL* res_norm = (REAL *) calloc(FE->nspaces,sizeof(REAL));
-  L2norm_block(res_norm,n_it->rhs->val,FE,mesh,cq);
-
-  REAL total_res_norm = 0;
-  INT i;
-  for(i=0;i<FE->nspaces;i++) {
-    total_res_norm += res_norm[i]*res_norm[i];
-  }
-  n_it->res_norm = sqrt(total_res_norm);
-
-  if(res_norm) free(res_norm);
-  return;
-}
+// /*!
+//  * \fn void get_blockresidual_norm(newton *n_it,block_fespace* FE,mesh_struct* mesh, qcoordinates* cq)
+//  *
+//  * \brief Computes the norms of the nonlinear residual (rhs) and the update.
+//  *
+//  * \param n_it     Newton struct
+//  * \param FE       Block FE space
+//  * \param mesh     Mesh struct
+//  * \param cq       Quadrature for computing norms
+//  *
+//  * \note Assumes block form (and we store the total (combined) norm)
+//  */
+// void get_blockresidual_norm(newton *n_it,block_fespace* FE,mesh_struct* mesh, qcoordinates* cq)
+// {
+//   REAL* res_norm = (REAL *) calloc(FE->nspaces,sizeof(REAL));
+//   L2norm_block(res_norm,n_it->rhs->val,FE,mesh,cq);
+//
+//   REAL total_res_norm = 0;
+//   INT i;
+//   for(i=0;i<FE->nspaces;i++) {
+//     total_res_norm += res_norm[i]*res_norm[i];
+//   }
+//   n_it->res_norm = sqrt(total_res_norm);
+//
+//   if(res_norm) free(res_norm);
+//   return;
+// }
 /******************************************************************************************************/
 
 /******************************************************************************************************/
 /*!
  * \fn void get_blockupdate_norm(newton *n_it,block_fespace* FE,mesh_struct* mesh, qcoordinates* cq)
  *
- * \brief Computes the norms of the nonlinear residual (rhs) and the update.
+ * \brief Computes the L2 norm the update.
  *
  * \param n_it     Newton struct
  * \param FE       Block FE space
