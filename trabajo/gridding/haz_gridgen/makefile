@@ -7,7 +7,7 @@ EXE = ch.ex
 # Machine Specific Compilers and Libraries
 CC = gcc
 CXX = g++
-CFLAGS += 
+CFLAGS +=
 FFLAGS += -fno-second-underscore
 
 ##################### no change should be needed below. ###########
@@ -20,24 +20,24 @@ INCLUDE = -I$(HAZDIR)/include
 
 LIBS =  -lhazmath -lm -lblas -llapack
 
-HEADERS = 
+HEADERS =
 
-HEADERS = 
+HEADERS =
 
 # Source and Object Files
-OBJS = convex_hull_n.o \
-	sort0.o
+OBJS =	convex_hull_n.o \
+				visible_faces.o	\
+				sort0.o
 
 .PHONY:  all
 
-all: $(EXE) 
+all: $(EXE)
 
-$(EXE):	$(OBJS)	
+$(EXE):	$(OBJS)
 	+$(CC) $(HAZLIB) $(OBJS) -o $@  $(LIBS)
 
 %.o:	%.c
 	+$(CC) $(INCLUDE) $(CFLAGS) -o $@ -c $<
 
 clean:
-	+rm -rf $(EXE) $(OBJS) *.mod output/* ./*.dSYM
-
+	+rm -rf $(EXE) *.o *.mod output/* ./*.dSYM
