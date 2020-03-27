@@ -528,6 +528,7 @@ void build_bubble_R (dCSRmat *R,
         felmList[6] = felm+nf1d*2+2;  // Upper
         felmList[7] = felm+nf1d*2+3;  // Upper
         for(ii=0;ii<8;ii++){
+          if(ii==1 || ii==6) continue;
           felm = felmList[ii];
           if(ii==4) celm = celm+1; // Switch to upper triangle
           // Get Coarse DOF
@@ -766,7 +767,233 @@ INT gmg_setup_RT0(mesh_struct* fine_level_mesh)
 
 }
 
+/**
+ * \fn void gmg_div_free_interp (dCSRmat *R,
+ *                               dCSRmat *Rblx,
+ *                               dCSRmat *Rbly,
+ *                               mesh_struct *fmesh,
+ *                               mesh_struct *cmesh,
+ *                               INT     nf1d,
+ *                               INT     nc1d)
+ * \brief Build tentative P for RT0 elements
+ *
+ * \param tentp              Pointer to the prolongation operators
+ * \param fmesh              Fine mesh_struct
+ * \param cmesh              Coarse mesh_struct
+ * \param nf1d               Number of fine elements in 1d (one less than the number of vertices in 1d)
+ * \param nc1d               Number of coarse elements in 1d (one less than the number of vertices in 1d)
+ *
+ * \author Peter Ohm
+ * \date   10/12/2018
+ *
+ * \note Modified by Peter Ohm on 10/12/2018
+ *
+ */
+void gmg_div_free_interp ( block_dCSRmat *P,
+                               mesh_struct *fmesh,
+                               mesh_struct *cmesh,
+                               REAL *sol,
+                               REAL *rhs)
+{
+    INT dim = fmesh->dim;
+    INT ci, cj, i, ii;
+    INT fv;
+    INT felm, celm, fface;
+    INT vx, vy;
+    INT felmList[8];
+    REAL fnx, fny;
 
+    INT nf1d = sqrt(fmesh->nv)-1;
+    INT nc1d = (nf1d)/2;
+
+    INT* v_on_elm = (INT*)calloc(cmesh->v_per_elm,sizeof(INT));
+    INT* f_on_elm = (INT*)calloc(cmesh->f_per_elm,sizeof(INT));
+    INT* v_on_elmf = (INT*)calloc(fmesh->v_per_elm,sizeof(INT));
+    INT* f_on_elmf = (INT*)calloc(fmesh->f_per_elm,sizeof(INT));
+    INT* v_on_f   = (INT*)calloc(dim,sizeof(INT));
+    INT* mf_on_elm = (INT*)calloc(2*cmesh->f_per_elm,sizeof(INT));
+
+    INT mt;
+    REAL valMid;
+    INT notMid;
+    INT pm;
+    INT indexStore = -1;
+    INT indexFace = 1;
+
+    // This loops over the coarse and fine elements. Don't question it.
+    for(cj = 0; cj<nc1d; cj++){
+      for(ci = 0; ci<nc1d*2; ci=ci+2){
+        // Lower Triangle and upper triangle box
+        celm = ci + cj*nc1d*2;
+        felm = ci*2 + cj*nf1d*4;
+        // Make list of all fine elms to loop over
+        felmList[0] = felm;         // Lower
+        felmList[1] = felm+1;       // Lower
+        felmList[2] = felm+2;       // Lower
+        felmList[3] = felm+nf1d*2;    // Lower
+        felmList[4] = felm+3;       // Upper
+        felmList[5] = felm+nf1d*2+1;  // Upper
+        felmList[6] = felm+nf1d*2+2;  // Upper
+        felmList[7] = felm+nf1d*2+3;  // Upper
+        // Find "unfree" dofs for div free.
+        get_incidence_row( felmList[1], fmesh->el_f, mf_on_elm);
+        get_incidence_row( felmList[6], fmesh->el_f, mf_on_elm+3);
+
+        for(ii=0;ii<8;ii++){
+          if(ii==1 || ii==6) continue; // Skip Middle triangle
+          if(ii==4) celm = celm+1; // Switch to upper triangle
+          felm = felmList[ii];
+          // Get Coarse DOF
+          get_incidence_row(celm,cmesh->el_v,v_on_elm);
+          get_incidence_row(celm,cmesh->el_f,f_on_elm);
+          // Get Fine DOF
+          get_incidence_row(felm,fmesh->el_v,v_on_elmf);
+          get_incidence_row(felm,fmesh->el_f,f_on_elmf);
+
+          // Zero out values
+          valMid = 0;
+
+          //printf("F on elm[%d]:",felm);
+          // Loop over each face on elm and calculate flux.
+          for( i = 0; i<3; i++ ){
+              fface = f_on_elmf[i];
+              fnx = ABS(fmesh->f_norm[fface*dim]);
+              fny = ABS(fmesh->f_norm[fface*dim+1]);
+              notMid = 1;
+              for( mt=0; mt<6; mt++ ){ if(fface == mf_on_elm[mt]){ notMid = 0;} } //Is fface on middle fine tri
+              if( ii < 4 ){
+                  if( fnx + fny > 1.00001 ){
+                      pm = -1; // diagonal edge, normal out
+                  } else {
+                      pm = 1; // vertical or horizontal edge, normal in
+                  }
+              } else if ( ii >= 4 ){
+                  if( fnx + fny > 1.00001 ){
+                      pm = 1; // diagonal edge, normal in
+                  } else {
+                      pm = -1; // vertical or horizontal edge, normal out
+                  }
+              }
+              ///////////
+              // Integrate Linear Part for Flux on Edges.
+              get_incidence_row(fface,fmesh->f_v,v_on_f);
+              for( fv=0; fv<2; fv++){
+                vx = v_on_f[fv] + fmesh->nface;
+                vy = v_on_f[fv] + fmesh->nface + fmesh->nv;
+                if( fnx > 0.0001 ){
+                  valMid += pm * sol[vx] * 0.5 * fnx*fmesh->f_area[fface];
+                }
+                if( fny > 0.0001){
+                  valMid += pm * sol[vy] * 0.5 * fny*fmesh->f_area[fface];
+                }
+              }
+              // Get Flux on Edge for bubble
+              if(notMid){////////////////////////////////////////////////////////////////////////////////////////////////////
+                valMid += pm * sol[ fface ] * (2.0/3.0)*fmesh->f_area[fface];
+              } else { // If is on mid tri (and is the dof we want to fix)
+                if(indexStore > -1){ printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");}
+                indexStore = fface;
+                indexFace = pm;
+              }
+          }
+
+          sol[ indexStore ] = - valMid/(indexFace * fmesh->f_area[indexStore] *(2.0/3.0) );
+
+          indexStore = -1;
+        }//ii (felm)
+      }//ci
+    }//cj
+    //FILE* fid;
+    //fid = fopen("P_matrix.dat","w");
+    //bdcsr_print_matlab(fid,P);
+}
+
+/**
+ * \fn void gmg_div_free_R (dCSRmat *R,
+ *                               dCSRmat *Rblx,
+ *                               dCSRmat *Rbly,
+ *                               mesh_struct *fmesh,
+ *                               mesh_struct *cmesh,
+ *                               INT     nf1d,
+ *                               INT     nc1d)
+ * \brief Build tentative P for RT0 elements
+ *
+ * \param tentp              Pointer to the prolongation operators
+ * \param fmesh              Fine mesh_struct
+ * \param cmesh              Coarse mesh_struct
+ * \param nf1d               Number of fine elements in 1d (one less than the number of vertices in 1d)
+ * \param nc1d               Number of coarse elements in 1d (one less than the number of vertices in 1d)
+ *
+ * \author Peter Ohm
+ * \date   10/12/2018
+ *
+ * \note Modified by Peter Ohm on 10/12/2018
+ *
+ */
+void gmg_div_free_R ( dCSRmat *R,
+                      mesh_struct *fmesh,
+                      mesh_struct *cmesh)
+{
+  INT i,j;
+  INT rowa, rowb;
+  INT nnzCount = 0;
+  INT cnt = 0;
+  // Rename for readablility
+  REAL *val = R->val;
+  INT *IA   = R->IA;
+  INT *JA   = R->JA;
+  REAL Rrow = R->row;
+  REAL Rcol = R->col;
+
+  // Temp Vec
+  dvector temp = dvec_create(Rcol);
+
+
+  // Counting Loop for allocation
+  for( i=0; i<Rrow; i++){
+    dvec_set(temp.row, &temp, 0.0);
+    rowa = IA[i]; rowb = IA[i+1];
+    for( j=rowa; j<rowb; j++){
+      temp.val[JA[j]] = val[j];
+    }
+    gmg_div_free_interp ( NULL, fmesh, cmesh, temp.val, NULL);
+    for( j=0; j<temp.row; j++ ){
+      if( ABS( temp.val[j] ) > 1e-12 )
+        nnzCount++;
+    }
+  }
+
+  INT  *IB = (INT*)calloc(Rrow+1,sizeof(INT));
+  INT  *JB = (INT*)calloc(nnzCount,sizeof(INT));
+  REAL *valB = (REAL*)calloc(nnzCount,sizeof(REAL));
+
+  IB[0] = IA[0];
+  // Fill new R
+  for( i=0; i<Rrow; i++){
+    dvec_set(temp.row, &temp, 0.0);
+    rowa = IA[i]; rowb = IA[i+1];
+    for( j=rowa; j<rowb; j++){
+      temp.val[JA[j]] = val[j];
+    }
+    gmg_div_free_interp ( NULL, fmesh, cmesh, temp.val, NULL);
+    for( j=0; j<temp.row; j++){
+      if( ABS( temp.val[j] ) > 1e-12 ){
+        valB[cnt] = temp.val[j];
+        JB[cnt] = j;
+        cnt++;
+      }
+    }
+    IB[i+1] = cnt;
+  }
+
+  free( R->val );
+  R->val = valB;
+  free( R->IA );
+  R->IA = IB;
+  free( R->JA );
+  R->JA = JB;
+  return;
+}
 
 /***********************************************************************************************/
 /**
@@ -1029,6 +1256,7 @@ SHORT gmg_blk_setup_generic(MG_blk_data *mgl,
   const SHORT cycle_type = param->cycle_type;
   const SHORT csolver    = param->coarse_solver;
   SHORT       max_levels = param->max_levels;
+  const INT   use_div_free = 1;
 
   INT   lvl     = 0;
   INT   status  = SUCCESS;
@@ -1122,12 +1350,21 @@ SHORT gmg_blk_setup_generic(MG_blk_data *mgl,
           set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[fe_blk], mgl[lvl+1].fine_level_mesh, 1, 10); // Uy
           fe_blk += 1;
           dcsr_free(&Rmerge);
+          bdcsr_free(&tempRblk);
           break;
       }// switch gmg_type
     }// for i<brow
     printf("Built R for lvl=%d...\n",lvl);
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+    if( use_div_free == 1 ){
+      gmg_div_free_R (mgl[lvl].R.blocks[0], mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh);
+    }
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
     /*-- Form Prolongation --*/
+    mgl[lvl].R.blocks[1] = NULL;
+    mgl[lvl].R.blocks[2] = NULL;
     for(i=0; i<brow; i++){
       dcsr_trans(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].P.blocks[i+i*brow]);
     }
@@ -1304,7 +1541,6 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
 
           if(mgl[0].periodic_BC){
             set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[4], mgl[lvl+1].fine_level_mesh, -1,-1); // P
-//            mgl[lvl+1].FE->var_spaces[4]->dirichlet[0] = 1;
           } else {
             set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[4], mgl[lvl+1].fine_level_mesh, -1,-1); // P
           }
@@ -1359,20 +1595,17 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
           printf("****************************************************************************************************\n\n");
           if( mgl[0].periodic_BC ){
             set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[0], mgl[lvl+1].fine_level_mesh, -1,-1); //bbl
-//            mgl[lvl+1].FE->var_spaces[0]->dirichlet[3] = 1;
 
             nc1d = sqrt(mgl[lvl+1].fine_level_mesh->nv);
             set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[1], mgl[lvl+1].fine_level_mesh, -1,-1); // Ux
-//            mgl[lvl+1].FE->var_spaces[1]->dirichlet[nc1d+1] = 1;
             set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[2], mgl[lvl+1].fine_level_mesh, -1,-1); // Uy
-//            mgl[lvl+1].FE->var_spaces[2]->dirichlet[nc1d+1] = 1;
           } else {
-            //set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[0], mgl[lvl+1].fine_level_mesh, 1, 5); //bbl
-            //set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[1], mgl[lvl+1].fine_level_mesh, 4, 5); // Ux
-            //set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[2], mgl[lvl+1].fine_level_mesh, 1, 4); // Uy
-            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[0], mgl[lvl+1].fine_level_mesh, 1, 10); //bbl
-            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[1], mgl[lvl+1].fine_level_mesh, 1, 10); // Ux
-            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[2], mgl[lvl+1].fine_level_mesh, 1, 10); // Uy
+            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[0], mgl[lvl+1].fine_level_mesh, 1, 6); //bbl
+            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[1], mgl[lvl+1].fine_level_mesh, 4, 6); // Ux
+            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[2], mgl[lvl+1].fine_level_mesh, 1, 5); // Uy
+            //set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[0], mgl[lvl+1].fine_level_mesh, 1, 10); //bbl
+            //set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[1], mgl[lvl+1].fine_level_mesh, 1, 10); // Ux
+            //set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[2], mgl[lvl+1].fine_level_mesh, 1, 10); // Uy
           }
 
           break;
@@ -1383,10 +1616,9 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
 
           if( mgl[0].periodic_BC ){
             set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[3], mgl[lvl+1].fine_level_mesh, -1,-1); // w
-//            mgl[lvl+1].FE->var_spaces[3]->dirichlet[3] = 1;
           } else {
-            //set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[3], mgl[lvl+1].fine_level_mesh, 1, 5); // w
-            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[3], mgl[lvl+1].fine_level_mesh, 1, 10); // w
+            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[3], mgl[lvl+1].fine_level_mesh, 1, 6); // w
+            //set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[3], mgl[lvl+1].fine_level_mesh, 1, 10); // w
           }
 
           break;
@@ -1531,8 +1763,9 @@ void smoother_setup_biot_monolithic( MG_blk_data *bmgl, AMG_param *param)
   swzparam.Schwarz_blksolver = 32;
   bmgl[0].Schwarz.blk_solver = 32;
 
-  dCSRmat Amerge = bdcsr_2_dcsr(&bmgl[0].A);
-  bmgl[0].Schwarz.A = dcsr_sympat( &Amerge );
+  //dCSRmat Amerge = bdcsr_2_dcsr(bmgl[0].As);
+  //bmgl[0].Schwarz.A = dcsr_sympat( &Amerge );
+  bmgl[0].Schwarz.A = dcsr_sympat( bmgl[0].A.blocks[0]);
   Schwarz_setup_geometric( &bmgl[0].Schwarz, &swzparam, bmgl[0].fine_level_mesh);
 }
 
@@ -1640,6 +1873,7 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
         if( param->Schwarz_on_blk[blk] == 1 ) {
           printf("\tCalling Schwarz setup on block: %d\n",blk);
           bmgl[0].mgl[blk][lvl].Schwarz.A = dcsr_sympat( &bmgl[0].mgl[blk][lvl].A );
+          //bmgl[0].mgl[blk][lvl].Schwarz.A = dcsr_sympat( bmgl[0].As->blocks[0] );
           //bmgl[0].mgl[blk][lvl].Schwarz.A = dcsr_sympat( &bmgl[0].A_diag[0] );
           //bmgl[0].mgl[blk][lvl].Schwarz.A = dcsr_sympat( bmgl[0].A.blocks[0] );
           Schwarz_setup_geometric( &bmgl[0].mgl[blk][lvl].Schwarz, &swzparam, bmgl[lvl].fine_level_mesh);
