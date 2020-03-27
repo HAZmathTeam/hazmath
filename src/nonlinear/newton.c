@@ -183,6 +183,8 @@ INT check_newton_convergence(newton *n_it)
 
   // Get norms
   REAL res_norm = n_it->res_norm;
+  INT res_length = n_it->rhs->row;
+  REAL res_norm_scaled = res_norm / sqrt(res_length);
   REAL update_norm = n_it->update_norm;
 
   if(n_it->current_step>=n_it->max_steps) {
@@ -203,14 +205,14 @@ INT check_newton_convergence(newton *n_it)
     }
     break;
   case 2:
-    if(res_norm<tol) {
+    if(res_norm_scaled<tol) {
       newton_stop=1;
       printf("Convergence met after %d Newton Steps.\n",n_it->current_step);
       printf("Final Nonlinear Residual = %25.16e\tLast Update Norm = %25.16e\n",res_norm,update_norm);
     }
     break;
   case 3:
-    if(res_norm<tol || update_norm<tol) {
+    if(res_norm_scaled<tol || update_norm<tol) {
       newton_stop=1;
       printf("Convergence met after %d Newton Steps.\n",n_it->current_step);
       printf("Final Nonlinear Residual = %25.16e\tLast Update Norm = %25.16e\n",res_norm,update_norm);
@@ -239,10 +241,10 @@ INT check_newton_convergence(newton *n_it)
  */
 void get_residual_norm(newton *n_it)
 {
-  INT ndof = n_it->rhs->row;
+  INT res_length = n_it->rhs->row;
   INT i=0;
   REAL resnorm = 0.0;
-  for(i=0;i<ndof;i++) {
+  for(i=0;i<res_length;i++) {
     resnorm += n_it->rhs->val[i]*n_it->rhs->val[i];
   }
   n_it->res_norm = sqrt(resnorm);
