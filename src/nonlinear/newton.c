@@ -169,11 +169,15 @@ void update_sol_newton(newton *n_it)
  *
  * \brief Checks if Newton has converged:
  *        If tol_type = 1: Check if ||update||_L2 < tol
- *                      2: Check if ||nonlinear residual (rhs)||_l2 < tol
+ *                      2: Check if (||nonlinear residual (rhs)||_l2) / sqrt(length(rhs)) < tol
  *                      3: Check both 1 and 2 (either)
  *
  * \param n_it     Newton struct
  *
+ * \note If using the residual check, note that we compute the little l2 norms
+ *       of the residual but then scale by the square root of the length of the
+ *       residual vector, so that we are equivalent to the l_infinity norm of rhs
+ *       and to scale for larger problems.
  */
 INT check_newton_convergence(newton *n_it)
 {
@@ -182,14 +186,19 @@ INT check_newton_convergence(newton *n_it)
   REAL tol = n_it->tol;
 
   // Get norms
-  REAL res_norm = n_it->res_norm;
-  REAL update_norm = n_it->update_norm;
+  REAL res_norm = n_it->res_norm; // l2 norm of residual
+  INT res_length = n_it->rhs->row;
+  REAL res_norm_scaled = res_norm / sqrt(res_length); // scaled norm of residual
+  REAL update_norm = n_it->update_norm; // L2 norm of update
 
   if(n_it->current_step>=n_it->max_steps) {
     newton_stop=1;
+    printf("**********************************************************************************\n");
     printf("The Newton iterations have reached the max number of iterations (%d Newton Steps) \n",n_it->current_step);
     printf("Convergence may not be reached.\n");
-    printf("Final Nonlinear Residual = %25.16e\tLast Update Norm = %25.16e\n",res_norm,update_norm);
+    printf("\nl2-norm of Nonlinear Residual = %25.16e\n",res_norm);
+    printf("               Scaled Version = %25.16e\n\n",res_norm_scaled);
+    printf("L2 Norm of Update             = %25.16e\n\n",update_norm);
     return newton_stop;
   }
 
@@ -198,22 +207,31 @@ INT check_newton_convergence(newton *n_it)
   default:
     if(update_norm<tol) {
       newton_stop=1;
+      printf("**********************************************************************************\n");
       printf("Convergence met after %d Newton Steps.\n",n_it->current_step);
-      printf("Final Nonlinear Residual = %25.16e\tLast Update Norm = %25.16e\n",res_norm,update_norm);
+      printf("\nl2-norm of Final Nonlinear Residual = %25.16e\n",res_norm);
+      printf("                     Scaled Version = %25.16e\n\n",res_norm_scaled);
+      printf("Final L2 Norm of Update             = %25.16e\n\n",update_norm);
     }
     break;
   case 2:
-    if(res_norm<tol) {
+    if(res_norm_scaled<tol) {
       newton_stop=1;
+      printf("**********************************************************************************\n");
       printf("Convergence met after %d Newton Steps.\n",n_it->current_step);
-      printf("Final Nonlinear Residual = %25.16e\tLast Update Norm = %25.16e\n",res_norm,update_norm);
+      printf("\nl2-norm of Final Nonlinear Residual = %25.16e\n",res_norm);
+      printf("                     Scaled Version = %25.16e\n\n",res_norm_scaled);
+      printf("Final L2 Norm of Update             = %25.16e\n\n",update_norm);
     }
     break;
   case 3:
-    if(res_norm<tol || update_norm<tol) {
+    if(res_norm_scaled<tol || update_norm<tol) {
       newton_stop=1;
+      printf("**********************************************************************************\n");
       printf("Convergence met after %d Newton Steps.\n",n_it->current_step);
-      printf("Final Nonlinear Residual = %25.16e\tLast Update Norm = %25.16e\n",res_norm,update_norm);
+      printf("\nl2-norm of Final Nonlinear Residual = %25.16e\n",res_norm);
+      printf("                     Scaled Version = %25.16e\n\n",res_norm_scaled);
+      printf("Final L2 Norm of Update             = %25.16e\n\n",update_norm);
     }
     break;
   }
@@ -239,10 +257,10 @@ INT check_newton_convergence(newton *n_it)
  */
 void get_residual_norm(newton *n_it)
 {
-  INT ndof = n_it->rhs->row;
+  INT res_length = n_it->rhs->row;
   INT i=0;
   REAL resnorm = 0.0;
-  for(i=0;i<ndof;i++) {
+  for(i=0;i<res_length;i++) {
     resnorm += n_it->rhs->val[i]*n_it->rhs->val[i];
   }
   n_it->res_norm = sqrt(resnorm);
