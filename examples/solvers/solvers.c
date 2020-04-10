@@ -61,18 +61,20 @@ int main (int argc, char* argv[])
     fprintf(stdout,"\n%s: reading file \"%s\" unitl EOF\n", __FUNCTION__,fnamea);
     fp = fopen(fnamea,"r");
     if (!fp) check_error(ERROR_OPEN_FILE, __FUNCTION__);
+    if(fnamea) free(fnamea);
     dcoo_read_eof_dcsr(fp,&A,NULL);
     fclose(fp);
     fprintf(stdout,"\n%s: reading file \"%s\" unitl EOF\n", __FUNCTION__,fnameb);
     fp = fopen(fnameb,"r");
     if (!fp) check_error(ERROR_OPEN_FILE, __FUNCTION__);
+    if(fnameb) free(fnameb);
     dvector_read_eof(fp, &b);
   } else {
     dcoo_read_dcsr(fnamea, &A);
     dvector_read(fnameb, &b);
+    if(fnamea) free(fnamea);
+    if(fnameb) free(fnameb);
   }
-  if(fnamea) free(fnamea);
-  if(fnameb) free(fnameb);
   /************************************************************/
   /*************** ACTION *************************************/
   /* set initial guess */
