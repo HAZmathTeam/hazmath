@@ -7,10 +7,10 @@
  *
  */
 #include "hazmath.h"
-void visible(INT root, INT node, iCSRmat *stos, \
-                iCSRmat *fv, SHORT *maskf, \
-                INT dim, REAL fact,     \
-                REAL *x, REAL **xmass, REAL **sn, void *wrk);
+void visible(INT dim, REAL factorial,     \
+             INT root, INT node, iCSRmat *stos, \
+             iCSRmat *fv, SHORT *maskf, \
+             REAL *x, REAL **xmass, REAL **sn, void *wrk);
 /************************************************************/
 void lexsort(REAL *x, INT nr, INT nc, INT *p, INT *invp);
 /*===============================================*/
@@ -108,12 +108,12 @@ REAL *massc(INT n, INT nv,REAL *x,INT *svi)
   return xmass;
 }
 /************************************************************/
-static unsigned int ridges(INT n,INT pos,INT *sv1,INT *sv2,INT *stosloc)
+static SHORT sync_nbr(INT n,INT pos,INT *sv1,INT *sv2,INT *stosloc)
 {
   //from neighboring simplices finds the vertices opposite to the shared face
   // and places the neighboring simplices at this position.
-  unsigned int fnd;
-  unsigned int nf=0;
+  SHORT fnd;
+  SHORT nf=0;
   INT i1,k1=-10;
   INT i,j,swp;
   for (i=0;i<n;i++){
@@ -217,7 +217,7 @@ n-dimensional simplicial grid so it is also used here to construct
   return;
 }
 /**********************************************************************/
-SHORT area_face0(INT dim, REAL fact, REAL *xf, REAL *sn,	\
+SHORT area_face0(INT dim, REAL factorial, REAL *xf, REAL *sn,	\
  	       REAL *areas,REAL *volt,			\
  	       void *wrk)
 {
@@ -247,7 +247,7 @@ SHORT area_face0(INT dim, REAL fact, REAL *xf, REAL *sn,	\
     volt[0]=0.;
     return 1; // this is a degenerate
   } else
-    volt[0]=fabs(volt[0])/fact;
+    volt[0]=fabs(volt[0])/factorial;
   memset(sn,0,dim1*dim*sizeof(REAL));
   for (j = 1; j<dim1;j++){
     j1=j-1;
@@ -276,7 +276,7 @@ SHORT area_face0(INT dim, REAL fact, REAL *xf, REAL *sn,	\
   return 0;
 }
 /******************************************************************/
-void init_s(INT dim, REAL fact, INT nv,REAL *x, INT *nodes, REAL **snsn, \
+void init_s(INT dim, REAL factorial, INT nv,REAL *x, INT *nodes, REAL **snsn, \
             INT *perm, INT *invp, SHORT *mask, void *wrk)
 {
   // chose the first dim nodes and then the n+1 so that t he resulting simplex has the largest volume
@@ -293,7 +293,7 @@ void init_s(INT dim, REAL fact, INT nv,REAL *x, INT *nodes, REAL **snsn, \
       i=nodes[j];
       memcpy((xf+j*dim),(x+i*dim),dim*sizeof(REAL));
   }
-  SHORT iz=area_face0(dim,fact,xf,snloc,areas,&vmax,wrk);
+  SHORT iz=area_face0(dim,factorial,xf,snloc,areas,&vmax,wrk);
   for(j=0;j<dim1;j++)
     memcpy(snsn[j],(snloc+j*dim),dim*sizeof(REAL));
 //  fprintf(stdout,"\nvmax=%g",vmax);
@@ -303,12 +303,8 @@ void init_s(INT dim, REAL fact, INT nv,REAL *x, INT *nodes, REAL **snsn, \
   while(i<nv){
     k=perm[i];
     memcpy(xf,(x+k*dim),dim*sizeof(REAL));
-//    print_full_mat(dim1,dim,xf,"xf");
     nodes[0]=k;
-    area_face0(dim,fact,xf,snloc,areas,&vols,wrk);
-    // fprintf(stdout,"\nvmax=%g",vols);
-    // print_full_mat_int(1,dim1,nodes,"nodes");
-    // print_full_mat(1,dim1,areas,"areas");
+    area_face0(dim,factorial,xf,snloc,areas,&vols,wrk);
     if(fabs(vols)>fabs(vmax)){
       for(j=0;j<dim1;j++)
         memcpy(snsn[j],(snloc+j*dim),dim*sizeof(REAL));
@@ -351,8 +347,6 @@ iCSRmat *find_nbr0(INT ns,INT nv,INT n,iCSRmat *sv)
 //  lpri(stdout,vs,"vs");
   icsr_mxm(sv,vs,stos);
   icsr_free(vs);
-//  lpri(stdout,stos,"stos1");
-// remove all entries not equal to n;
   ibeg=stos->IA[0];
   kn1=ibeg;
   for (i = 0; i < ns; i++){
@@ -366,25 +360,35 @@ iCSRmat *find_nbr0(INT ns,INT nv,INT n,iCSRmat *sv)
     }
     ibeg=stos->IA[i+1];
     stos->IA[i+1]=kn1;
+    if(kn1 < (stos->IA[i] + n)) {
+      // add -1 for no nbr or bndry. in general we should never come here.
+      for(j=kn1;j<(stos->IA[i]+n);j++) {
+        stos->val[j]=stos->JA[j]=-1;
+      }
+      stos->IA[i+1]=stos->IA[i]+n1;
+      kn1=stos->IA[i+1];
+    }
   }
   stos->nnz=stos->IA[ns];
   if(vs) icsr_free(vs);
   stos->JA=realloc(stos->JA,stos->nnz*sizeof(INT));
   stos->val=realloc(stos->val,stos->nnz*sizeof(INT));
-  // Now we order each entry to correspond to th sv array.
+  lpri(stdout,stos,"stos1");
+  // Now we order (put in sync) each row in stos to correspond to the sv array.
   for (i = 0; i < ns; i++){
     ibeg=stos->IA[i];
     iend=stos->IA[i+1];
     stosi=stos->JA+ibeg; svi=sv->JA+sv->IA[i];
     for(j = ibeg; j < iend; j++){
       k=stos->JA[j];
+      if(k<0) continue;
       svk=sv->JA+sv->IA[k];
       kn1=j-ibeg;
-      ridges(n1,kn1,svi,svk,stosi);
+      sync_nbr(n1,kn1,svi,svk,stosi);
     }
   }
-  lpri(stdout,sv,"sv");
-  lpri(stdout,stos,"stos2");
+//  lpri(stdout,sv,"sv");
+//  lpri(stdout,stos,"stos2");
   return stos;
 }
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
@@ -447,49 +451,47 @@ int main(void)
   // to keep which vertices are processed
   SHORT *mask=(SHORT *)calloc(nv,sizeof(SHORT));
   memset(mask,0,nv*sizeof(SHORT));
-  // initial simplex
-  REAL fact=1.;
-  for (j=2;j<dim1;j++) fact *= ((REAL )j);
-  // work space
+  // compute dim-factorial.
+  long double fa=1.;
+  for (j=2;j<dim1;j++) fa *= ((long double )j);
+  REAL factorial=(REAL )fa;
   //  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
   INT nlength=4*dim1*dim*sizeof(REAL)+2*dim*sizeof(REAL)+dim*sizeof(INT);
   void *wrk=(void *)calloc(nlength,sizeof(char));
-  // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-  init_s(dim,fact,nv,x, nodes,snsn,p,invp,mask,wrk);
-  // to keep face2vertex map
-  SHORT *maskf=(SHORT *)calloc(nfaces,sizeof(SHORT));
-  memset(maskf,0,nv*sizeof(SHORT));
+  //  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  // initial simplex and array of normal vectors to its faces
+  // creates the array of normal vectors.
+  init_s(dim,factorial,nv,x, nodes,snsn,p,invp,mask,wrk);
   // to keep face2vertex map
   iCSRmat *fv=(iCSRmat *)malloc(sizeof(iCSRmat));
   *fv=icsr_create(nfaces,nv,nfaces*dim);
-  // initialize face vertex map.
+  // initialize face->vertex incidence matrix.
   INT iptr=0;
   fv->IA[0]=iptr;
   for(j=0;j<dim1;j++){
-      for (i=0;i<dim1;i++){
-        if(i==j) continue;
-        fv->JA[iptr]=nodes[i];
-        mask[nodes[i]]=1;
-        iptr++;
-      }
-      fv->IA[j+1]=iptr;
+    for (i=0;i<dim1;i++){
+      if(i==j) continue;
+      fv->JA[iptr]=nodes[i];
+      mask[nodes[i]]=1;
+      iptr++;
     }
-    for(j=0;j<fv->IA[nfaces];j++){
-      fv->val[j]=1;
-    }
-    //    lpri(stdout,fv);
-    // matrix to hold for each point one face to which this point is in the outside set.
+    fv->IA[j+1]=iptr;
+  }
+  for(j=0;j<fv->IA[nfaces];j++) fv->val[j]=1;
+  // matrix: neighboring faces (sharing a ridge)
   iCSRmat *stos=(iCSRmat *)find_nbr0(nfaces,nv,dim_m1,fv);
-  // to store all mass centers.
+  // store all mass centers.
   REAL **xmass=(REAL **)calloc(nfaces,sizeof(REAL *));
   INT ibeg,npf;
+  // compute the mass centers of all faces.
   for(j=0;j<nfaces;j++){
     ibeg=fv->IA[j];
     npf=fv->IA[j+1]-ibeg;
     xmass[j]=massc(dim,npf,x,(fv->JA+ibeg));
   }
   //  print_full_mat(nfaces,dim,xmass,"mass");
-  // matrix: points,faces distances; every point is assigned a face.
+  // matrix: for each point one nonzero=face to which this point is in the outside set.
+  // points,faces-distances; every point is assigned a face.
   dCSRmat *p2f=malloc(1*sizeof(dCSRmat));
   INT nnzp2f=nv-dim1;
   *p2f=dcsr_create(nv,nfaces,nnzp2f);
@@ -523,29 +525,39 @@ int main(void)
     }
     p2f->IA[i+1]=iptr;
   }
-  INT kbegin,kend,q,iq,nbr,iqmax=2*dim1; // some number for neighbors...
-  INT *vset=calloc(iqmax,sizeof(INT));
-  lpr(stdout,p2f,"p2f");
+  //  lpr(stdout,p2f,"p2f");
   dCSRmat *f2p=malloc(1*sizeof(dCSRmat));
+  //  transpose to find the outside point set to every face.
   j0=dcsr_trans(p2f,f2p);
-  lpr(stdout,f2p,"f2p");
-  // main loop around the faces.
+  //  lpr(stdout,f2p,"f2p");
+  // now we have the main loop around the faces.
+  INT kbegin,kend,q,iq,nbr,iqmax; // some number for neighbors...
+  // which faces to consider
+  SHORT *maskf=(SHORT *)calloc(nfaces,sizeof(SHORT));
+  memset(maskf,0,nfaces*sizeof(SHORT));
+  // visible set
+  iqmax=2*dim1;
+  lpri(stdout,stos,"stos");
   i=0;
   while(1){
+    if(maskf[i]) continue;
     if(i>=nfaces) break;
     j0=f2p->IA[i];
-    l=f2p->IA[i+1]-j0;// length;
-    j=j0+fmaxr((f2p->val+j0),l);
+    l=f2p->IA[i+1]-j0;// number of points above this face (as assigned, could be more);
+    j=j0+fmaxr((f2p->val+j0),l); // f2p->val contains the distances to the face
     iq=f2p->JA[j];// point at a maximal distance from the outside list of face i.
-    visible(i,iq, stos, \
+    visible(dim, factorial,  \
+            i,iq, stos, \
             fv, maskf,  \
-            dim, fact,  \
             x, xmass, snsn,wrk);
-    break;
-    fprintf(stdout,"\n(face,node)=(%d,%d)\t%e",i,m,f2p->val[j]);
+//  fprintf(stdout,"\n(face,node)=(%d,%d)\t%e",i,m,f2p->val[j]);
     i++;// main loop around faces.
+    break;
   }
-  if(vset) free(vset);
+  fprintf(stdout,"\nmaskf=");
+  for(j=0;j<nfaces;j++) fprintf(stdout," %d ",maskf[j]);
+  fprintf(stdout,"\n");
+  if(wrk) free(wrk);
   if(mask) free(mask);
   if(maskf) free(maskf);
   if(p2f) dcsr_free(p2f);
