@@ -12,13 +12,16 @@
 /************* HAZMATH FUNCTIONS and INCLUDES ***************************/
 #include "hazmath.h"
 /***********************************************************************/
-
-
-
+// local include (temp)
+#include "solvers_read.h"
+// if READ_TO_EOF is 0 the first record in the input files is m,n, nnz and n for dvector
+//otherwise the number of elements in (i,j,v) or dvector is found by reading until EOF.
+#ifndef READ_TO_EOF
+#define READ_TO_EOF 1
+#endif
 /****** MAIN DRIVER **************************************************/
 int main (int argc, char* argv[])
 {
-
   printf("\n===========================================================================\n");
   printf("Beginning Program to solve a linear system.\n");
   printf("===========================================================================\n");
@@ -32,26 +35,52 @@ int main (int argc, char* argv[])
   printf("Reading the matrix, right hand side, and parameters\n");
   printf("===========================================================================\n");
 
-  /* read the matrix and right hand side */
-  dcoo_read_dcsr("A.dat", &A);
-  dvector_read("b.dat", &b);
-
   /* set Parameters from Reading in Input File */
   input_param inparam;
   param_input_init(&inparam);
   param_input("./input.dat", &inparam);
-
+  /* read the matrix and right hand side */
+  SHORT read_to_eof=READ_TO_EOF;
+  FILE *fp=NULL;
+  char *fnamea=NULL,*fnameb=NULL;
+  if(argc<3){
+    fprintf(stderr,"\n\n=========================================================\n\n");
+    fprintf(stderr,"***ERROR: %s called with wrong number of arguments!!!\n",argv[0]);
+    fprintf(stderr,"Usage: %s filename_with_MATRIX(I,J,V) filename_with_RHS\n",argv[0]);
+    fprintf(stderr,"\n***USING THE DEFAULTS:\n\t\t\t%s A.dat b.dat",argv[0]);
+    fprintf(stderr,  "\n=========================================================\n\n");
+    fnamea=strdup("A.dat");
+    fnameb=strdup("b.dat");
+    read_to_eof=0;
+//    exit(129);
+  } else {
+    fnamea=strdup(argv[1]);
+    fnameb=strdup(argv[2]);
+  }
+  if(read_to_eof){
+    fprintf(stdout,"\n%s: reading file \"%s\" unitl EOF\n", __FUNCTION__,fnamea);
+    fp = fopen(fnamea,"r");
+    if (!fp) check_error(ERROR_OPEN_FILE, __FUNCTION__);
+    dcoo_read_eof_dcsr(fp,&A,NULL);
+    fclose(fp);
+    fprintf(stdout,"\n%s: reading file \"%s\" unitl EOF\n", __FUNCTION__,fnameb);
+    fp = fopen(fnameb,"r");
+    if (!fp) check_error(ERROR_OPEN_FILE, __FUNCTION__);
+    dvector_read_eof(fp, &b);
+  } else {
+    dcoo_read_dcsr(fnamea, &A);
+    dvector_read(fnameb, &b);
+  }
+  /*************** ACTION **************************/
   /* set initial guess */
   dvec_alloc(A.row, &x);
   dvec_set(x.row, &x, 0.0);
 
   /* Set Solver Parameters */
   INT solver_flag=-20;
-
   /* Set parameters for linear iterative methods */
   linear_itsolver_param linear_itparam;
   param_linear_solver_set(&linear_itparam, &inparam);
-
   /* Set parameters for algebriac multigrid methods */
   AMG_param amgparam;
   param_amg_init(&amgparam);
@@ -86,3 +115,20 @@ int main (int argc, char* argv[])
 
 }	/* End of Program */
 /*******************************************************************/
+/*input files:*/
+// "matrices/A_n16_alpha0.2.txt"
+// "matrices/A_n16_alpha0.5.txt"
+// "matrices/A_n32_alpha0.2.txt"
+// "matrices/A_n32_alpha0.5.txt"
+// "matrices/A_n64_alpha0.2.txt"
+// "matrices/A_n64_alpha0.5.txt"
+// "matrices/A_n8_alpha0.2.txt"
+// "matrices/A_n8_alpha0.5.txt"
+// "matrices/b_n16_alpha0.2.txt"
+// "matrices/b_n16_alpha0.5.txt"
+// "matrices/b_n32_alpha0.2.txt"
+// "matrices/b_n32_alpha0.5.txt"
+// "matrices/b_n64_alpha0.2.txt"
+// "matrices/b_n64_alpha0.5.txt"
+// "matrices/b_n8_alpha0.2.txt"
+// "matrices/b_n8_alpha0.5.txt"
