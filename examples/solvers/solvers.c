@@ -71,7 +71,10 @@ int main (int argc, char* argv[])
     dcoo_read_dcsr(fnamea, &A);
     dvector_read(fnameb, &b);
   }
-  /*************** ACTION **************************/
+  if(fnamea) free(fnamea);
+  if(fnameb) free(fnameb);
+  /************************************************************/
+  /*************** ACTION *************************************/
   /* set initial guess */
   dvec_alloc(A.row, &x);
   dvec_set(x.row, &x, 0.0);
@@ -115,20 +118,4 @@ int main (int argc, char* argv[])
 
 }	/* End of Program */
 /*******************************************************************/
-/*input files:*/
-// "matrices/A_n16_alpha0.2.txt"
-// "matrices/A_n16_alpha0.5.txt"
-// "matrices/A_n32_alpha0.2.txt"
-// "matrices/A_n32_alpha0.5.txt"
-// "matrices/A_n64_alpha0.2.txt"
-// "matrices/A_n64_alpha0.5.txt"
-// "matrices/A_n8_alpha0.2.txt"
-// "matrices/A_n8_alpha0.5.txt"
-// "matrices/b_n16_alpha0.2.txt"
-// "matrices/b_n16_alpha0.5.txt"
-// "matrices/b_n32_alpha0.2.txt"
-// "matrices/b_n32_alpha0.5.txt"
-// "matrices/b_n64_alpha0.2.txt"
-// "matrices/b_n64_alpha0.5.txt"
-// "matrices/b_n8_alpha0.2.txt"
-// "matrices/b_n8_alpha0.5.txt"
+
