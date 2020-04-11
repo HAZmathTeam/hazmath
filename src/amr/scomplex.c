@@ -94,6 +94,8 @@ scomplex *haz_scomplex_init(INT n,INT ns, INT nv)
   }
   sc->nv=nv;
   sc->ns=ns;
+  sc->bndry_cc=1; // one connected component for now.
+  sc->cc=1; // one connected component for now.
   return sc;
 }
 /**********************************************************************/
