@@ -41,7 +41,7 @@ dCSRmat *dcsr_create_w (const INT m,		\
     total+=nnz*intby;
   if ( nnz > 0 )
     total+=nnz*realby;
-  void *w=(void *)calloc(total/size(char),sizeof(char));
+  void *w=(void *)calloc(total/sizeof(char),sizeof(char));
   dCSRmat *A=(dCSRmat *)w;
   w+=1*structby; 
   A->IA = NULL;
@@ -114,7 +114,7 @@ iCSRmat *icsr_create_w(const INT m,		\
     total+=nnz*intby;
   if ( nnz > 0 )
     total+=nnz*intby;
-  void *w=(void *)calloc(total/size(char),sizeof(char));
+  void *w=(void *)calloc(total/sizeof(char),sizeof(char));
   iCSRmat *A=(iCSRmat *)w;
   w+=1*structby; 
   A->IA = NULL;
