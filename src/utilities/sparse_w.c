@@ -22,8 +22,8 @@
  * \param n    Number of columns
  * \param nnz  Number of nonzeros
  *
- * \return A the dCSRmat matrix. All of this matrix can be freed by
- *         free((void *)A) or even free(A).
+ * \return A a pointer to a dCSRmat matrix. All of this matrix can be
+ *         freed by free((void *)A) or even free(A).
  *
  *  \note: created by ludmil zikatanov on 20200412
  */
