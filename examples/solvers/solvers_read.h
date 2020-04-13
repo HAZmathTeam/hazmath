@@ -44,7 +44,7 @@ void dcoo_read_eof_dcsr (FILE *fp,dCSRmat *A, INT *size)
     if(!nnz) check_error(ERROR_WRONG_FILE, __FUNCTION__);
     //
     m++;n++; //bc indices strat from zero so row and coll are with one more.
-    dCOOmat Atmp=dcoo_create_w(m,n,nnz);
+    dCOOmat Atmp=dcoo_create(m,n,nnz);
     //    fprintf(stdout,"\nCheck structure: %d %d %d\n\n",Atmp->row,Atmp->col,Atmp->nnz);fflush(stdout);
     rewind(fp);
     for ( k = 0; k < nnz; k++ ) {
