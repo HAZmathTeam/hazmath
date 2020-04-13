@@ -1175,46 +1175,99 @@ void refine(const INT ref_levels, scomplex *sc,ivector *marked)
  *
  *
  */
-void sc2mesh(scomplex *sc,mesh_struct *mesh)
+/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
+mesh_struct *sc2mesh(scomplex *sc)
 {
+  /*********************************************************************/
+  /* INPUT: pointer to a simplicial complex sc; returns mesh_struct
+     mesh.
+ 
+     Store the finest mesh in mesh_struct structure.  sc has all the
+    hierarchy, mesh_struct will have only the last mesh.
+  */
+  /*********************************************************************/
   /* copy the final grid at position 1*/
-  INT ns,n1=sc->n+1,jk=-10,k=-10,j=-10;
+  INT ns=0,nv=sc->nv,n1=sc->n+1,dim=sc->n,v_per_elm=-10;
+  INT jk=-10,k=-10,j=-10,i=-10;
+  mesh_struct *mesh=malloc(1*sizeof(mesh_struct));
+  initialize_mesh(mesh);
   /*
-      store the finest mesh in mesh_struct structure.  sc has all the
-      hierarchy, mesh_struct will have only the last mesh.
+    count the number of elements on the last level of refinement.
+    On the last grid are all simplices that were not refined, so
+    these are the ones for which child0 and childn are not set.
   */
   ns=0;
+  for (j=0;j<sc->ns;j++)
+    if(sc->child0[j]<0 || sc->childn[j]<0) ns++;
+  /*Update mesh with known quantities*/
+  mesh->dim = sc->n;
+  v_per_elm = n1;
+  mesh->nelm = ns; //do not ever put sc->ns here
+  mesh->nv=nv; 
+  mesh->nconn_reg = sc->cc; // dummy argument yet.
+  mesh->nconn_bdry = sc->bndry_cc;// dummy argument
+  mesh->v_per_elm = n1;
+  mesh->nelm=ns;
+  /*Allocate all pointers needed to init the mesh struct*/
+  mesh->el_flag = (INT *)calloc(ns,sizeof(INT));
+  mesh->el_vol = (REAL *)calloc(ns,sizeof(REAL));
+  mesh->v_flag = (INT *)calloc(nv,sizeof(INT));
+  mesh->cv=allocatecoords(nv,dim);
+  mesh->el_v=(iCSRmat *)malloc(1*sizeof(iCSRmat));
+  mesh->el_v->row=mesh->nelm;
+  mesh->el_v->col=mesh->nv;
+  mesh->el_v->nnz=mesh->nelm*mesh->v_per_elm;
+  mesh->el_v->IA = (INT *)calloc((ns+1),sizeof(INT));
+  mesh->el_v->JA = (INT *)calloc(ns*n1,sizeof(INT));
+  mesh->el_v->val=NULL;
+  INT chk=(INT )(!(mesh &&					  \
+		 mesh->el_flag && mesh->el_vol && mesh->v_flag && \
+		 mesh->cv && mesh->cv->x && \
+		 mesh->el_v && mesh->el_v->IA && mesh->el_v->JA
+		   ));
+  if(chk){
+    fprintf(stderr,"\nCould not allocate memory for mesh in %s\n *** RETURNING a NULL pointer to mesh", \
+	    __FUNCTION__); 
+    return NULL;
+  }
+  /********************************************************************/
+  /*element flag and element volumes; volumes are recomputed later in
+    build_mesh_all()*/
+  INT nsfake=0;// this one must be ns at the end. 
   for (j=0;j<sc->ns;j++){
-    /*  On the last grid are all simplices that were not refined, so
-      these are the ones for which child0 and childn are not set.  */
     if(sc->child0[j]<0 || sc->childn[j]<0){
-      mesh->el_flag[ns]=sc->flags[j];
-      mesh->el_vol[ns]=sc->vols[j];
-      ns++;
+      mesh->el_flag[nsfake]=sc->flags[j];
+      mesh->el_vol[nsfake]=sc->vols[j];
+      nsfake++;
     }
   }
-  mesh->nv=sc->nv;
+  /*boundary flags*/
+  mesh->nbv=0;
   for (j=0;j<mesh->nv;j++){
+    if(sc->bndry[j]!=0) mesh->nbv++;
     mesh->v_flag[j]=sc->bndry[j];
   }
-  mesh->el_v->IA = (INT *) calloc(ns+1,sizeof(INT));
-  mesh->el_v->JA = (INT *) calloc(ns*n1,sizeof(INT));
-  mesh->nelm=ns;
-  mesh->el_v->IA[0]=0;
-  for (j=0;j<mesh->nelm;j++){
-    mesh->el_v->IA[j+1]=mesh->el_v->IA[j]+n1;
+  /*Coordinates*/
+  for(j=0;j<mesh->dim;j++){
+    for(i=0;i<nv;i++){
+      mesh->cv->x[j*nv+i]=sc->x[i*sc->n+j];
+    }
   }
+  // el_v
+  mesh->el_v->IA[0]=0;
+  for (j=0;j<mesh->nelm;j++)
+    mesh->el_v->IA[j+1]=mesh->el_v->IA[j]+n1;
   jk=0;
   for (j=0;j<sc->ns;j++){
     /*  copy el_v map using only the top grid;    */
     if(sc->child0[j]<0 || sc->childn[j]<0){
       for (k=0;k<n1;k++)
-	memcpy(mesh->el_v->JA+jk*n1,sc->nbr+j*n1,n1*sizeof(INT));
+        memcpy(mesh->el_v->JA+jk*n1,sc->nodes+j*n1,n1*sizeof(INT));
       jk++;
+    }
   }
-  fprintf(stdout,"\n%%After %d levels of refinement:\tsimplices=%d ; vertices=%d\n",sc->level,sc->nv,ns); fflush(stdout);
-  }
-  return;
+  fprintf(stdout,"\n%%After %d levels of refinement:\tvertices=%d ; simplices=%d in dim=%d; holes=%d\n",   sc->level,mesh->nv,mesh->nelm,mesh->dim,mesh->nconn_bdry); fflush(stdout);
+  return mesh;
 }
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
 /*EOF*/
