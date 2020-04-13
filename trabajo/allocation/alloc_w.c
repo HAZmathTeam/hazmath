@@ -34,7 +34,7 @@ dCSRmat *dcsr_create_w (const INT m,		\
   dCSRmat *A=NULL;
   size_t structby=sizeof(dCSRmat);// size of the struct
   size_t realby=sizeof(REAL),intby=sizeof(INT);// size of ints and reals
-  size_t total=1*structby; //at least space for structure. 
+  size_t total=1*structby+3*intby; //at least space for structure. 
   if ( m > 0 )
     total+=(m+1)*intby;
   if ( n > 0 ) 
@@ -47,6 +47,9 @@ dCSRmat *dcsr_create_w (const INT m,		\
   A->IA = NULL;
   A->JA = NULL;
   A->val = NULL;
+  INT *mn_nnz=(INT *)w;  
+  A->row=mn_nnz[0]=m; A->col=mn_nnz[1]=n; A->nnz=mn_nnz[2]=nnz;
+  w+=3*intby;
   if ( m > 0 ) {
     A->IA = (INT *)w;
     w+=(m+1)*intby;
@@ -57,11 +60,8 @@ dCSRmat *dcsr_create_w (const INT m,		\
   }
   if ( nnz > 0 ) {
     A->val = (REAL *)calloc(nnz, sizeof(REAL));
-    w+=nnz*realby;
+    w+=nnz*realby;// end of it. 
   }
-  INT *mn_nnz=(INT *)w;  
-  A->row=mn_nnz[0]=m; A->col=mn_nnz[1]=n; A->nnz=mn_nnz[2]=nnz;
-  w+=3*intby;// end of it
   return A;
 }
 
@@ -82,10 +82,10 @@ void dcsr_alloc_w(const INT m,
 		  const INT nnz,
 		  dCSRmat *A)
 {
-  if(A != NULL) {
-    free(A);
-    A=NULL;
-  }
+  /* if(A != NULL) { */
+  /*   free(A); */
+  /*   A=NULL; */
+  /* } */
   A=dcsr_create_w(m,n,nnz);
   return;
 }
@@ -123,6 +123,9 @@ iCSRmat *icsr_create_w(const INT m,		\
   A->IA = NULL;
   A->JA = NULL;
   A->val = NULL;
+  INT *mn_nnz=(INT *)w;  
+  A->row=mn_nnz[0]=m; A->col=mn_nnz[1]=n; A->nnz=mn_nnz[2]=nnz;
+  w+=3*intby;
   if ( m > 0 ) {
     A->IA = (INT *)w;
     w+=(m+1)*intby;
@@ -133,11 +136,8 @@ iCSRmat *icsr_create_w(const INT m,		\
   }
   if ( nnz > 0 ) {
     A->val = (INT *)calloc(nnz, sizeof(INT));
-    w+=nnz*intby;
+    w+=nnz*intby; // end of it
   }
-  INT *mn_nnz=(INT *)w;  
-  A->row=mn_nnz[0]=m; A->col=mn_nnz[1]=n; A->nnz=mn_nnz[2]=nnz;
-  w+=3*intby;// end of it
   return A;
 }
 
@@ -164,16 +164,126 @@ dCOOmat *dcoo_create_w(INT m,			\
   //sturture
   dCOOmat *A=(dCOOmat *)w;
   w+=1*structby;
-  // arrays;
-  A->rowind = (INT *)w;
-  A->colind = A->rowind + nnz;
-  w+=2*nnz*intby;
-  A->val    = (REAL *)w;
-  w+=nnz*realby; // end of it....
   INT *mn_nnz=(INT *)w;  
   A->row=mn_nnz[0]=m; A->col=mn_nnz[1]=n; A->nnz=mn_nnz[2]=nnz;
   w+=3*intby;
+  // arrays;
+  A->rowind = (INT *)w;
+  w+=nnz*intby;
+  A->colind = (INT *)w;
+  w+=nnz*intby;
+  A->val    = (REAL *)w;
+  w+=nnz*realby; // end of it....
   return A;
 }
+/*************************************************************************/
+/***********************************************************************************************/
+/*!
+ * \fn dvector dvec_create_w (const INT m)
+ *
+ * \brief Create a dvector of given length: use void array to pack the
+ * structure in.
+ *
+ * \param m    length of the dvector
+ *
+ * \return pointer to u   The new dvector
+ *
+ */
+dvector *dvec_create_w(const INT m)
+{
+  dvector *u=NULL;
+  size_t structby=sizeof(dvector);// size of the struct
+  size_t realby=sizeof(REAL),intby=sizeof(INT);// size of ints and reals
+  size_t total=1*structby+1*intby; //space for structure and size. 
+  if (m > 0 )
+    total+=m*realby;
+  void *w=(void *)calloc(total/sizeof(char),sizeof(char));
+  u=(dvector *)w;
+  w+=1*structby; 
+  INT *mm=(INT *)w;
+  u->row = mm[0]=m;
+  w+=1*intby;
+  u->val = NULL;
+  if ( m > 0 ) {
+    u->val = (REAL *)w;
+    w+=m*realby;//end
+  }
+  fprintf(stdout,"\nVVVVVV=%d, %e\n",u->row,u->val[0]);fflush(stdout);
+  return u;
+}
+/************************************************************/
+/*!
+ * \fn ivector ivec_create_w (const INT m)
+ *
+ * \brief Create an ivector of given length
+ *
+ * \param m   length of the ivector
+ *
+ * \return u  The new ivector
+ *
+ */
+ivector *ivec_create_w(const INT m)
+{
+  ivector *u=NULL;
+  size_t structby=sizeof(ivector);// size of the struct
+  size_t intby=sizeof(INT);// size of ints and reals
+  size_t total=1*structby+1*intby; //space for structure. 
+  if (m > 0 )
+    total+=m*intby;
+  void *w=(void *)calloc(total/sizeof(char),sizeof(char));
+  u=(ivector *)w;
+  w+=1*structby; 
+  INT *mm=(INT *)w;
+  u->row = mm[0]=m;
+  w+=1*intby;
+  u->val = NULL;
+  if ( m > 0 ) {
+    u->val = (INT *)w;
+    w+=m*intby;
+  }
+  return u;
+}
 
+/***********************************************************************************************/
+/*!
+ * \fn void dvec_alloc_w(const INT m, dvector *u)
+ *
+ * \brief Allocate a dvector of given length in a void array. 
+ *
+ * \param m    length of the dvector
+ * \param u    Pointer to dvector (OUTPUT)
+ *
+ */
+void dvec_alloc_w(const INT m,
+                 dvector *u)
+{
+  //  if(u!=NULL){
+  //    free(u);// u->val should not be defined here. 
+  //    u=NULL;
+  //  }
+  u=dvec_create_w(m);
+  fprintf(stdout,"\nUUUUU=%d, %e\n",u->row,u->val[0]);fflush(stdout);
+  return;
+}
+
+/***********************************************************************************************/
+/*!
+ * \fn void ivec_alloc_w (const INT m, ivector *u)
+ *
+ * \brief Allocate an ivector of given length and pack it in a void array;
+ *
+ * \param m   length of the ivector
+ * \param u   Pointer to ivector (OUTPUT)
+ *
+ */
+void ivec_alloc_w (const INT m,			\
+                 ivector *u)
+{
+  /* if(u!=NULL){ */
+  /*   free(u);// u->val should not be defined here.  */
+  /*   u=NULL; */
+  /* } */
+  u=ivec_create_w(m);
+  return;
+}
 /*EOF*/
