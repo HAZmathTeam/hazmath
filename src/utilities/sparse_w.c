@@ -31,7 +31,7 @@ dCSRmat *dcsr_create_w (const INT m,		\
 			const INT n,		\
 			const INT nnz)
 {
-  dCSRmat *A;
+  dCSRmat *A=NULL;
   size_t structby=sizeof(dCSRmat);// size of the struct
   size_t realby=sizeof(REAL),intby=sizeof(INT);// size of ints and reals
   size_t total=1*structby; //at least space for structure. 
@@ -42,7 +42,7 @@ dCSRmat *dcsr_create_w (const INT m,		\
   if ( nnz > 0 )
     total+=nnz*realby;
   void *w=(void *)calloc(total/sizeof(char),sizeof(char));
-  dCSRmat *A=(dCSRmat *)w;
+  A=(dCSRmat *)w;
   w+=1*structby; 
   A->IA = NULL;
   A->JA = NULL;
@@ -82,7 +82,10 @@ void dcsr_alloc_w(const INT m,
 		  const INT nnz,
 		  dCSRmat *A)
 {
-  if(A != NULL) {free(A);A=NULL};
+  if(A != NULL) {
+    free(A);
+    A=NULL;
+  }
   A=dcsr_create_w(m,n,nnz);
   return;
 }
@@ -104,7 +107,7 @@ iCSRmat *icsr_create_w(const INT m,		\
 		       const INT n,		\
 		       const INT nnz)
 {
-  iCSRmat *A;
+  iCSRmat *A=NULL;
   size_t structby=sizeof(iCSRmat);// size of the struct
   size_t intby=sizeof(INT);// size of ints
   size_t total=1*structby; //space for the structure. 
@@ -115,7 +118,7 @@ iCSRmat *icsr_create_w(const INT m,		\
   if ( nnz > 0 )
     total+=nnz*intby;
   void *w=(void *)calloc(total/sizeof(char),sizeof(char));
-  iCSRmat *A=(iCSRmat *)w;
+  A=(iCSRmat *)w;
   w+=1*structby; 
   A->IA = NULL;
   A->JA = NULL;
