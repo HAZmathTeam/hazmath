@@ -8,9 +8,6 @@
  *  \note: created by ludmil zikatanov on 20200412
  *  
  */
-
-#include "hazmath.h"
-
 /***********************************************************************************************/
 /*!
  * \fn dCSRmat *dcsr_create_w(const INT m, const INT n, const INT nnz)
@@ -82,16 +79,13 @@ void dcsr_alloc_w(const INT m,
 		  const INT nnz,
 		  dCSRmat *A)
 {
-  /* if(A != NULL) { */
-  /*   free(A); */
-  /*   A=NULL; */
-  /* } */
-  A=dcsr_create_w(m,n,nnz);
+  dCSRmat *Atmp=dcsr_create_w(m,n,nnz);
+  memcpy(A,Atmp,1*sizeof(dCSRmat));
   return;
 }
 /***********************************************************************************************/
 /**
- * \fn iCSRmat icsr_create (const INT m, const INT n, const INT nnz)
+ * \fn iCSRmat icsr_create_w (const INT m, const INT n, const INT nnz)
  *
  * \brief Create iCSRmat sparse matrix using a void array; the
  *        structure itself is part of the void array.
@@ -154,7 +148,7 @@ iCSRmat *icsr_create_w(const INT m,		\
  * \return A   A pointer to a dCOOmat matrix
  *
  */
-dCOOmat *dcoo_create_w(INT m,			\
+dCOOmat dcoo_create_w(INT m,			\
 		       INT n,			\
 		       INT nnz)
 {
@@ -174,7 +168,7 @@ dCOOmat *dcoo_create_w(INT m,			\
   w+=nnz*intby;
   A->val    = (REAL *)w;
   w+=nnz*realby; // end of it....
-  return A;
+  return *A;
 }
 /*************************************************************************/
 /***********************************************************************************************/
@@ -261,7 +255,8 @@ void dvec_alloc_w(const INT m,
   //    free(u);// u->val should not be defined here. 
   //    u=NULL;
   //  }
-  u=dvec_create_w(m);
+  dvector *utmp=dvec_create_w(m);
+  memcpy(u,utmp,sizeof(dvector));
   fprintf(stdout,"\nUUUUU=%d, %e\n",u->row,u->val[0]);fflush(stdout);
   return;
 }
@@ -283,7 +278,48 @@ void ivec_alloc_w (const INT m,			\
   /*   free(u);// u->val should not be defined here.  */
   /*   u=NULL; */
   /* } */
-  u=ivec_create_w(m);
+  ivector *utmp=ivec_create_w(m);
+  memcpy(u,utmp,sizeof(ivector));
   return;
 }
+/**********************************************************************/
+dCSRmat dcsr_create_ww (const INT m,		\
+			const INT n,		\
+			const INT nnz)
+{
+  dCSRmat *A;
+  size_t structby=sizeof(dCSRmat);// size of the struct
+  size_t realby=sizeof(REAL),intby=sizeof(INT);// size of ints and reals
+  size_t total=1*structby+3*intby; //at least space for structure. 
+  if ( m > 0 )
+    total+=(m+1)*intby;
+  if ( n > 0 ) 
+    total+=nnz*intby;
+  if ( nnz > 0 )
+    total+=nnz*realby;
+  void *w=(void *)calloc(total/sizeof(char),sizeof(char));
+  A=(dCSRmat *)w;
+  w+=1*structby; 
+  A->IA = NULL;
+  A->JA = NULL;
+  A->val = NULL;
+  INT *mn_nnz=(INT *)w;  
+  A->row=mn_nnz[0]=m; A->col=mn_nnz[1]=n; A->nnz=mn_nnz[2]=nnz;
+  w+=3*intby;
+  if ( m > 0 ) {
+    A->IA = (INT *)w;
+    w+=(m+1)*intby;
+  }
+  if ( n > 0 ) {
+    A->JA = (INT *)w;
+    w+=nnz*intby;
+  }
+  if ( nnz > 0 ) {
+    A->val = (REAL *)calloc(nnz, sizeof(REAL));
+    w+=nnz*realby;// end of it. 
+  }
+  return *A;
+}
+
+
 /*EOF*/
