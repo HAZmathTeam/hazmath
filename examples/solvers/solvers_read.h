@@ -55,7 +55,7 @@ void dcoo_read_eof_dcsr (FILE *fp,dCSRmat *A, INT *size)
         }
     }
     dcoo_2_dcsr(&Atmp,A);
-    free((void *)Atmp.rowind);
+    dcoo_free(&Atmp);
 }
 /***********************************************************************************************/
 /**
