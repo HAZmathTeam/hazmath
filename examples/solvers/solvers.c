@@ -117,6 +117,7 @@ int main (int argc, char* argv[])
   // Clean up memory
   dcsr_free(&A);
   dvec_free(&b);
+  dvec_free(&x);
 
 }	/* End of Program */
 /*******************************************************************/
