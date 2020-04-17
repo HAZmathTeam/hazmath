@@ -13,7 +13,6 @@
 #include "hazmath.h"
 /***********************************************************************/
 // local include (temp)
-#include "solvers_read.h"
 // if READ_TO_EOF is 0 the first record in the input files is m,n, nnz and n for dvector
 //otherwise the number of elements in (i,j,v) or dvector is found by reading until EOF.
 #ifndef READ_TO_EOF
@@ -27,9 +26,9 @@ int main (int argc, char* argv[])
   printf("===========================================================================\n");
 
   /* matrix and right hand side */
-  dCSRmat A;
-  dvector b;
-  dvector x;
+  dCSRmat *A=NULL;
+  dvector *b=NULL;
+  dvector *x=NULL;
 
   printf("\n===========================================================================\n");
   printf("Reading the matrix, right hand side, and parameters\n");
@@ -62,24 +61,29 @@ int main (int argc, char* argv[])
     fp = fopen(fnamea,"r");
     if (!fp) check_error(ERROR_OPEN_FILE, __FUNCTION__);
     if(fnamea) free(fnamea);
-    dcoo_read_eof_dcsr(fp,&A,NULL);
+    A=dcoo_read_eof_dcsr_p(fp,NULL);
     fclose(fp);
     fprintf(stdout,"\n%s: reading file \"%s\" unitl EOF\n", __FUNCTION__,fnameb);
     fp = fopen(fnameb,"r");
     if (!fp) check_error(ERROR_OPEN_FILE, __FUNCTION__);
     if(fnameb) free(fnameb);
-    dvector_read_eof(fp, &b);
+    b=dvector_read_eof_p(fp);
   } else {
-    dcoo_read_dcsr(fnamea, &A);
-    dvector_read(fnameb, &b);
+    fp = fopen(fnamea,"r");
+    if (!fp) check_error(ERROR_OPEN_FILE, __FUNCTION__);
     if(fnamea) free(fnamea);
+    A=dcoo_read_dcsr_p(fp);
+    fclose(fp);
+    fp = fopen(fnameb,"r");
+    if (!fp) check_error(ERROR_OPEN_FILE, __FUNCTION__);
     if(fnameb) free(fnameb);
+    b=dvector_read_p(fp);
   }
   /************************************************************/
   /*************** ACTION *************************************/
   /* set initial guess */
-  dvec_alloc(A.row, &x);
-  dvec_set(x.row, &x, 0.0);
+  dvec_alloc_p(A->row,&x); //  same as x=dvec_create_p(A->row);
+  dvec_set(x->row, x, 0.0);
 
   /* Set Solver Parameters */
   INT solver_flag=-20;
@@ -98,27 +102,26 @@ int main (int argc, char* argv[])
 
   // Use AMG as iterative solver
   if (linear_itparam.linear_itsolver_type == SOLVER_AMG){
-    solver_flag = linear_solver_amg(&A, &b, &x, &amgparam);
+    solver_flag = linear_solver_amg(A, b, x, &amgparam);
   } else { // Use Krylov Iterative Solver
     // Diagonal preconditioner
     if (linear_itparam.linear_precond_type == PREC_DIAG) {
-        solver_flag = linear_solver_dcsr_krylov_diag(&A, &b, &x, &linear_itparam);
+        solver_flag = linear_solver_dcsr_krylov_diag(A, b, x, &linear_itparam);
     }
     // AMG preconditioner
     else if (linear_itparam.linear_precond_type == PREC_AMG){
-        solver_flag = linear_solver_dcsr_krylov_amg(&A, &b, &x, &linear_itparam, &amgparam);
+        solver_flag = linear_solver_dcsr_krylov_amg(A, b, x, &linear_itparam, &amgparam);
     }
     // No preconditoner
     else{
-        solver_flag = linear_solver_dcsr_krylov(&A, &b, &x, &linear_itparam);
+        solver_flag = linear_solver_dcsr_krylov(A, b, x, &linear_itparam);
     }
   }
 
   // Clean up memory
-  dcsr_free(&A);
-  dvec_free(&b);
-  dvec_free(&x);
-
+  free(A);
+  free(b);
+  free(x);
 }	/* End of Program */
 /*******************************************************************/
 
