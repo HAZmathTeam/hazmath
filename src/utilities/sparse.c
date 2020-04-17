@@ -6,11 +6,10 @@
  *  \note: modified by Xiaozhe Hu on 10/30/2016
  *  \note: done cleanup for releasing -- Xiaozhe Hu 10/31/2016
  *  \note: modified by James Adler on 02/22/2019 for 0-1 fix
+ *  \note: modified by ludmil zikatanov on 20200412  
  *
  */
-
 #include "hazmath.h"
-
 /***********************************************************************************************/
 /*!
  * \fn dCSRmat dcsr_create (const INT m, const INT n, const INT nnz)
@@ -203,7 +202,7 @@ dCSRmat dcsr_create_identity_matrix(const INT m,
   return A;
 }
 
-/***********************************************************************************************/
+/***********************************************************************/
 /*!
  * \fn void dcsr_alloc (const INT m, const INT n, const INT nnz, dCSRmat *A)
  *
@@ -2922,7 +2921,6 @@ void bdcsr_free(block_dCSRmat *A)
       free(A->blocks);
       A->blocks = NULL;
   }
-
   return;
 }
 
@@ -3602,6 +3600,271 @@ ivector sparse_MIS(dCSRmat *A)
     //return
     return MaxIndSet;
 }
-
-
-/************************************** END ***************************************************/
+/* sparse matrix functions returning pointers. */
+/*******************************************************************/
+/*!
+ * \fn dCSRmat *dcsr_create_p(const INT m, const INT n, const INT nnz)
+ *
+ * \brief Create a dCSRmat sparse matrix. Uses void array for the
+ * whole matrix. the void array contains in first position the struct. 
+ *
+ * \param m    Number of rows
+ * \param n    Number of columns
+ * \param nnz  Number of nonzeros
+ *
+ * \return A a pointer to a dCSRmat matrix. All of this matrix can be
+ *         freed by free((void *)A) or even free(A).
+ *
+ *  \note: modified by ludmil zikatanov on 20200412
+ */
+dCSRmat *dcsr_create_p (const INT m,		\
+			const INT n,		\
+			const INT nnz)
+{
+  dCSRmat *A=NULL;
+  size_t structby=sizeof(dCSRmat);// size of the struct
+  size_t realby=sizeof(REAL),intby=sizeof(INT);// size of ints and reals
+  size_t total=1*structby+3*intby; //at least space for structure. 
+  if ( m > 0 )
+    total+=(m+1)*intby;
+  if ( n > 0 ) 
+    total+=nnz*intby;
+  if ( nnz > 0 )
+    total+=nnz*realby;
+  void *w=(void *)calloc(total/sizeof(char),sizeof(char));
+  A=(dCSRmat *)w;
+  w+=1*structby; 
+  A->IA = NULL;
+  A->JA = NULL;
+  A->val = NULL;
+  INT *mn_nnz=(INT *)w;  
+  A->row=mn_nnz[0]=m; A->col=mn_nnz[1]=n; A->nnz=mn_nnz[2]=nnz;
+  w+=3*intby;
+  if ( m > 0 ) {
+    A->IA = (INT *)w;
+    w+=(m+1)*intby;
+  }
+  if ( n > 0 ) {
+    A->JA = (INT *)w;
+    w+=nnz*intby;
+  }
+  if ( nnz > 0 ) {
+    A->val = (REAL *)w;
+    w+=nnz*realby;// end of it. 
+  }
+  return A;
+}
+/***********************************************************************************************/
+/**
+ * \fn dCOOmat *dcoo_create_p(INT m, INT n, INT nnz)
+ *
+ * \brief Create IJ sparse matrix data memory space using one
+ * contguous void array for all data including the structure itself 
+ *
+ * \param m    Number of rows
+ * \param n    Number of columns
+ * \param nnz  Number of nonzeros
+ *
+ * \return A   A pointer to a dCOOmat matrix
+ *
+ */
+dCOOmat *dcoo_create_p(INT m,			\
+		       INT n,			\
+		       INT nnz)
+{
+  size_t structby=sizeof(dCOOmat),realby=sizeof(REAL),intby=sizeof(INT);
+  size_t total=(1*structby+(3+2*nnz)*intby+nnz*realby)/sizeof(char);
+  void *w=(void *)calloc(total, sizeof(char));
+  //sturture
+  dCOOmat *A=(dCOOmat *)w;
+  w+=1*structby;
+  INT *mn_nnz=(INT *)w;  
+  A->row=mn_nnz[0]=m; A->col=mn_nnz[1]=n; A->nnz=mn_nnz[2]=nnz;
+  w+=3*intby;
+  // arrays;
+  A->rowind = (INT *)w;
+  w+=nnz*intby;
+  A->colind = (INT *)w;
+  w+=nnz*intby;
+  A->val    = (REAL *)w;
+  w+=nnz*realby; // end of it....
+  return A;
+}
+/******************************************************************/
+/*!
+ * \fn dvector dvec_create_p(const INT m)
+ *
+ * \brief Create a dvector of given length: use void array to pack the
+ * structure in.
+ *
+ * \param m    length of the dvector
+ *
+ * \return pointer to u   The new dvector
+ *
+ */
+dvector *dvec_create_p(const INT m)
+{
+  dvector *u=NULL;
+  size_t structby=sizeof(dvector);// size of the struct
+  size_t realby=sizeof(REAL),intby=sizeof(INT);// size of ints and reals
+  size_t total=1*structby+1*intby; //space for structure and size. 
+  if (m > 0 )
+    total+=m*realby;
+  void *w=(void *)calloc(total/sizeof(char),sizeof(char));
+  u=(dvector *)w;
+  w+=1*structby; 
+  INT *mm=(INT *)w;
+  u->row = mm[0]=m;
+  w+=1*intby;
+  u->val = NULL;
+  if ( m > 0 ) {
+    u->val = (REAL *)w;
+    w+=m*realby;//end
+  }
+  return u;
+}
+/************************************************************************/
+/**
+ * \fn iCSRmat icsr_create_p (const INT m, const INT n, const INT nnz)
+ *
+ * \brief Create iCSRmat sparse matrix using a void array; the
+ *        structure itself is part of the void array.
+ *
+ * \param m    Number of rows
+ * \param n    Number of columns
+ * \param nnz  Number of nonzeros
+ *
+ * \return A   a pointer to an iCSRmat matrix
+ *
+ */
+iCSRmat *icsr_create_p(const INT m,		\
+		       const INT n,		\
+		       const INT nnz)
+{
+  iCSRmat *A=NULL;
+  size_t structby=sizeof(iCSRmat);// size of the struct
+  size_t intby=sizeof(INT);// size of ints
+  size_t total=1*structby+3*intby; //space for the structure. 
+  if ( m > 0 )
+    total+=(m+1)*intby;
+  if ( n > 0 ) 
+    total+=nnz*intby;
+  if ( nnz > 0 )
+    total+=nnz*intby;
+  void *w=(void *)calloc(total/sizeof(char),sizeof(char));
+  A=(iCSRmat *)w;
+  w+=1*structby; 
+  A->IA = NULL;
+  A->JA = NULL;
+  A->val = NULL;
+  INT *mn_nnz=(INT *)w;  
+  A->row=mn_nnz[0]=m; A->col=mn_nnz[1]=n; A->nnz=mn_nnz[2]=nnz;
+  w+=3*intby;
+  if ( m > 0 ) {
+    A->IA = (INT *)w;
+    w+=(m+1)*intby;
+  }
+  if ( n > 0 ) {
+    A->JA = (INT *)w;
+    w+=nnz*intby;
+  }
+  if ( nnz > 0 ) {
+    A->val = (INT *)w;
+    w+=nnz*intby; // end of it
+  }
+  return A;
+}
+/************************************************************/
+/*!
+ * \fn ivector *ivec_create_p(const INT m)
+ *
+ * \brief Create an ivector of given length
+ *
+ * \param m   length of the ivector
+ *
+ * \return u  The new ivector
+ *
+ */
+ivector *ivec_create_p(const INT m)
+{
+  ivector *u=NULL;
+  size_t structby=sizeof(ivector);// size of the struct
+  size_t intby=sizeof(INT);// size of ints and reals
+  size_t total=1*structby+1*intby; //space for structure. 
+  if (m > 0 )
+    total+=m*intby;
+  void *w=(void *)calloc(total/sizeof(char),sizeof(char));
+  u=(ivector *)w;
+  w+=1*structby; 
+  INT *mm=(INT *)w;
+  u->row = mm[0]=m;
+  w+=1*intby;
+  u->val = NULL;
+  if ( m > 0 ) {
+    u->val = (INT *)w;
+    w+=m*intby;// end of struct.
+  }
+  return u;
+}
+/**********************************************************************/
+/*!
+ * \fn void dcsr_alloc_p(const INT m, const INT n, const INT nnz,
+ * dCSRmat **A)
+ *
+ * \brief Allocate a dCSRmat sparse matrix and put the result in the
+ *        pointer pointed by A. Same as dCSRmat_create_p, but uses
+ *        realloc() to reallocate A.
+ *
+ * \param m    Number of rows
+ * \param n    Number of columns
+ * \param nnz  Number of nonzeros
+ *
+ * \return A a pointer to a an array of dCSRmat matrices with one
+ *         element. All of this matrix can be freed by free((void *)A)
+ *         or even just free(A).
+ *
+ *  \note: call as dCSRmat *X; dcsr_alloc_p(... &X) to reallocate *X
+ *         to desired length. 
+ *         modified by ludmil zikatanov on 20200412
+ */
+void dcsr_alloc_p (const INT m,			\
+		   const INT n,			\
+		   const INT nnz,		\
+		   dCSRmat **A)
+{
+  *A=dcsr_create_p(m,n,nnz);
+  return;
+}
+/******************************************************************/
+/*!
+ * \fn dvector dvec_alloc_p(const INT m, dvector **u)
+ *
+ * \brief allocate an "one element array" of dvectors **u. 
+ *
+ * \param m    length of the dvector
+ * \param u    pointer to a dvector that is to be reallocated. 
+ *
+ * \note: call as: dvector *u; dvec_alloc_p(m,&u);
+ *
+ */
+void dvec_alloc_p(const INT m, dvector **u)
+{
+  *u=dvec_create_p(m);
+  return;
+}
+/************************************************************/
+/*!
+ * \fn void ivec_alloc_p(const INT m, ivector **u)
+ *
+ * \brief Create an ivector of given length
+ *
+ * \param m   length of the ivector
+ *
+ *
+ */
+void ivec_alloc_p(const INT m,ivector **u)
+{
+  *u=ivec_create_p(m);
+  return;
+}
+/*********************************EOF***********************************/

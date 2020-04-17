@@ -331,4 +331,59 @@ coordinates* array_2_coord ( REAL* xyz, INT ndof, INT dim)
   return cv;
 }
 
+/***********************************************************************************************/
+/*!
+ * \fn dCSRmat *dcoo_2_dcsr_p(dCOOmat *A)
+ *
+ * \brief Transform a dCOOmat matrix to a dCSRmat format.
+ *
+ * \param A   Pointer to dCOOmat matrix
+ *
+ * \return B   Pointer to dCSRmat matrix
+ *
+ *
+ */
+dCSRmat *dcoo_2_dcsr_p (dCOOmat *A)
+{
+    // get size
+    const INT m=A->row, n=A->col, nnz=A->nnz;
+    // allocate 
+    dCSRmat *B=dcsr_create_p(m,n,nnz);
+    // local variable
+    INT *ia = B->IA;
+    INT *ja = B->JA;
+    REAL *Bval = B->val;
+    INT *row_idx = A->rowind;
+    INT *col_idx = A->colind;
+    REAL *Aval = A->val;
+    INT i, iind, jind;
+
+    INT *ind = (INT *) calloc(m+1,sizeof(INT));
+
+    // initialize
+    memset(ind, 0, sizeof(INT)*(m+1));
+
+    // count number of nonzeros in each row
+    for (i=0; i<nnz; ++i) ind[row_idx[i]+1]++;
+
+    // set row pointer
+    ia[0] = 0;
+    for (i=1; i<=m; ++i) {
+        ia[i] = ia[i-1]+ind[i];
+        ind[i] = ia[i];
+    }
+
+    // set column index and values
+    for (i=0; i<nnz; ++i) {
+        iind = row_idx[i];
+        jind = ind[iind];
+        ja[jind] = col_idx[i];
+        Bval[jind] = Aval[i];
+        ind[iind] = ++jind;
+    }
+
+    if (ind) free(ind);
+
+    return B;
+}
 /********************************  END  ********************************************************/

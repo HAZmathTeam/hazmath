@@ -48,19 +48,19 @@ INT chkn(INT n, const INT nmin, const INT nmax)
 void iarray_print(INT *vec,
                   INT n)
 {
-    // local variable
-    INT *vec_end;
-    vec_end  =  vec + n;
+  // local variable
+  INT *vec_end;
+  vec_end  =  vec + n;
 
-    fprintf(stdout,"\n");
+  fprintf(stdout,"\n");
 
-    // main loop
-    for ( ; vec < vec_end; ++vec)
-        fprintf(stdout, "%i\n  ",*vec);
+  // main loop
+  for ( ; vec < vec_end; ++vec)
+    fprintf(stdout, "%i\n  ",*vec);
 
-    fprintf(stdout,"\n");
+  fprintf(stdout,"\n");
 
-    return;
+  return;
 }
 
 /***********************************************************************************************/
@@ -76,18 +76,18 @@ void iarray_print(INT *vec,
 void array_print(REAL *vec,
                  INT n)
 {
-    // local variable
-    REAL *vec_end;
-    vec_end  =  vec + n;
+  // local variable
+  REAL *vec_end;
+  vec_end  =  vec + n;
 
-    fprintf(stdout,"\n");
+  fprintf(stdout,"\n");
 
-    for ( ; vec < vec_end; ++vec)
-        fprintf(stdout, "%e\n  ",*vec);
+  for ( ; vec < vec_end; ++vec)
+    fprintf(stdout, "%e\n  ",*vec);
 
-    fprintf(stdout,"\n");
+  fprintf(stdout,"\n");
 
-    return;
+  return;
 
 }
 
@@ -104,23 +104,23 @@ void array_print(REAL *vec,
 void ivector_write(const char *filename,
                    ivector *vec)
 {
-    INT m = vec->row, i;
+  INT m = vec->row, i;
 
-    FILE *fp = fopen(filename,"w");
+  FILE *fp = fopen(filename,"w");
 
-    if ( fp == NULL ) {
-        check_error(ERROR_OPEN_FILE, __FUNCTION__);
-    }
+  if ( fp == NULL ) {
+    check_error(ERROR_OPEN_FILE, __FUNCTION__);
+  }
 
-    printf("%s: writing to file %s...\n", __FUNCTION__, filename);
+  printf("%s: writing to file %s...\n", __FUNCTION__, filename);
 
-    // write number of nonzeros
-    fprintf(fp,"%d\n",m);
+  // write number of nonzeros
+  fprintf(fp,"%d\n",m);
 
-    // write index and value each line
-    for ( i = 0; i < m; ++i ) fprintf(fp,"%d %d\n",i,vec->val[i]);
+  // write index and value each line
+  for ( i = 0; i < m; ++i ) fprintf(fp,"%d %d\n",i,vec->val[i]);
 
-    fclose(fp);
+  fclose(fp);
 }
 
 /***********************************************************************************************/
@@ -162,19 +162,19 @@ void dvector_print(FILE* fid,
 void dvector_write (const char *filename,
                     dvector *vec)
 {
-    INT m = vec->row, i;
+  INT m = vec->row, i;
 
-    FILE *fp = fopen(filename,"w");
+  FILE *fp = fopen(filename,"w");
 
-    if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
+  if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
 
-    printf("%s: HAZMATH is writing to file %s...\n", __FUNCTION__, filename);
+  printf("%s: HAZMATH is writing to file %s...\n", __FUNCTION__, filename);
 
-    fprintf(fp,"%d\n",m);
+  fprintf(fp,"%d\n",m);
 
-    for ( i = 0; i < m; ++i ) fprintf(fp,"%0.15e\n",vec->val[i]);
+  for ( i = 0; i < m; ++i ) fprintf(fp,"%0.15e\n",vec->val[i]);
 
-    fclose(fp);
+  fclose(fp);
 }
 
 
@@ -196,34 +196,34 @@ void dvector_read (const char *filename,
                    dvector *b)
 {
 
-    int  i, n;
-    REAL value;
+  int  i, n;
+  REAL value;
 
-    FILE *fp = fopen(filename,"r");
+  FILE *fp = fopen(filename,"r");
 
-    if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
+  if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
 
-    printf("%s: HAZMATH is reading file %s...\n", __FUNCTION__, filename);
+  printf("%s: HAZMATH is reading file %s...\n", __FUNCTION__, filename);
 
-    fscanf(fp,"%d",&n);
+  fscanf(fp,"%d",&n);
 
-    dvec_alloc(n,b);
+  dvec_alloc(n,b);
 
-    for ( i = 0; i < n; ++i ) {
+  for ( i = 0; i < n; ++i ) {
 
-        fscanf(fp, "%le", &value);
-        b->val[i] = value;
+    fscanf(fp, "%le", &value);
+    b->val[i] = value;
 
-        if ( value > BIGREAL ) {
-            printf("### ERROR: Wrong value = %lf\n", value);
-            dvec_free(b);
-            fclose(fp);
-            exit(ERROR_INPUT_PAR);
-        }
-
+    if ( value > BIGREAL ) {
+      printf("### ERROR: Wrong value = %lf\n", value);
+      dvec_free(b);
+      fclose(fp);
+      exit(ERROR_INPUT_PAR);
     }
 
-    fclose(fp);
+  }
+
+  fclose(fp);
 }
 
 /***********************************************************************************************/
@@ -244,7 +244,7 @@ void ivector_print(FILE* fid,
 
   // main loop
   for(i=0;i<b->row;i++) {
-      printf("i = %d\n", i);
+    printf("i = %d\n", i);
     fprintf(fid,"%d\n",b->val[i]);
   }
   return;
@@ -259,7 +259,7 @@ void ivector_print(FILE* fid,
  *         format e.g. 2 x 2 identity is printed as I2=[1. 0.;0. 1.];
  *         if th varname= "I2"
  *
-*/
+ */
 void print_full_mat(const  INT n, const INT m, REAL *A,const char *varname)
 {
   if( (n<1) || (m<1) ) return;
@@ -290,7 +290,7 @@ void print_full_mat(const  INT n, const INT m, REAL *A,const char *varname)
  *         matlab format e.g. 2 x 2 integer matrix is printed as
  *         X=[1 2; 3 4]; if the varname= "X"
  *
-*/
+ */
 void print_full_mat_int(const  INT n, const INT m, INT *A,const char *varname)
 {
   if( (n<1) || (m<1) ) return;
@@ -412,10 +412,10 @@ void csr_print_native(FILE* fid,
 void icsr_print_matlab(FILE* fid,
                        iCSRmat *A)
 {
-    // local variables
-    INT i,j1,j2,j;
+  // local variables
+  INT i,j1,j2,j;
 
-    // main loop; comma separated
+  // main loop; comma separated
   for(i=0;i<A->row;i++) {
     j1 = A->IA[i];
     j2 = A->IA[i+1];
@@ -441,10 +441,10 @@ void icsr_print_matlab(FILE* fid,
 void icsr_print_matlab_val(FILE* fid,
 			   iCSRmat *A)
 {
-    // local variables
-    INT i,j1,j2,j;
+  // local variables
+  INT i,j1,j2,j;
 
-    // main loop; comma separated
+  // main loop; comma separated
   for(i=0;i<A->row;i++) {
     j1 = A->IA[i];
     j2 = A->IA[i+1];
@@ -468,22 +468,22 @@ void icsr_print_matlab_val(FILE* fid,
 void dvec_write (const char *filename,
                  dvector *vec)
 {
-    // local variables
-    INT m = vec->row, i;
+  // local variables
+  INT m = vec->row, i;
 
-    FILE *fp = fopen(filename,"w");
+  FILE *fp = fopen(filename,"w");
 
-    if ( fp == NULL )
-        check_error(ERROR_OPEN_FILE, __FUNCTION__);
+  if ( fp == NULL )
+    check_error(ERROR_OPEN_FILE, __FUNCTION__);
 
-    printf("%s: HAZMATH is writing to file %s...\n", __FUNCTION__, filename);
+  printf("%s: HAZMATH is writing to file %s...\n", __FUNCTION__, filename);
 
-    fprintf(fp,"%d\n",m);
+  fprintf(fp,"%d\n",m);
 
-    //main loop
-    for ( i = 0; i < m; ++i ) fprintf(fp,"%0.15e\n",vec->val[i]);
+  //main loop
+  for ( i = 0; i < m; ++i ) fprintf(fp,"%0.15e\n",vec->val[i]);
 
-    fclose(fp);
+  fclose(fp);
 }
 
 /***********************************************************************************************/
@@ -499,24 +499,24 @@ void dvec_write (const char *filename,
 void ddense_write(const char *filename,
                   dDENSEmat *A)
 {
-    // local variables
-    const INT n = A->row, m = A->col;
-    const INT nnz = n*m;
-    INT i;
+  // local variables
+  const INT n = A->row, m = A->col;
+  const INT nnz = n*m;
+  INT i;
 
-    FILE *fp = fopen(filename, "w");
+  FILE *fp = fopen(filename, "w");
 
-    if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
+  if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
 
-    printf("%s: HAZMATH is writing to file %s...\n", __FUNCTION__, filename);
+  printf("%s: HAZMATH is writing to file %s...\n", __FUNCTION__, filename);
 
-    // main loop
-    fprintf(fp,"%d  %d\n", n, m);
-    for (i = 0; i < nnz; ++i) {
-      fprintf(fp,"%0.15e\n", A->val[i]);
-    }
+  // main loop
+  fprintf(fp,"%d  %d\n", n, m);
+  for (i = 0; i < nnz; ++i) {
+    fprintf(fp,"%0.15e\n", A->val[i]);
+  }
 
-    fclose(fp);
+  fclose(fp);
 }
 
 /***********************************************************************************************/
@@ -532,24 +532,24 @@ void ddense_write(const char *filename,
 void dcsr_write_dcoo (const char *filename,
                       dCSRmat *A)
 {
-    // local variables
-    const INT m = A->row, n = A->col;
-    INT i, j;
+  // local variables
+  const INT m = A->row, n = A->col;
+  INT i, j;
 
-    FILE *fp = fopen(filename, "w");
+  FILE *fp = fopen(filename, "w");
 
-    if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
+  if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
 
-    printf("%s: HAZMATH is writing to file %s...\n", __FUNCTION__, filename);
+  printf("%s: HAZMATH is writing to file %s...\n", __FUNCTION__, filename);
 
-    // main loop
-    fprintf(fp,"%d  %d  %d\n",m,n,A->nnz);
-    for ( i = 0; i < m; ++i ) {
-        for ( j = A->IA[i]; j < A->IA[i+1]; j++ )
-            fprintf(fp,"%d  %d  %0.15e\n",i,A->JA[j],A->val[j]);
-    }
+  // main loop
+  fprintf(fp,"%d  %d  %d\n",m,n,A->nnz);
+  for ( i = 0; i < m; ++i ) {
+    for ( j = A->IA[i]; j < A->IA[i+1]; j++ )
+      fprintf(fp,"%d  %d  %0.15e\n",i,A->JA[j],A->val[j]);
+  }
 
-    fclose(fp);
+  fclose(fp);
 }
 
 /***********************************************************************************************/
@@ -569,32 +569,32 @@ void dcsr_write_dcoo (const char *filename,
 void dcoo_read_dcsr (const char *filename,
                      dCSRmat *A)
 {
-    int  i,j,k,m,n,nnz;
-    REAL value;
+  int  i,j,k,m,n,nnz;
+  REAL value;
 
-    FILE *fp = fopen(filename,"r");
+  FILE *fp = fopen(filename,"r");
 
-    if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
+  if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
 
-    printf("%s: HAZMATH is reading file %s...\n", __FUNCTION__, filename);
+  printf("%s: HAZMATH is reading file %s...\n", __FUNCTION__, filename);
 
-    fscanf(fp,"%d %d %d",&m,&n,&nnz);
+  fscanf(fp,"%d %d %d",&m,&n,&nnz);
 
-    dCOOmat Atmp=dcoo_create(m,n,nnz);
+  dCOOmat Atmp=dcoo_create(m,n,nnz);
 
-    for ( k = 0; k < nnz; k++ ) {
-        if ( fscanf(fp, "%d %d %le", &i, &j, &value) != EOF ) {
-            Atmp.rowind[k]=i; Atmp.colind[k]=j; Atmp.val[k] = value;
-        }
-        else {
-            check_error(ERROR_WRONG_FILE, "dcoo_read_dcsr");
-        }
+  for ( k = 0; k < nnz; k++ ) {
+    if ( fscanf(fp, "%d %d %le", &i, &j, &value) != EOF ) {
+      Atmp.rowind[k]=i; Atmp.colind[k]=j; Atmp.val[k] = value;
     }
+    else {
+      check_error(ERROR_WRONG_FILE, "dcoo_read_dcsr");
+    }
+  }
 
-    fclose(fp);
+  fclose(fp);
 
-    dcoo_2_dcsr(&Atmp,A);
-    dcoo_free(&Atmp);
+  dcoo_2_dcsr(&Atmp,A);
+  dcoo_free(&Atmp);
 }
 
 /*** Auxillary Files *********************************************************************/
@@ -639,7 +639,7 @@ void rvecd_(FILE *fp,
             REAL *vec,
             INT *nn)
 {
-    // local variables
+  // local variables
   INT n;
   REAL *vec_end;
   n= *nn;
@@ -666,7 +666,7 @@ void rvecd_(FILE *fp,
  */
 FILE* HAZ_fopen(char *fname, char *mode )
 {
-   // local variable
+  // local variable
   FILE   *fp;
 
   fp = fopen(fname,mode);
@@ -707,38 +707,38 @@ void dump_sol_onV_vtk(char *namevtk,
   char *tfloat="Float64", *tinto="Int64", *endian="LittleEndian";
 
   /*
-     What endian?:
+    What endian?:
 
-     Intel x86; OS=MAC OS X: little-endian
-     Intel x86; OS=Windows: little-endian
-     Intel x86; OS=Linux: little-endian
-     Intel x86; OS=Solaris: little-endian
-     Dec Alpha; OS=Digital Unix: little-endian
-     Dec Alpha; OS=VMS: little-endian
-     Hewlett Packard PA-RISC; OS=HP-UX: big-endian
-     IBM RS/6000; OS=AIX: big-endian
-     Motorola PowerPC; OS=Mac OS X:  big-endian
-     SGI R4000 and up; OS=IRIX: big-endian
-     Sun SPARC; OS=Solaris: big-endian
+    Intel x86; OS=MAC OS X: little-endian
+    Intel x86; OS=Windows: little-endian
+    Intel x86; OS=Linux: little-endian
+    Intel x86; OS=Solaris: little-endian
+    Dec Alpha; OS=Digital Unix: little-endian
+    Dec Alpha; OS=VMS: little-endian
+    Hewlett Packard PA-RISC; OS=HP-UX: big-endian
+    IBM RS/6000; OS=AIX: big-endian
+    Motorola PowerPC; OS=Mac OS X:  big-endian
+    SGI R4000 and up; OS=IRIX: big-endian
+    Sun SPARC; OS=Solaris: big-endian
   */
 
   /*
-     Types of cells for VTK
+    Types of cells for VTK
 
-     VTK_VERTEX (=1)
-     VTK_POLY_VERTEX (=2)
-     VTK_LINE (=3)
-     VTK_POLY_LINE (=4)
-     VTK_TRIANGLE(=5)
-     VTK_TRIANGLE_STRIP (=6)
-     VTK_POLYGON (=7)
-     VTK_PIXEL (=8)
-     VTK_QUAD (=9)
-     VTK_TETRA (=10)
-     VTK_VOXEL (=11)
-     VTK_HEXAHEDRON (=12)
-     VTK_WEDGE (=13)
-     VTK_PYRAMID (=14)
+    VTK_VERTEX (=1)
+    VTK_POLY_VERTEX (=2)
+    VTK_LINE (=3)
+    VTK_POLY_LINE (=4)
+    VTK_TRIANGLE(=5)
+    VTK_TRIANGLE_STRIP (=6)
+    VTK_POLYGON (=7)
+    VTK_PIXEL (=8)
+    VTK_QUAD (=9)
+    VTK_TETRA (=10)
+    VTK_VOXEL (=11)
+    VTK_HEXAHEDRON (=12)
+    VTK_WEDGE (=13)
+    VTK_PYRAMID (=14)
   */
 
   const INT LINE=3;
@@ -791,7 +791,7 @@ void dump_sol_onV_vtk(char *namevtk,
     for(k=0;k<nv;k++) fprintf(fvtk," %23.16e ",sol[i*nv+k]);
     fprintf(fvtk,"</DataArray>\n");
   }
-    fprintf(fvtk,"</PointData>\n");
+  fprintf(fvtk,"</PointData>\n");
 
   // Dump el_v map
   fprintf(fvtk,"<Cells>\n");
@@ -851,38 +851,38 @@ void dump_sol_vtk(char *namevtk,char *varname,mesh_struct *mesh,fespace *FE,REAL
   char *tfloat="Float64", *tinto="Int64", *endian="LittleEndian";
 
   /*
-     What endian?:
+    What endian?:
 
-     Intel x86; OS=MAC OS X: little-endian
-     Intel x86; OS=Windows: little-endian
-     Intel x86; OS=Linux: little-endian
-     Intel x86; OS=Solaris: little-endian
-     Dec Alpha; OS=Digital Unix: little-endian
-     Dec Alpha; OS=VMS: little-endian
-     Hewlett Packard PA-RISC; OS=HP-UX: big-endian
-     IBM RS/6000; OS=AIX: big-endian
-     Motorola PowerPC; OS=Mac OS X:  big-endian
-     SGI R4000 and up; OS=IRIX: big-endian
-     Sun SPARC; OS=Solaris: big-endian
+    Intel x86; OS=MAC OS X: little-endian
+    Intel x86; OS=Windows: little-endian
+    Intel x86; OS=Linux: little-endian
+    Intel x86; OS=Solaris: little-endian
+    Dec Alpha; OS=Digital Unix: little-endian
+    Dec Alpha; OS=VMS: little-endian
+    Hewlett Packard PA-RISC; OS=HP-UX: big-endian
+    IBM RS/6000; OS=AIX: big-endian
+    Motorola PowerPC; OS=Mac OS X:  big-endian
+    SGI R4000 and up; OS=IRIX: big-endian
+    Sun SPARC; OS=Solaris: big-endian
   */
 
   /*
-     Types of cells for VTK
+    Types of cells for VTK
 
-     VTK_VERTEX (=1)
-     VTK_POLY_VERTEX (=2)
-     VTK_LINE (=3)
-     VTK_POLY_LINE (=4)
-     VTK_TRIANGLE(=5)
-     VTK_TRIANGLE_STRIP (=6)
-     VTK_POLYGON (=7)
-     VTK_PIXEL (=8)
-     VTK_QUAD (=9)
-     VTK_TETRA (=10)
-     VTK_VOXEL (=11)
-     VTK_HEXAHEDRON (=12)
-     VTK_WEDGE (=13)
-     VTK_PYRAMID (=14)
+    VTK_VERTEX (=1)
+    VTK_POLY_VERTEX (=2)
+    VTK_LINE (=3)
+    VTK_POLY_LINE (=4)
+    VTK_TRIANGLE(=5)
+    VTK_TRIANGLE_STRIP (=6)
+    VTK_POLYGON (=7)
+    VTK_PIXEL (=8)
+    VTK_QUAD (=9)
+    VTK_TETRA (=10)
+    VTK_VOXEL (=11)
+    VTK_HEXAHEDRON (=12)
+    VTK_WEDGE (=13)
+    VTK_PYRAMID (=14)
   */
 
   const INT LINE=3;
@@ -1011,38 +1011,38 @@ void dump_blocksol_vtk(char *namevtk,char **varname,mesh_struct *mesh,block_fesp
   char *tfloat="Float64", *tinto="Int64", *endian="LittleEndian";
 
   /*
-     What endian?:
+    What endian?:
 
-     Intel x86; OS=MAC OS X: little-endian
-     Intel x86; OS=Windows: little-endian
-     Intel x86; OS=Linux: little-endian
-     Intel x86; OS=Solaris: little-endian
-     Dec Alpha; OS=Digital Unix: little-endian
-     Dec Alpha; OS=VMS: little-endian
-     Hewlett Packard PA-RISC; OS=HP-UX: big-endian
-     IBM RS/6000; OS=AIX: big-endian
-     Motorola PowerPC; OS=Mac OS X:  big-endian
-     SGI R4000 and up; OS=IRIX: big-endian
-     Sun SPARC; OS=Solaris: big-endian
+    Intel x86; OS=MAC OS X: little-endian
+    Intel x86; OS=Windows: little-endian
+    Intel x86; OS=Linux: little-endian
+    Intel x86; OS=Solaris: little-endian
+    Dec Alpha; OS=Digital Unix: little-endian
+    Dec Alpha; OS=VMS: little-endian
+    Hewlett Packard PA-RISC; OS=HP-UX: big-endian
+    IBM RS/6000; OS=AIX: big-endian
+    Motorola PowerPC; OS=Mac OS X:  big-endian
+    SGI R4000 and up; OS=IRIX: big-endian
+    Sun SPARC; OS=Solaris: big-endian
   */
 
   /*
-     Types of cells for VTK
+    Types of cells for VTK
 
-     VTK_VERTEX (=1)
-     VTK_POLY_VERTEX (=2)
-     VTK_LINE (=3)
-     VTK_POLY_LINE (=4)
-     VTK_TRIANGLE(=5)
-     VTK_TRIANGLE_STRIP (=6)
-     VTK_POLYGON (=7)
-     VTK_PIXEL (=8)
-     VTK_QUAD (=9)
-     VTK_TETRA (=10)
-     VTK_VOXEL (=11)
-     VTK_HEXAHEDRON (=12)
-     VTK_WEDGE (=13)
-     VTK_PYRAMID (=14)
+    VTK_VERTEX (=1)
+    VTK_POLY_VERTEX (=2)
+    VTK_LINE (=3)
+    VTK_POLY_LINE (=4)
+    VTK_TRIANGLE(=5)
+    VTK_TRIANGLE_STRIP (=6)
+    VTK_POLYGON (=7)
+    VTK_PIXEL (=8)
+    VTK_QUAD (=9)
+    VTK_TETRA (=10)
+    VTK_VOXEL (=11)
+    VTK_HEXAHEDRON (=12)
+    VTK_WEDGE (=13)
+    VTK_PYRAMID (=14)
   */
 
   const INT LINE=3;
@@ -1232,11 +1232,11 @@ void create_pvd(char *namepvd, INT nfiles,char *vtkfilename,char *filetype)
  */
 void debug_print(char* string, INT kill)
 {
-   printf("%s\n",string);fflush(stdout);
+  printf("%s\n",string);fflush(stdout);
 
-   if(kill) exit(0);
+  if(kill) exit(0);
 
-    return;
+  return;
 }
 
 /****************************************************************/
@@ -1304,10 +1304,10 @@ void hazw(char *nameout,scomplex *sc, const int shift)
      connected components on the boundary. sc->cc is the number of
      connected components domains.
      * TODO add sc->cc to the reading.
-  */
+     */
   fprintf(fmesh,"%i %i %i %i\n",ns,n,dim,(sc->bndry_cc-1)); /* this is the
-							   number of
-							   holes;*/
+							       number of
+							       holes;*/
   /* fprintf(stdout,"%i %i %li\n",n,ns,sizeof(ib)/sizeof(INT)); */
   for (j=0;j<ndl;j++) {
     for (k=0;k<ns;k++){
@@ -1356,37 +1356,37 @@ void vtkw(char *namevtk, scomplex *sc, const INT shift, const REAL zscale)
   INT k=-10,j=-10;
   char *tfloat="Float64", *tinto="Int64", *endian="LittleEndian";
   /*
-     what endian?:
+    what endian?:
 
-     Intel x86; OS=MAC OS X: little-endian
-     Intel x86; OS=Windows: little-endian
-     Intel x86; OS=Linux: little-endian
-     Intel x86; OS=Solaris: little-endian
-     Dec Alpha; OS=Digital Unix: little-endian
-     Dec Alpha; OS=VMS: little-endian
-     Hewlett Packard PA-RISC; OS=HP-UX: big-endian
-     IBM RS/6000; OS=AIX: big-endian
-     Motorola PowerPC; OS=Mac OS X:  big-endian
-     SGI R4000 and up; OS=IRIX: big-endian
-     Sun SPARC; OS=Solaris: big-endian
+    Intel x86; OS=MAC OS X: little-endian
+    Intel x86; OS=Windows: little-endian
+    Intel x86; OS=Linux: little-endian
+    Intel x86; OS=Solaris: little-endian
+    Dec Alpha; OS=Digital Unix: little-endian
+    Dec Alpha; OS=VMS: little-endian
+    Hewlett Packard PA-RISC; OS=HP-UX: big-endian
+    IBM RS/6000; OS=AIX: big-endian
+    Motorola PowerPC; OS=Mac OS X:  big-endian
+    SGI R4000 and up; OS=IRIX: big-endian
+    Sun SPARC; OS=Solaris: big-endian
   */
   /*
-     Types of cells for VTK
+    Types of cells for VTK
 
-     VTK_VERTEX (=1)
-     VTK_POLY_VERTEX (=2)
-     VTK_LINE (=3)
-     VTK_POLY_LINE (=4)
-     VTK_TRIANGLE(=5)
-     VTK_TRIANGLE_STRIP (=6)
-     VTK_POLYGON (=7)
-     VTK_PIXEL (=8)
-     VTK_QUAD (=9)
-     VTK_TETRA (=10)
-     VTK_VOXEL (=11)
-     VTK_HEXAHEDRON (=12)
-     VTK_WEDGE (=13)
-     VTK_PYRAMID (=14)
+    VTK_VERTEX (=1)
+    VTK_POLY_VERTEX (=2)
+    VTK_LINE (=3)
+    VTK_POLY_LINE (=4)
+    VTK_TRIANGLE(=5)
+    VTK_TRIANGLE_STRIP (=6)
+    VTK_POLYGON (=7)
+    VTK_PIXEL (=8)
+    VTK_QUAD (=9)
+    VTK_TETRA (=10)
+    VTK_VOXEL (=11)
+    VTK_HEXAHEDRON (=12)
+    VTK_WEDGE (=13)
+    VTK_PYRAMID (=14)
   */
   const INT TRI=5;
   const INT TET=10;
@@ -1550,3 +1550,178 @@ void print_matlab_vector_field(dvector* ux, dvector* uy, dvector* uz, fespace* F
   fclose(fid);
   return;
 }
+/************************* io functions returning pointers ***********/
+/**
+ * \fn void dcoo_read_eof_dcsr_p(FILE *fp,INT *size)
+ *
+ * \brief Read A from matrix disk file in I,J,V format and convert to CSR format
+ *        first reads until the end of file to count the number of nonzeroes
+ *        then reqinds the file and reads all nonzeroes.
+ *        The number of rows is the max of all integers from I[] and size[0]
+ *        The number of columns is the max of all integers from J[] and size[1]
+ *        If size is NULL is the same as size[0]=size[1]=0
+ *
+ * \param filename  File name for matrix
+ * \param size      Pointer to an array with two integers or NULL.
+ *
+ * \note File format:
+ *   - nrow ncol nnz     % number of rows, number of columns, and nnz
+ *   - i  j  a_ij        % i, j a_ij in each line
+ *
+ * \return A         Pointer to the matrix in CSR format
+ *
+ */
+dCSRmat *dcoo_read_eof_dcsr_p (FILE *fp,INT *size)
+{
+  int  i,j,k,m,n,nnz,ichk;
+  REAL value;
+  dCSRmat *A=NULL;
+  if(size){
+    m=size[0];
+    n=size[1];
+  } else {
+    m=-1;
+    n=-1;
+  }
+  nnz=0;
+  while(!feof(fp)){
+    ichk=fscanf(fp,"%d %d %lg", &i,&j, &value);
+    if(ichk<0) break;
+    if(i>m) m=i;
+    if(j>n) n=j;
+    nnz++;
+  }
+  fprintf(stdout,"%s FOUND %d records.\n",__FUNCTION__,nnz);
+  // check if we read anything...
+  if(!nnz) check_error(ERROR_WRONG_FILE, __FUNCTION__);
+  //
+  m++;n++; //bc indices strat from zero so row and coll are with one more.
+  dCOOmat *Atmp=dcoo_create_p(m,n,nnz);
+  //    fprintf(stdout,"\nCheck structure: %d %d %d\n\n",Atmp->row,Atmp->col,Atmp->nnz);fflush(stdout);
+  rewind(fp);
+  for ( k = 0; k < nnz; k++ ) {
+    if ( fscanf(fp, "%d %d %lg", &i, &j, &value) != EOF ) {
+      Atmp->rowind[k]=i; Atmp->colind[k]=j; Atmp->val[k] = value;
+    } else {
+      check_error(ERROR_WRONG_FILE, __FUNCTION__);
+    }
+  }
+  A=dcoo_2_dcsr_p(Atmp);
+  free(Atmp); // just one free if it was allocated with "something_p"
+  return A;
+}
+/***********************************************************************************************/
+/**
+ * \fn dvector *dvector_read_eof_p(FILE *fp)
+ *
+ * \brief Read b from a disk file until EOF in array format
+ *
+ * \param  filename  File name for vector b
+ *
+ * \note File Format:
+ *   - nrow
+ *   - val_j, j=0:nrow-1
+ *
+ * \return b         Pointer to the dvector b (output)
+ *
+ */
+dvector *dvector_read_eof_p(FILE *fp)
+{
+  int  i, n,ichk;
+  REAL value;
+  dvector *b=NULL;
+  n=0;
+  while(!feof(fp)){
+    ichk=fscanf(fp,"%lg", &value);
+    if(ichk<0) break;
+    n++;
+  }
+  fprintf(stdout,"%s: FOUND %d records.\n",__FUNCTION__,n);
+  if(!n)
+    check_error(ERROR_WRONG_FILE, __FUNCTION__);
+  b=dvec_create_p(n);
+  rewind(fp);
+  for ( i = 0; i < n; ++i ) {
+    fscanf(fp, "%lg", &value);
+    b->val[i] = value;
+    if ( value > BIGREAL ) {
+      printf("### ERROR: Wrong value = %lf\n", value);
+      fclose(fp);
+      if(b) free(b);
+      exit(ERROR_INPUT_PAR);
+    }
+  }
+  return b;
+}
+/*********************************************************************/
+/**
+ * \fn dCSRmat *dcoo_read_dcsr_p(FILE *fp)
+ *
+ * \brief Read A from a file in IJ format and convert to CSR format
+ *
+ * \param fp        File descriptor for the input file
+ * \param A         Pointer to the CSR matrix
+ *
+ * \note File format:
+ *   - nrow ncol nnz     % number of rows, number of columns, and nnz
+ *   - i  j  a_ij        % i, j a_ij in each line
+ *
+ */
+dCSRmat *dcoo_read_dcsr_p(FILE *fp)
+{
+  int  i,j,k,m,n,nnz;
+  REAL value;
+
+  if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
+
+  fscanf(fp,"%d %d %d",&m,&n,&nnz);
+
+  dCOOmat *Atmp=dcoo_create_p(m,n,nnz);
+
+  for ( k = 0; k < nnz; k++ ) {
+    if ( fscanf(fp, "%d %d %le", &i, &j, &value) != EOF ) {
+      Atmp->rowind[k]=i; Atmp->colind[k]=j; Atmp->val[k] = value;
+    }
+    else {
+      check_error(ERROR_WRONG_FILE, "dcoo_read_dcsr_p");
+    }
+  }
+  dCSRmat *A=dcoo_2_dcsr_p(Atmp);
+  free((void *)Atmp);
+  return A;
+}
+/*****************************************************************/
+/**
+ * \fn dvector *dvector_read_p(FILE *fp,dvector *b)
+ *
+ * \brief Read b from a disk file in array format
+ *
+ * \param filename  File name for vector b
+ * \param b         Pointer to the dvector b (output)
+ *
+ * \note File Format:
+ *   - nrow
+ *   - val_j, j=0:nrow-1
+ *
+ */
+dvector *dvector_read_p(FILE *fp)
+{
+  dvector *b=NULL;
+  INT  i, n;
+  REAL value;
+  if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
+  fscanf(fp,"%d",&n);
+  b=dvec_create_p(n);
+  for ( i = 0; i < n; ++i ) {
+    fscanf(fp, "%lg", &value);
+    b->val[i] = value;
+    if ( value > BIGREAL ) {
+      printf("### ERROR: Wrong value = %le\n", value);
+      free((void *)b);
+      exit(ERROR_INPUT_PAR);
+    }
+  }
+  return b;
+}
+
+/*EOF*/
