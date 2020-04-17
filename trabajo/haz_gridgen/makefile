@@ -12,7 +12,7 @@ FFLAGS += -fno-second-underscore
 
 ##################### no change should be needed below. ###########
 # HAZMATH LIB and INCLUDE
-HAZDIR = $(realpath ../../..)
+HAZDIR = $(realpath ../..)
 
 HAZLIB = -L$(HAZDIR)/lib
 
