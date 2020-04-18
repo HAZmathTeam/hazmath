@@ -27,6 +27,8 @@ INCLUDE += -I$(HAZDIR)/include
 
 LIBS += $(HAZLIB) -lm -lblas -llapack
 
+RPATH = -Wl,-rpath=$(HAZDIR)/lib
+
 HEADERS += 
 
 MGRAPH_WRAPPERDIR = $(realpath ../multigraph_wrap)
@@ -80,7 +82,7 @@ LIBS += #-lgfortran
 all: $(EXE) 
 
 $(EXE):	$(MGTARGET)	$(OBJS)	
-	+$(CC) $(CFLAGS) $(ExtraFLAGS) $(INCLUDE) $(OBJS) $(MGLIBS) -o $@  $(LIBS)
+	+$(CC) $(CFLAGS) $(ExtraFLAGS) $(OBJS)  $(RPATH)  $(MGLIBS) -o $@  $(LIBS)
 
 %.o:	%.c
 	+$(CC) $(INCLUDE) $(INCLUDESSP) $(CFLAGS) $(DMGRAPH) -o $@ -c $<
