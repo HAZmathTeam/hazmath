@@ -38,9 +38,11 @@ REAL chk_sign(const int it, const int nbrit)
  * \brief Initialize simplicial complex in dimension n with ns
  *        simplices and nv vertices.
  *
- * \param
+ * \param n is the dimension; 
+ *        ns is the number of simplices
+ *        nv is the number of vertices
  *
- * \return
+ * \return initialized structure of type scomplex
  *
  * \note
  *
