@@ -150,7 +150,7 @@ void vol_simplex(INT dim, REAL fact, REAL *xf, REAL *volt, void *wrk)
  * \note
  *
  */
-scomplex *haz_scomplex_read(FILE *fp)
+scomplex *haz_scomplex_read(FILE *fp,INT print_level)
 {
   INT i,ns,nv,n,dummy;
   i=fscanf(fp,"%d %d %d %d",&ns,&nv,&n,&dummy);
@@ -178,7 +178,7 @@ scomplex *haz_scomplex_read(FILE *fp)
   }
   for(i=0;i<nv;i++){
     dummy=fscanf(fp,"%lg",sc->fval+i);
-    if(dummy<0){
+    if(dummy<0 && (print_level>5)){
       fprintf(stderr,"***WARNING(in %s): failed reading the function value at node %d\n                 Continuing with sc->fval=0 for all points\n",__FUNCTION__,i);
       break;
     }
