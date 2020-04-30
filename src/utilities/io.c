@@ -1405,22 +1405,22 @@ void vtkw(char *namevtk, scomplex *sc, const INT shift, const REAL zscale)
   if(n == 2)
     for (j=0;j<nv;j++){
       for (k=0;k<n;k++) {
-	fprintf(fvtk,"%23.16g ",x[j*n+k]);
+	fprintf(fvtk,"%.8f ",x[j*n+k]);
       }
-      fprintf(fvtk,"%g ",0.);
+      fprintf(fvtk,"%.8f ",0.);
     }
   else
     for (j=0;j<nv;j++){
       for (k=0;k<n-1;k++) {
-	fprintf(fvtk,"%23.16g ",x[j*n+k]);
+	fprintf(fvtk,"%.8f ",x[j*n+k]);
       }
-      fprintf(fvtk,"%23.16g ",x[j*n+n-1]*zscale);
+      fprintf(fvtk,"%.8f ",x[j*n+n-1]*zscale);
     }
   fprintf(fvtk,"</DataArray>\n");
   fprintf(fvtk,"</Points>\n");
   fprintf(fvtk,"<CellData Scalars=\"scalars\">\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"%s (layer)\" Format=\"ascii\">",tfloat,"L");
-  for(k=0;k<ns;k++) fprintf(fvtk," %g ",(REAL )sc->flags[k]);
+  for(k=0;k<ns;k++) fprintf(fvtk," %g ",(REAL )sc->flags[k]);//element flags
   fprintf(fvtk,"</DataArray>\n");
   fprintf(fvtk,"</CellData>\n");
   // Dump v_bdry Data to indicate if vertices are boundaries
