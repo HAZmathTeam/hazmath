@@ -139,6 +139,17 @@ void param_input (const char *filenm,		\
         // --------------
         // time stepping
         // --------------
+        else if (strcmp(buffer,"time_start")==0) {
+            val = fscanf(fp,"%s",buffer);
+            if (val!=1 || strcmp(buffer,"=")!=0) {
+                status = ERROR_INPUT_PAR; break;
+            }
+            val = fscanf(fp,"%lf",&dbuff);
+            if (val!=1) { status = ERROR_INPUT_PAR; break; }
+            inparam->time_start = dbuff;
+            fgets(buffer,maxb,fp); // skip rest of line
+        }
+
         else if (strcmp(buffer,"time_step_type")==0) {
             val = fscanf(fp,"%s",buffer);
             if (val!=1 || strcmp(buffer,"=")!=0) {

@@ -58,7 +58,11 @@ void initialize_timestepper(timestepper *tstepper,input_param *inparam,INT rhs_t
 
   // Current Time and Time Step
   tstepper->current_step = 0;
-  tstepper->time = 0.0;
+  if( inparam->time_start){
+    tstepper->time = inparam->time_start;
+  } else {
+    tstepper->time = 0.0;
+  }
 
   // Matrices and Vectors
   tstepper->M=NULL;
@@ -371,7 +375,11 @@ void initialize_blktimestepper(block_timestepper *tstepper,input_param *inparam,
 
   // Current Time and Time Step
   tstepper->current_step = 0;
-  tstepper->time = 0.0;
+  if( inparam->time_start){
+    tstepper->time = inparam->time_start;
+  } else {
+    tstepper->time = 0.0;
+  }
 
   // Matrices and Vectors
   tstepper->M=NULL;
