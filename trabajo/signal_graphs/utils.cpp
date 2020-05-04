@@ -1,5 +1,6 @@
 #include "hazmath_include.h"
 #include <algorithm>
+#include <cmath>
 #include <random>
 #include <vector>
 
@@ -53,14 +54,18 @@ void dsyevr_(char *JOBZ, char *RANGE, char *UPLO, int *N, double *A, int *LDA,
 }
 
 std::vector<REAL *> getRandomSmoothVectors(const dCSRmat *L, int num) {
-  char jobz = 'V', range = 'I', uplo = 'U';
   int n = L->row;
-  num = std::min(n, num);
-  int il = 1, m, isuppz[2 * num], lwork = 26 * n, liwork = 10 * n,
-      iwork[liwork], info;
-  double vl, vu, abstol = 1e-1, w[num], z[n][num], work[lwork];
+  assert(num <= n);
+  int num_eigen = (int)ceil(log2(n));
 
-  double *a = (double *)calloc(n * n, sizeof(double));
+  char jobz = 'V', range = 'I', uplo = 'U';
+  int il = 1, m, isuppz[2 * num_eigen], lwork = 26 * n, liwork = 10 * n, info;
+  int *iwork = new int[liwork];
+  double vl, vu, abstol = 1e-1;
+  double *w = new double[n], *z = new double[n * num_eigen],
+         *work = new double[lwork];
+
+  double *a = new double[n * n]();
   for (auto i = 0; i < n; ++i) {
     for (auto ind = L->IA[i]; ind < L->IA[i + 1]; ++ind) {
       int j = L->JA[ind];
@@ -70,9 +75,12 @@ std::vector<REAL *> getRandomSmoothVectors(const dCSRmat *L, int num) {
     }
   }
 
-  dsyevr_(&jobz, &range, &uplo, &n, a, &n, &vl, &vu, &il, &num, &abstol, &m, w,
-          *z, &n, isuppz, work, &lwork, iwork, &liwork, &info);
-  free(a);
+  dsyevr_(&jobz, &range, &uplo, &n, a, &n, &vl, &vu, &il, &num_eigen, &abstol,
+          &m, w, z, &n, isuppz, work, &lwork, iwork, &liwork, &info);
+  delete[] a;
+  delete[] iwork;
+  delete[] w;
+  delete[] work;
 
   std::default_random_engine generator;
   std::normal_distribution<double> normal(1.0, 1.0);
@@ -80,11 +88,16 @@ std::vector<REAL *> getRandomSmoothVectors(const dCSRmat *L, int num) {
   std::vector<REAL *> vectors;
   for (int i = 0; i < num; ++i) {
     REAL *v = (REAL *)calloc(n, sizeof(REAL));
-    for (int j = 0; j < n; ++j) {
-      array_axpy(n, normal(generator), z[j], v);
+    for (int j = 0; j < num_eigen; ++j) {
+      double weight = normal(generator);
+      for (int k = 0; k < n; ++k)
+        v[k] += weight * z[k * num_eigen + j];
     }
     vectors.push_back(v);
   }
+
+  delete[] z;
+
   return vectors;
 }
 
