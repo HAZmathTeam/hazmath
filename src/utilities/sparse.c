@@ -3867,4 +3867,38 @@ void ivec_alloc_p(const INT m,ivector **u)
   *u=ivec_create_p(m);
   return;
 }
+dCSRmat *dcsr_create_plus(INT m,		\
+			  INT n,		\
+			  INT nnz,		\
+			  void *ia,		\
+			  void *ja,		\
+			  void *aij)
+{
+  dCSRmat *a=malloc(1*sizeof(dCSRmat));// size of the struct
+  a->row=m;  a->col=n;  a->nnz=nnz;
+  if(ia)
+    a->IA=ia;
+  else
+    a->IA=(INT *)realloc(NULL,(n+1)*sizeof(INT));
+  if(ja)
+    a->JA=ja;
+  else
+    a->JA=(INT *)realloc(NULL,nnz*sizeof(INT));
+  if(aij)
+    a->val=aij;
+  else
+    a->val=(REAL *)realloc(NULL,nnz*sizeof(REAL));
+  return a;
+}
+dvector *dvec_create_plus(INT n,		\
+			 void *vi)
+{
+  dvector *v=malloc(1*sizeof(dvector));// size of the struct
+  v->row=n;
+  if(vi)
+    v->val=vi;
+  else
+    v->val=(REAL *)realloc(NULL,n*sizeof(REAL));
+  return v;
+ }
 /*********************************EOF***********************************/
