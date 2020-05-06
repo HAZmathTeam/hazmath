@@ -10,6 +10,12 @@
 
 #include "hazmath.h"
 
+input_param *param_input_init_p()
+{
+  input_param *inparam=malloc(1*sizeof(input_param));
+  param_input_init (inparam);
+  return inparam;
+}
 /*************************************************************************************/
 /*!
  * \fn void param_input_init (input_param *inparam)
@@ -32,7 +38,6 @@ void param_input_init (input_param *inparam)
     strcpy(inparam->inifile,"./input.dat");
     strcpy(inparam->gridfile,"../grids/2D/unitSQ_hp125.dat");
     strcpy(inparam->output_dir,"./output/");
-
     //--------------------------
     // finite element parameters
     //--------------------------
@@ -41,13 +46,16 @@ void param_input_init (input_param *inparam)
 
     // parameters for H(D) equations
     inparam->FE_type                  = 1;
+    inparam->Mass_lump                  = 0;
 
     //----------------------------
     // time steppng paramters
     //----------------------------
+    inparam->time_start           = 0.0;
     inparam->time_step_type           = 0;
     inparam->time_steps               = 0;
     inparam->time_step_size           = 0.01;
+    inparam->rhs_time_dep           = 1;
 
     //----------------------------
     // nonlinear solver parameters
@@ -102,6 +110,10 @@ void param_input_init (input_param *inparam)
     // HX Preconditioner
     inparam->HX_smooth_iter           = 1;
 
+    // BSR Preconditioner
+    inparam->BSR_alpha           = 1.;
+    inparam->BSR_omega           = 1.;
+    return;
 }
 
 /*************************************************************************************/
@@ -148,7 +160,12 @@ void param_amg_init (AMG_param *amgparam)
     amgparam->Schwarz_maxlvl       = 3; // blocksize -- vertices with smaller distance
     amgparam->Schwarz_type         = 1;
     amgparam->Schwarz_blksolver    = SOLVER_DEFAULT;
-
+    amgparam->HAZDIR     = NULL;
+    amgparam->Schwarz_on_blk     = NULL;
+    amgparam->Schwarz_patch_type = NULL;
+    amgparam->damping_param=0.;
+    amgparam->BSR_alpha            = -1000.;
+    amgparam->BSR_omega            = -1000.;
 }
 
 /*************************************************************************************/
@@ -278,9 +295,14 @@ void param_amg_set (AMG_param *amgparam,
     amgparam->Schwarz_maxlvl       = inparam->Schwarz_maxlvl;
     amgparam->Schwarz_type         = inparam->Schwarz_type;
     amgparam->Schwarz_blksolver    = inparam->Schwarz_blksolver;
-
+    amgparam->Schwarz_on_blk     = NULL;
+    amgparam->HAZDIR     = NULL;
+    amgparam->Schwarz_on_blk     = NULL;
+    amgparam->Schwarz_patch_type = NULL;
+    amgparam->damping_param=0.;
     amgparam->BSR_alpha            = inparam->BSR_alpha;
     amgparam->BSR_omega            = inparam->BSR_omega;
+
 }
 
 /**

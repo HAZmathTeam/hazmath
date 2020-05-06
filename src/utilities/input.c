@@ -12,6 +12,12 @@
 
 #include "hazmath.h"
 
+input_param *param_input_p(const char *filenm)
+{
+  input_param *inparam=malloc(1*sizeof(input_param));
+  param_input(filenm,inparam);
+  return inparam;
+}
 /***********************************************************************************************/
 /*!
  * \fn void param_input (const char *filenm, input_param *inparam)
@@ -35,17 +41,17 @@ void param_input (const char *filenm,		\
   }
 
     // set default input parameters
-    param_input_init(inparam);
-
+  param_input_init(inparam);
     // if input file is not specified, use the default values
     if (filenm==NULL) return;
-
+    // ltz: if we are here, the "inparam->inifile" must be the same as filenm:
+    strcpy(inparam->inifile,filenm);
+    // end ltz:
     FILE *fp = fopen(filenm,"r");
     if (fp==NULL) {
         status = ERROR_OPEN_FILE;
         check_error(status, __FUNCTION__);
     }
-
     // only read when successfully open the file
     while ( status == SUCCESS ) {
         int     ibuff;
