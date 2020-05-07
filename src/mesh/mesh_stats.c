@@ -231,8 +231,8 @@ iCSRmat get_el_ed(iCSRmat* el_v,iCSRmat* ed_v)
   // Get transpose of edge to vertex
   iCSRmat v_ed;
   icsr_trans(ed_v,&v_ed);
+  //  zicsr_mxm_symb_max(el_v,&v_ed,&el_ed,2);
   icsr_mxm_symb_max(el_v,&v_ed,&el_ed,2);
-
   icsr_free(&v_ed);
 
   return el_ed;
