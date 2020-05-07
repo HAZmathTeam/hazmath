@@ -262,16 +262,18 @@ void ivector_print(FILE* fid,
  */
 void print_full_mat(const  INT n, const INT m, REAL *A,const char *varname)
 {
+  INT nprt=129,mprt=129;
   if( (n<1) || (m<1) ) return;
-  if( (n*m)>(129*129) ) return;
   INT i,j,n1=n-1;
+  if(n<=nprt) nprt=n;
+  if(m<=mprt) mprt=m;
   if(varname==NULL){
     fprintf(stdout,"\nA=[");
   }else{
     fprintf(stdout,"\n%s=[",varname);
   }
-  for (i = 0; i<n;i++){
-    for(j=0;j<m;j++){
+  for (i = 0; i<nprt;i++){
+    for(j=0;j<mprt;j++){
       fprintf(stdout,"%23.16e ", A[m*i+j]);
     }
     if(i!=n1){
@@ -293,16 +295,18 @@ void print_full_mat(const  INT n, const INT m, REAL *A,const char *varname)
  */
 void print_full_mat_int(const  INT n, const INT m, INT *A,const char *varname)
 {
+  INT nprt=129,mprt=129;
   if( (n<1) || (m<1) ) return;
-  if( (n*m)>(129*129) ) return;
   INT i,j,n1=n-1;
+  if(n<=nprt) nprt=n;
+  if(m<=mprt) mprt=m;
   if(varname==NULL){
     fprintf(stdout,"\nintA=[");
   }else{
     fprintf(stdout,"\n%s=[",varname);
   }
-  for (i = 0; i<n;i++){
-    for(j=0;j<m;j++){
+  for (i = 0; i<nprt;i++){
+    for(j=0;j<mprt;j++){
       fprintf(stdout,"%16i ", A[m*i+j]);
     }
     if(i!=n1){

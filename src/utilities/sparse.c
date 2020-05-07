@@ -1938,7 +1938,7 @@ void icsr_mxm_symb(iCSRmat *A,
    * \param multimax  value allowed in the iCSRmat matrix C, any entry that is not equal to multimax will be deleted
    *
    */
-void icsr_mxm_symb_max(iCSRmat *A,
+void zicsr_mxm_symb_max(iCSRmat *A,
                        iCSRmat *B,
                        iCSRmat *C,
                        INT multmax)
@@ -2045,6 +2045,118 @@ void icsr_mxm_symb_max(iCSRmat *A,
   free(entry_count);
 
   C->nnz = C->IA[C->row]-C->IA[0];
+}
+
+void icsr_mxm_symb_max(iCSRmat *A,
+                       iCSRmat *B,
+                       iCSRmat *C,
+                       INT multmax)
+{
+  /* C===================================================================== */
+  /*       subroutine abybs(ia,ja,ib,jb,np,nq,nr,ic,jc,ix) */
+  /* C===================================================================== */
+  /*       implicit real*8(a-h,o-z) */
+  /*       dimension ia(1),ja(1),ib(1),jb(1),ic(1),jc(1),ix(nr) */
+  /* C-------------------------------------------------------------------- */
+  /* C...  SYMBOLIC MULTIPLICATION OF TWO GENERAL SPARSE MATRICIES */
+  /* C...    np = number of rows of a */
+  /* C...    nq = number of columns of a */
+  /* C...    nr = number of columns of b */
+  /* C-------------------------------------------------------------------- */
+  INT np=A->row,nr=B->col; // INT nq=A->col;  
+  INT i,j,k,nnz,jp,kp;
+  C->val=NULL;C->JA=NULL;
+  INT *ia=A->IA, *ja=A->JA,*ib=B->IA, *jb=B->JA;
+  INT *ic, *jc, *c;
+  INT *ix=(INT *)calloc(nr,sizeof(INT));
+  nnz = 0;
+  for(i=0;i<nr;i++)ix[i]=-1;
+  for(i=0;i<np;i++){
+    for(jp=ia[i];jp<ia[i+1];jp++){
+      j = ja[jp];
+      for(kp = ib[j];kp<ib[j+1];kp++){
+	k = jb[kp];  
+	if(ix[k]!=i) {
+	  nnz++;
+	  ix[k] = i;
+	}
+      }
+    }
+  }
+  ic=(INT *)calloc((np+1),sizeof(INT));  
+  jc=(INT *)calloc(nnz,sizeof(INT));  
+  nnz=0;
+  for(i=0;i<nr;++i) ix[i]=-1;
+  for(i=0;i<np;i++){
+    ic[i] = nnz;
+    for(jp=ia[i];jp<ia[i+1];jp++){
+      j = ja[jp];
+      for(kp = ib[j];kp<ib[j+1];kp++){
+	k = jb[kp];  
+	if(ix[k]!=i) {
+	  jc[nnz] = k;
+	  nnz++;
+	  ix[k] = i;
+	}
+      }
+    }
+  }
+  ic[np] = nnz;
+  c=(INT *)calloc(nnz,sizeof(INT));  
+/* C===================================================================== */
+/*       subroutine abyb(ia,ja,ib,jb,np,ic,jc,an,bn,cn,x,nq) */
+/* C===================================================================== */
+/*       implicit real*8 (a-h,o-z) */
+/*       dimension ia(1),ja(1),ib(1),jb(1),ic(1),jc(1) */
+/*       dimension an(1),bn(1),cn(1),x(nq) */
+/* C-------------------------------------------------------------------- */
+/* C...  MULTIPLICATION OF TWO GENERAL SPARSE MATRICIES: C = A*B */
+/* C-------------------------------------------------------------------- */
+//  ix=realloc(ix,nr*sizeof(INT));
+  for(i=0;i<np;i++){
+    for(j = ic[i];j<ic[i+1];j++){
+      ix[jc[j]] = 0;
+    }
+    for(jp=ia[i];jp<ia[i+1];jp++){
+      j = ja[jp];
+      //      a = an(jp) 
+      for(kp=ib[j];kp<ib[j+1];kp++){
+	k = jb[kp];
+        ix[k]++; // +=a*bn(kp)
+      }
+    }
+    for(j=ic[i];j<ic[i+1];j++){
+      c[j] = ix[jc[j]];
+    }
+  }
+  // skip everything that is not equal to multmax. this can be done in
+  // the loop above but for now its OK
+  nnz=0;
+  for(i=0;i<np;i++){
+    kp=ic[i];
+    ic[i]=nnz;
+    for(j = kp;j<ic[i+1];j++){
+      if(c[j]!=multmax) continue;
+      jc[nnz]=jc[j];
+      //      fprintf(stdout,"\nYYYY: %d: %d<---%d",i,nnz,j);fflush(stdout);
+      nnz++;
+    }
+  }
+  ic[np]=nnz;
+  //  fprintf(stdout,"\nXXXX: %d,%d,%d : dXXXXXXX,%d",np,nq,nr,nnz);fflush(stdout);
+  free(ix);
+  free(c);
+  c=NULL;
+  C->nnz=nnz;
+  C->row=np; C->col=nr;
+  /**/
+  jc=realloc(jc,nnz*sizeof(INT));
+  /**/
+  C->IA=ic;
+  C->JA=jc;
+  C->val=NULL;
+  //  print_full_mat_int(1,C->nnz,C->JA,"eled");
+  return;
 }
 
 /***********************************************************************************************/
