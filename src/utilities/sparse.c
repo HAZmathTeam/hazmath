@@ -1754,9 +1754,7 @@ void dcsr_mxm(dCSRmat *A,
    * \param C   Pointer to iCSRmat matrix equal to A*B
    *
    */
-void icsr_mxm_symb(iCSRmat *A,
-		   iCSRmat *B,
-		   iCSRmat *C)
+void icsr_mxm_symb(iCSRmat *A,iCSRmat *B,iCSRmat *C)
 {
   INT np=A->row,nr=B->col; // INT nq=A->col;  
   INT i,j,k,nnz,jp,kp;
@@ -1873,60 +1871,48 @@ void icsr_mxm (iCSRmat *A,iCSRmat *B,iCSRmat *C)
    *
    */
 void icsr_mxm_symb_max(iCSRmat *A,iCSRmat *B,iCSRmat *C,	\
-                       INT multmax)
+			INT multmax)
 {
+  /*No need of C->val here*/
   /* call the symbolic muultiplication. this is same as A*B, but we do
      not call A*B bc there is no multiplication here aij=bij=1 */
   icsr_mxm_symb(A,B,C);
   /**/
   INT np=C->row,nr=C->col,nnz=C->nnz; // INT nq=A->col;  
-  INT i,j,k,jp,kp;
+  INT izz,i,j,k,jp,kp;
   INT *ia=A->IA, *ja=A->JA,*ib=B->IA, *jb=B->JA;
   INT *ic=C->IA, *jc=C->JA;
   /**/
-  INT *c=(INT *)calloc(nnz,sizeof(INT));
-  /**/
   INT *ix=(INT *)calloc(nr,sizeof(INT));
+  // skip everything that is not equal to multmax.
+  nnz=0;
   for(i=0;i<np;i++){
-    for(j = ic[i];j<ic[i+1];j++){
+    izz=ic[i];
+    ic[i]=nnz;
+    for(j = izz;j<ic[i+1];j++){
       ix[jc[j]] = 0;
     }
     for(jp=ia[i];jp<ia[i+1];jp++){
       j = ja[jp];
-      //      a = an(jp) 
+      //      aij = a(jp) 
       for(kp=ib[j];kp<ib[j+1];kp++){
 	k = jb[kp];
-        ix[k]++; // +=a*bn(kp)
+        ix[k]++; // +=aij*b(kp)
       }
     }
-    for(j=ic[i];j<ic[i+1];j++){
-      c[j] = ix[jc[j]];
-    }
-  }
-  // skip everything that is not equal to multmax. this can be done in
-  // the loop above but for now its OK
-  nnz=0;
-  for(i=0;i<np;i++){
-    kp=ic[i];
-    ic[i]=nnz;
-    for(j = kp;j<ic[i+1];j++){
-      if(c[j]!=multmax) continue;
+    for(j=izz;j<ic[i+1];j++){
+      if(ix[jc[j]]!=multmax) continue;      
       jc[nnz]=jc[j];
-      //      fprintf(stdout,"\nYYYY: %d: %d<---%d",i,nnz,j);fflush(stdout);
       nnz++;
     }
   }
   ic[np]=nnz;
   free(ix);
-  free(c);
-  c=NULL;
   /**/
   C->JA=realloc(jc,nnz*sizeof(INT));
-  C->nnz=nnz; // update the number of nonzeroes
-  //  C->val=NULL; // it must be null already
+  C->nnz=nnz; 
   return;
 }
-
 /***********************************************************************************************/
 /*!
    * \fn dCSRmat dcsr_create_diagonal_matrix(dvector *diag)
