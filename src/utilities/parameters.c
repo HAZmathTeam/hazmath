@@ -149,6 +149,9 @@ void param_amg_init (AMG_param *amgparam)
     amgparam->Schwarz_type         = 1;
     amgparam->Schwarz_blksolver    = SOLVER_DEFAULT;
 
+    // Other smoother param
+    amgparam->damping_param        = 1.0;
+
 }
 
 /*************************************************************************************/
