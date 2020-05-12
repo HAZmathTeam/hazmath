@@ -1189,7 +1189,7 @@ mesh_struct *sc2mesh(scomplex *sc)
   */
   /*********************************************************************/
   /* copy the final grid at position 1*/
-  INT ns=0,nv=sc->nv,n1=sc->n+1,dim=sc->n,v_per_elm=-10;
+  INT ns=0,nv=sc->nv,n1=sc->n+1,dim=sc->n;
   INT jk=-10,k=-10,j=-10,i=-10;
   mesh_struct *mesh=malloc(1*sizeof(mesh_struct));
   initialize_mesh(mesh);
@@ -1203,7 +1203,6 @@ mesh_struct *sc2mesh(scomplex *sc)
     if(sc->child0[j]<0 || sc->childn[j]<0) ns++;
   /*Update mesh with known quantities*/
   mesh->dim = sc->n;
-  v_per_elm = n1;
   mesh->nelm = ns; //do not ever put sc->ns here
   mesh->nv=nv; 
   mesh->nconn_reg = sc->cc; // dummy argument yet.
@@ -1268,7 +1267,7 @@ mesh_struct *sc2mesh(scomplex *sc)
       jk++;
     }
   }
-  fprintf(stdout,"\n%%After %d levels of refinement:\tvertices=%d ; simplices=%d in dim=%d; holes=%d\n",   sc->level,mesh->nv,mesh->nelm,mesh->dim,mesh->nconn_bdry); fflush(stdout);
+  fprintf(stdout,"\n%%After %d levels of refinement:\tvertices=%d ; simplices=%d in dim=%d;\n components(bdry):%d\n",   sc->level,mesh->nv,mesh->nelm,mesh->dim,mesh->nconn_bdry); fflush(stdout);
   return mesh;
 }
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/

@@ -232,7 +232,9 @@ iCSRmat get_el_ed(iCSRmat* el_v,iCSRmat* ed_v)
   iCSRmat v_ed;
   icsr_trans(ed_v,&v_ed);
   icsr_mxm_symb_max(el_v,&v_ed,&el_ed,2);
-
+  //zicsr_mxm_symb_max(el_v,&v_ed,&el_ed,2);
+  //fprintf(stdout,"\nXXXX: %d, %d %d\n",el_ed.nnz,el_ed.row,el_ed.col);
+  //print_full_mat_int(el_ed.nnz,1,el_ed.JA,"eled");
   icsr_free(&v_ed);
 
   return el_ed;
