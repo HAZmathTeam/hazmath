@@ -1743,106 +1743,6 @@ void dcsr_mxm(dCSRmat *A,
 
   C->nnz = C->IA[C->row]-C->IA[0];
 }
-
-/***********************************************************************************************/
-/*!
-   * \fn void icsr_mxm (iCSRmat *A, iCSRmat *B, iCSRmat *C)
-   *
-   * \brief Sparse matrix multiplication C=A*B (index starts with 0!!)
-   *
-   * \param A   Pointer to the iCSRmat matrix A
-   * \param B   Pointer to the iCSRmat matrix B
-   * \param C   Pointer to iCSRmat matrix equal to A*B
-   *
-   */
-void icsr_mxm(iCSRmat *A,
-              iCSRmat *B,
-              iCSRmat *C)
-{
-  INT i,j,k,l,count;
-
-  INT *JD = (INT *)calloc(B->col,sizeof(INT));
-
-  C->row = A->row;
-  C->col = B->col;
-  C->val = NULL;
-  C->JA  = NULL;
-  C->IA  = (INT*)calloc(C->row+1,sizeof(INT));
-
-  for (i=0;i<B->col;++i) JD[i]=-1;
-
-  // step 1: Find first the structure IA of C
-  for(i=0;i<C->row;++i) {
-    count=0;
-
-    for (k=A->IA[i];k<A->IA[i+1];++k) {
-      for (j=B->IA[A->JA[k]];j<B->IA[A->JA[k]+1];++j) {
-        for (l=0;l<count;l++) {
-          if (JD[l]==B->JA[j]) break;
-        }
-
-        if (l==count) {
-          JD[count]=B->JA[j];
-          count++;
-        }
-      }
-    }
-    C->IA[i+1]=count;
-    for (j=0;j<count;++j) {
-      JD[j]=-1;
-    }
-  }
-
-  for (i=0;i<C->row;++i) C->IA[i+1]+=C->IA[i];
-
-  // step 2: Find the structure JA of C
-  INT countJD;
-
-  C->JA=(INT*)calloc(C->IA[C->row],sizeof(INT));
-
-  for (i=0;i<C->row;++i) {
-    countJD=0;
-    count=C->IA[i];
-    for (k=A->IA[i];k<A->IA[i+1];++k) {
-      for (j=B->IA[A->JA[k]];j<B->IA[A->JA[k]+1];++j) {
-        for (l=0;l<countJD;l++) {
-          if (JD[l]==B->JA[j]) break;
-        }
-
-        if (l==countJD) {
-          C->JA[count]=B->JA[j];
-          JD[countJD]=B->JA[j];
-          count++;
-          countJD++;
-        }
-      }
-    }
-
-    //for (j=0;j<countJD;++j) JD[j]=-1;
-    memset(JD, -1, sizeof(INT)*countJD);
-  }
-
-  free(JD);
-
-  // step 3: Find the structure A of C
-  C->val=(INT*)calloc(C->IA[C->row],sizeof(INT));
-
-  for (i=0;i<C->row;++i) {
-    for (j=C->IA[i];j<C->IA[i+1];++j) {
-      C->val[j]=0;
-      for (k=A->IA[i];k<A->IA[i+1];++k) {
-        for (l=B->IA[A->JA[k]];l<B->IA[A->JA[k]+1];l++) {
-          if (B->JA[l]==C->JA[j]) {
-            C->val[j]+=A->val[k]*B->val[l];
-          } // end if
-        } // end for l
-      } // end for k
-    } // end for j
-  }    // end for i
-
-  C->nnz = C->IA[C->row]-C->IA[0];
-}
-
 /***********************************************************************************************/
 /*!
    * \fn void icsr_mxm_symb (iCSRmat *A, iCSRmat *B, iCSRmat *C)
@@ -1854,79 +1754,111 @@ void icsr_mxm(iCSRmat *A,
    * \param C   Pointer to iCSRmat matrix equal to A*B
    *
    */
-void icsr_mxm_symb(iCSRmat *A,
-                   iCSRmat *B,
-                   iCSRmat *C)
+void icsr_mxm_symb(iCSRmat *A,iCSRmat *B,iCSRmat *C)
 {
-  INT i,j,k,l,count;
-
-  INT *JD = (INT *)calloc(B->col,sizeof(INT));
-
-  C->row = A->row;
-  C->col = B->col;
-  C->val = NULL;
-  C->JA  = NULL;
-  C->IA  = (INT*)calloc(C->row+1,sizeof(INT));
-
-  for (i=0;i<B->col;++i) JD[i]=-1;
-
-  // step 1: Find first the structure IA of C
-  for(i=0;i<C->row;++i) {
-    count=0;
-
-    for (k=A->IA[i];k<A->IA[i+1];++k) {
-      for (j=B->IA[A->JA[k]];j<B->IA[A->JA[k]+1];++j) {
-        for (l=0;l<count;l++) {
-          if (JD[l]==B->JA[j]) break;
-        }
-
-        if (l==count) {
-          JD[count]=B->JA[j];
-          count++;
-        }
+  INT np=A->row,nr=B->col; // INT nq=A->col;  
+  INT i,j,k,nnz,jp,kp;
+  C->val=NULL;C->JA=NULL;
+  INT *ia=A->IA, *ja=A->JA,*ib=B->IA, *jb=B->JA;
+  INT *ic, *jc;
+  INT *ix=(INT *)calloc(nr,sizeof(INT));
+  nnz = 0;
+  for(i=0;i<nr;i++)ix[i]=-1;
+  for(i=0;i<np;i++){
+    for(jp=ia[i];jp<ia[i+1];jp++){
+      j = ja[jp];
+      for(kp = ib[j];kp<ib[j+1];kp++){
+	k = jb[kp];  
+	if(ix[k]!=i) {
+	  nnz++;
+	  ix[k] = i;
+	}
       }
     }
-    C->IA[i+1]=count;
-    for (j=0;j<count;++j) {
-      JD[j]=-1;
-    }
   }
-
-  for (i=0;i<C->row;++i) C->IA[i+1]+=C->IA[i];
-
-  // step 2: Find the structure JA of C
-  INT countJD;
-
-  C->JA=(INT*)calloc(C->IA[C->row],sizeof(INT));
-
-  for (i=0;i<C->row;++i) {
-    countJD=0;
-    count=C->IA[i];
-    for (k=A->IA[i];k<A->IA[i+1];++k) {
-      for (j=B->IA[A->JA[k]];j<B->IA[A->JA[k]+1];++j) {
-        for (l=0;l<countJD;l++) {
-          if (JD[l]==B->JA[j]) break;
-        }
-
-        if (l==countJD) {
-          C->JA[count]=B->JA[j];
-          JD[countJD]=B->JA[j];
-          count++;
-          countJD++;
-        }
+  ic=(INT *)calloc((np+1),sizeof(INT));  
+  jc=(INT *)calloc(nnz,sizeof(INT));  
+  nnz=0;
+  for(i=0;i<nr;++i) ix[i]=-1;
+  for(i=0;i<np;i++){
+    ic[i] = nnz;
+    for(jp=ia[i];jp<ia[i+1];jp++){
+      j = ja[jp];
+      for(kp = ib[j];kp<ib[j+1];kp++){
+	k = jb[kp];  
+	if(ix[k]!=i) {
+	  jc[nnz] = k;
+	  nnz++;
+	  ix[k] = i;
+	}
       }
     }
-
-    //for (j=0;j<countJD;++j) JD[j]=-1;
-    memset(JD, -1, sizeof(INT)*countJD);
   }
-
-  free(JD);
-
-  C->nnz = C->IA[C->row]-C->IA[0];
+  ic[np] = nnz;
+  free(ix);
+  C->nnz=nnz;
+  C->row=np; C->col=nr;
+  /**/
+  C->IA=ic;
+  C->JA=jc;
+  C->val=NULL;
+  return;
 }
-
-/***********************************************************************************************/
+/**************************************************************************/
+/*!
+   * \fn void icsr_mxm_symb_max (iCSRmat *A, iCSRmat *B, iCSRmat *C, INT multmax)
+   *
+   * \brief symbolic sparse matrix multiplication C=A*B (index starts with 0!!)
+   *
+   * \param A         Pointer to the iCSRmat matrix A
+   * \param B         Pointer to the iCSRmat matrix B
+   * \param C         Pointer to iCSRmat matrix equal to A*B
+   *
+   */
+void icsr_mxm (iCSRmat *A,iCSRmat *B,iCSRmat *C)
+{
+  /* C-------------------------------------------------------------------- */
+  /* call the symbolic muultiplication */
+  icsr_mxm_symb(A,B,C);
+  /**/  
+  INT np=C->row,nr=C->col,nnz=C->nnz; // INT nq=A->col;  
+  INT i,j,k,jp,kp,aij;
+  INT *ia=A->IA, *ja=A->JA,*ib=B->IA, *jb=B->JA;
+  INT *ic=C->IA, *jc=C->JA;
+  INT *a=A->val, *b=B->val;
+  /**/
+  INT *c=(INT *)calloc(nnz,sizeof(INT));
+  INT *ix=(INT *)calloc(nr,sizeof(INT));
+  /*do the multipplication*/
+  /* C===================================================================== */
+/*       subroutine abyb(ia,ja,ib,jb,np,ic,jc,an,bn,cn,x,nq) */
+/* C===================================================================== */
+/*       implicit real*8 (a-h,o-z) */
+/*       dimension ia(1),ja(1),ib(1),jb(1),ic(1),jc(1) */
+/*       dimension an(1),bn(1),cn(1),x(nq) */
+/* C-------------------------------------------------------------------- */
+/* C...  MULTIPLICATION OF TWO GENERAL SPARSE MATRICIES: C = A*B */
+/* C-------------------------------------------------------------------- */
+//  ix=realloc(ix,nr*sizeof(INT));
+  for(i=0;i<np;i++){
+    for(j = ic[i];j<ic[i+1];j++) ix[jc[j]] = 0;    
+    for(jp=ia[i];jp<ia[i+1];jp++){
+      j = ja[jp];
+      aij = a[jp]; 
+      for(kp=ib[j];kp<ib[j+1];kp++){
+	k = jb[kp];
+        ix[k]+=aij*b[kp];
+      }
+    }
+    for(j=ic[i];j<ic[i+1];j++) c[j] = ix[jc[j]];
+  }
+  ic[np]=nnz;
+  free(ix);
+  C->val=c; 
+  C->nnz=nnz; 
+  return;
+}
+/**************************************************************************/
 /*!
    * \fn void icsr_mxm_symb_max (iCSRmat *A, iCSRmat *B, iCSRmat *C, INT multmax)
    *
@@ -1938,115 +1870,49 @@ void icsr_mxm_symb(iCSRmat *A,
    * \param multimax  value allowed in the iCSRmat matrix C, any entry that is not equal to multimax will be deleted
    *
    */
-void icsr_mxm_symb_max(iCSRmat *A,
-                       iCSRmat *B,
-                       iCSRmat *C,
-                       INT multmax)
+void icsr_mxm_symb_max(iCSRmat *A,iCSRmat *B,iCSRmat *C,	\
+			INT multmax)
 {
-  INT i,j,k,l,count;
-
-  INT *JD = (INT *)calloc(B->col,sizeof(INT));
-  INT *entry_count = (INT *)calloc(B->col,sizeof(INT));
-
-  C->row = A->row;
-  C->col = B->col;
-  C->val = NULL;
-  C->JA  = NULL;
-  C->IA  = (INT*)calloc(C->row+1,sizeof(INT));
-
-  for (i=0;i<B->col;++i) {
-    JD[i] = -1;
-    entry_count[i] = 0;
-  }
-
-  // step 1: Find first the structure IA of C
-  for(i=0;i<C->row;++i) {
-    count=0;
-
-    for (k=A->IA[i];k<A->IA[i+1];++k) {
-      for (j=B->IA[A->JA[k]];j<B->IA[A->JA[k]+1];++j) {
-        for (l=0;l<count;l++) {
-          if (JD[l]==B->JA[j]) {
-            entry_count[l] = entry_count[l]+1;
-            break;
-          }
-        }
-
-        if (l==count) {
-          JD[count]=B->JA[j];
-          entry_count[count] = 1;
-          count++;
-        }
-      }
-
-
+  /*No need of C->val here*/
+  /* call the symbolic muultiplication. this is same as A*B, but we do
+     not call A*B bc there is no multiplication here aij=bij=1 */
+  icsr_mxm_symb(A,B,C);
+  /**/
+  INT np=C->row,nr=C->col,nnz=C->nnz; // INT nq=A->col;  
+  INT izz,i,j,k,jp,kp;
+  INT *ia=A->IA, *ja=A->JA,*ib=B->IA, *jb=B->JA;
+  INT *ic=C->IA, *jc=C->JA;
+  /**/
+  INT *ix=(INT *)calloc(nr,sizeof(INT));
+  // skip everything that is not equal to multmax.
+  nnz=0;
+  for(i=0;i<np;i++){
+    izz=ic[i];
+    ic[i]=nnz;
+    for(j = izz;j<ic[i+1];j++){
+      ix[jc[j]] = 0;
     }
-
-
-    C->IA[i+1]=count;
-
-    for (j=0;j<count;++j) {
-
-      JD[j]=-1;
-
-      if (entry_count[j] != multmax) C->IA[i+1] = C->IA[i+1]-1;
-
-      entry_count[j] = 0;
-
-    }
-
-
-  }
-
-  for (i=0;i<C->row;++i) C->IA[i+1]+=C->IA[i];
-
-
-  // step 2: Find the structure JA of C
-  INT countJD;
-
-  C->JA=(INT*)calloc(C->IA[C->row],sizeof(INT));
-
-  for (i=0;i<C->row;++i) {
-    countJD=0;
-    count=C->IA[i];
-
-    for (k=A->IA[i];k<A->IA[i+1];++k) {
-      for (j=B->IA[A->JA[k]];j<B->IA[A->JA[k]+1];++j) {
-        for (l=0;l<countJD;l++) {
-          if (JD[l]==B->JA[j]) {
-            entry_count[l] = entry_count[l]+1;
-            break;
-          }
-        }
-
-        if (l==countJD) {
-          //C->JA[count]=B->JA[j];
-          JD[countJD]=B->JA[j];
-          entry_count[countJD] = 1;
-          //count++;
-          countJD++;
-        }
+    for(jp=ia[i];jp<ia[i+1];jp++){
+      j = ja[jp];
+      //      aij = a(jp) 
+      for(kp=ib[j];kp<ib[j+1];kp++){
+	k = jb[kp];
+        ix[k]++; // +=aij*b(kp)
       }
-
     }
-
-    for (j=0;j<countJD;++j) {
-      if (entry_count[j] == multmax) {
-        C->JA[count]=JD[j];
-        count++;
-      }
-      JD[j]=-1;
-      entry_count[j] = 0;
+    for(j=izz;j<ic[i+1];j++){
+      if(ix[jc[j]]!=multmax) continue;      
+      jc[nnz]=jc[j];
+      nnz++;
     }
   }
-
-  // free
-  free(JD);
-  free(entry_count);
-
-  C->nnz = C->IA[C->row]-C->IA[0];
+  ic[np]=nnz;
+  free(ix);
+  /**/
+  C->JA=realloc(jc,nnz*sizeof(INT));
+  C->nnz=nnz; 
+  return;
 }
-
 /***********************************************************************************************/
 /*!
    * \fn dCSRmat dcsr_create_diagonal_matrix(dvector *diag)
@@ -3867,4 +3733,38 @@ void ivec_alloc_p(const INT m,ivector **u)
   *u=ivec_create_p(m);
   return;
 }
+dCSRmat *dcsr_create_plus(INT m,		\
+			  INT n,		\
+			  INT nnz,		\
+			  void *ia,		\
+			  void *ja,		\
+			  void *aij)
+{
+  dCSRmat *a=malloc(1*sizeof(dCSRmat));// size of the struct
+  a->row=m;  a->col=n;  a->nnz=nnz;
+  if(ia)
+    a->IA=ia;
+  else
+    a->IA=(INT *)realloc(NULL,(n+1)*sizeof(INT));
+  if(ja)
+    a->JA=ja;
+  else
+    a->JA=(INT *)realloc(NULL,nnz*sizeof(INT));
+  if(aij)
+    a->val=aij;
+  else
+    a->val=(REAL *)realloc(NULL,nnz*sizeof(REAL));
+  return a;
+}
+dvector *dvec_create_plus(INT n,		\
+			 void *vi)
+{
+  dvector *v=malloc(1*sizeof(dvector));// size of the struct
+  v->row=n;
+  if(vi)
+    v->val=vi;
+  else
+    v->val=(REAL *)realloc(NULL,n*sizeof(REAL));
+  return v;
+ }
 /*********************************EOF***********************************/
