@@ -21,10 +21,27 @@
 #include <stdio.h>
 #include <time.h>
 #include <math.h>
-#ifndef INT
-#define INT long int
+// look below for int and long int. 
+#define __longint 1
+#define __longdouble 0
+///////////////////////////////////////////////
+#ifdef INT
+#undef INT
 #endif
-#ifndef REAL
+#ifdef REAL
+#undef REAL
+#endif
+///////////////////////////////////////////////
+#if( __longint == 1 )
+#define INT long int
+#else
+#define INT int
+#endif
+
+
+#if( __longdouble == 1 )
+#define REAL long double
+#else 
 #define REAL double
 #endif
 /* all routines */
@@ -63,7 +80,11 @@ void main()
   levels = 9; 
   fprintf(stdout, "\nINPUT NOTE: Number of points in one direction is = 2^(levels)+1.\n");
   fprintf(stdout, "           *Enter the desired number of levels (2-%2i): ",MAX_LEVELS);
+#if( __longint == 1 )
+  k=fscanf(stdin,"%ld", &levels);
+#else
   k=fscanf(stdin,"%d", &levels);
+#endif
   fprintf(stdout,"\n");
   if(levels > MAX_LEVELS) 
     levels=MAX_LEVELS;
@@ -71,7 +92,11 @@ void main()
     levels=MIN_LEVELS;
   /* Number of pre- and post- smoothing steps */
   fprintf(stdout, "           *Enter spatial dimension (2 or 3): ");
+#if( __longint == 1 )
+  k=fscanf(stdin,"%ld", &nspdim);
+#else
   k=fscanf(stdin,"%d", &nspdim);
+#endif
   fprintf(stdout,"\n");
   if(nspdim > 3) 
     nspdim=3;
@@ -79,13 +104,21 @@ void main()
     nspdim=2;
   /* */
   fprintf(stdout, "\n           *Enter number of smoothing steps: ");
+#if( __longint == 1 )
+  k=fscanf(stdin,"%ld", &nsweeps);
+#else
   k=fscanf(stdin,"%d", &nsweeps);
+#endif
   fprintf(stdout,"\n");
   if(nsweeps < 1) 
     nsweeps=N_SMOOTH;
   /* */
   fprintf(stdout, "\n           *(V-cycles or FMG): [0 or 1]: ");
+#if( __longint == 1 )
+  k=fscanf(stdin,"%ld", &isfmg);
+#else
   k=fscanf(stdin,"%d", &isfmg);
+#endif
   fprintf(stdout,"\n");
   if(isfmg) { 
     isfmg=1;
@@ -149,10 +182,10 @@ void main()
       time0 = (double)(clock() - beg) / CLOCKS_PER_SEC;
     }
     if(isfmg) {
-      printf("\n FMG (%d V-cycles); ||r||/||f||=%10.3e\n",nvcycles,errrel);
+      printf("\n FMG (%ld V-cycles); ||r||/||f||=%10.3e\n",(long int)nvcycles,errrel);
     } else {
-      printf("\n %d V-cycles; rel.residual=%10.3e ; damp.factor=%10.3e\n",\
-	     iterv,errrel,reduce);
+      printf("\n %ld V-cycles; rel.residual=%10.3e ; damp.factor=%10.3e\n",\
+	     (long int)iterv,errrel,reduce);
     }
     printf("\n ***CPU (calculated by clock())=%10.2f seconds\n\n",time0);    
     if(u) free(u);
@@ -161,7 +194,7 @@ void main()
     if(uk) free(uk);
     if(rk) free(rk);
   } else {
-    fprintf(stdout, "\n****ERROR: (levels=%d) is too big.\n****Could not allocate memory for",levels);
+    fprintf(stdout, "\n****ERROR: (levels=%ld) is too big.\n****Could not allocate memory for",(long int)levels);
     if(!u) 
       fprintf(stdout, " the solution U()");
     else if(!f)
