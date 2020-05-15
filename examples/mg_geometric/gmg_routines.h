@@ -1251,10 +1251,10 @@ static void print_info(FILE *fp,		\
 {
   /* Print some info */
   fprintf(fp,"\n");
-  fprintf(fp,"*Number of levels is set to  :  %7i\n",lvlloc);
-  fprintf(fp,"*Num. points in one direction:  %7i\n",nx);
-  fprintf(fp,"*Spatial dimension is set to :  %7i\n",nspdim);
-  fprintf(fp,"*Num. of Smoothing steps     :  %7i\n",nsweeps);
+  fprintf(fp,"*Number of levels is set to  :  %7li\n",(long int)lvlloc);
+  fprintf(fp,"*Num. points in one direction:  %7li\n",(long int)nx);
+  fprintf(fp,"*Spatial dimension is set to :  %7li\n",(long int)nspdim);
+  fprintf(fp,"*Num. of Smoothing steps     :  %7li\n",(long int)nsweeps);
   if(isfmg) {
     fprintf(fp,"\n**FMG FMG FMG**\n");
   } else {
@@ -1262,7 +1262,7 @@ static void print_info(FILE *fp,		\
     fprintf(fp,"\n**Stopping criteria: |rk|/|r0| < %12.3g\n",tol);
   }
   fprintf(fp, "\n***** NUMBER OF UNKNOWNS=%li\n",ntall);
-  fprintf(fp,    "\n**MEMORY NEEDED (DOUBLE):  (%12ld) ==> Bytes/dof%10.2f\n",memtotal, ((double )memtotal)/((double ) ntall)*sizeof(REAL));
+  fprintf(fp,    "\n**MEMORY NEEDED (DOUBLE):  (%12ld) ==> Bytes/dof%10.2f\n",(long int)memtotal, ((double )memtotal)/((double ) ntall)*sizeof(REAL));
 }
 
 /**********************************MEMORY*********************************/
