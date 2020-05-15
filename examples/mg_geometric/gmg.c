@@ -16,7 +16,17 @@
 /***********************************************************************/
 /*HHAZmath includes*/
 /***********************************************************************/
-#include "hazmath.h"
+//#include "hazmath.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
+#include <math.h>
+#ifndef INT
+#define INT long int
+#endif
+#ifndef REAL
+#define REAL double
+#endif
 /* all routines */
 #include "gmg_routines.h"
 /* right hand side and boundary conditions */
