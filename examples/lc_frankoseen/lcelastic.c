@@ -28,8 +28,8 @@
 
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************************/
 #include "hazmath.h"
-#include "LCData.h"
-#include "LCSystem.h"
+#include "lc_data.h"
+#include "lc_system.h"
 /*********************************************************************************/
 
 /****** MAIN DRIVER **************************************************************/
