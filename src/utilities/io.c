@@ -262,16 +262,18 @@ void ivector_print(FILE* fid,
  */
 void print_full_mat(const  INT n, const INT m, REAL *A,const char *varname)
 {
+  INT nprt=129,mprt=129;
   if( (n<1) || (m<1) ) return;
-  if( (n*m)>(129*129) ) return;
   INT i,j,n1=n-1;
+  if(n<=nprt) nprt=n;
+  if(m<=mprt) mprt=m;
   if(varname==NULL){
     fprintf(stdout,"\nA=[");
   }else{
     fprintf(stdout,"\n%s=[",varname);
   }
-  for (i = 0; i<n;i++){
-    for(j=0;j<m;j++){
+  for (i = 0; i<nprt;i++){
+    for(j=0;j<mprt;j++){
       fprintf(stdout,"%23.16e ", A[m*i+j]);
     }
     if(i!=n1){
@@ -293,16 +295,18 @@ void print_full_mat(const  INT n, const INT m, REAL *A,const char *varname)
  */
 void print_full_mat_int(const  INT n, const INT m, INT *A,const char *varname)
 {
+  INT nprt=129,mprt=129;
   if( (n<1) || (m<1) ) return;
-  if( (n*m)>(129*129) ) return;
   INT i,j,n1=n-1;
+  if(n<=nprt) nprt=n;
+  if(m<=mprt) mprt=m;
   if(varname==NULL){
     fprintf(stdout,"\nintA=[");
   }else{
     fprintf(stdout,"\n%s=[",varname);
   }
-  for (i = 0; i<n;i++){
-    for(j=0;j<m;j++){
+  for (i = 0; i<nprt;i++){
+    for(j=0;j<mprt;j++){
       fprintf(stdout,"%16i ", A[m*i+j]);
     }
     if(i!=n1){
@@ -1405,22 +1409,22 @@ void vtkw(char *namevtk, scomplex *sc, const INT shift, const REAL zscale)
   if(n == 2)
     for (j=0;j<nv;j++){
       for (k=0;k<n;k++) {
-	fprintf(fvtk,"%23.16g ",x[j*n+k]);
+	fprintf(fvtk,"%.8f ",x[j*n+k]);
       }
-      fprintf(fvtk,"%g ",0.);
+      fprintf(fvtk,"%.8f ",0.);
     }
   else
     for (j=0;j<nv;j++){
       for (k=0;k<n-1;k++) {
-	fprintf(fvtk,"%23.16g ",x[j*n+k]);
+	fprintf(fvtk,"%.8f ",x[j*n+k]);
       }
-      fprintf(fvtk,"%23.16g ",x[j*n+n-1]*zscale);
+      fprintf(fvtk,"%.8f ",x[j*n+n-1]*zscale);
     }
   fprintf(fvtk,"</DataArray>\n");
   fprintf(fvtk,"</Points>\n");
   fprintf(fvtk,"<CellData Scalars=\"scalars\">\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"%s (layer)\" Format=\"ascii\">",tfloat,"L");
-  for(k=0;k<ns;k++) fprintf(fvtk," %g ",(REAL )sc->flags[k]);
+  for(k=0;k<ns;k++) fprintf(fvtk," %g ",(REAL )sc->flags[k]);//element flags
   fprintf(fvtk,"</DataArray>\n");
   fprintf(fvtk,"</CellData>\n");
   // Dump v_bdry Data to indicate if vertices are boundaries
