@@ -38,9 +38,11 @@ REAL chk_sign(const int it, const int nbrit)
  * \brief Initialize simplicial complex in dimension n with ns
  *        simplices and nv vertices.
  *
- * \param
+ * \param n is the dimension; 
+ *        ns is the number of simplices
+ *        nv is the number of vertices
  *
- * \return
+ * \return initialized structure of type scomplex
  *
  * \note
  *
@@ -148,7 +150,7 @@ void vol_simplex(INT dim, REAL fact, REAL *xf, REAL *volt, void *wrk)
  * \note
  *
  */
-scomplex *haz_scomplex_read(FILE *fp)
+scomplex *haz_scomplex_read(FILE *fp,INT print_level)
 {
   INT i,ns,nv,n,dummy;
   i=fscanf(fp,"%d %d %d %d",&ns,&nv,&n,&dummy);
@@ -176,7 +178,7 @@ scomplex *haz_scomplex_read(FILE *fp)
   }
   for(i=0;i<nv;i++){
     dummy=fscanf(fp,"%lg",sc->fval+i);
-    if(dummy<0){
+    if(dummy<0 && (print_level>5)){
       fprintf(stderr,"***WARNING(in %s): failed reading the function value at node %d\n                 Continuing with sc->fval=0 for all points\n",__FUNCTION__,i);
       break;
     }
@@ -1187,7 +1189,7 @@ mesh_struct *sc2mesh(scomplex *sc)
   */
   /*********************************************************************/
   /* copy the final grid at position 1*/
-  INT ns=0,nv=sc->nv,n1=sc->n+1,dim=sc->n,v_per_elm=-10;
+  INT ns=0,nv=sc->nv,n1=sc->n+1,dim=sc->n;
   INT jk=-10,k=-10,j=-10,i=-10;
   mesh_struct *mesh=malloc(1*sizeof(mesh_struct));
   initialize_mesh(mesh);
@@ -1201,7 +1203,6 @@ mesh_struct *sc2mesh(scomplex *sc)
     if(sc->child0[j]<0 || sc->childn[j]<0) ns++;
   /*Update mesh with known quantities*/
   mesh->dim = sc->n;
-  v_per_elm = n1;
   mesh->nelm = ns; //do not ever put sc->ns here
   mesh->nv=nv; 
   mesh->nconn_reg = sc->cc; // dummy argument yet.
@@ -1266,7 +1267,7 @@ mesh_struct *sc2mesh(scomplex *sc)
       jk++;
     }
   }
-  fprintf(stdout,"\n%%After %d levels of refinement:\tvertices=%d ; simplices=%d in dim=%d; holes=%d\n",   sc->level,mesh->nv,mesh->nelm,mesh->dim,mesh->nconn_bdry); fflush(stdout);
+  fprintf(stdout,"\n%%After %d levels of refinement:\tvertices=%d ; simplices=%d in dim=%d;\n components(bdry):%d\n",   sc->level,mesh->nv,mesh->nelm,mesh->dim,mesh->nconn_bdry); fflush(stdout);
   return mesh;
 }
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/

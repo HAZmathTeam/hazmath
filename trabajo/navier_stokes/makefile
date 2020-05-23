@@ -1,20 +1,19 @@
 #####################################################
-# Last Modified 2019-06-10 --jha
+# Created 2020-05-20 --jha
 ####################################################
-
 # SRC File name
-SRCFILE = basic_elliptic
+SRCFILE = navier_stokes
 
-HEADERS = 
+HEADERS = ns_data.h ns_system.h
 
 INCLUDE =
 
 LIBS =
 
 # Switch between debug or optimized
-CFLAGS = -g -pg
-FFLAGS = -g -pg
+CFLAGS = -g
+FFLAGS = -g
 
 WITH_SUITESPARSE=1
 
-sinclude ../examples.mk
+sinclude ../../examples/examples.mk

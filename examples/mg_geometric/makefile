@@ -3,18 +3,17 @@
 ####################################################
 
 # SRC File name
-SRCFILE = basic_elliptic
+SRCFILE = gmg
 
-HEADERS = 
+HEADERS = gmg_routines.h rhs_bc.h
 
 INCLUDE =
 
 LIBS =
 
 # Switch between debug or optimized
-CFLAGS = -g -pg
-FFLAGS = -g -pg
+CFLAGS = -O3
 
-WITH_SUITESPARSE=1
+WITH_SUITESPARSE=0 
 
 sinclude ../examples.mk
