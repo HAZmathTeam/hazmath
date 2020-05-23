@@ -1,25 +1,25 @@
-#include <iostream>
+#include <iterator>
+#include <sstream>
+#include <string>
 
-template <typename T> void printArray(T *array, int size) {
-  std::cout << '[';
-  for (int i = 0; i < size; ++i) {
-    std::cout << array[i];
-    if (i < size - 1) {
-      std::cout << ", ";
-    }
+template <typename T> std::string arr2str(T *array, int size) {
+  std::ostringstream oss;
+  oss << '[';
+  if (size > 0) {
+    std::copy(array, array + size - 1, std::ostream_iterator<T>(oss, ", "));
+    oss << array[size - 1];
   }
-  std::cout << ']';
+  oss << ']';
+  return oss.str();
 }
 
 template <typename T>
-void assertArraysEqual(T *first, const std::vector<T> &second) {
+void assertArraysEqual(T *first, const std::vector<T> &second,
+                       T tol = T(1e-10)) {
   for (int i = 0; i < second.size(); ++i) {
-    if (!(first[i] == second[i])) {
-      printArray(first, second.size());
-      std::cout << " != ";
-      printArray(second.data(), second.size());
-      std::cout << std::endl;
-      throw;
+    if (abs(first[i] - second[i]) > tol) {
+      throw std::runtime_error('\n' + arr2str(first, second.size()) +
+                               " != " + arr2str(second.data(), second.size()));
     }
   }
 }
