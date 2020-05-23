@@ -53,16 +53,14 @@ void dsyevr_(char *JOBZ, char *RANGE, char *UPLO, int *N, double *A, int *LDA,
              int *LWORK, int *IWORK, int *LIWORK, int *INFO);
 }
 
-std::vector<REAL *> getRandomSmoothVectors(const dCSRmat *L, int num) {
+std::pair<double *, double *> getEigens(const dCSRmat *L, int num_eigens) {
   int n = L->row;
-  assert(num <= n);
-  int num_eigen = (int)ceil(log2(n));
 
   char jobz = 'V', range = 'I', uplo = 'U';
-  int il = 1, m, isuppz[2 * num_eigen], lwork = 26 * n, liwork = 10 * n, info;
+  int il = 1, m, isuppz[2 * num_eigens], lwork = 26 * n, liwork = 10 * n, info;
   int *iwork = new int[liwork];
-  double vl, vu, abstol = 1e-1;
-  double *w = new double[n], *z = new double[n * num_eigen],
+  double vl, vu, abstol = 0;
+  double *w = new double[n], *z = new double[n * num_eigens],
          *work = new double[lwork];
 
   double *a = new double[n * n]();
@@ -70,17 +68,31 @@ std::vector<REAL *> getRandomSmoothVectors(const dCSRmat *L, int num) {
     for (auto ind = L->IA[i]; ind < L->IA[i + 1]; ++ind) {
       int j = L->JA[ind];
       if (i <= j) {
-        a[i * n + j] = L->val[ind];
+        a[i + j * n] = L->val[ind];
       }
     }
   }
 
-  dsyevr_(&jobz, &range, &uplo, &n, a, &n, &vl, &vu, &il, &num_eigen, &abstol,
+  dsyevr_(&jobz, &range, &uplo, &n, a, &n, &vl, &vu, &il, &num_eigens, &abstol,
           &m, w, z, &n, isuppz, work, &lwork, iwork, &liwork, &info);
+
+  assert(m == num_eigens);
+
   delete[] a;
   delete[] iwork;
-  delete[] w;
   delete[] work;
+
+  return {w, z};
+}
+
+std::vector<REAL *> getRandomSmoothVectors(const dCSRmat *L, int num) {
+  int n = L->row;
+  assert(num <= n);
+  int num_eigens = (int)ceil(log2(n));
+
+  auto eigens = getEigens(L, num_eigens);
+  delete[] std::get<0>(eigens);
+  auto z = std::get<1>(eigens);
 
   std::default_random_engine generator;
   std::normal_distribution<double> normal(1.0, 1.0);
@@ -88,10 +100,10 @@ std::vector<REAL *> getRandomSmoothVectors(const dCSRmat *L, int num) {
   std::vector<REAL *> vectors;
   for (int i = 0; i < num; ++i) {
     REAL *v = (REAL *)calloc(n, sizeof(REAL));
-    for (int j = 0; j < num_eigen; ++j) {
+    for (int j = 0; j < num_eigens; ++j) {
       double weight = normal(generator);
       for (int k = 0; k < n; ++k)
-        v[k] += weight * z[k * num_eigen + j];
+        v[k] += weight * z[k + j * n];
     }
     vectors.push_back(v);
   }
