@@ -11,7 +11,7 @@ SOURCE_FILES = algorithm.cpp graph.cpp hamiltonian_algorithm.cpp utils.cpp
 OBJECT_FILES = $(SOURCE_FILES:.cpp=.o)
 
 TESTS = get_hamiltonian_path_test get_random_prolongation_test \
-		get_walsh_basis_test degree_based_matching_test get_eigenvectors_test
+		get_walsh_basis_test degree_based_matching_test get_eigens_test
 TEST_FILES = $(addprefix tests/, $(TESTS))
 
 EXAMPLES = ex1 ex2
