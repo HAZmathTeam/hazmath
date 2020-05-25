@@ -421,14 +421,7 @@ static SHORT aggregation_hec(dCSRmat *A,
     // get random permutation
     for(i=0; i<row; i++) perm[i] = i;
     iarray_shuffle(row, perm);
-    /*
-    //    fprintf(stdout,"\nlvl=%d",lvl);
-    if(!lvl){
-      for(i=0; i<row; i++) perm[i] = row-i-1;
-    } else {
-      for(i=0; i<row; i++) perm[i] = i;
-    }
-    */
+
     // main loop
     for ( ii = 0; ii < row; ii++ ) {
         i = perm[ii];
@@ -594,7 +587,6 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
       /*-- Setup Schwarz smoother if necessary */
       if ( lvl < param->Schwarz_levels ) {
           mgl[lvl].Schwarz.A=dcsr_sympat(&mgl[lvl].A);
-          dcsr_shift(&(mgl[lvl].Schwarz.A), 1);
           Schwarz_setup(&mgl[lvl].Schwarz, &swzparam);
       }
 
@@ -727,13 +719,17 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
         print_cputime("Unsmoothed aggregation setup", setup_end - setup_start);
     }
 
+    for (i=0; i<max_levels; i++) {
+      dcsr_free(&Neighbor[i]);
+      ivec_free(&vertices[i]);
+    }
+
     free(Neighbor);
     free(vertices);
     free(num_aggs);
 
     return status;
 }
-
 /*---------------------------------*/
 /*--        End of File          --*/
 /*---------------------------------*/
