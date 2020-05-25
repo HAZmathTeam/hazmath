@@ -12,7 +12,7 @@
 #include "graph.h"
 #include "hamiltonian_algorithm.h"
 
-using namespace std;
+
 
 /* Assumption on the mtx file representing a matrix:
  * 1. Vertex numbers start from 1 instead of 0
@@ -20,25 +20,25 @@ using namespace std;
  * 3. Neighbors of a vertex appear in ascending order
  */
 Graph::Graph(const char *filename) : filename(filename) {
-  ifstream file(filename);
-  string line;
+  std::ifstream file(filename);
+  std::string line;
   while (getline(file, line) && (line.empty() || line[0] == '%'))
     ;
   int nrows, ncols, nnz;
-  istringstream iss(line);
+  std::istringstream iss(line);
   if (!(iss >> nrows >> ncols >> nnz)) {
-    throw runtime_error("Error reading matrix sizes! Exiting...");
+    throw std::runtime_error("Error reading matrix sizes! Exiting...");
   }
   if (nrows != ncols) {
-    throw logic_error("Not square matrix! Exiting...");
+    throw std::logic_error("Not square matrix! Exiting...");
   }
-  vector<vector<int>> adjacency_table(nrows);
+  std::vector<std::vector<int>> adjacency_table(nrows);
   int count = 0, edge_count = 0, i, j;
   while (getline(file, line)) {
     ++count;
-    istringstream iss(line);
+    std::istringstream iss(line);
     if (!(iss >> i >> j)) {
-      throw runtime_error("Error reading matrix entry! Exiting...");
+      throw std::runtime_error("Error reading matrix entry! Exiting...");
     }
     if (i == j)
       continue;
@@ -68,7 +68,7 @@ Graph::Graph(const char *filename) : filename(filename) {
   A->IA[nrows] = ind;
   assert(ind == A->nnz);
 
-  cout << "Graph Reading Done..." << endl;
+  std::cout << "Graph Reading Done..." << std::endl;
 }
 
 std::vector<int> Graph::getNeighbors(int i) const {
@@ -93,7 +93,7 @@ Graph &Graph::operator=(Graph &&other) {
 void Graph::doConnectionBasedMatching(Graph *c_graph) {
   int n = size();
   if (n == 1) {
-    throw runtime_error("Only 1 node, no matching is performed!");
+    throw std::runtime_error("Only 1 node, no matching is performed!");
     return;
   }
 
@@ -111,7 +111,7 @@ void Graph::doConnectionBasedMatching(Graph *c_graph) {
     }
   };
 
-  vector<vector<ConnectivityEntry>> connectivity_table(n);
+  std::vector<std::vector<ConnectivityEntry>> connectivity_table(n);
   for (int i = 0; i < A->row; ++i) {
     for (int ind = A->IA[i]; ind < A->IA[i + 1]; ++ind) {
       int j = A->JA[ind];
@@ -123,14 +123,14 @@ void Graph::doConnectionBasedMatching(Graph *c_graph) {
   for (auto &row : connectivity_table)
     sort(row.begin(), row.end(), GoBefore());
 
-  vector<int> grouping_label(n, -1);
-  vector<pair<int, int>> degree_index(n);
+  std::vector<int> grouping_label(n, -1);
+  std::vector<std::pair<int, int>> degree_index(n);
   for (int i = 0; i < n; ++i) {
     int degree = 0;
     for (auto entry : connectivity_table[i]) {
       degree += entry.num_connections;
     }
-    degree_index[i] = make_pair(degree, i);
+    degree_index[i] = std::make_pair(degree, i);
   }
   sort(degree_index.begin(), degree_index.end());
   int count = 0;
@@ -149,7 +149,7 @@ void Graph::doConnectionBasedMatching(Graph *c_graph) {
     }
     // If all neighbors are already matched
     if (j == -1) {
-      unordered_map<int, int> num_connections_to;
+      std::unordered_map<int, int> num_connections_to;
       for (auto entry : connectivity_table[i]) {
         num_connections_to[grouping_label[entry.nbr_index]] +=
             entry.num_connections;
@@ -163,13 +163,13 @@ void Graph::doConnectionBasedMatching(Graph *c_graph) {
         }
       }
       if (num_connections_to.empty()) {
-        cout << "Graph not connected. Aborting!" << endl;
+        std::cout << "Graph not connected. Aborting!" << std::endl;
         exit(1);
       }
       grouping_label[i] = chosen.nbr_index;
       aggregates[chosen.nbr_index].push_back(i);
     } else {
-      aggregates.push_back(vector<int>{i, j});
+      aggregates.push_back(std::vector<int>{i, j});
       grouping_label[i] = grouping_label[j] = count++;
     }
   }
@@ -181,7 +181,7 @@ void Graph::doConnectionBasedMatching(Graph *c_graph) {
   }
 
   // Get the adjacency table for the coarse graph (adjacency weights = 1)
-  vector<set<int>> c_adjacency_table(count);
+  std::vector<std::set<int>> c_adjacency_table(count);
   for (int i = 0; i < A->row; ++i) {
     for (int ind = A->IA[i]; ind < A->IA[i + 1]; ++ind) {
       int j = A->JA[ind];
@@ -215,11 +215,11 @@ void Graph::doConnectionBasedMatching(Graph *c_graph) {
 void Graph::doDegreeBasedMatching(Graph *c_graph, int seed) {
   int n = size();
   if (n == 1) {
-    throw runtime_error("Only 1 node, no matching is performed!");
+    throw std::runtime_error("Only 1 node, no matching is performed!");
     return;
   }
 
-  vector<int> degrees(n, 0);
+  std::vector<int> degrees(n, 0);
   for (int i = 0; i < A->row; ++i) {
     for (int ind = A->IA[i]; ind < A->IA[i + 1]; ++ind) {
       int j = A->JA[ind];
@@ -229,7 +229,7 @@ void Graph::doDegreeBasedMatching(Graph *c_graph, int seed) {
     }
   }
 
-  vector<int> vertices(n);
+  std::vector<int> vertices(n);
   std::iota(vertices.begin(), vertices.end(), 0);
   // Randomly shuffle vertices.
   std::shuffle(vertices.begin(), vertices.end(),
@@ -252,8 +252,8 @@ void Graph::doDegreeBasedMatching(Graph *c_graph, int seed) {
     return false;
   };
 
-  vector<int> grouping_label(n, -1);
-  vector<int> cardinalities;
+  std::vector<int> grouping_label(n, -1);
+  std::vector<int> cardinalities;
   int agg_count = 0;
   for (auto i : vertices) {
     if (grouping_label[i] != -1) {
@@ -291,7 +291,7 @@ void Graph::doDegreeBasedMatching(Graph *c_graph, int seed) {
       aggregates[selected_agg].push_back(i);
       ++cardinalities[selected_agg];
     } else {
-      aggregates.push_back(vector<int>{i, selected_nbr});
+      aggregates.push_back(std::vector<int>{i, selected_nbr});
       grouping_label[i] = agg_count;
       grouping_label[selected_nbr] = agg_count;
       --degrees[i];
@@ -308,7 +308,7 @@ void Graph::doDegreeBasedMatching(Graph *c_graph, int seed) {
   }
 
   // Get the adjacency table for the coarse graph (adjacency weights = 1)
-  vector<set<int>> c_adjacency_table(agg_count);
+  std::vector<std::set<int>> c_adjacency_table(agg_count);
   for (int i = 0; i < A->row; ++i) {
     for (int ind = A->IA[i]; ind < A->IA[i + 1]; ++ind) {
       int j = A->JA[ind];
@@ -382,15 +382,15 @@ dCSRmat *Graph::getLaplacian() const {
   return L;
 }
 
-vector<int> Graph::getHamiltonianPath(int seed) const {
+std::vector<int> Graph::getHamiltonianPath(int seed) const {
   srand(seed);
   INT root = rand() % size();
 
   // Build spanning tree.
   Tree *tree = new Tree(root);
-  queue<Tree *> q;
+  std::queue<Tree *> q;
   q.push(tree);
-  vector<bool> discovered(size(), false);
+  std::vector<bool> discovered(size(), false);
   discovered[root] = true;
   while (!q.empty()) {
     auto curr = q.front();

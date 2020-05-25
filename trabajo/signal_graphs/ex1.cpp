@@ -8,7 +8,7 @@
 #include <iostream>
 #include <string>
 
-using namespace std;
+
 
 int main(int argc, char *argv[]) {
   double p = 1.0;
@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
   while ((c = getopt(argc, argv, "k:p:")) != -1) {
     switch (c) {
     case 'p':
-      p = stod(optarg);
+      p = std::stod(optarg);
       break;
     case '?':
       if (optopt == 'k' || optopt == 'p') {
@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
     }
   }
   if (optind != argc - 1) {
-    cerr << "Too many arguments." << endl;
+    std::cerr << "Too many arguments." << std::endl;
     return 1;
   }
 
