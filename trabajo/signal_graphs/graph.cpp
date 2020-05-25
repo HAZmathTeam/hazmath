@@ -12,8 +12,6 @@
 #include "graph.h"
 #include "hamiltonian_algorithm.h"
 
-
-
 /* Assumption on the mtx file representing a matrix:
  * 1. Vertex numbers start from 1 instead of 0
  * 2. For each edge (i,j) (i < j), the entry (j,i) is not recorded
