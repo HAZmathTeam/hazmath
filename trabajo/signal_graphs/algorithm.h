@@ -8,7 +8,8 @@
 class Algorithm {
 public:
   virtual void compAndDecomp(const Graph &graph, std::vector<REAL *> vectors,
-                             const int largestK, const double p) const = 0;
+                             const std::vector<int> &nums_terms,
+                             const double p) const = 0;
 
 protected:
   int print_level = 1;
@@ -38,7 +39,7 @@ public:
                              double p, double *v3) const;
 
   void compAndDecomp(const Graph &graph, std::vector<REAL *> vectors,
-                     const int largestK, const double p) const;
+                     const std::vector<int> &nums_terms, const double p) const;
 
 private:
   virtual std::string matchingAlgorithm() const = 0;
@@ -96,7 +97,7 @@ class DegreeMatchingGtbwt : public DegreeBasedMatching, Gtbwt {};
 class HamiltonianAlgorithm {
 public:
   void compAndDecomp(const Graph &graph, std::vector<REAL *> vectors,
-                     const int largestK) const;
+                     const std::vector<int> &nums_terms) const;
 
 private:
   int print_level = 1;
