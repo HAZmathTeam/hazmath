@@ -6,8 +6,6 @@
 #include <iostream>
 #include <numeric>
 
-
-
 extern "C" {
 void dsyev_(char *jobz, char *uplo, int *n, double *a, int *lda, double *w,
             double *work, int *lwork, int *info);
@@ -106,7 +104,8 @@ void AggregationBasedAlgorithm::setupHierarchy(Graph graph,
       dsyev_(&jobz, &uplo, &ni, *a, &ni, w, work, &n5, &info);
       free(work);
       if (info) {
-        std::cout << "Eigenvalue computations error; Error code: " << info << std::endl;
+        std::cout << "Eigenvalue computations error; Error code: " << info
+                  << std::endl;
         return;
       }
 
@@ -199,9 +198,9 @@ void AggregationBasedAlgorithm::setupHierarchy(Graph graph,
 //   const int n = graph.size();
 // }
 
-REAL AggregationBasedAlgorithm::compAndDecomp(int n, double *v,
-                                              const std::vector<dCSRmat *> &Qj_array,
-                                              int largestK, double *v2) const {
+REAL AggregationBasedAlgorithm::compAndDecomp(
+    int n, double *v, const std::vector<dCSRmat *> &Qj_array, int largestK,
+    double *v2) const {
   /*
   REAL vt[n];
   dcsr_mxv(Q, v, vt);
@@ -275,11 +274,11 @@ REAL AggregationBasedAlgorithm::compAndDecomp(int n, double *v,
 
   if (print_level == 0) {
     std::cout << std::endl
-         << "Plain Encoding" << std::endl
-         << "Norm of vector ||v||: " << array_norm2(n, v) << std::endl
-         << "Norm of error  ||v-v2||: " << array_norm2(n, e2) << std::endl
-         << "Relative error ||v-v2||/||v||: "
-         << array_norm2(n, e2) / array_norm2(n, v) << std::endl;
+              << "Plain Encoding" << std::endl
+              << "Norm of vector ||v||: " << array_norm2(n, v) << std::endl
+              << "Norm of error  ||v-v2||: " << array_norm2(n, e2) << std::endl
+              << "Relative error ||v-v2||/||v||: "
+              << array_norm2(n, e2) / array_norm2(n, v) << std::endl;
   }
 
   return array_norm2(n, e2) / array_norm2(n, v);
@@ -287,7 +286,8 @@ REAL AggregationBasedAlgorithm::compAndDecomp(int n, double *v,
 
 void AggregationBasedAlgorithm::compAndDecompAdaptive(
     int n, double *v, const std::vector<dCSRmat *> &Qj_array,
-    const std::vector<int> &Nj_array, int largestK, double p, double *v3) const {
+    const std::vector<int> &Nj_array, int largestK, double p,
+    double *v3) const {
   /* ------------------ Testing adaptive encoding -------------------- */
   std::vector<std::vector<REAL>> vj_array{std::vector<REAL>(v, v + n)};
   for (auto Qj : Qj_array) {
@@ -357,7 +357,8 @@ void AggregationBasedAlgorithm::compAndDecompAdaptive(
   }
   // Decompress
   auto it = v_e.begin();
-  std::function<std::vector<REAL>(int, int)> decode = [&](int j, int k) -> std::vector<REAL> {
+  std::function<std::vector<REAL>(int, int)> decode =
+      [&](int j, int k) -> std::vector<REAL> {
     if (labels[j][k]) {
       auto res = std::vector<REAL>(it, it + Nj_array[j]);
       it += Nj_array[j];
@@ -399,11 +400,11 @@ void AggregationBasedAlgorithm::compAndDecompAdaptive(
   array_axpyz(n, -1.0, v, v3, e3);
   if (print_level == 0) {
     std::cout << std::endl
-         << "Adaptive Encoding" << std::endl
-         << "Norm of vector ||v||: " << array_norm2(n, v) << std::endl
-         << "Norm of error  ||v-v3||: " << array_norm2(n, e3) << std::endl
-         << "Relative error ||v-v3||/||v||: "
-         << array_norm2(n, e3) / array_norm2(n, v) << std::endl;
+              << "Adaptive Encoding" << std::endl
+              << "Norm of vector ||v||: " << array_norm2(n, v) << std::endl
+              << "Norm of error  ||v-v3||: " << array_norm2(n, e3) << std::endl
+              << "Relative error ||v-v3||/||v||: "
+              << array_norm2(n, e3) / array_norm2(n, v) << std::endl;
   }
 }
 
@@ -436,7 +437,8 @@ void AggregationBasedAlgorithm::compAndDecomp(
         compAndDecompAdaptive(n, v, Qj_array, Nj_array, num_terms, p, v3);
       }
     }
-    std::cout << num_terms << " terms: " << error_sum / vectors.size() << std::endl;
+    std::cout << num_terms << " terms: " << error_sum / vectors.size()
+              << std::endl;
   }
 
   for (auto Qj : Qj_array) {
@@ -477,15 +479,17 @@ void HamiltonianAlgorithm::compAndDecomp(
 
       if (print_level == 0) {
         std::cout << std::endl
-             << "Norm of vector ||v||: " << array_norm2(n, v) << std::endl
-             << "Norm of error  ||v-v2||: " << array_norm2(n, e2) << std::endl
-             << "Relative error ||v-v2||/||v||: "
-             << array_norm2(n, e2) / array_norm2(n, v) << std::endl;
+                  << "Norm of vector ||v||: " << array_norm2(n, v) << std::endl
+                  << "Norm of error  ||v-v2||: " << array_norm2(n, e2)
+                  << std::endl
+                  << "Relative error ||v-v2||/||v||: "
+                  << array_norm2(n, e2) / array_norm2(n, v) << std::endl;
       }
 
       error_sum += array_norm2(n, e2) / array_norm2(n, v);
     }
-    std::cout << num_terms << " terms: " << error_sum / vectors.size() << std::endl;
+    std::cout << num_terms << " terms: " << error_sum / vectors.size()
+              << std::endl;
   }
 
   deleteArray(walsh_basis);
