@@ -8,8 +8,6 @@
 #include <iostream>
 #include <string>
 
-
-
 int main(int argc, char *argv[]) {
   double p = 1.0;
   int c;
