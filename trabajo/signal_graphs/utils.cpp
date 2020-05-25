@@ -40,7 +40,7 @@ REAL *initializeRhs(dCSRmat *L, int num_iterations) {
     // dvector *g = (dvector *)malloc(sizeof(dvector));
     // dvec_alloc(n, g);
     // dcsr_mxv(L, f->val, g->val);
-    // cout << "lambda: " << dvec_dotprod(f, g) / dvec_dotprod(f, f) << endl;
+    // std::cout << "lambda: " << dvec_dotprod(f, g) / dvec_dotprod(f, f) << std::endl;
   }
   free(zero);
   return f->val;
