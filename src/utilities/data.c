@@ -130,12 +130,14 @@ void amg_data_free(AMG_data *mgl,
     free(mgl->near_kernel_basis);
     mgl->near_kernel_basis = NULL;
 
-    free(mgl); mgl = NULL;
+    //printf("hey-5\n");
+    //free(mgl); mgl = NULL;
 
     if (param != NULL) {
         if ( param->cycle_type == AMLI_CYCLE )
             free(param->amli_coef);
     }
+
 }
 
 /***********************************************************************************************/
@@ -479,12 +481,11 @@ void precond_block_data_free(precond_block_data *precdata,
                              const INT nb,
                              SHORT flag)
 {
-
     int i;
 
     for (i=0; i<nb; i++)
     {
-        if(precdata->A_diag) dcsr_free(&precdata->A_diag[i]);
+        //if(precdata->A_diag) dcsr_free(&precdata->A_diag[i]);
         if(precdata->diag) {
            if(precdata->diag[i]) dvec_free(precdata->diag[i]);
         }
