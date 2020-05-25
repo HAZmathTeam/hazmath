@@ -459,6 +459,7 @@ void HamiltonianAlgorithm::compAndDecomp(
     ++L;
   }
 
+  const auto walsh_basis = getWalshBasis(L);
   const auto samples = getRandomProlongation(n, N, 0);
   std::cout << "Average errors:" << std::endl;
   for (auto num_terms : nums_terms) {
@@ -467,7 +468,7 @@ void HamiltonianAlgorithm::compAndDecomp(
       const std::vector<REAL> prolongated_v =
           prolongate(std::vector<REAL>(v, v + n), permutation, samples);
       const std::vector<REAL> k_term_approximation =
-          approximate(prolongated_v, L, num_terms);
+          approximate(prolongated_v, walsh_basis, N, num_terms);
       std::vector<REAL> approximation =
           project(k_term_approximation, samples, permutation);
 
@@ -486,4 +487,6 @@ void HamiltonianAlgorithm::compAndDecomp(
     }
     std::cout << num_terms << " terms: " << error_sum / vectors.size() << endl;
   }
+
+  deleteArray(walsh_basis);
 }
