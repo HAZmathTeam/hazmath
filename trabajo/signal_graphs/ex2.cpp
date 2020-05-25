@@ -13,8 +13,6 @@
 #include <sstream>
 #include <unistd.h>
 
-
-
 int main(int argc, char *argv[]) {
   int largestK = 100;
   bool opt_k = false;
@@ -87,7 +85,7 @@ int main(int argc, char *argv[]) {
   const std::string prefix(argv[optind]);
 
   std::vector<std::string> months{"01", "02", "03", "04", "05", "06",
-                        "07", "08", "09", "10", "11", "12"};
+                                  "07", "08", "09", "10", "11", "12"};
   for (auto mon : months) {
     std::string filename = prefix + mon;
     std::ifstream file(filename.c_str());
@@ -96,7 +94,7 @@ int main(int argc, char *argv[]) {
     while (getline(file, line)) {
       std::istringstream iss(line);
       matrix.push_back(std::vector<double>(std::istream_iterator<double>(iss),
-                                      std::istream_iterator<double>()));
+                                           std::istream_iterator<double>()));
     }
     file.close();
     for (auto row : matrix) {
@@ -138,7 +136,8 @@ int main(int argc, char *argv[]) {
       std::string ofilename = filename;
       ofilename.insert(ofilename.rfind('/'), "/levels");
       std::ofstream ofs(ofilename + ".data");
-      ofs << "# Compression results for plain and adaptive encoding" << std::endl;
+      ofs << "# Compression results for plain and adaptive encoding"
+          << std::endl;
       for (int th = 1; th < n; th <<= 1) {
         algorithm.compAndDecomp(n, v, Qj_array, th, v2);
         algorithm.compAndDecompAdaptive(n, v, Qj_array, Nj_array, th, 1.0, v3);
