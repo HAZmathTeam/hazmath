@@ -16,7 +16,9 @@ std::vector<REAL *> getWalshBasis(int L);
 
 template <typename T> void deleteArray(const std::vector<T *> &array);
 
-std::vector<REAL> approximate(const std::vector<REAL> &v, int L, int k);
+std::vector<REAL> approximate(const std::vector<REAL> &v,
+                              const std::vector<REAL *> &walsh_basis,
+                              const int N, const int k);
 
 std::vector<REAL> project(const std::vector<REAL> &k_term_approximation,
                           const std::vector<int> &samples,
