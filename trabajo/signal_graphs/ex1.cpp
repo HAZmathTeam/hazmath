@@ -11,16 +11,12 @@
 using namespace std;
 
 int main(int argc, char *argv[]) {
-  int largestK = 100;
   double p = 1.0;
   int c;
   opterr = 0;
 
   while ((c = getopt(argc, argv, "k:p:")) != -1) {
     switch (c) {
-    case 'k':
-      largestK = stoi(optarg);
-      break;
     case 'p':
       p = stod(optarg);
       break;
@@ -48,19 +44,20 @@ int main(int argc, char *argv[]) {
   std::vector<REAL *> vectors = getRandomSmoothVectors(L);
   dcsr_free(L);
 
-  if (largestK > graph.size() - 1) {
-    largestK = graph.size() - 1;
-  }
+  auto n = graph.size();
+  auto log2_n = log2(n);
+  std::vector<int> nums_terms({(int)ceil(log2_n), (int)ceil(log2_n * log2_n),
+                               (int)ceil(log2_n * log2_n * log2_n)});
   std::cout << std::endl << std::endl;
-  ConnectionMatchingWalsh().compAndDecomp(graph, vectors, largestK, p);
+  ConnectionMatchingWalsh().compAndDecomp(graph, vectors, nums_terms, p);
   std::cout << std::endl << std::endl;
-  DegreeMatchingWalsh().compAndDecomp(graph, vectors, largestK, p);
+  DegreeMatchingWalsh().compAndDecomp(graph, vectors, nums_terms, p);
   std::cout << std::endl << std::endl;
-  ConnectionMatchingGtbwt().compAndDecomp(graph, vectors, largestK, p);
+  ConnectionMatchingGtbwt().compAndDecomp(graph, vectors, nums_terms, p);
   std::cout << std::endl << std::endl;
-  DegreeMatchingGtbwt().compAndDecomp(graph, vectors, largestK, p);
+  DegreeMatchingGtbwt().compAndDecomp(graph, vectors, nums_terms, p);
   std::cout << std::endl << std::endl;
-  HamiltonianAlgorithm().compAndDecomp(graph, vectors, largestK);
+  HamiltonianAlgorithm().compAndDecomp(graph, vectors, nums_terms);
 
   for (REAL *v : vectors) {
     free(v);

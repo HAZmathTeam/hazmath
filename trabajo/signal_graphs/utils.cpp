@@ -55,6 +55,7 @@ void dsyevr_(char *JOBZ, char *RANGE, char *UPLO, int *N, double *A, int *LDA,
 
 std::pair<double *, double *> getEigens(const dCSRmat *L, int num_eigens) {
   int n = L->row;
+  assert(num_eigens <= n);
 
   char jobz = 'V', range = 'I', uplo = 'U';
   int il = 1, m, isuppz[2 * num_eigens], lwork = 26 * n, liwork = 10 * n, info;
@@ -87,7 +88,6 @@ std::pair<double *, double *> getEigens(const dCSRmat *L, int num_eigens) {
 
 std::vector<REAL *> getRandomSmoothVectors(const dCSRmat *L, int num) {
   int n = L->row;
-  assert(num <= n);
   int num_eigens = (int)ceil(log2(n));
 
   auto eigens = getEigens(L, num_eigens);
