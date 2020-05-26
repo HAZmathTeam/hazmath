@@ -222,27 +222,38 @@ local_vec **dof_data_init(simplex_data *s)
 }
 /*************************************************************************/
 void dof_data_update(local_vec **ue,				\
-		    INT snum, simplex_data *s,			\
-		    dvector *uh0, dvector *uh1, const REAL dt)
+		     INT snum, simplex_data *s,			\
+		     dvector *uh0, dvector *uh1, const REAL dt)
 {
-  // local (element=snum) data for a vector. this is application 
+  /* 
+     local (element=snum) data for a vectors uh1 and uh0. if uh1 and uh0 are not
+     null returns approximation of the difference on a simplex of
+     their degrees of freedom. 
+  */
   INT j;
   local_vec *ue1=ue[0];
   local_vec *uet=ue[1];
   /* local_vec *ue0=ue[2]; */
-  for(j=0;j<s->num_dofs;j++)
-    ue1->b[j]=uh1->val[s->gdofs[j]];
-  if(uh1!=NULL){
-    //  fprintf(stdout,"\nu and ut");
+  if(uh1 != NULL){
+    for(j=0;j<s->num_dofs;j++){
+      ue1->b[j]=uh1->val[s->gdofs[j]];
+      //      fprintf(stdout,"\nuh(%d)=%.15f",s->gdofs[j],uh1->val[s->gdofs[j]]);
+    }
+  } else { 
+    for(j=0;j<s->num_dofs;j++){
+      ue1->b[j]=0e0;
+    }
+  }
+  /**/
+  if(uh0 != NULL){
     for(j=0;j<s->num_dofs;j++){
       uet->b[j]=(ue1->b[j] - uh0->val[s->gdofs[j]])/dt;
-      /* fprintf(stdout,"\nuuet=%f,(%5d)=%16.8e; u0(%5d)=%16.8e",uet->b[j],s->gdofs[j],uh0->val[s->gdofs[j]],s->gdofs[j],uh1->val[s->gdofs[j]]); */
     }
-    //fprintf(stdout,"\n");
+  } else {
+    for(j=0;j<s->num_dofs;j++){
+       uet->b[j]=ue1->b[j];
+    }
   }
-  /* not needed  */
-  /* for(j=0;j<s->num_dofs;j++) */
-  /* ue0->b[j]=uh0->val[s->dofs[j]]; */
   return;
 }
 /*************************************************************************/
@@ -264,8 +275,10 @@ void simplex_data_print(INT snum, simplex_data *s, local_vec **ue)
   print_full_mat(s->nf,s->dim,s->f_norm,"normals");
   print_full_mat(1,s->nf,s->f_area,"area");
   print_full_mat(s->nf,s->dim,s->f_mid,"f_centers");
-  print_full_mat(1,s->num_dofs,ue[0]->b,"ue1"); 
-  print_full_mat(1,s->num_dofs,ue[1]->b,"uet");
+  if(ue!=NULL){
+    print_full_mat(1,s->num_dofs,ue[0]->b,"ue1"); 
+    print_full_mat(1,s->num_dofs,ue[1]->b,"uet");
+  }
   fprintf(stdout,
 	  "\n--------------------------------------------------");
   fflush(stdout);
