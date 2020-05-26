@@ -1,4 +1,3 @@
-
 #include "hazmath.h"
 #include "biot_headers.h"
 void zpx_h1_basis(REAL *p,REAL *dp,REAL *x,INT  dim, REAL *xel,INT  porder)
@@ -421,7 +420,6 @@ void zbubble_face_basis(REAL *phi, REAL *dphi, REAL *x,
       //      print_full_mat(1,dim,(f_norm+dim*i),"iiifnorm");
       phi[i*dim] =   f_norm[dim*i]* 4*p[ef1]*p[ef2];
       phi[i*dim+1] = f_norm[dim*i+1]* 4*p[ef1]*p[ef2];
-      
       // gradient
       for(j=0;j<dim;j++) {
         gradp = 4*(p[ef1]*dp[ef2*dim+j] + dp[ef1*dim+j]*p[ef2]);
@@ -492,6 +490,17 @@ INT zget_fem_basis(REAL *phi,REAL *dphi,REAL *x,	\
     }
   } else if(fetype==61) { // bubble element
     zbubble_face_basis(phi,dphi,x,splex,wrk);
+    /* fprintf(stdout,"\nx=[%.15f,%.15f];  ",x[0],x[1]); */
+    /* fprintf(stdout,"phi1(x) = [%.15e,%.15e];  ",phi[0*dim+0],phi[0*dim+1]); */
+    /* fprintf(stdout,"phi2(x) = [%.15e,%.15e];  ",phi[1*dim+0],phi[1*dim+1]); */
+    /* fprintf(stdout,"phi3(x) = [%.15e,%.15e];\n",phi[2*dim+0],phi[2*dim+1]); */
+    /* fprintf(stdout,"dphi1(x) = [%.15e,%.15e\n            %.15e,%.15e];\n  ",dphi[0*dim*dim+0*dim+0],	\ */
+    /* 	    dphi[0*dim*dim+1*dim+0],					\ */
+    /* 	    dphi[0*dim*dim+0*dim+1],					\ */
+    /* 	    dphi[0*dim*dim+1*dim+1]); */
+
+    /* fprintf(stdout,"\n"); */
+    //    fprintf(stdout,"grad  = [%e,%e]\n",val_sol[0],val_sol[1]);
   } else {
     status = ERROR_FE_TYPE;
     check_error(status, __FUNCTION__);
@@ -517,8 +526,9 @@ void zfe_interp(REAL* val,REAL *u,REAL* x,	\
   } else { // vector element
     for(i=0;i<dim;i++) {
       val[i] = 0.0;
-      for(j=0; j<dof_per_elm; j++)
-        val[i] += u[j]*phi[j*dim+i];
+      for(j=0; j<dof_per_elm; j++){
+	val[i] += u[j]*phi[j*dim+i];
+      }
     }
   }
   return;
@@ -550,6 +560,7 @@ void zfe_dinterp(REAL* val,REAL *u,REAL *x,
     val[0] = 0.0;
     for (j=0; j<dof_per_elm; j++) {
       val[0] += u[j]*dphi[j];
+      //      fprintf(stdout,"\nRTRT_val=%.15e=(%.5e,%.5e,%.5e) * (%e,%e,%e)",val[0],u[0],u[1],u[2],dphi[0],dphi[1],dphi[2]);
     }
   } else if (fetype>=60) { // vector lagrange functions (i.e. bubbles) -> gradients of vectors -> tensor
     for(j=0;j<dim;j++) {
@@ -559,9 +570,11 @@ void zfe_dinterp(REAL* val,REAL *u,REAL *x,
 	  /* if(fabs(u[k])>1e-10) */
 	  /*   //	  if(fabs(dphi[k*dim*dim + j*dim + i])>1e-10) */
 	  /*   fprintf(stdout,"\nu(%d)=%.7e:%.7e",k,u[k],dphi[k*dim*dim + j*dim + i]); */
-          val[j*dim + i] += u[k]*dphi[k*dim*dim + j*dim + i];
+          val[j*dim + i] += u[k]*dphi[k*dim*dim + i*dim + j];
 	}
-	//	fprintf(stdout,"\nG(%d,%d)=%.8e",j,i,val[j*dim + i]);
+	//	if(fetype==61){
+	//	  fprintf(stdout,"\nG(%d,%d)=%.8e (%.15e,%.15e,%.15e)",i,j,val[j*dim + i],u[0],u[1],u[2]);
+	//}
       }
     }
   } else {
@@ -582,6 +595,7 @@ void zblockfe_interp(REAL* val,REAL *u,REAL* x,simplex_data *splex)
   REAL* u_comp = u;
 
   for(k=0;k<splex->nspaces;k++) {
+    //    fprintf(stdout,"\nfetypefetypefetype=%i",fetypes[k]);
     zfe_interp(val_sol,u_comp,x,fetypes[k],splex,splex->wrk);
     if(fetypes[k]<20) { // scalar
       val_sol++;
@@ -605,6 +619,12 @@ void zblockfe_dinterp(REAL* val,REAL *u,REAL* x,
   for(k=0;k<splex->nspaces;k++) {
     zfe_dinterp(val_sol,u_comp,x,fetypes[k],splex,splex->wrk);
     if(fetypes[k]<20) { // scalar
+      /* if(fetypes[k]>0){ */
+      /* 	fprintf(stdout,"\nfetypefetypefetype=%i(%d)",fetypes[k],ndofs[k]); */
+      /* 	fprintf(stdout,"\nx=[%f,%f];  ",x[0],x[1]); */
+      /* 	fprintf(stdout,"uDOF= [%e,%e,%e];  ",u_comp[0],u_comp[1],u_comp[2]); */
+      /* 	fprintf(stdout,"grad  = [%e,%e]\n",val_sol[0],val_sol[1]); */
+      /* } */
       val_sol += dim;
     } else if(fetypes[k]==30) { // div is scalar
       val_sol++;

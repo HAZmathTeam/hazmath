@@ -6,7 +6,10 @@ REAL err_simplex(simplex_data *splex,				\
 		 local_vec **ueall,				\
 		 INT nq1d,					\
 		 qcoordinates *cqelm,				\
-		 mesh_struct *mesh,REAL time,INT elm,		\
+		 mesh_struct *mesh,				\
+		 void (*u)(REAL *,REAL *,REAL,void *),		\
+		 void (*du)(REAL *,REAL *,REAL,void *),		\
+		 REAL time,INT elm,				\
 		 void *wrk, void *wrkt)
 {
   // compute the energy norm of the error on a simplex. 
@@ -85,6 +88,7 @@ REAL err_simplex(simplex_data *splex,				\
     qx[1] = cqelm->y[quad];
     if(dim==3) qx[2] = cqelm->z[quad];
     //////////////////////////////////////////////////////////////////////////
+    //    fprintf(stdout,"\nelm=%d; (time,x)=(%.5e,%.5e,%.5e): ",elm,time,qx[0],qx[1]);
     conductivity2D(conduct,qx,time,NULL); // Actually this gives the
 					  // inverse of K
     get_mu(&mu,qx,time,NULL);
@@ -92,35 +96,28 @@ REAL err_simplex(simplex_data *splex,				\
     get_alpha(&alpha,qx,time,NULL);
     //////////////////////////////////////////////////////////////////////////
     zblockfe_interp(val,ue->b,qx,splex);
-    zblockfe_interp(valt,uet->b,qx,splex);
     zblockfe_dinterp(dval,ue->b,qx,splex);
-    zblockfe_dinterp(dvalt,uet->b,qx,splex);
     ////////////////////////////////////////////////////////////
     //    fprintf(stdout, "\n(x1,x2)=(%e,%e),t=%e",qx[0],qx[1],time);
-    true_sol2D(sol,qx,time,NULL);
-    Dtrue_sol2D(dsol,qx,time,NULL);
-    /* fprintf(stdout,"\nelm=%d; (time,x)=(%.5e,%.5e,%.5e): ",elm,time,qx[0],qx[1]); */
-    /* for(i=0;i<dim;i++){ */
-    /*   fprintf(stdout,"%.7e ",val[i]); */
+    /*calculate the values of u and grad u at the quadrature point */
+    u(sol,qx,time,NULL);
+    du(dsol,qx,time,NULL);
+    /* for(i=0;i<2*dim;i++){ */
+    /*   fprintf(stdout,"sol[%d]=%.7e ",i,sol[i]); */
     /* } */
-    /* fprintf(stdout,"\n");		        */
-    /* print_full_mat(dim,dim,dsol,"dsol"); */
-    /* print_full_mat(dim,dim,dlin,"dlin"); */
-    /* fprintf(stdout,"\n========="); */
+    /* fprintf(stdout,"\n"); */
+    //    print_full_mat(dim,dim,dsol,"dsol");
+    //    print_full_mat(dim,dim,dlin,"dlin");
+    //    print_full_mat(1,splex->num_dofs,ue->b,"ue");
+    //    fprintf(stdout,"\n=========");
     ////////////////////////////////////////////////////////////
     // all vectors are ready, symmetrize the gradients of bubble and u1,u2
     divu=0.,divb=0.,divut=0.,divbt=0.,divsol=0.;
-    // this below computes div u and div ub and div ut and div ubt
-    /* for(j=0;j<dim*dim;j++) */
-    /*   fprintf(stdout,"\n222222duet(%d)=%.7e",j,dbubt[j]); */
     for(i=0;i<dim;i++){
       // trace(sigma(u))
       divu+=dlin[i*dim+i];
       // trace(sigma(b))
       divb+=dbub[i*dim+i];
-      // time derivatives
-      //      divut+=dlint[i*dim+i];
-      //      divbt+=dbubt[i*dim+i];
     }
     for(i=0;i<dim;i++){
       divsol+=dsol[i*dim+i];// u1x+u1y.
@@ -135,6 +132,7 @@ REAL err_simplex(simplex_data *splex,				\
 	zsigma[i*dim+j]=2.*mu*0.5*(dsol[i*dim+j]+dsol[j*dim+i]);
       }
     }
+    //    print_full_mat(dim,dim,zsigma,"zsigma");
     for(i=0;i<dim;i++){
       sigmau[i*dim+i]+=lam*divu;
       sigmab[i*dim+i]+=lam*divb;
@@ -179,21 +177,21 @@ REAL err_simplex(simplex_data *splex,				\
   return integral;
 }
 /****************************************************************************/
-REAL *apriori_err(dvector *uh0,
-		  dvector *uh1,						\
-		  block_fespace *FE,					\
-		  mesh_struct *mesh,					\
-		  REAL time,						\
-		  REAL dt) 
+void apriori_err(REAL *errelm,				\
+		 dvector *uh,				\
+		 block_fespace *FE,			\
+		 mesh_struct *mesh,			\
+		 void (*u)(REAL *,REAL *,REAL,void *),	\
+		 void (*du)(REAL *,REAL *,REAL,void *),	\
+		 REAL time,				\
+		 REAL dt) 
 {
-  // uh0 is the solution from the previous time step;
-  // uh1 is the current solution;
+  // uh is the current solution; u() is a function giving the exact solution.
   INT dim = mesh->dim;
   INT nq1d=5;
   INT i,j,k,l,jk,row;
   // allocate a mask array to contain indicator for which elements the
   // bulk estimator and face estimators
-  REAL *errelm=(REAL *)calloc(mesh->nelm,sizeof(REAL));  
   INT elmp;
   simplex_data *sp=simplex_data_init(mesh->dim,FE,1);
   // uep is for elmp and uem is for elmm, so we allocate both.
@@ -203,21 +201,28 @@ REAL *apriori_err(dvector *uh0,
   void *wrkp = (void *)calloc(2*memwrk,sizeof(REAL));
   void *wrkm = wrkp + memwrk*sizeof(REAL);
   //
-  // end of data_face piece.  
+  //  REAL sum=0e0;
+  // end of data_face piece.
+  //  dvector_print(stdout,uh);
   for(elmp=0;elmp<mesh->nelm;elmp++) {
     simplex_data_update(elmp,sp,mesh,FE,1);
-    dof_data_update(uep,elmp,sp,uh0,uh1,dt);
-    errelm[elmp]=err_simplex(sp,uep,				\
-			     nq1d,cqelm,			\
-			     mesh,time,elmp,			\
+    dof_data_update(uep,elmp,sp,NULL,uh,dt);
+    //    simplex_data_print(elmp,sp,uep);
+    errelm[elmp]=err_simplex(sp,uep,		\
+			     nq1d,cqelm,	\
+			     mesh,		\
+			     u,du,		\
+			     time,elmp,		\
 			     wrkp,wrkm);
     //    fprintf(stdout,"\nelmp:%d: %e",elmp,errelm[elmp]);
+    //    sum+=errelm[elmp];
   }
+  //  fprintf(stdout,"\nsum=%e\n",sum);
   free_qcoords(cqelm);
   free(cqelm);
   //
   simplex_data_free(sp);
   dof_data_free(uep);
   free(wrkp);// wrkm is part of this;  
-  return errelm;
+  return;
 }
