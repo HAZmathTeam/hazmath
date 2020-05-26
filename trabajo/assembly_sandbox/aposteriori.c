@@ -98,7 +98,7 @@ REAL estimator_simplex(simplex_data *splex,			\
   e1i=0.;
   e2i=0.;
   e3i=0.;
-  for (quad=0;quad<cqelm_pm->nq_per_elm;quad++) {
+  for (quad=0;quad<cqelm_pm->nq_per_elm;quad++) {    
     // elements
     qx[0] = cqelm_pm->x[quad];
     qx[1] = cqelm_pm->y[quad];
@@ -125,9 +125,11 @@ REAL estimator_simplex(simplex_data *splex,			\
     /* print_full_mat(1,1,wptr,"p"); */
     /* fprintf(stdout,"\n**********************************************"); */
     /////////////////////////////////////////////////////////////////////////
-    zblockfe_dinterp(dval,ue->b,qx,splex);
     /* for(j=0;j<splex->num_dofs;j++) */
     /*   fprintf(stdout,"\nuet(%d)=%.7e",j,uet->b[j]); */
+    /* for(j=2*dim*dim;j<dim*dim+dim*dim+1;j++) */
+    /*   fprintf(stdout,"\ndue(%d)=%.7e",j,dval[j]); */
+    zblockfe_dinterp(dval,ue->b,qx,splex);
     zblockfe_dinterp(dvalt,uet->b,qx,splex);
     /* for(j=0;j<dim*dim;j++) */
     /*   fprintf(stdout,"\nduet(%d)=%.7e",j,dvalt[j]); */
@@ -172,8 +174,14 @@ REAL estimator_simplex(simplex_data *splex,			\
     // all vectors are ready, symmetrize the gradients of bubble and u1,u2
     REAL divu=0.,divb=0.,divut=0.,divbt=0.;
     // this below computes div u and div ub and div ut and div ubt
-    /* for(j=0;j<dim*dim;j++) */
-    /*   fprintf(stdout,"\n222222duet(%d)=%.7e",j,dbubt[j]); */
+    /* fprintf(stdout,"\nQ=(%.15e,%.15e)",qx[0],qx[1]); */
+    /* fprintf(stdout,"\nbubDOF=[%.15e,%.15e,%.15e]",uet->b[0],uet->b[1],uet->b[2]); */
+    /* for(j=0;j<dim;j++){ */
+    /*   fprintf(stdout,"\ndbubt(%d,1:%d)=[%.7e,%.7e]",j+1,dim,dbubt[j*dim+0],dbubt[j*dim+1]); */
+    /* } */
+    /* for(j=0;j<dim;j++){ */
+    /*   fprintf(stdout,"\ndlint(%d,1:%d)=[%.7e,%.7e]",j+1,dim,dlint[0*dim+j],dlint[1*dim+j]); */
+    /* } */
     for(i=0;i<dim;i++){
       // trace(sigma(u))
       divu+=dlin[i*dim+i];
@@ -205,7 +213,7 @@ REAL estimator_simplex(simplex_data *splex,			\
     }
     //    rhsi=rhs[4]-beta*valpt[0] - divut - divbt - divw[0];
     rhsi=rhs[4] + beta*valpt[0] +  alpha*(divut + divbt) + divw[0];
-    //    fprintf(stdout, "\nrhsi=%.6e,%.5e,%.5e,%.5e,%.6e",w,rhs[4],divut,divbt,divw[0]); 
+    //    fprintf(stdout, "\nelm:%d; rhsi=%7e=sum([%.5e,%.5e,%.6e, %.6e])",elm,rhsi,rhs[4],divut,divbt,divw[0]); 
     //    fprintf(stdout, "\nrhsi=%.5e,%.6e",w,rhsi); 
     e2=rhsi*rhsi;
     e3=0.;
@@ -318,7 +326,6 @@ REAL estimator_face(simplex_data *sp,				\
     qx[0] = cqface->x[quad];
     qx[1] = cqface->y[quad];
     if(dim==3) qx[2] = cqface->z[quad]; 
-    //    fprintf(stdout,"\nQ=(%.7e,%.7e)",qx[0],qx[1]);
     //////////////////////////////////////////////////////////////////////////
     conductivity2D(conductp,sp->mid,time,NULL); // Actually this gives the
     conductivity2D(conductm,sm->mid,time,NULL); // inverse of K at the centers of both elements
@@ -412,25 +419,23 @@ REAL estimator_face(simplex_data *sp,				\
   return integral;
 }
 /****************************************************************************/
-estimator *estimator_block(dvector *uh0,					\
-			   dvector *uh1,				\
-			   block_fespace *FE,				\
-			   mesh_struct *mesh,				\
-			   void (*f)(REAL *,REAL *,REAL,void *),	\
-			   REAL time,					\
-			   REAL dt) 
+void estimator_block(estimator *est,
+		     dvector *uh0,					\
+		     dvector *uh1,					\
+		     block_fespace *FE,					\
+		     mesh_struct *mesh,					\
+		     void (*f)(REAL *,REAL *,REAL,void *),		\
+		     REAL time,						\
+		     REAL dt) 
 {
   // uh0 is the solution from the previous time step;
   // uh1 is the current solution;
   INT dim = mesh->dim;
   INT nq1d=5;
   INT i,j,k,l,jk,row;
-  estimator *est=malloc(sizeof(estimator));
   // allocate a mask array to contain indicator for which elements the
   INT *mask=(INT *)calloc(mesh->nelm,sizeof(INT));
   // bulk estimator and face estimators
-  est->bulk=(REAL *)calloc(mesh->nelm,sizeof(REAL));  
-  est->face=(REAL *)calloc(mesh->nface,sizeof(REAL));
   // Need face to element map
   iCSRmat f_el;
   icsr_trans(mesh->el_f,&f_el); // we need this one face,element
@@ -458,7 +463,8 @@ estimator *estimator_block(dvector *uh0,					\
   void *wrkp = (void *)calloc(2*memwrk,sizeof(REAL));
   void *wrkm = wrkp + memwrk*sizeof(REAL);
   //
-  // end of data_face piece.  
+  // end of data_face piece.
+  memset(mask,0,mesh->nelm);
   for(i=0;i<mesh->nface;i++) {
     for(jk=mesh->f_v->IA[i];jk<mesh->f_v->IA[i+1];jk++){
       j=jk-mesh->f_v->IA[i];
@@ -492,8 +498,10 @@ estimator *estimator_block(dvector *uh0,					\
     else
       elmm=-1;
     //tplus
+    //    fprintf(stdout, "\nelmp:%d====BEGIN======",elmp);
     simplex_data_update(elmp,sp,mesh,FE,1);
     dof_data_update(uep,elmp,sp,uh0,uh1,dt);
+    //    simplex_data_print(elmp, sp,uep);      
     if(elmm>=0){
       simplex_data_update(elmm,sm,mesh,FE,1);
       dof_data_update(uem,elmm,sm,uh0,uh1,dt);
@@ -509,23 +517,27 @@ estimator *estimator_block(dvector *uh0,					\
 				elmp,elmm,			\
 				mesh->f_flag[i],wrkp,wrkm);
     if(!mask[elmp]){
-      //      simplex_data_print(elmp, sp,uep);      
       est->bulk[elmp]=estimator_simplex(sp,uep,			\
 					nq1d,cqelm_pm,		\
 					mesh,time,elmp,		\
 					wrkp,wrkm);
       mask[elmp]=1;
+      //      fprintf(stdout, "\nelmp:%d====END======",elmp);
     }
     if(elmm>=0){
       if(!mask[elmm]){
+	//	fprintf(stdout, "\nelmm:%d====BEGIN======",elmm);
+	simplex_data_update(elmm,sm,mesh,FE,1);
+	dof_data_update(uem,elmm,sm,uh0,uh1,dt);
 	//	simplex_data_print(elmm, sm, uem);
 	est->bulk[elmm]=estimator_simplex(sm,uem,			\
 					  nq1d,cqelm_pm,		\
 					  mesh,time,elmm,		\
 					  wrkp,wrkm);
+	//	fprintf(stdout, "\nelmp:%d====END======",elmm);
 	mask[elmm]=1;
       }// mask>0
-    }//elmm>0
+    }//elmm>=0
   }
   free_qcoords(cqelm_pm);
   free(cqelm_pm);
@@ -538,5 +550,5 @@ estimator *estimator_block(dvector *uh0,					\
   dof_data_free(uem);
   free(data_face);// wrkm is part of this;  
   free(wrkp);// wrkm is part of this;  
-  return est;
+  return;
 }
