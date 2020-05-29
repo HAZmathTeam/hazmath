@@ -52,8 +52,26 @@
 # doxygen=yes
 #
 #-------------------------------------------------------------------------
-# If you want to use the SuiteSparse package, uncomment the next
-# line (and read carefully the instructons below it):
+# If you want to use the BLAS
+#
+# blas=yes
+# blas_dir=/home/whatever/blas-xxx-yyy
+#
+# IMPORTANT: The BLAS libraries/(include files) are expected to be
+# fouund either under the path specified above of in the system
+# standard paths for libraries and header files.
+# -------------------------------------------------------------------------
+# If you want to use the LAPACK
+#
+# lapack=yes
+# lapack_dir=/home/whatever/lapack-xxx-yyy
+#
+# IMPORTANT: The LAPACK libraries/(include files) are expected to be
+# fouund either under the path specified above of in the system
+# standard paths for libraries and header files.
+# -------------------------------------------------------------------------
+# If you want to use the SuiteSparse package, uncomment the next line
+# (and read carefully the instructons below it):
 #
 # suitesparse=yes
 #
