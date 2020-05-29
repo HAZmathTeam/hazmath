@@ -383,6 +383,8 @@ void param_input (const char *filenm,		\
                 inparam->AMG_cycle_type = AMLI_CYCLE;
             else if ((strcmp(buffer,"NA")==0)||(strcmp(buffer,"na")==0))
                 inparam->AMG_cycle_type = NL_AMLI_CYCLE;
+            else if ((strcmp(buffer,"ADD")==0)||(strcmp(buffer,"add")==0))
+                inparam->AMG_cycle_type = ADD_CYCLE;
             else
             { status = ERROR_INPUT_PAR; break; }
             fgets(buffer,maxb,fp); // skip rest of line
