@@ -234,6 +234,41 @@ void precond_nl_amli(REAL *r,
 
 /***********************************************************************************************/
 /**
+ * \fn void precond_amg_add (REAL *r, REAL *z, void *data)
+ *
+ * \brief AMG preconditioner (additive AMG)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   05/28/2020
+ */
+void precond_amg_add(REAL *r,
+                 REAL *z,
+                 void *data)
+{
+    precond_data *pcdata=(precond_data *)data;
+    const INT m=pcdata->mgl_data[0].A.row;
+    const INT maxit=pcdata->maxit;
+    INT i;
+
+    AMG_param amgparam; param_amg_init(&amgparam);
+    param_prec_to_amg(&amgparam,pcdata);
+
+    AMG_data *mgl = pcdata->mgl_data;
+    mgl->b.row=m; array_cp(m,r,mgl->b.val); // residual is an input
+    mgl->x.row=m; dvec_set(m,&mgl->x,0.0);
+
+    for (i=0;i<maxit;++i) mgcycle_add(mgl,&amgparam);
+
+    array_cp(m,mgl->x.val,z);
+}
+
+
+/***********************************************************************************************/
+/**
  * \fn void precond_hx_curl_additive (REAL *r, REAL *z, void *data)
  *
  * \brief HX preconditioner for H(curl): additive version
@@ -1083,7 +1118,7 @@ void precond_block_diag_2_amg_krylov(REAL *r,
 
     pc.data = &pcdata;
 
-    dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc, 1e-3, 100, 100, 1, 0);
+    dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc, 1e-2, 100, 100, 1, 1);
 
     // Preconditioning A11 block
     pcdata.max_levels = mgl[1][0].num_levels;
@@ -1091,7 +1126,7 @@ void precond_block_diag_2_amg_krylov(REAL *r,
 
     pc.data = &pcdata;
 
-    dcsr_pvfgmres(&mgl[1][0].A, &r1, &z1, &pc, 1e-3, 100, 100, 1, 0);
+    dcsr_pvfgmres(&mgl[1][0].A, &r1, &z1, &pc, 1e-2, 100, 100, 1, 1);
 
     // restore r
     array_cp(N, tempr->val, r);
@@ -1283,7 +1318,7 @@ void precond_block_lower_2_amg_krylov(REAL *r,
 
     pc.data = &pcdata;
 
-    dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc, 1e-3, 100, 100, 1, 0);
+    dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc, 1e-2, 100, 100, 1, 1);
 
     // r1 = r1 - A2*z0
     if (A->blocks[2] != NULL)
@@ -1295,7 +1330,7 @@ void precond_block_lower_2_amg_krylov(REAL *r,
 
     pc.data = &pcdata;
 
-    dcsr_pvfgmres(&mgl[1][0].A, &r1, &z1, &pc, 1e-3, 100, 100, 1, 0);
+    dcsr_pvfgmres(&mgl[1][0].A, &r1, &z1, &pc, 1e-2, 100, 100, 1, 1);
 
     // restore r
     array_cp(N, tempr->val, r);
@@ -1484,7 +1519,7 @@ void precond_block_upper_2_amg_krylov(REAL *r,
 
     pc.data = &pcdata;
 
-    dcsr_pvfgmres(&mgl[1][0].A, &r1, &z1, &pc, 1e-6, 100, 100, 1, 1);
+    dcsr_pvfgmres(&mgl[1][0].A, &r1, &z1, &pc, 1e-3, 100, 100, 1, 1);
 
     // r0 = r0 - A1*z1
     if (A->blocks[1] != NULL)
@@ -1496,7 +1531,7 @@ void precond_block_upper_2_amg_krylov(REAL *r,
 
     pc.data = &pcdata;
 
-    dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc, 1e-6, 100, 100, 1, 1);
+    dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc, 1e-3, 100, 100, 1, 1);
 
     // restore r
     array_cp(N, tempr->val, r);
