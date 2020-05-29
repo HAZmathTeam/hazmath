@@ -3767,4 +3767,38 @@ dvector *dvec_create_plus(INT n,		\
     v->val=(REAL *)realloc(NULL,n*sizeof(REAL));
   return v;
  }
+/**
+ * \fn dcsr2full(dCSRmat *A, REAL *Afull)
+ *
+ * \brief converts a dcsr matrix to a full matrix
+ * \note 
+ *
+ * \param A	   Matrix A to be converted
+ * \param Afull	   Matrix Afull: full(A). it must be allocated 
+ *                               before entering here. 
+ * \return 
+ *
+ */
+void dcsr2full(dCSRmat *A,REAL *Afull)
+{
+  // Afull must have enopugh space for (A->row*A->col) doubkles. 
+  if(Afull){
+    INT n=A->row,m=A->col,i,j,jk,im;
+    INT *ia=A->IA,*ja=A->JA;
+    REAL *a=A->val;
+    memset(Afull,0,n*m*sizeof(REAL));
+    for(i=0;i<n;i++)  {
+      im=i*m;
+      for(jk=ia[i];jk<ia[i+1];jk++)  {
+	j=ja[jk];
+	Afull[im+j]=a[jk];
+      }
+    }
+    return;
+  } else {
+    fprintf(stderr,"ERROR in %s: Afull not allocated",__FUNCTION__);
+    exit(16);
+  }
+}
+
 /*********************************EOF***********************************/
