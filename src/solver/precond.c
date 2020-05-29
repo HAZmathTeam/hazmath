@@ -262,6 +262,7 @@ void precond_amg_add(REAL *r,
     mgl->x.row=m; dvec_set(m,&mgl->x,0.0);
 
     for (i=0;i<maxit;++i) mgcycle_add(mgl,&amgparam);
+    //mgcycle_add_update(mgl,&amgparam);
 
     array_cp(m,mgl->x.val,z);
 }

@@ -739,7 +739,6 @@ void mgcycle_add(AMG_data *mgl,
     const SHORT  prtlvl = param->print_level;
     const SHORT  amg_type = param->AMG_type;
     const SHORT  smoother = param->smoother;
-    //const SHORT  cycle_type = param->cycle_type;
     const SHORT  coarse_solver = param->coarse_solver;
     const SHORT  nl = mgl[0].num_levels;
     const REAL   relax = param->relaxation;
@@ -854,7 +853,125 @@ void mgcycle_add(AMG_data *mgl,
 }
 
 
+/**
+ * \fn void mgcycle_add_update(AMG_data *mgl, AMG_param *param)
+ *
+ * \brief Solve Ae=r with additive multigrid cycle
+ * \note This subroutine assumes that the input right hand side is residual
+ *       and the output solutio is the update.  Therefore, the initial guess has to zero
+ *
+ * \param mgl    Pointer to AMG data: AMG_data
+ * \param param  Pointer to AMG parameters: AMG_param
+ *
+ * \author Xiaozhe Hu
+ * \date   05/28/2020
+ *
+ */
+void mgcycle_add_update(AMG_data *mgl,
+                 AMG_param *param)
+{
+    const SHORT  prtlvl = param->print_level;
+    const SHORT  amg_type = param->AMG_type;
+    const SHORT  smoother = param->smoother;
+    const SHORT  coarse_solver = param->coarse_solver;
+    const SHORT  nl = mgl[0].num_levels;
+    const REAL   relax = param->relaxation;
+    const REAL   tol = param->tol * 1e-2;
 
+    // Schwarz parameters
+    Schwarz_param swzparam;
+
+    // local variables
+    REAL alpha = 1.0;
+    INT l = 0;
+
+    // make sure the initial guess is zero
+    dvec_set(mgl[0].A.row, &mgl[0].x, 0.0);
+
+    // main loop
+    while ( l < nl-1 ) {
+
+        // pre-smoothing with Schwarz method
+        if ( l < mgl->Schwarz_levels ) {
+            swzparam.Schwarz_blksolver = mgl[l].Schwarz.blk_solver;
+            switch (mgl[l].Schwarz.Schwarz_type) {
+                case SCHWARZ_SYMMETRIC:
+                    smoother_dcsr_Schwarz_forward(&mgl[l].Schwarz, &swzparam,
+                                                  &mgl[l].x, &mgl[l].b);
+                    smoother_dcsr_Schwarz_backward(&mgl[l].Schwarz, &swzparam,
+                                                   &mgl[l].x, &mgl[l].b);
+                    break;
+                default:
+                    smoother_dcsr_Schwarz_forward(&mgl[l].Schwarz, &swzparam,
+                                                  &mgl[l].x, &mgl[l].b);
+                    break;
+            }
+        }
+        else
+        { // pre-smoothing with standard smoothers
+          dcsr_presmoothing(smoother, &mgl[l].A, &mgl[l].b, &mgl[l].x,
+                            param->presmooth_iter, 0, mgl[l].A.row-1, 1,
+                            relax);
+        }
+
+        // restriction rH = R*rh (restrict residual)
+        switch ( amg_type ) {
+            case UA_AMG:
+                dcsr_mxv_agg(&mgl[l].R, mgl[l].b.val, mgl[l+1].b.val);
+                break;
+            default:
+                dcsr_mxv(&mgl[l].R, mgl[l].b.val, mgl[l+1].b.val);
+                break;
+        }
+
+        // prepare for the next level
+        ++l; dvec_set(mgl[l].A.row, &mgl[l].x, 0.0);
+
+    }
+
+    // If AMG only has one level or we have arrived at the coarsest level,
+    // call the coarse space solver:
+    switch ( coarse_solver ) {
+
+#if WITH_SUITESPARSE
+        case SOLVER_UMFPACK: {
+            // use UMFPACK direct solver on the coarsest level
+            umfpack_solve(&mgl[nl-1].A, &mgl[nl-1].b, &mgl[nl-1].x, mgl[nl-1].Numeric, 0);
+            break;
+        }
+#endif
+        default:
+            // use iterative solver on the coarsest level
+            coarse_itsolver(&mgl[nl-1].A, &mgl[nl-1].b, &mgl[nl-1].x, tol, prtlvl);
+            break;
+
+    }
+
+    // BackwardSweep (update solution only, no postsmoothing)
+    while ( l > 0 ) {
+
+        --l;
+
+        // find the optimal scaling factor alpha
+        if ( param->coarse_scaling == ON ) {
+            alpha = array_dotprod(mgl[l+1].A.row, mgl[l+1].x.val, mgl[l+1].b.val)
+                  / dcsr_vmv(&mgl[l+1].A, mgl[l+1].x.val, mgl[l+1].x.val);
+            alpha = MIN(alpha, 1.0);
+        }
+
+        // prolongation u = u + alpha*P*e1
+        switch ( amg_type ) {
+            case UA_AMG:
+                dcsr_aAxpy_agg(alpha, &mgl[l].P, mgl[l+1].x.val, mgl[l].x.val);
+                break;
+            default:
+                dcsr_aAxpy(alpha, &mgl[l].P, mgl[l+1].x.val, mgl[l].x.val);
+                break;
+        }
+
+    }
+
+}
 
 /**
  * \fn void mgcycle_block (AMG_data *mgl, AMG_param *param)
