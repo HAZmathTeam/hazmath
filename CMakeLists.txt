@@ -147,6 +147,7 @@ file(GLOB HAZMATH_C_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR}
   ${HAZMATH_SOURCE_DIR}/src/timestepping/*.c 
   ${HAZMATH_SOURCE_DIR}/src/nonlinear/*.c 
   ${HAZMATH_SOURCE_DIR}/src/utilities/*.c 
+  ${HAZMATH_SOURCE_DIR}/src/eigen/*.c 
   ${HAZMATH_SOURCE_DIR}/src/interfaces/*.c
   ${HAZMATH_SOURCE_DIR}/src/graphs/*.c
   ${HAZMATH_SOURCE_DIR}/src/assemble/*.inl 
