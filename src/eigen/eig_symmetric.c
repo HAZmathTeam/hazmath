@@ -11,13 +11,14 @@
 #include "hazmath.h"
 INT eigsymm(dCSRmat *A,dCSRmat *B,REAL *evalues, REAL *evectors)
 {
+  INT info=-22;
 #if WITH_LAPACK
   //   evalues must be have enough space for n reals; if evectors is a
   //   NULL: compute only eigenvalues; otherwise evectors must be n*n
   //   reals upon entering here.
   char uplo='U',jobz='N';
   INT n=A->row;
-  INT itype=1,lwork=3*n+6,info=-22; // itype=1 is to solve A*x =lambda*B*x
+  INT itype=1,lwork=3*n+6; // itype=1 is to solve A*x =lambda*B*x
   REAL *af=NULL, *bf=NULL, *work=NULL;
   REAL *w=evalues;
   if(evectors){
@@ -29,7 +30,7 @@ INT eigsymm(dCSRmat *A,dCSRmat *B,REAL *evalues, REAL *evectors)
   bf=calloc(n*n+lwork,sizeof(REAL));
   dcsr2full(A,af);
   dcsr2full(B,bf);
-  work = bf + n*n;  
+  work = bf + n*n;
   dsygv_( &itype, &jobz, &uplo, &n, af, &n, bf, &n, w, work,
   	  &lwork, &info );
   free(bf);
