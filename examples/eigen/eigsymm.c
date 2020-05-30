@@ -22,8 +22,8 @@ int main (int argc, char* argv[])
   printf("%%===========================================================================\n");
   FILE *fp=NULL;
   char *fnamea=NULL,*fnameb=NULL;
-  fnamea=strdup("A.dat");
-  fnameb=strdup("B.dat");
+  fnamea=strdup("A20.dat");
+  fnameb=strdup("B20.dat");
   fp = fopen(fnamea,"r");
   if (!fp) check_error(ERROR_OPEN_FILE, __FUNCTION__);
   if(fnamea) free(fnamea);
@@ -41,8 +41,8 @@ int main (int argc, char* argv[])
   REAL *evectors=calloc(A->row*A->row,sizeof(REAL));
   // both eigenvalues and eigenvectors
   eigsymm(A,B,evalues,evectors);
-  print_full_mat(1,A->row,evalues,"evals");
-  print_full_mat(A->row,A->row,evectors,"evecs");
+  print_full_mat(A->row,1,evalues,"evals");
+  print_full_mat(A->row,A->col,evectors,"evecs");
   // Clean up memory
   free(A);
   free(B);
