@@ -38,6 +38,7 @@ BEGIN {
   print "#include \"nonlinear.h\""
   print "#include \"timestep.h\""
   print "#include \"param.h\""
+  print "#include \"eigen.h\""
   print "#include \"graphs.h\""
   print "// Special Includes"
   print "#if WITH_MATLAB"
