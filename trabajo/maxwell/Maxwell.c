@@ -235,23 +235,13 @@ int main (int argc, char* argv[])
 	dcsr_mxm(&Da,&Ve,&Mf); //MbL = del face * vor edge
 	Mv = Vv;				//MpL = vor volumes
 	
-	// CSR Matrices
-	//dcsr_free(&Vv);
-	dcsr_free(&Va);
-	dcsr_free(&Ve);
-	dcsr_free(&Dv);
-	dcsr_free(&Da);
-	dcsr_free(&De);
 	
 	//Voronoi Coords
 	free_coords(cv_vor);
     free(cv_vor);
     cv_vor = NULL;
 	
-	// Vectors
-	dvec_free(&vor_edge_length);
-	dvec_free(&vor_el_vol);
-	dvec_free(&vor_face_area);
+
 	
   } else { //Regular FEM (no lumping) 
   
@@ -409,9 +399,88 @@ int main (int argc, char* argv[])
   printf("||B-Btrue||_0 = %25.16e\n",Berr);
   printf("||p-ptrue||_0 = %25.16e\n",perr);
   printf("------------------------------------------------------------\n");
-  
+ 
+
+  //-------------------------------
+  // prepare block preconditioner
+  //-------------------------------
+	
+  // get Gt and Kt
+  dCSRmat Gt;
+  dCSRmat Kt;
+  dCSRmat Mf_PC;
+  dCSRmat Me_PC;
+  dCSRmat Mv_PC;
 
 
+	
+  if (mass_lump==1){ //need to redefine G^T and K^T as Voronoi operators
+	//G FE = De^-1 G, gradD = De^-1 G, divD = Vv^-1 G^T Vf
+	//K FE = Da^-1 K De, curlD = Da^-1 K De, curlV = Va^-1 K^T Ve	
+	
+	//make divD = Vv^-1 G^T Vf
+	//transpose G FE
+	dcsr_trans(&G,&Gt); //G FE^T = G^T De^-1
+	//unscale G^T = G FE ^T De = G^T De^-1 De
+	dcsr_mxm(&Gt,&De,&Gt); // G^T = G FE ^T De^-1 De
+	//rescale to get divD = Vv^-1 G^T Vf
+	dCSRmat Vv_inv;
+	Vv_inv = dcsr_invert_diagonal_matrix(&vor_el_vol); 
+	dcsr_mxm(&Vv_inv, &Gt, &Gt);
+	dcsr_mxm(&Gt, &Vf, &Gt); //divD
+	
+	//make curlV = Va^-1 K^T Ve
+	//transpose K Fe
+	dcsr_trans(&K,&Kt); // K FE ^T = De K^T Da^-1 
+	//unscale K^T = De^-1 (K FE ^T) Da
+	dCSRmat De_inv;
+	De_inv = dcsr_invert_diagonal_matrix(&del_edge_length);
+	dcsr_mxm(&De_inv, &Kt, &Kt);
+	dcsr_mxm(&Kt, &Da, &Kt);
+	//rescale to get curlV = Va^-1 K^T Ve	
+	dCSRmat Va_inv;
+	De_inv = dcsr_invert_diagonal_matrix(&vor_face_area);
+	dcsr_mxm(&Va_inv, &Kt, &Kt);
+	dcsr_mxm(&Kt, &Ve, &Kt);
+	
+	//fill in mass matrices for preconditioning
+	Mf_PC =  dcsr_create_identity_matrix(mesh.nface,0);
+	Me_PC =  dcsr_create_identity_matrix(mesh.nedge,0);
+	Mv_PC =  dcsr_create_identity_matrix(mesh.nv,0);
+		
+	} else{ //FE, don't have to worry about the scaling.
+		  dcsr_trans(&G,&Gt);
+		  dcsr_trans(&K,&Kt);
+		  
+		  //fill in mass matrices for preconditioning	
+		  Mf_PC =  Mf;
+		  Me_PC =  Me;
+		  Mv_PC = Mv;
+		
+	}
+	
+	//all the stuff we need for the solver
+	
+	  // prepare diagonal blocks
+		dCSRmat *A_diag;
+		A_diag = (dCSRmat *)calloc(3, sizeof(dCSRmat));
+		
+	   block_dCSRmat Lb;
+	   Lb.brow = 3; Lb.bcol = 3;
+       Lb.blocks = (dCSRmat **) calloc(9,sizeof(dCSRmat *));
+	   
+	     // data for HX preconditioner
+		dCSRmat P_curl;
+		dCSRmat Grad;
+
+		get_Pigrad_H1toNed(&P_curl,&mesh);
+		get_grad_H1toNed(&Grad,&mesh);
+	
+	
+	build_precond_maxwell(&G, &Gt, &K ,&Kt, &Mf_PC, &Me_PC, &Mv_PC, &A_diag, &Lb)
+	
+	
+	
   clock_t clk_timeloop_start = clock();
   // Begin Time Stepping
   for (i=0; i<time_stepper.tsteps; i++) {
@@ -447,9 +516,11 @@ int main (int argc, char* argv[])
     //bdcsr_shift(time_stepper.At,-1);
 	
 	//solver_flag = block_directsolve_UMF(time_stepper.At, time_stepper.rhs_time,time_stepper.sol, 3);
+	//solver_flag = linear_solver_bdcsr_krylov(time_stepper.At, time_stepper.rhs_time, time_stepper.sol, &linear_itparam);
+    // call solver
+    solver_flag = linear_solver_bdcsr_krylov_maxwell(&Atime_bcsr, &b_update_bcsr, &u_bcsr, &linear_itparam, &amgparam, A_diag, &P_curl, &Grad, &Gb, &Kb, &Gtb, &Ktb);
 	
-    solver_flag = linear_solver_bdcsr_krylov(time_stepper.At, time_stepper.rhs_time, time_stepper.sol, &linear_itparam);
-    //bdcsr_shift(time_stepper.At,1);
+	
     clock_t clk_solve_end = clock();
     printf("Elapsed CPU Time for Solve = %f seconds.\n\n",(REAL) (clk_solve_end-clk_solve_start)/CLOCKS_PER_SEC);
 
