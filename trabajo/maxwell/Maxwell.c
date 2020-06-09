@@ -155,6 +155,18 @@ int main (int argc, char* argv[])
   block_dCSRmat Mb;		/* Global block Mass matrix */
   block_dCSRmat Ab;		/* Global block stiffness matrix */
   
+  	//Create the matrices with mesh info for MFD
+	dCSRmat Vv;
+	dCSRmat Va;
+	dCSRmat Ve;
+	dCSRmat Dv;
+	dCSRmat Da;
+	dCSRmat De;
+	dvector del_el_vol;
+	dvector del_edge_length;
+	dvector vor_face_area;
+	dvector vor_el_vol;
+  
   //allocate memory for assemble RHS function in mass-lumping routine
   b_E.row = mesh.nedge;
   b_E.val = (REAL*)calloc(mesh.nedge, sizeof(REAL));  
@@ -194,13 +206,7 @@ int main (int argc, char* argv[])
 	compute_Voronoi_faces(&mesh, cv_vor, pt_on_face, &vor_face_area);
 	compute_Voronoi_volumes(&mesh, cv_vor, &vor_face_area, pt_on_face, &vor_el_vol);
 
-	//Create the matrices with mesh info
-	dCSRmat Vv;
-	dCSRmat Va;
-	dCSRmat Ve;
-	dCSRmat Dv;
-	dCSRmat Da;
-	dCSRmat De;
+
  
 	//create diagonal matrices with Voronoi mesh info
  	Vv = dcsr_create_diagonal_matrix(&vor_el_vol);
@@ -208,7 +214,7 @@ int main (int argc, char* argv[])
 	Ve = dcsr_create_diagonal_matrix(&vor_edge_length);
 
 	//create dvecs with Delaunay mesh info
-	dvector del_el_vol;
+	
 	del_el_vol.row = mesh.nelm;
 	del_el_vol.val = mesh.el_vol;
 
@@ -216,7 +222,7 @@ int main (int argc, char* argv[])
 	del_face_area.row = mesh.nface;
 	del_face_area.val = mesh.f_area;
 
-	dvector del_edge_length;
+	
 	del_edge_length.row = mesh.nedge;
 	del_edge_length.val = mesh.ed_len;
 	
@@ -414,7 +420,7 @@ int main (int argc, char* argv[])
 
 
 	
-  if (mass_lump==1){ //need to redefine G^T and K^T as Voronoi operators
+  if (inparam.Mass_lump == 1){ //need to redefine G^T and K^T as Voronoi operators
 	//G FE = De^-1 G, gradD = De^-1 G, divD = Vv^-1 G^T Vf
 	//K FE = Da^-1 K De, curlD = Da^-1 K De, curlV = Va^-1 K^T Ve	
 	
@@ -427,7 +433,7 @@ int main (int argc, char* argv[])
 	dCSRmat Vv_inv;
 	Vv_inv = dcsr_invert_diagonal_matrix(&vor_el_vol); 
 	dcsr_mxm(&Vv_inv, &Gt, &Gt);
-	dcsr_mxm(&Gt, &Vf, &Gt); //divD
+	dcsr_mxm(&Gt, &Va, &Gt); //divD
 	
 	//make curlV = Va^-1 K^T Ve
 	//transpose K Fe
@@ -465,9 +471,6 @@ int main (int argc, char* argv[])
 		dCSRmat *A_diag;
 		A_diag = (dCSRmat *)calloc(3, sizeof(dCSRmat));
 		
-	   block_dCSRmat Lb;
-	   Lb.brow = 3; Lb.bcol = 3;
-       Lb.blocks = (dCSRmat **) calloc(9,sizeof(dCSRmat *));
 	   
 	     // data for HX preconditioner
 		dCSRmat P_curl;
@@ -475,9 +478,16 @@ int main (int argc, char* argv[])
 
 		get_Pigrad_H1toNed(&P_curl,&mesh);
 		get_grad_H1toNed(&Grad,&mesh);
+		
+		//declare operators without boundary  
+		dCSRmat Gtb;
+		dCSRmat Ktb;
+		dCSRmat Kb;
+		dCSRmat Gb;
 	
 	
-	build_precond_maxwell(&G, &Gt, &K ,&Kt, &Mf_PC, &Me_PC, &Mv_PC, &A_diag, &Lb)
+	build_precond_maxwell(&mesh,&FE, time_stepper.dt, &G, &Gt, &K ,&Kt, &Mf_PC, &Me_PC, &Mv_PC, A_diag, &Gtb, 
+							&Ktb, &Kb, &Gb);
 	
 	
 	
@@ -518,7 +528,7 @@ int main (int argc, char* argv[])
 	//solver_flag = block_directsolve_UMF(time_stepper.At, time_stepper.rhs_time,time_stepper.sol, 3);
 	//solver_flag = linear_solver_bdcsr_krylov(time_stepper.At, time_stepper.rhs_time, time_stepper.sol, &linear_itparam);
     // call solver
-    solver_flag = linear_solver_bdcsr_krylov_maxwell(&Atime_bcsr, &b_update_bcsr, &u_bcsr, &linear_itparam, &amgparam, A_diag, &P_curl, &Grad, &Gb, &Kb, &Gtb, &Ktb);
+    solver_flag = linear_solver_bdcsr_krylov_maxwell(time_stepper.At, time_stepper.rhs_time, time_stepper.sol, &linear_itparam, &amgparam, A_diag, &P_curl, &Grad, &Gb, &Kb, &Gtb, &Ktb);
 	
 	
     clock_t clk_solve_end = clock();
