@@ -6336,20 +6336,20 @@ void precond_elasticity (REAL *r, REAL *z, void *data)
   dvector *tempr = &(precdata->r);
 
   MG_blk_data *bmgl = precdata->bmgl;
-  AMG_param  *param = precdata->amgparam;
+//  AMG_param  *param = precdata->amgparam;
 
   // Local Variables
   INT i;
-  INT n0; // Elasticity size.
-  INT n2; // Pressure size (stokes)
-  INT lvl;
+  INT n0 = bmgl[0].A.blocks[0]->row; // Elasticity size.
+//  INT n2 = bmgl[0].A.blocks[3]->row;// Pressure size (stokes)
+  INT lvl = 0;
   dvector rhs_stokes, sol_stokes, rhs_elast, sol_elast;
-  dvector r0;// was used as residual.
-  dvector y0;// was used as solution update.
+//  dvector r0;// was used as residual.
+//  dvector y0;// was used as solution update.
   REAL nu = 0.49;
   REAL mu =  (3e4) / (1+2*nu);
   REAL lam = (3e4)*nu / ((1-2*nu)*(1+nu));
-  REAL factor = (1.0) / (lam+(2*mu/2.0));
+//  REAL factor = (1.0) / (lam+(2*mu/2.0));
   REAL lamS = lam;
 
   // Local Variables
