@@ -840,15 +840,19 @@ INT linear_solver_dcsr_krylov_amg(dCSRmat *A,
 
         case AMLI_CYCLE: // AMLI cycle
             pc.fct = precond_amli;
-        break;
+            break;
 
         case NL_AMLI_CYCLE: // Nonlinear AMLI AMG
             pc.fct = precond_nl_amli;
-        break;
+            break;
+
+        case ADD_CYCLE: // additive cycle
+            pc.fct = precond_amg_add;
+            break;
 
         default: // V,W-Cycle AMG
             pc.fct = precond_amg;
-        break;
+            break;
 
     }
 
@@ -1294,7 +1298,7 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
 
   SHORT max_levels;
   if (amgparam) max_levels = amgparam->max_levels;
-  AMG_data **mgl = (AMG_data **)calloc(3, sizeof(AMG_data *));
+  AMG_data **mgl = (AMG_data **)calloc(2, sizeof(AMG_data *));
 
   /* setup preconditioner */
   get_time(&setup_start);
@@ -1365,6 +1369,9 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
   else {
       precdata.mgl = mgl;
   }
+
+  precdata.hxcurldata = NULL;
+  precdata.hxdivdata = NULL;
 
   precond prec; prec.data = &precdata;
 
@@ -1478,8 +1485,8 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
 
 #if WITH_SUITESPARSE
     void **LU_diag = (void **)calloc(3, sizeof(void *));
-#else
-    error_extlib(257, __FUNCTION__, "SuiteSparse");
+//#else
+//    error_extlib(257, __FUNCTION__, "SuiteSparse");
 #endif
 
     SHORT max_levels;
@@ -1512,6 +1519,7 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
     else {
 
         for (i=0; i<3; i++){
+
             /* set AMG for diagonal blocks */
             mgl[i] = amg_data_create(max_levels);
             dcsr_alloc(A_diag[i].row, A_diag[i].row, A_diag[i].nnz, &mgl[i][0].A);

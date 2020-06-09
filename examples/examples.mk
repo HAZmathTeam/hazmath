@@ -25,7 +25,7 @@ HAZLIB = -L$(HAZDIR)/lib -lhazmath
 
 INCLUDE += -I$(HAZDIR)/include
 
-LIBS += $(HAZLIB) -lm -lblas -llapack
+LIBS += $(HAZLIB) -lm 
 
 RPATH = -Wl,-rpath=$(HAZDIR)/lib
 
@@ -56,6 +56,16 @@ else
 	MGLIBS = $(MGRAPH_WRAPPERDIR)/multigraph_solve.o $(MGRAPH_SRCDIR)/solver.o
 endif
 
+ifeq ($(WITH_BLAS),1)
+	CFLAGS += -DWITH_BLAS=1
+	LIBS += -lblas 
+endif
+
+ifeq ($(WITH_LAPACK),1)
+	CFLAGS += -DWITH_LAPACK=1
+	LIBS += -llapack
+endif
+
 INCLUDESSP=
 ifeq ($(WITH_SUITESPARSE),1)
 	CFLAGS += -DWITH_SUITESPARSE=1
@@ -63,6 +73,7 @@ ifeq ($(WITH_SUITESPARSE),1)
 	INCLUDESSP = -I/usr/include/suitesparse
 	LIBS += -lsuitesparseconfig -lcholmod -lamd -lcolamd -lccolamd -lcamd -lspqr -lumfpack -lamd -lcxsparse 
 endif
+
 
 
 ############### 
