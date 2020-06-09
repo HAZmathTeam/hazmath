@@ -4993,6 +4993,7 @@ void precond_block_upper_biot_3field_krylov(REAL *r,
   precond pc_w;
   precond_data pcdata_w;
   if(precdata->hxdivdata!=NULL){
+    printf("Using hx to solve w\n");
     pc_w.data = precdata->hxdivdata[1];
     pc_w.fct = precond_hx_div_additive;
     //pc_w.fct = precond_hx_div_multiplicative;
@@ -5009,7 +5010,7 @@ void precond_block_upper_biot_3field_krylov(REAL *r,
 
   get_time(&solver_start);
   //dcsr_pvfgmres(&mgl[1][0].A, &r1, &z1, &pc_w, 1e-1, 100, 100, 1, 1);
-  dcsr_pvfgmres(&(A_diag[1]), &r1, &z1, &pc_w, 1e-3, 100, 100, 1, 1);
+  dcsr_pvfgmres(&(A_diag[1]), &r1, &z1, &pc_w, 1e-3, 1000, 1000, 1, 1);
   get_time(&solver_end);
   solver_duration = solver_end - solver_start;
   print_cputime("solve w", solver_duration);
@@ -5033,7 +5034,7 @@ void precond_block_upper_biot_3field_krylov(REAL *r,
 
   get_time(&solver_start);
   //dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc_u, 1e-1, 100, 100, 1, 1);
-  dcsr_pvfgmres(&(A_diag[0]), &r0, &z0, &pc_u, 1e-3, 100, 100, 1, 1);
+  dcsr_pvfgmres(&(A_diag[0]), &r0, &z0, &pc_u, 1e-3, 1000, 1000, 1, 1);
   get_time(&solver_end);
   solver_duration = solver_end - solver_start;
   print_cputime("solve u", solver_duration);
@@ -6274,6 +6275,88 @@ void precond_block_monolithic_mg (REAL *r, REAL *z, void *data)
 
   // Store x
   array_cp(N, bmgl[0].x.val, z);
+
+  // restore r
+//  array_cp(N, tempr->val, r);
+
+  return;
+}
+
+/* Special preconditioners for elasticity */
+
+/**
+ * \fn void precond_elasticity (REAL *r, REAL *z, void *data)
+ *
+ * \brief
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ */
+void precond_elasticity (REAL *r, REAL *z, void *data)
+{
+  precond_block_data *precdata=(precond_block_data *)data;
+  dvector *tempr = &(precdata->r);
+
+  MG_blk_data *bmgl = precdata->bmgl;
+  AMG_param  *param = precdata->amgparam;
+
+  // Local Variables
+  INT i;
+  INT n0; // Elasticity size.
+  INT n2; // Pressure size (stokes)
+  INT lvl;
+  dvector rhs_stokes, sol_stokes, rhs_elast, sol_elast;
+  dvector r0;// was used as residual.
+  dvector y0;// was used as solution update.
+  REAL nu = 0.49;
+  REAL mu =  (3e4) / (1+2*nu);
+  REAL lam = (3e4)*nu / ((1-2*nu)*(1+nu));
+  REAL factor = (1.0) / (lam+(2*mu/2.0));
+  REAL lamS = lam;
+
+  // Local Variables
+  INT N=0;
+  INT brow = bmgl[0].A.brow;
+
+  for( i=0; i<brow; i++){
+      N += bmgl[0].A.blocks[i+i*brow]->row;
+  }
+
+  // back up r, setup z;
+  array_cp(N, r, tempr->val);
+  array_set(N, z, 0.0);
+
+  // Residual is an input
+  array_cp(N, r, bmgl[0].b.val);
+
+  // Set x
+  dvec_set(N, &bmgl[0].x, 0.0);
+
+  /* Do Thing */
+  dvec_alloc(N, &rhs_stokes);
+  dvec_alloc(N, &sol_stokes);
+  dvec_alloc(n0, &rhs_elast);
+  dvec_alloc(n0, &sol_elast);
+  for( i=0; i<(n0); i++){
+    rhs_stokes.val[i] = r[i];
+    sol_stokes.val[i] = 0.0;
+    rhs_elast.val[i] = r[i];
+    sol_elast.val[i] = 0.0;
+  }
+  for( i=n0; i<N; i++){
+    rhs_stokes.val[i] = 0.0;
+    sol_stokes.val[i] = 0.0;
+  }
+  block_directsolve_UMF( bmgl[lvl].As, &rhs_stokes, &sol_stokes, 0);// Solve with pressure constraint
+  directsolve_UMF( bmgl[lvl].As->blocks[0], &rhs_elast, &sol_elast, 0);
+  for( i=0; i<n0; i++ ){
+    z[i] = ( (lamS/(2*mu))/(lamS+2*mu) * sol_stokes.val[i] + 1.0/(lamS+2*mu) * sol_elast.val[i] );
+  }
+
+  // Store x // this is now done above with the z (might need to be alloced)
+  //array_cp(N, bmgl[0].x.val, z);
 
   // restore r
   array_cp(N, tempr->val, r);
