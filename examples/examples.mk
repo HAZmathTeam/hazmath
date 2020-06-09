@@ -1,4 +1,4 @@
-#####################################################
+####################################################
 # Last Modified 2017-03-08 --ltz
 ####################################################
 
@@ -25,7 +25,9 @@ HAZLIB = -L$(HAZDIR)/lib -lhazmath
 
 INCLUDE += -I$(HAZDIR)/include
 
-LIBS += $(HAZLIB) -lm -lblas -llapack
+LIBS += $(HAZLIB) -lm 
+
+RPATH = -Wl,-rpath=$(HAZDIR)/lib
 
 HEADERS += 
 
@@ -54,6 +56,16 @@ else
 	MGLIBS = $(MGRAPH_WRAPPERDIR)/multigraph_solve.o $(MGRAPH_SRCDIR)/solver.o
 endif
 
+ifeq ($(WITH_BLAS),1)
+	CFLAGS += -DWITH_BLAS=1
+	LIBS += -lblas 
+endif
+
+ifeq ($(WITH_LAPACK),1)
+	CFLAGS += -DWITH_LAPACK=1
+	LIBS += -llapack
+endif
+
 INCLUDESSP=
 ifeq ($(WITH_SUITESPARSE),1)
 	CFLAGS += -DWITH_SUITESPARSE=1
@@ -61,6 +73,7 @@ ifeq ($(WITH_SUITESPARSE),1)
 	INCLUDESSP = -I/usr/include/suitesparse
 	LIBS += -lsuitesparseconfig -lcholmod -lamd -lcolamd -lccolamd -lcamd -lspqr -lumfpack -lamd -lcxsparse 
 endif
+
 
 
 ############### 
@@ -80,7 +93,7 @@ LIBS += #-lgfortran
 all: $(EXE) 
 
 $(EXE):	$(MGTARGET)	$(OBJS)	
-	+$(CC) $(ExtraFLAGS) $(INCLUDE) $(OBJS) $(MGLIBS) -o $@  $(LIBS)
+	+$(CC) $(CFLAGS) $(ExtraFLAGS) $(OBJS)  $(RPATH)  $(MGLIBS) -o $@  $(LIBS)
 
 %.o:	%.c
 	+$(CC) $(INCLUDE) $(INCLUDESSP) $(CFLAGS) $(DMGRAPH) -o $@ -c $<

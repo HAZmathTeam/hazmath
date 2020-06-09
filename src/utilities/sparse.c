@@ -6,11 +6,10 @@
  *  \note: modified by Xiaozhe Hu on 10/30/2016
  *  \note: done cleanup for releasing -- Xiaozhe Hu 10/31/2016
  *  \note: modified by James Adler on 02/22/2019 for 0-1 fix
+ *  \note: modified by ludmil zikatanov on 20200412  
  *
  */
-
 #include "hazmath.h"
-
 /***********************************************************************************************/
 /*!
  * \fn dCSRmat dcsr_create (const INT m, const INT n, const INT nnz)
@@ -203,7 +202,7 @@ dCSRmat dcsr_create_identity_matrix(const INT m,
   return A;
 }
 
-/***********************************************************************************************/
+/***********************************************************************/
 /*!
  * \fn void dcsr_alloc (const INT m, const INT n, const INT nnz, dCSRmat *A)
  *
@@ -1744,106 +1743,6 @@ void dcsr_mxm(dCSRmat *A,
 
   C->nnz = C->IA[C->row]-C->IA[0];
 }
-
-/***********************************************************************************************/
-/*!
-   * \fn void icsr_mxm (iCSRmat *A, iCSRmat *B, iCSRmat *C)
-   *
-   * \brief Sparse matrix multiplication C=A*B (index starts with 0!!)
-   *
-   * \param A   Pointer to the iCSRmat matrix A
-   * \param B   Pointer to the iCSRmat matrix B
-   * \param C   Pointer to iCSRmat matrix equal to A*B
-   *
-   */
-void icsr_mxm(iCSRmat *A,
-              iCSRmat *B,
-              iCSRmat *C)
-{
-  INT i,j,k,l,count;
-
-  INT *JD = (INT *)calloc(B->col,sizeof(INT));
-
-  C->row = A->row;
-  C->col = B->col;
-  C->val = NULL;
-  C->JA  = NULL;
-  C->IA  = (INT*)calloc(C->row+1,sizeof(INT));
-
-  for (i=0;i<B->col;++i) JD[i]=-1;
-
-  // step 1: Find first the structure IA of C
-  for(i=0;i<C->row;++i) {
-    count=0;
-
-    for (k=A->IA[i];k<A->IA[i+1];++k) {
-      for (j=B->IA[A->JA[k]];j<B->IA[A->JA[k]+1];++j) {
-        for (l=0;l<count;l++) {
-          if (JD[l]==B->JA[j]) break;
-        }
-
-        if (l==count) {
-          JD[count]=B->JA[j];
-          count++;
-        }
-      }
-    }
-    C->IA[i+1]=count;
-    for (j=0;j<count;++j) {
-      JD[j]=-1;
-    }
-  }
-
-  for (i=0;i<C->row;++i) C->IA[i+1]+=C->IA[i];
-
-  // step 2: Find the structure JA of C
-  INT countJD;
-
-  C->JA=(INT*)calloc(C->IA[C->row],sizeof(INT));
-
-  for (i=0;i<C->row;++i) {
-    countJD=0;
-    count=C->IA[i];
-    for (k=A->IA[i];k<A->IA[i+1];++k) {
-      for (j=B->IA[A->JA[k]];j<B->IA[A->JA[k]+1];++j) {
-        for (l=0;l<countJD;l++) {
-          if (JD[l]==B->JA[j]) break;
-        }
-
-        if (l==countJD) {
-          C->JA[count]=B->JA[j];
-          JD[countJD]=B->JA[j];
-          count++;
-          countJD++;
-        }
-      }
-    }
-
-    //for (j=0;j<countJD;++j) JD[j]=-1;
-    memset(JD, -1, sizeof(INT)*countJD);
-  }
-
-  free(JD);
-
-  // step 3: Find the structure A of C
-  C->val=(INT*)calloc(C->IA[C->row],sizeof(INT));
-
-  for (i=0;i<C->row;++i) {
-    for (j=C->IA[i];j<C->IA[i+1];++j) {
-      C->val[j]=0;
-      for (k=A->IA[i];k<A->IA[i+1];++k) {
-        for (l=B->IA[A->JA[k]];l<B->IA[A->JA[k]+1];l++) {
-          if (B->JA[l]==C->JA[j]) {
-            C->val[j]+=A->val[k]*B->val[l];
-          } // end if
-        } // end for l
-      } // end for k
-    } // end for j
-  }    // end for i
-
-  C->nnz = C->IA[C->row]-C->IA[0];
-}
-
 /***********************************************************************************************/
 /*!
    * \fn void icsr_mxm_symb (iCSRmat *A, iCSRmat *B, iCSRmat *C)
@@ -1855,79 +1754,111 @@ void icsr_mxm(iCSRmat *A,
    * \param C   Pointer to iCSRmat matrix equal to A*B
    *
    */
-void icsr_mxm_symb(iCSRmat *A,
-                   iCSRmat *B,
-                   iCSRmat *C)
+void icsr_mxm_symb(iCSRmat *A,iCSRmat *B,iCSRmat *C)
 {
-  INT i,j,k,l,count;
-
-  INT *JD = (INT *)calloc(B->col,sizeof(INT));
-
-  C->row = A->row;
-  C->col = B->col;
-  C->val = NULL;
-  C->JA  = NULL;
-  C->IA  = (INT*)calloc(C->row+1,sizeof(INT));
-
-  for (i=0;i<B->col;++i) JD[i]=-1;
-
-  // step 1: Find first the structure IA of C
-  for(i=0;i<C->row;++i) {
-    count=0;
-
-    for (k=A->IA[i];k<A->IA[i+1];++k) {
-      for (j=B->IA[A->JA[k]];j<B->IA[A->JA[k]+1];++j) {
-        for (l=0;l<count;l++) {
-          if (JD[l]==B->JA[j]) break;
-        }
-
-        if (l==count) {
-          JD[count]=B->JA[j];
-          count++;
-        }
+  INT np=A->row,nr=B->col; // INT nq=A->col;  
+  INT i,j,k,nnz,jp,kp;
+  C->val=NULL;C->JA=NULL;
+  INT *ia=A->IA, *ja=A->JA,*ib=B->IA, *jb=B->JA;
+  INT *ic, *jc;
+  INT *ix=(INT *)calloc(nr,sizeof(INT));
+  nnz = 0;
+  for(i=0;i<nr;i++)ix[i]=-1;
+  for(i=0;i<np;i++){
+    for(jp=ia[i];jp<ia[i+1];jp++){
+      j = ja[jp];
+      for(kp = ib[j];kp<ib[j+1];kp++){
+	k = jb[kp];  
+	if(ix[k]!=i) {
+	  nnz++;
+	  ix[k] = i;
+	}
       }
     }
-    C->IA[i+1]=count;
-    for (j=0;j<count;++j) {
-      JD[j]=-1;
-    }
   }
-
-  for (i=0;i<C->row;++i) C->IA[i+1]+=C->IA[i];
-
-  // step 2: Find the structure JA of C
-  INT countJD;
-
-  C->JA=(INT*)calloc(C->IA[C->row],sizeof(INT));
-
-  for (i=0;i<C->row;++i) {
-    countJD=0;
-    count=C->IA[i];
-    for (k=A->IA[i];k<A->IA[i+1];++k) {
-      for (j=B->IA[A->JA[k]];j<B->IA[A->JA[k]+1];++j) {
-        for (l=0;l<countJD;l++) {
-          if (JD[l]==B->JA[j]) break;
-        }
-
-        if (l==countJD) {
-          C->JA[count]=B->JA[j];
-          JD[countJD]=B->JA[j];
-          count++;
-          countJD++;
-        }
+  ic=(INT *)calloc((np+1),sizeof(INT));  
+  jc=(INT *)calloc(nnz,sizeof(INT));  
+  nnz=0;
+  for(i=0;i<nr;++i) ix[i]=-1;
+  for(i=0;i<np;i++){
+    ic[i] = nnz;
+    for(jp=ia[i];jp<ia[i+1];jp++){
+      j = ja[jp];
+      for(kp = ib[j];kp<ib[j+1];kp++){
+	k = jb[kp];  
+	if(ix[k]!=i) {
+	  jc[nnz] = k;
+	  nnz++;
+	  ix[k] = i;
+	}
       }
     }
-
-    //for (j=0;j<countJD;++j) JD[j]=-1;
-    memset(JD, -1, sizeof(INT)*countJD);
   }
-
-  free(JD);
-
-  C->nnz = C->IA[C->row]-C->IA[0];
+  ic[np] = nnz;
+  free(ix);
+  C->nnz=nnz;
+  C->row=np; C->col=nr;
+  /**/
+  C->IA=ic;
+  C->JA=jc;
+  C->val=NULL;
+  return;
 }
-
-/***********************************************************************************************/
+/**************************************************************************/
+/*!
+   * \fn void icsr_mxm_symb_max (iCSRmat *A, iCSRmat *B, iCSRmat *C, INT multmax)
+   *
+   * \brief symbolic sparse matrix multiplication C=A*B (index starts with 0!!)
+   *
+   * \param A         Pointer to the iCSRmat matrix A
+   * \param B         Pointer to the iCSRmat matrix B
+   * \param C         Pointer to iCSRmat matrix equal to A*B
+   *
+   */
+void icsr_mxm (iCSRmat *A,iCSRmat *B,iCSRmat *C)
+{
+  /* C-------------------------------------------------------------------- */
+  /* call the symbolic muultiplication */
+  icsr_mxm_symb(A,B,C);
+  /**/  
+  INT np=C->row,nr=C->col,nnz=C->nnz; // INT nq=A->col;  
+  INT i,j,k,jp,kp,aij;
+  INT *ia=A->IA, *ja=A->JA,*ib=B->IA, *jb=B->JA;
+  INT *ic=C->IA, *jc=C->JA;
+  INT *a=A->val, *b=B->val;
+  /**/
+  INT *c=(INT *)calloc(nnz,sizeof(INT));
+  INT *ix=(INT *)calloc(nr,sizeof(INT));
+  /*do the multipplication*/
+  /* C===================================================================== */
+/*       subroutine abyb(ia,ja,ib,jb,np,ic,jc,an,bn,cn,x,nq) */
+/* C===================================================================== */
+/*       implicit real*8 (a-h,o-z) */
+/*       dimension ia(1),ja(1),ib(1),jb(1),ic(1),jc(1) */
+/*       dimension an(1),bn(1),cn(1),x(nq) */
+/* C-------------------------------------------------------------------- */
+/* C...  MULTIPLICATION OF TWO GENERAL SPARSE MATRICIES: C = A*B */
+/* C-------------------------------------------------------------------- */
+//  ix=realloc(ix,nr*sizeof(INT));
+  for(i=0;i<np;i++){
+    for(j = ic[i];j<ic[i+1];j++) ix[jc[j]] = 0;    
+    for(jp=ia[i];jp<ia[i+1];jp++){
+      j = ja[jp];
+      aij = a[jp]; 
+      for(kp=ib[j];kp<ib[j+1];kp++){
+	k = jb[kp];
+        ix[k]+=aij*b[kp];
+      }
+    }
+    for(j=ic[i];j<ic[i+1];j++) c[j] = ix[jc[j]];
+  }
+  ic[np]=nnz;
+  free(ix);
+  C->val=c; 
+  C->nnz=nnz; 
+  return;
+}
+/**************************************************************************/
 /*!
    * \fn void icsr_mxm_symb_max (iCSRmat *A, iCSRmat *B, iCSRmat *C, INT multmax)
    *
@@ -1939,115 +1870,49 @@ void icsr_mxm_symb(iCSRmat *A,
    * \param multimax  value allowed in the iCSRmat matrix C, any entry that is not equal to multimax will be deleted
    *
    */
-void icsr_mxm_symb_max(iCSRmat *A,
-                       iCSRmat *B,
-                       iCSRmat *C,
-                       INT multmax)
+void icsr_mxm_symb_max(iCSRmat *A,iCSRmat *B,iCSRmat *C,	\
+			INT multmax)
 {
-  INT i,j,k,l,count;
-
-  INT *JD = (INT *)calloc(B->col,sizeof(INT));
-  INT *entry_count = (INT *)calloc(B->col,sizeof(INT));
-
-  C->row = A->row;
-  C->col = B->col;
-  C->val = NULL;
-  C->JA  = NULL;
-  C->IA  = (INT*)calloc(C->row+1,sizeof(INT));
-
-  for (i=0;i<B->col;++i) {
-    JD[i] = -1;
-    entry_count[i] = 0;
-  }
-
-  // step 1: Find first the structure IA of C
-  for(i=0;i<C->row;++i) {
-    count=0;
-
-    for (k=A->IA[i];k<A->IA[i+1];++k) {
-      for (j=B->IA[A->JA[k]];j<B->IA[A->JA[k]+1];++j) {
-        for (l=0;l<count;l++) {
-          if (JD[l]==B->JA[j]) {
-            entry_count[l] = entry_count[l]+1;
-            break;
-          }
-        }
-
-        if (l==count) {
-          JD[count]=B->JA[j];
-          entry_count[count] = 1;
-          count++;
-        }
-      }
-
-
+  /*No need of C->val here*/
+  /* call the symbolic muultiplication. this is same as A*B, but we do
+     not call A*B bc there is no multiplication here aij=bij=1 */
+  icsr_mxm_symb(A,B,C);
+  /**/
+  INT np=C->row,nr=C->col,nnz=C->nnz; // INT nq=A->col;  
+  INT izz,i,j,k,jp,kp;
+  INT *ia=A->IA, *ja=A->JA,*ib=B->IA, *jb=B->JA;
+  INT *ic=C->IA, *jc=C->JA;
+  /**/
+  INT *ix=(INT *)calloc(nr,sizeof(INT));
+  // skip everything that is not equal to multmax.
+  nnz=0;
+  for(i=0;i<np;i++){
+    izz=ic[i];
+    ic[i]=nnz;
+    for(j = izz;j<ic[i+1];j++){
+      ix[jc[j]] = 0;
     }
-
-
-    C->IA[i+1]=count;
-
-    for (j=0;j<count;++j) {
-
-      JD[j]=-1;
-
-      if (entry_count[j] != multmax) C->IA[i+1] = C->IA[i+1]-1;
-
-      entry_count[j] = 0;
-
-    }
-
-
-  }
-
-  for (i=0;i<C->row;++i) C->IA[i+1]+=C->IA[i];
-
-
-  // step 2: Find the structure JA of C
-  INT countJD;
-
-  C->JA=(INT*)calloc(C->IA[C->row],sizeof(INT));
-
-  for (i=0;i<C->row;++i) {
-    countJD=0;
-    count=C->IA[i];
-
-    for (k=A->IA[i];k<A->IA[i+1];++k) {
-      for (j=B->IA[A->JA[k]];j<B->IA[A->JA[k]+1];++j) {
-        for (l=0;l<countJD;l++) {
-          if (JD[l]==B->JA[j]) {
-            entry_count[l] = entry_count[l]+1;
-            break;
-          }
-        }
-
-        if (l==countJD) {
-          //C->JA[count]=B->JA[j];
-          JD[countJD]=B->JA[j];
-          entry_count[countJD] = 1;
-          //count++;
-          countJD++;
-        }
+    for(jp=ia[i];jp<ia[i+1];jp++){
+      j = ja[jp];
+      //      aij = a(jp) 
+      for(kp=ib[j];kp<ib[j+1];kp++){
+	k = jb[kp];
+        ix[k]++; // +=aij*b(kp)
       }
-
     }
-
-    for (j=0;j<countJD;++j) {
-      if (entry_count[j] == multmax) {
-        C->JA[count]=JD[j];
-        count++;
-      }
-      JD[j]=-1;
-      entry_count[j] = 0;
+    for(j=izz;j<ic[i+1];j++){
+      if(ix[jc[j]]!=multmax) continue;      
+      jc[nnz]=jc[j];
+      nnz++;
     }
   }
-
-  // free
-  free(JD);
-  free(entry_count);
-
-  C->nnz = C->IA[C->row]-C->IA[0];
+  ic[np]=nnz;
+  free(ix);
+  /**/
+  C->JA=realloc(jc,nnz*sizeof(INT));
+  C->nnz=nnz; 
+  return;
 }
-
 /***********************************************************************************************/
 /*!
    * \fn dCSRmat dcsr_create_diagonal_matrix(dvector *diag)
@@ -2922,7 +2787,6 @@ void bdcsr_free(block_dCSRmat *A)
       free(A->blocks);
       A->blocks = NULL;
   }
-
   return;
 }
 
@@ -2975,7 +2839,7 @@ void bdcsr_trans(block_dCSRmat *A,
   INT i,j;
 
   // allocate AT
-  bdcsr_alloc(A->bcol, A->brow, AT);
+  bdcsr_alloc_minimal(A->bcol, A->brow, AT);
 
   // transpose
   for (i=0; i<AT->brow; i++)
@@ -2990,6 +2854,7 @@ void bdcsr_trans(block_dCSRmat *A,
       }
       else
       {
+        AT->blocks[i*AT->bcol+j] = (dCSRmat *)calloc(1,sizeof(dCSRmat));
         dcsr_trans(A->blocks[j*A->bcol+i], AT->blocks[i*AT->bcol+j]);
       }
 
@@ -3601,6 +3466,339 @@ ivector sparse_MIS(dCSRmat *A)
     //return
     return MaxIndSet;
 }
+/* sparse matrix functions returning pointers. */
+/*******************************************************************/
+/*!
+ * \fn dCSRmat *dcsr_create_p(const INT m, const INT n, const INT nnz)
+ *
+ * \brief Create a dCSRmat sparse matrix. Uses void array for the
+ * whole matrix. the void array contains in first position the struct. 
+ *
+ * \param m    Number of rows
+ * \param n    Number of columns
+ * \param nnz  Number of nonzeros
+ *
+ * \return A a pointer to a dCSRmat matrix. All of this matrix can be
+ *         freed by free((void *)A) or even free(A).
+ *
+ *  \note: modified by ludmil zikatanov on 20200412
+ */
+dCSRmat *dcsr_create_p (const INT m,		\
+			const INT n,		\
+			const INT nnz)
+{
+  dCSRmat *A=NULL;
+  size_t structby=sizeof(dCSRmat);// size of the struct
+  size_t realby=sizeof(REAL),intby=sizeof(INT);// size of ints and reals
+  size_t total=1*structby+3*intby; //at least space for structure. 
+  if ( m > 0 )
+    total+=(m+1)*intby;
+  if ( n > 0 ) 
+    total+=nnz*intby;
+  if ( nnz > 0 )
+    total+=nnz*realby;
+  void *w=(void *)calloc(total/sizeof(char),sizeof(char));
+  A=(dCSRmat *)w;
+  w+=1*structby; 
+  A->IA = NULL;
+  A->JA = NULL;
+  A->val = NULL;
+  INT *mn_nnz=(INT *)w;  
+  A->row=mn_nnz[0]=m; A->col=mn_nnz[1]=n; A->nnz=mn_nnz[2]=nnz;
+  w+=3*intby;
+  if ( m > 0 ) {
+    A->IA = (INT *)w;
+    w+=(m+1)*intby;
+  }
+  if ( n > 0 ) {
+    A->JA = (INT *)w;
+    w+=nnz*intby;
+  }
+  if ( nnz > 0 ) {
+    A->val = (REAL *)w;
+    w+=nnz*realby;// end of it. 
+  }
+  return A;
+}
+/***********************************************************************************************/
+/**
+ * \fn dCOOmat *dcoo_create_p(INT m, INT n, INT nnz)
+ *
+ * \brief Create IJ sparse matrix data memory space using one
+ * contguous void array for all data including the structure itself 
+ *
+ * \param m    Number of rows
+ * \param n    Number of columns
+ * \param nnz  Number of nonzeros
+ *
+ * \return A   A pointer to a dCOOmat matrix
+ *
+ */
+dCOOmat *dcoo_create_p(INT m,			\
+		       INT n,			\
+		       INT nnz)
+{
+  size_t structby=sizeof(dCOOmat),realby=sizeof(REAL),intby=sizeof(INT);
+  size_t total=(1*structby+(3+2*nnz)*intby+nnz*realby)/sizeof(char);
+  void *w=(void *)calloc(total, sizeof(char));
+  //sturture
+  dCOOmat *A=(dCOOmat *)w;
+  w+=1*structby;
+  INT *mn_nnz=(INT *)w;  
+  A->row=mn_nnz[0]=m; A->col=mn_nnz[1]=n; A->nnz=mn_nnz[2]=nnz;
+  w+=3*intby;
+  // arrays;
+  A->rowind = (INT *)w;
+  w+=nnz*intby;
+  A->colind = (INT *)w;
+  w+=nnz*intby;
+  A->val    = (REAL *)w;
+  w+=nnz*realby; // end of it....
+  return A;
+}
+/******************************************************************/
+/*!
+ * \fn dvector dvec_create_p(const INT m)
+ *
+ * \brief Create a dvector of given length: use void array to pack the
+ * structure in.
+ *
+ * \param m    length of the dvector
+ *
+ * \return pointer to u   The new dvector
+ *
+ */
+dvector *dvec_create_p(const INT m)
+{
+  dvector *u=NULL;
+  size_t structby=sizeof(dvector);// size of the struct
+  size_t realby=sizeof(REAL),intby=sizeof(INT);// size of ints and reals
+  size_t total=1*structby+1*intby; //space for structure and size. 
+  if (m > 0 )
+    total+=m*realby;
+  void *w=(void *)calloc(total/sizeof(char),sizeof(char));
+  u=(dvector *)w;
+  w+=1*structby; 
+  INT *mm=(INT *)w;
+  u->row = mm[0]=m;
+  w+=1*intby;
+  u->val = NULL;
+  if ( m > 0 ) {
+    u->val = (REAL *)w;
+    w+=m*realby;//end
+  }
+  return u;
+}
+/************************************************************************/
+/**
+ * \fn iCSRmat icsr_create_p (const INT m, const INT n, const INT nnz)
+ *
+ * \brief Create iCSRmat sparse matrix using a void array; the
+ *        structure itself is part of the void array.
+ *
+ * \param m    Number of rows
+ * \param n    Number of columns
+ * \param nnz  Number of nonzeros
+ *
+ * \return A   a pointer to an iCSRmat matrix
+ *
+ */
+iCSRmat *icsr_create_p(const INT m,		\
+		       const INT n,		\
+		       const INT nnz)
+{
+  iCSRmat *A=NULL;
+  size_t structby=sizeof(iCSRmat);// size of the struct
+  size_t intby=sizeof(INT);// size of ints
+  size_t total=1*structby+3*intby; //space for the structure. 
+  if ( m > 0 )
+    total+=(m+1)*intby;
+  if ( n > 0 ) 
+    total+=nnz*intby;
+  if ( nnz > 0 )
+    total+=nnz*intby;
+  void *w=(void *)calloc(total/sizeof(char),sizeof(char));
+  A=(iCSRmat *)w;
+  w+=1*structby; 
+  A->IA = NULL;
+  A->JA = NULL;
+  A->val = NULL;
+  INT *mn_nnz=(INT *)w;  
+  A->row=mn_nnz[0]=m; A->col=mn_nnz[1]=n; A->nnz=mn_nnz[2]=nnz;
+  w+=3*intby;
+  if ( m > 0 ) {
+    A->IA = (INT *)w;
+    w+=(m+1)*intby;
+  }
+  if ( n > 0 ) {
+    A->JA = (INT *)w;
+    w+=nnz*intby;
+  }
+  if ( nnz > 0 ) {
+    A->val = (INT *)w;
+    w+=nnz*intby; // end of it
+  }
+  return A;
+}
+/************************************************************/
+/*!
+ * \fn ivector *ivec_create_p(const INT m)
+ *
+ * \brief Create an ivector of given length
+ *
+ * \param m   length of the ivector
+ *
+ * \return u  The new ivector
+ *
+ */
+ivector *ivec_create_p(const INT m)
+{
+  ivector *u=NULL;
+  size_t structby=sizeof(ivector);// size of the struct
+  size_t intby=sizeof(INT);// size of ints and reals
+  size_t total=1*structby+1*intby; //space for structure. 
+  if (m > 0 )
+    total+=m*intby;
+  void *w=(void *)calloc(total/sizeof(char),sizeof(char));
+  u=(ivector *)w;
+  w+=1*structby; 
+  INT *mm=(INT *)w;
+  u->row = mm[0]=m;
+  w+=1*intby;
+  u->val = NULL;
+  if ( m > 0 ) {
+    u->val = (INT *)w;
+    w+=m*intby;// end of struct.
+  }
+  return u;
+}
+/**********************************************************************/
+/*!
+ * \fn void dcsr_alloc_p(const INT m, const INT n, const INT nnz,
+ * dCSRmat **A)
+ *
+ * \brief Allocate a dCSRmat sparse matrix and put the result in the
+ *        pointer pointed by A. Same as dCSRmat_create_p, but uses
+ *        realloc() to reallocate A.
+ *
+ * \param m    Number of rows
+ * \param n    Number of columns
+ * \param nnz  Number of nonzeros
+ *
+ * \return A a pointer to a an array of dCSRmat matrices with one
+ *         element. All of this matrix can be freed by free((void *)A)
+ *         or even just free(A).
+ *
+ *  \note: call as dCSRmat *X; dcsr_alloc_p(... &X) to reallocate *X
+ *         to desired length. 
+ *         modified by ludmil zikatanov on 20200412
+ */
+void dcsr_alloc_p (const INT m,			\
+		   const INT n,			\
+		   const INT nnz,		\
+		   dCSRmat **A)
+{
+  *A=dcsr_create_p(m,n,nnz);
+  return;
+}
+/******************************************************************/
+/*!
+ * \fn dvector dvec_alloc_p(const INT m, dvector **u)
+ *
+ * \brief allocate an "one element array" of dvectors **u. 
+ *
+ * \param m    length of the dvector
+ * \param u    pointer to a dvector that is to be reallocated. 
+ *
+ * \note: call as: dvector *u; dvec_alloc_p(m,&u);
+ *
+ */
+void dvec_alloc_p(const INT m, dvector **u)
+{
+  *u=dvec_create_p(m);
+  return;
+}
+/************************************************************/
+/*!
+ * \fn void ivec_alloc_p(const INT m, ivector **u)
+ *
+ * \brief Create an ivector of given length
+ *
+ * \param m   length of the ivector
+ *
+ *
+ */
+void ivec_alloc_p(const INT m,ivector **u)
+{
+  *u=ivec_create_p(m);
+  return;
+}
+dCSRmat *dcsr_create_plus(INT m,		\
+			  INT n,		\
+			  INT nnz,		\
+			  void *ia,		\
+			  void *ja,		\
+			  void *aij)
+{
+  dCSRmat *a=malloc(1*sizeof(dCSRmat));// size of the struct
+  a->row=m;  a->col=n;  a->nnz=nnz;
+  if(ia)
+    a->IA=ia;
+  else
+    a->IA=(INT *)realloc(NULL,(n+1)*sizeof(INT));
+  if(ja)
+    a->JA=ja;
+  else
+    a->JA=(INT *)realloc(NULL,nnz*sizeof(INT));
+  if(aij)
+    a->val=aij;
+  else
+    a->val=(REAL *)realloc(NULL,nnz*sizeof(REAL));
+  return a;
+}
+dvector *dvec_create_plus(INT n,		\
+			 void *vi)
+{
+  dvector *v=malloc(1*sizeof(dvector));// size of the struct
+  v->row=n;
+  if(vi)
+    v->val=vi;
+  else
+    v->val=(REAL *)realloc(NULL,n*sizeof(REAL));
+  return v;
+ }
+/**
+ * \fn dcsr2full(dCSRmat *A, REAL *Afull)
+ *
+ * \brief converts a dcsr matrix to a full matrix
+ * \note 
+ *
+ * \param A	   Matrix A to be converted
+ * \param Afull	   Matrix Afull: full(A). it must be allocated 
+ *                               before entering here. 
+ * \return 
+ *
+ */
+void dcsr2full(dCSRmat *A,REAL *Afull)
+{
+  // Afull must have enopugh space for (A->row*A->col) doubkles. 
+  if(Afull){
+    INT n=A->row,m=A->col,i,j,jk,im;
+    INT *ia=A->IA,*ja=A->JA;
+    REAL *a=A->val;
+    memset(Afull,0,n*m*sizeof(REAL));
+    for(i=0;i<n;i++)  {
+      im=i*m;
+      for(jk=ia[i];jk<ia[i+1];jk++)  {
+	j=ja[jk];
+	Afull[im+j]=a[jk];
+      }
+    }
+    return;
+  } else {
+    fprintf(stderr,"ERROR in %s: Afull not allocated",__FUNCTION__);
+    exit(16);
+  }
+}
 
-
-/************************************** END ***************************************************/
+/*********************************EOF***********************************/

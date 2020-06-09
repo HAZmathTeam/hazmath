@@ -3,7 +3,7 @@
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 20190115.
  *  Copyright 2017__HAZMATH__. All rights reserved.
  *
- *  \note contains some utility functions for mesh refinement. 
+ *  \note contains some utility functions for mesh refinement.
  *
  */
 #include "hazmath.h"
@@ -13,7 +13,7 @@
  *
  * \brief
  *
- * \param 
+ * \param
  *
  * \return
  *
@@ -22,7 +22,7 @@
  */
 INT aresame(INT *a, INT *b, INT n)
 {
-  /* 
+  /*
      checks (n^2 algorithm) if two have the same elements (up to a
      permutation), if they are returns 1, otherwise 0
   */
@@ -46,7 +46,7 @@ INT aresame(INT *a, INT *b, INT n)
  *
  * \brief
  *
- * \param 
+ * \param
  *
  * \return
  *
@@ -60,7 +60,7 @@ INT aresamep(INT *a, INT *b, INT n, INT *p)
      a[i]=b[p[i]] if there is no permutation, i.e. p[i]=i, then returns 1*/
   INT i,j,ai,bj;
   INT flag=-1,iret=1;
-  for (i=0;i<n;i++)p[i]=-1;    
+  for (i=0;i<n;i++)p[i]=-1;
   for (i=0;i<n;i++){
     ai=a[i];
     flag=0;
@@ -83,7 +83,7 @@ INT aresamep(INT *a, INT *b, INT n, INT *p)
  *
  * \brief
  *
- * \param 
+ * \param
  *
  * \return
  *
@@ -92,13 +92,13 @@ INT aresamep(INT *a, INT *b, INT n, INT *p)
  */
 INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)
 {
-  /* 
+  /*
      In dimension "n" constructs the map from reference simplex to
      simplex with coordinates xs[0..n].  Then solves a linear system
      with partial pivoting to determine if a point given with
      coordinates xstar[0..n-1] is in the (closed) simplex defined by
      "nodes[0..n] and xs[0..n]"
-  */  
+  */
   INT n1=n+1,i,j,l0n,ln,j1;
   INT *p=NULL;
   REAL *A=NULL,*xhat=NULL, *piv=NULL;
@@ -161,7 +161,7 @@ INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)
  *
  * \brief
  *
- * \param 
+ * \param
  *
  * \return
  *
@@ -173,7 +173,8 @@ void marks(scomplex *sc,dvector *errors)
   /* mark simplices depending on the value of an estimator */
   /* the estimator here is the aspect ratio of the simplex */
   INT n=sc->n,n1=n+1,ns=sc->ns,level=sc->level;
-  INT kbadel,ke,i,j,j1,k,p,ni,mj,mk;
+  //INT kbadel;
+  INT ke,i,j,j1,k,p,ni,mj,mk;
   INT ne=(INT )((n*n1)/2);
   REAL slmin,slmax,asp,aspmax=-10.;;
   REAL *sl=(REAL *)calloc(ne,sizeof(REAL));
@@ -182,7 +183,7 @@ void marks(scomplex *sc,dvector *errors)
     if(sc->gen[i] < level) continue;
     ni=n1*i;
     ke=0;
-    for (j = 0; j<n;j++){      
+    for (j = 0; j<n;j++){
       mj=sc->nodes[ni+j]*n;
       j1=j+1;
       for (k = j1; k<n1;k++){
@@ -206,7 +207,10 @@ void marks(scomplex *sc,dvector *errors)
       sc->marked[i]=1;
       kbad++;
       //      fprintf(stdout,"\nlev=%d, gen=%d, asp= %e(%e/%e)\n",level,sc->gen[i],asp,slmax,slmin);
-      if(asp>aspmax){kbadel=i;aspmax=asp;}
+      if(asp>aspmax){
+        //kbadel=i;
+        aspmax=asp;
+      }
     }
   }
   //  fprintf(stdout,"\nbad:%d, aspectmax=%e (at el=%d)\n",kbad,aspmax,kbadel);
@@ -222,7 +226,7 @@ void marks(scomplex *sc,dvector *errors)
  *
  * \brief
  *
- * \param 
+ * \param
  *
  * \return
  *
@@ -236,13 +240,13 @@ unsigned int reflect2(INT n, INT is, INT it,				\
 /* it works for all meshes that can be consistently ordered. */
 /********************************************************************/
 {
-  /* 
+  /*
      sv1 are the n+1 vertices of is; sv2 are the (n+1) vertices of
-     (it).  
-     
+     (it).
+
      stos1 are the n+1 neighbors of is; stos2 are the (n+1) neighbors of
      (it).
-     
+
      This routine checks whether is is reflected neighbor of it
      and reorders is if it was not visited before One main assumption is
      that (is) and (it) intersect in (n-1) dimensional simplex with (n)
@@ -252,7 +256,7 @@ unsigned int reflect2(INT n, INT is, INT it,				\
      and stos[k2]= is. This is always achievable when creating the stos
      (simplex to simplex) relation.
 
-     wrk is working space of size n+2, n is the spatial dimension 
+     wrk is working space of size n+2, n is the spatial dimension
   */
   INT n1=n+1,n2=n+2;
   INT *wrk1=NULL,*invp=NULL,*p=NULL,*pw=NULL,*wrk2=NULL;
@@ -278,23 +282,23 @@ unsigned int reflect2(INT n, INT is, INT it,				\
     if(stos1[i] == it){
       kv1=sv1[i];
       break;
-    }      
+    }
   }
   for (i=0; i<n1;i++){
     if(stos2[i] == is){
       kv2=sv2[i];
       break;
-    }      
+    }
   }
   if (kv1<0 || kv2 < 0) {
     fprintf(stderr,"\n***ERROR in %s ; kv1=%d, kv2=%d must be positive.\n\n",__FUNCTION__,kv1,kv2);
     return 3;
   }
   wrk1=wrk; wrk2=wrk1+n2; p=wrk2+n2;invp=p+n2;  pw=invp+n2;
-  memcpy(wrk1,sv1,n1*sizeof(INT));wrk1[n1] = kv2; 
+  memcpy(wrk1,sv1,n1*sizeof(INT));wrk1[n1] = kv2;
   isi_sortp(n2,wrk1,p,pw);
   /*  returrn wrk1 to the initial state */
-  memcpy(wrk1,sv1,n1*sizeof(INT));wrk1[n1] = kv2; 
+  memcpy(wrk1,sv1,n1*sizeof(INT));wrk1[n1] = kv2;
   /* second array*/
   memcpy(wrk2,sv2,n1*sizeof(INT)); wrk2[n1] = kv1;
   isi_sortp(n2,wrk2,pw,invp);
@@ -302,11 +306,11 @@ unsigned int reflect2(INT n, INT is, INT it,				\
   memcpy(wrk2,sv2,n1*sizeof(INT)); wrk2[n1] = kv1;
   /*
     We use here identity1: sv1[p1[k]] = sv2[p2[k]] for all k. Hence we have:
-    
+
     s2[j] = s2[p2[invp2[j]]] = s1[p1[invp2[j]]]
-    
+
     where we used the identity1 with k=invp2[j]
-    
+
   */
   /* now we can use p2 and wrk1 to move around what we need */
   for (i=0; i<n1;i++){
@@ -337,7 +341,7 @@ unsigned int reflect2(INT n, INT is, INT it,				\
  *
  * \brief
  *
- * \param 
+ * \param
  *
  * \return
  *
@@ -345,16 +349,18 @@ unsigned int reflect2(INT n, INT is, INT it,				\
  *
  */
 /*using bfs to get the reflected mesh*/
-void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level) 
+void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
 {
-  /* 
+  /*
    * bfs tree: constructs all bfs trees for each connected componend of the element neighboring list
    * in the connected component containing it;
   */
   //  haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
   INT it=it0, n=sc->n,n1=n+1,ns=sc->ns,cc=sc->cc;
   INT i,j,k,iii,is,isn1,itn1;
-  INT i1,kcc,in1,kbeg,kend,nums,iai,iai1,klev;
+  INT i1,kcc;
+  //INT in1;
+  INT kbeg,kend,nums,iai,iai1,klev;
   iCSRmat *neib=malloc(1*sizeof(iCSRmat));
   neib[0]=icsr_create(ns,ns,4*ns+ns);
   iii=0;
@@ -399,7 +405,7 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
 	      "\n%s: Component=%d; root=%d;\n",__FUNCTION__,kcc,it);fflush(stdout);  }
     nums=0;
     klev=1; //level number ; for indexing this should be klev-1;
-    jbfs[nums]=it; // thit it an input simplex where to begin. 
+    jbfs[nums]=it; // thit it an input simplex where to begin.
     mask[it]=klev;
     nums++;
     kbeg=0; kend=1;
@@ -409,11 +415,11 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
 	iai  = it*n1;
 	iai1 = iai+n1;
 	itn1 = it*n1;
-	itnbr=(sc->nbr+itn1); 
+	itnbr=(sc->nbr+itn1);
 	itv=(sc->nodes+itn1);
 	for(k=iai;k<iai1;++k){
 	  is=sc->nbr[k];
-	  //	fprintf(stdout,"%i(nbr=%i) ",i,j);fflush(stdout);	  
+	  //	fprintf(stdout,"%i(nbr=%i) ",i,j);fflush(stdout);
 	  if(is<0) continue;
 	  isn1=is*n1;
 	  isnbr=(sc->nbr+isn1);
@@ -441,9 +447,9 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
 	  if(!mask[is]){
 	    jbfs[nums]=is;
 	    mask[is]=klev;
-	    //	  fprintf(stdout,"%i(%i,%i)",i,j,mask[j]);fflush(stdout);      
+	    //	  fprintf(stdout,"%i(%i,%i)",i,j,mask[j]);fflush(stdout);
 	    nums++;
-	  }	
+	  }
 	}
       }
       //    fprintf(stdout,"\nkbeg=%i,kend=%i,nums=%i",kbeg,kend,nums);fflush(stdout);
@@ -464,7 +470,7 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
 /*!
  * \fn scomplex *scfinest(scomplex *sc)
  *
- * \brief 
+ * \brief
  *
  * \param sc: scomplex containing the whole hierarchy of refinements
  *
@@ -476,13 +482,13 @@ scomplex *scfinest(scomplex *sc)
 {
   INT ns,i=0,j=-10,k=-10,n=sc->n,n1=sc->n+1,nv=sc->nv;
   scomplex *sctop=NULL;
-  /*  
+  /*
       store the finest mesh in and return the sc structure. save the
       correspondence between elements in an sc->child0[] as a negative
       number.  sc has all the hierarchy, on return sctop only has
       only the final mesh.
-  */  
-  /*firt step: compute the number of simplices on the final level */  
+  */
+  /*firt step: compute the number of simplices on the final level */
   ns=0;
   for (j=0;j<sc->ns;j++){
     /* On the last grid are all simplices that were not refined,
@@ -513,8 +519,8 @@ scomplex *scfinest(scomplex *sc)
     /*    issue an error here and stop */
   //  }
   /* connected components, these should not change */
-  sctop->cc=sc->cc; 
-  sctop->bndry_cc=sc->bndry_cc; 
+  sctop->cc=sc->cc;
+  sctop->bndry_cc=sc->bndry_cc;
   /* copy the boudary codes and the coordinates*/
   for(i=0;i<nv;i++){
     sctop->bndry[i]=sc->bndry[i];
@@ -536,7 +542,7 @@ scomplex *scfinest(scomplex *sc)
  * \brief Remove all hierachy and make sc to represent only the final
  *        grid.
  *
- * \param 
+ * \param
  *
  * \return
  *
@@ -545,16 +551,17 @@ scomplex *scfinest(scomplex *sc)
  */
 void scfinalize(scomplex *sc)
 {
-  INT ns,j=-10,k=-10,n=sc->n,n1=sc->n+1;
-  /*  
-      store the finest mesh in sc structure. 
-      on input sc has all the hierarchy, on return sc only has the final mesh. 
+  // INT n=sc->n;
+  INT ns,j=-10,k=-10,n1=sc->n+1;
+  /*
+      store the finest mesh in sc structure.
+      on input sc has all the hierarchy, on return sc only has the final mesh.
   */
   ns=0;
   for (j=0;j<sc->ns;j++){
     /*
       On the last grid are all simplices that were not refined, so
-      these are the ones for which child0 and childn are not set. 
+      these are the ones for which child0 and childn are not set.
     */
     if(sc->child0[j]<0 || sc->childn[j]<0){
       for (k=0;k<n1;k++) {
@@ -577,7 +584,7 @@ void scfinalize(scomplex *sc)
  *
  * \brief
  *
- * \param 
+ * \param
  *
  * \return
  *
@@ -600,7 +607,7 @@ void cube2simp_free(cube2simp *c2s)
  *
  * \brief
  *
- * \param 
+ * \param
  *
  * \return
  *
@@ -609,17 +616,17 @@ void cube2simp_free(cube2simp *c2s)
  */
 static void binary0(cube2simp *c2s)
 {
-  // stores in an array the coordinates of the vertices of the unit  
+  // stores in an array the coordinates of the vertices of the unit
   // cube in dimension (dim). Lexicographical ordering from 0,0,...0
   // to 1,1,...,1
-  
+
   INT nvcube=c2s->nvcube;
   INT shift,i,j,k,kn,nbits=c2s->n-1;
   for(k = 0;k<nvcube;k++){
     kn=k*c2s->n;
     for (i=nbits ; i >=0; --i){
       c2s->bits[kn+i] = (unsigned INT )((k >> i & 1));
-    }    
+    }
   }
   shift=(1<<(c2s->n-1));
   INT nperm,jp=-22,jpo=-22,mid=(int)(c2s->nvcube/2);
@@ -657,7 +664,7 @@ static void binary0(cube2simp *c2s)
  *
  * \brief
  *
- * \param 
+ * \param
  *
  * \return
  *
@@ -667,7 +674,7 @@ static void binary0(cube2simp *c2s)
 static unsigned INT bitdiff(const INT dim, unsigned INT *bits1,unsigned INT *bits2)
 {
   /*
-    returns the l1-norm of the difference two arrays of unsigned 
+    returns the l1-norm of the difference two arrays of unsigned
     integers.  this should be changed to have a void array as input.
   */
   INT j;
@@ -683,7 +690,7 @@ static unsigned INT bitdiff(const INT dim, unsigned INT *bits1,unsigned INT *bit
  *
  * \brief
  *
- * \param 
+ * \param
  *
  * \return
  *
@@ -692,9 +699,9 @@ static unsigned INT bitdiff(const INT dim, unsigned INT *bits1,unsigned INT *bit
  */
 void reverse(void *arr,INT length, size_t elsize)
 {
-  /* 
-     permutes a void array whose elements are of size elsize 
-     a[0],...a_[length-1]-->a[length-1],...a[0]. 
+  /*
+     permutes a void array whose elements are of size elsize
+     a[0],...a_[length-1]-->a[length-1],...a[0].
   */
   INT i,nnn=(INT)(length/2);
   void *swap=(void *)malloc(elsize);
@@ -717,7 +724,7 @@ void reverse(void *arr,INT length, size_t elsize)
  *
  * \brief
  *
- * \param 
+ * \param
  *
  * \return
  *
@@ -730,7 +737,7 @@ cube2simp *cube2simplex(INT dim)
     in dimension dim splits the cube in dim factorial dim-dimensional
     simplices. stores everything in a structure cube2simp. It also
     outputs all local permutations of vertices which can be used to
-    create a criss-cross mesh. 
+    create a criss-cross mesh.
   */
   INT i;
   /* allocation */
@@ -784,7 +791,7 @@ cube2simp *cube2simplex(INT dim)
   INT *parent=(INT *)calloc(m,sizeof(INT));
   memset(parent,0,m*sizeof(INT));
   // form a tree. every path in the tree is a simplex. the tree has
-  // dim_factorial leaves.  
+  // dim_factorial leaves.
   nq0=0;nq=1;parent[0]=-1;
   queue[nq0]=root;
   while(1){
@@ -808,7 +815,7 @@ cube2simp *cube2simplex(INT dim)
     if(nq>=m) break;
     nq0=nq;
     nq=m;
-  }        
+  }
   //  fprintf(stdout,"\nlast:=%d\n",nq-nq0);
   k1=0;// simplex number;
   for(j=nq0;j<nq;j++){
@@ -870,7 +877,7 @@ cube2simp *cube2simplex(INT dim)
  *        dvector pts (note that the size of pts->val should be
  *        sc->n*pts->row)
  *
- * \param dvector toset; 
+ * \param dvector toset;
  *
  * \return number of simplices where the value was assigned
  *
@@ -885,7 +892,7 @@ INT dvec_set_amr(const REAL value, scomplex *sc, dvector *pts, REAL *toset)
     scnjn = sc->nodes+j*n1; /* beginning of local vertex numbering for
 			       simplex j.*/
     for(jpts=0;jpts<pts->row;jpts++){
-      pval0=pts->val+jpts*n; 
+      pval0=pts->val+jpts*n;
       if(!xins(n,scnjn,sc->x,pval0)){
 	//	fprintf(stdout,"\nel=%d, found: %d",j,jpts);
 	toset[j]=value;

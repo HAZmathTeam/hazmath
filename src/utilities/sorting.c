@@ -3,7 +3,7 @@
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 5/13/17.
  *  Copyright 2017__HAZMATH__. All rights reserved.
  *
- *\note: sorting routines: straight insert sort. 
+ *\note: sorting routines: straight insert sort.
  */
 /********************************************************************/
 #include "hazmath.h"
@@ -21,10 +21,10 @@ void dlexsort(const INT nr, const INT nc,REAL *a,INT *p)
      is the permutation used to order a. The ogiginal a is recovered
      with inv permutation aorig[]=a[invp[i]] where invp[p[i]]=i;
   */
-  INT i,j,k,k1,pj;
+  INT i,j,k,pj;
   unsigned int lt=0;
   REAL *aj=(REAL *)calloc(nc,sizeof(REAL));
-  for (i = 0; i < nr; i++){p[i]=i;} 
+  for (i = 0; i < nr; i++){p[i]=i;}
   for (j = 1; j < nr; ++j) {
     //    for(k=0;k<nc;k++)aj[k] = a[j*nc+k];
     memcpy(aj,(a+j*nc),nc*sizeof(REAL)); pj = *(p + j);
@@ -33,7 +33,7 @@ void dlexsort(const INT nr, const INT nc,REAL *a,INT *p)
     for(k=0;k<nc;k++) {
       if(aj[k]>a[i*nc+k]){lt=0;break;}
       else if(aj[k]<a[i*nc+k]){lt=1;break;}
-      else {continue;}	
+      else {continue;}
     }
     //    while ((i >=0) && (aj<a[i])){
     while ((i>=0) && (lt)){
@@ -67,10 +67,10 @@ void ilexsort(const INT nr, const INT nc,INT *a,INT *p)
      is the permutation used to order a. The ogiginal a is recovered
      with inv permutation aorig[]=a[invp[i]] where invp[p[i]]=i;
   */
-  INT i,j,k,k1,pj;
+  INT i,j,k,pj;
   unsigned int lt=0;
   INT *aj=(INT *)calloc(nc,sizeof(INT));
-  for (i = 0; i < nr; i++){p[i]=i;} 
+  for (i = 0; i < nr; i++){p[i]=i;}
   for (j = 1; j < nr; ++j) {
     //    for(k=0;k<nc;k++)aj[k] = a[j*nc+k];
     memcpy(aj,(a+j*nc),nc*sizeof(INT)); pj = *(p + j);
@@ -79,7 +79,7 @@ void ilexsort(const INT nr, const INT nc,INT *a,INT *p)
     for(k=0;k<nc;k++) {
       if(aj[k]>a[i*nc+k]){lt=0;break;}
       else if(aj[k]<a[i*nc+k]){lt=1;break;}
-      else {continue;}	
+      else {continue;}
     }
     //    while ((i >=0) && (aj<a[i])){
     while ((i>=0) && (lt)){
@@ -112,7 +112,7 @@ void isi_sort(INT n, INT *a)
 	  *(a + i + 1) = *(a + i);
 	  --i;
       }
-      *(a + i + 1) = aj; 
+      *(a + i + 1) = aj;
   }
   return;
 }
@@ -121,7 +121,7 @@ void isi_sortp(const INT n, INT *a, INT *p, INT *invp)
 //implements STRAIGHT INSERT sort for integers, returns prmutation and
 //inverse permutation.
   INT i,j,aj,pj;
-  for (i = 0; i < n; i++){p[i]=i;} 
+  for (i = 0; i < n; i++){p[i]=i;}
   for (j = 1; j < n; j++){
     aj = *(a + j); pj = *(p + j);
     i = j - 1;
@@ -133,7 +133,7 @@ void isi_sortp(const INT n, INT *a, INT *p, INT *invp)
   }
   for(i=0;i<n;i++){
     invp[p[i]]=i;
-  }  
+  }
   return;
 }
 void dsi_sortp(const INT n, REAL *a, INT *p, INT *invp)
@@ -142,7 +142,7 @@ void dsi_sortp(const INT n, REAL *a, INT *p, INT *invp)
 {
   INT i,j,pj;
   REAL aj;
-  for (i = 0; i < n; i++){p[i]=i;} 
+  for (i = 0; i < n; i++){p[i]=i;}
   for (j = 1; j < n; j++){
     aj = *(a + j); pj = *(p + j);
     i = j - 1;
@@ -157,4 +157,3 @@ void dsi_sortp(const INT n, REAL *a, INT *p, INT *invp)
   }
   return;
 }
-

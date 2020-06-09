@@ -576,9 +576,11 @@ typedef struct {
     void *data;
 
     //! action for Matrix-vector, should be a pointer to a function
-    void (*fct)(void *, REAL *, REAL *);
+    //void (*fct)(void *, REAL *, REAL *);
+    void (*fct)(REAL *, REAL *, void *);
 
 } matvec; /**< Data for general Matrix-vector multiplication */
+
 
 /**
  * \struct solve_stats

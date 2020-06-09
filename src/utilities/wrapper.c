@@ -475,6 +475,167 @@ void python_wrapper_krylov_block_2by2(INT *n00,
 
      // clean memory
  }
+ 
+ /*!
+ * \fn void python_wrapper_krylov_mixed_darcy_fenics(INT nrow00, INT ncol00, INT nnz00, INT *ia00, INT *ja00, REAL *a00,
+                                        INT nrow01, INT ncol01, INT nnz01, INT *ia01, INT *ja01, REAL *a01,
+                                        INT nrow10, INT ncol10, INT nnz10, INT *ia10, INT *ja10, REAL *a10,
+                                        INT nrow11, INT ncol11, INT nnz11, INT *ia11, INT *ja11, REAL *a11,
+                                        REAL *Mp_diag, REAL *b, REAL *u, REAL tol, INT maxit, INT ptrlvl, INT *iters)
+ *
+ * \brief Solve Ax=b by Krylov method preconditioned in 2 by 2 block form (this is an interface with PYTHON)
+ *
+ * \param nrow00          Number of rows of A[0][0]
+ * \param ncol00          Number of columns of A[0][0]
+ * \param nnz00           Number of nonzeros of A[0][0]
+ * \param ia00            IA of A[0][0] in CSR format
+ * \param ja00            JA of A[0][0] in CSR format
+ * \param a00             VAL of A[0][0] in CSR format
+ * \param nrow01          Number of rows of A[0][1]
+ * \param ncol01          Number of columns of A[0][1]
+ * \param nnz01           Number of nonzeros of A[0][1]
+ * \param ia01            IA of A[0][1] in CSR format
+ * \param ja01            JA of A[0][1] in CSR format
+ * \param a01             VAL of A[0][1] in CSR format
+ * \param nrow10          Number of rows of A[1][0]
+ * \param ncol10          Number of columns of A[1][0]
+ * \param nnz10           Number of nonzeros of A[1][0]
+ * \param ia10            IA of A[1][0] in CSR format
+ * \param ja10            JA of A[1][0] in CSR format
+ * \param a10             VAL of A[1][0] in CSR format
+ * \param nrow11          Number of rows of A[1][1]
+ * \param ncol11          Number of columns of A[1][1]
+ * \param nnz11           Number of nonzeros of A[1][1]
+ * \param ia11            IA of A[1][1] in CSR format
+ * \param ja11            JA of A[1][1] in CSR format
+ * \param a11             VAL of A[1][1] in CSR format
+ * \param Mp_diag		Diagonal of pressure mass matrix (as vector)
+ * \param b             RHS vector
+ * \param u             Solution vector
+ * \param tol           Tolerance for iterative solvers
+ * \param maxit         Max number of iterations
+ * \param print_lvl     Print level for iterative solvers
+ * \param iters	 	Resulting number of iterations
+ *
+ * \author Ana Budisa
+ * \date   03/24/2020
+ *
+ */
+ void python_wrapper_krylov_mixed_darcy_fenics(INT nrow00,
+                                  INT ncol00,
+                                  INT nnz00,
+                                  INT *ia00,
+                                  INT *ja00,
+                                  REAL *a00,
+                                  INT nrow01,
+                                  INT ncol01,
+                                  INT nnz01,
+                                  INT *ia01,
+                                  INT *ja01,
+                                  REAL *a01,
+                                  INT nrow10,
+                                  INT ncol10,
+                                  INT nnz10,
+                                  INT *ia10,
+                                  INT *ja10,
+                                  REAL *a10,
+                                  INT nrow11,
+                                  INT ncol11,
+                                  INT nnz11,
+                                  INT *ia11,
+                                  INT *ja11,
+                                  REAL *a11,
+                                  REAL *Mp_diag,
+                                  REAL *b,
+                                  REAL *u,
+                                  REAL tol,
+                                  INT maxit,
+                                  INT print_lvl,
+                                  INT *iters)
+ {
+     block_dCSRmat   mat_bdcsr;  // coefficient matrix in block CSR format
+     dvector         rhs, sol; // right-hand-side, solution
+     AMG_param       amgparam; // parameters for AMG
+     linear_itsolver_param  itparam;  // parameters for linear itsolver
+
+     input_param inparam;
+     param_input_init(&inparam);
+     param_input("./input.dat", &inparam);
+
+     // Set parameters for linear iterative methods
+     param_linear_solver_init(&itparam);
+     param_linear_solver_set(&itparam, &inparam);
+     if (print_lvl > PRINT_MIN) param_linear_solver_print(&itparam);
+	
+     // Set parameters for algebriac multigrid methods
+     param_amg_init(&amgparam);
+     param_amg_set(&amgparam, &inparam);
+     if (print_lvl > PRINT_MIN) param_amg_print(&amgparam);
+
+     amgparam.print_level          = print_lvl;
+     itparam.linear_tol            = tol;
+     itparam.linear_print_level    = print_lvl;
+     itparam.linear_maxit          = maxit;
+
+     // form block CSR matrix
+     bdcsr_alloc(2, 2, &mat_bdcsr);
+     // assign 00 block (copy)
+     mat_bdcsr.blocks[0]->row = nrow00; mat_bdcsr.blocks[0]->col = ncol00; mat_bdcsr.blocks[0]->nnz = nnz00;
+     mat_bdcsr.blocks[0]->IA = malloc((nrow00 + 1) * sizeof(INT));
+     mat_bdcsr.blocks[0]->JA = malloc(nnz00 * sizeof(INT));
+     mat_bdcsr.blocks[0]->val = malloc(nnz00 * sizeof(REAL));
+     iarray_cp(nrow00 + 1, ia00, mat_bdcsr.blocks[0]->IA);
+     iarray_cp(nnz00, ja00, mat_bdcsr.blocks[0]->JA);
+     array_cp(nnz00, a00, mat_bdcsr.blocks[0]->val);
+	
+     // assign 01 block (copy)
+     mat_bdcsr.blocks[1]->row = nrow01; mat_bdcsr.blocks[1]->col = ncol01; mat_bdcsr.blocks[1]->nnz = nnz01;
+     mat_bdcsr.blocks[1]->IA = malloc((nrow01 + 1) * sizeof(INT));
+     mat_bdcsr.blocks[1]->JA = malloc(nnz01 * sizeof(INT));
+     mat_bdcsr.blocks[1]->val = malloc(nnz01 * sizeof(REAL));
+     iarray_cp(nrow01 + 1, ia01, mat_bdcsr.blocks[1]->IA);
+     iarray_cp(nnz01, ja01, mat_bdcsr.blocks[1]->JA);
+     array_cp(nnz01, a01, mat_bdcsr.blocks[1]->val);
+     
+     // assign 10 block (copy)
+     mat_bdcsr.blocks[2]->row = nrow10; mat_bdcsr.blocks[2]->col = ncol10; mat_bdcsr.blocks[2]->nnz = nnz10;
+     mat_bdcsr.blocks[2]->IA = malloc((nrow10 + 1) * sizeof(INT));
+     mat_bdcsr.blocks[2]->JA = malloc(nnz10 * sizeof(INT));
+     mat_bdcsr.blocks[2]->val = malloc(nnz10 * sizeof(REAL));
+     iarray_cp(nrow10 + 1, ia10, mat_bdcsr.blocks[2]->IA);
+     iarray_cp(nnz10, ja10, mat_bdcsr.blocks[2]->JA);
+     array_cp(nnz10, a10, mat_bdcsr.blocks[2]->val);
+     
+     // assign 11 block (copy)
+     mat_bdcsr.blocks[3]->row = nrow11; mat_bdcsr.blocks[3]->col = ncol11; mat_bdcsr.blocks[3]->nnz = nnz11;
+     mat_bdcsr.blocks[3]->IA = malloc((nrow11 + 1) * sizeof(INT));
+     mat_bdcsr.blocks[3]->JA = malloc(nnz11 * sizeof(INT));
+     mat_bdcsr.blocks[3]->val = malloc(nnz11 * sizeof(REAL));
+	iarray_cp(nrow11 + 1, ia11, mat_bdcsr.blocks[3]->IA);
+     iarray_cp(nnz11, ja11, mat_bdcsr.blocks[3]->JA);
+     array_cp(nnz11, a11, mat_bdcsr.blocks[3]->val);
+     
+     // form mass matrix of pressure (it is diagonal matrix, only diagonal is stored) (copy)
+     dvector Mp;
+     Mp.row = nrow11;
+     Mp.val = malloc(nrow11 * sizeof(REAL));
+     array_cp(nrow11, Mp_diag, Mp.val);
+
+     // form right hand side (copy)
+     INT n = nrow00 + nrow11;
+     rhs.val = malloc(n * sizeof(REAL));
+     rhs.row = n; array_cp(n, b, rhs.val);
+     sol.row = n; sol.val = u;
+     
+
+     // solve in 2 by 2 block form
+     *iters = linear_solver_bdcsr_krylov_mixed_darcy(&mat_bdcsr, &rhs, &sol, &itparam, &amgparam, NULL, NULL, NULL, &Mp);
+
+     // clean memory
+     bdcsr_free(&mat_bdcsr);
+     dvec_free(&Mp);
+    	dvec_free(&rhs);
+ }
 
 
 /*!
