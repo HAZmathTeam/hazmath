@@ -338,7 +338,7 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_st
   }
 
   if (face_vertex) free(face_vertex);
-  if (valx) free(valx);
+  //if (valx) free(valx);
 
   return val;
 }
