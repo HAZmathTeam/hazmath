@@ -591,7 +591,9 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
     for(i=0;i<max_levels;i++) mgl[i].gmg_type = gmg_type;
 
     // Ignore this lazy workaround.
-    //mgl[0].As = solve_info->As;
+    if( solve_info->As ){
+      mgl[0].As = solve_info->As;
+    }
     //mgl[0].nAs = solve_info->nAs;
     //mgl[0].FES = solve_info->FES;
 
@@ -601,10 +603,13 @@ INT linear_solver_bdcsr_gmg(block_dCSRmat *A,
             if ( prtlvl > PRINT_NONE ) printf("\n Calling block GMG bubble specific setup...\n");
             //mgl[0].periodic_BC = true;
             status = gmg_blk_setup_biot_bubble(mgl, param);
-            printf("\nFinished gmg_blk_setup... Calling smoother setup...\n");
-            //printf("SKIPPING SMOOTHER SETUP...\n");
-            //smoother_block_setup(mgl, param);
-            smoother_setup_biot_monolithic( mgl, param);
+            if( param->smoother == -1 ){
+              printf("\nFinished gmg_blk_setup... Calling smoother setup...\n");
+              smoother_block_setup(mgl, param);
+            } else if ( param->smoother >= 1000 && param->smoother < 2000){
+              printf("\nFinished gmg_blk_setup... Calling monolithic Schwarz setup...\n");
+              smoother_setup_biot_monolithic( mgl, param);
+            } else { printf("Bad gmg smoother\n"); return 0;}
             printf("\nsmoother setup Done...\n");
             break;
         default:
