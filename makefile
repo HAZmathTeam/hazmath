@@ -53,6 +53,17 @@ ifeq ($(openmp),yes)
     CONFIG_FLAGS+=-DUSE_OPENMP=$(openmp)
 endif
 
+ifeq ($(blas), yes)
+    CONFIG_FLAGS+=-DUSE_BLAS=$(blas)
+    CONFIG_FLAGS+=-DBLAS_DIR=$(blas_dir)
+endif
+
+ifeq ($(lapack), yes)
+    CONFIG_FLAGS+=-DUSE_LAPACK=$(lapack)
+    CONFIG_FLAGS+=-DLAPACK_DIR=$(lapack_dir)
+endif
+
+
 ifeq ($(suitesparse), yes)
     CONFIG_FLAGS+=-DUSE_SUITESPARSE=$(suitesparse)
     CONFIG_FLAGS+=-DSUITESPARSE_DIR=$(suitesparse_dir)

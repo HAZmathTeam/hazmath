@@ -38,6 +38,7 @@ BEGIN {
   print "#include \"nonlinear.h\""
   print "#include \"timestep.h\""
   print "#include \"param.h\""
+  print "#include \"eigen.h\""
   print "#include \"graphs.h\""
   print "// Special Includes"
   print "#if WITH_MATLAB"
@@ -65,7 +66,7 @@ BEGIN {
   next;
 }
 
-!/^INT|^REAL|^coordinates|^qcoordinates|^FILE|^OFF_T|^size_t|^off_t|^pid_t|^unsigned|^mode_t|^DIR|^user|^int|^char|^uint|^struct|^SHORT|^BOOL|^void|^double|^time|^dCSRmat|^dvector|^iCSRmat|^ivector|^dCOOmat|^dDENSEmat|^iDENSEmat|^block_dCSRmat|^AMG_data|^MG_blk_data|^scomplex|^subscomplex|^macrocomplex|^unigrid|^cube2simp|^input_grid|^coordsystem|^features|^locdetails/ {
+!/^INT|^REAL|^coordinates|^mesh_struct|^qcoordinates|^FILE|^OFF_T|^size_t|^off_t|^pid_t|^unsigned|^mode_t|^DIR|^user|^int|^char|^uint|^struct|^SHORT|^BOOL|^void|^double|^time|^dCSRmat|^dvector|^iCSRmat|^ivector|^dCOOmat|^dDENSEmat|^iDENSEmat|^block_dCSRmat|^AMG_data|^MG_blk_data|^scomplex|^subscomplex|^macrocomplex|^unigrid|^cube2simp|^input_grid|^coordsystem|^features|^locdetails/ {
   next;
 }
 
