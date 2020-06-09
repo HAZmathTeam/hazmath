@@ -942,8 +942,10 @@ void gmg_div_free_R ( dCSRmat *R,
   REAL *val = R->val;
   INT *IA   = R->IA;
   INT *JA   = R->JA;
-  REAL Rrow = R->row;
-  REAL Rcol = R->col;
+  INT  Rrow = R->row;
+  INT  Rcol = R->col;
+//  REAL Rrow = R->row;
+//  REAL Rcol = R->col;
 
   // Temp Vec
   dvector temp = dvec_create(Rcol);
@@ -992,6 +994,12 @@ void gmg_div_free_R ( dCSRmat *R,
   R->IA = IB;
   free( R->JA );
   R->JA = JB;
+
+  R->nnz = nnzCount;
+//  printf("\n| %d, %d | %d, %d\n\n",Rrow,Rcol,R->nnz,nnzCount);
+//    FILE* fid;
+//    fid = fopen("R_matrix.dat","w");
+//    csr_print_matlab(fid,R);
   return;
 }
 
@@ -1600,12 +1608,12 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
             set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[1], mgl[lvl+1].fine_level_mesh, -1,-1); // Ux
             set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[2], mgl[lvl+1].fine_level_mesh, -1,-1); // Uy
           } else {
-            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[0], mgl[lvl+1].fine_level_mesh, 1, 6); //bbl
-            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[1], mgl[lvl+1].fine_level_mesh, 4, 6); // Ux
-            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[2], mgl[lvl+1].fine_level_mesh, 1, 5); // Uy
-            //set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[0], mgl[lvl+1].fine_level_mesh, 1, 10); //bbl
-            //set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[1], mgl[lvl+1].fine_level_mesh, 1, 10); // Ux
-            //set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[2], mgl[lvl+1].fine_level_mesh, 1, 10); // Uy
+            //set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[0], mgl[lvl+1].fine_level_mesh, 1, 6); //bbl
+            //set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[1], mgl[lvl+1].fine_level_mesh, 5, 6); // Ux
+            //set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[2], mgl[lvl+1].fine_level_mesh, 1, 5); // Uy
+            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[0], mgl[lvl+1].fine_level_mesh, 1, 10); //bbl
+            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[1], mgl[lvl+1].fine_level_mesh, 1, 10); // Ux
+            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[2], mgl[lvl+1].fine_level_mesh, 1, 10); // Uy
           }
 
           break;
@@ -1617,8 +1625,8 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
           if( mgl[0].periodic_BC ){
             set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[3], mgl[lvl+1].fine_level_mesh, -1,-1); // w
           } else {
-            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[3], mgl[lvl+1].fine_level_mesh, 1, 6); // w
-            //set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[3], mgl[lvl+1].fine_level_mesh, 1, 10); // w
+            //set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[3], mgl[lvl+1].fine_level_mesh, 1, 6); // w
+            set_dirichlet_bdry(mgl[lvl+1].FE->var_spaces[3], mgl[lvl+1].fine_level_mesh, 1, 10); // w
           }
 
           break;
@@ -1628,12 +1636,14 @@ SHORT gmg_blk_setup_biot_bubble(MG_blk_data *mgl,
       }// switch gmg_type
     }// for i<brow
     printf("\tBuilt R for lvl=%d...\n",lvl);
+////////////////////////////////////////////////////////////////////////////////////////////////////
+    gmg_div_free_R (mgl[lvl].R.blocks[0], mgl[lvl].fine_level_mesh, mgl[lvl+1].fine_level_mesh);
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /*-- Form Prolongation --*/
     for(i=0; i<brow; i++){
       dcsr_trans(mgl[lvl].R.blocks[i+i*brow], mgl[lvl].P.blocks[i+i*brow]);
     }
-    printf("\tBuilt P for lvl=%d...\n",lvl);
 
     /*-- Form coarse level stiffness matrix --*/
     for(i=0; i<brow; i++){
@@ -1763,9 +1773,13 @@ void smoother_setup_biot_monolithic( MG_blk_data *bmgl, AMG_param *param)
   swzparam.Schwarz_blksolver = 32;
   bmgl[0].Schwarz.blk_solver = 32;
 
-  //dCSRmat Amerge = bdcsr_2_dcsr(bmgl[0].As);
-  //bmgl[0].Schwarz.A = dcsr_sympat( &Amerge );
-  bmgl[0].Schwarz.A = dcsr_sympat( bmgl[0].A.blocks[0]);
+  swzparam.patch_type_gmg = param->Schwarz_patch_type;
+
+  printf("\nSetting up Schwarz for for monolithic Biot.\n");
+  dCSRmat Amerge = bdcsr_2_dcsr(&bmgl[0].A);
+  bmgl[0].Schwarz.A = Amerge;//dcsr_sympat( &Amerge );
+  //printf("\n\n\nThis Schwarz Setup is ONLY FOR ELASTIVITY\n\n\n\n");
+  //bmgl[0].Schwarz.A = dcsr_sympat( bmgl[0].A.blocks[0]);
   Schwarz_setup_geometric( &bmgl[0].Schwarz, &swzparam, bmgl[0].fine_level_mesh);
 }
 
@@ -1872,6 +1886,7 @@ void smoother_block_setup( MG_blk_data *bmgl, AMG_param *param)
         /*-- Setup Schwarz smoother if necessary --*/
         if( param->Schwarz_on_blk[blk] == 1 ) {
           printf("\tCalling Schwarz setup on block: %d\n",blk);
+          swzparam.patch_type_gmg = param->Schwarz_patch_type;
           bmgl[0].mgl[blk][lvl].Schwarz.A = dcsr_sympat( &bmgl[0].mgl[blk][lvl].A );
           //bmgl[0].mgl[blk][lvl].Schwarz.A = dcsr_sympat( bmgl[0].As->blocks[0] );
           //bmgl[0].mgl[blk][lvl].Schwarz.A = dcsr_sympat( &bmgl[0].A_diag[0] );
