@@ -129,7 +129,7 @@ dCSRmat dcsr_invert_diagonal_matrix(dvector *diag)
   {
     D.IA[i] = i;
     D.JA[i] = i;
-    D.val[i]   = 1/diag->val[i];
+    D.val[i]   = 1.0/diag->val[i];
   }
   D.IA[n] = n;
 
@@ -139,8 +139,8 @@ dCSRmat dcsr_invert_diagonal_matrix(dvector *diag)
 
 /***********************************************************************************************/
 /*!
-   * \fn void build_precond_maxwell(REAL dt, dCSRmat *G, dCSRmat *Gt, dCSRmat *K , dCSRmat *Kt, 
-					dCSRmat *Mf, dCSRmat *Me, dCSRmat *Mv, dCSRmat *A_diag, dCSRmat *Gtb, 
+   * \fn void build_precond_maxwell(REAL dt, dCSRmat *G, dCSRmat *Gt, dCSRmat *K , dCSRmat *Kt,
+					dCSRmat *Mf, dCSRmat *Me, dCSRmat *Mv, dCSRmat *A_diag, dCSRmat *Gtb,
 							dCSRmat *Ktb, dCSRmat *Kb, dCSRmat *Gb)
    *
    * \brief build the matrices for the Maxwell block preconditioner to send into the Maxwell
@@ -154,7 +154,7 @@ dCSRmat dcsr_invert_diagonal_matrix(dvector *diag)
    * \param Mf  Pointer to the face mass matrix (idenity for MFD)
    * \param Me  Pointer to the edge mass matrix (identity for MFD)
    * \param Mv  Pointer to the vertex mass matrix (identity for MFD)
-   
+
    * \param A_diag    pointer to diag in LDU decomp (schur complements)
    * \param Gtb    	pointer to discrete div with BC eliminated (divD for MFD)
    * \param Ktb    	pointer to discrete curl with BCs applied (curlV for MFD)
@@ -163,8 +163,8 @@ dCSRmat dcsr_invert_diagonal_matrix(dvector *diag)
    *
    */
 
-void build_precond_maxwell(mesh_struct* mesh, block_fespace *FE, REAL dt, dCSRmat *G, dCSRmat *Gt, dCSRmat *K , dCSRmat *Kt, 
-					dCSRmat *Mf, dCSRmat *Me, dCSRmat *Mv, dCSRmat *A_diag, 
+void build_precond_maxwell(mesh_struct* mesh, block_fespace *FE, REAL dt, dCSRmat *G, dCSRmat *Gt, dCSRmat *K , dCSRmat *Kt,
+					dCSRmat *Mf, dCSRmat *Me, dCSRmat *Mv, dCSRmat *A_diag,
 					dCSRmat *Gtb, dCSRmat *Ktb, dCSRmat *Kb, dCSRmat *Gb)
 {
 
@@ -173,15 +173,15 @@ void build_precond_maxwell(mesh_struct* mesh, block_fespace *FE, REAL dt, dCSRma
 
 //-------------------------------
   // prepare block preconditioner
- 
+
   //-------------------------------------
   // lower block triangular for LU solve
   //-------------------------------------
   block_dCSRmat Lb;
   Lb.brow = 3; Lb.bcol = 3;
   Lb.blocks = (dCSRmat **) calloc(9,sizeof(dCSRmat *));
-  
-  
+
+
   dCSRmat IB =  dcsr_create_identity_matrix(mesh->nface,0);
   dCSRmat IE =  dcsr_create_identity_matrix(mesh->nedge,0);
   dCSRmat Ip =  dcsr_create_identity_matrix(mesh->nv,0);
@@ -197,13 +197,13 @@ void build_precond_maxwell(mesh_struct* mesh, block_fespace *FE, REAL dt, dCSRma
   Lb.blocks[8] = &Ip;
 
  block_eliminate_DirichletBC(NULL,FE,mesh,NULL, &Lb, 1,0.0);
-	
+
 	dcsr_cp(Lb.blocks[1], Ktb);
 	dcsr_cp(Lb.blocks[3], Kb);
 	dcsr_cp(Lb.blocks[2], Gb);
 	dcsr_cp(Lb.blocks[6], Gtb);
 
- 
+
 
   // scale offdiagonal blocks
   //we need the negatives, right?
@@ -251,7 +251,5 @@ void build_precond_maxwell(mesh_struct* mesh, block_fespace *FE, REAL dt, dCSRma
   dcsr_free(&GTMeG);
 
   eliminate_DirichletBC(NULL,FE->var_spaces[2],mesh,NULL,&A_diag[2],0.0);
-  
+
 }
-
-
