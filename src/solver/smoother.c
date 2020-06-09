@@ -593,7 +593,9 @@ void smoother_dcsr_Schwarz_forward_additive (Schwarz_data  *Schwarz,
     // Lazy way for now (memcpy or something is probably better)
     for (i=0; i<x->row; i++){
       // Using Option 1
-      x->val[i] += w*xout.val[i]/averaging_factor.val[i];
+      if(averaging_factor.val[i] > 0){
+        x->val[i] += w*xout.val[i]/averaging_factor.val[i];
+      }
       // Using Option 2
       //x->val[i] = xout.val[i];
     }
@@ -809,7 +811,9 @@ void smoother_dcsr_Schwarz_backward_additive (Schwarz_data *Schwarz,
     for (i=0; i<x->row; i++){
       // Using Option 1
       //printf("%f %f\n",x->val[i],xout.val[i]/averaging_factor.val[i]);
-      x->val[i] += w*xout.val[i]/averaging_factor.val[i];
+      if(averaging_factor.val[i] > 0){
+        x->val[i] += w*xout.val[i]/averaging_factor.val[i];
+      }
       //printf("\t AF[%d] = %f\n",i,averaging_factor.val[i]);
       // Using Option 2
       //x->val[i] = xout.val[i];
@@ -922,6 +926,7 @@ printf("Beginning BSR\n");
     dvec_alloc( b->row, &r);
     dvec_cp( b, &r);
     bdcsr_aAxpy( -1.0, A, u->val, r.val); // r = b - Au
+    REAL absres0 = dvec_norm2(&r);
 
     d.row = n0;
     d.val = r.val;
@@ -953,6 +958,13 @@ printf("Beginning BSR\n");
       u->val[i+n0] += w * q.val[i];
     }
 
+
+    dvec_cp( b, &r);
+    bdcsr_aAxpy( -1.0, A, u->val, r.val); // r = b - Au
+    REAL absres  = dvec_norm2(&r);
+
+    REAL factor  = absres/absres0;
+    printf("SMOOTHER: %f\n",factor);
 
     // free
     //dcsr_free(&BT);
@@ -1009,7 +1021,7 @@ printf("Beginning BSR for Biot\n");
     INT Au_solve_TYPE = 2;
     // Problem Var...
     REAL M = 1e6;
-    REAL nu = 0.4;
+    REAL nu = 0.4999;
     REAL mu =  (3e4) / (1+2*nu);
     REAL lam = (3e4)*nu / ((1-2*nu)*(1+nu));
     REAL factor = (1.0) / (lam+(2*mu/2.0));
@@ -1037,7 +1049,11 @@ printf("Beginning BSR for Biot\n");
     // Start
     dvec_alloc( b->row, &r);
     dvec_cp( b, &r);
+//    printf("ThisIsDumb\n");
+//    dCSRmat* blarg = A->blocks[0];
+//    A->blocks[0] = bmgl[0].As->blocks[0];
     bdcsr_aAxpy( -1.0, A, u->val, r.val); // r = b - Au
+//    A->blocks[0] = blarg;
 
     d.row = n0;
     d.val = r.val;
@@ -1073,12 +1089,12 @@ printf("Beginning BSR for Biot\n");
           dvec_set( d.row, &d, 0.0);////////////////////////////
           if(L==1){
             //smoother_dcsr_Schwarz_backward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
-            //smoother_dcsr_Schwarz_forward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
-            smoother_dcsr_Schwarz_forward_additive( &(mgl_disp->Schwarz), &swzparam, &d, &temp, 1.0);
+            smoother_dcsr_Schwarz_forward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
+            //smoother_dcsr_Schwarz_forward_additive( &(mgl_disp->Schwarz), &swzparam, &d, &temp, 1.0);
           } else {
             //smoother_dcsr_Schwarz_forward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
-            //smoother_dcsr_Schwarz_backward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
-            smoother_dcsr_Schwarz_backward_additive( &(mgl_disp->Schwarz), &swzparam, &d, &temp, 1.0);
+            smoother_dcsr_Schwarz_backward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
+            //smoother_dcsr_Schwarz_backward_additive( &(mgl_disp->Schwarz), &swzparam, &d, &temp, 1.0);
           }
           //dcsr_pvfgmres( A->blocks[0], &temp, &d, NULL, 1e-3, 1000, 1000, 1, 1);
           break;
@@ -1136,11 +1152,11 @@ printf("Beginning BSR for Biot\n");
         case 2: // Schwarz
           dvec_set( d.row, &d, 0.0);//////////////////////////////
           if(L==1){
-            //smoother_dcsr_Schwarz_forward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
-            smoother_dcsr_Schwarz_forward_additive( &(mgl_disp->Schwarz), &swzparam, &d, &temp, 1.0);
+            smoother_dcsr_Schwarz_forward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
+            //smoother_dcsr_Schwarz_forward_additive( &(mgl_disp->Schwarz), &swzparam, &d, &temp, 1.0);
           } else {
-            //smoother_dcsr_Schwarz_backward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
-            smoother_dcsr_Schwarz_backward_additive( &(mgl_disp->Schwarz), &swzparam, &d, &temp, 1.0);
+            smoother_dcsr_Schwarz_backward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
+            //smoother_dcsr_Schwarz_backward_additive( &(mgl_disp->Schwarz), &swzparam, &d, &temp, 1.0);
           }
           break;
         case 3: // Strange Thing
@@ -1612,10 +1628,9 @@ void smoother_dcsr_sgs_graph_eigen(dvector *u, dCSRmat *A, dvector *b, const INT
  */
 void smoother_block_elasticity( const INT lvl, MG_blk_data *bmgl, AMG_param *param, INT pre_post)
 {
-    INT n0, n1;
+    INT n0;//, n1;
 
     n0 = bmgl[lvl].A.blocks[1]->row;
-    n1 = bmgl[lvl].A.blocks[2]->row;
 
     // BSR
     dvector diagvec;
@@ -1629,6 +1644,63 @@ void smoother_block_elasticity( const INT lvl, MG_blk_data *bmgl, AMG_param *par
                         bmgl[lvl].A.blocks[2],
                         bmgl[lvl].A.blocks[1],
                         NULL, pre_post);
+
+//    ////////////////////////////////////////////////
+//    // Precond elasticity with stokes solve
+//    // /////////////////////////////////////////////
+//    INT i;
+//    REAL lam = 0;
+//
+//    dvector rhs_stokes;
+//    dvector rhs_elast;
+//    dvector sol_stokes;
+//    dvector sol_elast;
+//    dvector res;
+//
+//    dvec_alloc(bmgl[lvl].b.row, &res);
+//    dvec_cp(&(bmgl[lvl].b),&res);
+//
+//    bdcsr_aAxpy(-1.0, &bmgl[lvl].A, bmgl[lvl].x.val, res.val);
+//    printf("Full Norm Pre: %e\n", dvec_norm2(&res) );
+//
+//    dvec_alloc(n0+n1, &rhs_stokes);
+//    dvec_alloc(n0+n1, &sol_stokes);
+//    dvec_alloc(n0, &rhs_elast);
+//    dvec_alloc(n0, &sol_elast);
+//    for( i=0; i<(n0); i++){
+//      rhs_stokes.val[i] = res.val[i];
+//      sol_stokes.val[i] = 0.0;
+//      rhs_elast.val[i] = res.val[i];
+//      sol_elast.val[i] = 0.0;
+//    }
+//    for( i=n0; i<(n0+n1); i++){
+//      rhs_stokes.val[i] = 0.0;//res.val[i];
+//      sol_stokes.val[i] = 0.0;
+//    }
+//
+//    block_directsolve_UMF( bmgl[lvl].As, &rhs_stokes, &sol_stokes, 0);
+////    bdcsr_aAxpy(-1.0, bmgl[lvl].As, sol_stokes.val, rhs_stokes.val);
+////    printf("Stokes Norm: %e\n", dvec_norm2(&rhs_stokes) );
+//
+//    //directsolve_UMF( bmgl[lvl].As->blocks[0], &rhs_elast, &sol_elast, 0);
+//    //directsolve_UMF( bmgl[lvl].A.blocks[0], &rhs_elast, &sol_elast, 0);
+//    //smoother_dcsr_sgs(&sol_elast, bmgl[lvl].As->blocks[0], &rhs_elast, 100);
+//    smoother_dcsr_sgs(&sol_elast, bmgl[lvl].A.blocks[0], &rhs_elast, 2);
+////    dcsr_aAxpy(-1.0, bmgl[lvl].As->blocks[0], sol_elast.val, rhs_elast.val);
+////    printf("Elast Norm: %e\n", dvec_norm2(&rhs_elast) );
+//
+//    for( i=0; i<n0; i++ ){
+//      bmgl[lvl].x.val[i] += param->BSR_omega*( lam/(lam+1.0) * sol_stokes.val[i] + 1.0/(lam+1.0) * sol_elast.val[i]);
+//    }
+//
+////    for( i=0; i<n1; i++){//Jacobi?
+////      bmgl[lvl].x.val[n0+i] = bmgl[lvl].x.val[n0+i] + 0.3*res.val[n0+i]/bmgl[lvl].A.blocks[3]->val[i];
+////    }
+//
+//    dvec_cp(&(bmgl[lvl].b),&res);
+//    bdcsr_aAxpy(-1.0, &bmgl[lvl].A, bmgl[lvl].x.val, res.val);
+//    printf("Full Norm Post: %e\n", dvec_norm2(&res) );
+//    printf("--------------------\n");
 
     return;
 }
