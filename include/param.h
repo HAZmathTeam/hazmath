@@ -48,6 +48,7 @@ typedef struct {
     //----------------------------
     // time steppng paramters
     //----------------------------
+    REAL time_start;      /**< start time */
     INT  time_step_type;  /**< time step type */
     INT  time_steps;      /**< time steps */
     REAL time_step_size; /**< time step type */
@@ -223,6 +224,10 @@ typedef struct {
     char* HAZDIR;
     //! Track if schwarz should be used as a relaxation method on a block
     INT* Schwarz_on_blk;
+    INT* Schwarz_patch_type;
+
+    //! damping parameter for relaxation
+    REAL damping_param;
 
     // BSR preconditioner
     REAL BSR_alpha;                 /**< weight on diagonal matrix alpha*D approx of A */
@@ -336,6 +341,9 @@ typedef struct {
 
     //! type of Schwarz block solver
     INT Schwarz_blksolver;
+
+    //! gmg stuff
+    INT *patch_type_gmg;
 
 } Schwarz_param; /**< Parameters for Schwarz method */
 
