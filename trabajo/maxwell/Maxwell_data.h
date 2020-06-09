@@ -106,7 +106,6 @@ void bc_test(REAL *val,REAL* x,REAL time,void *param) {
 
 
 
-
 /***********************************************************************************************/
 /*!
    * \fn dCSRmat dcsr_invert_diagonal_matrix(dvector *diag)
@@ -138,8 +137,36 @@ dCSRmat dcsr_invert_diagonal_matrix(dvector *diag)
   return D;
 }
 
-build_precond_maxwell( dCSRmat *G, dCSRmat *Gt, dCSRmat *K , dCSRmat *Kt, 
-					dCSRmat *Mf, dCSRmat *Me, dCSRmat *Mv, dCSRmat *A_diag, block_dCSRmat *Lb)
+/***********************************************************************************************/
+/*!
+   * \fn void build_precond_maxwell(REAL dt, dCSRmat *G, dCSRmat *Gt, dCSRmat *K , dCSRmat *Kt, 
+					dCSRmat *Mf, dCSRmat *Me, dCSRmat *Mv, dCSRmat *A_diag, dCSRmat *Gtb, 
+							dCSRmat *Ktb, dCSRmat *Kb, dCSRmat *Gb)
+   *
+   * \brief build the matrices for the Maxwell block preconditioner to send into the Maxwell
+   *					Krylov solver
+   *
+   * \param dt  timestep size
+   * \param G   Pointer to the discrete gradient (gradD for MFD)
+   * \param G   Pointer to the discrete divergence (divD for MFD)
+   * \param K   Pointer to the discrete curl (curlD for MFD)
+   * \param G   Pointer to the discrete curl* (curlV for MFD)
+   * \param Mf  Pointer to the face mass matrix (idenity for MFD)
+   * \param Me  Pointer to the edge mass matrix (identity for MFD)
+   * \param Mv  Pointer to the vertex mass matrix (identity for MFD)
+   
+   * \param A_diag    pointer to diag in LDU decomp (schur complements)
+   * \param Gtb    	pointer to discrete div with BC eliminated (divD for MFD)
+   * \param Ktb    	pointer to discrete curl with BCs applied (curlV for MFD)
+   * \param Gb   		pointer to discrete gradient with BCs applied (divD for MFD)
+   * \param Kb		pointer to discrete curl with BCs applied (curlD for MFD)
+   *
+   */
+
+void build_precond_maxwell(mesh_struct* mesh, block_fespace *FE, REAL dt, dCSRmat *G, dCSRmat *Gt, dCSRmat *K , dCSRmat *Kt, 
+					dCSRmat *Mf, dCSRmat *Me, dCSRmat *Mv, dCSRmat *A_diag, 
+					dCSRmat *Gtb, dCSRmat *Ktb, dCSRmat *Kb, dCSRmat *Gb)
+{
 
 
 
@@ -150,142 +177,81 @@ build_precond_maxwell( dCSRmat *G, dCSRmat *Gt, dCSRmat *K , dCSRmat *Kt,
   //-------------------------------------
   // lower block triangular for LU solve
   //-------------------------------------
-  //block_dCSRmat Lb;
-  //Lb.brow = 3; Lb.bcol = 3;
-  //Lb.blocks = (dCSRmat **) calloc(9,sizeof(dCSRmat *));
+  block_dCSRmat Lb;
+  Lb.brow = 3; Lb.bcol = 3;
+  Lb.blocks = (dCSRmat **) calloc(9,sizeof(dCSRmat *));
   
   
-  dCSRmat IB =  dcsr_create_identity_matrix(mesh.nface,0);
-  dCSRmat IE =  dcsr_create_identity_matrix(mesh.nedge,0);
-  dCSRmat Ip =  dcsr_create_identity_matrix(mesh.nv,0);
-
-
-/*   dCSRmat IB = dcsr_create(mesh.nface, mesh.nface, mesh.nface);
-  dCSRmat IE = dcsr_create(mesh.nedge, mesh.nedge, mesh.nedge);
-  dCSRmat Ip = dcsr_create(mesh.nv, mesh.nv, mesh.nv);
-
-  for (ii=0; ii<mesh.nface; ii++) {
-    IB.IA[ii] = ii;
-    IB.JA[ii] = ii;
-    IB.val[ii] = 1.0;
-  }
-  IB.IA[mesh.nface] = mesh.nface;
-
-  for (ii=0; ii<mesh.nedge; ii++) {
-    IE.IA[ii] = ii;
-    IE.JA[ii] = ii;
-    IE.val[ii] = 1.0;
-  }
-  IE.IA[mesh.nedge] = mesh.nedge;
-
-  for (ii=0; ii<mesh.nv; ii++) {
-    Ip.IA[ii] = ii;
-    Ip.JA[ii] = ii;
-    Ip.val[ii] = 1.0;
-  }
-  Ip.IA[mesh.nv] = mesh.nv; */
+  dCSRmat IB =  dcsr_create_identity_matrix(mesh->nface,0);
+  dCSRmat IE =  dcsr_create_identity_matrix(mesh->nedge,0);
+  dCSRmat Ip =  dcsr_create_identity_matrix(mesh->nv,0);
 
   Lb.blocks[0] = &IE;
-  Lb.blocks[1] = &Kt;
-  Lb.blocks[2] = NULL;
-  Lb.blocks[3] = NULL;
+  Lb.blocks[1] = Kt;
+  Lb.blocks[2] = G;
+  Lb.blocks[3] = K;
   Lb.blocks[4] = &IB;
   Lb.blocks[5] = NULL;
-  Lb.blocks[6] = &Gt;
+  Lb.blocks[6] = Gt;
   Lb.blocks[7] = NULL;
   Lb.blocks[8] = &Ip;
 
-  // Convert back to CSR and shift back
-  //dCSRmat L = bdcsr_2_dcsr(&Lb);
-  //dcsr_shift(&L,1);
+ block_eliminate_DirichletBC(NULL,FE,mesh,NULL, &Lb, 1,0.0);
+	
+	dcsr_cp(Lb.blocks[1], Ktb);
+	dcsr_cp(Lb.blocks[3], Kb);
+	dcsr_cp(Lb.blocks[2], Gb);
+	dcsr_cp(Lb.blocks[6], Gtb);
 
-  // eliminate the boundary of matrix
-  eliminate_DirichletBC_blockFE(NULL,&FE,&mesh,NULL,&L,0.0);
-  //dcsr_shift(&L,-1);
-
-  // get G and K without boundary
-  dCSRmat Gtb;
-  dCSRmat Ktb;
-
-  dcsr_getblk(&L, E_idx.val, B_idx.val, mesh.nedge, mesh.nface, &Ktb);
-  dcsr_getblk(&L, p_idx.val, E_idx.val, mesh.nv,    mesh.nedge, &Gtb);
-
-  dCSRmat Kb;
-  dcsr_trans(&Ktb,&Kb);
-  dCSRmat Gb;
-  dcsr_trans(&Gtb, &Gb);
+ 
 
   // scale offdiagonal blocks
-  dcsr_axm(&Kb,  dt/2.0);
-  dcsr_axm(&Gb,  dt/2.0);
-  dcsr_axm(&Ktb, dt/2.0);
-  dcsr_axm(&Gtb, dt/2.0);
+  //we need the negatives, right?
+  dcsr_axm(Kb,  dt/2.0);
+  dcsr_axm(Gb,  dt/2.0);
+  dcsr_axm(Ktb, -dt/2.0);
+  dcsr_axm(Gtb, -dt/2.0);
 
   // clean up
   bdcsr_free(&Lb);
-  dcsr_free(&L);
-  dcsr_free(&Gt);
-  dcsr_free(&Kt);
   dcsr_free(&IB);
   dcsr_free(&IE);
   dcsr_free(&Ip);
   //-------------------------------------
 
   // prepare diagonal blocks
-  //dCSRmat *A_diag;
-  //A_diag = (dCSRmat *)calloc(3, sizeof(dCSRmat));
 
   // first diagonal block: 2/dt * M_f
-  dcsr_alloc(Mf.row, Mf.col, Mf.nnz, &A_diag[0]);
-  dcsr_cp(&Mf, &A_diag[0]);
+  dcsr_alloc(Mf->row, Mf->col, Mf->nnz, &A_diag[0]);
+  dcsr_cp(Mf, &A_diag[0]);
   dcsr_axm(&A_diag[0], 2.0/dt);
 
-  //dcsr_shift(&A_diag[0], 1);
 
-  eliminate_DirichletBC(NULL,&FE_B,&mesh,NULL,&A_diag[0],0.0);
+  eliminate_DirichletBC(NULL,FE->var_spaces[1],mesh,NULL,&A_diag[0],0.0);
 
-  //dcsr_shift(&A_diag[0], -1);
 
-  // second diagonal block: dt/2 * K^tMfK + 2/dt*Me + Z
-  dCSRmat KT;
+  // second diagonal block: dt/2 * K^tMfK + 2/dt*Me
   dCSRmat KTMfK;
-  //dcsr_shift(&K,-1);
-  dcsr_trans(&K, &KT);
-  dcsr_rap(&KT, &Mf, &K, &KTMfK);
-  dcsr_add(&KTMfK, dt/2.0, &Me, 2.0/dt, &A_diag[1]);
+  dcsr_rap(Kt, Mf, K, &KTMfK);
+  dcsr_add(&KTMfK, dt/2.0, Me, 2.0/dt, &A_diag[1]);
   dcsr_free(&KTMfK);
   dcsr_alloc(A_diag[1].row, A_diag[1].col, A_diag[1].nnz, &KTMfK);
   dcsr_cp(&A_diag[1],&KTMfK);
   dcsr_free(&A_diag[1]);
-  //dcsr_add(&KTMfK, 1.0, &Z, 1.0, &A_diag[1]);
   dcsr_free(&KTMfK);
-  dcsr_free(&KT);
-  //dcsr_shift(&K,1);
 
-  //dcsr_shift(&A_diag[1], 1);
 
-  eliminate_DirichletBC(NULL,&FE_E,&mesh,NULL,&A_diag[1],0.0);
+  eliminate_DirichletBC(NULL,FE->var_spaces[0],mesh,NULL,&A_diag[1],0.0);
 
-  //dcsr_shift(&A_diag[1], -1);
-
-  //dcsr_shift(&P_curl, -1);  // shift
-  //dcsr_shift(&Grad, -1);  // shift
 
   // third diagonal block: dt/2 G^tMeG + 2/dt Mv
-  dCSRmat GT;
   dCSRmat GTMeG;
-  //dcsr_shift(&G,-1);
-  dcsr_trans(&G, &GT);
-  dcsr_rap(&GT, &Me, &G, &GTMeG);
-  dcsr_add(&GTMeG, dt/2.0, &Mv, 2.0/dt, &A_diag[2]);
+  dcsr_rap(Gt, Me, G, &GTMeG);
+  dcsr_add(&GTMeG, dt/2.0, Mv, 2.0/dt, &A_diag[2]);
   dcsr_free(&GTMeG);
-  dcsr_free(&GT);
-  //dcsr_shift(&G,1);
 
-  //dcsr_shift(&A_diag[2], 1);
-
-  eliminate_DirichletBC(NULL,&FE_p,&mesh,NULL,&A_diag[2],0.0);
-
-  //dcsr_shift(&A_diag[2], -1);
+  eliminate_DirichletBC(NULL,FE->var_spaces[2],mesh,NULL,&A_diag[2],0.0);
+  
+}
 
 
