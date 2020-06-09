@@ -1021,7 +1021,7 @@ printf("Beginning BSR for Biot\n");
     INT Au_solve_TYPE = 2;
     // Problem Var...
     REAL M = 1e6;
-    REAL nu = 0.4999;
+    REAL nu = 0.49;
     REAL mu =  (3e4) / (1+2*nu);
     REAL lam = (3e4)*nu / ((1-2*nu)*(1+nu));
     REAL factor = (1.0) / (lam+(2*mu/2.0));
@@ -1089,12 +1089,12 @@ printf("Beginning BSR for Biot\n");
           dvec_set( d.row, &d, 0.0);////////////////////////////
           if(L==1){
             //smoother_dcsr_Schwarz_backward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
-            smoother_dcsr_Schwarz_forward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
-            //smoother_dcsr_Schwarz_forward_additive( &(mgl_disp->Schwarz), &swzparam, &d, &temp, 1.0);
+            //smoother_dcsr_Schwarz_forward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
+            smoother_dcsr_Schwarz_forward_additive( &(mgl_disp->Schwarz), &swzparam, &d, &temp, 1.0);
           } else {
             //smoother_dcsr_Schwarz_forward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
-            smoother_dcsr_Schwarz_backward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
-            //smoother_dcsr_Schwarz_backward_additive( &(mgl_disp->Schwarz), &swzparam, &d, &temp, 1.0);
+            //smoother_dcsr_Schwarz_backward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
+            smoother_dcsr_Schwarz_backward_additive( &(mgl_disp->Schwarz), &swzparam, &d, &temp, 1.0);
           }
           //dcsr_pvfgmres( A->blocks[0], &temp, &d, NULL, 1e-3, 1000, 1000, 1, 1);
           break;
@@ -1152,11 +1152,11 @@ printf("Beginning BSR for Biot\n");
         case 2: // Schwarz
           dvec_set( d.row, &d, 0.0);//////////////////////////////
           if(L==1){
-            smoother_dcsr_Schwarz_forward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
-            //smoother_dcsr_Schwarz_forward_additive( &(mgl_disp->Schwarz), &swzparam, &d, &temp, 1.0);
+            //smoother_dcsr_Schwarz_forward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
+            smoother_dcsr_Schwarz_forward_additive( &(mgl_disp->Schwarz), &swzparam, &d, &temp, 1.0);
           } else {
-            smoother_dcsr_Schwarz_backward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
-            //smoother_dcsr_Schwarz_backward_additive( &(mgl_disp->Schwarz), &swzparam, &d, &temp, 1.0);
+            //smoother_dcsr_Schwarz_backward( &(mgl_disp->Schwarz), &swzparam, &d, &temp);
+            smoother_dcsr_Schwarz_backward_additive( &(mgl_disp->Schwarz), &swzparam, &d, &temp, 1.0);
           }
           break;
         case 3: // Strange Thing

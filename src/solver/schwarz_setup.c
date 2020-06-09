@@ -512,13 +512,10 @@ INT Schwarz_setup_geometric (Schwarz_data *Schwarz,
     // find the blocks
     /*-------------------------------------------*/
     printf("Finding Schwarz patches\n");
-    //Schwarz_get_patch_geometric(Schwarz, mesh, 0, 2);
-//    INT patch_type_out[] = {3,11,11};
-//    Schwarz_get_patch_geometric_multiple_DOFtype( Schwarz, mesh, 1, patch_type_out, 3);
-    //INT patch_type_out[] = {3,1,1,3,0};
-    //Schwarz_get_patch_geometric_multiple_DOFtype( Schwarz, mesh, 4, patch_type_out, 5);
-    INT patch_type_out[] = {3,1,1,0};
-    Schwarz_get_patch_geometric_multiple_DOFtype( Schwarz, mesh, 0, patch_type_out, 4);
+    INT* patch_type_out = param->patch_type_gmg+2;
+    INT patch_type_in = param->patch_type_gmg[1];
+    INT n_patch_out = param->patch_type_gmg[0];
+    Schwarz_get_patch_geometric_multiple_DOFtype( Schwarz, mesh, patch_type_in, patch_type_out, n_patch_out);
     printf("Found Schwarz patches\n");
     nblk = Schwarz->nblk;
 
