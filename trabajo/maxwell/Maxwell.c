@@ -17,7 +17,7 @@
  *      Exterior: n * B = 0, n x E = f(x,t),
  *      *
  * \note This example illustrates how to combine finite-element spaces into a block system
- *       for a mixed-FEM problem. 
+ *       for a mixed-FEM problem.
  *
  */
 
@@ -27,7 +27,7 @@
 /*********************************************************************************/
 
 /****** MAIN DRIVER **************************************************************/
-int main (int argc, char* argv[]) 
+int main (int argc, char* argv[])
 {
 
   printf("\n===========================================================================\n");
@@ -61,14 +61,14 @@ int main (int argc, char* argv[])
   INT dim = mesh.dim;
   REAL* pt_on_face = NULL; //for use in MFD system
 
-  
+
   // Get Quadrature Nodes for the Mesh
   INT nq1d = inparam.nquad; /* Quadrature points per dimension */
   qcoordinates *cq = get_quadrature(&mesh,nq1d);
 
   // Time stepping parameters
   block_timestepper time_stepper;
-  
+
   // Get info for and create FEM spaces
   // Order of Elements: 0 - P0; 1 - P1; 2 - P2; 20 - Nedelec; 30 - Raviart-Thomas
   INT order_E = 20;
@@ -84,7 +84,7 @@ int main (int argc, char* argv[])
     char* namevtk = "output/mesh.vtu";
     dump_mesh_vtk(namevtk,&mesh);
   }
-  
+
   // Set boundary conditions
   set_dirichlet_bdry(&FE_E,&mesh,1,1);
   set_dirichlet_bdry(&FE_B,&mesh,1,1);
@@ -127,15 +127,15 @@ int main (int argc, char* argv[])
   //            <(1/mu) dB/dt,C> + <(1/mu) curl E, C> = 0
   //
   //            p are H1 elements with 0 Dirichlet boundaries
-  //            B is RT elements with div B = 0, and B*n = 0 on boundary 
-  //            E is Nedelec elements with n x E = f(x,t) on boundary 
+  //            B is RT elements with div B = 0, and B*n = 0 on boundary
+  //            E is Nedelec elements with n x E = f(x,t) on boundary
 
   // We do this using only mass and incidence matrices
   //  Me = <eps E,F>   Mf = <1/mu B,C>   Mn = <p,q>
   //  De = diag(|e|)    Df = diag(|f|)
   //  G = De^(-1) ed_v    K = Df^(-1) face_ed De
   //
-  
+
   printf("Assembling the matrix and right-hand side:\n");
   clock_t clk_assembly_start = clock();
 
@@ -154,28 +154,40 @@ int main (int argc, char* argv[])
   dCSRmat MKt;               /* K'*Mf */
   block_dCSRmat Mb;		/* Global block Mass matrix */
   block_dCSRmat Ab;		/* Global block stiffness matrix */
-  
+
+  	//Create the matrices with mesh info for MFD
+	dCSRmat Vv;
+	dCSRmat Va;
+	dCSRmat Ve;
+	dCSRmat Dv;
+	dCSRmat Da;
+	dCSRmat De;
+	dvector del_el_vol;
+	dvector del_edge_length;
+	dvector vor_face_area;
+	dvector vor_el_vol;
+
   //allocate memory for assemble RHS function in mass-lumping routine
   b_E.row = mesh.nedge;
-  b_E.val = (REAL*)calloc(mesh.nedge, sizeof(REAL));  
-	
-  b_B.row = mesh.nedge;
-  b_B.val = (REAL*)calloc(mesh.nface, sizeof(REAL)); 
-	
-  b_p.row = mesh.nv;
-  b_p.val = (REAL*)calloc(mesh.nedge, sizeof(REAL)); 
-  
+  b_E.val = (REAL*)calloc(mesh.nedge, sizeof(REAL));
 
-  
+  b_B.row = mesh.nedge;
+  b_B.val = (REAL*)calloc(mesh.nface, sizeof(REAL));
+
+  b_p.row = mesh.nv;
+  b_p.val = (REAL*)calloc(mesh.nedge, sizeof(REAL));
+
+
+
   //assemble the block matrices for the system using mixed FEM or mass-lumping
   if (inparam.Mass_lump == 1){ //mass-lumped FEM
    /*
-  The mass-lumped system is equivalent to the mimetic-finite difference method for Maxwell. 
+  The mass-lumped system is equivalent to the mimetic-finite difference method for Maxwell.
   Use diagonal matrices to approximate the mass matrices.
   */
-	  
+
 	printf("\n\n******ASSEMBLING MASS-LUMPED SYSTEM******\n\n");
-	
+
 	assemble_global_RHS(&b_E,&FE_E,&mesh,cq,current_density,0.0);
     assemble_global_RHS(&b_B,&FE_B,&mesh,cq,zero_coeff_vec3D,0.0);
     assemble_global_RHS(&b_p,&FE_p,&mesh,cq,zero_coeff_scal,0.0);
@@ -184,31 +196,25 @@ int main (int argc, char* argv[])
 	coordinates* cv_vor;
 	cv_vor =  allocatecoords(mesh.nelm,mesh.dim);
 	dvector vor_edge_length = dvec_create(mesh.nface);
-	dvector vor_face_area = dvec_create(mesh.nedge);
-	dvector vor_el_vol = dvec_create(mesh.nv);
+	vor_face_area = dvec_create(mesh.nedge);
+	vor_el_vol = dvec_create(mesh.nv);
 	pt_on_face=(REAL *)calloc(3*mesh.nedge,sizeof(REAL));
-	
+
 	//Compute Voronoi info
 	compute_Voronoi_nodes(&mesh, cv_vor);
 	compute_Voronoi_edges(&mesh, cv_vor, &vor_edge_length);
 	compute_Voronoi_faces(&mesh, cv_vor, pt_on_face, &vor_face_area);
 	compute_Voronoi_volumes(&mesh, cv_vor, &vor_face_area, pt_on_face, &vor_el_vol);
 
-	//Create the matrices with mesh info
-	dCSRmat Vv;
-	dCSRmat Va;
-	dCSRmat Ve;
-	dCSRmat Dv;
-	dCSRmat Da;
-	dCSRmat De;
- 
+
+
 	//create diagonal matrices with Voronoi mesh info
  	Vv = dcsr_create_diagonal_matrix(&vor_el_vol);
 	Va = dcsr_create_diagonal_matrix(&vor_face_area);
 	Ve = dcsr_create_diagonal_matrix(&vor_edge_length);
 
 	//create dvecs with Delaunay mesh info
-	dvector del_el_vol;
+
 	del_el_vol.row = mesh.nelm;
 	del_el_vol.val = mesh.el_vol;
 
@@ -216,52 +222,42 @@ int main (int argc, char* argv[])
 	del_face_area.row = mesh.nface;
 	del_face_area.val = mesh.f_area;
 
-	dvector del_edge_length;
+
 	del_edge_length.row = mesh.nedge;
 	del_edge_length.val = mesh.ed_len;
-	
+
 	/*for(INT k = 0; k<mesh.nedge; k++){
 		printf("edge length = %f \n\n", del_edge_length.val[k]);
 	}
 	*/
-	
+
 	//create diagonal matrices with Delaunay mesh info
 	Dv = dcsr_create_diagonal_matrix(&del_el_vol);
 	Da = dcsr_create_diagonal_matrix(&del_face_area);
 	De = dcsr_create_diagonal_matrix(&del_edge_length);
-	
+
 	//create lumped mass matrices
 	dcsr_mxm(&Va,&De,&Me); //MeL = vor area * del edge
 	dcsr_mxm(&Da,&Ve,&Mf); //MbL = del face * vor edge
 	Mv = Vv;				//MpL = vor volumes
-	
-	// CSR Matrices
-	//dcsr_free(&Vv);
-	dcsr_free(&Va);
-	dcsr_free(&Ve);
-	dcsr_free(&Dv);
-	dcsr_free(&Da);
-	dcsr_free(&De);
-	
+
+
 	//Voronoi Coords
 	free_coords(cv_vor);
     free(cv_vor);
     cv_vor = NULL;
-	
-	// Vectors
-	dvec_free(&vor_edge_length);
-	dvec_free(&vor_el_vol);
-	dvec_free(&vor_face_area);
-	
-  } else { //Regular FEM (no lumping) 
-  
+
+
+
+  } else { //Regular FEM (no lumping)
+
   	// Assemble the matrices without BC first
 	// Mass matrices for mixed-FEM
 	assemble_global(&Me,&b_E,assemble_mass_local,&FE_E,&mesh,cq,current_density,permitivity,0.0);
 	assemble_global(&Mf,&b_B,assemble_mass_local,&FE_B,&mesh,cq,zero_coeff_vec3D,oneovermu,0.0);
 	assemble_global(&Mv,&b_p,assemble_mass_local,&FE_p,&mesh,cq,zero_coeff_scal,one_coeff_scal,0.0);
   }
-  
+
   // Start Combining
   //  A =   0        -K^T Mf          Med G
   //      Mf K         0                0
@@ -275,17 +271,17 @@ int main (int argc, char* argv[])
   //               0
   //               0
   // M du/dt + Au = f
-  
+
   // Grad and Curl matrices
 	get_grad_H1toNed(&G,&mesh);
 	get_curl_NedtoRT(&K,&mesh);
-	
+
 	dcsr_mxm(&Me,&G,&MG); // Me*G
 	dcsr_trans(&MG,&MGt); // G'*Me
 	dcsr_axm(&MGt,-1); // -G'*Me
 	dcsr_mxm(&Mf,&K,&MK); // Mf*K
 	dcsr_trans(&MK,&MKt); // K'*Mf
-	dcsr_axm(&MKt,-1); // -K'*Mf 
+	dcsr_axm(&MKt,-1); // -K'*Mf
 
 	// Block Matrix M;
 	bdcsr_alloc_minimal(3,3,&Mb);
@@ -298,7 +294,7 @@ int main (int argc, char* argv[])
 	Mb.blocks[6] = NULL;
 	Mb.blocks[7] = NULL;
 	Mb.blocks[8] = &Mv;
-	
+
 
 	// Block Matrix A(shifts needed)
 	bdcsr_alloc_minimal(3,3,&Ab);
@@ -310,15 +306,15 @@ int main (int argc, char* argv[])
 	Ab.blocks[5] = NULL;
 	Ab.blocks[6] = &MGt;
 	Ab.blocks[7] = NULL;
-	Ab.blocks[8] = NULL; 
-	
+	Ab.blocks[8] = NULL;
+
 
   // Block RHS (need the current RHS, the updated one for time stepping, and the function evaluted at the new time step (if time-dependent))
   dvector b = dvec_create(ndof);
   for(i=0;i<mesh.nedge;i++) b.val[i] = b_E.val[i];
   for(i=0;i<mesh.nface;i++) b.val[i+mesh.nedge] = b_B.val[i];
   for(i=0;i<mesh.nv;i++) b.val[i+mesh.nedge+mesh.nv] = b_p.val[i];
-  
+
   // Create Time Operator
   initialize_blktimestepper(&time_stepper,&inparam,1,FE.ndof,FE.nspaces);
   time_stepper.A = &Ab;
@@ -345,9 +341,9 @@ int main (int argc, char* argv[])
   linear_itsolver_param linear_itparam;
   param_linear_solver_init(&linear_itparam);
   param_linear_solver_set(&linear_itparam, &inparam);
-  
 
-  
+
+
   // Set parameters for algebriac multigrid methods
   AMG_param amgparam;
   param_amg_init(&amgparam);
@@ -359,21 +355,21 @@ int main (int argc, char* argv[])
   dvector up = dvec_create(mesh.nv);
   dvector u = dvec_create(ndof);
   dvector tsol = dvec_create(ndof);
-  
+
   // Initial Condition and RHS
   blockFE_Evaluate(u.val,truesol,&FE,&mesh,0.0);
-  
+
   char** varname = malloc(50*FE.nspaces*sizeof(char*));
   varname[0] = "E";
   varname[1] = "B";
   varname[2] = "p";
-  char trueout[40]; 
-  
+  char trueout[40];
+
   // Get components for error computing
   get_unknown_component(&uE,&u,&FE,0);
   get_unknown_component(&uB,&u,&FE,1);
   get_unknown_component(&up,&u,&FE,2);
-  
+
 
   // Set initial condition and RHS in timestepper
   time_stepper.sol = &u;
@@ -389,7 +385,7 @@ int main (int argc, char* argv[])
 	sprintf(trueout,"output/truesol_ts000.vtu");
     dump_blocksol_vtk(trueout,varname,&mesh,&FE,u.val);
   }
-  
+
 
   printf("*******************************************\n");
   printf("Initial Condition:\t Actual Time = 0.0\n");
@@ -409,7 +405,90 @@ int main (int argc, char* argv[])
   printf("||B-Btrue||_0 = %25.16e\n",Berr);
   printf("||p-ptrue||_0 = %25.16e\n",perr);
   printf("------------------------------------------------------------\n");
-  
+
+
+  //-------------------------------
+  // prepare block preconditioner
+  //-------------------------------
+
+  // get Gt and Kt
+  dCSRmat Gt;
+  dCSRmat Kt;
+  dCSRmat Mf_PC;
+  dCSRmat Me_PC;
+  dCSRmat Mv_PC;
+
+
+
+  if (inparam.Mass_lump == 1){ //need to redefine G^T and K^T as Voronoi operators
+	//G FE = De^-1 G, gradD = De^-1 G, divD = Vv^-1 G^T Vf
+	//K FE = Da^-1 K De, curlD = Da^-1 K De, curlV = Va^-1 K^T Ve
+
+	//make divD = Vv^-1 G^T Vf
+	//transpose G FE
+	dcsr_trans(&G,&Gt); //G FE^T = G^T De^-1
+	//unscale G^T = G FE ^T De = G^T De^-1 De
+	dcsr_mxm(&Gt,&De,&Gt); // G^T = G FE ^T De^-1 De
+	//rescale to get divD = Vv^-1 G^T Vf
+	dCSRmat Vv_inv;
+	Vv_inv = dcsr_invert_diagonal_matrix(&vor_el_vol);
+	dcsr_mxm(&Vv_inv, &Gt, &Gt);
+	dcsr_mxm(&Gt, &Va, &Gt); //divD
+
+	//make curlV = Va^-1 K^T Ve
+	//transpose K Fe
+	dcsr_trans(&K,&Kt); // K FE ^T = De K^T Da^-1
+	//unscale K^T = De^-1 (K FE ^T) Da
+	dCSRmat De_inv;
+	De_inv = dcsr_invert_diagonal_matrix(&del_edge_length);
+	dcsr_mxm(&De_inv, &Kt, &Kt);
+	dcsr_mxm(&Kt, &Da, &Kt);
+	//rescale to get curlV = Va^-1 K^T Ve
+	dCSRmat Va_inv;
+	Va_inv = dcsr_invert_diagonal_matrix(&vor_face_area);
+	dcsr_mxm(&Va_inv, &Kt, &Kt);
+	dcsr_mxm(&Kt, &Ve, &Kt);
+
+	//fill in mass matrices for preconditioning
+	Mf_PC =  dcsr_create_identity_matrix(mesh.nface,0);
+	Me_PC =  dcsr_create_identity_matrix(mesh.nedge,0);
+	Mv_PC =  dcsr_create_identity_matrix(mesh.nv,0);
+
+	} else{ //FE, don't have to worry about the scaling.
+		  dcsr_trans(&G,&Gt);
+		  dcsr_trans(&K,&Kt);
+
+		  //fill in mass matrices for preconditioning
+		  Mf_PC =  Mf;
+		  Me_PC =  Me;
+		  Mv_PC = Mv;
+
+	}
+
+	//all the stuff we need for the solver
+
+	  // prepare diagonal blocks
+		dCSRmat *A_diag;
+		A_diag = (dCSRmat *)calloc(3, sizeof(dCSRmat));
+
+
+	     // data for HX preconditioner
+		dCSRmat P_curl;
+		dCSRmat Grad;
+
+		get_Pigrad_H1toNed(&P_curl,&mesh);
+		get_grad_H1toNed(&Grad,&mesh);
+
+		//declare operators without boundary
+		dCSRmat Gtb;
+		dCSRmat Ktb;
+		dCSRmat Kb;
+		dCSRmat Gb;
+
+
+	build_precond_maxwell(&mesh,&FE, time_stepper.dt, &G, &Gt, &K ,&Kt, &Mf_PC, &Me_PC, &Mv_PC, A_diag, &Gtb,
+							&Ktb, &Kb, &Gb);
+
 
 
   clock_t clk_timeloop_start = clock();
@@ -425,7 +504,7 @@ int main (int argc, char* argv[])
 
     // Update RHS
     if(time_stepper.rhs_timedep) { // If RHS is time-dependent, get new version
-      assemble_global_RHS(&b_E,&FE_E,&mesh,cq,current_density,time_stepper.time);	  
+      assemble_global_RHS(&b_E,&FE_E,&mesh,cq,current_density,time_stepper.time);
       assemble_global_RHS(&b_B,&FE_B,&mesh,cq,zero_coeff_vec3D,time_stepper.time);
       assemble_global_RHS(&b_p,&FE_p,&mesh,cq,zero_coeff_scal,time_stepper.time);
       for(j=0;j<mesh.nedge;j++) time_stepper.rhs->val[j] = b_E.val[j];
@@ -445,11 +524,13 @@ int main (int argc, char* argv[])
     // Solve
     clock_t clk_solve_start = clock();
     //bdcsr_shift(time_stepper.At,-1);
-	
+
 	//solver_flag = block_directsolve_UMF(time_stepper.At, time_stepper.rhs_time,time_stepper.sol, 3);
-	
-    solver_flag = linear_solver_bdcsr_krylov(time_stepper.At, time_stepper.rhs_time, time_stepper.sol, &linear_itparam);
-    //bdcsr_shift(time_stepper.At,1);
+	//solver_flag = linear_solver_bdcsr_krylov(time_stepper.At, time_stepper.rhs_time, time_stepper.sol, &linear_itparam);
+    // call solver
+    solver_flag = linear_solver_bdcsr_krylov_maxwell(time_stepper.At, time_stepper.rhs_time, time_stepper.sol, &linear_itparam, &amgparam, A_diag, &P_curl, &Grad, &Gb, &Kb, &Gtb, &Ktb);
+
+
     clock_t clk_solve_end = clock();
     printf("Elapsed CPU Time for Solve = %f seconds.\n\n",(REAL) (clk_solve_end-clk_solve_start)/CLOCKS_PER_SEC);
 
@@ -485,11 +566,11 @@ int main (int argc, char* argv[])
       dump_blocksol_vtk(trueout,varname,&mesh,&FE,tsol.val);
     }
 
-	
+
     clock_t clk_timestep_end = clock();
     printf("Elapsed CPU Time for Time Step = %f seconds.\n\n",(REAL) (clk_timestep_end-clk_timestep_start)/CLOCKS_PER_SEC);
   } // End of Timestepping Loop
-  
+
   clock_t clk_timeloop_end = clock();
   printf("Elapsed CPU Time ALL Time Steps = %f seconds.\n\n",(REAL) (clk_timeloop_end-clk_timeloop_start)/CLOCKS_PER_SEC);
 
@@ -512,7 +593,7 @@ int main (int argc, char* argv[])
   dcsr_free(&MGt);
   dcsr_free(&MK);
   dcsr_free(&MKt);
-  
+
   // dvectors
   dvec_free(&b_E);
   dvec_free(&b_B);
@@ -521,33 +602,33 @@ int main (int argc, char* argv[])
   dvec_free(&uB);
   dvec_free(&up);
   dvec_free(&tsol);
-  
+
   //vectors
   if(pt_on_face){
 	free(pt_on_face);
 	pt_on_face = NULL;
   }
-  
+
   // FE Spaces
   free_fespace(&FE_E);
   free_fespace(&FE_B);
   free_fespace(&FE_p);
   free_blockfespace(&FE);
-  
+
   // Quadrature
   if(cq) {
     free_qcoords(cq);
     free(cq);
     cq = NULL;
   }
-  
+
   // Mesh
   free_mesh(&mesh);
 
   // Arrays
   if(varname) free(varname);
-  
-  
+
+
   /*****************************************************************************************/
 
   clock_t clk_overall_end = clock();
