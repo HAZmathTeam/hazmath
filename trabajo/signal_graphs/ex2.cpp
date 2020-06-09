@@ -13,8 +13,6 @@
 #include <sstream>
 #include <unistd.h>
 
-using namespace std;
-
 int main(int argc, char *argv[]) {
   int largestK = 100;
   bool opt_k = false;
@@ -25,7 +23,7 @@ int main(int argc, char *argv[]) {
   while ((c = getopt(argc, argv, "k:l")) != -1) {
     switch (c) {
     case 'k':
-      largestK = stoi(optarg);
+      largestK = std::stoi(optarg);
       opt_k = true;
       break;
     case 'l':
@@ -45,11 +43,11 @@ int main(int argc, char *argv[]) {
     }
   }
   if (optind != argc - 1) {
-    cerr << "Too many arguments." << endl;
+    std::cerr << "Too many arguments." << std::endl;
     return 1;
   }
   if (opt_k && opt_l) {
-    cerr << "Conflicting options -k and -l." << endl;
+    std::cerr << "Conflicting options -k and -l." << std::endl;
     return 1;
   }
 
@@ -57,7 +55,7 @@ int main(int argc, char *argv[]) {
   if (largestK > n - 1) {
     largestK = n - 1;
   }
-  ofstream tempfile("temp");
+  std::ofstream tempfile("temp");
   tempfile << side * side << ' ' << side * side << ' ' << nnz << '\n';
   for (int i = 0; i < side; ++i) {
     for (int j = 0; j < side; ++j) {
@@ -78,25 +76,25 @@ int main(int argc, char *argv[]) {
   Graph graph("temp");
   remove("temp");
 
-  vector<dCSRmat *> Qj_array;
-  vector<int> Nj_array;
+  std::vector<dCSRmat *> Qj_array;
+  std::vector<int> Nj_array;
   ConnectionMatchingWalsh algorithm;
   algorithm.setupHierarchy(graph, Qj_array, Nj_array);
 
   // Compress/decompress a smooth vector and compute the error
-  const string prefix(argv[optind]);
+  const std::string prefix(argv[optind]);
 
-  vector<string> months{"01", "02", "03", "04", "05", "06",
-                        "07", "08", "09", "10", "11", "12"};
+  std::vector<std::string> months{"01", "02", "03", "04", "05", "06",
+                                  "07", "08", "09", "10", "11", "12"};
   for (auto mon : months) {
-    string filename = prefix + mon;
-    ifstream file(filename.c_str());
-    string line;
-    vector<vector<double>> matrix;
+    std::string filename = prefix + mon;
+    std::ifstream file(filename.c_str());
+    std::string line;
+    std::vector<std::vector<double>> matrix;
     while (getline(file, line)) {
-      istringstream iss(line);
-      matrix.push_back(vector<double>(istream_iterator<double>(iss),
-                                      istream_iterator<double>()));
+      std::istringstream iss(line);
+      matrix.push_back(std::vector<double>(std::istream_iterator<double>(iss),
+                                           std::istream_iterator<double>()));
     }
     file.close();
     for (auto row : matrix) {
@@ -111,7 +109,7 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    cout << endl << endl << "Month" + mon << endl;
+    std::cout << std::endl << std::endl << "Month" + mon << std::endl;
     REAL *v2 = (REAL *)malloc(sizeof(REAL) * n);
     REAL *v3 = (REAL *)malloc(sizeof(REAL) * n);
     if (!opt_l) {
@@ -119,8 +117,8 @@ int main(int argc, char *argv[]) {
       algorithm.compAndDecompAdaptive(n, v, Qj_array, Nj_array, largestK, 1.0,
                                       v3);
 
-      auto write = [&](string filename, REAL data[]) {
-        ofstream ofs(filename);
+      auto write = [&](std::string filename, REAL data[]) {
+        std::ofstream ofs(filename);
         for (int i = 0; i < side; ++i) {
           for (int j = 0;; ++j) {
             ofs << data[i * side + j];
@@ -135,10 +133,11 @@ int main(int argc, char *argv[]) {
       write(filename + "_1", v2);
       write(filename + "_2", v3);
     } else {
-      string ofilename = filename;
+      std::string ofilename = filename;
       ofilename.insert(ofilename.rfind('/'), "/levels");
-      ofstream ofs(ofilename + ".data");
-      ofs << "# Compression results for plain and adaptive encoding" << endl;
+      std::ofstream ofs(ofilename + ".data");
+      ofs << "# Compression results for plain and adaptive encoding"
+          << std::endl;
       for (int th = 1; th < n; th <<= 1) {
         algorithm.compAndDecomp(n, v, Qj_array, th, v2);
         algorithm.compAndDecompAdaptive(n, v, Qj_array, Nj_array, th, 1.0, v3);
@@ -146,7 +145,7 @@ int main(int argc, char *argv[]) {
         array_axpyz(n, -1.0, v, v2, e2);
         array_axpyz(n, -1.0, v, v3, e3);
         ofs << th << '\t' << array_norm2(n, v) << '\t' << array_norm2(n, e2)
-            << '\t' << array_norm2(n, e3) << endl;
+            << '\t' << array_norm2(n, e3) << std::endl;
       }
       ofs.close();
     }

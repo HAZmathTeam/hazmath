@@ -21,7 +21,7 @@
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************/
 #include "hazmath.h"
 /* local include */
-#include "ConvectionDiffusion.h"
+#include "convectiondiffusion.h"
 void eafe(dCSRmat *A, dvector *rhs,					\
 	  void (*local_assembly)(REAL *,fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL), \
 	  mesh_struct mesh, fespace FE, qcoordinates *cq,			\
@@ -157,7 +157,7 @@ int main (int argc, char* argv[])
 
   // Dimension is needed for all this to work
   printf(" --> loading grid from file: %s\n",inparam.gridfile);
-  scomplex *sc=haz_scomplex_read(gfid);  
+  scomplex *sc=haz_scomplex_read(gfid,inparam.print_level);  
   fclose(gfid);
   printf("Assembling the matrix and right-hand side:\n");
   //  eafe1(&A, &b,sc);

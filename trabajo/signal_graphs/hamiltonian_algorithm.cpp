@@ -97,12 +97,12 @@ template <typename T> void deleteArray(const std::vector<T *> &array) {
   }
 }
 
-std::vector<REAL> approximate(const std::vector<REAL> &v, int L, int k) {
-  int N = 1 << L;
-  auto basis = getWalshBasis(L);
+std::vector<REAL> approximate(const std::vector<REAL> &v,
+                              const std::vector<REAL *> &walsh_basis,
+                              const int N, const int k) {
   std::vector<REAL> inner_products;
   inner_products.reserve(N);
-  for (auto b : basis) {
+  for (auto b : walsh_basis) {
     inner_products.push_back(array_dotprod(N, v.data(), b));
   }
 
@@ -122,11 +122,10 @@ std::vector<REAL> approximate(const std::vector<REAL> &v, int L, int k) {
   for (int i = 0; i < N; ++i) {
     auto product = inner_products[i];
     if (abs(product) >= kth_largest) {
-      array_axpy(N, product / N, basis[i], compression.data());
+      array_axpy(N, product / N, walsh_basis[i], compression.data());
     }
   }
 
-  deleteArray(basis);
   return compression;
 }
 
@@ -171,8 +170,10 @@ std::vector<REAL> compress(const std::vector<REAL> &v,
 
   const auto samples = getRandomProlongation(n, N, seed);
   const std::vector<REAL> prolongated_v = prolongate(v, permutation, samples);
+  const auto walsh_basis = getWalshBasis(L);
   const std::vector<REAL> k_term_approximation =
-      approximate(prolongated_v, L, k);
+      approximate(prolongated_v, walsh_basis, N, k);
+  deleteArray(walsh_basis);
   std::vector<REAL> approximation =
       project(k_term_approximation, samples, permutation);
 
