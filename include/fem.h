@@ -89,6 +89,9 @@ typedef struct fespace{
   //! Edge to DOF map
   iCSRmat* ed_dof;
 
+  //! number of DOF per face
+  INT dof_per_face;
+
   //! Face to DOF map
   iCSRmat* f_dof;
 
