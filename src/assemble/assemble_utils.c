@@ -818,14 +818,14 @@ void block_LocaltoGlobal_face(INT *dof_on_f,INT dof_per_f,INT* dof_per_face_blk,
 
       for (i=0; i<dof_per_face_test; i++) { /* Rows of Local Stiffness */
         local_row = dof_on_f[local_row_index+i];
-        if (FE->var_spaces[i]->dof_flag[local_row]>=flag0 && FE->var_spaces[i]->dof_flag[local_row]<=flag1) { /* Only if on special boundary */
+        if (FE->var_spaces[block_row]->dof_flag[local_row]>=flag0 && FE->var_spaces[block_row]->dof_flag[local_row]<=flag1) { /* Only if on special boundary */
           if(bLoc!=NULL)
           b->val[local_row+global_row_index] += bLoc[local_row_index+i];
 
           for (j=0; j<dof_per_face_trial; j++) { /* Columns of Local Stiffness */
             local_col = dof_on_f[local_col_index+j];
             if(A->blocks[block_row*nblocks+block_col]) {
-              if (FE->var_spaces[j]->dof_flag[local_col]>=flag0 && FE->var_spaces[j]->dof_flag[local_col]<=flag1) { /* Only do stuff if hit a special boundary */
+              if (FE->var_spaces[block_col]->dof_flag[local_col]>=flag0 && FE->var_spaces[block_col]->dof_flag[local_col]<=flag1) { /* Only do stuff if hit a special boundary */
                 col_a = A->blocks[block_row*nblocks+block_col]->IA[local_row];
                 col_b = A->blocks[block_row*nblocks+block_col]->IA[local_row+1];
                 for (k=col_a; k<col_b; k++) { /* Columns of A */
