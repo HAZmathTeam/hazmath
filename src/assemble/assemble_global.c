@@ -1293,7 +1293,7 @@ void assemble_global_face_block(block_dCSRmat* A,dvector* b,dvector *old_sol,voi
 
   // Loop over each block and get dof_per_face
   INT dof_per_face = 0;
-  INT* dof_per_face_blk = (INT*)calloc(FE->nspaces,sizeof(INT));
+  INT* dof_per_face_blk = (INT *) calloc(FE->nspaces,sizeof(INT));
   INT FEtype;
   for(i=0;i<FE->nspaces;i++) {
     FEtype = FE->var_spaces[i]->FEtype;
