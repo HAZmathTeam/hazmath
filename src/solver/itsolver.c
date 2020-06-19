@@ -1765,6 +1765,200 @@ INT linear_solver_bdcsr_krylov_block_4(block_dCSRmat *A,
 
 /********************************************************************************************/
 /**
+ * \fn INT linear_solver_bdcsr_krylov_block_5 (block_dCSRmat *A, dvector *b, dvector *x,
+ *                                           itsolver_param *itparam,
+ *                                           AMG_param *amgparam, dCSRmat *A_diag)
+ *
+ * \brief Solve Ax = b by standard Krylov methods
+ *
+ * \param A         Pointer to the coeff matrix in block_dCSRmat format
+ * \param b         Pointer to the right hand side in dvector format
+ * \param x         Pointer to the approx solution in dvector format
+ * \param itparam   Pointer to parameters for iterative solvers
+ * \param amgparam  Pointer to parameters for AMG solvers
+ * \param A_diag    Digonal blocks of A
+ *
+ * \return          Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   06/19/2020
+ *
+ * \note only works for 5 by 5 block dCSRmat problems!! -- Xiaozhe Hu
+ */
+INT linear_solver_bdcsr_krylov_block_5(block_dCSRmat *A,
+                                       dvector *b,
+                                       dvector *x,
+                                       linear_itsolver_param *itparam,
+                                       AMG_param *amgparam,
+                                       dCSRmat *A_diag)
+{
+    const SHORT prtlvl = itparam->linear_print_level;
+    const SHORT precond_type = itparam->linear_precond_type;
+
+//#if WITH_SUITESPARSE
+    INT i;
+//#endif
+    INT status = SUCCESS;
+    REAL setup_start, setup_end, setup_duration;
+    REAL solver_start, solver_end, solver_duration;
+
+#if WITH_SUITESPARSE
+    void **LU_diag = (void **)calloc(5, sizeof(void *));
+//#else
+//    error_extlib(257, __FUNCTION__, "SuiteSparse");
+#endif
+
+    SHORT max_levels;
+    if (amgparam) max_levels = amgparam->max_levels;
+    AMG_data **mgl = (AMG_data **)calloc(5, sizeof(AMG_data *));
+
+    /* setup preconditioner */
+    get_time(&setup_start);
+
+    if (precond_type > 0 && precond_type < 20) {
+    /* diagonal blocks are solved exactly */
+#if WITH_SUITESPARSE
+        // Need to sort the diagonal blocks for UMFPACK format
+        dCSRmat A_tran;
+
+        for (i=0; i<5; i++){
+
+            dcsr_trans(&A_diag[i], &A_tran);
+            dcsr_cp(&A_tran, &A_diag[i]);
+
+            if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagnol: \n", i);
+            LU_diag[i] = umfpack_factorize(&A_diag[i], prtlvl);
+
+            dcsr_free(&A_tran);
+
+        }
+
+#endif
+    }
+    else {
+
+        for (i=0; i<5; i++){
+
+            /* set AMG for diagonal blocks */
+            mgl[i] = amg_data_create(max_levels);
+            dcsr_alloc(A_diag[i].row, A_diag[i].row, A_diag[i].nnz, &mgl[i][0].A);
+            dcsr_cp(&(A_diag[i]), &mgl[i][0].A);
+            mgl[i][0].b=dvec_create(A_diag[i].row);
+            mgl[i][0].x=dvec_create(A_diag[i].row);
+
+            switch (amgparam->AMG_type) {
+
+                case UA_AMG: // Unsmoothed Aggregation AMG
+                    if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+                    status = amg_setup_ua(mgl[i], amgparam);
+                    break;
+
+                default: // UA AMG
+                    if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+                    status = amg_setup_ua(mgl[i], amgparam);
+                    break;
+
+            }
+
+        }
+
+    }
+
+    precond_block_data precdata;
+    precond_block_data_null(&precdata);
+
+    precdata.Abcsr = A;
+
+    precdata.A_diag = A_diag;
+    precdata.r = dvec_create(b->row);
+    if (amgparam) precdata.amgparam = amgparam;
+
+
+    if (precond_type > 0 && precond_type < 20) {
+    /* diagonal blocks are solved exactly */
+#if WITH_SUITESPARSE
+        precdata.LU_diag = LU_diag;
+#endif
+    }
+    else {
+        precdata.mgl = mgl;
+    }
+
+    precond prec; prec.data = &precdata;
+
+    switch (precond_type)
+    {
+        /*
+        case 10:
+            prec.fct = precond_block_diag_3;
+            break;
+
+        case 11:
+            prec.fct = precond_block_lower_3;
+            break;
+
+        case 12:
+            prec.fct = precond_block_upper_3;
+            break;
+
+        case 20:
+            prec.fct = precond_block_diag_3_amg;
+            break;
+
+        case 21:
+            prec.fct = precond_block_lower_3_amg;
+            break;
+
+        case 22:
+            prec.fct = precond_block_upper_3_amg;
+            break;
+       */
+
+        case 30:
+            prec.fct = precond_block_diag_5_amg_krylov;
+            break;
+
+        //case 31:
+        //    prec.fct = precond_block_lower_3_amg_krylov;
+        //    break;
+
+        //case 32:
+        //    prec.fct = precond_block_upper_3_amg_krylov;
+        //    break;
+
+        default:
+            break;
+    }
+
+
+    if ( prtlvl >= PRINT_MIN ) {
+        get_time(&setup_end);
+        setup_duration = setup_end - setup_start;
+        print_cputime("Setup totally", setup_duration);
+    }
+
+    // solver part
+    get_time(&solver_start);
+
+    status=solver_bdcsr_linear_itsolver(A,b,x, &prec,itparam);
+
+    get_time(&solver_end);
+
+    solver_duration = solver_end - solver_start;
+
+    if ( prtlvl >= PRINT_MIN ) {
+        print_cputime("Krylov method totally", solver_duration);
+        printf("**********************************************************\n");
+    }
+
+    // clean
+    precond_block_data_free(&precdata, 3, TRUE);
+
+    return status;
+}
+
+/********************************************************************************************/
+/**
  * \fn INT linear_solver_bdcsr_krylov_block (block_dCSRmat *A, dvector *b, dvector *x,
  *                                           itsolver_param *itparam,
  *                                           AMG_param *amgparam, dCSRmat *A_diag)
