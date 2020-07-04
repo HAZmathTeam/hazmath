@@ -89,7 +89,7 @@ int main (int argc, char* argv[])
   set_dirichlet_bdry(&FE_uy,&mesh,1,1);
   if(dim==3) set_dirichlet_bdry(&FE_uz,&mesh,1,1);
   // Dirichlet conditions on p (add boundary integrals) or not
-  INT p_dirichlet = 0;
+  INT p_dirichlet = 1;
   set_dirichlet_bdry(&FE_p,&mesh,-1,-1); // Neumann conditions for p
 
   // Create Block FE System with ordering (u,p)
@@ -165,8 +165,9 @@ int main (int argc, char* argv[])
   // If p has Dirichlet conditions, we need to add the boundary integrals
   dvector rhs_bdry;
   if(p_dirichlet) {
-    rhs_bdry = dvec_create(udof);
-  //  assemble_global_RHS_face(&rhs_bdry,NULL,local_pressure_bdry,&FE,&mesh,cq,p_func2D,0.0,1,1);
+    rhs_bdry = dvec_create(ndof);
+    if(dim==2) assemble_global_RHS_face_block(&rhs_bdry,NULL,local_pressure_bdry,&FE,&mesh,cq,exact_sol2D,0.0,1,1);
+    if(dim==3) assemble_global_RHS_face_block(&rhs_bdry,NULL,local_pressure_bdry,&FE,&mesh,cq,exact_sol3D,0.0,1,1);
     // Add RHS vector together
     for(i=0;i<ndof;i++) {
       b.val[i] += rhs_bdry.val[i];
