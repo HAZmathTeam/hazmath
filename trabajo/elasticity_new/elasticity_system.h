@@ -306,3 +306,166 @@ void local_assembly_elasticity(REAL* ALoc, block_fespace *FE, mesh_struct *mesh,
   return;
 }
 /*****************************************************************************************************/
+
+/*!
+* \fn local_assembly_meniscusterms_rhs(REAL* bLoc,dvector* old_sol,block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT *dof_on_f,INT *dof_on_elm,INT *v_on_elm,INT dof_per_f,INT face,INT elm,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
+*
+* \brief Computes the local boundary terms (specifically on the meniscus) for the fully linearized Jacobian rhs
+*
+*        For this problem we compute the terms (all integrals on meniscus):
+*
+*       -Ma*<(1/(1-gamprev) + A*gamprev)*dx(gam_prev),v1>
+*       -Bi/(\chi*k)*<k*c_prev*(1-gamprev) - exp(A*gamprev)*gamprev,d>
+*       <uprev*gamprev,dx(del)> - 1/Pes *<dx(gamprev),dx(del)> + Bi*<k*cprev(1-gamprev) - exp(A*gamprev)*gam_prev,del>
+*
+*
+* \param old_sol       Solution at previous Newton step (NULL if linear)
+* \param FE            FE Space
+* \param mesh          Mesh Data
+* \param cq            Quadrature Nodes
+* \param dof_on_f      Specific DOF on face
+* \param dof_on_elm    Specific DOF on element
+* \param v_on_elm      Specific vertices on element
+* \param dof_per_f     # DOF per face
+* \param face          Current face
+* \param elm           Current element
+* \param rhs           Function for Boundary RHS (steady-state part)
+* \param time          Physical Time if time dependent
+*
+* \return bLoc         Local RHS
+*
+* \note Assumes 3D only
+*
+*/
+void local_pressure_bdry(REAL* bLoc,dvector* old_sol,block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT *dof_on_f,INT *dof_on_elm,INT *v_on_elm,INT dof_per_f,INT face,INT elm,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
+{
+  // Loop Indices
+  INT i,j,quad,test,doft;
+
+  // Mesh and FE data
+  INT dim = mesh->dim;
+
+  INT* local_dof_on_elm;
+  INT u1dof = FE->var_spaces[0]->ndof;
+  INT u1dofpelm = FE->var_spaces[0]->dof_per_elm;
+  INT u1dofpface = FE->var_spaces[0]->dof_per_face;
+  INT u2dof = FE->var_spaces[1]->ndof;
+  INT u2dofpelm = FE->var_spaces[1]->dof_per_elm;
+  INT u2dofpface = FE->var_spaces[1]->dof_per_face;
+  INT u3dof,u3dofpelm,u3dofpface;
+  if(dim==3) {
+    INT u3dof = FE->var_spaces[2]->ndof;
+    INT u3dofpelm = FE->var_spaces[2]->dof_per_elm;
+    INT u3dofpface = FE->var_spaces[2]->dof_per_face;
+  }
+  INT pdof = FE->var_spaces[dim]->ndof;
+  INT pdofpelm = FE->var_spaces[dim]->dof_per_elm;
+  INT pdofpface = FE->var_spaces[dim]->dof_per_face;
+
+  // Quadrature Weights and Nodes
+  qcoordinates *cq_face = allocateqcoords_bdry(cq->nq1d,1,dim,2);
+  quad_face(cq_face,mesh,cq->nq1d,face);
+  INT maxdim=4;
+  REAL qx[maxdim];
+  REAL w;
+
+  // RHS Entry
+  REAL rij = 0.0;
+
+  // Solution on boundary
+  REAL rhs_func[dim+1];
+  REAL pres_val;
+
+  // Normal vector on face
+  REAL n1,n2,n3;
+  n1 = mesh->f_norm[face*dim];
+  n2 = mesh->f_norm[face*dim+1];
+  if(dim==3) n3 = mesh->f_norm[face*dim+2];
+
+  // Keep track of local indexing
+  INT local_row_index, local_col_index, local_dofonelm_index;
+
+  // Test Functions
+  REAL v1,v2,v3;
+
+  //  Sum over quadrature points
+  for (quad=0;quad<cq_face->n;quad++) {
+    qx[0] = cq_face->x[quad];
+    qx[1] = cq_face->y[quad];
+    if(dim==3)
+    qx[2] = cq_face->z[quad];
+    w = cq_face->w[quad];
+
+    // Get pressure at Quadrature
+    (*rhs)(rhs_func,qx,time,&(mesh->el_flag[elm]));
+    pres_val = rhs_func[dim];
+
+    /// Get basis functions for v1 and v2
+    //  Get the Basis Functions and previous solutions at each quadrature node
+    // u = (u1,u2) and v = (v1,v2)
+    local_dof_on_elm = dof_on_elm;
+    get_FEM_basis(FE->var_spaces[0]->phi,FE->var_spaces[0]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[0]);
+    local_dof_on_elm += u1dofpelm;
+    get_FEM_basis(FE->var_spaces[1]->phi,FE->var_spaces[1]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[1]);
+    local_dof_on_elm += u2dofpelm;
+    if(dim==3) {
+      get_FEM_basis(FE->var_spaces[2]->phi,FE->var_spaces[2]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[2]);
+    }
+
+    // Loop over Test Functions (dof on faces)
+    // v1 block row
+    local_row_index = 0;
+    local_dofonelm_index=0;
+    for (test=0; test<u1dofpface;test++){
+      // Make sure ordering for global matrix is right
+      for(j=0;j<u1dofpelm;j++) {
+        if(dof_on_f[local_row_index+test]==dof_on_elm[local_dofonelm_index+j]) {
+          doft = j;
+        }
+      }
+      v1=FE->var_spaces[0]->phi[doft];
+      rij = -pres_val*v1*n1;
+      bLoc[(local_row_index+test)] += w*rij;
+    }
+    local_row_index += u1dofpface;
+    local_dofonelm_index += u1dofpelm;
+
+    // v2 block row
+    for (test=0; test<u2dofpface;test++){
+      // Make sure ordering for global matrix is right
+      for(j=0;j<u2dofpelm;j++) {
+        if(dof_on_f[local_row_index+test]==dof_on_elm[local_dofonelm_index+j]) {
+          doft = j;
+        }
+      }
+      v2=FE->var_spaces[1]->phi[doft];
+      rij = -pres_val*v2*n2;
+      bLoc[(local_row_index+test)] += w*rij;
+    }
+    local_row_index += u2dofpface;
+    local_dofonelm_index += u2dofpelm;
+
+    // v3 block row
+    if(dim==3) {
+      for (test=0; test<u3dofpface;test++){
+        // Make sure ordering for global matrix is right
+        for(j=0;j<u3dofpelm;j++) {
+          if(dof_on_f[local_row_index+test]==dof_on_elm[local_dofonelm_index+j]) {
+            doft = j;
+          }
+        }
+        v3=FE->var_spaces[2]->phi[doft];
+        rij = -pres_val*v3*n3;
+        bLoc[(local_row_index+test)] += w*rij;
+      }
+    }
+  } // End quadrature loop
+
+  if(cq_face){
+    free_qcoords(cq_face);
+    free(cq_face);
+    cq_face=NULL;
+  }
+  return;
+}
+/*****************************************************************************************************/
