@@ -1,14 +1,16 @@
-/*! \file examples/stokes/stokes.c
+/*! \file examples/elasticity/elasticity_mixed.c
 *
 *  Created by James Adler on 7/4/20.
 *  Copyright 2015_HAZMATH__. All rights reserved.
 *
-* \brief This program solves a linear elasticity problem using finite elements
+* \brief This program solves a linear elasticity problem using mixed finite elements:
 *
-*        -div(2*mu*eps(u)) - grad(lam*div(u)) + grad(p)    = f
-*                             -div(u)               = 0
+*       Primal: -div(2*mu*eps(u)) - grad(lam*div u) = f
 *
-*        where eps(u) = (grad u + (grad u)^T)/2 is the symmetric gradient,
+*       Mixed:  -div(2*mu*eps(u)) + grad(p)         = f
+*                         -div(u) - (1/lam)*p       = 0
+*
+*       where eps(u) = (grad u + (grad u)^T)/2 is the symmetric gradient,
 *
 * \note This example shows how to build your own bilinear form for a system.
 *       The forms are found in elasticity_system.h and all Problem Data is found in
@@ -89,7 +91,7 @@ int main (int argc, char* argv[])
   set_dirichlet_bdry(&FE_uy,&mesh,1,1);
   if(dim==3) set_dirichlet_bdry(&FE_uz,&mesh,1,1);
   // Dirichlet conditions on p (add boundary integrals) or not
-  INT p_dirichlet = 1;
+  INT p_dirichlet = 0;
   set_dirichlet_bdry(&FE_p,&mesh,-1,-1); // Neumann conditions for p
 
   // Create Block FE System with ordering (u,p)
@@ -112,7 +114,7 @@ int main (int argc, char* argv[])
   FE.nbdof = FE_ux.nbdof + FE_uy.nbdof + FE_p.nbdof; // Total Boundary DoF
   if(dim==3) FE.nbdof += FE_uz.nbdof;
   FE.nspaces = nspaces; // Total number of FE spaces
-  FE.var_spaces = (fespace **) calloc(dim+1,sizeof(fespace *));
+  FE.var_spaces = (fespace **) calloc(nspaces,sizeof(fespace *));
 
   FE.var_spaces[0] = &FE_ux;
   FE.var_spaces[1] = &FE_uy;
@@ -140,8 +142,8 @@ int main (int argc, char* argv[])
   /* Here we assemble the discrete system:
   *  The weak form is:
   *
-  *   2*mu*<eps(u), eps(v)> + lam*<div u, div v> - <p, div v> = <f, v> - <p,v*n>_boundary
-  *  - <div u, q>                                        n    = 0
+  *   2*mu*<eps(u), eps(v)> - <p, div v>   = <f, v> - <p,v*n>_boundary
+  *   -<div u, q>           +(1/lam)*<p,q> = 0
   *
   * Note: We make sure the system is symmetric, and we have included the boundary
   *       integral in the case of a Dirichlet condition on p.
@@ -155,14 +157,15 @@ int main (int argc, char* argv[])
   bdcsr_alloc(nspaces,nspaces,&A);
 
   // Assemble the matrices without BC first
-  if(dim==2) assemble_global_block(&A,&b,local_assembly_elasticity,FEM_Block_RHS_Local,&FE,&mesh,cq,source2D,0.0);
-  if(dim==3) assemble_global_block(&A,&b,local_assembly_elasticity,FEM_Block_RHS_Local,&FE,&mesh,cq,source3D,0.0);
+  if(dim==2) assemble_global_block(&A,&b,elasticity_mixed_system,FEM_Block_RHS_Local,&FE,&mesh,cq,source2D,0.0);
+  if(dim==3) assemble_global_block(&A,&b,elasticity_mixed_system,FEM_Block_RHS_Local,&FE,&mesh,cq,source3D,0.0);
 
   // Allocate solution and set to be 0.0;
   dvector sol = dvec_create(ndof);
   dvec_set(sol.row, &sol, 0.0);
 
   // If p has Dirichlet conditions, we need to add the boundary integrals
+  // Be sure to check that you have the right boundary flags set!
   dvector rhs_bdry;
   if(p_dirichlet) {
     rhs_bdry = dvec_create(ndof);
@@ -172,7 +175,7 @@ int main (int argc, char* argv[])
     for(i=0;i<ndof;i++) {
       b.val[i] += rhs_bdry.val[i];
     }
-  } else {//  If p is Neumann all around, remove singularity by fixing 1 value
+  } else { //  If p is Neumann all around, remove singularity by fixing 1 value
     REAL pressureval = 0.5;
     INT pressureloc = udof + 0;
     sol.val[pressureloc]  = pressureval;
@@ -181,7 +184,10 @@ int main (int argc, char* argv[])
   // Eliminate remaining Dirichlet boundary conditions
   if(dim==2) eliminate_DirichletBC_blockFE_blockA(bc2D,&FE,&mesh,&b,&A,0.0);
   if(dim==3) eliminate_DirichletBC_blockFE_blockA(bc3D,&FE,&mesh,&b,&A,0.0);
-
+  for(i=0;i<FE.ndof;i++) {
+    printf("b[%d]=%25.15e\n",i,b.val[i]);
+  }
+exit(0);
   clock_t clk_assembly_end = clock();
   printf(" --> elapsed CPU time for assembly = %f seconds.\n\n",(REAL)
   (clk_assembly_end-clk_assembly_start)/CLOCKS_PER_SEC);
