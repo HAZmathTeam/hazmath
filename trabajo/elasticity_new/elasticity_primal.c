@@ -27,8 +27,14 @@
 int main (int argc, char* argv[])
 {
 
+  // Get Parameters
+  REAL mu = 0.0;
+  get_mu(&mu,NULL,0.0,NULL);
+  REAL lam = 0.0;
+  get_lam(&lam,NULL,0.0,NULL);
+
   printf("\n===========================================================================\n");
-  printf("Beginning Program to solve Stokes Equation.\n");
+  printf("Beginning Program to solve Elasticity in Primal Form (mu = %e\tlam = %e)\n",mu,lam);
   printf("===========================================================================\n");
 
   /****** INITIALIZE PARAMETERS **************************************************/
