@@ -14,7 +14,7 @@
 // Parameters
  // Youngs Modulus
  void get_young(REAL *val,REAL* x,REAL time,void *param) {
-   *val = 3e4;
+   *val = 1.0;
  }
 
  // Poisson Ratio
