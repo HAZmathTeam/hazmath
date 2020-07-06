@@ -29,8 +29,14 @@
 int main (int argc, char* argv[])
 {
 
+  // Get Parameters
+  REAL mu = 0.0;
+  get_mu(&mu,NULL,0.0,NULL);
+  REAL lam = 0.0;
+  get_lam(&lam,NULL,0.0,NULL);
+
   printf("\n===========================================================================\n");
-  printf("Beginning Program to solve Stokes Equation.\n");
+  printf("Beginning Program to solve Elasticity in Mixed Form (mu = %e\tlam = %e)\n",mu,lam);
   printf("===========================================================================\n");
 
   /****** INITIALIZE PARAMETERS **************************************************/
@@ -184,10 +190,7 @@ int main (int argc, char* argv[])
   // Eliminate remaining Dirichlet boundary conditions
   if(dim==2) eliminate_DirichletBC_blockFE_blockA(bc2D,&FE,&mesh,&b,&A,0.0);
   if(dim==3) eliminate_DirichletBC_blockFE_blockA(bc3D,&FE,&mesh,&b,&A,0.0);
-  for(i=0;i<FE.ndof;i++) {
-    printf("b[%d]=%25.15e\n",i,b.val[i]);
-  }
-exit(0);
+
   clock_t clk_assembly_end = clock();
   printf(" --> elapsed CPU time for assembly = %f seconds.\n\n",(REAL)
   (clk_assembly_end-clk_assembly_start)/CLOCKS_PER_SEC);
