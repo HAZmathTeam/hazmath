@@ -14,7 +14,7 @@ tar.excl
 \#*
 .\#*
 lib/
-graphs/
+#graphs/
 #amr/
 HeatPNP/
 *.example
