@@ -3,7 +3,7 @@
 # Last Modified 2018-08-30 --ltz1
 ####################################################
 # SRC File name
-SRCFILE = elasticity
+SRCFILE = elasticity_mixed
 
 HEADERS = elasticity_data.h elasticity_system.h
 
