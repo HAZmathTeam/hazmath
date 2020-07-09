@@ -28,6 +28,7 @@ void initialize_fespace(fespace *FE)
   FE->ndof = -666;
   FE->nbdof = -666;
   FE->dof_per_elm = -666;
+  FE->dof_per_face = -666;
   FE->el_dof = NULL;
   FE->ed_dof = NULL;
   FE->f_dof = NULL;
@@ -94,6 +95,7 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     FE->cdof = barycenter;
     FE->nbdof = 0;
     FE->dof_per_elm = 1;
+    FE->dof_per_face = 1; // This is wrong but needs to be here
     FE->el_dof = malloc(sizeof(struct iCSRmat));
     *(FE->el_dof) = icsr_create_identity(mesh->nelm, 0);
     if(mesh->dim>1) {
@@ -120,6 +122,7 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     FE->ndof = mesh->nv;
     FE->nbdof = mesh->nbv;
     FE->dof_per_elm = mesh->v_per_elm;
+    FE->dof_per_face = mesh->dim;
     FE->el_dof = mesh->el_v;
     if(mesh->dim>1) {
       FE->ed_dof = mesh->ed_v;
@@ -142,6 +145,7 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     FE->ndof = mesh->nv + mesh->nelm; // In 1D
     FE->nbdof = mesh->nbv; // In 1D
     FE->dof_per_elm = mesh->v_per_elm + 1; // In 1D
+    FE->dof_per_face = dim + (2*mesh->dim-3);
     FE->el_dof = malloc(sizeof(struct iCSRmat));
     if(mesh->dim>1) { // Not in 1D
       FE->ed_dof = malloc(sizeof(struct iCSRmat));
@@ -161,6 +165,7 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     FE->ndof = mesh->nedge;
     FE->nbdof = mesh->nbedge;
     FE->dof_per_elm = mesh->ed_per_elm;
+    FE->dof_per_face = (2*mesh->dim-3);
     FE->el_dof = mesh->el_ed;
     FE->ed_dof = malloc(sizeof(struct iCSRmat));
     *(FE->ed_dof) = icsr_create_identity(mesh->nedge, 0);
@@ -186,6 +191,7 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     FE->ndof = mesh->nface;
     FE->nbdof = mesh->nbface;
     FE->dof_per_elm = mesh->f_per_elm;
+    FE->dof_per_face = 1;
     FE->el_dof = mesh->el_f;
     icsr_trans(mesh->f_ed,&ed_f);
     FE->ed_dof = malloc(sizeof(struct iCSRmat));
@@ -210,6 +216,7 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     FE->ndof = mesh->nv * mesh->dim;
     FE->nbdof = mesh->nbv * mesh->dim;
     FE->dof_per_elm = mesh->v_per_elm * mesh->dim;
+    FE->dof_per_face = mesh->dim*mesh->dim;
     FE->el_dof = malloc(sizeof(struct iCSRmat));
     //printf("Before Concat\n");
     if(mesh->dim==1){
@@ -258,6 +265,7 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     FE->ndof = mesh->nface;
     FE->nbdof = mesh->nbface;
     FE->dof_per_elm = mesh->f_per_elm;
+    FE->dof_per_face = 1;
     FE->el_dof = mesh->el_f;
     icsr_trans(mesh->f_ed,&ed_f);
     FE->ed_dof = malloc(sizeof(struct iCSRmat));

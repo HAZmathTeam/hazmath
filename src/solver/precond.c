@@ -2503,6 +2503,110 @@ void precond_block_upper_4(REAL *r,
 
 /***********************************************************************************************/
 /**
+ * \fn void precond_block_diag_5_amg_krylov (REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (5x5 block matrix, each diagonal block
+ *        is solved by AMG preconditioned krylov method)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   06/19/2020
+ */
+void precond_block_diag_5_amg_krylov(REAL *r,
+                          REAL *z,
+                          void *data)
+{
+    precond_block_data *precdata=(precond_block_data *)data;
+    dCSRmat *A_diag = precdata->A_diag;
+    dvector *tempr = &(precdata->r);
+
+    const INT N0 = A_diag[0].row;
+    const INT N1 = A_diag[1].row;
+    const INT N2 = A_diag[2].row;
+    const INT N3 = A_diag[3].row;
+    const INT N4 = A_diag[4].row;
+    const INT N = N0 + N1 + N2 + N3 + N4;
+
+    // back up r, setup z;
+    array_cp(N, r, tempr->val);
+    array_set(N, z, 0.0);
+
+    // prepare
+    AMG_param *amgparam = precdata->amgparam;
+    AMG_data **mgl = precdata->mgl;
+    dvector r0, r1, r2, r3, r4, z0, z1, z2, z3, z4;
+
+    r0.row = N0; z0.row = N0;
+    r1.row = N1; z1.row = N1;
+    r2.row = N2; z2.row = N2;
+    r3.row = N3; z3.row = N3;
+    r4.row = N4; z4.row = N4;
+
+    r0.val = r; r1.val = &(r[N0]); r2.val = &(r[N0+N1]);
+    r3.val = &(r[N0+N1+N2]); r4.val = &(r[N0+N1+N2+N3]);
+    z0.val = z; z1.val = &(z[N0]); z2.val = &(z[N0+N1]);
+    z3.val = &(z[N0+N1+N2]); z4.val = &(z[N0+N1+N2+N3]);
+
+    precond_data pcdata;
+    param_amg_to_prec(&pcdata,amgparam);
+    precond pc;
+    pc.fct = precond_amg;
+
+    // Preconditioning A00 block
+    //printf("block 0\n");
+    pcdata.max_levels = mgl[0][0].num_levels;
+    pcdata.mgl_data = mgl[0];
+
+    pc.data = &pcdata;
+
+    dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc, 1e-3, 100, 100, 1, 1);
+
+    // Preconditioning A11 block
+    //printf("block 1\n");
+    pcdata.max_levels = mgl[1][0].num_levels;
+    pcdata.mgl_data = mgl[1];
+
+    pc.data = &pcdata;
+
+    dcsr_pvfgmres(&mgl[1][0].A, &r1, &z1, &pc, 1e-3, 100, 100, 1, 1);
+
+    // Preconditioning A22 block
+    //printf("block 2\n");
+    pcdata.max_levels = mgl[2][0].num_levels;
+    pcdata.mgl_data = mgl[2];
+
+    pc.data = &pcdata;
+
+    dcsr_pvfgmres(&mgl[2][0].A, &r2, &z2, &pc, 1e-3, 100, 100, 1, 1);
+
+    // Preconditioning A33 block
+    //printf("block 3\n");
+    pcdata.max_levels = mgl[3][0].num_levels;
+    pcdata.mgl_data = mgl[3];
+
+    pc.data = &pcdata;
+
+    dcsr_pvfgmres(&mgl[3][0].A, &r3, &z3, &pc, 1e-3, 100, 100, 1, 1);
+
+    // Preconditioning A44 block
+    //printf("block 4\n");
+    pcdata.max_levels = mgl[4][0].num_levels;
+    pcdata.mgl_data = mgl[4];
+
+    pc.data = &pcdata;
+
+    dcsr_pvfgmres(&mgl[4][0].A, &r4, &z4, &pc, 1e-3, 100, 100, 1, 1);
+
+    // restore r
+    array_cp(N, tempr->val, r);
+
+}
+
+
+/***********************************************************************************************/
+/**
  * \fn void precond_block_diag(REAL *r, REAL *z, void *data)
  * \brief block diagonal preconditioning (nxn block matrix, each diagonal block
  *        is solved exactly)
