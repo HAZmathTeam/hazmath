@@ -1,30 +1,30 @@
 /*! \file src/assemble/assemble_utils.c
- *
- * \brief This code will contain all the tools needed to build stiffness matrices
- *
- *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 4/22/15.
- *  Copyright 2015__HAZMATH__. All rights reserved.
- *
- * \note modified by James Adler 02/22/2019 for 0-1 fix
- */
+*
+* \brief This code will contain all the tools needed to build stiffness matrices
+*
+*  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 4/22/15.
+*  Copyright 2015__HAZMATH__. All rights reserved.
+*
+* \note modified by James Adler 02/22/2019 for 0-1 fix
+*/
 
 #include "hazmath.h"
 
 /******************************************************************************************************/
 /*!
- * \fn void create_CSR_rows(dCSRmat *A, fespace *FE)
- *
- * \brief Computes the "possible" number of nonzeros for the global stiffness matrix
- *        Ignores Dirichlet boundary conditions, which can be eliminated later.
- *        Entry will be nonzero if degree of freedom belongs to the element (i.e. row)
- *        Builds the IA array for A and assigns nnz.
- *
- * \param FE            FE Space
- * \param A             dCSRmat Stiffness Matrix
- *
- * \return A.IA         Row structure of CSR matrix
- * \return A.nnz        Number of nonzeros of A
- */
+* \fn void create_CSR_rows(dCSRmat *A, fespace *FE)
+*
+* \brief Computes the "possible" number of nonzeros for the global stiffness matrix
+*        Ignores Dirichlet boundary conditions, which can be eliminated later.
+*        Entry will be nonzero if degree of freedom belongs to the element (i.e. row)
+*        Builds the IA array for A and assigns nnz.
+*
+* \param FE            FE Space
+* \param A             dCSRmat Stiffness Matrix
+*
+* \return A.IA         Row structure of CSR matrix
+* \return A.nnz        Number of nonzeros of A
+*/
 void create_CSR_rows(dCSRmat *A, fespace *FE)
 {
 
@@ -56,40 +56,40 @@ void create_CSR_rows(dCSRmat *A, fespace *FE)
       for (k=k_a; k<k_b; k++) {
         mydof = FE->el_dof->JA[k];
         if (ix[mydof]!=i) { /* We haven't been here  */
-          icp++;
-          ix[mydof] = i;
-        }
+        icp++;
+        ix[mydof] = i;
       }
     }
   }
-  A->IA[ndof] = icp;
-  A->nnz = icp;
+}
+A->IA[ndof] = icp;
+A->nnz = icp;
 
-  if(ix) free(ix);
-  icsr_free(&dof_el);
+if(ix) free(ix);
+icsr_free(&dof_el);
 
-  return;
+return;
 }
 /******************************************************************************************************/
 
 /******************************************************************************************************/
 /*!
- * \fn void create_CSR_rows_FE1FE2(dCSRmat *A, fespace *FE1, fespace *FE2)
- *
- * \brief Computes the "possible" number of nonzeros for the global stiffness matrix
- *        Ignores Dirichlet boundary conditions, which can be eliminated later.
- *        Entry will be nonzero if degree of freedom belongs to the element (i.e. row)
- *        Builds the IA array for A and assigns nnz.
- *
- * \note Assumes non-square system where test and trial are from different FE spaces
- *
- * \param FE1           FE Space for trial functions (u)
- * \param FE2           FE Space for test functions (v)
- * \param A             dCSRmat Stiffness Matrix
- *
- * \return A.IA         Row structure of CSR matrix
- * \return A.nnz        Number of nonzeros of A
- */
+* \fn void create_CSR_rows_FE1FE2(dCSRmat *A, fespace *FE1, fespace *FE2)
+*
+* \brief Computes the "possible" number of nonzeros for the global stiffness matrix
+*        Ignores Dirichlet boundary conditions, which can be eliminated later.
+*        Entry will be nonzero if degree of freedom belongs to the element (i.e. row)
+*        Builds the IA array for A and assigns nnz.
+*
+* \note Assumes non-square system where test and trial are from different FE spaces
+*
+* \param FE1           FE Space for trial functions (u)
+* \param FE2           FE Space for test functions (v)
+* \param A             dCSRmat Stiffness Matrix
+*
+* \return A.IA         Row structure of CSR matrix
+* \return A.nnz        Number of nonzeros of A
+*/
 void create_CSR_rows_FE1FE2(dCSRmat *A, fespace *FE1, fespace *FE2)
 {
   INT i,j,k,j_a,j_b,k_a,k_b,mydof,if1,icp;
@@ -122,38 +122,38 @@ void create_CSR_rows_FE1FE2(dCSRmat *A, fespace *FE1, fespace *FE2)
       for (k=k_a; k<k_b; k++) {
         mydof = FE1->el_dof->JA[k];
         if (ix[mydof]!=i) { /* We haven't been here  */
-          icp++;
-          ix[mydof] = i;
-        }
+        icp++;
+        ix[mydof] = i;
       }
     }
   }
-  A->IA[nrows] = icp;
-  A->nnz = icp;
+}
+A->IA[nrows] = icp;
+A->nnz = icp;
 
-  if(ix) free(ix);
-  icsr_free(&dof_el_2);
+if(ix) free(ix);
+icsr_free(&dof_el_2);
 
-  return;
+return;
 }
 /******************************************************************************************************/
 
 /******************************************************************************************************/
 /*!
- * \fn void create_CSR_rows_withBC(dCSRmat *A, fespace *FE)
- *
- * \brief Computes the "possible" number of nonzeros for the global stiffness matrix
- *        Also takes into account Dirichlet boundary conditions.  If the DOF of the corresponding row
- *        is a boundary, only include 1 nonzero for that row (it will be identity!)
- *        Entry will be nonzero if degree of freedom belongs to the element (i.e. row)
- *        Builds the IA array for A and assigns nnz.
- *
- * \param FE            FE Space
- * \param A             dCSRmat Stiffness Matrix
- *
- * \return A.IA         Row structure of CSR matrix
- * \return A.nnz        Number of nonzeros of A
- */
+* \fn void create_CSR_rows_withBC(dCSRmat *A, fespace *FE)
+*
+* \brief Computes the "possible" number of nonzeros for the global stiffness matrix
+*        Also takes into account Dirichlet boundary conditions.  If the DOF of the corresponding row
+*        is a boundary, only include 1 nonzero for that row (it will be identity!)
+*        Entry will be nonzero if degree of freedom belongs to the element (i.e. row)
+*        Builds the IA array for A and assigns nnz.
+*
+* \param FE            FE Space
+* \param A             dCSRmat Stiffness Matrix
+*
+* \return A.IA         Row structure of CSR matrix
+* \return A.nnz        Number of nonzeros of A
+*/
 void create_CSR_rows_withBC(dCSRmat *A, fespace *FE)
 {
   INT i,j,k,j_a,j_b,k_a,k_b,mydof,if1,icp;
@@ -178,50 +178,50 @@ void create_CSR_rows_withBC(dCSRmat *A, fespace *FE)
     if (FE->dirichlet[i]==1) {	/* Only 1 nonzero this row */
       icp++;
     } else {			/* It's not a boundary and compute as normal */
-      // Loop over all Elements connected to particular edge
-      j_a = dof_el.IA[i];
-      j_b = dof_el.IA[i+1];
-      for (j=j_a; j<j_b; j++) {
-        if1 = dof_el.JA[j];
-        k_a = FE->el_dof->IA[if1];
-        k_b = FE->el_dof->IA[if1+1];
-        for (k=k_a; k<k_b; k++) {
-          mydof = FE->el_dof->JA[k];
-          if (ix[mydof]!=i && FE->dirichlet[mydof]==0) { /* We haven't been here AND it's not a boundary */
-            icp++;
-            ix[mydof] = i;
-          }
-        }
+    // Loop over all Elements connected to particular edge
+    j_a = dof_el.IA[i];
+    j_b = dof_el.IA[i+1];
+    for (j=j_a; j<j_b; j++) {
+      if1 = dof_el.JA[j];
+      k_a = FE->el_dof->IA[if1];
+      k_b = FE->el_dof->IA[if1+1];
+      for (k=k_a; k<k_b; k++) {
+        mydof = FE->el_dof->JA[k];
+        if (ix[mydof]!=i && FE->dirichlet[mydof]==0) { /* We haven't been here AND it's not a boundary */
+        icp++;
+        ix[mydof] = i;
       }
     }
   }
-  A->IA[ndof] = icp;
-  A->nnz = icp;
+}
+}
+A->IA[ndof] = icp;
+A->nnz = icp;
 
-  if(ix) free(ix);
-  icsr_free(&dof_el);
+if(ix) free(ix);
+icsr_free(&dof_el);
 
-  return;
+return;
 }
 /******************************************************************************************************/
 
 /******************************************************************************************************/
 /*!
- * \fn void create_CSR_rows_flag(dCSRmat *A,fespace *FE,INT flag0,INT flag1)
- *
- * \brief Computes the "possible" number of nonzeros for the global stiffness matrix
- *        Also takes into account special boundary conditions.  Here if the boundary
- *        of the DOF is equal to "flag" (whatever that corresponds to)
- *        then we add something to the matrix.
- *        Builds the IA array for A and assigns nnz.
- *
- * \param FE            FE Space
- * \param A             dCSRmat Stiffness Matrix
- * \param flag0,flag1   Indicates range of boundaries we care about
- *
- * \return A.IA         Row structure of CSR matrix
- * \return A.nnz        Number of nonzeros of A
- */
+* \fn void create_CSR_rows_flag(dCSRmat *A,fespace *FE,INT flag0,INT flag1)
+*
+* \brief Computes the "possible" number of nonzeros for the global stiffness matrix
+*        Also takes into account special boundary conditions.  Here if the boundary
+*        of the DOF is equal to "flag" (whatever that corresponds to)
+*        then we add something to the matrix.
+*        Builds the IA array for A and assigns nnz.
+*
+* \param FE            FE Space
+* \param A             dCSRmat Stiffness Matrix
+* \param flag0,flag1   Indicates range of boundaries we care about
+*
+* \return A.IA         Row structure of CSR matrix
+* \return A.nnz        Number of nonzeros of A
+*/
 void create_CSR_rows_flag(dCSRmat *A, fespace *FE,INT flag0,INT flag1)
 {
   INT i,j,k,j_a,j_b,k_a,k_b,mydof,if1,icp;
@@ -254,37 +254,37 @@ void create_CSR_rows_flag(dCSRmat *A, fespace *FE,INT flag0,INT flag1)
         for (k=k_a; k<k_b; k++) {
           mydof = FE->el_dof->JA[k];
           if (ix[mydof]!=i && (FE->dof_flag[mydof]>=flag0 && FE->dof_flag[mydof]<=flag1)) { /* We haven't been here AND it is a boundary */
-            icp++;
-            ix[mydof] = i;
-          }
+          icp++;
+          ix[mydof] = i;
         }
       }
     }
   }
-  A->IA[ndof] = icp;
-  A->nnz = icp;
+}
+A->IA[ndof] = icp;
+A->nnz = icp;
 
-  if(ix) free(ix);
-  icsr_free(&dof_el);
+if(ix) free(ix);
+icsr_free(&dof_el);
 
-  return;
+return;
 }
 /******************************************************************************************************/
 
 /******************************************************************************************************/
 /*!
- * \fn void create_CSR_cols(dCSRmat *A, fespace *FE)
- *
- * \brief Finds the column sparsity structure of the Global Stiffness Matrix
- *        Ignores Dirichlet boundary conditions, which can be eliminated later.
- *        Builds the JA array for A.
- *
- * \param FE            FE Space
- * \param A             dCSRmat Stiffness Matrix
- *
- * \return A.JA         Columns of CSR matrix
- *
- */
+* \fn void create_CSR_cols(dCSRmat *A, fespace *FE)
+*
+* \brief Finds the column sparsity structure of the Global Stiffness Matrix
+*        Ignores Dirichlet boundary conditions, which can be eliminated later.
+*        Builds the JA array for A.
+*
+* \param FE            FE Space
+* \param A             dCSRmat Stiffness Matrix
+*
+* \return A.JA         Columns of CSR matrix
+*
+*/
 void create_CSR_cols(dCSRmat *A, fespace *FE)
 {
   INT i,j,k,j_a,j_b,k_a,k_b,mydof,if1,icp;
@@ -313,38 +313,38 @@ void create_CSR_cols(dCSRmat *A, fespace *FE)
       for (k=k_a; k<k_b; k++) {
         mydof = FE->el_dof->JA[k];
         if (ix[mydof]!=i) { /* We haven't been here */
-          A->JA[icp] = mydof;
-          icp++;
-          ix[mydof] = i;
-        }
+        A->JA[icp] = mydof;
+        icp++;
+        ix[mydof] = i;
       }
     }
   }
+}
 
-  if(ix) free(ix);
-  icsr_free(&dof_el);
+if(ix) free(ix);
+icsr_free(&dof_el);
 
-  return;
+return;
 }
 /******************************************************************************************************/
 
 /******************************************************************************************************/
 /*!
- * \fn void create_CSR_cols_FE1FE2(dCSRmat *A, fespace *FE1, fespace *FE2)
- *
- * \brief Finds the column sparsity structure of the Global Stiffness Matrix
- *        Ignores Dirichlet boundary conditions, which can be eliminated later.
- *        Builds the JA array for A.
- *
- * \note Assumes non-square system where test and trial are from different FE spaces
- *
- * \param FE1           FE Space for trial functions (u)
- * \param FE2           FE Space for test functions (v)
- * \param A             dCSRmat Stiffness Matrix
- *
- * \return A.JA         Columns of CSR matrix
- *
- */
+* \fn void create_CSR_cols_FE1FE2(dCSRmat *A, fespace *FE1, fespace *FE2)
+*
+* \brief Finds the column sparsity structure of the Global Stiffness Matrix
+*        Ignores Dirichlet boundary conditions, which can be eliminated later.
+*        Builds the JA array for A.
+*
+* \note Assumes non-square system where test and trial are from different FE spaces
+*
+* \param FE1           FE Space for trial functions (u)
+* \param FE2           FE Space for test functions (v)
+* \param A             dCSRmat Stiffness Matrix
+*
+* \return A.JA         Columns of CSR matrix
+*
+*/
 void create_CSR_cols_FE1FE2(dCSRmat *A, fespace *FE1, fespace *FE2)
 {
   INT i,j,k,j_a,j_b,k_a,k_b,mydof,if1,icp;
@@ -374,36 +374,36 @@ void create_CSR_cols_FE1FE2(dCSRmat *A, fespace *FE1, fespace *FE2)
       for (k=k_a; k<k_b; k++) {
         mydof = FE1->el_dof->JA[k];
         if (ix[mydof]!=i) { /* We haven't been here */
-          A->JA[icp] = mydof;
-          icp++;
-          ix[mydof] = i;
-        }
+        A->JA[icp] = mydof;
+        icp++;
+        ix[mydof] = i;
       }
     }
   }
+}
 
-  if(ix) free(ix);
-  icsr_free(&dof_el_2);
+if(ix) free(ix);
+icsr_free(&dof_el_2);
 
-  return;
+return;
 }
 /******************************************************************************************************/
 
 /******************************************************************************************************/
 /*!
- * \fn void create_CSR_cols_withBC(dCSRmat *A, fespace *FE)
- *
- * \brief Finds the column sparsity structure of the Global Stiffness Matrix
- *        Also takes into account Dirichlet boundary conditions.  If the DOF of the corresponding row
- *        is a boundary, only include 1 nonzero for that row (it will be identity!)
- *        Builds the JA array for A.
- *
- * \param FE            FE Space
- * \param A             dCSRmat Stiffness Matrix
- *
- * \return A.JA         Columns of CSR matrix
- *
- */
+* \fn void create_CSR_cols_withBC(dCSRmat *A, fespace *FE)
+*
+* \brief Finds the column sparsity structure of the Global Stiffness Matrix
+*        Also takes into account Dirichlet boundary conditions.  If the DOF of the corresponding row
+*        is a boundary, only include 1 nonzero for that row (it will be identity!)
+*        Builds the JA array for A.
+*
+* \param FE            FE Space
+* \param A             dCSRmat Stiffness Matrix
+*
+* \return A.JA         Columns of CSR matrix
+*
+*/
 void create_CSR_cols_withBC(dCSRmat *A, fespace *FE)
 {
   INT i,j,k,j_a,j_b,k_a,k_b,mydof,if1,icp;
@@ -427,49 +427,49 @@ void create_CSR_cols_withBC(dCSRmat *A, fespace *FE)
       A->JA[icp]=i;
       icp++;
     } else {			/* It's not a boundary and compute as normal */
-      // Loop over all Elements connected to particular edge
-      j_a = dof_el.IA[i];
-      j_b = dof_el.IA[i+1];
-      for (j=j_a; j<j_b; j++) {
-        if1 = dof_el.JA[j];
-        k_a = FE->el_dof->IA[if1];
-        k_b = FE->el_dof->IA[if1+1];
-        for (k=k_a; k<k_b; k++) {
-          mydof = FE->el_dof->JA[k];
-          if (ix[mydof]!=i && FE->dirichlet[mydof]==0) { /* We haven't been here AND it's not a boundary */
-            A->JA[icp] = mydof;
-            icp++;
-            ix[mydof] = i;
-          }
-        }
+    // Loop over all Elements connected to particular edge
+    j_a = dof_el.IA[i];
+    j_b = dof_el.IA[i+1];
+    for (j=j_a; j<j_b; j++) {
+      if1 = dof_el.JA[j];
+      k_a = FE->el_dof->IA[if1];
+      k_b = FE->el_dof->IA[if1+1];
+      for (k=k_a; k<k_b; k++) {
+        mydof = FE->el_dof->JA[k];
+        if (ix[mydof]!=i && FE->dirichlet[mydof]==0) { /* We haven't been here AND it's not a boundary */
+        A->JA[icp] = mydof;
+        icp++;
+        ix[mydof] = i;
       }
     }
   }
+}
+}
 
-  if(ix) free(ix);
-  icsr_free(&dof_el);
+if(ix) free(ix);
+icsr_free(&dof_el);
 
-  return;
+return;
 }
 /******************************************************************************************************/
 
 /******************************************************************************************************/
 /*!
- * \fn void create_CSR_cols_flag(dCSRmat *A, fespace *FE,INT flag0,INT flag1)
- *
- * \brief Finds the column sparsity structure of the Global Stiffness Matrix
- *        Also takes into account special boundary conditions.  Here if the boundary
- *        of the DOF is equal to "flag" (whatever that corresponds to)
- *        then we add something to the matrix.
- *        Builds the JA array for A.
- *
- * \param FE            FE Space
- * \param A             dCSRmat Stiffness Matrix
- * \param flag0,flag1   Indicates which range of boundaries DOF to grab
- *
- * \return A.JA         Columns of CSR matrix
- *
- */
+* \fn void create_CSR_cols_flag(dCSRmat *A, fespace *FE,INT flag0,INT flag1)
+*
+* \brief Finds the column sparsity structure of the Global Stiffness Matrix
+*        Also takes into account special boundary conditions.  Here if the boundary
+*        of the DOF is equal to "flag" (whatever that corresponds to)
+*        then we add something to the matrix.
+*        Builds the JA array for A.
+*
+* \param FE            FE Space
+* \param A             dCSRmat Stiffness Matrix
+* \param flag0,flag1   Indicates which range of boundaries DOF to grab
+*
+* \return A.JA         Columns of CSR matrix
+*
+*/
 void create_CSR_cols_flag(dCSRmat *A, fespace *FE,INT flag0,INT flag1)
 {
   INT i,j,k,j_a,j_b,k_a,k_b,mydof,if1,icp;
@@ -500,37 +500,37 @@ void create_CSR_cols_flag(dCSRmat *A, fespace *FE,INT flag0,INT flag1)
         for (k=k_a; k<k_b; k++) {
           mydof = FE->el_dof->JA[k];
           if (ix[mydof]!=i && (FE->dof_flag[mydof]>=flag0 && FE->dof_flag[mydof]<=flag1)) { /* We haven't been here AND it is a boundary */
-            A->JA[icp] = mydof;
-            icp++;
-            ix[mydof] = i;
-          }
+          A->JA[icp] = mydof;
+          icp++;
+          ix[mydof] = i;
         }
       }
     }
   }
+}
 
-  if(ix) free(ix);
-  icsr_free(&dof_el);
+if(ix) free(ix);
+icsr_free(&dof_el);
 
-  return;
+return;
 }
 /******************************************************************************************************/
 
 /******************************************************************************************************/
 /*!
- * \fn LocaltoGlobal(INT *dof_on_elm,fespace *FE,dvector *b,dCSRmat *A,REAL *ALoc,REAL *bLoc)
- *
- * \brief Maps the local matrix to global matrix NOT considering boundaries
- *
- * \param dof_on_elm    Array of DOF on current element
- * \param FE            FE Space
- * \param ALoc          Local stiffness matrix (full matrix)
- * \param bLoc          Local RHS vector
- *
- * \return A            Global CSR matrix
- * \return b            Global RHS vector
- *
- */
+* \fn LocaltoGlobal(INT *dof_on_elm,fespace *FE,dvector *b,dCSRmat *A,REAL *ALoc,REAL *bLoc)
+*
+* \brief Maps the local matrix to global matrix NOT considering boundaries
+*
+* \param dof_on_elm    Array of DOF on current element
+* \param FE            FE Space
+* \param ALoc          Local stiffness matrix (full matrix)
+* \param bLoc          Local RHS vector
+*
+* \return A            Global CSR matrix
+* \return b            Global RHS vector
+*
+*/
 void LocaltoGlobal(INT *dof_on_elm,fespace *FE,dvector *b,dCSRmat *A,REAL *ALoc,REAL *bLoc)
 {
   INT i,j,k,row,col,col_a,col_b,acol;
@@ -539,7 +539,7 @@ void LocaltoGlobal(INT *dof_on_elm,fespace *FE,dvector *b,dCSRmat *A,REAL *ALoc,
     row = dof_on_elm[i];
     // Adjust Right-hand side globally
     if(bLoc!=NULL)
-      b->val[row] = b->val[row] + bLoc[i];
+    b->val[row] = b->val[row] + bLoc[i];
 
     for (j=0; j<FE->dof_per_elm; j++) { /* Columns of Local Stiffness */
       col = dof_on_elm[j];
@@ -560,23 +560,23 @@ void LocaltoGlobal(INT *dof_on_elm,fespace *FE,dvector *b,dCSRmat *A,REAL *ALoc,
 
 /******************************************************************************************************/
 /*!
- * \fn LocaltoGlobal_FE1FE2(INT *dof_on_elm1,fespace *FE1,INT *dof_on_elm2,fespace *FE2,dvector *b,dCSRmat *A,REAL *ALoc,REAL *bLoc)
- *
- * \brief Maps the local matrix to global matrix NOT considering boundaries
- *
- * \note Assumes non-square system where test and trial are from different FE spaces
- *
- * \param dof_on_elm1   Array of DOF for trial FE space on current element
- * \param FE1           FE Space for trial functions (u)
- * \param dof_on_elm2   Array of DOF for test FE space on current element
- * \param FE2           FE Space for test functions (v)
- * \param ALoc          Local stiffness matrix (full matrix)
- * \param bLoc          Local RHS vector
- *
- * \return A            Global CSR matrix
- * \return b            Global RHS vector
- *
- */
+* \fn LocaltoGlobal_FE1FE2(INT *dof_on_elm1,fespace *FE1,INT *dof_on_elm2,fespace *FE2,dvector *b,dCSRmat *A,REAL *ALoc,REAL *bLoc)
+*
+* \brief Maps the local matrix to global matrix NOT considering boundaries
+*
+* \note Assumes non-square system where test and trial are from different FE spaces
+*
+* \param dof_on_elm1   Array of DOF for trial FE space on current element
+* \param FE1           FE Space for trial functions (u)
+* \param dof_on_elm2   Array of DOF for test FE space on current element
+* \param FE2           FE Space for test functions (v)
+* \param ALoc          Local stiffness matrix (full matrix)
+* \param bLoc          Local RHS vector
+*
+* \return A            Global CSR matrix
+* \return b            Global RHS vector
+*
+*/
 void LocaltoGlobal_FE1FE2(INT *dof_on_elm1,fespace *FE1,INT *dof_on_elm2,fespace *FE2,dvector *b,dCSRmat *A,REAL *ALoc,REAL *bLoc)
 {
   INT i,j,k,row,col,col_a,col_b,acol;
@@ -585,7 +585,7 @@ void LocaltoGlobal_FE1FE2(INT *dof_on_elm1,fespace *FE1,INT *dof_on_elm2,fespace
     row = dof_on_elm2[i];
     // Adjust Right-hand side globally
     if(bLoc!=NULL)
-      b->val[row] = b->val[row] + bLoc[i];
+    b->val[row] = b->val[row] + bLoc[i];
 
     for (j=0; j<FE1->dof_per_elm; j++) { /* Columns of Local Stiffness (trial space)*/
       col = dof_on_elm1[j];
@@ -606,21 +606,21 @@ void LocaltoGlobal_FE1FE2(INT *dof_on_elm1,fespace *FE1,INT *dof_on_elm2,fespace
 
 /******************************************************************************************************/
 /*!
- * \fn block_LocaltoGlobal(INT *dof_on_elm,block_fespace *FE,dvector *b,block_dCSRmat *A,REAL *ALoc,REAL *bLoc)
- *
- * \brief Maps the local matrix to global block matrix NOT considering boundaries
- *
- * \note Assumes a block structure of FE spaces and matrices
- *
- * \param dof_on_elm    Array of DOF on current element (ordered by block fespace)
- * \param FE            block FE Space
- * \param ALoc          Local stiffness matrix (full matrix)
- * \param bLoc          Local RHS vector
- *
- * \return A            Global block_CSR matrix
- * \return b            Global RHS vector (ordered by block structure of FE space)
- *
- */
+* \fn block_LocaltoGlobal(INT *dof_on_elm,block_fespace *FE,dvector *b,block_dCSRmat *A,REAL *ALoc,REAL *bLoc)
+*
+* \brief Maps the local matrix to global block matrix NOT considering boundaries
+*
+* \note Assumes a block structure of FE spaces and matrices
+*
+* \param dof_on_elm    Array of DOF on current element (ordered by block fespace)
+* \param FE            block FE Space
+* \param ALoc          Local stiffness matrix (full matrix)
+* \param bLoc          Local RHS vector
+*
+* \return A            Global block_CSR matrix
+* \return b            Global RHS vector (ordered by block structure of FE space)
+*
+*/
 void block_LocaltoGlobal(INT *dof_on_elm,block_fespace *FE,dvector *b,block_dCSRmat *A,REAL *ALoc,REAL *bLoc)
 {
   INT i,j,k,col_a,col_b,acol,block_row,block_col;
@@ -653,7 +653,7 @@ void block_LocaltoGlobal(INT *dof_on_elm,block_fespace *FE,dvector *b,block_dCSR
         local_row = dof_on_elm[local_row_index+i];
         // Adjust Right-hand side globally
         if(bLoc!=NULL && block_col==0)
-          b->val[local_row+global_row_index] += bLoc[local_row_index+i];
+        b->val[local_row+global_row_index] += bLoc[local_row_index+i];
 
         /* Columns of Local Stiffness (trial space)*/
         for (j=0; j<dof_per_elm_trial; j++) {
@@ -683,19 +683,19 @@ void block_LocaltoGlobal(INT *dof_on_elm,block_fespace *FE,dvector *b,block_dCSR
 
 /******************************************************************************************************/
 /*!
- * \fn LocaltoGlobal_withBC(INT *dof_on_elm,fespace *FE,dvector *b,dCSRmat *A,REAL *ALoc,REAL *bLoc)
- *
- * \brief Maps the local matrix to global matrix considering boundaries
- *
- * \param dof_on_elm    Array of DOF on current element
- * \param FE            FE Space
- * \param ALoc          Local stiffness matrix (full matrix)
- * \param bLoc          Local RHS vector
- *
- * \return A            Global CSR matrix
- * \return b            Global RHS vector
- *
- */
+* \fn LocaltoGlobal_withBC(INT *dof_on_elm,fespace *FE,dvector *b,dCSRmat *A,REAL *ALoc,REAL *bLoc)
+*
+* \brief Maps the local matrix to global matrix considering boundaries
+*
+* \param dof_on_elm    Array of DOF on current element
+* \param FE            FE Space
+* \param ALoc          Local stiffness matrix (full matrix)
+* \param bLoc          Local RHS vector
+*
+* \return A            Global CSR matrix
+* \return b            Global RHS vector
+*
+*/
 void LocaltoGlobal_withBC(INT *dof_on_elm,fespace *FE,dvector *b,dCSRmat *A,REAL *ALoc,REAL *bLoc)
 {
   INT i,j,k,row,col,col_a,col_b,acol;
@@ -705,7 +705,7 @@ void LocaltoGlobal_withBC(INT *dof_on_elm,fespace *FE,dvector *b,dCSRmat *A,REAL
     if (FE->dirichlet[row]==0) { /* Only if not on a boundary */
       // Adjust Right-hand side globally
       if(bLoc!=NULL)
-        b->val[row] = b->val[row] + bLoc[i];
+      b->val[row] = b->val[row] + bLoc[i];
 
       for (j=0; j<FE->dof_per_elm; j++) { /* Columns of Local Stiffness */
         col = dof_on_elm[j];
@@ -720,7 +720,7 @@ void LocaltoGlobal_withBC(INT *dof_on_elm,fespace *FE,dvector *b,dCSRmat *A,REAL
           }
         } else { /* If boundary adjust Right hand side */
           if(bLoc!=NULL)
-            b->val[row] = b->val[row]-(ALoc[i*FE->dof_per_elm+j])*b->val[col];
+          b->val[row] = b->val[row]-(ALoc[i*FE->dof_per_elm+j])*b->val[col];
         }
       }
     }
@@ -731,23 +731,23 @@ void LocaltoGlobal_withBC(INT *dof_on_elm,fespace *FE,dvector *b,dCSRmat *A,REAL
 
 /******************************************************************************************************/
 /*!
- * \fn LocaltoGlobal_face(INT *dof_on_f,INT dof_per_f,fespace *FE,dvector *b,dCSRmat *A,REAL *ALoc,REAL *bLoc,INT flag0,INT flag1)
- *
- * \brief Maps the local matrix to global matrix considering "special" boundaries
- *        Flag indicates which types of boundaries to consider as Dirichlet
- *        We assume we are considering DOF on a face
- *
- * \param dof_on_f      Array of DOF on current face
- * \param dof_per_f     Number of DOF on current face
- * \param FE            FE Space
- * \param ALoc          Local stiffness matrix (full matrix)
- * \param bLoc          Local RHS vector
- * \param flag0,flag1   Indicates which range of boundaries DOF to grab
- *
- * \return A            Global CSR matrix
- * \return b            Global RHS vector
- *
- */
+* \fn LocaltoGlobal_face(INT *dof_on_f,INT dof_per_f,fespace *FE,dvector *b,dCSRmat *A,REAL *ALoc,REAL *bLoc,INT flag0,INT flag1)
+*
+* \brief Maps the local matrix to global matrix considering "special" boundaries
+*        Flag indicates which types of boundaries to consider as Dirichlet
+*        We assume we are considering DOF on a face
+*
+* \param dof_on_f      Array of DOF on current face
+* \param dof_per_f     Number of DOF on current face
+* \param FE            FE Space
+* \param ALoc          Local stiffness matrix (full matrix)
+* \param bLoc          Local RHS vector
+* \param flag0,flag1   Indicates which range of boundaries DOF to grab
+*
+* \return A            Global CSR matrix
+* \return b            Global RHS vector
+*
+*/
 void LocaltoGlobal_face(INT *dof_on_f,INT dof_per_f,fespace *FE,dvector *b,dCSRmat *A,REAL *ALoc,REAL *bLoc,INT flag0,INT flag1)
 {
   INT i,j,k,row,col,col_a,col_b,acol;
@@ -756,7 +756,7 @@ void LocaltoGlobal_face(INT *dof_on_f,INT dof_per_f,fespace *FE,dvector *b,dCSRm
     row = dof_on_f[i];
     if (FE->dof_flag[row]>=flag0 && FE->dof_flag[row]<=flag1) { /* Only if on special boundary */
       if(bLoc!=NULL)
-        b->val[row] = b->val[row] + bLoc[i];
+      b->val[row] = b->val[row] + bLoc[i];
 
       for (j=0; j<dof_per_f; j++) { /* Columns of Local Stiffness */
         col = dof_on_f[j];
@@ -779,28 +779,100 @@ void LocaltoGlobal_face(INT *dof_on_f,INT dof_per_f,fespace *FE,dvector *b,dCSRm
 
 /******************************************************************************************************/
 /*!
- * \fn eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,dvector *b,dCSRmat *A,REAL time)
- *
- * \brief Eliminates the Dirichlet boundaries from the global matrix:
- *        For each row in A that corresponds to a Dirichlet boundary, make the diagonal 1 and
- *        off-diagonals zero.  Then, make the corresponding column entries 0.
- *        For the RHS, if it's a boundary DOF, set to the actual boundary value.
- *        If it's a DOF connected to a boundary row, set f(DOF) = f(DOF) - A(DOF,DOF_BC)*u(DOF)
- *
- * \note We assume a CSR matrix and a single finite-element space.
- *       If bc=NULL and b=NULL, only eliminate the BC in the matrix.
- *
- * \param bc            Function to get boundary condition at given coordinates.
- * \param FE            FE Space
- * \param mesh          Mesh struct
- * \param b             RHS vector
- * \param A             CSR stiffness matrix
- * \param time          Physical time if time-dependent
- *
- * \return A            Global CSR matrix with boundaries eliminated
- * \return b            Global RHS vector with boundaries eliminated
- *
- */
+* \fn block_LocaltoGlobal_face(INT *dof_on_f,INT dof_per_f,block_fespace *FE,dvector *b,dCSRmat *A,REAL *ALoc,REAL *bLoc,INT flag0,INT flag1)
+*
+* \brief Maps the local matrix to global matrix considering "special" boundaries
+*        Flag indicates which types of boundaries to consider as Dirichlet
+*        We assume we are considering DOF on a face
+*
+* \param dof_on_f      Array of DOF on current face
+* \param dof_per_f     Number of DOF on current face
+* \param FE            FE Space
+* \param ALoc          Local stiffness matrix (full matrix)
+* \param bLoc          Local RHS vector
+* \param flag0,flag1   Indicates which range of boundaries DOF to grab
+*
+* \return A            Global CSR matrix
+* \return b            Global RHS vector
+*
+*/
+void block_LocaltoGlobal_face(INT *dof_on_f,INT dof_per_f,INT* dof_per_face_blk,block_fespace *FE,dvector *b,block_dCSRmat *A,REAL *ALoc,REAL *bLoc,INT flag0,INT flag1)
+{
+  INT i,j,k,col_a,col_b,acol,block_row,block_col;
+  INT local_row,local_col;
+
+  // Loop over all the blocks
+  INT nblocks = FE->nspaces;
+  INT dof_per_face_test = 0;
+  INT dof_per_face_trial = 0;
+  INT local_row_index = 0;
+  INT local_col_index = 0;
+  INT global_row_index = 0;
+
+  // Loop through all the blocks
+  for(block_row=0;block_row<nblocks;block_row++) {
+    dof_per_face_test = dof_per_face_blk[block_row];
+
+    for(block_col=0;block_col<nblocks;block_col++) {
+      dof_per_face_trial = dof_per_face_blk[block_col];
+
+      for (i=0; i<dof_per_face_test; i++) { /* Rows of Local Stiffness */
+        local_row = dof_on_f[local_row_index+i];
+        if (FE->var_spaces[block_row]->dof_flag[local_row]>=flag0 && FE->var_spaces[block_row]->dof_flag[local_row]<=flag1) { /* Only if on special boundary */
+          if(bLoc!=NULL)
+          b->val[local_row+global_row_index] += bLoc[local_row_index+i];
+
+          for (j=0; j<dof_per_face_trial; j++) { /* Columns of Local Stiffness */
+            local_col = dof_on_f[local_col_index+j];
+            if(A->blocks[block_row*nblocks+block_col]) {
+              if (FE->var_spaces[block_col]->dof_flag[local_col]>=flag0 && FE->var_spaces[block_col]->dof_flag[local_col]<=flag1) { /* Only do stuff if hit a special boundary */
+                col_a = A->blocks[block_row*nblocks+block_col]->IA[local_row];
+                col_b = A->blocks[block_row*nblocks+block_col]->IA[local_row+1];
+                for (k=col_a; k<col_b; k++) { /* Columns of A */
+                  acol = A->blocks[block_row*nblocks+block_col]->JA[k];
+                  if (acol==local_col) {	/* If they match, put it in the global matrix */
+                    A->blocks[block_row*nblocks+block_col]->val[k] += ALoc[(local_row_index+i)*dof_per_f+(local_col_index+j)];
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      local_col_index += dof_per_face_trial;
+    }
+    local_col_index = 0;
+    global_row_index += FE->var_spaces[block_row]->ndof;
+    local_row_index += dof_per_face_test;
+  }
+  return;
+}
+/******************************************************************************************************/
+
+/******************************************************************************************************/
+/*!
+* \fn eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,dvector *b,dCSRmat *A,REAL time)
+*
+* \brief Eliminates the Dirichlet boundaries from the global matrix:
+*        For each row in A that corresponds to a Dirichlet boundary, make the diagonal 1 and
+*        off-diagonals zero.  Then, make the corresponding column entries 0.
+*        For the RHS, if it's a boundary DOF, set to the actual boundary value.
+*        If it's a DOF connected to a boundary row, set f(DOF) = f(DOF) - A(DOF,DOF_BC)*u(DOF)
+*
+* \note We assume a CSR matrix and a single finite-element space.
+*       If bc=NULL and b=NULL, only eliminate the BC in the matrix.
+*
+* \param bc            Function to get boundary condition at given coordinates.
+* \param FE            FE Space
+* \param mesh          Mesh struct
+* \param b             RHS vector
+* \param A             CSR stiffness matrix
+* \param time          Physical time if time-dependent
+*
+* \return A            Global CSR matrix with boundaries eliminated
+* \return b            Global RHS vector with boundaries eliminated
+*
+*/
 void eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,dvector *b,dCSRmat *A,REAL time)
 {
   INT i,j,cola,colb;
@@ -816,7 +888,7 @@ void eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE,mes
   // Fix RHS First b_interior = (b - A(0;u_bdry)^T)_interior
   //               b_bdry = u_bdry
   if(b!=NULL)
-    eliminate_DirichletBC_RHS(bc,FE,mesh,b,A,time);
+  eliminate_DirichletBC_RHS(bc,FE,mesh,b,A,time);
 
   // Now fix A
   // Loop over rows of A
@@ -827,9 +899,9 @@ void eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE,mes
       // Loop over columns and 0 out everything in a row except for diagonal
       for(j=cola; j<colb; j++) {
         if(A->JA[j]==i)
-          A->val[j] = 1.0;
+        A->val[j] = 1.0;
         else
-          A->val[j] = 0.0;
+        A->val[j] = 0.0;
       }
     } else { // Non-boundary-row
       // Loop over columns and 0 out if column is boundary
@@ -847,24 +919,24 @@ void eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE,mes
 
 /******************************************************************************************************/
 /*!
- * \fn eliminate_DirichletBC_RHS(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,dvector *b,dCSRmat *A,REAL time)
- *
- * \brief Eliminates the Dirichlet boundaries from the global RHS vector:
- *        If it's a boundary DOF, set to the actual boundary value.
- *        If it's a DOF connected to a boundary row, set f(DOF) = f(DOF) - A(DOF,DOF_BC)*u(DOF)
- *
- * \note We assume a CSR matrix and a single finite-element space.
- *
- * \param bc            Function to get boundary condition at given coordinates.
- * \param FE            FE Space
- * \param mesh          Mesh struct
- * \param b             RHS vector
- * \param A             CSR stiffness matrix (without boundaries eliminated)
- * \param time          Physical time if time-dependent
- *
- * \return b            Global RHS vector with boundaries eliminated
- *
- */
+* \fn eliminate_DirichletBC_RHS(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,dvector *b,dCSRmat *A,REAL time)
+*
+* \brief Eliminates the Dirichlet boundaries from the global RHS vector:
+*        If it's a boundary DOF, set to the actual boundary value.
+*        If it's a DOF connected to a boundary row, set f(DOF) = f(DOF) - A(DOF,DOF_BC)*u(DOF)
+*
+* \note We assume a CSR matrix and a single finite-element space.
+*
+* \param bc            Function to get boundary condition at given coordinates.
+* \param FE            FE Space
+* \param mesh          Mesh struct
+* \param b             RHS vector
+* \param A             CSR stiffness matrix (without boundaries eliminated)
+* \param time          Physical time if time-dependent
+*
+* \return b            Global RHS vector with boundaries eliminated
+*
+*/
 void eliminate_DirichletBC_RHS(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_struct *mesh,dvector *b,dCSRmat *A,REAL time)
 {
   SHORT status;
@@ -905,33 +977,33 @@ void eliminate_DirichletBC_RHS(void (*bc)(REAL *,REAL *,REAL,void *),fespace *FE
 
 /******************************************************************************************************/
 /*!
- * \fn block_eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,dvector *b,
-                               void *A,INT Atype,REAL time)
- *
- * \brief Eliminates the Dirichlet boundaries from the global matrix:
- *        For each row in A that corresponds to a Dirichlet boundary, make the diagonal 1 and
- *        off-diagonals zero.  Then, make the corresponding column entries 0.
- *        For the RHS, if it's a boundary DOF, set to the actual boundary value.
- *        If it's a DOF connected to a boundary row, set f(DOF) = f(DOF) - A(DOF,DOF_BC)*u(DOF)
- *
- * \note We assume a BLOCK finite-element space and either block or CSR matrix.
- *       If bc=NULL and b=NULL, only eliminate the BC in the matrix.
- *       Assume all matrices are indexed at 0.
- *
- * \param bc            Function to get boundary condition at given coordinates.
- * \param FE            block FE Space
- * \param mesh          Mesh struct
- * \param b             RHS vector
- * \param A             Stiffness matrix
- * \param Atype         0 - CSR matrix; 1 - block CSR matrix
- * \param time          Physical time if time-dependent
- *
- * \return A            Global CSR matrix with boundaries eliminated
- * \return b            Global RHS vector with boundaries eliminated
- *
- */
+* \fn block_eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,dvector *b,
+void *A,INT Atype,REAL time)
+*
+* \brief Eliminates the Dirichlet boundaries from the global matrix:
+*        For each row in A that corresponds to a Dirichlet boundary, make the diagonal 1 and
+*        off-diagonals zero.  Then, make the corresponding column entries 0.
+*        For the RHS, if it's a boundary DOF, set to the actual boundary value.
+*        If it's a DOF connected to a boundary row, set f(DOF) = f(DOF) - A(DOF,DOF_BC)*u(DOF)
+*
+* \note We assume a BLOCK finite-element space and either block or CSR matrix.
+*       If bc=NULL and b=NULL, only eliminate the BC in the matrix.
+*       Assume all matrices are indexed at 0.
+*
+* \param bc            Function to get boundary condition at given coordinates.
+* \param FE            block FE Space
+* \param mesh          Mesh struct
+* \param b             RHS vector
+* \param A             Stiffness matrix
+* \param Atype         0 - CSR matrix; 1 - block CSR matrix
+* \param time          Physical time if time-dependent
+*
+* \return A            Global CSR matrix with boundaries eliminated
+* \return b            Global RHS vector with boundaries eliminated
+*
+*/
 void block_eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,dvector *b,
-                                 void *A,INT Atype,REAL time)
+void *A,INT Atype,REAL time)
 {
   if(Atype==0) {
     dCSRmat *Atemp = (dCSRmat *) A;
@@ -948,29 +1020,29 @@ void block_eliminate_DirichletBC(void (*bc)(REAL *,REAL *,REAL,void *),block_fes
 
 /******************************************************************************************************/
 /*!
- * \fn block_eliminate_DirichletBC_RHS(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,
-                                   dvector *b,void *A,INT Atype,REAL time)
- *
- * \brief Eliminates the Dirichlet boundaries from the global RHS vector:
- *        If it's a boundary DOF, set to the actual boundary value.
- *        If it's a DOF connected to a boundary row, set f(DOF) = f(DOF) - A(DOF,DOF_BC)*u(DOF)
- *
- * \note We assume a BLOCK finite-element space and either block or CSR matrix.
- *       Assume all matrices are indexed at 0.
- *
- * \param bc            Function to get boundary condition at given coordinates.
- * \param FE            block FE Space
- * \param mesh          Mesh struct
- * \param b             RHS vector
- * \param A             Stiffness matrix (without boundaries eliminated)
- * \param Atype         0 - CSR matrix; 1 - block CSR matrix
- * \param time          Physical time if time-dependent
- *
- * \return b            Global RHS vector with boundaries eliminated
- *
- */
+* \fn block_eliminate_DirichletBC_RHS(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,
+dvector *b,void *A,INT Atype,REAL time)
+*
+* \brief Eliminates the Dirichlet boundaries from the global RHS vector:
+*        If it's a boundary DOF, set to the actual boundary value.
+*        If it's a DOF connected to a boundary row, set f(DOF) = f(DOF) - A(DOF,DOF_BC)*u(DOF)
+*
+* \note We assume a BLOCK finite-element space and either block or CSR matrix.
+*       Assume all matrices are indexed at 0.
+*
+* \param bc            Function to get boundary condition at given coordinates.
+* \param FE            block FE Space
+* \param mesh          Mesh struct
+* \param b             RHS vector
+* \param A             Stiffness matrix (without boundaries eliminated)
+* \param Atype         0 - CSR matrix; 1 - block CSR matrix
+* \param time          Physical time if time-dependent
+*
+* \return b            Global RHS vector with boundaries eliminated
+*
+*/
 void block_eliminate_DirichletBC_RHS(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,
-                                     dvector *b,void *A,INT Atype,REAL time)
+dvector *b,void *A,INT Atype,REAL time)
 {
   if(Atype==0) {
     dCSRmat *Atemp = (dCSRmat *) A;
@@ -987,28 +1059,28 @@ void block_eliminate_DirichletBC_RHS(void (*bc)(REAL *,REAL *,REAL,void *),block
 
 /******************************************************************************************************/
 /*!
- * \fn eliminate_DirichletBC_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,dvector *b,dCSRmat *A,REAL time)
- *
- * \brief Eliminates the Dirichlet boundaries from the global matrix:
- *        For each row in A that corresponds to a Dirichlet boundary, make the diagonal 1 and
- *        off-diagonals zero.  Then, make the corresponding column entries 0.
- *        For the RHS, if it's a boundary DOF, set to the actual boundary value.
- *        If it's a DOF connected to a boundary row, set f(DOF) = f(DOF) - A(DOF,DOF_BC)*u(DOF)
- *
- * \note We assume a CSR matrix and a BLOCK finite-element space.
- *       If bc=NULL and b=NULL, only eliminate the BC in the matrix.
- *
- * \param bc            Function to get boundary condition at given coordinates.
- * \param FE            block FE Space
- * \param mesh          Mesh struct
- * \param b             RHS vector
- * \param A             CSR stiffness matrix
- * \param time          Physical time if time-dependent
- *
- * \return A            Global CSR matrix with boundaries eliminated
- * \return b            Global RHS vector with boundaries eliminated
- *
- */
+* \fn eliminate_DirichletBC_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,dvector *b,dCSRmat *A,REAL time)
+*
+* \brief Eliminates the Dirichlet boundaries from the global matrix:
+*        For each row in A that corresponds to a Dirichlet boundary, make the diagonal 1 and
+*        off-diagonals zero.  Then, make the corresponding column entries 0.
+*        For the RHS, if it's a boundary DOF, set to the actual boundary value.
+*        If it's a DOF connected to a boundary row, set f(DOF) = f(DOF) - A(DOF,DOF_BC)*u(DOF)
+*
+* \note We assume a CSR matrix and a BLOCK finite-element space.
+*       If bc=NULL and b=NULL, only eliminate the BC in the matrix.
+*
+* \param bc            Function to get boundary condition at given coordinates.
+* \param FE            block FE Space
+* \param mesh          Mesh struct
+* \param b             RHS vector
+* \param A             CSR stiffness matrix
+* \param time          Physical time if time-dependent
+*
+* \return A            Global CSR matrix with boundaries eliminated
+* \return b            Global RHS vector with boundaries eliminated
+*
+*/
 void eliminate_DirichletBC_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,dvector *b,dCSRmat *A,REAL time)
 {
   SHORT status;
@@ -1024,7 +1096,7 @@ void eliminate_DirichletBC_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),block_f
   // Fix RHS First b_interior = (b - A(0;u_bdry)^T)_interior
   //               b_bdry = u_bdry
   if(b!=NULL)
-    eliminate_DirichletBC_RHS_blockFE(bc,FE,mesh,b,A,time);
+  eliminate_DirichletBC_RHS_blockFE(bc,FE,mesh,b,A,time);
 
   // Now fix A
   // Loop over rows of A
@@ -1035,9 +1107,9 @@ void eliminate_DirichletBC_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),block_f
       // Loop over columns and 0 out row except for diagonal
       for(j=cola; j<colb; j++) {
         if(A->JA[j]==i)
-          A->val[j] = 1.0;
+        A->val[j] = 1.0;
         else
-          A->val[j] = 0.0;
+        A->val[j] = 0.0;
       }
     } else { // Non-boundary-row
       // Loop over columns and 0 out if column is boundary
@@ -1055,24 +1127,24 @@ void eliminate_DirichletBC_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),block_f
 
 /******************************************************************************************************/
 /*!
- * \fn eliminate_DirichletBC_RHS_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,dvector *b,dCSRmat *A,REAL time)
- *
- * \brief Eliminates the Dirichlet boundaries from the global RHS vector:
- *        If it's a boundary DOF, set to the actual boundary value.
- *        If it's a DOF connected to a boundary row, set f(DOF) = f(DOF) - A(DOF,DOF_BC)*u(DOF)
- *
- * \note We assume a CSR matrix and a BLOCK finite-element space.
- *
- * \param bc            Function to get boundary condition at given coordinates.
- * \param FE            block FE Space
- * \param mesh          Mesh struct
- * \param b             RHS vector
- * \param A             CSR stiffness matrix (without boundaries eliminated)
- * \param time          Physical time if time-dependent
- *
- * \return b            Global RHS vector with boundaries eliminated
- *
- */
+* \fn eliminate_DirichletBC_RHS_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,dvector *b,dCSRmat *A,REAL time)
+*
+* \brief Eliminates the Dirichlet boundaries from the global RHS vector:
+*        If it's a boundary DOF, set to the actual boundary value.
+*        If it's a DOF connected to a boundary row, set f(DOF) = f(DOF) - A(DOF,DOF_BC)*u(DOF)
+*
+* \note We assume a CSR matrix and a BLOCK finite-element space.
+*
+* \param bc            Function to get boundary condition at given coordinates.
+* \param FE            block FE Space
+* \param mesh          Mesh struct
+* \param b             RHS vector
+* \param A             CSR stiffness matrix (without boundaries eliminated)
+* \param time          Physical time if time-dependent
+*
+* \return b            Global RHS vector with boundaries eliminated
+*
+*/
 void eliminate_DirichletBC_RHS_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,dvector *b,dCSRmat *A,REAL time)
 {
   SHORT status;
@@ -1118,31 +1190,31 @@ void eliminate_DirichletBC_RHS_blockFE(void (*bc)(REAL *,REAL *,REAL,void *),blo
 
 /******************************************************************************************************/
 /*!
- * \fn eliminate_DirichletBC_blockFE_blockA(void (*bc)(REAL *, REAL *,REAL,void *),void *FE,mesh_struct *mesh,dvector *b,
-                                        block_dCSRmat *A,REAL time)   *
- * \brief Eliminates the Dirichlet boundaries from the global matrix:
- *        For each row in A that corresponds to a Dirichlet boundary, make the diagonal 1 and
- *        off-diagonals zero.  Then, make the corresponding column entries 0.
- *        For the RHS, if it's a boundary DOF, set to the actual boundary value.
- *        If it's a DOF connected to a boundary row, set f(DOF) = f(DOF) - A(DOF,DOF_BC)*u(DOF)
- *
- * \note We assume a BLOCK CSR matrix and a BLOCK finite-element space.
- *       If bc=NULL and b=NULL, only eliminate the BC in the matrix.
- *       We also assume blocks of A are indexed at 0.
- *
- * \param bc            Function to get boundary condition at given coordinates.
- * \param FE            block FE Space
- * \param mesh          Mesh struct
- * \param b             RHS vector
- * \param A             block CSR stiffness matrix
- * \param time          Physical time if time-dependent
- *
- * \return A            Global block CSR matrix with boundaries eliminated
- * \return b            Global RHS vector with boundaries eliminated
- *
- */
+* \fn eliminate_DirichletBC_blockFE_blockA(void (*bc)(REAL *, REAL *,REAL,void *),void *FE,mesh_struct *mesh,dvector *b,
+block_dCSRmat *A,REAL time)   *
+* \brief Eliminates the Dirichlet boundaries from the global matrix:
+*        For each row in A that corresponds to a Dirichlet boundary, make the diagonal 1 and
+*        off-diagonals zero.  Then, make the corresponding column entries 0.
+*        For the RHS, if it's a boundary DOF, set to the actual boundary value.
+*        If it's a DOF connected to a boundary row, set f(DOF) = f(DOF) - A(DOF,DOF_BC)*u(DOF)
+*
+* \note We assume a BLOCK CSR matrix and a BLOCK finite-element space.
+*       If bc=NULL and b=NULL, only eliminate the BC in the matrix.
+*       We also assume blocks of A are indexed at 0.
+*
+* \param bc            Function to get boundary condition at given coordinates.
+* \param FE            block FE Space
+* \param mesh          Mesh struct
+* \param b             RHS vector
+* \param A             block CSR stiffness matrix
+* \param time          Physical time if time-dependent
+*
+* \return A            Global block CSR matrix with boundaries eliminated
+* \return b            Global RHS vector with boundaries eliminated
+*
+*/
 void eliminate_DirichletBC_blockFE_blockA(void (*bc)(REAL *, REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,dvector *b,
-                                          block_dCSRmat *A,REAL time)
+block_dCSRmat *A,REAL time)
 {
   INT i,j,k,cola,colb;
   //INT nsp = FE->nspaces;
@@ -1155,7 +1227,7 @@ void eliminate_DirichletBC_blockFE_blockA(void (*bc)(REAL *, REAL *,REAL,void *)
   // Fix RHS First b_interior = (b - A(0;u_bdry)^T)_interior
   //               b_bdry = u_bdry
   if(b!=NULL)
-    eliminate_DirichletBC_RHS_blockFE_blockA(bc,FE,mesh,b,A,time);
+  eliminate_DirichletBC_RHS_blockFE_blockA(bc,FE,mesh,b,A,time);
 
   // Find dof shifts needed for each block
   INT *dofshift;
@@ -1189,9 +1261,9 @@ void eliminate_DirichletBC_blockFE_blockA(void (*bc)(REAL *, REAL *,REAL,void *)
           if(FE->dirichlet[k+rowshift] == 1) { // Boundary Row
             for(l=cola;l<colb;l++){ // Loop over matrix columns
               if(A->blocks[i+j*nsp]->JA[l]==k && i==j) // diagonal Entry
-                A->blocks[i+j*nsp]->val[l] = 1.0;
+              A->blocks[i+j*nsp]->val[l] = 1.0;
               else
-                A->blocks[i+j*nsp]->val[l] = 0.0;
+              A->blocks[i+j*nsp]->val[l] = 0.0;
             }//end for(l)
           } else { // Non-boundary Row
             for(l=cola;l<colb;l++){ // Loop over matrix columns
@@ -1219,25 +1291,25 @@ void eliminate_DirichletBC_blockFE_blockA(void (*bc)(REAL *, REAL *,REAL,void *)
 
 /******************************************************************************************************/
 /*!
- * \fn eliminate_DirichletBC_RHS_blockFE_blockA(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,dvector *b,block_dCSRmat *A,REAL time)
- *
- * \brief Eliminates the Dirichlet boundaries from the global RHS vector:
- *        If it's a boundary DOF, set to the actual boundary value.
- *        If it's a DOF connected to a boundary row, set f(DOF) = f(DOF) - A(DOF,DOF_BC)*u(DOF)
- *
- * \note We assume a BLOCK CSR matrix and a BLOCK finite-element space.
- *       We also assume blocks of A are indexed at 0.
- *
- * \param bc            Function to get boundary condition at given coordinates.
- * \param FE            block FE Space
- * \param mesh          Mesh struct
- * \param b             RHS vector
- * \param A             block CSR stiffness matrix (without boundaries eliminated)
- * \param time          Physical time if time-dependent
- *
- * \return b            Global RHS vector with boundaries eliminated
- *
- */
+* \fn eliminate_DirichletBC_RHS_blockFE_blockA(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,dvector *b,block_dCSRmat *A,REAL time)
+*
+* \brief Eliminates the Dirichlet boundaries from the global RHS vector:
+*        If it's a boundary DOF, set to the actual boundary value.
+*        If it's a DOF connected to a boundary row, set f(DOF) = f(DOF) - A(DOF,DOF_BC)*u(DOF)
+*
+* \note We assume a BLOCK CSR matrix and a BLOCK finite-element space.
+*       We also assume blocks of A are indexed at 0.
+*
+* \param bc            Function to get boundary condition at given coordinates.
+* \param FE            block FE Space
+* \param mesh          Mesh struct
+* \param b             RHS vector
+* \param A             block CSR stiffness matrix (without boundaries eliminated)
+* \param time          Physical time if time-dependent
+*
+* \return b            Global RHS vector with boundaries eliminated
+*
+*/
 void eliminate_DirichletBC_RHS_blockFE_blockA(void (*bc)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,dvector *b,block_dCSRmat *A,REAL time)
 {
   INT i,j;
@@ -1276,15 +1348,15 @@ void eliminate_DirichletBC_RHS_blockFE_blockA(void (*bc)(REAL *,REAL *,REAL,void
 
 /******************************************************************************************************/
 /*!
- * \fn generate_periodic_P(fespace* FE, dCSRmat* P_periodic)
- *
- * \brief generate (prolongation )matrix P_periodic for applying periodic boundary conditions later
- *
- * \param FE            FE Space
- *
- * \return P_periodic   P_periodic matrix in dCSRformat
- *
- */
+* \fn generate_periodic_P(fespace* FE, dCSRmat* P_periodic)
+*
+* \brief generate (prolongation )matrix P_periodic for applying periodic boundary conditions later
+*
+* \param FE            FE Space
+*
+* \return P_periodic   P_periodic matrix in dCSRformat
+*
+*/
 void generate_periodic_P(fespace* FE, dCSRmat* P_periodic)
 {
 
@@ -1405,60 +1477,60 @@ void generate_periodic_P(fespace* FE, dCSRmat* P_periodic)
 
 
 }
- /******************************************************************************************************/
+/******************************************************************************************************/
 
- /******************************************************************************************************/
- /*!
-  * \fn generate_periodic_R_scaled(dCSRmat* P_periodic, dCSRmat* R_periodic_scaled)
-  *
-  * \brief generate (scaled restriction) matrix R_periodic_scaled (R_periodic_scaled u = u_periodic)
-  *
-  * \param P_periodic    P_periodic matrix in dCSRformat
-  *
-  * \return R_periodic_scaled   R_periodic_scaled matrix in dCSRformat
-  *
-  */
- void generate_periodic_R_scaled(dCSRmat* P_periodic, dCSRmat* R_periodic_scaled)
- {
+/******************************************************************************************************/
+/*!
+* \fn generate_periodic_R_scaled(dCSRmat* P_periodic, dCSRmat* R_periodic_scaled)
+*
+* \brief generate (scaled restriction) matrix R_periodic_scaled (R_periodic_scaled u = u_periodic)
+*
+* \param P_periodic    P_periodic matrix in dCSRformat
+*
+* \return R_periodic_scaled   R_periodic_scaled matrix in dCSRformat
+*
+*/
+void generate_periodic_R_scaled(dCSRmat* P_periodic, dCSRmat* R_periodic_scaled)
+{
 
-   // local variables
-   INT i, j, nnz_row;
+  // local variables
+  INT i, j, nnz_row;
 
-   // transpose to get unscaled R_periodic
-   dcsr_trans(P_periodic, R_periodic_scaled);
+  // transpose to get unscaled R_periodic
+  dcsr_trans(P_periodic, R_periodic_scaled);
 
-   // scale R_periodic_scaled
-   for (i=0; i<R_periodic_scaled->row; i++)
-   {
-     // number of ones in each row
-     nnz_row = R_periodic_scaled->IA[i+1]-R_periodic_scaled->IA[i];
+  // scale R_periodic_scaled
+  for (i=0; i<R_periodic_scaled->row; i++)
+  {
+    // number of ones in each row
+    nnz_row = R_periodic_scaled->IA[i+1]-R_periodic_scaled->IA[i];
 
-     // scaling each row
-     for (j=R_periodic_scaled->IA[i]; j<R_periodic_scaled->IA[i+1]; j++)
-     {
-       R_periodic_scaled->val[j] = R_periodic_scaled->val[j]/nnz_row;
-     }
+    // scaling each row
+    for (j=R_periodic_scaled->IA[i]; j<R_periodic_scaled->IA[i+1]; j++)
+    {
+      R_periodic_scaled->val[j] = R_periodic_scaled->val[j]/nnz_row;
+    }
 
-   }
+  }
 
- }
+}
 
-  /******************************************************************************************************/
+/******************************************************************************************************/
 
- /******************************************************************************************************/
- /*!
-  * \fn eliminate_PeriodicBC(dCSRmat* P_periodic, dCSRmat* A, dvector* b)
-  *
-  * \brief Eliminate periodic boundary conditions. A = P_periodic'*A*P_periodic and b = P_periodic'*b;
-  *
-  * \param P_periodic    P_periodic matrix in dCSR format
-  * \param A             stiffness matrix in dCSR format
-  * \param b             right hand side
-  *
-  * \return A            stiffness matrix after elimination
-  * \return b            right hand side after elimination
-  *
-  */
+/******************************************************************************************************/
+/*!
+* \fn eliminate_PeriodicBC(dCSRmat* P_periodic, dCSRmat* A, dvector* b)
+*
+* \brief Eliminate periodic boundary conditions. A = P_periodic'*A*P_periodic and b = P_periodic'*b;
+*
+* \param P_periodic    P_periodic matrix in dCSR format
+* \param A             stiffness matrix in dCSR format
+* \param b             right hand side
+*
+* \return A            stiffness matrix after elimination
+* \return b            right hand side after elimination
+*
+*/
 void eliminate_PeriodicBC(dCSRmat* P_periodic, dCSRmat* A, dvector* b)
 {
 
@@ -1505,59 +1577,59 @@ void eliminate_PeriodicBC(dCSRmat* P_periodic, dCSRmat* A, dvector* b)
 
 /******************************************************************************************************/
 /*!
- * \fn eliminate_PeriodicBC_nonoverwrite(dCSRmat* P_periodic, dCSRmat* A, dvector* b, dCSRmat* PTAP, dvector* PTb)
- *
- * \brief Eliminate periodic boundary conditions. PTAP = P_periodic'*A*P_periodic and PTb = P_periodic'*b;
- *
- * \param P_periodic    P_periodic matrix in dCSR format
- * \param A             stiffness matrix in dCSR format
- * \param b             right hand side
- *
- * \return A            stiffness matrix after elimination
- * \return b            right hand side after elimination
- *
- */
+* \fn eliminate_PeriodicBC_nonoverwrite(dCSRmat* P_periodic, dCSRmat* A, dvector* b, dCSRmat* PTAP, dvector* PTb)
+*
+* \brief Eliminate periodic boundary conditions. PTAP = P_periodic'*A*P_periodic and PTb = P_periodic'*b;
+*
+* \param P_periodic    P_periodic matrix in dCSR format
+* \param A             stiffness matrix in dCSR format
+* \param b             right hand side
+*
+* \return A            stiffness matrix after elimination
+* \return b            right hand side after elimination
+*
+*/
 void eliminate_PeriodicBC_nonoverwrite(dCSRmat* P_periodic, dCSRmat* A, dvector* b, dCSRmat* PTAP, dvector* PTb)
 {
 
- // transpose P_periodic
- dCSRmat R_periodic;
- dcsr_trans(P_periodic, &R_periodic);
+  // transpose P_periodic
+  dCSRmat R_periodic;
+  dcsr_trans(P_periodic, &R_periodic);
 
- // free PTAP
- if (PTAP->IA)  free(PTAP->IA);
- if (PTAP->JA)  free(PTAP->JA);
- if (PTAP->val) free(PTAP->val);
+  // free PTAP
+  if (PTAP->IA)  free(PTAP->IA);
+  if (PTAP->JA)  free(PTAP->JA);
+  if (PTAP->val) free(PTAP->val);
 
- // eliminate boundary
- dcsr_rap(&R_periodic, A, P_periodic, PTAP);
+  // eliminate boundary
+  dcsr_rap(&R_periodic, A, P_periodic, PTAP);
 
- if(PTb){
-   PTb->row = R_periodic.row;
-   if (PTb->val == NULL) {
-     PTb->val = (REAL* )calloc(PTb->row, sizeof(REAL));
-   }
-   dcsr_mxv(&R_periodic, b->val, PTb->val);
- }
+  if(PTb){
+    PTb->row = R_periodic.row;
+    if (PTb->val == NULL) {
+      PTb->val = (REAL* )calloc(PTb->row, sizeof(REAL));
+    }
+    dcsr_mxv(&R_periodic, b->val, PTb->val);
+  }
 
- // free
- dcsr_free(&R_periodic);
+  // free
+  dcsr_free(&R_periodic);
 
 }
 /******************************************************************************************************/
 
 /******************************************************************************************************/
 /*!
- * \fn apply_PeriodicBC(dCSRmat* P_periodic, dvector* u)
- *
- * \brief Apply the boundary conditions so that the vector contains periodic BC dofs: u = P_periodic*u;
- *
- * \param P_periodic    P_periodic matrix in dCSR format
- * \param u             dvector
- *
- * \return u            dvector after apply the periodic BC
- *
- */
+* \fn apply_PeriodicBC(dCSRmat* P_periodic, dvector* u)
+*
+* \brief Apply the boundary conditions so that the vector contains periodic BC dofs: u = P_periodic*u;
+*
+* \param P_periodic    P_periodic matrix in dCSR format
+* \param u             dvector
+*
+* \return u            dvector after apply the periodic BC
+*
+*/
 void apply_PeriodicBC(dCSRmat* P_periodic, dvector* u)
 {
   // local variable
@@ -1580,17 +1652,17 @@ void apply_PeriodicBC(dCSRmat* P_periodic, dvector* u)
 
 /******************************************************************************************************/
 /*!
- * \fn apply_PeriodicBC_nonoverwrite(dCSRmat* P_periodic, dvector* u_periodic, dvector* u)
- *
- * \brief Apply the boundary conditions so that the vector contains periodic BC dofs: u = P_periodic*u_periodic;
- *
- * \param P_periodic    P_periodic matrix in dCSR format
- * \param u_periodic    dvector
- * \param u             dvector
- *
- * \return u            dvector after apply the periodic BC
- *
- */
+* \fn apply_PeriodicBC_nonoverwrite(dCSRmat* P_periodic, dvector* u_periodic, dvector* u)
+*
+* \brief Apply the boundary conditions so that the vector contains periodic BC dofs: u = P_periodic*u_periodic;
+*
+* \param P_periodic    P_periodic matrix in dCSR format
+* \param u_periodic    dvector
+* \param u             dvector
+*
+* \return u            dvector after apply the periodic BC
+*
+*/
 void apply_PeriodicBC_nonoverwrite(dCSRmat* P_periodic, dvector* u_periodic, dvector* u)
 {
 
@@ -1606,15 +1678,15 @@ void apply_PeriodicBC_nonoverwrite(dCSRmat* P_periodic, dvector* u_periodic, dve
 
 /******************************************************************************************************/
 /*!
- * \fn generate_periodic_P_blockFE(block_fespace* FE, block_dCSRmat* P_periodic)
- *
- * \brief generate (prolongation) matrix P_periodic for applying periodic boundary conditions later
- *
- * \param FE            block FE Space
- *
- * \return P_periodic   P_periodic matrix in dCSRformat
- *
- */
+* \fn generate_periodic_P_blockFE(block_fespace* FE, block_dCSRmat* P_periodic)
+*
+* \brief generate (prolongation) matrix P_periodic for applying periodic boundary conditions later
+*
+* \param FE            block FE Space
+*
+* \return P_periodic   P_periodic matrix in dCSRformat
+*
+*/
 void generate_periodic_P_blockFE(block_fespace* FE, block_dCSRmat* P_periodic)
 {
   // local variables
@@ -1635,15 +1707,15 @@ void generate_periodic_P_blockFE(block_fespace* FE, block_dCSRmat* P_periodic)
 
 /******************************************************************************************************/
 /*!
- * \fn generate_periodic_R_scaled_blockFE(dCSRmat* P_periodic, dCSRmat* R_periodic_scaled)
- *
- * \brief generate (scaled restriction) matrix R_periodic_scaled (R_periodic_scaled u = u_periodic)
- *
- * \param P_periodic    P_periodic matrix in dCSRformat
- *
- * \return R_periodic_scaled   R_periodic_scaled matrix in dCSRformat
- *
- */
+* \fn generate_periodic_R_scaled_blockFE(dCSRmat* P_periodic, dCSRmat* R_periodic_scaled)
+*
+* \brief generate (scaled restriction) matrix R_periodic_scaled (R_periodic_scaled u = u_periodic)
+*
+* \param P_periodic    P_periodic matrix in dCSRformat
+*
+* \return R_periodic_scaled   R_periodic_scaled matrix in dCSRformat
+*
+*/
 void generate_periodic_R_scaled_blockFE(block_dCSRmat* P_periodic, block_dCSRmat* R_periodic_scaled)
 {
   // local variables
@@ -1665,170 +1737,170 @@ void generate_periodic_R_scaled_blockFE(block_dCSRmat* P_periodic, block_dCSRmat
 
 /******************************************************************************************************/
 /*!
- * \fn eliminate_PeriodicBC_blockFE(block_dCSRmat* P_periodic, block_dCSRmat* A, dvector* b)
- *
- * \brief Eliminate periodic boundary conditions (block version). A = P_periodic'*A*P_periodic and b = P_periodic'*b;
- *
- * \param P_periodic    P_periodic matrix in block_dCSR format
- * \param A             stiffness matrix in block_dCSR format
- * \param b             right hand side
- *
- * \return A            stiffness matrix after elimination
- * \return b            right hand side after elimination
- *
- */
+* \fn eliminate_PeriodicBC_blockFE(block_dCSRmat* P_periodic, block_dCSRmat* A, dvector* b)
+*
+* \brief Eliminate periodic boundary conditions (block version). A = P_periodic'*A*P_periodic and b = P_periodic'*b;
+*
+* \param P_periodic    P_periodic matrix in block_dCSR format
+* \param A             stiffness matrix in block_dCSR format
+* \param b             right hand side
+*
+* \return A            stiffness matrix after elimination
+* \return b            right hand side after elimination
+*
+*/
 void eliminate_PeriodicBC_blockFE(block_dCSRmat* P_periodic, block_dCSRmat* A, dvector* b)
 {
 
- // local variables
- INT i, j;
- block_dCSRmat Atemp;
- dCSRmat RAtemp;
- dvector btemp;
+  // local variables
+  INT i, j;
+  block_dCSRmat Atemp;
+  dCSRmat RAtemp;
+  dvector btemp;
 
- // copy stiffness matrix
- bdcsr_alloc(A->brow, A->bcol, &Atemp);
- bdcsr_cp(A, &Atemp);
+  // copy stiffness matrix
+  bdcsr_alloc(A->brow, A->bcol, &Atemp);
+  bdcsr_cp(A, &Atemp);
 
- // copy right hand side
- if( b ){
-   dvec_alloc(b->row, &btemp);
-   dvec_cp (b, &btemp);
- }
+  // copy right hand side
+  if( b ){
+    dvec_alloc(b->row, &btemp);
+    dvec_cp (b, &btemp);
+  }
 
- // free original A and b
- for (i=0; i<(A->brow*A->bcol); i++)
- {
-   if (A->blocks[i]){
-     if (A->blocks[i]->IA) free(A->blocks[i]->IA);
-     if (A->blocks[i]->JA) free(A->blocks[i]->JA);
-     if (A->blocks[i]->val) free(A->blocks[i]->val);
-   }
- }
+  // free original A and b
+  for (i=0; i<(A->brow*A->bcol); i++)
+  {
+    if (A->blocks[i]){
+      if (A->blocks[i]->IA) free(A->blocks[i]->IA);
+      if (A->blocks[i]->JA) free(A->blocks[i]->JA);
+      if (A->blocks[i]->val) free(A->blocks[i]->val);
+    }
+  }
 
- // transpose P_periodic
- block_dCSRmat R_periodic;
- bdcsr_trans(P_periodic, &R_periodic);
+  // transpose P_periodic
+  block_dCSRmat R_periodic;
+  bdcsr_trans(P_periodic, &R_periodic);
 
- // eliminate boundary (use the fact that both P and R are block diagonal)
- for (i=0; i<A->brow; i++)
- {
+  // eliminate boundary (use the fact that both P and R are block diagonal)
+  for (i=0; i<A->brow; i++)
+  {
 
-   for (j=0; j<A->bcol; j++)
-   {
+    for (j=0; j<A->bcol; j++)
+    {
 
-     if ( (Atemp.blocks[i*A->brow+j] == NULL)  )
-     {
-       A->blocks[i*A->brow+j] = NULL;
-     }
-     else
-     {
-       dcsr_mxm(R_periodic.blocks[i*R_periodic.brow+i], Atemp.blocks[i*A->brow+j], &RAtemp);
-       dcsr_mxm(&RAtemp, P_periodic->blocks[j*P_periodic->brow+j], A->blocks[i*A->brow+j]);
-       dcsr_free(&RAtemp);
-     }
+      if ( (Atemp.blocks[i*A->brow+j] == NULL)  )
+      {
+        A->blocks[i*A->brow+j] = NULL;
+      }
+      else
+      {
+        dcsr_mxm(R_periodic.blocks[i*R_periodic.brow+i], Atemp.blocks[i*A->brow+j], &RAtemp);
+        dcsr_mxm(&RAtemp, P_periodic->blocks[j*P_periodic->brow+j], A->blocks[i*A->brow+j]);
+        dcsr_free(&RAtemp);
+      }
 
-   }
+    }
 
- }
+  }
 
- if( b ){
-   b->row = 0;
-   for (i=0; i<R_periodic.brow; i++) b->row = b->row + R_periodic.blocks[i*R_periodic.brow+i]->row;
-   b->val = (REAL* )realloc(b->val, b->row*sizeof(REAL));
-   bdcsr_mxv(&R_periodic, btemp.val, b->val);
- }
+  if( b ){
+    b->row = 0;
+    for (i=0; i<R_periodic.brow; i++) b->row = b->row + R_periodic.blocks[i*R_periodic.brow+i]->row;
+    b->val = (REAL* )realloc(b->val, b->row*sizeof(REAL));
+    bdcsr_mxv(&R_periodic, btemp.val, b->val);
+  }
 
- // free
- bdcsr_free(&Atemp);
- bdcsr_free(&R_periodic);
- if(b){dvec_free(&btemp);}
+  // free
+  bdcsr_free(&Atemp);
+  bdcsr_free(&R_periodic);
+  if(b){dvec_free(&btemp);}
 
 }
 /******************************************************************************************************/
 
 /******************************************************************************************************/
 /*!
- * \fn eliminate_PeriodicBC_blockFE_nonoverwrite(block_dCSRmat* P_periodic, block_dCSRmat* A, dvector* b)
- *
- * \brief Eliminate periodic boundary conditions (block version). A = P_periodic'*A*P_periodic and b = P_periodic'*b;
- *
- * \param P_periodic    P_periodic matrix in block_dCSR format
- * \param A             stiffness matrix in block_dCSR format
- * \param b             right hand side
- *
- * \return A            stiffness matrix after elimination
- * \return b            right hand side after elimination
- *
- */
+* \fn eliminate_PeriodicBC_blockFE_nonoverwrite(block_dCSRmat* P_periodic, block_dCSRmat* A, dvector* b)
+*
+* \brief Eliminate periodic boundary conditions (block version). A = P_periodic'*A*P_periodic and b = P_periodic'*b;
+*
+* \param P_periodic    P_periodic matrix in block_dCSR format
+* \param A             stiffness matrix in block_dCSR format
+* \param b             right hand side
+*
+* \return A            stiffness matrix after elimination
+* \return b            right hand side after elimination
+*
+*/
 void eliminate_PeriodicBC_blockFE_nonoverwrite(block_dCSRmat* P_periodic, block_dCSRmat* A, dvector* b, block_dCSRmat* PTAP, dvector* PTb)
 {
 
- // local variables
- INT i, j;
- dCSRmat RAtemp;
+  // local variables
+  INT i, j;
+  dCSRmat RAtemp;
 
- // free PTAP
- for (i=0; i<(A->brow*A->bcol); i++)
- {
-   if (PTAP->blocks[i]){
-     if (PTAP->blocks[i]->IA)  free(PTAP->blocks[i]->IA);
-     if (PTAP->blocks[i]->JA)  free(PTAP->blocks[i]->JA);
-     if (PTAP->blocks[i]->val) free(PTAP->blocks[i]->val);
-   }
- }
+  // free PTAP
+  for (i=0; i<(A->brow*A->bcol); i++)
+  {
+    if (PTAP->blocks[i]){
+      if (PTAP->blocks[i]->IA)  free(PTAP->blocks[i]->IA);
+      if (PTAP->blocks[i]->JA)  free(PTAP->blocks[i]->JA);
+      if (PTAP->blocks[i]->val) free(PTAP->blocks[i]->val);
+    }
+  }
 
- // transpose P_periodic
- block_dCSRmat R_periodic;
- bdcsr_trans(P_periodic, &R_periodic);
+  // transpose P_periodic
+  block_dCSRmat R_periodic;
+  bdcsr_trans(P_periodic, &R_periodic);
 
- // eliminate boundary (use the fact that both P and R are block diagonal)
- for (i=0; i<A->brow; i++)
- {
+  // eliminate boundary (use the fact that both P and R are block diagonal)
+  for (i=0; i<A->brow; i++)
+  {
 
-   for (j=0; j<A->bcol; j++)
-   {
+    for (j=0; j<A->bcol; j++)
+    {
 
-     if ( (A->blocks[i*A->brow+j] == NULL)  )
-     {
-       PTAP->blocks[i*A->brow+j] = NULL;
-     }
-     else
-     {
-       dcsr_mxm(R_periodic.blocks[i*R_periodic.brow+i], A->blocks[i*A->brow+j], &RAtemp);
-       dcsr_mxm(&RAtemp, P_periodic->blocks[j*P_periodic->brow+j], PTAP->blocks[i*A->brow+j]);
-       dcsr_free(&RAtemp);
-     }
+      if ( (A->blocks[i*A->brow+j] == NULL)  )
+      {
+        PTAP->blocks[i*A->brow+j] = NULL;
+      }
+      else
+      {
+        dcsr_mxm(R_periodic.blocks[i*R_periodic.brow+i], A->blocks[i*A->brow+j], &RAtemp);
+        dcsr_mxm(&RAtemp, P_periodic->blocks[j*P_periodic->brow+j], PTAP->blocks[i*A->brow+j]);
+        dcsr_free(&RAtemp);
+      }
 
-   }
+    }
 
- }
+  }
 
- if( PTb ){
-   PTb->row = 0;
-   for (i=0; i<R_periodic.brow; i++) PTb->row = PTb->row + R_periodic.blocks[i*R_periodic.brow+i]->row;
-   if (PTb->val == NULL) PTb->val = (REAL* )calloc(PTb->row, sizeof(REAL));
-   bdcsr_mxv(&R_periodic, b->val, PTb->val);
- }
+  if( PTb ){
+    PTb->row = 0;
+    for (i=0; i<R_periodic.brow; i++) PTb->row = PTb->row + R_periodic.blocks[i*R_periodic.brow+i]->row;
+    if (PTb->val == NULL) PTb->val = (REAL* )calloc(PTb->row, sizeof(REAL));
+    bdcsr_mxv(&R_periodic, b->val, PTb->val);
+  }
 
- // free
- bdcsr_free(&R_periodic);
+  // free
+  bdcsr_free(&R_periodic);
 
 }
 /******************************************************************************************************/
 
 /******************************************************************************************************/
 /*!
- * \fn apply_PeriodicBC_blockFE(block_dCSRmat* P_periodic, dvector* u)
- *
- * \brief Apply the boundary conditions so that the vector contains periodic BC dofs: u = P_periodic*u (block version)
- *
- * \param P_periodic    P_periodic matrix in block_dCSR format
- * \param u             dvector
- *
- * \return u            dvector after apply the periodic BC
- *
- */
+* \fn apply_PeriodicBC_blockFE(block_dCSRmat* P_periodic, dvector* u)
+*
+* \brief Apply the boundary conditions so that the vector contains periodic BC dofs: u = P_periodic*u (block version)
+*
+* \param P_periodic    P_periodic matrix in block_dCSR format
+* \param u             dvector
+*
+* \return u            dvector after apply the periodic BC
+*
+*/
 void apply_PeriodicBC_blockFE(block_dCSRmat* P_periodic, dvector* u)
 {
   // local variable
@@ -1853,17 +1925,17 @@ void apply_PeriodicBC_blockFE(block_dCSRmat* P_periodic, dvector* u)
 
 /******************************************************************************************************/
 /*!
- * \fn apply_PeriodicBC_blockFE_nonoverwrite(block_dCSRmat* P_periodic, dvector* u_periodic, dvector* u)
- *
- * \brief Apply the boundary conditions so that the vector contains periodic BC dofs: u = P_periodic*u_periodic (block version)
- *
- * \param P_periodic    P_periodic matrix in block_dCSR format
- * \param u_periodic    dvector
- * \param u             dvector
- *
- * \return u            dvector after apply the periodic BC
- *
- */
+* \fn apply_PeriodicBC_blockFE_nonoverwrite(block_dCSRmat* P_periodic, dvector* u_periodic, dvector* u)
+*
+* \brief Apply the boundary conditions so that the vector contains periodic BC dofs: u = P_periodic*u_periodic (block version)
+*
+* \param P_periodic    P_periodic matrix in block_dCSR format
+* \param u_periodic    dvector
+* \param u             dvector
+*
+* \return u            dvector after apply the periodic BC
+*
+*/
 void apply_PeriodicBC_blockFE_nonoverwrite(block_dCSRmat* P_periodic, dvector* u_periodic, dvector* u)
 {
 
