@@ -529,10 +529,13 @@ void precond_block_data_free(precond_block_data *precdata,
 
     dvec_free(&precdata->r);
 
-    if(precdata->G)  dcsr_free(precdata->G);
-    if(precdata->K)  dcsr_free(precdata->K);
-    if(precdata->Gt) dcsr_free(precdata->Gt);
-    if(precdata->Kt) dcsr_free(precdata->Kt);
+    if (flag == TRUE)
+    {
+      if(precdata->G)  dcsr_free(precdata->G);
+      if(precdata->K)  dcsr_free(precdata->K);
+      if(precdata->Gt) dcsr_free(precdata->Gt);
+      if(precdata->Kt) dcsr_free(precdata->Kt);
+    }
 
     return;
 }
