@@ -5015,7 +5015,7 @@ void precond_block_upper_biot_3field_krylov(REAL *r,
   pc_p.fct = precond_amg;
 
   //dcsr_pvfgmres(&mgl[2][0].A, &r2, &z2, &pc_p, 1e-1, 100, 100, 1, 1);
-  dcsr_pvfgmres(&(A_diag[2]), &r2, &z2, &pc_p, 1e-3, 100, 100, 1, 1);
+  dcsr_pvfgmres(&(A_diag[2]), &r2, &z2, &pc_p, 1e-3, 1000, 1000, 1, 1);
   //// Diagonal matrix
   //for(i=0;i<N2;i++){
   //  z[N0+N1+i] = r[N0+N1+i]/(A_diag[2].val[i]);
@@ -6332,20 +6332,20 @@ void precond_block_monolithic_mg (REAL *r, REAL *z, void *data)
  */
 void precond_elasticity (REAL *r, REAL *z, void *data)
 {
+  // Local Variables
+  INT i;
+
   precond_block_data *precdata=(precond_block_data *)data;
   dvector *tempr = &(precdata->r);
 
-  MG_blk_data *bmgl = precdata->bmgl;
-//  AMG_param  *param = precdata->amgparam;
+  block_dCSRmat *A = precdata->Abcsr;
+  block_dCSRmat *As = precdata->Abcsr;
+//  dCSRmat *A_diag = precdata->A_diag;
 
-  // Local Variables
-  INT i;
-  INT n0 = bmgl[0].A.blocks[0]->row; // Elasticity size.
-//  INT n2 = bmgl[0].A.blocks[3]->row;// Pressure size (stokes)
-  INT lvl = 0;
   dvector rhs_stokes, sol_stokes, rhs_elast, sol_elast;
 //  dvector r0;// was used as residual.
 //  dvector y0;// was used as solution update.
+
   REAL nu = 0.49;
   REAL mu =  (3e4) / (1+2*nu);
   REAL lam = (3e4)*nu / ((1-2*nu)*(1+nu));
@@ -6353,11 +6353,12 @@ void precond_elasticity (REAL *r, REAL *z, void *data)
   REAL lamS = lam;
 
   // Local Variables
-  INT N=0;
-  INT brow = bmgl[0].A.brow;
+  INT N = 0; // Total size.
+  INT n0 = A->blocks[0]->row; // Elasticity size.
+  INT brow = A->brow;
 
   for( i=0; i<brow; i++){
-      N += bmgl[0].A.blocks[i+i*brow]->row;
+      N += A->blocks[i+i*brow]->row;
   }
 
   // back up r, setup z;
@@ -6365,28 +6366,28 @@ void precond_elasticity (REAL *r, REAL *z, void *data)
   array_set(N, z, 0.0);
 
   // Residual is an input
-  array_cp(N, r, bmgl[0].b.val);
+  //array_cp(N, r, bmgl[0].b.val);
 
   // Set x
-  dvec_set(N, &bmgl[0].x, 0.0);
+  //dvec_set(N, &bmgl[0].x, 0.0);
 
   /* Do Thing */
   dvec_alloc(N, &rhs_stokes);
   dvec_alloc(N, &sol_stokes);
   dvec_alloc(n0, &rhs_elast);
   dvec_alloc(n0, &sol_elast);
-  for( i=0; i<(n0); i++){
+  for( i=0; i < n0; i++){
     rhs_stokes.val[i] = r[i];
     sol_stokes.val[i] = 0.0;
     rhs_elast.val[i] = r[i];
     sol_elast.val[i] = 0.0;
   }
-  for( i=n0; i<N; i++){
+  for( i=n0; i < N; i++){
     rhs_stokes.val[i] = 0.0;
     sol_stokes.val[i] = 0.0;
   }
-  block_directsolve_UMF( bmgl[lvl].As, &rhs_stokes, &sol_stokes, 0);// Solve with pressure constraint
-  directsolve_UMF( bmgl[lvl].As->blocks[0], &rhs_elast, &sol_elast, 0);
+  block_directsolve_UMF( As, &rhs_stokes, &sol_stokes, 0);// Solve with pressure constraint
+  directsolve_UMF( As->blocks[0], &rhs_elast, &sol_elast, 0);
   for( i=0; i<n0; i++ ){
     z[i] = ( (lamS/(2*mu))/(lamS+2*mu) * sol_stokes.val[i] + 1.0/(lamS+2*mu) * sol_elast.val[i] );
   }
