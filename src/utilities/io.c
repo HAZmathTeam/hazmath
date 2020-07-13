@@ -1106,6 +1106,10 @@ void dump_blocksol_vtk(char *namevtk,char **varname,mesh_struct *mesh,block_fesp
       fprintf(fvtk,"<DataArray type=\"%s\" Name=\"Solution Component %i - %s\" Format=\"ascii\">",tfloat,nsp,varname[nsp]);
       for(k=0;k<nv;k++) fprintf(fvtk," %23.16e ",sol[spcntr + k]);
       fprintf(fvtk,"</DataArray>\n");
+    } else if(FE->var_spaces[nsp]->FEtype==99) { // Single DoF constraint element (just plot single value everywhere)
+      fprintf(fvtk,"<DataArray type=\"%s\" Name=\"Solution Component %i - %s\" Format=\"ascii\">",tfloat,nsp,varname[nsp]);
+      for(k=0;k<nv;k++) fprintf(fvtk," %23.16e ",sol[spcntr]);
+      fprintf(fvtk,"</DataArray>\n");
     } else { // Vector Elements
       sol_on_V = (REAL *) calloc(dim*mesh->nv,sizeof(REAL));
       solptr = sol+spcntr;
