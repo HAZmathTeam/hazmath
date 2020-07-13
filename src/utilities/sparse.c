@@ -3052,7 +3052,6 @@ void bdcsr_aAxpy(const REAL alpha,
     for (i=0; i<brow; i++) {
 
       for (j=0; j<brow; j++){
-
         if (A->blocks[i*brow+j]){
           dcsr_aAxpy(alpha, A->blocks[i*brow+j], &(x[start_col]), &(y[start_row]));
         }
