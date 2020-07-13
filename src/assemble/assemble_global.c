@@ -1313,9 +1313,12 @@ void assemble_global_face_block(block_dCSRmat* A,dvector* b,dvector *old_sol,voi
       // Questionable handling of P0 for the face integral
       dof_per_face_blk[i] = 1;
       dof_per_face += 1;
+    } else if (FEtype==99) { // Constraint Space (single DoF)
+      dof_per_face_blk[i] = 1;
+      dof_per_face += 1;
     } else {
       printf("Block face integration isn't set up for the FEM space you chose\n");
-      exit(0);
+      check_error(ERROR_FE_TYPE,__FUNCTION__);
     }
   }
 
@@ -1481,9 +1484,12 @@ void assemble_global_RHS_face_block(dvector *b, dvector *old_sol, void (*local_r
       // Questionable handling of P0 for the face integral
       dof_per_face_blk[i] = 1;
       dof_per_face += 1;
+    } else if (FEtype==99) { // Constraint Space (1 DoF)
+      dof_per_face_blk[i] = 1;
+      dof_per_face += 1;
     } else {
       printf("Block face integration isn't set up for the FEM space you chose\n");
-      exit(0);
+      check_error(ERROR_FE_TYPE,__FUNCTION__);
     }
   }
 
