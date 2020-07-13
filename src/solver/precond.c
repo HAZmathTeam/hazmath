@@ -6267,12 +6267,14 @@ void precond_block_lower_diag_upper_maxwell_krylov(REAL *r,
     pc_p.fct = precond_amg;
 
     dcsr_pvfgmres(&mgl[2][0].A, &r2, &z2, &pc_p, 1e-2, 100, 100, 1, 1);
+    //directsolve_UMF(&mgl[2][0].A, &r2, &z2, 1);
 
     // Preconditioning A11 block
     /* use HX preconditioner+Krylov solver */
     precond pc_E; pc_E.data = hxcurldata[1];
     pc_E.fct = precond_hx_curl_multiplicative;
     dcsr_pvfgmres(&A_diag[1], &r1, &z1, &pc_E, 1e-2, 100, 100, 1, 1);
+    //directsolve_UMF(&A_diag[1], &r1, &z1, 1);
 
     // Preconditioning A00 block
     /* use AMG+Krylov solver */
@@ -6292,6 +6294,7 @@ void precond_block_lower_diag_upper_maxwell_krylov(REAL *r,
     pc_B.fct = precond_diag;
 
     dcsr_pvfgmres(&A_diag[0], &r0, &z0, &pc_B, 1e-2, 100, 100, 1, 1);
+    //directsolve_UMF(&A_diag[0], &r0, &z0, 1);
 
     // upper blocks
 
