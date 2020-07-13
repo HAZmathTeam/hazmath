@@ -1,4 +1,4 @@
-/*! \file examples/stokes/stokes_data.h
+/*! \file examples/elasticity/elasticity_data.h
  *
  *  Created by James Adler on 07/04/2020
  *  Copyright 2015_HAZMATH__. All rights reserved.
@@ -14,12 +14,12 @@
 // Parameters
  // Youngs Modulus
  void get_young(REAL *val,REAL* x,REAL time,void *param) {
-   *val = 3e4;
+   *val = 1.0;
  }
 
  // Poisson Ratio
  void get_nu(REAL *val,REAL* x,REAL time,void *param) {
-   *val = 0.4999;
+   *val = 0.499;
  }
 
  // Lame Coefficients
@@ -100,21 +100,100 @@ void source2D(REAL *val, REAL *x, REAL time,void *param) {
   double pi = M_PI;
   REAL mu=0.0;
   get_mu(&mu,x,time,param);
+  REAL lam=0.0;
+  get_lam(&lam,x,time,param);
   val[0] = 2*mu*pow(pi,2) * sin(pi*x[0]) * cos(pi*x[1]) -1.0;
   val[1] = -2*mu*pow(pi,2) * cos(pi*x[0]) * sin(pi*x[1]);
-  val[2] = 0.0;
+  val[2] = -(1.0/lam)*(0.5 - x[0]);
   return;
 }
 void source3D(REAL *val, REAL *x, REAL time,void *param) {
   double pi = M_PI;
   REAL mu=0.0;
   get_mu(&mu,x,time,param);
+  REAL lam=0.0;
+  get_lam(&lam,x,time,param);
   val[0] = -3*mu*pow(pi,2)*sin(pi*x[0])*sin(pi*(x[1]-x[2])) - 1.0;
   val[1] = 3*mu*pow(pi,2)*sin(pi*x[1])*sin(pi*(x[0]-x[2]));
   val[2] = -3*mu*pow(pi,2)*sin(pi*x[2])*sin(pi*(x[0]-x[1]));
-  val[3] = 0.0;
+  val[3] =  -(1.0/lam)*(0.5 - x[0]);
   return;
 }
+
+// Just grab stuff for u for primal formulation
+void uexact_sol2D(REAL *val, REAL *x, REAL time,void *param){
+  REAL tempval[3];
+  exact_sol2D(tempval,x,time,param);
+  val[0] = tempval[0];
+  val[1] = tempval[1];
+  return;
+}
+void uexact_sol3D(REAL *val,REAL *x,REAL time,void *param) {
+  REAL tempval[4];
+  exact_sol3D(tempval,x,time,param);
+  val[0] = tempval[0];
+  val[1] = tempval[1];
+  val[2] = tempval[2];
+  return;
+}
+// Gradients of Exact Solution
+void uDexact_sol2D(REAL *val, REAL *x, REAL time,void *param){
+  REAL tempval[6];
+  Dexact_sol2D(tempval,x,time,param);
+  val[0] = tempval[0];
+  val[1] = tempval[1];
+  val[2] = tempval[2];
+  val[3] = tempval[3];
+  return;
+}
+void uDexact_sol3D(REAL *val, REAL *x, REAL time,void *param) {
+  REAL tempval[12];
+  Dexact_sol3D(tempval,x,time,param);
+  val[0] = tempval[0];
+  val[1] = tempval[1];
+  val[2] = tempval[2];
+  val[3] = tempval[3];
+  val[4] = tempval[4];
+  val[5] = tempval[5];
+  val[6] = tempval[6];
+  val[7] = tempval[7];
+  val[8] = tempval[8];
+  return;
+}
+
+// Boundary Conditions
+void ubc2D(REAL *val, REAL *x, REAL time,void *param) {
+  uexact_sol2D(val,x,time,param);
+  return;
+}
+void ubc3D(REAL *val, REAL *x, REAL time,void *param) {
+  uexact_sol3D(val,x,time,param);
+  return;
+}
+
+// RHS
+void usource2D(REAL *val, REAL *x, REAL time,void *param) {
+  double pi = M_PI;
+  REAL mu=0.0;
+  get_mu(&mu,x,time,param);
+  REAL lam=0.0;
+  get_lam(&lam,x,time,param);
+  val[0] = 2*mu*pow(pi,2) * sin(pi*x[0]) * cos(pi*x[1]);
+  val[1] = -2*mu*pow(pi,2) * cos(pi*x[0]) * sin(pi*x[1]);
+  return;
+}
+void usource3D(REAL *val, REAL *x, REAL time,void *param) {
+  double pi = M_PI;
+  REAL mu=0.0;
+  get_mu(&mu,x,time,param);
+  REAL lam=0.0;
+  get_lam(&lam,x,time,param);
+  val[0] = -3*mu*pow(pi,2)*sin(pi*x[0])*sin(pi*(x[1]-x[2])) - 1.0;
+  val[1] = 3*mu*pow(pi,2)*sin(pi*x[1])*sin(pi*(x[0]-x[2]));
+  val[2] = -3*mu*pow(pi,2)*sin(pi*x[2])*sin(pi*(x[0]-x[1]));
+  return;
+}
+
 
 // Relabel boundary flags:
 // 1: x=0  2: x=1   3: y=0    4: y=1
