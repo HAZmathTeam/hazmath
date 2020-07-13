@@ -195,7 +195,7 @@ int main (int argc, char* argv[])
     dcsr_alloc(A.blocks[i*(dim+2)]->row, A.blocks[i*(dim+2)]->col, A.blocks[i*(dim+2)]->nnz, &A_diag[i]);
     dcsr_cp(A.blocks[i*(dim+2)], &A_diag[i]);
   }
-  // Get Mass Matrix for p
+  // Get Mass Matrix for p 
   dCSRmat Mp;
   assemble_global(&Mp,NULL,assemble_mass_local,&FE_p,&mesh,cq,NULL,one_coeff_scal,0.0);
   dcsr_alloc(Mp.row, Mp.col, Mp.nnz, &A_diag[dim]);

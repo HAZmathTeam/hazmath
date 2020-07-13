@@ -359,6 +359,8 @@ void bdcsr_print_matlab(FILE* fid,
 {
   // local variables
   dCSRmat Amerge = bdcsr_2_dcsr(A);
+  //printf("row = %d, col = %d, nnz = %d\n", Amerge.row, Amerge. col, Amerge.nnz);
+  //dcsr_write_dcoo("Amerge.dat", &Amerge);
   csr_print_matlab(fid,&Amerge);
   dcsr_free(&Amerge);
 
@@ -554,6 +556,31 @@ void dcsr_write_dcoo (const char *filename,
   }
 
   fclose(fp);
+}
+
+/***********************************************************************************************/
+/*!
+ * \fn void bdcsr_write_dcoo(FILE* fid,dCSRmat *A)
+ *
+ * \brief print a dCSRmat format sparse matrix to a file
+ *
+ * \param filename  char for vector file name
+ * \param A    Pointer to the dCSRmat format sparse matrix
+ *
+ */
+void bdcsr_write_dcoo(const char *filename,
+                      block_dCSRmat *A)
+{
+  // local variables
+  dCSRmat Amerge = bdcsr_2_dcsr(A);
+
+  // write
+  dcsr_write_dcoo(filename, &Amerge);
+
+  // free
+  dcsr_free(&Amerge);
+
+  return;
 }
 
 /***********************************************************************************************/
