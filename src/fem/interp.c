@@ -330,8 +330,12 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_st
     } else {
       check_error(ERROR_DIM,__FUNCTION__);
     }
-
-
+  // Constraint Element just grab constant value
+  } else if(FEtype==99) {
+    x[0] =0.0;
+    x[1] = 0.0;
+    x[2] = 0.0;
+    (*expr)(&val,x,time,&(FE->dof_flag[DOF]));
   // No other FEM types implemented
   } else {
     check_error(ERROR_FE_TYPE,__FUNCTION__);
@@ -403,7 +407,7 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
   INT face_vertex[maxdim];
 
   for(i=0;i<comp;i++) {
-    if(FE->var_spaces[i]->FEtype>=0 && FE->var_spaces[i]->FEtype<10) { // Scalar Element
+    if((FE->var_spaces[i]->FEtype>=0 && FE->var_spaces[i]->FEtype<10) || FE->var_spaces[i]->FEtype==99) { // Scalar Element
       local_dim += 1;
     } else if(FE->var_spaces[i]->FEtype == 61) { // Bubble Element
       local_dim += 0; // Assuming bubbles are written such that linears follow it immediately
@@ -459,8 +463,13 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
     } else {
       check_error(ERROR_DIM,__FUNCTION__);
     }
-
-  // Not a FEM implemented
+    // Constraint Element just grab constant value
+  } else if(FE->var_spaces[comp]->FEtype==99) {
+    x[0] =0.0;
+    x[1] = 0.0;
+    x[2] = 0.0;
+    (*expr)(&val,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
+    // Not a FEM implemented
   } else {
     check_error(ERROR_FE_TYPE,__FUNCTION__);
   }
