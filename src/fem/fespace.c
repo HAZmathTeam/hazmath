@@ -1,25 +1,25 @@
 /*! \file src/fem/fespace.c
- *
- * \brief Creates and destroys the structres for the finite-element spaces.
- *
- *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 2/17/15.
- *  Copyright 2015__HAZMATH__. All rights reserved.
- *
- * \note modified by James Adler 11/14/2016
- * \note Updated on 10/3/2018 for 0-1 fix.
- */
+*
+* \brief Creates and destroys the structres for the finite-element spaces.
+*
+*  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 2/17/15.
+*  Copyright 2015__HAZMATH__. All rights reserved.
+*
+* \note modified by James Adler 11/14/2016
+* \note Updated on 10/3/2018 for 0-1 fix.
+*/
 
 #include "hazmath.h"
 
 /****************************************************************************************/
 /*!
- * \fn void initialize_fespace(fespace *FE)
- *
- * \brief Initializes all components of the structure FE.
- *
- * \return FE     Struct for FE space
- *
- */
+* \fn void initialize_fespace(fespace *FE)
+*
+* \brief Initializes all components of the structure FE.
+*
+* \return FE     Struct for FE space
+*
+*/
 void initialize_fespace(fespace *FE)
 {
   FE->FEtype = -666;
@@ -44,17 +44,17 @@ void initialize_fespace(fespace *FE)
 
 /****************************************************************************************/
 /*!
- * \fn void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
- *
- * \brief Allocates memory and properties of fespace struct.
- *
- * \param mesh      Mesh struc
- * \param FEtype    Element Type:
- *                  0-9 PX | 10-19 QX (not yet) | 20 Ned | 30 RT | -9 - -1 DGX (not yet)
- *
- * \return FE       Struct for FE space
- *
- */
+* \fn void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
+*
+* \brief Allocates memory and properties of fespace struct.
+*
+* \param mesh      Mesh struc
+* \param FEtype    Element Type:
+*                  0-9 PX | 10-19 QX (not yet) | 20 Ned | 30 RT | -9 - -1 DGX (not yet)
+*
+* \return FE       Struct for FE space
+*
+*/
 void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
 {
   // Flag for errors
@@ -82,15 +82,15 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
   iCSRmat ed_f;
   switch (FEtype)
   {
-  case 0: // Contants - P0
+    case 0: // Contants - P0
     FE->ndof = mesh->nelm;
     coordinates *barycenter = allocatecoords(mesh->nelm,dim);
     for (i=0; i<mesh->nelm; i++) {
       barycenter->x[i] = mesh->el_mid[i*dim];
       if(mesh->dim>1)
-        barycenter->y[i] = mesh->el_mid[i*dim + 1];
+      barycenter->y[i] = mesh->el_mid[i*dim + 1];
       if (mesh->dim>2)
-        barycenter->z[i] = mesh->el_mid[i*dim + 2];
+      barycenter->z[i] = mesh->el_mid[i*dim + 2];
     }
     FE->cdof = barycenter;
     FE->nbdof = 0;
@@ -117,7 +117,7 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     phi = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
     FE->phi = phi;
     break;
-  case 1: // Linears - P1
+    case 1: // Linears - P1
     FE->cdof = mesh->cv;
     FE->ndof = mesh->nv;
     FE->nbdof = mesh->nbv;
@@ -141,7 +141,7 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     dphi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
     FE->dphi = dphi;
     break;
-  case 2: // Quadratics - P2
+    case 2: // Quadratics - P2
     FE->ndof = mesh->nv + mesh->nelm; // In 1D
     FE->nbdof = mesh->nbv; // In 1D
     FE->dof_per_elm = mesh->v_per_elm + 1; // In 1D
@@ -160,7 +160,7 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     dphi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
     FE->dphi = dphi;
     break;
-  case 20: // Nedelec Elements
+    case 20: // Nedelec Elements
     FE->cdof = array_2_coord ( mesh->ed_mid, mesh->nedge, mesh->dim);
     FE->ndof = mesh->nedge;
     FE->nbdof = mesh->nbedge;
@@ -181,12 +181,12 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     phi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
     FE->phi = phi;
     if(mesh->dim==2) // Scalar Curl
-      dphi = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
+    dphi = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
     else // Vector Curl
-      dphi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
+    dphi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
     FE->dphi = dphi;
     break;
-  case 30: // Raviart-Thomas Elements
+    case 30: // Raviart-Thomas Elements
     FE->cdof = array_2_coord ( mesh->f_mid, mesh->nface, mesh->dim);
     FE->ndof = mesh->nface;
     FE->nbdof = mesh->nbface;
@@ -211,7 +211,7 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     dphi = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
     FE->dphi = dphi;
     break;
-  case 60: // Vector Velocity
+    case 60: // Vector Velocity
     FE->cdof = NULL;
     FE->ndof = mesh->nv * mesh->dim;
     FE->nbdof = mesh->nbv * mesh->dim;
@@ -260,7 +260,7 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     dphi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
     FE->dphi = dphi;
     break;
-  case 61: // Bubbles
+    case 61: // Bubbles
     FE->cdof = array_2_coord ( mesh->f_mid, mesh->nface, mesh->dim);
     FE->ndof = mesh->nface;
     FE->nbdof = mesh->nbface;
@@ -285,7 +285,51 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     dphi = (REAL *) calloc(FE->dof_per_elm*mesh->dim*mesh->dim,sizeof(REAL));
     FE->dphi = dphi;
     break;
-  default:
+    case 99: // 1 DOF FE Space (i.e., for an integral constraint)
+    FE->ndof = 1;
+    coordinates *domain = allocatecoords(1,dim);
+    domain->x[0] = 0.0;
+    if(mesh->dim>1) domain->y[0] = 0.0;
+    if(mesh->dim>2) domain->z[0] = 0.0;
+    FE->cdof = domain;
+    FE->nbdof = 0;
+    FE->dof_per_elm = 1;
+    FE->dof_per_face = 1;
+    FE->el_dof = malloc(sizeof(struct iCSRmat));
+    *(FE->el_dof) = icsr_create(mesh->nelm,1,mesh->nelm);
+    for(i=0;i<mesh->nelm;i++) {
+      FE->el_dof->IA[i] = i;
+      FE->el_dof->JA[i] = 0;
+      FE->el_dof->val[i] = 1;
+    }
+    FE->el_dof->IA[mesh->nelm] = mesh->nelm;
+    FE->f_dof = malloc(sizeof(struct iCSRmat));
+    *(FE->f_dof) = icsr_create(mesh->nface,1,mesh->nface);
+    for(i=0;i<mesh->nface;i++) {
+      FE->f_dof->IA[i] = i;
+      FE->f_dof->JA[i] = 0;
+      FE->f_dof->val[i] = 1;
+    }
+    FE->f_dof->IA[mesh->nface] = mesh->nface;
+    FE->ed_dof = malloc(sizeof(struct iCSRmat));
+    *(FE->ed_dof) = icsr_create(mesh->nedge,1,mesh->nedge);
+    for(i=0;i<mesh->nedge;i++) {
+      FE->ed_dof->IA[i] = i;
+      FE->ed_dof->JA[i] = 0;
+      FE->ed_dof->val[i] = 1;
+    }
+    FE->ed_dof->IA[mesh->nedge] = mesh->nedge;
+    dirichlet = (INT *) calloc(1,sizeof(INT));
+    dof_flag = (INT *) calloc(1,sizeof(INT));
+    dirichlet[0] = 0;
+    dof_flag[0] = 0;
+    FE->dirichlet = dirichlet;
+    FE->dof_flag = dof_flag;
+    phi = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
+    phi[0] = 1;
+    FE->phi = phi;
+    break;
+    default:
     status = ERROR_FE_TYPE;
     check_error(status, __FUNCTION__);
   }
@@ -298,8 +342,8 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
 
   // clean temp
   if (temp) {
-      free(temp);
-      temp = NULL;
+    free(temp);
+    temp = NULL;
   }
 
   return;
@@ -308,13 +352,13 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
 
 /****************************************************************************************/
 /*!
- * \fn void free_fespace(fespace* FE)
- *
- * \brief Frees memory of arrays of fespace struct
- *
- * \return FE       Struct for FE space to be freed
- *
- */
+* \fn void free_fespace(fespace* FE)
+*
+* \brief Frees memory of arrays of fespace struct
+*
+* \return FE       Struct for FE space to be freed
+*
+*/
 void free_fespace(fespace* FE)
 {
   if(FE->cdof && (FE->FEtype!=1)) { // If Linears, free_mesh will destroy coordinate struct
@@ -372,13 +416,13 @@ void free_fespace(fespace* FE)
 
 /****************************************************************************************/
 /*!
- * \fn void free_blockfespace(block_fespace* FE)
- *
- * \brief Frees memory of arrays of block_fespace struct
- *
- * \return FE       Struct for BLOCK FE space to be freed
- *
- */
+* \fn void free_blockfespace(block_fespace* FE)
+*
+* \brief Frees memory of arrays of block_fespace struct
+*
+* \return FE       Struct for BLOCK FE space to be freed
+*
+*/
 void free_blockfespace(block_fespace* FE)
 {
   if (FE == NULL) return; // Nothing need to be freed!
@@ -411,15 +455,15 @@ void free_blockfespace(block_fespace* FE)
 
 /***********************************************************************************************/
 /*!
- * \fn void get_P2(fespace* FE,mesh_struct* mesh)
- *
- * \brief Converts mesh data to account for P2 elements
- *
- * \param mesh      Mesh struct
- *
- * \return FE       Struct for P2 FE space
- *
- */
+* \fn void get_P2(fespace* FE,mesh_struct* mesh)
+*
+* \brief Converts mesh data to account for P2 elements
+*
+* \param mesh      Mesh struct
+*
+* \return FE       Struct for P2 FE space
+*
+*/
 void get_P2(fespace* FE,mesh_struct* mesh)
 {
   // Loop indices
@@ -456,9 +500,9 @@ void get_P2(fespace* FE,mesh_struct* mesh)
   for (i=0; i<nv; i++) {
     cdof->x[i] = mesh->cv->x[i];
     if(dim>1)
-      cdof->y[i] = mesh->cv->y[i];
+    cdof->y[i] = mesh->cv->y[i];
     if (dim>2)
-      cdof->z[i] = mesh->cv->z[i];
+    cdof->z[i] = mesh->cv->z[i];
   }
   // Now, go through and add extra nodes
   s = nv;
@@ -611,16 +655,16 @@ void get_P2(fespace* FE,mesh_struct* mesh)
 
 /****************************************************************************************/
 /*!
- * \fn void dump_el_dof(FILE* fid,iCSRmat *el_dof)
- *
- * \brief Dump the element to DOF map to file for plotting purposes.
- *
- * \param el_dof      Element to DOF map
- * \param fid         Output FILE ID
- *
- * \return el_dof.dat Output file with el_dof data
- *
- */
+* \fn void dump_el_dof(FILE* fid,iCSRmat *el_dof)
+*
+* \brief Dump the element to DOF map to file for plotting purposes.
+*
+* \param el_dof      Element to DOF map
+* \param fid         Output FILE ID
+*
+* \return el_dof.dat Output file with el_dof data
+*
+*/
 void dump_el_dof(FILE* fid,iCSRmat *el_dof)
 {
   // Loop indices
@@ -641,17 +685,17 @@ void dump_el_dof(FILE* fid,iCSRmat *el_dof)
 
 /****************************************************************************************/
 /*!
- * \fn void dump_fespace(fespace *FE,char *varname,char *dir)
- *
- * \brief Dump the FE space data to file for plotting purposes
- *
- * \param FE               FE space to dump
- * \param varname          Output file name
- * \param dir              Directory to dump data
- *
- * \return dir/varname.dat Output file with FE data
- *
- */
+* \fn void dump_fespace(fespace *FE,char *varname,char *dir)
+*
+* \brief Dump the FE space data to file for plotting purposes
+*
+* \param FE               FE space to dump
+* \param varname          Output file name
+* \param dir              Directory to dump data
+*
+* \return dir/varname.dat Output file with FE data
+*
+*/
 void dump_fespace(fespace *FE,char *varname,char *dir)
 {
   INT i;
@@ -684,21 +728,21 @@ void dump_fespace(fespace *FE,char *varname,char *dir)
 
 /****************************************************************************************/
 /*!
- * \fn void set_dirichlet_bdry(fespace* FE,mesh_struct* mesh, const INT flag0, const INT flag1)
- *
- * \brief Determine which boundary DOF are Dirichlet.  Determined by the FE space type
- *        and by the given flag from the mesh file.
- *
- * \param FE               FE space struct
- * \param mesh             Mesh struct
- * \param flag0            min flag value for Dirichlet DOF
- *                         (e.g. in fem.h: MARKER_DIRICHLET)
- * \param flag1            max flag value for Dirichlet DOF
- *                         e.g. in fem.h (MARKER_NEUMANN - 1)
- *
- * \return FE.dirichlet    Binary boundary array for DOF
- *
- */
+* \fn void set_dirichlet_bdry(fespace* FE,mesh_struct* mesh, const INT flag0, const INT flag1)
+*
+* \brief Determine which boundary DOF are Dirichlet.  Determined by the FE space type
+*        and by the given flag from the mesh file.
+*
+* \param FE               FE space struct
+* \param mesh             Mesh struct
+* \param flag0            min flag value for Dirichlet DOF
+*                         (e.g. in fem.h: MARKER_DIRICHLET)
+* \param flag1            max flag value for Dirichlet DOF
+*                         e.g. in fem.h (MARKER_NEUMANN - 1)
+*
+* \return FE.dirichlet    Binary boundary array for DOF
+*
+*/
 void set_dirichlet_bdry(fespace* FE,mesh_struct* mesh, const INT flag0, const INT flag1)
 {
   INT i;
@@ -715,18 +759,18 @@ void set_dirichlet_bdry(fespace* FE,mesh_struct* mesh, const INT flag0, const IN
 
 /****************************************************************************************/
 /*!
- * \fn void set_dirichlet_bdry_block(fespace* FE,mesh_struct* mesh)
- *
- * \brief Determine which boundary DOF are Dirichlet.  Determined by the BLOCK FE space type
- *        and by the given flag from the mesh file.
- *
- * \param FE               BLOCK FE space struct
- * \param mesh             Mesh struct
- *
- * \return FE.dirichlet    Binary boundary array for DOF
- * \return FE.dof_flag     Also set DOF flags based on each FE space
- *
- */
+* \fn void set_dirichlet_bdry_block(fespace* FE,mesh_struct* mesh)
+*
+* \brief Determine which boundary DOF are Dirichlet.  Determined by the BLOCK FE space type
+*        and by the given flag from the mesh file.
+*
+* \param FE               BLOCK FE space struct
+* \param mesh             Mesh struct
+*
+* \return FE.dirichlet    Binary boundary array for DOF
+* \return FE.dof_flag     Also set DOF flags based on each FE space
+*
+*/
 void set_dirichlet_bdry_block(block_fespace* FE,mesh_struct* mesh)
 {
   INT i,j,ndof,cnt;
@@ -752,23 +796,23 @@ void set_dirichlet_bdry_block(block_fespace* FE,mesh_struct* mesh)
 
 /****************************************************************************************/
 /*!
- * \fn void set_periodic_bdry(fespace* FE,mesh_struct* mesh, const REAL minx,const REAL maxx,const REAL miny,const REAL maxy,const REAL minz,const REAL maxz)
- *
- * \brief Determine which boundary DOF are periodic, and for each DOF which is
- *        the corresponding periodic DOF.
- *
- * \param FE                  FE space struct
- * \param mesh                Mesh struct
- * \param minx, miny, minz    Min values of x, y and z
- * \param maxx, maxy, maxz    Max values of x, y and z
- *
- * \return FE.periodic     Array for each DOF, which contains the corresponding
- *                         periodic DOF on the "other side".
- *
- * \note If Max and Min values are the same, the user indicates that that
- *       dimension is not periodic.
- *
- */
+* \fn void set_periodic_bdry(fespace* FE,mesh_struct* mesh, const REAL minx,const REAL maxx,const REAL miny,const REAL maxy,const REAL minz,const REAL maxz)
+*
+* \brief Determine which boundary DOF are periodic, and for each DOF which is
+*        the corresponding periodic DOF.
+*
+* \param FE                  FE space struct
+* \param mesh                Mesh struct
+* \param minx, miny, minz    Min values of x, y and z
+* \param maxx, maxy, maxz    Max values of x, y and z
+*
+* \return FE.periodic     Array for each DOF, which contains the corresponding
+*                         periodic DOF on the "other side".
+*
+* \note If Max and Min values are the same, the user indicates that that
+*       dimension is not periodic.
+*
+*/
 void set_periodic_bdry(fespace* FE,mesh_struct* mesh,const REAL minx,const REAL maxx,const REAL miny,const REAL maxy,const REAL minz,const REAL maxz)
 {
   // Flag for errors
@@ -877,16 +921,16 @@ void set_periodic_bdry(fespace* FE,mesh_struct* mesh,const REAL minx,const REAL 
 
 /******************************************************************************/
 /*!
- * \fn void get_incidence_row(INT row,iCSRmat *fem_map,INT* thisrow)
- *
- * \brief Gets single row of an incidence map (i.e., gets vertices of given element from el_v)
- *
- * \param row       Row to grab (indexed at 0)
- * \param fem_map   Incidence matrix to grab
- *
- * \return thisrow  Given row of the incidence matrix
- *
- */
+* \fn void get_incidence_row(INT row,iCSRmat *fem_map,INT* thisrow)
+*
+* \brief Gets single row of an incidence map (i.e., gets vertices of given element from el_v)
+*
+* \param row       Row to grab (indexed at 0)
+* \param fem_map   Incidence matrix to grab
+*
+* \return thisrow  Given row of the incidence matrix
+*
+*/
 void get_incidence_row(INT row,iCSRmat *fem_map,INT* thisrow)
 {
   INT j;
@@ -904,24 +948,24 @@ void get_incidence_row(INT row,iCSRmat *fem_map,INT* thisrow)
 
 /******************************************************************************/
 /*!
- * \fn void get_coords(REAL* x,INT dof,coordinates* cdof,INT dim)
- *
- * \brief Gets coordinates of a particular DOF
- *
- * \param dof       DOF to grab (indexed at 0)
- * \param cdof      Coordinate struct to grab from
- * \param dim
- *
- * \return x        (x,y,z) coordinates
- *
- */
+* \fn void get_coords(REAL* x,INT dof,coordinates* cdof,INT dim)
+*
+* \brief Gets coordinates of a particular DOF
+*
+* \param dof       DOF to grab (indexed at 0)
+* \param cdof      Coordinate struct to grab from
+* \param dim
+*
+* \return x        (x,y,z) coordinates
+*
+*/
 void get_coords(REAL* x,INT dof,coordinates* cdof,INT dim)
 {
   x[0] = cdof->x[dof];
   if(dim==2 || dim==3)
-    x[1] = cdof->y[dof];
+  x[1] = cdof->y[dof];
   if(dim==3)
-    x[2] = cdof->z[dof];
+  x[2] = cdof->z[dof];
 
   return;
 }
