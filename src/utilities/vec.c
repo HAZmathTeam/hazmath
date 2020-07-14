@@ -633,7 +633,7 @@ void dvec_orthog_const(dvector *x)
  * \brief make x orthgonal to y: x = x - (x'*y)*y;
  *
  * \param x   pointer to dvector x
- * \param y   pointer to dvector y
+ * \param y   pointer to dvector y (normalized)
  *
  * \return x  new x that is orthogonal to y
  *

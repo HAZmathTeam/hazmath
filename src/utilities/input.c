@@ -351,6 +351,8 @@ void param_input (const char *filenm,		\
 
             if ((strcmp(buffer,"UA")==0)||(strcmp(buffer,"ua")==0))
                 inparam->AMG_type = UA_AMG;
+            else if ((strcmp(buffer,"SA")==0)||(strcmp(buffer,"sa")==0))
+                inparam->AMG_type = SA_AMG;
             else
             { status = ERROR_INPUT_PAR; break; }
             fgets(buffer,maxb,fp); // skip rest of line
@@ -564,6 +566,41 @@ void param_input (const char *filenm,		\
             inparam->AMG_max_aggregation = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
         }
+
+        //-------------------
+        // SA AMG
+        //-------------------
+        else if (strcmp(buffer,"AMG_tentative_smooth")==0) {
+           val = fscanf(fp,"%s",buffer);
+           if (val!=1 || strcmp(buffer,"=")!=0) {
+               status = ERROR_INPUT_PAR; break;
+           }
+           val = fscanf(fp,"%lf",&dbuff);
+           if (val!=1) { status = ERROR_INPUT_PAR; break; }
+           inparam->AMG_tentative_smooth = dbuff;
+           fgets(buffer,500,fp); // skip rest of line
+       }
+
+       else if (strcmp(buffer,"AMG_smooth_filter")==0) {
+           val = fscanf(fp,"%s",buffer);
+           if (val!=1 || strcmp(buffer,"=")!=0) {
+               status = ERROR_INPUT_PAR; break;
+           }
+           val = fscanf(fp,"%s",buffer);
+           if (val!=1) { status = ERROR_INPUT_PAR; break; }
+
+           if ((strcmp(buffer,"ON")==0)||(strcmp(buffer,"on")==0)||
+               (strcmp(buffer,"On")==0)||(strcmp(buffer,"oN")==0))
+               inparam->AMG_smooth_filter = ON;
+           else if ((strcmp(buffer,"OFF")==0)||(strcmp(buffer,"off")==0)||
+                    (strcmp(buffer,"ofF")==0)||(strcmp(buffer,"oFf")==0)||
+                    (strcmp(buffer,"Off")==0)||(strcmp(buffer,"oFF")==0)||
+                    (strcmp(buffer,"OfF")==0)||(strcmp(buffer,"OFf")==0))
+               inparam->AMG_smooth_filter = OFF;
+           else
+               { status = ERROR_INPUT_PAR; break; }
+           fgets(buffer,500,fp); // skip rest of line
+       }
 
         // ------------------
         // Schwarz method
