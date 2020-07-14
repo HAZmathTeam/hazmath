@@ -1036,6 +1036,10 @@ void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,mesh_stru
 
     bubble_face_basis(phi,dphi,x,v_on_elm,dof,mesh);
 
+  } else if(FEtype==99) { // Constraint Single DOF Space
+
+    phi[0] = 1.0;
+
   } else {
     status = ERROR_FE_TYPE;
     check_error(status, __FUNCTION__);
