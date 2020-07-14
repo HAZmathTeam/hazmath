@@ -505,7 +505,8 @@ void update_blktimestep(block_timestepper *tstepper)
 
   // Counters and Physical Time
   tstepper->current_step++;
-  tstepper->time = tstepper->current_step*tstepper->dt;
+  //tstepper->time = tstepper->current_step*tstepper->dt;
+  tstepper->time = tstepper->time + tstepper->dt;
 
   // If using BDF-k store last k timesteps
   INT k = tstepper->old_steps;
