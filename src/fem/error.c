@@ -216,7 +216,8 @@ REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,mesh
   REAL* qx = (REAL *) calloc(mesh->dim,sizeof(REAL));
 
   // FE Stuff
-  INT FEtype = FE->FEtype;
+  //INT FEtype = FE->FEtype;
+  INT scal_or_vec = FE->scal_or_vec;
   INT elm,quad,j;
   REAL sum = 0.0;
   INT dof_per_elm = FE->dof_per_elm;
@@ -226,7 +227,7 @@ REAL L2error(REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),fespace *FE,mesh
 
   // True Solution and FE Solution at Quadrature Nodes
   INT ncomp = 0;
-  if(FEtype<20) { // Lagrange Elements (i.e., Scalar elements)
+  if(scal_or_vec==0) { // Lagrange Elements (i.e., Scalar elements)
     ncomp = 1;
   } else { // Vector Elements
     ncomp = dim;
@@ -315,7 +316,7 @@ void L2error_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),
   for(i=0;i<FE->nspaces;i++) {
     err[i]=0;
     dof_per_elm += FE->var_spaces[i]->dof_per_elm;
-    if(FE->var_spaces[i]->FEtype<20) /* Scalar Element */
+    if(FE->var_spaces[i]->scal_or_vec==0) /* Scalar Element */
       ncomp[i]=1;
     else /* Vector Element */
       ncomp[i] = dim;
@@ -556,7 +557,7 @@ REAL HDseminorm(REAL *u,fespace *FE,mesh_struct *mesh,qcoordinates *cq)
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
   INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
 
-  if(FE->FEtype==0) {
+  if(FE->FEtype==0 || FE->FEtype==99) {
     sum=0.0;
   } else {
     /* Loop over all Elements */

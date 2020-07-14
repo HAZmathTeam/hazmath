@@ -172,7 +172,7 @@ void assemble_mass_local(REAL* MLoc,fespace *FE,mesh_struct *mesh,qcoordinates *
   REAL coeff_val=0.0;
 
   // Vector Functions
-  if(FE->FEtype>=20) {
+  if(FE->scal_or_vec) {
 
     //  Sum over quadrature points
     for (quad=0;quad<cq->nq_per_elm;quad++) {
@@ -743,7 +743,7 @@ void FEM_RHS_Local(REAL* bLoc,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT
   REAL rhs_val_scalar;
   REAL rhs_val_vector[dim];
 
-  if(FE->FEtype<20) { // Scalar Functions
+  if(FE->scal_or_vec==0) { // Scalar Functions
 
     //  Sum over quadrature points
     for (quad=0;quad<cq->nq_per_elm;quad++) {
@@ -1023,7 +1023,7 @@ void FEM_RHS_Local_face(REAL* bLoc,dvector* old_sol,fespace *FE,mesh_struct *mes
   // Value of f
   REAL rhs_val;
 
-  if(FE->FEtype<20) { // Scalar Functions
+  if(FE->scal_or_vec==0) { // Scalar Functions
 
     //  Sum over quadrature points
     for (quad=0;quad<cq_face->n;quad++) {
