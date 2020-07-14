@@ -101,6 +101,9 @@ void param_input_init (input_param *inparam)
     inparam->AMG_strong_coupled       = 0.04;
     inparam->AMG_max_aggregation      = 20;
 
+    inparam->AMG_tentative_smooth     = 0.67;
+    inparam->AMG_smooth_filter        = ON;
+
     // Schwarz method parameters
     inparam->Schwarz_mmsize           = 200;
     inparam->Schwarz_maxlvl           = 2;
@@ -153,6 +156,9 @@ void param_amg_init (AMG_param *amgparam)
     amgparam->aggregation_type     = HEC;
     amgparam->strong_coupled       = 0.04;
     amgparam->max_aggregation      = 20;
+
+    amgparam->tentative_smooth     = 0.67;
+    amgparam->smooth_filter        = ON;
 
     // Schwarz smoother parameters
     amgparam->Schwarz_levels       = 0; // how many levels will use Schwarz smoother
@@ -292,6 +298,9 @@ void param_amg_set (AMG_param *amgparam,
     amgparam->strong_coupled       = inparam->AMG_strong_coupled;
     amgparam->max_aggregation      = inparam->AMG_max_aggregation;
 
+    amgparam->tentative_smooth     = inparam->AMG_tentative_smooth;
+    amgparam->smooth_filter        = inparam->AMG_smooth_filter;
+
     amgparam->Schwarz_levels       = inparam->AMG_Schwarz_levels;
     amgparam->Schwarz_mmsize       = inparam->Schwarz_mmsize;
     amgparam->Schwarz_maxlvl       = inparam->Schwarz_maxlvl;
@@ -411,6 +420,13 @@ void param_amg_print (AMG_param *amgparam)
         }
 
         switch (amgparam->AMG_type) {
+
+            case SA_AMG:
+                printf("Aggregation type:                  %d\n", amgparam->aggregation_type);
+                printf("Aggregation AMG strong coupling:   %.4f\n", amgparam->strong_coupled);
+                printf("Aggregation AMG max aggregation:   %d\n", amgparam->max_aggregation);
+                printf("SA AMG tentative smooth parameter: %.4f\n", amgparam->tentative_smooth);
+                printf("SA AMG smooth filter:              %d\n", amgparam->smooth_filter);
 
             default: // UA_AMG
                 printf("Aggregation type:                  %d\n", amgparam->aggregation_type);

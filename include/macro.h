@@ -25,7 +25,7 @@
 #define SMALLREAL2       1e-40  /**< An extremely small real number */
 #define MAX_REFINE_LVL   20    /**< Maximal refinement level */
 #define MAX_AMG_LVL      20    /**< Maximal AMG coarsening level */
-#define MIN_CDOF         20    /**< Minimal number of coarsest variables */
+#define MIN_CDOF         1    /**< Minimal number of coarsest variables */
 #define MIN_CRATE        0.9   /**< Minimal coarsening ratio */
 #define MAX_CRATE        100.0  /**< Maximal coarsening ratio */
 #define STAG_RATIO       1e-4  /**< Stagnation tolerance = tol*STAGRATIO */
@@ -149,6 +149,7 @@
  * \brief Definition of AMG types
  */
 #define UA_AMG                  1  /**< unsmoothed aggregation AMG */
+#define SA_AMG                  2  /**< smoothed aggregation AMG */
 
 /**
  * \brief Definition of aggregation types
