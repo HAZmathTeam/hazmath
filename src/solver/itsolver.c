@@ -437,6 +437,11 @@ INT linear_solver_amg(dCSRmat *A,
             status = amg_setup_ua(mgl, param);
         break;
 
+        case SA_AMG: // Smoothed Aggregation AMG setup
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+            status = amg_setup_sa(mgl, param);
+        break;
+
         default: // Unsmoothed Aggregation AMG setup
             if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
             status = amg_setup_ua(mgl, param);
@@ -819,6 +824,11 @@ INT linear_solver_dcsr_krylov_amg(dCSRmat *A,
             status = amg_setup_ua(mgl, amgparam);
         break;
 
+        case SA_AMG: // Smoothed Aggregation AMG setup
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+            status = amg_setup_sa(mgl, amgparam);
+        break;
+
         default: // Unsmoothed Aggregation AMG
             if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
             status = amg_setup_ua(mgl, amgparam);
@@ -935,9 +945,15 @@ INT linear_solver_dcsr_krylov_hx_curl(dCSRmat *A,
     switch (amgparam->AMG_type) {
 
         case UA_AMG: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
             status = amg_setup_ua(mgl_vgrad, amgparam); break;
 
+        case SA_AMG: // Smoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+            status = amg_setup_sa(mgl_vgrad, amgparam); break;
+
         default: // Classical AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
             status = amg_setup_ua(mgl_vgrad, amgparam); break;
 
     }
@@ -968,6 +984,11 @@ INT linear_solver_dcsr_krylov_hx_curl(dCSRmat *A,
 
         case UA_AMG: // Unsmoothed Aggregation AMG
             if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_ua(mgl_grad, amgparam);
+        break;
+
+        case SA_AMG: // Smoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
             status = amg_setup_ua(mgl_grad, amgparam);
         break;
 
@@ -1112,7 +1133,10 @@ INT linear_solver_dcsr_krylov_hx_div(dCSRmat *A,
         case UA_AMG: // Unsmoothed Aggregation AMG
             status = amg_setup_ua(mgl_curlgrad, amgparam); break;
 
-        default: // Classical AMG
+        case SA_AMG: // Smoothed Aggregation AMG
+            status = amg_setup_sa(mgl_curlgrad, amgparam); break;
+
+        default: // Unsmoothed Aggregation AMG
             status = amg_setup_ua(mgl_curlgrad, amgparam); break;
 
     }
@@ -1132,7 +1156,10 @@ INT linear_solver_dcsr_krylov_hx_div(dCSRmat *A,
         case UA_AMG: // Unsmoothed Aggregation AMG
             status = amg_setup_ua(mgl_divgrad, amgparam); break;
 
-        default: // Classical AMG
+        case SA_AMG: // Smoothed Aggregation AMG
+            status = amg_setup_sa(mgl_divgrad, amgparam); break;
+
+        default: // Unsmoothed Aggregation AMG
             status = amg_setup_ua(mgl_divgrad, amgparam); break;
 
     }
@@ -1339,6 +1366,11 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
                   status = amg_setup_ua(mgl[i], amgparam);
                   break;
 
+              case SA_AMG: // Smoothed Aggregation AMG
+                  if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+                  status = amg_setup_sa(mgl[i], amgparam);
+                  break;
+
               default: // UA AMG
                   if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
                   status = amg_setup_ua(mgl[i], amgparam);
@@ -1532,6 +1564,11 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
                 case UA_AMG: // Unsmoothed Aggregation AMG
                     if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
                     status = amg_setup_ua(mgl[i], amgparam);
+                    break;
+
+                case SA_AMG: // Smoothed Aggregation AMG
+                    if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+                    status = amg_setup_sa(mgl[i], amgparam);
                     break;
 
                 default: // UA AMG
@@ -1853,6 +1890,11 @@ INT linear_solver_bdcsr_krylov_block_5(block_dCSRmat *A,
                     status = amg_setup_ua(mgl[i], amgparam);
                     break;
 
+                case SA_AMG: // Smoothed Aggregation AMG
+                    if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+                    status = amg_setup_sa(mgl[i], amgparam);
+                    break;
+
                 default: // UA AMG
                     if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
                     status = amg_setup_ua(mgl[i], amgparam);
@@ -1888,11 +1930,11 @@ INT linear_solver_bdcsr_krylov_block_5(block_dCSRmat *A,
 
     switch (precond_type)
     {
-        /*
-        case 10:
-            prec.fct = precond_block_diag_3;
-            break;
 
+        case 10:
+            prec.fct = precond_block_diag;
+            break;
+        /*
         case 11:
             prec.fct = precond_block_lower_3;
             break;
@@ -2186,6 +2228,11 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
           status = amg_setup_ua(mgl[0], amgparam);
           break;
 
+       case SA_AMG: // Smoothed Aggregation AMG
+          if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+          status = amg_setup_sa(mgl[0], amgparam);
+          break;
+
         default: // Unsmoothed Aggregation AMG
           if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
           status = amg_setup_ua(mgl[0], amgparam);
@@ -2277,7 +2324,10 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
           case UA_AMG: // Unsmoothed Aggregation AMG
               status = amg_setup_ua(mgl_divgrad, amgparam); break;
 
-          default: // Classical AMG
+          case SA_AMG: // Smoothed Aggregation AMG
+                  status = amg_setup_sa(mgl_divgrad, amgparam); break;
+
+          default: // UA AMG
               status = amg_setup_ua(mgl_divgrad, amgparam); break;
 
       }
@@ -2312,7 +2362,10 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
           case UA_AMG: // Unsmoothed Aggregation AMG
               status = amg_setup_ua(mgl_curlgrad, amgparam); break;
 
-          default: // Classical AMG
+          case SA_AMG: // Smoothed Aggregation AMG
+              status = amg_setup_sa(mgl_curlgrad, amgparam); break;
+
+          default: // UA AMG
               status = amg_setup_ua(mgl_curlgrad, amgparam); break;
 
       }
@@ -2330,7 +2383,10 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
           case UA_AMG: // Unsmoothed Aggregation AMG
               status = amg_setup_ua(mgl_divgrad, amgparam); break;
 
-          default: // Classical AMG
+          case SA_AMG: // Smoothed Aggregation AMG
+              status = amg_setup_ua(mgl_divgrad, amgparam); break;
+
+          default: // UA AMG
               status = amg_setup_ua(mgl_divgrad, amgparam); break;
 
       }
@@ -2414,6 +2470,11 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
           status = amg_setup_ua(mgl[0], amgparam);
           break;
 
+        case SA_AMG: // Smoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+            status = amg_setup_sa(mgl[0], amgparam);
+            break;
+
         default: // Unsmoothed Aggregation AMG
           if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
           status = amg_setup_ua(mgl[0], amgparam);
@@ -2446,6 +2507,11 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
         case UA_AMG: // Unsmoothed Aggregation AMG
           if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
           status = amg_setup_ua(mgl[1], amgparam);
+          break;
+
+        case SA_AMG: // Smoothed Aggregation AMG
+          if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+          status = amg_setup_sa(mgl[1], amgparam);
           break;
 
         default: // Unsmoothed Aggregation AMG
@@ -2489,6 +2555,11 @@ INT linear_solver_bdcsr_krylov_mixed_darcy(block_dCSRmat *A,
         case UA_AMG: // Unsmoothed Aggregation AMG
           if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
           status = amg_setup_ua(mgl[1], amgparam);
+          break;
+
+        case SA_AMG: // Smoothed Aggregation AMG
+          if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+          status = amg_setup_sa(mgl[1], amgparam);
           break;
 
         default: // Unsmoothed Aggregation AMG
@@ -2705,6 +2776,11 @@ INT linear_solver_bdcsr_krylov_biot_2field(block_dCSRmat *A,
       status = amg_setup_ua(mgl[0], amgparam);
       break;
 
+    case SA_AMG: // Smoothed Aggregation AMG
+      if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+      status = amg_setup_sa(mgl[0], amgparam);
+      break;
+
     default: // UA AMG
       if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
       status = amg_setup_ua(mgl[0], amgparam);
@@ -2723,6 +2799,11 @@ INT linear_solver_bdcsr_krylov_biot_2field(block_dCSRmat *A,
     case UA_AMG: // Unsmoothed Aggregation AMG
       if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
       status = amg_setup_ua(mgl[1], amgparam);
+    break;
+
+    case SA_AMG: // Smoothed Aggregation AMG
+      if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+      status = amg_setup_sa(mgl[1], amgparam);
     break;
 
     default: // UA AMG
@@ -2969,6 +3050,11 @@ INT linear_solver_bdcsr_krylov_maxwell(block_dCSRmat *A,
                 status = amg_setup_ua(mgl_vgrad, amgparam);
             break;
 
+            case SA_AMG: // Smoothed Aggregation AMG
+                if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+                status = amg_setup_sa(mgl_vgrad, amgparam);
+            break;
+
             default: // UA AMG
                 if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
                 status = amg_setup_ua(mgl_vgrad, amgparam);
@@ -3001,6 +3087,11 @@ INT linear_solver_bdcsr_krylov_maxwell(block_dCSRmat *A,
             case UA_AMG: // Unsmoothed Aggregation AMG
                 if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
                 status = amg_setup_ua(mgl_grad, amgparam);
+            break;
+
+            case SA_AMG: // Smoothed Aggregation AMG
+                if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+                status = amg_setup_sa(mgl_grad, amgparam);
             break;
 
             default: // UA AMG
@@ -3071,6 +3162,11 @@ INT linear_solver_bdcsr_krylov_maxwell(block_dCSRmat *A,
             case UA_AMG: // Unsmoothed Aggregation AMG
                 if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
                 status = amg_setup_ua(mgl[2], amgparam);
+            break;
+
+            case SA_AMG: // Smoothed Aggregation AMG
+                if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+                status = amg_setup_sa(mgl[2], amgparam);
             break;
 
             default: // UA AMG
@@ -3257,6 +3353,11 @@ INT linear_solver_bdcsr_krylov_bubble_stokes(block_dCSRmat *A,
       status = amg_setup_ua(mgl[0], amgparam);
       break;
 
+    case SA_AMG: // Smoothed Aggregation AMG
+      if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+      status = amg_setup_sa(mgl[0], amgparam);
+      break;
+
     default: // UA AMG
       if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
       status = amg_setup_ua(mgl[0], amgparam);
@@ -3276,6 +3377,11 @@ INT linear_solver_bdcsr_krylov_bubble_stokes(block_dCSRmat *A,
     case UA_AMG: // Unsmoothed Aggregation AMG
       if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
       status = amg_setup_ua(mgl[1], amgparam);
+    break;
+
+    case SA_AMG: // Smoothed Aggregation AMG
+      if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+      status = amg_setup_sa(mgl[1], amgparam);
     break;
 
     default: // UA AMG
@@ -3397,6 +3503,11 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
       status = amg_setup_ua(mgl[0], amgparam);
       break;
 
+    case SA_AMG: // Smoothed Aggregation AMG
+      if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+      status = amg_setup_sa(mgl[0], amgparam);
+      break;
+
     default: // UA AMG
       if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
       status = amg_setup_ua(mgl[0], amgparam);
@@ -3447,7 +3558,10 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
         case UA_AMG: // Unsmoothed Aggregation AMG
             status = amg_setup_ua(mgl_curlgrad, amgparam); break;
 
-        default: // Classical AMG
+        case SA_AMG: // Smoothed Aggregation AMG
+            status = amg_setup_sa(mgl_curlgrad, amgparam); break;
+
+        default: // UA AMG
             status = amg_setup_ua(mgl_curlgrad, amgparam); break;
 
     }
@@ -3466,7 +3580,10 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
         case UA_AMG: // Unsmoothed Aggregation AMG
             status = amg_setup_ua(mgl_divgrad, amgparam); break;
 
-        default: // Classical AMG
+        case SA_AMG: // Smoothed Aggregation AMG
+            status = amg_setup_sa(mgl_divgrad, amgparam); break;
+
+        default: // UA AMG
             status = amg_setup_ua(mgl_divgrad, amgparam); break;
 
     }
@@ -3516,6 +3633,11 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
       status = amg_setup_ua(mgl[1], amgparam);
     break;
 
+    case SA_AMG: // Smoothed Aggregation AMG
+      if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+      status = amg_setup_sa(mgl[1], amgparam);
+    break;
+
     default: // UA AMG
       if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
       status = amg_setup_ua(mgl[1], amgparam); break;
@@ -3539,6 +3661,11 @@ INT linear_solver_bdcsr_krylov_biot_3field(block_dCSRmat *A,
     case UA_AMG: // Unsmoothed Aggregation AMG
       if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
       status = amg_setup_ua(mgl[2], amgparam);
+    break;
+
+    case SA_AMG: // Unsmoothed Aggregation AMG
+      if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+      status = amg_setup_sa(mgl[2], amgparam);
     break;
 
     default: // UA AMG
