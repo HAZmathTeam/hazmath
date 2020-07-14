@@ -65,8 +65,11 @@ typedef struct qcoordinates{
  */
 typedef struct fespace{
 
-  //! Type of finite element: 0-9 PX | 10-19 QX (not yet) | 20 Ned | 30 RT | -9 - -1 DGX (not yet)
+  //! Type of finite element: 0-9 PX | 10-19 QX (not yet) | 20 Ned | 30 RT | -9 - -1 DGX (not yet) | 61 - face bubbles | 99 - single DOF for constraints
   INT FEtype;
+
+  //! Indicates if this is a space of scalara functions, 0, or a space of vector functions, 1.
+  INT scal_or_vec;
 
   //! Number of Elements
   INT nelm;
