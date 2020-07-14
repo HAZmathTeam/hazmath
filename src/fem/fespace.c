@@ -23,6 +23,7 @@
 void initialize_fespace(fespace *FE)
 {
   FE->FEtype = -666;
+  FE->scal_or_vec = -666;
   FE->nelm = -666;
   FE->cdof = NULL;
   FE->ndof = -666;
@@ -83,6 +84,7 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
   switch (FEtype)
   {
     case 0: // Contants - P0
+    FE->scal_or_vec = 0;
     FE->ndof = mesh->nelm;
     coordinates *barycenter = allocatecoords(mesh->nelm,dim);
     for (i=0; i<mesh->nelm; i++) {
@@ -118,6 +120,7 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     FE->phi = phi;
     break;
     case 1: // Linears - P1
+    FE->scal_or_vec = 0;
     FE->cdof = mesh->cv;
     FE->ndof = mesh->nv;
     FE->nbdof = mesh->nbv;
@@ -142,6 +145,7 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     FE->dphi = dphi;
     break;
     case 2: // Quadratics - P2
+    FE->scal_or_vec = 0;
     FE->ndof = mesh->nv + mesh->nelm; // In 1D
     FE->nbdof = mesh->nbv; // In 1D
     FE->dof_per_elm = mesh->v_per_elm + 1; // In 1D
@@ -161,6 +165,7 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     FE->dphi = dphi;
     break;
     case 20: // Nedelec Elements
+    FE->scal_or_vec = 1;
     FE->cdof = array_2_coord ( mesh->ed_mid, mesh->nedge, mesh->dim);
     FE->ndof = mesh->nedge;
     FE->nbdof = mesh->nbedge;
@@ -187,6 +192,7 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     FE->dphi = dphi;
     break;
     case 30: // Raviart-Thomas Elements
+    FE->scal_or_vec = 1;
     FE->cdof = array_2_coord ( mesh->f_mid, mesh->nface, mesh->dim);
     FE->ndof = mesh->nface;
     FE->nbdof = mesh->nbface;
@@ -212,6 +218,7 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     FE->dphi = dphi;
     break;
     case 60: // Vector Velocity
+    FE->scal_or_vec = 1;
     FE->cdof = NULL;
     FE->ndof = mesh->nv * mesh->dim;
     FE->nbdof = mesh->nbv * mesh->dim;
@@ -261,6 +268,7 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     FE->dphi = dphi;
     break;
     case 61: // Bubbles
+    FE->scal_or_vec = 1;
     FE->cdof = array_2_coord ( mesh->f_mid, mesh->nface, mesh->dim);
     FE->ndof = mesh->nface;
     FE->nbdof = mesh->nbface;
@@ -286,6 +294,7 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     FE->dphi = dphi;
     break;
     case 99: // 1 DOF FE Space (i.e., for an integral constraint)
+    FE->scal_or_vec = 0;
     FE->ndof = 1;
     coordinates *domain = allocatecoords(1,dim);
     domain->x[0] = 0.0;
