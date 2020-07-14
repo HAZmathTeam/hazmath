@@ -1389,8 +1389,7 @@ void assemble_global_face_block(block_dCSRmat* A,dvector* b,dvector *old_sol,voi
 
       // Compute Local Stiffness Matrix for given Element
       (*local_assembly_face)(ALoc,old_sol,FE,mesh,cq,dof_on_f,dof_on_elm,v_on_elm,dof_per_face,i,elm,coeff,time);
-      if(rhs!=NULL)
-      (*local_rhs_assembly_face)(bLoc,old_sol,FE,mesh,cq,dof_on_f,dof_on_elm,v_on_elm,dof_per_face,i,elm,rhs,time);
+      if(rhs!=NULL) (*local_rhs_assembly_face)(bLoc,old_sol,FE,mesh,cq,dof_on_f,dof_on_elm,v_on_elm,dof_per_face,i,elm,rhs,time);
 
       // Loop over DOF and place in appropriate slot globally
       block_LocaltoGlobal_face(dof_on_f,dof_per_face,dof_per_face_blk,FE,b,A,ALoc,bLoc,flag0,flag1);
