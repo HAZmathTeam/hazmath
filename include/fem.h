@@ -36,14 +36,8 @@
  */
 typedef struct qcoordinates{
 
-  //! x values
+  //! quadrature points (ordered x(q1) y(q1) z(q1) x(q2) y(q2) z(q2) etc...)
   REAL* x;
-
-  //! y values
-  REAL* y;
-
-  //! z values (if in 3D)
-  REAL* z;
 
   //! weights
   REAL* w;

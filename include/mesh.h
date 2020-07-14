@@ -78,7 +78,7 @@ typedef struct mesh_struct{
   INT* v_component;
 
   //! coordinates of vertices
-  coordinates* cv;
+  dvector* cv;
 
   //! number of vertices on boundary
   INT nbv;
