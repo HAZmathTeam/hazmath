@@ -104,6 +104,10 @@ typedef struct {
     REAL  AMG_strong_coupled;       /**< strong coupled threshold for aggregate */
     INT   AMG_max_aggregation;       /**< max size of each aggregate */
 
+    // Smoothed Aggregation AMG (SA AMG)
+    SHORT AMG_smooth_filter;       /**< use filter for smoothing the tentative */
+    REAL AMG_tentative_smooth;     /**< relaxation factor for smoothing the tentative prolongation */
+
     // HX preconditioner
     SHORT HX_smooth_iter;            /**< number of smoothing */
 
@@ -203,6 +207,12 @@ typedef struct {
 
     //! max size of each aggregate
     INT max_aggregation;
+
+    //! switch for filtered matrix used for smoothing the tentative prolongation
+    SHORT smooth_filter;
+
+    //! relaxation parameter for smoothing the tentative prolongation
+    REAL tentative_smooth;
 
     //! number of levels use Schwarz smoother
     INT Schwarz_levels;
