@@ -39,14 +39,15 @@ void FE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fe
 
   // Get FE and Mesh data
   INT dof_per_elm = FE->dof_per_elm;
-  INT FEtype = FE->FEtype;
+  //INT FEtype = FE->FEtype;
+  INT scal_or_vec = FE->scal_or_vec;
   INT dim = mesh->dim;
 
   REAL coef[dim];
 
   get_FEM_basis(FE->phi,FE->dphi,x,v_on_elm,dof_on_elm,mesh,FE);
 
-  if(FEtype<20) { // Scalar Element
+  if(scal_or_vec==0) { // Scalar Element
     coef[0] = 0.0;
     for(j=0; j<dof_per_elm; j++) {
       dof = dof_on_elm[j];
@@ -99,7 +100,7 @@ void FE_DerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,INT *v
 
   get_FEM_basis(FE->phi,FE->dphi,x,v_on_elm,dof_on_elm,mesh,FE);
 
-  if(FEtype==0) { // Don't compute derivatives of P0 elements (set to 0)
+  if(FEtype==0 || FEtype==99) { // Don't compute derivatives of P0 elements (set to 0)
     for(j=0;j<dim;j++) {
       val[j] = 0.0;
     }
@@ -187,7 +188,7 @@ void blockFE_Interpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_e
 
   for(k=0;k<FE->nspaces;k++) {
     FE_Interpolation(val_sol,u_comp,x,local_dof_on_elm,v_on_elm,FE->var_spaces[k],mesh);
-    if(FE->var_spaces[k]->FEtype<20) { // Scalar
+    if(FE->var_spaces[k]->scal_or_vec==0) { // Scalar
       val_sol++;
     } else { // Vector
       val_sol += dim;
@@ -230,7 +231,7 @@ void blockFE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,I
 
   for(k=0;k<FE->nspaces;k++) {
     FE_DerivativeInterpolation(val_sol,u_comp,x,local_dof_on_elm,v_on_elm,FE->var_spaces[k],mesh);
-    if(FE->var_spaces[k]->FEtype<20) { // Scalar
+    if(FE->var_spaces[k]->FEtype<20 || FE->var_spaces[k]->FEtype==99) { // Scalar
       val_sol += dim;
     } else if(FE->var_spaces[k]->FEtype==20 && dim==2) { // Curl in 2D is Scalar
       val_sol++;
@@ -530,7 +531,8 @@ void Project_to_Vertices(REAL* u_on_V,REAL *u,fespace *FE,mesh_struct *mesh)
   // Get FE and Mesh data
   INT dof_per_elm = FE->dof_per_elm;
   INT v_per_elm = mesh->v_per_elm;
-  INT FEtype = FE->FEtype;
+  //INT FEtype = FE->FEtype;
+  INT scal_or_vec = FE->scal_or_vec;
   INT nelm = mesh->nelm;
   INT nv = mesh->nv;
 
@@ -551,7 +553,7 @@ void Project_to_Vertices(REAL* u_on_V,REAL *u,fespace *FE,mesh_struct *mesh)
       get_coords(x,v_on_elm[j],mesh->cv,dim);
       FE_Interpolation(val,u,x,dof_on_elm,v_on_elm,FE,mesh);
 
-      if(FEtype>=0 && FEtype<20) { // Scalar Element
+      if(scal_or_vec==0) { // Scalar Element
         u_on_V[v_on_elm[j]] = val[0];
       } else { // Vector Element
         for(k=0;k<dim;k++) {
