@@ -22,17 +22,14 @@
  */
 typedef struct coordinates{
 
-  //! x values
+  //! coordinate values (ordered x(0) y(0) z(0) x(1) y(1) z(1) etc...))
   REAL* x;
-
-  //! y values
-  REAL* y;
-
-  //! z values (if in 3D)
-  REAL* z;
 
   //! Size of arrays (number of nodes)
   INT n;
+
+  //! dimension
+  INT dim;
 
 } coordinates;
 
@@ -78,7 +75,7 @@ typedef struct mesh_struct{
   INT* v_component;
 
   //! coordinates of vertices
-  dvector* cv;
+  coordinates* cv;
 
   //! number of vertices on boundary
   INT nbv;

@@ -54,13 +54,13 @@ typedef struct qcoordinates{
 } qcoordinates;
 
 /**
- * \struct fespace
+ * \struct fe_space
  * \brief Returns properties of the finite-element space
  */
-typedef struct fespace{
+typedef struct fe_space{
 
   //! Type of finite element: 0-9 PX | 10-19 QX (not yet) | 20 Ned | 30 RT | -9 - -1 DGX (not yet) | 61 - face bubbles | 99 - single DOF for constraints
-  INT FEtype;
+  INT fe_type;
 
   //! Indicates if this is a space of scalara functions, 0, or a space of vector functions, 1.
   INT scal_or_vec;
@@ -80,17 +80,20 @@ typedef struct fespace{
   //! number of DOF per element
   INT dof_per_elm;
 
-  //! Element to DOF map
-  iCSRmat* el_dof;
-
-  //! Edge to DOF map
-  iCSRmat* ed_dof;
-
   //! number of DOF per face
   INT dof_per_face;
 
+  //! number of DOF per edge
+  INT dof_per_edge;
+
+  //! Element to DOF map
+  iCSRmat* el_dof;
+
   //! Face to DOF map
   iCSRmat* f_dof;
+
+  //! Edge to DOF map
+  iCSRmat* ed_dof;
 
   //! Dirichlet Boundaries (1 if Dirichlet; 0 if not)
   INT* dirichlet;
@@ -105,14 +108,14 @@ typedef struct fespace{
   REAL* phi;
   REAL* dphi;
 
-} fespace;
+} fe_space;
 
 /**
- * \struct block_fespace
- * \brief Block of fespaces for coupled problems
+ * \struct fe_system
+ * \brief Block of fe_spaces for coupled problems
  *
  */
-typedef struct block_fespace {
+typedef struct fe_system {
 
   //! number of FEM spaces in system
   INT nspaces;
@@ -127,7 +130,7 @@ typedef struct block_fespace {
   INT nbdof;
 
   //! blocks of fespaces
-  fespace **var_spaces;
+  fe_space **var_spaces;
 
   //! Dirichlet Boundaries (1 if Dirichlet; 0 if not) for ALL unknowns
   INT* dirichlet;
@@ -135,7 +138,34 @@ typedef struct block_fespace {
   //! All DOF flags - indicates if the DOF is a special DOF (i.e. on certain boundary)
   INT* dof_flag;
 
-} block_fespace; /**< Matrix of REAL type in Block CSR format */
+  //! Local Data - stuff needed on a given element (or face or edge)
+  local_data **loc_data;
+
+} fe_system; /**< Matrix of REAL type in Block CSR format */
+
+/**
+ * \struct local_data
+ * \brief Contains all relevant data on a given element/face/edge
+ *
+ */
+typedef struct local_data {
+
+  //! DoF on element/face/edge
+  INT* local_dof;
+
+  //! vertices on element/face/edge
+  INT* local_vert;
+
+  //! coordinates of local vertices
+  coordinates* cv;
+
+  //! Basis functions at quadrature points on element/face/edge
+  REAL* phi
+
+  //! Derivatives of basis functions at quadrature points on //! Basis functions at quadrature points on element/face/edge
+  REAL* dphi
+
+} fe_system; /**< Matrix of REAL type in Block CSR format */
 
 
 #endif
