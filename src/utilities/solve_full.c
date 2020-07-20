@@ -6,56 +6,11 @@
  *  \note: modified by Xiaozhe Hu on 10/25/2016
  *  \note: modified on 10/12/2017 (ltz1)
  *
- *  \note routines to solve Ax=b and calculate inv(A).
+ *  \note routines to solve Ax=b, calculate inv(A), transpose, axpy,
+ *        and qr.
  *
  */
 #include "hazmath.h"
-/*******************************************************************/
-/* \fn  void c2r(const INT n, const INT m, const size_t sizeel, void *x)
- *
- * \note: converts 2d array stored by columns to a 2d array stored by
- *     rows (fortran to c); overwrites the input array x with the
- *     result. sizeel is the size of an element in the array in bytes.
- *
-*/
-void c2r(const INT n, const INT m, const size_t sizeel, void *x)
-{
-  INT i,j,ji,nms=n*m*sizeel;
-  void *y=(void *)malloc(nms);
-  memcpy(y,x,nms);
-  for (i=0;i<n;i++){
-    for (j=0;j<m;j++){
-      ji=sizeel*(n*j+i);
-      memcpy(x,(y+ji),sizeel);
-      x+=sizeel;
-    }
-  }
-  if(y) free(y);
-  return;
-}
-/*******************************************************************/
-/* \fn void r2c(const INT n, const INT m, const size_t sizeel, void *x)
- *
- * \note: converts 2d array stored by rows to a 2d array stored by
- *        columns (c to fortran). sizeel is the size of an element in
- *        the array in bytes
- *
-*/
-void r2c(const INT n, const INT m, const size_t sizeel, void *x)
-{
-  INT i,j,ji,nms=n*m*sizeel;
-  void *y=(void *)malloc(nms);
-  for (i=0;i<n;i++){
-    for (j=0;j<m;j++){
-      ji=sizeel*(n*j+i);
-      memcpy((y+ji),x,sizeel);
-      x+=sizeel;
-    }
-  }
-  memcpy((x-nms),y,nms);
-  if(y) free(y);
-  return;
-}
 /**********************************************************************/
 INT solve_pivot(INT dopivot, INT n, REAL *A, REAL *b, INT *p,REAL *piv)
 {
@@ -383,5 +338,50 @@ void qr_full(const INT m, const INT n, REAL *A, REAL *Q, REAL *R)
   free (qj);
 
 }
-
- /**************************************************************************/
+/*******************************************************************/
+/* \fn  void c2r(const INT n, const INT m, const size_t sizeel, void *x)
+ *
+ * \note: converts 2d array stored by columns to a 2d array stored by
+ *     rows (fortran to c); overwrites the input array x with the
+ *     result. sizeel is the size of an element in the array in bytes.
+ *
+*/
+void c2r(const INT n, const INT m, const size_t sizeel, void *x)
+{
+  INT i,j,ji,nms=n*m*sizeel;
+  void *y=(void *)malloc(nms);
+  memcpy(y,x,nms);
+  for (i=0;i<n;i++){
+    for (j=0;j<m;j++){
+      ji=sizeel*(n*j+i);
+      memcpy(x,(y+ji),sizeel);
+      x+=sizeel;
+    }
+  }
+  if(y) free(y);
+  return;
+}
+/*******************************************************************/
+/* \fn void r2c(const INT n, const INT m, const size_t sizeel, void *x)
+ *
+ * \note: converts 2d array stored by rows to a 2d array stored by
+ *        columns (c to fortran). sizeel is the size of an element in
+ *        the array in bytes
+ *
+*/
+void r2c(const INT n, const INT m, const size_t sizeel, void *x)
+{
+  INT i,j,ji,nms=n*m*sizeel;
+  void *y=(void *)malloc(nms);
+  for (i=0;i<n;i++){
+    for (j=0;j<m;j++){
+      ji=sizeel*(n*j+i);
+      memcpy((y+ji),x,sizeel);
+      x+=sizeel;
+    }
+  }
+  memcpy((x-nms),y,nms);
+  if(y) free(y);
+  return;
+}
+/**************************************************************************/
