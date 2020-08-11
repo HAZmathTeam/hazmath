@@ -580,7 +580,7 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
 
         // Set values
         if(A->blocks[i*nblocks+j]->val==NULL)
-        A->blocks[i*nblocks+j]->val = (REAL *) calloc(A->blocks[i*nblocks+j]->nnz,sizeof(REAL));
+          A->blocks[i*nblocks+j]->val = (REAL *) calloc(A->blocks[i*nblocks+j]->nnz,sizeof(REAL));
         for (k=0; k<A->blocks[i*nblocks+j]->nnz; k++) {
           A->blocks[i*nblocks+j]->val[k] = 0;
         }
@@ -594,8 +594,7 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
   INT local_size = dof_per_elm*dof_per_elm;
   REAL* ALoc = (REAL *) calloc(local_size,sizeof(REAL));
   REAL* bLoc=NULL;
-  if(b!=NULL)
-  bLoc = (REAL *) calloc(dof_per_elm,sizeof(REAL));
+  if(b!=NULL) bLoc = (REAL *) calloc(dof_per_elm,sizeof(REAL));
 
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
   INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
@@ -1259,8 +1258,11 @@ void assemble_global_face_block(block_dCSRmat* A,dvector* b,dvector *old_sol,voi
   }
   if(rhs!=NULL) {
     b->row = FE->ndof;
-    b->val = (REAL *) calloc(b->row,sizeof(REAL));
-    dvec_set(b->row,b,0.0);
+    if(b->val) {
+      dvec_set(b->row,b,0.0);
+    } else {
+      b->val = (REAL *) calloc(b->row,sizeof(REAL));
+    }
   }
 
   // Loop over each block and build sparsity structure of matrices
@@ -1269,20 +1271,23 @@ void assemble_global_face_block(block_dCSRmat* A,dvector* b,dvector *old_sol,voi
       testdof = FE->var_spaces[i]->ndof;
       trialdof = FE->var_spaces[j]->ndof;
       if(A->blocks[i*nblocks+j]) {
-        A->blocks[i*nblocks+j]->row = testdof; // test functions
-        A->blocks[i*nblocks+j]->col = trialdof; // trial functions
-        A->blocks[i*nblocks+j]->IA = (INT *) calloc(testdof+1,sizeof(INT));
+        if(A->blocks[i*nblocks+j]->IA==NULL){
+          A->blocks[i*nblocks+j]->row = testdof; // test functions
+          A->blocks[i*nblocks+j]->col = trialdof; // trial functions
+          A->blocks[i*nblocks+j]->IA = (INT *) calloc(testdof+1,sizeof(INT));
 
-        // Get Sparsity Structure First
-        // Non-zeros of A and IA (ignores cancellations, so maybe more than necessary)
-        create_CSR_rows_FE1FE2(A->blocks[i*nblocks+j],FE->var_spaces[j],FE->var_spaces[i]);
+          // Get Sparsity Structure First
+          // Non-zeros of A and IA (ignores cancellations, so maybe more than necessary)
+          create_CSR_rows_FE1FE2(A->blocks[i*nblocks+j],FE->var_spaces[j],FE->var_spaces[i]);
 
-        // Columns of A -> JA
-        A->blocks[i*nblocks+j]->JA = (INT *) calloc(A->blocks[i*nblocks+j]->nnz,sizeof(INT));
-        create_CSR_cols_FE1FE2(A->blocks[i*nblocks+j],FE->var_spaces[j],FE->var_spaces[i]);
+          // Columns of A -> JA
+          A->blocks[i*nblocks+j]->JA = (INT *) calloc(A->blocks[i*nblocks+j]->nnz,sizeof(INT));
+          create_CSR_cols_FE1FE2(A->blocks[i*nblocks+j],FE->var_spaces[j],FE->var_spaces[i]);
+        }
 
         // Set values
-        A->blocks[i*nblocks+j]->val = (REAL *) calloc(A->blocks[i*nblocks+j]->nnz,sizeof(REAL));
+        if(A->blocks[i*nblocks+j]->val==NULL)
+          A->blocks[i*nblocks+j]->val = (REAL *) calloc(A->blocks[i*nblocks+j]->nnz,sizeof(REAL));
         for (k=0; k<A->blocks[i*nblocks+j]->nnz; k++) {
           A->blocks[i*nblocks+j]->val[k] = 0;
         }
@@ -1328,8 +1333,7 @@ void assemble_global_face_block(block_dCSRmat* A,dvector* b,dvector *old_sol,voi
   INT local_size = dof_per_face*dof_per_face;
   REAL* ALoc = (REAL *) calloc(local_size,sizeof(REAL));
   REAL* bLoc=NULL;
-  if(rhs!=NULL)
-  bLoc = (REAL *) calloc(dof_per_face,sizeof(REAL));
+  if(b!=NULL) bLoc = (REAL *) calloc(dof_per_face,sizeof(REAL));
 
   // Get mappings for given element and face
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
@@ -1389,7 +1393,7 @@ void assemble_global_face_block(block_dCSRmat* A,dvector* b,dvector *old_sol,voi
 
       // Compute Local Stiffness Matrix for given Element
       (*local_assembly_face)(ALoc,old_sol,FE,mesh,cq,dof_on_f,dof_on_elm,v_on_elm,dof_per_face,i,elm,coeff,time);
-      if(rhs!=NULL) (*local_rhs_assembly_face)(bLoc,old_sol,FE,mesh,cq,dof_on_f,dof_on_elm,v_on_elm,dof_per_face,i,elm,rhs,time);
+      if(b!=NULL) (*local_rhs_assembly_face)(bLoc,old_sol,FE,mesh,cq,dof_on_f,dof_on_elm,v_on_elm,dof_per_face,i,elm,rhs,time);
 
       // Loop over DOF and place in appropriate slot globally
       block_LocaltoGlobal_face(dof_on_f,dof_per_face,dof_per_face_blk,FE,b,A,ALoc,bLoc,flag0,flag1);
