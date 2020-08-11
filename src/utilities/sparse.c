@@ -1124,6 +1124,8 @@ void icsr_shift(iCSRmat *A,
  *
  * \return Flag of whether the adding is succesful or not (SUCCUESS: 0; FAIL: <0)
  *
+ * modified ltz (20200811): replaced memset (-1) as this does not work
+ * in general with an explicit loop)
  */
 INT dcsr_add(dCSRmat *A,
              const REAL alpha,
@@ -1237,10 +1239,12 @@ INT dcsr_add(dCSRmat *A,
 
   C->val=(REAL *)calloc(A->nnz+B->nnz,sizeof(REAL));
 
-  // initial C->IA
+  // initialize C->IA
   memset(C->IA, 0, sizeof(INT)*(C->row+1));
   memset(C->JA, -1, sizeof(INT)*(A->nnz+B->nnz));
-
+  for (i=0; i<(A->nnz+B->nnz); ++i) {
+    C->JA[i]=-1;
+  }
   for (i=0; i<A->row; ++i) {
     countrow = 0;
     for (j=A->IA[i]; j<A->IA[i+1]; ++j) {
@@ -1655,6 +1659,9 @@ REAL dcsr_vmv(dCSRmat *A,
  * \param B   Pointer to the dCSRmat matrix B
  * \param C   Pointer to dCSRmat matrix equal to A*B
  *
+ * modified ltz (20200811). replaces memset to (JD,-1...) with
+ *                          explicit loop as memset may be cannot set
+ *                          to -1.
  */
 void dcsr_mxm(dCSRmat *A,
               dCSRmat *B,
@@ -1719,8 +1726,8 @@ void dcsr_mxm(dCSRmat *A,
       }
     }
 
-    //for (j=0;j<countJD;++j) JD[j]=-1;
-    memset(JD, -1, sizeof(INT)*countJD);
+    for (j=0;j<countJD;++j) JD[j]=-1;
+    //    memset(JD, -1, sizeof(INT)*countJD);
   }
 
   free(JD);
