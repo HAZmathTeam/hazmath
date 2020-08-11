@@ -376,7 +376,7 @@ void free_fespace(fespace* FE)
     FE->cdof = NULL;
   }
 
-  if(FE->el_dof && (FE->FEtype==2 || FE->FEtype==0)) { // If not P2 or P0, free_mesh will destroy el_dof struct
+  if(FE->el_dof && (FE->FEtype==2 || FE->FEtype==0 || FE->FEtype==99)) { // If not P2 or P0, free_mesh will destroy el_dof struct
     icsr_free(FE->el_dof);
     free(FE->el_dof);
     FE->el_dof = NULL;
