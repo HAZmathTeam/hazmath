@@ -46,7 +46,7 @@ typedef struct qcoordinates{
   INT n;
 
   //! Number of quadrature nodes on 1 entity (face or element or edge)
-  INT nq_per_elm;
+  INT nq_per_region;
 
   //! Number of quadrature nodes in one direction
   INT nq1d;
@@ -165,7 +165,7 @@ typedef struct local_data {
   //! Solution at local DoF
   REAL* u_local;
 
-  //! Basis functions andderivatives at quadrature points on element/face/edge
+  //! Basis functions andderivatives at quadrature points on actual element/face/edge
   REAL* phi;
   REAL* dphi;
   REAL* ddphi;
