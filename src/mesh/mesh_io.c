@@ -285,21 +285,9 @@ void dump_mesh_haz(char *namehaz,mesh_struct *mesh)
   }
 
   // Dump coordinates
-  // x
-  for(i=0;i<nv;i++) {
-    fprintf(fhaz,"%23.16e ",mesh->cv->x[i]);
-  }
-  fprintf(fhaz,"\n");
-  //y
-  if(dim == 2 || dim==3) {
+  for(j=0;j<dim;j++) {
     for(i=0;i<nv;i++) {
-      fprintf(fhaz,"%23.16e ",mesh->cv->y[i]);
-    }
-    fprintf(fhaz,"\n");
-  }
-  if(dim==3) {
-    for(i=0;i<nv;i++) {
-      fprintf(fhaz,"%23.16e ",mesh->cv->z[i]);
+      fprintf(fhaz,"%23.16e ",mesh->cv->x[i*dim+j]);
     }
     fprintf(fhaz,"\n");
   }
@@ -439,16 +427,16 @@ void dump_mesh_vtk(char *namevtk,mesh_struct *mesh)
   // Dump coordinates
   if(dim == 1) {
     for(k=0;k<nv;k++) {
-      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],0e0,0e0);
+      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k*dim],0e0,0e0);
     }
   } else if(dim == 2) {
     for(k=0;k<nv;k++) {
-      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],mesh->cv->y[k],0e0);
+      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k*dim],mesh->cv->x[k*dim+1],0e0);
     }
   } else {
     for(k=0;k<nv;k++) {
-      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k],mesh->cv->y[k], \
-              mesh->cv->z[k]);
+      fprintf(fvtk," %23.16e %23.16e %23.16e ",mesh->cv->x[k*dim],mesh->cv->x[k*dim+1], \
+              mesh->cv->x[k*dim+2]);
     }
   }
   fprintf(fvtk,"</DataArray>\n");

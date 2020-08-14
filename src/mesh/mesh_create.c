@@ -270,25 +270,9 @@ struct coordinates *allocatecoords(INT ndof,INT mydim)
   assert(A != NULL);
 
   A->x = (REAL *) calloc(mydim*ndof,sizeof(REAL));
-  switch (mydim)
-  {
-  case 1:
-    A->y=NULL;
-    A->z=NULL;
-    break;
-  case 2:
-    A->y = A->x + ndof;
-    A->z=NULL;
-    break;
-  case 3:
-    A->y = A->x + ndof;
-    A->z = A->y + ndof;
-    break;
-  default:
-    status = ERROR_DIM;
-    check_error(status, __FUNCTION__);
-  }
   A->n = ndof;
+  A->dim = mydim;
+
   return A;
 }
 /******************************************************************************/
@@ -330,17 +314,19 @@ void free_coords(coordinates* A)
 void dump_coords(FILE* fid,coordinates *c)
 {
   INT i;
+  INT n = c->n;
+  INT dim = c->dim;
 
-  if (c->z) {
-    for (i=0; i<c->n; i++) {
-      fprintf(fid,"%25.16e\t%25.16e\t%25.16e\n",c->x[i],c->y[i],c->z[i]);
+  if (dim=3) {
+    for (i=0; i<n; i++) {
+      fprintf(fid,"%25.16e\t%25.16e\t%25.16e\n",c->x[i*dim],c->x[i*dim+1],c->x[i*dim+2]);
     }
-  } else if(c->y) {
-    for (i=0; i<c->n; i++) {
-      fprintf(fid,"%25.16e\t%25.16e\n",c->x[i],c->y[i]);
+  } else if(dim==2) {
+    for (i=0; i<n; i++) {
+      fprintf(fid,"%25.16e\t%25.16e\n",c->x[i*dim],c->y[i*dim+1]);
     }
   } else {
-    for (i=0; i<c->n; i++) {
+    for (i=0; i<; i++) {
       fprintf(fid,"%25.16e\n",c->x[i]);
     }
   }
