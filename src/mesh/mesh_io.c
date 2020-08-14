@@ -98,7 +98,15 @@ void read_grid_haz(FILE *gfid,mesh_struct *mesh)
   // Get next 2-3 lines for coordinate map
   mesh->cv = allocatecoords(nv,dim);
   INT nvdim=nv*dim;
-  rvecd_(gfid,mesh->cv->x,&nvdim); // This actually reads in all dimensions
+  REAL* cvx = (REAL *) calloc(nvdim,sizeof(REAL))
+  rvecd_(gfid,cvx,&nvdim); // This actually reads in all dimensions
+  // Distribute appropriately to cv->x
+  for(i=0;i<nv;i++) {
+    for(j=0;j<dim;j++) {
+      mesh->cv->x[i*dim+j] = cvx[j*nv+i];
+    }
+  }
+  if(cvx) free(cvx);
 
   // Get next 1-2 lines for boundary flags
   INT nbv = 0;

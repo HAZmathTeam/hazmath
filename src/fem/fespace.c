@@ -22,22 +22,24 @@
 */
 void initialize_fespace(fespace *FE)
 {
-  FE->FEtype = -666;
+  FE->fe_type = -666;
   FE->scal_or_vec = -666;
   FE->nelm = -666;
-  FE->cdof = NULL;
+  FE->mesh = NULL;
+  FE->dof_form = -666;
   FE->ndof = -666;
-  FE->nbdof = -666;
   FE->dof_per_elm = -666;
   FE->dof_per_face = -666;
+  FE->dof_per_edge = -666;
   FE->el_dof = NULL;
-  FE->ed_dof = NULL;
   FE->f_dof = NULL;
+  FE->ed_dof = NULL;
   FE->dirichlet = NULL;
   FE->dof_flag = NULL;
   FE->periodic = NULL;
   FE->phi = NULL;
   FE->dphi = NULL;
+  FE->ddphi = NULL;
 
   return;
 }
@@ -66,14 +68,16 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
   initialize_fespace(FE);
 
   // Set parameters
-  FE->FEtype = FEtype;
+  FE->fe_type = FEtype;
   FE->nelm = mesh->nelm;
+  FE->mesh = mesh;
   INT dim = mesh->dim;
 
   INT* dirichlet;
   INT* dof_flag;
   REAL* phi;
   REAL* dphi;
+  REAL* ddphi;
 
   /**/
   iCSRmat* temp;

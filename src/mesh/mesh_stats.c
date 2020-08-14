@@ -1,34 +1,34 @@
 /*! \file src/mesh/mesh_stats.c
- *
- *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 1/9/15.
- *  Copyright 2015__HAZMATH__. All rights reserved.
- *
- *  \brief Obtains routines for generating properties of the mesh,
- *  including all incidence matrices, element volumes, etc.
- * \note updated by James Adler 07/25/2018
- *
- */
+*
+*  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 1/9/15.
+*  Copyright 2015__HAZMATH__. All rights reserved.
+*
+*  \brief Obtains routines for generating properties of the mesh,
+*  including all incidence matrices, element volumes, etc.
+* \note updated by James Adler 07/25/2018
+*
+*/
 
 #include "hazmath.h"
 
 /******************************************************************************/
 /*!
- * \fn iCSRmat convert_elmnode(INT *element_vertex,INT nelm,INT nv,INT nve)
- *
- * \brief Convert the input element to vertex map into sparse matrix form
- *
- * \param nelm	                   Number of elements
- * \param nv		                   Number of vertices
- * \param nve	                       Number of vertices per element
- * \param element_vertex(nelm,nve)   Each row is an element, each column is
- *                                   the corresponding vertices for that element
- *
- * \return el_v:	                   Element to vertex map in CSR format.  Rows
- *                                   are all elements, columns are all vertices.
- *
- * \note Not currently used
- *
- */
+* \fn iCSRmat convert_elmnode(INT *element_vertex,INT nelm,INT nv,INT nve)
+*
+* \brief Convert the input element to vertex map into sparse matrix form
+*
+* \param nelm	                   Number of elements
+* \param nv		                   Number of vertices
+* \param nve	                       Number of vertices per element
+* \param element_vertex(nelm,nve)   Each row is an element, each column is
+*                                   the corresponding vertices for that element
+*
+* \return el_v:	                   Element to vertex map in CSR format.  Rows
+*                                   are all elements, columns are all vertices.
+*
+* \note Not currently used
+*
+*/
 iCSRmat convert_elmnode(INT *element_vertex,INT nelm,INT nv,INT nve)
 {
   // Loop indices
@@ -71,19 +71,19 @@ iCSRmat convert_elmnode(INT *element_vertex,INT nelm,INT nv,INT nve)
 
 /*******************************************************************************/
 /*!
- * \fn iCSRmat get_edge_v(INT* nedge,iCSRmat* el_v)
- *
- * \brief Gets the Edge to Vertex mapping in CSR Fromat (Should be dim independent)
- *        This is used to get Element to Edge map, but also for determining
- *        things such as edge_length and the tangent vectors of edges
- *        The routine also counts the number of edges.
- *
- * \param nedge	  Number of edges
- * \param el_v	  Element to vertex map in CSR format.
- *
- * \return ed_v:	  Edge to vertex map in CSR format.
- *
- */
+* \fn iCSRmat get_edge_v(INT* nedge,iCSRmat* el_v)
+*
+* \brief Gets the Edge to Vertex mapping in CSR Fromat (Should be dim independent)
+*        This is used to get Element to Edge map, but also for determining
+*        things such as edge_length and the tangent vectors of edges
+*        The routine also counts the number of edges.
+*
+* \param nedge	  Number of edges
+* \param el_v	  Element to vertex map in CSR format.
+*
+* \return ed_v:	  Edge to vertex map in CSR format.
+*
+*/
 iCSRmat get_edge_v(INT* nedge,iCSRmat* el_v)
 {
   INT nv = el_v->col;
@@ -155,22 +155,22 @@ iCSRmat get_edge_v(INT* nedge,iCSRmat* el_v)
 
 /*******************************************************************************/
 /*!
- * \fn void boundary_f_ed(iCSRmat* f_ed,iCSRmat* ed_v,INT nedge,INT nface,INT *f_flag,INT *v_flag,INT *nbedge,INT *ed_flag)
- *
- * \brief Counts the number of boundary edges and indicates whether an edge and a face is
- *        a boundary, using the f_flag and v_flag maps.
- *
- * \param f_ed                     Face to Edge Map
- * \param ed_v	                   Edge to vertex map in CSR format.
- * \param nedge	                   Number of edges
- * \param nface	                   Number of faces
- * \param f_flag		           Boundary flag array for faces
- * \param v_bdry                   Boundary flag array for vertices
- *
- * \return nbedge                  Number of boundary edges
- * \return ed_flag                 Boundary flag array for edges
- *
- */
+* \fn void boundary_f_ed(iCSRmat* f_ed,iCSRmat* ed_v,INT nedge,INT nface,INT *f_flag,INT *v_flag,INT *nbedge,INT *ed_flag)
+*
+* \brief Counts the number of boundary edges and indicates whether an edge and a face is
+*        a boundary, using the f_flag and v_flag maps.
+*
+* \param f_ed                     Face to Edge Map
+* \param ed_v	                   Edge to vertex map in CSR format.
+* \param nedge	                   Number of edges
+* \param nface	                   Number of faces
+* \param f_flag		           Boundary flag array for faces
+* \param v_bdry                   Boundary flag array for vertices
+*
+* \return nbedge                  Number of boundary edges
+* \return ed_flag                 Boundary flag array for edges
+*
+*/
 void boundary_f_ed(iCSRmat* f_ed,iCSRmat* ed_v,INT nedge, INT nface,INT *f_flag,INT *v_flag,INT *nbedge,INT *ed_flag,INT dim)
 {
   INT i,j,ed,v1,v2,jcntr; /* Loop indices and counters */
@@ -191,7 +191,7 @@ void boundary_f_ed(iCSRmat* f_ed,iCSRmat* ed_v,INT nedge, INT nface,INT *f_flag,
         v2 = ed_v->JA[ed_v->IA[ed]+1];
         ed_flag[ed] = MAX(v_flag[v1],v_flag[v2]);
         if(ed_flag[ed]>maxe)
-          maxe = ed_flag[ed];
+        maxe = ed_flag[ed];
       }
       f_flag[i] = maxe;
     }
@@ -214,16 +214,16 @@ void boundary_f_ed(iCSRmat* f_ed,iCSRmat* ed_v,INT nedge, INT nface,INT *f_flag,
 
 /*******************************************************************************/
 /*!
- * \fn iCSRmat get_el_ed(iCSRmat* el_v,iCSRmat* ed_v)
- *
- * \brief Gets the Element to Edge mapping in CSR Fromat (Should be dim independent)
- *
- * \param el_v                       Element to vertex map
- * \param ed_v	                   Edge to vertex map
- *
- * \return el_ed                     Element to edge map
- *
- */
+* \fn iCSRmat get_el_ed(iCSRmat* el_v,iCSRmat* ed_v)
+*
+* \brief Gets the Element to Edge mapping in CSR Fromat (Should be dim independent)
+*
+* \param el_v                       Element to vertex map
+* \param ed_v	                   Edge to vertex map
+*
+* \return el_ed                     Element to edge map
+*
+*/
 iCSRmat get_el_ed(iCSRmat* el_v,iCSRmat* ed_v)
 {
   iCSRmat el_ed;
@@ -243,20 +243,20 @@ iCSRmat get_el_ed(iCSRmat* el_v,iCSRmat* ed_v)
 
 /*******************************************************************************/
 /*!
- * \fn void edge_stats_all(REAL *ed_len,REAL *ed_tau,REAL *ed_mid,coordinates *cv,iCSRmat* ed_v,INT dim)
- *
- * \brief Get length, tangent vector (tau), and midpoint of every edge
- *
- * \param cv                         Coordinates of vertices
- * \param ed_v	                   Edge to vertex map
- * \param dim                        Dimension of problem
- *
- * \return ed_len                    Length of each edge
- * \return ed_tau                    Tangent vector or each edge, ordered (tx1,ty1,tz1,tx2,ty2,tz2,...)
- * \return ed_mid                    Midpoint of each edge, ordered (mx1,my1,mz1,mx2,my2,mz2,...)
- *
- *
- */
+* \fn void edge_stats_all(REAL *ed_len,REAL *ed_tau,REAL *ed_mid,coordinates *cv,iCSRmat* ed_v,INT dim)
+*
+* \brief Get length, tangent vector (tau), and midpoint of every edge
+*
+* \param cv                         Coordinates of vertices
+* \param ed_v	                   Edge to vertex map
+* \param dim                        Dimension of problem
+*
+* \return ed_len                    Length of each edge
+* \return ed_tau                    Tangent vector or each edge, ordered (tx1,ty1,tz1,tx2,ty2,tz2,...)
+* \return ed_mid                    Midpoint of each edge, ordered (mx1,my1,mz1,mx2,my2,mz2,...)
+*
+*
+*/
 void edge_stats_all(REAL *ed_len,REAL *ed_tau,REAL *ed_mid,coordinates *cv,iCSRmat* ed_v,INT dim)
 {
   // Loop indices
@@ -290,7 +290,7 @@ void edge_stats_all(REAL *ed_len,REAL *ed_tau,REAL *ed_mid,coordinates *cv,iCSRm
 
     /* Compute Length */
     ed_len[i] = sqrt((x[1]-x[0])*(x[1]-x[0]) + (y[1]-y[0])*(y[1]-y[0]) + \
-        (z[1]-z[0])*(z[1]-z[0]));
+    (z[1]-z[0])*(z[1]-z[0]));
 
     /* Get correct orientation for tangent vectors */
     if(MAX(ip[0],ip[1])==ip[0]) {
@@ -322,24 +322,24 @@ void edge_stats_all(REAL *ed_len,REAL *ed_tau,REAL *ed_mid,coordinates *cv,iCSRm
 
 /*******************************************************************************/
 /*!
- * \fn void get_face_ordering(INT el_order,INT dim,INT f_order,INT *fel_order)
- *
- * \brief Gets the face ordering on element
- *
- *               2
- *             /   \
- *            1     0
- *           /       \
- *          0 ---2----1
- *
- * \param el_order                   Number of nodes per element
- * \param dim                        Dimension of problem
- * \param f_order                    Number of faces per element: 3 in 2D, 4 in 3D
- *
- * \return fel_order                 Indicates order of faces on an element
- *
- *
- */
+* \fn void get_face_ordering(INT el_order,INT dim,INT f_order,INT *fel_order)
+*
+* \brief Gets the face ordering on element
+*
+*               2
+*             /   \
+*            1     0
+*           /       \
+*          0 ---2----1
+*
+* \param el_order                   Number of nodes per element
+* \param dim                        Dimension of problem
+* \param f_order                    Number of faces per element: 3 in 2D, 4 in 3D
+*
+* \return fel_order                 Indicates order of faces on an element
+*
+*
+*/
 void get_face_ordering(INT el_order,INT dim,INT f_order,INT *fel_order)
 {
   // Loop indices
@@ -364,31 +364,31 @@ void get_face_ordering(INT el_order,INT dim,INT f_order,INT *fel_order)
 
 /*******************************************************************************/
 /*!
- * \fn void get_face_maps(iCSRmat* el_v,INT el_order,iCSRmat* ed_v,INT nface,INT dim,INT f_order,iCSRmat *el_f,INT *f_bdry,INT *nbface,iCSRmat *f_v,iCSRmat *f_ed,INT *fel_order)
- *
- * \brief Gets the Element to Face, Face to Node, Face to Boundary mapping in CSR
- *        format as well as face ordering on element (Should be dim independent)
- *
- *               2
- *             /   \
- *            1     0
- *           /       \
- *          0 ---2----1
- *
- * \param el_v                       Element to vertex map
- * \param el_order                   Number of nodes per element
- * \param ed_v                       Edge to vertex map
- * \param nface                      Number of faces
- * \param dim                        Dimension of problem
- * \param f_order                    Number of faces per element: 3 in 2D, 4 in 3D
- * \param fel_order                  Indicates order of faces on an element
- *
- * \return el_f                      Element to face map
- * \return f_bdry                    Binary boundary array for faces
- * \return nbf                       Number of boundary faces
- * \return f_v                       Face to vertex map
- *
- */
+* \fn void get_face_maps(iCSRmat* el_v,INT el_order,iCSRmat* ed_v,INT nface,INT dim,INT f_order,iCSRmat *el_f,INT *f_bdry,INT *nbface,iCSRmat *f_v,iCSRmat *f_ed,INT *fel_order)
+*
+* \brief Gets the Element to Face, Face to Node, Face to Boundary mapping in CSR
+*        format as well as face ordering on element (Should be dim independent)
+*
+*               2
+*             /   \
+*            1     0
+*           /       \
+*          0 ---2----1
+*
+* \param el_v                       Element to vertex map
+* \param el_order                   Number of nodes per element
+* \param ed_v                       Edge to vertex map
+* \param nface                      Number of faces
+* \param dim                        Dimension of problem
+* \param f_order                    Number of faces per element: 3 in 2D, 4 in 3D
+* \param fel_order                  Indicates order of faces on an element
+*
+* \return el_f                      Element to face map
+* \return f_bdry                    Binary boundary array for faces
+* \return nbf                       Number of boundary faces
+* \return f_v                       Face to vertex map
+*
+*/
 void get_face_maps(iCSRmat* el_v,INT el_order,iCSRmat* ed_v,INT nface,INT dim,INT f_order,iCSRmat *el_f,INT *f_bdry,INT *nbface,iCSRmat *f_v,iCSRmat *f_ed,INT *fel_order)
 {
   // Flag for errors
@@ -515,7 +515,7 @@ void get_face_maps(iCSRmat* el_v,INT el_order,iCSRmat* ed_v,INT nface,INT dim,IN
   icsr_trans(&f_el,el_f);
 
   /* Transpose face_node and back again to order nodes in increasing order
-   * (from global structure) */
+  * (from global structure) */
   iCSRmat v_f;
   icsr_trans(f_v,&v_f);
   icsr_free(f_v);
@@ -527,10 +527,10 @@ void get_face_maps(iCSRmat* el_v,INT el_order,iCSRmat* ed_v,INT nface,INT dim,IN
   icsr_trans(ed_v,&v_ed);
   icsr_mxm_symb_max(f_v,&v_ed,&face_ed,2);
   for(i=0;i<nface+1;i++)
-    f_ed->IA[i] = face_ed.IA[i];
+  f_ed->IA[i] = face_ed.IA[i];
 
   for(i=0;i<nface*edpf;i++)
-    f_ed->JA[i] = face_ed.JA[i];
+  f_ed->JA[i] = face_ed.JA[i];
   icsr_free(&face_ed);
   icsr_free(&v_ed);
 
@@ -546,19 +546,19 @@ void get_face_maps(iCSRmat* el_v,INT el_order,iCSRmat* ed_v,INT nface,INT dim,IN
 
 /*******************************************************************************/
 /*!
- * \fn void find_facenumber(iCSRmat* el_v,INT elm,INT* nd,INT dim,INT *f_num)
- *
- * \brief Find the face number of the given element, using the element it shares the face with
- *
- * \param el_v                       Element to vertex map
- * \param elm                        Current element we consider
- * \param nd                         Nodes of current face
- * \param dim                        Dimension of problem
- *
- * \return f_num                     Face number for that element
- *
- *
- */
+* \fn void find_facenumber(iCSRmat* el_v,INT elm,INT* nd,INT dim,INT *f_num)
+*
+* \brief Find the face number of the given element, using the element it shares the face with
+*
+* \param el_v                       Element to vertex map
+* \param elm                        Current element we consider
+* \param nd                         Nodes of current face
+* \param dim                        Dimension of problem
+*
+* \return f_num                     Face number for that element
+*
+*
+*/
 void find_facenumber(iCSRmat* el_v,INT elm,INT* nd,INT dim,INT *f_num)
 {
   INT cola,colb,mark,icnt,i,j,mynd;
@@ -590,18 +590,18 @@ void find_facenumber(iCSRmat* el_v,INT elm,INT* nd,INT dim,INT *f_num)
 
 /*******************************************************************************/
 /*!
- * \fn void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,mesh_struct *mesh)
- *
- * \brief Get area, normal vector, and midpoints for all faces
- *
- * \param mesh                       Mesh struct
- *
- * \return f_area                    Area of each face (length in 2D)
- * \return f_norm                    Normal vector or each face
- * \return f_mid                     Midpoint of each face
- *
- *
- */
+* \fn void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,mesh_struct *mesh)
+*
+* \brief Get area, normal vector, and midpoints for all faces
+*
+* \param mesh                       Mesh struct
+*
+* \return f_area                    Area of each face (length in 2D)
+* \return f_norm                    Normal vector or each face
+* \return f_mid                     Midpoint of each face
+*
+*
+*/
 void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,mesh_struct *mesh)
 {
   // Flag for errors
@@ -710,7 +710,7 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,mesh_struct *
       e2y = yf[2]-yf[0];
       e2z = zf[2]-zf[0];
       f_area[i] = 0.5*sqrt(pow(e1y*e2z-e2y*e1z,2)+pow(e1z*e2x-e2z*e1x,2)+ \
-                           pow(e1x*e2y-e2x*e1y,2));
+      pow(e1x*e2y-e2x*e1y,2));
       f_mid[i*dim] = (xf[0]+xf[1]+xf[2])*dimover;
       f_mid[i*dim+1] = (yf[0]+yf[1]+yf[2])*dimover;
       f_mid[i*dim+2] = (zf[0]+zf[1]+zf[2])*dimover;
@@ -754,17 +754,17 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,mesh_struct *
 
 /********************************************************************************/
 /*!
- * \fn void sync_facenode(iCSRmat *f_v,REAL* f_norm,mesh_struct *mesh)
- *
- * \brief Reorder the Face-Node mapping so it has positive orientation with
- *        respect to the face's normal vector
- *
- * \param mesh                       Mesh struct
- * \param f_norm                     Normal vector or each face
- *
- * \return f_v                       Reordered face to vertex map
- *
- */
+* \fn void sync_facenode(iCSRmat *f_v,REAL* f_norm,mesh_struct *mesh)
+*
+* \brief Reorder the Face-Node mapping so it has positive orientation with
+*        respect to the face's normal vector
+*
+* \param mesh                       Mesh struct
+* \param f_norm                     Normal vector or each face
+*
+* \return f_v                       Reordered face to vertex map
+*
+*/
 void sync_facenode(iCSRmat *f_v,REAL* f_norm,mesh_struct *mesh)
 {
   // Loop indices
@@ -851,17 +851,17 @@ void sync_facenode(iCSRmat *f_v,REAL* f_norm,mesh_struct *mesh)
 
 /********************************************************************************/
 /*!
- * \fn void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
- *
- * \brief Compute the midpoints of a triangluar element using the vertices
- *
- * \param el_v                   Element to vertex map
- * \param cv                     Coordinates of vertices
- *
- * \return el_mid                Midpoint of elements
- *
- *
- */
+* \fn void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
+*
+* \brief Compute the midpoints of a triangluar element using the vertices
+*
+* \param el_v                   Element to vertex map
+* \param cv                     Coordinates of vertices
+*
+* \return el_mid                Midpoint of elements
+*
+*
+*/
 void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
 {
   // Flag for errors
@@ -929,19 +929,19 @@ void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
 
 /********************************************************************************/
 /*!
- * \fn void get_el_vol(REAL *el_vol,iCSRmat *el_v,coordinates *cv,INT dim,INT v_per_elm)
- *
- * \brief Compute the area/volume of ALL triangluar/tetrahedral elements using the vertices
- *
- * \param el_v                   Element to vertex map
- * \param cv                     Coordinates of vertices
- * \param dim                    Dimension of problem
- * \param v_per_elm              Number of vertices per element
- *
- * \return el_vol                Area/Volume of each element
- *
- *
- */
+* \fn void get_el_vol(REAL *el_vol,iCSRmat *el_v,coordinates *cv,INT dim,INT v_per_elm)
+*
+* \brief Compute the area/volume of ALL triangluar/tetrahedral elements using the vertices
+*
+* \param el_v                   Element to vertex map
+* \param cv                     Coordinates of vertices
+* \param dim                    Dimension of problem
+* \param v_per_elm              Number of vertices per element
+*
+* \return el_vol                Area/Volume of each element
+*
+*
+*/
 void get_el_vol(REAL *el_vol,iCSRmat *el_v,coordinates *cv,INT dim,INT v_per_elm)
 {
   //  old_get_el_vol(el_vol,el_v,cv,dim,v_per_elm);
@@ -965,7 +965,7 @@ void get_el_vol(REAL *el_vol,iCSRmat *el_v,coordinates *cv,INT dim,INT v_per_elm
       lnv=l*nv;
       for (j=j_a; j<j_b; j++) {
         k=el_v->JA[j];
-        x[lv+jcnt] = cv->x[lnv+k];
+        x[lv+jcnt] = cv->x[l+k*dim];
         jcnt++;
       }
     }
@@ -975,7 +975,7 @@ void get_el_vol(REAL *el_vol,iCSRmat *el_v,coordinates *cv,INT dim,INT v_per_elm
     } else if(dim==2) {
       y=x+v_per_elm;
       el_vol[i] = 0.5*fabs(y[0]*(x[1]-x[2]) + y[1]*(x[2]-x[0]) +	\
-			   y[2]*(x[0]-x[1]));
+      y[2]*(x[0]-x[1]));
       //      fprintf(stdout,"dim=%d; diff=%e\n",dim,el_voli-el_vol[i]);
     } else if(dim==3) {
       y=x+v_per_elm;z=y+v_per_elm;
@@ -989,7 +989,7 @@ void get_el_vol(REAL *el_vol,iCSRmat *el_v,coordinates *cv,INT dim,INT v_per_elm
       z3 = z[2]-z[0];
       z4 = z[3]-z[0];
       el_vol[i] = fabs(x2*(y3*z4-y4*z3) - y2*(x3*z4-x4*z3) +	\
-		       z2*(x3*y4-x4*y3))/6.0;
+      z2*(x3*y4-x4*y3))/6.0;
     }
   }
 
@@ -998,3 +998,103 @@ void get_el_vol(REAL *el_vol,iCSRmat *el_v,coordinates *cv,INT dim,INT v_per_elm
   return;
 }
 /**************************************************************************/
+
+/********************************************************************************/
+/*!
+* \fn void get_single_elm_vol(REAL *el_vol,coordinates *cv,INT dim)
+*
+* \brief Compute the area/volume of a single simplex element using the vertices
+*
+* \param cv                     Coordinates of vertices
+* \param dim                    Dimension of problem
+*
+* \return el_vol                Area/Volume of each element
+*
+*/
+void get_single_elm_vol(REAL *el_vol,coordinates *cv,INT dim)
+{
+
+  // Flag for errors
+  SHORT status;
+
+  // Keep track of vertices
+  REAL x0,x1,x2,x3,y0,y1,y2,y3,z0,z1,z2,z3;
+
+  if(dim==1) {
+    x0 = cv->x[0];
+    x1 = cv->x[1];
+    *el_vol=fabs(x1-x0);
+
+  } else if(dim==2) {
+    x0 = cv->x[0];
+    x1 = cv->x[dim];
+    x2 = cv->x[2*dim];
+    y0 = cv->x[1];
+    y1 = cv->x[dim+1];
+    y2 = cv->x[2*dim+1];
+    *el_vol = 0.5*fabs(y0*(x1-x2) + y1*(x2-x0) + y2*(x0-x1));
+  } else if(dim==3) {
+    x0 = cv->x[0];
+    x1 = cv->x[dim];
+    x2 = cv->x[2*dim];
+    x3 = cv->x[3*dim];
+    y0 = cv->x[1];
+    y1 = cv->x[dim+1];
+    y2 = cv->x[2*dim+1];
+    y3 = cv->x[3*dim+1];
+    z0 = cv->x[2];
+    z1 = cv->x[dim+2];
+    z2 = cv->x[2*dim+2];
+    z3 = cv->x[3*dim+2];
+
+    *el_vol = fabs((x1-x0)*((y2-y0)*(z3-z0)-(y3-y0)*(z2-z0)) - (y1-y0)*((x2-x0)*(z3-z0)-(x3-x0)*(z2-z0)) + \
+    (z1-z0)*((x2-x0)*(y3-y0)-(x3-x0)*(y2-y0)))/6.0;
+  } else {
+    status = ERROR_DIM;
+    check_error(status, __FUNCTION__);
+  }
+
+  return;
+}
+/**************************************************************************/
+
+/******************************************************************************/
+/*!
+* \fn coordinates* get_cv_elm(INT elm,mesh_struct* mesh)
+*
+* \brief Gets coordinates of vertices on an element
+*
+* \param elm       Element to grab
+* \param mesh      Mesh
+*
+* \return cvelm    Coordinate struct for vertices on element
+*
+*/
+coordinates* get_cv_elm(INT elm,mesh_struct* mesh)
+{
+
+  // Loop indices
+  INT i;
+
+  // Mesh Data
+  INT dim = mesh->dim;
+  INT nelm = mesh->nelm;
+  INT v_per_elm = mesh->v_per_elm;
+
+  // Allocate the structure
+  coordinates* cvelm = allocatecoords(v_per_elm,dim)
+
+  // Grab vertices of the element
+  INT* v_on_elm = (INT *) calloc(v_per_elm,sizeof(INT));
+  get_incidence_row(elm,mesh->el_v,v_on_elm);
+
+  for(i=0;i<v_per_elm) {
+    for(j=0;j<dim;j++) {
+      vertex = v_on_elm[i];
+      cvelm->x[i*dim+j] = mesh->cv->x[vertex*dim+j];
+    }
+  }
+
+  return cvelm;
+}
+/******************************************************************************/
