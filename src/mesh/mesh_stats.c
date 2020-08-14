@@ -278,10 +278,10 @@ void edge_stats_all(REAL *ed_len,REAL *ed_tau,REAL *ed_mid,coordinates *cv,iCSRm
     jcnt = 0;
     for (j=j_a; j<j_b;j++) {
       ip[jcnt] = ed_v->JA[j];
-      x[jcnt] = cv->x[ip[jcnt]];
-      y[jcnt] = cv->y[ip[jcnt]];
+      x[jcnt] = cv->x[ip[jcnt]*dim];
+      y[jcnt] = cv->x[ip[jcnt]*dim+1];
       if (dim==3) {
-        z[jcnt] = cv->z[ip[jcnt]];
+        z[jcnt] = cv->x[ip[jcnt]*dim+2];
       } else {
         z[jcnt] = 0;
       }
@@ -474,7 +474,7 @@ void get_face_maps(iCSRmat* el_v,INT el_order,iCSRmat* ed_v,INT nface,INT dim,IN
         f_el.val[jcntr] = j;
         f_el.JA[jcntr+1] = el;
         // Find face number for other element
-        find_facenumber(el_v,el,nd,dim,&f_num); 
+        find_facenumber(el_v,el,nd,dim,&f_num);
         f_el.val[jcntr+1] = f_num;
         f_bdry[icntr] = 0;
         f_v->IA[icntr] = kcntr;
@@ -655,10 +655,10 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,mesh_struct *
     jcnt = 0;
     for (j=j_a; j<j_b;j++) {
       ipf[jcnt] = f_v->JA[j];
-      xf[jcnt] = cv->x[ipf[jcnt]];
-      yf[jcnt] = cv->y[ipf[jcnt]];
+      xf[jcnt] = cv->x[ipf[jcnt]*dim];
+      yf[jcnt] = cv->x[ipf[jcnt]*dim+1];
       if (dim==3) {
-        zf[jcnt] = cv->z[ipf[jcnt]];
+        zf[jcnt] = cv->x[ipf[jcnt]*dim+2];
       }
       jcnt++;
     }
@@ -691,10 +691,10 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,mesh_struct *
       myel_n[jcnt] = el_v->JA[j];
       jcnt++;
     }
-    myx[0] = cv->x[myel_n[myopn]];
-    myx[1] = cv->y[myel_n[myopn]];
+    myx[0] = cv->x[myel_n[myopn]*dim];
+    myx[1] = cv->x[myel_n[myopn]*dim+1];
     if(dim==3) {
-      myx[2] = cv->z[myel_n[myopn]];
+      myx[2] = cv->x[myel_n[myopn]*dim+2];
     }
 
     /* Compute Area (length if 2D) and get midpt of face */
@@ -793,8 +793,8 @@ void sync_facenode(iCSRmat *f_v,REAL* f_norm,mesh_struct *mesh)
       jcnt=0;
       for(j=rowa;j<rowb;j++) {
         nd = f_v->JA[j];
-        xf[jcnt] = cv->x[nd];
-        yf[jcnt] = cv->y[nd];
+        xf[jcnt] = cv->x[nd*dim];
+        yf[jcnt] = cv->x[nd*dim+1];
         jcnt++;
       }
       // Determine proper orientation of basis vectors  Compute n^(\perp)*t.
@@ -822,9 +822,9 @@ void sync_facenode(iCSRmat *f_v,REAL* f_norm,mesh_struct *mesh)
       jcnt=0;
       for(j=rowa;j<rowb;j++) {
         nd = f_v->JA[j];
-        xf[jcnt] = cv->x[nd];
-        yf[jcnt] = cv->y[nd];
-        zf[jcnt] = cv->z[nd];
+        xf[jcnt] = cv->x[nd*dim];
+        yf[jcnt] = cv->x[nd*dim+1];
+        zf[jcnt] = cv->x[nd*dim+2];
         jcnt++;
       }
       // Determine proper orientation of basis vectors  Compute n^(\perp)*t.
@@ -878,7 +878,7 @@ void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
       el_mid[i]=0;
       for (j=acol; j<bcol; j++) {
         nd = el_v->JA[j];
-        el_mid[i] += cv->x[nd];
+        el_mid[i] += cv->x[nd*dim];
         cnt++;
       }
       el_mid[i]=el_mid[i]/2.0;
@@ -892,8 +892,8 @@ void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
       el_mid[i*dim+1]=0;
       for (j=acol; j<bcol; j++) {
         nd = el_v->JA[j];
-        el_mid[i*dim] += cv->x[nd];
-        el_mid[i*dim+1] += cv->y[nd];
+        el_mid[i*dim] += cv->x[nd*dim];
+        el_mid[i*dim+1] += cv->x[nd*dim+1];
         cnt++;
       }
       el_mid[i*dim]=el_mid[i*dim]/3.0;
@@ -909,9 +909,9 @@ void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
       el_mid[i*dim+2]=0;
       for (j=acol; j<bcol; j++) {
         nd = el_v->JA[j];
-        el_mid[i*dim] += cv->x[nd];
-        el_mid[i*dim+1] += cv->y[nd];
-        el_mid[i*dim+2] += cv->z[nd];;
+        el_mid[i*dim] += cv->x[nd*dim];
+        el_mid[i*dim+1] += cv->x[nd*dim+1];
+        el_mid[i*dim+2] += cv->x[nd*dim+2];;
         cnt++;
       }
       el_mid[i*dim]=0.25*el_mid[i*dim];

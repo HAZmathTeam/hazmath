@@ -45,7 +45,7 @@ typedef struct qcoordinates{
   //! Size of arrays (number of quadrature nodes)
   INT n;
 
-  //! Number of quadrature nodes on 1 element
+  //! Number of quadrature nodes on 1 entity (face or element or edge)
   INT nq_per_elm;
 
   //! Number of quadrature nodes in one direction
@@ -59,23 +59,25 @@ typedef struct qcoordinates{
  */
 typedef struct fe_space{
 
-  //! Type of finite element: 0-9 PX | 10-19 QX (not yet) | 20 Ned | 30 RT | -9 - -1 DGX (not yet) | 61 - face bubbles | 99 - single DOF for constraints
+  //! Type of finite element:
+  // Implemented:  0-2: PX | 20: Ned-0 | 30: RT-0 | 62: P1 + facebubble | 99: single DoF for constraints
+  // TBI: -9--1: DGX | 10-19: QX | 21-29: Ned-X | 31:39: RT-X | 40-59: Ned/RT-X on quads | 60: vector of scalars | 61: MINI element
   INT fe_type;
 
-  //! Indicates if this is a space of scalara functions, 0, or a space of vector functions, 1.
+  //! Indicates if this is a space of scalar functions, 0, or a space of vector functions, 1.
   INT scal_or_vec;
 
   //! Number of Elements
   INT nelm;
 
-  //! Coordinates of DOF
-  coordinates* cdof;
+  //! pointer to the mesh
+  mesh_struct* mesh;
+
+  //! Where is the DoF defined: 3 - element; 2 - face; 1 - edge; 0 - vertex
+  INT dof_form;
 
   //! number of DOF
   INT ndof;
-
-  //! number of DOF on boundary
-  INT nbdof;
 
   //! number of DOF per element
   INT dof_per_elm;
@@ -104,9 +106,10 @@ typedef struct fe_space{
   //! Perioidc Boundaries (For each DOF indicate if it is periodic with another DOF.  Mark -1 for non-periodic)
   INT* periodic;
 
-  //! Basis Functions and Derivatives
+  //! Basis Functions and Derivatives on quadrature of reference element
   REAL* phi;
   REAL* dphi;
+  REAL* ddphi;
 
 } fe_space;
 
@@ -126,22 +129,13 @@ typedef struct fe_system {
   //! total number of dof
   INT ndof;
 
-  //! total number of boundary dof
-  INT nbdof;
-
   //! blocks of fespaces
   fe_space **var_spaces;
-
-  //! Dirichlet Boundaries (1 if Dirichlet; 0 if not) for ALL unknowns
-  INT* dirichlet;
-
-  //! All DOF flags - indicates if the DOF is a special DOF (i.e. on certain boundary)
-  INT* dof_flag;
 
   //! Local Data - stuff needed on a given element (or face or edge)
   local_data **loc_data;
 
-} fe_system; /**< Matrix of REAL type in Block CSR format */
+} fe_system;
 
 /**
  * \struct local_data
@@ -150,8 +144,17 @@ typedef struct fe_system {
  */
 typedef struct local_data {
 
+  //! Number of DoF locally
+  INT nlocal_dof;
+
+  //! Dimension of mesh
+  INT dim;
+
   //! DoF on element/face/edge
   INT* local_dof;
+
+  //! Local Flags of DoF
+  INT* local_dof_flags;
 
   //! vertices on element/face/edge
   INT* local_vert;
@@ -159,13 +162,14 @@ typedef struct local_data {
   //! coordinates of local vertices
   coordinates* cv;
 
-  //! Basis functions at quadrature points on element/face/edge
-  REAL* phi
+  //! Solution at local DoF
+  REAL* u_local;
 
-  //! Derivatives of basis functions at quadrature points on //! Basis functions at quadrature points on element/face/edge
-  REAL* dphi
+  //! Basis functions andderivatives at quadrature points on element/face/edge
+  REAL* phi;
+  REAL* dphi;
+  REAL* ddphi;
 
-} fe_system; /**< Matrix of REAL type in Block CSR format */
-
+} local_data;
 
 #endif
