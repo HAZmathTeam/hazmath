@@ -75,6 +75,14 @@ typedef struct /* n-homogenous simplicial complex */
   REAL *fval; /* function values at vertices (could be ANY, but is
 		 used for elevation in hydrolena) */
   REAL factorial; /*n factorial */
+  INT **el2fnum; /* for every element this gives the local to global
+		 face number map;   */
+  INT *bcodesf; /* codes for boundary faces */
+  INT *isbface; /* indicator if a face is on the boundary */
+  iCSRmat *bfs; /* bfs levels structure for the mesh (is,it) nonzero
+		   if and only if they share a face; */
+  INT *etree; /* bfs tree (etree[k]=unique_ancestor_of_k in the BFS
+		 tree) */
   INT cc; /*n connected components */
   INT bndry_cc; /*connected components on the boundary */
 } scomplex;
