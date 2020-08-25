@@ -36,6 +36,9 @@
  */
 typedef struct qcoordinates{
 
+  //! Dimension of problem
+  INT dim;
+  
   //! quadrature points (ordered x(q1) y(q1) z(q1) x(q2) y(q2) z(q2) etc...)
   REAL* x;
 
