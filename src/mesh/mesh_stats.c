@@ -1058,6 +1058,98 @@ void get_single_elm_vol(REAL *el_vol,coordinates *cv,INT dim)
 }
 /**************************************************************************/
 
+/********************************************************************************/
+/*!
+* \fn void get_single_face_area(REAL *f_area,coordinates *cv,INT dim)
+*
+* \brief Compute the area/length of a single simplex face using the vertices
+*
+* \param cv                     Coordinates of vertices
+* \param dim                    Dimension of problem
+*
+* \return f_area                Area/Length of each face
+*
+*/
+void get_single_face_area(REAL *f_area,coordinates *cv,INT dim)
+{
+
+  // Flag for errors
+  SHORT status;
+
+  // Keep track of vertices
+  REAL x0,x1,x2,y0,y1,y2,z0,z1,z2;
+
+  if(dim==2) {
+    x0 = cv->x[0];
+    x1 = cv->x[dim];
+    y0 = cv->x[1];
+    y1 = cv->x[dim+1];
+    *f_area = sqrt((x1-x0)*(x1-x0) + (y1-y0)*(y1-y0));
+  } else if(dim==3) {
+    x0 = cv->x[0];
+    x1 = cv->x[dim];
+    x2 = cv->x[2*dim];
+    y0 = cv->x[1];
+    y1 = cv->x[dim+1];
+    y2 = cv->x[2*dim+1];
+    z0 = cv->x[2];
+    z1 = cv->x[dim+2];
+    z2 = cv->x[2*dim+2];
+    *f_area = 0.5*sqrt(pow((y1-y0)*(z2-z0)-(y2-y0)*(z1-z0),2)+pow((z1-z0)*(x2-x0)-(z2-z0)*(x1-x0),2) + \
+    pow((x1-x0)*(y2-y0)-(x2-x0)*(y1-y0),2));
+  } else {
+    status = ERROR_DIM;
+    check_error(status, __FUNCTION__);
+  }
+
+  return;
+}
+/**************************************************************************/
+
+/********************************************************************************/
+/*!
+* \fn void get_single_edge_length(REAL *ed_len,coordinates *cv,INT dim)
+*
+* \brief Compute the length of a single simplex edge using the vertices
+*
+* \param cv                     Coordinates of vertices
+* \param dim                    Dimension of problem
+*
+* \return ed_len                Length of each edge
+*
+*/
+void get_single_edge_length(REAL *ed_len,coordinates *cv,INT dim)
+{
+
+  // Flag for errors
+  SHORT status;
+
+  // Keep track of vertices
+  REAL x0,x1,y0,y1,z0,z1;
+
+  if(dim==2) {
+    x0 = cv->x[0];
+    x1 = cv->x[dim];
+    y0 = cv->x[1];
+    y1 = cv->x[dim+1];
+    *ed_len = sqrt((x1-x0)*(x1-x0) + (y1-y0)*(y1-y0));
+  } else if(dim==3) {
+    x0 = cv->x[0];
+    x1 = cv->x[dim];
+    y0 = cv->x[1];
+    y1 = cv->x[dim+1];
+    z0 = cv->x[2];
+    z1 = cv->x[dim+2];
+    *ed_len = sqrt((x1-x0)*(x1-x0) + (y1-y0)*(y1-y0) + (z1-z0)*(z1-z0));
+    status = ERROR_DIM;
+    check_error(status, __FUNCTION__);
+  }
+
+  return;
+}
+/**************************************************************************/
+
+
 /******************************************************************************/
 /*!
 * \fn coordinates* get_cv_elm(INT elm,mesh_struct* mesh)
@@ -1074,11 +1166,10 @@ coordinates* get_cv_elm(INT elm,mesh_struct* mesh)
 {
 
   // Loop indices
-  INT i;
+  INT i, j, vertex;
 
   // Mesh Data
   INT dim = mesh->dim;
-  INT nelm = mesh->nelm;
   INT v_per_elm = mesh->v_per_elm;
 
   // Allocate the structure
@@ -1089,12 +1180,92 @@ coordinates* get_cv_elm(INT elm,mesh_struct* mesh)
   get_incidence_row(elm,mesh->el_v,v_on_elm);
 
   for(i=0;i<v_per_elm) {
+    vertex = v_on_elm[i];
     for(j=0;j<dim;j++) {
-      vertex = v_on_elm[i];
       cvelm->x[i*dim+j] = mesh->cv->x[vertex*dim+j];
     }
   }
 
   return cvelm;
+}
+/******************************************************************************/
+
+/******************************************************************************/
+/*!
+* \fn coordinates* get_cv_face(INT face,mesh_struct* mesh)
+*
+* \brief Gets coordinates of vertices on a face
+*
+* \param face      Face to grab
+* \param mesh      Mesh
+*
+* \return cvface    Coordinate struct for vertices on face
+*
+*/
+coordinates* get_cv_face(INT face,mesh_struct* mesh)
+{
+
+  // Loop indices
+  INT i, j, vertex;
+
+  // Mesh Data
+  INT dim = mesh->dim;
+  INT v_per_face = dim;
+
+  // Allocate the structure
+  coordinates* cvface = allocatecoords(v_per_face,dim)
+
+  // Grab vertices of the element
+  INT* v_on_face = (INT *) calloc(v_per_face,sizeof(INT));
+  get_incidence_row(face,mesh->f_v,v_on_face);
+
+  for(i=0;i<v_per_face) {
+    vertex = v_on_face[i];
+    for(j=0;j<dim;j++) {
+      cvface->x[i*dim+j] = mesh->cv->x[vertex*dim+j];
+    }
+  }
+
+  return cvface;
+}
+/******************************************************************************/
+
+/******************************************************************************/
+/*!
+* \fn coordinates* get_cv_edge(INT edge,mesh_struct* mesh)
+*
+* \brief Gets coordinates of vertices on an edge
+*
+* \param edge      Edge to grab
+* \param mesh      Mesh
+*
+* \return cvedge   Coordinate struct for vertices on edge
+*
+*/
+coordinates* get_cv_edge(INT edge,mesh_struct* mesh)
+{
+
+  // Loop indices
+  INT i, j, vertex;
+
+  // Mesh Data
+  INT dim = mesh->dim;
+  INT v_per_edge = 2;
+
+  // Allocate the structure
+  coordinates* cvedge = allocatecoords(v_per_edge,dim)
+
+  // Grab vertices of the element
+  INT* v_on_edge = (INT *) calloc(v_per_edge,sizeof(INT));
+  get_incidence_row(edge,mesh->ed_v,v_on_edge);
+
+  for(i=0;i<v_per_edge) {
+    vertex = v_on_edge[i];
+    for(j=0;j<dim;j++) {
+      cvedge->x[i*dim+j] = mesh->cv->x[vertex*dim+j];
+    }
+  }
+
+  return cvedge;
 }
 /******************************************************************************/
