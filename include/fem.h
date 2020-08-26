@@ -38,7 +38,7 @@ typedef struct qcoordinates{
 
   //! Dimension of problem
   INT dim;
-  
+
   //! quadrature points (ordered x(q1) y(q1) z(q1) x(q2) y(q2) z(q2) etc...)
   REAL* x;
 
@@ -69,12 +69,6 @@ typedef struct fe_space{
 
   //! Indicates if this is a space of scalar functions, 0, or a space of vector functions, 1.
   INT scal_or_vec;
-
-  //! Number of Elements
-  INT nelm;
-
-  //! pointer to the mesh
-  mesh_struct* mesh;
 
   //! Where is the DoF defined: 3 - element; 2 - face; 1 - edge; 0 - vertex
   INT dof_form;
@@ -123,6 +117,12 @@ typedef struct fe_space{
  */
 typedef struct fe_system {
 
+  //! Number of Elements
+  INT nelm;
+
+  //! pointer to the mesh
+  mesh_struct* mesh;
+  
   //! number of FEM spaces in system
   INT nspaces;
 
