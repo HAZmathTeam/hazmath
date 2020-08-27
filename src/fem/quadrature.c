@@ -115,7 +115,8 @@ void quad_refelm(qcoordinates *cqelm,INT nq1d,INT dim)
   INT q,j;
 
   /* Total Number of Quadrature Nodes */
-  INT nq = pow(nq1d,dim);
+  INT nq = nq1d;
+  for(j=1;j<dim;j++) nq *= nq1d;
 
   /* Gaussian points for quadrature reference element */
   // Note: In 1D the quadrature is for [-1,1]
