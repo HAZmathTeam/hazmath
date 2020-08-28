@@ -15,6 +15,8 @@
 /*********************************************************************/
 #include "solve_estimate_mark.h"
 /*********************************************************************/
+// an interior vertex is defined as the vertex such that all faces attached to it are interior.
+//
 INT main(INT   argc,   char *argv[])
 {
   FILE *fp=stdin;     
