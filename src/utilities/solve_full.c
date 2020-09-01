@@ -338,6 +338,66 @@ void qr_full(const INT m, const INT n, REAL *A, REAL *Q, REAL *R)
   free (qj);
 
 }
+
+/**************************************************************************/
+/*
+ * \fn void svd_full(const INT m, const INT n, REAL *A, REAL *U, REAL *VT, REAL* S,INT computeUV)
+ *
+ * \brief SVD decomposition of A in Full Format using LAPACK: A=U*S*VT
+ *
+ * \param m     number of rows
+ * \param n     number of columns
+ * \param A     full matrix (mxn)
+ * \param computeUV 1 returns U and V^T matrices 0: only singular values
+ *
+ * \return U    orthogonal full matrix from SVD (mxm)
+ * \return VT   orthogonal full matrix, V^T from SVD (nxn)
+ * \return S    singular values (mxn diagonal)
+ *
+ * \note This calls LAPACK
+ */
+INT svd_full(INT m, INT n, REAL *A, REAL *U, REAL *VT, REAL* S,INT computeUV)
+{
+  INT info=-22;
+#if WITH_LAPACK
+  // We assume we are entering with a row-major full Matrix
+  // but will convert for FORTRAN
+  INT lda = m;
+  INT ldu = m;
+  INT ldvt = n;
+
+  // Allocate a work array
+  REAL* dwork;
+  REAL workopt; // Dummy variable to figure out optimal workspace
+  INT lwork=-1; // Indicates we're not solving yet
+
+  // Convert to column-wise ordering
+  r2c(m,n,sizeof(REAL),(void *)A);
+
+  // Default to not compute U and V^T
+  // Later can decide if you want the partial computations.
+  char jobuv = 'N';
+  if(computeUV) jobuv = 'A';
+
+  // First call to allocate OPTIMAL workspace
+  dgesvd_(&jobuv,&jobuv,&m,&n,A,&lda,S,U,&ldu,VT,&ldvt,&workopt,&lwork,&info);
+  lwork = (INT) workopt;
+  dwork = (REAL *) calloc(lwork,sizeof(REAL));
+
+  // Compute svd
+  dgesvd_(&jobuv,&jobuv,&m,&n,A,&lda,S,U,&ldu,VT,&ldvt,dwork,&lwork,&info);
+
+  if(info){
+    fprintf(stderr,"\nXXX: lapack error info during svd computations=%d\n",info);fflush(stderr);
+    exit(16);
+  }
+  return info;
+#else
+  error_extlib(252, __FUNCTION__, "LAPACK");
+  return info;
+#endif
+}
+
 /*******************************************************************/
 /* \fn  void c2r(const INT n, const INT m, const size_t sizeel, void *x)
  *
