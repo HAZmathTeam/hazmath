@@ -13,10 +13,10 @@ INT eigsymm(dCSRmat *A,dCSRmat *B,REAL *evalues, REAL *evectors)
 {
   INT info=-22;
 #if WITH_LAPACK
-  /*    
-	evalues must have enough space for n reals; if evectors is a 
-	NULL: compute only eigenvalues; otherwise evectors must be n*n 
-	reals upon entering here. 
+  /*
+	evalues must have enough space for n reals; if evectors is a
+	NULL: compute only eigenvalues; otherwise evectors must be n*n
+	reals upon entering here.
   */
   char uplo='U',jobz='N';
   INT n=A->row;
@@ -31,11 +31,12 @@ INT eigsymm(dCSRmat *A,dCSRmat *B,REAL *evalues, REAL *evectors)
   }
   bf=calloc(n*n+lwork,sizeof(REAL));
   dcsr2full(A,af);
-  /* 
+  /*
      if the matrix is not symmetric we need to do here c2r before we
      call the fortran to make the matrix stored "fortran friendly". We
      use c2r here just to be consistent
   */
+  // TODO: Shouldn't this be r2c?  But it's symmetric anyway??
   c2r(n,n,sizeof(REAL),(void *)af);
   /*B must be always symmetric as it should define an inner product  so no need of c2r; */
   dcsr2full(B,bf);
