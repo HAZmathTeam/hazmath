@@ -469,7 +469,8 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
     x[0] =0.0;
     x[1] = 0.0;
     x[2] = 0.0;
-    (*expr)(&val,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
+    (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
+    val = valx[local_dim];
     // Not a FEM implemented
   } else {
     check_error(ERROR_FE_TYPE,__FUNCTION__);
