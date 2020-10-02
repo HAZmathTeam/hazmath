@@ -29,6 +29,7 @@
 //#include "elasticity_data_2.h"
 #include "elasticity_data.h"
 //#include "elasticity_system.h"
+/*********************************************************************************/
 
 /*********************************************************************************/
 iCSRmat *extend_el_dof(fespace *FE,mesh_struct *mesh, INT *ix)
@@ -246,12 +247,10 @@ void sl_create_CSR_rows_FE1FE2(dCSRmat *A, fespace *FE1, fespace *FE2,	\
  
 return;
 }
-/********************************************************************************************/
-/********************************************************************************************/
-/********************************************************************************************/
+/******/
 void block_LocaltoGlobal_neighbor(INT *dof_on_elm,INT *dof_on_elm_neighbor,block_fespace *FE,block_dCSRmat *A,REAL *ALoc)
 {
-  INT i,j,k,col_a,col_b,acol,block_row,block_col;
+  INT i,j,k,col_a,col_b,acol,arow,block_row,block_col,row_a, row_b;
   INT local_row,local_col;
 
   // Loop over all the blocks
@@ -262,16 +261,27 @@ void block_LocaltoGlobal_neighbor(INT *dof_on_elm,INT *dof_on_elm_neighbor,block
   INT local_col_index = 0;
   INT global_row_index = 0;
   INT block_dof_per_elm = 0;
+  /*
+  for(i = 0; i<7; i++)
+    printf("dof_on_elm[i] =  %d \n", dof_on_elm[i]);
 
+  for(i = 0; i<7; i++)
+    printf("dof_on_elm_neighbor[i] =  %d \n", dof_on_elm_neighbor[i]);
+  */
+  
   // Get total dof_per_elm for indexing
   for(block_row=0;block_row<nblocks;block_row++) {
     block_dof_per_elm += FE->var_spaces[block_row]->dof_per_elm;
   }
 
+
+  //printf("*** ALoc[48] = %f \n", ALoc[48]);
   // Loop through all the blocks
   for(block_row=0;block_row<nblocks;block_row++) {
+  
+    
     dof_per_elm_test = FE->var_spaces[block_row]->dof_per_elm;
-
+    
     for(block_col=0;block_col<nblocks;block_col++) {
       dof_per_elm_trial = FE->var_spaces[block_col]->dof_per_elm;
 
@@ -279,23 +289,112 @@ void block_LocaltoGlobal_neighbor(INT *dof_on_elm,INT *dof_on_elm_neighbor,block
       /* Rows of Local Stiffness (test space)*/
       for (i=0; i<dof_per_elm_test; i++) {
         local_row = dof_on_elm[local_row_index+i];
-      
-        /* Columns of Local Stiffness (trial space)*/
+	
+        /* Columns of Local Stiffness (trial space)*/ 
         for (j=0; j<dof_per_elm_trial; j++) {
           local_col = dof_on_elm_neighbor[local_col_index + j];
+	  
+	  //printf("\n ===================================\n");
+	  //printf("-[blockrow, blockcol] =[%d, %d] - (i,j) = (%d,%d) local_row_index = %d, local_row = %d || local_col_index = %d, local_col = %d \n",
+	  //	 block_row, block_col, i,j, local_row_index, local_row, local_col_index, local_col); 
+	  //printf("===================================\n");
+
           /* Columns of A */
           if(A->blocks[block_row*nblocks+block_col]) {
-            col_a = A->blocks[block_row*nblocks+block_col]->IA[local_row];
-            col_b = A->blocks[block_row*nblocks+block_col]->IA[local_row+1];
-            for (k=col_a; k<col_b; k++) {
-              acol = A->blocks[block_row*nblocks+block_col]->JA[k];
-              if (acol==local_col) {	/* If they match, put it in the global matrix */
-                A->blocks[block_row*nblocks+block_col]->val[k]
-		  += ALoc[(local_row_index+i)*block_dof_per_elm + (local_col_index+j)];
-              }
-            }
-          }
-        }
+	    
+	    //printf("NOW in the GLOBAL MATRIX = A->blocks[%d], \n", block_row*nblocks+block_col);
+	    
+	    col_a = A->blocks[block_row*nblocks+block_col]->IA[local_row];
+	    col_b = A->blocks[block_row*nblocks+block_col]->IA[local_row+1];
+
+	    
+	    //row_a = A->blocks[block_row*nblocks+block_col]->JA[local_col]; // JA -- column
+	    //row_b = A->blocks[block_row*nblocks+block_col]->JA[local_col+1];
+
+	    //printf("NOW in the GLOBAL MATRIX (col_a = %d ) (col_b = %d) \n", col_a, col_b);
+	    //printf("NOW in the GLOBAL MATRIX (row_a = %d ) (row_b = %d) \n", row_a, row_b);
+	    /*
+	    for (k=row_a; k<row_b; k++) {
+	      arow = A->blocks[block_row*nblocks+block_col]->IA[k];
+
+	      printf("ROW :: [k=%d] --  arow = %d || local_row = %d\n ",k,arow,local_row); 
+	     
+	      if (arow==local_row)
+	      //if(arow == local_row)
+		{	// If they match, put it in the global matrix //
+		  //A->blocks[block_row*nblocks+block_col]->val[k]
+		  //  += ALoc[(local_row_index+i)*block_dof_per_elm+(local_col_index+j)];
+		  
+		  printf("## (local_row_index+i)*block_dof_per_elm+(local_col_index+j) = %d \n",
+			 (local_row_index+i)*block_dof_per_elm+(local_col_index+j));
+		  // break;
+		}
+	   
+		}
+	    */
+	    bool success = false;
+	    for (k=col_a; k<col_b; k++) {
+	      //for (k=row_a; k<row_b; k++) {
+
+	      	     
+	      acol = A->blocks[block_row*nblocks+block_col]->JA[k];
+
+
+	      //arow = A->blocks[block_row*nblocks+block_col]->IA[k];
+	      //if(arow == local_row)
+	      //{
+	      //  printf("######################## ROW :: [k=%d] --  arow = %d || local_row = %d\n ",k,arow,local_row);       
+	      //}
+
+	      //printf("$$ COL :: [k=%d] --  acol = %d || local_col = %d\n ",k,acol,local_col); 
+		
+	      if (acol==local_col)
+		{	/* If they match, put it in the global matrix */
+		  A->blocks[block_row*nblocks+block_col]->val[k]
+		    += ALoc[(local_row_index+i)*block_dof_per_elm+(local_col_index+j)];
+		  
+		  //printf("A[%d](%d,%d) = %f \n", block_row*nblocks+block_col, local_row, acol, A->blocks[block_row*nblocks+block_col]->val[k]);
+		  //printf("$$ COL :: [k=%d] --  acol = %d || local_col = %d\n ",k,acol,local_col); 
+		  
+		  //printf("$$ (local_row_index+i)*block_dof_per_elm+(local_col_index+j) = %d  || ALoc[%d] = %f \n", \
+		//	 (local_row_index+i)*block_dof_per_elm+(local_col_index+j), \
+		//	 (local_row_index+i)*block_dof_per_elm+(local_col_index+j), ALoc[(local_row_index+i)*block_dof_per_elm+(local_col_index+j)]);
+		  //DWEDEbreak;
+		  //success = true;
+		}
+	    }
+	      // k loop
+	    /*
+	    if(success == false)
+	      {
+		exit(0);
+		for (k=col_a; k<col_b; k++) {
+		  
+		  //printf("HELLO ~~ \n");
+		  arow = A->blocks[block_row*nblocks+block_col]->IA[k];
+		  //printf("--- k = %d, acol = %d  ------ \n", k, acol);
+		  
+		  if (arow==local_row)
+		    {
+		      //printf("######################## ROW :: [k=%d] --  arow = %d || local_row = %d\n ",k,arow,local_row); 
+		      A->blocks[block_row*nblocks+block_col]->val[k]
+			+= ALoc[(local_row_index+i)*block_dof_per_elm+(local_col_index+j)];
+		      //printf("########## (local_row_index+i)*block_dof_per_elm+(local_col_index+j) = %d  || ALoc[%d] = %f \n", \
+			     (local_row_index+i)*block_dof_per_elm+(local_col_index+j), \
+			     (local_row_index+i)*block_dof_per_elm+(local_col_index+j), ALoc[(local_row_index+i)*block_dof_per_elm+(local_col_index+j)]);
+		      
+		    }
+		}
+		
+		
+	      }
+	    */
+	      
+	    
+	    
+	    
+	  }
+	}
       }
       local_col_index += dof_per_elm_trial;
     }
@@ -303,7 +402,16 @@ void block_LocaltoGlobal_neighbor(INT *dof_on_elm,INT *dof_on_elm_neighbor,block
     global_row_index += FE->var_spaces[block_row]->ndof;
     local_row_index += dof_per_elm_test;
   }
-  return;
+  /*
+  FILE *fptmp = NULL;
+ 
+  fptmp=fopen("output/a.dat","w");
+  bdcsr_print_matlab(fptmp,A);
+  fclose(fptmp);
+  
+  exit(0);
+  */
+return;
 }
 
 void zquad_face(qcoordinates *cqbdry,INT nq1d, INT dim, REAL *xf, REAL farea)
@@ -476,11 +584,13 @@ void assemble_global_block_neighbor(block_dCSRmat* A,dvector *b,void (*local_ass
 
         // Get Sparsity Structure First
         // Non-zeros of A and IA (ignores cancellations, so maybe more than necessary)
-        sl_create_CSR_rows_FE1FE2(A->blocks[i*nblocks+j],FE->var_spaces[j],FE->var_spaces[i],mesh);
+        //create_CSR_rows_FE1FE2(A->blocks[i*nblocks+j],FE->var_spaces[j],FE->var_spaces[i]);
+	sl_create_CSR_rows_FE1FE2(A->blocks[i*nblocks+j],FE->var_spaces[j],FE->var_spaces[i],mesh);
 
         // Columns of A -> JA
         A->blocks[i*nblocks+j]->JA = (INT *) calloc(A->blocks[i*nblocks+j]->nnz,sizeof(INT));
-        sl_create_CSR_cols_FE1FE2(A->blocks[i*nblocks+j],FE->var_spaces[j],FE->var_spaces[i],mesh);
+        //create_CSR_cols_FE1FE2(A->blocks[i*nblocks+j],FE->var_spaces[j],FE->var_spaces[i]);
+	sl_create_CSR_cols_FE1FE2(A->blocks[i*nblocks+j],FE->var_spaces[j],FE->var_spaces[i],mesh);
 
         // Set values
         A->blocks[i*nblocks+j]->val = (REAL *) calloc(A->blocks[i*nblocks+j]->nnz,sizeof(REAL));
@@ -534,8 +644,13 @@ void assemble_global_block_neighbor(block_dCSRmat* A,dvector *b,void (*local_ass
         dof_on_elm[jcntr] = FE->var_spaces[k]->el_dof->JA[j];
         jcntr++;
       }
-    }
+    } 
 
+    //printf("====== Ele = %d \n", i);
+   
+    
+    //for(INT kk=0;kk<7;++kk)
+    //printf("dof_on_elm[%d]=%d \n", kk, dof_on_elm[kk]);
     // Find vertices for given Element
     get_incidence_row(i,mesh->el_v,v_on_elm);
 
@@ -704,34 +819,6 @@ void FEM_Block_RHS_Local_Elasticity(REAL* bLoc,block_fespace *FE,mesh_struct *me
   
   INT* local_dof_on_elm_face = NULL;
  
-  INT dof_per_face = 0;
-  INT* dof_per_face_blk = (INT *) calloc(FE->nspaces,sizeof(INT));
-  INT FEtype;
-  for(i=0;i<FE->nspaces;i++) {
-    FEtype = FE->var_spaces[i]->FEtype;
-    
-    if(FEtype>=1 && FEtype<10) { // PX Elements
-      dof_per_face_blk[i] = dim + (FEtype-1)*(2*dim-3);
-      dof_per_face += dim + (FEtype-1)*(2*dim-3);
-    } else if (FEtype==20) { // Nedelec Elements
-      dof_per_face_blk[i] = 2*dim - 3;
-      dof_per_face += 2*dim - 3;
-    } else if (FEtype==30) { // Raviart-Thomas Elements
-      dof_per_face_blk[i] = 1;
-      dof_per_face += 1;
-    } else if (FEtype==61) { // Bubbles
-      dof_per_face_blk[i] = 1;
-      dof_per_face += 1;
-    } else if (FEtype==0) { // P0
-      // Questionable handling of P0 for the face integral
-      dof_per_face_blk[i] = 1;
-      dof_per_face += 1;
-    } else {
-      printf("Block face integration isn't set up for the FEM space you chose\n");
-      exit(0);
-    }
-  }
-
   //Sanity Check // SLEE
   //for(i=0;i<FE->nspaces;i++) {
   //printf("dof_per_face = %d,   dof_per_face_blk[%d] = %d \n", dof_per_face, i, dof_per_face_blk[i]);
@@ -801,7 +888,7 @@ void FEM_Block_RHS_Local_Elasticity(REAL* bLoc,block_fespace *FE,mesh_struct *me
 	//NEED TO DEBUG!!!!
 	//SLEE // SEEK BD flag...?????
 	fiarea=mesh->f_area[face];
-	penalty_term = 100000000./fiarea;
+	penalty_term = 100000./fiarea;
 	//nq1d_face == 3, 3 quad points. 
 	zquad_face(cq_face,nq1d_face,dim,xfi,fiarea);
 
@@ -1136,7 +1223,7 @@ void HDerror_block_EG
 
   // THIS NEEDS TO BE CODED BETTER // slee todo
   double d_Lame_coeff_mu = 1.;
-  double d_Lame_coeff_lambda = 1000000.; //000000.;
+  double d_Lame_coeff_lambda = 1.; //000000.;
   
   /* Loop over all Elements */
   for (elm=0; elm<mesh->nelm; elm++) {
@@ -1753,23 +1840,23 @@ void HDsemierror_block_EnergyNorm_EG_FaceLoop
   // THIS NEEDS TO BE CODED BETTER // slee todo
   double d_Lame_coeff_mu = 1.;
   double d_Lame_coeff_lambda = 1000000.; //000000.;
-
-     INT dof_per_face = 0;
-    INT FEtype;
-    for(i=0;i<FE->nspaces;i++) {
-      FEtype = FE->var_spaces[i]->FEtype;
-      if(FEtype>=1 && FEtype<10) { // PX Elements
-	dof_per_face += dim + (FEtype-1)*(2*dim-3);
-      }
-      else if (FEtype==0) { // P0
-	// Questionable handling of P0 for the face integral
-	dof_per_face += 1;
-      } else {
-	printf("Block face integration isn't set up for the FEM space you chose\n");
-	exit(0);
-      }
+  /*
+  INT dof_per_face = 0;
+  INT FEtype;
+  for(i=0;i<FE->nspaces;i++) {
+    FEtype = FE->var_spaces[i]->FEtype;
+    if(FEtype>=1 && FEtype<10) { // PX Elements
+      dof_per_face += dim + (FEtype-1)*(2*dim-3);
     }
-
+    else if (FEtype==0) { // P0
+      // Questionable handling of P0 for the face integral
+      dof_per_face += 1;
+    } else {
+      printf("Block face integration isn't set up for the FEM space you chose\n");
+      exit(0);
+    }
+  }
+  */
     REAL *data_face=calloc(dim+dim*dim, sizeof(REAL)); //coords of normal and vertices of a face. 
     REAL *xfi=data_face; //coords of vertices on face i. 
     REAL *finrm=xfi+dim*dim; //coords of normal vector on face i
@@ -1831,7 +1918,7 @@ void HDsemierror_block_EnergyNorm_EG_FaceLoop
 	  }
 	}
 
-      // Sanity Check
+      // Saniyy Check
       // counter == 1 means the BD
       if(counter == 1 && mesh->f_flag[face] == 0)
 	{printf("check-error FALSE\n"); exit(0);}
@@ -1899,36 +1986,15 @@ void HDsemierror_block_EnergyNorm_EG_FaceLoop
 	  {
 	    printf("V_on_elm_neighbor[%d] = %d  ||  dof_on_elm_neighbor[%d] =%d \n", zz,v_on_elm_neighbor[zz],zz,dof_on_elm_neighbor[zz]);
 	  }
-      */
-      //printf("FACE = %d, ELM = %d, (X,Y) = (%f,%f) \n", face, neighbor_index[0], barycenter->x[0], barycenter->y[0]);
-      //if(counter ==2) // if it has neighbor
-	  //printf("FACE = %d, ELM = %d, (X,Y) = (%f,%f) \n", face, neighbor_index[1], barycenter_neighbor->x[0], barycenter_neighbor->y[0]);
       
+      printf("FACE = %d, ELM = %d, (X,Y) = (%f,%f) \n", face, neighbor_index[0], barycenter->x[0], barycenter->y[0]);
+      if(counter ==2) // if it has neighbor
+	  printf("FACE = %d, ELM = %d, (X,Y) = (%f,%f) \n", face, neighbor_index[1], barycenter_neighbor->x[0], barycenter_neighbor->y[0]);
+      */
       
       INT* local_dof_on_elm_face = NULL;	
       INT *local_dof_on_elm_face_interface = NULL;
       INT *local_dof_on_elm_neighbor = NULL;
-      
-      INT dof_per_face = 0;
-      INT FEtype;
-      for(i=0;i<FE->nspaces;i++) {
-	FEtype = FE->var_spaces[i]->FEtype;
-	if(FEtype>=1 && FEtype<10) { // PX Elements
-	  dof_per_face += dim + (FEtype-1)*(2*dim-3);
-	} else if (FEtype==20) { // Nedelec Elements
-	  dof_per_face += 2*dim - 3;
-	} else if (FEtype==30) { // Raviart-Thomas Elements
-	  dof_per_face += 1;
-	} else if (FEtype==61) { // Bubbles
-	  dof_per_face += 1;
-	} else if (FEtype==0) { // P0
-	  // Questionable handling of P0 for the face integral
-	  dof_per_face += 1;
-	} else {
-	  printf("Block face integration isn't set up for the FEM space you chose\n");
-	  exit(0);
-	}
-      }
       
       REAL *data_face=calloc(dim+dim*dim, sizeof(REAL)); //coords of normal and vertices of a face. 
       REAL *xfi=data_face; //coords of vertices on face i. 
@@ -1975,7 +2041,7 @@ void HDsemierror_block_EnergyNorm_EG_FaceLoop
       zquad_face(cq_face,nq1d_face,dim,xfi,fiarea);
 
       // get the penalty (EnergyNorm)
-      double penalty_term = 100000000./fiarea;
+      double penalty_term = 100000./fiarea;
      
       // SLEE
       // Get the BD values 
@@ -2257,8 +2323,12 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
 //void local_assembly_Elasticity(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm, REAL time)
 
 {
-
-  bool bEG = true;//false;//true;// true;//false;//true;//false;//true;//false;//true;//true;//true;//false;//true;//false;//false;//true;//false;//true;//false;//true;//false;
+  /*
+  for(INT kk=0;kk<7;++kk)
+    printf("dof_on_elm[%d]=%d \n", kk, dof_on_elm[kk]);
+  exit(0);
+  */
+  bool bEG = true;//false;//true;//false;//true;//false;//true;//false;//true;// true;//false;//true;//false;//true;//false;//true;//true;//true;//false;//true;//false;//false;//true;//false;//true;//false;//true;//false;
 
   ////////////
   REAL fiarea = 0;
@@ -2565,33 +2635,6 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
 
 
   
-  INT  dof_per_face = 0;
-  INT* dof_per_face_blk = (INT *) calloc(FE->nspaces,sizeof(INT));
-  INT FEtype;
-  for(i=0;i<FE->nspaces;i++) {
-    FEtype = FE->var_spaces[i]->FEtype;
-    if(FEtype>=1 && FEtype<10) { // PX Elements
-      dof_per_face_blk[i] = dim + (FEtype-1)*(2*dim-3);
-      dof_per_face += dim + (FEtype-1)*(2*dim-3);
-    } else if (FEtype==20) { // Nedelec Elements
-      dof_per_face_blk[i] = 2*dim - 3;
-      dof_per_face += 2*dim - 3;
-    } else if (FEtype==30) { // Raviart-Thomas Elements
-      dof_per_face_blk[i] = 1;
-      dof_per_face += 1;
-    } else if (FEtype==61) { // Bubbles
-      dof_per_face_blk[i] = 1;
-      dof_per_face += 1;
-    } else if (FEtype==0) { // P0
-      // Questionable handling of P0 for the face integral
-      dof_per_face_blk[i] = 1;
-      dof_per_face += 1;
-    } else {
-      printf("Block face integration isn't set up for the FEM space you chose\n");
-      exit(0);
-    }
-  }
-  
   REAL *data_face=calloc(dim+dim*dim, sizeof(REAL)); //coords of normal and vertices of a face. 
   REAL *xfi=data_face; //coords of vertices on face i. 
   REAL *finrm=xfi+dim*dim; //coords of normal vector on face i
@@ -2619,9 +2662,9 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
       
     //printf("M* jk = %d, mesh->el_f->IA[element] = %d, mesh->el_f->IA[element+1] = %d  \n",jk, mesh->el_f->IA[elm], mesh->el_f->IA[elm+1]);
 
- local_dof_on_elm_face = NULL;
- local_dof_on_elm_face_interface = NULL;
- local_dof_on_elm_neighbor = NULL;
+    local_dof_on_elm_face = NULL;
+    local_dof_on_elm_face_interface = NULL;
+    local_dof_on_elm_neighbor = NULL;
 
     
     //  j = face0, face1, face2
@@ -2670,7 +2713,7 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
       
       //Get the area of face
       fiarea=mesh->f_area[face];
-      penalty_term = 100000000./fiarea;
+      penalty_term = 100000./fiarea;
 
       //printf("fiarea = %f ,  length = %f \n", fiarea,mesh->ed_len);
 
@@ -3076,7 +3119,8 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
 	  
 	  local_dof_on_elm_neighbor = dof_on_elm_neighbor;
 
-	  /*
+	 // fflush(stdout); 
+/*
 	  for(INT zz=0; zz<dof_per_elm; ++zz)
 	    {
 	      printf("dof_on_elm[%d] = %d \n", zz,dof_on_elm[zz]);
@@ -3087,7 +3131,8 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
 	      //  printf("Uh oh ? \n");
 	      //}
 	    }
-	  */
+	  fflush(stdout); 
+*/
 	  
 	  INT v_per_elm = mesh->v_per_elm;
 	  INT* v_on_elm_neighbor = (INT *) calloc(v_per_elm,sizeof(INT));
@@ -3097,7 +3142,7 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
 	  
 	  //printf("v_per_elm = %d \n", v_per_elm);
 	  /*
-	  for(INT zz=0; zz<dof_per_elm; ++zz)
+	  for(INT zz=0; zz<3; ++zz)
 	    {
 	      printf("V_on_elm[%d] = %d \n", zz,v_on_elm[zz]);
 	      printf("V_on_elm_neighbor[%d] = %d \n", zz,v_on_elm_neighbor[zz]);
@@ -3395,7 +3440,7 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
 	  for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
 	    // Loop over Trial Functions (Columns)
 	    for (trial=0; trial<FE->var_spaces[dim]->dof_per_elm;trial++){
-	      if(test == 1)
+	      if(test == 1 || trial ==1)
 		{
 		  printf("oops !? \n");
 		  exit(0);
@@ -3418,10 +3463,11 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
 	  
 	      
 	      //penalty term
-	      /*
-	      kij += -penalty_term * (qx_face[0]- barycenter_neighbor->x[0])  *  finrm[0]* (qx_face[0]- barycenter->x[0]) *  finrm[0];
-	      kij += -penalty_term * (qx_face[1]- barycenter_neighbor->y[0])  *  finrm[1]* (qx_face[1]- barycenter->y[0]) *  finrm[1];
-	      */
+	      
+	      //kij += -penalty_term * (qx_face[0]- barycenter_neighbor->x[0])  *  finrm[0]* (qx_face[0]- barycenter->x[0]) *  finrm[0];
+	      //kij += -penalty_term * (qx_face[1]- barycenter_neighbor->y[0])  *  finrm[1]* (qx_face[1]- barycenter->y[0]) *  finrm[1];
+
+	      //printf("w_face*kij = %f \n",w_face*kij);
 	      ALoc_neighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
 	    }
 	  }
@@ -3429,8 +3475,22 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
 
 	} //for face quad
 
-	// add A loc neighbor for each 'faces' to global 
-	block_LocaltoGlobal_neighbor(dof_on_elm, dof_on_elm_neighbor,FE,A,ALoc_neighbor);
+	// add A loc neighbor for each 'faces' to global
+	//printf("FACE = %d, penalty = %f, \n",
+	  //     face, penalty_term);
+	//printf("(qx_face[0]- barycenter->x[0]) = %f,  (qx_face[0]- barycenter_neighbor->x[0]) = %f \n",
+	//     (qx_face[0]- barycenter->x[0]), (qx_face[0]- barycenter_neighbor->x[0]));
+	//printf("(qx_face[1]- barycenter->x[1]) = %f,  (qx_face[1]- barycenter_neighbor->x[1]) = %f \n",
+	//     (qx_face[1]- barycenter->x[1]), (qx_face[1]- barycenter_neighbor->x[1]));
+
+	//for (j=0; j<local_size; j++) {
+	//printf("ALoc_neighbor[48]=%f \n", ALoc_neighbor[48]); 
+	//}
+
+	block_LocaltoGlobal_neighbor(dof_on_elm,dof_on_elm_neighbor,FE,A,ALoc_neighbor);
+
+	//printf("OUT of 	block_LocaltoGlobal_neighbor \n");
+	//block_LocaltoGlobal_neighbor(dof_on_elm_neighbor, dof_on_elm,FE,A,ALoc_neighbor);
 
 
       } // if INTERFACE
@@ -3461,7 +3521,7 @@ int main (int argc, char* argv[])
 
   // Aug.3.2020 SLEE
   // Define variables forthe error convergence test
-  int total_num_cycle = 2; 
+  int total_num_cycle = 3; 
   // SLEE initialize the vectors to save the errors for each cycle
   double L2_error_per_cycle[total_num_cycle];
   double L2_error_p_per_cycle[total_num_cycle];
@@ -3548,8 +3608,7 @@ int main (int argc, char* argv[])
   //sprintf(filename_per_cycle, "%s%d.haz", inparam.gridfile,cycle);
   
   //DEBUG SIMPLE MESH
-  sprintf(filename_per_cycle, "%s%d.haz", inparam.gridfile,cycle+1);
-  
+  sprintf(filename_per_cycle, "%s%d.haz", inparam.gridfile,cycle+2); 
   gfid = HAZ_fopen(filename_per_cycle,"r");
   if(gfid == NULL){
     perror("Could not find and open the file !!!! ");
@@ -3588,8 +3647,7 @@ int main (int argc, char* argv[])
   fespace FE_uy; // Velocity in y direction
   create_fespace(&FE_uy,&mesh,order_u);
   fespace FE_uz; // Velocity in z direction
-  if(dim==3)
-    create_fespace(&FE_uz,&mesh,order_u);
+  if(dim==3) create_fespace(&FE_uz,&mesh,order_u);
   fespace FE_p; // Pressure
   create_fespace(&FE_p,&mesh,order_p);
 
@@ -3919,15 +3977,17 @@ int main (int argc, char* argv[])
   FILE *fptmp = NULL;
   /////////////////////////////////////
   fptmp=fopen("output/a.dat","w");
-  /* fprintf(stdout,"\n%d,%d\n\n",A.brow,A.bcol); */
-  /* for(i=0;i<A.brow;i++){ */
-  /*   for(j=0;j<A.brow;j++){ */
-  /*     fprintf(stdout,"\n(%d,%d):::%d,%d,%d\n\n",i,j,	\ */
-  /* 	      A.blocks[j*A.bcol+i]->row,		\ */
-  /* 	      A.blocks[j*A.bcol+i]->col,		\ */
-  /* 	      A.blocks[j*A.bcol+i]->nnz); */
-  /*   } */
-  /* } */
+  /*fprintf(stdout,"\n%d,%d\n\n",A.brow,A.bcol);
+  INT j;
+   for(i=0;i<A.brow;i++){ 
+     for(j=0;j<A.brow;j++){ 
+       fprintf(stdout,"\n(%d,%d):::%d,%d,%d\n\n",i,j,	 
+	       A.blocks[j*A.bcol+i]->row,		 
+	       A.blocks[j*A.bcol+i]->col,		 
+	       A.blocks[j*A.bcol+i]->nnz); 
+     } 
+   }
+  */ 
   /* fflush(stdout); */
   bdcsr_print_matlab(fptmp,&A);
   fclose(fptmp);
@@ -3996,11 +4056,11 @@ int main (int argc, char* argv[])
   if(dim==3) dvec_free( &v_uz );
   dvec_free( &v_p );
   
-  // FE Spaces (freeing only the bllock one, the rest are parts of it. 
-  /* free_fespace(&FE_ux); */
-  /* free_fespace(&FE_uy); */
-  /* if(dim==3) free_fespace(&FE_uz); */
-  /* free_fespace(&FE_p); */
+  // FE Spaces
+  free_fespace(&FE_ux);
+  free_fespace(&FE_uy);
+  if(dim==3) free_fespace(&FE_uz);
+  free_fespace(&FE_p);
   free_blockfespace(&FE);
   
   // Quadrature
