@@ -133,8 +133,6 @@ INT Schwarz_setup (Schwarz_data *Schwarz,
     INT i;
     INT inroot = -10, nsizei = -10, nsizeall = -10, nlvl = 0;
     INT *jb=NULL;
-    ivector MaxIndSet;
-
     // data for Schwarz method
     INT nblk;
     INT *iblock = NULL, *jblock = NULL, *mask = NULL, *maxa = NULL;
@@ -156,14 +154,14 @@ INT Schwarz_setup (Schwarz_data *Schwarz,
     maxa[0]=0;
 
     // select root nodes.
-    MaxIndSet = sparse_MIS(&A);
+    ivector *MaxIndSet = sparse_MIS(&A,NULL);
 
     /*-------------------------------------------*/
     // find the blocks
     /*-------------------------------------------*/
     // first pass: do a maxlev level sets out for each node
-    for ( i = 0; i < MaxIndSet.row; i++ ) {
-        inroot = MaxIndSet.val[i];
+    for ( i = 0; i < MaxIndSet->row; i++ ) {
+        inroot = MaxIndSet->val[i];
         Schwarz_levels(inroot,&A,mask,&nlvl,maxa,jblock,maxlev);
         nsizei=maxa[nlvl];
         nsizeall+=nsizei;
@@ -177,15 +175,15 @@ INT Schwarz_setup (Schwarz_data *Schwarz,
     iblock[0]=0;
     nsizeall=0;
     jb=jblock;
-    for (i=0;i<MaxIndSet.row;i++) {
-        inroot = MaxIndSet.val[i];
+    for (i=0;i<MaxIndSet->row;i++) {
+        inroot = MaxIndSet->val[i];
         Schwarz_levels(inroot,&A,mask,&nlvl,maxa,jb,maxlev);
         nsizei=maxa[nlvl];
         iblock[i+1]=iblock[i]+nsizei;
         nsizeall+=nsizei;
         jb+=nsizei;
     }
-    nblk = MaxIndSet.row;
+    nblk = MaxIndSet->row;
 
     /*-------------------------------------------*/
     //  LU decomposition of blocks
