@@ -1244,6 +1244,7 @@ void assemble_global_face_block(block_dCSRmat* A,dvector* b,dvector *old_sol,voi
   INT v_per_elm = mesh->v_per_elm;
   INT i,j,k,testdof,trialdof,jcntr,rowb,elm;
   INT dim = mesh->dim;
+  INT nspaces = FE->nspaces;
 
   // Get block data first
   INT nblocks = A->brow;
@@ -1252,8 +1253,8 @@ void assemble_global_face_block(block_dCSRmat* A,dvector* b,dvector *old_sol,voi
     printf("Your block matrix is not square.  It is an %d x %d matrix.\n\n",A->brow,A->bcol);
     exit(0);
   }
-  if(nblocks!=FE->nspaces) {
-    printf("You have %d FEM spaces, but only %dx%d blocks.  They must be consistent.\n\n",FE->nspaces,A->brow,A->bcol);
+  if(nblocks!=nspaces) {
+    printf("You have %d FEM spaces, but only %dx%d blocks.  They must be consistent.\n\n",nspaces,A->brow,A->bcol);
     exit(0);
   }
   if(rhs!=NULL) {
@@ -1298,9 +1299,9 @@ void assemble_global_face_block(block_dCSRmat* A,dvector* b,dvector *old_sol,voi
 
   // Loop over each block and get dof_per_face
   INT dof_per_face = 0;
-  INT* dof_per_face_blk = (INT *) calloc(FE->nspaces,sizeof(INT));
+  INT* dof_per_face_blk = (INT *) calloc(nspaces,sizeof(INT));
   INT FEtype;
-  for(i=0;i<FE->nspaces;i++) {
+  for(i=0;i<nblocks;i++) {
     FEtype = FE->var_spaces[i]->FEtype;
     if(FEtype>=1 && FEtype<10) { // PX Elements
       dof_per_face_blk[i] = dim + (FEtype-1)*(2*dim-3);

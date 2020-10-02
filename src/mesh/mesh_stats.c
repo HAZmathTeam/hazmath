@@ -623,7 +623,7 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,mesh_struct *
   INT* ipf = (INT *) calloc(dim,sizeof(INT));
   REAL* xf = (REAL *) calloc(dim,sizeof(REAL));
   REAL* yf = (REAL *) calloc(dim,sizeof(REAL));
-  REAL* zf;
+  REAL* zf=NULL;
   REAL dimover=(REAL )1./((REAL )dim);
   if(dim==3) {
     zf = calloc(dim,sizeof(REAL));
@@ -646,7 +646,7 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,mesh_struct *
   /* Get Transpose of f_el -> el_f */
   iCSRmat f_el;
   icsr_trans(el_f,&f_el);
-
+  
   // Loop over all Faces
   for(i=0;i<nface;i++) {
     /* Find Vertices in given Face */
