@@ -614,18 +614,18 @@ char *make_string_from_file(FILE *the_file, size_t *length_string)
       do{
 	ch = fgetc(the_file);
 	++j;
-      }  while(ch != '\n' && ch != EOF);
-      if( ch == '\n' ) 
+      }  while(ch != '\n' && ch!='\r' && ch != EOF);
+      if( ch == '\n' || ch == '\r') 
 	flag=1;
       else 
 	break; 
     } else {
-      if(ch == '\n' || ch == '\t') ch = ' ';
+      if(ch == '\n' || ch == '\r' || ch == '\t') ch = ' ';
       //      if(ch == ' ' || ch == '{' || ch ==  '}'){
       if(ch == ' ' || ch == '{' || ch ==  '}' || ch == '='){
 	do{
 	  ch_next = fgetc(the_file);
-	  if(ch_next == '\n' || ch_next == '\t') ch_next = ' ';
+	  if(ch_next == '\n' || ch_next == '\r' || ch_next == '\t') ch_next = ' ';
 	  ++j;
 	}  while(ch_next == ' ');
 	//	if((ch == ' ')&& (ch_next ==  '{' || ch_next ==  '}')){
