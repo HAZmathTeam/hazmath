@@ -884,7 +884,7 @@ input_grid *parse_input_grid(FILE *the_file)
   length_string=strlen(file2str);
   file2str=realloc(file2str,(length_string+1)*sizeof(char));
   file2str[length_string]='\0';
-  //  fprintf(stdout,"\neve[%ld]=%s\n",length_string,file2str);
+  fprintf(stdout,"\neve[%ld]=%s\n",length_string,file2str);
   k=check_input(file2str,g,indata,notes,numel_data);
   switch(k){
   case 8: case 10: case 12:
