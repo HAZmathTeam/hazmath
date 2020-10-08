@@ -1061,10 +1061,12 @@ scomplex *generate_initial_grid(input_grid *g0)
  					 divisions in every coordinate
 					 direction */
   }
+  fprintf(stdout,"\n****print:1g0->nel=%d",g0->nel);fflush(stdout);
   for(kel=0;kel<g0->nel;kel++)
     for(i=0;i<c2s->n;i++){
       nd[kel][i]=-1;
     }
+  fprintf(stdout,"\n****print:2g0->nel=%d",g0->nel);fflush(stdout);
   g=malloc(1*sizeof(input_grid));
   /**/
   g->title=g0->title;
@@ -1081,7 +1083,9 @@ scomplex *generate_initial_grid(input_grid *g0)
   g->nf=c2s->nf;
   g->ne=c2s->ne;
   g->nel=1;
+  fprintf(stdout,"\n****print:3g0->nel=%d",g0->nel);fflush(stdout);
   input_grid_arrays(g);
+  fprintf(stdout,"\n****print:4g0->nel=%d",g0->nel);fflush(stdout);
   /* reassign this as these are the same as g0 */
   free(g->systypes);   g->systypes=g0->systypes;
   free(g->syslabels);   g->syslabels=g0->syslabels;
@@ -1138,6 +1142,7 @@ scomplex *generate_initial_grid(input_grid *g0)
     }
   }
   // use bfs to split elements:
+  fprintf(stdout,"\n****print:g0->nel=%d",g0->nel);
   if(g0->print_level>5) input_grid_print(g0);fflush(stdout);
   INT nsall,nvall;
   nsall=0;nvall=0;
