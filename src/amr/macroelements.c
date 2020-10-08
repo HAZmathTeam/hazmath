@@ -418,17 +418,17 @@ in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding fa
     }
   }
   if(g0->print_level>10){
-    fprintf(stdout,"\nbfs tree(in %s):\n",__FUNCTION__);
+    fprintf(stdout,"\nbfs tree(in %s):\n",__FUNCTION__);fflush(stdout);
     for(lvl=0;lvl<mc->bfs->row;lvl++){
       j0=mc->bfs->IA[lvl];
       j1=mc->bfs->IA[lvl+1];
       for(kj=j0;kj<j1;kj++){
   	jel=mc->bfs->JA[kj];
   	kel=etree[jel];// ancestor, this stays unchanged
-  	fprintf(stdout,"** (%d--%d)",kel,jel);
+  	fprintf(stdout,"** (%d--%d)",kel,jel);fflush(stdout);
       }
     }
-    fprintf(stdout,"\n");
+    fprintf(stdout,"\n");fflush(stdout);
   }
   /**** FINAL REORDER: make the vertices order in shared faces the
   	same!!! ***/
@@ -818,7 +818,7 @@ void fix_grid(macrocomplex *mc,		\
     iab=fel2el->IA[kel+1];
     if((iab-iaa)<=0){
       if(g0->print_level>5)
-	fprintf(stdout,"\nin %s: macroelement=%d; vertices=%d; overlaps=%d;",__FUNCTION__,kel,scin[kel]->nv,neg);
+	fprintf(stdout,"\nin %s: macroelement=%d; vertices=%d; overlaps=%d;",__FUNCTION__,kel,scin[kel]->nv,neg);fflush(stdout);
       nvall+=scin[kel]->nv;      
       nsall+=scin[kel]->ns;
       continue;
@@ -954,16 +954,16 @@ void fix_grid(macrocomplex *mc,		\
       }
     }
     if(g0->print_level>5)
-      fprintf(stdout,"\nin %s: macroelement=%d; total=%d; overlaps=%d",__FUNCTION__,kel,scp->nv,neg);
+      fprintf(stdout,"\nin %s: macroelement=%d; total=%d; overlaps=%d",__FUNCTION__,kel,scp->nv,neg);fflush(stdout);
     nvall+=nv;
     nsall+=scin[kel]->ns;
     //fprintf(stdout,"\nGLOBALLY:v_total=%d; s_total=%d",nvall,nsall);fflush(stdout);
   }
   if(g0->print_level>5){
     for(kel=0;kel<mc->nel;kel++){
-      fprintf(stdout,"\nelement{%d}=[",kel);
+      fprintf(stdout,"\nelement{%d}=[",kel);fflush(stdout);
       for (i = 0;i<(nvcube+1);i++){
-	fprintf(stdout,"%d ",g0->mnodes[kel*(nvcube+1)+i]);
+	fprintf(stdout,"%d ",g0->mnodes[kel*(nvcube+1)+i]);fflush(stdout);
       }
       fprintf(stdout,"];");
       for(i=0;i<scin[kel]->nv;i++){
@@ -1108,21 +1108,21 @@ scomplex *generate_initial_grid(input_grid *g0)
     fprintf(stdout,"\n%%DFS(domains): %d connected components",mc->cc);
     fprintf(stdout,"\n%%DFS(boundaries): %d connected components",mc->bndry_cc);
   }else if (g0->print_level>3){
-    fprintf(stdout,"\n%%Input faces with codes: %d; Total number of faces:%d\n",g0->nf,mc->nf);
+    fprintf(stdout,"\n%%Input faces with codes: %d; Total number of faces:%d\n",g0->nf,mc->nf);fflush(stdout);
   }else if(g0->print_level>10){
     fprintf(stdout,"\nbfs0=[");
     icsr_print_matlab_val(stdout,bfs0);
     fprintf(stdout,"];");
-    fprintf(stdout,"\nbfs=sparse(bfs0(:,1),bfs0(:,2),bfs0(:,3));\n");
-    print_full_mat_int(1,mc->nf,mc->isbface,"isbface");
-    print_full_mat_int(1,mc->nf,mc->bcodesf,"bcodesf");
+    fprintf(stdout,"\nbfs=sparse(bfs0(:,1),bfs0(:,2),bfs0(:,3));\n");fflush(stdout);
+    print_full_mat_int(1,mc->nf,mc->isbface,"isbface");fflush(stdout);
+    print_full_mat_int(1,mc->nf,mc->bcodesf,"bcodesf");fflush(stdout);
     fprintf(stdout,"\n*****   nf=%d (%d)******* \n",g0->nf,mc->nf);
     fprintf(stdout,"\nfel2el0=[");
     icsr_print_matlab_val(stdout,mc->fullel2el);
-    fprintf(stdout,"];");
-    fprintf(stdout,"\nfel2el=sparse(fel2el0(:,1),fel2el0(:,2),fel2el0(:,3));\n");
+    fprintf(stdout,"];");fflush(stdout);
+    fprintf(stdout,"\nfel2el=sparse(fel2el0(:,1),fel2el0(:,2),fel2el0(:,3));\n");fflush(stdout);
     print_full_mat_int(1,mc->nf,mc->isbface,"isbface");
-    print_full_mat_int(1,mc->nf,mc->bcodesf,"bcodesf");
+    print_full_mat_int(1,mc->nf,mc->bcodesf,"bcodesf");fflush(stdout);
   }
   /***********************************************************************/    
   /* set the divisions on every edge now; since they are consistent we
@@ -1138,7 +1138,7 @@ scomplex *generate_initial_grid(input_grid *g0)
     }
   }
   // use bfs to split elements:
-  if(g0->print_level>5) input_grid_print(g0);
+  if(g0->print_level>5) input_grid_print(g0);fflush(stdout);
   INT nsall,nvall;
   nsall=0;nvall=0;
   /* now nd is known, let us allocate iindex */
