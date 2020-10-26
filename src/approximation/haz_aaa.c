@@ -294,7 +294,7 @@ REAL get_wzpc(REAL16 (*func)(REAL16 x, void *param),	\
     if(j>=mbig) break;
   }
   if(k<mbig){
-    fprintf(stdout,"\nWARNING: some values of f were too big; removing %d of the values in z[]\n", mbig-k);
+    fprintf(stdout,"\n%%%% WARNING: some values of f were too big; removing %d of the values in z[]\n", mbig-k);
     mbig=k;
     if(mmax>((INT )mbig/2))mmax=(INT )(mbig/2);
   }
