@@ -521,4 +521,79 @@ void r2c(const INT n, const INT m, const size_t sizeel, void *x)
   if(y) free(y);
   return;
 }
-/**************************************************************************/
+/**********************************************************************/
+INT solve_pivot_l(INT dopivot,			\
+		  INT n,			\
+		  REAL16 *A,			\
+		  REAL16 *b,			\
+		  INT *p,			\
+		  REAL16 *piv)
+{
+/* \brief Solution of a linear system A*x = b with scaled partial
+   pivoting in LONG double. The right hand side is overwritten on
+   output with the solution, that is x[] is the same as b[] on return.
+ *
+ * \param dopivot (switch [0/1]; if idopivot=1 then do the LU
+ * decomposition of A. The L and U factors are stored in the lower and
+ * upper triangle of A respectively.  if dopivot=0, then A is assumed
+ * to be already LU decomposed and this only performs the forward and
+ * backward substitutions.
+ * \param n    number of rows (and columns) of A.
+ * \param A    the matrix as a one dimensional array by rows (long double)
+ *
+ */
+  INT nm1,i1,k1,pin,kswp,kp,i,j,k;
+  REAL16 r,t,absaij;
+  REAL16 *x=piv;
+  if(dopivot){
+    for (i=0;i<n;i++){
+      p[i]=i;
+      piv[i] = fabs(A[i*n+0]);
+      for (j=1;j<n;j++){
+	absaij=fabs(A[i*n+j]);
+	if(absaij > piv[i])
+	  piv[i] = absaij;
+      }
+      piv[i]=1./piv[i]; //here we need error stop if too small
+    }
+    nm1 = n-1;
+    for (k = 0;k<nm1;k++){
+      r = fabs(A[p[k]*n+k])*piv[p[k]];
+      kp = k;
+      for (i=k;i<n;i++){
+	t = fabs(A[p[i]*n+k])*piv[p[i]];
+	if (t > r){r = t; kp = i;}
+      }
+      kswp = p[kp]; p[kp] = p[k]; p[k] = kswp;
+      k1 = k+1;
+      for (i = k1;i<n;i++){
+	pin=p[i]*n;
+	A[pin+k] = A[pin+k]/A[p[k]*n+k];
+	for(j = k1;j<n;j++){
+	  A[pin+j] = A[pin+j]-A[pin+k]*A[p[k]*n+j];
+	}
+      }
+    }
+  }
+  /*end of decomposition; now solver part*/
+  x[0] = b[p[0]];
+  for (i = 1;i<n;i++){
+    x[i] = b[p[i]];
+    for(j = 0;j<i;j++){
+      x[i] = x[i]-A[p[i]*n+j]*x[j];
+    }
+  }
+  nm1=n-1;
+  x[nm1] = x[nm1]/A[p[nm1]*n+nm1];
+  for (i = nm1;i>0;i--){
+    i1=i-1;
+    pin=p[i1]*n;
+    for (j = i;j<n;j++){
+      x[i1] = x[i1]-A[pin+j]*x[j];
+    }
+    x[i1] = x[i1]/A[pin+i1];
+  }
+  //  if(y) free(y);
+  for(k=0;k<n;k++)b[k]=x[k];
+  return 0;
+}

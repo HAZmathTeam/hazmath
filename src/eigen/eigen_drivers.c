@@ -1,3 +1,4 @@
+
 /*! \file src/eigen/eigen_drivers.c
  *
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 8/19/15.
@@ -62,7 +63,7 @@ INT eigsymm(dCSRmat *A,dCSRmat *B,REAL *evalues, REAL *evectors)
 /***********************************************************************/
 INT eiggeneral(INT n,REAL *a,REAL *wr, REAL *wi)
 {
-  INT info=-22,i,j;
+  INT info=-22;
 #if WITH_LAPACK
   INT i,j;
   /*

@@ -104,6 +104,10 @@
 #define LONG             long       /**< long integer type */
 #define LONGLONG         long long  /**< long integer type */
 #define REAL             double     /**< float type */
+#ifndef REAL16
+#define REAL16 long double
+#endif
+
 
 /**
  * \brief Definition of solver types for nonlinear methods

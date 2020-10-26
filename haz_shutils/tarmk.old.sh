@@ -42,6 +42,7 @@ tar -rv -f $FILENAME ./src/assemble/*.c \
                      ./src/solver/*.inl \
                      ./src/timestepping/*.c \
                      ./src/utilities/*.c \
+                     ./src/approximation/*.c
 
 # Examples
 tar --exclude=./output/*.* -rv -f $FILENAME ./examples/README \

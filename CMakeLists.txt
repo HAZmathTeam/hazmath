@@ -143,6 +143,7 @@ file(GLOB HAZMATH_C_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR}
   ${HAZMATH_SOURCE_DIR}/src/fem/*.c 
   ${HAZMATH_SOURCE_DIR}/src/mesh/*.c 
   ${HAZMATH_SOURCE_DIR}/src/amr/*.c 
+  ${HAZMATH_SOURCE_DIR}/src/approximation/*.c 
   ${HAZMATH_SOURCE_DIR}/src/solver/*.c
   ${HAZMATH_SOURCE_DIR}/src/timestepping/*.c 
   ${HAZMATH_SOURCE_DIR}/src/nonlinear/*.c 
