@@ -19,7 +19,6 @@
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 INT main()
 {
-  REAL16 s[4]={0.5e0,-0.5e0,1e0,2e0}; // s1, s2, alpha,beta
   REAL xmin_in=0e0,xmax_in=1e0;
   ///////////////////////////////////////////////////////////////////////////
   //mbig is the total number of points; mmax_in is the max number of
@@ -33,7 +32,8 @@ INT main()
   // parameters for the function we are approximating.
   //
   // For example: s[2]*(x^s[0])+s[3]*(x**s[1])
-  s[0]=0.5;  s[1]=-0.5;  s[2]=2e0;  s[3]=1e0;
+  REAL16 s[4]={0.33e0,-0.5e0,2e0,3e0}; // s1, s2, alpha,beta
+  //  s[0]=0.5;  s[1]=-0.5;  s[2]=2e0;  s[3]=1e0;
   //
   //
   REAL **wzpc=malloc(5*sizeof(REAL *));
@@ -58,15 +58,15 @@ INT main()
   INT mem,mem16,i,j,k,m1=m+1,m01=m-1,mm=m*m,mm1=m1*m1;  
   fprintf(stdout,"\n\nm=%d; max_err=%.12e\n",m,rmax);
   
-  for(i=0;i<m-1;i++)fprintf(stdout,"\nz(%d)=%.16e;",i+1,*(wzpc[0]+i));
+  for(i=0;i<m;i++)fprintf(stdout,"\nz(%d)=%.16e;",i+1,*(wzpc[0]+i));
   fprintf(stdout,"\n");
-  for(i=0;i<m-1;i++) fprintf(stdout,"\nw(%d)=%.16e;",i+1,*(wzpc[1]+i));
+  for(i=0;i<m;i++) fprintf(stdout,"\nw(%d)=%.16e;",i+1,*(wzpc[1]+i));
   fprintf(stdout,"\n");
-  for(i=0;i<m-1;i++) fprintf(stdout,"\nf(%d)=%.16e;",i+1,*(wzpc[2]+i));
+  for(i=0;i<m;i++) fprintf(stdout,"\nf(%d)=%.16e;",i+1,*(wzpc[2]+i));
   fprintf(stdout,"\n");
   for(i=0;i<m-1;i++)fprintf(stdout,"\npol(%d)=%.16e;",i+1,*(wzpc[3]+i));
   fprintf(stdout,"\n");
-  for(i=0;i<m-1;i++)fprintf(stdout,"\nres(%d)=%.16e;",i+1,*(wzpc[4]+i));
+  for(i=0;i<m;i++)fprintf(stdout,"\nres(%d)=%.16e;",i+1,*(wzpc[4]+i));
   fprintf(stdout,"\n");
   free(wzpc[0]);// that is enough. the rest 1-4 are just shifts of wzpc[0] with m+1;
   free(wzpc);
