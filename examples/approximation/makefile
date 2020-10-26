@@ -12,7 +12,7 @@ INCLUDE =
 LIBS =
 
 # Switch between debug or optimized
-CFLAGS = -pg
+CFLAGS = -O3
 
 WITH_LAPACK=1
 
