@@ -31,8 +31,10 @@ INT main()
   INT mbig=(1<<10)+1,mmax_in=2<<5+1,m=-22;
   REAL16 tolaaa=powl(2e0,-52e0);
   // parameters for the function we are approximating.
+  //
   // For example: s[2]*(x^s[0])+s[3]*(x**s[1])
-  s[0]=0.5;  s[1]=-0.5;  s[2]=1e0;  s[3]=2e0;
+  s[0]=0.5;  s[1]=-0.5;  s[2]=2e0;  s[3]=1e0;
+  //
   //
   REAL **wzpc=malloc(5*sizeof(REAL *));
   // after a call to get_wzpc, wzpc[k] are pointers to the following
