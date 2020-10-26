@@ -30,45 +30,45 @@ INT main()
   INT mbig=(1<<10)+1,mmax_in=2<<5+1,m=-22;
   REAL16 tolaaa=powl(2e0,-52e0);
   // parameters for the function we are approximating.
-  //
   // For example: s[2]*(x^s[0])+s[3]*(x**s[1])
   REAL16 s[4]={0.33e0,-0.5e0,2e0,3e0}; // s1, s2, alpha,beta
-  //  s[0]=0.5;  s[1]=-0.5;  s[2]=2e0;  s[3]=1e0;
+  //  s[0]=0.5;  s[1]=-0.5;  s[2]=1e0;  s[3]=2e0;
   //
-  //
-  REAL **wzpc=malloc(5*sizeof(REAL *));
-  // after a call to get_wzpc, wzpc[k] are pointers to the following
+  REAL **pczwf=malloc(5*sizeof(REAL *));
+  // after a call to get_pczwf, pczwf[k] are pointers to the following
   // arrays (each of m+1 elements but at most m are used:
   //
-  // wz[0]-> nodes (z[]);
-  // wz[1]-> weights (w[]);
-  // wz[2]-> function values (f[]);
-  // wz[3]-> poles (pol[]);
-  // wz[4]-> residues (res[]) (also as last entry contains the free term c[m];
+  // wz[0]-> poles (pol[]);
+  // wz[1]-> residues (res[]); (also as last entry contains the free
+  //                            term c[m];
+  // wz[2]-> nodes (z[]);
+  // wz[3]-> weights (w[]);
+  // wz[4]-> function values (f[]) 
   //
   // the rational approximation is:
   // r(z)=res[m-1] + \sum_{i=0}^{m-2} res[i]/(z-pol[i]); 
   //
-  REAL rmax=get_wzpc(f_to_approx_l,			\
-		     (void *)s,				\
-		     wzpc,				\
-		     &mbig,&mmax_in,			\
-		     &m,xmin_in,xmax_in,tolaaa);
+  INT print_level=0;
+  REAL rmax=get_pczwf(f_to_approx_l,				\
+		      (void *)s,				\
+		      pczwf,					\
+		      &mbig,&mmax_in,				\
+		      &m,xmin_in,xmax_in,tolaaa,print_level);
   //rmax is the max error on the rest of z
   INT mem,mem16,i,j,k,m1=m+1,m01=m-1,mm=m*m,mm1=m1*m1;  
   fprintf(stdout,"\n\nm=%d; max_err=%.12e\n",m,rmax);
   
-  for(i=0;i<m;i++)fprintf(stdout,"\nz(%d)=%.16e;",i+1,*(wzpc[0]+i));
+  for(i=0;i<m-1;i++)fprintf(stdout,"\npol(%d)=%.16e;",i+1,*(pczwf[0]+i));
   fprintf(stdout,"\n");
-  for(i=0;i<m;i++) fprintf(stdout,"\nw(%d)=%.16e;",i+1,*(wzpc[1]+i));
+  for(i=0;i<m;i++) fprintf(stdout,"\nres(%d)=%.16e;",i+1,*(pczwf[1]+i));
   fprintf(stdout,"\n");
-  for(i=0;i<m;i++) fprintf(stdout,"\nf(%d)=%.16e;",i+1,*(wzpc[2]+i));
+  for(i=0;i<m;i++) fprintf(stdout,"\nz(%d)=%.16e;",i+1,*(pczwf[2]+i));
   fprintf(stdout,"\n");
-  for(i=0;i<m-1;i++)fprintf(stdout,"\npol(%d)=%.16e;",i+1,*(wzpc[3]+i));
+  for(i=0;i<m;i++)fprintf(stdout,"\nw(%d)=%.16e;",i+1,*(pczwf[3]+i));
   fprintf(stdout,"\n");
-  for(i=0;i<m;i++)fprintf(stdout,"\nres(%d)=%.16e;",i+1,*(wzpc[4]+i));
+  for(i=0;i<m;i++)fprintf(stdout,"\nf(%d)=%.16e;",i+1,*(pczwf[4]+i));
   fprintf(stdout,"\n");
-  free(wzpc[0]);// that is enough. the rest 1-4 are just shifts of wzpc[0] with m+1;
-  free(wzpc);
+  free(pczwf[0]);// that is enough. the rest 1-4 are just shifts of pczwf[0] with m+1;
+  free(pczwf);
   return 0;  
 }
