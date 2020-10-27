@@ -57,8 +57,8 @@ static void get_res(const INT m,		\
 }
 /**********************************************************************/
 /*!
- * \fn INT pols_residue(INT m,REAL *zd,REAL *wd,REAL *fd, 
- *                       REAL *pold,REAL *resd)
+ * \fn INT residues_poles(INT m,REAL *zd,REAL *wd,REAL *fd, 
+ *                       REAL *resd,REAL *pold)
  *
  * \brief given nodes and weights computes residues and poles. 
  *
@@ -70,12 +70,12 @@ static void get_res(const INT m,		\
  *       shift.
  *
  */
-INT pols_residue(INT m,				\
-		 REAL *zd,			\
-		 REAL *wd,			\
-		 REAL *fd,			\
-		 REAL *pold,			\
-		 REAL *resd)
+INT residues_poles(INT m,				\
+		   REAL *zd,				\
+		   REAL *wd,				\
+		   REAL *fd,				\
+		   REAL *resd,				\
+		   REAL *pold)
 {
   INT m1=m+1,m01=m-1,mm1=m1*m1,i,j,k;
   REAL16 swp;
@@ -196,7 +196,7 @@ INT pols_residue(INT m,				\
 }
 /**********************************************************************/
 /*!
- * \fn REAL get_wzpc(REAL16 (*func)(REAL16 x, void *param),void
+ * \fn REAL get_cpzwf(REAL16 (*func)(REAL16 x, void *param),void
                      *param, REAL **wzpc,INT *mbig_in,INT *mmax_in,
                      INT *m_out, REAL xmin_in, REAL xmax_in, REAL
                      tolaaa)
@@ -211,9 +211,9 @@ INT pols_residue(INT m,				\
  * \note Uses long doubles as well as doubles. 
  *
  */
-REAL get_pczwf(REAL16 (*func)(REAL16 x, void *param),	\
+REAL get_cpzwf(REAL16 (*func)(REAL16 x, void *param),	\
 	      void *param,				\
-	      REAL **pczwf,				\
+	      REAL **cpzwf,				\
 	      INT *mbig_in,				\
 	      INT *mmax_in,				\
 	      INT *m_out,				\
@@ -231,25 +231,25 @@ REAL get_pczwf(REAL16 (*func)(REAL16 x, void *param),	\
    *    tolerance tolaaa is achieved or mmax is reached.
    *   parameters for the function we are approximating.
    *   For example: s[2]*(x^s[0])+s[3]*(x**s[1])
-   *   after a call to get_pczwf, pczwf[k] are pointers to the following
+   *   after a call to get_cpzwf, cpzwf[k] are pointers to the following
    *   arrays (each of m+1 elements but at most m are used:
    *
-   *   pczwf[0]-> poles (pol[]);
-   *   pczwf[1]->  residues(res[]);
-   *   pczwf[2]-> nodes (z[]);
-   *   pczwf[3]-> weights (w[]);
-   *   pczwf[4]-> function values (f[]) 
-   * (also as last entry pczwf[0] contains the free term c[m-1]; 
+   *   cpzwf[0]->  residues(res[]);
+   *   cpzwf[1]-> poles (pol[]);
+   *   cpzwf[2]-> nodes (z[]);
+   *   cpzwf[3]-> weights (w[]);
+   *   cpzwf[4]-> function values (f[]) 
+   * (also as last entry cpzwf[0] contains the free term c[m-1]; 
    *
    *   the rational approximation is:
    ****   r(z)=res[m-1] + \sum_{i=0}^{m-2} res[i]/(z-pol[i]); 
    *
   */
   ////////////
-  // pczwf must contain 5 pointers: pczwf[0] are the weights and pczwf[1] are
-  // the weights. **pczwf must be allocated earlier, but pczwf[0] and pczwf[1]
-  // are allocated here.  f is the function we want to approximate and
-  // param are the parameters it may depend on
+  // cpzwf must contain 5 pointers: cpzwf[0] are the resigues and
+  // cpzwf[1] are the poles. **cpzwf must be allocated earlier, but
+  // cpzwf[k], k=0:4 are allocated here.  func() is the function we want to
+  // approximate and param are the parameters it may depend on
   INT m,i,j,k,krow,kmax,mmax;
   REAL16 r,wzkj,fnum,fden,rm,rmax,swp;
   REAL16  fj,zj,tol,xmin=(REAL16 )xmin_in,xmax=(REAL16 )xmax_in;
@@ -379,22 +379,22 @@ REAL get_pczwf(REAL16 (*func)(REAL16 x, void *param),	\
   m_out[0]=m;
   mbig_in[0]=mbig;
   // tricky stuff: realloc removing all REAL16 to REAL:
-  pczwf[0]=(REAL *)z;
+  cpzwf[0]=(REAL *)z;
   // we use that real requires less than real16:) hope this works:
-  for(i=0;i<m;i++) *(pczwf[0]+i)=z[i];
-  pczwf[1]=pczwf[0] + m + 1;
-  memcpy(pczwf[1],wd,m*sizeof(REAL));
-  pczwf[2]=pczwf[1] + m + 1;
-  for(i=0;i<m;i++) *(pczwf[2]+i)=f[i];
+  for(i=0;i<m;i++) *(cpzwf[0]+i)=z[i];
+  cpzwf[1]=cpzwf[0] + m + 1;
+  memcpy(cpzwf[1],wd,m*sizeof(REAL));
+  cpzwf[2]=cpzwf[1] + m + 1;
+  for(i=0;i<m;i++) *(cpzwf[2]+i)=f[i];
   // reallocate:
-  pczwf[0]=realloc(pczwf[0],5*(m+1)*sizeof(REAL));
-  pczwf[3]=pczwf[2] + m + 1;
-  pczwf[4]=pczwf[3] + m + 1;
-  memcpy(pczwf[4],pczwf[2],(m+1)*sizeof(REAL));
-  memcpy(pczwf[3],pczwf[1],(m+1)*sizeof(REAL));
-  memcpy(pczwf[2],pczwf[0],(m+1)*sizeof(REAL));
+  cpzwf[0]=realloc(cpzwf[0],5*(m+1)*sizeof(REAL));
+  cpzwf[3]=cpzwf[2] + m + 1;
+  cpzwf[4]=cpzwf[3] + m + 1;
+  memcpy(cpzwf[4],cpzwf[2],(m+1)*sizeof(REAL));
+  memcpy(cpzwf[3],cpzwf[1],(m+1)*sizeof(REAL));
+  memcpy(cpzwf[2],cpzwf[0],(m+1)*sizeof(REAL));
   //   copy the functions values go last, poles go first, residues go second
-  pols_residue(m,pczwf[2],pczwf[3],pczwf[4],pczwf[0],pczwf[1]);  
+  residues_poles(m,cpzwf[2],cpzwf[3],cpzwf[4],cpzwf[0],cpzwf[1]);  
   return (REAL )rmax;
 }
 /*EOF*/
