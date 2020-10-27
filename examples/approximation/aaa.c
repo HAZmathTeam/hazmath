@@ -69,6 +69,7 @@ INT main()
   for(i=0;i<m;i++)fprintf(stdout,"\nf(%d)=%.16e;",i+1,*(cpzwf[4]+i));
   fprintf(stdout,"\n");
   free(cpzwf[0]);// that is enough. the rest 1-4 are just shifts of cpzwf[0] with m+1;
+  // free the **cpzwf
   free(cpzwf);
   return 0;  
 }
