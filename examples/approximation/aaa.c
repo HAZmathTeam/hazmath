@@ -27,7 +27,8 @@ INT main()
   //
   // m is the number of nodes in the final interpolation after
   // tolerance tolaaa is achieved or mmax is reached.
-  INT mbig=(1<<10)+1,mmax_in=2<<5+1,m=-22;
+  INT mbig=(1<<10)+1;
+  INT mmax_in=(INT )(mbig/2),m=-22;
   REAL16 tolaaa=powl(2e0,-52e0);
   // parameters for the function we are approximating.
   // For example: s[2]*(x^s[0])+s[3]*(x**s[1])
