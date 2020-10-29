@@ -263,7 +263,7 @@ REAL get_cpzwf(REAL16 (*func)(REAL16 x, void *param),	\
     mmax=mmax_in[0];
   else 
     mmax_in[0]=mmax;
-  tol=powl(2e0,-48e0);
+  tol=powl(2e0,-42e0);
   if(((REAL16 )tolaaa) > tol)
     tol=(REAL16 )tolaaa;
   INT mem=mbig*mmax*sizeof(REAL) + mmax*sizeof(REAL)+2*mbig*sizeof(REAL16);
