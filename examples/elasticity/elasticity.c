@@ -269,7 +269,8 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, mesh_st
   zquad_face(cq_face,nq1d_face,dim,xfi,fiarea);
     
   // get the penalty (FACE ASSEMBLE)
-  double penalty_term = PENALTY_PARAMETER_GLOBAL / (pow(fiarea,(REAL )(dim-1)));
+  double penalty_term = PENALTY_PARAMETER_GLOBAL / (pow(fiarea,1e0/(REAL )(dim-1)));
+  penalty_term*=(LAME_LAMBDA_GLOBAL);
   double penalty_term_new =  0.;//1000000./fiarea;
     
   // SLEE
@@ -1231,8 +1232,9 @@ void FEM_Block_RHS_Local_Elasticity(dvector *b,REAL* bLoc,block_fespace *FE,mesh
 	//NEED TO DEBUG!!!!
 	//SLEE // SEEK BD flag...?????
 	double fiarea=mesh->f_area[face];
-	double penalty_term = PENALTY_PARAMETER_GLOBAL / (pow(fiarea,(REAL )(dim-1)));
 	double lambda = LAME_LAMBDA_GLOBAL;//000000.;//000000.;//000000.; //000000.0;
+	double penalty_term = PENALTY_PARAMETER_GLOBAL / (pow(fiarea,1e0/(REAL )(dim-1)));
+	penalty_term*=lambda;
 	double penalty_term_new = 0.;//1000000./fiarea;
 	//nq1d_face == 3, 3 quad points. 
 	zquad_face(cq_face,nq1d_face,dim,xfi,fiarea);
@@ -1245,8 +1247,8 @@ void FEM_Block_RHS_Local_Elasticity(dvector *b,REAL* bLoc,block_fespace *FE,mesh
 	//}
 
 	/*
-	  double penalty_term = PENALTY_PARAMETER_GLOBAL / (pow(fiarea,(REAL )(dim-1)));
-	  
+	  double penalty_term = PENALTY_PARAMETER_GLOBAL / (pow(fiarea,1e0/(REAL )(dim-1)));
+	  penalty_term*=LAME_LAMBDA_GLOBAL;
 	  printf("Penlaty RHS= %f \n", penalty_term);
 	*/
 	  
@@ -2034,30 +2036,30 @@ int main (int argc, char* argv[])
       ////////////////////////////
       //PRINTING
       ////////////////////////////
-      /* FILE *fptmp; */
-      /* fptmp=fopen("output/a.dat","w"); */
-      /* bdcsr_print_matlab(fptmp,&A); */
-      /* fclose(fptmp); */
-      /* //////////////////////////// */
-      /* fptmp=fopen("output/d1.dat","w"); */
-      /* csr_print_matlab(fptmp,&A_diag[0]); */
-      /* fclose(fptmp); */
-      /* fptmp=fopen("output/d2.dat","w"); */
-      /* csr_print_matlab(fptmp,&A_diag[1]); */
-      /* fclose(fptmp); */
-      /* fptmp=fopen("output/d3.dat","w"); */
-      /* csr_print_matlab(fptmp,&A_diag[2]); */
-      /* fclose(fptmp); */
-      /* fptmp=fopen("output/ndofs.m","w"); */
-      /* fprintf(fptmp,							\ */
-      /* 	      "n_dofs=[%d %d %d];\n",FE_ux.ndof,FE_uy.ndof,FE_p.ndof); */
-      /* fprintf(fptmp,							\ */
-      /* 	      "n_row=[%d %d %d];\n",A_diag[0].row,A_diag[1].row,A_diag[2].row); */
-      /* fprintf(fptmp,							\ */
-      /* 	      "n_col=[%d %d %d];\n",A_diag[0].col,A_diag[1].col,A_diag[2].col); */
-      /* fprintf(fptmp,							\ */
-      /* 	      "n_nnz=[%d %d %d];\n",A_diag[0].nnz,A_diag[1].nnz,A_diag[2].nnz); */
-      /* fclose(fptmp); */
+      FILE *fptmp;
+      fptmp=fopen("output/a.dat","w");
+      bdcsr_print_matlab(fptmp,&A);
+      fclose(fptmp);
+      ////////////////////////////
+      fptmp=fopen("output/d1.dat","w");
+      csr_print_matlab(fptmp,&A_diag[0]);
+      fclose(fptmp);
+      fptmp=fopen("output/d2.dat","w");
+      csr_print_matlab(fptmp,&A_diag[1]);
+      fclose(fptmp);
+      fptmp=fopen("output/d3.dat","w");
+      csr_print_matlab(fptmp,&A_diag[2]);
+      fclose(fptmp);
+      fptmp=fopen("output/ndofs.m","w");
+      fprintf(fptmp,							\
+      	      "n_dofs=[%d %d %d];\n",FE_ux.ndof,FE_uy.ndof,FE_p.ndof);
+      fprintf(fptmp,							\
+      	      "n_row=[%d %d %d];\n",A_diag[0].row,A_diag[1].row,A_diag[2].row);
+      fprintf(fptmp,							\
+      	      "n_col=[%d %d %d];\n",A_diag[0].col,A_diag[1].col,A_diag[2].col);
+      fprintf(fptmp,							\
+      	      "n_nnz=[%d %d %d];\n",A_diag[0].nnz,A_diag[1].nnz,A_diag[2].nnz);
+      fclose(fptmp);
       /////////////////////////////////////
       //END OF PRINTING  
       /////////////////////////////////////

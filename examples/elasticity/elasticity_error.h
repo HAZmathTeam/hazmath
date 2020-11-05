@@ -1269,8 +1269,8 @@ void HDsemierror_block_EnergyNorm_EG_FaceLoop
       zquad_face(cq_face,nq1d_face,dim,xfi,fiarea);
 
       // get the penalty (EnergyNorm)
-      double penalty_term = PENALTY_PARAMETER_GLOBAL / (pow(fiarea,(REAL )(dim-1)));
-     
+      double penalty_term = PENALTY_PARAMETER_GLOBAL / (pow(fiarea,1e0/(REAL )(dim-1)));
+      penalty_term*=LAME_LAMBDA_GLOBAL;     
       // SLEE
       // Get the BD values 
       REAL* val_true_face = (REAL *) calloc(nquad_face,sizeof(REAL));
