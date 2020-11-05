@@ -397,7 +397,7 @@ return;
 *
 */
 void assemble_global_block_neighbor(block_dCSRmat* A,dvector *b,
-				    void (*local_assembly_face)(block_dCSRmat* A,block_fespace *,mesh_struct *,qcoordinates *,INT),
+				    void (*local_assembly_face)(block_dCSRmat* A,block_fespace *,mesh_struct *,qcoordinates *,INT, iCSRmat*),
 				    void (*local_assembly)(block_dCSRmat* A,dvector *b,REAL *,block_fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,REAL,INT*),
 				    void (*local_rhs_assembly)(dvector *b,REAL *,block_fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
 {
@@ -471,7 +471,6 @@ void assemble_global_block_neighbor(block_dCSRmat* A,dvector *b,
     switch_on_face[mm] =0.;
   }
 
-  
   for (i=0; i<mesh->nelm; i++) {
     // Zero out local matrices
     for (j=0; j<local_size; j++) {
@@ -481,8 +480,7 @@ void assemble_global_block_neighbor(block_dCSRmat* A,dvector *b,
       for (j=0; j<dof_per_elm; j++) {
         bLoc[j]=0;
       }
-    }
-
+    }    
     // Find DOF for given Element
     // Note this is "local" ordering for the given FE space of the block
     // Not global ordering of all DOF
@@ -495,10 +493,7 @@ void assemble_global_block_neighbor(block_dCSRmat* A,dvector *b,
         jcntr++;
       }
     } 
-
-    //printf("====== Ele = %d \n", i);
-   
-    
+    //printf("====== Ele = %d \n", i);    
     //for(INT kk=0;kk<7;++kk)
     //printf("dof_on_elm[%d]=%d \n", kk, dof_on_elm[kk]);
     // Find vertices for given Element
@@ -516,13 +511,15 @@ void assemble_global_block_neighbor(block_dCSRmat* A,dvector *b,
     // --> this is now embedded for each assembly. 
   }// loop over elements
 
-
+  iCSRmat *f_el=(iCSRmat *)malloc(1*sizeof(iCSRmat)); // face_to_element;
+  icsr_trans(mesh->el_f,f_el); // f_el=transpose(el_f);  
   bool bEG = true;//false;
   // NOW LOOP OVER FACES
   if(bEG){
     for (i=0; i<mesh->nface; i++) {
-      (*local_assembly_face)(A,FE,mesh,cq,i);
-      
+      (*local_assembly_face)(A,FE,mesh,cq,i,f_el);
+      fprintf(stdout,"\n------ FACE: %7d\n",mesh->nface-i);fflush(stdout);
+   
       //if(i == 3)
       //exit(0);
       
@@ -537,7 +534,7 @@ void assemble_global_block_neighbor(block_dCSRmat* A,dvector *b,
   */
   //exit(0);
   
-
+  icsr_free(f_el);
   if(dof_on_elm) free(dof_on_elm);
   if(v_on_elm) free(v_on_elm);
   if(ALoc) free(ALoc);
