@@ -2036,30 +2036,30 @@ int main (int argc, char* argv[])
       ////////////////////////////
       //PRINTING
       ////////////////////////////
-      FILE *fptmp;
-      fptmp=fopen("output/a.dat","w");
-      bdcsr_print_matlab(fptmp,&A);
-      fclose(fptmp);
-      ////////////////////////////
-      fptmp=fopen("output/d1.dat","w");
-      csr_print_matlab(fptmp,&A_diag[0]);
-      fclose(fptmp);
-      fptmp=fopen("output/d2.dat","w");
-      csr_print_matlab(fptmp,&A_diag[1]);
-      fclose(fptmp);
-      fptmp=fopen("output/d3.dat","w");
-      csr_print_matlab(fptmp,&A_diag[2]);
-      fclose(fptmp);
-      fptmp=fopen("output/ndofs.m","w");
-      fprintf(fptmp,							\
-      	      "n_dofs=[%d %d %d];\n",FE_ux.ndof,FE_uy.ndof,FE_p.ndof);
-      fprintf(fptmp,							\
-      	      "n_row=[%d %d %d];\n",A_diag[0].row,A_diag[1].row,A_diag[2].row);
-      fprintf(fptmp,							\
-      	      "n_col=[%d %d %d];\n",A_diag[0].col,A_diag[1].col,A_diag[2].col);
-      fprintf(fptmp,							\
-      	      "n_nnz=[%d %d %d];\n",A_diag[0].nnz,A_diag[1].nnz,A_diag[2].nnz);
-      fclose(fptmp);
+      /* FILE *fptmp; */
+      /* fptmp=fopen("output/a.dat","w"); */
+      /* bdcsr_print_matlab(fptmp,&A); */
+      /* fclose(fptmp); */
+      /* //////////////////////////// */
+      /* fptmp=fopen("output/d1.dat","w"); */
+      /* csr_print_matlab(fptmp,&A_diag[0]); */
+      /* fclose(fptmp); */
+      /* fptmp=fopen("output/d2.dat","w"); */
+      /* csr_print_matlab(fptmp,&A_diag[1]); */
+      /* fclose(fptmp); */
+      /* fptmp=fopen("output/d3.dat","w"); */
+      /* csr_print_matlab(fptmp,&A_diag[2]); */
+      /* fclose(fptmp); */
+      /* fptmp=fopen("output/ndofs.m","w"); */
+      /* fprintf(fptmp,							\ */
+      /* 	      "n_dofs=[%d %d %d];\n",FE_ux.ndof,FE_uy.ndof,FE_p.ndof); */
+      /* fprintf(fptmp,							\ */
+      /* 	      "n_row=[%d %d %d];\n",A_diag[0].row,A_diag[1].row,A_diag[2].row); */
+      /* fprintf(fptmp,							\ */
+      /* 	      "n_col=[%d %d %d];\n",A_diag[0].col,A_diag[1].col,A_diag[2].col); */
+      /* fprintf(fptmp,							\ */
+      /* 	      "n_nnz=[%d %d %d];\n",A_diag[0].nnz,A_diag[1].nnz,A_diag[2].nnz); */
+      /* fclose(fptmp); */
       /////////////////////////////////////
       //END OF PRINTING  
       /////////////////////////////////////
