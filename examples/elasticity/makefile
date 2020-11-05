@@ -5,7 +5,7 @@
 # SRC File name
 SRCFILE = elasticity
 
-HEADERS = elastic-ity_system.h
+HEADERS = elasticity_system.h
 
 INCLUDE =
 
@@ -16,5 +16,6 @@ CFLAGS = -g
 FFLAGS = -g
 
 WITH_SUITESPARSE=1
+WITH_LAPACK=1
 
 sinclude ../examples.mk
