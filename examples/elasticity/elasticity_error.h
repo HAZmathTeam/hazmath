@@ -1,7 +1,7 @@
 //#include "elasticity_data.h"
-/*! \file examples/stokes/stokes_data.h
+/*! \file examples/stokes/elasticity_error.h
  *
- *  Created by Peter Ohm on 1/5/17.
+ *  Created by SLee (20200812)
  *  Copyright 2015_HAZMATH__. All rights reserved.
  *
  * \brief This contains all the Data parameters and coefficients
@@ -27,7 +27,7 @@ void exact_sol2D(REAL *val, REAL *x, REAL time,void *param){
   val[1] = -cos(M_PI*x[0])*sin(M_PI*x[1]);
   val[2] = 0.5 - x[0];
   */
-  double lame_lambda = 1000000.;//000000.;//000000.;//000000.;//000000.;//000000.;//000000.;
+  double lame_lambda = LAME_LAMBDA_GLOBAL ;//000000.;//000000.;//000000.;//000000.;//000000.;//000000.;
   val[0] = sin(x[0]) * sin(x[1]) + (1./lame_lambda) * x[0];
   val[1] = cos(x[0]) * cos(x[1]) + (1./lame_lambda) * x[1];
   //val[0] = sin(2. * M_PI * x[1]) * (-1. + cos(2. * M_PI * x[0]) ) + (1. / (1. + lame_lambda))* sin(M_PI * x[0]) * sin(M_PI* x[1]);
@@ -68,7 +68,7 @@ void Dexact_sol2D(REAL *val, REAL *x, REAL time,void *param){
   val[5] = 0.0;
   */
 
-  double lame_lambda = 1000000.;//000000.;//000000.;//000000.;//000000.;//000000.;//000000.;
+  double lame_lambda = LAME_LAMBDA_GLOBAL;//000000.;//000000.;//000000.;//000000.;//000000.;//000000.;
   
   val[0] = cos(x[0])*sin(x[1]) + 1./lame_lambda;
   val[1] = cos(x[1])*sin(x[0]);
@@ -99,7 +99,7 @@ void source2D(REAL *val, REAL *x, REAL time,void *param) {
 
   val[0] = 2. * sin(x[0]) * sin(x[1]);
   val[1] = 2. * cos(x[0]) * cos(x[1]);
-  //double lambda = 1000000.;//000000.;//000000.;//000000.;//000000.;
+  //double lambda = LAME_LAMBDA_GLOBAL ;//000000.;//000000.;//000000.;//000000.;
  
   //val[0] = pi*pi * (4. * sin(2.* pi * x[1])*(-1. + 2.* cos(2.*pi*x[0])) - cos(pi*(x[0]+x[1])) + (2./(1+lambda))*sin(pi*x[0])*sin(pi*x[1]));
   //val[1] = pi*pi * (4. * sin(2.* pi * x[0])*(1. - 2.* cos(2.*pi*x[1])) - cos(pi*(x[0]+x[1])) + (2./(1+lambda))*sin(pi*x[0])*sin(pi*x[1]));  
@@ -451,7 +451,7 @@ void HDerror_block_EG
 
   // THIS NEEDS TO BE CODED BETTER // slee todo
   //double d_Lame_coeff_mu = 1.;
-  //double d_Lame_coeff_lambda = 1000000.; //000000.;
+  //double d_Lame_coeff_lambda = LAME_LAMBDA_GLOBAL ; //000000.;
   
   /* Loop over all Elements */
   for (elm=0; elm<mesh->nelm; elm++) {
@@ -695,7 +695,7 @@ void HDsemierror_block_Stress
 
   // THIS NEEDS TO BE CODED BETTER // slee todo
   double d_Lame_coeff_mu = 1.;
-  double d_Lame_coeff_lambda = 1000000.;//000000.;//000000.;//000000.; //000000.;
+  double d_Lame_coeff_lambda = LAME_LAMBDA_GLOBAL ;//000000.;//000000.;//000000.; //000000.;
   
   /* Loop over all Elements */
   for (elm=0; elm<mesh->nelm; elm++) {
@@ -827,7 +827,7 @@ void HDsemierror_block_Stress_EG
 
   // THIS NEEDS TO BE CODED BETTER // slee todo
   double d_Lame_coeff_mu = 1.;
-  double d_Lame_coeff_lambda = 1000000.;///000000.;//000000.;//000000.; //000000.;
+  double d_Lame_coeff_lambda = LAME_LAMBDA_GLOBAL ;///000000.;//000000.;//000000.; //000000.;
   
   /* Loop over all Elements */
   for (elm=0; elm<mesh->nelm; elm++) {
@@ -1067,7 +1067,7 @@ void HDsemierror_block_EnergyNorm_EG_FaceLoop
 
   // THIS NEEDS TO BE CODED BETTER // slee todo
   double d_Lame_coeff_mu = 1.;
-  double d_Lame_coeff_lambda = 1000000.;//000000.;//000000.;//000000.; //000000.;
+  double d_Lame_coeff_lambda = LAME_LAMBDA_GLOBAL ;//000000.;//000000.;//000000.; //000000.;
   /*
   INT dof_per_face = 0;
   INT FEtype;
@@ -1269,7 +1269,7 @@ void HDsemierror_block_EnergyNorm_EG_FaceLoop
       zquad_face(cq_face,nq1d_face,dim,xfi,fiarea);
 
       // get the penalty (EnergyNorm)
-      double penalty_term = 10./fiarea;
+      double penalty_term = PENALTY_PARAMETER_GLOBAL / (pow(fiarea,(REAL )(dim-1)));
      
       // SLEE
       // Get the BD values 

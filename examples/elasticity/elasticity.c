@@ -1,7 +1,7 @@
 /*! \file examples/Elasticity/elasticity.c
  *
  *  This code is EG for elasticity
- *  created by S. Lee (20200812)
+ *  created by SLee (20200812)
  *  Copyright 2015_HAZMATH__. All rights reserved.
  *
  * \brief This program solves Elasticity PDE using finite elements
@@ -26,6 +26,14 @@
 
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************************/
 #include "hazmath.h"
+
+#ifndef LAME_LAMBDA_GLOBAL
+#define LAME_LAMBDA_GLOBAL 2e+00
+#endif
+
+#ifndef PENALTY_PARAMETER_GLOBAL
+#define PENALTY_PARAMETER_GLOBAL 1e+01
+#endif
 
 #include "elasticity_error.h"
 #include "elasticity_system.h"
@@ -87,7 +95,7 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, mesh_st
 
   // THIS NEEDS TO BE CODED BETTER // slee todo
   double mu = 1.;
-  double lambda = 1000000.;//000000.;//000000.;//000000.; //000000.;
+  double lambda = LAME_LAMBDA_GLOBAL;//000000.;//000000.;//000000.; //000000.;
 
   
   INT quad,quad_face;
@@ -268,7 +276,7 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, mesh_st
     zquad_face(cq_face,nq1d_face,dim,xfi,fiarea);
     
     // get the penalty (FACE ASSEMBLE)
-    double penalty_term =      10./fiarea;
+    double penalty_term = PENALTY_PARAMETER_GLOBAL / (pow(fiarea,(REAL )(dim-1)));
     double penalty_term_new =  0.;//1000000./fiarea;
     
     // SLEE
@@ -1230,8 +1238,8 @@ void FEM_Block_RHS_Local_Elasticity(dvector *b,REAL* bLoc,block_fespace *FE,mesh
 	//NEED TO DEBUG!!!!
 	//SLEE // SEEK BD flag...?????
 	double fiarea=mesh->f_area[face];
-	double penalty_term = 10./fiarea;
-	double lambda = 1000000.;//000000.;//000000.;//000000.; //000000.0;
+	double penalty_term = PENALTY_PARAMETER_GLOBAL / (pow(fiarea,(REAL )(dim-1)));
+	double lambda = LAME_LAMBDA_GLOBAL;//000000.;//000000.;//000000.; //000000.0;
 	double penalty_term_new = 0.;//1000000./fiarea;
 	//nq1d_face == 3, 3 quad points. 
 	zquad_face(cq_face,nq1d_face,dim,xfi,fiarea);
@@ -1244,7 +1252,7 @@ void FEM_Block_RHS_Local_Elasticity(dvector *b,REAL* bLoc,block_fespace *FE,mesh
 	//}
 
 	  /*
-	double penalty_term =  100./fiarea;
+	double penalty_term = PENALTY_PARAMETER_GLOBAL / (pow(fiarea,(REAL )(dim-1)));
 	  
 	printf("Penlaty RHS= %f \n", penalty_term);
 	  */
@@ -1406,7 +1414,7 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
   // Keep track of local indexing
   INT local_row_index, local_col_index;
 
-  double lambda = 1000000.;//000000.;//000000.;//000000.; //000000.0;
+  double lambda = LAME_LAMBDA_GLOBAL ;//000000.;//000000.;//000000.; //000000.0;
 
   // Sum over quadrature points
   for (quad=0;quad<cq->nq_per_elm;quad++) {
@@ -1681,7 +1689,7 @@ int main (int argc, char* argv[])
 
   // Aug.3.2020 SLEE
   // Define variables forthe error convergence test
-  int total_num_cycle = 6; 
+  int total_num_cycle = 5; 
   // SLEE initialize the vectors to save the errors for each cycle
   double L2_error_per_cycle[total_num_cycle];
   double L2_error_p_per_cycle[total_num_cycle];
@@ -1828,9 +1836,7 @@ int main (int argc, char* argv[])
   for(i=0;i<FE_uy.ndof;i++) {
     FE_uy.dirichlet[i] = 0;
   }
-  */
-  
-  
+  */    
   // Create Block System with ordering (u,p)
   INT ndof = FE_ux.ndof + FE_uy.ndof + FE_p.ndof;
   if(dim==3) ndof += FE_uz.ndof;
@@ -1964,21 +1970,6 @@ int main (int argc, char* argv[])
   /*******************************************************************************************/
 
   /************ Prepare Preconditioners **************************************************/
-
-  // Prepare diagonal blocks
-  dCSRmat *A_diag;
-  A_diag = (dCSRmat *)calloc(dim+1, sizeof(dCSRmat));
-
-  for(i=0;i<dim;i++){ // copy block diagonal to A_diag
-    dcsr_alloc(A.blocks[i*(dim+2)]->row, A.blocks[i*(dim+2)]->col, A.blocks[i*(dim+2)]->nnz, &A_diag[i]);
-    dcsr_cp(A.blocks[i*(dim+2)], &A_diag[i]);
-  }
-
-  // Get Mass Matrix for p
-  //dCSRmat Mp;
-  //assemble_global(&Mp,NULL,assemble_mass_local,&FE_p,&mesh,cq,NULL,one_coeff_scal,0.0);
-  //dcsr_alloc(Mp.row, Mp.col, Mp.nnz, &A_diag[dim]);
-  //dcsr_cp(&Mp, &A_diag[dim]);
   /*******************************************************************************************/
 
   /***************** Solve *******************************************************************/
@@ -2006,13 +1997,65 @@ int main (int argc, char* argv[])
   param_linear_solver_init(&linear_itparam);
   param_linear_solver_set(&linear_itparam,&inparam);
   // Solve
-  void *numeric=NULL;  // prepare for direct solve:
-  numeric=(void *)block_factorize_UMF(&A,0);//inparam.print_level);
-  solver_flag=(INT )block_solve_UMF(&A,
-				    &b, // this is the rhs here. 
-				    &sol,  // this is the solution here. 
-				    numeric,
-				    0);//     inparam.print_level);
+  /***********************************************************************/
+  AMG_param amgparam;
+  param_amg_init(&amgparam);
+  //  param_amg_set(&amgparam, &inparam);
+  param_amg_print(&amgparam);
+  // get preconditioner diagonal blocks
+  // Prepare diagonal blocks
+  dCSRmat *A_diag;
+  A_diag = (dCSRmat *)calloc(dim+1, sizeof(dCSRmat));
+  for(i=0;i<dim+1;i++){ // copy block diagonal to A_diag
+    dcsr_alloc(A.blocks[i*(dim+1)+i]->row, \
+	       A.blocks[i*(dim+1)+i]->col, \
+	       A.blocks[i*(dim+1)+i]->nnz, \
+	       &A_diag[i]);
+    dcsr_cp(A.blocks[i*(dim+1)+i], &A_diag[i]);
+  }
+  ////////////////////////////
+  FILE *fptmp;
+  fptmp=fopen("output/a.dat","w");
+  bdcsr_print_matlab(fptmp,&A);
+  fclose(fptmp);
+  ////////////////////////////
+  fptmp=fopen("output/d1.dat","w");
+  csr_print_matlab(fptmp,&A_diag[0]);
+  fclose(fptmp);
+  fptmp=fopen("output/d2.dat","w");
+  csr_print_matlab(fptmp,&A_diag[1]);
+  fclose(fptmp);
+  fptmp=fopen("output/d3.dat","w");
+  csr_print_matlab(fptmp,&A_diag[2]);
+  fclose(fptmp);
+  fptmp=fopen("output/ndofs.m","w");
+  fprintf(fptmp,							\
+	  "n_dofs=[%d %d %d];\n",FE_ux.ndof,FE_uy.ndof,FE_p.ndof);
+  fprintf(fptmp,							\
+	   "n_row=[%d %d %d];\n",A_diag[0].row,A_diag[1].row,A_diag[2].row);
+  fprintf(fptmp,							\
+	  "n_col=[%d %d %d];\n",A_diag[0].col,A_diag[1].col,A_diag[2].col);
+  fprintf(fptmp,							\
+	  "n_nnz=[%d %d %d];\n",A_diag[0].nnz,A_diag[1].nnz,A_diag[2].nnz);
+  fclose(fptmp);
+  /////////////////////////////////////
+  
+  /////////////////////////////////////
+  
+  // solve
+  solver_flag = linear_solver_bdcsr_krylov_block_3(&A,&b,&sol, \
+						   &linear_itparam, \
+						   &amgparam, A_diag);  
+  /***********************************************************************/
+  //////////////////////////////////////////////////////////////
+  /* void *numeric=NULL;  // prepare for direct solve: */
+  /* numeric=(void *)block_factorize_UMF(&A,0);//inparam.print_level); */
+  /* solver_flag=(INT )block_solve_UMF(&A, */
+  /* 				    &b, // this is the rhs here.  */
+  /* 				    &sol,  // this is the solution here.  */
+  /* 				    numeric, */
+  /* 				    0);//     inparam.print_level); */
+  /////////////////////////////////////////////////////////////////
   /*
   // Solve
   if(dim==2){
@@ -2142,9 +2185,7 @@ int main (int argc, char* argv[])
   printf("*******************************************************\n");
   
   
-  FILE *fptmp = NULL;
   /////////////////////////////////////
-  fptmp=fopen("output/a.dat","w");
   /*fprintf(stdout,"\n%d,%d\n\n",A.brow,A.bcol);
   INT j;
    for(i=0;i<A.brow;i++){ 
@@ -2157,22 +2198,11 @@ int main (int argc, char* argv[])
    }
   */ 
   /* fflush(stdout); */
-  bdcsr_print_matlab(fptmp,&A);
-  fclose(fptmp);
-  /////////////////////////////////////
-  
   
   clock_t clk_error_end = clock();
   printf("Elapsed CPU time for getting errors = %lf seconds.\n\n",(REAL)
          (clk_error_end-clk_error_start)/CLOCKS_PER_SEC);
-
-
  
-
-
-
-
-  
   /*******************************************************************************************/
 
   // Plotting
@@ -2320,7 +2350,7 @@ int main (int argc, char* argv[])
 
   for(int tmp=0; tmp<total_num_cycle; ++tmp)
     {
-      printf("%d & %f & %f &  %f &  %f   &  %f &  %f  & %f & %f '\\' \\hline \n",  dof_per_cycle_EG[tmp],L2_EG_error_per_cycle[tmp], L2_EG_conv_rate_per_cycle[tmp],H1_EG_error_per_cycle[tmp], H1_EG_conv_rate_per_cycle[tmp],
+      printf("%d & %f & %f &  %f &  %f   &  %f &  %f  & %f & %f \\\\ \\hline \n",  dof_per_cycle_EG[tmp],L2_EG_error_per_cycle[tmp], L2_EG_conv_rate_per_cycle[tmp],H1_EG_error_per_cycle[tmp], H1_EG_conv_rate_per_cycle[tmp],
 	     H1_stress_EG_error_per_cycle[tmp], H1_stress_EG_conv_rate_per_cycle[tmp], H1_energy_EG_error_per_cycle[tmp], H1_energy_EG_conv_rate_per_cycle[tmp] ); 
     }
   
