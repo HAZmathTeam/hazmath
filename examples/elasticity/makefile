@@ -5,7 +5,10 @@
 # SRC File name
 SRCFILE = elasticity
 
-HEADERS = elasticity_system.h
+HEADERS = elasticity_system.h \
+	elasticity_error.h \
+	elasticity_data.h \
+	elasticity_params.h
 
 INCLUDE =
 

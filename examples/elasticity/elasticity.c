@@ -27,14 +27,7 @@
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************************/
 #include "hazmath.h"
 
-#ifndef LAME_LAMBDA_GLOBAL
-#define LAME_LAMBDA_GLOBAL 2e+00
-#endif
-
-#ifndef PENALTY_PARAMETER_GLOBAL
-#define PENALTY_PARAMETER_GLOBAL 1e+01
-#endif
-
+#include "elasticity_params.h"
 #include "elasticity_error.h"
 #include "elasticity_system.h"
 /*********************************************************************************/
@@ -1689,7 +1682,7 @@ int main (int argc, char* argv[])
 
   // Aug.3.2020 SLEE
   // Define variables forthe error convergence test
-  int total_num_cycle = 5; 
+  int total_num_cycle = TOTAL_NUM_CYCLES_GLOBAL ; 
   // SLEE initialize the vectors to save the errors for each cycle
   double L2_error_per_cycle[total_num_cycle];
   double L2_error_p_per_cycle[total_num_cycle];
@@ -1772,7 +1765,7 @@ int main (int argc, char* argv[])
 
   //Jul.10.2020 SLEE: setup the code to read the different mesh files for each cycle 
   //gfid = HAZ_fopen(inparam.gridfile,"r");
-  char filename_per_cycle[100]={'\0'};
+  char filename_per_cycle[512]={'\0'};
   //sprintf(filename_per_cycle, "%s%d.haz", inparam.gridfile,cycle);
     
   //DEBUG SIMPLE MESH
@@ -2001,7 +1994,7 @@ int main (int argc, char* argv[])
   AMG_param amgparam;
   param_amg_init(&amgparam);
   //  param_amg_set(&amgparam, &inparam);
-  param_amg_print(&amgparam);
+  //  param_amg_print(&amgparam);
   // get preconditioner diagonal blocks
   // Prepare diagonal blocks
   dCSRmat *A_diag;
@@ -2218,7 +2211,7 @@ int main (int argc, char* argv[])
   
   if(inparam.print_level > 3){
 
-    char output_filename_per_cycle[100]={'\0'};
+    char output_filename_per_cycle[512]={'\0'};
     sprintf( output_filename_per_cycle, "output/solution_%d.vtu", cycle);
     char* soldump = output_filename_per_cycle;//"output/solution.vtu";
     //char* soldump = "output/solution.vtu";
