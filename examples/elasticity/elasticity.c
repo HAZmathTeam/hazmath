@@ -2006,6 +2006,24 @@ int main (int argc, char* argv[])
 	       &A_diag[i]);
     dcsr_cp(A.blocks[i*(dim+1)+i], &A_diag[i]);
   }
+  // for the last block, we only take its diagonal:
+  INT nzd=0,j,k;
+  for(i=0;i<A_diag[dim].row;i++){
+    for(k=A_diag[dim].IA[i];k<A_diag[dim].IA[i+1];k++){
+      j=A_diag[dim].JA[k];
+      if(i!=j) continue;
+      A_diag[dim].JA[nzd]=A_diag[dim].JA[k];//=i
+      A_diag[dim].val[nzd]=A_diag[dim].val[k];//aii
+      nzd++;
+    }
+  }
+  for(i=0;i<A_diag[dim].row;i++) A_diag[dim].IA[i+1]=A_diag[dim].IA[i]+1;
+  // realloc them:
+  A_diag[dim].JA=realloc(A_diag[dim].JA,nzd*sizeof(INT));
+  A_diag[dim].val=realloc(A_diag[dim].val,nzd*sizeof(REAL));
+  // finally: set nnz:
+  A_diag[dim].nnz=nzd;
+  
   ////////////////////////////
   FILE *fptmp;
   fptmp=fopen("output/a.dat","w");
