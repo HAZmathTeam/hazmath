@@ -1948,7 +1948,7 @@ int main (int argc, char* argv[])
       //}
 
   
-      fprintf(stdout,"\n------ CHECK: 6\n");fflush(stdout);
+      //      fprintf(stdout,"\n------ CHECK: 6\n");fflush(stdout);
       // Eliminate boundary conditions in matrix and rhs
       if(dim==2) {
 	eliminate_DirichletBC_blockFE_blockA(bc2D,&FE,&mesh,&b,&A,0.0);

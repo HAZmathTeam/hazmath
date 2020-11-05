@@ -511,19 +511,22 @@ void assemble_global_block_neighbor(block_dCSRmat* A,dvector *b,
     // --> this is now embedded for each assembly. 
   }// loop over elements
 
-  iCSRmat *f_el=(iCSRmat *)malloc(1*sizeof(iCSRmat)); // face_to_element;
-  icsr_trans(mesh->el_f,f_el); // f_el=transpose(el_f);  
+  iCSRmat *f_el=NULL;
   bool bEG = true;//false;
-  // NOW LOOP OVER FACES
+  // NOW ASSEMBLE FACES
   if(bEG){
+    // First generate global face-to-element map:
+    f_el=(iCSRmat *)malloc(1*sizeof(iCSRmat)); // face_to_element;
+    icsr_trans(mesh->el_f,f_el); // f_el=transpose(el_f);
+    //LOOP OVER FACES    
     for (i=0; i<mesh->nface; i++) {
       (*local_assembly_face)(A,FE,mesh,cq,i,f_el);
-      fprintf(stdout,"\n------ FACE: %7d\n",mesh->nface-i);fflush(stdout);
-   
+      //      fprintf(stdout,"\n------ FACE: %7d\n",mesh->nface-i);fflush(stdout);   
       //if(i == 3)
       //exit(0);
       
     }
+    icsr_free(f_el);
   }
   /*
   FILE *fptmp = NULL;
@@ -533,8 +536,7 @@ void assemble_global_block_neighbor(block_dCSRmat* A,dvector *b,
   fclose(fptmp);
   */
   //exit(0);
-  
-  icsr_free(f_el);
+  //  
   if(dof_on_elm) free(dof_on_elm);
   if(v_on_elm) free(v_on_elm);
   if(ALoc) free(ALoc);
