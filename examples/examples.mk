@@ -29,8 +29,6 @@ LIBS += $(HAZLIB) -lm
 
 RPATH = -Wl,-rpath=$(HAZDIR)/lib
 
-HEADERS += 
-
 MGRAPH_WRAPPERDIR = $(realpath ../multigraph_wrap)
 DMGRAPH = 
 ifeq ($(WITH_MGRAPH),yes)
@@ -84,7 +82,7 @@ EXE = $(SRCFILE).$(EXTENSION)
 # Source and Object Files
 OBJS += $(SRCFILE).o
 
-HEADERS += $(HEADERS)
+HEADERS += 
 
 LIBS += #-lgfortran
 
@@ -95,7 +93,7 @@ all: $(EXE)
 $(EXE):	$(MGTARGET)	$(OBJS)	
 	+$(CC) $(CFLAGS) $(ExtraFLAGS) $(OBJS)  $(RPATH)  $(MGLIBS) -o $@  $(LIBS)
 
-%.o:	%.c
+%.o:	%.c	$(HEADERS)
 	+$(CC) $(INCLUDE) $(INCLUDESSP) $(CFLAGS) $(DMGRAPH) -o $@ -c $<
 
 clean:
