@@ -287,7 +287,7 @@ int main (int argc, char* argv[])
       // get preconditioner diagonal blocks
       dcsr_alloc(time_stepper.At->blocks[0]->row, time_stepper.At->blocks[0]->col, time_stepper.At->blocks[0]->nnz, &A_diag[0]);
       dcsr_mxm(time_stepper.At->blocks[1],time_stepper.At->blocks[2],&BTB);
-      dcsr_add(&BTB, 100.0, time_stepper.At->blocks[0], 1.0, &A_diag[0]);
+      dcsr_add(&BTB, 1000.0, time_stepper.At->blocks[0], 1.0, &A_diag[0]);
 
       dcsr_alloc(FE_h.ndof, FE_h.ndof, FE_h.ndof, &A_diag[1]);
       for (i=0; i<=A_diag[1].row; i++)
@@ -300,10 +300,12 @@ int main (int argc, char* argv[])
       // solve
       solver_flag = linear_solver_bdcsr_krylov_block_2(time_stepper.At, time_stepper.rhs_time, time_stepper.sol, &linear_itparam, &amgparam, A_diag);
 
+
       // free spaces
       dcsr_free(&A_diag[0]);
       dcsr_free(&A_diag[1]);
     }
+    /*
     // solver diaognal blocks inexactly
     else if ( (linear_itparam.linear_precond_type >= 20 & linear_itparam.linear_precond_type < 23) || (linear_itparam.linear_precond_type >= 30 & linear_itparam.linear_precond_type < 33) ) {
 
@@ -328,6 +330,7 @@ int main (int argc, char* argv[])
       solver_flag = linear_solver_bdcsr_krylov_mixed_darcy(time_stepper.At, time_stepper.rhs_time, time_stepper.sol, &linear_itparam, &amgparam, &el_vol);
 
     }
+    */
     // solver without preconditioner
     else {
 
