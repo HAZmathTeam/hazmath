@@ -574,7 +574,36 @@ void scfinalize(scomplex *sc)
     }
   }
   sc->ns=ns;
-  //  sc->nv=nv;
+  // make all boundary codes negative which by default should be
+  // interior nodes;
+  INT node,l,kbndry0=0,bcodemax=129;
+  for (j=0;j<sc->nv;j++) sc->bndry[j]=-abs(sc->bndry[j]);
+  // now run over all simplices again and mark all nodes on boundary
+  // faces as boundary nodes by making their codes positive.
+  for (j=0;j<sc->ns;j++){
+    for (k=0;k<n1;k++) {
+      if(sc->nbr[j*n1+k]<0) {
+	// boundary face.
+	for(l=0;l<n1;l++){
+	  if(l!=k) {
+	    node=sc->nodes[j*n1+l];
+	    sc->bndry[node]=abs(sc->bndry[node]);
+	    if(sc->bndry[node]==0){
+	      kbndry0++;
+	      sc->bndry[node]=bcodemax+node;
+	    }
+	  }//if
+	}//l
+      }//if
+    }//k
+  }//j
+  for (j=0;j<sc->nv;j++) {
+    if(sc->bndry[j]<0)
+      sc->bndry[j]=0; // make all interior nodes with 0 codes.
+  }
+  if(kbndry0>0){
+    fprintf(stdout,"\n%%WARNING: There are %d nodes on the boundary with no boundary code;\n%%Their boundary code is set to > %d;\n",kbndry0,bcodemax-1); fflush(stdout);
+  }
   fprintf(stdout,"\n%%After %d levels of refinement:\tsimplices=%d ; vertices=%d\n",sc->level,sc->ns,sc->nv); fflush(stdout);
   return;
 }
