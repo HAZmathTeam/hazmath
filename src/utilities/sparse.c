@@ -91,6 +91,41 @@ dCSRmat dcsr_create_zeromatrix(const INT m,
 
 /***********************************************************************************************/
 /*!
+ * \fn dCSRmat dcsr_create_fullmatrix (const INT m, const INT n)
+ *
+ * \brief Create a CSR sparse matrix that is actually full
+ *
+ * \param  m             Number of rows
+ * \param  n             Number of columns
+ *
+ * \return A             the new dCSRmat matrix with zero entries
+ *
+ */
+dCSRmat dcsr_create_fullmatrix(const INT m,
+                               const INT n)
+{
+  dCSRmat A;
+  INT nnz = m*n;
+
+  A.IA = (INT *)calloc(m+1, sizeof(INT));
+  A.JA = (INT *)calloc(nnz, sizeof(INT));
+  A.val = (REAL *)calloc(nnz, sizeof(REAL));
+
+  A.row = m; A.col = n; A.nnz = nnz;
+
+  INT i,j;
+  for(i=0;i<m+1;i++) A.IA[i]=i*n;
+  for(i=0;i<m;i++) {
+    for(j=0;j<n;j++) {
+      A.JA[i*n+j] = j;
+    }
+  }
+
+  return A;
+}
+
+/***********************************************************************************************/
+/*!
  * \fn void dcsr_set_zeromatrix(dCSRmat *A,const INT m,const INT n,const INT index_start)
 {
  *
