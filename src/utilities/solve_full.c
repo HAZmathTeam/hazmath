@@ -467,6 +467,11 @@ INT qr_full_lapack(INT m,INT n, REAL *A,REAL * Q,REAL *R,INT computeR)
     fprintf(stderr,"\nXXX: lapack error info during qr computations=%d\n",info);fflush(stderr);
     exit(16);
   }
+
+  // Frees
+  if(tau) free(tau);
+  if(dwork) free(dwork);
+  
   return info;
 
 #else
