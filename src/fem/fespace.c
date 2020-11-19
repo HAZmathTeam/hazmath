@@ -445,7 +445,10 @@ void free_blockfespace(block_fespace* FE)
   }
 
   free(FE->var_spaces);
-  FE->var_spaces = NULL;  
+  FE->var_spaces = NULL;
+
+  if(FE->dirichlet) free(FE->dirichlet);
+  if(FE->dof_flag) free(FE->dof_flag);
   return;
 }
 /****************************************************************************************/

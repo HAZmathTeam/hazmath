@@ -509,6 +509,41 @@ void blockFE_Evaluate(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fe
 }
 /****************************************************************************************************************************/
 
+/****************************************************************************************************************************/
+/*!
+ * \fn void blockFE_EvaluateBoundary(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,REAL time)
+ *
+ * \brief Evaluate (Project) a given analytical function on the block
+ *        finite-element space given only at Dirichlet DoF
+ *
+ * \param expr 	    Function call to analytical expression
+ * \param FE        block FE Space for multiple variables
+ * \param mesh      Mesh Data
+ * \param time      Physical time to evaluate function at
+ * \param val       FE approximation of function on fespace
+ *
+ */
+void blockFE_EvaluateBoundary(REAL* val,void (*expr)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,REAL time)
+{
+  int i,k;
+  INT entry = 0;
+  INT nspaces = FE->nspaces;
+  INT ndof = 0;
+
+  for(k=0;k<nspaces;k++) {
+    ndof = FE->var_spaces[k]->ndof;
+    for(i=0;i<ndof;i++) {
+      if(FE->var_spaces[k]->dirichlet[i]==1) {
+        val[entry] = blockFE_Evaluate_DOF(expr,FE,mesh,time,k,i);
+      }
+      entry++;
+    }
+  }
+
+  return;
+}
+/****************************************************************************************************************************/
+
 /***********************************************************************************************/
 /*!
  * \fn void Project_to_Vertices(REAL* u_on_V,REAL *u,fespace *FE,mesh_struct *mesh)
