@@ -280,6 +280,8 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
   r2c(c2s->ne,dim,sizeof(REAL),xemac); // we need xemac (mid points of
 				       // edges) also by rows
   for(kf=0;kf<sc->nv;kf++){
+    //    fprintf(stdout,"\ncoordsys[%d]=%d of type %d\n",kf,sc->csys[kf], \
+	    g->systypes[g->csysv[sc->csys[kf]]]);
     for(i=0;i<dim;i++)xhat[i]=sc->x[kf*dim+i];
     for(i=0;i<dim;i++){
       sc->x[kf*dim+i]=interp8(c2s,xmac+i*c2s->nvcube,xemac+i*c2s->ne,xhat);
