@@ -35,7 +35,36 @@ INT main(INT   argc,   char *argv[])
   dvector *solfem=NULL,*estimator=NULL;
   ivector *marked=NULL;
   void *all=NULL;
-  if(amr_marking_type){
+  REAL *xstar=NULL;
+  INT nstar,dim=sc->n;
+  if(amr_marking_type==0){
+    // refine ref_levels;
+    refine(ref_levels,sc,NULL);
+  } else if(amr_marking_type==33){
+    nstar=2; // refining near two points:
+    xstar=(REAL *)calloc(nstar*dim,sizeof(REAL));
+    xstar[0*dim+0]=0e0;
+    xstar[0*dim+1]=-0.1e0;
+    xstar[1*dim+0]=0.2e0;
+    xstar[1*dim+1]=0.97e0;
+    for(j=0;j<ref_levels;j++){
+      /*
+       * SELECT the finest grid:
+       */
+      sctop=scfinest(sc); 
+      /* MARK: marked is an ivector with num.rows=the number of
+       *       simplices; its componenets are nonzero if the simplex
+       *       is marked for refinement and 0 if it is not marked for
+       *       refinement.
+       */
+      marked=mark_near_points(sctop,nstar,xstar);
+      refine(1,sc,marked); 
+      /* free */
+      haz_scomplex_free(sctop);
+    }
+    ivec_free(marked);
+    free(xstar);
+  } else {
     /* 
        Use "all" here can pass data around. Below we make 4 dvectors
        and one ivector, just as example. A good example for using the
@@ -50,7 +79,7 @@ INT main(INT   argc,   char *argv[])
        */
       sctop=scfinest(sc); 
       /* 
-       * SOLVE on the finest (for now grid)
+       * SOLVE on the finest (for now) grid
        */
       solfem=(dvector *)exmpl_solve(sctop,all);
       /* 
@@ -75,9 +104,7 @@ INT main(INT   argc,   char *argv[])
       dvec_free(estimator);
       ivec_free(marked);
     }
-  } else {
-    // refine ref_levels;
-    refine(ref_levels,sc,NULL);
+    free(all);
   }
   /*  MAKE sc to be the finest grid only */
   scfinalize(sc);
@@ -87,7 +114,6 @@ INT main(INT   argc,   char *argv[])
   vtkw(g->fvtu,sc,0,1.);
   /*FREE*/
   input_grid_free(g);
-  free(all);
   haz_scomplex_free(sc);
   return 0;
 }
