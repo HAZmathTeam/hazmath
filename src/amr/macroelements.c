@@ -1016,6 +1016,52 @@ void fix_grid(macrocomplex *mc,		\
 }
 /**********************************************************************/
 /*!
+ * \fn void edges_long_approx(scomplex *sc)
+ *
+ * \brief In a simplicial complex, tries to reorder edges so the
+ *        longest edge is [v0,vn] in every simplex
+ *
+ * \param
+ *
+ * \return
+ *
+ * \note
+ *
+ */
+static void edges_long_approx(scomplex *sc)
+{
+  INT n=sc->n,n1=n+1,ns=sc->ns;
+  INT i,j,k,isn1,l,v1,v2,jmax,kmax,swp;
+  REAL el,elmax;
+  //  REAL *xv1=(REAL *)calloc(n,sizeof(REAL));
+  for(i=0;i<ns;i++){
+    isn1=i*n1;
+    elmax=-1e0;
+    for(j=0;j<n;j++){
+      v1=sc->nodes[isn1+j];
+      for(k=j+1;k<n1;k++){
+	v2=sc->nodes[isn1+k];
+	el=0e0;
+	for(l=0;l<n;l++){
+	  el+=(sc->x[v1*n+l]-sc->x[v2*n+l])*(sc->x[v1*n+l]-sc->x[v2*n+l]);
+	}
+	if(el>elmax){
+	  elmax=el;
+	  jmax=j;
+	  kmax=k;
+	}
+      }
+    }
+    fprintf(stdout,"\nelement=%d; longest edge=(%d,%d)=(%d,%d); length=%.8e", \
+	    i,jmax,kmax,						\
+	    sc->nodes[isn1+jmax],sc->nodes[isn1+kmax],			\
+	    elmax);
+  }
+  //  free(xv1);
+  return;
+}
+/**********************************************************************/
+/*!
  * \fn scomplex *generate_initial_grid(input_grid *g0) 
  *
  * \brief From the data from input_grid g0 generates the global
@@ -1210,11 +1256,12 @@ scomplex *generate_initial_grid(input_grid *g0)
   /* prepare for adaptive refinement */
 
   //  haz_scomplex_print(sc[0],0,"TTT");
-   find_nbr(sc[0]->ns,sc[0]->nv,sc[0]->n,sc[0]->nodes,sc[0]->nbr);
-   INT *wrk1=calloc(5*(sc[0]->n+2),sizeof(INT));
-   /*   construct bfs tree for the dual graph*/
-   abfstree(0,sc[0],wrk1,g0->print_level);
-   free(wrk1);
+  find_nbr(sc[0]->ns,sc[0]->nv,sc[0]->n,sc[0]->nodes,sc[0]->nbr);
+  INT *wrk1=calloc(5*(sc[0]->n+2),sizeof(INT));
+  /*   construct bfs tree for the dual graph*/
+  abfstree(0,sc[0],wrk1,g0->print_level);
+  //edges_long_approx(sc[0]);
+  free(wrk1);
   return sc[0];  
 }
 /*EOF*/
