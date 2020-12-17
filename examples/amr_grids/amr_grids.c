@@ -42,8 +42,9 @@ INT main(INT   argc,   char *argv[])
     // refine ref_levels;
     refine(ref_levels,sc,NULL);
   } else if(amr_marking_type==33){
-    REAL h = 1.0/64;  // step distance of points
-    INT nstep = 30;
+    REAL h = 1.0/128;  // step distance of points
+    REAL threshold = h; // threshold for close to the points or not
+    INT nstep = 0;
     nstar= 2 + nstep*4; // refining near several points: (even number )
     xstar=(REAL *)calloc(nstar*dim,sizeof(REAL));
     xstar[0*dim+0]=1.666667e-1;
@@ -73,7 +74,7 @@ INT main(INT   argc,   char *argv[])
        *       is marked for refinement and 0 if it is not marked for
        *       refinement.
        */
-      marked=mark_near_points(sctop,nstar,xstar);
+      marked=mark_near_points(sctop,nstar,xstar, threshold);
       refine(1,sc,marked);
       /* free */
       haz_scomplex_free(sctop);

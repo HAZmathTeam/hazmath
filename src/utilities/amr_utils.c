@@ -155,6 +155,9 @@ INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)
   if(piv) free(piv);
   return flag;
 }
+
+
+
 /**********************************************************************/
 /*!
  * \fn void marks(scomplex *sc,dvector *errors)
