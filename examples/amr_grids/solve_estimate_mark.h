@@ -1,3 +1,58 @@
+/**********************************************************************/
+/*!
+ * \fn INT isxnears(INT n, INT *splx_nodes, REAL *splx_coord, REAL *x, REAL threshold)
+ *
+ * \brief check if the point x is close to a given simplex (within the given distance)
+ *
+ * \param
+ *
+ * \return
+ *
+ * \note
+ *
+ */
+INT isxnears(INT n, INT *splx_nodes, REAL *splx_coord, REAL *x, REAL threshold)
+{
+
+  //printf("dimension: %d\n", n);
+
+  // local variables
+  INT i,j, node_start;
+  REAL *temp = (REAL *)calloc(n,sizeof(REAL));
+  REAL distance = BIGREAL;
+
+  // return variable
+  INT flag = 0;
+
+  //printf("loop to compute the barycenter\n");
+
+  // compute the barycenter of the simplex
+  for (i=0; i<n+1; i++) // loop over nodes
+  {
+      // get the start index for node i
+      //printf("i=%d; node index = %d\n", i, splx_nodes[i]*n);
+      node_start = splx_nodes[i]*n;
+
+      // compute node[i] - x
+      array_axpyz(n, -1.0, x, splx_coord+node_start, temp);
+
+      // compute distance and keep the minimum one
+      distance = MIN(distance, array_norm2(n,temp));
+
+  }
+
+  //printf("distance = %f\n", distance);
+
+  // check
+  if (distance > threshold)
+  {
+    flag = n+1;
+  }
+
+  return flag;
+}
+
+
 /****************************************************************/
 dvector *exmpl_solve(scomplex *sc, void *all)
 {
@@ -12,10 +67,10 @@ dvector *exmpl_solve(scomplex *sc, void *all)
   /*SET UP A SOLUTION:*/
   dvector *solfem=malloc(sizeof(dvector));
   solfem[0]=dvec_create(sc->ns);
-  /* 
+  /*
    *  Sets the solution equal to 1 at select simplices.
    */
-  dvec_set_amr(1.,sc,pts,solfem->val);  
+  dvec_set_amr(1.,sc,pts,solfem->val);
   /*free*/
   dvec_free(pts);
   /*SOLVE: as output we have the fem solution solfem as a dvector
@@ -24,14 +79,14 @@ dvector *exmpl_solve(scomplex *sc, void *all)
 }
 dvector *exmpl_estimate(scomplex *sc, dvector *solfem,void *all)
 {
-  /* if all is null there is nothing to estimate here */  
+  /* if all is null there is nothing to estimate here */
   /* extract the numerical and the "exact" solution and allocate space for the estimator */
   dvector *exact,*estimator;
   exact=malloc(1*sizeof(dvector));
-  exact[0]=dvec_create(solfem->row);  
+  exact[0]=dvec_create(solfem->row);
   estimator=malloc(1*sizeof(dvector));
-  estimator[0]=dvec_create(sc->ns);  
-  /* 
+  estimator[0]=dvec_create(sc->ns);
+  /*
    * Compute the calues of the error estimator. In this example: the
    * estimator on every simplex equals to (the absolute value of the
    * difference between the exact solution and the numerical
@@ -68,11 +123,11 @@ ivector *exmpl_mark(scomplex *sc,dvector *estimator,void *all)
 }
 /*************************************************************************/
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
-ivector *mark_near_points(scomplex *sc, INT nstar, REAL *xstar)
+ivector *mark_near_points(scomplex *sc, INT nstar, REAL *xstar, REAL threshold)
 {
-  /* 
+  /*
      from marked simplices, remove any simplex that does not contain a
-     point from xstar[...]. unmarked simplices are left unmarked 
+     point from xstar[...]. unmarked simplices are left unmarked
   */
 //  fprintf(stdout,"\nNSTAR=%d\n",nstar);fflush(stdout);
   INT n=sc->n,n1=n+1,ns=sc->ns;
@@ -83,8 +138,10 @@ ivector *mark_near_points(scomplex *sc, INT nstar, REAL *xstar)
   for(j=0;j<ns;j++) marked->val[j]=TRUE;
   /* bail out if no points */
   if(!nstar || (xstar==NULL)) return marked;
-  INT *scnjn=NULL,mrkno=0,mrktst=0,flagmrk=0;  
+  INT *scnjn=NULL,mrkno=0,mrktst=0,flagmrk=0;
   REAL *xstar0=NULL;
+  INT flag = FALSE;
+
   for(j=0;j<ns;j++){
     flagmrk=0;
     // check if we have been marked:
@@ -94,13 +151,18 @@ ivector *mark_near_points(scomplex *sc, INT nstar, REAL *xstar)
     for(jstar=0;jstar<nstar;jstar++){
       //      fprintf(stdout,"\nel=%d\n",jstar+1);
       xstar0=xstar+jstar*n;
-      // check if the point is inside the simplex. 
-      if(!xins(n,scnjn,sc->x,xstar0)){
-	//	fprintf(stdout,"\nel=%d, found: %d; NOmrk=%d",j,jstar+1,mrkno);
-	mrkno--;
-	marked->val[j]=TRUE;
-	flagmrk=1;
-	break;
+      // check if the point is inside the simplex.
+      //if(!xins(n,scnjn,sc->x,xstar0)){
+      flag = isxnears(n, scnjn, sc->x, xstar0, threshold); 
+      //flag = xins(n,scnjn,sc->x,xstar0);
+      //printf("flad = %d\n", flag);
+      //sleep(5);
+      if(!flag){
+	    //fprintf(stdout,"\nel=%d, found: %d; NOmrk=%d",j,jstar+1,mrkno);
+	    mrkno--;
+	    marked->val[j]=TRUE;
+	    flagmrk=1;
+	    break;
       }
     }
     if(flagmrk) continue;
