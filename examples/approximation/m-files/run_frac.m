@@ -1,0 +1,21 @@
+do_coeff=0;
+levmin=3;levmax=3;
+ea=zeros(levmax-levmin+1,1);
+em=ea;
+s=-0.5;
+for lev=levmin:levmax
+    nh=2^lev-1;
+    x=[linspace(0,1,nh+2)]';
+    x=x(2:nh+1);
+    [A,M,f]=matrix_setup_mass(nh,do_coeff);
+    sm=1/norm(M,inf);
+    sa=1/norm(A,inf);
+    A=sa*A;
+    M=sm*M;
+    [U,d]=eig(A,M);
+    norm(A*U-M*U*d)
+    pause
+    d=diag(d);
+    Ds=spdiags(d.^s,[0],nh,nh)
+    As=M*U*Ds*U'*M;    
+end
