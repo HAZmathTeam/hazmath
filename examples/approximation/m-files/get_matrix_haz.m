@@ -9,8 +9,9 @@ function [A]=get_matrix_haz(charA,sym)
     %% @Ludmil Zikatanov, Department of Mathematics, Penn State
     %--------------------------------------------------------------
     q0='''';
+    q1 = '"';
     disp(['Loading matrix ',charA,'..'])
-        A=eval(['load ',charA,'.dat']);
+    A=eval(['load(',q0,charA,'.dat',q0,')']);
     nrow=A(1,1); ncol=A(1,2); nonz=A(1,3); A=A(2:nonz+1,1:3);
     A=sparse(A(:,1)+1,A(:,2)+1,A(:,3),nrow,ncol);
     if(sym), A=0.5*(A+A');  end    
