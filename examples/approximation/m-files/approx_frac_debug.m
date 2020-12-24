@@ -40,9 +40,9 @@ function [ur,As,Asinv_a]=approx_frac_debug(A,M,b,s_in,dim_in)
     %% OLD: bnd0=0; bnd1=3*max(d);
     sm=dim*(dim+1)/min(diag(M)); sa=1/norm(A,inf);
     bnd0=0;bnd1=sm/sa; %%norm(A,inf)*dim*(dim+1)/min(diag(M))
-    status0=system('make -C ..');
+    status0=system('make -C .. clean ; make -C ..');
     %% watch s is (-s) to approximate inverses;
-    comm0=sprintf('../aaa.ex <<EOF_FRAC >../m-files/frac.m\n %.2Lf %.2Lf %.2Lf %.2Lf %.2f %.2f\nEOF_FRAC\n',-s,t,alpha,beta,bnd0,bnd1);
+    comm0=sprintf('../aaa.ex <<EOF_FRAC >../m-files/frac.m \n %.2f %.2f %.2f %.2f %.2f %.2f\nEOF_FRAC\n',-s,t,alpha,beta,bnd0,bnd1);
     %%      disp(comm0)
     status1=system(comm0)
     [res,pol,z,w,f,er]=frac();

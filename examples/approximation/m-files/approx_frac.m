@@ -22,9 +22,12 @@ function ur=approx_frac(A,M,b,s_in,dim_in)
     sm=dim*(dim+1)/min(diag(M));
     bnd0=0;
     bnd1=sa*sm;
-    status0=system('make -C ..');
+    status0=system('make -C .. clean; make -C ..');
     %% here we input (-s) as a power. 
-    comm0=sprintf('../aaa.ex <<EOF_FRAC >../m-files/frac.m\n %.2Lf %.2Lf %.2Lf %.2Lf %.2f %.2f\nEOF_FRAC\n',-s,t,alpha,beta,bnd0,bnd1);
+    %c0 = '../aaa.ex <<EOF_FRAC >../m-files/frac.m';
+    %c1 = 'EOF_FRAC';
+    %comm0=sprintf('%s\n %.2f %.2f %.2f %.2f %.2f %.2f\n%s\n',c0,-s,t,alpha,beta,bnd0,bnd1,c1);
+    comm0=sprintf('../aaa.ex <<EOF_FRAC >../m-files/frac.m \n %.2f %.2f %.2f %.2f %.2f %.2f\nEOF_FRAC\n',-s,t,alpha,beta,bnd0,bnd1);
     disp(comm0)
     %% this generates a file m-files/frac.m with the poles and residues. 
     status1=system(comm0)
