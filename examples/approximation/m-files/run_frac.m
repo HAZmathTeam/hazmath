@@ -1,44 +1,17 @@
+%% APPROXIMATES inv(M*U*D^s*U*M), where A*U=M*U*D.
+%% KEEP alpha beta and t as they are below or change 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-alpha = 1.0;
-s   = -0.5;
-beta  = 0.0;
-t   =  0.5;
+alpha = 1.0; beta  = 0.0; t   =  0.5; s=-0.5;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-lev =  10;
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% load matrices and vectors all symmetric:
+A=get_matrix_haz('A',1);
+M=get_matrix_haz('M',1);
+%%%%%%%%%%%%%%%%%%%%%%%%%Af=get_matrix_haz('Af',1);
+b=get_vector_haz('b');
+u=get_vector_haz('u');
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% COMPUTE APPROXIMATION:
 dim=2;
-%% load matrix
-disp('Loading matrix A...')
-load A.dat
-nrowa=A(1,1); ncola=A(1,2); nnza=A(1,3); A=A(2:nnza+1,1:3);
-A=sparse(A(:,1)+1,A(:,2)+1,A(:,3),nrowa,ncola);
-disp('Loading matrix M...')
-load M.dat
-nrowm=M(1,1); ncolm=M(1,2); nnzm=M(1,3); M=M(2:nnzm+1,1:3);
-M=sparse(M(:,1)+1,M(:,2)+1,M(:,3),nrowm,ncolm);
-disp('Loading matrix b and u...')
-load b.dat ; b=b(2:end);
-load u.dat ; u=u(2:end);
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-sm=dim*(dim+1)/min(diag(M)); sa=1/norm(A,inf);
-sm=1;
-sa=1;
-bnd0=0;
-bnd1=max(eig(sa*A,sm*M));%% sm*sa;
-status0=system('make -C ..');
-comm0=sprintf('../aaa.ex <<EOF_FRAC >../m-files/frac.m\n %.2Lf %.2Lf %.2Lf %.2Lf %.2f %.2f\nEOF_FRAC\n',s,t,alpha,beta,bnd0,bnd1);
-%%      disp(comm0)
-status1=system(comm0)
-[res,pol,z,w,f,er]=frac();
-m=length(res);
-m1=m-1;
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%
-ff=((sm/sa)^s)*M*b;
-asf=res(m)*ff;
-for j=1:m1
-    asf=asf+res(j)*((sa*A-sm*pol(j)*M)\ff);
-end
-asf=M*asf;
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+ur=approx_frac(A,M,b,s,dim);
+fprintf(1,'==========================\n |u-ur|=%.12e\n==========================\n',norm(ur-u,inf))
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
