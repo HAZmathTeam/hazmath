@@ -27,7 +27,7 @@ INT main(int argc,char *argv[])
   //
   // m is the number of nodes in the final interpolation after
   // tolerance tolaaa is achieved or mmax is reached.
-  INT mbig=(1<<10)+1;
+  INT mbig=(1<<14)+1;
   INT mmax_in=(INT )(mbig/2),m=-22;
   REAL16 tolaaa=powl(2e0,-52e0);
   // parameters for the function we are approximating.
