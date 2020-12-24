@@ -246,7 +246,7 @@ REAL get_cpzwf(REAL16 (*func)(REAL16 x, void *param),	\
    *
   */
   ////////////
-  // cpzwf must contain 5 pointers: cpzwf[0] are the resigues and
+  // cpzwf must contain 5 pointers: cpzwf[0] are the residues and
   // cpzwf[1] are the poles. **cpzwf must be allocated earlier, but
   // cpzwf[k], k=0:4 are allocated here.  func() is the function we want to
   // approximate and param are the parameters it may depend on
@@ -394,7 +394,13 @@ REAL get_cpzwf(REAL16 (*func)(REAL16 x, void *param),	\
   memcpy(cpzwf[3],cpzwf[1],(m+1)*sizeof(REAL));
   memcpy(cpzwf[2],cpzwf[0],(m+1)*sizeof(REAL));
   //   copy the functions values go last, poles go first, residues go second
-  residues_poles(m,cpzwf[2],cpzwf[3],cpzwf[4],cpzwf[0],cpzwf[1]);  
+  residues_poles(m,cpzwf[2],cpzwf[3],cpzwf[4],cpzwf[0],cpzwf[1]);
+  REAL rswp;
+  INT m1=m-1;
+  rswp=*(cpzwf[0]+m1);
+  for(i=m1;i>0;i--)
+    *(cpzwf[0]+i)=*(cpzwf[0]+i-1);
+  *(cpzwf[0])=rswp;
   return (REAL )rmax;
 }
 /*EOF*/
