@@ -8,7 +8,7 @@ function [a]=get_vector_haz(chara)
     %--------------------------------------------------------------
     q0='''';
     disp(['Loading vector ',chara,'..'])
-        a=eval(['load ',chara,'.dat']);
+        a=eval(['load(',q0,chara,'.dat',q0,')']);
     nrow=a(1,1); 
     a=a(2:nrow+1,1:1);
     return
