@@ -76,12 +76,12 @@ data_macroelements{0 1 2 3  1
 
 %%% ====================MACROFACES=========================
 num_macrofaces{8}
-data_macrofaces{0 1   1
+data_macrofaces{0 1   3
 								0 2   1
-								2 3   1
-								1 4   1
-								3 5   1
-								4 6   1
-								6 7   1
-								5 7   1
+								2 3   4
+								1 4   3
+								3 5   5
+								4 6   3
+								6 7   2
+								5 7   4
 		   } %% codes on boundary faces (v1,v2,code).
