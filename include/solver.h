@@ -350,6 +350,8 @@ typedef struct {
     //! temporary work space for other usage
     REAL *w;
 
+
+
 } precond_data; /*! Data for general preconditioner */
 
 
@@ -563,6 +565,17 @@ typedef struct {
     dCSRmat *K;         /**< scaled curl operator */
     dCSRmat *Gt;        /**< scaled transpose gradiend operator */
     dCSRmat *Kt;        /**< scaled transpose gradiend operator */
+
+    /*------------------------------*/
+    /* Data for fractional problem only! */
+    /*------------------------------*/
+    //dCSRmat A;
+    dCSRmat *scaled_M;   /**< scaled Mass matrix */
+    dvector *diag_scaled_M; /**< diagonal of scaled mass matrix */
+    REAL scaled_alpha;   /**< scaled alpha */
+    REAL scaled_beta;    /**< scaled beta */
+    dvector *poles;      /**< poles for rational approximation */
+    dvector *residues;   /**< residues for rational approximation */
 
 } precond_block_data; /**< Precond data for block matrices */
 

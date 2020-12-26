@@ -485,10 +485,12 @@ void precond_block_data_free(precond_block_data *precdata,
 
     for (i=0; i<nb; i++)
     {
+
         //if(precdata->A_diag) dcsr_free(&precdata->A_diag[i]);
         if(precdata->diag) {
            if(precdata->diag[i]) dvec_free(precdata->diag[i]);
         }
+
         if(precdata->mgl) {
             if(precdata->mgl[i])
             {
@@ -496,6 +498,7 @@ void precond_block_data_free(precond_block_data *precdata,
               free(precdata->mgl[i]);
             }
         }
+
         if(precdata->hxcurldata) {
             if(precdata->hxcurldata[i])
             {
@@ -503,6 +506,7 @@ void precond_block_data_free(precond_block_data *precdata,
               free(precdata->hxcurldata[i]);
             }
         }
+
         if(precdata->hxdivdata) {
             if(precdata->hxdivdata[i])
             {
@@ -510,6 +514,7 @@ void precond_block_data_free(precond_block_data *precdata,
               free(precdata->hxdivdata[i]);
             }
         }
+
     }
 
     if(precdata->diag) free(precdata->diag);
