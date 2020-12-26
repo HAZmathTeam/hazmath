@@ -316,6 +316,73 @@ void param_amg_set (AMG_param *amgparam,
 
 }
 
+/*************************************************************************************/
+/*!
+ * \fn void param_amg_set (AMG_param *amgparam1, AMG_param *amgparam2)
+ *
+ * \brief Copy AMG_param amgparam1 to amgparam2
+ *
+ * \param amgparam1   Pointer to the AMG_param structure
+ * \param amgparam2   Pointer to the AMG_param structure
+ *
+ * \note maybe the order of pointers should be switched, but I don't know what is
+ *       the convention in hazmath  -- Ana
+ */
+void param_amg_cp (AMG_param *amgparam1,
+                   AMG_param *amgparam2)
+{
+    amgparam2->AMG_type    = amgparam1->AMG_type;
+    amgparam2->print_level = amgparam1->print_level;
+    amgparam2->maxit = amgparam1->maxit;
+    amgparam2->tol   = amgparam1->tol;
+
+    amgparam2->max_levels           = amgparam1->max_levels;
+    amgparam2->cycle_type           = amgparam1->cycle_type;
+    amgparam2->smoother             = amgparam1->smoother;
+    amgparam2->relaxation           = amgparam1->relaxation;
+    amgparam2->coarse_solver        = amgparam1->coarse_solver;
+    amgparam2->polynomial_degree    = amgparam1->polynomial_degree;
+    amgparam2->presmooth_iter       = amgparam1->presmooth_iter;
+    amgparam2->postsmooth_iter      = amgparam1->postsmooth_iter;
+    amgparam2->coarse_solver        = amgparam1->coarse_solver;
+    amgparam2->coarse_dof           = amgparam1->coarse_dof;
+    amgparam2->coarse_scaling       = amgparam1->coarse_scaling;
+    amgparam2->amli_degree          = amgparam1->amli_degree;
+
+    if(amgparam1->amli_coef) array_cp(amgparam1->amli_degree + 1, amgparam1->amli_coef, amgparam2->amli_coef);
+
+    amgparam2->nl_amli_krylov_type  = amgparam1->nl_amli_krylov_type;
+    amgparam2->fpwr                 = amgparam1->fpwr;
+
+    amgparam2->aggregation_type     = amgparam1->aggregation_type;
+    amgparam2->strong_coupled       = amgparam1->strong_coupled;
+    amgparam2->max_aggregation      = amgparam1->max_aggregation;
+
+    amgparam2->tentative_smooth     = amgparam1->tentative_smooth;
+    amgparam2->smooth_filter        = amgparam1->smooth_filter;
+
+    amgparam2->Schwarz_levels       = amgparam1->Schwarz_levels;
+    amgparam2->Schwarz_mmsize       = amgparam1->Schwarz_mmsize;
+    amgparam2->Schwarz_maxlvl       = amgparam1->Schwarz_maxlvl;
+    amgparam2->Schwarz_type         = amgparam1->Schwarz_type;
+    amgparam2->Schwarz_blksolver    = amgparam1->Schwarz_blksolver;
+
+    //if(amgparam1->Schwarz_on_blk) iarray_cp(size, amgparam1->Schwarz_on_blk, amgparam2->Schwarz_on_blk);
+    //if(amgparam1->Schwarz_patch_type) iarray_cp(size, amgparam1->Schwarz_patch_type, amgparam2->Schwarz_patch_type);
+    //if(amgparam1->HAZDIR){
+    //    amgparam2->HAZDIR = malloc(strlen(amgparam1->HAZDIR) + 1);
+    //    strcpy(amgparam2->HAZDIR, amgparam1->HAZDIR);
+    // }
+    amgparam2->Schwarz_on_blk = NULL;
+    amgparam2->Schwarz_patch_type = NULL;
+    amgparam2->HAZDIR = NULL;
+
+    amgparam1->damping_param        = amgparam1->damping_param;
+    amgparam1->BSR_alpha            = amgparam1->BSR_alpha;
+    amgparam1->BSR_omega            = amgparam1->BSR_omega;
+
+}
+
 /**
  * \fn void param_Schwarz_set (Schwarz_param *schparam, input_param *iniparam)
  *

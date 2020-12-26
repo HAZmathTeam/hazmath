@@ -243,6 +243,9 @@ typedef struct {
     REAL BSR_alpha;                 /**< weight on diagonal matrix alpha*D approx of A */
     REAL BSR_omega;                 /**< weight on update x = x + omega*Binv*(Ax-b) */
 
+    // Fractional exponent for fractional smoothers
+    REAL fpwr;
+
 } AMG_param; /**< Parameters for AMG */
 
 /**

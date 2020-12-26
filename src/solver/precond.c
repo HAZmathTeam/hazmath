@@ -6507,6 +6507,265 @@ void precond_elasticity (REAL *r, REAL *z, void *data)
 
   return;
 }
+
+/***********************************************************************************************/
+/**
+ * \fn void precond_block2_babuska (REAL *r, REAL *z, void *data)
+ * \brief block preconditioning for a standard babuska problem
+ *        (2x2 block matrix, first block is solved by AMG, second block is solved by
+ *        rational approximation)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Ana Budisa
+ * \date   2020-10-19
+ * // TODO: 2. do amg only for 00 block, exactly every shifted L
+ * // TODO: 3. then try rational approx precond
+ */
+void precond_block2_babuska(REAL *r,
+                            REAL *z,
+                            void *data)
+{
+    precond_block_data *precdata=(precond_block_data *)data;
+    block_dCSRmat *A = precdata->Abcsr;
+    dvector *tempr = &(precdata->r);
+    INT status = SUCCESS;
+
+    const INT N0 = A->blocks[0]->row;
+    const INT N1 = A->blocks[3]->row;
+    const INT N = N0 + N1;
+
+    // back up r, setup z;
+    array_cp(N, r, tempr->val);
+    array_set(N, z, 0.0);
+
+    // prepare
+    INT i, j;
+    AMG_param *amgparam = precdata->amgparam; // array!!
+    AMG_data **mgl = precdata->mgl;
+    dvector r0, r1, z0, z1;
+
+    r0.row = N0; z0.row = N0;
+    r1.row = N1; z1.row = N1;
+
+    r0.val = r; r1.val = &(r[N0]);
+    z0.val = z; z1.val = &(z[N0]);
+
+    //--------------------------------------------------------
+    // Step 1: Preconditioning A00 block
+    //--------------------------------------------------------
+    // mgl[0] is pointer to mgl data for the first diagonal block
+    /*
+    // apply AMG only to the first diagonal block
+    {
+    mgl[0]->b.row=N0; array_cp(N0, r0.val, mgl[0]->b.val); // residual is an input
+    mgl[0]->x.row=N0; dvec_set(N0, &mgl[0]->x, 0.0);
+
+    for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[0], &(amgparam[0]));
+    array_cp(N0, mgl[0]->x.val, z0.val);
+    }*/
+
+    // apply AMG + Krylov to the first diagonal block
+    {
+    precond pc00;
+    pc00.fct = precond_amg;
+    precond_data pcdata00;
+    param_amg_to_prec(&pcdata00, &(amgparam[0]));
+    pc00.data = &pcdata00;
+
+    pcdata00.max_levels = mgl[0]->num_levels;
+    pcdata00.mgl_data = mgl[0];
+
+    // solve
+    //status = dcsr_pvfgmres(&(mgl[0][0].A), &r0, &z0, &pc00, 1e-6, 100, 100, 1, 1);
+    status = dcsr_pcg(&(mgl[0][0].A), &r0, &z0, &pc00, 1e-6, 100, 1, 1);
+    }
+
+    // direct solve the first diagonal block
+    //directsolve_UMF(&(mgl[0][0].A), &r0, &z0, 1);
+    //--------------------------------------------------------
+
+    //--------------------------------------------------------
+    // Step 2: Preconditioning A11 block
+    //--------------------------------------------------------
+    //precond_rational_approx(r1.val, z1.val, data);
+
+    /*----------------------------------------*/
+    // get scaled mass matrix
+    dCSRmat *scaled_M = precdata->scaled_M;
+    dvector *diag_scaled_M = precdata->diag_scaled_M;
+
+    // get scaled alpha and beta
+    REAL scaled_alpha = precdata->scaled_alpha;
+    REAL scaled_beta  = precdata->scaled_beta;
+
+    // get poles and residues
+    dvector *poles = precdata->poles;
+    dvector *residues = precdata->residues;
+
+    INT k = residues->row;
+    /*----------------------------------------*/
+
+    /*----------------------------------------*/
+    /* set up preconditioners */
+    /*----------------------------------------*/
+    // pc for scaled mass matrix
+    precond pc_scaled_M;
+    pc_scaled_M.data = diag_scaled_M;
+    pc_scaled_M.fct  = precond_diag;
+
+    // pc for krylov for shifted Laplacians
+    precond pc_frac_A;
+    pc_frac_A.fct = precond_amg;
+    precond_data pcdata;
+    param_amg_to_prec(&pcdata, &(amgparam[1]));
+    pc_frac_A.data = &pcdata;
+    /*----------------------------------------*/
+
+
+    /*----------------------------------------*/
+    /* main loop of applying rational approximation
+    /*----------------------------------------*/
+    // scaling r1
+    if (scaled_alpha > scaled_beta)
+    {
+      dvec_ax(1./scaled_alpha, &r1);
+    }
+    else
+    {
+      dvec_ax(1./scaled_beta, &r1);
+    }
+
+    // z1 = residues(0)*(scaled_M\scaled_r1)
+    status = dcsr_pcg(scaled_M, &r1, &z1, &pc_scaled_M, 1e-6, 100, 1, 1);
+
+
+    dvector update = dvec_create(N1);
+    array_ax(N1, residues->val[0], z1.val);
+
+    for(i = 1; i < k; ++i) {
+
+        mgl[i]->b.row = N1; array_cp(N1, r1.val, mgl[i]->b.val); // residual is an input
+        mgl[i]->x.row = N1; dvec_set(N1, &mgl[i]->x, 0.0);
+
+        // set precond data and param
+        pcdata.max_levels = mgl[i]->num_levels;
+        pcdata.mgl_data = mgl[i];
+
+        // set update to zero
+        dvec_set(update.row, &update, 0.0);
+
+        // solve
+        //status = dcsr_pvfgmres(&(mgl[i][0].A), &r1, &update, &pc_frac_A, 1e-6, 100, 100, 1, 1);
+        status = dcsr_pcg(&(mgl[i][0].A), &r1, &update, &pc_frac_A, 1e-6, 100, 1, 1);
+
+        // z = z + residues[i+1]*update
+        array_axpy(N1, residues->val[i], update.val, z1.val);
+
+    }
+
+    // direct solve A11 block
+    //directsolve_UMF(As, &r1, &z1, 1);
+    //--------------------------------------------------------
+
+    // restore r
+    array_cp(N, tempr->val, r);
+
+}
+
+
+/***********************************************************************************************/
+/**
+ * \fn void precond_rational_approx (REAL *r, REAL *z, void *data)
+ * \brief preconditioning a fractional problem with rational approximation solver
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Ana Budisa
+ * \date   2020-10-22
+ */
+void precond_rational_approx(REAL *r,
+                             REAL *z,
+                             void *data)
+{
+    INT status = SUCCESS;
+    precond_block_data *precdata=(precond_block_data *)data;
+    AMG_data **mgl = precdata->mgl; // count from 1!!!
+    AMG_param *amgparam = precdata->amgparam; // array!!
+    // dvector *tempr = &(precdata->r);
+
+    // local variables
+    // residues saved in precond_data.el_vol
+    // len(residues) - 1 is the number of poles
+    dvector *residues = precdata->el_vol;
+    INT k = residues->row;
+    INT n = precdata->Abcsr->blocks[3]->row; // general size of the problem
+
+    INT i;
+    dvector update = dvec_create(n); // partial update
+    // dvector Mxr = dvec_create(n); // scaled rhs
+    // dCSRmat I = dcsr_create_identity_matrix(n, 0);
+    dvector r_vec;
+    r_vec.row = n; r_vec.val = r;
+
+    // apply rational approximation
+    // z = residues(0)*r
+    array_cp(n, r, z);
+    array_ax(n, residues->val[0], z);
+    // form Mxr - same in all iter
+    // dcsr_mxv(&(mgl[1]->M), r, Mxr.val);
+
+    // pc for krylov
+    precond pc;
+    pc.fct = precond_amg;
+    precond_data pcdata;
+    // precond_data_null(pcdata);
+    param_amg_to_prec(&pcdata, &(amgparam[1]));
+    pc.data = &pcdata;
+
+    // main loop
+    INT count = 0;
+    for (i=1; i<k; ++i)
+    {
+        // set update to zero
+        dvec_set(update.row, &update, 0.0);
+
+        // amg data for shifted laplacian
+        // mgl[i+1]->b.row = n; array_cp(n, Mxr.val, mgl[i+1]->b.val); // not sure what the rhs here is; should be Mxr - mgl->A * x_0
+        // mgl[i+1]->x.row = n; dvec_set(n, &(mgl[i+1]->x), 0.0);
+
+        // set precond data and param
+        pcdata.max_levels = mgl[i]->num_levels;
+        pcdata.mgl_data = mgl[i];
+
+        // solve (A - poles[i]*I)e=f
+        printf("Pole %d: ", i);
+        status = dcsr_pvfgmres(&(mgl[i][0].A), &r_vec, &update, &pc, 1e-10, 100, 100, 1, 1);
+        //status = linear_solver_dcsr_krylov_amg(&shiftA, &r_vec, &update, itparam, amgparam);
+
+        // z = z + residues[i+1]*update
+        array_axpy(n, residues->val[i], update.val, z);
+
+        // iter
+        if(status > 0) count += status;
+
+    }
+
+    if(count) printf("Inner boundary solver took total of %d iterations. \n", count);
+    // cleanup
+    dvec_free(&update);
+    // dvec_free(&Mxr);
+    // free(pc.data)???
+
+}
+
+
+
+
 /*---------------------------------*/
 /*--        End of File          --*/
 /*---------------------------------*/
