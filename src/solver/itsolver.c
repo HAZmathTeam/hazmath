@@ -539,7 +539,7 @@ INT linear_solver_amg(dCSRmat *A,
  * \param
  * \param poles  Pointer to dvector: poles
  *
- * \note If M = NULL, we assume that M = I
+ * \note If M = NULL, we assume that M = I  (this does not work for python ... - Xiaozhe)
  *
  * \author Xiaozhe Hu
  * \date   2020-09-27
@@ -565,18 +565,22 @@ INT linear_solver_frac_rational_approx(dCSRmat *A,
   dvector update = dvec_create(x->row);
   dCSRmat shiftA;
   dCSRmat I;
+  /*
   if (M=NULL)
   {
     I = dcsr_create_identity_matrix(A->row, 0);
   }
+  */
 
   // apply rational approximation
   // x = residues(0)*(M\b)
+  /*
   if (M=NULL)
   {
     dvec_cp(b, x);
   }
   else
+  */
   {
     status = linear_solver_dcsr_krylov_amg(M, b, x, itparam, amgparam);
   }
@@ -590,11 +594,13 @@ INT linear_solver_frac_rational_approx(dCSRmat *A,
     dvec_set(update.row, &update, 0.0);
 
     // form (A - poles[i]*M)
+    /*
     if (M=NULL)
     {
       dcsr_add(A, 1.0, &I, -poles->val[i], &shiftA);
     }
     else
+    */
     {
       dcsr_add(A, 1.0, M, -poles->val[i], &shiftA);
     }
@@ -615,7 +621,7 @@ INT linear_solver_frac_rational_approx(dCSRmat *A,
 
   // cleanup
   dvec_free(&update);
-  if (M=NULL) dcsr_free(&I);
+  //if (M=NULL) dcsr_free(&I);
 
   return count;
 
@@ -4134,7 +4140,7 @@ INT linear_solver_bdcsr_babuska_block_2(block_dCSRmat *A,
     }
 
     // parameters used in the AAA algorithm
-    REAL xmin_in=0e0, xmax_in=1e0;  // interval for x
+    REAL xmin_in=0.e0, xmax_in=1.e0;  // interval for x
     INT mbig=(1<<14)+1;  // initial number of points on the interval [x_min, x_max]
     INT mmax_in=(INT )(mbig/2);  // maximal final number of pole + 1
     REAL16 AAA_tol=powl(2e0,-52e0);  // tolerance of the AAA algorithm
@@ -4264,7 +4270,26 @@ INT linear_solver_bdcsr_babuska_block_2(block_dCSRmat *A,
     precdata.residues = &residues;
 
     precond pc;
-    pc.data = &precdata; pc.fct = precond_block2_babuska;
+    pc.data = &precdata;
+
+    switch (itparam->linear_precond_type)
+    {
+
+      case 20:
+        pc.fct = precond_block2_babuska_diag;
+        break;
+
+      case 21:
+        pc.fct = precond_block2_babuska_lower;
+        break;
+
+      case 22:
+        pc.fct = precond_block2_babuska_upper;
+        break;
+
+      default:
+        break;
+    }
 
     if ( prtlvl >= PRINT_MIN ) {
         get_time(&setup_end);
