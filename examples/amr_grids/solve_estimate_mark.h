@@ -66,3 +66,46 @@ ivector *exmpl_mark(scomplex *sc,dvector *estimator,void *all)
   //  fprintf(stdout,"\nnumber of simplices to be refined=%d\n",k);
   return marked;
 }
+/*************************************************************************/
+/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
+ivector *mark_near_points(scomplex *sc, INT nstar, REAL *xstar)
+{
+  /* 
+     from marked simplices, remove any simplex that does not contain a
+     point from xstar[...]. unmarked simplices are left unmarked 
+  */
+//  fprintf(stdout,"\nNSTAR=%d\n",nstar);fflush(stdout);
+  INT n=sc->n,n1=n+1,ns=sc->ns;
+  INT istar,jstar,j=-1;
+  /* mark everything */
+  ivector *marked=malloc(1*sizeof(ivector));
+  marked[0]=ivec_create(sc->ns);
+  for(j=0;j<ns;j++) marked->val[j]=TRUE;
+  /* bail out if no points */
+  if(!nstar || (xstar==NULL)) return marked;
+  INT *scnjn=NULL,mrkno=0,mrktst=0,flagmrk=0;  
+  REAL *xstar0=NULL;
+  for(j=0;j<ns;j++){
+    flagmrk=0;
+    // check if we have been marked:
+    if(!marked->val[j]) {continue;}
+    mrktst++;
+    scnjn = sc->nodes+j*n1;
+    for(jstar=0;jstar<nstar;jstar++){
+      //      fprintf(stdout,"\nel=%d\n",jstar+1);
+      xstar0=xstar+jstar*n;
+      // check if the point is inside the simplex. 
+      if(!xins(n,scnjn,sc->x,xstar0)){
+	//	fprintf(stdout,"\nel=%d, found: %d; NOmrk=%d",j,jstar+1,mrkno);
+	mrkno--;
+	marked->val[j]=TRUE;
+	flagmrk=1;
+	break;
+      }
+    }
+    if(flagmrk) continue;
+    mrkno++;
+    marked->val[j]=FALSE;
+  }
+  return marked;
+}

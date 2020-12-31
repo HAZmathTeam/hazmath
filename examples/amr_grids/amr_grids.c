@@ -3,11 +3,11 @@
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov 2019/01/09.
  *  Copyright 2015_HAZMATH__. All rights reserved.
  *
- * \brief This program generates simplicial grids in 2,3,4... dimension. 
+ * \brief This program generates simplicial grids in 2,3,4... dimension.
  *
  * \note This example highlights some of the features of the simple
  * mesh generator included with HAZmath. It is only to illustrate how
- * to use the mesh refinement. 
+ * to use the mesh refinement.
  */
 
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************/
@@ -19,65 +19,92 @@
 //
 INT main(INT   argc,   char *argv[])
 {
-  FILE *fp=stdin;     
+  FILE *fp=stdin;
   //  fp=HAZ_fopen("2d_square.input","r");
   /*
     PARSE THE INPUT.
   */
   input_grid *g=parse_input_grid(fp);
-  fclose(fp);  
+  fclose(fp);
   /*
     GENERATE INITIAL GRID AND DECLARE VARIABLES.
   */
   scomplex *sc=generate_initial_grid(g);
   scomplex *sctop=NULL;
-  INT ref_levels=g->nref, amr_marking_type=g->mark_type,j; 
+  INT ref_levels=g->nref, amr_marking_type=g->mark_type,j;
   dvector *solfem=NULL,*estimator=NULL;
   ivector *marked=NULL;
   void *all=NULL;
-  if(amr_marking_type){
-    /* 
+  REAL *xstar=NULL;
+  INT nstar,dim=sc->n;
+  if(amr_marking_type==0){
+    // refine ref_levels;
+    refine(ref_levels,sc,NULL);
+  } else if(amr_marking_type==33){
+    nstar=2; // refining near two points:
+    xstar=(REAL *)calloc(nstar*dim,sizeof(REAL));
+    xstar[0*dim+0]=1.666667e-1;
+    xstar[0*dim+1]=6.666667e-1;
+    xstar[1*dim+0]=8.333333e-1;
+    xstar[1*dim+1]=6.666667e-1;
+    for(j=0;j<ref_levels;j++){
+      /*
+       * SELECT the finest grid:
+       */
+      sctop=scfinest(sc);
+      /* MARK: marked is an ivector with num.rows=the number of
+       *       simplices; its componenets are nonzero if the simplex
+       *       is marked for refinement and 0 if it is not marked for
+       *       refinement.
+       */
+      marked=mark_near_points(sctop,nstar,xstar);
+      refine(1,sc,marked);
+      /* free */
+      haz_scomplex_free(sctop);
+    }
+    ivec_free(marked);
+    free(xstar);
+  } else {
+    /*
        Use "all" here can pass data around. Below we make 4 dvectors
        and one ivector, just as example. A good example for using the
        array will be to pass the whole hierarchy, not only the fine
        grid via all, e.g. all=(coid *)sc
     */
-    all=(void *)malloc(5*sizeof(dvector)+sizeof(ivector)); 
-    /**/    
+    all=(void *)malloc(5*sizeof(dvector)+sizeof(ivector));
+    /**/
     for(j=0;j<ref_levels;j++){
       /*
        * SELECT the finest grid:
        */
-      sctop=scfinest(sc); 
-      /* 
-       * SOLVE on the finest (for now grid)
+      sctop=scfinest(sc);
+      /*
+       * SOLVE on the finest (for now) grid
        */
       solfem=(dvector *)exmpl_solve(sctop,all);
-      /* 
+      /*
        * ESTIMATE using the numerical solution and the data stored in *all
        */
       estimator=(dvector *)exmpl_estimate(sctop,solfem,all);
-      /* 
+      /*
        * MARK: marked is an ivector with num.rows=the number of
        *       simplices; its componenets are nonzero if the simplex
        *       is marked for refinement and 0 if it is not marked for
        *       refinement.
        */
       marked=exmpl_mark(sctop,estimator,all);
-      /* 
+      /*
        *  Refine the grid. this always refines 1 time, but since we
        *  are in a loop, it will refine ref_levels times;
        */
-      refine(1,sc,marked); 
+      refine(1,sc,marked);
       /* free */
       haz_scomplex_free(sctop);
       dvec_free(solfem);
       dvec_free(estimator);
       ivec_free(marked);
     }
-  } else {
-    // refine ref_levels;
-    refine(ref_levels,sc,NULL);
+    free(all);
   }
   /*  MAKE sc to be the finest grid only */
   scfinalize(sc);
@@ -87,7 +114,6 @@ INT main(INT   argc,   char *argv[])
   vtkw(g->fvtu,sc,0,1.);
   /*FREE*/
   input_grid_free(g);
-  free(all);
   haz_scomplex_free(sc);
   return 0;
 }
