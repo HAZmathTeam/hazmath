@@ -2006,6 +2006,17 @@ int main (int argc, char* argv[])
       //  param_amg_print(&amgparam);
       // get preconditioner diagonal blocks
       // Prepare diagonal blocks
+
+      dCSRmat *A_L;
+      A_L = (dCSRmat *)calloc(dim+1,sizeof(dCSRmat));
+      dcsr_cp(A.blocks[0],&A_L[0]);
+      dcsr_cp(A.blocks[1],&A_L[1]);
+      dcsr_cp(A.blocks[3],&A_L[2]);
+      dcsr_cp(A.blocks[4],&A_L[3]);
+      //dcsr_cp(A.blocks[6],&A_L[4]);
+      //dcsr_cp(A.blocks[7],&A_L[5]);
+      dcsr_cp(A.blocks[8], &A_L[4]);
+	  
       dCSRmat *A_diag;
       A_diag = (dCSRmat *)calloc(dim+1, sizeof(dCSRmat));
       for(i=0;i<dim+1;i++){ // copy block diagonal to A_diag
@@ -2014,19 +2025,26 @@ int main (int argc, char* argv[])
 		   A.blocks[i*(dim+1)+i]->nnz, \
 		   &A_diag[i]);
 	dcsr_cp(A.blocks[i*(dim+1)+i], &A_diag[i]);
+	// i = 0 -> [0] (0,0) -> [0]
+	// i = 1 -> [4] (1,1) -> [1]
+	// i = 2 -> [8] (2,2) -> [2]
       }
+      
       // for the last block, we only take its diagonal:
       INT nzd=0,j,k;
       for(i=0;i<A_diag[dim].row;i++){
 	for(k=A_diag[dim].IA[i];k<A_diag[dim].IA[i+1];k++){
 	  j=A_diag[dim].JA[k];
-	  if(i!=j) continue;
+	  if(i!=j)
+	    continue;
 	  A_diag[dim].JA[nzd]=A_diag[dim].JA[k];//=i
 	  A_diag[dim].val[nzd]=A_diag[dim].val[k];//aii
 	  nzd++;
 	}
       }
-      for(i=0;i<A_diag[dim].row;i++) A_diag[dim].IA[i+1]=A_diag[dim].IA[i]+1;
+      
+      for(i=0;i<A_diag[dim].row;i++)
+	A_diag[dim].IA[i+1]=A_diag[dim].IA[i]+1;
       // realloc them:
       A_diag[dim].JA=realloc(A_diag[dim].JA,nzd*sizeof(INT));
       A_diag[dim].val=realloc(A_diag[dim].val,nzd*sizeof(REAL));
