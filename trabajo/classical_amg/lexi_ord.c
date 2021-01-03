@@ -138,50 +138,22 @@ INT main(INT argc, char **argv)
   INT  *ia   = NULL, *ja    = NULL;
   INT  *iord = NULL, *iord1 = NULL;
   //
-  fprintf(stdout,"\nData type? ");
-  fscanf(stdin,"%d",&iread);
-  if(iread) {
-    fp=fopen("fort.15","r");
-    fscanf(fp,"%d",&n);
-    ia=calloc(n+1,sizeof(INT));
-    for(k=0;k<n;k++){
-      fscanf(fp,"%d",ia+k);
-      ia[k]--;
-    }
-    i0 = ia[0]+1;
-    ia[0]  = 0;
-    for(k=0;k<n;k++){
-      i1 = ia[k+1] + 1;
-      ia[k+1] = ia[k] + i0;
-      i0 = i1;
-      fprintf(stdout,"\nia[%d]=%d",k,ia[k]);fflush(stdout);
-    }
-    nnz = ia[n];
-    fprintf(stdout,"\nn=%d,nnz=%d\n",n,nnz);fflush(stdout);
-    ja=calloc(nnz,sizeof(INT));
-    for(k=0;k<nnz;k++){
-      fscanf(fp,"%d",ja+k);
-      fprintf(stdout,"\nja[%d]=%d",k,ja[k]);fflush(stdout);
-      ja[k]--;
-    }
-  } else {
-    fp=fopen("abc","r");
-    fscanf(fp,"%d",&n);
-    ia=calloc(n+1,sizeof(INT));
-    for(k=0;k<=n;k++){
-      fscanf(fp,"%d",ia+k);
-      fprintf(stdout,"\nia[%d]=%d",k,ia[k]);fflush(stdout);
-      ia[k]--;
-    }
-    nnz = ia[n];
-    ja=calloc(nnz,sizeof(INT));
-    fprintf(stdout,"\nn=%d,nnz=%d\n",n,nnz);fflush(stdout);
-    for(k=0;k<nnz;k++){
-      fscanf(fp,"%d",ja+k);
-      fprintf(stdout,"\nja[%d]=%d",k,ja[k]);fflush(stdout);
-      ja[k]--;
-    }
-  }//end if
+  fp=fopen("abc","r");
+  fscanf(fp,"%d",&n);
+  ia=calloc(n+1,sizeof(INT));
+  for(k=0;k<=n;k++){
+    fscanf(fp,"%d",ia+k);
+    fprintf(stdout,"\nia[%d]=%d",k,ia[k]);fflush(stdout);
+    ia[k]--;
+  }
+  nnz = ia[n];
+  ja=calloc(nnz,sizeof(INT));
+  fprintf(stdout,"\nn=%d,nnz=%d\n",n,nnz);fflush(stdout);
+  for(k=0;k<nnz;k++){
+    fscanf(fp,"%d",ja+k);
+    fprintf(stdout,"\nja[%d]=%d",k,ja[k]);fflush(stdout);
+    ja[k]--;
+  }
   fclose(fp);
   iord=calloc(n,sizeof(INT));
   for(k=0;k<n;k++){
