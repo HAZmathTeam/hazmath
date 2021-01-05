@@ -31,7 +31,7 @@
 #include "elasticity_error.h"
 #include "elasticity_system.h"
 /*********************************************************************************/
-static dvector *get_diag_bdcsr(block_dCSRmat *Ab)
+static dvector *get_diag_bdcsr(block_dCSRmat *Ab, const REAL omega)
 {
 /*!
  * \fn dvector *get_diag_bdcsr(block_dCSRmat *Ab)
@@ -44,18 +44,18 @@ static dvector *get_diag_bdcsr(block_dCSRmat *Ab)
  *
  */
   // 
-  INT nzd,i,j,k,ii,iaa,iab,iblk,brow=Ab->brow,bcol=Ab->bcol;
+  INT nzd,i,j,k,ii,nn,iaa,iab,iblk,brow=Ab->brow,bcol=Ab->bcol;
   //  dvector **d_a=malloc(brow*sizeof(dvector *));
   //  for(iblk=0;iblk<brow;iblk++){
   //    j=Ab->blocks[iblk*bcol+iblk]->row;
   //    d_a[iblk]=dvec_create_p(j);
   //}
     //    d_a[iblk]=dvec_create_p(j);
-  k=0;// here: total number of rows 
+  nn=0;// here: total number of rows 
   for(iblk=0;iblk<brow;iblk++){
-    k+=Ab->blocks[iblk*bcol+iblk]->row;
+    nn+=Ab->blocks[iblk*bcol+iblk]->row;
   }
-  dvector *d_a = dvec_create_p(k);
+  dvector *d_a = dvec_create_p(nn);
   nzd=0;
   for(iblk=0;iblk<brow;iblk++){
     ii=iblk*bcol+iblk;
@@ -70,7 +70,8 @@ static dvector *get_diag_bdcsr(block_dCSRmat *Ab)
       }
     }
   }
-  fprintf(stdout,"\nentries on the diagonal: %d\n",nzd);
+  for(i=0;i<nn;i++) d_a->val[i]*=omega;
+  fprintf(stdout,"\nentries on the diagonal: %d (%d); scalling: omega=%.5e\n",nzd,nn,omega);  
   return d_a;
 }
 /*********************************************************************************/
@@ -196,7 +197,7 @@ static precond_block_data *get_precond_block_data(block_dCSRmat *Ab)
   pblk->A_diag=get_diag_blocks(Ab,n1,n2);
   //dvector ** the diagonal of the stiffness matrix:
   pblk->diag=malloc(sizeof(dvector *));       
-  pblk->diag[0] = get_diag_bdcsr(Ab);
+  pblk->diag[0] = get_diag_bdcsr(Ab,1.0);
   /*-------------------------------------------------*/  
   /* FILE *fptmp; */
   /* fptmp=fopen("a.dat","w"); */
