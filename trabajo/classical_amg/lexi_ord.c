@@ -5,32 +5,38 @@
 
 #include "hazmath.h"
 /*********************************************************************/
-static void print_cells(INT num,
-			INT *cell,		\
-			INT *flag,		\
-			INT *head,		\
-			INT *next,		\
-			INT *back)
+static void print_cells(const char *s,INT nfx, INT num,	\
+			INT *cell,			\
+			INT *flag,			\
+			INT *head,			\
+			INT *next,			\
+			INT *back,			\
+			INT *fixlst)
 {
-  INT hc,hcnext,f,v,b,c,strt;
+  INT i0,hc,hcnext,f,v,b,c,strt;
   hc=0;
-  fprintf(stdout,"\nnumber=%d:",num);
+  fprintf(stdout,"\n%s:number=%d:",s,num);
+  fprintf(stdout,"\n%%%%000:|%3d|%3d|%3d|%3d|;",flag[0],head[0],next[0],back[0]);fflush(stdout);
   while(1){
     hcnext=head[hc];
     if(hcnext<0) break;
     strt=next[hcnext];
-    fprintf(stdout,"\n\theader_cell=%3d; list_strt=%3d",hcnext,strt);
-    fprintf(stdout,"\n");
+    //    fprintf(stdout,"\n\theader_cell=%3d; list_strt=%3d",hcnext,strt);
+    //    fprintf(stdout,"\n");
+    fprintf(stdout,"\n\theader_cell=%3d:|%3d|%3d|%3d|%3d|* ",hcnext,flag[hcnext],head[hcnext],next[hcnext],back[hcnext]);fflush(stdout);
     while(strt>0){
       v=head[strt];
       c=cell[v];
       f=flag[c];
       b=back[c];
-      fprintf(stdout,"%6d:|%3d|%3d|%3d|%3d|;",strt,f,v,next[strt],b);
+      fprintf(stdout,"%6d:|%3d|v=%3d|%3d|%3d|;",strt,f,v,next[strt],b);fflush(stdout);
       strt=next[strt];
     }
     fprintf(stdout,"\n");
     hc=hcnext;
+  }
+  for(i0 = 0;i0< nfx;i0++){
+    fprintf(stdout,"\nnfx=%3d,xFIXLIST[%d]=%d,flag=%d",nfx,i0,fixlst[i0],flag[fixlst[i0]]);fflush(stdout);
   }
   return;
 }
@@ -56,7 +62,7 @@ void lexi(INT n, INT *ia, INT *ja, INT *iord, INT *iord1)
    *  set of vertices that have the same label.
    *
   */
-  INT n2=2*n;
+  INT n2=20*n;
   // allocate memory;
   INT *mbegin=calloc(5*n2,sizeof(INT));
   for (i=0;i<5*n2;i++) mbegin[i]=-1;
@@ -82,8 +88,10 @@ void lexi(INT n, INT *ia, INT *ja, INT *iord, INT *iord1)
   flag[1] = -1;
   // cell 0 is the beginning; cell 1 is header cell for the first set;
   c=2; // thus the first empty cell is cell 2. 
-  for(iv = 0;iv<n;iv++){
+  //  fprintf(stdout,"\n");fflush(stdout);
+  for(iv=0;iv<n;iv++){
     v = iord[iv]; // vertex label
+    //    fprintf(stdout,"%d ",v);fflush(stdout);
     head[c] = v;  //head(cell)=element;
     cell[v] = c;  //cell(vertex)=cell.
     next[c-1] = c;
@@ -95,7 +103,9 @@ void lexi(INT n, INT *ia, INT *ja, INT *iord, INT *iord1)
   next[c-1] = -1;
   for (i = n-1;i>=0;i--){
     /*********************************************************************/
-    //    if(i<n-3) break;
+    nfx=0;
+    //    print_cells("first:",nfx,i,cell,flag,head,next,back,fixlst);
+    //    if(i<n-10) break;
     //C  Skip empty sets
     while(next[head[0]] < 0){
       head[0] = head[head[0]];
@@ -115,6 +125,7 @@ void lexi(INT n, INT *ia, INT *ja, INT *iord, INT *iord1)
     //C assign number i to v
     iord[i] = v;
     iord1[v] = i;
+    fprintf(stdout,"\n*** NUMBERING at (%d) v=%d: inv(%d)=%d",i,v,v,iord1[v]);
     nfx=0;
     ibeg = ia[v]-1;
     iend = ia[v+1]-1;
@@ -137,8 +148,7 @@ void lexi(INT n, INT *ia, INT *ja, INT *iord, INT *iord1)
 				  // is a predecessor of the set header cell
 				  // containing w
 	/* fprintf(stdout,"\n%%%%i=%3d,v=%3d,w=%3d,iord1(%3d)=%3d,iord1(%3d)=%3d",i,v,w,v,iord1[v],w,iord1[w]);fflush(stdout); */
-	fprintf(stdout,"\n%%%%102:::h=%d,b=%d,f=%d,i=%3d,h=%3d, flag(h)=%3d, cell(v)=%3d,cell[w]=%3d\n",\
-		head[102],back[102],flag[102],i,h,flag[h],cell[v],cell[w]);fflush(stdout);
+	//	fprintf(stdout,"\n%%%%102:::h=%d,b=%d,f=%d,i=%3d,h=%3d, flag(h)=%3d, cell(v)=%3d,cell[w]=%3d\n",head[102],back[102],flag[102],i,h,flag[h],cell[v],cell[w]);fflush(stdout);
 	// if h is an old set, then we create a new set (c=c+1)
 	if(flag[h]<0) {//
 	  head[c] = head[h];// insert c between h and head[h]
@@ -148,9 +158,10 @@ void lexi(INT n, INT *ia, INT *ja, INT *iord, INT *iord1)
 	  flag[c] = 0;
 	  next[c] = -1;
 	  // add the new set to fixlst:
-	  nfx++;
 	  fixlst[nfx] = c;
-	  /* fprintf(stdout,"\n%%%%%%h=%3d,c=%3d;fixlst[%3d]=%3d",h,c,nfx,fixlst[nfx]);fflush(stdout); */
+	  fprintf(stdout,"\n%%%%%%h=%3d,c=%3d;fixlst[%3d]=%3d",h,c,nfx,fixlst[nfx]);fflush(stdout);
+	  nfx++;
+	  if(nfx>n2) fixlst=realloc(fixlst,nfx*sizeof(INT));
 	  h=c;
 	  c++;
 	}
@@ -163,7 +174,6 @@ void lexi(INT n, INT *ia, INT *ja, INT *iord, INT *iord1)
 	back[cell[w]] = h;
 	next[h] = cell[w];
       }//	end if
-      print_cells(i,cell,flag,head,next,back);
     }   //end for
     /* for(ijk = iend;ijk>ibeg;ijk--){ */
     /*   w = ja[ijk]; */
@@ -174,10 +184,14 @@ void lexi(INT n, INT *ia, INT *ja, INT *iord, INT *iord1)
     /*   fprintf(stdout,"back(%3d)=%3d",cell[w],back[cell[w]]); */
     /* } */
     /* fprintf(stdout,"\n%%%%%%vertex v=%3d",v); */
+    //    print_cells("secon:",nfx,i,cell,flag,head,next,back,fixlst);
+    //    nfx--;
     for(i0 = 0;i0< nfx;i0++){
       //      h = fixlst[i0];
       //      flag[h] = -1;
+      //      fprintf(stdout,"\nFIXLIST[%d]=%d,flag=%d",i0,fixlst[i0],flag[fixlst[i0]]);
       flag[fixlst[i0]] = -1;
+      fprintf(stdout,"\nn=%4d;FIXLIST[%d]=%d,flag=%d",n,i0,fixlst[i0],flag[fixlst[i0]]);
     }// 
   }  //end do
   // free
@@ -226,8 +240,7 @@ INT main(INT argc, char **argv)
   iord=calloc(n,sizeof(INT));
   iord1=calloc(n,sizeof(INT));
   for(k=0;k<n;k++){
-    iord[k] = k;
-    iord1[k]=-1;
+    iord[k] = n-1-k;
   }
   lexi(n,ia,ja,iord, iord1);
   //
