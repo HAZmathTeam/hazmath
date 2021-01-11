@@ -4,6 +4,7 @@
 //
 //  Created by Hu, Xiaozhe on 5/13/15.
 //
+// \note added frac. exponent in precond_data (Ana Budisa, 2020-05-13)
 //
 
 #include <stdio.h>
@@ -133,6 +134,9 @@ typedef struct {
 
     //! pointer to the iterative solution at level level_num
     dvector x;
+
+    // pointer to the mass matrix at level level_num
+    dCSRmat M;
 
     /* Extra information */
     //! pointer to the numerical factorization from UMFPACK
@@ -325,6 +329,9 @@ typedef struct {
 
     //! AMG preconditioner data
     AMG_data *mgl_data;
+
+    //! Fractional exponent for fractional smoothers in AMG
+    REAL fpwr;
 
     //! Matrix data
     dCSRmat *A;
