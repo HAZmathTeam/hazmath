@@ -13,18 +13,20 @@ static void print_cells(const char *s,INT nfx, INT num,	\
 			INT *back,			\
 			INT *fixlst)
 {
-  INT i0,hc,hcnext,f,v,b,c,strt;
+  INT hc,hcnext,f,v,b,c,strt;
   hc=0;
-  fprintf(stdout,"\n%s:number=%d:",s,num);
-  fprintf(stdout,"\n%%%%000:|%3d|%3d|%3d|%3d|;",flag[0],head[0],next[0],back[0]);fflush(stdout);
+  //  fprintf(stdout,"\n%s:number=%d:",s,num);
+  fprintf(stdout,"\n%%%%%%\tHEAD(ALL):|%3d|%3d|%3d|%3d|;",flag[0],head[0],next[0],back[0]);fflush(stdout);
   while(1){
     hcnext=head[hc];
     if(hcnext<0) break;
     strt=next[hcnext];
     //    fprintf(stdout,"\n\theader_cell=%3d; list_strt=%3d",hcnext,strt);
     //    fprintf(stdout,"\n");
-    fprintf(stdout,"\n\theader_cell=%3d:|%3d|%3d|%3d|%3d|* ",hcnext,flag[hcnext],head[hcnext],next[hcnext],back[hcnext]);fflush(stdout);
-    while(strt>0){
+    if(strt>=0) {
+      fprintf(stdout,"\n%%%%%%\theader_cell=%3d:|%3d|%3d|%3d|%3d|* ",hcnext,flag[hcnext],head[hcnext],next[hcnext],back[hcnext]);fflush(stdout);
+    }
+    while(strt>=0){
       v=head[strt];
       c=cell[v];
       f=flag[c];
@@ -32,16 +34,21 @@ static void print_cells(const char *s,INT nfx, INT num,	\
       fprintf(stdout,"%6d:|%3d|v=%3d|%3d|%3d|;",strt,f,v,next[strt],b);fflush(stdout);
       strt=next[strt];
     }
-    fprintf(stdout,"\n");
+    //    jjj++;
+    //    if(jjj>200) break;
+    //    fprintf(stdout,"\njjj=%d\n",jjj);
     hc=hcnext;
   }
-  for(i0 = 0;i0< nfx;i0++){
-    fprintf(stdout,"\nnfx=%3d,xFIXLIST[%d]=%d,flag=%d",nfx,i0,fixlst[i0],flag[fixlst[i0]]);fflush(stdout);
-  }
+  fprintf(stdout,"\n");
+  /* INT i0; */
+  /* for(i0 = 0;i0< nfx;i0++){ */
+  /*   fprintf(stdout,"\n%%%%%%nfx=%3d,xFIXLIST[%d]=%d,flag=%d",nfx,i0,fixlst[i0],flag[fixlst[i0]]);fflush(stdout); */
+  /* } */
   return;
 }
 /**********************************************************************/
-void lexi(INT n, INT *ia, INT *ja, INT *iord, INT *iord1)
+void lexi(INT n, INT *ia, INT *ja, INT *iord, INT *iord1, \
+	  INT *level, INT *tree)
 {  /*
      Output: iord is the lexicographical ordering which for
      triangulated graph is an ordering withouut fill in
@@ -62,18 +69,22 @@ void lexi(INT n, INT *ia, INT *ja, INT *iord, INT *iord1)
    *  set of vertices that have the same label.
    *
   */
-  INT n2=20*n;
+  INT nmem=n;
   // allocate memory;
-  INT *mbegin=calloc(5*n2,sizeof(INT));
-  for (i=0;i<5*n2;i++) mbegin[i]=-1;
-  INT *fixlst=calloc(n2,sizeof(INT));
-  for (i=0;i<n2;i++) fixlst[i]=-1;
-  // set pointers;
-  INT *head   = mbegin;
-  INT *back   = head   + n2;
-  INT *next   = back   + n2;
-  INT *cell   = next   + n2;
-  INT *flag   = cell   + n2;
+  INT *cell=calloc(n,sizeof(INT));
+  for (i=0;i<n;i++) cell[i]=-1;
+  INT *flag=calloc(nmem,sizeof(INT));
+  INT *head=calloc(nmem,sizeof(INT));
+  INT *next=calloc(nmem,sizeof(INT));
+  INT *back=calloc(nmem,sizeof(INT));
+  INT *fixlst=calloc(nmem,sizeof(INT));
+  for (i=0;i<nmem;i++){
+    fixlst[i]=-1;
+    head[i]=-1;
+    back[i]=-1;
+    next[i]=-1;
+    flag[i]=-1;
+  }
   /*     assign empty label to all vertices */
   head[0] = 1; // the first cell is the head of the queue; it does not
 	       // describe any set of vertices, but points to the
@@ -98,13 +109,23 @@ void lexi(INT n, INT *ia, INT *ja, INT *iord, INT *iord1)
     flag[c] = 1;
     back[c] = c-1;
     c++;
+    if(c>=nmem){
+      nmem=c+1;
+      flag=realloc(flag,nmem*sizeof(INT));
+      head=realloc(head,nmem*sizeof(INT));
+      next=realloc(next,nmem*sizeof(INT));
+      back=realloc(back,nmem*sizeof(INT));
+      head[c]=-1; back[c]=-1; next[c]=-1; flag[c]=-1;
+    }
     iord1[v] = -1;
+    level[v] = -1;
+    tree[v] = -1;
   }
   next[c-1] = -1;
   for (i = n-1;i>=0;i--){
     /*********************************************************************/
     nfx=0;
-    //    print_cells("first:",nfx,i,cell,flag,head,next,back,fixlst);
+    //    print_cells("%%%%first:",nfx,i,cell,flag,head,next,back,fixlst);
     //    if(i<n-10) break;
     //C  Skip empty sets
     while(next[head[0]] < 0){
@@ -125,12 +146,15 @@ void lexi(INT n, INT *ia, INT *ja, INT *iord, INT *iord1)
     //C assign number i to v
     iord[i] = v;
     iord1[v] = i;
-    fprintf(stdout,"\n*** NUMBERING at (%d) v=%d: inv(%d)=%d",i,v,v,iord1[v]);
+    if(level[v]<0) level[v]=0;
+    // fprintf(stdout,"\n*** NUMBERING at (%d) v=%d: inv(%d)=%d",i,v,v,iord1[v]);
     nfx=0;
     ibeg = ia[v]-1;
     iend = ia[v+1]-1;
     for(ijk = iend;ijk>ibeg;ijk--){
       w = ja[ijk];
+      if((tree[w]<0)&&(level[w]<0)) tree[w]=v;
+      if(level[w]<0) level[w]=level[v]+1;
       //fprintf(stdout,"\n%%%% %3d:v=%3d,w=%3d,h[0]=%3d,n(h(0))=%3d",ijk-ibeg,v,w,head[0],next[head[0]]);
       //      fprintf(stdout,"\n%%%%ibeg=%3d,iend=%3d,ijk=%3d,v=%3d,w=%3d,iord(v)=%3d,iord(w)=%3d",ibeg,iend,ijk,v,w,iord[v],iord[w]);fflush(stdout);
       if(iord1[w] < 0) {
@@ -147,7 +171,7 @@ void lexi(INT n, INT *ia, INT *ja, INT *iord, INT *iord1)
 	h = back[flag[cell[w]]];  // this is the header set cell which
 				  // is a predecessor of the set header cell
 				  // containing w
-	/* fprintf(stdout,"\n%%%%i=%3d,v=%3d,w=%3d,iord1(%3d)=%3d,iord1(%3d)=%3d",i,v,w,v,iord1[v],w,iord1[w]);fflush(stdout); */
+	//	fprintf(stdout,"\n%%%%i=%3d,v=%3d,w=%3d,iord1(%3d)=%3d,iord1(%3d)=%3d",i,v,w,v,iord1[v],w,iord1[w]);fflush(stdout);
 	//	fprintf(stdout,"\n%%%%102:::h=%d,b=%d,f=%d,i=%3d,h=%3d, flag(h)=%3d, cell(v)=%3d,cell[w]=%3d\n",head[102],back[102],flag[102],i,h,flag[h],cell[v],cell[w]);fflush(stdout);
 	// if h is an old set, then we create a new set (c=c+1)
 	if(flag[h]<0) {//
@@ -159,11 +183,20 @@ void lexi(INT n, INT *ia, INT *ja, INT *iord, INT *iord1)
 	  next[c] = -1;
 	  // add the new set to fixlst:
 	  fixlst[nfx] = c;
-	  fprintf(stdout,"\n%%%%%%h=%3d,c=%3d;fixlst[%3d]=%3d",h,c,nfx,fixlst[nfx]);fflush(stdout);
+	  //	  fprintf(stdout,"\n%%%%%%h=%3d,c=%3d;fixlst[%3d]=%3d",h,c,nfx,fixlst[nfx]);fflush(stdout);
 	  nfx++;
-	  if(nfx>n2) fixlst=realloc(fixlst,nfx*sizeof(INT));
+	  if(nfx>nmem) fixlst=realloc(fixlst,nfx*sizeof(INT));
 	  h=c;
 	  c++;
+	  if(c>=nmem){
+	    nmem=c+1;
+	    //	    fprintf(stdout,"\n1nmem=%d,c=%d,n=%3d,ratio=%f\n",nmem,c,n,((REAL )c)/((REAL )n)); fflush(stdout);
+	    flag=realloc(flag,nmem*sizeof(INT));
+	    head=realloc(head,nmem*sizeof(INT));
+	    next=realloc(next,nmem*sizeof(INT));
+	    back=realloc(back,nmem*sizeof(INT));
+	    head[c]=-1; back[c]=-1; next[c]=-1; flag[c]=-1;
+	  }
 	}
 	// add cell of w to the new set
 	next[cell[w]] = next[h];
@@ -184,19 +217,23 @@ void lexi(INT n, INT *ia, INT *ja, INT *iord, INT *iord1)
     /*   fprintf(stdout,"back(%3d)=%3d",cell[w],back[cell[w]]); */
     /* } */
     /* fprintf(stdout,"\n%%%%%%vertex v=%3d",v); */
-    //    print_cells("secon:",nfx,i,cell,flag,head,next,back,fixlst);
+    //    print_cells("%%secon:",nfx,i,cell,flag,head,next,back,fixlst);
     //    nfx--;
     for(i0 = 0;i0< nfx;i0++){
       //      h = fixlst[i0];
       //      flag[h] = -1;
       //      fprintf(stdout,"\nFIXLIST[%d]=%d,flag=%d",i0,fixlst[i0],flag[fixlst[i0]]);
       flag[fixlst[i0]] = -1;
-      fprintf(stdout,"\nn=%4d;FIXLIST[%d]=%d,flag=%d",n,i0,fixlst[i0],flag[fixlst[i0]]);
+      //      fprintf(stdout,"\nn=%4d;FIXLIST[%d]=%d,flag=%d",n,i0,fixlst[i0],flag[fixlst[i0]]);
+      //      fprintf(stdout,"\nc=%7d,n=%7d,ratio=%f\n",c,n,((REAL )c)/((REAL )n)); fflush(stdout);
     }// 
   }  //end do
-  // free
   free(fixlst);
-  free(mbegin);
+  free(flag);
+  free(head);
+  free(next);
+  free(back);
+  free(cell);
   return;
 }
 /*********************************************************************/
@@ -205,7 +242,7 @@ INT main(INT argc, char **argv)
   INT dummy,ish,n,nnz,k,iread;
   FILE *fp   = NULL;
   INT  *ia   = NULL, *ja    = NULL;
-  INT  *iord = NULL, *iord1 = NULL;
+  INT  *iord = NULL, *iord1 = NULL, *level = NULL,*tree = NULL;
   //
   //  fprintf(stdout,"\n%%%%argc=%3d\n",argc);
   //  for(k=0;k<argc;k++)
@@ -239,10 +276,12 @@ INT main(INT argc, char **argv)
   /* } */
   iord=calloc(n,sizeof(INT));
   iord1=calloc(n,sizeof(INT));
+  level=calloc(n,sizeof(INT));
+  tree=calloc(n,sizeof(INT));
   for(k=0;k<n;k++){
     iord[k] = n-1-k;
   }
-  lexi(n,ia,ja,iord, iord1);
+  lexi(n,ia,ja,iord, iord1,level,tree);
   //
   fprintf(stdout,"\np=[");
   for(k=0;k<n;k++){
@@ -254,6 +293,17 @@ INT main(INT argc, char **argv)
     fprintf(stdout,"%3d ",iord1[k]+1);
   }
   fprintf(stdout,"];\n");
+  fprintf(stdout,"\nlevel=[");
+  for(k=0;k<n;k++){
+    fprintf(stdout,"%3d ",level[iord[k]]+1);
+  }
+  fprintf(stdout,"];\n");
+  fprintf(stdout,"\ntree=[");
+  for(k=0;k<n;k++){
+    fprintf(stdout,"%3d ",tree[iord[k]]+1);
+  }
+  fprintf(stdout,"];\n");
+  free(level);
   free(iord);
   free(iord1);
   free(ia);
