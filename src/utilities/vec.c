@@ -649,4 +649,33 @@ void dvec_orthog(dvector *x, dvector *y)
 
 }
 
+
+/***********************************************************************************************/
+/*!
+ * \fn void dvec_inv (dvector *x)
+ *
+ * \brief Invert every element of dvector (0 -> 0 but produces a warning)
+ *
+ * \param x   Pointer to dvector x
+ *
+ * \return new x with x[i] = 1/x[i] for each i (if x[i] != 0)
+ *
+ */
+void dvec_inv(dvector *x)
+{
+    // local variables
+    INT i;
+    const INT length=x->row;
+
+    // invert all x_i != 0
+    for (i=0;i<length;++i){
+        if ( x->val[i] < SMALLREAL) printf("### WARNING HAZMATH DANGER in function %s: Cannot invert vector element of value zero!\n", __FUNCTION__);
+        else x->val[i] = 1.0/x->val[i];
+    }
+
+}
+
+/***********************************************************************************************/
+
 /********************************** END *************************************************/
+
