@@ -24,6 +24,7 @@ input_param *param_input_init_p()
  *
  * \param inparam    Pointer to input_param structure
  *
+ * \note added frac. exponent (Ana Budisa, 2020-05-13)
  */
 void param_input_init (input_param *inparam)
 {
@@ -95,7 +96,8 @@ void param_input_init (input_param *inparam)
     inparam->AMG_coarse_scaling       = OFF;
     inparam->AMG_amli_degree          = 1;
     inparam->AMG_nl_amli_krylov_type  = 2;
-
+    inparam->AMG_fpwr                 = 1.0;
+    
     // Aggregation AMG parameters
     inparam->AMG_aggregation_type     = HEC;
     inparam->AMG_strong_coupled       = 0.04;
@@ -130,6 +132,7 @@ void param_input_init (input_param *inparam)
  * \author Xiaozhe Hu
  * \date   10/06/2015
  *
+ * \note added frac. exponent (Ana Budisa, 2020-05-13)
  */
 void param_amg_init (AMG_param *amgparam)
 {
@@ -151,7 +154,8 @@ void param_amg_init (AMG_param *amgparam)
     amgparam->amli_degree          = 2;
     amgparam->amli_coef            = NULL;
     amgparam->nl_amli_krylov_type  = SOLVER_VFGMRES;
-
+    amgparam->fpwr                 = 1.0;
+    
     // Aggregation AMG parameters
     amgparam->aggregation_type     = HEC;
     amgparam->strong_coupled       = 0.04;
@@ -263,6 +267,7 @@ void param_linear_solver_set (linear_itsolver_param *itsparam,
  * \param amgparam   Pointer to the AMG_param structure
  * \param inparam    Pointer to the input_param structure
  *
+ * \note added frac. exponent (Ana Budisa, 2020-05-13)
  */
 void param_amg_set (AMG_param *amgparam,
                     input_param *inparam)
@@ -293,7 +298,8 @@ void param_amg_set (AMG_param *amgparam,
     amgparam->amli_degree          = inparam->AMG_amli_degree;
     amgparam->amli_coef            = NULL;
     amgparam->nl_amli_krylov_type  = inparam->AMG_nl_amli_krylov_type;
-
+    amgparam->fpwr                 = inparam->AMG_fpwr;
+    
     amgparam->aggregation_type     = inparam->AMG_aggregation_type;
     amgparam->strong_coupled       = inparam->AMG_strong_coupled;
     amgparam->max_aggregation      = inparam->AMG_max_aggregation;
@@ -449,6 +455,7 @@ void param_linear_solver_print (linear_itsolver_param *itsparam)
  *
  * \param param   Pointer to AMG_param structure
  *
+ * \note added frac. exponent (Ana Budisa, 2020-05-13)
  */
 void param_amg_print (AMG_param *amgparam)
 {
@@ -477,7 +484,12 @@ void param_amg_print (AMG_param *amgparam)
             printf("AMG relax factor:                  %.4f\n", amgparam->relaxation);
         }
 
-
+        if ( amgparam->smoother == SMOOTHER_FJACOBI ||
+             amgparam->smoother == SMOOTHER_FGS     ||
+             amgparam->smoother == SMOOTHER_FSGS    ) {
+            printf("AMG fractional exponent:           %.4f\n", amgparam->fpwr);
+        }
+        
         if ( amgparam->cycle_type == AMLI_CYCLE ) {
             printf("AMG AMLI degree of polynomial:     %d\n", amgparam->amli_degree);
         }
@@ -559,6 +571,7 @@ void param_Schwarz_print (Schwarz_param *schparam)
  * \param pcdata      Pointer to the precond_data structure
  * \param amgparam    Pointer to the AMG_param structure
  *
+ * \note added frac. exponent (Ana Budisa, 2020-05-13)
  */
 void param_amg_to_prec (precond_data *pcdata,
                         AMG_param *amgparam)
@@ -579,7 +592,8 @@ void param_amg_to_prec (precond_data *pcdata,
     pcdata->amli_degree         = amgparam->amli_degree;
     pcdata->amli_coef           = amgparam->amli_coef;
     pcdata->nl_amli_krylov_type = amgparam->nl_amli_krylov_type;
-
+    pcdata->fpwr                = amgparam->fpwr;
+    
 }
 
 /*************************************************************************************/
@@ -591,6 +605,7 @@ void param_amg_to_prec (precond_data *pcdata,
  * \param amgparam    Pointer to the AMG_param structuree
  * \param pcdata      Pointer to the precond_data structure
  *
+ * \note added frac. exponent (Ana Budisa, 2020-05-13)
  */
 void param_prec_to_amg (AMG_param *amgparam,
                         precond_data *pcdata)
@@ -608,7 +623,8 @@ void param_prec_to_amg (AMG_param *amgparam,
     amgparam->amli_degree         = pcdata->amli_degree;
     amgparam->amli_coef           = pcdata->amli_coef;
     amgparam->nl_amli_krylov_type = pcdata->nl_amli_krylov_type;
-
+    amgparam->fpwr                = pcdata->fpwr;
+    
 }
 
 /*************************************************************************************/

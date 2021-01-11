@@ -36,7 +36,8 @@ void precond_data_null (precond_data *pcdata)
     pcdata->coarse_scaling      = OFF;
     pcdata->amli_degree         = 2;
     pcdata->nl_amli_krylov_type = SOLVER_VFGMRES;
-
+    pcdata->fpwr                = 1.0;
+    
     pcdata->amli_coef           = NULL;
     pcdata->mgl_data            = NULL;
     pcdata->A                   = NULL;
@@ -103,6 +104,7 @@ void amg_data_free(AMG_data *mgl,
         dcsr_free(&mgl[i].A);
         dcsr_free(&mgl[i].P);
         dcsr_free(&mgl[i].R);
+        dcsr_free(&mgl[i].M);
         dvec_free(&mgl[i].b);
         dvec_free(&mgl[i].x);
         dvec_free(&mgl[i].w);
