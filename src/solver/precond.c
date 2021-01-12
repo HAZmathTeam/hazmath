@@ -162,6 +162,39 @@ void precond_amg(REAL *r,
     array_cp(m,mgl->x.val,z);
 }
 
+/***********************************************************************************************/
+/**
+ * \fn void precond_famg (REAL *r, REAL *z, void *data)
+ *
+ * \brief Fractional AMG preconditioner
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Ana Budisa
+ * \date   2020-05-11
+ */
+void precond_famg(REAL *r,
+                  REAL *z,
+                  void *data)
+{
+    precond_data *pcdata=(precond_data *)data;
+    const INT m=pcdata->mgl_data[0].A.row;
+    const INT maxit=pcdata->maxit;
+    INT i;
+
+    AMG_param amgparam; param_amg_init(&amgparam);
+    param_prec_to_amg(&amgparam,pcdata);
+
+    AMG_data *mgl = pcdata->mgl_data;
+    mgl->b.row=m; array_cp(m,r,mgl->b.val); // residual is an input
+    mgl->x.row=m; dvec_set(m,&mgl->x,0.0);
+
+    for (i=0;i<maxit;++i) fmgcycle(mgl,&amgparam);
+
+    array_cp(m,mgl->x.val,z);
+}
 
 /***********************************************************************************************/
 /**
@@ -193,6 +226,41 @@ void precond_amli(REAL *r,
     mgl->x.row=m; dvec_set(m,&mgl->x,0.0);
 
     for (i=0;i<maxit;++i) amli(mgl,&amgparam,0);
+
+    array_cp(m,mgl->x.val,z);
+}
+
+
+/***********************************************************************************************/
+/**
+ * \fn void precond_famli(REAL *r, REAL *z, void *data)
+ *
+ * \brief AMLI fractional AMG preconditioner
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Ana Budisa
+ * \date   2020-05-11
+ */
+void precond_famli(REAL *r,
+                   REAL *z,
+                   void *data)
+{
+    precond_data *pcdata=(precond_data *)data;
+    const INT m=pcdata->mgl_data[0].A.row;
+    const INT maxit=pcdata->maxit;
+    INT i;
+
+    AMG_param amgparam; param_amg_init(&amgparam);
+    param_prec_to_amg(&amgparam,pcdata);
+
+    AMG_data *mgl = pcdata->mgl_data;
+    mgl->b.row=m; array_cp(m,r,mgl->b.val); // residual is an input
+    mgl->x.row=m; dvec_set(m,&mgl->x,0.0);
+
+    for (i=0;i<maxit;++i) famli(mgl,&amgparam,0);
 
     array_cp(m,mgl->x.val,z);
 }
@@ -265,6 +333,240 @@ void precond_amg_add(REAL *r,
     //mgcycle_add_update(mgl,&amgparam);
 
     array_cp(m,mgl->x.val,z);
+}
+
+/***********************************************************************************************/
+/**
+ * \fn void precond_famg_add (REAL *r, REAL *z, void *data)
+ *
+ * \brief fractional AMG preconditioner (additive AMG)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu, Ana Budisa
+ * \date   2020-06-03
+ *
+ * Note: for 0<s<1, use famg(s); for -1<s<0, use famg((1+s)/2) A famg((1+s)/2)
+ */
+void precond_famg_add(REAL *r,
+                      REAL *z,
+                      void *data)
+{
+    precond_data *pcdata=(precond_data *)data;
+    const INT m=pcdata->mgl_data[0].A.row;
+    const INT maxit=pcdata->maxit;
+    INT i;
+
+    AMG_param amgparam; param_amg_init(&amgparam);
+    param_prec_to_amg(&amgparam,pcdata);
+
+    AMG_data *mgl = pcdata->mgl_data;
+
+    if (pcdata->fpwr < 0 && pcdata->fpwr >= -1) {
+        // temp work - TODO: change to array type
+        dvector x1 = dvec_create(m);
+
+        // famg preconditioner
+        amgparam.fpwr = 0.5 * (1 + pcdata->fpwr);
+        // solve famg((1+s)/2)
+        mgl->b.row=m; array_cp(m,r,mgl->b.val); // residual is an input
+        mgl->x.row=m; dvec_set(m,&mgl->x,0.0);
+        for (i=0;i<maxit;++i) fmgcycle_add_update(mgl,&amgparam);
+
+        // x1 = A x
+        dcsr_mxv(&mgl->A, mgl->x.val, x1.val);
+
+        // solve famg((1+s)/2)
+        mgl->b.row=m; array_cp(m,x1.val,mgl->b.val); // x1 is an input
+        mgl->x.row=m; dvec_set(m,&mgl->x,0.0);
+        for (i=0;i<maxit;++i) fmgcycle_add_update(mgl,&amgparam);
+    }
+    else if (pcdata->fpwr >= 0 && pcdata->fpwr <= 1) {
+        mgl->b.row=m; array_cp(m,r,mgl->b.val); // residual is an input
+        mgl->x.row=m; dvec_set(m,&mgl->x,0.0);
+        // call iterative solver
+        for (i=0;i<maxit;++i) fmgcycle_add_update(mgl,&amgparam);
+        //fmgcycle_add(mgl,&amgparam);
+    }
+    else {
+        printf("\n !!! Fractionality s = %.2f is not within the limits -1 <= s <= 1 !!! \n", pcdata->fpwr);
+        printf("Assuming s = 1.0 \n");
+        amgparam.fpwr = 1.0;
+        mgl->b.row=m; array_cp(m,r,mgl->b.val); // residual is an input
+        mgl->x.row=m; dvec_set(m,&mgl->x,0.0);
+        // call iterative solver
+        for (i=0;i<maxit;++i) fmgcycle_add_update(mgl,&amgparam);
+        //fmgcycle_add(mgl,&amgparam);
+        return;
+    }
+
+    array_cp(m,mgl->x.val,z);
+}
+
+
+/***********************************************************************************************/
+/**
+ * \fn void precond_famg_add2 (REAL *r, REAL *z, void *data)
+ *
+ * \brief fractional AMG preconditioner (additive AMG)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Ana Budisa
+ * \date   2020-07-06
+ *
+ * Note: for 0<s<1, use famg(A^s); for -1<s<0, use div famg(A_div^(1+s)) grad
+ */
+void precond_famg_add2(REAL *r,
+                       REAL *z,
+                       void *data)
+{
+    precond_data *pcdata=(precond_data *)data; // 0 - amg, 1 - grad, 2 - grad^T
+    const INT m=pcdata[0].mgl_data[0].A.row;
+    const INT maxit=pcdata[0].maxit;
+    INT i;
+    REAL fpwr = pcdata[0].fpwr;
+
+    AMG_param amgparam; param_amg_init(&amgparam);
+    param_prec_to_amg(&amgparam, &pcdata[0]);
+
+    AMG_data *mgl = pcdata[0].mgl_data;
+
+    if (fpwr < 0 && fpwr >= -1) {
+        // pcdata[1].A is a pointer to Grad; pcdata[2].A is a pointer to Div;
+        // mg_rhs = Grad r // (Grad r) is the input for amg
+        dcsr_mxv(pcdata[1].A, r, mgl->b.val);
+
+        // famg preconditioner for A_div^(1+s)
+        amgparam.fpwr = fpwr + 1;
+        // solve famg(A_div^(1+s))
+        mgl->x.row=m; dvec_set(m,&mgl->x,0.0);
+        for (i=0;i<maxit;++i) fmgcycle_add_update(mgl,&amgparam);
+        // z = Div x
+        dcsr_mxv(pcdata[2].A, mgl->x.val, z);
+    }
+    else if (fpwr >= 0 && fpwr <= 1) {
+        mgl->b.row=m; array_cp(m,r,mgl->b.val); // residual is an input
+        mgl->x.row=m; dvec_set(m,&mgl->x,0.0);
+        // call iterative solver
+        for (i=0;i<maxit;++i) fmgcycle_add_update(mgl,&amgparam);
+        //fmgcycle_add(mgl,&amgparam);
+        array_cp(m,mgl->x.val,z);
+    }
+    else {
+        printf("\n !!! Fractionality s = %.2f is not within the limits -1 <= s <= 1 !!! \n", pcdata->fpwr);
+        printf("Assuming s = 1.0 \n");
+        amgparam.fpwr = 1.0;
+        mgl->b.row=m; array_cp(m,r,mgl->b.val); // residual is an input
+        mgl->x.row=m; dvec_set(m,&mgl->x,0.0);
+        // call iterative solver
+        for (i=0;i<maxit;++i) fmgcycle_add_update(mgl,&amgparam);
+        //fmgcycle_add(mgl,&amgparam);
+        array_cp(m,mgl->x.val,z);
+    }
+
+}
+
+
+/***********************************************************************************************/
+/**
+ * \fn void precond_sum_famg_add (REAL *r, REAL *z, void *data)
+ *
+ * \brief fractional AMG preconditioner (additive AMG) for operators of type
+ *        alpha * D^s + beta * D^(1+s)
+ *        where D is a laplacian and s \in (-1,0)
+ *        This consists of
+ *        FAMG(s/2) * AMG(alpha * lump(M)^-1 + beta * lump(M)^-1 A lump(M)^-1) * FAMG(s/2)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Ana Budisa
+ * \date   2020-06-18
+ *
+ */
+void precond_sum_famg_add(REAL *r,
+                          REAL *z,
+                          void *data)
+{
+    // data[0] - FAMG; data[1] - AMG;
+    precond_data *pcdata=(precond_data *)data;
+
+    // first, FAMG(s/2)
+    INT m1 = pcdata[0].mgl_data[0].A.row;
+    REAL *x1 = (REAL *)calloc(m1, sizeof(REAL));
+    precond_famg_add(r, x1, &pcdata[0]); // x1 is the result (preconditioned r)
+
+    // second AMG(alpha * lump(M)^-1 + beta * lump(M)^-1 A lump(M)^-1)
+    INT m2 = pcdata[1].mgl_data[0].A.row;
+    REAL *x2 = (REAL *)calloc(m2, sizeof(REAL));
+    precond_amg_add(x1, x2, &pcdata[1]); // x2 is the result (preconditioned x1)
+
+    // third FAMG(s/2)
+    precond_famg_add(x2, z, &pcdata[0]); // z is the result (preconditioned x2)
+
+}
+
+
+/***********************************************************************************************/
+/**
+ * \fn void precond_sum_famg_add2 (REAL *r, REAL *z, void *data)
+ *
+ * \brief fractional AMG preconditioner (additive AMG) for operators of type
+ *        alpha * D^s + beta * D^(1+s)
+ *        where D is a laplacian and s \in (-1,0)
+ *        This consists of
+ *        FAMG2(s/2) * AMG(alpha * lump(M)^-1 + beta * lump(M)^-1 A lump(M)^-1) * FAMG2(s/2)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Ana Budisa
+ * \date   2020-06-18
+ *
+ */
+void precond_sum_famg_add2(REAL *r,
+                           REAL *z,
+                           void *data)
+{
+    // data[0] - FAMG(Adiv^1+s/2); data[1] - Grad; data[2] - Grad^T; data[3] - AMG;
+    precond_data *pcdata=(precond_data *)data;
+
+    // first, Grad^T * FAMG(Adiv^1+s/2) * Grad
+    INT m1 = pcdata[0].mgl_data[0].A.row;
+    REAL *x1 = (REAL *)calloc(m1, sizeof(REAL));
+    dvector temp1 = dvec_create(m1), temp2 = dvec_create(m1);
+    //precond_famg_add2(r, x1, pcdata); // x1 is the result (preconditioned r)
+    // direct solve instead
+    dcsr_mxv(pcdata[1].A, r, temp1.val); // temp1 = Grad * r
+    // direct solve Adiv^1+s/2 temp2 = temp1
+    INT status;
+    status = umfpack_solve(pcdata[0].A, &temp1, &temp2, pcdata[0].mgl_data[0].Numeric, pcdata[0].print_level);
+    if(status) printf("Direct solve status: %d \n", status);
+    dcsr_mxv(pcdata[2].A, temp2.val, x1); // x1 = Grad^T * temp2
+
+
+    // second AMG(alpha * lump(M)^-1 + beta * lump(M)^-1 A lump(M)^-1)
+    INT m2 = pcdata[3].mgl_data[0].A.row;
+    REAL *x2 = (REAL *)calloc(m2, sizeof(REAL));
+
+    precond_amg(x1, x2, &pcdata[3]); // x2 is the result (preconditioned x1)
+
+    // third Grad^T * FAMG(Adiv^1+s/2) * Grad
+    dvec_set(m1, &temp1, 0.0); dvec_set(m1, &temp2, 0.0);
+    // precond_famg_add2(x2, z, pcdata); // z is the result (preconditioned x2)
+    // direct solve instead
+    dcsr_mxv(pcdata[1].A, x2, temp1.val); // temp1 = Grad * x2
+    // direct solve Adiv^1+s/2 temp2 = temp1
+    status = umfpack_solve(pcdata[0].A, &temp1, &temp2, pcdata[0].mgl_data[0].Numeric, pcdata[0].print_level);
+    if(status) printf("Direct solve status: %d \n", status);
+    dcsr_mxv(pcdata[2].A, temp2.val, z); // z = Grad^T * temp2
 }
 
 
@@ -6506,6 +6808,74 @@ void precond_elasticity (REAL *r, REAL *z, void *data)
   array_cp(N, tempr->val, r);
 
   return;
+}
+
+/*************** Special Preconditioners for 3d-1d **********************************/
+/**
+ * \fn void precond_block_diag_3d1d (REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (3x3 block matrix, each diagonal block
+ *        is solved inexactly)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Ana Budisa
+ * \date   2020-08-24
+ */
+void precond_block_diag_3d1d(REAL *r,
+                             REAL *z,
+                             void *data)
+{
+  precond_block_data *precdata=(precond_block_data *)data;
+  dvector *tempr = &(precdata->r);
+
+  block_dCSRmat *A = precdata->Abcsr;
+  AMG_param *amgparam = precdata->amgparam;
+  AMG_data **mgl = precdata->mgl;
+
+  INT i;
+
+  const INT N0 = A->blocks[0]->row;
+  const INT N1 = A->blocks[4]->row;
+  const INT N2 = A->blocks[8]->row;
+  const INT N = N0 + N1 + N2;
+
+  // back up r, setup z;
+  array_cp(N, r, tempr->val);
+  array_set(N, z, 0.0);
+
+  // prepare
+  dvector r0, r1, r2, z0, z1, z2;
+
+  r0.row = N0; z0.row = N0;
+  r1.row = N1; z1.row = N1;
+  r2.row = N2; z2.row = N2;
+
+  r0.val = r; r1.val = &(r[N0]); r2.val = &(r[N0+N1]);
+  z0.val = z; z1.val = &(z[N0]); z2.val = &(z[N0+N1]);
+  //#endif
+
+  // Preconditioning A00 block (3D) - AMG on laplacian
+  mgl[0]->b.row=N0; array_cp(N0, r0.val, mgl[0]->b.val); // residual is an input
+  mgl[0]->x.row=N0; dvec_set(N0, &mgl[0]->x,0.0);
+
+  for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[0], amgparam);
+  array_cp(N0, mgl[0]->x.val, z0.val);
+
+  // Preconditioning A11 block (1D) - AMG on laplacian
+  mgl[1]->b.row=N1; array_cp(N1, r1.val, mgl[1]->b.val); // residual is an input
+  mgl[1]->x.row=N1; dvec_set(N1, &mgl[1]->x,0.0);
+
+  for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[1], amgparam);
+  array_cp(N1, mgl[1]->x.val, z1.val);
+
+  // Preconditioning A11 block (multiplier) - FAMG SUM Fracs
+  precond_sum_famg_add2(r2.val, z2.val, precdata);
+
+  // restore r
+  array_cp(N, tempr->val, r);
+
 }
 
 /***********************************************************************************************/
