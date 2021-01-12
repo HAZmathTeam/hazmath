@@ -1019,6 +1019,618 @@ FINISHED:
     return status;
 }
 
+
+/********************************************************************************************/
+/**
+ * \fn INT linear_solver_dcsr_krylov_famg (dCSRmat *A_frac, dvector *b, dvector *x, dCSRmat *M, dCSRmat *A,
+ *                                      linear_itsolver_param *itparam, AMG_param *amgparam)
+ *
+ * \brief Solve Ax=b by AMG preconditioned Krylov methods
+ *
+ * \param A_frac    Pointer to the coeff matrix in dCSRmat format
+ * \param b         Pointer to the right hand side in dvector format
+ * \param x         Pointer to the approx solution in dvector format
+ * \param M         Pointer to the mass matrix diagonal in dCSRmat format
+ * \param A         Pointer to the stiff matrix in dCSRmat format
+ * \param itparam   Pointer to parameters for iterative solvers
+ * \param amgparam  Pointer to parameters for AMG methods
+ *
+ * \return          Iteration number if converges; ERROR otherwise.
+ *
+ * \author Ana Budisa
+ * \date   2020-05-14  //
+ *
+ */
+INT linear_solver_dcsr_krylov_famg(dCSRmat *A_frac,
+                                   dvector *bb,
+                                   dvector *x,
+                                   dCSRmat *M,
+                                   dCSRmat *A,
+                                   linear_itsolver_param *itparam,
+                                   AMG_param *amgparam)
+{
+    const SHORT prtlvl = itparam->linear_print_level;
+    const SHORT max_levels = amgparam->max_levels;
+    const INT nnz_A = A->nnz, m_A = A->row, n_A = A->col;
+    const INT nnz_M = M->nnz, m_M = M->row, n_M = M->col;
+
+    /* Local Variables */
+    INT      status = SUCCESS;
+    REAL     solver_start, solver_end, solver_duration;
+
+    get_time(&solver_start);
+
+    // initialize A, b, x, M for mgl[0]
+    AMG_data *mgl = amg_data_create(max_levels);
+
+    mgl[0].A      = dcsr_create(m_A, n_A, nnz_A); dcsr_cp(A, &mgl[0].A);
+
+    mgl[0].M      = dcsr_create(m_M, n_M, nnz_M); dcsr_cp(M, &mgl[0].M);
+
+    mgl[0].b      = dvec_create(m_A);
+    mgl[0].x      = dvec_create(n_A);
+    // randomize input
+    // dvec_rand_true(n_A, &mgl[0].x);
+
+    // setup preconditioner
+    switch (amgparam->AMG_type) {
+
+        case UA_AMG: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = famg_setup_ua(mgl, amgparam);
+            printf("AMG status: %d \n", status);
+        break;
+
+        case SA_AMG: // Smoothed Aggregation AMG setup
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+            status = famg_setup_sa(mgl, amgparam);
+            printf("AMG status: %d \n", status);
+        break;
+
+        default: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = famg_setup_ua(mgl, amgparam);
+            printf("AMG status: %d \n", status);
+        break;
+
+    }
+
+    if (status < 0) goto FINISHED;
+
+    // setup preconditioner
+    precond_data pcdata;
+    param_amg_to_prec(&pcdata, amgparam);
+    pcdata.max_levels = mgl[0].num_levels;
+    pcdata.mgl_data = mgl;
+
+    precond pc; pc.data = &pcdata;
+
+    switch (amgparam->cycle_type) {
+
+        case AMLI_CYCLE: // AMLI cycle
+            pc.fct = precond_famli;
+        break;
+
+        default: // V,W-Cycle AMG
+            pc.fct = precond_famg_add;
+        break;
+
+    }
+
+    // call iterative solver (status <=> iter)
+    status = solver_dcsr_linear_itsolver(A_frac, bb, x, &pc, itparam);
+
+    if ( prtlvl >= PRINT_MIN ) {
+        get_time(&solver_end);
+        solver_duration = solver_end - solver_start;
+        print_cputime("AMG_Krylov method totally", solver_duration);
+        printf("**********************************************************\n");
+    }
+
+FINISHED:
+    amg_data_free(mgl, amgparam);
+    return status;
+}
+
+/********************************************************************************************/
+/**
+ * \fn INT linear_solver_dcsr_krylov_famg (dCSRmat *A_frac, dvector *b, dvector *x, dCSRmat *M, dCSRmat *A,
+ *                                      linear_itsolver_param *itparam, AMG_param *amgparam)
+ *
+ * \brief Solve Ax=b by AMG preconditioned Krylov methods
+ *
+ * \param A_frac    Pointer to the coeff matrix in dCSRmat format
+ * \param b         Pointer to the right hand side in dvector format
+ * \param x         Pointer to the approx solution in dvector format
+ * \param M         Pointer to the mass matrix diagonal in dCSRmat format
+ * \param A         Pointer to the stiff matrix in dCSRmat format
+ * \param itparam   Pointer to parameters for iterative solvers
+ * \param amgparam  Pointer to parameters for AMG methods
+ *
+ * \return          Iteration number if converges; ERROR otherwise.
+ *
+ * \author Ana Budisa
+ * \date   2020-07-07  //
+ *
+ */
+INT linear_solver_dcsr_krylov_famg2(dCSRmat *A_frac,
+                                    dvector *bb,
+                                    dvector *x,
+                                    dCSRmat *M,
+                                    dCSRmat *A,
+                                    dCSRmat *Grad,
+                                    linear_itsolver_param *itparam,
+                                    AMG_param *amgparam)
+{
+    const SHORT prtlvl = itparam->linear_print_level;
+    const SHORT max_levels = amgparam->max_levels;
+    const INT nnz_A = A->nnz, m_A = A->row, n_A = A->col;
+    const INT nnz_M = M->nnz, m_M = M->row, n_M = M->col;
+    const INT n_Af = A_frac->col;
+
+    /* Local Variables */
+    INT      status = SUCCESS;
+    REAL     solver_start, solver_end, solver_duration;
+
+    get_time(&solver_start);
+
+    // initialize A, b, x, M for mgl[0]
+    AMG_data *mgl = amg_data_create(max_levels);
+
+    mgl[0].A      = dcsr_create(m_A, n_A, nnz_A); dcsr_cp(A, &mgl[0].A);
+
+    mgl[0].M      = dcsr_create(m_M, n_M, nnz_M); dcsr_cp(M, &mgl[0].M);
+
+    mgl[0].b      = dvec_create(m_A);
+    mgl[0].x      = dvec_create(n_A);
+
+    // randomize input (but orthogonal to constants!)
+    dvec_rand_true(n_Af, x);
+    dvec_orthog_const(x);
+
+    // setup preconditioner
+    switch (amgparam->AMG_type) {
+
+        case UA_AMG: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = famg_setup_ua(mgl, amgparam);
+            printf("AMG status: %d \n", status);
+        break;
+
+        case SA_AMG: // Smoothed Aggregation AMG setup
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+            status = famg_setup_sa(mgl, amgparam);
+            printf("AMG status: %d \n", status);
+        break;
+
+        default: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = famg_setup_ua(mgl, amgparam);
+            printf("AMG status: %d \n", status);
+        break;
+
+    }
+
+    if (status < 0) goto FINISHED;
+
+    // setup preconditioners: 0 - FAMG(Adiv^s),
+    //                        1 - Grad
+    //                        2 - Grad^T
+    precond_data pcdata0, pcdata1, pcdata2;
+
+    param_amg_to_prec(&pcdata0, amgparam);
+    pcdata0.max_levels = mgl[0].num_levels;
+    pcdata0.mgl_data = mgl;
+
+    precond_data_null(&pcdata1); precond_data_null(&pcdata2);
+    pcdata1.A = dcsr_create_p(Grad->row, Grad->col, Grad->nnz);
+    dcsr_cp(Grad, pcdata1.A);
+    pcdata2.A = dcsr_create_p(Grad->col, Grad->row, Grad->nnz);
+    dcsr_trans(Grad, pcdata2.A);
+
+    // INT i;
+    // for(i = 0; i < Grad->nnz; ++i) printf("%.5f \t", Grad->val[i]);
+    // printf("\n");
+
+    // array of preconditioners
+    precond pc;
+    pc.data = (precond_data*)malloc(3*sizeof(precond_data));
+    ((precond_data*)pc.data)[0] = pcdata0; ((precond_data*)pc.data)[1] = pcdata1;
+    ((precond_data*)pc.data)[2] = pcdata2;
+
+    pc.fct = precond_famg_add2;
+
+    // call iterative solver (status <=> iter)
+    status = solver_dcsr_linear_itsolver(A_frac, bb, x, &pc, itparam);
+
+    if ( prtlvl >= PRINT_MIN ) {
+        get_time(&solver_end);
+        solver_duration = solver_end - solver_start;
+        print_cputime("AMG_Krylov method totally", solver_duration);
+        printf("**********************************************************\n");
+    }
+
+FINISHED:
+    amg_data_free(mgl, amgparam);
+    // precond_free(&pc)??
+    return status;
+}
+
+
+/********************************************************************************************/
+/**
+ * \fn INT linear_solver_dcsr_krylov_famg_sum (dCSRmat *A_frac, dvector *b, dvector *x, dCSRmat *M, dCSRmat *A,
+ *                                             const REAL falpha, const REAL beta, linear_itsolver_param *itparam, AMG_param *amgparam)
+ *
+ * \brief Solve A_frac x = b by FAMG preconditioned Krylov methods where
+ *              A_frac = falpha * A^s + fbeta * A^(1+s), s in (-1, 0)
+ *
+ * \param A_frac    Pointer to the coeff matrix in dCSRmat format
+ * \param b         Pointer to the right hand side in dvector format
+ * \param x         Pointer to the approx solution in dvector format
+ * \param M         Pointer to the mass matrix diagonal in dCSRmat format
+ * \param A         Pointer to the stiff matrix in dCSRmat format
+ * \param itparam   Pointer to parameters for iterative solvers
+ * \param amgparam  Pointer to parameters for AMG methods
+ *
+ * \return          Iteration number if converges; ERROR otherwise.
+ *
+ * \author Ana Budisa
+ * \date   2020-06-22  //
+ *
+ */
+INT linear_solver_dcsr_krylov_famg_sum(dCSRmat *A_frac,
+                                       dvector *bb,
+                                       dvector *x,
+                                       dCSRmat *M,
+                                       dCSRmat *A,
+                                       const REAL falpha,
+                                       const REAL fbeta,
+                                       linear_itsolver_param *itparam,
+                                       AMG_param *amgparam,
+                                       AMG_param *famgparam)
+{
+    const SHORT prtlvl = itparam->linear_print_level;
+    const SHORT max_levels_famg = famgparam->max_levels;
+    const SHORT max_levels_amg = amgparam->max_levels;
+    const INT nnz_A = A->nnz, m_A = A->row, n_A = A->col;
+    const INT nnz_M = M->nnz, m_M = M->row, n_M = M->col;
+
+    /* Local Variables */
+    INT      status = SUCCESS;
+    REAL     solver_start, solver_end, solver_duration;
+
+    get_time(&solver_start);
+
+    // initialize A, b, x, M for fractional mgl[0]
+    AMG_data *fmgl = amg_data_create(max_levels_famg);
+
+    fmgl[0].A      = dcsr_create(m_A, n_A, nnz_A); dcsr_cp(A, &fmgl[0].A);
+    fmgl[0].M      = dcsr_create(m_M, n_M, nnz_M); dcsr_cp(M, &fmgl[0].M);
+    fmgl[0].b      = dvec_create(m_A);
+    fmgl[0].x      = dvec_create(n_A);
+    // randomize input
+    // dvec_rand_true(n_A, &mgl[0].x);
+
+    // initialize A, b, x for standard mgl[0]
+    AMG_data *mgl  = amg_data_create(max_levels_amg);
+
+    mgl[0].A      = dcsr_create(m_A, n_A, nnz_A);
+    mgl[0].b      = dvec_create(m_A);
+    mgl[0].x      = dvec_create(n_A);
+
+    // create alpha * lump(M)^-1 + beta * lump(M)^-1 A lump(M)^-1
+    // lump(M)^-1
+    dvector M_lump = dvec_create(m_M), x1 = dvec_create(n_M);
+    dvec_set(n_M, &x1, 1.0);
+    dcsr_mxv(M, x1.val, M_lump.val);
+    dvec_inv(&M_lump); // M^-1 as vector
+    dCSRmat M_lump_mat= dcsr_create_diagonal_matrix(&M_lump); // M^-1 as matrix
+
+    // make MAM
+    dCSRmat MAM = dcsr_create(m_A, n_A, nnz_A), MAM_t;
+    dcsr_cp(A, &MAM); // MAM = A
+    dcsr_row_scale(&MAM, &M_lump); // MAM = M^-1 A
+    dcsr_trans(&MAM, &MAM_t); // MAM_t = A^T M^-1
+    dcsr_row_scale(&MAM_t, &M_lump); // MAM_t = M^-1 A^T M^-1
+    dcsr_free(&MAM); // clean MAM TODO: is this necessary?? maybe realloc?
+    dcsr_trans(&MAM_t, &MAM); // MAM = M^-1 A M^-1
+
+    // make alpha * lump(M)^-1 + beta * lump(M)^-1 A lump(M)^-1
+    dcsr_add(&M_lump_mat, falpha, &MAM, fbeta, &mgl[0].A); // save matrix as finest amg level A
+
+    // setup AMG
+    switch (amgparam->AMG_type) {
+
+        case UA_AMG: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_ua(mgl, amgparam);
+            printf("AMG status: %d \n", status);
+
+        break;
+
+        case SA_AMG: // Smoothed Aggregation AMG setup
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+            status = amg_setup_sa(mgl, amgparam);
+            printf("AMG status: %d \n", status);
+        break;
+
+        default: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_ua(mgl, amgparam);
+            printf("AMG status: %d \n", status);
+
+        break;
+
+    }
+
+    // setup FAMG
+    switch (famgparam->AMG_type) {
+
+        case UA_AMG: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA FAMG ...\n");
+            status = famg_setup_ua(fmgl, famgparam);
+            printf("FAMG status: %d \n", status);
+        break;
+
+        case SA_AMG: // Smoothed Aggregation AMG setup
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+            status = famg_setup_sa(fmgl, famgparam);
+            printf("FAMG status: %d \n", status);
+        break;
+
+        default: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA FAMG ...\n");
+            status = famg_setup_ua(fmgl, famgparam);
+            printf("FAMG status: %d \n", status);
+        break;
+
+    }
+
+    if (status < 0) goto FINISHED;
+
+    // setup preconditioners: 1 - FAMG(s/2),
+    //                        2 - AMG(alpha * lump(M)^-1 + beta * lump(M)^-1 A lump(M)^-1)
+    precond_data pcdata1, pcdata2;
+
+    param_amg_to_prec(&pcdata1, famgparam);
+    param_amg_to_prec(&pcdata2, amgparam);
+
+    pcdata1.max_levels = fmgl[0].num_levels;
+    pcdata1.mgl_data = fmgl;
+
+    pcdata2.max_levels = mgl[0].num_levels;
+    pcdata2.mgl_data = mgl;
+
+    // array of preconditioners
+    precond pc;
+    pc.data = (precond_data*)malloc(2*sizeof(precond_data));
+    ((precond_data*)pc.data)[0] = pcdata1; ((precond_data*)pc.data)[1] = pcdata2;
+    //pc.data = &pcdata;
+    pc.fct = precond_sum_famg_add;
+
+    // call iterative solver (status <=> iter)
+    status = solver_dcsr_linear_itsolver(A_frac, bb, x, &pc, itparam);
+
+    if ( prtlvl >= PRINT_MIN ) {
+        get_time(&solver_end);
+        solver_duration = solver_end - solver_start;
+        print_cputime("AMG_Krylov method totally", solver_duration);
+        printf("**********************************************************\n");
+    }
+
+FINISHED:
+    amg_data_free(fmgl, famgparam);
+    amg_data_free(mgl, amgparam);
+    dcsr_free(&MAM); dcsr_free(&MAM_t); dcsr_free(&M_lump_mat);
+    dvec_free(&M_lump); dvec_free(&x1);
+    // precond_free(&pc); ??
+
+    fprintf(stdout,"------------------- Leaving hazmath \n"); fflush(stdout);
+
+    return status;
+}
+
+
+/********************************************************************************************/
+/**
+ * \fn INT linear_solver_dcsr_krylov_famg_sum2 (dCSRmat *A_frac, dvector *b, dvector *x, dCSRmat *M, dCSRmat *A,
+ *                                             const REAL falpha, const REAL beta, linear_itsolver_param *itparam, AMG_param *amgparam)
+ *
+ * \brief Solve A_frac x = b by FAMG preconditioned Krylov methods where
+ *              A_frac = falpha * A^s + fbeta * A^(1+s), s in (-1, 0)
+ *
+ * \param A_frac    Pointer to the coeff matrix in dCSRmat format
+ * \param b         Pointer to the right hand side in dvector format
+ * \param x         Pointer to the approx solution in dvector format
+ * \param M         Pointer to the mass matrix diagonal in dCSRmat format
+ * \param A         Pointer to the stiff matrix in dCSRmat format
+ * \param itparam   Pointer to parameters for iterative solvers
+ * \param amgparam  Pointer to parameters for AMG methods
+ *
+ * \return          Iteration number if converges; ERROR otherwise.
+ *
+ * \author Ana Budisa
+ * \date   2020-07-07  //
+ *
+ */
+INT linear_solver_dcsr_krylov_famg_sum2(dCSRmat *A_frac,
+                                        dvector *bb,
+                                        dvector *x,
+                                        dCSRmat *MS,
+                                        dCSRmat *AS,
+                                        dCSRmat *Mdiv,
+                                        dCSRmat *Adiv,
+                                        dCSRmat *Adivfrac,
+                                        dCSRmat *Grad,
+                                        const REAL falpha,
+                                        const REAL fbeta,
+                                        linear_itsolver_param *itparam,
+                                        AMG_param *amgparam,
+                                        AMG_param *famgparam)
+{
+    const SHORT prtlvl = itparam->linear_print_level;
+    const SHORT max_levels_famg = famgparam->max_levels;
+    const SHORT max_levels_amg = amgparam->max_levels;
+
+    const INT nnz_A = AS->nnz, m_A = AS->row, n_A = AS->col;
+    const INT nnz_M = MS->nnz, m_M = MS->row, n_M = MS->col;
+
+    const INT nnz_Adiv = Adiv->nnz, m_Adiv = Adiv->row, n_Adiv = Adiv->col;
+    const INT nnz_Mdiv = Mdiv->nnz, m_Mdiv = Mdiv->row, n_Mdiv = Mdiv->col;
+
+    /* Local Variables */
+    INT      status = SUCCESS;
+    REAL     solver_start, solver_end, solver_duration;
+
+    get_time(&solver_start);
+
+    // initialize A, b, x, M for fractional mgl[0]
+    AMG_data *fmgl = amg_data_create(max_levels_famg);
+
+    fmgl[0].A      = dcsr_create(m_Adiv, n_Adiv, nnz_Adiv); dcsr_cp(Adiv, &fmgl[0].A);
+    fmgl[0].M      = dcsr_create(m_Mdiv, n_Mdiv, nnz_Mdiv); dcsr_cp(Mdiv, &fmgl[0].M);
+    fmgl[0].b      = dvec_create(m_Adiv);
+    fmgl[0].x      = dvec_create(n_Adiv);
+    fmgl[0].Numeric = umfpack_factorize(Adivfrac, prtlvl); // LU factorization of Adiv^1+s/2 for direct solve
+
+    // initialize A, b, x for standard mgl[0]
+    AMG_data *mgl  = amg_data_create(max_levels_amg);
+
+    mgl[0].A      = dcsr_create(m_A, n_A, nnz_A);
+    mgl[0].b      = dvec_create(m_A);
+    mgl[0].x      = dvec_create(n_A);
+
+    // create alpha * lump(M)^-1 + beta * lump(M)^-1 A lump(M)^-1
+    // lump(M)^-1
+    dvector M_lump = dvec_create(m_M), x1 = dvec_create(n_M);
+    dvec_set(n_M, &x1, 1.0);
+    dcsr_mxv(MS, x1.val, M_lump.val);
+    dvec_inv(&M_lump); // M^-1 as vector
+    dCSRmat M_lump_mat= dcsr_create_diagonal_matrix(&M_lump); // M^-1 as matrix
+
+    // make MAM
+    dCSRmat MAM = dcsr_create(m_A, n_A, nnz_A), MAM_t;
+    dcsr_cp(AS, &MAM); // MAM = A
+    dcsr_row_scale(&MAM, &M_lump); // MAM = M^-1 A
+    dcsr_trans(&MAM, &MAM_t); // MAM_t = A^T M^-1
+    dcsr_row_scale(&MAM_t, &M_lump); // MAM_t = M^-1 A^T M^-1
+    dcsr_free(&MAM); // clean MAM TODO: is this necessary?? maybe realloc?
+    dcsr_trans(&MAM_t, &MAM); // MAM = M^-1 A M^-1
+
+    // make alpha * lump(M)^-1 + beta * lump(M)^-1 A lump(M)^-1
+    dcsr_add(&M_lump_mat, falpha, &MAM, fbeta, &mgl[0].A); // save matrix as finest amg level A
+
+    // setup AMG
+    switch (amgparam->AMG_type) {
+
+        case UA_AMG: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_ua(mgl, amgparam);
+            printf("AMG status: %d \n", status);
+
+        break;
+
+        case SA_AMG: // Smoothed Aggregation AMG setup
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+            status = amg_setup_sa(mgl, amgparam);
+            printf("AMG status: %d \n", status);
+        break;
+
+        default: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_ua(mgl, amgparam);
+            printf("AMG status: %d \n", status);
+
+        break;
+
+    }
+
+    // setup FAMG
+    switch (famgparam->AMG_type) {
+
+        case UA_AMG: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA FAMG ...\n");
+            status = famg_setup_ua(fmgl, famgparam);
+            printf("FAMG status: %d \n", status);
+        break;
+
+        case SA_AMG: // Smoothed Aggregation AMG setup
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+            status = famg_setup_sa(fmgl, famgparam);
+            printf("FAMG status: %d \n", status);
+        break;
+
+        default: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA FAMG ...\n");
+            status = famg_setup_ua(fmgl, famgparam);
+            printf("FAMG status: %d \n", status);
+        break;
+
+    }
+
+    if (status < 0) goto FINISHED;
+
+    // setup preconditioners: 0-2 - FAMG(Adiv^1+s/2),
+    //                        3   - AMG(alpha * lump(M)^-1 + beta * lump(M)^-1 A lump(M)^-1)
+    precond_data pcdata0, pcdata1, pcdata2, pcdata3;
+
+    param_amg_to_prec(&pcdata0, famgparam);
+    pcdata0.max_levels = fmgl[0].num_levels;
+    pcdata0.mgl_data = fmgl;
+    dcsr_alloc(Adivfrac->row, Adivfrac->col, Adivfrac->nnz, pcdata0.A);
+    dcsr_cp(Adivfrac, pcdata0.A);// for direct solve!
+
+    precond_data_null(&pcdata1); precond_data_null(&pcdata2);
+    pcdata1.A = dcsr_create_p(Grad->row, Grad->col, Grad->nnz);
+    dcsr_cp(Grad, pcdata1.A);
+    pcdata2.A = dcsr_create_p(Grad->col, Grad->row, Grad->nnz);
+    dcsr_trans(Grad, pcdata2.A);
+
+    param_amg_to_prec(&pcdata3, amgparam);
+    pcdata3.max_levels = mgl[0].num_levels;
+    pcdata3.mgl_data = mgl;
+
+    // array of preconditioners
+    precond pc;
+    pc.data = (precond_data*)malloc(4*sizeof(precond_data));
+    ((precond_data*)pc.data)[0] = pcdata0; ((precond_data*)pc.data)[1] = pcdata1;
+    ((precond_data*)pc.data)[2] = pcdata2; ((precond_data*)pc.data)[3] = pcdata3;
+    //pc.data = &pcdata;
+    pc.fct = precond_sum_famg_add2;
+
+    // randomize first guess
+    //dvec_rand_true(A_frac->col, x);
+    //dvec_orthog_const(x);
+    // set first guess to zero
+    dvec_set(A_frac->col, x, 0.0);
+
+    // call iterative solver (status <=> iter)
+    status = solver_dcsr_linear_itsolver(A_frac, bb, x, &pc, itparam);
+
+    if ( prtlvl >= PRINT_MIN ) {
+        get_time(&solver_end);
+        solver_duration = solver_end - solver_start;
+        print_cputime("AMG_Krylov method totally", solver_duration);
+        printf("**********************************************************\n");
+    }
+
+FINISHED:
+    amg_data_free(fmgl, famgparam);
+    amg_data_free(mgl, amgparam);
+    dcsr_free(&MAM); dcsr_free(&MAM_t); dcsr_free(&M_lump_mat);
+    dvec_free(&M_lump); dvec_free(&x1);
+    // precond_free(&pc); ??
+
+    fprintf(stdout,"------------------- Leaving hazmath \n"); fflush(stdout);
+
+    return status;
+}
+
+
+
+
+
 /********************************************************************************************/
 /**
  * \fn INT linear_solver_dcsr_krylov_hx_curl (dCSRmat *A, dvector *b, dvector *x,
