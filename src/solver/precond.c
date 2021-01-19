@@ -6891,8 +6891,6 @@ void precond_block_diag_3d1d(REAL *r,
  *
  * \author Ana Budisa
  * \date   2020-10-19
- * // TODO: 2. do amg only for 00 block, exactly every shifted L (done - Xiaozhe)
- * // TODO: 3. then try rational approx precond (done -Xiaozhe)
  *
  * \note modified by Xiaozhe on 12/26/2020
  */
@@ -7060,8 +7058,6 @@ void precond_block2_babuska_diag(REAL *r,
  *
  * \author Ana Budisa
  * \date   2020-10-19
- * // TODO: 2. do amg only for 00 block, exactly every shifted L (done - Xiaozhe)
- * // TODO: 3. then try rational approx precond (done -Xiaozhe)
  *
  * \note modified by Xiaozhe on 12/27/2020
  */
@@ -7408,82 +7404,115 @@ void precond_block2_babuska_upper(REAL *r,
  * \author Ana Budisa
  * \date   2020-10-22
  *
- * \note Do we need this?  If so, I will fix it -- Xiaozhe
+ * \note Updated 2021-01-18 with scalings
  */
 void precond_rational_approx(REAL *r,
                              REAL *z,
                              void *data)
 {
+    // local variables
     INT status = SUCCESS;
     precond_block_data *precdata=(precond_block_data *)data;
     AMG_data **mgl = precdata->mgl; // count from 1!!!
     AMG_param *amgparam = precdata->amgparam; // array!!
-    // dvector *tempr = &(precdata->r);
-
-    // local variables
-    // residues saved in precond_data.el_vol
-    // len(residues) - 1 is the number of poles
-    dvector *residues = precdata->el_vol;
-    INT k = residues->row;
+    dvector *tempr = &(precdata->r);
+    
     INT n = precdata->Abcsr->blocks[3]->row; // general size of the problem
-
     INT i;
-    dvector update = dvec_create(n); // partial update
-    // dvector Mxr = dvec_create(n); // scaled rhs
-    // dCSRmat I = dcsr_create_identity_matrix(n, 0);
-    dvector r_vec;
+    
+    // back up r, setup z
+    array_cp(n, r, tempr->val);
+    array_set(n, z, 0.0);
+    
+    dvector r_vec, z_vec;
     r_vec.row = n; r_vec.val = r;
+    z_vec.row = n; z_vec.val = z;
+    
+    /*----------------------------------------*/
+    // get scaled mass matrix
+    dCSRmat *scaled_M = precdata->scaled_M;
+    dvector *diag_scaled_M = precdata->diag_scaled_M;
 
-    // apply rational approximation
-    // z = residues(0)*r
-    array_cp(n, r, z);
-    array_ax(n, residues->val[0], z);
-    // form Mxr - same in all iter
-    // dcsr_mxv(&(mgl[1]->M), r, Mxr.val);
+    // get scaled alpha and beta
+    REAL scaled_alpha = precdata->scaled_alpha;
+    REAL scaled_beta  = precdata->scaled_beta;
 
-    // pc for krylov
-    precond pc;
-    pc.fct = precond_amg;
+    // get poles and residues
+    dvector *poles = precdata->poles;
+    dvector *residues = precdata->residues;
+    
+    // number of residues (no. of poles + 1)
+    INT k = residues->row;
+    /*----------------------------------------*/
+    
+    /*----------------------------------------*/
+    /* set up preconditioners */
+    /*----------------------------------------*/
+    // pc for scaled mass matrix
+    precond pc_scaled_M;
+    pc_scaled_M.data = diag_scaled_M;
+    pc_scaled_M.fct  = precond_diag;
+
+    // pc for krylov for shifted Laplacians
+    precond pc_frac_A;
+    pc_frac_A.fct = precond_amg;
     precond_data pcdata;
-    // precond_data_null(pcdata);
     param_amg_to_prec(&pcdata, &(amgparam[1]));
-    pc.data = &pcdata;
-
-    // main loop
-    INT count = 0;
-    for (i=1; i<k; ++i)
+    pc_frac_A.data = &pcdata;
+    /*----------------------------------------*/
+    
+    /*----------------------------------------*/
+    /* main loop of applying rational approximation
+    /*----------------------------------------*/
+    // scaling r
+    if (scaled_alpha > scaled_beta)
     {
-        // set update to zero
-        dvec_set(update.row, &update, 0.0);
+      array_ax(n, 1./scaled_alpha, r);
+    }
+    else
+    {
+      array_ax(n, 1./scaled_beta, r);
+    }
 
-        // amg data for shifted laplacian
-        // mgl[i+1]->b.row = n; array_cp(n, Mxr.val, mgl[i+1]->b.val); // not sure what the rhs here is; should be Mxr - mgl->A * x_0
-        // mgl[i+1]->x.row = n; dvec_set(n, &(mgl[i+1]->x), 0.0);
+    // z = residues(0)*(scaled_M\scaled_r1)
+    status = dcsr_pcg(scaled_M, &r_vec, &z_vec, &pc_scaled_M, 1e-12, 100, 1, 1);
+    array_ax(n, residues->val[0], z);
+
+    dvector update = dvec_create(n);
+    // INT count = 0;
+    for(i = 1; i < k; ++i) {
+
+        mgl[i]->b.row = n; array_cp(n, r, mgl[i]->b.val); // residual is an input
+        mgl[i]->x.row = n; dvec_set(n, &mgl[i]->x, 0.0);
 
         // set precond data and param
         pcdata.max_levels = mgl[i]->num_levels;
         pcdata.mgl_data = mgl[i];
 
-        // solve (A - poles[i]*I)e=f
-        printf("Pole %d: ", i);
-        status = dcsr_pvfgmres(&(mgl[i][0].A), &r_vec, &update, &pc, 1e-10, 100, 100, 1, 1);
-        //status = linear_solver_dcsr_krylov_amg(&shiftA, &r_vec, &update, itparam, amgparam);
+        // set update to zero
+        dvec_set(update.row, &update, 0.0);
+
+        // solve
+        //status = dcsr_pvfgmres(&(mgl[i][0].A), &r1, &update, &pc_frac_A, 1e-6, 100, 100, 1, 1);
+        status = dcsr_pcg(&(mgl[i][0].A), &r_vec, &update, &pc_frac_A, 1e-12, 100, 1, 1);
+        // if(status > 0) count += status;
 
         // z = z + residues[i+1]*update
         array_axpy(n, residues->val[i], update.val, z);
 
-        // iter
-        if(status > 0) count += status;
-
     }
 
-    if(count) printf("Inner boundary solver took total of %d iterations. \n", count);
+    // if(count) printf("Inner boundary solver took total of %d iterations. \n", count);
     // cleanup
     dvec_free(&update);
     // dvec_free(&Mxr);
     // free(pc.data)???
+    // restore r
+    array_cp(n, tempr->val, r);
 
 }
+
+
 
 
 
