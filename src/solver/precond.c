@@ -7410,12 +7410,14 @@ void precond_rational_approx(REAL *r,
                              REAL *z,
                              void *data)
 {
+    // fixme: precdata->r and precdata->Abcsr are not always set up
+    // 	    (e.g. when called from cbc.block) 
     // local variables
     INT status = SUCCESS;
     precond_block_data *precdata=(precond_block_data *)data;
     AMG_data **mgl = precdata->mgl; // count from 1!!!
     AMG_param *amgparam = precdata->amgparam; // array!!
-    dvector *tempr = &(precdata->r);
+    dvector *tempr = &(precdata->r); 
     
     INT n = precdata->Abcsr->blocks[3]->row; // general size of the problem
     INT i;
