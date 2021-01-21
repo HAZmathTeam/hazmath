@@ -467,6 +467,11 @@ void precond_block_data_null(precond_block_data *precdata)
     precdata->K = NULL;
     precdata->Gt = NULL;
     precdata->Kt = NULL;
+    
+    precdata->scaled_M = NULL;
+    precdata->diag_scaled_M = NULL;
+    precdata->poles = NULL;
+    precdata->residues = NULL;
 
 }
 
@@ -543,6 +548,11 @@ void precond_block_data_free(precond_block_data *precdata,
       if(precdata->Gt) dcsr_free(precdata->Gt);
       if(precdata->Kt) dcsr_free(precdata->Kt);
     }
+    
+    if(precdata->scaled_M) free(precdata->scaled_M);
+    if(precdata->diag_scaled_M) free(precdata->diag_scaled_M);
+    if(precdata->poles) free(precdata->poles);
+    if(precdata->residues) free(precdata->residues);
 
     return;
 }
