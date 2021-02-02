@@ -361,6 +361,7 @@ void fenics_precond_block_data_setup(block_dCSRmat *A,
  * \param scaling a     Scaling on matrix A (usually ||A||_inf)
  * \param scaling m     Scaling on matrix M (usually ||M||_inf)
  * \param amgparam      Pointer to AMG_param
+ * \param pcdata        Pointer to precond_block_data
  *
  * \return          INT (1 if successful setup, 0 else)
  *
@@ -378,9 +379,9 @@ INT fenics_ra_setup(dCSRmat *A,
                     AMG_param *amgparam,
                     precond_block_data *pcdata)
 {
-    AMG_param *amgparam1 = &(amgparam[1]);
-    const SHORT prtlvl = amgparam1->print_level;
-    const SHORT max_levels = amgparam1->max_levels;
+    // AMG_param *amgparam1 = &(amgparam[1]);
+    const SHORT prtlvl = amgparam->print_level;
+    const SHORT max_levels = amgparam->max_levels;
     const INT m = A->row, n = A->col, nnz = A->nnz, nnz_M = M->nnz;
     INT status = SUCCESS;
     INT i;
@@ -388,10 +389,6 @@ INT fenics_ra_setup(dCSRmat *A,
     //------------------------------------------------
     // compute the rational approximation
     //------------------------------------------------
-    // poles and residues of rational approximation
-    dvector poles;
-    dvector residues;
-
     // scaling parameters for rational approximation
     REAL scaled_alpha = alpha, scaled_beta = beta;
     // scale alpha = alpha*sa^(-s)*sm^(s-1)
@@ -430,53 +427,53 @@ INT fenics_ra_setup(dCSRmat *A,
     REAL err_max=get_cpzwf(frac_inv, (void *)func_param,	rpnwf, &mbig, &mmax_in, &k, xmin_in, xmax_in, AAA_tol, print_level);
 
     // assign poles and residules
-    dvec_alloc(k,  &residues);
-    dvec_alloc(k-1, &poles);
-    array_cp(k, rpnwf[0], residues.val);
-    array_cp(k-1, rpnwf[1], poles.val);
+    pcdata->residues = dvec_create_p(k);
+    pcdata->poles = dvec_create_p(k-1);
+    array_cp(k, rpnwf[0], pcdata->residues->val);
+    array_cp(k-1, rpnwf[1], pcdata->poles->val);
+
 
     /* --------------------------------------------- */
 
     // scaling mass matrix
-    dCSRmat scaled_M;
-    dcsr_alloc(m, n, nnz_M, &scaled_M);
-    dcsr_cp(M, &scaled_M);
-    dcsr_axm(&scaled_M, scaling_m);
+    pcdata->scaled_M = dcsr_create_p(m, n, nnz_M);
+    dcsr_cp(M, pcdata->scaled_M);
+    dcsr_axm(pcdata->scaled_M, scaling_m);
 
     // get diagonal entries of the scaled mass matrix
-    dvector diag_scaled_M;
-    dcsr_getdiag(0, &scaled_M, &diag_scaled_M);
+    pcdata->diag_scaled_M = dvec_create_p(n);
+    dcsr_getdiag(0, pcdata->scaled_M, pcdata->diag_scaled_M);
+
 
     //------------------------------------------------
     // Set up all AMG for shifted laplacians
     //------------------------------------------------
     INT npoles = k-1;
-    AMG_data **mgl = (AMG_data **)calloc(npoles+1, sizeof(AMG_data *));
+    pcdata->mgl = (AMG_data **)calloc(npoles, sizeof(AMG_data *));
     // assemble amg data for all shifted laplacians:
     // (scaling_a*A - poles[i] * scaling_m*M)
-    // fixme: mgl[0] is not used currently!
-    for(i = 1; i < npoles+1; ++i) {
-        mgl[i] = amg_data_create(max_levels);
-        dcsr_alloc(n, n, 0, &(mgl[i][0].A));
-        dcsr_add(A, scaling_a, M, -poles.val[i-1]*scaling_m, &(mgl[i][0].A));
-        mgl[i][0].b = dvec_create(n);
-        mgl[i][0].x = dvec_create(n);
+    for(i = 0; i < npoles; ++i) {
+        pcdata->mgl[i] = amg_data_create(max_levels);
+        dcsr_alloc(n, n, 0, &(pcdata->mgl[i][0].A));
+        dcsr_add(A, scaling_a, M, -pcdata->poles->val[i]*scaling_m, &(pcdata->mgl[i][0].A));
+        pcdata->mgl[i][0].b = dvec_create(n);
+        pcdata->mgl[i][0].x = dvec_create(n);
 
-        switch (amgparam1->AMG_type) {
+        switch (amgparam->AMG_type) {
 
           case UA_AMG: // Unsmoothed Aggregation AMG
               if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
-              status = amg_setup_ua(mgl[i], amgparam1);
+              status = amg_setup_ua(pcdata->mgl[i], amgparam);
               break;
 
           case SA_AMG: // Smoothed Aggregation AMG
               if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
-              status = amg_setup_sa(mgl[i], amgparam1);
+              status = amg_setup_sa(pcdata->mgl[i], amgparam);
               break;
 
           default: // UA AMG
               if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
-              status = amg_setup_ua(mgl[i], amgparam1);
+              status = amg_setup_ua(pcdata->mgl[i], amgparam);
               break;
 
         }
@@ -491,27 +488,68 @@ INT fenics_ra_setup(dCSRmat *A,
     //------------------------------------------------
     // setup preconditioner data
     //------------------------------------------------
-
-    // precdata.Abcsr = A;
-    // pcdata.Abcsr = (block_dCSRmat*)calloc(1, sizeof(block_dCSRmat));
-    // bdcsr_alloc(A->brow, A->bcol, precdata.Abcsr);
-    // bdcsr_cp(A, precdata.Abcsr);
-
-    // pcdata->r = dvec_create(b->row); todo: add this in RA wrapper call
     pcdata->amgparam = amgparam;
-    pcdata->mgl = mgl;
-
-    // save scaled Mass matrix
-    pcdata->scaled_M = &scaled_M;
-    pcdata->diag_scaled_M = &diag_scaled_M;
 
     // save scaled alpha and beta
     pcdata->scaled_alpha = scaled_alpha;
     pcdata->scaled_beta = scaled_beta;
 
-    // save poles and residues
-    pcdata->poles = &poles;
-    pcdata->residues = &residues;
+    // clean
+    // for(i = 0; i < 5; ++i){
+    //     if (rpnwf[i]) free(rpnwf[i]);
+    // }
+    // if (rpnwf) free(rpnwf);
 
     return 1;
+}
+
+
+void precond_block_data_print(precond_block_data *precdata, SHORT flag)
+{
+    INT i;
+    INT nb = precdata->poles->row;
+    printf("poles: row = %d\n", precdata->poles->row);
+
+    for (i=0; i<nb; i++)
+    {
+
+        if(precdata->mgl){
+            if(precdata->mgl[i]){
+                AMG_data *mgl_i = precdata->mgl[i];
+                printf("Pole %d\n", i);
+                if(&(mgl_i->A)) printf("A: row = %d, col = %d, nnz = %d\n", mgl_i->A.row, mgl_i->A.col, mgl_i->A.nnz);
+                if(&(mgl_i->P)) printf("P: row = %d, col = %d, nnz = %d\n", mgl_i->P.row, mgl_i->P.col, mgl_i->P.nnz);
+                if(&(mgl_i->R)) printf("R: row = %d, col = %d, nnz = %d\n", mgl_i->R.row, mgl_i->R.col, mgl_i->R.nnz);
+                if(&(mgl_i->M)) printf("M: row = %d, col = %d, nnz = %d\n", mgl_i->M.row, mgl_i->M.col, mgl_i->M.nnz);
+
+            }
+        }
+
+    }
+
+    if(precdata->amgparam) {
+            param_amg_print(precdata->amgparam);
+    }
+
+    if (flag == TRUE)
+    {
+      if(precdata->G)  printf("G: row = %d, col = %d, nnz = %d\n", precdata->G->row, precdata->G->col, precdata->G->nnz);
+      if(precdata->K)  printf("K: row = %d, col = %d, nnz = %d\n", precdata->K->row, precdata->K->col, precdata->K->nnz);
+      if(precdata->Gt) printf("Gt: row = %d, col = %d, nnz = %d\n", precdata->Gt->row, precdata->Gt->col, precdata->Gt->nnz);
+      if(precdata->Kt) printf("Kt: row = %d, col = %d, nnz = %d\n", precdata->Kt->row, precdata->Kt->col, precdata->Kt->nnz);
+    }
+
+    if(precdata->scaled_M) printf("scaled M: row = %d, col = %d, nnz = %d\n", precdata->scaled_M->row, precdata->scaled_M->col, precdata->scaled_M->nnz);
+    if(precdata->diag_scaled_M) printf("diag M: row = %d\n", precdata->diag_scaled_M->row);
+    if(precdata->poles) printf("poles: row = %d\n", precdata->poles->row);
+    if(precdata->residues) printf("residues: row = %d\n", precdata->residues->row);
+
+    return;
+}
+
+REAL *array_calloc(const INT n)
+{
+    REAL *ar = (REAL*)calloc(n, sizeof(REAL));
+
+    return ar;
 }
