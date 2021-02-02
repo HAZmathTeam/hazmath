@@ -7514,8 +7514,158 @@ void precond_rational_approx(REAL *r,
 
 }
 
+/***********************************************************************************************/
+/**
+ * \fn void precond_rational_approx_fenics (REAL *r, REAL *z, void *data)
+ * \brief preconditioning a fractional problem with rational approximation solver
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Ana Budisa
+ * \date   2020-10-22
+ *
+ * \note Updated 2021-01-18 with scalings
+ * \note The main difference with the other RA precond is that mgl data starts at 0 index
+ */
+void precond_rational_approx_fenics(REAL *r,
+				    REAL *z,
+				    void *data)
+{
+    // local variables
+    INT status = SUCCESS;
+    precond_block_data *precdata=(precond_block_data *)data;
+    AMG_data **mgl = precdata->mgl; // count from 0
+    AMG_param *amgparam = precdata->amgparam; // this is not an array anymore
+
+    INT n = precdata->scaled_M->col; // general size of the problem
+    INT i;
+
+    // back up r, setup z
+    // REAL *tempr = (REAL*)calloc(n, sizeof(REAL));
+    // array_cp(n, r, tempr);
+    array_set(n, z, 0.0);
+
+    for(i = 0; i < n; ++i){
+       fprintf(stdout,"First: r[%d]=%e\n", i, r[i]); fflush(stdout);
+    }
+    // dvec r, z
+    // printf("Norm residual (n=%d)before copy: %.5e\n", n, array_norm2(n, r));
+    dvector r_vec = dvec_create(n);
+    fprintf(stderr,"\nr_vec %ld: %d\n",sizeof(r_vec.val)/sizeof(REAL),r_vec.row);
+    if(r_vec.val == NULL){
+      fprintf(stderr,"\nCOULD NOT ALLOCATE r_vec\n");
+      fflush(stderr);
+    }
+    memcpy(r_vec.val, r, n*sizeof(REAL));
+    /* for(i = 0; i < n; ++i){ */
+    /*   r_vec.val[i]=r[i]; */
+    /*   fprintf(stdout,"Second: r[%d]=%e; r_vec.val[%d]=%e\n",	\ */
+    /* 	      i, r[i],i,r_vec.val[i]); */
+    /*   fflush(stdout); */
+    /* } */
+    // printf("Norm residual (n=%d)after copy: %.5e\n", n, array_norm2(n, r_vec.val));
+    /* exit(1); */
+    //    dvector r_vec;
+    dvector z_vec = dvec_create(n); memcpy(z_vec.val, z, n*sizeof(REAL));
+
+    /*----------------------------------------*/
+    // get scaled mass matrix
+    dCSRmat *scaled_M = precdata->scaled_M;
+    dvector *diag_scaled_M = precdata->diag_scaled_M;
+
+    // get scaled alpha and beta
+    REAL scaled_alpha = precdata->scaled_alpha;
+    REAL scaled_beta  = precdata->scaled_beta;
+
+    // get poles and residues
+    dvector *poles = precdata->poles;
+    dvector *residues = precdata->residues;
+    
+    // number of poles
+    INT npoles = poles->row;
+
+    /*----------------------------------------*/
+    
+    /*----------------------------------------*/
+    /* set up preconditioners */
+    /*----------------------------------------*/
+    // pc for scaled mass matrix
+    precond pc_scaled_M;
+    pc_scaled_M.data = diag_scaled_M;
+    pc_scaled_M.fct  = precond_diag;
+
+    // pc for krylov for shifted Laplacians
+    precond pc_frac_A;
+    pc_frac_A.fct = precond_amg;
+    precond_data pcdata;
+    param_amg_to_prec(&pcdata, amgparam);
+    pc_frac_A.data = &pcdata;
+
+    /*----------------------------------------*/
+    
+    /*----------------------------------------*/
+    /* main loop of applying rational approximation
+    /*----------------------------------------*/
+    // scaling r
+    if (scaled_alpha > scaled_beta)
+    {
+      dvec_ax(1./scaled_alpha, &r_vec);
+    }
+    else
+    {
+      dvec_ax(1./scaled_beta, &r_vec);
+    }
+    // printf("Norm residual (n=%d)after scaling: %.5e\n", r_vec.row, array_norm2(r_vec.row, r_vec.val));
 
 
+    // z = residues(0)*(scaled_M\scaled_r1)
+    status = dcsr_pcg(scaled_M, &r_vec, &z_vec, &pc_scaled_M, 1e-12, 100, 1, 1);
+    array_ax(n, residues->val[0], z_vec.val);
+
+    dvector update = dvec_create(n);
+
+    // INT count = 0;
+    for(i = 0; i < npoles; ++i) {
+
+        mgl[i]->b.row = n; array_cp(n, r_vec.val, mgl[i]->b.val); // residual is an input
+        mgl[i]->x.row = n; dvec_set(n, &mgl[i]->x, 0.0);
+
+        // set precond data and param
+        pcdata.max_levels = mgl[i]->num_levels;
+        pcdata.mgl_data = mgl[i];
+
+        // set update to zero
+        dvec_set(update.row, &update, 0.0);
+
+        // solve
+        // printf("Norm residual (n=%d) loop: %.5e\n", r_vec.row, array_norm2(r_vec.row, r_vec.val));
+
+        //status = dcsr_pvfgmres(&(mgl[i][0].A), &r1, &update, &pc_frac_A, 1e-6, 100, 100, 1, 1);
+        status = dcsr_pcg(&(mgl[i][0].A), &r_vec, &update, &pc_frac_A, 1e-12, 100, 1, 1);
+        // if(status > 0) count += status;
+
+        // z = z + residues[i+1]*update
+        array_axpy(n, residues->val[i], update.val, z_vec.val);
+
+    }
+
+    // if(count) printf("Inner solver took total of %d iterations. \n", count);
+    
+    // cleanup
+    dvec_free(&update);
+    dvec_free(&r_vec);
+    dvec_free(&z_vec);
+    
+    // restore r
+    // array_cp(n, tempr, r);
+
+    // fprintf(stdout, "Precond here end\n"); fflush(stdout);
+}
+
+
+// todo: add precond that does nothing
 
 
 
