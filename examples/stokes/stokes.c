@@ -213,19 +213,18 @@ int main (int argc, char* argv[])
   linear_itsolver_param linear_itparam;
   param_linear_solver_init(&linear_itparam);
   param_linear_solver_set(&linear_itparam,&inparam);
+  INT solver_type = linear_itparam.linear_itsolver_type;
+  INT solver_printlevel = linear_itparam.linear_print_level;
 
   // Solve
-  if(dim==2){
+  if(solver_type==0) { // Direct Solver
+    solver_flag = block_directsolve_UMF(&A,&b,&sol,solver_printlevel);
+  } else { // Iterative Solver
     if (linear_itparam.linear_precond_type == PREC_NULL) {
       solver_flag = linear_solver_bdcsr_krylov(&A, &b, &sol, &linear_itparam);
     } else {
-      solver_flag = linear_solver_bdcsr_krylov_block_3(&A, &b, &sol, &linear_itparam, NULL, A_diag);
-    }
-  } else if (dim==3) {
-    if (linear_itparam.linear_precond_type == PREC_NULL) {
-      solver_flag = linear_solver_bdcsr_krylov(&A, &b, &sol, &linear_itparam);
-    } else {
-      solver_flag = linear_solver_bdcsr_krylov_block_4(&A, &b, &sol, &linear_itparam, NULL, A_diag);
+      if(dim==2) solver_flag = linear_solver_bdcsr_krylov_block_3(&A, &b, &sol, &linear_itparam, NULL, A_diag);
+      if(dim==3) solver_flag = linear_solver_bdcsr_krylov_block_4(&A, &b, &sol, &linear_itparam, NULL, A_diag);
     }
   }
 
