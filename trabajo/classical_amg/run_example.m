@@ -63,8 +63,8 @@ levmax=max(levelv)
 %plot_lexi(vv,x,pv,levelv,2,1)
 %plot_lexi(tt,xt,ps,levels,2,2)
 %%
-k=1;
-for k=1:length(p)
-    [p(k),tree(p(k))]
-end
+%k=1;
+%for k=1:length(p)
+%    [p(k),tree(p(k))]
+%end
 

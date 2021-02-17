@@ -2792,20 +2792,90 @@ int main (int argc, char* argv[])
 	  if(!BOOL_WEAKLY_IMPOSED_BC)
 	    eliminate_DirichletBC_blockFE_blockA(bc2D,&FE,&mesh,&b,&A,time);
 
-	 
+
+	  
 	  /**************************************************/
 	  //  Apply Pressure "BCs" (removes singularity)
+	  /*
 	  REAL pressureval =0.;
 	  INT pressureloc = 0;
-	  /**************************************************/
 	  
 	  clock_t clk_assembly_end = clock();
 	  printf(" --> elapsed CPU time for assembly = %f seconds.\n\n",(REAL)
 		 (clk_assembly_end-clk_assembly_start)/CLOCKS_PER_SEC);
-	  /*******************************************************************************************/
+	  
+	  // Prepare diagonal blocks
+	  dCSRmat *A_diag;
+	  A_diag = (dCSRmat *)calloc(dim+1, sizeof(dCSRmat));
+	  
+	  for(i=0;i<dim;i++){ // copy block diagonal to A_diag
+	    dcsr_alloc(A.blocks[i*(dim+2)]->row, A.blocks[i*(dim+2)]->col, A.blocks[i*(dim+2)]->nnz, &A_diag[i]);
+	    dcsr_cp(A.blocks[i*(dim+2)], &A_diag[i]);
+	  }
+	  
+	  // Get Mass Matrix for p
+	  dCSRmat Mp;
+	  assemble_global(&Mp,NULL,assemble_mass_local,&FE_p,&mesh,cq,NULL,one_coeff_scal,0.0);
+	  dcsr_alloc(Mp.row, Mp.col, Mp.nnz, &A_diag[dim]);
+	  dcsr_cp(&Mp, &A_diag[dim]);
 
+	  printf("Solving the System:\n");
+	  clock_t clk_solve_start = clock();
+	  
+	  INT solver_flag = -20;
+	  
+	  // Allocate solution
+	  dvector sol = dvec_create(ndof);
+	  dvector v_ux = dvec_create(FE_ux.ndof);
+	  dvector v_uy = dvec_create(FE_uy.ndof);
+	  dvector v_uz;
+	  if(dim==3) v_uz = dvec_create(FE_uz.ndof);
+	  dvector v_p = dvec_create(FE_p.ndof);
+	  
+	  // Set initial guess to be all zero
+	  dvec_set(sol.row, &sol, 0.0);
+	  // Set initial guess for pressure to match the known "boundary condition" for pressure
+	  if(dim==2) sol.val[FE_ux.ndof + FE_uy.ndof + pressureloc]  = pressureval;
+	  if(dim==3) sol.val[FE_ux.ndof + FE_uy.ndof + FE_uz.ndof + pressureloc]  = pressureval;
+	  
+	  // Set parameters for linear iterative methods
+	  linear_itsolver_param linear_itparam;
+	  param_linear_solver_init(&linear_itparam);
+	  param_linear_solver_set(&linear_itparam,&inparam);
+	  INT solver_type = linear_itparam.linear_itsolver_type;
+	  INT solver_printlevel = linear_itparam.linear_print_level;
+	  
+	  // Solve
+	  if(solver_type==0) { // Direct Solver
+	    solver_flag = block_directsolve_UMF(&A,&b,&sol,solver_printlevel);
+	  } else { // Iterative Solver
+	    if (linear_itparam.linear_precond_type == PREC_NULL) {
+	      solver_flag = linear_solver_bdcsr_krylov(&A, &b, &sol, &linear_itparam);
+	    } else {
+	      if(dim==2) solver_flag = linear_solver_bdcsr_krylov_block_3(&A, &b, &sol, &linear_itparam, NULL, A_diag);
+	      if(dim==3) solver_flag = linear_solver_bdcsr_krylov_block_4(&A, &b, &sol, &linear_itparam, NULL, A_diag);
+	    }
+	  }
+	  
+	  // Error Check
+	  if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n",solver_flag);
+	  
+	  clock_t clk_solve_end = clock();
+	  printf("Elapsed CPU Time for Solve = %f seconds.\n\n",
+		 (REAL) (clk_solve_end-clk_solve_start)/CLOCKS_PER_SEC);
 
-	  /***************** Solve *******************************************************************/
+	  */
+	    
+	  /**************************************************/
+	  //  Apply Pressure "BCs" (removes singularity)
+	  
+	  REAL pressureval =0.;
+	  INT pressureloc = 0;
+	  
+	  clock_t clk_assembly_end = clock();
+	  printf(" --> elapsed CPU time for assembly = %f seconds.\n\n",(REAL)
+		 (clk_assembly_end-clk_assembly_start)/CLOCKS_PER_SEC);
+	
 	  printf("Solving the System:\n");fflush(stdout);
 	  clock_t clk_solve_start = clock();
 	  
@@ -2813,25 +2883,61 @@ int main (int argc, char* argv[])
 
 	  
 	  dvec_set(sol.row, &sol, 0.0);
+	  //sol.val[FE_ux.ndof + FE_uy.ndof + pressureloc]  = pressureval;
+
 	  
-	  void *numeric=NULL;  // prepare for direct solve: */
+	  void *numeric=NULL;  // prepare for direct solve:
 	  numeric=(void *)block_factorize_UMF(&A,0);//inparam.print_level); 
 	  solver_flag=(INT )block_solve_UMF(&A, 
 					    &b, // this is the rhs here.  
 					    &sol,  // this is the solution here.  
 					    numeric, 
 					    0);//     inparam.print_level); 
-	  ///////////////////////////////////////////////////////////////// 
+	  
+	  /*
+	  // Prepare diagonal blocks
+	  dCSRmat *A_diag;
+	  A_diag = (dCSRmat *)calloc(dim+1, sizeof(dCSRmat));
+	  
+	  for(i=0;i<dim;i++){ // copy block diagonal to A_diag
+	    dcsr_alloc(A.blocks[i*(dim+2)]->row, A.blocks[i*(dim+2)]->col, A.blocks[i*(dim+2)]->nnz, &A_diag[i]);
+	    dcsr_cp(A.blocks[i*(dim+2)], &A_diag[i]);
+	  }
+	   // Get Mass Matrix for p
+	  dCSRmat Mp;
+	  assemble_global(&Mp,NULL,assemble_mass_local,&FE_p,&mesh,cq,NULL,one_coeff_scal,0.0);
+	  dcsr_alloc(Mp.row, Mp.col, Mp.nnz, &A_diag[dim]);
+	  dcsr_cp(&Mp, &A_diag[dim]);
+
+	    // Set parameters for linear iterative methods
+	  linear_itsolver_param linear_itparam;
+	  param_linear_solver_init(&linear_itparam);
+	  param_linear_solver_set(&linear_itparam,&inparam);
+	  INT solver_type = linear_itparam.linear_itsolver_type;
+	  INT solver_printlevel = linear_itparam.linear_print_level;
+	  
+	  // Solve
+	  if(solver_type==0) { // Direct Solver
+	    solver_flag = block_directsolve_UMF(&A,&b,&sol,solver_printlevel);
+	  } else { // Iterative Solver
+	    if (linear_itparam.linear_precond_type == PREC_NULL) {
+	      solver_flag = linear_solver_bdcsr_krylov(&A, &b, &sol, &linear_itparam);
+	    } else {
+	      if(dim==2) solver_flag = linear_solver_bdcsr_krylov_block_3(&A, &b, &sol, &linear_itparam, NULL, A_diag);
+	      if(dim==3) solver_flag = linear_solver_bdcsr_krylov_block_4(&A, &b, &sol, &linear_itparam, NULL, A_diag);
+	    }
+	  }
+	  */				    
+          ///////////////////////////////////////////////////////////////// 
 	  // Error Check
 	  if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n",solver_flag);
 	    
 	    
-	    //
+	    
 	    clock_t clk_solve_end = clock();
 	    printf("Elapsed CPU Time for Solve = %f seconds.\n\n",
 		   (REAL) (clk_solve_end-clk_solve_start)/CLOCKS_PER_SEC);
-	    /*******************************************************************************************/
-
+	  
 	    
 	    //if(timestep_number == total_timestep){
 	    {

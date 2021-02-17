@@ -273,6 +273,74 @@ return;
 
 /******************************************************************************************************/
 /*!
+* \fn void create_CSR_rows_DG(dCSRmat *A, fespace *FE1, fespace *FE2)
+*
+* \brief Computes the "possible" number of nonzeros for the global stiffness matrix
+*        using a DG discretization.
+*        Ignores Dirichlet boundary conditions, which can be eliminated later.
+*        Entry will be nonzero if degree of freedom belongs to the element (i.e. row)
+*        and the element that shares a face.
+*        Builds the IA array for A and assigns nnz.
+*
+* \note Assumes non-square system where test and trial are from different FE spaces
+*
+* \param FE1           FE Space for trial functions (u)
+* \param FE2           FE Space for test functions (v)
+* \param A             dCSRmat Stiffness Matrix
+*
+* \return A.IA         Row structure of CSR matrix
+* \return A.nnz        Number of nonzeros of A
+*/
+void create_CSR_rows_DG(dCSRmat *A, fespace *FE1, fespace *FE2)
+{
+  INT i,j,k,j_a,j_b,k_a,k_b,mydof,if1,icp;
+
+  // We will need the DOF to element map of the test space
+  iCSRmat dof_el_2;
+  icsr_trans(FE2->el_dof,&dof_el_2);
+
+  INT nrows = FE2->ndof;
+  INT ncols = FE1->ndof;
+
+  INT* ix = (INT *) calloc(ncols,sizeof(INT));
+  for (i=0; i<ncols; i++) {
+    ix[i] = -1;
+  }
+
+  // Loop over all DOF of test space and count possible nonzeros in A
+  // Also build A->IA, while you're at it...
+  icp=0;
+  for (i=0; i<nrows; i++) {
+    A->IA[i] = icp;
+    // Loop over all Elements connected to particular DOF of test space
+    j_a = dof_el_2.IA[i];
+    j_b = dof_el_2.IA[i+1];
+    for (j=j_a; j<j_b; j++) {
+      if1 = dof_el_2.JA[j];
+      // For this given element grab the DOF in the trial space
+      k_a = FE1->el_dof->IA[if1];
+      k_b = FE1->el_dof->IA[if1+1];
+      for (k=k_a; k<k_b; k++) {
+        mydof = FE1->el_dof->JA[k];
+        if (ix[mydof]!=i) { /* We haven't been here  */
+        icp++;
+        ix[mydof] = i;
+      }
+    }
+  }
+}
+A->IA[nrows] = icp;
+A->nnz = icp;
+
+if(ix) free(ix);
+icsr_free(&dof_el_2);
+
+return;
+}
+/******************************************************************************************************/
+
+/******************************************************************************************************/
+/*!
 * \fn void create_CSR_cols(dCSRmat *A, fespace *FE)
 *
 * \brief Finds the column sparsity structure of the Global Stiffness Matrix
@@ -511,6 +579,68 @@ void create_CSR_cols_flag(dCSRmat *A, fespace *FE,INT flag0,INT flag1)
 
 if(ix) free(ix);
 icsr_free(&dof_el);
+
+return;
+}
+/******************************************************************************************************/
+
+/******************************************************************************************************/
+/*!
+* \fn void create_CSR_cols_DG(dCSRmat *A, fespace *FE1, fespace *FE2)
+*
+* \brief Finds the column sparsity structure of the Global Stiffness Matrix
+*        using a DG discretization.
+*        Ignores Dirichlet boundary conditions, which can be eliminated later.
+*        Builds the JA array for A.
+*
+* \note Assumes non-square system where test and trial are from different FE spaces
+*
+* \param FE1           FE Space for trial functions (u)
+* \param FE2           FE Space for test functions (v)
+* \param A             dCSRmat Stiffness Matrix
+*
+* \return A.JA         Columns of CSR matrix
+*
+*/
+void create_CSR_cols_DG(dCSRmat *A, fespace *FE1, fespace *FE2)
+{
+  INT i,j,k,j_a,j_b,k_a,k_b,mydof,if1,icp;
+
+  // We will need the DOF to element map of the test space
+  iCSRmat dof_el_2;
+  icsr_trans(FE2->el_dof,&dof_el_2);
+
+  INT nrows = FE2->ndof;
+  INT ncols = FE1->ndof;
+
+  INT* ix = (INT *) calloc(ncols,sizeof(INT));
+  for (i=0; i<ncols; i++) {
+    ix[i] = -1;
+  }
+
+  // Loop over all DOF of test space and build A->JA
+  icp=0;
+  for (i=0; i<nrows; i++) {
+    // Loop over all Elements connected to particular edge
+    j_a = dof_el_2.IA[i];
+    j_b = dof_el_2.IA[i+1];
+    for (j=j_a; j<j_b; j++) {
+      if1 = dof_el_2.JA[j];
+      k_a = FE1->el_dof->IA[if1];
+      k_b = FE1->el_dof->IA[if1+1];
+      for (k=k_a; k<k_b; k++) {
+        mydof = FE1->el_dof->JA[k];
+        if (ix[mydof]!=i) { /* We haven't been here */
+        A->JA[icp] = mydof;
+        icp++;
+        ix[mydof] = i;
+      }
+    }
+  }
+}
+
+if(ix) free(ix);
+icsr_free(&dof_el_2);
 
 return;
 }
