@@ -11,9 +11,9 @@
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************************/
 #include "hazmath.h"
 
-#include "elasticity_params.h"
-#include "elasticity_error.h"
-#include "elasticity_system.h"
+#include "eg_biot_params.h"
+#include "eg_biot_error.h"
+#include "eg_biot_system.h"
 /*********************************************************************************/
 
 

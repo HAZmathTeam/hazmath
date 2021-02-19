@@ -3,11 +3,11 @@
 # Last Modified 2018-08-30 --ltz1
 ####################################################
 # SRC File name
-SRCFILE = elasticity
+SRCFILE = eg_biot
 
-HEADERS = elasticity_system.h \
-	elasticity_error.h \
-	elasticity_params.h
+HEADERS = eg_biot_system.h \
+	eg_biot_error.h \
+	eg_biot_params.h
 
 INCLUDE =
 
