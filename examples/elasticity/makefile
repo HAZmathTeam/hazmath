@@ -15,8 +15,8 @@ INCLUDE =
 LIBS =
 
 # Switch between debug or optimized
-CFLAGS = -g
-FFLAGS = -g
+CFLAGS = -O
+FFLAGS = -O
 
 WITH_SUITESPARSE=1
 WITH_LAPACK=1

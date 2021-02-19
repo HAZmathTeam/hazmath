@@ -1,4 +1,4 @@
-/*********************************************************************************/
+/************************************************************************/
 iCSRmat *extend_el_dof(fespace *FE,mesh_struct *mesh, INT *ix)
 {
   // extends the DOF so that every DOF in element i interacts with all
@@ -7,18 +7,7 @@ iCSRmat *extend_el_dof(fespace *FE,mesh_struct *mesh, INT *ix)
   iCSRmat *el_dof=NULL; // output
   INT i,j,k,j_a,j_b,k_a,k_b,mydof,if1,icp;
   INT pq,nbr,nel;
-  /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx*/
-  iCSRmat *f_el=malloc(1*sizeof(iCSRmat)); // face_to_element;
-  iCSRmat *el_f=mesh->el_f;
-  for(i=0;i<el_f->IA[mesh->nelm];i++)
-    el_f->val[i]=1;
-  icsr_trans(el_f,f_el); // f_el=transpose(el_f);
-  iCSRmat *el2el=malloc(1*sizeof(iCSRmat));
-  icsr_mxm(el_f,f_el,el2el);
-  //  icsr_tri(el2el,'l');
-  icsr_nodiag(el2el);// remove diagonal.
-  icsr_free(f_el);
-  ///////////////////////////////////////////////
+  iCSRmat *el2el=calc_el2el(mesh->el_f,0);
   INT nrows = FE->ndof;
   INT ncols = FE->ndof;
   /////////////

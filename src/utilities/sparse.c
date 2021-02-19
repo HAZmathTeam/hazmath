@@ -2606,10 +2606,10 @@ void icsr_nodiag(iCSRmat *a)
   return;
 }
 /**********************************************************************/
-void icsr_clean_zeros(iCSRmat *a)
+void icsr_rm_value(iCSRmat *a,const INT value)
 {
-  /* cleans the zeros in an iscr matrix (done in-inplace, a is
-     overwritten) */
+  /* REMOVES all entries in an iscr matrix EQUAL to value (done
+     in-inplace, a is overwritten) */
   INT k,j,kj,kj0,kj1;
   a->nnz=a->IA[0];
   for(k=0;k<a->row;k++){
@@ -2618,7 +2618,7 @@ void icsr_clean_zeros(iCSRmat *a)
     a->IA[k]=a->nnz;
     for(kj=kj0;kj<kj1;kj++){
       j=a->JA[kj];
-      if(a->val[kj]){
+      if(a->val[kj]!=value){
 	a->JA[a->nnz]=j;
 	a->val[a->nnz]=a->val[kj];
 	a->nnz++;
@@ -2636,11 +2636,40 @@ void icsr_clean_zeros(iCSRmat *a)
   return;
 }
 /**********************************************************************/
+void icsr_keep_value(iCSRmat *a,const INT value)
+{
+  /* KEEPS only entries in an iscr matrix equal to value (done
+     in-inplace, a is overwritten) */
+  INT k,j,kj,kj0,kj1;
+  a->nnz=a->IA[0];
+  for(k=0;k<a->row;k++){
+    kj0=a->IA[k];
+    kj1=a->IA[k+1];
+    a->IA[k]=a->nnz;
+    for(kj=kj0;kj<kj1;kj++){
+      j=a->JA[kj];
+      if(a->val[kj]!=value)
+	continue;
+      a->JA[a->nnz]=j;
+      a->val[a->nnz]=a->val[kj];
+      a->nnz++;
+    }
+  }
+  a->IA[a->row]=a->nnz;
+  if(a->nnz>0){
+    a->JA=realloc(a->JA,a->nnz*sizeof(INT));
+    a->val=realloc(a->val,a->nnz*sizeof(INT));
+  }else{
+    a->JA=NULL;
+    a->val=NULL;
+  }
+  return;
+}
+/**********************************************************************/
 void icsr_tri(iCSRmat *a,const char loup)
 {
   /*
-   *extracting the lower/upper triangle of an icsr matrix
-   (done in-place, a is overwritten also removes all zeros).
+   *extracting the lower/upper triangle of an icsr matrix (done in-place, a is overwritten also removes all zeros).
    * loup='u' or 'U': upper triangle;
    * loup='l' or 'L': extract lower triangle
    * if loup is anything else: do nothing;

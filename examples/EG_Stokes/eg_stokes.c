@@ -11,10 +11,140 @@
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************************/
 #include "hazmath.h"
 
-#include "elasticity_params.h"
-#include "elasticity_error.h"
-#include "elasticity_system.h"
-/*********************************************************************************/
+#include "eg_stokes_params.h"
+#include "eg_stokes_error.h"
+#include "eg_stokes_system.h"
+/****************************************************************/
+static void csr2matlab_code(FILE *fp,dCSRmat *a, const char *varname)
+{
+  char *s;
+  if((varname!="") && (varname))
+    s=strndup(varname,8);
+  else
+    s=strdup("a");
+  //
+  fprintf(fp,"\n%%\n%s=[",s);
+  csr_print_matlab(fp,a);
+  fprintf(fp,"\n];\n%s=sparse(%s(:,1),%s(:,2),%s(:,3),%d,%d);",s,s,s,s,a->row,a->col);
+  fprintf(fp,"\n%%\n");
+  free(s);
+  return;
+}
+/*********************************************************/
+static void bdcsr_extend(block_dCSRmat *ba,				\
+			 REAL *vcol, REAL *vrow,			\
+			 const INT iblock,				\
+			 const REAL c1, const REAL c2)
+{
+  /* 
+     if vrow and vcol are NULL, then adds one row and one column of
+     zeros at block (iblock,iblock) also reallocs the corresponding
+     blocks->IA, blocks->JA, and blocks->val. They are not reallocated
+     (except blocks->IA) if vrow and vcol are null because we add
+     column and row of zeros. --ltz 20200405
+  */
+  
+  //
+  INT k,j,n,nnz;
+  REAL *vals=NULL;
+  dCSRmat *atmp=NULL,*ctmp=NULL,*add=NULL;
+  INT ptype=-1;
+  FILE *fp;///=stdout;
+  if(vcol==NULL && vrow==NULL){
+    for(k=0;k<ba->brow;k++){
+      // just add rows and columns of zeros to the matrix
+      atmp=ba->blocks[iblock*ba->bcol+k];
+      atmp->row++;
+      atmp->IA=realloc(atmp->IA,sizeof(INT)*(atmp->row+1));
+      atmp->IA[atmp->row]=atmp->nnz;
+      atmp=ba->blocks[k*ba->bcol+iblock];
+      atmp->col++;
+    }
+    return;
+  }
+  if(vcol==NULL){
+    vals=vrow;
+    ptype=2;
+  } else if(vrow==NULL){
+    vals=vcol;
+    ptype=1;
+  } else
+    ptype=0;
+  fprintf(stdout,"\n**** ptype=%d\n",ptype);
+  if(ptype){
+    // block rows
+    atmp=ba->blocks[iblock*ba->bcol+iblock];
+    n=atmp->row;
+    nnz=n;
+    // new matrix to add to the existing one
+    add=dcsr_create_p(n,n,nnz);
+    add->IA[0]=0;
+    for(k=0;k<n;k++){
+      add->JA[add->IA[k]]=k;
+      add->val[add->IA[k]]=vals[k];
+      add->IA[k+1]=add->IA[k]+1;
+    }
+  } else {
+    for(k=0;k<ba->brow;k++){
+      // block pressure rows
+      atmp=ba->blocks[iblock*ba->bcol+k];
+      atmp->row++;
+      atmp->IA=realloc(atmp->IA,sizeof(INT)*(atmp->row+1));
+      atmp->IA[atmp->row]=atmp->nnz;
+      atmp=ba->blocks[k*ba->bcol+iblock];
+      atmp->col++;
+    }
+    atmp=ba->blocks[iblock*ba->bcol+iblock];
+    n=atmp->row;
+    nnz=2*(n-1);
+    /* fp=fopen("debug/x123.m","w"); */
+    /* csr2matlab_code(fp,atmp,"xtmp"); */
+    /* fclose(fp); */
+    /* fprintf(stdout,"\nnnz=%d;ncol=%d,nrow=%d\n\n",atmp->nnz,atmp->col,atmp->row);       */
+    /* fprintf(stdout,"\nn=%d;n=%d,nnz=%d\n\n",n,n,nnz); */
+    /* fflush(stdout); */
+    add=dcsr_create_p(n,n,nnz);
+    add->IA[0]=0;
+    add->val[0]=vcol[0];
+    for(k=0;k<(n-1);k++){
+      add->JA[add->IA[k]]=(n-1);
+      add->val[add->IA[k]]=vcol[k];
+      add->IA[k+1]=add->IA[k]+1;
+    }
+    add->IA[n]=nnz;
+    //    fprintf(stdout,"\nn=%d,add->IA[n,n-1]=(%d,%d); (c1,c2)=(%e,%e)\n\n",n,add->IA[n],add->IA[n-1],c1,c2);
+    j=0;
+    for(k=add->IA[n-1];k<(add->IA[n]);k++){
+      add->JA[k]=j;
+      add->val[k]=vrow[j];
+      j++;
+    }
+  }
+  // now we add to atmp and then copy back to atmp;
+  ctmp=malloc(1*sizeof(dCSRmat));
+  // ctmp=c1*atmp+c2*add;
+  dcsr_add(atmp,c1,add,c2,ctmp);
+  atmp->IA=(INT *)realloc(atmp->IA,sizeof(INT)*(ctmp->row+1));
+  atmp->JA=(INT *)realloc(atmp->JA,sizeof(INT)*ctmp->nnz);
+  atmp->val=(REAL *)realloc(atmp->val,sizeof(REAL)*ctmp->nnz);
+  // copy atmp=ctmp
+  dcsr_cp(ctmp,atmp);
+  /////////////////// print to debug/*
+  /* fp=fopen("debug/app.m","w"); */
+  /* csr2matlab_code(fp,atmp,"app"); */
+  /* fclose(fp); */
+  /* ///////////////////// */
+  /* fprintf(stdout,"\nnnz-c=%d;nnz-a=%d\n",ctmp->nnz,atmp->nnz); fflush(stdout); */
+  /* fp=fopen("debug/a.data","w"); */
+  /* bdcsr_print_matlab(fp,ba); */
+  /* fclose(fp); */
+  //////////////////end print for debug
+  // free the working memory.
+  free(ctmp);
+  free(add);
+  return;
+}
+/**************************************************************/
 
 
 void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, mesh_struct *mesh, qcoordinates *cq, \
@@ -103,21 +233,21 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, mesh_st
   }
   // Sanity Check
   /*
-  for(pq=0;pq<2;++pq)
+    for(pq=0;pq<2;++pq)
     {
-      if(counter == 2)
-	{
-	  //printf("neighbor_index[%d]= %d || counter  = %d\n", pq, neighbor_index[pq],counter);
-	}
-      else if(counter == 1){
-	if(pq == 0)
-	  {
-	    //printf("neighbor_index[%d]= %d || counter  = %d\n", pq, neighbor_index[pq],counter);
-	  }
-	else{
-	  //printf("-\n");
-	}
-      }
+    if(counter == 2)
+    {
+    //printf("neighbor_index[%d]= %d || counter  = %d\n", pq, neighbor_index[pq],counter);
+    }
+    else if(counter == 1){
+    if(pq == 0)
+    {
+    //printf("neighbor_index[%d]= %d || counter  = %d\n", pq, neighbor_index[pq],counter);
+    }
+    else{
+    //printf("-\n");
+    }
+    }
     }
   */
   
@@ -1249,7 +1379,7 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, mesh_st
 	  for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
 	    
 	    kij = alpha * 0.5 * neighbor_basis_3_phi[trial] *
-	          (finrm[0] *  (qx_face[0]- barycenter->x[0]) + finrm[1] *  (qx_face[1]- barycenter->y[0]));
+	      (finrm[0] *  (qx_face[0]- barycenter->x[0]) + finrm[1] *  (qx_face[1]- barycenter->y[0]));
 	  
 	    ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
 	  }
@@ -1417,7 +1547,7 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, mesh_st
 	  for (trial=0; trial<FE->var_spaces[2]->dof_per_elm;trial++){
 	    
 	    kij = alpha * 0.5 * neighbor_basis_3_phi[test] *
-	          (finrm[0] *  (qx_face[0]- barycenter->x[0]) + finrm[1] *  (qx_face[1]- barycenter->y[0]));
+	      (finrm[0] *  (qx_face[0]- barycenter->x[0]) + finrm[1] *  (qx_face[1]- barycenter->y[0]));
 	  
 	    ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
 	  }
@@ -1451,7 +1581,7 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, mesh_st
 
 	free(neighbor_basis_3_phi);
 	free(neighbor_basis_3_dphi);
-	 }
+      }
   }// face q loop
 
 
@@ -1502,7 +1632,7 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, mesh_st
  * \param rhs           Function that gives RHS (in FEM block ordering
  * \param time          Physical Time if time dependent
  *
-  \return bLoc         Local RHS Vector
+ \return bLoc         Local RHS Vector
  *
  *
  */
@@ -1745,7 +1875,7 @@ void FEM_Block_RHS_Local_Elasticity(dvector *b,REAL* bLoc, REAL *solution, \
 	
       }
 
-       // Get the BD values
+      // Get the BD values
       REAL* val_true_face = (REAL *) calloc(nun,sizeof(REAL));
       REAL* val_true_face_n = (REAL *) calloc(nun,sizeof(REAL));  
       REAL* val_true_face_n_neighbor = (REAL *) calloc(nun,sizeof(REAL));
@@ -1788,22 +1918,22 @@ void FEM_Block_RHS_Local_Elasticity(dvector *b,REAL* bLoc, REAL *solution, \
 
       //Sanity Check
       /* print out
-      for(pq=0;pq<2;++pq)
-	{
-	  if(counter == 2)
-	    {
-	      //printf("neighbor_index[%d]= %d || counter  = %d\n", pq, neighbor_index[pq],counter);
-	    }
-	  else if(counter == 1){
-	    if(pq == 0)
-	      {
-		//printf("neighbor_index[%d]= %d || counter  = %d\n", pq, neighbor_index[pq],counter);
-	      }
-	    else{
-	  //printf("-\n");
-	    }
-	  }
-	}
+	 for(pq=0;pq<2;++pq)
+	 {
+	 if(counter == 2)
+	 {
+	 //printf("neighbor_index[%d]= %d || counter  = %d\n", pq, neighbor_index[pq],counter);
+	 }
+	 else if(counter == 1){
+	 if(pq == 0)
+	 {
+	 //printf("neighbor_index[%d]= %d || counter  = %d\n", pq, neighbor_index[pq],counter);
+	 }
+	 else{
+	 //printf("-\n");
+	 }
+	 }
+	 }
       */
       
       double fiarea=mesh->f_area[face];
@@ -1879,7 +2009,7 @@ void FEM_Block_RHS_Local_Elasticity(dvector *b,REAL* bLoc, REAL *solution, \
 		  //printf("i = %d (FE->nspaces = %d), unknown_index = %d, test = %d \n", i, FE->var_spaces[i]->dof_per_elm, unknown_index, test);
 		  bLoc[(local_row_index+test)] +=
 		    BC_penalty_term *  w_face * (val_true_face[0] * (qx_face[0] - barycenter->x[0])
-					      + val_true_face[1]*  (qx_face[1] - barycenter->y[0]));
+						 + val_true_face[1]*  (qx_face[1] - barycenter->y[0]));
 		  
 		}
 	      else if(i == 3)
@@ -2386,18 +2516,18 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
     // PRESSURE BLOCK
     // p-p block:
     /*
-    local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
-    local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
-    // Loop over Test Functions (Rows)
-    for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
+      local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
+      local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
       // Loop over Trial Functions (Columns)
       for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
 	
-	kij =  FE->var_spaces[3]->phi[test] *  FE->var_spaces[3]->phi[trial];	
+      kij =  FE->var_spaces[3]->phi[test] *  FE->var_spaces[3]->phi[trial];	
 
-	ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
+      ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
       }
-    }
+      }
     */
 
    
@@ -2414,18 +2544,14 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
 
   return;
 }
-/*****************************************************************************************************/
-
-
+/*********************************************************************/
 /****** MAIN DRIVER **************************************************************/
-int main (int argc, char* argv[])
+INT main(int argc, char* argv[])
 {
 
   printf("\n===========================================================================\n");
   printf("Beginning Program to solve Elasticity Equation.\n");
   printf("===========================================================================\n");
-
-
   // Aug.3.2020 SLEE
   // Define variables forthe error convergence test
   int total_num_cycle = TOTAL_NUM_CYCLES_GLOBAL ; 
@@ -2489,8 +2615,7 @@ int main (int argc, char* argv[])
   INT timestep_number = 0;
   INT total_timestep = 10;     
   
-  for(int cycle=0; cycle<total_num_cycle; ++cycle)
-    {
+  for(int cycle=0; cycle<total_num_cycle; ++cycle) {
       //Aug.3.2020 SLEE initilize
       L2_error_per_cycle[cycle] = 0.;
       H1_error_per_cycle[cycle] = 0.;
@@ -2532,8 +2657,8 @@ int main (int argc, char* argv[])
       printf("************ CYCLE   %d  /   %d  ************** \n", cycle, total_num_cycle);
     
       /****** INITIALIZE PARAMETERS **************************************************/
+      // loops
       INT i;
-
       // Overall CPU Timing
       clock_t clk_overall_start = clock();
 
@@ -2648,11 +2773,11 @@ int main (int argc, char* argv[])
       FE.var_spaces = (fespace **) calloc(dim+1 +1,sizeof(fespace *));
 
       /*
-      FE.nun = dim+1;  // p_debug 
-      FE.ndof = ndof;
-      FE.nbdof = FE_ux.nbdof + FE_uy.nbdof + FE_u_eg.nbdof;// +FE_p.nbdof+FE_p_eg.nbdof;
-      FE.nspaces = dim+1;
-      FE.var_spaces = (fespace **) calloc(dim+1,sizeof(fespace *));
+	FE.nun = dim+1;  // p_debug 
+	FE.ndof = ndof;
+	FE.nbdof = FE_ux.nbdof + FE_uy.nbdof + FE_u_eg.nbdof;// +FE_p.nbdof+FE_p_eg.nbdof;
+	FE.nspaces = dim+1;
+	FE.var_spaces = (fespace **) calloc(dim+1,sizeof(fespace *));
       */
       
       FE.var_spaces[0] = &FE_ux;
@@ -2727,9 +2852,7 @@ int main (int argc, char* argv[])
 	  min_mesh_size = tmp_size;    
       }
       
-      mesh_size_per_cycle[cycle] = min_mesh_size;
-      
-
+      mesh_size_per_cycle[cycle] = min_mesh_size;      
       if(time == 0)
 	{
 	  //Set Initial Condition 
@@ -2739,472 +2862,492 @@ int main (int argc, char* argv[])
       dvector sol = dvec_create(ndof);
       dvector old_timestep_sol = dvec_create(ndof);
 
-      //for(time = timestep; timestep_number < total_timestep; time += timestep)
-	{
-	  
-	  dvec_cp(&sol, &old_timestep_sol);
+      //for(time = timestep; timestep_number < total_timestep; time += timestep){
+      dvec_cp(&sol, &old_timestep_sol);     	  
+      timestep_number = timestep_number+1;
+      printf(" ---  CYCLE = %d  ----------- TIME STEPPING TIME = %f  (timestep # = %d | %d) ------------------- \n", \
+	     cycle,time,timestep_number,total_timestep);
+      //printf(" [Time Step = %f]  \n", timestep);
+      //fflush(stdout);
       
-	  
-	  timestep_number = timestep_number+1;
-	  printf(" ---  CYCLE = %d  ----------- TIME STEPPING TIME = %f  (timestep # = %d | %d) ------------------- \n", \
-		 cycle,time,timestep_number,total_timestep);
-	  //printf(" [Time Step = %f]  \n", timestep);
-	  //fflush(stdout);
-	  
-	  clock_t clk_assembly_start = clock();
-	  
-	  // Allocate the right-hand and declare the csr matrix
-	  dvector b;
-	  // Put into Block Form
-	  block_dCSRmat A;
-	  bdcsr_alloc(dim+1+1,dim+1+1,&A);
-	  
-	  /*** Assemble the matrix and right hand side *******************************/
-	  printf("Assembling the matrix and right-hand side:\n");fflush(stdout);
-
-	  
-	  assemble_global_block_neighbor(&A,&b,old_timestep_sol.val,			\
-					 local_assembly_Elasticity_FACE, \
-					 local_assembly_Elasticity,	\
-					 FEM_Block_RHS_Local_Elasticity, \
-					 &FE,				\
-					 &mesh,				\
-					 cq,source2D,exact_sol2D,Dexact_sol2D, exact_sol2D_dt, time,timestep);
-     
-
-  
-	  printf("\n------ Assemble done: \n");fflush(stdout);
-		 //printf("cycle = %d -- total = %d \n", cycle, total_num_cycle);
-		 /*
-	  if((cycle) == total_num_cycle-1)
-	    {
-	      
-	      FILE* fid;
-	      fid = fopen("matrix.txt","w");
-	      
-	      dCSRmat Amerge = bdcsr_2_dcsr(&A);
-	      csr_print_matlab(fid,&Amerge);
-	      dcsr_free(&Amerge);
-	      exit(0);
-	    }
-		 */
-	  // Eliminate boundary conditions in matrix and rhs
-	  if(!BOOL_WEAKLY_IMPOSED_BC)
-	    eliminate_DirichletBC_blockFE_blockA(bc2D,&FE,&mesh,&b,&A,time);
-
-
-	  
-	  /**************************************************/
-	  //  Apply Pressure "BCs" (removes singularity)
-	  /*
-	  REAL pressureval =0.;
-	  INT pressureloc = 0;
-	  
-	  clock_t clk_assembly_end = clock();
-	  printf(" --> elapsed CPU time for assembly = %f seconds.\n\n",(REAL)
-		 (clk_assembly_end-clk_assembly_start)/CLOCKS_PER_SEC);
-	  
-	  // Prepare diagonal blocks
-	  dCSRmat *A_diag;
-	  A_diag = (dCSRmat *)calloc(dim+1, sizeof(dCSRmat));
-	  
-	  for(i=0;i<dim;i++){ // copy block diagonal to A_diag
-	    dcsr_alloc(A.blocks[i*(dim+2)]->row, A.blocks[i*(dim+2)]->col, A.blocks[i*(dim+2)]->nnz, &A_diag[i]);
-	    dcsr_cp(A.blocks[i*(dim+2)], &A_diag[i]);
-	  }
-	  
-	  // Get Mass Matrix for p
-	  dCSRmat Mp;
-	  assemble_global(&Mp,NULL,assemble_mass_local,&FE_p,&mesh,cq,NULL,one_coeff_scal,0.0);
-	  dcsr_alloc(Mp.row, Mp.col, Mp.nnz, &A_diag[dim]);
-	  dcsr_cp(&Mp, &A_diag[dim]);
-
-	  printf("Solving the System:\n");
-	  clock_t clk_solve_start = clock();
-	  
-	  INT solver_flag = -20;
-	  
-	  // Allocate solution
-	  dvector sol = dvec_create(ndof);
-	  dvector v_ux = dvec_create(FE_ux.ndof);
-	  dvector v_uy = dvec_create(FE_uy.ndof);
-	  dvector v_uz;
-	  if(dim==3) v_uz = dvec_create(FE_uz.ndof);
-	  dvector v_p = dvec_create(FE_p.ndof);
-	  
-	  // Set initial guess to be all zero
-	  dvec_set(sol.row, &sol, 0.0);
-	  // Set initial guess for pressure to match the known "boundary condition" for pressure
-	  if(dim==2) sol.val[FE_ux.ndof + FE_uy.ndof + pressureloc]  = pressureval;
-	  if(dim==3) sol.val[FE_ux.ndof + FE_uy.ndof + FE_uz.ndof + pressureloc]  = pressureval;
-	  
-	  // Set parameters for linear iterative methods
-	  linear_itsolver_param linear_itparam;
-	  param_linear_solver_init(&linear_itparam);
-	  param_linear_solver_set(&linear_itparam,&inparam);
-	  INT solver_type = linear_itparam.linear_itsolver_type;
-	  INT solver_printlevel = linear_itparam.linear_print_level;
-	  
-	  // Solve
-	  if(solver_type==0) { // Direct Solver
-	    solver_flag = block_directsolve_UMF(&A,&b,&sol,solver_printlevel);
-	  } else { // Iterative Solver
-	    if (linear_itparam.linear_precond_type == PREC_NULL) {
-	      solver_flag = linear_solver_bdcsr_krylov(&A, &b, &sol, &linear_itparam);
-	    } else {
-	      if(dim==2) solver_flag = linear_solver_bdcsr_krylov_block_3(&A, &b, &sol, &linear_itparam, NULL, A_diag);
-	      if(dim==3) solver_flag = linear_solver_bdcsr_krylov_block_4(&A, &b, &sol, &linear_itparam, NULL, A_diag);
-	    }
-	  }
-	  
-	  // Error Check
-	  if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n",solver_flag);
-	  
-	  clock_t clk_solve_end = clock();
-	  printf("Elapsed CPU Time for Solve = %f seconds.\n\n",
-		 (REAL) (clk_solve_end-clk_solve_start)/CLOCKS_PER_SEC);
-
-	  */
-	    
-	  /**************************************************/
-	  //  Apply Pressure "BCs" (removes singularity)
-	  
-	  REAL pressureval =0.;
-	  INT pressureloc = 0;
-	  
-	  clock_t clk_assembly_end = clock();
-	  printf(" --> elapsed CPU time for assembly = %f seconds.\n\n",(REAL)
-		 (clk_assembly_end-clk_assembly_start)/CLOCKS_PER_SEC);
+      clock_t clk_assembly_start = clock();
+      
+      // Allocate the right-hand and declare the csr matrix
+      dvector b;
+      // Put into Block Form
+      block_dCSRmat A;
+      bdcsr_alloc(dim+1+1,dim+1+1,&A);	  
+      /*** Assemble the matrix and right hand side *******************************/
+      printf("Assembling the matrix and right-hand side:\n");fflush(stdout);
+      
+      
+      assemble_global_block_neighbor(&A,&b,old_timestep_sol.val,	\
+				     local_assembly_Elasticity_FACE,	\
+				     local_assembly_Elasticity,		\
+				     FEM_Block_RHS_Local_Elasticity,	\
+				     &FE,				\
+				     &mesh,				\
+				     cq,source2D,exact_sol2D,Dexact_sol2D, exact_sol2D_dt, time,timestep);        
+      printf("\n------ Assemble done: \n");fflush(stdout);
+      //printf("cycle = %d -- total = %d \n", cycle, total_num_cycle);
+      /*
+	if((cycle) == total_num_cycle-1)
+	{
 	
-	  printf("Solving the System:\n");fflush(stdout);
-	  clock_t clk_solve_start = clock();
+	FILE* fid;
+	fid = fopen("matrix.txt","w");
+	
+	dCSRmat Amerge = bdcsr_2_dcsr(&A);
+	csr_print_matlab(fid,&Amerge);
+	dcsr_free(&Amerge);
+	exit(0);
+	}
+      */
+      // Eliminate boundary conditions in matrix and rhs
+      if(!BOOL_WEAKLY_IMPOSED_BC)
+	eliminate_DirichletBC_blockFE_blockA(bc2D,&FE,&mesh,&b,&A,time);      
+      /**************************************************/
+      //  Apply Pressure "BCs" (removes singularity)
+      /*
+	REAL pressureval =0.;
+	INT pressureloc = 0;
 	  
-	  INT solver_flag = -20;
+	clock_t clk_assembly_end = clock();
+	printf(" --> elapsed CPU time for assembly = %f seconds.\n\n",(REAL)
+	(clk_assembly_end-clk_assembly_start)/CLOCKS_PER_SEC);
+	  
+	// Prepare diagonal blocks
+	dCSRmat *A_diag;
+	A_diag = (dCSRmat *)calloc(dim+1, sizeof(dCSRmat));
+	  
+	for(i=0;i<dim;i++){ // copy block diagonal to A_diag
+	dcsr_alloc(A.blocks[i*(dim+2)]->row, A.blocks[i*(dim+2)]->col, A.blocks[i*(dim+2)]->nnz, &A_diag[i]);
+	dcsr_cp(A.blocks[i*(dim+2)], &A_diag[i]);
+	}
+	  
+	// Get Mass Matrix for p
+	dCSRmat Mp;
+	assemble_global(&Mp,NULL,assemble_mass_local,&FE_p,&mesh,cq,NULL,one_coeff_scal,0.0);
+	dcsr_alloc(Mp.row, Mp.col, Mp.nnz, &A_diag[dim]);
+	dcsr_cp(&Mp, &A_diag[dim]);
 
+	printf("Solving the System:\n");
+	clock_t clk_solve_start = clock();
 	  
-	  dvec_set(sol.row, &sol, 0.0);
-	  //sol.val[FE_ux.ndof + FE_uy.ndof + pressureloc]  = pressureval;
+	INT solver_flag = -20;
+	  
+	// Allocate solution
+	dvector sol = dvec_create(ndof);
+	dvector v_ux = dvec_create(FE_ux.ndof);
+	dvector v_uy = dvec_create(FE_uy.ndof);
+	dvector v_uz;
+	if(dim==3) v_uz = dvec_create(FE_uz.ndof);
+	dvector v_p = dvec_create(FE_p.ndof);
+	  
+	// Set initial guess to be all zero
+	dvec_set(sol.row, &sol, 0.0);
+	// Set initial guess for pressure to match the known "boundary condition" for pressure
+	if(dim==2) sol.val[FE_ux.ndof + FE_uy.ndof + pressureloc]  = pressureval;
+	if(dim==3) sol.val[FE_ux.ndof + FE_uy.ndof + FE_uz.ndof + pressureloc]  = pressureval;
+	  
+	// Set parameters for linear iterative methods
+	linear_itsolver_param linear_itparam;
+	param_linear_solver_init(&linear_itparam);
+	param_linear_solver_set(&linear_itparam,&inparam);
+	INT solver_type = linear_itparam.linear_itsolver_type;
+	INT solver_printlevel = linear_itparam.linear_print_level;
+	  
+	// Solve
+	if(solver_type==0) { // Direct Solver
+	solver_flag = block_directsolve_UMF(&A,&b,&sol,solver_printlevel);
+	} else { // Iterative Solver
+	if (linear_itparam.linear_precond_type == PREC_NULL) {
+	solver_flag = linear_solver_bdcsr_krylov(&A, &b, &sol, &linear_itparam);
+	} else {
+	if(dim==2) solver_flag = linear_solver_bdcsr_krylov_block_3(&A, &b, &sol, &linear_itparam, NULL, A_diag);
+	if(dim==3) solver_flag = linear_solver_bdcsr_krylov_block_4(&A, &b, &sol, &linear_itparam, NULL, A_diag);
+	}
+	}
+	  
+	// Error Check
+	if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n",solver_flag);
+	  
+	clock_t clk_solve_end = clock();
+	printf("Elapsed CPU Time for Solve = %f seconds.\n\n",
+	(REAL) (clk_solve_end-clk_solve_start)/CLOCKS_PER_SEC);
 
+      */
+	    
+      /**************************************************/
+      //  Apply Pressure "BCs" (removes singularity)
 	  
-	  void *numeric=NULL;  // prepare for direct solve:
-	  numeric=(void *)block_factorize_UMF(&A,0);//inparam.print_level); 
-	  solver_flag=(INT )block_solve_UMF(&A, 
-					    &b, // this is the rhs here.  
-					    &sol,  // this is the solution here.  
-					    numeric, 
-					    0);//     inparam.print_level); 
+      //	  REAL pressureval =0.;
+      //	  INT pressureloc = 0;
 	  
-	  /*
-	  // Prepare diagonal blocks
-	  dCSRmat *A_diag;
-	  A_diag = (dCSRmat *)calloc(dim+1, sizeof(dCSRmat));
+      clock_t clk_assembly_end = clock();
+      printf(" --> elapsed CPU time for assembly = %f seconds.\n\n",(REAL)
+	     (clk_assembly_end-clk_assembly_start)/CLOCKS_PER_SEC);
+	
+      printf("Solving the System:\n");fflush(stdout);
+      clock_t clk_solve_start = clock();
+      /////////////////SOLVER-SOLVER AND average P	=0   
+      INT jj=-10,solver_flag=-20;
+      REAL pmin=1e20,pmax=-1e20,sum=-1e20;
+      void *numeric=NULL;
+      sol.row++;
+      sol.val=realloc(sol.val,sol.row*sizeof(REAL));
+      dvec_set(sol.row, &sol, 0.0);
+      b.row++;
+      b.val=realloc(b.val,b.row*sizeof(REAL));
+      b.val[b.row-1]=0e0;
+      //sol.val[FE_ux.ndof + FE_uy.ndof + pressureloc]  = pressureval;
+      //
+      //	  add row and column for the pressure block
+      // which is the pressure block?Ans: dim+1;
+      // extend
+      bdcsr_extend(&A,mesh.el_vol,mesh.el_vol,(dim+1),1.0,1.0);	  
+      numeric=block_factorize_UMF(&A,0);//inparam.print_level);
+      // solve
+      solver_flag=(INT )block_solve_UMF(&A, 
+					&b, // rhs.  
+					&sol,  // solution.  
+					numeric, 
+					0);//     inparam.print_level);
+      free(numeric);
+      //// printing for debug
+      /* FILE *fptmp=NULL; */
+      /* fptmp=fopen("debug/u.data","w"); dvector_print(fptmp,&sol); fclose(fptmp); */
+      /* fptmp=fopen("debug/b.data","w"); dvector_print(fptmp,&b); fclose(fptmp); */
+      //// end printing for debug
+      jj=sol.row - mesh.nelm - 1; // begin index of pressure block
+      // after extension
+      pmin=sol.val[jj];
+      pmax=sol.val[jj];
+      sum=0e0;
+      for(i=0;i<mesh.nelm;i++){
+	//	    fprintf(stdout,"\nnel:%7d, dof=%7d: sol=%e",	\
+	//		    i,jj,sol.val[jj]);
+	sum+=mesh.el_vol[i]*sol.val[jj];
+	if(sol.val[jj]<pmin) pmin=sol.val[jj];
+	if(sol.val[jj]>pmax) pmax=sol.val[jj];
+	jj++;
+      }
+      fprintf(stdout,"\nINTEGRAL(p)=%e, min(p)=%e, max(p)=%e\n",sum,pmin,pmax);
+      // Error Check
+      if (solver_flag < 0) fprintf(stdout,"### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
+      b.row--;
+      b.val=realloc(b.val,b.row*sizeof(REAL));
+      sol.row--;
+      sol.val=realloc(sol.val,sol.row*sizeof(REAL));
+      /////////////////END-SOLVER-SOLVER AND average P=0   
+      /*
+      // Prepare diagonal blocks
+      dCSRmat *A_diag;
+      A_diag = (dCSRmat *)calloc(dim+1, sizeof(dCSRmat));
 	  
-	  for(i=0;i<dim;i++){ // copy block diagonal to A_diag
-	    dcsr_alloc(A.blocks[i*(dim+2)]->row, A.blocks[i*(dim+2)]->col, A.blocks[i*(dim+2)]->nnz, &A_diag[i]);
-	    dcsr_cp(A.blocks[i*(dim+2)], &A_diag[i]);
+      for(i=0;i<dim;i++){ // copy block diagonal to A_diag
+      dcsr_alloc(A.blocks[i*(dim+2)]->row, A.blocks[i*(dim+2)]->col, A.blocks[i*(dim+2)]->nnz, &A_diag[i]);
+      dcsr_cp(A.blocks[i*(dim+2)], &A_diag[i]);
+      }
+      // Get Mass Matrix for p
+      dCSRmat Mp;
+      assemble_global(&Mp,NULL,assemble_mass_local,&FE_p,&mesh,cq,NULL,one_coeff_scal,0.0);
+      dcsr_alloc(Mp.row, Mp.col, Mp.nnz, &A_diag[dim]);
+      dcsr_cp(&Mp, &A_diag[dim]);
+
+      // Set parameters for linear iterative methods
+      linear_itsolver_param linear_itparam;
+      param_linear_solver_init(&linear_itparam);
+      param_linear_solver_set(&linear_itparam,&inparam);
+      INT solver_type = linear_itparam.linear_itsolver_type;
+      INT solver_printlevel = linear_itparam.linear_print_level;
+	  
+      // Solve
+      if(solver_type==0) { // Direct Solver
+      solver_flag = block_directsolve_UMF(&A,&b,&sol,solver_printlevel);
+      } else { // Iterative Solver
+      if (linear_itparam.linear_precond_type == PREC_NULL) {
+      solver_flag = linear_solver_bdcsr_krylov(&A, &b, &sol, &linear_itparam);
+      } else {
+      if(dim==2) solver_flag = linear_solver_bdcsr_krylov_block_3(&A, &b, &sol, &linear_itparam, NULL, A_diag);
+      if(dim==3) solver_flag = linear_solver_bdcsr_krylov_block_4(&A, &b, &sol, &linear_itparam, NULL, A_diag);
+      }
+      }
+      */				    
+      ///////////////////////////////////////////////////////////////// 
+      // Error Check
+      if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n",solver_flag);
+	    
+	    
+	    
+      clock_t clk_solve_end = clock();
+      printf("Elapsed CPU Time for Solve = %f seconds.\n\n",
+	     (REAL) (clk_solve_end-clk_solve_start)/CLOCKS_PER_SEC);
+	  
+	    
+      //if(timestep_number == total_timestep){
+      {
+	printf("Compute Error at Time = %f \n", time);
+	      
+	//////////////////////////////////////////////////////////////////////////////////////////////
+	/********************* Compute Errors if you have exact solution ****************************/
+	clock_t clk_error_start = clock();
+	      
+	REAL* solerrL2 = (REAL *) calloc(dim+1+1, sizeof(REAL));
+	REAL* solerrH1 = (REAL *) calloc(dim+1+1, sizeof(REAL)); // Note: No H1 error for P0 elements
+	REAL* solerr_stress = (REAL *) calloc(dim+1+1, sizeof(REAL)); // Note: No H1 error for P0 elements
+	      
+	L2error_block(solerrL2, sol.val, exact_sol2D, &FE, &mesh, cq, time);
+	//HDerror_block(solerrH1, sol.val, exact_sol2D, Dexact_sol2D, &FE, &mesh, cq, 0.0);
+	HDsemierror_block(solerrH1, sol.val, Dexact_sol2D, &FE, &mesh, cq, time);
+	//NEW SLEE Aug 17 2020
+	HDsemierror_block_Stress(solerr_stress, sol.val, exact_sol2D, Dexact_sol2D, &FE, &mesh, cq, time);
+	      
+	REAL uerrL2 = 0;
+	REAL uerrH1 = 0;
+	REAL uerr_stressH1 = 0;
+	      
+	//For Pressure
+	REAL uerrL2_p = 0;
+	REAL uerrH1_p = 0;
+	      
+	for(i=0;i<dim;i++)
+	  uerrL2 += solerrL2[i]*solerrL2[i];
+	for(i=0;i<dim;i++)
+	  uerrH1 += solerrH1[i]*solerrH1[i];
+	for(i=0;i<dim;i++)
+	  uerr_stressH1 += solerr_stress[i]*solerr_stress[i];
+	      
+	uerrL2 = sqrt(uerrL2);
+	uerrH1 = sqrt(uerrH1);
+	uerr_stressH1 = sqrt(uerr_stressH1);
+	      
+	//For Pressure
+	//uerrL2_p += solerrL2[3]*solerrL2[3];
+	//uerrH1_p += solerrL2[4]*solerrL2[4];
+	//uerrL2_p = sqrt(uerrL2_p);
+	//uerrH1_p = sqrt(uerrH1_p);
+	      
+	uerrL2_p = sqrt(solerrL2[3]);
+	uerrH1_p = sqrt(solerrH1[3]);
+	      
+	      
+	//REAL perrL2 = solerrL2[dim];
+	//REAL perrH1 = solerrH1[dim];
+	      
+	printf("************* MECHANCIS   *****************************\n");
+	printf("[CG] L2 Norm of u error    = %26.13e\n",uerrL2);
+	printf("[CG] H1 Norm of u error    = %26.13e\n",uerrH1);
+	printf("[CG] Stress Norm of u error    = %26.13e\n",uerrH1);
+	printf("*******************************************************\n\n");
+	      
+	//Jul. 10. 2020 SLEE save the errors for convergence computation
+	L2_error_per_cycle[cycle] = uerrL2; 
+	H1_error_per_cycle[cycle] = uerrH1;
+	H1_stress_error_per_cycle[cycle] = uerr_stressH1; 
+	      
+	//For Pressure
+	L2_error_p_per_cycle[cycle] = uerrL2_p; 
+	H1_error_p_per_cycle[cycle] = uerrH1_p;
+	      
+	printf("************* PRESSURE    *****************************\n");
+	printf("[CG] L2 Norm of u error    = %26.13e\n",uerrL2_p);
+	printf("[CG] H1 Norm of u error    = %26.13e\n",uerrH1_p);
+	//printf("[CG] Stress Norm of u error    = %26.13e\n",uerrH1);
+	printf("*******************************************************\n\n");
+	      
+	      
+	//L2_error_p_per_cycle[cycle] = perrL2; 
+	//NEW SLEE Aug 23 2020
+	//NEW ERROR FOR EG
+	      
+	REAL* solerrL2_EG = (REAL *) calloc(dim+1+1, sizeof(REAL));
+	REAL* solerrH1_EG = (REAL *) calloc(dim+1+1, sizeof(REAL)); // Note: No H1 error for P0 elements
+	REAL* solerr_stress_EG = (REAL *) calloc(dim+1+1, sizeof(REAL)); // Note: No H1 error for P0 elements
+	REAL* solerr_energy_EG = (REAL *) calloc(dim+1+1, sizeof(REAL)); // Note: No H1 error for P0 elements
+
+	L2error_block_EG(solerrL2_EG, sol.val, exact_sol2D, &FE, &mesh, cq, time);
+	HDerror_block_EG(solerrH1_EG, sol.val, exact_sol2D, Dexact_sol2D, &FE, &mesh, cq, time);
+	HDsemierror_block_Stress_EG(solerr_stress_EG, sol.val, exact_sol2D, Dexact_sol2D, &FE, &mesh, cq, time);
+	//HDsemierror_block_EnergyNorm_EG(solerr_energy_EG, sol.val, exact_sol2D, Dexact_sol2D, &FE, &mesh, cq, 0.0);
+	HDsemierror_block_EnergyNorm_EG_FaceLoop(solerr_energy_EG, sol.val, exact_sol2D, Dexact_sol2D, &FE, &mesh, cq, time);
+	      
+	//NEW SLEE Aug 17 2020
+	//NEW ERROR FOR STRESS, \mu \epsilon(u) + \lambda \div u
+	REAL uerrL2_EG = 0;
+	REAL uerrH1_EG = 0;
+	REAL uerr_stress_EG = 0;
+	REAL uerr_energy_EG = 0;
+	      
+	// For Pressure
+	REAL uerrL2_EG_p = 0;
+	REAL uerrH1_EG_p = 0;
+	      
+	      
+	for(i=0;i<dim;i++)
+	  uerrL2_EG += solerrL2_EG[i]*solerrL2_EG[i];
+	for(i=0;i<dim;i++)
+	  uerrH1_EG += solerrH1_EG[i]*solerrH1_EG[i]; 
+	for(i=0;i<dim;i++)
+	  uerr_stress_EG += solerr_stress_EG[i]*solerr_stress_EG[i]; 
+	//for(i=0;i<dim;i++)
+	//uerr_energy_EG += solerr_energy_EG[i]*solerr_energy_EG[i]; 
+	      
+	uerr_energy_EG = solerr_energy_EG[0]+solerr_energy_EG[1];
+	//DEBUG
+	uerr_energy_EG += uerrH1_EG;
+	      
+	// For Pressure 
+	uerrL2_EG_p = solerrL2_EG[3];//*solerrL2_EG[3];
+	uerrH1_EG_p = solerrH1_EG[3];//*solerrL2_EG[4]; 
+
+	// DEUBG L2 - H1
+	uerrL2_EG = sqrt(uerrL2_EG);
+	uerrH1_EG = sqrt(uerrH1_EG);
+	uerr_stress_EG = sqrt(uerr_stress_EG);
+	uerr_energy_EG = sqrt(uerr_energy_EG);
+	      
+	// For Pressure 
+	uerrL2_EG_p = sqrt(uerrL2_EG_p);
+	uerrH1_EG_p = sqrt(uerrH1_EG_p);
+	      
+	L2_EG_error_per_cycle[cycle] = uerrL2_EG;
+	H1_EG_error_per_cycle[cycle] = uerrH1_EG;
+	H1_stress_EG_error_per_cycle[cycle] = uerr_stress_EG;
+	H1_energy_EG_error_per_cycle[cycle] = uerr_energy_EG;
+	      
+	// For Pressure
+	//L2_p_EG_error_per_cycle[cycle] = uerrL2_EG_p;
+	//H1_p_EG_error_per_cycle[cycle] = uerrH1_EG_p;
+	      
+	printf("# of elements = %d \n", mesh.nelm); 
+	printf("*************     MECHANCIS   **************************\n");
+	printf("L2 Norm of u (EG) error    = %26.13e\n",uerrL2_EG);
+	printf("H1 Norm of u (EG) error    = %26.13e\n",uerrH1_EG);
+	printf("Stress Norm of u (EG) error    = %26.13e\n",uerr_stress_EG);
+	printf("Energy Norm of u (EG) error    = %26.13e\n",uerr_energy_EG);
+	printf("*******************************************************\n");
+	printf("*************     PRESSURE   **************************\n");
+	printf("L2 Norm of u (EG) error    = %26.13e\n",uerrL2_EG_p);
+	printf("H1 Norm of u (EG) error    = %26.13e\n",uerrH1_EG_p);
+	      
+	      
+	/////////////////////////////////////
+	/*fprintf(stdout,"\n%d,%d\n\n",A.brow,A.bcol);
+	  INT j;
+	  for(i=0;i<A.brow;i++){ 
+	  for(j=0;j<A.brow;j++){ 
+	  fprintf(stdout,"\n(%d,%d):::%d,%d,%d\n\n",i,j,	 
+	  A.blocks[j*A.bcol+i]->row,		 
+	  A.blocks[j*A.bcol+i]->col,		 
+	  A.blocks[j*A.bcol+i]->nnz); 
+	  } 
 	  }
-	   // Get Mass Matrix for p
-	  dCSRmat Mp;
-	  assemble_global(&Mp,NULL,assemble_mass_local,&FE_p,&mesh,cq,NULL,one_coeff_scal,0.0);
-	  dcsr_alloc(Mp.row, Mp.col, Mp.nnz, &A_diag[dim]);
-	  dcsr_cp(&Mp, &A_diag[dim]);
-
-	    // Set parameters for linear iterative methods
-	  linear_itsolver_param linear_itparam;
-	  param_linear_solver_init(&linear_itparam);
-	  param_linear_solver_set(&linear_itparam,&inparam);
-	  INT solver_type = linear_itparam.linear_itsolver_type;
-	  INT solver_printlevel = linear_itparam.linear_print_level;
-	  
-	  // Solve
-	  if(solver_type==0) { // Direct Solver
-	    solver_flag = block_directsolve_UMF(&A,&b,&sol,solver_printlevel);
-	  } else { // Iterative Solver
-	    if (linear_itparam.linear_precond_type == PREC_NULL) {
-	      solver_flag = linear_solver_bdcsr_krylov(&A, &b, &sol, &linear_itparam);
-	    } else {
-	      if(dim==2) solver_flag = linear_solver_bdcsr_krylov_block_3(&A, &b, &sol, &linear_itparam, NULL, A_diag);
-	      if(dim==3) solver_flag = linear_solver_bdcsr_krylov_block_4(&A, &b, &sol, &linear_itparam, NULL, A_diag);
-	    }
-	  }
-	  */				    
-          ///////////////////////////////////////////////////////////////// 
-	  // Error Check
-	  if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n",solver_flag);
-	    
-	    
-	    
-	    clock_t clk_solve_end = clock();
-	    printf("Elapsed CPU Time for Solve = %f seconds.\n\n",
-		   (REAL) (clk_solve_end-clk_solve_start)/CLOCKS_PER_SEC);
-	  
-	    
-	    //if(timestep_number == total_timestep){
-	    {
-	      printf("Compute Error at Time = %f \n", time);
-	      
-	      //////////////////////////////////////////////////////////////////////////////////////////////
-	      /********************* Compute Errors if you have exact solution ****************************/
-	      clock_t clk_error_start = clock();
-	      
-	      REAL* solerrL2 = (REAL *) calloc(dim+1+1, sizeof(REAL));
-	      REAL* solerrH1 = (REAL *) calloc(dim+1+1, sizeof(REAL)); // Note: No H1 error for P0 elements
-	      REAL* solerr_stress = (REAL *) calloc(dim+1+1, sizeof(REAL)); // Note: No H1 error for P0 elements
-	      
-	      L2error_block(solerrL2, sol.val, exact_sol2D, &FE, &mesh, cq, time);
-	      //HDerror_block(solerrH1, sol.val, exact_sol2D, Dexact_sol2D, &FE, &mesh, cq, 0.0);
-	      HDsemierror_block(solerrH1, sol.val, Dexact_sol2D, &FE, &mesh, cq, time);
-	      //NEW SLEE Aug 17 2020
-	      HDsemierror_block_Stress(solerr_stress, sol.val, exact_sol2D, Dexact_sol2D, &FE, &mesh, cq, time);
-	      
-	      REAL uerrL2 = 0;
-	      REAL uerrH1 = 0;
-	      REAL uerr_stressH1 = 0;
-	      
-	      //For Pressure
-	      REAL uerrL2_p = 0;
-	      REAL uerrH1_p = 0;
-	      
-	      for(i=0;i<dim;i++)
-		uerrL2 += solerrL2[i]*solerrL2[i];
-	      for(i=0;i<dim;i++)
-		uerrH1 += solerrH1[i]*solerrH1[i];
-	      for(i=0;i<dim;i++)
-		uerr_stressH1 += solerr_stress[i]*solerr_stress[i];
-	      
-	      uerrL2 = sqrt(uerrL2);
-	      uerrH1 = sqrt(uerrH1);
-	      uerr_stressH1 = sqrt(uerr_stressH1);
-	      
-	      //For Pressure
-	      //uerrL2_p += solerrL2[3]*solerrL2[3];
-	      //uerrH1_p += solerrL2[4]*solerrL2[4];
-	      //uerrL2_p = sqrt(uerrL2_p);
-	      //uerrH1_p = sqrt(uerrH1_p);
-	      
-	      uerrL2_p = sqrt(solerrL2[3]);
-	      uerrH1_p = sqrt(solerrH1[3]);
-	      
-	      
-	      //REAL perrL2 = solerrL2[dim];
-	      //REAL perrH1 = solerrH1[dim];
-	      
-	      printf("************* MECHANCIS   *****************************\n");
-	      printf("[CG] L2 Norm of u error    = %26.13e\n",uerrL2);
-	      printf("[CG] H1 Norm of u error    = %26.13e\n",uerrH1);
-	      printf("[CG] Stress Norm of u error    = %26.13e\n",uerrH1);
-	      printf("*******************************************************\n\n");
-	      
-	      //Jul. 10. 2020 SLEE save the errors for convergence computation
-	      L2_error_per_cycle[cycle] = uerrL2; 
-	      H1_error_per_cycle[cycle] = uerrH1;
-	      H1_stress_error_per_cycle[cycle] = uerr_stressH1; 
-	      
-	      //For Pressure
-	      L2_error_p_per_cycle[cycle] = uerrL2_p; 
-	      H1_error_p_per_cycle[cycle] = uerrH1_p;
-	      
-	      printf("************* PRESSURE    *****************************\n");
-	      printf("[CG] L2 Norm of u error    = %26.13e\n",uerrL2_p);
-	      printf("[CG] H1 Norm of u error    = %26.13e\n",uerrH1_p);
-	      //printf("[CG] Stress Norm of u error    = %26.13e\n",uerrH1);
-	      printf("*******************************************************\n\n");
-	      
-	      
-	      //L2_error_p_per_cycle[cycle] = perrL2; 
-	      //NEW SLEE Aug 23 2020
-	      //NEW ERROR FOR EG
-	      
-	      REAL* solerrL2_EG = (REAL *) calloc(dim+1+1, sizeof(REAL));
-	      REAL* solerrH1_EG = (REAL *) calloc(dim+1+1, sizeof(REAL)); // Note: No H1 error for P0 elements
-	      REAL* solerr_stress_EG = (REAL *) calloc(dim+1+1, sizeof(REAL)); // Note: No H1 error for P0 elements
-	      REAL* solerr_energy_EG = (REAL *) calloc(dim+1+1, sizeof(REAL)); // Note: No H1 error for P0 elements
-
-	      L2error_block_EG(solerrL2_EG, sol.val, exact_sol2D, &FE, &mesh, cq, time);
-	      HDerror_block_EG(solerrH1_EG, sol.val, exact_sol2D, Dexact_sol2D, &FE, &mesh, cq, time);
-	      HDsemierror_block_Stress_EG(solerr_stress_EG, sol.val, exact_sol2D, Dexact_sol2D, &FE, &mesh, cq, time);
-	      //HDsemierror_block_EnergyNorm_EG(solerr_energy_EG, sol.val, exact_sol2D, Dexact_sol2D, &FE, &mesh, cq, 0.0);
-	      HDsemierror_block_EnergyNorm_EG_FaceLoop(solerr_energy_EG, sol.val, exact_sol2D, Dexact_sol2D, &FE, &mesh, cq, time);
-	      
-	      //NEW SLEE Aug 17 2020
-	      //NEW ERROR FOR STRESS, \mu \epsilon(u) + \lambda \div u
-	      REAL uerrL2_EG = 0;
-	      REAL uerrH1_EG = 0;
-	      REAL uerr_stress_EG = 0;
-	      REAL uerr_energy_EG = 0;
-	      
-	      // For Pressure
-	      REAL uerrL2_EG_p = 0;
-	      REAL uerrH1_EG_p = 0;
-	      
-	      
-	      for(i=0;i<dim;i++)
-		uerrL2_EG += solerrL2_EG[i]*solerrL2_EG[i];
-	      for(i=0;i<dim;i++)
-		uerrH1_EG += solerrH1_EG[i]*solerrH1_EG[i]; 
-	      for(i=0;i<dim;i++)
-		uerr_stress_EG += solerr_stress_EG[i]*solerr_stress_EG[i]; 
-	      //for(i=0;i<dim;i++)
-	      //uerr_energy_EG += solerr_energy_EG[i]*solerr_energy_EG[i]; 
-	      
-	      uerr_energy_EG = solerr_energy_EG[0]+solerr_energy_EG[1];
-	      //DEBUG
-	      uerr_energy_EG += uerrH1_EG;
-	      
-	      // For Pressure 
-	      uerrL2_EG_p = solerrL2_EG[3];//*solerrL2_EG[3];
-	      uerrH1_EG_p = solerrH1_EG[3];//*solerrL2_EG[4]; 
-
-	      // DEUBG L2 - H1
-	      uerrL2_EG = sqrt(uerrL2_EG);
-	      uerrH1_EG = sqrt(uerrH1_EG);
-	      uerr_stress_EG = sqrt(uerr_stress_EG);
-	      uerr_energy_EG = sqrt(uerr_energy_EG);
-	      
-	      // For Pressure 
-	      uerrL2_EG_p = sqrt(uerrL2_EG_p);
-	      uerrH1_EG_p = sqrt(uerrH1_EG_p);
-	      
-	      L2_EG_error_per_cycle[cycle] = uerrL2_EG;
-	      H1_EG_error_per_cycle[cycle] = uerrH1_EG;
-	      H1_stress_EG_error_per_cycle[cycle] = uerr_stress_EG;
-	      H1_energy_EG_error_per_cycle[cycle] = uerr_energy_EG;
-	      
-	      // For Pressure
-	      //L2_p_EG_error_per_cycle[cycle] = uerrL2_EG_p;
-	      //H1_p_EG_error_per_cycle[cycle] = uerrH1_EG_p;
-	      
-	      printf("# of elements = %d \n", mesh.nelm); 
-	      printf("*************     MECHANCIS   **************************\n");
-	      printf("L2 Norm of u (EG) error    = %26.13e\n",uerrL2_EG);
-	      printf("H1 Norm of u (EG) error    = %26.13e\n",uerrH1_EG);
-	      printf("Stress Norm of u (EG) error    = %26.13e\n",uerr_stress_EG);
-	      printf("Energy Norm of u (EG) error    = %26.13e\n",uerr_energy_EG);
-	      printf("*******************************************************\n");
-	      printf("*************     PRESSURE   **************************\n");
-	      printf("L2 Norm of u (EG) error    = %26.13e\n",uerrL2_EG_p);
-	      printf("H1 Norm of u (EG) error    = %26.13e\n",uerrH1_EG_p);
-	      
-	      
-	      /////////////////////////////////////
-	      /*fprintf(stdout,"\n%d,%d\n\n",A.brow,A.bcol);
-		INT j;
-		for(i=0;i<A.brow;i++){ 
-		for(j=0;j<A.brow;j++){ 
-		fprintf(stdout,"\n(%d,%d):::%d,%d,%d\n\n",i,j,	 
-		A.blocks[j*A.bcol+i]->row,		 
-		A.blocks[j*A.bcol+i]->col,		 
-		A.blocks[j*A.bcol+i]->nnz); 
-		} 
-		}
 		 
-	      fflush(stdout);
-	      */
-	      clock_t clk_error_end = clock();
-	      printf("Elapsed CPU time for getting errors = %lf seconds.\n\n",(REAL)
-		     (clk_error_end-clk_error_start)/CLOCKS_PER_SEC);
+	  fflush(stdout);
+	*/
+	clock_t clk_error_end = clock();
+	printf("Elapsed CPU time for getting errors = %lf seconds.\n\n",(REAL)
+	       (clk_error_end-clk_error_start)/CLOCKS_PER_SEC);
 	      
-	      /*******************************************************************************************/
-	      /// Plotting
-	      // Allocate solution
-	      dvector v_ux = dvec_create(FE_ux.ndof);
-	      dvector v_uy = dvec_create(FE_uy.ndof);
-	      dvector v_uz;
-	      if(dim==3) v_uz = dvec_create(FE_uz.ndof);
-	      dvector v_u_eg = dvec_create(FE_u_eg.ndof);
+	/*******************************************************************************************/
+	/// Plotting
+	// Allocate solution
+	dvector v_ux = dvec_create(FE_ux.ndof);
+	dvector v_uy = dvec_create(FE_uy.ndof);
+	dvector v_uz;
+	if(dim==3) v_uz = dvec_create(FE_uz.ndof);
+	dvector v_u_eg = dvec_create(FE_u_eg.ndof);
 	      
-	      dvector v_p = dvec_create(FE_p.ndof);
-	      //dvector v_p_eg = dvec_create(FE_p_eg.ndof);
-	      
-	      
-	      get_unknown_component(&v_ux,&sol,&FE,0);
-	      get_unknown_component(&v_uy,&sol,&FE,1);
-	      if(dim==3) get_unknown_component(&v_uz,&sol,&FE,2);
-	      get_unknown_component(&v_u_eg,&sol,&FE,dim);
-	      
-	      get_unknown_component(&v_p,&sol,&FE,3);
-	      //get_unknown_component(&v_p_eg,&sol,&FE,4);
+	dvector v_p = dvec_create(FE_p.ndof);
+	//dvector v_p_eg = dvec_create(FE_p_eg.ndof);
 	      
 	      
-	      char** varname;
+	get_unknown_component(&v_ux,&sol,&FE,0);
+	get_unknown_component(&v_uy,&sol,&FE,1);
+	if(dim==3) get_unknown_component(&v_uz,&sol,&FE,2);
+	get_unknown_component(&v_u_eg,&sol,&FE,dim);
 	      
-	      //printf("OUTPUT?\n");
+	get_unknown_component(&v_p,&sol,&FE,3);
+	//get_unknown_component(&v_p_eg,&sol,&FE,4);
 	      
 	      
-	      if(inparam.print_level > 3){
+	char** varname;
+	      
+	//printf("OUTPUT?\n");
+	      
+	      
+	if(inparam.print_level > 3){
 		
-		char output_filename_per_cycle[512]={'\0'};
-		sprintf( output_filename_per_cycle, "output/solution_%d_%d.vtu", cycle,timestep_number);
-		char* soldump = output_filename_per_cycle;//"output/solution.vtu";
-		//char* soldump = "output/solution.vtu";
+	  char output_filename_per_cycle[512]={'\0'};
+	  sprintf( output_filename_per_cycle, "output/solution_%d_%d.vtu", cycle,timestep_number);
+	  char* soldump = output_filename_per_cycle;//"output/solution.vtu";
+	  //char* soldump = "output/solution.vtu";
 		
-		varname = malloc(5*FE.nspaces*sizeof(char *));
-		varname[0] = "ux";
-		varname[1] = "uy";
-		if(dim==3) varname[2] = "uz";
-		varname[dim] = "u_eg ";
+	  varname = malloc(5*FE.nspaces*sizeof(char *));
+	  varname[0] = "ux";
+	  varname[1] = "uy";
+	  if(dim==3) varname[2] = "uz";
+	  varname[dim] = "u_eg ";
 		
-		varname[3] = "p";
-		varname[4] = "p_eg";
+	  varname[3] = "p";
+	  varname[4] = "p_eg";
 		
-		dump_blocksol_vtk(soldump,varname,&mesh,&FE,sol.val);
+	  dump_blocksol_vtk(soldump,varname,&mesh,&FE,sol.val);
 		
-		// Print in Matlab format to show vector field in nice way.
-		//if(dim==3)
-		//print_matlab_vector_field(&v_ux,&v_uy,&v_uz,&FE_ux);
-	      }
+	  // Print in Matlab format to show vector field in nice way.
+	  //if(dim==3)
+	  //print_matlab_vector_field(&v_ux,&v_uy,&v_uz,&FE_ux);
+	}
 	      
-	      if(solerrL2) free(solerrL2);
-	      if(solerrL2_EG) free(solerrL2_EG);
-	      if( solerr_stress ) free( solerr_stress);
-	      if(solerrH1) free(solerrH1);
-	      dvec_free( &v_ux );
-	      dvec_free( &v_uy );
-	      if(dim==3) dvec_free( &v_uz );
-	      dvec_free( &v_u_eg );
-	      dvec_free( &v_p );
-	      //dvec_free( &v_p_eg );
+	if(solerrL2) free(solerrL2);
+	if(solerrL2_EG) free(solerrL2_EG);
+	if( solerr_stress ) free( solerr_stress);
+	if(solerrH1) free(solerrH1);
+	dvec_free( &v_ux );
+	dvec_free( &v_uy );
+	if(dim==3) dvec_free( &v_uz );
+	dvec_free( &v_u_eg );
+	dvec_free( &v_p );
+	//dvec_free( &v_p_eg );
 	      
 	      
-	    }//if timestep == 10 
+      }//if timestep == 10 
 	    
-	    //
-	    bdcsr_free( &A );
-	    dvec_free( &b );
-	        // Quadrature
+      //
+      bdcsr_free( &A );
+      dvec_free( &b );
+      // Quadrature
   
 	    
-	}//Time Loop
+      //	}//Time Loop
       
       //RESET TIME 
       time = 0.;
       timestep_number = 0;
       //timestep = timestep/2.;
-      //total_timestep = total_timestep *2;
-      
+      //total_timestep = total_timestep *2;      
       /************ Free All the Arrays ***********************************************************/
       // CSR
       /*
-      bdcsr_free( &A );
-      if(solerrL2) free(solerrL2);
-      if(solerrL2_EG) free(solerrL2_EG);
-      if( solerr_stress ) free( solerr_stress);
-      if(solerrH1) free(solerrH1);
+	bdcsr_free( &A );
+	if(solerrL2) free(solerrL2);
+	if(solerrL2_EG) free(solerrL2_EG);
+	if( solerr_stress ) free( solerr_stress);
+	if(solerrH1) free(solerrH1);
 
-      dvec_free( &b );
-      dvec_free( &sol );
-      dvec_free( &v_ux );
-      dvec_free( &v_uy );
-      if(dim==3) dvec_free( &v_uz );
-      dvec_free( &v_u_eg );
-      dvec_free( &v_p );
-      dvec_free( &v_p_eg );
+	dvec_free( &b );
+	dvec_free( &sol );
+	dvec_free( &v_ux );
+	dvec_free( &v_uy );
+	if(dim==3) dvec_free( &v_uz );
+	dvec_free( &v_u_eg );
+	dvec_free( &v_p );
+	dvec_free( &v_p_eg );
       */
 
       dvec_free( &sol );
-      dvec_free( &old_timestep_sol );
-	   
-       
+      dvec_free( &old_timestep_sol );       
       // FE Spaces
       free_fespace(&FE_ux);
       free_fespace(&FE_uy);
@@ -3242,7 +3385,8 @@ int main (int argc, char* argv[])
   
   // Jul.10.2020 SLEE: Error Computation
   //SLEE compute the convergence rate and print
-  for(int tmp=0; tmp<total_num_cycle; ++tmp)
+  INT tmp;
+  for(tmp=0; tmp<total_num_cycle; ++tmp)
     {
       if(tmp == 0){
 	L2_conv_rate_per_cycle[tmp] = 0;
@@ -3322,71 +3466,71 @@ int main (int argc, char* argv[])
   //for Latex Print Table
   printf("** LATEX TABLE CG MECHANICS ** \n");
   for(int tmp=0; tmp<total_num_cycle; ++tmp)
-    {
-      printf("%d & %f & %f &  %f &  %f   &  %f &  %f \\\\ \\hline \n", dof_per_cycle_CG[tmp], L2_error_per_cycle[tmp], L2_conv_rate_per_cycle[tmp],H1_error_per_cycle[tmp], H1_conv_rate_per_cycle[tmp],H1_stress_error_per_cycle[tmp], H1_stress_conv_rate_per_cycle[tmp] ); 
-    }
+  {
+  printf("%d & %f & %f &  %f &  %f   &  %f &  %f \\\\ \\hline \n", dof_per_cycle_CG[tmp], L2_error_per_cycle[tmp], L2_conv_rate_per_cycle[tmp],H1_error_per_cycle[tmp], H1_conv_rate_per_cycle[tmp],H1_stress_error_per_cycle[tmp], H1_stress_conv_rate_per_cycle[tmp] ); 
+  }
   
   printf("** LATEX TABLE CG PRESSURE ** \n");
   for(int tmp=0; tmp<total_num_cycle; ++tmp)
-    {
-      printf("%d & %f & %f &  %f &  %f   \\\\ \\hline \n", dof_per_cycle_CG[tmp], L2_error_p_per_cycle[tmp], L2_p_conv_rate_per_cycle[tmp],H1_error_p_per_cycle[tmp], H1_p_conv_rate_per_cycle[tmp]); 
-    }
+  {
+  printf("%d & %f & %f &  %f &  %f   \\\\ \\hline \n", dof_per_cycle_CG[tmp], L2_error_p_per_cycle[tmp], L2_p_conv_rate_per_cycle[tmp],H1_error_p_per_cycle[tmp], H1_p_conv_rate_per_cycle[tmp]); 
+  }
   
   printf("** LATEX TABLE ALL CG PRESSURE ** \n");
   for(int tmp=0; tmp<total_num_cycle; ++tmp)
-    {
-      printf("%d & %f & %f &  %f &  %f   &  %f &  %f \\\\ \\hline \n", dof_per_cycle_CG[tmp], L2_error_per_cycle[tmp], L2_conv_rate_per_cycle[tmp],H1_error_per_cycle[tmp], H1_conv_rate_per_cycle[tmp],H1_error_p_per_cycle[tmp], H1_p_conv_rate_per_cycle[tmp] ); 
-    }
+  {
+  printf("%d & %f & %f &  %f &  %f   &  %f &  %f \\\\ \\hline \n", dof_per_cycle_CG[tmp], L2_error_per_cycle[tmp], L2_conv_rate_per_cycle[tmp],H1_error_per_cycle[tmp], H1_conv_rate_per_cycle[tmp],H1_error_p_per_cycle[tmp], H1_p_conv_rate_per_cycle[tmp] ); 
+  }
  
   
   for(int tmp=0; tmp<total_num_cycle; ++tmp)
-    {
-      printf("%f \n",  mesh_size_per_cycle[tmp]);
-    }
+  {
+  printf("%f \n",  mesh_size_per_cycle[tmp]);
+  }
   */
 
   /*
-  printf("** LATEX TABLE EG MECHANICS ** \n");
-  for(int tmp=0; tmp<total_num_cycle; ++tmp)
+    printf("** LATEX TABLE EG MECHANICS ** \n");
+    for(int tmp=0; tmp<total_num_cycle; ++tmp)
     {
-      printf("%d & %f & %f &  %f &  %f   &  %f &  %f  & %f & %f \\\\ \\hline \n",  dof_per_cycle_EG[tmp],L2_EG_error_per_cycle[tmp], L2_EG_conv_rate_per_cycle[tmp],H1_EG_error_per_cycle[tmp], H1_EG_conv_rate_per_cycle[tmp],
-	     H1_stress_EG_error_per_cycle[tmp], H1_stress_EG_conv_rate_per_cycle[tmp], H1_energy_EG_error_per_cycle[tmp], H1_energy_EG_conv_rate_per_cycle[tmp] ); 
+    printf("%d & %f & %f &  %f &  %f   &  %f &  %f  & %f & %f \\\\ \\hline \n",  dof_per_cycle_EG[tmp],L2_EG_error_per_cycle[tmp], L2_EG_conv_rate_per_cycle[tmp],H1_EG_error_per_cycle[tmp], H1_EG_conv_rate_per_cycle[tmp],
+    H1_stress_EG_error_per_cycle[tmp], H1_stress_EG_conv_rate_per_cycle[tmp], H1_energy_EG_error_per_cycle[tmp], H1_energy_EG_conv_rate_per_cycle[tmp] ); 
     }
 
-  printf("** LATEX TABLE EG PRESSURE ** \n");
-  for(int tmp=0; tmp<total_num_cycle; ++tmp)
+    printf("** LATEX TABLE EG PRESSURE ** \n");
+    for(int tmp=0; tmp<total_num_cycle; ++tmp)
     {
-      printf("%d & %f & %f &  %f &  %f  \\\\ \\hline \n", dof_per_cycle_EG[tmp], L2_p_EG_error_per_cycle[tmp], L2_p_EG_conv_rate_per_cycle[tmp],H1_p_EG_error_per_cycle[tmp], H1_p_EG_conv_rate_per_cycle[tmp]); 
+    printf("%d & %f & %f &  %f &  %f  \\\\ \\hline \n", dof_per_cycle_EG[tmp], L2_p_EG_error_per_cycle[tmp], L2_p_EG_conv_rate_per_cycle[tmp],H1_p_EG_error_per_cycle[tmp], H1_p_EG_conv_rate_per_cycle[tmp]); 
     }
   */
   /*
-  printf("** LATEX TABLE ALL CG MECHANICS && EG PRESSURE ** \n");
-  for(int tmp=0; tmp<total_num_cycle; ++tmp)
+    printf("** LATEX TABLE ALL CG MECHANICS && EG PRESSURE ** \n");
+    for(int tmp=0; tmp<total_num_cycle; ++tmp)
     {
-      printf("%f & %d & %f & %f &  %f &  %f  & %d  & %f  & %f  \\\\ \\hline \n",mesh_size_per_cycle[tmp],  dof_per_cycle_CG[tmp],L2_error_per_cycle[tmp], L2_conv_rate_per_cycle[tmp],H1_error_per_cycle[tmp], H1_conv_rate_per_cycle[tmp],
-	     dof_per_cycle_EG[tmp], H1_p_EG_error_per_cycle[tmp], H1_p_EG_conv_rate_per_cycle[tmp]); 
+    printf("%f & %d & %f & %f &  %f &  %f  & %d  & %f  & %f  \\\\ \\hline \n",mesh_size_per_cycle[tmp],  dof_per_cycle_CG[tmp],L2_error_per_cycle[tmp], L2_conv_rate_per_cycle[tmp],H1_error_per_cycle[tmp], H1_conv_rate_per_cycle[tmp],
+    dof_per_cycle_EG[tmp], H1_p_EG_error_per_cycle[tmp], H1_p_EG_conv_rate_per_cycle[tmp]); 
     }
 
 
-  printf("** LATEX TABLE ALL EG MECHANICS && EG PRESSURE ** \n");
-  for(int tmp=0; tmp<total_num_cycle; ++tmp)
+    printf("** LATEX TABLE ALL EG MECHANICS && EG PRESSURE ** \n");
+    for(int tmp=0; tmp<total_num_cycle; ++tmp)
     {
-      printf("%f & %d & %f & %f &  %f &  %f  & %f  & %f  \\\\ \\hline \n", mesh_size_per_cycle[tmp], dof_per_cycle_EG[tmp],L2_EG_error_per_cycle[tmp], L2_EG_conv_rate_per_cycle[tmp],H1_energy_EG_error_per_cycle[tmp], H1_energy_EG_conv_rate_per_cycle[tmp],
-	     H1_p_EG_error_per_cycle[tmp], H1_p_EG_conv_rate_per_cycle[tmp]); 
+    printf("%f & %d & %f & %f &  %f &  %f  & %f  & %f  \\\\ \\hline \n", mesh_size_per_cycle[tmp], dof_per_cycle_EG[tmp],L2_EG_error_per_cycle[tmp], L2_EG_conv_rate_per_cycle[tmp],H1_energy_EG_error_per_cycle[tmp], H1_energy_EG_conv_rate_per_cycle[tmp],
+    H1_p_EG_error_per_cycle[tmp], H1_p_EG_conv_rate_per_cycle[tmp]); 
     }
 
-  printf("** NO L2 CG ** \n");
-  for(int tmp=0; tmp<total_num_cycle; ++tmp)
+    printf("** NO L2 CG ** \n");
+    for(int tmp=0; tmp<total_num_cycle; ++tmp)
     {
-      printf("%f & %d & %f &  %f  & %d  & %f  & %f  \\\\ \\hline \n", mesh_size_per_cycle[tmp], dof_per_cycle_CG[tmp],H1_error_per_cycle[tmp], H1_conv_rate_per_cycle[tmp],
-	     dof_per_cycle_EG[tmp], H1_p_EG_error_per_cycle[tmp], H1_p_EG_conv_rate_per_cycle[tmp]); 
+    printf("%f & %d & %f &  %f  & %d  & %f  & %f  \\\\ \\hline \n", mesh_size_per_cycle[tmp], dof_per_cycle_CG[tmp],H1_error_per_cycle[tmp], H1_conv_rate_per_cycle[tmp],
+    dof_per_cycle_EG[tmp], H1_p_EG_error_per_cycle[tmp], H1_p_EG_conv_rate_per_cycle[tmp]); 
     }
 
-  printf("** NO L2 EG ** \n");
-  for(int tmp=0; tmp<total_num_cycle; ++tmp)
+    printf("** NO L2 EG ** \n");
+    for(int tmp=0; tmp<total_num_cycle; ++tmp)
     {
-      printf("%f & %d &  %f &  %f & %d  & %f  & %f  \\\\ \\hline \n", mesh_size_per_cycle[tmp], dof_per_cycle_EG[tmp],H1_energy_EG_error_per_cycle[tmp], H1_energy_EG_conv_rate_per_cycle[tmp],
-	     dof_per_cycle_EG[tmp], H1_p_EG_error_per_cycle[tmp], H1_p_EG_conv_rate_per_cycle[tmp]); 
+    printf("%f & %d &  %f &  %f & %d  & %f  & %f  \\\\ \\hline \n", mesh_size_per_cycle[tmp], dof_per_cycle_EG[tmp],H1_energy_EG_error_per_cycle[tmp], H1_energy_EG_conv_rate_per_cycle[tmp],
+    dof_per_cycle_EG[tmp], H1_p_EG_error_per_cycle[tmp], H1_p_EG_conv_rate_per_cycle[tmp]); 
     }
   */
   
