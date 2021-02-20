@@ -124,6 +124,7 @@ static void bdcsr_extend(block_dCSRmat *ba,				\
   ctmp=malloc(1*sizeof(dCSRmat));
   // ctmp=c1*atmp+c2*add;
   dcsr_add(atmp,c1,add,c2,ctmp);
+  free(add);
   atmp->IA=(INT *)realloc(atmp->IA,sizeof(INT)*(ctmp->row+1));
   atmp->JA=(INT *)realloc(atmp->JA,sizeof(INT)*ctmp->nnz);
   atmp->val=(REAL *)realloc(atmp->val,sizeof(REAL)*ctmp->nnz);
@@ -141,23 +142,20 @@ static void bdcsr_extend(block_dCSRmat *ba,				\
   //////////////////end print for debug
   // free the working memory.
   free(ctmp);
-  free(add);
   return;
 }
 /**************************************************************/
-
-
-void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, mesh_struct *mesh, qcoordinates *cq, \
-				    INT face, iCSRmat *f_el,REAL time, REAL timestep)
+void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
+				    mesh_struct *mesh, qcoordinates *cq, \
+				    INT face, iCSRmat *f_el,REAL time,	\
+				    REAL timestep)
 {
 
-  //printf("Local Assemble Face - start\n");
-  
+  //printf("Local Assemble Face - start\n");  
   bool bEG = BOOL_EG_MECHANICS;
   bool bEG_Pressure = BOOL_EG_PRESSURE;
-
   REAL alpha = 1.;
-	 
+  
   // INDEX
   INT i,j,k;
   INT dim = mesh->dim;
@@ -3032,7 +3030,7 @@ INT main(int argc, char* argv[])
 	if(sol.val[jj]>pmax) pmax=sol.val[jj];
 	jj++;
       }
-      fprintf(stdout,"\nINTEGRAL(p)=%e, min(p)=%e, max(p)=%e\n",sum,pmin,pmax);
+      fprintf(stdout,"\nINTEGRAL(p)=%13.6e, min(p)=%11.4e, max(p)=%11.4e\n",sum,pmin,pmax);
       // Error Check
       if (solver_flag < 0) fprintf(stdout,"### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
       b.row--;
