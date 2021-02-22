@@ -93,22 +93,33 @@ void free_newton(newton* n_it)
     n_it->sol=NULL;
   }
 
-  if(n_it->sol_prev) {
-    dvec_free(n_it->sol_prev);
-    free(n_it->sol_prev);
-    n_it->sol_prev=NULL;
-  }
-
-  if(n_it->update) {
-    dvec_free(n_it->update);
-    free(n_it->update);
-    n_it->update=NULL;
-  }
-
   if(n_it->rhs) {
     dvec_free(n_it->rhs);
     free(n_it->rhs);
     n_it->rhs=NULL;
+  }
+
+  if(n_it->current_step>0) {
+    if(n_it->sol_prev) {
+      dvec_free(n_it->sol_prev);
+      free(n_it->sol_prev);
+      n_it->sol_prev=NULL;
+    }
+
+    if(n_it->update) {
+      dvec_free(n_it->update);
+      free(n_it->update);
+      n_it->update=NULL;
+    }
+  } else {
+    if(n_it->sol_prev) {
+      free(n_it->sol_prev);
+      n_it->sol_prev=NULL;
+    }
+    if(n_it->update) {
+      free(n_it->update);
+      n_it->update=NULL;
+    }
   }
 
   return;
