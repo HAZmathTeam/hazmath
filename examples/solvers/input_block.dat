@@ -54,7 +54,7 @@ linear_itsolver_tol		= 1e-6  % tolerance for linear iterative solver
 linear_stop_type		= 1     	% 1 ||r||/||b|| | 2 ||r||_B/||b||_B | % 3 ||r||/||x||
 linear_restart 			= 100		% restart for GMRes
 
-linear_precond_type		= 10		%  0 Null | 1 Diag | 2 AMG
+linear_precond_type		= 22		%  0 Null | 1 Diag | 2 AMG
 
 %----------------------------------------------%
 % parameters for Algebraic Multigrid           %
