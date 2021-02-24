@@ -1,13 +1,11 @@
 //
 //  nonlinear.h
-//  
+//
 //
 //  Created by Adler, James on 10/18/16.
 //
 //  Contains Structs for nonlinear iterations
-//  For now just assumes Newton, though, any kind
-//  of Picard iteration could be used.
-//
+//  For now just assumes Newton, and FAS in the works
 //
 
 #include <stdio.h>
@@ -45,7 +43,7 @@ typedef struct newton{
   // Jacobian(sol_prev)[update] = f - A(sol_prev)
   //! Jacobian-matrix
   dCSRmat* Jac;
-  
+
   //! Jacobian-matrix Block CSR
   block_dCSRmat* Jac_block;
 
@@ -66,8 +64,51 @@ typedef struct newton{
 
   //! Norm of update (combined total if in block form)
   REAL update_norm;
-	
+
 } newton;
+
+typedef struct fas_struct{
+
+  //! Max number of FAS cycles
+  INT max_steps;
+
+  //! Current FAS cycle
+  INT current_step;
+
+  //! Tolerance Type: 0 - ||nonlinear residual||<tol only one so far
+  INT tol_type;
+
+  //! Stopping Tolerance
+  REAL tol;
+
+  //! Step Length: sol = sol_prev + step_length*update
+  REAL step_length;
+
+  // Pre-smoothing steps (for now only assume nonlinear Gauss Seidel)
+  INT smooth_preits;
+
+  // Post-smoothing steps (for now only assume nonlinear Gauss Seidel)
+  INT smooth_postits;
+
+  // Smoothing Tolerance
+  REAL smooth_tol;
+
+  //! Current solution
+  dvector* sol;
+
+  //! Norm of nonlinear residual (combined total if in block form)
+  REAL res_norm;
+
+  //! Fine grid nonlinear residual
+  dvector* nonlinear_res;
+
+  //! Prolongation operator
+  dCSRmat* P;
+
+  //! Restriction operator
+  dCSRmat* R;
+
+} fas_struct;
 
 
 #endif
