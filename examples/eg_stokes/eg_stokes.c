@@ -3056,9 +3056,37 @@ INT main(int argc, char* argv[])
       } else { // Iterative Solver
         if (linear_itparam.linear_precond_type == PREC_NULL) {
           solver_flag = linear_solver_bdcsr_krylov(&A, &b, &sol, &linear_itparam);
-        } else {
+        }
+        else if (linear_itparam.linear_precond_type >=10 || linear_itparam.linear_precond_type <100 )
+        { // do not merge velocity unknowns, directly apply solvers
+          // prepare the preconditioner
+          A_diag = (dCSRmat *)calloc(dim+2, sizeof(dCSRmat)); // number of blocks = dim+2
+
+          // get the blocks
+          // for ux, uy, and u_eg, grab the blocks directly
+          for(i=0;i<dim+1;i++){ // copy block diagonal to A_diag
+            dcsr_alloc(A.blocks[i*(dim+3)]->row, A.blocks[i*(dim+3)]->col, A.blocks[i*(dim+3)]->nnz, &A_diag[i]);
+        	  dcsr_cp(A.blocks[i*(dim+3)], &A_diag[i]);
+        	}
+          // for pressure, use the mass matrix
+          dcsr_alloc(p_ndof, p_ndof, p_ndof, &A_diag[dim+1]);
+          for (i=0; i<=A_diag[dim+1].row; i++)
+            A_diag[dim+1].IA[i] = i;
+          for (i=0; i<A_diag[dim+1].row; i++)
+            A_diag[dim+1].JA[i] = i;
+          for (i=0; i<A_diag[dim+1].row; i++)
+            A_diag[dim+1].val[i] = mesh.el_vol[i];
+
+          // now ready to solve
           //if(dim==2) solver_flag = linear_solver_bdcsr_krylov_block_3(&A, &b, &sol, &linear_itparam, NULL, A_diag);
           solver_flag = linear_solver_bdcsr_krylov_block_4(&A, &b, &sol, &linear_itparam, &amgparam, A_diag);
+        }
+        else
+        { // merge velocity unknowns, then apply solver
+
+          block_dCSRmat A3;
+          
+
         }
       }
 
