@@ -834,7 +834,7 @@ void assemble_global_RHS_block(dvector *b,void (*local_rhs_assembly)(REAL *,bloc
 * \brief Computes the global rhs for any a(u,v) = <f,v> bilinear form using various element types
 *        (eg. P1, P2, Nedelec, and Raviart-Thomas).
 *        Here we assume a system and thus a block FE space and that this is from
-*        the assembly of a nonlinear problem (computing the Jacobian).
+*        the assembly of a nonlinear problem (thus, this computes the nonlinear residual).
 *        If it is a linear system, just add NULL for old_sol.
 *        DOES NOT take care of Dirichlet boundary conditions.  A separate routine will eliminate them later
 *

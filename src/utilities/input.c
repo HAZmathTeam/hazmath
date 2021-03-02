@@ -247,6 +247,39 @@ void param_input (const char *filenm,		\
             fgets(buffer,maxb,fp); // skip rest of line
         }
 
+        else if (strcmp(buffer,"fas_presmoothers")==0) {
+            val = fscanf(fp,"%s",buffer);
+            if (val!=1 || strcmp(buffer,"=")!=0) {
+                status = ERROR_INPUT_PAR; break;
+            }
+            val = fscanf(fp,"%d",&ibuff);
+            if (val!=1) { status = ERROR_INPUT_PAR; break; }
+            inparam->fas_presmoothers = ibuff;
+            fgets(buffer,maxb,fp); // skip rest of line
+        }
+
+        else if (strcmp(buffer,"fas_postsmoothers")==0) {
+            val = fscanf(fp,"%s",buffer);
+            if (val!=1 || strcmp(buffer,"=")!=0) {
+                status = ERROR_INPUT_PAR; break;
+            }
+            val = fscanf(fp,"%d",&ibuff);
+            if (val!=1) { status = ERROR_INPUT_PAR; break; }
+            inparam->fas_postsmoothers = ibuff;
+            fgets(buffer,maxb,fp); // skip rest of line
+        }
+
+        else if (strcmp(buffer,"fas_smooth_tol")==0) {
+            val = fscanf(fp,"%s",buffer);
+            if (val!=1 || strcmp(buffer,"=")!=0) {
+                status = ERROR_INPUT_PAR; break;
+            }
+            val = fscanf(fp,"%lf",&dbuff);
+            if (val!=1) { status = ERROR_INPUT_PAR; break; }
+            inparam->fas_smooth_tol = dbuff;
+            fgets(buffer,maxb,fp); // skip rest of line
+        }
+
         // --------------
         // linear solver
         // --------------
