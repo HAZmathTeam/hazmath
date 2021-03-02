@@ -16,5 +16,6 @@ CFLAGS = -g -pg
 FFLAGS = -g -pg
 
 WITH_SUITESPARSE=1
+WITH_LAPACK=1
 
 sinclude ../examples.mk
