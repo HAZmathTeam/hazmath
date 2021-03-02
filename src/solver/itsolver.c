@@ -1341,7 +1341,7 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
         dcsr_trans(&A_diag[i], &A_tran);
         dcsr_cp(&A_tran, &A_diag[i]);
 
-        if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagnol: \n", i);
+        if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagonal block: \n", i);
         LU_diag[i] = umfpack_factorize(&A_diag[i], prtlvl);
 
         dcsr_free(&A_tran);
@@ -1539,7 +1539,7 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
             dcsr_trans(&A_diag[i], &A_tran);
             dcsr_cp(&A_tran, &A_diag[i]);
 
-            if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagnol: \n", i);
+            if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagonal block:\n", i);
             LU_diag[i] = umfpack_factorize(&A_diag[i], prtlvl);
 
             dcsr_free(&A_tran);
@@ -1731,7 +1731,7 @@ INT linear_solver_bdcsr_krylov_block_4(block_dCSRmat *A,
             dcsr_trans(&A_diag[i], &A_tran);
             dcsr_cp(&A_tran, &A_diag[i]);
 
-            if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagnol: \n", i);
+            if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagonal block:\n", i);
             LU_diag[i] = umfpack_factorize(&A_diag[i], prtlvl);
 
             dcsr_free(&A_tran);
@@ -1863,7 +1863,7 @@ INT linear_solver_bdcsr_krylov_block_5(block_dCSRmat *A,
             dcsr_trans(&A_diag[i], &A_tran);
             dcsr_cp(&A_tran, &A_diag[i]);
 
-            if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagnol: \n", i);
+            if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagonal block:\n", i);
             LU_diag[i] = umfpack_factorize(&A_diag[i], prtlvl);
 
             dcsr_free(&A_tran);
@@ -2059,7 +2059,7 @@ INT linear_solver_bdcsr_krylov_block(block_dCSRmat *A,
     dcsr_trans(&A_diag[i], &A_tran);
     dcsr_cp(&A_tran, &A_diag[i]);
 
-    if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagnol: \n", i);
+    if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagonal block:\n", i);
     LU_diag[i] = umfpack_factorize(&A_diag[i], prtlvl);
 
     dcsr_free(&A_tran);
