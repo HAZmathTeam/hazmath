@@ -3210,8 +3210,8 @@ INT main(int argc, char* argv[])
 	//uerrL2_p = sqrt(uerrL2_p);
 	//uerrH1_p = sqrt(uerrH1_p);
 
-	uerrL2_p = sqrt(solerrL2[3]);
-	uerrH1_p = sqrt(solerrH1[3]);
+	uerrL2_p = solerrL2[3];
+	uerrH1_p = solerrH1[3];
 
 
 	//REAL perrL2 = solerrL2[dim];
