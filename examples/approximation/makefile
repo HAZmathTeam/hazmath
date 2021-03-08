@@ -15,5 +15,5 @@ LIBS =
 CFLAGS = -O
 
 WITH_LAPACK=1
-
+WITH_SUITESPARSE=1
 sinclude ../examples.mk
