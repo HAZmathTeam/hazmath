@@ -3930,7 +3930,7 @@ INT linear_solver_bdcsr_krylov_gmg(block_dCSRmat *A,
  * \param x         Pointer to the approx solution in dvector format
  * \param itparam   Pointer to parameters for iterative solvers
  * \param amgparam  Pointer to parameters for AMG solvers
- * \param prec_block_data   data for preconditioning (A_diag, and others). 
+ * \param prec_block_data   data for preconditioning (A_diag, and others).
  *
  * \return          Iteration number if converges; ERROR otherwise.
  *
