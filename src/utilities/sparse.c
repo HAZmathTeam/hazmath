@@ -3952,4 +3952,32 @@ void dcsr2full(dCSRmat *A,REAL *Afull)
   }
 }
 
+
+/***********************************************************************************************/
+/*!
+   * \fn void bdcsr_getdiag (block_dCSRmat *A, dCSRmat *A_diag)
+   *
+   * \brief copy a block_dCSRmat to a new one B=A
+   *
+   * \param A       Pointer to the block_dCSRmat matrix
+   * \param A_diag  Array of the dCSRmat matrices (allocated!)
+   *
+   */
+void bdcsr_getdiag(block_dCSRmat *A, dCSRmat *A_diag)
+{
+    INT i;
+    INT n = A->brow;
+
+    // allocate array of dCSRmat
+    // dCSRmat *A_diag = (dCSRmat*)calloc(A->brow, sizeof(dCSRmat));
+
+    // copy diag blocks
+    for (i = 0; i < n; ++i){
+        dcsr_alloc(A->blocks[i*n + i]->row, A->blocks[i*n + i]->col, A->blocks[i*n + i]->nnz, &(A_diag[i]));
+        dcsr_cp(A->blocks[i*n + i], &(A_diag[i]));
+    }
+
+    // return A_diag;
+}
+
 /*********************************EOF***********************************/
