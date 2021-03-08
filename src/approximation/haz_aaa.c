@@ -1,3 +1,4 @@
+
 /*! \file src/approximation/haz_aaa.c
  *
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 20170715.
@@ -211,16 +212,16 @@ INT residues_poles(INT m,				\
  * \note Uses long doubles as well as doubles. 
  *
  */
-REAL get_cpzwf(REAL16 (*func)(REAL16 x, void *param),	\
-	      void *param,				\
-	      REAL **cpzwf,				\
-	      INT *mbig_in,				\
-	      INT *mmax_in,				\
-	      INT *m_out,				\
-	      REAL xmin_in,				\
-	      REAL xmax_in,				\
-	      REAL tolaaa,
-	      INT print_level)
+REAL get_cpzwf(REAL16 (*func)(REAL16 , void *),		\
+	       void *param,				\
+	       REAL **cpzwf,				\
+	       INT *mbig_in,				\
+	       INT *mmax_in,				\
+	       INT *m_out,				\
+	       REAL xmin_in,				\
+	       REAL xmax_in,				\
+	       REAL tolaaa,
+	       INT print_level)
 {
   /*
    *  \param mbig is the total number of points; mmax_in is the max number of
@@ -252,7 +253,7 @@ REAL get_cpzwf(REAL16 (*func)(REAL16 x, void *param),	\
   // approximate and param are the parameters it may depend on
   INT m,i,j,k,krow,kmax,mmax;
   REAL16 r,wzkj,fnum,fden,rm,rmax,swp;
-  REAL16  fj,zj,tol,xmin=(REAL16 )xmin_in,xmax=(REAL16 )xmax_in;
+  REAL16  fj,zj,tol,xmin=(REAL16 )xmin_in,xmax=(REAL16 )(xmax_in);
   REAL smin=-1e20;
   INT info=-22;
   INT mbig=mbig_in[0];
@@ -263,7 +264,7 @@ REAL get_cpzwf(REAL16 (*func)(REAL16 x, void *param),	\
     mmax=mmax_in[0];
   else 
     mmax_in[0]=mmax;
-  tol=powl(2e0,-42e0);
+  tol=powl(2e0,-46e0);
   if(((REAL16 )tolaaa) > tol)
     tol=(REAL16 )tolaaa;
   INT mem=mbig*mmax*sizeof(REAL) + mmax*sizeof(REAL)+2*mbig*sizeof(REAL16);

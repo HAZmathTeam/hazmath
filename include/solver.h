@@ -586,6 +586,49 @@ typedef struct {
 
 } precond_block_data; /**< Precond data for block matrices */
 
+
+/***********************************************************************************************/
+
+/*!
+ * \struct precond_ra_data
+ *
+ * \brief Data on rational approximation
+ *        that need to be passed to the preconditioners
+ */
+typedef struct {
+
+    /*--- solve by direct solver ---*/
+    void **LU_diag;    /**< LU decomposition for shifted Laplacians (UMFpack) */
+
+    /*---  solve by AMG ---*/
+    AMG_data **mgl;       /**< AMG data for shifted Laplacians */
+    AMG_param *amgparam;  /**< parameters for AMG */
+
+    /*-----------------------------*/
+    /* Data for fractional problem */
+    /*-----------------------------*/
+    dCSRmat *scaled_A;      /**< scaled stiffness matrix */
+    dCSRmat *scaled_M;      /**< scaled Mass matrix */
+    dvector *diag_scaled_M; /**< diagonal of scaled mass matrix */
+    REAL scaled_alpha;      /**< scaled alpha coeff (goes with s_power) */
+    REAL scaled_beta;       /**< scaled beta coeff (goes with t_power) */
+    REAL s_power;           /**< first fractionality (goes with alpha) */
+    REAL t_power;           /**< second fractionality (goes with beta) */
+    dvector *poles;         /**< poles for rational approximation */
+    dvector *residues;      /**< residues for rational approximation */
+
+    /*------------------------*/
+    /*  temporary work space  */
+    /*------------------------*/
+    dvector *r;     /**< temporary dvector to store and restore the residual */
+    REAL *w;        /**< temporary work space for other usage */
+
+} precond_ra_data; /**< Data for RA preconditioner */
+
+
+/***********************************************************************************************/
+
+
 /**
  * \struct matvec
  * \brief Matrix-vector multiplication

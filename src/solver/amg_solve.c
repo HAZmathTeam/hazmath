@@ -92,7 +92,8 @@ inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres
         printf("### HAZMATH WARNING: Max iter %d reached with rel. resid. %e.\n", MaxIt, relres);
     }
     else if ( iter >= 0 ) {
-        printf("Number of iterations = %d with relative residual %e.\n", iter, relres);
+      //printf("Number of iterations = %d with relative residual %e (in %s)\n", iter, relres,"amg_solve.c");
+      printf("Num_iter(amg_solve.c) = %d with relative residual %e.\n", iter, relres);
     }
 }
 
