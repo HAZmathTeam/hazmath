@@ -452,7 +452,7 @@ INT main(int argc, char* argv[])
       else if (linear_itparam.linear_precond_type >=10 || linear_itparam.linear_precond_type <100 )
       { // do not merge velocity unknowns, directly apply solvers
         // prepare the preconditioner
-        A_diag = (dCSRmat *)calloc(nspaces, sizeof(dCSRmat)); // number of blocks = dim+2 // 
+        A_diag = (dCSRmat *)calloc(nspaces, sizeof(dCSRmat)); // number of blocks = dim+2 //
 
         // get the blocks
         // for ux, uy, and u_eg, grab the blocks directly
