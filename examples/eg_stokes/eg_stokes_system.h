@@ -600,10 +600,7 @@ void assemble_global_block_neighbor(block_dCSRmat* A,dvector *b, REAL *solution,
 /*************** LOCAL STUFF **************************************************/
 
 /**************************************************************/
-void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
-				    mesh_struct *mesh, qcoordinates *cq, \
-				    INT face, iCSRmat *f_el,REAL time,	\
-				    REAL timestep)
+void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE,mesh_struct *mesh, qcoordinates *cq,INT face, iCSRmat *f_el,REAL time,REAL timestep)
 {
 
   //printf("Local Assemble Face - start\n");
@@ -667,6 +664,7 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
 
 
   // printf("===== FACE = %d  ===== \n",face);
+  // TODO: I think this is OK right?  2 elements per face regardles of dim?
   INT neighbor_index[2];
   neighbor_index[0] = -1;
   neighbor_index[1] = -1;
@@ -684,36 +682,17 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
     counter++;
 
   }
-  // Sanity Check
-  /*
-    for(pq=0;pq<2;++pq)
-    {
-    if(counter == 2)
-    {
-    //printf("neighbor_index[%d]= %d || counter  = %d\n", pq, neighbor_index[pq],counter);
-    }
-    else if(counter == 1){
-    if(pq == 0)
-    {
-    //printf("neighbor_index[%d]= %d || counter  = %d\n", pq, neighbor_index[pq],counter);
-    }
-    else{
-    //printf("-\n");
-    }
-    }
-    }
-  */
 
   // Saniyy Check
   // counter == 1 means the BD
   if(counter == 1 && mesh->f_flag[face] == 0)
-    {printf("check-error FALSE\n"); exit(0);}
+  {printf("check-error FALSE\n"); exit(0);}
 
   if(neighbor_index[0] == -1)
-    {
-      printf("Something is Wrong! \n");
-      exit(0);
-    }
+  {
+    printf("Something is Wrong! \n");
+    exit(0);
+  }
 
   // Find DOF on element
   jcntr = 0;
@@ -732,51 +711,53 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
   // Find barycenter for given element
   barycenter->x[0] = mesh->el_mid[neighbor_index[0]*dim];
   barycenter->y[0] = mesh->el_mid[neighbor_index[0]*dim + 1];
+  if(dim==3) barycenter->z[0] = mesh->el_mid[neighbor_index[0]*dim+2];
 
 
   // Find DOF on the neighbor Element
   if(counter == 2)// in the interface
+  {
+    if(neighbor_index[1] == -1)
     {
-      if(neighbor_index[1] == -1)
-	{
-	  printf("!#!@$#@!$ \n");
-	  exit(0);
-	}
-
-      jcntr_neighbor = 0;
-      for(k_neighbor=0;k_neighbor<FE->nspaces;k_neighbor++) {
-	rowa_neighbor = FE->var_spaces[k_neighbor]->el_dof->IA[neighbor_index[1]];
-	rowb_neighbor = FE->var_spaces[k_neighbor]->el_dof->IA[neighbor_index[1]+1];
-	for (j_neighbor=rowa_neighbor; j_neighbor<rowb_neighbor; j_neighbor++) {
-	  dof_on_elm_neighbor[jcntr_neighbor] = FE->var_spaces[k_neighbor]->el_dof->JA[j_neighbor];
-	  jcntr_neighbor++;
-	}
-      }
-      // Find vertices for given Element
-      get_incidence_row(neighbor_index[1],mesh->el_v,v_on_elm_neighbor);
-
-      // Find barycenter for given element
-      barycenter_neighbor->x[0] = mesh->el_mid[neighbor_index[1]*dim];
-      barycenter_neighbor->y[0] = mesh->el_mid[neighbor_index[1]*dim + 1];
+      printf("!#!@$#@!$ \n");
+      exit(0);
     }
+
+    jcntr_neighbor = 0;
+    for(k_neighbor=0;k_neighbor<FE->nspaces;k_neighbor++) {
+      rowa_neighbor = FE->var_spaces[k_neighbor]->el_dof->IA[neighbor_index[1]];
+      rowb_neighbor = FE->var_spaces[k_neighbor]->el_dof->IA[neighbor_index[1]+1];
+      for (j_neighbor=rowa_neighbor; j_neighbor<rowb_neighbor; j_neighbor++) {
+        dof_on_elm_neighbor[jcntr_neighbor] = FE->var_spaces[k_neighbor]->el_dof->JA[j_neighbor];
+        jcntr_neighbor++;
+      }
+    }
+    // Find vertices for given Element
+    get_incidence_row(neighbor_index[1],mesh->el_v,v_on_elm_neighbor);
+
+    // Find barycenter for given element
+    barycenter_neighbor->x[0] = mesh->el_mid[neighbor_index[1]*dim];
+    barycenter_neighbor->y[0] = mesh->el_mid[neighbor_index[1]*dim + 1];
+    if(dim==3) barycenter_neighbor->z[0] = mesh->el_mid[neighbor_index[1]*dim+2];
+  }
 
   // Sanity Check
-  /*
-    for(INT zz=0; zz<v_per_elm; ++zz)
-    {
-    printf("V_on_elm[%d] = %d  ||  dof_on_elm[%d] =%d \n", zz,v_on_elm[zz],zz,dof_on_elm[zz]);
-    }
+  //
+  //   for(INT zz=0; zz<v_per_elm; ++zz)
+  //   {
+  //   printf("V_on_elm[%d] = %d  ||  dof_on_elm[%d] =%d \n", zz,v_on_elm[zz],zz,dof_on_elm[zz]);
+  // }
+  //
+  // if(counter ==2) // if it has neighbor
+  // for(INT zz=0; zz<v_per_elm; ++zz)
+  // {
+  // printf("V_on_elm_neighbor[%d] = %d  ||  dof_on_elm_neighbor[%d] =%d \n", zz,v_on_elm_neighbor[zz],zz,dof_on_elm_neighbor[zz]);
+  // }
+  //
+  // printf("FACE = %d, ELM = %d, (X,Y) = (%f,%f) \n", face, neighbor_index[0], barycenter->x[0], barycenter->y[0]);
+  // if(counter ==2) // if it has neighbor
+  // printf("FACE = %d, ELM = %d, (X,Y) = (%f,%f) \n", face, neighbor_index[1], barycenter_neighbor->x[0], barycenter_neighbor->y[0]);
 
-    if(counter ==2) // if it has neighbor
-    for(INT zz=0; zz<v_per_elm; ++zz)
-    {
-    printf("V_on_elm_neighbor[%d] = %d  ||  dof_on_elm_neighbor[%d] =%d \n", zz,v_on_elm_neighbor[zz],zz,dof_on_elm_neighbor[zz]);
-    }
-
-    printf("FACE = %d, ELM = %d, (X,Y) = (%f,%f) \n", face, neighbor_index[0], barycenter->x[0], barycenter->y[0]);
-    if(counter ==2) // if it has neighbor
-    printf("FACE = %d, ELM = %d, (X,Y) = (%f,%f) \n", face, neighbor_index[1], barycenter_neighbor->x[0], barycenter_neighbor->y[0]);
-  */
 
   INT* local_dof_on_elm_face = NULL;
   INT *local_dof_on_elm_face_interface = NULL;
@@ -790,6 +771,7 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
   // Get normal vector values.
   finrm[0]=mesh->f_norm[face*dim+0];
   finrm[1]=mesh->f_norm[face*dim+1];
+  if(dim==3) finrm[2]=mesh->f_norm[face*dim+2];
 
   //Sanity Check; Print the normal vectors..
   //printf("FACE = %d, ELM = %d, (Nx,Ny) = (%f,%f) \n", face, neighbor_index[0], finrm[0], finrm[1]);
@@ -797,7 +779,7 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
   INT nq1d_face=3;
   qcoordinates *cq_face = allocateqcoords_bdry(nq1d_face,1,dim,2);
 
-  INT maxdim=2;
+  INT maxdim=3;
   REAL qx_face[maxdim];
   REAL w_face;
   INT nquad_face= cq_face->nq_per_elm; //quad<cq_face->nq_per_elm;
@@ -811,6 +793,7 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
 
     xfi[j*dim+0]=mesh->cv->x[k];
     xfi[j*dim+1]=mesh->cv->y[k];
+    if(dim==3) xfi[j*dim+2]=mesh->cv->z[k];
     //printf("M** xfi[j*dim+0] = %f,  xfi[j*dim+1] = %f \n",  xfi[j*dim+0] ,  xfi[j*dim+1]);
   }
 
@@ -837,7 +820,6 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
 
     qx_face[0] = cq_face->x[quad_face];
     qx_face[1] = cq_face->y[quad_face];
-
     if(dim==3) qx_face[2] = cq_face->z[quad_face];
 
     w_face = cq_face->w[quad_face];
@@ -852,1212 +834,1172 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
       //printf("== BD = %d \n", face);
       //Sanity Check
       if(mesh->f_flag[face] == 0)
-	{printf("check-error0\n"); exit(0);}
+      {printf("check-error0\n"); exit(0);}
 
       bool bWeakBC_FACE = BOOL_WEAKLY_IMPOSED_BC;
 
       if(bWeakBC_FACE){
 
-	get_FEM_basis(FE->var_spaces[0]->phi,
-		      FE->var_spaces[0]->dphi,
-		      qx_face,
-		      v_on_elm,
-		      dof_on_elm,
-		      mesh,
-		      FE->var_spaces[0]);
-
-	local_dof_on_elm_face = dof_on_elm + FE->var_spaces[0]->dof_per_elm;
-
-	get_FEM_basis(FE->var_spaces[1]->phi,
-		      FE->var_spaces[1]->dphi,
-		      qx_face,
-		      v_on_elm,
-		      local_dof_on_elm_face,
-		      mesh,
-		      FE->var_spaces[1]);
-
-	local_dof_on_elm_face += FE->var_spaces[1]->dof_per_elm;
-
-	//for the EG part
-	local_dof_on_elm_face += FE->var_spaces[2]->dof_per_elm;
-
-
-	get_FEM_basis(FE->var_spaces[3]->phi,
-		      FE->var_spaces[3]->dphi,
-		      qx_face,
-		      v_on_elm,
-		      local_dof_on_elm_face,
-		      mesh,
-		      FE->var_spaces[3]);
-
-
-	//for the P part
-	local_dof_on_elm_face += FE->var_spaces[3]->dof_per_elm;
-
-	//---- #2 BOUNDARY ---------------------------- START //
-	local_row_index = 0;
-	local_col_index = 0;
-	// u0-v0 block:
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[0]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
-
-	    kij = -2.0 * FE->var_spaces[0]->dphi[trial*dim]* finrm[0] * FE->var_spaces[0]->phi[test];
-	    kij -= FE->var_spaces[0]->dphi[trial*dim+1] * finrm[1] *    FE->var_spaces[0]->phi[test];
-
-	    kij -= lambda * FE->var_spaces[0]->dphi[trial*dim] * finrm[0] * FE->var_spaces[0]->phi[test];
-
-	    //penalty term
-	    kij += BC_penalty_term * FE->var_spaces[0]->phi[trial] * FE->var_spaces[0]->phi[test];
-
-	    ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face *kij;
-	  }
-	}
-
-	// u0-v1 block <dy(u1),dx(v2)>
-	local_row_index = FE->var_spaces[0]->dof_per_elm;
-	local_col_index = 0;
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[1]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
-
-	    kij = -FE->var_spaces[0]->dphi[trial*dim+1] * finrm[0] * FE->var_spaces[1]->phi[test];
-
-	    kij -= lambda * FE->var_spaces[0]->dphi[trial*dim] * finrm[1] * FE->var_spaces[1]->phi[test];
-
-	    ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-	// u1-v0 block :
-	local_row_index = 0;
-	local_col_index = FE->var_spaces[0]->dof_per_elm;
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[0]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
-
-	    kij = - FE->var_spaces[1]->dphi[trial*dim] * finrm[1] * FE->var_spaces[0]->phi[test];
-
-	    kij -= lambda * FE->var_spaces[1]->dphi[trial*dim+1] * finrm[0] * FE->var_spaces[0]->phi[test];
-
-	    ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-	// u1-v1 block
-	local_row_index = FE->var_spaces[0]->dof_per_elm;
-	local_col_index = FE->var_spaces[0]->dof_per_elm;
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[1]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
-
-	    kij = -2.0 * FE->var_spaces[1]->dphi[trial*dim+1] * finrm[1] * FE->var_spaces[1]->phi[test] ;
-	    kij -= 1.0 * FE->var_spaces[1]->dphi[trial*dim] * finrm[0]   * FE->var_spaces[1]->phi[test];
-
-	    // NEW SLEE : elasticity div part
-	    // u2-v2 block : <dy(u2),dx(v2)>
-	    kij -= lambda * FE->var_spaces[1]->dphi[trial*dim+1] * finrm[1] * FE->var_spaces[1]->phi[test];
-
-	    //penalty term
-	    kij += BC_penalty_term *  FE->var_spaces[1]->phi[trial]  * FE->var_spaces[1]->phi[test];
-
-	    ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-	//q-q block:
-	local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
-	local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
-	if(dim==3) local_col_index += FE->var_spaces[2]->dof_per_elm;
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[dim]->dof_per_elm;trial++){
-
-	    kij = -2.0 * 1. * finrm[0] * (qx_face[0] - barycenter->x[0]);
-	    kij -= 2.0 * 1. * finrm[1] * (qx_face[1] - barycenter->y[0]);
-
-	    // NEW SLEE : elasticity div part
-	    // u2-v1 block : <dy(u2),dx(v1)>
-	    kij -= lambda * 1. *  finrm[0] * (qx_face[0]- barycenter->x[0]);
-	    kij -= lambda * 1. *  finrm[0] * (qx_face[0]- barycenter->x[0]);
-
-	    kij -= lambda * 1. *  finrm[1] * (qx_face[1]- barycenter->y[0]);
-	    kij -= lambda * 1. *  finrm[1] * (qx_face[1]- barycenter->y[0]);
-
-
-	    //penalty term
-	    kij += BC_penalty_term * (qx_face[0]- barycenter->x[0]) * (qx_face[0]- barycenter->x[0]);
-	    kij += BC_penalty_term * (qx_face[1]- barycenter->y[0]) * (qx_face[1]- barycenter->y[0]);
-
-
-	    ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-	// Face Boundary
-	if(bEG){
-	  //EG PART
-	  //NEW SLEE :
-	  // u0- q block
-	  local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
-	  if(dim==3) local_row_index += FE->var_spaces[2]->dof_per_elm;
-	  local_col_index = 0;
-	  // Loop over Test Functions (Rows)
-	  for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
-	    // Loop over Trial Functions (Columns)
-	    for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
-
-	      //u0-q0
-	      //u0-q1
-	      kij = -2.0*FE->var_spaces[0]->dphi[trial*dim] * finrm[0]  * (qx_face[0]- barycenter->x[0]); //FE->var_spaces[dim]->phi[test];
-	      kij -= FE->var_spaces[0]->dphi[trial*dim+1] * finrm[1] * (qx_face[0]- barycenter->x[0]);
-
-	      kij -= FE->var_spaces[0]->dphi[trial*dim+1] * finrm[0]  * (qx_face[1]- barycenter->y[0]); //FE->var_spaces[dim]->phi[test];
-
-	      // Divergence
-	      // u1-q block : <dx(u1),dx(v1)>
-	      kij -= lambda*FE->var_spaces[0]->dphi[trial*dim]* finrm[0] * (qx_face[0]- barycenter->x[0]);//FE->var_spaces[dim]->dphi[test*dim];
-	      kij -= lambda*FE->var_spaces[0]->dphi[trial*dim]* finrm[1] * (qx_face[1]- barycenter->y[0]);
-
-	      //penalty term
-	      kij += penalty_term * FE->var_spaces[0]->phi[trial] * (qx_face[0]- barycenter->x[0]);
-
-	      ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	    }
-	  }
-
-	  // u1-q block
-	  local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
-	  if(dim==3) local_row_index += FE->var_spaces[2]->dof_per_elm;
-	  local_col_index = FE->var_spaces[0]->dof_per_elm;
-	  // Loop over Test Functions (Rows)
-	  for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
-	    // Loop over Trial Functions (Columns)
-	    for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
-
-	      //u1-q0
-	      //u1-q1
-	      kij = -2.0*FE->var_spaces[1]->dphi[trial*dim+1] * finrm[1] * (qx_face[1]- barycenter->y[0]);
-	      kij -= FE->var_spaces[1]->dphi[trial*dim] * finrm[0] * (qx_face[1]- barycenter->y[0]);
-
-	      kij -= FE->var_spaces[1]->dphi[trial*dim] * finrm[1] * (qx_face[0]- barycenter->x[0]);
-
-	      kij -= lambda*FE->var_spaces[1]->dphi[trial*dim+1] * finrm[0] *  (qx_face[0]- barycenter->x[0]);
-	      kij -= lambda*FE->var_spaces[1]->dphi[trial*dim+1] * finrm[1] *  (qx_face[1]- barycenter->y[0]);
-
-
-	      //penalty term
-	      kij += penalty_term * FE->var_spaces[1]->phi[trial] * (qx_face[1]- barycenter->y[0]);
-
-	      ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	    }
-	  }
-
-	  // q-v0 block:
-	  local_row_index = 0;
-	  local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
-	  if(dim==3) local_col_index += FE->var_spaces[2]->dof_per_elm;
-	  // Loop over Test Functions (Rows)
-	  for (test=0; test<FE->var_spaces[0]->dof_per_elm;test++){
-	    // Loop over Trial Functions (Columns)
-	    for (trial=0; trial<FE->var_spaces[dim]->dof_per_elm;trial++){
-
-	      //q0 - v0
-	      //q1 - v0
-	      kij = -2. * 1. * finrm[0] * FE->var_spaces[0]->phi[test];
-
-	      // Divergence
-	      // u1-q block : <dx(u1),dx(v1)>
-	      kij -= lambda* 1. * finrm[0] * FE->var_spaces[0]->phi[test];//FE->var_spaces[dim]->dphi[test*dim];
-	      kij -= lambda* 1. * finrm[0] * FE->var_spaces[0]->phi[test];
-
-
-	      //penalty term
-	      kij += penalty_term * FE->var_spaces[0]->phi[test] * (qx_face[0]- barycenter->x[0]);
-
-	      ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	    }
-	  }
-
-
-	  // q-v1 block:
-	  local_row_index = FE->var_spaces[0]->dof_per_elm;
-	  local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
-	  if(dim==3) local_col_index += FE->var_spaces[2]->dof_per_elm;
-	  // Loop over Test Functions (Rows)
-	  for (test=0; test<FE->var_spaces[1]->dof_per_elm;test++){
-	    // Loop over Trial Functions (Columns)
-	    for (trial=0; trial<FE->var_spaces[dim]->dof_per_elm;trial++){
-
-	      //q0-v1
-	      //q1-v1
-	      kij = -2.0* 1. * finrm[1] * FE->var_spaces[1]->phi[test];
-
-	      // NEW SLEE : elasticity div part
-	      // u2-v1 block : <dy(u2),dx(v1)>
-	      kij -= lambda * 1. * finrm[1] * FE->var_spaces[1]->phi[test];
-	      kij -= lambda * 1. * finrm[1] * FE->var_spaces[1]->phi[test];
-
-	      //penalty term
-	      kij += penalty_term * FE->var_spaces[1]->phi[test] * (qx_face[1]- barycenter->y[0]);
-
- 	      ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	    }
-	  }
-
-	} // bEG
-	//----- #2 BOUNDARY ------------------------------------------- END //
-
-
-	//---- Poro P2 Boundary -------------------------------------- START //
-	///////////////////////////////////////////////////////////////////////////
-	// porop2
-	// On BOUNDARY
-	// PoroElasticity   + ({p},  [u] dot n)
-	// Mechanics coupeld with pressure
-	//////////////////////////////////////////////////////////////////////////
-	//      ({p},  [u] dot n)
-	//       CG  CG u0
-	//       trial (column) 3  test (row) 0
-	// test - u0 cg
-	local_row_index = 0;
-	// trial - p cg
-	local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[0]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
-
-	    kij = alpha * FE->var_spaces[3]->phi[trial] *  FE->var_spaces[0]->phi[test]*finrm[0];
-
-	    ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-	//      ({p},  [u] dot n)
-	//       CG  CG u1
-	//       trial (column) 3  test (row) 1
-	// test - u0 cg
-	local_row_index = FE->var_spaces[0]->dof_per_elm;
-	// trial - p cg
-	local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[1]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
-
-	    kij = alpha * FE->var_spaces[3]->phi[trial] *  FE->var_spaces[1]->phi[test]*finrm[1];
-
-	    ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-	if(bEG){
-
-	  //      ({p},  [u] dot n)
-	  //       CG  EG
-	  //       trial (column) 3  test (row) 2
-	  // test - u0 eg
-	  local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
-	  // trial - p cg
-	  local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
-	  // Loop over Test Functions (Rows)
-	  for (test=0; test<FE->var_spaces[2]->dof_per_elm;test++){
-	    // Loop over Trial Functions (Columns)
-	    for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
-
-	      kij = alpha * FE->var_spaces[3]->phi[trial] *
-		(finrm[0] *  (qx_face[0]- barycenter->x[0]) + finrm[1] *  (qx_face[1]- barycenter->y[0]));
-
-	      ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	    }
-	  }
-
-	}
-
-	//---- Poro P2 Boundary -------------------------------------- END //
-
-
-	//---- Stokes P2 Boundary -------------------------------------- START //
-	///////////////////////////////////////////////////////////////////////////
-	// On BOUNDARY
-	// STokes  + ({p},  [u] dot n)
-	//////////////////////////////////////////////////////////////////////////
-	//      ({p},  [u] dot n)
-	//       CG  CG u0
-	//       trial (column) 3  test (row) 0
-	// test - p cg
-	local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
-	// trial - u0 cg
-	local_col_index = 0;
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
-
-	    kij = alpha * FE->var_spaces[3]->phi[test] *  FE->var_spaces[0]->phi[trial]*finrm[0];
-
-	    ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-	//      ({p},  [u] dot n)
-	//       CG  CG u1
-	//       trial (column) 3  test (row) 1
-	// test - p cg
-	local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
-	// trial - u0 cg
-	local_col_index = FE->var_spaces[0]->dof_per_elm;
-
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
-
-	    kij = alpha * FE->var_spaces[3]->phi[test] *  FE->var_spaces[1]->phi[trial]*finrm[1];
-
-	    ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-	if(bEG){
-
-	  //      ({p},  [u] dot n)
-	  //       CG  EG
-	  //       trial (column) 3  test (row) 2
-	  // test - p cg
-	  local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
-	  // trial - u0 cg
-	  local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
-	  // Loop over Test Functions (Rows)
-	  for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
-	    // Loop over Trial Functions (Columns)
-	    for (trial=0; trial<FE->var_spaces[2]->dof_per_elm;trial++){
-
-	      kij = alpha * FE->var_spaces[3]->phi[test] *
-		(finrm[0] *  (qx_face[0]- barycenter->x[0]) + finrm[1] *  (qx_face[1]- barycenter->y[0]));
-
-	      ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	    }
-	  }
-
-	}
-
-	//---- Stokes P2 Boundary -------------------------------------- END //
+        //TODO: Double check this:
+        // u1
+        get_FEM_basis(FE->var_spaces[0]->phi,FE->var_spaces[0]->dphi,qx_face,v_on_elm,dof_on_elm,mesh,FE->var_spaces[0]);
+        local_dof_on_elm_face = dof_on_elm + FE->var_spaces[0]->dof_per_elm;
+
+        // u2
+        get_FEM_basis(FE->var_spaces[1]->phi,FE->var_spaces[1]->dphi,qx_face,v_on_elm,dof_on_elm,mesh,FE->var_spaces[1]);
+        local_dof_on_elm_face += FE->var_spaces[1]->dof_per_elm;
+
+        // u3
+        if(dim==3) {
+          get_FEM_basis(FE->var_spaces[2]->phi,FE->var_spaces[2]->dphi,qx_face,v_on_elm,dof_on_elm,mesh,FE->var_spaces[2]);
+          local_dof_on_elm_face += FE->var_spaces[2]->dof_per_elm;
+        }
+
+        //for the EG part
+        local_dof_on_elm_face += FE->var_spaces[dim]->dof_per_elm;
+
+        // p
+        get_FEM_basis(FE->var_spaces[dim+1]->phi,FE->var_spaces[dim+1]->dphi,qx_face,v_on_elm,dof_on_elm,mesh,FE->var_spaces[dim+1]);
+        local_dof_on_elm_face += FE->var_spaces[dim+1]->dof_per_elm;
+
+
+        //---- #2 BOUNDARY ---------------------------- START //
+        //TODO: What is the bilinear form, so I can add 3D??
+        local_row_index = 0;
+        local_col_index = 0;
+        // u0-v0 block:
+        // Loop over Test Functions (Rows)
+        for (test=0; test<FE->var_spaces[0]->dof_per_elm;test++){
+          // Loop over Trial Functions (Columns)
+          for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
+
+            kij = -2.0 * FE->var_spaces[0]->dphi[trial*dim]* finrm[0] * FE->var_spaces[0]->phi[test];
+            kij -= FE->var_spaces[0]->dphi[trial*dim+1] * finrm[1] *    FE->var_spaces[0]->phi[test];
+
+            kij -= lambda * FE->var_spaces[0]->dphi[trial*dim] * finrm[0] * FE->var_spaces[0]->phi[test];
+
+            //penalty term
+            kij += BC_penalty_term * FE->var_spaces[0]->phi[trial] * FE->var_spaces[0]->phi[test];
+
+            ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face *kij;
+          }
+        }
+
+        // u0-v1 block <dy(u1),dx(v2)>
+        local_row_index = FE->var_spaces[0]->dof_per_elm;
+        local_col_index = 0;
+        // Loop over Test Functions (Rows)
+        for (test=0; test<FE->var_spaces[1]->dof_per_elm;test++){
+          // Loop over Trial Functions (Columns)
+          for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
+
+            kij = -FE->var_spaces[0]->dphi[trial*dim+1] * finrm[0] * FE->var_spaces[1]->phi[test];
+
+            kij -= lambda * FE->var_spaces[0]->dphi[trial*dim] * finrm[1] * FE->var_spaces[1]->phi[test];
+
+            ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          }
+        }
+
+        // u1-v0 block :
+        local_row_index = 0;
+        local_col_index = FE->var_spaces[0]->dof_per_elm;
+        // Loop over Test Functions (Rows)
+        for (test=0; test<FE->var_spaces[0]->dof_per_elm;test++){
+          // Loop over Trial Functions (Columns)
+          for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
+
+            kij = - FE->var_spaces[1]->dphi[trial*dim] * finrm[1] * FE->var_spaces[0]->phi[test];
+
+            kij -= lambda * FE->var_spaces[1]->dphi[trial*dim+1] * finrm[0] * FE->var_spaces[0]->phi[test];
+
+            ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          }
+        }
+
+        // u1-v1 block
+        local_row_index = FE->var_spaces[0]->dof_per_elm;
+        local_col_index = FE->var_spaces[0]->dof_per_elm;
+        // Loop over Test Functions (Rows)
+        for (test=0; test<FE->var_spaces[1]->dof_per_elm;test++){
+          // Loop over Trial Functions (Columns)
+          for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
+
+            kij = -2.0 * FE->var_spaces[1]->dphi[trial*dim+1] * finrm[1] * FE->var_spaces[1]->phi[test] ;
+            kij -= 1.0 * FE->var_spaces[1]->dphi[trial*dim] * finrm[0]   * FE->var_spaces[1]->phi[test];
+
+            // NEW SLEE : elasticity div part
+            // u2-v2 block : <dy(u2),dx(v2)>
+            kij -= lambda * FE->var_spaces[1]->dphi[trial*dim+1] * finrm[1] * FE->var_spaces[1]->phi[test];
+
+            //penalty term
+            kij += BC_penalty_term *  FE->var_spaces[1]->phi[trial]  * FE->var_spaces[1]->phi[test];
+
+            ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          }
+        }
+
+        //q-q block:
+        local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+        local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+        if(dim==3) local_col_index += FE->var_spaces[2]->dof_per_elm;
+        // Loop over Test Functions (Rows)
+        for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
+          // Loop over Trial Functions (Columns)
+          for (trial=0; trial<FE->var_spaces[dim]->dof_per_elm;trial++){
+
+            kij = -2.0 * 1. * finrm[0] * (qx_face[0] - barycenter->x[0]);
+            kij -= 2.0 * 1. * finrm[1] * (qx_face[1] - barycenter->y[0]);
+
+            // NEW SLEE : elasticity div part
+            // u2-v1 block : <dy(u2),dx(v1)>
+            kij -= lambda * 1. *  finrm[0] * (qx_face[0]- barycenter->x[0]);
+            kij -= lambda * 1. *  finrm[0] * (qx_face[0]- barycenter->x[0]);
+
+            kij -= lambda * 1. *  finrm[1] * (qx_face[1]- barycenter->y[0]);
+            kij -= lambda * 1. *  finrm[1] * (qx_face[1]- barycenter->y[0]);
+
+
+            //penalty term
+            kij += BC_penalty_term * (qx_face[0]- barycenter->x[0]) * (qx_face[0]- barycenter->x[0]);
+            kij += BC_penalty_term * (qx_face[1]- barycenter->y[0]) * (qx_face[1]- barycenter->y[0]);
+
+
+            ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          }
+        }
+
+        // Face Boundary
+        if(bEG){
+          //EG PART
+          //NEW SLEE :
+          // u0- q block
+          local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+          if(dim==3) local_row_index += FE->var_spaces[2]->dof_per_elm;
+          local_col_index = 0;
+          // Loop over Test Functions (Rows)
+          for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
+            // Loop over Trial Functions (Columns)
+            for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
+
+              //u0-q0
+              //u0-q1
+              kij = -2.0*FE->var_spaces[0]->dphi[trial*dim] * finrm[0]  * (qx_face[0]- barycenter->x[0]); //FE->var_spaces[dim]->phi[test];
+              kij -= FE->var_spaces[0]->dphi[trial*dim+1] * finrm[1] * (qx_face[0]- barycenter->x[0]);
+
+              kij -= FE->var_spaces[0]->dphi[trial*dim+1] * finrm[0]  * (qx_face[1]- barycenter->y[0]); //FE->var_spaces[dim]->phi[test];
+
+              // Divergence
+              // u1-q block : <dx(u1),dx(v1)>
+              kij -= lambda*FE->var_spaces[0]->dphi[trial*dim]* finrm[0] * (qx_face[0]- barycenter->x[0]);//FE->var_spaces[dim]->dphi[test*dim];
+              kij -= lambda*FE->var_spaces[0]->dphi[trial*dim]* finrm[1] * (qx_face[1]- barycenter->y[0]);
+
+              //penalty term
+              kij += penalty_term * FE->var_spaces[0]->phi[trial] * (qx_face[0]- barycenter->x[0]);
+
+              ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+            }
+          }
+
+          // u1-q block
+          local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+          if(dim==3) local_row_index += FE->var_spaces[2]->dof_per_elm;
+          local_col_index = FE->var_spaces[0]->dof_per_elm;
+          // Loop over Test Functions (Rows)
+          for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
+            // Loop over Trial Functions (Columns)
+            for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
+
+              //u1-q0
+              //u1-q1
+              kij = -2.0*FE->var_spaces[1]->dphi[trial*dim+1] * finrm[1] * (qx_face[1]- barycenter->y[0]);
+              kij -= FE->var_spaces[1]->dphi[trial*dim] * finrm[0] * (qx_face[1]- barycenter->y[0]);
+
+              kij -= FE->var_spaces[1]->dphi[trial*dim] * finrm[1] * (qx_face[0]- barycenter->x[0]);
+
+              kij -= lambda*FE->var_spaces[1]->dphi[trial*dim+1] * finrm[0] *  (qx_face[0]- barycenter->x[0]);
+              kij -= lambda*FE->var_spaces[1]->dphi[trial*dim+1] * finrm[1] *  (qx_face[1]- barycenter->y[0]);
+
+
+              //penalty term
+              kij += penalty_term * FE->var_spaces[1]->phi[trial] * (qx_face[1]- barycenter->y[0]);
+
+              ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+            }
+          }
+
+          // q-v0 block:
+          local_row_index = 0;
+          local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+          if(dim==3) local_col_index += FE->var_spaces[2]->dof_per_elm;
+          // Loop over Test Functions (Rows)
+          for (test=0; test<FE->var_spaces[0]->dof_per_elm;test++){
+            // Loop over Trial Functions (Columns)
+            for (trial=0; trial<FE->var_spaces[dim]->dof_per_elm;trial++){
+
+              //q0 - v0
+              //q1 - v0
+              kij = -2. * 1. * finrm[0] * FE->var_spaces[0]->phi[test];
+
+              // Divergence
+              // u1-q block : <dx(u1),dx(v1)>
+              kij -= lambda* 1. * finrm[0] * FE->var_spaces[0]->phi[test];//FE->var_spaces[dim]->dphi[test*dim];
+              kij -= lambda* 1. * finrm[0] * FE->var_spaces[0]->phi[test];
+
+
+              //penalty term
+              kij += penalty_term * FE->var_spaces[0]->phi[test] * (qx_face[0]- barycenter->x[0]);
+
+              ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+            }
+          }
+
+
+          // q-v1 block:
+          local_row_index = FE->var_spaces[0]->dof_per_elm;
+          local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+          if(dim==3) local_col_index += FE->var_spaces[2]->dof_per_elm;
+          // Loop over Test Functions (Rows)
+          for (test=0; test<FE->var_spaces[1]->dof_per_elm;test++){
+            // Loop over Trial Functions (Columns)
+            for (trial=0; trial<FE->var_spaces[dim]->dof_per_elm;trial++){
+
+              //q0-v1
+              //q1-v1
+              kij = -2.0* 1. * finrm[1] * FE->var_spaces[1]->phi[test];
+
+              // NEW SLEE : elasticity div part
+              // u2-v1 block : <dy(u2),dx(v1)>
+              kij -= lambda * 1. * finrm[1] * FE->var_spaces[1]->phi[test];
+              kij -= lambda * 1. * finrm[1] * FE->var_spaces[1]->phi[test];
+
+              //penalty term
+              kij += penalty_term * FE->var_spaces[1]->phi[test] * (qx_face[1]- barycenter->y[0]);
+
+              ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+            }
+          }
+
+        } // bEG
+        //----- #2 BOUNDARY ------------------------------------------- END //
+
+
+        //---- Poro P2 Boundary -------------------------------------- START //
+        ///////////////////////////////////////////////////////////////////////////
+        // porop2
+        // On BOUNDARY
+        // PoroElasticity   + ({p},  [u] dot n)
+        // Mechanics coupeld with pressure
+        //////////////////////////////////////////////////////////////////////////
+        //      ({p},  [u] dot n)
+        //       CG  CG u0
+        //       trial (column) 3  test (row) 0
+        // test - u0 cg
+        local_row_index = 0;
+        // trial - p cg
+        local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
+        // Loop over Test Functions (Rows)
+        for (test=0; test<FE->var_spaces[0]->dof_per_elm;test++){
+          // Loop over Trial Functions (Columns)
+          for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
+
+            kij = alpha * FE->var_spaces[3]->phi[trial] *  FE->var_spaces[0]->phi[test]*finrm[0];
+
+            ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          }
+        }
+        //      ({p},  [u] dot n)
+        //       CG  CG u1
+        //       trial (column) 3  test (row) 1
+        // test - u0 cg
+        local_row_index = FE->var_spaces[0]->dof_per_elm;
+        // trial - p cg
+        local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
+        // Loop over Test Functions (Rows)
+        for (test=0; test<FE->var_spaces[1]->dof_per_elm;test++){
+          // Loop over Trial Functions (Columns)
+          for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
+
+            kij = alpha * FE->var_spaces[3]->phi[trial] *  FE->var_spaces[1]->phi[test]*finrm[1];
+
+            ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          }
+        }
+
+        if(bEG){
+
+          //      ({p},  [u] dot n)
+          //       CG  EG
+          //       trial (column) 3  test (row) 2
+          // test - u0 eg
+          local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+          // trial - p cg
+          local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
+          // Loop over Test Functions (Rows)
+          for (test=0; test<FE->var_spaces[2]->dof_per_elm;test++){
+            // Loop over Trial Functions (Columns)
+            for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
+
+              kij = alpha * FE->var_spaces[3]->phi[trial] *
+              (finrm[0] *  (qx_face[0]- barycenter->x[0]) + finrm[1] *  (qx_face[1]- barycenter->y[0]));
+
+              ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+            }
+          }
+
+        }
+
+        //---- Poro P2 Boundary -------------------------------------- END //
+
+
+        //---- Stokes P2 Boundary -------------------------------------- START //
+        ///////////////////////////////////////////////////////////////////////////
+        // On BOUNDARY
+        // STokes  + ({p},  [u] dot n)
+        //////////////////////////////////////////////////////////////////////////
+        //      ({p},  [u] dot n)
+        //       CG  CG u0
+        //       trial (column) 3  test (row) 0neighbor_basis_1_
+        // test - p cg
+        local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
+        // trial - u0 cg
+        local_col_index = 0;
+        // Loop over Test Functions (Rows)
+        for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
+          // Loop over Trial Functions (Columns)
+          for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
+
+            kij = alpha * FE->var_spaces[3]->phi[test] *  FE->var_spaces[0]->phi[trial]*finrm[0];
+
+            ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          }
+        }
+        //      ({p},  [u] dot n)
+        //       CG  CG u1
+        //       trial (column) 3  test (row) 1
+        // test - p cg
+        local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
+        // trial - u0 cg
+        local_col_index = FE->var_spaces[0]->dof_per_elm;
+
+        // Loop over Test Functions (Rows)
+        for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
+          // Loop over Trial Functions (Columns)
+          for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
+
+            kij = alpha * FE->var_spaces[3]->phi[test] *  FE->var_spaces[1]->phi[trial]*finrm[1];
+
+            ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          }
+        }
+
+        if(bEG){
+
+          //      ({p},  [u] dot n)
+          //       CG  EG
+          //       trial (column) 3  test (row) 2
+          // test - p cg
+          local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
+          // trial - u0 cg
+          local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+          // Loop over Test Functions (Rows)
+          for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
+            // Loop over Trial Functions (Columns)
+            for (trial=0; trial<FE->var_spaces[2]->dof_per_elm;trial++){
+
+              kij = alpha * FE->var_spaces[3]->phi[test] *
+              (finrm[0] *  (qx_face[0]- barycenter->x[0]) + finrm[1] *  (qx_face[1]- barycenter->y[0]));
+
+              ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+            }
+          }
+
+        }
+
+        //---- Stokes P2 Boundary -------------------------------------- END //
 
       }// Weakly Face
 
-    }
-    else if(counter ==2)
-      { //on interface
-
-	local_dof_on_elm_face_interface = NULL;
-	local_dof_on_elm_neighbor = NULL;
-	// HERE IN THE INTERFACE, WE HAVE FOUR DIFFERENT LOCAL MATRICES
-	// CASE I   u v
-	// CASE II  u v_neighbor
-	// CASE III u_neighbor v
-	// CASE IV  u_neighbor v_neighbor
-	//Sanity Cehck
-	if(mesh->f_flag[face] != 0)
-	  {printf("well? something is wrong \n"); exit(0);}
-
-
-	//printf("counter 2 \n");
-
-	get_FEM_basis(FE->var_spaces[0]->phi,
-		      FE->var_spaces[0]->dphi,
-		      qx_face,
-		      v_on_elm,
-		      dof_on_elm,
-		      mesh,
-		      FE->var_spaces[0]);
-
-	local_dof_on_elm_face_interface = dof_on_elm + FE->var_spaces[0]->dof_per_elm;
-
-
-	get_FEM_basis(FE->var_spaces[1]->phi,
-		      FE->var_spaces[1]->dphi,
-		      qx_face,
-		      v_on_elm,
-		      local_dof_on_elm_face_interface,
-		      mesh,
-		      FE->var_spaces[1]);
-
-	local_dof_on_elm_face_interface += FE->var_spaces[1]->dof_per_elm;
-
-	//FOR EG
-	local_dof_on_elm_face_interface += FE->var_spaces[2]->dof_per_elm;
-
-	get_FEM_basis(FE->var_spaces[3]->phi,
-		      FE->var_spaces[3]->dphi,
-		      qx_face,
-		      v_on_elm,
-		      local_dof_on_elm_face_interface,
-		      mesh,
-		      FE->var_spaces[3]);
-
-	//FOR P
-	local_dof_on_elm_face_interface += FE->var_spaces[3]->dof_per_elm;
-
-	// Now, get the basis for the neighbor
-	REAL* neighbor_basis_0_phi  = (REAL *) calloc(3,sizeof(REAL));
-	REAL* neighbor_basis_0_dphi = (REAL *) calloc(3*mesh->dim,sizeof(REAL));
-
-	REAL* neighbor_basis_1_phi  = (REAL *) calloc(3,sizeof(REAL));
-	REAL* neighbor_basis_1_dphi = (REAL *) calloc(3*mesh->dim,sizeof(REAL));
-
-	REAL* neighbor_basis_3_phi  = (REAL *) calloc(3,sizeof(REAL));
-	REAL* neighbor_basis_3_dphi = (REAL *) calloc(3*mesh->dim,sizeof(REAL));
-
-
-	get_FEM_basis( neighbor_basis_0_phi ,
-		       neighbor_basis_0_dphi ,
-		       qx_face,
-		       v_on_elm_neighbor,
-		       dof_on_elm_neighbor,
-		       mesh,
-		       FE->var_spaces[0]);
-
-	local_dof_on_elm_neighbor = dof_on_elm_neighbor + FE->var_spaces[0]->dof_per_elm;
-
-	//printf("counter 111 \n");
-
-	get_FEM_basis( neighbor_basis_1_phi ,
-		       neighbor_basis_1_dphi ,
-		       qx_face,
-		       v_on_elm_neighbor,
-		       local_dof_on_elm_neighbor,
-		       mesh,
-		       FE->var_spaces[1]);
-
-	// u2
-	local_dof_on_elm_neighbor += FE->var_spaces[1]->dof_per_elm;
-
-	//printf("counter 222 \n");
-	// u eg
-	local_dof_on_elm_neighbor += FE->var_spaces[2]->dof_per_elm;
-
-
-	get_FEM_basis( neighbor_basis_3_phi ,
-		       neighbor_basis_3_dphi ,
-		       qx_face,
-		       v_on_elm_neighbor,
-		       local_dof_on_elm_neighbor,
-		       mesh,
-		       FE->var_spaces[3]);
-
-	// p
-	local_dof_on_elm_neighbor += FE->var_spaces[3]->dof_per_elm;
-
-
-	// ------ #2 INTERFACE -------------------------- START //
-	//q-q block:
-	local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
-	local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[dim]->dof_per_elm;trial++){
-
-	    kij = -0.5* 2.0 * 1. * finrm[0] * (qx_face[0]- barycenter->x[0]);
-	    kij -= 0.5* 2.0 * 1. * finrm[1] * (qx_face[1]- barycenter->y[0]);
-
-	    // NEW SLEE : elasticity div part
-	    // u2-v1 block : <dy(u2),dx(v1)>
-	    kij -= 0.5*lambda * 1. *  finrm[0] * (qx_face[0]- barycenter->x[0]);
-	    kij -= 0.5*lambda * 1. *  finrm[0] * (qx_face[0]- barycenter->x[0]);
-
-	    kij -= 0.5*lambda * 1. *  finrm[1] * (qx_face[1]- barycenter->y[0]);
-	    kij -= 0.5*lambda * 1. *  finrm[1] * (qx_face[1]- barycenter->y[0]);
-
-	    //penalty term
-	    kij += penalty_term * (qx_face[0]- barycenter->x[0]) * (qx_face[0]- barycenter->x[0]);
-	    kij += penalty_term * (qx_face[1]- barycenter->y[0]) * (qx_face[1]- barycenter->y[0]);
-
-	    ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-	//q-neighbor q block: where q is from neighbor
-	// column (trial is from neighbor)
-	local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
-	local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[dim]->dof_per_elm;trial++){
-	    if(test == 1)
-	      {
-		printf("oops !? \n");
-		exit(0);
-	      }
-
-	    kij = 0.5* -2.0 * 1. * finrm[0] * (qx_face[0]- barycenter->x[0]);
-	    kij -= 0.5*2.0 * 1. * finrm[1] * (qx_face[1]- barycenter->y[0]);
-
-	    // NEW SLEE : elasticity div part
-	    // u2-v1 block : <dy(u2),dx(v1)>
-	    kij -= 0.5*lambda * 1. *  finrm[0] * (qx_face[0]- barycenter->x[0]);
-	    kij -= 0.5*lambda * 1. *  finrm[0] * (qx_face[0]- barycenter->x[0]);
-
-	    kij -= 0.5*lambda * 1. *  finrm[1] * (qx_face[1]- barycenter->y[0]);
-	    kij -= 0.5*lambda * 1. *  finrm[1] * (qx_face[1]- barycenter->y[0]);
-
-	    //penalty_term
-	    kij += -penalty_term * (qx_face[0]- barycenter_neighbor->x[0]) * (qx_face[0]- barycenter->x[0]) ;
-	    kij += -penalty_term * (qx_face[1]- barycenter_neighbor->y[0]) * (qx_face[1]- barycenter->y[0]) ;
-
-
-
-	    ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-
-	//q q-neighbor block: where q (Test) is from neighbor => we need minus sign
-	// row (test is from neighbor)
-	local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
-	local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[dim]->dof_per_elm;trial++){
-	    if(test == 1)
-	      {
-		printf("oops !? \n");
-		exit(0);
-	      }
-
-	    kij = 0.5* 2.0 * 1. * finrm[0] * (qx_face[0]- barycenter_neighbor->x[0]);
-	    kij += 0.5*2.0 * 1. * finrm[1] * (qx_face[1]- barycenter_neighbor->y[0]);
-
-	    // NEW SLEE : elasticity div part
-	    // u2-v1 block : <dy(u2),dx(v1)>
-	    kij += 0.5*lambda * 1. *  finrm[0] * (qx_face[0]- barycenter_neighbor->x[0]);
-	    kij += 0.5*lambda * 1. *  finrm[0] * (qx_face[0]- barycenter_neighbor->x[0]);
-
-	    kij += 0.5*lambda * 1. *  finrm[1] * (qx_face[1]- barycenter_neighbor->y[0]);
-	    kij += 0.5*lambda * 1. *  finrm[1] * (qx_face[1]- barycenter_neighbor->y[0]);
-
-	    //penalty_term
-	    kij += -penalty_term * (qx_face[0]- barycenter_neighbor->x[0]) * (qx_face[0]- barycenter->x[0]) ;
-	    kij += -penalty_term * (qx_face[1]- barycenter_neighbor->y[0]) * (qx_face[1]- barycenter->y[0]) ;
-
-
-	    ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-	//q-neighobr q-neighbor block: where q (Test) is from neighbor => we need minus sign
-	// column (trial  is from neighbor)
-	// row (test is from neighbor)
-	local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
-	local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[dim]->dof_per_elm;trial++){
-	    if(test == 1)
-	      {
-		printf("oops !? \n");
-		exit(0);
-	      }
-
-	    kij = 0.5* 2.0 * 1. * finrm[0] * (qx_face[0]- barycenter_neighbor->x[0]);
-	    kij += 0.5*2.0 * 1. * finrm[1] * (qx_face[1]- barycenter_neighbor->y[0]);
-
-	    // NEW SLEE : elasticity div part
-	    // u2-v1 block : <dy(u2),dx(v1)>
-	    kij += 0.5*lambda * 1. *  finrm[0] * (qx_face[0]- barycenter_neighbor->x[0]);
-	    kij += 0.5*lambda * 1. *  finrm[0] * (qx_face[0]- barycenter_neighbor->x[0]);
-
-	    kij += 0.5*lambda * 1. *  finrm[1] * (qx_face[1]- barycenter_neighbor->y[0]);
-	    kij += 0.5*lambda * 1. *  finrm[1] * (qx_face[1]- barycenter_neighbor->y[0]);
-
-	    //penalty_term
-	    kij += penalty_term * (qx_face[0]- barycenter_neighbor->x[0]) * (qx_face[0]- barycenter_neighbor->x[0]) ;
-	    kij += penalty_term * (qx_face[1]- barycenter_neighbor->y[0]) * (qx_face[1]- barycenter_neighbor->y[0]) ;
-
-
-	    ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-
-	if(bEG){
-	  // u0 - q block
-	  local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
-	  local_col_index = 0;
-	  // Loop over Test Functions (Rows)
-	  for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
-	    // Loop over Trial Functions (Columns)
-	    for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
-
-	      //CG-DG
-	      // u0 - q0
-	      // u0 - q1
-	      kij = -0.5 * 2.0*FE->var_spaces[0]->dphi[trial*dim] * finrm[0]  * (qx_face[0]- barycenter->x[0]); //FE->var_spaces[dim]->phi[test];
-	      kij -= 0.5 * FE->var_spaces[0]->dphi[trial*dim+1] * finrm[1]    * (qx_face[0]- barycenter->x[0]);
-	      kij -= 0.5 * FE->var_spaces[0]->dphi[trial*dim+1] * finrm[0]    * (qx_face[1]- barycenter->y[0]); //FE->var_spaces[dim]->phi[test];
-
-	      // Divergence
-	      // u1-q block :
-	      kij -= 0.5 * lambda*FE->var_spaces[0]->dphi[trial*dim]* finrm[0] * (qx_face[0]- barycenter->x[0]);//FE->var_spaces[dim]->dphi[test*dim];
-	      kij -= 0.5 * lambda*FE->var_spaces[0]->dphi[trial*dim]* finrm[1] * (qx_face[1]- barycenter->y[0]);
-
-	      ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	    }
-	  }
-
-	  // u1-q block
-	  local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
-	  local_col_index = FE->var_spaces[0]->dof_per_elm;
-	  // Loop over Test Functions (Rows)
-	  for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
-	    // Loop over Trial Functions (Columns)
-	    for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
-
-	      kij = -0.5 * 2.0*FE->var_spaces[1]->dphi[trial*dim+1] * finrm[1] * (qx_face[1]- barycenter->y[0]);
-	      kij -= 0.5 * FE->var_spaces[1]->dphi[trial*dim] * finrm[0]       * (qx_face[1]- barycenter->y[0]);
-	      kij -= 0.5 * FE->var_spaces[1]->dphi[trial*dim] * finrm[1]       * (qx_face[0]- barycenter->x[0]);
-
-	      // NEW SLEE : elasticity div part
-	      // u2-v1 block : <dy(u2),dx(v1)>
-	      kij -= 0.5 *lambda*FE->var_spaces[1]->dphi[trial*dim+1] * finrm[0] *  (qx_face[0]- barycenter->x[0]);
-	      kij -= 0.5 *lambda*FE->var_spaces[1]->dphi[trial*dim+1] * finrm[1] *  (qx_face[1]- barycenter->y[0]);
-
-	      ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	    }
-	  }
-
-
-	  // u0 - q (where u0 is from neighbor)
-	  // column (trial is from neighbor)
-	  local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
-	  local_col_index = 0;
-	  // Loop over Test Functions (Rows)
-	  for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
-	    // Loop over Trial Functions (Columns)
-	    for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
-
-	      //DEBUG
-	      kij = -0.5 * 2.0*neighbor_basis_0_dphi[trial*dim] * finrm[0]  * (qx_face[0]- barycenter->x[0]); //FE->var_spaces[dim]->phi[test];
-	      kij -= 0.5 * neighbor_basis_0_dphi[trial*dim+1] * finrm[1]    * (qx_face[0]- barycenter->x[0]);
-	      kij -= 0.5 * neighbor_basis_0_dphi[trial*dim+1] * finrm[0]    * (qx_face[1]- barycenter->y[0]); //FE->var_spaces[dim]->phi[test];
-
-	      // Divergence
-	      // u1-q block :
-	      kij -= 0.5 * lambda*neighbor_basis_0_dphi[trial*dim]* finrm[0] * (qx_face[0]- barycenter->x[0]);//FE->var_spaces[dim]->dphi[test*dim];
-	      kij -= 0.5 * lambda*neighbor_basis_0_dphi[trial*dim]* finrm[1] * (qx_face[1]- barycenter->y[0]);
-
-	      ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	    }
-	  }
-
-	  // u1-q (where u1 is from neighbor)
-	  // column (trial is from neighbor)
-	  local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
-	  local_col_index = FE->var_spaces[0]->dof_per_elm;
-
-	  // Loop over Test Functions (Rows)
-	  for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
-	    // Loop over Trial Functions (Columns)
-	    for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
-	      //DEBUG
-	      kij = -0.5 * 2.0*neighbor_basis_1_dphi[trial*dim+1] * finrm[1] * (qx_face[1]- barycenter->y[0]);
-	      kij -= 0.5 * neighbor_basis_1_dphi[trial*dim]       * finrm[0] * (qx_face[1]- barycenter->y[0]);
-	      kij -= 0.5 * neighbor_basis_1_dphi[trial*dim]       * finrm[1] * (qx_face[0]- barycenter->x[0]);
-
-	      // NEW SLEE : elasticity div part
-	      // u2-v1 block : <dy(u2),dx(v1)>
-	      kij -= 0.5 *lambda*neighbor_basis_1_dphi[trial*dim+1] * finrm[0] *  (qx_face[0]- barycenter->x[0]);
-	      kij -= 0.5 *lambda*neighbor_basis_1_dphi[trial*dim+1] * finrm[1] *  (qx_face[1]- barycenter->y[0]);
-
-	      ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	    }
-	  }
-
-	  // u0 - q_neighbor block
-	  // (q has minus sign)
-	  // row (test is from neighbor)
-	  local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
-	  local_col_index = 0;
-	  // Loop over Test Functions (Rows)
-	  for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
-	    // Loop over Trial Functions (Columns)
-	    for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
-
-	      //CG-DG
-	      // u0 - q0
-	      // u0 - q1
-	      kij = 0.5 * 2.0*FE->var_spaces[0]->dphi[trial*dim] * finrm[0]  * (qx_face[0]- barycenter_neighbor->x[0]); //FE->var_spaces[dim]->phi[test];
-	      kij += 0.5 * FE->var_spaces[0]->dphi[trial*dim+1] * finrm[1] * (qx_face[0]- barycenter_neighbor->x[0]);
-	      kij += 0.5 * FE->var_spaces[0]->dphi[trial*dim+1] * finrm[0]  * (qx_face[1]- barycenter_neighbor->y[0]); //FE->var_spaces[dim]->phi[test];
-
-	      // Divergence
-	      // u1-q block :
-	      kij += 0.5 * lambda*FE->var_spaces[0]->dphi[trial*dim]* finrm[0] * (qx_face[0]- barycenter_neighbor->x[0]);//FE->var_spaces[dim]->dphi[test*dim];
-	      kij += 0.5 * lambda*FE->var_spaces[0]->dphi[trial*dim]* finrm[1] * (qx_face[1]- barycenter_neighbor->y[0]);
-
-	      ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	    }
-	  }
-
-	  // u1-q_neighbor block
-	  // (q has minus sign)
-	  // row (test is from neighbor)
-	  local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
-	  local_col_index = FE->var_spaces[0]->dof_per_elm;
-	  // Loop over Test Functions (Rows)
-	  for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
-	    // Loop over Trial Functions (Columns)
-	    for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
-
-	      kij = 0.5 * 2.0*FE->var_spaces[1]->dphi[trial*dim+1] * finrm[1] * (qx_face[1]- barycenter_neighbor->y[0]);
-	      kij += 0.5 * FE->var_spaces[1]->dphi[trial*dim] * finrm[0] * (qx_face[1]- barycenter_neighbor->y[0]);
-	      kij += 0.5 * FE->var_spaces[1]->dphi[trial*dim] * finrm[1] * (qx_face[0]- barycenter_neighbor->x[0]);
-
-	      // NEW SLEE : elasticity div part
-	      // u2-v1 block : <dy(u2),dx(v1)>
-	      kij += 0.5 *lambda*FE->var_spaces[1]->dphi[trial*dim+1] * finrm[0] *  (qx_face[0]- barycenter_neighbor->x[0]);
-	      kij += 0.5 *lambda*FE->var_spaces[1]->dphi[trial*dim+1] * finrm[1] *  (qx_face[1]- barycenter_neighbor->y[0]);
-
-
-	      ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	    }
-	  }
-
-	  // u0-neighbor - q_neighbor block
-	  // (q has minus sign)
-	  local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
-	  local_col_index = 0;
-	  // Loop over Test Functions (Rows)
-	  for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
-	    // Loop over Trial Functions (Columns)
-	    for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
-
-	      //CG-DG
-	      // u0 - q0
-	      // u0 - q1
-	      kij = 0.5 * 2.0*neighbor_basis_0_dphi[trial*dim] * finrm[0]  * (qx_face[0]- barycenter_neighbor->x[0]); //FE->var_spaces[dim]->phi[test];
-	      kij += 0.5 * neighbor_basis_0_dphi[trial*dim+1] * finrm[1] * (qx_face[0]- barycenter_neighbor->x[0]);
-
-	      kij += 0.5 * neighbor_basis_0_dphi[trial*dim+1] * finrm[0]  * (qx_face[1]- barycenter_neighbor->y[0]); //FE->var_spaces[dim]->phi[test];
-
-	      // Divergence
-	      // u1-q block :
-	      kij += 0.5 * lambda*neighbor_basis_0_dphi[trial*dim]* finrm[0] * (qx_face[0]- barycenter_neighbor->x[0]);//FE->var_spaces[dim]->dphi[test*dim];
-	      kij += 0.5 * lambda*neighbor_basis_0_dphi[trial*dim]* finrm[1] * (qx_face[1]- barycenter_neighbor->y[0]);
-
-	      ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	    }
-	  }
-
-	  // u1-neighbor - q_neighbor block
-	  // (q has minus sign)
-	  local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
-	  local_col_index = FE->var_spaces[0]->dof_per_elm;
-	  // Loop over Test Functions (Rows)
-	  for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
-	    // Loop over Trial Functions (Columns)
-	    for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
-
-	      kij = 0.5 * 2.0*neighbor_basis_1_dphi[trial*dim+1] * finrm[1] * (qx_face[1]- barycenter_neighbor->y[0]);
-	      kij += 0.5 * neighbor_basis_1_dphi[trial*dim] * finrm[0] * (qx_face[1]- barycenter_neighbor->y[0]);
-	      kij += 0.5 * neighbor_basis_0_dphi[trial*dim] * finrm[1] * (qx_face[0]- barycenter_neighbor->x[0]);
-
-	      // NEW SLEE : elasticity div part
-	      // u2-v1 block : <dy(u2),dx(v1)>
-	      kij += 0.5 *lambda*neighbor_basis_0_dphi[trial*dim+1] * finrm[0] *  (qx_face[0]- barycenter_neighbor->x[0]);
-	      kij += 0.5 *lambda*neighbor_basis_0_dphi[trial*dim+1] * finrm[1] *  (qx_face[1]- barycenter_neighbor->y[0]);
-
-
-	      ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	    }
-	  }
-	}// bEG TERMS.
-	// ------ #2 INTERFACE -------------------------- END //
-
-
-	// ------ PORO P1 INTERFACE -------------------------- START //
-	///////////////////////////////////////////////////////////////////////////
-	//porop1
-	//PoroElasticity   + ({p},  [u] dot n)
-	//////////////////////////////////////////////////////////////////////////
-	//      ({p},  [u] dot n)
-	//       CG  CG
-	//       trial (column) 3  test (row) 0
-	// test - u0 cg
-
-	local_row_index = 0;
-	// trial - p cg
-	local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[0]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
-
-	    kij = alpha * 0.5 * FE->var_spaces[3]->phi[trial] *  FE->var_spaces[0]->phi[test]*finrm[0];
-
-	    ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[0]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
-
-	    kij = -alpha * 0.5 * FE->var_spaces[3]->phi[trial] *  neighbor_basis_0_phi[test]*finrm[0];
-
-	    ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[0]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
-
-	    kij = alpha * 0.5 * neighbor_basis_3_phi[trial] *  FE->var_spaces[0]->phi[test]*finrm[0];
-
-	    ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[0]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
-
-	    kij = -alpha * 0.5 * neighbor_basis_3_phi[trial] *  neighbor_basis_0_phi[test]*finrm[0];
-
-	    ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-
-	//      ({p},  [u] dot n)
-	//       CG  CG u1
-	//       trial (column) 3  test (row) 1
-	// test - u1 cg
-	local_row_index = FE->var_spaces[0]->dof_per_elm;
-	// trial - p cg
-	local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[1]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
-
-	    kij = alpha * 0.5 * FE->var_spaces[3]->phi[trial] *  FE->var_spaces[1]->phi[test]*finrm[1];
-
-	    ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[1]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
-
-	    kij = -alpha * 0.5 * FE->var_spaces[3]->phi[trial] *  neighbor_basis_1_phi[test]*finrm[1];
-
-	    ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[1]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
-
-	    kij = alpha * 0.5 * neighbor_basis_3_phi[trial] *  FE->var_spaces[1]->phi[test]*finrm[1];
-
-	    ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[1]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
-
-	    kij = -alpha * 0.5 * neighbor_basis_3_phi[trial] *  neighbor_basis_1_phi[test]*finrm[1];
-
-	    ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-
-
-
-	//porop1
-	//      ({p},  [u] dot n)
-	//       CG  DG
-	//       trial (column) 3  test (row) 2
-	// test - u eg
-	local_row_index = FE->var_spaces[0]->dof_per_elm +FE->var_spaces[1]->dof_per_elm;
-	// trial - p cg
-	local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[2]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
-
-	    kij = alpha * 0.5 * FE->var_spaces[3]->phi[trial] *
-	      (finrm[0] *  (qx_face[0]- barycenter->x[0]) + finrm[1] *  (qx_face[1]- barycenter->y[0]));
-	    ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[2]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
-
-	    kij = -alpha * 0.5 * FE->var_spaces[3]->phi[trial] *
-	      (finrm[0] *  (qx_face[0]- barycenter_neighbor->x[0]) + finrm[1] *  (qx_face[1]- barycenter_neighbor->y[0]));
-
-	    ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[2]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
-
-	    kij = alpha * 0.5 * neighbor_basis_3_phi[trial] *
-	      (finrm[0] *  (qx_face[0]- barycenter->x[0]) + finrm[1] *  (qx_face[1]- barycenter->y[0]));
-
-	    ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[2]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
-
-	    kij = -alpha * 0.5 * neighbor_basis_3_phi[trial] *
-	      (finrm[0] *  (qx_face[0]- barycenter_neighbor->x[0]) + finrm[1] *  (qx_face[1]- barycenter_neighbor->y[0]));
-
-	    ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-
-
-	// ------ PORO P1 INTERFACE -------------------------- END//
-
-
-	// ------ STOKES P1 INTERFACE -------------------------- START //
-	///////////////////////////////////////////////////////////////////////////
-	// Stokes   + ({p},  [u] dot n)
-	//////////////////////////////////////////////////////////////////////////
-	//      ({p},  [u] dot n)
-	//       CG  CG
-	//       trial (column) 3  test (row) 0
-	// trial - u0 cg
-	local_col_index = 0;
-	// test - p cg
-	local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
-
-	    kij = alpha * 0.5 * FE->var_spaces[3]->phi[test] *  FE->var_spaces[0]->phi[trial]*finrm[0];
-
-	    ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
-
-	    kij = -alpha * 0.5 * FE->var_spaces[3]->phi[test] *  neighbor_basis_0_phi[trial]*finrm[0];
-
-	    ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
-
-	    kij = alpha * 0.5 * neighbor_basis_3_phi[test] *  FE->var_spaces[0]->phi[trial]*finrm[0];
-
-	    ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
-
-	    kij = -alpha * 0.5 * neighbor_basis_3_phi[test] *  neighbor_basis_0_phi[trial]*finrm[0];
-
-	    ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-
-	//      ({p},  [u] dot n)
-	//       CG  CG u1
-	//       trial (column) 3  test (row) 1
-	// trial - u1 cg
-	local_col_index = FE->var_spaces[0]->dof_per_elm;
-	// test - p cg
-	local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
-
-	    kij = alpha * 0.5 * FE->var_spaces[3]->phi[test] *  FE->var_spaces[1]->phi[trial]*finrm[1];
-
-	    ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
-
-	    kij = -alpha * 0.5 * FE->var_spaces[3]->phi[test] *  neighbor_basis_1_phi[trial]*finrm[1];
-
-	    ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
-
-	    kij = alpha * 0.5 * neighbor_basis_3_phi[test] *  FE->var_spaces[1]->phi[trial]*finrm[1];
-
-	    ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
-
-	    kij = -alpha * 0.5 * neighbor_basis_3_phi[test] *  neighbor_basis_1_phi[trial]*finrm[1];
-
-	    ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-
-	//Stokes1
-	//      ({p},  [u] dot n)
-	//       CG  DG
-	//       test (column) 3  trial (row) 2
-	// trial - u eg
-	local_col_index = FE->var_spaces[0]->dof_per_elm +FE->var_spaces[1]->dof_per_elm;
-	// test - p cg
-	local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[2]->dof_per_elm;trial++){
-
-	    kij = alpha * 0.5 * FE->var_spaces[3]->phi[test] *
-	      (finrm[0] *  (qx_face[0]- barycenter->x[0]) + finrm[1] *  (qx_face[1]- barycenter->y[0]));
-	    ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[2]->dof_per_elm;trial++){
-
-	    kij = -alpha * 0.5 * FE->var_spaces[3]->phi[test] *
-	      (finrm[0] *  (qx_face[0]- barycenter_neighbor->x[0]) + finrm[1] *  (qx_face[1]- barycenter_neighbor->y[0]));
-
-	    ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[2]->dof_per_elm;trial++){
-
-	    kij = alpha * 0.5 * neighbor_basis_3_phi[test] *
-	      (finrm[0] *  (qx_face[0]- barycenter->x[0]) + finrm[1] *  (qx_face[1]- barycenter->y[0]));
-
-	    ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-	// Loop over Test Functions (Rows)
-	for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
-	  // Loop over Trial Functions (Columns)
-	  for (trial=0; trial<FE->var_spaces[2]->dof_per_elm;trial++){
-
-	    kij = -alpha * 0.5 * neighbor_basis_3_phi[test] *
-	      (finrm[0] *  (qx_face[0]- barycenter_neighbor->x[0]) + finrm[1] *  (qx_face[1]- barycenter_neighbor->y[0]));
-
-	    ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-	  }
-	}
-
-
-	//Stokes1
-
-
-	// Stokes Interafec -- end //
-
-
-
-	free(neighbor_basis_0_phi);
-	free(neighbor_basis_0_dphi);
-
-	free(neighbor_basis_1_phi);
-	free(neighbor_basis_1_dphi);
-
-	free(neighbor_basis_3_phi);
-	free(neighbor_basis_3_dphi);
+    } else if(counter ==2) { //on interface
+
+      local_dof_on_elm_face_interface = NULL;
+      local_dof_on_elm_neighbor = NULL;
+      // HERE IN THE INTERFACE, WE HAVE FOUR DIFFERENT LOCAL MATRICES
+      // CASE I   u v
+      // CASE II  u v_neighbor
+      // CASE III u_neighbor v
+      // CASE IV  u_neighbor v_neighbor
+      //Sanity Cehck
+      if(mesh->f_flag[face] != 0)
+      {printf("well? something is wrong \n"); exit(0);}
+
+
+      //printf("counter 2 \n");
+      // u1
+      get_FEM_basis(FE->var_spaces[0]->phi,FE->var_spaces[0]->dphi,qx_face,v_on_elm,dof_on_elm,mesh,FE->var_spaces[0]);
+      local_dof_on_elm_face_interface = dof_on_elm + FE->var_spaces[0]->dof_per_elm;
+
+      // u2
+      get_FEM_basis(FE->var_spaces[1]->phi,FE->var_spaces[1]->dphi,qx_face,v_on_elm,dof_on_elm,mesh,FE->var_spaces[1]);
+      local_dof_on_elm_face_interface += FE->var_spaces[1]->dof_per_elm;
+
+      // u3
+      if(dim==3) {
+        get_FEM_basis(FE->var_spaces[2]->phi,FE->var_spaces[2]->dphi,qx_face,v_on_elm,dof_on_elm,mesh,FE->var_spaces[2]);
+        local_dof_on_elm_face_interface += FE->var_spaces[2]->dof_per_elm;
       }
+
+      //FOR EG
+      local_dof_on_elm_face_interface += FE->var_spaces[dim]->dof_per_elm;
+
+      // p
+      get_FEM_basis(FE->var_spaces[dim+1]->phi,FE->var_spaces[dim+1]->dphi,qx_face,v_on_elm,dof_on_elm,mesh,FE->var_spaces[dim+1]);
+      local_dof_on_elm_face_interface += FE->var_spaces[dim+1]->dof_per_elm;
+
+      // Now, get the basis for the neighbor
+      // TODO: Why is this allocated inside here, and what should the size be? v_per_elm?
+      REAL* neighbor_basis_u1_phi  = (REAL *) calloc(3,sizeof(REAL));
+      REAL* neighbor_basis_u1_dphi = (REAL *) calloc(3*mesh->dim,sizeof(REAL));
+
+      REAL* neighbor_basis_u2_phi  = (REAL *) calloc(3,sizeof(REAL));
+      REAL* neighbor_basis_u2_dphi = (REAL *) calloc(3*mesh->dim,sizeof(REAL));
+
+      REAL* neighbor_basis_u3_phi  = (REAL *) calloc(3,sizeof(REAL));
+      REAL* neighbor_basis_u3_dphi = (REAL *) calloc(3*mesh->dim,sizeof(REAL));
+
+      REAL* neighbor_basis_p_phi  = (REAL *) calloc(3,sizeof(REAL));
+      REAL* neighbor_basis_p_dphi = (REAL *) calloc(3*mesh->dim,sizeof(REAL));
+
+
+      // u1
+      get_FEM_basis( neighbor_basis_u1_phi,neighbor_basis_u1_dphi,qx_face,v_on_elm_neighbor,dof_on_elm_neighbor,mesh,FE->var_spaces[0]);
+      local_dof_on_elm_neighbor = dof_on_elm_neighbor + FE->var_spaces[0]->dof_per_elm;
+
+      // u2
+      get_FEM_basis(neighbor_basis_u2_phi,neighbor_basis_u2_dphi,qx_face,v_on_elm_neighbor,dof_on_elm_neighbor,mesh,FE->var_spaces[1]);
+      local_dof_on_elm_neighbor += FE->var_spaces[1]->dof_per_elm;
+
+      // u3
+      if(dim==3) {
+        get_FEM_basis( neighbor_basis_u3_phi,neighbor_basis_u3_dphi,qx_face,v_on_elm_neighbor,dof_on_elm_neighbor,mesh,FE->var_spaces[2]);
+        local_dof_on_elm_neighbor += FE->var_spaces[2]->dof_per_elm;
+      }
+
+      // u eg
+      local_dof_on_elm_neighbor += FE->var_spaces[dim]->dof_per_elm;
+
+      // p
+      get_FEM_basis(neighbor_basis_p_phi,neighbor_basis_p_dphi,qx_face,v_on_elm_neighbor,dof_on_elm_neighbor,mesh,FE->var_spaces[dim+1]);
+      local_dof_on_elm_neighbor += FE->var_spaces[dim+1]->dof_per_elm;
+
+      // ------ #2 INTERFACE -------------------------- START //
+      //q-q block:
+      local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+      local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[dim]->dof_per_elm;trial++){
+
+          kij = -0.5* 2.0 * 1. * finrm[0] * (qx_face[0]- barycenter->x[0]);
+          kij -= 0.5* 2.0 * 1. * finrm[1] * (qx_face[1]- barycenter->y[0]);
+
+          // NEW SLEE : elasticity div part
+          // u2-v1 block : <dy(u2),dx(v1)>
+          kij -= 0.5*lambda * 1. *  finrm[0] * (qx_face[0]- barycenter->x[0]);
+          kij -= 0.5*lambda * 1. *  finrm[0] * (qx_face[0]- barycenter->x[0]);
+
+          kij -= 0.5*lambda * 1. *  finrm[1] * (qx_face[1]- barycenter->y[0]);
+          kij -= 0.5*lambda * 1. *  finrm[1] * (qx_face[1]- barycenter->y[0]);
+
+          //penalty term
+          kij += penalty_term * (qx_face[0]- barycenter->x[0]) * (qx_face[0]- barycenter->x[0]);
+          kij += penalty_term * (qx_face[1]- barycenter->y[0]) * (qx_face[1]- barycenter->y[0]);
+
+          ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+      //q-neighbor q block: where q is from neighbor
+      // column (trial is from neighbor)
+      local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+      local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[dim]->dof_per_elm;trial++){
+          if(test == 1)
+          {
+            printf("oops !? \n");
+            exit(0);
+          }
+
+          kij = 0.5* -2.0 * 1. * finrm[0] * (qx_face[0]- barycenter->x[0]);
+          kij -= 0.5*2.0 * 1. * finrm[1] * (qx_face[1]- barycenter->y[0]);
+
+          // NEW SLEE : elasticity div part
+          // u2-v1 block : <dy(u2),dx(v1)>
+          kij -= 0.5*lambda * 1. *  finrm[0] * (qx_face[0]- barycenter->x[0]);
+          kij -= 0.5*lambda * 1. *  finrm[0] * (qx_face[0]- barycenter->x[0]);
+
+          kij -= 0.5*lambda * 1. *  finrm[1] * (qx_face[1]- barycenter->y[0]);
+          kij -= 0.5*lambda * 1. *  finrm[1] * (qx_face[1]- barycenter->y[0]);
+
+          //penalty_term
+          kij += -penalty_term * (qx_face[0]- barycenter_neighbor->x[0]) * (qx_face[0]- barycenter->x[0]) ;
+          kij += -penalty_term * (qx_face[1]- barycenter_neighbor->y[0]) * (qx_face[1]- barycenter->y[0]) ;
+
+
+
+          ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+
+      //q q-neighbor block: where q (Test) is from neighbor => we need minus sign
+      // row (test is from neighbor)
+      local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+      local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[dim]->dof_per_elm;trial++){
+          if(test == 1)
+          {
+            printf("oops !? \n");
+            exit(0);
+          }
+
+          kij = 0.5* 2.0 * 1. * finrm[0] * (qx_face[0]- barycenter_neighbor->x[0]);
+          kij += 0.5*2.0 * 1. * finrm[1] * (qx_face[1]- barycenter_neighbor->y[0]);
+
+          // NEW SLEE : elasticity div part
+          // u2-v1 block : <dy(u2),dx(v1)>
+          kij += 0.5*lambda * 1. *  finrm[0] * (qx_face[0]- barycenter_neighbor->x[0]);
+          kij += 0.5*lambda * 1. *  finrm[0] * (qx_face[0]- barycenter_neighbor->x[0]);
+
+          kij += 0.5*lambda * 1. *  finrm[1] * (qx_face[1]- barycenter_neighbor->y[0]);
+          kij += 0.5*lambda * 1. *  finrm[1] * (qx_face[1]- barycenter_neighbor->y[0]);
+
+          //penalty_term
+          kij += -penalty_term * (qx_face[0]- barycenter_neighbor->x[0]) * (qx_face[0]- barycenter->x[0]) ;
+          kij += -penalty_term * (qx_face[1]- barycenter_neighbor->y[0]) * (qx_face[1]- barycenter->y[0]) ;
+
+
+          ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+      //q-neighobr q-neighbor block: where q (Test) is from neighbor => we need minus sign
+      // column (trial  is from neighbor)
+      // row (test is from neighbor)
+      local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+      local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[dim]->dof_per_elm;trial++){
+          if(test == 1)
+          {
+            printf("oops !? \n");
+            exit(0);
+          }
+
+          kij = 0.5* 2.0 * 1. * finrm[0] * (qx_face[0]- barycenter_neighbor->x[0]);
+          kij += 0.5*2.0 * 1. * finrm[1] * (qx_face[1]- barycenter_neighbor->y[0]);
+
+          // NEW SLEE : elasticity div part
+          // u2-v1 block : <dy(u2),dx(v1)>
+          kij += 0.5*lambda * 1. *  finrm[0] * (qx_face[0]- barycenter_neighbor->x[0]);
+          kij += 0.5*lambda * 1. *  finrm[0] * (qx_face[0]- barycenter_neighbor->x[0]);
+
+          kij += 0.5*lambda * 1. *  finrm[1] * (qx_face[1]- barycenter_neighbor->y[0]);
+          kij += 0.5*lambda * 1. *  finrm[1] * (qx_face[1]- barycenter_neighbor->y[0]);
+
+          //penalty_term
+          kij += penalty_term * (qx_face[0]- barycenter_neighbor->x[0]) * (qx_face[0]- barycenter_neighbor->x[0]) ;
+          kij += penalty_term * (qx_face[1]- barycenter_neighbor->y[0]) * (qx_face[1]- barycenter_neighbor->y[0]) ;
+
+
+          ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+
+      if(bEG){
+        // u0 - q block
+        local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+        local_col_index = 0;
+        // Loop over Test Functions (Rows)
+        for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
+          // Loop over Trial Functions (Columns)
+          for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
+
+            //CG-DG
+            // u0 - q0
+            // u0 - q1
+            kij = -0.5 * 2.0*FE->var_spaces[0]->dphi[trial*dim] * finrm[0]  * (qx_face[0]- barycenter->x[0]); //FE->var_spaces[dim]->phi[test];
+            kij -= 0.5 * FE->var_spaces[0]->dphi[trial*dim+1] * finrm[1]    * (qx_face[0]- barycenter->x[0]);
+            kij -= 0.5 * FE->var_spaces[0]->dphi[trial*dim+1] * finrm[0]    * (qx_face[1]- barycenter->y[0]); //FE->var_spaces[dim]->phi[test];
+
+            // Divergence
+            // u1-q block :
+            kij -= 0.5 * lambda*FE->var_spaces[0]->dphi[trial*dim]* finrm[0] * (qx_face[0]- barycenter->x[0]);//FE->var_spaces[dim]->dphi[test*dim];
+            kij -= 0.5 * lambda*FE->var_spaces[0]->dphi[trial*dim]* finrm[1] * (qx_face[1]- barycenter->y[0]);
+
+            ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          }
+        }
+
+        // u1-q block
+        local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+        local_col_index = FE->var_spaces[0]->dof_per_elm;
+        // Loop over Test Functions (Rows)
+        for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
+          // Loop over Trial Functions (Columns)
+          for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
+
+            kij = -0.5 * 2.0*FE->var_spaces[1]->dphi[trial*dim+1] * finrm[1] * (qx_face[1]- barycenter->y[0]);
+            kij -= 0.5 * FE->var_spaces[1]->dphi[trial*dim] * finrm[0]       * (qx_face[1]- barycenter->y[0]);
+            kij -= 0.5 * FE->var_spaces[1]->dphi[trial*dim] * finrm[1]       * (qx_face[0]- barycenter->x[0]);
+
+            // NEW SLEE : elasticity div part
+            // u2-v1 block : <dy(u2),dx(v1)>
+            kij -= 0.5 *lambda*FE->var_spaces[1]->dphi[trial*dim+1] * finrm[0] *  (qx_face[0]- barycenter->x[0]);
+            kij -= 0.5 *lambda*FE->var_spaces[1]->dphi[trial*dim+1] * finrm[1] *  (qx_face[1]- barycenter->y[0]);
+
+            ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          }
+        }
+
+
+        // u0 - q (where u0 is from neighbor)
+        // column (trial is from neighbor)
+        local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+        local_col_index = 0;
+        // Loop over Test Functions (Rows)
+        for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
+          // Loop over Trial Functions (Columns)
+          for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
+
+            //DEBUG
+            kij = -0.5 * 2.0*neighbor_basis_u1_dphi[trial*dim] * finrm[0]  * (qx_face[0]- barycenter->x[0]); //FE->var_spaces[dim]->phi[test];
+            kij -= 0.5 * neighbor_basis_u1_dphi[trial*dim+1] * finrm[1]    * (qx_face[0]- barycenter->x[0]);
+            kij -= 0.5 * neighbor_basis_u1_dphi[trial*dim+1] * finrm[0]    * (qx_face[1]- barycenter->y[0]); //FE->var_spaces[dim]->phi[test];
+
+            // Divergence
+            // u1-q block :
+            kij -= 0.5 * lambda*neighbor_basis_u1_dphi[trial*dim]* finrm[0] * (qx_face[0]- barycenter->x[0]);//FE->var_spaces[dim]->dphi[test*dim];
+            kij -= 0.5 * lambda*neighbor_basis_u1_dphi[trial*dim]* finrm[1] * (qx_face[1]- barycenter->y[0]);
+
+            ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          }
+        }
+
+        // u1-q (where u1 is from neighbor)
+        // column (trial is from neighbor)
+        local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+        local_col_index = FE->var_spaces[0]->dof_per_elm;
+
+        // Loop over Test Functions (Rows)
+        for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
+          // Loop over Trial Functions (Columns)
+          for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
+            //DEBUG
+            kij = -0.5 * 2.0*neighbor_basis_u2_dphi[trial*dim+1] * finrm[1] * (qx_face[1]- barycenter->y[0]);
+            kij -= 0.5 * neighbor_basis_u2_dphi[trial*dim]       * finrm[0] * (qx_face[1]- barycenter->y[0]);
+            kij -= 0.5 * neighbor_basis_u2_dphi[trial*dim]       * finrm[1] * (qx_face[0]- barycenter->x[0]);
+
+            // NEW SLEE : elasticity div part
+            // u2-v1 block : <dy(u2),dx(v1)>
+            kij -= 0.5 *lambda*neighbor_basis_u2_dphi[trial*dim+1] * finrm[0] *  (qx_face[0]- barycenter->x[0]);
+            kij -= 0.5 *lambda*neighbor_basis_u2_dphi[trial*dim+1] * finrm[1] *  (qx_face[1]- barycenter->y[0]);
+
+            ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          }
+        }
+
+        // u0 - q_neighbor block
+        // (q has minus sign)
+        // row (test is from neighbor)
+        local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+        local_col_index = 0;
+        // Loop over Test Functions (Rows)
+        for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
+          // Loop over Trial Functions (Columns)
+          for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
+
+            //CG-DG
+            // u0 - q0
+            // u0 - q1
+            kij = 0.5 * 2.0*FE->var_spaces[0]->dphi[trial*dim] * finrm[0]  * (qx_face[0]- barycenter_neighbor->x[0]); //FE->var_spaces[dim]->phi[test];
+            kij += 0.5 * FE->var_spaces[0]->dphi[trial*dim+1] * finrm[1] * (qx_face[0]- barycenter_neighbor->x[0]);
+            kij += 0.5 * FE->var_spaces[0]->dphi[trial*dim+1] * finrm[0]  * (qx_face[1]- barycenter_neighbor->y[0]); //FE->var_spaces[dim]->phi[test];
+
+            // Divergence
+            // u1-q block :
+            kij += 0.5 * lambda*FE->var_spaces[0]->dphi[trial*dim]* finrm[0] * (qx_face[0]- barycenter_neighbor->x[0]);//FE->var_spaces[dim]->dphi[test*dim];
+            kij += 0.5 * lambda*FE->var_spaces[0]->dphi[trial*dim]* finrm[1] * (qx_face[1]- barycenter_neighbor->y[0]);
+
+            ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          }
+        }
+
+        // u1-q_neighbor block
+        // (q has minus sign)
+        // row (test is from neighbor)
+        local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+        local_col_index = FE->var_spaces[0]->dof_per_elm;
+        // Loop over Test Functions (Rows)
+        for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
+          // Loop over Trial Functions (Columns)
+          for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
+
+            kij = 0.5 * 2.0*FE->var_spaces[1]->dphi[trial*dim+1] * finrm[1] * (qx_face[1]- barycenter_neighbor->y[0]);
+            kij += 0.5 * FE->var_spaces[1]->dphi[trial*dim] * finrm[0] * (qx_face[1]- barycenter_neighbor->y[0]);
+            kij += 0.5 * FE->var_spaces[1]->dphi[trial*dim] * finrm[1] * (qx_face[0]- barycenter_neighbor->x[0]);
+
+            // NEW SLEE : elasticity div part
+            // u2-v1 block : <dy(u2),dx(v1)>
+            kij += 0.5 *lambda*FE->var_spaces[1]->dphi[trial*dim+1] * finrm[0] *  (qx_face[0]- barycenter_neighbor->x[0]);
+            kij += 0.5 *lambda*FE->var_spaces[1]->dphi[trial*dim+1] * finrm[1] *  (qx_face[1]- barycenter_neighbor->y[0]);
+
+
+            ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          }
+        }
+
+        // u0-neighbor - q_neighbor block
+        // (q has minus sign)
+        local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+        local_col_index = 0;
+        // Loop over Test Functions (Rows)
+        for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
+          // Loop over Trial Functions (Columns)
+          for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
+
+            //CG-DG
+            // u0 - q0
+            // u0 - q1
+            kij = 0.5 * 2.0*neighbor_basis_u1_dphi[trial*dim] * finrm[0]  * (qx_face[0]- barycenter_neighbor->x[0]); //FE->var_spaces[dim]->phi[test];
+            kij += 0.5 * neighbor_basis_u1_dphi[trial*dim+1] * finrm[1] * (qx_face[0]- barycenter_neighbor->x[0]);
+
+            kij += 0.5 * neighbor_basis_u1_dphi[trial*dim+1] * finrm[0]  * (qx_face[1]- barycenter_neighbor->y[0]); //FE->var_spaces[dim]->phi[test];
+
+            // Divergence
+            // u1-q block :
+            kij += 0.5 * lambda*neighbor_basis_u1_dphi[trial*dim]* finrm[0] * (qx_face[0]- barycenter_neighbor->x[0]);//FE->var_spaces[dim]->dphi[test*dim];
+            kij += 0.5 * lambda*neighbor_basis_u1_dphi[trial*dim]* finrm[1] * (qx_face[1]- barycenter_neighbor->y[0]);
+
+            ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          }
+        }
+
+        // u1-neighbor - q_neighbor block
+        // (q has minus sign)
+        local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
+        local_col_index = FE->var_spaces[0]->dof_per_elm;
+        // Loop over Test Functions (Rows)
+        for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
+          // Loop over Trial Functions (Columns)
+          for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
+
+            kij = 0.5 * 2.0*neighbor_basis_u2_dphi[trial*dim+1] * finrm[1] * (qx_face[1]- barycenter_neighbor->y[0]);
+            kij += 0.5 * neighbor_basis_u2_dphi[trial*dim] * finrm[0] * (qx_face[1]- barycenter_neighbor->y[0]);
+            kij += 0.5 * neighbor_basis_u1_dphi[trial*dim] * finrm[1] * (qx_face[0]- barycenter_neighbor->x[0]);
+
+            // NEW SLEE : elasticity div part
+            // u2-v1 block : <dy(u2),dx(v1)>
+            kij += 0.5 *lambda*neighbor_basis_u1_dphi[trial*dim+1] * finrm[0] *  (qx_face[0]- barycenter_neighbor->x[0]);
+            kij += 0.5 *lambda*neighbor_basis_u1_dphi[trial*dim+1] * finrm[1] *  (qx_face[1]- barycenter_neighbor->y[0]);
+
+
+            ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          }
+        }
+      }// bEG TERMS.
+      // ------ #2 INTERFACE -------------------------- END //
+
+
+      // ------ PORO P1 INTERFACE -------------------------- START //
+      ///////////////////////////////////////////////////////////////////////////
+      //porop1
+      //PoroElasticity   + ({p},  [u] dot n)
+      //////////////////////////////////////////////////////////////////////////
+      //      ({p},  [u] dot n)
+      //       CG  CG
+      //       trial (column) 3  test (row) 0
+      // test - u0 cg
+
+      local_row_index = 0;
+      // trial - p cg
+      local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[0]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
+
+          kij = alpha * 0.5 * FE->var_spaces[3]->phi[trial] *  FE->var_spaces[0]->phi[test]*finrm[0];
+
+          ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[0]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
+
+          kij = -alpha * 0.5 * FE->var_spaces[3]->phi[trial] *  neighbor_basis_u1_phi[test]*finrm[0];
+
+          ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[0]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
+
+          kij = alpha * 0.5 * neighbor_basis_p_phi[trial] *  FE->var_spaces[0]->phi[test]*finrm[0];
+
+          ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[0]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
+
+          kij = -alpha * 0.5 * neighbor_basis_p_phi[trial] *  neighbor_basis_u1_phi[test]*finrm[0];
+
+          ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+
+      //      ({p},  [u] dot n)
+      //       CG  CG u1
+      //       trial (column) 3  test (row) 1
+      // test - u1 cg
+      local_row_index = FE->var_spaces[0]->dof_per_elm;
+      // trial - p cg
+      local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[1]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
+
+          kij = alpha * 0.5 * FE->var_spaces[3]->phi[trial] *  FE->var_spaces[1]->phi[test]*finrm[1];
+
+          ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[1]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
+
+          kij = -alpha * 0.5 * FE->var_spaces[3]->phi[trial] *  neighbor_basis_u2_phi[test]*finrm[1];
+
+          ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[1]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
+
+          kij = alpha * 0.5 * neighbor_basis_p_phi[trial] *  FE->var_spaces[1]->phi[test]*finrm[1];
+
+          ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[1]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
+
+          kij = -alpha * 0.5 * neighbor_basis_p_phi[trial] *  neighbor_basis_u2_phi[test]*finrm[1];
+
+          ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+
+
+
+      //porop1
+      //      ({p},  [u] dot n)
+      //       CG  DG
+      //       trial (column) 3  test (row) 2
+      // test - u eg
+      local_row_index = FE->var_spaces[0]->dof_per_elm +FE->var_spaces[1]->dof_per_elm;
+      // trial - p cg
+      local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[2]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
+
+          kij = alpha * 0.5 * FE->var_spaces[3]->phi[trial] *
+          (finrm[0] *  (qx_face[0]- barycenter->x[0]) + finrm[1] *  (qx_face[1]- barycenter->y[0]));
+          ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[2]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
+
+          kij = -alpha * 0.5 * FE->var_spaces[3]->phi[trial] *
+          (finrm[0] *  (qx_face[0]- barycenter_neighbor->x[0]) + finrm[1] *  (qx_face[1]- barycenter_neighbor->y[0]));
+
+          ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[2]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
+
+          kij = alpha * 0.5 * neighbor_basis_p_phi[trial] *
+          (finrm[0] *  (qx_face[0]- barycenter->x[0]) + finrm[1] *  (qx_face[1]- barycenter->y[0]));
+
+          ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[2]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
+
+          kij = -alpha * 0.5 * neighbor_basis_p_phi[trial] *
+          (finrm[0] *  (qx_face[0]- barycenter_neighbor->x[0]) + finrm[1] *  (qx_face[1]- barycenter_neighbor->y[0]));
+
+          ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+
+
+      // ------ PORO P1 INTERFACE -------------------------- END//
+
+
+      // ------ STOKES P1 INTERFACE -------------------------- START //
+      ///////////////////////////////////////////////////////////////////////////
+      // Stokes   + ({p},  [u] dot n)
+      //////////////////////////////////////////////////////////////////////////
+      //      ({p},  [u] dot n)
+      //       CG  CG
+      //       trial (column) 3  test (row) 0
+      // trial - u0 cg
+      local_col_index = 0;
+      // test - p cg
+      local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
+
+          kij = alpha * 0.5 * FE->var_spaces[3]->phi[test] *  FE->var_spaces[0]->phi[trial]*finrm[0];
+
+          ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
+
+          kij = -alpha * 0.5 * FE->var_spaces[3]->phi[test] *  neighbor_basis_u1_phi[trial]*finrm[0];
+
+          ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
+
+          kij = alpha * 0.5 * neighbor_basis_p_phi[test] *  FE->var_spaces[0]->phi[trial]*finrm[0];
+
+          ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
+
+          kij = -alpha * 0.5 * neighbor_basis_p_phi[test] *  neighbor_basis_u1_phi[trial]*finrm[0];
+
+          ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+
+      //      ({p},  [u] dot n)
+      //       CG  CG u1
+      //       trial (column) 3  test (row) 1
+      // trial - u1 cg
+      local_col_index = FE->var_spaces[0]->dof_per_elm;
+      // test - p cg
+      local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
+
+          kij = alpha * 0.5 * FE->var_spaces[3]->phi[test] *  FE->var_spaces[1]->phi[trial]*finrm[1];
+
+          ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
+
+          kij = -alpha * 0.5 * FE->var_spaces[3]->phi[test] *  neighbor_basis_u2_phi[trial]*finrm[1];
+
+          ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
+
+          kij = alpha * 0.5 * neighbor_basis_p_phi[test] *  FE->var_spaces[1]->phi[trial]*finrm[1];
+
+          ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
+
+          kij = -alpha * 0.5 * neighbor_basis_p_phi[test] *  neighbor_basis_u2_phi[trial]*finrm[1];
+
+          ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+
+      //Stokes1
+      //      ({p},  [u] dot n)
+      //       CG  DG
+      //       test (column) 3  trial (row) 2
+      // trial - u eg
+      local_col_index = FE->var_spaces[0]->dof_per_elm +FE->var_spaces[1]->dof_per_elm;
+      // test - p cg
+      local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[2]->dof_per_elm;trial++){
+
+          kij = alpha * 0.5 * FE->var_spaces[3]->phi[test] *
+          (finrm[0] *  (qx_face[0]- barycenter->x[0]) + finrm[1] *  (qx_face[1]- barycenter->y[0]));
+          ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[2]->dof_per_elm;trial++){
+
+          kij = -alpha * 0.5 * FE->var_spaces[3]->phi[test] *
+          (finrm[0] *  (qx_face[0]- barycenter_neighbor->x[0]) + finrm[1] *  (qx_face[1]- barycenter_neighbor->y[0]));
+
+          ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[2]->dof_per_elm;trial++){
+
+          kij = alpha * 0.5 * neighbor_basis_p_phi[test] *
+          (finrm[0] *  (qx_face[0]- barycenter->x[0]) + finrm[1] *  (qx_face[1]- barycenter->y[0]));
+
+          ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[2]->dof_per_elm;trial++){
+
+          kij = -alpha * 0.5 * neighbor_basis_p_phi[test] *
+          (finrm[0] *  (qx_face[0]- barycenter_neighbor->x[0]) + finrm[1] *  (qx_face[1]- barycenter_neighbor->y[0]));
+
+          ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+        }
+      }
+
+
+      //Stokes1
+
+
+      // Stokes Interafec -- end //
+
+
+
+      free(neighbor_basis_u1_phi);
+      free(neighbor_basis_u1_dphi);
+
+      free(neighbor_basis_u2_phi);
+      free(neighbor_basis_u2_dphi);
+
+      if(dim==3) {
+        free(neighbor_basis_u3_phi);
+        free(neighbor_basis_u3_dphi);
+      }
+
+      free(neighbor_basis_p_phi);
+      free(neighbor_basis_p_dphi);
+    }
   }// face q loop
 
 
   // printf("ok\n");
-  if(counter == 1)
+  if(counter == 1) {
     block_LocaltoGlobal_neighbor(dof_on_elm,dof_on_elm,FE,A,ALoc);
-  else if(counter == 2)
-    {
-      //printf("=============== 111111111111 =================== \n");
-      block_LocaltoGlobal_neighbor(dof_on_elm,dof_on_elm,FE,A,ALoc_u_v);
-      // row is neighbor
+  } else if(counter == 2) {
+    //printf("=============== 111111111111 =================== \n");
+    block_LocaltoGlobal_neighbor(dof_on_elm,dof_on_elm,FE,A,ALoc_u_v);
+    // row is neighbor
 
-      //printf("=============== 222222222222 =================== \n");
-      block_LocaltoGlobal_neighbor(dof_on_elm_neighbor,dof_on_elm,FE,A,ALoc_u_vneighbor);
-      //block_LocaltoGlobal_neighbor(dof_on_elm,dof_on_elm_neighbor,FE,A,ALoc_u_vneighbor);
+    //printf("=============== 222222222222 =================== \n");
+    block_LocaltoGlobal_neighbor(dof_on_elm_neighbor,dof_on_elm,FE,A,ALoc_u_vneighbor);
+    //block_LocaltoGlobal_neighbor(dof_on_elm,dof_on_elm_neighbor,FE,A,ALoc_u_vneighbor);
 
-      //printf("=============== 333333333333 =================== \n");
-      block_LocaltoGlobal_neighbor(dof_on_elm,dof_on_elm_neighbor,FE,A,ALoc_uneighbor_v);
-      //block_LocaltoGlobal_neighbor(dof_on_elm_neighbor,dof_on_elm,FE,A,ALoc_uneighbor_v);
+    //printf("=============== 333333333333 =================== \n");
+    block_LocaltoGlobal_neighbor(dof_on_elm,dof_on_elm_neighbor,FE,A,ALoc_uneighbor_v);
+    //block_LocaltoGlobal_neighbor(dof_on_elm_neighbor,dof_on_elm,FE,A,ALoc_uneighbor_v);
 
-      //printf("=============== 444444444444 =================== \n");
-      block_LocaltoGlobal_neighbor(dof_on_elm_neighbor,dof_on_elm_neighbor,FE,A,ALoc_uneighbor_vneighbor);
-    }
+    //printf("=============== 444444444444 =================== \n");
+    block_LocaltoGlobal_neighbor(dof_on_elm_neighbor,dof_on_elm_neighbor,FE,A,ALoc_uneighbor_vneighbor);
+  }
   else{
     printf("!@#$\n");exit(0);
   }
@@ -2066,8 +2008,8 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
 
 
 
-  //printf("Local Assemble Face - end\n");
-}
+              //printf("Local Assemble Face - end\n");
+            }
 
 /******************************************************************************************************/
 /*!
@@ -2138,7 +2080,7 @@ void FEM_Block_RHS_Local_Elasticity(dvector *b,REAL* bLoc, REAL *solution, \
 
   // For initial condition
   REAL* val_true = (REAL *) calloc(nun,sizeof(REAL));
-  REAL* val_true_D = (REAL *) calloc(nun*2,sizeof(REAL));
+  REAL* val_true_D = (REAL *) calloc(nun*dim,sizeof(REAL));
 
   // for the preivous time step value
   //REAL* val_sol = (REAL *) calloc(nun,sizeof(REAL));
@@ -2147,6 +2089,7 @@ void FEM_Block_RHS_Local_Elasticity(dvector *b,REAL* bLoc, REAL *solution, \
   coordinates *barycenter = allocatecoords(1,dim);
   barycenter->x[0] = mesh->el_mid[elm*dim];
   barycenter->y[0] = mesh->el_mid[elm*dim + 1];
+  if(dim==3) barycenter->z[0] = mesh->el_mid[elm*dim+2];
 
 
   //  Sum over quadrature points
@@ -2173,6 +2116,8 @@ void FEM_Block_RHS_Local_Elasticity(dvector *b,REAL* bLoc, REAL *solution, \
     //exit(0);
     //}
 
+    // TODO: Need help with counting here...
+
     local_row_index=0;
     unknown_index=0;
     local_dof_on_elm=dof_on_elm;
@@ -2180,34 +2125,55 @@ void FEM_Block_RHS_Local_Elasticity(dvector *b,REAL* bLoc, REAL *solution, \
     REAL* u_comp = solution;
     REAL u0_value_at_q = 0.;
     REAL u1_value_at_q = 0.;
+    REAL u2_value_at_q = 0.;
     REAL val[dim];
     val[0] = 0.0;
     val[1] = 0.0;
+    val[2] = 0.0;
 
     REAL p_value_at_q = 0.;
     REAL p_eg_value_at_q = 0.;
     int j,dof;
 
-    REAL grad_val0[dim];
-    grad_val0[0]=0;
-    grad_val0[1]=0;
-    REAL grad_val1[dim];
-    grad_val1[0]=0;
-    grad_val1[1]=0;
+    REAL grad_valu1[dim];
+    grad_valu1[0]=0;
+    grad_valu1[1]=0;
+    REAL grad_valu2[dim];
+    grad_valu2[0]=0;
+    grad_valu2[1]=0;
+    REAL grad_valu3[dim];
+    if(dim==3) {
+      grad_valu1[2]=0;
+      grad_valu2[2]=0;
+      grad_valu3[0]=0;
+      grad_valu3[1]=0;
+      grad_valu3[2]=0;
+    }
 
     // U  bEG
-    REAL grad_val2[dim];
-    grad_val2[0] = 0.0;
-    grad_val2[1] = 0.0;
+    REAL grad_valeg1[dim];
+    grad_valeg1[0] = 0.0;
+    grad_valeg1[1] = 0.0;
 
-    REAL grad_val3[dim];
-    grad_val3[0] = 0.0;
-    grad_val3[1] = 0.0;
+    REAL grad_valeg2[dim];
+    grad_valeg2[0] = 0.0;
+    grad_valeg2[1] = 0.0;
+
+    REAL grad_valeg3[dim];
 
     // Pressure
-    REAL grad_val4[dim];
-    grad_val4[0]=0;
-    grad_val4[1]=0;
+    REAL grad_valp[dim];
+    grad_valp[0]=0;
+    grad_valp[1]=0;
+
+    if(dim==3) {
+      grad_valeg1[2]=0;
+      grad_valeg2[2]=0;
+      grad_valp[2]=0;
+      grad_valeg3[0]=0;
+      grad_valeg3[1]=0;
+      grad_valeg3[2]=0;
+    }
 
 
     //printf("time = %f, timestep = %f, val_true[3] = %f, val_true[4] = %f \n", time, timestep, val_true[3], val_true[4]);
@@ -2215,43 +2181,35 @@ void FEM_Block_RHS_Local_Elasticity(dvector *b,REAL* bLoc, REAL *solution, \
     for(i=0;i<FE->nspaces;i++) {
 
       // Basis Functions and its derivatives if necessary
-      get_FEM_basis(FE->var_spaces[i]->phi,
-		    FE->var_spaces[i]->dphi,
-		    qx,
-		    v_on_elm,
-		    local_dof_on_elm,
-		    mesh,
-		    FE->var_spaces[i]);
-
-
-
+      // TODO: Is this right?  Doesn't local_dof_on_elm need to be updated with i?
+      get_FEM_basis(FE->var_spaces[i]->phi,FE->var_spaces[i]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[i]);
 
       for (test=0; test<FE->var_spaces[i]->dof_per_elm;test++) {
 
-	//SLEE
-	if(i == 0 || i == 1)
-	  {
-	    //This is for  u0 and u1 (CG part)
-	    //printf(" i = %d (FE->nspaces = %d), unknown_index = %d, test = %d \n", i, FE->var_spaces[i]->dof_per_elm, unknown_index, test);
-	    bLoc[(local_row_index+test)] += w*rhs_val[i]*FE->var_spaces[i]->phi[test];
-	  }
-	else if(i == 2)
-	  {
-	    //SLEE
-	    // This is for  u2:: (EG part)
-	    //Note that new DOF is \phi^3 = [x ; y]
-	    //printf(" i = %d (FE->nspaces = %d), unknown_index = %d, test = %d \n", i, FE->var_spaces[i]->dof_per_elm, unknown_index, test);
-	    bLoc[(local_row_index+test)] += w*(rhs_val[0]*  (qx[0]-barycenter->x[0])  +rhs_val[1]* (qx[1]-barycenter->y[0]));
-	  }
-	else if(i == 3)
-	  {
+        //SLEE
+        if(i == 0 || i == 1)
+        {
+          //This is for  u0 and u1 (CG part)
+          //printf(" i = %d (FE->nspaces = %d), unknown_index = %d, test = %d \n", i, FE->var_spaces[i]->dof_per_elm, unknown_index, test);
+          bLoc[(local_row_index+test)] += w*rhs_val[i]*FE->var_spaces[i]->phi[test];
+        }
+        else if(i == 2)
+        {
+          //SLEE
+          // This is for  u2:: (EG part)
+          //Note that new DOF is \phi^3 = [x ; y]
+          //printf(" i = %d (FE->nspaces = %d), unknown_index = %d, test = %d \n", i, FE->var_spaces[i]->dof_per_elm, unknown_index, test);
+          bLoc[(local_row_index+test)] += w*(rhs_val[0]*  (qx[0]-barycenter->x[0])  +rhs_val[1]* (qx[1]-barycenter->y[0]));
+        }
+        else if(i == 3)
+        {
 
-	    bLoc[(local_row_index+test)] += w*rhs_val[3]*FE->var_spaces[3]->phi[test];
+          bLoc[(local_row_index+test)] += w*rhs_val[3]*FE->var_spaces[3]->phi[test];
 
-	    //printf(" FE->var_spaces[3]->phi[test] = %f\n", FE->var_spaces[3]->phi[test]);
+          //printf(" FE->var_spaces[3]->phi[test] = %f\n", FE->var_spaces[3]->phi[test]);
 
 
-	  }
+        }
 
 
 
@@ -2304,30 +2262,27 @@ void FEM_Block_RHS_Local_Elasticity(dvector *b,REAL* bLoc, REAL *solution, \
 
       // Get normal vector values.
       finrm[0]=mesh->f_norm[face*dim+0];
-      if(dim>1)
-	finrm[1]=mesh->f_norm[face*dim+1];
-      if(dim>2)
-	finrm[2]=mesh->f_norm[face*dim+2];
+      if(dim>1) finrm[1]=mesh->f_norm[face*dim+1];
+      if(dim>2) finrm[2]=mesh->f_norm[face*dim+2];
 
       for(jkl=mesh->f_v->IA[face];jkl<mesh->f_v->IA[face+1];jkl++){
 
-	//printf("** jkl = %d, mesh->f_v->IA[face] = %d, mesh->f_v->IA[face+1] = %d \n", jkl, mesh->f_v->IA[face], mesh->f_v->IA[face+1]);
+        //printf("** jkl = %d, mesh->f_v->IA[face] = %d, mesh->f_v->IA[face+1] = %d \n", jkl, mesh->f_v->IA[face], mesh->f_v->IA[face+1]);
 
-	j=jkl-mesh->f_v->IA[face];
-	k=mesh->f_v->JA[jkl];
+        j=jkl-mesh->f_v->IA[face];
+        k=mesh->f_v->JA[jkl];
 
-	//printf("** j = %d, k = %d \n", j, k );
+        //printf("** j = %d, k = %d \n", j, k );
 
-	xfi[j*dim+0]=mesh->cv->x[k];
-	if(dim>1)
-	  xfi[j*dim+1]=mesh->cv->y[k];
-	if(dim>2)
-	  xfi[j*dim+2]=mesh->cv->z[k];
+        xfi[j*dim+0]=mesh->cv->x[k];
+        if(dim>1) xfi[j*dim+1]=mesh->cv->y[k];
+        if(dim>2) xfi[j*dim+2]=mesh->cv->z[k];
 
-	//printf("** xfi[j*dim+0] = %f,  xfi[j*dim+1] = %f \n",  xfi[j*dim+0] ,  xfi[j*dim+1]);
+        //printf("** xfi[j*dim+0] = %f,  xfi[j*dim+1] = %f \n",  xfi[j*dim+0] ,  xfi[j*dim+1]);
 
       }
 
+      // TODO: Should this be allocated outside?
       // Get the BD values
       REAL* val_true_face = (REAL *) calloc(nun,sizeof(REAL));
       REAL* val_true_face_n = (REAL *) calloc(nun,sizeof(REAL));
@@ -2360,34 +2315,34 @@ void FEM_Block_RHS_Local_Elasticity(dvector *b,REAL* bLoc, REAL *solution, \
       int pq,nbr0;
       for(pq=f_el->IA[face];pq<f_el->IA[face+1];pq++){
 
-	//printf("-- pq = %d, f_el->IA[face] = %d, f_el->IA[face+1] = %d \n", pq, f_el->IA[face], f_el->IA[face+1]);
-	nbr0=f_el->JA[pq];
-	//printf("-- nbr0 = %d  \n", nbr0);
+        //printf("-- pq = %d, f_el->IA[face] = %d, f_el->IA[face+1] = %d \n", pq, f_el->IA[face], f_el->IA[face+1]);
+        nbr0=f_el->JA[pq];
+        //printf("-- nbr0 = %d  \n", nbr0);
 
-	neighbor_index[counter] = nbr0;
-	counter++;
+        neighbor_index[counter] = nbr0;
+        counter++;
 
       }
 
       //Sanity Check
-      /* print out
-	 for(pq=0;pq<2;++pq)
-	 {
-	 if(counter == 2)
-	 {
-	 //printf("neighbor_index[%d]= %d || counter  = %d\n", pq, neighbor_index[pq],counter);
-	 }
-	 else if(counter == 1){
-	 if(pq == 0)
-	 {
-	 //printf("neighbor_index[%d]= %d || counter  = %d\n", pq, neighbor_index[pq],counter);
-	 }
-	 else{
-	 //printf("-\n");
-	 }
-	 }
-	 }
-      */
+      //     print out
+      // for(pq=0;pq<2;++pq)
+      // {
+      // if(counter == 2)
+      // {
+      // //printf("neighbor_index[%d]= %d || counter  = %d\n", pq, neighbor_index[pq],counter);
+      // }
+      // else if(counter == 1){
+      // if(pq == 0)
+      // {
+      // //printf("neighbor_index[%d]= %d || counter  = %d\n", pq, neighbor_index[pq],counter);
+      // }
+      // else{
+      // //printf("-\n");
+      // }
+      // }
+      // }
+
 
       double fiarea=mesh->f_area[face];
       double lambda = LAME_LAMBDA_GLOBAL;//000000.;//000000.;//000000.; //000000.0;
@@ -2407,92 +2362,76 @@ void FEM_Block_RHS_Local_Elasticity(dvector *b,REAL* bLoc, REAL *solution, \
       if(mesh->f_flag[face]>0) {
 
 
-	for (quad_face=0;quad_face<nquad_face;quad_face++) {
+        for (quad_face=0;quad_face<nquad_face;quad_face++) {
 
-	  qx_face[0] = cq_face->x[quad_face];
-	  qx_face[1] = cq_face->y[quad_face];
+          qx_face[0] = cq_face->x[quad_face];
+          qx_face[1] = cq_face->y[quad_face];
+          if(dim==3) qx_face[2] = cq_face->z[quad_face];
 
-	  if(dim==3) qx_face[2] = cq_face->z[quad_face];
+          w_face = cq_face->w[quad_face];
 
-	  w_face = cq_face->w[quad_face];
-
-	  (*exact_sol2D)(val_true_face,qx_face,time,
-			 &(mesh->el_flag[elm]));  // ???
+          (*exact_sol2D)(val_true_face,qx_face,time, &(mesh->el_flag[elm]));  // ???
 
 
-	  (*exact_sol2D)(val_true_face_n,qx_face,time-timestep,
-			 &(mesh->el_flag[elm]));  // ???
+          (*exact_sol2D)(val_true_face_n,qx_face,time-timestep,&(mesh->el_flag[elm]));  // ???
 
 
-	  //true solution is in n+1 time
-	  (*truesol_dt)(val_true_dt_face,
-			qx_face,
-			time,
-			&(mesh->el_flag[elm]));
+          //true solution is in n+1 time
+          (*truesol_dt)(val_true_dt_face,	qx_face,time,	&(mesh->el_flag[elm]));
 
-	  local_row_index=0;
-	  unknown_index=0;
-	  local_dof_on_elm_face = dof_on_elm;
+          local_row_index=0;
+          unknown_index=0;
+          local_dof_on_elm_face = dof_on_elm;
 
-	  for(i=0;i<FE->nspaces;i++) {
+          for(i=0;i<FE->nspaces;i++) {
+            get_FEM_basis(FE->var_spaces[i]->phi,FE->var_spaces[i]->dphi,qx_face,v_on_elm,local_dof_on_elm_face,mesh,FE->var_spaces[i]);
 
-	    get_FEM_basis(FE->var_spaces[i]->phi,FE->var_spaces[i]->dphi,
-			  qx_face,
-			  v_on_elm,
-			  local_dof_on_elm_face,
-			  mesh,FE->var_spaces[i]);
+            for (test=0; test<FE->var_spaces[i]->dof_per_elm;test++) {
+              //SLEE
+              if(i==0 || i ==1)
+              {
+                bLoc[(local_row_index+test)] += BC_penalty_term * w_face*(val_true_face[unknown_index]*  FE->var_spaces[i]->phi[test]);
 
-	    for (test=0; test<FE->var_spaces[i]->dof_per_elm;test++) {
-	      //SLEE
-	      if(i==0 || i ==1)
-		{
-		  bLoc[(local_row_index+test)] += BC_penalty_term * w_face*
-		    (val_true_face[unknown_index]*  FE->var_spaces[i]->phi[test]);
+                //DEBUG100
+                //bLoc[(local_row_index+test)] += penalty_term * w_face*
+                //(val_true_face[3]*  FE->var_spaces[i]->phi[test] *finrm[i]);
 
-		  //DEBUG100
-		  //bLoc[(local_row_index+test)] += penalty_term * w_face*
-		  //(val_true_face[3]*  FE->var_spaces[i]->phi[test] *finrm[i]);
+              }
 
-		}
+              else if(i == 2)
+              {
+                //SLEE
+                // Note that new DOF is \phi^3 = [x ; y]
+                //printf("i = %d (FE->nspaces = %d), unknown_index = %d, test = %d \n", i, FE->var_spaces[i]->dof_per_elm, unknown_index, test);
+                bLoc[(local_row_index+test)] +=BC_penalty_term *  w_face * (val_true_face[0] * (qx_face[0] - barycenter->x[0])  + val_true_face[1]*  (qx_face[1] - barycenter->y[0]));
 
-	      else if(i == 2)
-		{
-		  //SLEE
-		  // Note that new DOF is \phi^3 = [x ; y]
-		  //printf("i = %d (FE->nspaces = %d), unknown_index = %d, test = %d \n", i, FE->var_spaces[i]->dof_per_elm, unknown_index, test);
-		  bLoc[(local_row_index+test)] +=
-		    BC_penalty_term *  w_face * (val_true_face[0] * (qx_face[0] - barycenter->x[0])
-						 + val_true_face[1]*  (qx_face[1] - barycenter->y[0]));
+              }
+              else if(i == 3)
+              {
 
-		}
-	      else if(i == 3)
-		{
+                //Stokes 3
+                bLoc[(local_row_index+test)] +=w_face * (val_true_face[0] * finrm[0] + val_true_face[1] * finrm[1]) * FE->var_spaces[3]->phi[test];
 
-		  //Stokes 3
-		  bLoc[(local_row_index+test)] +=
-		    w_face * (val_true_face[0] * finrm[0] + val_true_face[1] * finrm[1])
-		    * FE->var_spaces[3]->phi[test];
-
-		}
+              }
 
 
-	      //sanity check
-	      if(unknown_index != i)
-		{
-		  printf("unknown index != i \n");
-		  exit(0);
-		}
-	      //SLEE
+              //sanity check
+              if(unknown_index != i)
+              {
+                printf("unknown index != i \n");
+                exit(0);
+              }
+              //SLEE
 
-	    }
-	    unknown_index++;
+            }
+            unknown_index++;
 
-	    local_dof_on_elm_face += FE->var_spaces[i]->dof_per_elm;
-	    local_row_index += FE->var_spaces[i]->dof_per_elm;
+            local_dof_on_elm_face += FE->var_spaces[i]->dof_per_elm;
+            local_row_index += FE->var_spaces[i]->dof_per_elm;
 
-	  } // i = 0
+          } // i = 0
 
-	} //face
+        } //face
 
       }// else if
 
@@ -2516,9 +2455,6 @@ void FEM_Block_RHS_Local_Elasticity(dvector *b,REAL* bLoc, REAL *solution, \
 }
 
 
-
-
-
 void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm, REAL time, REAL timestep,  INT* switch_on_face)
 //void local_assembly_Elasticity(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm, REAL time)
 {
@@ -2536,8 +2472,7 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
   INT dim = mesh->dim;
   // Mesh and FE data
   INT dof_per_elm = 0;
-  for (i=0; i<FE->nspaces;i++)
-    dof_per_elm += FE->var_spaces[i]->dof_per_elm;
+  for (i=0; i<FE->nspaces;i++) dof_per_elm += FE->var_spaces[i]->dof_per_elm;
 
   //printf("CHECK POINT: FE->nspaces = %d, dof_per_elem = %d, FE->var_spaces[0]->dof_per_elm = %d,  FE->var_spaces[1]->dof_per_elm = %d ,  FE->var_spaces[1]->dof_per_elm = %d \n",
   //	 FE->nspaces, dof_per_elm, FE->var_spaces[0]->dof_per_elm,FE->var_spaces[1]->dof_per_elm, FE->var_spaces[2]->dof_per_elm);
@@ -2555,6 +2490,7 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
   coordinates *barycenter_neighbor = allocatecoords(1,dim);
   barycenter->x[0] = mesh->el_mid[elm*dim];
   barycenter->y[0] = mesh->el_mid[elm*dim + 1];
+  if(dim==3) barycenter->z[0] = mesh->el_mid[elm*dim+2];
 
   //printf("ELEMENT = %D, x = %f , y = %f \n", elm,  barycenter->x[0],   barycenter->y[0]);
   INT local_size = dof_per_elm*dof_per_elm;
@@ -2579,58 +2515,34 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
     qx[0] = cq->x[elm*cq->nq_per_elm+quad];
     qx[1] = cq->y[elm*cq->nq_per_elm+quad];
 
-    if(mesh->dim==3)
-      qx[2] = cq->z[elm*cq->nq_per_elm+quad];
+    if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
 
     w = cq->w[elm*cq->nq_per_elm+quad];
 
     //  Get the Basis Functions at each quadrature node
     // u = (u1,u2,u3) and v = (v1,v2,v3)
-    get_FEM_basis(FE->var_spaces[0]->phi,
-		  FE->var_spaces[0]->dphi,
-		  qx,
-		  v_on_elm,
-		  dof_on_elm,
-		  mesh,
-		  FE->var_spaces[0]);
-    /////////
-
-    // u2
+    get_FEM_basis(FE->var_spaces[0]->phi,FE->var_spaces[0]->dphi,  qx,v_on_elm,dof_on_elm,mesh,  FE->var_spaces[0]);
     local_dof_on_elm = dof_on_elm + FE->var_spaces[0]->dof_per_elm;
 
-    get_FEM_basis(FE->var_spaces[1]->phi,
-		  FE->var_spaces[1]->dphi,
-		  qx,
-		  v_on_elm,
-		  local_dof_on_elm,
-		  mesh,
-		  FE->var_spaces[1]);
+    get_FEM_basis(FE->var_spaces[1]->phi,  FE->var_spaces[1]->dphi,qx,v_on_elm,  local_dof_on_elm,mesh,FE->var_spaces[1]);
+    local_dof_on_elm += FE->var_spaces[1]->dof_per_elm;
+
+    if(dim=3) {
+      // u3
+      get_FEM_basis(FE->var_spaces[2]->phi,  FE->var_spaces[2]->dphi,qx,v_on_elm,  local_dof_on_elm,mesh,FE->var_spaces[2]);
+      local_dof_on_elm += FE->var_spaces[2]->dof_per_elm;
+    }
 
     // u_eg
-    local_dof_on_elm += FE->var_spaces[1]->dof_per_elm;
-    get_FEM_basis(FE->var_spaces[2]->phi,
-		  FE->var_spaces[2]->dphi,
-		  qx,
-		  v_on_elm,
-		  local_dof_on_elm,
-		  mesh,
-		  FE->var_spaces[2]);
-
+    get_FEM_basis(FE->var_spaces[dim]->phi,  FE->var_spaces[dim]->dphi,qx,v_on_elm,  local_dof_on_elm,mesh,FE->var_spaces[dim]);
+    local_dof_on_elm += FE->var_spaces[dim]->dof_per_elm;
 
     // p
-    local_dof_on_elm += FE->var_spaces[2]->dof_per_elm;
+    get_FEM_basis(FE->var_spaces[dim+1]->phi,  FE->var_spaces[dim+1]->dphi,qx,v_on_elm,  local_dof_on_elm,mesh,FE->var_spaces[dim+1]);
+    local_dof_on_elm += FE->var_spaces[dim+1]->dof_per_elm;
 
-    get_FEM_basis(FE->var_spaces[3]->phi,
-		  FE->var_spaces[3]->dphi,
-		  qx,
-		  v_on_elm,
-		  local_dof_on_elm,
-		  mesh,
-		  FE->var_spaces[3]);
 
-    // p_eg
-    local_dof_on_elm += FE->var_spaces[3]->dof_per_elm;
-
+    // TODO: I assume this needs to be adjusted for 3D
 
 
     //------#1---------------------------------------------------- START//
@@ -2642,15 +2554,15 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
       // Loop over Trial Functions (Columns)
       for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
 
-	//printf("quad = %d ::   local_row_index = %d,  qx[0] = %f, qx[1] = %f,  test = %d \n",
-	//     quad,  local_row_index,  qx[0], qx[1] ,   test);
+        //printf("quad = %d ::   local_row_index = %d,  qx[0] = %f, qx[1] = %f,  test = %d \n",
+        //     quad,  local_row_index,  qx[0], qx[1] ,   test);
 
-	kij = 2.0*FE->var_spaces[0]->dphi[test*dim]*FE->var_spaces[0]->dphi[trial*dim];
-	kij += 1.0*FE->var_spaces[0]->dphi[test*dim+1]*FE->var_spaces[0]->dphi[trial*dim+1];
+        kij = 2.0*FE->var_spaces[0]->dphi[test*dim]*FE->var_spaces[0]->dphi[trial*dim];
+        kij += 1.0*FE->var_spaces[0]->dphi[test*dim+1]*FE->var_spaces[0]->dphi[trial*dim+1];
 
-	// NEW SLEE : elasticity div part
-	// u1-v1 block : <dx(u1),dx(v1)>
-	kij += lambda*FE->var_spaces[0]->dphi[test*dim]*FE->var_spaces[0]->dphi[trial*dim];
+        // NEW SLEE : elasticity div part
+        // u1-v1 block : <dx(u1),dx(v1)>
+        kij += lambda*FE->var_spaces[0]->dphi[test*dim]*FE->var_spaces[0]->dphi[trial*dim];
 
         ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
       }
@@ -2665,9 +2577,9 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
       for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
         kij = 1.0*FE->var_spaces[1]->dphi[test*dim+0]*FE->var_spaces[0]->dphi[trial*dim+1];
 
-	// NEW SLEE : elasticity div part
-	// u1-v2 block : <dx(u1),dx(v2)>
-	kij += lambda*FE->var_spaces[1]->dphi[test*dim+1]*FE->var_spaces[0]->dphi[trial*dim];
+        // NEW SLEE : elasticity div part
+        // u1-v2 block : <dx(u1),dx(v2)>
+        kij += lambda*FE->var_spaces[1]->dphi[test*dim+1]*FE->var_spaces[0]->dphi[trial*dim];
 
         ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
       }
@@ -2682,9 +2594,9 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
       for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
         kij = 1.0*FE->var_spaces[0]->dphi[test*dim+1]*FE->var_spaces[1]->dphi[trial*dim+0];
 
-	// NEW SLEE : elasticity div part
-	// u2-v1 block : <dy(u2),dx(v1)>
-	kij += lambda*FE->var_spaces[0]->dphi[test*dim]*FE->var_spaces[1]->dphi[trial*dim+1];
+        // NEW SLEE : elasticity div part
+        // u2-v1 block : <dy(u2),dx(v1)>
+        kij += lambda*FE->var_spaces[0]->dphi[test*dim]*FE->var_spaces[1]->dphi[trial*dim+1];
 
         ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
       }
@@ -2698,12 +2610,12 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
       // Loop over Trial Functions (Columns)
       for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
 
-	kij = 2.0*FE->var_spaces[1]->dphi[test*dim+1]*FE->var_spaces[1]->dphi[trial*dim+1];
-	kij += 1.0*FE->var_spaces[1]->dphi[test*dim]*FE->var_spaces[1]->dphi[trial*dim];
+        kij = 2.0*FE->var_spaces[1]->dphi[test*dim+1]*FE->var_spaces[1]->dphi[trial*dim+1];
+        kij += 1.0*FE->var_spaces[1]->dphi[test*dim]*FE->var_spaces[1]->dphi[trial*dim];
 
-	// NEW SLEE : elasticity div part
-	// u2-v2 block : <dy(u2),dx(v2)>
-   	kij += lambda*FE->var_spaces[1]->dphi[test*dim+1]*FE->var_spaces[1]->dphi[trial*dim+1];
+        // NEW SLEE : elasticity div part
+        // u2-v2 block : <dy(u2),dx(v2)>
+        kij += lambda*FE->var_spaces[1]->dphi[test*dim+1]*FE->var_spaces[1]->dphi[trial*dim+1];
 
         ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
       }
@@ -2718,18 +2630,18 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
       // Loop over Trial Functions (Columns)
       for (trial=0; trial<FE->var_spaces[dim]->dof_per_elm;trial++){
 
-	kij = 2.0 * 1. * 1.;
-	kij += 2.0 * 1. * 1.;
+        kij = 2.0 * 1. * 1.;
+        kij += 2.0 * 1. * 1.;
 
-	// NEW SLEE : elasticity div part
-	// u2-v1 block : <dy(u2),dx(v1)>
-	kij += lambda * 1. * 1.;
-	kij += lambda * 1. * 1.;
+        // NEW SLEE : elasticity div part
+        // u2-v1 block : <dy(u2),dx(v1)>
+        kij += lambda * 1. * 1.;
+        kij += lambda * 1. * 1.;
 
-	kij += lambda * 1. * 1.;
-	kij += lambda * 1. * 1.;
+        kij += lambda * 1. * 1.;
+        kij += lambda * 1. * 1.;
 
-	ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
+        ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
       }
     }
 
@@ -2742,23 +2654,23 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
       local_col_index = 0;
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
-	// Loop over Trial Functions (Columns)
-	for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
 
-	  //u0 - q0
-	  kij  = 2.0*FE->var_spaces[0]->dphi[trial*dim] * 1.; //FE->var_spaces[dim]->dphi[test*dim];
-	  //u0 - q1
-	  kij += 0.;
+          //u0 - q0
+          kij  = 2.0*FE->var_spaces[0]->dphi[trial*dim] * 1.; //FE->var_spaces[dim]->dphi[test*dim];
+          //u0 - q1
+          kij += 0.;
 
-	  // Divergence
-	  // u0-q0 block : <dx(u1),dx(v1)>
-	  kij += lambda*FE->var_spaces[0]->dphi[trial*dim]* 1.;//FE->var_spaces[dim]->dphi[test*dim];
+          // Divergence
+          // u0-q0 block : <dx(u1),dx(v1)>
+          kij += lambda*FE->var_spaces[0]->dphi[trial*dim]* 1.;//FE->var_spaces[dim]->dphi[test*dim];
 
-	  // u0-q1
-	  kij += lambda*FE->var_spaces[0]->dphi[trial*dim]* 1.;
+          // u0-q1
+          kij += lambda*FE->var_spaces[0]->dphi[trial*dim]* 1.;
 
-	  ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
-	}
+          ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
+        }
       }
 
       // u1-q block
@@ -2767,21 +2679,21 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
       local_col_index = FE->var_spaces[0]->dof_per_elm;
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->var_spaces[dim]->dof_per_elm;test++){
-	// Loop over Trial Functions (Columns)
-	for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
 
-	  //u1 - q0
-	  // = 0
-	  //u1 - q1
-	  kij = 2.0*FE->var_spaces[1]->dphi[trial*dim+1] * 1.;
+          //u1 - q0
+          // = 0
+          //u1 - q1
+          kij = 2.0*FE->var_spaces[1]->dphi[trial*dim+1] * 1.;
 
-	  // NEW SLEE : elasticity div part
-	  // u2-v1 block : <dy(u2),dx(v1)>
-	  kij += lambda*FE->var_spaces[1]->dphi[trial*dim+1] * 1.;
-	  kij += lambda*FE->var_spaces[1]->dphi[trial*dim+1] * 1.;
+          // NEW SLEE : elasticity div part
+          // u2-v1 block : <dy(u2),dx(v1)>
+          kij += lambda*FE->var_spaces[1]->dphi[trial*dim+1] * 1.;
+          kij += lambda*FE->var_spaces[1]->dphi[trial*dim+1] * 1.;
 
-	  ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
-	}
+          ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
+        }
       }
 
 
@@ -2791,21 +2703,21 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
       if(dim==3) local_col_index += FE->var_spaces[2]->dof_per_elm;
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->var_spaces[0]->dof_per_elm;test++){
-	// Loop over Trial Functions (Columns)
-	for (trial=0; trial<FE->var_spaces[dim]->dof_per_elm;trial++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[dim]->dof_per_elm;trial++){
 
-	  //q0 - v0
-	  kij = 2.0* 1. * FE->var_spaces[0]->dphi[test*dim]; //FE->var_spaces[dim]->dphi[test*dim];
-	  //q1 - v0
-	  // = 0.;
+          //q0 - v0
+          kij = 2.0* 1. * FE->var_spaces[0]->dphi[test*dim]; //FE->var_spaces[dim]->dphi[test*dim];
+          //q1 - v0
+          // = 0.;
 
-	  // Divergence
-	  // u1-q block : <dx(u1),dx(v1)>
-	  kij += lambda * 1. * FE->var_spaces[0]->dphi[test*dim];//FE->var_spaces[dim]->dphi[test*dim];
-	  kij += lambda * 1. * FE->var_spaces[0]->dphi[test*dim];
+          // Divergence
+          // u1-q block : <dx(u1),dx(v1)>
+          kij += lambda * 1. * FE->var_spaces[0]->dphi[test*dim];//FE->var_spaces[dim]->dphi[test*dim];
+          kij += lambda * 1. * FE->var_spaces[0]->dphi[test*dim];
 
-	  ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
-	}
+          ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
+        }
       }
 
 
@@ -2815,20 +2727,20 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
       if(dim==3) local_col_index += FE->var_spaces[2]->dof_per_elm;
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->var_spaces[1]->dof_per_elm;test++){
-	// Loop over Trial Functions (Columns)
-	for (trial=0; trial<FE->var_spaces[dim]->dof_per_elm;trial++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[dim]->dof_per_elm;trial++){
 
-	  //q0 - v1
-	  //q1 - v1
-	  kij = 2.0* 1. * FE->var_spaces[1]->dphi[test*dim+1];
+          //q0 - v1
+          //q1 - v1
+          kij = 2.0* 1. * FE->var_spaces[1]->dphi[test*dim+1];
 
-	  // NEW SLEE : elasticity div part
-	  // u2-v1 block : <dy(u2),dx(v1)>
-	  kij += lambda*FE->var_spaces[1]->dphi[test*dim+1] * 1.;
-	  kij += lambda*FE->var_spaces[1]->dphi[test*dim+1] * 1.;
+          // NEW SLEE : elasticity div part
+          // u2-v1 block : <dy(u2),dx(v1)>
+          kij += lambda*FE->var_spaces[1]->dphi[test*dim+1] * 1.;
+          kij += lambda*FE->var_spaces[1]->dphi[test*dim+1] * 1.;
 
-	  ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
-	}
+          ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
+        }
       }
 
 
@@ -2855,9 +2767,9 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
       // Loop over Trial Functions (Columns)
       for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
 
-	kij = -alpha * FE->var_spaces[3]->phi[trial] *  (FE->var_spaces[0]->dphi[test*dim]);
+        kij = -alpha * FE->var_spaces[3]->phi[trial] *  (FE->var_spaces[0]->dphi[test*dim]);
 
-	ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
+        ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
       }
     }
 
@@ -2870,9 +2782,9 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
       // Loop over Trial Functions (Columns)
       for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
 
-	kij = -alpha * FE->var_spaces[3]->phi[trial] *  (FE->var_spaces[1]->dphi[test*dim+1]);
+        kij = -alpha * FE->var_spaces[3]->phi[trial] *  (FE->var_spaces[1]->dphi[test*dim+1]);
 
-	ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
+        ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
       }
     }
 
@@ -2886,13 +2798,13 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
       local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->var_spaces[2]->dof_per_elm;test++){
-	// Loop over Trial Functions (Columns)
-	for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
 
-	  kij = -alpha * FE->var_spaces[3]->phi[trial] * 2.;
+          kij = -alpha * FE->var_spaces[3]->phi[trial] * 2.;
 
-	  ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
-	}
+          ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
+        }
       }
     }
 
@@ -2918,9 +2830,9 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
       // Loop over Trial Functions (Columns)
       for (trial=0; trial<FE->var_spaces[0]->dof_per_elm;trial++){
 
-	kij = -alpha * FE->var_spaces[3]->phi[test] *  (FE->var_spaces[0]->dphi[trial*dim]);
+        kij = -alpha * FE->var_spaces[3]->phi[test] *  (FE->var_spaces[0]->dphi[trial*dim]);
 
-	ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
+        ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
       }
     }
 
@@ -2933,9 +2845,9 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
       // Loop over Trial Functions (Columns)
       for (trial=0; trial<FE->var_spaces[1]->dof_per_elm;trial++){
 
-	kij = -alpha * FE->var_spaces[3]->phi[test] *  (FE->var_spaces[1]->dphi[trial*dim+1]);
+        kij = -alpha * FE->var_spaces[3]->phi[test] *  (FE->var_spaces[1]->dphi[trial*dim+1]);
 
-	ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
+        ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
       }
     }
 
@@ -2949,13 +2861,13 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
       local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm;
       // Loop over Test Functions (Rows)
       for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
-	// Loop over Trial Functions (Columns)
-	for (trial=0; trial<FE->var_spaces[2]->dof_per_elm;trial++){
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->var_spaces[2]->dof_per_elm;trial++){
 
-	  kij = -alpha * FE->var_spaces[3]->phi[test] * 2.;
+          kij = -alpha * FE->var_spaces[3]->phi[test] * 2.;
 
-	  ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
-	}
+          ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
+        }
       }
 
     }
@@ -2969,32 +2881,32 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
     // PRESSURE BLOCK
     // p-p block:
     /*
-      local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
-      local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
-      // Loop over Test Functions (Rows)
-      for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
-      // Loop over Trial Functions (Columns)
-      for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
+    local_row_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
+    local_col_index = FE->var_spaces[0]->dof_per_elm + FE->var_spaces[1]->dof_per_elm + FE->var_spaces[2]->dof_per_elm;
+    // Loop over Test Functions (Rows)
+    for (test=0; test<FE->var_spaces[3]->dof_per_elm;test++){
+    // Loop over Trial Functions (Columns)
+    for (trial=0; trial<FE->var_spaces[3]->dof_per_elm;trial++){
 
-      kij =  FE->var_spaces[3]->phi[test] *  FE->var_spaces[3]->phi[trial];
+    kij =  FE->var_spaces[3]->phi[test] *  FE->var_spaces[3]->phi[trial];
 
-      ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
-      }
-      }
-    */
-
-
-
-  }//QUAD
+    ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
+  }
+}
+*/
 
 
-  block_LocaltoGlobal_neighbor(dof_on_elm,dof_on_elm,FE,A,ALoc);
 
-  //printf("*********** {DONE} @ END  ************************ \n");
+}//QUAD
 
 
-  //printf("Local Assembly --end\n");
+block_LocaltoGlobal_neighbor(dof_on_elm,dof_on_elm,FE,A,ALoc);
 
-  return;
+//printf("*********** {DONE} @ END  ************************ \n");
+
+
+//printf("Local Assembly --end\n");
+
+return;
 }
 /*********************************************************************/
