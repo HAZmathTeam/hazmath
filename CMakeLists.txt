@@ -7,6 +7,7 @@
 # 	     2017-03-05   --ltz
 #	     2017-03-10   — XHu
 #	     2020-05-29   --ltz
+##	     2021-03-13   --ltz
 #
 ############################################################
 cmake_minimum_required (VERSION 2.8)
@@ -158,11 +159,13 @@ file(GLOB HAZMATH_C_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR}
   ${HAZMATH_SOURCE_DIR}/src/timestepping/*.inl 
   ${HAZMATH_SOURCE_DIR}/src/nonlinear/*.inl 
   ${HAZMATH_SOURCE_DIR}/src/utilities/*.inl)
+file(GLOB HAZMATH_CXX_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR} 
+  ${HAZMATH_SOURCE_DIR}/src/amr/*.cpp) 
 file(GLOB HAZMATH_F_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR} 
   ${HAZMATH_SOURCE_DIR}/src/amr/*.f) 
 # auto generating headers if needed
 add_custom_target(headers ./headmk.sh "${HAZMATH_SOURCE_DIR}"
-  DEPENDS ${HAZMATH_C_SOURCES}
+  DEPENDS ${HAZMATH_C_SOURCES} ${HAZMATH_CXX_SOURCES}
   WORKING_DIRECTORY "${HAZMATH_SOURCE_DIR}/haz_shutils"
   COMMENT 
   "HAZMATH: Autogenerating header file with C functions..."
@@ -227,6 +230,24 @@ if (USE_SUITESPARSE)
     message("   WARNING: SUITESPARSE was requested but not supported!")
   endif(SUITESPARSE_FOUND)
 endif(USE_SUITESPARSE)
+
+##################################################################
+# For CGAL: we here require cgal, mpfr and gmp libraries and includes
+##################################################################
+if (USE_CGAL)
+  # set the path to find specific modules	  
+  #   message(STATUS "  ${HAZMATH_SOURCE_DIR}")
+  set(CMAKE_MODULE_PATH "${HAZMATH_SOURCE_DIR}/cmake.modules")
+
+  find_package(CGAL QUIET COMPONENTS  )
+
+  if (CGAL_FOUND)
+    add_definitions("-DWITH_CGAL=1")
+    include_directories(${CGAL_INCLUDE_DIRS})
+  else(CGAL_FOUND)
+    message("   WARNING: CGAL was requested but not supported!")
+  endif(CGAL_FOUND)
+endif(USE_CGAL)
 
 ##################################################################
 # For Doxygen
@@ -303,7 +324,7 @@ endif(NOT (CMAKE_CXX_COMPILER_ID STREQUAL CMAKE_C_COMPILER_ID))
 ##
 # Build libhazmath
 # depends also on the source, header and inl files 
-add_library(hazmath ${HAZMATH_LIBRARY_TYPE} ${HAZMATH_C_SOURCES} ${HAZMATH_INL_SOURCES} ${HAZMATH_F_SOURCES}  ${HAZMATH_HEADERS}) 
+add_library(hazmath ${HAZMATH_LIBRARY_TYPE} ${HAZMATH_C_SOURCES} ${HAZMATH_CXX_SOURCES}  ${HAZMATH_INL_SOURCES} ${HAZMATH_F_SOURCES}  ${HAZMATH_HEADERS}) 
 
 # install libhazmath 
 install(TARGETS hazmath

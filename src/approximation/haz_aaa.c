@@ -31,8 +31,8 @@ static void get_res(const INT m,		\
   // wrk should have space m real16 and m integer. 
   //  given poles and right hand side, this finds the residues
   // Solves 
-  INT i,j,k,im,m01=m-1;
-  REAL16 apoljk,zj,fj;
+  INT j,k,m01=m-1;
+  REAL16 zj;
   REAL16 *apol=(REAL16 *)calloc(m*m,sizeof(REAL16));
   REAL16 *piv = (REAL16 *)wrk;  
   INT *perm=(INT *)(wrk+m*sizeof(REAL16));
@@ -77,7 +77,7 @@ INT residues_poles(INT m,				\
 		   REAL *resd,				\
 		   REAL *pold)
 {
-  INT m1=m+1,m01=m-1,mm1=m1*m1,i,j,k;
+  INT m1=m+1,m01=m-1,mm1=m1*m1,i,j;
   REAL16 swp;
   // MEMORY
   void *wrk=(void *)calloc(7*m1*sizeof(REAL16)+			\
@@ -254,7 +254,6 @@ REAL get_cpzwf(REAL16 (*func)(REAL16 x, void *param),	\
   REAL16 r,wzkj,fnum,fden,rm,rmax,swp;
   REAL16  fj,zj,tol,xmin=(REAL16 )xmin_in,xmax=(REAL16 )xmax_in;
   REAL smin=-1e20;
-  INT info=-22;
   INT mbig=mbig_in[0];
   if(mbig<4)mbig=4;
   if(mmax_in[0]<2) mmax_in[0]=2;
@@ -354,7 +353,10 @@ REAL get_cpzwf(REAL16 (*func)(REAL16 x, void *param),	\
     /* 	fprintf(stdout,"\nX21(%d,%d)=%.15e",krow+1,j+1,x21d[krow*m+j]); */
     /*   } */
     /* } */
-    info=svdgeneral(mbig,m,x21d,&smin,wd);
+    INT info=svdgeneral(mbig,m,x21d,&smin,wd);
+    if(info!=0){
+      fprintf(stdout,"\n%% *** HAZMATH WARNING*** IN %s: SVD-INFO IS NOT ZERO; INFO=%d;\n",__FUNCTION__,info);
+    }
     /* fprintf(stdout,"\nsmin=%e\n",smin); */
     /* k=0; */
     /* for(i=0;i<m;i++) {  */
