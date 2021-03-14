@@ -3930,7 +3930,7 @@ INT linear_solver_bdcsr_krylov_gmg(block_dCSRmat *A,
  * \param x         Pointer to the approx solution in dvector format
  * \param itparam   Pointer to parameters for iterative solvers
  * \param amgparam  Pointer to parameters for AMG solvers
- * \param prec_block_data   data for preconditioning (A_diag, and others).
+ * \param prec_block_data   data for preconditioning (A_diag, and others). 
  *
  * \return          Iteration number if converges; ERROR otherwise.
  *
@@ -3949,11 +3949,10 @@ INT linear_solver_bdcsr_krylov_block_eg(block_dCSRmat *A,		\
 {
   const SHORT prtlvl = itparam->linear_print_level;
   const SHORT precond_type = itparam->linear_precond_type;
-    INT i;
 //#endif
-    INT status = SUCCESS;
-    REAL setup_start, setup_end, setup_duration;
-    REAL solver_start, solver_end, solver_duration;
+  INT status = SUCCESS;
+  /*   REAL setup_start, setup_end, setup_duration; */
+  REAL solver_start, solver_end, solver_duration;
   precond prec;
   prec.data = precdata;
 
@@ -3979,11 +3978,11 @@ INT linear_solver_bdcsr_krylov_block_eg(block_dCSRmat *A,		\
   }
 
 
-  if ( prtlvl >= PRINT_MIN ) {
-    get_time(&setup_end);
-    setup_duration = setup_end - setup_start;
-    print_cputime("Setup totally", setup_duration);
-  }
+  /* if ( prtlvl >= PRINT_MIN ) { */
+  /*   get_time(&setup_end); */
+  /*   setup_duration = setup_end - setup_start; */
+  /*   print_cputime("Setup totally", setup_duration); */
+  /* } */
 
   // solver part
   get_time(&solver_start);
