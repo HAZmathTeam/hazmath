@@ -69,6 +69,11 @@ ifeq ($(suitesparse), yes)
     CONFIG_FLAGS+=-DSUITESPARSE_DIR=$(suitesparse_dir)
 endif
 
+ifeq ($(cgal), yes)
+    CONFIG_FLAGS+=-DUSE_CGAL=$(cgal)
+#    CONFIG_FLAGS+=-DCGAL_DIR=$(cgal_dir)
+endif
+
 ifeq ($(doxygen),yes)
     CONFIG_FLAGS+=-DUSE_DOXYGEN=$(doxygen)
 endif
