@@ -404,7 +404,6 @@ void precond_block_diag_eg_stokes_additive(REAL *r,
   // use direct solver
   solve_UMF(&(A_diag[0]), &ru_wo_eg, &zu_wo_eg, LU_diag[0], 0);
 
-
   /*
   mgl[0]->b.row=Nu_wo_eg; array_cp(Nu_wo_eg, ru_wo_eg.val, mgl[0]->b.val); // residual is an input
   mgl[0]->x.row=Nu_wo_eg; dvec_set(Nu_wo_eg, &mgl[0]->x,0.0);
