@@ -332,12 +332,12 @@ install(TARGETS hazmath
   RUNTIME DESTINATION lib
   ARCHIVE DESTINATION lib)
 
-#install haz_cgal
+#install hazmath_cgal
 if (USE_CGAL)
   if (CGAL_FOUND)
-    add_library(haz_cgal ${HAZMATH_LIBRARY_TYPE} ${HAZMATH_CXX_SOURCES} ${HAZMATH_HEADERS}) 
+    add_library(hazmath_cgal ${HAZMATH_LIBRARY_TYPE} ${HAZMATH_CXX_SOURCES} ${HAZMATH_HEADERS}) 
 
-install(TARGETS haz_cgal
+install(TARGETS hazmath_cgal
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib
   ARCHIVE DESTINATION lib)
