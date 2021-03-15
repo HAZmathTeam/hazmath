@@ -1,8 +1,6 @@
 #####################################################
 # Last Modified 2019-06-10 --jha
 ####################################################
-COMPILER=gcc
-LINKER=gcc
 # SRC File name
 SRCFILE = triangulation2d
 
