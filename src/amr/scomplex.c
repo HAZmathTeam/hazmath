@@ -102,6 +102,55 @@ scomplex *haz_scomplex_init(INT n,INT ns, INT nv)
 }
 /**********************************************************************/
 /*!
+ * \fn scomplex *haz_scomplex_init_part(INT n,INT ns, INT nv)
+ *
+ * \brief Initialize simplicial complex which has already been
+ *        allocated partially. Assumption is: nv,ns,nodes,nbr, cc,
+ *        bndry_cc are known. in dimension n with ns simplices and nv
+ *        vertices.
+ *
+ * \param sc pointer to partially allocated simplician complex; 
+ *
+ * \return full structure of type scomplex with all allocations done
+ *
+ * \note
+ *
+ */
+void haz_scomplex_init_part(scomplex *sc)
+{
+  INT nv=sc->nv,ns=sc->ns,n=sc->n,n1=sc->n+1,i,j,in1;
+  sc->factorial=1.;
+  sc->level=0;
+  for (j=2;j<n1;j++) sc->factorial *= ((REAL )j);
+  // fprintf(stdout,"\nIMPORTANT: NS=%d (%d!)=%f",ns,n,sc->factorial);
+  sc->marked=(INT *) calloc(ns,sizeof(INT));
+  sc->gen=(INT *) calloc(ns,sizeof(INT));
+  sc->parent=(INT *)calloc(ns,sizeof(INT));
+  sc->child0=(INT *)calloc(ns,sizeof(INT));
+  sc->childn=(INT *)calloc(ns,sizeof(INT));
+  sc->bndry=(INT *)calloc(nv,sizeof(INT));
+  sc->csys=(INT *)calloc(nv,sizeof(INT));/* coord sys: 1 is polar, 2
+					    is cyl and so on */
+  sc->flags=(INT *)calloc(ns,sizeof(INT)); // element flags
+  sc->vols=(REAL *)calloc(ns,sizeof(REAL));// simplex volumes
+  sc->fval=(REAL *)calloc(nv,sizeof(REAL));// simplex volumes
+  for (i = 0;i<ns;i++) {
+    sc->marked[i] = FALSE; // because first is used for something else.
+    sc->gen[i] = 0;
+    sc->parent[i]=-1;
+    sc->child0[i]=-1;
+    sc->childn[i]=-1;
+    sc->flags[i]=-1;
+  }
+  for (i = 0;i<nv;i++) {
+    sc->bndry[i]=0;
+    sc->csys[i]=0;
+    sc->fval[i]=0.;
+  }
+  return;
+}
+/**********************************************************************/
+/*!
  * \fn void vol_simplex(INT dim, REAL fact, REAL *xf, REAL *volt, void *wrk)
  *
  * \brief

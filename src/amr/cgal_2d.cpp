@@ -42,7 +42,7 @@ static void do_tri_2d(REAL *x_in, INT *edges,			\
 		      INT np, INT ne, INT dim,			\
 		      REAL shape_bound,				\
 		      REAL hmax,				\
-		      INT **nodes, INT **nbr, REAL **xv,	\
+		      INT **nodes, REAL **xv,			\
 		      INT *nvo, INT *nso)
 {
   CDT cdt;
@@ -55,68 +55,71 @@ static void do_tri_2d(REAL *x_in, INT *edges,			\
     vh.push_back(va);
   }
   std::size_t nv0=i;
-  std::cout <<std::endl <<std::endl <<std::endl;
+  //  std::cout <<std::endl <<std::endl <<std::endl;
   for (i=0;i<ne;++i){
     ii=edges[2*i];
     jj=edges[2*i+1];
     cdt.insert_constraint(vh[ii], vh[jj]);
-    std::cout <<"!!!e(" << i << ")=(" << ii << "," << jj << ")" <<std::endl;
+    //    std::cout <<"!!!e(" << i << ")=(" << ii << "," << jj << ")" <<std::endl;
   }
   vh.clear();
   //
   std::list<Point> list_of_seeds;
   list_of_seeds.push_back(Point(seedpt[0],seedpt[1]));
-  std::cout << "Meshing the domain..." << std::endl;
+  //  std::cout << "Meshing the domain..." << std::endl;
   // 0.125 is the default shape bound. It corresponds to abound 20.6 degree.
   // 0.5 is the upper bound on the length of the longuest edge.
   // See reference manual for Delaunay_mesh_size_traits_2<K>.
   CGAL::refine_Delaunay_mesh_2(cdt, list_of_seeds.begin(), list_of_seeds.end(),Criteria(shape_bound,hmax));
-  //  std::cout << "2Number of vertices: " << cdt.number_of_vertices() << std::endl;
-  //  std::cout << "2Number of finite faces: " << cdt.number_of_faces() << std::endl;
+  //simplices:
+  std::size_t ns;
+  std::map<Face_handle, std::size_t > tall;
+  Finite_faces_iterator fit;
+  ns=0;
+  for(fit = cdt.finite_faces_begin();fit != cdt.finite_faces_end(); ++fit){
+    if(!fit->is_in_domain()) continue;
+    tall[fit] = ns++;
+  }
+  //vertices
+  std::size_t nv;
   std::map<Vertex_handle, std::size_t> vall;
   Finite_vertices_iterator vit;
-  i=0;
-  //num. vertices
-  std::size_t nv = cdt.number_of_vertices();
-  std::size_t ns = cdt.number_of_faces();
+  nv=0;
+  for (vit=cdt.finite_vertices_begin();vit != cdt.finite_vertices_end(); ++vit)
+    vall[vit] = nv++;
   *nvo=nv;
   *nso=ns;
   // num simplices:
-   #ifdef __cpluspplus
-    extern "C" {
-   #endif
-      xv[0]=(REAL *)calloc(nv*dim,sizeof(REAL));
-      nodes[0]=(INT *)calloc(ns*dim1,sizeof(INT));
-      nbr[0]=(INT *)calloc(ns*dim1,sizeof(INT));
-   #ifdef __cpluspplus
-    }
-   #endif
-  for (vit=cdt.finite_vertices_begin();vit != cdt.finite_vertices_end(); ++vit){
-    for(j = 0; j < dim; j++){
-      xv[0][i*dim+j]=vit->point()[j];
-    }
-    vall[vit] = i++;
+#ifdef __cpluspplus
+  extern "C" {
+#endif
+    xv[0]=(REAL *)calloc(nv*dim,sizeof(REAL));
+    nodes[0]=(INT *)calloc(ns*dim1,sizeof(INT));
+#ifdef __cpluspplus
   }
-  std::map<Face_handle, std::size_t > tall;// triangle or simplex
-  //  nodes = new int[1][ns*dim1];
-  int mesh_faces_counter = 0;
+#endif
+  //vertices
   i=0;
-  for(Finite_faces_iterator fit = cdt.finite_faces_begin();fit != cdt.finite_faces_end(); ++fit)
-  {
-    if(!fit->is_in_domain()) continue;
-    ++mesh_faces_counter;
-    // std::cout << i <<": ";
-    // for(j = 0; j < dim1; j++){
-    //   std::cout << vall[fit->vertex(j)] <<" ";
-    // }
-    //    std::cout <<std::endl;
-    for(j = 0; j < dim1; j++){
-      nodes[0][i*dim1+j]=vall[fit->vertex(j)];
-    }
-    tall[fit] = i++;
+  for (vit=cdt.finite_vertices_begin();vit != cdt.finite_vertices_end(); ++vit){
+    for(j = 0; j < dim; j++)
+      xv[0][i*dim+j]=vit->point()[j];
+    i++;
   }
-  std::cout << "Number of faces in the mesh domain: " << mesh_faces_counter << std::endl;
+  //simplices
+  i=0;
+  for(fit = cdt.finite_faces_begin();fit != cdt.finite_faces_end(); ++fit) {
+    if(!fit->is_in_domain()) continue; // grab only faces interior for the domain.
+    for(j = 0; j < dim1; j++)
+      nodes[0][i*dim1+j]=vall[fit->vertex(j)];
+    i++;
+  }
+  std::cout << "%%Number of vertices: " << nv << std::endl;
+  std::cout << "%%Number of triangles: " << ns << std::endl;
   int count = 0;
+  // writes vtu in wrong way:infinite triangles and also places have
+  //  two double quotes '""' instead of 1 double quote'"'
+  //  std::ofstream filevtu("2dout.vtu");
+  //  CGAL::write_vtu(filevtu,cdt,CGAL::IO::ASCII); filevtu.close();
   for(CDT::Finite_edges_iterator eit = cdt.finite_edges_begin();
       eit != cdt.finite_edges_end(); ++eit){
     //  for (const Edge& e : cdt.finite_edges())
@@ -124,7 +127,7 @@ static void do_tri_2d(REAL *x_in, INT *edges,			\
 	//	std::cout << "Info:" << e.first->info() << "\n";
 	//	std::cout << "Info:" << e.first->neighbor(e.second) << "\n";
   }
-  std::cout << "The number of resulting constrained edges is  ";
+  std::cout << "%%The number of resulting constrained edges is: ";
   std::cout <<  count << std::endl;
 }
 extern "C" {
@@ -133,7 +136,7 @@ void c_do_tri_2d(REAL *x_in, INT *edges,			\
 		 INT np, INT ne, INT dim,			\
 		 REAL shape_bound,				\
 		 REAL hmax,					\
-		 INT **nodes, INT **nbr, REAL **xv,		\
+		 INT **nodes, REAL **xv,			\
 		 INT *nvo, INT *nso)
 {
 #if WITH_CGAL
@@ -142,7 +145,7 @@ void c_do_tri_2d(REAL *x_in, INT *edges,			\
 		 np, ne, dim,					\
 		 shape_bound,					\
 		 hmax,						\
-		 nodes, nbr, xv,				\
+		 nodes, xv,					\
 		 nvo,nso);
 #else
        error_extlib(250, __FUNCTION__, "CGAL");
