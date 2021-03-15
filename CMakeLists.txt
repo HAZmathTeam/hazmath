@@ -324,10 +324,25 @@ endif(NOT (CMAKE_CXX_COMPILER_ID STREQUAL CMAKE_C_COMPILER_ID))
 ##
 # Build libhazmath
 # depends also on the source, header and inl files 
-add_library(hazmath ${HAZMATH_LIBRARY_TYPE} ${HAZMATH_C_SOURCES} ${HAZMATH_CXX_SOURCES}  ${HAZMATH_INL_SOURCES} ${HAZMATH_F_SOURCES}  ${HAZMATH_HEADERS}) 
+add_library(hazmath ${HAZMATH_LIBRARY_TYPE} ${HAZMATH_C_SOURCES} ${HAZMATH_INL_SOURCES} ${HAZMATH_F_SOURCES}  ${HAZMATH_HEADERS}) 
 
 # install libhazmath 
 install(TARGETS hazmath
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib
   ARCHIVE DESTINATION lib)
+
+#install haz_cgal
+if (USE_CGAL)
+  if (CGAL_FOUND)
+    add_library(haz_cgal ${HAZMATH_LIBRARY_TYPE} ${HAZMATH_CXX_SOURCES} ${HAZMATH_HEADERS}) 
+
+install(TARGETS haz_cgal
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION lib
+  ARCHIVE DESTINATION lib)
+else(CGAL_FOUND)
+  message("   WARNING: CGAL not found or not requested!")
+endif(CGAL_FOUND)
+endif(USE_CGAL)
+

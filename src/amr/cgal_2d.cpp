@@ -34,36 +34,17 @@ typedef CDT::Edge  Edge;
 typedef CDT::Face  Face;
 #endif
 //
-#ifdef __cpluspplus
 extern "C" {
-#endif
-
 #include "hazmath.h"
-
-static void error_extlib0(const SHORT status, const char *func_name, \
-			  const char *lib_name)
-{
-  fprintf(stderr,"\n\n******** HAZMATH FATAL ERROR *******\n");
-  fprintf(stderr,"   In function \"%s\":\n",func_name);
-  fprintf(stderr,"   A call to a function from %s library occured,\n",lib_name);
-  fprintf(stderr,"   but %s support was not compiled in the HAZmath library.\n",lib_name);
-  fprintf(stderr,"   IF you have %s installed, THEN RECOMPILE \"libhazmath\"\n",lib_name);
-  fprintf(stderr,"   with %s support.\n",lib_name);
-  fprintf(stderr,"********\n\n");
-  //  fprintf(stderr,"***by issuing the commands: make config %s=yes; make install\n\n",lib_name);
-  exit(status);
 }
-#ifdef __cpluspplus
-}
-#endif
-
-void do_tri_2d(REAL *x_in, int *edges,				\
-	       REAL *seedpt,					\
-	       INT np, INT ne, INT dim,				\
-	       REAL shape_bound,				\
-	       REAL hmax)
+static void do_tri_2d(REAL *x_in, INT *edges,			\
+		      REAL *seedpt,				\
+		      INT np, INT ne, INT dim,			\
+		      REAL shape_bound,				\
+		      REAL hmax,				\
+		      INT **nodes, INT **nbr, REAL **xv,	\
+		      INT *nvo, INT *nso)
 {
-#if WITH_CGAL
   CDT cdt;
   Vertex_handle va,vb,v0;
   INT ii,jj,i,j,dim1=dim+1;
@@ -73,7 +54,7 @@ void do_tri_2d(REAL *x_in, int *edges,				\
     va=cdt.insert(Point(x_in[jj],x_in[jj+1]));
     vh.push_back(va);
   }
-  std::size_t nv=i;
+  std::size_t nv0=i;
   std::cout <<std::endl <<std::endl <<std::endl;
   for (i=0;i<ne;++i){
     ii=edges[2*i];
@@ -81,6 +62,7 @@ void do_tri_2d(REAL *x_in, int *edges,				\
     cdt.insert_constraint(vh[ii], vh[jj]);
     std::cout <<"!!!e(" << i << ")=(" << ii << "," << jj << ")" <<std::endl;
   }
+  vh.clear();
   //
   std::list<Point> list_of_seeds;
   list_of_seeds.push_back(Point(seedpt[0],seedpt[1]));
@@ -94,16 +76,29 @@ void do_tri_2d(REAL *x_in, int *edges,				\
   std::map<Vertex_handle, std::size_t> vall;
   Finite_vertices_iterator vit;
   i=0;
+  //num. vertices
+  std::size_t nv = cdt.number_of_vertices();
+  std::size_t ns = cdt.number_of_faces();
+  *nvo=nv;
+  *nso=ns;
+  // num simplices:
+   #ifdef __cpluspplus
+    extern "C" {
+   #endif
+      xv[0]=(REAL *)calloc(nv*dim,sizeof(REAL));
+      nodes[0]=(INT *)calloc(ns*dim1,sizeof(INT));
+      nbr[0]=(INT *)calloc(ns*dim1,sizeof(INT));
+   #ifdef __cpluspplus
+    }
+   #endif
   for (vit=cdt.finite_vertices_begin();vit != cdt.finite_vertices_end(); ++vit){
-    //    if(vit->in_dimension() <= -1) continue;
-    //    for(j = 0; j < dim; j++){
-    //      x[i*dim+j]=vit->point()[j];
-    //    }
+    for(j = 0; j < dim; j++){
+      xv[0][i*dim+j]=vit->point()[j];
+    }
     vall[vit] = i++;
   }
-  std::size_t ns = cdt.number_of_faces();
-  nv = cdt.number_of_vertices();
   std::map<Face_handle, std::size_t > tall;// triangle or simplex
+  //  nodes = new int[1][ns*dim1];
   int mesh_faces_counter = 0;
   i=0;
   for(Finite_faces_iterator fit = cdt.finite_faces_begin();fit != cdt.finite_faces_end(); ++fit)
@@ -114,7 +109,10 @@ void do_tri_2d(REAL *x_in, int *edges,				\
     // for(j = 0; j < dim1; j++){
     //   std::cout << vall[fit->vertex(j)] <<" ";
     // }
-    // std::cout <<std::endl;
+    //    std::cout <<std::endl;
+    for(j = 0; j < dim1; j++){
+      nodes[0][i*dim1+j]=vall[fit->vertex(j)];
+    }
     tall[fit] = i++;
   }
   std::cout << "Number of faces in the mesh domain: " << mesh_faces_counter << std::endl;
@@ -128,16 +126,27 @@ void do_tri_2d(REAL *x_in, int *edges,				\
   }
   std::cout << "The number of resulting constrained edges is  ";
   std::cout <<  count << std::endl;
-#else  
-#ifdef __cpluspplus
-  extern "C" {
-#endif
-    error_extlib0(250, __FUNCTION__, "CGAL");
-    return;
-#ifdef __cpluspplus
-  }
-#endif
-#endif
 }
-/* 
-*/
+extern "C" {
+void c_do_tri_2d(REAL *x_in, INT *edges,			\
+		 REAL *seedpt,					\
+		 INT np, INT ne, INT dim,			\
+		 REAL shape_bound,				\
+		 REAL hmax,					\
+		 INT **nodes, INT **nbr, REAL **xv,		\
+		 INT *nvo, INT *nso)
+{
+#if WITH_CGAL
+       do_tri_2d(x_in, edges,					\
+		 seedpt,					\
+		 np, ne, dim,					\
+		 shape_bound,					\
+		 hmax,						\
+		 nodes, nbr, xv,				\
+		 nvo,nso);
+#else
+       error_extlib(250, __FUNCTION__, "CGAL");
+       return;
+#endif
+     }
+}
