@@ -86,7 +86,7 @@ endif
 
 ifeq ($(WITH_CGAL),1)
 	CFLAGS += -DWITH_CGAL=1
-	LIBS += -lgmp
+	LIBS += -lhaz_cgal -lgmp
 endif
 
 
