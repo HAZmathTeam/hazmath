@@ -2,9 +2,9 @@
 # Last Modified 2019-06-10 --jha
 ####################################################
 # SRC File name
-SRCFILE = triangulation2d
+SRCFILE = amr_grids
 
-HEADERS = 
+HEADERS = connected_components.h solve_estimate_mark.h
 
 INCLUDE =
 
