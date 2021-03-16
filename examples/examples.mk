@@ -1,3 +1,4 @@
+
 ####################################################
 # Last Modified 2017-03-08 --ltz
 ####################################################
@@ -19,6 +20,17 @@ LIBS =
 
 ##################### no change should be needed below. ###########
 # HAZMATH LIB and INCLUDE
+ifndef COMPILER
+## uncomment this below to see the annoying warnings
+#$(warning COMPILER not set; setting COMPILER to $(CC))
+COMPILER = $(CC)
+endif
+ifndef LINKER
+## uncomment this below to see the annoying warnings
+#$(warning LINKER not set; setting LINKER to $(COMPILER))
+LINKER = $(COMPILER)
+endif
+
 HAZDIR = $(realpath ../..)
 
 HAZLIB = -L$(HAZDIR)/lib -lhazmath
@@ -72,6 +84,11 @@ ifeq ($(WITH_SUITESPARSE),1)
 	LIBS += -lsuitesparseconfig -lcholmod -lamd -lcolamd -lccolamd -lcamd -lspqr -lumfpack -lamd -lcxsparse 
 endif
 
+ifeq ($(WITH_CGAL),1)
+	CFLAGS += -DWITH_CGAL=1
+	LIBS += -lhazmath_cgal -lgmp
+endif
+
 
 
 ############### 
@@ -91,10 +108,13 @@ LIBS += #-lgfortran
 all: $(EXE) 
 
 $(EXE):	$(MGTARGET)	$(OBJS)	
-	+$(CC) $(CFLAGS) $(ExtraFLAGS) $(OBJS)  $(RPATH)  $(MGLIBS) -o $@  $(LIBS)
+	+$(LINKER) $(CFLAGS) $(ExtraFLAGS) $(OBJS)  $(RPATH)  $(MGLIBS) -o $@  $(LIBS)
 
 %.o:	%.c	$(HEADERS)
-	+$(CC) $(INCLUDE) $(INCLUDESSP) $(CFLAGS) $(DMGRAPH) -o $@ -c $<
+	+$(COMPILER) $(INCLUDE) $(INCLUDESSP) $(CFLAGS) $(DMGRAPH) -o $@ -c $<
+
+%.o:	%.cpp	$(HEADERS)
+	+$(COMPILER) $(INCLUDE) $(INCLUDESSP) $(CFLAGS) $(DMGRAPH) -o $@ -c $<
 
 clean:
 	+rm -rf $(EXE) $(OBJS) *.mod output/* ./*.dSYM  $(EXTRA_DEL)
