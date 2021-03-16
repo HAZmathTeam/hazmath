@@ -18,7 +18,8 @@ void exact_sol3D(REAL *val,REAL *x,REAL time,void *param) {
   val[0] = -sin(M_PI*x[0])*sin(M_PI*(x[1]-x[2]));
   val[1] = sin(M_PI*x[1])*sin(M_PI*(x[0]-x[2]));
   val[2] = -sin(M_PI*x[2])*sin(M_PI*(x[0]-x[1]));
-  val[3] = 0.5 - x[0];
+  val[3] = 0.0; // fake slot for eg
+  val[4] = 0.5 - x[0];
   return;
 }
 void exact_sol2D(REAL *val, REAL *x, REAL time,void *param){
@@ -89,9 +90,14 @@ void Dexact_sol3D(REAL *val, REAL *x, REAL time,void *param) {
   val[7] = M_PI*sin(M_PI*x[2])*cos(M_PI*(x[0]-x[1]));
   val[8] = -M_PI*cos(M_PI*x[2])*sin(M_PI*(x[0]-x[1]));
 
-  val[9] = -1.0;
+  // fake slots for eg
+  val[9] = 0.0;
   val[10] = 0.0;
   val[11] = 0.0;
+
+  val[12] = -1.0;
+  val[13] = 0.0;
+  val[14] = 0.0;
   return;
 }
 void Dexact_sol2D(REAL *val, REAL *x, REAL time,void *param){
@@ -119,7 +125,8 @@ void source3D(REAL *val, REAL *x, REAL time,void *param) {
   val[0] = -3*pow(pi,2)*sin(pi*x[0])*sin(pi*(x[1]-x[2])) - 1.0;
   val[1] = 3*pow(pi,2)*sin(pi*x[1])*sin(pi*(x[0]-x[2]));
   val[2] = -3*pow(pi,2)*sin(pi*x[2])*sin(pi*(x[0]-x[1]));
-  val[3] = 0.0;
+  val[3] = 0.0; // fake slot for eg
+  val[4] = 0.0;
   return;
 }
 void source2D(REAL *val, REAL *x, REAL time,void *param) {
@@ -257,13 +264,11 @@ void zquad_face(qcoordinates *cqbdry,INT nq1d, INT dim, REAL *xf, REAL farea)
 }
 /*********************************************************************************/
 
-// TODO: Need to fix for 3D starting here
-
 void L2error_block_EG
 (REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,REAL time)
 {
   // Loop Indices
-  INT i,elm,quad,j,rowa,rowb,jcntr,dof;
+  INT i,elm,quad,j,rowa,rowb,jcntr;
 
   // Mesh Stuff
   INT dim = mesh->dim;
@@ -291,7 +296,6 @@ void L2error_block_EG
       ncomp[i] = dim;
     nun += ncomp[i];
   }
-  INT *local_dof_on_elm;
 
 
   printf("nun = %d, dof_per_elm = %d \n", nun, dof_per_elm);
@@ -300,18 +304,23 @@ void L2error_block_EG
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
   REAL* val_true = (REAL *) calloc(nun,sizeof(REAL));
   //REAL* val_sol = (REAL *) calloc(nun,sizeof(REAL));
+
+  INT *local_dof_on_elm;
+  INT dof;
   REAL u0_value_at_q = 0.;
   REAL u1_value_at_q = 0.;
   REAL u2_value_at_q = 0.;
+  REAL eg_vals[dim];
   REAL p_value_at_q = 0.;
   REAL* u_comp;
+  REAL eg_xterm,eg_yterm,eg_zterm;
 
   // Loop over all Elements
   for (elm=0; elm<mesh->nelm; elm++) {
 
     barycenter->x[0] = mesh->el_mid[elm*dim];
     barycenter->y[0] = mesh->el_mid[elm*dim + 1];
-    if (dim==3) barycenter->z[0] = mesh->el_mid[elm*dim+2];
+    if(dim==3) barycenter->z[0] = mesh->el_mid[elm*dim + 2];
 
 
     // Find DOF for given Element
@@ -339,6 +348,10 @@ void L2error_block_EG
         qx[2] = cq->z[elm*cq->nq_per_elm+quad];
       w = cq->w[elm*cq->nq_per_elm+quad];
 
+      eg_xterm = qx[0] - barycenter->x[0];
+      eg_yterm = qx[1] - barycenter->y[0];
+      if(dim==3) eg_zterm = qx[2] - barycenter->z[0];
+
       // Get True Solution at Quadrature Nodes
       (*truesol)(val_true,qx,time,&(mesh->el_flag[elm]));
 
@@ -352,104 +365,61 @@ void L2error_block_EG
       u1_value_at_q = 0.;
       u2_value_at_q = 0.;
       p_value_at_q = 0.;
+
+      //REAL u2_value_at_q = 0.;
+
       u_comp = u;
 
-      // Interpolate FE solution to quadrature point
-      //blockFE_Interpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,mesh);
-
-      //printf("Elm = %d, V_on_elm = %d %d %d \n", elm, v_on_elm[0], v_on_elm[1], v_on_elm[2]);
-
-      // ************************************************* //
-      // u1 /////////////////////////////////////////////////
-      // TODO: what is 3 here? dof_per_elm?
+      // TODO: Rewriting this with some hazmath FUNCTIONS
+      // u0
+      FE_Interpolation(&u0_value_at_q,u_comp,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[0],mesh);
       get_FEM_basis(FE->var_spaces[0]->phi,FE->var_spaces[0]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[0]);
-      for(j=0; j<3; j++) {
-	       dof = local_dof_on_elm[j];
-         u0_value_at_q += u_comp[dof]*FE->var_spaces[0]->phi[j];
-      }
-
-      //printf("--1) u0_value_at_q= %f  \n", u0_value_at_q);
-
-      // ************************************************* //
-      // u2 /////////////////////////////////////////////////
       local_dof_on_elm += FE->var_spaces[0]->dof_per_elm;
       u_comp += FE->var_spaces[0]->ndof;
+
+      // u1
+      FE_Interpolation(&u1_value_at_q,u_comp,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[1],mesh);
       get_FEM_basis(FE->var_spaces[1]->phi,FE->var_spaces[1]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[1]);
-
-      for(j=0; j<3; j++) {
-	       dof =  local_dof_on_elm[j];
-       	//printf("****u1  dof = %d, u _comp= %f, u1 = %f  \n", dof, u_comp[dof],FE->var_spaces[1]->phi[j]);
-	       u1_value_at_q += u_comp[dof]*FE->var_spaces[1]->phi[j];
-      }
-
-      //printf("--2) u1_value_at_q= %f  \n", u1_value_at_q);
-
-      // ************************************************* //
-      // u3 /////////////////////////////////////////////////
-      // EG
       local_dof_on_elm += FE->var_spaces[1]->dof_per_elm;
       u_comp += FE->var_spaces[1]->ndof;
 
+      // u2
+      if(dim==3) {
+        FE_Interpolation(&u2_value_at_q,u_comp,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[2],mesh);
+        get_FEM_basis(FE->var_spaces[2]->phi,FE->var_spaces[2]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[2]);
+        local_dof_on_elm += FE->var_spaces[2]->dof_per_elm;
+        u_comp += FE->var_spaces[2]->ndof;
+      }
 
-      get_FEM_basis(FE->var_spaces[2]->phi,
-		    FE->var_spaces[2]->dphi,
-		    qx,
-		    v_on_elm,
-		    local_dof_on_elm,
-		    mesh,
-		    FE->var_spaces[2]);
-
-
-      REAL val[dim];
-      val[0] = 0.0;
-      val[1] = 0.0;
-
+      // eg
+      get_FEM_basis(FE->var_spaces[dim]->phi,FE->var_spaces[dim]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[dim]);
+      // Interpolate
+      eg_vals[0] = 0.0;
+      eg_vals[1] = 0.0;
       dof = local_dof_on_elm[0]; // get the dof for the last component
       //printf("--u2 dof = %d, u _comp= %f, q[0] = %f, q[1] = %f,   \n", dof, u_comp[dof],qx[0] - barycenter->x[0],qx[1] - barycenter->x[1]);
-
-      val[0] = u_comp[dof]*   (qx[0] - barycenter->x[0]); //FE->phi[j]; -> this basis function is a vector <x,y> - the quadrature point
-      val[1] = u_comp[dof]*   (qx[1] - barycenter->y[0]); //FE->phi[j]; -> this basis function is a vector <x,y> - the quadrature point
-
+      eg_vals[0] = u_comp[dof]*eg_xterm;//   (qx[0] - barycenter->x[0]); //FE->phi[j]; -> this basis function is a vector <x,y> - the quadrature point
+      eg_vals[1] = u_comp[dof]*eg_yterm;//   (qx[1] - barycenter->y[0]); //FE->phi[j]; -> this basis function is a vector <x,y> - the quadrature point
+      if(dim==3) eg_vals[2] = u_comp[dof]*eg_zterm;
       //printf("--3) u2_value_at_q= %f  \n", val[0]);
       //printf("--3) u2_value_at_q= %f  \n", val[1]);
 
       //printf("***u2  dof = %d, val[0]= %f,  val[1] = %f, x = %f, y = %f  \n", dof,  val[0],  val[1], (qx[0] - barycenter->x[0]) ,  (qx[1] - barycenter->y[0]));
       // ************************************************* //
       // u4 /////////////////////////////////////////////////
-      local_dof_on_elm += FE->var_spaces[2]->dof_per_elm;
-      u_comp += FE->var_spaces[2]->ndof;
+      local_dof_on_elm += FE->var_spaces[dim]->dof_per_elm;
+      u_comp += FE->var_spaces[dim]->ndof;
 
-      get_FEM_basis(FE->var_spaces[3]->phi,
-		    FE->var_spaces[3]->dphi,
-		    qx,
-		    v_on_elm,
-		    local_dof_on_elm,
-		    mesh,
-		    FE->var_spaces[3]);
-
-
-      //for(j=0; j<3; j++) {
-      dof =  local_dof_on_elm[0];
-      //printf("****u3  dof = %d, u _comp= %f, u3 = %f  \n", dof, u_comp[dof],FE->var_spaces[3]->phi[j]);
-      p_value_at_q += u_comp[dof]*FE->var_spaces[3]->phi[0];
-      //}
-
-      //printf("--4) p_value_at_q= %f  \n", p_value_at_q);
-
-
-      // ************************************************* //
-      // u5 /////////////////////////////////////////////////
-      // EG
-      local_dof_on_elm += FE->var_spaces[3]->dof_per_elm;
-      u_comp += FE->var_spaces[3]->ndof;
-
-
+      // p
+      FE_Interpolation(&p_value_at_q,u_comp,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[dim+1],mesh);
+      get_FEM_basis(FE->var_spaces[dim+1]->phi,FE->var_spaces[dim+1]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[dim+1]);
+      local_dof_on_elm += FE->var_spaces[dim+1]->dof_per_elm;
+      u_comp += FE->var_spaces[dim+1]->ndof;
 
       // Compute Square of Error on Element for each component of FE space
-
-
-      err[0] += w*(ABS(u0_value_at_q  +val[0]- val_true[0]))*(ABS(u0_value_at_q +val[0] - val_true[0]));
-      err[1] += w*(ABS(u1_value_at_q  +val[1]- val_true[1]))*(ABS(u1_value_at_q +val[1] - val_true[1]));
+      err[0] += w*(ABS(u0_value_at_q  +eg_vals[0]- val_true[0]))*(ABS(u0_value_at_q +eg_vals[0] - val_true[0]));
+      err[1] += w*(ABS(u1_value_at_q  +eg_vals[1]- val_true[1]))*(ABS(u1_value_at_q +eg_vals[1] - val_true[1]));
+      if(dim==3) err[2] += w*(ABS(u2_value_at_q +eg_vals[2]- val_true[2]))*(ABS(u2_value_at_q +eg_vals[2] - val_true[2]));
 
 
       //err[0] += w*(ABS(val[0]- val_true[0]))*(ABS(val[0] - val_true[0]));
@@ -459,11 +429,11 @@ void L2error_block_EG
       //err[0] += w*(ABS(u0_value_at_q  - val_true[0]))*(ABS(u0_value_at_q  - val_true[0]));
       //err[1] += w*(ABS(u1_value_at_q  - val_true[1]))*(ABS(u1_value_at_q  - val_true[1]));
 
-      err[2] = 0;
+      err[dim] = 0;
 
       // For Pressure Error
       // bEG_Pressure
-      err[3] += w*(ABS(p_value_at_q    -  val_true[3]))*(ABS(p_value_at_q - val_true[3]));
+      err[dim+1] += w*(ABS(p_value_at_q    -  val_true[3]))*(ABS(p_value_at_q - val_true[3]));
       //err[3] += w*(ABS(p_value_at_q     -  val_true[3]))*(ABS(p_value_at_q  - val_true[3]));
 
       //exit(0);
@@ -536,6 +506,19 @@ void HDerror_block_EG
   //double d_Lame_coeff_mu = 1.;
   //double d_Lame_coeff_lambda = LAME_LAMBDA_GLOBAL ; //000000.;
 
+  INT *local_dof_on_elm;
+  INT dof,k;
+  REAL gradu0[dim];
+  REAL gradu1[dim];
+  REAL gradu2[dim];
+  REAL gradeg0[dim];
+  REAL gradeg1[dim];
+  REAL gradeg2[dim];
+  REAL gradp0[dim];
+  REAL gradp1[dim];
+  REAL gradp2[dim];
+  REAL* u_comp;
+
   /* Loop over all Elements */
   for (elm=0; elm<mesh->nelm; elm++) {
 
@@ -569,142 +552,82 @@ void HDerror_block_EG
       // Interpolate FE solution to quadrature point
       //blockFE_DerivativeInterpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,mesh);
 
+      local_dof_on_elm = dof_on_elm;
+      u_comp = u;
 
+      // TODO: Again rewriting with hazmath functions
 
-      INT* local_dof_on_elm = dof_on_elm;
-      REAL* u_comp = u;
-      INT dof,j,k,i;
-
-      get_FEM_basis(FE->var_spaces[0]->phi,
-		    FE->var_spaces[0]->dphi,
-		    qx,
-		    v_on_elm,
-		    local_dof_on_elm,
-		    mesh,
-		    FE->var_spaces[0]);
-
-      REAL grad_val0[dim];
-      grad_val0[0]=0;
-      grad_val0[1]=0;
-      REAL grad_val1[dim];
-      grad_val1[0]=0;
-      grad_val1[1]=0;
-
-      ////
-      /// GET the values
-      dof = local_dof_on_elm[0];
-      grad_val0[0] += u_comp[dof]*FE->var_spaces[0]->dphi[0];
-
-      dof = local_dof_on_elm[1];
-      grad_val0[0] += u_comp[dof]*FE->var_spaces[0]->dphi[2];
-
-      dof = local_dof_on_elm[2];
-      grad_val0[0] += u_comp[dof]*+FE->var_spaces[0]->dphi[4];
-
-
-      dof = local_dof_on_elm[0];
-      grad_val0[1] += u_comp[dof]*FE->var_spaces[0]->dphi[1];
-
-      dof = local_dof_on_elm[1];
-      grad_val0[1] += u_comp[dof]* FE->var_spaces[0]->dphi[3];
-
-      dof = local_dof_on_elm[2];
-      grad_val0[1] += u_comp[dof]*FE->var_spaces[0]->dphi[5];
-      //////////
-
-
-      /// Increments
+      // u0
+      FE_DerivativeInterpolation(gradu0,u_comp,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[0],mesh);
+      get_FEM_basis(FE->var_spaces[0]->phi,FE->var_spaces[0]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[0]);
       local_dof_on_elm += FE->var_spaces[0]->dof_per_elm;
       u_comp += FE->var_spaces[0]->ndof;
 
-      get_FEM_basis(FE->var_spaces[1]->phi,
-		    FE->var_spaces[1]->dphi,
-		    qx,
-		    v_on_elm,
-		    local_dof_on_elm,
-		    mesh,
-		    FE->var_spaces[1]);
-
-      ////
-      /// GET the values
-      dof = local_dof_on_elm[0];
-      grad_val1[0] += u_comp[dof]*FE->var_spaces[1]->dphi[0];
-
-      dof = local_dof_on_elm[1];
-      grad_val1[0] += u_comp[dof]*FE->var_spaces[1]->dphi[2];
-
-      dof = local_dof_on_elm[2];
-      grad_val1[0] += u_comp[dof]*+FE->var_spaces[1]->dphi[4];
-
-      dof = local_dof_on_elm[0];
-      grad_val1[1] += u_comp[dof]*FE->var_spaces[1]->dphi[1];
-
-      dof = local_dof_on_elm[1];
-      grad_val1[1] += u_comp[dof]* FE->var_spaces[1]->dphi[3];
-
-      dof = local_dof_on_elm[2];
-      grad_val1[1] += u_comp[dof]*FE->var_spaces[1]->dphi[5];
-
-      /// Increments
+      // u1
+      FE_DerivativeInterpolation(gradu1,u_comp,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[1],mesh);
+      get_FEM_basis(FE->var_spaces[1]->phi,FE->var_spaces[1]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[1]);
       local_dof_on_elm += FE->var_spaces[1]->dof_per_elm;
       u_comp += FE->var_spaces[1]->ndof;
 
+      // u2
+      if(dim==3) {
+        FE_DerivativeInterpolation(gradu2,u_comp,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[2],mesh);
+        get_FEM_basis(FE->var_spaces[2]->phi,FE->var_spaces[2]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[2]);
+        local_dof_on_elm += FE->var_spaces[2]->dof_per_elm;
+        u_comp += FE->var_spaces[2]->ndof;
+      }
 
-      ////
-      /// GET the values
-      // bEG
-      REAL grad_val2[dim];
-      grad_val2[0] = 0.0;
-      grad_val2[1] = 0.0;
-
-      REAL grad_val3[dim];
-      grad_val3[0] = 0.0;
-      grad_val3[1] = 0.0;
-
+      // eg
+      get_FEM_basis(FE->var_spaces[dim]->phi,FE->var_spaces[dim]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[dim]);
+      // Interpolate
+      gradeg0[0] = 0.0;
+      gradeg0[1] = 0.0;
+      if(dim==3) gradeg0[2] = 0.0;
       dof = local_dof_on_elm[0]; // get the dof for the last component
-
-      //printf("-- dof = %d, u _comp= %f  \n", dof, u_comp[dof]);
-
-      grad_val2[0] += u_comp[dof]*1.;
-      grad_val2[1] = 0.;
-
-
-      grad_val3[0] = 0.;
-      grad_val3[1] += u_comp[dof]*1.;
+      gradeg0[0] += u_comp[dof]*1.;
+      gradeg1[0] = 0.0;
+      gradeg1[1] = 0.0;
+      if(dim==3) gradeg1[2] = 0.0;
+      gradeg1[1] += u_comp[dof]*1.;
+      if(dim==3) {
+        gradeg2[0] = 0.0;
+        gradeg2[1] = 0.0;
+        gradeg2[2] = 0.0;
+        gradeg2[2] += u_comp[dof]*1.;
+      }
 
 
       //val[0] = u_comp[dof]*   (qx[0] - barycenter->x[0]); //FE->phi[j]; -> this basis function is a vector <x,y> - the quadrature point
       //val[1] = u_comp[dof]*   (qx[1] - barycenter->y[0]); //FE->phi[j]; -> this basis function is a vector <x,y> - the quadrature point
 
 
-      local_dof_on_elm += FE->var_spaces[2]->dof_per_elm;
-      u_comp += FE->var_spaces[2]->ndof;
+      local_dof_on_elm += FE->var_spaces[dim]->dof_per_elm;
+      u_comp += FE->var_spaces[dim]->ndof;
 
+      // p
+      // TODO: Not sure why there are so many components for p?
+      gradp0[0]=0.0;
+      gradp0[1]=0.0;
+      gradp1[0]=0.0;
+      gradp1[1]=0.0;
+      if(dim==3) {
+        gradp0[2] = 0.0;
+        gradp1[2] = 0.0;
+        gradp2[0] = 0.0;
+        gradp2[1] = 0.0;
+        gradp2[2] = 0.0;
+      }
 
-      REAL grad_val4[dim];
-      grad_val4[0]=0;
-      grad_val4[1]=0;
-      REAL grad_val5[dim];
-      grad_val5[0]=0;
-      grad_val5[1]=0;
-
-      //
-      get_FEM_basis(FE->var_spaces[3]->phi,
-		    FE->var_spaces[3]->dphi,
-		    qx,
-		    v_on_elm,
-		    local_dof_on_elm,
-		    mesh,
-		    FE->var_spaces[3]);
-
-
+      // p
+      get_FEM_basis(FE->var_spaces[dim+1]->phi,FE->var_spaces[dim+1]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[dim+1]);
+      // Interpolate
       dof = local_dof_on_elm[0];
       //grad_val4[0] += u_comp[dof]*FE->var_spaces[3]->dphi[0];
       //grad_val4[1] += u_comp[dof]*FE->var_spaces[3]->dphi[1];
 
 
-      local_dof_on_elm += FE->var_spaces[3]->dof_per_elm;
-      u_comp += FE->var_spaces[3]->ndof;
+      local_dof_on_elm += FE->var_spaces[dim+1]->dof_per_elm;
+      u_comp += FE->var_spaces[dim+1]->ndof;
 
       /*
       err[0]+=w*(ABS(grad_val0[0] - val_true[0]))*(ABS(grad_val0[0] - val_true[0]));
@@ -714,23 +637,28 @@ void HDerror_block_EG
       err[1]+=w*(ABS(grad_val1[1] - val_true[3]))*(ABS(grad_val1[1] - val_true[3]));
       */
       // bEG
-      err[0]+=w*(ABS(grad_val0[0]+grad_val2[0] - val_true[0]))*(ABS(grad_val0[0]+grad_val2[0] - val_true[0]));
-      err[0]+=w*(ABS(grad_val1[0]+grad_val3[0] - val_true[2]))*(ABS(grad_val1[0]+grad_val3[0] - val_true[2]));
-
+      err[0]+=w*(ABS(gradu0[0]+gradeg0[0] - val_true[0]))*(ABS(gradu0[0]+gradeg0[0] - val_true[0]));
+      err[0]+=w*(ABS(gradu1[0]+gradeg1[0] - val_true[dim]))*(ABS(gradu1[0]+gradeg1[0] - val_true[dim]));
+      if(dim==3) err[0]+=w*(ABS(gradu2[0]+gradeg2[0] - val_true[2*dim]))*(ABS(gradu2[0]+gradeg2[0] - val_true[2*dim]));
 
       // bEG
-      err[1]+=w*(ABS(grad_val0[1] + grad_val2[1] - val_true[1]))*(ABS(grad_val0[1] + grad_val2[1] - val_true[1]));
-      err[1]+=w*(ABS(grad_val1[1] + grad_val3[1] - val_true[3]))*(ABS(grad_val1[1] + grad_val3[1] - val_true[3]));
+      err[1]+=w*(ABS(gradu0[1] + gradeg0[1] - val_true[1]))*(ABS(gradu0[1] + gradeg0[1] - val_true[1]));
+      err[1]+=w*(ABS(gradu1[1] + gradeg1[1] - val_true[dim+1]))*(ABS(gradu1[1] + gradeg1[1] - val_true[dim+1]));
+      if(dim==3) err[1]+=w*(ABS(gradu2[1] + gradeg2[1] - val_true[2*dim+1]))*(ABS(gradu2[1] + gradeg2[1] - val_true[2*dim+1]));
 
+      if(dim==3) {
+        err[2]+=w*(ABS(gradu0[2] + gradeg0[2] - val_true[2]))*(ABS(gradu0[2] + gradeg0[2] - val_true[2]));
+        err[2]+=w*(ABS(gradu1[2] + gradeg1[2] - val_true[dim+2]))*(ABS(gradu1[2] + gradeg1[2] - val_true[dim+2]));
+        err[2]+=w*(ABS(gradu2[2] + gradeg2[2] - val_true[2*dim+2]))*(ABS(gradu2[2] + gradeg2[2] - val_true[2*dim+2]));
+      }
 
       // bEG PRESSURE
       //err[3]+=w*(ABS(grad_val4[0]  - val_true[6]))*(ABS(grad_val4[0]  - val_true[6]));
       //err[3]+=w*(ABS(grad_val4[1]  - val_true[7]))*(ABS(grad_val4[1]  - val_true[7]));
 
-      err[3]+=w*(ABS(grad_val4[0]  - val_true[6]))*(ABS(grad_val4[0]  - val_true[6]));
-      err[3]+=w*(ABS(grad_val4[1]  - val_true[7]))*(ABS(grad_val4[1]  - val_true[7]));
-
-
+      err[dim+1]+=w*(ABS(gradp0[0]  - val_true[(dim+1)*dim]))*(ABS(gradp0[0]  - val_true[(dim+1)*dim]));
+      err[dim+1]+=w*(ABS(gradp0[1]  - val_true[(dim+1)*dim+1]))*(ABS(gradp0[1]  - val_true[(dim+1)*dim+1]));
+      if(dim==3) err[dim+1]+=w*(ABS(gradp0[2] - val_true[(dim+1)*dim+2]))*(ABS(gradp0[2] - val_true[(dim+1)*dim+2]));
     }
     /*
       jcntr=0;
@@ -745,7 +673,7 @@ void HDerror_block_EG
   }
 
 
-  for(i=0;i<2;i++) {
+  for(i=0;i<dim;i++) {
     err[i] = sqrt(err[i]);
   }
 
@@ -847,38 +775,55 @@ void HDsemierror_block_Stress
 
       // Compute Square of Error on Element for each component of FE space
       jcntr=0;
-      for(i=0;i<2;i++) {
+      for(i=0;i<dim;i++) {
         for(j=0;j<ncomp[i];j++) {
-	  // \mu * grad u
-	  err[i]+=d_Lame_coeff_mu*w*(ABS(val_sol[jcntr+j] - val_true[jcntr+j]))*(ABS(val_sol[jcntr+j] - val_true[jcntr+j]));
-	}
+          // \mu * grad u
+          err[i]+=d_Lame_coeff_mu*w*(ABS(val_sol[jcntr+j] - val_true[jcntr+j]))*(ABS(val_sol[jcntr+j] - val_true[jcntr+j]));
+        }
         jcntr+=ncomp[i];
       }
-      if(dim == 3)
-	{
-	  printf("ERROR IN STRESS ERROR \n"); exit(0);
-	}
-      else if(dim == 2){
+      // if(dim == 3) // TODO: adding this now
+      // {
+        //printf("ERROR IN STRESS ERROR \n"); exit(0);
+        err[0] += d_Lame_coeff_mu * w*(ABS(val_sol[0] - val_true[0]))*(ABS(val_sol[0] - val_true[0]));
+        err[0] += d_Lame_coeff_mu * w*(ABS(val_sol[dim] - val_true[dim]))*(ABS(val_sol[dim] - val_true[dim]));
+        if(dim==3) err[0] += d_Lame_coeff_mu * w*(ABS(val_sol[2*dim] - val_true[2*dim]))*(ABS(val_sol[2*dim] - val_true[2*dim]));
 
-	// grad u^T
+        err[1] += d_Lame_coeff_mu * w*(ABS(val_sol[1] - val_true[1]))*(ABS(val_sol[1] - val_true[1]));
+        err[1] += d_Lame_coeff_mu * w*(ABS(val_sol[dim+1] - val_true[dim+1]))*(ABS(val_sol[dim+1] - val_true[dim+1]));
+        if(dim==3) err[1] += d_Lame_coeff_mu * w*(ABS(val_sol[2*dim+1] - val_true[2*dim+1]))*(ABS(val_sol[2*dim+1] - val_true[2*dim+1]));
 
-	err[0] += d_Lame_coeff_mu * w*(ABS(val_sol[0] - val_true[0]))*(ABS(val_sol[0] - val_true[0]));
-	err[0] += d_Lame_coeff_mu * w*(ABS(val_sol[2] - val_true[2]))*(ABS(val_sol[2] - val_true[2]));
-
-	err[1] += d_Lame_coeff_mu * w*(ABS(val_sol[1] - val_true[1]))*(ABS(val_sol[1] - val_true[1]));
-	err[1] += d_Lame_coeff_mu * w*(ABS(val_sol[3] - val_true[3]))*(ABS(val_sol[3] - val_true[3]));
-
-	// div u
-	err[0] += d_Lame_coeff_lambda * w * (ABS(val_sol[0] - val_true[0]))*(ABS(val_sol[0] - val_true[0]));
-	err[1] += d_Lame_coeff_lambda * w * (ABS(val_sol[3] - val_true[3]))*(ABS(val_sol[3] - val_true[3]));
-      }
-
+        if(dim==3) {
+          err[2] += d_Lame_coeff_mu * w*(ABS(val_sol[2] - val_true[2]))*(ABS(val_sol[2]-val_true[2]));
+          err[2] += d_Lame_coeff_mu * w*(ABS(val_sol[dim+2]-val_true[dim+2]))*(ABS(val_sol[dim+2]-val_true[dim+2]));
+          err[2] += d_Lame_coeff_mu * w*(ABS(val_sol[2*dim+2]-val_true[2*dim+2]))*(ABS(val_sol[2*dim+2]-val_true[2*dim+2]));
+        }
+        // div u
+        err[0] += d_Lame_coeff_lambda * w * (ABS(val_sol[0] - val_true[0]))*(ABS(val_sol[0] - val_true[0]));
+        err[1] += d_Lame_coeff_lambda * w * (ABS(val_sol[dim+1] - val_true[dim+1]))*(ABS(val_sol[dim+1] - val_true[dim+1]));
+        if(dim==3) err[2] += d_Lame_coeff_lambda * w * (ABS(val_sol[2*dim+2] - val_true[2*dim+2]))*(ABS(val_sol[2*dim+2]-val_true[2*dim+2]));
+  //     }
+  //     else if(dim == 2){
+  //
+	// // grad u^T
+  //
+	// err[0] += d_Lame_coeff_mu * w*(ABS(val_sol[0] - val_true[0]))*(ABS(val_sol[0] - val_true[0]));
+	// err[0] += d_Lame_coeff_mu * w*(ABS(val_sol[2] - val_true[2]))*(ABS(val_sol[2] - val_true[2]));
+  //
+	// err[1] += d_Lame_coeff_mu * w*(ABS(val_sol[1] - val_true[1]))*(ABS(val_sol[1] - val_true[1]));
+	// err[1] += d_Lame_coeff_mu * w*(ABS(val_sol[3] - val_true[3]))*(ABS(val_sol[3] - val_true[3]));
+  //
+	// // div u
+	// err[0] += d_Lame_coeff_lambda * w * (ABS(val_sol[0] - val_true[0]))*(ABS(val_sol[0] - val_true[0]));
+	// err[1] += d_Lame_coeff_lambda * w * (ABS(val_sol[3] - val_true[3]))*(ABS(val_sol[3] - val_true[3]));
+  //     }
+  //
 
 
     }
   }
 
-  for(i=0;i<2;i++) {
+  for(i=0;i<dim;i++) {
     err[i] = sqrt(err[i]);
   }
 
@@ -944,6 +889,16 @@ void HDsemierror_block_Stress_EG
   double d_Lame_coeff_mu = 1.;
   double d_Lame_coeff_lambda = LAME_LAMBDA_GLOBAL ;///000000.;//000000.;//000000.; //000000.;
 
+  INT *local_dof_on_elm;
+  INT dof,k;
+  REAL gradu0[dim];
+  REAL gradu1[dim];
+  REAL gradu2[dim];
+  REAL gradeg0[dim];
+  REAL gradeg1[dim];
+  REAL gradeg2[dim];
+  REAL* u_comp;
+
   /* Loop over all Elements */
   for (elm=0; elm<mesh->nelm; elm++) {
 
@@ -977,151 +932,49 @@ void HDsemierror_block_Stress_EG
       // Interpolate FE solution to quadrature point
       //blockFE_DerivativeInterpolation(val_sol,u,qx,dof_on_elm,v_on_elm,FE,mesh);
 
-      // Compute Square of Error on Element for each component of FE space
-      /*
-      jcntr=0;
-      for(i=0;i<nspaces;i++) {
-        for(j=0;j<ncomp[i];j++) {
-	  // \mu * grad u
-	  err[i]+=d_Lame_coeff_mu*w*(ABS(val_sol[jcntr+j] - val_true[jcntr+j]))*(ABS(val_sol[jcntr+j] - val_true[jcntr+j]));
-	}
-        jcntr+=ncomp[i];
-      }
-      */
+      local_dof_on_elm = dof_on_elm;
+      u_comp = u;
 
-      //SLEE GET THE GRADIENTS
-      INT* local_dof_on_elm = dof_on_elm;
-      REAL* u_comp = u;
-      INT dof,j,k,i;
+      // TODO: Again rewriting with hazmath functions
 
-      get_FEM_basis(FE->var_spaces[0]->phi,
-		    FE->var_spaces[0]->dphi,
-		    qx,
-		    v_on_elm,
-		    local_dof_on_elm,
-		    mesh,
-		    FE->var_spaces[0]);
-
-      REAL grad_val0[dim];
-      grad_val0[0]=0;
-      grad_val0[1]=0;
-      REAL grad_val1[dim];
-      grad_val1[0]=0;
-      grad_val1[1]=0;
-
-      ////
-      /// GET the values
-      dof = local_dof_on_elm[0];
-      grad_val0[0] += u_comp[dof]*FE->var_spaces[0]->dphi[0];
-
-      dof = local_dof_on_elm[1];
-      grad_val0[0] += u_comp[dof]*FE->var_spaces[0]->dphi[2];
-
-      dof = local_dof_on_elm[2];
-      grad_val0[0] += u_comp[dof]*+FE->var_spaces[0]->dphi[4];
-
-
-      dof = local_dof_on_elm[0];
-      grad_val0[1] += u_comp[dof]*FE->var_spaces[0]->dphi[1];
-
-      dof = local_dof_on_elm[1];
-      grad_val0[1] += u_comp[dof]* FE->var_spaces[0]->dphi[3];
-
-      dof = local_dof_on_elm[2];
-      grad_val0[1] += u_comp[dof]*FE->var_spaces[0]->dphi[5];
-      //////////
-
-
-      /// Increments
+      // u0
+      FE_DerivativeInterpolation(gradu0,u_comp,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[0],mesh);
+      get_FEM_basis(FE->var_spaces[0]->phi,FE->var_spaces[0]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[0]);
       local_dof_on_elm += FE->var_spaces[0]->dof_per_elm;
       u_comp += FE->var_spaces[0]->ndof;
 
-      get_FEM_basis(FE->var_spaces[1]->phi,
-		    FE->var_spaces[1]->dphi,
-		    qx,
-		    v_on_elm,
-		    local_dof_on_elm,
-		    mesh,
-		    FE->var_spaces[1]);
-
-      ////
-      /// GET the values
-      dof = local_dof_on_elm[0];
-      grad_val1[0] += u_comp[dof]*FE->var_spaces[1]->dphi[0];
-
-      dof = local_dof_on_elm[1];
-      grad_val1[0] += u_comp[dof]*FE->var_spaces[1]->dphi[2];
-
-      dof = local_dof_on_elm[2];
-      grad_val1[0] += u_comp[dof]*+FE->var_spaces[1]->dphi[4];
-
-      dof = local_dof_on_elm[0];
-      grad_val1[1] += u_comp[dof]*FE->var_spaces[1]->dphi[1];
-
-      dof = local_dof_on_elm[1];
-      grad_val1[1] += u_comp[dof]* FE->var_spaces[1]->dphi[3];
-
-      dof = local_dof_on_elm[2];
-      grad_val1[1] += u_comp[dof]*FE->var_spaces[1]->dphi[5];
-
-      /// Increments
+      // u1
+      FE_DerivativeInterpolation(gradu1,u_comp,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[1],mesh);
+      get_FEM_basis(FE->var_spaces[1]->phi,FE->var_spaces[1]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[1]);
       local_dof_on_elm += FE->var_spaces[1]->dof_per_elm;
       u_comp += FE->var_spaces[1]->ndof;
 
+      // u2
+      if(dim==3) {
+        FE_DerivativeInterpolation(gradu2,u_comp,qx,local_dof_on_elm,v_on_elm,FE->var_spaces[2],mesh);
+        get_FEM_basis(FE->var_spaces[2]->phi,FE->var_spaces[2]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[2]);
+        local_dof_on_elm += FE->var_spaces[2]->dof_per_elm;
+        u_comp += FE->var_spaces[2]->ndof;
+      }
 
-      ////
-      /// GET the values
-      // bEG
-      REAL grad_val2[dim];
-      grad_val2[0] = 0.0;
-      grad_val2[1] = 0.0;
-
-      REAL grad_val3[dim];
-      grad_val3[0] = 0.0;
-      grad_val3[1] = 0.0;
-
+      // eg
+      get_FEM_basis(FE->var_spaces[dim]->phi,FE->var_spaces[dim]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[dim]);
+      // Interpolate
+      gradeg0[0] = 0.0;
+      gradeg0[1] = 0.0;
+      if(dim==3) gradeg0[2] = 0.0;
       dof = local_dof_on_elm[0]; // get the dof for the last component
-
-      //printf("-- dof = %d, u _comp= %f  \n", dof, u_comp[dof]);
-
-      grad_val2[0] += u_comp[dof]*1.;
-      grad_val2[1] = 0.;
-
-
-      grad_val3[0] = 0.;
-      grad_val3[1] += u_comp[dof]*1.;
-
-
-      //val[0] = u_comp[dof]*   (qx[0] - barycenter->x[0]); //FE->phi[j]; -> this basis function is a vector <x,y> - the quadrature point
-      //val[1] = u_comp[dof]*   (qx[1] - barycenter->y[0]); //FE->phi[j]; -> this basis function is a vector <x,y> - the quadrature point
-
-
-      local_dof_on_elm += FE->var_spaces[2]->dof_per_elm;
-      u_comp += FE->var_spaces[2]->ndof;
-
-         REAL grad_val4[dim];
-      grad_val4[0]=0;
-      grad_val4[1]=0;
-      REAL grad_val5[dim];
-      grad_val5[0]=0;
-      grad_val5[1]=0;
-
-      //
-      get_FEM_basis(FE->var_spaces[3]->phi,
-		    FE->var_spaces[3]->dphi,
-		    qx,
-		    v_on_elm,
-		    local_dof_on_elm,
-		    mesh,
-		    FE->var_spaces[3]);
-
-      dof = local_dof_on_elm[0];
-
-      local_dof_on_elm += FE->var_spaces[3]->dof_per_elm;
-      u_comp += FE->var_spaces[3]->ndof;
-
-
-
+      gradeg0[0] += u_comp[dof]*1.;
+      gradeg1[0] = 0.0;
+      gradeg1[1] = 0.0;
+      if(dim==3) gradeg1[2] = 0.0;
+      gradeg1[1] += u_comp[dof]*1.;
+      if(dim==3) {
+        gradeg2[0] = 0.0;
+        gradeg2[1] = 0.0;
+        gradeg2[2] = 0.0;
+        gradeg2[2] += u_comp[dof]*1.;
+      }
 
       //val_sol 0 -> grad_val0 [0]
       //val_sol 1 -> grad_val0 [1]
@@ -1130,23 +983,40 @@ void HDsemierror_block_Stress_EG
 
 
       // grad u
-      err[0] += d_Lame_coeff_mu * w*(ABS(grad_val0[0] + grad_val2[0]- val_true[0]))*(ABS(grad_val0[0] + grad_val2[0] - val_true[0]));
-      err[0] += d_Lame_coeff_mu * w*(ABS(grad_val0[1] + grad_val2[1] - val_true[1]))*(ABS(grad_val0[1] + grad_val2[1] - val_true[1]));
+      err[0] += d_Lame_coeff_mu * w*(ABS(gradu0[0] + gradeg0[0]- val_true[0]))*(ABS(gradu0[0] + gradeg0[0] - val_true[0]));
+      err[0] += d_Lame_coeff_mu * w*(ABS(gradu0[1] + gradeg0[1] - val_true[1]))*(ABS(gradu0[1] + gradeg0[1] - val_true[1]));
+      if(dim==3) err[0] += d_Lame_coeff_mu * w*(ABS(gradu0[2] + gradeg0[2] - val_true[2]))*(ABS(gradu0[2] + gradeg0[2] - val_true[2]));
 
-      err[1] += d_Lame_coeff_mu * w*(ABS(grad_val1[0] + grad_val3[0] - val_true[2]))*(ABS(grad_val1[0] + grad_val3[0] - val_true[2]));
-      err[1] += d_Lame_coeff_mu * w*(ABS(grad_val1[1] + grad_val3[1] - val_true[3]))*(ABS(grad_val1[1] + grad_val3[1] - val_true[3]));
+      err[1] += d_Lame_coeff_mu * w*(ABS(gradu1[0] + gradeg1[0] - val_true[dim]))*(ABS(gradu1[0] + gradeg1[0] - val_true[dim]));
+      err[1] += d_Lame_coeff_mu * w*(ABS(gradu1[1] + gradeg1[1] - val_true[dim+1]))*(ABS(gradu1[1] + gradeg1[1] - val_true[dim+1]));
+      if(dim==3) err[1] += d_Lame_coeff_mu * w*(ABS(gradu1[2] + gradeg1[2] - val_true[dim+2]))*(ABS(gradu1[2] + gradeg1[2] - val_true[dim+2]));
+
+      if(dim==3) {
+        err[2] += d_Lame_coeff_mu * w*(ABS(gradu2[0] + gradeg2[0] - val_true[2*dim]))*(ABS(gradu2[0] + gradeg2[0] - val_true[2*dim]));
+        err[2] += d_Lame_coeff_mu * w*(ABS(gradu2[1] + gradeg2[1] - val_true[2*dim+1]))*(ABS(gradu2[1] + gradeg2[1] - val_true[2*dim+1]));
+        err[2] += d_Lame_coeff_mu * w*(ABS(gradu2[2] + gradeg2[2] - val_true[2*dim+2]))*(ABS(gradu2[2] + gradeg2[2] - val_true[2*dim+2]));
+      }
 
 
       // grad u^T
-      err[0] += d_Lame_coeff_mu * w*(ABS(grad_val0[0] + grad_val2[0] - val_true[0]))*(ABS(grad_val0[0] + grad_val2[0] - val_true[0]));
-      err[0] += d_Lame_coeff_mu * w*(ABS(grad_val1[0] + grad_val3[0] - val_true[2]))*(ABS(grad_val1[0] + grad_val3[0] - val_true[2]));
+      err[0] += d_Lame_coeff_mu * w*(ABS(gradu0[0] + gradeg0[0] - val_true[0]))*(ABS(gradu0[0] + gradeg0[0] - val_true[0]));
+      err[0] += d_Lame_coeff_mu * w*(ABS(gradu1[0] + gradeg1[0] - val_true[dim]))*(ABS(gradu1[0] + gradeg1[0] - val_true[dim]));
+      if(dim==3) err[0] += d_Lame_coeff_mu * w*(ABS(gradu2[0] + gradeg2[0] - val_true[2*dim]))*(ABS(gradu2[0] + gradeg2[0] - val_true[2*dim]));
 
-      err[1] += d_Lame_coeff_mu * w*(ABS(grad_val0[1] + grad_val2[1] - val_true[1]))*(ABS(grad_val0[1] + grad_val2[1] - val_true[1]));
-      err[1] += d_Lame_coeff_mu * w*(ABS(grad_val1[1] + grad_val3[1] - val_true[3]))*(ABS(grad_val1[1] + grad_val3[1] - val_true[3]));
+      err[1] += d_Lame_coeff_mu * w*(ABS(gradu0[1] + gradeg0[1] - val_true[1]))*(ABS(gradu0[1] + gradeg0[1] - val_true[1]));
+      err[1] += d_Lame_coeff_mu * w*(ABS(gradu1[1] + gradeg1[1] - val_true[dim+1]))*(ABS(gradu1[1] + gradeg1[1] - val_true[dim+1]));
+      if(dim==3) err[1] += d_Lame_coeff_mu * w*(ABS(gradu2[1] + gradeg2[1] - val_true[2*dim+1]))*(ABS(gradu2[1] + gradeg2[1] - val_true[2*dim+1]));
+
+      if(dim==3) {
+        err[2] += d_Lame_coeff_mu * w*(ABS(gradu0[2] + gradeg0[2] - val_true[2]))*(ABS(gradu0[2] + gradeg0[2] - val_true[2]));
+        err[2] += d_Lame_coeff_mu * w*(ABS(gradu1[2] + gradeg1[2] - val_true[dim+2]))*(ABS(gradu1[2] + gradeg1[2] - val_true[dim+2]));
+        err[2] += d_Lame_coeff_mu * w*(ABS(gradu2[2] + gradeg2[2] - val_true[2*dim+2]))*(ABS(gradu2[2] + gradeg2[2] - val_true[2*dim+2]));
+      }
 
       // div u
-      err[0] += d_Lame_coeff_lambda * w * (ABS(grad_val0[0] + grad_val2[0] - val_true[0]))*(ABS(grad_val0[0] + grad_val2[0] - val_true[0]));
-      err[1] += d_Lame_coeff_lambda * w * (ABS(grad_val1[1] + grad_val3[1] - val_true[3]))*(ABS(grad_val1[1] + grad_val3[1] - val_true[3]));
+      err[0] += d_Lame_coeff_lambda * w * (ABS(gradu0[0] + gradeg0[0] - val_true[0]))*(ABS(gradu0[0] + gradeg0[0] - val_true[0]));
+      err[1] += d_Lame_coeff_lambda * w * (ABS(gradu1[1] + gradeg1[1] - val_true[dim+1]))*(ABS(gradu1[1] + gradeg1[1] - val_true[dim+1]));
+      if(dim==3) err[2] += d_Lame_coeff_lambda * w * (ABS(gradu2[2] + gradeg2[2] - val_true[2*dim+2]))*(ABS(gradu2[2] + gradeg2[2] - val_true[2*dim+2]));
 
     }//quad loop
   }//element loop
@@ -1154,7 +1024,7 @@ void HDsemierror_block_Stress_EG
   // if(nspaces ==3)
   //exit(0);
 
-  for(i=0;i<2;i++) {
+  for(i=0;i<dim;i++) {
     err[i] = sqrt(err[i]);
   }
 
@@ -1229,7 +1099,7 @@ void HDsemierror_block_EnergyNorm_EG_FaceLoop(REAL *err,REAL *u,void (*truesol)(
   qcoordinates *cq_face = allocateqcoords_bdry(nq1d_face,1,dim,2);
 
   INT jk,k,face,quad_face, jcntr,ed, jkl;
-  INT maxdim=2;
+  INT maxdim=dim;
   REAL qx_face[maxdim];
   INT nquad_face= cq_face->nq_per_elm; //quad<cq_face->nq_per_elm;
   iCSRmat *f_el=(iCSRmat *)malloc(1*sizeof(iCSRmat)); // face_to_element;
@@ -1244,7 +1114,7 @@ void HDsemierror_block_EnergyNorm_EG_FaceLoop(REAL *err,REAL *u,void (*truesol)(
   INT dof_neighbor;
   REAL u0_value_at_q_neighbor;
   REAL u1_value_at_q_neighbor;
-
+  REAL u2_value_at_q_neighbor;
   REAL p_value_at_q_neighbor;
 
   // penalty
@@ -1254,6 +1124,7 @@ void HDsemierror_block_EnergyNorm_EG_FaceLoop(REAL *err,REAL *u,void (*truesol)(
   INT dof_face;
   REAL u0_value_at_q;
   REAL u1_value_at_q;
+  REAL u2_value_at_q;
   REAL p_value_at_q;
 
   REAL* u_comp;
@@ -1262,15 +1133,36 @@ void HDsemierror_block_EnergyNorm_EG_FaceLoop(REAL *err,REAL *u,void (*truesol)(
   REAL val_face[dim];
   REAL val_neighbor[dim];
   /////////////////////////////////////////////////
+
+  INT iu0 = 0;
+  INT iu1 = 1;
+  INT iu2 = 2;
+  INT ieg = dim;
+  INT ip = dim+1;
+  INT u0dofpelm = FE->var_spaces[iu0]->dof_per_elm;
+  INT u1dofpelm = FE->var_spaces[iu1]->dof_per_elm;
+  INT u2dofpelm;
+  if(dim==3) u2dofpelm = FE->var_spaces[iu2]->dof_per_elm;
+  INT egdofpelm = FE->var_spaces[ieg]->dof_per_elm;
+  INT pdofpelm = FE->var_spaces[ip]->dof_per_elm;
+
+
   // Now, get the basis for the neighbor
-  REAL* neighbor_basis_0_phi  = (REAL *) calloc(3,sizeof(REAL));
-  REAL* neighbor_basis_0_dphi = (REAL *) calloc(3*mesh->dim,sizeof(REAL));
+  REAL* neighbor_basis_u0_phi  = (REAL *) calloc(u0dofpelm,sizeof(REAL));
+  REAL* neighbor_basis_u0_dphi = (REAL *) calloc(u0dofpelm*mesh->dim,sizeof(REAL));
 
-  REAL* neighbor_basis_1_phi  = (REAL *) calloc(3,sizeof(REAL));
-  REAL* neighbor_basis_1_dphi = (REAL *) calloc(3*mesh->dim,sizeof(REAL));
+  REAL* neighbor_basis_u1_phi  = (REAL *) calloc(u1dofpelm,sizeof(REAL));
+  REAL* neighbor_basis_u1_dphi = (REAL *) calloc(u1dofpelm*mesh->dim,sizeof(REAL));
 
-  REAL* neighbor_basis_3_phi  = (REAL *) calloc(3,sizeof(REAL));
-  REAL* neighbor_basis_3_dphi = (REAL *) calloc(3*mesh->dim,sizeof(REAL));
+  REAL* neighbor_basis_u2_phi;
+  REAL* neighbor_basis_u2_dphi;
+  if(dim==3) {
+    neighbor_basis_u2_phi = (REAL *) calloc(u2dofpelm,sizeof(REAL));
+    neighbor_basis_u2_dphi = (REAL *) calloc(u2dofpelm*dim,sizeof(REAL));
+  }
+
+  REAL* neighbor_basis_p_phi  = (REAL *) calloc(pdofpelm,sizeof(REAL));
+  REAL* neighbor_basis_p_dphi = (REAL *) calloc(pdofpelm*mesh->dim,sizeof(REAL));
   // Get the BD values
   fprintf(stdout,"\nNQUAD=%d\n",nquad_face);fflush(stdout);
   REAL* val_true_face = (REAL *) calloc(mesh->dim+2,sizeof(REAL));
@@ -1302,21 +1194,21 @@ void HDsemierror_block_EnergyNorm_EG_FaceLoop(REAL *err,REAL *u,void (*truesol)(
 
     }
 
-    for(pq=0;pq<2;++pq)
-      {
-	if(counter == 2)
-	  //printf("neighbor_index[%d]= %d || counter  = %d\n", pq, neighbor_index[pq],counter);
-
-	  if(counter == 1){
-	    if(pq == 0)
-	      {
-		//printf("neighbor_index[%d]= %d || counter  = %d\n", pq, neighbor_index[pq],counter);
-	      }
-	    else{
-	      //printf("-\n");
-	    }
-	  }
-      }
+  //   for(pq=0;pq<2;++pq)
+  //     {
+	// if(counter == 2)
+	//   //printf("neighbor_index[%d]= %d || counter  = %d\n", pq, neighbor_index[pq],counter);
+  //
+	//   if(counter == 1){
+	//     if(pq == 0)
+	//       {
+	// 	//printf("neighbor_index[%d]= %d || counter  = %d\n", pq, neighbor_index[pq],counter);
+	//       }
+	//     else{
+	//       //printf("-\n");
+	//     }
+	//   }
+  //     }
 
     // Saniyy Check
     // counter == 1 means the BD
@@ -1347,6 +1239,7 @@ void HDsemierror_block_EnergyNorm_EG_FaceLoop(REAL *err,REAL *u,void (*truesol)(
     // Find barycenter for given element
     barycenter->x[0] = mesh->el_mid[neighbor_index[0]*dim];
     barycenter->y[0] = mesh->el_mid[neighbor_index[0]*dim + 1];
+    if(dim==3) barycenter->z[0] = mesh->el_mid[neighbor_index[0]*dim+2];
 
 
     // Find DOF on the neighbor Element
@@ -1373,6 +1266,7 @@ void HDsemierror_block_EnergyNorm_EG_FaceLoop(REAL *err,REAL *u,void (*truesol)(
 	// Find barycenter for given element
 	barycenter_neighbor->x[0] = mesh->el_mid[neighbor_index[1]*dim];
 	barycenter_neighbor->y[0] = mesh->el_mid[neighbor_index[1]*dim + 1];
+  if(dim==3) barycenter_neighbor->z[0] = mesh->el_mid[neighbor_index[1]*dim + 2];
       }
     /*
       for(INT zz=0; zz<v_per_elm; ++zz)
@@ -1393,6 +1287,7 @@ void HDsemierror_block_EnergyNorm_EG_FaceLoop(REAL *err,REAL *u,void (*truesol)(
     // Get normal vector values.
     finrm[0]=mesh->f_norm[face*dim+0];
     finrm[1]=mesh->f_norm[face*dim+1];
+    if(dim==3) finrm[2]=mesh->f_norm[face*dim+2];
     //printf("FACE = %d, ELM = %d, (Nx,Ny) = (%f,%f) \n", face, neighbor_index[0], finrm[0], finrm[1]);
 
     ///////////////////////////////////////HEREHERE
@@ -1409,6 +1304,7 @@ void HDsemierror_block_EnergyNorm_EG_FaceLoop(REAL *err,REAL *u,void (*truesol)(
 
       xfi[j*dim+0]=mesh->cv->x[k];
       xfi[j*dim+1]=mesh->cv->y[k];
+      if(dim==3) xfi[j*dim+2]=mesh->cv->z[k];
 
       //printf("M** xfi[j*dim+0] = %f,  xfi[j*dim+1] = %f \n",  xfi[j*dim+0] ,  xfi[j*dim+1]);
 
@@ -1430,12 +1326,12 @@ void HDsemierror_block_EnergyNorm_EG_FaceLoop(REAL *err,REAL *u,void (*truesol)(
 
       qx_face[0] = cq_face->x[quad_face];
       qx_face[1] = cq_face->y[quad_face];
-
       if(dim==3) qx_face[2] = cq_face->z[quad_face];
 
       w_face = cq_face->w[quad_face];
 
-      (*exact_sol2D)(val_true_face,qx_face,time,
+      // TODO: Don't think this needs to be hardcoded?
+      (*truesol)(val_true_face,qx_face,time,
 		     &(mesh->el_flag[neighbor_index[0]])); //DUMMY VALUE at the end // ???
 
 
@@ -1452,90 +1348,52 @@ void HDsemierror_block_EnergyNorm_EG_FaceLoop(REAL *err,REAL *u,void (*truesol)(
 	u_comp = u;
 	u0_value_at_q = 0.;
 	u1_value_at_q = 0.;
+  u2_value_at_q = 0.;
 	p_value_at_q = 0.;
 
 	//local_row_index=0;
 	//unknown_index=0;
 	local_dof_on_elm_face = dof_on_elm;
 
-	get_FEM_basis(FE->var_spaces[0]->phi,
-		      FE->var_spaces[0]->dphi,
-		      qx_face,
-		      v_on_elm,
-		      local_dof_on_elm_face,
-		      mesh,
-		      FE->var_spaces[0]);
+  // TODO: Rewriting this with some hazmath FUNCTIONS
+  // u0
+  FE_Interpolation(&u0_value_at_q,u_comp,qx_face,local_dof_on_elm_face,v_on_elm,FE->var_spaces[0],mesh);
+  // get_FEM_basis(FE->var_spaces[0]->phi,FE->var_spaces[0]->dphi,qx_face,v_on_elm,local_dof_on_elm_face,mesh,FE->var_spaces[0]);
+  local_dof_on_elm_face += FE->var_spaces[0]->dof_per_elm;
+  u_comp += FE->var_spaces[0]->ndof;
 
-	for(j=0; j<3; j++) {
-	  dof = local_dof_on_elm_face[j];
-	  //printf("--u0  dof = %d, u _comp= %f, u0 = %f  \n", dof, u_comp[dof],FE->var_spaces[0]->phi[j]);
-	  u0_value_at_q += u_comp[dof]*FE->var_spaces[0]->phi[j];
-	}
+  // u1
+  FE_Interpolation(&u1_value_at_q,u_comp,qx_face,local_dof_on_elm_face,v_on_elm,FE->var_spaces[1],mesh);
+  // get_FEM_basis(FE->var_spaces[1]->phi,FE->var_spaces[1]->dphi,qx_face,v_on_elm,local_dof_on_elm_face,mesh,FE->var_spaces[1]);
+  local_dof_on_elm_face += FE->var_spaces[1]->dof_per_elm;
+  u_comp += FE->var_spaces[1]->ndof;
 
+  // u2
+  if(dim==3) {
+    FE_Interpolation(&u2_value_at_q,u_comp,qx_face,local_dof_on_elm_face,v_on_elm,FE->var_spaces[2],mesh);
+    // get_FEM_basis(FE->var_spaces[2]->phi,FE->var_spaces[2]->dphi,qx_face,v_on_elm,local_dof_on_elm_face,mesh,FE->var_spaces[2]);
+    local_dof_on_elm_face += FE->var_spaces[2]->dof_per_elm;
+    u_comp += FE->var_spaces[2]->ndof;
+  }
 
-	local_dof_on_elm_face += FE->var_spaces[0]->dof_per_elm;
-	u_comp += FE->var_spaces[0]->ndof;
-
-	get_FEM_basis(FE->var_spaces[1]->phi,
-		      FE->var_spaces[1]->dphi,
-		      qx_face,
-		      v_on_elm,
-		      local_dof_on_elm_face,
-		      mesh,
-		      FE->var_spaces[1]);
-
-
-	for(j=0; j<3; j++) {
-	  dof =  local_dof_on_elm_face[j];
-	  //printf("--u1  dof = %d, u _comp= %f, u1 = %f  \n", dof, u_comp[dof],FE->var_spaces[1]->phi[j]);
-	  u1_value_at_q += u_comp[dof]*FE->var_spaces[1]->phi[j];
-	}
-
-	//printf("** u0= %f  ERROR = %f \n", u0_value_at_q, ABS(u0_value_at_q - val_true_face[0]) );
-	//printf("** u1= %f, ERROR = %f \n", u1_value_at_q, ABS(u1_value_at_q - val_true_face[1]) );
-
-
-	// EG
-	local_dof_on_elm_face += FE->var_spaces[1]->dof_per_elm;
-	u_comp += FE->var_spaces[1]->ndof;
-	val[0] = 0.0;
-	val[1] = 0.0;
+  // eg
+  // Interpolate
 	dof = local_dof_on_elm_face[0]; // get the dof for the last component
-
 	val[0] = u_comp[dof]*   (qx_face[0] - barycenter->x[0]); //FE->phi[j]; -> this basis function is a vector <x,y> - the quadrature point
 	val[1] = u_comp[dof]*   (qx_face[1] - barycenter->y[0]); //FE->phi[j]; -> this basis function is a vector <x,y> - the quadrature point
+  if(dim==3) val[2] = u_comp[dof]* (qx_face[2] - barycenter->z[0]);
+  local_dof_on_elm_face += FE->var_spaces[dim]->dof_per_elm;
+  u_comp += FE->var_spaces[dim]->ndof;
 
-
-
-	local_dof_on_elm_face += FE->var_spaces[2]->dof_per_elm;
-	u_comp += FE->var_spaces[2]->ndof;
-
-	////////////////////
-	//PRESSURE
-	get_FEM_basis(FE->var_spaces[3]->phi,
-		      FE->var_spaces[3]->dphi,
-		      qx_face,
-		      v_on_elm,
-		      local_dof_on_elm_face,
-		      mesh,
-		      FE->var_spaces[3]);
-
-
-	//for(j=0; j<3; j++) {
-	dof =  local_dof_on_elm_face[0];
-	//printf("--u3  dof = %d, u _comp= %f, u3 = %f  \n", dof, u_comp[dof],FE->var_spaces[3]->phi[j]);
-	p_value_at_q += u_comp[dof]*FE->var_spaces[3]->phi[0];
-	//}
-
-	// ************************************************* //
-	// u5 /////////////////////////////////////////////////
-	// EG
-	local_dof_on_elm_face += FE->var_spaces[3]->dof_per_elm;
-	u_comp += FE->var_spaces[3]->ndof;
-
+  // p
+  FE_Interpolation(&p_value_at_q,u_comp,qx_face,local_dof_on_elm_face,v_on_elm,FE->var_spaces[dim+1],mesh);
+  // get_FEM_basis(FE->var_spaces[dim+1]->phi,FE->var_spaces[dim+1]->dphi,qx_face,v_on_elm,local_dof_on_elm_face,mesh,FE->var_spaces[dim+1]);
+  local_dof_on_elm_face += FE->var_spaces[dim+1]->dof_per_elm;
+  u_comp += FE->var_spaces[dim+1]->ndof;
 
 	err[0] += penalty_term * w_face * (ABS(u0_value_at_q  +val[0]- val_true_face[0]))*(ABS(u0_value_at_q +val[0] - val_true_face[0]));
 	err[1] += penalty_term * w_face * (ABS(u1_value_at_q  +val[1]- val_true_face[1]))*(ABS(u1_value_at_q +val[1] - val_true_face[1]));
+  if(dim==3) err[2] += penalty_term * w_face * (ABS(u2_value_at_q + val[2] - val_true_face[2]))*(ABS(u2_value_at_q + val[2] - val_true_face[2]));
 
 	//printf("** EG-u0  ERROR = %f \n", err[0] );
 	//printf("** EG-u1  ERROR = %f \n", err[1] );
@@ -1554,163 +1412,88 @@ void HDsemierror_block_EnergyNorm_EG_FaceLoop(REAL *err,REAL *u,void (*truesol)(
 	u_comp_face = u;
 	u0_value_at_q = 0.;
 	u1_value_at_q = 0.;
+  u2_value_at_q = 0.;
 	p_value_at_q = 0.;
 
 	local_dof_on_elm_face_interface = dof_on_elm;
 
+  FE_Interpolation(&u0_value_at_q,u_comp_face,qx_face,local_dof_on_elm_face_interface,v_on_elm,FE->var_spaces[0],mesh);
+  // get_FEM_basis(FE->var_spaces[0]->phi,FE->var_spaces[0]->dphi,qx_face,v_on_elm,local_dof_on_elm_face,mesh,FE->var_spaces[0]);
+  local_dof_on_elm_face_interface += FE->var_spaces[0]->dof_per_elm;
+  u_comp_face += FE->var_spaces[0]->ndof;
 
-	get_FEM_basis(FE->var_spaces[0]->phi,
-		      FE->var_spaces[0]->dphi,
-		      qx_face,
-		      v_on_elm,
-		      local_dof_on_elm_face_interface,
-		      mesh,
-		      FE->var_spaces[0]);
+  // u1
+  FE_Interpolation(&u1_value_at_q,u_comp_face,qx_face,local_dof_on_elm_face_interface,v_on_elm,FE->var_spaces[1],mesh);
+  // get_FEM_basis(FE->var_spaces[0]->phi,FE->var_spaces[0]->dphi,qx_face,v_on_elm,local_dof_on_elm_face,mesh,FE->var_spaces[0]);
+  local_dof_on_elm_face_interface += FE->var_spaces[1]->dof_per_elm;
+  u_comp_face += FE->var_spaces[1]->ndof;
 
-	for(j=0; j<3; j++) {
-	  dof_face = local_dof_on_elm_face_interface[j];
-	  //printf("--u0  dof = %d, u _comp= %f, u0 = %f  \n", dof, u_comp[dof],FE->var_spaces[0]->phi[j]);
-	  u0_value_at_q += u_comp_face[dof_face]*FE->var_spaces[0]->phi[j];
-	}
-
-	//printf("** u0  dof = %d, u0 = %f  ERROR = %f \n", dof_face,u0_value_at_q, ABS(u0_value_at_q - val_true_face[0]) );
-
-	local_dof_on_elm_face_interface += FE->var_spaces[0]->dof_per_elm;
-	u_comp_face += FE->var_spaces[0]->ndof;
-
-	get_FEM_basis(FE->var_spaces[1]->phi,
-		      FE->var_spaces[1]->dphi,
-		      qx_face,
-		      v_on_elm,
-		      local_dof_on_elm_face_interface,
-		      mesh,
-		      FE->var_spaces[1]);
-
-
-	for(j=0; j<3; j++) {
-	  dof_face =  local_dof_on_elm_face_interface[j];
-	  //printf("--u1  dof = %d, u _comp= %f, u1 = %f  \n", dof, u_comp[dof],FE->var_spaces[1]->phi[j]);
-	  u1_value_at_q += u_comp_face[dof_face]*FE->var_spaces[1]->phi[j];
-	}
-
-
-	//printf("** u1  dof = %d, u0 = %f  ERROR = %f \n", dof_face,u1_value_at_q, ABS(u1_value_at_q - val_true_face[1]) );
-
-
-	local_dof_on_elm_face_interface += FE->var_spaces[1]->dof_per_elm;
-	u_comp_face += FE->var_spaces[1]->ndof;
+  if(dim==3) {
+    FE_Interpolation(&u2_value_at_q,u_comp_face,qx_face,local_dof_on_elm_face_interface,v_on_elm,FE->var_spaces[2],mesh);
+    // get_FEM_basis(FE->var_spaces[0]->phi,FE->var_spaces[0]->dphi,qx_face,v_on_elm,local_dof_on_elm_face,mesh,FE->var_spaces[0]);
+    local_dof_on_elm_face_interface += FE->var_spaces[2]->dof_per_elm;
+    u_comp_face += FE->var_spaces[2]->ndof;
+  }
 
 	val_face[0] = 0.0;
 	val_face[1] = 0.0;
-
+  if(dim==3) val_face[2] = 0.0;
 	dof_face = local_dof_on_elm_face_interface[0]; // get the dof for the last component
-
 	val_face[0] = u_comp_face[dof_face]*   (qx_face[0] - barycenter->x[0]); //FE->phi[j]; -> this basis function is a vector <x,y> - the quadrature point
 	val_face[1] = u_comp_face[dof_face]*   (qx_face[1] - barycenter->y[0]);
+  if(dim==3) val_face[2] = u_comp_face[dof_face]* (qx_face[2] - barycenter->z[0]);
 
 	//DEBUG
-	local_dof_on_elm_face_interface += FE->var_spaces[2]->dof_per_elm;
-	u_comp_face += FE->var_spaces[2]->ndof;
+	local_dof_on_elm_face_interface += FE->var_spaces[dim]->dof_per_elm;
+	u_comp_face += FE->var_spaces[dim]->ndof;
 
-
-	////
-	// PRESSURE
-	get_FEM_basis(FE->var_spaces[3]->phi,
-		      FE->var_spaces[3]->dphi,
-		      qx_face,
-		      v_on_elm,
-		      local_dof_on_elm_face_interface,
-		      mesh,
-		      FE->var_spaces[3]);
-
-	//for(j=0; j<3; j++) {
-	dof_face = local_dof_on_elm_face_interface[0];
-	//printf("--u0  dof = %d, u _comp= %f, u0 = %f  \n", dof, u_comp[dof],FE->var_spaces[0]->phi[j]);
-	p_value_at_q += u_comp_face[dof_face]*FE->var_spaces[3]->phi[0];
-	//}
-
-	local_dof_on_elm_face_interface += FE->var_spaces[3]->dof_per_elm;
-	u_comp_face += FE->var_spaces[3]->ndof;
-
-
+  // p
+  FE_Interpolation(&p_value_at_q,u_comp_face,qx_face,local_dof_on_elm_face_interface,v_on_elm,FE->var_spaces[dim+1],mesh);
+  local_dof_on_elm_face_interface += FE->var_spaces[dim+1]->dof_per_elm;
+  u_comp_face += FE->var_spaces[dim+1]->ndof;
 
 	///////////////////////////////////////////////////////////////////////////////////////
 	u_comp_neighbor = u;
 	u0_value_at_q_neighbor = 0.;
 	u1_value_at_q_neighbor = 0.;
-
+  u2_value_at_q_neighbor = 0.;
 	p_value_at_q_neighbor = 0.;
 	local_dof_on_elm_neighbor = dof_on_elm_neighbor;
-	//here
-	get_FEM_basis( neighbor_basis_0_phi ,
-		       neighbor_basis_0_dphi ,
-		       qx_face,
-		       v_on_elm_neighbor,
-		       local_dof_on_elm_neighbor,
-		       mesh,
-		       FE->var_spaces[0]);
 
-	for(j=0; j<3; j++) {
-	  dof_neighbor = local_dof_on_elm_neighbor[j];
-	  u0_value_at_q_neighbor += u_comp_neighbor[dof_neighbor] * neighbor_basis_0_phi[j];
-	}
+  FE_Interpolation(&u0_value_at_q_neighbor,u_comp_neighbor,qx_face,local_dof_on_elm_neighbor,v_on_elm_neighbor,FE->var_spaces[0],mesh);
+  // get_FEM_basis(FE->var_spaces[0]->phi,FE->var_spaces[0]->dphi,qx_face,v_on_elm,local_dof_on_elm_face,mesh,FE->var_spaces[0]);
+  local_dof_on_elm_neighbor += FE->var_spaces[0]->dof_per_elm;
+  u_comp_neighbor += FE->var_spaces[0]->ndof;
 
-	//printf("**NEIGH u0  dof = %d, u0 = %f \n", dof_neighbor,u0_value_at_q_neighbor);
+  // u1
+  FE_Interpolation(&u1_value_at_q_neighbor,u_comp_neighbor,qx_face,local_dof_on_elm_neighbor,v_on_elm_neighbor,FE->var_spaces[1],mesh);
+  // get_FEM_basis(FE->var_spaces[0]->phi,FE->var_spaces[0]->dphi,qx_face,v_on_elm,local_dof_on_elm_face,mesh,FE->var_spaces[0]);
+  local_dof_on_elm_neighbor += FE->var_spaces[1]->dof_per_elm;
+  u_comp_neighbor += FE->var_spaces[1]->ndof;
 
-
-	local_dof_on_elm_neighbor += FE->var_spaces[0]->dof_per_elm;
-	u_comp_neighbor += FE->var_spaces[0]->ndof;
-
-
-	get_FEM_basis( neighbor_basis_1_phi ,
-		       neighbor_basis_1_dphi ,
-		       qx_face,
-		       v_on_elm_neighbor,
-		       local_dof_on_elm_neighbor,
-		       mesh,
-		       FE->var_spaces[1]);
-
-	for(j=0; j<3; j++) {
-	  dof_neighbor =  local_dof_on_elm_neighbor[j];
-	  u1_value_at_q_neighbor += u_comp_neighbor[dof_neighbor] * neighbor_basis_1_phi[j];
-	}
-
-	//printf("**NEIGH u1  dof = %d, u0 = %f \n", dof_neighbor,u1_value_at_q_neighbor);
-
-
-	local_dof_on_elm_neighbor += FE->var_spaces[1]->dof_per_elm;
-	u_comp_neighbor += FE->var_spaces[1]->ndof;
+  if(dim==3) {
+    FE_Interpolation(&u2_value_at_q_neighbor,u_comp_neighbor,qx_face,local_dof_on_elm_neighbor,v_on_elm_neighbor,FE->var_spaces[2],mesh);
+    // get_FEM_basis(FE->var_spaces[0]->phi,FE->var_spaces[0]->dphi,qx_face,v_on_elm,local_dof_on_elm_face,mesh,FE->var_spaces[0]);
+    local_dof_on_elm_neighbor += FE->var_spaces[2]->dof_per_elm;
+    u_comp_neighbor += FE->var_spaces[2]->ndof;
+  }
 
 	val_neighbor[0] = 0.0;
 	val_neighbor[1] = 0.0;
-
+  if(dim==3) val_neighbor[2] = 0.0;
 	dof_neighbor = local_dof_on_elm_neighbor[0]; // get the dof for the last component
+	val_neighbor[0] = u_comp_neighbor[dof_neighbor]*   (qx_face[0] - barycenter_neighbor->x[0]); //FE->phi[j]; -> this basis function is a vector <x,y> - the quadrature point
+	val_neighbor[1] = u_comp_neighbor[dof_neighbor]*   (qx_face[1] - barycenter_neighbor->y[0]);
+  if(dim==3) val_neighbor[2] = u_comp_neighbor[dof_neighbor]* (qx_face[2] - barycenter_neighbor->z[0]);
 
-	val_neighbor[0] = u_comp_neighbor[dof_neighbor]*   (qx_face[0] - barycenter_neighbor->x[0]); //FE-ephi[j]; -> this basis function is a vector <x,y> - the quadrature point
-	val_neighbor[1] = u_comp_neighbor[dof_neighbor]*   (qx_face[1] - barycenter_neighbor->y[0]); //
+	//DEBUG
+	local_dof_on_elm_face_interface += FE->var_spaces[dim]->dof_per_elm;
+	u_comp_face += FE->var_spaces[dim]->ndof;
 
-
-	local_dof_on_elm_neighbor += FE->var_spaces[2]->dof_per_elm;
-	u_comp_neighbor += FE->var_spaces[2]->ndof;
-
-	// PRESSURE
-	get_FEM_basis( neighbor_basis_3_phi ,
-		       neighbor_basis_3_dphi ,
-		       qx_face,
-		       v_on_elm_neighbor,
-		       local_dof_on_elm_neighbor,
-		       mesh,
-		       FE->var_spaces[3]);
-
-	//for(j=0; j<3; j++) {
-	dof_neighbor = local_dof_on_elm_neighbor[0];
-	p_value_at_q_neighbor += u_comp_neighbor[dof_neighbor] * neighbor_basis_3_phi[0];
-	//}
-
-	local_dof_on_elm_neighbor += FE->var_spaces[3]->dof_per_elm;
-	u_comp_neighbor += FE->var_spaces[3]->ndof;
-
-
+  // p
+  FE_Interpolation(&p_value_at_q_neighbor,u_comp_neighbor,qx_face,local_dof_on_elm_neighbor,v_on_elm_neighbor,FE->var_spaces[dim+1],mesh);
+  local_dof_on_elm_neighbor += FE->var_spaces[dim+1]->dof_per_elm;
+  u_comp_neighbor += FE->var_spaces[dim+1]->ndof;
 
 	if(ABS(u0_value_at_q - u0_value_at_q_neighbor) > 0.0000001)
 	  {
@@ -1728,18 +1511,19 @@ void HDsemierror_block_EnergyNorm_EG_FaceLoop(REAL *err,REAL *u,void (*truesol)(
 	//printf("penalty = %f \n", penalty_term);
 	err[0] += penalty_term * w_face * ABS( ( val_face[0]- val_neighbor[0] ) )*ABS( val_face[0]- val_neighbor[0] );
 	err[1] += penalty_term * w_face * ABS( ( val_face[1]- val_neighbor[1] ) )*ABS( val_face[1]- val_neighbor[1] );
+  if(dim==3) err[2] += penalty_term * w_face * ABS( (val_face[2]- val_neighbor[2] ) )*ABS( val_face[2]- val_neighbor[2] );
 
       }// on interface
 
     }//quad
   }//face
 
-  free(neighbor_basis_0_phi);
-  free(neighbor_basis_0_dphi);
-  free(neighbor_basis_1_phi);
-  free(neighbor_basis_1_dphi);
-  free(neighbor_basis_3_phi);
-  free(neighbor_basis_3_dphi);
+  free(neighbor_basis_u0_phi);
+  free(neighbor_basis_u0_dphi);
+  free(neighbor_basis_u1_phi);
+  free(neighbor_basis_u1_dphi);
+  free(neighbor_basis_p_phi);
+  free(neighbor_basis_p_dphi);
   free(val_true_face);
   free(val_true_face_neighbor);
   // Get the BD values

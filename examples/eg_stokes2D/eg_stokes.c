@@ -1213,7 +1213,8 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
 
 	      kij = 0.5 * 2.0*neighbor_basis_1_dphi[trial*dim+1] * finrm[1] * (qx_face[1]- barycenter_neighbor->y[0]);
 	      kij += 0.5 * neighbor_basis_1_dphi[trial*dim] * finrm[0] * (qx_face[1]- barycenter_neighbor->y[0]);
-	      kij += 0.5 * neighbor_basis_0_dphi[trial*dim] * finrm[1] * (qx_face[0]- barycenter_neighbor->x[0]);
+        // TYPO?  This should be basis_1?
+	      kij += 0.5 * neighbor_basis_1_dphi[trial*dim] * finrm[1] * (qx_face[0]- barycenter_neighbor->x[0]);
 
 	      // NEW SLEE : elasticity div part
 	      // u2-v1 block : <dy(u2),dx(v1)>
@@ -3085,7 +3086,7 @@ INT main(int argc, char* argv[])
         { // merge velocity unknowns, then apply solver
 
           block_dCSRmat A3;
-          
+
 
         }
       }
