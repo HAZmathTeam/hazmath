@@ -8,15 +8,19 @@
 %%% 
 title{Unit square in 2D}
 
-amr_marking_type{33} %% 0 means uniform refinement everywhere. 
+%% 0 means uniform refinement everywhere. 33 means refining near specific points.
+%% 1 means something different like Doerfler marking
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+amr_marking_type{33} 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-num_refinements{1}
+num_refinements{20}
 
 err_stop_refinement{        -1.e-10        } %% for the user to define and use
 
 dimension{2}   % spatial dimension in which the grid has to be generated
 
-print_level{1}	% how much information to print out: 0 Nothing | >0 Something
+print_level{0}	% how much information to print out: 0 Nothing | >0 Something
 
 refinement_type{0}
 

@@ -18,6 +18,7 @@ find_package(GMP)
  
 # Check for header file
 find_path(CGAL_INCLUDE_DIRS CGAL/Triangulation_data_structure.h
+  HINTS /usr/include /usr/local/Cellar 
  DOC "Directory where the CGAL headers are located"
  )
 mark_as_advanced(CGAL_INCLUDE_DIRS)
