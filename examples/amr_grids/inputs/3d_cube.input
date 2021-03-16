@@ -25,9 +25,9 @@ file_vtu{3dcube.vtu}
 
 num_edges{3}
 
-data_edges{0 1 6 %% edge: 1st vertex, 2nd vertex, number of divisions.
-  	   0 2 6
-	   0 4 6
+data_edges{0 1 1 %% edge: 1st vertex, 2nd vertex, number of divisions.
+  	   0 2 1
+	   0 4 1
 	   }
 %%% ====================VERTICES=========================
 num_vertices{8} %number of vertices
