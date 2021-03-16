@@ -43,12 +43,12 @@ void find_cc_bndry_cc(scomplex *sc)
       sc->flags[j]=i+1;
     }
   }
-  /* fprintf(stdout,"\n%%number of connected components in the bulk=%d\n",sc->cc); */
-  /* fprintf(stdout,"\n%%number of boundary faces=%d (nnzbf=%d)\n",nbf,nnzbf); */
+  fprintf(stdout,"\n%%number of connected components in the bulk=%d\n",sc->cc);
+  fprintf(stdout,"\n%%number of boundary faces=%d (nnzbf=%d)\n",nbf,nnzbf);
   ///////////////////////////////////////////////////////////////////////
   // now working on the boundary:
   jblk=realloc(jblk,(2*nbf+2)*sizeof(INT));
-  iblk=jblk+nbf+1;
+  iblk=jblk + nbf + 1;
   INT *fnodes=calloc(nbf*dim,sizeof(INT));
   INT *fnbr=calloc(nbf*dim,sizeof(INT));
   INT nbfnew=0;
@@ -66,9 +66,28 @@ void find_cc_bndry_cc(scomplex *sc)
     }
   }
   if(nbf!=nbfnew){
-    fprintf(stderr,"\n%%***ERROR: num. bndry faces mismatch (nbf=%d .ne. nbfnew=%d) in %s",nbf,nbfnew,__FUNCTION__);
+    fprintf(stderr,"\n%%***ERROR(1): num. bndry faces mismatch (nbf=%d .ne. nbfnew=%d) in %s",nbf,nbfnew,__FUNCTION__);
     exit(65);
   }
+  // FIX numbering:
+  INT *indx=calloc(2*sc->nv,sizeof(INT));
+  INT *indxinv=indx+sc->nv;
+  memset(indx,0,sc->nv*sizeof(INT));
+  for(i=0;i<sc->nv;++i) indx[i]=-1;
+  for(i=0;i<nbf*dim;++i) indx[fnodes[i]]++;
+  INT nvbnd=0;
+  for(i=0;i<sc->nv;++i){
+    if(indx[i]<0) continue;
+    indx[i]=nvbnd;
+    indxinv[nvbnd]=i;
+    nvbnd++;
+  }
+  fprintf(stdout,"\n%%number of boundary vertices=%d (total nv=%d)\n",nvbnd,sc->nv);
+  if(nvbnd<sc->nv)
+    indx=realloc(indx,(sc->nv+nvbnd)*sizeof(INT));
+  for(i=0;i<nbf*dim;++i)
+    fnodes[i]=indx[fnodes[i]];
+  // end fix numbering
   /* fprintf(stdout,"\nelnodes=["); */
   /* for(i=0;i<nbf;++i){ */
   /*   //    fprintf(stdout,"\nelnodes[%d]=(",i); */
@@ -122,7 +141,7 @@ void find_cc_bndry_cc(scomplex *sc)
     for(k=iblk[i];k<iblk[i+1];++k){
       j=jblk[k];
       for(m=0;m<dim;m++){
-	sc->bndry[fnodes[dim*j+m]]=i+1;
+	sc->bndry[indxinv[fnodes[dim*j+m]]]=i+1;
       }
     }
   }
@@ -132,6 +151,7 @@ void find_cc_bndry_cc(scomplex *sc)
   fprintf(stdout,"%%number of connected components in the bulk=%d\n",sc->cc);
   //  fprintf(stdout,"%%number of boundary faces=%d (nnzbf=%d)\n",nbf,nnzbf);
   fprintf(stdout,"%%number of connected components on the boundary=%d\n",sc->bndry_cc);
+  free(fnodes);
 }
 //////////////////////////////////////////////////////////////////////////
 INT main()
@@ -250,7 +270,6 @@ INT main()
   INT dim1=dim+1;
   sc->nv=0;
   sc->ns=0;
-  hmax=0.5;
   c_do_tri_2d(x_in,edges,					\
 	      c,						\
 	      np, ne, dim,					\
