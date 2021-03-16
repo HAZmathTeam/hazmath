@@ -2,7 +2,7 @@
 # Last Modified 2019-06-10 --jha
 ####################################################
 # SRC File name
-SRCFILE = amr_grids
+SRCFILE = triangulation2d
 
 HEADERS = 
 

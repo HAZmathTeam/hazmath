@@ -59,12 +59,21 @@ void find_cc_bndry_cc(scomplex *sc)
       sc->flags[j]=i+1;
     }
   }
-  /* fprintf(stdout,"\n%%number of connected components in the bulk=%d\n",sc->cc); */
-  /* fprintf(stdout,"\n%%number of boundary faces=%d (nnzbf=%d)\n",nbf,nnzbf); */
+  fprintf(stdout,"\n%%number of connected components in the bulk=%d\n",sc->cc);
+  for(i=0;i<sc->cc;++i){
+    fprintf(stdout,"component(%d)=(",i);
+      for(k=iblk[i];k<iblk[i+1];++k){
+	j=jblk[k];
+	fprintf(stdout,"%d ",j);	
+	sc->flags[j]=i+1;
+      }      
+      fprintf(stdout,")\n");
+  }
+  fprintf(stdout,"\n%%number of boundary faces=%d (nnzbf=%d)\n",nbf,nnzbf);
   ///////////////////////////////////////////////////////////////////////
   // now working on the boundary:
   jblk=realloc(jblk,(2*nbf+2)*sizeof(INT));
-  iblk=jblk+nbf+1;
+  iblk=jblk + nbf + 1;
   INT *fnodes=calloc(nbf*dim,sizeof(INT));
   INT *fnbr=calloc(nbf*dim,sizeof(INT));
   INT nbfnew=0;
@@ -82,18 +91,49 @@ void find_cc_bndry_cc(scomplex *sc)
     }
   }
   if(nbf!=nbfnew){
-    fprintf(stderr,"\n%%***ERROR: num. bndry faces mismatch (nbf=%d .ne. nbfnew=%d) in %s",nbf,nbfnew,__FUNCTION__);
+    fprintf(stderr,"\n%%***ERROR(1): num. bndry faces mismatch (nbf=%d .ne. nbfnew=%d) in %s",nbf,nbfnew,__FUNCTION__);
     exit(65);
   }
-  fprintf(stdout,"\nelnodes=[");
-  for(i=0;i<nbf;++i){
-    //    fprintf(stdout,"\nelnodes[%d]=(",i);
-    for(j=0;j<dim;++j){
-      fprintf(stdout,"%4i ",fnodes[dim*i+j]+1);
-    }
-    fprintf(stdout,";\n");
+  // FIX numbering so that the vertices in the boundary simplicial
+  // complex are numbered consecutively
+  INT *indx=calloc(sc->nv,sizeof(INT));
+  memset(indx,0,sc->nv*sizeof(INT));
+  for(i=0;i<sc->nv;++i) indx[i]=-1;
+  for(i=0;i<nbf*dim;++i) indx[fnodes[i]]++;
+  INT nvbnd=0;
+  for(i=0;i<sc->nv;++i){
+    if(indx[i]<0) continue;
+    indx[i]=nvbnd;
+    nvbnd++;	    
   }
-  fprintf(stdout,"]\n");
+  fprintf(stdout,"%%number of boundary vertices=%d (total nv=%d)\n",nvbnd,sc->nv);
+  for(i=0;i<nbf*dim;++i)
+    fnodes[i]=indx[fnodes[i]];
+  // end fix numbering
+  // print to off file:
+  ///////////////////////////////////////////////////////////
+  FILE *fp=fopen("non-oriented.off","w");
+  fprintf(fp,"OFF\n");
+  fprintf(fp,"%d %d %d\n",nvbnd,nbf,0);
+  k=0;
+  for(i=0;i<sc->nv;++i){
+    if(indx[i]<0) continue;
+    for(j=0;j<dim;++j){
+      fprintf(fp," %.12f",sc->x[dim*i+j]);
+    }
+    fprintf(fp,"\n");
+    k++;
+  }
+  for(i=0;i<nbf;++i){
+    fprintf(fp,"%i ",dim);
+    for(j=0;j<dim;++j){
+      fprintf(fp,"%i ",fnodes[dim*i+j]);
+    }
+    fprintf(fp,"\n");
+  }
+  fprintf(fp,"\n");
+  fclose(fp);
+  //////////////////////////////////
   find_nbr(nbf,nv,(dim-1),fnodes,fnbr);
   fprintf(stdout,"\nelnbr=[");
   for(i=0;i<nbf;++i){
@@ -148,6 +188,7 @@ void find_cc_bndry_cc(scomplex *sc)
   fprintf(stdout,"%%number of connected components in the bulk=%d\n",sc->cc);
   //  fprintf(stdout,"%%number of boundary faces=%d (nnzbf=%d)\n",nbf,nnzbf);
   fprintf(stdout,"%%number of connected components on the boundary=%d\n",sc->bndry_cc);
+  free(fnodes);
 }
 //////////////////////////////////////////////////////////////////////////
 // an interior vertex is defined as the vertex such that all faces attached to it are interior.
@@ -218,10 +259,10 @@ INT main(INT   argc,   char *argv[])
     free(xstar);
   } else {
     /*
-       Use "all" here can pass data around. Below we make 4 dvectors
-       and one ivector, just as example. A good example for using the
-       array will be to pass the whole hierarchy, not only the fine
-       grid via all, e.g. all=(coid *)sc
+      Use "all" here can pass data around. Below we make 4 dvectors
+      and one ivector, just as example. A good example for using the
+      array will be to pass the whole hierarchy, not only the fine
+      grid via all, e.g. all=(coid *)sc
     */
     all=(void *)malloc(5*sizeof(dvector)+sizeof(ivector));
     /**/
@@ -260,6 +301,7 @@ INT main(INT   argc,   char *argv[])
   }
   /*  MAKE sc to be the finest grid only */
   scfinalize(sc);
+  haz_scomplex_print(sc,0,"XXX");
   find_cc_bndry_cc(sc);
   /* write the output mesh file:    */
   hazw(g->fgrid,sc,0);
