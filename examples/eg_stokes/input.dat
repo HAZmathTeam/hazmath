@@ -15,9 +15,9 @@ print_level			= 4;	% how much information to print out
 %---------------%
 
 %gridfile 			= ../grids/2D/unitSQ_n17.haz
-%gridfile 			= ../grids/3D/unitCUBE_n9.haz
+gridfile 			= ../grids/3D/unitCUBE_n5.haz
 % SLEE modified the file input read without *.HAZ
-gridfile                        = 2dSQD1-
+%gridfile                        = 2dSQD1-
 output_dir			= ./output
 
 %---------------%
@@ -46,7 +46,7 @@ linear_itsolver_tol		= 1e-9  	% tolerance for linear iterative solver
 linear_restart 			= 400		% restart for GMRes
 
 % pre-conditioner
-linear_precond_type		= 101		%  0 Null | 1 Diag | 2 AMG |
+linear_precond_type		= 0		%  0 Null | 1 Diag | 2 AMG |
 						%  6 additive HX for H(curl) | 7 multiplicative HX for H(curl)
 						%%
 						% 10 block diagonal (exact block solver)

@@ -476,7 +476,7 @@ void (*local_rhs_assembly)(dvector *b,REAL *, REAL *, block_fespace *,mesh_struc
   }
 
 
-  REAL* tmperrL2 = (REAL *) calloc(2+1+1+1, sizeof(REAL));
+  REAL* tmperrL2 = (REAL *) calloc(FE->nspaces,sizeof(REAL));
 
   for(i=0;i<FE->nspaces;i++) {
     tmperrL2[i]=0;
@@ -2118,7 +2118,7 @@ void FEM_Block_RHS_Local_Elasticity(dvector *b,REAL* bLoc, REAL *solution, \
 
       // For initial condition
       REAL* val_true = (REAL *) calloc(nun,sizeof(REAL));
-      REAL* val_true_D = (REAL *) calloc(nun*2,sizeof(REAL));
+      REAL* val_true_D = (REAL *) calloc(nun*dim,sizeof(REAL));
 
       // for the preivous time step value
       //REAL* val_sol = (REAL *) calloc(nun,sizeof(REAL));
@@ -2361,8 +2361,8 @@ void FEM_Block_RHS_Local_Elasticity(dvector *b,REAL* bLoc, REAL *solution, \
   //nq1d_face == 3, 3 quad points.
   zquad_face(cq_face,nq1d_face,dim,xfi,fiarea);
 
-  // TODO: Do you really mean edge here??
-  REAL edge_length = mesh->ed_len[face];
+  // TODO: Do you really mean edge here?? -> This isn't used so I'm commenting it out
+  //REAL edge_length = mesh->ed_len[face];
 
   if(mesh->f_flag[face]>0) {
 

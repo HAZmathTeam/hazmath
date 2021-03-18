@@ -147,7 +147,8 @@ INT main(int argc, char* argv[])
 
     //DEBUG SIMPLE MESH
     sprintf(filename_per_cycle, "%s%d.haz", inparam.gridfile,cycle+1);
-    gfid = HAZ_fopen(filename_per_cycle,"r");
+  //  gfid = HAZ_fopen(filename_per_cycle,"r");
+  gfid = HAZ_fopen(inparam.gridfile,"r");
     if(gfid == NULL){
       perror("Could not find and open the file !!!! ");
     }
@@ -361,7 +362,7 @@ INT main(int argc, char* argv[])
 
 
     if(dim==2) assemble_global_block_neighbor(&A,&b,old_timestep_sol.val,local_assembly_Elasticity_FACE,local_assembly_Elasticity,FEM_Block_RHS_Local_Elasticity,&FE,&mesh,cq,source2D,exact_sol2D,Dexact_sol2D,exact_sol2D_dt, time,timestep);
-    if(dim==3) assemble_global_block_neighbor(&A,&b,old_timestep_sol.val,local_assembly_Elasticity_FACE,local_assembly_Elasticity,FEM_Block_RHS_Local_Elasticity,&FE,&mesh,cq,source2D,exact_sol3D,Dexact_sol3D,exact_sol3D_dt, time,timestep);
+    if(dim==3) assemble_global_block_neighbor(&A,&b,old_timestep_sol.val,local_assembly_Elasticity_FACE,local_assembly_Elasticity,FEM_Block_RHS_Local_Elasticity,&FE,&mesh,cq,source3D,exact_sol3D,Dexact_sol3D,exact_sol3D_dt, time,timestep);
     printf("\n------ Assemble done: \n");fflush(stdout);
     //printf("cycle = %d -- total = %d \n", cycle, total_num_cycle);
     /*
