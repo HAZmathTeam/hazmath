@@ -839,13 +839,13 @@ get_unknown_component(&v_p,&sol,&FE,dim+1);
 //get_unknown_component(&v_p_eg,&sol,&FE,4);
 
 
-char** varname;
+
 
 //printf("OUTPUT?\n");
 
 
 if(inparam.print_level > 3){
-
+  char** varname;
   char output_filename_per_cycle[512]={'\0'};
   sprintf( output_filename_per_cycle, "output/solution_%d_%d.vtu", cycle,timestep_number);
   char* soldump = output_filename_per_cycle;//"output/solution.vtu";
@@ -862,6 +862,8 @@ if(inparam.print_level > 3){
   varname[dim+2] = "p_eg";
 
   dump_blocksol_vtk(soldump,varname,&mesh,&FE,sol.val);
+  if(varname) free(varname);
+
 
   // Print in Matlab format to show vector field in nice way.
   //if(dim==3)
@@ -872,6 +874,9 @@ if(solerrL2) free(solerrL2);
 if(solerrL2_EG) free(solerrL2_EG);
 if( solerr_stress ) free( solerr_stress);
 if(solerrH1) free(solerrH1);
+if(solerrH1_EG) free(solerrH1_EG);
+if(solerr_stress_EG) free(solerr_stress_EG);
+if(solerr_energy_EG) free(solerr_energy_EG);
 dvec_free( &v_ux );
 dvec_free( &v_uy );
 if(dim==3) dvec_free( &v_uz );
@@ -924,7 +929,7 @@ free_fespace(&FE_u_eg);
 free_fespace(&FE_p);
 //free_fespace(&FE_p_eg);
 
-//free_blockfespace(&FE);
+free_blockfespace(&FE);
 
 // Quadrature
 if(cq){
@@ -937,11 +942,6 @@ if(cq){
 free_mesh(&mesh);
 //*/
 // Strings
-
-//if(inparam.print_level > 3){
-//if(varname) free(varname);
-//}
-
 /*******************************************************************************************/
 clock_t clk_overall_end = clock();
 printf("\nEnd of Program: Total CPU Time = %f seconds.\n\n",

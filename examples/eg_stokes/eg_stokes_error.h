@@ -452,6 +452,11 @@ void L2error_block_EG
   if(val_true) free(val_true);
   //if(val_sol) free(val_sol);
   if(ncomp) free(ncomp);
+  if(barycenter) {
+    free_coords(barycenter);
+    free(barycenter);
+    barycenter=NULL;
+  }
 
   return;
 }
@@ -1518,14 +1523,40 @@ void HDsemierror_block_EnergyNorm_EG_FaceLoop(REAL *err,REAL *u,void (*truesol)(
     }//quad
   }//face
 
-  free(neighbor_basis_u0_phi);
-  free(neighbor_basis_u0_dphi);
-  free(neighbor_basis_u1_phi);
-  free(neighbor_basis_u1_dphi);
-  free(neighbor_basis_p_phi);
-  free(neighbor_basis_p_dphi);
-  free(val_true_face);
-  free(val_true_face_neighbor);
+  if(neighbor_basis_u0_phi) free(neighbor_basis_u0_phi);
+  if(neighbor_basis_u0_dphi) free(neighbor_basis_u0_dphi);
+  if(neighbor_basis_u1_phi) free(neighbor_basis_u1_phi);
+  if(neighbor_basis_u1_dphi) free(neighbor_basis_u1_dphi);
+  if(dim==3) {
+    if(neighbor_basis_u2_phi) free(neighbor_basis_u2_phi);
+    if(neighbor_basis_u2_dphi) free(neighbor_basis_u2_dphi);
+  }
+  if(neighbor_basis_p_phi) free(neighbor_basis_p_phi);
+  if(neighbor_basis_p_dphi) free(neighbor_basis_p_dphi);
+  if(val_true_face) free(val_true_face);
+  if(val_true_face_neighbor) free(val_true_face_neighbor);
+  icsr_free(f_el);
+  if(f_el) free(f_el);
+  if(barycenter) {
+    free_coords(barycenter);
+    free(barycenter);
+    barycenter = NULL;
+  }
+  if(barycenter_neighbor) {
+    free_coords(barycenter_neighbor);
+    free(barycenter_neighbor);
+    barycenter_neighbor = NULL;
+  }
+  if(cq) {
+    free_qcoords(cq_face);
+    free(cq_face);
+    cq_face=NULL;
+  }
+  if(data_face) free(data_face);
+  if(dof_on_elm) free(dof_on_elm);
+  if(dof_on_elm_neighbor) free(dof_on_elm_neighbor);
+  if(v_on_elm) free(v_on_elm);
+  if(v_on_elm_neighbor) free(v_on_elm_neighbor);
   // Get the BD values
   // for(i=0;i<2;i++) {
   //err[i] = sqrt(err[i]);

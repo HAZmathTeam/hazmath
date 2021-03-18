@@ -17,6 +17,7 @@ iCSRmat *extend_el_dof(fespace *FE,mesh_struct *mesh, INT *ix) {
   //  icsr_tri(el2el,'l');
   icsr_nodiag(el2el);// remove diagonal.
   icsr_free(f_el);
+  if(f_el) free(f_el);
   ///////////////////////////////////////////////
   INT nrows = FE->ndof;
   INT ncols = FE->ndof;
@@ -103,6 +104,10 @@ iCSRmat *extend_el_dof(fespace *FE,mesh_struct *mesh, INT *ix) {
   /* } */
   /* fprintf(stdout,"\n\n");       */
   /* exit(255); */
+
+  // Frees
+  icsr_free(el2el);
+  if(el2el) free(el2el);
   return el_dof;
 }
 /*********************************************************************************/
@@ -151,7 +156,10 @@ void sl_create_CSR_cols_FE1FE2(dCSRmat *A, fespace *FE1, fespace *FE2, mesh_stru
 
   if(ix) free(ix);
   icsr_free(&dof_el_2);
-  free(el_dof); // no need of icsr_free here;
+  if(el_dof) {
+    free(el_dof); // no need of icsr_free here;
+    el_dof=NULL;
+  }
   return;
 }
 /********************************************************************************************/
@@ -207,7 +215,10 @@ void sl_create_CSR_rows_FE1FE2(dCSRmat *A, fespace *FE1, fespace *FE2,mesh_struc
 
   if(ix) free(ix);
   icsr_free(&dof_el_2);
-  free(el_dof); // no need of icsr_free here;
+  if(el_dof) {
+    free(el_dof); // no need of icsr_free here;
+    el_dof=NULL;
+  }
 
   return;
 }
@@ -544,6 +555,7 @@ void (*local_rhs_assembly)(dvector *b,REAL *, REAL *, block_fespace *,mesh_struc
 
     }
     icsr_free(f_el);
+    if(f_el) free(f_el);
   }
 
 
@@ -585,6 +597,8 @@ if(dof_on_elm) free(dof_on_elm);
 if(v_on_elm) free(v_on_elm);
 if(ALoc) free(ALoc);
 if(bLoc) free(bLoc);
+if(switch_on_face) free(switch_on_face);
+if(tmperrL2) free(tmperrL2);
 
 return;
 }
@@ -2032,19 +2046,46 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
     }
 
 
-    free(neighbor_basis_u0_phi);
-    free(neighbor_basis_u0_dphi);
+    // Frees
+    if(ALoc) free(ALoc);
+    if(ALoc_u_v) free(ALoc_u_v);
+    if(ALoc_u_vneighbor) free(ALoc_u_vneighbor);
+    if(ALoc_uneighbor_v) free(ALoc_uneighbor_v);
+    if(ALoc_uneighbor_vneighbor) free(ALoc_uneighbor_vneighbor);
 
-    free(neighbor_basis_u1_phi);
-    free(neighbor_basis_u1_dphi);
-
+    if(neighbor_basis_u0_phi) free(neighbor_basis_u0_phi);
+    if(neighbor_basis_u0_dphi) free(neighbor_basis_u0_dphi);
+    if(neighbor_basis_u1_phi) free(neighbor_basis_u1_phi);
+    if(neighbor_basis_u1_dphi) free(neighbor_basis_u1_dphi);
     if(dim==3) {
-      free(neighbor_basis_u2_phi);
-      free(neighbor_basis_u2_dphi);
+      if(neighbor_basis_u2_phi) free(neighbor_basis_u2_phi);
+      if(neighbor_basis_u2_dphi) free(neighbor_basis_u2_dphi);
+    }
+    if(neighbor_basis_p_phi) free(neighbor_basis_p_phi);
+    if(neighbor_basis_p_dphi) free(neighbor_basis_p_dphi);
+
+    if(cq_face) {
+      free_qcoords(cq_face);
+      free(cq_face);
+      cq_face=NULL;
     }
 
-    free(neighbor_basis_p_phi);
-    free(neighbor_basis_p_dphi);
+    if(data_face) free(data_face);
+
+    if(barycenter) {
+      free_coords(barycenter);
+      free(barycenter);
+      barycenter = NULL;
+    }
+    if(barycenter_neighbor) {
+      free_coords(barycenter_neighbor);
+      free(barycenter_neighbor);
+      barycenter_neighbor = NULL;
+    }
+    if(dof_on_elm) free(dof_on_elm);
+    if(dof_on_elm_neighbor) free(dof_on_elm_neighbor);
+    if(v_on_elm) free(v_on_elm);
+    if(v_on_elm_neighbor) free(v_on_elm_neighbor);
 
 
     //printf("Local Assemble Face - end\n");
@@ -2252,204 +2293,223 @@ void FEM_Block_RHS_Local_Elasticity(dvector *b,REAL* bLoc, REAL *solution, \
 
       bool bWeakBC_RHS = BOOL_WEAKLY_IMPOSED_BC;
 
+      // Get the BD values
+      REAL* val_true_face = (REAL *) calloc(nun,sizeof(REAL));
+      REAL* val_true_face_n = (REAL *) calloc(nun,sizeof(REAL));
+      REAL* val_true_face_n_neighbor = (REAL *) calloc(nun,sizeof(REAL));
+      REAL* val_true_dt_face = (REAL *) calloc(nun,sizeof(REAL));
+      // FOR NEIGHBOR..
+      INT* v_on_elm_neighbor = (INT *) calloc(v_per_elm,sizeof(INT));
+      INT* dof_on_elm_neighbor = (INT *) calloc(dof_per_elm,sizeof(INT));
+      INT *local_dof_on_elm_face_interface = NULL;
+      INT *local_dof_on_elm_neighbor = NULL;
+
       if(bWeakBC_RHS){
 
-          //printf("=============================\n");
-          //printf("** ELEMENT = %d \n", elm );
-          //printf("=============================\n");
-          for(jk=mesh->el_f->IA[elm];jk<mesh->el_f->IA[elm+1];jk++){
+        //printf("=============================\n");
+        //printf("** ELEMENT = %d \n", elm );
+        //printf("=============================\n");
+        for(jk=mesh->el_f->IA[elm];jk<mesh->el_f->IA[elm+1];jk++){
 
-            //printf("jk = %d, mesh->el_f->IA[element] = %d, mesh->el_f->IA[element+1] = %d  \n",
-            //     jk, mesh->el_f->IA[elm], mesh->el_f->IA[elm+1]);
-            //  j = face0, face1, face2
-            j=jk - mesh->el_f->IA[elm];
-            // face is the global number
-            face=mesh->el_f->JA[jk];
+          //printf("jk = %d, mesh->el_f->IA[element] = %d, mesh->el_f->IA[element+1] = %d  \n",
+          //     jk, mesh->el_f->IA[elm], mesh->el_f->IA[elm+1]);
+          //  j = face0, face1, face2
+          j=jk - mesh->el_f->IA[elm];
+          // face is the global number
+          face=mesh->el_f->JA[jk];
 
-            // Get normal vector values.
-            finrm[0]=mesh->f_norm[face*dim+0];
-            if(dim>1) finrm[1]=mesh->f_norm[face*dim+1];
-            if(dim>2) finrm[2]=mesh->f_norm[face*dim+2];
+          // Get normal vector values.
+          finrm[0]=mesh->f_norm[face*dim+0];
+          if(dim>1) finrm[1]=mesh->f_norm[face*dim+1];
+          if(dim>2) finrm[2]=mesh->f_norm[face*dim+2];
 
-            for(jkl=mesh->f_v->IA[face];jkl<mesh->f_v->IA[face+1];jkl++){
+          for(jkl=mesh->f_v->IA[face];jkl<mesh->f_v->IA[face+1];jkl++){
 
-              //printf("** jkl = %d, mesh->f_v->IA[face] = %d, mesh->f_v->IA[face+1] = %d \n", jkl, mesh->f_v->IA[face], mesh->f_v->IA[face+1]);
+            //printf("** jkl = %d, mesh->f_v->IA[face] = %d, mesh->f_v->IA[face+1] = %d \n", jkl, mesh->f_v->IA[face], mesh->f_v->IA[face+1]);
 
-              j=jkl-mesh->f_v->IA[face];
-              k=mesh->f_v->JA[jkl];
+            j=jkl-mesh->f_v->IA[face];
+            k=mesh->f_v->JA[jkl];
 
-              //printf("** j = %d, k = %d \n", j, k );
+            //printf("** j = %d, k = %d \n", j, k );
 
-              xfi[j*dim+0]=mesh->cv->x[k];
-              if(dim>1) xfi[j*dim+1]=mesh->cv->y[k];
-              if(dim>2) xfi[j*dim+2]=mesh->cv->z[k];
+            xfi[j*dim+0]=mesh->cv->x[k];
+            if(dim>1) xfi[j*dim+1]=mesh->cv->y[k];
+            if(dim>2) xfi[j*dim+2]=mesh->cv->z[k];
 
-              //printf("** xfi[j*dim+0] = %f,  xfi[j*dim+1] = %f \n",  xfi[j*dim+0] ,  xfi[j*dim+1]);
-            }
-
-            // Get the BD values
-            REAL* val_true_face = (REAL *) calloc(nun,sizeof(REAL));
-            REAL* val_true_face_n = (REAL *) calloc(nun,sizeof(REAL));
-            REAL* val_true_face_n_neighbor = (REAL *) calloc(nun,sizeof(REAL));
-            REAL* val_true_dt_face = (REAL *) calloc(nun,sizeof(REAL));
-
-
-            // FOR NEIGHBOR..
-            INT* v_on_elm_neighbor = (INT *) calloc(v_per_elm,sizeof(INT));
-            INT* dof_on_elm_neighbor = (INT *) calloc(dof_per_elm,sizeof(INT));
-            INT *local_dof_on_elm_face_interface = NULL;
-            INT *local_dof_on_elm_neighbor = NULL;
-
-
-            // NOW FOR FACES (at BOUNDARY)
-            INT* local_dof_on_elm_face = NULL;
-            //Neighbor
-            INT neighbor_index[2];
-            neighbor_index[0] = -1;
-            neighbor_index[1] = -1;
-            INT counter = 0;
-
-            iCSRmat *f_el=NULL;
-            f_el=(iCSRmat *)malloc(1*sizeof(iCSRmat)); // face_to_element;
-            icsr_trans(mesh->el_f,f_el); // f_el=transpose(el_f);
-
-            // printf("=============================\n");
-            //printf("** ELM  = %d   FACE = %d \n",  elm, face );
-            //printf("=============================\n");
-            int pq,nbr0;
-            for(pq=f_el->IA[face];pq<f_el->IA[face+1];pq++){
-
-              //printf("-- pq = %d, f_el->IA[face] = %d, f_el->IA[face+1] = %d \n", pq, f_el->IA[face], f_el->IA[face+1]);
-              nbr0=f_el->JA[pq];
-              //printf("-- nbr0 = %d  \n", nbr0);
-
-              neighbor_index[counter] = nbr0;
-              counter++;
-
-            }
-
-            //Sanity Check
-            /* print out
-            for(pq=0;pq<2;++pq)
-            {
-            if(counter == 2)
-            {
-            //printf("neighbor_index[%d]= %d || counter  = %d\n", pq, neighbor_index[pq],counter);
+            //printf("** xfi[j*dim+0] = %f,  xfi[j*dim+1] = %f \n",  xfi[j*dim+0] ,  xfi[j*dim+1]);
           }
-          else if(counter == 1){
-          if(pq == 0)
+
+          // FOR NEIGHBOR..
+          local_dof_on_elm_face_interface = NULL;
+          local_dof_on_elm_neighbor = NULL;
+
+
+          // NOW FOR FACES (at BOUNDARY)
+          INT* local_dof_on_elm_face = NULL;
+          //Neighbor
+          INT neighbor_index[2];
+          neighbor_index[0] = -1;
+          neighbor_index[1] = -1;
+          INT counter = 0;
+
+          iCSRmat *f_el=NULL;
+          f_el=(iCSRmat *)malloc(1*sizeof(iCSRmat)); // face_to_element;
+          icsr_trans(mesh->el_f,f_el); // f_el=transpose(el_f);
+
+          // printf("=============================\n");
+          //printf("** ELM  = %d   FACE = %d \n",  elm, face );
+          //printf("=============================\n");
+          int pq,nbr0;
+          for(pq=f_el->IA[face];pq<f_el->IA[face+1];pq++){
+
+            //printf("-- pq = %d, f_el->IA[face] = %d, f_el->IA[face+1] = %d \n", pq, f_el->IA[face], f_el->IA[face+1]);
+            nbr0=f_el->JA[pq];
+            //printf("-- nbr0 = %d  \n", nbr0);
+
+            neighbor_index[counter] = nbr0;
+            counter++;
+
+          }
+
+          //Sanity Check
+          /* print out
+          for(pq=0;pq<2;++pq)
+          {
+          if(counter == 2)
           {
           //printf("neighbor_index[%d]= %d || counter  = %d\n", pq, neighbor_index[pq],counter);
         }
-        else{
-        //printf("-\n");
+        else if(counter == 1){
+        if(pq == 0)
+        {
+        //printf("neighbor_index[%d]= %d || counter  = %d\n", pq, neighbor_index[pq],counter);
       }
+      else{
+      //printf("-\n");
     }
   }
-  */
+}
+*/
 
-  double fiarea=mesh->f_area[face];
-  double lambda = LAME_LAMBDA_GLOBAL;//000000.;//000000.;//000000.; //000000.0;
-  double penalty_term = PENALTY_PARAMETER_GLOBAL / (pow(fiarea,1e0/(REAL )(dim-1)));
-  double BC_penalty_term = BC_PENALTY_PARAMETER_GLOBAL / (pow(fiarea,1e0/(REAL )(dim-1)));
+double fiarea=mesh->f_area[face];
+double lambda = LAME_LAMBDA_GLOBAL;//000000.;//000000.;//000000.; //000000.0;
+double penalty_term = PENALTY_PARAMETER_GLOBAL / (pow(fiarea,1e0/(REAL )(dim-1)));
+double BC_penalty_term = BC_PENALTY_PARAMETER_GLOBAL / (pow(fiarea,1e0/(REAL )(dim-1)));
 
-  //penalty_term*=lambda;
+//penalty_term*=lambda;
 
-  double penalty_term_pressure =  PENALTY_PARAMETER_PRESSURE_GLOBAL / (pow(fiarea,1e0/(REAL )(dim-1)));
-  double BC_penalty_term_pressure =  BC_PENALTY_PARAMETER_PRESSURE_GLOBAL / (pow(fiarea,1e0/(REAL )(dim-1)));
+double penalty_term_pressure =  PENALTY_PARAMETER_PRESSURE_GLOBAL / (pow(fiarea,1e0/(REAL )(dim-1)));
+double BC_penalty_term_pressure =  BC_PENALTY_PARAMETER_PRESSURE_GLOBAL / (pow(fiarea,1e0/(REAL )(dim-1)));
 
-  //nq1d_face == 3, 3 quad points.
-  zquad_face(cq_face,nq1d_face,dim,xfi,fiarea);
+//nq1d_face == 3, 3 quad points.
+zquad_face(cq_face,nq1d_face,dim,xfi,fiarea);
 
-  // TODO: Do you really mean edge here?? -> This isn't used so I'm commenting it out
-  //REAL edge_length = mesh->ed_len[face];
+// TODO: Do you really mean edge here?? -> This isn't used so I'm commenting it out
+//REAL edge_length = mesh->ed_len[face];
 
-  if(mesh->f_flag[face]>0) {
+if(mesh->f_flag[face]>0) {
 
-    for (quad_face=0;quad_face<nquad_face;quad_face++) {
+  for (quad_face=0;quad_face<nquad_face;quad_face++) {
 
-      qx_face[0] = cq_face->x[quad_face];
-      qx_face[1] = cq_face->y[quad_face];
-      if(dim==3) qx_face[2] = cq_face->z[quad_face];
+    qx_face[0] = cq_face->x[quad_face];
+    qx_face[1] = cq_face->y[quad_face];
+    if(dim==3) qx_face[2] = cq_face->z[quad_face];
 
-      w_face = cq_face->w[quad_face];
+    w_face = cq_face->w[quad_face];
 
-      // EG stuff
-      eg_xterm = qx_face[0]-barycenter->x[0];
-      eg_yterm = qx_face[1]-barycenter->y[0];
-      if(dim==3) eg_zterm = qx_face[2]-barycenter->z[0];
+    // EG stuff
+    eg_xterm = qx_face[0]-barycenter->x[0];
+    eg_yterm = qx_face[1]-barycenter->y[0];
+    if(dim==3) eg_zterm = qx_face[2]-barycenter->z[0];
 
-      // TODO: why was this hard coded for 2D?
-      (*truesol)(val_true_face,qx_face,time,&(mesh->el_flag[elm]));
-      //(*exact_sol2D)(val_true_face,qx_face,time, &(mesh->el_flag[elm]));  // ???
+    // TODO: why was this hard coded for 2D?
+    (*truesol)(val_true_face,qx_face,time,&(mesh->el_flag[elm]));
+    //(*exact_sol2D)(val_true_face,qx_face,time, &(mesh->el_flag[elm]));  // ???
 
-      (*truesol)(val_true_face_n,qx_face,time-timestep,&(mesh->el_flag[elm]));
-      //(*exact_sol2D)(val_true_face_n,qx_face,time-timestep,&(mesh->el_flag[elm]));  // ???
+    (*truesol)(val_true_face_n,qx_face,time-timestep,&(mesh->el_flag[elm]));
+    //(*exact_sol2D)(val_true_face_n,qx_face,time-timestep,&(mesh->el_flag[elm]));  // ???
 
-      //true solution is in n+1 time
-      (*truesol_dt)(val_true_dt_face,qx_face,time,&(mesh->el_flag[elm]));
+    //true solution is in n+1 time
+    (*truesol_dt)(val_true_dt_face,qx_face,time,&(mesh->el_flag[elm]));
 
-      local_row_index=0;
-      unknown_index=0;
-      local_dof_on_elm_face = dof_on_elm;
+    local_row_index=0;
+    unknown_index=0;
+    local_dof_on_elm_face = dof_on_elm;
 
-      for(i=0;i<FE->nspaces;i++) {
+    for(i=0;i<FE->nspaces;i++) {
 
-        get_FEM_basis(FE->var_spaces[i]->phi,FE->var_spaces[i]->dphi,qx_face,v_on_elm,local_dof_on_elm_face,mesh,FE->var_spaces[i]);
+      get_FEM_basis(FE->var_spaces[i]->phi,FE->var_spaces[i]->dphi,qx_face,v_on_elm,local_dof_on_elm_face,mesh,FE->var_spaces[i]);
 
-        for (test=0; test<FE->var_spaces[i]->dof_per_elm;test++) {
-            //SLEE
-            if(i<dim) {
-              bLoc[(local_row_index+test)] += BC_penalty_term * w_face*(val_true_face[unknown_index]*  FE->var_spaces[i]->phi[test]);
+      for (test=0; test<FE->var_spaces[i]->dof_per_elm;test++) {
+        //SLEE
+        if(i<dim) {
+          bLoc[(local_row_index+test)] += BC_penalty_term * w_face*(val_true_face[unknown_index]*  FE->var_spaces[i]->phi[test]);
 
-              //DEBUG100
-              //bLoc[(local_row_index+test)] += penalty_term * w_face*
-              //(val_true_face[3]*  FE->var_spaces[i]->phi[test] *finrm[i]);
+          //DEBUG100
+          //bLoc[(local_row_index+test)] += penalty_term * w_face*
+          //(val_true_face[3]*  FE->var_spaces[i]->phi[test] *finrm[i]);
 
-            } else if(i == dim) {
-              //SLEE
-              // Note that new DOF is \phi^3 = [x ; y]
-              //printf("i = %d (FE->nspaces = %d), unknown_index = %d, test = %d \n", i, FE->var_spaces[i]->dof_per_elm, unknown_index, test);
-              bLoc[(local_row_index+test)] += BC_penalty_term *  w_face * (val_true_face[0] * eg_xterm + val_true_face[1]*eg_yterm);
-              if(dim==3) bLoc[(local_row_index+test)] += BC_penalty_term * w_face * val_true_face[2] * eg_zterm;
+        } else if(i == dim) {
+          //SLEE
+          // Note that new DOF is \phi^3 = [x ; y]
+          //printf("i = %d (FE->nspaces = %d), unknown_index = %d, test = %d \n", i, FE->var_spaces[i]->dof_per_elm, unknown_index, test);
+          bLoc[(local_row_index+test)] += BC_penalty_term *  w_face * (val_true_face[0] * eg_xterm + val_true_face[1]*eg_yterm);
+          if(dim==3) bLoc[(local_row_index+test)] += BC_penalty_term * w_face * val_true_face[2] * eg_zterm;
 
-            } else if(i == dim+1) {
-              //Stokes 3
-              bLoc[(local_row_index+test)] += w_face * (val_true_face[0] * finrm[0] + val_true_face[1] * finrm[1])* FE->var_spaces[dim+1]->phi[test];
-              if(dim==3) bLoc[(local_row_index+test)] += w_face * (val_true_face[2] * finrm[2])* FE->var_spaces[dim+1]->phi[test];
-            }
-
-
-            //sanity check
-            if(unknown_index != i)
-            {
-              printf("unknown index != i \n");
-              exit(0);
-            }
-            //SLEE
-
-          }
-          unknown_index++;
-          local_dof_on_elm_face += FE->var_spaces[i]->dof_per_elm;
-          local_row_index += FE->var_spaces[i]->dof_per_elm;
-        } // i = 0
-      } //face
-    }// else if
+        } else if(i == dim+1) {
+          //Stokes 3
+          bLoc[(local_row_index+test)] += w_face * (val_true_face[0] * finrm[0] + val_true_face[1] * finrm[1])* FE->var_spaces[dim+1]->phi[test];
+          if(dim==3) bLoc[(local_row_index+test)] += w_face * (val_true_face[2] * finrm[2])* FE->var_spaces[dim+1]->phi[test];
+        }
 
 
-    //printf("FEREE \n");
-    icsr_free(f_el);
-    //printf("FEREE DONE\n");
-  }// for each face
+        //sanity check
+        if(unknown_index != i)
+        {
+          printf("unknown index != i \n");
+          exit(0);
+        }
+        //SLEE
+
+      }
+      unknown_index++;
+      local_dof_on_elm_face += FE->var_spaces[i]->dof_per_elm;
+      local_row_index += FE->var_spaces[i]->dof_per_elm;
+    } // i = 0
+  } //face
+}// else if
+
+
+//printf("FEREE \n");
+icsr_free(f_el);
+if(f_el) free(f_el);
+//printf("FEREE DONE\n");
+}// for each face
 
 }
 
-
 block_LocaltoGlobal_RHS(dof_on_elm,FE,b,bLoc);
 
-//if(val_true) free(val_true);
-//if(val_sol) free(val_sol);
-
+// Frees
+if(cq_face) {
+  free_qcoords(cq_face);
+  free(cq_face);
+  cq_face=NULL;
+}
+if(val_true_face) free(val_true_face);
+if(val_true_face_n) free(val_true_face_n);
+if(val_true_face_n_neighbor) free(val_true_face_n_neighbor);
+if(val_true_dt_face) free(val_true_dt_face);
+if(v_on_elm_neighbor) free(v_on_elm_neighbor);
+if(dof_on_elm_neighbor) free(dof_on_elm_neighbor);
+if(val_true) free(val_true);
+if(val_true_D) free(val_true_D);
+if(barycenter) {
+  free_coords(barycenter);
+  free(barycenter);
+  barycenter = NULL;
+}
+if(data_face) free(data_face);
 //printf("RHS ASSEMBLE END \n");
 return;
 }
@@ -2495,7 +2555,7 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
 
   //printf("ELEMENT = %D, x = %f , y = %f \n", elm,  barycenter->x[0],   barycenter->y[0]);
   INT local_size = dof_per_elm*dof_per_elm;
-  REAL* ALoc_neighbor = (REAL *) calloc(local_size,sizeof(REAL));
+  //REAL* ALoc_neighbor = (REAL *) calloc(local_size,sizeof(REAL));
   REAL* bLoc=NULL;
 
   // Quadrature Weights and Nodes
@@ -2872,6 +2932,19 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
   }//QUAD
 
   block_LocaltoGlobal_neighbor(dof_on_elm,dof_on_elm,FE,A,ALoc);
+
+  // Frees
+  if(dof_on_elm_neighbor) free(dof_on_elm_neighbor);
+  if(barycenter) {
+    free_coords(barycenter);
+    free(barycenter);
+    barycenter = NULL;
+  }
+  if(barycenter_neighbor) {
+    free_coords(barycenter_neighbor);
+    free(barycenter_neighbor);
+    barycenter_neighbor = NULL;
+  }
 
   return;
 }
