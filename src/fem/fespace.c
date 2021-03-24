@@ -45,6 +45,33 @@ void initialize_fespace(fespace *FE)
 
 /****************************************************************************************/
 /*!
+* \fn void initialize_blockfespace(block_fespace *FE)
+*
+* \brief Initializes all components of the structure block_FE.
+*
+* \param nspaces  Number of fe Spaces
+* \param nun      Number of unknowns (includes components of vector functions)
+* \param ndof     Total number of DoF in FE system
+*
+* \return FE     Struct for block FE space
+*
+*/
+void initialize_blockfespace(block_fespace *FE,INT nspaces,INT nun,INT ndof)
+{
+  FE->nspaces = nspaces;
+  FE->nun = nun;
+  FE->ndof = ndof;
+  FE->var_spaces = (fespace **) calloc(nspaces,sizeof(fespace *));
+  FE->dirichlet = NULL;
+  FE->dof_flag = NULL;
+  FE->loc_data = (fe_local_data *) calloc(1,sizeof(fe_local_data));
+
+  return;
+}
+/****************************************************************************************/
+
+/****************************************************************************************/
+/*!
 * \fn void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
 *
 * \brief Allocates memory and properties of fespace struct.
@@ -449,6 +476,39 @@ void free_blockfespace(block_fespace* FE)
 
   if(FE->dirichlet) free(FE->dirichlet);
   if(FE->dof_flag) free(FE->dof_flag);
+  if(FE->loc_data) {
+    free_felocaldata(FE->loc_data);
+    free(FE->loc_data);
+    FE->loc_data=NULL;
+  }
+  return;
+}
+/****************************************************************************************/
+
+/****************************************************************************************/
+/*!
+* \fn void free_felocaldata(fe_local_data* loc_data)
+*
+* \brief Frees memory of arrays of fe_local_data structure
+*
+* \return loc_data       Struct to be freed
+*
+*/
+void free_felocaldata(fe_local_data* loc_data)
+{
+  if (loc_data == NULL) return; // Nothing need to be freed!
+
+  if(loc_data->local_dof) free(loc_data->local_dof);
+  if(loc_data->local_dof_flags) free(loc_data->local_dof_flags);
+  if(loc_data->local_vert) free(loc_data->local_vert);
+  if(loc_data->xv) free(loc_data->xv);
+  if(loc_data->u_local) free(loc_data->u_local);
+  if(loc_data->phi) free(loc_data->phi);
+  if(loc_data->dphi) free(loc_data->dphi);
+  if(loc_data->ddphi) free(loc_data->ddphi);
+  if(loc_data->dwork) free(loc_data->dwork);
+  if(loc_data->iwork) free(loc_data->iwork);
+
   return;
 }
 /****************************************************************************************/

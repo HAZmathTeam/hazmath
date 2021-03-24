@@ -72,7 +72,7 @@ int main (int argc, char* argv[])
   // Get info for and create FEM spaces
   // Order of elements: 0 - P0; 1 - P1; 2 - P2; 20 - Nedlec; 30 - Raviart-Thomas
   INT order_u = 2;
-  INT order_p = 0;
+  INT order_p = 1;
 
   // Need Spaces for each component of the velocity plus pressure
   fespace FE_ux; // Velocity in x direction
@@ -98,19 +98,20 @@ int main (int argc, char* argv[])
   if(dim==3) ndof += FE_uz.ndof;
   // Get Global FE Space
   block_fespace FE;
-  FE.nun = dim+1;
-  FE.ndof = ndof;
-  FE.nbdof = FE_ux.nbdof + FE_uy.nbdof + FE_p.nbdof;
-  if(dim==3) FE.nbdof += FE_uz.nbdof;
-  FE.nspaces = dim+1;
-  FE.var_spaces = (fespace **) calloc(dim+1,sizeof(fespace *));
+  initialize_blockfespace(&FE,dim+1,dim+1,ndof);
+  // FE.nun = dim+1;
+  // FE.ndof = ndof;
+  // FE.nbdof = FE_ux.nbdof + FE_uy.nbdof + FE_p.nbdof;
+  // if(dim==3) FE.nbdof += FE_uz.nbdof;
+  // FE.nspaces = dim+1;
+  // FE.var_spaces = (fespace **) calloc(dim+1,sizeof(fespace *));
 
   FE.var_spaces[0] = &FE_ux;
   FE.var_spaces[1] = &FE_uy;
   if(dim==3) FE.var_spaces[2] = &FE_uz;
   FE.var_spaces[dim] = &FE_p;
 
-  // Set Dirichlet Boundaries
+  // Set Dirichlet Boundaries and DoF flags
   set_dirichlet_bdry_block(&FE,&mesh);
 
 
@@ -128,7 +129,6 @@ int main (int argc, char* argv[])
   printf("\t--> DOF: %d\n",FE.ndof);
   printf("\n\t--- Boundaries ---\n");
   printf("Vertices: %-7d\tEdges: %-7d\tFaces: %-7d",mesh.nbv,mesh.nbedge,mesh.nbface);
-  printf("\t--> Boundary DOF: %d\n",FE.nbdof);
   printf("***********************************************************************************\n\n");
 
   /*** Assemble the matrix and right hand side *******************************/
