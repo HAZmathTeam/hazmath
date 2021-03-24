@@ -33,7 +33,7 @@
 #endif
 
 #ifndef TOTAL_NUM_CYCLES_GLOBAL
-#define TOTAL_NUM_CYCLES_GLOBAL 1
+#define TOTAL_NUM_CYCLES_GLOBAL 4
 #endif
 
 // the LAME_MU_GLOBAL is not used in the code yet...

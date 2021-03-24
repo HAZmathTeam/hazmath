@@ -146,9 +146,15 @@ INT main(int argc, char* argv[])
     //sprintf(filename_per_cycle, "%s%d.haz", inparam.gridfile,cycle);
 
     //DEBUG SIMPLE MESH
-    sprintf(filename_per_cycle, "%s%d.haz", inparam.gridfile,cycle+1);
-  //  gfid = HAZ_fopen(filename_per_cycle,"r");
-  gfid = HAZ_fopen(inparam.gridfile,"r");
+    //    sprintf(filename_per_cycle, "%s%d.haz", inparam.gridfile,cycle+1);
+    INT ncy=1+(1<<(cycle+1)); // number of nodes in one direction
+    sprintf(filename_per_cycle, "%s%d.haz", inparam.gridfile,ncy);
+    fprintf(stdout,"\n%s\n",filename_per_cycle);
+    fflush(stdout);
+    /* exit(11); */
+    //continue;
+    gfid = HAZ_fopen(filename_per_cycle,"r");
+    //  gfid = HAZ_fopen(inparam.gridfile,"r");
     if(gfid == NULL){
       perror("Could not find and open the file !!!! ");
     }
