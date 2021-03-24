@@ -114,6 +114,45 @@ typedef struct fespace{
 } fespace;
 
 /**
+ * \struct local_data
+ * \brief Contains all relevant data on a given element/face/edge
+ *
+ */
+typedef struct fe_local_data {
+
+  //! Number of DoF locally
+  INT nlocal_dof;
+
+  //! Dimension of mesh
+  INT dim;
+
+  //! DoF on element/face/edge
+  INT* local_dof;
+
+  //! Local Flags of DoF
+  INT* local_dof_flags;
+
+  //! vertices on element/face/edge
+  INT* local_vert;
+
+  //! coordinates of local vertices
+  REAL* xv;
+
+  //! Solution at local DoF
+  REAL* u_local;
+
+  //! Basis functions and derivatives at quadrature points on actual element/face/edge
+  REAL* phi;
+  REAL* dphi;
+  REAL* ddphi;
+
+  // Space for extra stuff if needed
+  REAL* dwork;
+  INT* iwork;
+
+} fe_local_data;
+
+/**
  * \struct block_fespace
  * \brief Block of fespaces for coupled problems
  *
@@ -141,7 +180,126 @@ typedef struct block_fespace {
   //! All DOF flags - indicates if the DOF is a special DOF (i.e. on certain boundary)
   INT* dof_flag;
 
+  //! Local Data - stuff needed on a given element (or face or edge)
+  fe_local_data *loc_data;
+
+
+
+
 } block_fespace; /**< Matrix of REAL type in Block CSR format */
+
+
+//**************** NEW STUFF **********************************//
+
+/**
+ * \struct qcoords
+ * \brief Returns coordinates of quadrature nodes
+ */
+typedef struct qcoords{
+
+  //! Dimension of problem
+  INT dim;
+
+  //! quadrature points (ordered x(q1) y(q1) z(q1) x(q2) y(q2) z(q2) etc...)
+  REAL* x;
+
+  //! weights
+  REAL* w;
+
+  //! Size of arrays (number of quadrature nodes)
+  INT n;
+
+  //! Number of quadrature nodes on 1 entity (face or element or edge)
+  INT nq_per_region;
+
+  //! Number of quadrature nodes in one direction
+  INT nq1d;
+
+} qcoords;
+
+/**
+ * \struct fe_space
+ * \brief Returns properties of the finite-element space
+ */
+typedef struct fe_space{
+
+  //! Type of finite element:
+  // Implemented:  0-2: PX | 20: Ned-0 | 30: RT-0 | 62: P1 + facebubble | 99: single DoF for constraints
+  // TBI: -9--1: DGX | 10-19: QX | 21-29: Ned-X | 31:39: RT-X | 40-59: Ned/RT-X on quads | 60: vector of scalars | 61: MINI element
+  INT fe_type;
+
+  //! Indicates if this is a space of scalar functions, 0, or a space of vector functions, 1.
+  INT scal_or_vec;
+
+  //! Where is the DoF defined: 3 - element; 2 - face; 1 - edge; 0 - vertex
+  INT dof_form;
+
+  //! number of DOF
+  INT ndof;
+
+  //! number of DOF per element
+  INT dof_per_elm;
+
+  //! number of DOF per face
+  INT dof_per_face;
+
+  //! number of DOF per edge
+  INT dof_per_edge;
+
+  //! Element to DOF map
+  iCSRmat* el_dof;
+
+  //! Face to DOF map
+  iCSRmat* f_dof;
+
+  //! Edge to DOF map
+  iCSRmat* ed_dof;
+
+  //! Dirichlet Boundaries (1 if Dirichlet; 0 if not)
+  INT* dirichlet;
+
+  //! DOF flags - indicates if the DOF is a special DOF (i.e. on certain boundary)
+  INT* dof_flag;
+
+  //! Perioidc Boundaries (For each DOF indicate if it is periodic with another DOF.  Mark -1 for non-periodic)
+  INT* periodic;
+
+  //! Basis Functions and Derivatives on quadrature of reference element
+  REAL* phi;
+  REAL* dphi;
+  REAL* ddphi;
+
+} fe_space;
+
+/**
+ * \struct fe_system
+ * \brief Block of fe_spaces for coupled problems
+ *
+ */
+typedef struct fe_system {
+
+  //! Number of Elements
+  INT nelm;
+
+  //! pointer to the mesh
+  mesh_struct* mesh;
+
+  //! number of FEM spaces in system
+  INT nspaces;
+
+  //! number of unknowns in system (includes # of components for vectors)
+  INT nun;
+
+  //! total number of dof
+  INT ndof;
+
+  //! blocks of fespaces
+  fe_space **var_spaces;
+
+  //! Local Data - stuff needed on a given element (or face or edge)
+  fe_local_data *loc_data;
+
+} fe_system;
 
 
 #endif
