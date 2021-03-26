@@ -33,6 +33,7 @@
 /**
  * \struct qcoordinates
  * \brief Returns coordinates of quadrature nodes
+ * \note TODO - will remove this and replace with the structure qcoords below.
  */
 typedef struct qcoordinates{
 
@@ -62,6 +63,7 @@ typedef struct qcoordinates{
 /**
  * \struct fespace
  * \brief Returns properties of the finite-element space
+ * \note TODO - will replace with fe_space setup defined below soon
  */
 typedef struct fespace{
 
@@ -120,6 +122,9 @@ typedef struct fespace{
  */
 typedef struct fe_local_data {
 
+  //! Number of vertices locally
+  INT nlocal_vert;
+
   //! Number of DoF locally
   INT nlocal_dof;
 
@@ -141,6 +146,9 @@ typedef struct fe_local_data {
   //! Solution at local DoF
   REAL* u_local;
 
+  //! Quadrature on entity
+  qcoordinates* quad_local;
+
   //! Basis functions and derivatives at quadrature points on actual element/face/edge
   REAL* phi;
   REAL* dphi;
@@ -156,6 +164,7 @@ typedef struct fe_local_data {
  * \struct block_fespace
  * \brief Block of fespaces for coupled problems
  *
+ * \note TODO: Will change this to fe_system and remove nbdof
  */
 typedef struct block_fespace {
 
@@ -183,10 +192,7 @@ typedef struct block_fespace {
   //! Local Data - stuff needed on a given element (or face or edge)
   fe_local_data *loc_data;
 
-
-
-
-} block_fespace; /**< Matrix of REAL type in Block CSR format */
+} block_fespace;
 
 
 //**************** NEW STUFF **********************************//
@@ -231,7 +237,7 @@ typedef struct fe_space{
   //! Indicates if this is a space of scalar functions, 0, or a space of vector functions, 1.
   INT scal_or_vec;
 
-  //! Where is the DoF defined: 3 - element; 2 - face; 1 - edge; 0 - vertex
+  //! Where is the DoF defined: 0 - vertex; 1 - edge; 2 - face; 3 - tetrahedra; etc...
   INT dof_form;
 
   //! number of DOF
@@ -270,36 +276,6 @@ typedef struct fe_space{
   REAL* ddphi;
 
 } fe_space;
-
-/**
- * \struct fe_system
- * \brief Block of fe_spaces for coupled problems
- *
- */
-typedef struct fe_system {
-
-  //! Number of Elements
-  INT nelm;
-
-  //! pointer to the mesh
-  mesh_struct* mesh;
-
-  //! number of FEM spaces in system
-  INT nspaces;
-
-  //! number of unknowns in system (includes # of components for vectors)
-  INT nun;
-
-  //! total number of dof
-  INT ndof;
-
-  //! blocks of fespaces
-  fe_space **var_spaces;
-
-  //! Local Data - stuff needed on a given element (or face or edge)
-  fe_local_data *loc_data;
-
-} fe_system;
 
 
 #endif

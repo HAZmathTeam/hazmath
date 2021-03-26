@@ -45,18 +45,18 @@ void initialize_fespace(fespace *FE)
 
 /****************************************************************************************/
 /*!
-* \fn void initialize_blockfespace(block_fespace *FE)
+* \fn void initialize_fesystem(block_fespace *FE)
 *
-* \brief Initializes all components of the structure block_FE.
+* \brief Initializes all components of the structure block FE system
 *
-* \param nspaces  Number of fe Spaces
+* \param nspaces  Number of FE spaces
 * \param nun      Number of unknowns (includes components of vector functions)
 * \param ndof     Total number of DoF in FE system
 *
-* \return FE     Struct for block FE space
+* \return FE     Struct for block FE system
 *
 */
-void initialize_blockfespace(block_fespace *FE,INT nspaces,INT nun,INT ndof)
+void initialize_fesystem(block_fespace *FE,INT nspaces,INT nun,INT ndof)
 {
   FE->nspaces = nspaces;
   FE->nun = nun;
@@ -78,7 +78,8 @@ void initialize_blockfespace(block_fespace *FE,INT nspaces,INT nun,INT ndof)
 *
 * \param mesh      Mesh struc
 * \param FEtype    Element Type:
-*                  0-9 PX | 10-19 QX (not yet) | 20 Ned | 30 RT | -9 - -1 DGX (not yet)
+*                  Implemented:  0-2: PX | 20: Ned-0 | 30: RT-0 | 62: P1 + facebubble | 99: single DoF for constraints
+*                  TBI: -9--1: DGX | 10-19: QX | 21-29: Ned-X | 31:39: RT-X | 40-59: Ned/RT-X on quads | 60: vector of scalars | 61: MINI element
 *
 * \return FE       Struct for FE space
 *
@@ -508,6 +509,11 @@ void free_felocaldata(fe_local_data* loc_data)
   if(loc_data->ddphi) free(loc_data->ddphi);
   if(loc_data->dwork) free(loc_data->dwork);
   if(loc_data->iwork) free(loc_data->iwork);
+  if(loc_data->quad_local){
+    free_qcoords(loc_data->quad_local);
+    free(loc_data->quad_local);
+    loc_data->quad_local=NULL;
+  }
 
   return;
 }
