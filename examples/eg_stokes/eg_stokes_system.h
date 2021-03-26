@@ -912,8 +912,8 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
           // eg skip
           local_dof_on_elm_face += egdofpelm;
           // p
-          local_dof_on_elm_face += pdofpelm;
           get_FEM_basis(FE->var_spaces[ip]->phi,FE->var_spaces[ip]->dphi,qx_face,v_on_elm,local_dof_on_elm_face,mesh,FE->var_spaces[ip]);
+          local_dof_on_elm_face += pdofpelm;
 
           //---- #2 BOUNDARY ---------------------------- START //
           // TODO: Is this theta=0 only? IIPG?
@@ -1206,7 +1206,7 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
 
               if(dim==3) {
                 // u2-eg block: -( (u2x*n2)*(x-xT) + (u2y*n2)*(y-yT) + (u2x*n0+u2y*n1+2*u2z*n2)*(z-zT)) + th*u2*n2 + pen*u2*(z-zT)
-                for (trial=0; trial<u1dofpelm;trial++){
+                for (trial=0; trial<u2dofpelm;trial++){
                   u2 = FE->var_spaces[iu2]->phi[trial];
                   u2x = FE->var_spaces[iu2]->dphi[trial*dim];
                   u2y = FE->var_spaces[iu2]->dphi[trial*dim+1];
