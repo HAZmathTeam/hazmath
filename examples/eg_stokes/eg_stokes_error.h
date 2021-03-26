@@ -433,7 +433,7 @@ void L2error_block_EG
 
       // For Pressure Error
       // bEG_Pressure
-      err[dim+1] += w*(ABS(p_value_at_q    -  val_true[3]))*(ABS(p_value_at_q - val_true[3]));
+      err[dim+1] += w*(ABS(p_value_at_q    -  val_true[dim+1]))*(ABS(p_value_at_q - val_true[dim+1]));
       //err[3] += w*(ABS(p_value_at_q     -  val_true[3]))*(ABS(p_value_at_q  - val_true[3]));
 
       //exit(0);

@@ -183,7 +183,11 @@ static INT get_diag_blocks(block_dCSRmat *Ab,
  *
  * \brief get data for block preconditioner for solving the EG stokes
  *
- * \param Ab    Point to a block_dCSRmat matrix
+ * \param Ab        Point to a block_dCSRmat matrix
+ * \param p_ndof    Number of degrees of freedoms of the pressure unknowns
+ * \param el_vol    Volume of element
+ * \param itparam   Parameters of iterative methods
+ * \param amgparam  Parameters of AMG methods
  *
  * \note this is a special function only for eg stokes -- Xiaozhe
  *
@@ -217,7 +221,7 @@ static precond_block_data *get_precond_block_data_eg_stokes(block_dCSRmat *Ab,
   // solver data for the velocity part
   //-----------------------------------------
   // grab the velocity block without the eg part
-  n1=0; n2=dim;
+  n1=0; n2=dim+1;
   get_diag_blocks(Ab,n1,n2, &(precdata->A_diag[0]));
 
   // get the LU factorization of this block
@@ -531,6 +535,7 @@ void precond_block_diag_eg_stokes_multiplicative(REAL *r,
   array_cp(N, tempr->val, r);
   bdcsr_aAxpy(-1.0, A, z, r);
 
+  /*
   // Preconditioning the velocity block including the eg part
   for(i=0; i<Nu; i++){
     zu.val[i] = zu.val[i] + ru.val[i]/velocity_diag[0]->val[i];
@@ -540,6 +545,7 @@ void precond_block_diag_eg_stokes_multiplicative(REAL *r,
   // update residual
   array_cp(N, tempr->val, r);
   bdcsr_aAxpy(-1.0, A, z, r);
+  */
 
   // Preconditioning the pressure block
   // Diagonal matrix for P0

@@ -15,6 +15,8 @@
 #include "eg_stokes_params.h"
 #include "eg_stokes_error.h"
 #include "eg_stokes_system.h"
+#include "eg_stokes_precond.h"
+
 /****************************************************************/
 
 /****** MAIN DRIVER **************************************************************/
@@ -537,7 +539,7 @@ if(solver_type==0) { // Direct Solver
     if (linear_itparam.linear_precond_type == PREC_NULL) {
       solver_flag = linear_solver_bdcsr_krylov(&A, &b, &sol, &linear_itparam);
     }
-    else if (linear_itparam.linear_precond_type >=10 || linear_itparam.linear_precond_type <100 )
+    else if (linear_itparam.linear_precond_type >=10 && linear_itparam.linear_precond_type <100 )
     { // do not merge velocity unknowns, directly apply solvers
       // prepare the preconditioner
       A_diag = (dCSRmat *)calloc(dim+2, sizeof(dCSRmat)); // number of blocks = dim+2
@@ -557,12 +559,26 @@ if(solver_type==0) { // Direct Solver
       // now ready to solve
       //if(dim==2) solver_flag = linear_solver_bdcsr_krylov_block_3(&A, &b, &sol, &linear_itparam, NULL, A_diag);
       solver_flag = linear_solver_bdcsr_krylov_block_4(&A, &b, &sol, &linear_itparam, &amgparam, A_diag);
+
     }
-    else
-    { // merge velocity unknowns, then apply solver
+    else   // use specific solver for Stokes eg dicretization
+    {
 
-    //  block_dCSRmat A3;
+       printf("hello\n");
 
+       // get preconditioner data
+       precond_block_data *precdata = get_precond_block_data_eg_stokes(&A, p_ndof, mesh.el_vol, &linear_itparam, &amgparam);
+
+       // setup the preconditioner
+       precond prec;
+       prec.data = precdata;
+       //prec.fct = precond_block_diag_eg_stokes_additive;
+       prec.fct = precond_block_diag_eg_stokes_multiplicative;
+
+       // solve
+       solver_flag = solver_bdcsr_linear_itsolver(&A, &b, &sol, &prec, &linear_itparam);
+
+      //TODO: clean data
 
     }
   }
