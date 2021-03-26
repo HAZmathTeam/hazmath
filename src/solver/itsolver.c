@@ -1505,6 +1505,7 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
                                        AMG_param *amgparam,
                                        dCSRmat *A_diag)
 {
+
     const SHORT prtlvl = itparam->linear_print_level;
     const SHORT precond_type = itparam->linear_precond_type;
 
@@ -1520,6 +1521,7 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
 //#else
 //    error_extlib(257, __FUNCTION__, "SuiteSparse");
 #endif
+
 
     SHORT max_levels;
     if (amgparam) max_levels = amgparam->max_levels;
@@ -3930,7 +3932,7 @@ INT linear_solver_bdcsr_krylov_gmg(block_dCSRmat *A,
  * \param x         Pointer to the approx solution in dvector format
  * \param itparam   Pointer to parameters for iterative solvers
  * \param amgparam  Pointer to parameters for AMG solvers
- * \param prec_block_data   data for preconditioning (A_diag, and others). 
+ * \param prec_block_data   data for preconditioning (A_diag, and others).
  *
  * \return          Iteration number if converges; ERROR otherwise.
  *
