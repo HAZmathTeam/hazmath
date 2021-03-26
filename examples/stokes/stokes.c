@@ -166,7 +166,7 @@ int main (int argc, char* argv[])
   dCSRmat *A_diag;
   A_diag = (dCSRmat *)calloc(dim+1, sizeof(dCSRmat));
 
-  // For velcocities we use the diagonal of the matrix
+  // For velcocities we use the diagonal of the block matrix
   for(i=0;i<dim;i++){
     dcsr_alloc(A.blocks[i*(dim+2)]->row, A.blocks[i*(dim+2)]->col, A.blocks[i*(dim+2)]->nnz, &A_diag[i]);
     dcsr_cp(A.blocks[i*(dim+2)], &A_diag[i]);
@@ -198,6 +198,12 @@ int main (int argc, char* argv[])
   INT solver_type = linear_itparam.linear_itsolver_type;
   INT solver_printlevel = linear_itparam.linear_print_level;
 
+  /* Set parameters for algebriac multigrid methods */
+  AMG_param amgparam;
+  param_amg_init(&amgparam);
+  param_amg_set(&amgparam, &inparam);
+  param_amg_print(&amgparam);
+
   // Solve
   if(solver_type==0) { // Direct Solver
     solver_flag = block_directsolve_UMF(&A,&b,&sol,solver_printlevel);
@@ -205,8 +211,8 @@ int main (int argc, char* argv[])
     if (linear_itparam.linear_precond_type == PREC_NULL) { // No Preconditioner
       solver_flag = linear_solver_bdcsr_krylov(&A, &b, &sol, &linear_itparam);
     } else {
-      if(dim==2) solver_flag = linear_solver_bdcsr_krylov_block_3(&A, &b, &sol, &linear_itparam, NULL, A_diag);
-      if(dim==3) solver_flag = linear_solver_bdcsr_krylov_block_4(&A, &b, &sol, &linear_itparam, NULL, A_diag);
+      if(dim==2) solver_flag = linear_solver_bdcsr_krylov_block_3(&A, &b, &sol, &linear_itparam, &amgparam, A_diag);
+      if(dim==3) solver_flag = linear_solver_bdcsr_krylov_block_4(&A, &b, &sol, &linear_itparam, &amgparam, A_diag);
     }
   }
 
