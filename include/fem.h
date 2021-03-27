@@ -125,8 +125,11 @@ typedef struct fe_local_data {
   //! Number of vertices locally
   INT nlocal_vert;
 
-  //! Number of DoF locally
+  //! Number of DoF locally for all spaces
   INT nlocal_dof;
+
+  //! Numer of DoF locally per space
+  INT* nlocal_dof_space;
 
   //! Dimension of mesh
   INT dim;
@@ -153,6 +156,10 @@ typedef struct fe_local_data {
   REAL* phi;
   REAL* dphi;
   REAL* ddphi;
+
+  //! Reference Element maps
+  REAL* ref_map; // The map x = B*xr + x0
+  REAL* gradlams; // Inverse map plus row sum which gives gradients of P1 basis
 
   // Space for extra stuff if needed
   REAL* dwork;
