@@ -72,6 +72,52 @@ void initialize_fesystem(block_fespace *FE,INT nspaces,INT nun,INT ndof)
 
 /****************************************************************************************/
 /*!
+* \fn void initialize_felocaldata_elm(block_fespace *FE,mesh_struct* mesh)
+*
+* \brief Initializes some of the components of fe_local_data (things that come
+*        from the global data and are fixed).  Assumes data is on elements
+*
+* \param nspaces  Number of FE spaces
+* \param nun      Number of unknowns (includes components of vector functions)
+* \param ndof     Total number of DoF in FE system
+*
+* \return FE     Struct for block FE system
+*
+*/
+void initialize_felocaldata_elm(block_fespace *FE,mesh_struct* mesh)
+{
+  // counters
+  INT i;
+
+  INT dim = mesh->dim;
+  INT v_per_elm = mesh->v_per_elm;
+  INT nspaces = FE->nspaces;
+  INT dof_per_elm_tot = 0;
+
+  // Vertex Stuff
+  FE->loc_data->nlocal_vert = v_per_elm;
+  FE->loc_data->dim = dim;
+  FE->loc_data->local_vert = (INT *) calloc(v_per_elm,sizeof(INT));
+  FE->loc_data->xv = (REAL *) calloc(v_per_elm*dim,sizeof(REAL));
+
+  // DoF Stuff
+  FE->loc_data->nlocal_dof_space = (INT *) calloc(nspaces,sizeof(INT));
+  for(i=0;i<nspaces;i++) {
+    dof_per_elm_tot += FE->var_spaces[i]->dof_per_elm;
+    FE->loc_data->nlocal_dof_space[i] = FE->var_spaces[i]->dof_per_elm;
+  }
+  FE->loc_data->nlocal_dof = dof_per_elm_tot;
+  FE->loc_data->local_dof = (INT *) calloc(dof_per_elm_tot,sizeof(INT));
+  FE->loc_data->local_dof_flags = (INT *) calloc(dof_per_elm_tot,sizeof(INT));
+  FE->loc_data->u_local = (REAL *) calloc(dof_per_elm_tot,sizeof(REAL));
+
+
+  return;
+}
+/****************************************************************************************/
+
+/****************************************************************************************/
+/*!
 * \fn void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
 *
 * \brief Allocates memory and properties of fespace struct.
@@ -499,6 +545,7 @@ void free_felocaldata(fe_local_data* loc_data)
 {
   if (loc_data == NULL) return; // Nothing need to be freed!
 
+  if(loc_data->nlocal_dof_space) free(loc_data->nlocal_dof_space);
   if(loc_data->local_dof) free(loc_data->local_dof);
   if(loc_data->local_dof_flags) free(loc_data->local_dof_flags);
   if(loc_data->local_vert) free(loc_data->local_vert);
