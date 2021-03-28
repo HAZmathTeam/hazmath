@@ -111,7 +111,6 @@ void initialize_felocaldata_elm(block_fespace *FE,mesh_struct* mesh)
   FE->loc_data->local_dof_flags = (INT *) calloc(dof_per_elm_tot,sizeof(INT));
   FE->loc_data->u_local = (REAL *) calloc(dof_per_elm_tot,sizeof(REAL));
 
-
   return;
 }
 /****************************************************************************************/
@@ -551,9 +550,6 @@ void free_felocaldata(fe_local_data* loc_data)
   if(loc_data->local_vert) free(loc_data->local_vert);
   if(loc_data->xv) free(loc_data->xv);
   if(loc_data->u_local) free(loc_data->u_local);
-  if(loc_data->phi) free(loc_data->phi);
-  if(loc_data->dphi) free(loc_data->dphi);
-  if(loc_data->ddphi) free(loc_data->ddphi);
   if(loc_data->dwork) free(loc_data->dwork);
   if(loc_data->iwork) free(loc_data->iwork);
   if(loc_data->quad_local){
