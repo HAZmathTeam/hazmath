@@ -146,19 +146,21 @@ typedef struct fe_local_data {
   //! coordinates of local vertices
   REAL* xv;
 
+  //! Number of vertices per dof for each space
+  INT* nvert_per_dof_space;
+
+  //! vertices on dof per space (nspaces * nlocal_dof_space[i] * nver_per_dof_space[i])
+  INT* v_on_dof_space;
+
   //! Solution at local DoF
   REAL* u_local;
 
   //! Quadrature on entity
   qcoordinates* quad_local;
 
-  //! Basis functions and derivatives at quadrature points on actual element/face/edge
-  REAL* phi;
-  REAL* dphi;
-  REAL* ddphi;
-
   //! Reference Element maps
   REAL* ref_map; // The map x = B*xr + x0
+  REAL* lams; // P1 basis at quad points (actually on ref element)
   REAL* gradlams; // Inverse map plus row sum which gives gradients of P1 basis
 
   // Space for extra stuff if needed

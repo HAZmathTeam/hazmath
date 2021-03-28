@@ -8,17 +8,17 @@
 * \note Typically this involves DOF defined on either the
 *  vertices, edges, or faces.  In most cases, the basis elements are
 *  defined using the standard Lagrange finite-element basis functions
-*  using barycentric coordinates.  See PX_H1_basis for details on the Lagrange
+*  using barycentric coordinates.  See PX_basis for details on the Lagrange
 *  basis functions.
 *
 * \note Updated on 9/26/2018 for 0-1 fix.
-* \note This version will assume only local data is provided
+* \note This version will assume only local data is provided, though versions
+*       that take in global mesh data will be kept for posterity.
 *
 */
 
 #include "hazmath.h"
 
-/*******************************************************************************************************/
 /*!
 * \fn void P1_basis_ref(REAL *lam,REAL *dlam,REAL *x,INT dim)
 *
@@ -67,9 +67,90 @@ void P1_basis_ref(REAL *lam,REAL *dlam,REAL *x,INT dim)
 
   return;
 }
-/*******************************************************************************************************/
+/*****************************************************************************/
 
-/*******************************************************************************************************/
+/*!
+* \fn void P1_basis_physical(REAL *lam,REAL *dlam,REAL *x,INT dim,REAL* xv)
+*
+* \brief Compute Standard Lagrange Finite Element Basis Functions (P1) at a particular point
+*        in the physical element.  This function will not be used often, but is
+*        here in case you need to create a basis function at a random point in an
+*        element not associated with quadrature.
+*
+* \param x         Coordinate on where to compute basis function (on ref element)
+* \param dim       Dimension of problem
+* \param xv        Coordintes of vertices on element which contains x
+*
+* \return lam      Basis functions (1 for each vertex on element)
+* \return dlam     Derivatives of basis functions (i.e., gradient)
+*
+*  \note Functions are computed by mapping from reference simplex directly:
+*        B*xr = x - x0 => xr = B^{-1} (x-xv0)
+*        2D Example
+*
+*      ( xv1-xv0  xv2-xv0 ) * ( xr ) = ( x - xv0 )
+*      ( yv1-yv0  yv2-yv0 )   ( yr )   ( y - yv0 )
+*
+*      lam = 1-xr-yr; xr; yr
+*      dlam = (-1,-1); (1,0); (0,1)
+*
+*/
+void P1_basis_physical(REAL *lam,REAL *dlam,REAL *x,INT dim,REAL* xv)
+{
+
+  // Loop counters
+  INT i,j;
+
+  // Get B
+  REAL* b = (REAL *) calloc(dim*dim,sizeof(REAL));
+  for(i=0;i<dim;i++) {
+    for(j=0;j<dim;j++) {
+      b[i*dim+j] = xv[(j+1)*dim+i]-xv[0];
+    }
+  }
+
+  // Invert B
+  REAL* binv = (REAL *) calloc(dim*dim,sizeof(REAL));
+  void* wrk = malloc(dim*sizeof(INT)+dim*(dim+1)*sizeof(REAL));
+  invfull(binv,dim,b,wrk);
+
+  // Get coordinate on ref_elm
+  REAL* xr = (REAL *) calloc(dim,sizeof(REAL));
+  for(i=0;i<dim;i++) {
+    xr[i] = 0.0;
+    for(j=0;j<dim;j++) {
+      xr[i] += binv[i*dim+j]*(x[j]-xv[0]);
+    }
+  }
+
+  // Get lambdas -> lam(x) = lamr(xr)
+  lam[0] = 1.0;
+  for(i=0;i<dim;i++) {
+    lam[0] -= xr[i];
+    lam[i+1] = xr[i];
+  }
+
+  // Get gradients
+  // dlam[0] = sum of rows of B^{-1}
+  // Then rest is just B^{-1}
+  REAL dlam0val;
+  for(i=0;i<dim;i++) {
+    dlam0val = 0.0;
+    for(j=0;j<dim;j++) {
+      dlam0val += binv[j*dim+i];
+      dlam[(i+1)*dim+j] = binv[i*dim+j];
+    }
+    dlam[i] = dlam0val;
+  }
+
+  if(b) free(b);
+  if(binv) free(binv);
+  if(xr) free(xr);
+
+  return;
+}
+/*****************************************************************************/
+
 /*!
 * \fn void compute_refelm_mapping(REAL* ref_map,REAL* lamgrads,REAL *xv,INT dim)
 *
@@ -165,7 +246,7 @@ void compute_refelm_mapping(REAL* ref_map,REAL* lamgrads,REAL *xv,INT dim)
   // Get B
   for(i=0;i<dim;i++) {
     for(j=0;j<dim;j++) {
-      ref_map[i*dim+j] = xv[(j+1)*dim+i]-xv[i];
+      ref_map[i*dim+j] = xv[(j+1)*dim+i]-xv[0];
     }
   }
 
@@ -191,9 +272,8 @@ void compute_refelm_mapping(REAL* ref_map,REAL* lamgrads,REAL *xv,INT dim)
 
   return;
 }
-/*******************************************************************************************************/
+/******************************************************************************/
 
-/*******************************************************************************************************/
 /*!
 * \fn void PX_basis(REAL *p,REAL *dp,INT porder,INT dim,REAL* lam,REAL* dlam)
 *
@@ -277,9 +357,8 @@ void PX_basis(REAL *p,REAL *dp,INT porder,INT dim,REAL* lam, REAL* dlam)
   }
   return;
 }
-/*******************************************************************************************************/
+/******************************************************************************/
 
-/*******************************************************************************************************/
 /*!
 * \fn void ned0_basis(REAL *phi,REAL *cphi,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,INT* v_on_ed,REAL* ed_len)
 *
@@ -288,7 +367,7 @@ void PX_basis(REAL *p,REAL *dp,INT porder,INT dim,REAL* lam, REAL* dlam)
 * \param lam,dlam  P1 bases at quadrature point
 * \param dim       Dimension of problem
 * \param v_on_elm  Vertices on element
-* \param v_on_ed   Vertices on each edge (DoF)
+* \param v_on_ed   Vertices on each edge (DoF) on the elements (dim+1 edges with 2 vertices each -> (dim+1 x 2) matrix)
 * \param ed_len    Lenght of each edge on element
 *
 * \return phi      Basis functions (dim for each edge from reference triangle)
@@ -303,8 +382,9 @@ void ned0_basis(REAL *phi,REAL *cphi,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,
   // Get Mesh Data
   INT v_per_elm = dim+1;
   INT ed_per_elm = dim*(dim+1)/2;
+  INT v_per_ed = 2;
 
-  INT i,k,n1,n2,ihi,ilo;
+  INT i,k,ve1,ve2,ihi,ilo;
   INT mark1 = -1;
   INT mark2 = -1;
 
@@ -317,21 +397,21 @@ void ned0_basis(REAL *phi,REAL *cphi,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,
 
   // Go through each edge and get length and find the corresponding nodes
   for (i=0; i<ed_per_elm; i++) {
-    n1 = v_on_ed[i*dim+0];
-    n2 = v_on_ed[i*dim+1];
+    ve1 = v_on_ed[i*v_per_ed+0];
+    ve2 = v_on_ed[i*v_per_ed+1];
     elen = ed_len[i];
 
     // Find out which linear basis elements line up with nodes on this edge
     for (k=0; k<v_per_elm; k++) {
-      if (v_on_elm[k]==n1) {
+      if (v_on_elm[k]==ve1) {
         mark1=k;
       }
-      if (v_on_elm[k]==n2) {
+      if (v_on_elm[k]==ve2) {
         mark2=k;
       }
     }
     // Make sure orientation is correct always go from i->j if nj > ni
-    if (MAX(n1,n2)==n1) {
+    if (MAX(ve1,ve2)==ve1) {
       ihi = mark1;
       ilo = mark2;
     } else {
@@ -366,9 +446,8 @@ void ned0_basis(REAL *phi,REAL *cphi,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,
 
   return;
 }
-/****************************************************************************************************************************/
+/******************************************************************************/
 
-/****************************************************************************************************************************/
 /*!
 * \fn void rt0_basis_local(REAL *phi,REAL *dphi,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,INT* v_on_face,REAL* f_area)
 *
@@ -377,7 +456,7 @@ void ned0_basis(REAL *phi,REAL *cphi,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,
 * \param lam,dlam  P1 bases at quadrature point
 * \param dim       Dimension of problem
 * \param v_on_elm  Vertices on element
-* \param v_on_face   Vertices on each face (DoF)
+* \param v_on_face   Vertices on each face (DoF) ordered of element (dim+1 faces per elm with dim vertices per face -> (dim+1)xdim matrix)
 * \param f_area    Area of each face on element
 *
 * \return phi      Basis functions (dim for each face from reference triangle)
@@ -392,21 +471,22 @@ void rt0_basis(REAL *phi,REAL *dphi,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,I
   // Get Mesh Data
   INT v_per_elm = dim+1;
   INT f_per_elm = dim+1;
+  INT v_per_f = dim;
 
   INT i,j;
-  INT elnd,ef1,ef2,ef3;
+  INT vel,ef1,ef2,ef3;
 
   // Go through each face and find the corresponding nodes
   if(dim==2) {
     for (i=0; i<f_per_elm; i++) {
 
-      // Loop through Nodes on element to find corresponding nodes on face and get correct orientation
+      // Loop through vertices on element to find corresponding verties on face and get correct orientation
       for(j=0;j<v_per_elm;j++) {
-        elnd = v_on_elm[j];
-        if(v_on_face[0]==elnd) {
+        vel = v_on_elm[j];
+        if(v_on_face[i*v_per_f+0]==vel) {
           ef1 = j;
         }
-        if(v_on_face[1]==elnd) {
+        if(v_on_face[i*v_per_f+1]==vel) {
           ef2 = j;
         }
       }
@@ -426,14 +506,14 @@ void rt0_basis(REAL *phi,REAL *dphi,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,I
 
       // Loop through Nodes on element to find corresponding nodes for correct orienation
       for(j=0;j<v_per_elm;j++) {
-        elnd = v_on_elm[j];
-        if(v_on_face[0]==elnd) {
+        vel = v_on_elm[j];
+        if(v_on_face[i*v_per_f+0]==vel) {
           ef1 = j;
         }
-        if(v_on_face[1]==elnd) {
+        if(v_on_face[i*v_per_f+1]==vel) {
           ef2 = j;
         }
-        if(v_on_face[2]==elnd) {
+        if(v_on_face[i*v_per_f+2]==vel) {
           ef3 = j;
         }
       }
@@ -464,72 +544,50 @@ void rt0_basis(REAL *phi,REAL *dphi,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,I
 
   return;
 }
-/****************************************************************************************************************************/
+/******************************************************************************/
 
-/****************************************************************************************************************************/
 /*!
-* \fn void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh)
-*
+* \fn void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,INT* v_on_face,REAL* farea)
 * \brief Brezzi-Douglas-Marini (BDM) Elements of order 1.
 *
 * \note ONLY in 2D for now.
 * \note This has NOT been tested.
 *
-* \param x         Coordinate on where to compute basis function
+* \param lam,dlam  P1 bases at quadrature point
+* \param dim       Dimension of problem
 * \param v_on_elm  Vertices on element
-* \param dof       DOF on element
-* \param mesh      Mesh struct
+* \param v_on_face   Vertices on each face (DoF) on the elm
+* \param farea    Area of each face on element
 *
 * \return phi      Basis functions (2*f_per_elm for each face, 12 total in 2D)
 * \return dphix    Div of basis functions
 *
 */
-void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh)
+void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,INT* v_on_face,REAL* farea)
 {
   // Flag for errors
   SHORT status;
 
   // Get Mesh Data
-  INT v_per_elm = mesh->v_per_elm;
-  INT f_per_elm = mesh->f_per_elm;
-  INT dim = mesh->dim;
+  INT v_per_elm = dim+1;
+  INT f_per_elm = dim+1;
+  INT v_per_f = dim;
 
-  INT i,j,ica,icb,jcnt;
+  INT i,j;
   REAL a1,a2,a3,a4;
-  INT ipf[dim];
-  INT myf;
-  REAL farea;
-  INT elnd,ef1,ef2;
-
-  /* Get Linear Basis Functions for particular element */
-  // We use the working double arrays in mesh to store the values
-  // This way we do not need to reallocate each time this is called.
-  REAL* p = mesh->dwork;
-  REAL* dp = mesh->dwork + v_per_elm;
-  PX_H1_basis(p,dp,x,v_on_elm,1,mesh);
+  INT vel,ef1,ef2;
 
   // Go through each face and find the corresponding nodes
   if(dim==2) {
+
     for (i=0; i<f_per_elm; i++) {
-      myf = dof[i];
-      ica = mesh->f_v->IA[myf];
-      icb = mesh->f_v->IA[myf+1];
-      jcnt=0;
-      for(j=ica;j<icb;j++) {
-        ipf[jcnt] = mesh->f_v->JA[j];
-        jcnt++;
-      }
-
-      // Get the area and normal vector of the face
-      farea = mesh->f_area[myf];
-
-      // Loop through Nodes on element to find corresponding nodes and get correct orienation
+      // Loop through vertices on element to find corresponding nodes and get correct orienation
       for(j=0;j<v_per_elm;j++) {
-        elnd = v_on_elm[j];
-        if(ipf[0]==elnd) {
+        vel = v_on_elm[j];
+        if(v_on_face[i*v_per_f+0]==vel) {
           ef1 = j;
         }
-        if(ipf[1]==elnd) {
+        if(v_on_face[i*v_per_f+1]==vel) {
           ef2 = j;
         }
       }
@@ -539,32 +597,30 @@ void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof
       * psi_fij = alpha*|fij|*curl(p(i)p(j))
       * |fij| = |eij|
       */
-      phi[i*dim*2] = farea*(p[ef1]*dp[ef2*dim+1] - p[ef2]*dp[ef1*dim+1]);
-      phi[i*dim*2+1] = farea*(-p[ef1]*dp[ef2*dim] + p[ef2]*dp[ef1*dim]);
-      phi[i*dim*2+2] = -6*farea*(p[ef1]*dp[ef2*dim+1] + p[ef2]*dp[ef2*dim+1]);
-      phi[i*dim*2+3] = 6*farea*(p[ef1]*dp[ef2*dim] + p[ef2]*dp[ef2*dim]);
+      phi[i*dim*2] = farea[i]*(lam[ef1]*dlam[ef2*dim+1] - lam[ef2]*dlam[ef1*dim+1]);
+      phi[i*dim*2+1] = farea[i]*(-lam[ef1]*dlam[ef2*dim] + lam[ef2]*dlam[ef1*dim]);
+      phi[i*dim*2+2] = -6*farea[i]*(lam[ef1]*dlam[ef2*dim+1] + lam[ef2]*dlam[ef2*dim+1]);
+      phi[i*dim*2+3] = 6*farea[i]*(lam[ef1]*dlam[ef2*dim] + lam[ef2]*dlam[ef2*dim]);
 
-      a1 = dp[ef1*dim]*dp[ef2*dim];
-      a2 = dp[ef1*dim]*dp[ef2*dim+1];
-      a3 = dp[ef1*dim+1]*dp[ef2*dim];
-      a4 = dp[ef1*dim+1]*dp[ef2*dim+1];
+      a1 = dlam[ef1*dim]*dlam[ef2*dim];
+      a2 = dlam[ef1*dim]*dlam[ef2*dim+1];
+      a3 = dlam[ef1*dim+1]*dlam[ef2*dim];
+      a4 = dlam[ef1*dim+1]*dlam[ef2*dim+1];
 
-      dphix[i*dim*2] = farea*(a2-a3);
+      dphix[i*dim*2] = farea[i]*(a2-a3);
       dphix[i*dim*2+1] = 0.0;
-      dphix[i*dim*2+2] = -6*farea*(a2+a3);
-      dphix[i*dim*2+3] = 12*farea*a1;
+      dphix[i*dim*2+2] = -6*farea[i]*(a2+a3);
+      dphix[i*dim*2+3] = 12*farea[i]*a1;
       dphiy[i*dim*2] = 0.0;
-      dphiy[i*dim*2+1] = farea*(a2-a3);
-      dphiy[i*dim*2+2] = -12*farea*a4;
-      dphiy[i*dim*2+3] = 6*farea*(a2+a3);
+      dphiy[i*dim*2+1] = farea[i]*(a2-a3);
+      dphiy[i*dim*2+2] = -12*farea[i]*a4;
+      dphiy[i*dim*2+3] = 6*farea[i]*(a2+a3);
     }
+
   } else {
     status = ERROR_DIM;
     check_error(status, __FUNCTION__); // 3D not implemented
   }
-
-  // Clean up working array for next person to use.
-  array_set(v_per_elm*(dim+1),mesh->dwork,0.0);
 
   return;
 }
@@ -572,52 +628,44 @@ void bdm1_basis(REAL *phi,REAL *dphix,REAL *dphiy,REAL *x,INT *v_on_elm,INT *dof
 
 /****************************************************************************************************************************/
 /*!
-* \fn void bubble_face_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh)
+* \fn void face_bubble_basis(REAL *phi, REAL *dphi,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,INT* v_on_face,REAL* f_area,REAL* f_norm)
 *
 * \brief Compute Bubble Element Finite Element Basis Functions at a particular point in 2 or 3D
 *
-* \param x         Coordinate on where to compute basis function
+* \param lam,dlam  P1 bases at quadrature point
+* \param dim       Dimension of problem
 * \param v_on_elm  Vertices on element
-* \param dof       DOF on element
-* \param mesh      Mesh struct
+* \param v_on_face   Vertices on each face (DoF) on the element
+* \param f_area    Area of each face on element
+* \param f_norm    Normal vector of each face on element (f_per_elm*dim)
 *
 * \return phi      Basis functions (dim for each face from reference triangle)
 * \return dphi     Tensor from gradient of basis functions
 */
-void face_bubble_basis(REAL *phi, REAL *dphi, REAL *x, INT *v_on_elm, INT *dof, mesh_struct *mesh)
+void face_bubble_basis(REAL *phi, REAL *dphi,REAL* lam,REAL* dlam,INT dim,INT* v_on_elm,INT* v_on_face,REAL* f_area,REAL* f_norm)
 {
   // Flag for errors
   SHORT status;
 
   // Get Mesh Data
-  INT v_per_elm = mesh->v_per_elm;
-  INT dof_per_elm = mesh->f_per_elm;
-  INT dim = mesh->dim;
+  INT v_per_elm = dim+1;
+  INT dof_per_elm = dim+1;
+  INT v_per_f = dim;
   INT i,j;
 
-  /* Get Linear Basis Functions for particular element */
-  // We use the working double arrays in mesh to store the values
-  // This way we do not need to reallocate each time this is called.
-  REAL* p = mesh->dwork;
-  REAL* dp = mesh->dwork + v_per_elm;
-  PX_H1_basis(p,dp,x,v_on_elm,1,mesh);
-
   // face to vertex map
-  INT fv[dim];// = (INT *)calloc(dim,sizeof(INT));
-  INT elnd,ef1,ef2,ef3;//face endpoint vertex tracking numbers
+  INT vel,ef1,ef2,ef3;//face endpoint vertex tracking numbers
 
   REAL gradp;
 
   if(dim==2){
     for (i=0;i<dof_per_elm;i++) {
-      get_incidence_row(dof[i],mesh->f_v,fv);
-      // Find orientation of face
       for(j=0;j<v_per_elm;j++){
-        elnd = v_on_elm[j];
-        if(fv[0]==elnd) {
+        vel = v_on_elm[j];
+        if(v_on_face[i*v_per_f+0]==vel) {
           ef1 = j;
         }
-        if(fv[1]==elnd) {
+        if(v_on_face[i*v_per_f+1]==vel) {
           ef2 = j;
         }
       }
@@ -625,59 +673,53 @@ void face_bubble_basis(REAL *phi, REAL *dphi, REAL *x, INT *v_on_elm, INT *dof, 
       // Multiply basis function by normal vector
       /* phi[i*dim] =   ABS(mesh->f_norm[dim*(dof[i])]  )* 4*p[ef1]*p[ef2]; */
       /* phi[i*dim+1] = ABS(mesh->f_norm[dim*(dof[i])+1]) * 4*p[ef1]*p[ef2]; */
-      phi[i*dim] =   mesh->f_norm[dim*(dof[i])]* 4*p[ef1]*p[ef2];
-      phi[i*dim+1] = mesh->f_norm[dim*(dof[i])+1]* 4*p[ef1]*p[ef2];
+      phi[i*dim] =   f_norm[i*dim+0]*4.0*lam[ef1]*lam[ef2];
+      phi[i*dim+1] = f_norm[i*dim+1]*4.0*lam[ef1]*lam[ef2];
 
       // Gradient
       for(j=0;j<dim;j++) {
-        gradp = 4*(p[ef1]*dp[ef2*dim+j] + dp[ef1*dim+j]*p[ef2]);
+        gradp = 4.0*(lam[ef1]*dlam[ef2*dim+j] + dlam[ef1*dim+j]*lam[ef2]);
 
         /* dphi[i*dim*dim + j*dim + 0] = gradp * ABS(mesh->f_norm[dim*(dof[i])+0]); */
         /* dphi[i*dim*dim + j*dim + 1] = gradp * ABS(mesh->f_norm[dim*(dof[i])+1]); */
-        dphi[i*dim*dim + j*dim + 0] = gradp * mesh->f_norm[dim*(dof[i])+0];
-        dphi[i*dim*dim + j*dim + 1] = gradp * mesh->f_norm[dim*(dof[i])+1];
+        dphi[i*dim*dim + j*dim + 0] = gradp * f_norm[i*dim+0];
+        dphi[i*dim*dim + j*dim + 1] = gradp * f_norm[i*dim+1];
       }
 
     }
   } else if(dim==3) {
     for (i=0;i<dof_per_elm;i++) {
-      get_incidence_row(dof[i],mesh->f_v,fv);
-      // Find orientation of face
       for(j=0;j<v_per_elm;j++){
-        elnd = v_on_elm[j];
-        if(fv[0]==elnd) {
+        vel = v_on_elm[j];
+        if(v_on_face[i*v_per_f+0]==vel) {
           ef1 = j;
         }
-        if(fv[1]==elnd) {
+        if(v_on_face[i*v_per_f+1]==vel) {
           ef2 = j;
         }
-        if(fv[2]==elnd) {
+        if(v_on_face[i*v_per_f+2]==vel) {
           ef3 = j;
         }
       }
 
       // Multiply basis function by normal vector
-      phi[i*dim] = mesh->f_norm[dim*(dof[i])] * 8*p[ef1]*p[ef2]*p[ef3];
-      phi[i*dim+1] = mesh->f_norm[dim*(dof[i])+1] * 8*p[ef1]*p[ef2]*p[ef3];
-      phi[i*dim+2] = mesh->f_norm[dim*(dof[i])+2] * 8*p[ef1]*p[ef2]*p[ef3];
+      phi[i*dim+0] = f_norm[i*dim+0]*8.0*lam[ef1]*lam[ef2]*lam[ef3];
+      phi[i*dim+1] = f_norm[i*dim+1]*8.0*lam[ef1]*lam[ef2]*lam[ef3];
+      phi[i*dim+2] = f_norm[i*dim+2]*8.0*lam[ef1]*lam[ef2]*lam[ef3];
 
       // Gradient
       for(j=0;j<dim;j++) {
-        gradp = 8*(p[ef1]*p[ef2]*dp[ef3*dim+j] + p[ef1]*dp[ef2*dim+j]*p[ef3] + dp[ef1*dim+j]*p[ef2]*p[ef3]);
+        gradp = 8.0*(lam[ef1]*lam[ef2]*dlam[ef3*dim+j] + lam[ef1]*dlam[ef2*dim+j]*lam[ef3] + dlam[ef1*dim+j]*lam[ef2]*lam[ef3]);
 
-        dphi[i*dim*dim + j*dim + 0] = gradp * mesh->f_norm[dim*(dof[i])+0];
-        dphi[i*dim*dim + j*dim + 1] = gradp * mesh->f_norm[dim*(dof[i])+1];
-        dphi[i*dim*dim + j*dim + 2] = gradp * mesh->f_norm[dim*(dof[i])+2];
+        dphi[i*dim*dim + j*dim + 0] = gradp * f_norm[i*dim+0];
+        dphi[i*dim*dim + j*dim + 1] = gradp * f_norm[i*dim+1];
+        dphi[i*dim*dim + j*dim + 2] = gradp * f_norm[i*dim+2];
       }
-
     }
   } else {
     status = ERROR_DIM;
     check_error(status, __FUNCTION__);
   }
-
-  // Clean up working array for next person to use.
-  array_set(v_per_elm*(dim+1),mesh->dwork,0.0);
 
   return;
 }
@@ -685,58 +727,64 @@ void face_bubble_basis(REAL *phi, REAL *dphi, REAL *x, INT *v_on_elm, INT *dof, 
 
 /****************************************************************************************************************************/
 /*!
-* \fn void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh,fespace *FE)
+* \fn void get_FEM_basis_at_quadonelm(REAL *phi,REAL *dphi,INT fe_type,fe_local_data *loc_data,INT quadpt)
 *
-* \brief Grabs the basis function of a FEM space at a particular point in 2 or 3D
+* \brief Grabs the basis function of a FEM space at a particular quadrature point
+*        on a given quadrature point, given the local fem data on that simplex
 *
-* \param x         Coordinate on where to compute basis function
-* \param v_on_elm  Vertices on element
-* \param dof       DOF on element
-* \param mesh      Mesh struct
-* \param FE        Fespace struct
+* \param fe_type    Type of FEM considered
+* \param loc_data   Contains the FEM data on the particular simplex needed
+* \param quadpt     Index of quadrature point basis is to be evaluated at
+*                   Note: ordering is determined by get_quadrature routine how
+*                   its stored in loc_data
 *
 * \return phi      Basis functions
 * \return dphi     Derivatives of basis functions (depends on type)
 *
 */
-void get_FEM_basis_elm(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh,fespace *FE)
+void get_FEM_basis_at_quadonelm(REAL *phi,REAL *dphi,INT fe_type,fe_local_data *loc_data,INT quadpt)
 {
   // Flag for erros
   SHORT status;
 
   // Mesh and FEM Data
-  INT FEtype = FE->FEtype;
-  INT offset = FE->dof_per_elm/mesh->dim;
+  INT dim = loc_data->dim;
+  // P1 basis functions at quadpt
+  REAL* lam = loc_data->lams + quadpt*(dim+1);
+  REAL* dlam = loc_data->gradlams + quadpt*((dim+1)*dim);
 
-  if(FEtype>=0 && FEtype<10) { // PX elements
+//???  INT offset = FE->dof_per_elm/mesh->dim;
 
-    PX_H1_basis(phi,dphi,x,dof,FEtype,mesh);
+  if(fe_type>=0 && fe_type<10) { // PX elements - only P0, P1, and P2 implemented
 
-  } else if(FEtype==20) { // Nedelec elements
+    PX_basis(phi,dphi,fe_type,dim,lam,dlam);
 
-    ned_basis(phi,dphi,x,v_on_elm,dof,mesh);
-
-  } else if(FEtype==30) { // Raviart-Thomas elements
-
-    rt_basis(phi,dphi,x,v_on_elm,dof,mesh);
-
-  } else if(FEtype==60) { // Vector element
-
-    PX_H1_basis(phi, dphi, x, dof, 1, mesh);
-    if (mesh->dim>1){
-      PX_H1_basis(phi+offset, dphi+FE->dof_per_elm, x, dof, 1, mesh);
-    }
-    if (mesh->dim>2){
-      PX_H1_basis(phi+offset*2, dphi+FE->dof_per_elm*2, x, dof, 1, mesh);
-    }
-
-  } else if(FEtype==61) { // Bubble element
-
-    bubble_face_basis(phi,dphi,x,v_on_elm,dof,mesh);
-
-  } else if(FEtype==99) { // Constraint Single DOF Space
-
-    phi[0] = 1.0;
+  // } else if(FEtype==20) { // Nedelec elements
+  //
+  //   ned0_basis(phi,dphi,lam,dlam,dim,loc_data->v_on_dof_space,INT* v_on_ed,REAL* ed_len)
+  //   ned_basis(phi,dphi,x,v_on_elm,dof,mesh);
+  //
+  // } else if(FEtype==30) { // Raviart-Thomas elements
+  //
+  //   rt_basis(phi,dphi,x,v_on_elm,dof,mesh);
+  //
+  // } else if(FEtype==60) { // Vector element
+  //
+  //   PX_H1_basis(phi, dphi, x, dof, 1, mesh);
+  //   if (mesh->dim>1){
+  //     PX_H1_basis(phi+offset, dphi+FE->dof_per_elm, x, dof, 1, mesh);
+  //   }
+  //   if (mesh->dim>2){
+  //     PX_H1_basis(phi+offset*2, dphi+FE->dof_per_elm*2, x, dof, 1, mesh);
+  //   }
+  //
+  // } else if(FEtype==61) { // Bubble element
+  //
+  //   bubble_face_basis(phi,dphi,x,v_on_elm,dof,mesh);
+  //
+  // } else if(FEtype==99) { // Constraint Single DOF Space
+  //
+  //   phi[0] = 1.0;
 
   } else {
     status = ERROR_FE_TYPE;
