@@ -24,11 +24,13 @@ void initialize_fespace(fespace *FE)
 {
   FE->FEtype = -666;
   FE->scal_or_vec = -666;
+  FE->dof_form = -666;
   FE->nelm = -666;
   FE->cdof = NULL;
   FE->ndof = -666;
   FE->nbdof = -666;
   FE->dof_per_elm = -666;
+  FE->dof_per_edge = -666;
   FE->dof_per_face = -666;
   FE->el_dof = NULL;
   FE->ed_dof = NULL;
@@ -38,78 +40,7 @@ void initialize_fespace(fespace *FE)
   FE->periodic = NULL;
   FE->phi = NULL;
   FE->dphi = NULL;
-
-  return;
-}
-/****************************************************************************************/
-
-/****************************************************************************************/
-/*!
-* \fn void initialize_fesystem(block_fespace *FE)
-*
-* \brief Initializes all components of the structure block FE system
-*
-* \param nspaces  Number of FE spaces
-* \param nun      Number of unknowns (includes components of vector functions)
-* \param ndof     Total number of DoF in FE system
-*
-* \return FE     Struct for block FE system
-*
-*/
-void initialize_fesystem(block_fespace *FE,INT nspaces,INT nun,INT ndof)
-{
-  FE->nspaces = nspaces;
-  FE->nun = nun;
-  FE->ndof = ndof;
-  FE->var_spaces = (fespace **) calloc(nspaces,sizeof(fespace *));
-  FE->dirichlet = NULL;
-  FE->dof_flag = NULL;
-  FE->loc_data = (fe_local_data *) calloc(1,sizeof(fe_local_data));
-
-  return;
-}
-/****************************************************************************************/
-
-/****************************************************************************************/
-/*!
-* \fn void initialize_felocaldata_elm(block_fespace *FE,mesh_struct* mesh)
-*
-* \brief Initializes some of the components of fe_local_data (things that come
-*        from the global data and are fixed).  Assumes data is on elements
-*
-* \param nspaces  Number of FE spaces
-* \param nun      Number of unknowns (includes components of vector functions)
-* \param ndof     Total number of DoF in FE system
-*
-* \return FE     Struct for block FE system
-*
-*/
-void initialize_felocaldata_elm(block_fespace *FE,mesh_struct* mesh)
-{
-  // counters
-  INT i;
-
-  INT dim = mesh->dim;
-  INT v_per_elm = mesh->v_per_elm;
-  INT nspaces = FE->nspaces;
-  INT dof_per_elm_tot = 0;
-
-  // Vertex Stuff
-  FE->loc_data->nlocal_vert = v_per_elm;
-  FE->loc_data->dim = dim;
-  FE->loc_data->local_vert = (INT *) calloc(v_per_elm,sizeof(INT));
-  FE->loc_data->xv = (REAL *) calloc(v_per_elm*dim,sizeof(REAL));
-
-  // DoF Stuff
-  FE->loc_data->nlocal_dof_space = (INT *) calloc(nspaces,sizeof(INT));
-  for(i=0;i<nspaces;i++) {
-    dof_per_elm_tot += FE->var_spaces[i]->dof_per_elm;
-    FE->loc_data->nlocal_dof_space[i] = FE->var_spaces[i]->dof_per_elm;
-  }
-  FE->loc_data->nlocal_dof = dof_per_elm_tot;
-  FE->loc_data->local_dof = (INT *) calloc(dof_per_elm_tot,sizeof(INT));
-  FE->loc_data->local_dof_flags = (INT *) calloc(dof_per_elm_tot,sizeof(INT));
-  FE->loc_data->u_local = (REAL *) calloc(dof_per_elm_tot,sizeof(REAL));
+  FE->ddphi = NULL;
 
   return;
 }
@@ -156,7 +87,8 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
   iCSRmat ed_f;
   switch (FEtype)
   {
-    case 0: // Contants - P0
+    // Contants - P0
+    case 0:
     FE->scal_or_vec = 0;
     FE->ndof = mesh->nelm;
     coordinates *barycenter = allocatecoords(mesh->nelm,dim);
@@ -173,7 +105,7 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     FE->dof_per_face = 1; // This is wrong but needs to be here
     FE->el_dof = malloc(sizeof(struct iCSRmat));
     *(FE->el_dof) = icsr_create_identity(mesh->nelm, 0);
-    if(mesh->dim>1) {
+    if(dim>1) {
       icsr_trans(mesh->el_ed,&ed_el);
       FE->ed_dof = malloc(sizeof(struct iCSRmat));
       *(FE->ed_dof) = ed_el;
@@ -192,15 +124,18 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     phi = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
     FE->phi = phi;
     break;
-    case 1: // Linears - P1
+
+    // Linears - P1
+    case 1:
     FE->scal_or_vec = 0;
     FE->cdof = mesh->cv;
     FE->ndof = mesh->nv;
     FE->nbdof = mesh->nbv;
     FE->dof_per_elm = mesh->v_per_elm;
     FE->dof_per_face = mesh->dim;
+    FE->dof_per_edge = 2;
     FE->el_dof = mesh->el_v;
-    if(mesh->dim>1) {
+    if(dim>1) {
       FE->ed_dof = mesh->ed_v;
       FE->f_dof = mesh->f_v;
     }
@@ -217,7 +152,9 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     dphi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
     FE->dphi = dphi;
     break;
-    case 2: // Quadratics - P2
+
+    // Quadratics - P2
+    case 2:
     FE->scal_or_vec = 0;
     FE->ndof = mesh->nv + mesh->nelm; // In 1D
     FE->nbdof = mesh->nbv; // In 1D
@@ -237,7 +174,9 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     dphi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
     FE->dphi = dphi;
     break;
-    case 20: // Nedelec Elements
+
+    // Nedelec Elements
+    case 20:
     FE->scal_or_vec = 1;
     FE->cdof = array_2_coord ( mesh->ed_mid, mesh->nedge, mesh->dim);
     FE->ndof = mesh->nedge;
@@ -264,7 +203,9 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     dphi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
     FE->dphi = dphi;
     break;
-    case 30: // Raviart-Thomas Elements
+
+    // Raviart-Thomas Elements
+    case 30:
     FE->scal_or_vec = 1;
     FE->cdof = array_2_coord ( mesh->f_mid, mesh->nface, mesh->dim);
     FE->ndof = mesh->nface;
@@ -290,26 +231,27 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     dphi = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
     FE->dphi = dphi;
     break;
-    case 60: // Vector Velocity
+
+    // Vector Velocity (Seems to be only for linears though...)
+    case 60:
     FE->scal_or_vec = 1;
     FE->cdof = NULL;
-    FE->ndof = mesh->nv * mesh->dim;
-    FE->nbdof = mesh->nbv * mesh->dim;
+    FE->ndof = mesh->nv * dim;
+    FE->nbdof = mesh->nbv * dim;
     FE->dof_per_elm = mesh->v_per_elm * mesh->dim;
     FE->dof_per_face = mesh->dim*mesh->dim;
     FE->el_dof = malloc(sizeof(struct iCSRmat));
     //printf("Before Concat\n");
-    if(mesh->dim==1){
+    if(dim==1){
       FE->el_dof = mesh->el_v;
-    } else if(mesh->dim==2){
+    } else if(dim==2){
       icsr_concat(mesh->el_v, mesh->el_v, FE->el_dof);
     } else if(mesh->dim==3){
       icsr_concat(mesh->el_v,mesh->el_v,temp);
       icsr_concat(temp,mesh->el_v,FE->el_dof);
       icsr_free(temp);
     }
-    //printf("After Concat\n");
-    if(mesh->dim>1) {
+    if(dim>1) {
       FE->ed_dof = malloc(sizeof(struct iCSRmat));
       if(mesh->dim==2){
         icsr_concat(mesh->ed_v, mesh->ed_v, FE->ed_dof);
@@ -340,7 +282,9 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     dphi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
     FE->dphi = dphi;
     break;
-    case 61: // Bubbles
+
+    // Face bubbles // TODO Make one vector space plus linears
+    case 61:
     FE->scal_or_vec = 1;
     FE->cdof = array_2_coord ( mesh->f_mid, mesh->nface, mesh->dim);
     FE->ndof = mesh->nface;
@@ -411,6 +355,8 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     phi[0] = 1;
     FE->phi = phi;
     break;
+
+    // Not a valid space
     default:
     status = ERROR_FE_TYPE;
     check_error(status, __FUNCTION__);
@@ -492,9 +438,114 @@ void free_fespace(fespace* FE)
     FE->dphi = NULL;
   }
 
+  if(FE->ddphi) {
+    free(FE->ddphi);
+    FE->ddphi = NULL;
+  }
+
   return;
 }
 /****************************************************************************************/
+
+/****************************************************************************************/
+/*!
+* \fn void initialize_fesystem(block_fespace *FE)
+*
+* \brief Initializes all components of the structure block FE system
+*
+* \param nspaces  Number of FE spaces
+* \param nun      Number of unknowns (includes components of vector functions)
+* \param ndof     Total number of DoF in FE system
+*
+* \return FE     Struct for block FE system
+*
+*/
+void initialize_fesystem(block_fespace *FE,INT nspaces,INT nun,INT ndof,INT nelm)
+{
+  FE->nspaces = nspaces;
+  FE->nun = nun;
+  FE->ndof = ndof;
+  FE->nelm = nelm;
+  FE->var_spaces = (fespace **) calloc(nspaces,sizeof(fespace *));
+  FE->dirichlet = NULL;
+  FE->dof_flag = NULL;
+  FE->simplex_data = (simplex_local_data *) calloc(1,sizeof(simplex_local_data));
+  FE->fe_data = (fe_local_data *) calloc(1,sizeof(fe_local_data));
+
+  return;
+}
+/****************************************************************************************/
+
+/****************************************************************************************/
+/*!
+* \fn void initialize_localdata_elm(block_fespace *FE,mesh_struct* mesh,INT nq1d)
+*
+* \brief Initializes some of the components of simplex_local_data and
+*        fe_local_data (things that come from the global data and are fixed).
+*        Assumes data is on elements
+*
+* \param mesh     mesh data
+* \param nq1d     number of quadrature points in a 1D direction
+*
+* \return FE     Struct for block FE system
+*
+*/
+void initialize_localdata_elm(block_fespace *FE,mesh_struct* mesh,INT nq1d)
+{
+  // counters
+  INT i;
+
+  INT dim = mesh->dim;
+  INT v_per_elm = mesh->v_per_elm;
+  INT ed_per_elm = mesh->ed_per_elm;
+  INT f_per_elm = mesh->f_per_elm;
+  INT nspaces = FE->nspaces;
+  INT dof_per_elm_tot = 0;
+
+  // Simplex Data first that is fixed
+  FE->simplex_data->dim = dim;
+  FE->simplex_data->n_v = v_per_elm;
+  FE->simplex_data->local_v = (INT *) calloc(v_per_elm,sizeof(INT));
+  FE->simplex_data->xv = (REAL *) calloc(v_per_elm*dim,sizeof(REAL));
+  FE->simplex_data->n_ed = ed_per_elm;
+  FE->simplex_data->local_ed = (INT *) calloc(ed_per_elm,sizeof(INT));
+  FE->simplex_data->v_on_ed = (INT *) calloc(2*ed_per_elm,sizeof(INT));
+  FE->simplex_data->ed_len = (REAL *) calloc(ed_per_elm,sizeof(REAL));
+  FE->simplex_data->ed_tau = (REAL *) calloc(ed_per_elm,sizeof(REAL));
+  FE->simplex_data->ed_mid = (REAL *) calloc(ed_per_elm,sizeof(REAL));
+  FE->simplex_data->n_f = f_per_elm;
+  FE->simplex_data->local_f = (INT *) calloc(f_per_elm,sizeof(INT));
+  FE->simplex_data->v_on_f = (INT *) calloc(dim*f_per_elm,sizeof(INT));
+  FE->simplex_data->f_area = (REAL *) calloc(f_per_elm,sizeof(REAL));
+  FE->simplex_data->f_norm = (REAL *) calloc(f_per_elm,sizeof(REAL));
+  FE->simplex_data->f_mid = (REAL *) calloc(f_per_elm,sizeof(REAL));
+  FE->simplex_data->quad_local = allocateqcoords(nq1d,1,dim);
+  FE->simplex_data->ref_map = (REAL *) calloc(dim*dim,sizeof(REAL));
+  INT nq = FE->simplex_data->quad_local->n;
+  FE->simplex_data->lams = (REAL *) calloc(nq*v_per_elm,sizeof(REAL));
+  FE->simplex_data->gradlams = (REAL *) calloc(nq*v_per_elm*dim,sizeof(REAL));
+
+
+  // FE local data that is fixed
+  FE->fe_data->nspaces = nspaces;
+  FE->fe_data->fe_types = (INT *) calloc(nspaces,sizeof(INT));
+  FE->fe_data->n_dof_per_space = (INT *) calloc(nspaces,sizeof(INT));
+  for(i=0;i<nspaces;i++) {
+    dof_per_elm_tot += FE->var_spaces[i]->dof_per_elm;
+    FE->fe_data->n_dof_per_space[i] = FE->var_spaces[i]->dof_per_elm;
+  }
+  FE->fe_data->n_dof = dof_per_elm_tot;
+  FE->fe_data->local_dof = (INT *) calloc(dof_per_elm_tot,sizeof(INT));
+  FE->fe_data->local_dof_flags = (INT *) calloc(dof_per_elm_tot,sizeof(INT));
+  FE->fe_data->u_local = (REAL *) calloc(dof_per_elm_tot,sizeof(REAL));
+  FE->fe_data->phi = (REAL **) calloc(nspaces,sizeof(REAL *));
+  FE->fe_data->dphi = (REAL **) calloc(nspaces,sizeof(REAL *));
+  FE->fe_data->ddphi = (REAL **) calloc(nspaces,sizeof(REAL *));
+
+  return;
+}
+/****************************************************************************************/
+
 
 /****************************************************************************************/
 /*!
@@ -516,22 +567,24 @@ void free_blockfespace(block_fespace* FE)
     free_fespace(FE->var_spaces[i]);
     FE->var_spaces[i] = NULL;
   }
-
   free(FE->var_spaces);
   FE->var_spaces = NULL;
 
   if(FE->dirichlet) free(FE->dirichlet);
   if(FE->dof_flag) free(FE->dof_flag);
-  if(FE->loc_data) {
-    free_felocaldata(FE->loc_data);
-    free(FE->loc_data);
-    FE->loc_data=NULL;
+  if(FE->simplex_data) {
+    free_simplexlocaldata(FE->simplex_data);
+    free(FE->simplex_data);
+    FE->simplex_data=NULL;
+  }
+  if(FE->fe_data) {
+    free_felocaldata(FE->fe_data);
+    free(FE->fe_data);
+    FE->fe_data=NULL;
   }
   return;
 }
-/****************************************************************************************/
 
-/****************************************************************************************/
 /*!
 * \fn void free_felocaldata(fe_local_data* loc_data)
 *
@@ -544,12 +597,58 @@ void free_felocaldata(fe_local_data* loc_data)
 {
   if (loc_data == NULL) return; // Nothing need to be freed!
 
-  if(loc_data->nlocal_dof_space) free(loc_data->nlocal_dof_space);
+  INT i;
+  INT nspaces = loc_data->nspaces;
+  if(loc_data->fe_types) free(loc_data->fe_types);
+  if(loc_data->n_dof_per_space) free(loc_data->n_dof_per_space);
   if(loc_data->local_dof) free(loc_data->local_dof);
   if(loc_data->local_dof_flags) free(loc_data->local_dof_flags);
-  if(loc_data->local_vert) free(loc_data->local_vert);
-  if(loc_data->xv) free(loc_data->xv);
   if(loc_data->u_local) free(loc_data->u_local);
+  for ( i=0; i<nspaces; i++ ) {
+    if(loc_data->phi[i]) free(loc_data->phi[i]);
+    loc_data->phi[i] = NULL;
+    if(loc_data->dphi[i]) free(loc_data->dphi[i]);
+    loc_data->dphi[i] = NULL;
+    if(loc_data->ddphi[i]) free(loc_data->ddphi[i]);
+    loc_data->ddphi[i] = NULL;
+  }
+  if(loc_data->phi) free(loc_data->phi);
+  loc_data->phi = NULL;
+  if(loc_data->dphi) free(loc_data->dphi);
+  loc_data->dphi = NULL;
+  if(loc_data->ddphi) free(loc_data->ddphi);
+  loc_data->ddphi = NULL;
+
+  return;
+}
+
+/*!
+* \fn void free_simplexlocaldata(simplex_local_data* loc_data)
+*
+* \brief Frees memory of arrays of simplex_local_data structure
+*
+* \return loc_data       Struct to be freed
+*
+*/
+void free_simplexlocaldata(simplex_local_data* loc_data)
+{
+  if (loc_data == NULL) return; // Nothing need to be freed!
+
+  if(loc_data->local_v) free(loc_data->local_v);
+  if(loc_data->xv) free(loc_data->xv);
+  if(loc_data->local_ed) free(loc_data->local_ed);
+  if(loc_data->v_on_ed) free(loc_data->v_on_ed);
+  if(loc_data->ed_len) free(loc_data->ed_len);
+  if(loc_data->ed_tau) free(loc_data->ed_tau);
+  if(loc_data->ed_mid) free(loc_data->ed_mid);
+  if(loc_data->local_f) free(loc_data->local_f);
+  if(loc_data->v_on_f) free(loc_data->v_on_f);
+  if(loc_data->f_area) free(loc_data->f_area);
+  if(loc_data->f_norm) free(loc_data->f_norm);
+  if(loc_data->f_mid) free(loc_data->f_mid);
+  if(loc_data->ref_map) free(loc_data->ref_map);
+  if(loc_data->lams) free(loc_data->lams);
+  if(loc_data->gradlams) free(loc_data->gradlams);
   if(loc_data->dwork) free(loc_data->dwork);
   if(loc_data->iwork) free(loc_data->iwork);
   if(loc_data->quad_local){
@@ -560,10 +659,7 @@ void free_felocaldata(fe_local_data* loc_data)
 
   return;
 }
-/****************************************************************************************/
 
-
-/***********************************************************************************************/
 /*!
 * \fn void get_P2(fespace* FE,mesh_struct* mesh)
 *
