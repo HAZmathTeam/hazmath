@@ -474,11 +474,10 @@ void initialize_fesystem(block_fespace *FE,INT nspaces,INT nun,INT ndof,INT nelm
 
   return;
 }
-/****************************************************************************************/
+/******************************************************************************/
 
-/****************************************************************************************/
 /*!
-* \fn void initialize_localdata_elm(block_fespace *FE,mesh_struct* mesh,INT nq1d)
+* \fn void initialize_localdata_elm(simplex_local_data *simplex_data,fe_local_data *fe_data,mesh_struct* mesh,block_fespace *FE,INT nq1d)
 *
 * \brief Initializes some of the components of simplex_local_data and
 *        fe_local_data (things that come from the global data and are fixed).
@@ -486,68 +485,393 @@ void initialize_fesystem(block_fespace *FE,INT nspaces,INT nun,INT ndof,INT nelm
 *
 * \param mesh     mesh data
 * \param nq1d     number of quadrature points in a 1D direction
+* \param FE       Struct for block FE system
 *
-* \return FE     Struct for block FE system
+* \return simplex_data Local Mesh data on elm
+* \return fe_data      Local FE data on elm
 *
 */
-void initialize_localdata_elm(block_fespace *FE,mesh_struct* mesh,INT nq1d)
+void initialize_localdata_elm(simplex_local_data *simplex_data,fe_local_data *fe_data,mesh_struct* mesh,block_fespace *FE,INT nq1d)
 {
   // counters
   INT i;
 
   INT dim = mesh->dim;
+  INT nspaces = FE->nspaces;
   INT v_per_elm = mesh->v_per_elm;
   INT ed_per_elm = mesh->ed_per_elm;
   INT f_per_elm = mesh->f_per_elm;
-  INT nspaces = FE->nspaces;
   INT dof_per_elm_tot = 0;
 
   // Simplex Data first that is fixed
-  FE->simplex_data->dim = dim;
-  FE->simplex_data->n_v = v_per_elm;
-  FE->simplex_data->local_v = (INT *) calloc(v_per_elm,sizeof(INT));
-  FE->simplex_data->xv = (REAL *) calloc(v_per_elm*dim,sizeof(REAL));
-  FE->simplex_data->n_ed = ed_per_elm;
-  FE->simplex_data->local_ed = (INT *) calloc(ed_per_elm,sizeof(INT));
-  FE->simplex_data->v_on_ed = (INT *) calloc(2*ed_per_elm,sizeof(INT));
-  FE->simplex_data->ed_len = (REAL *) calloc(ed_per_elm,sizeof(REAL));
-  FE->simplex_data->ed_tau = (REAL *) calloc(ed_per_elm,sizeof(REAL));
-  FE->simplex_data->ed_mid = (REAL *) calloc(ed_per_elm,sizeof(REAL));
-  FE->simplex_data->n_f = f_per_elm;
-  FE->simplex_data->local_f = (INT *) calloc(f_per_elm,sizeof(INT));
-  FE->simplex_data->v_on_f = (INT *) calloc(dim*f_per_elm,sizeof(INT));
-  FE->simplex_data->f_area = (REAL *) calloc(f_per_elm,sizeof(REAL));
-  FE->simplex_data->f_norm = (REAL *) calloc(f_per_elm,sizeof(REAL));
-  FE->simplex_data->f_mid = (REAL *) calloc(f_per_elm,sizeof(REAL));
-  FE->simplex_data->quad_local = allocateqcoords(nq1d,1,dim);
-  FE->simplex_data->ref_map = (REAL *) calloc(dim*dim,sizeof(REAL));
-  INT nq = FE->simplex_data->quad_local->n;
-  FE->simplex_data->lams = (REAL *) calloc(nq*v_per_elm,sizeof(REAL));
-  FE->simplex_data->gradlams = (REAL *) calloc(nq*v_per_elm*dim,sizeof(REAL));
+  simplex_data->dim = dim;
+  simplex_data->n_v = v_per_elm;
+  simplex_data->local_v = (INT *) calloc(v_per_elm,sizeof(INT));
+  simplex_data->xv = (REAL *) calloc(v_per_elm*dim,sizeof(REAL));
+  simplex_data->n_ed = ed_per_elm;
+  simplex_data->local_ed = (INT *) calloc(ed_per_elm,sizeof(INT));
+  simplex_data->v_on_ed = (INT *) calloc(2*ed_per_elm,sizeof(INT));
+  simplex_data->ed_len = (REAL *) calloc(ed_per_elm,sizeof(REAL));
+  simplex_data->ed_tau = (REAL *) calloc(ed_per_elm*dim,sizeof(REAL));
+  simplex_data->ed_mid = (REAL *) calloc(ed_per_elm*dim,sizeof(REAL));
+  simplex_data->n_f = f_per_elm;
+  simplex_data->local_f = (INT *) calloc(f_per_elm,sizeof(INT));
+  simplex_data->v_on_f = (INT *) calloc(dim*f_per_elm,sizeof(INT));
+  simplex_data->f_area = (REAL *) calloc(f_per_elm,sizeof(REAL));
+  simplex_data->f_norm = (REAL *) calloc(f_per_elm*dim,sizeof(REAL));
+  simplex_data->f_mid = (REAL *) calloc(f_per_elm*dim,sizeof(REAL));
+
+  // Quadrature and reference mappings
+  simplex_data->quad_local = alloc_quadrature(nq1d,1,dim);
+  // Fill in with reference element for now to get lambdas (overwite later for elm)
+  quad_refelm(simplex_data->quad_local,nq1d,dim);
+  INT nq = simplex_data->quad_local->nq;
+  simplex_data->lams = (REAL *) calloc(nq*v_per_elm,sizeof(REAL));
+  // Lams are ordered for each quadrature point, lam0, lam1, etc.
+  // We fill in gradlams, knowing that this will be overwritten later anyway
+  REAL* lam_at_q = simplex_data->lams;
+  REAL* dlam_at_q = simplex_data->gradlams;
+  REAL* qx = simplex_data->quad_local->x;
+  for(i=0;i<nq;i++) {
+    P1_basis_ref(lam_at_q,dlam_at_q,qx,dim);
+    lam_at_q += dim+1;
+    dlam_at_q += (dim+1)*dim;
+    qx += dim;
+  }
+  simplex_data->ref_map = (REAL *) calloc(dim*dim,sizeof(REAL));
+  simplex_data->gradlams = (REAL *) calloc(nq*v_per_elm*dim,sizeof(REAL));
 
 
   // FE local data that is fixed
-  FE->fe_data->nspaces = nspaces;
-  FE->fe_data->fe_types = (INT *) calloc(nspaces,sizeof(INT));
-  FE->fe_data->n_dof_per_space = (INT *) calloc(nspaces,sizeof(INT));
+  fe_data->nspaces = nspaces;
+  fe_data->fe_types = (INT *) calloc(nspaces,sizeof(INT));
+  fe_data->n_dof_per_space = (INT *) calloc(nspaces,sizeof(INT));
   for(i=0;i<nspaces;i++) {
     dof_per_elm_tot += FE->var_spaces[i]->dof_per_elm;
-    FE->fe_data->n_dof_per_space[i] = FE->var_spaces[i]->dof_per_elm;
+    fe_data->n_dof_per_space[i] = FE->var_spaces[i]->dof_per_elm;
   }
-  FE->fe_data->n_dof = dof_per_elm_tot;
-  FE->fe_data->local_dof = (INT *) calloc(dof_per_elm_tot,sizeof(INT));
-  FE->fe_data->local_dof_flags = (INT *) calloc(dof_per_elm_tot,sizeof(INT));
-  FE->fe_data->u_local = (REAL *) calloc(dof_per_elm_tot,sizeof(REAL));
-  FE->fe_data->phi = (REAL **) calloc(nspaces,sizeof(REAL *));
-  FE->fe_data->dphi = (REAL **) calloc(nspaces,sizeof(REAL *));
-  FE->fe_data->ddphi = (REAL **) calloc(nspaces,sizeof(REAL *));
+  fe_data->n_dof = dof_per_elm_tot;
+  fe_data->local_dof = (INT *) calloc(dof_per_elm_tot,sizeof(INT));
+  fe_data->local_dof_flags = (INT *) calloc(dof_per_elm_tot,sizeof(INT));
+  fe_data->u_local = (REAL *) calloc(dof_per_elm_tot,sizeof(REAL));
+  fe_data->phi = (REAL **) calloc(nspaces,sizeof(REAL *));
+  fe_data->dphi = (REAL **) calloc(nspaces,sizeof(REAL *));
+  fe_data->ddphi = (REAL **) calloc(nspaces,sizeof(REAL *));
 
   return;
 }
 /****************************************************************************************/
 
+/****************************************************************************************/
+/*!
+* \fn void get_elmlocaldata(simplex_local_data* elm_data,mesh_struct* mesh,INT elm)
+*
+* \brief On a given element, grab the local mesh data.  We assume fixed values
+*        for the mesh have been initialized already, and just filling in element
+*        specific data here.
+*
+* \param mesh     mesh data
+* \param elm      Element we are considering
+*
+* \return elm_data Struct for local simplex data on elm
+*
+*/
+void get_elmlocaldata(simplex_local_data* elm_data,mesh_struct* mesh,INT elm)
+{
+  // counters
+  INT i,j;
+
+  INT dim = mesh->dim;
+  INT v_per_elm = mesh->v_per_elm;
+  INT ed_per_elm = mesh->ed_per_elm;
+  INT f_per_elm = mesh->f_per_elm;
+
+  // Generic elm data
+  elm_data->sindex = elm;
+  elm_data->vol = mesh->el_vol[elm];
+  elm_data->flag = mesh->el_flag[elm];
+
+  // Get vertices on element
+  get_incidence_row(elm,mesh->el_v,elm_data->local_v);
+  // Temporary fix until coordinates is made dimensionless
+  for(i=0;i<v_per_elm;i++) {
+    elm_data->xv[i*dim] = mesh->cv->x[elm_data->local_v[i]];
+    if(dim>1) elm_data->xv[i*dim+1] = mesh->cv->y[elm_data->local_v[i]];
+    if(dim>2) elm_data->xv[i*dim+2] = mesh->cv->z[elm_data->local_v[i]];
+  }
+
+  // Edge data
+  INT v_per_ed = 2;
+  INT edge;
+  get_incidence_row(elm,mesh->el_ed,elm_data->local_ed);
+  for(i=0;i<ed_per_elm;i++) {
+    edge = elm_data->local_ed[i];
+    get_incidence_row(edge,mesh->ed_v,elm_data->v_on_ed+i*v_per_ed);
+    elm_data->ed_len[i] = mesh->ed_len[edge];
+    for(j=0;j<dim;j++) {
+      elm_data->ed_tau[i*dim+j] = mesh->ed_tau[edge*dim+j];
+      elm_data->ed_mid[i*dim+j] = mesh->ed_mid[edge*dim+j];
+    }
+  }
+
+  // Face data
+  INT v_per_f = dim;
+  INT face;
+  get_incidence_row(elm,mesh->el_f,elm_data->local_f);
+  for(i=0;i<f_per_elm;i++) {
+    face = elm_data->local_f[i];
+    get_incidence_row(face,mesh->f_v,elm_data->v_on_f+i*v_per_f);
+    elm_data->f_area[i] = mesh->f_area[face];
+    for(j=0;j<dim;j++) {
+      elm_data->f_norm[i*dim+j] = mesh->f_norm[face*dim+j];
+      elm_data->f_mid[i*dim+j] = mesh->f_mid[face*dim+j];
+    }
+  }
+
+  // Quadrature and mappings (recall lamda at ref element already built)
+  quad_elm_local(elm_data->quad_local,elm_data,elm_data->quad_local->nq1d);
+  compute_refelm_mapping(elm_data->ref_map,elm_data->gradlams,elm_data->xv,dim);
+
+  return;
+}
+/******************************************************************************/
+
+/*!
+* \fn void initialize_localdata_face(simplex_local_data *simplex_data,fe_local_data *fe_data,mesh_struct* mesh,block_fespace *FE,INT nq1d)
+*
+* \brief Initializes some of the components of simplex_local_data and
+*        fe_local_data (things that come from the global data and are fixed).
+*        Assumes data is on faces
+*
+* \param mesh     mesh data
+* \param nq1d     number of quadrature points in a 1D direction
+* \param FE       Struct for block FE system
+*
+* \return simplex_data Local Mesh data on face
+* \return fe_data      Local FE data on face
+*
+*/
+void initialize_localdata_face(simplex_local_data *simplex_data,fe_local_data *fe_data,mesh_struct* mesh,block_fespace *FE,INT nq1d)
+{
+  // counters
+  INT i;
+
+  INT dim = mesh->dim;
+  INT nspaces = FE->nspaces;
+  INT v_per_f = dim;
+  INT ed_per_f = 2*dim-3;
+  INT dof_per_face_tot = 0;
+
+  // Simplex Data first that is fixed
+  simplex_data->dim = dim;
+  simplex_data->n_v = v_per_f;
+  simplex_data->local_v = (INT *) calloc(v_per_f,sizeof(INT));
+  simplex_data->xv = (REAL *) calloc(v_per_f*dim,sizeof(REAL));
+  simplex_data->n_ed = ed_per_f;
+  simplex_data->local_ed = (INT *) calloc(ed_per_f,sizeof(INT));
+  simplex_data->v_on_ed = (INT *) calloc(2*ed_per_f,sizeof(INT));
+  simplex_data->ed_len = (REAL *) calloc(ed_per_f,sizeof(REAL));
+  simplex_data->ed_tau = (REAL *) calloc(ed_per_f*dim,sizeof(REAL));
+  simplex_data->ed_mid = (REAL *) calloc(ed_per_f*dim,sizeof(REAL));
+  simplex_data->n_f = 1;
+  simplex_data->f_area = (REAL *) calloc(1,sizeof(REAL));
+  simplex_data->f_norm = (REAL *) calloc(dim,sizeof(REAL));
+  simplex_data->f_mid = (REAL *) calloc(dim,sizeof(REAL));
+
+  // Quadrature (will ignore ref maps for now)
+  simplex_data->quad_local = alloc_quadrature_bdry(nq1d,1,dim,2);
+
+  // FE local data that is fixed
+  fe_data->nspaces = nspaces;
+  fe_data->fe_types = (INT *) calloc(nspaces,sizeof(INT));
+  fe_data->n_dof_per_space = (INT *) calloc(nspaces,sizeof(INT));
+  for(i=0;i<nspaces;i++) {
+    dof_per_face_tot += FE->var_spaces[i]->dof_per_face;
+    fe_data->n_dof_per_space[i] = FE->var_spaces[i]->dof_per_face;
+  }
+  fe_data->n_dof = dof_per_face_tot;
+  fe_data->local_dof = (INT *) calloc(dof_per_face_tot,sizeof(INT));
+  fe_data->local_dof_flags = (INT *) calloc(dof_per_face_tot,sizeof(INT));
+  fe_data->u_local = (REAL *) calloc(dof_per_face_tot,sizeof(REAL));
+
+  // Don't construct basis functions on faces (yet...)
+
+  return;
+}
+/****************************************************************************************/
 
 /****************************************************************************************/
+/*!
+* \fn void get_facelocaldata(simplex_local_data* face_data,mesh_struct* mesh,INT face)
+*
+* \brief On a given face, grab the local mesh data.  We assume fixed values
+*        for the mesh have been initialized already, and just filling in face
+*        specific data here.
+*
+* \param mesh     mesh data
+* \param face     face we are considering
+*
+* \return face_data Struct for local simplex data on face
+*
+*/
+void get_facelocaldata(simplex_local_data* face_data,mesh_struct* mesh,INT face)
+{
+  // counters
+  INT i,j;
+
+  INT dim = mesh->dim;
+  INT v_per_f = dim;
+  INT ed_per_f = 2*dim-3;
+
+  // Generic elm data
+  face_data->sindex = face;
+  face_data->vol = mesh->f_area[face];
+  face_data->flag = mesh->f_flag[face];
+
+  // Get vertices on element
+  get_incidence_row(face,mesh->f_v,face_data->local_v);
+  // Temporary fix until coordinates is made dimensionless
+  for(i=0;i<v_per_f;i++) {
+    face_data->xv[i*dim] = mesh->cv->x[face_data->local_v[i]];
+    if(dim>1) face_data->xv[i*dim+1] = mesh->cv->y[face_data->local_v[i]];
+    if(dim>2) face_data->xv[i*dim+2] = mesh->cv->z[face_data->local_v[i]];
+  }
+
+  // Edge data
+  INT v_per_ed = 2;
+  INT edge;
+  get_incidence_row(face,mesh->f_ed,face_data->local_ed);
+  for(i=0;i<ed_per_f;i++) {
+    edge = face_data->local_ed[i];
+    get_incidence_row(edge,mesh->ed_v,face_data->v_on_ed+i*v_per_ed);
+    face_data->ed_len[i] = mesh->ed_len[edge];
+    for(j=0;j<dim;j++) {
+      face_data->ed_tau[i*dim+j] = mesh->ed_tau[edge*dim+j];
+      face_data->ed_mid[i*dim+j] = mesh->ed_mid[edge*dim+j];
+    }
+  }
+
+  // Face data
+  face_data->f_area[0] = mesh->f_area[face];
+  for(j=0;j<dim;j++) {
+    face_data->f_norm[j] = mesh->f_norm[face*dim+j];
+    face_data->f_mid[j] = mesh->f_mid[face*dim+j];
+  }
+
+  // Quadrature (will ignore reference mapping for now)
+  quad_face_local(face_data->quad_local,face_data,face_data->quad_local->nq1d,face);
+
+  return;
+}
+/******************************************************************************/
+
+/*!
+* \fn void initialize_localdata_edge(simplex_local_data *simplex_data,fe_local_data *fe_data,mesh_struct* mesh,block_fespace *FE,INT nq1d)
+*
+* \brief Initializes some of the components of simplex_local_data and
+*        fe_local_data (things that come from the global data and are fixed).
+*        Assumes data is on edges
+*
+* \param mesh     mesh data
+* \param nq1d     number of quadrature points in a 1D direction
+* \param FE       Struct for block FE system
+*
+* \return simplex_data Local Mesh data on edge
+* \return fe_data      Local FE data on edge
+*
+*/
+void initialize_localdata_edge(simplex_local_data *simplex_data,fe_local_data *fe_data,mesh_struct* mesh,block_fespace *FE,INT nq1d)
+{
+  // counters
+  INT i;
+
+  INT dim = mesh->dim;
+  INT nspaces = FE->nspaces;
+  INT v_per_ed = 2;
+  INT dof_per_edge_tot = 0;
+
+  // Simplex Data first that is fixed
+  simplex_data->dim = dim;
+  simplex_data->n_v = v_per_ed;
+  simplex_data->local_v = (INT *) calloc(v_per_ed,sizeof(INT));
+  simplex_data->xv = (REAL *) calloc(v_per_ed*dim,sizeof(REAL));
+  simplex_data->n_ed = 1;
+  simplex_data->ed_len = (REAL *) calloc(1,sizeof(REAL));
+  simplex_data->ed_tau = (REAL *) calloc(dim,sizeof(REAL));
+  simplex_data->ed_mid = (REAL *) calloc(dim,sizeof(REAL));
+
+  // Quadrature (will ignore ref maps for now)
+  simplex_data->quad_local = alloc_quadrature_bdry(nq1d,1,dim,1);
+
+  // FE local data that is fixed
+  fe_data->nspaces = nspaces;
+  fe_data->fe_types = (INT *) calloc(nspaces,sizeof(INT));
+  fe_data->n_dof_per_space = (INT *) calloc(nspaces,sizeof(INT));
+  for(i=0;i<nspaces;i++) {
+    dof_per_edge_tot += FE->var_spaces[i]->dof_per_edge;
+    fe_data->n_dof_per_space[i] = FE->var_spaces[i]->dof_per_edge;
+  }
+  fe_data->n_dof = dof_per_edge_tot;
+  fe_data->local_dof = (INT *) calloc(dof_per_edge_tot,sizeof(INT));
+  fe_data->local_dof_flags = (INT *) calloc(dof_per_edge_tot,sizeof(INT));
+  fe_data->u_local = (REAL *) calloc(dof_per_edge_tot,sizeof(REAL));
+
+  // Don't construct basis functions on edges (yet...)
+
+  return;
+}
+/****************************************************************************************/
+
+/****************************************************************************************/
+/*!
+* \fn void get_edgelocaldata(simplex_local_data* edge_data,mesh_struct* mesh,INT edge)
+*
+* \brief On a given edge, grab the local mesh data.  We assume fixed values
+*        for the mesh have been initialized already, and just filling in edge
+*        specific data here.
+*
+* \param mesh     mesh data
+* \param edge     edge we are considering
+*
+* \return edge_data Struct for local simplex data on edge
+*
+*/
+void get_edgelocaldata(simplex_local_data* edge_data,mesh_struct* mesh,INT edge)
+{
+  // counters
+  INT i,j;
+
+  INT dim = mesh->dim;
+  INT v_per_ed = 2;
+
+  // Generic elm data
+  edge_data->sindex = edge;
+  edge_data->vol = mesh->ed_len[edge];
+  edge_data->flag = mesh->ed_flag[edge];
+
+  // Get vertices on edge
+  get_incidence_row(edge,mesh->ed_v,edge_data->local_v);
+  // Temporary fix until coordinates is made dimensionless
+  for(i=0;i<v_per_ed;i++) {
+    edge_data->xv[i*dim] = mesh->cv->x[edge_data->local_v[i]];
+    if(dim>1) edge_data->xv[i*dim+1] = mesh->cv->y[edge_data->local_v[i]];
+    if(dim>2) edge_data->xv[i*dim+2] = mesh->cv->z[edge_data->local_v[i]];
+  }
+
+  // Edge data
+  edge_data->ed_len[0] = mesh->ed_len[edge];
+  for(j=0;j<dim;j++) {
+    edge_data->ed_tau[j] = mesh->ed_tau[edge*dim+j];
+    edge_data->ed_mid[j] = mesh->ed_mid[edge*dim+j];
+  }
+
+  // Quadrature (will ignore reference mapping for now)
+  quad_edge_local(edge_data->quad_local,edge_data,edge_data->quad_local->nq1d,edge);
+
+  return;
+}
+/******************************************************************************/
+
 /*!
 * \fn void free_blockfespace(block_fespace* FE)
 *
@@ -652,7 +976,7 @@ void free_simplexlocaldata(simplex_local_data* loc_data)
   if(loc_data->dwork) free(loc_data->dwork);
   if(loc_data->iwork) free(loc_data->iwork);
   if(loc_data->quad_local){
-    free_qcoords(loc_data->quad_local);
+    free_quadrature(loc_data->quad_local);
     free(loc_data->quad_local);
     loc_data->quad_local=NULL;
   }
