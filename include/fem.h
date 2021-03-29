@@ -60,6 +60,33 @@ typedef struct qcoordinates{
 
 } qcoordinates;
 
+// Newer version
+/**
+ * \struct quadrature
+ * \brief Returns coordinates of quadrature nodes
+ */
+typedef struct quadrature{
+
+  //! Dimension of problem
+  INT dim;
+
+  //! quadrature points (ordered x(q1) y(q1) z(q1) x(q2) y(q2) z(q2) etc...)
+  REAL* x;
+
+  //! weights
+  REAL* w;
+
+  //! Size of arrays (total number of quadrature nodes)
+  INT nq;
+
+  //! Number of quadrature nodes on 1 entity (face or element or edge)
+  INT nq_simplex;
+
+  //! Number of quadrature nodes in one direction
+  INT nq1d;
+
+} quadrature;
+
 /**
  * \struct fespace
  * \brief Returns properties of the finite-element space on entire mesh
@@ -142,6 +169,8 @@ typedef struct simplex_local_data {
   INT sindex;
   //! Volume (area/length) of ximplex
   REAL vol;
+  //! Flag of element
+  INT flag;
 
   // Vertex Info
   //! Number of vertices locally
@@ -183,7 +212,7 @@ typedef struct simplex_local_data {
 
   // Assembly data
   //! Quadrature on entity
-  qcoordinates* quad_local;
+  quadrature* quad_local;
   //! Reference Element maps
   REAL* ref_map; // The map x = B*xr + x0
   REAL* lams; // P1 basis at quad points (actually on ref element)
@@ -274,31 +303,7 @@ typedef struct block_fespace {
 
 //**************** NEW STUFF **********************************//
 
-/**
- * \struct quadrature
- * \brief Returns coordinates of quadrature nodes
- */
-typedef struct quadrature{
 
-  //! Dimension of problem
-  INT dim;
-
-  //! quadrature points (ordered x(q1) y(q1) z(q1) x(q2) y(q2) z(q2) etc...)
-  REAL* x;
-
-  //! weights
-  REAL* w;
-
-  //! Size of arrays (total number of quadrature nodes)
-  INT nq;
-
-  //! Number of quadrature nodes on 1 entity (face or element or edge)
-  INT nq_simplex;
-
-  //! Number of quadrature nodes in one direction
-  INT nq1d;
-
-} quadrature;
 
 
 #endif
