@@ -62,27 +62,34 @@ typedef struct qcoordinates{
 
 /**
  * \struct fespace
- * \brief Returns properties of the finite-element space
- * \note TODO - will replace with fe_space setup defined below soon
+ * \brief Returns properties of the finite-element space on entire mesh
+ * \note TODO - will remove some unnecessary components
  */
 typedef struct fespace{
 
   //! Type of finite element: 0-9 PX | 10-19 QX (not yet) | 20 Ned | 30 RT | -9 - -1 DGX (not yet) | 61 - face bubbles | 99 - single DOF for constraints
+  // TODO: Rename to fe_type
   INT FEtype;
 
   //! Indicates if this is a space of scalara functions, 0, or a space of vector functions, 1.
   INT scal_or_vec;
 
+  //! Where is the DoF defined: 0 - vertex; 1 - edge; 2 - face; 3 - tetrahedra; etc...
+  INT dof_form;
+
   //! Number of Elements
+  // TODO: Remove cause it's redundant
   INT nelm;
 
   //! Coordinates of DOF
+  // TODO: Remove -> not needed
   coordinates* cdof;
 
   //! number of DOF
   INT ndof;
 
   //! number of DOF on boundary
+  // TODO: Remove -> not needed
   INT nbdof;
 
   //! number of DOF per element
@@ -90,6 +97,9 @@ typedef struct fespace{
 
   //! Element to DOF map
   iCSRmat* el_dof;
+
+  //! Dof per edge
+  INT dof_per_edge;
 
   //! Edge to DOF map
   iCSRmat* ed_dof;
@@ -110,54 +120,70 @@ typedef struct fespace{
   INT* periodic;
 
   //! Basis Functions and Derivatives
+  // TODO: Will remove, because it's contained in fe_local_data
   REAL* phi;
   REAL* dphi;
+  REAL* ddphi;
 
 } fespace;
 
 /**
- * \struct local_data
- * \brief Contains all relevant data on a given element/face/edge
+ * \struct simplex_local_data
+ * \brief Contains all relevant local data on a given element/face/edge
  *
  */
-typedef struct fe_local_data {
-
-  //! Number of vertices locally
-  INT nlocal_vert;
-
-  //! Number of DoF locally for all spaces
-  INT nlocal_dof;
-
-  //! Numer of DoF locally per space
-  INT* nlocal_dof_space;
+typedef struct simplex_local_data {
 
   //! Dimension of mesh
   INT dim;
 
-  //! DoF on element/face/edge
-  INT* local_dof;
+  // Element Info
+  //! Index of current entity (simplex)
+  INT sindex;
+  //! Volume (area/length) of ximplex
+  REAL vol;
 
-  //! Local Flags of DoF
-  INT* local_dof_flags;
-
+  // Vertex Info
+  //! Number of vertices locally
+  INT n_v;
   //! vertices on element/face/edge
-  INT* local_vert;
-
+  INT* local_v;
   //! coordinates of local vertices
   REAL* xv;
 
-  //! Number of vertices per dof for each space
-  INT* nvert_per_dof_space;
+  // Edge Info
+  //! Number of edges locally
+  INT n_ed;
+  //! edges on element/face/edge
+  INT* local_ed;
+  //! vertices on edges
+  INT* v_on_ed;
+  //! Lengths of edges
+  REAL* ed_len;
+  //! Tangent vector on edges
+  REAL* ed_tau;
+  //! Midpoint of edges
+  REAL* ed_mid;
 
-  //! vertices on dof per space (nspaces * nlocal_dof_space[i] * nver_per_dof_space[i])
-  INT* v_on_dof_space;
+  // Face Info
+  //! Number of faces locally
+  INT n_f;
+  //! Faces on element/face/edge
+  INT* local_f;
+  //! Edges on faces
+  INT* ed_on_f;
+  //! Vertices on Faces
+  INT* v_on_f;
+  //! Area of face
+  REAL* f_area;
+  //! Normal vector on faces
+  REAL* f_norm;
+  //! Barcenter midpoint of face
+  REAL* f_mid;
 
-  //! Solution at local DoF
-  REAL* u_local;
-
+  // Assembly data
   //! Quadrature on entity
   qcoordinates* quad_local;
-
   //! Reference Element maps
   REAL* ref_map; // The map x = B*xr + x0
   REAL* lams; // P1 basis at quad points (actually on ref element)
@@ -167,11 +193,46 @@ typedef struct fe_local_data {
   REAL* dwork;
   INT* iwork;
 
-} fe_local_data;
+} simplex_local_data;
+
+
+/**
+ * \struct local_fe_data
+ * \brief Contains the local data of fe spaces and DoF on local entity
+ */
+ typedef struct fe_local_data {
+
+   //! Number of spaces
+   INT nspaces;
+
+   //! Type of FE spaces
+   INT* fe_types;
+
+   //! Total number of DoF locally for all spaces
+   INT n_dof;
+
+   //! Array continaing number of DoF locally per space
+   INT* n_dof_per_space;
+
+   //! DoF on element/face/edge for all spaces
+   INT* local_dof;
+
+   //! Local Flags of DoF
+   INT* local_dof_flags;
+
+   //! Solution at local DoF for all spaces
+   REAL* u_local;
+
+   //! Basis functions for all spaces at a quadrature point
+   REAL** phi;
+   REAL** dphi;
+   REAL** ddphi;
+
+ } fe_local_data;
 
 /**
  * \struct block_fespace
- * \brief Block of fespaces for coupled problems
+ * \brief Block of fespaces for coupled problems -> holds all data
  *
  * \note TODO: Will change this to fe_system and remove nbdof
  */
@@ -183,10 +244,14 @@ typedef struct block_fespace {
   //! number of unknowns in system (includes # of components for vectors)
   INT nun;
 
+  //! total number of elements
+  INT nelm;
+
   //! total number of dof
   INT ndof;
 
   //! total number of boundary dof
+  // TODO: Remove -> unnecessary
   INT nbdof;
 
   //! blocks of fespaces
@@ -198,8 +263,11 @@ typedef struct block_fespace {
   //! All DOF flags - indicates if the DOF is a special DOF (i.e. on certain boundary)
   INT* dof_flag;
 
-  //! Local Data - stuff needed on a given element (or face or edge)
-  fe_local_data *loc_data;
+  //! Local Mesh Data - stuff needed on a given element (or face or edge)
+  simplex_local_data *simplex_data;
+
+  //! Local FE Data - stuff needed on a given element for DoF Info
+  fe_local_data *fe_data;
 
 } block_fespace;
 
@@ -231,60 +299,6 @@ typedef struct qcoords{
   INT nq1d;
 
 } qcoords;
-
-/**
- * \struct fe_space
- * \brief Returns properties of the finite-element space
- */
-typedef struct fe_space{
-
-  //! Type of finite element:
-  // Implemented:  0-2: PX | 20: Ned-0 | 30: RT-0 | 62: P1 + facebubble | 99: single DoF for constraints
-  // TBI: -9--1: DGX | 10-19: QX | 21-29: Ned-X | 31:39: RT-X | 40-59: Ned/RT-X on quads | 60: vector of scalars | 61: MINI element
-  INT fe_type;
-
-  //! Indicates if this is a space of scalar functions, 0, or a space of vector functions, 1.
-  INT scal_or_vec;
-
-  //! Where is the DoF defined: 0 - vertex; 1 - edge; 2 - face; 3 - tetrahedra; etc...
-  INT dof_form;
-
-  //! number of DOF
-  INT ndof;
-
-  //! number of DOF per element
-  INT dof_per_elm;
-
-  //! number of DOF per face
-  INT dof_per_face;
-
-  //! number of DOF per edge
-  INT dof_per_edge;
-
-  //! Element to DOF map
-  iCSRmat* el_dof;
-
-  //! Face to DOF map
-  iCSRmat* f_dof;
-
-  //! Edge to DOF map
-  iCSRmat* ed_dof;
-
-  //! Dirichlet Boundaries (1 if Dirichlet; 0 if not)
-  INT* dirichlet;
-
-  //! DOF flags - indicates if the DOF is a special DOF (i.e. on certain boundary)
-  INT* dof_flag;
-
-  //! Perioidc Boundaries (For each DOF indicate if it is periodic with another DOF.  Mark -1 for non-periodic)
-  INT* periodic;
-
-  //! Basis Functions and Derivatives on quadrature of reference element
-  REAL* phi;
-  REAL* dphi;
-  REAL* ddphi;
-
-} fe_space;
 
 
 #endif

@@ -727,64 +727,61 @@ void face_bubble_basis(REAL *phi, REAL *dphi,REAL* lam,REAL* dlam,INT dim,INT* v
 
 /****************************************************************************************************************************/
 /*!
-* \fn void get_FEM_basis_at_quadonelm(REAL *phi,REAL *dphi,INT fe_type,fe_local_data *loc_data,INT quadpt)
+* \fn void get_FEM_basis_at_quadonelm(REAL *phi,REAL *dphi,simplex_local_data *simplex_data,fe_local_data *fe_data,INT space_index,INT quadpt)
 *
-* \brief Grabs the basis function of a FEM space at a particular quadrature point
-*        on a given quadrature point, given the local fem data on that simplex
+* \brief Grabs the basis function of a given FEM space at a particular quadrature point
+*        on a given element, given the local fem data on that simplex
 *
-* \param fe_type    Type of FEM considered
-* \param loc_data   Contains the FEM data on the particular simplex needed
-* \param quadpt     Index of quadrature point basis is to be evaluated at
-*                   Note: ordering is determined by get_quadrature routine how
-*                   its stored in loc_data
+* \param simplex_data    Local mesh data
+* \param fe_data         Local FE data
+* \param space_index     Which FE space in fe_block we're considering
+* \param quadpt          Index of quadrature point basis is to be evaluated at
+*
+* \note ordering of quad point is determined by get_quadrature routine
 *
 * \return phi      Basis functions
 * \return dphi     Derivatives of basis functions (depends on type)
 *
 */
-void get_FEM_basis_at_quadonelm(REAL *phi,REAL *dphi,INT fe_type,fe_local_data *loc_data,INT quadpt)
+void get_FEM_basis_at_quadonelm(REAL *phi,REAL *dphi,simplex_local_data *simplex_data,fe_local_data *fe_data,INT space_index,INT quadpt)
 {
   // Flag for erros
   SHORT status;
+  INT i;
 
   // Mesh and FEM Data
-  INT dim = loc_data->dim;
+  INT dim = simplex_data->dim;
   // P1 basis functions at quadpt
-  REAL* lam = loc_data->lams + quadpt*(dim+1);
-  REAL* dlam = loc_data->gradlams + quadpt*((dim+1)*dim);
+  REAL* lam = simplex_data->lams + quadpt*(dim+1);
+  REAL* dlam = simplex_data->gradlams + quadpt*((dim+1)*dim);
+  INT fe_type = fe_data->fe_types[space_index];
+  INT dof_per_elm = fe_data->n_dof_per_space[space_index];
 
-//???  INT offset = FE->dof_per_elm/mesh->dim;
+  INT dim_offset = dof_per_elm/dim;
 
   if(fe_type>=0 && fe_type<10) { // PX elements - only P0, P1, and P2 implemented
 
     PX_basis(phi,dphi,fe_type,dim,lam,dlam);
 
-  // } else if(FEtype==20) { // Nedelec elements
-  //
-  //   ned0_basis(phi,dphi,lam,dlam,dim,loc_data->v_on_dof_space,INT* v_on_ed,REAL* ed_len)
-  //   ned_basis(phi,dphi,x,v_on_elm,dof,mesh);
-  //
-  // } else if(FEtype==30) { // Raviart-Thomas elements
-  //
-  //   rt_basis(phi,dphi,x,v_on_elm,dof,mesh);
-  //
-  // } else if(FEtype==60) { // Vector element
-  //
-  //   PX_H1_basis(phi, dphi, x, dof, 1, mesh);
-  //   if (mesh->dim>1){
-  //     PX_H1_basis(phi+offset, dphi+FE->dof_per_elm, x, dof, 1, mesh);
-  //   }
-  //   if (mesh->dim>2){
-  //     PX_H1_basis(phi+offset*2, dphi+FE->dof_per_elm*2, x, dof, 1, mesh);
-  //   }
-  //
-  // } else if(FEtype==61) { // Bubble element
-  //
-  //   bubble_face_basis(phi,dphi,x,v_on_elm,dof,mesh);
-  //
-  // } else if(FEtype==99) { // Constraint Single DOF Space
-  //
-  //   phi[0] = 1.0;
+  } else if(fe_type==20) { // Nedelec elements
+
+    ned0_basis(phi,dphi,lam,dlam,dim,simplex_data->local_v,simplex_data->v_on_ed,simplex_data->ed_len);
+
+  } else if(fe_type==30) { // Raviart-Thomas elements
+
+    rt0_basis(phi,dphi,lam,dlam,dim,simplex_data->local_v,simplex_data->v_on_f,simplex_data->f_area);
+
+  } else if(fe_type==60) { // Vector element
+
+    for(i=0;i<dim;i++) PX_basis(phi+i*dim_offset,dphi+i*dof_per_elm,fe_type,dim,lam,dlam);
+
+  } else if(fe_type==61) { // Bubble element
+
+    face_bubble_basis(phi,dphi,lam,dlam,dim,simplex_data->local_v,simplex_data->v_on_f,simplex_data->f_area,simplex_data->f_norm);
+
+  } else if(fe_type==99) { // Constraint Single DOF Space
+
+    phi[0] = 1.0;
 
   } else {
     status = ERROR_FE_TYPE;
