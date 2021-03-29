@@ -12,7 +12,6 @@
 
 #include "hazmath.h"
 
-/*********************************************************************************/
 /*!
  * \fn struct qcoordinates *allocateqcoords(INT nq1d,INT nelm,INT mydim)
  *
@@ -23,6 +22,8 @@
  * \param mydim   Dimension of problem
  *
  * \return A      Quadrature struct
+ *
+ * \note TODO: Will be deprecated soon
  *
  */
 struct qcoordinates *allocateqcoords(INT nq1d,INT nelm,INT mydim)
@@ -68,9 +69,41 @@ struct qcoordinates *allocateqcoords(INT nq1d,INT nelm,INT mydim)
 
   return A;
 }
-/*********************************************************************************/
+/******************************************************************************/
 
-/*********************************************************************************/
+/*!
+ * \fn struct qcoords *alloc_quadrature(INT nq1d,INT nsimplex,INT dim)
+ *
+ * \brief Allocates memory and properties of quadrature struct qcoords
+ *
+ * \param nq1d       Number of quadrature nodes on an simplex in 1D direction
+ * \param nsimplex   Number of simplicies to get quadrature on
+ * \param dim        Dimension of problem
+ *
+ * \return Q     Quadrature struct
+ *
+ * \note Will replace older routines based on old struct
+ *
+ */
+struct quadrature *alloc_quadrature(INT nq1d,INT nsimplex,INT dim)
+{
+
+  struct quadrature *Q = malloc(sizeof(struct quadrature));
+  assert(Q != NULL);
+
+  INT nq = (INT) pow(nq1d,dim);
+  INT nq_tot = nq*nsimplex;
+  Q->dim = dim;
+  Q->nq1d = nq1d;
+  Q->nq_simplex = nq;
+  Q->nq = nq_tot;
+  Q->x = (REAL *) calloc(nq_tot*dim,sizeof(REAL));
+  Q->w = (REAL *) calloc(nq_tot,sizeof(REAL));
+
+  return Q;
+}
+/******************************************************************************/
+
 /*!
 * \fn struct qcoordinates *allocateqcoords_bdry(INT nq1d,INT nregion,INT dim,INT ed_or_f)
 *
@@ -83,6 +116,8 @@ struct qcoordinates *allocateqcoords(INT nq1d,INT nelm,INT mydim)
 * \param ed_or_f Whether we are computing quadrature on faces or edges
 *
 * \return A      Quadrature struct
+*
+* \note TODO: will be deprecated soon
 *
 */
 struct qcoordinates *allocateqcoords_bdry(INT nq1d,INT nregion,INT dim,INT ed_or_f)
@@ -129,9 +164,63 @@ struct qcoordinates *allocateqcoords_bdry(INT nq1d,INT nregion,INT dim,INT ed_or
 
   return A;
 }
-/*********************************************************************************/
+/******************************************************************************/
 
 /*********************************************************************************/
+/*!
+ * \fn struct qcoords *alloc_quadrature_bdry(INT nq1d,INT nregion,INT dim,INT ed_or_f)
+ *
+ * \brief Allocates memory and properties of quadrature coordinates struct.
+ *        Assumes we are allocated on a boundary, so dimension is 1 or 2 less
+ *
+ * \param nq1d    Number of quadrature nodes on an element in 1D direction
+ * \param nregion    Number of "elements" (faces or edges) to get quadrature on
+ * \param dim     Dimension of problem
+ * \param ed_or_f Whether we are computing quadrature on faces or edges
+ *
+ * \return Q     Quadrature struct
+ *
+ * \note Will replace older routines based on old struct
+ *
+ */
+struct quadrature *alloc_quadrature_bdry(INT nq1d,INT nregion,INT dim,INT ed_or_f)
+{
+  // Flag for errors
+  SHORT status;
+
+  struct quadrature *Q = malloc(sizeof(struct quadrature));
+  assert(Q != NULL);
+
+  INT nq = 0;
+
+  switch (ed_or_f)
+  {
+    case 1:
+    // Compute quadrature on edges
+    nq = nq1d;
+    break;
+
+    case 2:
+    nq = (INT) pow(nq1d,dim-1);
+    break;
+
+    default:
+    status = ERROR_DIM;
+    check_error(status, __FUNCTION__);
+  }
+
+  INT nq_tot = nq*nregion;
+  Q->dim = dim;
+  Q->nq1d = nq1d;
+  Q->nq_simplex = nq;
+  Q->nq = nq_tot;
+  Q->x = (REAL *) calloc(nq_tot*dim,sizeof(REAL));
+  Q->w = (REAL *) calloc(nq_tot,sizeof(REAL));
+
+  return Q;
+}
+/******************************************************************************/
+
 /*!
  * \fn void free_qcoords(qcoordinates* A)
  *
@@ -139,6 +228,7 @@ struct qcoordinates *allocateqcoords_bdry(INT nq1d,INT nregion,INT dim,INT ed_or
  *
  * \return A       Struct for quadratures to be freed
  *
+ * \note TODO: will be deprecated soon
  */
 void free_qcoords(qcoordinates* A)
 {
@@ -166,7 +256,33 @@ void free_qcoords(qcoordinates* A)
 
   return;
 }
-/*********************************************************************************/
+/******************************************************************************/
+
+/*!
+ * \fn void free_quadrature(quadrature* Q)
+ *
+ * \brief Frees memory of arrays of quadrature struct
+ *
+ * \return Q  truct for quadratures to be freed
+ *
+ */
+void free_quadrature(quadrature* Q)
+{
+  if (Q==NULL) return;
+
+  if(Q->x) {
+    free(Q->x);
+    Q->x = NULL;
+  }
+
+  if(Q->w) {
+    free(Q->w);
+    Q->w = NULL;
+  }
+
+  return;
+}
+/******************************************************************************/
 
 /*********************************************************************************/
 /*!
@@ -179,6 +295,8 @@ void free_qcoords(qcoordinates* A)
  * \param mesh    Mesh struct
  *
  * \return cq_all      Quadrature struct
+ *
+ * \note TODO: This will be deprecated soon
  *
  */
 qcoordinates* get_quadrature(mesh_struct *mesh,INT nq1d)
@@ -209,9 +327,8 @@ qcoordinates* get_quadrature(mesh_struct *mesh,INT nq1d)
 
   return cq_all;
 }
-/*********************************************************************************/
+/******************************************************************************/
 
-/*********************************************************************************/
 /*!
  * \fn void quad_elm(qcoordinates *cqelm,mesh_struct *mesh,INT nq1d,INT elm)
  *
@@ -223,6 +340,8 @@ qcoordinates* get_quadrature(mesh_struct *mesh,INT nq1d)
  * \param elm     Index of current element
  *
  * \return cq_elm Quadrature struct on element
+ *
+ * \note TODO Will be deprecated soon
  *
  */
 void quad_elm(qcoordinates *cqelm,mesh_struct *mesh,INT nq1d,INT elm)
@@ -341,7 +460,203 @@ void quad_elm(qcoordinates *cqelm,mesh_struct *mesh,INT nq1d,INT elm)
 }
 /*******************************************************************************/
 
-/*******************************************************************************/
+/*!
+ * \fn void quad_refelm(quadrature *cqelm,INT nq1d,INT dim)
+ *
+ * \brief Computes quadrature weights and nodes for the reference element using nq1d^(dim)
+ *        quadrature nodes on simplex
+ *
+ * \param nq1d    Number of quadrature nodes on an element in 1D direction
+ * \param dim     Dimension of problem
+ * \param elm     Index of current element
+ *
+ * \return cq_ref Quadrature struct on reference element
+ *
+ */
+void quad_refelm(qcoordinates *cqelm,INT nq1d,INT dim)
+{
+  // Flag for errors
+  SHORT status;
+
+  /* Loop indices */
+  INT q;
+
+  /* Total Number of Quadrature Nodes */
+  INT nq = pow(nq1d,dim);
+
+  /* Gaussian points for reference element */
+  REAL* gp = (REAL *) calloc(dim*nq,sizeof(REAL));
+  /* Gaussian weights for reference element */
+  REAL* gw = (REAL *) calloc(nq,sizeof(REAL));
+
+  /* Points on Reference Triangle */
+  REAL r[dim];
+
+  // Get coordinates of vertices for given element
+  if(dim==1) {
+
+    // Get Quad Nodes and Weights
+    quad1d(gp,gw,nq1d);
+
+    // Map to Real Interval
+    // x = 0.5*(x2-x1)*r + 0.5*(x1+x2)
+    // w = 0.5*(x2-x1)*wref
+    for (q=0; q<nq; q++) {
+      r[0] = gp[q];
+      cqelm->x[q] = 0.5*(1+r[0]);
+      cqelm->w[q] = 0.5*gw[q];
+    }
+  } else if(dim==2) {
+
+    // Get Quad Nodes and Weights
+    triquad_(gp,gw,nq1d);
+
+    // Map to Real Triangle
+    // x = x1*(1-r-s) + x2*r + x3*s
+    // y = y1*(1-r-s) + y2*r + y3*s
+    // w = 2*Element Area*wref
+    for (q=0; q<nq; q++) {
+      r[0] = gp[q];
+      r[1] = gp[nq+q];
+      cqelm->x[q*dim+0] = r[0];
+      cqelm->x[q*dim+1] = r[1];
+      cqelm->w[q] = gw[q];
+    }
+  } else if(dim==3) {
+
+    // Get Quad Nodes and Weights
+    tetquad_(gp,gw,nq1d);
+
+    // Map to Real Triangle
+    // x = x1*(1-r-s-t) + x2*r + x3*s + x4*t
+    // y = y1*(1-r-s-t) + y2*r + y3*s + y4*t
+    // z = z1*(1-r-s-t) + z2*r + z3*s + z4*t3*s
+    // w = 6*Element Vol*wref
+    for (q=0; q<nq; q++) {
+      r[0] = gp[q];
+      r[1] = gp[nq+q];
+      r[2] = gp[2*nq+q];
+      cqelm->x[q*dim+0] = r[0];
+      cqelm->x[q*dim+1] = r[1];
+      cqelm->x[q*dim+2] = r[2];
+      cqelm->w[q] = gw[q];
+    }
+  } else {
+    status = ERROR_DIM;
+    check_error(status, __FUNCTION__);
+  }
+
+  if(gp) free(gp);
+  if(gw) free(gw);
+
+  return;
+}
+/*****************************************************************************/
+
+/*!
+ * \fn void quad_elm_local(quadrature *cqelm,simplex_local_data *loc_data,INT nq1d)
+ *
+ * \brief Computes quadrature weights and nodes for SINGLE element using nq1d^(dim)
+ *        quadrature nodes on simplex
+ *
+ * \param nq1d    Number of quadrature nodes on an element in 1D direction
+ * \param loc_data Mesh data on current simplex (element)
+ *
+ * \return cq_elm Quadrature struct on element
+ *
+ */
+void quad_elm_local(quadrature *cqelm,simplex_local_data *loc_data,INT nq1d)
+{
+  // Flag for errors
+  SHORT status;
+
+  /* Loop indices */
+  INT q,j;
+
+  /* Dimension */
+  INT dim = loc_data->dim;
+
+  /* Total Number of Quadrature Nodes */
+  INT nq = pow(nq1d,dim);
+
+  /* Coordinates of vertices of element */
+  REAL* xv = loc_data->xv;
+
+  /* Gaussian points for reference element */
+  REAL* gp = (REAL *) calloc(dim*nq,sizeof(REAL));
+  /* Gaussian weights for reference element */
+  REAL* gw = (REAL *) calloc(nq,sizeof(REAL));
+
+  /* Points on Reference Triangle */
+  REAL r[dim];
+
+  REAL e_vol = loc_data->vol; /* Area/Volume of Element */
+  REAL voldim=0.0;
+
+  // only 1D, 2D, and 3D quadrature is implemented
+  if(dim==1) {
+
+    // Scale the quadrature weight appropriately
+    voldim = 0.5*e_vol;
+
+    // Get Quad Nodes and Weights on ref element
+    quad1d(gp,gw,nq1d);
+
+    // Map to Real Interval
+    // x = 0.5*(x2-x1)*r + 0.5*(x1+x2)
+    // w = 0.5*(x2-x1)*wref
+    for (q=0; q<nq; q++) {
+      r[0] = gp[q];
+      cqelm->x[q] = 0.5*(xv[0]*(1-r[0]) + xv[1]*(1+r[0]));
+      cqelm->w[q] = voldim*gw[q];
+    }
+  } else if(dim==2) {
+    voldim = 2.0*e_vol;
+
+    // Get Quad Nodes and Weights
+    triquad_(gp,gw,nq1d);
+
+    // Map to Real Triangle
+    // x = x1*(1-r-s) + x2*r + x3*s
+    // y = y1*(1-r-s) + y2*r + y3*s
+    // w = 2*Element Area*wref
+    for (q=0; q<nq; q++) {
+      r[0] = gp[q];
+      r[1] = gp[nq+q];
+      for(j=0;j<dim;j++) cqelm->x[q*dim+j] = xv[0*dim+j]*(1-r[0]-r[1]) + xv[1*dim+j]*r[0]+ xv[2*dim+j]*r[1];
+      cqelm->w[q] = voldim*gw[q];
+    }
+  } else if(dim==3) {
+
+    voldim = 6.0*e_vol;
+
+    // Get Quad Nodes and Weights
+    tetquad_(gp,gw,nq1d);
+
+    // Map to Real Triangle
+    // x = x1*(1-r-s-t) + x2*r + x3*s + x4*t
+    // y = y1*(1-r-s-t) + y2*r + y3*s + y4*t
+    // z = z1*(1-r-s-t) + z2*r + z3*s + z4*t3*s
+    // w = 6*Element Vol*wref
+    for (q=0; q<nq; q++) {
+      r[0] = gp[q];
+      r[1] = gp[nq+q];
+      r[2] = gp[2*nq+q];
+      for(j=0;j<dim;j++) cqelm->x[q*dim+j] = xv[0*dim+j]*(1-r[0]-r[1]-r[2]) + xv[1*dim+j]*r[0]+ xv[2*dim+j]*r[1] + xv[3*dim+j]*r[2];
+      cqelm->w[q] = voldim*gw[q];
+    }
+  } else {
+    status = ERROR_DIM;
+    check_error(status, __FUNCTION__);
+  }
+
+  if(gp) free(gp);
+  if(gw) free(gw);
+
+  return;
+}
+/******************************************************************************/
+
 /*!
  * \fn qcoordinates* get_quadrature_boundary(mesh_struct *mesh,INT nq1d,INT ed_or_f)
  *
@@ -355,6 +670,7 @@ void quad_elm(qcoordinates *cqelm,mesh_struct *mesh,INT nq1d,INT elm)
  *
  * \return cq_all Quadrature struct on boundary
  *
+ * \note This will be deprecated
  */
 qcoordinates* get_quadrature_boundary(mesh_struct *mesh,INT nq1d,INT ed_or_f)
 {
@@ -416,9 +732,8 @@ qcoordinates* get_quadrature_boundary(mesh_struct *mesh,INT nq1d,INT ed_or_f)
 
   return cq_all;
 }
-/*******************************************************************************/
+/******************************************************************************/
 
-/*******************************************************************************/
 /*!
 * \fn void quad_edge(qcoordinates *cqbdry,mesh_struct *mesh,INT nq1d,INT dof)
 *
@@ -433,6 +748,8 @@ qcoordinates* get_quadrature_boundary(mesh_struct *mesh,INT nq1d,INT ed_or_f)
 * \return cq_bdry Quadrature struct on edge
 *
 * \note An edge integral is always a 1D integral.
+*
+* \note This will be deprecated soon
 *
 */
 void quad_edge(qcoordinates *cqbdry,mesh_struct *mesh,INT nq1d,INT dof)
@@ -538,9 +855,8 @@ void quad_edge(qcoordinates *cqbdry,mesh_struct *mesh,INT nq1d,INT dof)
 
   return;
 }
-/*********************************************************************************/
+/******************************************************************************/
 
-/*******************************************************************************/
 /*!
 * \fn void quad_face(qcoordinates *cqbdry,mesh_struct *mesh,INT nq1d,INT dof)
 *
@@ -555,6 +871,8 @@ void quad_edge(qcoordinates *cqbdry,mesh_struct *mesh,INT nq1d,INT dof)
 * \return cq_bdry Quadrature struct on face
 *
 * \note A face integral is a 1D integral in 2D and a 2D integral in 3D.
+*
+* \note This will be deprecated soon.
 *
 */
 void quad_face(qcoordinates *cqbdry,mesh_struct *mesh,INT nq1d,INT dof)
@@ -668,9 +986,203 @@ void quad_face(qcoordinates *cqbdry,mesh_struct *mesh,INT nq1d,INT dof)
 
   return;
 }
+/******************************************************************************/
+
+/*!
+* \fn void quad_edge_local(quadrature *cqedge,simplex_local_data *loc_data,INT nq1d,INT edge)
+*
+* \brief Computes quadrature weights and nodes for SINGLE Edge using nq1d
+*          quadrature nodes on a line/surface.  Can be used to compute integrals on
+*          1D boundaries (curves).
+*
+* \param nq1d    Number of quadrature nodes on an edge in 1D direction
+* \param loc_data    Mesh data on element that contains edge
+* \param edge     Index of current edge
+*
+* \return cqedge Quadrature struct on edge
+*
+* \note An edge integral is always a 1D integral.
+*
+*/
+void quad_edge_local(quadrature *cqedge,simplex_local_data *loc_data,INT nq1d,INT edge)
+{
+
+  INT q,i,j,k; /* Loop indices */
+  INT dim = loc_data->dim;
+
+  // Test for Simpson's Rule
+  INT nqdum=1;
+  if(nq1d==-1) {
+    nqdum = -1;
+    nq1d = 3;
+  }
+
+  // Get total quadrature points
+  INT nq = nq1d;
+
+  /* Coordinates of vertices of edge/face */
+  INT v_per_ed = 2;
+  INT v_per_elm = dim+1;
+  INT* v_on_ed = loc_data->v_on_ed + edge*v_per_ed;
+  INT* v_on_elm = loc_data->local_v;
+  REAL* xved = (REAL *) calloc(v_per_ed*dim,sizeof(REAL));
+  for(i=0;i<v_per_ed;i++) {
+    for(j=0;j<v_per_elm;j++) {
+      if(v_on_ed[i]==v_on_elm[j]) {
+        for(k=0;i<dim;k++) {
+          xved[i*dim+k] = loc_data->xv[j*dim+k];
+        }
+      }
+    }
+  }
+
+  // Gaussian points for reference element
+  // (edges: [-1,1]
+  REAL* gp = (REAL *) calloc(nq,sizeof(REAL));
+  /* Gaussian weights for reference element */
+  REAL* gw = (REAL *) calloc(nq,sizeof(REAL));
+
+  REAL r;      	/* Points on Reference Edge */
+
+  REAL w = 0.5*loc_data->ed_len[edge]; /* Jacobian = 1/2 |e| */
+
+  // Get Quad Nodes and Weights
+  if(nqdum==-1) { // Simpsons Rule
+    gp[0] = -1.0;
+    gp[1] = 0.0;
+    gp[2] = 1.0;
+    gw[0] = 1.0/3.0;
+    gw[1] = 4.0/3.0;
+    gw[2] = gw[0];
+  } else {
+    quad1d(gp,gw,nq1d);
+  }
+
+  // Map to Real Edge
+  // Edges: x = 0.5(x1*(1-r) + x2*(1+r))
+  //        y = 0.5(y1*(1-r) + y2*(1+r))
+  //        z = 0.5(z1*(1-r) + z2*(1+r))
+  //        w = 0.5*Edge Length*wref
+  for (q=0; q<nq1d; q++) {
+    r = gp[q];
+    for(k=0;k<dim;k++) cqedge->x[q*dim+k] = 0.5*xved[0*dim+k]*(1-r) + 0.5*xved[1*dim+k]*(1+r);
+    cqedge->w[q] = w*gw[q];
+  }
+
+  if(gp) free(gp);
+  if(gw) free(gw);
+  if(xved) free(xved);
+
+  return;
+}
+/******************************************************************************/
+
+/*!
+* \fn void quad_face(quadrature *cqface,simplex_local_data *loc_data,INT nq1d,INT face)
+*
+* \brief Computes quadrature weights and nodes for SINGLE Face using nq1d^(dim-1)
+*          quadrature nodes on a line/surface.  Can be used to compute integrals on
+*          1D/2D boundaries (curves/surfaces).
+*
+* \param nq1d    Number of quadrature nodes on a face in 1D direction
+* \param loc_data    Mesh data on element that contains face
+* \param face     Index of current face
+*
+* \return cq_bdry Quadrature struct on face
+*
+* \note A face integral is a 1D integral in 2D and a 2D integral in 3D.
+*
+*/
+void quad_face_local(quadrature *cqface,simplex_local_data *loc_data,INT nq1d,INT face)
+{
+  // Flag for errors
+  SHORT status;
+
+  INT q,i,j,k; /* Loop indices */
+  INT dim = loc_data->dim;
+  // Face is an edge in 2D
+  INT nq = (INT) pow(nq1d,dim-1);
+
+  /* Coordinates of vertices of face */
+  INT v_per_face = dim;
+  INT v_per_elm = dim+1;
+  INT* v_on_face = loc_data->v_on_f + face*v_per_face;
+  INT* v_on_elm = loc_data->local_v;
+  REAL* xvf = (REAL *) calloc(v_per_face*dim,sizeof(REAL));
+  for(i=0;i<v_per_face;i++) {
+    for(j=0;j<v_per_elm;j++) {
+      if(v_on_face[i]==v_on_elm[j]) {
+        for(k=0;i<dim;k++) {
+          xvf[i*dim+k] = loc_data->xv[j*dim+k];
+        }
+      }
+    }
+  }
+
+  // Gaussian points for reference element
+  // (edges: [-1,1] faces: tri[(0,0),(1,0),(0,1)])
+  REAL* gp = (REAL *) calloc((dim-1)*nq,sizeof(REAL));
+  /* Gaussian weights for reference element */
+  REAL* gw = (REAL *) calloc(nq,sizeof(REAL));
+
+  REAL r,s;      	/* Points on Reference Face */
+
+  REAL w = 0.0;
+  if(dim==2) { // Faces are Edges in 2D
+    w = 0.5*loc_data->f_area[face]; /* Jacobian = 1/2 |e| */
+  } else if(dim==3) {
+    w = 2*loc_data->f_area[face]; /* Jacobian = 2*|f| */
+  } else {
+    status = ERROR_DIM;
+    check_error(status, __FUNCTION__);
+  }
+
+  // Get Quad Nodes and Weights
+  if(dim==2) { // face is an edge
+    quad1d(gp,gw,nq1d);
+  } else if(dim==3) { // face is a face
+    triquad_(gp,gw,nq1d);
+  } else {
+    status = ERROR_DIM;
+    check_error(status, __FUNCTION__);
+  }
+
+  // Map to Real Face
+  if(dim==2) {
+    // Edges: x = 0.5(x1*(1-r) + x2*(1+r))
+    //        y = 0.5(y1*(1-r) + y2*(1+r))
+    //        z = 0.5(z1*(1-r) + z2*(1+r))
+    //        w = 0.5*Edge Length*wref
+    for (q=0; q<nq1d; q++) {
+      r = gp[q];
+      for(k=0;k<dim;k++) cqface->x[q*dim+k] = 0.5*xvf[0*dim+k]*(1-r) + 0.5*xvf[1*dim+k]*(1-r);
+      cqface->w[q] = w*gw[q];
+    }
+  } else if(dim==3) {
+    // Faces: x = x1*(1-r-s) + x2*r + x3*s
+    //        y = y1*(1-r-s) + y2*r + y3*s
+    //        z = z1*(1-r-s) + z2*r + z3*s
+    //        w = 2*Element Area*wref
+    for (q=0; q<nq1d*nq1d; q++) {
+      r = gp[q];
+      s = gp[nq1d*nq1d+q];
+      for(k=0;k<dim;k++) cqface->x[q*dim+k] = xvf[0*dim+j]*(1-r-s) + xvf[1*dim+j]*r + xvf[2*dim+j]*s;
+      cqface->w[q] = w*gw[q];
+    }
+  } else {
+    status = ERROR_DIM;
+    check_error(status, __FUNCTION__);
+  }
+
+  if(gp) free(gp);
+  if(gw) free(gw);
+  if(xvf) free(xvf);
+
+  return;
+}
 /*********************************************************************************/
 
-/*********************************************************************************/
+
 /*!
  * \fn void dump_qcoords(qcoordinates *q)
  *

@@ -275,10 +275,10 @@ typedef struct block_fespace {
 //**************** NEW STUFF **********************************//
 
 /**
- * \struct qcoords
+ * \struct quadrature
  * \brief Returns coordinates of quadrature nodes
  */
-typedef struct qcoords{
+typedef struct quadrature{
 
   //! Dimension of problem
   INT dim;
@@ -289,16 +289,16 @@ typedef struct qcoords{
   //! weights
   REAL* w;
 
-  //! Size of arrays (number of quadrature nodes)
-  INT n;
+  //! Size of arrays (total number of quadrature nodes)
+  INT nq;
 
   //! Number of quadrature nodes on 1 entity (face or element or edge)
-  INT nq_per_region;
+  INT nq_simplex;
 
   //! Number of quadrature nodes in one direction
   INT nq1d;
 
-} qcoords;
+} quadrature;
 
 
 #endif
