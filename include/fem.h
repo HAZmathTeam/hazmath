@@ -146,8 +146,8 @@ typedef struct fespace{
   //! Perioidc Boundaries (For each DOF indicate if it is periodic with another DOF.  Mark -1 for non-periodic)
   INT* periodic;
 
-  //! Basis Functions and Derivatives
-  // TODO: Will remove, because it's contained in fe_local_data
+  //! Basis Functions and Derivatives at a single quad point
+  // Note: fe_local_data will point to these directly so it is allocated once
   REAL* phi;
   REAL* dphi;
   REAL* ddphi;
@@ -252,7 +252,8 @@ typedef struct simplex_local_data {
    //! Solution at local DoF for all spaces
    REAL* u_local;
 
-   //! Basis functions for all spaces at a quadrature point
+   //! Basis functions for all spaces at a single quadrature point
+   // Points to array allocated inside each fespace struct
    REAL** phi;
    REAL** dphi;
    REAL** ddphi;

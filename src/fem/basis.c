@@ -723,27 +723,26 @@ void face_bubble_basis(REAL *phi, REAL *dphi,REAL* lam,REAL* dlam,INT dim,INT* v
 
   return;
 }
-/****************************************************************************************************************************/
+/******************************************************************************/
 
-/****************************************************************************************************************************/
 /*!
-* \fn void get_FEM_basis_at_quadonelm(REAL *phi,REAL *dphi,simplex_local_data *simplex_data,fe_local_data *fe_data,INT space_index,INT quadpt)
+* \fn void get_FEM_basis_at_x(REAL *phi,REAL *dphi,simplex_local_data *simplex_data,fe_local_data *fe_data,REAL *lam, REAL* dlam,INT space_index)
 *
-* \brief Grabs the basis function of a given FEM space at a particular quadrature point
-*        on a given element, given the local fem data on that simplex
+* \brief Grabs the basis function of a given FEM space at a particular point
+*        on a given element, given the local mesh/fem data on that simplex for
+*        that space.  We assume the P1 basis functions are predefined at the x
+*        point of interest.
 *
 * \param simplex_data    Local mesh data
 * \param fe_data         Local FE data
+* \param lam, dlam       P1 Basis functions defined at x on element
 * \param space_index     Which FE space in fe_block we're considering
-* \param quadpt          Index of quadrature point basis is to be evaluated at
-*
-* \note ordering of quad point is determined by get_quadrature routine
 *
 * \return phi      Basis functions
 * \return dphi     Derivatives of basis functions (depends on type)
 *
 */
-void get_FEM_basis_at_quadonelm(REAL *phi,REAL *dphi,simplex_local_data *simplex_data,fe_local_data *fe_data,INT space_index,INT quadpt)
+void get_FEM_basis_at_x(REAL *phi,REAL *dphi,simplex_local_data *simplex_data,fe_local_data *fe_data,REAL *lam, REAL* dlam,INT space_index)
 {
   // Flag for erros
   SHORT status;
@@ -751,9 +750,7 @@ void get_FEM_basis_at_quadonelm(REAL *phi,REAL *dphi,simplex_local_data *simplex
 
   // Mesh and FEM Data
   INT dim = simplex_data->dim;
-  // P1 basis functions at quadpt
-  REAL* lam = simplex_data->lams + quadpt*(dim+1);
-  REAL* dlam = simplex_data->gradlams + quadpt*((dim+1)*dim);
+
   INT fe_type = fe_data->fe_types[space_index];
   INT dof_per_elm = fe_data->n_dof_per_space[space_index];
 
@@ -790,7 +787,42 @@ void get_FEM_basis_at_quadonelm(REAL *phi,REAL *dphi,simplex_local_data *simplex
 
   return;
 }
-/****************************************************************************************************************************/
+/******************************************************************************/
+
+/*!
+* \fn void get_FEM_basis_at_quadpt(simplex_local_data *simplex_data,fe_local_data *fe_data,INT space_index,INT quadpt)
+*
+* \brief Grabs the basis function of a given FEM space at a particular quadrature point
+*        on a given element, given the local fem data on that simplex and the predefined
+*        quadrature point saved in simplex_data.  Not we will store the result`
+*        inside fe_data directly
+*
+* \param simplex_data    Local mesh data
+* \param fe_data         Local FE data
+* \param space_index     Which FE space in fe_block we're considering
+* \param quadpt          Index of quadrature point basis is to be evaluated at
+*
+* \note ordering of quad point is determined by get_quadrature routine
+*
+* \return fe_data->phi[space_index]      Basis functions
+* \return fe_data->dphi[space_index]     Derivatives of basis functions (depends on type)
+*
+*/
+void get_FEM_basis_at_quadpt(simplex_local_data *simplex_data,fe_local_data *fe_data,INT space_index,INT quadpt)
+{
+
+  INT dim = simplex_data->dim;
+  // P1 basis functions at quadpt
+  REAL* lam = simplex_data->lams + quadpt*(dim+1);
+  REAL* dlam = simplex_data->gradlams + quadpt*((dim+1)*dim);
+
+  // Call general function at any x
+  get_FEM_basis_at_x(fe_data->phi[space_index],fe_data->dphi[space_index],simplex_data,fe_data,lam,dlam,space_index);
+
+  return;
+}
+/******************************************************************************/
+
 
 /********************** OLD STUFF **************************************/
 /*             Uses global mesh data and is inefficient                */
