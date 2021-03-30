@@ -11,7 +11,6 @@
 
 #include "hazmath.h"
 
-/****************************************************************************************/
 /*!
 * \fn void initialize_fespace(fespace *FE)
 *
@@ -44,9 +43,8 @@ void initialize_fespace(fespace *FE)
 
   return;
 }
-/****************************************************************************************/
+/******************************************************************************/
 
-/****************************************************************************************/
 /*!
 * \fn void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
 *
@@ -55,7 +53,7 @@ void initialize_fespace(fespace *FE)
 * \param mesh      Mesh struc
 * \param FEtype    Element Type:
 *                  Implemented:  0-2: PX | 20: Ned-0 | 30: RT-0 | 62: P1 + facebubble | 99: single DoF for constraints
-*                  TBI: -9--1: DGX | 10-19: QX | 21-29: Ned-X | 31:39: RT-X | 40-59: Ned/RT-X on quads | 60: vector of scalars | 61: MINI element
+*                  TBI: -9--1: DGX | 10-19: QX | 21-29: Ned-X | 31:39: RT-X | 40-59: Ned/RT-X on quads | 61: MINI element | 70-79: Vector of PX scalars
 *
 * \return FE       Struct for FE space
 *
@@ -376,9 +374,8 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
 
   return;
 }
-/****************************************************************************************/
+/******************************************************************************/
 
-/****************************************************************************************/
 /*!
 * \fn void free_fespace(fespace* FE)
 *
@@ -445,9 +442,8 @@ void free_fespace(fespace* FE)
 
   return;
 }
-/****************************************************************************************/
+/******************************************************************************/
 
-/****************************************************************************************/
 /*!
 * \fn void initialize_fesystem(block_fespace *FE)
 *
@@ -545,24 +541,29 @@ void initialize_localdata_elm(simplex_local_data *simplex_data,fe_local_data *fe
   // FE local data that is fixed
   fe_data->nspaces = nspaces;
   fe_data->fe_types = (INT *) calloc(nspaces,sizeof(INT));
+  // Count of DoF on element
   fe_data->n_dof_per_space = (INT *) calloc(nspaces,sizeof(INT));
+  // Basis functions
+  fe_data->phi = (REAL **) calloc(nspaces,sizeof(REAL *));
+  fe_data->dphi = (REAL **) calloc(nspaces,sizeof(REAL *));
+  fe_data->ddphi = (REAL **) calloc(nspaces,sizeof(REAL *));
   for(i=0;i<nspaces;i++) {
     dof_per_elm_tot += FE->var_spaces[i]->dof_per_elm;
     fe_data->n_dof_per_space[i] = FE->var_spaces[i]->dof_per_elm;
+    // Point to correct basis function for space
+    fe_data->phi[i] = FE->var_spaces[i]->phi;
+    fe_data->dphi[i] = FE->var_spaces[i]->dphi;
+    fe_data->ddphi[i] = FE->var_spaces[i]->ddphi;
   }
   fe_data->n_dof = dof_per_elm_tot;
   fe_data->local_dof = (INT *) calloc(dof_per_elm_tot,sizeof(INT));
   fe_data->local_dof_flags = (INT *) calloc(dof_per_elm_tot,sizeof(INT));
   fe_data->u_local = (REAL *) calloc(dof_per_elm_tot,sizeof(REAL));
-  fe_data->phi = (REAL **) calloc(nspaces,sizeof(REAL *));
-  fe_data->dphi = (REAL **) calloc(nspaces,sizeof(REAL *));
-  fe_data->ddphi = (REAL **) calloc(nspaces,sizeof(REAL *));
 
   return;
 }
-/****************************************************************************************/
+/******************************************************************************/
 
-/****************************************************************************************/
 /*!
 * \fn void get_elmlocaldata(simplex_local_data* elm_data,mesh_struct* mesh,INT elm)
 *
@@ -579,7 +580,7 @@ void initialize_localdata_elm(simplex_local_data *simplex_data,fe_local_data *fe
 void get_elmlocaldata(simplex_local_data* elm_data,mesh_struct* mesh,INT elm)
 {
   // counters
-  INT i,j;
+  INT i,j,vind;
 
   INT dim = mesh->dim;
   INT v_per_elm = mesh->v_per_elm;
@@ -595,9 +596,10 @@ void get_elmlocaldata(simplex_local_data* elm_data,mesh_struct* mesh,INT elm)
   get_incidence_row(elm,mesh->el_v,elm_data->local_v);
   // Temporary fix until coordinates is made dimensionless
   for(i=0;i<v_per_elm;i++) {
-    elm_data->xv[i*dim] = mesh->cv->x[elm_data->local_v[i]];
-    if(dim>1) elm_data->xv[i*dim+1] = mesh->cv->y[elm_data->local_v[i]];
-    if(dim>2) elm_data->xv[i*dim+2] = mesh->cv->z[elm_data->local_v[i]];
+    vind = elm_data->local_v[i];
+    for(j=0;j<dim;j++) {
+      elm_data->xv[i*dim+j] = mesh->cv->x[vind*dim+j];
+    }
   }
 
   // Edge data
@@ -717,7 +719,7 @@ void initialize_localdata_face(simplex_local_data *simplex_data,fe_local_data *f
 void get_facelocaldata(simplex_local_data* face_data,mesh_struct* mesh,INT face)
 {
   // counters
-  INT i,j;
+  INT i,j,vind;
 
   INT dim = mesh->dim;
   INT v_per_f = dim;
@@ -732,9 +734,10 @@ void get_facelocaldata(simplex_local_data* face_data,mesh_struct* mesh,INT face)
   get_incidence_row(face,mesh->f_v,face_data->local_v);
   // Temporary fix until coordinates is made dimensionless
   for(i=0;i<v_per_f;i++) {
-    face_data->xv[i*dim] = mesh->cv->x[face_data->local_v[i]];
-    if(dim>1) face_data->xv[i*dim+1] = mesh->cv->y[face_data->local_v[i]];
-    if(dim>2) face_data->xv[i*dim+2] = mesh->cv->z[face_data->local_v[i]];
+    vind = face_data->local_v[i];
+    for(j=0;j<dim;j++) {
+      face_data->xv[i*dim+j] = mesh->cv->x[vind*dim+j];
+    }
   }
 
   // Edge data
@@ -839,7 +842,7 @@ void initialize_localdata_edge(simplex_local_data *simplex_data,fe_local_data *f
 void get_edgelocaldata(simplex_local_data* edge_data,mesh_struct* mesh,INT edge)
 {
   // counters
-  INT i,j;
+  INT i,j,vind;
 
   INT dim = mesh->dim;
   INT v_per_ed = 2;
@@ -853,9 +856,10 @@ void get_edgelocaldata(simplex_local_data* edge_data,mesh_struct* mesh,INT edge)
   get_incidence_row(edge,mesh->ed_v,edge_data->local_v);
   // Temporary fix until coordinates is made dimensionless
   for(i=0;i<v_per_ed;i++) {
-    edge_data->xv[i*dim] = mesh->cv->x[edge_data->local_v[i]];
-    if(dim>1) edge_data->xv[i*dim+1] = mesh->cv->y[edge_data->local_v[i]];
-    if(dim>2) edge_data->xv[i*dim+2] = mesh->cv->z[edge_data->local_v[i]];
+    vind = edge_data->local_v[i];
+    for(j=0;j<dim;j++) {
+      edge_data->xv[i*dim+j] = mesh->cv->x[vind*dim+j];
+    }
   }
 
   // Edge data
@@ -921,21 +925,13 @@ void free_felocaldata(fe_local_data* loc_data)
 {
   if (loc_data == NULL) return; // Nothing need to be freed!
 
-  INT i;
-  INT nspaces = loc_data->nspaces;
   if(loc_data->fe_types) free(loc_data->fe_types);
   if(loc_data->n_dof_per_space) free(loc_data->n_dof_per_space);
   if(loc_data->local_dof) free(loc_data->local_dof);
   if(loc_data->local_dof_flags) free(loc_data->local_dof_flags);
   if(loc_data->u_local) free(loc_data->u_local);
-  for ( i=0; i<nspaces; i++ ) {
-    if(loc_data->phi[i]) free(loc_data->phi[i]);
-    loc_data->phi[i] = NULL;
-    if(loc_data->dphi[i]) free(loc_data->dphi[i]);
-    loc_data->dphi[i] = NULL;
-    if(loc_data->ddphi[i]) free(loc_data->ddphi[i]);
-    loc_data->ddphi[i] = NULL;
-  }
+
+  // Actual basis functions are freed by free_fespace
   if(loc_data->phi) free(loc_data->phi);
   loc_data->phi = NULL;
   if(loc_data->dphi) free(loc_data->dphi);
