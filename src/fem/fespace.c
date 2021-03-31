@@ -541,13 +541,17 @@ void initialize_localdata_elm(simplex_local_data *simplex_data,fe_local_data *fe
   // FE local data that is fixed
   fe_data->nspaces = nspaces;
   fe_data->fe_types = (INT *) calloc(nspaces,sizeof(INT));
+  fe_data->scal_or_vec = (INT *) calloc(nspaces,sizeof(INT));
   // Count of DoF on element
   fe_data->n_dof_per_space = (INT *) calloc(nspaces,sizeof(INT));
   // Basis functions
   fe_data->phi = (REAL **) calloc(nspaces,sizeof(REAL *));
   fe_data->dphi = (REAL **) calloc(nspaces,sizeof(REAL *));
   fe_data->ddphi = (REAL **) calloc(nspaces,sizeof(REAL *));
+  // Fill in data for each fe space in system
   for(i=0;i<nspaces;i++) {
+    fe_data->fe_types[i] = FE->var_spaces[i]->FEtype;
+    fe_data->scal_or_vec[i] = FE->var_spaces[i]->scal_or_vec;
     dof_per_elm_tot += FE->var_spaces[i]->dof_per_elm;
     fe_data->n_dof_per_space[i] = FE->var_spaces[i]->dof_per_elm;
     // Point to correct basis function for space
@@ -686,8 +690,12 @@ void initialize_localdata_face(simplex_local_data *simplex_data,fe_local_data *f
   // FE local data that is fixed
   fe_data->nspaces = nspaces;
   fe_data->fe_types = (INT *) calloc(nspaces,sizeof(INT));
+  fe_data->scal_or_vec = (INT *) calloc(nspaces,sizeof(INT));
   fe_data->n_dof_per_space = (INT *) calloc(nspaces,sizeof(INT));
+  // Fill in data for each fe space in system
   for(i=0;i<nspaces;i++) {
+    fe_data->fe_types[i] = FE->var_spaces[i]->FEtype;
+    fe_data->scal_or_vec[i] = FE->var_spaces[i]->scal_or_vec;
     dof_per_face_tot += FE->var_spaces[i]->dof_per_face;
     fe_data->n_dof_per_space[i] = FE->var_spaces[i]->dof_per_face;
   }
@@ -809,8 +817,12 @@ void initialize_localdata_edge(simplex_local_data *simplex_data,fe_local_data *f
   // FE local data that is fixed
   fe_data->nspaces = nspaces;
   fe_data->fe_types = (INT *) calloc(nspaces,sizeof(INT));
+  fe_data->fe_types = (INT *) calloc(nspaces,sizeof(INT));
   fe_data->n_dof_per_space = (INT *) calloc(nspaces,sizeof(INT));
+  // Fill in data for each fe space in system
   for(i=0;i<nspaces;i++) {
+    fe_data->fe_types[i] = FE->var_spaces[i]->FEtype;
+    fe_data->scal_or_vec[i] = FE->var_spaces[i]->scal_or_vec;
     dof_per_edge_tot += FE->var_spaces[i]->dof_per_edge;
     fe_data->n_dof_per_space[i] = FE->var_spaces[i]->dof_per_edge;
   }
@@ -926,6 +938,7 @@ void free_felocaldata(fe_local_data* loc_data)
   if (loc_data == NULL) return; // Nothing need to be freed!
 
   if(loc_data->fe_types) free(loc_data->fe_types);
+  if(loc_data->scal_or_vec) free(loc_data->scal_or_vec);
   if(loc_data->n_dof_per_space) free(loc_data->n_dof_per_space);
   if(loc_data->local_dof) free(loc_data->local_dof);
   if(loc_data->local_dof_flags) free(loc_data->local_dof_flags);
