@@ -792,7 +792,7 @@ void get_FEM_basis_on_elm(REAL *phi,REAL *dphi,simplex_local_data *simplex_data,
 *
 * \brief Grabs the basis function of a given FEM space at a particular quadrature point
 *        on a given element, given the local fem data on that simplex and the predefined
-*        quadrature point saved in simplex_data.  Not we will store the result`
+*        quadrature point saved in simplex_data.  Note we will store the result`
 *        inside fe_data directly
 *
 * \param simplex_data    Local mesh data
@@ -825,7 +825,8 @@ void get_FEM_basis_at_quadpt(simplex_local_data *simplex_data,fe_local_data *fe_
 * \fn void get_FEM_basis_at_x(REAL *phi,REAL *dphi,simplex_local_data *simplex_data,fe_local_data *fe_data,INT space_index,REAL *x)
 *
 * \brief Grabs the basis function of a given FEM space at a particular point x
-*        on a given element, given the local fem data on that simplex.
+*        on a given element, given the local fem data on that simplex. Note we will store the result`
+*        inside fe_data directly, overriding what was there before.
 *
 * \param simplex_data    Local mesh data
 * \param fe_data         Local FE data
@@ -837,11 +838,11 @@ void get_FEM_basis_at_quadpt(simplex_local_data *simplex_data,fe_local_data *fe_
 *       on the physical element, though it does use the preset reference element
 *       mapping provided inside simplex_data
 *
-* \return phi     Basis functions
-* \return dphi    Derivatives of basis functions (depends on type)
+* \return fe_data->phi[space_index]      Basis functions
+* \return fe_data->dphi[space_index]     Derivatives of basis functions (depends on type)
 *
 */
-void get_FEM_basis_at_x(REAL *phi,REAL *dphi,simplex_local_data *simplex_data,fe_local_data *fe_data,INT space_index,REAL *x)
+void get_FEM_basis_at_x(simplex_local_data *simplex_data,fe_local_data *fe_data,INT space_index,REAL *x)
 {
 
   INT dim = simplex_data->dim;
@@ -851,8 +852,11 @@ void get_FEM_basis_at_x(REAL *phi,REAL *dphi,simplex_local_data *simplex_data,fe
   P1_basis_physical(lam,dlam,x,simplex_data);
 
   // Call general function at any x
-  get_FEM_basis_on_elm(phi,dphi,simplex_data,fe_data,lam,dlam,space_index);
+  get_FEM_basis_on_elm(fe_data->phi[space_index],fe_data->dphi[space_index],simplex_data,fe_data,lam,dlam,space_index);
 
+  if(lam) free(lam);
+  if(dlam) free(dlam);
+  
   return;
 }
 /******************************************************************************/
