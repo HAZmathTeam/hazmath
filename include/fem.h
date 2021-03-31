@@ -237,6 +237,9 @@ typedef struct simplex_local_data {
    //! Type of FE spaces
    INT* fe_types;
 
+   //! Indicates whether the spaces are scalar or vector-valued
+   INT* scal_or_vec;
+
    //! Total number of DoF locally for all spaces
    INT n_dof;
 
