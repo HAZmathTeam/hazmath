@@ -70,56 +70,51 @@ void P1_basis_ref(REAL *lam,REAL *dlam,REAL *x,INT dim)
 /*****************************************************************************/
 
 /*!
-* \fn void P1_basis_physical(REAL *lam,REAL *dlam,REAL *x,INT dim,REAL* xv)
+* \fn void P1_basis_physical(REAL *lam,REAL *dlam,REAL *x,simplex_local_data* elm_data)
 *
-* \brief Compute Standard Lagrange Finite Element Basis Functions (P1) at a particular point
-*        in the physical element.  This function will not be used often, but is
-*        here in case you need to create a basis function at a random point in an
-*        element not associated with quadrature.
+* \brief Compute Standard Lagrange Finite Element Basis Functions (P1) at a
+*        particular point in the physical element given the local element data.
+* \note  This function will not be used often, as we usually just compute the
+*        bases on quadrature points, which are fixed ahead of time.  But in case
+*        you need to create a basis function at a random point in an element
+*        (not associated with quadrature), you have this option.
 *
 * \param x         Coordinate on where to compute basis function (on ref element)
-* \param dim       Dimension of problem
-* \param xv        Coordintes of vertices on element which contains x
+* \param elm_data  Local mesh data on element
 *
 * \return lam      Basis functions (1 for each vertex on element)
 * \return dlam     Derivatives of basis functions (i.e., gradient)
 *
 *  \note Functions are computed by mapping from reference simplex directly:
 *        B*xr = x - x0 => xr = B^{-1} (x-xv0)
+*        B is included in elm_data as ref_map
 *        2D Example
 *
 *      ( xv1-xv0  xv2-xv0 ) * ( xr ) = ( x - xv0 )
 *      ( yv1-yv0  yv2-yv0 )   ( yr )   ( y - yv0 )
 *
 *      lam = 1-xr-yr; xr; yr
-*      dlam = (-1,-1); (1,0); (0,1)
+*      dlam = rows of Binv map provided in gradlams of elm_data
 *
 */
-void P1_basis_physical(REAL *lam,REAL *dlam,REAL *x,INT dim,REAL* xv)
+void P1_basis_physical(REAL *lam,REAL *dlam,REAL *x,simplex_local_data* elm_data)
 {
 
   // Loop counters
   INT i,j;
+  // Temporarily grab stuff from elm_data
+  INT dim = elm_data->dim;
+  REAL* binv = elm_data->gradlams;
+  REAL* xv = elm_data->xv;
 
-  // Get B
-  REAL* b = (REAL *) calloc(dim*dim,sizeof(REAL));
-  for(i=0;i<dim;i++) {
-    for(j=0;j<dim;j++) {
-      b[i*dim+j] = xv[(j+1)*dim+i]-xv[0];
-    }
-  }
-
-  // Invert B
-  REAL* binv = (REAL *) calloc(dim*dim,sizeof(REAL));
-  void* wrk = malloc(dim*sizeof(INT)+dim*(dim+1)*sizeof(REAL));
-  invfull(binv,dim,b,wrk);
-
-  // Get coordinate on ref_elm
+  // Get coordinate of x on ref_elm using inverse reference map
+  // Note that we ignore first rwo of B^(-1), since this is grad(lam0) and not part
+  // of the original B^(-1)
   REAL* xr = (REAL *) calloc(dim,sizeof(REAL));
   for(i=0;i<dim;i++) {
     xr[i] = 0.0;
     for(j=0;j<dim;j++) {
-      xr[i] += binv[i*dim+j]*(x[j]-xv[0]);
+      xr[i] += binv[(i+1)*dim+j]*(x[j]-xv[0*dim+j]);
     }
   }
 
@@ -143,8 +138,6 @@ void P1_basis_physical(REAL *lam,REAL *dlam,REAL *x,INT dim,REAL* xv)
     dlam[i] = dlam0val;
   }
 
-  if(b) free(b);
-  if(binv) free(binv);
   if(xr) free(xr);
 
   return;
@@ -324,7 +317,7 @@ void PX_basis(REAL *p,REAL *dp,INT porder,INT dim,REAL* lam, REAL* dlam)
     p[0] = 1.0;
     break;
 
-    case 1: // P1 elements - just copy from above
+    case 1: // P1 elements - just copy from input
     for(idim=0;idim<dim+1;idim++) {
       p[idim] = lam[idim];
       for(jdim=0;jdim<dim;jdim++) {
@@ -333,7 +326,7 @@ void PX_basis(REAL *p,REAL *dp,INT porder,INT dim,REAL* lam, REAL* dlam)
     }
     break;
 
-    case 2: // P2 elements
+    case 2: // P2 elements - add edges dof
     cntr=dim+1;
     for(idim=0;idim<dim+1;idim++) {
       p[idim] = 2*lam[idim]*(lam[idim]-0.5);
@@ -726,12 +719,17 @@ void face_bubble_basis(REAL *phi, REAL *dphi,REAL* lam,REAL* dlam,INT dim,INT* v
 /******************************************************************************/
 
 /*!
-* \fn void get_FEM_basis_at_x(REAL *phi,REAL *dphi,simplex_local_data *simplex_data,fe_local_data *fe_data,REAL *lam, REAL* dlam,INT space_index)
+* \fn void get_FEM_basis_on_elm(REAL *phi,REAL *dphi,simplex_local_data *simplex_data,fe_local_data *fe_data,REAL *lam, REAL* dlam,INT space_index)
 *
 * \brief Grabs the basis function of a given FEM space at a particular point
 *        on a given element, given the local mesh/fem data on that simplex for
 *        that space.  We assume the P1 basis functions are predefined at the x
-*        point of interest.
+*        point of interest and input.
+*
+* \note This is the "main" routine for grabbing basis functions.  When, new
+*       spaces are added, this routine should be updated.  Other routines Will
+*       call this one for instance if you want a basis function at a random point
+*       versus a quadrature point.
 *
 * \param simplex_data    Local mesh data
 * \param fe_data         Local FE data
@@ -742,7 +740,7 @@ void face_bubble_basis(REAL *phi, REAL *dphi,REAL* lam,REAL* dlam,INT dim,INT* v
 * \return dphi     Derivatives of basis functions (depends on type)
 *
 */
-void get_FEM_basis_at_x(REAL *phi,REAL *dphi,simplex_local_data *simplex_data,fe_local_data *fe_data,REAL *lam, REAL* dlam,INT space_index)
+void get_FEM_basis_on_elm(REAL *phi,REAL *dphi,simplex_local_data *simplex_data,fe_local_data *fe_data,REAL *lam, REAL* dlam,INT space_index)
 {
   // Flag for erros
   SHORT status;
@@ -817,7 +815,43 @@ void get_FEM_basis_at_quadpt(simplex_local_data *simplex_data,fe_local_data *fe_
   REAL* dlam = simplex_data->gradlams + quadpt*((dim+1)*dim);
 
   // Call general function at any x
-  get_FEM_basis_at_x(fe_data->phi[space_index],fe_data->dphi[space_index],simplex_data,fe_data,lam,dlam,space_index);
+  get_FEM_basis_on_elm(fe_data->phi[space_index],fe_data->dphi[space_index],simplex_data,fe_data,lam,dlam,space_index);
+
+  return;
+}
+/******************************************************************************/
+
+/*!
+* \fn void get_FEM_basis_at_x(REAL *phi,REAL *dphi,simplex_local_data *simplex_data,fe_local_data *fe_data,INT space_index,REAL *x)
+*
+* \brief Grabs the basis function of a given FEM space at a particular point x
+*        on a given element, given the local fem data on that simplex.
+*
+* \param simplex_data    Local mesh data
+* \param fe_data         Local FE data
+* \param space_index     Which FE space in fe_block we're considering
+* \param x               Physical coordinate to compute basis function on
+*
+* \note This routine might not be used to often, unless you need to Interpolate
+*       to a random point in the element.  This "rebuilds" the P1 basis functions
+*       on the physical element, though it does use the preset reference element
+*       mapping provided inside simplex_data
+*
+* \return phi     Basis functions
+* \return dphi    Derivatives of basis functions (depends on type)
+*
+*/
+void get_FEM_basis_at_x(REAL *phi,REAL *dphi,simplex_local_data *simplex_data,fe_local_data *fe_data,INT space_index,REAL *x)
+{
+
+  INT dim = simplex_data->dim;
+  // P1 basis functions at x
+  REAL *lam = (REAL *) calloc(dim+1,sizeof(REAL));
+  REAL *dlam = (REAL *) calloc((dim+1)*dim,sizeof(REAL));
+  P1_basis_physical(lam,dlam,x,simplex_data);
+
+  // Call general function at any x
+  get_FEM_basis_on_elm(phi,dphi,simplex_data,fe_data,lam,dlam,space_index);
 
   return;
 }
