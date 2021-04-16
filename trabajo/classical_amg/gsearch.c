@@ -13,7 +13,7 @@ void main()
 {
   dCSRmat *a=malloc(1*sizeof(dCSRmat));
   // read the matrix in coo format; convert it to csr and this is a:
-  dcoo_read_dcsr("graphij2",a);
+  dcoo_read_dcsr("graphij0",a);
   fprintf(stdout,"\nDepth First Search permutation:\n");
   INT i,k;
   // find the connected components
