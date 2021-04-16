@@ -1,9 +1,4 @@
 // C program for array implementation of bfs.
-#include <limits.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include "a_toposort.h"
-
 void run_bfs(grapha *g,int *root,const int nroots,const int lvlmax)
 {
   int iii,i,k,q,v,vi,qbeg,qend,lvl;  
