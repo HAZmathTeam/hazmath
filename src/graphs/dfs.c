@@ -7,7 +7,46 @@
  *
  */
 #include "hazmath.h"
-
+/*****************************************************************************/
+static void dfs_recurrence(int v, int *ia, int *ja,		\
+			   int *mask, int *jblk, int *pos)
+{
+  int i, vi;
+  //  fprintf(stdout,"%d ",v);fflush(stdout);
+  mask[v] = 1;
+  jblk[pos[0]++]=v;
+  for (vi = ia[v]; vi<ia[v+1]; ++vi){
+    i=ja[vi];
+    if (!mask[i]){
+      dfs_recurrence(i,ia,ja,mask,jblk,pos);
+    }
+  }
+  return;
+}
+/*****************************************************************************/
+iCSRmat *haz_dfs(dCSRmat *a)
+{
+  // depth first search: find all conncted components
+  //  blk->val is the connected component number for the vertex blk->JA[i]
+  INT i,j,k,pos;
+  // short hand;
+  iCSRmat *blk=malloc(1*sizeof(iCSRmat));
+  blk[0]=icsr_create(a->row,a->col,a->row);
+  INT *mask=blk->val;
+  for (i=0;i<a->row;++i) blk->val[i]=0;  
+  blk->row=0;
+  blk->IA[0]=0;
+  pos=blk->IA[0];
+  for (i=0;i<a->row;++i){
+    if(!blk->val[i]){
+      dfs_recurrence(i,a->IA,a->JA,blk->val,blk->JA,&pos);
+      blk->IA[++blk->row]=pos;
+    }
+  }
+  blk->IA=realloc(blk->IA,(blk->row+1)*sizeof(INT));
+  return blk;
+}
+/*************************************************************************/
 void dfs00_(INT *nin, INT *ia, INT *ja, INT *nblko,INT *iblk, INT *jblk)
 {
   INT n,n1,nb,nblk,count,k1,sp,vp,v=0,wp=0,w=0,v1=0,i,ii,myflag;
