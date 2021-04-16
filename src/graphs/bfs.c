@@ -9,6 +9,70 @@
 #include "hazmath.h"
 /***********************************************************************/
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx*/
+/*********************************************************************/
+iCSRmat *run_bfs(dCSRmat *a,			\
+		 ivector *roots,		\
+		 ivector *anc,			\
+		 const INT lvlmax)
+{
+  INT iii,i,k,q,v,vi,qbeg,qend,lvl;  
+  INT *ia=a->IA,*ja=a->JA;
+  iCSRmat *blk=malloc(1*sizeof(iCSRmat));
+  blk[0]=icsr_create(a->row,a->col,a->row);
+  anc->row=a->row;
+  anc->val=(INT *)calloc(anc->row,sizeof(INT));
+  for(i=0;i<blk->nnz;++i) blk->val[i]=0;
+  for(i=0;i<anc->row;++i) anc->val[i]=-1;
+  lvl=0;
+  blk->IA[lvl]=0;
+  k=blk->IA[lvl];
+  //  fprintf(stdout,"\nR:");
+  if(roots->row<=0){
+    roots->row=1;
+    roots->val=(INT *)realloc(roots->val,roots->row*sizeof(INT));
+    roots->val[0]=0;
+  }
+  for(i=0;i<roots->row;++i){
+    //    fprintf(stdout,"\nroots[%d]=%d",i,roots->val[i]);
+    blk->val[roots->val[i]]=lvl+1;
+    blk->JA[k]=roots->val[i];
+    k++;
+  }
+  blk->IA[lvl+1]=k;
+  // we need to repeat this
+  while(1){
+    qbeg=blk->IA[lvl];
+    qend=blk->IA[lvl+1];
+    for(q=qbeg;q<qend;++q){
+      v = blk->JA[q];
+      for(vi=ia[v];vi<ia[v+1];++vi){
+	i=ja[vi];
+	if (!blk->val[i]){
+	  blk->val[i]=lvl+1;
+	  blk->JA[k]=i;
+	  k++;
+	  anc->val[i]=v; // ancestor;
+	}
+	//	fprintf(stdout,"\nlvl=%d,v=%d; nbr=%d,blk->val=%d",lvl,v,i,blk->val[i]);fflush(stdout);
+      }
+    }
+    lvl++;
+    blk->IA[lvl+1]=k;    
+    if(k<=qend) break;
+  }
+  /* fprintf(stdout,"\nord (k=%d):",k); */
+  /* for(i=0;i<k;i++){ */
+  /*   v=blk->JA[i]; */
+  /*   fprintf(stdout,"\nblk->val[%d]=%d",v,blk->val[v]);fflush(stdout); */
+  /* } */
+  /* for(i=0;i<(lvl+1);i++){ */
+  /*   fprintf(stdout,"\nblk->IA[%d]=%d",i,blk->IA[i]); */
+  /* } */
+  blk->row=lvl;
+  blk->IA=(INT *)realloc(blk->IA,(blk->row+1)*sizeof(INT));
+  //end
+  return blk;
+}
 /***********************************************************************/
 void bfs00(const INT croot,			\
 	   iCSRmat *a, iCSRmat *bfs,		\
