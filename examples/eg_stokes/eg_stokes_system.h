@@ -934,7 +934,7 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
               if(dim==3) u0z = FE->var_spaces[iu0]->dphi[trial*dim+2];
 
               kij = -2.0*u0x*finrm[0]*v0 - u0y*finrm[1]*v0;
-              if(dim==3) kij -= u0z*finrm[2]*v0;
+              if(dim==3) kij += -u0z*finrm[2]*v0;
               //  kij = -2.0 * FE->var_spaces[0]->dphi[trial*dim]* finrm[0] * FE->var_spaces[0]->phi[test];
               //  kij -= FE->var_spaces[0]->dphi[trial*dim+1] * finrm[1] *    FE->var_spaces[0]->phi[test];
               // TODO: Below is 0 for Stokes right?  So I'm skipping this term
@@ -1031,7 +1031,7 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
               if(dim==3) u1z = FE->var_spaces[iu1]->dphi[trial*dim+2];
 
               kij = -2.0*u1y*finrm[1]*v1 - u1x*finrm[0]*v1;
-              if(dim==3) kij -= u1z*finrm[2]*v1;
+              if(dim==3) kij += -u1z*finrm[2]*v1;
               // kij = -2.0 * FE->var_spaces[1]->dphi[trial*dim+1] * finrm[1] * FE->var_spaces[1]->phi[test] ;
               // kij -= 1.0 * FE->var_spaces[1]->dphi[trial*dim] * finrm[0]   * FE->var_spaces[1]->phi[test];
               // // NEW SLEE : elasticity div part
@@ -1165,7 +1165,7 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
                 if(dim==3) u0z = FE->var_spaces[iu0]->dphi[trial*dim+2];
 
                 kij = (-2.0*u0x*finrm[0] - u0y*finrm[1])*eg_xterm;
-                kij -= u0y*finrm[0]*eg_yterm;
+                kij += -u0y*finrm[0]*eg_yterm;
                 if(dim==3) kij += -u0z*finrm[2]*eg_xterm - u0z*finrm[0]*eg_zterm;
 
                 // TODO: Gone?
@@ -1231,8 +1231,8 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
             for (trial=0; trial<egdofpelm;trial++){
 
               kij = -2.0 * 1. * finrm[0] * eg_xterm;//(qx_face[0] - barycenter->x[0]);
-              kij -= 2.0 * 1. * finrm[1] * eg_yterm; //(qx_face[1] - barycenter->y[0]);
-              if(dim==3) kij -= 2.0 * 1. * finrm[2] * eg_zterm; //(qx_face[2] - barycenter->z[0]);
+              kij += -2.0 * 1. * finrm[1] * eg_yterm; //(qx_face[1] - barycenter->y[0]);
+              if(dim==3) kij += -2.0 * 1. * finrm[2] * eg_zterm; //(qx_face[2] - barycenter->z[0]);
 
               // TODO: This is gone right?
               // // NEW SLEE : elasticity div part
@@ -1723,8 +1723,8 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
 
               // u0-eg
               kij = (-0.5 * 2.0*u0x*finrm[0] - 0.5 * u0y*finrm[1])*eg_xterm;
-              kij -= 0.5 * u0y*finrm[0]*eg_yterm;
-              if(dim==3) kij -= 0.5 * (u0z*finrm[2]*eg_xterm + u0z*finrm[0]*eg_zterm);
+              kij += -0.5 * u0y*finrm[0]*eg_yterm;
+              if(dim==3) kij += -0.5 * (u0z*finrm[2]*eg_xterm + u0z*finrm[0]*eg_zterm);
               ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
 
               // u0neighbor-eg
@@ -1793,13 +1793,11 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
                 u2 = FE->var_spaces[iu2]->phi[trial];
                 u2x = FE->var_spaces[iu2]->dphi[trial*dim];
                 u2y = FE->var_spaces[iu2]->dphi[trial*dim+1];
+                u2z = FE->var_spaces[iu2]->dphi[trial*dim+2];
                 un2 = neighbor_basis_u2_phi[trial];
                 un2x = neighbor_basis_u2_dphi[trial*dim];
                 un2y = neighbor_basis_u2_dphi[trial*dim+1];
-                if(dim==3) {
-                  u2z = FE->var_spaces[iu2]->dphi[trial*dim+2];
-                  un2z = neighbor_basis_u2_dphi[trial*dim+2];
-                }
+                un2z = neighbor_basis_u2_dphi[trial*dim+2];
 
                 // u1-eg
                 kij = (-0.5 * 2.0*u2z*finrm[2] - 0.5 * u2x*finrm[0] - 0.5 * u2y*finrm[1])*eg_zterm;
@@ -1847,7 +1845,7 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
             ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
 
             //egneighbor-eg
-            kij_unv = 0.5* -2.0 * 1. * finrm[0] * eg_xterm;
+            kij_unv = -0.5* 2.0 * 1. * finrm[0] * eg_xterm;
             kij_unv -= 0.5*2.0 * 1. * finrm[1] * eg_yterm;
             if(dim==3) kij_unv -= 0.5*2.0 * 1. * finrm[2] * eg_zterm;
             //penalty_term
@@ -2219,6 +2217,7 @@ void FEM_Block_RHS_Local_Elasticity(dvector *b,REAL* bLoc, REAL *solution, \
         REAL grad_val0[dim];
         grad_val0[0]=0;
         grad_val0[1]=0;
+
         REAL grad_val1[dim];
         grad_val1[0]=0;
         grad_val1[1]=0;
@@ -2251,7 +2250,7 @@ void FEM_Block_RHS_Local_Elasticity(dvector *b,REAL* bLoc, REAL *solution, \
               //This is for  u0 and u1 (CG part)
               //printf(" i = %d (FE->nspaces = %d), unknown_index = %d, test = %d \n", i, FE->var_spaces[i]->dof_per_elm, unknown_index, test);
               bLoc[(local_row_index+test)] += w*rhs_val[i]*FE->var_spaces[i]->phi[test];
-            } else if(i == dim) {
+            } else if(i == dim && bEG) {
               //SLEE
               // This is for  u2:: (EG part)
               //Note that new DOF is \phi^3 = [x ; y]
@@ -2422,7 +2421,7 @@ if(mesh->f_flag[face]>0) {
     eg_yterm = qx_face[1]-barycenter->y[0];
     if(dim==3) eg_zterm = qx_face[2]-barycenter->z[0];
 
-    // TODO: why was this hard coded for 2D?
+    // TODO: why was this hard coded for 2D? Are these supposed to get the same result?
     (*truesol)(val_true_face,qx_face,time,&(mesh->el_flag[elm]));
     //(*exact_sol2D)(val_true_face,qx_face,time, &(mesh->el_flag[elm]));  // ???
 
@@ -2815,6 +2814,7 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
     } // end dim==3
 
     // eg test rows
+    if(bEG) {
     for(test=0;test<egdofpelm;test++) {
 
       local_col_index = 0;
@@ -2834,8 +2834,8 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
         // u1-eg block : XX
         for (trial=0; trial<u1dofpelm;trial++){
           u1y = FE->var_spaces[iu1]->dphi[trial*dim+1];
-
-          kij = 2.0*u1y;          ALoc[(local_row_index+test)*dof_per_elm+(local_col_index+trial)] += w*kij;
+          kij = 2.0*u1y;
+          ALoc[(local_row_index+test)*dof_per_elm+(local_col_index+trial)] += w*kij;
         } // End u1 loop
         local_col_index+= u1dofpelm;
 
@@ -2843,7 +2843,6 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
           // u2-eg block: XX
           for (trial=0; trial<u2dofpelm;trial++){
             u2z = FE->var_spaces[iu2]->dphi[trial*dim+2];
-
             kij = 2.0*u2z;
             ALoc[(local_row_index+test)*dof_per_elm+(local_col_index+trial)] += w*kij;
           } // End u2 loop
@@ -2871,6 +2870,7 @@ void local_assembly_Elasticity(block_dCSRmat* A,dvector *b,REAL* ALoc, block_fes
       }
 
     } // end eg
+  }
     local_row_index += egdofpelm;
 
     // q test rows

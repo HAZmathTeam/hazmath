@@ -31,6 +31,11 @@ void exact_sol2D(REAL *val, REAL *x, REAL time,void *param){
   val[2] = 0.;
   val[3] = sin(M_PI*x[0])* cos(M_PI*x[1]);
 
+  val[0] = sin(M_PI*x[0])*cos(M_PI*x[1]);
+  val[1] = -cos(M_PI*x[0])*sin(M_PI*x[1]);
+  val[2] = 0.;
+  val[3] = 0.5 - x[0];
+
   return;
 }
 
@@ -116,6 +121,15 @@ void Dexact_sol2D(REAL *val, REAL *x, REAL time,void *param){
   val[6] = pi*cos(pi*x[1])*cos(pi*x[0]);//M_PI * cos(M_PI*x[0]*time)*cos(M_PI*x[1]*time);
   val[7] = -pi*sin(pi*x[0])*sin(pi*x[1]);////-M_PI * sin(M_PI*x[0]*time)*sin(M_PI*x[1]*time);
 
+  val[0] = M_PI*cos(M_PI*x[0])*cos(M_PI*x[1]);
+  val[1] = -M_PI*sin(M_PI*x[0])*sin(M_PI*x[1]);
+  val[2] = M_PI*sin(M_PI*x[0])*sin(M_PI*x[1]);
+  val[3] = -M_PI*cos(M_PI*x[0])*cos(M_PI*x[1]);
+  val[4] = 0.0;
+  val[5] = 0.0;
+  val[6] = -1.0;
+  val[7] = 0.0;
+
   return;
 }
 
@@ -145,6 +159,11 @@ void source2D(REAL *val, REAL *x, REAL time,void *param) {
   val[1] = 2*lame_mu*cos(xx)*cos(yy) - pi*sin(pi*xx)*sin(pi*yy);
   val[2] = 0.;
   val[3] = 0.;//sin(M_PI*x[0])* cos(M_PI*x[1]);
+
+  val[0] = 2*pow(pi,2) * sin(pi*x[0]) * cos(pi*x[1]) -1.0;
+  val[1] = -2*pow(pi,2) * cos(pi*x[0]) * sin(pi*x[1]);
+  val[2] = 0.0;
+  val[3] = 0.0;
   return;
 }
 
@@ -396,6 +415,7 @@ void L2error_block_EG
       // Interpolate
       eg_vals[0] = 0.0;
       eg_vals[1] = 0.0;
+      if(dim==3) eg_vals[2] = 0.0;
       dof = local_dof_on_elm[0]; // get the dof for the last component
       //printf("--u2 dof = %d, u _comp= %f, q[0] = %f, q[1] = %f,   \n", dof, u_comp[dof],qx[0] - barycenter->x[0],qx[1] - barycenter->x[1]);
       eg_vals[0] = u_comp[dof]*eg_xterm;//   (qx[0] - barycenter->x[0]); //FE->phi[j]; -> this basis function is a vector <x,y> - the quadrature point
