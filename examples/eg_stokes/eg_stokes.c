@@ -216,7 +216,7 @@ INT main(int argc, char* argv[])
     } else {
       set_dirichlet_bdry(&FE_ux,&mesh,1,1);
       set_dirichlet_bdry(&FE_uy,&mesh,1,1);
-      //if(dim==3) set_dirichlet_bdry(&FE_uz,&mesh,1,1);
+      if(dim==3) set_dirichlet_bdry(&FE_uz,&mesh,1,1);
       set_dirichlet_bdry(&FE_u_eg,&mesh,1,1);
       set_dirichlet_bdry(&FE_p,&mesh,1,1);
     }
@@ -257,7 +257,7 @@ INT main(int argc, char* argv[])
     FE.nun = nun;  // p_debug
     FE.ndof = ndof;
     FE.nbdof = FE_ux.nbdof + FE_uy.nbdof + FE_u_eg.nbdof +FE_p.nbdof; //+FE_p_eg.nbdof;
-    //if(dim==3) FE.nbdof += FE_uz.nbdof;
+    if(dim==3) FE.nbdof += FE_uz.nbdof;
     FE.nspaces = nspaces; // SLEE?
     FE.var_spaces = (fespace **) calloc(nspaces,sizeof(fespace *));
 
@@ -387,7 +387,10 @@ INT main(int argc, char* argv[])
       }
     */
     // Eliminate boundary conditions in matrix and rhs
-    if(!BOOL_WEAKLY_IMPOSED_BC) eliminate_DirichletBC_blockFE_blockA(bc2D,&FE,&mesh,&b,&A,time);
+    if(!BOOL_WEAKLY_IMPOSED_BC) {
+      if(dim==2) eliminate_DirichletBC_blockFE_blockA(bc2D,&FE,&mesh,&b,&A,time);
+      if(dim==3) eliminate_DirichletBC_blockFE_blockA(bc3D,&FE,&mesh,&b,&A,time);
+    }
     /**************************************************/
     //  Apply Pressure "BCs" (removes singularity)
     /*
@@ -888,8 +891,7 @@ INT main(int argc, char* argv[])
 
 
 	// Print in Matlab format to show vector field in nice way.
-	//if(dim==3)
-	//print_matlab_vector_field(&v_ux,&v_uy,&v_uz,&FE_ux);
+	if(dim==3) print_matlab_vector_field(&v_ux,&v_uy,&v_uz,&FE_ux);
       }
 
       if(solerrL2) free(solerrL2);
