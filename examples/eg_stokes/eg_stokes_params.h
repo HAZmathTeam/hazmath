@@ -8,7 +8,7 @@
 #endif
 
 #ifndef BOOL_WEAKLY_IMPOSED_BC 
-#define BOOL_WEAKLY_IMPOSED_BC true 
+#define BOOL_WEAKLY_IMPOSED_BC false
 #endif
 
 
