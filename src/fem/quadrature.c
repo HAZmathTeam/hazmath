@@ -534,7 +534,7 @@ void quad_face_local(quadrature *cqface,simplex_local_data *loc_data,INT nq1d,IN
 *
 * \return integral Integral of scalar function over element
 *
-* \note If cq is given, we will just use these precomputed values instead of reallocating the quadrature.
+* \note If cq is given, we will just use these precomputed values
 *       Otherwise, we will use those allocated by elm_data
 */
 REAL integrate_elm_local(void (*expr)(REAL *,REAL *,INT,REAL,void *),INT nun,INT comp,quadrature *cq,simplex_local_data *elm_data,REAL time)
@@ -562,16 +562,16 @@ REAL integrate_elm_local(void (*expr)(REAL *,REAL *,INT,REAL,void *),INT nun,INT
     for (quad=0;quad<nq_per_elm;quad++) {
       qx = cq->x + quad*dim;
       w = cq->w[quad];
-      (*expr)(uval,qx,time,dim,&(elm_data->flag));
+      (*expr)(uval,qx,dim,time,&(elm_data->flag));
       integral += w*uval[comp];
     }
-  } else { // assemble quadrature again
+  } else { // use quadrature saved on the element
     quadrature *cqelm = elm_data->quad_local;
     nq_per_elm = cqelm->nq_simplex;
     for (quad=0;nq_per_elm;quad++) {
       qx = cqelm->x + quad*dim;
       w = cqelm->w[quad];
-      (*expr)(uval,qx,time,dim,&(elm_data->flag));
+      (*expr)(uval,qx,dim,time,&(elm_data->flag));
       integral += w*uval[comp];
     }
   }
