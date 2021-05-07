@@ -101,7 +101,7 @@ int main (int argc, char* argv[])
   INT nun = dim+1; // Number of unkonwns (scalar quantities)
   // Get Global FE Space
   block_fespace FE;
-  initialize_fesystem(&FE,nspaces,nun,ndof);
+  initialize_fesystem(&FE,nspaces,nun,ndof,mesh.nelm);
   FE.var_spaces[0] = &FE_ux;
   FE.var_spaces[1] = &FE_uy;
   if(dim==3) FE.var_spaces[2] = &FE_uz;
@@ -134,6 +134,11 @@ int main (int argc, char* argv[])
    *  <2*eps(u), eps(v)> - <p, div v> = <f, v>
    *                   - <div u, q> = 0
    */
+
+
+
+   // TEST SOMETHING:
+
   printf("Assembling the matrix and right-hand side:\n");
   clock_t clk_assembly_start = clock();
 

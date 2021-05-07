@@ -1815,7 +1815,6 @@ void eliminate_PeriodicBC_blockFE(block_dCSRmat* P_periodic, block_dCSRmat* A, d
 }
 /******************************************************************************************************/
 
-/******************************************************************************************************/
 /*!
 * \fn eliminate_PeriodicBC_blockFE_nonoverwrite(block_dCSRmat* P_periodic, block_dCSRmat* A, dvector* b)
 *
@@ -1878,6 +1877,39 @@ void eliminate_PeriodicBC_blockFE_nonoverwrite(block_dCSRmat* P_periodic, block_
     if (PTb->val == NULL) PTb->val = (REAL* )calloc(PTb->row, sizeof(REAL));
     bdcsr_mxv(&R_periodic, b->val, PTb->val);
   }
+
+  // free
+  bdcsr_free(&R_periodic);
+
+}
+/******************************************************************************************************/
+
+/*!
+* \fn eliminate_PeriodicBC_blockFE_RHS_nonoverwrite(block_dCSRmat* P_periodic,dvector* b)
+*
+* \brief Eliminate periodic boundary conditions (block version) for RHS ONLY
+*        b = P_periodic'*b;
+*
+* \param P_periodic    P_periodic matrix in block_dCSR format
+* \param b             right hand side
+*
+* \return b            right hand side after elimination
+*
+*/
+void eliminate_PeriodicBC_blockFE_RHS_nonoverwrite(block_dCSRmat* P_periodic, dvector* b, dvector* PTb)
+{
+
+  // local variables
+  INT i;
+
+  // transpose P_periodic
+  block_dCSRmat R_periodic;
+  bdcsr_trans(P_periodic, &R_periodic);
+
+  PTb->row = 0;
+  for (i=0; i<R_periodic.brow; i++) PTb->row = PTb->row + R_periodic.blocks[i*R_periodic.brow+i]->row;
+  if (PTb->val == NULL) PTb->val = (REAL* )calloc(PTb->row, sizeof(REAL));
+  bdcsr_mxv(&R_periodic, b->val, PTb->val);
 
   // free
   bdcsr_free(&R_periodic);

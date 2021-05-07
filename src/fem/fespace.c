@@ -494,6 +494,7 @@ void initialize_localdata_elm(simplex_local_data *simplex_data,fe_local_data *fe
 
   INT dim = mesh->dim;
   INT nspaces = FE->nspaces;
+  INT nun = FE->nun;
   INT v_per_elm = mesh->v_per_elm;
   INT ed_per_elm = mesh->ed_per_elm;
   INT f_per_elm = mesh->f_per_elm;
@@ -540,6 +541,7 @@ void initialize_localdata_elm(simplex_local_data *simplex_data,fe_local_data *fe
 
   // FE local data that is fixed
   fe_data->nspaces = nspaces;
+  fe_data->nun = nun;
   fe_data->fe_types = (INT *) calloc(nspaces,sizeof(INT));
   fe_data->scal_or_vec = (INT *) calloc(nspaces,sizeof(INT));
   // Count of DoF on element
@@ -664,6 +666,7 @@ void initialize_localdata_face(simplex_local_data *simplex_data,fe_local_data *f
 
   INT dim = mesh->dim;
   INT nspaces = FE->nspaces;
+  INT nun = FE->nun;
   INT v_per_f = dim;
   INT ed_per_f = 2*dim-3;
   INT dof_per_face_tot = 0;
@@ -689,6 +692,7 @@ void initialize_localdata_face(simplex_local_data *simplex_data,fe_local_data *f
 
   // FE local data that is fixed
   fe_data->nspaces = nspaces;
+  fe_data->nun = nun;
   fe_data->fe_types = (INT *) calloc(nspaces,sizeof(INT));
   fe_data->scal_or_vec = (INT *) calloc(nspaces,sizeof(INT));
   fe_data->n_dof_per_space = (INT *) calloc(nspaces,sizeof(INT));
@@ -798,6 +802,7 @@ void initialize_localdata_edge(simplex_local_data *simplex_data,fe_local_data *f
 
   INT dim = mesh->dim;
   INT nspaces = FE->nspaces;
+  INT nun = FE->nun;
   INT v_per_ed = 2;
   INT dof_per_edge_tot = 0;
 
@@ -816,6 +821,7 @@ void initialize_localdata_edge(simplex_local_data *simplex_data,fe_local_data *f
 
   // FE local data that is fixed
   fe_data->nspaces = nspaces;
+  fe_data->nun = nun;
   fe_data->fe_types = (INT *) calloc(nspaces,sizeof(INT));
   fe_data->fe_types = (INT *) calloc(nspaces,sizeof(INT));
   fe_data->n_dof_per_space = (INT *) calloc(nspaces,sizeof(INT));

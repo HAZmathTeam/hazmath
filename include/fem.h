@@ -207,7 +207,7 @@ typedef struct simplex_local_data {
   REAL* f_area;
   //! Normal vector on faces
   REAL* f_norm;
-  //! Barcenter midpoint of face
+  //! Barycenter midpoint of face
   REAL* f_mid;
 
   // Assembly data
@@ -233,6 +233,9 @@ typedef struct simplex_local_data {
 
    //! Number of spaces
    INT nspaces;
+
+   //! Number of scalar unknowns
+   INT nun;
 
    //! Type of FE spaces
    INT* fe_types;
