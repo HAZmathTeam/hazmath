@@ -28,6 +28,7 @@ INT main(INT   argc,   char *argv[])
     PARSE THE INPUT.
   */
   input_grid *g=parse_input_grid(fp);
+  input_grid_print(g);
   fclose(fp);
   /*
     GENERATE INITIAL GRID AND DECLARE VARIABLES.
@@ -44,8 +45,11 @@ INT main(INT   argc,   char *argv[])
     // refine ref_levels;
     refine(ref_levels,sc,NULL);
   } else if(amr_marking_type==33){
+
     REAL h = 1.0/128;  // step distance of points
     REAL threshold = h; // threshold for close to the points or not
+
+    /*
     INT nstep = 0;
     nstar= 2 + nstep*4; // refining near several points: (even number )
     xstar=(REAL *)calloc(nstar*dim,sizeof(REAL));
@@ -65,7 +69,11 @@ INT main(INT   argc,   char *argv[])
       xstar[(4+(i-1)*4)*dim+1]=6.666667e-1;
       xstar[(5+(i-1)*4)*dim+0]=8.333333e-1 - i*h;
       xstar[(5+(i-1)*4)*dim+1]=6.666667e-1;
-    }
+    }*/
+
+    nstar = g->num_refine_points;
+    xstar = g->data_refine_points;
+
     for(j=0;j<ref_levels;j++){
       /*
        * SELECT the finest grid:
@@ -82,7 +90,7 @@ INT main(INT   argc,   char *argv[])
       haz_scomplex_free(sctop);
     }
     ivec_free(marked);
-    free(xstar);
+    //free(xstar);
   } else {
     /*
       Use "all" here can pass data around. Below we make 4 dvectors
@@ -126,10 +134,10 @@ INT main(INT   argc,   char *argv[])
     free(all);
   }
   /*  MAKE sc to be the finest grid only */
-  haz_scomplex_print(sc,0,"ZZZ");fflush(stdout);
+  //haz_scomplex_print(sc,0,"ZZZ");fflush(stdout);
   scfinalize(sc);
-  haz_scomplex_print(sc,0,"XXX");fflush(stdout);
-  find_cc_bndry_cc(sc);
+  //haz_scomplex_print(sc,0,"XXX");fflush(stdout);
+  //find_cc_bndry_cc(sc);
   /* write the output mesh file:    */
   hazw(g->fgrid,sc,0);
   /* WRITE THE OUTPUT vtu file for paraview:    */

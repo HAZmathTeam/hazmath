@@ -10,7 +10,7 @@ title{Meniscus in 2D}
 
 amr_marking_type{33} %% 0 means uniform refinement everywhere.
 
-num_refinements{20}
+num_refinements{5}
 
 err_stop_refinement{        -1.e-10        } %% for the user to define and use
 
@@ -85,3 +85,14 @@ data_macrofaces{0 1   3
 								6 7   2
 								5 7   4
 		   } %% codes on boundary faces (v1,v2,code).
+
+
+%%% ====================REFINE POINTS=========================
+%---------------%
+% specify the points near which the mesh will be refined
+%---------------%
+num_refine_points{2} %number of points near which the mesh will be refined
+%%% coords, type, origin for polar system: angles are in degrees
+data_refine_points{0 0   0.166667   0.666667
+			 						 1 0   0.833333   0.666667
+			 				    }
