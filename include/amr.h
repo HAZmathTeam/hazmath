@@ -1,6 +1,6 @@
 //
 //  amr.h
-//  
+//
 //
 //  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 20170715
 //
@@ -42,7 +42,9 @@
     "refinement_type{",				\
     "amr_marking_type{",			\
     "err_stop_refinement{",			\
-    "print_level{"
+    "print_level{",    \
+    "num_refine_points{",   \
+    "data_refine_points{"
 #endif
 #ifndef DEFAULT_GRID_DATA_
 #define DEFAULT_GRID_DATA_ "title{Grid on a cube (-1,1)x(-1,1)x(-1,1);5x4x3 lattice}dimension{3}print_level{0}file_grid{mesh3d.haz}file_vtu{mesh3d.vtu} num_edges{3}data_edges{0 1 3  0 2 4 0 4 5}num_vertices{8} data_vertices{0 0 0. 0. 0. 1 0 0. 0. 1. 2 0 0. 1. 0. 3 0 0. 1. 1. 4 0 1. 0. 0. 5 0 1. 0. 1. 6 0 1. 1. 0. 7 0 1. 1. 1.}  num_macroelements{1}  data_macroelements{0 1 2 3 4 5 6 7 -1}num_macrofaces{6} data_macrofaces{0 1 2 3 1 0 4 1 5 1 4 7 5 6 1 2 6 3 7 1 0 4 2 6 1 1 5 7 3 1}num_coordsystems{1}data_coordsystems{0 0. 0. 0. 0}num_refinements{0}refinement_type{0}err_stop_refinement{-1.e-10}{amr_marking_type{0}\0"
@@ -69,7 +71,7 @@ typedef struct /* n-homogenous simplicial complex */
 		neighbors, i.e. the simplex-vertex incidence (ns by
 		(n+1)) */
   INT *flags; /*flag of the simplex, e.g. for evaluation of
-		   piece-wise defined functions*/  
+		   piece-wise defined functions*/
   REAL *x; /*(nv x n) array to hold the coordinates of vertices */
   REAL *vols; /* volumes of the simplices */
   REAL *fval; /* function values at vertices (could be ANY, but is
@@ -129,22 +131,25 @@ typedef struct {
   INT *csysv; /* coordinate system labels for vertices [nv]*/
   INT *labelsv; /* coordinate system labels for vertices [nv]*/
   INT *bcodesv; /* boundary codes for vertices [nv]*/
-  INT ne; /* number of edges/segments */ 
+  INT ne; /* number of edges/segments */
   REAL *xe; /* coordinates for each midpoint of an edge [ne][dim]*/
   INT *seg;/* segments array of size ne by 3. For every edge:
 	      (v1,v2,divisions) with v1<v2 */
   INT nel;/*number of macroelements*/
   INT *mnodes; /* macroelements: macroelement label, vertices forming
-		   a macro element, macroelement material */ 
+		   a macro element, macroelement material */
   INT nf;  /*number of macroelement faces that are marked
 	     with codes; boundary or internal it does not
 	     matter */
-  INT *mfaces;   /* faces and boundary codes of faces */ 
+  INT *mfaces;   /* faces and boundary codes of faces */
   INT nref;   /* number of refinements (AMR)*/
   INT ref_type;   /* INIT refinement type -2,-1,0,1,2,3,4; which way
-		     the edges should point in initial grid: left, right forth, back, etc */ 
-  INT mark_type;   /* AMR marking type (0)uniform; nonzero: user defined.. */ 
-  REAL err_stop;   /* stop tolerance for AMR */ 
+		     the edges should point in initial grid: left, right forth, back, etc */
+  INT mark_type;   /* AMR marking type (0)uniform; nonzero: user defined.. */
+  REAL err_stop;   /* stop tolerance for AMR */
+  // ----- refine point ---- //
+  INT  num_refine_points;
+  REAL *data_refine_points;
 }input_grid; /** Input GRID parameters */
 /*************************************************************/
 typedef struct /* n-homogenous simplicial SUBcomplex */
@@ -172,7 +177,7 @@ typedef struct /* n-dimensional uniform grid */
 	      the total number of VERTICES in the lattice (the
 	      dimension of ug->data)
 	    */
-  INT *ndiv; /*number of divisions in each direction ndiv[dim]. 
+  INT *ndiv; /*number of divisions in each direction ndiv[dim].
 	       NOTE: nall=(ndiv[dim-1]+1)*...*(ndiv[0]+1) */
   int nvcube; /* number of vertices on the unit cube in R^n=2^{n}.*/
   unsigned int *bits; /* the binary digits of all the integers from 0
@@ -224,7 +229,7 @@ typedef struct /* macroelement complex (isomorphic to
   INT nfi; /*number of interior faces*/
   INT nfb; /*number of boundary faces*/
   INT **nd; /*number of divisions for every macro element*/
-  INT **elneib; /* 
+  INT **elneib; /*
 		   element neighboring list where the position of the
 		   neighbor is the same as the position of the face in
 		   cube2simp->faces shared by the two el.
@@ -236,7 +241,7 @@ typedef struct /* macroelement complex (isomorphic to
 			 number of common vertices as entries; */
   INT *bcodesf; /* codes for boundary faces */
   INT *isbface; /* indicator if a face is on the boundary */
-  INT *flags; /*flags (material) of the macro elements*/  
+  INT *flags; /*flags (material) of the macro elements*/
   INT cc; /*n connected components */
   INT bndry_cc; /*connected components on the boundary */
   iCSRmat *bfs; /* bfs levels structure for the mesh el2el only if
@@ -257,11 +262,10 @@ typedef struct /* features (to refine around these) */
   INT nf; /* number of points in the feature */
   REAL *x; /* x[j*dim+i],j=0:nfeatures-1, i=0:dim. last few
 	      coordinates are filled with the value in fill */
-  REAL fill; /* 
+  REAL fill; /*
 		mock value for the remaining coordinates from n to
-		nbig 
+		nbig
 	     */
   FILE *fpf;
 } features;
 /* END OF STRUCTURE DEFINITIONS */
-
