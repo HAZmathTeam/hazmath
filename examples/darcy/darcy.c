@@ -114,6 +114,8 @@ int main (int argc, char* argv[])
   FE.ndof = FE_q.ndof + FE_h.ndof;
   FE.nbdof = FE_q.nbdof + FE_h.nbdof;
   FE.nspaces = 2;
+  FE.simplex_data=NULL; //make sure we put this here
+  FE.fe_data=NULL; //make sure we put this here
   FE.nun = dim+1;
   FE.var_spaces = (fespace **) calloc(FE.nspaces,sizeof(fespace *));
   FE.var_spaces[0] = &FE_q;
