@@ -441,12 +441,11 @@ void free_blockfespace(block_fespace* FE)
 
   for ( i=0; i<num_spaces; i++ ) {
     free_fespace(FE->var_spaces[i]);
-    fprintf(stdout,"\ni=%i",i);fflush(stdout);
     FE->var_spaces[i] = NULL;
   }
-  
+
   free(FE->var_spaces);
-  FE->var_spaces = NULL;  
+  FE->var_spaces = NULL;
   /* fprintf(stdout,"\ni2");fflush(stdout); */
   /* if(FE->dirichlet) { */
   /*   free(FE->dirichlet); */
@@ -460,7 +459,7 @@ void free_blockfespace(block_fespace* FE)
   /*   free(FE->dof_flag); */
   /*   FE->dof_flag = NULL; */
   /* } */
-	  
+
   /* fprintf(stdout,"\nEND\n");fflush(stdout); */
   return;
 }

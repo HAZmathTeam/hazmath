@@ -428,8 +428,7 @@ void assemble_symmetricDuDv_local(REAL* ALoc, block_fespace *FE, mesh_struct *me
 
   //Mesh and FE data
   INT dof_per_elm = 0;
-  for(i=0;i<FE->nspaces;i++)
-    dof_per_elm += FE->var_spaces[i]->dof_per_elm;
+  for(i=0;i<FE->nspaces;i++) dof_per_elm += FE->var_spaces[i]->dof_per_elm;
   INT* local_dof_on_elm;
   INT dim = mesh->dim;
 
@@ -472,11 +471,11 @@ void assemble_symmetricDuDv_local(REAL* ALoc, block_fespace *FE, mesh_struct *me
           for(test=0;test<FE->var_spaces[i]->dof_per_elm;test++){
             // Loop over Trial Functions (Columns)
             for(trial=0;trial<FE->var_spaces[j]->dof_per_elm;trial++){
-               kij = 2*0.5*(FE->var_spaces[i]->dphi[test*dim+i]*FE->var_spaces[j]->dphi[trial*dim+j]);
-               for(idim=0;idim<dim;idim++){
-                 kij += 2*0.5*(FE->var_spaces[i]->dphi[test*dim+idim]*FE->var_spaces[j]->dphi[trial*dim+idim]);
-               }
-               ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
+              kij = (FE->var_spaces[i]->dphi[test*dim+i]*FE->var_spaces[j]->dphi[trial*dim+j]);
+              for(idim=0;idim<dim;idim++){
+                kij += (FE->var_spaces[i]->dphi[test*dim+idim]*FE->var_spaces[j]->dphi[trial*dim+idim]);
+              }
+              ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
             }
           }
         } else {
@@ -484,16 +483,16 @@ void assemble_symmetricDuDv_local(REAL* ALoc, block_fespace *FE, mesh_struct *me
           for(test=0;test<FE->var_spaces[i]->dof_per_elm;test++){
             // Loop over Trial Functions (Columns)
             for(trial=0;trial<FE->var_spaces[j]->dof_per_elm;trial++){
-               kij = 2*0.5*(FE->var_spaces[i]->dphi[test*dim+j]*FE->var_spaces[j]->dphi[trial*dim+i]);
-               ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
+              kij = (FE->var_spaces[i]->dphi[test*dim+j]*FE->var_spaces[j]->dphi[trial*dim+i]);
+              ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
             }
           }
         }
         // Update local column indexing
         local_col_index += FE->var_spaces[i]->dof_per_elm;
       }
-    // Update local row indexing
-    local_row_index += FE->var_spaces[i]->dof_per_elm;
+      // Update local row indexing
+      local_row_index += FE->var_spaces[i]->dof_per_elm;
     }
 
   }
