@@ -33,11 +33,11 @@
 #endif
 
 #ifndef THETA_PARAMETER
-#define THETA_PARAMETER 0e+00
+#define THETA_PARAMETER -0e+00
 #endif
 
 #ifndef TOTAL_NUM_CYCLES_GLOBAL
-#define TOTAL_NUM_CYCLES_GLOBAL 3
+#define TOTAL_NUM_CYCLES_GLOBAL 6
 #endif
 
 // the LAME_MU_GLOBAL is not used in the code yet...

@@ -1257,7 +1257,7 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
         local_dof_on_elm_neighbor += pdofpelm;
 
         local_row_index = 0;
-        // v0 test rows
+        // v0 test rows: [[v0]] = 0
         for (test=0; test<u0dofpelm;test++){
           v0 = FE->var_spaces[iu0]->phi[test];
           v0x = FE->var_spaces[iu0]->dphi[test*dim];
@@ -1269,7 +1269,6 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
             v0z = FE->var_spaces[iu0]->dphi[test*dim+2];
             vn0z = neighbor_basis_u0_dphi[test*dim+2];
           }
-          // I AM HERE!!!!!!!!!!!!!
           local_col_index = 0;
           // u0-v0 block: 0
           local_col_index += u0dofpelm;
@@ -1282,29 +1281,51 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
             local_col_index+= u2dofpelm;
           }
 
-          // eg-v0 block: 0
+          // eg-v0 block: th*((2*v0x*n0 + v0y*n1 + v0z*n2)*(x-xT) + v0y*n0*(y-yT) +v0z*n0*(z-zT)
+          for(trial=0; trial<egdofpelm;trial++) {
+            // eg-v0
+            kij = 0.5*theta*((2.0*v0x*finrm[0] + v0y*finrm[1])*eg_xterm + v0y*finrm[0]*eg_yterm);
+            if(dim==3) kij += 0.5*theta*(v0z*finrm[2]*eg_xterm + v0z*finrm[0]*eg_zterm);
+            ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+
+            // egneighbor-v0
+            kij = -0.5*theta*((2.0*v0x*finrm[0] + v0y*finrm[1])*eg_xterm_neighbor + v0y*finrm[0]*eg_yterm_neighbor);
+            if(dim==3) kij += -0.5*theta*(v0z*finrm[2]*eg_xterm_neighbor + v0z*finrm[0]*eg_zterm_neighbor);
+            ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+
+            // eg-v0neighbor
+            kij = 0.5*theta*((2.0*vn0x*finrm[0] + vn0y*finrm[1])*eg_xterm + vn0y*finrm[0]*eg_yterm);
+            if(dim==3) kij += 0.5*theta*(vn0z*finrm[2]*eg_xterm + vn0z*finrm[0]*eg_zterm);
+            ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+
+            // egneighbor-v0neighbor
+            kij = -0.5*theta*((2.0*vn0x*finrm[0] + vn0y*finrm[1])*eg_xterm_neighbor + vn0y*finrm[0]*eg_yterm_neighbor);
+            if(dim==3) kij += -0.5*theta*(vn0z*finrm[2]*eg_xterm_neighbor + vn0z*finrm[0]*eg_zterm_neighbor);
+            ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+
+          }
           local_col_index += egdofpelm;
 
           // p-v0 bloc: // TODO: why doesn't this vanish?
-          for (trial=0; trial<pdofpelm;trial++){
-            p = FE->var_spaces[ip]->phi[trial];
-            pn = neighbor_basis_p_phi[trial];
-            // p-v0
-            kij = alpha * 0.5 * p * v0 * finrm[0];
-            ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-
-            // pneighbor-v0
-            kij = alpha * 0.5 * pn * v0*finrm[0];
-            ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-
-            // p-v0neighbor
-            kij = -alpha * 0.5 * p * vn0 * finrm[0];
-            ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-
-            // pneighbor-v0neighbor
-            kij = -alpha * 0.5 * pn *  vn0*finrm[0];
-            ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-          } // end p col
+          // for (trial=0; trial<pdofpelm;trial++){
+          //   p = FE->var_spaces[ip]->phi[trial];
+          //   pn = neighbor_basis_p_phi[trial];
+          //   // p-v0
+          //   kij = alpha * 0.5 * p * v0 * finrm[0];
+          //   ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          //
+          //   // pneighbor-v0
+          //   kij = alpha * 0.5 * pn * v0*finrm[0];
+          //   ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          //
+          //   // p-v0neighbor
+          //   kij = -alpha * 0.5 * p * vn0 * finrm[0];
+          //   ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          //
+          //   // pneighbor-v0neighbor
+          //   kij = -alpha * 0.5 * pn *  vn0*finrm[0];
+          //   ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          // } // end p col
         } // End v0 loop
         local_row_index = u0dofpelm;
 
@@ -1333,29 +1354,51 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
             local_col_index+= u2dofpelm;
           }
 
-          // eg-v1 block:0
+          // eg-v1 block: th*((v1x*n1)*(x-xT) + (v1x*n0 + 2*v1*n1 + v1z*n2)*(y-yT) +v1z*n1*(z-zT)
+          for(trial=0; trial<egdofpelm;trial++) {
+            // eg-v1
+            kij = 0.5*theta*(v1x*finrm[1]*eg_xterm + (v1x*finrm[0] + 2.0*v1y*finrm[1])*eg_yterm);
+            if(dim==3) kij += 0.5*theta*(v1z*finrm[2]*eg_yterm + v1z*finrm[1]*eg_zterm);
+            ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+
+            // egneighbor-v1
+            kij = -0.5*theta*(v1x*finrm[1]*eg_xterm_neighbor + (v1x*finrm[0] + 2.0*v1y*finrm[1])*eg_yterm_neighbor);
+            if(dim==3) kij += -0.5*theta*(v1z*finrm[2]*eg_yterm_neighbor + v1z*finrm[1]*eg_zterm_neighbor);
+            ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+
+            // eg-v1neighbor
+            kij = 0.5*theta*(vn1x*finrm[1]*eg_xterm + (vn1x*finrm[0] + 2.0*vn1y*finrm[1])*eg_yterm);
+            if(dim==3) kij += 0.5*theta*(vn1z*finrm[2]*eg_yterm + vn1z*finrm[1]*eg_zterm);
+            ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+
+            // egneighbor-v1neighbor
+            kij = -0.5*theta*(vn1x*finrm[1]*eg_xterm_neighbor + (vn1x*finrm[0] + 2.0*vn1y*finrm[1])*eg_yterm_neighbor);
+            if(dim==3) kij += -0.5*theta*(vn1z*finrm[2]*eg_yterm_neighbor + vn1z*finrm[1]*eg_zterm_neighbor);
+            ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+
+          }
           local_col_index += egdofpelm;
 
           // p-v1 bloc: // TODO: why doesn't this vanish?
-          for (trial=0; trial<pdofpelm;trial++){
-            p = FE->var_spaces[ip]->phi[trial];
-            pn = neighbor_basis_p_phi[trial];
-            // p-v1
-            kij = alpha * 0.5 * p * v1 * finrm[1];
-            ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-
-            // pneighbor-v0
-            kij = alpha * 0.5 * pn * v1*finrm[1];
-            ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-
-            // p-v0neighbor
-            kij = -alpha * 0.5 * p * vn1 * finrm[1];
-            ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-
-            // pneighbor-v0neighbor
-            kij = -alpha * 0.5 * pn *  vn1*finrm[1];
-            ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-          } // end p col
+          // for (trial=0; trial<pdofpelm;trial++){
+          //   p = FE->var_spaces[ip]->phi[trial];
+          //   pn = neighbor_basis_p_phi[trial];
+          //   // p-v1
+          //   kij = alpha * 0.5 * p * v1 * finrm[1];
+          //   ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          //
+          //   // pneighbor-v0
+          //   kij = alpha * 0.5 * pn * v1*finrm[1];
+          //   ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          //
+          //   // p-v0neighbor
+          //   kij = -alpha * 0.5 * p * vn1 * finrm[1];
+          //   ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          //
+          //   // pneighbor-v0neighbor
+          //   kij = -alpha * 0.5 * pn *  vn1*finrm[1];
+          //   ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          // } // end p col
         } // End v1 loop
         local_row_index += u1dofpelm;
 
@@ -1382,28 +1425,47 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
             local_col_index+= u2dofpelm;
 
             // eg-v2 block:0
+            // eg-v2 block: th*((v2x*n2)*(x-xT) + (v2y*n2)*(y-yT) + (v2x*n0 + v2y*n1 + 2*v2z*n2)*(z-zT)
+            for(trial=0; trial<egdofpelm;trial++) {
+              // eg-v2
+              kij = 0.5*theta*(v2x*finrm[2]*eg_xterm + v2y*finrm[2]*eg_yterm + (v2x*finrm[0] + v2y*finrm[1] + 2.0*v2z*finrm[2])*eg_zterm);
+              ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+
+              // egneighbor-v2
+              kij = -0.5*theta*(v2x*finrm[2]*eg_xterm_neighbor + v2y*finrm[2]*eg_yterm_neighbor + (v2x*finrm[0] + v2y*finrm[1] + 2.0*v2z*finrm[2])*eg_zterm_neighbor);
+              ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+
+              // eg-v2neighbor
+              kij = 0.5*theta*(vn2x*finrm[2]*eg_xterm + vn2y*finrm[2]*eg_yterm + (vn2x*finrm[0] + vn2y*finrm[1] + 2.0*vn2z*finrm[2])*eg_zterm);
+              ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+
+              // egneighbor-v2neighbor
+              kij = -0.5*theta*(vn2x*finrm[2]*eg_xterm_neighbor + vn2y*finrm[2]*eg_yterm_neighbor + (vn2x*finrm[0] + vn2y*finrm[1] + 2.0*vn2z*finrm[2])*eg_zterm_neighbor);
+              ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+
+            }
             local_col_index += egdofpelm;
 
             // p-v2 bloc: // TODO: why doesn't this vanish?
-            for (trial=0; trial<pdofpelm;trial++){
-              p = FE->var_spaces[ip]->phi[trial];
-              pn = neighbor_basis_p_phi[trial];
-              // p-v2
-              kij = alpha * 0.5 * p * v2 * finrm[2];
-              ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-
-              // pneighbor-v0
-              kij = alpha * 0.5 * pn * v2*finrm[2];
-              ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-
-              // p-v0neighbor
-              kij = -alpha * 0.5 * p * vn2 * finrm[2];
-              ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-
-              // pneighbor-v0neighbor
-              kij = -alpha * 0.5 * pn *  vn2*finrm[2];
-              ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-            } // end p col
+            // for (trial=0; trial<pdofpelm;trial++){
+            //   p = FE->var_spaces[ip]->phi[trial];
+            //   pn = neighbor_basis_p_phi[trial];
+            //   // p-v2
+            //   kij = alpha * 0.5 * p * v2 * finrm[2];
+            //   ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+            //
+            //   // pneighbor-v0
+            //   kij = alpha * 0.5 * pn * v2*finrm[2];
+            //   ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+            //
+            //   // p-v0neighbor
+            //   kij = -alpha * 0.5 * p * vn2 * finrm[2];
+            //   ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+            //
+            //   // pneighbor-v0neighbor
+            //   kij = -alpha * 0.5 * pn *  vn2*finrm[2];
+            //   ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+            // } // end p col
           } // End v2 loop
           local_row_index += u2dofpelm;
         } // end if dim==3
@@ -1494,7 +1556,7 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
 
             if(dim==3) {
               // u2-eg block:
-              for(trial=0; trial<u1dofpelm; trial++) {
+              for(trial=0; trial<u2dofpelm; trial++) {
                 u2 = FE->var_spaces[iu2]->phi[trial];
                 u2x = FE->var_spaces[iu2]->dphi[trial*dim];
                 u2y = FE->var_spaces[iu2]->dphi[trial*dim+1];
@@ -1504,7 +1566,7 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
                 un2y = neighbor_basis_u2_dphi[trial*dim+1];
                 un2z = neighbor_basis_u2_dphi[trial*dim+2];
 
-                // u1-eg
+                // u2-eg
                 kij = (-0.5 * 2.0*u2z*finrm[2] - 0.5 * u2x*finrm[0] - 0.5 * u2y*finrm[1])*eg_zterm;
                 kij -= 0.5 * u2x*finrm[2]*eg_xterm;
                 kij -= 0.5 * u2y*finrm[2]*eg_yterm;
@@ -1527,22 +1589,22 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
                 kij += 0.5 * un2x*finrm[2]*eg_xterm_neighbor;
                 kij += 0.5 * un2y*finrm[2]*eg_yterm_neighbor;
                 ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-              } // u1 col
+              } // u2 col
               local_col_index+= u2dofpelm;
             } // if dimm=3
           } // if bEG
 
           // TODO: Don't know why this isn't under if(bEG)?
           // eg-eg block:
-          // Reset local_col_index to be safe
-          local_col_index = u0dofpelm+u1dofpelm;
-          if(dim==3) local_col_index += u2dofpelm;
           for (trial=0; trial<egdofpelm;trial++){
 
             // eg-eg
-            kij = -0.5* 2.0 * 1. * finrm[0] * eg_xterm;
-            kij -= 0.5* 2.0 * 1. * finrm[1] * eg_yterm;
-            if(dim==3) kij -= 0.5* 2.0 * 1. * finrm[2] * eg_zterm;
+            kij = -0.5* 2.0 * finrm[0] * eg_xterm;
+            kij -= 0.5* 2.0 *finrm[1] * eg_yterm;
+            if(dim==3) kij -= 0.5* 2.0 * finrm[2] * eg_zterm;
+            // theta terms
+            kij += 0.5*2.0*theta*(eg_xterm*finrm[0] + eg_yterm*finrm[1]);
+            if(dim==3) kij += 0.5*2.0*theta*(eg_zterm*finrm[1]);
             //penalty term
             kij += penalty_term * eg_xterm*eg_xterm;
             kij += penalty_term * eg_yterm*eg_yterm;
@@ -1553,6 +1615,9 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
             kij_unv = -0.5* 2.0 * 1. * finrm[0] * eg_xterm;
             kij_unv -= 0.5*2.0 * 1. * finrm[1] * eg_yterm;
             if(dim==3) kij_unv -= 0.5*2.0 * 1. * finrm[2] * eg_zterm;
+            // theta terms
+            kij += -0.5*2.0*theta*(eg_xterm_neighbor*finrm[0] + eg_yterm_neighbor*finrm[1]);
+            if(dim==3) kij += -0.5*2.0*theta*(eg_zterm_neighbor*finrm[1]);
             //penalty_term
             kij_unv += -penalty_term * eg_xterm_neighbor*eg_xterm;
             kij_unv += -penalty_term * eg_yterm_neighbor*eg_yterm;
@@ -1563,6 +1628,9 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
             kij = 0.5* 2.0 * 1. * finrm[0] * eg_xterm_neighbor;
             kij += 0.5*2.0 * 1. * finrm[1] * eg_yterm_neighbor;
             if(dim==3) kij += 0.5*2.0 * 1. * finrm[2] * eg_zterm_neighbor;
+            // theta terms
+            kij += 0.5*2.0*theta*(eg_xterm*finrm[0] + eg_yterm*finrm[1]);
+            if(dim==3) kij += 0.5*2.0*theta*(eg_zterm*finrm[1]);
             //penalty_term
             kij += -penalty_term * eg_xterm*eg_xterm_neighbor;
             kij += -penalty_term * eg_yterm*eg_yterm_neighbor;
@@ -1573,6 +1641,9 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
             kij = 0.5* 2.0 * 1. * finrm[0] * eg_xterm_neighbor;
             kij += 0.5*2.0 * 1. * finrm[1] * eg_yterm_neighbor;
             if(dim==3) kij += 0.5*2.0 * 1. + finrm[2] * eg_zterm_neighbor;
+            // theta terms
+            kij += -0.5*2.0*theta*(eg_xterm_neighbor*finrm[0] + eg_yterm_neighbor*finrm[1]);
+            if(dim==3) kij += -0.5*2.0*theta*(eg_zterm_neighbor*finrm[1]);
             //penalty_term
             kij += penalty_term * eg_xterm_neighbor*eg_xterm_neighbor;
             kij += penalty_term * eg_yterm_neighbor*eg_yterm_neighbor;
@@ -1617,81 +1688,81 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, \
 
           local_col_index = 0;
           // u0-q block: // TODO: Also not sure why this isn't 0
-          for(trial=0; trial<u0dofpelm; trial++) {
-            u0 = FE->var_spaces[iu0]->phi[trial];
-            u0x = FE->var_spaces[iu0]->dphi[trial*dim];
-            u0y = FE->var_spaces[iu0]->dphi[trial*dim+1];
-            un0 = neighbor_basis_u0_phi[trial];
-            un0x = neighbor_basis_u0_dphi[trial*dim];
-            un0y = neighbor_basis_u0_dphi[trial*dim+1];
-            if(dim==3) {
-              u0z = FE->var_spaces[iu0]->dphi[trial*dim+2];
-              un0z = neighbor_basis_u0_dphi[trial*dim+2];
-            }
-
-            // u0-q
-            kij = alpha * 0.5 * q * u0 * finrm[0];
-            ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-
-            // u0neighbor-q
-            kij = -alpha * 0.5 * q * un0 * finrm[0];
-            ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-
-            // u0-q_neighbor
-            kij = alpha * 0.5 * qn * u0 * finrm[0];
-            ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-
-            // u0neighbor-q_neighbor
-            kij = -alpha * 0.5 * qn * un0 * finrm[0];
-            ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-          } // end u0 col
+          // for(trial=0; trial<u0dofpelm; trial++) {
+          //   u0 = FE->var_spaces[iu0]->phi[trial];
+          //   u0x = FE->var_spaces[iu0]->dphi[trial*dim];
+          //   u0y = FE->var_spaces[iu0]->dphi[trial*dim+1];
+          //   un0 = neighbor_basis_u0_phi[trial];
+          //   un0x = neighbor_basis_u0_dphi[trial*dim];
+          //   un0y = neighbor_basis_u0_dphi[trial*dim+1];
+          //   if(dim==3) {
+          //     u0z = FE->var_spaces[iu0]->dphi[trial*dim+2];
+          //     un0z = neighbor_basis_u0_dphi[trial*dim+2];
+          //   }
+          //
+          //   // u0-q
+          //   kij = alpha * 0.5 * q * u0 * finrm[0];
+          //   ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          //
+          //   // u0neighbor-q
+          //   kij = -alpha * 0.5 * q * un0 * finrm[0];
+          //   ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          //
+          //   // u0-q_neighbor
+          //   kij = alpha * 0.5 * qn * u0 * finrm[0];
+          //   ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          //
+          //   // u0neighbor-q_neighbor
+          //   kij = -alpha * 0.5 * qn * un0 * finrm[0];
+          //   ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          // } // end u0 col
           local_col_index += u0dofpelm;
 
           // u1-q block : // TODO: Also not sure why this isn't 0
-          for(trial=0; trial<u1dofpelm; trial++) {
-            u1 = FE->var_spaces[iu1]->phi[trial];
-            un1 = neighbor_basis_u1_phi[trial];
-
-            // u1-q
-            kij = alpha * 0.5 * q * u1 * finrm[1];
-            ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-
-            // u1neighbor-q
-            kij = -alpha * 0.5 * q * un1 * finrm[1];
-            ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-
-            // u1-q_neighbor
-            kij = alpha * 0.5 * qn * u1 * finrm[1];
-            ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-
-            // u1neighbor-q_neighbor
-            kij = -alpha * 0.5 * qn * un1 * finrm[1];
-            ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-          } // end u1 col
+          // for(trial=0; trial<u1dofpelm; trial++) {
+          //   u1 = FE->var_spaces[iu1]->phi[trial];
+          //   un1 = neighbor_basis_u1_phi[trial];
+          //
+          //   // u1-q
+          //   kij = alpha * 0.5 * q * u1 * finrm[1];
+          //   ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          //
+          //   // u1neighbor-q
+          //   kij = -alpha * 0.5 * q * un1 * finrm[1];
+          //   ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          //
+          //   // u1-q_neighbor
+          //   kij = alpha * 0.5 * qn * u1 * finrm[1];
+          //   ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          //
+          //   // u1neighbor-q_neighbor
+          //   kij = -alpha * 0.5 * qn * un1 * finrm[1];
+          //   ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+          // } // end u1 col
           local_col_index+= u1dofpelm;
 
           if(dim==3) {
             // u2-q block : // TODO: Also not sure why this isn't 0
-            for(trial=0; trial<u2dofpelm; trial++) {
-              u2 = FE->var_spaces[iu2]->phi[trial];
-              un2 = neighbor_basis_u2_phi[trial];
-
-              // u2-q
-              kij = alpha * 0.5 * q * u2 * finrm[2];
-              ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-
-              // u0neighbor-q
-              kij = -alpha * 0.5 * q * un2 * finrm[2];
-              ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-
-              // u0-q_neighbor
-              kij = alpha * 0.5 * qn * u2 * finrm[2];
-              ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-
-              // u0neighbor-q_neighbor
-              kij = -alpha * 0.5 * qn * un2 * finrm[2];
-              ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
-            } // end u2 col
+            // for(trial=0; trial<u2dofpelm; trial++) {
+            //   u2 = FE->var_spaces[iu2]->phi[trial];
+            //   un2 = neighbor_basis_u2_phi[trial];
+            //
+            //   // u2-q
+            //   kij = alpha * 0.5 * q * u2 * finrm[2];
+            //   ALoc_u_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+            //
+            //   // u0neighbor-q
+            //   kij = -alpha * 0.5 * q * un2 * finrm[2];
+            //   ALoc_uneighbor_v[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+            //
+            //   // u0-q_neighbor
+            //   kij = alpha * 0.5 * qn * u2 * finrm[2];
+            //   ALoc_u_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+            //
+            //   // u0neighbor-q_neighbor
+            //   kij = -alpha * 0.5 * qn * un2 * finrm[2];
+            //   ALoc_uneighbor_vneighbor[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w_face*kij;
+            // } // end u2 col
             local_col_index+= u2dofpelm;
           } // end if dim==3
 
