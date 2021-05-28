@@ -7,8 +7,8 @@
 #define BOOL_EG_PRESSURE true
 #endif
 
-#ifndef BOOL_WEAKLY_IMPOSED_BC 
-#define BOOL_WEAKLY_IMPOSED_BC false
+#ifndef BOOL_WEAKLY_IMPOSED_BC
+#define BOOL_WEAKLY_IMPOSED_BC true
 #endif
 
 
@@ -32,12 +32,15 @@
 #define BC_PENALTY_PARAMETER_PRESSURE_GLOBAL 0e+00
 #endif
 
+#ifndef THETA_PARAMETER
+#define THETA_PARAMETER 0e+00
+#endif
+
 #ifndef TOTAL_NUM_CYCLES_GLOBAL
-#define TOTAL_NUM_CYCLES_GLOBAL 4
+#define TOTAL_NUM_CYCLES_GLOBAL 3
 #endif
 
 // the LAME_MU_GLOBAL is not used in the code yet...
 #ifndef LAME_MU_GLOBAL
 #define LAME_MU_GLOBAL 1.
 #endif
-
