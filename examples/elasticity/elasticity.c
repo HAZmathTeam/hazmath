@@ -2806,43 +2806,31 @@ int main (int argc, char* argv[])
   linear_itsolver_param linear_itparam;
   param_linear_solver_init(&linear_itparam);
   param_linear_solver_set(&linear_itparam,&inparam);
+  AMG_param amgparam;
   // Solve
-  if(0){
-  void *numeric=NULL;  // prepare for direct solve:
-  numeric=(void *)block_factorize_UMF(&A,0);//inparam.print_level);
-  solver_flag=(INT )block_solve_UMF(&A,
-				    &b, // this is the rhs here. 
-				    &sol,  // this is the solution here. 
-				    numeric,
-				    0);//     inparam.print_level);
+  if(linear_itparam.linear_itsolver_type==3){
+    /***********************************************************************/    
+    param_amg_init(&amgparam);    // this is when we have amg as solver for the diagonal blocks
+    //    linear_itparam.linear_print_level=10;
+    precond_block_data *pblk=get_precond_block_data(&A);
+    solver_flag = linear_solver_bdcsr_krylov_block_eg(&A,&b,&sol,	\
+						      &linear_itparam,	\
+						      &amgparam,	\
+						      pblk);
+    free_precond_block_data(pblk);      
+  }else if(!linear_itparam.linear_itsolver_type){
+    void *numeric=NULL;  // prepare for direct solve:
+    numeric=(void *)block_factorize_UMF(&A,0);//inparam.print_level);
+    solver_flag=(INT )block_solve_UMF(&A,
+				      &b, // this is the rhs here. 
+				      &sol,  // this is the solution here. 
+				      numeric,
+				      inparam.print_level);//     inparam.print_level);
   } else {
-      /***********************************************************************/
-      AMG_param amgparam;
-      param_amg_init(&amgparam);
-      
-      precond_block_data *pblk=get_precond_block_data(&A);
-      solver_flag = linear_solver_bdcsr_krylov_block_eg(&A,&b,&sol,	\
-							&linear_itparam, \
-							&amgparam,	\
-							pblk);
-      free_precond_block_data(pblk);      
+    //
+    fprintf(stderr,"\n*** ERROR: Wrong Choice of iterative solver. only lin_itsolver_type=0|3 are allowed\n\n");
+    exit(32);
   }
-  /*
-  // Solve
-  if(dim==2){
-    if (linear_itparam.linear_precond_type == PREC_NULL) {
-      solver_flag = linear_solver_bdcsr_krylov(&A, &b, &sol, &linear_itparam);
-    } else {
-      solver_flag = linear_solver_bdcsr_krylov_block_3(&A, &b, &sol, &linear_itparam, NULL, A_diag);
-    }
-  } else if (dim==3) {
-    if (linear_itparam.linear_precond_type == PREC_NULL) {
-      solver_flag = linear_solver_bdcsr_krylov(&A, &b, &sol, &linear_itparam);
-    } else {
-      solver_flag = linear_solver_bdcsr_krylov_block_4(&A, &b, &sol, &linear_itparam, NULL, A_diag);
-    }
-  }
-  */
   // Error Check
   if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n",solver_flag);
 
@@ -2902,16 +2890,16 @@ int main (int argc, char* argv[])
   REAL* solerr_stress_EG = (REAL *) calloc(dim+1, sizeof(REAL)); // Note: No H1 error for P0 elements
   REAL* solerr_energy_EG = (REAL *) calloc(dim+1, sizeof(REAL)); // Note: No H1 error for P0 elements
 
-  printf("---1\n");
+  //  printf("---1\n");
   L2error_block_EG(solerrL2_EG, sol.val, exact_sol2D, &FE, &mesh, cq, 0.0);
-  printf("---2\n");
+  //  printf("---2\n");
   HDerror_block_EG(solerrH1_EG, sol.val, exact_sol2D, Dexact_sol2D, &FE, &mesh, cq, 0.0);
-  printf("---3\n");
+  //  printf("---3\n");
   HDsemierror_block_Stress_EG(solerr_stress_EG, sol.val, exact_sol2D, Dexact_sol2D, &FE, &mesh, cq, 0.0);
-  printf("---4\n");
+  //  printf("---4\n");
   //HDsemierror_block_EnergyNorm_EG(solerr_energy_EG, sol.val, exact_sol2D, Dexact_sol2D, &FE, &mesh, cq, 0.0);
   HDsemierror_block_EnergyNorm_EG_FaceLoop(solerr_energy_EG, sol.val, exact_sol2D, Dexact_sol2D, &FE, &mesh, cq, 0.0);
-  printf("---5\n");
+  //  printf("---5\n");
   
   //NEW SLEE Aug 17 2020
   //NEW ERROR FOR STRESS, \mu \epsilon(u) + \lambda \div u

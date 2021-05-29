@@ -401,7 +401,7 @@ INT umfpack_solve (dCSRmat *ptrA,
 
   status = umfpack_di_solve (UMFPACK_A, Ap, Ai, Ax, u->val, b->val, Numeric, NULL, NULL);
 
-  if ( prtlvl > PRINT_NONE ) {
+  if ( prtlvl > PRINT_NONE + 7 ) {
     clock_t end_time = clock();
     double solve_time = (double)(end_time - start_time)/(double)(CLOCKS_PER_SEC);
     printf("UMFPACK costs %f seconds.\n", solve_time);
