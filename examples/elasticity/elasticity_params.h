@@ -3,7 +3,7 @@
 #endif
 
 #ifndef LAME_LAMBDA_GLOBAL
-#define LAME_LAMBDA_GLOBAL 1
+#define LAME_LAMBDA_GLOBAL 1000000
 #endif
 
 #ifndef PENALTY_PARAMETER_GLOBAL
@@ -11,7 +11,7 @@
 #endif
 
 #ifndef TOTAL_NUM_CYCLES_GLOBAL
-#define TOTAL_NUM_CYCLES_GLOBAL 6
+#define TOTAL_NUM_CYCLES_GLOBAL 5
 #endif
 
 // the LAME_MU_GLOBAL is not used in the code yet...

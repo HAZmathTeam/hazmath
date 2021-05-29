@@ -17,7 +17,7 @@ print_level			= 2;	% how much information to print out
 %gridfile 			= ../grids/2D/unitSQ_n17.haz
 %gridfile 			= ../grids/3D/unitCUBE_n9.haz
 % SLEE modified the file input read without *.HAZ 
-gridfile                        = 2dSQD-
+gridfile                        = ../grids/2D/2dSQD1-
 
 output_dir			= ./output
 
