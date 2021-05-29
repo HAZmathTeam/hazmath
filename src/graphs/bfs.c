@@ -7,39 +7,63 @@
  *
  */
 #include "hazmath.h"
-/***********************************************************************/
-/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx*/
-/*********************************************************************/
-iCSRmat *run_bfs(dCSRmat *a,			\
+/***********************************************************************************************/
+/*!
+ * \fn iCSRmat *run_bfs(INT n,INT *ia, INT *ja,ivector *roots,ivector *anc,const INT lvlmax)
+ *
+ * \brief recurrsive bfs search of a graph
+ *
+ * \param n                number of vertices
+ * \param (ia,ja):         adjacency structure of the graph;
+ * \param roots[]:         a vector containing starting points for BFS. Aiming
+ *                         at having one starting point in every
+ *                         connected component.
+ * \param anc[]:           a vector containing the ancestors of the vertices:
+ *                         v<->anc[v] is an edge in the bfs tree. 
+ *
+ * \return pointer to iCSRmat of size n,n with n nonzeroes, which
+ *         contains the bfs ordering permutation of the vertices
+ *         (component after component). The values in the matrix are
+ *         the distance from the root vertex in every connected
+ *         component: for the vertex v bfs->val[v]=distance to the
+ *         root[j], j=1:ncomponents
+ *
+ * \author Ludmil Zikatanov
+ * \date   20210516
+ */
+iCSRmat *run_bfs(INT n,INT *ia, INT *ja,	\
 		 ivector *roots,		\
 		 ivector *anc,			\
 		 const INT lvlmax)
 {
+  /* n, ia, ja are the CSR matrix elements. */
+  /* anc[v] is the ancestor of v; */
+  /* roots[] is input; */
   INT iii,i,k,q,v,vi,qbeg,qend,lvl;  
-  INT *ia=a->IA,*ja=a->JA;
   iCSRmat *blk=malloc(1*sizeof(iCSRmat));
-  blk[0]=icsr_create(a->row,a->col,a->row);
-  anc->row=a->row;
+  blk[0]=icsr_create(n,n,n);
+  anc->row=n;
   anc->val=(INT *)calloc(anc->row,sizeof(INT));
   for(i=0;i<blk->nnz;++i) blk->val[i]=0;
   for(i=0;i<anc->row;++i) anc->val[i]=-1;
   lvl=0;
   blk->IA[lvl]=0;
   k=blk->IA[lvl];
-  //  fprintf(stdout,"\nR:");
   if(roots->row<=0){
+    /* take the first vertex as root if none are given as input */
     roots->row=1;
     roots->val=(INT *)realloc(roots->val,roots->row*sizeof(INT));
     roots->val[0]=0;
   }
+  /* Now roots are set as they are either input or root[0]=0 */
   for(i=0;i<roots->row;++i){
-    //    fprintf(stdout,"\nroots[%d]=%d",i,roots->val[i]);
+    /* fprintf(stdout,"\nroots[%d]=%d",i,roots->val[i]); */
     blk->val[roots->val[i]]=lvl+1;
     blk->JA[k]=roots->val[i];
     k++;
   }
   blk->IA[lvl+1]=k;
-  // we need to repeat this
+  /* we need to repeat this */
   while(1){
     qbeg=blk->IA[lvl];
     qend=blk->IA[lvl+1];
@@ -48,7 +72,7 @@ iCSRmat *run_bfs(dCSRmat *a,			\
       for(vi=ia[v];vi<ia[v+1];++vi){
 	i=ja[vi];
 	if (!blk->val[i]){
-	  blk->val[i]=lvl+1;
+	  blk->val[i]=lvl+1;// mark as visited;
 	  blk->JA[k]=i;
 	  k++;
 	  anc->val[i]=v; // ancestor;
@@ -73,7 +97,64 @@ iCSRmat *run_bfs(dCSRmat *a,			\
   //end
   return blk;
 }
-/***********************************************************************/
+/*****************************************************************************/
+/*****************************************************************************/
+/*!
+ * \fn iCSRmat *dfs_di(void *a, const char c,ivector *roots,
+ *                     ivector *anc,const INT lvlmax)
+ *
+ * \brief dfs on graphs given by INT or REAL CSR matrix.
+ *
+ * \param a:                  The CSR matrix 
+ * \param c:                  a char ('r' or 'i' or 'R' or 'I')
+ *                            indicating whether this is a REAL or INT matrix;
+ *
+ * \return returns the output of run_dfs(a->row,a->IA,a->JA)
+ *
+ * \author Ludmil Zikatanov
+ * \date   20210516
+ */
+iCSRmat *bfs_di(void *a, const char c,		\
+		ivector *roots,			\
+		ivector *anc,			\
+		const INT lvlmax)
+{
+  /* 
+     do a breadth first search for INT or REAL matrix. It does not use
+     a->val, so upon entry these can be null 
+  */
+  dCSRmat *ad=NULL;
+  iCSRmat *ai=NULL;
+  if(c=='R' || c=='r'){
+    ad=(dCSRmat *)a;
+    return run_bfs(ad->row, ad->IA, ad->JA, roots, anc, lvlmax);  
+  } else if(c=='I' || c=='i'){
+    ai=(iCSRmat *)a;
+    return run_bfs(ai->row, ai->IA, ai->JA, roots, anc, lvlmax);  
+  } else {
+    fprintf(stderr,"### ERROR: Wrong value of c in %s (c=%c)\n",__FUNCTION__,c);
+    exit(ERROR_INPUT_PAR);
+  }
+}
+/***********************************************************************************************/
+/*!
+ * \fn void bfs00(const INT croot,iCSRmat *a, iCSRmat *bfs,INT *et, INT *mask)
+ *
+ * \brief bfs search of a graph corresponding to 
+ *
+ * \param n                number of vertices
+ * \param a:               adjacency matrix of the graph;
+ * \param croots:          the starting vertex
+ *
+ * \param mask[]:
+ *
+ * \return On return iCSRmat *bfs is a iCSRmat of size n,n with n nonzeroes, which
+ *         contains the bfs ordering permutation of the vertices
+ *
+ * \author Ludmil Zikatanov
+ * \date   20210516
+ */
+
 void bfs00(const INT croot,			\
 	   iCSRmat *a, iCSRmat *bfs,		\
 	    INT *et, INT *mask)

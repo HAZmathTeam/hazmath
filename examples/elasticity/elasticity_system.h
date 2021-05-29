@@ -1,4 +1,4 @@
-/************************************************************************/
+/*********************************************************************************/
 iCSRmat *extend_el_dof(fespace *FE,mesh_struct *mesh, INT *ix)
 {
   // extends the DOF so that every DOF in element i interacts with all
@@ -7,7 +7,18 @@ iCSRmat *extend_el_dof(fespace *FE,mesh_struct *mesh, INT *ix)
   iCSRmat *el_dof=NULL; // output
   INT i,j,k,j_a,j_b,k_a,k_b,mydof,if1,icp;
   INT pq,nbr,nel;
-  iCSRmat *el2el=calc_el2el(mesh->el_f,0);
+  /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx*/
+  iCSRmat *f_el=malloc(1*sizeof(iCSRmat)); // face_to_element;
+  iCSRmat *el_f=mesh->el_f;
+  for(i=0;i<el_f->IA[mesh->nelm];i++)
+    el_f->val[i]=1;
+  icsr_trans(el_f,f_el); // f_el=transpose(el_f);
+  iCSRmat *el2el=malloc(1*sizeof(iCSRmat));
+  icsr_mxm(el_f,f_el,el2el);
+  //  icsr_tri(el2el,'l');
+  icsr_nodiag(el2el);// remove diagonal.
+  icsr_free(f_el);
+  ///////////////////////////////////////////////
   INT nrows = FE->ndof;
   INT ncols = FE->ndof;
   /////////////
@@ -343,13 +354,13 @@ void block_LocaltoGlobal_neighbor(INT *dof_on_elm,INT *dof_on_elm_neighbor,block
   }
   /*
   FILE *fptmp = NULL;
- 
+  printf("$$$$$$$$$$$$$$$$$$$$$$$$\n");
   fptmp=fopen("output/a.dat","w");
   bdcsr_print_matlab(fptmp,A);
   fclose(fptmp);
-  
-  exit(0);
   */
+  //exit(0);
+  
 return;
 }
 
@@ -386,7 +397,7 @@ return;
 *
 */
 void assemble_global_block_neighbor(block_dCSRmat* A,dvector *b,
-				    void (*local_assembly_face)(block_dCSRmat* A,block_fespace *,mesh_struct *,qcoordinates *,INT, iCSRmat*),
+				    void (*local_assembly_face)(block_dCSRmat* A,block_fespace *,mesh_struct *,qcoordinates *,INT,iCSRmat*),
 				    void (*local_assembly)(block_dCSRmat* A,dvector *b,REAL *,block_fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,REAL,INT*),
 				    void (*local_rhs_assembly)(dvector *b,REAL *,block_fespace *,mesh_struct *,qcoordinates *,INT *,INT *,INT,void (*)(REAL *,REAL *,REAL,void *),REAL),block_fespace *FE,mesh_struct *mesh,qcoordinates *cq,void (*rhs)(REAL *,REAL *,REAL,void *),REAL time)
 {
@@ -501,7 +512,7 @@ void assemble_global_block_neighbor(block_dCSRmat* A,dvector *b,
   }// loop over elements
 
   iCSRmat *f_el=NULL;
-  bool bEG = true;//false;
+  bool bEG = true;
   // NOW ASSEMBLE FACES
   if(bEG){
     // First generate global face-to-element map:

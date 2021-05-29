@@ -1516,13 +1516,13 @@ void HDsemierror_block_EnergyNorm_EG_FaceLoop
 	  u_comp_neighbor += FE->var_spaces[2]->ndof;
 
 	  
-	  if(ABS(u0_value_at_q - u0_value_at_q_neighbor) > 0.0000001)
+	  if(ABS(u0_value_at_q - u0_value_at_q_neighbor) > 0.000000001)
 	      {
 		printf("u0_value_at_q_face - u0_value_at_q_face_neighbor = %f \n", u0_value_at_q - u0_value_at_q_neighbor); 
 		exit(0);
 	      }
 
-	  if(ABS(u1_value_at_q - u1_value_at_q_neighbor) > 0.0000001)
+	  if(ABS(u1_value_at_q - u1_value_at_q_neighbor) > 0.000000001)
 	      {
 		printf("u1_value_at_q_face - u1_value_at_q_face_neighbor = %f \n", u1_value_at_q - u1_value_at_q_neighbor); 
 
