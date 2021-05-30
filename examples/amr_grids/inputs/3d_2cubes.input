@@ -19,8 +19,8 @@ print_level{1}	% how much information to print out: 0 Nothing | >0 Something
 %---------------%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-file_grid{2D_2L.haz}
-file_vtu{2D_2L.vtu}
+file_grid{3D_2C.haz}
+file_vtu{3D_2C.vtu}
 
 %---------------%
 % coordinate systems: Each has coordinates of the origin o[0:dim-1]
@@ -136,7 +136,7 @@ data_macrofaces{0 1 2 3 1
 		   }
 
 %%%%%%%%%%%%%%AMR %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-num_refinements{1}
+num_refinements{0}
 
 refinement_type{1}
 
