@@ -22,8 +22,10 @@
 INT main(INT   argc,   char *argv[])
 {
   INT i;
-  FILE *fp=stdin;
-  //  fp=HAZ_fopen("3d_f.input","r");
+  FILE *fp;
+  //  fp=stdin;
+  //  fp=HAZ_fopen("inputs/2d_2L.input","r");
+  fp=HAZ_fopen("inputs/2d_2L.input","r");
   /*
     PARSE THE INPUT.
   */

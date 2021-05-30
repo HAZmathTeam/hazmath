@@ -35,7 +35,10 @@ void find_cc_bndry_cc(scomplex *sc)
   INT *jblk=calloc(2*ns+2,sizeof(INT));
   INT *iblk=jblk+ns+1;
   sc->cc=-10;
-  dfs00_(&ns,neib->IA, neib->JA,&sc->cc,iblk,jblk);
+  iCSRmat *blk_dfs=run_dfs(ns,neib->IA, neib->JA);
+  iblk=blk_dfs->IA;
+  jblk=blk_dfs->JA;
+  //  dfs00_(&ns,neib->IA, neib->JA,&sc->cc,iblk,jblk);
   // set up simplex flags= connected component number:
   for(i=0;i<sc->cc;++i){
     for(k=iblk[i];k<iblk[i+1];++k){
@@ -134,7 +137,11 @@ void find_cc_bndry_cc(scomplex *sc)
   /* fprintf(stdout,"];\n"); */
   sc->bndry=(INT *)calloc(sc->nv,sizeof(INT));
   sc->bndry_cc=-10;
-  dfs00_(&nbf,neib->IA, neib->JA,&sc->bndry_cc,iblk,jblk);  
+  //  dfs00_(&nbf,neib->IA, neib->JA,&sc->bndry_cc,iblk,jblk);  
+  icsr_free(blk_dfs); blk_dfs=NULL;
+  blk_dfs=run_dfs(ns,neib->IA, neib->JA);
+  iblk=blk_dfs->IA;
+  jblk=blk_dfs->JA;
   icsr_free(neib);
   // set up bndry flags= connected component number;
   for(i=0;i<sc->bndry_cc;++i){
@@ -145,6 +152,7 @@ void find_cc_bndry_cc(scomplex *sc)
       }
     }
   }
+  icsr_free(blk_dfs);
   /* for(j=0;j<sc->nv;j++){ */
   /*   fprintf(stdout,"\ncode[%d]=%d",j,sc->bndry[j]); */
   /* } */
