@@ -2608,10 +2608,22 @@ dCSRmat dcsr_sympat (dCSRmat *A)
 /*removing diagonal or extracting upper/lower triangle of a sparse
   matrix*/
 /**********************************************************************/
+/***********************************************************************************************/
+/**
+ * \fn icsr_nodiag(iCSRmat *a)
+ *
+ * \brief removing the diagonal of an icsr matrix and cleans the off
+ * diagonal zeros as well (done in-inplace, a IS OVERWRITTEN)
+ *
+ * \param *a      pointer to the iCSRmat matrix
+ *
+ * \return void
+ *
+ * \author Ludmil
+ * \date 20210101
+ */
 void icsr_nodiag(iCSRmat *a)
 {
-  /* removing the diagonal of an icsr matrix and cleans the off
-     diagonal zeros as well (done in-inplace, a is overwritten) */
   INT k,j,kj,kj0,kj1;
   a->nnz=a->IA[0];
   for(k=0;k<a->row;k++){
@@ -2635,52 +2647,32 @@ void icsr_nodiag(iCSRmat *a)
     a->JA=NULL;
     a->val=NULL;
   }
-  //  fprintf(stdout,"\nnnz0=%d ; am=[",a->IA[0]);
-  //  icsr_print_matlab_val(stdout,a);
-  //  fprintf(stdout,"];\n");
   return;
 }
-/**********************************************************************/
-void icsr_clean_zeros(iCSRmat *a)
-{
-  /* cleans the zeros in an iscr matrix (done in-inplace, a is
-     overwritten) */
-  INT k,j,kj,kj0,kj1;
-  a->nnz=a->IA[0];
-  for(k=0;k<a->row;k++){
-    kj0=a->IA[k];
-    kj1=a->IA[k+1];
-    a->IA[k]=a->nnz;
-    for(kj=kj0;kj<kj1;kj++){
-      j=a->JA[kj];
-      if(a->val[kj]){
-	a->JA[a->nnz]=j;
-	a->val[a->nnz]=a->val[kj];
-	a->nnz++;
-      }
-    }
-  }
-  a->IA[a->row]=a->nnz;
-  if(a->nnz>0){
-    a->JA=realloc(a->JA,a->nnz*sizeof(INT));
-    a->val=realloc(a->val,a->nnz*sizeof(INT));
-  }else{
-    a->JA=NULL;
-    a->val=NULL;
-  }
-  return;
-}
+/***********************************************************************************************/
+/**
+ * \fn icsr_nodiag(iCSRmat *a, const char loup)
+ *
+ * \brief extracting the lower/upper triangle of an icsr matrix (done
+ * in-place, a is overwritten also removes all zeros).
+ *
+ * \param *a      pointer to the iCSRmat matrix
+ *
+ * \param character corresponding to a different action: loup='u' or
+ *        'U': upper triangle; loup='l' or 'L': extract lower
+ *        triangle; if loup is anything else: do nothing; the diagonal
+ *        * is included and not removed (only zero elements are
+ *        removed).
+ *
+ *
+ * \return void; a is modified. 
+ *
+ * \author Ludmil
+ * \date 20210101
+ */
 /**********************************************************************/
 void icsr_tri(iCSRmat *a,const char loup)
 {
-  /*
-   *extracting the lower/upper triangle of an icsr matrix
-   (done in-place, a is overwritten also removes all zeros).
-   * loup='u' or 'U': upper triangle;
-   * loup='l' or 'L': extract lower triangle
-   * if loup is anything else: do nothing;
-   * the diagonal is included.
-  */
   INT lu;
   if(loup=='u' || loup=='U')
     lu=1;
@@ -2706,6 +2698,97 @@ void icsr_tri(iCSRmat *a,const char loup)
   a->IA[a->row]=a->nnz;
   a->JA=realloc(a->JA,a->nnz*sizeof(INT));
   a->val=realloc(a->val,a->nnz*sizeof(INT));
+  return;
+}
+/***********************************************************************************************/
+/**
+ * \fn void icsr_rm_value(iCSRmat *a,const INT value)
+ *
+ * \brief  REMOVES all entries in an iscr matrix EQUAL to a given value (done
+     in-inplace, a is overwritten)
+ *
+ * \param *a      pointer to the iCSRmat matrix
+ *
+ * \param value ; removes all a(i,j)=value;
+ *
+ *
+ * \return void; a is modified. 
+ *
+ * \author Ludmil
+ * \date 20210101
+ */
+/**********************************************************************/
+void icsr_rm_value(iCSRmat *a,const INT value)
+{
+  INT k,j,kj,kj0,kj1;
+  a->nnz=a->IA[0];
+  for(k=0;k<a->row;k++){
+    kj0=a->IA[k];
+    kj1=a->IA[k+1];
+    a->IA[k]=a->nnz;
+    for(kj=kj0;kj<kj1;kj++){
+      j=a->JA[kj];
+      if(a->val[kj]!=value){
+	a->JA[a->nnz]=j;
+	a->val[a->nnz]=a->val[kj];
+	a->nnz++;
+      }
+    }
+  }
+  a->IA[a->row]=a->nnz;
+  if(a->nnz>0){
+    a->JA=realloc(a->JA,a->nnz*sizeof(INT));
+    a->val=realloc(a->val,a->nnz*sizeof(INT));
+  }else{
+    a->JA=NULL;
+    a->val=NULL;
+  }
+  return;
+}
+/***********************************************************************************************/
+/**
+ * \fn void icsr_keep_value(iCSRmat *a,const INT value)
+ *
+ * \brief  KEEPS ONLY entries in an iscr matrix EQUAL to a given value (done
+     in-inplace, a is overwritten)
+ *
+ * \param *a      pointer to the iCSRmat matrix
+ *
+ * \param value ; KEEPS all a(i,j)=value. Removes the rest;
+ *
+ * \return void; a is modified. 
+ *
+ * \author Ludmil
+ * \date 20210101
+ */
+/**********************************************************************/
+void icsr_keep_value(iCSRmat *a,const INT value)
+{
+  /* KEEPS only entries in an iscr matrix equal to value (done
+     in-inplace, a is overwritten) */
+  INT k,j,kj,kj0,kj1;
+  a->nnz=a->IA[0];
+  for(k=0;k<a->row;k++){
+    kj0=a->IA[k];
+    kj1=a->IA[k+1];
+    a->IA[k]=a->nnz;
+    for(kj=kj0;kj<kj1;kj++){
+      j=a->JA[kj];
+      if(a->val[kj]!=value)
+	continue;
+      a->JA[a->nnz]=j;
+      a->val[a->nnz]=a->val[kj];
+      a->nnz++;
+    }
+  }
+  a->IA[a->row]=a->nnz;
+  if(a->nnz>0){
+    a->JA=realloc(a->JA,a->nnz*sizeof(INT));
+    a->val=realloc(a->val,a->nnz*sizeof(INT));
+  }else{
+    a->JA=NULL;
+    a->val=NULL;
+  }
   return;
 }
 /***********************************************************************************************/
