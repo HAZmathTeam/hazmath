@@ -204,9 +204,18 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
   // number of connected domains and boundaries;
   dfs00_(&nel0,el2el->IA, el2el->JA,&mc->cc,iblk,jblk);
   iblk=realloc(iblk,(mc->cc+1)*sizeof(INT));
+  INT ixxx,jxxx,kxxx;
+  for(ixxx=0;ixxx<mc->cc;ixxx++){
+    for(jxxx=iblk[ixxx];jxxx<iblk[ixxx+1];jxxx++){
+      fprintf(stdout,"\nZZZZ%d,%d,%d",ixxx+1,jblk[jxxx]+1,1);fflush(stdout);
+    }
+  }
   /*  prepare for bfs: remove diagonal in el2el */
   icsr_nodiag(el2el);
   mc->bfs=bfscc(mc->cc,iblk,jblk,el2el,etree);
+  fprintf(stdout,"\nnnz0=%d ; am=[",mc->bfs->IA[0]);
+  icsr_print_matlab_val(stdout,mc->bfs);
+  fprintf(stdout,"];\n");
   /* construct element to face to element maps for macroelements */
   /*FACES******************************************************/
   mc->nf=g0->nel*c2s->nf-(el2el->nnz/2);
@@ -816,6 +825,7 @@ void fix_grid(macrocomplex *mc,		\
     neg=0;
     iaa=fel2el->IA[kel];
     iab=fel2el->IA[kel+1];
+    fprintf(stdout,"\n%d and %d",iaa,iab);fflush(stdout);
     if((iab-iaa)<=0){
       if(g0->print_level>5)
 	fprintf(stdout,"\nin %s: macroelement=%d; vertices=%d; overlaps=%d;",__FUNCTION__,kel,scin[kel]->nv,neg);fflush(stdout);
