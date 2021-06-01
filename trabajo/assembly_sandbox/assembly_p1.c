@@ -120,13 +120,13 @@ void main()
   char *meshfile=NULL;
   switch(dim){
   case 3:
-    meshfile=strdup("../../examples/grids/3D/unitCUBE_n3.haz");
+    meshfile=strdup("../../examples/grids/3D/unitCUBE_n65.haz");
     break;
   default:
-    meshfile=strdup("../../examples/grids/2D/unitSQ_n5.haz");
+    meshfile=strdup("../../examples/grids/2D/unitSQ_n257.haz");
   }
   FILE *fp=fopen(meshfile,"r");
-  fprintf(stdout,"\nReading mesh file(dim=%d)...",dim);fflush(stdout);
+  fprintf(stdout,"\n%%%%%%Reading mesh file(dim=%d)...",dim);fflush(stdout);
   scomplex *sc=haz_scomplex_read(fp,0);// 0 is the print level; reads the mesh
   fprintf(stdout,"done;\n");fflush(stdout);
   // for simplices: number of vertices per simplex. 
@@ -140,7 +140,7 @@ void main()
   //
   // local mass matrix: it is constant times the volume of an element.
   REAL *mlocal=local_mm(dim);
-  fprintf(stdout,"\nnum simplices=%d ; num vertices=%d",ns,nv);fflush(stdout);
+  fprintf(stdout,"\nnum_simplices=%d ; num_vertices=%d",ns,nv);fflush(stdout);
   // to compute the volume and to grab the local coordinates of the vertices in the simplex we need some work space
   REAL *slocal=calloc(dim1*dim1,sizeof(REAL));// local stiffness matrix.
   REAL *grad=calloc(dim1*dim,sizeof(REAL));// local stiffness matrix.
@@ -182,8 +182,8 @@ void main()
 	     grad,	\
 	     dim,	\
 	     volume);
-    print_full_mat(dim1,dim,slocal,"slocal");
-    fprintf(stdout,"\nelem=%d ; volume=%e",i,volume);fflush(stdout);
+    //    print_full_mat(dim1,dim,slocal,"slocal");
+    //    fprintf(stdout,"\nelem=%d ; volume=%e",i,volume);fflush(stdout);
     for(j=0;j<dim1;j++){
       jdim1=j*dim1;
       ijdim1=idim1+jdim1;
@@ -225,9 +225,9 @@ void main()
   dCSRmat *A=malloc(sizeof(dCSRmat));
   dcsr_rap_agg(PT,Abig,P,A);
   clock_t clk_assembly_end = clock(); // End of timing for mesh and FE setup
-  printf("\n\nelapsed CPU time for assembling the global mass matrix = %f seconds.\n\n",
+  printf("\n\n%%%%%%elapsed CPU time for assembling the global mass matrix = %f seconds.\n\n",
          (REAL) (clk_assembly_end - clk_assembly_start)/CLOCKS_PER_SEC);
-  csr_print_matlab(stdout,A);
+  /// that is a huge printout  csr_print_matlab(stdout,A);
   // no need of Mbig or anything like that;
   dcsr_free(Mbig);
   free(Abig->val);
