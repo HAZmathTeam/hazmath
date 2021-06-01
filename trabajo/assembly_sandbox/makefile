@@ -3,7 +3,7 @@
 ####################################################
 
 # SRC File name
-SRCFILE = assembly_p1
+SRCFILE = assemble_p1
 
 HEADERS = 
 
