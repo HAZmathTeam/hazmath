@@ -141,7 +141,7 @@ static REAL *local_mm(const INT dim)
   // all integrals divided by the volume(reference_simplex);
   REAL dd,smij,smii;
   dd=(REAL )(dim1);
-  smij=1e0/(dd*dd);
+  smij=1e0/(dd+1e0)/dd;
   smii=2e0*smij;
   REAL *mlocal=calloc(dim1*dim1,sizeof(REAL));// local matrix stored by rows.
   for(j=0;j<dim1;j++)  {
@@ -325,7 +325,7 @@ int main(int argc, char *argv[])
   char *meshfile=NULL;
   switch(dim){
   case 3:
-    meshfile=strdup("../../examples/grids/3D/unitCUBE_n3.haz");
+    meshfile=strdup("../../examples/grids/3D/unitCUBE_n9.haz");
     break;
   default:
     meshfile=strdup("../../examples/grids/2D/unitSQ_n3.haz");
@@ -339,7 +339,7 @@ int main(int argc, char *argv[])
   assemble_p1(sc,A,M);
   INT print_level=6;
   if(print_level > 5)
-    csr_print_matlab(stdout,A);
+    csr_print_matlab(stdout,M);
   dcsr_free(A);  
   dcsr_free(M);  
   haz_scomplex_free(sc);  
