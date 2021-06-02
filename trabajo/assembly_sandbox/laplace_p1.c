@@ -14,7 +14,7 @@
 /****************************************************************************/
 int main(int argc, char *argv[])
 {
-  INT dim=2;
+  INT dim=3;
   INT i,j,k,ij;
   scomplex *sc;
   switch(dim){
