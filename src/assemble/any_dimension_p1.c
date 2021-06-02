@@ -1,13 +1,13 @@
-/*! \file src/amr/assemble_p1.c
+/*! \file src/amr/any_dimension_p1.c
  *
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 20190420.
  *  Copyright 2019__HAZMATH__. All rights reserved.
  *
- *  \note containing all essential routines for input for the mesh
- *  generation and mesh refinement
+ *  \note containing all essential routines that assemble the
+ *  stiffness matrix for the Laplace equation and the mass matrix in
+ *  any spatial dimensions (1,2,3,...) on any simplicial grid
  *
- *  \note: modified by ltz on 20190327
- *  \note: modified by ltz on 20190728
+ *  \note: modified by ltz on 20210531
  *
  */
 /*********************************************************************/
@@ -93,10 +93,10 @@ SHORT grad_compute(INT dim, REAL factorial, REAL *xs, REAL *grad,	\
  *
  * \note
  */
-static void local_sm(REAL *slocal,		\
-		     REAL *grad,		\
-		     const INT dim,		\
-		     const REAL vols)
+void local_sm(REAL *slocal,		\
+	      REAL *grad,			\
+	      const INT dim,			\
+	      const REAL vols)
 {
   // grad is a (dim+1) x (dim) gradients of the barycentric coords.
   // slocal(dim,dim) must be alllocated before entering here
@@ -135,7 +135,7 @@ static void local_sm(REAL *slocal,		\
  * \note
  */
 //
-static REAL *local_mm(const INT dim)
+REAL *local_mm(const INT dim)
 {
   INT dim1=dim+1,j,k;
   // all integrals divided by the volume(reference_simplex);
@@ -192,9 +192,9 @@ static void local_coords(const INT dim,REAL *xs,INT *nodes, REAL *x)
  * \fn void assemble_p1(scomplex *sc, dCSRmat *A, dCSRmat *M)
  *
  * \brief Assembles the stiffness and the mass matrix for linear
- *        element. 
+ *        element in any spatial dimension. 
  *
- * \param sc      I: the simplical complex (mesh)
+ * \param sc      I: a simplical complex (a mesh)
  * \param A       O: the assembled stiffness matrix.
  * \param M       O: The assembled mass matrix
  *
@@ -219,7 +219,7 @@ INT assemble_p1(scomplex *sc, dCSRmat *A, dCSRmat *M)
   fact=1e0;
   for (j=2;j<dim1;j++) fact *= ((REAL )j);
   //
-  // local mass matrix: it is constant times the volume of an element.
+  // local mass matrix: it is a constant matrix times the volume of an element.
   REAL *mlocal=local_mm(dim);
   fprintf(stdout,"\nnum_simplices=%d ; num_vertices=%d",ns,nv);fflush(stdout);
   // to compute the volume and to grab the local coordinates of the vertices in the simplex we need some work space
@@ -232,7 +232,7 @@ INT assemble_p1(scomplex *sc, dCSRmat *A, dCSRmat *M)
   void *wrk=calloc(dim1*dim1,sizeof(REAL));// this is used in every simplex but is allocated only once.
   ////////////////////// ASSEMBLY BEGINS HERE:
   clock_t clk_assembly_start = clock(); // begin assembly timing;
-  // create a "big" block diagonal mass and stiffness matrices with the local matrices on the diagonal
+  // create a block diagonal mass and stiffness matrices with the local matrices on the diagonal
   dCSRmat *m_dg=malloc(sizeof(dCSRmat));
   m_dg[0]=dcsr_create(ns*dim1,ns*dim1,ns*dim1*dim1);
   /*
@@ -242,48 +242,42 @@ INT assemble_p1(scomplex *sc, dCSRmat *A, dCSRmat *M)
   a_dg->row=m_dg->row;
   a_dg->col=m_dg->col;
   a_dg->nnz=m_dg->nnz;
-  a_dg->IA=m_dg->IA;
-  a_dg->JA=m_dg->JA;
-  a_dg->val=calloc(a_dg->nnz,sizeof(REAL));// needs to be freed at the end
+  a_dg->IA=m_dg->IA;// same as the mass matrix;
+  a_dg->JA=m_dg->JA;// same as the mass matrix;
+  // needs to be freed at the end
+  a_dg->val=calloc(a_dg->nnz,sizeof(REAL));
   //
-  // Now action:
   nnz=0;
   m_dg->IA[0]=nnz;  
   for(i=0;i<ns;++i){
     idim1=i*dim1;
-    // we now grab the vertex coordinates and then compute the volume of the simplex.
+    // grab the vertex coordinates and compute the volume of the simplex.
     local_coords(dim,xs,&sc->nodes[idim1],sc->x);// sc->nodes[idim1:idim1+dim]
 						 // point to global
 						 // vertex numbers in
 						 // element i
-    //    vol_simplex(dim,fact, xs, &volume, wrk);
-    grad_compute(dim, fact, xs, grad,		\
-		 &volume,			\
-		 wrk);
-    local_sm(slocal,	\
-	     grad,	\
-	     dim,	\
-	     volume);
-    //    print_full_mat(dim1,dim,slocal,"slocal");
-    //    fprintf(stdout,"\nelem=%d ; volume=%e",i,volume);fflush(stdout);
+    // compute gradients
+    grad_compute(dim, fact, xs, grad,&volume,wrk);
+    // copute local stiffness matrix as grad*transpose(grad);
+    local_sm(slocal,grad,dim,volume);
     for(j=0;j<dim1;j++){
       jdim1=j*dim1;
       for(k=0;k<dim1;k++){
-	//	fprintf(stdout,"\nrow=%d ; col=%d",idim1+j,idim1+k);fflush(stdout);
 	m_dg->JA[nnz]=idim1+k;
 	m_dg->val[nnz]=mlocal[jdim1+k]*volume;
 	a_dg->val[nnz]=slocal[jdim1+k];
 	nnz++;
       }
-      //      fprintf(stdout,"\nnext_row=%d; nnz=%d",idim1+j+1,nnz);
       m_dg->IA[idim1+j+1]=nnz;
     }
   }
-  //  fprintf(stdout,"\n check nonzeroes(nnz1(m_dg)=nnz2(MBig))?:%d %d\n",m_dg->nnz,m_dg->IA[m_dg->row]);
-  // create a sparse matrix for the natural inclusion of P1-continuous in P1 discontinuous
+  //
+  // create a sparse matrix representing the natural inclusion of
+  // P1-continuous in P1 discontinuous
   dCSRmat *P=malloc(sizeof(dCSRmat));
-  P[0]=dcsr_create(ns*dim1,nv,ns*dim1);//P needs no val, as all nonzeroes are 1. so we free the val;
-  free(P->val);  P->val=NULL;// we do not need the val.
+  P[0]=dcsr_create(ns*dim1,nv,ns*dim1);
+  //P needs no val, as all nonzeroes are 1. so we free the val;
+  free(P->val);  P->val=NULL;//
   nnzp=0;
   P->IA[0]=nnzp;
   for(i=0;i<ns;++i){
@@ -319,29 +313,4 @@ INT assemble_p1(scomplex *sc, dCSRmat *A, dCSRmat *M)
   return 0;
 }
 /****************************************************************************/
-int main(int argc, char *argv[])
-{
-  INT dim=2;
-  char *meshfile=NULL;
-  switch(dim){
-  case 3:
-    meshfile=strdup("../../examples/grids/3D/unitCUBE_n9.haz");
-    break;
-  default:
-    meshfile=strdup("../../examples/grids/2D/unitSQ_n3.haz");
-  }
-  FILE *fp=fopen(meshfile,"r");
-  fprintf(stdout,"\n%%%%%%Reading mesh file(dim=%d)...",dim);fflush(stdout);
-  scomplex *sc=haz_scomplex_read(fp,0);// 0 is the print level; reads the mesh
-  fprintf(stdout,"done;\n");fflush(stdout);
-  dCSRmat *A=malloc(sizeof(dCSRmat));
-  dCSRmat *M=malloc(sizeof(dCSRmat));
-  assemble_p1(sc,A,M);
-  INT print_level=6;
-  if(print_level > 5)
-    csr_print_matlab(stdout,M);
-  dcsr_free(A);  
-  dcsr_free(M);  
-  haz_scomplex_free(sc);  
-  return 0;
-}
+/*END OF FILE*/
