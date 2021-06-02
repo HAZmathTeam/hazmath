@@ -126,6 +126,7 @@ INT main(INT   argc,   char *argv[])
        *  Refine the grid. this always refines 1 time, but since we
        *  are in a loop, it will refine ref_levels times;
        */
+      haz_scomplex_print(sctop,0,__FUNCTION__);
       refine(1,sc,marked);
       /* free */
       haz_scomplex_free(sctop);
