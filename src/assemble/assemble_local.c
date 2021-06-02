@@ -398,104 +398,219 @@ void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,mesh_struct *mesh,qcoord
 
 /******************************************************************************************************/
 /*!
- * \fn void assemble_symmetricDuDv_local(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm, REAL time)
- *
- * \brief Computes the local stiffness matrix for a symmetric gradient.
- *        For this problem we compute LHS of:
- *
- *        <eps(u), eps(v)> = <f, v>
- *
- *        where eps(u) = (grad u + (grad u)^T)/2 is the symmetric gradient.
- *
- * \param FE            Block FE Space
- * \param mesh          Mesh Data
- * \param cq            Quadrature Nodes
- * \param dof_on_elm    Specific DOF on element
- * \param v_on_elm      Specific vertices on element
- * \param elm           Current element
- * \param time          Physical Time if time dependent
- *
- * \return ALoc         Local Stiffness Matrix (Full Matrix) ordered (u1,u2,u3,p)
- *
- * \note Assumes 2D or 3D only. Only works for Scalar Elements
- *
- */
+* \fn void assemble_symmetricDuDv_local(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm, REAL time)
+*
+* \brief Computes the local stiffness matrix for a symmetric gradient.
+*        For this problem we compute LHS of:
+*
+*        <eps(u), eps(v)> = <f, v>
+*
+*        where eps(u) = (grad u + (grad u)^T)/2 is the symmetric gradient.
+*
+* \param FE            Block FE Space
+* \param mesh          Mesh Data
+* \param cq            Quadrature Nodes
+* \param dof_on_elm    Specific DOF on element
+* \param v_on_elm      Specific vertices on element
+* \param elm           Current element
+* \param time          Physical Time if time dependent
+*
+* \return ALoc         Local Stiffness Matrix (Full Matrix) ordered (u1,u2,u3)
+*
+* \note Assumes 2D or 3D only. Only works for Scalar Elements in block form
+* \note We provide the computation for the 0-0 block in 2D:
+*       <eps(u), eps(v)> =
+*                <dx(u1),dx(v1)> + 0.5*<dy(u1),dy(v1)>  +  0.5*<dx(u2),dy(v1)>
+*                0.5*<dy(u1),dx(v2)> + 0.5*<dx(u2),dx(v2)> + <dy(u2),dy(v2)>
+*
+*       for Dirichlet boundary conditions and when div u = 0 exactly, then
+*       <2 eps(u), eps(v)> = <grad u, grad v>
+*
+*/
 void assemble_symmetricDuDv_local(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qcoordinates *cq, INT *dof_on_elm, INT *v_on_elm, INT elm, REAL time)
 {
 
   // Loop indices
-  INT i,j,idim,quad,test,trial;
+  INT i,quad,test,trial;
 
-  //Mesh and FE data
-  INT dof_per_elm = 0;
-  for(i=0;i<FE->nspaces;i++) dof_per_elm += FE->var_spaces[i]->dof_per_elm;
-  INT* local_dof_on_elm;
+  // Mesh and FE data
   INT dim = mesh->dim;
+
+  // Space indices
+  INT iu1 = 0;
+  INT iu2 = 1;
+  INT iu3 = 2;
+
+  // DoF per element
+  INT dof_per_elm = 0;
+  INT dof_per_elm_arr[dim];
+  for (i=0; i<dim;i++) {
+    dof_per_elm_arr[i] = FE->var_spaces[i]->dof_per_elm;
+    dof_per_elm += dof_per_elm_arr[i];
+  }
+  INT* local_dof_on_elm;
 
   // Quadrature Weights and Nodes
   REAL w;
-  INT maxdim=4;
-  REAL qx[maxdim];
+  REAL qx[dim];
 
   // Stiffness Matrix Entry
-  REAL kij = 0.0;
+  REAL aij = 0.0;
+
+  // Test and Trial Functions
+  REAL u1x,u1y,u1z,u2x,u2y,u2z,u3x,u3y,u3z;
+  REAL v1x,v1y,v1z,v2x,v2y,v2z,v3x,v3y,v3z;
 
   // Keep track of local indexing
   INT local_row_index, local_col_index;
 
   // Sum over quadrature points
-  for(quad=0;quad<cq->nq_per_elm;quad++){
+  for (quad=0;quad<cq->nq_per_elm;quad++) {
     qx[0] = cq->x[elm*cq->nq_per_elm+quad];
     qx[1] = cq->y[elm*cq->nq_per_elm+quad];
-    if(dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
+    if(mesh->dim==3) qx[2] = cq->z[elm*cq->nq_per_elm+quad];
     w = cq->w[elm*cq->nq_per_elm+quad];
 
-    // Get the Basis Functions at each quadrature node
+    //  Get the Basis Functions at each quadrature node
     local_dof_on_elm = dof_on_elm;
-    for(i=0;i<FE->nspaces;i++){
+    for(i=0;i<dim;i++){
       get_FEM_basis(FE->var_spaces[i]->phi,FE->var_spaces[i]->dphi,qx,v_on_elm,dof_on_elm,mesh,FE->var_spaces[i]);
       // Shift local dof to next finite element space
       local_dof_on_elm += FE->var_spaces[i]->dof_per_elm;
     }
 
-    // Assemble blocks
+    // Loop over block rows of test functions
     local_row_index = 0;
-    // Loop over block rows
-    for(i=0;i<FE->nspaces;i++){
-      // Reset local column indexing
-      local_col_index = 0;
-      // Loop over block columns
-      for(j=0;j<FE->nspaces;j++){
-        if(i==j){
-          // Loop over Test Functions (Rows)
-          for(test=0;test<FE->var_spaces[i]->dof_per_elm;test++){
-            // Loop over Trial Functions (Columns)
-            for(trial=0;trial<FE->var_spaces[j]->dof_per_elm;trial++){
-              kij = (FE->var_spaces[i]->dphi[test*dim+i]*FE->var_spaces[j]->dphi[trial*dim+j]);
-              for(idim=0;idim<dim;idim++){
-                kij += (FE->var_spaces[i]->dphi[test*dim+idim]*FE->var_spaces[j]->dphi[trial*dim+idim]);
-              }
-              ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
-            }
-          }
-        } else {
-          // Loop over Test Functions (Rows)
-          for(test=0;test<FE->var_spaces[i]->dof_per_elm;test++){
-            // Loop over Trial Functions (Columns)
-            for(trial=0;trial<FE->var_spaces[j]->dof_per_elm;trial++){
-              kij = (FE->var_spaces[i]->dphi[test*dim+j]*FE->var_spaces[j]->dphi[trial*dim+i]);
-              ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*kij;
-            }
-          }
-        }
-        // Update local column indexing
-        local_col_index += FE->var_spaces[i]->dof_per_elm;
-      }
-      // Update local row indexing
-      local_row_index += FE->var_spaces[i]->dof_per_elm;
-    }
 
-  }
+    // v1 block row:
+    for (test=0; test<dof_per_elm_arr[iu1]; test++) {
+      v1x = FE->var_spaces[iu1]->dphi[test*dim];
+      v1y = FE->var_spaces[iu1]->dphi[test*dim+1];
+      if(dim==3) v1z = FE->var_spaces[iu1]->dphi[test*dim+2];
+
+      // Loop over block columns of trial functions
+      local_col_index = 0;
+
+      // u1-v1 block: <u1x,v1x> + 0.5*<u1y,v1y>
+      for (trial=0; trial<dof_per_elm_arr[iu1]; trial++) {
+        u1x = FE->var_spaces[iu1]->dphi[trial*dim];
+        u1y = FE->var_spaces[iu1]->dphi[trial*dim+1];
+        aij = u1x*v1x + 0.5*u1y*v1y;
+        if(dim==3) {
+          u1z = FE->var_spaces[iu1]->dphi[trial*dim+2];
+          aij += 0.5*u1z*v1z;
+        }
+        ALoc[(local_row_index+test)*dof_per_elm+(local_col_index+trial)] += w*aij;
+      }
+      local_col_index += dof_per_elm_arr[iu1];
+
+      // u2-v1 block: 0.5*<u2x,v1y>
+      for (trial=0; trial<dof_per_elm_arr[iu2]; trial++) {
+        u2x = FE->var_spaces[iu2]->dphi[trial*dim];
+        u2y = FE->var_spaces[iu2]->dphi[trial*dim+1];
+        aij = 0.5*(u2x*v1y);
+        ALoc[(local_row_index+test)*dof_per_elm+(local_col_index+trial)] += w*aij;
+      }
+      local_col_index += dof_per_elm_arr[iu2];
+
+      // u3-v1 block: 0.5*<u3x,v1z>
+      if(dim==3) {
+        for(trial=0;trial<dof_per_elm_arr[iu3];trial++) {
+          u3x = FE->var_spaces[iu3]->dphi[trial*dim];
+          u3z = FE->var_spaces[iu3]->dphi[trial*dim+2];
+          aij = 0.5*(u3x*v1z);
+          ALoc[(local_row_index+test)*dof_per_elm+(local_col_index+trial)] += w*aij;
+        }
+        local_col_index += dof_per_elm_arr[iu3];
+      }
+    } // End v1 block
+    local_row_index += dof_per_elm_arr[iu1];
+
+    for (test=0; test<dof_per_elm_arr[iu2]; test++) {
+      v2x = FE->var_spaces[iu2]->dphi[test*dim];
+      v2y = FE->var_spaces[iu2]->dphi[test*dim+1];
+      if(dim==3) v2z = FE->var_spaces[iu2]->dphi[test*dim+2];
+
+
+      local_col_index = 0;
+
+      // u1-v2 block: 0.5*<u1y,v2x>
+      for (trial=0; trial<dof_per_elm_arr[iu1]; trial++) {
+        u1x = FE->var_spaces[iu1]->dphi[trial*dim];
+        u1y = FE->var_spaces[iu1]->dphi[trial*dim+1];
+        aij = 0.5*u1y*v2x;
+        ALoc[(local_row_index+test)*dof_per_elm+(local_col_index+trial)] += w*aij;
+      }
+      local_col_index += dof_per_elm_arr[iu1];
+
+      // u2-v2 block: 0.5<u2x,v2x> + <u2y,v2y>
+      for (trial=0; trial<dof_per_elm_arr[iu2]; trial++) {
+        u2x = FE->var_spaces[iu2]->dphi[trial*dim];
+        u2y = FE->var_spaces[iu2]->dphi[trial*dim+1];
+        aij = 0.5*u2x*v2x + u2y*v2y;
+        if(dim==3) {
+          u2z=FE->var_spaces[iu2]->dphi[trial*dim+2];
+          aij+=0.5*u2z*v2z;
+        }
+        ALoc[(local_row_index+test)*dof_per_elm+(local_col_index+trial)] += w*aij;
+      }
+      local_col_index += dof_per_elm_arr[iu2];
+
+      // u3-v2 block: 0.5*<u3y,v2z>
+      if(dim==3) {
+        for(trial=0;trial<dof_per_elm_arr[iu3];trial++) {
+          u3y = FE->var_spaces[iu3]->dphi[trial*dim+1];
+          u3z = FE->var_spaces[iu3]->dphi[trial*dim+2];
+          aij = 0.5*(u3y*v2z);
+          ALoc[(local_row_index+test)*dof_per_elm+(local_col_index+trial)] += w*aij;
+        }
+        local_col_index += dof_per_elm_arr[iu3];
+      }
+    } // End v2 block
+    local_row_index += dof_per_elm_arr[iu2];
+
+    // v3 block row
+    if(dim==3) {
+      for (test=0; test<dof_per_elm_arr[iu3];test++){
+        v3x=FE->var_spaces[iu3]->dphi[test*dim];
+        v3y=FE->var_spaces[iu3]->dphi[test*dim+1];
+        v3z=FE->var_spaces[iu3]->dphi[test*dim+2];
+
+        local_col_index = 0;
+
+        // u1-v3 block
+        // 0.5*<dz(u1),dx(v3)>
+        for (trial=0; trial<dof_per_elm_arr[iu1];trial++){
+          u1x=FE->var_spaces[iu1]->dphi[trial*dim];
+          u1z=FE->var_spaces[iu1]->dphi[trial*dim+2];
+          aij = 0.5*u1z*v3x;
+          ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*aij;
+        }
+        local_col_index += dof_per_elm_arr[iu1];
+
+        // u2-v3 block:
+        // 0.5*<dz(u2),dy(v3)>
+        for (trial=0; trial<dof_per_elm_arr[iu2];trial++){
+          u2y=FE->var_spaces[iu2]->dphi[trial*dim+1];
+          u2z=FE->var_spaces[iu2]->dphi[trial*dim+2];
+          aij = 0.5*u2z*v3y;
+          ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*aij;
+        }
+        local_col_index += dof_per_elm_arr[iu2];
+
+        // u3-v3 block
+        // 0.5*<dx(u3),dx(v3)> + 0.5*<dy(u3),dy(v3)> + <dz(u3),dz(v3)>
+        for (trial=0; trial<dof_per_elm_arr[iu3];trial++){
+          u3x=FE->var_spaces[iu3]->dphi[trial*dim];
+          u3y=FE->var_spaces[iu3]->dphi[trial*dim+1];
+          u3z=FE->var_spaces[iu3]->dphi[trial*dim+2];
+          aij = 0.5*u3x*v3x + 0.5*u3y*v3y + u3z*v3z;
+          ALoc[(local_row_index+test)*dof_per_elm + (local_col_index+trial)] += w*aij;
+        }
+        local_col_index += dof_per_elm_arr[iu3];
+      } // End v3 block
+    } // End dim if
+  } // End quadrature
 
   return;
 }
