@@ -321,7 +321,7 @@ SHORT dcsr_2_dcoo (dCSRmat *A,
 }
 /***********************************************************************************************/
 /*!
- * \fn SHORT dcsr_sparse (dCSRmat *A)
+ * \fn SHORT dcsr_unique (dCSRmat *A)
  *
  * \brief Removes repetitions from column indices in a dCSRmat A.
  *
@@ -336,7 +336,7 @@ SHORT dcsr_2_dcoo (dCSRmat *A,
  *
  *  Ludmil 20210530.
  */
-SHORT dcsr_sparse (dCSRmat *A)
+SHORT dcsr_unique (dCSRmat *A)
 {
     // get size
     INT m=A->row, n=A->col, nnz=A->nnz;
