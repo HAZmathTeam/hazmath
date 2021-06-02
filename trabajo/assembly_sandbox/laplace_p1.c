@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
     sc=mesh2d();
   }
   scomplex *sctop=NULL;
-  INT ref_levels=2;
+  INT ref_levels=10;
   //
   ivector marked;
   marked.row=0;
@@ -127,8 +127,10 @@ int main(int argc, char *argv[])
     /*  MAKE sc to be the finest grid only */
   }
   scfinalize(sc);
-  vtkw("out.vtu",sc,0,1.); 
   sol=fe_sol(sc,1.0,1.0);
+  if(dim<4){
+    vtkw("out.vtu",sc,0,1.);
+  }
   /* write the output mesh file:    */
   //  hazw(g->fgrid,sc,0);
   /* WRITE THE OUTPUT vtu file for paraview: can be viewed with
