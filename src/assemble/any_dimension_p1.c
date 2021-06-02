@@ -231,7 +231,6 @@ INT assemble_p1(scomplex *sc, dCSRmat *A, dCSRmat *M)
   REAL *xs=calloc(dim*dim1,sizeof(REAL));// for the local coordinates of vertices of a simplex;
   void *wrk=calloc(dim1*dim1,sizeof(REAL));// this is used in every simplex but is allocated only once.
   ////////////////////// ASSEMBLY BEGINS HERE:
-  clock_t clk_assembly_start = clock(); // begin assembly timing;
   // create a block diagonal mass and stiffness matrices with the local matrices on the diagonal
   dCSRmat *m_dg=malloc(sizeof(dCSRmat));
   m_dg[0]=dcsr_create(ns*dim1,ns*dim1,ns*dim1*dim1);
@@ -297,9 +296,6 @@ INT assemble_p1(scomplex *sc, dCSRmat *A, dCSRmat *M)
   //  Here PT->val should be NULL;
   dcsr_rap_agg(PT,m_dg,P,M);
   dcsr_rap_agg(PT,a_dg,P,A);
-  clock_t clk_assembly_end = clock(); // End of timing for mesh and FE setup
-  printf("\n\n%%%%%%elapsed CPU time for assembling the global mass and stiffness matrices = %.3f seconds.\n\n",
-         (REAL ) (clk_assembly_end - clk_assembly_start)/CLOCKS_PER_SEC);
   // free the element matrices
   dcsr_free(m_dg);
   free(a_dg->val);
