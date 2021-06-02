@@ -23,9 +23,10 @@ INT main(INT   argc,   char *argv[])
 {
   INT i;
   FILE *fp;
-  fp=stdin;
+  // fp=stdin;
   //  fp=HAZ_fopen("inputs/2d_2L.input","r");
   // fp=HAZ_fopen("inputs/2d_2L.input","r");
+  fp=HAZ_fopen("inputs/4d_cube.input","r");
   /*
     PARSE THE INPUT.
   */
@@ -144,7 +145,8 @@ INT main(INT   argc,   char *argv[])
   /* write the output mesh file:    */
   hazw(g->fgrid,sc,0);
   /* WRITE THE OUTPUT vtu file for paraview:    */
-  vtkw(g->fvtu,sc,0,1.);
+  if(dim <4)
+    vtkw(g->fvtu,sc,0,1.);
   /*FREE*/
   input_grid_free(g);
   haz_scomplex_free(sc);

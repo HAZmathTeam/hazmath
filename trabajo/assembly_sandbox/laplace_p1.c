@@ -89,10 +89,13 @@ static dvector fe_sol(scomplex *sc,				\
 /****************************************************************************/
 int main(int argc, char *argv[])
 {
-  INT dim=2;
+  INT dim=4;
   INT jlevel,k;
   scomplex *sc;
   switch(dim){
+  case 4:
+    sc=mesh4d();    
+    break;
   case 3:
     sc=mesh3d();    
     break;
@@ -100,7 +103,7 @@ int main(int argc, char *argv[])
     sc=mesh2d();
   }
   scomplex *sctop=NULL;
-  INT ref_levels=17;
+  INT ref_levels=2;
   //
   ivector marked;
   marked.row=0;

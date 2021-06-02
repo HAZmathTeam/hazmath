@@ -915,7 +915,7 @@ cube2simp *cube2simplex(INT dim)
       }
     }
   }
-  //  print_full_mat_int(c2s->nf,c2s->nvface,c2s->faces,"UCubef");
+  //  print_full_mat_int(c2s->nf,c2s->nvface,c2s->faces,"UCubef");fflush(stdout);
   return c2s;
 }
 /******************************************************************/
