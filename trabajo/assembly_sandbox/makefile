@@ -3,7 +3,7 @@
 ####################################################
 
 # SRC File name
-SRCFILE = assemble_p1
+SRCFILE = laplace_p1
 
 HEADERS = 
 
