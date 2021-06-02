@@ -256,31 +256,57 @@ void haz_scomplex_print(scomplex *sc, const INT ns0,const char *infor)
   if (ns0 < 0 || ns0>ns) return;
   fprintf(stdout,"\n%s printout: %s\n",__FUNCTION__,infor);
   fprintf(stdout,"\nNODES list:\n");
-  for(i=ns0;i<ns;i++){
-    in1=i*n1;
-    fprintf(stdout,"Element: %d ; vol=%e, Parent=%d; NODES=",i-ns0,sc->vols[i],sc->parent[i-ns0]);
-    for(j=0;j<n1;j++){
-      fprintf(stdout,"%d  ",sc->nodes[in1+j]);
+  if(sc->parent)
+    for(i=ns0;i<ns;i++){
+      in1=i*n1;
+      fprintf(stdout,"Element: %d ; vol=%e, Parent=%d; NODES=",i-ns0,sc->vols[i],sc->parent[i-ns0]);
+      for(j=0;j<n1;j++)
+	fprintf(stdout,"%d  ",sc->nodes[in1+j]);
+      fprintf(stdout,"\n");
     }
-    fprintf(stdout,"\n");
-  }
+  else 
+    for(i=ns0;i<ns;i++){
+      in1=i*n1;
+      fprintf(stdout,"Element: %d ; vol=%e, NODES=",i-ns0,sc->vols[i]);
+      for(j=0;j<n1;j++)
+	fprintf(stdout,"%d  ",sc->nodes[in1+j]);
+      fprintf(stdout,"\n");
+    }
   fprintf(stdout,"\nNBR list:\n");
-  for(i=ns0;i<ns;i++){
-    in1=i*n1;
-    fprintf(stdout,"Element: %d (%d) ; NBR=",i-ns0,sc->gen[i-ns0]);
-    for(j=0;j<n1;j++){
-      fprintf(stdout,"%d  ",sc->nbr[in1+j]-ns0);
+  if(sc->gen)
+    for(i=ns0;i<ns;i++){
+      in1=i*n1;
+      fprintf(stdout,"Element: %d (%d) ; NBR=",i-ns0,sc->gen[i-ns0]);
+      for(j=0;j<n1;j++)
+	fprintf(stdout,"%d  ",sc->nbr[in1+j]-ns0);
+      fprintf(stdout,"\n");
     }
-    fprintf(stdout,"\n");
-  }
-  for(i=0;i<nv;i++){
-    in=i*n;
-    fprintf(stdout,"Node: %d ; Code: %d ; COORDS=",i,sc->bndry[i]);
-    for(j=0;j<n;j++){
-      fprintf(stdout,"%e  ",sc->x[in+j]);
+  else 
+    for(i=ns0;i<ns;i++){
+      in1=i*n1;
+      fprintf(stdout,"Element: %d ; NBR=",i-ns0);
+      for(j=0;j<n1;j++)
+	fprintf(stdout,"%d  ",sc->nbr[in1+j]-ns0);
+      fprintf(stdout,"\n");
     }
-    fprintf(stdout,"\n");
-  }
+  if(sc->bndry)
+    for(i=0;i<nv;i++){
+      in=i*n;
+      fprintf(stdout,"Node: %d ; Code: %d ; COORDS=",i,sc->bndry[i]);
+      for(j=0;j<n;j++){
+	fprintf(stdout,"%e  ",sc->x[in+j]);
+      }
+      fprintf(stdout,"\n");
+    }
+  else 
+    for(i=0;i<nv;i++){
+      in=i*n;
+      fprintf(stdout,"Node: %d ; COORDS=",i);
+      for(j=0;j<n;j++){
+	fprintf(stdout,"%e  ",sc->x[in+j]);
+      }
+      fprintf(stdout,"\n");
+    }
   fflush(stdout);
   return;
 }
