@@ -5,14 +5,14 @@
 # SRC File name
 SRCFILE = laplace_p1
 
-HEADERS = 
+HEADERS = meshes_inline.h plotting.h
 
 INCLUDE =
 
 LIBS = 
 
 # Switch between debug or optimized
-CFLAGS = -O -Wall
+CFLAGS = -g 
 
 ## If external libraries support is compiled in the hazmath library,
 ## comment/uncomment what is necessary below.

@@ -28,7 +28,9 @@ INT main()
 					 // a hole of the domain; for
 					 // a circular "hole" this is
   					 // the center;
-  FILE *fp=stdin; //fp=fopen("hole_grid.input","r");
+  FILE *fp; 
+  // fp=stdin; 
+  fp=fopen("hole_grid.input","r");
   //read input:
   for(j=0;j<dim;j++){
     fscanf(fp,"%lg",(c+j));
@@ -124,7 +126,7 @@ INT main()
   }
   //  fprintf(stdout,"\nhmax=%f\n\n",hmax);
   //scomplex *sc=(scomplex *)malloc(sizeof(scomplex));
-  scomplex *sc=(scomplex *)haz_scomplex_init(dim,0,0);    
+  scomplex *sc=(scomplex *)haz_scomplex_init(dim,0,0,dim);    
   //    exit(55);
   sc->n=dim;
   sc->nbig=dim;

@@ -39,7 +39,7 @@ iCSRmat *run_bfs(INT n,INT *ia, INT *ja,	\
   /* n, ia, ja are the CSR matrix elements. */
   /* anc[v] is the ancestor of v; */
   /* roots[] is input; */
-  INT iii,i,k,q,v,vi,qbeg,qend,lvl;  
+  INT i,k,q,v,vi,qbeg,qend,lvl;  
   iCSRmat *blk=malloc(1*sizeof(iCSRmat));
   blk[0]=icsr_create(n,n,n);
   anc->row=n;
@@ -400,11 +400,12 @@ static void dfs_recurrence(int v, int *ia, int *ja,		\
  */
 iCSRmat *run_dfs(INT n, INT *ia, INT *ja)
 {
-  INT i,j,k,pos;
+  INT i,pos;
+  //  INT j,k;
   // short hand;
   iCSRmat *dfs=malloc(1*sizeof(iCSRmat));
   dfs[0]=icsr_create(n,n,n);
-  INT *mask=dfs->val;
+  //  INT *mask=dfs->val;
   for (i=0;i<n;++i) dfs->val[i]=0;  
   dfs->row=0;
   dfs->IA[0]=0;
