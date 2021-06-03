@@ -11,7 +11,7 @@
 /*********************************************************************/
 #include "hazmath.h"
 #include "meshes_inline.h"
-#include "plotting.h"
+#include "stereo_g.h"
 /****************************************************************************/
 static dvector fe_sol(scomplex *sc,				\
 		      const REAL alpha,				\
@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
     sc=mesh2d();
   }
   scomplex *sctop=NULL;
-  INT ref_levels=15;
+  INT ref_levels=3;
   //
   ivector marked;
   marked.row=0;
@@ -162,19 +162,27 @@ int main(int argc, char *argv[])
   }
   scfinalize(sc);
   sol=fe_sol(sc,1.0,1.0);
+  // find the boundary simplicial complex:
   scomplex *dsc=sc_bndry(sc);
-  //  haz_scomplex_print(dsc,0,"Boundary SC:");
-  fprintf(stdout,"\n\n");
-  //
-  if(dim<4){
-    vtkw("out.vtu",sc,0,1.);
-  }
+  // stereographic projection:
+  INT idsc = stereo_g(dsc);
   /* write the output mesh file:    */
-  //  hazw(g->fgrid,sc,0);
+  //  hazw(grid_file,sc,0);
+  fprintf(stdout,"\n\n");
   /* WRITE THE OUTPUT vtu file for paraview: can be viewed with
-     "paraview out.vtu" */
-  // since A and M have the same sparsity pattern we 
-  //  haz_scomplex_print(sc,0,__FUNCTION__);
+     paraview */
+  if(dim==2){
+    vtkw("2d.vtu",sc,0,1.);
+  } else if(dim==3){
+    vtkw("3d.vtu",sc,0,1.);
+    vtkw("stereo3d.vtu",dsc,0,1.);
+  } else if(dim==4){
+    vtkw("stereo4d.vtu",dsc,0,1.);
+  } else {
+    fprintf(stdout,"\nNO PLOT: Dimension=%d is too large for plotting",dim);
+  }
+  fprintf(stdout,"\n\n");
+  haz_scomplex_free(dsc);
   dvec_free(&sol);
   ivec_free(&marked);
   haz_scomplex_free(sc);  
