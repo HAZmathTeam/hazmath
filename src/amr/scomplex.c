@@ -33,30 +33,33 @@ REAL chk_sign(const int it, const int nbrit)
 }
 /**********************************************************************/
 /*!
- * \fn scomplex *haz_scomplex_init(INT n,INT ns, INT nv)
+ * \fn scomplex *haz_scomplex_init(const INT n,INT ns, INT nv, const INT nbig)
  *
  * \brief Initialize simplicial complex in dimension n with ns
  *        simplices and nv vertices.
  *
- * \param n is the dimension; 
- *        ns is the number of simplices
- *        nv is the number of vertices
+ * \param n is the dimension of the simplicial complex; 
+ * \param ns is the number of simplices
+ * \param nv is the number of vertices
+ * \param nbig is the dimension of the space where the simplicial
+ *        complex is embedded;
  *
  * \return initialized structure of type scomplex
  *
  * \note
  *
  */
-scomplex *haz_scomplex_init(INT n,INT ns, INT nv)
+scomplex *haz_scomplex_init(const INT n,INT ns, INT nv,const INT nbig)
 {
   /*
      n = dimension of the simplicial complex;
-
+     nbig = dimension of the space where the complex is embedded;
      Future work: we should think of making this for different
      dimensions, e.g. 2-homogenous complex in 3d
   */
   scomplex *sc=(scomplex *) malloc(sizeof(scomplex));
-  sc->nbig=n; sc->n=n;
+  sc->nbig=nbig; sc->n=n;
+  if(sc->nbig<=0)sc->nbig=n;
   INT n1=sc->n+1,i,j,in1;
   sc->factorial=1.;
   sc->level=0;
@@ -73,7 +76,7 @@ scomplex *haz_scomplex_init(INT n,INT ns, INT nv)
   sc->csys=(INT *)calloc(nv,sizeof(INT));/* coord sys: 1 is polar, 2
 					    is cyl and so on */
   sc->flags=(INT *)calloc(ns,sizeof(INT));
-  sc->x=(REAL *)calloc(nv*n,sizeof(REAL));
+  sc->x=(REAL *)calloc(nv*nbig,sizeof(REAL));
   sc->vols=(REAL *)calloc(ns,sizeof(REAL));
   sc->fval=(REAL *)calloc(nv,sizeof(REAL)); // function values at every vertex; not used in general;
   for (i = 0;i<ns;i++) {
@@ -102,7 +105,7 @@ scomplex *haz_scomplex_init(INT n,INT ns, INT nv)
 }
 /**********************************************************************/
 /*!
- * \fn scomplex *haz_scomplex_init_part(INT n,INT ns, INT nv)
+ * \fn scomplex *haz_scomplex_init_part(scomplex *sc)
  *
  * \brief Initialize simplicial complex which has already been
  *        allocated partially. Assumption is: nv,ns,nodes,nbr, cc,
@@ -118,7 +121,7 @@ scomplex *haz_scomplex_init(INT n,INT ns, INT nv)
  */
 void haz_scomplex_init_part(scomplex *sc)
 {
-  INT nv=sc->nv,ns=sc->ns,n=sc->n,n1=sc->n+1,i,j,in1;
+  INT nv=sc->nv,ns=sc->ns,n1=sc->n+1,i,j;
   sc->factorial=1.;
   sc->level=0;
   for (j=2;j<n1;j++) sc->factorial *= ((REAL )j);
@@ -203,8 +206,8 @@ scomplex *haz_scomplex_read(FILE *fp,INT print_level)
 {
   INT i,ns,nv,n,dummy;
   i=fscanf(fp,"%d %d %d %d",&ns,&nv,&n,&dummy);
-  INT n1=n+1,j,k,n1kj=-10;
-  scomplex *sc=(scomplex *)haz_scomplex_init(n,ns,nv);
+  INT n1=n+1,j,k,n1kj=-10,nbig=n;// we can only read same dimension complexes now. 
+  scomplex *sc=(scomplex *)haz_scomplex_init(n,ns,nv,n);
   for (j=0;j<n1;j++) {
     for (k=0;k<ns;k++){
       n1kj=n1*k+j;
@@ -216,9 +219,9 @@ scomplex *haz_scomplex_read(FILE *fp,INT print_level)
   for (k=0;k<ns;k++){
     dummy=fscanf(fp," %d ", sc->flags+k);
   }
-  for(j=0;j<n;j++){
+  for(j=0;j<nbig;j++){
     for(i=0;i<nv;i++){
-      dummy=fscanf(fp,"%lg",sc->x+i*n+j);
+      dummy=fscanf(fp,"%lg",sc->x+i*nbig+j);
     }
   }
   for(i=0;i<nv;i++){
@@ -252,11 +255,12 @@ void haz_scomplex_print(scomplex *sc, const INT ns0,const char *infor)
 {
   // print simplicial complex, starting with ns0.
   INT i,j,in,in1;
-  INT n=sc->n,n1=n+1,ns=sc->ns,nv=sc->nv;
+  INT n=sc->n,n1=n+1,ns=sc->ns,nv=sc->nv,nbig=sc->nbig;
   if (ns0 < 0 || ns0>ns) return;
+  fprintf(stdout,"\nN=%d,NBIG=%d, NS=%d, NV=%d\n",sc->n,sc->nbig,sc->ns,sc->nv);fflush(stdout);
   fprintf(stdout,"\n%s printout: %s\n",__FUNCTION__,infor);
   fprintf(stdout,"\nNODES list:\n");
-  if(sc->parent)
+  if(sc->parent){
     for(i=ns0;i<ns;i++){
       in1=i*n1;
       fprintf(stdout,"Element: %d ; vol=%e, Parent=%d; NODES=",i-ns0,sc->vols[i],sc->parent[i-ns0]);
@@ -264,7 +268,7 @@ void haz_scomplex_print(scomplex *sc, const INT ns0,const char *infor)
 	fprintf(stdout,"%d  ",sc->nodes[in1+j]);
       fprintf(stdout,"\n");
     }
-  else 
+  } else {
     for(i=ns0;i<ns;i++){
       in1=i*n1;
       fprintf(stdout,"Element: %d ; vol=%e, NODES=",i-ns0,sc->vols[i]);
@@ -272,8 +276,9 @@ void haz_scomplex_print(scomplex *sc, const INT ns0,const char *infor)
 	fprintf(stdout,"%d  ",sc->nodes[in1+j]);
       fprintf(stdout,"\n");
     }
+  }
   fprintf(stdout,"\nNBR list:\n");
-  if(sc->gen)
+  if(sc->gen){
     for(i=ns0;i<ns;i++){
       in1=i*n1;
       fprintf(stdout,"Element: %d (%d) ; NBR=",i-ns0,sc->gen[i-ns0]);
@@ -281,7 +286,7 @@ void haz_scomplex_print(scomplex *sc, const INT ns0,const char *infor)
 	fprintf(stdout,"%d  ",sc->nbr[in1+j]-ns0);
       fprintf(stdout,"\n");
     }
-  else 
+  } else { 
     for(i=ns0;i<ns;i++){
       in1=i*n1;
       fprintf(stdout,"Element: %d ; NBR=",i-ns0);
@@ -289,24 +294,27 @@ void haz_scomplex_print(scomplex *sc, const INT ns0,const char *infor)
 	fprintf(stdout,"%d  ",sc->nbr[in1+j]-ns0);
       fprintf(stdout,"\n");
     }
-  if(sc->bndry)
+  }
+  //
+  if(sc->bndry){
     for(i=0;i<nv;i++){
-      in=i*n;
+      in=i*nbig;
       fprintf(stdout,"Node: %d ; Code: %d ; COORDS=",i,sc->bndry[i]);
-      for(j=0;j<n;j++){
+      for(j=0;j<nbig;j++){
 	fprintf(stdout,"%e  ",sc->x[in+j]);
       }
       fprintf(stdout,"\n");
     }
-  else 
+  } else {
     for(i=0;i<nv;i++){
-      in=i*n;
+      in=i*nbig;
       fprintf(stdout,"Node: %d ; COORDS=",i);
-      for(j=0;j<n;j++){
+      for(j=0;j<nbig;j++){
 	fprintf(stdout,"%e  ",sc->x[in+j]);
       }
       fprintf(stdout,"\n");
     }
+  }
   fflush(stdout);
   return;
 }
@@ -541,6 +549,7 @@ void faces_attr(subscomplex *subsc)
       }
       fflags[jf]=bflag;
     }
+    // use nbig below in the future!
     for(j=0;j<dim1;j++){
       node=sc->nodes[di+j];
       memcpy((xf+j*dim),(sc->x+node*dim),nbits);
@@ -872,7 +881,7 @@ INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew,INT ibnew,INT csysnew, \
 		    INT nsnew, INT nvnew)
 {
   /* adds nodes and coords as well */
-  INT n=sc->n, n1 = n+1,nv=sc->nv;//ns=sc->ns;
+  INT n=sc->n, nbig=sc->nbig, n1 = n+1,nv=sc->nv;//ns=sc->ns;
   INT ks0=sc->child0[is], ksn=sc->childn[is];
   INT isc0=ks0*n1, iscn=ksn*n1;
   //  INT *dsti,*srci;
@@ -892,8 +901,8 @@ INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew,INT ibnew,INT csysnew, \
   }
   //new vertex (if any!!!)
   if(nvnew != nv) {
-    sc->x=realloc(sc->x,(nvnew*n)*sizeof(REAL));
-    dstr=(sc->x+nv*n); memcpy(dstr,xnew,n*sizeof(REAL));
+    sc->x=realloc(sc->x,(nvnew*nbig)*sizeof(REAL));
+    dstr=(sc->x+nv*nbig); memcpy(dstr,xnew,n*sizeof(REAL));
     if(xnew) free(xnew);
     sc->bndry=realloc(sc->bndry,(nvnew)*sizeof(INT));
     sc->bndry[nv]=ibnew;
@@ -945,7 +954,7 @@ INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew,INT ibnew,INT csysnew, \
  */
 INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
 {
-  INT n=sc->n, ns=sc->ns,nv=sc->nv;
+  INT n=sc->n, nbig=sc->nbig,ns=sc->ns,nv=sc->nv;
   INT nsnew=ns,nvnew=nv;
   INT itype,nodnew=-10;
   INT n1=n+1,j,i,p,p0,pn,isn1,snbri,snbrp,snbrn,snbr0;
@@ -968,11 +977,12 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
     }
   }
   if (it<0){
-    xnew = (REAL *)calloc(n,sizeof(REAL));
+    xnew = (REAL *)calloc(nbig,sizeof(REAL));
     jv0=sc->nodes[isn1];
     jvn=sc->nodes[isn1+n];
-    for(j=0;j<n;j++){
-      xnew[j] = 0.5*(sc->x[jv0*n+j]+sc->x[jvn*n+j]);
+    // here we can store the edge the new vertex comes from
+    for(j=0;j<nbig;j++){
+      xnew[j] = 0.5*(sc->x[jv0*nbig+j]+sc->x[jvn*nbig+j]);
     }
     if(sc->bndry[jv0] > sc->bndry[jvn])
       ibnew=sc->bndry[jv0];
@@ -1236,8 +1246,9 @@ void refine(const INT ref_levels, scomplex *sc,ivector *marked)
     if(sc->marked[j] && (sc->child0[j]<0||sc->childn[j]<0))
       haz_refine_simplex(sc, j, -1);
   sc->level++;
-  //  fprintf(stdout,".%d.",sc->level);
+  //  fprintf(stdout,"\n.%d.\n",sc->level);
   //  fprintf(stdout,"\n");
+  //  haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
 }
 /******************************************************************/
 /*!
@@ -1264,7 +1275,9 @@ mesh_struct *sc2mesh(scomplex *sc)
   */
   /*********************************************************************/
   /* copy the final grid at position 1*/
-  INT ns=0,nv=sc->nv,n1=sc->n+1,dim=sc->n;
+  INT ns=0,nv=sc->nv,n1=sc->n+1,dim=sc->n,dimbig=sc->nbig;
+  if(dimbig!=dim)
+    return NULL;
   INT jk=-10,k=-10,j=-10,i=-10;
   mesh_struct *mesh=malloc(1*sizeof(mesh_struct));
   initialize_mesh(mesh);

@@ -304,7 +304,7 @@ SHORT dcsr_2_dcoo (dCSRmat *A,
   B->rowind=calloc(A->nnz,sizeof(INT));
   B->colind=calloc(A->nnz,sizeof(INT));
   B->val=calloc(A->nnz,sizeof(REAL));
-  INT i, j,ij;
+  INT i,ij;
   B->row=A->row;
   B->col=A->col;
   B->nnz=A->nnz;

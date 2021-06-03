@@ -36,6 +36,7 @@ void find_cc_bndry_cc(scomplex *sc)
   INT *iblk=jblk+ns+1;
   sc->cc=-10;
   iCSRmat *blk_dfs=run_dfs(ns,neib->IA, neib->JA);
+  sc->cc=blk_dfs->row;
   iblk=blk_dfs->IA;
   jblk=blk_dfs->JA;
   //  dfs00_(&ns,neib->IA, neib->JA,&sc->cc,iblk,jblk);
@@ -100,7 +101,7 @@ void find_cc_bndry_cc(scomplex *sc)
   /*   fprintf(stdout,";\n"); */
   /* } */
   /* fprintf(stdout,"]\n"); */
-  find_nbr(nbf,nv,(dim-1),fnodes,fnbr);
+  find_nbr(nbf,nvbnd,(dim-1),fnodes,fnbr);
   /* fprintf(stdout,"\nelnbr=["); */
   /* for(i=0;i<nbf;++i){ */
   /*   //    fprintf(stdout,"\nelnbr[%d]=(",i); */
@@ -110,8 +111,11 @@ void find_cc_bndry_cc(scomplex *sc)
   /*   fprintf(stdout,";\n"); */
   /* } */
   /* fprintf(stdout,"]\n"); */
+  /* fprintf(stdout,"\n\nnbf=%d,nnzbf=%d;nnzbf+nbf=%d\n\n",nbf,nnzbf,nnzbf+nbf);fflush(stdout); */
   neib->IA=realloc(neib->IA,(nbf+1)*sizeof(INT));
   neib->JA=realloc(neib->JA,(nnzbf+nbf)*sizeof(INT));
+  neib->row=nbf;
+  neib->col=nbf;
   iii=0;
   neib->IA[0]=iii;
   for(i=0;i<nbf;i++){
@@ -120,13 +124,16 @@ void find_cc_bndry_cc(scomplex *sc)
     for(j=0;j<dim;++j){
       is=fnbr[i*dim+j];
       if(is>=0){
-	//	fprintf(stdout,"\ni=%d,j=%d",i,is);
+	//	fprintf(stdout,"\ni=%d,j=%d,nnz=%d",i,is,iii);fflush(stdout);
   	neib->JA[iii]=is;
   	iii++;
       }
     }
     neib->IA[i+1]=iii;
   }
+  //  fprintf(stdout,"\n\nrows=%d,nnzOOO=%d;nnzXXX=%d\n\n",neib->row,iii,neib->IA[neib->row]);fflush(stdout);
+  neib->nnz=neib->IA[neib->row];
+  //  icsr_print_matlab(stdout,neib);
   /* fprintf(stdout,"\nnbr00=["); */
   /* for(i=0;i<nbf;i++){ */
   /*   for(k=neib->IA[i];k<neib->IA[i+1];++k){ */
@@ -139,7 +146,8 @@ void find_cc_bndry_cc(scomplex *sc)
   sc->bndry_cc=-10;
   //  dfs00_(&nbf,neib->IA, neib->JA,&sc->bndry_cc,iblk,jblk);  
   icsr_free(blk_dfs); blk_dfs=NULL;
-  blk_dfs=run_dfs(ns,neib->IA, neib->JA);
+  blk_dfs=run_dfs(nbf,neib->IA, neib->JA);
+  sc->bndry_cc=blk_dfs->row;
   iblk=blk_dfs->IA;
   jblk=blk_dfs->JA;
   icsr_free(neib);
