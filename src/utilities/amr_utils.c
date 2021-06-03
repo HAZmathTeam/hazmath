@@ -105,13 +105,16 @@ INT aresamep(INT *a, INT *b, INT n, INT *p)
  *
  * \param xstar[]:   node for which we would like to check its incidence with the simplex. 
  * 
+ * \param nbig:       dimension of the space where the simplex is embedded
  * \return  0: the point is in the simplex; nonzero: not in the simplex.  
  *
  * \note
  *
  */
-INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)
+INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)  
 {
+  // does not support different dimensions of the simplex and the
+  // space containing it.
   INT n1=n+1,i,j,l0n,ln,j1;
   INT *p=NULL;
   REAL *A=NULL,*xhat=NULL, *piv=NULL;
@@ -190,7 +193,7 @@ void marks(scomplex *sc,dvector *errors)
 {
   /* mark simplices depending on the value of an estimator */
   /* the estimator here is the aspect ratio of the simplex */
-  INT n=sc->n,n1=n+1,ns=sc->ns,level=sc->level;
+  INT n=sc->n,nbig=sc->nbig,n1=n+1,ns=sc->ns,level=sc->level;
   //INT kbadel;
   INT ke,i,j,j1,k,p,ni,mj,mk;
   INT ne=(INT )((n*n1)/2);
@@ -207,7 +210,7 @@ void marks(scomplex *sc,dvector *errors)
       for (k = j1; k<n1;k++){
 	mk=sc->nodes[ni+k]*n;
 	sl[ke]=0e0;
-	for(p=0;p<n;p++){
+	for(p=0;p<nbig;p++){
 	  sl[ke]+=(sc->x[mj+p]-sc->x[mk+p])*(sc->x[mj+p]-sc->x[mk+p]);
 	}
 	sl[ke]=sqrt(sl[ke]);
@@ -503,7 +506,7 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
  */
 scomplex *scfinest(scomplex *sc)
 {
-  INT ns,i=0,j=-10,k=-10,n=sc->n,n1=sc->n+1,nv=sc->nv;
+  INT ns,i=0,j=-10,k=-10,n=sc->n,nbig=sc->nbig,n1=sc->n+1,nv=sc->nv;
   scomplex *sctop=NULL;
   /*
       store the finest mesh in and return the sc structure. save the
@@ -520,7 +523,7 @@ scomplex *scfinest(scomplex *sc)
     if(sc->child0[j]<0 || sc->childn[j]<0)ns++;
   }
   /*allocate the scomplex for the finest level*/
-  sctop=haz_scomplex_init(n,ns,nv);
+  sctop=haz_scomplex_init(n,ns,nv,nbig);
   /* we dont need bunch of these, at least for assembly, so we free them*/
   free(sctop->parent);sctop->parent=NULL;
   free(sctop->childn);sctop->childn=NULL;
@@ -547,8 +550,8 @@ scomplex *scfinest(scomplex *sc)
   /* copy the boudary codes and the coordinates*/
   for(i=0;i<nv;i++){
     sctop->bndry[i]=sc->bndry[i];
-    for(j=0;j<n;j++)
-      sctop->x[i*n+j]=sc->x[i*n+j];
+    for(j=0;j<nbig;j++)
+      sctop->x[i*n+j]=sc->x[i*nbig+j];
   }
   free(sctop->csys);sctop->csys=NULL;
   free(sctop->fval);sctop->fval=NULL;

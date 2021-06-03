@@ -56,7 +56,7 @@ static void topo_recurrsive(INT v, INT *ia, INT *ja, SHORT *mask,stack *s)
 // The function to do Topological Sort. It uses recursive topo_recurrsive()
 void topo_sort(dCSRmat *a)
 { 
-  INT i,item;  
+  INT i;  
   stack *s = stack_init(a->row);
   // Mark all the vertices as not visited
   SHORT *mask = (SHORT *)calloc(a->row,sizeof(SHORT));
@@ -65,9 +65,10 @@ void topo_sort(dCSRmat *a)
     if (!mask[i])
       topo_recurrsive(i, a->IA,a->JA,mask, s);
   // trace the contents of stack
-  while (s->top != -1) {
-    item=pop_out(s);
-    //we can print it if we want    fprintf(stdout,"%d ",item);
-  }
+  /* while (s->top != -1) { */
+  /*   item=pop_out(s); */
+  /*   //we can print it if we want    fprintf(stdout,"%d ",item); */
+  /* } */
+  return;
 }
 

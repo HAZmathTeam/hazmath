@@ -3,7 +3,7 @@
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 20190420.
  *  Copyright 2019__HAZMATH__. All rights reserved.
  *
- *  \note Solving Laplace equation with linear finite elements on sequence of grids.
+ *  \note Solving Laplace equation with linear finite elements on sequence of grids. 
  *
  *  \note: modified by ltz on 20210531
  *
@@ -11,6 +11,7 @@
 /*********************************************************************/
 #include "hazmath.h"
 #include "meshes_inline.h"
+#include "plotting.h"
 /****************************************************************************/
 static dvector fe_sol(scomplex *sc,				\
 		      const REAL alpha,				\
@@ -32,8 +33,8 @@ static dvector fe_sol(scomplex *sc,				\
   // the right hand side is just M*ones(n,1);
   dvector f=dvec_create(A.row);
   dvector sol=f;
-  dvec_set(f.row,&f,1e0);// this we can have as function value at the vertices in general.
-  dvector rhs=dvec_create(M.row);// this is the "algebraic" right hand side
+  dvec_set(f.row,&f,1e0);// this we can have as function value at the vertices in general. 
+  dvector rhs=dvec_create(M.row);// this is the "algebraic" right hand side 
   for(i=0;i<M.row;++i){
     fi=0e0;
     for(ij=M.IA[i];ij<M.IA[i+1];++ij){
@@ -47,10 +48,8 @@ static dvector fe_sol(scomplex *sc,				\
   fprintf(stdout,"\n%%%%%%CPUtime(assembly) = %.3f sec",
 	  (REAL ) (clk_assembly_end - clk_assembly_start)/CLOCKS_PER_SEC);
   if(print_level > 5)
-    csr_print_matlab(stdout,&M);
+    csr_print_matlab(stdout,&M);  
   dcsr_free(&M); // not needed
-
-
   /*SOLVER SOLVER*/
   // use the same as f for the solution;
   linear_itsolver_param linear_itparam;
@@ -62,45 +61,43 @@ static dvector fe_sol(scomplex *sc,				\
   // Solver parameters
   linear_itparam.linear_tol      = 1e-8;
   linear_itparam.linear_maxit    = 100;
-	linear_itparam.linear_restart       = 100;
+  linear_itparam.linear_restart       = 100;
   linear_itparam.linear_print_level    = 10;
-
   /* Set parameters for algebriac multigrid methods */
   AMG_param amgparam;
   param_amg_init(&amgparam);
 
-	// adjust AMG parameters if needed
-	// General AMG parameters
-	amgparam.AMG_type             = UA_AMG;
-	amgparam.print_level          = 3;
-	amgparam.maxit                = 1;
-	amgparam.max_levels           = 10;
-	amgparam.coarse_dof           = 2000;
-	amgparam.cycle_type           = W_CYCLE;
-	amgparam.smoother             = SMOOTHER_GS;
-	amgparam.presmooth_iter       = 1;
-	amgparam.postsmooth_iter      = 1;
-	amgparam.coarse_solver        = SOLVER_UMFPACK;
-	//amgparam.relaxation           = 1.0;
-	//amgparam.polynomial_degree    = 2;
-	//amgparam.coarse_scaling       = ON;
-	//amgparam.amli_degree          = 2;
-	//amgparam.amli_coef            = NULL;
-	//amgparam.nl_amli_krylov_type  = SOLVER_VFGMRES;
+  // adjust AMG parameters if needed
+  // General AMG parameters
+  amgparam.AMG_type             = UA_AMG;
+  amgparam.print_level          = 3;
+  amgparam.maxit                = 1;
+  amgparam.max_levels           = 10;
+  amgparam.coarse_dof           = 2000;
+  amgparam.cycle_type           = W_CYCLE;
+  amgparam.smoother             = SMOOTHER_GS;
+  amgparam.presmooth_iter       = 1;
+  amgparam.postsmooth_iter      = 1;
+  amgparam.coarse_solver        = SOLVER_UMFPACK;
+  //amgparam.relaxation           = 1.0;
+  //amgparam.polynomial_degree    = 2;
+  //amgparam.coarse_scaling       = ON;
+  //amgparam.amli_degree          = 2;
+  //amgparam.amli_coef            = NULL;
+  //amgparam.nl_amli_krylov_type  = SOLVER_VFGMRES;
 
-	// Aggregation AMG parameters
-	amgparam.aggregation_type     = VMB;
-	amgparam.strong_coupled       = 0.0;
-	amgparam.max_aggregation      = 100;
+  // Aggregation AMG parameters
+  amgparam.aggregation_type     = VMB;
+  amgparam.strong_coupled       = 0.0;
+  amgparam.max_aggregation      = 100;
 
-	//amgparam.tentative_smooth     = 0.67;
-	//amgparam.smooth_filter        = OFF;
+  //amgparam.tentative_smooth     = 0.67;
+  //amgparam.smooth_filter        = OFF;
 
-	// print AMG paraemters
-  param_amg_print(&amgparam);
+  // print AMG paraemters
+  //  param_amg_print(&amgparam);
 
-
-	/* Actual solve */
+  /* Actual solve */
   memset(sol.val,0,sol.row*sizeof(REAL));
   switch(linear_itparam.linear_precond_type){
   case SOLVER_AMG:
@@ -125,38 +122,39 @@ static dvector fe_sol(scomplex *sc,				\
 /****************************************************************************/
 int main(int argc, char *argv[])
 {
-  INT dim=4;
+  INT dim=4;// 2d,3d,4d... example
   INT jlevel,k;
   scomplex *sc;
   switch(dim){
   case 4:
-    sc=mesh4d();
+    sc=mesh4d();    
     break;
   case 3:
-    sc=mesh3d();
+    sc=mesh3d();    
     break;
   default:
     sc=mesh2d();
   }
   scomplex *sctop=NULL;
-  INT ref_levels=20;
+  INT ref_levels=15;
   //
   ivector marked;
   marked.row=0;
   marked.val=NULL;
   dvector sol;
-  // end intialization
+  // end intialization 
   for(jlevel=0;jlevel<ref_levels;jlevel++){
     /* choose the finest grid */
     sctop=scfinest(sc);
+    // solve the FE
     sol=fe_sol(sctop,1.0,1.0);
-    /* mark everything */
+    /* mark everything; or use an estimator */
     marked.row=sctop->ns;
     marked.val=realloc(marked.val,marked.row*sizeof(INT));
     for(k=0;k<marked.row;k++) marked.val[k]=TRUE;
     // now we refine.
-    refine(1,sc,&marked);
     //    haz_scomplex_print(sctop,0,"In assembly sandbox");
+    refine(1,sc,&marked);
     /* free */
     dvec_free(&sol);
     haz_scomplex_free(sctop);
@@ -164,6 +162,10 @@ int main(int argc, char *argv[])
   }
   scfinalize(sc);
   sol=fe_sol(sc,1.0,1.0);
+  scomplex *dsc=sc_bndry(sc);
+  //  haz_scomplex_print(dsc,0,"Boundary SC:");
+  fprintf(stdout,"\n\n");
+  //
   if(dim<4){
     vtkw("out.vtu",sc,0,1.);
   }
@@ -171,10 +173,12 @@ int main(int argc, char *argv[])
   //  hazw(g->fgrid,sc,0);
   /* WRITE THE OUTPUT vtu file for paraview: can be viewed with
      "paraview out.vtu" */
-  // since A and M have the same sparsity pattern we
+  // since A and M have the same sparsity pattern we 
   //  haz_scomplex_print(sc,0,__FUNCTION__);
   dvec_free(&sol);
   ivec_free(&marked);
-  haz_scomplex_free(sc);
+  haz_scomplex_free(sc);  
   return 0;
 }
+
+

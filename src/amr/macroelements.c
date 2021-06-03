@@ -844,8 +844,9 @@ void fix_grid(macrocomplex *mc,		\
     iab=fel2el->IA[kel+1];
     //    fprintf(stdout,"\n%d and %d",iaa,iab);fflush(stdout);
     if((iab-iaa)<=0){
-      if(g0->print_level>5)
+      if(g0->print_level>5){
 	fprintf(stdout,"\nin %s: macroelement=%d; vertices=%d; overlaps=%d;",__FUNCTION__,kel,scin[kel]->nv,neg);fflush(stdout);
+      }
       nvall+=scin[kel]->nv;      
       nsall+=scin[kel]->ns;
       continue;
