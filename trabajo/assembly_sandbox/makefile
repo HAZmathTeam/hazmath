@@ -5,7 +5,7 @@
 # SRC File name
 SRCFILE = laplace_p1
 
-HEADERS = meshes_inline.h plotting.h
+HEADERS = meshes_inline.h stereo_g.h
 
 INCLUDE =
 
