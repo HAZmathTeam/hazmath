@@ -122,7 +122,7 @@ static dvector fe_sol(scomplex *sc,				\
 /****************************************************************************/
 int main(int argc, char *argv[])
 {
-  INT dim=4;// 2d,3d,4d... example
+  INT dim=3;// 2d,3d,4d... example
   INT jlevel,k;
   scomplex *sc;
   switch(dim){
@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
     sc=mesh2d();
   }
   scomplex *sctop=NULL;
-  INT ref_levels=3;
+  INT ref_levels=17;
   //
   ivector marked;
   marked.row=0;
@@ -147,6 +147,7 @@ int main(int argc, char *argv[])
     /* choose the finest grid */
     sctop=scfinest(sc);
     // solve the FE
+    sctop->vols=realloc(sctop->vols,sctop->ns*sizeof(REAL));
     sol=fe_sol(sctop,1.0,1.0);
     /* mark everything; or use an estimator */
     marked.row=sctop->ns;
@@ -161,6 +162,7 @@ int main(int argc, char *argv[])
     /*  MAKE sc to be the finest grid only */
   }
   scfinalize(sc);
+  sc->vols=realloc(sc->vols,sc->ns*sizeof(REAL));
   sol=fe_sol(sc,1.0,1.0);
   // find the boundary simplicial complex:
   scomplex *dsc=sc_bndry(sc);

@@ -221,7 +221,7 @@ INT assemble_p1(scomplex *sc, dCSRmat *A, dCSRmat *M)
   //
   // local mass matrix: it is a constant matrix times the volume of an element.
   REAL *mlocal=local_mm(dim);
-  fprintf(stdout,"\nnum_simplices=%d ; num_vertices=%d",ns,nv);fflush(stdout);
+  //  fprintf(stdout,"\nnum_simplices=%d ; num_vertices=%d",ns,nv);fflush(stdout);
   // to compute the volume and to grab the local coordinates of the vertices in the simplex we need some work space
   REAL *slocal=calloc(dim1*dim1,sizeof(REAL));// local stiffness matrix.
   REAL *grad=calloc(dim1*dim,sizeof(REAL));// local matrix with
@@ -257,6 +257,8 @@ INT assemble_p1(scomplex *sc, dCSRmat *A, dCSRmat *M)
 						 // element i
     // compute gradients
     grad_compute(dim, fact, xs, grad,&volume,wrk);
+    sc->vols[i]=volume;
+    //    fprintf(stdout,"\nvolume[%d]=%.5e",i,sc->vols[i]);fflush(stdout);
     // copute local stiffness matrix as grad*transpose(grad);
     local_sm(slocal,grad,dim,volume);
     for(j=0;j<dim1;j++){

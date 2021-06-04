@@ -489,7 +489,6 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
   //  for(i=0;i<ns;i++){
   //    jbfs[i]=-1;
   //  }
-  icsr_free(neib);
   return;
 }
 /******************************************************************/
