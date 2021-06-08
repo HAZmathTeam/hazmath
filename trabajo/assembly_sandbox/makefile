@@ -3,7 +3,7 @@
 ####################################################
 
 # SRC File name
-SRCFILE = laplace_p1
+SRCFILE = l
 
 HEADERS = meshes_inline.h stereo_g.h
 
