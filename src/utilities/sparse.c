@@ -4158,30 +4158,30 @@ void uniqueij(iCSRmat *U, ivector *ii, ivector *jj)
     //
     /* sorting the i-th row of U to get ja[ia[i]]:ja[ia[i+1]-1] in
        ascending lexicographic order */    
-    iCSRmat UT;
-    icsr_trans(U,&UT);
-    icsr_trans(&UT,U);
-    if(UT.IA) free(UT.IA);
-    if(UT.JA) free(UT.JA);
-    if(UT.val) free(UT.val);
+    /* iCSRmat UT; */
+    /* icsr_trans(U,&UT); */
+    /* icsr_trans(&UT,U); */
+    /* if(UT.IA) free(UT.IA); */
+    /* if(UT.JA) free(UT.JA); */
+    /* if(UT.val) free(UT.val); */
     /**END sorting**/
     /**/
     /* if desired, use bubble sorting below: sorting the i-th row of U to get
        ja[ia[i]]:ja[ia[i+1]-1] in ascending lexicographic order */    
-    //    INT tmp;
-    /* for (i=0;i<nv;i++){ */
-    /*   ih = ia[i+1]-ia[i]; */
-    /*   for (j=0;j<ih;j++){ */
-    /*     for (k=j+1;k<ih;k++) { */
-    /*       if (ja[ia[i]+j]>ja[ia[i]+k]) { */
-    /*         tmp = ja[ia[i]+j]; */
-    /*         ja[ia[i]+j] = ja[ia[i]+k]; */
-    /*         ja[ia[i]+k] = tmp; */
-    /*       } */
-    /*     } */
-    /*   } */
-    /* } */
-    /* U->JA = ja;  */
+    INT tmp,k;
+    for (i=0;i<nv;i++){
+      ih = ia[i+1]-ia[i];
+      for (j=0;j<ih;j++){
+        for (k=j+1;k<ih;k++) {
+          if (ja[ia[i]+j]>ja[ia[i]+k]) {
+            tmp = ja[ia[i]+j];
+            ja[ia[i]+j] = ja[ia[i]+k];
+            ja[ia[i]+k] = tmp;
+          }
+        }
+      }
+    }
+    U->JA = ja;
     return;
 }
 /*********************************EOF***********************************/
