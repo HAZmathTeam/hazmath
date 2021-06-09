@@ -3,7 +3,7 @@
 # Last Modified 2018-08-30 --ltz1
 ####################################################
 # SRC File name
-SRCFILE = eigsymm
+SRCFILE = generalized
 
 HEADERS = 
 
@@ -19,6 +19,5 @@ FFLAGS = -g
 ## uncomment  the corresponding line below:
 WITH_SUITESPARSE=1
 WITH_LAPACK=1
-WITH_CGAL=1
 
 sinclude ../examples.mk
