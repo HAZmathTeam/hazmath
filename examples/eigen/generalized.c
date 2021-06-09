@@ -112,13 +112,13 @@ INT main()
 	  "err_r=sort(real(eig(An,Bn)))-sort(er);",		\
 	  "err_i=sort(imag(eig(An,Bn)))-sort(ei);",			\
 	  "err=sqrt(err_r'*err_r+err_i'*err_i)");
-  qzvec(nd,nd,&a,&b,				\
-	epsa,epsb,				\
-	&alphar,&alphai,&beta,			\
-	&x);
-  xprint_full_mat(0,0,nd, nd, a,"Ae");
-  xprint_full_mat(0,0,nd, nd, b,"Be");
-  xprint_full_mat(0,0,nd, nd, x,"Xe");
+  /* qzvec(nd,nd,&a,&b,				\ */
+  /* 	epsa,epsb,				\ */
+  /* 	&alphar,&alphai,&beta,			\ */
+  /* 	&x); */
+  /* xprint_full_mat(0,0,nd, nd, a,"Ae"); */
+  /* xprint_full_mat(0,0,nd, nd, b,"Be"); */
+  /* xprint_full_mat(0,0,nd, nd, x,"Xe"); */
   free(a);
   free(b);
   free(x);
