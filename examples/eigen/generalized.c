@@ -58,7 +58,7 @@ INT main()
   INT dummy,nr,nc,nd,n,i,j,k;  
   FILE *fp;
   REAL16 epsa=-1e20,epsb=-1e20,tol=1e-20; //tol is short for eps
-  fp=fopen("a_matrix.dat","r");
+  fp=fopen("a_matrix1.dat","r");
   fscanf(fp,"%d %d",&nr,&nc);
   nd=nr;
   n=nc;
