@@ -299,8 +299,8 @@ static void xdivy(const REAL16 xr,const REAL16 xi,	\
 /****************************************************************************/
 void qzhes(INT nd,INT n,REAL16 *a,REAL16 *b,const INT wantx, REAL16 *x)
 {
-  INT i,j,k,k1,m,l,l1,nm1,nm2,nk1,lb;
-  REAL16 r,s,t,u1,u2,u3,v1,v2,v3,rho;
+  INT i,j,k,k1,l,l1,nm1,nm2,nk1,lb;
+  REAL16 r,s,t,u1,u2,v1,v2,rho;
 //initialize x, used to save transformations
   if (wantx){
     memset(x,0,nd*n*sizeof(REAL16));
@@ -384,8 +384,8 @@ void qzhes(INT nd,INT n,REAL16 *a,REAL16 *b,const INT wantx, REAL16 *x)
 	}
       }
       //      fprintf(stdout,"\nmat='a';u1a=%.16e;u2a=%.16e;v1a=%.16e;v2a=%.16e;",u1,u2,v1,v2);fflush(stdout);
-      //      fprintf(stdout,"\n%%Transforming b(%d,%d)=%.16e and b(%d,%d)=%.16e", \
-      //	      l1,l1,b[l1*n+l1],l1,l,b[l1*n+l]);fflush(stdout);
+      //      fprintf(stdout,"\n%%Transforming b(%d,%d)=%.16e and
+      //      b(%d,%d)=%.16e",l1,l1,b[l1*n+l1],l1,l,b[l1*n+l]);fflush(stdout);
       /************************************************/
       househ2(b[l1*n+l1],b[l1*n+l],&u1,&u2,&v1,&v2);
       /************************************************/
@@ -452,13 +452,13 @@ void qzit(INT nd,INT n,			\
 	  REAL16 **x_io)
 {
   //initialize iter and compute epsa,epsb
-  REAL16 anorm,bnorm,r,s,t,ani,bni;
+  REAL16 anorm,bnorm,t,ani,bni;
   REAL16 u1,u2,u3,v1,v2,v3,cc,old1,old2;
   REAL16 a10,a20,a30,a11,a12,a21,a22,a33,a34,a43,a44,	\
-    b10,b20,b30,b11,b12,b21,b22,b33,b34,b43,b44;
-  INT i,j,k,l,l1,m,mc,k1,k2,k3,mid,m0rn,l0r1,m1,m1c,km1,lb;
-  INT mm,next;
-  INT ndp1=nd+1,np1=n+1,ip1,jp1;
+    b11,b12,b22,b33,b34,b44;
+  INT i,j,k,l,l1,m,k1,k2,k3,mid,m0rn,l0r1,m1,km1,lb;
+  //  INT mm,next;
+  INT ndp1=nd+1,np1=n+1; //,ip1,jp1;
   add_row_col(nd,n,a_io);
   add_row_col(nd,n,b_io);
   add_row_col(nd,n,x_io);
@@ -486,28 +486,28 @@ void qzit(INT nd,INT n,			\
   }
   (*epsa) = eps*anorm;
   (*epsb) = eps*bnorm;
-  fprintf(stdout,"\nanorm=%Le,bnorm=%Le,epsa=%Le,epsb=%Le\n",anorm,bnorm,*epsa,*epsb);
+  // fprintf(stdout,"\nanorm=%Le,bnorm=%Le,epsa=%Le,epsb=%Le\n",anorm,bnorm,*epsa,*epsb);
   //
   m=n;
- l200:
-  if(m<=2) goto l390;
+ l000:
+  if(m<=2) goto l190;
   for(lb=1;lb<=m;++lb){  
     l = m+1-lb;
-    if(l==1) goto l260; 
-    if(FABS(a[l*ndp1 + (l-1)])<=(*epsa)) goto l230;
+    if(l==1) goto l060; 
+    if(FABS(a[l*ndp1 + (l-1)])<=(*epsa)) goto l030;
   }
- l230:
+ l030:
   a[l*np1+(l-1)]=0e0;
-  if (l<m-1) goto l260;
+  if (l<m-1) goto l060;
   m=l-1;
-  goto l200;
+  goto l000;
   //check for small top of b
- l260:
-  if (FABS(b[l*np1+l])>(*epsb)) goto l300;
+ l060:
+  if (FABS(b[l*np1+l])>(*epsb)) goto l100;
   b[l*np1+l] =0e0;
   l1=l+1;
   househ2(a[l*np1+l],a[l1*np1+l],&u1,&u2,&v1,&v2);
-  if (u1!=1e0) goto l280;
+  if (u1!=1e0) goto l080;
   for(j=l;j <=n;++j){
     t = a[l*np1+j] + u2*a[l1*np1+j];
     a[l*np1+j]+=t*v1;
@@ -516,20 +516,20 @@ void qzit(INT nd,INT n,			\
     b[l*np1+j]+=t*v1;
     b[l1*np1+j]+=t*v2;
   }
- l280:
+ l080:
   l = l1;
-  goto l230;
- l300:
+  goto l030;
+ l100:
   m1 = m - 1; // here m is .ge. 2
   l1 = l + 1;// l is at least 0
   cc= 0.75e0;
   iter[m]++;
-  if(iter[m]==1) goto l305;
-  if(a[m*np1+(m-1)]<cc*old1) goto l305;
-  if(a[(m-1)*np1+(m-2)]<cc*old2) goto l305;
-  if(iter[m]==10) goto l310;
-  if(iter[m]>30) goto l380;
- l305:
+  if(iter[m]==1) goto l105;
+  if(a[m*np1+(m-1)]<cc*old1) goto l105;
+  if(a[(m-1)*np1+(m-2)]<cc*old2) goto l105;
+  if(iter[m]==10) goto l110;
+  if(iter[m]>30) goto l180;
+ l105:
   b11=b[l*np1+l];
   b22=b[l1*np1+l1];
   if (FABS(b22)<(*epsb)) b22 = (*epsb);
@@ -552,14 +552,14 @@ void qzit(INT nd,INT n,			\
   a10=( (a33-a11)*(a44-a11) - a34*a43 + a43*b34*a11)/a21 + a12-a11*b12;
   a20= (a22-a11-a21*b12) -(a33-a11)-(a44-a11)+a43*b34;
   a30=a[(l+2)*np1+l1]/b22;
-  goto l315;
+  goto l115;
   //      fprintf(stdout,"\na10=%.12e,a20=%.12e,a30=%.12e,a21=%f",a10,a20,a30,a21);fflush(stdout);
- l310:
+ l110:
   a10=0e0;
   a20=0e0;
   a30=1.1605e0;
   //
- l315:
+ l115:
   old1=FABS(a[m*np1+(m-1)]);
   old2=FABS(a[(m-1)*np1+(m-2)]);
   if(wantx){
@@ -586,7 +586,7 @@ void qzit(INT nd,INT n,			\
       househ2(a[k*np1+km1],a[k1*np1+km1],		\
 	      &u1,&u2,&v1,&v2);
     }
-    if(u1!=1e0) goto l325;
+    if(u1!=1e0) goto l125;
     for(j=km1;j<=m0rn;++j){
       //	    fprintf(stdout,"\n%%3333j=%dk=%d,km1=%d,k1=%d,k2=%d,k3=%d",j,k,km1,k1,k2,k3);	
       t=a[k*np1+j]+u2*a[k1*np1+j];
@@ -601,14 +601,14 @@ void qzit(INT nd,INT n,			\
       b[k1*np1+j]+=t*v2;
       if(mid) b[k2*np1+j]+=t*v3;
     }
-    if(k==l) goto l325;
+    if(k==l) goto l125;
     a[k1*np1+(k-1)]=0e0;
     if(mid) a[k2*np1+(k-1)]=0e0;
-  l325:
-    if(k==m1) goto l340;
+  l125:
+    if(k==m1) goto l140;
     househ3(b[k2*np1+k2],b[k2*np1+k1],b[k2*np1+k],	\
 	    &u1,&u2,&u3,&v1,&v2,&v3);
-    if(u1!=1e0) goto l340;
+    if(u1!=1e0) goto l140;
     for(i=l0r1;i<=k3;++i){
       t=a[i*np1+k2]+u2*a[i*np1+k1]+u3*a[i*np1+k];
       a[i*np1+k2]+=t*v1;
@@ -630,9 +630,9 @@ void qzit(INT nd,INT n,			\
 	x[i*np1+k]+=t*v3;
       }
     } 
-  l340:
+  l140:
     househ2(b[k1*np1+k1],b[k1*np1+k],&u1,&u2,&v1,&v2);     
-    if(u1!=1.) continue; //goto l360;
+    if(u1!=1.) continue; //goto l160;
     for(i=l0r1;i<=k3;++i){
       t=a[i*np1+k1]+u2*a[i*np1+k];
       a[i*np1+k1]+=t*v1;
@@ -652,12 +652,12 @@ void qzit(INT nd,INT n,			\
       }
     }// wantx
   }
-  goto l200;
- l380:
+  goto l000;
+ l180:
   for(i=0;i<m;++i){
     iter[i]=-1;
   }
- l390:
+ l190:
   del_row_col(ndp1,np1,&a);
   del_row_col(ndp1,np1,&b);
   del_row_col(ndp1,np1,&x);
@@ -699,11 +699,11 @@ void qzval(INT nd,INT n,
 {
   INT flip;
   //find eigenvalues of quasi-triangular matrices
-  INT i,j,m,l,ndp1=nd+1,np1=n+1,ip1,jp1;  
+  INT i,j,m,l,ndp1=nd+1,np1=n+1;//,ip1,jp1;  
   REAL16  a11,a12,a21,a22,b11,b12,b22;
-  REAL16  a11r,a12r,a21r,a22r,b11r,b12r,b22r;
-  REAL16  a11i,a12i,a21i,a22i,b11i,b12i,b22i;
-  REAL16 u1,u2,u3,v1,v2,v3;
+  REAL16  a11r,a12r,a21r,a22r;//,b11r,b12r,b22r;
+  REAL16  a11i,a12i,a21i,a22i; // ,b11i,b12i,b22i;
+  REAL16 u1,u2,v1,v2;
   REAL16 r,t,c,d,e,an,bn;
   REAL16 szr,szi,sqr,sqi,ssr,ssi,cz,cq;
   REAL16 ti,tr,er,ei,bdi,bdr;
@@ -723,31 +723,31 @@ void qzval(INT nd,INT n,
   /***********************************************************************************/
   m = n;
   //  400 continue
- l400:
-  if(m==1) goto l410;
-  if(a[m*np1+(m-1)] != 0e0) goto l420;
+ l200:
+  if(m==1) goto l210;
+  if(a[m*np1+(m-1)] != 0e0) goto l220;
   // one-by-one submatrix; one real root
- l410:
+ l210:
   alphar[m] = a[m*np1+m];
   beta[m]  = b[m*np1+m];
   alphai[m]=0e0;
   m--;
-  goto l490;
+  goto l290;
   //two-by-two submatrix
- l420:
+ l220:
   l=m-1;
-  if(FABS(b[l*np1+l]) > epsb) goto l425;
+  if(FABS(b[l*np1+l]) > epsb) goto l225;
   b[l*np1+l]=0e0;
   househ2(a[m*np1+m],a[m*np1+l],&u1,&u2,&v1,&v2);
-  goto l460;
- l425:
-  if(FABS(b[m*np1+m]) > epsb) goto l430;
+  goto l260;
+ l225:
+  if(FABS(b[m*np1+m]) > epsb) goto l230;
   b[m*np1+m]=0e0;
   househ2(a[m*np1+m],a[m*np1+l],&u1,&u2,&v1,&v2);
   bn=0e0;
-  goto l435;
+  goto l235;
   //
- l430:
+ l230:
   an=FABS(a[l*np1+l]) + FABS(a[l*np1+m]) +FABS(a[m*np1+l]) + FABS(a[m*np1+m]);
   bn=FABS(b[l*np1+l]) + FABS(b[l*np1+m]) + FABS(b[m*np1+m]);
   a11=a[l*np1+l]/an;
@@ -761,7 +761,7 @@ void qzval(INT nd,INT n,
   c=0.5e0*(a11*b22 + a22*b11-a21*b12);
   d = 0.5e0*(a22*b11-a11*b22-a21*b12);
   d = d*d + a21*b22*(a12*b11-a11*b12);
-  if(d<0e0) goto l480;
+  if(d<0e0) goto l280;
   // two real roots:
   if(c<0e0)
     e=(c-SQRT(d))/(b11*b22);
@@ -776,8 +776,8 @@ void qzval(INT nd,INT n,
     househ2(a22,a21,&u1,&u2,&v1,&v2);	  
   else
     househ2(a12,a11,&u1,&u2,&v1,&v2);
- l435:
-  if(u1!=1e0) goto l450;
+ l235:
+  if(u1!=1e0) goto l250;
   for(i=1;i<=m;++i){
     t=a[i*np1+m]+u2*a[i*np1+l];
     a[i*np1+m]+=t*v1;
@@ -794,15 +794,15 @@ void qzval(INT nd,INT n,
       x[i*np1+l]+=t*v2;
     }
   }
- l450:
-  if(bn==0e0) goto l475;
+ l250:
+  if(bn==0e0) goto l275;
   flip=(INT )(an < (FABS(e)*bn));
   if(flip)
     househ2(a[l*np1+l],a[m*np1+l],&u1,&u2,&v1,&v2);	  
   else
     househ2(b[l*np1+l],b[m*np1+l],&u1,&u2,&v1,&v2);
- l460:
-  if(u1!=1e0) goto l475;
+ l260:
+  if(u1!=1e0) goto l275;
   for(j=l;j<=n;++j){
     t=a[l*np1+j]+u2*a[m*np1+j];
     a[l*np1+j]+=t*v1;
@@ -813,7 +813,7 @@ void qzval(INT nd,INT n,
     b[m*np1+j]+=t*v2;
   }
   //
- l475:
+ l275:
   a[m*np1+l]=0e0;
   b[m*np1+l]=0e0;
   alphar[l]=a[l*np1+l];
@@ -823,8 +823,8 @@ void qzval(INT nd,INT n,
   beta[l]=b[l*np1+l];
   beta[m]=b[m*np1+m];
   m-=2;
-  goto l490;
- l480:
+  goto l290;
+ l280:
   er=c/(b11*b22);
   ei=SQRT(-d)/(b11*b22);
   a11r=a11-er*b11;
@@ -868,8 +868,8 @@ void qzval(INT nd,INT n,
   alphar[m]=an*(tr*bdr+ti*bdi)/r;
   alphai[m]=an*(tr*bdi-ti*bdr)/r;
   m-=2;
- l490:
-  if(m>0) goto l400;
+ l290:
+  if(m>0) goto l200;
   del_row_col(ndp1,np1,&a);
   del_row_col(ndp1,np1,&b);
   del_row_col(ndp1,np1,&x);
@@ -916,7 +916,8 @@ void qzvec(INT nd, INT n,					\
 	   REAL16 **x_io)
 {
   return;
-  INT wantx,flip;
+  
+  INT flip;//, wantx;
   //
   // find eigenvectors of quasi-triangular matrices
   // uses b for intermediate storage
@@ -946,8 +947,8 @@ void qzvec(INT nd, INT n,					\
   REAL16 *a=a_io[0], *b=b_io[0], *x=x_io[0];
   /***********************************************************************************/
   m = n;
- l500:
-  if(alphai[m]!=0e0) goto l550;
+ l300:
+  if(alphai[m]!=0e0) goto l350;
   alpham = alphar[m];
   betam = beta[m];
   if (fabs(alpham)<epsa)
@@ -956,22 +957,22 @@ void qzvec(INT nd, INT n,					\
     betam =0e0;
   b[m*np1+m]=1e0;
   l=m-1;
-  if(l==0) goto l540;
- l510:
+  if(l==0) goto l340;
+ l310:
   l1=l+1;
   sl=0e0;
   for(j=l1;j<=m;++j)
     sl+=(betam*a[l*np1+j]-alpham*b[l*np1+j])*b[j*np1+m];
-  if(l==1) goto l520;
-  if(a[l*np1+(l-1)]!=0e0) goto l530;
- l520:
+  if(l==1) goto l320;
+  if(a[l*np1+(l-1)]!=0e0) goto l330;
+ l320:
   d=betam*a[l*np1+l]-alpham*b[l*np1+l];
   if(d==0e0)
     d=0.5e0*(epsa+epsb);
   b[l*np1+m]=-sl/d;
   l--;
-  goto l540;
- l530:
+  goto l340;
+ l330:
   k=l-1;
   sk=0e0;
   for(j=l1;j<=m;++j)
@@ -990,11 +991,11 @@ void qzvec(INT nd, INT n,					\
   else
     b[k*np1+m]=-(sk + tkl*b[l*np1+m])/tkk;
   l-=2; 
- l540:
-  if(l>0) goto l510;
+ l340:
+  if(l>0) goto l310;
   m--;
-  goto l590;
- l550:
+  goto l390;
+ l350:
   // complex vector
   almr=alphar[m-1];
   almi=alphai[m-1];
@@ -1007,8 +1008,8 @@ void qzvec(INT nd, INT n,					\
   b[m*np1+mr]=0e0;
   b[m*np1+mi]=-1e0;
   l=m-2;
-  if(l==0) goto l585;
- l560:
+  if(l==0) goto l385;
+ l360:
   l1=l+1;
   slr=0e0;
   sli=0e0;
@@ -1018,15 +1019,15 @@ void qzvec(INT nd, INT n,					\
     slr+=tr*b[j*np1+mr] - ti*b[j*np1+mi];
     sli+=tr*b[j*np1+mi] + ti*b[j*np1+mr];
   }
-  if(l==1) goto l570;
-  if(a[l*np1+(l-1)]!=0e0) goto l575;
- l570:
+  if(l==1) goto l370;
+  if(a[l*np1+(l-1)]!=0e0) goto l375;
+ l370:
   dr=betam*a[l*np1+l]-almr*b[l*np1+l];
   di=-almi*b[l*np1+l];
   xdivy(-slr,-sli,dr,di,&b[l*np1+mr],&b[l*np1+mi]);
   l--;
-  goto l585;
- l575:
+  goto l385;
+ l375:
   k=l-1;
   skr=0e0;
   ski=0e0;
@@ -1066,13 +1067,13 @@ void qzvec(INT nd, INT n,					\
 	  tlkr, tlki,&b[k*np1+mr],&b[k*np1+mi]);
   }
   l-=2;
- l585:
-  if(l>0) goto l560;
+ l385:
+  if(l>0) goto l360;
   m-=2;
- l590:
-  if(m>0) goto l500;
+ l390:
+  if(m>0) goto l300;
   m=n;
- l600:
+ l400:
   for(i=1;i<=n;++i){
     s=0e0;
     for(j=1;j<=m;++j){
@@ -1081,11 +1082,11 @@ void qzvec(INT nd, INT n,					\
     x[i*np1+m]=s;
   }
   m--;
-  if(m>0) goto l600;
+  if(m>0) goto l400;
   m=n;
- l630:
+ l430:
   s=0e0;
-  if(alphai[m]!=0e0) goto l650;
+  if(alphai[m]!=0e0) goto l450;
   for(i=1;i<=n;++i){
     r=fabs(x[i*np1+m]);
     if(r<s) continue;
@@ -1095,8 +1096,8 @@ void qzvec(INT nd, INT n,					\
   for(i=1;i<=n;++i)
     x[i*np1+m]/=d;
   m--;
-  goto l690;
- l650:
+  goto l490;
+ l450:
   for(i=1;i<=n;++i){
     r=x[i*np1+(m-1)]*x[i*np1+(m-1)] + x[i*np1+m]*x[i*np1+m];
     if(r<s) continue;
@@ -1110,8 +1111,8 @@ void qzvec(INT nd, INT n,					\
     x[i*np1+m]=zi;
   }
   m-=2;
- l690:
-  if(m>0) goto l630;
+ l490:
+  if(m>0) goto l430;
   del_row_col(ndp1,np1,&a);
   del_row_col(ndp1,np1,&b);
   del_row_col(ndp1,np1,&x);
