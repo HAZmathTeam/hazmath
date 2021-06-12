@@ -272,7 +272,7 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, mesh_st
     
   // get the penalty (FACE ASSEMBLE)
   double penalty_term = PENALTY_PARAMETER_GLOBAL / (pow(fiarea,1e0/(REAL )(dim-1)));
-  penalty_term*=(LAME_LAMBDA_GLOBAL);
+  //penalty_term*=(LAME_LAMBDA_GLOBAL);
   double penalty_term_new = 0;//PENALTY_PARAMETER_GLOBAL / (pow(fiarea,1e0/(REAL )(dim-1)));//penalty_term;//1000000./fiarea;
     
     // SLEE
@@ -634,7 +634,7 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, mesh_st
       { //on interface
 
 	
-	REAL new_term = 0.;//lambda * lambda * (pow(fiarea,(REAL )(1.)));
+	REAL new_term = lambda * lambda * (pow(fiarea,(REAL )(1.)));
 	
 	//printf("%f, h = %f \n",new_term, fiarea);
 	
@@ -2021,7 +2021,7 @@ void FEM_Block_RHS_Local_Elasticity(dvector *b,REAL* bLoc,block_fespace *FE,mesh
 	double fiarea=mesh->f_area[face];
 	double lambda = LAME_LAMBDA_GLOBAL;//000000.;//000000.;//000000.; //000000.0;
 	double penalty_term = PENALTY_PARAMETER_GLOBAL / (pow(fiarea,1e0/(REAL )(dim-1)));
-	penalty_term*=lambda;
+	//penalty_term*=lambda;
 	double penalty_term_new = 0;//PENALTY_PARAMETER_GLOBAL / (pow(fiarea,1e0/(REAL )(dim-1)));//penalty_term;//1000000./fiarea;
 	double IPDG_THETA = THETA_SIPG; // 1: SIPG, -1 :NIPG 0 : IIPG
 

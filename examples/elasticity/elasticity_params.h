@@ -3,7 +3,7 @@
 #endif
 
 #ifndef LAME_LAMBDA_GLOBAL
-#define LAME_LAMBDA_GLOBAL 1000000
+#define LAME_LAMBDA_GLOBAL 1
 #endif
 
 #ifndef PENALTY_PARAMETER_GLOBAL

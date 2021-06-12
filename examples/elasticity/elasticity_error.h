@@ -28,10 +28,11 @@ void exact_sol2D(REAL *val, REAL *x, REAL time,void *param){
   val[2] = 0.5 - x[0];
   */
   double lame_lambda = LAME_LAMBDA_GLOBAL ;//000000.;//000000.;//000000.;//000000.;//000000.;//000000.;
-  val[0] = sin(x[0]) * sin(x[1]) + (1./lame_lambda) * x[0];
-  val[1] = cos(x[0]) * cos(x[1]) + (1./lame_lambda) * x[1];
-  //val[0] = sin(2. * M_PI * x[1]) * (-1. + cos(2. * M_PI * x[0]) ) + (1. / (1. + lame_lambda))* sin(M_PI * x[0]) * sin(M_PI* x[1]);
-  //val[1] = sin(2. * M_PI * x[0]) * (1. - cos(2. * M_PI * x[1]) ) + (1. / (1. + lame_lambda))* sin(M_PI * x[0]) * sin(M_PI* x[1]);
+  //val[0] = sin(x[0]) * sin(x[1]) + (1./lame_lambda) * x[0];
+  //val[1] = cos(x[0]) * cos(x[1]) + (1./lame_lambda) * x[1];
+
+  val[0] = sin(2. * M_PI * x[1]) * (-1. + cos(2. * M_PI * x[0]) ) + (1. / (1. + lame_lambda))* sin(M_PI * x[0]) * sin(M_PI* x[1]);
+  val[1] = sin(2. * M_PI * x[0]) * (1. - cos(2. * M_PI * x[1]) ) + (1. / (1. + lame_lambda))* sin(M_PI * x[0]) * sin(M_PI* x[1]);
 
   val[2] = 0.;
 
@@ -58,7 +59,7 @@ void Dexact_sol3D(REAL *val, REAL *x, REAL time,void *param) {
   val[11] = 0.0;
   return;
 }
-void Dexact_sol2D(REAL *val, REAL *x, REAL time,void *param){
+void Dexact_sol2D(REAL *val, REAL *xx, REAL time,void *param){
   /*
   val[0] = M_PI*cos(M_PI*x[0])*cos(M_PI*x[1]);
   val[1] = -M_PI*sin(M_PI*x[0])*sin(M_PI*x[1]);
@@ -69,14 +70,24 @@ void Dexact_sol2D(REAL *val, REAL *x, REAL time,void *param){
   */
 
   double lame_lambda = LAME_LAMBDA_GLOBAL;//000000.;//000000.;//000000.;//000000.;//000000.;//000000.;
-  
+  /*
   val[0] = cos(x[0])*sin(x[1]) + 1./lame_lambda;
   val[1] = cos(x[1])*sin(x[0]);
   val[2] = -cos(x[1])*sin(x[0]);
   val[3] = - cos(x[0])*sin(x[1]) + 1./lame_lambda;
   val[4] = 0.;
   val[5] = 0.;
-
+  */
+  double x = xx[0];
+  double y = xx[1];
+  
+   double lambda = LAME_LAMBDA_GLOBAL ;//000000.;//000000.;//000000.;//000000.;
+     double pi = M_PI;
+     
+   val[0] = (pi*cos(pi*x)*sin(pi*y))/(lambda + 1) - 2*pi*sin(2*pi*x)*sin(2*pi*y);
+  val[1] = 2*pi*cos(2*pi*y)*(cos(2*pi*x) - 1) + (pi*cos(pi*y)*sin(pi*x))/(lambda + 1);
+  val[2] = (pi*cos(pi*x)*sin(pi*y))/(lambda + 1) - 2*pi*cos(2*pi*x)*(cos(2*pi*y) - 1);
+  val[3] = 2*pi*sin(2*pi*x)*sin(2*pi*y) + (pi*cos(pi*y)*sin(pi*x))/(lambda + 1);
   
   return;
 }
@@ -97,12 +108,12 @@ void source2D(REAL *val, REAL *x, REAL time,void *param) {
   //val[1] = -2*pow(pi,2) * cos(pi*x[0]) * sin(pi*x[1]);
   val[2] = 0.0;
 
-  val[0] = 2. * sin(x[0]) * sin(x[1]);
-  val[1] = 2. * cos(x[0]) * cos(x[1]);
-  //double lambda = LAME_LAMBDA_GLOBAL ;//000000.;//000000.;//000000.;//000000.;
+  //val[0] = 2. * sin(x[0]) * sin(x[1]);
+  //val[1] = 2. * cos(x[0]) * cos(x[1]);
+  double lambda = LAME_LAMBDA_GLOBAL ;//000000.;//000000.;//000000.;//000000.;
  
-  //val[0] = pi*pi * (4. * sin(2.* pi * x[1])*(-1. + 2.* cos(2.*pi*x[0])) - cos(pi*(x[0]+x[1])) + (2./(1+lambda))*sin(pi*x[0])*sin(pi*x[1]));
-  //val[1] = pi*pi * (4. * sin(2.* pi * x[0])*(1. - 2.* cos(2.*pi*x[1])) - cos(pi*(x[0]+x[1])) + (2./(1+lambda))*sin(pi*x[0])*sin(pi*x[1]));  
+  val[0] = pi*pi * (4. * sin(2.* pi * x[1])*(-1. + 2.* cos(2.*pi*x[0])) - cos(pi*(x[0]+x[1])) + (2./(1+lambda))*sin(pi*x[0])*sin(pi*x[1]));
+  val[1] = pi*pi * (4. * sin(2.* pi * x[0])*(1. - 2.* cos(2.*pi*x[1])) - cos(pi*(x[0]+x[1])) + (2./(1+lambda))*sin(pi*x[0])*sin(pi*x[1]));  
   return;
 }
 
@@ -1270,7 +1281,7 @@ void HDsemierror_block_EnergyNorm_EG_FaceLoop
 
       // get the penalty (EnergyNorm)
       double penalty_term = PENALTY_PARAMETER_GLOBAL / (pow(fiarea,1e0/(REAL )(dim-1)));
-      penalty_term*=LAME_LAMBDA_GLOBAL;     
+      //penalty_term*=LAME_LAMBDA_GLOBAL;     
       // SLEE
       // Get the BD values 
       REAL* val_true_face = (REAL *) calloc(nquad_face,sizeof(REAL));
