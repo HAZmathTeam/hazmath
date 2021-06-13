@@ -633,8 +633,8 @@ void local_assembly_Elasticity_FACE(block_dCSRmat* A, block_fespace *FE, mesh_st
     else if(counter == 2)
       { //on interface
 
-	
-	REAL new_term = lambda * lambda * (pow(fiarea,(REAL )(1.)));
+	double beta = 0.001;
+	REAL new_term = beta * lambda * lambda * (pow(fiarea,(REAL )(1.)));
 	
 	//printf("%f, h = %f \n",new_term, fiarea);
 	
