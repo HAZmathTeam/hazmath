@@ -22,8 +22,9 @@
 INT main(INT   argc,   char *argv[])
 {
   INT i;
-  FILE *fp=stdin;
-  //  fp=HAZ_fopen("3d_f.input","r");
+  FILE *fp;
+  //  fp=stdin;
+  fp=HAZ_fopen("inputs/2d_2L.input","r");
   /*
     PARSE THE INPUT.
   */
@@ -126,9 +127,9 @@ INT main(INT   argc,   char *argv[])
     free(all);
   }
   /*  MAKE sc to be the finest grid only */
-  haz_scomplex_print(sc,0,"ZZZ");fflush(stdout);
+  //  haz_scomplex_print(sc,0,"ZZZ");fflush(stdout);
   scfinalize(sc);
-  haz_scomplex_print(sc,0,"XXX");fflush(stdout);
+  //  haz_scomplex_print(sc,0,"XXX");fflush(stdout);
   find_cc_bndry_cc(sc);
   /* write the output mesh file:    */
   hazw(g->fgrid,sc,0);

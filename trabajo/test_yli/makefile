@@ -1,22 +1,25 @@
 #####################################################
 # Last Modified 2019-06-10 --jha
 ####################################################
-# SRC File name
-SRCFILE = amr_grids
 
-HEADERS = connected_components.h solve_estimate_mark.h
+# SRC File name
+SRCFILE = basic_elliptic
+
+HEADERS = yuwen.h
 
 INCLUDE =
 
-LIBS = 
+LIBS =
 
 # Switch between debug or optimized
-CFLAGS = 
+CFLAGS = -g 
+FFLAGS = -g 
+
 
 ## If external libraries support is compiled in the hazmath library,
-## comment/uncomment what is necessary below.
-WITH_LAPACK=1
+## uncomment  the corresponding line below:
 WITH_SUITESPARSE=1
+WITH_LAPACK=1
 #WITH_CGAL=1
 
-sinclude ../examples.mk
+sinclude ../../examples/examples.mk
