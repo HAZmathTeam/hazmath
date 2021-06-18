@@ -507,29 +507,29 @@ REAL get_cpzwf(REAL16 (*func)(REAL16 x, void *param),	\
   // ALL DONE:
   m_out[0]=m;
   mbig_in[0]=mbig;
-  // tricky stuff: realloc removing all REAL16 to REAL:
-  cpzwf[0]=(REAL *)z;
-  // we use that real requires less than real16:) hope this works:
-  for(i=0;i<m;i++) *(cpzwf[0]+i)=z[i];
+
+  // allocate space for results
+  cpzwf[0]=calloc(5*(m+1), sizeof(REAL));
   cpzwf[1]=cpzwf[0] + m + 1;
-  memcpy(cpzwf[1],wd,m*sizeof(REAL));
   cpzwf[2]=cpzwf[1] + m + 1;
-  for(i=0;i<m;i++) *(cpzwf[2]+i)=f[i];
-  // reallocate:
-  cpzwf[0]=realloc(cpzwf[0],5*(m+1)*sizeof(REAL));
   cpzwf[3]=cpzwf[2] + m + 1;
   cpzwf[4]=cpzwf[3] + m + 1;
-  memcpy(cpzwf[4],cpzwf[2],(m+1)*sizeof(REAL));
-  memcpy(cpzwf[3],cpzwf[1],(m+1)*sizeof(REAL));
-  memcpy(cpzwf[2],cpzwf[0],(m+1)*sizeof(REAL));
+
+  for(i=0;i<m;i++) cpzwf[2][i]=z[i];
+  memcpy(cpzwf[3],wd,m*sizeof(REAL));
+  for(i=0;i<m;i++) cpzwf[4][i]=f[i];
+  free(z);
+
   //   copy the functions values go last, poles go first, residues go second
   residues_poles(m,cpzwf[2],cpzwf[3],cpzwf[4],cpzwf[0],cpzwf[1]);
+
   REAL rswp;
   INT m1=m-1;
-  rswp=*(cpzwf[0]+m1);
+  rswp=cpzwf[0][m1];
   for(i=m1;i>0;i--)
-    *(cpzwf[0]+i)=*(cpzwf[0]+i-1);
-  *(cpzwf[0])=rswp;
+    cpzwf[0][i]=cpzwf[0][i-1];
+  cpzwf[0][0]=rswp;
+
   return (REAL )rmax;
 }
 /*EOF*/
