@@ -208,7 +208,7 @@ INT residues_poles(INT m,				\
   // if we want the old way of computing poles:
   if(0){
      poles_alg2(m,pol,w,z);
-  }
+  } else {
   // swap z[1:m]=z[m:-1:1] and same for w.
   /* for(j=0;j<m;j++){ */
   /*   fprintf(stdout,"\nzp2(%d)=%.18Le;",j+1,z[j]);  fflush(stdout); */
@@ -299,6 +299,7 @@ INT residues_poles(INT m,				\
     pol[j]=alphar[i]/beta[i];
     ++j;
   }
+  }
   //  fprintf(stdout,"\nbeta[%d]=%Le,beta[%d]=%Le\n",j1,beta[j1],j2,beta[j2]);
   //  exit(33);
   ///////////////////////////////////////////////////////////////////////////////
@@ -321,6 +322,7 @@ INT residues_poles(INT m,				\
   free(wrk0);
   return 0;
 }
+
 /**********************************************************************/
 /*!
  * \fn REAL get_cpzwf(REAL16 (*func)(REAL16 x, void *param),void

@@ -17,9 +17,42 @@
 /*|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||*/
 #include "aaa_example.h"
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
 INT main(int argc,char *argv[])
 {
   REAL xmin_in=0e0,xmax_in=1e0;
+  // parameters for the function we are approximating.
+  // For example: s[2]*(x^s[0])+s[3]*(x**s[1])
+  REAL16 s[4]={-0.5e0,0.5e0,1e0,0e0}; // s1, s2, alpha,beta
+  INT print_level=1;
+
+  fprintf(stderr,"\nUSAGE: ./aaa.ex<<EOF_FRAC\n s,t,alpha,beta,xmin,xmax\nEOF_FRAC\n");
+  fprintf(stderr,"\nEXAMPLE:\n./aaa.ex <<EOF_FRAC >some_file.m\n %.2Lf %.2Lf %.2Lf %.2Lf %.2f %.2f\nEOF_FRAC\n", \
+	  s[0],s[1],s[2],s[3],xmin_in,xmax_in);
+  INT k=fscanf(stdin,"%Lg %Lg %Lg %Lg %lg %lg",&s[0],&s[1],&s[2],&s[3],&xmin_in,&xmax_in);
+
+  /////// BEST APPROXIMATION BY BRASIL ALGORITHM ///////
+  REAL *cpzwf_brasil[5];
+  const INT degree = 5;
+  get_cpzwf_brasil(f_to_approx_l, (void*)s, cpzwf_brasil,
+      xmin_in, xmax_in, degree,     // the remaining options can usually be kept at these defaults
+      100, 1000, 0.1, 0.1, 1e-4, print_level);
+
+  INT i;
+  for(i=0;i<degree+1;i++) fprintf(stdout,"\nres(%d)=%.16e;",i+1,*(cpzwf_brasil[0]+i));
+  fprintf(stdout,"\n");
+  for(i=0;i<degree+1;i++) fprintf(stdout,"\npol(%d)=%.16e;",i+1,*(cpzwf_brasil[1]+i));
+  fprintf(stdout,"\n");
+  for(i=0;i<degree+1;i++) fprintf(stdout,"\nz(%d)=%.16e;",i+1,*(cpzwf_brasil[2]+i));
+  fprintf(stdout,"\n");
+  for(i=0;i<degree+1;i++) fprintf(stdout,"\nw(%d)=%.16e;",i+1,*(cpzwf_brasil[3]+i));
+  fprintf(stdout,"\n");
+  for(i=0;i<degree+1;i++) fprintf(stdout,"\nf(%d)=%.16e;",i+1,*(cpzwf_brasil[4]+i));
+  fprintf(stdout,"\n");
+
+  free(cpzwf_brasil[0]);        // all 5 arrays are allocated as one big block
+  //////////////////////////////////////////////////////
+
   ///////////////////////////////////////////////////////////////////////////
   //mbig is the total number of points; mmax_in is the max number of
   //nodes taking part in the interpolation, mmax is much smaller than
@@ -30,16 +63,9 @@ INT main(int argc,char *argv[])
   INT mbig=(1<<14)+1;
   INT mmax_in=(INT )(mbig/2),m=-22;
   REAL16 tolaaa=powl(2e0,-52e0);
-  // parameters for the function we are approximating.
-  // For example: s[2]*(x^s[0])+s[3]*(x**s[1])
-  REAL16 s[4]={-0.5e0,0.5e0,1e0,0e0}; // s1, s2, alpha,beta
   //
-  INT mem,mem16,i,j,k,m1=m+1,m01=m-1,mm=m*m,mm1=m1*m1;
+  INT mem,mem16,j,m1=m+1,m01=m-1,mm=m*m,mm1=m1*m1;
   // s[0]=s,s[1]=t,s[2]=alpha,s[3]=beta;
-  fprintf(stderr,"\nUSAGE: ./aaa.ex<<EOF_FRAC\n s,t,alpha,beta,xmin,xmax\nEOF_FRAC\n");
-  fprintf(stderr,"\nEXAMPLE:\n./aaa.ex <<EOF_FRAC >some_file.m\n %.2Lf %.2Lf %.2Lf %.2Lf %.2f %.2f\nEOF_FRAC\n", \
-	  s[0],s[1],s[2],s[3],xmin_in,xmax_in);
-  k=fscanf(stdin,"%Lg %Lg %Lg %Lg %lg %lg",&s[0],&s[1],&s[2],&s[3],&xmin_in,&xmax_in);
   /////////////////////////////////////////////
   //for debug: s[0]=0.5;  s[1]=-0.5;  s[2]=1e0;  s[3]=2e0; xmin_in=0e0;xmax_in=1e0;
   // s[0]=-0.50; s[1]=0.50;   s[2]=6.1031431e-03;   s[3]=1e0;   xmin_in=0e0;   xmax_in=1e0;
@@ -58,7 +84,6 @@ INT main(int argc,char *argv[])
   // the rational approximation is:
   // r(z)=res[m-1] + \sum_{i=0}^{m-2} res[i]/(z-pol[i]);
   //
-  INT print_level=0;
   REAL rmax=get_cpzwf(f_to_approx_l,				\
 		      (void *)s,				\
 		      cpzwf,					\
