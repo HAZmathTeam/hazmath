@@ -738,7 +738,7 @@ void qzval(INT nd,INT n,
   l=m-1;
   if(FABS(b[l*np1+l]) > epsb) goto l225;
   b[l*np1+l]=0e0;
-  househ2(a[m*np1+m],a[m*np1+l],&u1,&u2,&v1,&v2);
+  househ2(a[l*np1+l],a[m*np1+l],&u1,&u2,&v1,&v2);
   goto l260;
  l225:
   if(FABS(b[m*np1+m]) > epsb) goto l230;
