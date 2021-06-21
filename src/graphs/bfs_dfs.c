@@ -9,6 +9,197 @@
 #include "hazmath.h"
 /***********************************************************************************************/
 /*!
+ * \fn iCSRmat *lex_bfs(INT n,INT *ia, INT *ja, ivector *anc,const INT lvlmax)
+ *
+ * \brief lexicographical breath first search
+ *
+ * \param n                number of vertices
+ * \param (ia,ja):         adjacency structure of the graph; diagonels are allowed
+ * \param anc[n]:           a vector containing the ancestors of the vertices:
+ *                         v<->anc[v] is an edge in the bfs tree. 
+ *
+ * \return pointer to iCSRmat of size n,n with n nonzeroes, which
+ *         contains the bfs ordering permutation of the vertices
+ *         (component after component).
+ *
+ * \note Following the algol-like pseudocode from:
+ *  Rose, Donald J. ; Tarjan, R. Endre ; Lueker, George S.
+ *  Algorithmic aspects of vertex elimination on graphs.  SIAM
+ *  J. Comput. 5 (1976), no. 2, 266–283 (MR0408312).
+ *  https://doi.org/10.1137/0205021,
+ *
+ * Created by ltz1 on 20190621.
+ */
+iCSRmat *lex_bfs(INT n,INT *ia, INT *ja,ivector *inv_ord,ivector *anc)
+{
+  INT c,h,v,w,p;  
+  INT ibeg,iend,i,iv,nfx,ijk,i0;
+  iCSRmat *blk;
+  /* 
+   *  two lists: queue and sets of vertices. the queue is described by
+   *  head[] and backp[] and the sets are described by next[] and
+   *  back[]. Each cell "c" is either a header cell or describes a
+   *  set of vertices that have the same label.
+   *
+  */
+  /*----------------------------------------------------------------*/
+  // find all connected components:
+  blk=run_dfs(n,ia,ja);
+  /*----------------------------------------------------------------*/
+  INT *iord=blk->JA;// this makes ordering following connected components. 
+  INT *level=blk->val;// this is the level (distance) from every 
+  INT *tree=anc->val;
+  INT *iord1=inv_ord->val;
+  //////////////////////////////////////////////////////
+  INT nmem=n;
+  // allocate memory;
+  INT *cell=calloc(n,sizeof(INT));
+  for (i=0;i<n;i++) cell[i]=-1;
+  INT *flag=calloc(nmem,sizeof(INT));
+  INT *head=calloc(nmem,sizeof(INT));
+  INT *next=calloc(nmem,sizeof(INT));
+  INT *back=calloc(nmem,sizeof(INT));
+  INT *fixlst=calloc(nmem,sizeof(INT));
+  for (i=0;i<nmem;i++){
+    fixlst[i]=-1;
+    head[i]=-1;
+    back[i]=-1;
+    next[i]=-1;
+    flag[i]=-1;
+  }
+  /*     assign empty label to all vertices */
+  head[0] = 1; // the first cell is the head of the queue; it does not
+	       // describe any set of vertices, but points to the
+	       // cell=1 which will describe the first set of
+	       // vertices.
+  back[1] = 0; // the second cell points to the first cell as its predecessor
+  /**/
+  head[1] = -1;   
+  back[0] = -1;
+  next[0] = -1;
+  flag[0] = -1;
+  flag[1] = -1;
+  // cell 0 is the beginning; cell 1 is header cell for the first set;
+  c=2; // thus the first empty cell is cell 2. 
+  //  fprintf(stdout,"\n");fflush(stdout);
+  for(iv=0;iv<n;iv++){
+    v = iord[iv]; // vertex label
+    //    fprintf(stdout,"%d ",v);fflush(stdout);
+    head[c] = v;  //head(cell)=element;
+    cell[v] = c;  //cell(vertex)=cell.
+    next[c-1] = c;
+    flag[c] = 1;
+    back[c] = c-1;
+    c++;
+    if(c>=nmem){
+      nmem=c+1;
+      flag=realloc(flag,nmem*sizeof(INT));
+      head=realloc(head,nmem*sizeof(INT));
+      next=realloc(next,nmem*sizeof(INT));
+      back=realloc(back,nmem*sizeof(INT));
+      head[c]=-1; back[c]=-1; next[c]=-1; flag[c]=-1;
+    }
+    iord1[v] = -1;
+    level[v] = -1;
+    tree[v] = -1;
+  }
+  next[c-1] = -1;
+  for (i = n-1;i>=0;i--){
+    /*********************************************************************/
+    nfx=0;
+    //    print_cells("%%%%first:",nfx,i,cell,flag,head,next,back,fixlst);
+    //    if(i<n-10) break;
+    //C  Skip empty sets
+    while(next[head[0]] < 0){
+      head[0] = head[head[0]];
+      back[head[0]]=0;
+    }
+    //C  pick the cell for the next vertex to number
+    p=next[head[0]];
+    //C     C ADDITION BY ltz
+    v = head[p];
+    /* fprintf(stdout,"\n%%%%%%AAA:p=%3d,v=%3d,cell[v]=%3d",p,v,cell[v]);fflush(stdout); */
+    //C  delete cell of vertex from set
+    next[head[0]] = next[p];
+    next[back[cell[v]]]=next[cell[v]];
+    if(next[cell[v]]>=0){
+      back[next[cell[v]]]=back[cell[v]];
+    }
+    //C assign number i to v
+    iord[i] = v;
+    iord1[v] = i;
+    if(level[v]<0) level[v]=0;
+    // fprintf(stdout,"\n*** NUMBERING at (%d) v=%d: inv(%d)=%d",i,v,v,iord1[v]);
+    nfx=0;
+    ibeg = ia[v]-1;
+    iend = ia[v+1]-1;
+    for(ijk = iend;ijk>ibeg;ijk--){
+      w = ja[ijk];
+      if((tree[w]<0)&&(level[w]<0)) tree[w]=v;
+      if(level[w]<0) level[w]=level[v]+1;
+      // if vertex is not numbered:
+      if(iord1[w] < 0) {
+	// delete cell of w from the set (this will go into a new set). 
+	next[back[cell[w]]]=next[cell[w]]; // skip cell[w] in the element list
+	if(next[cell[w]] >=0){
+	  back[next[cell[w]]]=back[cell[w]]; // if there was a cell
+					     // pointed to as next by
+					     // cell(w), then put its
+					     // prev. cell to be the
+					     // prev(cell(w)) and not
+					     // cell(w);
+	}
+	h = back[flag[cell[w]]];  // this is the header set cell which
+				  // is a predecessor of the set header cell
+				  // containing w
+	// if h is an old set, then we create a new set (c=c+1)
+	if(flag[h]<0) {//
+	  head[c] = head[h];// insert c between h and head[h]
+	  head[h] = c;
+	  back[head[c]] = c;
+	  back[c] = h;
+	  flag[c] = 0;
+	  next[c] = -1;
+	  // add the new set to fixlst:
+	  fixlst[nfx] = c;
+	  //	  fprintf(stdout,"\n%%%%%%h=%3d,c=%3d;fixlst[%3d]=%3d",h,c,nfx,fixlst[nfx]);fflush(stdout);
+	  nfx++;
+	  if(nfx>nmem) fixlst=realloc(fixlst,nfx*sizeof(INT));
+	  h=c;
+	  c++;
+	  if(c>=nmem){
+	    nmem=c+1;
+	    flag=realloc(flag,nmem*sizeof(INT));
+	    head=realloc(head,nmem*sizeof(INT));
+	    next=realloc(next,nmem*sizeof(INT));
+	    back=realloc(back,nmem*sizeof(INT));
+	    head[c]=-1; back[c]=-1; next[c]=-1; flag[c]=-1;
+	  }
+	}
+	// add cell of w to the new set
+	next[cell[w]] = next[h];
+	if (next[h] >= 0) {
+	  back[next[h]] = cell[w];
+	}
+	flag[cell[w]] = h;
+	back[cell[w]] = h;
+	next[h] = cell[w];
+      }//	end if
+    }   //end for
+    for(i0 = 0;i0< nfx;i0++){
+      flag[fixlst[i0]] = -1;
+    }// 
+  }  //end do
+  free(fixlst);
+  free(flag);
+  free(head);
+  free(next);
+  free(back);
+  free(cell);  
+  return blk;
+}
+/*****************************************************************************************/
+/*!
  * \fn iCSRmat *run_bfs(INT n,INT *ia, INT *ja,ivector *roots,ivector *anc,const INT lvlmax)
  *
  * \brief recurrsive bfs search of a graph
@@ -31,6 +222,7 @@
  * \author Ludmil Zikatanov
  * \date   20210516
  */
+/*****************************************************************************/
 iCSRmat *run_bfs(INT n,INT *ia, INT *ja,	\
 		 ivector *roots,		\
 		 ivector *anc,			\
