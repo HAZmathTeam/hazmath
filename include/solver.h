@@ -160,6 +160,9 @@ typedef struct {
     //! cycle type
     INT cycle_type;
 
+    // User defined smoother
+    void *wdata;
+
 } AMG_data; /**< Data for AMG */
 
 /**
@@ -356,7 +359,6 @@ typedef struct {
 
     //! temporary work space for other usage
     REAL *w;
-
 
 
 } precond_data; /*! Data for general preconditioner */
@@ -666,5 +668,53 @@ typedef struct{
     block_fespace *FES;
 
 } solve_stats; /**< statistics about solve */
+
+/**
+ * \struct smoother_matvec
+ * \brief  Smoother matrix-vector multiplication
+ */
+typedef struct {
+    //! smoother type
+    SHORT type;
+
+    //! data for the smoother (e.g. smoother_data type)
+    void *data;
+
+    //! action of smoother as some matrix-vector application
+    //!! void pointer, but usually function pointer of type
+    //!! void (*fct)(REAL *, REAL *, void *)
+    //!! unless its a e.g. python function
+    void *fct;
+
+
+} smoother_matvec; /**< data for smoother matvec multiplication */
+
+
+/**
+ * \struct smoother_data
+ * \brief  data for smoother application
+ */
+typedef struct {
+
+    //! starting index
+    INT istart;
+
+    //! ending index
+    INT iend;
+
+    //! step size
+    INT istep;
+
+    //! number of smoother iterations
+    INT nsweeps;
+
+    //! optional relaxation parameter
+    REAL relax;
+
+    //! smoother matrix
+    dCSRmat *A;
+
+} smoother_data; /**< data for smoother application */
+
 
 #endif

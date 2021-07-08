@@ -133,6 +133,7 @@ void param_input_init (input_param *inparam)
  * \date   10/06/2015
  *
  * \note added frac. exponent (Ana Budisa, 2020-05-13)
+ * \note added function pointer to user def smoother (Ana Budisa, 2021-04-27)
  */
 void param_amg_init (AMG_param *amgparam)
 {
@@ -178,6 +179,9 @@ void param_amg_init (AMG_param *amgparam)
     amgparam->damping_param        = 1.0;
     amgparam->BSR_alpha            = -1000.;
     amgparam->BSR_omega            = -1000.;
+
+    // user def smoother
+    amgparam->smoother_function = NULL;
 }
 
 /*************************************************************************************/
@@ -324,7 +328,7 @@ void param_amg_set (AMG_param *amgparam,
 
 /*************************************************************************************/
 /*!
- * \fn void param_amg_set (AMG_param *amgparam1, AMG_param *amgparam2)
+ * \fn void param_amg_cp (AMG_param *amgparam1, AMG_param *amgparam2)
  *
  * \brief Copy AMG_param amgparam1 to amgparam2
  *
@@ -572,6 +576,7 @@ void param_Schwarz_print (Schwarz_param *schparam)
  * \param amgparam    Pointer to the AMG_param structure
  *
  * \note added frac. exponent (Ana Budisa, 2020-05-13)
+ * \note added function pointer to user defined smoother (Ana Budisa, 2021-04-27)
  */
 void param_amg_to_prec (precond_data *pcdata,
                         AMG_param *amgparam)
@@ -593,7 +598,6 @@ void param_amg_to_prec (precond_data *pcdata,
     pcdata->amli_coef           = amgparam->amli_coef;
     pcdata->nl_amli_krylov_type = amgparam->nl_amli_krylov_type;
     pcdata->fpwr                = amgparam->fpwr;
-    
 }
 
 /*************************************************************************************/
@@ -606,6 +610,7 @@ void param_amg_to_prec (precond_data *pcdata,
  * \param pcdata      Pointer to the precond_data structure
  *
  * \note added frac. exponent (Ana Budisa, 2020-05-13)
+ * \note added function pointer to user defined smoother (Ana Budisa, 2021-04-27)
  */
 void param_prec_to_amg (AMG_param *amgparam,
                         precond_data *pcdata)
@@ -624,7 +629,6 @@ void param_prec_to_amg (AMG_param *amgparam,
     amgparam->amli_coef           = pcdata->amli_coef;
     amgparam->nl_amli_krylov_type = pcdata->nl_amli_krylov_type;
     amgparam->fpwr                = pcdata->fpwr;
-    
 }
 
 /*************************************************************************************/
