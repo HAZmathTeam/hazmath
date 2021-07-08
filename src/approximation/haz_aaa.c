@@ -336,7 +336,7 @@ REAL get_cpzwf(REAL16 (*func)(REAL16 , void *),		\
 	}
       }
     }
-    if(print_level>2)
+    if(1)
       fprintf(stdout,"\n%%%%iter=%d | rmax=%.20Le at %7d;",m,rmax,kmax);
     if(rmax<tol || m>=(mmax-1)) break;
     swp=z[kmax];  z[kmax]=z[m];   z[m]=swp;

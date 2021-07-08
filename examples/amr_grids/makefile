@@ -16,5 +16,6 @@ CFLAGS = -pg
 
 WITH_SUITESPARSE=1
 WITH_LAPACK=1
+WITH_HAZNICS=1
 
 sinclude ../examples.mk

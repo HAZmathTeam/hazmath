@@ -195,6 +195,7 @@
 #define SMOOTHER_FJACOBI       11  /**< Fractional Jacobi smoother */
 #define SMOOTHER_FGS           12  /**< Fractional Gauss-Seidel smoother */
 #define SMOOTHER_FSGS          13  /**< Fractional Symmetric Gauss-Seidel smoother */
+#define SMOOTHER_USERDEF       20  /**< User defined smoother (NB! requires fptr to smoother mxv */
 
 /**
  * \brief Type of vertices (DOFs) for coarsening
