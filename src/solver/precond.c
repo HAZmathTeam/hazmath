@@ -7787,6 +7787,45 @@ void precond_ra_fenics(REAL *r, REAL *z, void *data)
     /* dvec_free(&z_vec); */
     return;
 }
+/***********************************************************************************************/
+/**
+ * \fn void precond_elast_eg_additive(REAL *r, REAL *z, void *data)
+ *
+ * \brief Additive Schwarz preconditioner for EG for elasticity
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Ludmil Zikatanov
+ * \date   01/31/2020
+ */
+void precond_elast_eg_additive(REAL *r,
+			       REAL *z,
+			       void *data)
+{
+  //printf("Schwarz additive precond EG Elasticity\n");
+  //    INT *params=(INT *)data;
+  //    precond_block_data *pblk=(precond_block_data *)(data + 5*sizeof(INT));
+  precond_block_data *pblk=(precond_block_data *)data;
+  INT i,n=pblk->diag[0]->row,nd = pblk->A_diag->row;
+  // make sure z is initialzied by zeros
+  array_set(n, z, 0e0);
+  dvector *r1=malloc(sizeof(dvector));
+  r1->row=nd;
+  r1->val=(REAL *)calloc(nd,sizeof(REAL));
+  for(i=0;i<nd;i++) r1->val[i]=r[i];
+  dvector *z1=malloc(sizeof(dvector));
+  z1->row=nd;
+  z1->val=z;
+  solve_UMF(pblk->A_diag,r1,z1,pblk->LU_diag[0],1);
+  for(i=0;i<n;i++){
+    z[i]+=r[i]/pblk->diag[0]->val[i];
+  }
+  free(r1->val); free(r1);
+  free(z1);
+  return;
+}
 /*---------------------------------*/
 /*--        End of File          --*/
 /*---------------------------------*/

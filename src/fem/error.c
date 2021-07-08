@@ -822,7 +822,11 @@ void HDsemierror_block(REAL *err,REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,vo
   }
 
   for(i=0;i<nspaces;i++) {
-    err[i] = sqrt(err[i]);
+    if(FE->var_spaces[i]->FEtype==0) { // Don't get H1 norm for P0 Elements
+      err[i] = 0.0;
+    } else {
+      err[i] = sqrt(err[i]);
+    }
   }
 
   if(dof_on_elm) free(dof_on_elm);
@@ -1112,9 +1116,9 @@ void HDerror_block(REAL *err,REAL *u,void (*truesol)(REAL *,REAL *,REAL,void *),
 
   L2error_block(sumL2,u,truesol,FE,mesh,cq,time);
   HDsemierror_block(sumSemi,u,D_truesol,FE,mesh,cq,time);
-  for(i=0;i<FE->nspaces;i++)
+  for(i=0;i<FE->nspaces;i++)  {
     err[i] = sqrt(sumL2[i]*sumL2[i] + sumSemi[i]*sumSemi[i]);
-
+  }
   if(sumL2) free(sumL2);
   if(sumSemi) free(sumSemi);
 

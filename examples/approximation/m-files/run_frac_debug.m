@@ -2,6 +2,7 @@
 %% KEEP alpha beta and t as they are below or change 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 alpha = 1.0; beta  = 0.0; t   =  0.0; s=0.5;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% load matrices and vectors all symmetric:
 A=get_matrix_haz('A',1);

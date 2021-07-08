@@ -17,6 +17,23 @@
 #include "vec.h"
 
 /**
+ * \struct coords
+ * \brief Returns coordinates of nodes
+ */
+typedef struct coords{
+
+  //! coordinate values (ordered x(0) y(0) z(0) x(1) y(1) z(1) etc...))
+  REAL* x;
+
+  //! Size of arrays (number of nodes)
+  INT n;
+
+  //! dimension
+  INT dim;
+
+} coords;
+
+/**
  * \struct coordinates
  * \brief Returns coordinates of nodes
  */

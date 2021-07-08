@@ -166,6 +166,7 @@ file(GLOB HAZMATH_HAZNICS_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR}
   ${HAZMATH_SOURCE_DIR}/src/haznics/*.c)
 file(GLOB HAZMATH_SWIG_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR} 
   ${HAZMATH_SOURCE_DIR}/src/haznics/*.i)
+
 file(GLOB HAZMATH_F_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR} 
   ${HAZMATH_SOURCE_DIR}/src/amr/*.f) 
 # auto generating headers if needed
@@ -244,7 +245,7 @@ if (USE_CGAL)
   #   message(STATUS "  ${HAZMATH_SOURCE_DIR}")
   set(CMAKE_MODULE_PATH "${HAZMATH_SOURCE_DIR}/cmake.modules")
 
-  find_package(CGAL QUIET COMPONENTS  GMP )
+  find_package(CGAL QUIET COMPONENTS  )
 
   if (CGAL_FOUND)
     add_definitions("-DWITH_CGAL=1")
