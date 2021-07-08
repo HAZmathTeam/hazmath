@@ -162,6 +162,10 @@ INT svdgeneral(INT nrow, INT ncol, REAL *a,REAL *smin, REAL *w)
   u   = vt  +  memvt;
   work = u +  memu;
   REAL *memend=work+lwork;
+  if((memend-at)>(m*n + mnmin + memu + memvt + lwork)) {
+    fprintf(stdout,"\n%% HAZMATH WARNING ***  IN %s: REALLOC bc of insufficient memory (%ld REALs);\n",__FUNCTION__,(memend-at)-(m*n + mnmin + memu + memvt + lwork));
+    allwork=realloc(allwork,(memend-at)*sizeof(REAL));
+  }
   for(j=0;j<n;j++){
     for(i=0;i<m;i++){
       at[j*m+i]=a[i*n+j];// transpose to go to fortran; anyway a is

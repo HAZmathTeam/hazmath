@@ -125,7 +125,7 @@ scomplex *umesh(const INT dim,		\
   }
   ns*=c2s->ns; /*multiply by the number of simplices in the unit cube
 		 (2 in 2D and 6 in 3d and 24 in 4d*/
-  scomplex *sc = (scomplex *)haz_scomplex_init(dim,ns,nv);
+  scomplex *sc = (scomplex *)haz_scomplex_init(dim,ns,nv,dim);
   //  fprintf(stdout,"\nFaces=(%d,%d)=(face,face_parent)\n",face,face_parent);fflush(stdout);
   for(kf=0;kf<sc->nv;kf++){
     coord_lattice(m,dim,kf,sc->nv,nd);

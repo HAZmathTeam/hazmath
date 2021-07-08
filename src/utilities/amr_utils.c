@@ -11,9 +11,11 @@
 /*!
  * \fn INT aresame(INT *a, INT *b, INT n)
  *
- * \brief
+ * \brief checks if two arrays have same elements up to a permutation. 
  *
- * \param
+ * \param a:   input array
+ * \param b:   input array to compare with a. 
+ * \param n:   the size of a and b;
  *
  * \return
  *
@@ -44,20 +46,26 @@ INT aresame(INT *a, INT *b, INT n)
 /*!
  * \fn INT aresamep(INT *a, INT *b, INT n, INT *p)
  *
- * \brief
+ * \brief checks (n^2 algorithm) if two have the same elements (up to a
+     permutation); 
  *
- * \param
+ * \param a:   input array
+ * \param b:   input array to compare with a. 
+ * \param n:   the size of a and b;
+ * \param p:   the permutation which takes a into b if they are the same. 
  *
- * \return
+ *
+ * \return returns 0 if the arrays are not the same; returns 2 if they
+ *                    are the same and p is the permutation
+ *                    so that a[i]=b[p[i]]. If there is no permutation,
+ *                    i.e. p[i]=i, then returns 1.
+ *
  *
  * \note
  *
  */
 INT aresamep(INT *a, INT *b, INT n, INT *p)
 {
-  /* checks (n^2 algorithm) if two have the same elements (up to a
-     permutation); if they do, then returns 2 and p is the permutation
-     a[i]=b[p[i]] if there is no permutation, i.e. p[i]=i, then returns 1*/
   INT i,j,ai,bj;
   INT flag=-1,iret=1;
   for (i=0;i<n;i++)p[i]=-1;
@@ -81,24 +89,32 @@ INT aresamep(INT *a, INT *b, INT n, INT *p)
 /*!
  * \fn INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)
  *
- * \brief
+ * \brief     In dimension "n" constructs the map from reference simplex to
+ *    simplex with coordinates xs[0..n].  Then solves a linear system
+ *    with partial pivoting to determine if a point given with
+ *    coordinates xstar[0..n-1] is in the (closed) simplex defined by
+ *    "nodes[0..n] and xs[0..n]"
  *
- * \param
+ * \param n:         dimension of the simplex
+ * \param nodes:     global numbering of the vertices of the simplex  
  *
- * \return
+ * \param xs[]:      coordinates of all vertices in the simplicial
+ *                   complex. This corresponds to the global
+ *                   numbering. So the xs[nodes[0...(n+1)]]=coords of
+ *                   the simplex vertices
+ *
+ * \param xstar[]:   node for which we would like to check its incidence with the simplex. 
+ * 
+ * \param nbig:       dimension of the space where the simplex is embedded
+ * \return  0: the point is in the simplex; nonzero: not in the simplex.  
  *
  * \note
  *
  */
-INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)
+INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)  
 {
-  /*
-     In dimension "n" constructs the map from reference simplex to
-     simplex with coordinates xs[0..n].  Then solves a linear system
-     with partial pivoting to determine if a point given with
-     coordinates xstar[0..n-1] is in the (closed) simplex defined by
-     "nodes[0..n] and xs[0..n]"
-  */
+  // does not support different dimensions of the simplex and the
+  // space containing it.
   INT n1=n+1,i,j,l0n,ln,j1;
   INT *p=NULL;
   REAL *A=NULL,*xhat=NULL, *piv=NULL;
@@ -155,15 +171,20 @@ INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)
   if(piv) free(piv);
   return flag;
 }
+
+
+
 /**********************************************************************/
 /*!
  * \fn void marks(scomplex *sc,dvector *errors)
  *
- * \brief
+ * \brief marks simplices based on input vector with errors. 
  *
- * \param
+ * \param sc:            simplicial complex
+ * \param errors[]:      dvector with errors.
  *
- * \return
+ * \return               changes sc->marked[]: simplices marked 
+ *                       for refinemend have sc->marked[s]=true;
  *
  * \note
  *
@@ -172,7 +193,7 @@ void marks(scomplex *sc,dvector *errors)
 {
   /* mark simplices depending on the value of an estimator */
   /* the estimator here is the aspect ratio of the simplex */
-  INT n=sc->n,n1=n+1,ns=sc->ns,level=sc->level;
+  INT n=sc->n,nbig=sc->nbig,n1=n+1,ns=sc->ns,level=sc->level;
   //INT kbadel;
   INT ke,i,j,j1,k,p,ni,mj,mk;
   INT ne=(INT )((n*n1)/2);
@@ -189,7 +210,7 @@ void marks(scomplex *sc,dvector *errors)
       for (k = j1; k<n1;k++){
 	mk=sc->nodes[ni+k]*n;
 	sl[ke]=0e0;
-	for(p=0;p<n;p++){
+	for(p=0;p<nbig;p++){
 	  sl[ke]+=(sc->x[mj+p]-sc->x[mk+p])*(sc->x[mj+p]-sc->x[mk+p]);
 	}
 	sl[ke]=sqrt(sl[ke]);
@@ -218,17 +239,31 @@ void marks(scomplex *sc,dvector *errors)
   if(sl)free(sl);
   return;
 }
-/**********************************************************************/
+/******************************************************************************/
 /*!
  * \fn unsigned int reflect2(INT n, INT is, INT it, INT* sv1, INT
- *		      *sv2, INT* stos1, INT* stos2, INT visited, INT
- *		      *wrk)
+ *		      *sv2, INT* stos1, INT* stos2, INT visited, INT *wrk)
  *
- * \brief
+ * \brief         This routine checks is and it are reflected neighbors
+ *                reorders is if it was not visited before. One main
+ *                assumption is that (is) and (it) intersect in (n-1)
+ *                dimensional simplex with (n) vertices, so that only
+ *                one element of sv1 (say, k1) is not present in sv2 
+ *                and only one element of sv2 (say, k2) is not present in
+ *                sv1. Then we make an important assumption here, that
+ *                stos1[k1] = it and stos[k2]= is. This is always
+ *                achievable when creating the simplex-to-simplex map.
  *
- * \param
+ * \param sv1[]:       the n+1 vertices of (is); 
+ * \param sv2[]        the (n+1) vertices of (it).
  *
- * \return
+ * \param stos1[]:     are the n+1 neighbors of (is); stos2 are the
+ *                     (n+1) neighbors of (it).
+ *
+ *  \param             wrk[] is working space of size n+2, 
+ *                     n is the spatial dimension
+ *
+ * \return             returns 0 if is and it are reflected neighbors
  *
  * \note
  *
@@ -241,22 +276,6 @@ unsigned int reflect2(INT n, INT is, INT it,				\
 /********************************************************************/
 {
   /*
-     sv1 are the n+1 vertices of is; sv2 are the (n+1) vertices of
-     (it).
-
-     stos1 are the n+1 neighbors of is; stos2 are the (n+1) neighbors of
-     (it).
-
-     This routine checks whether is is reflected neighbor of it
-     and reorders is if it was not visited before One main assumption is
-     that (is) and (it) intersect in (n-1) dimensional simplex with (n)
-     vertices, so that only one element of sv1 (say, k1) is not present
-     in sv2 and only one element of sv2 (say, k2) is not present in
-     sv1. Then we make an important assumption here, that stos1[k1] = it
-     and stos[k2]= is. This is always achievable when creating the stos
-     (simplex to simplex) relation.
-
-     wrk is working space of size n+2, n is the spatial dimension
   */
   INT n1=n+1,n2=n+2;
   INT *wrk1=NULL,*invp=NULL,*p=NULL,*pw=NULL,*wrk2=NULL;
@@ -339,7 +358,11 @@ unsigned int reflect2(INT n, INT is, INT it,				\
  * \fn void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT
  *                   print_level)
  *
- * \brief
+ * \brief  uses the simplex-to-simplex map to create a bfs tree. Then
+ *         the edges of the tree are followed to try to consistently
+ *         order the locally (see reflect2). bfs tree: constructs all
+ *         bfs trees for each connected component of the element
+ *         neighboring list in the connected component containing it;
  *
  * \param
  *
@@ -351,10 +374,6 @@ unsigned int reflect2(INT n, INT is, INT it,				\
 /*using bfs to get the reflected mesh*/
 void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
 {
-  /*
-   * bfs tree: constructs all bfs trees for each connected componend of the element neighboring list
-   * in the connected component containing it;
-  */
   //  haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
   INT it=it0, n=sc->n,n1=n+1,ns=sc->ns,cc=sc->cc;
   INT i,j,k,iii,is,isn1,itn1;
@@ -362,12 +381,12 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
   //INT in1;
   INT kbeg,kend,nums,iai,iai1,klev;
   iCSRmat *neib=malloc(1*sizeof(iCSRmat));
-  neib[0]=icsr_create(ns,ns,4*ns+ns);
+  neib[0]=icsr_create(ns,ns,2*ns+ns);
   iii=0;
   neib->IA[0]=iii;
   for(i=0;i<ns;i++){
-    neib->JA[iii]=i;
-    iii++;
+//    neib->JA[iii]=i;
+//    iii++;
     isn1=i*n1;
     for(j=0;j<n1;j++){
       is=sc->nbr[isn1+j];
@@ -387,10 +406,14 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
   //  exit(55);
   INT *mask = neib->val;
   INT *jbfs = mask+ns;
-  INT *jblk=jbfs+ns+1;
-  INT *iblk=jblk+ns+1;
   // find the connected components.
-  dfs00_(&ns,neib->IA, neib->JA,&cc,iblk,jblk);
+  //zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz  
+  iCSRmat *blk_dfs=run_dfs(ns,neib->IA, neib->JA);
+  cc=blk_dfs->row;
+  INT *iblk=blk_dfs->IA;
+  INT *jblk=blk_dfs->JA;
+  /* dfs00_(&ns,neib->IA, neib->JA,&cc,iblk,jblk); */
+  //zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz  
   INT ireflect;
   // initialization
   /*************************************************************/
@@ -405,7 +428,7 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
 	      "\n%s: Component=%d; root=%d;\n",__FUNCTION__,kcc,it);fflush(stdout);  }
     nums=0;
     klev=1; //level number ; for indexing this should be klev-1;
-    jbfs[nums]=it; // thit it an input simplex where to begin.
+    jbfs[nums]=it; // this is an input simplex where to begin.
     mask[it]=klev;
     nums++;
     kbeg=0; kend=1;
@@ -428,6 +451,9 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
 	  switch(ireflect) {
 	  case 2 :
 	  case 3 :
+	    fprintf(stderr,						\
+		    "Invalid return from reflect2 in %s; return value = %d\n", \
+		    __FUNCTION__,ireflect);
 	    exit(ireflect);
 	    break;
 	  case 0 :
@@ -463,7 +489,6 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
   //  for(i=0;i<ns;i++){
   //    jbfs[i]=-1;
   //  }
-  icsr_free(neib);
   return;
 }
 /******************************************************************/
@@ -480,7 +505,7 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
  */
 scomplex *scfinest(scomplex *sc)
 {
-  INT ns,i=0,j=-10,k=-10,n=sc->n,n1=sc->n+1,nv=sc->nv;
+  INT ns,i=0,j=-10,k=-10,n=sc->n,nbig=sc->nbig,n1=sc->n+1,nv=sc->nv;
   scomplex *sctop=NULL;
   /*
       store the finest mesh in and return the sc structure. save the
@@ -497,7 +522,7 @@ scomplex *scfinest(scomplex *sc)
     if(sc->child0[j]<0 || sc->childn[j]<0)ns++;
   }
   /*allocate the scomplex for the finest level*/
-  sctop=haz_scomplex_init(n,ns,nv);
+  sctop=haz_scomplex_init(n,ns,nv,nbig);
   /* we dont need bunch of these, at least for assembly, so we free them*/
   free(sctop->parent);sctop->parent=NULL;
   free(sctop->childn);sctop->childn=NULL;
@@ -524,8 +549,8 @@ scomplex *scfinest(scomplex *sc)
   /* copy the boudary codes and the coordinates*/
   for(i=0;i<nv;i++){
     sctop->bndry[i]=sc->bndry[i];
-    for(j=0;j<n;j++)
-      sctop->x[i*n+j]=sc->x[i*n+j];
+    for(j=0;j<nbig;j++)
+      sctop->x[i*n+j]=sc->x[i*nbig+j];
   }
   free(sctop->csys);sctop->csys=NULL;
   free(sctop->fval);sctop->fval=NULL;
@@ -892,7 +917,7 @@ cube2simp *cube2simplex(INT dim)
       }
     }
   }
-  //  print_full_mat_int(c2s->nf,c2s->nvface,c2s->faces,"UCubef");
+  //  print_full_mat_int(c2s->nf,c2s->nvface,c2s->faces,"UCubef");fflush(stdout);
   return c2s;
 }
 /******************************************************************/

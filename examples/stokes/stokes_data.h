@@ -52,8 +52,10 @@ void Dexact_sol2D(REAL *val, REAL *x, REAL time,void *param){
 
   val[0] = M_PI*cos(M_PI*x[0])*cos(M_PI*x[1]);
   val[1] = -M_PI*sin(M_PI*x[0])*sin(M_PI*x[1]);
+
   val[2] = M_PI*sin(M_PI*x[0])*sin(M_PI*x[1]);
   val[3] = -M_PI*cos(M_PI*x[0])*cos(M_PI*x[1]);
+
   val[4] = -1.0;
   val[5] = 0.0;
   return;

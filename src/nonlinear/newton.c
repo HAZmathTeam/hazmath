@@ -93,22 +93,33 @@ void free_newton(newton* n_it)
     n_it->sol=NULL;
   }
 
-  if(n_it->sol_prev) {
-    dvec_free(n_it->sol_prev);
-    free(n_it->sol_prev);
-    n_it->sol_prev=NULL;
-  }
-
-  if(n_it->update) {
-    dvec_free(n_it->update);
-    free(n_it->update);
-    n_it->update=NULL;
-  }
-
   if(n_it->rhs) {
     dvec_free(n_it->rhs);
     free(n_it->rhs);
     n_it->rhs=NULL;
+  }
+
+  if(n_it->current_step>0) {
+    if(n_it->sol_prev) {
+      dvec_free(n_it->sol_prev);
+      free(n_it->sol_prev);
+      n_it->sol_prev=NULL;
+    }
+
+    if(n_it->update) {
+      dvec_free(n_it->update);
+      free(n_it->update);
+      n_it->update=NULL;
+    }
+  } else {
+    if(n_it->sol_prev) {
+      free(n_it->sol_prev);
+      n_it->sol_prev=NULL;
+    }
+    if(n_it->update) {
+      free(n_it->update);
+      n_it->update=NULL;
+    }
   }
 
   return;
@@ -242,14 +253,9 @@ INT check_newton_convergence(newton *n_it)
 
 /******************************************************************************************************/
 /*!
- * \fn void get_residual_norm(newton *n_it,fespace* FE,mesh_struct* mesh, qcoordinates* cq)
+ * \fn void get_residual_norm(newton *n_it)
  *
  * \brief Computes the (little) l2 norm of the nonlinear residual (rhs).
- *
- * \param n_it     Newton struct
- * \param FE       FE space
- * \param mesh     Mesh struct
- * \param cq       Quadrature for computing norms
  *
  * \note This uses the little l2 norm, though it probably should be a dual space
  *       norm for the entire block system instead.  One should avoid this as a

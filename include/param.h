@@ -62,6 +62,9 @@ typedef struct {
     INT  nonlinear_itsolver_maxit;   /**< maximal iterations of nonlinear solver*/
     REAL nonlinear_itsolver_tol;    /**< tolerance for nonlinear solver */
     INT  nonlinear_itsolver_toltype; /**< type of stopping tolerance for nonlinear solver */
+    INT fas_presmoothers; /* Number of presmoothing steps for FAS */
+    INT fas_postsmoothers; /* Number of postsmoothing steps for FAS */
+    INT fas_smooth_tol; /* Stopping tolerance for nonlinear smoother */
 
     //-------------------------
     // linear solver parameters

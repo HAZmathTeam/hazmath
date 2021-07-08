@@ -8,6 +8,100 @@
  *  \note 20201025 (ltz)
  */
 #include "hazmath.h"
+/*!
+/**********************************************************************/
+/*!
+ * \fn static void poles_alg2(INT m,REAL16 *pol,REAL16 *w,REAL16 *z)
+ *
+ * \brief this function uses an approach different than qz to find the
+   poles by solving generalized eigenvalue problem 
+ *
+ * \param w[] and z[] (weights and nodes
+ * \param pol[] : output, the poles.
+ *
+ * \return
+ *
+ * \note
+ *
+ */
+/*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+static void poles_alg2(INT m,REAL16 *pol,REAL16 *w,REAL16 *z)
+{
+  INT m1=m+1,m01=m-1,mm1=m1*m1,i,j;
+  REAL16 swp;
+  size_t memall=mm1*sizeof(REAL16)+				\
+    2*m1*sizeof(REAL16)+					\
+    mm1*sizeof(REAL)+						\
+    m1*sizeof(INT);
+  void *wrk=calloc(memall,sizeof(char));
+  void *wrk0=wrk;
+  REAL16 *ewrk=(REAL16 *)wrk;
+  wrk+=mm1*sizeof(REAL16);
+  REAL16 *col_id=(REAL16 *)wrk;
+  wrk+=m1*sizeof(REAL16);
+  REAL *einv=(REAL *)wrk; // only REAL because it goes into the
+			  // eigenvalue computation and lapack has no
+			  // long doubles
+  wrk+=mm1*sizeof(REAL);
+  REAL16 *pivot=(REAL16 *)wrk;
+  wrk+=m1*sizeof(REAL16);
+  INT *perm=(INT *)wrk;
+  wrk+=m1*sizeof(INT);
+  if((wrk-wrk0)>memall) {
+    fprintf(stdout,"\nMemory error in %s: allocated=%ld .lt. needed=%ld\n",__FUNCTION__,memall,wrk-wrk0);
+    exit(32);    
+  }
+  //End of Memory:
+  for(i=0;i<((INT ) m/2);i++){
+    swp=z[i]; z[i]=z[m-i-1]; z[m-i-1]=swp;
+    swp=w[i]; w[i]=w[m-i-1]; w[m-i-1]=swp;
+  }
+  //  form the matrix
+  // ewrk
+  memset(ewrk,0,m1*m1*sizeof(REAL16));
+  for(i=0;i<m;i++){
+    ewrk[i*m1+i]=z[i];
+    ewrk[i*m1+m1-1]=1e00;
+    ewrk[m*m1+i]=w[i];
+  }  
+  for(i=0;i<m;i++){
+    memset(col_id,0,m1*sizeof(REAL16));
+    col_id[i]=1e00;
+    if(i==0)
+      solve_pivot_l(1,m1,ewrk,col_id,perm,pivot);
+    else
+      solve_pivot_l(0,m1,ewrk,col_id,perm,pivot);      
+    for(j=0;j<m;j++){
+      einv[i*m+j]=(REAL )col_id[j];
+    }
+  }
+  // compute eigenvalues:
+  // use ewrk as a working space here; we dont need it anymore.
+  REAL *wr=(REAL *)ewrk;
+  REAL *wi=(REAL *)ewrk+m1;
+  eiggeneral(m,einv,wr,wi);
+  // put the  the one with minimal abs to be the last
+  i=0;swp=(REAL16 )wr[m01];
+  for(j=(m-2);j>=0;j--){
+    if(fabs(wr[j])<fabs((REAL )swp)){
+      // swap j and m-1
+      swp=(REAL16 ) wr[j];
+      wr[j]=wr[m01];
+      wr[m01]=(REAL )swp;
+    }
+  }
+  // swap pol, ignore the last.
+  for(j=0;j<m01;j++){
+    pol[j]=1e00/((REAL16 )wr[m01-j-1]);
+  }
+  // permute z and w back.
+  for(i=0;i<((INT ) m/2);i++){
+    swp=z[i]; z[i]=z[m-i-1]; z[m-i-1]=swp;
+    swp=w[i]; w[i]=w[m-i-1]; w[m-i-1]=swp;
+  }
+  free(wrk0);
+  return;
+}
 /**********************************************************************/
 /*!
  * \fn static void get_res(const INT m,REAL16 *res,  REAL16 *z,	REAL16 *p,REAL16 *f,void *wrk)
@@ -32,8 +126,8 @@ static void get_res(const INT m,		\
   // wrk should have space m real16 and m integer. 
   //  given poles and right hand side, this finds the residues
   // Solves 
-  INT i,j,k,im,m01=m-1;
-  REAL16 apoljk,zj,fj;
+  INT j,k,m01=m-1;
+  REAL16 zj;
   REAL16 *apol=(REAL16 *)calloc(m*m,sizeof(REAL16));
   REAL16 *piv = (REAL16 *)wrk;  
   INT *perm=(INT *)(wrk+m*sizeof(REAL16));
@@ -78,14 +172,12 @@ INT residues_poles(INT m,				\
 		   REAL *resd,				\
 		   REAL *pold)
 {
-  INT m1=m+1,m01=m-1,mm1=m1*m1,i,j,k;
+  INT m1=m+1,m01=m-1,mm1=m1*m1,i,j;
   REAL16 swp;
   // MEMORY
-  void *wrk=(void *)calloc(7*m1*sizeof(REAL16)+			\
-			   2*m1*m1*sizeof(REAL16)+		\
-			   m1*m1*sizeof(REAL)+			\
-			   m1*sizeof(INT),			\
-			   sizeof(char));
+  size_t memall = 6*m1*sizeof(REAL16)+m1*sizeof(INT);
+  void *wrk=(void *)calloc(memall,sizeof(char));
+  void *wrk0=wrk;
   REAL16 *z=(REAL16 *)wrk;
   wrk+=m1*sizeof(REAL16);
   REAL16 *w=(REAL16 *)wrk;
@@ -96,89 +188,124 @@ INT residues_poles(INT m,				\
   wrk+=m1*sizeof(REAL16);
   REAL16 *res=(REAL16 *)wrk;
   wrk+=m1*sizeof(REAL16);
-  REAL16 *ewrk=(REAL16 *)wrk;
-  wrk+=mm1*sizeof(REAL16);
-  REAL16 *col_id=(REAL16 *)wrk;
-  wrk+=m1*sizeof(REAL16);
-  REAL *einv=(REAL *)wrk; // only REAL because it goes into the
-			  // eigenvalue computation and lapack has no
-			  // long doubles
-  wrk+=mm1*sizeof(REAL);
   REAL16 *pivot=(REAL16 *)wrk;
   wrk+=m1*sizeof(REAL16);
   INT *perm=(INT *)wrk;
   wrk+=m1*sizeof(INT);
+  if((wrk-wrk0)>memall) {
+    fprintf(stdout,"\nMemory error in %s: allocated=%ld .lt. needed=%ld\n",__FUNCTION__,memall,wrk-wrk0);
+    exit(16);    
+  }
   // END memory
   // grab the input params and convert them to higher precision
   for(j=0;j<m;j++){
     w[j]=(REAL16 )wd[j];
     z[j]=(REAL16 )zd[j];
     f[j]=(REAL16 )fd[j];
-    /* fprintf(stdout,"\nzin(%d)=%.18Le;",j+1,z[j]);  fflush(stdout); */
-    /* fprintf(stdout,"\nwin(%d)=%.18Le;",j+1,w[j]); fflush(stdout); */
-    /* fprintf(stdout,"\nfin(%d)=%.18Le;",j+1,f[j]); fflush(stdout); */
+    //    fprintf(stdout,"\nzin(%d)=%.18Le;",j+1,z[j]);  fflush(stdout);
+    //    fprintf(stdout,"\nwin(%d)=%.18Le;",j+1,w[j]); fflush(stdout);
+    //    fprintf(stdout,"\nfin(%d)=%.18Le;",j+1,f[j]); fflush(stdout);
+  }
+  // if we want the old way of computing poles:
+  if(0){
+     poles_alg2(m,pol,w,z);
   }
   // swap z[1:m]=z[m:-1:1] and same for w.
-  for(i=0;i<((INT ) m/2);i++){
-    swp=z[i]; z[i]=z[m-i-1]; z[m-i-1]=swp;
-    swp=w[i]; w[i]=w[m-i-1]; w[m-i-1]=swp;
-  }
-  //
-  //  form the matrix
-  // ewrk
-  memset(ewrk,0,m1*m1*sizeof(REAL16));
-  for(i=0;i<m;i++){
-    ewrk[i*m1+i]=z[i];
-    ewrk[i*m1+m1-1]=1e00;
-    ewrk[m*m1+i]=w[i];
+  /* for(j=0;j<m;j++){ */
+  /*   fprintf(stdout,"\nzp2(%d)=%.18Le;",j+1,z[j]);  fflush(stdout); */
+  /*   fprintf(stdout,"\nwp2(%d)=%.18Le;",j+1,w[j]); fflush(stdout); */
+  /* } */
+  // these are 2 matrices and the other params of the qz algorithm.
+  REAL16 *a_mat=(REAL16 *)calloc(m1*m1,sizeof(REAL16));
+  REAL16 *b_mat=(REAL16 *)calloc(m1*m1,sizeof(REAL16));
+  REAL16 *x000=(REAL16 *)calloc(m1*m1,sizeof(REAL16));
+  REAL16 *alphar=(REAL16 *)calloc(m1,sizeof(REAL16));
+  REAL16 *alphai=(REAL16 *)calloc(m1,sizeof(REAL16));
+  REAL16 *beta=(REAL16 *)calloc(m1,sizeof(REAL16));
+  INT *iter000=(INT *)calloc(m1,sizeof(INT));
+  memset(a_mat,0,mm1*sizeof(REAL16));
+  memset(b_mat,0,mm1*sizeof(REAL16));
+  for(i=1;i<m1;i++){
+    a_mat[i*m1+i]=z[i-1];
+    a_mat[i*m1]=1e00;
+    a_mat[i]=w[i-1];
+    b_mat[i*m1+i]=1e0;
   }  
   /* for(i=0;i<m1;i++){ */
   /*   for(j=0;j<m1;j++){ */
-  /*     fprintf(stdout,"\newrk(%d,%d)=%.18Le;",i+1,j+1,ewrk[i*m1+j]); */
+  /*     fprintf(stdout,"\na_mat(%d,%d)=%.18Le;",i+1,j+1,a_mat[i*m1+j]);fflush(stdout); */
   /*   } */
   /* } */
-  for(i=0;i<m;i++){
-    memset(col_id,0,m1*sizeof(REAL16));
-    col_id[i]=1e00;
-    if(i==0)
-      solve_pivot_l(1,m1,ewrk,col_id,perm,pivot);
-    else
-      solve_pivot_l(0,m1,ewrk,col_id,perm,pivot);      
-    for(j=0;j<m;j++){
-      einv[i*m+j]=(REAL )col_id[j];
-    }
-  }
-  /* for(i=0;i<m;i++){ */
-  /*   for(j=0;j<m;j++){ */
-  /*     fprintf(stdout,"\neinv(%d,%d)=%.18e;",i+1,j+1,einv[i*m+j]); */
+  /* for(i=0;i<m1;i++){ */
+  /*   for(j=0;j<m1;j++){ */
+  /*     fprintf(stdout,"\nb_mat(%d,%d)=%.18Le;",i+1,j+1,b_mat[i*m1+j]);fflush(stdout); */
   /*   } */
   /* } */
-  // compute eigenvalues:
-  // use ewrk as a working space here; we dont need it anymore.
-  REAL *wr=(REAL *)ewrk;
-  REAL *wi=(REAL *)ewrk+m1;
-  eiggeneral(m,einv,wr,wi);
-  // put the  the one with minimal abs to be the last
-  i=0;swp=(REAL16 )wr[m01];
-  for(j=(m-2);j>=0;j--){
-    if(fabs(wr[j])<fabs((REAL )swp)){
-      // swap j and m-1
-      swp=(REAL16 ) wr[j];
-      wr[j]=wr[m01];
-      wr[m01]=(REAL )swp;
+  /* fprintf(stdout,"\n%d %d",m1,m1); */
+  /* for(i=0;i<m1;i++){ */
+  /*   fprintf(stdout,"\n"); */
+  /*   for(j=0;j<m1;j++){ */
+  /*     fprintf(stdout,"%.16Le ",a_mat[i*m1+j]);fflush(stdout); */
+  /*   } */
+  /* } */
+  /* fprintf(stdout,"\n1111\n"); */
+  /* for(i=0;i<m1;i++){ */
+  /*   fprintf(stdout,"\n"); */
+  /*   for(j=0;j<m1;j++){ */
+  /*     fprintf(stdout,"%.16Le ",b_mat[i*m1+j]);fflush(stdout); */
+  /*   } */
+  /* } */
+  /* fprintf(stdout,"\n"); */
+  INT wantx=0;
+  REAL16 tol000=1e-20,epsa,epsb;
+  qzhes(m1,m1,a_mat,b_mat,wantx,x000);
+  qzit(m1,m1,&a_mat,&b_mat,tol000,&epsa,&epsb,&iter000,wantx,&x000);
+  qzval(m1,m1,
+	&a_mat,&b_mat,
+	epsa,epsb,
+	&alphar,&alphai,&beta,
+	wantx,&x000);
+  /* for(j=0;j<m1;j++){ */
+  /*   fprintf(stdout,"\nalphar(%d)=%.16Le;",j+1,alphar[j]); */
+  /*   fprintf(stdout,"alphai(%d)=%.16Le;",j+1,alphai[j]); */
+  /*   fprintf(stdout,"beta000(%d)=%.16Le;",j+1,beta[j]); */
+  /* } */
+  /* fprintf(stdout,"\n");fflush(stdout); */
+  // do two passes to remove the two eigenvalues with minimal beta:
+  INT j1=0,j2;
+  REAL16 betamin1=fabsl(beta[0]),betamin2;
+  for(i=1;i<m1;i++){
+    if(betamin1 > fabsl(beta[i])){
+      betamin1=fabsl(beta[i]);
+      j1=i;
     }
   }
-  // swap pol, ignore the last.
-  for(j=0;j<m01;j++){
-    pol[j]=1e00/((REAL16 )wr[m01-j-1]);
+  j2=-1;
+  betamin2=1e20;
+  for(i=0;i<m1;i++){
+    if(i==j1) continue;
+    if(betamin2 > fabsl(beta[i])){
+      betamin2=fabsl(beta[i]);
+      j2=i;
+    }
   }
-  // permute z and w back.
-  for(i=0;i<((INT ) m/2);i++){
-    swp=z[i]; z[i]=z[m-i-1]; z[m-i-1]=swp;
-    swp=w[i]; w[i]=w[m-i-1]; w[m-i-1]=swp;
+  // once j1 and j2 are known, we find the poles:
+  j=0;
+  for(i=1;i<m1;i++){
+    if(i==j1 || i == j2) continue;
+    // skip all with nonzero imaginary part:
+    //    if(fabsl(alphai[i])>1e-16) {
+    //      fprintf(stdout,"\n WARNING: pole[%d] haz nonzero imaginary part. Skipping it...\n");
+    //    }
+    pol[j]=alphar[i]/beta[i];
+    ++j;
   }
+  //  fprintf(stdout,"\nbeta[%d]=%Le,beta[%d]=%Le\n",j1,beta[j1],j2,beta[j2]);
+  //  exit(33);
+  ///////////////////////////////////////////////////////////////////////////////
   // get the residuals
   get_res(m,res,z,pol,f,(void *)pivot);
+  ///////////////////////////////////////////////////////////////////////////////
   /* for(j=0;j<m01;j++){ */
   /*   fprintf(stdout,"\npol000(%d)=%.18Le;",j+1,pol[j]); */
   /* } */
@@ -192,7 +319,7 @@ INT residues_poles(INT m,				\
   for(j=0;j<m;j++) resd[j]=(REAL )res[j];
   for(j=0;j<m01;j++) pold[j]=(REAL )pol[j];
   //
-  free((void *)z);
+  free(wrk0);
   return 0;
 }
 /**********************************************************************/
@@ -255,7 +382,6 @@ REAL get_cpzwf(REAL16 (*func)(REAL16 , void *),		\
   REAL16 r,wzkj,fnum,fden,rm,rmax,swp;
   REAL16  fj,zj,tol,xmin=(REAL16 )xmin_in,xmax=(REAL16 )(xmax_in);
   REAL smin=-1e20;
-  INT info=-22;
   INT mbig=mbig_in[0];
   if(mbig<4)mbig=4;
   if(mmax_in[0]<2) mmax_in[0]=2;
@@ -336,8 +462,9 @@ REAL get_cpzwf(REAL16 (*func)(REAL16 , void *),		\
 	}
       }
     }
-    if(1)
-      fprintf(stdout,"\n%%%%iter=%d | rmax=%.20Le at %7d;",m,rmax,kmax);
+
+    if(print_level>2)
+      fprintf(stdout,"\n%%%%iter=%d | rmax=%.20Le at %7d;",m,rmax,kmax);fflush(stdout);
     if(rmax<tol || m>=(mmax-1)) break;
     swp=z[kmax];  z[kmax]=z[m];   z[m]=swp;
     swp=f[kmax];  f[kmax]=f[m];   f[m]=swp;
@@ -355,7 +482,10 @@ REAL get_cpzwf(REAL16 (*func)(REAL16 , void *),		\
     /* 	fprintf(stdout,"\nX21(%d,%d)=%.15e",krow+1,j+1,x21d[krow*m+j]); */
     /*   } */
     /* } */
-    info=svdgeneral(mbig,m,x21d,&smin,wd);
+    INT info=svdgeneral(mbig,m,x21d,&smin,wd);
+    if(info!=0){
+      fprintf(stdout,"\n%% *** HAZMATH WARNING*** IN %s: SVD-INFO IS NOT ZERO; INFO=%d;\n",__FUNCTION__,info);
+    }
     /* fprintf(stdout,"\nsmin=%e\n",smin); */
     /* k=0; */
     /* for(i=0;i<m;i++) {  */

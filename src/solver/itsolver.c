@@ -2091,7 +2091,7 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
         dcsr_trans(&A_diag[i], &A_tran);
         dcsr_cp(&A_tran, &A_diag[i]);
 
-        if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagnol: \n", i);
+        if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagonal block: \n", i);
         LU_diag[i] = umfpack_factorize(&A_diag[i], prtlvl);
 
         dcsr_free(&A_tran);
@@ -2255,6 +2255,7 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
                                        AMG_param *amgparam,
                                        dCSRmat *A_diag)
 {
+
     const SHORT prtlvl = itparam->linear_print_level;
     const SHORT precond_type = itparam->linear_precond_type;
 
@@ -2270,6 +2271,7 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
 //#else
 //    error_extlib(257, __FUNCTION__, "SuiteSparse");
 #endif
+
 
     SHORT max_levels;
     if (amgparam) max_levels = amgparam->max_levels;
@@ -2289,7 +2291,7 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
             dcsr_trans(&A_diag[i], &A_tran);
             dcsr_cp(&A_tran, &A_diag[i]);
 
-            if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagnol: \n", i);
+            if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagonal block:\n", i);
             LU_diag[i] = umfpack_factorize(&A_diag[i], prtlvl);
 
             dcsr_free(&A_tran);
@@ -2481,7 +2483,7 @@ INT linear_solver_bdcsr_krylov_block_4(block_dCSRmat *A,
             dcsr_trans(&A_diag[i], &A_tran);
             dcsr_cp(&A_tran, &A_diag[i]);
 
-            if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagnol: \n", i);
+            if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagonal block:\n", i);
             LU_diag[i] = umfpack_factorize(&A_diag[i], prtlvl);
 
             dcsr_free(&A_tran);
@@ -2613,7 +2615,7 @@ INT linear_solver_bdcsr_krylov_block_5(block_dCSRmat *A,
             dcsr_trans(&A_diag[i], &A_tran);
             dcsr_cp(&A_tran, &A_diag[i]);
 
-            if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagnol: \n", i);
+            if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagonal block:\n", i);
             LU_diag[i] = umfpack_factorize(&A_diag[i], prtlvl);
 
             dcsr_free(&A_tran);
@@ -2809,7 +2811,7 @@ INT linear_solver_bdcsr_krylov_block(block_dCSRmat *A,
     dcsr_trans(&A_diag[i], &A_tran);
     dcsr_cp(&A_tran, &A_diag[i]);
 
-    if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagnol: \n", i);
+    if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagonal block:\n", i);
     LU_diag[i] = umfpack_factorize(&A_diag[i], prtlvl);
 
     dcsr_free(&A_tran);
@@ -4667,7 +4669,7 @@ INT linear_solver_bdcsr_krylov_gmg(block_dCSRmat *A,
 }
 
 /********************************************************************************************/
-/**
+/*!
  * \fn INT linear_solver_bdcsr_babuska_block_2 (block_dCSRmat *A, dvector *b, dvector *x,
  *                                              itsolver_param *itparam,
  *                                              AMG_param *amgparam, dCSRmat *A_diag)
@@ -4678,8 +4680,7 @@ INT linear_solver_bdcsr_krylov_gmg(block_dCSRmat *A,
  * \param b         Pointer to the right hand side in dvector format
  * \param x         Pointer to the approx solution in dvector format
  * \param itparam   Pointer to parameters for iterative solvers
- * \param amgparam  Pointer to parameters for AMG solvers
- * \param A_diag    Diagonal blocks of A
+ * \param amgparam  Pointer to parameters for AMG solvers * \param A_diag    Diagonal blocks of A
  *
  * \return          Iteration number if converges; ERROR otherwise.
  *
@@ -4954,6 +4955,88 @@ INT linear_solver_bdcsr_babuska_block_2(block_dCSRmat *A,
     */
 
     return status;
+}
+/*!
+ * \fn INT linear_solver_bdcsr_krylov_block_eg (block_dCSRmat *A, dvector *b, dvector *x,
+ *                                              linear_itsolver_param *itparam,
+ *                                              AMG_param *amgparam,
+ *                                              prec_block_data *precdata)
+ *
+ * \brief Solve Ax = b by standard Krylov methods
+ *
+ * \param A         Pointer to the coeff matrix in block_dCSRmat format
+ * \param b         Pointer to the right hand side in dvector format
+ * \param x         Pointer to the approx solution in dvector format
+ * \param itparam   Pointer to parameters for iterative solvers
+ * \param amgparam  Pointer to parameters for AMG solvers>>>>>>> main
+ * \param prec_block_data   data for preconditioning (A_diag, and others).
+ *
+ * \return          Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   04/05/2017
+ * \modified 20210103 (ltz)
+ *
+ * \note  works for general block dCSRmat problems
+ */
+INT linear_solver_bdcsr_krylov_block_eg(block_dCSRmat *A,		\
+					dvector *b,			\
+					dvector *x,			\
+                                        linear_itsolver_param *itparam,	\
+					AMG_param *amgparam,		\
+					precond_block_data *precdata)
+{
+  const SHORT prtlvl = itparam->linear_print_level;
+  const SHORT precond_type = itparam->linear_precond_type;
+//#endif
+  INT status = SUCCESS;
+  /*   REAL setup_start, setup_end, setup_duration; */
+  REAL solver_start, solver_end, solver_duration;
+  precond prec;
+  prec.data = precdata;
+
+  switch (precond_type)
+  {
+    case 41:
+      prec.fct = precond_elast_eg_additive;
+      break;
+
+    /*
+    case 11:
+      prec.fct = precond_block_lower;
+      break;
+
+    case 12:
+      prec.fct = precond_block_upper;
+      break;
+   */
+
+    default:
+      prec.fct = precond_elast_eg_additive;
+      break;
+  }
+
+
+  /* if ( prtlvl >= PRINT_MIN ) { */
+  /*   get_time(&setup_end); */
+  /*   setup_duration = setup_end - setup_start; */
+  /*   print_cputime("Setup totally", setup_duration); */
+  /* } */
+
+  // solver part
+  get_time(&solver_start);
+
+  status=solver_bdcsr_linear_itsolver(A,b,x, &prec,itparam);
+
+  get_time(&solver_end);
+
+  solver_duration = solver_end - solver_start;
+
+  if ( prtlvl >= PRINT_MIN ) {
+    print_cputime("Krylov method totally", solver_duration);
+    printf("**********************************************************\n");
+  }
+  return status;
 }
 
 /*---------------------------------*/

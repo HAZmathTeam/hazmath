@@ -2677,10 +2677,22 @@ dCSRmat dcsr_sympat (dCSRmat *A)
 /*removing diagonal or extracting upper/lower triangle of a sparse
   matrix*/
 /**********************************************************************/
+/***********************************************************************************************/
+/**
+ * \fn icsr_nodiag(iCSRmat *a)
+ *
+ * \brief removing the diagonal of an icsr matrix and cleans the off
+ * diagonal zeros as well (done in-inplace, a IS OVERWRITTEN)
+ *
+ * \param *a      pointer to the iCSRmat matrix
+ *
+ * \return void
+ *
+ * \author Ludmil
+ * \date 20210101
+ */
 void icsr_nodiag(iCSRmat *a)
 {
-  /* removing the diagonal of an icsr matrix and cleans the off
-     diagonal zeros as well (done in-inplace, a is overwritten) */
   INT k,j,kj,kj0,kj1;
   a->nnz=a->IA[0];
   for(k=0;k<a->row;k++){
@@ -2704,52 +2716,32 @@ void icsr_nodiag(iCSRmat *a)
     a->JA=NULL;
     a->val=NULL;
   }
-  //  fprintf(stdout,"\nnnz0=%d ; am=[",a->IA[0]);
-  //  icsr_print_matlab_val(stdout,a);
-  //  fprintf(stdout,"];\n");
   return;
 }
-/**********************************************************************/
-void icsr_clean_zeros(iCSRmat *a)
-{
-  /* cleans the zeros in an iscr matrix (done in-inplace, a is
-     overwritten) */
-  INT k,j,kj,kj0,kj1;
-  a->nnz=a->IA[0];
-  for(k=0;k<a->row;k++){
-    kj0=a->IA[k];
-    kj1=a->IA[k+1];
-    a->IA[k]=a->nnz;
-    for(kj=kj0;kj<kj1;kj++){
-      j=a->JA[kj];
-      if(a->val[kj]){
-	a->JA[a->nnz]=j;
-	a->val[a->nnz]=a->val[kj];
-	a->nnz++;
-      }
-    }
-  }
-  a->IA[a->row]=a->nnz;
-  if(a->nnz>0){
-    a->JA=realloc(a->JA,a->nnz*sizeof(INT));
-    a->val=realloc(a->val,a->nnz*sizeof(INT));
-  }else{
-    a->JA=NULL;
-    a->val=NULL;
-  }
-  return;
-}
+/***********************************************************************************************/
+/**
+ * \fn icsr_nodiag(iCSRmat *a, const char loup)
+ *
+ * \brief extracting the lower/upper triangle of an icsr matrix (done
+ * in-place, a is overwritten also removes all zeros).
+ *
+ * \param *a      pointer to the iCSRmat matrix
+ *
+ * \param character corresponding to a different action: loup='u' or
+ *        'U': upper triangle; loup='l' or 'L': extract lower
+ *        triangle; if loup is anything else: do nothing; the diagonal
+ *        * is included and not removed (only zero elements are
+ *        removed).
+ *
+ *
+ * \return void; a is modified. 
+ *
+ * \author Ludmil
+ * \date 20210101
+ */
 /**********************************************************************/
 void icsr_tri(iCSRmat *a,const char loup)
 {
-  /*
-   *extracting the lower/upper triangle of an icsr matrix
-   (done in-place, a is overwritten also removes all zeros).
-   * loup='u' or 'U': upper triangle;
-   * loup='l' or 'L': extract lower triangle
-   * if loup is anything else: do nothing;
-   * the diagonal is included.
-  */
   INT lu;
   if(loup=='u' || loup=='U')
     lu=1;
@@ -2775,6 +2767,97 @@ void icsr_tri(iCSRmat *a,const char loup)
   a->IA[a->row]=a->nnz;
   a->JA=realloc(a->JA,a->nnz*sizeof(INT));
   a->val=realloc(a->val,a->nnz*sizeof(INT));
+  return;
+}
+/***********************************************************************************************/
+/**
+ * \fn void icsr_rm_value(iCSRmat *a,const INT value)
+ *
+ * \brief  REMOVES all entries in an iscr matrix EQUAL to a given value (done
+     in-inplace, a is overwritten)
+ *
+ * \param *a      pointer to the iCSRmat matrix
+ *
+ * \param value ; removes all a(i,j)=value;
+ *
+ *
+ * \return void; a is modified. 
+ *
+ * \author Ludmil
+ * \date 20210101
+ */
+/**********************************************************************/
+void icsr_rm_value(iCSRmat *a,const INT value)
+{
+  INT k,j,kj,kj0,kj1;
+  a->nnz=a->IA[0];
+  for(k=0;k<a->row;k++){
+    kj0=a->IA[k];
+    kj1=a->IA[k+1];
+    a->IA[k]=a->nnz;
+    for(kj=kj0;kj<kj1;kj++){
+      j=a->JA[kj];
+      if(a->val[kj]!=value){
+	a->JA[a->nnz]=j;
+	a->val[a->nnz]=a->val[kj];
+	a->nnz++;
+      }
+    }
+  }
+  a->IA[a->row]=a->nnz;
+  if(a->nnz>0){
+    a->JA=realloc(a->JA,a->nnz*sizeof(INT));
+    a->val=realloc(a->val,a->nnz*sizeof(INT));
+  }else{
+    a->JA=NULL;
+    a->val=NULL;
+  }
+  return;
+}
+/***********************************************************************************************/
+/**
+ * \fn void icsr_keep_value(iCSRmat *a,const INT value)
+ *
+ * \brief  KEEPS ONLY entries in an iscr matrix EQUAL to a given value (done
+     in-inplace, a is overwritten)
+ *
+ * \param *a      pointer to the iCSRmat matrix
+ *
+ * \param value ; KEEPS all a(i,j)=value. Removes the rest;
+ *
+ * \return void; a is modified. 
+ *
+ * \author Ludmil
+ * \date 20210101
+ */
+/**********************************************************************/
+void icsr_keep_value(iCSRmat *a,const INT value)
+{
+  /* KEEPS only entries in an iscr matrix equal to value (done
+     in-inplace, a is overwritten) */
+  INT k,j,kj,kj0,kj1;
+  a->nnz=a->IA[0];
+  for(k=0;k<a->row;k++){
+    kj0=a->IA[k];
+    kj1=a->IA[k+1];
+    a->IA[k]=a->nnz;
+    for(kj=kj0;kj<kj1;kj++){
+      j=a->JA[kj];
+      if(a->val[kj]!=value)
+	continue;
+      a->JA[a->nnz]=j;
+      a->val[a->nnz]=a->val[kj];
+      a->nnz++;
+    }
+  }
+  a->IA[a->row]=a->nnz;
+  if(a->nnz>0){
+    a->JA=realloc(a->JA,a->nnz*sizeof(INT));
+    a->val=realloc(a->val,a->nnz*sizeof(INT));
+  }else{
+    a->JA=NULL;
+    a->val=NULL;
+  }
   return;
 }
 /***********************************************************************************************/
@@ -3952,7 +4035,6 @@ void dcsr2full(dCSRmat *A,REAL *Afull)
   }
 }
 
-
 /***********************************************************************************************/
 /*!
    * \fn void bdcsr_getdiag (block_dCSRmat *A, dCSRmat *A_diag)
@@ -3978,6 +4060,246 @@ void bdcsr_getdiag(block_dCSRmat *A, dCSRmat *A_diag)
     }
 
     // return A_diag;
+}
+
+/***********************************************************************************************/
+/*!
+ * \fn SHORT dcsr_sparse (dCSRmat *A, ivector *ii, ivector *jj, dvector *kk, INT m, INT n)
+ *
+ * \brief Form a dCSRmat A with m rows, n columns. Input vectors ii, jj, kk must be of equal lengths.
+ *        For each index l, the (ii(l),jj(l))-entry of A is kk(l). In addition, if (ii(l_1),jj(l_1)),
+ *        (ii(l_2),jj(l_2)),...,(ii(l_m),jj(l_m)) are identical, then the (ii(l_1),jj(l_1))-entry 
+ *        of A is the sum of kk(l_1),kk(l_2),...,kk(l_m). 
+ *        This function emulates the function "sparse" in Octave/Matlab.
+ * 
+ * \param A   Pointer to dCSRmat matrix
+ *
+ * \return SUCCESS if successful; 
+ *
+ * \note Ludmil, Yuwen 20210606.
+ */
+SHORT dcsr_sparse (dCSRmat *A, ivector *ii, ivector *jj, dvector *kk, INT m, INT n)
+{
+      // get size
+    INT nnz=kk->row;
+    if ((ii->row!=jj->row)||(ii->row!=kk->row)){
+      printf("The input vectors are not of equal length!");
+      return 0;
+    }
+    dCOOmat A0;
+    A0.row = m;A0.col = n;A0.nnz = nnz;
+    A0.rowind = ii->val;A0.colind = jj->val;A0.val = kk->val;
+    dcoo_2_dcsr(&A0,A);
+    
+    // copy pointers for easier reference
+    INT *ia = A->IA;
+    INT *ja = A->JA;
+    REAL *a = A->val;
+    INT i, ij,j,ih,iai;
+    SHORT norepeat;
+    INT maxdeg=ia[1]-ia[0];
+
+    INT *ind = (INT *) calloc(n,sizeof(INT));
+    for (i=0; i<n; ++i) ind[i]=-1;
+    // clean up because there might be some repeated indices
+    // compute max degree of all vertices (for memory allocation):
+    for (i=1;i<m;++i){
+      ih=ia[i+1]-ia[i];
+      if(maxdeg<ih) maxdeg=ih;
+    }
+    REAL *atmp=calloc(maxdeg,sizeof(REAL));    
+    INT *jatmp=calloc(maxdeg,sizeof(INT));    
+    nnz=0;
+    for (i=0;i<m;++i){
+      // loop over each row. first find the length of the row:
+      ih=ia[i+1]-ia[i];
+      // copy the indices in tmp arrays.
+      memcpy(jatmp,(ja+ia[i]),ih*sizeof(INT));
+      memcpy(atmp,(a+ia[i]),ih*sizeof(REAL));
+      norepeat=1;
+      for(ij=0;ij<ih;++ij){
+	j=jatmp[ij];
+	if(ind[j]<0){
+	  ind[j]=ij;
+	} else {
+	  norepeat=0; // we have a repeated index. 
+	  atmp[ind[j]]+=atmp[ij];
+	  jatmp[ij]=-abs(jatmp[ij]+1);
+	}
+      }
+      for(ij=0;ij<ih;++ij){
+	j=jatmp[ij];
+	if(j<0) continue;// if j is negative, this has repeated somewhere. do nothing
+	ind[j]=-1;// make, for all all visited j, ind[j]=-1;
+      }
+      if(norepeat) continue; // do nothing if no indices repeat.
+      // put everything back, but now we have negative column indices
+      // on the repeated column indices and we have accumulated the
+      // values in the first position of j on every row. 
+      memcpy(&ja[ia[i]],jatmp,ih*sizeof(INT));
+      memcpy(&a[ia[i]],atmp,ih*sizeof(REAL));
+    }
+    if (ind) free(ind);
+    if(atmp) free(atmp);
+    if(jatmp) free(jatmp);
+    // run over the matrix and remove all negative column indices.
+    iai=ia[0];
+    nnz=0;
+    for (i=0;i<m;++i){
+      for(ij=iai;ij<ia[i+1];++ij){
+	j=ja[ij];
+	if(j<0) continue;
+	ja[nnz]=ja[ij];
+	a[nnz]=a[ij];
+	++nnz;
+      }
+      iai=ia[i+1];
+      ia[i+1]=nnz;
+    }
+    A->nnz=nnz;
+    A->val=realloc(A->val,A->nnz*sizeof(REAL));
+    A->JA=realloc(A->JA,A->nnz*sizeof(INT));
+    return SUCCESS;
+}
+
+/*****************************************************************************/
+/*!
+ * \fn void uniqueij(iCSRmat *U, ivector *ii, ivector *jj)
+ *
+ * \brief Form an iCSRmat U. Input column vectors ii, jj must be of
+ *        equal lengths and be index vectors ranging from 0 to
+ *        max(ii,jj).  It removes the duplicated (i,j)-pairs from the
+ *        matrix in (ii,jj), rearrange the condensed (ii,jj) in
+ *        ascending lexicographically order, and returns it in the
+ *        icsr format U. This function is also used to obtain edge
+ *        structures in a simplicial complax.
+ * 
+ * \param U   Pointer to iCSRmat matrix 
+ *
+ * \note  Ludmil, Yuwen 20210606.
+ */
+void uniqueij(iCSRmat *U, ivector *ii, ivector *jj)
+{
+    // transform to CSR format
+    INT i, j, nr = ii->row, nv=-1;
+    for (i=0;i<nr;i++) {
+      if (nv<ii->val[i]) {nv=ii->val[i];}
+      if (nv<jj->val[i]) {nv=jj->val[i];}
+    }
+    nv = nv + 1;
+    INT nnz = ii->row;
+    INT *ia = (INT *)calloc((nv+1),sizeof(INT));
+    INT *ja = (INT *)calloc(nnz,sizeof(INT));
+
+    INT *rowind = ii->val;
+    INT *colind = jj->val;
+    INT iind, jind;
+
+    INT *ind0 = (INT *) calloc(nv+1,sizeof(INT));
+
+    for (i=0; i<nnz; ++i) ind0[rowind[i]+1]++;
+
+    ia[0] = 0;
+    for (i=1; i<=nv; ++i) {
+        ia[i] = ia[i-1]+ind0[i];
+        ind0[i] = ia[i];
+    }
+
+    for (i=0; i<nnz; ++i) {
+        iind = rowind[i];
+        jind = ind0[iind];
+        ja[jind] = colind[i];
+        ind0[iind] = ++jind;
+    }
+
+    if (ind0) free(ind0);
+
+    // delete duplicated entries
+    INT ij,ih,iai;
+    SHORT norepeat;
+    INT maxdeg=ia[1]-ia[0];
+
+    INT *ind = (INT *) calloc(nv,sizeof(INT));
+    for (i=0; i<nv; ++i) ind[i]=-1;
+    // clean up because there might be some repeated indices
+    // compute max degree of all vertices (for memory allocation):
+    for (i=1;i<nv;++i){
+      ih=ia[i+1]-ia[i];
+      if(maxdeg<ih) maxdeg=ih;
+    }    
+    INT *jatmp=calloc(maxdeg,sizeof(INT));    
+    nnz=0;
+    for (i=0;i<nv;++i){
+      // loop over each row. first find the length of the row:
+      ih=ia[i+1]-ia[i];
+      // copy the indices in tmp arrays.
+      memcpy(jatmp,(ja+ia[i]),ih*sizeof(INT));
+      norepeat=1;
+      for(ij=0;ij<ih;++ij){
+      	j=jatmp[ij];
+      	if(ind[j]<0){
+      	  ind[j]=ij;
+      	} else {
+    	   norepeat=0; // we have a repeated index. 
+	       jatmp[ij]=-abs(jatmp[ij]+1);
+        	}
+      }
+      for(ij=0;ij<ih;++ij){
+      	j=jatmp[ij];
+	      if(j<0) continue;// if j is negative, this has repeated somewhere. do nothing
+	      ind[j]=-1;// make, for all all visited j, ind[j]=-1;
+      }
+      if(norepeat) continue; // do nothing if no indices repeat.
+      // put everything back, but now we have negative column indices
+      // on the repeated column indices and we have accumulated the
+      // values in the first position of j on every row. 
+      memcpy(&ja[ia[i]],jatmp,ih*sizeof(INT));
+    }
+    if (ind) free(ind);
+    if(jatmp) free(jatmp);
+    // run over the matrix and remove all negative column indices.
+    iai=ia[0];
+    nnz=0;
+    for (i=0;i<nv;++i){
+      for(ij=iai;ij<ia[i+1];++ij){
+      	j=ja[ij];
+      	if(j<0) continue;
+      	ja[nnz]=ja[ij];
+	      ++nnz;
+      }
+      iai=ia[i+1];
+      ia[i+1]=nnz;
+    }
+    ja=realloc(ja,nnz*sizeof(INT));
+    U->row = nv; U->col = nv; U->nnz = nnz; U->IA = ia; U->JA=ja; U->val = NULL;
+    //
+    /* sorting the i-th row of U to get ja[ia[i]]:ja[ia[i+1]-1] in
+       ascending lexicographic order */    
+    iCSRmat UT; 
+    icsr_trans(U,&UT);
+    icsr_trans(&UT,U);
+    if(UT.IA) free(UT.IA);
+    if(UT.JA) free(UT.JA);
+    if(UT.val) free(UT.val);
+    /**END sorting**/
+    /**/
+    /* if desired, use bubble sorting below: sorting the i-th row of U to get
+       ja[ia[i]]:ja[ia[i+1]-1] in ascending lexicographic order */    
+    /* INT tmp,k; */
+    /* for (i=0;i<nv;i++){ */
+    /*   ih = ia[i+1]-ia[i]; */
+    /*   for (j=0;j<ih;j++){ */
+    /*     for (k=j+1;k<ih;k++) { */
+    /*       if (ja[ia[i]+j]>ja[ia[i]+k]) { */
+    /*         tmp = ja[ia[i]+j]; */
+    /*         ja[ia[i]+j] = ja[ia[i]+k]; */
+    /*         ja[ia[i]+k] = tmp; */
+    /*       } */
+    /*     } */
+    /*   } */
+    /* } */
+    /* U->JA = ja; */
+    return;
 }
 
 /*********************************EOF***********************************/
