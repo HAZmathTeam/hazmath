@@ -43,6 +43,7 @@ function [ur,As,Asinv_a]=approx_frac_debug(A,M,b,s_in,dim_in)
     status0=system('make -C .. clean ; make -C ..');
     %% this directly approximates the inverse;
     comm0=sprintf('../aaa.ex <<EOF_FRAC >../m-files/frac.m \n %.2f %.2f %.2f %.2f %.2f %.2f\nEOF_FRAC\n',s,t,alpha,beta,bnd0,bnd1);
+
     %%      disp(comm0)
     status1=system(comm0)
     [res,pol,z,w,f,er]=frac();

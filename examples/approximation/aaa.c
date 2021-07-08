@@ -42,6 +42,8 @@ INT main(int argc,char *argv[])
   k=fscanf(stdin,"%Lg %Lg %Lg %Lg %lg %lg",&s[0],&s[1],&s[2],&s[3],&xmin_in,&xmax_in);
   /////////////////////////////////////////////
   //  s[0]=0.5;  s[1]=-0.5;  s[2]=1e0;  s[3]=2e0;
+  //for debug: s[0]=0.5;  s[1]=-0.5;  s[2]=1e0;  s[3]=2e0; xmin_in=0e0;xmax_in=1e0;
+  // s[0]=-0.50; s[1]=0.50;   s[2]=6.1031431e-03;   s[3]=1e0;   xmin_in=0e0;   xmax_in=1e0;
   /////////////////////////////////////////////////////////////////////////////////
   REAL **cpzwf=malloc(5*sizeof(REAL *));
   // after a call to get_cpzwf, cpzwf[k] are pointers to the following

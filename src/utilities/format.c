@@ -287,6 +287,133 @@ SHORT dcoo_2_dcsr (dCOOmat *A,
 
 /***********************************************************************************************/
 /*!
+ * \fn SHORT dcsr_2_dcoo (dCSRmat *A, dCOOmat *B)
+ *
+ * \brief Transform a dCSRmat matrix to a dCOOmat format.
+ *
+ * \param A   Pointer to dCSRmat matrix
+ * \param B   Pointer to dCOOmat matrix
+ *
+ * \return    SUCCESS if successed; otherwise, error information.
+ *
+ */
+SHORT dcsr_2_dcoo (dCSRmat *A,
+		   dCOOmat *B)
+{
+  //  dcoo_alloc(m,n,nnz,B);
+  B->rowind=calloc(A->nnz,sizeof(INT));
+  B->colind=calloc(A->nnz,sizeof(INT));
+  B->val=calloc(A->nnz,sizeof(REAL));
+  INT i,ij;
+  B->row=A->row;
+  B->col=A->col;
+  B->nnz=A->nnz;
+  for(i=0;i<A->row;++i){
+    for(ij=A->IA[i];ij<A->IA[i+1];ij++){
+      B->rowind[ij]=i;
+      B->colind[ij]=A->JA[ij];
+      B->val[ij]=A->val[ij];
+    }
+  }
+  //  memcpy(B->colind,A->JA,nnz*sizeof(INT));
+  //  memcpy(B->val,A->val,nnz*sizeof(REAL));
+  return 0;
+}
+/***********************************************************************************************/
+/*!
+ * \fn SHORT dcsr_unique (dCSRmat *A)
+ *
+ * \brief Removes repetitions from column indices in a dCSRmat A.
+ *
+ * \param A   Pointer to dCSRmat matrix
+ *
+ * \return SUCCESS if successful; 
+ *
+ * \note the input matrix A is overwritten with the new CSR matrix
+ *       which has no repetitions in the column indices and the value
+ *       corresponding to a column index is the sum of all column
+ *       indices in a row that have the same column index.
+ *
+ *  Ludmil 20210530.
+ */
+SHORT dcsr_unique (dCSRmat *A)
+{
+    // get size
+    INT m=A->row, n=A->col, nnz=A->nnz;
+    // copy pointers for easier reference
+    INT *ia = A->IA;
+    INT *ja = A->JA;
+    REAL *a = A->val;
+    INT i, ij,j,ih,iai,k;
+    SHORT norepeat;
+    INT maxdeg=ia[1]-ia[0];
+
+    INT *ind = (INT *) calloc(n,sizeof(INT));
+    for (i=0; i<n; ++i) ind[i]=-1;
+    // clean up because there might be some repeated indices
+    // compute max degree of all vertices (for memory allocation):
+    for (i=1;i<m;++i){
+      ih=ia[i+1]-ia[i];
+      if(maxdeg<ih) maxdeg=ih;
+    }
+    REAL *atmp=calloc(maxdeg,sizeof(REAL));    
+    INT *jatmp=calloc(maxdeg,sizeof(INT));    
+    nnz=0;
+    for (i=0;i<m;++i){
+      // loop over each row. first find the length of the row:
+      ih=ia[i+1]-ia[i];
+      // copy the indices in tmp arrays.
+      memcpy(jatmp,(ja+ia[i]),ih*sizeof(INT));
+      memcpy(atmp,(a+ia[i]),ih*sizeof(REAL));
+      norepeat=1;
+      for(ij=0;ij<ih;++ij){
+	j=jatmp[ij];
+	if(ind[j]<0){
+	  ind[j]=ij;
+	} else {
+	  norepeat=0; // we have a repeated index. 
+	  atmp[ind[j]]+=atmp[ij];
+	  jatmp[ij]=-abs(jatmp[ij]+1);
+	}
+      }
+      for(k=0;k<ih;++k)
+      for(ij=0;ij<ih;++ij){
+	j=jatmp[ij];
+	if(j<0) continue;// if j is negative, this has repeated somewhere. do nothing
+	ind[j]=-1;// make, for all all visited j, ind[j]=-1;
+      }
+      if(norepeat) continue; // do nothing if no indices repeat.
+      // put everything back, but now we have negative column indices
+      // on the repeated column indices and we have accumulated the
+      // values in the first position of j on every row. 
+      memcpy(&ja[ia[i]],jatmp,ih*sizeof(INT));
+      memcpy(&a[ia[i]],atmp,ih*sizeof(REAL));
+    }
+    if (ind) free(ind);
+    if(atmp) free(atmp);
+    if(jatmp) free(jatmp);
+    // run over the matrix and remove all negative column indices.
+    iai=ia[0];
+    nnz=0;
+    for (i=0;i<m;++i){
+      for(ij=iai;ij<ia[i+1];++ij){
+	j=ja[ij];
+	if(j<0) continue;
+	ja[nnz]=ja[ij];
+	a[nnz]=a[ij];
+	++nnz;
+      }
+      iai=ia[i+1];
+      ia[i+1]=nnz;
+    }
+    A->nnz=nnz;
+    A->val=realloc(A->val,A->nnz*sizeof(REAL));
+    A->JA=realloc(A->JA,A->nnz*sizeof(INT));
+    return SUCCESS;
+}
+
+/***********************************************************************************************/
+/*!
  * \fn coordinates* array_2_coord (REAL *xyz, INT ndof, INT dim)
  *
  * \brief Transform an array of coordinates from [x0,y0,z0,x1,y1,z1,...] to a coordinates structure
