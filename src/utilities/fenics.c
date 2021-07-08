@@ -105,6 +105,7 @@ INT fenics_amg_data_setup(dCSRmat *A,
 
 }
 
+
 /***********************************************************************************************/
 /*!
  * \fn INT fenics_famg_data_setup (dCSRmat *A, dCSRmat *M, AMG_data *mgl, AMG_param *amgparam)
@@ -195,6 +196,8 @@ void fenics_precond_data_setup(AMG_data *mgl,
 
 }
 
+
+/***********************************************************************************************/
 /*!
  * \fn precond_data *precond_data_alloc (SHORT max_size)
  *
@@ -220,6 +223,8 @@ precond_data *precond_data_alloc(SHORT max_size)
     return(pcdata);
 }
 
+
+/***********************************************************************************************/
 /*!
  * \fn AMG_param *amg_param_alloc (SHORT max_size)
  *
@@ -245,6 +250,8 @@ AMG_param *amg_param_alloc(SHORT max_size)
     return(amgparam);
 }
 
+
+/***********************************************************************************************/
 /*!
  * \fn void save_poles_residues(INT k, REAL *poles, REAL *residues, precond_data *pcdata)
  *
@@ -269,6 +276,8 @@ void save_poles_residues(INT k, REAL *poles, REAL *residues, precond_data *pcdat
     array_cp(k + 1, residues, &(pcdata->r->val[k]));
 }
 
+
+/***********************************************************************************************/
 /*!
  * \fn precond_data *precond_block_data_alloc (SHORT max_size)
  *
@@ -293,6 +302,7 @@ precond_block_data *precond_block_data_alloc(SHORT max_size)
 
     return(pcdata);
 }
+
 
 /***********************************************************************************************/
 /*!
@@ -345,6 +355,7 @@ void fenics_precond_block_data_setup(block_dCSRmat *A,
     pcdata->mgl = mgl;
 
 }
+
 
 /***********************************************************************************************/
 /*!
@@ -506,6 +517,8 @@ INT fenics_ra_setup(dCSRmat *A,
     return 1;
 }
 
+
+/***********************************************************************************************/
 /*!
  * \fn void precond_ra_data_null (precond_ra_data *pcdata)
  *
@@ -545,7 +558,7 @@ void precond_ra_data_null(precond_ra_data *precdata)
  * \brief Allocate precond_ra_data array of length max_size; each component
  *        is initialized
  *
- * \param max_size  Size of precond_bra_data array (usually 1)
+ * \param max_size  Size of precond_ra_data array (usually 1)
  *
  * \return pcdata   Pointer to precond_ra_data (callocated)
  *
@@ -563,6 +576,7 @@ precond_ra_data *precond_ra_data_alloc(SHORT max_size)
 
     return(pcdata);
 }
+
 
 /***********************************************************************************************/
 /*!
@@ -667,7 +681,7 @@ INT fenics_precond_ra_data_setup(dCSRmat *A,
 	break;
       }
     }
-    if(prtlvl>5){
+    /*if(prtlvl>5){
       fprintf(stdout,"\n%%%%%%params:");
       fprintf(stdout,"\ns=%.2Le;t=%.2Le;alpha=%.8Le;beta=%.8Le;",	\
 	      func_param[0],func_param[1],func_param[2],func_param[3]);
@@ -678,7 +692,7 @@ INT fenics_precond_ra_data_setup(dCSRmat *A,
       for(i = 0; i < k; ++i) 
         fprintf(stdout,"res(%d)=%.16e;\n", i+1, pcdata->residues->val[i]);
     }
-    fprintf(stdout,"\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n");
+    fprintf(stdout,"\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n");*/
     /* --------------------------------------------- */
     // scaling stiffness matrix
     pcdata->scaled_A = dcsr_create_p(m, n, nnz);
@@ -828,6 +842,7 @@ REAL *array_calloc(const INT n)
     return ar;
 }
 
+
 /***********************************************************************************************/
 /*!
  * \fn dCSRmat *dcsr_calloc(const INT n)
@@ -870,3 +885,636 @@ void stupid_append_function(const INT k, dCSRmat *A_n, dCSRmat *A_diag_ptr)
 
     dcsr_cp(A_n, &(A_diag_ptr[k]));
 }
+
+
+/***********************************************************************************************/
+/*!
+ * \fn HX_curl_data *HX_curl_data_alloc (SHORT max_size)
+ *
+ * \brief Allocate HX_curl_data array of length max_size; each component
+ *        is initialized
+ *
+ * \param max_size  Size of HX_curl_data array (usually 1)
+ *
+ * \return pcdata   Pointer to HX_curl_data (callocated)
+ *
+ * \author          Ana Budisa
+ * \date            2021-03-18
+ */
+HX_curl_data *HX_curl_data_alloc(SHORT max_size)
+{
+    max_size = MAX(1, max_size);
+
+    HX_curl_data *hxcurldata = (HX_curl_data*)calloc(max_size, sizeof(HX_curl_data));
+
+    INT i;
+    for(i = 0; i < max_size; ++i) HX_curl_data_null(&(hxcurldata[i]));
+
+    return(hxcurldata);
+}
+
+
+/***********************************************************************************************/
+/*!
+ * \fn void fenics_HX_curl_data_setup(dCSRmat *Acurl, dCSRmat *Pcurl, dCSRmat *Grad, 
+ *                                    AMG_param *amgparam, HX_curl_data *hxcurldata)
+ *
+ * \brief Setup HX_curl_data structure for HX curl precond
+ *
+ * \param Acurl         Pointer to dCSRmat curl-curl matrix
+ * \param Pcurl         Pointer to dCSRmat edges-to-nodes projection matrix
+ * \param Grad          Pointer to dCSRmat grad operator matrix
+ * \param amgparam      Pointer to AMG_param
+ * \param hxcurldata    Pointer to HX_curl_data
+ *
+ * \return          INT (1 if successful setup, 0 else)
+ *
+ * \author          Ana Budisa
+ * \date            2021-03-18
+ * TODO: CHANGE LOCAL MATRICES INTO POINTERS!!
+ */
+int fenics_HX_curl_data_setup(dCSRmat *Acurl, 
+                              dCSRmat *Pcurl, 
+                              dCSRmat *Grad,
+                              AMG_param *amgparam, 
+                              HX_curl_data *hxcurldata)
+{
+    const SHORT prtlvl = amgparam->print_level;
+    const SHORT max_levels = amgparam->max_levels;
+
+    /*------------------------*/
+    /* Local Variables */
+    /*------------------------*/
+    INT      status = SUCCESS;
+    
+    /*------------------------*/
+    /* setup vector Laplacian */
+    /*------------------------*/
+
+    // get transpose of P_curl
+    dCSRmat Pt_curl;
+    dcsr_trans(Pcurl, &Pt_curl);
+
+    // get A_vgrad
+    dCSRmat A_vgrad;
+    dcsr_rap(&Pt_curl, Acurl, Pcurl, &A_vgrad);
+
+    // initialize A, b, x for mgl_vgrad[0]
+    AMG_data *mgl_vgrad = amg_data_create(max_levels);
+    mgl_vgrad[0].A = dcsr_create(A_vgrad.row, A_vgrad.col, A_vgrad.nnz);
+    dcsr_cp(&A_vgrad, &mgl_vgrad[0].A);
+    mgl_vgrad[0].b = dvec_create(A_vgrad.row);
+    mgl_vgrad[0].x = dvec_create(A_vgrad.col);
+
+    // setup AMG for vector Laplacian
+    switch (amgparam->AMG_type) {
+
+        case UA_AMG: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_ua(mgl_vgrad, amgparam); break;
+
+        case SA_AMG: // Smoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+            status = amg_setup_sa(mgl_vgrad, amgparam); break;
+
+        default: // Classical AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_ua(mgl_vgrad, amgparam); break;
+
+    }
+
+    if(status < 0)
+    {
+        fprintf(stdout,"Unsuccessful AMG setup for vector Laplacian with status = %d\n", status);
+        return 0;
+    }
+
+    /*------------------------*/
+    /* setup scalar Laplacian */
+    /*------------------------*/
+
+    // get transpose of Grad
+    dCSRmat Gradt;
+    dcsr_trans(Grad, &Gradt);
+
+    // get A_grad
+    dCSRmat A_grad;
+    dcsr_rap(&Gradt, Acurl, Grad, &A_grad);
+
+    // initialize A, b, x for mgl_grad[0]
+    AMG_data *mgl_grad = amg_data_create(max_levels);
+    mgl_grad[0].A = dcsr_create(A_grad.row, A_grad.col, A_grad.nnz);
+    dcsr_cp(&A_grad, &mgl_grad[0].A);
+    mgl_grad[0].b = dvec_create(A_grad.row);
+    mgl_grad[0].x = dvec_create(A_grad.col);
+
+    // setup AMG for scalar Laplacian
+    switch (amgparam->AMG_type) {
+
+        case UA_AMG: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_ua(mgl_grad, amgparam);
+        break;
+
+        case SA_AMG: // Smoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+            status = amg_setup_ua(mgl_grad, amgparam);
+        break;
+
+        default: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_ua(mgl_grad, amgparam);
+        break;
+
+    }
+
+    if(status < 0)
+    {
+        fprintf(stdout,"Unsuccessful AMG setup for scalar Laplacian with status = %d\n", status);
+        return 0;
+    }
+
+    /*------------------------*/
+    hxcurldata->A = Acurl;
+
+    hxcurldata->smooth_type = 1;
+    hxcurldata->smooth_iter = 1;
+
+    hxcurldata->P_curl = Pcurl;
+    hxcurldata->Pt_curl = &Pt_curl;
+    hxcurldata->A_vgrad = &A_vgrad;
+    hxcurldata->amgparam_vgrad = amgparam;
+    hxcurldata->mgl_vgrad = mgl_vgrad;
+
+    hxcurldata->Grad = Grad;
+    hxcurldata->Gradt = &Gradt;
+    hxcurldata->A_grad = &A_grad;
+    hxcurldata->amgparam_grad = amgparam;
+    hxcurldata->mgl_grad = mgl_grad;
+
+    hxcurldata->backup_r = (REAL*)calloc(Acurl->row, sizeof(REAL));
+    hxcurldata->w = (REAL*)calloc(Acurl->row, sizeof(REAL));
+    
+    return 1;
+}
+
+
+/***********************************************************************************************/
+/*!
+ * \fn HX_div_data *HX_div_data_alloc (SHORT max_size)
+ *
+ * \brief Allocate HX_div_data array of length max_size; each component
+ *        is initialized
+ *
+ * \param max_size  Size of HX_div_data array (usually 1)
+ *
+ * \return pcdata   Pointer to HX_div_data (callocated)
+ *
+ * \author          Ana Budisa
+ * \date            2021-03-18
+ */
+HX_div_data *HX_div_data_alloc(SHORT max_size)
+{
+    max_size = MAX(1, max_size);
+
+    HX_div_data *hxdivdata = (HX_div_data*)calloc(max_size, sizeof(HX_div_data));
+
+    INT i;
+    for(i = 0; i < max_size; ++i) HX_div_data_null(&(hxdivdata[i]));
+
+    return(hxdivdata);
+}
+
+
+/***********************************************************************************************/
+/*!
+ * \fn void fenics_HX_div_data_3D_setup(dCSRmat *Adiv, dCSRmat *P_div, dCSRmat *Curl,
+ *                                      dCSRmat *P_curl, AMG_param *amgparam,
+ *                                      HX_div_data *hxdivdata)
+ *
+ * \brief Setup HX_div_data structure for HX div precond in 3D
+ *
+ * \param Adiv          Pointer to dCSRmat div-div matrix
+ * \param P_div         Pointer to dCSRmat faces-to-nodes projection matrix
+ * \param Curl          Pointer to dCSRmat curl operator matrix
+ * \param P_curl        Pointer to dCSRmat edges-to-nodes projection matrix
+ * \param amgparam      Pointer to AMG_param
+ * \param hxdivdata     Pointer to HX_div_data
+ *
+ * \return          INT (1 if successful setup, 0 else)
+ *
+ * \author          Ana Budisa
+ * \date            2021-03-18
+ * TODO: CHANGE LOCAL MATRICES INTO POINTERS!!
+ */
+int fenics_HX_div_data_3D_setup(dCSRmat *Adiv, 
+                                dCSRmat *P_div, 
+                                dCSRmat *Curl,
+                                dCSRmat *P_curl,
+                                AMG_param *amgparam, 
+                                HX_div_data *hxdivdata)
+{   
+    const SHORT prtlvl = amgparam->print_level;
+    const SHORT max_levels = amgparam->max_levels;
+
+    /*------------------------*/
+    /* Local Variables */
+    /*------------------------*/
+    INT      status = SUCCESS;
+
+    /*------------------------*/
+    /* setup vector Laplacian */
+    /*------------------------*/
+    // get transpose of P_curl
+    dCSRmat Pt_curl;
+    dcsr_trans(P_curl, &Pt_curl);
+    // get transpose of P_div
+    dCSRmat Pt_div;
+    dcsr_trans(P_div, &Pt_div);
+    // get transpose of Curl
+    dCSRmat Curlt;
+    dcsr_trans(Curl, &Curlt);
+
+    // get A_curl
+    dCSRmat A_curl;
+    dcsr_rap(&Curlt, Adiv, Curl, &A_curl);
+    // get A_curlgrad
+    dCSRmat A_curlgrad;
+    dcsr_rap(&Pt_curl, &A_curl, P_curl, &A_curlgrad);
+    // get A_divgrad
+    dCSRmat A_divgrad;
+    dcsr_rap(&Pt_div, Adiv, P_div, &A_divgrad);
+
+    // initialize A, b, x for mgl_curlgrad[0]
+    AMG_data *mgl_curlgrad = amg_data_create(max_levels);
+    mgl_curlgrad[0].A = dcsr_create(A_curlgrad.row, A_curlgrad.col, A_curlgrad.nnz);
+    dcsr_cp(&A_curlgrad, &mgl_curlgrad[0].A);
+    mgl_curlgrad[0].b = dvec_create(A_curlgrad.row);
+    mgl_curlgrad[0].x = dvec_create(A_curlgrad.col);
+
+    // setup AMG for vector Laplacian
+    switch (amgparam->AMG_type) {
+
+        case UA_AMG: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_ua(mgl_curlgrad, amgparam); break;
+
+        case SA_AMG: // Smoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_sa(mgl_curlgrad, amgparam); break;
+
+        default: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_ua(mgl_curlgrad, amgparam); break;
+
+    }
+
+    if(status < 0)
+    {
+        fprintf(stdout,"Unsuccessful AMG setup for curlgrad Laplacian with status = %d\n", status);
+        return 0;
+    }
+
+    // initialize A, b, x for mgl_divgrad[0]
+    AMG_data *mgl_divgrad = amg_data_create(max_levels);
+    mgl_divgrad[0].A = dcsr_create(A_divgrad.row, A_divgrad.col, A_divgrad.nnz);
+    dcsr_cp(&A_divgrad, &mgl_divgrad[0].A);
+    mgl_divgrad[0].b = dvec_create(A_divgrad.row);
+    mgl_divgrad[0].x = dvec_create(A_divgrad.col);
+
+    // setup AMG for vector Laplacian
+    switch (amgparam->AMG_type) {
+
+        case UA_AMG: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_ua(mgl_divgrad, amgparam); break;
+
+        case SA_AMG: // Smoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_sa(mgl_divgrad, amgparam); break;
+
+        default: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_ua(mgl_divgrad, amgparam); break;
+
+    }
+
+    if(status < 0)
+    {
+        fprintf(stdout,"Unsuccessful AMG setup for divgrad Laplacian with status = %d\n", status);
+        return 0;
+    }
+
+    /*------------------------*/
+    // setup preconditioner
+    hxdivdata->A = Adiv;
+
+    hxdivdata->smooth_type = 1;
+    hxdivdata->smooth_iter = 1;
+
+    hxdivdata->P_curl = P_curl;
+    hxdivdata->Pt_curl = &Pt_curl;
+    hxdivdata->P_div = P_div;
+    hxdivdata->Pt_div = &Pt_div;
+    hxdivdata->Curl = Curl;
+    hxdivdata->Curlt = &Curlt;
+    hxdivdata->A_curlgrad = &A_curlgrad;
+    hxdivdata->A_divgrad = &A_divgrad;
+    hxdivdata->amgparam_curlgrad = amgparam;
+    hxdivdata->mgl_curlgrad = mgl_curlgrad;
+    hxdivdata->amgparam_divgrad = amgparam;
+    hxdivdata->mgl_divgrad = mgl_divgrad;
+
+    hxdivdata->A_curl = &A_curl;
+    hxdivdata->A_grad = NULL;
+    hxdivdata->amgparam_grad = amgparam;
+    hxdivdata->mgl_grad = NULL;
+
+    hxdivdata->backup_r = (REAL*)calloc(Adiv->row, sizeof(REAL));
+    hxdivdata->w = (REAL*)calloc(2*(A_curl.row), sizeof(REAL));
+
+    return 1;
+}
+
+
+/***********************************************************************************************/
+/*!
+ * \fn void fenics_HX_div_data_2D_setup(dCSRmat *Adiv, dCSRmat *P_div, dCSRmat *Curl,
+ *                                      AMG_param *amgparam, HX_div_data *hxdivdata)
+ *
+ * \brief Setup HX_div_data structure for HX div precond in 2D
+ *
+ * \param Adiv          Pointer to dCSRmat div-div matrix
+ * \param P_div         Pointer to dCSRmat faces-to-nodes projection matrix
+ * \param Curl          Pointer to dCSRmat curl operator matrix
+ * \param amgparam      Pointer to AMG_param
+ * \param hxdivdata     Pointer to HX_div_data
+ *
+ * \return          INT (1 if successful setup, 0 else)
+ *
+ * \author          Ana Budisa
+ * \date            2021-03-18
+ * TODO: CHANGE LOCAL MATRICES INTO POINTERS!!
+ */
+int fenics_HX_div_data_2D_setup(dCSRmat *Adiv,
+                                dCSRmat *P_div,
+                                dCSRmat *Curl,
+                                AMG_param *amgparam,
+                                HX_div_data *hxdivdata)
+{
+    const SHORT prtlvl = amgparam->print_level;
+    const SHORT max_levels = amgparam->max_levels;
+
+    /*------------------------*/
+    /* Local Variables */
+    /*------------------------*/
+    INT status = SUCCESS;
+
+    /*------------------------*/
+    /* setup vector Laplacian */
+    /*------------------------*/
+    // get transpose of P_div
+    dCSRmat Pt_div;
+    dcsr_trans(P_div, &Pt_div);
+    // get transpose of Curl
+    dCSRmat Curlt;
+    dcsr_trans(Curl, &Curlt);
+
+    // get A_grad
+    dCSRmat A_grad;
+    dcsr_rap(&Curlt, Adiv, Curl, &A_grad);
+
+    // get A_divgrad
+    dCSRmat A_divgrad;
+    dcsr_rap(&Pt_div, Adiv, P_div, &A_divgrad);
+
+    // initialize A, b, x for mgl_grad[0]
+    AMG_data *mgl_grad = amg_data_create(max_levels);
+    mgl_grad[0].A = dcsr_create(A_grad.row, A_grad.col, A_grad.nnz);
+    dcsr_cp(&A_grad, &mgl_grad[0].A);
+    mgl_grad[0].b = dvec_create(A_grad.row);
+    mgl_grad[0].x = dvec_create(A_grad.col);
+
+    // setup AMG for scalar Laplacian
+    switch (amgparam->AMG_type) {
+
+        case UA_AMG: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_ua(mgl_grad, amgparam); break;
+
+        case SA_AMG: // Smoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_sa(mgl_grad, amgparam); break;
+
+        default: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_ua(mgl_grad, amgparam); break;
+
+    }
+
+    if(status < 0)
+    {
+        fprintf(stdout,"Unsuccessful AMG setup for grad Laplacian with status = %d\n", status);
+        return 0;
+    }
+
+    // initialize A, b, x for mgl_divgrad[0]
+    AMG_data *mgl_divgrad = amg_data_create(max_levels);
+    mgl_divgrad[0].A = dcsr_create(A_divgrad.row, A_divgrad.col, A_divgrad.nnz);
+    dcsr_cp(&A_divgrad, &mgl_divgrad[0].A);
+    mgl_divgrad[0].b = dvec_create(A_divgrad.row);
+    mgl_divgrad[0].x = dvec_create(A_divgrad.col);
+
+    // setup AMG for vector Laplacian
+    switch (amgparam->AMG_type) {
+
+        case UA_AMG: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_ua(mgl_divgrad, amgparam); break;
+
+        case SA_AMG: // Smoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_sa(mgl_divgrad, amgparam); break;
+
+        default: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_ua(mgl_divgrad, amgparam); break;
+
+    }
+
+    if(status < 0)
+    {
+        fprintf(stdout,"Unsuccessful AMG setup for divgrad Laplacian with status = %d\n", status);
+        return 0;
+    }
+
+    /*------------------------*/
+    // setup preconditioner
+    hxdivdata->A = Adiv;
+
+    hxdivdata->smooth_type = 1;
+    hxdivdata->smooth_iter = 1;
+
+    hxdivdata->P_curl = NULL;
+    hxdivdata->Pt_curl = NULL;
+    hxdivdata->P_div = P_div;
+    hxdivdata->Pt_div = &Pt_div;
+    hxdivdata->Curl = Curl;
+    hxdivdata->Curlt = &Curlt;
+    hxdivdata->A_curlgrad = NULL;
+    hxdivdata->A_divgrad = &A_divgrad;
+    hxdivdata->amgparam_curlgrad = NULL;
+    hxdivdata->mgl_curlgrad = NULL;
+    hxdivdata->amgparam_divgrad = amgparam;
+    hxdivdata->mgl_divgrad = mgl_divgrad;
+    hxdivdata->A_curl = NULL;
+    hxdivdata->A_grad = &A_grad;
+    hxdivdata->amgparam_grad = amgparam;
+    hxdivdata->mgl_grad = mgl_grad;
+
+    hxdivdata->backup_r = (REAL*)calloc(Adiv->row, sizeof(REAL));
+    hxdivdata->w = (REAL*)calloc(Adiv->row, sizeof(REAL));
+
+    return 1;
+}
+
+
+/***********************************************************************************************/
+/*!
+ * \fn void smoother_data_null (smoother_data *smdata)
+ *
+ * \brief Initialize smoother_data (pointers are set to NULL)
+ *
+ * \param smdata   Smoother data structure
+ *
+ * \author         Ana Budisa
+ * \date           2021-04-29
+ */
+void smoother_data_null (smoother_data *smdata)
+{
+    smdata->A = NULL;
+
+}
+
+/***********************************************************************************************/
+/*!
+ * \fn void smoother_data_free (smoother_data *smdata)
+ *
+ * \brief Free smoother_data
+ *
+ * \param smdata   Smoother data structure
+ *
+ * \author         Ana Budisa
+ * \date           2021-04-29
+ */
+void smoother_data_free (smoother_data *smdata)
+{
+    if(smdata->A) dcsr_free(smdata->A);
+
+}
+
+/***********************************************************************************************/
+/*!
+ * \fn smoother_data *smoother_data_alloc (SHORT max_size)
+ *
+ * \brief Allocate smoother_data array of length max_size; each component
+ *        is initialized
+ *
+ * \param max_size  Size of smoother_data array (usually 1)
+ *
+ * \return SMdata   Pointer to smoother_data (callocated)
+ *
+ * \author          Ana Budisa
+ * \date            2021-04-29
+ */
+smoother_data *smoother_data_alloc(SHORT max_size)
+{
+    max_size = MAX(1, max_size);
+
+    smoother_data *smdata = (smoother_data*)calloc(max_size, sizeof(smoother_data));
+
+    INT i;
+    for(i = 0; i < max_size; ++i) smoother_data_null(&(smdata[i]));
+
+    return(smdata);
+}
+
+
+/***********************************************************************************************/
+/*!
+ * \fn void fenics_smoother_data_setup (AMG_data *mgl, AMG_param *amgparam, precond_data *pcdata)
+ *
+ * \brief Setup smoother_data structure from AMG_data and AMG_param
+ *
+ * \param istart    Start index of type INT
+ * \param iend      End index of type INT
+ * \param istep     Step size of type INT
+ * \param nsweeps   Number of smoother iterations of type INT
+ * \param relax     Relaxation parameter of type REAL
+ * \param A         Pointer to dCSRmat (coefficient matrix for the smoother)
+ * \param smdata    Pointer to smoother_data
+ *
+ * \author          Ana Budisa
+ * \date            2021-04-29
+ */
+void fenics_smoother_data_setup(INT istart, INT iend, INT istep, INT nsweeps, REAL relax, dCSRmat *A, smoother_data *smdata)
+{
+    // Setup parameters
+    smdata->istart = istart;
+    smdata->iend = iend;
+    smdata->istep = istep;
+    smdata->nsweeps = nsweeps;
+    smdata->relax = relax;
+
+    smdata->A = dcsr_create_p(A->row, A->col, A->nnz);
+    dcsr_cp(A, smdata->A);
+
+}
+
+
+/***********************************************************************************************/
+/*!
+ * \fn void smoother_matvec_null (smoother_matvec *smmv)
+ *
+ * \brief Initialize smoother_matvec (pointers are set to NULL)
+ *
+ * \param smmv   Smoother matvec structure
+ *
+ * \author       Ana Budisa
+ * \date         2021-04-29
+ */
+void smoother_matvec_null (smoother_matvec *smmv)
+{
+    smmv->data = NULL;
+    smmv->fct = NULL;
+
+}
+
+/***********************************************************************************************/
+/*!
+ * \fn smoother_matvec *smoother_matvec_alloc (SHORT max_size)
+ *
+ * \brief Allocate smoother_matvec array of length max_size; each component
+ *        is initialized
+ *
+ * \param max_size  Size of smoother_matvec array (usually 1)
+ *
+ * \return smmv     Pointer to smoother_matvec (callocated)
+ *
+ * \author          Ana Budisa
+ * \date            2021-04-29
+ */
+smoother_matvec *smoother_matvec_alloc(SHORT max_size)
+{
+    max_size = MAX(1, max_size);
+
+    smoother_matvec *smmv = (smoother_matvec*)calloc(max_size, sizeof(smoother_matvec));
+
+    INT i;
+    for(i = 0; i < max_size; ++i) smoother_matvec_null(&(smmv[i]));
+
+    return(smmv);
+}
+
+
+/***********************************************************************************************/

@@ -183,19 +183,23 @@ static void construct_strong_couped(dCSRmat *A,
     for ( index = i = 0; i < row; ++i ) {
         NIA[i] = index;
         row_start = AIA[i]; row_end = AIA[i+1];
+        //fprintf(stdout,"\nHere coupled index %d \n", index);
         for ( j = row_start; j < row_end; ++j ) {
-
+            //fprintf(stdout,"\nHere coupled row start %d end %d \n", row_start, row_end);
             if ( (AJA[j] == i)
               || ( (pow(Aval[j],2) >= strongly_coupled2*ABS(diag.val[i]*diag.val[AJA[j]])) && (Aval[j] < 0) )
                )
             {
+                //fprintf(stdout,"\nHere coupled \n");
                 NJA[index] = AJA[j];
                 Nval[index] = Aval[j];
                 index++;
+                //fprintf(stdout,"\nHere coupled \n");
             }
 
         } // end for ( j = row_start; j < row_end; ++j )
     } // end for ( index = i = 0; i < row; ++i )
+
     NIA[row] = index;
 
     Neigh->nnz = index;
@@ -361,6 +365,9 @@ static SHORT aggregation_vmb(dCSRmat *A,
     // return status
     SHORT  status = SUCCESS;
 
+    //fprintf(stdout,"\nrow, col, nnz: %d, %d, %d \n", A->row, A->col, A->nnz);
+    //fprintf(stdout,"\nrow, col, nnz: %d, %d, %d \n", Neigh->row, Neigh->col, Neigh->nnz);
+
     // local variables
     INT    num_left = row;
     INT    subset, count;
@@ -370,7 +377,9 @@ static SHORT aggregation_vmb(dCSRmat *A,
     INT    *NIA = NULL, *NJA = NULL;
 
     // find strongly coupled neighbors
+    //fprintf(stdout,"\nHere vmb \n");
     construct_strong_couped(A, param, Neigh);
+    //fprintf(stdout,"\nHere vmb \n");
 
     NIA  = Neigh->IA; NJA  = Neigh->JA;
 
@@ -416,6 +425,7 @@ static SHORT aggregation_vmb(dCSRmat *A,
             }
         }
     }
+    //fprintf(stdout,"\nHere vmb \n");
 
     /*-------------*/
     /*   Step 2.   */
@@ -450,6 +460,8 @@ static SHORT aggregation_vmb(dCSRmat *A,
             }
         }
     }
+    //fprintf(stdout,"\nHere vmb \n");
+
     /*-------------*/
     /*   Step 3.   */
     /*-------------*/
@@ -473,6 +485,7 @@ static SHORT aggregation_vmb(dCSRmat *A,
             }
         }
     }
+    //fprintf(stdout,"\nHere vmb \n");
 
     free(num_each_agg);
 
@@ -949,6 +962,7 @@ static SHORT amg_setup_smoothP_smoothR(AMG_data *mgl,
     const SHORT csolver    = param->coarse_solver;
     const SHORT min_cdof   = MAX(param->coarse_dof,1);
     const INT   m          = mgl[0].A.row;
+    //INT counter = 0;
 
     // local variables
     SHORT         max_levels = param->max_levels, lvl = 0, status = SUCCESS;
@@ -957,6 +971,7 @@ static SHORT amg_setup_smoothP_smoothR(AMG_data *mgl,
     Schwarz_param swzparam;
 
     get_time(&setup_start);
+    //fprintf(stdout,"Here %d\n", counter); ++counter;
 
     // level info (fine: 0; coarse: 1)
     ivector *vertices = (ivector *)calloc(max_levels,sizeof(ivector));
@@ -976,10 +991,14 @@ static SHORT amg_setup_smoothP_smoothR(AMG_data *mgl,
     mgl[0].near_kernel_dim   = 1;
     mgl[0].near_kernel_basis = (REAL **)calloc(mgl->near_kernel_dim,sizeof(REAL*));
 
+    //fprintf(stdout,"Here %d\n", counter); ++counter;
+
     for ( i = 0; i < mgl->near_kernel_dim; ++i ) {
         mgl[0].near_kernel_basis[i] = (REAL *)calloc(m,sizeof(REAL));
         array_set(m, mgl[0].near_kernel_basis[i], 1.0);
     }
+
+    //fprintf(stdout,"Here %d\n", counter); ++counter;
 
     // Initialize Schwarz parameters
     mgl->Schwarz_levels = param->Schwarz_levels;
@@ -990,6 +1009,8 @@ static SHORT amg_setup_smoothP_smoothR(AMG_data *mgl,
         swzparam.Schwarz_blksolver = param->Schwarz_blksolver;
     }
 
+    //fprintf(stdout,"Here %d\n", counter); ++counter;
+
     // Initialize AMLI coefficients
     if ( cycle_type == AMLI_CYCLE ) {
         const INT amlideg = param->amli_degree;
@@ -998,28 +1019,37 @@ static SHORT amg_setup_smoothP_smoothR(AMG_data *mgl,
         amg_amli_coef(lambda_max, lambda_min, amlideg, param->amli_coef);
     }
 
+    //fprintf(stdout,"Here %d\n", counter); ++counter;
+
 #if DIAGONAL_PREF
     dcsr_diagpref(&mgl[0].A); // reorder each row to make diagonal appear first
 #endif
+
+    //fprintf(stdout,"Here %d\n", counter); ++counter;
 
     /*----------------------------*/
     /*--- checking aggregation ---*/
     /*----------------------------*/
     // Main AMG setup loop
     while ( (mgl[lvl].A.row > min_cdof) && (lvl < max_levels-1) ) {
+        //fprintf(stdout,"Here %d lvl %d\n", counter, lvl); ++counter;
 
-      /*-- Setup Schwarz smoother if necessary */
-      if ( lvl < param->Schwarz_levels ) {
+        /*-- Setup Schwarz smoother if necessary */
+        if ( lvl < param->Schwarz_levels ) {
           mgl[lvl].Schwarz.A=dcsr_sympat(&mgl[lvl].A);
           Schwarz_setup(&mgl[lvl].Schwarz, &swzparam);
-      }
+        }
 
         /*-- Aggregation --*/
         switch ( param->aggregation_type ) {
 
             case VMB: // VMB aggregation
+                //fprintf(stdout,"Here %d lvl %d\n", counter, lvl); ++counter;
+
                 status = aggregation_vmb(&mgl[lvl].A, &vertices[lvl], param,
                                          &Neighbor[lvl], &num_aggs[lvl],lvl);
+                //fprintf(stdout,"Here %d lvl %d\n", counter, lvl); ++counter;
+
                 break;
 
             case HEC: // Heavy edge coarsening aggregation
@@ -1032,6 +1062,8 @@ static SHORT amg_setup_smoothP_smoothR(AMG_data *mgl,
                 check_error(status, __FUNCTION__);
                 break;
         }
+
+        //fprintf(stdout,"Here %d lvl %d\n", counter, lvl); ++counter;
 
         /*-- Choose strength threshold adaptively --*/
         if ( num_aggs[lvl]*4 > mgl[lvl].A.row )
@@ -1155,6 +1187,9 @@ static SHORT amg_setup_smoothP_smoothR(AMG_data *mgl,
     free(vertices);
     free(num_aggs);
     free(tentative_p);
+
+    //fprintf(stdout,"Here %d\n", counter); ++counter;
+
 
     return status;
 }

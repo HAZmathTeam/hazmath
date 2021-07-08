@@ -248,6 +248,9 @@ typedef struct {
     // Fractional exponent for fractional smoothers
     REAL fpwr;
 
+    // User defined smoother
+    void *smoother_function;
+
 } AMG_param; /**< Parameters for AMG */
 
 /**

@@ -6,7 +6,7 @@
 # commented as is not needed for now (ltz, 20190730) FORTRAN: the
 # subroutine names src/amr/*.f are put into the
 # include/fortran_headers.h
-set +x
+#set +x
 
 cat $1/src/assemble/*.c $1/src/fem/*.c \
     $1/src/mesh/*.c $1/src/nonlinear/*.c \
@@ -15,8 +15,9 @@ cat $1/src/assemble/*.c $1/src/fem/*.c \
     $1/src/amr/*.c $1/src/graphs/*.c \
     $1/src/eigen/*.c \
     $1/src/approximation/*.c \
-	| awk -v name="hazmath.h" -f mkheaders.awk > $1/include/hazmath.h
+	| gawk -v name="hazmath.h" -f mkheaders.awk > $1/include/hazmath.h
 
-##sed -f createh.sed $1/src/amr/*.f	> $1/include/fortran_headers.h
+#cat $1/src/haznics/*.CC \
+#	| awk -v name="helpder.hidden" -f mkheaders.awk >> $1/include/hazmath.h
 
-set -x
+#set -x
