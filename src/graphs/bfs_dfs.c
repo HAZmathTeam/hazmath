@@ -30,11 +30,11 @@
  *
  * Created by ltz1 on 20190621.
  */
-iCSRmat *lex_bfs(INT n,INT *ia, INT *ja,ivector *inv_ord,ivector *anc)
+iCSRmat **lex_bfs(INT n,INT *ia, INT *ja,ivector *inv_ord,ivector *anc)
 {
   INT c,h,v,w,p;  
   INT ibeg,iend,i,iv,nfx,ijk,i0;
-  iCSRmat *blk;
+  iCSRmat **blk;
   /* 
    *  two lists: queue and sets of vertices. the queue is described by
    *  head[] and backp[] and the sets are described by next[] and
@@ -44,10 +44,17 @@ iCSRmat *lex_bfs(INT n,INT *ia, INT *ja,ivector *inv_ord,ivector *anc)
   */
   /*----------------------------------------------------------------*/
   // find all connected components:
-  blk=run_dfs(n,ia,ja);
+  blk=(iCSRmat **)malloc(2*sizeof(iCSRmat *));
+  blk[0]=run_dfs(n,ia,ja);
+  blk[1]=malloc(sizeof(iCSRmat));
+  *blk[1]=icsr_create(blk[0]->row,blk[0]->col,blk[0]->nnz);
+  //  fprintf(stdout,"\nnrow0=%d,ncol0=%d",blk[0]->row,blk[0]->nnz);
+  //  fprintf(stdout,"\nnrow0=%d,ncol0=%d,nnz0=%d",blk[0]->row,blk[0]->col,blk[0]->nnz);
+  //  fprintf(stdout,"\nnrow1=%d,ncol1=%d,nnz1=%d",blk[1]->row,blk[1]->col,blk[1]->nnz);
   /*----------------------------------------------------------------*/
-  INT *iord=blk->JA;// this makes ordering following connected components. 
-  INT *level=blk->val;// this is the level (distance) from every 
+  memcpy(blk[1]->JA,blk[0]->JA,blk[0]->nnz*sizeof(INT));
+  INT *iord=blk[1]->JA;// this makes ordering following connected components. 
+  INT *level=blk[1]->val;// this is the level (distance) from every 
   INT *tree=anc->val;
   INT *iord1=inv_ord->val;
   //////////////////////////////////////////////////////
@@ -195,7 +202,14 @@ iCSRmat *lex_bfs(INT n,INT *ia, INT *ja,ivector *inv_ord,ivector *anc)
   free(head);
   free(next);
   free(back);
-  free(cell);  
+  free(cell);
+  //
+  INT swp;
+  for(i=0;i<((INT ) n/2);i++){
+    swp=iord[i]; iord[i]=iord[n-i-1]; iord[n-i-1]=swp;
+    iord1[iord[i]]=i;
+    iord1[iord[n-1-i]]=n-1-i;
+  }
   return blk;
 }
 /*****************************************************************************************/

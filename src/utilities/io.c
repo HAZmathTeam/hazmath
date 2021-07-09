@@ -112,7 +112,7 @@ void ivector_write(const char *filename,
     check_error(ERROR_OPEN_FILE, __FUNCTION__);
   }
 
-  printf("%s: writing to file %s...\n", __FUNCTION__, filename);
+  fprintf(stdout,"%%%%%s: writing to file %s...\n", __FUNCTION__, filename);
 
   // write number of nonzeros
   fprintf(fp,"%d\n",m);
@@ -168,7 +168,7 @@ void dvector_write (const char *filename,
 
   if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
 
-  printf("%s: HAZMATH is writing to file %s...\n", __FUNCTION__, filename);
+  fprintf(stdout,"%%%%%s: HAZMATH is writing to file %s...\n", __FUNCTION__, filename);
 
   fprintf(fp,"%d\n",m);
 
@@ -203,7 +203,7 @@ void dvector_read (const char *filename,
 
   if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
 
-  printf("%s: HAZMATH is reading file %s...\n", __FUNCTION__, filename);
+  fprintf(stdout,"%%%%%s: HAZMATH is reading file %s...\n", __FUNCTION__, filename);
 
   fscanf(fp,"%d",&n);
 
@@ -215,7 +215,7 @@ void dvector_read (const char *filename,
     b->val[i] = value;
 
     if ( value > BIGREAL ) {
-      printf("### ERROR: Wrong value = %lf\n", value);
+      fprintf(stderr,"### ERROR: Wrong value = %lf\n", value);
       dvec_free(b);
       fclose(fp);
       exit(ERROR_INPUT_PAR);
@@ -244,7 +244,7 @@ void ivector_print(FILE* fid,
 
   // main loop
   for(i=0;i<b->row;i++) {
-    printf("i = %d\n", i);
+    fprintf(stdout,"i = %d\n", i);
     fprintf(fid,"%d\n",b->val[i]);
   }
   return;
@@ -359,7 +359,7 @@ void bdcsr_print_matlab(FILE* fid,
 {
   // local variables
   dCSRmat Amerge = bdcsr_2_dcsr(A);
-  //printf("row = %d, col = %d, nnz = %d\n", Amerge.row, Amerge. col, Amerge.nnz);
+  //fprintf(stdout,"row = %d, col = %d, nnz = %d\n", Amerge.row, Amerge. col, Amerge.nnz);
   //dcsr_write_dcoo("Amerge.dat", &Amerge);
   csr_print_matlab(fid,&Amerge);
   dcsr_free(&Amerge);
@@ -482,7 +482,7 @@ void dvec_write (const char *filename,
   if ( fp == NULL )
     check_error(ERROR_OPEN_FILE, __FUNCTION__);
 
-  printf("%s: HAZMATH is writing to file %s...\n", __FUNCTION__, filename);
+  fprintf(stdout,"%%%%%s: HAZMATH is writing to file %s...\n", __FUNCTION__, filename);
 
   fprintf(fp,"%d\n",m);
 
@@ -514,7 +514,7 @@ void ddense_write(const char *filename,
 
   if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
 
-  printf("%s: HAZMATH is writing to file %s...\n", __FUNCTION__, filename);
+  fprintf(stdout,"%%%%%s: HAZMATH is writing to file %s...\n", __FUNCTION__, filename);
 
   // main loop
   fprintf(fp,"%d  %d\n", n, m);
@@ -546,7 +546,7 @@ void dcsr_write_dcoo (const char *filename,
 
   if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
 
-  printf("%s: HAZMATH is writing to file %s...\n", __FUNCTION__, filename);
+  fprintf(stdout,"%%%%%s: HAZMATH is writing to file %s...\n", __FUNCTION__, filename);
 
   // main loop
   fprintf(fp,"%d  %d  %d\n",m,n,A->nnz);
@@ -607,7 +607,7 @@ void dcoo_read_dcsr (const char *filename,
 
   if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
 
-  printf("%s: HAZMATH is reading file %s...\n", __FUNCTION__, filename);
+  fprintf(stdout,"%%%%%s: HAZMATH is reading file %s...\n", __FUNCTION__, filename);
 
   fscanf(fp,"%d %d %d",&m,&n,&nnz);
 
@@ -1267,7 +1267,7 @@ void create_pvd(char *namepvd, INT nfiles,char *vtkfilename,char *filetype)
  */
 void debug_print(char* string, INT kill)
 {
-  printf("%s\n",string);fflush(stdout);
+  fprintf(stdout,"%%%%%s\n",string);fflush(stdout);
 
   if(kill) exit(0);
 
@@ -1680,7 +1680,7 @@ dvector *dvector_read_eof_p(FILE *fp)
     fscanf(fp, "%lg", &value);
     b->val[i] = value;
     if ( value > BIGREAL ) {
-      printf("### ERROR: Wrong value = %lf\n", value);
+      fprintf(stderr,"### ERROR: Wrong value = %lf\n", value);
       fclose(fp);
       if(b) free(b);
       exit(ERROR_INPUT_PAR);
@@ -1751,7 +1751,7 @@ dvector *dvector_read_p(FILE *fp)
     fscanf(fp, "%lg", &value);
     b->val[i] = value;
     if ( value > BIGREAL ) {
-      printf("### ERROR: Wrong value = %le\n", value);
+      fprintf(stderr,"### ERROR: Wrong value = %le\n", value);
       free((void *)b);
       exit(ERROR_INPUT_PAR);
     }
