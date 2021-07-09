@@ -5,6 +5,7 @@
 //  Created by Hu, Xiaozhe on 06/13/15.
 //
 //
+// \note added frac. exponent in input_param and AMG_param (Ana Budisa, 2020-05-13)
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -101,6 +102,7 @@ typedef struct {
     SHORT AMG_amli_degree;         /**< degree of the polynomial used by AMLI cycle */
     SHORT AMG_nl_amli_krylov_type; /**< type of Krylov method used by nonlinear AMLI cycle */
     INT AMG_Schwarz_levels;        /**< number of levels use Schwarz smoother */
+    REAL  AMG_fpwr;                 /**< fractional exponent for fractional smoothers */
 
     // Unsmoothed Aggregation AMG (UA AMG)
     SHORT AMG_aggregation_type;    /**< aggregation type */
@@ -246,6 +248,12 @@ typedef struct {
     REAL BSR_alpha;                 /**< weight on diagonal matrix alpha*D approx of A */
     REAL BSR_omega;                 /**< weight on update x = x + omega*Binv*(Ax-b) */
 
+    // Fractional exponent for fractional smoothers
+    REAL fpwr;
+
+    // User defined smoother
+    void *smoother_function;
+
 } AMG_param; /**< Parameters for AMG */
 
 /**
@@ -315,6 +323,12 @@ typedef struct {
 
     //! max size of each aggregate
     INT max_aggregation;
+
+    //! switch for filtered matrix used for smoothing the tentative prolongation
+    SHORT smooth_filter;
+
+    //! relaxation parameter for smoothing the tentative prolongation
+    REAL tentative_smooth;
 
     //! number of levels use Schwarz smoother
     INT Schwarz_levels;

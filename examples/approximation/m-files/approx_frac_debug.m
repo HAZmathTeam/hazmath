@@ -13,7 +13,7 @@ function [ur,As,Asinv_a]=approx_frac_debug(A,M,b,s_in,dim_in)
     %% Ds is D^s 
     %% Dsinv_a approximates inv(Ds) with rational function.    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    alpha = 1.0; s=-0.5; beta  = 0.0; t   =  0.5;
+    alpha = 1.0; s=0.5; beta  = 0.0; t   =  0.0;
     if(nargin<3)
         ur=NaN;
         return
@@ -41,8 +41,9 @@ function [ur,As,Asinv_a]=approx_frac_debug(A,M,b,s_in,dim_in)
     sm=dim*(dim+1)/min(diag(M)); sa=1/norm(A,inf);
     bnd0=0;bnd1=sm/sa; %%norm(A,inf)*dim*(dim+1)/min(diag(M))
     status0=system('make -C .. clean ; make -C ..');
-    %% watch s is (-s) to approximate inverses;
-    comm0=sprintf('../aaa.ex <<EOF_FRAC >../m-files/frac.m \n %.2f %.2f %.2f %.2f %.2f %.2f\nEOF_FRAC\n',-s,t,alpha,beta,bnd0,bnd1);
+    %% this directly approximates the inverse;
+    comm0=sprintf('../aaa.ex <<EOF_FRAC >../m-files/frac.m \n %.2f %.2f %.2f %.2f %.2f %.2f\nEOF_FRAC\n',s,t,alpha,beta,bnd0,bnd1);
+
     %%      disp(comm0)
     status1=system(comm0)
     [res,pol,z,w,f,er]=frac();

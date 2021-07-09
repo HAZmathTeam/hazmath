@@ -7,10 +7,11 @@
 # 	     2017-03-05   --ltz
 #	     2017-03-10   — XHu
 #	     2020-05-29   --ltz
-##	     2021-03-13   --ltz
+#	     2021-03-13   --ltz
+#	     2021-05-05   --ltz
 #
 ############################################################
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 3.12)
 
 # "Delete Yourself" Prevention
 if (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
@@ -161,6 +162,11 @@ file(GLOB HAZMATH_C_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR}
   ${HAZMATH_SOURCE_DIR}/src/utilities/*.inl)
 file(GLOB HAZMATH_CXX_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR} 
   ${HAZMATH_SOURCE_DIR}/src/amr/*.cpp) 
+file(GLOB HAZMATH_HAZNICS_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR} 
+  ${HAZMATH_SOURCE_DIR}/src/haznics/*.c)
+file(GLOB HAZMATH_SWIG_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR} 
+  ${HAZMATH_SOURCE_DIR}/src/haznics/*.i)
+
 file(GLOB HAZMATH_F_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR} 
   ${HAZMATH_SOURCE_DIR}/src/amr/*.f) 
 # auto generating headers if needed
@@ -248,7 +254,48 @@ if (USE_CGAL)
     message("   WARNING: CGAL was requested but not supported!")
   endif(CGAL_FOUND)
 endif(USE_CGAL)
-
+##################################################################
+# For HAZNICS: we here require Python and SWIG
+##################################################################
+if (USE_HAZNICS)
+  set(CMAKE_MODULE_PATH "${HAZMATH_SOURCE_DIR}/cmake.modules")
+  
+  message(STATUS "Checking for package dependencies for 'HAZNICS'")
+  find_package(Python 3.5 REQUIRED COMPONENTS Interpreter Development NumPy)
+  ## if you are The Special uncomment the line below to have python 3.5 below:
+  ## find_package(Python 3.5 EXACT REQUIRED COMPONENTS Interpreter Development NumPy)
+  
+  if(Python_Development_FOUND)
+    message("Python Libs found: ${Python_LIBRARIES} version=${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}")
+    include_directories(${Python_INCLUDE_DIRS})
+  endif(Python_Development_FOUND)
+  
+  if(Python_NumPy_FOUND)
+    message("Python NumPy found: ${Python_NumPy_VERSION}")
+    include_directories(${Python_NumPy_INCLUDE_DIRS})
+  endif(Python_NumPy_FOUND)
+  
+  message(STATUS "Checking for  'SWIG'")  
+  find_package(SWIG 4.0 COMPONENTS python)
+  if(SWIG_FOUND)
+    message("SWIG found: ${SWIG_EXECUTABLE}")
+  endif()  
+  # Set initial values
+  set(HAZNICS_INCLUDE_DIRS "")
+  set(HAZNICS_LIBRARIES "")
+  set (HAZNICS_FOUND FALSE)
+  if(SWIG_FOUND AND Python_FOUND AND Python_NumPy_FOUND)
+    include (UseSWIG)
+    set (HAZNICS_FOUND TRUE)
+    set(HAZNICS_LIBRARIES ${HAZNICS_INCLUDE_DIRS} ${Python_INCLUDE_DIRS})
+    set(HAZNICS_LIBRARIES ${HAZNICS_LIBRARIES} ${Python_LIBRARIES})
+    set(HAZNICS_INCLUDE_DIRS ${HAZNICS_INCLUDE_DIRS} ${SWIG_INCLUDE_DIRS})
+    set(HAZNICS_LIBRARIES ${HAZNICS_LIBRARY} ${SWIG_LIBRARIES})
+    add_definitions("-DWITH_HAZNICS=1")
+  else()
+    message("   WARNING: HAZNICS was requested but not supported!")
+  endif()
+endif(USE_HAZNICS)
 ##################################################################
 # For Doxygen
 ##################################################################
@@ -345,4 +392,38 @@ else(CGAL_FOUND)
   message("   WARNING: CGAL not found or not requested!")
 endif(CGAL_FOUND)
 endif(USE_CGAL)
+
+if (USE_HAZNICS)
+  if(HAZNICS_FOUND)
+    #    add_library(haznics ${HAZMATH_LIBRARY_TYPE} ${HAZMATH_HAZNICS_SOURCES} ${HAZMATH_HAZNICS_HEADERS}) 
+    set (CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE} 
+      "${CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE}} -fPIC")	 
+    set (CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE} 
+      "${CMAKE_CXX_FLAGS_${CMAKE_CBUILD_TYPE}} -fPIC")
+    set (UseSWIG_TARGET_NAME_PREFERENCE STANDARD)
+    set (UseSWIG_MODULE_VERSION "2")
+    set(CMAKE_SWIG_OUTDIR "${HAZMATH_SOURCE_DIR}/swig_files") # (swig -outdir option).
+    message(" INFO: ${CMAKE_SWIG_OUTDIR}")
+    set(SWIG_OUTFILE_DIR "${CMAKE_SWIG_OUTDIR}")
+    swig_add_library(haznics
+                 LANGUAGE python
+                 TYPE SHARED
+		 OUTPUT_DIR  "${CMAKE_SWIG_OUTDIR}"
+		 OUTFILE_DIR "${CMAKE_SWIG_OUTDIR}"
+                 SOURCES "${HAZMATH_SWIG_SOURCES}")
+    add_library(haznics_helper  "${HAZMATH_HAZNICS_SOURCES}")
+    #set_property(TARGET haznics PROPERTY SWIG_INCLUDE_DIRECTORIES d1 d2)
+    set_property(TARGET haznics PROPERTY SWIG_COMPILE_OPTIONS -python -py3 )
+    target_link_libraries(haznics haznics_helper hazmath)
+#MAKE_SWIG_FLAGS can be used to add special flags to all swig calls.
+#SWIG_MODULE_haznics_EXTRA_DEPS property
+
+    install(TARGETS haznics 
+      LIBRARY DESTINATION "${CMAKE_SWIG_OUTDIR}"
+      RUNTIME DESTINATION "${CMAKE_SWIG_OUTDIR}"
+      ARCHIVE DESTINATION "${CMAKE_SWIG_OUTDIR}")
+  else(HAZNICS_FOUND)
+    message("   WARNING: HAZNICS not found or not requested!")
+  endif(HAZNICS_FOUND)
+endif(USE_HAZNICS)
 

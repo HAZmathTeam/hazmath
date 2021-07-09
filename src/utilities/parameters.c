@@ -24,6 +24,7 @@ input_param *param_input_init_p()
  *
  * \param inparam    Pointer to input_param structure
  *
+ * \note added frac. exponent (Ana Budisa, 2020-05-13)
  */
 void param_input_init (input_param *inparam)
 {
@@ -95,7 +96,8 @@ void param_input_init (input_param *inparam)
     inparam->AMG_coarse_scaling       = OFF;
     inparam->AMG_amli_degree          = 1;
     inparam->AMG_nl_amli_krylov_type  = 2;
-
+    inparam->AMG_fpwr                 = 1.0;
+    
     // Aggregation AMG parameters
     inparam->AMG_aggregation_type     = HEC;
     inparam->AMG_strong_coupled       = 0.04;
@@ -130,6 +132,8 @@ void param_input_init (input_param *inparam)
  * \author Xiaozhe Hu
  * \date   10/06/2015
  *
+ * \note added frac. exponent (Ana Budisa, 2020-05-13)
+ * \note added function pointer to user def smoother (Ana Budisa, 2021-04-27)
  */
 void param_amg_init (AMG_param *amgparam)
 {
@@ -151,7 +155,8 @@ void param_amg_init (AMG_param *amgparam)
     amgparam->amli_degree          = 2;
     amgparam->amli_coef            = NULL;
     amgparam->nl_amli_krylov_type  = SOLVER_VFGMRES;
-
+    amgparam->fpwr                 = 1.0;
+    
     // Aggregation AMG parameters
     amgparam->aggregation_type     = HEC;
     amgparam->strong_coupled       = 0.04;
@@ -174,6 +179,9 @@ void param_amg_init (AMG_param *amgparam)
     amgparam->damping_param        = 1.0;
     amgparam->BSR_alpha            = -1000.;
     amgparam->BSR_omega            = -1000.;
+
+    // user def smoother
+    amgparam->smoother_function = NULL;
 }
 
 /*************************************************************************************/
@@ -263,6 +271,7 @@ void param_linear_solver_set (linear_itsolver_param *itsparam,
  * \param amgparam   Pointer to the AMG_param structure
  * \param inparam    Pointer to the input_param structure
  *
+ * \note added frac. exponent (Ana Budisa, 2020-05-13)
  */
 void param_amg_set (AMG_param *amgparam,
                     input_param *inparam)
@@ -293,7 +302,8 @@ void param_amg_set (AMG_param *amgparam,
     amgparam->amli_degree          = inparam->AMG_amli_degree;
     amgparam->amli_coef            = NULL;
     amgparam->nl_amli_krylov_type  = inparam->AMG_nl_amli_krylov_type;
-
+    amgparam->fpwr                 = inparam->AMG_fpwr;
+    
     amgparam->aggregation_type     = inparam->AMG_aggregation_type;
     amgparam->strong_coupled       = inparam->AMG_strong_coupled;
     amgparam->max_aggregation      = inparam->AMG_max_aggregation;
@@ -313,6 +323,73 @@ void param_amg_set (AMG_param *amgparam,
     amgparam->damping_param=0.;
     amgparam->BSR_alpha            = inparam->BSR_alpha;
     amgparam->BSR_omega            = inparam->BSR_omega;
+
+}
+
+/*************************************************************************************/
+/*!
+ * \fn void param_amg_cp (AMG_param *amgparam1, AMG_param *amgparam2)
+ *
+ * \brief Copy AMG_param amgparam1 to amgparam2
+ *
+ * \param amgparam1   Pointer to the AMG_param structure
+ * \param amgparam2   Pointer to the AMG_param structure
+ *
+ * \note maybe the order of pointers should be switched, but I don't know what is
+ *       the convention in hazmath  -- Ana
+ */
+void param_amg_cp (AMG_param *amgparam1,
+                   AMG_param *amgparam2)
+{
+    amgparam2->AMG_type    = amgparam1->AMG_type;
+    amgparam2->print_level = amgparam1->print_level;
+    amgparam2->maxit = amgparam1->maxit;
+    amgparam2->tol   = amgparam1->tol;
+
+    amgparam2->max_levels           = amgparam1->max_levels;
+    amgparam2->cycle_type           = amgparam1->cycle_type;
+    amgparam2->smoother             = amgparam1->smoother;
+    amgparam2->relaxation           = amgparam1->relaxation;
+    amgparam2->coarse_solver        = amgparam1->coarse_solver;
+    amgparam2->polynomial_degree    = amgparam1->polynomial_degree;
+    amgparam2->presmooth_iter       = amgparam1->presmooth_iter;
+    amgparam2->postsmooth_iter      = amgparam1->postsmooth_iter;
+    amgparam2->coarse_solver        = amgparam1->coarse_solver;
+    amgparam2->coarse_dof           = amgparam1->coarse_dof;
+    amgparam2->coarse_scaling       = amgparam1->coarse_scaling;
+    amgparam2->amli_degree          = amgparam1->amli_degree;
+
+    if(amgparam1->amli_coef) array_cp(amgparam1->amli_degree + 1, amgparam1->amli_coef, amgparam2->amli_coef);
+
+    amgparam2->nl_amli_krylov_type  = amgparam1->nl_amli_krylov_type;
+    amgparam2->fpwr                 = amgparam1->fpwr;
+
+    amgparam2->aggregation_type     = amgparam1->aggregation_type;
+    amgparam2->strong_coupled       = amgparam1->strong_coupled;
+    amgparam2->max_aggregation      = amgparam1->max_aggregation;
+
+    amgparam2->tentative_smooth     = amgparam1->tentative_smooth;
+    amgparam2->smooth_filter        = amgparam1->smooth_filter;
+
+    amgparam2->Schwarz_levels       = amgparam1->Schwarz_levels;
+    amgparam2->Schwarz_mmsize       = amgparam1->Schwarz_mmsize;
+    amgparam2->Schwarz_maxlvl       = amgparam1->Schwarz_maxlvl;
+    amgparam2->Schwarz_type         = amgparam1->Schwarz_type;
+    amgparam2->Schwarz_blksolver    = amgparam1->Schwarz_blksolver;
+
+    //if(amgparam1->Schwarz_on_blk) iarray_cp(size, amgparam1->Schwarz_on_blk, amgparam2->Schwarz_on_blk);
+    //if(amgparam1->Schwarz_patch_type) iarray_cp(size, amgparam1->Schwarz_patch_type, amgparam2->Schwarz_patch_type);
+    //if(amgparam1->HAZDIR){
+    //    amgparam2->HAZDIR = malloc(strlen(amgparam1->HAZDIR) + 1);
+    //    strcpy(amgparam2->HAZDIR, amgparam1->HAZDIR);
+    // }
+    amgparam2->Schwarz_on_blk = NULL;
+    amgparam2->Schwarz_patch_type = NULL;
+    amgparam2->HAZDIR = NULL;
+
+    amgparam1->damping_param        = amgparam1->damping_param;
+    amgparam1->BSR_alpha            = amgparam1->BSR_alpha;
+    amgparam1->BSR_omega            = amgparam1->BSR_omega;
 
 }
 
@@ -382,6 +459,7 @@ void param_linear_solver_print (linear_itsolver_param *itsparam)
  *
  * \param param   Pointer to AMG_param structure
  *
+ * \note added frac. exponent (Ana Budisa, 2020-05-13)
  */
 void param_amg_print (AMG_param *amgparam)
 {
@@ -410,7 +488,12 @@ void param_amg_print (AMG_param *amgparam)
             printf("AMG relax factor:                  %.4f\n", amgparam->relaxation);
         }
 
-
+        if ( amgparam->smoother == SMOOTHER_FJACOBI ||
+             amgparam->smoother == SMOOTHER_FGS     ||
+             amgparam->smoother == SMOOTHER_FSGS    ) {
+            printf("AMG fractional exponent:           %.4f\n", amgparam->fpwr);
+        }
+        
         if ( amgparam->cycle_type == AMLI_CYCLE ) {
             printf("AMG AMLI degree of polynomial:     %d\n", amgparam->amli_degree);
         }
@@ -492,6 +575,8 @@ void param_Schwarz_print (Schwarz_param *schparam)
  * \param pcdata      Pointer to the precond_data structure
  * \param amgparam    Pointer to the AMG_param structure
  *
+ * \note added frac. exponent (Ana Budisa, 2020-05-13)
+ * \note added function pointer to user defined smoother (Ana Budisa, 2021-04-27)
  */
 void param_amg_to_prec (precond_data *pcdata,
                         AMG_param *amgparam)
@@ -512,7 +597,7 @@ void param_amg_to_prec (precond_data *pcdata,
     pcdata->amli_degree         = amgparam->amli_degree;
     pcdata->amli_coef           = amgparam->amli_coef;
     pcdata->nl_amli_krylov_type = amgparam->nl_amli_krylov_type;
-
+    pcdata->fpwr                = amgparam->fpwr;
 }
 
 /*************************************************************************************/
@@ -524,6 +609,8 @@ void param_amg_to_prec (precond_data *pcdata,
  * \param amgparam    Pointer to the AMG_param structuree
  * \param pcdata      Pointer to the precond_data structure
  *
+ * \note added frac. exponent (Ana Budisa, 2020-05-13)
+ * \note added function pointer to user defined smoother (Ana Budisa, 2021-04-27)
  */
 void param_prec_to_amg (AMG_param *amgparam,
                         precond_data *pcdata)
@@ -541,7 +628,7 @@ void param_prec_to_amg (AMG_param *amgparam,
     amgparam->amli_degree         = pcdata->amli_degree;
     amgparam->amli_coef           = pcdata->amli_coef;
     amgparam->nl_amli_krylov_type = pcdata->nl_amli_krylov_type;
-
+    amgparam->fpwr                = pcdata->fpwr;
 }
 
 /*************************************************************************************/

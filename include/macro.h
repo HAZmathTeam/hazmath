@@ -192,6 +192,10 @@
 #define SMOOTHER_SGSOR          8  /**< SGS + SSOR smoother */
 #define SMOOTHER_POLY           9  /**< Polynomial smoother */
 #define SMOOTHER_L1DIAG        10  /**< L1 norm diagonal scaling smoother */
+#define SMOOTHER_FJACOBI       11  /**< Fractional Jacobi smoother */
+#define SMOOTHER_FGS           12  /**< Fractional Gauss-Seidel smoother */
+#define SMOOTHER_FSGS          13  /**< Fractional Symmetric Gauss-Seidel smoother */
+#define SMOOTHER_USERDEF       20  /**< User defined smoother (NB! requires fptr to smoother mxv */
 
 /**
  * \brief Type of vertices (DOFs) for coarsening

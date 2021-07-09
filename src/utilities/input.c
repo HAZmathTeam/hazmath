@@ -475,6 +475,12 @@ void param_input (const char *filenm,		\
                 inparam->AMG_smoother = SMOOTHER_POLY;
             else if ((strcmp(buffer,"L1DIAG")==0)||(strcmp(buffer,"l1diag")==0))
                 inparam->AMG_smoother = SMOOTHER_L1DIAG;
+            else if ((strcmp(buffer,"FJACOBI")==0)||(strcmp(buffer,"fjacobi")==0))
+                inparam->AMG_smoother = SMOOTHER_FJACOBI;
+            else if ((strcmp(buffer,"FGS")==0)||(strcmp(buffer,"fgs")==0))
+                inparam->AMG_smoother = SMOOTHER_FGS;
+            else if ((strcmp(buffer,"FSGS")==0)||(strcmp(buffer,"fsgs")==0))
+                inparam->AMG_smoother = SMOOTHER_FSGS;
             else
             { status = ERROR_INPUT_PAR; break; }
             fgets(buffer,maxb,fp); // skip rest of line
@@ -567,6 +573,17 @@ void param_input (const char *filenm,		\
             fgets(buffer,maxb,fp); // skip rest of line
         }
 
+        else if (strcmp(buffer,"AMG_fpwr")==0) {
+            val = fscanf(fp,"%s",buffer);
+            if (val!=1 || strcmp(buffer,"=")!=0) {
+                status = ERROR_INPUT_PAR; break;
+            }
+            val = fscanf(fp,"%lf",&dbuff);
+            if (val!=1) { status = ERROR_INPUT_PAR; break; }
+            inparam->AMG_fpwr=dbuff;
+            fgets(buffer,maxb,fp); // skip rest of line
+        }
+        
         else if (strcmp(buffer,"AMG_aggregation_type")==0) {
             val = fscanf(fp,"%s",buffer);
             if (val!=1 || strcmp(buffer,"=")!=0) {

@@ -76,6 +76,11 @@ ifeq ($(WITH_LAPACK),1)
 	LIBS += -llapack
 endif
 
+ifeq ($(WITH_HAZNICS),1)
+	CFLAGS += -DWITH_HAZNICS=1
+	INCLUDE += -I/usr/include/python3.8
+endif
+
 INCLUDESSP=
 ifeq ($(WITH_SUITESPARSE),1)
 	CFLAGS += -DWITH_SUITESPARSE=1
