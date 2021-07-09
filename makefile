@@ -74,6 +74,11 @@ ifeq ($(cgal), yes)
 #    CONFIG_FLAGS+=-DCGAL_DIR=$(cgal_dir)
 endif
 
+ifeq ($(haznics), yes)
+    CONFIG_FLAGS+=-DUSE_HAZNICS=$(haznics)
+#    CONFIG_FLAGS+=-DHAZNICS_DIR=$(haznics_dir)
+endif
+
 ifeq ($(doxygen),yes)
     CONFIG_FLAGS+=-DUSE_DOXYGEN=$(doxygen)
 endif
@@ -140,7 +145,8 @@ uninstall:
 
 distclean:
 	@-rm -rf $(build_dir)
-	@-rm -f ./lib/*	
+	@-rm -rf ./lib/*	
+	@-rm -rf ./swig_files/*	
 	@-find . -name '*~' -exec rm {} \;
 
 help:

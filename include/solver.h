@@ -4,6 +4,7 @@
 //
 //  Created by Hu, Xiaozhe on 5/13/15.
 //
+// \note added frac. exponent in precond_data (Ana Budisa, 2020-05-13)
 //
 
 #include <stdio.h>
@@ -134,6 +135,9 @@ typedef struct {
     //! pointer to the iterative solution at level level_num
     dvector x;
 
+    // pointer to the mass matrix at level level_num
+    dCSRmat M;
+
     /* Extra information */
     //! pointer to the numerical factorization from UMFPACK
     void *Numeric;
@@ -155,6 +159,9 @@ typedef struct {
 
     //! cycle type
     INT cycle_type;
+
+    // User defined smoother
+    void *wdata;
 
 } AMG_data; /**< Data for AMG */
 
@@ -326,6 +333,9 @@ typedef struct {
     //! AMG preconditioner data
     AMG_data *mgl_data;
 
+    //! Fractional exponent for fractional smoothers in AMG
+    REAL fpwr;
+
     //! Matrix data
     dCSRmat *A;
 
@@ -349,6 +359,7 @@ typedef struct {
 
     //! temporary work space for other usage
     REAL *w;
+
 
 } precond_data; /*! Data for general preconditioner */
 
@@ -564,7 +575,61 @@ typedef struct {
     dCSRmat *Gt;        /**< scaled transpose gradiend operator */
     dCSRmat *Kt;        /**< scaled transpose gradiend operator */
 
+    /*------------------------------*/
+    /* Data for fractional problem only! */
+    /*------------------------------*/
+    //dCSRmat A;
+    dCSRmat *scaled_M;   /**< scaled Mass matrix */
+    dvector *diag_scaled_M; /**< diagonal of scaled mass matrix */
+    REAL scaled_alpha;   /**< scaled alpha */
+    REAL scaled_beta;    /**< scaled beta */
+    dvector *poles;      /**< poles for rational approximation */
+    dvector *residues;   /**< residues for rational approximation */
+
 } precond_block_data; /**< Precond data for block matrices */
+
+
+/***********************************************************************************************/
+
+/*!
+ * \struct precond_ra_data
+ *
+ * \brief Data on rational approximation
+ *        that need to be passed to the preconditioners
+ */
+typedef struct {
+
+    /*--- solve by direct solver ---*/
+    void **LU_diag;    /**< LU decomposition for shifted Laplacians (UMFpack) */
+
+    /*---  solve by AMG ---*/
+    AMG_data **mgl;       /**< AMG data for shifted Laplacians */
+    AMG_param *amgparam;  /**< parameters for AMG */
+
+    /*-----------------------------*/
+    /* Data for fractional problem */
+    /*-----------------------------*/
+    dCSRmat *scaled_A;      /**< scaled stiffness matrix */
+    dCSRmat *scaled_M;      /**< scaled Mass matrix */
+    dvector *diag_scaled_M; /**< diagonal of scaled mass matrix */
+    REAL scaled_alpha;      /**< scaled alpha coeff (goes with s_power) */
+    REAL scaled_beta;       /**< scaled beta coeff (goes with t_power) */
+    REAL s_power;           /**< first fractionality (goes with alpha) */
+    REAL t_power;           /**< second fractionality (goes with beta) */
+    dvector *poles;         /**< poles for rational approximation */
+    dvector *residues;      /**< residues for rational approximation */
+
+    /*------------------------*/
+    /*  temporary work space  */
+    /*------------------------*/
+    dvector *r;     /**< temporary dvector to store and restore the residual */
+    REAL *w;        /**< temporary work space for other usage */
+
+} precond_ra_data; /**< Data for RA preconditioner */
+
+
+/***********************************************************************************************/
+
 
 /**
  * \struct matvec
@@ -603,5 +668,53 @@ typedef struct{
     block_fespace *FES;
 
 } solve_stats; /**< statistics about solve */
+
+/**
+ * \struct smoother_matvec
+ * \brief  Smoother matrix-vector multiplication
+ */
+typedef struct {
+    //! smoother type
+    SHORT type;
+
+    //! data for the smoother (e.g. smoother_data type)
+    void *data;
+
+    //! action of smoother as some matrix-vector application
+    //!! void pointer, but usually function pointer of type
+    //!! void (*fct)(REAL *, REAL *, void *)
+    //!! unless its a e.g. python function
+    void *fct;
+
+
+} smoother_matvec; /**< data for smoother matvec multiplication */
+
+
+/**
+ * \struct smoother_data
+ * \brief  data for smoother application
+ */
+typedef struct {
+
+    //! starting index
+    INT istart;
+
+    //! ending index
+    INT iend;
+
+    //! step size
+    INT istep;
+
+    //! number of smoother iterations
+    INT nsweeps;
+
+    //! optional relaxation parameter
+    REAL relax;
+
+    //! smoother matrix
+    dCSRmat *A;
+
+} smoother_data; /**< data for smoother application */
+
 
 #endif

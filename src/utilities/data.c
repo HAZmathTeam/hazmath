@@ -36,7 +36,8 @@ void precond_data_null (precond_data *pcdata)
     pcdata->coarse_scaling      = OFF;
     pcdata->amli_degree         = 2;
     pcdata->nl_amli_krylov_type = SOLVER_VFGMRES;
-
+    pcdata->fpwr                = 1.0;
+    
     pcdata->amli_coef           = NULL;
     pcdata->mgl_data            = NULL;
     pcdata->A                   = NULL;
@@ -103,6 +104,7 @@ void amg_data_free(AMG_data *mgl,
         dcsr_free(&mgl[i].A);
         dcsr_free(&mgl[i].P);
         dcsr_free(&mgl[i].R);
+        dcsr_free(&mgl[i].M);
         dvec_free(&mgl[i].b);
         dvec_free(&mgl[i].x);
         dvec_free(&mgl[i].w);
@@ -465,6 +467,11 @@ void precond_block_data_null(precond_block_data *precdata)
     precdata->K = NULL;
     precdata->Gt = NULL;
     precdata->Kt = NULL;
+    
+    precdata->scaled_M = NULL;
+    precdata->diag_scaled_M = NULL;
+    precdata->poles = NULL;
+    precdata->residues = NULL;
 
 }
 
@@ -485,10 +492,12 @@ void precond_block_data_free(precond_block_data *precdata,
 
     for (i=0; i<nb; i++)
     {
+
         //if(precdata->A_diag) dcsr_free(&precdata->A_diag[i]);
         if(precdata->diag) {
            if(precdata->diag[i]) dvec_free(precdata->diag[i]);
         }
+
         if(precdata->mgl) {
             if(precdata->mgl[i])
             {
@@ -496,6 +505,7 @@ void precond_block_data_free(precond_block_data *precdata,
               free(precdata->mgl[i]);
             }
         }
+
         if(precdata->hxcurldata) {
             if(precdata->hxcurldata[i])
             {
@@ -503,6 +513,7 @@ void precond_block_data_free(precond_block_data *precdata,
               free(precdata->hxcurldata[i]);
             }
         }
+
         if(precdata->hxdivdata) {
             if(precdata->hxdivdata[i])
             {
@@ -510,6 +521,7 @@ void precond_block_data_free(precond_block_data *precdata,
               free(precdata->hxdivdata[i]);
             }
         }
+
     }
 
     if(precdata->diag) free(precdata->diag);
@@ -536,6 +548,11 @@ void precond_block_data_free(precond_block_data *precdata,
       if(precdata->Gt) dcsr_free(precdata->Gt);
       if(precdata->Kt) dcsr_free(precdata->Kt);
     }
+    
+    if(precdata->scaled_M) free(precdata->scaled_M);
+    if(precdata->diag_scaled_M) free(precdata->diag_scaled_M);
+    if(precdata->poles) free(precdata->poles);
+    if(precdata->residues) free(precdata->residues);
 
     return;
 }
