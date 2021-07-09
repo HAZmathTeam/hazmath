@@ -2022,6 +2022,75 @@ void dcsr_getdiag(INT n,
 
 /***********************************************************************************************/
 /*!
+   * \fn void dcsr_getdiag_pow (INT n, REAL p, dCSRmat *A, dvector *diag)
+   *
+   * \brief Get first n diagonal entries of a dCSRmat sparse matrix A
+   *        to the power p
+   *
+   * \param n     Number of diagonal entries to get (if n=0, then get all diagonal entries)
+   * \param p     Exponential power
+   * \param A     Pointer to dCSRmat CSR matrix
+   * \param diag  Pointer to the diagonal as a dvector
+   *
+   * \note Added by Ana Budisa 2020-05-20; for fractional AMG smoothers only
+   */
+void dcsr_getdiag_pow(INT n,
+                      REAL p,
+                      dCSRmat *A,
+                      dvector *diag)
+{
+  INT i,k,j,ibegin,iend;
+
+  if ( n==0 || n>A->row || n>A->col ) n = MIN(A->row,A->col);
+
+  dvec_alloc(n, diag);
+
+  for (i=0;i<n;++i) {
+    ibegin=A->IA[i]; iend=A->IA[i+1];
+    for (k=ibegin;k<iend;++k) {
+      j=A->JA[k];
+      if ((j-i)==0) {
+        diag->val[i] = pow(A->val[k], p);
+        break;
+      } // end if
+    } // end for k
+  } // end for i
+
+}
+
+/***********************************************************************************************/
+/*!
+   * \fn void dcsr_shiftdiag (INT n, dCSRmat *A, dvector *shifts)
+   *
+   * \brief Shift first n diagonal entries of a dCSRmat sparse matrix A by some real values
+   *
+   * \param n      Number of diagonal entries to get (if n=0, then get all diagonal entries)
+   * \param A      Pointer to dCSRmat CSR matrix
+   * \param shifts dvector of length n with REAL value shifts
+   *
+   */
+void dcsr_shiftdiag(INT n,
+                    dCSRmat *A,
+                    dvector *shifts)
+{
+  INT i,k,j,ibegin,iend;
+
+  if ( n==0 || n>A->row || n>A->col ) n = MIN(A->row,A->col);
+
+  for (i=0;i<n;++i) {
+    ibegin=A->IA[i]; iend=A->IA[i+1];
+    for (k=ibegin;k<iend;++k) {
+      j=A->JA[k];
+      if ((j-i)==0) {
+        A->val[k] += shifts->val[i];
+        break;
+      } // end if
+    } // end for k
+  } // end for i
+
+}
+/***********************************************************************************************/
+/*!
    * \fn void dcsr_row_scale(dCSRmat *A, dvector *row_scale)
    *
    * \brief row scaling of matrix A
@@ -3900,6 +3969,27 @@ dCSRmat *dcsr_create_plus(INT m,		\
     a->val=(REAL *)realloc(NULL,nnz*sizeof(REAL));
   return a;
 }
+
+
+void dcsr_alloc_plus(INT m, INT n, INT nnz, void *ia, void *ja, void *aij, dCSRmat *A)
+{
+    A = malloc(1 * sizeof(dCSRmat)); // size of the struct
+    A->row = m;  A->col = n;  A->nnz = nnz;
+    if(ia)
+        A->IA = ia;
+    else
+        A->IA = (INT *)realloc(NULL, (n + 1) * sizeof(INT));
+    if(ja)
+        A->JA = ja;
+    else
+        A->JA = (INT *)realloc(NULL, nnz * sizeof(INT));
+    if(aij)
+        A->val = aij;
+    else
+        A->val = (REAL *)realloc(NULL, nnz * sizeof(REAL));
+}
+
+
 dvector *dvec_create_plus(INT n,		\
 			 void *vi)
 {
@@ -3943,6 +4033,33 @@ void dcsr2full(dCSRmat *A,REAL *Afull)
     fprintf(stderr,"ERROR in %s: Afull not allocated",__FUNCTION__);
     exit(16);
   }
+}
+
+/***********************************************************************************************/
+/*!
+   * \fn void bdcsr_getdiag (block_dCSRmat *A, dCSRmat *A_diag)
+   *
+   * \brief copy a block_dCSRmat to a new one B=A
+   *
+   * \param A       Pointer to the block_dCSRmat matrix
+   * \param A_diag  Array of the dCSRmat matrices (allocated!)
+   *
+   */
+void bdcsr_getdiag(block_dCSRmat *A, dCSRmat *A_diag)
+{
+    INT i;
+    INT n = A->brow;
+
+    // allocate array of dCSRmat
+    // dCSRmat *A_diag = (dCSRmat*)calloc(A->brow, sizeof(dCSRmat));
+
+    // copy diag blocks
+    for (i = 0; i < n; ++i){
+        dcsr_alloc(A->blocks[i*n + i]->row, A->blocks[i*n + i]->col, A->blocks[i*n + i]->nnz, &(A_diag[i]));
+        dcsr_cp(A->blocks[i*n + i], &(A_diag[i]));
+    }
+
+    // return A_diag;
 }
 
 /***********************************************************************************************/
@@ -4184,4 +4301,5 @@ void uniqueij(iCSRmat *U, ivector *ii, ivector *jj)
     /* U->JA = ja; */
     return;
 }
+
 /*********************************EOF***********************************/
