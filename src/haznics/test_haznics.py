@@ -19,6 +19,17 @@ print(the_dir)
 psys.append(the_dir)
 """
 # --------------------------------------------------- #
+from sys import path as psys
+from getpass import getuser as gu
+
+# fenics_hazmath_path = 'add/your/path/here/'
+fenics_hazmath_path = 'hazmath-haznics/'
+swig_hazmath_path = 'swig_files'
+
+the_dir = ''.join(['/home/', gu(),'/',fenics_hazmath_path,swig_hazmath_path])
+print(the_dir)
+# path to search for local modules appended                                            
+psys.append(the_dir)
 
 import haznics 
 
