@@ -16,6 +16,7 @@ haz_docs/tex_docs/*.*
 .\#*
 *.bak
 .DS_Store
+swig_files/
 octave-workspace
 examples/HeatEquation/output/*.vtu
 examples/HeatEquation/output/*.dat
