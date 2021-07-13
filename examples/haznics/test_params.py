@@ -20,6 +20,10 @@ def set_params(d, in_param):
 
 in_param = input_param() 
 
+print ("in_param ", in_param) 
+print ("in_param ", dir(in_param)) 
+print ("in_param ", vars(in_param)) 
+
 print (20*"-")
 print ("default parameters created when just constructing the struct from Python, printing just a few") 
 print (in_param.inifile)
