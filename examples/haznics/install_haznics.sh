@@ -57,7 +57,7 @@ git fetch --all
 git checkout hsfrac-minimal
 cd ..
 
-export PYTHONPATH="$(pwd)/fenics_ii/":"$PYTHONPATH"
+export PYTHONPATH="./fenics_ii/":"$PYTHONPATH"
 echo "... Done."
 
 # Install hsmg
@@ -70,7 +70,7 @@ source setup.rc
 cd ..
 echo "... Done."
 
-# export PYTHONPATH="$(pwd)/hsmg/":"$PYTHONPATH"
+# export PYTHONPATH="./hsmg/":"$PYTHONPATH"
 
 # Install cbc.block
 echo "Installing cbc.block..."
@@ -97,7 +97,7 @@ make -C ../.. config shared=yes suitesparse=yes lapack=yes haznics=yes
 make -C ../.. install
 ##cd ..
 
-export PYTHONPATH="$(pwd)/hazmath/swig_files/":"$PYTHONPATH"
+export PYTHONPATH="../../swig_files/":"$PYTHONPATH"
 echo "... Done."
 # I don't know if below is necessary
 # pip3 install --user networkx
