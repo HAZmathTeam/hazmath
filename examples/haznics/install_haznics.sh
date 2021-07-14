@@ -89,16 +89,13 @@ python3 setup.py install --user
 cd ..
 echo "... Done."
 
-# Install gawk for hazmath - is this still needed??
-# sudo apt install gawk
-
-# Install hazmath (with haznics)
+# Install hazmath (with the python interface haznics=yes)
 echo "Installing hazmath (with haznics)..."
-git clone https://github.com/HAZmathTeam/hazmath.git
-cd hazmath
-make config shared=yes suitesparse=yes lapack=yes haznics=yes
-make install
-cd ..
+#git clone https://github.com/HAZmathTeam/hazmath.git
+#cd hazmath
+make -C ../.. config shared=yes suitesparse=yes lapack=yes haznics=yes
+make -C ../.. install
+##cd ..
 
 export PYTHONPATH="$(pwd)/hazmath/swig_files/":"$PYTHONPATH"
 echo "... Done."
