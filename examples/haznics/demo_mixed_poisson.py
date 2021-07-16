@@ -14,10 +14,10 @@ sys.path.append('../../../')
 from block.algebraic.petsc import LU
 from block.block_util import flatten
 from petsc4py import PETSc
-from hseig import HsNorm
-from hsmg import HsNormAMG
+###  from hseig import HsNorm
+###  from hsmg import HsNormAMG
 from precond_haz import RA
-import pyamg
+###  import pyamg
 from block import block_mat
 from dolfin import *
 import numpy as np
@@ -78,7 +78,7 @@ def get_system(n, K, f, sigma0, u0):
 
     return A, b, W, mesh
 
-
+"""
 def get_eigenvalue_preconditioner(AA, W, K):
     '''H^{0.5} by eigenvalues and take its exact inverse'''
     S, V, Q = W
@@ -129,6 +129,7 @@ def get_hsmg_preconditioner(AA, W, K):
 
     return block_diag_mat([B0, B1, B2])
 
+"""
 
 def get_rational_preconditioner(AA, W, K):
     '''Realize inv(H^{0.5}) by AAA'''
