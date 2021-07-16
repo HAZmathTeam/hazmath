@@ -88,7 +88,4 @@ BEGIN {
 END {
   print "\n/* End of header file */"
 }
-##
-##=======
-##!/^INT|^REAL|^coordinates|^mesh_struct|^qcoordinates|^FILE|^OFF_T|^size_t|^off_t|^pid_t|^unsigned|^mode_t|^DIR|^user|^int|^char|^uint|^struct|^SHORT|^BOOL|^void|^double|^time|^dCSRmat|^dvector|^iCSRmat|^ivector|^dCOOmat|^dDENSEmat|^iDENSEmat|^block_dCSRmat|^AMG_data|^AMG_param|^MG_blk_data|^scomplex|^subscomplex|^macrocomplex|^unigrid|^cube2simp|^input_grid|^coordsystem|^features|^locdetails/ {
-##>>>>>>> main
+
