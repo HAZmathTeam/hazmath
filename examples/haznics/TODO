@@ -2,6 +2,10 @@
 
 Just some brief comments
 
+0. 
+All packages, cbc.block, ulfy, hseig etc should have a spesific version we download. 
+Not git. Things will change down the line 
+
 1. 
 params: 
    - it would be convenient with something like
@@ -14,9 +18,11 @@ Things should be moved to hseig/cbc.block/fenics_ii in a practical way
 
 3. 
 A clean Poisson demo without any fractional stuff, just the use of hazmath/haznics
+I suggest poisson.py from cbc.block, just using hazmath  
 
 4. 
 A clean Stokes demo without any fractional stuff, just the use of hazmath/haznics
+I suggest stokes.py from cbc.block, just using hazmath  
 
 
 5. 
