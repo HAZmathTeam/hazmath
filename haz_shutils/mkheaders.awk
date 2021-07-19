@@ -26,6 +26,9 @@ BEGIN {
   print "#include <time.h>"
   print "#include <unistd.h>"
   print "#include <assert.h>"
+  print "#if WITH_HAZNICS"
+  print "#include <Python.h>"
+  print "#endif"
   print "// Internal Includes"
   print "#include \"macro.h\""
   print "#include \"mesh.h\""
@@ -43,6 +46,9 @@ BEGIN {
   print "// Special Includes"
   print "#if WITH_MATLAB"
   print "#include \"mex.h\""
+  print "#endif"
+  print "#if WITH_HAZNICS"
+  print "#include \"haznics_add.h\""
   print "#endif"
 }
 
@@ -66,7 +72,8 @@ BEGIN {
   next;
 }
 
-!/^INT|^REAL|^coordinates|^mesh_struct|^qcoordinates|^FILE|^OFF_T|^size_t|^off_t|^pid_t|^unsigned|^mode_t|^DIR|^user|^int|^char|^uint|^struct|^SHORT|^BOOL|^void|^double|^time|^dCSRmat|^dvector|^iCSRmat|^ivector|^dCOOmat|^dDENSEmat|^iDENSEmat|^block_dCSRmat|^AMG_data|^AMG_param|^MG_blk_data|^scomplex|^subscomplex|^macrocomplex|^unigrid|^cube2simp|^input_grid|^coordsystem|^features|^locdetails/ {
+!/^INT|^REAL|^coordinates|^mesh_struct|^qcoordinates|^FILE|^OFF_T|^size_t|^off_t|^pid_t|^unsigned|^mode_t|^DIR|^user|^int|^char|^uint|^struct|^SHORT|^BOOL|^void|^double|^time|^dCSRmat|^dvector|^iCSRmat|^ivector|^dCOOmat|^dDENSEmat|^iDENSEmat|^block_dCSRmat|^AMG_data|^AMG_param|^scomplex|^MG_blk_data|^HX_curl_data|^HX_div_data|^precond_block_data|^precond_data|^precond_ra_data|^smoother_data|^smoother_matvec|^PyObject|^subscomplex|^macrocomplex|^unigrid|^cube2simp|^input_grid|^coordsystem|^features|^locdetails/ {
+
   next;
 }
 
@@ -84,3 +91,4 @@ BEGIN {
 END {
   print "\n/* End of header file */"
 }
+
