@@ -48,7 +48,7 @@ BEGIN {
   print "#include \"mex.h\""
   print "#endif"
   print "#if WITH_HAZNICS"
-  print "#include <haznics_add.h>"
+  print "#include \"haznics_add.h\""
   print "#endif"
 }
 
