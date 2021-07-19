@@ -7,10 +7,12 @@
 # 	     2017-03-05   --ltz
 #	     2017-03-10   — XHu
 #	     2020-05-29   --ltz
-##	     2021-03-13   --ltz
+#	     2021-03-13   --ltz
+#	     2021-05-05   --ltz
+#	     2021-07-18   --ltz
 #
 ############################################################
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 3.12)
 
 # "Delete Yourself" Prevention
 if (CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
@@ -26,7 +28,16 @@ endif()
 # include helper modules
 include(CheckFunctionExists)
 include(CheckIncludeFile)
-
+###########################policies
+if(${CMAKE_VERSION} VERSION_LESS "3.13.0") 
+  message(WARNING "Setting cmake policies CMP0078 and CMP0086 to OLD")
+  cmake_policy(SET CMP0078 OLD)
+  cmake_policy(SET CMP0086 OLD)  
+else()
+  cmake_policy(SET CMP0078 NEW)
+  cmake_policy(SET CMP0086 NEW)  
+endif()
+####################################
 set(CMAKE_VERBOSE_MAKEFILE 1) 
 set(GDB 1 CACHE BOOL "debugging or not")
 set(OPENMP 0 CACHE BOOL "Openmp use")
@@ -41,7 +52,7 @@ endif(DEFINED ENV{CC})
 if( THE_C )
   set(CMAKE_C_COMPILER ${THE_C} CACHE INTERNAL   "the C compiler" FORCE)
 else( THE_C )
-  message("Warning: the requested CC is not found: ${THE_C}; continuing with the system's one" )
+  message(WARNING " the requested CC is not found: ${THE_C}; continuing with the system's one" )
 endif( THE_C )
 
 # name the project at this moment and this will set the compiler id:
@@ -73,8 +84,8 @@ elseif( ${REAL_C} MATCHES "Clang.*")
   find_program(THE_C NAMES clang)
   find_program(THE_CXX NAMES clang++ clang)
 else()       
-  message("
-	   	     ** WARNING: ${THE_C} did not match any of the preset C compilers. 
+  message(WARNING    "
+	   	     **  ${THE_C} did not match any of the preset C compilers. 
 	   	     ** Continuing with the default compiler: ${CMAKE_C_COMPILER}
 		     " )
   set(THE_C "0")
@@ -106,7 +117,7 @@ if(USE_OPENMP)
       "${CMAKE_Fortran_FLAGS_${CMAKE_BUILD_TYPE}} ${OpenMP_C_FLAGS}")
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
   else(OPENMP_FOUND)
-    message(" WARNING: OpenMP was requested but not supported!")
+    message(WARNING  "  OpenMP was requested but not supported!")
   endif(OPENMP_FOUND)
 endif(USE_OPENMP)
 
@@ -161,6 +172,11 @@ file(GLOB HAZMATH_C_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR}
   ${HAZMATH_SOURCE_DIR}/src/utilities/*.inl)
 file(GLOB HAZMATH_CXX_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR} 
   ${HAZMATH_SOURCE_DIR}/src/amr/*.cpp) 
+file(GLOB HAZMATH_HAZNICS_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR} 
+  ${HAZMATH_SOURCE_DIR}/src/haznics/*.c)
+file(GLOB HAZMATH_SWIG_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR} 
+  ${HAZMATH_SOURCE_DIR}/src/haznics/*.i)
+
 file(GLOB HAZMATH_F_SOURCES RELATIVE ${HAZMATH_SOURCE_DIR} 
   ${HAZMATH_SOURCE_DIR}/src/amr/*.f) 
 # auto generating headers if needed
@@ -184,7 +200,7 @@ if (USE_BLAS)
     endif(SHARED)
 ##    message("   BLAS was found!")
   else(BLAS_FOUND)
-    message("   WARNING: BLAS was requested but not supported!")
+    message(WARNING  "    BLAS was requested but not supported!")
   endif(BLAS_FOUND)
 endif(USE_BLAS)
 
@@ -202,7 +218,7 @@ if (USE_LAPACK)
     endif(SHARED)
 ##    message("   LAPACK was found!")
   else(LAPACK_FOUND)
-    message("   WARNING: LAPACK was requested but not supported!")
+    message(WARNING  " LAPACK was requested but not supported!")
   endif(LAPACK_FOUND)
 endif(USE_LAPACK)
 
@@ -227,7 +243,7 @@ if (USE_SUITESPARSE)
       set(CMAKE_SHARED_LINKER_FLAGS ${UMFPACK_LIBRARY})
     endif(SHARED)
   else(SUITESPARSE_FOUND)
-    message("   WARNING: SUITESPARSE was requested but not supported!")
+    message(WARNING  " SUITESPARSE was requested but not supported!")
   endif(SUITESPARSE_FOUND)
 endif(USE_SUITESPARSE)
 
@@ -239,16 +255,57 @@ if (USE_CGAL)
   #   message(STATUS "  ${HAZMATH_SOURCE_DIR}")
   set(CMAKE_MODULE_PATH "${HAZMATH_SOURCE_DIR}/cmake.modules")
 
-  find_package(CGAL QUIET COMPONENTS  )
+  find_package(CGAL QUIET COMPONENTS GMP )
 
   if (CGAL_FOUND)
     add_definitions("-DWITH_CGAL=1")
     include_directories(${CGAL_INCLUDE_DIRS})
   else(CGAL_FOUND)
-    message("   WARNING: CGAL was requested but not supported!")
+    message(WARNING  " CGAL was requested but not supported!")
   endif(CGAL_FOUND)
 endif(USE_CGAL)
-
+##################################################################
+# For HAZNICS: we here require Python and SWIG
+##################################################################
+if (USE_HAZNICS)
+  set(CMAKE_MODULE_PATH "${HAZMATH_SOURCE_DIR}/cmake.modules")
+  
+  message(STATUS "Checking for package dependencies for 'HAZNICS'")
+  find_package(Python 3.5 REQUIRED COMPONENTS Interpreter Development NumPy)
+  ## if you are The Special uncomment the line below to have python 3.5 below:
+  ## find_package(Python 3.5 EXACT REQUIRED COMPONENTS Interpreter Development NumPy)
+  
+  if(Python_Development_FOUND)
+    message(STATUS "Python Libs found: ${Python_LIBRARIES} version=${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}")
+    include_directories(${Python_INCLUDE_DIRS})
+  endif(Python_Development_FOUND)
+  
+  if(Python_NumPy_FOUND)
+    message(STATUS "Python NumPy found: ${Python_NumPy_VERSION}")
+    include_directories(${Python_NumPy_INCLUDE_DIRS})
+  endif(Python_NumPy_FOUND)
+  
+  message(STATUS "Checking for  'SWIG'")  
+  find_package(SWIG 4.0 COMPONENTS python)
+  if(SWIG_FOUND)
+    message(STATUS "SWIG found: ${SWIG_EXECUTABLE}")
+  endif()  
+  # Set initial values
+  set(HAZNICS_INCLUDE_DIRS ${HAZMATH_SOURCE_DIR}/include)
+  set(HAZNICS_LIBRARIES "")
+  set (HAZNICS_FOUND FALSE)
+  if(SWIG_FOUND AND Python_FOUND AND Python_NumPy_FOUND)
+    include (UseSWIG)
+    set (HAZNICS_FOUND TRUE)
+    set(HAZNICS_LIBRARIES ${HAZNICS_INCLUDE_DIRS} ${Python_INCLUDE_DIRS})
+    set(HAZNICS_LIBRARIES ${HAZNICS_LIBRARIES} ${Python_LIBRARIES})
+    set(HAZNICS_INCLUDE_DIRS ${HAZNICS_INCLUDE_DIRS} ${SWIG_INCLUDE_DIRS})
+    set(HAZNICS_LIBRARIES ${HAZNICS_LIBRARY} ${SWIG_LIBRARIES})
+    add_definitions("-DWITH_HAZNICS=1")
+  else()
+    message(WARNING " HAZNICS was requested but not supported!")
+  endif()
+endif(USE_HAZNICS)
 ##################################################################
 # For Doxygen
 ##################################################################
@@ -284,7 +341,7 @@ if (USE_DOXYGEN)
 	"Generating HAZMATH documentation by Doxygen" 
 	VERBATIM)
     else(EXISTS ${HAZMATH_SOURCE_DIR}/haz_docs/hazmath.Doxygen.cnf.in)
-      message("   HAZMATH WARNING: Doxygen configuration file cannot be found!")
+      message(WARNING " Doxygen configuration file cannot be found!")
     endif(EXISTS ${HAZMATH_SOURCE_DIR}/haz_docs/hazmath.Doxygen.cnf.in)
   endif(DOXYGEN_FOUND)
 
@@ -302,7 +359,7 @@ if (USE_MATLAB)
     add_definitions("-DWITH_MATLAB=1")
     include_directories(${Matlab_INCLUDE_DIRS})
   else(MATLAB_FOUND)
-    message("    WARNING: MATLAB was requested but not supported!")	
+    message(WARNING  "MATLAB was requested but not supported!")	
   endif(MATLAB_FOUND)
 
 endif(USE_MATLAB)
@@ -316,7 +373,7 @@ include_directories(${HAZMATHLIB_BASE_PATH}/include)
 ###MISMATCH CHECK:
 if(NOT (CMAKE_CXX_COMPILER_ID STREQUAL CMAKE_C_COMPILER_ID))
   message("
-** WARNING: CC and CXX mismatch. C compiler=\"${CMAKE_C_COMPILER_ID}\" ; C++ compiler=\"${CMAKE_CXX_COMPILER_ID}\"
+**  CC and CXX mismatch. C compiler=\"${CMAKE_C_COMPILER_ID}\" ; C++ compiler=\"${CMAKE_CXX_COMPILER_ID}\"
 "
     ) 
 endif(NOT (CMAKE_CXX_COMPILER_ID STREQUAL CMAKE_C_COMPILER_ID))
@@ -342,7 +399,63 @@ install(TARGETS hazmath_cgal
   RUNTIME DESTINATION lib
   ARCHIVE DESTINATION lib)
 else(CGAL_FOUND)
-  message("   WARNING: CGAL not found or not requested!")
+  message(WARNING  "CGAL not found or not requested!")
 endif(CGAL_FOUND)
 endif(USE_CGAL)
+
+if (USE_HAZNICS)
+  if(HAZNICS_FOUND)
+    #    add_library(haznics ${HAZMATH_LIBRARY_TYPE} ${HAZMATH_HAZNICS_SOURCES} ${HAZMATH_HAZNICS_HEADERS}) 
+    set (CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE} 
+      "${CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE}} -fPIC")	 
+    set (CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE} 
+      "${CMAKE_CXX_FLAGS_${CMAKE_CBUILD_TYPE}} -fPIC")
+    set (UseSWIG_TARGET_NAME_PREFERENCE STANDARD)
+    set (UseSWIG_MODULE_VERSION "2")
+    set(CMAKE_SWIG_OUTDIR "${HAZMATH_SOURCE_DIR}/swig_files") # (swig -outdir option).
+    message(STATUS
+      " INFO: SWIG Lib Dir=${CMAKE_SWIG_OUTDIR}")
+    set(SWIG_OUTFILE_DIR "${CMAKE_SWIG_OUTDIR}")
+    swig_add_library(haznics
+                 LANGUAGE python
+                 TYPE SHARED
+		 OUTPUT_DIR  "${CMAKE_SWIG_OUTDIR}"
+		 OUTFILE_DIR "${CMAKE_SWIG_OUTDIR}"
+                 SOURCES "${HAZMATH_SWIG_SOURCES}")
+    add_custom_target(haznics_headers ALL ./headmk_haznics.sh "${HAZMATH_SOURCE_DIR}"
+      DEPENDS ${HAZMATH_HAZNICS_SOURCES}
+      WORKING_DIRECTORY "${HAZMATH_SOURCE_DIR}/haz_shutils"
+      COMMENT 
+      "HAZMATH: Autogenerating header file C functions for haznics/swig..."
+      VERBATIM)
+    add_library(haznics_helper  "${HAZMATH_HAZNICS_SOURCES}")
+    add_dependencies(headers haznics_headers)
+#    add_dependencies(haznics_helper haznics_headers)
+    set_property(TARGET haznics PROPERTY SWIG_INCLUDE_DIRECTORIES ${HAZMATH_SOURCE_DIR}/include)
+    set_property(TARGET haznics PROPERTY SWIG_COMPILE_OPTIONS -python -py3 )
+    set(LIBS_TO_LINK "haznics_helper")
+    LIST(APPEND LIBS_TO_LINK "hazmath")
+    if (CGAL_FOUND)
+      LIST(APPEND LIBS_TO_LINK "hazmath_cgal")
+      LIST(APPEND LIBS_TO_LINK "gmp")
+    endif(CGAL_FOUND)
+    if (LAPACK_FOUND)
+      LIST(APPEND LIBS_TO_LINK "lapack")
+    endif(LAPACK_FOUND)
+    if (SUITESPARSE_FOUND)
+      LIST(APPEND LIBS_TO_LINK ${SUITESPARSE_LIBRARIES})
+    endif(SUITESPARSE_FOUND)
+##     message(STATUS " ADDITIONAL_LIBSTO_LINK=${LIBS_TO_LINK}" )
+    target_link_libraries(haznics "${LIBS_TO_LINK}")
+#MAKE_SWIG_FLAGS can be used to add special flags to all swig calls.
+#SWIG_MODULE_haznics_EXTRA_DEPS property
+
+    install(TARGETS haznics 
+      LIBRARY DESTINATION "${CMAKE_SWIG_OUTDIR}"
+      RUNTIME DESTINATION "${CMAKE_SWIG_OUTDIR}"
+      ARCHIVE DESTINATION "${CMAKE_SWIG_OUTDIR}")
+  else(HAZNICS_FOUND)
+    message(WARNING  "HAZNICS not found or not requested!")
+  endif(HAZNICS_FOUND)
+endif(USE_HAZNICS)
 
