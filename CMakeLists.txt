@@ -9,6 +9,7 @@
 #	     2020-05-29   --ltz
 #	     2021-03-13   --ltz
 #	     2021-05-05   --ltz
+#	     2021-07-18   --ltz
 #
 ############################################################
 cmake_minimum_required (VERSION 3.12)
@@ -281,7 +282,7 @@ if (USE_HAZNICS)
     message("SWIG found: ${SWIG_EXECUTABLE}")
   endif()  
   # Set initial values
-  set(HAZNICS_INCLUDE_DIRS "")
+  set(HAZNICS_INCLUDE_DIRS ${HAZMATH_SOURCE_DIR}/include)
   set(HAZNICS_LIBRARIES "")
   set (HAZNICS_FOUND FALSE)
   if(SWIG_FOUND AND Python_FOUND AND Python_NumPy_FOUND)
@@ -411,8 +412,15 @@ if (USE_HAZNICS)
 		 OUTPUT_DIR  "${CMAKE_SWIG_OUTDIR}"
 		 OUTFILE_DIR "${CMAKE_SWIG_OUTDIR}"
                  SOURCES "${HAZMATH_SWIG_SOURCES}")
+    add_custom_target(haznics_headers ./headmk_haznics.sh "${HAZMATH_SOURCE_DIR}"
+      DEPENDS ${HAZMATH_HAZNICS_SOURCES}
+      WORKING_DIRECTORY "${HAZMATH_SOURCE_DIR}/haz_shutils"
+      COMMENT 
+      "HAZMATH: Autogenerating header file C functions for haznics/swig..."
+      VERBATIM)
     add_library(haznics_helper  "${HAZMATH_HAZNICS_SOURCES}")
-    #set_property(TARGET haznics PROPERTY SWIG_INCLUDE_DIRECTORIES d1 d2)
+    add_dependencies(haznics_helper haznics_headers)
+    set_property(TARGET haznics PROPERTY SWIG_INCLUDE_DIRECTORIES ${HAZMATH_SOURCE_DIR}/include)
     set_property(TARGET haznics PROPERTY SWIG_COMPILE_OPTIONS -python -py3 )
     set(LIBS_TO_LINK "haznics_helper")
     LIST(APPEND LIBS_TO_LINK "hazmath")
