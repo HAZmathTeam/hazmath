@@ -28,7 +28,10 @@ endif()
 # include helper modules
 include(CheckFunctionExists)
 include(CheckIncludeFile)
-
+###########################policies
+cmake_policy(SET CMP0078 NEW)
+cmake_policy(SET CMP0086 NEW)
+####################################
 set(CMAKE_VERBOSE_MAKEFILE 1) 
 set(GDB 1 CACHE BOOL "debugging or not")
 set(OPENMP 0 CACHE BOOL "Openmp use")
