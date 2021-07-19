@@ -1,4 +1,4 @@
-/*! \file examples/Solver/Solver.c
+/*! \file examples/Solver/eigen.c
  *
  *  Created by Xiaozhe Hu on 01/01/19.
  *  Copyright 2019_HAZMATH__. All rights reserved.

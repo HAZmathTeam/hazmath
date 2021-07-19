@@ -17,7 +17,7 @@ void main()
   fprintf(stdout,"\nDepth First Search permutation:\n");
   INT i,k;
   // find the connected components
-  iCSRmat *blk_dfs=haz_dfs(a);
+  iCSRmat *blk_dfs=run_dfs(a);
   fprintf(stdout,"\nend of list: blk_dfs->IA[%d]=%d (.eq. %d \?)\n",blk_dfs->row,blk_dfs->IA[blk_dfs->row],blk_dfs->row);
   /* for(i=0;i<blk_dfs->row;i++){ */
   /*   fprintf(stdout,"\nblock[%d]; size=%d:  ",i,blk_dfs->IA[i+1]-blk_dfs->IA[i]); */
