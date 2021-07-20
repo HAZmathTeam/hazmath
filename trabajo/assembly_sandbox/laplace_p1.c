@@ -122,7 +122,7 @@ static dvector fe_sol(scomplex *sc,				\
 /****************************************************************************/
 int main(int argc, char *argv[])
 {
-  INT dim=3;// 2d,3d,4d... example
+  INT dim=4;// 2d,3d,4d... example
   INT jlevel,k;
   scomplex *sc;
   switch(dim){
