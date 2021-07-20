@@ -2,7 +2,7 @@
 
 ---
 
-**Authors:** [Xiaozhe **\*H\***u (Tufts)](http://math.tufts.edu/faculty/xhu/), [James **\*A\***dler (Tufts)](http://math.tufts.edu/faculty/jadler), [Ludmil **\*Z\***ikatanov (Penn State)](http://personal.psu.edu/ltz1/)
+**Authors:** [Xiaozhe \***H**\*u (Tufts)](http://math.tufts.edu/faculty/xhu/), [James \***A**\*dler (Tufts)](http://math.tufts.edu/faculty/jadler), [Ludmil \***Z**\*ikatanov (Penn State)](http://personal.psu.edu/ltz1/)
 
 **HAZNICS (HAZMATH+FEniCS) Developers:** Kent-Andre Mardal (Simula), Ana Budisa (Simula), Miroslav Kuchta (Simula).
 
@@ -38,7 +38,7 @@ software is distributed WITHOUT ANY WARRANTY; without even the implied
 warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See
 the [GNU's Lesser General Public License](https://www.gnu.org/licenses/#LGPL) for more details.
 
-**System Requirements:** The library should build on any standard Linux OS or MAC OS X, using cmake (>=2.8).
+**System Requirements:** The library should build on any standard Linux OS or MAC OS X, using cmake (>=3.12).
 
 ---
 
