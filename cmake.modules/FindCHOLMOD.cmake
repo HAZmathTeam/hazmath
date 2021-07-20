@@ -12,7 +12,7 @@
 # Find packages that CHOLMOD depends on 
 find_package(BLAS)
 find_package(LAPACK)
-find_package(SUITESPARSECONFIG)
+find_package(SUITESPARSE_CONFIG)
 find_package(AMD)
 find_package(COLAMD)
 find_package(CAMD)

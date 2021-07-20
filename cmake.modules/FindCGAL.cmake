@@ -14,6 +14,7 @@
 
 message(STATUS "Checking for packages in 'CGAL' and 'GMP'")
 
+
 find_package(GMP) 
  
 # Check for header file

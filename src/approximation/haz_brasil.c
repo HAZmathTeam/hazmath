@@ -65,7 +65,6 @@ static REAL bary_eval(const barycentric_t *bary, REAL x)
   // NB: if there were no contributions (e.g. nn=0), we should return 1.0
   return numer / denom;
 }
-
 /* Set the (already initialized to degree n = nn - 1) barycentric function
  * `bary` to interpolate the given nodes and values.
  *
@@ -122,7 +121,7 @@ static void bary_interpolate(barycentric_t *bary, const REAL *nodes, const REAL 
 
   free(L);
 }
-
+// gm=(3-sqrtl(5))*0.5e0;
 #define GOLDEN_MEAN 0.3819660112501051
 
 // golden section search to find the maximum of a real function
@@ -234,7 +233,6 @@ int compare_REAL(const void *a, const void *b)
   else
     return 0;
 }
-
 
 /*
  * Compute best uniform rational approximation to a scalar function
@@ -361,7 +359,8 @@ static REAL bary_brasil(
 
       // shift node min_j to max_err_x and re-sort the nodes
       x[min_j] = max_err_x;
-      qsort(x, nn, sizeof(x[0]), compare_REAL);
+      dsi_sort(nn,x);
+      //      qsort(x, nn, sizeof(x[0]), compare_REAL);
 
     } else {
       // PHASE 2:
