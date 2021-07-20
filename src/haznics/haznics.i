@@ -50,6 +50,51 @@ import_array();
    }
 }
 
+%nodefaultdtor AMG_data;
+%extend AMG_data{
+   ~AMG_data() {
+        amg_data_free(self, NULL);
+   }
+}
+
+%nodefaultdtor HX_curl_data;
+%extend HX_curl_data{
+   ~HX_curl_data() {
+        HX_curl_data_free(self, 1);
+   }
+}
+
+%nodefaultdtor HX_div_data;
+%extend HX_div_data{
+   ~HX_div_data() {
+        HX_div_data_free(self, 1);
+   }
+}
+
+%nodefaultdtor precond_data;
+%extend precond_data{
+   ~precond_data() {
+        precond_data_free(self);
+   }
+}
+
+%nodefaultdtor precond_ra_data;
+%extend precond_ra_data{
+   ~precond_ra_data() {
+        precond_ra_data_free(self);
+   }
+}
+
+/*
+// not sure about this one yet
+%nodefaultdtor AMG_param;
+%extend AMG_param{
+   ~AMG_param() {
+        amli_coef_free(self);
+   }
+}
+*/
+
 /* need to add destructors for other structs!! */
 
 
