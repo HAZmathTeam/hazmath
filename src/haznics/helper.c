@@ -548,6 +548,8 @@ precond* create_precond_ra(dCSRmat *A,
     pc->data = pcdata;
     pc->fct = precond_ra_fenics;
 
+    // TODO: free rpnwf!
+
     return pc;
 }
 
