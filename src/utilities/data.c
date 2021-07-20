@@ -557,4 +557,105 @@ void precond_block_data_free(precond_block_data *precdata,
     return;
 }
 
+/***********************************************************************************************/
+/*!
+ * \fn void amli_coef_free(AMG_param *param)
+ *
+ * \brief Free amli coefficients in AMG_param structure
+ *
+ * \param param  Pointer to AMG parameters
+ *
+ *
+ */
+void amli_coef_free(AMG_param *param)
+{
+    if (param != NULL) {
+        if ( param->cycle_type == AMLI_CYCLE )
+            free(param->amli_coef);
+    }
+
+}
+
+/***********************************************************************************************/
+/*!
+ * \fn void precond_ra_data_free(precond_ra_data *precdata)
+ *
+ * \brief Free precond_ra_data structure
+ *
+ * \param precdata      Pointer to the precond_ra_data structure
+ *
+ */
+void precond_ra_data_free(precond_ra_data *precdata)
+{
+
+    INT np = precdata->poles->row;
+    INT i;
+
+    for (i = 0; i < np; i++)
+    {
+        if(precdata->mgl) {
+            if(precdata->mgl[i])
+            {
+              amg_data_free(precdata->mgl[i], NULL);
+              free(precdata->mgl[i]);
+            }
+        }
+    }
+    if(precdata->mgl) free(precdata->mgl);
+
+    if(precdata->amgparam) amli_coef_free(precdata->amgparam);
+
+#if WITH_SUITESPARSE
+    for (i = 0; i < np; i++)
+    {
+        if(precdata->LU_diag){
+           if(precdata->LU_diag[i]) umfpack_free_numeric(precdata->LU_diag[i]);
+        }
+    }
+    if(precdata->LU_diag) free(precdata->LU_diag);
+#endif
+
+    if(precdata->scaled_M)  dcsr_free(precdata->scaled_M);
+    if(precdata->scaled_A)  dcsr_free(precdata->scaled_A);
+
+    if(precdata->diag_scaled_M) dvec_free(precdata->diag_scaled_M);
+    if(precdata->poles) dvec_free(precdata->poles);
+    if(precdata->residues) dvec_free(precdata->residues);
+    if(precdata->r) dvec_free(precdata->r);
+
+    if(precdata->w) free(precdata->w);
+
+    return;
+}
+
+/***********************************************************************************************/
+/*!
+ * \fn void precond_data_free(precond_ra_data *precdata)
+ *
+ * \brief Free precond_data structure
+ *
+ * \param precdata      Pointer to the precond_data structure
+ *
+ */
+void precond_data_free(precond_data *precdata)
+{
+    if(precdata->amli_coef) free(precdata->amli_coef);
+
+    if(precdata->mgl_data) {
+        amg_data_free(precdata->mgl_data, NULL);
+        free(precdata->mgl_data);
+    }
+
+    if(precdata->A)  dcsr_free(precdata->A);
+    if(precdata->A_nk)  dcsr_free(precdata->A_nk);
+    if(precdata->P_nk)  dcsr_free(precdata->P_nk);
+    if(precdata->R_nk)  dcsr_free(precdata->R_nk);
+
+    if(precdata->r) dvec_free(precdata->r);
+
+    if(precdata->w) free(precdata->w);
+
+    return;
+}
+
 /*************************************  END  ***************************************************/
