@@ -8,11 +8,12 @@
 #  Xiaozhe Hu
 #  02/27/2013
 #  Modified   2015-08-08   ludmil
+#  Modified   2021-07-20   ludmil
 
 # Find packages that SUITESPARSE depends on
 find_package(BLAS)
 find_package(LAPACK) 
-find_package(SUITESPARSECONFIG)
+find_package(SUITESPARSE_CONFIG)
 find_package(AMD)
 find_package(UMFPACK)
 find_package(COLAMD)
