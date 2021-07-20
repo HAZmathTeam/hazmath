@@ -13,7 +13,7 @@ message(STATUS "Checking for dependent packages of 'UMFPACK'")
 
 # Find packages that UMFPACK depends on
 find_package(BLAS)
-find_package(SUITESPARSECONFIG)
+find_package(SUITESPARSE_CONFIG)
 find_package(AMD)
 ### next one not needed if we only want UMFPACK.
 find_package(CHOLMOD) 
