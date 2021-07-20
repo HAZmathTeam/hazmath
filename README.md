@@ -4,7 +4,9 @@
 
 **Authors:** [Xiaozhe \***H**\*u (Tufts)](http://math.tufts.edu/faculty/xhu/), [James \***A**\*dler (Tufts)](http://math.tufts.edu/faculty/jadler), [Ludmil \***Z**\*ikatanov (Penn State)](http://personal.psu.edu/ltz1/)
 
-**HAZNICS (HAZMATH+FEniCS) Developers:** Kent-Andre Mardal (Simula), Ana Budisa (Simula), Miroslav Kuchta (Simula).
+**HAZNICS (HAZMATH+FEniCS) Developers:** Kent-Andre Mardal (Simula, Univ Oslo), Ana Budisa (Simula), Miroslav Kuchta (Simula).
+
+**Rational Approximation of Functions**: Clemens Hoffreiter (JKU, Linz, Austria)
 
 **Contributors:** Yuwen Li (Penn State), Johannes Kraus (Universitat Duisburg-Essen), Peter Ohm (Tufts), Wenfang Xu (Penn State), Yunrong Zhu (Idaho State).
 
@@ -22,7 +24,7 @@ Our aim is to provide a basic tool, which can be used to tackle specific problem
 
 2. **Solvers:** Unsmoothed Aggregation Algebraic Multigrid Methods (UA-AMG); Preconditioned Krylov subspace methods.
 
-3. **HAZNICS:** Collaboration with Simula; Interface with Python and use of HAZMATH solvers in applications modeled by [FEniCS](https://fenicsproject.org/) finite element libraries
+3. **HAZNICS:** Collaboration with Simula; Interface with Python and use of HAZMATH solvers in applications modeled by [FEniCS](https://fenicsproject.org/) finite element libraries.
 
 3. **Interfaces with External Libraries:** Some routines require a direct linear solver and these depend on the [SuiteSparse](http://faculty.cse.tamu.edu/davis/suitesparse.html) library (by Tim Davis, Texas A & M), which the user needs to install. We also provide an interface for using [Multigraph 2.1](http://ccom.ucsd.edu/~reb/software.html) (by Randolph E Bank, UCSD) as a solver.  
 
