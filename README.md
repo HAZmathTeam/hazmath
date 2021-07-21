@@ -4,13 +4,12 @@
 
 **Authors:** [Xiaozhe \***H**\*u (Tufts)](http://math.tufts.edu/faculty/xhu/), [James \***A**\*dler (Tufts)](http://math.tufts.edu/faculty/jadler), [Ludmil \***Z**\*ikatanov (Penn State)](http://personal.psu.edu/ltz1/)
 
-**HAZNICS (HAZMATH+FEniCS) Developers:** Kent-Andre Mardal (Simula, Univ Oslo), Ana Budisa (Simula), Miroslav Kuchta (Simula).
+## Contributions:
 
-**Rational Approximation of Functions**: Clemens Hoffreiter (JKU, Linz, Austria)
-
-**Grid refinement**: Yuwen Li (Penn State)
-
-**Contributors:** Johannes Kraus (Universitat Duisburg-Essen), Peter Ohm (Tufts), Wenfang Xu (Penn State), Yunrong Zhu (Idaho State).
+- [ ] ***HAZNICS (HAZMATH+FEniCS) and Python interface:*** Kent-Andre Mardal (Simula, Univ Oslo), Ana Budisa (Simula), Miroslav Kuchta (Simula).
+- [ ] ***Rational Approximation of Functions***: Clemens Hoffreiter (JKU, Linz, Austria)
+- [ ] ***Grid refinement***: Yuwen Li (Penn State)
+- [ ] ***Geometric MultiGrid:*** Johannes Kraus (Universitat Duisburg-Essen), Peter Ohm (Tufts), Yunrong Zhu (Idaho State).
 
 ---
 
