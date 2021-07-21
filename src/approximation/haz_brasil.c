@@ -76,7 +76,7 @@ static REAL bary_eval(const barycentric_t *bary, REAL x)
  *
  * ref: (Knockaert 2008), doi:10.1109/LSP.2007.913583
  */
-static void bary_interpolate(barycentric_t *bary, const REAL *nodes, const REAL *values)
+static void bary_interpolate(barycentric_t *bary, const REAL *nodes, const REAL *values, REAL *L)
 {
   const INT n = bary->nn - 1;
   if (n < 0) {
@@ -90,8 +90,6 @@ static void bary_interpolate(barycentric_t *bary, const REAL *nodes, const REAL 
    * us the singular vector for the n-th (nonzero) singular value otherwise; what
    * we want is the vector spanning the null space (belonging to sigma_{n+1} = 0).
    */
-  REAL *L = calloc((n + 1) * (n + 1), sizeof(REAL));
-
   // compute the Loewner matrix
   for (INT i = 0; i < n; ++i) {
     /* The given nodes are divided into "primary" nodes (with even indices,
@@ -118,8 +116,6 @@ static void bary_interpolate(barycentric_t *bary, const REAL *nodes, const REAL 
     bary->z[j] = nodes[2 * j];
     bary->f[j] = values[2 * j];
   }
-
-  free(L);
 }
 // gm=(3-sqrtl(5))*0.5e0;
 #define GOLDEN_MEAN 0.3819660112501051
@@ -224,23 +220,23 @@ static REAL errfun(REAL x, void *data)
  *   the computed maximum error
  */
 static REAL bary_brasil(
-    REAL16 (*f)(REAL16, void*), // function to approximate
-    void *param,                // user parameter for f
-    REAL a,                     // start point of interval
-    REAL b,                     // end point of interval
-    barycentric_t *bary,        // output function - should already be
-                                // initialized with the proper degree
-    INT init_steps,             // how many steps of the initialization alg
-    INT maxiter,                // maximum number of iterations
-    REAL step_factor,           // step factor
-    REAL max_step_size,         // maximum allowed step size
-    REAL tol,                   // maximum allowed deviation from equioscillation
-    INT print_level             // level of verbosity
-)
+			REAL16 (*f)(REAL16, void*), // function to approximate
+			void *param,                // user parameter for f
+			REAL a,                     // start point of interval
+			REAL b,                     // end point of interval
+			barycentric_t *bary,        // output function - should already be
+			// initialized with the proper degree
+			INT init_steps,             // how many steps of the initialization alg
+			INT maxiter,                // maximum number of iterations
+			REAL step_factor,           // step factor
+			REAL max_step_size,         // maximum allowed step size
+			REAL tol,                   // maximum allowed deviation from equioscillation
+			INT print_level             // level of verbosity
+			)
 {
   // number of golden section search steps to find local maxima
   const INT NUM_GOLDEN_STEPS = 30;
-
+  
   const INT deg = bary->nn - 1;
   assert(deg >= 0);
   const INT nn = 2 * deg + 1;   // number of interpolation nodes
@@ -262,11 +258,13 @@ static REAL bary_brasil(
   for (INT i = 0; i < nn; ++i)
     x[i] = (1.0 - cos((2*(i+1) - 1.0) / (2*nn) * PI)) / 2 * (b - a) + a;
 
+  REAL *L = calloc((bary->nn + 1) * (bary->nn + 1), sizeof(REAL));
+  
   for (INT iter = 0; iter < init_steps + maxiter; ++iter) {
     // construct current rational interpolant
     for (INT i = 0; i < nn; ++i)
       fx[i] = f(x[i], param);
-    bary_interpolate(bary, x, fx);
+    bary_interpolate(bary, x, fx,L);
 
     // compute abscissae and values of local maxima in all intervals
     local_max_x[0] = boundary_search_max(errfun, &errfun_data,
@@ -299,7 +297,7 @@ static REAL bary_brasil(
       return_value = local_max[max_intv];
       break;
     }
-
+ 
     if (iter < init_steps) {
       // PHASE 1:
       // move an interpolation node to the point of largest error
@@ -324,7 +322,7 @@ static REAL bary_brasil(
         else
           min_j = min_intv - 1;
       }
-
+    
       // shift node min_j to max_err_x and re-sort the nodes
       x[min_j] = max_err_x;
       dsi_sort(nn,x);
@@ -372,9 +370,9 @@ static REAL bary_brasil(
       for (INT k = 1; k < ni - 1; ++k)
         x[k] = x[k-1] + intv_lengths[k] * scaling_factor;
     }
-  }
-
+  } // end iter loop:
   // cleanup
+  free(L);
   free(x);
   free(fx);
   free(local_max_x);
@@ -491,9 +489,9 @@ static void test_bary()
   bary_init(&bary, 2);
   REAL nodes[] = { 0.0, 0.5, 1.0 };
   REAL values[] = { 2.0, 2.5 / 1.5 , 3.0/2.0 };
-  bary_interpolate(&bary, nodes, values);
+  REAL *L = calloc((bary->nn + 1) * (bary->nn + 1), sizeof(REAL));
+  bary_interpolate(&bary, nodes, values,L);
   bary_print(stdout, &bary);
-
   for (int i = 0; i <= 10; ++i) {
     REAL x = 0.1 * i;
     printf("x = %f, r(x) = %f, f(x) = %f\n", x, bary_eval(&bary, x), (x + 2) / (x + 1));
