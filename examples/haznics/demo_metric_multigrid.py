@@ -6,17 +6,21 @@ from block.algebraic.petsc import collapse
 from block.iterative import ConjGrad 
 
 
-def run(eps, N):
+def run(N, eps):
     print ("running N=%d eps=%e" % (N, eps))
+
+    eps = Constant(eps)
     mesh = UnitSquareMesh(N, N)
     V = FunctionSpace(mesh, "CG", 1) 
     u = TrialFunction(V) 
     v = TestFunction(V)
-    M = assemble(u*v*dx) 
-    A = assemble(inner(grad(u), grad(v))*dx) 
+    
+    m = u*v*dx
+    a = inner(grad(u), grad(v))*dx
 
-    AA = block.block_mat([[M+eps*A, M], [M, M+eps*A]])
-    BB = block.block_mat([[hazAMG(collapse(M+eps*A)), 0], [0, hazAMG(collapse(M+eps*A))]])
+    AA = block.block_assemble([[m+eps*a, m], [m, m+eps*a]])
+    BB = block.block_mat([[hazAMG(AA[0][0]), 0],
+                          [0, hazAMG(AA[1][1])]])
 
     xx = AA.create_vec()
     xx.randomize()
