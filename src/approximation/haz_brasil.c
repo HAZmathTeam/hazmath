@@ -191,48 +191,16 @@ static REAL errfun(REAL x, void *data)
   return fabs(efdata->f(x, efdata->f_param) - bary_eval(efdata->bary, x));
 }
 
-// index of the maximum of an array
-static INT argmax(INT n, const REAL *u)
-{
-  assert(n > 0);
-  INT i_max = 0;
-  REAL u_max = u[0];
-  for (INT i = 1; i < n; ++i)
-  {
-    if (u[i] > u_max) {
-      i_max = i;
-      u_max = u[i];
-    }
-  }
-  return i_max;
-}
-
-// index of the minimum of an array
-static INT argmin(INT n, const REAL *u)
-{
-  assert(n > 0);
-  INT i_min = 0;
-  REAL u_min = u[0];
-  for (INT i = 1; i < n; ++i)
-  {
-    if (u[i] < u_min) {
-      i_min = i;
-      u_min = u[i];
-    }
-  }
-  return i_min;
-}
-
 // comparator function for sorting REALs via qsort
-int compare_REAL(const void *a, const void *b)
-{
-  if (*(REAL*)a < *(REAL*)b)
-    return -1;
-  else if (*(REAL*)a > *(REAL*)b )
-    return 1;
-  else
-    return 0;
-}
+/* int compare_REAL(const void *a, const void *b) */
+/* { */
+/*   if (*(REAL*)a < *(REAL*)b) */
+/*     return -1; */
+/*   else if (*(REAL*)a > *(REAL*)b ) */
+/*     return 1; */
+/*   else */
+/*     return 0; */
+/* } */
 
 /*
  * Compute best uniform rational approximation to a scalar function
@@ -311,8 +279,8 @@ static REAL bary_brasil(
         x[nn-1], b, &local_max[nn], NUM_GOLDEN_STEPS);
 
     // find intervals with largest and smallest errors
-    INT max_intv = argmax(ni, local_max);
-    INT min_intv = argmin(ni, local_max);
+    INT max_intv = darray_max(ni, local_max);
+    INT min_intv = darray_min(ni, local_max);
 
     // compute deviation from equioscillation
     REAL deviation = local_max[max_intv] / local_max[min_intv] - 1.0;
