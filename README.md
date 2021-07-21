@@ -8,7 +8,9 @@
 
 **Rational Approximation of Functions**: Clemens Hoffreiter (JKU, Linz, Austria)
 
-**Contributors:** Yuwen Li (Penn State), Johannes Kraus (Universitat Duisburg-Essen), Peter Ohm (Tufts), Wenfang Xu (Penn State), Yunrong Zhu (Idaho State).
+**Grid refinement**: Yuwen Li (Penn State)
+
+**Contributors:** Johannes Kraus (Universitat Duisburg-Essen), Peter Ohm (Tufts), Wenfang Xu (Penn State), Yunrong Zhu (Idaho State).
 
 ---
 
