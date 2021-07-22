@@ -1,4 +1,3 @@
-
 /*! \file src/approximation/haz_aaa.c
  *
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 20170715.
@@ -209,7 +208,7 @@ INT residues_poles(INT m,				\
   // if we want the old way of computing poles:
   if(0){
      poles_alg2(m,pol,w,z);
-  }
+  } else {
   // swap z[1:m]=z[m:-1:1] and same for w.
   /* for(j=0;j<m;j++){ */
   /*   fprintf(stdout,"\nzp2(%d)=%.18Le;",j+1,z[j]);  fflush(stdout); */
@@ -300,6 +299,7 @@ INT residues_poles(INT m,				\
     pol[j]=alphar[i]/beta[i];
     ++j;
   }
+  }
   //  fprintf(stdout,"\nbeta[%d]=%Le,beta[%d]=%Le\n",j1,beta[j1],j2,beta[j2]);
   //  exit(33);
   ///////////////////////////////////////////////////////////////////////////////
@@ -322,6 +322,7 @@ INT residues_poles(INT m,				\
   free(wrk0);
   return 0;
 }
+
 /**********************************************************************/
 /*!
  * \fn REAL get_cpzwf(REAL16 (*func)(REAL16 x, void *param),void
@@ -339,16 +340,16 @@ INT residues_poles(INT m,				\
  * \note Uses long doubles as well as doubles. 
  *
  */
-REAL get_cpzwf(REAL16 (*func)(REAL16 , void *),		\
-	       void *param,				\
-	       REAL **cpzwf,				\
-	       INT *mbig_in,				\
-	       INT *mmax_in,				\
-	       INT *m_out,				\
-	       REAL xmin_in,				\
-	       REAL xmax_in,				\
-	       REAL tolaaa,
-	       INT print_level)
+REAL get_cpzwf(REAL16 (*func)(REAL16 x, void *param),	\
+	      void *param,				\
+	      REAL **cpzwf,				\
+	      INT *mbig_in,				\
+	      INT *mmax_in,				\
+	      INT *m_out,				\
+	      REAL xmin_in,				\
+	      REAL xmax_in,				\
+	      REAL tolaaa,
+	      INT print_level)
 {
   /*
    *  \param mbig is the total number of points; mmax_in is the max number of
@@ -380,7 +381,7 @@ REAL get_cpzwf(REAL16 (*func)(REAL16 , void *),		\
   // approximate and param are the parameters it may depend on
   INT m,i,j,k,krow,kmax,mmax;
   REAL16 r,wzkj,fnum,fden,rm,rmax,swp;
-  REAL16  fj,zj,tol,xmin=(REAL16 )xmin_in,xmax=(REAL16 )(xmax_in);
+  REAL16  fj,zj,tol,xmin=(REAL16 )xmin_in,xmax=(REAL16 )xmax_in;
   REAL smin=-1e20;
   INT mbig=mbig_in[0];
   if(mbig<4)mbig=4;
@@ -390,7 +391,7 @@ REAL get_cpzwf(REAL16 (*func)(REAL16 , void *),		\
     mmax=mmax_in[0];
   else 
     mmax_in[0]=mmax;
-  tol=powl(2e0,-46e0);
+  tol=powl(2e0,-42e0);
   if(((REAL16 )tolaaa) > tol)
     tol=(REAL16 )tolaaa;
   INT mem=mbig*mmax*sizeof(REAL) + mmax*sizeof(REAL)+2*mbig*sizeof(REAL16);
@@ -462,7 +463,6 @@ REAL get_cpzwf(REAL16 (*func)(REAL16 , void *),		\
 	}
       }
     }
-
     if(print_level>2)
       fprintf(stdout,"\n%%%%iter=%d | rmax=%.20Le at %7d;",m,rmax,kmax);fflush(stdout);
     if(rmax<tol || m>=(mmax-1)) break;
@@ -509,29 +509,29 @@ REAL get_cpzwf(REAL16 (*func)(REAL16 , void *),		\
   // ALL DONE:
   m_out[0]=m;
   mbig_in[0]=mbig;
-  // tricky stuff: realloc removing all REAL16 to REAL:
-  cpzwf[0]=(REAL *)z;
-  // we use that real requires less than real16:) hope this works:
-  for(i=0;i<m;i++) *(cpzwf[0]+i)=z[i];
+
+  // allocate space for results
+  cpzwf[0]=calloc(5*(m+1), sizeof(REAL));
   cpzwf[1]=cpzwf[0] + m + 1;
-  memcpy(cpzwf[1],wd,m*sizeof(REAL));
   cpzwf[2]=cpzwf[1] + m + 1;
-  for(i=0;i<m;i++) *(cpzwf[2]+i)=f[i];
-  // reallocate:
-  cpzwf[0]=realloc(cpzwf[0],5*(m+1)*sizeof(REAL));
   cpzwf[3]=cpzwf[2] + m + 1;
   cpzwf[4]=cpzwf[3] + m + 1;
-  memcpy(cpzwf[4],cpzwf[2],(m+1)*sizeof(REAL));
-  memcpy(cpzwf[3],cpzwf[1],(m+1)*sizeof(REAL));
-  memcpy(cpzwf[2],cpzwf[0],(m+1)*sizeof(REAL));
+
+  for(i=0;i<m;i++) cpzwf[2][i]=z[i];
+  memcpy(cpzwf[3],wd,m*sizeof(REAL));
+  for(i=0;i<m;i++) cpzwf[4][i]=f[i];
+  free(z);
+
   //   copy the functions values go last, poles go first, residues go second
   residues_poles(m,cpzwf[2],cpzwf[3],cpzwf[4],cpzwf[0],cpzwf[1]);
+
   REAL rswp;
   INT m1=m-1;
-  rswp=*(cpzwf[0]+m1);
+  rswp=cpzwf[0][m1];
   for(i=m1;i>0;i--)
-    *(cpzwf[0]+i)=*(cpzwf[0]+i-1);
-  *(cpzwf[0])=rswp;
+    cpzwf[0][i]=cpzwf[0][i-1];
+  cpzwf[0][0]=rswp;
+
   return (REAL )rmax;
 }
 /*EOF*/
