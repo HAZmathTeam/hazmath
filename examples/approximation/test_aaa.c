@@ -24,7 +24,7 @@ INT main(int argc,char *argv[])
   // parameters for the function we are approximating.
   // For example: s[2]*(x^s[0])+s[3]*(x**s[1])
   REAL16 s[4]={-0.5e0,0.5e0,1e0,0e0}; // s1, s2, alpha,beta
-  INT print_level=3;
+  INT print_level=1;
 
   fprintf(stderr,"\nUSAGE: %s<<EOF_FRAC\n s,t,alpha,beta,xmin,xmax\nEOF_FRAC\n",argv[0]);
   fprintf(stderr,"\nEXAMPLE:\n%s<<EOF_FRAC >frac_aaa.m\n %.2Lf %.2Lf %.2Lf %.2Lf %.2f %.2f\nEOF_FRAC\n", \
