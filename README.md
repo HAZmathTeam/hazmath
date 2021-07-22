@@ -6,10 +6,10 @@
 
 ## Contributions:
 
-- [ ] ***HAZNICS (HAZMATH+FEniCS) and Python interface:*** Ana Budisa (Simula), Miroslav Kuchta (Simula), Kent-Andre Mardal (Simula, Univ Oslo).
-- [ ] ***Rational Approximation of Functions***: Clemens Hoffreiter (JKU, Linz, Austria)
-- [ ] ***Grid refinement***: Yuwen Li (Penn State)
-- [ ] ***Geometric MultiGrid:*** Johannes Kraus (Universitat Duisburg-Essen), Peter Ohm (Tufts), Yunrong Zhu (Idaho State).
+- ***HAZNICS (HAZMATH+FEniCS) and Python interface:*** Ana Budisa (Simula), Miroslav Kuchta (Simula), Kent-Andre Mardal (Simula, Univ Oslo).
+- ***Rational Approximation of Functions***: Clemens Hofreither (JKU, Linz, Austria)
+- ***Grid refinement***: Yuwen Li (Penn State)
+- ***Geometric MultiGrid:*** Johannes Kraus (Universitat Duisburg-Essen), Peter Ohm (Tufts), Yunrong Zhu (Idaho State).
 
 ---
 
