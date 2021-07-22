@@ -116,6 +116,38 @@ void isi_sort(INT n, INT *a)
   }
   return;
 }
+void dsi_sort(INT n, REAL *a)
+{
+//implements STRAIGHT  INSERT sort for REAL
+  INT i,j;
+  REAL aj;
+  for (j = 1; j < n; ++j) {
+      aj = *(a + j);
+      i = j - 1;
+      while ((i >=0) && (aj<a[i])){
+	  *(a + i + 1) = *(a + i);
+	  --i;
+      }
+      *(a + i + 1) = aj;
+  }
+  return;
+}
+void qsi_sort(INT n, REAL16 *a)
+{
+//implements STRAIGHT  INSERT sort for REAL
+  INT i,j;
+  REAL16 aj;
+  for (j = 1; j < n; ++j) {
+      aj = *(a + j);
+      i = j - 1;
+      while ((i >=0) && (aj<a[i])){
+	  *(a + i + 1) = *(a + i);
+	  --i;
+      }
+      *(a + i + 1) = aj;
+  }
+  return;
+}
 void isi_sortp(const INT n, INT *a, INT *p, INT *invp)
 {
 //implements STRAIGHT INSERT sort for integers, returns prmutation and
