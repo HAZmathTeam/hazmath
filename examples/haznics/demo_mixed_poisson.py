@@ -1,29 +1,25 @@
-# We solve
-#
-#     div(sigma) = f
-#          sigma = - K*grad(u)
-#
-# on a unit square with sigma.n bcs enforced on left and top edge by
-# Lagrange multiplier and the pressure set on the rest. The preconditioner
-# for this system is based on Riesz map wrt inner product
-# (1/K)*(I-grad div) x K*H^{0.5}. Using exact inverse for the first block
-# we want to see how different approximations of the fractional block
-# translate to MinRes iterations
-import sys
-sys.path.append('../../../')
+"""
+\file examples/haznics/demo_mixed_poisson.py
+Created by Miroslav Kuchta, Ana Budisa on 2020-07-22.
+
+We solve
+
+    div(sigma) = f
+         sigma = - K*grad(u)
+
+on a unit square with sigma.n bcs enforced on left and top edge by
+Lagrange multiplier and the pressure u is fixed set on the rest.
+The preconditioner for this system is based on Riesz map wrt inner product
+(1/K)*(I-grad div) x K*L^2 x K*H^{0.5}. Using exact inverse for the first and second block
+and rational approximation (RA) for the fractional block. Outer solver is MinRes.
+"""
+
 from block.algebraic.petsc import LU
-from block.block_util import flatten
+from block.algebraic.hazmath import RA
 from petsc4py import PETSc
-###  from hseig import HsNorm
-###  from hsmg import HsNormAMG
-from precond_haz import RA
-###  import pyamg
-from block import block_mat
 from dolfin import *
 import numpy as np
 from xii import *
-from dolfin import Matrix as dolfin_Matrix
-import scipy.sparse as sps
 import haznics
 
 
@@ -78,60 +74,8 @@ def get_system(n, K, f, sigma0, u0):
 
     return A, b, W, mesh
 
-"""
-def get_eigenvalue_preconditioner(AA, W, K):
-    '''H^{0.5} by eigenvalues and take its exact inverse'''
-    S, V, Q = W
-    
-    K = Constant(K)
-    # (1/K)*(I-grad(div))
-    sigma, tau = TrialFunction(S), TestFunction(S)
-    a = (1/K)*(inner(sigma, tau)*dx + inner(div(sigma), div(tau))*dx)
-    B0 = LU(assemble(a))  # Exact inverse
-    
-    # K*I
-    u, v = TrialFunction(V), TestFunction(V)
-    a = K*inner(u, v)*dx
-    B1 = LU(assemble(a))
 
-    # K*H^{0.5}
-    B2 = HsNorm(Q, s=0.5, kappa=K, bcs=True)
-    B2*B2.create_vec()
-
-    B2 = LU(B2.matrix)
-
-    return block_diag_mat([B0, B1, B2])
-
-
-def get_hsmg_preconditioner(AA, W, K):
-    '''Realize inv(H^{0.5}) by AMG'''
-    S, V, Q = W
-    
-    K = Constant(K)
-    # (1/K)*(I-grad(div))
-    sigma, tau = TrialFunction(S), TestFunction(S)
-    a = (1/K)*(inner(sigma, tau)*dx + inner(div(sigma), div(tau))*dx)
-    B0 = LU(assemble(a))  # Exact inverse
-    
-    # K*I
-    u, v = TrialFunction(V), TestFunction(V)
-    a = K*inner(u, v)*dx
-    B1 = LU(assemble(a))
-
-    # K*H^{0.5}
-    mg_params = {'pyamg_solver': lambda A: pyamg.ruge_stuben_solver(A),
-                 'mass_inv': 'amg'}  # In BPL algo
-
-    B2 = HsNormAMG(Q, s=0.5, bdry=DomainBoundary(),
-                   mg_params=mg_params,
-                   kappa=K,
-                   neg_mg='bpl')
-
-    return block_diag_mat([B0, B1, B2])
-
-"""
-
-def get_rational_preconditioner(AA, W, K):
+def get_rational_preconditioner(W, K):
     '''Realize inv(H^{0.5}) by AAA'''
     S, V, Q = W
     
@@ -216,11 +160,12 @@ def solve_minres(AA, bb, BB, W, tol=1E-10):
 
 
 if __name__ == '__main__':
-    # Setup a MMS
     import sympy as sp
     from block.iterative import MinRes
 
-    as_expression = lambda thing: Expression(sp.printing.ccode(thing), degree=4, K=1)
+    # Setup MMS
+    def as_expression(thing):
+        return Expression(sp.printing.ccode(thing), degree=4, K=1)
     
     x, y, K = sp.symbols('x[0] x[1] K')
 
@@ -236,119 +181,41 @@ if __name__ == '__main__':
     # Just for quick updates (as loop) of K
     expressions = (u, sigma_x, sigma_y, sigma, f)
 
-    ### CONDUCTIVITY PARAMETER ###
+    # Parameters
     n = 64
     K = 1E0
-    niters, ndofs_, cputime = [], [], []
-    Kgrid = [1E-8, 1E-6, 1E-4, 1E-2, 1E0, 1E2, 1E4, 1E6, 1E8]
-    ngrid = [4, 8, 16, 32, 64, 128, 256, 512]
     [setattr(e, 'K', K) for e in expressions]
-    
-    # for n in (4, 8, 16, 32, 64, 128, 256, 512):
-    for K in Kgrid:
-        AA, bb, W, mesh = get_system(n, K=K, f=f, sigma0=sigma, u0=u)
 
-        # DIRECT SOLVE
-        # wh = ii_Function(W)
-        # solve(ii_convert(AA), wh.vector(), ii_convert(bb))
+    AA, bb, W, mesh = get_system(n, K=K, f=f, sigma0=sigma, u0=u)
 
-        # EIGEN PRECOND
-        # BB = get_eigenvalue_preconditioner(AA, W, K)
-        """
-        # Miro's HSMG PRECOND
-        BB_miro = get_hsmg_preconditioner(AA, W, K)
-        
-        AAinv_miro = MinRes(AA, precond=BB_miro, tolerance=1E-10, show=2)
-        xx_miro = AAinv_miro*bb
+    # DIRECT SOLVE
+    # wh = ii_Function(W)
+    # solve(ii_convert(AA), wh.vector(), ii_convert(bb))
 
-        res_miro = bb - AA*xx_miro
-        res_norm_miro = res_miro.norm()
-        print("Residual norm after Minres - Miro's precond: ", res_norm_miro)
+    # Preconditioner from hazmath
+    BB = get_rational_preconditioner(W, K)
 
-        cvrg_miro = AAinv_miro.residuals
+    # Solve with MinRes
+    AAinv = MinRes(AA, precond=BB, tolerance=1E-10, show=2)
+    xx = AAinv * bb
 
-        wh = ii_Function(W)
-        ndofs = 0
-        for i, xxi in enumerate(xx_miro):
-            wh[i].vector()[:] = xxi
-            ndofs += xxi.size()
+    # Solution
+    wh = ii_Function(W)
+    ndofs = 0
+    for i, xxi in enumerate(xx):
+        wh[i].vector()[:] = xxi
+        ndofs += xxi.size()
 
-        niters.append(len(cvrg_miro))
-        ndofs_.append(K)
-        cputime.append(AAinv_miro.cputime)
+    # Results
+    cvrg = AAinv.residuals
 
-        # Check solution hsmg
-        print('*' * 32)
-        print('MinRes iterations eigen', len(cvrg_miro), 'final norm',
-              cvrg_miro[-1], '#dofs',
-              ndofs)
-        print('Error sigma: ',
-              errornorm(sigma, wh[0], 'Hdiv', degree_rise=2),
-              '\nError u: ',
-              errornorm(u, wh[1], 'L2', degree_rise=2))
-        print('*' * 32)
-        """
+    print('*' * 32)
+    print('MinRes iterations', len(cvrg), 'final norm', cvrg[-1],
+          '#dofs', ndofs)
+    print('Error sigma: ', errornorm(sigma, wh[0], 'Hdiv', degree_rise=2),
+          '\nError u: ', errornorm(u, wh[1], 'L2', degree_rise=2))
+    print('*' * 32)
 
-
-        # Hazmath RA PRECOND
-        BB_haz = get_rational_preconditioner(AA, W, K)
-
-        AAinv_haz = MinRes(AA, precond=BB_haz, tolerance=1E-10, show=2)
-        xx_haz = AAinv_haz * bb
-
-        res_haz = bb - AA*xx_haz
-        res_norm_haz = res_haz.norm()
-        print("Residual norm after Minres - Hazmath's precond: ", res_norm_haz)
-
-        cvrg_haz = AAinv_haz.residuals
-
-        wh = ii_Function(W)
-        ndofs = 0
-        for i, xxi in enumerate(xx_haz):
-            wh[i].vector()[:] = xxi
-            ndofs += xxi.size()
-
-        niters.append(len(cvrg_haz))
-        ndofs_.append(K)
-        cputime.append(AAinv_haz.cputime)
-        # Check solution hazmath
-        print('*'*32)
-        print('MinRes iterations haz', len(cvrg_haz), 'final norm', cvrg_haz[-1], '#dofs', ndofs)
-        
-        print('Error sigma: ',
-              errornorm(sigma, wh[0], 'Hdiv', degree_rise=2),
-              '\nError u: ',
-              errornorm(u, wh[1], 'L2', degree_rise=2))
-        print('*'*32)
-
-        """
-        V1, Q1, Lambda = W
-        u1h, p1h, lmh = wh
-
-        error_u1 = Function(V1)
-        error_u1 = project(sigma - u1h, V1)
-        error_u1_total = assemble(inner(error_u1, error_u1) * dx
-                                  + inner(div(error_u1), div(error_u1)) * dx)
-        sigma_proj = project(sigma, V1)
-        norm_u1 = assemble(inner(sigma_proj, sigma_proj) * dx
-                           + inner(div(sigma_proj), div(sigma_proj)) * dx)
-        print("Rel error u1 in Hdiv: ", sqrt(error_u1_total) / sqrt(norm_u1))
-
-        error_p1 = Function(Q1)
-        error_p1 = project(u - p1h, Q1)
-
-        # import pdb; pdb.set_trace()
-        File('solution_poisson/error_u1.pvd') << error_u1
-        File('solution_poisson/error_p1.pvd') << error_p1
-        """
-
-    from tabulate import tabulate
-
-    table = [ndofs_, niters, cputime]
-    table = np.array(table).T.tolist()
-    # import pdb; pdb.set_trace()
-    print('*' * 70)
-    table_t = tabulate(table, headers=["K", "niters", "cputime"])
-    print(table_t)
-    print('*' * 70)
-    open('table_hazmath.txt', 'w').write(table_t)
+    # Plot
+    # File('solution_poisson/solution_sigma.pvd') << wh[0]
+    # File('solution_poisson/solution_u.pvd') << wh[1]
