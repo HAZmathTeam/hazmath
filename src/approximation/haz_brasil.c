@@ -231,6 +231,7 @@ static REAL bary_brasil(
 			REAL step_factor,           // step factor
 			REAL max_step_size,         // maximum allowed step size
 			REAL tol,                   // maximum allowed deviation from equioscillation
+			INT *iter_brasil,           // number of iterations performed;
 			INT print_level             // level of verbosity
 			)
 {
@@ -248,6 +249,8 @@ static REAL bary_brasil(
   REAL *local_max    = malloc(ni * sizeof(REAL));   // values of local maxima
   REAL *intv_lengths = malloc(ni * sizeof(REAL));   // length of intervals
 
+  *iter_brasil=maxiter+1;
+
   // set up data for the error function |f - r|
   errfun_data_t errfun_data;
   errfun_data.f = f;
@@ -259,8 +262,11 @@ static REAL bary_brasil(
     x[i] = (1.0 - cos((2*(i+1) - 1.0) / (2*nn) * PI)) / 2 * (b - a) + a;
 
   REAL *L = calloc((bary->nn + 1) * (bary->nn + 1), sizeof(REAL));
-  
-  for (INT iter = 0; iter < init_steps + maxiter; ++iter) {
+  INT iter=maxiter+init_steps+1;
+  for (iter = 0; iter < init_steps + maxiter; ++iter) {
+    ///////////////////////////////////////////////
+    *iter_brasil=iter;
+    //////////////////////////////////////////////
     // construct current rational interpolant
     for (INT i = 0; i < nn; ++i)
       fx[i] = f(x[i], param);
@@ -290,14 +296,14 @@ static REAL bary_brasil(
     if (converged || (iter == init_steps + maxiter - 1)) {
       // converged or reached maximum iterations
       if (!converged)
-        fprintf(stderr, "warning: BRASIL did not converge; deviation=%e error=%e\n",
+        fprintf(stderr, "%%\t****warning: BRASIL did not converge; deviation=%e error=%e\n",
             deviation, local_max[max_intv]);
       else if (print_level > 0)
-        printf("BRASIL converged (%d iter): deviation=%e error=%e\n", iter, deviation, local_max[max_intv]);
+        printf("%%%%BRASIL converged (%d iter): deviation=%e error=%e\n", iter, deviation, local_max[max_intv]);
       return_value = local_max[max_intv];
       break;
     }
- 
+
     if (iter < init_steps) {
       // PHASE 1:
       // move an interpolation node to the point of largest error
@@ -425,15 +431,16 @@ REAL get_cpzwf_brasil(
     REAL step_factor,           // step factor
     REAL max_step_size,         // maximum allowed step size
     REAL tol,                   // maximum allowed deviation from equioscillation
+    INT *iter_brasil,
     INT print_level             // level of verbosity
 )
 {
   barycentric_t bary;
   bary_init(&bary, deg + 1);
-
-  const REAL error = bary_brasil(f, param, a, b,
-      &bary, init_steps, maxiter, step_factor, max_step_size,
-      tol, print_level);
+  *iter_brasil=maxiter+1;
+  const REAL error = bary_brasil(f, param, a, b,			\
+				 &bary, init_steps, maxiter, step_factor, max_step_size, \
+				 tol,iter_brasil,print_level);
 
   // allocate and fill output data structure
   cpzwf[0] = calloc(5 * bary.nn, sizeof(**cpzwf));
@@ -453,50 +460,13 @@ REAL get_cpzwf_brasil(
   /* should this be here?
   // this is copied from haz_aaa.c for consistency:
   // rotate the last residue to the front
-  REAL rswp;
-  INT m1 = bary.nn - 1;
-  rswp = cpzwf[0][m1];
-  for (int i = m1; i>0; --i)
-    cpzwf[0][i] = cpzwf[0][i-1];
-  cpzwf[0][0] = rswp;
   */
-
+  REAL rswp;
+  INT i,m1 = bary.nn - 1;
+  rswp = cpzwf[0][m1];
+  for(i = m1; i>0; --i)
+    cpzwf[0][i] = cpzwf[0][i-1];
+  cpzwf[0][0] = rswp;  
   bary_free(&bary);
   return error;
 }
-
-#if 0       // debug code
-
-static void bary_print(FILE *stream, const barycentric_t *bary)
-{
-  INT i;
-  fprintf(stream, "Barycentric function of degree %d:\n Nodes: [", bary->nn - 1);
-  for (i = 0; i < bary->nn; ++i)
-    fprintf(stream, "%f ", bary->z[i]);
-  fprintf(stream, "]\n Weights: [");
-  for (i = 0; i < bary->nn; ++i)
-    fprintf(stream, "%f ", bary->w[i]);
-  fprintf(stream, "]\n Values: [");
-  for (i = 0; i < bary->nn; ++i)
-    fprintf(stream, "%f ", bary->f[i]);
-  fprintf(stream, "]\n");
-}
-
-static void test_bary()
-{
-  // set up rational function r(x) = (x + 2) / (x + 1)
-  barycentric_t bary;
-  bary_init(&bary, 2);
-  REAL nodes[] = { 0.0, 0.5, 1.0 };
-  REAL values[] = { 2.0, 2.5 / 1.5 , 3.0/2.0 };
-  REAL *L = calloc((bary->nn + 1) * (bary->nn + 1), sizeof(REAL));
-  bary_interpolate(&bary, nodes, values,L);
-  bary_print(stdout, &bary);
-  for (int i = 0; i <= 10; ++i) {
-    REAL x = 0.1 * i;
-    printf("x = %f, r(x) = %f, f(x) = %f\n", x, bary_eval(&bary, x), (x + 2) / (x + 1));
-  }
-  bary_free(&bary);
-}
-
-#endif      // end test code
