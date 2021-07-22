@@ -15,12 +15,9 @@ rational approximation (RA) for the fractional block. Outer solver is MinRes.
 """
 
 from block.algebraic.petsc import LU
-from petsc4py import PETSc
-from block import block_mat
+from block.algebraic.hazmath import RA
 from dolfin import *
-import numpy as np
 from xii import *
-from precond_haz import RA
 import haznics
 
 
@@ -121,11 +118,9 @@ if __name__ == '__main__':
     import sympy as sp
     from block.iterative import MinRes
 
-
     # Setup MMS
     def as_expression(thing):
         return Expression(sp.printing.ccode(thing), degree=4, K=1)
-
 
     x, y, K = sp.symbols('x[0] x[1] K')
 
@@ -163,7 +158,7 @@ if __name__ == '__main__':
     # Solution
     wh = ii_Function(W)
     ndofs = 0
-    for i, xxi in enumerate(xx_haz):
+    for i, xxi in enumerate(xx):
         wh[i].vector()[:] = xxi
         ndofs += xxi.size()
 
