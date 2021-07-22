@@ -11,6 +11,116 @@
 #include "hazmath.h"
 
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx*/
+/****************************************************************************************/
+/*!
+ * \fn INT darray_max(INT n, const REAL *u)
+ *
+ * \brief finds the max element in a linear array (vector); returns
+ *        its index
+ *
+ * \param n (INPUT) size of the array
+ * \param u array of REALs (INPUT)
+ *
+ *
+ * \author Clemens Hofreither 20210620
+ */
+INT darray_max(INT n, const REAL *u)
+{
+  assert(n > 0);
+  INT i_max = 0;
+  REAL u_max = u[0];
+  for (INT i = 1; i < n; ++i)
+  {
+    if (u[i] > u_max) {
+      i_max = i;
+      u_max = u[i];
+    }
+  }
+  return i_max;
+}
+/****************************************************************************************/
+/*!
+ * \fn INT darray_min(INT n, const REAL *u)
+ *
+ * \brief finds the min element in a linear array (vector); returns
+ *        its index
+ *
+ * \param n (INPUT) size of the array
+ * \param u array of REALs (INPUT)
+ *
+ *
+ * \author Clemens Hofreither 20210620
+ */
+// index of the minimum of an array
+INT darray_min(INT n, const REAL *u)
+{
+  assert(n > 0);
+  INT i_min = 0;
+  REAL u_min = u[0];
+  for (INT i = 1; i < n; ++i)
+  {
+    if (u[i] < u_min) {
+      i_min = i;
+      u_min = u[i];
+    }
+  }
+  return i_min;
+}
+/****************************************************************************************/
+/*!
+ * \fn INT iarray_max(INT n, const INT *u)
+ *
+ * \brief finds the max element in a linear array (vector); returns
+ *        its index
+ *
+ * \param n (INPUT) size of the array
+ * \param u array of INTs (INPUT)
+ *
+ *
+ * \author Clemens Hofreither 20210620
+ */
+INT iarray_max(INT n, const INT *u)
+{
+  assert(n > 0);
+  INT i_max = 0;
+  INT u_max = u[0];
+  for (INT i = 1; i < n; ++i)
+  {
+    if (u[i] > u_max) {
+      i_max = i;
+      u_max = u[i];
+    }
+  }
+  return i_max;
+}
+/****************************************************************************************/
+/*!
+ * \fn INT iarray_min(INT n, const INT *u)
+ *
+ * \brief finds the min element in a linear array (vector); returns
+ *        its index
+ *
+ * \param n (INPUT) size of the array
+ * \param u array of INTs (INPUT)
+ *
+ *
+ * \author Clemens Hofreither 20210620
+ */
+// index of the minimum of an array
+INT iarray_min(INT n, const INT *u)
+{
+  assert(n > 0);
+  INT i_min = 0;
+  INT u_min = u[0];
+  for (INT i = 1; i < n; ++i)
+  {
+    if (u[i] < u_min) {
+      i_min = i;
+      u_min = u[i];
+    }
+  }
+  return i_min;
+}
 /***********************************************************************************************/
 /*!
  * \fn INT locate0(INT needle, INT *haystack, INT n)

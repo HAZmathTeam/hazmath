@@ -1,11 +1,12 @@
 #####################################################
-# Last Modified 2020-10-25 --ltz
+# Last Modified 2021-07-21 --ltz
 ####################################################
 
-# SRC File name
-SRCFILE = aaa
+### SRC File name
+SRCFILE = test_aaa
+#SRCFILE = test_brasil
 
-HEADERS = aaa_example.h
+HEADERS = ra_examples.h
 
 INCLUDE =
 
@@ -18,7 +19,6 @@ CFLAGS = -O
 ## comment/uncomment what is necessary below.
 WITH_LAPACK=1
 WITH_SUITESPARSE=1
-
 #WITH_CGAL=1
 
 sinclude ../examples.mk
