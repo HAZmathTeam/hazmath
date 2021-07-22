@@ -4,6 +4,12 @@
  *  Copyright 2017__HAZMATH__. All rights reserved.
  *
  *  \note containing programs for the AAA algorithm for rational approximation
+ * 
+ *  \note See: Yuji Nakatsukasa, Olivier S`ete, and Lloyd N.
+ *             Trefethen.  The AAA algorithm for rational
+ *             approximation.SIAM J. Sci.Comput., 40(3):A1494–A1522,
+ *             2018. https://doi.org/10.1137/16M1106122
+ *
  *  \note 20201025 (ltz)
  */
 #include "hazmath.h"
