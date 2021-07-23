@@ -95,6 +95,15 @@ import_array();
 }
 */
 
+%nodefaultctor input_param;
+%extend input_param{
+   input_param() {
+        input_param *inparam = (input_param *) malloc(sizeof(input_param));
+        param_input_init(inparam);
+        return inparam;
+   }
+}
+
 /* need to add destructors for other structs!! */
 
 
