@@ -1,17 +1,18 @@
 """
 \file examples/haznics/demo_mixed_poisson.py
-Created by Miroslav Kuchta, Ana Budisa on 2020-07-22.
+Created by Miroslav Kuchta, Ana Budisa on 2021-07-22.
 
 We solve
 
     div(sigma) = f
          sigma = - K*grad(u)
 
-on a unit square with sigma.n bcs enforced on left and top edge by
-Lagrange multiplier and the pressure u is fixed set on the rest.
-The preconditioner for this system is based on Riesz map wrt inner product
-(1/K)*(I-grad div) x K*L^2 x K*H^{0.5}. Using exact inverse for the first and second block
-and rational approximation (RA) for the fractional block. Outer solver is MinRes.
+on a unit square with sigma.n bcs enforced on left and top edge by Lagrange
+multiplier and the pressure u is fixed set on the rest. The preconditioner for
+this system is based on Riesz map wrt inner product
+(1/K)*(I-grad div) x K*L^2 x K*H^{0.5}.
+We use exact inverse for the first and second blocks and rational
+approximation (RA) for the fractional block. Outer solver is MinRes.
 """
 
 from block.algebraic.petsc import LU
@@ -217,5 +218,5 @@ if __name__ == '__main__':
     print('*' * 32)
 
     # Plot
-    # File('solution_poisson/solution_sigma.pvd') << wh[0]
-    # File('solution_poisson/solution_u.pvd') << wh[1]
+    # File('solution_mixedp/solution_sigma.pvd') << wh[0]
+    # File('solution_mixedp/solution_u.pvd') << wh[1]

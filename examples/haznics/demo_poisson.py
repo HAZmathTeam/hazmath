@@ -1,6 +1,6 @@
 """
 \file examples/haznics/demo_poisson.py
-Created by Miroslav Kuchta, Ana Budisa on 2020-07-15.
+Created by Miroslav Kuchta, Ana Budisa on 2021-07-15.
 
 We solve
 
@@ -10,7 +10,7 @@ We solve
 on a unit square with u bcs enforced on left and top edge by
 Lagrange multiplier and the sigma.n is fixed set on the rest.
 The preconditioner for this system is based on Riesz map wrt inner product
-K*H^1 x (1/K)*H^{-0.5}. Using exact inverse for the first block and
+K*H^1 x (1/K)*H^{-0.5}. We use exact inverse for the first block and
 rational approximation (RA) for the fractional block. Outer solver is MinRes.
 """
 

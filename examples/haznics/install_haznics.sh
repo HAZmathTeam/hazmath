@@ -62,5 +62,5 @@ echo "Installing hazmath (with haznics)..."
 make -C ../.. config shared=yes suitesparse=yes lapack=yes haznics=yes
 make -C ../.. install
 
-export PYTHONPATH="../../swig_files/":"$PYTHONPATH"
+export PYTHONPATH="$(pwd)/../../swig_files/":"$PYTHONPATH"
 echo "... Done."
