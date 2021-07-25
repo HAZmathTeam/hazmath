@@ -49,6 +49,6 @@ the [GNU's Lesser General Public License](https://www.gnu.org/licenses/#LGPL) fo
 
 ---
 
-(c) 2009- by X. Hu, J. Adler, L. Zikatanov, 
+(c) 2009- by X. Hu, J. Adler, L. Zikatanov 
 
 ---
