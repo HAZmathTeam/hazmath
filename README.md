@@ -45,7 +45,7 @@ the [GNU's Lesser General Public License](https://www.gnu.org/licenses/#LGPL) fo
 
 ---
 
-**TODO:** Graph Routines: Minimum Stretching Tree Multigrid; Signal Processing on Graphs; Many other additions are planned as well;
+**TODO:** Graph Routines: Minimum Stretching Tree Multigrid; Signal Processing on Graphs; Uniform refinements in higher dimensions.
 
 ---
 
