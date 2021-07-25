@@ -7,6 +7,6 @@
 #set +x
 
 cat $1/src/haznics/*.c \
-	| gawk -v name="haznics_add.h" -f mkheaders_simple.awk > $1/include/haznics_add.h
+	| awk -v name="haznics_add.h" -f mkheaders_simple.awk > $1/include/haznics_add.h
 
 #set -x

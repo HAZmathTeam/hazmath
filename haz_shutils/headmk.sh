@@ -13,7 +13,7 @@ cat $1/src/assemble/*.c $1/src/fem/*.c \
     $1/src/amr/*.c $1/src/graphs/*.c \
     $1/src/eigen/*.c \
     $1/src/approximation/*.c \
-	| gawk -v name="hazmath.h" -f mkheaders.awk > $1/include/hazmath.h
+	| awk -v name="hazmath.h" -f mkheaders.awk > $1/include/hazmath.h
 
 #cat $1/src/haznics/*.CC \
 #	| awk -v name="helpder.hidden" -f mkheaders.awk >> $1/include/hazmath.h
