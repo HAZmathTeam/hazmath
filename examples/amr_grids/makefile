@@ -5,8 +5,6 @@
 
 SRCFILE = amr_grids
 
-#SRCFILE = triangulation2d
-#WITH_CGAL=1
 
 HEADERS = connected_components.h solve_estimate_mark.h
 

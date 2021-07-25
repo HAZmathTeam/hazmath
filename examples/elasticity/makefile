@@ -19,6 +19,5 @@ FFLAGS = -g
 ## uncomment  the corresponding line below:
 WITH_SUITESPARSE=1
 WITH_LAPACK=1
-WITH_CGAL=1
 
 sinclude ../examples.mk

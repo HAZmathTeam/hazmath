@@ -89,12 +89,6 @@ ifeq ($(WITH_SUITESPARSE),1)
 	LIBS += -lsuitesparseconfig -lcholmod -lamd -lcolamd -lccolamd -lcamd -lspqr -lumfpack -lamd -lcxsparse 
 endif
 
-ifeq ($(WITH_CGAL),1)
-	CFLAGS += -DWITH_CGAL=1
-	LIBS += -lhazmath_cgal -lgmp
-endif
-
-
 
 ############### 
 # Different Executable Programs, but same targets; SRC file needs to be defined
