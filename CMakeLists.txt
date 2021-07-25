@@ -248,23 +248,6 @@ if (USE_SUITESPARSE)
 endif(USE_SUITESPARSE)
 
 ##################################################################
-# For CGAL: we here require cgal, mpfr and gmp libraries and includes
-##################################################################
-if (USE_CGAL)
-  # set the path to find specific modules	  
-  #   message(STATUS "  ${HAZMATH_SOURCE_DIR}")
-  set(CMAKE_MODULE_PATH "${HAZMATH_SOURCE_DIR}/cmake.modules")
-
-  find_package(CGAL QUIET COMPONENTS GMP )
-
-  if (CGAL_FOUND)
-    add_definitions("-DWITH_CGAL=1")
-    include_directories(${CGAL_INCLUDE_DIRS})
-  else(CGAL_FOUND)
-    message(WARNING  " CGAL was requested but not supported!")
-  endif(CGAL_FOUND)
-endif(USE_CGAL)
-##################################################################
 # For HAZNICS: we here require Python and SWIG
 ##################################################################
 if (USE_HAZNICS)
@@ -389,20 +372,6 @@ install(TARGETS hazmath
   RUNTIME DESTINATION lib
   ARCHIVE DESTINATION lib)
 
-#install hazmath_cgal
-if (USE_CGAL)
-  if (CGAL_FOUND)
-    add_library(hazmath_cgal ${HAZMATH_LIBRARY_TYPE} ${HAZMATH_CXX_SOURCES} ${HAZMATH_HEADERS}) 
-
-install(TARGETS hazmath_cgal
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION lib
-  ARCHIVE DESTINATION lib)
-else(CGAL_FOUND)
-  message(WARNING  "CGAL not found or not requested!")
-endif(CGAL_FOUND)
-endif(USE_CGAL)
-
 if (USE_HAZNICS)
   if(HAZNICS_FOUND)
     #    add_library(haznics ${HAZMATH_LIBRARY_TYPE} ${HAZMATH_HAZNICS_SOURCES} ${HAZMATH_HAZNICS_HEADERS}) 
@@ -435,11 +404,7 @@ if (USE_HAZNICS)
     set_property(TARGET haznics PROPERTY SWIG_COMPILE_OPTIONS -python -py3 )
     set(LIBS_TO_LINK "haznics_helper")
     LIST(APPEND LIBS_TO_LINK "hazmath")
-    if (CGAL_FOUND)
-      LIST(APPEND LIBS_TO_LINK "hazmath_cgal")
-      LIST(APPEND LIBS_TO_LINK "gmp")
-    endif(CGAL_FOUND)
-    if (LAPACK_FOUND)
+     if (LAPACK_FOUND)
       LIST(APPEND LIBS_TO_LINK "lapack")
     endif(LAPACK_FOUND)
     if (SUITESPARSE_FOUND)
