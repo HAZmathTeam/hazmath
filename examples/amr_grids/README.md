@@ -1,11 +1,15 @@
-# HAZMATH: A Simple Finite Element, Graph, and Solver Library
+
+# INPUT FILES for the simple grid generator in HAZMATH
 
 ---
-Copyright (c) 2009- HAZMath: Xiaozhe Hu, James H Adler, Ludmil T Zikatanov
+
+HAZMATH: A Simple Finite Element, Graph, and Solver Library
+
+Copyright (c) 2009- HAZMath: Xiaozhe Hu, James H Adler, Ludmil T Zikatanov  
+
 ---
 
-
-A short description of the input required to use the simple grid generator included with HAZMATH. Please refer to the examples/amr_grids for more details. 
+A short description of the input required to use the simple grid generator included with HAZMATH. Please refer to the examples for more details. 
 
 ## Rules ##
 
@@ -152,3 +156,8 @@ numbered incorrectly, it should be (010,011,110,111).
 POLAR COORDINATES have all angles in [0,pi] except the last one which
 is in [0,2pi]
 
+---
+
+EOF README.md
+
+---
