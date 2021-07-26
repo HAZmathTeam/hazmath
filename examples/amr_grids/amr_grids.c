@@ -25,7 +25,7 @@ INT main(INT   argc,   char *argv[])
    fp=stdin;
   //  fp=HAZ_fopen("inputs/2d_2L.input","r");
   // fp=HAZ_fopen("inputs/2d_2L.input","r");
-  // fp=HAZ_fopen("inputs/3d_cube.input","r");
+   fp=HAZ_fopen("inputs/3d_fichera.input","r");
   /*
     PARSE THE INPUT.
   */
@@ -35,7 +35,7 @@ INT main(INT   argc,   char *argv[])
   /*
     GENERATE INITIAL GRID AND DECLARE VARIABLES.
   */
-  scomplex *sc=generate_initial_grid(g);
+  scomplex *sc=generate_initial_grid(g);  
   scomplex *sctop=NULL;
   INT ref_levels=g->nref, amr_marking_type=g->mark_type,j;
   dvector *solfem=NULL,*estimator=NULL;
