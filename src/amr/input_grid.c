@@ -16,9 +16,9 @@
 /*!
  * \fn char **input_strings(INT *nall_out)
  *
- * \brief take as input the strings in INPUT_GRID_DATA_ (see amr.h) and on output
- *        has an array with all such strings which are used in parsing
- *        the input file for grid generation.
+ * \brief take as input the strings defining the initial grid and on
+ *        output has an array with all such strings which are used in
+ *        parsing the input file for grid generation.
  *
  * \param nall_out=how many strings are in the INPUT_GRID_DATA;
  *
@@ -29,7 +29,30 @@
 char **input_strings(INT *nall_out)
 {
   INT k,nall;
-  const char *indata_const[]= { INPUT_GRID_DATA_ ,  "\0" };
+  const char *indata_const[]={			\
+			      "title{",		\
+			      "file_grid{",	\
+			      "file_vtu{",	\
+			      "data_coordsystems{",	\
+			      "data_vertices{",		\
+			      "data_edges{",		\
+			      "data_macroelements{",	\
+			      "data_macrofaces{",	\
+			      "dimension{",		\
+			      "num_coordsystems{",	\
+			      "num_vertices{",		\
+			      "num_edges{",		\
+			      "num_macroelements{",	\
+			      "num_macrofaces{",	\
+			      "num_refinements{",	\
+			      "refinement_type{",	\
+			      "amr_marking_type{",	\
+			      "err_stop_refinement{",	\
+			      "print_level{",		\
+			      "num_refine_points{",	\
+			      "data_refine_points{",	\
+			      "\0" };
+  
   nall=0;
   while(strlen(indata_const[nall]))nall++;
   //  fprintf(stdout,"\nthe nall is: %d\n",nall);

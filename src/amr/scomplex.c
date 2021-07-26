@@ -99,7 +99,7 @@ scomplex *haz_scomplex_init(const INT n,INT ns, INT nv,const INT nbig)
   }
   sc->nv=nv;
   sc->ns=ns;
-  sc->bndry_cc=1; // one connected component for now.
+  sc->bndry_cc=1; // one connected component on the boundary for now.
   sc->cc=1; // one connected component for now.
   return sc;
 }
@@ -334,17 +334,29 @@ void haz_scomplex_print(scomplex *sc, const INT ns0,const char *infor)
 void haz_scomplex_free(scomplex *sc)
 {
   if(sc->gen) free(sc->gen);
+  fprintf(stdout,"1\n");fflush(stdout);
   if(sc->parent) free(sc->parent);
+  fprintf(stdout,"2\n");fflush(stdout);
   if(sc->child0) free(sc->child0);
+  fprintf(stdout,"3\n");fflush(stdout);
   if(sc->childn) free(sc->childn);
+  fprintf(stdout,"4\n");fflush(stdout);
   if(sc->bndry) free(sc->bndry);
+  fprintf(stdout,"5\n");fflush(stdout);
   if(sc->flags) free(sc->flags);
+  fprintf(stdout,"6\n");fflush(stdout);
   if(sc->nodes) free(sc->nodes);
+  fprintf(stdout,"7\n");fflush(stdout);
   if(sc->x) free(sc->x);
+  fprintf(stdout,"8\n");fflush(stdout);
   if(sc->vols) free(sc->vols);
+  fprintf(stdout,"9\n");fflush(stdout);
   if(sc->fval) free(sc->fval);
+  fprintf(stdout,"10\n");fflush(stdout);
   if(sc->nbr) free(sc->nbr);
+  fprintf(stdout,"11\n");fflush(stdout);
   if(sc) free(sc);
+  fprintf(stdout,"12\n");fflush(stdout);
   return;
 }
 /**********************************************************************/
