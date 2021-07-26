@@ -1,8 +1,0 @@
-#####################################################
-# Last Modified 2017-12-23 --ltz
-####################################################
-
-Old code (1999) for solving convection dominated or diffusion
-dominated problems. It needs changes to get the dtime and other
-fortran routines sorted out.
-

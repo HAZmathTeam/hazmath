@@ -17,7 +17,6 @@
 /*********************************************************************/
 #include "connected_components.h"
 /*********************************************************************/
-// an interior vertex is defined as the vertex such that all faces attached to it are interior.
 //
 INT main(INT   argc,   char *argv[])
 {
@@ -26,7 +25,6 @@ INT main(INT   argc,   char *argv[])
    fp=stdin;
   //  fp=HAZ_fopen("inputs/2d_2L.input","r");
   // fp=HAZ_fopen("inputs/2d_2L.input","r");
-  //  fp=HAZ_fopen("inputs/4d_cube.input","r");
   // fp=HAZ_fopen("inputs/3d_cube.input","r");
   /*
     PARSE THE INPUT.
@@ -52,32 +50,10 @@ INT main(INT   argc,   char *argv[])
 
     REAL h = 1.0/128;  // step distance of points
     REAL threshold = h; // threshold for close to the points or not
-
-    /*
-    INT nstep = 0;
-    nstar= 2 + nstep*4; // refining near several points: (even number )
-    xstar=(REAL *)calloc(nstar*dim,sizeof(REAL));
-    xstar[0*dim+0]=1.666667e-1;
-    xstar[0*dim+1]=6.666667e-1;
-    xstar[1*dim+0]=8.333333e-1;
-    xstar[1*dim+1]=6.666667e-1;
-    for (i=1; i<nstep; i++){
-      // points near (1/6, 2/3)
-      xstar[(2+(i-1)*4)*dim+0]=1.666667e-1 + i*h;
-      xstar[(2+(i-1)*4)*dim+1]=6.666667e-1;
-      xstar[(3+(i-1)*4)*dim+0]=1.666667e-1 - i*h;
-      xstar[(3+(i-1)*4)*dim+1]=6.666667e-1;
-
-      // points near (5/6, 2/3)
-      xstar[(4+(i-1)*4)*dim+0]=8.333333e-1 + i*h;
-      xstar[(4+(i-1)*4)*dim+1]=6.666667e-1;
-      xstar[(5+(i-1)*4)*dim+0]=8.333333e-1 - i*h;
-      xstar[(5+(i-1)*4)*dim+1]=6.666667e-1;
-    }*/
-
+    //
     nstar = g->num_refine_points;
     xstar = g->data_refine_points;
-
+    //
     for(j=0;j<ref_levels;j++){
       /*
        * SELECT the finest grid:
