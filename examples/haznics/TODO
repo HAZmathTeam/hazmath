@@ -55,12 +55,12 @@ In mixed Darcy we can use multilevel?
 
 7.
 Nice demo for rational approximation of sums of fractional powers, just as a function
-(2021-07-23 Ana:
-    In fenics_hazmath repo, see demos/demo_rational.py. Is something like this ok?
+(2021-07-26 Ana:
+    See examples/haznics/demo_sumfractional.py. Is something like this ok?
 )
 
 8.
 Simple Darcy-Stokes problem
 (2021-07-23 Ana:
-    DONE. Not sure if it simple though. See examples/haznics/demo_darcy_stokes.py
+    DONE. Not sure if it's simple enough though. See examples/haznics/demo_darcy_stokes.py
 )
