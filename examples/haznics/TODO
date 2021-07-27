@@ -15,11 +15,20 @@ params:
          it sets the default values with hazmath init function
          (see src/utilities/parameters.c and src/haznics/haznics.i)
      )
+     KAM: 
+     Can I also ask that there is a input file in cbc.block that initialize all parameters
+     such that down the line, when hazmath has changed, I know that I use the same default parameters
+     as I did back in some previous version :) 
 
    - set_param should be in module haznics
      (2021-07-23 Ana:
          should we make helper.py with python helper functions (like helper.c)?
      )
+     KAM: I think we can probably add some Python code to the .i file. Also preferably 
+     an input file that is read during the initialization of the module.  
+     The swig directive for adding py-code is: 
+     %pythoncode %{
+     %}
 
 2.
 Things should be moved to hseig/cbc.block/fenics_ii in a practical way
@@ -30,6 +39,7 @@ I suggest poisson.py from cbc.block, just using hazmath
 (2021-07-23 Ana:
     DONE.
 )
+KAM: Looks good. 
 
 4.
 A clean Stokes demo without any fractional stuff, just the use of hazmath/haznics
@@ -37,6 +47,7 @@ I suggest stokes.py from cbc.block, just using hazmath
 (2021-07-23 Ana:
     Need to still figure out setting up kernel for AMG in hazmath.
 )
+KAM: I'm not sure I understand. 
 
 5.
 Is hseig needed for Poisson-Babuska with rational approximation ?
@@ -52,15 +63,19 @@ In mixed Darcy we can use multilevel?
     Miro also put the ones with hypre.
     Do we need also a version with HX div-div preconditioner from hazmath?
 )
+KAM: perhaps we have a pure Hdiv demo, demonstrating the HX stuff. 
 
 7.
 Nice demo for rational approximation of sums of fractional powers, just as a function
-(2021-07-23 Ana:
-    In fenics_hazmath repo, see demos/demo_rational.py. Is something like this ok?
+(2021-07-26 Ana:
+    See examples/haznics/demo_sumfractional.py. Is something like this ok?
 )
+KAM: it looks good. 
+Can we have one RA demo also of just a function (no matrix). 
+Say we have f(x) = a sqrt(x) + b 1/sqrt(x) or something. 
 
 8.
 Simple Darcy-Stokes problem
 (2021-07-23 Ana:
-    DONE. Not sure if it simple though. See examples/haznics/demo_darcy_stokes.py
+    DONE. Not sure if it's simple enough though. See examples/haznics/demo_darcy_stokes.py
 )
