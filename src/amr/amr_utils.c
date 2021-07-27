@@ -397,18 +397,25 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
     }
     neib->IA[i+1]=iii;
   }
-  //  fprintf(stdout,"\nns=%d, elemnts=%d (%d)",ns,neib->IA[ns],neib->nnz); fflush(stdout);
-  //  fprintf(stdout,"\nneib0=[");
-  //  icsr_print_matlab_val(stdout,neib);
-  //  fprintf(stdout,"];");
-  //  fprintf(stdout,"\nneib=sparse(neib0(:,1),neib0(:,2),neib0(:,3));\n");
-  //  fprintf(stdout,"\nneib=sparse(neib0(:,1),neib0(:,2),ones(size(neib0(:,3),1)));\n");
-  //  exit(55);
+  /* fprintf(stdout,"\nns=%d, elemnts=%d (%d)",ns,neib->IA[ns],neib->nnz); fflush(stdout); */
+  /* fprintf(stdout,"\nneib0=["); */
+  /* icsr_print_matlab(stdout,neib); */
+  /* fprintf(stdout,"];"); */
+  /* fprintf(stdout,"\nneib=sparse(neib0(:,1),neib0(:,2),neib0(:,3));\n"); */
+  /* fprintf(stdout,"\nneib=sparse(neib0(:,1),neib0(:,2),ones(size(neib0(:,3),1)));\n");fflush(stdout); */
+  //    exit(55);
   INT *mask = neib->val;
   INT *jbfs = mask+ns;
   // find the connected components.
   //zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz  
+  //  fprintf(stdout,"\nNNNNNNNNNNNNNNNN(%d)=%s",ns,__FUNCTION__); fflush(stdout);
   iCSRmat *blk_dfs=run_dfs(ns,neib->IA, neib->JA);
+  fprintf(stdout,"\nns=%d, elemnts=%d (%d)",ns,neib->IA[ns],neib->nnz); fflush(stdout);
+  fprintf(stdout,"\nneib1=[");
+  icsr_print_matlab(stdout,neib);
+  fprintf(stdout,"];");
+  fprintf(stdout,"\nneib=sparse(neib1(:,1),neib1(:,2),neib1(:,3));\n");
+  fprintf(stdout,"\nneib=sparse(neib1(:,1),neib1(:,2),ones(size(neib1(:,3),1)));\n");fflush(stdout);
   cc=blk_dfs->row;
   INT *iblk=blk_dfs->IA;
   INT *jblk=blk_dfs->JA;
@@ -423,9 +430,11 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
   for(kcc=0;kcc<cc;kcc++){
     ireflect=-10;
     it=jblk[iblk[kcc]];
-    if(print_level>3){
+    //    if(print_level>3){
+    if(1){
       fprintf(stdout,
-	      "\n%s: Component=%d; root=%d;\n",__FUNCTION__,kcc,it);fflush(stdout);  }
+	      "\n%s: Component=%d; root=%d;\n",__FUNCTION__,kcc,it);fflush(stdout);
+    }
     nums=0;
     klev=1; //level number ; for indexing this should be klev-1;
     jbfs[nums]=it; // this is an input simplex where to begin.

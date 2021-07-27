@@ -374,13 +374,13 @@ ForwardSweep:
 void fmgcycle_add_update(AMG_data *mgl,
                          AMG_param *param)
 {
-    const SHORT  prtlvl = param->print_level;
+  // not used:  const SHORT  prtlvl = param->print_level;
     const SHORT  amg_type = param->AMG_type;
     const SHORT  smoother = param->smoother;
     const SHORT  coarse_solver = param->coarse_solver;
     const SHORT  nl = mgl[0].num_levels;
     const REAL   relax = param->relaxation;
-    const REAL   tol = param->tol * 1e-2;
+    // not used:  const REAL   tol = param->tol * 1e-2;
     const REAL   power = param->fpwr; // fractional exponent
 
     // Schwarz parameters

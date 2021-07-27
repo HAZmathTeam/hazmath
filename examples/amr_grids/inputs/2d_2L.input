@@ -1,7 +1,7 @@
 %----------------------------------------------%
 % input parameters: for grid generation        %
 %----------------------------------------------%
-title{2 Lshaped domains with connected boundaries}
+title{2 disconnected Lshaped domains with connected boundaries}
 %
 dimension{2}   % spatial dimension in which the grid has to be generated
 %
@@ -11,8 +11,8 @@ print_level{0}	% how much information to print out: 0 less | >0 Something
 % files: writeable by the user
 % vtu files for plotting follow the same convention.
 %---------------%
-file_grid{2D2L.haz}
-file_vtu{2D2L.vtu}
+file_grid{outputs/2d_2L.haz}
+file_vtu{outputs/2d_2L.vtu}
 
 %---------------%
 % coordinate systems: Each has coordinates of the origin o[0:dim-1]
