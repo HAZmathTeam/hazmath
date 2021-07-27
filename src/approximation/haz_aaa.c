@@ -14,8 +14,6 @@
  */
 #include "hazmath.h"
 /*!
-/**********************************************************************/
-/*!
  * \fn static void poles_alg2(INT m,REAL16 *pol,REAL16 *w,REAL16 *z)
  *
  * \brief this function uses an approach different than qz to find the
@@ -178,7 +176,7 @@ INT residues_poles(INT m,				\
 		   REAL *pold)
 {
   INT m1=m+1,m01=m-1,mm1=m1*m1,i,j;
-  REAL16 swp;
+  //  REAL16 swp;
   // MEMORY
   size_t memall = 6*m1*sizeof(REAL16)+m1*sizeof(INT);
   void *wrk=(void *)calloc(memall,sizeof(char));
@@ -195,7 +193,7 @@ INT residues_poles(INT m,				\
   wrk+=m1*sizeof(REAL16);
   REAL16 *pivot=(REAL16 *)wrk;
   wrk+=m1*sizeof(REAL16);
-  INT *perm=(INT *)wrk;
+  //  INT *perm=(INT *)wrk;
   wrk+=m1*sizeof(INT);
   if((wrk-wrk0)>memall) {
     fprintf(stdout,"\nMemory error in %s: allocated=%ld .lt. needed=%ld\n",__FUNCTION__,memall,wrk-wrk0);
@@ -469,8 +467,10 @@ REAL get_cpzwf(REAL16 (*func)(REAL16 x, void *param),	\
 	}
       }
     }
-    if(print_level>2)
-      fprintf(stdout,"\n%%%%iter=%d | rmax=%.20Le at %7d;",m,rmax,kmax);fflush(stdout);
+    if(print_level>2){
+      fprintf(stdout,"\n%%%%iter=%d | rmax=%.20Le at %7d;",m,rmax,kmax);
+      fflush(stdout);
+    }
     if(rmax<tol || m>=(mmax-1)) break;
     swp=z[kmax];  z[kmax]=z[m];   z[m]=swp;
     swp=f[kmax];  f[kmax]=f[m];   f[m]=swp;

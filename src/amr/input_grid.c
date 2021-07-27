@@ -92,6 +92,19 @@ void input_grid_arrays(input_grid *g)
   g->mnodes=(INT *)calloc(g->nel*(nvcube+1),sizeof(INT));
   g->mfaces=(INT *)calloc(abs(g->nf)*(nvface+1),sizeof(INT));
   g->data_refine_points=(REAL *)calloc(g->num_refine_points*g->dim, sizeof(REAL));
+  //init
+  memset(g->ox,0,g->dim*abs(g->ncsys)*sizeof(REAL));
+  memset(g->systypes,0,g->ncsys*sizeof(INT));
+  memset(g->syslabels,0,g->ncsys*sizeof(INT));
+  memset(g->csysv,0,g->nv*sizeof(INT));
+  memset(g->labelsv,0,g->nv*sizeof(INT));
+  memset(g->bcodesv,0,g->nv*sizeof(INT));
+  memset(g->xv,0,g->dim*g->nv*sizeof(REAL));
+  memset(g->xe,0,g->dim*abs(g->ne)*sizeof(REAL));
+  memset(g->seg,0,3*abs(g->ne)*sizeof(INT));
+  memset(g->mnodes,0,g->nel*(nvcube+1)*sizeof(INT));
+  memset(g->mfaces,0,abs(g->nf)*(nvface+1)*sizeof(INT));
+  memset(g->data_refine_points,0,g->num_refine_points*g->dim*sizeof(REAL));
   return;
 }
 /******************************************************************/
@@ -690,8 +703,9 @@ char *make_string_from_file(FILE *the_file, size_t *length_string)
   //  fprintf(stdout,"\n%%%%%%*** count=%d",count);
   i = count*sizeof(char);
   file2str = (char *)malloc(i);
+  memset(file2str,0,i);
   rewind(the_file);
-  //  fprintf(stderr,"\nNumber of characters in the file %i\n", count);
+  //fprintf(stderr,"\nNumber of characters in the file %i\n", count);
   i = 0;
   j = 0;
   flag = 1;
@@ -1043,6 +1057,7 @@ INT *set_input_grid(input_grid *g,cube2simp *c2s)
   if(pmem<2*g->ne) pmem=2*g->ne;
   if(pmem<2*g->nel) pmem=2*g->nel;
   if(pmem<2*g->nf) pmem=2*g->nf;
+  fprintf(stdout,"pmem=%d",pmem);fflush(stdout);  
   INT *p=calloc(pmem,sizeof(INT));// permutation and inverse permutation;
   //
   memset(p,0,pmem);
@@ -1114,7 +1129,7 @@ void set_edges(input_grid *g0,cube2simp *c2s)
   INT nvcube=c2s->nvcube;
   cols=3;
   INT *newseg=calloc(cols*c2s->ne*g0->nel,sizeof(INT));
-  INT *mnodes=calloc(c2s->nvcube,sizeof(INT));
+  INT *mnodes=calloc((c2s->nvcube+1),sizeof(INT));
   newne=0;
   INT found=0;
   for(kel=0;kel<g0->nel;kel++){
@@ -1209,7 +1224,9 @@ INT set_ndiv_edges(input_grid *g, input_grid *g0,		\
   INT kel0,i,j0,j1,swp,kel,ke,k0,k1,ndiv;
   INT nel0=g0->nel,nvcube=c2s->nvcube;
   /*for easier reference*/
-  INT *efound=calloc(c2s->ne*(g0->nel+1),sizeof(INT));
+  fprintf(stdout,"\nXXXXXXXXXXXXXXXXiter=%i,c3s-ne=%d,g0nel=%d\n",iter,c2s->ne,g0->nel);fflush(stdout);
+  //  INT *efound=calloc(c2s->ne*(g0->nel+1),sizeof(INT));
+  INT *efound=malloc(c2s->ne*(g0->nel+1)*sizeof(INT));
   INT *e0found=efound + c2s->ne;
   for(i=0;i<g0->ne;i++)e0found[i]=-1;
   // make all divisions > 0
@@ -1243,11 +1260,16 @@ INT set_ndiv_edges(input_grid *g, input_grid *g0,		\
 	  efound[i]=ke;
 	}
       }
-      //      if(iter==0)
-      //fprintf(stdout,"\n%%iter=%d;Element:%d, edge=(%d,%d);",iter,kel,j0,j1);
+      //      if(iter==0){
+      //	fprintf(stdout,"\n%%iter=%d;Element:%d, edge=(%d,%d);",iter,kel,j0,j1);fflush(stdout);
+      //}
     }
-    //    if(iter==0)
-    //      input_grid_print(g);
+    //    fprintf(stdout,"\nZZZZZZZZZZZZZiter=%i,kel0=%d,c3s-ne=%d,g0nel=%d\n",iter,kel0,c2s->ne,g0->nel);fflush(stdout);
+    if(iter==0){
+      input_grid_print(g);
+      fflush(stdout);
+    }
+    ////////////////////////////////////////////////////////////
     nd[kel]=set_input_grid(g,c2s);
     for(i=0;i<g->ne;i++){
       if(efound[i]<0)
@@ -1262,7 +1284,7 @@ INT set_ndiv_edges(input_grid *g, input_grid *g0,		\
     if(k1>chng)chng=k1;
   }
   //  print_full_mat_int(g0->ne,3,g0->seg,"seg1");
-  //print_full_mat_int(1,c2s->n,nd[kel],"ndnd");
+  //  print_full_mat_int(1,c2s->n,nd[kel],"ndnd");
   //  fprintf(stderr,"\nchng=%d",chng);
   free(efound);
   return chng;
