@@ -53,7 +53,7 @@ def get_system(n, K, f, sigma0, u0):
     Ttau, Tsigma = Trace(tau, bmesh), Trace(sigma, bmesh)
     dx_ = Measure('dx', domain=bmesh)
     
-    # We're building a 4x4 problem
+    # We're building a 3x3 problem
     a = block_form(W, 2)
     a[0][0] = inner((1./K)*sigma, tau)*dx
     a[0][1] = -inner(u, div(tau))*dx
