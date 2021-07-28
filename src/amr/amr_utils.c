@@ -402,7 +402,7 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
     }
     neib->IA[i+1]=iii;
   }
-  fprintf(stdout,"\nns=%d, elemnts=%d (%d)",ns,neib->IA[neib->row],neib->nnz); fflush(stdout);
+  //  fprintf(stdout,"\nns=%d, elemnts=%d (%d)",ns,neib->IA[neib->row],neib->nnz); fflush(stdout);
   neib->nnz=neib->IA[neib->row];
   neib->JA=realloc(neib->JA,neib->nnz*sizeof(INT));
   neib->val=realloc(neib->val,neib->nnz*sizeof(INT));
@@ -433,8 +433,7 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
   for(kcc=0;kcc<cc;kcc++){
     ireflect=-10;
     it=jblk[iblk[kcc]];
-    //    if(print_level>3){
-    if(1){
+    if(print_level>5){
       fprintf(stdout,
 	      "\n%s: Component=%d; root=%d;\n",__FUNCTION__,kcc,it);fflush(stdout);
     }

@@ -3,8 +3,8 @@ void find_cc_bndry_cc(scomplex *sc)
 {
   // find connected components of the simplex->simplex graph and the
   // number of connected components on the boundary. sets all boundary codes
-  // on every connected component to be different. the arrays nodes
-  // and nbr should be set.
+  // on every connected component to be different. the arrays nodes[]
+  // and nbr[] should be set.
   //
   INT ns = sc->ns,nv=sc->nv, dim=sc->n;
   INT dim1=dim+1,iii,i,j,k,l,m,isn1,is,nbf,nnzbf;

@@ -214,7 +214,7 @@ typedef struct /* macroelement complex (isomorphic to
 		    face number map;   */
   INT **iindex; /* used to remove repeated vertices */
   iCSRmat *fullel2el; /* full element to element which has also the
-			 number of common vertices as entries; */
+			 number of common vertices as entries in the matrix; */
   INT *bcodesf; /* codes for boundary faces */
   INT *isbface; /* indicator if a face is on the boundary */
   INT *flags; /*flags (material) of the macro elements*/

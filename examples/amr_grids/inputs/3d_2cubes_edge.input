@@ -19,8 +19,8 @@ print_level{1}	% how much information to print out: 0 Nothing | >0 Something
 %---------------%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-file_grid{3D_2C.haz}
-file_vtu{3D_2C.vtu}
+file_grid{outputs/3d_2cubes_edge.haz}
+file_vtu{outputs/3D_2cubes_edge.vtu}
 
 %---------------%
 % coordinate systems: Each has coordinates of the origin o[0:dim-1]
