@@ -102,6 +102,11 @@ import_array();
         param_input_init(inparam);
         return inparam;
    }
+   input_param(const char *filenm) {
+        input_param *inparam = (input_param *) malloc(sizeof(input_param));
+        param_input(filenm, inparam);
+        return inparam;
+   }
 }
 
 /* need to add destructors for other structs!! */
