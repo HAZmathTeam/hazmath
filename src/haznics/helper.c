@@ -539,16 +539,11 @@ precond* create_precond_ra(dCSRmat *A,
     pcdata->s_power = s_frac_power;
     pcdata->t_power = t_frac_power;
 
-    // clean
-    // for(i = 0; i < 5; ++i){
-    //     if (rpnwf[i]) free(rpnwf[i]);
-    // }
-    // if (rpnwf) free(rpnwf);
-
     pc->data = pcdata;
     pc->fct = precond_ra_fenics;
 
-    // TODO: free rpnwf!
+    // clean
+    if (rpnwf) free(rpnwf);
 
     return pc;
 }
@@ -635,10 +630,7 @@ dvector* compute_ra_aaa(REAL s_frac_power,
     }
 
     // clean
-    //for(i = 0; i < 5; ++i){
-    //    if(rpnwf[i]) free(rpnwf[i]);
-    //}
-    //if(rpnwf) free(rpnwf);
+    if(rpnwf) free(rpnwf);
 
     return res;
 }
