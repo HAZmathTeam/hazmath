@@ -1,13 +1,5 @@
 from haznics import *
 
-# question: are strings in hazmath null char ended? 
-# e.g. inifile is defined as char[256]
-def set_params(d, in_param): 
-    for key in d: 
-        if isinstance(d[key], str): 
-            exec("in_param.%s = \"%s\"" % (key, d[key]))
-        else: 
-            exec("in_param.%s = %s" % (key, d[key]))
 
 # test with constructor that sets default by calling init function
 in_param = input_param()
@@ -47,7 +39,7 @@ print(20*"-")
 print("setting via a dict, kind of ugly via exec, but anyways ")
 d = {"print_level" : 1, "gridfile" : "mesh", "nquad" : 4, "trouble" : 3, "AMG_maxit" : 12  }
 
-set_params(d, in_param) 
+set_params(d, in_param)
 
 print(in_param.nquad)
 print(in_param.gridfile)

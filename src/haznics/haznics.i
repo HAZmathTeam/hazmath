@@ -212,6 +212,15 @@ dvector* compute_ra_aaa(REAL s_frac_power, REAL t_frac_power, REAL alpha, REAL b
     }
 %}
 
+%pythoncode %{
+    def set_params(d, in_param):
+        for key in d:
+            if isinstance(d[key], str):
+                exec("in_param.%s = \"%s\"" % (key, d[key]))
+            else:
+                exec("in_param.%s = %s" % (key, d[key]))
+%}
+
 /* callback function as constant?
 %constant void precond_amg(double*, double*, void*);
 %constant void precond_amli(double*, double*, void*);
