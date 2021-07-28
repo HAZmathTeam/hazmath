@@ -246,7 +246,7 @@ iCSRmat *run_bfs(INT n,INT *ia, INT *ja,	\
   /* anc[v] is the ancestor of v; */
   /* roots[] is input; */
   INT i,k,q,v,vi,qbeg,qend,lvl;  
-  iCSRmat *blk=malloc(1*sizeof(iCSRmat));
+  iCSRmat *blk=malloc(sizeof(iCSRmat));
   blk[0]=icsr_create(n,n,n);
   anc->row=n;
   anc->val=(INT *)calloc(anc->row,sizeof(INT));
@@ -269,6 +269,8 @@ iCSRmat *run_bfs(INT n,INT *ia, INT *ja,	\
     k++;
   }
   blk->IA[lvl+1]=k;
+  if(n<=1)
+    return blk;
   /* we need to repeat this */
   while(1){
     qbeg=blk->IA[lvl];
@@ -290,14 +292,14 @@ iCSRmat *run_bfs(INT n,INT *ia, INT *ja,	\
     blk->IA[lvl+1]=k;    
     if(k<=qend) break;
   }
-  /* fprintf(stdout,"\nord (k=%d):",k); */
-  /* for(i=0;i<k;i++){ */
-  /*   v=blk->JA[i]; */
-  /*   fprintf(stdout,"\nblk->val[%d]=%d",v,blk->val[v]);fflush(stdout); */
-  /* } */
-  /* for(i=0;i<(lvl+1);i++){ */
-  /*   fprintf(stdout,"\nblk->IA[%d]=%d",i,blk->IA[i]); */
-  /* } */
+  fprintf(stdout,"\nord (k=%d):",k);
+  for(i=0;i<blk->IA[lvl];i++){
+    v=blk->JA[i];
+    fprintf(stdout,"\nblk->val[%d]=%d",v,blk->val[v]);fflush(stdout);
+  }
+  for(i=0;i<(lvl+1);i++){
+    fprintf(stdout,"\nblk->IA[%d]=%d",i,blk->IA[i]);
+  }
   blk->row=lvl;
   blk->IA=(INT *)realloc(blk->IA,(blk->row+1)*sizeof(INT));
   //end
@@ -829,7 +831,7 @@ iCSRmat *bfscc(INT nblk,INT *iblk, INT *jblk, iCSRmat *a, INT *et)
   /**/
   bfs->IA=realloc(bfs->IA,(bfs->row+1)*sizeof(INT));
   bfs->JA=realloc(bfs->JA,(bfs->nnz)*sizeof(INT));
-  bfs->val=realloc(bfs->val,(bfs->nnz)*sizeof(INT));
+  mask=bfs->val=realloc(bfs->val,(bfs->nnz)*sizeof(INT));
   /**/
   i0=0;
   for(i=0;i<bfs->row;i++){
@@ -837,7 +839,6 @@ iCSRmat *bfscc(INT nblk,INT *iblk, INT *jblk, iCSRmat *a, INT *et)
     for(ijb=bfs->IA[i];ijb<bfs->IA[i+1];ijb++){
       ib=bfs->JA[ijb];
       if(et[ib]<0) {i0=i;}
-      //      fprintf(stdout,"\netree[%d]=%d; mask[%d]=%d; mmm=%d ; i0=%d, ih=%d", ib,et[ib],ib,mask[ib],mask[ib]+i0,ih);
       mask[ib]+=i0;
     }
   }

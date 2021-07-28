@@ -380,42 +380,45 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
   INT i1,kcc;
   //INT in1;
   INT kbeg,kend,nums,iai,iai1,klev;
-  iCSRmat *neib=malloc(1*sizeof(iCSRmat));
-  neib[0]=icsr_create(ns,ns,2*ns+ns);
+  iCSRmat *neib=malloc(sizeof(iCSRmat));
+  neib[0]=icsr_create(ns,ns,(n+1)*ns);
+  /* neib->row=ns; */
+  /* neib->col=ns; */
+  /* neib->nnz=(n+1)*ns; */
+  /* neib->IA=calloc((neib->row+1),sizeof(INT)); */
+  /* neib->JA=calloc(neib->nnz,sizeof(INT)); */
+  /* neib->val=calloc(neib->nnz,sizeof(INT)); */
   iii=0;
   neib->IA[0]=iii;
   for(i=0;i<ns;i++){
-//    neib->JA[iii]=i;
-//    iii++;
     isn1=i*n1;
     for(j=0;j<n1;j++){
       is=sc->nbr[isn1+j];
       if(is>=0){
+	///	fprintf(stdout,"\niii=%d,ns=%d,elemnts=%d(=%d?)",iii,ns,neib->IA[ns],neib->nnz); fflush(stdout); 
 	neib->JA[iii]=is;
 	iii++;
       }
     }
     neib->IA[i+1]=iii;
   }
-  /* fprintf(stdout,"\nns=%d, elemnts=%d (%d)",ns,neib->IA[ns],neib->nnz); fflush(stdout); */
-  /* fprintf(stdout,"\nneib0=["); */
-  /* icsr_print_matlab(stdout,neib); */
-  /* fprintf(stdout,"];"); */
-  /* fprintf(stdout,"\nneib=sparse(neib0(:,1),neib0(:,2),neib0(:,3));\n"); */
-  /* fprintf(stdout,"\nneib=sparse(neib0(:,1),neib0(:,2),ones(size(neib0(:,3),1)));\n");fflush(stdout); */
-  //    exit(55);
+  fprintf(stdout,"\nns=%d, elemnts=%d (%d)",ns,neib->IA[neib->row],neib->nnz); fflush(stdout);
+  neib->nnz=neib->IA[neib->row];
+  neib->JA=realloc(neib->JA,neib->nnz*sizeof(INT));
+  neib->val=realloc(neib->val,neib->nnz*sizeof(INT));
+  // assuming neib->val has more than 2*num_simplices
   INT *mask = neib->val;
   INT *jbfs = mask+ns;
   // find the connected components.
   //zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz  
   //  fprintf(stdout,"\nNNNNNNNNNNNNNNNN(%d)=%s",ns,__FUNCTION__); fflush(stdout);
   iCSRmat *blk_dfs=run_dfs(ns,neib->IA, neib->JA);
-  fprintf(stdout,"\nns=%d, elemnts=%d (%d)",ns,neib->IA[ns],neib->nnz); fflush(stdout);
-  fprintf(stdout,"\nneib1=[");
-  icsr_print_matlab(stdout,neib);
-  fprintf(stdout,"];");
-  fprintf(stdout,"\nneib=sparse(neib1(:,1),neib1(:,2),neib1(:,3));\n");
-  fprintf(stdout,"\nneib=sparse(neib1(:,1),neib1(:,2),ones(size(neib1(:,3),1)));\n");fflush(stdout);
+  /* fprintf(stdout,"\nns=%d, elemnts=%d (%d)",ns,neib->IA[ns],neib->nnz); fflush(stdout); */
+  /* fprintf(stdout,"\nneib1=["); */
+  /* icsr_print_matlab(stdout,neib); */
+  /* fprintf(stdout,"];"); */
+  /* fprintf(stdout,"\nneib=sparse(neib1(:,1),neib1(:,2),neib1(:,3));\n"); */
+  /* fprintf(stdout,"\nneib=sparse(neib1(:,1),neib1(:,2),ones(size(neib1(:,3),1)));\n");fflush(stdout); */
   cc=blk_dfs->row;
   INT *iblk=blk_dfs->IA;
   INT *jblk=blk_dfs->JA;
@@ -498,6 +501,8 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
   //  for(i=0;i<ns;i++){
   //    jbfs[i]=-1;
   //  }
+  icsr_free(neib);
+  free(neib);
   return;
 }
 /******************************************************************/

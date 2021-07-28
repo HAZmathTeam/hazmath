@@ -115,6 +115,7 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
   INT *mnodes=p+nvcube+1;
   /*macro complex creation:)*/
   macrocomplex *mc=malloc(1*sizeof(macrocomplex));
+  memset(mc,0,sizeof(macrocomplex));
   mc->nel=nel0=g0->nel; //important to set;
   mc->cc=mc->bndry_cc=1;
   mc->nf=mc->nfi=mc->nfb=-1;
@@ -210,8 +211,8 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
   //  fprintf(stdout,"];\n");
   ////////////////////////////////////////////////////////////////////////////
   mc->cc=blk_dfs->row;
-  INT *iblk=blk_dfs->IA;
-  INT *jblk=blk_dfs->JA;
+  //  INT *iblk=blk_dfs->IA;
+  //  INT *jblk=blk_dfs->JA;
   ivector *anc=malloc(1*sizeof(ivector));
   ivector *roots=malloc(1*sizeof(ivector));
   anc->row=mc->nel;
@@ -223,9 +224,9 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
     roots->val[kel]=blk_dfs->JA[blk_dfs->IA[kel]];
     //    fprintf(stdout,"\nc_comp=%d;roots=%d",kel,roots->val[kel]);fflush(stdout); 
   }
-  fprintf(stdout,"\n");fflush(stdout); 
-  //mc->bfs=run_bfs(mc->cc,el2el->IA,el2el->JA,roots,anc,(mc->nel+1));
-  mc->bfs=bfscc(mc->cc,iblk,jblk,el2el,anc->val);
+  //  fprintf(stdout,"\n");fflush(stdout); 
+  mc->bfs=run_bfs(mc->cc,el2el->IA,el2el->JA,roots,anc,(mc->nel+1));
+  //mc->bfs=bfscc(mc->cc,blk_dfs->IA,blk_dfs->JA,el2el,anc->val);
   //  fprintf(stdout,"\nnnz0=%d ; am=[",mc->bfs->IA[0]);
   //  icsr_print_matlab_val(stdout,mc->bfs);
   //  fprintf(stdout,"];\n");
@@ -390,8 +391,8 @@ in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding fa
   icsr_free(blk_dfs);
   blk_dfs=run_dfs(mc->nf,f2f->IA, f2f->JA);
   mc->bndry_cc=blk_dfs->row;
-  iblk=blk_dfs->IA;
-  jblk=blk_dfs->JA;
+  //  iblk=blk_dfs->IA;
+  //  jblk=blk_dfs->JA;
   fprintf(stdout,"\nc_comp_bndry=%d;nfi=%d\n",mc->bndry_cc,mc->nfi);fflush(stdout); 
   //  exit(3);
   mc->bndry_cc-=mc->nfi; // connected components on the boundary?
@@ -1095,6 +1096,7 @@ scomplex *generate_initial_grid(input_grid *g0)
       nd[kel][i]=-1;
     }
   g=malloc(1*sizeof(input_grid));
+  memset(g,0,sizeof(input_grid));
   /**/
   g->title=g0->title;
   g->fgrid=g0->fgrid;
@@ -1167,7 +1169,7 @@ scomplex *generate_initial_grid(input_grid *g0)
     }
   }
   // use bfs to split elements:
-  if(g0->print_level>5) input_grid_print(g0);
+  if(g0->print_level>15) input_grid_print(g0);
   INT nsall,nvall;
   nsall=0;nvall=0;
   /* now nd is known, let us allocate iindex */
