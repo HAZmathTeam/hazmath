@@ -614,7 +614,8 @@ dvector* compute_ra_aaa(REAL s_frac_power,
       fflush(stderr);
       return 0;
     }
-    printf("Approximation error: %.16e", err_max);
+    printf("Approximation error: %.16e\n", err_max);
+    printf("Number of poles: %d\n", k-1);
 
     // assign poles and residuals
     dvector *res = dvec_create_p(2*k - 1);

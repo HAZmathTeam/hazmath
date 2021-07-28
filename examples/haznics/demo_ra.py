@@ -20,14 +20,13 @@ SIAM Journal on Scientific Computing, 40 (2018), pp. A1494-A1522.
 The tolerance for the approximation is set to 1E-12.
 """
 import haznics
-import numpy as np
 
 
 def rational_approx(s=-0.5, t=0.5, alpha=1., beta=1., scaling_alpha=1., scaling_beta=1.):
     # Approximation of (alpha*x^s + beta*x^t)^(-1) on interval [0, 1]
     res = haznics.compute_ra_aaa(s, t, alpha, beta, scaling_alpha, scaling_beta)
 
-    # res.to_ndarray()
+    res = res.to_ndarray()
     k = int((res.size - 1)/2)
     poles = res[:k]
     residues = res[k+1:]
@@ -53,7 +52,7 @@ if __name__ == "__main__":
     scaling_alpha = 10
     scaling_beta = 0.1
 
-    print("Rational approximation without scalings")
+    print("Rational approximation with scalings")
     poles, residues = rational_approx(s, t, alpha, beta, scaling_alpha, scaling_beta)
 
     print("---- Number of poles: ", poles.size)
