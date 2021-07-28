@@ -9,7 +9,6 @@
  * mesh generator included with HAZmath. It is only to illustrate how
  * to use the mesh refinement.
  */
-
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************/
 #include "hazmath.h"
 /*********************************************************************/
@@ -30,7 +29,7 @@ INT main(INT   argc,   char *argv[])
     PARSE THE INPUT.
   */
   input_grid *g=parse_input_grid(fp);
-  input_grid_print(g);
+  //  input_grid_print(g);
   fclose(fp);
   /*
     GENERATE INITIAL GRID AND DECLARE VARIABLES.
