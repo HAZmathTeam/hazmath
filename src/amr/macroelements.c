@@ -52,11 +52,11 @@ INT *align_lattice(const INT nkj,		\
 {
   INT dim=c2s->n,i;
   INT *pd=(INT *)calloc(dim,sizeof(INT));
-  //  fprintf(stdout,"\n****%d ^^^\n",nkj);
+  //fprintf(stdout,"\n****%d ^^^\n",nkj);
   for(i=0;i<dim;i++)pd[i]=i;  
-  if(nkj<2)return pd;
-  //  print_full_mat_int(1,c2s->nvcube+1,nodes0,"nodes0");
-  //  print_full_mat_int(1,c2s->nvcube+1,nodes1,"nodes1");
+  if(nkj<2){
+    return pd; // meaning only one common vertex, so we should do nothing;
+  }
   INT j,d0,d1,k0[2],k1[2];  
   for(i=0;i<dim;i++) pd[i]=i+1;
   for(i=0;i<c2s->ne;i++){
@@ -225,15 +225,15 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
     //    fprintf(stdout,"\nc_comp=%d;roots=%d",kel,roots->val[kel]);fflush(stdout); 
   }
   //  fprintf(stdout,"\n");fflush(stdout); 
-  mc->bfs=run_bfs(mc->cc,el2el->IA,el2el->JA,roots,anc,(mc->nel+1));
-  //mc->bfs=bfscc(mc->cc,blk_dfs->IA,blk_dfs->JA,el2el,anc->val);
+  mc->bfs=run_bfs(mc->nel,el2el->IA,el2el->JA,roots,anc,(mc->nel+1));
+  //mc->bfs=bfscc(mc->nel,blk_dfs->IA,blk_dfs->JA,el2el,anc->val);
   //  fprintf(stdout,"\nnnz0=%d ; am=[",mc->bfs->IA[0]);
   //  icsr_print_matlab_val(stdout,mc->bfs);
   //  fprintf(stdout,"];\n");
   /* construct element to face to element maps for macroelements */
   /*FACES******************************************************/
   mc->nf=g0->nel*c2s->nf-(el2el->nnz/2);
-  mc->nfi=(INT )(el2el->nnz/2);
+  mc->nfi=(INT )(el2el->nnz/2); 
   mc->nfb=mc->nf-mc->nfi;
   // face to vertex:
   iCSRmat *f2v=malloc(sizeof(iCSRmat));
@@ -289,7 +289,7 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
 	      elneib[jel][je]=kel;
 	      el2fnum[kel][ke]=kface;
 	      el2fnum[jel][je]=kface;
-	      kface++;// pointer for the face2 vertex matrix
+	      kface++;// pointer for the face2vertex matrix
 	    }
 	    found=1;
 	  }
@@ -350,29 +350,36 @@ in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding fa
   }
   /***********************************************************************/
   /*Connected components on the boundaries. First find face to face map*/
-  iCSRmat *v2f=malloc(1*sizeof(iCSRmat));
+  iCSRmat *v2f=malloc(sizeof(iCSRmat));
   icsr_trans(f2v,v2f);
-  iCSRmat *f2f=malloc(1*sizeof(iCSRmat));
+  iCSRmat *f2f=malloc(sizeof(iCSRmat));
   /*******************************************************************/    
   icsr_mxm(f2v,v2f,f2f);
+  /*******************************************************************/    
+  icsr_free(v2f);
+  /*******************************************************************/    
   /* 
      now remove all rows in f2f that correspond to interior faces and
      all entries that are not nvface/2, i.e. the number of vertices in
      a (n-2) cube;
   */
+  /* fprintf(stdout,"\nnrf2f=%d ; ncf2f=%d;\n f2f=[",f2f->row,f2f->col); */
+  /* icsr_print_matlab_val(stdout,f2f); */
+  /* fprintf(stdout,"];\n"); */
+  /* fprintf(stdout,"f2f=sparse(f2f(:,1),f2f(:,2),f2f(:,3),nrf2f,ncf2f);\n\n"); */
   f2f->nnz=f2f->IA[0];
   for(i=0;i<f2f->row;i++){    
     j0=f2f->IA[i];
     j1=f2f->IA[i+1];
     f2f->IA[i]=f2f->nnz;
-    //    if(isbface[i]==0) continue;
+    if(isbface[i]==0) continue;
     for(ke=j0;ke<j1;ke++){
       je=f2f->JA[ke];
       if(je==i){
-	f2f->JA[f2f->nnz]=i;
-	f2f->val[f2f->nnz]=0;
-	f2f->nnz++;
-	continue;
+	//	f2f->JA[f2f->nnz]=i;
+	//	f2f->val[f2f->nnz]=0;
+	//	f2f->nnz++;
+      	continue;
       }
       if((isbface[je]==0)||(f2f->val[ke]!=(nvface/2))) continue;
       //      if((je==i)||(isbface[je]==0)||(f2f->val[ke]!=(nvface/2))) continue;
@@ -380,22 +387,27 @@ in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding fa
       f2f->val[f2f->nnz]=f2f->val[ke];
       f2f->nnz++;
     }
-  }    
-  f2f->IA[f2f->row]=f2f->nnz;
-  f2f->JA=realloc(f2f->JA,f2f->nnz*sizeof(INT));
-  f2f->val=realloc(f2f->val,f2f->nnz*sizeof(INT));
+  }
+  /* f2f->IA[f2f->row]=f2f->nnz; */
+  /* f2f->JA=realloc(f2f->JA,f2f->nnz*sizeof(INT)); */
+  /* f2f->val=realloc(f2f->val,f2f->nnz*sizeof(INT)); */
+  /* fprintf(stdout,"\nnrf2f1=%d ; ncf2f1=%d;\n f2f1=[",f2f->row,f2f->col); */
+  /* icsr_print_matlab_val(stdout,f2f); */
+  /* fprintf(stdout,"];\n"); */
+  /* fprintf(stdout,"f2f1=sparse(f2f1(:,1),f2f1(:,2),f2f1(:,3),nrf2f1,ncf2f1);\n\n"); */
   /*******************************************************************/    
-  icsr_free(v2f);
   /*connected comps on the boundary*/
   //  dfs00_(&mc->nf,f2f->IA, f2f->JA,&mc->bndry_cc,iblk,jblk);  
   icsr_free(blk_dfs);
   blk_dfs=run_dfs(mc->nf,f2f->IA, f2f->JA);
-  mc->bndry_cc=blk_dfs->row;
-  //  iblk=blk_dfs->IA;
-  //  jblk=blk_dfs->JA;
-  fprintf(stdout,"\nc_comp_bndry=%d;nfi=%d\n",mc->bndry_cc,mc->nfi);fflush(stdout); 
-  //  exit(3);
-  mc->bndry_cc-=mc->nfi; // connected components on the boundary?
+  mc->bndry_cc=0;
+  for(i=0;i<blk_dfs->row;++i){
+    found=blk_dfs->IA[i+1]-blk_dfs->IA[i];
+    if(found>1) mc->bndry_cc++;
+  }
+  //  print_full_mat_int(1,f2f->row,blk_dfs->JA,"perm");
+  //  print_full_mat_int(1,blk_dfs->row,blk_dfs->IA,"bcc");
+  //  fprintf(stdout,"\n%%In %s:connected=%d;nfi=%d\n",mc->bndry_cc,mc->nfi);fflush(stdout); 
   //icsr_nodiag(f2f);
   icsr_free(f2f);
   icsr_free(blk_dfs);
@@ -457,7 +469,7 @@ in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding fa
     }
     fprintf(stdout,"\n");
   }
-  /**** FINAL REORDER: make the vertices order in shared faces the
+  /**** FINAL REORDER: make the vertices in shared faces the
   	same!!! ***/
   for(lvl=0;lvl<mc->bfs->row;lvl++){
     j0=mc->bfs->IA[lvl];
@@ -893,9 +905,9 @@ void fix_grid(macrocomplex *mc,		\
       //      nj=locate1(mi,vertj,numv,c2s->faces,c2s->nf,c2s->nvface);
       nk=locate1(mip,vertk,numv,facesk,c2s->nf,c2s->nvface);
       nj=locate1(mi,vertj,numv,facesj,c2s->nf,c2s->nvface);
-      fprintf(stdout,"\nnk=%d; nj=%d; (dim-kz)=%d\n",nk,nj,dim-kz);
+      //      fprintf(stdout,"\nnk=%d; nj=%d; (dim-kz)=%d\n",nk,nj,dim-kz);
       if((nk == nj) && nk==(dim-kz) && nj==(dim-kz)) {
-	//fprintf(stdout,"\nkel=%d; jel=%d",kel,jel);
+	//	fprintf(stdout,"\nZZZZZZZZZz nj=%d,numv=%d,kel=%d; jel=%d",nj,numv,kel,jel);
 	pd=align_lattice(numv,nd[jel],nodesj,nd[kel],nodesk,c2s);
 	/* if(nk==2){  */
 	/*   fprintf(stdout,"\n%%W1: kel=%d,jel=%d;",kel,jel); */
@@ -940,10 +952,20 @@ void fix_grid(macrocomplex *mc,		\
 	    // find out which (i,j) is (ip,jp) in kel
 	    memcpy(mwrk,mp,dim*sizeof(INT)); //	    
 	    // put everything in sync:
-	    for(k=0;k<dim;k++)
+	    for(k=0;k<dim;k++){
 	      if(pd[k]<0)
 		mwrk[abs(pd[k])-1]=nd[jel][k]-mwrk[abs(pd[k])-1];
-	    for(k=0;k<dim;k++) m[k]=mwrk[abs(pd[k])-1];
+	    }
+	    for(k=0;k<dim;k++){
+	      //	      fprintf(stdout,"\nXXXXXXXXXXk=%d;pd[k]=%d;abspd_k=%d;\n",k,pd[k],abs(pd[k])-1);fflush(stdout);
+	      if(pd[k]>0)
+		m[k]=mwrk[abs(pd[k])-1];
+	    }
+	    for(k=0;k<dim;k++){
+	      //	      fprintf(stdout,"\nYYYYYYYYYYYYk=%d;pd[k]=%d;abspd_k=%d;\n",k,pd[k],abs(pd[k])-1);fflush(stdout);
+	      if(pd[k]==0)
+		m[k]=mwrk[abs(pd[k])];
+	    }
 	    for(k=0;k<nk;k++) m[mi[k]]=ti[k];
 	    kf=num_lattice(m,dim,nd[jel]);
 	    /* if(kz==2){ */
@@ -1217,10 +1239,11 @@ scomplex *generate_initial_grid(input_grid *g0)
       //}
       //      fprintf(stdout,"\n%%Mapping back to the macroelement...\n");
       map2mac(sc[jel],c2s,g);
-      //fprintf(stdout,"\n%%in %s: mesh(macroelement=%d): nv=%d; nsimp=%d",__FUNCTION__,jel,sc[jel]->nv,sc[jel]->ns);      
+      //      fprintf(stdout,"\n%%in %s: mesh(macroelement=%d): nv=%d; nsimp=%d",__FUNCTION__,jel,sc[jel]->nv,sc[jel]->ns); fflush(stdout);
     }
   }
-  //  fprintf(stdout,"\n%%Removing overlaps...");
+  //  fprintf(stdout,"\n%%Removing overlaps... from kel=%d elements",mc->nel);fflush(stdout);
+  //,sc[mc->nel-1]->nv,sc[mc->nel-1]->nv);fflush(stdout);
   fix_grid(mc,sc,c2s,g0);
   //  fprintf(stdout,"\n%%..\tdone\n\n");
   if(g0->print_level>4){

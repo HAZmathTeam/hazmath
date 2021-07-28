@@ -22,10 +22,12 @@ INT main(INT   argc,   char *argv[])
   INT i;
   FILE *fp;
    fp=stdin;
-   //   fp=HAZ_fopen("inputs/2d_2L.input","r");
-  // fp=HAZ_fopen("inputs/3d_fichera.input","r");
+   //fp=HAZ_fopen("inputs/2d_2L.input","r");
+   // fp=HAZ_fopen("inputs/3d_fichera.input","r");
+   // fp=HAZ_fopen("inputs/3d_2cubes_edge.input","r");
+   //fp=HAZ_fopen("inputs/3d_2cubes_vertex.input","r");
      fp=HAZ_fopen("inputs/5d_cube.input","r");
-  /*
+   /*
     PARSE THE INPUT.
   */
   input_grid *g=parse_input_grid(fp);
