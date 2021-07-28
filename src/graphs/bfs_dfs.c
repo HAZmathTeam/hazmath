@@ -246,7 +246,7 @@ iCSRmat *run_bfs(INT n,INT *ia, INT *ja,	\
   /* anc[v] is the ancestor of v; */
   /* roots[] is input; */
   INT i,k,q,v,vi,qbeg,qend,lvl;  
-  iCSRmat *blk=malloc(1*sizeof(iCSRmat));
+  iCSRmat *blk=malloc(sizeof(iCSRmat));
   blk[0]=icsr_create(n,n,n);
   anc->row=n;
   anc->val=(INT *)calloc(anc->row,sizeof(INT));
@@ -255,21 +255,25 @@ iCSRmat *run_bfs(INT n,INT *ia, INT *ja,	\
   lvl=0;
   blk->IA[lvl]=0;
   k=blk->IA[lvl];
+  //  print_full_mat_int(1,roots->row,roots->val,"roots");
   if(roots->row<=0){
     /* take the first vertex as root if none are given as input */
     roots->row=1;
     roots->val=(INT *)realloc(roots->val,roots->row*sizeof(INT));
     roots->val[0]=0;
   }
+  //  print_full_mat_int(1,roots->row,roots->val,"roots");
   /* Now roots are set as they are either input or root[0]=0 */
   for(i=0;i<roots->row;++i){
-    /* fprintf(stdout,"\nroots[%d]=%d",i,roots->val[i]); */
     blk->val[roots->val[i]]=lvl+1;
     blk->JA[k]=roots->val[i];
     k++;
   }
+  //  fprintf(stdout,"\nn=%d,lvl=%d\n",n,lvl); fflush(stdout);
   blk->IA[lvl+1]=k;
-  /* we need to repeat this */
+  if(n<=1)
+    return blk;
+  /* n>1 ...  */
   while(1){
     qbeg=blk->IA[lvl];
     qend=blk->IA[lvl+1];
@@ -283,18 +287,18 @@ iCSRmat *run_bfs(INT n,INT *ia, INT *ja,	\
 	  k++;
 	  anc->val[i]=v; // ancestor;
 	}
-	fprintf(stdout,"\nlvl=%d,v=%d; nbr=%d,blk->val=%d",lvl,v,i,blk->val[i]);fflush(stdout);
+	//	fprintf(stdout,"\nlvl=%d,v=%d; nbr=%d,blk->val=%d",lvl,v,i,blk->val[i]);fflush(stdout);
       }
     }
     lvl++;
     blk->IA[lvl+1]=k;    
     if(k<=qend) break;
   }
-  /* fprintf(stdout,"\nord (k=%d):",k); */
-  /* for(i=0;i<k;i++){ */
-  /*   v=blk->JA[i]; */
-  /*   fprintf(stdout,"\nblk->val[%d]=%d",v,blk->val[v]);fflush(stdout); */
-  /* } */
+  //  fprintf(stdout,"\nord (k=%d):",k);
+  for(i=0;i<blk->IA[lvl];i++){
+    v=blk->JA[i];
+    //    fprintf(stdout,"\nblk->val[%d]=%d",v,blk->val[v]);fflush(stdout);
+  }
   /* for(i=0;i<(lvl+1);i++){ */
   /*   fprintf(stdout,"\nblk->IA[%d]=%d",i,blk->IA[i]); */
   /* } */
@@ -829,7 +833,7 @@ iCSRmat *bfscc(INT nblk,INT *iblk, INT *jblk, iCSRmat *a, INT *et)
   /**/
   bfs->IA=realloc(bfs->IA,(bfs->row+1)*sizeof(INT));
   bfs->JA=realloc(bfs->JA,(bfs->nnz)*sizeof(INT));
-  bfs->val=realloc(bfs->val,(bfs->nnz)*sizeof(INT));
+  mask=bfs->val=realloc(bfs->val,(bfs->nnz)*sizeof(INT));
   /**/
   i0=0;
   for(i=0;i<bfs->row;i++){
@@ -837,7 +841,6 @@ iCSRmat *bfscc(INT nblk,INT *iblk, INT *jblk, iCSRmat *a, INT *et)
     for(ijb=bfs->IA[i];ijb<bfs->IA[i+1];ijb++){
       ib=bfs->JA[ijb];
       if(et[ib]<0) {i0=i;}
-      //      fprintf(stdout,"\netree[%d]=%d; mask[%d]=%d; mmm=%d ; i0=%d, ih=%d", ib,et[ib],ib,mask[ib],mask[ib]+i0,ih);
       mask[ib]+=i0;
     }
   }

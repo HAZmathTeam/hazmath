@@ -12,13 +12,9 @@ INCLUDE =
 
 LIBS = 
 
-# Switch between debug or optimized
+# Switch between debug or optimized compilation (-O3)
 CFLAGS = -g
 
-## If external libraries support is compiled in the hazmath library,
-## comment/uncomment what is necessary below.
-WITH_LAPACK=1
-WITH_HAZNICS=1
 WITH_SUITESPARSE=1
 
 sinclude ../examples.mk

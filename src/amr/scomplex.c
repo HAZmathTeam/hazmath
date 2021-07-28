@@ -99,7 +99,7 @@ scomplex *haz_scomplex_init(const INT n,INT ns, INT nv,const INT nbig)
   }
   sc->nv=nv;
   sc->ns=ns;
-  sc->bndry_cc=1; // one connected component for now.
+  sc->bndry_cc=1; // one connected component on the boundary for now.
   sc->cc=1; // one connected component for now.
   return sc;
 }
@@ -342,6 +342,7 @@ void haz_scomplex_free(scomplex *sc)
   if(sc->nodes) free(sc->nodes);
   if(sc->x) free(sc->x);
   if(sc->vols) free(sc->vols);
+  //  fprintf(stdout,"9\n");fflush(stdout);
   if(sc->fval) free(sc->fval);
   if(sc->nbr) free(sc->nbr);
   if(sc) free(sc);

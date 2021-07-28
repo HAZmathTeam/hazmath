@@ -1,13 +1,7 @@
-# ------------------ link swig files ---------------- #
-# module to load the path to search for local swig modules.
-import set_the_path
-#
-# --------------------------------------------------- #
-##GO:
-
 import haznics
+from dolfin import *
 
-from dolfin import * 
+
 mesh = UnitIntervalMesh(10) 
 V = FunctionSpace(mesh, "Lagrange", 1)  
 u, v = TrialFunction(V), TestFunction(V)

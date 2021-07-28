@@ -539,16 +539,11 @@ precond* create_precond_ra(dCSRmat *A,
     pcdata->s_power = s_frac_power;
     pcdata->t_power = t_frac_power;
 
-    // clean
-    // for(i = 0; i < 5; ++i){
-    //     if (rpnwf[i]) free(rpnwf[i]);
-    // }
-    // if (rpnwf) free(rpnwf);
-
     pc->data = pcdata;
     pc->fct = precond_ra_fenics;
 
-    // TODO: free rpnwf!
+    // clean
+    if (rpnwf) free(rpnwf);
 
     return pc;
 }
@@ -559,6 +554,85 @@ INT get_poles_no(precond* pc)
     precond_ra_data* data = (precond_ra_data*)(pc->data);
 
     return data->poles->row;
+}
+
+
+dvector* compute_ra_aaa(REAL s_frac_power,
+                        REAL t_frac_power,
+                        REAL alpha,
+                        REAL beta,
+                        REAL scaling_a,
+                        REAL scaling_m)
+{
+    INT i;
+    //------------------------------------------------
+    // compute the rational approximation
+    //------------------------------------------------
+    // scaling parameters for rational approximation
+    REAL scaled_alpha = alpha, scaled_beta = beta;
+    // scale alpha = alpha*sa^(-s)*sm^(s-1)
+    scaled_alpha = alpha*pow(scaling_a, -s_frac_power)*pow(scaling_m, s_frac_power-1.);
+    // scale beta = beta*sa^(-t)*sm^(t-1)
+    scaled_beta  = beta*pow(scaling_a, -t_frac_power)*pow(scaling_m, t_frac_power-1.);
+
+    // parameters used in the function
+    REAL16 func_param[4];
+    func_param[0] = s_frac_power;
+    func_param[1] = t_frac_power;
+    if (scaled_alpha > scaled_beta)
+    {
+      func_param[2] = 1.;
+      func_param[3] = scaled_beta/scaled_alpha;
+    }
+    else
+    {
+      func_param[2] = scaled_alpha/scaled_beta;
+      func_param[3] = 1.;
+    }
+
+    /* AAA algorithm for the rational approximation */
+    // parameters used in the AAA algorithm
+    REAL xmin_in = 0.e0, xmax_in = 1.e0;  // interval for x
+    INT mbig = (1<<14) + 1;  // initial number of points on the interval [x_min, x_max]
+    INT mmax_in = (INT )(mbig/2);  // maximal final number of pole + 1
+    REAL16 AAA_tol = powl(2e0,-40e0);  // tolerance of the AAA algorithm
+    INT k = -22; // k is the number of nodes in the final interpolation after tolerance is achieved or mmax is reached.
+    INT print_level = 0; // print level for AAA
+
+    // output of the AAA algorithm.  It contains residues, poles, nodes, weights, function values
+    REAL **rpnwf = malloc(5 * sizeof(REAL *));
+
+    // compute the rational approximation using AAA algorithms
+    REAL err_max = get_cpzwf(frac_inv, (void *)func_param, rpnwf, &mbig, &mmax_in, &k, xmin_in, xmax_in, AAA_tol, print_level);
+    if(rpnwf == NULL) {
+      fprintf(stderr,"\nUnsuccessful AAA computation of rational approximation\n");
+      fflush(stderr);
+      return 0;
+    }
+    printf("Approximation error: %.16e\n", err_max);
+    printf("Number of poles: %d\n", k-1);
+
+    // assign poles and residuals
+    dvector *res = dvec_create_p(2*k - 1);
+    array_cp(k-1, rpnwf[1], res->val);
+    array_cp(k, rpnwf[0], &(res->val[k]));
+
+    // check if poles are non negative
+    REAL polez;
+    for(i = 0; i < k-1; ++i) {
+      polez = res->val[i];
+      if(polez > 0e0) {
+	    fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Positive pole in function=%s", \
+	        __FUNCTION__);
+	    fprintf(stdout,"\n%%%%%%  0 < pole(%d)=%.16e\n", i, polez);
+	    break;
+      }
+    }
+
+    // clean
+    if(rpnwf) free(rpnwf);
+
+    return res;
 }
 
 
