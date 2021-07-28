@@ -27,7 +27,7 @@
  */
 inline static REAL16 frac_inv(REAL16 x, void *param)
 {
-  REAL16 *s,s1,s2,alpha,beta,f123;
+  REAL16 *s,s1,s2,alpha,beta; //,f123;
   if(param!=NULL){
     s=(REAL16 *)param;
     s1=s[0];
@@ -70,7 +70,7 @@ INT fenics_amg_data_setup(dCSRmat *A,
                           AMG_param *amgparam)
 {
     const SHORT prtlvl = amgparam->print_level;
-    const SHORT max_levels = amgparam->max_levels;
+    //not used:    const SHORT max_levels = amgparam->max_levels;
     const INT m = A->row, n = A->col, nnz = A->nnz;
     INT status = SUCCESS;
 
@@ -128,7 +128,7 @@ INT fenics_famg_data_setup(dCSRmat *A,
                            AMG_param *amgparam)
 {
     const SHORT prtlvl = amgparam->print_level;
-    const SHORT max_levels = amgparam->max_levels;
+    //not used: const SHORT max_levels = amgparam->max_levels;
     const INT m = A->row, n = A->col, nnz = A->nnz, nnz_M = M->nnz;
     INT status = SUCCESS;
 
@@ -395,7 +395,8 @@ INT fenics_ra_setup(dCSRmat *A,
     // AMG_param *amgparam1 = &(amgparam[1]);
     const SHORT prtlvl = amgparam->print_level;
     const SHORT max_levels = amgparam->max_levels;
-    const INT m = A->row, n = A->col, nnz = A->nnz, nnz_M = M->nnz;
+    //    const INT m = A->row, n = A->col, nnz = A->nnz, nnz_M = M->nnz;
+    const INT m = A->row, n = A->col, nnz_M = M->nnz;
     INT status = SUCCESS;
     INT i;
 
@@ -438,8 +439,8 @@ INT fenics_ra_setup(dCSRmat *A,
     REAL **rpnwf=malloc(5*sizeof(REAL *));
 
     // compute the rational approximation using AAA algorithms
-    REAL err_max=get_cpzwf(frac_inv, (void *)func_param,rpnwf, &mbig, &mmax_in, &k, xmin_in, xmax_in, AAA_tol, print_level);
-
+    //    REAL err_max=get_cpzwf(frac_inv, (void *)func_param,rpnwf, &mbig, &mmax_in, &k, xmin_in, xmax_in, AAA_tol, print_level);
+    get_cpzwf(frac_inv, (void *)func_param,rpnwf, &mbig, &mmax_in, &k, xmin_in, xmax_in, AAA_tol, print_level);
     // assign poles and residules
     pcdata->residues = dvec_create_p(k);
     pcdata->poles = dvec_create_p(k-1);
@@ -658,7 +659,8 @@ INT fenics_precond_ra_data_setup(dCSRmat *A,
     REAL **rpnwf=malloc(5*sizeof(REAL *));
 
     // compute the rational approximation using AAA algorithms
-    REAL err_max=get_cpzwf(frac_inv, (void *)func_param, rpnwf, &mbig, &mmax_in, &k, xmin_in, xmax_in, AAA_tol, print_level);
+    //    REAL err_max=get_cpzwf(frac_inv, (void *)func_param, rpnwf, &mbig, &mmax_in, &k, xmin_in, xmax_in, AAA_tol, print_level);
+    get_cpzwf(frac_inv, (void *)func_param, rpnwf, &mbig, &mmax_in, &k, xmin_in, xmax_in, AAA_tol, print_level);
     if(rpnwf == NULL) {
       fprintf(stderr,"\nUnsuccessful AAA computation of rational approximation\n");
       fflush(stderr);

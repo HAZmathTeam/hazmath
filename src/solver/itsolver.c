@@ -565,7 +565,7 @@ INT linear_solver_frac_rational_approx(dCSRmat *A,
   INT i;
   dvector update = dvec_create(x->row);
   dCSRmat shiftA;
-  dCSRmat I;
+  //not used:  dCSRmat I;
   /*
   if (M=NULL)
   {
@@ -1475,7 +1475,8 @@ INT linear_solver_dcsr_krylov_famg_sum2(dCSRmat *A_frac,
     const SHORT max_levels_amg = amgparam->max_levels;
 
     const INT nnz_A = AS->nnz, m_A = AS->row, n_A = AS->col;
-    const INT nnz_M = MS->nnz, m_M = MS->row, n_M = MS->col;
+    //not used:    const INT nnz_M = MS->nnz,
+    const INT m_M = MS->row, n_M = MS->col;
 
     const INT nnz_Adiv = Adiv->nnz, m_Adiv = Adiv->row, n_Adiv = Adiv->col;
     const INT nnz_Mdiv = Mdiv->nnz, m_Mdiv = Mdiv->row, n_Mdiv = Mdiv->col;
@@ -4765,7 +4766,8 @@ INT linear_solver_bdcsr_babuska_block_2(block_dCSRmat *A,
     REAL **rpnwf=malloc(5*sizeof(REAL *));  // output of the AAA algorithm.  It contains residues, poles, nodes, weights, function values
 
     // compute the rational approximation using AAA algorithms
-    REAL err_max=get_cpzwf(frac_inv, (void *)func_param,	rpnwf, &mbig, &mmax_in, &k, xmin_in, xmax_in, AAA_tol, print_level);
+    //    REAL err_max=get_cpzwf(frac_inv, (void *)func_param,	rpnwf, &mbig, &mmax_in, &k, xmin_in, xmax_in, AAA_tol, print_level);
+    get_cpzwf(frac_inv, (void *)func_param,rpnwf, &mbig, &mmax_in, &k, xmin_in, xmax_in, AAA_tol, print_level);
 
     // assign poles and residules
     dvec_alloc(k,  &residues);

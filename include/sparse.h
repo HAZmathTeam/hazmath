@@ -54,13 +54,13 @@ typedef struct dCSRmat{
  */
 typedef struct iCSRmat{
 
-    //! row number of matrix A, m
+    //! m: number of rows in the matrix A
     INT row;
 
-    //! column of matrix A, n
+    //! n: number of columns in the matrix A
     INT col;
 
-    //! number of nonzero entries
+    //! nnz: number of the nonzero entries in A
     INT nnz;
 
     //! integer array of row pointers, the size is m+1

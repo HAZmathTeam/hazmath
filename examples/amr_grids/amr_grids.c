@@ -9,7 +9,6 @@
  * mesh generator included with HAZmath. It is only to illustrate how
  * to use the mesh refinement.
  */
-
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************/
 #include "hazmath.h"
 /*********************************************************************/
@@ -23,19 +22,21 @@ INT main(INT   argc,   char *argv[])
   INT i;
   FILE *fp;
    fp=stdin;
-  //  fp=HAZ_fopen("inputs/2d_2L.input","r");
-  // fp=HAZ_fopen("inputs/2d_2L.input","r");
-  // fp=HAZ_fopen("inputs/3d_cube.input","r");
-  /*
+   //fp=HAZ_fopen("inputs/2d_2L.input","r");
+   // fp=HAZ_fopen("inputs/3d_fichera.input","r");
+   // fp=HAZ_fopen("inputs/3d_2cubes_edge.input","r");
+   //fp=HAZ_fopen("inputs/3d_2cubes_vertex.input","r");
+     fp=HAZ_fopen("inputs/5d_cube.input","r");
+   /*
     PARSE THE INPUT.
   */
   input_grid *g=parse_input_grid(fp);
-  input_grid_print(g);
+  //  input_grid_print(g);
   fclose(fp);
   /*
     GENERATE INITIAL GRID AND DECLARE VARIABLES.
   */
-  scomplex *sc=generate_initial_grid(g);
+  scomplex *sc=generate_initial_grid(g);  
   scomplex *sctop=NULL;
   INT ref_levels=g->nref, amr_marking_type=g->mark_type,j;
   dvector *solfem=NULL,*estimator=NULL;
@@ -117,7 +118,7 @@ INT main(INT   argc,   char *argv[])
   /*  MAKE sc to be the finest grid only */
   //haz_scomplex_print(sc,0,"ZZZ");fflush(stdout);
   scfinalize(sc);
-  haz_scomplex_print(sc,0,"XXX");fflush(stdout);
+  //  haz_scomplex_print(sc,0,"XXX");fflush(stdout);
   //find_cc_bndry_cc(sc);
   /* write the output mesh file:    */
   hazw(g->fgrid,sc,0);

@@ -6912,7 +6912,7 @@ void precond_block2_babuska_diag(REAL *r,
     array_set(N, z, 0.0);
 
     // prepare
-    INT i, j;
+    INT i; //not used:, j;
     AMG_param *amgparam = precdata->amgparam; // array!!
     AMG_data **mgl = precdata->mgl;
     dvector r0, r1, z0, z1;
@@ -6972,7 +6972,7 @@ void precond_block2_babuska_diag(REAL *r,
     REAL scaled_beta  = precdata->scaled_beta;
 
     // get poles and residues
-    dvector *poles = precdata->poles;
+    //not used:    dvector *poles = precdata->poles;
     dvector *residues = precdata->residues;
 
     INT k = residues->row;
@@ -6996,7 +6996,7 @@ void precond_block2_babuska_diag(REAL *r,
 
 
     /*----------------------------------------*/
-    /* main loop of applying rational approximation
+    /* main loop of applying rational approximation */
     /*----------------------------------------*/
     // scaling r1
     if (scaled_alpha > scaled_beta)
@@ -7079,7 +7079,7 @@ void precond_block2_babuska_lower(REAL *r,
     array_set(N, z, 0.0);
 
     // prepare
-    INT i, j;
+    INT i;// not used:, j;
     AMG_param *amgparam = precdata->amgparam; // array!!
     AMG_data **mgl = precdata->mgl;
     dvector r0, r1, z0, z1;
@@ -7145,7 +7145,7 @@ void precond_block2_babuska_lower(REAL *r,
     REAL scaled_beta  = precdata->scaled_beta;
 
     // get poles and residues
-    dvector *poles = precdata->poles;
+    //not used:    dvector *poles = precdata->poles;
     dvector *residues = precdata->residues;
 
     INT k = residues->row;
@@ -7169,7 +7169,7 @@ void precond_block2_babuska_lower(REAL *r,
 
 
     /*----------------------------------------*/
-    /* main loop of applying rational approximation
+    /* main loop of applying rational approximation */
     /*----------------------------------------*/
     // scaling r1
     if (scaled_alpha > scaled_beta)
@@ -7251,7 +7251,7 @@ void precond_block2_babuska_upper(REAL *r,
     array_set(N, z, 0.0);
 
     // prepare
-    INT i, j;
+    INT i;//not used:, j;
     AMG_param *amgparam = precdata->amgparam; // array!!
     AMG_data **mgl = precdata->mgl;
     dvector r0, r1, z0, z1;
@@ -7277,7 +7277,7 @@ void precond_block2_babuska_upper(REAL *r,
     REAL scaled_beta  = precdata->scaled_beta;
 
     // get poles and residues
-    dvector *poles = precdata->poles;
+    //    dvector *poles = precdata->poles;
     dvector *residues = precdata->residues;
 
     INT k = residues->row;
@@ -7300,7 +7300,7 @@ void precond_block2_babuska_upper(REAL *r,
     /*----------------------------------------*/
 
     /*----------------------------------------*/
-    /* main loop of applying rational approximation
+    /* main loop of applying rational approximation */
     /*----------------------------------------*/
     // scaling r1
     if (scaled_alpha > scaled_beta)
@@ -7440,7 +7440,7 @@ void precond_rational_approx(REAL *r,
     REAL scaled_beta  = precdata->scaled_beta;
 
     // get poles and residues
-    dvector *poles = precdata->poles;
+    //not used: dvector *poles = precdata->poles;
     dvector *residues = precdata->residues;
     
     // number of residues (no. of poles + 1)
@@ -7464,7 +7464,7 @@ void precond_rational_approx(REAL *r,
     /*----------------------------------------*/
     
     /*----------------------------------------*/
-    /* main loop of applying rational approximation
+    /* main loop of applying rational approximation */
     /*----------------------------------------*/
     // scaling r
     if (scaled_alpha > scaled_beta)
@@ -7548,7 +7548,7 @@ void precond_rational_approx_fenics(REAL *r,
 
     // printf("Norm residual (n=%d)before copy: %.5e\n", n, array_norm2(n, r));
     dvector r_vec = dvec_create(n);
-    fprintf(stderr,"\nr_vec %ld: %d\n",sizeof(r_vec.val)/sizeof(REAL),r_vec.row);
+    //    fprintf(stderr,"\nr_vec %ld: %d\n",sizeof(r_vec.val)/sizeof(REAL),r_vec.row);
     if(r_vec.val == NULL){
       fprintf(stderr,"\nCOULD NOT ALLOCATE r_vec\n");
       fflush(stderr);
@@ -7591,7 +7591,7 @@ void precond_rational_approx_fenics(REAL *r,
     /*----------------------------------------*/
     
     /*----------------------------------------*/
-    /* main loop of applying rational approximation
+    /* main loop of applying rational approximation */
     /*----------------------------------------*/
     // scaling r
     if (scaled_alpha > scaled_beta)
@@ -7720,7 +7720,7 @@ void precond_ra_fenics(REAL *r, REAL *z, void *data)
     /*----------------------------------------*/
 
     /*----------------------------------------*/
-    /* main loop of applying rational approximation
+    /* main loop of applying rational approximation */
     /*----------------------------------------*/
     // scaling r
     if (scaled_alpha > scaled_beta)

@@ -19,33 +19,9 @@
 #ifndef _amr_h
 #define _amr_h
 #endif
-/******************************************************************
- * INPUT_GRID_DATA_: define strings used to describe a macroelement
- * grid in the INPUT file with grid data. used in src/amr/input_grid.c
- *******************************************************************/
-#ifndef INPUT_GRID_DATA_
-#define INPUT_GRID_DATA_ "title{",		\
-    "file_grid{",				\
-    "file_vtu{",				\
-    "data_coordsystems{",			\
-    "data_vertices{",				\
-    "data_edges{",				\
-    "data_macroelements{",			\
-    "data_macrofaces{",				\
-    "dimension{",				\
-    "num_coordsystems{",			\
-    "num_vertices{",				\
-    "num_edges{",				\
-    "num_macroelements{",			\
-    "num_macrofaces{",				\
-    "num_refinements{",				\
-    "refinement_type{",				\
-    "amr_marking_type{",			\
-    "err_stop_refinement{",			\
-    "print_level{",    \
-    "num_refine_points{",   \
-    "data_refine_points{"
-#endif
+//#ifndef INPUT_GRID_DATA_
+//#define INPUT_GRID_DATA_ "title{","file_grid{","file_vtu{","data_coordsystems{","data_vertices{","data_edges{","data_macroelements{","data_macrofaces{","dimension{","num_coordsystems{","num_vertices{","num_edges{","num_macroelements{","num_macrofaces{","num_refinements{","refinement_type{","amr_marking_type{","err_stop_refinement{","print_level{","num_refine_points{","data_refine_points{"
+//#endif
 #ifndef DEFAULT_GRID_DATA_
 #define DEFAULT_GRID_DATA_ "title{Grid on a cube (-1,1)x(-1,1)x(-1,1);5x4x3 lattice}dimension{3}print_level{0}file_grid{mesh3d.haz}file_vtu{mesh3d.vtu} num_edges{3}data_edges{0 1 3  0 2 4 0 4 5}num_vertices{8} data_vertices{0 0 0. 0. 0. 1 0 0. 0. 1. 2 0 0. 1. 0. 3 0 0. 1. 1. 4 0 1. 0. 0. 5 0 1. 0. 1. 6 0 1. 1. 0. 7 0 1. 1. 1.}  num_macroelements{1}  data_macroelements{0 1 2 3 4 5 6 7 -1}num_macrofaces{6} data_macrofaces{0 1 2 3 1 0 4 1 5 1 4 7 5 6 1 2 6 3 7 1 0 4 2 6 1 1 5 7 3 1}num_coordsystems{1}data_coordsystems{0 0. 0. 0. 0}num_refinements{0}refinement_type{0}err_stop_refinement{-1.e-10}{amr_marking_type{0}\0"
 #endif
@@ -238,7 +214,7 @@ typedef struct /* macroelement complex (isomorphic to
 		    face number map;   */
   INT **iindex; /* used to remove repeated vertices */
   iCSRmat *fullel2el; /* full element to element which has also the
-			 number of common vertices as entries; */
+			 number of common vertices as entries in the matrix; */
   INT *bcodesf; /* codes for boundary faces */
   INT *isbface; /* indicator if a face is on the boundary */
   INT *flags; /*flags (material) of the macro elements*/
