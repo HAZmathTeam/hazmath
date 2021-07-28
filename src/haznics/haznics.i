@@ -39,7 +39,18 @@ import_array();
 %nodefaultdtor dvector;
 %extend dvector{
    ~dvector() {
-      dvec_free(self);
+        dvec_free(self);
+   }
+
+   // return numpy array
+   PyObject* to_ndarray() {
+        npy_intp dims[1]; dims[0] = self->row;
+        PyObject *array = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, (void*)(self->val));
+        if(!array) {
+            PyErr_SetString(PyExc_MemoryError, "Array not allocated!");
+            // SWIG_fail; // for some reason swig says this label is not defined
+        }
+        return array;
    }
 }
 
@@ -100,6 +111,11 @@ import_array();
    input_param() {
         input_param *inparam = (input_param *) malloc(sizeof(input_param));
         param_input_init(inparam);
+        return inparam;
+   }
+   input_param(const char *filenm) {
+        input_param *inparam = (input_param *) malloc(sizeof(input_param));
+        param_input(filenm, inparam);
         return inparam;
    }
 }
@@ -163,6 +179,7 @@ precond* create_precond_hxcurl(dCSRmat *Acurl, dCSRmat *Pcurl, dCSRmat *Grad, SH
 precond* create_precond_hxdiv_3D(dCSRmat *Adiv, dCSRmat *P_div, dCSRmat *Curl, dCSRmat *P_curl, SHORT prectype, AMG_param *amgparam);
 precond* create_precond_hxdiv_2D(dCSRmat *Adiv,dCSRmat *P_div, dCSRmat *Curl, SHORT prectype, AMG_param *amgparam);
 INT get_poles_no(precond *pc);
+dvector* compute_ra_aaa(REAL s_frac_power, REAL t_frac_power, REAL alpha, REAL beta, REAL scaling_a, REAL scaling_m);
 
 %apply (int DIM1, double* IN_ARRAY1) {(int len1, double* vec1),
                                       (int len2, double* vec2)}
@@ -193,6 +210,15 @@ INT get_poles_no(precond *pc);
         }
         apply_precond(vec1, vec2, pc);
     }
+%}
+
+%pythoncode %{
+    def set_params(d, in_param):
+        for key in d:
+            if isinstance(d[key], str):
+                exec("in_param.%s = \"%s\"" % (key, d[key]))
+            else:
+                exec("in_param.%s = %s" % (key, d[key]))
 %}
 
 /* callback function as constant?

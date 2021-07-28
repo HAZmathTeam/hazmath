@@ -18,7 +18,10 @@ params:
      KAM: 
      Can I also ask that there is a input file in cbc.block that initialize all parameters
      such that down the line, when hazmath has changed, I know that I use the same default parameters
-     as I did back in some previous version :) 
+     as I did back in some previous version :)
+
+     2021-07-28 Ana:
+     DONE.
 
    - set_param should be in module haznics
      (2021-07-23 Ana:
@@ -72,7 +75,10 @@ Nice demo for rational approximation of sums of fractional powers, just as a fun
 )
 KAM: it looks good. 
 Can we have one RA demo also of just a function (no matrix). 
-Say we have f(x) = a sqrt(x) + b 1/sqrt(x) or something. 
+Say we have f(x) = a sqrt(x) + b 1/sqrt(x) or something.
+
+2021-07-28 Ana:
+DONE.
 
 8.
 Simple Darcy-Stokes problem

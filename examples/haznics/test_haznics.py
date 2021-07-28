@@ -1,29 +1,8 @@
-# ------------------ link swig files ---------------- #
-# module to load the path to search for local swig modules.
-import set_the_path
-#
-# Equivalently do this:
-"""
-from sys import path as psys
-from os import path as pos
-# path to search for local modules appended                                            
-the_dir = ''.join([pos.realpath('../../'),'/swig_files/'])
-print(the_dir);
-psys.append(the_dir)
-"""
-# --------------------------------------------------- #
-
-
-
-import numpy
 from numpy import random
-from numpy.linalg import norm
+import haznics
+from dolfin import *
 
-a = random.random(10) 
 
-import haznics 
-
-from dolfin import * 
 mesh = UnitIntervalMesh(10) 
 V = FunctionSpace(mesh, "Lagrange", 1)  
 u, v = TrialFunction(V), TestFunction(V)
