@@ -43,6 +43,7 @@ static dvector fe_sol(scomplex *sc,				\
     }
     rhs.val[i]=fi;
   }
+  //  dvector_print(stdout,&f);
   //  dvector_print(stdout,&rhs);
   clock_t clk_assembly_end = clock(); // End of timing for mesh and FE setup
   fprintf(stdout,"\n%%%%%%CPUtime(assembly) = %.3f sec",
@@ -122,10 +123,13 @@ static dvector fe_sol(scomplex *sc,				\
 /****************************************************************************/
 int main(int argc, char *argv[])
 {
-  INT dim=4;// 2d,3d,4d... example
+  INT dim=5;// 2d,3d,4d... example
   INT jlevel,k;
   scomplex *sc;
   switch(dim){
+  case 5:
+    sc=mesh5d();    
+    break;
   case 4:
     sc=mesh4d();    
     break;
@@ -136,7 +140,7 @@ int main(int argc, char *argv[])
     sc=mesh2d();
   }
   scomplex *sctop=NULL;
-  INT ref_levels=17;
+  INT ref_levels=15;
   //
   ivector marked;
   marked.row=0;
@@ -154,7 +158,6 @@ int main(int argc, char *argv[])
     marked.val=realloc(marked.val,marked.row*sizeof(INT));
     for(k=0;k<marked.row;k++) marked.val[k]=TRUE;
     // now we refine.
-    //    haz_scomplex_print(sctop,0,"In assembly sandbox");
     refine(1,sc,&marked);
     /* free */
     dvec_free(&sol);
@@ -165,11 +168,17 @@ int main(int argc, char *argv[])
   sc->vols=realloc(sc->vols,sc->ns*sizeof(REAL));
   sol=fe_sol(sc,1.0,1.0);
   // find the boundary simplicial complex:
-  scomplex *dsc=sc_bndry(sc);
-  // stereographic projection:
-  INT idsc = stereo_g(dsc);
-  /* write the output mesh file:    */
-  //  hazw(grid_file,sc,0);
+  INT idsc;
+  scomplex *dsc=NULL;
+  if(dim==4 || dim ==3){
+    dsc=sc_bndry(sc);
+    // stereographic projection (only in 4D)
+    idsc = stereo_g(dsc);
+    /* write the output mesh file:    */
+    //  hazw(grid_file,sc,0);
+  } else{
+    idsc=0;
+  }
   fprintf(stdout,"\n\n");
   /* WRITE THE OUTPUT vtu file for paraview: can be viewed with
      paraview */
@@ -177,14 +186,16 @@ int main(int argc, char *argv[])
     vtkw("2d.vtu",sc,0,1.);
   } else if(dim==3){
     vtkw("3d.vtu",sc,0,1.);
-    vtkw("stereo3d.vtu",dsc,0,1.);
+    if(dsc) 
+      vtkw("stereo3d.vtu",dsc,0,1.);
   } else if(dim==4){
-    vtkw("stereo4d.vtu",dsc,0,1.);
+    if(dsc)
+      vtkw("stereo4d.vtu",dsc,0,1.);
   } else {
     fprintf(stdout,"\nNO PLOT: Dimension=%d is too large for plotting",dim);
   }
   fprintf(stdout,"\n\n");
-  haz_scomplex_free(dsc);
+  if(dsc) haz_scomplex_free(dsc);
   dvec_free(&sol);
   ivec_free(&marked);
   haz_scomplex_free(sc);  
