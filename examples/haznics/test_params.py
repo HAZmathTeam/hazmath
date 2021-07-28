@@ -1,10 +1,3 @@
-# ------------------ link swig files ---------------- #
-# module to load the path to search for local swig modules.
-import set_the_path
-#
-# --------------------------------------------------- #
-##GO:
-
 from haznics import *
 
 # question: are strings in hazmath null char ended? 
