@@ -25,8 +25,8 @@ INT main(INT   argc,   char *argv[])
    //fp=HAZ_fopen("inputs/2d_2L.input","r");
    // fp=HAZ_fopen("inputs/3d_fichera.input","r");
    // fp=HAZ_fopen("inputs/3d_2cubes_edge.input","r");
-   //fp=HAZ_fopen("inputs/3d_2cubes_vertex.input","r");
-     fp=HAZ_fopen("inputs/5d_cube.input","r");
+   // fp=HAZ_fopen("inputs/3d_2cubes_vertex.input","r");
+   //  fp=HAZ_fopen("inputs/5d_cube.input","r");
    /*
     PARSE THE INPUT.
   */
@@ -118,8 +118,8 @@ INT main(INT   argc,   char *argv[])
   /*  MAKE sc to be the finest grid only */
   //haz_scomplex_print(sc,0,"ZZZ");fflush(stdout);
   scfinalize(sc);
-  //  haz_scomplex_print(sc,0,"XXX");fflush(stdout);
-  //find_cc_bndry_cc(sc);
+  haz_scomplex_print(sc,0,"XXX");fflush(stdout);
+  //  find_cc_bndry_cc(sc);
   /* write the output mesh file:    */
   hazw(g->fgrid,sc,0);
   /* WRITE THE OUTPUT vtu file for paraview:    */
