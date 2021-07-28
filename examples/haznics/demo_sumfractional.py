@@ -21,15 +21,26 @@ function (alpha * x^s + beta * x^t)^(-1). We test the approximation and
 efficiency power of RA for sum of fractionalities.
 Outer solver is Conjugate Gradients.
 """
-
-from __future__ import print_function
-
-from common import mpi_comm
 from scipy.sparse import csr_matrix
-from hseig import my_eigh as eigh
 from petsc4py import PETSc
 from dolfin import *
 import numpy as np
+
+
+# NOTE: This is only temporary.
+# The eigenvalue solver is taken from hseig.py in HsMG.
+def my_eigh(A, B):
+    '''Au = lmbda Bu transforming to EVP'''
+    # Transformation
+    timer = Timer('Eigh Power')
+    beta, U = np.linalg.eigh(B)
+    Bnh = U.dot(np.diag(beta ** -0.5).dot(U.T))
+    print('\tDone power in %s' % timer.stop())
+
+    S = Bnh.dot(A.dot(Bnh))
+    lmbda, V = np.linalg.eigh(S)
+    # With transformed eigenvectors
+    return lmbda, Bnh.dot(V)
 
 
 def Hs_matrix(n, tdim=1, s=[(1.0, 0.5)]):
@@ -56,7 +67,7 @@ def Hs_matrix(n, tdim=1, s=[(1.0, 0.5)]):
     A_, M_ = A.array(), M.array()
     print('GEVP %d x %d' % (V.dim(), V.dim()))
     timer = Timer('Hs')
-    lmbda, U = eigh(A_, M_)
+    lmbda, U = my_eigh(A_, M_)
     print('Min eig: ', lmbda[0], '\n Max eig: ', lmbda[-1])
     print('Done %s' % timer.stop())
 
@@ -87,24 +98,25 @@ def csr_to_dolfin(A):
 if __name__ == '__main__':
     import haznics
     from block.algebraic.hazmath import RA
-    from block.iterative import ConjGrad
+    from block.iterative import MinRes, ConjGrad
 
     # Parameters
     s = -0.5
     t = 0.5
-    alpha = 1E0
-    beta = 1E0
+    alpha = 1E-6
+    beta = 1E-2
 
-    tdim = 1
-    n = 2 ** 6
+    tdim = 2
+    n = 2 ** 3
 
     # Get sum fractional matrix
-    print(alpha, beta)
+    print("Alpha: ", alpha, "\ts: ", s)
+    print("Beta: ", beta, "\tt: ", t)
     _, V, H, _, M, A = Hs_matrix(n, tdim=tdim, s=[(alpha, s), (beta, t)])  # Csr
 
     # Parameters for the preconditioner
     params = {'coefs': [alpha, beta], 'pwrs': [s, t],
-              'print_level': 2,
+              'print_level': 0,
               'AMG_type': haznics.SA_AMG,
               'cycle_type': haznics.V_CYCLE,
               "max_levels": 20,
@@ -121,7 +133,7 @@ if __name__ == '__main__':
     B = RA(A, M, parameters=params)
 
     # Set up RHS
-    b = Vector(mpi_comm(), V.dim())
+    b = Vector(MPI.comm_world, V.dim())
     b.set_local(np.random.rand(V.dim()))
 
     # Set up solver
@@ -132,8 +144,8 @@ if __name__ == '__main__':
     x = Ainv * b
 
     # Results
-    cvrg = AAinv.residuals
+    cvrg = Ainv.residuals
 
     print('*' * 32)
-    print('CG iterations', len(cvrg), 'final norm', cvrg[-1], '#dofs', ndofs)
+    print('CG iterations', len(cvrg), 'final norm', cvrg[-1], '#dofs', V.dim())
     print('*' * 32)
