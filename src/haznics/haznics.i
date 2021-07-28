@@ -151,6 +151,10 @@ dCSRmat* create_matrix(double *A, int nnz, int *ja, int nnz2, int *ia, int n);
 dvector* create_dvector(double *x, int n); 
 %clear (double* a, int n);
 
+%apply (double* IN_ARRAY1, int DIM1) {(double* x, int n)};
+dvector* create_dvector(double *x, int n);
+%clear (double* a, int n);
+
 
 /* these three below should probably be removed */ 
 // input_param* create_input_param();
