@@ -28,8 +28,8 @@ err_stop_refinement{        -1.e-10        }
 % files(grid and vtu): should exist as  and be writeable by the user
 % vtu files for plotting follow the same convention. Spaces in names should be escaped. 
 %---------------%
-file_grid{outputs/fichera.grid}
-file_vtu{outputs/fichera.vtu}
+file_grid{outputs/3d_fichera.grid}
+file_vtu{outputs/3d_fichera.vtu}
 
 %---------------%
 % coordinate systems: Each has coordinates of the origin o[0:dim-1]
