@@ -96,15 +96,6 @@ import_array();
    }
 }
 
-/*
-// not sure about this one yet
-%nodefaultdtor AMG_param;
-%extend AMG_param{
-   ~AMG_param() {
-        amli_coef_free(self);
-   }
-}
-*/
 
 %nodefaultctor input_param;
 %extend input_param{
@@ -119,6 +110,25 @@ import_array();
         return inparam;
    }
 }
+
+%nodefaultctor AMG_param;
+%extend AMG_param{
+   AMG_param() {
+        AMG_param *amgparam = (AMG_param *) malloc(sizeof(AMG_param));
+        param_amg_init(amgparam);
+        return amgparam;
+   }
+}
+
+/*
+// not sure about this one yet
+%nodefaultdtor AMG_param;
+%extend AMG_param{
+   ~AMG_param() {
+        amli_coef_free(self);
+   }
+}
+*/
 
 /* need to add destructors for other structs!! */
 
@@ -213,12 +223,35 @@ dvector* compute_ra_aaa(REAL s_frac_power, REAL t_frac_power, REAL alpha, REAL b
 %}
 
 %pythoncode %{
-    def set_params(d, in_param):
-        for key in d:
-            if isinstance(d[key], str):
-                exec("in_param.%s = \"%s\"" % (key, d[key]))
-            else:
-                exec("in_param.%s = %s" % (key, d[key]))
+    def param_input_set_dict(d, inparam):
+        assert isinstance(inparam, input_param), " Second argument should be of type haznics.input_param! "
+        if isinstance(d, dict):
+            for key in d:
+                if isinstance(d[key], str):
+                    exec("inparam.%s = \"%s\"" % (key, d[key]))
+                else:
+                    exec("inparam.%s = %s" % (key, d[key]))
+        else:
+            from warnings import warn
+            from inspect import currentframe
+            warn(" In function %s : "%(currentframe().f_code.co_name) + \
+             "First argument is a not of type dict, input_param will not be set up! ", RuntimeWarning)
+%}
+
+%pythoncode %{
+    def param_amg_set_dict(d, amgparam):
+        assert isinstance(amgparam, AMG_param), " Second argument should be of type haznics.AMG_param! "
+        if isinstance(d, dict):
+            for key in d:
+                if isinstance(d[key], str):
+                    exec("amgparam.%s = \"%s\"" % (key, d[key]))
+                else:
+                    exec("amgparam.%s = %s" % (key, d[key]))
+        else:
+            from warnings import warn
+            from inspect import currentframe
+            warn(" In function %s : "%(currentframe().f_code.co_name) + \
+             "First argument is a not of type dict, AMG_param will not be set up! ", RuntimeWarning)
 %}
 
 /* callback function as constant?
