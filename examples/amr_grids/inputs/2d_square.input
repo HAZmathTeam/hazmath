@@ -24,8 +24,8 @@ print_level{0}	% how much information to print out: 0 Nothing | >0 Something
 
 refinement_type{0}
 
-file_grid{2dSQ.haz}
-file_vtu{2dSQ.vtu}
+file_grid{outputs/2d_square.haz}
+file_vtu{outputs/2d_square.vtu}
 
 %---------------%
 % coordinate systems: Each has coordinates of the origin o[0:dim-1]
