@@ -139,16 +139,9 @@ INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)
     }
   }
   //  fflush(stdout);
-  for(i=0;i<n;i++){
+  for(i=0;i<n;i++)
     xhat[i] = xstar[i]-xs[l0n+i];
-  }
-  //print_full_mat(n,1,xstar,"xstar");
-  //  print_full_mat(n,n,A,"A");
-  //  print_full_mat(n,1,xhat,"xhat0");
   solve_pivot(1, n, A, xhat, p, piv);
-  //  print_full_mat(n,1,xhat,"xhat");
-  //  fprintf(stdout,"\nSolution:\n");
-  //  print_full_mat(n,1,xhat,"xhat");
   REAL xhatn=1e0,eps0=1e-10,xmax=1e0+eps0;
   /* check the solution if within bounds */
   INT flag = 0;
@@ -590,7 +583,8 @@ scomplex *scfinest(scomplex *sc)
 void scfinalize(scomplex *sc)
 {
   // INT n=sc->n;
-  INT ns,j=-10,k=-10,n1=sc->n+1;
+  INT ns,j=-10,k=-10,l=-10;
+  INT n1=sc->n+1;
   /*
       store the finest mesh in sc structure.
       on input sc has all the hierarchy, on return sc only has the final mesh.
@@ -604,7 +598,6 @@ void scfinalize(scomplex *sc)
     if(sc->child0[j]<0 || sc->childn[j]<0){
       for (k=0;k<n1;k++) {
 	sc->nodes[ns*n1+k]=sc->nodes[j*n1+k];
-	sc->nbr[ns*n1+k]=sc->nbr[j*n1+k];
       }
       sc->gen[ns]=sc->gen[j];
       sc->flags[ns]=sc->flags[j];
@@ -612,9 +605,13 @@ void scfinalize(scomplex *sc)
     }
   }
   sc->ns=ns;
+  sc->nodes=realloc(sc->nodes,n1*sc->ns*sizeof(INT));
+  sc->nbr=realloc(sc->nbr,n1*sc->ns*sizeof(INT));
+  find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
+  //  haz_scomplex_print(sc,0,"ZZZ");fflush(stdout);
   // make all boundary codes negative which by default should be
   // interior nodes;
-  INT node,l,kbndry0=0,bcodemax=129;
+  INT node,kbndry0=0,bcodemax=129;
   for (j=0;j<sc->nv;j++) sc->bndry[j]=-abs(sc->bndry[j]);
   // now run over all simplices again and mark all nodes on boundary
   // faces as boundary nodes by making their codes positive.
@@ -935,7 +932,7 @@ cube2simp *cube2simplex(INT dim)
 }
 /******************************************************************/
 /*!
- * \fn INT dvec_set_amr(const REAL value, scomplex *sc, dvector *pts,
+ * \fn INT dvec_set_amr(const REAL value, scomplex *sc, INT npts, REAL *pts,
  * dvector *toset)
  *
  * \brief given a dvector of size sc->ns sets the values of a vector
@@ -949,7 +946,7 @@ cube2simp *cube2simplex(INT dim)
  * \return number of simplices where the value was assigned
  *
  */
-INT dvec_set_amr(const REAL value, scomplex *sc, dvector *pts, REAL *toset)
+INT dvec_set_amr(const REAL value, scomplex *sc, INT npts, REAL *pts, REAL *toset)
 {
   INT j,k,jpts,n=sc->n,n1=sc->n+1,ns=sc->ns;
   REAL *pval0=NULL; /*place holder*/
@@ -958,8 +955,8 @@ INT dvec_set_amr(const REAL value, scomplex *sc, dvector *pts, REAL *toset)
   for(j=0;j<ns;j++) {
     scnjn = sc->nodes+j*n1; /* beginning of local vertex numbering for
 			       simplex j.*/
-    for(jpts=0;jpts<pts->row;jpts++){
-      pval0=pts->val+jpts*n;
+    for(jpts=0;jpts<npts;jpts++){
+      pval0=pts + jpts*n;
       if(!xins(n,scnjn,sc->x,pval0)){
 	//	fprintf(stdout,"\nel=%d, found: %d",j,jpts);
 	toset[j]=value;
