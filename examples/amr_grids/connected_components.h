@@ -55,8 +55,7 @@ void find_cc_bndry_cc(scomplex *sc)
       sc->flags[j]=i+1;
     }
   }
-  fprintf(stdout,"\n%%number of connected components in the bulk=%d\n",sc->cc);
-  fprintf(stdout,"\n%%number of boundary faces=%d (nnzbf=%d)\n",nbf,nnzbf);
+  fprintf(stdout,"\n%%number of boundary faces=%d\n",nbf);
   ///////////////////////////////////////////////////////////////////////
   // now working on the boundary:
   blk_dfs->JA=realloc(blk_dfs->JA,(2*nbf+2)*sizeof(INT));
