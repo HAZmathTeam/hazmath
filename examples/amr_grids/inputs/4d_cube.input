@@ -10,7 +10,7 @@ print_level{10}	% how much information to print out: 0 little | >0 more
 
 num_refinements{0}
 
-refinement_type{0}
+%%%%% SHOULD NOT BE USED HERE: refinement_type{-1}
 
 err_stop_refinement{        -1.e-10        }
 %%% files:  should be writeable by the user

@@ -10,7 +10,7 @@ dimension{3}   % spatial dimension in which the grid has to be generated
 %---------------%
 print_level{2}	% how much information to print out: 0 less | >0 more
 
-refinement_type{-2}
+%%%%% NOT USED HERE: refinement_type{-1}
 
 %%%%%%%%%%%%%%AMR %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% marking type: 0 everything is marked; not zero can be user defined
