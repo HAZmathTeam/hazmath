@@ -36,13 +36,16 @@ void find_cc_bndry_cc(scomplex *sc)
   }
   //  fprintf(stdout,"\n");fflush(stdout);
   sc->cc=-10;
-  /* fprintf(stdout,"\nnrneib=%d ; ncneib=%d;\n neib=[",neib->row,neib->col);  */
-  /* icsr_print_matlab_val(stdout,neib);  */
+  /* fprintf(stdout,"\nnrneib=%d ; ncneib=%d;\n neib=[",neib->row,neib->col); */
+  /* icsr_print_matlab_val(stdout,neib); */
   /* fprintf(stdout,"];\n"); fflush(stdout); */
   /* fprintf(stdout,"neib=sparse(neib(:,1),neib(:,2),neib(:,3),nrneib,ncneib);\n\n"); */
   iCSRmat *blk_dfs=run_dfs(ns,neib->IA, neib->JA);  
+  /* fprintf(stdout,"\nnrblk_dfs=%d ; ncblk_dfs=%d;\n blk_dfs=[",blk_dfs->row,blk_dfs->col); */
   /* icsr_print_matlab_val(stdout,blk_dfs); */
-  /* fflush(stdout); */
+  /* fprintf(stdout,"];\n"); fflush(stdout); */
+  /* fprintf(stdout,"blk_dfs=sparse(blk_dfs(:,1),blk_dfs(:,2),blk_dfs(:,3),nrblk_dfs,ncblk_dfs);\n\n"); */
+  /* fflush(stdout);  */
   sc->cc=blk_dfs->row;
   //  dfs00_(&ns,neib->IA, neib->JA,&sc->cc,iblk,jblk);
   // set up simplex flags= connected component number:
@@ -110,7 +113,7 @@ void find_cc_bndry_cc(scomplex *sc)
   /* for(i=0;i<nbf;++i){ */
   /*   //    fprintf(stdout,"\nelnbr[%d]=(",i); */
   /*   for(j=0;j<dim;++j){ */
-  /*     fprintf(stdout,"%4i ",fnbr[dim*i+j]+1); */
+  /*     fprintf(stdout,"%9i ",fnbr[dim*i+j]+1); */
   /*   } */
   /*   fprintf(stdout,";\n"); */
   /* } */
@@ -158,7 +161,9 @@ void find_cc_bndry_cc(scomplex *sc)
     for(k=blk_dfs->IA[i];k<blk_dfs->IA[i+1];++k){
       j=blk_dfs->JA[k];
       for(m=0;m<dim;m++){
-	sc->bndry[indxinv[fnodes[dim*j+m]]]=i+1;
+	//	fprintf(stdout,"\nfnodes=%d;indxinv=%d,nv=%d",fnodes[dim*j+m],indxinv[fnodes[dim*j+m]],sc->nv);fflush(stdout);//xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+	//	fprintf(stdout,"\nfnodes=%d;nv=%d",fnodes[dim*j+m],sc->nv);fflush(stdout);//xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+	//	sc->bndry[indxinv[fnodes[dim*j+m]]]=i+1;
       }
     }
   }
