@@ -8,7 +8,7 @@ dimension{3}   % spatial dimension in which the grid has to be generated
 %---------------%
 % output flags
 %---------------%
-print_level{0}	% how much information to print out: 0 less | >0 more
+print_level{1}	% how much information to print out: 0 less | >0 more
 
 refinement_type{0}
 

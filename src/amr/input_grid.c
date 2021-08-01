@@ -94,6 +94,8 @@ void input_grid_arrays(input_grid *g)
   if(g->num_refine_points){
     g->data_refine_points=(REAL *)calloc(g->num_refine_points*g->dim,sizeof(REAL));
     memset(g->data_refine_points,0,g->num_refine_points*g->dim*sizeof(REAL));
+  } else {
+    g->data_refine_points=NULL;
   }
   //init
   memset(g->ox,0,g->dim*abs(g->ncsys)*sizeof(REAL));
@@ -214,6 +216,7 @@ void input_grid_print(input_grid *g)
   fprintf(stdout,"\n\nnum_refine_points=%d\n",g->num_refine_points);fflush(stdout);
   for(i=0;i<g->num_refine_points;i++){
     fprintf(stdout,"\n refine point=%d, coord_system=%d, coords(",i,g->csysv[i]);fflush(stdout);
+    if(!(g->num_refine_points)) continue;
     if(g->systypes[g->csysv[i]]==1){
       fprintf(stdout," %6.2f ",g->data_refine_points[i*dim]);
       for(j=1;j<g->dim;j++) fprintf(stdout," %6.2f ",(g->data_refine_points[i*dim+j])/((REAL )PI)*180.);
@@ -609,8 +612,10 @@ static INT  read_data(char **clndata,input_grid *g)
     /*   fprintf(stdout,")"); */
     /* } */
     /* fprintf(stdout,"\n"); */
-    r2c(g->num_refine_points,2,sizeof(INT),idata);// vertex labels and coord systems by rows.
-    memcpy(g->data_refine_points,(mdata+g->num_refine_points*2*sizeof(INT)),g->num_refine_points*g->dim*sizeof(REAL));
+    if(g->num_refine_points){
+      r2c(g->num_refine_points,2,sizeof(INT),idata);// vertex labels and coord systems by rows.
+      memcpy(g->data_refine_points,(mdata+g->num_refine_points*2*sizeof(INT)),g->num_refine_points*g->dim*sizeof(REAL));
+    }
     //    print_full_mat(g->nv,g->dim,g->xv,"x1");
     /* for(count=0;count<g->nv;count++){ */
     /*   fprintf(stdout,"\nrec=%d (",count); */
@@ -628,9 +633,11 @@ static INT  read_data(char **clndata,input_grid *g)
     /* fprintf(stdout,"\n");fflush(stdout); */
     /* convert the degree coordinates to radian coordinates (polar); also convert all angles to be in [0,2*PI] */
     for(count=0;count<g->nv;count++){
+      //      fprintf(stdout,"\ncount=%d,g->dim=%d,(systype)=%d(%d)",count,g->dim,g->systypes[g->csysv[count]],g->csysv[count]);fflush(stdout);
       if(g->systypes[g->csysv[count]]==1){
 	for(j=1;j<g->dim;j++){
-	  //	fprintf(stdout,"\n(%d%d) x=%f",count,j,g->xv[count*g->dim + j]);
+	  if(!(g->num_refine_points)) continue;
+	  fprintf(stdout,"\ncount=%d;j=%d;indx=%d, g_xv=%f",count,j,count*g->dim+j,g->xv[count*g->dim + j]); fflush(stdout);
 	  g->data_refine_points[count*g->dim + j]=zero_twopi_deg(g->data_refine_points[count*g->dim + j]);
 	}
       }
