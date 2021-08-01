@@ -20,8 +20,8 @@ print_level{1}	% how much information to print out: 0 Nothing | >0 Something
 
 refinement_type{-1}
 
-file_grid{2d_meniscus.haz}
-file_vtu{2d_meniscus.vtu}
+file_grid{outputs/2d_meniscus.haz}
+file_vtu{outputs/2d_meniscus.vtu}
 
 %---------------%
 % coordinate systems: Each has coordinates of the origin o[0:dim-1]

@@ -94,6 +94,8 @@ void input_grid_arrays(input_grid *g)
   if(g->num_refine_points){
     g->data_refine_points=(REAL *)calloc(g->num_refine_points*g->dim,sizeof(REAL));
     memset(g->data_refine_points,0,g->num_refine_points*g->dim*sizeof(REAL));
+  } else {
+    g->data_refine_points=NULL;
   }
   //init
   memset(g->ox,0,g->dim*abs(g->ncsys)*sizeof(REAL));
@@ -214,6 +216,7 @@ void input_grid_print(input_grid *g)
   fprintf(stdout,"\n\nnum_refine_points=%d\n",g->num_refine_points);fflush(stdout);
   for(i=0;i<g->num_refine_points;i++){
     fprintf(stdout,"\n refine point=%d, coord_system=%d, coords(",i,g->csysv[i]);fflush(stdout);
+    if(!(g->num_refine_points)) continue;
     if(g->systypes[g->csysv[i]]==1){
       fprintf(stdout," %6.2f ",g->data_refine_points[i*dim]);
       for(j=1;j<g->dim;j++) fprintf(stdout," %6.2f ",(g->data_refine_points[i*dim+j])/((REAL )PI)*180.);
@@ -609,8 +612,10 @@ static INT  read_data(char **clndata,input_grid *g)
     /*   fprintf(stdout,")"); */
     /* } */
     /* fprintf(stdout,"\n"); */
-    r2c(g->num_refine_points,2,sizeof(INT),idata);// vertex labels and coord systems by rows.
-    memcpy(g->data_refine_points,(mdata+g->num_refine_points*2*sizeof(INT)),g->num_refine_points*g->dim*sizeof(REAL));
+    if(g->num_refine_points){
+      r2c(g->num_refine_points,2,sizeof(INT),idata);// vertex labels and coord systems by rows.
+      memcpy(g->data_refine_points,(mdata+g->num_refine_points*2*sizeof(INT)),g->num_refine_points*g->dim*sizeof(REAL));
+    }
     //    print_full_mat(g->nv,g->dim,g->xv,"x1");
     /* for(count=0;count<g->nv;count++){ */
     /*   fprintf(stdout,"\nrec=%d (",count); */
@@ -628,9 +633,11 @@ static INT  read_data(char **clndata,input_grid *g)
     /* fprintf(stdout,"\n");fflush(stdout); */
     /* convert the degree coordinates to radian coordinates (polar); also convert all angles to be in [0,2*PI] */
     for(count=0;count<g->nv;count++){
+      //      fprintf(stdout,"\ncount=%d,g->dim=%d,(systype)=%d(%d)",count,g->dim,g->systypes[g->csysv[count]],g->csysv[count]);fflush(stdout);
       if(g->systypes[g->csysv[count]]==1){
 	for(j=1;j<g->dim;j++){
-	  //	fprintf(stdout,"\n(%d%d) x=%f",count,j,g->xv[count*g->dim + j]);
+	  if(!(g->num_refine_points)) continue;
+	  fprintf(stdout,"\ncount=%d;j=%d;indx=%d, g_xv=%f",count,j,count*g->dim+j,g->xv[count*g->dim + j]); fflush(stdout);
 	  g->data_refine_points[count*g->dim + j]=zero_twopi_deg(g->data_refine_points[count*g->dim + j]);
 	}
       }
@@ -1133,20 +1140,48 @@ void set_edges(input_grid *g0,cube2simp *c2s)
   INT *mnodes=calloc((c2s->nvcube+1),sizeof(INT));
   newne=0;
   INT found=0;
+  INT nseg_chk=0;
+  ////check if a set macroelement segment is an interior edge for the cube/
+  for(ke=0;ke<g0->ne;ke++){
+    k01[0]=g0->seg[cols*ke];
+    k01[1]=g0->seg[cols*ke+1];
+    for(kel=0;kel<g0->nel;kel++){
+      memcpy(mnodes,(g0->mnodes+kel*(nvcube+1)),(nvcube+1)*sizeof(INT));
+      found=0;
+      for(i=0;i<c2s->ne;i++){
+	j01[0]=mnodes[c2s->edges[2*i]];
+	j01[1]=mnodes[c2s->edges[2*i+1]];
+	//      fprintf(stdout,"\n*YYY*YYY j01=(%d,%d)",j01[0],j01[1]);
+	if(j01[0]>j01[1]){swp=j01[0];j01[0]=j01[1];j01[1]=swp;}
+	if((k01[0]==j01[0])&&(k01[1]==j01[1])){
+	  found=1;break;
+	}	
+      }
+      if(found) break;
+    }
+    if(found) {
+      memcpy(g0->seg+cols*nseg_chk,g0->seg+cols*ke,cols*sizeof(INT));
+      nseg_chk++;
+    } else if(g0->print_level>1){
+      fprintf(stdout,							\
+	      "\n%%%%%% WARNING (in %s): Removing input segment=(%d,%d) as it is NOT on the boundary of any macroelement\n", \
+	      __FUNCTION__,k01[0],k01[1]);
+    }
+  }
+  g0->ne=nseg_chk;
+  g0->seg=realloc(g0->seg,g0->ne*cols*sizeof(INT));
+  /////////////////////////////////////////////////////
   for(kel=0;kel<g0->nel;kel++){
     memcpy(mnodes,(g0->mnodes+kel*(nvcube+1)),(nvcube+1)*sizeof(INT));
-    //    fprintf(stdout,"\n*EEE*EEEE kel=%d",kel);
-    //    print_full_mat_int(1,nvcube+1,g0->mnodes+kel*(nvcube+1),"mnodes");
     for(i=0;i<c2s->ne;i++){
       j01[0]=mnodes[c2s->edges[2*i]];
       j01[1]=mnodes[c2s->edges[2*i+1]];
-      //      fprintf(stdout,"\n*YYY*YYY j01=(%d,%d)",j01[0],j01[1]);
       if(j01[0]>j01[1]){swp=j01[0];j01[0]=j01[1];j01[1]=swp;}
       found=0;
       for(ke=0;ke<g0->ne;ke++){
 	k01[0]=g0->seg[cols*ke];
 	k01[1]=g0->seg[cols*ke+1];
-	//	fprintf(stdout,"\n*YYY*YYY k01=(%d,%d)?=?(%d,%d)",k01[0],k01[1],j01[0],j01[1]);
+	//	fprintf(stdout,"\n%s(%d):*YYY*YYY k01=(%d,%d)?=?(%d,%d)",__FUNCTION__,newne,k01[0],k01[1],j01[0],j01[1]);fflush(stdout);
 	if((k01[0]==j01[0])&&(k01[1]==j01[1])){
 	  found=1;break;
 	}
@@ -1165,10 +1200,10 @@ void set_edges(input_grid *g0,cube2simp *c2s)
     free(mnodes);
     return;
   }
+  //  fprintf(stdout,"\n%s:newne=%d",__FUNCTION__,newne);fflush(stdout);
   newseg=realloc(newseg,cols*newne*sizeof(INT));
   INT *p=calloc(newne,sizeof(INT));
   ilexsort(newne, cols,newseg,p);
-  //  print_full_mat_int(newne,cols,newseg,"newseg");
   free(p);
   // remove dupps
   INT m,li1,ic[cols];
@@ -1191,7 +1226,6 @@ void set_edges(input_grid *g0,cube2simp *c2s)
     //    fprintf(stdout,"i=%i, j=%i\n",i,j);
   }
   i++;j++; newne=j;
-  //  print_full_mat_int(g0->ne,cols,g0->seg,"newseg");
   g0->seg=realloc(g0->seg,(cols*(g0->ne+newne))*sizeof(INT));
   memcpy((g0->seg+cols*g0->ne),newseg,cols*newne*sizeof(INT));
   g0->ne+=newne;
@@ -1228,7 +1262,11 @@ INT set_ndiv_edges(input_grid *g, input_grid *g0,		\
   //  INT *efound=calloc(c2s->ne*(g0->nel+1),sizeof(INT));
   INT *efound=malloc(c2s->ne*(g0->nel+1)*sizeof(INT));
   INT *e0found=efound + c2s->ne;
-  for(i=0;i<g0->ne;i++)e0found[i]=-1;
+  for(i=0;i<g0->ne;i++){
+    /* fprintf(stdout,"\n%s:i=%d,totals=%d,c2s_ne=%d,g0_ne=%d,g0_nel=%d",	\ */
+    /* 	    __FUNCTION__,i,c2s->ne*g0->nel,c2s->ne,g0->ne,g0->nel);fflush(stdout); */
+    e0found[i]=-1;
+  }
   // make all divisions > 0
   for(ke=0;ke<g0->ne;ke++){
     ndiv=abs(g0->seg[3*ke+2]);

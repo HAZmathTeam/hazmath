@@ -75,18 +75,19 @@ REAL zero_twopi_deg(REAL alpha_deg)
  * y[n-1],y[0]...y[n-2]
  *
  */
-static void coord_perm(SHORT type, INT n,void *x, size_t elsize)
+static void coord_perm(const SHORT type, INT n,void *x, size_t elsize)
 {
-  INT i;
-  void *xx0n=(void *)calloc(1,elsize*sizeof(void));
+  INT i,n1=n-1;
+  void *xx0n=(void *)calloc(1,elsize*sizeof(void));  
   if(type){
     memcpy(xx0n,x,elsize);
-    for(i=0;i<n;i++)
+    for(i=0;i<n1;i++){
       memcpy(x+i*elsize,x+(i+1)*elsize,elsize);
-    memcpy(x+(n-1)*elsize,xx0n,elsize);
+    }
+    memcpy(x+n1*elsize,xx0n,elsize);
   } else {
-    memcpy(xx0n,x+(n-1)*elsize,elsize);
-    for(i=(n-1);i>=1;i--)
+    memcpy(xx0n,x+n1*elsize,elsize);
+    for(i=n1;i>=1;i--)
       memcpy(x+i*elsize,x+(i-1)*elsize,elsize);
     memcpy(x,xx0n,elsize);
   }
@@ -200,8 +201,8 @@ INT cart2polar(INT dim, REAL *c,REAL *p)
  *
  * \return
  *
- * \todo make all boundaries that are given in polar coordinates to be
- * in the same polar coordinates (ltz).
+ * \todo make all added (refinement) vertices on a boundary that is in polar coordinates to be
+ * in the same polar coordinate system  (ltz).
  */
 void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
 {
@@ -216,6 +217,7 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
   REAL *c2 = (REAL *)calloc(dim,sizeof(REAL));
   REAL *xemac=(REAL *)calloc(c2s->ne*dim,sizeof(REAL));
   REAL rho;
+  //  input_grid_print(g);
   // convert midpoints from polar to cartesian.
   //  print_full_mat(c2s->nvcube,c2s->n,g->xv,"P");
   for(i=0;i<c2s->ne;i++){

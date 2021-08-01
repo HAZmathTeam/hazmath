@@ -8,22 +8,24 @@ void find_cc_bndry_cc(scomplex *sc)
   //
   INT ns = sc->ns,nv=sc->nv, dim=sc->n;
   INT dim1=dim+1,iii,i,j,k,l,m,isn1,is,nbf,nnzbf;
-  iCSRmat *neib=malloc(1*sizeof(iCSRmat));
+  iCSRmat *neib=malloc(sizeof(iCSRmat));
   neib[0]=icsr_create(ns,ns,dim1*ns+ns);
-  INT *ibnd=neib->val;// use as working space
   nbf=0;
   nnzbf=0;
   iii=0;
   neib->IA[0]=iii;
-  for(i=0;i<ns;i++) ibnd[i]=-1;
   for(i=0;i<ns;i++){
-    neib->JA[iii]=i;
-    iii++;
+    //    fprintf(stdout,"\n%d:",i);
+    /* neib->JA[iii]=i; */
+    /* neib->val[iii]=1; */
+    /* iii++; */
     isn1=i*dim1;
     for(j=0;j<dim1;j++){
       is=sc->nbr[isn1+j];
+      //      fprintf(stdout," %d",is);fflush(stdout);
       if(is>=0){
 	neib->JA[iii]=is;
+	neib->val[iii]=1;
 	iii++;
       } else {
 	nbf++;
@@ -32,27 +34,31 @@ void find_cc_bndry_cc(scomplex *sc)
     }
     neib->IA[i+1]=iii;
   }
-  INT *jblk=calloc(2*ns+2,sizeof(INT));
-  INT *iblk=jblk+ns+1;
+  //  fprintf(stdout,"\n");fflush(stdout);
   sc->cc=-10;
-  iCSRmat *blk_dfs=run_dfs(ns,neib->IA, neib->JA);
+  /* fprintf(stdout,"\nnrneib=%d ; ncneib=%d;\n neib=[",neib->row,neib->col); */
+  /* icsr_print_matlab_val(stdout,neib); */
+  /* fprintf(stdout,"];\n"); fflush(stdout); */
+  /* fprintf(stdout,"neib=sparse(neib(:,1),neib(:,2),neib(:,3),nrneib,ncneib);\n\n"); */
+  iCSRmat *blk_dfs=run_dfs(ns,neib->IA, neib->JA);  
+  /* fprintf(stdout,"\nnrblk_dfs=%d ; ncblk_dfs=%d;\n blk_dfs=[",blk_dfs->row,blk_dfs->col); */
+  /* icsr_print_matlab_val(stdout,blk_dfs); */
+  /* fprintf(stdout,"];\n"); fflush(stdout); */
+  /* fprintf(stdout,"blk_dfs=sparse(blk_dfs(:,1),blk_dfs(:,2),blk_dfs(:,3),nrblk_dfs,ncblk_dfs);\n\n"); */
+  /* fflush(stdout);  */
   sc->cc=blk_dfs->row;
-  iblk=blk_dfs->IA;
-  jblk=blk_dfs->JA;
   //  dfs00_(&ns,neib->IA, neib->JA,&sc->cc,iblk,jblk);
   // set up simplex flags= connected component number:
   for(i=0;i<sc->cc;++i){
-    for(k=iblk[i];k<iblk[i+1];++k){
-      j=jblk[k];
+    for(k=blk_dfs->IA[i];k<blk_dfs->IA[i+1];++k){
+      j=blk_dfs->JA[k];
       sc->flags[j]=i+1;
     }
   }
-  fprintf(stdout,"\n%%number of connected components in the bulk=%d\n",sc->cc);
-  fprintf(stdout,"\n%%number of boundary faces=%d (nnzbf=%d)\n",nbf,nnzbf);
+  fprintf(stdout,"\n%%number of boundary faces=%d\n",nbf);
   ///////////////////////////////////////////////////////////////////////
   // now working on the boundary:
-  jblk=realloc(jblk,(2*nbf+2)*sizeof(INT));
-  iblk=jblk + nbf + 1;
+  blk_dfs->JA=realloc(blk_dfs->JA,(2*nbf+2)*sizeof(INT));
   INT *fnodes=calloc(nbf*dim,sizeof(INT));
   INT *fnbr=calloc(nbf*dim,sizeof(INT));
   INT nbfnew=0;
@@ -86,7 +92,7 @@ void find_cc_bndry_cc(scomplex *sc)
     indxinv[nvbnd]=i;
     nvbnd++;
   }
-  fprintf(stdout,"\n%%number of boundary vertices=%d (total nv=%d)\n",nvbnd,sc->nv);
+  fprintf(stdout,"\n%%number of boundary vertices=%d (total nv=%d)\n",nvbnd,sc->nv);fflush(stdout);
   if(nvbnd<sc->nv)
     indx=realloc(indx,(sc->nv+nvbnd)*sizeof(INT));
   for(i=0;i<nbf*dim;++i)
@@ -106,7 +112,7 @@ void find_cc_bndry_cc(scomplex *sc)
   /* for(i=0;i<nbf;++i){ */
   /*   //    fprintf(stdout,"\nelnbr[%d]=(",i); */
   /*   for(j=0;j<dim;++j){ */
-  /*     fprintf(stdout,"%4i ",fnbr[dim*i+j]+1); */
+  /*     fprintf(stdout,"%9i ",fnbr[dim*i+j]+1); */
   /*   } */
   /*   fprintf(stdout,";\n"); */
   /* } */
@@ -148,15 +154,15 @@ void find_cc_bndry_cc(scomplex *sc)
   icsr_free(blk_dfs); blk_dfs=NULL;
   blk_dfs=run_dfs(nbf,neib->IA, neib->JA);
   sc->bndry_cc=blk_dfs->row;
-  iblk=blk_dfs->IA;
-  jblk=blk_dfs->JA;
   icsr_free(neib);
   // set up bndry flags= connected component number;
   for(i=0;i<sc->bndry_cc;++i){
-    for(k=iblk[i];k<iblk[i+1];++k){
-      j=jblk[k];
+    for(k=blk_dfs->IA[i];k<blk_dfs->IA[i+1];++k){
+      j=blk_dfs->JA[k];
       for(m=0;m<dim;m++){
-	sc->bndry[indxinv[fnodes[dim*j+m]]]=i+1;
+	//	fprintf(stdout,"\nfnodes=%d;indxinv=%d,nv=%d",fnodes[dim*j+m],indxinv[fnodes[dim*j+m]],sc->nv);fflush(stdout);//xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+	//	fprintf(stdout,"\nfnodes=%d;nv=%d",fnodes[dim*j+m],sc->nv);fflush(stdout);//xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+	//	sc->bndry[indxinv[fnodes[dim*j+m]]]=i+1;
       }
     }
   }

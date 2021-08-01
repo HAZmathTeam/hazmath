@@ -181,7 +181,7 @@ void param_amg_init (AMG_param *amgparam)
     amgparam->BSR_omega            = -1000.;
 
     // user def smoother
-    amgparam->smoother_function = NULL;
+    // amgparam->smoother_function = NULL;
 }
 
 /*************************************************************************************/
@@ -387,9 +387,9 @@ void param_amg_cp (AMG_param *amgparam1,
     amgparam2->Schwarz_patch_type = NULL;
     amgparam2->HAZDIR = NULL;
 
-    amgparam1->damping_param        = amgparam1->damping_param;
-    amgparam1->BSR_alpha            = amgparam1->BSR_alpha;
-    amgparam1->BSR_omega            = amgparam1->BSR_omega;
+    amgparam2->damping_param        = amgparam1->damping_param;
+    amgparam2->BSR_alpha            = amgparam1->BSR_alpha;
+    amgparam2->BSR_omega            = amgparam1->BSR_omega;
 
 }
 

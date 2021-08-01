@@ -86,6 +86,7 @@ scomplex *haz_scomplex_init(const INT n,INT ns, INT nv,const INT nbig)
     sc->child0[i]=-1;
     sc->childn[i]=-1;
     sc->flags[i]=-1;
+    sc->vols[i]=-1e20;
     in1=i*n1;
     for(j=0;j<n1;j++){
       sc->nodes[in1+j]=-1;
@@ -100,7 +101,7 @@ scomplex *haz_scomplex_init(const INT n,INT ns, INT nv,const INT nbig)
   sc->nv=nv;
   sc->ns=ns;
   sc->bndry_cc=1; // one connected component on the boundary for now.
-  sc->cc=1; // one connected component for now.
+  sc->cc=1; // one connected component in the bulk for now.
   return sc;
 }
 /**********************************************************************/
@@ -108,7 +109,8 @@ scomplex *haz_scomplex_init(const INT n,INT ns, INT nv,const INT nbig)
  * \fn scomplex *haz_scomplex_init_part(scomplex *sc)
  *
  * \brief Initialize simplicial complex which has already been
- *        allocated partially. Assumption is: nv,ns,nodes,nbr, cc,
+ *        allocated partially. 
+ * Assumption is: nv,ns,nodes,nbr, cc,
  *        bndry_cc are known. in dimension n with ns simplices and nv
  *        vertices.
  *
@@ -935,6 +937,8 @@ INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew,INT ibnew,INT csysnew, \
   //childn
   sc->childn=realloc(sc->childn,(nsnew)*sizeof(INT));
   sc->childn[ks0]=-1; sc->childn[ksn]=-1;
+  //volumes
+  sc->vols=realloc(sc->vols,(nsnew)*sizeof(REAL));// we can calculate all volumes at the end, so just allocate here. 
   //scalars
   sc->ns=nsnew;
   sc->nv=nvnew;
@@ -966,7 +970,7 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
   if(sc->child0[is] >= 0) return 0;
   //  isn=is*n;
   isn1=is*n1;
-  haz_scomplex_print(sc,-10,__FUNCTION__);
+  //  haz_scomplex_print(sc,-10,__FUNCTION__);
   for (i=1;i<n;i++){
     snbri=sc->nbr[isn1+i] ; // the on-axis neighbor.
     if(snbri<0) continue; //this is a boundary
@@ -974,7 +978,7 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
       haz_refine_simplex(sc,snbri,-1);
       nsnew=sc->ns;
       nvnew=sc->nv;
-      haz_scomplex_print(sc,-10,"AXIS NEIGHBOR");
+      //      haz_scomplex_print(sc,-10,"AXIS NEIGHBOR");
     }
   }
   if (it<0){
@@ -1026,7 +1030,7 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
     this routine is called, and it will meet the structural condition
     again after this routine has terminated.
   */
-  haz_scomplex_print(sc,-10,"AFTER ADD");
+  //  haz_scomplex_print(sc,-10,"AFTER ADD");
   INT isc0=-100,iscn=-100;
   //ks0 = sc->child0[is];
   //ksn = sc->childn[is];
@@ -1104,11 +1108,6 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
 	  sc->nbr[isc0+p0]=sc->childn[snbrp];
 	  sc->nbr[iscn+pn]=sc->child0[snbrp];
 	}
-	/* fprintf(stdout,"is=%d (node0,node1,node2)=(%d,%d,%d)\n",is+1,sc->nodes[isn1]+1,sc->nodes[isn1+1]+1,sc->nodes[isn1+2]+1); */
-	/* fprintf(stdout,"is_nbr=%d (node0,node1,node2)=(%d,%d,%d)\n",snbrp+1,sc->nodes[snbrp*n1]+1,sc->nodes[snbrp*n1+1]+1,sc->nodes[snbrp*n1+2]+1); */
-	/* fprintf(stdout,"xxxxxxxxxx, (ks0,ksn)=(%d,%d), (nod_nbrp(0),nod_is(0))=(%d,%d)\n",ks0+1,ksn+1,sc->nodes[snbrp]+1,sc->nodes[isn1]+1); */
-	/* fprintf(stdout,"we are herezzzzzzzzzz, (ks0,ksn)=(%d,%d), (p0,pn)=(%d,%d), (nbrc0p0,nbrcnpn)=(%d,%d)\n",ks0+1,ksn+1,p0,pn,sc->nbr[isc0+p0]+1,sc->nbr[iscn+pn]+1); */
-	/* fprintf(stdout,"we are here1111111; is=%d, is_nbr[p]=%d:(c0,cn)=(%d,%d)\n",is+1,snbrp+1,sc->child0[snbrp]+1,sc->childn[snbrp]+1); */
       } else {
 	/*
 	  s->nbr[p] is not subdivided. The corresponding neighbor pointers
@@ -1232,10 +1231,12 @@ void refine(const INT ref_levels, scomplex *sc,ivector *marked)
        values of marked at abs(sc->child0[j]+1) which were set from
        the previous visit here */
     for(j=0;j<sc->ns;j++) {
-      if(sc->child0[j]<0||sc->childn[j]<0)
+      if(sc->child0[j]<0||sc->childn[j]<0){
 	nsfine=abs(sc->child0[j]+1);
-      // if(nsfine>sc->ns) issue an error and exit;
+	// fprintf(stdout,"\nnsfine=%d;j=%d",nsfine,j);fflush(stdout);
+	// if(nsfine>sc->ns) issue an error and exit;
 	sc->marked[j]=marked->val[nsfine];
+      }
     }
   }
   /*

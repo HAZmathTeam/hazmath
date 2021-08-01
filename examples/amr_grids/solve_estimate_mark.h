@@ -56,23 +56,26 @@ INT isxnears(INT n, INT *splx_nodes, REAL *splx_coord, REAL *x, REAL threshold)
 /****************************************************************/
 dvector *exmpl_solve(scomplex *sc, void *all)
 {
-  dvector *pts;/**/
+  REAL *pts;/**/
   /* number of points, here used to define the solfem as this is only
      an example not involving solution of anything! */
+  /**********************************************************************/
   INT npts;
   npts=1;
-  pts=(dvector *)malloc(sizeof(dvector));
-  pts[0]=dvec_create(sc->n*npts);
-  memset(pts->val,0,pts->row*sizeof(REAL));// this is set to be the origin;
+  pts=(REAL *)calloc(sc->n*npts,sizeof(REAL)); // npts x n vector of
+					       // points used to mock
+					       // marking
+  memset(pts,0,npts*sizeof(REAL));// this is set to be the origin;
+  /**********************************************************************/
   /*SET UP A SOLUTION:*/
   dvector *solfem=malloc(sizeof(dvector));
   solfem[0]=dvec_create(sc->ns);
   /*
    *  Sets the solution equal to 1 at select simplices.
    */
-  dvec_set_amr(1.,sc,pts,solfem->val);
+  dvec_set_amr(1.,sc,npts,pts,solfem->val);
   /*free*/
-  dvec_free(pts);
+  free(pts);
   /*SOLVE: as output we have the fem solution solfem as a dvector
     (value on every simplex).*/
   return solfem;

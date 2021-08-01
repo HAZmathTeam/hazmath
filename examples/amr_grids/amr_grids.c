@@ -22,11 +22,12 @@ INT main(INT   argc,   char *argv[])
   INT i;
   FILE *fp;
    fp=stdin;
-   //fp=HAZ_fopen("inputs/2d_2L.input","r");
+   //no   fp=HAZ_fopen("inputs/2d_ann.input","r");
+   //   fp=HAZ_fopen("inputs/2d_2L.input","r");
    // fp=HAZ_fopen("inputs/3d_fichera.input","r");
    // fp=HAZ_fopen("inputs/3d_2cubes_edge.input","r");
-   //fp=HAZ_fopen("inputs/3d_2cubes_vertex.input","r");
-     fp=HAZ_fopen("inputs/5d_cube.input","r");
+   // fp=HAZ_fopen("inputs/3d_2cubes_vertex.input","r");
+   //  fp=HAZ_fopen("inputs/5d_cube.input","r");
    /*
     PARSE THE INPUT.
   */
@@ -105,7 +106,7 @@ INT main(INT   argc,   char *argv[])
        *  Refine the grid. this always refines 1 time, but since we
        *  are in a loop, it will refine ref_levels times;
        */
-      haz_scomplex_print(sctop,0,__FUNCTION__);
+      //      haz_scomplex_print(sctop,0,__FUNCTION__);
       refine(1,sc,marked);
       /* free */
       haz_scomplex_free(sctop);
@@ -116,10 +117,9 @@ INT main(INT   argc,   char *argv[])
     free(all);
   }
   /*  MAKE sc to be the finest grid only */
-  //haz_scomplex_print(sc,0,"ZZZ");fflush(stdout);
   scfinalize(sc);
-  //  haz_scomplex_print(sc,0,"XXX");fflush(stdout);
-  //find_cc_bndry_cc(sc);
+  //  haz_scomplex_print(sc,0,__FUNCTION__);fflush(stdout);
+  find_cc_bndry_cc(sc);
   /* write the output mesh file:    */
   hazw(g->fgrid,sc,0);
   /* WRITE THE OUTPUT vtu file for paraview:    */
