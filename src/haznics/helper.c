@@ -26,7 +26,7 @@
  */
 inline static REAL16 frac_inv(REAL16 x, void *param)
 {
-  REAL16 *s,s1,s2,alpha,beta,f123;
+  REAL16 *s,s1,s2,alpha,beta;//,f123;
   if(param!=NULL){
     s=(REAL16 *)param;
     s1=s[0];
@@ -346,7 +346,7 @@ precond* create_precond_ra(dCSRmat *A,
     const INT m = A->row, n = A->col, nnz = A->nnz, nnz_M = M->nnz;
     INT status = SUCCESS;
     INT i;
-    INT ii, jj;
+    //    INT ii, jj;
 
     /*fprintf(stdout, "\n A: \n");
     fprintf(stdout,"\nrow, col, nnz: %d, %d, %d \n", A->row, A->col, A->nnz);
@@ -1096,15 +1096,15 @@ PyObject* py_callback_eval(REAL *r, REAL *x, smoother_matvec *smmv)
     // get data
     //LUDMIL    npy_intp D[1]; D[0] = smmv->data->A->col; t// 
     // LUDMIL Not exactly sure what this (ABOVE) is supposed to do (find number of columns?), so I rewrote it
-    INT D[1];//LUDMIL
-    dCSRmat *A=(dCSRmat *)smmv->data; //LUDMIL
-    D[0] = A->col; //LUDMIL
+    /* INT D[1];//LUDMIL */
+    /* dCSRmat *A=(dCSRmat *)smmv->data; //LUDMIL */
+    /* D[0] = A->col; //LUDMIL */
     
     
     // create new Python arrays
     //LUDMIL: this NPY_DOUBLE is not the right thing, so commenting out
-    PyObject *rr; //LUDMIL    
-    PyObject *xx;  //LUDMIL
+    PyObject *rr=NULL; //LUDMIL ?   
+    PyObject *xx=NULL;  //LUDMIL? 
     //LUDMIL     PyObject *rr = PyArray_SimpleNewFromData(1, D, NPY_DOUBLE, (void*)r);
     //LUDMIL     PyObject *xx = PyArray_SimpleNewFromData(1, D, NPY_DOUBLE, (void*)x);
 

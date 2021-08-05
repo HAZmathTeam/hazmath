@@ -42,23 +42,21 @@ typedef struct /* n-homogenous simplicial complex */
   INT *child0;
   INT *childn; /*children (0&n) of each simplex*/
   INT *bndry; /* nv boundary codes for vertices */
-  INT *csys; /* nv coord system for a point */
+  INT *csys; /* nv coord system for every vertex point */
   INT *nodes; /*0-dim simplices opposite to (n-1) dimensional
-		neighbors, i.e. the simplex-vertex incidence (ns by
+		neighbors, i.e. the simplex2vertex incidence (ns by
 		(n+1)) */
+  iCSRmat *parent_v; /* for each vertex added in a refinement gives the
+		       two vertices forming the edge where the
+		       refinement vertex was put */
   INT *flags; /*flag of the simplex, e.g. for evaluation of
 		   piece-wise defined functions*/
   REAL *x; /*(nv x n) array to hold the coordinates of vertices */
   REAL *vols; /* volumes of the simplices */
-  REAL *fval; /* function values at vertices (could be ANY, but is
-		 used for elevation in hydrolena) */
   REAL factorial; /*n factorial */
-  INT **el2fnum; /* for every element this gives the local to global
-		 face number map;   */
   INT *bcodesf; /* codes for boundary faces */
   INT *isbface; /* indicator if a face is on the boundary */
-  iCSRmat *bfs; /* bfs levels structure for the mesh (is,it) nonzero
-		   if and only if they share a face; */
+  iCSRmat *bfs; /* bfs structure for the simplices. works for more than one connected components */
   INT *etree; /* bfs tree (etree[k]=unique_ancestor_of_k in the BFS
 		 tree) */
   INT cc; /*n connected components */
