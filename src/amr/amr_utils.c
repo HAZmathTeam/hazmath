@@ -375,12 +375,6 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
   INT kbeg,kend,nums,iai,iai1,klev;
   iCSRmat *neib=malloc(sizeof(iCSRmat));
   neib[0]=icsr_create(ns,ns,(n+1)*ns);
-  /* neib->row=ns; */
-  /* neib->col=ns; */
-  /* neib->nnz=(n+1)*ns; */
-  /* neib->IA=calloc((neib->row+1),sizeof(INT)); */
-  /* neib->JA=calloc(neib->nnz,sizeof(INT)); */
-  /* neib->val=calloc(neib->nnz,sizeof(INT)); */
   iii=0;
   neib->IA[0]=iii;
   for(i=0;i<ns;i++){
@@ -395,27 +389,29 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
     }
     neib->IA[i+1]=iii;
   }
-  //  fprintf(stdout,"\nns=%d, elemnts=%d (%d)",ns,neib->IA[neib->row],neib->nnz); fflush(stdout);
   neib->nnz=neib->IA[neib->row];
   neib->JA=realloc(neib->JA,neib->nnz*sizeof(INT));
   neib->val=realloc(neib->val,neib->nnz*sizeof(INT));
+  //  fprintf(stdout,"\nns=%d, nnz_ia=%d,nnz=%d\n",ns,neib->IA[neib->row],neib->nnz); fflush(stdout);
   // assuming neib->val has more than 2*num_simplices
-  INT *mask = neib->val;
-  INT *jbfs = mask+ns;
+  INT *mask,*jbfs;
+  if(neib->nnz<(2*ns+1)) {
+    neib->val=realloc(neib->val,(2*ns+1)*sizeof(INT));
+  }
+  mask=neib->val;
+  jbfs = mask+ns;
   // find the connected components.
   //zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz  
   //  fprintf(stdout,"\nNNNNNNNNNNNNNNNN(%d)=%s",ns,__FUNCTION__); fflush(stdout);
   iCSRmat *blk_dfs=run_dfs(ns,neib->IA, neib->JA);
-  /* fprintf(stdout,"\nns=%d, elemnts=%d (%d)",ns,neib->IA[ns],neib->nnz); fflush(stdout); */
+  /********************************************************************************************************/
+  /* fprintf(stdout,"\nns=%d,nnz_ia=%d,nnz=%d",ns,neib->IA[ns],neib->nnz); fflush(stdout); */
   /* fprintf(stdout,"\nneib1=["); */
   /* icsr_print_matlab(stdout,neib); */
   /* fprintf(stdout,"];"); */
   /* fprintf(stdout,"\nneib=sparse(neib1(:,1),neib1(:,2),neib1(:,3));\n"); */
-  /* fprintf(stdout,"\nneib=sparse(neib1(:,1),neib1(:,2),ones(size(neib1(:,3),1)));\n");fflush(stdout); */
+  /********************************************************************************************************/
   cc=blk_dfs->row;
-  INT *iblk=blk_dfs->IA;
-  INT *jblk=blk_dfs->JA;
-  /* dfs00_(&ns,neib->IA, neib->JA,&cc,iblk,jblk); */
   //zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz  
   INT ireflect;
   // initialization
@@ -425,7 +421,7 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
   //  is=0;//(INT )(ns/2);
   for(kcc=0;kcc<cc;kcc++){
     ireflect=-10;
-    it=jblk[iblk[kcc]];
+    it=blk_dfs->JA[blk_dfs->JA[kcc]];
     if(print_level>5){
       fprintf(stdout,
 	      "\n%s: Component=%d; root=%d;\n",__FUNCTION__,kcc,it);fflush(stdout);
@@ -559,11 +555,6 @@ scomplex *scfinest(scomplex *sc)
       sctop->x[i*n+j]=sc->x[i*nbig+j];
   }
   free(sctop->csys);sctop->csys=NULL;
-  free(sctop->fval);sctop->fval=NULL;
-  /* for(i=0;i<nv;i++){ */
-  /*   sctop->csys[i]=sc->csys[i];  */
-  /*   sctop->fval[i]=sc->fval[i];  */
-  /* } */
   return sctop;
 }
 /**********************************************************************/

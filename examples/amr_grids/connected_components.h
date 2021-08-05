@@ -1,3 +1,4 @@
+/*********** HAZMATH FUNCTIONS and INCLUDES ***************************/
 // should be included after "hazmath.h"
 void find_cc_bndry_cc(scomplex *sc)
 {
@@ -162,7 +163,7 @@ void find_cc_bndry_cc(scomplex *sc)
       for(m=0;m<dim;m++){
 	//	fprintf(stdout,"\nfnodes=%d;indxinv=%d,nv=%d",fnodes[dim*j+m],indxinv[fnodes[dim*j+m]],sc->nv);fflush(stdout);//xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 	//	fprintf(stdout,"\nfnodes=%d;nv=%d",fnodes[dim*j+m],sc->nv);fflush(stdout);//xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-	//	sc->bndry[indxinv[fnodes[dim*j+m]]]=i+1;
+	sc->bndry[indxinv[fnodes[dim*j+m]]]=i+1;
       }
     }
   }

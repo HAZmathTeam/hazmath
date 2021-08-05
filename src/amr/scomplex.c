@@ -31,6 +31,72 @@ REAL chk_sign(const int it, const int nbrit)
   if(it>nbrit) return 1e0;
   return -1e0;
 }
+/*********************************************************************/
+/*!
+ * \fn REAL volume_compute(INT dim, REAL factorial, REAL *xs,void *wrk);
+ *
+ * \brief Computes the volume of the simplex in Rn, which is det(B)/d_factorial.
+ *
+ * \param dim        I: The dimension of the problem.
+ * \param factorial  I: dim! (dim factorial)
+ * \param xs         I: coordinates of the simplex
+ * \param wrk        W: working array of dimension 
+ *                      (dim+1)*(dim*sizeof(REAL) + sizeof(INT))
+ *
+ * \return the volume of the simplex. 
+ *
+ * \note
+ */
+REAL volume_compute(INT dim, REAL factorial, REAL *xs,void *wrk)
+{
+  INT dim1 = dim+1,i,j,ln,ln1;
+  REAL *bt=(REAL *)wrk;
+  REAL *piv=bt+dim*dim;
+  INT *p = (INT *)(wrk+(dim*dim + dim)*sizeof(REAL));
+  REAL vol=-1e20;
+  // construct bt using xs;
+  for (j = 1;j<dim1;j++){
+    ln=j*dim; ln1=ln-dim;
+    for(i=0;i<dim;i++){
+      bt[ln1+i] = xs[ln+i]-xs[i];  // k-th row of bt is [x(k)-x(0)]^T. x(k) are coords of vertex k. 
+    }
+  }
+  //  SHORT flag=lufull(1, dim, &vol, bt,p,piv);
+  //  if(flag){
+  if(lufull(1, dim, &vol, bt,p,piv)) {
+    return 0e0; // degeneraate simplex;
+  } else
+    return fabs(vol)/factorial;
+}
+/*********************************************************************/
+/*!
+ * \fn void sc_vols(scomplex *sc);
+ *
+ * \brief Fills in the array with volumes of the simpleices in
+ *        n-dimansional simplicial complex.
+ *
+ * \param sc: pointer to the simplicial complex sc.
+ *
+ * \note
+ */
+void sc_vols(scomplex *sc)
+{
+  INT dim = sc->n, ns=sc->ns;
+  INT dim1 = dim+1,i,j,node,idim1;
+  void *wrk=malloc(dim1*(dim*sizeof(REAL) + sizeof(INT)));
+  REAL *xs=calloc(dim1*dim,sizeof(REAL));
+  for(i=0;i<ns;++i){
+    idim1=i*dim1;
+    for (j = 0;j<dim1;++j){
+      node=sc->nodes[idim1+j];
+      memcpy((xs+j*dim),(sc->x+node*dim),dim*sizeof(REAL));
+    }
+    sc->vols[i]=volume_compute(dim,sc->factorial,xs,wrk);
+  }
+  free(wrk);
+  free(xs);
+  return;
+}
 /**********************************************************************/
 /*!
  * \fn scomplex *haz_scomplex_init(const INT n,INT ns, INT nv, const INT nbig)
@@ -75,10 +141,11 @@ scomplex *haz_scomplex_init(const INT n,INT ns, INT nv,const INT nbig)
   sc->bndry=(INT *)calloc(nv,sizeof(INT));
   sc->csys=(INT *)calloc(nv,sizeof(INT));/* coord sys: 1 is polar, 2
 					    is cyl and so on */
+  sc->parent_v=malloc(sizeof(iCSRmat));  
+  sc->parent_v[0]=icsr_create(nv,nv,nv);  
   sc->flags=(INT *)calloc(ns,sizeof(INT));
   sc->x=(REAL *)calloc(nv*nbig,sizeof(REAL));
   sc->vols=(REAL *)calloc(ns,sizeof(REAL));
-  sc->fval=(REAL *)calloc(nv,sizeof(REAL)); // function values at every vertex; not used in general;
   for (i = 0;i<ns;i++) {
     sc->marked[i] = FALSE; // because first is used for something else.
     sc->gen[i] = 0;
@@ -93,10 +160,15 @@ scomplex *haz_scomplex_init(const INT n,INT ns, INT nv,const INT nbig)
       sc->nbr[in1+j]=-1;
     }
   }
+  INT nnz_pv=0;
+  sc->parent_v->IA[0]=nnz_pv;
   for (i = 0;i<nv;i++) {
     sc->bndry[i]=0;
     sc->csys[i]=0;
-    sc->fval[i]=0.;
+    sc->parent_v->JA[nnz_pv]=i;
+    sc->parent_v->val[nnz_pv]=-1;
+    nnz_pv++;
+    sc->parent_v->IA[i+1]=nnz_pv;
   }
   sc->nv=nv;
   sc->ns=ns;
@@ -138,7 +210,6 @@ void haz_scomplex_init_part(scomplex *sc)
 					    is cyl and so on */
   sc->flags=(INT *)calloc(ns,sizeof(INT)); // element flags
   sc->vols=(REAL *)calloc(ns,sizeof(REAL));// simplex volumes
-  sc->fval=(REAL *)calloc(nv,sizeof(REAL));// simplex volumes
   for (i = 0;i<ns;i++) {
     sc->marked[i] = FALSE; // because first is used for something else.
     sc->gen[i] = 0;
@@ -150,7 +221,6 @@ void haz_scomplex_init_part(scomplex *sc)
   for (i = 0;i<nv;i++) {
     sc->bndry[i]=0;
     sc->csys[i]=0;
-    sc->fval[i]=0.;
   }
   return;
 }
@@ -230,13 +300,13 @@ scomplex *haz_scomplex_read(FILE *fp,INT print_level)
     dummy=fscanf(fp,"%i",sc->bndry+i);
     /* fprintf(stdout,"%i: %i\n",i,sc->bndry[i]); */
   }
-  for(i=0;i<nv;i++){
-    dummy=fscanf(fp,"%lg",sc->fval+i);
-    if(dummy<0 && (print_level>5)){
-      fprintf(stderr,"***WARNING(in %s): failed reading the function value at node %d\n                 Continuing with sc->fval=0 for all points\n",__FUNCTION__,i);
-      break;
-    }
-  }
+  /* for(i=0;i<nv;i++){ */
+  /*   dummy=fscanf(fp,"%lg",sc->fval+i); */
+  /*   if(dummy<0 && (print_level>5)){ */
+  /*     fprintf(stderr,"***WARNING(in %s): failed reading the function value at node %d\n                 Continuing with sc->fval=0 for all points\n",__FUNCTION__,i); */
+  /*     break; */
+  /*   } */
+  /* } */
   /*************************************************************/
   return sc;
 }
@@ -317,7 +387,6 @@ void haz_scomplex_print(scomplex *sc, const INT ns0,const char *infor)
       fprintf(stdout,"\n");
     }
   }
-  fflush(stdout);
   return;
 }
 /**********************************************************************/
@@ -345,7 +414,6 @@ void haz_scomplex_free(scomplex *sc)
   if(sc->x) free(sc->x);
   if(sc->vols) free(sc->vols);
   //  fprintf(stdout,"9\n");fflush(stdout);
-  if(sc->fval) free(sc->fval);
   if(sc->nbr) free(sc->nbr);
   if(sc) free(sc);
   return;
@@ -868,8 +936,8 @@ void find_nbr(INT ns,INT nv,INT n,INT *sv,INT *stos)
 }
 /**********************************************************************/
 /*!
- * \fn INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew,INT
- *		    ibnew,INT csysnew,INT nsnew, INT nvnew)
+ * \fn INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew, INT *pv,
+ *                         INT ibnew,INT csysnew,INT nsnew, INT nvnew)
  *
  * \brief
  *
@@ -880,7 +948,8 @@ void find_nbr(INT ns,INT nv,INT n,INT *sv,INT *stos)
  * \note
  *
  */
-INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew,INT ibnew,INT csysnew, \
+INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew,	\
+		    INT *pv,INT ibnew,INT csysnew,	\
 		    INT nsnew, INT nvnew)
 {
   /* adds nodes and coords as well */
@@ -888,7 +957,7 @@ INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew,INT ibnew,INT csysnew, \
   INT ks0=sc->child0[is], ksn=sc->childn[is];
   INT isc0=ks0*n1, iscn=ksn*n1;
   //  INT *dsti,*srci;
-  INT j,j0,jn;
+  INT j,j0,jn,nnz_pv;
   REAL *dstr;
   /* nodes  AND neighbors */
   sc->nbr=realloc(sc->nbr,(nsnew*n1)*sizeof(INT));
@@ -911,8 +980,15 @@ INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew,INT ibnew,INT csysnew, \
     sc->bndry[nv]=ibnew;
     sc->csys=realloc(sc->csys,(nvnew)*sizeof(INT));
     sc->csys[nv]=csysnew;
-    sc->fval=realloc(sc->fval,(nvnew)*sizeof(REAL));
-    sc->fval[nv]=0.;
+    nnz_pv=sc->parent_v->nnz;
+    sc->parent_v->row=nvnew;
+    sc->parent_v->col=nv;
+    sc->parent_v->JA=realloc(sc->parent_v->JA,(nnz_pv+2)*sizeof(REAL));    
+    sc->parent_v->JA[nnz_pv]=pv[0];
+    sc->parent_v->JA[nnz_pv+1]=pv[1];
+    sc->parent_v->nnz+=2;
+    sc->parent_v->IA=realloc(sc->parent_v->IA,(nvnew+1)*sizeof(REAL));
+    sc->parent_v->IA[nvnew]=sc->parent_v->nnz;
   }
   //generation
   sc->gen=realloc(sc->gen,(nsnew)*sizeof(INT));
@@ -965,6 +1041,7 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
   INT n1=n+1,j,i,p,p0,pn,isn1,snbri,snbrp,snbrn,snbr0;
   INT jt,jv0,jvn,ks0,ksn,s0nbri,snnbri;//,isn;
   REAL *xnew;
+  INT pv[2];
   INT csysnew,ibnew;
   if(is<0) return 0;
   if(sc->child0[is] >= 0) return 0;
@@ -989,6 +1066,10 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
     for(j=0;j<nbig;j++){
       xnew[j] = 0.5*(sc->x[jv0*nbig+j]+sc->x[jvn*nbig+j]);
     }
+    // parents of the vertex:
+    pv[0]=jv0;
+    pv[1]=jvn;
+    // boundary codes (these are also fixed later when connected components on the boundary are found.
     if(sc->bndry[jv0] > sc->bndry[jvn])
       ibnew=sc->bndry[jv0];
     else
@@ -1021,7 +1102,7 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
   /*
     Add two new simplices and initialize their parents, etc
   */
-  haz_add_simplex(is,sc,xnew,ibnew,csysnew,nsnew,nvnew);
+  haz_add_simplex(is,sc,xnew,pv,ibnew,csysnew,nsnew,nvnew);
   /*
     Initialize all vertex pointers of the children according to the
     scheme. Also initialize all pointers to bring simplices as long
@@ -1247,10 +1328,32 @@ void refine(const INT ref_levels, scomplex *sc,ivector *marked)
   for(j = 0;j < nsold;j++)
     if(sc->marked[j] && (sc->child0[j]<0||sc->childn[j]<0))
       haz_refine_simplex(sc, j, -1);
+  /* 
+   *  compute volumes (the volumes on the coarsest grid should be set in
+   * generate_initial_grid, but just in case we are coming here from
+   * some other function we compute these here too. 
+   */
+  INT node,in1;
+  void *wrk1=malloc((sc->n+1)*(sc->n*sizeof(REAL) + sizeof(INT)));
+  REAL *xs=calloc((sc->n+1)*sc->n,sizeof(REAL));
+  for(i=0;i<sc->ns;++i){
+    if(sc->child0[i]<0||sc->childn[i]<0){
+      in1=i*(sc->n+1);
+      for (j = 0;j<=sc->n;++j){
+	node=sc->nodes[in1+j];
+	memcpy((xs+j*sc->n),(sc->x+node*sc->n),sc->n*sizeof(REAL));
+      }
+      sc->vols[i]=volume_compute(sc->n,sc->factorial,xs,wrk1);
+    }
+  }
+  free(wrk1);
+  free(xs);
   sc->level++;
-  //  fprintf(stdout,"\n.%d.\n",sc->level);
-  //  fprintf(stdout,"\n");
-  //  haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
+  fprintf(stdout,"\n.%d.\n",sc->level);
+  fprintf(stdout,"\n");
+  haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
+  fflush(stdout);
+  return;
 }
 /******************************************************************/
 /*!
