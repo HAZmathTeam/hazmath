@@ -116,7 +116,7 @@ SHORT lufull(INT dopivot, INT n, REAL *deta, REAL *A,INT *p,REAL *piv)
          return (SHORT )1;
        }
        piv[i]=1./piv[i]; //here we need error stop if too small
- //      fprintf(stderr,"\n*** i=%i; pivot=%g\n",i,piv[i]);
+       //       fprintf(stderr,"\n*** i=%i; pivot=%g\n",i,piv[i]);
      }
      nm1 = n-1;
      for (k = 0;k<nm1;k++){
@@ -151,8 +151,8 @@ SHORT lufull(INT dopivot, INT n, REAL *deta, REAL *A,INT *p,REAL *piv)
      det0 *= A[pin+i1];
    }
    *deta=det0;
- //  print_full_mat(n,n,A,"A");
- //  fprintf(stderr,"\n*** det=%e\n",*deta);
+   //   print_full_mat(n,n,A,"A");
+   //   fprintf(stderr,"\n*** det=%e\n",*deta);
    return (SHORT )0;
  }
 /**************************************************************************/
