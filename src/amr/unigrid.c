@@ -201,6 +201,7 @@ scomplex *umesh(const INT dim,		\
    */
   /******************************************************************/
   for(kf=0;kf<sc->nv;kf++) sc->bndry[kf]=cfbig;
+  /*  icsr_print_matlab(stdout,sc->parent_v);*/
   /* for(facei=0;facei<c2s->nf;facei++){ */
   /*   if(facei<dim){ */
   /*     mi=dim-(facei+1); */

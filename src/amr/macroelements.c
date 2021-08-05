@@ -581,7 +581,7 @@ void scomplex_merge(scomplex **sc0,			\
   sc->flags=(INT *)realloc(sc->flags,ns*sizeof(INT));
   sc->x=(REAL *)realloc(sc->x,nv*(sc->n)*sizeof(REAL));
   sc->vols=(REAL *)realloc(sc->vols,ns*sizeof(REAL));
-  sc->fval=(REAL *)realloc(sc->fval,nv*sizeof(REAL)); // function values at every vertex; not used in general;
+  //  sc->fval=(REAL *)realloc(sc->fval,nv*sizeof(REAL)); // function values at every vertex; not used in general;
   //  fprintf(stdout,"\nnsall=%d,nvall=%d",nsall,nvall);fflush(stdout);
   for(kel=1;kel<g0->nel;kel++){
     ns0=sc->ns;nv0=sc->nv;
@@ -605,7 +605,7 @@ void scomplex_merge(scomplex **sc0,			\
       i=ii+nv0;
       sc->bndry[i]=sc0[kel]->bndry[ii];
       sc->csys[i]=sc0[kel]->csys[ii];
-      sc->fval[i]=sc0[kel]->fval[ii];
+      //      sc->fval[i]=sc0[kel]->fval[ii];
       in1=i*sc->n;
       iin1=ii*sc->n;
       for(j=0;j<sc->n;j++)
@@ -661,7 +661,7 @@ void scomplex_merge1(const INT nvall,		\
   sc->flags=(INT *)realloc(sc->flags,ns*sizeof(INT));
   sc->x=(REAL *)realloc(sc->x,nv*(sc->n)*sizeof(REAL));
   sc->vols=(REAL *)realloc(sc->vols,ns*sizeof(REAL));
-  sc->fval=(REAL *)realloc(sc->fval,nv*sizeof(REAL)); // function values at every vertex; not used in general;
+  //  sc->fval=(REAL *)realloc(sc->fval,nv*sizeof(REAL)); // function values at every vertex; not used in general;
   //  fprintf(stdout,"\nnsall=%d,nvall=%d",nsall,nvall);fflush(stdout);
   for(kel=1;kel<mc->nel;kel++){
     //    fprintf(stdout,"\n*********YYYYYYYYYY nv[%d]=%d\n",kel,sc0[kel]->nv);
@@ -689,7 +689,7 @@ void scomplex_merge1(const INT nvall,		\
       //      fprintf(stdout,"\n*********YYYYYYYYYY nv[%d]=%d:::%d-->%d\n",kel,sc0[kel]->nv,ii,i);
       sc->bndry[i]=sc0[kel]->bndry[ii];
       sc->csys[i]=sc0[kel]->csys[ii];
-      sc->fval[i]=sc0[kel]->fval[ii];
+      //      sc->fval[i]=sc0[kel]->fval[ii];
       in1=i*sc->n;
       iin1=ii*sc->n;
       for(j=0;j<sc->n;j++)
@@ -1256,14 +1256,13 @@ scomplex *generate_initial_grid(input_grid *g0)
   free(codef);
   macrocomplex_free(mc);
   cube2simp_free(c2s);
-  /* prepare for adaptive refinement */
-
-  //  haz_scomplex_print(sc[0],0,"TTT");
-   find_nbr(sc[0]->ns,sc[0]->nv,sc[0]->n,sc[0]->nodes,sc[0]->nbr);
-   INT *wrk1=calloc(5*(sc[0]->n+2),sizeof(INT));
-   /*   construct bfs tree for the dual graph*/
-   abfstree(0,sc[0],wrk1,g0->print_level);
-   free(wrk1);
+  /* order simplex2vertex array as required by the adaptive refinement */
+  find_nbr(sc[0]->ns,sc[0]->nv,sc[0]->n,sc[0]->nodes,sc[0]->nbr);
+  INT *wrk1=calloc(5*(sc[0]->n+2),sizeof(INT));
+  /*   construct bfs tree for the dual graph*/
+  sc_vols(sc[0]);
+  abfstree(0,sc[0],wrk1,g0->print_level);
+  free(wrk1);
   return sc[0];  
 }
 /*EOF*/

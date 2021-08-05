@@ -78,7 +78,7 @@ INT main(INT   argc,   char *argv[])
       Use "all" here can pass data around. Below we make 4 dvectors
       and one ivector, just as example. A good example for using the
       array will be to pass the whole hierarchy, not only the fine
-      grid via all, e.g. all=(coid *)sc
+      grid via all, e.g. all=(void *)sc
     */
     all=(void *)malloc(5*sizeof(dvector)+sizeof(ivector));
     /**/

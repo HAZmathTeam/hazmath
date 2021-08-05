@@ -1308,7 +1308,7 @@ scomplex *hazr(char *namein)
   for(k=0;k<nv;k++){
     fscanf(fmeshin,"%d", sc->bndry+k);
   }
-  /* //NEWNEW: a function value */
+  /* //NOT USED: a function value */
   /* if(sc->fval){ */
   /*   for(k=0;k<n;k++){ */
   /*     fscanf(fmeshin," %23.16g ", sc->fval+k); */
@@ -1367,13 +1367,13 @@ void hazw(char *nameout,scomplex *sc, const int shift)
     fprintf(fmesh," %i ", ib[k]);
   }
   fprintf(fmesh,"\n");
-  //NEWNEW: write a function value
-  if(sc->fval){
-    for(k=0;k<n;k++){
-      fprintf(fmesh," %23.16g ", sc->fval[k]);
-    }
-    fprintf(fmesh,"\n");
-  }
+  //NOT USED: write a function value
+  /* if(sc->fval){ */
+  /*   for(k=0;k<n;k++){ */
+  /*     fprintf(fmesh," %23.16g ", sc->fval[k]); */
+  /*   } */
+  /*   fprintf(fmesh,"\n"); */
+  /* } */
   fprintf(stdout,"\n%%Output (hazmath) written on:%s\n",nameout);
   fclose(fmesh);
   return;
@@ -1463,11 +1463,11 @@ void vtkw(char *namevtk, scomplex *sc, const INT shift, const REAL zscale)
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"v_bdry\" Format=\"ascii\">",tinto);
   for(k=0;k<nv;k++) fprintf(fvtk," %i ",ib[k]);
   fprintf(fvtk,"</DataArray>\n");
-  if(sc->fval){
-    fprintf(fvtk,"<DataArray type=\"%s\" Name=\"ele\" Format=\"ascii\">",tfloat);
-    for(k=0;k<nv;k++) fprintf(fvtk," %e ",sc->fval[k]);
-    fprintf(fvtk,"</DataArray>\n");
-  }
+  /*NOT USED: if(sc->fval){ */
+  /*   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"ele\" Format=\"ascii\">",tfloat); */
+  /*   for(k=0;k<nv;k++) fprintf(fvtk," %e ",sc->fval[k]); */
+  /*   fprintf(fvtk,"</DataArray>\n"); */
+  /* } */
   // Dump information about connected components.  For now only assume
   // 1 connected region and at most 2 connected boundaries.  Positive
   // integers indicate connected components of a domain Negative
