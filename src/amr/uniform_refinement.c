@@ -7,6 +7,37 @@
  *  Ludmil, Yuwen 20210604
  */
 #include "hazmath.h"
+static void haz_scomplex_realloc(scomplex *sc)
+{
+  INT i,j,ns=sc->ns,nv=sc->nv,n=sc->n;
+  INT n1=n+1;
+  sc->factorial=1.;
+  for (j=2;j<n1;j++) sc->factorial *= ((REAL )j);
+  // fprintf(stdout,"\nIMPORTANT: NS=%d (%d!)=%f",ns,n,sc->factorial);
+  sc->nbr=realloc(sc->nbr,n1*ns*sizeof(INT));
+  sc->marked=realloc(sc->marked,ns*sizeof(INT));
+  sc->gen=realloc(sc->gen,ns*sizeof(INT));
+  sc->parent=realloc(sc->parent,ns*sizeof(INT));
+  sc->child0=realloc(sc->child0,ns*sizeof(INT));
+  sc->childn=realloc(sc->childn,ns*sizeof(INT));
+  sc->bndry=realloc(sc->bndry,nv*sizeof(INT));
+  sc->csys=realloc(sc->csys,nv*sizeof(INT));
+  sc->flags=realloc(sc->flags,ns*sizeof(INT)); // element flags
+  //  sc->vols=(REAL *)calloc(ns,sizeof(REAL));// simplex volumes
+  for (i = 0;i<sc->ns;i++) {
+    sc->marked[i] = FALSE; // because first is used for something else.
+    sc->gen[i] = 0;
+    sc->parent[i]=-1;
+    sc->child0[i]=-1;
+    sc->childn[i]=-1;
+    sc->flags[i]=-1;
+  }
+  for (i = 0;i<nv;i++) {
+    sc->bndry[i]=0;
+    sc->csys[i]=0;
+  }
+  return;
+}
 /********************************************************************************/
 /*!
  * \fn void get_edge2d(iCSRmat *e2v, iCSRmat *el2e, scomplex *sc)
@@ -156,7 +187,9 @@ void get_edge2d(iCSRmat *e2v, iCSRmat *el2e, scomplex *sc)
  */
 void get_edge3d(iCSRmat *e2v, iCSRmat *el2e, scomplex *sc)
 {
-  if (sc->n!=3) {printf("The dimension is not 3!\n");exit(1);}
+  if (sc->n!=3) {
+    fprintf(stderr,"%% *** ERROR in %s: the dimension = %d and is not 3  !\n",__FUNCTION__,sc->n);exit(3);
+  }
   INT nv = sc->nv, ns = sc->ns, ns2=2*ns, ns3=3*ns, ns4=4*ns, ns5=5*ns, \
   i, j, k, ih, n0, n1, n2, n3, tmp;
   ivector ii = ivec_create(6*ns), jj = ivec_create(6*ns); 
@@ -278,6 +311,7 @@ void get_edge3d(iCSRmat *e2v, iCSRmat *el2e, scomplex *sc)
   }
   icsr_free(&el2e0);
   free(jtmp);
+  return;
 }
 
 /*!
@@ -294,20 +328,41 @@ void get_edge3d(iCSRmat *e2v, iCSRmat *el2e, scomplex *sc)
  */
 void uniformrefine2d(scomplex *sc)
 {
+  if (sc->n!=2) {
+    fprintf(stderr,"\n%% *** ERROR: %s called but the spatial dimension is not 2   !\n", \
+	    __FUNCTION__);exit(2);
+  }
   iCSRmat e2v, el2e;
   get_edge2d(&e2v,&el2e,sc);
-  INT nv = sc->nv, nv2=nv*2, ns = sc->ns, ne=e2v.row, i, i12, i3,	\
-   *el2v=(INT*)calloc(3*ns,sizeof(INT));
+  INT nv = sc->nv, nv2=nv*2, ns = sc->ns, ne=e2v.row, i, i12, i3,nnz_p;
+  INT *el2v = (INT*)calloc(3*ns,sizeof(INT));
   memcpy(el2v,sc->nodes,3*ns*sizeof(INT));
-
+  
   sc->ns=4*ns; sc->nv=nv+ne;
   sc->x = (REAL*)realloc(sc->x,2*(nv+ne)*sizeof(REAL));
   sc->nodes = (INT*)realloc(sc->nodes,3*4*ns*sizeof(INT));
   for (i=0;i<ne;i++) {
-    sc->x[nv2+2*i] = ( sc->x[2*e2v.JA[2*i]]+sc->x[2*e2v.JA[2*i+1]] )/2;
-    sc->x[nv2+2*i+1] = ( sc->x[2*e2v.JA[2*i]+1]+sc->x[2*e2v.JA[2*i+1]+1] )/2;
+    sc->x[nv2+2*i] = ( sc->x[2*e2v.JA[2*i]]+sc->x[2*e2v.JA[2*i+1]] )*0.5e0;
+    sc->x[nv2+2*i+1] = ( sc->x[2*e2v.JA[2*i]+1]+sc->x[2*e2v.JA[2*i+1]+1] )*0.5e0;
+  }  
+  //  
+  sc->parent_v->row=sc->nv;// new num vertices
+  sc->parent_v->col=nv;// old num vertices;
+  nnz_p=sc->parent_v->IA[nv]; // where to start adding:
+  sc->parent_v->nnz += 2*ne;
+  sc->parent_v->IA = (INT *)realloc(sc->parent_v->IA,(sc->nv+1)*sizeof(INT));
+  sc->parent_v->JA = (INT*)realloc(sc->parent_v->JA,(sc->parent_v->nnz)*sizeof(INT));
+  //
+  for (i=0;i<ne;i++) {
+    // one added vertex between e2v.JA[2*i] and e2v.JA[2*i+1];
+    sc->parent_v->JA[nnz_p]=e2v.JA[2*i];
+    nnz_p++;
+    sc->parent_v->JA[nnz_p]=e2v.JA[2*i+1];
+    nnz_p++;
+    sc->parent_v->IA[nv+i+1] = nnz_p;
   }
-  
+  //  fprintf(stdout,"\n%%%%nnz_ia=%d;nnz_p=%d\n\n",sc->parent_v->IA[sc->nv],nnz_p);fflush(stdout);
+  //  
   for (i=0;i<ns;i++) {
     i12=12*i; i3=3*i;
 
@@ -323,10 +378,14 @@ void uniformrefine2d(scomplex *sc)
     sc->nodes[i12+9] = nv+el2e.JA[i3];
     sc->nodes[i12+10] = nv+el2e.JA[i3+1];sc->nodes[i12+11] = nv+el2e.JA[i3+2];
   }
-  haz_scomplex_init_part(sc);
   icsr_free(&e2v);
   icsr_free(&el2e);
   free(el2v);
+  // reallocate arrays:
+  haz_scomplex_realloc(sc);
+  // find neighbors
+  find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
+  return;
 }
 
 /***********************************************************************************************/
@@ -346,23 +405,43 @@ void uniformrefine2d(scomplex *sc)
  */
 void uniformrefine3d(scomplex *sc)
 {
-  if (sc->n!=3) {printf("The dimension is not 3!\n");exit(1);}
+  if (sc->n!=3) {
+    fprintf(stderr,"\n%% *** ERROR: %s called but the spatial dimension = %d is not 3  !\n", \
+	    __FUNCTION__,sc->n);exit(3);
+  }
   iCSRmat e2v, el2e;
   get_edge3d(&e2v,&el2e,sc);
-  INT nv = sc->nv, nv3=nv*3, ns = sc->ns, ne=e2v.row, i, i32, i2, i3, i4, i6;
+  INT nv = sc->nv, nv3=nv*3, ns = sc->ns, ne=e2v.row, i, i32, i2, i3, i4, i6,nnz_p;
   // INT tmp,j;
   sc->ns=8*ns; sc->nv=nv+ne;
   sc->vols = (REAL*)realloc(sc->vols,sc->ns*sizeof(REAL));
   sc->x = (REAL*)realloc(sc->x,3*sc->nv*sizeof(REAL));
   for (i=0;i<ne;i++) {
     i3 = 3*i; i2 = 2*i;
-    sc->x[nv3+i3] = ( sc->x[3*e2v.JA[i2]]+sc->x[3*e2v.JA[i2+1]] )/2;
-    sc->x[nv3+i3+1] = ( sc->x[3*e2v.JA[i2]+1]+sc->x[3*e2v.JA[i2+1]+1] )/2;
-    sc->x[nv3+i3+2] = ( sc->x[3*e2v.JA[i2]+2]+sc->x[3*e2v.JA[i2+1]+2] )/2;
-    /*printf("%f\t%f\t%f\n",sc->x[nv3+i3],sc->x[nv3+i3+1],sc->x[nv3+i3+2]);*/
+    sc->x[nv3+i3] = ( sc->x[3*e2v.JA[i2]]+sc->x[3*e2v.JA[i2+1]] )*0.5e0;
+    sc->x[nv3+i3+1] = ( sc->x[3*e2v.JA[i2]+1]+sc->x[3*e2v.JA[i2+1]+1] )*0.5e0;
+    sc->x[nv3+i3+2] = ( sc->x[3*e2v.JA[i2]+2]+sc->x[3*e2v.JA[i2+1]+2] )*0.5e0;
   }
+  //  
+  sc->parent_v->row=sc->nv;// new num vertices
+  sc->parent_v->col=nv;// old num vertices;
+  nnz_p=sc->parent_v->IA[nv]; // where to start adding:
+  sc->parent_v->nnz += 2*ne;
+  sc->parent_v->IA = (INT *)realloc(sc->parent_v->IA,(sc->nv+1)*sizeof(INT));
+  sc->parent_v->JA = (INT *)realloc(sc->parent_v->JA,(sc->parent_v->nnz)*sizeof(INT));
+  //
+  for (i=0;i<ne;i++) {
+    i2=2*i;
+    // one added vertex between e2v.JA[2*i] and e2v.JA[2*i+1];
+    sc->parent_v->JA[nnz_p]=e2v.JA[i2];
+    nnz_p++;
+    sc->parent_v->JA[nnz_p]=e2v.JA[i2+1];
+    nnz_p++;
+    sc->parent_v->IA[nv+i+1] = nnz_p;
+  }
+  //  fprintf(stdout,"\n%%%%nnz_ia=%d;nnz_p=%d\n\n",sc->parent_v->IA[sc->nv],nnz_p);fflush(stdout);
+  //  
   icsr_free(&e2v);
-
   INT *el2v=(INT*)calloc(4*ns,sizeof(INT));
   
   memcpy(el2v,sc->nodes,4*ns*sizeof(INT));
@@ -396,8 +475,11 @@ void uniformrefine3d(scomplex *sc)
     sc->nodes[i32+28] = nv+el2e.JA[i6+1];sc->nodes[i32+29] = nv+el2e.JA[i6+3];
     sc->nodes[i32+30] = nv+el2e.JA[i6+4];sc->nodes[i32+31] = nv+el2e.JA[i6+5];
   }
-  /*haz_scomplex_init_part(sc);*/
-
   icsr_free(&el2e);
   free(el2v);
+  //  reallocate unallocated arrays
+  haz_scomplex_realloc(sc);
+  // find neighbors
+  find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
+  return;
 } 

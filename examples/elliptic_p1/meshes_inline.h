@@ -25,6 +25,7 @@ scomplex *mesh2d()
   scomplex *sc=haz_scomplex_init(dim,ns, nv,dim);
   memcpy(sc->x,x,nv*dim*sizeof(REAL));
   memcpy(sc->nodes,el2v,ns*dim1*sizeof(INT));
+  sc_vols(sc);
   return sc;
 }
 scomplex *mesh3d()
@@ -51,6 +52,7 @@ scomplex *mesh3d()
   scomplex *sc=haz_scomplex_init(dim,ns, nv,dim);
   memcpy(sc->x,x,nv*dim*sizeof(REAL));
   memcpy(sc->nodes,el2v,ns*dim1*sizeof(INT));
+  sc_vols(sc);
   return sc;
 }
 /*****************************************************/
@@ -105,6 +107,7 @@ scomplex *mesh4d()
   scomplex *sc=haz_scomplex_init(dim,ns, nv,dim);
   memcpy(sc->x,x,nv*dim*sizeof(REAL));
   memcpy(sc->nodes,el2v,ns*dim1*sizeof(INT));
+  sc_vols(sc);
   return sc;
 }
 /*****************************************************/
@@ -270,5 +273,6 @@ scomplex *mesh5d()
   scomplex *sc=haz_scomplex_init(dim,ns, nv,dim);
   memcpy(sc->x,x,nv*dim*sizeof(REAL));
   memcpy(sc->nodes,el2v,ns*dim1*sizeof(INT));
+  sc_vols(sc);
   return sc;
 }

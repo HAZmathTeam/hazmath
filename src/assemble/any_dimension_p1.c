@@ -299,15 +299,22 @@ INT assemble_p1(scomplex *sc, dCSRmat *A, dCSRmat *M)
   dcsr_rap_agg(PT,m_dg,P,M);
   dcsr_rap_agg(PT,a_dg,P,A);
   // free the element matrices
-  dcsr_free(m_dg);
+  if(m_dg) {
+    dcsr_free(m_dg);
+    free(m_dg);
+  }
   free(a_dg->val);
   // free all the rest;
   free(xs);
   free(slocal);
   free(grad);
   free(wrk);
-  dcsr_free(P);
-  dcsr_free(PT);
+  if(P) {
+    dcsr_free(P);free(P);
+  }
+  if(PT){
+    dcsr_free(PT);free(PT);
+  }
   return 0;
 }
 /****************************************************************************/
