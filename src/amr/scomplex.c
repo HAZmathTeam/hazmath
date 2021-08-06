@@ -9,6 +9,48 @@
 #include "hazmath.h"
 /**********************************************************************/
 /*!
+ * \fn REAL void haz_scomplex_realloc(scomplex *sc)
+ *
+ * \brief  reallocates memory if not allocated with haz_scomplex_init;
+ *
+ * \param
+ *
+ * \return
+ *
+ * \note
+ *
+ */
+void haz_scomplex_realloc(scomplex *sc)
+{
+  INT i,j,ns=sc->ns,nv=sc->nv,n=sc->n;
+  INT n1=n+1;
+  sc->factorial=1.;
+  for (j=2;j<n1;j++) sc->factorial *= ((REAL )j);
+  sc->nbr=realloc(sc->nbr,n1*ns*sizeof(INT));
+  sc->marked=realloc(sc->marked,ns*sizeof(INT));
+  sc->gen=realloc(sc->gen,ns*sizeof(INT));
+  sc->parent=realloc(sc->parent,ns*sizeof(INT));
+  sc->child0=realloc(sc->child0,ns*sizeof(INT));
+  sc->childn=realloc(sc->childn,ns*sizeof(INT));
+  sc->bndry=realloc(sc->bndry,nv*sizeof(INT));
+  sc->csys=realloc(sc->csys,nv*sizeof(INT));
+  sc->flags=realloc(sc->flags,ns*sizeof(INT)); // element flags
+  for (i = 0;i<sc->ns;i++) {
+    sc->marked[i] = FALSE; // because first is used for something else.
+    sc->gen[i] = 0;
+    sc->parent[i]=-1;
+    sc->child0[i]=-1;
+    sc->childn[i]=-1;
+    sc->flags[i]=-1;
+  }
+  for (i = 0;i<nv;i++) {
+    sc->bndry[i]=0;
+    sc->csys[i]=0;
+  }
+  return;
+}
+/**********************************************************************/
+/*!
  * \fn REAL chk_sign(const int it, const int nbrit)
  *
  * \brief
@@ -923,10 +965,8 @@ void find_nbr(INT ns,INT nv,INT n,INT *sv,INT *stos)
   /*   for (jia = iabeg; jia < iaend; ++jia) { */
   /*     fprintf(stdout,"%d ",jvs[jia]+1); */
   /*   } */
-  /*   fprintf(stdout,"\n"); */
+  /*   fprintf(stdout,"\n");fflush(stdout); */
   /* } */
-  /*
-   */
   INT *icp=(INT *) calloc(ns,sizeof(INT));
   for (i = 0; i < ns; ++i) icp[i] = -1;
   for (i = 0; i < nsv; ++i) stos[i] = -1;

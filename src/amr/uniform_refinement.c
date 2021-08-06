@@ -7,37 +7,6 @@
  *  Ludmil, Yuwen 20210604
  */
 #include "hazmath.h"
-static void haz_scomplex_realloc(scomplex *sc)
-{
-  INT i,j,ns=sc->ns,nv=sc->nv,n=sc->n;
-  INT n1=n+1;
-  sc->factorial=1.;
-  for (j=2;j<n1;j++) sc->factorial *= ((REAL )j);
-  // fprintf(stdout,"\nIMPORTANT: NS=%d (%d!)=%f",ns,n,sc->factorial);
-  sc->nbr=realloc(sc->nbr,n1*ns*sizeof(INT));
-  sc->marked=realloc(sc->marked,ns*sizeof(INT));
-  sc->gen=realloc(sc->gen,ns*sizeof(INT));
-  sc->parent=realloc(sc->parent,ns*sizeof(INT));
-  sc->child0=realloc(sc->child0,ns*sizeof(INT));
-  sc->childn=realloc(sc->childn,ns*sizeof(INT));
-  sc->bndry=realloc(sc->bndry,nv*sizeof(INT));
-  sc->csys=realloc(sc->csys,nv*sizeof(INT));
-  sc->flags=realloc(sc->flags,ns*sizeof(INT)); // element flags
-  //  sc->vols=(REAL *)calloc(ns,sizeof(REAL));// simplex volumes
-  for (i = 0;i<sc->ns;i++) {
-    sc->marked[i] = FALSE; // because first is used for something else.
-    sc->gen[i] = 0;
-    sc->parent[i]=-1;
-    sc->child0[i]=-1;
-    sc->childn[i]=-1;
-    sc->flags[i]=-1;
-  }
-  for (i = 0;i<nv;i++) {
-    sc->bndry[i]=0;
-    sc->csys[i]=0;
-  }
-  return;
-}
 /********************************************************************************/
 /*!
  * \fn void get_edge2d(iCSRmat *e2v, iCSRmat *el2e, scomplex *sc)
@@ -384,7 +353,7 @@ void uniformrefine2d(scomplex *sc)
   // reallocate arrays:
   haz_scomplex_realloc(sc);
   // find neighbors
-  find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
+  //  find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
   return;
 }
 
@@ -479,7 +448,6 @@ void uniformrefine3d(scomplex *sc)
   free(el2v);
   //  reallocate unallocated arrays
   haz_scomplex_realloc(sc);
-  // find neighbors
-  find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
+  //  find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
   return;
 } 

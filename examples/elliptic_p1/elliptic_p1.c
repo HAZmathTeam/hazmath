@@ -19,11 +19,11 @@
 #endif
 /////////////////////////////////////////////////////////////////
 #ifndef REFINEMENT_LEVELS
-#define REFINEMENT_LEVELS 3
+#define REFINEMENT_LEVELS 10
 #endif
 
 #ifndef SPATIAL_DIMENSION
-#define SPATIAL_DIMENSION 3
+#define SPATIAL_DIMENSION 4
 #endif
 
 static dvector fe_sol(scomplex *sc,				\
@@ -143,10 +143,12 @@ int main(int argc, char *argv[])
   scomplex *sc=NULL;
   switch(dim){
   case 5:
-    sc=mesh5d();    
+    sc=mesh5d();
+    uniref=0;
     break;
   case 4:
     sc=mesh4d();    
+    uniref=0;
     break;
   case 3:
     sc=mesh3d();    
@@ -201,9 +203,8 @@ int main(int argc, char *argv[])
   sol=fe_sol(sc,1.0,1.0);
   // find the boundary simplicial complex:
   INT idsc;
-  scomplex *dsc=NULL;
+  scomplex *dsc=sc_bndry(sc);
   if(dim==4 || dim ==3){
-    dsc=sc_bndry(sc);
     // stereographic projection (only in 4D)
     idsc = stereo_g(dsc);
     /* write the output mesh file:    */
@@ -211,7 +212,6 @@ int main(int argc, char *argv[])
   } else{
     idsc=0;
   }
-  fprintf(stdout,"\n\n");
   /* WRITE THE OUTPUT vtu file for paraview: can be viewed with
      paraview */
   if(dim==2){
@@ -227,10 +227,10 @@ int main(int argc, char *argv[])
     fprintf(stdout,"\nNO PLOT: Dimension=%d is too large for plotting",dim);
   }
   fprintf(stdout,"\n\n");
-  if(dsc) haz_scomplex_free(dsc);
   dvec_free(&sol);
   ivec_free(&marked);
   haz_scomplex_free(sc);  
+  haz_scomplex_free(dsc);
   return 0;
 }
 
