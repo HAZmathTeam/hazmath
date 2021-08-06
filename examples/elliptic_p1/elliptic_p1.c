@@ -19,11 +19,11 @@
 #endif
 /////////////////////////////////////////////////////////////////
 #ifndef REFINEMENT_LEVELS
-#define REFINEMENT_LEVELS 10
+#define REFINEMENT_LEVELS 5
 #endif
 
 #ifndef SPATIAL_DIMENSION
-#define SPATIAL_DIMENSION 4
+#define SPATIAL_DIMENSION 3
 #endif
 
 static dvector fe_sol(scomplex *sc,				\
@@ -153,21 +153,29 @@ int main(int argc, char *argv[])
   case 3:
     sc=mesh3d();    
     if( uniref ){
-      for(jlevel=0;jlevel<=ref_levels;++jlevel){
+      //      fprintf(stdout,"\n3d:level=");
+      for(jlevel=0;jlevel<ref_levels;++jlevel){
+	//	fprintf(stdout,".%d.",jlevel+1);fflush(stdout);
 	uniformrefine3d(sc);
 	sc_vols(sc);
       }
+      find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
+      sc_vols(sc);
     }
     break;
   default:
     sc=mesh2d();
     if( uniref ){
-      for(jlevel=0;jlevel<=ref_levels;++jlevel){
+      //      fprintf(stdout,"\n2d:level=");
+      for(jlevel=0;jlevel<ref_levels;++jlevel){
+	//	fprintf(stdout,".%d.",jlevel+1);fflush(stdout);
 	uniformrefine2d(sc);
-	sc_vols(sc);
       }
+      find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
+      sc_vols(sc);
     }
   }
+  fprintf(stdout,"\n");
   scomplex *sctop=NULL;
   ivector marked;
   marked.row=0;
@@ -176,6 +184,8 @@ int main(int argc, char *argv[])
   // end intialization
   if(! (uniref) ){ 
     //    fprintf(stdout,"\nlevels=%d",ref_levels);fflush(stdout);
+    find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
+    sc_vols(sc);
     for(jlevel=0;jlevel<ref_levels;jlevel++){
       /* choose the finest grid */
       sctop=scfinest(sc);
@@ -195,7 +205,7 @@ int main(int argc, char *argv[])
       /*  MAKE sc to be the finest grid only */
     }
     scfinalize(sc);
-    sc  ->vols=realloc(sc->vols,sc->ns*sizeof(REAL));
+    sc->vols=realloc(sc->vols,sc->ns*sizeof(REAL));
     sc_vols(sc);
   }
   //  icsr_print_matlab(stdout,sc->parent_v);
