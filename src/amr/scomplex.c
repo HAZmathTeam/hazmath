@@ -142,7 +142,7 @@ scomplex *haz_scomplex_init(const INT n,INT ns, INT nv,const INT nbig)
   sc->csys=(INT *)calloc(nv,sizeof(INT));/* coord sys: 1 is polar, 2
 					    is cyl and so on */
   sc->parent_v=malloc(sizeof(iCSRmat));  
-  sc->parent_v[0]=icsr_create(nv,nv,nv);  
+  sc->parent_v[0]=icsr_create(nv,nv,nv);
   sc->flags=(INT *)calloc(ns,sizeof(INT));
   sc->x=(REAL *)calloc(nv*nbig,sizeof(REAL));
   sc->vols=(REAL *)calloc(ns,sizeof(REAL));
@@ -166,14 +166,27 @@ scomplex *haz_scomplex_init(const INT n,INT ns, INT nv,const INT nbig)
     sc->bndry[i]=0;
     sc->csys[i]=0;
     sc->parent_v->JA[nnz_pv]=i;
-    sc->parent_v->val[nnz_pv]=-1;
     nnz_pv++;
     sc->parent_v->IA[i+1]=nnz_pv;
   }
+  // not needed for now, it will be freed later.
+  if(nnz_pv) memset(sc->parent_v->val,0,nnz_pv*sizeof(INT));
+  //////////////////////////////////////
   sc->nv=nv;
   sc->ns=ns;
   sc->bndry_cc=1; // one connected component on the boundary for now.
   sc->cc=1; // one connected component in the bulk for now.
+  // NULL pointers for the rest
+  sc->bcodesf=NULL;
+  sc->isbface=NULL;
+  sc->etree=NULL; 
+  sc->bfs=malloc(sizeof(iCSRmat));  
+  sc->bfs[0]=icsr_create(0,0,0);
+  // the parent_v->val is not needed for now
+  if(sc->parent_v->val) {
+    free(sc->parent_v->val);
+    sc->parent_v->val=NULL;
+  }
   return sc;
 }
 /**********************************************************************/
@@ -209,7 +222,7 @@ void haz_scomplex_init_part(scomplex *sc)
   sc->csys=(INT *)calloc(nv,sizeof(INT));/* coord sys: 1 is polar, 2
 					    is cyl and so on */
   sc->flags=(INT *)calloc(ns,sizeof(INT)); // element flags
-  sc->vols=(REAL *)calloc(ns,sizeof(REAL));// simplex volumes
+  //  sc->vols=(REAL *)calloc(ns,sizeof(REAL));// simplex volumes
   for (i = 0;i<ns;i++) {
     sc->marked[i] = FALSE; // because first is used for something else.
     sc->gen[i] = 0;
@@ -404,6 +417,7 @@ void haz_scomplex_print(scomplex *sc, const INT ns0,const char *infor)
  */
 void haz_scomplex_free(scomplex *sc)
 {
+  if(sc->marked) free(sc->marked);
   if(sc->gen) free(sc->gen);
   if(sc->parent) free(sc->parent);
   if(sc->child0) free(sc->child0);
@@ -413,8 +427,17 @@ void haz_scomplex_free(scomplex *sc)
   if(sc->nodes) free(sc->nodes);
   if(sc->x) free(sc->x);
   if(sc->vols) free(sc->vols);
-  //  fprintf(stdout,"9\n");fflush(stdout);
   if(sc->nbr) free(sc->nbr);
+  if(sc->csys) free(sc->csys);
+  if(sc->bcodesf) free(sc->bcodesf); 
+  if(sc->isbface) free(sc->isbface); 
+  if(sc->etree) free(sc->etree); 
+  if(sc->parent_v) {
+    icsr_free(sc->parent_v);free(sc->parent_v);
+  }
+  if(sc->bfs) {
+    icsr_free(sc->bfs);free(sc->bfs);
+  }
   if(sc) free(sc);
   return;
 }
@@ -1349,10 +1372,9 @@ void refine(const INT ref_levels, scomplex *sc,ivector *marked)
   free(wrk1);
   free(xs);
   sc->level++;
-  fprintf(stdout,"\n.%d.\n",sc->level);
-  fprintf(stdout,"\n");
-  haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
-  fflush(stdout);
+  //  fprintf(stdout,"\n.%d.\n",sc->level);
+  //  fprintf(stdout,"\n");
+  //  haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
   return;
 }
 /******************************************************************/

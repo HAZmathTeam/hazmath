@@ -13,6 +13,19 @@
 #include "meshes_inline.h"
 #include "stereo_g.h"
 /****************************************************************************/
+// refinement type: 1 is uniform and 0 is newest vertex bisection
+#ifndef UNIFORM_REFINEMENT
+#define UNIFORM_REFINEMENT 1
+#endif
+/////////////////////////////////////////////////////////////////
+#ifndef REFINEMENT_LEVELS
+#define REFINEMENT_LEVELS 3
+#endif
+
+#ifndef SPATIAL_DIMENSION
+#define SPATIAL_DIMENSION 3
+#endif
+
 static dvector fe_sol(scomplex *sc,				\
 		      const REAL alpha,				\
 		      const REAL gamma)
@@ -123,9 +136,11 @@ static dvector fe_sol(scomplex *sc,				\
 /****************************************************************************/
 int main(int argc, char *argv[])
 {
-  INT dim=5;// 2d,3d,4d... example
+  SHORT uniref=UNIFORM_REFINEMENT;
+  INT ref_levels=REFINEMENT_LEVELS;
+  INT dim=SPATIAL_DIMENSION;// 2d,3d,4d... example
   INT jlevel,k;
-  scomplex *sc;
+  scomplex *sc=NULL;
   switch(dim){
   case 5:
     sc=mesh5d();    
@@ -135,37 +150,54 @@ int main(int argc, char *argv[])
     break;
   case 3:
     sc=mesh3d();    
+    if( uniref ){
+      for(jlevel=0;jlevel<=ref_levels;++jlevel){
+	uniformrefine3d(sc);
+	sc_vols(sc);
+      }
+    }
     break;
   default:
     sc=mesh2d();
+    if( uniref ){
+      for(jlevel=0;jlevel<=ref_levels;++jlevel){
+	uniformrefine2d(sc);
+	sc_vols(sc);
+      }
+    }
   }
   scomplex *sctop=NULL;
-  INT ref_levels=15;
-  //
   ivector marked;
   marked.row=0;
   marked.val=NULL;
   dvector sol;
-  // end intialization 
-  for(jlevel=0;jlevel<ref_levels;jlevel++){
-    /* choose the finest grid */
-    sctop=scfinest(sc);
-    // solve the FE
-    sctop->vols=realloc(sctop->vols,sctop->ns*sizeof(REAL));
-    sol=fe_sol(sctop,1.0,1.0);
-    /* mark everything; or use an estimator */
-    marked.row=sctop->ns;
-    marked.val=realloc(marked.val,marked.row*sizeof(INT));
-    for(k=0;k<marked.row;k++) marked.val[k]=TRUE;
-    // now we refine.
-    refine(1,sc,&marked);
-    /* free */
-    dvec_free(&sol);
-    haz_scomplex_free(sctop);
-    /*  MAKE sc to be the finest grid only */
+  // end intialization
+  if(! (uniref) ){ 
+    //    fprintf(stdout,"\nlevels=%d",ref_levels);fflush(stdout);
+    for(jlevel=0;jlevel<ref_levels;jlevel++){
+      /* choose the finest grid */
+      sctop=scfinest(sc);
+      // solve the FE
+      sctop->vols=realloc(sctop->vols,sctop->ns*sizeof(REAL));
+      sol=fe_sol(sctop,1.0,1.0);
+      /* mark everything; or use an estimator */
+      marked.row=sctop->ns;
+      marked.val=realloc(marked.val,marked.row*sizeof(INT));
+      /*mark everything*/
+      for(k=0;k<marked.row;k++) marked.val[k]=TRUE;
+      // now we refine.
+      refine(1,sc,&marked);
+      /* free */
+      dvec_free(&sol);
+      haz_scomplex_free(sctop);
+      /*  MAKE sc to be the finest grid only */
+    }
+    scfinalize(sc);
+    sc  ->vols=realloc(sc->vols,sc->ns*sizeof(REAL));
+    sc_vols(sc);
   }
-  scfinalize(sc);
-  sc->vols=realloc(sc->vols,sc->ns*sizeof(REAL));
+  //  icsr_print_matlab(stdout,sc->parent_v);
+  //  haz_scomplex_print(sc,0,__FUNCTION__);
   sol=fe_sol(sc,1.0,1.0);
   // find the boundary simplicial complex:
   INT idsc;
