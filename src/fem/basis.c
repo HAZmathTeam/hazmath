@@ -246,7 +246,7 @@ void compute_refelm_mapping(REAL* ref_map,REAL* lamgrads,REAL *xv,INT dim)
   // Invert B
   REAL* binv = (REAL *) calloc(dim*dim,sizeof(REAL));
   void* wrk = malloc(dim*sizeof(INT)+dim*(dim+1)*sizeof(REAL));
-  invfull(binv,dim,ref_map,wrk);
+  ddense_inv(binv,dim,ref_map,wrk);
 
   // Place all grad(lam) in one matrix as rows
   // First row is sum of rows of B-1

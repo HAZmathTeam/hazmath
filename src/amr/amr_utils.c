@@ -141,7 +141,7 @@ INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)
   //  fflush(stdout);
   for(i=0;i<n;i++)
     xhat[i] = xstar[i]-xs[l0n+i];
-  solve_pivot(1, n, A, xhat, p, piv);
+  ddense_solve_pivot(1, n, A, xhat, p, piv);
   REAL xhatn=1e0,eps0=1e-10,xmax=1e0+eps0;
   /* check the solution if within bounds */
   INT flag = 0;

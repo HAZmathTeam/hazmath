@@ -104,9 +104,9 @@ REAL volume_compute(INT dim, REAL factorial, REAL *xs,void *wrk)
       bt[ln1+i] = xs[ln+i]-xs[i];  // k-th row of bt is [x(k)-x(0)]^T. x(k) are coords of vertex k. 
     }
   }
-  //  SHORT flag=lufull(1, dim, &vol, bt,p,piv);
+  //  SHORT flag=ddense_lu(1, dim, &vol, bt,p,piv);
   //  if(flag){
-  if(lufull(1, dim, &vol, bt,p,piv)) {
+  if(ddense_lu(1, dim, &vol, bt,p,piv)) {
     return 0e0; // degeneraate simplex;
   } else
     return fabs(vol)/factorial;
@@ -311,7 +311,7 @@ void vol_simplex(INT dim, REAL fact, REAL *xf, REAL *volt, void *wrk)
     }
   }
   //  print_full_mat(dim,dim,bt,"bt");
-  if(lufull(1, dim, volt, bt,p,piv))
+  if(ddense_lu(1, dim, volt, bt,p,piv))
     *volt=0e0;
   else
     *volt=fabs(*volt)/fact;
@@ -591,7 +591,7 @@ void area_face(INT dim, REAL fact, REAL *xf, REAL *sn,	\
     }
   }
   //  print_full_mat(dim,dim,bt,"bt");
-  if(lufull(1, dim, volt, bt,p,piv))
+  if(ddense_lu(1, dim, volt, bt,p,piv))
     *volt=0e0;
   else
     *volt=fabs(*volt)/fact;
@@ -600,7 +600,7 @@ void area_face(INT dim, REAL fact, REAL *xf, REAL *sn,	\
     j1=j-1;
     ln=j*dim;
     sn[ln+j1]=-1.;
-    solve_pivot(0, dim, bt, (sn+ln), p,piv);
+    ddense_solve_pivot(0, dim, bt, (sn+ln), p,piv);
     //areas[] contains the norm of the normal vectors first (this is 1/altitude);
     areas[j]=0.;
     for(i=0;i<dim;i++){
