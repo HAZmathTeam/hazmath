@@ -52,7 +52,7 @@ SHORT grad_compute(INT dim, REAL factorial, REAL *xs, REAL *grad,	\
   //  print_full_mat(dim,dim,bt,"bt");
   //  print_full_mat(dim,1,piv,"piv");
   // lu decomposition of bt
-  if(lufull(1, dim, vols, bt,p,piv)) {
+  if(ddense_lu(1, dim, vols, bt,p,piv)) {
     //print_full_mat(dim,dim,bt,"bt");
     vols[0]=0.;
     return 1; // this is a degenerate simplex
@@ -65,7 +65,7 @@ SHORT grad_compute(INT dim, REAL factorial, REAL *xs, REAL *grad,	\
     ln=j*dim;
     grad[ln+j1]=1.;
     // compute B^{-T}*"a column(identity)"
-    solve_pivot(0, dim, bt, (grad+ln), p,piv);
+    ddense_solve_pivot(0, dim, bt, (grad+ln), p,piv);
     for(i=0;i<dim;i++){
       //This below is:      grad[0*dim+i]-=grad[ln+i];
       grad[i]-=grad[ln+i];
