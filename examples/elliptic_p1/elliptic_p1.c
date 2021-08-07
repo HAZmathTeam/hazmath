@@ -19,7 +19,7 @@
 #endif
 /////////////////////////////////////////////////////////////////
 #ifndef REFINEMENT_LEVELS
-#define REFINEMENT_LEVELS 5
+#define REFINEMENT_LEVELS 3
 #endif
 
 #ifndef SPATIAL_DIMENSION
@@ -153,9 +153,9 @@ int main(int argc, char *argv[])
   case 3:
     sc=mesh3d();    
     if( uniref ){
-      //      fprintf(stdout,"\n3d:level=");
+      fprintf(stdout,"\ndim=%dd(uniform):level=",dim);
       for(jlevel=0;jlevel<ref_levels;++jlevel){
-	//	fprintf(stdout,".%d.",jlevel+1);fflush(stdout);
+	fprintf(stdout,".%d.",jlevel+1);fflush(stdout);
 	uniformrefine3d(sc);
 	sc_vols(sc);
       }
@@ -166,9 +166,9 @@ int main(int argc, char *argv[])
   default:
     sc=mesh2d();
     if( uniref ){
-      //      fprintf(stdout,"\n2d:level=");
+      fprintf(stdout,"\ndim=%dd(uniform):level=",dim);
       for(jlevel=0;jlevel<ref_levels;++jlevel){
-	//	fprintf(stdout,".%d.",jlevel+1);fflush(stdout);
+	fprintf(stdout,".%d.",jlevel+1);fflush(stdout);
 	uniformrefine2d(sc);
       }
       find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
@@ -186,11 +186,12 @@ int main(int argc, char *argv[])
     //    fprintf(stdout,"\nlevels=%d",ref_levels);fflush(stdout);
     find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
     sc_vols(sc);
-    for(jlevel=0;jlevel<ref_levels;jlevel++){
+    //    fprintf(stdout,"\ndim=%dd(newest):level=",dim);
+    for(jlevel=0;jlevel<ref_levels;++jlevel){
+      //      fprintf(stdout,".%d.",jlevel+1);fflush(stdout);
       /* choose the finest grid */
       sctop=scfinest(sc);
       // solve the FE
-      sctop->vols=realloc(sctop->vols,sctop->ns*sizeof(REAL));
       sol=fe_sol(sctop,1.0,1.0);
       /* mark everything; or use an estimator */
       marked.row=sctop->ns;
@@ -205,7 +206,6 @@ int main(int argc, char *argv[])
       /*  MAKE sc to be the finest grid only */
     }
     scfinalize(sc);
-    sc->vols=realloc(sc->vols,sc->ns*sizeof(REAL));
     sc_vols(sc);
   }
   //  icsr_print_matlab(stdout,sc->parent_v);
@@ -214,25 +214,25 @@ int main(int argc, char *argv[])
   // find the boundary simplicial complex:
   INT idsc;
   scomplex *dsc=sc_bndry(sc);
-  if(dim==4 || dim ==3){
-    // stereographic projection (only in 4D)
+  if(dim==4){                      // || dim ==3){
+    // stereographic projection (in 4D)
     idsc = stereo_g(dsc);
     /* write the output mesh file:    */
-    //  hazw(grid_file,sc,0);
+    //  hazw(grid_file,dsc,0);
   } else{
     idsc=0;
   }
   /* WRITE THE OUTPUT vtu file for paraview: can be viewed with
      paraview */
   if(dim==2){
-    vtkw("2d.vtu",sc,0,1.);
+    vtkw("output/2d.vtu",sc,0,1.);
   } else if(dim==3){
-    vtkw("3d.vtu",sc,0,1.);
-    if(dsc) 
-      vtkw("stereo3d.vtu",dsc,0,1.);
+    vtkw("output/3d.vtu",sc,0,1.);
+    /* if(dsc)  */
+    /*   vtkw("output/stereo3d.vtu",dsc,0,1.); */
   } else if(dim==4){
-    if(dsc)
-      vtkw("stereo4d.vtu",dsc,0,1.);
+    /* if(dsc) */
+    /*   vtkw("output/stereo4d.vtu",dsc,0,1.); */
   } else {
     fprintf(stdout,"\nNO PLOT: Dimension=%d is too large for plotting",dim);
   }
