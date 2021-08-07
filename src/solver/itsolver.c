@@ -1011,12 +1011,11 @@ INT linear_solver_dcsr_krylov_amg(dCSRmat *A,
         get_time(&solver_end);
         solver_duration = solver_end - solver_start;
         print_cputime("AMG_Krylov method totally", solver_duration);
-        printf("**********************************************************\n");
+        fprintf(stdout,"**********************************************************\n");
     }
 
 FINISHED:
-    amg_data_free(mgl, amgparam);
-
+    amg_data_free(mgl, amgparam);free(mgl);
     return status;
 }
 

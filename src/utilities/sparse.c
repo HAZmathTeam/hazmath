@@ -4188,9 +4188,13 @@ void uniqueij(iCSRmat *U, ivector *ii, ivector *jj)
     }
     nv = nv + 1;
     INT nnz = ii->row;
-    INT *ia = (INT *)calloc((nv+1),sizeof(INT));
-    INT *ja = (INT *)calloc(nnz,sizeof(INT));
-
+    U->IA=calloc(nv+1,sizeof(INT));
+    U->JA=calloc(nnz,sizeof(INT));
+    if(U->val) {
+      free(U->val);U->val=NULL;
+    }
+    //
+    INT *ia=U->IA, *ja=U->JA;//alias
     INT *rowind = ii->val;
     INT *colind = jj->val;
     INT iind, jind;
@@ -4270,35 +4274,16 @@ void uniqueij(iCSRmat *U, ivector *ii, ivector *jj)
       iai=ia[i+1];
       ia[i+1]=nnz;
     }
-    ja=realloc(ja,nnz*sizeof(INT));
-    U->row = nv; U->col = nv; U->nnz = nnz; U->IA = ia; U->JA=ja; U->val = NULL;
+    U->JA=realloc(U->JA,nnz*sizeof(INT));
+    U->row = nv; U->col = nv; U->nnz = nnz;
     //
     /* sorting the i-th row of U to get ja[ia[i]]:ja[ia[i+1]-1] in
        ascending lexicographic order */    
     iCSRmat UT; 
     icsr_trans(U,&UT);
     icsr_trans(&UT,U);
-    if(UT.IA) free(UT.IA);
-    if(UT.JA) free(UT.JA);
-    if(UT.val) free(UT.val);
+    icsr_free(&UT);
     /**END sorting**/
-    /**/
-    /* if desired, use bubble sorting below: sorting the i-th row of U to get
-       ja[ia[i]]:ja[ia[i+1]-1] in ascending lexicographic order */    
-    /* INT tmp,k; */
-    /* for (i=0;i<nv;i++){ */
-    /*   ih = ia[i+1]-ia[i]; */
-    /*   for (j=0;j<ih;j++){ */
-    /*     for (k=j+1;k<ih;k++) { */
-    /*       if (ja[ia[i]+j]>ja[ia[i]+k]) { */
-    /*         tmp = ja[ia[i]+j]; */
-    /*         ja[ia[i]+j] = ja[ia[i]+k]; */
-    /*         ja[ia[i]+k] = tmp; */
-    /*       } */
-    /*     } */
-    /*   } */
-    /* } */
-    /* U->JA = ja; */
     return;
 }
 

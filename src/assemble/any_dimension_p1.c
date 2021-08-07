@@ -215,9 +215,7 @@ INT assemble_p1(scomplex *sc, dCSRmat *A, dCSRmat *M)
   nv=sc->nv;// shorthand for num vertices. 
   ns=sc->ns; // shorthand for num simplices
   /*=====================================================*/
-  // compute dim!=dim_factorial (needed for the volume):  
-  fact=1e0;
-  for (j=2;j<dim1;j++) fact *= ((REAL )j);
+  fact=sc->factorial;
   //
   // local mass matrix: it is a constant matrix times the volume of an element.
   REAL *mlocal=local_mm(dim);
@@ -299,15 +297,24 @@ INT assemble_p1(scomplex *sc, dCSRmat *A, dCSRmat *M)
   dcsr_rap_agg(PT,m_dg,P,M);
   dcsr_rap_agg(PT,a_dg,P,A);
   // free the element matrices
-  dcsr_free(m_dg);
-  free(a_dg->val);
+  if(m_dg) {
+    dcsr_free(m_dg);
+    free(m_dg);
+  }  
+  if(a_dg->val) free(a_dg->val);  
+  if(a_dg) free(a_dg);
   // free all the rest;
   free(xs);
   free(slocal);
   free(grad);
   free(wrk);
-  dcsr_free(P);
-  dcsr_free(PT);
+  free(mlocal);
+  if(P) {
+    dcsr_free(P);free(P);
+  }
+  if(PT){
+    dcsr_free(PT);free(PT);
+  }
   return 0;
 }
 /****************************************************************************/
