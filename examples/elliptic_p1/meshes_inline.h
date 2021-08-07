@@ -1,9 +1,10 @@
-/*! \file src/amr/meshes_inline.h
+/*! \file examples/elliptic_p1/meshes_inline.h
  *
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 20190420.
  *  Copyright 2019__HAZMATH__. All rights reserved.
  *
- *  \note Just 2d and 3d mesh examples entered statically by hand/
+ *  \note Examples with initial meshes on the unit cube in R(d),
+ *  d=2,3,4, and 5.
  *
  *  \note: modified by ltz on 20210601
  *
