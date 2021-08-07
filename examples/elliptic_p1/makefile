@@ -4,7 +4,7 @@
 # SRC File name
 SRCFILE = elliptic_p1
 
-HEADERS = meshes_inline.h stereo_g.h
+HEADERS = meshes_inline.h $(SRCFILE)_supporting.h
 
 INCLUDE =
 
