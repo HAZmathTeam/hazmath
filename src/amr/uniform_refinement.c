@@ -34,7 +34,7 @@ void get_edge2d(iCSRmat *e2v, iCSRmat *el2e, scomplex *sc)
 {
   INT nv = sc->nv, ns = sc->ns, ns2=2*ns, ns3=3*ns, i, j, k, ih, n0, n1, n2, tmp;
   ivector ii = ivec_create(ns3), jj = ivec_create(ns3); 
-  iCSRmat U, el2v_csr = icsr_create(ns,nv,ns3), v2e, el2e0;
+  iCSRmat U=icsr_create(0,0,0), el2v_csr = icsr_create(ns,nv,ns3), v2e, el2e0;
   el2v_csr.IA[0] = 0;
   INT *el2v=sc->nodes;
   /* The pair  (ii,jj) encodes three edges in each element in ascending lexicographic order */
@@ -162,7 +162,7 @@ void get_edge3d(iCSRmat *e2v, iCSRmat *el2e, scomplex *sc)
   INT nv = sc->nv, ns = sc->ns, ns2=2*ns, ns3=3*ns, ns4=4*ns, ns5=5*ns, \
   i, j, k, ih, n0, n1, n2, n3, tmp;
   ivector ii = ivec_create(6*ns), jj = ivec_create(6*ns); 
-  iCSRmat U, el2v_csr = icsr_create(ns,nv,4*ns), v2e, el2e0;
+  iCSRmat U=icsr_create(0,0,0), el2v_csr = icsr_create(ns,nv,4*ns), v2e, el2e0;
   INT *el2v = sc->nodes;
   el2v_csr.IA[0] = 0;
   /* The pair  (ii,jj) encodes 6 edges in each element in ascending lexicographic order */

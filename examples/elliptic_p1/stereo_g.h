@@ -15,7 +15,7 @@ scomplex *sc_bndry(scomplex *sc)
 {
   // finds the boundary simplicial complex of a simplicial complex. 
   INT ns = sc->ns,nv=sc->nv, dim=sc->n;
-  scomplex *dsc=malloc(1*sizeof(scomplex));//boundary scomplex
+  scomplex *dsc=malloc(sizeof(scomplex));//boundary scomplex
   INT dim1=dim+1,iii,i,j,k,l,m,isn1,is,nnzbf,ns_b1,in1,jn1;
   INT ns_b=0;
   for(i=0;i<ns;i++){

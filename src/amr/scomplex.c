@@ -35,6 +35,7 @@ void haz_scomplex_realloc(scomplex *sc)
   sc->bndry=realloc(sc->bndry,nv*sizeof(INT));
   sc->csys=realloc(sc->csys,nv*sizeof(INT));
   sc->flags=realloc(sc->flags,ns*sizeof(INT)); // element flags
+  sc->vols=realloc(sc->vols,ns*sizeof(REAL)); // element flags
   for (i = 0;i<sc->ns;i++) {
     sc->marked[i] = FALSE; // because first is used for something else.
     sc->gen[i] = 0;

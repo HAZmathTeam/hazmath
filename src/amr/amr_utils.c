@@ -421,7 +421,7 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
   //  is=0;//(INT )(ns/2);
   for(kcc=0;kcc<cc;kcc++){
     ireflect=-10;
-    it=blk_dfs->JA[blk_dfs->JA[kcc]];
+    it=blk_dfs->JA[blk_dfs->IA[kcc]];
     if(print_level>5){
       fprintf(stdout,
 	      "\n%s: Component=%d; root=%d;\n",__FUNCTION__,kcc,it);fflush(stdout);
@@ -492,6 +492,9 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
   if(neib) {
     icsr_free(neib); free(neib);
   }
+  if(blk_dfs) {
+    icsr_free(blk_dfs); free(blk_dfs);
+  }
   return;
 }
 /******************************************************************/
@@ -516,7 +519,7 @@ scomplex *scfinest(scomplex *sc)
       number.  sc has all the hierarchy, on return sctop only has
       only the final mesh.
   */
-  /*firt step: compute the number of simplices on the final level */
+  /*first step: compute the number of simplices on the final level */
   ns=0;
   for (j=0;j<sc->ns;j++){
     /* On the last grid are all simplices that were not refined,
@@ -540,6 +543,7 @@ scomplex *scfinest(scomplex *sc)
       }
       sctop->flags[ns]=sc->flags[j];
       sctop->marked[ns]=sc->marked[j];// making sure nothing is marked on the top for refinement;
+      sctop->vols[ns]=sc->vols[j];// making sure nothing is marked on the top for refinement;
       ns++;
     }
   }
@@ -599,6 +603,7 @@ void scfinalize(scomplex *sc)
   sc->ns=ns;
   sc->nodes=realloc(sc->nodes,n1*sc->ns*sizeof(INT));
   sc->nbr=realloc(sc->nbr,n1*sc->ns*sizeof(INT));
+  sc->vols=realloc(sc->vols,sc->ns*sizeof(REAL));
   find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
   //  haz_scomplex_print(sc,0,"ZZZ");fflush(stdout);
   // make all boundary codes negative which by default should be

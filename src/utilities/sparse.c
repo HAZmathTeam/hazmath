@@ -4188,9 +4188,13 @@ void uniqueij(iCSRmat *U, ivector *ii, ivector *jj)
     }
     nv = nv + 1;
     INT nnz = ii->row;
-    INT *ia = (INT *)calloc((nv+1),sizeof(INT));
-    INT *ja = (INT *)calloc(nnz,sizeof(INT));
-
+    U->IA=calloc(nv+1,sizeof(INT));
+    U->JA=calloc(nnz,sizeof(INT));
+    if(U->val) {
+      free(U->val);U->val=NULL;
+    }
+    //
+    INT *ia=U->IA, *ja=U->JA;//alias
     INT *rowind = ii->val;
     INT *colind = jj->val;
     INT iind, jind;
@@ -4270,8 +4274,8 @@ void uniqueij(iCSRmat *U, ivector *ii, ivector *jj)
       iai=ia[i+1];
       ia[i+1]=nnz;
     }
-    ja=realloc(ja,nnz*sizeof(INT));
-    U->row = nv; U->col = nv; U->nnz = nnz; U->IA = ia; U->JA=ja; U->val=NULL;
+    U->JA=realloc(U->JA,nnz*sizeof(INT));
+    U->row = nv; U->col = nv; U->nnz = nnz;
     //
     /* sorting the i-th row of U to get ja[ia[i]]:ja[ia[i+1]-1] in
        ascending lexicographic order */    
