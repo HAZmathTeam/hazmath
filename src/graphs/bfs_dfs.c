@@ -613,7 +613,7 @@ iCSRmat *run_dfs(INT n, INT *ia, INT *ja)
   INT i,pos;
   //  INT j,k;
   // short hand;
-  iCSRmat *dfs=malloc(1*sizeof(iCSRmat));
+  iCSRmat *dfs=malloc(sizeof(iCSRmat));
   dfs[0]=icsr_create(n,n,n);
   //  INT *mask=dfs->val;
   for (i=0;i<n;++i) dfs->val[i]=0;  

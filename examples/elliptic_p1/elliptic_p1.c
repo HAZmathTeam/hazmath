@@ -13,6 +13,19 @@
 #include "meshes_inline.h"
 #include "stereo_g.h"
 /****************************************************************************/
+// refinement type: 1 is uniform and 0 is newest vertex bisection
+#ifndef UNIFORM_REFINEMENT
+#define UNIFORM_REFINEMENT 1
+#endif
+/////////////////////////////////////////////////////////////////
+#ifndef REFINEMENT_LEVELS
+#define REFINEMENT_LEVELS 3
+#endif
+
+#ifndef SPATIAL_DIMENSION
+#define SPATIAL_DIMENSION 3
+#endif
+
 static dvector fe_sol(scomplex *sc,				\
 		      const REAL alpha,				\
 		      const REAL gamma)
@@ -123,82 +136,111 @@ static dvector fe_sol(scomplex *sc,				\
 /****************************************************************************/
 int main(int argc, char *argv[])
 {
-  INT dim=5;// 2d,3d,4d... example
+  SHORT uniref=UNIFORM_REFINEMENT;
+  INT ref_levels=REFINEMENT_LEVELS;
+  INT dim=SPATIAL_DIMENSION;// 2d,3d,4d... example
   INT jlevel,k;
-  scomplex *sc;
+  scomplex *sc=NULL;
   switch(dim){
   case 5:
-    sc=mesh5d();    
+    sc=mesh5d();
+    uniref=0;
     break;
   case 4:
     sc=mesh4d();    
+    uniref=0;
     break;
   case 3:
     sc=mesh3d();    
+    if( uniref ){
+      fprintf(stdout,"\ndim=%dd(uniform):level=",dim);
+      for(jlevel=0;jlevel<ref_levels;++jlevel){
+	fprintf(stdout,".%d.",jlevel+1);fflush(stdout);
+	uniformrefine3d(sc);
+	sc_vols(sc);
+      }
+      find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
+      sc_vols(sc);
+    }
     break;
   default:
     sc=mesh2d();
+    if( uniref ){
+      fprintf(stdout,"\ndim=%dd(uniform):level=",dim);
+      for(jlevel=0;jlevel<ref_levels;++jlevel){
+	fprintf(stdout,".%d.",jlevel+1);fflush(stdout);
+	uniformrefine2d(sc);
+      }
+      find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
+      sc_vols(sc);
+    }
   }
+  fprintf(stdout,"\n");
   scomplex *sctop=NULL;
-  INT ref_levels=15;
-  //
   ivector marked;
   marked.row=0;
   marked.val=NULL;
   dvector sol;
-  // end intialization 
-  for(jlevel=0;jlevel<ref_levels;jlevel++){
-    /* choose the finest grid */
-    sctop=scfinest(sc);
-    // solve the FE
-    sctop->vols=realloc(sctop->vols,sctop->ns*sizeof(REAL));
-    sol=fe_sol(sctop,1.0,1.0);
-    /* mark everything; or use an estimator */
-    marked.row=sctop->ns;
-    marked.val=realloc(marked.val,marked.row*sizeof(INT));
-    for(k=0;k<marked.row;k++) marked.val[k]=TRUE;
-    // now we refine.
-    refine(1,sc,&marked);
-    /* free */
-    dvec_free(&sol);
-    haz_scomplex_free(sctop);
-    /*  MAKE sc to be the finest grid only */
+  // end intialization
+  if(! (uniref) ){ 
+    //    fprintf(stdout,"\nlevels=%d",ref_levels);fflush(stdout);
+    find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
+    sc_vols(sc);
+    //    fprintf(stdout,"\ndim=%dd(newest):level=",dim);
+    for(jlevel=0;jlevel<ref_levels;++jlevel){
+      //      fprintf(stdout,".%d.",jlevel+1);fflush(stdout);
+      /* choose the finest grid */
+      sctop=scfinest(sc);
+      // solve the FE
+      sol=fe_sol(sctop,1.0,1.0);
+      /* mark everything; or use an estimator */
+      marked.row=sctop->ns;
+      marked.val=realloc(marked.val,marked.row*sizeof(INT));
+      /*mark everything*/
+      for(k=0;k<marked.row;k++) marked.val[k]=TRUE;
+      // now we refine.
+      refine(1,sc,&marked);
+      /* free */
+      dvec_free(&sol);
+      haz_scomplex_free(sctop);
+      /*  MAKE sc to be the finest grid only */
+    }
+    scfinalize(sc);
+    sc_vols(sc);
   }
-  scfinalize(sc);
-  sc->vols=realloc(sc->vols,sc->ns*sizeof(REAL));
+  //  icsr_print_matlab(stdout,sc->parent_v);
+  //  haz_scomplex_print(sc,0,__FUNCTION__);
   sol=fe_sol(sc,1.0,1.0);
   // find the boundary simplicial complex:
   INT idsc;
-  scomplex *dsc=NULL;
-  if(dim==4 || dim ==3){
-    dsc=sc_bndry(sc);
-    // stereographic projection (only in 4D)
+  scomplex *dsc=sc_bndry(sc);
+  if(dim==4){                      // || dim ==3){
+    // stereographic projection (in 4D)
     idsc = stereo_g(dsc);
     /* write the output mesh file:    */
-    //  hazw(grid_file,sc,0);
+    //  hazw(grid_file,dsc,0);
   } else{
     idsc=0;
   }
-  fprintf(stdout,"\n\n");
   /* WRITE THE OUTPUT vtu file for paraview: can be viewed with
      paraview */
   if(dim==2){
-    vtkw("2d.vtu",sc,0,1.);
+    vtkw("output/2d.vtu",sc,0,1.);
   } else if(dim==3){
-    vtkw("3d.vtu",sc,0,1.);
-    if(dsc) 
-      vtkw("stereo3d.vtu",dsc,0,1.);
+    vtkw("output/3d.vtu",sc,0,1.);
+    /* if(dsc)  */
+    /*   vtkw("output/stereo3d.vtu",dsc,0,1.); */
   } else if(dim==4){
-    if(dsc)
-      vtkw("stereo4d.vtu",dsc,0,1.);
+    /* if(dsc) */
+    /*   vtkw("output/stereo4d.vtu",dsc,0,1.); */
   } else {
     fprintf(stdout,"\nNO PLOT: Dimension=%d is too large for plotting",dim);
   }
   fprintf(stdout,"\n\n");
-  if(dsc) haz_scomplex_free(dsc);
   dvec_free(&sol);
   ivec_free(&marked);
   haz_scomplex_free(sc);  
+  haz_scomplex_free(dsc);
   return 0;
 }
 

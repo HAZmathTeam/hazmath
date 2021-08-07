@@ -161,7 +161,7 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
   icsr_trans(el2v,v2el);	
   iCSRmat *el2el=malloc(1*sizeof(iCSRmat));
   icsr_mxm(el2v,v2el,el2el);
-  icsr_free(v2el);
+  icsr_free(v2el);free(v2el);
   /* create fullel2el for later and work here with the copy */
   iCSRmat *fullel2el=malloc(1*sizeof(iCSRmat));
   fullel2el[0]=icsr_create(el2el->row,el2el->col,el2el->nnz);  
@@ -356,7 +356,7 @@ in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding fa
   /*******************************************************************/    
   icsr_mxm(f2v,v2f,f2f);
   /*******************************************************************/    
-  icsr_free(v2f);
+  icsr_free(v2f);free(v2f);
   /*******************************************************************/    
   /* 
      now remove all rows in f2f that correspond to interior faces and
@@ -398,7 +398,7 @@ in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding fa
   /*******************************************************************/    
   /*connected comps on the boundary*/
   //  dfs00_(&mc->nf,f2f->IA, f2f->JA,&mc->bndry_cc,iblk,jblk);  
-  icsr_free(blk_dfs);
+  icsr_free(blk_dfs);free(blk_dfs);
   blk_dfs=run_dfs(mc->nf,f2f->IA, f2f->JA);
   mc->bndry_cc=0;
   for(i=0;i<blk_dfs->row;++i){
@@ -409,8 +409,8 @@ in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding fa
   //  print_full_mat_int(1,blk_dfs->row,blk_dfs->IA,"bcc");
   //  fprintf(stdout,"\n%%In %s:connected=%d;nfi=%d\n",mc->bndry_cc,mc->nfi);fflush(stdout); 
   //icsr_nodiag(f2f);
-  icsr_free(f2f);
-  icsr_free(blk_dfs);
+  icsr_free(f2f);free(f2f);
+  icsr_free(blk_dfs);free(blk_dfs);
   /*now use the bfs*/
   INT lvl,keok,swp,keswp;
   for(lvl=0;lvl<mc->bfs->row;lvl++){
@@ -533,9 +533,9 @@ in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding fa
   /* /\*****************************************************\/     */
   /* fprintf(stdout,"\n");  */
   /* /\*****************************************************\/ */
-  icsr_free(el2v);
-  icsr_free(f2v);
-  icsr_free(el2el);
+  icsr_free(el2v);free(el2v);
+  icsr_free(f2v);free(f2v);
+  icsr_free(el2el);free(el2el);
   mc->elneib=elneib;
   mc->el2fnum=el2fnum;
   return mc;
@@ -782,8 +782,13 @@ void macrocomplex_free(macrocomplex *mc)
   free(mc->bcodesf);
   free(mc->flags);
   free(mc->etree);
-  icsr_free(mc->bfs);
-  icsr_free(mc->fullel2el);
+  if(mc->bfs) {
+    icsr_free(mc->bfs);free(mc->bfs);
+  }
+  if(mc->fullel2el) {
+    icsr_free(mc->fullel2el);free(mc->fullel2el);
+  }
+  if(mc) free(mc);
   return;
 }
 /**********************************************************************/
