@@ -84,9 +84,9 @@ static void coarse_fracinv(dCSRmat *A,
 
     // x = A^-s b = V Lambda^-s V^T b
     REAL *temp = calloc(n, sizeof(REAL)); // temp = 0
-    atbyvfull(n, temp, v, b->val, n); // temp = V^T b + temp
+    ddense_atbyv(n, temp, v, b->val, n); // temp = V^T b + temp
     for(i = 0; i < n; ++i) temp[i] *= pow(lambda[i], -power); // temp[i] = temp[i] * lambda_i^-s
-    abyvfull(n, x->val, v, temp, n); // x = V * temp + x (if x = 0)
+    ddense_abyv(n, x->val, v, temp, n); // x = V * temp + x (if x = 0)
 
 }
 

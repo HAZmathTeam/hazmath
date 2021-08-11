@@ -4188,13 +4188,13 @@ void uniqueij(iCSRmat *U, ivector *ii, ivector *jj)
     }
     nv = nv + 1;
     INT nnz = ii->row;
-    U->IA=calloc(nv+1,sizeof(INT));
-    U->JA=calloc(nnz,sizeof(INT));
+    U->IA=realloc(U->IA,(nv+1)*sizeof(INT));
+    U->JA=realloc(U->JA,nnz*sizeof(INT));
     if(U->val) {
       free(U->val);U->val=NULL;
     }
     //
-    INT *ia=U->IA, *ja=U->JA;//alias
+    //    INT *ia=U->IA; INT *ja=U->JA;//alias
     INT *rowind = ii->val;
     INT *colind = jj->val;
     INT iind, jind;
@@ -4203,16 +4203,16 @@ void uniqueij(iCSRmat *U, ivector *ii, ivector *jj)
 
     for (i=0; i<nnz; ++i) ind0[rowind[i]+1]++;
 
-    ia[0] = 0;
+    U->IA[0] = 0;
     for (i=1; i<=nv; ++i) {
-        ia[i] = ia[i-1]+ind0[i];
-        ind0[i] = ia[i];
+        U->IA[i] = U->IA[i-1]+ind0[i];
+        ind0[i] = U->IA[i];
     }
 
     for (i=0; i<nnz; ++i) {
         iind = rowind[i];
         jind = ind0[iind];
-        ja[jind] = colind[i];
+        U->JA[jind] = colind[i];
         ind0[iind] = ++jind;
     }
 
@@ -4221,23 +4221,23 @@ void uniqueij(iCSRmat *U, ivector *ii, ivector *jj)
     // delete duplicated entries
     INT ij,ih,iai;
     SHORT norepeat;
-    INT maxdeg=ia[1]-ia[0];
+    INT maxdeg=U->IA[1]-U->IA[0];
 
     INT *ind = (INT *) calloc(nv,sizeof(INT));
     for (i=0; i<nv; ++i) ind[i]=-1;
     // clean up because there might be some repeated indices
     // compute max degree of all vertices (for memory allocation):
     for (i=1;i<nv;++i){
-      ih=ia[i+1]-ia[i];
+      ih=U->IA[i+1]-U->IA[i];
       if(maxdeg<ih) maxdeg=ih;
     }    
     INT *jatmp=calloc(maxdeg,sizeof(INT));    
     nnz=0;
     for (i=0;i<nv;++i){
       // loop over each row. first find the length of the row:
-      ih=ia[i+1]-ia[i];
+      ih=U->IA[i+1]-U->IA[i];
       // copy the indices in tmp arrays.
-      memcpy(jatmp,(ja+ia[i]),ih*sizeof(INT));
+      memcpy(jatmp,(U->JA+U->IA[i]),ih*sizeof(INT));
       norepeat=1;
       for(ij=0;ij<ih;++ij){
       	j=jatmp[ij];
@@ -4257,27 +4257,27 @@ void uniqueij(iCSRmat *U, ivector *ii, ivector *jj)
       // put everything back, but now we have negative column indices
       // on the repeated column indices and we have accumulated the
       // values in the first position of j on every row. 
-      memcpy(&ja[ia[i]],jatmp,ih*sizeof(INT));
+      memcpy(&U->JA[U->IA[i]],jatmp,ih*sizeof(INT));
     }
     if (ind) free(ind);
     if(jatmp) free(jatmp);
     // run over the matrix and remove all negative column indices.
-    iai=ia[0];
+    iai=U->IA[0];
     nnz=0;
     for (i=0;i<nv;++i){
-      for(ij=iai;ij<ia[i+1];++ij){
-      	j=ja[ij];
+      for(ij=iai;ij<U->IA[i+1];++ij){
+      	j=U->JA[ij];
       	if(j<0) continue;
-      	ja[nnz]=ja[ij];
-	      ++nnz;
+      	U->JA[nnz]=U->JA[ij];
+	++nnz;
       }
-      iai=ia[i+1];
-      ia[i+1]=nnz;
+      iai=U->IA[i+1];
+      U->IA[i+1]=nnz;
     }
     U->JA=realloc(U->JA,nnz*sizeof(INT));
     U->row = nv; U->col = nv; U->nnz = nnz;
     //
-    /* sorting the i-th row of U to get ja[ia[i]]:ja[ia[i+1]-1] in
+    /* sorting the i-th row of U to get U->JA[U->IA[i]]:U->JA[U->IA[i+1]-1] in
        ascending lexicographic order */    
     iCSRmat UT; 
     icsr_trans(U,&UT);

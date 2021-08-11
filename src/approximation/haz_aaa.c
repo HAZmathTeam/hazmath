@@ -71,9 +71,9 @@ static void poles_alg2(INT m,REAL16 *pol,REAL16 *w,REAL16 *z)
     memset(col_id,0,m1*sizeof(REAL16));
     col_id[i]=1e00;
     if(i==0)
-      solve_pivot_l(1,m1,ewrk,col_id,perm,pivot);
+      ddense_solve_pivot_l(1,m1,ewrk,col_id,perm,pivot);
     else
-      solve_pivot_l(0,m1,ewrk,col_id,perm,pivot);      
+      ddense_solve_pivot_l(0,m1,ewrk,col_id,perm,pivot);      
     for(j=0;j<m;j++){
       einv[i*m+j]=(REAL )col_id[j];
     }
@@ -145,7 +145,7 @@ static void get_res(const INT m,		\
   }
   //rhs
   for(j=0;j<m;j++) res[j]=f[j];
-  solve_pivot_l(1,m,apol,res,perm,piv);
+  ddense_solve_pivot_l(1,m,apol,res,perm,piv);
   /* for(i=0;i<m;i++){ */
   /*   //    fprintf(stdout,"\npiv(%d)=%.18Le;",i+1,apol[i*m+i]); */
   /*   fprintf(stdout,"\nperm(%d)=%d;",i+1,perm[i]+1); */

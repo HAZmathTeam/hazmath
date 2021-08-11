@@ -35,10 +35,10 @@
  * \note
  */
 SHORT grad_compute(INT dim, REAL factorial, REAL *xs, REAL *grad,	\
-		   REAL *vols,						\
 		   void *wrk)
 {
   INT dim1 = dim+1,i,j,j1,ln,ln1;
+  REAL vols;
   REAL *bt=(REAL *)wrk;
   REAL *piv=bt+dim*dim;
   INT *p = (INT *)(wrk+(dim*dim + dim)*sizeof(REAL));
@@ -52,12 +52,12 @@ SHORT grad_compute(INT dim, REAL factorial, REAL *xs, REAL *grad,	\
   //  print_full_mat(dim,dim,bt,"bt");
   //  print_full_mat(dim,1,piv,"piv");
   // lu decomposition of bt
-  if(lufull(1, dim, vols, bt,p,piv)) {
+  if(ddense_lu(1, dim, &vols, bt,p,piv)) {
     //print_full_mat(dim,dim,bt,"bt");
-    vols[0]=0.;
+    //    vols=0.;
     return 1; // this is a degenerate simplex
-  } else
-    vols[0]=fabs(vols[0])/factorial;
+  }// else
+   // vols=fabs(vols)/factorial;
   // in this setting grad is (dim+1) x dim matrix, one barycentric gradient per row???
   memset(grad,0,dim1*dim*sizeof(REAL));
   for (j = 1; j<dim1;j++){
@@ -65,7 +65,7 @@ SHORT grad_compute(INT dim, REAL factorial, REAL *xs, REAL *grad,	\
     ln=j*dim;
     grad[ln+j1]=1.;
     // compute B^{-T}*"a column(identity)"
-    solve_pivot(0, dim, bt, (grad+ln), p,piv);
+    ddense_solve_pivot(0, dim, bt, (grad+ln), p,piv);
     for(i=0;i<dim;i++){
       //This below is:      grad[0*dim+i]-=grad[ln+i];
       grad[i]-=grad[ln+i];
@@ -254,8 +254,10 @@ INT assemble_p1(scomplex *sc, dCSRmat *A, dCSRmat *M)
 						 // vertex numbers in
 						 // element i
     // compute gradients
-    grad_compute(dim, fact, xs, grad,&volume,wrk);
-    sc->vols[i]=volume;
+    grad_compute(dim, fact, xs, grad,wrk);
+    //    print_full_mat(dim1,dim,grad,"grad");fflush(stdout);
+    volume=sc->vols[i];
+    //    sc->vols[i]=volume;
     //    fprintf(stdout,"\nvolume[%d]=%.5e",i,sc->vols[i]);fflush(stdout);
     // copute local stiffness matrix as grad*transpose(grad);
     local_sm(slocal,grad,dim,volume);
