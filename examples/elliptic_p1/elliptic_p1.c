@@ -11,74 +11,60 @@
 /*********************************************************************/
 
 #include "hazmath.h"
-#include "meshes_inline.h"
 #include "elliptic_p1_supporting.h"
 /****************************************************************************/
-// refinement type: 1 is uniform and 0 is newest vertex bisection
-#ifndef UNIFORM_REFINEMENT
-#define UNIFORM_REFINEMENT 1
+/* refinement type: >10 is uniform and < 10 (typically 0)is newest */
+/* vertex bisection */
+#ifndef REFINEMENT_TYPE
+#define REFINEMENT_TYPE 11
 #endif
-/////////////////////////////////////////////////////////////////
+/**/
 #ifndef REFINEMENT_LEVELS
-#define REFINEMENT_LEVELS 9
+#define REFINEMENT_LEVELS 6
 #endif
 
 #ifndef SPATIAL_DIMENSION
-#define SPATIAL_DIMENSION 4
+#define SPATIAL_DIMENSION 3
 #endif
 /****************************************************************************/
 int main(int argc, char *argv[])
 {
-  SHORT uniref=UNIFORM_REFINEMENT;
   INT ref_levels=REFINEMENT_LEVELS;
-  INT dim=SPATIAL_DIMENSION;// 2d,3d,4d... example
+  INT dim=SPATIAL_DIMENSION;
+  INT ref_type=REFINEMENT_TYPE; // >10 uniform refinement;
+  //
   INT jlevel,k;
-  scomplex *sc=NULL;
-  switch(dim){
-  case 5:
-    sc=mesh5d();
-    uniref=0;
-    break;
-  case 4:
-    sc=mesh4d();    
-    uniref=0;
-    break;
-  case 3:
-    sc=mesh3d();    
-    if( uniref ){
-      fprintf(stdout,"\ndim=%dd(uniform):level=",dim);
+  scomplex *sc=NULL,*sctop=NULL;
+  /**/
+  ivector marked;  marked.row=0;  marked.val=NULL;
+  dvector sol;  sol.row=0;  sol.val=NULL;
+  sc=mesh_cube_init(dim,ref_type);
+  /**/
+  if(sc->ref_type>10){
+    //      fprintf(stdout,"\ndim=%dd(uniform):level=",dim);
+    if(dim==3){
       for(jlevel=0;jlevel<ref_levels;++jlevel){
-	fprintf(stdout,".%d.",jlevel+1);fflush(stdout);
+	//	fprintf(stdout,".%d.",jlevel+1);fflush(stdout);
 	uniformrefine3d(sc);
 	sc_vols(sc);
       }
-      find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
-      sc_vols(sc);
-    }
-    break;
-  default:
-    sc=mesh2d();
-    if( uniref ){
-      fprintf(stdout,"\ndim=%dd(uniform):level=",dim);
+    } else if(dim ==2){
       for(jlevel=0;jlevel<ref_levels;++jlevel){
-	fprintf(stdout,".%d.",jlevel+1);fflush(stdout);
+	//	fprintf(stdout,".%d.",jlevel+1);fflush(stdout);
 	uniformrefine2d(sc);
+	sc_vols(sc);
       }
-      find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
-      sc_vols(sc);
+    } else {
+      fprintf(stderr,"\n%%%% ERROR: WRONG spatial dimension for uniform refinement");
     }
-  }
-  fprintf(stdout,"\n");
-  scomplex *sctop=NULL;
-  ivector marked;
-  marked.row=0;
-  marked.val=NULL;
-  dvector sol;
-  // end intialization
-  if(! (uniref) ){ 
-    //    fprintf(stdout,"\nlevels=%d",ref_levels);fflush(stdout);
     find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
     sc_vols(sc);
+  } else {
+    //  fprintf(stdout,"\n");
+    // end intialization
+    //    fprintf(stdout,"\nlevels=%d",ref_levels);fflush(stdout);
+    //    find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
+    // sc_vols(sc); these shouls all be found already
     //    fprintf(stdout,"\ndim=%dd(newest):level=",dim);
     for(jlevel=0;jlevel<ref_levels;++jlevel){
       //      fprintf(stdout,".%d.",jlevel+1);fflush(stdout);
@@ -106,7 +92,8 @@ int main(int argc, char *argv[])
   sol=fe_sol(sc,1.0,1.0);
   scomplex *dsc=malloc(sizeof(scomplex));//boundary scomplex
   dsc[0]=sc_bndry(sc);
-  draw_grids((SHORT )1, sc,dsc, &sol);
+  SHORT todraw=1;
+  draw_grids(todraw, sc,dsc, &sol);
   /* write the output mesh file:    */
   //  hazw("output/mesh.haz",sc,0);
   //  hazw("output/dmesh.haz",dsc,0);
