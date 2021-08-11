@@ -141,7 +141,7 @@ INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)
   //  fflush(stdout);
   for(i=0;i<n;i++)
     xhat[i] = xstar[i]-xs[l0n+i];
-  solve_pivot(1, n, A, xhat, p, piv);
+  ddense_solve_pivot(1, n, A, xhat, p, piv);
   REAL xhatn=1e0,eps0=1e-10,xmax=1e0+eps0;
   /* check the solution if within bounds */
   INT flag = 0;
@@ -643,7 +643,7 @@ void scfinalize(scomplex *sc)
 /*!
  * \fn void cube2simp_free(cube2simp *c2s)
  *
- * \brief
+ * \brief free all arrays in the cube-to-simplex structure
  *
  * \param
  *
@@ -666,7 +666,9 @@ void cube2simp_free(cube2simp *c2s)
 /*!
  * \fn static void binary0(cube2simp *c2s)
  *
- * \brief
+ * \brief stores in an array the coordinates of the vertices of the
+ *        unit cube in dimension (dim). Lexicographical ordering from
+ *        0,0,...,0 to 1,1,...,1
  *
  * \param
  *
@@ -677,10 +679,6 @@ void cube2simp_free(cube2simp *c2s)
  */
 static void binary0(cube2simp *c2s)
 {
-  // stores in an array the coordinates of the vertices of the unit
-  // cube in dimension (dim). Lexicographical ordering from 0,0,...0
-  // to 1,1,...,1
-
   INT nvcube=c2s->nvcube;
   INT shift,i,j,k,kn,nbits=c2s->n-1;
   for(k = 0;k<nvcube;k++){
@@ -692,7 +690,7 @@ static void binary0(cube2simp *c2s)
   shift=(1<<(c2s->n-1));
   INT nperm,jp=-22,jpo=-22,mid=(int)(c2s->nvcube/2);
   for(k=0;k<nvcube;k++) c2s->perms[k]=k;
-  /* form all n+1 permutations in reverse order! it is unclear why in reverse order...*/
+  /* form all n+1 permutations in reverse order! why in reverse order?...*/
   nperm=1;
   for(j=c2s->n-1;j>=0;j--){
     jp=nperm*nvcube; jpo=jp+mid;
@@ -721,9 +719,13 @@ static void binary0(cube2simp *c2s)
 }
 /***************************************************************************/
 /*!
- * \fn static unsigned INT bitdiff(const INT dim, unsigned INT *bits1,unsigned INT *bits2)
+ * \fn static unsigned INT bitdiff(const INT dim, unsigned INT *bits1,\
+ *                                 unsigned INT *bits2)
  *
- * \brief
+ * \brief returns the l1-norm of the difference between two arrays of
+ *        unsigned integers.  this should be changed to have a void
+ *        array as input.
+ *
  *
  * \param
  *
@@ -734,10 +736,6 @@ static void binary0(cube2simp *c2s)
  */
 static unsigned INT bitdiff(const INT dim, unsigned INT *bits1,unsigned INT *bits2)
 {
-  /*
-    returns the l1-norm of the difference two arrays of unsigned
-    integers.  this should be changed to have a void array as input.
-  */
   INT j;
   unsigned INT numbits=0;
   for(j=0;j<dim;j++){
@@ -749,7 +747,8 @@ static unsigned INT bitdiff(const INT dim, unsigned INT *bits1,unsigned INT *bit
 /*!
  * \fn void reverse(void *arr,INT length, size_t elsize)
  *
- * \brief
+ * \brief permutes a void array whose elements are of size elsize
+ *        a[0],...a_[length-1]-->a[length-1],...a[0].
  *
  * \param
  *
@@ -760,10 +759,6 @@ static unsigned INT bitdiff(const INT dim, unsigned INT *bits1,unsigned INT *bit
  */
 void reverse(void *arr,INT length, size_t elsize)
 {
-  /*
-     permutes a void array whose elements are of size elsize
-     a[0],...a_[length-1]-->a[length-1],...a[0].
-  */
   INT i,nnn=(INT)(length/2);
   void *swap=(void *)malloc(elsize);
   //  reverses ordering in an INT array;
@@ -783,7 +778,10 @@ void reverse(void *arr,INT length, size_t elsize)
 /*!
  * \fn cube2simp *cube2simplex(INT dim)
  *
- * \brief
+ * \brief in dimension dim splits the cube in dim factorial
+ *        dim-dimensional simplices. stores everything in a structure
+ *        cube2simp. It also outputs all local permutations of
+ *        vertices which can be used to create a criss-cross mesh.
  *
  * \param
  *
@@ -794,12 +792,7 @@ void reverse(void *arr,INT length, size_t elsize)
  */
 cube2simp *cube2simplex(INT dim)
 {
-  /*
-    in dimension dim splits the cube in dim factorial dim-dimensional
-    simplices. stores everything in a structure cube2simp. It also
-    outputs all local permutations of vertices which can be used to
-    create a criss-cross mesh.
-  */
+  /* */
   INT i;
   /* allocation */
   cube2simp *c2s=malloc(sizeof(cube2simp));
@@ -818,8 +811,7 @@ cube2simp *cube2simplex(INT dim)
   c2s->perms=(INT *)calloc(c2s->nvcube*(c2s->n+1),sizeof(unsigned INT));
   memset(c2s->nodes,0,(c2s->n+1)*c2s->ns*sizeof(INT));
   /*end of allocation*/
-  INT k1,kn1,k2,kn2,dim1=c2s->n+1,		\
-    nvcube=c2s->nvcube;
+  INT k1,kn1,k2,kn2,dim1=c2s->n+1,nvcube=c2s->nvcube;
   /***********************************************/
   binary0(c2s);
   /***********************************************/

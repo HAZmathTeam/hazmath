@@ -104,9 +104,9 @@ REAL volume_compute(INT dim, REAL factorial, REAL *xs,void *wrk)
       bt[ln1+i] = xs[ln+i]-xs[i];  // k-th row of bt is [x(k)-x(0)]^T. x(k) are coords of vertex k. 
     }
   }
-  //  SHORT flag=lufull(1, dim, &vol, bt,p,piv);
+  //  SHORT flag=ddense_lu(1, dim, &vol, bt,p,piv);
   //  if(flag){
-  if(lufull(1, dim, &vol, bt,p,piv)) {
+  if(ddense_lu(1, dim, &vol, bt,p,piv)) {
     return 0e0; // degeneraate simplex;
   } else
     return fabs(vol)/factorial;
@@ -170,8 +170,9 @@ scomplex *haz_scomplex_init(const INT n,INT ns, INT nv,const INT nbig)
   sc->nbig=nbig; sc->n=n;
   if(sc->nbig<=0)sc->nbig=n;
   INT n1=sc->n+1,i,j,in1;
-  sc->factorial=1.;
   sc->level=0;
+  sc->ref_type=0;
+  sc->factorial=1.;
   for (j=2;j<n1;j++) sc->factorial *= ((REAL )j);
   // fprintf(stdout,"\nIMPORTANT: NS=%d (%d!)=%f",ns,n,sc->factorial);
   sc->marked=(INT *) calloc(ns,sizeof(INT));
@@ -234,6 +235,62 @@ scomplex *haz_scomplex_init(const INT n,INT ns, INT nv,const INT nbig)
 }
 /**********************************************************************/
 /*!
+ * \fn scomplex haz_scomplex_null(const INT n,INT ns, INT nv, const INT nbig)
+ *
+ * \brief Initialize all pointers in simplicial complex to NULL;
+ * \param n is the dimension of the simplicial complex; 
+ * \param nbig is the dimension of the space where the simplicial
+ *        complex is embedded;
+ *
+ * \return initialized structure of type scomplex
+ *
+ * \note
+ *
+ */
+scomplex haz_scomplex_null(const INT n,const INT nbig)
+{
+  /*
+     n = dimension of the simplicial complex;
+     nbig = dimension of the space where the complex is embedded;
+     Future work: we should think of making this for different
+     dimensions, e.g. 2-homogenous complex in 3d
+  */
+  scomplex sc;
+  sc.nbig=nbig; sc.n=n;
+  if(sc.nbig<=0)sc.nbig=n;
+  INT n1=sc.n+1,j;
+  sc.level=0;
+  sc.ref_type=0;
+  sc.factorial=1.;
+  for (j=2;j<n1;j++) sc.factorial *= ((REAL )j);
+  // fprintf(stdout,"\nIMPORTANT: NS=%d (%d!)=%f",ns,n,sc.factorial);
+  sc.marked=NULL;
+  sc.gen=NULL;
+  sc.nbr=NULL;
+  sc.parent=NULL;
+  sc.child0=NULL;
+  sc.childn=NULL;
+  sc.nodes=NULL;
+  sc.bndry=NULL;
+  sc.csys=NULL;
+  sc.parent_v=malloc(sizeof(iCSRmat));  
+  sc.parent_v[0]=icsr_create(0,0,0);
+  sc.flags=NULL;
+  sc.x=NULL;
+  sc.vols=NULL;
+  sc.bndry_cc=1; // one connected component on the boundary for now.
+  sc.cc=1; // one connected component in the bulk for now.
+  // NULL pointers for the rest
+  sc.bcodesf=NULL;
+  sc.isbface=NULL;
+  sc.etree=NULL; 
+  sc.bfs=malloc(sizeof(iCSRmat));  
+  sc.bfs[0]=icsr_create(0,0,0);
+  // the parent_v->val is not needed for now
+  return sc;
+}
+/**********************************************************************/
+/*!
  * \fn scomplex *haz_scomplex_init_part(scomplex *sc)
  *
  * \brief Initialize simplicial complex which has already been
@@ -252,8 +309,9 @@ scomplex *haz_scomplex_init(const INT n,INT ns, INT nv,const INT nbig)
 void haz_scomplex_init_part(scomplex *sc)
 {
   INT nv=sc->nv,ns=sc->ns,n1=sc->n+1,i,j;
-  sc->factorial=1.;
   sc->level=0;
+  sc->ref_type=0;
+  sc->factorial=1.;
   for (j=2;j<n1;j++) sc->factorial *= ((REAL )j);
   // fprintf(stdout,"\nIMPORTANT: NS=%d (%d!)=%f",ns,n,sc->factorial);
   sc->marked=(INT *) calloc(ns,sizeof(INT));
@@ -311,7 +369,7 @@ void vol_simplex(INT dim, REAL fact, REAL *xf, REAL *volt, void *wrk)
     }
   }
   //  print_full_mat(dim,dim,bt,"bt");
-  if(lufull(1, dim, volt, bt,p,piv))
+  if(ddense_lu(1, dim, volt, bt,p,piv))
     *volt=0e0;
   else
     *volt=fabs(*volt)/fact;
@@ -591,7 +649,7 @@ void area_face(INT dim, REAL fact, REAL *xf, REAL *sn,	\
     }
   }
   //  print_full_mat(dim,dim,bt,"bt");
-  if(lufull(1, dim, volt, bt,p,piv))
+  if(ddense_lu(1, dim, volt, bt,p,piv))
     *volt=0e0;
   else
     *volt=fabs(*volt)/fact;
@@ -600,7 +658,7 @@ void area_face(INT dim, REAL fact, REAL *xf, REAL *sn,	\
     j1=j-1;
     ln=j*dim;
     sn[ln+j1]=-1.;
-    solve_pivot(0, dim, bt, (sn+ln), p,piv);
+    ddense_solve_pivot(0, dim, bt, (sn+ln), p,piv);
     //areas[] contains the norm of the normal vectors first (this is 1/altitude);
     areas[j]=0.;
     for(i=0;i<dim;i++){
@@ -1526,5 +1584,116 @@ mesh_struct *sc2mesh(scomplex *sc)
   fprintf(stdout,"\n%%After %d levels of refinement:\tvertices=%d ; simplices=%d in dim=%d;\n components(bdry):%d\n",   sc->level,mesh->nv,mesh->nelm,mesh->dim,mesh->nconn_bdry); fflush(stdout);
   return mesh;
 }
+/*********************************************************************/
+/*!
+ * \fn scomplex *sc_bndry(scomplex *sc)
+ *
+ * \brief creates a boundary simplicial complex from a given simplicial complex. 
+ *
+ * \param sc         I: the simplicial complex whose boundary we want to find
+ *
+ * \return  the coundary simplicial complex 
+ *
+ */
+scomplex sc_bndry(scomplex *sc)
+{
+  scomplex dsc;
+  INT ns = sc->ns,nv=sc->nv,dim=sc->n;
+  /* 
+     first find the neighbors so that we have a consistent ordering of
+     the vertices and faces. These may already be found, but if not we
+     do it again to be sure the ordering is consistent: neighbor
+     sharing face [j] is stored at the same place as vertex [j] in
+     nodes[:,j]
+   */
+  find_nbr(ns,nv,dim,sc->nodes,sc->nbr);
+  /**/
+  INT dim1=dim+1,i,j,k,m,ns_b1,in1,jn1;
+  INT ns_b=0;
+  for(i=0;i<ns;i++){
+    for(j=0;j<dim1;j++){
+      if(sc->nbr[i*dim1+j]<0)
+	ns_b++;
+    }
+  }
+  dsc.ns=ns_b;
+  // end: computation of the nuumber of boundary faces. now store the vertices for every face. 
+  INT *fnodes=calloc(ns_b*dim,sizeof(INT));
+  ns_b1=0;
+  for(i=0;i<ns;i++){
+    for(j=0;j<dim1;j++){
+      if(sc->nbr[i*dim1+j]<0) {
+	k=0;
+	for(m=0;m<dim1;m++){
+	  if(m==j) continue;
+	  fnodes[ns_b1*dim+k]=sc->nodes[i*dim1+m];
+	  //	  fprintf(stdout,"\nnodes=%d",sc->nodes[i*dim1+m]);fflush(stdout);
+	  k++;
+	}
+	ns_b1++;
+      }
+    }
+  }
+  if(ns_b!=ns_b1){
+    fprintf(stderr,"\n%%***ERROR(65): num. bndry faces mismatch (ns_b=%d .ne. ns_b=%d) in %s",ns_b1,ns_b,__FUNCTION__);
+    exit(65);
+  }
+  /* fprintf(stdout,"\nelnodes111=["); */
+  /* for(i=0;i<ns_b;++i){ */
+  /*   for(j=0;j<dim;++j){ */
+  /*     fprintf(stdout,"%4i ",fnodes[dim*i+j]); */
+  /*   } */
+  /*   fprintf(stdout,";\n"); */
+  /* } */
+  /* fprintf(stdout,"]\n"); */
+  //
+  // FIX numbering, there is global numbering of nodes and local numbering of nodes:
+  INT *indx=calloc(sc->nv,sizeof(INT));
+  INT *indxinv=calloc(sc->nv,sizeof(INT));
+  memset(indxinv,0,sc->nv*sizeof(INT));
+  // memset(indx,0,sc->nv*sizeof(INT));
+  for(i=0;i<sc->nv;++i) indx[i]=-1;
+  for(i=0;i<ns_b*dim;++i) indx[fnodes[i]]++;// for interior pts this does not get incremented
+  INT nv_b=0;
+  for(i=0;i<sc->nv;++i){
+    if(indx[i]<0) continue;// interior pt
+    indx[i]=nv_b;
+    indxinv[nv_b]=i;
+    nv_b++;
+  }
+  fprintf(stdout,"\n%%number of boundary vertices=%d (total nv=%d)\n",nv_b,sc->nv);
+  /////////// init the scomplex;
+  //  scomplex *ddsc=haz_scomplex_init((dim-1),ns_b,nv_b,dim);
+  //  dsc=ddsc[0];
+  dsc=haz_scomplex_null((sc->n-1),sc->n);
+  dsc.nv=nv_b;
+  dsc.ns=ns_b;
+  ////////////////
+  if(dsc.nbig>dsc.n){
+    fprintf(stdout,"\n%%%%In %s:Simplicial complex of dimension %d embedded in sc of dimension %d\n\n",__FUNCTION__,dsc.n,dsc.nbig);
+  }
+  // there are things we dont need:
+  //  free(dsc.nodes);
+  dsc.nodes=fnodes;
+  if(dsc.nv<sc->nv)
+    indxinv=realloc(indxinv,dsc.nv*sizeof(INT));
+  // now we can init the complex and then remove the unnecessary stuff:
+  for(i=0;i<dsc.ns*(dsc.n+1);++i)
+    fnodes[i]=indx[fnodes[i]];
+  // set x, sc->bndry and so on:
+  dsc.x=(REAL *) calloc(dsc.nv*(dsc.nbig),sizeof(REAL));
+  for(i=0;i<dsc.nv;i++){
+    in1=i*dsc.nbig;
+    j=indxinv[i];
+    jn1=j*sc->n; // original coords:
+    memcpy((dsc.x+in1),sc->x+jn1,sc->n*sizeof(REAL));
+  }
+  free(indx);
+  free(indxinv);
+  haz_scomplex_realloc(&dsc);
+  find_nbr(dsc.ns,dsc.nv,dsc.n,dsc.nodes,dsc.nbr);
+  return dsc;
+}
+
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
 /*EOF*/

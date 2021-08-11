@@ -1532,7 +1532,7 @@ void smoother_dcsr_gs_graph_eigen(dvector *u,
 
     // Use QR decomposition to find x (orthonormal basis)
     // orthogonalize eigenvectors
-    qr_full(n, num_eigen, u->val, Q, R);
+    ddense_qr(n, num_eigen, u->val, Q, R);
 
     // copy orthonormal basis Q to x
     array_cp(n*num_eigen, Q, u->val);
@@ -1600,7 +1600,7 @@ void smoother_dcsr_sgs_graph_eigen(dvector *u, dCSRmat *A, dvector *b, const INT
 
     // Use QR decomposition to find x (orthonormal basis)
     // orthogonalize eigenvectors
-    qr_full(n, num_eigen, u->val, Q, R);
+    ddense_qr(n, num_eigen, u->val, Q, R);
 
     // copy orthonormal basis Q to x
     array_cp(n*num_eigen, Q, u->val);

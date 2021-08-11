@@ -59,6 +59,7 @@ typedef struct /* n-homogenous simplicial complex */
   iCSRmat *bfs; /* bfs structure for the simplices. works for more than one connected components */
   INT *etree; /* bfs tree (etree[k]=unique_ancestor_of_k in the BFS
 		 tree) */
+  INT ref_type; /*n connected components */
   INT cc; /*n connected components */
   INT bndry_cc; /*connected components on the boundary */
 } scomplex;
@@ -117,8 +118,12 @@ typedef struct {
 	     matter */
   INT *mfaces;   /* faces and boundary codes of faces */
   INT nref;   /* number of refinements (AMR)*/
-  INT ref_type;   /* INIT refinement type -2,-1,0,1,2,3,4; which way
-		     the edges should point in initial grid: left, right forth, back, etc */
+
+  INT ref_type;   /* INIT refinement type: If ref_type =
+		     -2,-1,0,1,2,3,4, then newest vertex bisection in
+		     any d.  the negative and positive choices
+		     indicate where the edges should point in the
+		     initial grid: left, right forth, back, etc */
   INT mark_type;   /* AMR marking type (0)uniform; nonzero: user defined.. */
   REAL err_stop;   /* stop tolerance for AMR */
   // ----- refine point ---- //
