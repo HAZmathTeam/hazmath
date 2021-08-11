@@ -170,8 +170,9 @@ scomplex *haz_scomplex_init(const INT n,INT ns, INT nv,const INT nbig)
   sc->nbig=nbig; sc->n=n;
   if(sc->nbig<=0)sc->nbig=n;
   INT n1=sc->n+1,i,j,in1;
-  sc->factorial=1.;
   sc->level=0;
+  sc->ref_type=0;
+  sc->factorial=1.;
   for (j=2;j<n1;j++) sc->factorial *= ((REAL )j);
   // fprintf(stdout,"\nIMPORTANT: NS=%d (%d!)=%f",ns,n,sc->factorial);
   sc->marked=(INT *) calloc(ns,sizeof(INT));
@@ -258,8 +259,9 @@ scomplex haz_scomplex_null(const INT n,const INT nbig)
   sc.nbig=nbig; sc.n=n;
   if(sc.nbig<=0)sc.nbig=n;
   INT n1=sc.n+1,j;
-  sc.factorial=1.;
   sc.level=0;
+  sc.ref_type=0;
+  sc.factorial=1.;
   for (j=2;j<n1;j++) sc.factorial *= ((REAL )j);
   // fprintf(stdout,"\nIMPORTANT: NS=%d (%d!)=%f",ns,n,sc.factorial);
   sc.marked=NULL;
@@ -307,8 +309,9 @@ scomplex haz_scomplex_null(const INT n,const INT nbig)
 void haz_scomplex_init_part(scomplex *sc)
 {
   INT nv=sc->nv,ns=sc->ns,n1=sc->n+1,i,j;
-  sc->factorial=1.;
   sc->level=0;
+  sc->ref_type=0;
+  sc->factorial=1.;
   for (j=2;j<n1;j++) sc->factorial *= ((REAL )j);
   // fprintf(stdout,"\nIMPORTANT: NS=%d (%d!)=%f",ns,n,sc->factorial);
   sc->marked=(INT *) calloc(ns,sizeof(INT));
