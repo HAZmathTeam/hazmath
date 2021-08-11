@@ -132,6 +132,7 @@ void input_grid_free(input_grid *g)
   if(g->ox) free(g->ox);
   if(g->systypes) free(g->systypes);
   if(g->syslabels) free(g->syslabels);
+  if(g->labelsv) free(g->labelsv);
   if(g->csysv) free(g->csysv);
   if(g->bcodesv) free(g->bcodesv);
   if(g->xv) free(g->xv);
@@ -397,33 +398,29 @@ void *read_mixed_data(INT nrec, INT ni, INT nr, char *the_string)
     rdata=NULL;
   if(idata==NULL && rdata==NULL) return NULL;
   w=splits(the_string," ",&num);
-  //  for(k=0;k<num;k++)
-  //    {    fprintf(stdout,"\n[%d]:%s",k,w[k]);fflush(stdout);}
   k=0;
   for(count=0;count<nrec;count++){
-    if(w[k]==NULL) break;
     if(idata!=NULL) {
       cni=count*ni;
       for(j=0;j<ni;j++){
 	iread=sscanf(w[k],"%d",(idata+cni+j));
-	//	fprintf(stdout,"\nc=%d;z=%d ",count,idata[cni+j]);fflush(stdout);
 	if(iread<0) break;
-	free(w[k]);
 	k++;
       }
-      if(iread<0){free(w);return NULL;}
+      if(iread<0) break;
     }
     if(rdata!=NULL) {
       cnr=count*nr;
       for(j=0;j<nr;j++){
 	iread=sscanf(w[k],"%lg",(rdata+cnr+j));
 	if(iread<0) break;
-	free(w[k]);
 	k++;
       }
-      if(iread<0) {  free(w);return NULL;}
+      if(iread<0) break;
     }
   }
+  //  fprintf(stdout,"\n%%%%%%k=%d,nrec=%d,num=%d",k,nrec,num);fflush(stdout);
+  for(j=0;j<num;++j) free(w[j]);    
   free(w);
   return out;
 }
@@ -809,12 +806,10 @@ static char *get_substring(const char *pattern,	\
   size_t le;
   INT i;
   char *found=NULL, *wrk=NULL;
-  char *default_s=strndup("",1);
   //  char ch;
   le = strlen(pattern);
   found = (char *) strstr(the_string,pattern);
   if(found != NULL){
-    //    found = &(*(found + le));
     found += le;
     wrk = (char *) strstr(found,"}");
     if(wrk == NULL ){ x_out(pattern,le);}
@@ -824,10 +819,9 @@ static char *get_substring(const char *pattern,	\
     i = strlen(found)-strlen(wrk);
     if(i != *length_substring ){ x_out(pattern,le); }
   }else{
-    found=strndup(default_s,1);
+    found=strndup("",1);
     *length_substring=strlen(found);
   }
-  free(default_s);
   return found;
 }
 /**********************************************************************/
@@ -958,6 +952,11 @@ static INT check_input(char * file2str, input_grid *g,	\
   /**/
   status=read_data(clndata,g);
   /*FREE*/
+  for(k=0;k<numel_data;k++){
+    if(lengths[k]) continue;
+    //    fprintf(stdout,"\nlengths[%d]=%ld,clndata=%s\n",k,lengths[k],clndata[k]);fflush(stdout);
+    if(clndata[k]) free(clndata[k]);
+  }
   free(lengths);
   free(clndata);
   return status;
@@ -1015,6 +1014,11 @@ input_grid *parse_input_grid(FILE *the_file)
     if(g->print_level>0)
       fprintf(stdout,"\nEXAMPLE: %s\n",g->title);
     //    input_grid_example_file(g);
+    for(k=0;k<numel_data;k++) free(indata[k]);
+    free(indata);
+    for(k=0;k<numel_data;k++) free(notes[k]);
+    free(notes);
+    free(file2str);
     return g;
   default:
     break;

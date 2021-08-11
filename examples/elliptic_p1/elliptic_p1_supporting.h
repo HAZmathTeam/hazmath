@@ -267,6 +267,8 @@ static void draw_grids(const SHORT todraw,scomplex *sc,scomplex *dsc, dvector *s
     break;
   default:
     vtkw("output/2d.vtu",sc,0,1.);
+    if(dsc)
+      vtkw("output/2d_to_1d.vtu",dsc,0,1.);
   fprintf(stdout,"\n\n");
   }
   return;
