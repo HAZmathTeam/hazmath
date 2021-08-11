@@ -213,20 +213,22 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
   mc->cc=blk_dfs->row;
   //  INT *iblk=blk_dfs->IA;
   //  INT *jblk=blk_dfs->JA;
-  ivector *anc=malloc(1*sizeof(ivector));
-  ivector *roots=malloc(1*sizeof(ivector));
-  anc->row=mc->nel;
-  mc->etree=calloc((mc->nel+1),sizeof(INT));
-  anc->val=mc->etree;
-  roots->row=mc->cc;
-  roots->val=calloc(roots->row,sizeof(INT));
+  ivector roots,anc;
+  //  mc->etree=calloc((mc->nel+1),sizeof(INT));
+  roots.row=mc->cc;
+  roots.val=calloc(roots.row,sizeof(INT));
   for(kel=0;kel<mc->cc;++kel){
-    roots->val[kel]=blk_dfs->JA[blk_dfs->IA[kel]];
-    //    fprintf(stdout,"\nc_comp=%d;roots=%d",kel,roots->val[kel]);fflush(stdout); 
+    roots.val[kel]=blk_dfs->JA[blk_dfs->IA[kel]];
+    //    fprintf(stdout,"\nc_comp=%d;roots=%d",kel,roots.val[kel]);fflush(stdout); 
   }
-  //  fprintf(stdout,"\n");fflush(stdout); 
-  mc->bfs=run_bfs(mc->nel,el2el->IA,el2el->JA,roots,anc,(mc->nel+1));
-  //mc->bfs=bfscc(mc->nel,blk_dfs->IA,blk_dfs->JA,el2el,anc->val);
+  //  fprintf(stdout,"\n");fflush(stdout);
+  //
+  mc->bfs=run_bfs(mc->nel,el2el->IA,el2el->JA,&roots,&anc,(mc->nel+1));
+  //
+  ivec_free(&roots);
+  mc->etree=anc.val;// put this pointer in place;
+  //
+  //mc->bfs=bfscc(mc->nel,blk_dfs->IA,blk_dfs->JA,el2el,mc->etree);
   //  fprintf(stdout,"\nnnz0=%d ; am=[",mc->bfs->IA[0]);
   //  icsr_print_matlab_val(stdout,mc->bfs);
   //  fprintf(stdout,"];\n");
@@ -245,6 +247,7 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
   INT *isbface=mc->isbface;
   /*init*/
   /*-------------------------------------------------------------------*/
+  //////////////////////////////
   for(kel=0;kel<g0->nel;kel++){
     for(i=0;i<c2s->nf;i++){
       elneib[kel][i]=-1;
@@ -301,9 +304,9 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
 	/* fprintf(stdout,"\nadd nonzero at:%d",f2v->IA[kface]); */
 	isbface[kface]=1;
 	memcpy((f2v->JA+f2v->IA[kface]),facei,nvface*sizeof(INT));
-/* 
-in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding face;; this can also be linked to f2v and so on. 
-*/
+	/* 
+	   in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding face;; this can also be linked to f2v and so on. 
+	*/
 	el2fnum[kel][ke]=kface;
 	kface++;
       }     
@@ -418,14 +421,15 @@ in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding fa
     j1=mc->bfs->IA[lvl+1];
     for(kj=j0;kj<j1;kj++){
       jel=mc->bfs->JA[kj];
-      kel=anc->val[jel];// ancestor, this stays unchanged
+      kel=mc->etree[jel];// ancestor, this stays unchanged
+      //      fprintf(stdout,"\njel=%d;kel=%d",jel,kel);fflush(stdout);
       if(kel>=0){
   	je=locate0(jel,elneib[kel], c2s->nf);
   	ke=locate0(kel,elneib[jel], c2s->nf);
-  	//	fprintf(stdout,"\nel=%d on face %d in el %d",jel,je,kel);
+	//	fprintf(stdout,"\nel=%d on face %d in el %d",jel,je,kel);fflush(stdout);
   	keok=(je+c2s->n)%c2s->nf;
   	if(keok!=ke){
-  	  //	  fprintf(stdout,"\nel=%d on face %d (should be %d) in el *** %d ***",kel,ke,keok,jel);
+	  //  	  fprintf(stdout,"\nel=%d on face %d (should be %d) in el *** %d ***",kel,ke,keok,jel);fflush(stdout);
   	  //	  swap in jel:
   	  swp=elneib[jel][ke];
   	  elneib[jel][ke]=elneib[jel][keok];
@@ -463,7 +467,7 @@ in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding fa
       j1=mc->bfs->IA[lvl+1];
       for(kj=j0;kj<j1;kj++){
   	jel=mc->bfs->JA[kj];
-  	kel=anc->val[jel];// ancestor, this stays unchanged
+  	kel=mc->etree[jel];// ancestor, this stays unchanged
   	fprintf(stdout,"** (%d--%d)",kel,jel);
       }
     }
@@ -476,7 +480,7 @@ in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding fa
     j1=mc->bfs->IA[lvl+1];
     for(kj=j0;kj<j1;kj++){
       jel=mc->bfs->JA[kj];
-      kel=anc->val[jel];// ancestor, this stays unchanged
+      kel=mc->etree[jel];// ancestor, this stays unchanged
       //      if(kel<0){
       //	fprintf(stdout,"\n%%splitting element=%d",jel);
       //      } else {
@@ -484,9 +488,9 @@ in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding fa
   	je=locate0(jel,elneib[kel], c2s->nf);
   	ke=locate0(kel,elneib[jel], c2s->nf);
   	/*
-  	   in kel, we have the face je; in jel we have the face ke. we
-  	   want to make ke in jel same as je in kel; also the opposite
-  	   face needs to be reordered.
+	  in kel, we have the face je; in jel we have the face ke. we
+	  want to make ke in jel same as je in kel; also the opposite
+	  face needs to be reordered.
   	*/
   	for(i=0;i<nvface;i++){
   	  facei[i]=c2s->faces[ke*nvface+i];
@@ -536,6 +540,7 @@ in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding fa
   icsr_free(el2v);free(el2v);
   icsr_free(f2v);free(f2v);
   icsr_free(el2el);free(el2el);
+  free(facei);
   mc->elneib=elneib;
   mc->el2fnum=el2fnum;
   return mc;
@@ -1039,6 +1044,7 @@ void fix_grid(macrocomplex *mc,		\
     fprintf(stdout,"\n");
   }
   free(m);
+  free(mwrk);
   free(mp);
   free(mi);
   free(mip);
@@ -1122,12 +1128,12 @@ scomplex *generate_initial_grid(input_grid *g0)
     for(i=0;i<c2s->n;i++){
       nd[kel][i]=-1;
     }
-  g=malloc(1*sizeof(input_grid));
-  memset(g,0,sizeof(input_grid));
+  g=malloc(sizeof(input_grid));  //temp grid for one macroelement// we need to free this at the end
   /**/
-  g->title=g0->title;
-  g->fgrid=g0->fgrid;
-  g->fvtu=g0->fvtu;
+  g->title=strndup(g0->title,(strlen(g0->title)+1)*sizeof(char));
+  g->fgrid=strndup(g0->fgrid,(strlen(g0->fgrid)+1)*sizeof(char));
+  g->fvtu=strndup(g0->fvtu,(strlen(g0->fvtu)+1)*sizeof(char));
+  /**/
   g->print_level=g0->print_level;
   g->ref_type=g0->ref_type;
   g->nref=g0->nref;
@@ -1139,11 +1145,12 @@ scomplex *generate_initial_grid(input_grid *g0)
   g->nf=c2s->nf;
   g->ne=c2s->ne;
   g->nel=1;
+  g->num_refine_points=g0->num_refine_points;
   input_grid_arrays(g);
-  /* reassign this as these are the same as g0 */
-  free(g->systypes);   g->systypes=g0->systypes;
-  free(g->syslabels);   g->syslabels=g0->syslabels;
-  free(g->ox); g->ox=g0->ox;
+  /* copy these as these are the same as g0 */
+  memcpy(g->systypes,g0->systypes,abs(g0->ncsys)*sizeof(INT));
+  memcpy(g->syslabels,g0->syslabels,abs(g0->ncsys)*sizeof(INT));
+  memcpy(g->ox,g0->ox,g0->dim*abs(g0->ncsys)*sizeof(REAL));
   INT chng=1,iter=0,maxiter=1024;  
   //  INT je,kj,k2,iel2v,jel2v,k1,kface,kbnd,found;
   set_edges(g0,c2s);  
@@ -1155,9 +1162,6 @@ scomplex *generate_initial_grid(input_grid *g0)
   // get the macroelement mesh in a structure
   macrocomplex *mc=set_mmesh(g0,c2s,p);
   /*PLACE HOLDERS*/
-  /* iCSRmat *fullel2el=mc->fullel2el; */
-  /* INT **elneib=mc->elneib; */
-  //  INT *etree=mc->etree;
   INT **el2fnum=mc->el2fnum;
   INT *isbface=mc->isbface;
   INT *bcodesf=mc->bcodesf;
@@ -1249,6 +1253,7 @@ scomplex *generate_initial_grid(input_grid *g0)
   }
   //  fprintf(stdout,"\n%%Removing overlaps... from kel=%d elements",mc->nel);fflush(stdout);
   //,sc[mc->nel-1]->nv,sc[mc->nel-1]->nv);fflush(stdout);
+  /// the grid g-* is no longer needed
   fix_grid(mc,sc,c2s,g0);
   //  fprintf(stdout,"\n%%..\tdone\n\n");
   if(g0->print_level>4){
@@ -1259,6 +1264,7 @@ scomplex *generate_initial_grid(input_grid *g0)
   free(p);
   free(isbndf);
   free(codef);
+  input_grid_free(g);
   macrocomplex_free(mc);
   cube2simp_free(c2s);
   /* order simplex2vertex array as required by the adaptive refinement */

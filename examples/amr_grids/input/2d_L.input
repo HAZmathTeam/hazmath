@@ -5,8 +5,8 @@ title{L-shaped domain}
 dimension{2}   % spatial dimension in which the grid has to be generated
 print_level{1}	% how much information to print out: 0 less | >0 more
 refinement_type{1} %% -1 (edges going left to right in the unit cube; 1 (criss-cross).
-file_grid{outputs/2d_L.haz}
-file_vtu{outputs/2d_L.vtu}
+file_grid{output/2d_L.haz}
+file_vtu{output/2d_L.vtu}
 
 %%%%%%%%%%%%%%AMR %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% marking type: 0 everything is marked; not zero can be user defined

@@ -1,5 +1,4 @@
-
-65;6003;1c%----------------------------------------------%
+%----------------------------------------------%
 % input parameters: for grid generation        %
 %----------------------------------------------%
 %%%%%%%%%%%%%% AMR %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -21,8 +20,8 @@ print_level{1}	% how much information to print out: 0 Nothing | >0 Something
 
 refinement_type{0}
 
-file_grid{outputs/2d_circle.haz}
-file_vtu{outputs/2d_circle.vtu}
+file_grid{output/2d_circle.haz}
+file_vtu{output/2d_circle.vtu}
 
 %---------------%
 % coordinate systems: Each has coordinates of the origin o[0:dim-1]

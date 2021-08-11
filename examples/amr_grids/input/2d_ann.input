@@ -13,8 +13,8 @@ refinement_type{0} % -1 is usual
 % files: writeable by the user
 %% vtu files for plotting follow the same convention.
 %---------------%
-file_grid{outputs/2d_ann.haz}
-file_vtu{outputs/2d_ann.vtu}
+file_grid{output/2d_ann.haz}
+file_vtu{output/2d_ann.vtu}
 
 %---------------%
 % coordinate systems: Each has coordinates of the origin o[0:dim-1]

@@ -13,18 +13,18 @@
 #include "hazmath.h"
 #include "elliptic_p1_supporting.h"
 /****************************************************************************/
-/* refinement type: >10 is uniform and < 10 (typically 0)is newest */
+/* refinement type: .gt. 10 is uniform and .le. 10 (typically 0)is newest */
 /* vertex bisection */
 #ifndef REFINEMENT_TYPE
 #define REFINEMENT_TYPE 11
 #endif
 /**/
 #ifndef REFINEMENT_LEVELS
-#define REFINEMENT_LEVELS 6
+#define REFINEMENT_LEVELS 2
 #endif
 
 #ifndef SPATIAL_DIMENSION
-#define SPATIAL_DIMENSION 3
+#define SPATIAL_DIMENSION 2
 #endif
 /****************************************************************************/
 int main(int argc, char *argv[])
@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
       /* choose the finest grid */
       sctop=scfinest(sc);
       // solve the FE
-      sol=fe_sol(sctop,1.0,1.0);
+      //no need to solve here....      sol=fe_sol(sctop,1.0,1.0);
       /* mark everything; or use an estimator */
       marked.row=sctop->ns;
       marked.val=realloc(marked.val,marked.row*sizeof(INT));
@@ -92,8 +92,9 @@ int main(int argc, char *argv[])
   sol=fe_sol(sc,1.0,1.0);
   scomplex *dsc=malloc(sizeof(scomplex));//boundary scomplex
   dsc[0]=sc_bndry(sc);
-  SHORT todraw=1;
-  draw_grids(todraw, sc,dsc, &sol);
+  haz_scomplex_print(dsc,0,__FUNCTION__);
+  //  SHORT todraw=1;
+  //  draw_grids(todraw, sc,dsc, &sol);
   /* write the output mesh file:    */
   //  hazw("output/mesh.haz",sc,0);
   //  hazw("output/dmesh.haz",dsc,0);
