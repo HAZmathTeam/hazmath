@@ -248,31 +248,33 @@ scomplex *umesh(const INT dim,		\
   // Only interior points should now be left; set them to 0:
   for(kf=0;kf<sc->nv;kf++)
     if(sc->bndry[kf]>=cfbig) sc->bndry[kf]=0;      
-  /******************************************************************/
+  /*clean up*/
+  if(m) free(m);
+  if(mm) free(mm);
+  if(cnodes) free(cnodes);
+  /**/
   return sc;
 }
 /**********************************************************************/
 /*!
- * \fn
+ * \fn void unirefine(INT *nd,scomplex *sc)  
  *
- * \brief
+ * \brief refine uniformly l levels, where 2^l>max_m nd[m] using the
+ *        generic algorithm for refinement.  Works in the following
+ *        way: first construct a grid with refinements up to 2^{l}
+ *        such that 2^{l}>max_m nd[m]. then remove all x such that
+ *        x[k]>nd[k]*2^{-l} and then remap to the unit square.
  *
  * \param 
  *
  * \return
  *
- * \note
+ * \note  (20180718)--ltz
  *
  */
 void unirefine(INT *nd,scomplex *sc)  
 {
 /* 
- * refine uniformly l levels, where 2^l>max_m nd[m] using the generic
- * algorithm for refinement.  Works in the following way: first
- * construct a grid with refinements up to 2^{l} such that 2^{l}>max_m
- * nd[m]. then remove all x such that x[k]>nd[k]*2^{-l} and then remap
- * to the unit square.
- * (20180718)--ltz
 */
   INT ndmax=-1,i=-1,j=-1;
   for(i=0;i<sc->n;i++)

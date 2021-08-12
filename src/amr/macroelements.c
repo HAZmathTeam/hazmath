@@ -123,7 +123,16 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
   /********************************************************************/
   mc->flags=calloc(mc->nel,sizeof(INT));
   /**/
-  mc->nd=NULL;//later.
+  mc->nd=calloc(mc->nel,sizeof(INT*));
+  for(i=0;i<mc->nel;i++){
+    mc->nd[i]=calloc(c2s->nf,sizeof(INT)); /* to hold the number of
+					      divisions in every coordinate
+					      direction.*/
+  }
+  for(kel=0;kel<mc->nel;kel++)
+    for(i=0;i<c2s->n;i++){
+      mc->nd[kel][i]=-1;
+    }
   mc->elneib=calloc(mc->nel,sizeof(INT *));
   mc->el2fnum=calloc(mc->nel,sizeof(INT *)); 
   mc->iindex=calloc(mc->nel,sizeof(INT *)); 
@@ -547,86 +556,8 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
 }
 /**********************************************************************/
 /*!
- * \fn void scomplex_merge(scomplex **sc0, const INT nsall, const INT
- *		    nvall, const INT cc, const INT bndry_cc,
- *		    input_grid *g0,cube2simp *c2s)
- *
- * \brief combines an array of simplicial complexes together. DOES NOT
- *        REMOVE common vertices and is used only for debugging if
- *        needed.
- *
- * \param 
- *
- * \return
- *
- * \note
- *
- */
-void scomplex_merge(scomplex **sc0,			\
-		    const INT nsall, const INT nvall,	\
-		    const INT cc, const INT bndry_cc,	\
-		    input_grid *g0,cube2simp *c2s)
-{
-  if(g0->nel==1) return;
-  scomplex *sc=sc0[0];
-  INT n1=(sc->n+1),nv0,ns0,nv=nvall,ns=nsall;
-  INT kel,i,ii,j,in1,iin1;
-  sc->marked=realloc(sc->marked,ns*sizeof(INT));
-  sc->gen=realloc(sc->gen,ns*sizeof(INT));
-  sc->nbr=realloc(sc->nbr,ns*n1*sizeof(INT));
-  sc->parent=realloc(sc->parent,ns*sizeof(INT));
-  sc->child0=realloc(sc->child0,ns*sizeof(INT));
-  sc->childn=realloc(sc->childn,ns*sizeof(INT));
-  sc->nodes=realloc(sc->nodes,ns*n1*sizeof(INT));
-  sc->bndry=realloc(sc->bndry,nv*sizeof(INT));
-  sc->csys=realloc(sc->csys,nv*sizeof(INT));/* coord sys: 1 is polar, 2
-					    is cyl and so on */
-  /*connected components*/
-  sc->cc=cc;sc->bndry_cc=bndry_cc;
-  sc->flags=(INT *)realloc(sc->flags,ns*sizeof(INT));
-  sc->x=(REAL *)realloc(sc->x,nv*(sc->n)*sizeof(REAL));
-  sc->vols=(REAL *)realloc(sc->vols,ns*sizeof(REAL));
-  //  sc->fval=(REAL *)realloc(sc->fval,nv*sizeof(REAL)); // function values at every vertex; not used in general;
-  //  fprintf(stdout,"\nnsall=%d,nvall=%d",nsall,nvall);fflush(stdout);
-  for(kel=1;kel<g0->nel;kel++){
-    ns0=sc->ns;nv0=sc->nv;
-    for (ii = 0;ii<sc0[kel]->ns;ii++) {
-      i=ii+ns0;
-      sc->marked[i] = sc0[kel]->marked[ii];
-      sc->gen[i] = sc0[kel]->gen[ii];
-      sc->parent[i]=sc0[kel]->parent[ii];
-      sc->child0[i]=sc0[kel]->child0[ii];
-      sc->childn[i]=sc0[kel]->childn[ii];
-      sc->flags[i]=sc0[kel]->flags[ii];
-      sc->vols[i]=sc0[kel]->vols[ii];
-      in1=i*n1;
-      iin1=ii*n1;
-      for(j=0;j<n1;j++){
-	sc->nodes[in1+j]=sc0[kel]->nodes[iin1+j]+nv0;
-	sc->nbr[in1+j]=sc0[kel]->nbr[iin1+j]+ns0;
-      }
-    }
-    for (ii = 0;ii<sc0[kel]->nv;ii++) {
-      i=ii+nv0;
-      sc->bndry[i]=sc0[kel]->bndry[ii];
-      sc->csys[i]=sc0[kel]->csys[ii];
-      //      sc->fval[i]=sc0[kel]->fval[ii];
-      in1=i*sc->n;
-      iin1=ii*sc->n;
-      for(j=0;j<sc->n;j++)
-	sc->x[in1+j]=sc0[kel]->x[iin1+j];
-    }
-    sc->nv+=sc0[kel]->nv;
-    sc->ns+=sc0[kel]->ns;
-    haz_scomplex_free(sc0[kel]);
-  }
-  //   fprintf(stdout,"\nsc->nv=%d,sc->ns=%d; nvall=%d,nsall=%d\n",sc->nv,sc->ns,nvall,nsall);fflush(stdout);
-  return;
-}
-/**********************************************************************/
-/*!
- * \fn void scomplex_merge1(const INT nvall, const INT nsall,
- *		     macrocomplex *mc, scomplex **sc0, cube2simp *c2s)
+ * \fn static void scomplex_merge1(const INT nvall, const INT nsall,
+ * 		     macrocomplex *mc, scomplex **sc0, cube2simp *c2s)
  *
  * \brief combines an array of simplicial complexes together. REMOVES
  *        the common vertices.  Combines an array of simplicial
@@ -641,7 +572,7 @@ void scomplex_merge(scomplex **sc0,			\
  * \note
  *
  */
-void scomplex_merge1(const INT nvall,		\
+static void scomplex_merge1(const INT nvall,		\
 		     const INT nsall,		\
 		     macrocomplex *mc,		\
 		     scomplex **sc0,		\
@@ -1055,27 +986,9 @@ void fix_grid(macrocomplex *mc,		\
   free(vertj);
   //  free(ti); //same as vertk
   //  free(tip); //same as vertj
-
   /***NEWNEWNEW**/
   scomplex_merge1(nvall,nsall,mc,scin,c2s);
   return;
-  /***OLDOLDOLD**/
-  /* nvall=0;nsall=0; */
-  /* INT nvloc,nsloc; */
-  /* for(kel=0;kel<g0->nel;kel++){ */
-  /*   nvloc=1;nsloc=1; */
-  /*   for(i=0;i<g0->dim;i++){ */
-  /*     nvloc*=(nd[kel][i]+1); */
-  /*     nsloc*=nd[kel][i]; */
-  /*   } */
-  /*   nvall+=nvloc; */
-  /*   nsall+=nsloc*(scin[0]->factorial); */
-  /* } */
-  /* scomplex_merge(scin,				\ */
-  /* 		 nsall, nvall,				\ */
-  /* 		 scin[0]->cc, scin[0]->bndry_cc,	\ */
-  /* 		 g0,c2s); */
-  /* return; */
 }
 /**********************************************************************/
 /*!
@@ -1118,16 +1031,6 @@ scomplex *generate_initial_grid(input_grid *g0)
   /* } */
   /*-------------------------------------------------------------------*/
   //  INT *efound=calloc(c2s->ne*(g0->nel),sizeof(INT));  
-  INT **nd=calloc(g0->nel,sizeof(INT*));
-  for(i=0;i<g0->nel;i++){
-    nd[i]=calloc(c2s->nf,sizeof(INT)); /* to hold the number of
- 					 divisions in every coordinate
-					 direction */
-  }
-  for(kel=0;kel<g0->nel;kel++)
-    for(i=0;i<c2s->n;i++){
-      nd[kel][i]=-1;
-    }
   g=malloc(sizeof(input_grid));  //temp grid for one macroelement// we need to free this at the end
   /**/
   g->title=strndup(g0->title,(strlen(g0->title)+1)*sizeof(char));
@@ -1152,15 +1055,15 @@ scomplex *generate_initial_grid(input_grid *g0)
   memcpy(g->syslabels,g0->syslabels,abs(g0->ncsys)*sizeof(INT));
   memcpy(g->ox,g0->ox,g0->dim*abs(g0->ncsys)*sizeof(REAL));
   INT chng=1,iter=0,maxiter=1024;  
-  //  INT je,kj,k2,iel2v,jel2v,k1,kface,kbnd,found;
+  // get the macroelement mesh in a structure
+  macrocomplex *mc=set_mmesh(g0,c2s,p);
+  /****************************************************************/
   set_edges(g0,c2s);  
   while(chng && (iter<maxiter)){
     iter++;
     // make the divisions in g0->seg consistent;
-    chng=set_ndiv_edges(g,g0,c2s,nd,iter);
+    chng=set_ndiv_edges(g,g0,c2s,mc->nd,iter);
   }
-  // get the macroelement mesh in a structure
-  macrocomplex *mc=set_mmesh(g0,c2s,p);
   /*PLACE HOLDERS*/
   INT **el2fnum=mc->el2fnum;
   INT *isbface=mc->isbface;
@@ -1189,25 +1092,23 @@ scomplex *generate_initial_grid(input_grid *g0)
   /***********************************************************************/    
   /* set the divisions on every edge now; since they are consistent we
    have: */
-  if(set_ndiv_edges(g,g0,c2s,nd,0)) {
+  if(set_ndiv_edges(g,g0,c2s,mc->nd,0)) {
     fprintf(stderr,"\n\n***ERR in %s: the divisions of the edges cannod be inconsistent during second call of set_ndiv_edges()\n\n",__FUNCTION__);
     exit(4);
   }
-  mc->nd=nd;
-  for(kel=0;kel<g0->nel;kel++){
+  for(kel=0;kel<mc->nel;kel++){
     for(i=0;i<c2s->n;i++){
-      if(nd[kel][i]<=0) nd[kel][i]=1;
+      if(mc->nd[kel][i]<=0) mc->nd[kel][i]=1;
     }
   }
-  // use bfs to split elements:
   if(g0->print_level>15) input_grid_print(g0);
   INT nsall,nvall;
   nsall=0;nvall=0;
-  /* now nd is known, let us allocate iindex */
+  /* now mc->nd is known, let us allocate iindex */
   for(kel=0;kel<g0->nel;kel++){
     nvall=1;
     for(i=0;i<g0->dim;i++)
-      nvall*=(nd[kel][i]+1);
+      nvall*=(mc->nd[kel][i]+1);
     mc->iindex[kel]=calloc(nvall,sizeof(INT));
     // TRUE    mc->flags[kel]=g0->mnodes[nvcube+kel*(nvcube+1)];
     mc->flags[kel]=2*kel+1;
@@ -1236,7 +1137,7 @@ scomplex *generate_initial_grid(input_grid *g0)
 	codef[i]=bcodesf[el2fnum[jel][i]];
 	isbndf[i]=isbface[el2fnum[jel][i]];       
       }      
-      sc[jel]=umesh(g->dim,nd[jel],c2s,					\
+      sc[jel]=umesh(g->dim,mc->nd[jel],c2s,					\
 		    isbndf,codef,mc->flags[jel],			\
 		    intype);
       nsall+=sc[jel]->ns;
@@ -1251,15 +1152,12 @@ scomplex *generate_initial_grid(input_grid *g0)
       //      fprintf(stdout,"\n%%in %s: mesh(macroelement=%d): nv=%d; nsimp=%d",__FUNCTION__,jel,sc[jel]->nv,sc[jel]->ns); fflush(stdout);
     }
   }
-  //  fprintf(stdout,"\n%%Removing overlaps... from kel=%d elements",mc->nel);fflush(stdout);
-  //,sc[mc->nel-1]->nv,sc[mc->nel-1]->nv);fflush(stdout);
-  /// the grid g-* is no longer needed
   fix_grid(mc,sc,c2s,g0);
-  //  fprintf(stdout,"\n%%..\tdone\n\n");
-  if(g0->print_level>4){
+  //  if(g0->print_level>4){
+  if(1){
     fprintf(stdout,"\n%%merged(macroelements=[%d..%d]): vertices=%d; simplices=%d", \
 	    0,mc->nel-1,sc[0]->nv,sc[0]->ns);  
-    fprintf(stdout," ..done.\n\n");
+    fprintf(stdout," ..done.\n\n");fflush(stdout);
   }
   free(p);
   free(isbndf);
@@ -1274,6 +1172,7 @@ scomplex *generate_initial_grid(input_grid *g0)
   sc_vols(sc[0]);
   abfstree(0,sc[0],wrk1,g0->print_level);
   free(wrk1);
+  //  sc=realloc(sc,sizeof(scomplex *));
   return sc[0];  
 }
 /*EOF*/
