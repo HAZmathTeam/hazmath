@@ -16,15 +16,15 @@
 /* refinement type: .gt. 10 is uniform and .le. 10 (typically 0)is newest */
 /* vertex bisection */
 #ifndef REFINEMENT_TYPE
-#define REFINEMENT_TYPE 11
+#define REFINEMENT_TYPE 0
 #endif
 /**/
 #ifndef REFINEMENT_LEVELS
-#define REFINEMENT_LEVELS 2
+#define REFINEMENT_LEVELS 10
 #endif
 
 #ifndef SPATIAL_DIMENSION
-#define SPATIAL_DIMENSION 2
+#define SPATIAL_DIMENSION 4
 #endif
 /****************************************************************************/
 int main(int argc, char *argv[])
@@ -92,9 +92,9 @@ int main(int argc, char *argv[])
   sol=fe_sol(sc,1.0,1.0);
   scomplex *dsc=malloc(sizeof(scomplex));//boundary scomplex
   dsc[0]=sc_bndry(sc);
-  haz_scomplex_print(dsc,0,__FUNCTION__);
-  //  SHORT todraw=1;
-  //  draw_grids(todraw, sc,dsc, &sol);
+  //  haz_scomplex_print(dsc,0,__FUNCTION__);
+  SHORT todraw=1;
+  draw_grids(todraw, sc,dsc, &sol);
   /* write the output mesh file:    */
   //  hazw("output/mesh.haz",sc,0);
   //  hazw("output/dmesh.haz",dsc,0);

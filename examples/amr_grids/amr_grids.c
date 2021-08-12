@@ -40,8 +40,8 @@ INT main(INT   argc,   char *argv[])
   scomplex *sc=generate_initial_grid(g);  
   scomplex *sctop=NULL;
   INT ref_levels=g->nref, amr_marking_type=g->mark_type,j;
-  dvector *solfem=NULL,*estimator=NULL;
-  ivector *marked=NULL;
+  dvector solfem,estimator;
+  ivector marked;
   void *all=NULL;
   REAL *xstar=NULL;
   INT nstar,dim=sc->n;
@@ -67,11 +67,12 @@ INT main(INT   argc,   char *argv[])
        *       refinement.
        */
       marked=mark_near_points(sctop,nstar,xstar, threshold);
-      refine(1,sc,marked);
+      refine(1,sc,&marked);
       /* free */
+      ivec_free(&marked);
       haz_scomplex_free(sctop);
     }
-    ivec_free(marked);
+    ivec_free(&marked);
     //free(xstar);
   } else {
     /*
@@ -88,31 +89,31 @@ INT main(INT   argc,   char *argv[])
        */
       sctop=scfinest(sc);
       /*
-       * SOLVE on the finest (for now) grid
+       * SOLVE on the finest grid
        */
-      solfem=(dvector *)exmpl_solve(sctop,all);
+      solfem=exmpl_solve(sctop,all);
       /*
        * ESTIMATE using the numerical solution and the data stored in *all
        */
-      estimator=(dvector *)exmpl_estimate(sctop,solfem,all);
+      estimator=exmpl_estimate(sctop,&solfem,all);
       /*
        * MARK: marked is an ivector with num.rows=the number of
        *       simplices; its componenets are nonzero if the simplex
        *       is marked for refinement and 0 if it is not marked for
        *       refinement.
        */
-      marked=exmpl_mark(sctop,estimator,all);
+      marked=exmpl_mark(sctop,&estimator,all);
       /*
        *  Refine the grid. this always refines 1 time, but since we
        *  are in a loop, it will refine ref_levels times;
        */
       //      haz_scomplex_print(sctop,0,__FUNCTION__);
-      refine(1,sc,marked);
+      refine(1,sc,&marked);
       /* free */
       haz_scomplex_free(sctop);
-      dvec_free(solfem);
-      dvec_free(estimator);
-      ivec_free(marked);
+      dvec_free(&solfem);
+      dvec_free(&estimator);
+      ivec_free(&marked);
     }
     free(all);
   }
