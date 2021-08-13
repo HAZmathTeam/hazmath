@@ -93,7 +93,7 @@ INT *align_lattice(const INT nkj,		\
 }
 /**********************************************************************/
 /*!
- * \fn macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk) 
+ * \fn macrocomplex set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk) 
  *
  * \brief prepare macro element mesh (mmesh) for passing to the mesh
  *        generator. wrk is working integer array should have at least
@@ -114,8 +114,7 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
   INT *p=wrk; 
   INT *mnodes=p+nvcube+1;
   /*macro complex creation:)*/
-  macrocomplex *mc=malloc(1*sizeof(macrocomplex));
-  memset(mc,0,sizeof(macrocomplex));
+  macrocomplex *mc=malloc(sizeof(macrocomplex));
   mc->nel=nel0=g0->nel; //important to set;
   mc->cc=mc->bndry_cc=1;
   mc->nf=mc->nfi=mc->nfb=-1;
@@ -146,10 +145,10 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
   /**/
   INT **elneib=mc->elneib;
   INT **el2fnum=mc->el2fnum;
-  mc->etree=NULL;
-  mc->bcodesf=NULL; /* later when num faces is known*/
-  mc->isbface=NULL; /* later when num faces is known*/
-  mc->bfs=NULL; /* later when bfs is called*/
+  mc->etree=NULL;// array
+  mc->bcodesf=NULL; /* array: later when num faces is known*/
+  mc->isbface=NULL; /* array: later when num faces is known*/
+  mc->bfs=NULL; /* icsr_mat later when bfs is called*/
   mc->fullel2el=NULL; /* later when el2el is formed*/
   /********************************************************************/
   /* let us also allocate all the rest here */
@@ -171,20 +170,18 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
   iCSRmat *el2el=malloc(1*sizeof(iCSRmat));
   icsr_mxm(el2v,v2el,el2el);
   icsr_free(v2el);free(v2el);
-  /* create fullel2el for later and work here with the copy */
-  iCSRmat *fullel2el=malloc(1*sizeof(iCSRmat));
-  fullel2el[0]=icsr_create(el2el->row,el2el->col,el2el->nnz);  
-  memcpy(fullel2el->IA,el2el->IA,(fullel2el->row+1)*sizeof(INT));
-  memcpy(fullel2el->JA,el2el->JA,(fullel2el->nnz)*sizeof(INT));
-  memcpy(fullel2el->val,el2el->val,(fullel2el->nnz)*sizeof(INT));
+  /* create mc->fullel2el for later and work here with the copy */
+  mc->fullel2el=malloc(sizeof(iCSRmat));
+  mc->fullel2el[0]=icsr_create(el2el->row,el2el->col,el2el->nnz);  
+  memcpy(mc->fullel2el->IA,el2el->IA,(mc->fullel2el->row+1)*sizeof(INT));
+  memcpy(mc->fullel2el->JA,el2el->JA,(mc->fullel2el->nnz)*sizeof(INT));
+  memcpy(mc->fullel2el->val,el2el->val,(mc->fullel2el->nnz)*sizeof(INT));
   /***********************************************************/  
-  icsr_tri(fullel2el,'l');
-  icsr_nodiag(fullel2el);
-  /***********************************************************/  
-  mc->fullel2el=fullel2el;
+  icsr_tri(mc->fullel2el,'l');
+  icsr_nodiag(mc->fullel2el);
   /***********************************************************/  
   /*   shrink the el2el matrix by removing any entry with value not
-       equal to nvface; */
+       equal to nvface=(number of vertices per face); */
   el2el->nnz=el2el->IA[0];
   for(kel=0;kel<nel0;kel++){    
     j0=el2el->IA[kel];
@@ -209,13 +206,7 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
   el2el->IA[nel0]=el2el->nnz;
   el2el->JA=realloc(el2el->JA,el2el->nnz*sizeof(INT));
   el2el->val=realloc(el2el->val,el2el->nnz*sizeof(INT));
-  /* /\* find the connected components:*\/ */
-  /* /\* number of connected domains and boundaries; *\/ */
-  /* dfs00_(&nel0,el2el->IA, el2el->JA,&mc->cc,iblk,jblk); */
-  /* iblk=realloc(iblk,(mc->cc+1)*sizeof(INT)); */
-  //  icsr_nodiag(el2el);// this only new version of dfs: does not use diagonal. 
   iCSRmat *blk_dfs=run_dfs(nel0,el2el->IA, el2el->JA);
-  //  fprintf(stdout,"\nnxxx=%d ; adfs=[",blk_dfs->IA[0]);
   //  icsr_print_matlab_val(stdout,blk_dfs);
   //  fprintf(stdout,"];\n");
   ////////////////////////////////////////////////////////////////////////////
@@ -771,8 +762,8 @@ void fix_grid(macrocomplex *mc,		\
   INT i,j,k,iaa, iab;
   INT *nodesj=NULL,*nodesk=NULL;
   // place holders (short hand)
-  iCSRmat *fel2el=mc->fullel2el;
-  INT **nd=mc->nd;
+  //  iCSRmat *fel2el=mc->fullel2el;
+  //  INT **nd=mc->nd;
   //  INT **elneib=mc->elneib;
   //  INT **el2fnum=mc->el2fnum;
   INT *iindex,*iindexp;
@@ -794,8 +785,8 @@ void fix_grid(macrocomplex *mc,		\
       mc->iindex[kel][i]=i + nvall;// this is the global number if there are no removals of vertices. 
     }
     neg=0;
-    iaa=fel2el->IA[kel];
-    iab=fel2el->IA[kel+1];
+    iaa=mc->fullel2el->IA[kel];
+    iab=mc->fullel2el->IA[kel+1];
     //    fprintf(stdout,"\n%d and %d",iaa,iab);fflush(stdout);
     if((iab-iaa)<=0){
       if(g0->print_level>5){
@@ -815,7 +806,7 @@ void fix_grid(macrocomplex *mc,		\
       }
     }
     for (kj=iaa;kj<iab;kj++){
-      jel=fel2el->JA[kj];
+      jel=mc->fullel2el->JA[kj];
       nodesj=(g0->mnodes+jel*(nvcube+1));
       for(i=0;i<c2s->nf;i++){
 	for(j=0;j<nvface;j++){
@@ -824,8 +815,8 @@ void fix_grid(macrocomplex *mc,		\
 	}
       }
       numv=0;
-      //	if(fel2el->val[kj]!=kdim) continue;
-      kdim=fel2el->val[kj];
+      //	if(mc->fullel2el->val[kj]!=kdim) continue;
+      kdim=mc->fullel2el->val[kj];
       kz=((INT )floor(log2(((REAL) kdim)-1e-3)))+1;
       //      kz=ilog2(kdim);
       //      scomplex *sc=scin[jel];
@@ -849,7 +840,7 @@ void fix_grid(macrocomplex *mc,		\
       //      fprintf(stdout,"\nnk=%d; nj=%d; (dim-kz)=%d\n",nk,nj,dim-kz);
       if((nk == nj) && nk==(dim-kz) && nj==(dim-kz)) {
 	//	fprintf(stdout,"\nZZZZZZZZZz nj=%d,numv=%d,kel=%d; jel=%d",nj,numv,kel,jel);
-	pd=align_lattice(numv,nd[jel],nodesj,nd[kel],nodesk,c2s);
+	pd=align_lattice(numv,mc->nd[jel],nodesj,mc->nd[kel],nodesk,c2s);
 	/* if(nk==2){  */
 	/*   fprintf(stdout,"\n%%W1: kel=%d,jel=%d;",kel,jel); */
 	/*   print_full_mat_int(1,nvcube,nodesk,"nodesk"); */
@@ -874,19 +865,19 @@ void fix_grid(macrocomplex *mc,		\
 	    ti[j]=0;
 	  } else {
 	    mi[j]=dim-((mi[j]%dim)+1);
-	    ti[j]=nd[jel][mi[j]];
+	    ti[j]=mc->nd[jel][mi[j]];
 	  }
 	  if(mip[j]<dim){
 	    mip[j]=dim-(mip[j]+1);
 	    tip[j]=0;
 	  } else {
 	    mip[j]=dim-((mip[j]%dim)+1);
-	    tip[j]=nd[kel][mip[j]];
+	    tip[j]=mc->nd[kel][mip[j]];
 	  }	    
 	}
 	nv=0;
 	for(kfp=0;kfp<scp->nv;kfp++){
-	  coord_lattice(mp,dim,kfp,scp->nv,nd[kel]);
+	  coord_lattice(mp,dim,kfp,scp->nv,mc->nd[kel]);
 	  flag=1;
 	  for(j=0;j<nj;j++) if(mp[mip[j]]!=tip[j]){flag=0;break;}
 	  if(flag){
@@ -895,7 +886,7 @@ void fix_grid(macrocomplex *mc,		\
 	    // put everything in sync:
 	    for(k=0;k<dim;k++){
 	      if(pd[k]<0)
-		mwrk[abs(pd[k])-1]=nd[jel][k]-mwrk[abs(pd[k])-1];
+		mwrk[abs(pd[k])-1]=mc->nd[jel][k]-mwrk[abs(pd[k])-1];
 	    }
 	    for(k=0;k<dim;k++){
 	      //	      fprintf(stdout,"\nXXXXXXXXXXk=%d;pd[k]=%d;abspd_k=%d;\n",k,pd[k],abs(pd[k])-1);fflush(stdout);
@@ -908,7 +899,7 @@ void fix_grid(macrocomplex *mc,		\
 		m[k]=mwrk[abs(pd[k])];
 	    }
 	    for(k=0;k<nk;k++) m[mi[k]]=ti[k];
-	    kf=num_lattice(m,dim,nd[jel]);
+	    kf=num_lattice(m,dim,mc->nd[jel]);
 	    /* if(kz==2){ */
 	    /* fprintf(stdout,"\ndim_int=%d,kel=%d; jel=%d,kfp=%d,kf=%d,iindexp=%d,iindex=%d",kz,kel,jel,kfp,kf,iindexp[kfp],iindex[kf]);fflush(stdout); */
 	    /* print_full_mat_int(1,nvcube,nodesj,"nodesj"); */
@@ -960,7 +951,7 @@ void fix_grid(macrocomplex *mc,		\
       }
       fprintf(stdout,"];");
       for(i=0;i<scin[kel]->nv;i++){
-	coord_lattice(m,dim,i,scin[kel]->nv,nd[kel]);
+	coord_lattice(m,dim,i,scin[kel]->nv,mc->nd[kel]);
 	fprintf(stdout,"\n     [%d=( ",i);
 	for(j=0;j<dim;j++){
 	  fprintf(stdout,"%d ",m[j]);
@@ -1005,7 +996,7 @@ void fix_grid(macrocomplex *mc,		\
  * \note
  *
  */
-scomplex *generate_initial_grid(input_grid *g0)
+scomplex **generate_initial_grid(input_grid *g0)
 {
   /* 
      From an input grid loops over the macroelements and generates
@@ -1167,12 +1158,13 @@ scomplex *generate_initial_grid(input_grid *g0)
   cube2simp_free(c2s);
   /* order simplex2vertex array as required by the adaptive refinement */
   find_nbr(sc[0]->ns,sc[0]->nv,sc[0]->n,sc[0]->nodes,sc[0]->nbr);
+  //
   INT *wrk1=calloc(5*(sc[0]->n+2),sizeof(INT));
   /*   construct bfs tree for the dual graph*/
   sc_vols(sc[0]);
   abfstree(0,sc[0],wrk1,g0->print_level);
   free(wrk1);
   //  sc=realloc(sc,sizeof(scomplex *));
-  return sc[0];  
+  return sc;  
 }
 /*EOF*/

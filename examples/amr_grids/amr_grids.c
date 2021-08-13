@@ -21,14 +21,14 @@ INT main(INT   argc,   char *argv[])
 {
   INT i;
   FILE *fp;
-   fp=stdin;
-   //no   fp=HAZ_fopen("inputs/2d_ann.input","r");
-   //   fp=HAZ_fopen("inputs/2d_2L.input","r");
-   // fp=HAZ_fopen("inputs/3d_fichera.input","r");
-   // fp=HAZ_fopen("inputs/3d_2cubes_edge.input","r");
-   // fp=HAZ_fopen("inputs/3d_2cubes_vertex.input","r");
-   //  fp=HAZ_fopen("inputs/5d_cube.input","r");
-   /*
+  fp=stdin;
+  //no   fp=HAZ_fopen("inputs/2d_ann.input","r");
+  //   fp=HAZ_fopen("inputs/2d_2L.input","r");
+  // fp=HAZ_fopen("inputs/3d_fichera.input","r");
+  // fp=HAZ_fopen("inputs/3d_2cubes_edge.input","r");
+  // fp=HAZ_fopen("inputs/3d_2cubes_vertex.input","r");
+  //  fp=HAZ_fopen("inputs/5d_cube.input","r");
+  /*
     PARSE THE INPUT.
   */
   input_grid *g=parse_input_grid(fp);
@@ -37,7 +37,15 @@ INT main(INT   argc,   char *argv[])
   /*
     GENERATE INITIAL GRID AND DECLARE VARIABLES.
   */
-  scomplex *sc=generate_initial_grid(g);  
+  scomplex **sc_all=generate_initial_grid(g);
+  //NNNNNNNNNNNNNNNN
+  input_grid_free(g);
+  scomplex *sc=sc_all[0];
+  haz_scomplex_print(sc,0,__FUNCTION__);
+  haz_scomplex_free(sc);
+  free(sc_all);
+  return 0;
+  //NNNNNNNNNNNNNNNNNNNNNNNNNNNN
   scomplex *sctop=NULL;
   INT ref_levels=g->nref, amr_marking_type=g->mark_type,j;
   dvector solfem,estimator;
