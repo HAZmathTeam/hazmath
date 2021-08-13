@@ -2713,6 +2713,8 @@ void icsr_nodiag(iCSRmat *a)
     a->JA=realloc(a->JA,a->nnz*sizeof(INT));
     a->val=realloc(a->val,a->nnz*sizeof(INT));
   }else{
+    free(a->JA);
+    free(a->val);
     a->JA=NULL;
     a->val=NULL;
   }
@@ -2720,7 +2722,7 @@ void icsr_nodiag(iCSRmat *a)
 }
 /***********************************************************************************************/
 /**
- * \fn icsr_nodiag(iCSRmat *a, const char loup)
+ * \fn void icsr_nodiag(iCSRmat *a, const char loup)
  *
  * \brief extracting the lower/upper triangle of an icsr matrix (done
  * in-place, a is overwritten also removes all zeros).
@@ -2765,8 +2767,15 @@ void icsr_tri(iCSRmat *a,const char loup)
     }
   }
   a->IA[a->row]=a->nnz;
-  a->JA=realloc(a->JA,a->nnz*sizeof(INT));
-  a->val=realloc(a->val,a->nnz*sizeof(INT));
+  if(a->nnz>0){
+    a->JA=realloc(a->JA,a->nnz*sizeof(INT));
+    a->val=realloc(a->val,a->nnz*sizeof(INT));
+  }else{
+    free(a->JA);
+    free(a->val);
+    a->JA=NULL;
+    a->val=NULL;
+  }
   return;
 }
 /***********************************************************************************************/

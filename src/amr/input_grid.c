@@ -466,6 +466,7 @@ static INT  read_data(char **clndata,input_grid *g)
   void *mdata;
   INT *idata=NULL;
   /********************* coord_systems*****************/
+  //  fprintf(stdout,"%s:RMD(3)",__FUNCTION__);fflush(stdout);
   mdata=read_mixed_data(g->ncsys,2,g->dim,clndata[3]);
   if(mdata!=NULL){
     idata=(INT *)mdata;
@@ -490,6 +491,7 @@ static INT  read_data(char **clndata,input_grid *g)
   }
 
   /***** vertices: same as coordinate systems *****/
+  //  fprintf(stdout,"%s:RMD(4)",__FUNCTION__);fflush(stdout);
   mdata=read_mixed_data(g->nv,2,g->dim,clndata[4]);
   if(mdata!=NULL){
     idata=(INT *)mdata;
@@ -535,6 +537,7 @@ static INT  read_data(char **clndata,input_grid *g)
     return 12;
   }
   /* /\***** edges *****\/ */
+  //  fprintf(stdout,"%s:RMD(5)",__FUNCTION__);fflush(stdout);
   mdata=read_mixed_data(g->ne,3,0,clndata[5]);
   if(mdata!=NULL){
     memcpy(g->seg,mdata,3*g->ne*sizeof(INT));
@@ -570,6 +573,7 @@ static INT  read_data(char **clndata,input_grid *g)
   g->ne=ne;
   /* end edges */
   INT nvcube=(1<<g->dim);
+  //  fprintf(stdout,"%s:RMD(6)",__FUNCTION__);fflush(stdout);
   mdata=read_mixed_data(g->nel,(nvcube+1),0,clndata[6]);
   if(mdata!=NULL){
     memcpy(g->mnodes,mdata,g->nel*(nvcube+1)*sizeof(INT));
@@ -580,6 +584,7 @@ static INT  read_data(char **clndata,input_grid *g)
 
   // faces
   INT nvface=(1<<(g->dim-1));
+  //  fprintf(stdout,"%s:RMD(7)",__FUNCTION__);fflush(stdout);
   mdata=read_mixed_data(g->nf,(nvface+1),0,clndata[7]);
   if(mdata!=NULL){
     memcpy(g->mfaces,mdata,g->nf*(nvface+1)*sizeof(INT));
@@ -598,6 +603,7 @@ static INT  read_data(char **clndata,input_grid *g)
   }
 
   // refine points
+  //  fprintf(stdout,"%s:RMD(20)",__FUNCTION__);fflush(stdout);
   mdata=read_mixed_data(g->num_refine_points,2,g->dim,clndata[20]);
   if(mdata!=NULL){
     idata=(INT *)mdata;
