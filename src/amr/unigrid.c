@@ -81,8 +81,9 @@ void binary1(const INT dim, unsigned int *bits, INT *nvloc)
 
 /**********************************************************************/
 /*!
- * \fn scomplex *umesh(const INT dim,INT *nd, cube2simp *c2s, INT
-		*isbndf, INT *codef,INT elflag, const INT intype)
+ * \fn scomplex *umesh(const INT dim,INT *nd, cube2simp *c2s,\ 
+ *                    INT *isbndf, INT *codef,INT elflag, \
+ *                    const INT intype)
  *
  * \brief Uniform simplicial mesh of the unit cube in dimension dim.nd
  *        is the number of grid points in each dimension.  ordering is
