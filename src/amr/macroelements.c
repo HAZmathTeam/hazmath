@@ -7,6 +7,7 @@
  *  splitting it into simplices
  *  \date 20170715 
  *  \modified 20190715 (ltz);
+ *  \note: modified by ltz on 20210813
  */
 #include "hazmath.h"
 /**********************************************************************/
@@ -32,8 +33,8 @@ static INT ilog2(const INT k)
 }
 /**********************************************************************/
 /*!
- * \fn INT *align_lattice(const INT nkj,INT *nd0, INT *nodes0,
- *		   INT *nd1, INT *nodes1, cube2simp *c2s)
+ * \fn void align_lattice(INT *pd,const INT nkj, INT *nodes0,
+ *  		   INT *nodes1, cube2simp *c2s)
  *
  * \brief constructs permutation of the vertices of an element based
  *        on the numbering in a neighboring element.
@@ -45,17 +46,16 @@ static INT ilog2(const INT k)
  * \note We may need to remove this in the future (ltz)
  *
  */
-INT *align_lattice(const INT nkj,		\
-		   INT *nd0, INT *nodes0,	\
-		   INT *nd1, INT *nodes1,	\
+void align_lattice(INT *pd, const INT nkj,	\
+		   INT *nodes0,			\
+		   INT *nodes1,	\
 		   cube2simp *c2s)
 {
   INT dim=c2s->n,i;
-  INT *pd=(INT *)calloc(dim,sizeof(INT));
   //fprintf(stdout,"\n****%d ^^^\n",nkj);
   for(i=0;i<dim;i++)pd[i]=i;  
   if(nkj<2){
-    return pd; // meaning only one common vertex, so we should do nothing;
+    return; // meaning only one common vertex, so we should do nothing;
   }
   INT j,d0,d1,k0[2],k1[2];  
   for(i=0;i<dim;i++) pd[i]=i+1;
@@ -89,7 +89,7 @@ INT *align_lattice(const INT nkj,		\
     }
   }
   /* find edges common within vertj and they should also be common between vertj */
-  return pd;
+  return;
 }
 /**********************************************************************/
 /*!
@@ -754,8 +754,8 @@ void fix_grid(macrocomplex *mc,		\
   INT *vertj = (INT *)calloc(dim1,sizeof(INT));
   INT *facesk = (INT *)calloc(2*dim*nvface,sizeof(INT));
   INT *facesj = (INT *)calloc(2*dim1*nvface,sizeof(INT));
+  INT *pd=(INT *)calloc(dim,sizeof(INT));
   INT *ti=vertj,*tip=vertk;
-  INT *pd=NULL;
   //scalars
   INT nv=-10,kel, jel,nk,nj,flag;
   INT numv,kf,kfp,kz,kdim,kj;
@@ -840,7 +840,8 @@ void fix_grid(macrocomplex *mc,		\
       //      fprintf(stdout,"\nnk=%d; nj=%d; (dim-kz)=%d\n",nk,nj,dim-kz);
       if((nk == nj) && nk==(dim-kz) && nj==(dim-kz)) {
 	//	fprintf(stdout,"\nZZZZZZZZZz nj=%d,numv=%d,kel=%d; jel=%d",nj,numv,kel,jel);
-	pd=align_lattice(numv,mc->nd[jel],nodesj,mc->nd[kel],nodesk,c2s);
+	//	pd=align_lattice(numv,mc->nd[jel],nodesj,mc->nd[kel],nodesk,c2s);
+	align_lattice(pd,numv,nodesj,nodesk,c2s);
 	/* if(nk==2){  */
 	/*   fprintf(stdout,"\n%%W1: kel=%d,jel=%d;",kel,jel); */
 	/*   print_full_mat_int(1,nvcube,nodesk,"nodesk"); */
@@ -970,14 +971,11 @@ void fix_grid(macrocomplex *mc,		\
   free(mp);
   free(mi);
   free(mip);
-  free(pd);
   free(facesk);
   free(facesj);
   free(vertk);
   free(vertj);
-  //  free(ti); //same as vertk
-  //  free(tip); //same as vertj
-  /***NEWNEWNEW**/
+  free(pd);
   scomplex_merge1(nvall,nsall,mc,scin,c2s);
   return;
 }
