@@ -39,15 +39,10 @@ INT main(INT   argc,   char *argv[])
   */
   scomplex **sc_all=generate_initial_grid(g);
   //NNNNNNNNNNNNNNNN
-  input_grid_free(g);
+  INT ref_levels=g->nref, amr_marking_type=g->mark_type,j;
   scomplex *sc=sc_all[0];
-  haz_scomplex_print(sc,0,__FUNCTION__);
-  haz_scomplex_free(sc);
-  free(sc_all);
-  return 0;
   //NNNNNNNNNNNNNNNNNNNNNNNNNNNN
   scomplex *sctop=NULL;
-  INT ref_levels=g->nref, amr_marking_type=g->mark_type,j;
   dvector solfem,estimator;
   ivector marked;
   void *all=NULL;
@@ -134,8 +129,10 @@ INT main(INT   argc,   char *argv[])
   /* WRITE THE OUTPUT vtu file for paraview:    */
   if(dim <4)
     vtkw(g->fvtu,sc,0,1.);
-  /*FREE*/
+  /*FREE: the input grid is freed here, because it haz the filenames in it*/
   input_grid_free(g);
+  //  haz_scomplex_print(sc,0,__FUNCTION__);
   haz_scomplex_free(sc);
+  free(sc_all);
   return 0;
 }

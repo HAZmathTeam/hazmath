@@ -8,6 +8,7 @@
  *
  *  \note: modified by ltz on 20190327
  *  \note: modified by ltz on 20190728
+ *  \note: modified by ltz on 20210813
  *
  */
 /*********************************************************************/
@@ -681,7 +682,7 @@ void x_out(const char *pattern, size_t le)
 }
 /**********************************************************************/
 /*!
- * \fn char *make_string_from_file(FILE *the_file, size_t *length_string)
+ * \fn char *make_string_from_file(FILE *the_file,size_t *length_string)
  *
  * \brief puts the content of a file in a string, ignoring all comments which start with %.
  *
@@ -775,7 +776,7 @@ static char *make_string_from_file(FILE *the_file, size_t *length_string)
   file2str = (char *)realloc(file2str,(i+1)*sizeof(char));
   file2str[i] = '\0';
   *length_string = strlen(file2str)+1;
-  //  fprintf(stdout,"\ncount=%d:%s",i,file2str);
+  //  fprintf(stdout,"\ncount=%d:%s",i,file2str);fflush(stdout);
   /* for(j=0;j<i;j++){ */
   /*   if(!file2str[j]) continue; */
   /*   file2str[j]=toupper(tolower(file2str[j])); */
@@ -985,9 +986,8 @@ static INT check_input(char * file2str, input_grid *g,	\
 input_grid *parse_input_grid(FILE *the_file)
 {
   input_grid *g=malloc(sizeof(input_grid));
-  memset(g,0,sizeof(input_grid));
   INT numel_data,k,knext;
-  char *file2str;
+  char *file2str=NULL;
   size_t ll=-1,length_string=0;
   char **indata,**notes;
   indata=input_strings(&numel_data);
@@ -1001,11 +1001,12 @@ input_grid *parse_input_grid(FILE *the_file)
   }
   /* get all substrings */
   //  size_t *lengths;
-  file2str = strndup(make_string_from_file(the_file, &length_string), (size_t )((MAX_CHARS_INPUT_GRID_FILE )+1));
+  file2str=make_string_from_file(the_file,&length_string);
+  //  fprintf(stdout,"\neve0[%ld]=%s\n",length_string,file2str);
   length_string=strlen(file2str);
   file2str=realloc(file2str,(length_string+1)*sizeof(char));
   file2str[length_string]='\0';
-  //  fprintf(stdout,"\neve[%ld]=%s\n",length_string,file2str);
+  //  fprintf(stdout,"\neve1[%ld]=%s\n",length_string,file2str);
   k=check_input(file2str,g,indata,notes,numel_data);
   switch(k){
   case 8: case 10: case 12:
@@ -1052,7 +1053,7 @@ input_grid *parse_input_grid(FILE *the_file)
 }
 /**********************************************************************/
 /*!
- * \fn INT *set_input_grid(input_grid *g,cube2simp *c2s)
+ * \fn void set_input_grid(INT *nd,input_grid *g,cube2simp *c2s)
  *
  * \brief Every edge is put into a subset, i.e. two edges
  *        (v(i1),v(i2)) and (v(j1),v(j2)) are considered equivalent
@@ -1068,7 +1069,7 @@ input_grid *parse_input_grid(FILE *the_file)
  * \note
  *
  */
-INT *set_input_grid(input_grid *g,cube2simp *c2s)
+void set_input_grid(INT *nd,input_grid *g,cube2simp *c2s)
 {
   INT i,j,k,iri,ici,pmem;
   pmem=2*g->nv;
@@ -1115,7 +1116,9 @@ INT *set_input_grid(input_grid *g,cube2simp *c2s)
     k++;
     //    fprintf(stdout,"\n[%d,%d]:div=%d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
   }
-  p=realloc(p,g->dim*sizeof(INT)); // realloc to dimension g->dim
+  ////////////////////////////////////////
+  //  p=realloc(p,g->dim*sizeof(INT)); // realloc to dimension g->dim
+  ///////////////////////////////////
   //  for (i=0;i<g->dim;i++){
   //    fprintf(stdout,"\ndirection:%d; div=%d",i,p[i]);
   //  }
@@ -1123,7 +1126,10 @@ INT *set_input_grid(input_grid *g,cube2simp *c2s)
   //  print_full_mat_int(g->ne,3,g->seg,"med");
   //  print_full_mat_int(g->nf,(c2s->nvface+1),g->mfaces,"mf");
   //  print_full_mat_int(g->nel,(c2s->nvcube+1),g->mnodes,"mel");
-  return p;
+  ///newnew
+  memcpy(nd,p,g->dim*sizeof(int));
+  free(p);
+  return;
 }
 /**********************************************************************/
 /*!
@@ -1317,7 +1323,7 @@ INT set_ndiv_edges(input_grid *g, input_grid *g0,		\
     //      fflush(stdout);
     //}
     ////////////////////////////////////////////////////////////
-    nd[kel]=set_input_grid(g,c2s);
+    set_input_grid(nd[kel],g,c2s);
     for(i=0;i<g->ne;i++){
       if(efound[i]<0)
 	continue;

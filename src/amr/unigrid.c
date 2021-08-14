@@ -198,7 +198,7 @@ scomplex *umesh(const INT dim,		\
   /******************************************************************/
   /*  
    *  when we come here, all boundary faces have codes and they are
-   *  non-zero. All interior faces shoudl have a code zero.
+   *  non-zero. All interior faces should have a code zero.
    */
   /******************************************************************/
   for(kf=0;kf<sc->nv;kf++) sc->bndry[kf]=cfbig;
