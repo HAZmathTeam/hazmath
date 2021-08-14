@@ -131,7 +131,6 @@ INT main(INT   argc,   char *argv[])
     vtkw(g->fvtu,sc,0,1.);
   /*FREE: the input grid is freed here, because it haz the filenames in it*/
   input_grid_free(g);
-  //  haz_scomplex_print(sc,0,__FUNCTION__);
   haz_scomplex_free(sc);
   free(sc_all);
   return 0;

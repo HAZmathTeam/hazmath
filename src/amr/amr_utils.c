@@ -971,7 +971,8 @@ INT dvec_set_amr(const REAL value, scomplex *sc, INT npts, REAL *pts, REAL *tose
  *        nodes[1,...,j-1,j+1,...] should be at place j in the 
  *        neighbors of i. 
  *
- * \param sc:  a simplicial complex
+ * \param sc: a simplicial complex; sc->bndry, sc->neib, sc->nbr must
+ *            be allocated and filled in on entry here.
  *
  * \note
  *
@@ -1080,6 +1081,7 @@ void find_cc_bndry_cc(scomplex *sc)
   /*   fprintf(stdout,";\n"); */
   /* } */
   /* fprintf(stdout,"]\n"); */
+  /* find neighbors for the boundary complex. */
   find_nbr(nbf,nvbnd,(dim-1),fnodes,fnbr);
   /* fprintf(stdout,"\nelnbr=["); */
   /* for(i=0;i<nbf;++i){ */
@@ -1121,14 +1123,14 @@ void find_cc_bndry_cc(scomplex *sc)
   /*   } */
   /* } */
   /* fprintf(stdout,"];\n"); */
-  sc->bndry=(INT *)calloc(sc->nv,sizeof(INT));
+  //THIS SHOULD BE ALLOCATED ON INPUT  sc->bndry=(INT *)calloc(sc->nv,sizeof(INT));
   sc->bndry_cc=-10;
   //  dfs00_(&nbf,neib->IA, neib->JA,&sc->bndry_cc,iblk,jblk);  
   icsr_free(blk_dfs); free(blk_dfs);
   blk_dfs=run_dfs(nbf,neib->IA, neib->JA);
   sc->bndry_cc=blk_dfs->row;
   icsr_free(neib);free(neib);
-  // set up bndry flags= connected component number;
+  // set up bndry flags= connected component number (this needs to be updated approprriately;
   for(i=0;i<sc->bndry_cc;++i){
     for(k=blk_dfs->IA[i];k<blk_dfs->IA[i+1];++k){
       j=blk_dfs->JA[k];
