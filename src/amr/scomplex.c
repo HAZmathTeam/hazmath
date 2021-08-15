@@ -1273,7 +1273,7 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
       //      sn->nbr[1]=snbr0;
       sc->nbr[iscn+1]=snbr0;
   }
-  haz_scomplex_print(sc,-10,"CHECK 1");
+  //  haz_scomplex_print(sc,-10,"CHECK 1");
   /* Compute the simplex type. */
   itype=(sc->gen[is]) % n;
   // for each vertex p=1..n-1 of the parent simplex S
@@ -1324,7 +1324,7 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
       }
     }
   //  fprintf(stdout,"\nis,it=(%d,%d); snbrn=%d,snbrn0=%d\n",is+1,it+1,snbrn+1,snbr0+1);
-  haz_scomplex_print(sc,-10,"CHECK 2"); fflush(stdout);
+  //  haz_scomplex_print(sc,-10,"CHECK 2"); fflush(stdout);
   for(i=0;i<n1;i++) {
      /*
 	The children OF NEIGHBORS, if existent, still point to s as
@@ -1358,7 +1358,7 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
 	sc->nbr[snnbri*n1+i]=ksn;
     }
   }
-  haz_scomplex_print(sc,-10,"CHECK 3");
+  //haz_scomplex_print(sc,-10,"CHECK 3");
   /*
      NOW call the on-axis nbrs for refinement, passing to them a
      pointer to this simplex S so they find our new vertex.  Skip the
@@ -1367,7 +1367,7 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
   for(i=1 ; i < n; i++){
     //    fprintf(stdout,"\n%%trying to refine also (%i) coming from  (%i)\n ",sc->nbr[isn1+i]+1, is+1); fflush(stdout);
     haz_refine_simplex(sc, sc->nbr[isn1+i], is);
-        haz_scomplex_print(sc,-10,"\nEND OF haz_refine\n");
+    //        haz_scomplex_print(sc,-10,"\nEND OF haz_refine\n");
   }
   return 0;
 }

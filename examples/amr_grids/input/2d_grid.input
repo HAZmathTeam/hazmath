@@ -14,8 +14,8 @@ refinement_type{0}
 % files:  writeable by the user
 % vtu files for plotting follow the same convention.
 %---------------%
-file_grid{outputs/2d_sector.haz}
-file_vtu{outputs/2d_sector.vtu}
+file_grid{output/2d_sector.haz}
+file_vtu{output/2d_sector.vtu}
 
 %---------------%
 % coordinate systems: Each has coordinates of the origin o[0:dim-1]

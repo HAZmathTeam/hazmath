@@ -32,9 +32,17 @@
  */
 void get_edge2d(iCSRmat *e2v, iCSRmat *el2e, scomplex *sc)
 {
-  INT nv = sc->nv, ns = sc->ns, ns2=2*ns, ns3=3*ns, i, j, k, ih, n0, n1, n2, tmp;
-  ivector ii = ivec_create(ns3), jj = ivec_create(ns3); 
-  iCSRmat U=icsr_create(0,0,0), el2v_csr = icsr_create(ns,nv,ns3), v2e, el2e0;
+  if (sc->n!=2) {
+    fprintf(stderr,"%% *** ERROR in %s: the dimension = %d and is not 3  !\n",__FUNCTION__,sc->n);
+    exit(2);
+  } 
+  INT nv = sc->nv, ns = sc->ns;
+  INT ns2=2*ns, ns3=3*ns, i, j, k, ih, n0, n1, n2, tmp;
+  ivector ii = ivec_create(ns3);
+  ivector jj = ivec_create(ns3); 
+  iCSRmat v2e, el2e0;
+  iCSRmat U=icsr_create(0,0,0);
+  iCSRmat el2v_csr = icsr_create(ns,nv,ns3);
   el2v_csr.IA[0] = 0;
   INT *el2v=sc->nodes;
   /* The pair  (ii,jj) encodes three edges in each element in ascending lexicographic order */
@@ -50,14 +58,11 @@ void get_edge2d(iCSRmat *e2v, iCSRmat *el2e, scomplex *sc)
     ii.val[k+ns2] = el2v[n1];jj.val[k+ns2] = el2v[n2];
 
     el2v_csr.IA[k+1] = el2v_csr.IA[k] + 3;
-  }
-  el2v_csr.JA = el2v;
-
+  }  
+  memcpy(el2v_csr.JA,el2v,(sc->n+1)*ns*sizeof(INT));
   for (i=0;i<ns3;i++){el2v_csr.val[i]=1;}
-
   uniqueij(&U,&ii,&jj);
   ivec_free(&ii); ivec_free(&jj);
-  
   /* Form the edge to vertex csr matrix */
   INT ne = U.nnz, counter = 0;
   e2v->row = ne;
@@ -88,7 +93,7 @@ void get_edge2d(iCSRmat *e2v, iCSRmat *el2e, scomplex *sc)
   /* The i-th row of el2e0 enumerates all edges that shares at least one vertex with the i-th element*/
   icsr_mxm(&el2v_csr,&v2e,&el2e0);
   icsr_free(&v2e);
-  free(el2v_csr.IA); free(el2v_csr.val);
+  icsr_free(&el2v_csr);
 
   ia=el2e0.IA, ja=el2e0.JA; 
   INT *val=el2e0.val;
@@ -157,10 +162,11 @@ void get_edge2d(iCSRmat *e2v, iCSRmat *el2e, scomplex *sc)
 void get_edge3d(iCSRmat *e2v, iCSRmat *el2e, scomplex *sc)
 {
   if (sc->n!=3) {
-    fprintf(stderr,"%% *** ERROR in %s: the dimension = %d and is not 3  !\n",__FUNCTION__,sc->n);exit(3);
+    fprintf(stderr,"%% *** ERROR in %s: the dimension = %d and is not 3  !\n",__FUNCTION__,sc->n);
+    exit(3);
   }
-  INT nv = sc->nv, ns = sc->ns, ns2=2*ns, ns3=3*ns, ns4=4*ns, ns5=5*ns, \
-  i, j, k, ih, n0, n1, n2, n3, tmp;
+  INT nv = sc->nv, ns = sc->ns;
+  INT  ns2=2*ns, ns3=3*ns, ns4=4*ns, ns5=5*ns,i, j, k, ih, n0, n1, n2, n3, tmp;
   ivector ii = ivec_create(6*ns), jj = ivec_create(6*ns); 
   iCSRmat U=icsr_create(0,0,0), el2v_csr = icsr_create(ns,nv,4*ns), v2e, el2e0;
   INT *el2v = sc->nodes;
@@ -186,10 +192,7 @@ void get_edge3d(iCSRmat *e2v, iCSRmat *el2e, scomplex *sc)
   }
   /*el2v_csr.JA = el2v;*/
   memcpy(el2v_csr.JA,el2v,4*ns*sizeof(INT));
-  /*ivec_print(&ii);
-  ivec_print(&jj);*/
   for (i=0;i<4*ns;i++){el2v_csr.val[i]=1;}
-  /*icsr_print(&el2v_csr);*/
   uniqueij(&U, &ii, &jj);
   ivec_free(&ii);
   ivec_free(&jj);
