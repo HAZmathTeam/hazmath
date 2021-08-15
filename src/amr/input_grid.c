@@ -8,6 +8,7 @@
  *
  *  \note: modified by ltz on 20190327
  *  \note: modified by ltz on 20190728
+ *  \note: modified by ltz on 20210813
  *
  */
 /*********************************************************************/
@@ -132,6 +133,7 @@ void input_grid_free(input_grid *g)
   if(g->ox) free(g->ox);
   if(g->systypes) free(g->systypes);
   if(g->syslabels) free(g->syslabels);
+  if(g->labelsv) free(g->labelsv);
   if(g->csysv) free(g->csysv);
   if(g->bcodesv) free(g->bcodesv);
   if(g->xv) free(g->xv);
@@ -397,33 +399,29 @@ void *read_mixed_data(INT nrec, INT ni, INT nr, char *the_string)
     rdata=NULL;
   if(idata==NULL && rdata==NULL) return NULL;
   w=splits(the_string," ",&num);
-  //  for(k=0;k<num;k++)
-  //    {    fprintf(stdout,"\n[%d]:%s",k,w[k]);fflush(stdout);}
   k=0;
   for(count=0;count<nrec;count++){
-    if(w[k]==NULL) break;
     if(idata!=NULL) {
       cni=count*ni;
       for(j=0;j<ni;j++){
 	iread=sscanf(w[k],"%d",(idata+cni+j));
-	//	fprintf(stdout,"\nc=%d;z=%d ",count,idata[cni+j]);fflush(stdout);
 	if(iread<0) break;
-	free(w[k]);
 	k++;
       }
-      if(iread<0){free(w);return NULL;}
+      if(iread<0) break;
     }
     if(rdata!=NULL) {
       cnr=count*nr;
       for(j=0;j<nr;j++){
 	iread=sscanf(w[k],"%lg",(rdata+cnr+j));
 	if(iread<0) break;
-	free(w[k]);
 	k++;
       }
-      if(iread<0) {  free(w);return NULL;}
+      if(iread<0) break;
     }
   }
+  //  fprintf(stdout,"\n%%%%%%k=%d,nrec=%d,num=%d",k,nrec,num);fflush(stdout);
+  for(j=0;j<num;++j) free(w[j]);    
   free(w);
   return out;
 }
@@ -469,6 +467,7 @@ static INT  read_data(char **clndata,input_grid *g)
   void *mdata;
   INT *idata=NULL;
   /********************* coord_systems*****************/
+  //  fprintf(stdout,"%s:RMD(3)",__FUNCTION__);fflush(stdout);
   mdata=read_mixed_data(g->ncsys,2,g->dim,clndata[3]);
   if(mdata!=NULL){
     idata=(INT *)mdata;
@@ -493,6 +492,7 @@ static INT  read_data(char **clndata,input_grid *g)
   }
 
   /***** vertices: same as coordinate systems *****/
+  //  fprintf(stdout,"%s:RMD(4)",__FUNCTION__);fflush(stdout);
   mdata=read_mixed_data(g->nv,2,g->dim,clndata[4]);
   if(mdata!=NULL){
     idata=(INT *)mdata;
@@ -538,6 +538,7 @@ static INT  read_data(char **clndata,input_grid *g)
     return 12;
   }
   /* /\***** edges *****\/ */
+  //  fprintf(stdout,"%s:RMD(5)",__FUNCTION__);fflush(stdout);
   mdata=read_mixed_data(g->ne,3,0,clndata[5]);
   if(mdata!=NULL){
     memcpy(g->seg,mdata,3*g->ne*sizeof(INT));
@@ -573,6 +574,7 @@ static INT  read_data(char **clndata,input_grid *g)
   g->ne=ne;
   /* end edges */
   INT nvcube=(1<<g->dim);
+  //  fprintf(stdout,"%s:RMD(6)",__FUNCTION__);fflush(stdout);
   mdata=read_mixed_data(g->nel,(nvcube+1),0,clndata[6]);
   if(mdata!=NULL){
     memcpy(g->mnodes,mdata,g->nel*(nvcube+1)*sizeof(INT));
@@ -583,6 +585,7 @@ static INT  read_data(char **clndata,input_grid *g)
 
   // faces
   INT nvface=(1<<(g->dim-1));
+  //  fprintf(stdout,"%s:RMD(7)",__FUNCTION__);fflush(stdout);
   mdata=read_mixed_data(g->nf,(nvface+1),0,clndata[7]);
   if(mdata!=NULL){
     memcpy(g->mfaces,mdata,g->nf*(nvface+1)*sizeof(INT));
@@ -601,6 +604,7 @@ static INT  read_data(char **clndata,input_grid *g)
   }
 
   // refine points
+  //  fprintf(stdout,"%s:RMD(20)",__FUNCTION__);fflush(stdout);
   mdata=read_mixed_data(g->num_refine_points,2,g->dim,clndata[20]);
   if(mdata!=NULL){
     idata=(INT *)mdata;
@@ -678,7 +682,7 @@ void x_out(const char *pattern, size_t le)
 }
 /**********************************************************************/
 /*!
- * \fn char *make_string_from_file(FILE *the_file, size_t *length_string)
+ * \fn char *make_string_from_file(FILE *the_file,size_t *length_string)
  *
  * \brief puts the content of a file in a string, ignoring all comments which start with %.
  *
@@ -772,7 +776,7 @@ static char *make_string_from_file(FILE *the_file, size_t *length_string)
   file2str = (char *)realloc(file2str,(i+1)*sizeof(char));
   file2str[i] = '\0';
   *length_string = strlen(file2str)+1;
-  //  fprintf(stdout,"\ncount=%d:%s",i,file2str);
+  //  fprintf(stdout,"\ncount=%d:%s",i,file2str);fflush(stdout);
   /* for(j=0;j<i;j++){ */
   /*   if(!file2str[j]) continue; */
   /*   file2str[j]=toupper(tolower(file2str[j])); */
@@ -809,12 +813,10 @@ static char *get_substring(const char *pattern,	\
   size_t le;
   INT i;
   char *found=NULL, *wrk=NULL;
-  char *default_s=strndup("",1);
   //  char ch;
   le = strlen(pattern);
   found = (char *) strstr(the_string,pattern);
   if(found != NULL){
-    //    found = &(*(found + le));
     found += le;
     wrk = (char *) strstr(found,"}");
     if(wrk == NULL ){ x_out(pattern,le);}
@@ -824,10 +826,9 @@ static char *get_substring(const char *pattern,	\
     i = strlen(found)-strlen(wrk);
     if(i != *length_substring ){ x_out(pattern,le); }
   }else{
-    found=strndup(default_s,1);
+    found=strndup("",1);
     *length_substring=strlen(found);
   }
-  free(default_s);
   return found;
 }
 /**********************************************************************/
@@ -958,6 +959,11 @@ static INT check_input(char * file2str, input_grid *g,	\
   /**/
   status=read_data(clndata,g);
   /*FREE*/
+  for(k=0;k<numel_data;k++){
+    if(lengths[k]) continue;
+    //    fprintf(stdout,"\nlengths[%d]=%ld,clndata=%s\n",k,lengths[k],clndata[k]);fflush(stdout);
+    if(clndata[k]) free(clndata[k]);
+  }
   free(lengths);
   free(clndata);
   return status;
@@ -980,9 +986,8 @@ static INT check_input(char * file2str, input_grid *g,	\
 input_grid *parse_input_grid(FILE *the_file)
 {
   input_grid *g=malloc(sizeof(input_grid));
-  memset(g,0,sizeof(input_grid));
   INT numel_data,k,knext;
-  char *file2str;
+  char *file2str=NULL;
   size_t ll=-1,length_string=0;
   char **indata,**notes;
   indata=input_strings(&numel_data);
@@ -996,11 +1001,12 @@ input_grid *parse_input_grid(FILE *the_file)
   }
   /* get all substrings */
   //  size_t *lengths;
-  file2str = strndup(make_string_from_file(the_file, &length_string), (size_t )((MAX_CHARS_INPUT_GRID_FILE )+1));
+  file2str=make_string_from_file(the_file,&length_string);
+  //  fprintf(stdout,"\neve0[%ld]=%s\n",length_string,file2str);
   length_string=strlen(file2str);
   file2str=realloc(file2str,(length_string+1)*sizeof(char));
   file2str[length_string]='\0';
-  //  fprintf(stdout,"\neve[%ld]=%s\n",length_string,file2str);
+  //  fprintf(stdout,"\neve1[%ld]=%s\n",length_string,file2str);
   k=check_input(file2str,g,indata,notes,numel_data);
   switch(k){
   case 8: case 10: case 12:
@@ -1015,6 +1021,11 @@ input_grid *parse_input_grid(FILE *the_file)
     if(g->print_level>0)
       fprintf(stdout,"\nEXAMPLE: %s\n",g->title);
     //    input_grid_example_file(g);
+    for(k=0;k<numel_data;k++) free(indata[k]);
+    free(indata);
+    for(k=0;k<numel_data;k++) free(notes[k]);
+    free(notes);
+    free(file2str);
     return g;
   default:
     break;
@@ -1042,7 +1053,7 @@ input_grid *parse_input_grid(FILE *the_file)
 }
 /**********************************************************************/
 /*!
- * \fn INT *set_input_grid(input_grid *g,cube2simp *c2s)
+ * \fn void set_input_grid(INT *nd,input_grid *g,cube2simp *c2s)
  *
  * \brief Every edge is put into a subset, i.e. two edges
  *        (v(i1),v(i2)) and (v(j1),v(j2)) are considered equivalent
@@ -1058,7 +1069,7 @@ input_grid *parse_input_grid(FILE *the_file)
  * \note
  *
  */
-INT *set_input_grid(input_grid *g,cube2simp *c2s)
+void set_input_grid(INT *nd,input_grid *g,cube2simp *c2s)
 {
   INT i,j,k,iri,ici,pmem;
   pmem=2*g->nv;
@@ -1105,7 +1116,9 @@ INT *set_input_grid(input_grid *g,cube2simp *c2s)
     k++;
     //    fprintf(stdout,"\n[%d,%d]:div=%d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
   }
-  p=realloc(p,g->dim*sizeof(INT)); // realloc to dimension g->dim
+  ////////////////////////////////////////
+  //  p=realloc(p,g->dim*sizeof(INT)); // realloc to dimension g->dim
+  ///////////////////////////////////
   //  for (i=0;i<g->dim;i++){
   //    fprintf(stdout,"\ndirection:%d; div=%d",i,p[i]);
   //  }
@@ -1113,7 +1126,10 @@ INT *set_input_grid(input_grid *g,cube2simp *c2s)
   //  print_full_mat_int(g->ne,3,g->seg,"med");
   //  print_full_mat_int(g->nf,(c2s->nvface+1),g->mfaces,"mf");
   //  print_full_mat_int(g->nel,(c2s->nvcube+1),g->mnodes,"mel");
-  return p;
+  ///newnew
+  memcpy(nd,p,g->dim*sizeof(int));
+  free(p);
+  return;
 }
 /**********************************************************************/
 /*!
@@ -1307,7 +1323,7 @@ INT set_ndiv_edges(input_grid *g, input_grid *g0,		\
     //      fflush(stdout);
     //}
     ////////////////////////////////////////////////////////////
-    nd[kel]=set_input_grid(g,c2s);
+    set_input_grid(nd[kel],g,c2s);
     for(i=0;i<g->ne;i++){
       if(efound[i]<0)
 	continue;

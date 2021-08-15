@@ -24,14 +24,14 @@ print_level{0}	% how much information to print out: 0 Nothing | >0 Something
 
 refinement_type{0}
 
-file_grid{outputs/2d_square.haz}
-file_vtu{outputs/2d_square.vtu}
+file_grid{output/2d_square.haz}
+file_vtu{output/2d_square.vtu}
 
 %---------------%
 % coordinate systems: Each has coordinates of the origin o[0:dim-1]
 %                     type (0=cartesian, 1=polar)%
 %---------------%
-num_coordsystems{3} % number of coordinate systems
+num_coordsystems{1} % number of coordinate systems
 data_coordsystems{0 0 0. 0.}
 
 %---------------%

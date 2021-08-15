@@ -21,14 +21,14 @@ INT main(INT   argc,   char *argv[])
 {
   INT i;
   FILE *fp;
-   fp=stdin;
-   //no   fp=HAZ_fopen("inputs/2d_ann.input","r");
-   //   fp=HAZ_fopen("inputs/2d_2L.input","r");
-   // fp=HAZ_fopen("inputs/3d_fichera.input","r");
-   // fp=HAZ_fopen("inputs/3d_2cubes_edge.input","r");
-   // fp=HAZ_fopen("inputs/3d_2cubes_vertex.input","r");
-   //  fp=HAZ_fopen("inputs/5d_cube.input","r");
-   /*
+  fp=stdin;
+  //no   fp=HAZ_fopen("inputs/2d_ann.input","r");
+  //   fp=HAZ_fopen("inputs/2d_2L.input","r");
+  // fp=HAZ_fopen("inputs/3d_fichera.input","r");
+  // fp=HAZ_fopen("inputs/3d_2cubes_edge.input","r");
+  // fp=HAZ_fopen("inputs/3d_2cubes_vertex.input","r");
+  //  fp=HAZ_fopen("inputs/5d_cube.input","r");
+  /*
     PARSE THE INPUT.
   */
   input_grid *g=parse_input_grid(fp);
@@ -37,11 +37,14 @@ INT main(INT   argc,   char *argv[])
   /*
     GENERATE INITIAL GRID AND DECLARE VARIABLES.
   */
-  scomplex *sc=generate_initial_grid(g);  
-  scomplex *sctop=NULL;
+  scomplex **sc_all=generate_initial_grid(g);
+  //NNNNNNNNNNNNNNNN
   INT ref_levels=g->nref, amr_marking_type=g->mark_type,j;
-  dvector *solfem=NULL,*estimator=NULL;
-  ivector *marked=NULL;
+  scomplex *sc=sc_all[0];
+  //NNNNNNNNNNNNNNNNNNNNNNNNNNNN
+  scomplex *sctop=NULL;
+  dvector solfem,estimator;
+  ivector marked;
   void *all=NULL;
   REAL *xstar=NULL;
   INT nstar,dim=sc->n;
@@ -67,11 +70,12 @@ INT main(INT   argc,   char *argv[])
        *       refinement.
        */
       marked=mark_near_points(sctop,nstar,xstar, threshold);
-      refine(1,sc,marked);
+      refine(1,sc,&marked);
       /* free */
+      ivec_free(&marked);
       haz_scomplex_free(sctop);
     }
-    ivec_free(marked);
+    ivec_free(&marked);
     //free(xstar);
   } else {
     /*
@@ -88,31 +92,31 @@ INT main(INT   argc,   char *argv[])
        */
       sctop=scfinest(sc);
       /*
-       * SOLVE on the finest (for now) grid
+       * SOLVE on the finest grid
        */
-      solfem=(dvector *)exmpl_solve(sctop,all);
+      solfem=exmpl_solve(sctop,all);
       /*
        * ESTIMATE using the numerical solution and the data stored in *all
        */
-      estimator=(dvector *)exmpl_estimate(sctop,solfem,all);
+      estimator=exmpl_estimate(sctop,&solfem,all);
       /*
        * MARK: marked is an ivector with num.rows=the number of
        *       simplices; its componenets are nonzero if the simplex
        *       is marked for refinement and 0 if it is not marked for
        *       refinement.
        */
-      marked=exmpl_mark(sctop,estimator,all);
+      marked=exmpl_mark(sctop,&estimator,all);
       /*
        *  Refine the grid. this always refines 1 time, but since we
        *  are in a loop, it will refine ref_levels times;
        */
       //      haz_scomplex_print(sctop,0,__FUNCTION__);
-      refine(1,sc,marked);
+      refine(1,sc,&marked);
       /* free */
       haz_scomplex_free(sctop);
-      dvec_free(solfem);
-      dvec_free(estimator);
-      ivec_free(marked);
+      dvec_free(&solfem);
+      dvec_free(&estimator);
+      ivec_free(&marked);
     }
     free(all);
   }
@@ -125,8 +129,9 @@ INT main(INT   argc,   char *argv[])
   /* WRITE THE OUTPUT vtu file for paraview:    */
   if(dim <4)
     vtkw(g->fvtu,sc,0,1.);
-  /*FREE*/
+  /*FREE: the input grid is freed here, because it haz the filenames in it*/
   input_grid_free(g);
   haz_scomplex_free(sc);
+  free(sc_all);
   return 0;
 }

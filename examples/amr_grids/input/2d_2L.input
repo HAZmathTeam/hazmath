@@ -11,8 +11,8 @@ print_level{0}	% how much information to print out: 0 less | >0 Something
 % files: writeable by the user
 % vtu files for plotting follow the same convention.
 %---------------%
-file_grid{outputs/2d_2L.haz}
-file_vtu{outputs/2d_2L.vtu}
+file_grid{output/2d_2L.haz}
+file_vtu{output/2d_2L.vtu}
 
 %---------------%
 % coordinate systems: Each has coordinates of the origin o[0:dim-1]

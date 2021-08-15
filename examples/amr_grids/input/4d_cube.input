@@ -16,8 +16,8 @@ err_stop_refinement{        -1.e-10        }
 %%% files:  should be writeable by the user
 %%% vtu files for plotting follow the same convention.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-file_grid{outputs/4dcube.haz}
-file_vtu{outputs/4dcube.vtu}
+file_grid{output/4dcube.haz}
+file_vtu{output/4dcube.vtu}
 
 %%%num_edges{12}
 %%% it is enough to specify 4 divisions only for the 4
