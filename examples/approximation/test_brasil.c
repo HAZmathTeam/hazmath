@@ -41,7 +41,7 @@ INT main(int argc,char *argv[])
   REAL   max_step_size=1./16.;
   REAL   tol_brasil=pow(2.,-14.);// < 1/16000
   if(fabs(xmin_in)<tol_brasil) 
-    xmin_in=tol_brasil*((REAL )(1<<3));
+    xmin_in=tol_brasil*((REAL )(1<<4));
   REAL rmax=get_cpzwf_brasil(f_to_approx_l, (void*)s, cpzwf_brasil,
 			     xmin_in, xmax_in, degree,     // the remaining options can usually be kept at these defaults
 			     init_steps, maxiter, step_factor, max_step_size, tol_brasil, &iter_brasil,print_level);  
