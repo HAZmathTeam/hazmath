@@ -4290,6 +4290,8 @@ void uniqueij(iCSRmat *U, ivector *ii, ivector *jj)
        ascending lexicographic order */    
     iCSRmat UT; 
     icsr_trans(U,&UT);
+    // free is needed because U is already alloc'd, so valgrind complains rightfully that we leak here. 
+    icsr_free(U);
     icsr_trans(&UT,U);
     icsr_free(&UT);
     /**END sorting**/

@@ -13,18 +13,20 @@
 #include "hazmath.h"
 #include "elliptic_p1_supporting.h"
 /****************************************************************************/
-/* refinement type: .gt. 10 is uniform and .le. 10 (typically 0)is newest */
-/* vertex bisection */
+/* 
+ * refinement type: .gt. 10 is uniform refinement and .le. 10
+ *                  (typically 0) is the newest vertex bisection
+*/
 #ifndef REFINEMENT_TYPE
-#define REFINEMENT_TYPE 0
+#define REFINEMENT_TYPE 11
 #endif
 /**/
 #ifndef REFINEMENT_LEVELS
-#define REFINEMENT_LEVELS 10
+#define REFINEMENT_LEVELS 4
 #endif
 
 #ifndef SPATIAL_DIMENSION
-#define SPATIAL_DIMENSION 4
+#define SPATIAL_DIMENSION 3
 #endif
 /****************************************************************************/
 int main(int argc, char *argv[])
