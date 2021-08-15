@@ -1,9 +1,9 @@
 #####################################################
 # Last Modified 2021-07-21 --ltz
 ####################################################
-
+testing = brasil
 ### SRC File name
-SRCFILE = test_aaa
+SRCFILE = test_$(testing)
 #SRCFILE = test_brasil
 
 HEADERS = ra_examples.h
