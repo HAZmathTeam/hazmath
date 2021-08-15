@@ -32,7 +32,6 @@ INT main(int argc,char *argv[])
   fprintf(stderr,"\nEXAMPLE:\n%s<<EOF_FRAC >frac_brasil.m\n %.2Lf %.2Lf %.2Lf %.2Lf %.2f %.2f\nEOF_FRAC\n", \
 	  argv[0],s[0],s[1],s[2],s[3],xmin_in,xmax_in);
   INT k=fscanf(stdin,"%Lg %Lg %Lg %Lg %lg %lg",&s[0],&s[1],&s[2],&s[3],&xmin_in,&xmax_in);
-
   /////// BEST APPROXIMATION BY BRASIL ALGORITHM ///////
   REAL *cpzwf_brasil[5];
   const INT degree = 15;
@@ -41,6 +40,8 @@ INT main(int argc,char *argv[])
   REAL   step_factor=1./16.;
   REAL   max_step_size=1./16.;
   REAL   tol_brasil=pow(2.,-14.);// < 1/16000
+  if(fabs(xmin_in)<tol_brasil) 
+    xmin_in=tol_brasil*((REAL )(1<<4));
   REAL rmax=get_cpzwf_brasil(f_to_approx_l, (void*)s, cpzwf_brasil,
 			     xmin_in, xmax_in, degree,     // the remaining options can usually be kept at these defaults
 			     init_steps, maxiter, step_factor, max_step_size, tol_brasil, &iter_brasil,print_level);  
