@@ -219,90 +219,97 @@ INT residues_poles(INT m,				\
   /*   fprintf(stdout,"\nwp2(%d)=%.18Le;",j+1,w[j]); fflush(stdout); */
   /* } */
   // these are 2 matrices and the other params of the qz algorithm.
-  REAL16 *a_mat=(REAL16 *)calloc(m1*m1,sizeof(REAL16));
-  REAL16 *b_mat=(REAL16 *)calloc(m1*m1,sizeof(REAL16));
-  REAL16 *x000=(REAL16 *)calloc(m1*m1,sizeof(REAL16));
-  REAL16 *alphar=(REAL16 *)calloc(m1,sizeof(REAL16));
-  REAL16 *alphai=(REAL16 *)calloc(m1,sizeof(REAL16));
-  REAL16 *beta=(REAL16 *)calloc(m1,sizeof(REAL16));
-  INT *iter000=(INT *)calloc(m1,sizeof(INT));
-  memset(a_mat,0,mm1*sizeof(REAL16));
-  memset(b_mat,0,mm1*sizeof(REAL16));
-  for(i=1;i<m1;i++){
-    a_mat[i*m1+i]=z[i-1];
-    a_mat[i*m1]=1e00;
-    a_mat[i]=w[i-1];
-    b_mat[i*m1+i]=1e0;
-  }  
-  /* for(i=0;i<m1;i++){ */
-  /*   for(j=0;j<m1;j++){ */
-  /*     fprintf(stdout,"\na_mat(%d,%d)=%.18Le;",i+1,j+1,a_mat[i*m1+j]);fflush(stdout); */
-  /*   } */
-  /* } */
-  /* for(i=0;i<m1;i++){ */
-  /*   for(j=0;j<m1;j++){ */
-  /*     fprintf(stdout,"\nb_mat(%d,%d)=%.18Le;",i+1,j+1,b_mat[i*m1+j]);fflush(stdout); */
-  /*   } */
-  /* } */
-  /* fprintf(stdout,"\n%d %d",m1,m1); */
-  /* for(i=0;i<m1;i++){ */
-  /*   fprintf(stdout,"\n"); */
-  /*   for(j=0;j<m1;j++){ */
-  /*     fprintf(stdout,"%.16Le ",a_mat[i*m1+j]);fflush(stdout); */
-  /*   } */
-  /* } */
-  /* fprintf(stdout,"\n1111\n"); */
-  /* for(i=0;i<m1;i++){ */
-  /*   fprintf(stdout,"\n"); */
-  /*   for(j=0;j<m1;j++){ */
-  /*     fprintf(stdout,"%.16Le ",b_mat[i*m1+j]);fflush(stdout); */
-  /*   } */
-  /* } */
-  /* fprintf(stdout,"\n"); */
-  INT wantx=0;
-  REAL16 tol000=1e-20,epsa,epsb;
-  qzhes(m1,m1,a_mat,b_mat,wantx,x000);
-  qzit(m1,m1,&a_mat,&b_mat,tol000,&epsa,&epsb,&iter000,wantx,&x000);
-  qzval(m1,m1,
-	&a_mat,&b_mat,
-	epsa,epsb,
-	&alphar,&alphai,&beta,
-	wantx,&x000);
-  /* for(j=0;j<m1;j++){ */
-  /*   fprintf(stdout,"\nalphar(%d)=%.16Le;",j+1,alphar[j]); */
-  /*   fprintf(stdout,"alphai(%d)=%.16Le;",j+1,alphai[j]); */
-  /*   fprintf(stdout,"beta000(%d)=%.16Le;",j+1,beta[j]); */
-  /* } */
-  /* fprintf(stdout,"\n");fflush(stdout); */
-  // do two passes to remove the two eigenvalues with minimal beta:
-  INT j1=0,j2;
-  REAL16 betamin1=fabsl(beta[0]),betamin2;
-  for(i=1;i<m1;i++){
-    if(betamin1 > fabsl(beta[i])){
-      betamin1=fabsl(beta[i]);
-      j1=i;
+    REAL16 *a_mat=(REAL16 *)calloc(m1*m1,sizeof(REAL16));
+    REAL16 *b_mat=(REAL16 *)calloc(m1*m1,sizeof(REAL16));
+    REAL16 *x000=(REAL16 *)calloc(m1*m1,sizeof(REAL16));
+    REAL16 *alphar=(REAL16 *)calloc(m1,sizeof(REAL16));
+    REAL16 *alphai=(REAL16 *)calloc(m1,sizeof(REAL16));
+    REAL16 *beta=(REAL16 *)calloc(m1,sizeof(REAL16));
+    INT *iter000=(INT *)calloc(m1,sizeof(INT));
+    memset(a_mat,0,mm1*sizeof(REAL16));
+    memset(b_mat,0,mm1*sizeof(REAL16));
+    for(i=1;i<m1;i++){
+      a_mat[i*m1+i]=z[i-1];
+      a_mat[i*m1]=1e00;
+      a_mat[i]=w[i-1];
+      b_mat[i*m1+i]=1e0;
+    }  
+    /* for(i=0;i<m1;i++){ */
+    /*   for(j=0;j<m1;j++){ */
+    /*     fprintf(stdout,"\na_mat(%d,%d)=%.18Le;",i+1,j+1,a_mat[i*m1+j]);fflush(stdout); */
+    /*   } */
+    /* } */
+    /* for(i=0;i<m1;i++){ */
+    /*   for(j=0;j<m1;j++){ */
+    /*     fprintf(stdout,"\nb_mat(%d,%d)=%.18Le;",i+1,j+1,b_mat[i*m1+j]);fflush(stdout); */
+    /*   } */
+    /* } */
+    /* fprintf(stdout,"\n%d %d",m1,m1); */
+    /* for(i=0;i<m1;i++){ */
+    /*   fprintf(stdout,"\n"); */
+    /*   for(j=0;j<m1;j++){ */
+    /*     fprintf(stdout,"%.16Le ",a_mat[i*m1+j]);fflush(stdout); */
+    /*   } */
+    /* } */
+    /* fprintf(stdout,"\n1111\n"); */
+    /* for(i=0;i<m1;i++){ */
+    /*   fprintf(stdout,"\n"); */
+    /*   for(j=0;j<m1;j++){ */
+    /*     fprintf(stdout,"%.16Le ",b_mat[i*m1+j]);fflush(stdout); */
+    /*   } */
+    /* } */
+    /* fprintf(stdout,"\n"); */
+    INT wantx=0;
+    REAL16 tol000=1e-20,epsa,epsb;
+    qzhes(m1,m1,a_mat,b_mat,wantx,x000);
+    qzit(m1,m1,&a_mat,&b_mat,tol000,&epsa,&epsb,&iter000,wantx,&x000);
+    qzval(m1,m1,
+	  &a_mat,&b_mat,
+	  epsa,epsb,
+	  &alphar,&alphai,&beta,
+	  wantx,&x000);
+    /* for(j=0;j<m1;j++){ */
+    /*   fprintf(stdout,"\nalphar(%d)=%.16Le;",j+1,alphar[j]); */
+    /*   fprintf(stdout,"alphai(%d)=%.16Le;",j+1,alphai[j]); */
+    /*   fprintf(stdout,"beta000(%d)=%.16Le;",j+1,beta[j]); */
+    /* } */
+    /* fprintf(stdout,"\n");fflush(stdout); */
+    // do two passes to remove the two eigenvalues with minimal beta:
+    INT j1=0,j2;
+    REAL16 betamin1=fabsl(beta[0]),betamin2;
+    for(i=1;i<m1;i++){
+      if(betamin1 > fabsl(beta[i])){
+	betamin1=fabsl(beta[i]);
+	j1=i;
+      }
     }
-  }
-  j2=-1;
-  betamin2=1e20;
-  for(i=0;i<m1;i++){
-    if(i==j1) continue;
-    if(betamin2 > fabsl(beta[i])){
-      betamin2=fabsl(beta[i]);
-      j2=i;
+    j2=-1;
+    betamin2=1e20;
+    for(i=0;i<m1;i++){
+      if(i==j1) continue;
+      if(betamin2 > fabsl(beta[i])){
+	betamin2=fabsl(beta[i]);
+	j2=i;
+      }
     }
-  }
-  // once j1 and j2 are known, we find the poles:
-  j=0;
-  for(i=1;i<m1;i++){
-    if(i==j1 || i == j2) continue;
-    // skip all with nonzero imaginary part:
-    //    if(fabsl(alphai[i])>1e-16) {
-    //      fprintf(stdout,"\n WARNING: pole[%d] haz nonzero imaginary part. Skipping it...\n");
-    //    }
-    pol[j]=alphar[i]/beta[i];
-    ++j;
-  }
+    // once j1 and j2 are known, we find the poles:
+    j=0;
+    for(i=1;i<m1;i++){
+      if(i==j1 || i == j2) continue;
+      // skip all with nonzero imaginary part:
+      //    if(fabsl(alphai[i])>1e-16) {
+      //      fprintf(stdout,"\n WARNING: pole[%d] haz nonzero imaginary part. Skipping it...\n");
+      //    }
+      pol[j]=alphar[i]/beta[i];
+      ++j;
+    }
+    free(a_mat);
+    free(b_mat);
+    free(x000);
+    free(alphar);
+    free(alphai);
+    free(beta);
+    free(iter000);
   }
   //  fprintf(stdout,"\nbeta[%d]=%Le,beta[%d]=%Le\n",j1,beta[j1],j2,beta[j2]);
   //  exit(33);
