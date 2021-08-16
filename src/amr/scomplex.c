@@ -1192,10 +1192,11 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
     pv[0]=jv0;
     pv[1]=jvn;
     // boundary codes (these are also fixed later when connected components on the boundary are found.
-    if(sc->bndry[jv0] > sc->bndry[jvn])
-      ibnew=sc->bndry[jv0];
-    else
-      ibnew=sc->bndry[jvn];
+    /* if(sc->bndry[jv0] > sc->bndry[jvn]) */
+    /*   ibnew=sc->bndry[jv0]; */
+    /* else */
+    /*   ibnew=sc->bndry[jvn]; */
+    ibnew=0; //added vertex is considered interior vertex by default. ;
     if(sc->csys[jv0] < sc->csys[jvn])
       csysnew=sc->csys[jv0];
     else

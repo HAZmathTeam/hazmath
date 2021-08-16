@@ -76,10 +76,9 @@ static mesh_struct  make_uniform_mesh(const INT dim,			\
       haz_scomplex_free(sctop);
     }
     ivec_free(&marked);
-    scfinalize(sc);
+    scfinalize(sc,set_bndry_codes);
     sc_vols(sc);
   }  
-  find_cc_bndry_cc(sc,set_bndry_codes);
   for(i=0;i<sc->nv;++i){
     if(sc->bndry[i]>128) sc->bndry[i]-=128;
   }
