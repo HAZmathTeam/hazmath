@@ -9,9 +9,14 @@
 #include "hazmath.h"
 /**********************************************************************/
 /*!
- * \fn
+ * \fn void coord_lattice(INT *m,const INT dim,const INT kf, 
+ *                        const INT nall, const INT *nd)
  *
- * \brief
+ * \brief given a global number kf on a lattice grid with
+ *        lexicographical ordering, this returns the n-tuple of latice
+ *        coordinates, m[i],i=0:n-1). nall is the total number of
+ *        vertices in the lattice, nd[i] is the number of divisions in
+ *        every direction;
  *
  * \param 
  *
@@ -20,14 +25,11 @@
  * \note
  *
  */
-void coord_lattice(INT *m,const INT dim,const INT kf, const INT nall, const INT *nd)
+void coord_lattice(INT *m,const INT dim,const INT kf, \
+		   const INT nall, const INT *nd)
 {
   INT i,j,k;
   /*
-    given a global number kf on a lattice grid with lexicographical
-    ordering, this returns the n-tuple of latice coordinates,
-    m[i],i=0:n-1). nall is the total number of vertices in the
-    lattice, nd[i] is the number of divisions in every direction;
   */
   j=nall;  k=kf;
   for(i=dim;i>0;i--){
@@ -37,9 +39,12 @@ void coord_lattice(INT *m,const INT dim,const INT kf, const INT nall, const INT 
 }
 /**********************************************************************/
 /*!
- * \fn
+ * \fn INT num_lattice(INT *m,const INT dim,INT *nd)
  *
- * \brief
+ * \brief given the lattice coordinates m[i],i=0:n-1 of a vertex, in
+ *        dimension n, finds the global number kf of a vertex on a
+ *        lexicographically ordered lattice grid. Divisions in each
+ *        directions are stored in nd[].
  *
  * \param 
  *
@@ -52,10 +57,6 @@ INT num_lattice(INT *m,const INT dim,INT *nd)
 {
   INT i,kf;
   /*
-    given the lattice coordinates m[i],i=0:n-1 of a vertex, in
-    dimension n, finds the global number kf of a vertex on a
-    lexicographically ordered lattice grid. divisions in each
-    directions are stored in nd[].
   */
   kf=m[dim-1];
   //      kf = m[dim-1];
@@ -270,7 +271,7 @@ scomplex *umesh(const INT dim,		\
  *
  * \return
  *
- * \note  (20180718)--ltz
+ * \note  not used; (20180718)--ltz
  *
  */
 void unirefine(INT *nd,scomplex *sc)  
@@ -321,14 +322,14 @@ void unirefine(INT *nd,scomplex *sc)
     fprintf(stdout,"u%du",sc->level);//,nsold,ns,nv);
   }
   fprintf(stdout,"\n");
-  scfinalize(sc);
+  scfinalize(sc,(INT )0);
   return;
 }
 /**********************************************************************/
 /*!
- * \fn
+ * \fn unigrid *ugrid_init(INT n, INT *nd, REAL *xo, REAL *xn)
  *
- * \brief
+ * \brief init structure unigrid
  *
  * \param 
  *
@@ -341,29 +342,11 @@ unigrid *ugrid_init(INT n, INT *nd, REAL *xo, REAL *xn)
 {
   INT j;
   unigrid *ug=(unigrid *)malloc(sizeof(unigrid));
-  /* fprintf(stdout,"\n"); */
-  /* for(j=0;j<n;j++){ */
-  /*   fprintf(stdout,"%i ",nd[j]); */
-  /* } */
-  /* fprintf(stdout,"\n"); */
-  /* for(j=0;j<n;j++){ */
-  /*   fprintf(stdout,"%f %f\n",xo[j],xn[j]); */
-  /* } */
   ug->n=n; 
-  /* fprintf(stdout,"n=%i\n",ug->n);fflush(stdout); */
   ug->nvcube=(1<<n); 
-  /* fprintf(stdout,"nvcube=%i\n",ug->nvcube);fflush(stdout); */
   ug->ndiv=nd; 
   ug->bits=(unsigned int *)calloc(n*(ug->nvcube),sizeof(unsigned int));
   binary1(n,ug->bits,&(ug->nvcube));
-  /* fprintf(stdout,"\n"); */
-  /* for(k = 0;k<ug->nvcube;k++){ */
-  /*   for(i = 0;i<n;++i){ */
-  /*     fprintf(stdout,"%i ",ug->bits[k*n+i]); fflush(stdout); */
-  /*   } */
-  /*   fprintf(stdout,"\n"); */
-  /* } */
- /* */
  if(!xo || !xn){
    ug->xo=(REAL *)calloc(n,sizeof(REAL)); /* coordinates of the origin
 					     xo[dim]*/
@@ -383,8 +366,6 @@ unigrid *ugrid_init(INT n, INT *nd, REAL *xo, REAL *xn)
  for(j=0;j<n;j++){
    ug->dx[j]=(ug->xn[j]-ug->xo[j])/((REAL )ug->ndiv[j]);
    ug->nall *= (ug->ndiv[j]+1);
-   /* fprintf(stdout,"\ndx[%i]=%f\n",j,ug->dx[j]); */
-   /* fprintf(stdout,"\n(%i)=%i: \n",(ug->ndiv[j] + 1),ug->nall); */
  }
  /* allocate space for the data */
  ug->data=(REAL *)calloc(ug->nall,sizeof(REAL));
@@ -397,17 +378,7 @@ unigrid *ugrid_init(INT n, INT *nd, REAL *xo, REAL *xn)
 }
 void ugrid_free(unigrid *ug)
 {
-  /* fprintf(stdout,"\n%li %li %li %li %li\n", */
-  /* 	  (ug->ndiv), \ */
-  /* 	  (ug->bits), \ */
-  /* 	  (ug->xo),   \ */
-  /* 	  (ug->xn),   \ */
-  /* 	  (ug->dx));fflush(stdout); */
-    //
-  //  if(ug->ndiv) free(ug->ndiv);
   if(ug->bits) free(ug->bits);
-  // if(ug->xo) free(ug->xo);
-  // if(ug->xn) free(ug->xn);
   if(ug->dx) free(ug->dx);
   if(ug->data) free(ug->data);
   ug->data=NULL;
@@ -417,9 +388,10 @@ void ugrid_free(unigrid *ug)
 }
 /**********************************************************************/
 /*!
- * \fn
+ * \fn void ugrid_transform(const INT n,unigrid *ug,REAL *xodst, REAL *xndst)
  *
- * \brief
+ * \brief transform the unform grid ug to be over a parallelepiped
+ *        with corners xodst and xndst
  *
  * \param 
  *
