@@ -1,4 +1,4 @@
-/*! \file examples/amr_grids/solve_estimate_mark.h
+/*! \file examples/amr_grids/amr_grids_supporting.h
  *
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov 2019/01/09.
  *  Copyright 2015_HAZMATH__. All rights reserved.
