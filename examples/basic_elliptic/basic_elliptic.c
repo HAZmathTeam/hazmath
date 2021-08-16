@@ -35,7 +35,24 @@
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************/
 #include "hazmath.h"
 /*********************************************************************/
-
+#include "basic_elliptic_supporting.h"
+/*SOME MACROS*/
+#ifndef REFINEMENT_TYPE
+#define REFINEMENT_TYPE 11
+#endif
+/**/
+#ifndef REFINEMENT_LEVELS
+#define REFINEMENT_LEVELS 4
+#endif
+/**/
+#ifndef SPATIAL_DIMENSION
+#define SPATIAL_DIMENSION 3
+#endif
+/**/
+#ifndef SET_BNDRY_CODES
+#define SET_BNDRY_CODES 1
+#endif
+/* END MACROS*/
 /******** Data Input *************************************************/
 // PDE Coefficients
 void diffusion_coeff(REAL *val,REAL* x,REAL time,void *param) {
@@ -276,9 +293,17 @@ int main (int argc, char* argv[])
   printf(" --> loading grid from file: %s\n",inparam.gridfile);
   creategrid_fread(gfid,mesh_type,&mesh);
   fclose(gfid);
-
+  /*REFINE A MESH:*/
+  INT dim = SPATIAL_DIMENSION;/// dimension;
+  INT mesh_ref_levels=REFINEMENT_LEVELS;/// refinement levels;
+  INT mesh_ref_type=REFINEMENT_TYPE; /// refinement type (>10 uniform or <10 other)
+  INT set_bndry_codes=SET_BNDRY_CODES; /// set boundary codes.
+  free_mesh(&mesh);//
+  mesh=make_uniform_mesh(dim,mesh_ref_levels,mesh_ref_type,set_bndry_codes);
+  //  exit(33);
+  /*END REFINE MESH*/
   // Dimension is needed for all this to work
-  INT dim = mesh.dim;
+  dim = mesh.dim;
 
   // Get Quadrature Nodes for the Mesh
   INT nq1d = inparam.nquad; // Quadrature points per dimension

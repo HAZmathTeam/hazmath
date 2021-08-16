@@ -121,7 +121,7 @@ INT main(INT   argc,   char *argv[])
   /*  MAKE sc to be the finest grid only */
   scfinalize(sc);
   //  haz_scomplex_print(sc,0,__FUNCTION__);fflush(stdout);
-  find_cc_bndry_cc(sc);
+  find_cc_bndry_cc(sc,(INT )0);
   /* write the output mesh file:    */
   hazw(g->fgrid,sc,0);
   /* WRITE THE OUTPUT vtu file for paraview:    */

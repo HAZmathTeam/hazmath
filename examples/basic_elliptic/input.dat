@@ -10,7 +10,7 @@
 % output flags
 %---------------%
 
-print_level			= 2;	% how much information to print out: 0 Nothing | >0 Something
+print_level			= 4;	% how much information to print out: 0 Nothing | >0 Something
 
 %---------------%
 % files

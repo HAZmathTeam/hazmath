@@ -5,7 +5,7 @@
 # SRC File name
 SRCFILE = basic_elliptic
 
-HEADERS = 
+HEADERS = $(SRCFILE)_supporting.h
 
 INCLUDE =
 

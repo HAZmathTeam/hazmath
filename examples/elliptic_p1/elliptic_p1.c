@@ -9,10 +9,11 @@
  *
  */
 /*********************************************************************/
-
 #include "hazmath.h"
 #include "elliptic_p1_supporting.h"
 /****************************************************************************/
+/****************************************************************************/
+
 /* 
  * refinement type: .gt. 10 is uniform refinement and .le. 10
  *                  (typically 0) is the newest vertex bisection
@@ -24,9 +25,13 @@
 #ifndef REFINEMENT_LEVELS
 #define REFINEMENT_LEVELS 4
 #endif
-
+/**/
 #ifndef SPATIAL_DIMENSION
 #define SPATIAL_DIMENSION 3
+#endif
+/**/
+#ifndef SET_BNDRY_CODES
+#define SET_BNDRY_CODES 1
 #endif
 /****************************************************************************/
 int main(int argc, char *argv[])
