@@ -163,13 +163,10 @@ struct mesh_struct make_uniform_mesh(const INT dim,const INT mesh_ref_levels,con
   sc_vols(sc);
   // Convert to mesh_struct for FEM assembly
   mesh_struct mesh0=sc2mesh(sc);
-
-  // Build remaining components of the mesh
-  build_mesh_all(&mesh0);
-
   // Free simplicial complex
   haz_scomplex_free(sc);
-
+  // Build remaining components of the mesh
+  build_mesh_all(&mesh0);
   return mesh0;
 }
 
