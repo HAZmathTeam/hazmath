@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
       haz_scomplex_free(sctop);
       /*  MAKE sc to be the finest grid only */
     }
-    scfinalize(sc);
+    scfinalize(sc,(INT )0);
     sc_vols(sc);
   }
   //  icsr_print_matlab(stdout,sc->parent_v);

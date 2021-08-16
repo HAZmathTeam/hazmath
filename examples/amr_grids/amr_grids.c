@@ -119,13 +119,11 @@ INT main(INT   argc,   char *argv[])
     free(all);
   }
   /*  MAKE sc to be the finest grid only */
-  scfinalize(sc);
-  //  haz_scomplex_print(sc,0,__FUNCTION__);fflush(stdout);
-  find_cc_bndry_cc(sc,(INT )0);
-  /* write the output mesh file:    */
-  //uncomment if the grid has to be written on a file:  hazw(g->fgrid,sc,0);
+  scfinalize(sc,(INT )0);
+  /* WRITE THE OUTPUT MESH FILE:    */
+  //  hazw(g->fgrid,sc,0);
   /* WRITE THE OUTPUT vtu file for paraview:    */
-  //uncomment if paraview plot is needed;  if(dim <4) vtkw(g->fvtu,sc,0,1.);
+  if(dim <4) vtkw(g->fvtu,sc,0,1.);
   /*FREE: the input grid is freed here, because it haz the filenames in it*/
   input_grid_free(g);
   haz_scomplex_free(sc);
