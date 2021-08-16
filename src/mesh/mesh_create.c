@@ -157,15 +157,15 @@ struct mesh_struct make_uniform_mesh(const INT dim,const INT mesh_ref_levels,con
       haz_scomplex_free(sctop);
     }
     ivec_free(&marked);
-    scfinalize(sc);
-    sc_vols(sc);
   }
   // Get boundary codes
-  find_cc_bndry_cc(sc,set_bndry_codes);
-  for(i=0;i<sc->nv;++i){
-    if(sc->bndry[i]>128) sc->bndry[i]-=128;
+  scfinalize(sc,set_bndry_codes);
+  sc_vols(sc);
+  if(set_bndry_codes){
+    for(i=0;i<sc->nv;++i){
+      if(sc->bndry[i]>128) sc->bndry[i]-=128;
+    }
   }
-
   // Convert to mesh_struct for FEM assembly
   mesh_struct mesh0=sc2mesh(sc);
 
