@@ -77,7 +77,7 @@ int main (int argc, char* argv[])
   INT dim = inparam.spatial_dim;                 // dimension of computational domain
   INT mesh_ref_levels=inparam.refinement_levels; // refinement levels
   INT mesh_ref_type=inparam.refinement_type;     // refinement type (>10 uniform or <10 other)
-  INT set_bndry_codes=inparam.boundary_codes;    // set boundary codes.
+  INT set_bndry_codes=inparam.boundary_codes;    // set flags for the boundary DoF
 
   if(read_mesh_from_file) {
     // Reading from file
