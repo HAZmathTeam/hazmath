@@ -11,10 +11,10 @@
 /*!
  * \fn INT aresame(INT *a, INT *b, INT n)
  *
- * \brief checks if two arrays have same elements up to a permutation. 
+ * \brief checks if two arrays have same elements up to a permutation.
  *
  * \param a:   input array
- * \param b:   input array to compare with a. 
+ * \param b:   input array to compare with a.
  * \param n:   the size of a and b;
  *
  * \return
@@ -47,12 +47,12 @@ INT aresame(INT *a, INT *b, INT n)
  * \fn INT aresamep(INT *a, INT *b, INT n, INT *p)
  *
  * \brief checks (n^2 algorithm) if two have the same elements (up to a
-     permutation); 
+     permutation);
  *
  * \param a:   input array
- * \param b:   input array to compare with a. 
+ * \param b:   input array to compare with a.
  * \param n:   the size of a and b;
- * \param p:   the permutation which takes a into b if they are the same. 
+ * \param p:   the permutation which takes a into b if they are the same.
  *
  *
  * \return returns 0 if the arrays are not the same; returns 2 if they
@@ -96,22 +96,22 @@ INT aresamep(INT *a, INT *b, INT n, INT *p)
  *    "nodes[0..n] and xs[0..n]"
  *
  * \param n:         dimension of the simplex
- * \param nodes:     global numbering of the vertices of the simplex  
+ * \param nodes:     global numbering of the vertices of the simplex
  *
  * \param xs[]:      coordinates of all vertices in the simplicial
  *                   complex. This corresponds to the global
  *                   numbering. So the xs[nodes[0...(n+1)]]=coords of
  *                   the simplex vertices
  *
- * \param xstar[]:   node for which we would like to check its incidence with the simplex. 
- * 
+ * \param xstar[]:   node for which we would like to check its incidence with the simplex.
+ *
  * \param nbig:       dimension of the space where the simplex is embedded
- * \return  0: the point is in the simplex; nonzero: not in the simplex.  
+ * \return  0: the point is in the simplex; nonzero: not in the simplex.
  *
  * \note
  *
  */
-INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)  
+INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)
 {
   // does not support different dimensions of the simplex and the
   // space containing it.
@@ -171,12 +171,12 @@ INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)
 /*!
  * \fn void marks(scomplex *sc,dvector *errors)
  *
- * \brief marks simplices based on input vector with errors. 
+ * \brief marks simplices based on input vector with errors.
  *
  * \param sc:            simplicial complex
  * \param errors[]:      dvector with errors.
  *
- * \return               changes sc->marked[]: simplices marked 
+ * \return               changes sc->marked[]: simplices marked
  *                       for refinemend have sc->marked[s]=true;
  *
  * \note
@@ -241,19 +241,19 @@ void marks(scomplex *sc,dvector *errors)
  *                reorders is if it was not visited before. One main
  *                assumption is that (is) and (it) intersect in (n-1)
  *                dimensional simplex with (n) vertices, so that only
- *                one element of sv1 (say, k1) is not present in sv2 
+ *                one element of sv1 (say, k1) is not present in sv2
  *                and only one element of sv2 (say, k2) is not present in
  *                sv1. Then we make an important assumption here, that
  *                stos1[k1] = it and stos[k2]= is. This is always
  *                achievable when creating the simplex-to-simplex map.
  *
- * \param sv1[]:       the n+1 vertices of (is); 
+ * \param sv1[]:       the n+1 vertices of (is);
  * \param sv2[]        the (n+1) vertices of (it).
  *
  * \param stos1[]:     are the n+1 neighbors of (is); stos2 are the
  *                     (n+1) neighbors of (it).
  *
- *  \param             wrk[] is working space of size n+2, 
+ *  \param             wrk[] is working space of size n+2,
  *                     n is the spatial dimension
  *
  * \return             returns 0 if is and it are reflected neighbors
@@ -382,7 +382,7 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
     for(j=0;j<n1;j++){
       is=sc->nbr[isn1+j];
       if(is>=0){
-	///	fprintf(stdout,"\niii=%d,ns=%d,elemnts=%d(=%d?)",iii,ns,neib->IA[ns],neib->nnz); fflush(stdout); 
+	///	fprintf(stdout,"\niii=%d,ns=%d,elemnts=%d(=%d?)",iii,ns,neib->IA[ns],neib->nnz); fflush(stdout);
 	neib->JA[iii]=is;
 	iii++;
       }
@@ -401,7 +401,7 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
   mask=neib->val;
   jbfs = mask+ns;
   // find the connected components.
-  //zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz  
+  //zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
   //  fprintf(stdout,"\nNNNNNNNNNNNNNNNN(%d)=%s",ns,__FUNCTION__); fflush(stdout);
   iCSRmat *blk_dfs=run_dfs(ns,neib->IA, neib->JA);
   /********************************************************************************************************/
@@ -412,7 +412,7 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
   /* fprintf(stdout,"\nneib=sparse(neib1(:,1),neib1(:,2),neib1(:,3));\n"); */
   /********************************************************************************************************/
   cc=blk_dfs->row;
-  //zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz  
+  //zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
   INT ireflect;
   // initialization
   /*************************************************************/
@@ -1004,7 +1004,7 @@ void find_cc_bndry_cc(scomplex *sc,INT set_bndry_codes)
 	iii++;
       } else {
 	nbf++;
-	nnzbf+=dim; 
+	nnzbf+=dim;
       }
     }
     neib->IA[i+1]=iii;
@@ -1012,7 +1012,7 @@ void find_cc_bndry_cc(scomplex *sc,INT set_bndry_codes)
   //  fprintf(stdout,"\n");fflush(stdout);
   sc->cc=-10;
   // find the connected components in the domain:
-  iCSRmat *blk_dfs=run_dfs(ns,neib->IA, neib->JA);  
+  iCSRmat *blk_dfs=run_dfs(ns,neib->IA, neib->JA);
   sc->cc=blk_dfs->row;
   for(i=0;i<sc->cc;++i){
     for(k=blk_dfs->IA[i];k<blk_dfs->IA[i+1];++k){
@@ -1053,7 +1053,7 @@ void find_cc_bndry_cc(scomplex *sc,INT set_bndry_codes)
   for(i=0;i<sc->nv;++i){
     if(indx[i]<0) continue;
     indx[i]=nvbnd;
-    //    fprintf(stdout,"\n%%nvbnd=%d i=%d)\n",nvbnd,i);fflush(stdout);    
+    //    fprintf(stdout,"\n%%nvbnd=%d i=%d)\n",nvbnd,i);fflush(stdout);
     indxinv[nvbnd]=i;
     nvbnd++;
   }
@@ -1089,7 +1089,7 @@ void find_cc_bndry_cc(scomplex *sc,INT set_bndry_codes)
   //THIS SHOULD BE ALLOCATED ON INPUT  sc->bndry=(INT *)calloc(sc->nv,sizeof(INT));
   sc->bndry_cc=-10;
   icsr_free(blk_dfs); free(blk_dfs);
-  // find the connected components on the boundary. 
+  // find the connected components on the boundary.
   blk_dfs=run_dfs(nbf,neib->IA, neib->JA);
   sc->bndry_cc=blk_dfs->row;
   icsr_free(neib);free(neib);
@@ -1111,9 +1111,9 @@ void find_cc_bndry_cc(scomplex *sc,INT set_bndry_codes)
   /* for(j=0;j<sc->nv;j++){ */
   /*   fprintf(stdout,"\ncode[%d]=%d",j,sc->bndry[j]); */
   /* } */
-  fprintf(stdout,"%%number of connected components in the bulk=%d\n",sc->cc);
+  fprintf(stdout," --> number of connected components in the bulk=%d\n",sc->cc);
   //  fprintf(stdout,"%%number of boundary faces=%d (nnzbf=%d)\n",nbf,nnzbf);
-  fprintf(stdout,"%%number of connected components on the boundary=%d\n",sc->bndry_cc);
+  fprintf(stdout," --> number of connected components on the boundary=%d\n",sc->bndry_cc);
   free(indx);
   free(indxinv);
   free(fnodes);

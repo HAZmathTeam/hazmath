@@ -83,10 +83,10 @@ REAL chk_sign(const int it, const int nbrit)
  * \param dim        I: The dimension of the problem.
  * \param factorial  I: dim! (dim factorial)
  * \param xs         I: coordinates of the simplex
- * \param wrk        W: working array of dimension 
+ * \param wrk        W: working array of dimension
  *                      (dim+1)*(dim*sizeof(REAL) + sizeof(INT))
  *
- * \return the volume of the simplex. 
+ * \return the volume of the simplex.
  *
  * \note
  */
@@ -101,7 +101,7 @@ REAL volume_compute(INT dim, REAL factorial, REAL *xs,void *wrk)
   for (j = 1;j<dim1;j++){
     ln=j*dim; ln1=ln-dim;
     for(i=0;i<dim;i++){
-      bt[ln1+i] = xs[ln+i]-xs[i];  // k-th row of bt is [x(k)-x(0)]^T. x(k) are coords of vertex k. 
+      bt[ln1+i] = xs[ln+i]-xs[i];  // k-th row of bt is [x(k)-x(0)]^T. x(k) are coords of vertex k.
     }
   }
   //  SHORT flag=ddense_lu(1, dim, &vol, bt,p,piv);
@@ -147,7 +147,7 @@ void sc_vols(scomplex *sc)
  * \brief Initialize simplicial complex in dimension n with ns
  *        simplices and nv vertices.
  *
- * \param n is the dimension of the simplicial complex; 
+ * \param n is the dimension of the simplicial complex;
  * \param ns is the number of simplices
  * \param nv is the number of vertices
  * \param nbig is the dimension of the space where the simplicial
@@ -185,7 +185,7 @@ scomplex *haz_scomplex_init(const INT n,INT ns, INT nv,const INT nbig)
   sc->bndry=(INT *)calloc(nv,sizeof(INT));
   sc->csys=(INT *)calloc(nv,sizeof(INT));/* coord sys: 1 is polar, 2
 					    is cyl and so on */
-  sc->parent_v=malloc(sizeof(iCSRmat));  
+  sc->parent_v=malloc(sizeof(iCSRmat));
   sc->parent_v[0]=icsr_create(nv,nv,nv);
   sc->flags=(INT *)calloc(ns,sizeof(INT));
   sc->x=(REAL *)calloc(nv*nbig,sizeof(REAL));
@@ -223,8 +223,8 @@ scomplex *haz_scomplex_init(const INT n,INT ns, INT nv,const INT nbig)
   // NULL pointers for the rest
   sc->bcodesf=NULL;
   sc->isbface=NULL;
-  sc->etree=NULL; 
-  sc->bfs=malloc(sizeof(iCSRmat));  
+  sc->etree=NULL;
+  sc->bfs=malloc(sizeof(iCSRmat));
   sc->bfs[0]=icsr_create(0,0,0);
   // the parent_v->val is not needed for now
   if(sc->parent_v->val) {
@@ -238,7 +238,7 @@ scomplex *haz_scomplex_init(const INT n,INT ns, INT nv,const INT nbig)
  * \fn scomplex haz_scomplex_null(const INT n,INT ns, INT nv, const INT nbig)
  *
  * \brief Initialize all pointers in simplicial complex to NULL;
- * \param n is the dimension of the simplicial complex; 
+ * \param n is the dimension of the simplicial complex;
  * \param nbig is the dimension of the space where the simplicial
  *        complex is embedded;
  *
@@ -273,7 +273,7 @@ scomplex haz_scomplex_null(const INT n,const INT nbig)
   sc.nodes=NULL;
   sc.bndry=NULL;
   sc.csys=NULL;
-  sc.parent_v=malloc(sizeof(iCSRmat));  
+  sc.parent_v=malloc(sizeof(iCSRmat));
   sc.parent_v[0]=icsr_create(0,0,0);
   sc.flags=NULL;
   sc.x=NULL;
@@ -283,8 +283,8 @@ scomplex haz_scomplex_null(const INT n,const INT nbig)
   // NULL pointers for the rest
   sc.bcodesf=NULL;
   sc.isbface=NULL;
-  sc.etree=NULL; 
-  sc.bfs=malloc(sizeof(iCSRmat));  
+  sc.etree=NULL;
+  sc.bfs=malloc(sizeof(iCSRmat));
   sc.bfs[0]=icsr_create(0,0,0);
   // the parent_v->val is not needed for now
   return sc;
@@ -294,12 +294,12 @@ scomplex haz_scomplex_null(const INT n,const INT nbig)
  * \fn scomplex *haz_scomplex_init_part(scomplex *sc)
  *
  * \brief Initialize simplicial complex which has already been
- *        allocated partially. 
+ *        allocated partially.
  * Assumption is: nv,ns,nodes,nbr, cc,
  *        bndry_cc are known. in dimension n with ns simplices and nv
  *        vertices.
  *
- * \param sc pointer to partially allocated simplician complex; 
+ * \param sc pointer to partially allocated simplician complex;
  *
  * \return full structure of type scomplex with all allocations done
  *
@@ -392,7 +392,7 @@ scomplex *haz_scomplex_read(FILE *fp,INT print_level)
 {
   INT i,ns,nv,n,dummy;
   i=fscanf(fp,"%d %d %d %d",&ns,&nv,&n,&dummy);
-  INT n1=n+1,j,k,n1kj=-10,nbig=n;// we can only read same dimension complexes now. 
+  INT n1=n+1,j,k,n1kj=-10,nbig=n;// we can only read same dimension complexes now.
   scomplex *sc=(scomplex *)haz_scomplex_init(n,ns,nv,n);
   for (j=0;j<n1;j++) {
     for (k=0;k<ns;k++){
@@ -472,7 +472,7 @@ void haz_scomplex_print(scomplex *sc, const INT ns0,const char *infor)
 	fprintf(stdout,"%d  ",sc->nbr[in1+j]-ns0);
       fprintf(stdout,"\n");
     }
-  } else { 
+  } else {
     for(i=ns0;i<ns;i++){
       in1=i*n1;
       fprintf(stdout,"Element: %d ; NBR=",i-ns0);
@@ -530,9 +530,9 @@ void haz_scomplex_free(scomplex *sc)
   if(sc->vols) free(sc->vols);
   if(sc->nbr) free(sc->nbr);
   if(sc->csys) free(sc->csys);
-  if(sc->bcodesf) free(sc->bcodesf); 
-  if(sc->isbface) free(sc->isbface); 
-  if(sc->etree) free(sc->etree); 
+  if(sc->bcodesf) free(sc->bcodesf);
+  if(sc->isbface) free(sc->isbface);
+  if(sc->etree) free(sc->etree);
   if(sc->parent_v) {
     icsr_free(sc->parent_v);free(sc->parent_v);
   }
@@ -1105,7 +1105,7 @@ INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew,	\
     nnz_pv=sc->parent_v->nnz;
     sc->parent_v->row=nvnew;
     sc->parent_v->col=nv;
-    sc->parent_v->JA=realloc(sc->parent_v->JA,(nnz_pv+2)*sizeof(REAL));    
+    sc->parent_v->JA=realloc(sc->parent_v->JA,(nnz_pv+2)*sizeof(REAL));
     sc->parent_v->JA[nnz_pv]=pv[0];
     sc->parent_v->JA[nnz_pv+1]=pv[1];
     sc->parent_v->nnz+=2;
@@ -1136,7 +1136,7 @@ INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew,	\
   sc->childn=realloc(sc->childn,(nsnew)*sizeof(INT));
   sc->childn[ks0]=-1; sc->childn[ksn]=-1;
   //volumes
-  sc->vols=realloc(sc->vols,(nsnew)*sizeof(REAL));// we can calculate all volumes at the end, so just allocate here. 
+  sc->vols=realloc(sc->vols,(nsnew)*sizeof(REAL));// we can calculate all volumes at the end, so just allocate here.
   //scalars
   sc->ns=nsnew;
   sc->nv=nvnew;
@@ -1450,10 +1450,10 @@ void refine(const INT ref_levels, scomplex *sc,ivector *marked)
   for(j = 0;j < nsold;j++)
     if(sc->marked[j] && (sc->child0[j]<0||sc->childn[j]<0))
       haz_refine_simplex(sc, j, -1);
-  /* 
+  /*
    *  compute volumes (the volumes on the coarsest grid should be set in
    * generate_initial_grid, but just in case we are coming here from
-   * some other function we compute these here too. 
+   * some other function we compute these here too.
    */
   INT node,in1;
   void *wrk1=malloc((sc->n+1)*(sc->n*sizeof(REAL) + sizeof(INT)));
@@ -1495,7 +1495,7 @@ mesh_struct sc2mesh(scomplex *sc)
   /*********************************************************************/
   /* INPUT: pointer to a simplicial complex sc; returns mesh_struct
      mesh.
- 
+
      Store the finest mesh in mesh_struct structure.  sc has all the
     hierarchy, mesh_struct will have only the last mesh.
   */
@@ -1518,12 +1518,12 @@ mesh_struct sc2mesh(scomplex *sc)
   /*Update mesh with known quantities*/
   mesh.dim = sc->n;
   mesh.nelm = ns; //do not ever put sc->ns here
-  mesh.nv=nv; 
+  mesh.nv=nv;
   mesh.nconn_reg = sc->cc; //
-  mesh.nconn_bdry = sc->bndry_cc;// the so called number of holes is this number minus 1. 
+  mesh.nconn_bdry = sc->bndry_cc;// the so called number of holes is this number minus 1.
   mesh.v_per_elm = n1;
   /*Allocate all pointers needed to init the mesh struct*/
-  // these are initialized to NULL, so we can use realloc. 
+  // these are initialized to NULL, so we can use realloc.
   mesh.el_flag = (INT *)realloc(mesh.el_flag,ns*sizeof(INT));
   mesh.el_vol = (REAL *)realloc(mesh.el_vol,ns*sizeof(REAL));
   mesh.v_flag = (INT *)realloc(mesh.v_flag,nv*sizeof(INT));
@@ -1543,7 +1543,7 @@ mesh_struct sc2mesh(scomplex *sc)
   /********************************************************************/
   /*element flag and element volumes; volumes are recomputed later in
     build_mesh_all()*/
-  INT nsfake=0;// this one must be ns at the end. 
+  INT nsfake=0;// this one must be ns at the end.
   for (j=0;j<sc->ns;j++){
     if(sc->child0[j]<0 || sc->childn[j]<0){
       mesh.el_flag[nsfake]=sc->flags[j];
@@ -1576,28 +1576,25 @@ mesh_struct sc2mesh(scomplex *sc)
       jk++;
     }
   }
-  fprintf(stdout,							\
-	  "\n%%%s: levels=%d; vertices=%d; simplices=%d; dim=%d; components(bdry):%d\n", \
-	  "Converted to mesh structure:",				\
-	  sc->level,mesh.nv,mesh.nelm,mesh.dim,mesh.nconn_bdry); fflush(stdout);
+  // fprintf(stdout,"\n%%%s: levels=%d; vertices=%d; simplices=%d; dim=%d; components(bdry):%d\n","Converted to mesh structure:",sc->level,mesh.nv,mesh.nelm,mesh.dim,mesh.nconn_bdry); fflush(stdout);
   return mesh;
 }
 /*********************************************************************/
 /*!
  * \fn scomplex *sc_bndry(scomplex *sc)
  *
- * \brief creates a boundary simplicial complex from a given simplicial complex. 
+ * \brief creates a boundary simplicial complex from a given simplicial complex.
  *
  * \param sc         I: the simplicial complex whose boundary we want to find
- *  
- * \return  the coundary simplicial complex 
- * \note    future: should be combined with find_cc_bndry_cc() in amr_utils.c. 
+ *
+ * \return  the coundary simplicial complex
+ * \note    future: should be combined with find_cc_bndry_cc() in amr_utils.c.
  */
 scomplex sc_bndry(scomplex *sc)
 {
   scomplex dsc;
   INT ns = sc->ns,nv=sc->nv,dim=sc->n;
-  /* 
+  /*
      first find the neighbors so that we have a consistent ordering of
      the vertices and faces. These may already be found, but if not we
      do it again to be sure the ordering is consistent: neighbor
@@ -1615,7 +1612,7 @@ scomplex sc_bndry(scomplex *sc)
     }
   }
   dsc.ns=ns_b;
-  // end: computation of the nuumber of boundary faces. now store the vertices for every face. 
+  // end: computation of the nuumber of boundary faces. now store the vertices for every face.
   INT *fnodes=calloc(ns_b*dim,sizeof(INT));
   ns_b1=0;
   for(i=0;i<ns;i++){

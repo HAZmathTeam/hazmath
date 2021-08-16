@@ -21,21 +21,23 @@
  *          u*n = 0 for Raviart-Thomas
  *
  * \note This example highlights some of the basic features of HAZmath,
- * including how to set up finite-element spaces on a given mesh, create
- * linear systems, and solve those systems using a variety of Krylov and/or
- * multigrid solvers (a direct solver can also be implemented).  It also
- * illustrates how to set the problem data, such as boundary conditions and
- * right-hand sides, and how to output the solution in VTK formats.
+ * including how to create a basic uniform mesh, set up finite-element spaces on
+ * a given mesh, create linear systems, and solve those systems using a variety
+ * of Krylov and/or multigrid solvers (a direct solver can also be implemented).
+ * It also illustrates how to set the problem data, such as boundary conditions
+ * and right-hand sides, and how to output the solution in VTK formats.
  *
  * \note This is intended to give you different examples in different dimensions
- *       and with different types of coefficients.  There are lots of if statements
- *       that would be unnecessary in your own program.
+ * and with different types of coefficients.  There are lots of if statements
+ * that would be unnecessary in your own program.
+ *
  */
 
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************/
 #include "hazmath.h"
+#include "basic_elliptic_data.h"
 /*********************************************************************/
-#include "supporting_basic_elliptic.h"
+
 /*SOME MACROS*/
 /*REFINEMENT TYPE >10 for uniform refinement and <10 for other*/
 #ifndef REFINEMENT_TYPE
@@ -43,7 +45,7 @@
 #endif
 /**/
 #ifndef REFINEMENT_LEVELS
-#define REFINEMENT_LEVELS 4
+#define REFINEMENT_LEVELS 3
 #endif
 /**/
 #ifndef SPATIAL_DIMENSION
@@ -54,213 +56,6 @@
 #define SET_BNDRY_CODES 1
 #endif
 /* END MACROS*/
-/******** Data Input *************************************************/
-// PDE Coefficients
-void diffusion_coeff(REAL *val,REAL* x,REAL time,void *param) {
-  // a(x)
-  *val = 1.0;
-}
-void reaction_coeff(REAL *val,REAL* x,REAL time,void *param) {
-  // c(x)
-  *val = 1.0;
-}
-
-// Exact Solution (if you have one)
-// We have different ones for different dimensions and different D's
-void exactsol_1D_PX(REAL *val,REAL* x,REAL time,void *param) {
-  // 1D - grad grad
-  *val = sin(M_PI*x[0]);
-}
-void exactsol_2D_PX(REAL *val,REAL* x,REAL time,void *param) {
-  // 2D - grad grad
-  *val = sin(M_PI*x[0])*sin(M_PI*x[1]);
-}
-void exactsol_3D_PX(REAL *val,REAL* x,REAL time,void *param) {
-  // 3D - grad grad
-  *val = sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
-}
-void exactsol_2D_Ned(REAL *val,REAL* x,REAL time,void *param) {
-  // 2D - curl curl
-  val[0] = cos(M_PI*x[0])*sin(M_PI*x[1]);
-  val[1] = -sin(M_PI*x[0])*cos(M_PI*x[1]);
-}
-void exactsol_3D_Ned(REAL *val,REAL* x,REAL time,void *param) {
-  // 3D - curl curl
-  val[0] = cos(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
-  val[1] = sin(M_PI*x[0])*cos(M_PI*x[1])*sin(M_PI*x[2]);
-  val[2] = -sin(M_PI*x[0])*sin(M_PI*x[1])*cos(M_PI*x[2]);
-}
-void exactsol_2D_RT(REAL *val,REAL* x,REAL time,void *param) {
-  // 2D - grad div
-  val[0] = sin(M_PI*x[0])*cos(M_PI*x[1]);
-  val[1] = cos(M_PI*x[0])*sin(M_PI*x[1]);
-}
-void exactsol_3D_RT(REAL *val,REAL* x,REAL time,void *param) {
-  // 3D - grad div
-  val[0] = sin(M_PI*x[0])*cos(M_PI*x[1])*cos(M_PI*x[2]);
-  val[1] = cos(M_PI*x[0])*sin(M_PI*x[1])*cos(M_PI*x[2]);
-  val[2] = cos(M_PI*x[0])*cos(M_PI*x[1])*sin(M_PI*x[2]);
-}
-
-// Derivative of Exact Solution (if you have one)
-// We have different ones for different dimensions and different D's
-void D_exactsol_1D_PX(REAL *val,REAL* x,REAL time,void *param) {
-  // 1D - grad grad
-  *val = M_PI*cos(M_PI*x[0]);
-}
-void D_exactsol_2D_PX(REAL *val,REAL* x,REAL time,void *param) {
-  // 2D - grad grad
-  val[0] = M_PI*cos(M_PI*x[0])*sin(M_PI*x[1]);
-  val[1] = M_PI*sin(M_PI*x[0])*cos(M_PI*x[1]);
-}
-void D_exactsol_3D_PX(REAL *val,REAL* x,REAL time,void *param) {
-  // 3D - grad grad
-  val[0] = M_PI*cos(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
-  val[1] = M_PI*sin(M_PI*x[0])*cos(M_PI*x[1])*sin(M_PI*x[2]);
-  val[2] = M_PI*sin(M_PI*x[0])*sin(M_PI*x[1])*cos(M_PI*x[2]);
-}
-void D_exactsol_2D_Ned(REAL *val,REAL* x,REAL time,void *param) {
-  // 2D - curl curl
-  *val = -2*M_PI*cos(M_PI*x[0])*cos(M_PI*x[1]);
-}
-void D_exactsol_3D_Ned(REAL *val,REAL* x,REAL time,void *param) {
-  // 3D - curl curl
-  val[0] = -2*M_PI*sin(M_PI*x[0])*cos(M_PI*x[1])*cos(M_PI*x[2]);
-  val[1] = 2*M_PI*cos(M_PI*x[0])*sin(M_PI*x[1])*cos(M_PI*x[2]);
-  val[2] = 0;
-}
-void D_exactsol_2D_RT(REAL *val,REAL* x,REAL time,void *param) {
-  // 2D - grad div
-  *val = 2*M_PI*cos(M_PI*x[0])*cos(M_PI*x[1]);
-}
-void D_exactsol_3D_RT(REAL *val,REAL* x,REAL time,void *param) {
-  // 3D - grad div
-  *val = 3*M_PI*cos(M_PI*x[0])*cos(M_PI*x[1])*cos(M_PI*x[2]);
-}
-
-// Right-hand Side
-// We have different ones for different dimensions and different D's
-void rhs_1D_PX(REAL *val,REAL* x,REAL time,void *param) {
-  // 1D - grad grad
-  REAL myc=-666.6;
-  REAL mya=-666.6;
-  REAL myu=-666.6;
-  reaction_coeff(&myc,x,time,param);
-  diffusion_coeff(&mya,x,time,param);
-  exactsol_1D_PX(&myu,x,time,param);
-  *val = (mya*M_PI*M_PI + myc)*myu;
-}
-void rhs_2D_PX(REAL *val,REAL* x,REAL time,void *param) {
-  // 2D - grad grad
-  REAL myc=-666.6;
-  REAL mya=-666.6;
-  REAL myu=-666.6;
-  reaction_coeff(&myc,x,time,param);
-  diffusion_coeff(&mya,x,time,param);
-  exactsol_2D_PX(&myu,x,time,param);
-  *val = (mya*2*M_PI*M_PI + myc)*myu;
-}
-void rhs_3D_PX(REAL *val,REAL* x,REAL time,void *param) {
-  // 3D - grad grad
-  REAL myc=-666.6;
-  REAL mya=-666.6;
-  REAL myu=-666.6;
-  reaction_coeff(&myc,x,time,param);
-  diffusion_coeff(&mya,x,time,param);
-  exactsol_3D_PX(&myu,x,time,param);
-  *val = (mya*3*M_PI*M_PI + myc)*myu;
-}
-void rhs_2D_Ned(REAL *val,REAL* x,REAL time,void *param) {
-  // 2D - curl curl
-  REAL myc=-666.6;
-  REAL mya=-666.6;
-  REAL myu[2];
-  reaction_coeff(&myc,x,time,param);
-  diffusion_coeff(&mya,x,time,param);
-  exactsol_2D_Ned(myu,x,time,param);
-  val[0] = (mya*2.0*M_PI*M_PI + myc)*myu[0];
-  val[1] = (mya*2.0*M_PI*M_PI + myc)*myu[1];
-}
-void rhs_3D_Ned(REAL *val,REAL* x,REAL time,void *param) {
-  // 3D - curl curl
-  REAL myc=-666.6;
-  REAL mya=-666.6;
-  REAL myu[3];
-  reaction_coeff(&myc,x,time,param);
-  diffusion_coeff(&mya,x,time,param);
-  exactsol_3D_Ned(myu,x,time,param);
-  val[0] = (2*mya*M_PI*M_PI + myc)*myu[0];
-  val[1] = (2*mya*M_PI*M_PI + myc)*myu[1];
-  val[2] = (4*mya*M_PI*M_PI + myc)*myu[2];
-}
-void rhs_2D_RT(REAL *val,REAL* x,REAL time,void *param) {
-  // 2D - grad div
-  REAL myc=-666.6;
-  REAL mya=-666.6;
-  REAL myu[2];
-  reaction_coeff(&myc,x,time,param);
-  diffusion_coeff(&mya,x,time,param);
-  exactsol_2D_RT(myu,x,time,param);
-  val[0] = (mya*2.0*M_PI*M_PI + myc)*myu[0];
-  val[1] = (mya*2.0*M_PI*M_PI + myc)*myu[1];
-}
-void rhs_3D_RT(REAL *val,REAL* x,REAL time,void *param) {
-  // 3D - grad div
-  REAL myc=-666.6;
-  REAL mya=-666.6;
-  REAL myu[3];
-  reaction_coeff(&myc,x,time,param);
-  diffusion_coeff(&mya,x,time,param);
-  exactsol_3D_RT(myu,x,time,param);
-  val[0] = (mya*3.0*M_PI*M_PI + myc)*myu[0];
-  val[1] = (mya*3.0*M_PI*M_PI + myc)*myu[1];
-  val[2] = (mya*3.0*M_PI*M_PI + myc)*myu[2];
-}
-
-// Boundary Conditions
-// We have different ones for different dimensions and different D's
-void bc_1D_PX(REAL *val,REAL* x,REAL time,void *param) {
-  REAL myu;
-  exactsol_1D_PX(&myu,x,time,param);
-  *val= myu;
-}
-void bc_2D_PX(REAL *val,REAL* x,REAL time,void *param) {
-  REAL myu;
-  exactsol_2D_PX(&myu,x,time,param);
-  *val= myu;
-}
-void bc_3D_PX(REAL *val,REAL* x,REAL time,void *param) {
-  REAL myu;
-  exactsol_3D_PX(&myu,x,time,param);
-  *val= myu;
-}
-void bc_2D_Ned(REAL *val,REAL* x,REAL time,void *param) {
-  REAL myu[2];
-  exactsol_2D_Ned(myu,x,time,param);
-  val[0] = myu[0];
-  val[1] = myu[1];
-}
-void bc_3D_Ned(REAL *val,REAL* x,REAL time,void *param) {
-  REAL myu[3];
-  exactsol_3D_Ned(myu,x,time,param);
-  val[0] = myu[0];
-  val[1] = myu[1];
-  val[2] = myu[2];
-}
-void bc_2D_RT(REAL *val,REAL* x,REAL time,void *param) {
-  REAL myu[2];
-  exactsol_2D_RT(myu,x,time,param);
-  val[0] = myu[0];
-  val[1] = myu[1];
-}
-void bc_3D_RT(REAL *val,REAL* x,REAL time,void *param) {
-  REAL myu[3];
-  exactsol_3D_RT(myu,x,time,param);
-  val[0] = myu[0];
-  val[1] = myu[1];
-  val[2] = myu[2];
-}
-/*********************************************************************/
 
 /****** MAIN DRIVER **************************************************/
 int main (int argc, char* argv[])
@@ -277,35 +72,44 @@ int main (int argc, char* argv[])
   // Overall CPU Timing
   clock_t clk_overall_start = clock();
 
-  // Set Parameters from Reading in Input File
+  // Set Parameters by Reading in Input File
   input_param inparam;
   param_input_init(&inparam);
   param_input("./input.dat", &inparam);
 
-  // Open gridfile for reading
-  printf("\nCreating mesh and FEM spaces:\n");
-  FILE* gfid = HAZ_fopen(inparam.gridfile,"r");
-
   // Create the mesh
-  // File types possible are 0 - HAZ format; 1 - VTK format
-  INT mesh_type = 0;
-  clock_t clk_mesh_start = clock(); // Time mesh generation FE setup
+  // We have two options:
+  // 1) Use Hazmath's built-in functions to create a uniform mesh from a
+  //    simplicial complex
+  // 2) Read in a user-define mesh defined in .haz format  See the example 2D
+  //    mesh that is provided for formatting guidelines
+  INT read_mesh_from_file=inparam.read_mesh_from_file;
+
+  printf("\nCreating mesh and FEM spaces:\n");
+
+  // Time the mesh generation and FE setup
+  clock_t clk_mesh_start = clock();
+
+  // Initialize some mesh parameters
   mesh_struct mesh;
-  printf(" --> loading grid from file: %s\n",inparam.gridfile);
-  // this below is just for backward compatibility:
-  creategrid_fread(gfid,mesh_type,&mesh);
-  fclose(gfid);
-  /*REFINE A MESH: first free any mesh we may have created in some other way*/
-  free_mesh(&mesh);// we free it because we do not need it. 
-  INT dim = SPATIAL_DIMENSION;/// dimension;
-  INT mesh_ref_levels=REFINEMENT_LEVELS;/// refinement levels;
-  INT mesh_ref_type=REFINEMENT_TYPE; /// refinement type (>10 uniform or <10 other)
-  INT set_bndry_codes=SET_BNDRY_CODES; /// set boundary codes.
-  mesh=make_uniform_mesh(dim,mesh_ref_levels,mesh_ref_type,set_bndry_codes);
-  //  exit(33);
-  /*END REFINE MESH*/
-  // Dimension is needed for all this to work
-  dim = mesh.dim;
+  // Note the following are overwritten by a mesh file if provided and read in
+  INT dim = inparam.spatial_dim;                 // dimension of computational domain
+  INT mesh_ref_levels=inparam.refinement_levels; // refinement levels
+  INT mesh_ref_type=inparam.refinement_type;     // refinement type (>10 uniform or <10 other)
+  INT set_bndry_codes=inparam.boundary_codes;    // set boundary codes.
+
+  if(read_mesh_from_file) {
+    // Reading from file
+    FILE* gfid = HAZ_fopen(inparam.gridfile,"r");
+    // File types possible are 0 - HAZ format; 1 - VTK format (not implemented)
+    INT mesh_type = 0;
+    printf(" --> loading grid from file: %s\n",inparam.gridfile);
+    creategrid_fread(gfid,mesh_type,&mesh);
+    fclose(gfid);
+  } else {
+    // Use HAZMATH built in functions for a uniform mesh in 2D or 3D
+    mesh=make_uniform_mesh(dim,mesh_ref_levels,mesh_ref_type,set_bndry_codes);
+  }
 
   // Get Quadrature Nodes for the Mesh
   INT nq1d = inparam.nquad; // Quadrature points per dimension
@@ -358,6 +162,7 @@ int main (int argc, char* argv[])
   /*******************************************************************/
 
   printf("***********************************************************************************\n");
+  printf("\t--- %d-dimensional grid ---\n",dim);
   printf("Number of Elements = %d\tElement Type = %s\tOrder of Quadrature = %d\n",mesh.nelm,elmtype,2*nq1d-1);
   printf("\n\t--- Degrees of Freedom ---\n");
   printf("Vertices: %-7d\tEdges: %-7d\tFaces: %-7d",mesh.nv,mesh.nedge,mesh.nface);

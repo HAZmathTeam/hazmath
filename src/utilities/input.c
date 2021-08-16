@@ -67,24 +67,11 @@ void param_input (const char *filenm,		\
         }
 
         // match the keyword and read in the value
-        // -----------
-        // input
-        // -----------
-        if (strcmp(buffer,"gridfile")==0) {
-            val = fscanf(fp,"%s",buffer);
-            if (val!=1 || strcmp(buffer,"=")!=0){
-                status = ERROR_INPUT_PAR; break;
-            }
-            val = fscanf(fp,"%s",sbuff);
-            if (val!=1) { status = ERROR_INPUT_PAR; break; }
-            strncpy(inparam->gridfile,sbuff,128);
-            fgets(buffer,maxb,fp); // skip rest of line
-        }
 
         // -----------
         // output
         // -----------
-        else if (strcmp(buffer,"print_level")==0) {
+        if (strcmp(buffer,"print_level")==0) {
             val = fscanf(fp,"%s",buffer);
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
@@ -103,6 +90,75 @@ void param_input (const char *filenm,		\
             val = fscanf(fp,"%s",sbuff);
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             strncpy(inparam->output_dir,sbuff,128);
+            fgets(buffer,maxb,fp); // skip rest of line
+        }
+
+        // ---------------
+        // mesh stuff
+        // ---------------
+        else if (strcmp(buffer,"read_mesh_from_file")==0) {
+            val = fscanf(fp,"%s",buffer);
+            if (val!=1 || strcmp(buffer,"=")!=0) {
+                status = ERROR_INPUT_PAR; break;
+            }
+            val = fscanf(fp,"%d",&ibuff);
+            if (val!=1) { status = ERROR_INPUT_PAR; break; }
+            inparam->read_mesh_from_file = ibuff;
+            fgets(buffer,maxb,fp); // skip rest of line
+        }
+
+        else if (strcmp(buffer,"gridfile")==0) {
+            val = fscanf(fp,"%s",buffer);
+            if (val!=1 || strcmp(buffer,"=")!=0){
+                status = ERROR_INPUT_PAR; break;
+            }
+            val = fscanf(fp,"%s",sbuff);
+            if (val!=1) { status = ERROR_INPUT_PAR; break; }
+            strncpy(inparam->gridfile,sbuff,128);
+            fgets(buffer,maxb,fp); // skip rest of line
+        }
+
+        else if (strcmp(buffer,"spatial_dim")==0) {
+            val = fscanf(fp,"%s",buffer);
+            if (val!=1 || strcmp(buffer,"=")!=0) {
+                status = ERROR_INPUT_PAR; break;
+            }
+            val = fscanf(fp,"%d",&ibuff);
+            if (val!=1) { status = ERROR_INPUT_PAR; break; }
+            inparam->spatial_dim = ibuff;
+            fgets(buffer,maxb,fp); // skip rest of line
+        }
+
+        else if (strcmp(buffer,"refinement_type")==0) {
+            val = fscanf(fp,"%s",buffer);
+            if (val!=1 || strcmp(buffer,"=")!=0) {
+                status = ERROR_INPUT_PAR; break;
+            }
+            val = fscanf(fp,"%d",&ibuff);
+            if (val!=1) { status = ERROR_INPUT_PAR; break; }
+            inparam->refinement_type = ibuff;
+            fgets(buffer,maxb,fp); // skip rest of line
+        }
+
+        else if (strcmp(buffer,"refinement_levels")==0) {
+            val = fscanf(fp,"%s",buffer);
+            if (val!=1 || strcmp(buffer,"=")!=0) {
+                status = ERROR_INPUT_PAR; break;
+            }
+            val = fscanf(fp,"%d",&ibuff);
+            if (val!=1) { status = ERROR_INPUT_PAR; break; }
+            inparam->refinement_levels = ibuff;
+            fgets(buffer,maxb,fp); // skip rest of line
+        }
+
+        else if (strcmp(buffer,"boundary_codes")==0) {
+            val = fscanf(fp,"%s",buffer);
+            if (val!=1 || strcmp(buffer,"=")!=0) {
+                status = ERROR_INPUT_PAR; break;
+            }
+            val = fscanf(fp,"%d",&ibuff);
+            if (val!=1) { status = ERROR_INPUT_PAR; break; }
+            inparam->boundary_codes = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
         }
 
@@ -583,7 +639,7 @@ void param_input (const char *filenm,		\
             inparam->AMG_fpwr=dbuff;
             fgets(buffer,maxb,fp); // skip rest of line
         }
-        
+
         else if (strcmp(buffer,"AMG_aggregation_type")==0) {
             val = fscanf(fp,"%s",buffer);
             if (val!=1 || strcmp(buffer,"=")!=0) {
