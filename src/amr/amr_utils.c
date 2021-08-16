@@ -615,6 +615,12 @@ void scfinalize(scomplex *sc,const INT set_bndry_codes)
   find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
   // this also can be called separately
   find_cc_bndry_cc(sc,set_bndry_codes);
+  // 
+  if(set_bndry_codes){
+    for(j=0;j<sc->nv;++j){
+      if(sc->bndry[j]>128) sc->bndry[j]-=128;
+    }
+  }
   fprintf(stdout,"\n%%After %d levels of refinement:\tsimplices=%d ; vertices=%d\n",sc->level,sc->ns,sc->nv); fflush(stdout);
   return;
 }

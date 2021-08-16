@@ -115,10 +115,10 @@ struct mesh_struct make_uniform_mesh(const INT dim,const INT mesh_ref_levels,con
 {
 
   // Loop Counters
-  INT i,jlevel,k;
+  INT jlevel,k;
 
   // Create a simplicial complex
-  scomplex *sc=NULL,*sctop=NULL,*dsc=NULL;
+  scomplex *sc=NULL,*sctop=NULL;
 
   // Get the coarsest mesh on the cube in dimension dim and set the refinement type.
   sc=mesh_cube_init(dim,mesh_ref_type);
@@ -161,11 +161,6 @@ struct mesh_struct make_uniform_mesh(const INT dim,const INT mesh_ref_levels,con
   // Get boundary codes
   scfinalize(sc,set_bndry_codes);
   sc_vols(sc);
-  if(set_bndry_codes){
-    for(i=0;i<sc->nv;++i){
-      if(sc->bndry[i]>128) sc->bndry[i]-=128;
-    }
-  }
   // Convert to mesh_struct for FEM assembly
   mesh_struct mesh0=sc2mesh(sc);
 
