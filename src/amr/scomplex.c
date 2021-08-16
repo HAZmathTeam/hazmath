@@ -1536,9 +1536,8 @@ mesh_struct sc2mesh(scomplex *sc)
 		 mesh.el_v && mesh.el_v->IA && mesh.el_v->JA
 		   ));
   if(chk){
-    fprintf(stderr,"\nCould not allocate memory for mesh in %s\n *** RETURNING a NULL pointer to mesh", \
+    fprintf(stderr,"\nCould not allocate memory for mesh in %s\n", \
 	    __FUNCTION__);
-    // we need to free everything here
     return mesh;
   }
   /********************************************************************/

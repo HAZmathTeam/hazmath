@@ -37,6 +37,7 @@
 /*********************************************************************/
 #include "basic_elliptic_supporting.h"
 /*SOME MACROS*/
+/*REFINEMENT TYPE >10 for uniform refinement and <10 for other*/
 #ifndef REFINEMENT_TYPE
 #define REFINEMENT_TYPE 11
 #endif
@@ -294,11 +295,11 @@ int main (int argc, char* argv[])
   creategrid_fread(gfid,mesh_type,&mesh);
   fclose(gfid);
   /*REFINE A MESH:*/
+  free_mesh(&mesh);// we free it because we do not need it. 
   INT dim = SPATIAL_DIMENSION;/// dimension;
   INT mesh_ref_levels=REFINEMENT_LEVELS;/// refinement levels;
   INT mesh_ref_type=REFINEMENT_TYPE; /// refinement type (>10 uniform or <10 other)
   INT set_bndry_codes=SET_BNDRY_CODES; /// set boundary codes.
-  free_mesh(&mesh);//
   mesh=make_uniform_mesh(dim,mesh_ref_levels,mesh_ref_type,set_bndry_codes);
   //  exit(33);
   /*END REFINE MESH*/

@@ -83,6 +83,8 @@ static mesh_struct  make_uniform_mesh(const INT dim,			\
   for(i=0;i<sc->nv;++i){
     if(sc->bndry[i]>128) sc->bndry[i]-=128;
   }
+  /* if(dim <4) */
+  /*   vtkw("output/mesh_sc.vtu",sc,0,1.); */
   mesh_struct mesh0=sc2mesh(sc);
   haz_scomplex_free(sc);  
   return mesh0;
