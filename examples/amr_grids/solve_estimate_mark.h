@@ -1,3 +1,12 @@
+/*! \file examples/amr_grids/solve_estimate_mark.h
+ *
+ *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov 2019/01/09.
+ *  Copyright 2015_HAZMATH__. All rights reserved.
+ *
+ * \brief This program generates simplicial grids in 2,3,4... dimension.
+ *
+ * \note mock code for solve-estimate-mark and refinement. 
+ */
 /**********************************************************************/
 /*!
  * \fn INT isxnears(INT n, INT *splx_nodes, REAL *splx_coord, REAL *x, REAL threshold)
