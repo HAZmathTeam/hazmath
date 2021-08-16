@@ -8,7 +8,7 @@
  *        du/dt - div(a(x)grad(u)) = 0
  *
  *        where du/dt is discretized with Crank-Nicolson,
- *        BDF-1 (Backward Euler), or BDF-2 in 1D, 2D, or 3D.
+ *        BDF-1 (Backward Euler), or BDF-2 in 2D or 3D.
  *
  *        Along the boundary of the region, Dirichlet conditions are imposed:
  *
@@ -22,58 +22,18 @@
  */
 
 /************* HAZMATH FUNCTIONS and INCLUDES ***************************/
-#include "hazmath.h" 
+#include "hazmath.h"
+#include "heat_equation_data.h"
 /***********************************************************************/
-
-/********** Data Input *************************************************/
-// PDE Coefficients
-void diffusion_coeff(REAL *val,REAL* x,REAL time,void *param) {
-  // a(x)
-  *val = 1.0;
-}
-
-// Exact Solution (if you have one)
-// Change as needed for different dimensions
-void exactsol(REAL *val,REAL* x,REAL time,void *param) {
-  // 1D
-  //*val = sin(M_PI*x[0])*exp(-M_PI*M_PI*time);
-  // 2D
-  *val = sin(M_PI*x[0])*sin(M_PI*x[1])*exp(-2.0*M_PI*M_PI*time);
-  // 3D
-  //*val = sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2])*exp(-3*M_PI*M_PI*time);
-}
-
-// Right-hand Side
-void myrhs(REAL *val,REAL* x,REAL time,void *param) {
-  *val = 0.0;
-}
-
-// Boundary Conditions
-void bc(REAL *val,REAL* x,REAL time,void *param) {
-  *val= 0.0;
-}
-
-// Initial Conditions
-// Change as needed for different dimensions
-void initial_conditions(REAL *val,REAL* x,REAL time,void *param) {
-  // 1D
-  //*val = sin(M_PI*x[0]);
-  // 2D
-  *val = sin(M_PI*x[0])*sin(M_PI*x[1]);
-  // 3D
-  //*val = sin(M_PI*x[0])*sin(M_PI*x[1])*sin(M_PI*x[2]);
-}
-
-/*********************************************************************/
 
 /****** MAIN DRIVER **************************************************/
 int main (int argc, char* argv[])
 {
-  
+
   printf("\n===========================================================================\n");
   printf("Beginning Program to solve the Heat Equation.\n");
   printf("===========================================================================\n");
-  
+
   /****** INITIALIZE PARAMETERS **************************************/
   // Flag for errors
   SHORT status;
@@ -86,21 +46,22 @@ int main (int argc, char* argv[])
   param_input_init(&inparam);
   param_input("./input.dat", &inparam);
 
-  // Open gridfile for reading
-  printf("\nCreating mesh and FEM spaces:\n");
-  FILE* gfid = HAZ_fopen(inparam.gridfile,"r");
-
   // Create the mesh
-  // File types possible are 0 - HAZ format; 1 - VTK format
-  clock_t clk_mesh_start = clock(); // Time mesh generation FE setup
-  INT mesh_type = 0;
-  mesh_struct mesh;
-  printf(" --> loading grid from file: %s\n",inparam.gridfile);
-  creategrid_fread(gfid,mesh_type,&mesh);
-  fclose(gfid);
+  INT read_mesh_from_file=0;
+  printf("\nCreating mesh and FEM spaces:\n");
 
-  // Dimension is needed for all this to work
-  INT dim = mesh.dim;
+  // Time the mesh generation and FE setup
+  clock_t clk_mesh_start = clock();
+
+  // Initialize some mesh parameters
+  mesh_struct mesh;
+  INT dim = inparam.spatial_dim;                 // dimension of computational domain
+  INT mesh_ref_levels=inparam.refinement_levels; // refinement levels
+  INT mesh_ref_type=inparam.refinement_type;     // refinement type (>10 uniform or <10 other)
+  INT set_bndry_codes=inparam.boundary_codes;    // set flags for the boundary DoF
+
+  // Use HAZMATH built in functions for a uniform mesh in 2D or 3D
+  mesh=make_uniform_mesh(dim,mesh_ref_levels,mesh_ref_type,set_bndry_codes);
 
   // Get Quadrature Nodes for the Mesh
   INT nq1d = inparam.nquad; // Quadrature points per dimension
@@ -120,7 +81,7 @@ int main (int argc, char* argv[])
   set_dirichlet_bdry(&FE,&mesh,1,1);
 
   // Dump some of the data
-  if(inparam.print_level > 3 && inparam.output_dir!=NULL) {
+  if(inparam.print_level > 5 && inparam.output_dir!=NULL) {
     // FE space
     char varu[10];
     char dir[20];
@@ -132,13 +93,14 @@ int main (int argc, char* argv[])
     char* namevtk = "output/mesh.vtu";
     dump_mesh_vtk(namevtk,&mesh);
   }
-    
+
   clock_t clk_mesh_end = clock(); // End of timing for mesh and FE setup
   printf(" --> elapsed CPU time for mesh and FEM space construction = %f seconds.\n\n",
          (REAL) (clk_mesh_end - clk_mesh_start)/CLOCKS_PER_SEC);
   /*******************************************************************/
-    
+
   printf("***********************************************************************************\n");
+  printf("\t--- %d-dimensional grid ---\n",dim);
   printf("Number of Elements = %d\tElement Type = %s\tOrder of Quadrature = %d\n",mesh.nelm,elmtype,2*nq1d-1);
   printf("\n\t--- Degrees of Freedom ---\n");
   printf("Vertices: %-7d\tEdges: %-7d\tFaces: %-7d",mesh.nv,mesh.nedge,mesh.nface);
@@ -147,16 +109,16 @@ int main (int argc, char* argv[])
   printf("Vertices: %-7d\tEdges: %-7d\tFaces: %-7d",mesh.nbv,mesh.nbedge,mesh.nbface);
   printf("\t--> Boundary DOF: %d\n",FE.nbdof);
   printf("***********************************************************************************\n\n");
-    
+
   /*** Assemble the matrix and right hand side ***********************/
   printf("Assembling the matrix and right-hand side:\n");
   clock_t clk_assembly_start = clock();
-    
+
   // Allocate the right-hand side and declare the csr matrix
   dvector b;
   dCSRmat A;
   dCSRmat M;
-    
+
   // Assemble the matrix without BC
   // Diffusion block
   assemble_global(&A,&b,assemble_DuDv_local,&FE,&mesh,cq,myrhs,
@@ -195,7 +157,8 @@ int main (int argc, char* argv[])
   dvector sol = dvec_create(FE.ndof);
   dvector exact_sol = dvec_create(FE.ndof);
   REAL current_time = 0.0;
-  FE_Evaluate(exact_sol.val,exactsol,&FE,&mesh,current_time);
+  if(dim==2) FE_Evaluate(exact_sol.val,exactsol2D,&FE,&mesh,current_time);
+  if(dim==3) FE_Evaluate(exact_sol.val,exactsol3D,&FE,&mesh,current_time);
 
   // Set parameters for linear iterative methods
   linear_itsolver_param linear_itparam;
@@ -213,7 +176,8 @@ int main (int argc, char* argv[])
   param_amg_print(&amgparam);
 
   // Get Initial Conditions
-  FE_Evaluate(sol.val,initial_conditions,&FE,&mesh,current_time);
+  if(dim==2) FE_Evaluate(sol.val,initial_conditions2D,&FE,&mesh,current_time);
+  if(dim==3) FE_Evaluate(sol.val,initial_conditions3D,&FE,&mesh,current_time);
   time_stepper.sol = &sol;
 
   // Dump Solution
@@ -229,7 +193,8 @@ int main (int argc, char* argv[])
 
   // Compute initial errors and norms
   REAL* uerr = (REAL *) calloc(time_stepper.tsteps+1,sizeof(REAL));
-  uerr[0] = L2error(time_stepper.sol->val,exactsol,&FE,&mesh,cq,time_stepper.time);
+  if(dim==2) uerr[0] = L2error(time_stepper.sol->val,exactsol2D,&FE,&mesh,cq,time_stepper.time);
+  if(dim==3) uerr[0] = L2error(time_stepper.sol->val,exactsol3D,&FE,&mesh,cq,time_stepper.time);
   REAL* unorm = (REAL *) calloc(time_stepper.tsteps+1,sizeof(REAL));
   unorm[0] = L2norm(time_stepper.sol->val,&FE,&mesh,cq);
   REAL* utnorm = (REAL *) calloc(time_stepper.tsteps+1,sizeof(REAL));
@@ -273,7 +238,7 @@ int main (int argc, char* argv[])
       // If Direct Solver used only factorize once
       if(linear_itparam.linear_itsolver_type == 0) { // Direct Solver
 #if WITH_SUITESPARSE
-        printf(" --> using UMFPACK's Direct Solver: factroziation \n");
+        printf(" --> using UMFPACK's Direct Solver: factorization \n");
         Numeric = factorize_UMF(time_stepper.At,linear_itparam.linear_print_level);
 #else
         error_extlib(255,__FUNCTION__,"SuiteSparse");
@@ -326,9 +291,11 @@ int main (int argc, char* argv[])
     /**************** Compute Errors if you have exact solution *******/
     clock_t clk_error_start = clock();
 
-    uerr[j+1] = L2error(time_stepper.sol->val,exactsol,&FE,&mesh,cq,time_stepper.time);
+    if(dim==2) uerr[j+1] = L2error(time_stepper.sol->val,exactsol2D,&FE,&mesh,cq,time_stepper.time);
+    if(dim==3) uerr[j+1] = L2error(time_stepper.sol->val,exactsol3D,&FE,&mesh,cq,time_stepper.time);
     unorm[j+1] = L2norm(time_stepper.sol->val,&FE,&mesh,cq);
-    FE_Evaluate(exact_sol.val,exactsol,&FE,&mesh,time_stepper.time);
+    if(dim==2) FE_Evaluate(exact_sol.val,exactsol2D,&FE,&mesh,time_stepper.time);
+    if(dim==3) FE_Evaluate(exact_sol.val,exactsol3D,&FE,&mesh,time_stepper.time);
     utnorm[j+1] = L2norm(exact_sol.val,&FE,&mesh,cq);
     clock_t clk_error_end = clock();
     printf("Elapsed CPU time for getting errors = %lf seconds.\n\n",(REAL)
@@ -384,7 +351,7 @@ int main (int argc, char* argv[])
 #endif
 
   /*******************************************************************/
-    
+
   clock_t clk_overall_end = clock();
   printf("\nEnd of Program: Total CPU Time = %f seconds.\n\n",
          (REAL) (clk_overall_end-clk_overall_start)/CLOCKS_PER_SEC);
