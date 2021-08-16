@@ -10,7 +10,7 @@
  */
 /*********************************************************************/
 #include "hazmath.h"
-#include "elliptic_p1_supporting.h"
+#include "supporting_elliptic_p1.h"
 /****************************************************************************/
 /****************************************************************************/
 
@@ -23,7 +23,7 @@
 #endif
 /**/
 #ifndef REFINEMENT_LEVELS
-#define REFINEMENT_LEVELS 4
+#define REFINEMENT_LEVELS 5
 #endif
 /**/
 #ifndef SPATIAL_DIMENSION
