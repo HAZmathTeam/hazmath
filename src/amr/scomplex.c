@@ -1526,13 +1526,13 @@ mesh_struct sc2mesh(scomplex *sc)
   /*Allocate all pointers needed to init the mesh struct*/
   // these are initialized to NULL, so we can use realloc.
   mesh.el_flag = (INT *)realloc(mesh.el_flag,ns*sizeof(INT));
-  mesh.el_vol = (REAL *)realloc(mesh.el_vol,ns*sizeof(REAL));
+  //mesh.el_vol = (REAL *)realloc(mesh.el_vol,ns*sizeof(REAL));
   mesh.v_flag = (INT *)realloc(mesh.v_flag,nv*sizeof(INT));
   mesh.cv=allocatecoords(nv,dim);
   mesh.el_v=(iCSRmat *)malloc(sizeof(iCSRmat));
   mesh.el_v[0]=icsr_create(mesh.nelm,mesh.nv,mesh.nelm*mesh.v_per_elm);
   free(mesh.el_v->val); mesh.el_v->val=NULL;
-  INT chk=(INT )(!(mesh.el_flag && mesh.el_vol && mesh.v_flag && \
+  INT chk=(INT )(!(mesh.el_flag && mesh.v_flag && \
 		 mesh.cv && mesh.cv->x && \
 		 mesh.el_v && mesh.el_v->IA && mesh.el_v->JA
 		   ));
@@ -1548,7 +1548,7 @@ mesh_struct sc2mesh(scomplex *sc)
   for (j=0;j<sc->ns;j++){
     if(sc->child0[j]<0 || sc->childn[j]<0){
       mesh.el_flag[nsfake]=sc->flags[j];
-      mesh.el_vol[nsfake]=sc->vols[j];
+      //mesh.el_vol[nsfake]=sc->vols[j];
       nsfake++;
     }
   }
