@@ -292,9 +292,10 @@ int main (int argc, char* argv[])
   clock_t clk_mesh_start = clock(); // Time mesh generation FE setup
   mesh_struct mesh;
   printf(" --> loading grid from file: %s\n",inparam.gridfile);
+  // this below is just for backward compatibility:
   creategrid_fread(gfid,mesh_type,&mesh);
   fclose(gfid);
-  /*REFINE A MESH:*/
+  /*REFINE A MESH: first free any mesh we may have created in some other way*/
   free_mesh(&mesh);// we free it because we do not need it. 
   INT dim = SPATIAL_DIMENSION;/// dimension;
   INT mesh_ref_levels=REFINEMENT_LEVELS;/// refinement levels;
