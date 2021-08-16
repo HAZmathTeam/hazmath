@@ -1,4 +1,4 @@
-/*! \file examples/basic_elliptic/amr_grids.c
+/*! \file examples/amr_grids/amr_grids.c
  *
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov 2019/01/09.
  *  Copyright 2015_HAZMATH__. All rights reserved.
@@ -12,7 +12,7 @@
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************/
 #include "hazmath.h"
 /*********************************************************************/
-#include "solve_estimate_mark.h"
+#include "supporting_amr_grids.h"
 /*********************************************************************/
 //
 INT main(INT   argc,   char *argv[])
@@ -123,10 +123,9 @@ INT main(INT   argc,   char *argv[])
   //  haz_scomplex_print(sc,0,__FUNCTION__);fflush(stdout);
   find_cc_bndry_cc(sc,(INT )0);
   /* write the output mesh file:    */
-  hazw(g->fgrid,sc,0);
+  //uncomment if the grid has to be written on a file:  hazw(g->fgrid,sc,0);
   /* WRITE THE OUTPUT vtu file for paraview:    */
-  if(dim <4)
-    vtkw(g->fvtu,sc,0,1.);
+  //uncomment if paraview plot is needed;  if(dim <4) vtkw(g->fvtu,sc,0,1.);
   /*FREE: the input grid is freed here, because it haz the filenames in it*/
   input_grid_free(g);
   haz_scomplex_free(sc);

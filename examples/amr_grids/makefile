@@ -6,7 +6,7 @@
 SRCFILE = amr_grids
 
 
-HEADERS = solve_estimate_mark.h
+HEADERS = supporting_$(SRCFILE).h
 
 INCLUDE =
 

@@ -35,7 +35,7 @@
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************/
 #include "hazmath.h"
 /*********************************************************************/
-#include "basic_elliptic_supporting.h"
+#include "supporting_basic_elliptic.h"
 /*SOME MACROS*/
 /*REFINEMENT TYPE >10 for uniform refinement and <10 for other*/
 #ifndef REFINEMENT_TYPE
