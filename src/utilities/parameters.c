@@ -39,6 +39,16 @@ void param_input_init (input_param *inparam)
     strcpy(inparam->inifile,"./input.dat");
     strcpy(inparam->gridfile,"../grids/2D/unitSQ_hp125.dat");
     strcpy(inparam->output_dir,"./output/");
+
+    //--------------------------
+    // mesh parameters
+    //--------------------------
+    inparam->read_mesh_from_file=0;
+    inparam->spatial_dim=2;
+    inparam->refinement_type=11;
+    inparam->refinement_levels=2;
+    inparam->boundary_codes=1;
+
     //--------------------------
     // finite element parameters
     //--------------------------
@@ -97,7 +107,7 @@ void param_input_init (input_param *inparam)
     inparam->AMG_amli_degree          = 1;
     inparam->AMG_nl_amli_krylov_type  = 2;
     inparam->AMG_fpwr                 = 1.0;
-    
+
     // Aggregation AMG parameters
     inparam->AMG_aggregation_type     = HEC;
     inparam->AMG_strong_coupled       = 0.04;
@@ -156,7 +166,7 @@ void param_amg_init (AMG_param *amgparam)
     amgparam->amli_coef            = NULL;
     amgparam->nl_amli_krylov_type  = SOLVER_VFGMRES;
     amgparam->fpwr                 = 1.0;
-    
+
     // Aggregation AMG parameters
     amgparam->aggregation_type     = HEC;
     amgparam->strong_coupled       = 0.04;
@@ -303,7 +313,7 @@ void param_amg_set (AMG_param *amgparam,
     amgparam->amli_coef            = NULL;
     amgparam->nl_amli_krylov_type  = inparam->AMG_nl_amli_krylov_type;
     amgparam->fpwr                 = inparam->AMG_fpwr;
-    
+
     amgparam->aggregation_type     = inparam->AMG_aggregation_type;
     amgparam->strong_coupled       = inparam->AMG_strong_coupled;
     amgparam->max_aggregation      = inparam->AMG_max_aggregation;
@@ -493,7 +503,7 @@ void param_amg_print (AMG_param *amgparam)
              amgparam->smoother == SMOOTHER_FSGS    ) {
             printf("AMG fractional exponent:           %.4f\n", amgparam->fpwr);
         }
-        
+
         if ( amgparam->cycle_type == AMLI_CYCLE ) {
             printf("AMG AMLI degree of polynomial:     %d\n", amgparam->amli_degree);
         }

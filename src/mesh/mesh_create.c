@@ -1,24 +1,23 @@
 /*! \file src/mesh/mesh_create.c
- *
- * \brief Contains generic routines for initializing, building, and creating mesh data.
- *
- *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 1/9/15.
- *  Copyright 2015__HAZMATH__. All rights reserved.
- *
- * \note updated by James Adler 07/25/2018
- */
+*
+* \brief Contains generic routines for initializing, building, and creating mesh data.
+*
+*  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 1/9/15.
+*  Copyright 2015__HAZMATH__. All rights reserved.
+*
+* \note updated by James Adler 07/25/2018
+*/
 
 #include "hazmath.h"
 
-/******************************************************************************/
 /*!
- * \fn void initialize_mesh(mesh_struct* mesh)
- *
- * \brief Initializes all components of the structure mesh_struct.
- *
- * \return mesh     Struct for Mesh
- *
- */
+* \fn void initialize_mesh(mesh_struct* mesh)
+*
+* \brief Initializes all components of the structure mesh_struct.
+*
+* \return mesh     Struct for Mesh
+*
+*/
 void initialize_mesh(mesh_struct* mesh)
 {
   mesh->dim = -666;
@@ -58,20 +57,18 @@ void initialize_mesh(mesh_struct* mesh)
   mesh->iwork = NULL;
   return;
 }
-/******************************************************************************/
 
-/******************************************************************************/
 /*!
- * \fn void creategrid_fread(FILE *gfid,INT file_type,mesh_struct* mesh)
- *
- * \brief Creates grid by reading in from file.
- *
- * \param gfid      Grid FILE ID
- * \param file_type Type of File Input: 0 - haz format; 1 - vtk format
- *
- * \return mesh     Struct for Mesh
- *
- */
+* \fn void creategrid_fread(FILE *gfid,INT file_type,mesh_struct* mesh)
+*
+* \brief Creates grid by reading in from file.
+*
+* \param gfid      Grid FILE ID
+* \param file_type Type of File Input: 0 - haz format; 1 - vtk format
+*
+* \return mesh     Struct for Mesh
+*
+*/
 void creategrid_fread(FILE *gfid,INT file_type,mesh_struct* mesh)
 {
   // Initialize mesh for read in.
@@ -84,9 +81,7 @@ void creategrid_fread(FILE *gfid,INT file_type,mesh_struct* mesh)
   } else if(file_type==1) {
     read_grid_vtk(gfid,mesh);
   } else {
-    fprintf(stderr, \
-            "Unknown mesh file type, %d. Try using vtk format. -Exiting\n", \
-            file_type);
+    fprintf(stderr,"Unknown mesh file type, %d. Try using vtk format. -Exiting\n",file_type);
     exit(255);
   }
 
@@ -95,19 +90,105 @@ void creategrid_fread(FILE *gfid,INT file_type,mesh_struct* mesh)
 
   return;
 }
-/******************************************************************************/
 
-/******************************************************************************/
 /*!
- * \fn void build_mesh_all(mesh_struct* mesh)
- *
- * \brief Builds the mesh and ALL components of the struct.
- * \note Assumes basic info has already been read in or created.
- *       including dim, el_v, cv, nv, and nbv.
- *
- * \return mesh     Struct for Mesh
- *
- */
+* \fn struct mesh_struct make_uniform_mesh(const INT dim,const INT mesh_ref_levels,const INT mesh_ref_type,const INT set_bndry_codes)
+*
+* \brief makes a mesh_ref_levels of refined mesh on the unit cube in dimension dim.
+*
+* \param dim               Dimension of computational domain
+* \param mesh_ref_levels   Number of refinement levels
+*
+* \param mesh_ref_type     if > 10: uniform refinement ;
+*                          if < 10: nearest vertex bisection ;
+*
+* \param set_bndry_codes   if .eq. 0: the boundary codes come from sc->bndry[];
+*                          if .ne. 0  the boundary codes are set
+*
+* \return mesh_struct with the mesh.
+*
+* \note 20210815 (ltz)
+* \note Works in 2D and 3D
+*
+*/
+struct mesh_struct make_uniform_mesh(const INT dim,const INT mesh_ref_levels,const INT mesh_ref_type,const INT set_bndry_codes)
+{
+
+  // Loop Counters
+  INT i,jlevel,k;
+
+  // Create a simplicial complex
+  scomplex *sc=NULL,*sctop=NULL,*dsc=NULL;
+
+  // Get the coarsest mesh on the cube in dimension dim and set the refinement type.
+  sc=mesh_cube_init(dim,mesh_ref_type);
+
+  if(sc->ref_type>10){
+    // Uniform refinement only for dim=2 or dim=3
+    if(dim==3){
+      for(jlevel=0;jlevel<mesh_ref_levels;++jlevel){
+        uniformrefine3d(sc);
+        sc_vols(sc);
+      }
+    } else if(dim==2){
+      for(jlevel=0;jlevel<mesh_ref_levels;++jlevel){
+        uniformrefine2d(sc);
+        sc_vols(sc);
+      }
+    } else {
+      check_error(ERROR_DIM, __FUNCTION__);
+    }
+    // Get boundaries
+    find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
+    sc_vols(sc);
+  } else {
+    // Nearest vertex bisection refinement
+    ivector marked; marked.val=NULL;
+    for(jlevel=0;jlevel<mesh_ref_levels;++jlevel){
+      // Choose the finest grid
+      sctop=scfinest(sc);
+      marked.row=sctop->ns;
+      marked.val=realloc(marked.val,marked.row*sizeof(INT));
+      // Mark everything
+      for(k=0;k<marked.row;k++) marked.val[k]=TRUE;
+      // Now we refine
+      refine(1,sc,&marked);
+      // Free the finest grid
+      haz_scomplex_free(sctop);
+    }
+    ivec_free(&marked);
+    scfinalize(sc);
+    sc_vols(sc);
+  }
+  // Get boundary codes
+  find_cc_bndry_cc(sc,set_bndry_codes);
+  for(i=0;i<sc->nv;++i){
+    if(sc->bndry[i]>128) sc->bndry[i]-=128;
+  }
+
+  // Convert to mesh_struct for FEM assembly
+  mesh_struct mesh0=sc2mesh(sc);
+
+  // Build remaining components of the mesh
+  build_mesh_all(&mesh0);
+
+  // Free simplicial complex
+  haz_scomplex_free(sc);
+
+  return mesh0;
+}
+
+
+/*!
+* \fn void build_mesh_all(mesh_struct* mesh)
+*
+* \brief Builds the mesh and ALL components of the struct.
+* \note Assumes basic info has already been read in or created.
+*       including dim, el_v, cv, nv, and nbv.
+*
+* \return mesh     Struct for Mesh
+*
+*/
 void build_mesh_all(mesh_struct* mesh)
 {
   // Flag for errors
@@ -162,7 +243,7 @@ void build_mesh_all(mesh_struct* mesh)
     }
     if(euler!=1) {
       printf("ERROR HAZMATH DANGER: in function %s, your simplices are all messed up.  "
-             "Euler Characteristic doesn't equal 1+nholes!\teuler=%d\tnholes=%d.\n\n",__FUNCTION__,euler,nholes);
+      "Euler Characteristic doesn't equal 1+nholes!\teuler=%d\tnholes=%d.\n\n",__FUNCTION__,euler,nholes);
       exit(ERROR_DIM);
     }
 
@@ -180,8 +261,7 @@ void build_mesh_all(mesh_struct* mesh)
     INT* f_flag = (INT *) calloc(nface,sizeof(INT));
     INT nbface;
     mesh->el_f = malloc(sizeof(struct iCSRmat));
-    get_face_maps(mesh->el_v,v_per_elm,&ed_v,nface,dim,f_per_elm,mesh->el_f, \
-                  f_flag,&nbface,&f_v,&f_ed,fel_order);
+    get_face_maps(mesh->el_v,v_per_elm,&ed_v,nface,dim,f_per_elm,mesh->el_f,f_flag,&nbface,&f_v,&f_ed,fel_order);
 
     /* Get Face and Edge Flags */
     INT nbedge=0;
@@ -247,20 +327,18 @@ void build_mesh_all(mesh_struct* mesh)
 
   return;
 }
-/******************************************************************************/
 
-/******************************************************************************/
 /*!
- * \fn struct coordinates *allocatecoords(INT ndof,INT mydim)
- *
- * \brief Allocates memory and properties of coordinates struct
- *
- * \param ndof      Total number of coordinates
- * \param mydim     Dimension of coordinates
- *
- * \return A        Coordinate struct
- *
- */
+* \fn struct coordinates *allocatecoords(INT ndof,INT mydim)
+*
+* \brief Allocates memory and properties of coordinates struct
+*
+* \param ndof      Total number of coordinates
+* \param mydim     Dimension of coordinates
+*
+* \return A        Coordinate struct
+*
+*/
 struct coordinates *allocatecoords(INT ndof,INT mydim)
 {
   // Flag for errors
@@ -272,36 +350,34 @@ struct coordinates *allocatecoords(INT ndof,INT mydim)
   A->x = (REAL *) calloc(mydim*ndof,sizeof(REAL));
   switch (mydim)
   {
-  case 1:
+    case 1:
     A->y=NULL;
     A->z=NULL;
     break;
-  case 2:
+    case 2:
     A->y = A->x + ndof;
     A->z=NULL;
     break;
-  case 3:
+    case 3:
     A->y = A->x + ndof;
     A->z = A->y + ndof;
     break;
-  default:
+    default:
     status = ERROR_DIM;
     check_error(status, __FUNCTION__);
   }
   A->n = ndof;
   return A;
 }
-/******************************************************************************/
 
-/******************************************************************************/
 /*!
- * \fn void free_coords(coordinates* A)
- *
- * \brief Frees memory of arrays of coordinate struct
- *
- * \param A         Pointer to coordinates struct to be freed
- *
- */
+* \fn void free_coords(coordinates* A)
+*
+* \brief Frees memory of arrays of coordinate struct
+*
+* \param A         Pointer to coordinates struct to be freed
+*
+*/
 void free_coords(coordinates* A)
 {
   if (A==NULL) return;
@@ -313,20 +389,18 @@ void free_coords(coordinates* A)
 
   return;
 }
-/******************************************************************************/
 
-/******************************************************************************/
 /*!
- * \fn void dump_coords(FILE* fid,coordinates *c)
- *
- * \brief Dump the coordinate data to file for plotting purposes
- *
- * \param fid         Output FILE ID
- * \param c           Coordinate struct
- *
- * \return coord.dat  Coordinates of node in format: coord(n,dim)
- *
- */
+* \fn void dump_coords(FILE* fid,coordinates *c)
+*
+* \brief Dump the coordinate data to file for plotting purposes
+*
+* \param fid         Output FILE ID
+* \param c           Coordinate struct
+*
+* \return coord.dat  Coordinates of node in format: coord(n,dim)
+*
+*/
 void dump_coords(FILE* fid,coordinates *c)
 {
   INT i;
@@ -346,17 +420,15 @@ void dump_coords(FILE* fid,coordinates *c)
   }
   return;
 }
-/******************************************************************************/
 
-/******************************************************************************/
 /*!
- * \fn void free_mesh(mesh_struct* mesh)
- *
- * \brief Frees memory of arrays of mesh struct
- *
- * \param mesh     Pointer to mesh struct to be freed
- *
- */
+* \fn void free_mesh(mesh_struct* mesh)
+*
+* \brief Frees memory of arrays of mesh struct
+*
+* \param mesh     Pointer to mesh struct to be freed
+*
+*/
 void free_mesh(mesh_struct* mesh)
 {
   if(mesh==NULL) return;
@@ -477,4 +549,3 @@ void free_mesh(mesh_struct* mesh)
 
   return;
 }
-/******************************************************************************/
