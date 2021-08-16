@@ -4,10 +4,10 @@
 *  Copyright 2015_HAZMATH__. All rights reserved.
 *
 * \brief This contains all the Data parameters and coefficients
-*        for the Stokes example.  This includes exact solutions,
+*        for the basic_elliptic examples.  This includes exact solutions,
 *        RHS functions, and boundary conditions.
 *
-* \note We include different examples for a 2D and 3D problems, and for FE types
+* \note We include different examples for 2D and 3D problems, and for FE types
 *       P1, P2, RT0, Nedelec0
 */
 

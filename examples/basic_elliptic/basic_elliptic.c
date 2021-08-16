@@ -38,25 +38,6 @@
 #include "basic_elliptic_data.h"
 /*********************************************************************/
 
-/*SOME MACROS*/
-/*REFINEMENT TYPE >10 for uniform refinement and <10 for other*/
-#ifndef REFINEMENT_TYPE
-#define REFINEMENT_TYPE 11
-#endif
-/**/
-#ifndef REFINEMENT_LEVELS
-#define REFINEMENT_LEVELS 3
-#endif
-/**/
-#ifndef SPATIAL_DIMENSION
-#define SPATIAL_DIMENSION 3
-#endif
-/**/
-#ifndef SET_BNDRY_CODES
-#define SET_BNDRY_CODES 1
-#endif
-/* END MACROS*/
-
 /****** MAIN DRIVER **************************************************/
 int main (int argc, char* argv[])
 {
