@@ -1490,7 +1490,7 @@ void refine(const INT ref_levels, scomplex *sc,ivector *marked)
  *
  */
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
-mesh_struct *sc2mesh(scomplex *sc)
+mesh_struct sc2mesh(scomplex *sc)
 {
   /*********************************************************************/
   /* INPUT: pointer to a simplicial complex sc; returns mesh_struct
@@ -1501,12 +1501,12 @@ mesh_struct *sc2mesh(scomplex *sc)
   */
   /*********************************************************************/
   /* copy the final grid at position 1*/
+  mesh_struct mesh;
+  initialize_mesh(&mesh);
   INT ns=0,nv=sc->nv,n1=sc->n+1,dim=sc->n,dimbig=sc->nbig;
   if(dimbig!=dim)
-    return NULL;
+    return mesh;
   INT jk=-10,k=-10,j=-10,i=-10;
-  mesh_struct *mesh=malloc(1*sizeof(mesh_struct));
-  initialize_mesh(mesh);
   /*
     count the number of elements on the last level of refinement.
     On the last grid are all simplices that were not refined, so
@@ -1516,34 +1516,30 @@ mesh_struct *sc2mesh(scomplex *sc)
   for (j=0;j<sc->ns;j++)
     if(sc->child0[j]<0 || sc->childn[j]<0) ns++;
   /*Update mesh with known quantities*/
-  mesh->dim = sc->n;
-  mesh->nelm = ns; //do not ever put sc->ns here
-  mesh->nv=nv; 
-  mesh->nconn_reg = sc->cc; // dummy argument yet.
-  mesh->nconn_bdry = sc->bndry_cc;// dummy argument
-  mesh->v_per_elm = n1;
-  mesh->nelm=ns;
+  mesh.dim = sc->n;
+  mesh.nelm = ns; //do not ever put sc->ns here
+  mesh.nv=nv; 
+  mesh.nconn_reg = sc->cc; //
+  mesh.nconn_bdry = sc->bndry_cc;// the so called number of holes is this number minus 1. 
+  mesh.v_per_elm = n1;
   /*Allocate all pointers needed to init the mesh struct*/
-  mesh->el_flag = (INT *)calloc(ns,sizeof(INT));
-  mesh->el_vol = (REAL *)calloc(ns,sizeof(REAL));
-  mesh->v_flag = (INT *)calloc(nv,sizeof(INT));
-  mesh->cv=allocatecoords(nv,dim);
-  mesh->el_v=(iCSRmat *)malloc(1*sizeof(iCSRmat));
-  mesh->el_v->row=mesh->nelm;
-  mesh->el_v->col=mesh->nv;
-  mesh->el_v->nnz=mesh->nelm*mesh->v_per_elm;
-  mesh->el_v->IA = (INT *)calloc((ns+1),sizeof(INT));
-  mesh->el_v->JA = (INT *)calloc(ns*n1,sizeof(INT));
-  mesh->el_v->val=NULL;
-  INT chk=(INT )(!(mesh &&					  \
-		 mesh->el_flag && mesh->el_vol && mesh->v_flag && \
-		 mesh->cv && mesh->cv->x && \
-		 mesh->el_v && mesh->el_v->IA && mesh->el_v->JA
+  // these are initialized to NULL, so we can use realloc. 
+  mesh.el_flag = (INT *)realloc(mesh.el_flag,ns*sizeof(INT));
+  mesh.el_vol = (REAL *)realloc(mesh.el_vol,ns*sizeof(REAL));
+  mesh.v_flag = (INT *)realloc(mesh.v_flag,nv*sizeof(INT));
+  mesh.cv=allocatecoords(nv,dim);
+  mesh.el_v=(iCSRmat *)malloc(sizeof(iCSRmat));
+  mesh.el_v[0]=icsr_create(mesh.nelm,mesh.nv,mesh.nelm*mesh.v_per_elm);
+  free(mesh.el_v->val); mesh.el_v->val=NULL;
+  INT chk=(INT )(!(mesh.el_flag && mesh.el_vol && mesh.v_flag && \
+		 mesh.cv && mesh.cv->x && \
+		 mesh.el_v && mesh.el_v->IA && mesh.el_v->JA
 		   ));
   if(chk){
     fprintf(stderr,"\nCould not allocate memory for mesh in %s\n *** RETURNING a NULL pointer to mesh", \
-	    __FUNCTION__); 
-    return NULL;
+	    __FUNCTION__);
+    // we need to free everything here
+    return mesh;
   }
   /********************************************************************/
   /*element flag and element volumes; volumes are recomputed later in
@@ -1551,37 +1547,40 @@ mesh_struct *sc2mesh(scomplex *sc)
   INT nsfake=0;// this one must be ns at the end. 
   for (j=0;j<sc->ns;j++){
     if(sc->child0[j]<0 || sc->childn[j]<0){
-      mesh->el_flag[nsfake]=sc->flags[j];
-      mesh->el_vol[nsfake]=sc->vols[j];
+      mesh.el_flag[nsfake]=sc->flags[j];
+      mesh.el_vol[nsfake]=sc->vols[j];
       nsfake++;
     }
   }
   /*boundary flags*/
-  mesh->nbv=0;
-  for (j=0;j<mesh->nv;j++){
-    if(sc->bndry[j]!=0) mesh->nbv++;
-    mesh->v_flag[j]=sc->bndry[j];
+  mesh.nbv=0;
+  for (j=0;j<mesh.nv;j++){
+    if(sc->bndry[j]!=0) mesh.nbv++;
+    mesh.v_flag[j]=sc->bndry[j];
   }
   /*Coordinates*/
-  for(j=0;j<mesh->dim;j++){
+  for(j=0;j<mesh.dim;j++){
     for(i=0;i<nv;i++){
-      mesh->cv->x[j*nv+i]=sc->x[i*sc->n+j];
+      mesh.cv->x[j*nv+i]=sc->x[i*sc->n+j];
     }
   }
   // el_v
-  mesh->el_v->IA[0]=0;
-  for (j=0;j<mesh->nelm;j++)
-    mesh->el_v->IA[j+1]=mesh->el_v->IA[j]+n1;
+  mesh.el_v->IA[0]=0;
+  for (j=0;j<mesh.nelm;j++)
+    mesh.el_v->IA[j+1]=mesh.el_v->IA[j]+n1;
   jk=0;
   for (j=0;j<sc->ns;j++){
     /*  copy el_v map using only the top grid;    */
     if(sc->child0[j]<0 || sc->childn[j]<0){
       for (k=0;k<n1;k++)
-        memcpy(mesh->el_v->JA+jk*n1,sc->nodes+j*n1,n1*sizeof(INT));
+        memcpy(mesh.el_v->JA+jk*n1,sc->nodes+j*n1,n1*sizeof(INT));
       jk++;
     }
   }
-  fprintf(stdout,"\n%%After %d levels of refinement:\tvertices=%d ; simplices=%d in dim=%d;\n components(bdry):%d\n",   sc->level,mesh->nv,mesh->nelm,mesh->dim,mesh->nconn_bdry); fflush(stdout);
+  fprintf(stdout,							\
+	  "\n%%%s: levels=%d; vertices=%d; simplices=%d; dim=%d; components(bdry):%d\n", \
+	  "Converted to mesh structure:",				\
+	  sc->level,mesh.nv,mesh.nelm,mesh.dim,mesh.nconn_bdry); fflush(stdout);
   return mesh;
 }
 /*********************************************************************/
@@ -1591,9 +1590,9 @@ mesh_struct *sc2mesh(scomplex *sc)
  * \brief creates a boundary simplicial complex from a given simplicial complex. 
  *
  * \param sc         I: the simplicial complex whose boundary we want to find
- *
+ *  
  * \return  the coundary simplicial complex 
- *
+ * \note    future: should be combined with find_cc_bndry_cc() in amr_utils.c. 
  */
 scomplex sc_bndry(scomplex *sc)
 {
