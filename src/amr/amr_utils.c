@@ -564,22 +564,24 @@ scomplex *scfinest(scomplex *sc)
 }
 /**********************************************************************/
 /*!
- * \fn void scfinalize(scomplex *sc)
+ * \fn void scfinalize(scomplex *sc,const INT set_bndry_codes)
  *
- * \brief Remove all hierachy and make sc to represent only the final
- *        grid.
+ * \brief Removes all hierachy and make sc to represent only the final
+ *        grid. computes connected components and connected components
+ *        on the boundary.
  *
- * \param
+ * \param sc: simplicial complex
+ * \param set_bndry_codes: if set to 1, all boundary vertices get a code of 128+(connected component number);
  *
  * \return
  *
  * \note
  *
  */
-void scfinalize(scomplex *sc)
+void scfinalize(scomplex *sc,const INT set_bndry_codes)
 {
   // INT n=sc->n;
-  INT ns,j=-10,k=-10,l=-10;
+  INT ns,j=-10,k=-10;
   INT n1=sc->n+1;
   /*
       store the finest mesh in sc structure.
@@ -611,37 +613,8 @@ void scfinalize(scomplex *sc)
   sc->gen=realloc(sc->gen,sc->ns*sizeof(INT));
   sc->flags=realloc(sc->flags,sc->ns*sizeof(INT));
   find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
-  //  haz_scomplex_print(sc,0,"ZZZ");fflush(stdout);
-  // make all boundary codes negative which by default should be
-  // interior nodes;
-  /* INT node,kbndry0=0,bcodemax=128; */
-  /* for (j=0;j<sc->nv;j++) sc->bndry[j]=-abs(sc->bndry[j]); */
-  /* // now run over all simplices again and mark all nodes on boundary */
-  /* // faces as boundary nodes by making their codes positive. */
-  /* for (j=0;j<sc->ns;j++){ */
-  /*   for (k=0;k<n1;k++) { */
-  /*     if(sc->nbr[j*n1+k]<0) { */
-  /* 	// boundary face. */
-  /* 	for(l=0;l<n1;l++){ */
-  /* 	  if(l!=k) { */
-  /* 	    node=sc->nodes[j*n1+l]; */
-  /* 	    sc->bndry[node]=abs(sc->bndry[node]); */
-  /* 	    if(sc->bndry[node]==0){ */
-  /* 	      kbndry0++; */
-  /* 	      sc->bndry[node]=bcodemax+node+1; */
-  /* 	    } */
-  /* 	  }//if */
-  /* 	}//l */
-  /*     }//if */
-  /*   }//k */
-  /* }//j */
-  /* for (j=0;j<sc->nv;j++) { */
-  /*   if(sc->bndry[j]<0) */
-  /*     sc->bndry[j]=0; // make all interior nodes with 0 codes. */
-  /* } */
-  /* if(kbndry0>0){ */
-  /*   fprintf(stdout,"\n%%WARNING: There are %d nodes on the boundary with no boundary code;\n%%Their boundary code is set to > %d;\n",kbndry0,bcodemax-1); fflush(stdout); */
-  /* } */
+  // this also can be called separately
+  find_cc_bndry_cc(sc,set_bndry_codes);
   fprintf(stdout,"\n%%After %d levels of refinement:\tsimplices=%d ; vertices=%d\n",sc->level,sc->ns,sc->nv); fflush(stdout);
   return;
 }
