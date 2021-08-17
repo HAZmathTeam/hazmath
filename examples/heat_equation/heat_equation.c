@@ -53,14 +53,12 @@ int main (int argc, char* argv[])
   // Time the mesh generation and FE setup
   clock_t clk_mesh_start = clock();
 
-  // Initialize some mesh parameters
+  // Use HAZMATH built in functions for a uniform mesh in 2D or 3D
   mesh_struct mesh;
   INT dim = inparam.spatial_dim;                 // dimension of computational domain
   INT mesh_ref_levels=inparam.refinement_levels; // refinement levels
   INT mesh_ref_type=inparam.refinement_type;     // refinement type (>10 uniform or <10 other)
-  INT set_bndry_codes=inparam.boundary_codes;    // set flags for the boundary DoF
-
-  // Use HAZMATH built in functions for a uniform mesh in 2D or 3D
+  INT set_bndry_codes=inparam.boundary_codes;    // set flags for the boundary DoF (1-16 are Dirichlet)
   mesh=make_uniform_mesh(dim,mesh_ref_levels,mesh_ref_type,set_bndry_codes);
 
   // Get Quadrature Nodes for the Mesh
@@ -77,7 +75,8 @@ int main (int argc, char* argv[])
   sprintf(elmtype,"P%d",order);
 
   // Set Dirichlet Boundaries
-  // Assume physical boundaries (flag of 1 in mesh file) are Dirichlet
+  // Assume physical boundaries are Dirichlet
+  // The mesh is set up so that flag values 1-16 are Dirichlet and 17-32 are Neumann
   set_dirichlet_bdry(&FE,&mesh,1,1);
 
   // Dump some of the data
