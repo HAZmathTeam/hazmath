@@ -18,10 +18,9 @@
  *
  * \note This example shows how to build your own bilinear form for a system.
  *       The forms are found in stokes_system.h and all Problem Data is found in
- *       stokes_data.h to simplify the code.  This example also illustrates how to
- *       construct block versions of the finite-element spaces, linear systems, and
+ *       stokes_data.h.  This example also illustrates how to construct block
+ *       versions of the finite-element spaces, linear systems, and
  *       how to use block solvers.
- *
  *
  */
 
@@ -50,20 +49,20 @@ int main (int argc, char* argv[])
   param_input_init(&inparam);
   param_input("./input.dat", &inparam);
 
-  // Open gridfile for reading
+  // Create the mesh
+  INT read_mesh_from_file=0;
   printf("\nCreating mesh and FEM spaces:\n");
-  FILE* gfid = HAZ_fopen(inparam.gridfile,"r");
 
-  // Create the mesh (now we assume triangles in 2D or tetrahedra in 3D)
-  // File types possible are 0 - old format; 1 - vtk format
-  INT mesh_type = 0;
-  clock_t clk_mesh_start = clock(); // Time mesh generation FE setup
+  // Time the mesh generation and FE setup
+  clock_t clk_mesh_start = clock();
+
+  // Use HAZMATH built in functions for a uniform mesh in 2D or 3D
   mesh_struct mesh;
-  printf(" --> loading grid from file: %s\n",inparam.gridfile);
-  initialize_mesh(&mesh);
-  creategrid_fread(gfid,mesh_type,&mesh);
-  fclose(gfid);
-  INT dim = mesh.dim;
+  INT dim = inparam.spatial_dim;                 // dimension of computational domain
+  INT mesh_ref_levels=inparam.refinement_levels; // refinement levels
+  INT mesh_ref_type=inparam.refinement_type;     // refinement type (>10 uniform or <10 other)
+  INT set_bndry_codes=inparam.boundary_codes;    // set flags for the boundary DoF (1-16 are Dirichlet)
+  mesh=make_uniform_mesh(dim,mesh_ref_levels,mesh_ref_type,set_bndry_codes);
 
   // Get Quadrature Nodes for the Mesh
   INT nq1d = inparam.nquad; /* Quadrature points per dimension */
@@ -85,12 +84,14 @@ int main (int argc, char* argv[])
   create_fespace(&FE_p,&mesh,order_p);
 
   // Set Dirichlet Boundaries
-  // u = g on all boundaryies (flag==1)
+  // u = g on all boundaries
   // p is Neumann on all boundaries
-  set_dirichlet_bdry(&FE_ux,&mesh,1,1);
-  set_dirichlet_bdry(&FE_uy,&mesh,1,1);
-  if(dim==3) set_dirichlet_bdry(&FE_uz,&mesh,1,1);
-  set_dirichlet_bdry(&FE_p,&mesh,-1,-1);
+  // The mesh is set up so that flag values 1-16 are Dirichlet and 17-32 are Neumann
+  // For now mesh marks all physical boundaries as set_bndry_codes value
+  set_dirichlet_bdry(&FE_ux,&mesh,1,16);
+  set_dirichlet_bdry(&FE_uy,&mesh,1,16);
+  if(dim==3) set_dirichlet_bdry(&FE_uz,&mesh,1,16);
+  set_dirichlet_bdry(&FE_p,&mesh,-1,-1); // No DoF for p should be Dirichlet
 
   // Create Block System with ordering (u,p)
   INT udof = FE_ux.ndof + FE_uy.ndof; // Total DoF for u
@@ -117,6 +118,7 @@ int main (int argc, char* argv[])
 
   // Summarize Setup
   printf("***********************************************************************************\n");
+  printf("\t--- %d-dimensional grid ---\n",dim);
   printf("Number of Elements = %d\tOrder of Quadrature = %d\n",mesh.nelm,2*nq1d-1);
   printf("\n\t--- Element Type ---\n");
   printf("Velocity Element Type = %d\tPressure Element Type = %d\n",order_u,order_p);
@@ -134,15 +136,10 @@ int main (int argc, char* argv[])
    *  <2*eps(u), eps(v)> - <p, div v> = <f, v>
    *                   - <div u, q> = 0
    */
-
-
-
-   // TEST SOMETHING:
-
   printf("Assembling the matrix and right-hand side:\n");
   clock_t clk_assembly_start = clock();
 
-  // Allocate the right-hand and declare the csr matrix
+  // Allocate the right-hand and declare the block csr matrix
   dvector b;
 
   // Put into Block Form
@@ -171,12 +168,12 @@ int main (int argc, char* argv[])
   dCSRmat *A_diag;
   A_diag = (dCSRmat *)calloc(dim+1, sizeof(dCSRmat));
 
-  // For velcocities we use the diagonal of the block matrix
+  // For velcocities, we use the diagonal of the (0,0) block matrix
   for(i=0;i<dim;i++){
     dcsr_alloc(A.blocks[i*(dim+2)]->row, A.blocks[i*(dim+2)]->col, A.blocks[i*(dim+2)]->nnz, &A_diag[i]);
     dcsr_cp(A.blocks[i*(dim+2)], &A_diag[i]);
   }
-  // Get Mass Matrix for p
+  // For pressure, we use the mass matrix
   dCSRmat Mp;
   assemble_global(&Mp,NULL,assemble_mass_local,&FE_p,&mesh,cq,NULL,one_coeff_scal,0.0);
   dcsr_alloc(Mp.row, Mp.col, Mp.nnz, &A_diag[dim]);
@@ -190,7 +187,7 @@ int main (int argc, char* argv[])
   INT pressureloc = 0;
   REAL pressurecoord[dim];
   for(i=0;i<dim;i++) pressurecoord[i] = 0.0;
-  REAL solval[dim];
+  REAL solval[dim+1];
   if(dim==2) exact_sol2D(solval,pressurecoord,0.0,NULL);
   if(dim==3) exact_sol3D(solval,pressurecoord,0.0,NULL);
   // Set initial guess for pressure to match the known "boundary condition" for pressure
@@ -249,13 +246,17 @@ int main (int argc, char* argv[])
   uerrH1 = sqrt(uerrH1);
   REAL perrL2 = solerrL2[dim];
   REAL perrH1 = solerrH1[dim];
-  if(order_p==0) perrH1 = -666.66;
+  if(order_p==0) perrH1 = 0.0;
 
   printf("*******************************************************\n");
   printf("L2 Norm of u error    = %26.13e\n",uerrL2);
   printf("L2 Norm of p error    = %26.13e\n",perrL2);
   printf("H1 Norm of u error    = %26.13e\n",uerrH1);
-  printf("H1 Norm of p error    = %26.13e\n",perrH1);
+  if(order_p==0) {
+    printf("H1 Norm of p error    = %26.13e (not computed for P0 elements)\n",perrH1);
+  } else {
+    printf("H1 Norm of p error    = %26.13e\n",perrH1);
+  }
   printf("*******************************************************\n\n");
   clock_t clk_error_end = clock();
   printf("Elapsed CPU time for getting errors = %lf seconds.\n\n",(REAL)

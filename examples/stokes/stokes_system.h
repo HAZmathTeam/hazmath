@@ -67,6 +67,7 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qco
   INT u3dofpelm;
   if(dim==3) u3dofpelm = FE->var_spaces[iu3]->dof_per_elm;
   INT pdofpelm = FE->var_spaces[ip]->dof_per_elm;
+
   // Pointer to current unknowns DoF on element
   INT* local_dof_on_elm;
 
@@ -92,25 +93,12 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qco
     w = cq->w[elm*cq->nq_per_elm+quad];
 
     //  Get the Basis Functions at each quadrature node
-    // u = (u1,u2,u3) and v = (v1,v2,v3)
+    // u = (u1,u2,u3,p) and v = (v1,v2,v3,q)
     local_dof_on_elm = dof_on_elm;
     for(i=0;i<FE->nspaces;i++) {
       get_FEM_basis(FE->var_spaces[i]->phi,FE->var_spaces[i]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[i]);
       local_dof_on_elm += FE->var_spaces[i]->dof_per_elm;
     }
-    // // u1
-    // get_FEM_basis(FE->var_spaces[iu1]->phi,FE->var_spaces[iu1]->dphi,qx,v_on_elm,dof_on_elm,mesh,FE->var_spaces[iu1]);
-    // local_dof_on_elm += u1dofpelm;
-    // // u2
-    // get_FEM_basis(FE->var_spaces[iu2]->phi,FE->var_spaces[iu2]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[iu2]);
-    // local_dof_on_elm += u2dofpelm;
-    // // u3
-    // if(dim==3){
-    //   get_FEM_basis(FE->var_spaces[iu3]->phi,FE->var_spaces[iu3]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[iu3]);
-    //   local_dof_on_elm += u3dofpelm;
-    // }
-    // // p
-    // get_FEM_basis(FE->var_spaces[ip]->phi,FE->var_spaces[ip]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[ip]);
 
     // Loop over block rows of test functions
     local_row_index = 0;
@@ -309,4 +297,3 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qco
 
   return;
 }
-/*****************************************************************************************************/
