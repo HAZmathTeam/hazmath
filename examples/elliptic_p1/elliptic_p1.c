@@ -91,9 +91,9 @@ int main(int argc, char *argv[])
       haz_scomplex_free(sctop);
       /*  MAKE sc to be the finest grid only */
     }
-    scfinalize(sc,(INT )0);
-    sc_vols(sc);
   }
+  scfinalize(sc,(INT )0);
+  sc_vols(sc);
   //  icsr_print_matlab(stdout,sc->parent_v);
   //  haz_scomplex_print(sc,0,__FUNCTION__);
   sol=fe_sol(sc,1.0,1.0);
