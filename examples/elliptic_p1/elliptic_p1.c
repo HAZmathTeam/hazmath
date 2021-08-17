@@ -9,10 +9,11 @@
  *
  */
 /*********************************************************************/
-
 #include "hazmath.h"
-#include "elliptic_p1_supporting.h"
+#include "supporting_elliptic_p1.h"
 /****************************************************************************/
+/****************************************************************************/
+
 /* 
  * refinement type: .gt. 10 is uniform refinement and .le. 10
  *                  (typically 0) is the newest vertex bisection
@@ -22,11 +23,15 @@
 #endif
 /**/
 #ifndef REFINEMENT_LEVELS
-#define REFINEMENT_LEVELS 4
+#define REFINEMENT_LEVELS 5
 #endif
-
+/**/
 #ifndef SPATIAL_DIMENSION
 #define SPATIAL_DIMENSION 3
+#endif
+/**/
+#ifndef SET_BNDRY_CODES
+#define SET_BNDRY_CODES 1
 #endif
 /****************************************************************************/
 int main(int argc, char *argv[])
@@ -86,9 +91,9 @@ int main(int argc, char *argv[])
       haz_scomplex_free(sctop);
       /*  MAKE sc to be the finest grid only */
     }
-    scfinalize(sc);
-    sc_vols(sc);
   }
+  scfinalize(sc,(INT )0);
+  sc_vols(sc);
   //  icsr_print_matlab(stdout,sc->parent_v);
   //  haz_scomplex_print(sc,0,__FUNCTION__);
   sol=fe_sol(sc,1.0,1.0);
