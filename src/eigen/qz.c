@@ -8,7 +8,7 @@
 * \note The algorithm is described in: MR0345399 (49 10135) 65F15
 *       Moler, C. B. ; Stewart, G. W. An algorithm for generalized
 *       matrix eigenvalue problems.  SIAM J. Numer. Anal. 10 (1973),
-*       241–256.  
+*       241–256.
 *       ForTran routines are found in: Moler, C. B. ;
 *       Stewart, G. W.  An algorithm for the generalized matrix
 *       eigenvalue problem Ax=\lambda Bx.  UT Austin tech report
@@ -37,7 +37,7 @@
  * \note The algorithm is described in: MR0345399 (49 10135) 65F15
  *       Moler, C. B. ; Stewart, G. W. An algorithm for generalized
  *       matrix eigenvalue problems.  SIAM J. Numer. Anal. 10 (1973),
- *       241–256.  
+ *       241–256.
  *       ForTran routines are found in: Moler, C. B. ;
  *       Stewart, G. W.  An algorithm for the generalized matrix
  *       eigenvalue problem Ax=\lambda Bx.  UT Austin tech report
@@ -74,7 +74,7 @@ static void del_row_col(INT ndp1,INT np1,REAL16 **a_io)
  * \note The algorithm is described in: MR0345399 (49 10135) 65F15
  *       Moler, C. B. ; Stewart, G. W. An algorithm for generalized
  *       matrix eigenvalue problems.  SIAM J. Numer. Anal. 10 (1973),
- *       241–256.  
+ *       241–256.
  *       ForTran routines are found in: Moler, C. B. ;
  *       Stewart, G. W.  An algorithm for the generalized matrix
  *       eigenvalue problem Ax=\lambda Bx.  UT Austin tech report
@@ -85,7 +85,7 @@ static void del_row_col(INT ndp1,INT np1,REAL16 **a_io)
 static void add_row_col(INT nd,INT n,REAL16 **a_io)
 /*********************************************************************************/
 {
-  INT i,j,ip1,jp1,np1=n+1,ndp1=nd+1;  
+  INT i,j,ip1,jp1,np1=n+1,ndp1=nd+1;
   a_io[0]=realloc(a_io[0],ndp1*np1*sizeof(REAL16));
   //
   REAL16 *a=a_io[0];
@@ -96,7 +96,7 @@ static void add_row_col(INT nd,INT n,REAL16 **a_io)
       //      fprintf(stdout,"\n%%11:: (%d,%d):%d --> %d(%d,%d)",ip1,jp1,ip1*np1+jp1,i*nd+j,i,j);
       a[ip1*np1+jp1]=a[i*n+j];
     }
-  }  
+  }
   //  fprintf(stdout,"\n");
   for(i=0;i<ndp1;++i)
     a[i*np1+0]=0e0;
@@ -107,7 +107,7 @@ static void add_row_col(INT nd,INT n,REAL16 **a_io)
 /**********************************************************************/
 /*
  * \fn static void househ3(REAL16 a1,REAL16 a2,REAL16 a3,
- *      		   REAL16 *u1, REAL16 *u2, REAL16 *u3,		
+ *      		   REAL16 *u1, REAL16 *u2, REAL16 *u3,
  *		           REAL16 *v1, REAL16 *v2, REAL16 *v3)
  *
  * \brief  huseholder (a1,as2,a3)-->(*,0,0);
@@ -115,7 +115,7 @@ static void add_row_col(INT nd,INT n,REAL16 **a_io)
  * \note The algorithm is described in: MR0345399 (49 10135) 65F15
  *       Moler, C. B. ; Stewart, G. W. An algorithm for generalized
  *       matrix eigenvalue problems.  SIAM J. Numer. Anal. 10 (1973),
- *       241–256.  
+ *       241–256.
  *       ForTran routines are found in: Moler, C. B. ;
  *       Stewart, G. W.  An algorithm for the generalized matrix
  *       eigenvalue problem Ax=\lambda Bx.  UT Austin tech report
@@ -151,7 +151,7 @@ static void househ3(REAL16 a1,REAL16 a2,REAL16 a3,		\
 }
 /****************************************************************/
 /*
- * \fn static void househ2(REAL16 a1,REAL16 a2, 
+ * \fn static void househ2(REAL16 a1,REAL16 a2,
  *                         REAL16 *u1, REAL16 *u2,
  *		           REAL16 *v1, REAL16 *v2)
  *
@@ -160,7 +160,7 @@ static void househ3(REAL16 a1,REAL16 a2,REAL16 a3,		\
  * \note The algorithm is described in: MR0345399 (49 10135) 65F15
  *       Moler, C. B. ; Stewart, G. W. An algorithm for generalized
  *       matrix eigenvalue problems.  SIAM J. Numer. Anal. 10 (1973),
- *       241–256.  
+ *       241–256.
  *       ForTran routines are found in: Moler, C. B. ;
  *       Stewart, G. W.  An algorithm for the generalized matrix
  *       eigenvalue problem Ax=\lambda Bx.  UT Austin tech report
@@ -194,8 +194,8 @@ static void househ2(REAL16 a1,REAL16 a2,		\
 }
 /****************************************************************/
 /*
- * \fn static void chouseh2(REAL16 a1r,REAL16 a1i,	       
- *		     REAL16 a2r,REAL16 a2i,		
+ * \fn static void chouseh2(REAL16 a1r,REAL16 a1i,
+ *		     REAL16 a2r,REAL16 a2i,
  *		     REAL16 *c, REAL16 *sr, REAL16 *si)
  *
  * \brief complex huseholder (a1,a2,a3)-->(*,0,0);
@@ -203,7 +203,7 @@ static void househ2(REAL16 a1,REAL16 a2,		\
  * \note The algorithm is described in: MR0345399 (49 10135) 65F15
  *       Moler, C. B. ; Stewart, G. W. An algorithm for generalized
  *       matrix eigenvalue problems.  SIAM J. Numer. Anal. 10 (1973),
- *       241–256.  
+ *       241–256.
  *       ForTran routines are found in: Moler, C. B. ;
  *       Stewart, G. W.  An algorithm for the generalized matrix
  *       eigenvalue problem Ax=\lambda Bx.  UT Austin tech report
@@ -239,7 +239,7 @@ static void chouseh2(REAL16 a1r,REAL16 a1i,		\
 /***************************************************************************/
 /*
  * \fn static void xdivy(const REAL16 xr,const REAL16 xi,
- *		  const REAL16 yr,const REAL16 yi,	
+ *		  const REAL16 yr,const REAL16 yi,
  *		  REAL16 *zr,REAL16 *zi)
  *
  * \brief complex division: compute (xr+i*xi)/(yr+i*yi);
@@ -247,7 +247,7 @@ static void chouseh2(REAL16 a1r,REAL16 a1i,		\
  * \note The algorithm is described in: MR0345399 (49 10135) 65F15
  *       Moler, C. B. ; Stewart, G. W. An algorithm for generalized
  *       matrix eigenvalue problems.  SIAM J. Numer. Anal. 10 (1973),
- *       241–256.  
+ *       241–256.
  *       ForTran routines are found in: Moler, C. B. ;
  *       Stewart, G. W.  An algorithm for the generalized matrix
  *       eigenvalue problem Ax=\lambda Bx.  UT Austin tech report
@@ -281,13 +281,13 @@ static void xdivy(const REAL16 xr,const REAL16 xi,	\
 /****************************************************************************/
 /*
  * \fn void qzhes(INT nd,INT n,REAL16 *a,REAL16 *b,const INT wantx, REAL16 *x)
- * 
- * \brief transforms a in Hessenberg and b in upper triangular form. 
+ *
+ * \brief transforms a in Hessenberg and b in upper triangular form.
  *
  * \note The algorithm is described in: MR0345399 (49 10135) 65F15
  *       Moler, C. B. ; Stewart, G. W. An algorithm for generalized
  *       matrix eigenvalue problems.  SIAM J. Numer. Anal. 10 (1973),
- *       241–256.  
+ *       241–256.
  *       ForTran routines are found in: Moler, C. B. ;
  *       Stewart, G. W.  An algorithm for the generalized matrix
  *       eigenvalue problem Ax=\lambda Bx.  UT Austin tech report
@@ -299,7 +299,7 @@ static void xdivy(const REAL16 xr,const REAL16 xi,	\
 /****************************************************************************/
 void qzhes(INT nd,INT n,REAL16 *a,REAL16 *b,const INT wantx, REAL16 *x)
 {
-  INT i,j,k,k1,l,l1,nm1,nm2,nk1,lb;
+  INT i,j,k,l,l1,nm1,nm2,nk1,lb;
   REAL16 r,s,t,u1,u2,v1,v2,rho;
 //initialize x, used to save transformations
   if (wantx){
@@ -361,7 +361,7 @@ void qzhes(INT nd,INT n,REAL16 *a,REAL16 *b,const INT wantx, REAL16 *x)
     return; // go to 170
   nm2=n-2;
   for(k=0;k<nm2;++k){
-    k1 = k+1;
+    //k1 = k+1;
     nk1=nm2-k;// was n-k-1;
     for(lb=0;lb<nk1;++lb){
       l=nm2-lb;//was n-lb
@@ -375,7 +375,7 @@ void qzhes(INT nd,INT n,REAL16 *a,REAL16 *b,const INT wantx, REAL16 *x)
 	  t = a[l*n+j] + u2*a[l1*n+j];
 	  a[l*n+j]+=t*v1;
 	  a[l1*n+j]+=t*v2;
-	}       
+	}
 	a[l1*n+k] = 0e0;
 	for(j=l;j<n;++j){
 	  t = b[l*n+j] + u2*b[l1*n+j];
@@ -421,12 +421,12 @@ void qzhes(INT nd,INT n,REAL16 *a,REAL16 *b,const INT wantx, REAL16 *x)
 }
 /****************************************************************************/
 /*
- * \fn void qzit(INT nd,INT n,			
- *	  REAL16 **a_io,REAL16 **b_io,		
- *	  const REAL16 eps,			
- *	  REAL16 *epsa,REAL16 *epsb,		
- *	  INT **iter_io,			
- *	  INT wantx,				
+ * \fn void qzit(INT nd,INT n,
+ *	  REAL16 **a_io,REAL16 **b_io,
+ *	  const REAL16 eps,
+ *	  REAL16 *epsa,REAL16 *epsb,
+ *	  INT **iter_io,
+ *	  INT wantx,
  *	  REAL16 **x_io)
  *
  * \brief iteration to convert a with 2 by 2 blocks on the diagonal and keep b upper triangular
@@ -434,7 +434,7 @@ void qzhes(INT nd,INT n,REAL16 *a,REAL16 *b,const INT wantx, REAL16 *x)
  * \note The algorithm is described in: MR0345399 (49 10135) 65F15
  *       Moler, C. B. ; Stewart, G. W. An algorithm for generalized
  *       matrix eigenvalue problems.  SIAM J. Numer. Anal. 10 (1973),
- *       241–256.  
+ *       241–256.
  *       ForTran routines are found in: Moler, C. B. ;
  *       Stewart, G. W.  An algorithm for the generalized matrix
  *       eigenvalue problem Ax=\lambda Bx.  UT Austin tech report
@@ -491,9 +491,9 @@ void qzit(INT nd,INT n,			\
   m=n;
  l000:
   if(m<=2) goto l190;
-  for(lb=1;lb<=m;++lb){  
+  for(lb=1;lb<=m;++lb){
     l = m+1-lb;
-    if(l==1) goto l060; 
+    if(l==1) goto l060;
     if(FABS(a[l*ndp1 + (l-1)])<=(*epsa)) goto l030;
   }
  l030:
@@ -574,7 +574,7 @@ void qzit(INT nd,INT n,			\
     k1=k+1;
     k2=k+2;
     k3=k+3;
-    if(k3>m) k3=m;	
+    if(k3>m) k3=m;
     km1=k-1;
     if(km1<l) km1=l;
     if(k==l) househ3(a10,a20,a30,&u1,&u2,&u3,&v1,&v2,&v3);
@@ -588,7 +588,7 @@ void qzit(INT nd,INT n,			\
     }
     if(u1!=1e0) goto l125;
     for(j=km1;j<=m0rn;++j){
-      //	    fprintf(stdout,"\n%%3333j=%dk=%d,km1=%d,k1=%d,k2=%d,k3=%d",j,k,km1,k1,k2,k3);	
+      //	    fprintf(stdout,"\n%%3333j=%dk=%d,km1=%d,k1=%d,k2=%d,k3=%d",j,k,km1,k1,k2,k3);
       t=a[k*np1+j]+u2*a[k1*np1+j];
       if(mid) t+=u3*a[k2*np1+j];
       a[k*np1+j]+=t*v1;
@@ -629,9 +629,9 @@ void qzit(INT nd,INT n,			\
 	x[i*np1+k1]+=t*v2;
 	x[i*np1+k]+=t*v3;
       }
-    } 
+    }
   l140:
-    househ2(b[k1*np1+k1],b[k1*np1+k],&u1,&u2,&v1,&v2);     
+    househ2(b[k1*np1+k1],b[k1*np1+k],&u1,&u2,&v1,&v2);
     if(u1!=1.) continue; //goto l160;
     for(i=l0r1;i<=k3;++i){
       t=a[i*np1+k1]+u2*a[i*np1+k];
@@ -682,7 +682,7 @@ void qzit(INT nd,INT n,			\
  * \note The algorithm is described in: MR0345399 (49 10135) 65F15
  *       Moler, C. B. ; Stewart, G. W. An algorithm for generalized
  *       matrix eigenvalue problems.  SIAM J. Numer. Anal. 10 (1973),
- *       241–256.  
+ *       241–256.
  *       ForTran routines are found in: Moler, C. B. ;
  *       Stewart, G. W.  An algorithm for the generalized matrix
  *       eigenvalue problem Ax=\lambda Bx.  UT Austin tech report
@@ -699,7 +699,7 @@ void qzval(INT nd,INT n,
 {
   INT flip;
   //find eigenvalues of quasi-triangular matrices
-  INT i,j,m,l,ndp1=nd+1,np1=n+1;//,ip1,jp1;  
+  INT i,j,m,l,ndp1=nd+1,np1=n+1;//,ip1,jp1;
   REAL16  a11,a12,a21,a22,b11,b12,b22;
   REAL16  a11r,a12r,a21r,a22r;//,b11r,b12r,b22r;
   REAL16  a11i,a12i,a21i,a22i; // ,b11i,b12i,b22i;
@@ -771,9 +771,9 @@ void qzval(INT nd,INT n,
   a12-=e*b12;
   a22-=e*b22;
   // reversed;
-  flip=(INT )( (FABS(a11)+FABS(a12)) < (FABS(a21)+FABS(a22)) );	
+  flip=(INT )( (FABS(a11)+FABS(a12)) < (FABS(a21)+FABS(a22)) );
   if(flip)
-    househ2(a22,a21,&u1,&u2,&v1,&v2);	  
+    househ2(a22,a21,&u1,&u2,&v1,&v2);
   else
     househ2(a12,a11,&u1,&u2,&v1,&v2);
  l235:
@@ -798,7 +798,7 @@ void qzval(INT nd,INT n,
   if(bn==0e0) goto l275;
   flip=(INT )(an < (FABS(e)*bn));
   if(flip)
-    househ2(a[l*np1+l],a[m*np1+l],&u1,&u2,&v1,&v2);	  
+    househ2(a[l*np1+l],a[m*np1+l],&u1,&u2,&v1,&v2);
   else
     househ2(b[l*np1+l],b[m*np1+l],&u1,&u2,&v1,&v2);
  l260:
@@ -838,7 +838,7 @@ void qzval(INT nd,INT n,
   flip=(INT )((FABS(a11r)+FABS(a11i)+FABS(a12r)+FABS(a12i))	\
 	      < (FABS(a21r)+FABS(a22r)+FABS(a22i)));
   if(flip)
-    chouseh2(a22r,a22i,-a21r,-a21i,&cz,&szr,&szi); 
+    chouseh2(a22r,a22i,-a21r,-a21i,&cz,&szr,&szi);
   else
     chouseh2(a12r,a12i,-a11r,-a11i,&cz,&szr,&szi);
   //
@@ -886,19 +886,19 @@ void qzval(INT nd,INT n,
 }
 /*********************************************************************************/
 /*
- *\fn void qzvec(INT nd, INT n,					
- *	   REAL16 **a_io, REAL16 **b_io,			
- *	   REAL16 epsa,REAL16 epsb,				
- *	   REAL16 **alphar_io,REAL16 **alphai_io,		
- *	   REAL16 **beta_io,					
+ *\fn void qzvec(INT nd, INT n,
+ *	   REAL16 **a_io, REAL16 **b_io,
+ *	   REAL16 epsa,REAL16 epsb,
+ *	   REAL16 **alphar_io,REAL16 **alphai_io,
+ *	   REAL16 **beta_io,
  *	   REAL16 **x_io)
  *
- * \brief DOES NOT WORK DO NOT USE: (generalized eigenvectors). 
+ * \brief DOES NOT WORK DO NOT USE: (generalized eigenvectors).
  *
  * \note The algorithm is described in: MR0345399 (49 10135) 65F15
  *       Moler, C. B. ; Stewart, G. W. An algorithm for generalized
  *       matrix eigenvalue problems.  SIAM J. Numer. Anal. 10 (1973),
- *       241–256.  
+ *       241–256.
  *       ForTran routines are found in: Moler, C. B. ;
  *       Stewart, G. W.  An algorithm for the generalized matrix
  *       eigenvalue problem Ax=\lambda Bx.  UT Austin tech report
@@ -916,7 +916,7 @@ void qzvec(INT nd, INT n,					\
 	   REAL16 **x_io)
 {
   return;
-  
+
   INT flip;//, wantx;
   //
   // find eigenvectors of quasi-triangular matrices
@@ -990,7 +990,7 @@ void qzvec(INT nd, INT n,					\
     b[k*np1+m]=-(sl + tll*b[l*np1+m])/tlk;
   else
     b[k*np1+m]=-(sk + tkl*b[l*np1+m])/tkk;
-  l-=2; 
+  l-=2;
  l340:
   if(l>0) goto l310;
   m--;
@@ -1077,7 +1077,7 @@ void qzvec(INT nd, INT n,					\
   for(i=1;i<=n;++i){
     s=0e0;
     for(j=1;j<=m;++j){
-      s += x[i*np1+j]*b[j*np1+m];	
+      s += x[i*np1+j]*b[j*np1+m];
     }
     x[i*np1+m]=s;
   }

@@ -35,6 +35,15 @@ typedef struct {
     char output_dir[256];   /**< output directory */
 
     //--------------------------
+    // mesh parameters
+    //--------------------------
+    INT read_mesh_from_file; /**< read from file or use built-in generator */
+    INT spatial_dim; /**< dimension of computational domain */
+    INT refinement_type; /**< Type of refinement >10 -> uniform */
+    INT refinement_levels; /** < Since of grid = 2^{refinement_levels+1} vertices in each direction */
+    INT boundary_codes; //** 1 to be default
+
+    //--------------------------
     // finite element parameters
     //--------------------------
     // genearal parameters

@@ -1,11 +1,11 @@
 #####################################################
-# Last Modified 2019-06-10 --jha 
+# Last Modified 2019-06-10 --jha
 ####################################################
 
 # SRC File name
 SRCFILE = heat_equation
 
-HEADERS = 
+HEADERS = $(SRCFILE)_data.h
 
 INCLUDE =
 
