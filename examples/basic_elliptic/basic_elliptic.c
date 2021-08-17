@@ -77,7 +77,7 @@ int main (int argc, char* argv[])
   INT dim = inparam.spatial_dim;                 // dimension of computational domain
   INT mesh_ref_levels=inparam.refinement_levels; // refinement levels
   INT mesh_ref_type=inparam.refinement_type;     // refinement type (>10 uniform or <10 other)
-  INT set_bndry_codes=inparam.boundary_codes;    // set flags for the boundary DoF
+  INT set_bndry_codes=inparam.boundary_codes;    // set flags for the boundary DoF (1-16 are Dirichlet)
 
   if(read_mesh_from_file) {
     // Reading from file
@@ -104,8 +104,9 @@ int main (int argc, char* argv[])
   create_fespace(&FE,&mesh,order);
 
   // Set Dirichlet Boundaries
-  // Assume physical boundaries (flag of 1 in mesh file) are Dirichlet
-  set_dirichlet_bdry(&FE,&mesh,1,1);
+  // Assume physical boundaries are Dirichlet
+  // The mesh is set up so that flag values 1-16 are Dirichlet and 17-32 are Neumann
+  set_dirichlet_bdry(&FE,&mesh,1,16);
 
   // Strings for printing
   char elmtype[8];
