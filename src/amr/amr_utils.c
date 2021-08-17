@@ -373,39 +373,38 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
   INT i1,kcc;
   //INT in1;
   INT kbeg,kend,nums,iai,iai1,klev;
-  iCSRmat *neib=malloc(sizeof(iCSRmat));
-  neib[0]=icsr_create(ns,ns,(n+1)*ns);
+  iCSRmat neib=icsr_create(ns,ns,(n+1)*ns);
   iii=0;
-  neib->IA[0]=iii;
+  neib.IA[0]=iii;
   for(i=0;i<ns;i++){
     isn1=i*n1;
     for(j=0;j<n1;j++){
       is=sc->nbr[isn1+j];
       if(is>=0){
-	///	fprintf(stdout,"\niii=%d,ns=%d,elemnts=%d(=%d?)",iii,ns,neib->IA[ns],neib->nnz); fflush(stdout);
-	neib->JA[iii]=is;
+	///	fprintf(stdout,"\niii=%d,ns=%d,elemnts=%d(=%d?)",iii,ns,neib.IA[ns],neib.nnz); fflush(stdout);
+	neib.JA[iii]=is;
 	iii++;
       }
     }
-    neib->IA[i+1]=iii;
+    neib.IA[i+1]=iii;
   }
-  neib->nnz=neib->IA[neib->row];
-  neib->JA=realloc(neib->JA,neib->nnz*sizeof(INT));
-  neib->val=realloc(neib->val,neib->nnz*sizeof(INT));
-  //  fprintf(stdout,"\nns=%d, nnz_ia=%d,nnz=%d\n",ns,neib->IA[neib->row],neib->nnz); fflush(stdout);
-  // assuming neib->val has more than 2*num_simplices
+  neib.nnz=neib.IA[neib.row];
+  neib.JA=realloc(neib.JA,neib.nnz*sizeof(INT));
+  neib.val=realloc(neib.val,neib.nnz*sizeof(INT));
+  //  fprintf(stdout,"\nns=%d, nnz_ia=%d,nnz=%d\n",ns,neib.IA[neib.row],neib.nnz); fflush(stdout);
+  // assuming neib.val has more than 2*num_simplices
   INT *mask,*jbfs;
-  if(neib->nnz<(2*ns+1)) {
-    neib->val=realloc(neib->val,(2*ns+1)*sizeof(INT));
+  if(neib.nnz<(2*ns+1)) {
+    neib.val=realloc(neib.val,(2*ns+1)*sizeof(INT));
   }
-  mask=neib->val;
+  mask=neib.val;
   jbfs = mask+ns;
   // find the connected components.
   //zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
   //  fprintf(stdout,"\nNNNNNNNNNNNNNNNN(%d)=%s",ns,__FUNCTION__); fflush(stdout);
-  iCSRmat *blk_dfs=run_dfs(ns,neib->IA, neib->JA);
+  iCSRmat *blk_dfs=run_dfs(ns,neib.IA, neib.JA);
   /********************************************************************************************************/
-  /* fprintf(stdout,"\nns=%d,nnz_ia=%d,nnz=%d",ns,neib->IA[ns],neib->nnz); fflush(stdout); */
+  /* fprintf(stdout,"\nns=%d,nnz_ia=%d,nnz=%d",ns,neib.IA[ns],neib.nnz); fflush(stdout); */
   /* fprintf(stdout,"\nneib1=["); */
   /* icsr_print_matlab(stdout,neib); */
   /* fprintf(stdout,"];"); */
@@ -489,12 +488,8 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
   //  for(i=0;i<ns;i++){
   //    jbfs[i]=-1;
   //  }
-  if(neib) {
-    icsr_free(neib); free(neib);
-  }
-  if(blk_dfs) {
-    icsr_free(blk_dfs); free(blk_dfs);
-  }
+  icsr_free(&neib);
+  icsr_free(blk_dfs);free(blk_dfs);
   return;
 }
 /******************************************************************/
