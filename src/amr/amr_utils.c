@@ -122,12 +122,7 @@ INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)
   xhat=(REAL *)calloc(n,sizeof(REAL));
   piv=(REAL *)calloc(n,sizeof(REAL));
   p=(INT *)calloc(n,sizeof(INT));
-  /* fprintf(stdout,"\nj=%d; vertex=%d\n",0+1,nodes[0]+1); fflush(stdout); */
-  /* fprintf(stdout,"\nvertex=%d\n",nodes[0]+1); */
-  /* for(i=0;i<n;i++){ */
-  /*   fprintf(stdout,"xyz=%f ",xs[l0n+i]); */
-  /* } */
-  /* fprintf(stdout,"\n"); */
+  //
   l0n=nodes[0]*n;
   for (j = 1; j<n1;j++){
     /* grab the vertex */
@@ -148,13 +143,11 @@ INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)
   for(j=0;j<n;j++){
     if((xhat[j] < -eps0) || (xhat[j] > xmax)){
       flag=(j+1);
-      //      fprintf(stdout,"\nNOT FOUND: xhat(%d)=%e\n\n",flag,xhat[j]);
       break;
     }
     xhatn -= xhat[j];
     if((xhatn<-eps0) || (xhatn>xmax)) {
       flag=n+1;
-      //          fprintf(stdout,"\nNOT FOUND: xhat(%d)=%e\n\n",flag,xhatn);
       break;
     }
   }
@@ -164,9 +157,6 @@ INT xins(INT n, INT *nodes, REAL *xs, REAL *xstar)
   if(piv) free(piv);
   return flag;
 }
-
-
-
 /**********************************************************************/
 /*!
  * \fn void marks(scomplex *sc,dvector *errors)
@@ -220,15 +210,12 @@ void marks(scomplex *sc,dvector *errors)
     if(asp>1e1){
       sc->marked[i]=1;
       kbad++;
-      //      fprintf(stdout,"\nlev=%d, gen=%d, asp= %e(%e/%e)\n",level,sc->gen[i],asp,slmax,slmin);
       if(asp>aspmax){
         //kbadel=i;
         aspmax=asp;
       }
     }
   }
-  //  fprintf(stdout,"\nbad:%d, aspectmax=%e (at el=%d)\n",kbad,aspmax,kbadel);
-  //  exit(33);
   if(sl)free(sl);
   return;
 }
@@ -381,7 +368,6 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
     for(j=0;j<n1;j++){
       is=sc->nbr[isn1+j];
       if(is>=0){
-	///	fprintf(stdout,"\niii=%d,ns=%d,elemnts=%d(=%d?)",iii,ns,neib.IA[ns],neib.nnz); fflush(stdout);
 	neib.JA[iii]=is;
 	iii++;
       }
@@ -391,7 +377,6 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
   neib.nnz=neib.IA[neib.row];
   neib.JA=realloc(neib.JA,neib.nnz*sizeof(INT));
   neib.val=realloc(neib.val,neib.nnz*sizeof(INT));
-  //  fprintf(stdout,"\nns=%d, nnz_ia=%d,nnz=%d\n",ns,neib.IA[neib.row],neib.nnz); fflush(stdout);
   // assuming neib.val has more than 2*num_simplices
   INT *mask,*jbfs;
   if(neib.nnz<(2*ns+1)) {
@@ -400,16 +385,7 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
   mask=neib.val;
   jbfs = mask+ns;
   // find the connected components.
-  //zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
-  //  fprintf(stdout,"\nNNNNNNNNNNNNNNNN(%d)=%s",ns,__FUNCTION__); fflush(stdout);
   iCSRmat *blk_dfs=run_dfs(ns,neib.IA, neib.JA);
-  /********************************************************************************************************/
-  /* fprintf(stdout,"\nns=%d,nnz_ia=%d,nnz=%d",ns,neib.IA[ns],neib.nnz); fflush(stdout); */
-  /* fprintf(stdout,"\nneib1=["); */
-  /* icsr_print_matlab(stdout,neib); */
-  /* fprintf(stdout,"];"); */
-  /* fprintf(stdout,"\nneib=sparse(neib1(:,1),neib1(:,2),neib1(:,3));\n"); */
-  /********************************************************************************************************/
   cc=blk_dfs->row;
   //zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
   INT ireflect;
@@ -421,10 +397,6 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
   for(kcc=0;kcc<cc;kcc++){
     ireflect=-10;
     it=blk_dfs->JA[blk_dfs->IA[kcc]];
-    if(print_level>5){
-      fprintf(stdout,
-	      "\n%s: Component=%d; root=%d;\n",__FUNCTION__,kcc,it);fflush(stdout);
-    }
     nums=0;
     klev=1; //level number ; for indexing this should be klev-1;
     jbfs[nums]=it; // this is an input simplex where to begin.

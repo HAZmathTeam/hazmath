@@ -30,6 +30,7 @@
 /*******************************************************************/
 typedef struct /* n-homogenous simplicial complex */
 {
+  SHORT print_level;   /**< print level */
   INT nbig; /* the dimension of the space in which SC is embedded */
   INT n; /* the dimension of SC */
   INT nv; /* number of 0-dimensional simplices */
