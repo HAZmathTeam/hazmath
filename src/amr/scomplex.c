@@ -24,6 +24,7 @@ void haz_scomplex_realloc(scomplex *sc)
 {
   INT i,j,ns=sc->ns,nv=sc->nv,n=sc->n;
   INT n1=n+1;
+  sc->print_level=0;
   sc->factorial=1.;
   for (j=2;j<n1;j++) sc->factorial *= ((REAL )j);
   sc->nbr=realloc(sc->nbr,n1*ns*sizeof(INT));
@@ -172,9 +173,10 @@ scomplex *haz_scomplex_init(const INT n,INT ns, INT nv,const INT nbig)
   INT n1=sc->n+1,i,j,in1;
   sc->level=0;
   sc->ref_type=0;
+  sc->print_level=0;
   sc->factorial=1.;
   for (j=2;j<n1;j++) sc->factorial *= ((REAL )j);
-  // fprintf(stdout,"\nIMPORTANT: NS=%d (%d!)=%f",ns,n,sc->factorial);
+  //
   sc->marked=(INT *) calloc(ns,sizeof(INT));
   sc->gen=(INT *) calloc(ns,sizeof(INT));
   sc->nbr=(INT *) calloc(ns*n1,sizeof(INT));
@@ -261,9 +263,10 @@ scomplex haz_scomplex_null(const INT n,const INT nbig)
   INT n1=sc.n+1,j;
   sc.level=0;
   sc.ref_type=0;
+  sc.print_level=0;
   sc.factorial=1.;
   for (j=2;j<n1;j++) sc.factorial *= ((REAL )j);
-  // fprintf(stdout,"\nIMPORTANT: NS=%d (%d!)=%f",ns,n,sc.factorial);
+  //
   sc.marked=NULL;
   sc.gen=NULL;
   sc.nbr=NULL;
@@ -311,9 +314,10 @@ void haz_scomplex_init_part(scomplex *sc)
   INT nv=sc->nv,ns=sc->ns,n1=sc->n+1,i,j;
   sc->level=0;
   sc->ref_type=0;
+  sc->print_level=0;
   sc->factorial=1.;
   for (j=2;j<n1;j++) sc->factorial *= ((REAL )j);
-  // fprintf(stdout,"\nIMPORTANT: NS=%d (%d!)=%f",ns,n,sc->factorial);
+  //
   sc->marked=(INT *) calloc(ns,sizeof(INT));
   sc->gen=(INT *) calloc(ns,sizeof(INT));
   sc->parent=(INT *)calloc(ns,sizeof(INT));
@@ -412,16 +416,8 @@ scomplex *haz_scomplex_read(FILE *fp,INT print_level)
   }
   for(i=0;i<nv;i++){
     dummy=fscanf(fp,"%i",sc->bndry+i);
-    /* fprintf(stdout,"%i: %i\n",i,sc->bndry[i]); */
   }
-  /* for(i=0;i<nv;i++){ */
-  /*   dummy=fscanf(fp,"%lg",sc->fval+i); */
-  /*   if(dummy<0 && (print_level>5)){ */
-  /*     fprintf(stderr,"***WARNING(in %s): failed reading the function value at node %d\n                 Continuing with sc->fval=0 for all points\n",__FUNCTION__,i); */
-  /*     break; */
-  /*   } */
-  /* } */
-  /*************************************************************/
+  sc->print_level=0;
   return sc;
 }
 /**********************************************************************/
@@ -574,9 +570,7 @@ n-dimensional simplicial grid so it is also used here to construct
   INT ns=sc->ns;
   INT *nbr=sc->nbr, *elf=subsc->elf;
   INT nf=0;
-  /*
-      fprintf(stdout,"\n------Elements: vertices, n=%d, %d, %d\n",subsc->parent->ns,subsc->parent->nv,sc->n);fflush(stdout);
-  */
+  /**/
   for(it=0;it<ns;it++){
     di=dim1*it;
     for(j=0;j<dim1;j++){
@@ -707,7 +701,6 @@ void faces_attr(subscomplex *subsc)
   for(i=1;i<sc->nv;i++)
     if(minvflag>sc->bndry[i])  minvflag=sc->bndry[i];
   for(jf=0;jf<subsc->ns;jf++){fflags[jf]=minvflag-1;}
-  //  fprintf(stdout,"\nmin vertex flag=%d\n",minvflag);
   /* face_vertex map*/
   REAL *xf=(REAL *)calloc(dim*dim1,sizeof(REAL));
   REAL *snsn=(REAL *)calloc(dim*dim1,sizeof(REAL));
@@ -720,11 +713,9 @@ void faces_attr(subscomplex *subsc)
   REAL s;
   for(it=0;it<sc->ns;it++){
     di=dim1*it;
-    //    fprintf(stdout,"\nel=%d, faces:",it);fflush(stdout);
     for(j=0;j<dim1;j++){
       is=nbr[di+j];
       jf=elf[di+j];
-      //      fprintf(stdout,"%d(%d) ",jf,fflags[jf]);fflush(stdout);
       j1=jf*((subsc->n+1));
       // vertices in it which are opposite to jf
       if(fflags[jf]>=minvflag)
@@ -762,9 +753,7 @@ void faces_attr(subscomplex *subsc)
       //      jf=elf[di+j];
       s=chk_sign(it,is);
       for(i=0;i<dim;i++){snsn[j*dim+i]*=s;}
-      //      if(fflags[jf]==22) fprintf(stdout,"\n(%d,%d); s=%f",it,is,s);
     }
-    //    print_full_mat(dim1,dim,snsn,"snsn");
     for(j=0;j<dim1;j++){
       jf=elf[di+j];
       memcpy(subsc->normals+jf*dim,(snsn+j*dim),nbits);
@@ -772,8 +761,6 @@ void faces_attr(subscomplex *subsc)
     }
     //    exit(11);
   }
-  //  haz_scomplex_print(sc,0,"after attr");
-  //  haz_subscomplex_print(subsc,0,__FUNCTION__);
   return;
 }
 /**********************************************************************/
@@ -808,7 +795,6 @@ subscomplex *haz_subscomplex_init(scomplex *sc)
       stored in subsc->ns and subsc->elf;
   */
   faces_cnt(subsc);
-  //  fprintf(stdout,"\nNUMBER of faces=%d dim_faces=%d\n",subsc->ns,subsc->n);fflush(stdout);
   /* allocate other arrays for the subcomplex */
   subsc->nodes=calloc(subsc->ns*(subsc->n+1),sizeof(INT));
   subsc->flags=calloc(subsc->ns,sizeof(INT));
@@ -867,9 +853,9 @@ void haz_subscomplex_print(subscomplex *subsc, const INT ns0, const char *infor)
 }
 /**********************************************************************/
 /*!
- * \fn
+ * \fn void haz_subscomplex_free(subscomplex *subsc)
  *
- * \brief
+ * \brief frees pointers stored in structure scomplex;
  *
  * \param
  *
@@ -1017,15 +1003,7 @@ void find_nbr(INT ns,INT nv,INT n,INT *sv,INT *stos)
       ivs[j] = k+1;
     }
   }
-  /* for (i = 0; i < nv; ++i) { */
-  /*   iabeg = ivs[i]; */
-  /*   iaend = ivs[i+1]; */
-  /*   fprintf(stdout,"row %d: ",i+1); */
-  /*   for (jia = iabeg; jia < iaend; ++jia) { */
-  /*     fprintf(stdout,"%d ",jvs[jia]+1); */
-  /*   } */
-  /*   fprintf(stdout,"\n");fflush(stdout); */
-  /* } */
+  /**/
   INT *icp=(INT *) calloc(ns,sizeof(INT));
   for (i = 0; i < ns; ++i) icp[i] = -1;
   for (i = 0; i < nsv; ++i) stos[i] = -1;
@@ -1087,7 +1065,7 @@ INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew,	\
   for(j=0;j<n1;j++){
     j0=isc0+j;
     jn=iscn+j;
-    //    fprintf(stdout,"\nNSN1 %d, NSN1J %d\n",j0,jn);   fflush(stdout);
+    //
     sc->nodes[j0]=-1;
     sc->nbr[j0]=-1;
     sc->nodes[jn]=-1;
@@ -1169,7 +1147,6 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
   if(sc->child0[is] >= 0) return 0;
   //  isn=is*n;
   isn1=is*n1;
-  //  haz_scomplex_print(sc,-10,__FUNCTION__);
   for (i=1;i<n;i++){
     snbri=sc->nbr[isn1+i] ; // the on-axis neighbor.
     if(snbri<0) continue; //this is a boundary
@@ -1177,7 +1154,6 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
       haz_refine_simplex(sc,snbri,-1);
       nsnew=sc->ns;
       nvnew=sc->nv;
-      //      haz_scomplex_print(sc,-10,"AXIS NEIGHBOR");
     }
   }
   if (it<0){
@@ -1204,7 +1180,6 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
     /* we have added a vertex, let us indicate this */
     nodnew = nvnew;
     nvnew++;
-    /* fprintf(stdout,"\nnew vertex %d: is=%d  it=%d, edge (%d,%d)\n",nodnew,is,it,jv0,jvn); fflush(stdout); */
   } else {
     //    jx=    newvertex=t->child0->vertex[1];
     jt=sc->child0[it]; // child simplex number
@@ -1214,7 +1189,6 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
     nodnew=jv0;
     ibnew=sc->bndry[nodnew];
     csysnew=sc->csys[nodnew];
-    /* fprintf(stdout,"\n no new vertex: is=%d  it=%d; vertex=%d\n",is,it,jv0); fflush(stdout); */
   }
   ks0=nsnew;
   sc->child0[is]=ks0; // child0 simplex number
@@ -1234,7 +1208,6 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
     this routine is called, and it will meet the structural condition
     again after this routine has terminated.
   */
-  //  haz_scomplex_print(sc,-10,"AFTER ADD");
   INT isc0=-100,iscn=-100;
   //ks0 = sc->child0[is];
   //ksn = sc->childn[is];
@@ -1246,9 +1219,6 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
   sc->nodes[iscn+1]=sc->nodes[isc0+1]=nodnew;
   sc->nbr[isc0]=sc->childn[is];
   sc->nbr[iscn]=sc->child0[is];
-  /* fprintf(stdout,"\nOOOOOOOOOO: Refining: %d ; child0=%d child1=%d\n",is+1,ks0+1,ksn+1);  */
-  /* fprintf(stdout,"\nOOOOOOOOOO: sc->ns=%d ; nsnew=%d\n",sc->ns,nsnew);  */
-  /* fprintf(stdout,"\nOOOOOOOOOO: i0=%d;in=%d\n",sc->nodes[isn1]+1,sc->nodes[isn1+n]+1); fflush(stdout); */
   /*
     We know the structure of the nbrs children, if existent already,
     thanks to the structural condition.
@@ -1259,11 +1229,9 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
     if (sc->child0[snbrn]>=0){
       //      s0->nbr[1]=sc->child0[snbrn];
       sc->nbr[isc0+1]=sc->child0[snbrn];
-      /* fprintf(stdout,"\nchild: %d\n", sc->child0[snbrn]+1); */
     } else {
       //      s0->nbr[1]=snbrn;
       sc->nbr[isc0+1]=snbrn;
-      /* fprintf(stdout,"\nNO CHILD: %d\n", snbrn+1); */
     }
   }
   if(snbr0>=0){
@@ -1274,7 +1242,6 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
       //      sn->nbr[1]=snbr0;
       sc->nbr[iscn+1]=snbr0;
   }
-  //  haz_scomplex_print(sc,-10,"CHECK 1");
   /* Compute the simplex type. */
   itype=(sc->gen[is]) % n;
   // for each vertex p=1..n-1 of the parent simplex S
@@ -1324,8 +1291,6 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
 	sc->nbr[iscn+pn]=snbrp;
       }
     }
-  //  fprintf(stdout,"\nis,it=(%d,%d); snbrn=%d,snbrn0=%d\n",is+1,it+1,snbrn+1,snbr0+1);
-  //  haz_scomplex_print(sc,-10,"CHECK 2"); fflush(stdout);
   for(i=0;i<n1;i++) {
      /*
 	The children OF NEIGHBORS, if existent, still point to s as
@@ -1334,14 +1299,12 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
      */
     //    s0nbri=s0->nbr[i];
     //    snnbri=sn->nbr[i];
-    //    fprintf(stdout,"\nisc0i=%d, iscni=%d",isc0+i,iscn+i);   fflush(stdout);
     s0nbri=sc->nbr[isc0+i];    /*s->child0->neighbor[i]*/
     snnbri=sc->nbr[iscn+i]; /*s->childn->neighbor[i]*/
-    //    fprintf(stdout,"\n\nXXXnsnew,s0nbri,snnbri,ns: %i %i %i %i\n\n",nsnew,snnbri,s0nbri,sc->ns); fflush(stdout);
     if(s0nbri>=0){
       if(s0nbri >=sc->ns) {
-	fprintf(stdout,"\n\nSTOPPING: nsnew,s0nbri,snnbri,ns: %i %i %i %i\n\n",nsnew,snnbri,s0nbri,sc->ns); fflush(stdout);
-	exit(222);
+	fprintf(stderr,"\n\nSTOPPING: nsnew,s0nbri,snnbri,ns: %i %i %i %i\n\n",nsnew,snnbri,s0nbri,sc->ns); fflush(stdout);
+	exit(32);
       }
       //      if(sc->gen[s0nbri]==s0->gen)
       if(sc->gen[s0nbri]==sc->gen[ks0])
@@ -1350,8 +1313,8 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
     }
     if(snnbri>=0){
       if(snnbri >=sc->ns) {
-	fprintf(stdout,"\n\nSTOPPING2: s0nbri,snnbri,ns: %i %i %i %i\n",nsnew,snnbri,s0nbri,sc->ns); fflush(stdout);
-	exit(223);
+	fprintf(stderr,"\n\nSTOPPING2: s0nbri,snnbri,ns: %i %i %i %i\n",nsnew,snnbri,s0nbri,sc->ns); fflush(stdout);
+	exit(33);
       }
       //      if(sc->gen[snnbri]==sn->gen)
       if(sc->gen[snnbri]==sc->gen[ksn])
@@ -1359,16 +1322,13 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
 	sc->nbr[snnbri*n1+i]=ksn;
     }
   }
-  //haz_scomplex_print(sc,-10,"CHECK 3");
   /*
      NOW call the on-axis nbrs for refinement, passing to them a
      pointer to this simplex S so they find our new vertex.  Skip the
      neighbors opposite to x0 and xn, they do not have to be refined
      and refine the rest of the "on-axis" neighbors */
   for(i=1 ; i < n; i++){
-    //    fprintf(stdout,"\n%%trying to refine also (%i) coming from  (%i)\n ",sc->nbr[isn1+i]+1, is+1); fflush(stdout);
     haz_refine_simplex(sc, sc->nbr[isn1+i], is);
-    //        haz_scomplex_print(sc,-10,"\nEND OF haz_refine\n");
   }
   return 0;
 }
@@ -1401,12 +1361,9 @@ void refine(const INT ref_levels, scomplex *sc,ivector *marked)
     /* sc->level this is set to 0 in haz_scomplex_init */
     /* form neighboring list on the coarsest level */
     find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
-    //    haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
     INT *wrk=calloc(5*(sc->n+2),sizeof(INT));
     /* construct bfs tree for the dual graph */
     abfstree(0,sc,wrk,print_level);
-    //    haz_scomplex_print(sc,0,__FUNCTION__);fflush(stdout);
-    //    exit(100);
     if(wrk) free(wrk);
   }
   if((!marked)){
@@ -1437,8 +1394,6 @@ void refine(const INT ref_levels, scomplex *sc,ivector *marked)
     for(j=0;j<sc->ns;j++) {
       if(sc->child0[j]<0||sc->childn[j]<0){
 	nsfine=abs(sc->child0[j]+1);
-	// fprintf(stdout,"\nnsfine=%d;j=%d",nsfine,j);fflush(stdout);
-	// if(nsfine>sc->ns) issue an error and exit;
 	sc->marked[j]=marked->val[nsfine];
       }
     }
@@ -1472,9 +1427,6 @@ void refine(const INT ref_levels, scomplex *sc,ivector *marked)
   free(wrk1);
   free(xs);
   sc->level++;
-  //  fprintf(stdout,"\n.%d.\n",sc->level);
-  //  fprintf(stdout,"\n");
-  //  haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
   return;
 }
 /******************************************************************/
@@ -1577,7 +1529,6 @@ mesh_struct sc2mesh(scomplex *sc)
       jk++;
     }
   }
-  // fprintf(stdout,"\n%%%s: levels=%d; vertices=%d; simplices=%d; dim=%d; components(bdry):%d\n","Converted to mesh structure:",sc->level,mesh.nv,mesh.nelm,mesh.dim,mesh.nconn_bdry); fflush(stdout);
   return mesh;
 }
 /*********************************************************************/
@@ -1623,7 +1574,6 @@ scomplex sc_bndry(scomplex *sc)
 	for(m=0;m<dim1;m++){
 	  if(m==j) continue;
 	  fnodes[ns_b1*dim+k]=sc->nodes[i*dim1+m];
-	  //	  fprintf(stdout,"\nnodes=%d",sc->nodes[i*dim1+m]);fflush(stdout);
 	  k++;
 	}
 	ns_b1++;
@@ -1634,15 +1584,6 @@ scomplex sc_bndry(scomplex *sc)
     fprintf(stderr,"\n%%***ERROR(65): num. bndry faces mismatch (ns_b=%d .ne. ns_b=%d) in %s",ns_b1,ns_b,__FUNCTION__);
     exit(65);
   }
-  /* fprintf(stdout,"\nelnodes111=["); */
-  /* for(i=0;i<ns_b;++i){ */
-  /*   for(j=0;j<dim;++j){ */
-  /*     fprintf(stdout,"%4i ",fnodes[dim*i+j]); */
-  /*   } */
-  /*   fprintf(stdout,";\n"); */
-  /* } */
-  /* fprintf(stdout,"]\n"); */
-  //
   // FIX numbering, there is global numbering of nodes and local numbering of nodes:
   INT *indx=calloc(sc->nv,sizeof(INT));
   INT *indxinv=calloc(sc->nv,sizeof(INT));
@@ -1658,9 +1599,6 @@ scomplex sc_bndry(scomplex *sc)
     nv_b++;
   }
   fprintf(stdout,"\n%%number of boundary vertices=%d (total nv=%d)\n",nv_b,sc->nv);
-  /////////// init the scomplex;
-  //  scomplex *ddsc=haz_scomplex_init((dim-1),ns_b,nv_b,dim);
-  //  dsc=ddsc[0];
   dsc=haz_scomplex_null((sc->n-1),sc->n);
   dsc.nv=nv_b;
   dsc.ns=ns_b;

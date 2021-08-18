@@ -1423,9 +1423,12 @@ void vtkw(char *namevtk, scomplex *sc, const INT shift, const REAL zscale)
     VTK_WEDGE (=13)
     VTK_PYRAMID (=14)
   */
+  const INT LINE=3;
   const INT TRI=5;
   const INT TET=10;
-  if(n==2)
+  if(n==1)
+    tcell=LINE; /* triangle */
+  else if(n==2)
     tcell=TRI; /* triangle */
   else
     tcell=TET; /* tet */
@@ -1437,20 +1440,29 @@ void vtkw(char *namevtk, scomplex *sc, const INT shift, const REAL zscale)
   fprintf(fvtk,"<Piece NumberOfPoints=\"%i\" NumberOfCells=\"%i\">\n",nv,ns);
   fprintf(fvtk,"<Points>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" NumberOfComponents=\"3\" Format=\"ascii\">",tfloat);
-  if(n == 2)
-    for (j=0;j<nv;j++){
-      for (k=0;k<n;k++) {
-	fprintf(fvtk,"%.8f ",x[j*n+k]);
-      }
+  for (j=0;j<nv;j++){
+    for (k=0;k<n;k++) {
+      fprintf(fvtk,"%.8f ",x[j*n+k]);
+    }
+    for (k=0;k<(3-n);k++) {
       fprintf(fvtk,"%.8f ",0.);
     }
-  else
-    for (j=0;j<nv;j++){
-      for (k=0;k<n-1;k++) {
-	fprintf(fvtk,"%.8f ",x[j*n+k]);
-      }
-      fprintf(fvtk,"%.8f ",x[j*n+n-1]*zscale);
-    }
+  }
+  /* if(n == 2){ */
+  /*   for (j=0;j<nv;j++){ */
+  /*     for (k=0;k<n;k++) { */
+  /* 	fprintf(fvtk,"%.8f ",x[j*n+k]); */
+  /*     } */
+  /*     fprintf(fvtk,"%.8f ",0.); */
+  /*   } */
+  /* }  else { */
+  /*   for (j=0;j<nv;j++){ */
+  /*     for (k=0;k<n-1;k++) { */
+  /* 	fprintf(fvtk,"%.8f ",x[j*n+k]); */
+  /*     } */
+  /*     fprintf(fvtk,"%.8f ",x[j*n+n-1]*zscale); */
+  /*   } */
+  /* } */
   fprintf(fvtk,"</DataArray>\n");
   fprintf(fvtk,"</Points>\n");
   fprintf(fvtk,"<CellData Scalars=\"scalars\">\n");
