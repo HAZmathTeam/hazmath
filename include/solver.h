@@ -545,6 +545,8 @@ typedef struct {
     /*------------------------------*/
     /* Data for the diagonal blocks */
     /*------------------------------*/
+    INT *block_solve_type;  /**<  how to solve each block  */
+
     /*--- solve by direct solver ---*/
     void **LU_diag;       /**< LU decomposition for the diagonal blocks (for UMFpack) */
 
