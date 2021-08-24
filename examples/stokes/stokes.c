@@ -168,7 +168,7 @@ int main (int argc, char* argv[])
   dCSRmat *A_diag;
   A_diag = (dCSRmat *)calloc(dim+1, sizeof(dCSRmat));
 
-  // For velcocities, we use the diagonal of the (0,0) block matrix
+  // For velcocities, we use the diagonal blocks of the velocity block
   for(i=0;i<dim;i++){
     dcsr_alloc(A.blocks[i*(dim+2)]->row, A.blocks[i*(dim+2)]->col, A.blocks[i*(dim+2)]->nnz, &A_diag[i]);
     dcsr_cp(A.blocks[i*(dim+2)], &A_diag[i]);
@@ -212,7 +212,7 @@ int main (int argc, char* argv[])
   } else { // Iterative Solver
     if (linear_itparam.linear_precond_type == PREC_NULL) { // No Preconditioner
       solver_flag = linear_solver_bdcsr_krylov(&A, &b, &sol, &linear_itparam);
-    } else {
+    } else  {
       if(dim==2) solver_flag = linear_solver_bdcsr_krylov_block_3(&A, &b, &sol, &linear_itparam, &amgparam, A_diag);
       if(dim==3) solver_flag = linear_solver_bdcsr_krylov_block_4(&A, &b, &sol, &linear_itparam, &amgparam, A_diag);
     }
