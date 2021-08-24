@@ -98,7 +98,7 @@ int main (int argc, char* argv[])
 
   // Get info for and create FEM spaces
   // Order of Elements:
-  //    0 - P0; 1 - P1; 2 - P2; -1 - Nedelec; -2 - Raviart-Thomas
+  //    0 - P0; 1 - P1; 2 - P2; 20 - Nedelec; 30 - Raviart-Thomas
   INT order = inparam.FE_type;
   fespace FE;
   create_fespace(&FE,&mesh,order);
@@ -291,6 +291,31 @@ int main (int argc, char* argv[])
   param_amg_init(&amgparam);
   param_amg_set(&amgparam, &inparam);
   param_amg_print(&amgparam);
+
+  // choose preconditioner for iterative methods
+  if (linear_itparam.linear_itsolver_type != 0)  // if using direct solver, do nothing
+  {
+    if (FE.FEtype == 20) // Nedelec element
+    {
+      linear_itparam.linear_precond_type = PREC_HX_CURL_M; // use HX preconditioner for curl
+    }
+    else if (FE.FEtype == 30) // RT element
+    {
+      if (dim == 3)
+      {
+        linear_itparam.linear_precond_type = PREC_HX_DIV_M; // use HX preconditioner for div
+      }
+      else
+      {
+        linear_itparam.linear_precond_type = PREC_AMG;
+      }
+    }
+    else // Lagrange element
+    {
+      linear_itparam.linear_precond_type = PREC_AMG; // use AMG
+    }
+  }
+
   //=================================================================//
 
   // Solve the linear system
@@ -345,7 +370,7 @@ int main (int argc, char* argv[])
 
           // get P_curl and Grad
           get_Pigrad_H1toNed(&P_curl,&mesh);
-          get_curl_NedtoRT(&Curl,&mesh);
+          get_curl_NedtoRT(&Curl,&mesh); // needs to have a 2D version for this--XH
           get_Pigrad_H1toRT(&P_div,&P_curl,&Curl,&mesh);
 
           solver_flag = linear_solver_dcsr_krylov_hx_div(&A, &b, &u, &linear_itparam, &amgparam,&P_curl,&P_div,&Curl);
