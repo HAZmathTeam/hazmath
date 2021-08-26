@@ -3,12 +3,11 @@ Updated 2019-07-23 by A
 TO DO:
 
 In the Works:
-  0. Add default grid generator - Z
-  1. Add refinement - HAZ
-  2. Clean up Examples:
+  0. Clean up Examples:
     a. darcy - needs to be fixed with new Stuff, and deal with boundary integrals better - HA
     b. solvers - clean up and add multigraph example - H
-  3. Periodic Boundary Conditions:
+    c. basic_elliptic - add H(div) for 2D case - HA
+  1. Periodic Boundary Conditions:
     a. simple P1 Laplace works, now get other elements - PHA
 
 Immediate:

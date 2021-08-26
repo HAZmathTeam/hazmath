@@ -547,6 +547,21 @@ iCSRmat *run_dfs(INT n, INT *ia, INT *ja)
   dfs->IA=realloc(dfs->IA,(dfs->row+1)*sizeof(INT));
   free(iawrk);
   free(jawrk);
+  INT swp,ipstrt=-10,ipend=-10,lp=-10;
+  for(i=0;i<dfs->row;++i){
+    ipstrt=dfs->IA[i];
+    ipend=dfs->IA[i+1];
+    lp=(INT )((ipend-ipstrt)/2);
+    for(pos=0;pos<lp;++pos){
+      swp=dfs->JA[ipstrt+pos];
+      dfs->JA[ipstrt+pos]=dfs->JA[ipend-pos-1];
+      dfs->JA[ipend-pos-1]=swp;
+    }
+    for(pos=ipstrt;pos<ipend;++pos){
+      dfs->val[pos]=i+1;
+    }
+  }
+  //  icsr_print_matlab(stdout,dfs);fflush(stdout);
   for(i=0;i<dfs->row;++i){
     for(pos=dfs->IA[i];pos<dfs->IA[i+1];++pos){
       dfs->val[pos]=i+1;
