@@ -103,7 +103,8 @@
    dcsr_cp(Mp, &(precdata->A_diag[1]));
 
    // get the diagonal of the pressure block
-   precdata->diag = malloc(sizeof(dvector *));
+   precdata->diag = (dvector **)calloc(1, sizeof(dvector *));
+   precdata->diag[0] = (dvector *)calloc(1, sizeof(dvector));
    dcsr_getdiag(0, Mp, precdata->diag[0]);
 
    //-----------------------------------------
