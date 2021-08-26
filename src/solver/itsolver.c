@@ -2532,8 +2532,9 @@ INT linear_solver_bdcsr_krylov_block_4(block_dCSRmat *A,
     const SHORT precond_type = itparam->linear_precond_type;
 
 #if WITH_SUITESPARSE
-    INT i;
+    //    INT i;
 #endif
+    INT i;
     INT status = SUCCESS;
     REAL setup_start, setup_end, setup_duration;
     REAL solver_start, solver_end, solver_duration;
