@@ -346,13 +346,13 @@ precond* create_precond_ra(dCSRmat *A,
     const INT m = A->row, n = A->col, nnz = A->nnz, nnz_M = M->nnz;
     INT status = SUCCESS;
     INT i;
-    //    INT ii, jj;
+    //INT ii, jj;
 
     /*fprintf(stdout, "\n A: \n");
     fprintf(stdout,"\nrow, col, nnz: %d, %d, %d \n", A->row, A->col, A->nnz);
     for (ii=0; ii < A->row; ++ii) {
         fprintf(stdout, "\n");
-        for (jj = A->IA[i]; jj < A->IA[i+1]; ++jj) {
+        for (jj = A->IA[ii]; jj < A->IA[ii+1]; ++jj) {
             fprintf(stdout, "%.16e\t", A->val[jj]);
         }
     } // end for js
@@ -430,7 +430,8 @@ precond* create_precond_ra(dCSRmat *A,
       for(i = 0; i < k; ++i)
         fprintf(stdout,"res(%d)=%.16e;\n", i+1, pcdata->residues->val[i]);
     }
-    fprintf(stdout,"\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n");
+    //fprintf(stdout,"\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n");
+
     /* --------------------------------------------- */
     // scaling stiffness matrix
     pcdata->scaled_A = dcsr_create_p(m, n, nnz);
@@ -496,7 +497,7 @@ precond* create_precond_ra(dCSRmat *A,
         fprintf(stdout,"\nrow, col, nnz: %d, %d, %d \n", pcdata->mgl[i][0].A.row, pcdata->mgl[i][0].A.col, pcdata->mgl[i][0].A.nnz);
         for (ii=0; ii < pcdata->mgl[i][0].A.row; ++ii) {
             fprintf(stdout, "\n");
-            for (jj = pcdata->mgl[i][0].A.IA[i]; jj < pcdata->mgl[i][0].A.IA[i+1]; ++jj) {
+            for (jj = pcdata->mgl[i][0].A.IA[ii]; jj < pcdata->mgl[i][0].A.IA[ii+1]; ++jj) {
                 fprintf(stdout, "%.16e\t", pcdata->mgl[i][0].A.val[jj]);
             }
         } // end for js
@@ -531,7 +532,10 @@ precond* create_precond_ra(dCSRmat *A,
     //------------------------------------------------
     // setup preconditioner data
     //------------------------------------------------
-    pcdata->amgparam = amgparam;
+    pcdata->amgparam = (AMG_param*)malloc(sizeof(AMG_param));
+    param_amg_init(pcdata->amgparam);
+    param_amg_cp(amgparam, pcdata->amgparam);
+    //pcdata->amgparam = amgparam;
 
     // save scaled alpha and beta
     pcdata->scaled_alpha = scaled_alpha;
@@ -1069,6 +1073,14 @@ void apply_precond(REAL *r, REAL *z, precond *pc)
     //printf("done calling pc->fct \n");
 
 }
+/*
+void print_precond_ra_amgparam(precond *pc)
+{
+    precond_ra_data *pcdata = (precond_ra_data*)pc->data;
+    param_amg_print(pcdata->amgparam);
+    //param_amg_init(pcdata->amgparam);
+    //param_amg_print(pcdata->amgparam);
+}*/
 
 PyObject* py_callback_setup(PyObject* pyfunc, AMG_param *amgparam)
 {
