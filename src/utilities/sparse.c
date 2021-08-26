@@ -2736,7 +2736,7 @@ void icsr_nodiag(iCSRmat *a)
  *        removed).
  *
  *
- * \return void; a is modified. 
+ * \return void; a is modified.
  *
  * \author Ludmil
  * \date 20210101
@@ -2790,7 +2790,7 @@ void icsr_tri(iCSRmat *a,const char loup)
  * \param value ; removes all a(i,j)=value;
  *
  *
- * \return void; a is modified. 
+ * \return void; a is modified.
  *
  * \author Ludmil
  * \date 20210101
@@ -2834,7 +2834,7 @@ void icsr_rm_value(iCSRmat *a,const INT value)
  *
  * \param value ; KEEPS all a(i,j)=value. Removes the rest;
  *
- * \return void; a is modified. 
+ * \return void; a is modified.
  *
  * \author Ludmil
  * \date 20210101
@@ -4046,15 +4046,19 @@ void dcsr2full(dCSRmat *A,REAL *Afull)
 
 /***********************************************************************************************/
 /*!
-   * \fn void bdcsr_getdiag (block_dCSRmat *A, dCSRmat *A_diag)
+   * \fn void bdcsr_getdiagblk (block_dCSRmat *A, dCSRmat *A_diag)
    *
-   * \brief copy a block_dCSRmat to a new one B=A
+   * \brief get diagonal blocks of a block_dCSRmat matrix and stores them in a dCSRmat array
    *
    * \param A       Pointer to the block_dCSRmat matrix
    * \param A_diag  Array of the dCSRmat matrices (allocated!)
    *
+   * \author  Xiaozhe Hu
+   *
+   * \note Assume the dCSRmat *A_diag has been allocated!!
+   *
    */
-void bdcsr_getdiag(block_dCSRmat *A, dCSRmat *A_diag)
+void bdcsr_getdiagblk(block_dCSRmat *A, dCSRmat *A_diag)
 {
     INT i;
     INT n = A->brow;
@@ -4071,19 +4075,197 @@ void bdcsr_getdiag(block_dCSRmat *A, dCSRmat *A_diag)
     // return A_diag;
 }
 
+/*********************************************************************************/
+/*!
+ * \fn dvector *bdcsr_getdiag(block_dCSRmat *Ab, const INT n1, const INT n2)
+ *
+ * \brief   extracts the diagonal entries of Ab(n1:n2,n1:n2) and stored them in a dvector
+ *
+ * \param Ab    Point to a block_dCSRmat matrix
+ * \param n1    staring index for the blocks
+ * \param n2    ending index for the blocks
+ *
+ * \note index starts with 0
+ *
+ * \author Ludmil Zikatanov & Xiaozhe Hu
+ *
+ */
+dvector *bdcsr_getdiag(block_dCSRmat *Ab,
+                              const INT n1,
+                              const INT n2)
+{
+
+  // local variables
+  INT i;
+  INT total_size = 0;
+  INT nb = Ab->brow;
+
+  // loop 1: get size
+  for (i=n1; i<n2; i++)
+  {
+    total_size = total_size + Ab->blocks[i*(nb+1)]->row;
+  }
+
+  // loop 2: get diagonals
+  dvector *diag_A = dvec_create_p(total_size); // allocate
+  dvector temp_vec;
+  INT temp_n;
+
+  // reset total_size
+  total_size = 0;
+
+  for (i=n1; i<n2; i++)
+  {
+     //printf("i=%d\n",i);
+     // get size for current block
+     temp_n = Ab->blocks[i*(nb+1)]->row;
+
+     // get the diagonal entries of the current block
+     dcsr_getdiag(temp_n, Ab->blocks[i*(nb+1)], &temp_vec);
+
+     // copy diagonal entry to the correct place
+     array_cp(temp_n, temp_vec.val, diag_A->val+total_size);
+
+     // update total size
+     total_size = total_size + temp_n;
+
+     // free temp_vec
+     dvec_free(&temp_vec);
+
+  }
+
+  return diag_A;
+
+}
+
+/*********************************************************************************/
+/*!
+ * \fn dCSRmat *bdcsr_getdiagblk_dcsr(block_dCSRmat *Ab, const INT n10, const INT n20)
+ *
+ * \brief   get the diagonal blocks Ab(n1:n2,n1:n2), merge them, and store them in a dCSR matrix;
+ *
+ * \param Ab    Point to a block_dCSRmat matrix
+ * \param n10    staring index for the blocks
+ * \param n20    ending index for the blocks
+ *
+ * \note    Memory space for the dCSRmat matrix is allocated inside this function! -- Xiaozhe Hu
+ * \note    modeled on bdcsr_2_dcsr from utilities/format.c -- Ludmil
+ *
+ * \author Ludmil Zikatanov
+ */
+INT bdcsr_getdiagblk_dcsr(block_dCSRmat *Ab,
+                                 const INT n10,
+                                 const INT n20,
+                                 dCSRmat *A)
+{
+  // local variables
+  INT m=0,n=0,nnz=0;
+  const INT mb=Ab->brow, nb=Ab->bcol, n_blocks=mb*nb;
+  dCSRmat **blockptr=Ab->blocks, *blockptrij;
+  INT i,j,ij,ir,i1,length,ilength,start,irmrow,irmrowp1;
+  INT *row, *col;
+  INT n1=n10,n2=n20;
+  if(n10<0) n1 = 0;
+  if(n20>mb) n2=mb;
+  if(n2<n1) {j=n2;n2=n1;n1=j;}
+  INT nblk=n2-n1+1; // number of blocks
+  // flag for errors
+  SHORT status = SUCCESS;
+  row = (INT *)calloc(mb+1,sizeof(INT));
+  col = (INT *)calloc(nb+1,sizeof(INT));
+  // get the size of A
+  row[0]=0; col[0]=0;
+
+  // count number of rows
+  for (i=n1;i<n2;++i) {
+    status = ERROR_BLKMAT_ZERO;
+    for (j=n1; j<n2; ++j){
+      if (blockptr[i*nb+j]) {
+	m+=blockptr[i*nb+j]->row;
+	row[i+1]=m;
+	status = SUCCESS;
+	break;
+      }
+    }
+    // check error
+    if (status < SUCCESS) check_error(ERROR_BLKMAT_ZERO, __FUNCTION__);
+  }
+
+  // count number of columns
+  for (i=n1;i<n2;++i) {
+    status = ERROR_BLKMAT_ZERO;
+    for (j=n1;j<n2;++j){
+      if (blockptr[j*mb+i]) {
+	n+=blockptr[j*mb+i]->col;
+	col[i+1]=n;
+	status = SUCCESS;
+	break;
+      }
+    }
+    // check error
+    if (status < SUCCESS) check_error(ERROR_BLKMAT_ZERO, __FUNCTION__);
+  }
+  // count number of nonzeros
+  for (i=n1;i<n2;++i) {
+    for (j=n1;j<n2;++j){
+      if (blockptr[i*mb+j]) {
+	nnz+=blockptr[i*mb+j]->nnz;
+      }
+    }
+  }
+  // memory space allocation
+  //A = dcsr_create_p(m,n,nnz);
+  dcsr_alloc(m,n,nnz,A);
+  // set dCSRmat for A
+  A->IA[0]=0;
+  for (i=n1;i<n2;++i) {
+    for (ir=row[i];ir<row[i+1];ir++) {
+      for (length=j=n1;j<n2;++j) {
+	ij=i*nb+j;
+	blockptrij=blockptr[ij];
+	if (blockptrij && blockptrij->nnz>0) {
+	  start=A->IA[ir]+length;
+	  irmrow=ir-row[i];irmrowp1=irmrow+1;
+	  ilength=blockptrij->IA[irmrowp1]-blockptrij->IA[irmrow];
+	  if (ilength>0) {
+	    memcpy((A->val+start),(blockptrij->val+blockptrij->IA[irmrow]),ilength*sizeof(REAL));
+	    memcpy((A->JA+start),(blockptrij->JA+blockptrij->IA[irmrow]), ilength*sizeof(INT));
+	    // shift column index
+	    for (i1=0;i1<ilength;i1++) A->JA[start+i1]+=col[j];
+	    length+=ilength;
+	  }
+	}
+      } // end for j
+      A->IA[ir+1]=A->IA[ir]+length;
+    } // end for ir
+  } // end for i
+  A->nnz=A->IA[row[n2]];
+  /* for(i=n1;i<=n2;i++){ */
+  /*   fprintf(stdout,"\nblk=%d,row=%d",i,row[i]); */
+  /* }   */
+  /* for(i=n1;i<=n2;i++){ */
+  /*   fprintf(stdout,"\nblk=%d,row=%d",i,col[i]); */
+  /* } */
+  /* fprintf(stdout,"\n*** IAend=%d\n",A->IA[row[n2]]); */
+  /* fprintf(stdout,"\nA11 data:(%d,%d,%d):rows:(%d,%d)\n",A->row,A->col,A->nnz,row[n2-1],row[n2]); */
+  free(row);
+  free(col);
+  return 0;
+}
+
 /***********************************************************************************************/
 /*!
  * \fn SHORT dcsr_sparse (dCSRmat *A, ivector *ii, ivector *jj, dvector *kk, INT m, INT n)
  *
  * \brief Form a dCSRmat A with m rows, n columns. Input vectors ii, jj, kk must be of equal lengths.
  *        For each index l, the (ii(l),jj(l))-entry of A is kk(l). In addition, if (ii(l_1),jj(l_1)),
- *        (ii(l_2),jj(l_2)),...,(ii(l_m),jj(l_m)) are identical, then the (ii(l_1),jj(l_1))-entry 
- *        of A is the sum of kk(l_1),kk(l_2),...,kk(l_m). 
+ *        (ii(l_2),jj(l_2)),...,(ii(l_m),jj(l_m)) are identical, then the (ii(l_1),jj(l_1))-entry
+ *        of A is the sum of kk(l_1),kk(l_2),...,kk(l_m).
  *        This function emulates the function "sparse" in Octave/Matlab.
- * 
+ *
  * \param A   Pointer to dCSRmat matrix
  *
- * \return SUCCESS if successful; 
+ * \return SUCCESS if successful;
  *
  * \note Ludmil, Yuwen 20210606.
  */
@@ -4099,7 +4281,7 @@ SHORT dcsr_sparse (dCSRmat *A, ivector *ii, ivector *jj, dvector *kk, INT m, INT
     A0.row = m;A0.col = n;A0.nnz = nnz;
     A0.rowind = ii->val;A0.colind = jj->val;A0.val = kk->val;
     dcoo_2_dcsr(&A0,A);
-    
+
     // copy pointers for easier reference
     INT *ia = A->IA;
     INT *ja = A->JA;
@@ -4116,8 +4298,8 @@ SHORT dcsr_sparse (dCSRmat *A, ivector *ii, ivector *jj, dvector *kk, INT m, INT
       ih=ia[i+1]-ia[i];
       if(maxdeg<ih) maxdeg=ih;
     }
-    REAL *atmp=calloc(maxdeg,sizeof(REAL));    
-    INT *jatmp=calloc(maxdeg,sizeof(INT));    
+    REAL *atmp=calloc(maxdeg,sizeof(REAL));
+    INT *jatmp=calloc(maxdeg,sizeof(INT));
     nnz=0;
     for (i=0;i<m;++i){
       // loop over each row. first find the length of the row:
@@ -4131,7 +4313,7 @@ SHORT dcsr_sparse (dCSRmat *A, ivector *ii, ivector *jj, dvector *kk, INT m, INT
 	if(ind[j]<0){
 	  ind[j]=ij;
 	} else {
-	  norepeat=0; // we have a repeated index. 
+	  norepeat=0; // we have a repeated index.
 	  atmp[ind[j]]+=atmp[ij];
 	  jatmp[ij]=-abs(jatmp[ij]+1);
 	}
@@ -4144,7 +4326,7 @@ SHORT dcsr_sparse (dCSRmat *A, ivector *ii, ivector *jj, dvector *kk, INT m, INT
       if(norepeat) continue; // do nothing if no indices repeat.
       // put everything back, but now we have negative column indices
       // on the repeated column indices and we have accumulated the
-      // values in the first position of j on every row. 
+      // values in the first position of j on every row.
       memcpy(&ja[ia[i]],jatmp,ih*sizeof(INT));
       memcpy(&a[ia[i]],atmp,ih*sizeof(REAL));
     }
@@ -4182,8 +4364,8 @@ SHORT dcsr_sparse (dCSRmat *A, ivector *ii, ivector *jj, dvector *kk, INT m, INT
  *        ascending lexicographically order, and returns it in the
  *        icsr format U. This function is also used to obtain edge
  *        structures in a simplicial complax.
- * 
- * \param U   Pointer to iCSRmat matrix 
+ *
+ * \param U   Pointer to iCSRmat matrix
  *
  * \note  Ludmil, Yuwen 20210606.
  */
@@ -4239,8 +4421,8 @@ void uniqueij(iCSRmat *U, ivector *ii, ivector *jj)
     for (i=1;i<nv;++i){
       ih=U->IA[i+1]-U->IA[i];
       if(maxdeg<ih) maxdeg=ih;
-    }    
-    INT *jatmp=calloc(maxdeg,sizeof(INT));    
+    }
+    INT *jatmp=calloc(maxdeg,sizeof(INT));
     nnz=0;
     for (i=0;i<nv;++i){
       // loop over each row. first find the length of the row:
@@ -4253,7 +4435,7 @@ void uniqueij(iCSRmat *U, ivector *ii, ivector *jj)
       	if(ind[j]<0){
       	  ind[j]=ij;
       	} else {
-    	   norepeat=0; // we have a repeated index. 
+    	   norepeat=0; // we have a repeated index.
 	       jatmp[ij]=-abs(jatmp[ij]+1);
         	}
       }
@@ -4265,7 +4447,7 @@ void uniqueij(iCSRmat *U, ivector *ii, ivector *jj)
       if(norepeat) continue; // do nothing if no indices repeat.
       // put everything back, but now we have negative column indices
       // on the repeated column indices and we have accumulated the
-      // values in the first position of j on every row. 
+      // values in the first position of j on every row.
       memcpy(&U->JA[U->IA[i]],jatmp,ih*sizeof(INT));
     }
     if (ind) free(ind);
@@ -4287,10 +4469,10 @@ void uniqueij(iCSRmat *U, ivector *ii, ivector *jj)
     U->row = nv; U->col = nv; U->nnz = nnz;
     //
     /* sorting the i-th row of U to get U->JA[U->IA[i]]:U->JA[U->IA[i+1]-1] in
-       ascending lexicographic order */    
-    iCSRmat UT; 
+       ascending lexicographic order */
+    iCSRmat UT;
     icsr_trans(U,&UT);
-    // free is needed because U is already alloc'd, so valgrind complains rightfully that we leak here. 
+    // free is needed because U is already alloc'd, so valgrind complains rightfully that we leak here.
     icsr_free(U);
     icsr_trans(&UT,U);
     icsr_free(&UT);

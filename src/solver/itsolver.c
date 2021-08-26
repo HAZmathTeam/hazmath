@@ -893,8 +893,6 @@ INT linear_solver_dcsr_krylov_diag(dCSRmat *A,
     // setup preconditioner
     dvector diag; dcsr_getdiag(0,A,&diag);
 
-    //dvec_write("diag.dat", &diag);
-
     precond pc;
     pc.data = &diag;
     pc.fct  = precond_diag;
