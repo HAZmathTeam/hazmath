@@ -29,7 +29,7 @@ def rational_approx(s=-0.5, t=0.5, alpha=1., beta=1., scaling_alpha=1., scaling_
     res = res.to_ndarray()
     k = int((res.size - 1)/2)
     poles = res[:k]
-    residues = res[k+1:]
+    residues = res[k:]
 
     return poles, residues
 
