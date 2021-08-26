@@ -138,9 +138,9 @@ import_array();
       printf("lhs-> row %d\n", lhs->row); 
       apply_precond(lhs->val, rhs->val, $self); 
     } 
-    precond_data* precond_data(){
-      return (precond_data*)$self->data;
-    }
+    /*precond_ra_data* precond_data(){
+      return (precond_ra_data*)$self->data;
+    }*/
 }
 
 %extend block_dCSRmat{
@@ -190,6 +190,7 @@ precond* create_precond_hxdiv_3D(dCSRmat *Adiv, dCSRmat *P_div, dCSRmat *Curl, d
 precond* create_precond_hxdiv_2D(dCSRmat *Adiv,dCSRmat *P_div, dCSRmat *Curl, SHORT prectype, AMG_param *amgparam);
 INT get_poles_no(precond *pc);
 dvector* compute_ra_aaa(REAL s_frac_power, REAL t_frac_power, REAL alpha, REAL beta, REAL scaling_a, REAL scaling_m);
+//void print_precond_ra_amgparam(precond *pc);
 
 %apply (int DIM1, double* IN_ARRAY1) {(int len1, double* vec1),
                                       (int len2, double* vec2)}
