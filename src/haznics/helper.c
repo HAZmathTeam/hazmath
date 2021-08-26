@@ -745,22 +745,27 @@ precond* create_precond_hxcurl(dCSRmat *Acurl,
         return 0;
     }
 
+    // copy amgparam (this is for swig)
+    AMG_param *amgparam2 = (AMG_param*)malloc(sizeof(AMG_param));
+    param_amg_init(amgparam2);
+    param_amg_cp(amgparam, amgparam2);
+
     /*------------------------*/
-    pcdata->A = Acurl;
+    pcdata->A = dcsr_create_p(Acurl->col, Acurl->row, Acurl->nnz); dcsr_cp(Acurl, pcdata->A);
 
     pcdata->smooth_type = 1;
     pcdata->smooth_iter = 1;
 
-    pcdata->P_curl = Pcurl;
+    pcdata->P_curl = dcsr_create_p(Pcurl->col, Pcurl->row, Pcurl->nnz); dcsr_cp(Pcurl, pcdata->P_curl);
     pcdata->Pt_curl = Pt_curl;
     pcdata->A_vgrad = A_vgrad;
-    pcdata->amgparam_vgrad = amgparam;
+    pcdata->amgparam_vgrad = amgparam2;
     pcdata->mgl_vgrad = mgl_vgrad;
 
-    pcdata->Grad = Grad;
+    pcdata->Grad = dcsr_create_p(Grad->col, Grad->row, Grad->nnz); dcsr_cp(Grad, pcdata->Grad);
     pcdata->Gradt = Gradt;
     pcdata->A_grad = A_grad;
-    pcdata->amgparam_grad = amgparam;
+    pcdata->amgparam_grad = amgparam2;
     pcdata->mgl_grad = mgl_grad;
 
     pcdata->backup_r = (REAL*)calloc(Acurl->row, sizeof(REAL));
@@ -884,29 +889,34 @@ precond* create_precond_hxdiv_3D(dCSRmat *Adiv,
         return 0;
     }
 
+    // copy amgparam (this is for swig)
+    AMG_param *amgparam2 = (AMG_param*)malloc(sizeof(AMG_param));
+    param_amg_init(amgparam2);
+    param_amg_cp(amgparam, amgparam2);
+
     /*------------------------*/
     // setup preconditioner
-    pcdata->A = Adiv;
+    pcdata->A = dcsr_create_p(Adiv->col, Adiv->row, Adiv->nnz); dcsr_cp(Adiv, pcdata->A);
 
     pcdata->smooth_type = 1;
     pcdata->smooth_iter = 1;
 
-    pcdata->P_curl = P_curl;
+    pcdata->P_curl = dcsr_create_p(P_curl->col, P_curl->row, P_curl->nnz); dcsr_cp(P_curl, pcdata->P_curl);
     pcdata->Pt_curl = Pt_curl;
-    pcdata->P_div = P_div;
+    pcdata->P_div = dcsr_create_p(P_div->col, P_div->row, P_div->nnz); dcsr_cp(P_div, pcdata->P_div);
     pcdata->Pt_div = Pt_div;
-    pcdata->Curl = Curl;
+    pcdata->Curl = dcsr_create_p(Curl->col, Curl->row, Curl->nnz); dcsr_cp(Curl, pcdata->Curl);;
     pcdata->Curlt = Curlt;
     pcdata->A_curlgrad = A_curlgrad;
     pcdata->A_divgrad = A_divgrad;
-    pcdata->amgparam_curlgrad = amgparam;
+    pcdata->amgparam_curlgrad = amgparam2;
     pcdata->mgl_curlgrad = mgl_curlgrad;
-    pcdata->amgparam_divgrad = amgparam;
+    pcdata->amgparam_divgrad = amgparam2;
     pcdata->mgl_divgrad = mgl_divgrad;
 
     pcdata->A_curl = A_curl;
     pcdata->A_grad = NULL;
-    pcdata->amgparam_grad = amgparam;
+    pcdata->amgparam_grad = amgparam2;
     pcdata->mgl_grad = NULL;
 
     pcdata->backup_r = (REAL*)calloc(Adiv->row, sizeof(REAL));
@@ -1024,28 +1034,33 @@ precond* create_precond_hxdiv_2D(dCSRmat *Adiv,
         return 0;
     }
 
+    // copy amgparam (this is for swig)
+    AMG_param *amgparam2 = (AMG_param*)malloc(sizeof(AMG_param));
+    param_amg_init(amgparam2);
+    param_amg_cp(amgparam, amgparam2);
+
     /*------------------------*/
     // setup preconditioner
-    pcdata->A = Adiv;
+    pcdata->A = dcsr_create_p(Adiv->col, Adiv->row, Adiv->nnz); dcsr_cp(Adiv, pcdata->A);
 
     pcdata->smooth_type = 1;
     pcdata->smooth_iter = 1;
 
     pcdata->P_curl = NULL;
     pcdata->Pt_curl = NULL;
-    pcdata->P_div = P_div;
+    pcdata->P_div = dcsr_create_p(P_div->col, P_div->row, P_div->nnz); dcsr_cp(P_div, pcdata->P_div);
     pcdata->Pt_div = Pt_div;
-    pcdata->Curl = Curl;
+    pcdata->Curl = dcsr_create_p(Curl->col, Curl->row, Curl->nnz); dcsr_cp(Curl, pcdata->Curl);;
     pcdata->Curlt = Curlt;
     pcdata->A_curlgrad = NULL;
     pcdata->A_divgrad = A_divgrad;
     pcdata->amgparam_curlgrad = NULL;
     pcdata->mgl_curlgrad = NULL;
-    pcdata->amgparam_divgrad = amgparam;
+    pcdata->amgparam_divgrad = amgparam2;
     pcdata->mgl_divgrad = mgl_divgrad;
     pcdata->A_curl = NULL;
     pcdata->A_grad = A_grad;
-    pcdata->amgparam_grad = amgparam;
+    pcdata->amgparam_grad = amgparam2;
     pcdata->mgl_grad = mgl_grad;
 
     pcdata->backup_r = (REAL*)calloc(Adiv->row, sizeof(REAL));
