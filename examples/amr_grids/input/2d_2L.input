@@ -75,7 +75,7 @@ data_vertices{0 0 -1.   -1. 	%% vertex number, coord system, coords
 % then the max number of divisions is taken.
 %---------------%
 
-num_edges{6} %
+num_edges{7} %
 
 %% edge: 1st vertex, 2nd vertex, number of divisions. Does not have to contain all edges. Edges that are not listed here and are not parallel to any of the edges listed here are not divided. 
 
