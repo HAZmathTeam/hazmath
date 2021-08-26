@@ -28,6 +28,7 @@
 #include "hazmath.h"
 #include "stokes_data.h"
 #include "stokes_system.h"
+#include "stokes_precond.h"
 /*********************************************************************************/
 
 /****** MAIN DRIVER **************************************************************/
@@ -168,7 +169,7 @@ int main (int argc, char* argv[])
   dCSRmat *A_diag;
   A_diag = (dCSRmat *)calloc(dim+1, sizeof(dCSRmat));
 
-  // For velcocities, we use the diagonal of the (0,0) block matrix
+  // For velcocities, we use the diagonal blocks of the velocity block
   for(i=0;i<dim;i++){
     dcsr_alloc(A.blocks[i*(dim+2)]->row, A.blocks[i*(dim+2)]->col, A.blocks[i*(dim+2)]->nnz, &A_diag[i]);
     dcsr_cp(A.blocks[i*(dim+2)], &A_diag[i]);
@@ -212,10 +213,61 @@ int main (int argc, char* argv[])
   } else { // Iterative Solver
     if (linear_itparam.linear_precond_type == PREC_NULL) { // No Preconditioner
       solver_flag = linear_solver_bdcsr_krylov(&A, &b, &sol, &linear_itparam);
-    } else {
+    }
+    else if (linear_itparam.linear_precond_type >= 10 && linear_itparam.linear_precond_type < 40)  // use general block preconditioner
+    {
       if(dim==2) solver_flag = linear_solver_bdcsr_krylov_block_3(&A, &b, &sol, &linear_itparam, &amgparam, A_diag);
       if(dim==3) solver_flag = linear_solver_bdcsr_krylov_block_4(&A, &b, &sol, &linear_itparam, &amgparam, A_diag);
     }
+    else // use special preconditioner for Stokes
+    {
+
+      // get preconditioner data
+      precond_block_data *precdata = get_precond_block_data_stokes(&A, &Mp, &linear_itparam, &amgparam);
+      // setup the preconditioner
+      precond prec;
+      prec.data = precdata;
+
+      switch (linear_itparam.linear_precond_type) {
+
+          case 40:
+              prec.fct = precond_block_diag_stokes;
+              break;
+
+          case 41:
+              prec.fct = precond_block_lower_stokes;
+              break;
+
+          case 42:
+              prec.fct = precond_block_upper_stokes;
+              break;
+
+          case 50:
+              prec.fct = precond_block_diag_stokes_krylov;
+              break;
+
+          case 51:
+              prec.fct = precond_block_lower_stokes_krylov;
+              break;
+
+          case 52:
+              prec.fct = precond_block_upper_stokes_krylov;
+              break;
+
+          default:
+              prec.fct = precond_block_lower_stokes_krylov;
+              break;
+
+      }
+
+      // solve
+      solver_flag = solver_bdcsr_linear_itsolver(&A, &b, &sol, &prec, &linear_itparam);
+
+      // free
+      precond_block_data_free_stokes(precdata);
+
+    }
+
   }
 
   // Error Check

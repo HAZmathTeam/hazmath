@@ -766,8 +766,6 @@ void precond_hx_div_additive_2D(REAL *r,
     dvec_set(hxdivdata->A_divgrad->row, &mgl_divgrad->x, 0.0);
 
     for (i=0;i<maxit;++i) mgcycle(mgl_divgrad, amgparam_divgrad);
-    //dcsr_pvfgmres(hxdivdata->A_divgrad, &mgl_divgrad->b, &mgl_divgrad->x, NULL, 1e-3, 1000, 1000, 1, 1);
-    //directsolve_UMF(hxdivdata->A_divgrad, &(mgl_divgrad->b), &(mgl_divgrad->x), 1);
 
     //----------------------------
     // update solution (additive)
@@ -781,27 +779,18 @@ void precond_hx_div_additive_2D(REAL *r,
     AMG_data *mgl_grad = hxdivdata->mgl_grad;
     maxit = amgparam_grad->maxit;
 
-    //REAL *temp = (REAL*)calloc(hxdivdata->Curlt->row,sizeof(REAL)); // need to be updated
-    //dcsr_mxv(hxdivdata->Curlt, r, temp);
     mgl_grad->b.row = hxdivdata->Curlt->row;
     dcsr_mxv(hxdivdata->Curlt, r, mgl_grad->b.val);
     mgl_grad->x.row=hxdivdata->A_grad->row;
     dvec_set(hxdivdata->A_grad->row, &mgl_grad->x, 0.0);
 
     for (i=0;i<maxit;++i) mgcycle(mgl_grad, amgparam_grad);
-    //dcsr_pvfgmres(hxdivdata->A_curlgrad, &mgl_curlgrad->b, &mgl_curlgrad->x, NULL, 1e-3, 1000, 1000, 1, 1);
-    //directsolve_UMF(hxdivdata->A_curlgrad, &(mgl_curlgrad->b), &(mgl_curlgrad->x),1);
 
     //---------------------------
     // update solution (additive)
     //---------------------------
-    //dcsr_mxv(hxdivdata->P_curl, mgl_curlgrad->x.val, temp);
     dcsr_aAxpy(1.0, hxdivdata->Curl, mgl_grad->x.val, z);
 
-    // free
-    //free(temp);
-    //free(temp1);
-    //free(temp2);
 }
 
 /***********************************************************************************************/
@@ -2607,6 +2596,185 @@ void precond_block_diag_4(REAL *r,
 
 /***********************************************************************************************/
 /**
+ * \fn void precond_block_diag_4_amg (REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (4x4 block matrix, each diagonal block
+ *        is solved by AMG)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   08/23/2021
+ */
+void precond_block_diag_4_amg(REAL *r,
+                              REAL *z,
+                              void *data)
+{
+    precond_block_data *precdata=(precond_block_data *)data;
+    dCSRmat *A_diag = precdata->A_diag;
+    dvector *tempr = &(precdata->r);
+
+    const INT N0 = A_diag[0].row;
+    const INT N1 = A_diag[1].row;
+    const INT N2 = A_diag[2].row;
+    const INT N3 = A_diag[3].row;
+    const INT N = N0 + N1 + N2 + N3;
+
+    // back up r, setup z;
+    array_cp(N, r, tempr->val);
+    array_set(N, z, 0.0);
+
+    // prepare
+    INT i;
+    AMG_param *amgparam = precdata->amgparam;
+    AMG_data **mgl = precdata->mgl;
+    dvector r0, r1, r2, r3, z0, z1, z2, z3;
+
+    r0.row = N0; z0.row = N0;
+    r1.row = N1; z1.row = N1;
+    r2.row = N2; z2.row = N2;
+    r3.row = N3; z3.row = N3;
+
+    r0.val = r;
+    r1.val = &(r[N0]);
+    r2.val = &(r[N0+N1]);
+    r3.val = &(r[N0+N1+N2]);
+    z0.val = z;
+    z1.val = &(z[N0]);
+    z2.val = &(z[N0+N1]);
+    z3.val = &(z[N0+N1+N2]);
+
+    // Preconditioning A00 block
+    mgl[0]->b.row=N0; array_cp(N0, r0.val, mgl[0]->b.val); // residual is an input
+    mgl[0]->x.row=N0; dvec_set(N0, &mgl[0]->x, 0.0);
+
+    for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[0], amgparam);
+    array_cp(N0, mgl[0]->x.val, z0.val);
+
+    // Preconditioning A11 block
+    mgl[1]->b.row=N1; array_cp(N1, r1.val, mgl[1]->b.val); // residual is an input
+    mgl[1]->x.row=N1; dvec_set(N1, &mgl[1]->x, 0.0);
+
+    for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[1], amgparam);
+    array_cp(N1, mgl[1]->x.val, z1.val);
+
+    // Preconditioning A22 block
+    mgl[2]->b.row=N2; array_cp(N2, r2.val, mgl[2]->b.val); // residual is an input
+    mgl[2]->x.row=N2; dvec_set(N2, &mgl[2]->x, 0.0);
+
+    for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[2], amgparam);
+    array_cp(N2, mgl[2]->x.val, z2.val);
+
+    // Preconditioning A33 block
+    mgl[3]->b.row=N3; array_cp(N3, r3.val, mgl[3]->b.val); // residual is an input
+    mgl[3]->x.row=N3; dvec_set(N3, &mgl[3]->x, 0.0);
+
+    for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[3], amgparam);
+    array_cp(N3, mgl[3]->x.val, z3.val);
+
+    // restore r
+    array_cp(N, tempr->val, r);
+
+}
+
+/***********************************************************************************************/
+/**
+ * \fn void precond_block_diag_4_amg_krylov (REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (4x4 block matrix, each diagonal block
+ *        is solved by AMG preconditioned Krylov method)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   08/23/2021
+ */
+void precond_block_diag_4_amg_krylov(REAL *r,
+                                     REAL *z,
+                                     void *data)
+{
+#if WITH_SUITESPARSE
+    precond_block_data *precdata=(precond_block_data *)data;
+    dCSRmat *A_diag = precdata->A_diag;
+    dvector *tempr = &(precdata->r);
+
+    const INT N0 = A_diag[0].row;
+    const INT N1 = A_diag[1].row;
+    const INT N2 = A_diag[2].row;
+    const INT N3 = A_diag[3].row;
+    const INT N = N0 + N1 + N2 + N3;
+
+    // back up r, setup z;
+    array_cp(N, r, tempr->val);
+    array_set(N, z, 0.0);
+
+    // prepare
+    INT i;
+    AMG_param *amgparam = precdata->amgparam;
+    AMG_data **mgl = precdata->mgl;
+    dvector r0, r1, r2, r3, z0, z1, z2, z3;
+
+    r0.row = N0; z0.row = N0;
+    r1.row = N1; z1.row = N1;
+    r2.row = N2; z2.row = N2;
+    r3.row = N3; z3.row = N3;
+
+    r0.val = r;
+    r1.val = &(r[N0]);
+    r2.val = &(r[N0+N1]);
+    r3.val = &(r[N0+N1+N2]);
+    z0.val = z;
+    z1.val = &(z[N0]);
+    z2.val = &(z[N0+N1]);
+    z3.val = &(z[N0+N1+N2]);
+
+    precond_data pcdata;
+    param_amg_to_prec(&pcdata,amgparam);
+    precond pc;
+    pc.fct = precond_amg;
+
+    // Preconditioning A00 block
+    pcdata.max_levels = mgl[0][0].num_levels;
+    pcdata.mgl_data = mgl[0];
+
+    pc.data = &pcdata;
+
+    dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc, 1e-3, 100, 100, 1, 1);
+
+    // Preconditioning A11 block
+    pcdata.max_levels = mgl[1][0].num_levels;
+    pcdata.mgl_data = mgl[1];
+
+    pc.data = &pcdata;
+
+    dcsr_pvfgmres(&mgl[1][0].A, &r1, &z1, &pc, 1e-3, 100, 100, 1, 1);
+
+    // Preconditioning A22 block
+    pcdata.max_levels = mgl[2][0].num_levels;
+    pcdata.mgl_data = mgl[2];
+
+    pc.data = &pcdata;
+
+    dcsr_pvfgmres(&mgl[2][0].A, &r2, &z2, &pc, 1e-3, 100, 100, 1, 1);
+
+    // Preconditioning A33 block
+    pcdata.max_levels = mgl[3][0].num_levels;
+    pcdata.mgl_data = mgl[3];
+
+    pc.data = &pcdata;
+
+    dcsr_pvfgmres(&mgl[3][0].A, &r3, &z3, &pc, 1e-3, 100, 100, 1, 1);
+
+    // restore r
+    array_cp(N, tempr->val, r);
+
+#endif
+}
+
+/***********************************************************************************************/
+/**
  * \fn void precond_block_lower_4 (REAL *r, REAL *z, void *data)
  * \brief block upper triangular preconditioning (4x4 block matrix, each diagonal
  *        block is solved exactly)
@@ -2706,6 +2874,233 @@ void precond_block_lower_4(REAL *r,
 
 /***********************************************************************************************/
 /**
+ * \fn void precond_block_lower_4_amg (REAL *r, REAL *z, void *data)
+ * \brief block upper triangular preconditioning (4x4 block matrix, each diagonal
+ *        block is solved by AMG)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   08/23/2021
+ *
+ * A[0]  A[1]  A[2]  A[3]
+ * A[4]  A[5]  A[6]  A[7]
+ * A[8]  A[9]  A[10] A[11]
+ * A[12] A[13] A[14] A[15]
+ */
+void precond_block_lower_4_amg(REAL *r,
+                               REAL *z,
+                               void *data)
+{
+
+    precond_block_data *precdata=(precond_block_data *)data;
+    block_dCSRmat *A = precdata->Abcsr;
+    dCSRmat *A_diag = precdata->A_diag;
+    dvector *tempr = &(precdata->r);
+
+    const INT N0 = A_diag[0].row;
+    const INT N1 = A_diag[1].row;
+    const INT N2 = A_diag[2].row;
+    const INT N3 = A_diag[3].row;
+    const INT N = N0 + N1 + N2 + N3;
+
+    // back up r, setup z;
+    array_cp(N, r, tempr->val);
+    array_set(N, z, 0.0);
+
+    // prepare
+    INT i;
+    AMG_param *amgparam = precdata->amgparam;
+    AMG_data **mgl = precdata->mgl;
+    dvector r0, r1, r2, r3, z0, z1, z2, z3;
+
+    r0.row = N0; z0.row = N0;
+    r1.row = N1; z1.row = N1;
+    r2.row = N2; z2.row = N2;
+    r3.row = N3; z3.row = N3;
+
+    r0.val = r;
+    r1.val = &(r[N0]);
+    r2.val = &(r[N0+N1]);
+    r3.val = &(r[N0+N1+N2]);
+    z0.val = z;
+    z1.val = &(z[N0]);
+    z2.val = &(z[N0+N1]);
+    z3.val = &(z[N0+N1+N2]);
+
+    // Preconditioning A00 block
+    mgl[0]->b.row=N0; array_cp(N0, r0.val, mgl[0]->b.val); // residual is an input
+    mgl[0]->x.row=N0; dvec_set(N0, &mgl[0]->x, 0.0);
+
+    for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[0], amgparam);
+    array_cp(N0, mgl[0]->x.val, z0.val);
+
+    // r1 = r1 - A4*z0
+    if (A->blocks[4] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[4], z0.val, r1.val);
+
+    // Preconditioning A11 block
+    mgl[1]->b.row=N1; array_cp(N1, r1.val, mgl[1]->b.val); // residual is an input
+    mgl[1]->x.row=N1; dvec_set(N1, &mgl[1]->x, 0.0);
+
+    for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[1], amgparam);
+    array_cp(N1, mgl[1]->x.val, z1.val);
+
+    // r2 = r2 - A8*z0 - A9*z1
+    if (A->blocks[8] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[8], z0.val, r2.val);
+    if (A->blocks[9] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[9], z1.val, r2.val);
+
+    // Preconditioning A22 block
+    mgl[2]->b.row=N2; array_cp(N2, r2.val, mgl[2]->b.val); // residual is an input
+    mgl[2]->x.row=N2; dvec_set(N2, &mgl[2]->x, 0.0);
+
+    for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[2], amgparam);
+    array_cp(N2, mgl[2]->x.val, z2.val);
+
+    // r3 = r3 - A12*z0 - A13*z1 - A14*z2
+    if (A->blocks[12] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[12], z0.val, r3.val);
+    if (A->blocks[13] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[13], z1.val, r3.val);
+    if (A->blocks[14] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[14], z2.val, r3.val);
+
+    // Preconditioning A33 block
+    mgl[3]->b.row=N3; array_cp(N3, r3.val, mgl[3]->b.val); // residual is an input
+    mgl[3]->x.row=N3; dvec_set(N3, &mgl[3]->x, 0.0);
+
+    for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[3], amgparam);
+    array_cp(N3, mgl[3]->x.val, z3.val);
+
+    // restore r
+    array_cp(N, tempr->val, r);
+
+}
+
+/***********************************************************************************************/
+/**
+ * \fn void precond_block_lower_4_amg_krylov (REAL *r, REAL *z, void *data)
+ * \brief block upper triangular preconditioning (4x4 block matrix, each diagonal
+ *        block is solved by AMG preconditioned Krylov method)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   08/23/2021
+ *
+ * A[0]  A[1]  A[2]  A[3]
+ * A[4]  A[5]  A[6]  A[7]
+ * A[8]  A[9]  A[10] A[11]
+ * A[12] A[13] A[14] A[15]
+ */
+void precond_block_lower_4_amg_krylov(REAL *r,
+                                      REAL *z,
+                                      void *data)
+{
+
+    precond_block_data *precdata=(precond_block_data *)data;
+    block_dCSRmat *A = precdata->Abcsr;
+    dCSRmat *A_diag = precdata->A_diag;
+    dvector *tempr = &(precdata->r);
+
+    const INT N0 = A_diag[0].row;
+    const INT N1 = A_diag[1].row;
+    const INT N2 = A_diag[2].row;
+    const INT N3 = A_diag[3].row;
+    const INT N = N0 + N1 + N2 + N3;
+
+    // back up r, setup z;
+    array_cp(N, r, tempr->val);
+    array_set(N, z, 0.0);
+
+    // prepare
+    INT i;
+    AMG_param *amgparam = precdata->amgparam;
+    AMG_data **mgl = precdata->mgl;
+    dvector r0, r1, r2, r3, z0, z1, z2, z3;
+
+    r0.row = N0; z0.row = N0;
+    r1.row = N1; z1.row = N1;
+    r2.row = N2; z2.row = N2;
+    r3.row = N3; z3.row = N3;
+
+    r0.val = r;
+    r1.val = &(r[N0]);
+    r2.val = &(r[N0+N1]);
+    r3.val = &(r[N0+N1+N2]);
+    z0.val = z;
+    z1.val = &(z[N0]);
+    z2.val = &(z[N0+N1]);
+    z3.val = &(z[N0+N1+N2]);
+
+    precond_data pcdata;
+    param_amg_to_prec(&pcdata,amgparam);
+    precond pc;
+    pc.fct = precond_amg;
+
+    // Preconditioning A00 block
+    pcdata.max_levels = mgl[0][0].num_levels;
+    pcdata.mgl_data = mgl[0];
+
+    pc.data = &pcdata;
+
+    dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc, 1e-3, 100, 100, 1, 1);
+
+    // r1 = r1 - A4*z0
+    if (A->blocks[4] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[4], z0.val, r1.val);
+
+    // Preconditioning A11 block
+    pcdata.max_levels = mgl[1][0].num_levels;
+    pcdata.mgl_data = mgl[1];
+
+    pc.data = &pcdata;
+
+    dcsr_pvfgmres(&mgl[1][0].A, &r1, &z1, &pc, 1e-3, 100, 100, 1, 1);
+
+    // r2 = r2 - A8*z0 - A9*z1
+    if (A->blocks[8] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[8], z0.val, r2.val);
+    if (A->blocks[9] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[9], z1.val, r2.val);
+
+    // Preconditioning A22 block
+    pcdata.max_levels = mgl[2][0].num_levels;
+    pcdata.mgl_data = mgl[2];
+
+    pc.data = &pcdata;
+
+    dcsr_pvfgmres(&mgl[2][0].A, &r2, &z2, &pc, 1e-3, 100, 100, 1, 1);
+
+    // r3 = r3 - A12*z0 - A13*z1 - A14*z2
+    if (A->blocks[12] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[12], z0.val, r3.val);
+    if (A->blocks[13] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[13], z1.val, r3.val);
+    if (A->blocks[14] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[14], z2.val, r3.val);
+
+    // Preconditioning A33 block
+    pcdata.max_levels = mgl[3][0].num_levels;
+    pcdata.mgl_data = mgl[3];
+
+    pc.data = &pcdata;
+
+    dcsr_pvfgmres(&mgl[3][0].A, &r3, &z3, &pc, 1e-3, 100, 100, 1, 1);
+
+    // restore r
+    array_cp(N, tempr->val, r);
+
+}
+
+/***********************************************************************************************/
+/**
  * \fn void precond_block_upper_4 (REAL *r, REAL *z, void *data)
  * \brief block upper triangular preconditioning (4x4 block matrix, each diagonal
  *        block is solved exactly)
@@ -2800,6 +3195,235 @@ void precond_block_upper_4(REAL *r,
     array_cp(N, tempr->val, r);
 
 #endif
+
+}
+
+/***********************************************************************************************/
+/**
+ * \fn void precond_block_upper_4_amg (REAL *r, REAL *z, void *data)
+ * \brief block upper triangular preconditioning (4x4 block matrix, each diagonal
+ *        block is solved by AMG)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   08/23/2021
+ *
+ * A[0]  A[1]  A[2]  A[3]
+ * A[4]  A[5]  A[6]  A[7]
+ * A[8]  A[9]  A[10] A[11]
+ * A[12] A[13] A[14] A[15]
+ */
+void precond_block_upper_4_amg(REAL *r,
+                               REAL *z,
+                               void *data)
+{
+
+    precond_block_data *precdata=(precond_block_data *)data;
+    block_dCSRmat *A = precdata->Abcsr;
+    dCSRmat *A_diag = precdata->A_diag;
+
+    dvector *tempr = &(precdata->r);
+
+    const INT N0 = A_diag[0].row;
+    const INT N1 = A_diag[1].row;
+    const INT N2 = A_diag[2].row;
+    const INT N3 = A_diag[3].row;
+    const INT N = N0 + N1 + N2 + N3;
+
+    // back up r, setup z;
+    array_cp(N, r, tempr->val);
+    array_set(N, z, 0.0);
+
+    // prepare
+    INT i;
+    AMG_param *amgparam = precdata->amgparam;
+    AMG_data **mgl = precdata->mgl;
+    dvector r0, r1, r2, r3, z0, z1, z2, z3;
+
+    r0.row = N0; z0.row = N0;
+    r1.row = N1; z1.row = N1;
+    r2.row = N2; z2.row = N2;
+    r3.row = N3; z3.row = N3;
+
+    r0.val = r;
+    r1.val = &(r[N0]);
+    r2.val = &(r[N0+N1]);
+    r3.val = &(r[N0+N1+N2]);
+    z0.val = z;
+    z1.val = &(z[N0]);
+    z2.val = &(z[N0+N1]);
+    z3.val = &(z[N0+N1+N2]);
+
+    // Preconditioning A33 block
+    mgl[3]->b.row=N3; array_cp(N3, r3.val, mgl[3]->b.val); // residual is an input
+    mgl[3]->x.row=N3; dvec_set(N3, &mgl[3]->x, 0.0);
+
+    for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[3], amgparam);
+    array_cp(N3, mgl[3]->x.val, z3.val);
+
+    // r2 = r2 - A11*z3
+    if (A->blocks[11] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[11], z3.val, r2.val);
+
+    // Preconditioning A22 block
+    mgl[2]->b.row=N2; array_cp(N2, r2.val, mgl[2]->b.val); // residual is an input
+    mgl[2]->x.row=N2; dvec_set(N2, &mgl[2]->x, 0.0);
+
+    for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[2], amgparam);
+    array_cp(N2, mgl[2]->x.val, z2.val);
+
+    // r1 = r1 - A6*z2 - A7*z3
+    if (A->blocks[6] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[6], z2.val, r1.val);
+    if (A->blocks[7] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[7], z3.val, r1.val);
+
+    // Preconditioning A11 block
+    mgl[1]->b.row=N1; array_cp(N1, r1.val, mgl[1]->b.val); // residual is an input
+    mgl[1]->x.row=N1; dvec_set(N1, &mgl[1]->x, 0.0);
+
+    for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[1], amgparam);
+    array_cp(N1, mgl[1]->x.val, z1.val);
+
+    // r0 = r0 - A1*z1 - A2*z2 - A3*z3
+    if (A->blocks[1] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[1], z1.val, r0.val);
+    if (A->blocks[2] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[2], z2.val, r0.val);
+    if (A->blocks[3] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[3], z3.val, r0.val);
+
+    // Preconditioning A00 block
+    mgl[0]->b.row=N0; array_cp(N0, r0.val, mgl[0]->b.val); // residual is an input
+    mgl[0]->x.row=N0; dvec_set(N0, &mgl[0]->x, 0.0);
+
+    for(i=0;i<amgparam->maxit;++i) mgcycle(mgl[0], amgparam);
+    array_cp(N0, mgl[0]->x.val, z0.val);
+
+    // restore r
+    array_cp(N, tempr->val, r);
+
+}
+
+/***********************************************************************************************/
+/**
+ * \fn void precond_block_upper_4_amg_krylov (REAL *r, REAL *z, void *data)
+ * \brief block upper triangular preconditioning (4x4 block matrix, each diagonal
+ *        block is solved by AMG preconditioned Krylov method)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   08/23/2021
+ *
+ * A[0]  A[1]  A[2]  A[3]
+ * A[4]  A[5]  A[6]  A[7]
+ * A[8]  A[9]  A[10] A[11]
+ * A[12] A[13] A[14] A[15]
+ */
+void precond_block_upper_4_amg_krylov(REAL *r,
+                                      REAL *z,
+                                      void *data)
+{
+
+    precond_block_data *precdata=(precond_block_data *)data;
+    block_dCSRmat *A = precdata->Abcsr;
+    dCSRmat *A_diag = precdata->A_diag;
+
+    dvector *tempr = &(precdata->r);
+
+    const INT N0 = A_diag[0].row;
+    const INT N1 = A_diag[1].row;
+    const INT N2 = A_diag[2].row;
+    const INT N3 = A_diag[3].row;
+    const INT N = N0 + N1 + N2 + N3;
+
+    // back up r, setup z;
+    array_cp(N, r, tempr->val);
+    array_set(N, z, 0.0);
+
+    // prepare
+    INT i;
+    AMG_param *amgparam = precdata->amgparam;
+    AMG_data **mgl = precdata->mgl;
+    dvector r0, r1, r2, r3, z0, z1, z2, z3;
+
+    r0.row = N0; z0.row = N0;
+    r1.row = N1; z1.row = N1;
+    r2.row = N2; z2.row = N2;
+    r3.row = N3; z3.row = N3;
+
+    r0.val = r;
+    r1.val = &(r[N0]);
+    r2.val = &(r[N0+N1]);
+    r3.val = &(r[N0+N1+N2]);
+    z0.val = z;
+    z1.val = &(z[N0]);
+    z2.val = &(z[N0+N1]);
+    z3.val = &(z[N0+N1+N2]);
+
+    precond_data pcdata;
+    param_amg_to_prec(&pcdata,amgparam);
+    precond pc;
+    pc.fct = precond_amg;
+
+    // Preconditioning A33 block
+    pcdata.max_levels = mgl[3][0].num_levels;
+    pcdata.mgl_data = mgl[3];
+
+    pc.data = &pcdata;
+
+    dcsr_pvfgmres(&mgl[3][0].A, &r3, &z3, &pc, 1e-3, 100, 100, 1, 1);
+
+    // r2 = r2 - A11*z3
+    if (A->blocks[11] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[11], z3.val, r2.val);
+
+    // Preconditioning A22 block
+    pcdata.max_levels = mgl[2][0].num_levels;
+    pcdata.mgl_data = mgl[2];
+
+    pc.data = &pcdata;
+
+    dcsr_pvfgmres(&mgl[2][0].A, &r2, &z2, &pc, 1e-3, 100, 100, 1, 1);
+
+    // r1 = r1 - A6*z2 - A7*z3
+    if (A->blocks[6] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[6], z2.val, r1.val);
+    if (A->blocks[7] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[7], z3.val, r1.val);
+
+    // Preconditioning A11 block
+    pcdata.max_levels = mgl[1][0].num_levels;
+    pcdata.mgl_data = mgl[1];
+
+    pc.data = &pcdata;
+
+    dcsr_pvfgmres(&mgl[1][0].A, &r1, &z1, &pc, 1e-3, 100, 100, 1, 1);
+
+    // r0 = r0 - A1*z1 - A2*z2 - A3*z3
+    if (A->blocks[1] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[1], z1.val, r0.val);
+    if (A->blocks[2] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[2], z2.val, r0.val);
+    if (A->blocks[3] != NULL)
+        dcsr_aAxpy(-1.0, A->blocks[3], z3.val, r0.val);
+
+    // Preconditioning A00 block
+    pcdata.max_levels = mgl[0][0].num_levels;
+    pcdata.mgl_data = mgl[0];
+
+    pc.data = &pcdata;
+
+    dcsr_pvfgmres(&mgl[0][0].A, &r0, &z0, &pc, 1e-3, 100, 100, 1, 1);
+
+    // restore r
+    array_cp(N, tempr->val, r);
 
 }
 
@@ -7411,25 +8035,25 @@ void precond_rational_approx(REAL *r,
                              void *data)
 {
     // fixme: precdata->r and precdata->Abcsr are not always set up
-    // 	    (e.g. when called from cbc.block) 
+    // 	    (e.g. when called from cbc.block)
     // local variables
     INT status = SUCCESS;
     precond_block_data *precdata=(precond_block_data *)data;
     AMG_data **mgl = precdata->mgl; // count from 1!!!
     AMG_param *amgparam = precdata->amgparam; // array!!
-    dvector *tempr = &(precdata->r); 
-    
+    dvector *tempr = &(precdata->r);
+
     INT n = precdata->Abcsr->blocks[3]->row; // general size of the problem
     INT i;
-    
+
     // back up r, setup z
     array_cp(n, r, tempr->val);
     array_set(n, z, 0.0);
-    
+
     dvector r_vec, z_vec;
     r_vec.row = n; r_vec.val = r;
     z_vec.row = n; z_vec.val = z;
-    
+
     /*----------------------------------------*/
     // get scaled mass matrix
     dCSRmat *scaled_M = precdata->scaled_M;
@@ -7442,11 +8066,11 @@ void precond_rational_approx(REAL *r,
     // get poles and residues
     //not used: dvector *poles = precdata->poles;
     dvector *residues = precdata->residues;
-    
+
     // number of residues (no. of poles + 1)
     INT k = residues->row;
     /*----------------------------------------*/
-    
+
     /*----------------------------------------*/
     /* set up preconditioners */
     /*----------------------------------------*/
@@ -7462,7 +8086,7 @@ void precond_rational_approx(REAL *r,
     param_amg_to_prec(&pcdata, &(amgparam[1]));
     pc_frac_A.data = &pcdata;
     /*----------------------------------------*/
-    
+
     /*----------------------------------------*/
     /* main loop of applying rational approximation */
     /*----------------------------------------*/
@@ -7567,12 +8191,12 @@ void precond_rational_approx_fenics(REAL *r,
     // get poles and residues
     dvector *poles = precdata->poles;
     dvector *residues = precdata->residues;
-    
+
     // number of poles
     INT npoles = poles->row;
 
     /*----------------------------------------*/
-    
+
     /*----------------------------------------*/
     /* set up preconditioners */
     /*----------------------------------------*/
@@ -7589,7 +8213,7 @@ void precond_rational_approx_fenics(REAL *r,
     pc_frac_A.data = &pcdata;
 
     /*----------------------------------------*/
-    
+
     /*----------------------------------------*/
     /* main loop of applying rational approximation */
     /*----------------------------------------*/
@@ -7633,7 +8257,7 @@ void precond_rational_approx_fenics(REAL *r,
     }
 
     // if(count) printf("Inner solver took total of %d iterations. \n", count);
-    
+
     // cleanup
     dvec_free(&update);
     dvec_free(&r_vec);
