@@ -147,11 +147,15 @@
      if(precdata->mgl) free(precdata->mgl);
 
      // free diagonal of the pressure block
+     if (precdata->diag[0]) dvec_free(precdata->diag[0]);
      if (precdata->diag[0]) free(precdata->diag[0]);
      if (precdata->diag) free(precdata->diag);
 
      // free work space
      if (&(precdata->r)) dvec_free(&(precdata->r));
+
+     // free the whole precond data
+     if (precdata) free(precdata);
 
      return;
  }
