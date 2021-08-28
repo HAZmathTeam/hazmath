@@ -72,7 +72,7 @@ int main (int argc, char* argv[])
   // Get info for and create FEM spaces
   // Order of elements: 0 - P0; 1 - P1; 2 - P2; 20 - Nedlec; 30 - Raviart-Thomas
   INT order_u = 2;
-  INT order_p = 0;
+  INT order_p = 1;
 
   // Need Spaces for each component of the velocity plus pressure
   fespace FE_ux; // Velocity in x direction
