@@ -346,13 +346,13 @@ precond* create_precond_ra(dCSRmat *A,
     const INT m = A->row, n = A->col, nnz = A->nnz, nnz_M = M->nnz;
     INT status = SUCCESS;
     INT i;
-    //    INT ii, jj;
+    //INT ii, jj;
 
     /*fprintf(stdout, "\n A: \n");
     fprintf(stdout,"\nrow, col, nnz: %d, %d, %d \n", A->row, A->col, A->nnz);
     for (ii=0; ii < A->row; ++ii) {
         fprintf(stdout, "\n");
-        for (jj = A->IA[i]; jj < A->IA[i+1]; ++jj) {
+        for (jj = A->IA[ii]; jj < A->IA[ii+1]; ++jj) {
             fprintf(stdout, "%.16e\t", A->val[jj]);
         }
     } // end for js
@@ -430,7 +430,8 @@ precond* create_precond_ra(dCSRmat *A,
       for(i = 0; i < k; ++i)
         fprintf(stdout,"res(%d)=%.16e;\n", i+1, pcdata->residues->val[i]);
     }
-    fprintf(stdout,"\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n");
+    //fprintf(stdout,"\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n");
+
     /* --------------------------------------------- */
     // scaling stiffness matrix
     pcdata->scaled_A = dcsr_create_p(m, n, nnz);
@@ -496,7 +497,7 @@ precond* create_precond_ra(dCSRmat *A,
         fprintf(stdout,"\nrow, col, nnz: %d, %d, %d \n", pcdata->mgl[i][0].A.row, pcdata->mgl[i][0].A.col, pcdata->mgl[i][0].A.nnz);
         for (ii=0; ii < pcdata->mgl[i][0].A.row; ++ii) {
             fprintf(stdout, "\n");
-            for (jj = pcdata->mgl[i][0].A.IA[i]; jj < pcdata->mgl[i][0].A.IA[i+1]; ++jj) {
+            for (jj = pcdata->mgl[i][0].A.IA[ii]; jj < pcdata->mgl[i][0].A.IA[ii+1]; ++jj) {
                 fprintf(stdout, "%.16e\t", pcdata->mgl[i][0].A.val[jj]);
             }
         } // end for js
@@ -531,7 +532,10 @@ precond* create_precond_ra(dCSRmat *A,
     //------------------------------------------------
     // setup preconditioner data
     //------------------------------------------------
-    pcdata->amgparam = amgparam;
+    pcdata->amgparam = (AMG_param*)malloc(sizeof(AMG_param));
+    param_amg_init(pcdata->amgparam);
+    param_amg_cp(amgparam, pcdata->amgparam);
+    //pcdata->amgparam = amgparam;
 
     // save scaled alpha and beta
     pcdata->scaled_alpha = scaled_alpha;
@@ -741,22 +745,27 @@ precond* create_precond_hxcurl(dCSRmat *Acurl,
         return 0;
     }
 
+    // copy amgparam (this is for swig)
+    AMG_param *amgparam2 = (AMG_param*)malloc(sizeof(AMG_param));
+    param_amg_init(amgparam2);
+    param_amg_cp(amgparam, amgparam2);
+
     /*------------------------*/
-    pcdata->A = Acurl;
+    pcdata->A = dcsr_create_p(Acurl->col, Acurl->row, Acurl->nnz); dcsr_cp(Acurl, pcdata->A);
 
     pcdata->smooth_type = 1;
     pcdata->smooth_iter = 1;
 
-    pcdata->P_curl = Pcurl;
+    pcdata->P_curl = dcsr_create_p(Pcurl->col, Pcurl->row, Pcurl->nnz); dcsr_cp(Pcurl, pcdata->P_curl);
     pcdata->Pt_curl = Pt_curl;
     pcdata->A_vgrad = A_vgrad;
-    pcdata->amgparam_vgrad = amgparam;
+    pcdata->amgparam_vgrad = amgparam2;
     pcdata->mgl_vgrad = mgl_vgrad;
 
-    pcdata->Grad = Grad;
+    pcdata->Grad = dcsr_create_p(Grad->col, Grad->row, Grad->nnz); dcsr_cp(Grad, pcdata->Grad);
     pcdata->Gradt = Gradt;
     pcdata->A_grad = A_grad;
-    pcdata->amgparam_grad = amgparam;
+    pcdata->amgparam_grad = amgparam2;
     pcdata->mgl_grad = mgl_grad;
 
     pcdata->backup_r = (REAL*)calloc(Acurl->row, sizeof(REAL));
@@ -880,29 +889,34 @@ precond* create_precond_hxdiv_3D(dCSRmat *Adiv,
         return 0;
     }
 
+    // copy amgparam (this is for swig)
+    AMG_param *amgparam2 = (AMG_param*)malloc(sizeof(AMG_param));
+    param_amg_init(amgparam2);
+    param_amg_cp(amgparam, amgparam2);
+
     /*------------------------*/
     // setup preconditioner
-    pcdata->A = Adiv;
+    pcdata->A = dcsr_create_p(Adiv->col, Adiv->row, Adiv->nnz); dcsr_cp(Adiv, pcdata->A);
 
     pcdata->smooth_type = 1;
     pcdata->smooth_iter = 1;
 
-    pcdata->P_curl = P_curl;
+    pcdata->P_curl = dcsr_create_p(P_curl->col, P_curl->row, P_curl->nnz); dcsr_cp(P_curl, pcdata->P_curl);
     pcdata->Pt_curl = Pt_curl;
-    pcdata->P_div = P_div;
+    pcdata->P_div = dcsr_create_p(P_div->col, P_div->row, P_div->nnz); dcsr_cp(P_div, pcdata->P_div);
     pcdata->Pt_div = Pt_div;
-    pcdata->Curl = Curl;
+    pcdata->Curl = dcsr_create_p(Curl->col, Curl->row, Curl->nnz); dcsr_cp(Curl, pcdata->Curl);;
     pcdata->Curlt = Curlt;
     pcdata->A_curlgrad = A_curlgrad;
     pcdata->A_divgrad = A_divgrad;
-    pcdata->amgparam_curlgrad = amgparam;
+    pcdata->amgparam_curlgrad = amgparam2;
     pcdata->mgl_curlgrad = mgl_curlgrad;
-    pcdata->amgparam_divgrad = amgparam;
+    pcdata->amgparam_divgrad = amgparam2;
     pcdata->mgl_divgrad = mgl_divgrad;
 
     pcdata->A_curl = A_curl;
     pcdata->A_grad = NULL;
-    pcdata->amgparam_grad = amgparam;
+    pcdata->amgparam_grad = amgparam2;
     pcdata->mgl_grad = NULL;
 
     pcdata->backup_r = (REAL*)calloc(Adiv->row, sizeof(REAL));
@@ -1020,28 +1034,33 @@ precond* create_precond_hxdiv_2D(dCSRmat *Adiv,
         return 0;
     }
 
+    // copy amgparam (this is for swig)
+    AMG_param *amgparam2 = (AMG_param*)malloc(sizeof(AMG_param));
+    param_amg_init(amgparam2);
+    param_amg_cp(amgparam, amgparam2);
+
     /*------------------------*/
     // setup preconditioner
-    pcdata->A = Adiv;
+    pcdata->A = dcsr_create_p(Adiv->col, Adiv->row, Adiv->nnz); dcsr_cp(Adiv, pcdata->A);
 
     pcdata->smooth_type = 1;
     pcdata->smooth_iter = 1;
 
     pcdata->P_curl = NULL;
     pcdata->Pt_curl = NULL;
-    pcdata->P_div = P_div;
+    pcdata->P_div = dcsr_create_p(P_div->col, P_div->row, P_div->nnz); dcsr_cp(P_div, pcdata->P_div);
     pcdata->Pt_div = Pt_div;
-    pcdata->Curl = Curl;
+    pcdata->Curl = dcsr_create_p(Curl->col, Curl->row, Curl->nnz); dcsr_cp(Curl, pcdata->Curl);;
     pcdata->Curlt = Curlt;
     pcdata->A_curlgrad = NULL;
     pcdata->A_divgrad = A_divgrad;
     pcdata->amgparam_curlgrad = NULL;
     pcdata->mgl_curlgrad = NULL;
-    pcdata->amgparam_divgrad = amgparam;
+    pcdata->amgparam_divgrad = amgparam2;
     pcdata->mgl_divgrad = mgl_divgrad;
     pcdata->A_curl = NULL;
     pcdata->A_grad = A_grad;
-    pcdata->amgparam_grad = amgparam;
+    pcdata->amgparam_grad = amgparam2;
     pcdata->mgl_grad = mgl_grad;
 
     pcdata->backup_r = (REAL*)calloc(Adiv->row, sizeof(REAL));
@@ -1069,6 +1088,14 @@ void apply_precond(REAL *r, REAL *z, precond *pc)
     //printf("done calling pc->fct \n");
 
 }
+/*
+void print_precond_ra_amgparam(precond *pc)
+{
+    precond_ra_data *pcdata = (precond_ra_data*)pc->data;
+    param_amg_print(pcdata->amgparam);
+    //param_amg_init(pcdata->amgparam);
+    //param_amg_print(pcdata->amgparam);
+}*/
 
 PyObject* py_callback_setup(PyObject* pyfunc, AMG_param *amgparam)
 {
