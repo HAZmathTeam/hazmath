@@ -4,7 +4,7 @@
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  *  \note: modified by Xiaozhe Hu on 10/29/2016
- *  \note: done cleanup for releasing -- Xiaozhe Hu 10/30/2016
+ *  \note: done cleanup for releasing -- Xiaozhe Hu 10/30/2016 & 08/28/2021
  *
  */
 
@@ -678,4 +678,3 @@ void dvec_inv(dvector *x)
 /***********************************************************************************************/
 
 /********************************** END *************************************************/
-

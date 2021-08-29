@@ -3,11 +3,26 @@
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 5/13/17.
  *  Copyright 2017__HAZMATH__. All rights reserved.
  *
- *\note: sorting routines: straight insert sort.
+ *  \note: sorting routines: straight insert sort.
+ *  \note: done cleanup for releasing -- Xiaozhe Hu 08/28/2021
  */
 /********************************************************************/
 #include "hazmath.h"
+
 /***************************************************************/
+/*!
+ * \fn void dlexsort(const INT nr, const INT nc,REAL *a, INT *p)
+ *
+ * \brief implements STRAIGHT INSERT sorting to order lexicographically nr
+ names with nc components each.
+ *
+ * \param nr    Number of names
+ * \param nc    Number of components
+ * \param a     Pointer to the array (OUTPUT)
+ * \param p     Pointer to the permutation
+ *
+ *
+ */
 void dlexsort(const INT nr, const INT nc,REAL *a,INT *p)
 {
   /* REAL NUMBERS; identical below for ints. It can be combined later
@@ -53,7 +68,21 @@ void dlexsort(const INT nr, const INT nc,REAL *a,INT *p)
   if(aj) free(aj);
   return;
 }
+
 /*********************************************************************/
+/*!
+ * \fn void ilexsort(const INT nr, const INT nc, INT *a, INT *p)
+ *
+ * \brief implements STRAIGHT INSERT sorting to order lexicographically nr
+ names with nc components each.
+ *
+ * \param nr    Number of names
+ * \param nc    Number of components
+ * \param a     Pointer to the integer array (OUTPUT)
+ * \param p     Pointer to the permutation
+ *
+ *
+ */
 void ilexsort(const INT nr, const INT nc,INT *a,INT *p)
 {
   /* INT NUMBERS; identical above for reals. It can be combined later into one.
@@ -99,8 +128,19 @@ void ilexsort(const INT nr, const INT nc,INT *a,INT *p)
   if(aj) free(aj);
   return;
 }
+
 /***************************************************************/
 /*STRAIGHT INSERT sort */
+/*!
+ * \fn void isi_sort(INT n, INT *a)
+ *
+ * \brief implements STRAIGHT INSERT sorting
+ *
+ * \param n    Number of components
+ * \param a    Pointer to the integer array (OUTPUT)
+ *
+ *
+ */
 void isi_sort(INT n, INT *a)
 {
 //implements STRAIGHT  INSERT sort for integers
@@ -116,6 +156,18 @@ void isi_sort(INT n, INT *a)
   }
   return;
 }
+
+/***************************************************************/
+/*!
+ * \fn void dsi_sort(INT n, REAL *a)
+ *
+ * \brief implements STRAIGHT INSERT sorting
+ *
+ * \param n    Number of components
+ * \param a    Pointer to the REAL array (OUTPUT)
+ *
+ *
+ */
 void dsi_sort(INT n, REAL *a)
 {
 //implements STRAIGHT  INSERT sort for REAL
@@ -132,6 +184,18 @@ void dsi_sort(INT n, REAL *a)
   }
   return;
 }
+
+/***************************************************************/
+/*!
+ * \fn void qsi_sort(INT n, REAL16 *a)
+ *
+ * \brief implements STRAIGHT INSERT sorting
+ *
+ * \param n    Number of components
+ * \param a    Pointer to the REAL16 array (OUTPUT)
+ *
+ *
+ */
 void qsi_sort(INT n, REAL16 *a)
 {
 //implements STRAIGHT  INSERT sort for REAL
@@ -148,10 +212,23 @@ void qsi_sort(INT n, REAL16 *a)
   }
   return;
 }
+
+/***************************************************************/
+/*!
+ * \fn void isi_sortp(const INT n, INT *a, INT *p, INT *invp)
+ *
+ * \brief //implements STRAIGHT INSERT sort for integers, returns prmutation and
+ //inverse permutation.
+ *
+ * \param n     Number of components
+ * \param a     Pointer to the integer array
+ * \param p     Pointer to the permutation
+ * \param invp  Pointer to the inverse permutation
+ *
+ *
+ */
 void isi_sortp(const INT n, INT *a, INT *p, INT *invp)
 {
-//implements STRAIGHT INSERT sort for integers, returns prmutation and
-//inverse permutation.
   INT i,j,aj,pj;
   for (i = 0; i < n; i++){p[i]=i;}
   for (j = 1; j < n; j++){
@@ -168,9 +245,22 @@ void isi_sortp(const INT n, INT *a, INT *p, INT *invp)
   }
   return;
 }
+
+/***************************************************************/
+/*!
+ * \fn void dsi_sortp(const INT n, REAL *a, INT *p, INT *invp)
+ *
+ * \brief implements STRAIGHT INSERT sort for REALs, returns prmutation and
+ //inverse permutation.
+ *
+ * \param n     Number of components
+ * \param a     Pointer to the REAL array
+ * \param p     Pointer to the permutation
+ * \param invp  Pointer to the inverse permutation
+ *
+ *
+ */
 void dsi_sortp(const INT n, REAL *a, INT *p, INT *invp)
-//implements STRAIGHT INSERT sort for REALs, returns prmutation and
-//inverse permutation.
 {
   INT i,j,pj;
   REAL aj;

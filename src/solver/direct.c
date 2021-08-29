@@ -5,6 +5,8 @@
  *
  * \brief Direct Solver methods -- for now just using UMFPACK Solvers
  *
+ * \note   Done cleanup for releasing -- Xiaozhe Hu 08/28/2021
+ *
  */
 
 #include "hazmath.h"
@@ -13,7 +15,7 @@
 #include "umfpack.h"
 #endif
 
-// dCSRmat Routines
+/***********************************************************************************************/
 /**
  * \fn directsolve_UMF(dCSRmat *A,dvector *f,dvector *x,INT print_level)
  *
@@ -84,6 +86,7 @@ INT directsolve_UMF(dCSRmat *A,
 #endif
 }
 
+/***********************************************************************************************/
 /**
  * \fn void* factorize_UMF(dCSRmat *A,INT print_level)
  *
@@ -91,8 +94,11 @@ INT directsolve_UMF(dCSRmat *A,
  * \note This routine does factorization only.
  *
  * \param A	       	        Matrix A to be solved (no need of transpose)
+ * \param print_level       Flag to print messages to screen
  *
  * \return Numeric	        Stores LU decomposition of A
+ *
+ * \author    Xiaozhe Hu
  *
  */
 void* factorize_UMF(dCSRmat *A,
@@ -133,6 +139,7 @@ void* factorize_UMF(dCSRmat *A,
 #endif
 }
 
+/***********************************************************************************************/
 /**
  * \fn INT solve_UMF(dCSRmat *A,dvector *f,dvector *x, void* Numeric, INT print_level)
  *
@@ -146,7 +153,9 @@ void* factorize_UMF(dCSRmat *A,
  * \param Numeric           LU decomposition of A
  * \param print_level       Flag to print messages to screen
  *
- * \return x	         	Solution
+ * \return x	         	    Solution
+ *
+ * \author Xiaozhe Hu
  *
  */
 INT solve_UMF(dCSRmat *A,
@@ -194,7 +203,7 @@ INT solve_UMF(dCSRmat *A,
 #endif
 }
 
-// block_dCSRmat routines
+/***********************************************************************************************/
 /**
  * \fn block_directsolve_UMF(block_dCSRmat *bA,dvector *f,dvector *x,INT print_level)
  *
@@ -203,7 +212,7 @@ INT solve_UMF(dCSRmat *A,
  *       efficient if you want to solve the same matrix system many times, since it will not
  *       save the factorization.
  *
- * \param A	       	        Matrix A to be solved
+ * \param bA	       	      Matrix A to be solved
  * \param f	       	        Right hand side vector
  * \param print_level       Flag to print messages to screen
  *
@@ -236,13 +245,14 @@ INT block_directsolve_UMF(block_dCSRmat *bA,
 #endif
 }
 
+/***********************************************************************************************/
 /**
  * \fn void* block_factorize_UMF(block_dCSRmat *bA,INT print_level)
  *
  * \brief Performs factorization of A using UMFPACK (Assumes A is in block_dCSR format)
  * \note This routine does factorization only.
  *
- * \param A	       	        Matrix A to be solved (no need of transpose)
+ * \param bA	       	        Matrix A to be solved (no need of transpose)
  *
  * \return Numeric	        Stores LU decomposition of A
  *
@@ -272,6 +282,7 @@ void* block_factorize_UMF(block_dCSRmat *bA,
 #endif
 }
 
+/***********************************************************************************************/
 /**
  * \fn INT block_solve_UMF(block_dCSRmat *bA,dvector *f,dvector *x, void* Numeric, INT print_level)
  *
@@ -315,6 +326,7 @@ INT block_solve_UMF(block_dCSRmat *bA,
 }
 
 // Suitesparse routines - assumes conversions have been done
+/***********************************************************************************************/
 /**
  * \fn void* umfpack_factorize (dCSRmat *ptrA, const SHORT prtlvl)
  * \brief factorize A by UMFpack

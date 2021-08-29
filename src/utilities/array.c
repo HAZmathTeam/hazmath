@@ -10,7 +10,6 @@
 
 #include "hazmath.h"
 
-/*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx*/
 /****************************************************************************************/
 /*!
  * \fn INT darray_max(INT n, const REAL *u)
@@ -121,6 +120,7 @@ INT iarray_min(INT n, const INT *u)
   }
   return i_min;
 }
+
 /***********************************************************************************************/
 /*!
  * \fn INT locate0(INT needle, INT *haystack, INT n)
@@ -141,6 +141,7 @@ INT locate0(INT needle, INT *haystack, INT n)
       return i;
   return -1;
 }
+
 /***********************************************************************************************/
 /*!
  * \fn void array_null (REAL *x)

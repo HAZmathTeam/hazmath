@@ -4,7 +4,7 @@
  *  Copyright 2016__HAZMATH__. All rights reserved.
  *
  *  \note: modified by Xiaozhe Hu on 10/28/2016
- *  \note: done cleanup for releasing -- Xiaozhe Hu 10/28/2016
+ *  \note: done cleanup for releasing -- Xiaozhe Hu 10/28/2016 & 08/28/2021
  *
  */
 
@@ -327,7 +327,7 @@ SHORT dcsr_2_dcoo (dCSRmat *A,
  *
  * \param A   Pointer to dCSRmat matrix
  *
- * \return SUCCESS if successful; 
+ * \return SUCCESS if successful;
  *
  * \note the input matrix A is overwritten with the new CSR matrix
  *       which has no repetitions in the column indices and the value
@@ -356,8 +356,8 @@ SHORT dcsr_unique (dCSRmat *A)
       ih=ia[i+1]-ia[i];
       if(maxdeg<ih) maxdeg=ih;
     }
-    REAL *atmp=calloc(maxdeg,sizeof(REAL));    
-    INT *jatmp=calloc(maxdeg,sizeof(INT));    
+    REAL *atmp=calloc(maxdeg,sizeof(REAL));
+    INT *jatmp=calloc(maxdeg,sizeof(INT));
     nnz=0;
     for (i=0;i<m;++i){
       // loop over each row. first find the length of the row:
@@ -371,7 +371,7 @@ SHORT dcsr_unique (dCSRmat *A)
 	if(ind[j]<0){
 	  ind[j]=ij;
 	} else {
-	  norepeat=0; // we have a repeated index. 
+	  norepeat=0; // we have a repeated index.
 	  atmp[ind[j]]+=atmp[ij];
 	  jatmp[ij]=-abs(jatmp[ij]+1);
 	}
@@ -385,7 +385,7 @@ SHORT dcsr_unique (dCSRmat *A)
       if(norepeat) continue; // do nothing if no indices repeat.
       // put everything back, but now we have negative column indices
       // on the repeated column indices and we have accumulated the
-      // values in the first position of j on every row. 
+      // values in the first position of j on every row.
       memcpy(&ja[ia[i]],jatmp,ih*sizeof(INT));
       memcpy(&a[ia[i]],atmp,ih*sizeof(REAL));
     }
@@ -474,7 +474,7 @@ dCSRmat *dcoo_2_dcsr_p (dCOOmat *A)
 {
     // get size
     const INT m=A->row, n=A->col, nnz=A->nnz;
-    // allocate 
+    // allocate
     dCSRmat *B=dcsr_create_p(m,n,nnz);
     // local variable
     INT *ia = B->IA;

@@ -4,7 +4,7 @@
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  *  \note: modified by Xiaozhe Hu on 10/29/2016
- *  \note: done cleanup for releasing -- Xiaozhe Hu 10/29/2016
+ *  \note: done cleanup for releasing -- Xiaozhe Hu 10/29/2016 & 08/28/2021
  *
  *  \todo: check errors at the end -- Xiaozhe Hu
  *
@@ -12,12 +12,23 @@
 
 #include "hazmath.h"
 
+/***********************************************************************************************/
+/*!
+ * \fn input_param *param_input_p (const char *filenm)
+ *
+ * \brief Read input parameters from disk file
+ *
+ * \param filenm   Pointer to file name of the input file
+ * \param inparam     Pointet to input_param structure (OUTPUT)
+ *
+ */
 input_param *param_input_p(const char *filenm)
 {
   input_param *inparam=malloc(1*sizeof(input_param));
   param_input(filenm,inparam);
   return inparam;
 }
+
 /***********************************************************************************************/
 /*!
  * \fn void param_input (const char *filenm, input_param *inparam)

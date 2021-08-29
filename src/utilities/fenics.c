@@ -15,7 +15,7 @@
 /*---------------------------------*/
 /*--      Private Functions      --*/
 /*---------------------------------*/
-
+/***********************************************************************************************/
 /**
  * \fn inline static REAL16 frac_inv(REAL16 x, void *param)
  * \brief inverse of the
@@ -678,7 +678,7 @@ INT fenics_precond_ra_data_setup(dCSRmat *A,
       polez=pcdata->poles->val[i];
       if(polez>0e0){
 	fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Positive pole in function=%s", \
-		__FUNCTION__);      
+		__FUNCTION__);
 	fprintf(stdout,"\n%%%%%%  0 < pole(%d)=%.16e\n", i, polez);
 	break;
       }
@@ -691,7 +691,7 @@ INT fenics_precond_ra_data_setup(dCSRmat *A,
       for(i = 0; i < k-1; ++i)
 	fprintf(stdout,"pole(%d)=%.16e;\n", i+1, pcdata->poles->val[i]);
       fprintf(stdout,"\n%%%%%%  RESIDUES:\n");
-      for(i = 0; i < k; ++i) 
+      for(i = 0; i < k; ++i)
         fprintf(stdout,"res(%d)=%.16e;\n", i+1, pcdata->residues->val[i]);
     }
     fprintf(stdout,"\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n");*/
@@ -918,7 +918,7 @@ HX_curl_data *HX_curl_data_alloc(SHORT max_size)
 
 /***********************************************************************************************/
 /*!
- * \fn void fenics_HX_curl_data_setup(dCSRmat *Acurl, dCSRmat *Pcurl, dCSRmat *Grad, 
+ * \fn void fenics_HX_curl_data_setup(dCSRmat *Acurl, dCSRmat *Pcurl, dCSRmat *Grad,
  *                                    AMG_param *amgparam, HX_curl_data *hxcurldata)
  *
  * \brief Setup HX_curl_data structure for HX curl precond
@@ -935,10 +935,10 @@ HX_curl_data *HX_curl_data_alloc(SHORT max_size)
  * \date            2021-03-18
  * TODO: CHANGE LOCAL MATRICES INTO POINTERS!!
  */
-int fenics_HX_curl_data_setup(dCSRmat *Acurl, 
-                              dCSRmat *Pcurl, 
+int fenics_HX_curl_data_setup(dCSRmat *Acurl,
+                              dCSRmat *Pcurl,
                               dCSRmat *Grad,
-                              AMG_param *amgparam, 
+                              AMG_param *amgparam,
                               HX_curl_data *hxcurldata)
 {
     const SHORT prtlvl = amgparam->print_level;
@@ -948,7 +948,7 @@ int fenics_HX_curl_data_setup(dCSRmat *Acurl,
     /* Local Variables */
     /*------------------------*/
     INT      status = SUCCESS;
-    
+
     /*------------------------*/
     /* setup vector Laplacian */
     /*------------------------*/
@@ -1056,7 +1056,7 @@ int fenics_HX_curl_data_setup(dCSRmat *Acurl,
 
     hxcurldata->backup_r = (REAL*)calloc(Acurl->row, sizeof(REAL));
     hxcurldata->w = (REAL*)calloc(Acurl->row, sizeof(REAL));
-    
+
     return 1;
 }
 
@@ -1109,13 +1109,13 @@ HX_div_data *HX_div_data_alloc(SHORT max_size)
  * \date            2021-03-18
  * TODO: CHANGE LOCAL MATRICES INTO POINTERS!!
  */
-int fenics_HX_div_data_3D_setup(dCSRmat *Adiv, 
-                                dCSRmat *P_div, 
+int fenics_HX_div_data_3D_setup(dCSRmat *Adiv,
+                                dCSRmat *P_div,
                                 dCSRmat *Curl,
                                 dCSRmat *P_curl,
-                                AMG_param *amgparam, 
+                                AMG_param *amgparam,
                                 HX_div_data *hxdivdata)
-{   
+{
     const SHORT prtlvl = amgparam->print_level;
     const SHORT max_levels = amgparam->max_levels;
 

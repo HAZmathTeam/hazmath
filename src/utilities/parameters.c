@@ -4,18 +4,28 @@
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  *  \note: modified by Xiaozhe Hu on 10/27/2016
- *  \note: done cleanup for releasing -- Xiaozhe Hu 10/28/2016
+ *  \note: done cleanup for releasing -- Xiaozhe Hu 10/28/2016 & 08/28/2021
  *
  */
 
 #include "hazmath.h"
 
+/*************************************************************************************/
+/*!
+ * \fn input_param *param_input_initP()
+ *
+ * \brief Initialize input parameters
+ *
+ * \return inparam    Pointer to input_param structure
+ *
+ */
 input_param *param_input_init_p()
 {
   input_param *inparam=malloc(1*sizeof(input_param));
   param_input_init (inparam);
   return inparam;
 }
+
 /*************************************************************************************/
 /*!
  * \fn void param_input_init (input_param *inparam)
@@ -347,6 +357,7 @@ void param_amg_set (AMG_param *amgparam,
  *
  * \note maybe the order of pointers should be switched, but I don't know what is
  *       the convention in hazmath  -- Ana
+ * \note the order is okay -- Xiaozhe
  */
 void param_amg_cp (AMG_param *amgparam1,
                    AMG_param *amgparam2)
@@ -403,6 +414,7 @@ void param_amg_cp (AMG_param *amgparam1,
 
 }
 
+/*************************************************************************************/
 /**
  * \fn void param_Schwarz_set (Schwarz_param *schparam, input_param *iniparam)
  *

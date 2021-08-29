@@ -1286,7 +1286,7 @@ scomplex *hazr(char *namein)
      read a hazmath mesh file.
      *******************************************    */
   fscanf(fmeshin,"%i %i %i %i\n",&ns,&nv,&dim,&nholes);
-  scomplex *sc = (scomplex *)haz_scomplex_init(dim,ns,nv,dim); // cannot read different dimensions. 
+  scomplex *sc = (scomplex *)haz_scomplex_init(dim,ns,nv,dim); // cannot read different dimensions.
   INT dim1=sc->n+1;
   for (j=0;j<dim1;j++) {
     for (k=0;k<ns;k++){

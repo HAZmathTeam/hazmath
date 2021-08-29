@@ -565,7 +565,7 @@ typedef struct {
     HX_div_data **hxdivdata; /**< HX data for the diagonal DIV blocks */
 
     /*------------------------------*/
-    /* Data for mixed Darcy flow only!! */
+    /* Data for mesh infomation */
     /*------------------------------*/
     dvector *el_vol;   /**< volume of each element */
 
