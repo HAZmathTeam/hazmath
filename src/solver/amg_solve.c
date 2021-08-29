@@ -5,19 +5,11 @@
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 12/24/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
- * \note   Done cleanup for releasing -- Xiaozhe Hu 03/12/2017
+ * \note   Done cleanup for releasing -- Xiaozhe Hu 03/12/2017 & 08/27/2021
  *
  */
 
 #include "hazmath.h"
-/*! \file itsolver_util.inl
- *
- *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 5/13/15.
- *  Copyright 2015__HAZMATH__. All rights reserved.
- *
- *  \note  Done cleanup for releasing -- Xiaozhe Hu 03/12/2017
- *
- */
 
 /*---------------------------------*/
 /*--      Private Functions      --*/
@@ -59,6 +51,7 @@
 //! Output L2 norm of some variable
 #define ITS_PUTNORM(name,value) printf("L2 norm of %s = %e.\n",(name),(value));
 
+/***********************************************************************************************/
 /**
  * \fn inline static void ITS_CHECK (const INT MaxIt, const REAL tol)
  * \brief Safeguard checks to prevent unexpected error for iterative solvers
@@ -92,7 +85,6 @@ inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres
         printf("### HAZMATH WARNING: Max iter %d reached with rel. resid. %e.\n", MaxIt, relres);
     }
     else if ( iter >= 0 ) {
-      //printf("Number of iterations = %d with relative residual %e (in %s)\n", iter, relres,"amg_solve.c");
       printf("Num_iter(amg_solve.c) = %d with relative residual %e.\n", iter, relres);
     }
 }
@@ -100,6 +92,7 @@ inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres
 /*---------------------------------*/
 /*--      Public Functions       --*/
 /*---------------------------------*/
+/***********************************************************************************************/
 /**
  * \fn INT amg_solve (AMG_data *mgl, AMG_param *param)
  *
@@ -165,7 +158,7 @@ INT amg_solve(AMG_data *mgl,
     return iter;
 }
 
-
+/***********************************************************************************************/
 /**
  * \fn INT amg_solve_amli (AMG_data *mgl, AMG_param *param)
  *
@@ -239,6 +232,7 @@ INT amg_solve_amli (AMG_data *mgl,
     return iter;
 }
 
+/***********************************************************************************************/
 /**
  * \fn INT amg_solve_nl_amli(AMG_data *mgl, AMG_param *param)
  *
@@ -308,123 +302,7 @@ INT amg_solve_nl_amli(AMG_data *mgl,
     return iter;
 }
 
-/*---------------------------------*/
-/*--   GEOMETRIC **MOVE LATER**  --*/
-/*---------------------------------*/
-/**
- * \fn INT mg_solve_blk (MG_blk_data *mgl, AMG_param *param)
- *
- * \brief Solve phase for AMG method (as standard alone iterative solver)
- *
- * \param mgl    Pointer to AMG data: AMG_data
- * \param param  Pointer to AMG parameters: AMG_param
- *
- * \return       Iteration number if converges; ERROR otherwise.
- *
- */
-INT mg_solve_blk(MG_blk_data *mgl,
-              AMG_param *param,
-              REAL* rho1,
-              REAL* rho2)
-{ 
-    dvector      *b = &mgl[0].b, *x = &mgl[0].x, *r = &mgl[0].w;
 
-    const SHORT   prtlvl = param->print_level;
-    const INT     MaxIt  = param->maxit;
-    const REAL    tol    = param->tol;
-    //const REAL    sumb   = dvec_norm2(b);
-    const REAL    sumb   =1.0;// dvec_norm2(x);
-
-    // local variables
-    REAL  solve_start, solve_end;
-    REAL  relres1 = BIGREAL, absres0 = sumb, absres, factor;
-    INT   iter = 0;
-    REAL  fac10[10];
-    REAL  avgFac;
-
-    // PERIODIC STUFF
-    INT i;
-    if(mgl[0].periodic_BC){
-      b->row=0;
-      for(i=0; i<mgl[0].A.brow; i++){
-      b->row += mgl[0].A.blocks[i+i*mgl[0].A.brow]->row;
-      }
-      x->row = b->row;
-      r->row = b->row;
-    }
-
-    dvector r0 = dvec_create(b->row);
-    dvec_cp(b,&r0);
-    bdcsr_aAxpy(-1.0,&mgl[0].A,x->val,r0.val);
-    REAL res0 = dvec_norm2(&r0);
-    printf("-------------------------RESINIT: %e\n",res0);
-
-    get_time(&solve_start);
-
-    // Print iteration information if needed
-    print_itsolver_info(prtlvl, STOP_REL_RES, iter, 1.0, sumb, 0.0);
-    
-    // Main loop
-    while ( (++iter <= MaxIt) & (sumb > SMALLREAL) ) {
-
-        // Call one multigrid cycle
-        mgcycle_block(mgl, param);
-
-        // Form residual r = b - A*x
-        dvec_cp(b, r);
-        bdcsr_aAxpy(-1.0, &mgl[0].A, x->val, r->val);
-
-        // Compute norms of r and convergence factor
-        absres  = dvec_norm2(r);
-        relres1 = absres/sumb;
-        factor  = absres/absres0;
-        absres0 = absres;
-
-        // Print iteration information if needed
-        //print_itsolver_info(prtlvl, STOP_REL_RES, iter, relres1, absres, factor);
-        print_itsolver_info(prtlvl, STOP_REL_RES, iter, dvec_norm2(x), absres, factor);
-
-        *rho1 = factor;
-        fac10[iter%10] = factor;
-        *rho2 = pow(absres / res0, 1.0/iter);
-
-        //xn2 = xn1;
-        //xn1 = dvec_norm2(x);
-        if( iter>10 ){
-          avgFac=0.0;
-          for(i=0;i<10;i++){
-              avgFac+=fac10[i];
-          }
-          avgFac = avgFac/10;
-          printf("\t\t\t\t\t\t%f\n",avgFac);
-        }
-
-
-        // Check convergence
-        if ( relres1 < tol ) break;
-    }
-    avgFac=0.0;
-    for(i=0;i<10;i++){
-        avgFac+=fac10[i];
-    }
-    avgFac = avgFac/10;
-    printf("~~~~~~~~~~~~~~~~~~~~\nAverage convergence factor over 10 previous iterations: %f\n~~~~~~~~~~~~~~~~~~~~\n",avgFac);
-    printf("|| %e ||\n",dvec_norm2(x));
-    dvec_cp(x, r);
-    r->row = mgl[0].A.blocks[0]->row;
-    printf("|| %e ||\n",dvec_norm2(r));
-    *rho2 = avgFac;
-
-
-    if ( prtlvl > PRINT_NONE ) {
-        ITS_FINAL(iter, MaxIt, relres1);
-        get_time(&solve_end);
-        print_cputime("AMG solve",solve_end - solve_start);
-    }
-
-
-    return iter;
-}
 /*---------------------------------*/
 /*--        End of File          --*/
 /*---------------------------------*/

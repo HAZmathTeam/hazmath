@@ -4,7 +4,7 @@
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  *  \note modified by Xiaozhe Hu 10/27/2016
- *  \note: done cleanup for releasing -- Xiaozhe Hu 10/27/2016
+ *  \note: done cleanup for releasing -- Xiaozhe Hu 10/27/2016 & 08/28/2021
  *
  */
 
@@ -37,7 +37,7 @@ void precond_data_null (precond_data *pcdata)
     pcdata->amli_degree         = 2;
     pcdata->nl_amli_krylov_type = SOLVER_VFGMRES;
     pcdata->fpwr                = 1.0;
-    
+
     pcdata->amli_coef           = NULL;
     pcdata->mgl_data            = NULL;
     pcdata->A                   = NULL;
@@ -132,44 +132,11 @@ void amg_data_free(AMG_data *mgl,
     free(mgl->near_kernel_basis);
     mgl->near_kernel_basis = NULL;
 
-    //printf("hey-5\n");
-    //free(mgl); mgl = NULL;
-
     if (param != NULL) {
         if ( param->cycle_type == AMLI_CYCLE )
             free(param->amli_coef);
     }
 
-}
-
-/***********************************************************************************************/
-/*!
- * \fn MG_blk_data * mg_blk_data_create (SHORT max_levels)
- *
- * \brief Create MG_blk_data structure (but all values are 0 and pointers point to NULL)
- *
- * \param max_levels   Max number of levels allowed
- *
- * \return Pointer to the AMG_data structure
- *
- */
-MG_blk_data *mg_blk_data_create(SHORT max_levels)
-{
-    max_levels = MAX(1, max_levels); // at least allocate one level
-
-    MG_blk_data *mgl = (MG_blk_data *)calloc(max_levels,sizeof(MG_blk_data));
-
-    INT i;
-    for ( i=0; i<max_levels; ++i ) {
-        mgl[i].max_levels = max_levels;
-        mgl[i].num_levels = 0;
-        mgl[i].near_kernel_dim = 0;
-        mgl[i].near_kernel_basis = NULL;
-        mgl[i].cycle_type = 0;
-        mgl[i].periodic_BC = false;
-    }
-
-    return(mgl);
 }
 
 /***********************************************************************************************/
@@ -244,92 +211,7 @@ void HX_curl_data_free (HX_curl_data *hxcurldata,
 
 }
 
-/***********************************************************************************************/
-///*!
-// * \fn void HX_div_data_null(HX_div_data *hxdivdata)
-// *
-// * \brief Initalize HX_div_data structure (set values to 0 and pointers to NULL) (OUTPUT)
-// *
-// * \param hxdivdata    Pointer to the HX_div_data structure
-// *
-// */
-//void HX_div_data_null (HX_div_data *hxdivdata)
-//{
-//    hxdivdata->A                = NULL;
-//
-//    hxdivdata->smooth_type      = 0;
-//    hxdivdata->smooth_iter      = 0;
-//
-//    hxdivdata->P_curl           = NULL;
-//    hxdivdata->Pt_curl          = NULL;
-//    hxdivdata->P_div            = NULL;
-//    hxdivdata->Pt_div           = NULL;
-//    hxdivdata->A_curlgrad       = NULL;
-//    hxdivdata->A_divgrad        = NULL;
-//
-//    hxdivdata->amgparam_curlgrad  = NULL;
-//    hxdivdata->mgl_curlgrad       = NULL;
-//    hxdivdata->amgparam_divgrad  = NULL;
-//    hxdivdata->mgl_divgrad       = NULL;
-//
-//    hxdivdata->Grad            = NULL;
-//    hxdivdata->Gradt           = NULL;
-//    hxdivdata->Curl            = NULL;
-//    hxdivdata->Curlt           = NULL;
-//    hxdivdata->A_grad          = NULL;
-//    hxdivdata->A_curl          = NULL;
-//
-//    hxdivdata->amgparam_grad   = NULL;
-//    hxdivdata->mgl_grad        = NULL;
-//
-//    hxdivdata->backup_r        = NULL;
-//    hxdivdata->w               = NULL;
-//
-//}
-//
-///***********************************************************************************************/
-///*!
-// * \fn void HX_div_data_free (HX_div_data *hxdivdata, SHORT flag)
-// *
-// * \brief Free HX_div_data structure (set values to 0 and pointers to NULL)
-// *
-// * \param hxcurldata    Pointer to the HX_curl_data structure (OUTPUT)
-// * \param flag          flag of whether the date will be reused:
-// *                      flag = False - A, P_curl, and Grad will be reused
-// *                      flag = TRUE  - free everything
-// *
-// */
-//void HX_div_data_free (HX_div_data *hxdivdata,
-//                        SHORT flag)
-//{
-//    if (flag == TRUE) {
-//        dcsr_free(hxdivdata->A);
-//        dcsr_free(hxdivdata->P_curl);
-//        dcsr_free(hxdivdata->P_div);
-//        dcsr_free(hxdivdata->Curl);
-//        dcsr_free(hxdivdata->Grad);
-//    }
-//
-//    dcsr_free(hxdivdata->Pt_curl);
-//    dcsr_free(hxdivdata->Pt_div);
-//    dcsr_free(hxdivdata->Curlt);
-//    dcsr_free(hxdivdata->A_curlgrad);
-//    dcsr_free(hxdivdata->A_divgrad);
-//
-//    if (hxdivdata->mgl_curlgrad) amg_data_free(hxdivdata->mgl_curlgrad, hxdivdata->amgparam_curlgrad);
-//    if (hxdivdata->mgl_divgrad) amg_data_free(hxdivdata->mgl_divgrad, hxdivdata->amgparam_divgrad);
-//
-//    dcsr_free(hxdivdata->Gradt);
-//    dcsr_free(hxdivdata->Curlt);
-//    dcsr_free(hxdivdata->A_grad);
-//    dcsr_free(hxdivdata->A_curl);
-//
-//    if (hxdivdata->mgl_grad) amg_data_free(hxdivdata->mgl_grad, hxdivdata->amgparam_grad);
-//
-//    if (hxdivdata->backup_r) free(hxdivdata->backup_r);
-//    if (hxdivdata->w) free(hxdivdata->w);
-//
-//}
+
 
 /***********************************************************************************************/
 /*!
@@ -359,8 +241,6 @@ void HX_div_data_null (HX_div_data *hxdivdata)
     hxdivdata->amgparam_divgrad  = NULL;
     hxdivdata->mgl_divgrad       = NULL;
 
-    //hxdivdata->Grad            = NULL;
-    //hxdivdata->Gradt           = NULL;
     hxdivdata->Curl            = NULL;
     hxdivdata->Curlt           = NULL;
     hxdivdata->A_grad          = NULL;
@@ -394,7 +274,6 @@ void HX_div_data_free (HX_div_data *hxdivdata,
         dcsr_free(hxdivdata->P_curl);
         dcsr_free(hxdivdata->P_div);
         dcsr_free(hxdivdata->Curl);
-        //dcsr_free(hxdivdata->Grad);
     }
 
     dcsr_free(hxdivdata->Pt_curl);
@@ -406,13 +285,6 @@ void HX_div_data_free (HX_div_data *hxdivdata,
 
     if (hxdivdata->mgl_curlgrad) amg_data_free(hxdivdata->mgl_curlgrad, hxdivdata->amgparam_curlgrad);
     if (hxdivdata->mgl_divgrad) amg_data_free(hxdivdata->mgl_divgrad, hxdivdata->amgparam_divgrad);
-
-    //dcsr_free(hxdivdata->Gradt);
-    //dcsr_free(hxdivdata->Curlt);
-    //dcsr_free(hxdivdata->A_grad);
-    //dcsr_free(hxdivdata->A_curl);
-
-    //if (hxdivdata->mgl_grad) amg_data_free(hxdivdata->mgl_grad, hxdivdata->amgparam_grad);
 
     if (hxdivdata->backup_r) free(hxdivdata->backup_r);
     if (hxdivdata->w) free(hxdivdata->w);
@@ -435,6 +307,7 @@ void precond_null(precond *pcdata)
     pcdata->fct  = NULL;
 }
 
+/***********************************************************************************************/
 /**
  * \fn void precond_block_data_null(precond_block_data *precdata)
  *
@@ -467,7 +340,7 @@ void precond_block_data_null(precond_block_data *precdata)
     precdata->K = NULL;
     precdata->Gt = NULL;
     precdata->Kt = NULL;
-    
+
     precdata->scaled_M = NULL;
     precdata->diag_scaled_M = NULL;
     precdata->poles = NULL;
@@ -475,6 +348,7 @@ void precond_block_data_null(precond_block_data *precdata)
 
 }
 
+/***********************************************************************************************/
 /*!
  * \fn void precond_block_data_free(precond_block_data *precdata,SHORT flag)
  *
@@ -493,7 +367,6 @@ void precond_block_data_free(precond_block_data *precdata,
     for (i=0; i<nb; i++)
     {
 
-        //if(precdata->A_diag) dcsr_free(&precdata->A_diag[i]);
         if(precdata->diag) {
            if(precdata->diag[i]) dvec_free(precdata->diag[i]);
         }
@@ -548,7 +421,7 @@ void precond_block_data_free(precond_block_data *precdata,
       if(precdata->Gt) dcsr_free(precdata->Gt);
       if(precdata->Kt) dcsr_free(precdata->Kt);
     }
-    
+
     if(precdata->scaled_M) free(precdata->scaled_M);
     if(precdata->diag_scaled_M) free(precdata->diag_scaled_M);
     if(precdata->poles) free(precdata->poles);

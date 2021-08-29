@@ -4,12 +4,13 @@
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  *  \note: modified by Xiaozhe Hu on 10/30/2016
- *  \note: done cleanup for releasing -- Xiaozhe Hu 10/31/2016
+ *  \note: done cleanup for releasing -- Xiaozhe Hu 10/31/2016 & 08/28/2021
  *  \note: modified by James Adler on 02/22/2019 for 0-1 fix
  *  \note: modified by ludmil zikatanov on 20200412
  *
  */
 #include "hazmath.h"
+
 /***********************************************************************************************/
 /*!
  * \fn dCSRmat dcsr_create (const INT m, const INT n, const INT nnz)
@@ -2722,7 +2723,7 @@ void icsr_nodiag(iCSRmat *a)
 }
 /***********************************************************************************************/
 /**
- * \fn void icsr_nodiag(iCSRmat *a, const char loup)
+ * \fn void icsr_tri(iCSRmat *a, const char loup)
  *
  * \brief extracting the lower/upper triangle of an icsr matrix (done
  * in-place, a is overwritten also removes all zeros).
@@ -2903,6 +2904,7 @@ void bdcsr_alloc_minimal(const INT brow,
   return;
 }
 
+/***********************************************************************************************/
 /*!
    * \fn void bdcsr_alloc (const INT brow, const INT bcol, block_dCSRmat *A)
    *
@@ -2963,6 +2965,7 @@ void bdcsr_free_minimal(block_dCSRmat *A)
   return;
 }
 
+/***********************************************************************************************/
 /*!
    * \fn void bdcsr_free (block_dCSRmat *A)
    *
@@ -3778,6 +3781,7 @@ dCOOmat *dcoo_create_p(INT m,			\
   w+=nnz*realby; // end of it....
   return A;
 }
+
 /******************************************************************/
 /*!
  * \fn dvector dvec_create_p(const INT m)
@@ -3955,6 +3959,25 @@ void ivec_alloc_p(const INT m,ivector **u)
   *u=ivec_create_p(m);
   return;
 }
+
+/*******************************************************************/
+/*!
+ * \fn dCSRmat *dcsr_create_plus(const INT m, const INT n, const INT nnz
+                                 void *ia, void *ja, void *aij)
+ *
+ * \brief Create a dCSRmat sparse matrix. Uses void array for the arrays of the matrix
+ *
+ * \param m    Number of rows
+ * \param n    Number of columns
+ * \param nnz  Number of nonzeros
+ * \param ia   Pointer to the row pointer array of a dCSRmat matrix
+ * \param ja   Pointer to the column index array of a dCSRmat matrix
+ * \param aij  Pointer to the nonzeros array of a dCSRmat matrix
+ *
+ * \return A a pointer to a dCSRmat matrix. All of this matrix can be
+ *         freed by free((void *)A) or even free(A).
+ *
+ */
 dCSRmat *dcsr_create_plus(INT m,		\
 			  INT n,		\
 			  INT nnz,		\
@@ -3979,7 +4002,30 @@ dCSRmat *dcsr_create_plus(INT m,		\
   return a;
 }
 
-
+/**********************************************************************/
+/*!
+ * \fn void dcsr_alloc_plus(const INT m, const INT n, const INT nnz,
+ *                          void *ia, void *ja, void *aij, dCSRmat **A)
+ *
+ * \brief Allocate a dCSRmat sparse matrix and put the result in the
+ *        pointer pointed by A. Same as dCSRmat_create_p;us, but uses
+ *        realloc() to reallocate A.
+ *
+ * \param m    Number of rows
+ * \param n    Number of columns
+ * \param nnz  Number of nonzeros
+ * \param ia   Pointer to the row pointer array of a dCSRmat matrix
+ * \param ja   Pointer to the column index array of a dCSRmat matrix
+ * \param aij  Pointer to the nonzeros array of a dCSRmat matrix
+ *
+ * \return A a pointer to a an array of dCSRmat matrices with one
+ *         element. All of this matrix can be freed by free((void *)A)
+ *         or even just free(A).
+ *
+ *  \note: call as dCSRmat *X; dcsr_alloc_p(... &X) to reallocate *X
+ *         to desired length.
+ *         modified by ludmil zikatanov on 20200412
+ */
 void dcsr_alloc_plus(INT m, INT n, INT nnz, void *ia, void *ja, void *aij, dCSRmat *A)
 {
     A = malloc(1 * sizeof(dCSRmat)); // size of the struct
@@ -3998,7 +4044,19 @@ void dcsr_alloc_plus(INT m, INT n, INT nnz, void *ia, void *ja, void *aij, dCSRm
         A->val = (REAL *)realloc(NULL, nnz * sizeof(REAL));
 }
 
-
+/******************************************************************/
+/*!
+ * \fn dvector dvec_create_plus(const INT m, void *vi)
+ *
+ * \brief Create a dvector of given length: use void array to pack the
+ * structure in.
+ *
+ * \param m    length of the dvector
+ * \param vi   pointer to the dvector
+ *
+ * \return pointer to u   The new dvector
+ *
+ */
 dvector *dvec_create_plus(INT n,		\
 			 void *vi)
 {
@@ -4010,6 +4068,8 @@ dvector *dvec_create_plus(INT n,		\
     v->val=(REAL *)realloc(NULL,n*sizeof(REAL));
   return v;
  }
+
+ /******************************************************************/
 /**
  * \fn dcsr2full(dCSRmat *A, REAL *Afull)
  *
@@ -4355,7 +4415,7 @@ SHORT dcsr_sparse (dCSRmat *A, ivector *ii, ivector *jj, dvector *kk, INT m, INT
 
 /*****************************************************************************/
 /*!
- * \fn void uniqueij(iCSRmat *U, ivector *ii, ivector *jj)
+ * \fn void icsr_uniqueij(iCSRmat *U, ivector *ii, ivector *jj)
  *
  * \brief Form an iCSRmat U. Input column vectors ii, jj must be of
  *        equal lengths and be index vectors ranging from 0 to
@@ -4369,7 +4429,7 @@ SHORT dcsr_sparse (dCSRmat *A, ivector *ii, ivector *jj, dvector *kk, INT m, INT
  *
  * \note  Ludmil, Yuwen 20210606.
  */
-void uniqueij(iCSRmat *U, ivector *ii, ivector *jj)
+void icsr_uniqueij(iCSRmat *U, ivector *ii, ivector *jj)
 {
     // transform to CSR format
     INT i, j, nr = ii->row, nv=-1;

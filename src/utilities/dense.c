@@ -12,6 +12,8 @@
  *  \note: modified on 20171012 (Ludmil)
  *  \note: modified on 20210807 (Ludmil)
  *
+ *  \note: done cleanup for releasing -- Xiaozhe Hu 08/28/2021
+ *
  */
 
 #include "hazmath.h"
@@ -205,7 +207,7 @@ dDENSEmat ddense_random_JL(const INT k,
 /*!
 * \fn void find_det_4( REAL* A, REAL deta)
 *
-* \brief find det of 4x4 matrix using expansion by minors once, 
+* \brief find det of 4x4 matrix using expansion by minors once,
 			then direct computation of det of 3x3 matrices
 *
 * \param A            vectorized matrix (row-wise)
@@ -243,7 +245,7 @@ void find_det_4( REAL* A, REAL* deta)
  *
  **********************************************************************/
 /*!
- * \fn ddense_solve_pivot(INT dopivot, INT n, REAL *A, REAL *b,  
+ * \fn ddense_solve_pivot(INT dopivot, INT n, REAL *A, REAL *b,
  *                        INT *p,REAL *piv)
  *
  *
@@ -319,6 +321,7 @@ INT ddense_solve_pivot(INT dopivot, INT n, REAL *A, REAL *b, INT *p,REAL *piv)
   for(k=0;k<n;k++)b[k]=x[k];
   return 0;
 }
+
 /**************************************************************************/
 /*
  * \fn SHORT ddense_lu(INT n, REAL *deta, REAL *A,INT *p,REAL *piv)
@@ -701,7 +704,7 @@ INT ddense_qr_lapack(INT m,INT n, REAL *A,REAL * Q,REAL *R,INT computeR)
   // Frees
   if(tau) free(tau);
   if(dwork) free(dwork);
-  
+
   return info;
 
 #else
