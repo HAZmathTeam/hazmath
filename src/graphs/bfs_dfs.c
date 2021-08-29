@@ -552,21 +552,21 @@ iCSRmat *run_dfs(INT n, INT *ia, INT *ja)
     ipstrt=dfs->IA[i];
     ipend=dfs->IA[i+1];
     lp=(INT )((ipend-ipstrt)/2);
-    for(pos=0;pos<lp;++pos){
-      swp=dfs->JA[ipstrt+pos];
-      dfs->JA[ipstrt+pos]=dfs->JA[ipend-pos-1];
-      dfs->JA[ipend-pos-1]=swp;
-    }
     for(pos=ipstrt;pos<ipend;++pos){
       dfs->val[pos]=i+1;
     }
+    /* for(pos=0;pos<lp;++pos){ */
+    /*   swp=dfs->JA[ipstrt+pos]; */
+    /*   dfs->JA[ipstrt+pos]=dfs->JA[ipend-pos-1]; */
+    /*   dfs->JA[ipend-pos-1]=swp; */
+    /* } */
   }
   //  icsr_print_matlab(stdout,dfs);fflush(stdout);
-  for(i=0;i<dfs->row;++i){
-    for(pos=dfs->IA[i];pos<dfs->IA[i+1];++pos){
-      dfs->val[pos]=i+1;
-    }
-  }
+  /* for(i=0;i<dfs->row;++i){ */
+  /*   for(pos=dfs->IA[i];pos<dfs->IA[i+1];++pos){ */
+  /*     dfs->val[pos]=i+1; */
+  /*   } */
+  /* } */
   //  icsr_print_matlab(stdout,dfs);fflush(stdout);
   return dfs;
 }

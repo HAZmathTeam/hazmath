@@ -888,6 +888,7 @@ void fix_grid(macrocomplex *mc,		\
 	    for(k=0;k<dim;k++){
 	      if(pd[k]<0)
 		mwrk[abs(pd[k])-1]=mc->nd[jel][k]-mwrk[abs(pd[k])-1];
+	      m[k]=mwrk[abs(pd[k])-1]; // added later??? why???
 	    }
 	    for(k=0;k<dim;k++){
 	      //	      fprintf(stdout,"\nXXXXXXXXXXk=%d;pd[k]=%d;abspd_k=%d;\n",k,pd[k],abs(pd[k])-1);fflush(stdout);
