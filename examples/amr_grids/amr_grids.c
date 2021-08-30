@@ -51,7 +51,7 @@ INT main(INT   argc,   char *argv[])
     refine(ref_levels,sc,NULL);
   } else if(amr_marking_type==33){
 
-    REAL h = 1.0/128;  // step distance of points
+    REAL h = 0.05;  // step distance of points
     REAL threshold = h; // threshold for close to the points or not
     //
     nstar = g->num_refine_points;
