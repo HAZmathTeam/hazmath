@@ -33,6 +33,7 @@ examples/Maxwell/output/*.dat
 examples/Maxwell/output/*.pvd
 examples/ConvectionDiffusion/output/*.vtu
 examples/ConvectionDiffusion/output/*.dat
+examples/haznics/install_haznics.sh
 HAZMATH.config
 HAZMATH.creator
 HAZMATH.creator.user
