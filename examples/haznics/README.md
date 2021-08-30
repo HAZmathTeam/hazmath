@@ -3,8 +3,10 @@ Install additional packages required by the haznics demos:
 - in terminal, run ./install_haznics.sh
 
 # Running tests:
-
 source setup.rc
-
+cd tests/
 python3 test_haznics.py
 
+# Running demos, e.g. poisson:
+source setup.rc
+python3 poisson.py
