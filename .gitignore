@@ -1,6 +1,7 @@
 BUILD_HAZ
 lib/libhazmath.*
 include/hazmath.h
+include/haznics_add.h
 haz_docs/html_docs
 haz_docs/tex_docs
 haz_docs/html_docs/*.*
@@ -33,7 +34,6 @@ examples/Maxwell/output/*.dat
 examples/Maxwell/output/*.pvd
 examples/ConvectionDiffusion/output/*.vtu
 examples/ConvectionDiffusion/output/*.dat
-examples/haznics/install_haznics.sh
 HAZMATH.config
 HAZMATH.creator
 HAZMATH.creator.user
