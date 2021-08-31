@@ -32,9 +32,10 @@ For M, we use SOR method, i.e. M^ = SOR(M).
 """
 from dolfin import *
 from block import *
-from block.algebraic.petsc import SOR, AMG
-# from block.algebraic.hazmath import AMG
+from block.algebraic.petsc import SOR
+from block.algebraic.hazmath import AMG
 from block.iterative import MinRes
+import haznics
 
 mesh = UnitSquareMesh(32, 32)
 
@@ -66,7 +67,11 @@ A, rhs = block_assemble(a, L, bcs)
 B, _ = block_assemble(b, L, bcs)
 
 # build the preconditioner
-P = block_mat([[AMG(B[0, 0]),           0],
+params = {
+    'AMG_type': haznics.SA_AMG,
+    "aggregation_type": haznics.VMB,
+}
+P = block_mat([[AMG(B[0, 0]), 0],
                [          0, SOR(B[1, 1])]])
 
 # We don't want to solve too precisely since we have not accounted 
