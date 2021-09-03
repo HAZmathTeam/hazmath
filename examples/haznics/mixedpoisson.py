@@ -1,5 +1,5 @@
 """
-\file examples/haznics/mixed_poisson.py
+\file examples/haznics/mixedpoisson.py
 Created by Ana Budisa on 2021-08-30.
 Example copyright by bitbucket.org/fenics-apps/cbc.block.
 
