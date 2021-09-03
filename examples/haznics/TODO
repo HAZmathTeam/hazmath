@@ -1,48 +1,7 @@
-
-
-Just some brief comments
-
-0. 
+0.
 All packages, cbc.block, ulfy, hseig etc should have a spesific version we download. 
 Not git. Things will change down the line 
 
-1. DONE
-params: 
-   - it would be convenient with something like
-     init_param = input_param(inputfile="some_default_file_under_haznics")
-
-   - set_param should be in module haznics
-
-2.
-Things should be moved to hseig/cbc.block/fenics_ii in a practical way
-
-3. DONE
-A clean Poisson demo without any fractional stuff, just the use of hazmath/haznics
-I suggest poisson.py from cbc.block, just using hazmath
-
-4.
-A clean Stokes demo without any fractional stuff, just the use of hazmath/haznics
-I suggest stokes.py from cbc.block, just using hazmath
-(2021-07-23 Ana:
-    Need to still figure out setting up kernel for AMG in hazmath.
-)
-KAM: I'm not sure I understand. 
-
-5. DONE (not needed)
-Is hseig needed for Poisson-Babuska with rational approximation ?
-Correspnding demo in hseig or what?
-
-6.
-In mixed Darcy we can use multilevel?
-(2021-07-23 Ana:
-    In cbc.block/demo/mixedpoisson.py, we use AMG from hazmath.
-    Miro also put the ones with hypre.
-    Do we need also a version with HX div-div preconditioner from hazmath?
-)
-KAM: perhaps we have a pure Hdiv demo, demonstrating the HX stuff. 
-
-7. DONE
-Nice demo for rational approximation of sums of fractional powers, just as a function
-
-8. DONE
-Simple Darcy-Stokes problem
+1.
+Maybe a clean simple elasticity demo.
+(We need to specify rigid body motions for AMG in hazmath.)
