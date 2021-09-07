@@ -165,8 +165,19 @@ import_array();
 %apply (int* IN_ARRAY1, int DIM1) {(int* ja, int nnz2)};
 %apply (int* IN_ARRAY1, int DIM1) {(int* ia, int n)};
 dCSRmat* create_matrix(double *A, int nnz, int *ja, int nnz2, int *ia, int n);   
-/* should clear the typemaps */ 
+%clear (double *A, int nnz);
+%clear (int* ja, int nnz2);
+%clear (int *ia, int n);
 
+%apply (double* IN_ARRAY1, int DIM1) {(double* A, int nnz)};
+%apply (int* IN_ARRAY1, int DIM1) {(int* ja, int nnz2)};
+%apply (int* IN_ARRAY1, int DIM1) {(int* ia, int n)};
+%apply (int ncol) {(int ncol)};
+dCSRmat* create_matrix2(double *A, int nnz, int *ja, int nnz2, int *ia, int n, int ncol);
+%clear (double *A, int nnz);
+%clear (int* ja, int nnz2);
+%clear (int *ia, int n);
+%clear (int ncol);
 
 %apply (double* IN_ARRAY1, int DIM1) {(double* x, int n)};
 dvector* create_dvector(double *x, int n); 
