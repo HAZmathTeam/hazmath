@@ -688,7 +688,7 @@ precond* create_precond_hxcurl(dCSRmat *Acurl,
             if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
             status = amg_setup_sa(mgl_vgrad, amgparam); break;
 
-        default: // Classical AMG
+        default: // Unsmoothed Aggregation AMG
             if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
             status = amg_setup_ua(mgl_vgrad, amgparam); break;
 
@@ -729,7 +729,7 @@ precond* create_precond_hxcurl(dCSRmat *Acurl,
 
         case SA_AMG: // Smoothed Aggregation AMG
             if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
-            status = amg_setup_ua(mgl_grad, amgparam);
+            status = amg_setup_sa(mgl_grad, amgparam);
         break;
 
         default: // Unsmoothed Aggregation AMG
@@ -751,18 +751,18 @@ precond* create_precond_hxcurl(dCSRmat *Acurl,
     param_amg_cp(amgparam, amgparam2);
 
     /*------------------------*/
-    pcdata->A = dcsr_create_p(Acurl->col, Acurl->row, Acurl->nnz); dcsr_cp(Acurl, pcdata->A);
+    pcdata->A = dcsr_create_p(Acurl->row, Acurl->col, Acurl->nnz); dcsr_cp(Acurl, pcdata->A);
 
     pcdata->smooth_type = 1;
     pcdata->smooth_iter = 1;
 
-    pcdata->P_curl = dcsr_create_p(Pcurl->col, Pcurl->row, Pcurl->nnz); dcsr_cp(Pcurl, pcdata->P_curl);
+    pcdata->P_curl = dcsr_create_p(Pcurl->row, Pcurl->col, Pcurl->nnz); dcsr_cp(Pcurl, pcdata->P_curl);
     pcdata->Pt_curl = Pt_curl;
     pcdata->A_vgrad = A_vgrad;
     pcdata->amgparam_vgrad = amgparam2;
     pcdata->mgl_vgrad = mgl_vgrad;
 
-    pcdata->Grad = dcsr_create_p(Grad->col, Grad->row, Grad->nnz); dcsr_cp(Grad, pcdata->Grad);
+    pcdata->Grad = dcsr_create_p(Grad->row, Grad->col, Grad->nnz); dcsr_cp(Grad, pcdata->Grad);
     pcdata->Gradt = Gradt;
     pcdata->A_grad = A_grad;
     pcdata->amgparam_grad = amgparam2;
@@ -844,7 +844,7 @@ precond* create_precond_hxdiv_3D(dCSRmat *Adiv,
             status = amg_setup_ua(mgl_curlgrad, amgparam); break;
 
         case SA_AMG: // Smoothed Aggregation AMG
-            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
             status = amg_setup_sa(mgl_curlgrad, amgparam); break;
 
         default: // Unsmoothed Aggregation AMG
@@ -874,7 +874,7 @@ precond* create_precond_hxdiv_3D(dCSRmat *Adiv,
             status = amg_setup_ua(mgl_divgrad, amgparam); break;
 
         case SA_AMG: // Smoothed Aggregation AMG
-            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
             status = amg_setup_sa(mgl_divgrad, amgparam); break;
 
         default: // Unsmoothed Aggregation AMG
@@ -896,16 +896,16 @@ precond* create_precond_hxdiv_3D(dCSRmat *Adiv,
 
     /*------------------------*/
     // setup preconditioner
-    pcdata->A = dcsr_create_p(Adiv->col, Adiv->row, Adiv->nnz); dcsr_cp(Adiv, pcdata->A);
+    pcdata->A = dcsr_create_p(Adiv->row, Adiv->col, Adiv->nnz); dcsr_cp(Adiv, pcdata->A);
 
     pcdata->smooth_type = 1;
     pcdata->smooth_iter = 1;
 
-    pcdata->P_curl = dcsr_create_p(P_curl->col, P_curl->row, P_curl->nnz); dcsr_cp(P_curl, pcdata->P_curl);
+    pcdata->P_curl = dcsr_create_p(P_curl->row, P_curl->col, P_curl->nnz); dcsr_cp(P_curl, pcdata->P_curl);
     pcdata->Pt_curl = Pt_curl;
-    pcdata->P_div = dcsr_create_p(P_div->col, P_div->row, P_div->nnz); dcsr_cp(P_div, pcdata->P_div);
+    pcdata->P_div = dcsr_create_p(P_div->row, P_div->col, P_div->nnz); dcsr_cp(P_div, pcdata->P_div);
     pcdata->Pt_div = Pt_div;
-    pcdata->Curl = dcsr_create_p(Curl->col, Curl->row, Curl->nnz); dcsr_cp(Curl, pcdata->Curl);;
+    pcdata->Curl = dcsr_create_p(Curl->row, Curl->col, Curl->nnz); dcsr_cp(Curl, pcdata->Curl);
     pcdata->Curlt = Curlt;
     pcdata->A_curlgrad = A_curlgrad;
     pcdata->A_divgrad = A_divgrad;
@@ -989,7 +989,7 @@ precond* create_precond_hxdiv_2D(dCSRmat *Adiv,
             status = amg_setup_ua(mgl_grad, amgparam); break;
 
         case SA_AMG: // Smoothed Aggregation AMG
-            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
             status = amg_setup_sa(mgl_grad, amgparam); break;
 
         default: // Unsmoothed Aggregation AMG
@@ -1019,7 +1019,7 @@ precond* create_precond_hxdiv_2D(dCSRmat *Adiv,
             status = amg_setup_ua(mgl_divgrad, amgparam); break;
 
         case SA_AMG: // Smoothed Aggregation AMG
-            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
             status = amg_setup_sa(mgl_divgrad, amgparam); break;
 
         default: // Unsmoothed Aggregation AMG
@@ -1041,16 +1041,16 @@ precond* create_precond_hxdiv_2D(dCSRmat *Adiv,
 
     /*------------------------*/
     // setup preconditioner
-    pcdata->A = dcsr_create_p(Adiv->col, Adiv->row, Adiv->nnz); dcsr_cp(Adiv, pcdata->A);
+    pcdata->A = dcsr_create_p(Adiv->row, Adiv->col, Adiv->nnz); dcsr_cp(Adiv, pcdata->A);
 
     pcdata->smooth_type = 1;
     pcdata->smooth_iter = 1;
 
     pcdata->P_curl = NULL;
     pcdata->Pt_curl = NULL;
-    pcdata->P_div = dcsr_create_p(P_div->col, P_div->row, P_div->nnz); dcsr_cp(P_div, pcdata->P_div);
+    pcdata->P_div = dcsr_create_p(P_div->row, P_div->col, P_div->nnz); dcsr_cp(P_div, pcdata->P_div);
     pcdata->Pt_div = Pt_div;
-    pcdata->Curl = dcsr_create_p(Curl->col, Curl->row, Curl->nnz); dcsr_cp(Curl, pcdata->Curl);;
+    pcdata->Curl = dcsr_create_p(Curl->row, Curl->col, Curl->nnz); dcsr_cp(Curl, pcdata->Curl);
     pcdata->Curlt = Curlt;
     pcdata->A_curlgrad = NULL;
     pcdata->A_divgrad = A_divgrad;
@@ -1088,14 +1088,7 @@ void apply_precond(REAL *r, REAL *z, precond *pc)
     //printf("done calling pc->fct \n");
 
 }
-/*
-void print_precond_ra_amgparam(precond *pc)
-{
-    precond_ra_data *pcdata = (precond_ra_data*)pc->data;
-    param_amg_print(pcdata->amgparam);
-    //param_amg_init(pcdata->amgparam);
-    //param_amg_print(pcdata->amgparam);
-}*/
+
 
 PyObject* py_callback_setup(PyObject* pyfunc, AMG_param *amgparam)
 {
