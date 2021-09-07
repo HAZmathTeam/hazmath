@@ -18,7 +18,7 @@ where C=B' and D is positive definite; hence, the system as a whole is
 symmetric indefinite.
 
 The block preconditioner is based on an approximation of the Schur complement
-of the (0,0) block, L=D+B*A^*C:
+of the (0,0) block, L=A+B*D^*C:
 
         | L  0 |
   BB^ = |      |,
@@ -41,6 +41,7 @@ from block import *
 from block.iterative import MinRes
 from block.algebraic.hazmath import AMG, HXCurl
 import sys
+import haznics
 
 set_log_level(30)
 
@@ -58,12 +59,14 @@ Q = FunctionSpace(mesh, "CG", 1)
 v, u = TestFunction(V), TrialFunction(V)
 q, p = TestFunction(Q), TrialFunction(Q)
 
-A = assemble(dot(u,v)*dx + dot(curl(v), curl(u))*dx)
-B = assemble(dot(grad(p),v)*dx)
-C = assemble(dot(grad(q),u)*dx)
+a = inner(curl(v), curl(u))*dx
+m = inner(u, v)*dx
+A = assemble(a)
+B = assemble(inner(grad(p),v)*dx)
+C = assemble(inner(grad(q),u)*dx)
 D = assemble(p*q*dx)
-E = assemble(p*q*dx + dot(grad(p),grad(q))*dx)
-
+E = assemble(p*q*dx + inner(grad(p),grad(q))*dx)
+F = assemble(a+m)
 AA = block_mat([[A,  B],
                 [C, -D]])
 
@@ -73,10 +76,16 @@ b0 = assemble(inner(v, Constant((1, )*gdim))*dx)
 b1 = assemble(inner(q, Constant(2))*dx)
 bb = block_vec([b0, b1])
 
-prec = block_mat([[HXCurl(A, V),  0  ],
-                  [0,            AMG(E)]])
+params = {'AMG_type': haznics.SA_AMG,
+          'cycle_type': haznics.V_CYCLE,
+          "smoother": haznics.SMOOTHER_GS,
+          "aggregation_type": haznics.VMB,  # (VMB, MIS, MWM, HEC)
+          }
 
-AAinv = MinRes(AA, precond=prec, tolerance=1e-9, maxiter=2000, show=2)
+prec = block_mat([[HXCurl(F, V),  0  ],
+                  [0,            AMG(E,params)]])
+
+AAinv = MinRes(AA, precond=prec, tolerance=1e-9, maxiter=200, show=2)
 
 [Uh, Ph] = AAinv*bb
 
