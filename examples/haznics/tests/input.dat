@@ -49,13 +49,13 @@ nonlinear_itsolver_toltype	= 0 	% type of tolerance for nonlinear solver 1 - ||n
 % linear solver
 %---------------%
 
-linear_itsolver_type	= 2    	% 0 Direct Solve | 1 CG | 2 MINRES | 3 GMRES | 4 FGMRES
+linear_itsolver_type	= 4    	% 0 Direct Solve | 1 CG | 2 MINRES | 3 GMRES | 4 FGMRES
 linear_itsolver_maxit	= 100  	% maximal iterations of linear iterative solver
 linear_itsolver_tol		= 1e-6  % tolerance for linear iterative solver
 linear_stop_type		= 1     	% 1 ||r||/||b|| | 2 ||r||_B/||b||_B | % 3 ||r||/||x||
 linear_restart 			= 100		% restart for GMRes
 
-linear_precond_type		= 50 	%40 - diag, 41 - lower, 42 - upper
+linear_precond_type		= 6 	%40 - diag, 41 - lower, 42 - upper
 
 
 %----------------------------------------------%
