@@ -17,8 +17,8 @@ The block structure is as follows,
 where C=B' and D is positive definite; hence, the system as a whole is
 symmetric indefinite.
 
-The block preconditioner is based on an approximation of the Schur complement
-of the (0,0) block, L=A+B*D^*C:
+The block preconditioner is based on an approximation of the Riesz mapping
+with respect to H(curl) inner product (L) and L2 inner product (S):
 
         | L  0 |
   BB^ = |      |,
@@ -83,7 +83,7 @@ params = {'AMG_type': haznics.SA_AMG,
           }
 
 prec = block_mat([[HXCurl(F, V),  0  ],
-                  [0,            AMG(E,params)]])
+                  [0,            AMG(E, params)]])
 
 AAinv = MinRes(AA, precond=prec, tolerance=1e-9, maxiter=200, show=2)
 
