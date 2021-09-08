@@ -76,13 +76,15 @@ b0 = assemble(inner(v, Constant((1, )*gdim))*dx)
 b1 = assemble(inner(q, Constant(2))*dx)
 bb = block_vec([b0, b1])
 
-params = {'AMG_type': haznics.SA_AMG,
-          'cycle_type': haznics.V_CYCLE,
+params = {"maxit": 3,
+          'cycle_type': haznics.W_CYCLE,
           "smoother": haznics.SMOOTHER_GS,
-          "aggregation_type": haznics.VMB,  # (VMB, MIS, MWM, HEC)
+          "coarse_dof": 50,
+          "aggregation_type": haznics.HEC,  # (VMB, MIS, MWM, HEC)
+          "strong_coupled": 0.05,
           }
 
-prec = block_mat([[HXCurl(F, V),  0  ],
+prec = block_mat([[HXCurl(F, V, params),  0  ],
                   [0,            AMG(E, params)]])
 
 AAinv = MinRes(AA, precond=prec, tolerance=1e-9, maxiter=200, show=2)
