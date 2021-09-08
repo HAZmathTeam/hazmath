@@ -24,7 +24,7 @@ print (csr1)
 print (csr2)
 
 print(" ------------- CREATE HAZMATH MATRIX --------------")
-AA = haznics.create_matrix(csr2, csr1, csr0)
+AA = haznics.create_matrix(csr2, csr1, csr0, A.size(1))
 print(" ---------------------- END -----------------------")
 
 print(" ------------- CREATE HAZMATH VECTOR --------------")
