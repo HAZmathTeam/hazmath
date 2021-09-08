@@ -50,35 +50,16 @@ inline static REAL16 frac_inv(REAL16 x, void *param)
 /*--      Public Functions      --*/
 /*---------------------------------*/
 
-dCSRmat* create_matrix(double *A, int nnz, int *ja, int nnz2, int *ia, int n)
-{
-  dCSRmat* mat;  
-  mat = (dCSRmat *) calloc(1, sizeof(dCSRmat));
-  /* for now not copy arrays, make test that produce seg. fault  */ 
-  mat->row = n-1;
-  mat->col = n-1;
-  mat->nnz = nnz;
-  mat->IA = (INT *)calloc(n, sizeof(INT)); // ia is of length nrow + 1
-  mat->JA = (INT *)calloc(nnz, sizeof(INT)); // ja is of length nnz
-  mat->val = (REAL *)calloc(nnz, sizeof(REAL)); // val is of lenght nnz
-  iarray_cp(n, ia, mat->IA);
-  iarray_cp(nnz, ja, mat->JA);
-  array_cp(nnz, A, mat->val);
 
-  return mat; 
-}
-
-dCSRmat* create_matrix2(double *A, int nnz, int *ja, int nnz2, int *ia, int n, int ncol)
+dCSRmat* create_matrix(double *A, int nnz, int *ja, int nnz2, int *ia, int n, int ncol)
 {
-  dCSRmat* mat;
-  mat = (dCSRmat *) calloc(1, sizeof(dCSRmat));
-  /* for now not copy arrays, make test that produce seg. fault  */
+  dCSRmat *mat = (dCSRmat *)calloc(1, sizeof(dCSRmat));
   mat->row = n-1;
   mat->col = ncol;
   mat->nnz = nnz;
   mat->IA = (INT *)calloc(n, sizeof(INT)); // ia is of length nrow + 1
   mat->JA = (INT *)calloc(nnz, sizeof(INT)); // ja is of length nnz
-  mat->val = (REAL *)calloc(nnz, sizeof(REAL)); // val is of lenght nnz
+  mat->val = (REAL *)calloc(nnz, sizeof(REAL)); // val is of length nnz
   iarray_cp(n, ia, mat->IA);
   iarray_cp(nnz, ja, mat->JA);
   array_cp(nnz, A, mat->val);
