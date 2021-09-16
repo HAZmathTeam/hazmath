@@ -16,6 +16,6 @@ REAL16 f_to_approx_l(REAL16 x,void *param)
     beta=2e0;
   }
   //  fprintf(stdout,"\ns1=%Lf; s2=%Lf; alpha=%Lf; beta=%Lf;",s1,s2,alpha,beta);
-  return alpha*powl(x,s1)+beta*powl(x,s2); 
+  return 1./(alpha*powl(x,s1)+beta*powl(x,s2)); 
 }
 /**/

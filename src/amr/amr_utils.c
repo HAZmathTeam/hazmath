@@ -17,16 +17,17 @@
  * \param b:   input array to compare with a.
  * \param n:   the size of a and b;
  *
- * \return
+ * \return     if the arrays are a permutation of each other returns 1,
+ *             otherwise returns 0.
  *
- * \note
+ *
  *
  */
 INT aresame(INT *a, INT *b, INT n)
 {
   /*
      checks (n^2 algorithm) if two have the same elements (up to a
-     permutation), if they are returns 1, otherwise 0
+     permutation), if they are same, returns 1, otherwise returns 0
   */
   INT i,j,flag,ai,bj;
   for (i=0;i<n;i++){
@@ -60,8 +61,7 @@ INT aresame(INT *a, INT *b, INT n)
  *                    so that a[i]=b[p[i]]. If there is no permutation,
  *                    i.e. p[i]=i, then returns 1.
  *
- *
- * \note
+ * \author ludmil (20151010) 
  *
  */
 INT aresamep(INT *a, INT *b, INT n, INT *p)
@@ -246,6 +246,7 @@ void marks(scomplex *sc,dvector *errors)
  * \return             returns 0 if is and it are reflected neighbors
  *
  * \note
+ * \author ludmil (20151010) 
  *
  */
 unsigned int reflect2(INT n, INT is, INT it,				\
@@ -349,9 +350,10 @@ unsigned int reflect2(INT n, INT is, INT it,				\
  * \return
  *
  * \note
+ * \author ludmil (20151010) 
  *
  */
-/*using bfs to get the reflected mesh*/
+/*using bfs to get the reflected mesh  if possible*/
 void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
 {
   //  haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
@@ -413,7 +415,6 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
 	itv=(sc->nodes+itn1);
 	for(k=iai;k<iai1;++k){
 	  is=sc->nbr[k];
-	  //	fprintf(stdout,"%i(nbr=%i) ",i,j);fflush(stdout);
 	  if(is<0) continue;
 	  isn1=is*n1;
 	  isnbr=(sc->nbr+isn1);
@@ -444,22 +445,16 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
 	  if(!mask[is]){
 	    jbfs[nums]=is;
 	    mask[is]=klev;
-	    //	  fprintf(stdout,"%i(%i,%i)",i,j,mask[j]);fflush(stdout);
 	    nums++;
 	  }
 	}
       }
-      //    fprintf(stdout,"\nkbeg=%i,kend=%i,nums=%i",kbeg,kend,nums);fflush(stdout);
       if(kend>=nums) break;/* exit here even if we have not visited all simplices as they could be disconnected */
       kbeg=kend; kend=nums;klev++;
       // this below only works if the domain is connected;
       if(nums >= ns)  break;
     }
   }
-  //  fprintf(stdout,"%%BFS levels for reflect: %d; ",klev-1);
-  //  for(i=0;i<ns;i++){
-  //    jbfs[i]=-1;
-  //  }
   icsr_free(&neib);
   icsr_free(blk_dfs);free(blk_dfs);
   return;
@@ -474,6 +469,8 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
  *
  * \return the simplicial complex corresponding to all simplices which
  *         were not refined.
+ *
+ * \author ludmil (20151010) 
  *
  */
 scomplex *scfinest(scomplex *sc)
@@ -544,6 +541,9 @@ scomplex *scfinest(scomplex *sc)
  *
  * \note
  *
+ * \author ludmil (20151010) 
+ * \modified ludmil (20210831)
+ *
  */
 void scfinalize(scomplex *sc,const INT set_bndry_codes)
 {
@@ -588,7 +588,6 @@ void scfinalize(scomplex *sc,const INT set_bndry_codes)
       if(sc->bndry[j]>128) sc->bndry[j]-=128;
     }
   }
-  //fprintf(stdout,"\n%%After %d levels of refinement:\tsimplices=%d ; vertices=%d\n",sc->level,sc->ns,sc->nv); fflush(stdout);
   return;
 }
 /**********************************************************************/
@@ -646,7 +645,6 @@ static void binary0(cube2simp *c2s)
   nperm=1;
   for(j=c2s->n-1;j>=0;j--){
     jp=nperm*nvcube; jpo=jp+mid;
-    //    fprintf(stdout,"\nnperm=%d,jp=%d,jpo=%d,face=%d; shift=%d",nperm,jp,jpo,c2s->n-j-1,shift);
     for(k = 0;k<nvcube;k++){
       kn=k*c2s->n;
       if((int)c2s->bits[kn+j]){
@@ -658,15 +656,6 @@ static void binary0(cube2simp *c2s)
     shift>>=1;
     nperm++;
   }
-  /* fprintf(stdout,"\nNumber of permutations=%d",nperm); */
-  /* for(j=0;j<nperm;j++){ */
-  /*   jp=j*nvcube; */
-  /*   fprintf(stdout,"\nPermutation=%d:",j+1); */
-  /*   for(i=0;i<nvcube;i++){ */
-  /*     fprintf(stdout," %d",c2s->perms[jp+i]+1); */
-  /*   } */
-  /* } */
-  /* fprintf(stdout,"\n"); */
   return;
 }
 /***************************************************************************/
@@ -772,7 +761,6 @@ cube2simp *cube2simplex(INT dim)
   memset(edges,0,c2s->ne*sizeof(INT));
   unsigned INT numbits=22;
   unsigned INT *b1,*b2;
-  //  fprintf(stdout,"Memory: edges=%d,ns=%d\n",ne,ns);
   INT nedge=0,nvcubem1=nvcube-1;
   for(k1 = 0;k1<nvcubem1;k1++){
     kn1=k1*dim;
@@ -812,7 +800,6 @@ cube2simp *cube2simplex(INT dim)
 	if(edges[2*i]==node){
 	  queue[m]=edges[2*i+1];
 	  parent[m]=j;
-	  //	  fprintf(stdout,"(m=%d;%d)",m,edges[2*i+1]);
 	  m++;
 	}
       }
@@ -821,7 +808,6 @@ cube2simp *cube2simplex(INT dim)
     nq0=nq;
     nq=m;
   }
-  //  fprintf(stdout,"\nlast:=%d\n",nq-nq0);
   k1=0;// simplex number;
   for(j=nq0;j<nq;j++){
     i=c2s->n;
@@ -840,20 +826,11 @@ cube2simp *cube2simplex(INT dim)
   // in the local numbering.
   for(j=0;j<c2s->nvcube;j++){
     reverse((c2s->bits+dim*j),dim,sizeof(INT));
-    /* fprintf(stdout,"\nj:%d ",j); */
-    /* for(i=0;i<dim;i++){ */
-    /*   fprintf(stdout,"%d",c2s->bits[dim*j+i]); */
-    /* } */
   }
   /****FACES**********/
   INT *faces=c2s->faces;
   INT j0,j1;
   memset(faces,0,c2s->nf*sizeof(INT));
-  //  fprintf(stdout,"\n");
-  //    fprintf(stdout,"\nk2=%d bits=(",k2);
-  //	fprintf(stdout,"%d,",k1);
-  //    fprintf(stdout,")");
-  //  fprintf(stdout,"\n");fflush(stdout);
   for(k2 = 0;k2<c2s->n;k2++){
     kn2=k2*c2s->nvface;
     j0=0;j1=0;
@@ -899,7 +876,6 @@ INT dvec_set_amr(const REAL value, scomplex *sc, INT npts, REAL *pts, REAL *tose
     for(jpts=0;jpts<npts;jpts++){
       pval0=pts + jpts*n;
       if(!xins(n,scnjn,sc->x,pval0)){
-	//	fprintf(stdout,"\nel=%d, found: %d",j,jpts);
 	toset[j]=value;
 	k++;
 	break;
@@ -954,9 +930,7 @@ void find_cc_bndry_cc(scomplex *sc,INT set_bndry_codes)
     }
     s2s.IA[i+1]=iii;
   }
-  //  fprintf(stdout,"\n");fflush(stdout);
   sc->cc=-10;
-  // find the connected components in the domain:
   iCSRmat *blk_dfs=run_dfs(ns,s2s.IA, s2s.JA);
   sc->cc=blk_dfs->row;
   for(i=0;i<sc->cc;++i){
@@ -965,12 +939,13 @@ void find_cc_bndry_cc(scomplex *sc,INT set_bndry_codes)
       sc->flags[j]=i+1;
     }
   }
-  // all this was to comopute the connected components. Let us free the memory now:
   icsr_free(&s2s);// no need of this anymore.
   //
   // now working on the boundary:
   //
   iCSRmat f2v=icsr_create(nbf,sc->nv,nbf*dim);
+  // forming the face2vertex matrix uses that the neighboring list of
+  // elements is in accordance with the simplex2vertex map.
   INT nbfnew=0;
   INT nnzf2v=0;
   f2v.IA[0]=nnzf2v;
@@ -1023,10 +998,6 @@ void find_cc_bndry_cc(scomplex *sc,INT set_bndry_codes)
      all entries that are not dim, i.e. the number of vertices in
      a (n-2)-simplex;
   */
-  /* fprintf(stdout,"\nnrf2f=%d ; ncf2f=%d;\n f2f=[",f2f.row,f2f.col); */
-  /* icsr_print_matlab_val(stdout,&f2f); */
-  /* fprintf(stdout,"];\n"); */
-  /* fprintf(stdout,"f2f=sparse(f2f(:,1),f2f(:,2),f2f(:,3),nrf2f,ncf2f);\n\n"); */
   f2f.nnz=f2f.IA[0];
   for(i=0;i<f2f.row;i++){    
     j0=f2f.IA[i];
@@ -1051,10 +1022,6 @@ void find_cc_bndry_cc(scomplex *sc,INT set_bndry_codes)
   f2f.IA[f2f.row]=f2f.nnz;
   f2f.JA=realloc(f2f.JA,f2f.nnz*sizeof(INT));
   f2f.val=realloc(f2f.val,f2f.nnz*sizeof(INT));
-  /* fprintf(stdout,"\nnrf2f1=%d ; ncf2f1=%d;\n f2f1=[",f2f.row,f2f.col); */
-  /* icsr_print_matlab_val(stdout,&f2f); */
-  /* fprintf(stdout,"];\n"); */
-  /* fprintf(stdout,"f2f1=sparse(f2f1(:,1),f2f1(:,2),f2f1(:,3),nrf2f1,ncf2f1);\n\n"); */
   /*******************************************************************/    
   icsr_free(blk_dfs);free(blk_dfs);
   blk_dfs=run_dfs(f2f.row,f2f.IA, f2f.JA);
@@ -1081,7 +1048,6 @@ void find_cc_bndry_cc(scomplex *sc,INT set_bndry_codes)
   icsr_free(blk_dfs);free(blk_dfs);
   icsr_free(&f2v);
   fprintf(stdout,"%%%%--> number of connected components in the bulk=%d\n",sc->cc);
-  //  fprintf(stdout,"%%number of boundary faces=%d (nnzbf=%d)\n",nbf,nnzbf);
   fprintf(stdout,"%%%%--> number of connected components on the boundary=%d\n",sc->bndry_cc);
   free(indx);
   free(indxinv);
