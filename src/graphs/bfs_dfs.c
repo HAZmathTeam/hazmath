@@ -547,11 +547,11 @@ iCSRmat *run_dfs(INT n, INT *ia, INT *ja)
   dfs->IA=realloc(dfs->IA,(dfs->row+1)*sizeof(INT));
   free(iawrk);
   free(jawrk);
-  INT swp,ipstrt=-10,ipend=-10,lp=-10;
+  INT ipstrt=-10,ipend=-10;// INT lp=-10,swp;
   for(i=0;i<dfs->row;++i){
     ipstrt=dfs->IA[i];
     ipend=dfs->IA[i+1];
-    lp=(INT )((ipend-ipstrt)/2);
+    //    lp=(INT )((ipend-ipstrt)/2);
     for(pos=ipstrt;pos<ipend;++pos){
       dfs->val[pos]=i+1;
     }
