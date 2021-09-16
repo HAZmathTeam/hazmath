@@ -571,14 +571,14 @@ INT linear_solver_frac_rational_approx(dCSRmat *A,
   dCSRmat shiftA;
   dCSRmat I;
 
-  if (M=NULL)
+  if (M==NULL)
   {
     I = dcsr_create_identity_matrix(A->row, 0);
   }
 
   // apply rational approximation
   // x = residues(0)*(M\b)
-  if (M=NULL)
+  if (M==NULL)
   {
     dvec_cp(b, x);
   }
@@ -596,7 +596,7 @@ INT linear_solver_frac_rational_approx(dCSRmat *A,
     dvec_set(update.row, &update, 0.0);
 
     // form (A - poles[i]*M)
-    if (M=NULL)
+    if (M==NULL)
     {
       dcsr_add(A, 1.0, &I, -poles->val[i], &shiftA);
     }
@@ -620,7 +620,7 @@ INT linear_solver_frac_rational_approx(dCSRmat *A,
 
   // cleanup
   dvec_free(&update);
-  if (M=NULL) dcsr_free(&I);
+  if (M==NULL) dcsr_free(&I);
 
   return count;
 

@@ -65,7 +65,7 @@ INT main(int argc,char *argv[])
   fprintf(stdout,"\n%% AUTO GENERATED\n");
   fprintf(stdout,"\n%%%%EXAMPLE(fractional):\n");
   fprintf(stdout,"\nx=linspace(%.8e,%.8e,%d);\nif(size(x,1)==1),x=x';end\n",xmin_in,xmax_in,1025);
-  fprintf(stdout,"\nf_in = %.2Lf * x.^(%.1Lf) + %.2Lf * x.^(%.1Lf) ;\n",s[2],s[0],s[3],s[1]);
+  fprintf(stdout,"\nf_in = 1./(%.2Lf * x.^(%.1Lf) + %.2Lf * x.^(%.1Lf) );\n",s[2],s[0],s[3],s[1]);
   fprintf(stdout,"\n%%===============================================%%\n");
   fprintf(stdout,"\nbounds=[%.16e,%.16e];\n",xmin_in,xmax_in);
   fprintf(stdout,"\n\nm=%d; max_err=%.12e;\n",m,rmax);
@@ -85,7 +85,7 @@ INT main(int argc,char *argv[])
   fprintf(stdout,"\n");  
   fprintf(stdout,"f_ra=1./(kron(x,ones(size(pol\')))-kron(ones(size(x)),pol\'));");
   fprintf(stdout,"f_ra=res(1)+f_ra*(res(2:%d));",m);
-  fprintf(stdout,"\n%%%%%%%%\t\tfz = %.2Lf * z.^(%.1Lf) + %.2Lf * z.^(%.1Lf);\n",s[2],s[0],s[3],s[1]);
+  fprintf(stdout,"\n%%%%%%%%\t\tfz = 1./(%.2Lf * z.^(%.1Lf) + %.2Lf * z.^(%.1Lf));\n",s[2],s[0],s[3],s[1]);
   fprintf(stdout,"\ner0=norm(f_in-f_ra);");
   fprintf(stdout,"\ner2=norm(f_in(2:length(x))-f_ra(2:length(x)));");
   fprintf(stdout,"\n%%%%return;end\n");
