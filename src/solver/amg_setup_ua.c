@@ -276,61 +276,79 @@ static void construct_strongly_coupled(dCSRmat *A,
                                        AMG_param *param,
                                        dCSRmat *Neigh)
 {
+  
+  // local variables
+  const INT  row = A->row, col = A->col, nnz = A->IA[row]-A->IA[0];
+  const INT  *AIA = A->IA, *AJA = A->JA;
+  const REAL *Aval = A->val;
 
-    // local variables
-    const INT  row = A->row, col = A->col, nnz = A->IA[row]-A->IA[0];
-    const INT  *AIA = A->IA, *AJA = A->JA;
-    const REAL *Aval = A->val;
+  INT  i, j, index, row_start, row_end;
+  REAL strongly_coupled = param->strong_coupled;
+  if(0){
+    if(fabs(strongly_coupled) < 1e-6) strongly_coupled=1e-6;
+  }
+  // REAL strongly_coupled2 = pow(strongly_coupled,2);
+  REAL strongly_coupled2 = strongly_coupled*strongly_coupled;
+  //
+  INT  *NIA, *NJA;
+  REAL *Nval;
 
-    INT  i, j, index, row_start, row_end;
-    REAL strongly_coupled = param->strong_coupled;
-    REAL strongly_coupled2 = pow(strongly_coupled,2);
-
-    INT  *NIA, *NJA;
-    REAL *Nval;
-
-    // get the diagonal entries
-    dvector diag;
-    dcsr_getdiag(0, A, &diag);
-
-    // allocate Neigh
-    dcsr_alloc(row, col, nnz, Neigh);
-
-    NIA  = Neigh->IA; NJA  = Neigh->JA;
-    Nval = Neigh->val;
-
-    // set IA for Neigh
-    for ( i = row; i >= 0; i-- ) NIA[i] = AIA[i];
-
-    // main loop of finding strongly coupled neighbors
-    for ( index = i = 0; i < row; ++i ) {
-        NIA[i] = index;
-        row_start = AIA[i]; row_end = AIA[i+1];
-        //fprintf(stdout,"\nHere coupled index %d \n", index);
-        for ( j = row_start; j < row_end; ++j ) {
-            //fprintf(stdout,"\nHere coupled row start %d end %d \n", row_start, row_end);
-            if ( (AJA[j] == i)
-              || ( (pow(Aval[j],2) >= strongly_coupled2*ABS(diag.val[i]*diag.val[AJA[j]])) && (Aval[j] < 0) )
-               )
-            {
-                //fprintf(stdout,"\nHere coupled \n");
-                NJA[index] = AJA[j];
-                Nval[index] = Aval[j];
-                index++;
-                //fprintf(stdout,"\nHere coupled \n");
-            }
-
-        } // end for ( j = row_start; j < row_end; ++j )
-    } // end for ( index = i = 0; i < row; ++i )
-
-    NIA[row] = index;
-
-    Neigh->nnz = index;
-    Neigh->JA  = (INT*) realloc(Neigh->JA,  (Neigh->IA[row])*sizeof(INT));
-    Neigh->val = (REAL*)realloc(Neigh->val, (Neigh->IA[row])*sizeof(REAL));
-
-    dvec_free(&diag);
-
+  // get the diagonal entries
+  dvector diag;
+  dcsr_getdiag(0, A, &diag);
+  
+  // allocate Neigh
+  dcsr_alloc(row, col, nnz, Neigh);
+  
+  NIA  = Neigh->IA; NJA  = Neigh->JA;
+  Nval = Neigh->val;
+  
+  // set IA for Neigh
+  for ( i = row; i >= 0; i-- ) NIA[i] = AIA[i];
+  
+  // main loop of finding strongly coupled neighbors
+  for ( index = i = 0; i < row; ++i ) {
+    NIA[i] = index;
+    row_start = AIA[i]; row_end = AIA[i+1];
+    //fprintf(stdout,"\nHere coupled index %d \n", index);
+    for ( j = row_start; j < row_end; ++j ) {
+      //fprintf(stdout,"\nHere coupled row start %d end %d \n", row_start, row_end);
+      if ( (AJA[j] == i)
+	   || ( ((Aval[j]*Aval[j]) >= strongly_coupled2*ABS(diag.val[i]*diag.val[AJA[j]])) && (Aval[j] < 0e0) )
+	   )
+	{
+	  //fprintf(stdout,"\nHere coupled \n");
+	  NJA[index] = AJA[j];
+	  Nval[index] = Aval[j];
+	  index++;
+	  //fprintf(stdout,"\nHere coupled \n");
+	}
+      
+    } // end for ( j = row_start; j < row_end; ++j )
+  } // end for ( index = i = 0; i < row; ++i )
+  
+  dvec_free(&diag); // free it here;  
+  NIA[row] = index;
+  
+  Neigh->nnz = index;
+  Neigh->JA  = (INT*) realloc(Neigh->JA,  (Neigh->IA[row])*sizeof(INT));
+  Neigh->val = (REAL*)realloc(Neigh->val, (Neigh->IA[row])*sizeof(REAL));
+  //
+  if(0){
+    //begin finding connected components (ltz):
+    iCSRmat *blk_dfs=run_dfs(Neigh->row,Neigh->IA, Neigh->JA);
+    index=0; 
+    for(i=0;i<blk_dfs->row;++i){
+      j=blk_dfs->IA[i+1]-blk_dfs->IA[i];
+      if(j>1){
+	/* fprintf(stdout,"\nnontrivial block:size(%d)=%d",i,j); */
+	index++;
+      }
+    }
+    fprintf(stdout,"\n blocks(total)=%d ; blocks(non-trivial:size>1)=%d; strongly_coupled=%.5e\n",blk_dfs->row,index,strongly_coupled);
+    icsr_free(blk_dfs);free(blk_dfs);    
+    //end finding connected components (ltz):
+  } //end if(0);
 }
 
 /***********************************************************************************************/
@@ -778,7 +796,7 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
     if ( cycle_type == AMLI_CYCLE ) {
         const INT amlideg = param->amli_degree;
         param->amli_coef = (REAL *)calloc(amlideg+1,sizeof(REAL));
-        REAL lambda_max = 2.0, lambda_min = lambda_max/4;
+        REAL lambda_max = 2e0, lambda_min = 0.25*lambda_max;
         amg_amli_coef(lambda_max, lambda_min, amlideg, param->amli_coef);
     }
 
