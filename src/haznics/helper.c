@@ -609,7 +609,7 @@ dvector* compute_ra_aaa(REAL s_frac_power,
     printf("Number of poles: %d\n", k-1);
 
     // print poles, residues
-    printf("Poles:\n");
+    /*printf("Poles:\n");
     for(i = 0; i < k-1; ++i) {
         printf("%.10e \t", rpnwf[1][i]);
     }
@@ -618,7 +618,7 @@ dvector* compute_ra_aaa(REAL s_frac_power,
     for(i = 0; i < k; ++i) {
         printf("%.10e \t", rpnwf[0][i]);
     }
-    printf("\n");
+    printf("\n");*/
 
     // assign poles and residuals
     dvector *res = dvec_create_p(2*k - 1);
@@ -638,7 +638,7 @@ dvector* compute_ra_aaa(REAL s_frac_power,
     }
 
     // print poles, residues
-    printf("Poles:\n");
+    /*printf("Poles:\n");
     for(i = 0; i < k-1; ++i) {
         printf("%.10e \t", res->val[i]);
     }
@@ -647,7 +647,7 @@ dvector* compute_ra_aaa(REAL s_frac_power,
     for(i = 0; i < k; ++i) {
         printf("%.10e \t", res->val[k+i-1]);
     }
-    printf("\n");
+    printf("\n");*/
 
     // clean
     if(rpnwf) free(rpnwf);
