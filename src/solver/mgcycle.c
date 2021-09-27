@@ -128,25 +128,7 @@ static void dcsr_presmoothing(SHORT smoother,
             break;
 
         case SMOOTHER_USERDEF:
-            /*if (smoother_function) {
-                printf("Smoother function is not NULL! Let's try to use it. \n");
-                smoother_function(x, istart, iend, istep, A, b, nsweeps, relax);
-                printf("Smoother function ran successfully! But the correct result is not guaranteed. \n");
-            }
-            else {
-                printf("### ERROR: User defined smoother is actually not defined (NULL ptr)!\n");
-                check_error(ERROR_AMG_SMOOTH_TYPE, __FUNCTION__);
-            } */
-            /*printf("Smoother function is not NULL! Let's try to use it. \n");
-            smmv->data = smoother_data_alloc(1);
-            fenics_smoother_data_setup(istart, iend, istep, nsweeps, relax, A, smmv->data);
-
-            py_callback_eval(b->val, x->val, smmv);
-            printf("Smoother function ran successfully! But the correct result is not guaranteed. \n");
-            smoother_data_free(smmv->data);
-            */
-
-            printf("Running GS just in case. \n");
+            printf("Smoother type not implemented! Running GS just in case. \n");
             smoother_dcsr_gs(x, iend, istart, istep, A, b, nsweeps);
             break;
 
@@ -187,7 +169,6 @@ static void dcsr_postsmoothing(SHORT smoother,
                                const INT istep,
                                const REAL relax)
 {
-    // const short smoother = smmv->type;
 
     switch (smoother) {
 
@@ -233,27 +214,7 @@ static void dcsr_postsmoothing(SHORT smoother,
             break;
 
         case SMOOTHER_USERDEF:
-            /*if (smoother_function) {
-                printf("Smoother function is not NULL! Let's try to use it. \n");
-                smoother_function(x, istart, iend, istep, A, b, nsweeps, relax);
-                printf("Smoother function ran successfully! But the correct result is not guaranteed. \n");
-                printf("Running GS just in case. \n");
-                smoother_dcsr_gs(x, iend, istart, istep, A, b, nsweeps);
-            }
-            else {
-                printf("### ERROR: User defined smoother is actually not defined (NULL ptr)!\n");
-                check_error(ERROR_AMG_SMOOTH_TYPE, __FUNCTION__);
-            } */
-            /*printf("Smoother function is not NULL! Let's try to use it. \n");
-            smmv->data = smoother_data_alloc(1);
-            fenics_smoother_data_setup(istart, iend, istep, nsweeps, relax, A, smmv->data);
-
-            // python_callback(b->val, x->val, smmv);
-            printf("Smoother function ran successfully! But the correct result is not guaranteed. \n");
-            smoother_data_free(smmv->data);
-            */
-
-            printf("Running GS just in case. \n");
+            printf("Smoother type not implemented! Running GS just in case. \n");
             smoother_dcsr_gs(x, iend, istart, istep, A, b, nsweeps);
             break;
 
@@ -292,7 +253,6 @@ void mgcycle(AMG_data *mgl,
     const SHORT  nl = mgl[0].num_levels;
     const REAL   relax = param->relaxation;
     const REAL   tol = param->tol * 1e-2;
-    //smoother_matvec *smmv = (smoother_matvec*)mgl->wdata;
 
     // Schwarz parameters
     Schwarz_param swzparam;
