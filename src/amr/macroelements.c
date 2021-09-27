@@ -886,6 +886,7 @@ scomplex **generate_initial_grid(input_grid *g0)
   /* for(kel=0;kel<g0->nel;kel++){ */
   /*   print_full_mat_int(1,c2s->nvcube+1,g0->mnodes+kel*(c2s->nvcube+1),"mnodes33"); */
   /* } */
+  input_grid_print(g0);
   /*-------------------------------------------------------------------*/
   //  INT *efound=calloc(c2s->ne*(g0->nel),sizeof(INT));  
   g=malloc(sizeof(input_grid));  //temp grid for one macroelement// we need to free this at the end
