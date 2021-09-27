@@ -61,7 +61,7 @@ linear_precond_type		= 2		%  0 Null | 1 Diag | 2 AMG
 %----------------------------------------------%
 
 AMG_type 			= UA	% UA unsmoothed AMG
-AMG_cycle_type	= ADD    % V V-cycle | W W-cycle | A AMLI-cycle | NA Nonlinear AMLI-cycle | ADD additive cycle
+AMG_cycle_type	= V    % V V-cycle | W W-cycle | A AMLI-cycle | NA Nonlinear AMLI-cycle | ADD additive cycle
 AMG_levels			= 10	%
 AMG_tol				= 1e-8
 AMG_maxit			= 1
@@ -72,7 +72,7 @@ AMG_relaxation			= 1.0   % Relaxation for SOR
 AMG_presmooth_iter		= 1
 AMG_postsmooth_iter		= 1
 
-AMG_coarse_dof			= 100
+AMG_coarse_dof			= 10
 AMG_coarse_solver		= 32    % coarsest solver: 0 iterative | 32 UMFPACK
 AMG_coarse_scaling		= OFF	% OFF | ON
 
@@ -80,8 +80,8 @@ AMG_amli_degree          	= 2     % degree of the polynomial used by AMLI cycle
 AMG_nl_amli_krylov_type  	= 5	% Krylov method in nonlinear AMLI cycle: 5 GCG |  6 GCR
 
 % aggregation AMG
-AMG_aggregation_type	= 1     % 1 VMB
-AMG_strong_coupled		= 0.04  % Strong coupled threshold
+AMG_aggregation_type	= 1     % 1 VMB ; 4 HEC
+AMG_strong_coupled		= 0.0  % Strong coupled threshold
 AMG_max_aggregation		= 20	% Max size of aggregations
 
 %----------------------------------------------%

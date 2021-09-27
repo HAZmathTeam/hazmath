@@ -141,35 +141,6 @@ INT locate0(INT needle, INT *haystack, INT n)
       return i;
   return -1;
 }
-
-/***********************************************************************************************/
-/*!
- * \fn void array_null (REAL *x)
- *
- * \brief Initialize a REAL null array
- *
- * \param x    Null pointer to the vector (OUTPUT)
- *
- */
-void array_null(REAL *x)
-{
-    x = NULL;
-}
-
-/***********************************************************************************************/
-/*!
- * \fn void iarray_null (INT *x)
- *
- * \brief Initialize a INT null array
- *
- * \param x    Null pointer to the vector (OUTPUT)
- *
- */
-void iarray_null(INT *x)
-{
-    x = NULL;
-}
-
 /***********************************************************************************************/
 /*!
  * \fn void array_set (const INT n, REAL *x, const REAL val)
