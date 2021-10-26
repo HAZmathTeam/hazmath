@@ -1,6 +1,6 @@
 /*! \file src/fem/qz.c.c
 *
-* \brief Implements the the QZ algorithm for generalized wigenvalue problem.
+* \brief Implements the the QZ algorithm for generalized eigenvalue problem.
 *
 *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 2/17/15.
 *  Copyright 2015__HAZMATH__. All rights reserved.
@@ -14,6 +14,8 @@
 *       eigenvalue problem Ax=\lambda Bx.  UT Austin tech report
 *       N00014-67-A-0181-0023 issued jointly with Stanford techreport
 *       STAN-CS-232-71
+*
+* \note ALL is in long double. 
 *
 * \note Ludmil 20210426
 */

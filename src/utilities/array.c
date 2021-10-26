@@ -548,7 +548,6 @@ void det3D(REAL *mydet,
 
   return;
 }
-
 /*!
 * \fn void cross_product(REAL u, REAL v, REAL cross, REAL mag)
 *
@@ -571,6 +570,36 @@ void cross_product(REAL* u, REAL* v, REAL* cross, REAL* mag)
 
   return;
 }
-
-
+/*!
+* \fn void ld2d(REAL *dest,REAL16 *src, const INT n)
+*
+* \brief Copies a REAL16 array onto REAL array with the same number of elements;
+*
+* \param dest 			destination array (REAL   *)
+* \param src 			source      array (REAL16 *)
+*
+*/
+void ld2d(REAL *dest,REAL16 *src, const INT n)
+{
+  //  long double to double;
+  INT j;
+  for (j=0;j<n;++j) dest[j]=(REAL )src[j];
+  return;
+}
+/*!
+* \fn void d2ld(REAL16 *dest,REAL *src, const INT n)
+*
+* \brief Copies a REAL16 array onto REAL array with the same number of elements;
+*
+* \param dest 			destination array (REAL   *)
+* \param src 			source      array (REAL16 *)
+*
+*/
+void d2ld(REAL16 *dest,REAL *src, const INT n)
+{
+  //  double to long double;
+  INT j;
+  for (j=0;j<n;++j) dest[j]=(REAL16 )src[j];
+  return;
+}
 /*************************************  END  ******************************************************/

@@ -285,6 +285,39 @@ void print_full_mat(const  INT n, const INT m, REAL *A,const char *varname)
   return;
 }
 /*******************************************************************/
+/*  \fn void print_full_mat_l(const  INT n, const INT m, REAL16 *A,const char *varname)
+ *
+ *
+ *  \note: prints a long double matrix A with (n) rows and (m) columns
+ *         in matlab format e.g. 2 x 2 identity is printed as
+ *         I2=[1. 0.;0. 1.]; if the varname= "I2"
+ *
+ */
+void print_full_mat_l(const  INT n, const INT m, REAL16 *A,const char *varname)
+{
+  INT nprt=1025,mprt=1025;
+  if( (n<1) || (m<1) ) return;
+  INT i,j,n1=n-1;
+  if(n<=nprt) nprt=n;
+  if(m<=mprt) mprt=m;
+  if(varname==NULL){
+    fprintf(stdout,"\nA=[");
+  }else{
+    fprintf(stdout,"\n%s=[",varname);
+  }
+  for (i = 0; i<nprt;i++){
+    for(j=0;j<mprt;j++){
+      fprintf(stdout,"%.18Le ", A[m*i+j]);
+    }
+    if(i!=n1){
+      fprintf(stdout,";");
+    }else{
+      fprintf(stdout,"];\n");
+    }
+  }
+  return;
+}
+/*******************************************************************/
 /*  \fn void print_full_mat_int(const  INT n, const INT m, INT *A,const char *varname)
  *
  *
