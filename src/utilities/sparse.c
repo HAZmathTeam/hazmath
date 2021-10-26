@@ -280,7 +280,105 @@ void dcsr_alloc(const INT m,
 
   return;
 }
+/***********************************************************************/
+/*!
+ * \fn void dcsr_realloc (const INT m, const INT n, const INT nnz, dCSRmat *A)
+ *
+ * \brief RE-allocate dCSRmat sparse matrix. Just use realloc to
+ *        expand, shrink the arrays in A
+ *
+ * \param m      Number of rows
+ * \param n      Number of columns
+ * \param nnz    Number of nonzeros
+ * \param A      Pointer to the dCSRmat matrix
+ *
+ */
+void dcsr_realloc(const INT m,
+		  const INT n,
+		  const INT nnz,
+		  dCSRmat *A)
+{
+  if ( m > 0 ) {
+    A->IA=(INT*)realloc(A->IA,(m+1)*sizeof(INT));
+  } else {   
+    if(A->IA) {
+      free(A->IA);
+      A->IA = NULL;
+    }
+  }
+  //
+  if ( n > 0 ) {
+    A->JA=(INT*)realloc(A->JA,nnz*sizeof(INT));
+  } else {
+    if(A->JA){
+      free(A->JA);
+      A->JA = NULL;
+    }
+  }
+  //
+  if ( nnz > 0 ) {
+    A->val=(REAL*)realloc(A->val,nnz*sizeof(REAL));
+  } else {
+    if(A->val){
+      free(A->val);
+      A->val = NULL;
+    }
+  }
 
+  A->row=m; A->col=n; A->nnz=nnz;
+
+  return;
+}
+/***********************************************************************/
+/*!
+ * \fn void icsr_realloc (const INT m, const INT n, const INT nnz, iCSRmat *A)
+ *
+ * \brief RE-allocate iCSRmat sparse matrix. Using realloc to expand,
+ *        shrink the arrays in A. If upon entry the arrays are NULL it
+ *        will allocate them (by the definition of realloc).
+ *
+ * \param m      Number of rows
+ * \param n      Number of columns
+ * \param nnz    Number of nonzeros
+ * \param A      Pointer to the iCSRmat matrix
+ *
+ */
+void icsr_realloc(const INT m,
+		  const INT n,
+		  const INT nnz,
+		  iCSRmat *A)
+{
+  if ( m > 0 ) {
+    A->IA=(INT*)realloc(A->IA,(m+1)*sizeof(INT));
+  } else {   
+    if(A->IA) {
+      free(A->IA);
+      A->IA = NULL;
+    }
+  }
+  //
+  if ( n > 0 ) {
+    A->JA=(INT*)realloc(A->JA,nnz*sizeof(INT));
+  } else {
+    if(A->JA){
+      free(A->JA);
+      A->JA = NULL;
+    }
+  }
+  //
+  if ( nnz > 0 ) {
+    A->val=(INT *)realloc(A->val,nnz*sizeof(INT));
+  } else {
+    if(A->val){
+      free(A->val);
+      A->val = NULL;
+    }
+  }
+
+  A->row=m; A->col=n; A->nnz=nnz;
+
+  return;
+}
 /***********************************************************************************************/
 /**
  * \fn dCOOmat dcoo_create (INT m, INT n, INT nnz)
@@ -308,7 +406,6 @@ dCOOmat dcoo_create (INT m,
 
     return A;
 }
-
 /***********************************************************************************************/
 /**
  * \fn void dcoo_alloc (const INT m, const INT n, const INT nnz, dCOOmat *A)
@@ -318,7 +415,7 @@ dCOOmat dcoo_create (INT m,
  * \param m      Number of rows
  * \param n      Number of columns
  * \param nnz    Number of nonzeros
- * \param A      Pointer to the dCSRmat matrix
+ * \param A      Pointer to the dCOOmat matrix
  *
  */
 void dcoo_alloc (const INT m,
@@ -1160,8 +1257,7 @@ void icsr_shift(iCSRmat *A,
  *
  * \return Flag of whether the adding is succesful or not (SUCCUESS: 0; FAIL: <0)
  *
- * modified ltz (20200811): replaced memset (-1) as this does not work
- * in general with an explicit loop)
+ * modified ltz (20200811): replaced memset (-1) with an explicit loop)
  */
 INT dcsr_add(dCSRmat *A,
              const REAL alpha,
@@ -1849,7 +1945,7 @@ void icsr_mxm_symb(iCSRmat *A,iCSRmat *B,iCSRmat *C)
 }
 /**************************************************************************/
 /*!
-   * \fn void icsr_mxm_symb_max (iCSRmat *A, iCSRmat *B, iCSRmat *C, INT multmax)
+   * \fn void icsr_mxm (iCSRmat *A, iCSRmat *B, iCSRmat *C, INT multmax)
    *
    * \brief symbolic sparse matrix multiplication C=A*B (index starts with 0!!)
    *
