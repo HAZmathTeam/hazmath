@@ -389,17 +389,17 @@ static REAL bary_brasil(
 
 /**********************************************************************/
 /*!
- * \fn REAL get_cpzwf_brasil(REAL16 (*f)(REAL16, void*), void *param,
- *            REAL **cpzwf, REAL a, REAL b, INT deg, INT init_steps,
+ * \fn REAL get_rpzwf_brasil(REAL16 (*f)(REAL16, void*), void *param,
+ *            REAL **rpzwf, REAL a, REAL b, INT deg, INT init_steps,
  *            INT maxiter, REAL step_factor, REAL max_step_size,
  *            REAL tol, INT print_level)
  *
  * \brief Uses the BRASIL algorithm to compute residues, poles, nodes, weights
- *        and values (cpzwf) for the best uniform rational approximation to f().
+ *        and values (rpzwf) for the best uniform rational approximation to f().
  *
  * \param f             the function to approximate
  * \param param         user parameters for f
- * \param cpzwf         output arrays; should have space for five REAL*
+ * \param rpzwf         output arrays; should have space for five REAL*
  * \param a             start point of interval
  * \param b             end point of interval
  * \param deg           desired degree of rational approximation (both numerator and denominator)
@@ -411,18 +411,18 @@ static REAL bary_brasil(
  * \param print_level   level of verbosity
  *
  * \return The maximum error of the computed rational approximation. Its parameters
- *         are returned in the five arrays of cpzwf: cpzwf[0] = residues,
- *         cpzwf[1] = poles, cpzwf[2] = nodes, cpzwf[3] = weights, cpzwf[4] = values.
+ *         are returned in the five arrays of rpzwf: rpzwf[0:1] = residues,
+ *         rpzwf[2:3] = poles, rpzwf[4] = nodes, rpzwf[5] = weights, rpzwf[6] = values.
  *         These arrays each have length degree + 1 and are allocated as one big
- *         block, i.e., the caller should only call free(cpzwf[0]).
+ *         block, i.e., the caller should only call free(rpzwf[0]).
  *
  * \note Please cite https://doi.org/10.1007/s11075-020-01042-0 when using this
  *       code in published research.
  */
-REAL get_cpzwf_brasil(
+REAL get_rpzwf_brasil(
     REAL16 (*f)(REAL16, void*), // function to approximate
     void *param,                // user parameter for f
-    REAL **cpzwf,               // output - see haz_aaa.c
+    REAL **rpzwf,               // output - see haz_aaa.c
     REAL a,                     // start point of interval
     REAL b,                     // end point of interval
     INT deg,                    // desired degree of rational approximation
@@ -443,30 +443,48 @@ REAL get_cpzwf_brasil(
 				 tol,iter_brasil,print_level);
 
   // allocate and fill output data structure
-  cpzwf[0] = calloc(5 * bary.nn, sizeof(**cpzwf));
-  cpzwf[1] = cpzwf[0] + bary.nn;
-  cpzwf[2] = cpzwf[1] + bary.nn;
-  cpzwf[3] = cpzwf[2] + bary.nn;
-  cpzwf[4] = cpzwf[3] + bary.nn;
+  /* rpzwf[0] = calloc(7 * bary.nn, sizeof(**rpzwf)); */
+  /* rpzwf[1] = rpzwf[0] + bary.nn; */
+  /* rpzwf[2] = rpzwf[1] + bary.nn; */
+  /* rpzwf[3] = rpzwf[2] + bary.nn; */
+  /* rpzwf[4] = rpzwf[3] + bary.nn; */
+
+  rpzwf[0]=calloc(7*(bary.nn), sizeof(REAL)); // real (resid) and all;
+  rpzwf[1]=rpzwf[0] + bary.nn;// imag (resid)
+  rpzwf[2]=rpzwf[1] + bary.nn;// real (poles)
+  rpzwf[3]=rpzwf[2] + bary.nn;// real(resid)
+  rpzwf[4]=rpzwf[3] + bary.nn;
+  rpzwf[5]=rpzwf[4] + bary.nn;
+  rpzwf[6]=rpzwf[5] + bary.nn;
 
   // copy nodes, weights and values
-  memcpy(cpzwf[2], bary.z, bary.nn * sizeof(**cpzwf));
-  memcpy(cpzwf[3], bary.w, bary.nn * sizeof(**cpzwf));
-  memcpy(cpzwf[4], bary.f, bary.nn * sizeof(**cpzwf));
+  memcpy(rpzwf[4], bary.z, bary.nn * sizeof(**rpzwf));
+  memcpy(rpzwf[5], bary.w, bary.nn * sizeof(**rpzwf));
+  memcpy(rpzwf[6], bary.f, bary.nn * sizeof(**rpzwf));
 
   // compute residues and poles from nodes/weights/values
-  residues_poles(bary.nn, cpzwf[2], cpzwf[3], cpzwf[4], cpzwf[0], cpzwf[1]);
-
+  //  residues_poles(bary.nn, rpzwf[2], rpzwf[3], rpzwf[4], rpzwf[0], rpzwf[1]);
+  residues_poles(bary.nn,rpzwf[4],rpzwf[5],rpzwf[6],rpzwf[0],rpzwf[1],rpzwf[2],rpzwf[3]);
   /* should this be here?
   // this is copied from haz_aaa.c for consistency:
   // rotate the last residue to the front
   */
-  REAL rswp;
+  /* REAL rswp; */
+  /* INT i,m1 = bary.nn - 1; */
+  /* rswp = rpzwf[0][m1]; */
+  /* for(i = m1; i>0; --i) */
+  /*   rpzwf[0][i] = rpzwf[0][i-1]; */
+  /* rpzwf[0][0] = rswp;   */
+  REAL rswpr,rswpi;
   INT i,m1 = bary.nn - 1;
-  rswp = cpzwf[0][m1];
-  for(i = m1; i>0; --i)
-    cpzwf[0][i] = cpzwf[0][i-1];
-  cpzwf[0][0] = rswp;  
+  rswpr=rpzwf[0][m1];
+  rswpi=rpzwf[1][m1];
+  for(i=m1;i>0;i--){
+    rpzwf[0][i]=rpzwf[0][i-1];
+    rpzwf[1][i]=rpzwf[1][i-1];
+  }
+  rpzwf[0][0]=rswpr;
+  rpzwf[1][0]=rswpi;
   bary_free(&bary);
   return error;
 }

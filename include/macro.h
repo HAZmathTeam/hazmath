@@ -213,9 +213,9 @@
 /**
  * \brief Definition of max, min, abs
  */
-#define MAX(a,b) (((a)>(b))?(a):(b)) /**< bigger one in a and b */
-#define MIN(a,b) (((a)<(b))?(a):(b)) /**< smaller one in a and b */
-#define ABS(a) (((a)>=0.0)?(a):-(a)) /**< absolute value of a */
+#define MAX(a,b) (((a)>(b))?(a):(b)) /**< max of a and b */
+#define MIN(a,b) (((a)<(b))?(a):(b)) /**< min of a and b */
+#define ABS(a) (((a)>=0.0)?(a):-(a)) /**< absolute value of a (abs or fabs or fabsl shoould be preferred) */
 
 /**
  * \brief Definition of >, >=, <, <=, and isnan

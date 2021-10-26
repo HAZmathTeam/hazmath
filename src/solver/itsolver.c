@@ -99,22 +99,9 @@ inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres
  * \param relres  Relative residual
  *
  */
-inline static REAL16 frac_inv(REAL16 x, void *param)
+inline static REAL16 frac_inv(REAL16 x,REAL16 s,REAL16 t,REAL16 alpha,REAL16 beta)
 {
-  REAL16 *s,s1,s2,alpha,beta;
-  if(param!=NULL){
-    s=(REAL16 *)param;
-    s1=s[0];
-    s2=s[1];
-    alpha=s[2];
-    beta=s[3];
-  } else {
-    s1=0.5e0;
-    s2=-0.5e0;
-    alpha=1e0;
-    beta=2e0;
-  }
-  return 1./(alpha*powl(x,s1)+beta*powl(x,s2));
+  return 1./(alpha*powl(x,s)+beta*powl(x,t));
 }
 /**/
 
@@ -529,7 +516,8 @@ INT linear_solver_amg(dCSRmat *A,
 /**
  * \fn INT linear_solver_frac_rational_approx (dCSRmat *A, dvector *b, dvector *x, dCSRmat *M,
  *                                             AMG_param *amgparam, linear_itsolver_param *itparam,
- *                                             dvector *poles, devector *residues)
+ *                                             dvector *poles_r, dvector *poles_i,
+ *                                             dvector *residues_r, dvector *residues_i)
  *
  * \brief Solve (alpha*A^s + beta*A^t)x = b by rational approximations
  *
@@ -542,7 +530,7 @@ INT linear_solver_amg(dCSRmat *A,
  * \param M      Pointer to dCSRmat: the mass matrix
  * \param param  Pointer to AMG_param: AMG parameters
  * \param
- * \param poles  Pointer to dvector: poles
+ * \param poles_r  Pointer to dvector: poles_r(real part)
  *
  * \note If M = NULL, we assume that M = I  (this does not work for python ... - Xiaozhe)
  *
@@ -559,12 +547,14 @@ INT linear_solver_frac_rational_approx(dCSRmat *A,
                                        dCSRmat *M,
                                        AMG_param *amgparam,
                                        linear_itsolver_param *itparam,
-                                       dvector *poles,
-                                       dvector *residues)
+                                       dvector *poles_r,
+                                       dvector *poles_i,
+                                       dvector *residues_r,
+                                       dvector *residues_i)
 {
 
   // local variables
-  INT k = poles->row;
+  INT k = poles_r->row;
   INT status = SUCCESS;
   INT i;
   dvector update = dvec_create(x->row);
@@ -586,7 +576,7 @@ INT linear_solver_frac_rational_approx(dCSRmat *A,
   {
     status = linear_solver_dcsr_krylov_amg(M, b, x, itparam, amgparam);
   }
-  dvec_ax(residues->val[0], x);
+  dvec_ax(residues_r->val[0], x);
 
   // main loop
   INT count = 0;
@@ -598,18 +588,18 @@ INT linear_solver_frac_rational_approx(dCSRmat *A,
     // form (A - poles[i]*M)
     if (M==NULL)
     {
-      dcsr_add(A, 1.0, &I, -poles->val[i], &shiftA);
+      dcsr_add(A, 1.0, &I, -poles_r->val[i], &shiftA);
     }
     else
     {
-      dcsr_add(A, 1.0, M, -poles->val[i], &shiftA);
+      dcsr_add(A, 1.0, M, -poles_r->val[i], &shiftA);
     }
 
     // solve (A - poles[i]*M)e=f
     status = linear_solver_dcsr_krylov_amg(&shiftA, b, &update, itparam, amgparam);
 
     // x = x + residues[i+1]*update
-    dvec_axpy(residues->val[i+1], &update, x);
+    dvec_axpy(residues_r->val[i+1], &update, x);
 
     // free shiftA
     dcsr_free(&shiftA);
@@ -3498,8 +3488,8 @@ INT linear_solver_bdcsr_babuska_block_2(block_dCSRmat *A,
     // compute the rational approximation
     //------------------------------------------------
     // poles and residues of rational approximation
-    dvector poles;
-    dvector residues;
+    dvector poles_r,poles_i;
+    dvector residues_r,residues_i;
 
     // scaling parameters for rational approximation
     REAL scaled_alpha = alpha, scaled_beta = beta;
@@ -3526,30 +3516,44 @@ INT linear_solver_bdcsr_babuska_block_2(block_dCSRmat *A,
     // parameters used in the AAA algorithm
     REAL xmin_in=0.e0, xmax_in=1.e0;  // interval for x
     INT mbig=(1<<14)+1;  // initial number of points on the interval [x_min, x_max]
-    INT mmax_in=(INT )(mbig/2);  // maximal final number of pole + 1
+    /// this is too much    INT mmax_in=(INT )(mbig/2);  // maximal final number of pole + 1
+    INT mmax_in=25;  // maximal final number of poles + 1; no need of more
     REAL16 AAA_tol=powl(2e0,-52e0);  // tolerance of the AAA algorithm
     INT k=-22; // k is the number of nodes in the final interpolation after tolerance is achieved or mmax is reached.
     INT print_level=0; // print level for AAA
 
     // output of the AAA algorithm
-    REAL **rpnwf=malloc(5*sizeof(REAL *));  // output of the AAA algorithm.  It contains residues, poles, nodes, weights, function values
+    REAL **rpnwf=malloc(7*sizeof(REAL *));  // output of the AAA algorithm.  It contains residues, poles, nodes, weights, function values
 
     // compute the rational approximation using AAA algorithms
-    //    REAL err_max=get_cpzwf(frac_inv, (void *)func_param,	rpnwf, &mbig, &mmax_in, &k, xmin_in, xmax_in, AAA_tol, print_level);
-    get_cpzwf(frac_inv, (void *)func_param,rpnwf, &mbig, &mmax_in, &k, xmin_in, xmax_in, AAA_tol, print_level);
-
+    //    REAL err_max=get_rpzwf(frac_inv, (void *)func_param,	rpnwf, &mbig, &mmax_in, &k, xmin_in, xmax_in, AAA_tol, print_level);
+    //    get_rpzwf(frac_inv, (void *)func_param,rpnwf, &mbig, &mmax_in, &k, xmin_in, xmax_in, AAA_tol, print_level);
+    REAL16 **zf=set_f_values(frac_inv,					\
+			     func_param[0],func_param[1],func_param[2],func_param[3], \
+			     &mbig,xmin_in,xmax_in,			\
+			     print_level);
+  //  for(i=0;i<numval;i++)fprintf(stdout,"\nz(%d)=%.16Le;f(%d)=%.16Le;",i+1,*(zf[0]+i),i+1,*(zf[1]+i));
+  //  fprintf(stdout,"\n");
+    get_rpzwf(mbig,zf[0],zf[1],rpnwf,&mmax_in,&k,AAA_tol,print_level);
+    free(zf[0]);
+    free(zf[1]);
+    free(zf);
     // assign poles and residules
-    dvec_alloc(k,  &residues);
-    dvec_alloc(k-1, &poles);
-    array_cp(k, rpnwf[0], residues.val);
-    array_cp(k-1, rpnwf[1], poles.val);
+    dvec_alloc(k,  &residues_r);
+    dvec_alloc(k-1, &poles_r);
+    dvec_alloc(k,  &residues_i);
+    dvec_alloc(k-1, &poles_i);
+    array_cp(k, rpnwf[0], residues_r.val);
+    array_cp(k, rpnwf[1], residues_i.val);
+    array_cp(k-1, rpnwf[2], poles_r.val);
+    array_cp(k-1, rpnwf[3], poles_i.val);
     //------------------------------------------------
 
     //------------------------------------------------
     // setup AMG preconditioners for the first block
     // and shifted matrices used in rational approximation
     //------------------------------------------------
-    INT npoles = poles.row;
+    INT npoles = poles_r.row;
     AMG_data **mgl = (AMG_data **)calloc(npoles+1, sizeof(AMG_data *));
 
     /* first amg data is to set up AMG for the first block */
@@ -3590,12 +3594,12 @@ INT linear_solver_bdcsr_babuska_block_2(block_dCSRmat *A,
     dcsr_getdiag(0, &scaled_M, &diag_scaled_M);
 
     /* second amg data is to set up all AMG for shifted laplacians */
-    // assemble all amg data for all shifted laplacians (scaling_a*A - poles[i] * scaling_m*M)
+    // assemble all amg data for all shifted laplacians (scaling_a*A - poles_r[i] * scaling_m*M)
     //dCSRmat IS = dcsr_create_identity_matrix(ns, 0);
     for(i = 1; i < npoles+1; ++i) {
         mgl[i] = amg_data_create(max_levels2);
         dcsr_alloc(ns, ns, 0, &(mgl[i][0].A));
-        dcsr_add(AS, scaling_a, MS, -poles.val[i-1]*scaling_m, &(mgl[i][0].A));
+        dcsr_add(AS, scaling_a, MS, -poles_r.val[i-1]*scaling_m, &(mgl[i][0].A));
         //dcsr_alloc(ns, ns, MS->nnz, &(mgl[i][0].M)); // TODO: edit this row and one below
         //dcsr_cp(MS, &(mgl[i][0].M));
         mgl[i][0].b = dvec_create(ns);
@@ -3651,8 +3655,8 @@ INT linear_solver_bdcsr_babuska_block_2(block_dCSRmat *A,
     precdata.scaled_beta = scaled_beta;
 
     // save poles and residues
-    precdata.poles = &poles;
-    precdata.residues = &residues;
+    precdata.poles = &poles_r;
+    precdata.residues = &residues_r;
 
     precond pc;
     pc.data = &precdata;
@@ -3705,8 +3709,10 @@ INT linear_solver_bdcsr_babuska_block_2(block_dCSRmat *A,
     //if (func_param) free(func_param);
     if (rpnwf[0]) free(rpnwf[0]);
     if (rpnwf) free(rpnwf);
-    dvec_free(&poles);
-    dvec_free(&residues);
+    dvec_free(&poles_r);
+    dvec_free(&poles_i);
+    dvec_free(&residues_r);
+    dvec_free(&residues_i);
 
     // free data for preconditioner
     /*
