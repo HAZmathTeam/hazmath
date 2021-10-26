@@ -388,13 +388,14 @@ precond* create_precond_ra(dCSRmat *A,
     REAL **rpnwf=malloc(5*sizeof(REAL *));
 
     // compute the rational approximation using AAA algorithms
-    REAL err_max=get_cpzwf(frac_inv, (void *)func_param, rpnwf, &mbig, &mmax_in, &k, xmin_in, xmax_in, AAA_tol, print_level);
+    /*REAL err_max=get_cpzwf(frac_inv, (void *)func_param, rpnwf, &mbig, &mmax_in, &k, xmin_in, xmax_in, AAA_tol, print_level);
     if(rpnwf == NULL) {
       fprintf(stderr,"\nUnsuccessful AAA computation of rational approximation\n");
       fflush(stderr);
       return 0;
-    }
-
+    }*/
+    REAL err_max = 0.0;
+    k = 1;
     // assign poles and residules
     pcdata->residues = dvec_create_p(k);
     pcdata->poles = dvec_create_p(k-1);
@@ -599,14 +600,16 @@ dvector* compute_ra_aaa(REAL s_frac_power,
     REAL **rpnwf = malloc(5 * sizeof(REAL *));
 
     // compute the rational approximation using AAA algorithms
-    REAL err_max = get_cpzwf(frac_inv, (void *)func_param, rpnwf, &mbig, &mmax_in, &k, xmin_in, xmax_in, AAA_tol, print_level);
+    /*REAL err_max = get_cpzwf(frac_inv, (void *)func_param, rpnwf, &mbig, &mmax_in, &k, xmin_in, xmax_in, AAA_tol, print_level);
     if(rpnwf == NULL) {
       fprintf(stderr,"\nUnsuccessful AAA computation of rational approximation\n");
       fflush(stderr);
       return 0;
-    }
-    printf("Approximation error: %.16e\n", err_max);
-    printf("Number of poles: %d\n", k-1);
+    }*/
+    REAL err_max = 0.0;
+    k=1;
+    printf(" HAZ ---- Rational approx error in interp points: %.16e\n", err_max);
+    // printf("Number of poles: %d\n", k-1);
 
     // print poles, residues
     /*printf("Poles:\n");
@@ -626,6 +629,7 @@ dvector* compute_ra_aaa(REAL s_frac_power,
     array_cp(k, rpnwf[0], &(res->val[k-1]));
 
     // check if poles are non negative
+    /*
     REAL polez;
     for(i = 0; i < k-1; ++i) {
       polez = res->val[i];
@@ -635,7 +639,7 @@ dvector* compute_ra_aaa(REAL s_frac_power,
 	    fprintf(stdout,"\n%%%%%%  0 < pole(%d)=%.16e\n", i, polez);
 	    break;
       }
-    }
+    }*/
 
     // print poles, residues
     /*printf("Poles:\n");
@@ -651,6 +655,116 @@ dvector* compute_ra_aaa(REAL s_frac_power,
 
     // clean
     if(rpnwf) free(rpnwf);
+
+    return res;
+}
+
+
+dvector* ra_aaa(int numval,
+                double *z,
+                double *f,
+                double AAA_tol)
+{
+    INT i;
+    //------------------------------------------------
+    // compute the rational approximation
+    //------------------------------------------------
+
+    /*fprintf(stdout, "npoints: %d\n", numval); fflush(stdout);
+    for(i = 0; i < numval-1; ++i) {
+        fprintf(stdout, "%.10e \t %.10e\n", z[i], f[i]); fflush(stdout);
+    }*/
+    fprintf(stdout, "Here\n"); fflush(stdout);
+
+    /* AAA algorithm for the rational approximation */
+    // parameters used in the AAA algorithm
+    // REAL xmin_in = 0.e0, xmax_in = 1.e0;  // interval for x
+    // INT mbig = (1<<14) + 1;  // initial number of points on the interval [x_min, x_max]
+    INT mmax_in = 30;  // maximal final number of pole + 1
+    // REAL16 AAA_tol = powl(2e0,-40e0);  // tolerance of the AAA algorithm
+    INT k = -22; // k is the number of nodes in the final interpolation after tolerance is achieved or mmax is reached.
+    INT print_level = 1; // print level for AAA
+
+    // output of the AAA algorithm.  It contains residues (Re + Im), poles (Re + Im), nodes, weights, function values
+    REAL **rpnwf = malloc(7 * sizeof(REAL *));
+
+    REAL16 *zz = malloc(numval * sizeof(REAL16));
+    REAL16 *ff = malloc(numval * sizeof(REAL16));
+
+    fprintf(stdout, "Here\n"); fflush(stdout);
+
+    for(i = 0; i < numval; ++i) {
+        zz[i] = (REAL16)z[i];
+        ff[i] = (REAL16)f[i];
+    }
+    fprintf(stdout, "Here\n"); fflush(stdout);
+
+    fprintf(stdout, "npoints: %d\n", numval); fflush(stdout);
+    for(i = 0; i < numval; ++i) {
+        fprintf(stdout, "%Le \t %Le\n", zz[i], ff[i]); fflush(stdout);
+    }
+
+    // compute the rational approximation using AAA algorithms
+    REAL err_max = get_rpzwf(numval, zz, ff, rpnwf, &mmax_in, &k, AAA_tol, print_level);
+    if(rpnwf == NULL) {
+      fprintf(stderr,"\nUnsuccessful AAA computation of rational approximation\n");
+      fflush(stderr);
+      return 0;
+    }
+    printf(" HAZ ---- Rational approx error in interp points: %.16e\n", err_max);
+    // printf("Number of poles: %d\n", k-1);
+    fprintf(stdout, "Here\n"); fflush(stdout);
+
+    // print poles, residues
+    printf("Poles:\n");
+    for(i = 0; i < k-1; ++i) {
+        printf("pole[%d] = %.10e + %.10e i\n", i, rpnwf[2][i], rpnwf[3][i]);
+    }
+    printf("\n");
+    printf("Residues:\n");
+    for(i = 0; i < k; ++i) {
+        printf("res[%d] = %.10e + %.10e i\n", i, rpnwf[0][i], rpnwf[1][i]);
+    }
+    printf("\n");
+
+    // assign poles and residuals
+    dvector *res = dvec_create_p(4*k - 2);
+    array_cp(k-1, rpnwf[2], res->val);
+    array_cp(k-1, rpnwf[3], &(res->val[k-1]));
+    array_cp(k, rpnwf[0], &(res->val[2*k-2]));
+    array_cp(k, rpnwf[1], &(res->val[3*k-2]));
+    fprintf(stdout, "Here\n"); fflush(stdout);
+
+    // check if poles are non negative
+    /*
+    REAL polez;
+    for(i = 0; i < k-1; ++i) {
+      polez = res->val[i];
+      if(polez > 0e0) {
+	    fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Positive pole in function=%s", \
+	        __FUNCTION__);
+	    fprintf(stdout,"\n%%%%%%  0 < pole(%d)=%.16e\n", i, polez);
+	    break;
+      }
+    }*/
+
+    // print poles, residues
+    /*printf("Poles:\n");
+    for(i = 0; i < k-1; ++i) {
+        printf("%.10e \t", res->val[i]);
+    }
+    printf("\n");
+    printf("Residues:\n");
+    for(i = 0; i < k; ++i) {
+        printf("%.10e \t", res->val[k+i-1]);
+    }
+    printf("\n");*/
+
+    // clean
+    //if(rpnwf[0]) free(rpnwf[0]);
+    //if(rpnwf) free(rpnwf);
+    free(zz); free(ff);
+    fprintf(stdout, "Here\n"); fflush(stdout);
 
     return res;
 }
