@@ -313,12 +313,8 @@ REAL get_rpzwf(INT numval,REAL16 *z, REAL16 *f,		\
   REAL16 tol=powl(2e0,-52e0);
   if(((REAL16 )tolaaa) > tol)
     tol=(REAL16 )tolaaa;
-  INT mem=numval*mmax*sizeof(REAL) + mmax*sizeof(REAL);
-  void *zfw_long=calloc(mem,sizeof(char));
-  REAL *wd=(REAL *)zfw_long;
-  zfw_long+=(mmax)*sizeof(REAL);
-  REAL *x21d=(REAL *)zfw_long;
-  zfw_long+=numval*mmax*sizeof(REAL);// end of it
+  REAL *wd=calloc(mmax,sizeof(REAL));
+  REAL *x21d=calloc(numval*mmax,sizeof(REAL));
   /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
   // form f; take the mean of f; form the matrix;
   // set up z;  
@@ -382,6 +378,7 @@ REAL get_rpzwf(INT numval,REAL16 *z, REAL16 *f,		\
       fprintf(stdout,"\n%% *** HAZMATH WARNING*** IN %s: SVD-INFO IS NOT ZERO; INFO=%d;\n",__FUNCTION__,info);
     }
   }
+  free(x21d);
   //  fprintf(stdout,"\n\n%%%% MINerr=%.18Le; at iter=%d\n",rmax_min,m_minerr); fflush(stdout);
 
   m_out[0]=m;
@@ -396,6 +393,7 @@ REAL get_rpzwf(INT numval,REAL16 *z, REAL16 *f,		\
   rpzwf[6]=rpzwf[5] + m + 1;
   for(i=0;i<m;i++) rpzwf[4][i]=z[i];
   memcpy(rpzwf[5],wd,m*sizeof(REAL));
+  free(wd);
 
   for(i=0;i<m;i++) rpzwf[6][i]=f[i];
 
