@@ -121,8 +121,6 @@ INT residues_poles(INT m,				\
     exit(16);    
   }
 
-  fprintf(stdout, "Here41\n"); fflush(stdout);
-
   // END memory
   // grab the input params and convert them to higher precision
   for(j=0;j<m;j++){
@@ -139,8 +137,6 @@ INT residues_poles(INT m,				\
   INT *iter000=(INT *)calloc(m1,sizeof(INT));
   memset(a_mat,0,mm1*sizeof(REAL16));
   memset(b_mat,0,mm1*sizeof(REAL16));
-
-  fprintf(stdout, "Here42\n"); fflush(stdout);
 
   for(i=1;i<m1;i++){
     a_mat[i*m1+i]=z[i-1];
@@ -169,8 +165,6 @@ INT residues_poles(INT m,				\
 	epsa,epsb,
 	&alphar,&alphai,&beta,
 	wantx,&x000);
-
-  fprintf(stdout, "Here43\n"); fflush(stdout);
 
   /* for(j=0;j<m1;j++){ */
   /*   fprintf(stdout,"\nalphar(%d)=%.18Le;",j+1,alphar[j]); */
@@ -214,8 +208,6 @@ INT residues_poles(INT m,				\
     }
     ++j;
   }
-  fprintf(stdout, "Here44\n"); fflush(stdout);
-
   //
   /* for(j=0;j<m01;j++) fprintf(stdout,"\npol0(%d)=%.16Le+sqrt(-1)*(%.16Le);",j+1,polr[j],poli[j]); */
   /* for(j=0;j<m;j++) fprintf(stdout,"\nz0(%d)=%.16Le;",j+1,z[j]); */
@@ -229,8 +221,6 @@ INT residues_poles(INT m,				\
   free(alphai);
   free(beta);
   free(iter000);
-
-  fprintf(stdout, "Here45\n"); fflush(stdout);
 
   ///////////////////////////////////////////////////////////////////////////////
   // get the residual  
@@ -247,16 +237,12 @@ INT residues_poles(INT m,				\
   ///////////////////double on output.
   //
 
-  fprintf(stdout, "Here46\n"); fflush(stdout);
-
   for(j=0;j<m;j++) resdr[j]=(REAL )resr[j];
   for(j=0;j<m01;j++) poldr[j]=(REAL )polr[j];
   for(j=0;j<m;j++) resdi[j]=(REAL )resi[j];
   for(j=0;j<m01;j++) poldi[j]=(REAL )poli[j];
   //
   free(wrk0);
-
-  fprintf(stdout, "Here47\n"); fflush(stdout);
 
   return 0;
 }
@@ -345,14 +331,12 @@ REAL get_rpzwf(INT numval,REAL16 *z, REAL16 *f,		\
   REAL16 rmax_min=1e0/tol;
   //  INT m_minerr=mmax;
 
-  fprintf(stdout, "Here1\n"); fflush(stdout);
-
   while(1){
     rmax=-1.e00;
     kmax=-1;
     if(m==0){
       for(k=0;k<numval;k++){
-	rm=fabsl(r-f[j]);
+	rm=fabsl(r-f[k]);
 	if(rm>rmax){
 	  rmax=rm;
 	  kmax=k;
@@ -400,8 +384,6 @@ REAL get_rpzwf(INT numval,REAL16 *z, REAL16 *f,		\
   }
   //  fprintf(stdout,"\n\n%%%% MINerr=%.18Le; at iter=%d\n",rmax_min,m_minerr); fflush(stdout);
 
-  fprintf(stdout, "Here2\n"); fflush(stdout);
-
   m_out[0]=m;
   //
   // allocate space for results
@@ -415,16 +397,10 @@ REAL get_rpzwf(INT numval,REAL16 *z, REAL16 *f,		\
   for(i=0;i<m;i++) rpzwf[4][i]=z[i];
   memcpy(rpzwf[5],wd,m*sizeof(REAL));
 
-  fprintf(stdout, "Here3\n"); fflush(stdout);
-
   for(i=0;i<m;i++) rpzwf[6][i]=f[i];
-
-  fprintf(stdout, "Here4\n"); fflush(stdout);
 
   //   copy the functions values go last, poles go first, residues go second
   residues_poles(m,rpzwf[4],rpzwf[5],rpzwf[6],rpzwf[0],rpzwf[1],rpzwf[2],rpzwf[3]);
-
-  fprintf(stdout, "Here5\n"); fflush(stdout);
 
   //
   REAL rswpi,rswpr;
@@ -435,7 +411,6 @@ REAL get_rpzwf(INT numval,REAL16 *z, REAL16 *f,		\
     rpzwf[0][i]=rpzwf[0][i-1];
     rpzwf[1][i]=rpzwf[1][i-1];
   }
-  fprintf(stdout, "Here6\n"); fflush(stdout);
 
   rpzwf[0][0]=rswpr;
   rpzwf[1][0]=rswpi;
