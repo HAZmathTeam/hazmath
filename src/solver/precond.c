@@ -5706,8 +5706,10 @@ void precond_block2_babuska_upper(REAL *r,
  * \author Ana Budisa
  * \date   2021-02-03
  *
- * \note The main difference with the other RA precond is using precond_ra_data
- *       structure, instead of precond_block_data
+ * \note 2021-10-28 updated to include complex valued poles an residues
+ *                  by using algorithm Ludmil provided;
+ * \note 2021-10-28 here we solve for both pole=a+ib and pole=a-ib even though
+ *                  the solving process is the same; FIXME
  */
 void precond_ra_fenics(REAL *r, REAL *z, void *data)
 {
@@ -5751,7 +5753,7 @@ void precond_ra_fenics(REAL *r, REAL *z, void *data)
     dvector *residues = precdata->residues;
 
     // number of poles
-    INT npoles = poles->row;
+    INT npoles = (INT)poles->row/2; // because we have imag parts appended after real parts
 
     /*----------------------------------------*/
 
@@ -5786,6 +5788,7 @@ void precond_ra_fenics(REAL *r, REAL *z, void *data)
     }
 
     // z = residues(0)*(scaled_M\scaled_r1)
+    // NOTE: here we assume imag(residues(0)) = 0
     status = dcsr_pcg(scaled_M, &r_vec, &z_vec, &pc_scaled_M, 1e-6, 100, 1, 0);
     array_ax(n, residues->val[0], z_vec.val);
 
@@ -5794,35 +5797,90 @@ void precond_ra_fenics(REAL *r, REAL *z, void *data)
     // INT solver_flag,jjj;
     /* printf("\nNumber of poles: %d\n", npoles); */
     // INT count = 0;
+
     for(i = 0; i < npoles; ++i) {
 
-        mgl[i]->b.row = n; array_cp(n, r_vec.val, mgl[i]->b.val); // residual is an input
-        mgl[i]->x.row = n; dvec_set(n, &mgl[i]->x, 0.0);
+        if(fabs(poles->val[i+npoles]) > 0.) {
+            // then we have a nonzero imag part of that pole and we do the 2x2 block algorithm
+            /* solve
+            [(A - Re(pole)*I),       Im(pole)*I ] [upd ] = [r]
+            [   - Im(pole)*I ,  (A - Re(pole)*I)] [iupd] = [0]
+            */
+            REAL p_im = poles->val[i+npoles];
+            dvector iupdate = dvec_create(n); // imag part of the update
+            INT K = 5; // number of loops for this algorithm
+            INT k;
 
-        // set precond data and param
-        pcdata.max_levels = mgl[i]->num_levels;
-        pcdata.mgl_data = mgl[i];
+            // set initial updates to zero
+            dvec_set(update.row, &update, 0.0);
+            dvec_set(iupdate.row, &iupdate, 0.0);
 
-        // set update to zero
-        dvec_set(update.row, &update, 0.0);
+            // create right hand sides for inv(A - dI);
+            // rhs_1 = r - Im(pole) * iupdate; rhs_2 = Im(pole) * update
+            dvector rhs1 = dvec_create(n);
+            dvector rhs2 = dvec_create(n);
 
-        // solve
-	    // printf("\tPole %d, norm of r = %e\n", i, dvec_norm2(&r_vec));
-        // status = dcsr_pvfgmres(&(mgl[i][0].A), &r1, &update, &pc_frac_A, 1e-6, 100, 100, 1, 1);
-	    status = dcsr_pcg(&(mgl[i][0].A), &r_vec, &update, &pc_frac_A, 1e-6, 100, 1, 0);
-        /* void *numeric=NULL;  // prepare for direct solve.
-        numeric=factorize_UMF(&(mgl[i][0].A),0);
-        solver_flag=(INT )solve_UMF(&(mgl[i][0].A),	\
-         				  &r_vec,		\
-         				  &update,		\
-         				  numeric,
-         				  0);
-        free(numeric); */
-        // if(status > 0) count += status;
-        // printf("\tPole %d, norm of update = %e\n", i, dvec_norm2(&update));
-        // z = z + residues[i+1]*update
-        array_axpy(n, residues->val[i+1], update.val, z_vec.val);
-        /* for(jjj=0;jjj<z_vec.row;jjj++) z[jjj]=z_vec.val[jjj]; */
+            for(k = 0; k < K; ++k) {
+                // set right hand sides
+                dvec_set(rhs1.row, &rhs1, 0.0);
+                dvec_set(rhs2.row, &rhs2, 0.0);
+                dvec_axpyz(-p_im, &iupdate, &r_vec, &rhs1);
+                dvec_axpy(p_im, &update, &rhs2);
+
+                // (1) solve (A - Re(pole)*I) update = rhs1
+                status = dcsr_pcg(&(mgl[i][0].A), &rhs1, &update, &pc_frac_A, 1e-6, 100, 1, 0);
+                // (2) solve (A - Re(pole)*I) iupdate = rhs2
+                status = dcsr_pcg(&(mgl[i][0].A), &rhs2, &iupdate, &pc_frac_A, 1e-6, 100, 1, 0);
+            }
+
+            // update next increment
+            // first check if Im(residue) > 0
+            if(fabs(residues->val[(npoles+1)+i+1]) > 0.) {
+                // z = z + residues[i+1]*update - residues[npoles+1+i+1]*iupdate
+                array_axpy(n, residues->val[i+1], update.val, z_vec.val);
+                array_axpy(n, -residues->val[(npoles+1)+i+1], iupdate.val, z_vec.val);
+            }
+            else {
+                // z = z + residues[i+1]*update
+                array_axpy(n, residues->val[i+1], update.val, z_vec.val);
+            }
+
+            // free memory
+            dvec_free(&iupdate);
+            dvec_free(&rhs1);
+            dvec_free(&rhs2);
+
+        }
+        else{
+            // else we do the standard algorithm to solve (D - dI) * update = r
+            mgl[i]->b.row = n; array_cp(n, r_vec.val, mgl[i]->b.val); // residual is an input
+            mgl[i]->x.row = n; dvec_set(n, &mgl[i]->x, 0.0);
+
+            // set precond data and param
+            pcdata.max_levels = mgl[i]->num_levels;
+            pcdata.mgl_data = mgl[i];
+
+            // set update to zero
+            dvec_set(update.row, &update, 0.0);
+
+            // solve
+            // printf("\tPole %d, norm of r = %e\n", i, dvec_norm2(&r_vec));
+            // status = dcsr_pvfgmres(&(mgl[i][0].A), &r1, &update, &pc_frac_A, 1e-6, 100, 100, 1, 1);
+            status = dcsr_pcg(&(mgl[i][0].A), &r_vec, &update, &pc_frac_A, 1e-6, 100, 1, 0);
+            /* void *numeric=NULL;  // prepare for direct solve.
+            numeric=factorize_UMF(&(mgl[i][0].A),0);
+            solver_flag=(INT )solve_UMF(&(mgl[i][0].A),	\
+                              &r_vec,		\
+                              &update,		\
+                              numeric,
+                              0);
+            free(numeric); */
+            // if(status > 0) count += status;
+            // printf("\tPole %d, norm of update = %e\n", i, dvec_norm2(&update));
+            // z = z + residues[i+1]*update
+            array_axpy(n, residues->val[i+1], update.val, z_vec.val);
+            /* for(jjj=0;jjj<z_vec.row;jjj++) z[jjj]=z_vec.val[jjj]; */
+        }
     }
 
     // if(count) printf("Inner solver took total of %d iterations. \n", count);
