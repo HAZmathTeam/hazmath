@@ -379,10 +379,6 @@ precond* create_precond_ra(dCSRmat *A,
     REAL drop_tol = AAA_tol;
     INT ii = 0;
 
-    // the easiest way seems to first save real part and then imag part
-    pcdata->residues = dvec_create_p(2*k);
-    pcdata->poles = dvec_create_p(2*(k-1));
-
     REAL *polesr = malloc((k-1) * sizeof(REAL));
     REAL *polesi = malloc((k-1) * sizeof(REAL));
     REAL *resr = malloc(k * sizeof(REAL));
@@ -392,43 +388,49 @@ precond* create_precond_ra(dCSRmat *A,
     for(i = 0; i < k; ++i) {
         // residues first
         if((fabs(rpnwf[0][i]) > drop_tol) || (fabs(rpnwf[1][i]) > drop_tol)) {
-            resr[ii] = rpnwf[0][i]; resi[ii] = rpnwf[1][i];
+            if(fabs(rpnwf[0][i]) > drop_tol) resr[ii] = rpnwf[0][i]; else resr[ii] = 0.;
+            if(fabs(rpnwf[1][i]) > drop_tol) resi[ii] = rpnwf[1][i]; else resi[ii] = 0.;
             // drop poles to zero
-            if(i < k-1) {
-                if(fabs(rpnwf[2][i]) > drop_tol) polesr[ii] = rpnwf[2][i];
-                else polesr[ii] = 0.;
+            if(i > 0) {
+                if(fabs(rpnwf[2][i-1]) > drop_tol) polesr[ii-1] = rpnwf[2][i-1];
+                else polesr[ii-1] = 0.;
 
-                if(fabs(rpnwf[3][i]) > drop_tol) polesi[ii] = rpnwf[3][i];
-                else polesi[ii] = 0.;
+                if(fabs(rpnwf[3][i-1]) > drop_tol) polesi[ii-1] = rpnwf[3][i-1];
+                else polesi[ii-1] = 0.;
             }
             ii++;
         }
         else {
             fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Pole number reduced in function=%s \n", \
             __FUNCTION__);
-            if(i < k-1) fprintf(stdout,"%%%%%%  Removing pole[%d] = %.8e + %.8e i \t residue[%d] = %.8e + %.8e i\n", \
-	                            i, rpnwf[2][i], rpnwf[3][i], i, rpnwf[0][i], rpnwf[1][i]);
+            if(i > 0) fprintf(stdout,"%%%%%%  Removing pole[%d] = %.8e + %.8e i \t residue[%d] = %.8e + %.8e i\n", \
+	                            i-1, rpnwf[2][i-1], rpnwf[3][i-1], i, rpnwf[0][i], rpnwf[1][i]);
             else fprintf(stdout,"%%%%%%  Removing residue[%d] = %.8e + %.8e i\n", \
 	                            i, rpnwf[0][i], rpnwf[1][i]);
         }
     }
     // new number of poles+1
     k = ii;
+
+    // the easiest way seems to first save real part and then imag part
+    pcdata->residues = dvec_create_p(2*k);
+    pcdata->poles = dvec_create_p(2*(k-1));
+
     // copy and append in pcdata
     array_cp(k, resr, pcdata->residues->val);
     array_cp(k, resi, &(pcdata->residues->val[k]));
-    array_cp(k-1, rpnwf[1], pcdata->poles->val);
+    array_cp(k-1, polesr, pcdata->poles->val);
     array_cp(k-1, polesi, &(pcdata->poles->val[k-1]));
 
      // print poles, residues
     printf("Poles:\n");
     for(i = 0; i < k-1; ++i) {
-        printf("pole[%d] = %.10e + %.10e i\n", i, rpnwf[2][i], rpnwf[3][i]);
+        printf("pole[%d] = %.10e + %.10e i\n", i, pcdata->poles->val[i], pcdata->poles->val[k-1+i]);
     }
     printf("\n");
     printf("Residues:\n");
     for(i = 0; i < k; ++i) {
-        printf("res[%d] = %.10e + %.10e i\n", i, rpnwf[0][i], rpnwf[1][i]);
+        printf("res[%d] = %.10e + %.10e i\n", i, pcdata->residues->val[i], pcdata->residues->val[k+i]);
     }
     printf("\n");
 
@@ -443,18 +445,6 @@ precond* create_precond_ra(dCSRmat *A,
 	    break;
       }
     }*/
-
-    if(prtlvl > 5){
-      fprintf(stdout,"\n%%%%%%params:");
-      fprintf(stdout,"\ns = %.2Le; t = %.2Le; alpha = %.8Le; beta = %.8Le;",	\
-	      func_param[0], func_param[1], func_param[2], func_param[3]);
-      fprintf(stdout,"\n%%%%%%  POLES:\n");
-      for(i = 0; i < k-1; ++i)
-	fprintf(stdout,"pole(%d) = %.16e;\n", i+1, pcdata->poles->val[i]);
-      fprintf(stdout,"\n%%%%%%  RESIDUES:\n");
-      for(i = 0; i < k; ++i)
-        fprintf(stdout,"res(%d) = %.16e;\n", i+1, pcdata->residues->val[i]);
-    }
 
     /* --------------------------------------------- */
     // scaling stiffness matrix
