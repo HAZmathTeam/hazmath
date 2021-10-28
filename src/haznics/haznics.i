@@ -15,7 +15,6 @@ import_array();
 
 %numpy_typemaps(short, NPY_SHORT, SHORT)
 %numpy_typemaps(double, NPY_DOUBLE, REAL)
-%numpy_typemaps(double, NPY_DOUBLE, REAL16)
 
 /*%typemap(in) void (*func_ptr)(double*, double*, void*) {
   $1 = $input;
@@ -187,15 +186,7 @@ precond* create_precond_hxcurl(dCSRmat *Acurl, dCSRmat *Pcurl, dCSRmat *Grad, SH
 precond* create_precond_hxdiv_3D(dCSRmat *Adiv, dCSRmat *P_div, dCSRmat *Curl, dCSRmat *P_curl, SHORT prectype, AMG_param *amgparam);
 precond* create_precond_hxdiv_2D(dCSRmat *Adiv,dCSRmat *P_div, dCSRmat *Curl, SHORT prectype, AMG_param *amgparam);
 INT get_poles_no(precond *pc);
-dvector* compute_ra_aaa(REAL s_frac_power, REAL t_frac_power, REAL alpha, REAL beta, REAL scaling_a, REAL scaling_m);
-
-/*%apply (double* IN_ARRAY1, int DIM1) {(double* z, int numval),
-                                      (double* f, int numval2)};
-%apply (double AAA_tol) {(double AAA_tol)};
-dvector* ra_aaa(double *z, int numval, double *f, int numval2, double AAA_tol);
-%clear (double* z, int numval);
-%clear (double* f, int numval2);
-%clear (double AAA_tol);*/
+// dvector* compute_ra_aaa(REAL s_frac_power, REAL t_frac_power, REAL alpha, REAL beta, REAL scaling_a, REAL scaling_m);
 
 %apply (int DIM1, double* IN_ARRAY1) {(int numval, double* z),
                                       (int numval2, double* f)};
