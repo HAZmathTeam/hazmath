@@ -24,21 +24,8 @@
  * \param relres  Relative residual
  *
  */
-inline static REAL16 frac_inv(REAL16 x, void *param)
+inline static REAL16 frac_inv(REAL16 x, REAL16 s1, REAL16 s2, REAL16 alpha, REAL16 beta)
 {
-  REAL16 *s,s1,s2,alpha,beta;//,f123;
-  if(param!=NULL){
-    s=(REAL16 *)param;
-    s1=s[0];
-    s2=s[1];
-    alpha=s[2];
-    beta=s[3];
-  } else {
-    s1=0.5e0;
-    s2=-0.5e0;
-    alpha=1e0;
-    beta=2e0;
-  }
   // fprintf(stdout,"\nf-param: s=%Le,t=%Le,alpha=%Le,beta=%Le\n",s1,s2,alpha,beta);
   // fflush(stdout);
   return 1./(alpha*powl(x,s1)+beta*powl(x,s2));
@@ -338,17 +325,6 @@ precond* create_precond_ra(dCSRmat *A,
     const INT m = A->row, n = A->col, nnz = A->nnz, nnz_M = M->nnz;
     INT status = SUCCESS;
     INT i;
-    //INT ii, jj;
-
-    /*fprintf(stdout, "\n A: \n");
-    fprintf(stdout,"\nrow, col, nnz: %d, %d, %d \n", A->row, A->col, A->nnz);
-    for (ii=0; ii < A->row; ++ii) {
-        fprintf(stdout, "\n");
-        for (jj = A->IA[ii]; jj < A->IA[ii+1]; ++jj) {
-            fprintf(stdout, "%.16e\t", A->val[jj]);
-        }
-    } // end for js
-    fprintf(stdout, "\n");*/
 
     //------------------------------------------------
     // compute the rational approximation
@@ -360,86 +336,131 @@ precond* create_precond_ra(dCSRmat *A,
     // scale beta = beta*sa^(-t)*sm^(t-1)
     scaled_beta  = beta*pow(scaling_a, -t_frac_power)*pow(scaling_m, t_frac_power-1.);
 
+    /* Get interpolation points and function values */
     // parameters used in the function
     REAL16 func_param[4];
-    func_param[0] = s_frac_power;
-    func_param[1] = t_frac_power;
+    func_param[0] = (REAL16)s_frac_power;
+    func_param[1] = (REAL16)t_frac_power;
     if (scaled_alpha > scaled_beta)
     {
       func_param[2] = 1.;
-      func_param[3] = scaled_beta/scaled_alpha;
+      func_param[3] = (REAL16)scaled_beta/scaled_alpha;
     }
     else
     {
-      func_param[2] = scaled_alpha/scaled_beta;
+      func_param[2] = (REAL16)scaled_alpha/scaled_beta;
       func_param[3] = 1.;
     }
 
+    // get points and function values first
+    INT numval = (1<<14)+1;  // initial number of points on the interval [x_min, x_max]
+    REAL xmin_in = 0.e0, xmax_in = 1.e0;  // interval for x
+    REAL16 **zf = set_f_values(frac_inv, func_param[0], func_param[1], func_param[2], func_param[3], &numval, \
+                               xmin_in, xmax_in, 0);
+
     /* AAA algorithm for the rational approximation */
     // parameters used in the AAA algorithm
-    REAL xmin_in=0.e0, xmax_in=1.e0;  // interval for x
-    INT mbig=(1<<14)+1;  // initial number of points on the interval [x_min, x_max]
-    INT mmax_in=(INT )(mbig/2);  // maximal final number of pole + 1
-    REAL16 AAA_tol=powl(2e0,-40e0);  // tolerance of the AAA algorithm
-    INT k=-22; // k is the number of nodes in the final interpolation after tolerance is achieved or mmax is reached.
-    INT print_level=0; // print level for AAA
-
-    // output of the AAA algorithm.  It contains residues, poles, nodes, weights, function values
-    REAL **rpnwf=malloc(5*sizeof(REAL *));
+    INT mmax_in = 30;  // maximal final number of pole + 1
+    REAL16 AAA_tol = powl(2e0,-40e0);  // tolerance of the AAA algorithm
+    INT k = -22; // k is the number of nodes in the final interpolation after tolerance is achieved or mmax is reached.
+    INT print_level = 0; // print level for AAA
+    // output of the AAA algorithm.  It contains residues (Re + Im), poles (Re + Im), nodes, weights, function values
+    REAL **rpnwf = malloc(7 * sizeof(REAL *));
 
     // compute the rational approximation using AAA algorithms
-    /*REAL err_max=get_cpzwf(frac_inv, (void *)func_param, rpnwf, &mbig, &mmax_in, &k, xmin_in, xmax_in, AAA_tol, print_level);
+    REAL err_max=get_rpzwf(numval, zf[0], zf[1], rpnwf, &mmax_in, &k, AAA_tol, print_level);
     if(rpnwf == NULL) {
       fprintf(stderr,"\nUnsuccessful AAA computation of rational approximation\n");
       fflush(stderr);
       return 0;
-    }*/
-    REAL err_max = 0.0;
-    k = 1;
-    // assign poles and residules
-    pcdata->residues = dvec_create_p(k);
-    pcdata->poles = dvec_create_p(k-1);
-    array_cp(k, rpnwf[0], pcdata->residues->val);
-    array_cp(k-1, rpnwf[1], pcdata->poles->val);
-    //////// pcdata->residues->val[0]+=2e-15;
-    REAL polez;
-    for(i = 0; i < k-1; ++i) {
-      polez=pcdata->poles->val[i];
-      if(polez>0e0){
-	fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Positive pole in function=%s", \
-		__FUNCTION__);
-	fprintf(stdout,"\n%%%%%%  0 < pole(%d)=%.16e\n", i, polez);
-	break;
-      }
     }
-    if(prtlvl>5){
+
+    // assign poles and residues
+    REAL drop_tol = AAA_tol;
+    INT ii = 0;
+
+    // the easiest way seems to first save real part and then imag part
+    pcdata->residues = dvec_create_p(2*k);
+    pcdata->poles = dvec_create_p(2*(k-1));
+
+    REAL *polesr = malloc((k-1) * sizeof(REAL));
+    REAL *polesi = malloc((k-1) * sizeof(REAL));
+    REAL *resr = malloc(k * sizeof(REAL));
+    REAL *resi = malloc(k * sizeof(REAL));
+
+    // remove poles and residues smaller than some tolerance
+    for(i = 0; i < k; ++i) {
+        // residues first
+        if((fabs(rpnwf[0][i]) > drop_tol) || (fabs(rpnwf[1][i]) > drop_tol)) {
+            resr[ii] = rpnwf[0][i]; resi[ii] = rpnwf[1][i];
+            // drop poles to zero
+            if(i < k-1) {
+                if(fabs(rpnwf[2][i]) > drop_tol) polesr[ii] = rpnwf[2][i];
+                else polesr[ii] = 0.;
+
+                if(fabs(rpnwf[3][i]) > drop_tol) polesi[ii] = rpnwf[3][i];
+                else polesi[ii] = 0.;
+            }
+            ii++;
+        }
+        else {
+            fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Pole number reduced in function=%s \n", \
+            __FUNCTION__);
+            if(i < k-1) fprintf(stdout,"%%%%%%  Removing pole[%d] = %.8e + %.8e i \t residue[%d] = %.8e + %.8e i\n", \
+	                            i, rpnwf[2][i], rpnwf[3][i], i, rpnwf[0][i], rpnwf[1][i]);
+            else fprintf(stdout,"%%%%%%  Removing residue[%d] = %.8e + %.8e i\n", \
+	                            i, rpnwf[0][i], rpnwf[1][i]);
+        }
+    }
+    // new number of poles+1
+    k = ii;
+    // copy and append in pcdata
+    array_cp(k, resr, pcdata->residues->val);
+    array_cp(k, resi, &(pcdata->residues->val[k]));
+    array_cp(k-1, rpnwf[1], pcdata->poles->val);
+    array_cp(k-1, polesi, &(pcdata->poles->val[k-1]));
+
+     // print poles, residues
+    printf("Poles:\n");
+    for(i = 0; i < k-1; ++i) {
+        printf("pole[%d] = %.10e + %.10e i\n", i, rpnwf[2][i], rpnwf[3][i]);
+    }
+    printf("\n");
+    printf("Residues:\n");
+    for(i = 0; i < k; ++i) {
+        printf("res[%d] = %.10e + %.10e i\n", i, rpnwf[0][i], rpnwf[1][i]);
+    }
+    printf("\n");
+
+    // FIXME: is this necessary? maybe merge with previous or next loop
+    /*REAL polez;
+    for(i = 0; i < k-1; ++i) {
+      polez = pcdata->poles->val[i];
+      if(polez > 0e0){
+        fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Positive pole in function=%s", \
+            __FUNCTION__);
+	    fprintf(stdout,"\n%%%%%%  0 < pole(%d)=%.16e\n", i, polez);
+	    break;
+      }
+    }*/
+
+    if(prtlvl > 5){
       fprintf(stdout,"\n%%%%%%params:");
-      fprintf(stdout,"\ns=%.2Le;t=%.2Le;alpha=%.8Le;beta=%.8Le;",	\
-	      func_param[0],func_param[1],func_param[2],func_param[3]);
+      fprintf(stdout,"\ns = %.2Le; t = %.2Le; alpha = %.8Le; beta = %.8Le;",	\
+	      func_param[0], func_param[1], func_param[2], func_param[3]);
       fprintf(stdout,"\n%%%%%%  POLES:\n");
       for(i = 0; i < k-1; ++i)
-	fprintf(stdout,"pole(%d)=%.16e;\n", i+1, pcdata->poles->val[i]);
+	fprintf(stdout,"pole(%d) = %.16e;\n", i+1, pcdata->poles->val[i]);
       fprintf(stdout,"\n%%%%%%  RESIDUES:\n");
       for(i = 0; i < k; ++i)
-        fprintf(stdout,"res(%d)=%.16e;\n", i+1, pcdata->residues->val[i]);
+        fprintf(stdout,"res(%d) = %.16e;\n", i+1, pcdata->residues->val[i]);
     }
-    //fprintf(stdout,"\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n");
 
     /* --------------------------------------------- */
     // scaling stiffness matrix
     pcdata->scaled_A = dcsr_create_p(m, n, nnz);
     dcsr_cp(A, pcdata->scaled_A);
     dcsr_axm(pcdata->scaled_A, scaling_a);
-
-    /*fprintf(stdout, "\n A: \n");
-    fprintf(stdout,"\nrow, col, nnz: %d, %d, %d \n", A->row, A->col, A->nnz);
-    for (ii=0; ii < A->row; ++ii) {
-        fprintf(stdout, "\n");
-        for (jj = A->IA[i]; jj < A->IA[i+1]; ++jj) {
-            fprintf(stdout, "%.16e\t", A->val[jj]);
-        }
-    } // end for js
-    fprintf(stdout, "\n");*/
 
     // scaling mass matrix
     pcdata->scaled_M = dcsr_create_p(m, n, nnz_M);
@@ -453,31 +474,14 @@ precond* create_precond_ra(dCSRmat *A,
     //------------------------------------------------
     // Set up all AMG for shifted laplacians
     //------------------------------------------------
-    INT npoles = k-1;
-    fprintf(stdout,"\nNumber of poles: %d\n", npoles);
+    INT npoles = k - 1;
     pcdata->mgl = (AMG_data **)calloc(npoles, sizeof(AMG_data *));
+
     // assemble amg data for all shifted laplacians:
     // (scaling_a*A - poles[i] * scaling_m*M)
-    /*fprintf(stdout, "\n A: \n");
-    fprintf(stdout,"\nrow, col, nnz: %d, %d, %d \n", A->row, A->col, A->nnz);
-    for (ii=0; ii < A->row; ++ii) {
-        fprintf(stdout, "\n");
-        for (jj = A->IA[i]; jj < A->IA[i+1]; ++jj) {
-            fprintf(stdout, "%.16e\t", A->val[jj]);
-        }
-    } // end for js
-    fprintf(stdout, "\n");*/
-    /*fprintf(stdout, "\n M: \n");
-    fprintf(stdout,"\nrow, col, nnz: %d, %d, %d \n", M->row, M->col, M->nnz);
-    for (ii=0; ii < M->row; ++ii) {
-        fprintf(stdout, "\n");
-        for (jj = M->IA[i]; jj < M->IA[i+1]; ++jj) {
-            fprintf(stdout, "%.16e\t", M->val[jj]);
-        }
-    } // end for js
-    fprintf(stdout, "\n");*/
-
-
+    // NOTE: ONLY REAL PART USED HERE.
+    // Also, I didn't distinguish between zero and nonzero poles because
+    // some pole can have only imag part nonzero (so it's still needed in the solve).
     for(i = 0; i < npoles; ++i) {
         //fprintf(stdout,"\nAMG for pole %d\n", i);
         pcdata->mgl[i] = amg_data_create(max_levels);
@@ -485,16 +489,6 @@ precond* create_precond_ra(dCSRmat *A,
         dcsr_add(A, scaling_a, M, -pcdata->poles->val[i]*scaling_m, &(pcdata->mgl[i][0].A));
         pcdata->mgl[i][0].b = dvec_create(n);
         pcdata->mgl[i][0].x = dvec_create(n);
-
-        /*fprintf(stdout, "\n Matrix pole %d: \n", i);
-        fprintf(stdout,"\nrow, col, nnz: %d, %d, %d \n", pcdata->mgl[i][0].A.row, pcdata->mgl[i][0].A.col, pcdata->mgl[i][0].A.nnz);
-        for (ii=0; ii < pcdata->mgl[i][0].A.row; ++ii) {
-            fprintf(stdout, "\n");
-            for (jj = pcdata->mgl[i][0].A.IA[ii]; jj < pcdata->mgl[i][0].A.IA[ii+1]; ++jj) {
-                fprintf(stdout, "%.16e\t", pcdata->mgl[i][0].A.val[jj]);
-            }
-        } // end for js
-        fprintf(stdout, "\n");*/
 
         switch (amgparam->AMG_type) {
 
@@ -525,6 +519,7 @@ precond* create_precond_ra(dCSRmat *A,
     //------------------------------------------------
     // setup preconditioner data
     //------------------------------------------------
+    // NOTE: all poles have the same amgparams
     pcdata->amgparam = (AMG_param*)malloc(sizeof(AMG_param));
     param_amg_init(pcdata->amgparam);
     param_amg_cp(amgparam, pcdata->amgparam);
@@ -540,6 +535,7 @@ precond* create_precond_ra(dCSRmat *A,
     pc->fct = precond_ra_fenics;
 
     // clean
+    // if (rpnwf[0]) free(rpnwf); // FIXME
     if (rpnwf) free(rpnwf);
 
     return pc;
@@ -551,112 +547,6 @@ INT get_poles_no(precond* pc)
     precond_ra_data* data = (precond_ra_data*)(pc->data);
 
     return data->poles->row;
-}
-
-
-dvector* compute_ra_aaa(REAL s_frac_power,
-                        REAL t_frac_power,
-                        REAL alpha,
-                        REAL beta,
-                        REAL scaling_a,
-                        REAL scaling_m)
-{
-    INT i;
-    //------------------------------------------------
-    // compute the rational approximation
-    //------------------------------------------------
-    // scaling parameters for rational approximation
-    REAL scaled_alpha = alpha, scaled_beta = beta;
-    // scale alpha = alpha*sa^(-s)*sm^(s-1)
-    scaled_alpha = alpha*pow(scaling_a, -s_frac_power)*pow(scaling_m, s_frac_power-1.);
-    // scale beta = beta*sa^(-t)*sm^(t-1)
-    scaled_beta  = beta*pow(scaling_a, -t_frac_power)*pow(scaling_m, t_frac_power-1.);
-
-    // parameters used in the function
-    REAL16 func_param[4];
-    func_param[0] = s_frac_power;
-    func_param[1] = t_frac_power;
-    if (scaled_alpha > scaled_beta)
-    {
-      func_param[2] = 1.;
-      func_param[3] = scaled_beta/scaled_alpha;
-    }
-    else
-    {
-      func_param[2] = scaled_alpha/scaled_beta;
-      func_param[3] = 1.;
-    }
-
-    /* AAA algorithm for the rational approximation */
-    // parameters used in the AAA algorithm
-    REAL xmin_in = 0.e0, xmax_in = 1.e0;  // interval for x
-    INT mbig = (1<<14) + 1;  // initial number of points on the interval [x_min, x_max]
-    INT mmax_in = (INT )(mbig/2);  // maximal final number of pole + 1
-    REAL16 AAA_tol = powl(2e0,-40e0);  // tolerance of the AAA algorithm
-    INT k = -22; // k is the number of nodes in the final interpolation after tolerance is achieved or mmax is reached.
-    INT print_level = 0; // print level for AAA
-
-    // output of the AAA algorithm.  It contains residues, poles, nodes, weights, function values
-    REAL **rpnwf = malloc(5 * sizeof(REAL *));
-
-    // compute the rational approximation using AAA algorithms
-    /*REAL err_max = get_cpzwf(frac_inv, (void *)func_param, rpnwf, &mbig, &mmax_in, &k, xmin_in, xmax_in, AAA_tol, print_level);
-    if(rpnwf == NULL) {
-      fprintf(stderr,"\nUnsuccessful AAA computation of rational approximation\n");
-      fflush(stderr);
-      return 0;
-    }*/
-    REAL err_max = 0.0;
-    k=1;
-    printf(" HAZ ---- Rational approx error in interp points: %.16e\n", err_max);
-    // printf("Number of poles: %d\n", k-1);
-
-    // print poles, residues
-    /*printf("Poles:\n");
-    for(i = 0; i < k-1; ++i) {
-        printf("%.10e \t", rpnwf[1][i]);
-    }
-    printf("\n");
-    printf("Residues:\n");
-    for(i = 0; i < k; ++i) {
-        printf("%.10e \t", rpnwf[0][i]);
-    }
-    printf("\n");*/
-
-    // assign poles and residuals
-    dvector *res = dvec_create_p(2*k - 1);
-    array_cp(k-1, rpnwf[1], res->val);
-    array_cp(k, rpnwf[0], &(res->val[k-1]));
-
-    // check if poles are non negative
-    /*
-    REAL polez;
-    for(i = 0; i < k-1; ++i) {
-      polez = res->val[i];
-      if(polez > 0e0) {
-	    fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Positive pole in function=%s", \
-	        __FUNCTION__);
-	    fprintf(stdout,"\n%%%%%%  0 < pole(%d)=%.16e\n", i, polez);
-	    break;
-      }
-    }*/
-
-    // print poles, residues
-    /*printf("Poles:\n");
-    for(i = 0; i < k-1; ++i) {
-        printf("%.10e \t", res->val[i]);
-    }
-    printf("\n");
-    printf("Residues:\n");
-    for(i = 0; i < k; ++i) {
-        printf("%.10e \t", res->val[k+i-1]);
-    }
-    printf("\n");*/
-
-    // clean
-    if(rpnwf) free(rpnwf);
-
-    return res;
 }
 
 
