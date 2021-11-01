@@ -324,7 +324,7 @@ precond* create_precond_ra(dCSRmat *A,
     const SHORT max_levels = amgparam->max_levels;
     const INT m = A->row, n = A->col, nnz = A->nnz, nnz_M = M->nnz;
     INT status = SUCCESS;
-    INT i;
+    INT i, j;
 
     //------------------------------------------------
     // compute the rational approximation
@@ -377,36 +377,54 @@ precond* create_precond_ra(dCSRmat *A,
 
     // assign poles and residues
     REAL drop_tol = AAA_tol;
-    INT ii = 0;
+    INT ii = 1; // skip first residue
 
     REAL *polesr = malloc((k-1) * sizeof(REAL));
     REAL *polesi = malloc((k-1) * sizeof(REAL));
     REAL *resr = malloc(k * sizeof(REAL));
     REAL *resi = malloc(k * sizeof(REAL));
 
-    // remove poles and residues smaller than some tolerance
-    for(i = 0; i < k; ++i) {
-        // residues first
-        if((fabs(rpnwf[0][i]) > drop_tol) || (fabs(rpnwf[1][i]) > drop_tol)) {
-            if(fabs(rpnwf[0][i]) > drop_tol) resr[ii] = rpnwf[0][i]; else resr[ii] = 0.;
-            if(fabs(rpnwf[1][i]) > drop_tol) resi[ii] = rpnwf[1][i]; else resi[ii] = 0.;
-            // drop poles to zero
-            if(i > 0) {
-                if(fabs(rpnwf[2][i-1]) > drop_tol) polesr[ii-1] = rpnwf[2][i-1];
-                else polesr[ii-1] = 0.;
+    /* filter poles and residues smaller than some tolerance */
+    // Note: free residual is always only real! also, it's always saved to preserve the numbering (N poles, N+1 residues)
+    resi[0] = 0.;
+    if(fabs(rpnwf[0][0]) < drop_tol) resr[0] = 0.; else resr[0] = rpnwf[0][0];
 
-                if(fabs(rpnwf[3][i-1]) > drop_tol) polesi[ii-1] = rpnwf[3][i-1];
-                else polesi[ii-1] = 0.;
-            }
+    for(i = 1; i < k; ++i) {
+        if((fabs(rpnwf[0][i]) < drop_tol) && (fabs(rpnwf[1][i]) < drop_tol)) {
+            // Case 1: remove poles and residues where abs(res) < tol
+            fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Pole number reduced in function=%s \n", \
+                    __FUNCTION__);
+            fprintf(stdout,"%%%%%%  Removing pole[%d] = %.8e + %.8e i \t residue[%d] = %.8e + %.8e i\n", \
+	                i-1, rpnwf[2][i-1], rpnwf[3][i-1], i, rpnwf[0][i], rpnwf[1][i]);
+	        fflush(stdout);
+        }
+        else if((fabs(rpnwf[0][i]) > drop_tol) && (fabs(rpnwf[3][i-1]) < drop_tol)) {
+            // Case 2: only real residues and poles (Note: if Im(pole) = 0, then Im(res) = 0.)
+            resr[ii] = rpnwf[0][i]; resi[ii] = 0.; polesi[ii-1] = 0.;
+            if(fabs(rpnwf[2][i-1]) < drop_tol) polesr[ii-1] = 0.; else polesr[ii-1] = rpnwf[2][i-1];
             ii++;
         }
         else {
-            fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Pole number reduced in function=%s \n", \
-            __FUNCTION__);
-            if(i > 0) fprintf(stdout,"%%%%%%  Removing pole[%d] = %.8e + %.8e i \t residue[%d] = %.8e + %.8e i\n", \
-	                            i-1, rpnwf[2][i-1], rpnwf[3][i-1], i, rpnwf[0][i], rpnwf[1][i]);
-            else fprintf(stdout,"%%%%%%  Removing residue[%d] = %.8e + %.8e i\n", \
-	                            i, rpnwf[0][i], rpnwf[1][i]);
+            // Case 3: there is at least one pair of complex conjugate poles
+            // Note: only save one pole per pair -- check if it is already saved: (not the best search ever but ehh)
+            for(j = 0; j < ii-1; ++j) {
+                if((fabs(polesr[j] - rpnwf[2][i-1]) < drop_tol) && (fabs(polesi[j] - rpnwf[3][i-1]) < drop_tol)) break;
+            }
+            // if we found it, skip it
+            if(j < ii-1) {
+                fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Pole number reduced in function=%s \n", \
+                    __FUNCTION__);
+                fprintf(stdout,"%%%%%%  Removing pole[%d] = %.8e + %.8e i \t residue[%d] = %.8e + %.8e i\n", \
+                        i-1, rpnwf[2][i-1], rpnwf[3][i-1], i, rpnwf[0][i], rpnwf[1][i]);
+                fflush(stdout);
+            }
+            else {
+                polesi[ii-1] = rpnwf[3][i-1]; // this should be always > drop_tol in Case 3
+                if(fabs(rpnwf[0][i]) > drop_tol) resr[ii] = rpnwf[0][i]; else resr[ii] = 0.;
+                if(fabs(rpnwf[1][i]) > drop_tol) resi[ii] = rpnwf[1][i]; else resi[ii] = 0.;
+                if(fabs(rpnwf[2][i-1]) > drop_tol) polesr[ii-1] = rpnwf[2][i-1]; else polesr[ii-1] = 0.;
+                ii++;
+            }
         }
     }
     // new number of poles+1
@@ -526,6 +544,7 @@ precond* create_precond_ra(dCSRmat *A,
 
     // clean
     // if (rpnwf[0]) free(rpnwf); // FIXME
+    free(resr); free(resi); free(polesr); free(polesi);
     if (rpnwf) free(rpnwf);
 
     return pc;
