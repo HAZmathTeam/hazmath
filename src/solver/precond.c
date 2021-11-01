@@ -5789,8 +5789,10 @@ void precond_ra_fenics(REAL *r, REAL *z, void *data)
 
     // z = residues(0)*(scaled_M\scaled_r1)
     // NOTE: here we assume imag(residues(0)) = 0
-    status = dcsr_pcg(scaled_M, &r_vec, &z_vec, &pc_scaled_M, 1e-6, 100, 1, 0);
-    array_ax(n, residues->val[0], z_vec.val);
+    if(fabs(residues->val[0]) > 0.) {
+        status = dcsr_pcg(scaled_M, &r_vec, &z_vec, &pc_scaled_M, 1e-6, 100, 1, 0);
+        array_ax(n, residues->val[0], z_vec.val);
+    }
 
     dvector update = dvec_create(n);
     /* dvector u000 = dvec_create(n); */
@@ -5837,12 +5839,12 @@ void precond_ra_fenics(REAL *r, REAL *z, void *data)
             // first check if Im(residue) > 0
             if(fabs(residues->val[(npoles+1)+i+1]) > 0.) {
                 // z = z + residues[i+1]*update - residues[npoles+1+i+1]*iupdate
-                array_axpy(n, residues->val[i+1], update.val, z_vec.val);
-                array_axpy(n, -residues->val[(npoles+1)+i+1], iupdate.val, z_vec.val);
+                array_axpy(n, 2*residues->val[i+1], update.val, z_vec.val);
+                array_axpy(n, -2*residues->val[(npoles+1)+i+1], iupdate.val, z_vec.val);
             }
             else {
                 // z = z + residues[i+1]*update
-                array_axpy(n, residues->val[i+1], update.val, z_vec.val);
+                array_axpy(n, 2*residues->val[i+1], update.val, z_vec.val);
             }
 
             // free memory
