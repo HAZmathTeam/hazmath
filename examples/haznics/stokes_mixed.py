@@ -32,7 +32,7 @@ For M, we use SOR method, i.e. M^ = SOR(M).
 """
 from dolfin import *
 from block import *
-from block.algebraic.petsc import SOR
+from block.algebraic.petsc import Jacobi 
 from block.algebraic.hazmath import AMG
 from block.iterative import MinRes
 import haznics
@@ -71,8 +71,8 @@ params = {
     'AMG_type': haznics.SA_AMG,
     "aggregation_type": haznics.VMB,
 }
-P = block_mat([[AMG(B[0, 0]), 0],
-               [          0, SOR(B[1, 1])]])
+P = block_mat([[AMG(B[0, 0], parameters=params), 0],
+               [          0, Jacobi(B[1, 1])]])
 
 # We don't want to solve too precisely since we have not accounted 
 # for the constant pressure nullspace 
