@@ -32,7 +32,7 @@ For M, we use SOR method, i.e. M^ = SOR(M).
 """
 from dolfin import *
 from block import *
-from block.algebraic.petsc import SOR, Jacobi
+from block.algebraic.petsc import Jacobi 
 from block.algebraic.hazmath import AMG
 from block.iterative import MinRes
 import haznics
