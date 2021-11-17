@@ -47,7 +47,7 @@ INT aresame(INT *a, INT *b, INT n)
 /*!
  * \fn INT aresamep(INT *a, INT *b, INT n, INT *p)
  *
- * \brief checks (n^2 algorithm) if two have the same elements (up to a
+ * \brief checks (n^2 algorithm) if two arrays have the same elements (up to a
      permutation);
  *
  * \param a:   input array
