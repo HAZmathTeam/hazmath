@@ -796,6 +796,7 @@ static void scomplex_merge1(const INT nvall,		\
     return;
   }
   scomplex *sc=sc0[0];
+  INT *tmp_val=NULL;
   INT kel,i,ii,j,in1,iin1,newv,nnz;
   iCSRmat bndry_v1,bndry_v2;
   INT n1=(sc->n+1),ns0,nv=nvall,ns=nsall;
@@ -893,20 +894,24 @@ static void scomplex_merge1(const INT nvall,		\
     fprintf(stdout,"\nNNZ(glob)=%d; NNZ(loc)=%d; NNZ2=%d",sc->bndry_v->nnz,sc0[kel]->bndry_v->nnz,bndry_v2.nnz);fflush(stdout);
     memcpy(bndry_v2.val,(sc->bndry_v->val+bndry_v2.nnz),bndry_v2.nnz*sizeof(INT));    
     nnz=sc->bndry_v->nnz;// now bndry_v1 is a copy of bndry_v we add bndry_v2
+    /*** MOVE POINTERS AND ADD BNDRY CODES ***/
     // free, and use as adding
     icsr_free(sc->bndry_v);
-    //add
-    icsr_add(&bndry_v1,sc0[kel]->bndry_v,sc->bndry_v); // 
-    /* for(i=0;i<sc->bndry_v->row;++i){ */
-    /*   if((sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i])){ */
-    /* 	fprintf(stdout,"\nYsize(row=%d)=%d; Yentries=[ ",i,sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i]); */
-    /* 	for(j=sc->bndry_v->IA[i];j<sc->bndry_v->IA[i+1];++j){ */
-    /* 	  //	fprintf(stdout,"%d(Xc=%d,Xb=%d) ",sc->bndry_v->JA[j],sc->bndry_v->val[j],sc->bndry_v->val[nnz+j]); */
-    /* 	  fprintf(stdout,"%d(Yc=%d) ",sc->bndry_v->JA[j],sc->bndry_v->val[j]); */
-    /* 	}       */
-    /* 	fprintf(stdout,"]"); fflush(stdout); */
-    /*   } */
-    /* }   */
+    //add once
+    tmp_val=sc0[kel]->bndry_v->val;    
+    sc0[kel]->bndry_v->val += sc0[kel]->bndry_v->nnz;    
+    icsr_add(&bndry_v2,sc0[kel]->bndry_v,sc->bndry_v); //
+    bndry_v2.val=realloc(bndry_v2.val,sc->bndry_v->nnz*sizeof(INT));
+    memcpy(bndry_v2.val,sc->bndry_v->val,sc->bndry_v->nnz*sizeof(INT));
+    // free again
+    icsr_free(sc->bndry_v);
+    // add second time. 
+    sc0[kel]->bndry_v->val=tmp_val;
+    icsr_add(&bndry_v1,sc0[kel]->bndry_v,sc->bndry_v); //
+    sc->bndry_v->val=realloc(sc->bndry_v->val,2*sc->bndry_v->nnz*sizeof(INT));
+    tmp_val=sc->bndry_v->val + sc->bndry_v->nnz;
+    memcpy(tmp_val,bndry_v2.val,sc->bndry_v->nnz*sizeof(INT));
+    /*END MOVE POINTERS AND ADD BNDRY CODES*/
     sc->ns+=sc0[kel]->ns;
     haz_scomplex_free(sc0[kel]);
     // very wasteful
@@ -914,16 +919,15 @@ static void scomplex_merge1(const INT nvall,		\
     icsr_free(&bndry_v1);
   }  
   sc->nv=nvall;
-  /* for(i=0;i<sc->bndry_v->row;++i){ */
-  /*   if((sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i])){ */
-  /*     fprintf(stdout,"\nXsize(row=%d)=%d; Xentries=[ ",i,sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i]); */
-  /*     for(j=sc->bndry_v->IA[i];j<sc->bndry_v->IA[i+1];++j){ */
-  /* 	//	fprintf(stdout,"%d(Xc=%d,Xb=%d) ",sc->bndry_v->JA[j],sc->bndry_v->val[j],sc->bndry_v->val[nnz+j]); */
-  /* 	fprintf(stdout,"%d(Xc=%d) ",sc->bndry_v->JA[j],sc->bndry_v->val[j]); */
-  /*     }       */
-  /*     fprintf(stdout,"]"); fflush(stdout); */
-  /*   } */
-  /* }   */
+  for(i=0;i<sc->bndry_v->row;++i){
+    if((sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i])){
+      fprintf(stdout,"\nXsize(row=%d)=%d; Xentries=[ ",i,sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i]);
+      for(j=sc->bndry_v->IA[i];j<sc->bndry_v->IA[i+1];++j){
+	fprintf(stdout,"%d(Xc=%d,Xb=%d) ",sc->bndry_v->JA[j],sc->bndry_v->val[j],sc->bndry_v->val[nnz+j]);
+      }
+      fprintf(stdout,"]"); fflush(stdout);
+    }
+  }
   return;
 }
 /**********************************************************************/
@@ -1377,7 +1381,7 @@ scomplex **generate_initial_grid(input_grid *g0)
     }
   }
   if(g0->print_level>15) input_grid_print(g0);
-  INT nsall,nvall,kf,nnz;
+  INT nsall,nvall,nnz;
   nsall=0;nvall=0;
   /* now mc->nd is known, let us allocate iindex */
   for(kel=0;kel<g0->nel;kel++){
