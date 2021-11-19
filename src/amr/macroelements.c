@@ -796,9 +796,8 @@ static void scomplex_merge1(const INT nvall,		\
     return;
   }
   scomplex *sc=sc0[0];
-  INT *tmp_val=NULL;
   INT kel,i,ii,j,in1,iin1,newv,nnz;
-  iCSRmat bndry_v1,bndry_v2;
+  iCSRmat bndry_v1;//,bndry_v2;
   INT n1=(sc->n+1),ns0,nv=nvall,ns=nsall;
   for(kel=0;kel<mc->nel;++kel){
     sc0[kel]->bndry_v->col=nvall;
@@ -881,53 +880,79 @@ static void scomplex_merge1(const INT nvall,		\
       }
     }
     bndry_v1=icsr_create(sc->bndry_v->row,sc->bndry_v->col,sc->bndry_v->nnz);
-    bndry_v2=icsr_create(0,0,0);// this is just a place holder with same sparsity structure as bndry_v1;
-    bndry_v2.row=bndry_v1.row;
-    bndry_v2.col=bndry_v1.col;
-    bndry_v2.nnz=bndry_v1.nnz;
-    bndry_v2.IA=bndry_v1.IA;
-    bndry_v2.JA=bndry_v1.JA;
-    bndry_v2.val=realloc(bndry_v2.val,bndry_v2.nnz*sizeof(INT));
+    /* bndry_v2=icsr_create(0,0,0);// this is just a place holder with same sparsity structure as bndry_v1; */
+    /* bndry_v2.row=bndry_v1.row; */
+    /* bndry_v2.col=bndry_v1.col; */
+    /* bndry_v2.nnz=bndry_v1.nnz; */
+    /* bndry_v2.IA=bndry_v1.IA; */
+    /* bndry_v2.JA=bndry_v1.JA; */
+    /* bndry_v2.val=realloc(bndry_v2.val,bndry_v2.nnz*sizeof(INT)); */
     memcpy(bndry_v1.IA,sc->bndry_v->IA,(bndry_v1.row+1)*sizeof(INT));
     memcpy(bndry_v1.JA,sc->bndry_v->JA,bndry_v1.nnz*sizeof(INT));
     memcpy(bndry_v1.val,sc->bndry_v->val,bndry_v1.nnz*sizeof(INT));
-    fprintf(stdout,"\nNNZ(glob)=%d; NNZ(loc)=%d; NNZ2=%d",sc->bndry_v->nnz,sc0[kel]->bndry_v->nnz,bndry_v2.nnz);fflush(stdout);
-    memcpy(bndry_v2.val,(sc->bndry_v->val+bndry_v2.nnz),bndry_v2.nnz*sizeof(INT));    
+    /* memcpy(bndry_v2.val,(sc->bndry_v->val+bndry_v2.nnz),bndry_v2.nnz*sizeof(INT));     */
     nnz=sc->bndry_v->nnz;// now bndry_v1 is a copy of bndry_v we add bndry_v2
     /*** MOVE POINTERS AND ADD BNDRY CODES ***/
     // free, and use as adding
     icsr_free(sc->bndry_v);
     //add once
-    tmp_val=sc0[kel]->bndry_v->val;    
-    sc0[kel]->bndry_v->val += sc0[kel]->bndry_v->nnz;    
-    icsr_add(&bndry_v2,sc0[kel]->bndry_v,sc->bndry_v); //
-    bndry_v2.val=realloc(bndry_v2.val,sc->bndry_v->nnz*sizeof(INT));
-    memcpy(bndry_v2.val,sc->bndry_v->val,sc->bndry_v->nnz*sizeof(INT));
-    // free again
-    icsr_free(sc->bndry_v);
-    // add second time. 
-    sc0[kel]->bndry_v->val=tmp_val;
     icsr_add(&bndry_v1,sc0[kel]->bndry_v,sc->bndry_v); //
-    sc->bndry_v->val=realloc(sc->bndry_v->val,2*sc->bndry_v->nnz*sizeof(INT));
-    tmp_val=sc->bndry_v->val + sc->bndry_v->nnz;
-    memcpy(tmp_val,bndry_v2.val,sc->bndry_v->nnz*sizeof(INT));
+    //    sc->bndry_v->val=realloc(sc->bndry_v->val,2*sc->bndry_v->nnz*sizeof(INT));
     /*END MOVE POINTERS AND ADD BNDRY CODES*/
     sc->ns+=sc0[kel]->ns;
     haz_scomplex_free(sc0[kel]);
     // very wasteful
-    free(bndry_v2.val);
+    //    free(bndry_v2.val);
     icsr_free(&bndry_v1);
-  }  
+  }
+  ///////////////////////////////////////////
   sc->nv=nvall;
+  ///////////////////////////////////////////  
+  /* for(i=0;i<sc->bndry_v->row;++i){ */
+  /*   if((sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i])){ */
+  /*     fprintf(stdout,"\nXsize(row=%d)=%d; Xentries=[ ",i,sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i]); */
+  /*     for(j=sc->bndry_v->IA[i];j<sc->bndry_v->IA[i+1];++j){ */
+  /* 	//	fprintf(stdout,"%d(Xc=%d,Xb=%d) ",sc->bndry_v->JA[j],sc->bndry_v->val[j],sc->bndry_v->val[nnz+j]); */
+  /* 	fprintf(stdout,"%d(Xc=%d) ",sc->bndry_v->JA[j],sc->bndry_v->val[j]); */
+  /*     } */
+  /*     fprintf(stdout,"]"); fflush(stdout); */
+  /*   } */
+  /* } */
+  ////////////////////////////////////////////////////////////////////////////
+  /*Now we transpose to obtain the vertex->face correspondence*/
+  bndry_v1=icsr_create(sc->bndry_v->row,sc->bndry_v->col,sc->bndry_v->nnz);
+  memcpy(bndry_v1.IA,sc->bndry_v->IA,(bndry_v1.row+1)*sizeof(INT));
+  memcpy(bndry_v1.JA,sc->bndry_v->JA,bndry_v1.nnz*sizeof(INT));
+  memcpy(bndry_v1.val,sc->bndry_v->val,bndry_v1.nnz*sizeof(INT));
+  icsr_free(sc->bndry_v);
+  icsr_trans(&bndry_v1,sc->bndry_v);
+  icsr_free(&bndry_v1);  
+  nnz=sc->bndry_v->nnz;
+  sc->bndry_v->val=realloc(sc->bndry_v->val,2*nnz*sizeof(INT));
+  //  for(i=0;i<mc->nf; ++i) {
+  //    fprintf(stdout,"\n FACE=%d; Bndry=%d",i,mc->isbface[i]);    
+  //  }  
   for(i=0;i<sc->bndry_v->row;++i){
     if((sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i])){
-      fprintf(stdout,"\nXsize(row=%d)=%d; Xentries=[ ",i,sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i]);
-      for(j=sc->bndry_v->IA[i];j<sc->bndry_v->IA[i+1];++j){
-	fprintf(stdout,"%d(Xc=%d,Xb=%d) ",sc->bndry_v->JA[j],sc->bndry_v->val[j],sc->bndry_v->val[nnz+j]);
+      for(ii=sc->bndry_v->IA[i];ii<sc->bndry_v->IA[i+1];++ii){
+	j=sc->bndry_v->JA[ii];	
+	//sc->bndry_v->val[ii] must be equal to the mc->bcodesf[j].
+	if(j<mc->nf && j>=0){	    
+	  sc->bndry_v->val[ii+nnz]=mc->isbface[j];	  
+	}	
       }
-      fprintf(stdout,"]"); fflush(stdout);
     }
   }
+  ////////////////////////////////////////////////////////////////////////////
+  /* for(i=0;i<sc->bndry_v->row;++i){ */
+  /*   if((sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i])){ */
+  /*     fprintf(stdout,"\nZsize(vertex=%d)=%d; Zfaces=[ ",i,sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i]); */
+  /*     for(j=sc->bndry_v->IA[i];j<sc->bndry_v->IA[i+1];++j){ */
+  /* 	fprintf(stdout,"%d(Zc=%d;Zb=%d) ",sc->bndry_v->JA[j],sc->bndry_v->val[j],sc->bndry_v->val[j+nnz]); */
+  /*     } */
+  /*     fprintf(stdout,"]"); fflush(stdout); */
+  /*   } */
+  /* } */
   return;
 }
 /**********************************************************************/
@@ -1433,8 +1458,8 @@ scomplex **generate_initial_grid(input_grid *g0)
       sc[jel]=umesh(g->dim,mc->nd[jel],c2s,		\
 		    labelf,isbndf,codef,mc->flags[jel],	\
 		    intype);
-      // now we make the boundary matrix global....
       /* print_full_mat_int(1,nvcube+1,(g0->mnodes+jel*(nvcube+1)),"MNODES"); */
+      // now we make the boundary matrix global.... transpose it so it is "face"->"vertex"
       sc[jel]->bndry_v->col=mc->nf;//
       nnz=sc[jel]->bndry_v->nnz;
       icsr_trans(sc[jel]->bndry_v,&bndry_v1);
