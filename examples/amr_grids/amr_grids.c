@@ -119,7 +119,7 @@ INT main(INT   argc,   char *argv[])
     free(all);
   }
   /*  MAKE sc to be the finest grid only */
-  scfinalize(sc,(INT )0);
+  scfinalize(sc,(INT )1);
   /* WRITE THE OUTPUT MESH FILE:    */
   //  hazw(g->fgrid,sc,0);
   /* WRITE THE OUTPUT vtu file for paraview:    */
