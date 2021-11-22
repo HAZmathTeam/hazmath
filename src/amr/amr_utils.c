@@ -535,7 +535,7 @@ scomplex *scfinest(scomplex *sc)
  *        on the boundary.
  *
  * \param sc: simplicial complex
- * \param set_bndry_codes: if set to 1, all boundary vertices get a code of 128+(connected component number);
+ * \param set_bndry_codes: if 0 then create the sparse matrix for all vertices;
  *
  * \return
  *
@@ -543,6 +543,7 @@ scomplex *scfinest(scomplex *sc)
  *
  * \author ludmil (20151010) 
  * \modified ludmil (20210831)
+ * \modified ludmil (20211121)
  *
  */
 void scfinalize(scomplex *sc,const INT set_bndry_codes)
@@ -898,8 +899,11 @@ INT dvec_set_amr(const REAL value, scomplex *sc, INT npts, REAL *pts, REAL *tose
  * \param sc: a simplicial complex; sc->bndry, sc->neib, sc->nbr must
  *            be allocated and filled in on entry here.
  *
- * \param set_bndry_codes : if true, then sets all boundary codes on
- *                          every connected component to be different.
+ * \param set_bndry_codes if false then sets all boundary codes to be
+ *                        128 plus the connected component number. If
+ *                        true, then create the sparse matrix with
+ *                        codes for all vertices;
+ *                          
  *
  *
  * \note
@@ -1032,7 +1036,32 @@ void find_cc_bndry_cc(scomplex *sc,INT set_bndry_codes)
   }
   icsr_free(&f2f);
   /*******************************************************************/    
+  fprintf(stdout,"%%%%--> number of connected components in the bulk=%d\n",sc->cc);
+  fprintf(stdout,"%%%%--> number of connected components on the boundary=%d\n",sc->bndry_cc);
   if(set_bndry_codes) {
+    icsr_free(blk_dfs);free(blk_dfs);
+    icsr_free(&f2v);
+    free(indx);
+    free(indxinv);
+    for(i=0;i<sc->nv;++i){
+      if((sc->parent_v->IA[i+1]-sc->parent_v->IA[i])){
+        fprintf(stdout,"\nvertex=%d; parents=[ ",i);
+        for(j=sc->parent_v->IA[i];j<sc->parent_v->IA[i+1];++j){
+	  fprintf(stdout,"%d ",sc->parent_v->JA[j]);
+        }
+        fprintf(stdout,"]"); fflush(stdout);
+      }
+    }  
+    /* for(i=0;i<sc->bndry_v->row;++i){ */
+    /*   if((sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i])){ */
+    /*     fprintf(stdout,"\nZsize(vertex=%d)=%d; Zfaces=[ ",i,sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i]); */
+    /*     for(j=sc->bndry_v->IA[i];j<sc->bndry_v->IA[i+1];++j){ */
+    /* 	fprintf(stdout,"%d(Zc=%d;Zb=%d) ",sc->bndry_v->JA[j],sc->bndry_v->val[j],sc->bndry_v->val[j+nnz]); */
+    /*     } */
+    /*     fprintf(stdout,"]"); fflush(stdout); */
+    /*   } */
+    /* } */  
+  } else {
     for(i=0;i<sc->bndry_cc;++i){
       for(k=blk_dfs->IA[i];k<blk_dfs->IA[i+1];++k){
 	j=blk_dfs->JA[k];
@@ -1041,16 +1070,11 @@ void find_cc_bndry_cc(scomplex *sc,INT set_bndry_codes)
 	}
       }
     }
-  } else {
-    // here we find the boundary codes of every added point.
-    // now do nothing
+    icsr_free(blk_dfs);free(blk_dfs);
+    icsr_free(&f2v);
+    free(indx);
+    free(indxinv);
   }
-  icsr_free(blk_dfs);free(blk_dfs);
-  icsr_free(&f2v);
-  fprintf(stdout,"%%%%--> number of connected components in the bulk=%d\n",sc->cc);
-  fprintf(stdout,"%%%%--> number of connected components on the boundary=%d\n",sc->bndry_cc);
-  free(indx);
-  free(indxinv);
   return;
 }
 /*EOF*/
