@@ -1080,7 +1080,6 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
     // add all boundary codes for vertices obtained with
     // refinement. This uses that such vertices are added one by one
     // after refinement and ordered after their "ancestors"
-    /* icsr_print_rows(stdout,sc->bndry_v,"BNDRY_V"); */
     for(k=0;k<sc->parent_v->row;++k){
       nnz_bv=sc->bndry_v->IA[k];
       j=sc->parent_v->IA[k];
@@ -1170,6 +1169,18 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
       }
     }
   }
+  //////////print
+  fprintf(stdout,"\nBNDRY_V_CODES:");
+  for(i=0;i<sc->bndry_v->row;++i){
+    iaa=sc->bndry_v->IA[i];
+    iab=sc->bndry_v->IA[i+1];
+    fprintf(stdout,"\nC(%d)=[",i);
+    for(k=iaa;k<iab;++k){
+      fprintf(stdout,"%d(c=%d) ",sc->bndry_v->JA[k],sc->bndry_v->val[k]);
+    }
+    fprintf(stdout,"]");
+  }
+  fprintf(stdout,"];\n");
   return;
 }
 /*EOF*/
