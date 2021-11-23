@@ -248,6 +248,8 @@ iCSRmat *run_bfs(INT n,INT *ia, INT *ja,	\
   INT i,k,q,v,vi,qbeg,qend,lvl;  
   iCSRmat *blk=malloc(sizeof(iCSRmat));
   blk[0]=icsr_create(n,n,n);
+  // occasionally the nonzeroes be larger than n for a moment:
+  blk->IA=realloc(blk->IA,(n+2)*sizeof(INT));
   anc->row=n;
   anc->val=(INT *)calloc(anc->row,sizeof(INT));
   for(i=0;i<blk->nnz;++i) blk->val[i]=0;
@@ -269,7 +271,6 @@ iCSRmat *run_bfs(INT n,INT *ia, INT *ja,	\
     blk->JA[k]=roots->val[i];
     k++;
   }
-  //  fprintf(stdout,"\nn=%d,lvl=%d\n",n,lvl); fflush(stdout);
   blk->IA[lvl+1]=k;
   if(n<=1)
     return blk;
@@ -291,19 +292,21 @@ iCSRmat *run_bfs(INT n,INT *ia, INT *ja,	\
       }
     }
     lvl++;
+    //    fprintf(stdout,"\nn=%d,(lvl+1)=%d,k=%d",n,lvl+1,k);
     blk->IA[lvl+1]=k;    
     if(k<=qend) break;
   }
   //  fprintf(stdout,"\nord (k=%d):",k);
-  for(i=0;i<blk->IA[lvl];i++){
-    v=blk->JA[i];
-    //    fprintf(stdout,"\nblk->val[%d]=%d",v,blk->val[v]);fflush(stdout);
-  }
+  //  for(i=0;i<blk->IA[lvl];i++){
+  //    v=blk->JA[i];
+  //    fprintf(stdout,"\nblk->val[%d]=%d",v,blk->val[v]);fflush(stdout);
+  //  }
   /* for(i=0;i<(lvl+1);i++){ */
   /*   fprintf(stdout,"\nblk->IA[%d]=%d",i,blk->IA[i]); */
   /* } */
   blk->row=lvl;
   blk->IA=(INT *)realloc(blk->IA,(blk->row+1)*sizeof(INT));
+  //  icsr_print_rows(stdout,blk,"BLK");
   //end
   return blk;
 }
