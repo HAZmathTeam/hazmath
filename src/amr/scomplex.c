@@ -755,6 +755,7 @@ INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew,	\
     sc->parent_v->nnz+=2;
     sc->parent_v->IA=realloc(sc->parent_v->IA,(nvnew+1)*sizeof(REAL));
     sc->parent_v->IA[nvnew]=sc->parent_v->nnz;
+    /* fprintf(stdout,"\nnv=%d; nvnew=%d;nnz_pv=%d(pv[0]=%d,pv[1]=%d)",nv,nvnew,sc->parent_v->nnz,pv[0],pv[1]); */
   }
   //generation
   sc->gen=realloc(sc->gen,(nsnew)*sizeof(INT));
