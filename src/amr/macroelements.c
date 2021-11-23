@@ -791,122 +791,120 @@ static void scomplex_merge1(const INT nvall,		\
 		     scomplex **sc0,		\
 		     cube2simp *c2s)
 {
-  if(mc->nel==1) {
-    fprintf(stdout,"\nWARNING: %s called for only one macroelement\n",__FUNCTION__);fflush(stdout);
-    return;
-  }
   scomplex *sc=sc0[0];
   INT kel,i,ii,j,in1,iin1,newv,nnz;
   iCSRmat bndry_v1;//,bndry_v2;
   INT n1=(sc->n+1),ns0,nv=nvall,ns=nsall;
-  for(kel=0;kel<mc->nel;++kel){
-    sc0[kel]->bndry_v->col=nvall;
-  }
-  sc->marked=realloc(sc->marked,ns*sizeof(INT));
-  sc->gen=realloc(sc->gen,ns*sizeof(INT));
-  sc->nbr=realloc(sc->nbr,ns*n1*sizeof(INT));
-  sc->parent=realloc(sc->parent,ns*sizeof(INT));
-  sc->child0=realloc(sc->child0,ns*sizeof(INT));
-  sc->childn=realloc(sc->childn,ns*sizeof(INT));
-  sc->nodes=realloc(sc->nodes,ns*n1*sizeof(INT));
-  sc->bndry=realloc(sc->bndry,nv*sizeof(INT));
-  /*  
-      every vertex can be on at most "dim" boundaries in one macroelement. if every
-      boundary on every macroelement has a different code, then these
-      are at most mc->nel*2*dim different codes as every macroelement
-      has at most 2*dim faces. 
-  */
-  //  icsr_realloc(nv,mc->nel*2*sc->n,nv*sc->n,sc->bndry_v); // no need of this here. 
-  /* 
-   * coord sys: 1 is polar, 2 is cyl and so on: not fully implemented
-   * and tested yet
-   */
-  /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
-  /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
-  sc->csys=realloc(sc->csys,nv*sizeof(INT));
-  /*connected components*/
-  sc->cc=mc->cc;sc->bndry_cc=mc->bndry_cc;
-  sc->flags=(INT *)realloc(sc->flags,ns*sizeof(INT));
-  sc->x=(REAL *)realloc(sc->x,nv*(sc->n)*sizeof(REAL));
-  sc->vols=(REAL *)realloc(sc->vols,ns*sizeof(REAL));
-  //  sc->fval=(REAL *)realloc(sc->fval,nv*sizeof(REAL)); // function values at every vertex; not used in general;
-  //
-  /* for(i=0;i<sc->bndry_v->row;++i){ */
-  /*   if((sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i])){ */
-  /*     fprintf(stdout,"\n0size(row=%d)=%d; 0entries=[ ",i,sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i]); */
-  /*     for(j=sc->bndry_v->IA[i];j<sc->bndry_v->IA[i+1];++j){ */
-  /* 	//	fprintf(stdout,"%d(Xc=%d,Xb=%d) ",sc->bndry_v->JA[j],sc->bndry_v->val[j],sc->bndry_v->val[nnz+j]); */
-  /* 	fprintf(stdout,"%d(0c=%d) ",sc->bndry_v->JA[j],sc->bndry_v->val[j]); */
-  /*     }       */
-  /*     fprintf(stdout,"]"); fflush(stdout); */
-  /*   } */
-  /* }   */
-  for(kel=1;kel<mc->nel;kel++){
-    ns0=sc->ns;
-    /* fprintf(stdout,"\nElement=%d; ns0=%d",kel,ns0);       */
-    for (ii = 0;ii<sc0[kel]->ns;ii++) {
-      i=ii+ns0;
-      sc->marked[i] = sc0[kel]->marked[ii];
-      sc->gen[i] = sc0[kel]->gen[ii];
-      sc->parent[i]=sc0[kel]->parent[ii];
-      sc->child0[i]=sc0[kel]->child0[ii];
-      sc->childn[i]=sc0[kel]->childn[ii];
-      sc->flags[i]=sc0[kel]->flags[ii];
-      sc->vols[i]=sc0[kel]->vols[ii];
-      in1=i*n1;
-      iin1=ii*n1;
-      for(j=0;j<n1;j++){
-	newv=mc->iindex[kel][sc0[kel]->nodes[iin1+j]];
-	sc->nodes[in1+j]=newv;
-	sc->nbr[in1+j]=sc0[kel]->nbr[iin1+j]+ns0;
-      }
-    }    
-    for (ii = 0;ii<sc0[kel]->nv;ii++) {
-      i=mc->iindex[kel][ii];
-      sc->bndry[i]=sc0[kel]->bndry[ii];
-      sc->csys[i]=sc0[kel]->csys[ii];
-      //      sc->fval[i]=sc0[kel]->fval[ii];
-      in1=i*sc->n;
-      iin1=ii*sc->n;
-      for(j=0;j<sc->n;j++)
-	sc->x[in1+j]=sc0[kel]->x[iin1+j];
+  if(mc->nel!=1) {
+    for(kel=0;kel<mc->nel;++kel){
+      sc0[kel]->bndry_v->col=nvall;
     }
-    nnz=sc0[kel]->bndry_v->nnz;
-    for(i=0;i<sc0[kel]->bndry_v->row;++i){
-      for(j=sc0[kel]->bndry_v->IA[i];j<sc0[kel]->bndry_v->IA[i+1];++j){
-	ii=sc0[kel]->bndry_v->JA[j];// this is vertex number;
-	//	fprintf(stdout,"\nkel=%d:ii=%d,newindex=%d",kel,ii,mc->iindex[kel][ii]);fflush(stdout);
-	sc0[kel]->bndry_v->JA[j]=mc->iindex[kel][ii];
+    sc->marked=realloc(sc->marked,ns*sizeof(INT));
+    sc->gen=realloc(sc->gen,ns*sizeof(INT));
+    sc->nbr=realloc(sc->nbr,ns*n1*sizeof(INT));
+    sc->parent=realloc(sc->parent,ns*sizeof(INT));
+    sc->child0=realloc(sc->child0,ns*sizeof(INT));
+    sc->childn=realloc(sc->childn,ns*sizeof(INT));
+    sc->nodes=realloc(sc->nodes,ns*n1*sizeof(INT));
+    sc->bndry=realloc(sc->bndry,nv*sizeof(INT));
+    /*  
+	every vertex can be on at most "dim" boundaries in one macroelement. if every
+	boundary on every macroelement has a different code, then these
+	are at most mc->nel*2*dim different codes as every macroelement
+	has at most 2*dim faces. 
+    */
+    //  icsr_realloc(nv,mc->nel*2*sc->n,nv*sc->n,sc->bndry_v); // no need of this here. 
+    /* 
+     * coord sys: 1 is polar, 2 is cyl and so on: not fully implemented
+     * and tested yet
+     */
+    /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
+    /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
+    sc->csys=realloc(sc->csys,nv*sizeof(INT));
+    /*connected components*/
+    sc->cc=mc->cc;sc->bndry_cc=mc->bndry_cc;
+    sc->flags=(INT *)realloc(sc->flags,ns*sizeof(INT));
+    sc->x=(REAL *)realloc(sc->x,nv*(sc->n)*sizeof(REAL));
+    sc->vols=(REAL *)realloc(sc->vols,ns*sizeof(REAL));
+    //  sc->fval=(REAL *)realloc(sc->fval,nv*sizeof(REAL)); // function values at every vertex; not used in general;
+    //
+    /* for(i=0;i<sc->bndry_v->row;++i){ */
+    /*   if((sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i])){ */
+    /*     fprintf(stdout,"\n0size(row=%d)=%d; 0entries=[ ",i,sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i]); */
+    /*     for(j=sc->bndry_v->IA[i];j<sc->bndry_v->IA[i+1];++j){ */
+    /* 	//	fprintf(stdout,"%d(Xc=%d,Xb=%d) ",sc->bndry_v->JA[j],sc->bndry_v->val[j],sc->bndry_v->val[nnz+j]); */
+    /* 	fprintf(stdout,"%d(0c=%d) ",sc->bndry_v->JA[j],sc->bndry_v->val[j]); */
+    /*     }       */
+    /*     fprintf(stdout,"]"); fflush(stdout); */
+    /*   } */
+    /* }   */
+    for(kel=1;kel<mc->nel;kel++){
+      ns0=sc->ns;
+      /* fprintf(stdout,"\nElement=%d; ns0=%d",kel,ns0);       */
+      for (ii = 0;ii<sc0[kel]->ns;ii++) {
+	i=ii+ns0;
+	sc->marked[i] = sc0[kel]->marked[ii];
+	sc->gen[i] = sc0[kel]->gen[ii];
+	sc->parent[i]=sc0[kel]->parent[ii];
+	sc->child0[i]=sc0[kel]->child0[ii];
+	sc->childn[i]=sc0[kel]->childn[ii];
+	sc->flags[i]=sc0[kel]->flags[ii];
+	sc->vols[i]=sc0[kel]->vols[ii];
+	in1=i*n1;
+	iin1=ii*n1;
+	for(j=0;j<n1;j++){
+	  newv=mc->iindex[kel][sc0[kel]->nodes[iin1+j]];
+	  sc->nodes[in1+j]=newv;
+	  sc->nbr[in1+j]=sc0[kel]->nbr[iin1+j]+ns0;
+	}
+      }    
+      for (ii = 0;ii<sc0[kel]->nv;ii++) {
+	i=mc->iindex[kel][ii];
+	sc->bndry[i]=sc0[kel]->bndry[ii];
+	sc->csys[i]=sc0[kel]->csys[ii];
+	//      sc->fval[i]=sc0[kel]->fval[ii];
+	in1=i*sc->n;
+	iin1=ii*sc->n;
+	for(j=0;j<sc->n;j++)
+	  sc->x[in1+j]=sc0[kel]->x[iin1+j];
       }
+      nnz=sc0[kel]->bndry_v->nnz;
+      for(i=0;i<sc0[kel]->bndry_v->row;++i){
+	for(j=sc0[kel]->bndry_v->IA[i];j<sc0[kel]->bndry_v->IA[i+1];++j){
+	  ii=sc0[kel]->bndry_v->JA[j];// this is vertex number;
+	  //	fprintf(stdout,"\nkel=%d:ii=%d,newindex=%d",kel,ii,mc->iindex[kel][ii]);fflush(stdout);
+	  sc0[kel]->bndry_v->JA[j]=mc->iindex[kel][ii];
+	}
+      }
+      bndry_v1=icsr_create(sc->bndry_v->row,sc->bndry_v->col,sc->bndry_v->nnz);
+      /* bndry_v2=icsr_create(0,0,0);// this is just a place holder with same sparsity structure as bndry_v1; */
+      /* bndry_v2.row=bndry_v1.row; */
+      /* bndry_v2.col=bndry_v1.col; */
+      /* bndry_v2.nnz=bndry_v1.nnz; */
+      /* bndry_v2.IA=bndry_v1.IA; */
+      /* bndry_v2.JA=bndry_v1.JA; */
+      /* bndry_v2.val=realloc(bndry_v2.val,bndry_v2.nnz*sizeof(INT)); */
+      memcpy(bndry_v1.IA,sc->bndry_v->IA,(bndry_v1.row+1)*sizeof(INT));
+      memcpy(bndry_v1.JA,sc->bndry_v->JA,bndry_v1.nnz*sizeof(INT));
+      memcpy(bndry_v1.val,sc->bndry_v->val,bndry_v1.nnz*sizeof(INT));
+      /* memcpy(bndry_v2.val,(sc->bndry_v->val+bndry_v2.nnz),bndry_v2.nnz*sizeof(INT));     */
+      nnz=sc->bndry_v->nnz;// now bndry_v1 is a copy of bndry_v we add bndry_v2
+      /*** MOVE POINTERS AND ADD BNDRY CODES ***/
+      // free, and use as adding
+      icsr_free(sc->bndry_v);
+      //add once
+      icsr_add(&bndry_v1,sc0[kel]->bndry_v,sc->bndry_v); //
+      //    sc->bndry_v->val=realloc(sc->bndry_v->val,2*sc->bndry_v->nnz*sizeof(INT));
+      /*END MOVE POINTERS AND ADD BNDRY CODES*/
+      sc->ns+=sc0[kel]->ns;
+      haz_scomplex_free(sc0[kel]);
+      // very wasteful
+      //    free(bndry_v2.val);
+      icsr_free(&bndry_v1);
     }
-    bndry_v1=icsr_create(sc->bndry_v->row,sc->bndry_v->col,sc->bndry_v->nnz);
-    /* bndry_v2=icsr_create(0,0,0);// this is just a place holder with same sparsity structure as bndry_v1; */
-    /* bndry_v2.row=bndry_v1.row; */
-    /* bndry_v2.col=bndry_v1.col; */
-    /* bndry_v2.nnz=bndry_v1.nnz; */
-    /* bndry_v2.IA=bndry_v1.IA; */
-    /* bndry_v2.JA=bndry_v1.JA; */
-    /* bndry_v2.val=realloc(bndry_v2.val,bndry_v2.nnz*sizeof(INT)); */
-    memcpy(bndry_v1.IA,sc->bndry_v->IA,(bndry_v1.row+1)*sizeof(INT));
-    memcpy(bndry_v1.JA,sc->bndry_v->JA,bndry_v1.nnz*sizeof(INT));
-    memcpy(bndry_v1.val,sc->bndry_v->val,bndry_v1.nnz*sizeof(INT));
-    /* memcpy(bndry_v2.val,(sc->bndry_v->val+bndry_v2.nnz),bndry_v2.nnz*sizeof(INT));     */
-    nnz=sc->bndry_v->nnz;// now bndry_v1 is a copy of bndry_v we add bndry_v2
-    /*** MOVE POINTERS AND ADD BNDRY CODES ***/
-    // free, and use as adding
-    icsr_free(sc->bndry_v);
-    //add once
-    icsr_add(&bndry_v1,sc0[kel]->bndry_v,sc->bndry_v); //
-    //    sc->bndry_v->val=realloc(sc->bndry_v->val,2*sc->bndry_v->nnz*sizeof(INT));
-    /*END MOVE POINTERS AND ADD BNDRY CODES*/
-    sc->ns+=sc0[kel]->ns;
-    haz_scomplex_free(sc0[kel]);
-    // very wasteful
-    //    free(bndry_v2.val);
-    icsr_free(&bndry_v1);
+    ///////////////////////////////////////////
+    sc->nv=nvall;
   }
-  ///////////////////////////////////////////
-  sc->nv=nvall;
   ///////////////////////////////////////////  
   /* for(i=0;i<sc->bndry_v->row;++i){ */
   /*   if((sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i])){ */
@@ -1060,7 +1058,13 @@ void fix_grid(macrocomplex *mc,		\
 	       cube2simp *c2s,			\
 	       input_grid *g0)
 {
-  if(mc->nel<=1) return;
+  INT nsall,nvall;
+  if(mc->nel<=1){
+    nvall=scin[0]->nv;
+    nsall=scin[0]->ns;
+    scomplex_merge1(nvall,nsall,mc,scin,c2s);
+    return;
+  }
   scomplex *scp;
   INT dim=c2s->n,dim1=c2s->n+1,nvface=c2s->nvface,nvcube=c2s->nvcube;
 // at most dim (n-1)dimensional faces may intersect to form a vertex
@@ -1091,7 +1095,7 @@ void fix_grid(macrocomplex *mc,		\
   //    kdim=(1<<kz);
   //  for(knnz=0;knnz<mc->bfs->nnz;knnz++){    
   //    kel=mc->bfs->JA[knnz];
-  INT neg,nsall,nvall,nvold;
+  INT neg,nvold;
 
   nvall=0;nsall=0;
 
