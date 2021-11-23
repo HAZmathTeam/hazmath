@@ -464,10 +464,39 @@ void icsr_print_matlab(FILE* fid,
   }
   return;
 }
-
 /***********************************************************************************************/
 /*!
- * \fn void icsr_print_matlab_val(FILE* fid,dCSRmat *A)
+ * \fn void icsr_print_rows(FILE* fid,iCSRmat *A,const char *sname)
+ *
+ * \brief print a iCSRmat format sparse matrix to a file with VALUES
+ *
+ * \param fid  Pointer to the file
+ * \param A    Pointer to the iCSRmat format sparse matrix
+ * \param sname just a string so the printout starts with "sname*"
+ *
+ * \todo
+ *
+ */
+void icsr_print_rows(FILE* fid,
+		     iCSRmat *A,const char *sname)
+{
+  // local variables
+  INT i,j;
+  fprintf(fid,"\n%%%% %s:",sname);
+  for(i=0;i<A->row;++i){
+    if((A->IA[i+1]-A->IA[i])<=0) continue;
+      fprintf(fid,"\nrow[%d]=[ ",i);
+      for(j=A->IA[i];j<A->IA[i+1];++j){
+	fprintf(fid,"%d ",A->JA[j]);
+      }
+      fprintf(fid,"]");    
+  }
+  fflush(fid);
+  return;
+}
+/***********************************************************************************************/
+/*!
+ * \fn void icsr_print_matlab_val(FILE* fid,iCSRmat *A)
  *
  * \brief print a iCSRmat format sparse matrix to a file with VALUES
  *

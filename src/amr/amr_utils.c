@@ -1038,29 +1038,79 @@ void find_cc_bndry_cc(scomplex *sc,INT set_bndry_codes)
   /*******************************************************************/    
   fprintf(stdout,"%%%%--> number of connected components in the bulk=%d\n",sc->cc);
   fprintf(stdout,"%%%%--> number of connected components on the boundary=%d\n",sc->bndry_cc);
+  /* make boundary codes from parent_v */
+  INT *a1=NULL,*a2=NULL,l,ncap,n1,n2,v1,v2,nnz_bv,nnzold;
+  i=-1;
+  for(k=0;k<sc->bndry_v->row;++k){
+    j=sc->bndry_v->IA[k+1]-sc->bndry_v->IA[k];
+    if(i<j) i=j;
+  }
+  INT *wrk=calloc(2*i,sizeof(INT));  
+  INT *acap=calloc(i,sizeof(INT));  
+  /* fprintf(stdout,"%%%% max_nnz_row_bndry_v=%d\n",i); */
   if(set_bndry_codes) {
     icsr_free(blk_dfs);free(blk_dfs);
     icsr_free(&f2v);
     free(indx);
     free(indxinv);
-    for(i=0;i<sc->nv;++i){
-      if((sc->parent_v->IA[i+1]-sc->parent_v->IA[i])){
-        fprintf(stdout,"\nvertex=%d; parents=[ ",i);
-        for(j=sc->parent_v->IA[i];j<sc->parent_v->IA[i+1];++j){
-	  fprintf(stdout,"%d ",sc->parent_v->JA[j]);
-        }
-        fprintf(stdout,"]"); fflush(stdout);
+    nnz_bv=sc->bndry_v->nnz;
+    for(k=0;k<sc->parent_v->row;++k){
+      j=sc->parent_v->IA[k];
+      if((sc->parent_v->IA[k+1]-j)!=2) continue;
+      nnz_bv+=i;
+    }
+    nnzold=nnz_bv;
+    sc->bndry_v->val=realloc(sc->bndry_v->val,2*nnz_bv*sizeof(INT));    
+    for(k=0;k<sc->bndry_v->nnz;++k){
+      sc->bndry_v->val[nnz_bv+k]=sc->bndry_v->val[sc->bndry_v->nnz+k];
+      //      sc->bndry_v->val[sc->bndry_v->nnz+k]=0;
+    }
+    sc->bndry_v->row=sc->parent_v->row;
+    sc->bndry_v->IA=realloc(sc->bndry_v->IA,(sc->parent_v->row+1)*sizeof(INT));
+    sc->bndry_v->JA=realloc(sc->bndry_v->JA,nnz_bv*sizeof(INT));
+    // add all boundary codes for vertices obtained with
+    // refinement. This uses that such vertices are added one by one
+    // after refinement and ordered after their "ancestors"
+    /* icsr_print_rows(stdout,sc->bndry_v,"BNDRY_V"); */
+    for(k=0;k<sc->parent_v->row;++k){
+      nnz_bv=sc->bndry_v->IA[k];
+      j=sc->parent_v->IA[k];
+      if((sc->parent_v->IA[k+1]-j)==2){
+	//	fprintf(stdout,"\nnnz_bv=%d (IA=%d),k=%d,diff0=%d",nnz_bv,sc->bndry_v->IA[k],k,(sc->parent_v->IA[k+1]-j));
+	v1=sc->parent_v->JA[j];    
+	n1=sc->bndry_v->IA[v1+1]-sc->bndry_v->IA[v1];
+	a1=sc->bndry_v->JA+sc->bndry_v->IA[v1];
+	//
+	v2=sc->parent_v->JA[j+1];
+	n2=sc->bndry_v->IA[v2+1]-sc->bndry_v->IA[v2];
+	a2=sc->bndry_v->JA+sc->bndry_v->IA[v2];
+	//	fprintf(stdout,"\nnew_vertex=%d,v1=%d,v2=%d; n1=%d,n2=%d",k,v1,v2,n1,n2);fflush(stdout);
+	//	print_full_mat_int(1,n1,a1,"a1");
+	//	print_full_mat_int(1,n2,a2,"a2");
+	ncap=array_cap(n1,a1,n2,a2,acap,wrk);
+	if(ncap){
+	  //	  print_full_mat_int(1,ncap,acap,"INTERSECTION");
+	  for(i=0;i<ncap;++i){
+	    l=wrk[i] + sc->bndry_v->IA[v1];
+	    sc->bndry_v->JA[nnz_bv+i]=acap[i];
+	    sc->bndry_v->val[nnz_bv+i]=sc->bndry_v->val[l];
+	    sc->bndry_v->val[nnz_bv+i+nnzold]=sc->bndry_v->val[l+nnzold];
+	  }
+	  /* fprintf(stdout,"\n%%%%CODES(%d<--(%d,%d))=[",k,v1,v2); */
+	  /* for(i=0;i<ncap;++i){ */
+	  /*   fprintf(stdout,"%d(c=%d;b=%d) ",sc->bndry_v->JA[nnz_bv+i],sc->bndry_v->val[nnz_bv+i],sc->bndry_v->val[nnz_bv+i+nnzold]); */
+	  /* } */
+	  /* fprintf(stdout,"]"); */
+	  nnz_bv+=ncap;
+	}
+	sc->bndry_v->IA[k+1]=nnz_bv;
       }
-    }  
-    /* for(i=0;i<sc->bndry_v->row;++i){ */
-    /*   if((sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i])){ */
-    /*     fprintf(stdout,"\nZsize(vertex=%d)=%d; Zfaces=[ ",i,sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i]); */
-    /*     for(j=sc->bndry_v->IA[i];j<sc->bndry_v->IA[i+1];++j){ */
-    /* 	fprintf(stdout,"%d(Zc=%d;Zb=%d) ",sc->bndry_v->JA[j],sc->bndry_v->val[j],sc->bndry_v->val[j+nnz]); */
-    /*     } */
-    /*     fprintf(stdout,"]"); fflush(stdout); */
-    /*   } */
-    /* } */  
+    }
+    /* fprintf(stdout,"\n"); */
+    free(wrk);
+    free(acap);
+    /* icsr_print_rows(stdout,sc->parent_v,"PARENT_V"); */
+    /* icsr_print_rows(stdout,sc->bndry_v,"BNDRY_V"); */
   } else {
     for(i=0;i<sc->bndry_cc;++i){
       for(k=blk_dfs->IA[i];k<blk_dfs->IA[i+1];++k){

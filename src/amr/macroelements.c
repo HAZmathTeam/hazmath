@@ -1493,8 +1493,15 @@ scomplex **generate_initial_grid(input_grid *g0)
     }
   }
   fix_grid(mc,sc,c2s,g0);
-  //  if(g0->print_level>4){
-  if(1){
+  /*initialize the parent_v matrix*/
+  icsr_free(sc[0]->parent_v);
+  sc[0]->parent_v[0]=icsr_create(sc[0]->nv,sc[0]->nv,sc[0]->nv);
+  sc[0]->parent_v->IA[0]=0;
+  for(i=0;i<sc[0]->parent_v->row;++i){
+    sc[0]->parent_v->JA[sc[0]->parent_v->IA[i]]=i;
+    sc[0]->parent_v->IA[i+1]=i+1;
+  }  
+  if(g0->print_level>4){
     fprintf(stdout,"\n%%merged(macroelements=[%d..%d]): vertices=%d; simplices=%d", \
 	    0,mc->nel-1,sc[0]->nv,sc[0]->ns);  
     fprintf(stdout," ..done.\n\n");fflush(stdout);

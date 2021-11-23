@@ -638,9 +638,9 @@ INT array_uniq(const INT n,INT *a)
   return j;
 }
 /*!
- * \fn INT *array_cap(const INT n1i,INT *a1i,	\
+ * \fn INT array_cap(const INT n1i,INT *a1i,	\
  *	       const INT n2i, INT *a2i,		\
- *	       INT *cap_size, INT *wrk)
+ *	       INT *acap, INT *wrk)
  *
  * \brief find the intersection of two sorted arrays with no repeating entries
  *
@@ -651,18 +651,18 @@ INT array_uniq(const INT n,INT *a)
  * \param a2i a pointer to the second sorted integer array with no
  *            repeated entries
  *
- * \param *cap_size the size of the intersection array.  
+ * \param acap array with enough space to hold the intersection. 
  * \param wrk working array of at least n1i+n2i entries to copy the
  *            original arrays.
  *
- * \return NULL if the intersection is empty or a pointer to the array
- *         containing the intersection
+ * \return 0 if the intersection is empty or the size of the intersection.
+ *        
  *
  *
  */
-INT *array_cap(const INT n1i,INT *a1i,	\
-	       const INT n2i, INT *a2i, \
-	       INT *cap_size, INT *wrk)
+INT array_cap(const INT n1i,const INT *a1i,	\
+	       const INT n2i, const INT *a2i,		\
+	       INT *acap, INT *wrk)
 { // wrk must be of size (n1i+n2i)
   INT *a1=wrk;
   INT *a2=wrk+n1i;
@@ -675,28 +675,32 @@ INT *array_cap(const INT n1i,INT *a1i,	\
   isi_sort(n2i,a2);
   INT n2=array_uniq(n2i,a2);
   //////////////////////////////////////////////////
-  INT i=0, j=0, *acap=NULL;
-  *cap_size=0;
-  if(n1<n2)
-    acap=(INT *)calloc(n1,sizeof(INT));
-  else 
-    acap=(INT *)calloc(n2,sizeof(INT));  
+  INT  ncap=0, i=0, j=0;
   while ((i < n1) && (j < n2)) {
     if (a1[i] < a2[j])
       i++;
     else if (a1[i] > a2[j]){
       j++;
     } else {
-      acap[*cap_size]=a2[j];
-      cap_size[0]++;
+      acap[ncap]=a2[j];
+      ncap++;
       j++;i++;
     }
   }
-  if(*cap_size)
-    acap=realloc(acap,(*cap_size)*sizeof(INT));
-  else{
-    free(acap);acap=NULL;
+  if(ncap) {
+    for(i=0;i<ncap;++i){
+      wrk[i]=-1;
+      for(j=0;j<n1i;j++){
+	if(acap[i]!=a1i[j]) continue;
+	wrk[i]=j;
+      }
+    }
   }
-  return acap;
+  /* if(ncap) */
+  /*   acap=realloc(acap,(ncap)*sizeof(INT)); */
+  /* else{ */
+  /*   acap=NULL; */
+  /* } */
+  return ncap;
 }
 /*************************************  END  ******************************************************/
