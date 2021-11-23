@@ -1170,17 +1170,17 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
     }
   }
   //////////print
-  fprintf(stdout,"\nBNDRY_V_CODES:");
-  for(i=0;i<sc->bndry_v->row;++i){
-    iaa=sc->bndry_v->IA[i];
-    iab=sc->bndry_v->IA[i+1];
-    fprintf(stdout,"\nC(%d)=[",i);
-    for(k=iaa;k<iab;++k){
-      fprintf(stdout,"%d(c=%d) ",sc->bndry_v->JA[k],sc->bndry_v->val[k]);
-    }
-    fprintf(stdout,"]");
-  }
-  fprintf(stdout,"];\n");
+  /* fprintf(stdout,"\nBNDRY_V_CODES:"); */
+  /* for(i=0;i<sc->bndry_v->row;++i){ */
+  /*   iaa=sc->bndry_v->IA[i]; */
+  /*   iab=sc->bndry_v->IA[i+1]; */
+  /*   fprintf(stdout,"\nC(%d)=[",i); */
+  /*   for(k=iaa;k<iab;++k){ */
+  /*     fprintf(stdout,"%d(c=%d) ",sc->bndry_v->JA[k],sc->bndry_v->val[k]); */
+  /*   } */
+  /*   fprintf(stdout,"]"); */
+  /* } */
+  /* fprintf(stdout,"\n"); */
   return;
 }
 /*EOF*/
