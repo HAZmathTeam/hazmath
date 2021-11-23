@@ -248,8 +248,7 @@ iCSRmat *run_bfs(INT n,INT *ia, INT *ja,	\
   INT i,k,q,v,vi,qbeg,qend,lvl;  
   iCSRmat *blk=malloc(sizeof(iCSRmat));
   blk[0]=icsr_create(n,n,n);
-  // occasionally the nonzeroes be larger than n for a moment:
-  blk->IA=realloc(blk->IA,(n+2)*sizeof(INT));
+  /* Not true that we need that: blk->IA=realloc(blk->IA,(n+2)*sizeof(INT));*/
   anc->row=n;
   anc->val=(INT *)calloc(anc->row,sizeof(INT));
   for(i=0;i<blk->nnz;++i) blk->val[i]=0;
@@ -264,7 +263,6 @@ iCSRmat *run_bfs(INT n,INT *ia, INT *ja,	\
     roots->val=(INT *)realloc(roots->val,roots->row*sizeof(INT));
     roots->val[0]=0;
   }
-  //  print_full_mat_int(1,roots->row,roots->val,"roots");
   /* Now roots are set as they are either input or root[0]=0 */
   for(i=0;i<roots->row;++i){
     blk->val[roots->val[i]]=lvl+1;
@@ -288,25 +286,17 @@ iCSRmat *run_bfs(INT n,INT *ia, INT *ja,	\
 	  k++;
 	  anc->val[i]=v; // ancestor;
 	}
-	//	fprintf(stdout,"\nlvl=%d,v=%d; nbr=%d,blk->val=%d",lvl,v,i,blk->val[i]);fflush(stdout);
+	/* fprintf(stdout,"\nlvl=%d,v=%d; nbr=%d,blk->val=%d",lvl,v,i,blk->val[i]);fflush(stdout); */
       }
     }
     lvl++;
-    //    fprintf(stdout,"\nn=%d,(lvl+1)=%d,k=%d",n,lvl+1,k);
-    blk->IA[lvl+1]=k;    
     if(k<=qend) break;
+    /* fprintf(stdout,"\nn=%d,(lvl+1)=%d,k=%d",n,lvl+1,k); */
+    blk->IA[lvl+1]=k;    
   }
-  //  fprintf(stdout,"\nord (k=%d):",k);
-  //  for(i=0;i<blk->IA[lvl];i++){
-  //    v=blk->JA[i];
-  //    fprintf(stdout,"\nblk->val[%d]=%d",v,blk->val[v]);fflush(stdout);
-  //  }
-  /* for(i=0;i<(lvl+1);i++){ */
-  /*   fprintf(stdout,"\nblk->IA[%d]=%d",i,blk->IA[i]); */
-  /* } */
   blk->row=lvl;
   blk->IA=(INT *)realloc(blk->IA,(blk->row+1)*sizeof(INT));
-  //  icsr_print_rows(stdout,blk,"BLK");
+  /* icsr_print_rows(stdout,blk,"BLK"); */
   //end
   return blk;
 }
@@ -315,7 +305,7 @@ iCSRmat *run_bfs(INT n,INT *ia, INT *ja,	\
  * \fn iCSRmat *bfs_di(void *a, const char c,ivector *roots,
  *                     ivector *anc,const INT lvlmax)
  *
- * \brief dfs on graphs given by INT or REAL CSR matrix.
+ * \brief bfs on graphs given by INT or REAL CSR matrix.
  *
  * \param a:                  The CSR matrix 
  * \param c:                  a char ('r' or 'i' or 'R' or 'I')
@@ -344,7 +334,7 @@ iCSRmat *bfs_di(void *a, const char c,		\
     ai=(iCSRmat *)a;
     return run_bfs(ai->row, ai->IA, ai->JA, roots, anc, lvlmax);  
   } else {
-    fprintf(stderr,"### ERROR: Wrong value of c in %s (c=%c)\n",__FUNCTION__,c);
+    fprintf(stderr,"### ERROR: Wrong value of c in %s (c=%c should be \'r\' or \'R\')\n",__FUNCTION__,c);
     exit(ERROR_INPUT_PAR);
   }
 }
