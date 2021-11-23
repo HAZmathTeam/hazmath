@@ -1105,10 +1105,26 @@ void find_cc_bndry_cc(scomplex *sc,INT set_bndry_codes)
 	}
 	sc->bndry_v->IA[k+1]=nnz_bv;
       }
+    }    
+    sc->bndry_v->row=sc->parent_v->row;
+    sc->bndry_v->nnz=nnz_bv;
+    sc->bndry_v->IA[sc->bndry_v->row]=nnz_bv;
+    sc->bndry_v->JA=realloc(sc->bndry_v->JA,nnz_bv*sizeof(INT));
+    for(k=0;k<nnz_bv;k++){
+      sc->bndry_v->val[k+nnz_bv]=sc->bndry_v->val[nnzold+k];
     }
-    /* fprintf(stdout,"\n"); */
+    sc->bndry_v->val=realloc(sc->bndry_v->val,2*nnz_bv*sizeof(INT));
     free(wrk);
     free(acap);
+    //////////////////print
+    /* for(k=0;k<sc->bndry_v->row;++k){ */
+    /*   fprintf(stdout,"\n%%%%CODES(%d)=[",k); */
+    /*   for(i=sc->bndry_v->IA[k]; i<sc->bndry_v->IA[k+1];++i){ */
+    /* 	fprintf(stdout,"%d(c=%d;b=%d) ",sc->bndry_v->JA[i],sc->bndry_v->val[i],sc->bndry_v->val[nnz_bv+i]); */
+    /*   } */
+    /*   fprintf(stdout,"]"); */
+    /* } */
+    /* fprintf(stdout,"\nnnzold=%d,nnz_bv=%d,IA=%d",nnzold,nnz_bv,sc->bndry_v->IA[sc->parent_v->row]); */
     /* icsr_print_rows(stdout,sc->parent_v,"PARENT_V"); */
     /* icsr_print_rows(stdout,sc->bndry_v,"BNDRY_V"); */
   } else {
