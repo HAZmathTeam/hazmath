@@ -1,6 +1,5 @@
-#!/bin/bash
 # A simple shell script to get haznics python dependencies
-# Setup by Ana Budisa - 2021-07-15
+# Setup by Ana Budisa - 2021-07-15 (what a date this is!)
 
 # Install fenics
 echo "Installing fenics..."
