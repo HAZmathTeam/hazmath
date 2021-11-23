@@ -582,13 +582,22 @@ void scfinalize(scomplex *sc,const INT set_bndry_codes)
   sc->flags=realloc(sc->flags,sc->ns*sizeof(INT));
   find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
   // this also can be called separately
-  find_cc_bndry_cc(sc,set_bndry_codes);
+  // set_bndry_codes should always be set to 1.
+  //  set_bndry_codes=1;
+  find_cc_bndry_cc(sc,(INT )1); //set_bndry_codes);
   //
-  if(set_bndry_codes){
-    for(j=0;j<sc->nv;++j){
-      if(sc->bndry[j]>128) sc->bndry[j]-=128;
-    }
-  }
+  /* if(set_bndry_codes){ */
+  /*   for(j=0;j<sc->nv;++j){ */
+  /*     if(sc->bndry[j]>128) sc->bndry[j]-=128; */
+  /*   } */
+  /* } */
+  // clean up:
+  icsr_free(sc->bndry_v);
+  free(sc->bndry_v);
+  sc->bndry_v=NULL;
+  icsr_free(sc->parent_v);
+  free(sc->parent_v);
+  sc->parent_v=NULL;
   return;
 }
 /**********************************************************************/
@@ -909,7 +918,7 @@ INT dvec_set_amr(const REAL value, scomplex *sc, INT npts, REAL *pts, REAL *tose
  * \note
  *
  */
-void find_cc_bndry_cc(scomplex *sc,INT set_bndry_codes)
+void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
 {
   //
   INT ns = sc->ns, dim=sc->n;
@@ -1096,17 +1105,15 @@ void find_cc_bndry_cc(scomplex *sc,INT set_bndry_codes)
 	    sc->bndry_v->val[nnz_bv+i]=sc->bndry_v->val[l];
 	    sc->bndry_v->val[nnz_bv+i+nnzold]=sc->bndry_v->val[l+nnzold];
 	  }
-	  /* fprintf(stdout,"\n%%%%CODES(%d<--(%d,%d))=[",k,v1,v2); */
-	  /* for(i=0;i<ncap;++i){ */
-	  /*   fprintf(stdout,"%d(c=%d;b=%d) ",sc->bndry_v->JA[nnz_bv+i],sc->bndry_v->val[nnz_bv+i],sc->bndry_v->val[nnz_bv+i+nnzold]); */
-	  /* } */
-	  /* fprintf(stdout,"]"); */
 	  nnz_bv+=ncap;
 	}
 	sc->bndry_v->IA[k+1]=nnz_bv;
       }
     }    
     sc->bndry_v->row=sc->parent_v->row;
+    // in case the mesh was not refined at all, i.e. no added vertices
+    if(sc->bndry_v->IA[sc->bndry_v->row]>nnz_bv)
+      nnz_bv=sc->bndry_v->IA[sc->bndry_v->row];
     sc->bndry_v->nnz=nnz_bv;
     sc->bndry_v->IA[sc->bndry_v->row]=nnz_bv;
     sc->bndry_v->JA=realloc(sc->bndry_v->JA,nnz_bv*sizeof(INT));
@@ -1116,18 +1123,8 @@ void find_cc_bndry_cc(scomplex *sc,INT set_bndry_codes)
     sc->bndry_v->val=realloc(sc->bndry_v->val,2*nnz_bv*sizeof(INT));
     free(wrk);
     free(acap);
-    //////////////////print
-    /* for(k=0;k<sc->bndry_v->row;++k){ */
-    /*   fprintf(stdout,"\n%%%%CODES(%d)=[",k); */
-    /*   for(i=sc->bndry_v->IA[k]; i<sc->bndry_v->IA[k+1];++i){ */
-    /* 	fprintf(stdout,"%d(c=%d;b=%d) ",sc->bndry_v->JA[i],sc->bndry_v->val[i],sc->bndry_v->val[nnz_bv+i]); */
-    /*   } */
-    /*   fprintf(stdout,"]"); */
-    /* } */
-    /* fprintf(stdout,"\nnnzold=%d,nnz_bv=%d,IA=%d",nnzold,nnz_bv,sc->bndry_v->IA[sc->parent_v->row]); */
-    /* icsr_print_rows(stdout,sc->parent_v,"PARENT_V"); */
-    /* icsr_print_rows(stdout,sc->bndry_v,"BNDRY_V"); */
   } else {
+    /*BEGIN: TO BE REMOVED IN THE FUTURE*/
     for(i=0;i<sc->bndry_cc;++i){
       for(k=blk_dfs->IA[i];k<blk_dfs->IA[i+1];++k){
 	j=blk_dfs->JA[k];
@@ -1140,7 +1137,51 @@ void find_cc_bndry_cc(scomplex *sc,INT set_bndry_codes)
     icsr_free(&f2v);
     free(indx);
     free(indxinv);
+    return;
+    /*END: TO BE REMOVED IN THE FUTURE*/
   }
+  INT iaa,iab,code,cmin,cmax;
+  cmin=sc->bndry_v->val[0];
+  cmax=sc->bndry_v->val[0];
+  for(i=1;i<sc->bndry_v->nnz;++i){
+    if(cmin>sc->bndry_v->val[i])
+      cmin=sc->bndry_v->val[i];
+    if(cmax<sc->bndry_v->val[i])
+      cmax=sc->bndry_v->val[i];
+  }
+  cmin--;
+  cmax++;
+  if(!cmin) cmin=-1;
+  if(!cmax) cmax=1;
+  for(i=0;i<sc->bndry_v->row;++i){
+    iaa=sc->bndry_v->IA[i];
+    iab=sc->bndry_v->IA[i+1];
+    if((iab-iaa)<=0){
+      sc->bndry[i]=0;// this vertex is definitely interior
+    } else {
+      sc->bndry[i]=cmax;
+      for(k=iaa;k<iab;++k){
+	code=sc->bndry_v->val[k];	
+	if(!code) continue;
+	if(sc->bndry[i]>code) sc->bndry[i]=code;
+      }
+      if(sc->bndry[i]==cmax) {
+	sc->bndry[i]=0;
+      }
+    }
+  }
+  /* //////////print */
+  /* fprintf(stdout,"\nBNDRY_V_CODES:"); */
+  /* for(i=0;i<sc->bndry_v->row;++i){ */
+  /*   iaa=sc->bndry_v->IA[i]; */
+  /*   iab=sc->bndry_v->IA[i+1]; */
+  /*   fprintf(stdout,"\nC(%d)=[",i); */
+  /*   for(k=iaa;k<iab;++k){ */
+  /*     fprintf(stdout,"%d(c=%d) ",sc->bndry_v->JA[k],sc->bndry_v->val[k]); */
+  /*   } */
+  /*   fprintf(stdout,"]"); */
+  /* } */
+  /* fprintf(stdout,"];\n"); */
   return;
 }
 /*EOF*/
