@@ -30,6 +30,7 @@
 /*******************************************************************/
 typedef struct /* n-homogenous simplicial complex */
 {
+  SHORT print_level;   /**< print level */
   INT nbig; /* the dimension of the space in which SC is embedded */
   INT n; /* the dimension of SC */
   INT nv; /* number of 0-dimensional simplices */
@@ -46,6 +47,13 @@ typedef struct /* n-homogenous simplicial complex */
   INT *nodes; /*0-dim simplices opposite to (n-1) dimensional
 		neighbors, i.e. the simplex2vertex incidence (ns by
 		(n+1)) */
+  iCSRmat *bndry_v; /* for each vertex stores the codes of the
+		       boundaries it belongs to. If no boundary code
+		       then the vertex is not on the boundary. The
+		       number of rows is nv, number of columns is the
+		       number of boundary codes which are found during
+		       constructing the initial grid. The entries in
+		       the matrix are are the boundary codes */
   iCSRmat *parent_v; /* for each vertex added in a refinement gives the
 		       two vertices forming the edge where the
 		       refinement vertex was put */
@@ -54,14 +62,12 @@ typedef struct /* n-homogenous simplicial complex */
   REAL *x; /*(nv x n) array to hold the coordinates of vertices */
   REAL *vols; /* volumes of the simplices */
   REAL factorial; /*n factorial */
-  INT *bcodesf; /* codes for boundary faces */
-  INT *isbface; /* indicator if a face is on the boundary */
   iCSRmat *bfs; /* bfs structure for the simplices. works for more than one connected components */
   INT *etree; /* bfs tree (etree[k]=unique_ancestor_of_k in the BFS
 		 tree) */
-  INT ref_type; /*n connected components */
-  INT cc; /*n connected components */
-  INT bndry_cc; /*connected components on the boundary */
+  INT ref_type; /* refinement type */
+  INT cc; /*num connected components */
+  INT bndry_cc; /*num connected components on the boundary */
 } scomplex;
 /* /\*================================================================*\/ */
 /* typedef struct /\* a macroelement (isomrphic to the hypercube */
@@ -131,21 +137,6 @@ typedef struct {
   REAL *data_refine_points;
 }input_grid; /** Input GRID parameters */
 /*************************************************************/
-typedef struct /* n-homogenous simplicial SUBcomplex */
-{
-  INT nbig; /* spatial dimension in which the sub-SC is embedded*/
-  INT n; /* dimension of subSC */
-  INT ns; /* number of n-1 dimensional simplices forming the subcomplex */
-  INT *elf; /* relation with the parent SC (element to face map)  */
-  INT *nodes; /* simplex-vertex incidence (ns by n+1)) */
-  INT *flags; /* flag for the the simplex, indicating boundary or not
-		 and boundary code */
-  REAL *normals; /* coordinates of the normal vectors to the simplices */
-  REAL *areas; /* areas (could be called volumes) of the simplices from
-		 subSC */
-  scomplex *parent; /*parent complex */
-} subscomplex;
-
 typedef struct /* n-dimensional uniform grid */
 { INT n; /* spatial dimension of the grid */
   INT ugtype; /* type = 0 is uniform grid; type =1 dx and dy must be
@@ -218,10 +209,10 @@ typedef struct /* macroelement complex (isomorphic to
   INT **iindex; /* used to remove repeated vertices */
   iCSRmat *fullel2el; /* full element to element which has also the
 			 number of common vertices as entries in the matrix; */
-  INT *bcodesf; /* codes for boundary faces */
+  INT *bcodesf; /* codes for faces */
   INT *isbface; /* indicator if a face is on the boundary */
-  INT *flags; /*flags (material) of the macro elements*/
-  INT cc; /*n connected components */
+  INT *flags; /* materials (codes) of the macroelements*/
+  INT cc; /*connected components in the bulk*/
   INT bndry_cc; /*connected components on the boundary */
   iCSRmat *bfs; /* bfs levels structure for the mesh el2el only if
 		   they share a face; */

@@ -6,18 +6,18 @@
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 12/25/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
- * \note   Done cleanup for releasing -- Xiaozhe Hu 03/12/2017
+ * \note   Done cleanup for releasing -- Xiaozhe Hu 03/12/2017 & 08/28/2021
  *
  * \todo Combine pre- and post-smoothing and use a flag to make sure the symmetry whenever is necessary -- Xiaozhe Hu
  *
  */
 
 #include "hazmath.h"
-//#include "helper.hidden"
 
 /*---------------------------------*/
 /*--      Private Functions      --*/
 /*---------------------------------*/
+/***********************************************************************************************/
 /**
  * \fn static void coarse_itsolver(dCSRmat *A, dvector *b, dvector *x,
  *                                 const REAL ctol, const SHORT prt_lvl)
@@ -52,6 +52,7 @@ static void coarse_itsolver(dCSRmat *A,
     }
 }
 
+/***********************************************************************************************/
 /**
  * \fn static void dcsr_presmoothing (const SHORT smoother, dCSRmat *A,
  *                                         dvector *b, dvector *x,
@@ -82,7 +83,6 @@ static void dcsr_presmoothing(SHORT smoother,
                               const INT istep,
                               const REAL relax)
 {
-    // const short smoother = smmv->type;
 
     switch (smoother) {
 
@@ -128,25 +128,7 @@ static void dcsr_presmoothing(SHORT smoother,
             break;
 
         case SMOOTHER_USERDEF:
-            /*if (smoother_function) {
-                printf("Smoother function is not NULL! Let's try to use it. \n");
-                smoother_function(x, istart, iend, istep, A, b, nsweeps, relax);
-                printf("Smoother function ran successfully! But the correct result is not guaranteed. \n");
-            }
-            else {
-                printf("### ERROR: User defined smoother is actually not defined (NULL ptr)!\n");
-                check_error(ERROR_AMG_SMOOTH_TYPE, __FUNCTION__);
-            } */
-            /*printf("Smoother function is not NULL! Let's try to use it. \n");
-            smmv->data = smoother_data_alloc(1);
-            fenics_smoother_data_setup(istart, iend, istep, nsweeps, relax, A, smmv->data);
-
-            py_callback_eval(b->val, x->val, smmv);
-            printf("Smoother function ran successfully! But the correct result is not guaranteed. \n");
-            smoother_data_free(smmv->data);
-            */
-
-            printf("Running GS just in case. \n");
+            printf("Smoother type not implemented! Running GS just in case. \n");
             smoother_dcsr_gs(x, iend, istart, istep, A, b, nsweeps);
             break;
 
@@ -156,6 +138,7 @@ static void dcsr_presmoothing(SHORT smoother,
     }
 }
 
+/***********************************************************************************************/
 /**
  * \fn static void dcsr_postsmoothing (const SHORT smoother, dCSRmat *A,
  *                                          dvector *b, dvector *x,
@@ -186,7 +169,6 @@ static void dcsr_postsmoothing(SHORT smoother,
                                const INT istep,
                                const REAL relax)
 {
-    // const short smoother = smmv->type;
 
     switch (smoother) {
 
@@ -232,27 +214,7 @@ static void dcsr_postsmoothing(SHORT smoother,
             break;
 
         case SMOOTHER_USERDEF:
-            /*if (smoother_function) {
-                printf("Smoother function is not NULL! Let's try to use it. \n");
-                smoother_function(x, istart, iend, istep, A, b, nsweeps, relax);
-                printf("Smoother function ran successfully! But the correct result is not guaranteed. \n");
-                printf("Running GS just in case. \n");
-                smoother_dcsr_gs(x, iend, istart, istep, A, b, nsweeps);
-            }
-            else {
-                printf("### ERROR: User defined smoother is actually not defined (NULL ptr)!\n");
-                check_error(ERROR_AMG_SMOOTH_TYPE, __FUNCTION__);
-            } */
-            /*printf("Smoother function is not NULL! Let's try to use it. \n");
-            smmv->data = smoother_data_alloc(1);
-            fenics_smoother_data_setup(istart, iend, istep, nsweeps, relax, A, smmv->data);
-
-            // python_callback(b->val, x->val, smmv);
-            printf("Smoother function ran successfully! But the correct result is not guaranteed. \n");
-            smoother_data_free(smmv->data);
-            */
-
-            printf("Running GS just in case. \n");
+            printf("Smoother type not implemented! Running GS just in case. \n");
             smoother_dcsr_gs(x, iend, istart, istep, A, b, nsweeps);
             break;
 
@@ -262,110 +224,8 @@ static void dcsr_postsmoothing(SHORT smoother,
     }
 }
 
-/**
- * \fn static void bdcsr_presmoothing ( const INT lvl,
- *                                          MG_blk_data *mlg,
- *                                          AMG_param *param)
- *
- * \brief  Post-smoothing
- *
- * \param lvl       current level
- * \param mgl       pointer to MG_blk_data structure with matrix information
- * \param param     pointer to AMG_param parameters
- *
- */
-static void bdcsr_presmoothing(const INT lvl, MG_blk_data *mgl, AMG_param *param)
-{
-    const SHORT smoother = param->smoother;
-    printf("smoother: %d\n",smoother);
-    const SHORT nsweeps  = param->presmooth_iter;
-    REAL damp = param->damping_param;
-    printf("damping parameter on smoother: %f\n",damp);
-    INT i;
-    Schwarz_param swzparam;
-    switch (smoother) {
 
-        case SMOOTHER_JACOBI:
-            smoother_bdcsr_jacobi(&mgl[lvl].x, 1, &mgl[lvl].A, &mgl[lvl].b, nsweeps);
-            break;
-        case 1000:
-          for(i=0; i<nsweeps; i++){
-            swzparam.Schwarz_blksolver = mgl[lvl].Schwarz.blk_solver;
-            printf("Presmooth Schwarz Start. solver %d\n",swzparam.Schwarz_blksolver);
-            smoother_dcsr_Schwarz_forward(&mgl[lvl].Schwarz, &swzparam, &mgl[lvl].x, &mgl[lvl].b);
-            printf("Presmooth Schwarz Done.\n");
-          }
-          break;
-        case 1001:
-          for(i=0; i<nsweeps; i++){
-            swzparam.Schwarz_blksolver = mgl[lvl].Schwarz.blk_solver;
-            smoother_dcsr_Schwarz_forward_additive(&mgl[lvl].Schwarz, &swzparam, &mgl[lvl].x, &mgl[lvl].b,damp);
-          }
-          break;
-        case 2000:
-          for(i=0;i<nsweeps;i++){
-            smoother_block_elasticity( lvl, mgl, param, 1);
-          }
-          break;
-        default:
-          printf("Smoother: block biot three field\n");
-          for(i=0;i<nsweeps;i++){
-            smoother_block_biot_3field(lvl,mgl,param,1);
-          }
-//            printf("### ERROR: Wrong smoother type %d!\n", smoother);
-//            check_error(ERROR_INPUT_PAR, __FUNCTION__);
-    }
-}
 
-/**
- * \fn static void bdcsr_postsmoothing ( const INT lvl,
- *                                          MG_blk_data *mlg,
- *                                          AMG_param *param)
- *
- * \brief  Post-smoothing
- *
- * \param lvl       current level
- * \param mgl       pointer to MG_blk_data structure with matrix information
- * \param param     pointer to AMG_param parameters
- *
- */
-static void bdcsr_postsmoothing(const INT lvl, MG_blk_data *mgl, AMG_param *param)
-{
-    const SHORT smoother = param->smoother;
-    const SHORT nsweeps  = param->postsmooth_iter;
-    REAL damp = param->damping_param;
-    INT i;
-    Schwarz_param swzparam;
-    switch (smoother) {
-
-        case SMOOTHER_JACOBI:
-            smoother_bdcsr_jacobi(&mgl[lvl].x, 1, &mgl[lvl].A, &mgl[lvl].b, nsweeps);
-            break;
-        case 1000:
-          for(i=0; i<nsweeps; i++){
-            swzparam.Schwarz_blksolver = mgl[lvl].Schwarz.blk_solver;
-            smoother_dcsr_Schwarz_backward(&mgl[lvl].Schwarz, &swzparam, &mgl[lvl].x, &mgl[lvl].b);
-          }
-          break;
-        case 1001:
-          for(i=0; i<nsweeps; i++){
-            swzparam.Schwarz_blksolver = mgl[lvl].Schwarz.blk_solver;
-            smoother_dcsr_Schwarz_backward_additive(&mgl[lvl].Schwarz, &swzparam, &mgl[lvl].x, &mgl[lvl].b,damp);
-          }
-          break;
-        case 2000:
-          for(i=0;i<nsweeps;i++){
-            smoother_block_elasticity( lvl, mgl, param, 2);
-          }
-          break;
-        default:
-          for(i=0;i<nsweeps;i++){
-            smoother_block_biot_3field(lvl,mgl,param,2);
-          }
-//            printf("### ERROR: Wrong smoother type %d!\n", smoother);
-//            check_error(ERROR_INPUT_PAR, __FUNCTION__);
-    }
-}
 
 /*---------------------------------*/
 /*--      Public Functions       --*/
@@ -393,7 +253,6 @@ void mgcycle(AMG_data *mgl,
     const SHORT  nl = mgl[0].num_levels;
     const REAL   relax = param->relaxation;
     const REAL   tol = param->tol * 1e-2;
-    //smoother_matvec *smmv = (smoother_matvec*)mgl->wdata;
 
     // Schwarz parameters
     Schwarz_param swzparam;
@@ -1050,141 +909,6 @@ void mgcycle_add_update(AMG_data *mgl,
 
 }
 
-/**
- * \fn void mgcycle_block (AMG_data *mgl, AMG_param *param)
- *
- * \brief Solve Ax=b with non-recursive multigrid cycle (V- and W-cycle)
- *
- * \param mgl    Pointer to MG data: MG_blk_data
- * \param param  Pointer to AMG parameters: AMG_param
- *
- * \author Xiaozhe Hu
- * \date   12/25/2015
- *
- */
-void mgcycle_block(MG_blk_data *bmgl,
-             AMG_param *param)
-{
-    //const SHORT  prtlvl = param->print_level;
-    //const SHORT  amg_type = param->AMG_type;
-    //const SHORT  smoother = param->smoother;
-    const SHORT  cycle_type = param->cycle_type;
-    const SHORT  coarse_solver = param->coarse_solver;
-    const SHORT  nl = bmgl[0].num_levels;
-    //const REAL   relax = param->relaxation;
-    const REAL   tol = param->tol * 1e-4;
-
-    // Schwarz parameters
-    //Schwarz_param swzparam;
-
-    // local variables
-    REAL alpha = 1.0;
-    INT  num_lvl[MAX_AMG_LVL] = {0}, l = 0;
-    INT  i;
-    //INT status;
-
-//    dvector b_disp;
-//    dvector b_darcy;
-//    dvector b_pressure;
-
-ForwardSweep:
-    while ( l < nl-1 ) {
-
-        num_lvl[l]++;
-
-        array_cp(bmgl[l].x.row, bmgl[l].x.val, bmgl[l].w.val);
-        // pre-smoothing with standard smoothers
-        bdcsr_presmoothing(l, bmgl, param);
-
-        // correct bdry
-        for(i=0; i<bmgl[l].x.row; i++){
-          if( bmgl[l].FE->dirichlet[i] == 1 )
-            bmgl[l].x.val[i] = bmgl[l].w.val[i];
-        }
-
-        // form residual r = b - A x
-        array_cp(bmgl[l].b.row, bmgl[l].b.val, bmgl[l].w.val);
-        bdcsr_aAxpy(-1.0,&bmgl[l].A, bmgl[l].x.val, bmgl[l].w.val);
-        // correct bdry
-        for(i=0; i<bmgl[l].b.row; i++){
-          if( bmgl[l].FE->dirichlet[i] == 1 )
-            bmgl[l].w.val[i] = 0.0;
-        }
-
-        // restriction r1 = R*r0
-        dvec_set(bmgl[l+1].b.row,&bmgl[l+1].b,0.0);
-        bdcsr_mxv(&bmgl[l].R, bmgl[l].w.val, bmgl[l+1].b.val);
-        // correct bdry
-        for(i=0; i<bmgl[l+1].b.row; i++){
-          if( bmgl[l+1].FE->dirichlet[i] == 1 )
-            bmgl[l+1].b.val[i] = 0.0;
-        }
-
-        // prepare for the next level
-        ++l; dvec_set(bmgl[l].x.row, &bmgl[l].x, 0.0);
-
-    }
-
-
-    // If MG only has one level or we have arrived at the coarsest level,
-    // call the coarse space solver:
-    switch ( coarse_solver ) {
-
-#if WITH_SUITESPARSE
-        case SOLVER_UMFPACK: {
-            // use UMFPACK direct solver on the coarsest level
-            printf("Solving coarse level with UMFPACK...\n");
-            umfpack_solve(&bmgl[nl-1].Ac, &bmgl[nl-1].b, &bmgl[nl-1].x, bmgl[nl-1].Numeric, 0);
-            break;
-        }
-#endif
-        default:
-            // use iterative solver on the coarsest level
-            printf("Solving coarse level with coarse_itsolve...\n");
-            bdcsr_pvgmres(&bmgl[nl-1].A, &bmgl[nl-1].b, &bmgl[nl-1].x, NULL, tol, 1000, 500, 1, 10);
-            break;
-
-    }
-
-   // BackwardSweep:
-    while ( l > 0 ) {
-
-        --l;
-
-        // correct bdry
-        for(i=0; i<bmgl[l+1].x.row; i++){
-          if( bmgl[l+1].FE->dirichlet[i] == 1 )
-            bmgl[l+1].x.val[i] = 0.0;
-        }
-        // prolongation u = u + alpha*P*e1
-        dvec_set(bmgl[l].w.row, &bmgl[l].w, 0.0);
-        bdcsr_mxv(&bmgl[l].P, bmgl[l+1].x.val, bmgl[l].w.val);
-        // correct bdry
-        for(i=0; i<bmgl[l].x.row; i++){
-          if( bmgl[l].FE->dirichlet[i] == 1 )
-            bmgl[l].w.val[i] = 0.0;
-        }
-        array_axpy(bmgl[l].x.row, alpha, bmgl[l].w.val, bmgl[l].x.val);
-
-        array_cp(bmgl[l].x.row, bmgl[l].x.val, bmgl[l].w.val);
-        // post-smoothing with standard methods
-        bdcsr_postsmoothing(l, bmgl, param);
-        // correct bdry
-        for(i=0; i<bmgl[l].x.row; i++){
-          if( bmgl[l].FE->dirichlet[i] == 1 )
-            bmgl[l].x.val[i] = bmgl[l].w.val[i];
-        }
-
-        if ( num_lvl[l] < cycle_type ) break;
-        else num_lvl[l] = 0;
-    }
-
-    if ( l > 0 ) goto ForwardSweep;
-
-
-}
-
-
 
 /**
  * \fn void cascadic_eigen(AMG_data *mgl, AMG_param *param, INT level, INT num_levels)
@@ -1235,7 +959,6 @@ void cascadic_eigen(AMG_data *mgl,
     {
       dcsr_aAxpy(1.0, &mgl[level].P, &(e1->val[i*n1]), &(e0->val[i*n0]));
     }
-    //dcsr_write_dcoo("P.dat", &mgl[level].P);
 
     // set zero right hand side
     dvec_set(A0->row, b0, 0.0);
@@ -1255,10 +978,6 @@ void cascadic_eigen(AMG_data *mgl,
 
     // solve eigenvalue problem on coarsest grid
     smoother_dcsr_sgs_graph_eigen(e0, A0, b0, 10*A0->row, num_eigen);
-
-    //dcsr_write_dcoo("Ac.dat", A0);
-    //dvec_write("ec.dat", e0);
-
 
   }
 

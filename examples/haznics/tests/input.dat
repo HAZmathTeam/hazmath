@@ -49,13 +49,13 @@ nonlinear_itsolver_toltype	= 0 	% type of tolerance for nonlinear solver 1 - ||n
 % linear solver
 %---------------%
 
-linear_itsolver_type	= 2    	% 0 Direct Solve | 1 CG | 2 MINRES | 3 GMRES | 4 FGMRES
+linear_itsolver_type	= 4    	% 0 Direct Solve | 1 CG | 2 MINRES | 3 GMRES | 4 FGMRES
 linear_itsolver_maxit	= 100  	% maximal iterations of linear iterative solver
 linear_itsolver_tol		= 1e-6  % tolerance for linear iterative solver
 linear_stop_type		= 1     	% 1 ||r||/||b|| | 2 ||r||_B/||b||_B | % 3 ||r||/||x||
 linear_restart 			= 100		% restart for GMRes
 
-linear_precond_type		= 50 	%40 - diag, 41 - lower, 42 - upper
+linear_precond_type		= 6 	%40 - diag, 41 - lower, 42 - upper
 
 
 %----------------------------------------------%
@@ -63,17 +63,17 @@ linear_precond_type		= 50 	%40 - diag, 41 - lower, 42 - upper
 %----------------------------------------------%
 
 AMG_type 			= UA	% UA unsmoothed AMG
-AMG_cycle_type		= A     % V V-cycle | W W-cycle | A AMLI-cycle | NA Nonlinear AMLI-cycle
+AMG_cycle_type		= W     % V V-cycle | W W-cycle | A AMLI-cycle | NA Nonlinear AMLI-cycle
 AMG_levels			= 20	%
 AMG_tol				= 1e-8
-AMG_maxit			= 1
+AMG_maxit			= 2
 
 AMG_smoother			= GS	% JACOBI | GS | SGS | SOR | SSOR | L1DIAG |
 AMG_relaxation			= 1.2   % Relaxation for SOR
 AMG_presmooth_iter		= 1
 AMG_postsmooth_iter		= 1
 
-AMG_coarse_dof			= 10
+AMG_coarse_dof			= 100
 AMG_coarse_solver		= 32    % coarsest solver: 0 iterative | 32 UMFPACK
 AMG_coarse_scaling		= OFF	% OFF | ON
 
@@ -81,6 +81,6 @@ AMG_amli_degree          	= 2     % degree of the polynomial used by AMLI cycle
 AMG_nl_amli_krylov_type  	= 5	% Krylov method in nonlinear AMLI cycle: 5 GCG |  6 GCR
 
 % aggregation AMG
-AMG_aggregation_type		= 1     % 1 VMB | 4 HEC
-AMG_strong_coupled		= 0.00  % Strong coupled threshold
-AMG_max_aggregation		= 100	% Max size of aggregations
+AMG_aggregation_type		= 4     % 1 VMB | 4 HEC
+AMG_strong_coupled		= -0.05  % Strong coupled threshold
+AMG_max_aggregation		= 10	% Max size of aggregations

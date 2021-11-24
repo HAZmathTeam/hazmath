@@ -67,48 +67,4 @@ typedef struct newton{
 
 } newton;
 
-typedef struct fas_struct{
-
-  //! Max number of FAS cycles
-  INT max_steps;
-
-  //! Current FAS cycle
-  INT current_step;
-
-  //! Tolerance Type: 0 - ||nonlinear residual||<tol only one so far
-  INT tol_type;
-
-  //! Stopping Tolerance
-  REAL tol;
-
-  //! Step Length: sol = sol_prev + step_length*update
-  REAL step_length;
-
-  // Pre-smoothing steps (for now only assume nonlinear Gauss Seidel)
-  INT smooth_preits;
-
-  // Post-smoothing steps (for now only assume nonlinear Gauss Seidel)
-  INT smooth_postits;
-
-  // Smoothing Tolerance
-  REAL smooth_tol;
-
-  //! Current solution
-  dvector* sol;
-
-  //! Norm of nonlinear residual (combined total if in block form)
-  REAL res_norm;
-
-  //! Fine grid nonlinear residual
-  dvector* nonlinear_res;
-
-  //! Prolongation operator
-  dCSRmat* P;
-
-  //! Restriction operator
-  dCSRmat* R;
-
-} fas_struct;
-
-
 #endif

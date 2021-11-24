@@ -11,6 +11,60 @@
  */
 /**********************************************************************************/
 /*!
+ * \fn static void mapit(scomplex *sc,const REAL *vc)
+ *
+ * \brief Constructs a simplicial mesh in a polyhedral domain O in
+ *        dim-dimensions (dim=sc->n). The domain is assumed to be
+ *        isomorphic to the cube in dim-dimensions. Examples: it is a
+ *        quadrilateral when d=2 and hexagonal when d=3. To avoid
+ *        ambiguity, we order the vertices vc[] of O lexicographicaly
+ *        to get vcp[] so that the j-th vertex in the ordered array,
+ *        with coordinates vcp[j*dim--(j+1)*dim-1] is mapped to the
+ *        vertex of the unit cube whose coordinates are the digits in
+ *        the binary representation of j. Here j=[0,...,2^(dim)-1]. 
+ *        
+ *
+ * \param sc    I: simplicial complex defining the FE grid.
+ *
+ * \param vc[] I:    A REAL array with coordinates of the vertices of the
+ *                   domain. The vertex k is with coordinates
+ *                   vc[k*dim--(k+1)*dim-1]. These could be given in
+ *                   any order.
+ *
+ * \note Ludmil (20210807)
+ */
+/**********************************************************************************/
+static void mapit(scomplex *sc,REAL *vc)
+{
+  if(!vc) return;
+  /* maps a mesh on the unit cube in d-dimensions to a domain with vertices vc[] */
+  INT dim=sc->n;
+  INT i,j,kf,dim1=dim+1;
+  cube2simp *c2s=cube2simplex(dim);
+  REAL *vcp_xhat = (REAL *)calloc(dim*(c2s->nvcube+1),sizeof(REAL));
+  REAL *vcp = vcp_xhat;
+  REAL *xhat = vcp + c2s->nvcube*dim;
+  // work with a copy:
+  memcpy(vcp,vc,(dim*c2s->nvcube)*sizeof(REAL));
+  INT *p = (INT *)calloc(c2s->nvcube,sizeof(INT));
+  /*order vcp lexicographically because it will be mapped to the unit
+    cube which has lexicographically ordered vertices.*/
+  dlexsort(c2s->nvcube,dim,vcp,p);
+  /* the permutation of vertices is not needed, so we free it */
+  free(p);
+  /* transpose vcp to get one vertex per column as we first transform x,
+     then y then z and so on */
+  r2c(c2s->nvcube,dim,sizeof(REAL),vcp);
+  for(kf=0;kf<sc->nv;kf++){
+    for(i=0;i<dim;i++) xhat[i]=sc->x[kf*dim+i];
+    for(i=0;i<dim;i++) sc->x[kf*dim+i]=interp4(c2s,vcp+i*c2s->nvcube,xhat);
+  }
+  cube2simp_free(c2s);
+  free(vcp_xhat);  
+  return;
+}
+/**********************************************************************************/
+/*!
  * \fn static dvector fe_sol(scomplex *sc,const REAL alpha,const REAL gamma)
  *
  * \brief assembles and solves the finite element discretization of a
@@ -219,16 +273,11 @@ static INT proj_lower_dim(scomplex *dsc)
 /**********************************************************************************/
 /*!
  * \fn static void draw_grids(const SHORT todraw,scomplex *sc,
- *                            scomplex *dsc, dvector *sol)
+ *                            dvector *sol)
  *
  * \brief writing grids to vtu. Outpput defined for 2,3,4.
  *
  * \param sc  I: simplicial complex defining the grid
- *
- * \param dsc I: simplicial complex defining the boundary of the
- *               grid. if (dsc .NOT. null) then projection of the part
- *               of the dsc on a simplicial complex in R(d-1) is
- *               drawn.
  *
  * \param sol I: the numerical solution evaluated at the vertices of
  *               the mesh
@@ -236,7 +285,7 @@ static INT proj_lower_dim(scomplex *dsc)
  * \note Ludmil (20210807)
  */
 /**********************************************************************************/
-static void draw_grids(const SHORT todraw,scomplex *sc,scomplex *dsc, dvector *sol)
+static void draw_grids(const SHORT todraw,scomplex *sc, dvector *sol)
 { 
   if(!todraw){
     //    fprintf(stdout,"\nNO PLOT requred.");
@@ -247,29 +296,41 @@ static void draw_grids(const SHORT todraw,scomplex *sc,scomplex *dsc, dvector *s
      WRITE THE OUTPUT vtu file for paraview: can be viewed with
      paraview 
   */
+  /* 
+   * if we want to draw the boundary (this is not supported at the
+   * moment) dsc is a simplicial complex defining the boundary of the
+   * grid. if (dsc .NOT. null) then projection of the part of the dsc
+   * on a simplicial complex in R(d-1) is drawn.
+   */
+  /* 
+     scomplex *dsc=malloc(sizeof(scomplex));
+     dsc[0]=sc_bndry(sc); 
+  */
+  /**/
   INT idsc;
   switch(sc->n){
   case 5:
     fprintf(stdout,"\nNO PLOT: Dimension=%d is too large for plotting",sc->n);
     break;
   case 4:
-    if(dsc) {
-      idsc = proj_lower_dim(dsc);
-      vtkw("output/4d_to_3d.vtu",dsc,0,1.);
-    } else {
-      fprintf(stdout,"\nNO PLOT: no booundary data");
-    }
+    fprintf(stdout,"\nNO PLOT: Dimension=%d is too large for plotting",sc->n);
+    /* if(dsc) { */
+    /*   idsc = proj_lower_dim(dsc); */
+    /*   vtkw("output/4d_to_3d.vtu",dsc,0,1.); */
+    /* } else { */
+    /*   fprintf(stdout,"\nNO PLOT: no booundary data"); */
+    /* } */
     break;
   case 3:
     vtkw("output/3d.vtu",sc,0,1.);
-    if(dsc)
-      vtkw("output/3d_to_2d.vtu",dsc,0,1.);
+    /* if(dsc) */
+    /*   vtkw("output/3d_to_2d.vtu",dsc,0,1.); */
     break;
   default:
     vtkw("output/2d.vtu",sc,0,1.);
-    if(dsc)
-      vtkw("output/2d_to_1d.vtu",dsc,0,1.);
-  fprintf(stdout,"\n\n");
+    /* if(dsc) */
+    /*   vtkw("output/2d_to_1d.vtu",dsc,0,1.); */
   }
+  /*  haz_scomplex_free(dsc);*/
   return;
 }

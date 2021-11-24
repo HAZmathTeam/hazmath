@@ -4,18 +4,28 @@
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  *  \note: modified by Xiaozhe Hu on 10/27/2016
- *  \note: done cleanup for releasing -- Xiaozhe Hu 10/28/2016
+ *  \note: done cleanup for releasing -- Xiaozhe Hu 10/28/2016 & 08/28/2021
  *
  */
 
 #include "hazmath.h"
 
+/*************************************************************************************/
+/*!
+ * \fn input_param *param_input_initP()
+ *
+ * \brief Initialize input parameters
+ *
+ * \return inparam    Pointer to input_param structure
+ *
+ */
 input_param *param_input_init_p()
 {
   input_param *inparam=malloc(1*sizeof(input_param));
   param_input_init (inparam);
   return inparam;
 }
+
 /*************************************************************************************/
 /*!
  * \fn void param_input_init (input_param *inparam)
@@ -92,7 +102,7 @@ void param_input_init (input_param *inparam)
     // AMG method parameters
     inparam->AMG_type                 = UA_AMG;
     inparam->AMG_levels               = 10;
-    inparam->AMG_cycle_type           = V_CYCLE;
+    inparam->AMG_cycle_type           = W_CYCLE;
     inparam->AMG_smoother             = SMOOTHER_GS;
     inparam->AMG_presmooth_iter       = 1;
     inparam->AMG_postsmooth_iter      = 1;
@@ -154,7 +164,7 @@ void param_amg_init (AMG_param *amgparam)
     amgparam->tol                  = 1e-6;
     amgparam->max_levels           = 10;
     amgparam->coarse_dof           = 200;
-    amgparam->cycle_type           = V_CYCLE;
+    amgparam->cycle_type           = W_CYCLE;
     amgparam->smoother             = SMOOTHER_GS;
     amgparam->presmooth_iter       = 1;
     amgparam->postsmooth_iter      = 1;
@@ -347,6 +357,7 @@ void param_amg_set (AMG_param *amgparam,
  *
  * \note maybe the order of pointers should be switched, but I don't know what is
  *       the convention in hazmath  -- Ana
+ * \note the order is okay -- Xiaozhe
  */
 void param_amg_cp (AMG_param *amgparam1,
                    AMG_param *amgparam2)
@@ -403,6 +414,7 @@ void param_amg_cp (AMG_param *amgparam1,
 
 }
 
+/*************************************************************************************/
 /**
  * \fn void param_Schwarz_set (Schwarz_param *schparam, input_param *iniparam)
  *

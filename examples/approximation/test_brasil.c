@@ -33,7 +33,7 @@ INT main(int argc,char *argv[])
 	  argv[0],s[0],s[1],s[2],s[3],xmin_in,xmax_in);
   INT k=fscanf(stdin,"%Lg %Lg %Lg %Lg %lg %lg",&s[0],&s[1],&s[2],&s[3],&xmin_in,&xmax_in);
   /////// BEST APPROXIMATION BY BRASIL ALGORITHM ///////
-  REAL *cpzwf_brasil[5];
+  REAL *rpzwf_brasil[7]; // for real and complex;
   const INT degree = 15;
   INT init_steps=128;
   INT  maxiter=1024;
@@ -42,7 +42,7 @@ INT main(int argc,char *argv[])
   REAL   tol_brasil=pow(2.,-14.);// < 1/16000
   if(fabs(xmin_in)<tol_brasil) 
     xmin_in=tol_brasil*((REAL )(1<<4));
-  REAL rmax=get_cpzwf_brasil(f_to_approx_l, (void*)s, cpzwf_brasil,
+  REAL rmax=get_rpzwf_brasil(old_f_to_approx_l, (void*)s, rpzwf_brasil,
 			     xmin_in, xmax_in, degree,     // the remaining options can usually be kept at these defaults
 			     init_steps, maxiter, step_factor, max_step_size, tol_brasil, &iter_brasil,print_level);  
   INT i;
@@ -60,15 +60,15 @@ INT main(int argc,char *argv[])
   fprintf(stdout,"\nres=zeros(%d,1);pol=zeros(%d,1);\nz=zeros(%d,1);w=zeros(%d,1);f=zeros(%d,1);\n", \
 	  degree+1,degree,degree+1,degree+1,degree+1);
   fprintf(stdout,"\n%%===============================================%%\n");
-  for(i=0;i<degree+1;i++) fprintf(stdout,"\nres(%d)=%.16e;",i+1,*(cpzwf_brasil[0]+i));
+  for(i=0;i<degree+1;i++) fprintf(stdout,"\nres(%d)=%.16e;",i+1,*(rpzwf_brasil[0]+i));
   fprintf(stdout,"\n");
-  for(i=0;i<degree;i++) fprintf(stdout,"\npol(%d)=%.16e;",i+1,*(cpzwf_brasil[1]+i));
+  for(i=0;i<degree;i++) fprintf(stdout,"\npol(%d)=%.16e;",i+1,*(rpzwf_brasil[1]+i));
   fprintf(stdout,"\n");
-  for(i=0;i<degree+1;i++) fprintf(stdout,"\nz(%d)=%.16e;",i+1,*(cpzwf_brasil[2]+i));
+  for(i=0;i<degree+1;i++) fprintf(stdout,"\nz(%d)=%.16e;",i+1,*(rpzwf_brasil[2]+i));
   fprintf(stdout,"\n");
-  for(i=0;i<degree+1;i++) fprintf(stdout,"\nw(%d)=%.16e;",i+1,*(cpzwf_brasil[3]+i));
+  for(i=0;i<degree+1;i++) fprintf(stdout,"\nw(%d)=%.16e;",i+1,*(rpzwf_brasil[3]+i));
   fprintf(stdout,"\n");
-  for(i=0;i<degree+1;i++) fprintf(stdout,"\nf(%d)=%.16e;",i+1,*(cpzwf_brasil[4]+i));
+  for(i=0;i<degree+1;i++) fprintf(stdout,"\nf(%d)=%.16e;",i+1,*(rpzwf_brasil[4]+i));
   fprintf(stdout,"\n");
   fprintf(stdout,"\n");
   fprintf(stdout,"f_ra=1./(kron(x,ones(size(pol\')))-kron(ones(size(x)),pol\'));");
@@ -78,7 +78,7 @@ INT main(int argc,char *argv[])
   fprintf(stdout,"\ner2=norm(f_in(2:length(x))-f_ra(2:length(x)));");
   fprintf(stdout,"\n%%%%return;end\n");
   fprintf(stdout,"\n%%===============================================%%\n\n");
-  free(cpzwf_brasil[0]);        // all 5 arrays are allocated as one big block
+  free(rpzwf_brasil[0]);        // all 5 arrays are allocated as one big block
   return 0;
 }
 /* #if 0       // debug code */

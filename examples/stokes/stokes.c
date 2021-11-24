@@ -1,33 +1,35 @@
 /*! \file examples/stokes/stokes.c
- *
- *  Created by Peter Ohm on 2/5/17.
- *  Copyright 2015_HAZMATH__. All rights reserved.
- *
- * \brief This program solves Stokes PDE using finite elements
- *
- *      -2*div(eps(u)) + grad(p) = f
- *                 div(u)           = 0
- *
- *        where eps(u) = (grad u + (grad u)^T)/2 is the symmetric gradient,
- *
- *        in 2D or 3D.
- *
- *        Along the boundary of the region, Dirichlet conditions are
- *        imposed for u and Neumann for p.  P2-P1 or P2-P0 can be used,
- *        though others can be implemented.
- *
- * \note This example shows how to build your own bilinear form for a system.
- *       The forms are found in stokes_system.h and all Problem Data is found in
- *       stokes_data.h.  This example also illustrates how to construct block
- *       versions of the finite-element spaces, linear systems, and
- *       how to use block solvers.
- *
- */
+*
+*  Created by Peter Ohm on 2/5/17.
+*  Copyright 2015_HAZMATH__. All rights reserved.
+*
+* \brief This program solves Stokes PDE using finite elements
+*
+*      -2*div(eps(u)) + grad(p) = f
+*                 div(u)           = 0
+*
+*        where eps(u) = (grad u + (grad u)^T)/2 is the symmetric gradient,
+*
+*        in 2D or 3D.
+*
+*        Along the boundary of the region, Dirichlet conditions are
+*        imposed for u and Neumann for p.  P2-P1 or P2-P0 can be used,
+*        though others can be implemented.
+*
+* \note This example shows how to build your own bilinear form for a system.
+*       The forms are found in stokes_system.h and all Problem Data is found in
+*       stokes_data.h.  This example also illustrates how to construct block
+*       versions of the finite-element spaces, linear systems, and
+*       how to use block solvers and special preconditioners designed for
+*       Stokes.  These are found in stokes_precond.h.
+*
+*/
 
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************************/
 #include "hazmath.h"
 #include "stokes_data.h"
 #include "stokes_system.h"
+#include "stokes_precond.h"
 /*********************************************************************************/
 
 /****** MAIN DRIVER **************************************************************/
@@ -71,7 +73,7 @@ int main (int argc, char* argv[])
   // Get info for and create FEM spaces
   // Order of elements: 0 - P0; 1 - P1; 2 - P2; 20 - Nedlec; 30 - Raviart-Thomas
   INT order_u = 2;
-  INT order_p = 0;
+  INT order_p = 1;
 
   // Need Spaces for each component of the velocity plus pressure
   fespace FE_ux; // Velocity in x direction
@@ -113,7 +115,7 @@ int main (int argc, char* argv[])
 
   clock_t clk_mesh_end = clock(); // End of timing for mesh and FE setup
   printf(" --> elapsed CPU time for mesh and FEM space construction = %f seconds.\n\n",
-         (REAL) (clk_mesh_end - clk_mesh_start)/CLOCKS_PER_SEC);
+  (REAL) (clk_mesh_end - clk_mesh_start)/CLOCKS_PER_SEC);
   /*******************************************************************************/
 
   // Summarize Setup
@@ -131,11 +133,11 @@ int main (int argc, char* argv[])
 
   /*** Assemble the matrix and right hand side *******************************/
   /* Here we assemble the discrete system:
-   *  The weak form is:
-   *
-   *  <2*eps(u), eps(v)> - <p, div v> = <f, v>
-   *                   - <div u, q> = 0
-   */
+  *  The weak form is:
+  *
+  *  <2*eps(u), eps(v)> - <p, div v> = <f, v>
+  *                   - <div u, q> = 0
+  */
   printf("Assembling the matrix and right-hand side:\n");
   clock_t clk_assembly_start = clock();
 
@@ -156,7 +158,7 @@ int main (int argc, char* argv[])
 
   clock_t clk_assembly_end = clock();
   printf(" --> elapsed CPU time for assembly = %f seconds.\n\n",(REAL)
-         (clk_assembly_end-clk_assembly_start)/CLOCKS_PER_SEC);
+  (clk_assembly_end-clk_assembly_start)/CLOCKS_PER_SEC);
   /*******************************************************************************************/
 
   /************ Solve **************************************************/
@@ -168,7 +170,7 @@ int main (int argc, char* argv[])
   dCSRmat *A_diag;
   A_diag = (dCSRmat *)calloc(dim+1, sizeof(dCSRmat));
 
-  // For velcocities, we use the diagonal of the (0,0) block matrix
+  // For velcocities, we use the diagonal blocks of the velocity block
   for(i=0;i<dim;i++){
     dcsr_alloc(A.blocks[i*(dim+2)]->row, A.blocks[i*(dim+2)]->col, A.blocks[i*(dim+2)]->nnz, &A_diag[i]);
     dcsr_cp(A.blocks[i*(dim+2)], &A_diag[i]);
@@ -208,13 +210,33 @@ int main (int argc, char* argv[])
 
   // Solve
   if(solver_type==0) { // Direct Solver
+
     solver_flag = block_directsolve_UMF(&A,&b,&sol,solver_printlevel);
+
   } else { // Iterative Solver
+
     if (linear_itparam.linear_precond_type == PREC_NULL) { // No Preconditioner
       solver_flag = linear_solver_bdcsr_krylov(&A, &b, &sol, &linear_itparam);
-    } else {
+
+    } else if (linear_itparam.linear_precond_type >= 10 && linear_itparam.linear_precond_type < 40) {  // General Block Preconditioner
       if(dim==2) solver_flag = linear_solver_bdcsr_krylov_block_3(&A, &b, &sol, &linear_itparam, &amgparam, A_diag);
       if(dim==3) solver_flag = linear_solver_bdcsr_krylov_block_4(&A, &b, &sol, &linear_itparam, &amgparam, A_diag);
+
+    } else { // Special Preconditioner for Stokes
+
+      // get Stokes preconditioner data
+      precond_block_data *precdata = get_precond_block_data_stokes(&A, &Mp, &linear_itparam, &amgparam);
+
+      // Setup the preconditioner and choose type
+      precond prec;
+      prec.data = precdata;
+      set_precond_type_stokes(&prec,&linear_itparam);
+
+      // Solve
+      solver_flag = solver_bdcsr_linear_itsolver(&A, &b, &sol, &prec, &linear_itparam);
+
+      // Free the preconditioner
+      precond_block_data_free_stokes(precdata);
     }
   }
 
@@ -223,7 +245,7 @@ int main (int argc, char* argv[])
 
   clock_t clk_solve_end = clock();
   printf("Elapsed CPU Time for Solve = %f seconds.\n\n",
-         (REAL) (clk_solve_end-clk_solve_start)/CLOCKS_PER_SEC);
+  (REAL) (clk_solve_end-clk_solve_start)/CLOCKS_PER_SEC);
   /*******************************************************************************************/
 
   /********************* Compute Errors if you have exact solution ****************************/
@@ -260,7 +282,7 @@ int main (int argc, char* argv[])
   printf("*******************************************************\n\n");
   clock_t clk_error_end = clock();
   printf("Elapsed CPU time for getting errors = %lf seconds.\n\n",(REAL)
-         (clk_error_end-clk_error_start)/CLOCKS_PER_SEC);
+  (clk_error_end-clk_error_start)/CLOCKS_PER_SEC);
   /*******************************************************************************************/
 
   // Plotting
@@ -292,7 +314,7 @@ int main (int argc, char* argv[])
   bdcsr_free( &A );
   dcsr_free( &Mp);
   for(i=0;i<dim+1;i++)
-    dcsr_free( &A_diag[i] );
+  dcsr_free( &A_diag[i] );
   if(A_diag) free(A_diag);
 
   // Vectors
@@ -328,7 +350,7 @@ int main (int argc, char* argv[])
   /*******************************************************************************************/
   clock_t clk_overall_end = clock();
   printf("\nEnd of Program: Total CPU Time = %f seconds.\n\n",
-         (REAL) (clk_overall_end-clk_overall_start)/CLOCKS_PER_SEC);
+  (REAL) (clk_overall_end-clk_overall_start)/CLOCKS_PER_SEC);
   return 0;
 }  /* End of Program */
 /*********************************************************************************************/

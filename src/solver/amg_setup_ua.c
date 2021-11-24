@@ -5,15 +5,123 @@
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 12/24/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
- *  \note   Done cleanup for releasing -- Xiaozhe Hu 03/11/2017
+ *  \note   Done cleanup for releasing -- Xiaozhe Hu 03/11/2017 & 08/27/2021
  *
  *  \todo   Add safe guard for the overall computatinal complexity -- Xiaozhe Hu
- * \todo    Add maximal weighted matching coarsning -- Xiaozhe Hu
- * \todo    Add maximal independent set aggregation -- Xiaozhe Hu
+ *  \todo   Add maximal weighted matching coarsning -- Xiaozhe Hu
+ *  \todo   Add maximal independent set aggregation -- Xiaozhe Hu
  *
  */
 
 #include "hazmath.h"
+
+static void form_tentative_p(ivector *vertices, dCSRmat *tentp, REAL **basis, INT levelNum, INT num_aggregations);
+/* static void form_boolean_p(ivector *vertices, dCSRmat *tentp, INT levelNum, INT num_aggregations); */
+static void construct_strongly_coupled(dCSRmat *A, AMG_param *param, dCSRmat *Neigh);
+static SHORT aggregation_hec(dCSRmat *A, ivector *vertices, AMG_param *param, dCSRmat *Neigh, INT *num_aggregations, INT lvl);
+static SHORT aggregation_vmb(dCSRmat *A, ivector *vertices, AMG_param *param, dCSRmat *Neigh, INT *num_aggregations, INT lvl);
+static void smooth_aggregation_p(dCSRmat *A, dCSRmat *tentp, dCSRmat *P, AMG_param *param, INT levelNum, dCSRmat *N);
+static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *, AMG_param *);
+static SHORT amg_setup_smoothP_smoothR(AMG_data *, AMG_param *);
+static SHORT famg_setup_unsmoothP_unsmoothR(AMG_data *, AMG_param *);
+static SHORT famg_setup_smoothP_smoothR(AMG_data *, AMG_param *);
+
+/*---------------------------------*/
+/*--      Public Functions       --*/
+/*---------------------------------*/
+
+/***********************************************************************************************/
+/**
+ * \fn SHORT amg_setup_ua (AMG_data *mgl, AMG_param *param)
+ *
+ * \brief Set up phase of unsmoothed aggregation AMG
+ *
+ * \param mgl    Pointer to AMG data: AMG_data
+ * \param param  Pointer to AMG parameters: AMG_param
+ *
+ * \return       SUCCESS if successed; otherwise, error information.
+ *
+ * \author Xiaozhe Hu
+ * \date   12/28/2011
+ */
+SHORT amg_setup_ua (AMG_data *mgl,
+                    AMG_param *param)
+{
+
+    SHORT status = amg_setup_unsmoothP_unsmoothR(mgl, param);
+
+    return status;
+}
+
+/***********************************************************************************************/
+/**
+ * \fn SHORT amg_setup_sa (AMG_data *mgl, AMG_param *param)
+ *
+ * \brief Set up phase of smoothed aggregation AMG
+ *
+ * \param mgl    Pointer to AMG data: AMG_data
+ * \param param  Pointer to AMG parameters: AMG_param
+ *
+ * \return       SUCCESS if successed; otherwise, error information.
+ *
+ * \author Xiaozhe Hu
+ * \date   07/13/2020
+ */
+SHORT amg_setup_sa (AMG_data *mgl,
+                    AMG_param *param)
+{
+
+    SHORT status = amg_setup_smoothP_smoothR(mgl, param);
+
+    return status;
+}
+
+/***********************************************************************************************/
+/**
+ * \fn SHORT famg_setup_ua (AMG_data *mgl, AMG_param *param)
+ *
+ * \brief Set up phase of unsmoothed aggregation AMG with fractional smoothers
+ *
+ * \param mgl    Pointer to AMG data: AMG_data
+ * \param param  Pointer to AMG parameters: AMG_param
+ *
+ * \return       SUCCESS if successed; otherwise, error information.
+ *
+ * \author Ana Budisa
+ * \date   2020-05-20
+ */
+SHORT famg_setup_ua (AMG_data *mgl,
+                     AMG_param *param)
+{
+
+    SHORT status = famg_setup_unsmoothP_unsmoothR(mgl, param);
+
+    return status;
+}
+
+/***********************************************************************************************/
+/**
+ * \fn SHORT famg_setup_sa (AMG_data *mgl, AMG_param *param)
+ *
+ * \brief Set up phase of smoothed aggregation AMG
+ *
+ * \param mgl    Pointer to AMG data: AMG_data
+ * \param param  Pointer to AMG parameters: AMG_param
+ *
+ * \return       SUCCESS if successed; otherwise, error information.
+ *
+ * \author Xiaozhe Hu
+ * \date   07/13/2020
+ */
+SHORT famg_setup_sa (AMG_data *mgl,
+                     AMG_param *param)
+{
+
+    SHORT status = famg_setup_smoothP_smoothR(mgl, param);
+
+    return status;
+}
+
 
 /*---------------------------------*/
 /*--      Private Functions      --*/
@@ -85,129 +193,162 @@ static void form_tentative_p(ivector *vertices,
         }
     }
 }
+/*COMMENTED AS IT IS NOT USED*/
+/* /\***********************************************************************************************\/ */
+/* /\** */
+/*  * \fn static void form_boolean_p (ivector *vertices, dCSRmat *tentp, INT levelNum, */
+/*  *                                 INT num_aggregations) */
+/*  * */
+/*  * \brief Form aggregation based on strong coupled neighbors */
+/*  * */
+/*  * \param vertices           Pointer to the aggregation of vertices */
+/*  * \param tentp              Pointer to the prolongation operators */
+/*  * \param levelNum           Level number */
+/*  * \param num_aggregations   Number of aggregations */
+/*  * */
+/*  * \author Xiaozhe Hu */
+/*  * \date   09/29/2009 */
+/*  * */
+/*  * Modified by Xiaozhe Hu on 05/25/2014 */
+/*  *\/ */
+/* static void form_boolean_p(ivector *vertices, */
+/*                            dCSRmat *tentp, */
+/*                            INT levelNum, */
+/*                            INT num_aggregations) */
+/* { */
+/*     INT i, j; */
+
+/*     /\* Form tentative prolongation *\/ */
+/*     tentp->row = vertices->row; */
+/*     tentp->col = num_aggregations; */
+/*     tentp->nnz = vertices->row; */
+
+/*     tentp->IA  = (INT *)calloc(tentp->row+1,sizeof(INT)); */
+
+/*     // local variables */
+/*     INT  *IA = tentp->IA; */
+/*     INT  *vval = vertices->val; */
+/*     const INT row = tentp->row; */
+
+/*     // first run */
+/*     for ( i = 0, j = 0; i < row; i++ ) { */
+/*         IA[i] = j; */
+/*         if (vval[i] > UNPT) j++; */
+/*     } */
+/*     IA[row] = j; */
+
+/*     // allocate memory for P */
+/*     tentp->nnz = j; */
+/*     tentp->JA  = (INT *)calloc(tentp->nnz, sizeof(INT)); */
+/*     tentp->val = (REAL *)calloc(tentp->nnz, sizeof(REAL)); */
+
+/*     INT  *JA = tentp->JA; */
+/*     REAL *val = tentp->val; */
+
+/*     // second run */
+/*     for (i = 0, j = 0; i < row; i ++) { */
+/*         IA[i] = j; */
+/*         if (vval[i] > UNPT) { */
+/*             JA[j] = vval[i]; */
+/*             val[j] = 1.0; */
+/*             j ++; */
+/*         } */
+/*     } */
+/* } */
+
 
 /***********************************************************************************************/
 /**
- * \fn static void form_boolean_p (ivector *vertices, dCSRmat *tentp, INT levelNum,
- *                                 INT num_aggregations)
+ * \fn static construct_strongly_coupled (dCSRmat *A, AMG_param *param, dCSRmat *Neigh)
  *
- * \brief Form aggregation based on strong coupled neighbors
+ * \brief get strongly coupled matrix by dropping relative small entries
  *
- * \param vertices           Pointer to the aggregation of vertices
- * \param tentp              Pointer to the prolongation operators
- * \param levelNum           Level number
- * \param num_aggregations   Number of aggregations
+ * \param A           Pointer to the matrix A
+ * \param param       Pointer to AMG parameters (contain the parameter determines strong coulping)
+ * \param Neigh       Pointer to the matrix which only contains the strongly coupled neighbors
  *
  * \author Xiaozhe Hu
  * \date   09/29/2009
  *
- * Modified by Xiaozhe Hu on 05/25/2014
+ * Modified by Xiaozhe Hu on 08/27/2021
  */
-void form_boolean_p(ivector *vertices,
-                           dCSRmat *tentp,
-                           INT levelNum,
-                           INT num_aggregations)
+static void construct_strongly_coupled(dCSRmat *A,
+                                       AMG_param *param,
+                                       dCSRmat *Neigh)
 {
-    INT i, j;
+  
+  // local variables
+  const INT  row = A->row, col = A->col, nnz = A->IA[row]-A->IA[0];
+  const INT  *AIA = A->IA, *AJA = A->JA;
+  const REAL *Aval = A->val;
 
-    /* Form tentative prolongation */
-    tentp->row = vertices->row;
-    tentp->col = num_aggregations;
-    tentp->nnz = vertices->row;
+  INT  i, j, index, row_start, row_end;
+  REAL strongly_coupled = param->strong_coupled;
+  if(0){
+    if(fabs(strongly_coupled) < 1e-6) strongly_coupled=1e-6;
+  }
+  // REAL strongly_coupled2 = pow(strongly_coupled,2);
+  REAL strongly_coupled2 = strongly_coupled*strongly_coupled;
+  //
+  INT  *NIA, *NJA;
+  REAL *Nval;
 
-    tentp->IA  = (INT *)calloc(tentp->row+1,sizeof(INT));
-
-    // local variables
-    INT  *IA = tentp->IA;
-    INT  *vval = vertices->val;
-    const INT row = tentp->row;
-
-    // first run
-    for ( i = 0, j = 0; i < row; i++ ) {
-        IA[i] = j;
-        if (vval[i] > UNPT) j++;
+  // get the diagonal entries
+  dvector diag;
+  dcsr_getdiag(0, A, &diag);
+  
+  // allocate Neigh
+  dcsr_alloc(row, col, nnz, Neigh);
+  
+  NIA  = Neigh->IA; NJA  = Neigh->JA;
+  Nval = Neigh->val;
+  
+  // set IA for Neigh
+  for ( i = row; i >= 0; i-- ) NIA[i] = AIA[i];
+  
+  // main loop of finding strongly coupled neighbors
+  for ( index = i = 0; i < row; ++i ) {
+    NIA[i] = index;
+    row_start = AIA[i]; row_end = AIA[i+1];
+    //fprintf(stdout,"\nHere coupled index %d \n", index);
+    for ( j = row_start; j < row_end; ++j ) {
+      //fprintf(stdout,"\nHere coupled row start %d end %d \n", row_start, row_end);
+      if ( (AJA[j] == i)
+	   || ( ((Aval[j]*Aval[j]) >= strongly_coupled2*ABS(diag.val[i]*diag.val[AJA[j]])) && (Aval[j] < 0e0) )
+	   )
+	{
+	  //fprintf(stdout,"\nHere coupled \n");
+	  NJA[index] = AJA[j];
+	  Nval[index] = Aval[j];
+	  index++;
+	  //fprintf(stdout,"\nHere coupled \n");
+	}
+      
+    } // end for ( j = row_start; j < row_end; ++j )
+  } // end for ( index = i = 0; i < row; ++i )
+  
+  dvec_free(&diag); // free it here;  
+  NIA[row] = index;
+  
+  Neigh->nnz = index;
+  Neigh->JA  = (INT*) realloc(Neigh->JA,  (Neigh->IA[row])*sizeof(INT));
+  Neigh->val = (REAL*)realloc(Neigh->val, (Neigh->IA[row])*sizeof(REAL));
+  //
+  if(0){
+    //begin finding connected components (ltz):
+    iCSRmat *blk_dfs=run_dfs(Neigh->row,Neigh->IA, Neigh->JA);
+    index=0; 
+    for(i=0;i<blk_dfs->row;++i){
+      j=blk_dfs->IA[i+1]-blk_dfs->IA[i];
+      if(j>1){
+	/* fprintf(stdout,"\nnontrivial block:size(%d)=%d",i,j); */
+	index++;
+      }
     }
-    IA[row] = j;
-
-    // allocate memory for P
-    tentp->nnz = j;
-    tentp->JA  = (INT *)calloc(tentp->nnz, sizeof(INT));
-    tentp->val = (REAL *)calloc(tentp->nnz, sizeof(REAL));
-
-    INT  *JA = tentp->JA;
-    REAL *val = tentp->val;
-
-    // second run
-    for (i = 0, j = 0; i < row; i ++) {
-        IA[i] = j;
-        if (vval[i] > UNPT) {
-            JA[j] = vval[i];
-            val[j] = 1.0;
-            j ++;
-        }
-    }
-}
-
-/***********************************************************************************************/
-static void construct_strong_couped(dCSRmat *A,
-                                    AMG_param *param,
-                                    dCSRmat *Neigh)
-{
-
-    // local variables
-    const INT  row = A->row, col = A->col, nnz = A->IA[row]-A->IA[0];
-    const INT  *AIA = A->IA, *AJA = A->JA;
-    const REAL *Aval = A->val;
-
-    INT  i, j, index, row_start, row_end;
-    REAL strongly_coupled = param->strong_coupled;
-    REAL strongly_coupled2 = pow(strongly_coupled,2);
-
-    INT  *NIA, *NJA;
-    REAL *Nval;
-
-    // get the diagonal entries
-    dvector diag;
-    dcsr_getdiag(0, A, &diag);
-
-    // allocate Neigh
-    dcsr_alloc(row, col, nnz, Neigh);
-
-    NIA  = Neigh->IA; NJA  = Neigh->JA;
-    Nval = Neigh->val;
-
-    // set IA for Neigh
-    for ( i = row; i >= 0; i-- ) NIA[i] = AIA[i];
-
-    // main loop of finding strongly coupled neighbors
-    for ( index = i = 0; i < row; ++i ) {
-        NIA[i] = index;
-        row_start = AIA[i]; row_end = AIA[i+1];
-        //fprintf(stdout,"\nHere coupled index %d \n", index);
-        for ( j = row_start; j < row_end; ++j ) {
-            //fprintf(stdout,"\nHere coupled row start %d end %d \n", row_start, row_end);
-            if ( (AJA[j] == i)
-              || ( (pow(Aval[j],2) >= strongly_coupled2*ABS(diag.val[i]*diag.val[AJA[j]])) && (Aval[j] < 0) )
-               )
-            {
-                //fprintf(stdout,"\nHere coupled \n");
-                NJA[index] = AJA[j];
-                Nval[index] = Aval[j];
-                index++;
-                //fprintf(stdout,"\nHere coupled \n");
-            }
-
-        } // end for ( j = row_start; j < row_end; ++j )
-    } // end for ( index = i = 0; i < row; ++i )
-
-    NIA[row] = index;
-
-    Neigh->nnz = index;
-    Neigh->JA  = (INT*) realloc(Neigh->JA,  (Neigh->IA[row])*sizeof(INT));
-    Neigh->val = (REAL*)realloc(Neigh->val, (Neigh->IA[row])*sizeof(REAL));
-
-    dvec_free(&diag);
-
+    fprintf(stdout,"\n blocks(total)=%d ; blocks(non-trivial:size>1)=%d; strongly_coupled=%.5e\n",blk_dfs->row,index,strongly_coupled);
+    icsr_free(blk_dfs);free(blk_dfs);    
+    //end finding connected components (ltz):
+  } //end if(0);
 }
 
 /***********************************************************************************************/
@@ -324,7 +465,7 @@ static void smooth_aggregation_p(dCSRmat *A,
     dvec_free(&diag);
 
     /* Step 2. Smooth the tentative prolongation P = S*tenp */
-    dcsr_mxm(&S, tentp, P); // TODO: better implementation is needed
+    dcsr_mxm(&S, tentp, P);
     P->nnz = P->IA[P->row];
     dcsr_free(&S);
 
@@ -335,7 +476,7 @@ static void smooth_aggregation_p(dCSRmat *A,
  * \fn static SHORT aggregation_vmb (dCSRmat *A, ivector *vertices, AMG_param *param,
  *                                   dCSRmat *Neigh, INT *num_aggregations, INT lvl)
  *
- * \brief Form aggregation based on strong coupled neighbors
+ * \brief Form aggregation based on strongly coupled neighbors using greedy method
  *
  * \param A                 Pointer to the coefficient matrices
  * \param vertices          Pointer to the aggregation of vertices
@@ -365,9 +506,6 @@ static SHORT aggregation_vmb(dCSRmat *A,
     // return status
     SHORT  status = SUCCESS;
 
-    //fprintf(stdout,"\nrow, col, nnz: %d, %d, %d \n", A->row, A->col, A->nnz);
-    //fprintf(stdout,"\nrow, col, nnz: %d, %d, %d \n", Neigh->row, Neigh->col, Neigh->nnz);
-
     // local variables
     INT    num_left = row;
     INT    subset, count;
@@ -377,9 +515,7 @@ static SHORT aggregation_vmb(dCSRmat *A,
     INT    *NIA = NULL, *NJA = NULL;
 
     // find strongly coupled neighbors
-    //fprintf(stdout,"\nHere vmb \n");
-    construct_strong_couped(A, param, Neigh);
-    //fprintf(stdout,"\nHere vmb \n");
+    construct_strongly_coupled(A, param, Neigh);
 
     NIA  = Neigh->IA; NJA  = Neigh->JA;
 
@@ -425,7 +561,6 @@ static SHORT aggregation_vmb(dCSRmat *A,
             }
         }
     }
-    //fprintf(stdout,"\nHere vmb \n");
 
     /*-------------*/
     /*   Step 2.   */
@@ -437,8 +572,6 @@ static SHORT aggregation_vmb(dCSRmat *A,
     }
 
     num_each_agg = (INT*)calloc(*num_aggregations,sizeof(INT));
-
-    //for ( i = 0; i < *num_aggregations; i++ ) num_each_agg[i] = 0; // initialize
 
     for ( i = row; i--; ) {
         temp_C[i] = vertices->val[i];
@@ -460,7 +593,6 @@ static SHORT aggregation_vmb(dCSRmat *A,
             }
         }
     }
-    //fprintf(stdout,"\nHere vmb \n");
 
     /*-------------*/
     /*   Step 3.   */
@@ -485,7 +617,6 @@ static SHORT aggregation_vmb(dCSRmat *A,
             }
         }
     }
-    //fprintf(stdout,"\nHere vmb \n");
 
     free(num_each_agg);
 
@@ -500,7 +631,7 @@ END:
  * \fn static SHORT aggregation_hec (dCSRmat *A, ivector *vertices, AMG_param *param,
  *                                   dCSRmat *Neigh, INT *num_aggregations,INT lvl)
  *
- * \brief Heavy edge coarsening aggregation based on strong coupled neighbors
+ * \brief Heavy edge coarsening aggregation based on strongly coupled neighbors
  *
  * \param A                 Pointer to the coefficient matrices
  * \param vertices          Pointer to the aggregation of vertices
@@ -512,7 +643,7 @@ END:
  * \author Xiaozhe Hu
  * \date   03/12/2017
  *
- * \todo Add control of maximal size of each aggregates
+ * \TODO Add control of maximal size of each aggregates
  *
  * \note Refer to J. Urschel, X. Hu, J. Xu and L. Zikatanov
  *       "A Cascadic Multigrid Algorithm for Computing the Fiedler Vector of Graph Laplacians", 2015
@@ -539,7 +670,7 @@ static SHORT aggregation_hec(dCSRmat *A,
     INT *perm =(INT *)calloc(row, sizeof(INT));
 
     // find strongly coupled neighbors
-    construct_strong_couped(A, param, Neigh);
+    construct_strongly_coupled(A, param, Neigh);
 
     NIA  = Neigh->IA; NJA  = Neigh->JA;
     Nval = Neigh->val;
@@ -598,118 +729,6 @@ static SHORT aggregation_hec(dCSRmat *A,
     return status;
 
 }
-
-/*---------------------------------*/
-/*--        End of File          --*/
-/*---------------------------------*/
-
-
-static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *, AMG_param *);
-static SHORT amg_setup_smoothP_smoothR(AMG_data *, AMG_param *);
-static SHORT famg_setup_unsmoothP_unsmoothR(AMG_data *, AMG_param *);
-static SHORT famg_setup_smoothP_smoothR(AMG_data *, AMG_param *);
-
-
-/*---------------------------------*/
-/*--      Public Functions       --*/
-/*---------------------------------*/
-
-/***********************************************************************************************/
-/**
- * \fn SHORT amg_setup_ua (AMG_data *mgl, AMG_param *param)
- *
- * \brief Set up phase of unsmoothed aggregation AMG
- *
- * \param mgl    Pointer to AMG data: AMG_data
- * \param param  Pointer to AMG parameters: AMG_param
- *
- * \return       SUCCESS if successed; otherwise, error information.
- *
- * \author Xiaozhe Hu
- * \date   12/28/2011
- */
-SHORT amg_setup_ua (AMG_data *mgl,
-                    AMG_param *param)
-{
-
-    SHORT status = amg_setup_unsmoothP_unsmoothR(mgl, param);
-
-    return status;
-}
-
-/***********************************************************************************************/
-/**
- * \fn SHORT amg_setup_sa (AMG_data *mgl, AMG_param *param)
- *
- * \brief Set up phase of smoothed aggregation AMG
- *
- * \param mgl    Pointer to AMG data: AMG_data
- * \param param  Pointer to AMG parameters: AMG_param
- *
- * \return       SUCCESS if successed; otherwise, error information.
- *
- * \author Xiaozhe Hu
- * \date   07/13/2020
- */
-SHORT amg_setup_sa (AMG_data *mgl,
-                    AMG_param *param)
-{
-
-    SHORT status = amg_setup_smoothP_smoothR(mgl, param);
-
-    return status;
-}
-
-/***********************************************************************************************/
-/**
- * \fn SHORT famg_setup_ua (AMG_data *mgl, AMG_param *param)
- *
- * \brief Set up phase of unsmoothed aggregation AMG with fractional smoothers
- *
- * \param mgl    Pointer to AMG data: AMG_data
- * \param param  Pointer to AMG parameters: AMG_param
- *
- * \return       SUCCESS if successed; otherwise, error information.
- *
- * \author Ana Budisa
- * \date   2020-05-20
- */
-SHORT famg_setup_ua (AMG_data *mgl,
-                     AMG_param *param)
-{
-
-    SHORT status = famg_setup_unsmoothP_unsmoothR(mgl, param);
-
-    return status;
-}
-
-/***********************************************************************************************/
-/**
- * \fn SHORT famg_setup_sa (AMG_data *mgl, AMG_param *param)
- *
- * \brief Set up phase of smoothed aggregation AMG
- *
- * \param mgl    Pointer to AMG data: AMG_data
- * \param param  Pointer to AMG parameters: AMG_param
- *
- * \return       SUCCESS if successed; otherwise, error information.
- *
- * \author Xiaozhe Hu
- * \date   07/13/2020
- */
-SHORT famg_setup_sa (AMG_data *mgl,
-                     AMG_param *param)
-{
-
-    SHORT status = famg_setup_smoothP_smoothR(mgl, param);
-
-    return status;
-}
-
-
-/*---------------------------------*/
-/*--      Private Functions      --*/
-/*---------------------------------*/
 
 /***********************************************************************************************/
 /**
@@ -777,7 +796,7 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
     if ( cycle_type == AMLI_CYCLE ) {
         const INT amlideg = param->amli_degree;
         param->amli_coef = (REAL *)calloc(amlideg+1,sizeof(REAL));
-        REAL lambda_max = 2.0, lambda_min = lambda_max/4;
+        REAL lambda_max = 2e0, lambda_min = 0.25*lambda_max;
         amg_amli_coef(lambda_max, lambda_min, amlideg, param->amli_coef);
     }
 
@@ -938,6 +957,7 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
     return status;
 }
 
+
 /***********************************************************************************************/
 /**
  * \fn static SHORT amg_setup_smoothP_smoothR (AMG_data *mgl, AMG_param *param)
@@ -971,7 +991,6 @@ static SHORT amg_setup_smoothP_smoothR(AMG_data *mgl,
     Schwarz_param swzparam;
 
     get_time(&setup_start);
-    //fprintf(stdout,"Here %d\n", counter); ++counter;
 
     // level info (fine: 0; coarse: 1)
     ivector *vertices = (ivector *)calloc(max_levels,sizeof(ivector));
@@ -998,8 +1017,6 @@ static SHORT amg_setup_smoothP_smoothR(AMG_data *mgl,
         array_set(m, mgl[0].near_kernel_basis[i], 1.0);
     }
 
-    //fprintf(stdout,"Here %d\n", counter); ++counter;
-
     // Initialize Schwarz parameters
     mgl->Schwarz_levels = param->Schwarz_levels;
     if ( param->Schwarz_levels > 0 ) {
@@ -1009,8 +1026,6 @@ static SHORT amg_setup_smoothP_smoothR(AMG_data *mgl,
         swzparam.Schwarz_blksolver = param->Schwarz_blksolver;
     }
 
-    //fprintf(stdout,"Here %d\n", counter); ++counter;
-
     // Initialize AMLI coefficients
     if ( cycle_type == AMLI_CYCLE ) {
         const INT amlideg = param->amli_degree;
@@ -1019,20 +1034,15 @@ static SHORT amg_setup_smoothP_smoothR(AMG_data *mgl,
         amg_amli_coef(lambda_max, lambda_min, amlideg, param->amli_coef);
     }
 
-    //fprintf(stdout,"Here %d\n", counter); ++counter;
-
 #if DIAGONAL_PREF
     dcsr_diagpref(&mgl[0].A); // reorder each row to make diagonal appear first
 #endif
-
-    //fprintf(stdout,"Here %d\n", counter); ++counter;
 
     /*----------------------------*/
     /*--- checking aggregation ---*/
     /*----------------------------*/
     // Main AMG setup loop
     while ( (mgl[lvl].A.row > min_cdof) && (lvl < max_levels-1) ) {
-        //fprintf(stdout,"Here %d lvl %d\n", counter, lvl); ++counter;
 
         /*-- Setup Schwarz smoother if necessary */
         if ( lvl < param->Schwarz_levels ) {
@@ -1044,12 +1054,8 @@ static SHORT amg_setup_smoothP_smoothR(AMG_data *mgl,
         switch ( param->aggregation_type ) {
 
             case VMB: // VMB aggregation
-                //fprintf(stdout,"Here %d lvl %d\n", counter, lvl); ++counter;
-
                 status = aggregation_vmb(&mgl[lvl].A, &vertices[lvl], param,
                                          &Neighbor[lvl], &num_aggs[lvl],lvl);
-                //fprintf(stdout,"Here %d lvl %d\n", counter, lvl); ++counter;
-
                 break;
 
             case HEC: // Heavy edge coarsening aggregation
@@ -1062,8 +1068,6 @@ static SHORT amg_setup_smoothP_smoothR(AMG_data *mgl,
                 check_error(status, __FUNCTION__);
                 break;
         }
-
-        //fprintf(stdout,"Here %d lvl %d\n", counter, lvl); ++counter;
 
         /*-- Choose strength threshold adaptively --*/
         if ( num_aggs[lvl]*4 > mgl[lvl].A.row )
@@ -1187,9 +1191,6 @@ static SHORT amg_setup_smoothP_smoothR(AMG_data *mgl,
     free(vertices);
     free(num_aggs);
     free(tentative_p);
-
-    //fprintf(stdout,"Here %d\n", counter); ++counter;
-
 
     return status;
 }

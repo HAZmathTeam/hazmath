@@ -2,7 +2,7 @@
 # Last Modified 2021-07-21 --ltz
 ####################################################
 
-testing = aaa 
+testing = aaa
 
 ### SRC File name
 SRCFILE = test_$(testing)
