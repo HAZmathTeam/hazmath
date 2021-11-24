@@ -919,9 +919,6 @@ static void scomplex_merge1(const INT nvall,		\
   icsr_free(&bndry_v1);  
   nnz=sc->bndry_v->nnz;
   sc->bndry_v->val=realloc(sc->bndry_v->val,2*nnz*sizeof(INT));
-  //  for(i=0;i<mc->nf; ++i) {
-  //    fprintf(stdout,"\n FACE=%d; Bndry=%d",i,mc->isbface[i]);    
-  //  }  
   for(i=0;i<sc->bndry_v->row;++i){
     if((sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i])){
       for(ii=sc->bndry_v->IA[i];ii<sc->bndry_v->IA[i+1];++ii){
@@ -933,16 +930,6 @@ static void scomplex_merge1(const INT nvall,		\
       }
     }
   }
-  ////////////////////////////////////////////////////////////////////////////
-  /* for(i=0;i<sc->bndry_v->row;++i){ */
-  /*   if((sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i])){ */
-  /*     fprintf(stdout,"\nZsize(vertex=%d)=%d; Zfaces=[ ",i,sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i]); */
-  /*     for(j=sc->bndry_v->IA[i];j<sc->bndry_v->IA[i+1];++j){ */
-  /* 	fprintf(stdout,"%d(Zc=%d;Zb=%d) ",sc->bndry_v->JA[j],sc->bndry_v->val[j],sc->bndry_v->val[j+nnz]); */
-  /*     } */
-  /*     fprintf(stdout,"]"); fflush(stdout); */
-  /*   } */
-  /* } */
   return;
 }
 /**********************************************************************/
