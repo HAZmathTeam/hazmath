@@ -5271,7 +5271,7 @@ void precond_block2_babuska_diag(REAL *r,
       // solve
       //status = dcsr_pvfgmres(&(mgl[0][0].A), &r0, &z0, &pc00, 1e-6, 100, 100, 1, 1);
       status = dcsr_pcg(&(mgl[0][0].A), &r0, &z0, &pc00, 1e-12, 100, 1, 1);
-      if(status!=SUCCESS)
+      if(status<SUCCESS)
 	WARN_STATUS(__FUNCTION__,"dcsr_pcg(...)",status);
     }
 
@@ -5439,7 +5439,7 @@ void precond_block2_babuska_lower(REAL *r,
       // solve
       //status = dcsr_pvfgmres(&(mgl[0][0].A), &r0, &z0, &pc00, 1e-6, 100, 100, 1, 1);
       status = dcsr_pcg(&(mgl[0][0].A), &r0, &z0, &pc00, 1e-12, 100, 1, 1);
-      if(status!=SUCCESS)
+      if(status<SUCCESS)
 	WARN_STATUS(__FUNCTION__,"dcsr_pcg(...)",status);
     }
 
@@ -5635,7 +5635,7 @@ void precond_block2_babuska_upper(REAL *r,
 
     // z1 = residues(0)*(scaled_M\scaled_r1)
     status = dcsr_pcg(scaled_M, &r1, &z1, &pc_scaled_M, 1e-6, 100, 1, 1);
-    if(status!=SUCCESS)
+    if(status<SUCCESS)
       WARN_STATUS(__FUNCTION__,"dcsr_pcg(scaled_M,...)",status);
 
     dvector update = dvec_create(N1);
@@ -5656,7 +5656,7 @@ void precond_block2_babuska_upper(REAL *r,
         // solve
         //status = dcsr_pvfgmres(&(mgl[i][0].A), &r1, &update, &pc_frac_A, 1e-6, 100, 100, 1, 1);
         status = dcsr_pcg(&(mgl[i][0].A), &r1, &update, &pc_frac_A, 1e-6, 100, 1, 1);
-	if(status!=SUCCESS)
+	if(status<SUCCESS)
 	  WARN_STATUS(__FUNCTION__,"dcsr_pcg(...)",status);
 
         // z = z + residues[i+1]*update
@@ -5702,7 +5702,7 @@ void precond_block2_babuska_upper(REAL *r,
     // solve
     //status = dcsr_pvfgmres(&(mgl[0][0].A), &r0, &z0, &pc00, 1e-6, 100, 100, 1, 1);
     status = dcsr_pcg(&(mgl[0][0].A), &r0, &z0, &pc00, 1e-6, 100, 1, 1);
-    if(status!=SUCCESS)
+    if(status<SUCCESS)
       WARN_STATUS(__FUNCTION__,"dcsr_pcg(...)",status);
     }
 
@@ -5814,7 +5814,7 @@ void precond_ra_fenics(REAL *r, REAL *z, void *data)
     // NOTE: here we assume imag(residues(0)) = 0
     if(fabs(residues->val[0]) > 0.) {
         status = dcsr_pcg(scaled_M, &r_vec, &z_vec, &pc_scaled_M, 1e-6, 100, 1, 0);
-	if(status!=SUCCESS)
+	if(status<SUCCESS)
 	  WARN_STATUS(__FUNCTION__,"dcsr_pcg(...)",status);
         array_ax(n, residues->val[0], z_vec.val);
     }
@@ -5856,11 +5856,11 @@ void precond_ra_fenics(REAL *r, REAL *z, void *data)
 
                 // (1) solve (A - Re(pole)*I) update = rhs1
                 status = dcsr_pcg(&(mgl[i][0].A), &rhs1, &update, &pc_frac_A, 1e-6, 100, 1, 0);
-		if(status!=SUCCESS)
+		if(status<SUCCESS)
 		  WARN_STATUS(__FUNCTION__,"dcsr_pcg((1) solve...)",status);
                 // (2) solve (A - Re(pole)*I) iupdate = rhs2
                 status = dcsr_pcg(&(mgl[i][0].A), &rhs2, &iupdate, &pc_frac_A, 1e-6, 100, 1, 0);
-		if(status!=SUCCESS)
+		if(status<SUCCESS)
 		  WARN_STATUS(__FUNCTION__,"dcsr_pcg((2) solve...)",status);
             }
 
@@ -5898,7 +5898,7 @@ void precond_ra_fenics(REAL *r, REAL *z, void *data)
             // printf("\tPole %d, norm of r = %e\n", i, dvec_norm2(&r_vec));
             // status = dcsr_pvfgmres(&(mgl[i][0].A), &r1, &update, &pc_frac_A, 1e-6, 100, 100, 1, 1);
             status = dcsr_pcg(&(mgl[i][0].A), &r_vec, &update, &pc_frac_A, 1e-6, 100, 1, 0);
-	    if(status!=SUCCESS)
+	    if(status<SUCCESS)
 	      WARN_STATUS(__FUNCTION__,"dcsr_pcg(...)",status);
             /* void *numeric=NULL;  // prepare for direct solve.
             numeric=factorize_UMF(&(mgl[i][0].A),0);
