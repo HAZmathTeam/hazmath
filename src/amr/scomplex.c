@@ -36,9 +36,9 @@ void haz_scomplex_realloc(scomplex *sc)
   sc->bndry=realloc(sc->bndry,nv*sizeof(INT));
   sc->csys=realloc(sc->csys,nv*sizeof(INT));
   sc->flags=realloc(sc->flags,ns*sizeof(INT)); // element flags
-  sc->vols=realloc(sc->vols,ns*sizeof(REAL)); // element flags
+  sc->vols=realloc(sc->vols,ns*sizeof(REAL)); // element volumes
   for (i = 0;i<sc->ns;i++) {
-    sc->marked[i] = FALSE; // because first is used for something else.
+    sc->marked[i] = FALSE; // because first this array is used as working array.
     sc->gen[i] = 0;
     sc->parent[i]=-1;
     sc->child0[i]=-1;
@@ -188,7 +188,7 @@ scomplex *haz_scomplex_init(const INT n,INT ns, INT nv,const INT nbig)
   sc->csys=(INT *)calloc(nv,sizeof(INT));/* coord sys: 1 is polar, 2
 					    is cyl and so on */
   sc->bndry_v=malloc(sizeof(iCSRmat));
-  sc->bndry_v[0]=icsr_create(nv,0,0); // only alloc pointers; two are null. 
+  sc->bndry_v[0]=icsr_create(0,0,0); // only alloc pointers; two are null. 
   sc->parent_v=malloc(sizeof(iCSRmat));
   sc->parent_v[0]=icsr_create(nv,nv,nv);
   sc->flags=(INT *)calloc(ns,sizeof(INT));
@@ -529,13 +529,13 @@ void haz_scomplex_free(scomplex *sc)
   if(sc->csys) free(sc->csys);
   if(sc->etree) free(sc->etree);
   if(sc->bndry_v) {
-    icsr_free(sc->bndry_v);free(sc->bndry_v);
+    icsr_free(sc->bndry_v);free(sc->bndry_v);sc->bndry_v=NULL;
   }
   if(sc->parent_v) {
-    icsr_free(sc->parent_v);free(sc->parent_v);
+    icsr_free(sc->parent_v);free(sc->parent_v);sc->parent_v=NULL;
   }
   if(sc->bfs) {
-    icsr_free(sc->bfs);free(sc->bfs);
+    icsr_free(sc->bfs);free(sc->bfs);sc->bfs=NULL;
   }
   if(sc) free(sc);
   return;

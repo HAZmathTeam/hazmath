@@ -124,7 +124,7 @@ INT main(INT   argc,   char *argv[])
   //  hazw(g->fgrid,sc,0);
   /* WRITE THE OUTPUT vtu file for paraview:    */
   if(dim <4) vtkw(g->fvtu,sc,0,1.);
-  /*FREE: the input grid is freed here, because it haz the filenames in it*/
+  /*FREE: the input grid is freed here, because it has the filenames in it*/
   input_grid_free(g);
   haz_scomplex_free(sc);
   free(sc_all);

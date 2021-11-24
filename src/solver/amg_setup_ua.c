@@ -16,7 +16,7 @@
 #include "hazmath.h"
 
 static void form_tentative_p(ivector *vertices, dCSRmat *tentp, REAL **basis, INT levelNum, INT num_aggregations);
-static void form_boolean_p(ivector *vertices, dCSRmat *tentp, INT levelNum, INT num_aggregations);
+/* static void form_boolean_p(ivector *vertices, dCSRmat *tentp, INT levelNum, INT num_aggregations); */
 static void construct_strongly_coupled(dCSRmat *A, AMG_param *param, dCSRmat *Neigh);
 static SHORT aggregation_hec(dCSRmat *A, ivector *vertices, AMG_param *param, dCSRmat *Neigh, INT *num_aggregations, INT lvl);
 static SHORT aggregation_vmb(dCSRmat *A, ivector *vertices, AMG_param *param, dCSRmat *Neigh, INT *num_aggregations, INT lvl);
@@ -193,68 +193,68 @@ static void form_tentative_p(ivector *vertices,
         }
     }
 }
+/*COMMENTED AS IT IS NOT USED*/
+/* /\***********************************************************************************************\/ */
+/* /\** */
+/*  * \fn static void form_boolean_p (ivector *vertices, dCSRmat *tentp, INT levelNum, */
+/*  *                                 INT num_aggregations) */
+/*  * */
+/*  * \brief Form aggregation based on strong coupled neighbors */
+/*  * */
+/*  * \param vertices           Pointer to the aggregation of vertices */
+/*  * \param tentp              Pointer to the prolongation operators */
+/*  * \param levelNum           Level number */
+/*  * \param num_aggregations   Number of aggregations */
+/*  * */
+/*  * \author Xiaozhe Hu */
+/*  * \date   09/29/2009 */
+/*  * */
+/*  * Modified by Xiaozhe Hu on 05/25/2014 */
+/*  *\/ */
+/* static void form_boolean_p(ivector *vertices, */
+/*                            dCSRmat *tentp, */
+/*                            INT levelNum, */
+/*                            INT num_aggregations) */
+/* { */
+/*     INT i, j; */
 
-/***********************************************************************************************/
-/**
- * \fn static void form_boolean_p (ivector *vertices, dCSRmat *tentp, INT levelNum,
- *                                 INT num_aggregations)
- *
- * \brief Form aggregation based on strong coupled neighbors
- *
- * \param vertices           Pointer to the aggregation of vertices
- * \param tentp              Pointer to the prolongation operators
- * \param levelNum           Level number
- * \param num_aggregations   Number of aggregations
- *
- * \author Xiaozhe Hu
- * \date   09/29/2009
- *
- * Modified by Xiaozhe Hu on 05/25/2014
- */
-static void form_boolean_p(ivector *vertices,
-                           dCSRmat *tentp,
-                           INT levelNum,
-                           INT num_aggregations)
-{
-    INT i, j;
+/*     /\* Form tentative prolongation *\/ */
+/*     tentp->row = vertices->row; */
+/*     tentp->col = num_aggregations; */
+/*     tentp->nnz = vertices->row; */
 
-    /* Form tentative prolongation */
-    tentp->row = vertices->row;
-    tentp->col = num_aggregations;
-    tentp->nnz = vertices->row;
+/*     tentp->IA  = (INT *)calloc(tentp->row+1,sizeof(INT)); */
 
-    tentp->IA  = (INT *)calloc(tentp->row+1,sizeof(INT));
+/*     // local variables */
+/*     INT  *IA = tentp->IA; */
+/*     INT  *vval = vertices->val; */
+/*     const INT row = tentp->row; */
 
-    // local variables
-    INT  *IA = tentp->IA;
-    INT  *vval = vertices->val;
-    const INT row = tentp->row;
+/*     // first run */
+/*     for ( i = 0, j = 0; i < row; i++ ) { */
+/*         IA[i] = j; */
+/*         if (vval[i] > UNPT) j++; */
+/*     } */
+/*     IA[row] = j; */
 
-    // first run
-    for ( i = 0, j = 0; i < row; i++ ) {
-        IA[i] = j;
-        if (vval[i] > UNPT) j++;
-    }
-    IA[row] = j;
+/*     // allocate memory for P */
+/*     tentp->nnz = j; */
+/*     tentp->JA  = (INT *)calloc(tentp->nnz, sizeof(INT)); */
+/*     tentp->val = (REAL *)calloc(tentp->nnz, sizeof(REAL)); */
 
-    // allocate memory for P
-    tentp->nnz = j;
-    tentp->JA  = (INT *)calloc(tentp->nnz, sizeof(INT));
-    tentp->val = (REAL *)calloc(tentp->nnz, sizeof(REAL));
+/*     INT  *JA = tentp->JA; */
+/*     REAL *val = tentp->val; */
 
-    INT  *JA = tentp->JA;
-    REAL *val = tentp->val;
-
-    // second run
-    for (i = 0, j = 0; i < row; i ++) {
-        IA[i] = j;
-        if (vval[i] > UNPT) {
-            JA[j] = vval[i];
-            val[j] = 1.0;
-            j ++;
-        }
-    }
-}
+/*     // second run */
+/*     for (i = 0, j = 0; i < row; i ++) { */
+/*         IA[i] = j; */
+/*         if (vval[i] > UNPT) { */
+/*             JA[j] = vval[i]; */
+/*             val[j] = 1.0; */
+/*             j ++; */
+/*         } */
+/*     } */
+/* } */
 
 
 /***********************************************************************************************/
