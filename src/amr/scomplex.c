@@ -187,8 +187,6 @@ scomplex *haz_scomplex_init(const INT n,INT ns, INT nv,const INT nbig)
   sc->bndry=(INT *)calloc(nv,sizeof(INT));
   sc->csys=(INT *)calloc(nv,sizeof(INT));/* coord sys: 1 is polar, 2
 					    is cyl and so on */
-  sc->bndry_v=malloc(sizeof(iCSRmat));
-  sc->bndry_v[0]=icsr_create(0,0,0); // only alloc pointers; two are null. 
   sc->parent_v=malloc(sizeof(iCSRmat));
   sc->parent_v[0]=icsr_create(nv,nv,nv);
   sc->flags=(INT *)calloc(ns,sizeof(INT));
