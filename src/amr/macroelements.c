@@ -877,18 +877,10 @@ static void scomplex_merge1(const INT nvall,		\
 	}
       }
       bndry_v1=icsr_create(sc->bndry_v->row,sc->bndry_v->col,sc->bndry_v->nnz);
-      /* bndry_v2=icsr_create(0,0,0);// this is just a place holder with same sparsity structure as bndry_v1; */
-      /* bndry_v2.row=bndry_v1.row; */
-      /* bndry_v2.col=bndry_v1.col; */
-      /* bndry_v2.nnz=bndry_v1.nnz; */
-      /* bndry_v2.IA=bndry_v1.IA; */
-      /* bndry_v2.JA=bndry_v1.JA; */
-      /* bndry_v2.val=realloc(bndry_v2.val,bndry_v2.nnz*sizeof(INT)); */
       memcpy(bndry_v1.IA,sc->bndry_v->IA,(bndry_v1.row+1)*sizeof(INT));
       memcpy(bndry_v1.JA,sc->bndry_v->JA,bndry_v1.nnz*sizeof(INT));
       memcpy(bndry_v1.val,sc->bndry_v->val,bndry_v1.nnz*sizeof(INT));
-      /* memcpy(bndry_v2.val,(sc->bndry_v->val+bndry_v2.nnz),bndry_v2.nnz*sizeof(INT));     */
-      nnz=sc->bndry_v->nnz;// now bndry_v1 is a copy of bndry_v we add bndry_v2
+      nnz=sc->bndry_v->nnz;
       /*** MOVE POINTERS AND ADD BNDRY CODES ***/
       // free, and use as adding
       icsr_free(sc->bndry_v);
@@ -1428,13 +1420,6 @@ scomplex **generate_initial_grid(input_grid *g0)
   iCSRmat bndry_v1,bndry_v2;// local vertex/bface relation. Later combined in sc->bndry_v;
   INT *tmp_ptr; // to store isbface
   INT kjj;
-  /* for(jel=0;jel<mc->nel;++jel){ */
-  /*   fprintf(stdout,"\ne=%d: faces=[ ",jel); */
-  /*   for(i=0;i<c2s->nf;i++){ */
-  /*     fprintf(stdout,"%d ",el2fnum[jel][i]);  // this is the face number; */
-  /*   } */
-  /*   fprintf(stdout," ]"); */
-  /* } */
   for(kj=0;kj<bfs0->row;kj++){
     if(g0->ref_type>=0) intype++;
     else intype=-1;
@@ -1452,8 +1437,6 @@ scomplex **generate_initial_grid(input_grid *g0)
       }
       /***************************************************/
       /*element code is in mc->flags[]; we now do the face codes:*/
-      /* print_full_mat_int(1,c2s->nf,el2fnum[jel],"el2fnum");       */
-      /* print_full_mat_int(1,c2s->nf,mc->elneib[jel],"elneib");       */
       for(i=0;i<c2s->nf;i++){
 	labelf[i]=el2fnum[jel][i];  // this is the face global number;
 	codef[i]=bcodesf[labelf[i]];// code associated with this macroelement face
@@ -1462,7 +1445,6 @@ scomplex **generate_initial_grid(input_grid *g0)
       sc[jel]=umesh(g->dim,mc->nd[jel],c2s,		\
 		    labelf,isbndf,codef,mc->flags[jel],	\
 		    intype);
-      /* print_full_mat_int(1,nvcube+1,(g0->mnodes+jel*(nvcube+1)),"MNODES"); */
       // now we make the boundary matrix global.... transpose it so it is "face"->"vertex"
       sc[jel]->bndry_v->col=mc->nf;//
       nnz=sc[jel]->bndry_v->nnz;

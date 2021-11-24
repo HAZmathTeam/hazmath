@@ -4316,7 +4316,7 @@ INT bdcsr_getdiagblk_dcsr(block_dCSRmat *Ab,
 {
   // local variables
   INT m=0,n=0,nnz=0;
-  const INT mb=Ab->brow, nb=Ab->bcol, n_blocks=mb*nb;
+  const INT mb=Ab->brow, nb=Ab->bcol;//, n_blocks=mb*nb;
   dCSRmat **blockptr=Ab->blocks, *blockptrij;
   INT i,j,ij,ir,i1,length,ilength,start,irmrow,irmrowp1;
   INT *row, *col;
@@ -4324,7 +4324,6 @@ INT bdcsr_getdiagblk_dcsr(block_dCSRmat *Ab,
   if(n10<0) n1 = 0;
   if(n20>mb) n2=mb;
   if(n2<n1) {j=n2;n2=n1;n1=j;}
-  INT nblk=n2-n1+1; // number of blocks
   // flag for errors
   SHORT status = SUCCESS;
   row = (INT *)calloc(mb+1,sizeof(INT));
@@ -4396,6 +4395,7 @@ INT bdcsr_getdiagblk_dcsr(block_dCSRmat *Ab,
     } // end for ir
   } // end for i
   A->nnz=A->IA[row[n2]];
+  /* INT nblk=n2-n1+1; // number of blocks */
   /* for(i=n1;i<=n2;i++){ */
   /*   fprintf(stdout,"\nblk=%d,row=%d",i,row[i]); */
   /* }   */

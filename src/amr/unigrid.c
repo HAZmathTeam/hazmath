@@ -128,7 +128,6 @@ scomplex *umesh(const INT dim,					\
   ns*=c2s->ns; /*multiply by the number of simplices in the unit cube
 		 (2 in 2D and 6 in 3d and 24 in 4d*/
   scomplex *sc = (scomplex *)haz_scomplex_init(dim,ns,nv,dim); 
-  //  fprintf(stdout,"\nFaces=(%d,%d)=(face,face_parent)\n",face,face_parent);fflush(stdout);
   for(kf=0;kf<sc->nv;kf++){
     coord_lattice(m,dim,kf,sc->nv,nd);
     for(i=0;i<dim;i++){
@@ -141,8 +140,6 @@ scomplex *umesh(const INT dim,					\
       sc->x[kf*dim+(dim-i-1)]=((REAL )m[i])/((REAL )nd[i]);
       /* OLD: sc->x[kf*dim+i]=((REAL )m[i])/((REAL )nd[i]); */
     }    
-    //      print_full_mat_int(1,dim,m,"m1=");
-    //      fprintf(stdout,"; iglobal=%d;",kf);
   }
   ns=0;
   for(kf=0;kf<sc->nv;kf++){
@@ -170,23 +167,17 @@ scomplex *umesh(const INT dim,					\
     }
     //    type=0;
     /*depending on the type, split a cube in simplices*/
-    //    fprintf(stdout,"\ntype=%d\n",type+1);
     for(j=0;j<c2s->nvcube;j++){
       //            fprintf(stdout,"j:%d; ",j+1);
       for(i=0;i<dim;i++){
     	mm[i]=m[i]+(c2s->bits[dim*j+i]);
-	//		fprintf(stdout,"mm[%d]=%d; ",i+1,mm[i]+1);
       }
       cnodes[j]=num_lattice(mm,dim,nd);
-      //            fprintf(stdout,"\n"); fflush(stdout);
     }   
-    //    fprintf(stdout,"\n"); fflush(stdout);
-    //  
     for(i=0;i<c2s->ns;i++){
       for(j=0;j<dim1;j++){
 	iz1=c2s->nodes[i*dim1+j];
 	jperm=c2s->perms[type*c2s->nvcube+iz1];
-	//	fprintf(stdout,"\ntype=%d,ns=%d,jperm=%d,iz1=%d",type,ns,jperm,iz1);
 	sc->nodes[ns*dim1+j]=cnodes[jperm];
       }
       sc->flags[ns]=elflag;
