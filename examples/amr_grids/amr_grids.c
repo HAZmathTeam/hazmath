@@ -51,7 +51,7 @@ INT main(INT   argc,   char *argv[])
     refine(ref_levels,sc,NULL);
   } else if(amr_marking_type==33){
 
-    REAL h = 1.0/128;  // step distance of points
+    REAL h = 0.05;  // step distance of points
     REAL threshold = h; // threshold for close to the points or not
     //
     nstar = g->num_refine_points;
@@ -119,12 +119,12 @@ INT main(INT   argc,   char *argv[])
     free(all);
   }
   /*  MAKE sc to be the finest grid only */
-  scfinalize(sc,(INT )0);
+  scfinalize(sc,(INT )1);
   /* WRITE THE OUTPUT MESH FILE:    */
   //  hazw(g->fgrid,sc,0);
   /* WRITE THE OUTPUT vtu file for paraview:    */
   if(dim <4) vtkw(g->fvtu,sc,0,1.);
-  /*FREE: the input grid is freed here, because it haz the filenames in it*/
+  /*FREE: the input grid is freed here, because it has the filenames in it*/
   input_grid_free(g);
   haz_scomplex_free(sc);
   free(sc_all);

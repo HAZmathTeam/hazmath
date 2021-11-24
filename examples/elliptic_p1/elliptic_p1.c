@@ -19,11 +19,11 @@
  *                  (typically 0) is the newest vertex bisection
 */
 #ifndef REFINEMENT_TYPE
-#define REFINEMENT_TYPE 11
+#define REFINEMENT_TYPE 0
 #endif
 /**/
 #ifndef REFINEMENT_LEVELS
-#define REFINEMENT_LEVELS 5
+#define REFINEMENT_LEVELS 17
 #endif
 /**/
 #ifndef SPATIAL_DIMENSION
@@ -48,16 +48,13 @@ int main(int argc, char *argv[])
   sc=mesh_cube_init(dim,ref_type);
   /**/
   if(sc->ref_type>10){
-    //      fprintf(stdout,"\ndim=%dd(uniform):level=",dim);
     if(dim==3){
       for(jlevel=0;jlevel<ref_levels;++jlevel){
-	//	fprintf(stdout,".%d.",jlevel+1);fflush(stdout);
 	uniformrefine3d(sc);
 	sc_vols(sc);
       }
     } else if(dim ==2){
       for(jlevel=0;jlevel<ref_levels;++jlevel){
-	//	fprintf(stdout,".%d.",jlevel+1);fflush(stdout);
 	uniformrefine2d(sc);
 	sc_vols(sc);
       }
@@ -67,12 +64,6 @@ int main(int argc, char *argv[])
     find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
     sc_vols(sc);
   } else {
-    //  fprintf(stdout,"\n");
-    // end intialization
-    //    fprintf(stdout,"\nlevels=%d",ref_levels);fflush(stdout);
-    //    find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
-    // sc_vols(sc); these shouls all be found already
-    //    fprintf(stdout,"\ndim=%dd(newest):level=",dim);
     for(jlevel=0;jlevel<ref_levels;++jlevel){
       //      fprintf(stdout,".%d.",jlevel+1);fflush(stdout);
       /* choose the finest grid */
@@ -94,20 +85,35 @@ int main(int argc, char *argv[])
   }
   scfinalize(sc,(INT )0);
   sc_vols(sc);
+  // now let us map it to a different domain:
+  //
+  REAL *vc=NULL;
+  if(dim==2){
+    REAL vc[]={-1.00, -2.00,			\
+    	       -2.00, -1.10,			\
+    	       0.00,  1.00,			\
+    	       0.50,  0.75};			\
+    mapit(sc,vc);
+  } else if(dim==3){
+    REAL vc[]={-1.00, -2.00, -1.00,		\
+    	       -2.00, -1.10, -1.00,		\
+    	       0.00,   1.00, -1.00,		\
+    	       0.50,   0.75, -1.00,		\
+    	       -1.00, -2.00,  1.00,		\
+    	       -2.00, -1.10,  1.00,		\
+    	       0.50,   0.75,  0.55,		\
+    	       0.00,   1.00,  0.75};
+    mapit(sc,vc);
+  }
   //  icsr_print_matlab(stdout,sc->parent_v);
   //  haz_scomplex_print(sc,0,__FUNCTION__);
   sol=fe_sol(sc,1.0,1.0);
-  scomplex *dsc=malloc(sizeof(scomplex));//boundary scomplex
-  dsc[0]=sc_bndry(sc);
-  //  haz_scomplex_print(dsc,0,__FUNCTION__);
-  SHORT todraw=1;
-  draw_grids(todraw, sc,dsc, &sol);
+  short todraw=1;
+  draw_grids(todraw, sc,&sol);
   /* write the output mesh file:    */
-  //  hazw("output/mesh.haz",sc,0);
-  //  hazw("output/dmesh.haz",dsc,0);
+  /* hazw("output/mesh.haz",sc,0); */
   dvec_free(&sol);
   ivec_free(&marked);
   haz_scomplex_free(sc);  
-  haz_scomplex_free(dsc);
   return 0;
 }

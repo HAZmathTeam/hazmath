@@ -545,6 +545,8 @@ typedef struct {
     /*------------------------------*/
     /* Data for the diagonal blocks */
     /*------------------------------*/
+    INT *block_solve_type;  /**<  how to solve each block  */
+
     /*--- solve by direct solver ---*/
     void **LU_diag;       /**< LU decomposition for the diagonal blocks (for UMFpack) */
 
@@ -563,7 +565,7 @@ typedef struct {
     HX_div_data **hxdivdata; /**< HX data for the diagonal DIV blocks */
 
     /*------------------------------*/
-    /* Data for mixed Darcy flow only!! */
+    /* Data for mesh infomation */
     /*------------------------------*/
     dvector *el_vol;   /**< volume of each element */
 

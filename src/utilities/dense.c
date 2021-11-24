@@ -12,6 +12,8 @@
  *  \note: modified on 20171012 (Ludmil)
  *  \note: modified on 20210807 (Ludmil)
  *
+ *  \note: done cleanup for releasing -- Xiaozhe Hu 08/28/2021
+ *
  */
 
 #include "hazmath.h"
@@ -205,7 +207,7 @@ dDENSEmat ddense_random_JL(const INT k,
 /*!
 * \fn void find_det_4( REAL* A, REAL deta)
 *
-* \brief find det of 4x4 matrix using expansion by minors once, 
+* \brief find det of 4x4 matrix using expansion by minors once,
 			then direct computation of det of 3x3 matrices
 *
 * \param A            vectorized matrix (row-wise)
@@ -243,7 +245,7 @@ void find_det_4( REAL* A, REAL* deta)
  *
  **********************************************************************/
 /*!
- * \fn ddense_solve_pivot(INT dopivot, INT n, REAL *A, REAL *b,  
+ * \fn ddense_solve_pivot(INT dopivot, INT n, REAL *A, REAL *b,
  *                        INT *p,REAL *piv)
  *
  *
@@ -319,6 +321,7 @@ INT ddense_solve_pivot(INT dopivot, INT n, REAL *A, REAL *b, INT *p,REAL *piv)
   for(k=0;k<n;k++)b[k]=x[k];
   return 0;
 }
+
 /**************************************************************************/
 /*
  * \fn SHORT ddense_lu(INT n, REAL *deta, REAL *A,INT *p,REAL *piv)
@@ -701,7 +704,7 @@ INT ddense_qr_lapack(INT m,INT n, REAL *A,REAL * Q,REAL *R,INT computeR)
   // Frees
   if(tau) free(tau);
   if(dwork) free(dwork);
-  
+
   return info;
 
 #else
@@ -839,6 +842,91 @@ INT ddense_solve_pivot_l(INT dopivot,			\
   //  if(y) free(y);
   for(k=0;k<n;k++)b[k]=x[k];
   return 0;
+}
+/*******************************************************************/
+/*! \fn INT zdense_solve_pivot_l(INT n,REAL16 *Ar, REAL16 *Ai,
+ *                              REAL16 *br,REAL16 *bi)
+ *
+ * \brief COMPLEX LONG_DOUBLE: Solution of a linear system
+ *        (Ar+i*Ai)*(xr+i*xi)=br+i*bi with scaled partial pivoting in
+ *        LONG double, where Ar and Ai are the real and imaginary part
+ *        of a matrix; br and bi are the real and imaginary part of
+ *        the rhs. The right hand side is overwritten on output with
+ *        the solution, that is, on return: xr[],xi[] occuppy the same
+ *        memory as br[],bi[].
+ *
+ * \param n number of rows (and columns) of Ar and Ai. 
+ *
+ * \param bi[] imaginary part of rhs cannot be null if Ai is not null;
+ *             in such case bi[] must be allocated before entry here
+ *             with n*sizeof(REAL16)
+ *
+ * \param both Ar an Ai the matrix as one dimensional arrays each
+ *        stored by rows (long double)
+ *
+ */
+INT zdense_solve_pivot_l(INT n,				\
+			 REAL16 *Ar,			\
+			 REAL16 *Ai,			\
+			 REAL16 *br,			\
+			 REAL16 *bi)
+{
+  INT k,j,n2=-10;
+  REAL16 *A=NULL;
+  REAL16 *b=NULL;
+  REAL16 *piv=NULL;
+  INT *perm=NULL;
+  // Ai is null or bi is null; or both;
+  if((Ai==NULL) && (bi==NULL)){
+    piv=calloc(n,sizeof(REAL16));
+    perm=calloc(n,sizeof(INT));  
+    ddense_solve_pivot_l(1,n,Ar,br,perm,piv);
+    free(piv);
+    free(perm);
+    return 0;
+  } else if(Ai==NULL){// bi is not null;
+    piv=calloc(n,sizeof(REAL16));
+    perm=calloc(n,sizeof(INT));  
+    ddense_solve_pivot_l(1,n,Ar,br,perm,piv);
+    ddense_solve_pivot_l(1,n,Ar,bi,perm,piv);
+    free(piv);
+    free(perm);
+    return 0;
+  } else if(bi==NULL) {// this means Ai is not null and all is coupled, but bi is null, so we do an error solution stop:
+    fprintf(stderr,"%%%% ******* ERROR: Ai[][] is not null but bi[] is null; please allocate bi[] before call to %s",__FUNCTION__);
+    exit(4);
+  } else { //neither Ai nor bi is null: compute
+    n2=2*n;
+    A=calloc(n2*n2,sizeof(REAL16));
+    b=calloc(n2,sizeof(REAL16));
+    memset(A,0,n2*n2*sizeof(REAL16));
+    memset(b,0,n2*sizeof(REAL16));
+    for (j=0;j<n;j++){
+      for (k=0;k<n;k++){
+	A[j*n2  + k]             =  Ar[j*n + k];//A11;
+	A[j*n2  + k + n]         = -Ai[j*n + k];//A12;
+	A[(j + n)*n2 + k]       =  Ai[j*n + k];//A21;
+	A[(j + n)*n2  +  k + n] =  Ar[j*n + k];//A22;
+      }
+      b[j]     = br[j];
+      b[j + n] = bi[j];
+    }
+    /* print_full_mat_l(n2,n2,A,"A"); */
+    /* print_full_mat_l(n2,1,b,"b"); */
+    piv=calloc(n2,sizeof(REAL16));
+    perm=calloc(n2,sizeof(INT));  
+    ddense_solve_pivot_l(1,n2,A,b,perm,piv);
+    //  if(y) free(y);
+    for(k=0;k<n;k++) {
+      br[k]=b[k];
+      bi[k]=b[k+n];
+    }
+    free(perm);
+    free(piv);
+    free(A);
+    free(b);
+    return 0;
+  }  
 }
 /************************************** END ***************************************************/
 /*! USED TO BE: \file src/utilities/solve_full.c

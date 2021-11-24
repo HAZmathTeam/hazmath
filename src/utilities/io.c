@@ -285,6 +285,39 @@ void print_full_mat(const  INT n, const INT m, REAL *A,const char *varname)
   return;
 }
 /*******************************************************************/
+/*  \fn void print_full_mat_l(const  INT n, const INT m, REAL16 *A,const char *varname)
+ *
+ *
+ *  \note: prints a long double matrix A with (n) rows and (m) columns
+ *         in matlab format e.g. 2 x 2 identity is printed as
+ *         I2=[1. 0.;0. 1.]; if the varname= "I2"
+ *
+ */
+void print_full_mat_l(const  INT n, const INT m, REAL16 *A,const char *varname)
+{
+  INT nprt=1025,mprt=1025;
+  if( (n<1) || (m<1) ) return;
+  INT i,j,n1=n-1;
+  if(n<=nprt) nprt=n;
+  if(m<=mprt) mprt=m;
+  if(varname==NULL){
+    fprintf(stdout,"\nA=[");
+  }else{
+    fprintf(stdout,"\n%s=[",varname);
+  }
+  for (i = 0; i<nprt;i++){
+    for(j=0;j<mprt;j++){
+      fprintf(stdout,"%.18Le ", A[m*i+j]);
+    }
+    if(i!=n1){
+      fprintf(stdout,";");
+    }else{
+      fprintf(stdout,"];\n");
+    }
+  }
+  return;
+}
+/*******************************************************************/
 /*  \fn void print_full_mat_int(const  INT n, const INT m, INT *A,const char *varname)
  *
  *
@@ -431,10 +464,39 @@ void icsr_print_matlab(FILE* fid,
   }
   return;
 }
-
 /***********************************************************************************************/
 /*!
- * \fn void icsr_print_matlab_val(FILE* fid,dCSRmat *A)
+ * \fn void icsr_print_rows(FILE* fid,iCSRmat *A,const char *sname)
+ *
+ * \brief print a iCSRmat format sparse matrix to a file with VALUES
+ *
+ * \param fid  Pointer to the file
+ * \param A    Pointer to the iCSRmat format sparse matrix
+ * \param sname just a string so the printout starts with "sname*"
+ *
+ * \todo
+ *
+ */
+void icsr_print_rows(FILE* fid,
+		     iCSRmat *A,const char *sname)
+{
+  // local variables
+  INT i,j;
+  fprintf(fid,"\n%%%% %s:",sname);
+  for(i=0;i<A->row;++i){
+    if((A->IA[i+1]-A->IA[i])<=0) continue;
+      fprintf(fid,"\nrow[%d]=[ ",i);
+      for(j=A->IA[i];j<A->IA[i+1];++j){
+	fprintf(fid,"%d ",A->JA[j]);
+      }
+      fprintf(fid,"]");    
+  }
+  fflush(fid);
+  return;
+}
+/***********************************************************************************************/
+/*!
+ * \fn void icsr_print_matlab_val(FILE* fid,iCSRmat *A)
  *
  * \brief print a iCSRmat format sparse matrix to a file with VALUES
  *
@@ -1286,7 +1348,7 @@ scomplex *hazr(char *namein)
      read a hazmath mesh file.
      *******************************************    */
   fscanf(fmeshin,"%i %i %i %i\n",&ns,&nv,&dim,&nholes);
-  scomplex *sc = (scomplex *)haz_scomplex_init(dim,ns,nv,dim); // cannot read different dimensions. 
+  scomplex *sc = (scomplex *)haz_scomplex_init(dim,ns,nv,dim); // cannot read different dimensions.
   INT dim1=sc->n+1;
   for (j=0;j<dim1;j++) {
     for (k=0;k<ns;k++){
@@ -1423,9 +1485,12 @@ void vtkw(char *namevtk, scomplex *sc, const INT shift, const REAL zscale)
     VTK_WEDGE (=13)
     VTK_PYRAMID (=14)
   */
+  const INT LINE=3;
   const INT TRI=5;
   const INT TET=10;
-  if(n==2)
+  if(n==1)
+    tcell=LINE; /* triangle */
+  else if(n==2)
     tcell=TRI; /* triangle */
   else
     tcell=TET; /* tet */
@@ -1437,20 +1502,29 @@ void vtkw(char *namevtk, scomplex *sc, const INT shift, const REAL zscale)
   fprintf(fvtk,"<Piece NumberOfPoints=\"%i\" NumberOfCells=\"%i\">\n",nv,ns);
   fprintf(fvtk,"<Points>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" NumberOfComponents=\"3\" Format=\"ascii\">",tfloat);
-  if(n == 2)
-    for (j=0;j<nv;j++){
-      for (k=0;k<n;k++) {
-	fprintf(fvtk,"%.8f ",x[j*n+k]);
-      }
+  for (j=0;j<nv;j++){
+    for (k=0;k<n;k++) {
+      fprintf(fvtk,"%.8f ",x[j*n+k]);
+    }
+    for (k=0;k<(3-n);k++) {
       fprintf(fvtk,"%.8f ",0.);
     }
-  else
-    for (j=0;j<nv;j++){
-      for (k=0;k<n-1;k++) {
-	fprintf(fvtk,"%.8f ",x[j*n+k]);
-      }
-      fprintf(fvtk,"%.8f ",x[j*n+n-1]*zscale);
-    }
+  }
+  /* if(n == 2){ */
+  /*   for (j=0;j<nv;j++){ */
+  /*     for (k=0;k<n;k++) { */
+  /* 	fprintf(fvtk,"%.8f ",x[j*n+k]); */
+  /*     } */
+  /*     fprintf(fvtk,"%.8f ",0.); */
+  /*   } */
+  /* }  else { */
+  /*   for (j=0;j<nv;j++){ */
+  /*     for (k=0;k<n-1;k++) { */
+  /* 	fprintf(fvtk,"%.8f ",x[j*n+k]); */
+  /*     } */
+  /*     fprintf(fvtk,"%.8f ",x[j*n+n-1]*zscale); */
+  /*   } */
+  /* } */
   fprintf(fvtk,"</DataArray>\n");
   fprintf(fvtk,"</Points>\n");
   fprintf(fvtk,"<CellData Scalars=\"scalars\">\n");

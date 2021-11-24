@@ -138,9 +138,9 @@ import_array();
       printf("lhs-> row %d\n", lhs->row); 
       apply_precond(lhs->val, rhs->val, $self); 
     } 
-    precond_data* precond_data(){
-      return (precond_data*)$self->data;
-    }
+    /*precond_ra_data* precond_data(){
+      return (precond_ra_data*)$self->data;
+    }*/
 }
 
 %extend block_dCSRmat{
@@ -160,23 +160,20 @@ import_array();
     
 };  
 
-
 %apply (double* IN_ARRAY1, int DIM1) {(double* A, int nnz)};
 %apply (int* IN_ARRAY1, int DIM1) {(int* ja, int nnz2)};
 %apply (int* IN_ARRAY1, int DIM1) {(int* ia, int n)};
-dCSRmat* create_matrix(double *A, int nnz, int *ja, int nnz2, int *ia, int n);   
-/* should clear the typemaps */ 
-
+%apply (int ncol) {(int ncol)};
+dCSRmat* create_matrix(double *A, int nnz, int *ja, int nnz2, int *ia, int n, int ncol);
+%clear (double *A, int nnz);
+%clear (int* ja, int nnz2);
+%clear (int *ia, int n);
+%clear (int ncol);
 
 %apply (double* IN_ARRAY1, int DIM1) {(double* x, int n)};
 dvector* create_dvector(double *x, int n); 
 %clear (double* a, int n);
 
-
-/* these three below should probably be removed */ 
-// input_param* create_input_param();
-// AMG_param* create_AMG_param(input_param *in_param);
-// linear_itsolver_param* create_linear_itsolver_param(input_param *in_param);
 /* this is here because helper functions seems to not be available in the library */
 /* NB: it will produce warnings in haznicswrap - this should be fixed later */
 void apply_precond(REAL *r, REAL *z, precond *pc);
@@ -189,7 +186,29 @@ precond* create_precond_hxcurl(dCSRmat *Acurl, dCSRmat *Pcurl, dCSRmat *Grad, SH
 precond* create_precond_hxdiv_3D(dCSRmat *Adiv, dCSRmat *P_div, dCSRmat *Curl, dCSRmat *P_curl, SHORT prectype, AMG_param *amgparam);
 precond* create_precond_hxdiv_2D(dCSRmat *Adiv,dCSRmat *P_div, dCSRmat *Curl, SHORT prectype, AMG_param *amgparam);
 INT get_poles_no(precond *pc);
-dvector* compute_ra_aaa(REAL s_frac_power, REAL t_frac_power, REAL alpha, REAL beta, REAL scaling_a, REAL scaling_m);
+// dvector* compute_ra_aaa(REAL s_frac_power, REAL t_frac_power, REAL alpha, REAL beta, REAL scaling_a, REAL scaling_m);
+
+%apply (int DIM1, double* IN_ARRAY1) {(int numval, double* z),
+                                      (int numval2, double* f)};
+//%apply (double AAA_tol) {(double AAA_tol)};
+%rename (ra_aaa) my_ra_aaa;
+%exception my_ra_aaa {
+    $action
+    if (PyErr_Occurred()) SWIG_fail;
+}
+%inline %{
+dvector* my_ra_aaa(int numval, double* z, int numval2, double* f, double AAA_tol) {
+    if (numval != numval2) {
+        PyErr_Format(PyExc_ValueError,
+                     "Arrays of lengths (%d,%d) given",
+                     numval, numval2);
+        return NULL;
+    }
+    return ra_aaa(numval, z, f, AAA_tol);
+}
+%}
+
+//void print_precond_ra_amgparam(precond *pc);
 
 %apply (int DIM1, double* IN_ARRAY1) {(int len1, double* vec1),
                                       (int len2, double* vec2)}

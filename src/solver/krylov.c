@@ -4,22 +4,13 @@
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
  *  \note  Some implementation ideas for Krylov method are from FASP package -- Xiaozhe Hu
- *  \note  Done cleanup for releasing -- Xiaozhe Hu 03/12/2017
+ *  \note  Done cleanup for releasing -- Xiaozhe Hu 03/12/2017 & 08/28/2021
  *
  *  \todo  Need to add convergence check for GCG -- Xiaozhe Hu
  *
  */
 
 #include "hazmath.h"
-
-/*! \file itsolver_util.inl
- *
- *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 5/13/15.
- *  Copyright 2015__HAZMATH__. All rights reserved.
- *
- *  \note  Done cleanup for releasing -- Xiaozhe Hu 03/12/2017
- *
- */
 
 /*---------------------------------*/
 /*--      Private Functions      --*/
@@ -61,6 +52,7 @@
 //! Output L2 norm of some variable
 #define ITS_PUTNORM(name,value) printf("L2 norm of %s = %e.\n",(name),(value));
 
+/***********************************************************************************************/
 /**
  * \fn inline static void ITS_CHECK (const INT MaxIt, const REAL tol)
  * \brief Safeguard checks to prevent unexpected error for iterative solvers
@@ -79,6 +71,7 @@ inline static void ITS_CHECK (const INT MaxIt, const REAL tol)
     }
 }
 
+/***********************************************************************************************/
 /**
  * \fn inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres)
  * \brief Print out final status of an iterative method
@@ -99,8 +92,9 @@ inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres
     }
 }
 
-/* PUBLIC FUNCTIONS */
-
+/*---------------------------------*/
+/*---     PUBLIC FUNCTIONS      ---*/
+/*---------------------------------*/
 /***********************************************************************************************/
 /**
  * \fn INT dcsr_pcg (dCSRmat *A, dvector *b, dvector *u, precond *pc,
@@ -2640,8 +2634,6 @@ INT dcsr_pvgmres (dCSRmat *A,
  *
  * \return             Iteration number if converges; ERROR otherwise.
  *
- * \author Chensong Zhang
- * \date   04/05/2013
  */
 INT bdcsr_pvgmres (block_dCSRmat *A,
                                dvector *b,
@@ -2657,10 +2649,10 @@ INT bdcsr_pvgmres (block_dCSRmat *A,
     const INT   MIN_ITER   = 0;
     const REAL  epsmac     = SMALLREAL;
 
-    //--------------------------------------------//
-    //   Newly added parameters to monitor when   //
-    //   to change the restart parameter          //
-    //--------------------------------------------//
+    //-------------------------------------//
+    //   parameters for monitoring when    //
+    //   to change the restart parameter   //
+    //-------------------------------------//
     const REAL cr_max      = 0.99;    // = cos(8^o)  (experimental)
     const REAL cr_min      = 0.174;   // = cos(80^o) (experimental)
 
@@ -2779,7 +2771,7 @@ INT bdcsr_pvgmres (block_dCSRmat *A,
         }
         else {
             if ( Restart - d > restart_min ) {
-                Restart -= d;
+                Restart = Restart - d;
             }
             else {
                 Restart = restart_max;

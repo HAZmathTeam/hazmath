@@ -18,7 +18,7 @@ csr2 =  petsc_mat.getValuesCSR()[2]
 print (csr0) 
 print (csr1) 
 print (csr2) 
-AA = haznics.create_matrix(csr2, csr1, csr0)
+AA = haznics.create_matrix(csr2, csr1, csr0, A.size(1))
 
 
 AAA = haznics.block_dCSRmat() 

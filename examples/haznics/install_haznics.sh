@@ -1,6 +1,5 @@
-#!/bin/bash
 # A simple shell script to get haznics python dependencies
-# Setup by Ana Budisa - 2021-07-15
+# Setup by Ana Budisa - 2021-07-15 (what a date this is!)
 
 # Install fenics
 echo "Installing fenics..."
@@ -23,11 +22,8 @@ echo "... Done."
 echo "Installing fenics_ii..."
 git clone https://github.com/MiroK/fenics_ii.git
 cd fenics_ii
-git fetch --all
-git checkout hsfrac-minimal
+python3 setup.py install --user
 cd ..
-
-export PYTHONPATH="./fenics_ii/":"$PYTHONPATH"
 echo "... Done."
 
 # Install hsmg
@@ -42,7 +38,7 @@ echo "... Done."
 
 # Install cbc.block
 echo "Installing cbc.block..."
-git clone https://mirok-w-simula@bitbucket.org/mirok-w-simula/cbc.block.git
+git clone https://bitbucket.org/fenics-apps/cbc.block.git
 cd cbc.block
 python3 setup.py install --user
 cd ..
@@ -52,15 +48,14 @@ echo "... Done."
 echo "Installing ulfy..."
 git clone https://github.com/MiroK/ulfy.git
 cd ulfy
-git checkout python3
 python3 setup.py install --user
 cd ..
 echo "... Done."
 
 # Install hazmath (with the python interface haznics=yes)
 echo "Installing hazmath (with haznics)..."
-make -C ../.. config shared=yes suitesparse=yes lapack=yes haznics=yes
+make -C ../.. config shared=yes suitesparse=yes lapack=yes haznics=yes swig=yes
 make -C ../.. install
 
-export PYTHONPATH="$(pwd)/../../swig_files/":"$PYTHONPATH"
 echo "... Done."
+

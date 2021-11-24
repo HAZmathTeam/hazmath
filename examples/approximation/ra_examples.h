@@ -1,6 +1,14 @@
 /************************************************************************/
+/************************************************************************/
 /*function to be approximated*/
-REAL16 f_to_approx_l(REAL16 x,void *param)
+REAL16 f_to_approx_l(REAL16 x,REAL16 s, REAL16 t, REAL16 alpha, REAL16 beta)
+{  
+  //  fprintf(stdout,"\ns1=%Lf; s2=%Lf; alpha=%Lf; beta=%Lf;",s,t,alpha,beta);
+  return 1./(alpha*powl(x,s)+beta*powl(x,t)); 
+}
+/**/
+/*OLD:function to be approximated*/
+REAL16 old_f_to_approx_l(REAL16 x,void *param)
 {
   REAL16 *s,s1,s2,alpha,beta;
   if(param!=NULL){
@@ -16,6 +24,6 @@ REAL16 f_to_approx_l(REAL16 x,void *param)
     beta=2e0;
   }
   //  fprintf(stdout,"\ns1=%Lf; s2=%Lf; alpha=%Lf; beta=%Lf;",s1,s2,alpha,beta);
-  return alpha*powl(x,s1)+beta*powl(x,s2); 
+  return f_to_approx_l(x,s1,s2,alpha,beta);
 }
 /**/
