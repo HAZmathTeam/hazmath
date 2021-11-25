@@ -1,0 +1,86 @@
+%----------------------------------------------%
+% input parameters: Laplacian_Simple_Test      %
+% lines starting with % are comments           %
+% must have spaces around the equal sign "="   %
+%----------------------------------------------%
+
+%---------------%
+% output flags
+%---------------%
+
+print_level			= 2;	% how much information to print out: 0 Nothing | >0 Something
+
+%---------------%
+% files
+%---------------%
+
+%gridfile                     = ../grids/1D/unitLINE_n17.haz
+%gridfile                      = ../grids/2D/unitSQ_n17.haz
+%gridfile                     = ../grids/3D/unitCUBE_n17.haz
+gridfile			= /Users/xhu03/Work/Projects/HAZMAT/hydrolena/data/grids/255_5layers.grd
+output_dir                    = ./output/
+
+%---------------%
+% finite element
+%---------------%
+
+nquad				= 2	% Quadrature nodes each direction
+
+FE_type				= 1	% 0-9 PX | 10-19 QX (not yet) | 20 Ned | 30 RT | -9--1 DGX (not yet)
+
+%---------------%
+% time stepping
+%---------------%
+
+time_step_type			= 1	% 0 CN | 1 BDF1 | 2 BDF2 |
+time_steps			= 0 	% number of time steps
+time_step_size			= 0.001	% time step size
+
+%---------------%
+% nonlinear solver
+%---------------%
+
+nonlinear_itsolver_type  	= 0    %  0 Linear Problem | 1 Newton | 2 Picard (not yet)
+nonlinear_itsolver_maxit	= 0   	% maximal iterations of nonlinear solver
+nonlinear_itsolver_tol		= 1e-8 	% tolerance for nonlinear solver
+nonlinear_itsolver_toltype	= 0 	% type of tolerance for nonlinear solver 1 - ||nonlinear residual||<tol OR 2 - ||update|| < tol OR 0 - BOTH
+
+%---------------%
+% linear solver
+%---------------%
+
+linear_itsolver_type	= 4    	% 0 Direct Solve | 1 CG | 2 MINRES | 3 GMRES | 4 FGMRES
+linear_itsolver_maxit	= 100  	% maximal iterations of linear iterative solver
+linear_itsolver_tol		= 1e-6  % tolerance for linear iterative solver
+linear_stop_type		= 1     	% 1 ||r||/||b|| | 2 ||r||_B/||b||_B | % 3 ||r||/||x||
+linear_restart 			= 100		% restart for GMRes
+
+linear_precond_type		= 6 	%40 - diag, 41 - lower, 42 - upper
+
+
+%----------------------------------------------%
+% parameters for Algebraic Multigrid           %
+%----------------------------------------------%
+
+AMG_type 			= UA	% UA unsmoothed AMG
+AMG_cycle_type		= W     % V V-cycle | W W-cycle | A AMLI-cycle | NA Nonlinear AMLI-cycle
+AMG_levels			= 20	%
+AMG_tol				= 1e-8
+AMG_maxit			= 2
+
+AMG_smoother			= GS	% JACOBI | GS | SGS | SOR | SSOR | L1DIAG |
+AMG_relaxation			= 1.2   % Relaxation for SOR
+AMG_presmooth_iter		= 1
+AMG_postsmooth_iter		= 1
+
+AMG_coarse_dof			= 100
+AMG_coarse_solver		= 32    % coarsest solver: 0 iterative | 32 UMFPACK
+AMG_coarse_scaling		= OFF	% OFF | ON
+
+AMG_amli_degree          	= 2     % degree of the polynomial used by AMLI cycle
+AMG_nl_amli_krylov_type  	= 5	% Krylov method in nonlinear AMLI cycle: 5 GCG |  6 GCR
+
+% aggregation AMG
+AMG_aggregation_type		= 4     % 1 VMB | 4 HEC
+AMG_strong_coupled		= -0.05  % Strong coupled threshold
+AMG_max_aggregation		= 10	% Max size of aggregations

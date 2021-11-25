@@ -1,0 +1,26 @@
+
+INPUT NOTE: Number of points in one direction is = 2^(levels)+1.
+           *Enter the desired number of levels (2-20): 
+           *Enter spatial dimension (2 or 3): 
+
+           *Enter number of smoothing steps: 
+
+           *(V-cycles or FMG): [0 or 1]: 
+
+*Number of levels is set to  :       11
+*Num. points in one direction:     2049
+*Spatial dimension is set to :        3
+*Num. of Smoothing steps     :        2
+
+**V-cycle iterations
+
+**Stopping criteria: |rk|/|r0| <     9.54e-07
+
+***** NUMBER OF UNKNOWNS=8602523649
+
+**MEMORY NEEDED (DOUBLE):  ( 28270238867) ==> Bytes/dof     26.29
+
+ 8 V-cycles; rel.residual= 4.803e-07 ; damp.factor= 1.602e-01
+
+ ***CPU (calculated by clock())=   4971.07 seconds
+

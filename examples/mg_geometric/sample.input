@@ -1,0 +1,13 @@
+8
+3
+2
+0
+
+First is number of levels (7 in this example)
+
+Second is the spatial dimension (2 in this example)
+
+Third is the number of smoothing steps (2 in this example)
+
+Forth is indicator whether FMG cycle is used or no. 1 is FMG 0 is V-cycle
+
