@@ -19,11 +19,11 @@
  *                  (typically 0) is the newest vertex bisection
 */
 #ifndef REFINEMENT_TYPE
-#define REFINEMENT_TYPE 0
+#define REFINEMENT_TYPE 11
 #endif
 /**/
 #ifndef REFINEMENT_LEVELS
-#define REFINEMENT_LEVELS 7
+#define REFINEMENT_LEVELS 6
 #endif
 /**/
 #ifndef SPATIAL_DIMENSION
