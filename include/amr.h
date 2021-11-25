@@ -109,7 +109,7 @@ typedef struct {
   INT nv; /* number of vertices in the graph describing the
 	     computational domain */
   REAL *xv; /* coordinates for each vertex [nv][dim]*/
-  INT *csysv; /* coordinate system labels for vertices [nv]*/
+  INT *csysv; /* which coordinate system gives the coordinates of a vertex [nv]*/
   INT *labelsv; /* coordinate system labels for vertices [nv]*/
   INT *bcodesv; /* boundary codes for vertices [nv]*/
   INT ne; /* number of edges/segments */

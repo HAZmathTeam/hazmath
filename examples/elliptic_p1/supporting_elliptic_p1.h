@@ -112,7 +112,7 @@ static dvector fe_sol(scomplex *sc,const REAL alpha,const REAL gamma)
   //  dvector_print(stdout,&f);
   //  dvector_print(stdout,&rhs);
   clock_t clk_assembly_end = clock(); // End of timing for mesh and FE setup
-  fprintf(stdout,"\n%%%%%%CPUtime(assembly) = %.3f sec",
+  fprintf(stdout,"\n%%%%%%CPUtime(assembly) = %.3f sec\n",
 	  (REAL ) (clk_assembly_end - clk_assembly_start)/CLOCKS_PER_SEC);
   if(print_level > 5)
     csr_print_matlab(stdout,&M);  
@@ -208,7 +208,7 @@ static INT proj_lower_dim(scomplex *dsc)
 {
 // dsc should be a boundary complex.
   if(dsc->nbig != (dsc->n+1)){
-    fprintf(stdout,"\n%%%%******* ERROR: Wrong dimensions of the boundary simplicial complex");
+    fprintf(stdout,"\n%%%%******* ERROR: Wrong dimensions of the boundary simplicial complex\n");
     return 1;
   }
   REAL tol=1e-10;
@@ -236,11 +236,9 @@ static INT proj_lower_dim(scomplex *dsc)
       }
     }
     if(remove) continue;
-    //    fprintf(stdout,"\nnews=%d: ",nsnew);fflush(stdout);
     for(j=0;j<n1;j++){
       node=dsc->nodes[i*n1+j];
       dsc->nodes[nsnew*n1+j]=indv[node];
-      //      fprintf(stdout,"(%d->%d)",node,indv[node]);fflush(stdout);
     }
     dsc->flags[nsnew]=0;
     nsnew++;
@@ -250,14 +248,12 @@ static INT proj_lower_dim(scomplex *dsc)
     if(node>=0) {
       // copy coordinates after projection:
       xn=1e0/(1e0-dsc->x[nbig*i+nbig-1]);
-      //      fprintf(stdout,"\ni=%d,node=%d,xnold=%e,xn=%e",i,node,dsc->x[nbig*i+nbig-1],xn);
       for(j=0;j<dsc->n;j++){
 	dsc->x[node*n+j]=dsc->x[i*nbig+j]*xn;
       }
       dsc->bndry[node]=0;
     }
   }
-  //  fprintf(stdout,"\n");
   free(indv);
   // adjust sizes;
   dsc->nbig=n;
@@ -265,9 +261,6 @@ static INT proj_lower_dim(scomplex *dsc)
   dsc->nv=nvnew;
   dsc->nodes=realloc(dsc->nodes,dsc->ns*(dsc->n+1)*sizeof(INT));
   dsc->x=realloc(dsc->x,(dsc->nv*dsc->n)*sizeof(REAL));
-  //  fprintf(stdout,"\nProjection on lower dim scomplex: simplices=%d,vertices=%d\n\n", \
-  dsc->ns,dsc->nv);fflush(stdout);
-  //haz_scomplex_print(dsc,0,__FUNCTION__);
   return 0;
 }
 /**********************************************************************************/
@@ -288,7 +281,6 @@ static INT proj_lower_dim(scomplex *dsc)
 static void draw_grids(const SHORT todraw,scomplex *sc, dvector *sol)
 { 
   if(!todraw){
-    //    fprintf(stdout,"\nNO PLOT requred.");
     // no drawing needed, so return;
     return;
   }
@@ -310,10 +302,10 @@ static void draw_grids(const SHORT todraw,scomplex *sc, dvector *sol)
   INT idsc;
   switch(sc->n){
   case 5:
-    fprintf(stdout,"\nNO PLOT: Dimension=%d is too large for plotting",sc->n);
+    fprintf(stdout,"\n%%%% **** NO PLOT: Dimension=%d is too large for plotting\n\n",sc->n);
     break;
   case 4:
-    fprintf(stdout,"\nNO PLOT: Dimension=%d is too large for plotting",sc->n);
+    fprintf(stdout,"\n%%%% **** NO PLOT: Dimension=%d is too large for plotting\n\n",sc->n);
     /* if(dsc) { */
     /*   idsc = proj_lower_dim(dsc); */
     /*   vtkw("output/4d_to_3d.vtu",dsc,0,1.); */
