@@ -218,7 +218,7 @@ scomplex *umesh(const INT dim,					\
   // second pass: set boundaries, so that the bondaries are the ones
   // that we care about:
   /******************************************************************/
-  icsr_realloc(sc->nv,sc->n,sc->n*sc->nv,sc->bndry_v); // a vertex belongs to at most dim and also for the codes.
+  icsr_realloc(sc->nv,sc->n,sc->n*sc->nv,sc->bndry_v); // a vertex belongs to at most dim faces in every macroelement; and also for the codes.
   sc->bndry_v->val=realloc(sc->bndry_v->val,2*sc->bndry_v->nnz*sizeof(INT));// 2 values per vertex per dimension
   // init the column indices to negative
   for(j=0;j<sc->bndry_v->nnz;++j)

@@ -118,11 +118,11 @@ struct mesh_struct make_uniform_mesh(const INT dim,const INT mesh_ref_levels,con
   INT jlevel,k;
 
   // Create a simplicial complex
-  scomplex *sc=NULL,*sctop=NULL;
+  scomplex **sc_all=NULL,*sc=NULL,*sctop=NULL;
 
   // Get the coarsest mesh on the cube in dimension dim and set the refinement type.
-  sc=mesh_cube_init(dim,mesh_ref_type);
-
+  sc_all=mesh_cube_init(dim,mesh_ref_type);
+  sc=sc_all[0];
   if(sc->ref_type>10){
     // Uniform refinement only for dim=2 or dim=3
     if(dim==3){
@@ -159,12 +159,16 @@ struct mesh_struct make_uniform_mesh(const INT dim,const INT mesh_ref_levels,con
     ivec_free(&marked);
   }
   // Get boundary codes
-  scfinalize(sc,set_bndry_codes);
+  scfinalize(sc,(INT )1);
   sc_vols(sc);
+  /* vtkw("mesh.vtu",sc,0,1.); // to plot with paraview*/
   // Convert to mesh_struct for FEM assembly
   mesh_struct mesh0=sc2mesh(sc);
-  // Free simplicial complex
-  haz_scomplex_free(sc);
+  // Free simplicial complex  
+  ////////////////////////////////////////////////////
+  haz_scomplex_free(sc_all[0]);
+  free(sc_all);
+  ////////////////////////////////////////////////////
   // Build remaining components of the mesh
   build_mesh_all(&mesh0);
   return mesh0;
