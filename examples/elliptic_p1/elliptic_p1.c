@@ -23,7 +23,7 @@
 #endif
 /**/
 #ifndef REFINEMENT_LEVELS
-#define REFINEMENT_LEVELS 17
+#define REFINEMENT_LEVELS 7
 #endif
 /**/
 #ifndef SPATIAL_DIMENSION
@@ -41,11 +41,12 @@ int main(int argc, char *argv[])
   INT ref_type=REFINEMENT_TYPE; // >10 uniform refinement;
   //
   INT jlevel,k;
-  scomplex *sc=NULL,*sctop=NULL;
+  scomplex **sc_all=NULL,*sc=NULL,*sctop=NULL;
   /**/
   ivector marked;  marked.row=0;  marked.val=NULL;
   dvector sol;  sol.row=0;  sol.val=NULL;
-  sc=mesh_cube_init(dim,ref_type);
+  sc_all=mesh_cube_init(dim,ref_type);
+  sc=sc_all[0];
   /**/
   if(sc->ref_type>10){
     if(dim==3){
@@ -83,30 +84,30 @@ int main(int argc, char *argv[])
       /*  MAKE sc to be the finest grid only */
     }
   }
-  scfinalize(sc,(INT )0);
+  scfinalize(sc,(INT )1);
   sc_vols(sc);
-  // now let us map it to a different domain:
-  //
-  REAL *vc=NULL;
-  if(dim==2){
-    REAL vc[]={-1.00, -2.00,			\
-    	       -2.00, -1.10,			\
-    	       0.00,  1.00,			\
-    	       0.50,  0.75};			\
-    mapit(sc,vc);
-  } else if(dim==3){
-    REAL vc[]={-1.00, -2.00, -1.00,		\
-    	       -2.00, -1.10, -1.00,		\
-    	       0.00,   1.00, -1.00,		\
-    	       0.50,   0.75, -1.00,		\
-    	       -1.00, -2.00,  1.00,		\
-    	       -2.00, -1.10,  1.00,		\
-    	       0.50,   0.75,  0.55,		\
-    	       0.00,   1.00,  0.75};
-    mapit(sc,vc);
-  }
-  //  icsr_print_matlab(stdout,sc->parent_v);
-  //  haz_scomplex_print(sc,0,__FUNCTION__);
+  ////////////////////////////////////////////// END MAP IT. 
+  /* // now let us map it to a different domain: */
+  /* // */
+  /* REAL *vc=NULL; */
+  /* if(dim==2){ */
+  /*   REAL vc[]={-1.00, -2.00,			\ */
+  /*   	       -2.00, -1.10,			\ */
+  /*   	       0.00,  1.00,			\ */
+  /*   	       0.50,  0.75};			\ */
+  /*   mapit(sc,vc); */
+  /* } else if(dim==3){ */
+  /*   REAL vc[]={-1.00, -2.00, -1.00,		\ */
+  /*   	       -2.00, -1.10, -1.00,		\ */
+  /*   	       0.00,   1.00, -1.00,		\ */
+  /*   	       0.50,   0.75, -1.00,		\ */
+  /*   	       -1.00, -2.00,  1.00,		\ */
+  /*   	       -2.00, -1.10,  1.00,		\ */
+  /*   	       0.50,   0.75,  0.55,		\ */
+  /*   	       0.00,   1.00,  0.75}; */
+  /*   mapit(sc,vc); */
+  /* } */
+  ////////////////////////////////////////////// END MAP IT. 
   sol=fe_sol(sc,1.0,1.0);
   short todraw=1;
   draw_grids(todraw, sc,&sol);
@@ -114,6 +115,7 @@ int main(int argc, char *argv[])
   /* hazw("output/mesh.haz",sc,0); */
   dvec_free(&sol);
   ivec_free(&marked);
-  haz_scomplex_free(sc);  
+  haz_scomplex_free(sc_all[0]);  
+  free(sc_all);  
   return 0;
 }
