@@ -52,7 +52,7 @@ scomplex **mesh_cube_init(const INT dim, const INT ref_type)
   g->csysv=(INT *)calloc(g->nv,sizeof(INT));
   g->labelsv=(INT *)calloc(g->nv,sizeof(INT));
   g->bcodesv=(INT *)calloc(g->nv,sizeof(INT));
-  // init these as they are not needed
+  // init these as 0 (they are not needed in this example).
   memset(g->systypes,0,g->ncsys*sizeof(INT));
   memset(g->syslabels,0,g->ncsys*sizeof(INT));
   memset(g->csysv,0,g->nv*sizeof(INT));
