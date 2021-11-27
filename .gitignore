@@ -18,6 +18,10 @@ haz_docs/tex_docs/*.*
 *.bak
 .DS_Store
 swig_files/
+cbc.block/
+fenics_ii/
+quadpy/
+ulfy/
 octave-workspace
 examples/HeatEquation/output/*.vtu
 examples/HeatEquation/output/*.dat
@@ -43,3 +47,4 @@ HAZMATH.pro
 junk.*
 *.bak
 hazmath-*.tar.gz
+
