@@ -1,0 +1,12 @@
+#####################################################
+# Last Modified 2017-09-29 --jha
+####################################################
+
+
+To make the executables for the examples:
+   1. edit the variables in examples.mk to match your system.
+   2. change to the directory with an example and type "make", e.g.:
+      cd basic_elliptic ; make
+   3. Note that if you want to link to an external package, such as SuiteSparse
+      make sure that HAZMATH was compiled appropriately and modify the makefile in
+      specific examples directory as needed.

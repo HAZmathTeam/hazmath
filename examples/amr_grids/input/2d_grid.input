@@ -1,0 +1,107 @@
+%----------------------------------------------%
+% input parameters: for grid generation        %
+%----------------------------------------------%
+title{2D Sector (polar coords)}
+%
+dimension{2}   % spatial dimension in which the grid has to be generated
+%
+print_level{0}	% how much information to print out: 0 Nothing | >0 Something
+
+refinement_type{0}
+
+
+%---------------%
+% files:  writeable by the user
+% vtu files for plotting follow the same convention.
+%---------------%
+file_grid{output/2d_sector.haz}
+file_vtu{output/2d_sector.vtu}
+
+%---------------%
+% coordinate systems: Each has coordinates of the origin o[0:dim-1]
+%                     type (0=cartesian, 1=polar)
+%
+%---------------%
+
+num_coordsystems{3} % number of coordinate systems
+
+%% data for the coord systems: coord-system label, coords of the
+%% origin, type. the labels should be integers, consequtive and start
+%% from 0 the values of the above quantities are given as space tab
+%% separated values
+
+data_coordsystems{0 0 0. 0.  
+		  1 1 0. 0. 
+		  2 1 -1. -1.}
+%---------------%
+% graph which describes the domain. The input are
+% vertices and edges. The graph has to be a union of polygons,
+% of polyhedrons that are isomorphic to an n-dimensional cube.
+%---------------%
+
+num_vertices{4} %number of vertices
+
+%---------------%
+%---------------%
+
+%%% coords, type, origin for polar system: angles are in degrees
+data_vertices{0 0 -1.   -1.
+	       1 1 2.    0.    
+	       2 1 2.   90. 
+	       3 1 2.   45.}
+
+
+%data_vertices{0 0 -1.   -1.   
+%	      1 0   1.   -1.    
+%	      2 0  -1.   1.    
+%	      3 0   1.   1.    }
+%
+%---------------%
+% edges and number of divisions for every edge.
+% opposite edges have the same number of divisions. if they do not,
+% then the max number of divisions is taken.
+%---------------%
+
+num_edges{4} %
+
+%% edge: 1st vertex, 2nd vertex, number of divisions.
+data_edges{0 1	1 
+           1 3 		2
+           0 2 		4
+  	   2 3     	3	      }
+
+
+%%% ====================MACROELEMENTS=========================
+num_macroelements{1}
+%%% NUMBERING OF VERTICES DESCRIBING A MACROELEMENT: Check the README.
+
+%%% macroelement number, vertices forming the macroelement, macroelement code.
+
+data_macroelements{0 1 2 3  -11 
+}
+
+num_macrofaces{4}
+
+% any face which needs a code (for example boundary faces: face
+% number. If a face is not included here and is a boundary face then
+% its code is set to Dirichlet (i.e. 1...16). Internal faces not found
+% here have a code 0. Faces given here and not found in the
+% macroelement list are ignored.
+
+data_macrofaces{0 1  1
+		1 3  31
+		0 2   2
+		3 2 14
+		   }
+
+%%%%%%%%%%%%%%AMR %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+num_refinements{1}
+
+err_stop_refinement{        -1.e-10        }
+
+%%% marking type: 0 everything is marked; not zero can be user defined
+%%%  marking strategy as in the examples given in the file
+%%%  solve_estimate_mark.h
+
+amr_marking_type{0}
+

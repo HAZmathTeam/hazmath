@@ -1,0 +1,29 @@
+/*! \file examples/mg_geometric/README
+ *
+ *  Copyright 2007_HAZMATH__. All rights reserved.
+ *  James Adler, Xiaozhe Hu, and Ludmil Zikatanov.
+ *
+ * \brief This program solves the Poisson equation
+ *
+ *        -Delta(u) = f,
+ *
+ *        on the unit square in 2D or the unit cube in 3D  using V-cycle
+ * 	  multigrid method with Dirichlet boundary conditions
+ *
+ * \note With contributions from Johannes K. Kraus and Yunrong Zhu.
+ * \note Created by Ludmil Zikatanov 20070109 (yyyymmdd)
+ *
+ */
+/***********************************************************************/
+
+To make an executable, type "make"
+
+The Executable is called "gmg.ex"
+
+Run by typing 
+
+ ./gmg.ex < sample.input
+
+
+
+
