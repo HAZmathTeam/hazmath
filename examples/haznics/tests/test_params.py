@@ -57,7 +57,8 @@ print("AMG_param is able to read from in_param even though I have added the vari
 param_amg_print(amgparam)
 print(20*"-")
 
-print(" Testing input of wrong type, AMG_maxit is now float " )
+print(" Testing input of wrong type, AMG_maxit is now float" )
+print(" !!! This should raise a TypeError with \'AMG_maxit\' !!! ")
 d = {"print_level" : 1, "gridfile" : "mesh", "nquad" : 4, "trouble" : 3, "AMG_maxit" : 12.0  }
 param_input_set_dict(d, in_param)
 
