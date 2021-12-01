@@ -125,8 +125,9 @@ static void level_ordering(iCSRmat *A, iCSRmat *lbfs)
  *
  * \note: 20210622 (ltz);
  */
-static ivector sparse_MIS0(dCSRmat *a, iCSRmat *lbfs, ivector *anc)
+static dCSRmat sparse_MIS0(dCSRmat *a, iCSRmat *lbfs, ivector *anc)
 {
+  // gives R=[0,I];
     //!  A 
     INT n = a->row;
     INT *ia = a->IA;
@@ -135,15 +136,14 @@ static ivector sparse_MIS0(dCSRmat *a, iCSRmat *lbfs, ivector *anc)
     // local variables
     INT i,j,ii,jk;
     INT row_begin, row_end;
-    INT count=0;
+    INT nc=0;
     INT *flag;
     flag = (INT *)calloc(n, sizeof(INT));
     memset(flag, 0, sizeof(INT)*n);
-
     //! return
-    ivector mis;
-    mis.row = 0; // this is temporary, not used till the end
-    mis.val = (INT*)calloc(n,sizeof(INT));
+    dCSRmat Pt=dcsr_create(n,n,n);
+    INT nnzpt=0;
+    Pt.IA[0]=nnzpt;
     if(iord != NULL){
       /*main loop*/
       for (ii=0;ii<n;ii++) {
@@ -154,7 +154,7 @@ static ivector sparse_MIS0(dCSRmat *a, iCSRmat *lbfs, ivector *anc)
 	  if(row_end-row_begin<2) {
 	    /* as before: isolated point, just skip it; */
 	    flag[i] = -1;
-	    fprintf(stdout,"\nflag[%d]=%d, row_size=%d",i,flag[i],row_end-row_begin);
+	    //	    fprintf(stdout,"\nflag[%d]=%d, row_size=%d",i,flag[i],row_end-row_begin);
 	    continue;
 	  }
 	  for (jk = row_begin; jk<row_end; jk++) {
@@ -165,7 +165,10 @@ static ivector sparse_MIS0(dCSRmat *a, iCSRmat *lbfs, ivector *anc)
 	    }
 	  }
 	  if (flag[i]>0) {
-	    mis.val[count] = i; count++;
+	    Pt.JA[Pt.IA[nc]] = i;
+	    Pt.val[Pt.IA[nc]] = 1e0;
+	    nc++; nnzpt++;
+	    Pt.IA[nc] = nnzpt;
 	    for (jk = row_begin; jk<row_end; jk++) {
 	      flag[ja[jk]] = -1;
 	    }
@@ -191,7 +194,10 @@ static ivector sparse_MIS0(dCSRmat *a, iCSRmat *lbfs, ivector *anc)
 	    }
 	  }
 	  if (flag[i]>0) {
-	    mis.val[count] = i; count++;
+	    Pt.JA[Pt.IA[nc]] = i;
+	    Pt.val[Pt.IA[nc]] = 1e0;
+	    nc++; nnzpt++;
+	    Pt.IA[nc] = nnzpt;
 	    for (j = row_begin; j<row_end; j++) {
 	      flag[ja[j]] = -1;
 	    }
@@ -200,14 +206,17 @@ static ivector sparse_MIS0(dCSRmat *a, iCSRmat *lbfs, ivector *anc)
       }// end for
     }
     // form Maximal Independent Set
-    fprintf(stdout,"\n\ncount=%d; coarsening ratio = %7.2f\n",count, ((REAL )n)/((REAL )count));
-    mis.row = count;
-    mis.val=(INT *)realloc(mis.val, count*sizeof(INT));
-    //    ivector_print(stdout,&mis);
-    // clean
+    Pt.row = nc;
+    Pt.col = n;
+    Pt.nnz=nnzpt;
+    Pt.JA=(INT *)realloc(Pt.JA, nnzpt*sizeof(INT));
+    Pt.val=(REAL *)realloc(Pt.val, nnzpt*sizeof(REAL));
     if (flag) free(flag);
+    dCSRmat P=dcsr_create(0,0,0);
+    dcsr_trans(&Pt,&P);
+    dcsr_free(&Pt);    
     //return
-    return mis;
+    return P;
 }
 /*********************************************************************/
 INT main(INT argc, char **argv)
@@ -223,51 +232,50 @@ INT main(INT argc, char **argv)
   //  for(k=0;k<argc;k++)
   //    fprintf(stdout,"\n%%%%arg(%3d)=\'%s\'",k,argv[k]);
   //  fprintf(stdout,"\n%%%%==============\n");
-  ish=0;
   //    fp=fopen(argv[1],"r");
   dcoo_read_dcsr(argv[1],&a);
   n=a.row;
   nnz=a.nnz;
   ia=a.IA;
   ja=a.JA;
-  fprintf(stdout,"\nn=%d,m=%d,nnz=%d",n,a.col,nnz);fflush(stdout);
-  fprintf(stdout,"\n%%%%n=%3d,nnz=%3d,shift=%3d\n",n,nnz,ish);fflush(stdout);
-  if(ish){
-    for(k=0;k<=n;k++) ia[k]+=ish;
-    for(k=0;k<nnz;k++) ja[k]+=ish;
-  }
-  //
+  //  fprintf(stdout,"\nn=%d,m=%d,nnz=%d",n,a.col,a.nnz);fflush(stdout);
   anc=ivec_create(n);
   inv_ord=ivec_create(n);
   ldfsbfs=lex_bfs(n,ia,ja,&inv_ord,&anc);
-  lbfs=ldfsbfs[1];
+  ivec_free(&inv_ord);
+  ivec_free(&anc);
+  icsr_free(ldfsbfs[0]);
+  free(ldfsbfs[0]);
   // dfs is not needed, use it as work space if we would like to choose CG level by level. 
   //  level_ordering(ldfsbfs[0],ldfsbfs[1]);
   //  icsr_print_rows(stdout,0,ldfsbfs[0],"levels");
   // Now choose MIS
-  ivector mis=sparse_MIS0(&a, ldfsbfs[1],&anc);
-  icsr_free(ldfsbfs[0]);
+  dCSRmat P=sparse_MIS0(&a, ldfsbfs[1],&anc);
+  fprintf(stdout,"\n%d %d %d\n",P.row,P.col,P.nnz);
+  csr_print_matlab(stdout,&P);
+  /* iCSRmat xxx=icsr_create(0,0,0); */
+  /* xxx.row=P.row; */
+  /* xxx.col=P.col; */
+  /* xxx.nnz=P.nnz; */
+  /* xxx.IA=P.IA; */
+  /* xxx.JA=P.JA; */
+  /* //  icsr_print_rows(stdout,0,&xxx,"XXX"); */
+  
+  //  fprintf(stdout,"\n\n%%%%n=%d; nc=%d, coarsening ratio = %7.2f\n",P.row,P.col,((REAL )P.row)/((REAL )P.col) );
+  
   icsr_free(ldfsbfs[1]);
-  free(ldfsbfs[0]);
   free(ldfsbfs[1]);
   free(ldfsbfs);
-  ivec_free(&anc);
-  ivec_free(&inv_ord);
-  if(argc>1){
-    dcsr_free(&a);
-    ivec_free(&inv_ord);
-    ivec_free(&anc);
-  }else{
-    free(ia);
-    free(ja);
-  }
-    return 0;
+  //
+  dcsr_free(&a);
+  dcsr_free(&P);
+  return 0;
 }
   //
   //
   /* fprintf(stdout,"\np=["); */
   /* for(k=0;k<n;k++){ */
-  /*   fprintf(stdout,"%3d ",lbfs->JA[k]+1); */
+  /*   fprintf(stdout,"%3d ",ldfsbfs[1]->JA[k]+1); */
   /* } */
   /* fprintf(stdout,"];\n"); */
   /* fprintf(stdout,"\npinv=["); */
@@ -277,11 +285,11 @@ INT main(INT argc, char **argv)
   /* fprintf(stdout,"];\n"); */
   /* fprintf(stdout,"\nlevel=["); */
   /* for(k=0;k<n;k++){ */
-  /*   fprintf(stdout,"%3d ",lbfs->val[lbfs->JA[k]]+1); */
+  /*   fprintf(stdout,"%3d ",ldfsbfs[1]->val[ldfsbfs[1]->JA[k]]+1); */
   /* } */
   /* fprintf(stdout,"];\n"); */
   /* fprintf(stdout,"\ntree=["); */
   /* for(k=0;k<n;k++){ */
-  /*   fprintf(stdout,"%3d ",anc.val[lbfs->JA[k]]+1); */
+  /*   fprintf(stdout,"%3d ",anc.val[ldfsbfs[1]->JA[k]]+1); */
   /* } */
   /* fprintf(stdout,"];\n"); */
