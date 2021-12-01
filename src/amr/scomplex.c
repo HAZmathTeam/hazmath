@@ -36,9 +36,9 @@ void haz_scomplex_realloc(scomplex *sc)
   sc->bndry=realloc(sc->bndry,nv*sizeof(INT));
   sc->csys=realloc(sc->csys,nv*sizeof(INT));
   sc->flags=realloc(sc->flags,ns*sizeof(INT)); // element flags
-  sc->vols=realloc(sc->vols,ns*sizeof(REAL)); // element flags
+  sc->vols=realloc(sc->vols,ns*sizeof(REAL)); // element volumes
   for (i = 0;i<sc->ns;i++) {
-    sc->marked[i] = FALSE; // because first is used for something else.
+    sc->marked[i] = FALSE; // because first this array is used as working array.
     sc->gen[i] = 0;
     sc->parent[i]=-1;
     sc->child0[i]=-1;
@@ -231,6 +231,8 @@ scomplex *haz_scomplex_init(const INT n,INT ns, INT nv,const INT nbig)
     free(sc->parent_v->val);
     sc->parent_v->val=NULL;
   }
+  sc->bndry_v=malloc(sizeof(iCSRmat));
+  sc->bndry_v[0]=icsr_create(0,0,0);
   return sc;
 }
 /**********************************************************************/
@@ -274,6 +276,8 @@ scomplex haz_scomplex_null(const INT n,const INT nbig)
   sc.nodes=NULL;
   sc.bndry=NULL;
   sc.csys=NULL;
+  sc.bndry_v=malloc(sizeof(iCSRmat));
+  sc.bndry_v[0]=icsr_create(0,0,0); //
   sc.parent_v=malloc(sizeof(iCSRmat));
   sc.parent_v[0]=icsr_create(0,0,0);
   sc.flags=NULL;
@@ -285,7 +289,6 @@ scomplex haz_scomplex_null(const INT n,const INT nbig)
   sc.etree=NULL;
   sc.bfs=malloc(sizeof(iCSRmat));
   sc.bfs[0]=icsr_create(0,0,0);
-  // the parent_v->val is not needed for now
   return sc;
 }
 /**********************************************************************/
@@ -523,11 +526,14 @@ void haz_scomplex_free(scomplex *sc)
   if(sc->nbr) free(sc->nbr);
   if(sc->csys) free(sc->csys);
   if(sc->etree) free(sc->etree);
+  if(sc->bndry_v) {
+    icsr_free(sc->bndry_v);free(sc->bndry_v);sc->bndry_v=NULL;
+  }
   if(sc->parent_v) {
-    icsr_free(sc->parent_v);free(sc->parent_v);
+    icsr_free(sc->parent_v);free(sc->parent_v);sc->parent_v=NULL;
   }
   if(sc->bfs) {
-    icsr_free(sc->bfs);free(sc->bfs);
+    icsr_free(sc->bfs);free(sc->bfs);sc->bfs=NULL;
   }
   if(sc) free(sc);
   return;
@@ -747,6 +753,7 @@ INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew,	\
     sc->parent_v->nnz+=2;
     sc->parent_v->IA=realloc(sc->parent_v->IA,(nvnew+1)*sizeof(REAL));
     sc->parent_v->IA[nvnew]=sc->parent_v->nnz;
+    /* fprintf(stdout,"\nnv=%d; nvnew=%d;nnz_pv=%d(pv[0]=%d,pv[1]=%d)",nv,nvnew,sc->parent_v->nnz,pv[0],pv[1]); */
   }
   //generation
   sc->gen=realloc(sc->gen,(nsnew)*sizeof(INT));
@@ -788,7 +795,9 @@ INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew,	\
  *
  * \return
  *
- * \note
+ * \note The algorithm is found in Traxler, C. T. An algorithm for
+ *       adaptive mesh refinement in n-dimensions. Computing 59
+ *       (1997), no. 2, 115–137 (MR1475530)
  *
  */
 INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
@@ -808,7 +817,7 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
   for (i=1;i<n;i++){
     snbri=sc->nbr[isn1+i] ; // the on-axis neighbor.
     if(snbri<0) continue; //this is a boundary
-    if (sc->gen[snbri]<sc->gen[is]){//this was wrong in the traxler's paper
+    if (sc->gen[snbri]<sc->gen[is]){//this was wrong in the code in the Traxler's paper
       haz_refine_simplex(sc,snbri,-1);
       nsnew=sc->ns;
       nvnew=sc->nv;

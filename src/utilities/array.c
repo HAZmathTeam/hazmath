@@ -602,4 +602,105 @@ void d2ld(REAL16 *dest,REAL *src, const INT n)
   for (j=0;j<n;++j) dest[j]=(REAL16 )src[j];
   return;
 }
+/*!
+ * \fn INT array_uniq(const INT n,INT *a)
+ *
+ * \brief in a sorted array, removes all repeated entries and returns
+ *        the size of the array with no repetitions counted.
+ *
+ * \param n  the size of the array a
+ *
+ * \param a on input a is a pointer to a sorted integer array, on
+ *          output the first j entries of a are the array with no
+ *          repetitions.
+ *
+ *
+ */
+INT array_uniq(const INT n,INT *a)
+{
+  // remove duplicates from a sorted array; the array size is changed
+  INT i,j;
+  if(n<=1) return n;
+  if((n==2) && (a[0]==a[1])){
+    return 1;
+  } else if (n==2){
+    return 2;
+  }
+  j=n-1;
+  for(i=j;i>0;--i)
+    a[i]=a[i]-a[i-1];
+  j=1;
+  for(i=1;i<n;++i)
+    if(a[i]) 
+      a[j++]=a[i];
+  for(i=1;i<j;++i)
+    a[i]=a[i-1]+a[i];
+  return j;
+}
+/*!
+ * \fn INT array_cap(const INT n1i,INT *a1i,	\
+ *	       const INT n2i, INT *a2i,		\
+ *	       INT *acap, INT *wrk)
+ *
+ * \brief find the intersection of two sorted arrays with no repeating entries
+ *
+ * \param n1  the size of the array a1i
+ * \param a1i a pointer to the first sorted integer array with no
+ *            repeated entries
+ * \param n2  the size of the array a2i
+ * \param a2i a pointer to the second sorted integer array with no
+ *            repeated entries
+ *
+ * \param acap array with enough space to hold the intersection. 
+ * \param wrk working array of at least n1i+n2i entries to copy the
+ *            original arrays.
+ *
+ * \return 0 if the intersection is empty or the size of the intersection.
+ *        
+ *
+ *
+ */
+INT array_cap(const INT n1i,const INT *a1i,	\
+	       const INT n2i, const INT *a2i,		\
+	       INT *acap, INT *wrk)
+{ // wrk must be of size (n1i+n2i)
+  INT *a1=wrk;
+  INT *a2=wrk+n1i;
+  /*First array*/
+  memcpy(a1,a1i,n1i*sizeof(INT));
+  isi_sort(n1i,a1);
+  INT n1=array_uniq(n1i,a1);
+  /*Second array*/
+  memcpy(a2,a2i,n2i*sizeof(INT));
+  isi_sort(n2i,a2);
+  INT n2=array_uniq(n2i,a2);
+  //////////////////////////////////////////////////
+  INT  ncap=0, i=0, j=0;
+  while ((i < n1) && (j < n2)) {
+    if (a1[i] < a2[j])
+      i++;
+    else if (a1[i] > a2[j]){
+      j++;
+    } else {
+      acap[ncap]=a2[j];
+      ncap++;
+      j++;i++;
+    }
+  }
+  if(ncap) {
+    for(i=0;i<ncap;++i){
+      wrk[i]=-1;
+      for(j=0;j<n1i;j++){
+	if(acap[i]!=a1i[j]) continue;
+	wrk[i]=j;
+      }
+    }
+  }
+  /* if(ncap) */
+  /*   acap=realloc(acap,(ncap)*sizeof(INT)); */
+  /* else{ */
+  /*   acap=NULL; */
+  /* } */
+  return ncap;
+}
 /*************************************  END  ******************************************************/

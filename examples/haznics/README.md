@@ -1,16 +1,18 @@
 Install additional packages required by the haznics demos: 
-- edit "install_haznics.sh" to match your system
-- in terminal, run ./install_haznics.sh
+- edit setup.rc and, if needed, install_haznics.sh to match your system
 
-# Running tests:
+### Source the setup file (this executes install_haznics.sh and installs all package dependencies)
 ```
 source setup.rc
+```
+
+### Running tests:
+```
 cd tests/
 python3 test_haznics.py
 ```
 
-# Running demos, e.g. Poisson equation:
+### Running demos, e.g. Poisson equation:
 ```
-source setup.rc
 python3 poisson.py
 ```

@@ -8,7 +8,7 @@
 
 - ***HAZNICS (HAZMATH+FEniCS) and Python interface:*** Ana Budisa (Simula, Norway), Miroslav Kuchta (Simula, Norway), Kent-Andre Mardal (Simula, Univ Oslo, Norway).
 - ***Rational Approximation of Functions***: Clemens Hofreither (RICAM, Austrian Academy of Sciences)
-- ***Grid refinement***: Yuwen Li (Penn State)
+- ***Grid refinement and adaptive FE***: Yuwen Li (Penn State)
 - ***Geometric MultiGrid:*** Johannes Kraus (Universitat Duisburg-Essen, Germany), Peter Ohm (Tufts), Yunrong Zhu (Idaho State).
 
 ---
@@ -41,7 +41,7 @@ Our aim is to provide a basic tool, which can be used to tackle specific problem
 
 ---
 
-**TODO:** More detailed documentation; Standartize mesh formats; Minimum Stretching Tree Multigrid; Signal Processing on Graphs; 
+**TODO:** More detailed documentation; Standartize mesh formats; HAZniCS applications and packages 
 
 ---
 

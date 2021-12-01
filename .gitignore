@@ -18,7 +18,12 @@ haz_docs/tex_docs/*.*
 *.bak
 .DS_Store
 swig_files/
+cbc.block/
+fenics_ii/
+quadpy/
+ulfy/
 octave-workspace
+
 HAZMATH.config
 HAZMATH.creator
 HAZMATH.creator.user
@@ -28,3 +33,4 @@ HAZMATH.pro
 junk.*
 *.bak
 hazmath-*.tar.gz
+
