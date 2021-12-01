@@ -1,7 +1,0 @@
-0.
-All packages, cbc.block, ulfy, hseig etc should have a spesific version we download. 
-Not git. Things will change down the line 
-
-1.
-Maybe a clean simple elasticity demo.
-(We need to specify rigid body motions for AMG in hazmath.)

@@ -9,7 +9,7 @@
 #include "hazmath.h"
 /***********************************************************************************************/
 /*!
- * \fn iCSRmat **lex_bfs(INT n,INT *ia, INT *ja, ivector *anc)
+ * \fn iCSRmat *lex_bfs(INT n,INT *ia, INT *ja, ivector *anc,const INT lvlmax)
  *
  * \brief lexicographical breath first search
  *
