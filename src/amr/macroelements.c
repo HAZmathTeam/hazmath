@@ -499,6 +499,14 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
 	/* print_full_mat_int(1,(nvcube+1),(g0->mnodes+jel*(nvcube+1)),"NODES00(JEL)"); */
 	///////////////////////////////////////////////////////////////
   	if(keok!=ke){
+	  /*************************************************/	  
+	  /*************************************************/
+	  /* print_full_mat_int(1,c2s->nf,elneib[kel],"elneib1(kel)"); */
+	  /* print_full_mat_int(1,c2s->nf,el2fnum[kel],"el2fnum1(kel)"); */
+	  /* print_full_mat_int(1,c2s->nf,elneib[jel],"elneib1(jel)"); */
+	  /* print_full_mat_int(1,c2s->nf,el2fnum[jel],"el2fnum1(jel)"); */
+	  /*************************************************/	  
+	  /*************************************************/
   	  //	  swap in jel:
   	  swp=elneib[jel][ke];
   	  elneib[jel][ke]=elneib[jel][keok];
@@ -526,6 +534,11 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
   	    el2v->JA[i]=g0->mnodes[jel*(nvcube+1)+facei[i]];
   	  for(i=0;i<nvcube;i++)
   	    g0->mnodes[jel*(nvcube+1)+mnodes[i]]=el2v->JA[i];
+  	}       
+	//////////////////////////////////////////////
+	/* print_full_mat_int(1,(nvcube+1),(g0->mnodes+kel*(nvcube+1)),"NODES11(KEL)");	 */
+	/* print_full_mat_int(1,(nvcube+1),(g0->mnodes+jel*(nvcube+1)),"NODES11(JEL)"); */
+	///////////////////////////////////////////////////////////////
       }
     }
   }
@@ -665,6 +678,18 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
   	k1=aresamep(mnodes,facei,nvface,p);
   	if(!k1){
   	  for(i=0;i<nvface;i++)p[i]=i;
+  	}	      
+	keswp=(ke+c2s->n)%c2s->nf;
+	/*KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK*/
+	/* fprintf(stdout,"\nKESWP=%d;k1=%d",keswp,k1);fflush(stdout); */
+	/* print_full_mat_int(1,nvface,p,"permute"); */
+	/* print_full_mat_int(1,nvface,facei,"facei(ke)"); */
+	/* print_full_mat_int(1,nvface,mnodes,"facej(je)"); */
+	/* print_full_mat_int(1,c2s->nf,elneib[kel],"elneib(kel)"); */
+	/* print_full_mat_int(1,c2s->nf,el2fnum[kel],"el2fnum(kel)"); */
+	/* print_full_mat_int(1,c2s->nf,elneib[jel],"elneib(jel)"); */
+	/* print_full_mat_int(1,c2s->nf,el2fnum[jel],"el2fnum(jel)"); */
+	/*KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK*/
   	for(i=0;i<nvface;i++){
 	  //	  fprintf(stdout,"\n11111111:::%d,%d",facei[c2s->faces[ke*nvface+p[i]]],c2s->faces[ke*nvface+i]);
   	  facei[c2s->faces[ke*nvface+p[i]]]=c2s->faces[ke*nvface+i];

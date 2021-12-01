@@ -2,10 +2,9 @@
 //  macro.h
 //
 //
-//  Created by Hu, Xiaozhe on 01/10/2015.
-// Modified 20190327 (ltz)
-// Modified 20190728 (ltz)
-// Modified 20211128 (ltz)
+//  Created by Hu, Xiaozhe on 1/10/15.
+//  Modified 20190327 (ltz)
+//  Modified 20190728 (ltz)
 //
 
 #ifndef _macro_h
@@ -155,7 +154,6 @@
  */
 #define UA_AMG                  1  /**< unsmoothed aggregation AMG */
 #define SA_AMG                  2  /**< smoothed aggregation AMG */
-#define C_AMG                   3  /**< classical AMG */
 
 /**
  * \brief Definition of aggregation types
