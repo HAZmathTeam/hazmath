@@ -48,9 +48,12 @@ typedef struct /* n-homogenous simplicial complex */
 		neighbors, i.e. the simplex2vertex incidence (ns by
 		(n+1)) */
   iCSRmat *bndry_v; /* for each vertex stores the codes of the
-		       boundaries it belongs to. If no boundary
-		       code. The entries in the matrix are are the
-		       boundary codes */
+		       boundaries it belongs to. If no boundary code
+		       then the vertex is not on the boundary. The
+		       number of rows is nv, number of columns is the
+		       number of boundary codes which are found during
+		       constructing the initial grid. The entries in
+		       the matrix are are the boundary codes */
   iCSRmat *parent_v; /* for each vertex added in a refinement gives the
 		       two vertices forming the edge where the
 		       refinement vertex was put */
@@ -106,7 +109,7 @@ typedef struct {
   INT nv; /* number of vertices in the graph describing the
 	     computational domain */
   REAL *xv; /* coordinates for each vertex [nv][dim]*/
-  INT *csysv; /* coordinate system labels for vertices [nv]*/
+  INT *csysv; /* which coordinate system gives the coordinates of a vertex [nv]*/
   INT *labelsv; /* coordinate system labels for vertices [nv]*/
   INT *bcodesv; /* boundary codes for vertices [nv]*/
   INT ne; /* number of edges/segments */
@@ -206,10 +209,10 @@ typedef struct /* macroelement complex (isomorphic to
   INT **iindex; /* used to remove repeated vertices */
   iCSRmat *fullel2el; /* full element to element which has also the
 			 number of common vertices as entries in the matrix; */
-  INT *bcodesf; /* codes for boundary faces */
+  INT *bcodesf; /* codes for faces */
   INT *isbface; /* indicator if a face is on the boundary */
-  INT *flags; /*flags (material) of the macro elements*/
-  INT cc; /*n connected components */
+  INT *flags; /* materials (codes) of the macroelements*/
+  INT cc; /*connected components in the bulk*/
   INT bndry_cc; /*connected components on the boundary */
   iCSRmat *bfs; /* bfs levels structure for the mesh el2el only if
 		   they share a face; */

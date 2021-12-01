@@ -10,7 +10,88 @@
  *  \note: modified by ltz on 20210813
  */
 #include "hazmath.h"
+/**************************************************************************/
+/*!
+   * \fn void icsr_add (iCSRmat *A, iCSRmat *B, iCSRmat *C)
+   *
+   * \brief symbolic sparse matrix addition C = alpha*A + beta*B
+   *
+   * \param A         Pointer to the iCSRmat matrix A
+   * \param B         Pointer to the iCSRmat matrix B
+   * \param C         Pointer to iCSRmat matrix with structure A + B; 
+   */
 /**********************************************************************/
+static INT icsr_add(iCSRmat *A,iCSRmat *B,iCSRmat *C)
+{
+  INT i,j,k,l;
+  INT count=0, added, countrow;
+  INT status = SUCCESS;
+  // both matrices A and B are NULL
+  if (A == NULL && B == NULL) {
+    printf("%%%% ERROR: both matrices are null in %s\n", __FUNCTION__);
+    status = ERROR_MAT_SIZE;
+    goto FINISHED;
+  }
+  // dimensions  mismatch!
+  if ((A->row != B->row) || (A->col != B->col)) {
+    printf("### ERROR HAZMATH DANGER: Dimensions of matrices do not match!!! %s\n", __FUNCTION__);
+    status = ERROR_MAT_SIZE;
+    goto FINISHED;
+  }
+  // Both matrices A and B are neither NULL or empty
+  C->row=A->row; C->col=A->col;
+  C->IA=(INT*)calloc((C->row+1),sizeof(INT));
+  // allocate work space for C->JA and C->val
+  C->JA=(INT *)calloc((A->nnz+B->nnz),sizeof(INT));
+  C->val=(INT *)calloc((A->nnz+B->nnz),sizeof(INT));
+  // initialize C->IA
+  memset(C->IA, 0, sizeof(INT)*(C->row+1));
+  for (i=0; i<(A->nnz+B->nnz); ++i) {
+    C->JA[i]=-1;
+  }
+  for (i=0; i<A->row; ++i) {
+    countrow = 0;
+    for (j=A->IA[i]; j<A->IA[i+1]; ++j) {
+      //      C->val[count] = alpha * A->val[j];
+      C->val[count] = A->val[j];// only in A. 
+      C->JA[count] = A->JA[j];
+      C->IA[i+1]++;
+      count++;
+      countrow++;
+    } // end for js
+
+    for (k=B->IA[i]; k<B->IA[i+1]; ++k) {
+      added = 0;
+      for (l=C->IA[i]; l<C->IA[i]+countrow+1; l++) {
+        if (B->JA[k] == C->JA[l]) {
+	  // getting to here means this is in the intersection of the patterns. We just skip this...
+          added = 1;
+	  //	  C->val[l] = C->val[l] + B->val[k];
+	  // here, in this particular application A->val must be equal to b->val
+	  //	  fprintf(stdout,"\nA(%d,%d)=%d .eq. %d=B(%d,%d)",i,C->JA[l],C->val[l],B->val[k],i,B->JA[k]);
+	  break;
+        }
+      } // end for l
+
+      if (added == 0) {
+	//        C->val[count] = beta * B->val[k];
+        C->val[count] = B->val[k]; // only in B, just add it to the pattern.
+        C->JA[count] = B->JA[k];
+        C->IA[i+1]++;
+        count++;
+      }
+    } // end for k
+    C->IA[i+1] += C->IA[i];
+  }
+
+  C->nnz = count;
+  C->JA  = (INT *)realloc(C->JA, (count)*sizeof(INT));
+  C->val = (INT *)realloc(C->val, (count)*sizeof(INT));
+
+FINISHED:
+  return status;
+}
+/**************************************************************************/
 /*!
  * \fn static INT ilog2(const INT k)
  *
@@ -95,7 +176,7 @@ void align_lattice(INT *pd, const INT nkj,	\
  */
 macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
 {
-  INT i,j0,j1,kel,jel,ke;
+  INT i,j,j0,j1,kel,jel,ke;
   INT nvcube=c2s->nvcube,nvface=c2s->nvface;
   INT nel0,je,kj,k2,iel2v,jel2v,k1,kface,kbnd,found;
   INT *p=wrk; 
@@ -262,9 +343,12 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
 	      elneib[jel][je]=kel;
 	      el2fnum[kel][ke]=kface;
 	      el2fnum[jel][je]=kface;
+	      //	      fprintf(stdout,"\nxkel=%d,xke=%d;xjel=%d,xje=%d:::kface=%d",kel,ke,jel,je,kface);
 	      kface++;// pointer for the face2vertex matrix
 	    }
 	    found=1;
+	    //	    print_full_mat_int(1,nvface,facei,"facei");
+	    //	    print_full_mat_int(1,nvface,facej,"facej");
 	  }
 	}
       }
@@ -274,18 +358,30 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
 	/* 
 	   in this way bcodesf[1:elneib[kel][ke]] gives us the code of the corresponding face;; this can also be linked to f2v and so on. 
 	*/
+	//	fprintf(stdout,"\nykel=%d,yke=%d:::kface=%d",kel,ke,kface);
 	el2fnum[kel][ke]=kface;
 	kface++;
       }     
     }
   }
   /********************************************************************/
-  for(i=0;i<f2v->IA[mc->nf];i++)
-    f2v->val[i]=1;
+  for(i=0;i<f2v->IA[mc->nf];i++) f2v->val[i]=1;
   /*******************************************************************/   
-  INT cfbig=((INT )MARKER_BOUNDARY_NO)+1;
+  INT cfmax,cfmin;
+  cfmax=g0->mfaces[nvface]; // first face: get the code;
+  cfmin=cfmax; 
+  for(je=1;je<g0->nf;je++){
+    kbnd=g0->mfaces[je*(nvface+1) + nvface]; // get the code;
+    //    fprintf(stdout,"g0_code(%d)=%%d;cfmax=%d\n",je,kbnd,cfmax);fflush(stdout);
+    if(kbnd>cfmax) cfmax=kbnd;
+    if(kbnd<cfmin) cfmin=kbnd;
+  }
+  cfmax++; cfmin--;
+  if(cfmax<2) cfmax=2;
+  if(cfmin>=0) cfmin=-1;
+  //  fprintf(stdout,"CFMAX=%d;CFMIN=%d\n",cfmax,cfmin);fflush(stdout);
   for(i=0;i<mc->nf;i++){
-    bcodesf[i]=-cfbig;
+    bcodesf[i]=cfmax;// something that is not a prescribed code:
     j1=f2v->IA[i+1]-f2v->IA[i];
     if(j1>0){
       memcpy(facei,(f2v->JA+f2v->IA[i]),j1*sizeof(INT));
@@ -293,7 +389,9 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
 	memcpy(facej,(g0->mfaces+je*(nvface+1)),nvface*sizeof(INT));
 	kbnd=g0->mfaces[je*(nvface+1)+nvface];
 	if(aresame(facei,facej,nvface)){
-	  // if the face was in the list, take its code.
+	  /* if the face was in the list, take its code. In this way
+	     we only take codes of faces that are actually
+	     macroelement faces. */
 	  bcodesf[i]=kbnd;
 	  break;
 	}
@@ -302,18 +400,32 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
   }
   /* 
    * set all interior faces faces with no code to 0 code and all
-   * boundary faces with no code to dirichlet code 1.
-  */
+   * boundary faces with no code to Dirichlet code 1. If a boundary
+   * face has a code 0 it is set to cmin; cmin<0 always;
+   */
   for(i=0;i<mc->nf;i++){
-    if(bcodesf[i]<(1-cfbig)){
-      if(isbface[i])bcodesf[i]=1;
-      else bcodesf[i]=0;
+    if(bcodesf[i]!=cfmax) continue;
+    if(isbface[i])
+      bcodesf[i]=1;
+    else
+      bcodesf[i]=0;
+    //      fprintf(stdout,"\n[%d]=%d",i,bcodesf[i]);
+  }
+  //  fprintf(stdout,"\n");fflush(stdout);
+  for(i=0;i<mc->nf;i++){
+    if(isbface[i] && (bcodesf[i]==0)){
+      bcodesf[i]=cfmin; // faces on the boundary with code 0. 
     }
   }
-  for(i=0;i<mc->nf;i++){
-    if(isbface[i] && (bcodesf[i]==0))bcodesf[i]=1;
-    //    fprintf(stdout,"\n[%d]=%d",i,bcodesf[i]);
-  }
+  /*******************************************************************/   
+  /* for(i=0;i<mc->nf;i++){ */
+  /*   fprintf(stdout,"\nFace(%d; code=%d)=[",i,bcodesf[i]); */
+  /*   for(je=f2v->IA[i];je<f2v->IA[i+1];++je){ */
+  /*     fprintf(stdout,"%d ",f2v->JA[je]); */
+  /*   } */
+  /*   fprintf(stdout,"]"); */
+  /* } */
+  /* fprintf(stdout,"\n");fflush(stdout); */
   /***********************************************************************/
   /*Connected components on the boundaries. First find face to face map*/
   iCSRmat *v2f=malloc(sizeof(iCSRmat));
@@ -363,6 +475,12 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
   icsr_free(blk_dfs);free(blk_dfs);
   /*now use the bfs*/
   INT lvl,keok,swp,keswp;
+  /* for(kj=0;kj<mc->nel;++kj){ */
+  /*   print_full_mat_int(1,c2s->nf,elneib[kj],"elneib"); */
+  /* } */
+  /* for(kj=0;kj<mc->nel;++kj){ */
+  /*    print_full_mat_int(1,c2s->nf,el2fnum[kj],"el2fnum"); */
+  /* } */
   for(lvl=0;lvl<mc->bfs->row;lvl++){
     j0=mc->bfs->IA[lvl];
     j1=mc->bfs->IA[lvl+1];
@@ -373,6 +491,13 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
   	je=locate0(jel,elneib[kel], c2s->nf);
   	ke=locate0(kel,elneib[jel], c2s->nf);
   	keok=(je+c2s->n)%c2s->nf;
+	//////////////////////////////////////////////
+	/* fprintf(stdout,"\nKEL=%d,JEL=%d;  KE=%d;KEOK=%d;JE=%d",kel,jel,ke,keok,je);fflush(stdout); */
+	/* print_full_mat_int(1,(nvface),(c2s->faces + je*nvface),"FACES00(KEL)"); */
+	/* print_full_mat_int(1,(nvcube+1),(g0->mnodes+kel*(nvcube+1)),"NODES00(KEL)");	 */
+	/* print_full_mat_int(1,(nvface),(c2s->faces+ke*nvface),"FACES00(JEL)"); */
+	/* print_full_mat_int(1,(nvcube+1),(g0->mnodes+jel*(nvcube+1)),"NODES00(JEL)"); */
+	///////////////////////////////////////////////////////////////
   	if(keok!=ke){
   	  //	  swap in jel:
   	  swp=elneib[jel][ke];
@@ -381,6 +506,12 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
   	  swp=el2fnum[jel][ke];
   	  el2fnum[jel][ke]=el2fnum[jel][keok];
   	  el2fnum[jel][keok]=swp;
+	  /*************************************************/
+	  /* print_full_mat_int(1,c2s->nf,elneib[kel],"elneib2(kel)"); */
+	  /* print_full_mat_int(1,c2s->nf,el2fnum[kel],"el2fnum2(kel)"); */
+	  /* print_full_mat_int(1,c2s->nf,elneib[jel],"elneib2(jel)"); */
+	  /* print_full_mat_int(1,c2s->nf,el2fnum[jel],"el2fnum2(jel)"); */
+	  /*************************************************/	  
   	  // we now need to swap vertices in g0->mnodes
   	  for(i=0;i<nvface;i++){
   	    facei[i]=c2s->faces[ke*nvface+i];
@@ -395,10 +526,19 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
   	    el2v->JA[i]=g0->mnodes[jel*(nvcube+1)+facei[i]];
   	  for(i=0;i<nvcube;i++)
   	    g0->mnodes[jel*(nvcube+1)+mnodes[i]]=el2v->JA[i];
-  	}
       }
     }
   }
+  //  input_grid_print(g0);
+  /* for(kj=0;kj<mc->nel;++kj){ */
+  /*   print_full_mat_int(1,c2s->nf,elneib[kj],"elneib1"); */
+  /* } */
+  /* for(kj=0;kj<mc->nel;++kj){ */
+  /*    print_full_mat_int(1,c2s->nf,el2fnum[kj],"el2fnum1"); */
+  /* } */
+  ////////////////////////// 
+  //  input_grid_print(g0);
+  //////////////////////////
   if(g0->print_level>10){
     fprintf(stdout,"\nbfs tree(in %s):\n",__FUNCTION__);
     for(lvl=0;lvl<mc->bfs->row;lvl++){
@@ -406,20 +546,98 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
       j1=mc->bfs->IA[lvl+1];
       for(kj=j0;kj<j1;kj++){
   	jel=mc->bfs->JA[kj];
-  	kel=mc->etree[jel];// ancestor, this stays unchanged
+  	kel=mc->etree[jel];// ancestor
   	fprintf(stdout,"** (%d--%d)",kel,jel);
       }
     }
     fprintf(stdout,"\n");
   }
-  /**** FINAL REORDER: make the vertices in shared faces the
-  	same!!! ***/
+  // BEGIN: REBUILD THE ELNEIB LIST BECAUSE SOME permutation of vertices may have made the elneib out of date
+  /*-------------------------------------------------------------------*/
+  /*initialize again*/
+  for(kel=0;kel<mc->nel;kel++){
+    for(i=0;i<c2s->nf;i++){
+      elneib[kel][i]=-1;
+    }
+  }
+  INT *f_save=calloc(c2s->nf,sizeof(INT));
   for(lvl=0;lvl<mc->bfs->row;lvl++){
     j0=mc->bfs->IA[lvl];
     j1=mc->bfs->IA[lvl+1];
     for(kj=j0;kj<j1;kj++){
       jel=mc->bfs->JA[kj];
-      kel=mc->etree[jel];// ancestor, this stays unchanged
+      kel=mc->etree[jel];// ancestor and already established neighbor
+      //      fprintf(stdout,"** (%d-->%d(tochange))",kel,jel);
+      if(kel<0) continue;
+      // save the faces in the element jel.
+      memcpy(f_save,el2fnum[jel],c2s->nf*sizeof(INT));
+      for (je=0;je<c2s->nf;je++){
+	found=-1;
+	k1=je*nvface;
+  	for(j=0;j<nvface;j++){
+  	  facej[j]=c2s->faces[je*nvface+j];
+  	  facej[j]=g0->mnodes[jel*(nvcube+1)  + facej[j]];
+  	}
+	for (ke=0;ke<c2s->nf;ke++){
+	  k2=ke*nvface;
+	  for(i=0;i<nvface;i++){
+	    facei[i]=c2s->faces[ke*nvface+i];
+	    facei[i]=g0->mnodes[kel*(nvcube+1)  + facei[i]];
+	  }
+	  if(aresame(facei,facej,nvface)){
+	    elneib[kel][ke]=jel;
+	    elneib[jel][je]=kel;
+	    //	    fprintf(stdout,"%%%%\nCommon face (ke=%d,je=%d):(elements %d-%d)",ke,je,kel,jel);fflush(stdout);
+	    found=ke;
+	    break;
+	  }
+	}
+	if(found>=0)
+	  break;
+      }     
+      if(found<0) {
+	fprintf(stderr,"%%%%***ERROR: elements %d and %d are in the neighboring list but they do not share a face****\n\n",kel,jel);
+	exit(12);
+      }
+      /* //SEE IF WE NEED TO run again around the faces in jel and rebuild el2fnum[jel][] */
+      /* for (je=0;je<c2s->nf;je++){ */
+      /* 	found=-1; */
+      /* 	k1=je*nvface; */
+      /* 	for(j=0;j<nvface;j++){ */
+      /* 	  facej[j]=c2s->faces[je*nvface+j]; */
+      /* 	  facej[j]=g0->mnodes[jel*(nvcube+1)  + facej[j]]; */
+      /* 	} */
+      /* 	for(ke=0;ke<c2s->nf;ke++){ */
+      /* 	  k2=f_save[ke]; */
+      /* 	  for(j=f2v->IA[k2];j<f2v->IA[k2+1];j++){ */
+      /* 	    facei[j-f2v->IA[k2]]=f2v->JA[j]; */
+      /* 	  } */
+      /* 	  if(aresame(facei,facej,nvface)){	     */
+      /* 	    found=ke; */
+      /* 	    break; */
+      /* 	  } */
+      /* 	} */
+      /* 	if(found<0){ */
+      /* 	  fprintf(stderr,"%%%%***ERROR: FACE %d not found in macroelement %d****\n\n",k2,jel); */
+      /* 	  exit(13); */
+      /* 	} else { */
+      /* 	  el2fnum[jel][je]=k2; */
+      /* 	} */
+      /* } */
+      /* ////////////////////////////////////////////// */
+      /* /\* print_full_mat_int(1,(nvcube+1),(g0->mnodes+kel*(nvcube+1)),"NODES33(KEL)"); *\/ */
+      /* /\* print_full_mat_int(1,(nvcube+1),(g0->mnodes+jel*(nvcube+1)),"NODES33(JEL)"); *\/ */
+      /* /////////////////////////////////////////////////////////////// */
+    }    
+  }
+  // END REBUILD REBUILD
+  /**** FINAL REORDER: make the vertices in shared faces the same!!! ***/
+  for(lvl=0;lvl<mc->bfs->row;lvl++){
+    j0=mc->bfs->IA[lvl];
+    j1=mc->bfs->IA[lvl+1];
+    for(kj=j0;kj<j1;kj++){
+      jel=mc->bfs->JA[kj];
+      kel=mc->etree[jel];// 
       //      if(kel<0){
       //	fprintf(stdout,"\n%%splitting element=%d",jel);
       //      } else {
@@ -431,29 +649,91 @@ macrocomplex *set_mmesh(input_grid *g0,cube2simp *c2s,INT *wrk)
 	  want to make ke in jel same as je in kel; also the opposite
 	  face needs to be reordered.
   	*/
+	/* fprintf(stdout,"\nKEL=%d,JEL=%d,KE=%d; JE=%d;",kel,jel,ke,je);fflush(stdout); */
+	/* print_full_mat_int(1,c2s->nf,elneib[kel],"Zelneib(kel)"); */
+	/* print_full_mat_int(1,c2s->nf,elneib[jel],"Zelneib(jel)"); */
+	/* print_full_mat_int(1,(nvface),(c2s->faces + je*nvface),"FACES(KEL)"); */
+	/* print_full_mat_int(1,(nvcube+1),(g0->mnodes+kel*(nvcube+1)),"NODES(KEL)"); */
+	/* print_full_mat_int(1,(nvface),(c2s->faces+ke*nvface),"FACES(JEL)"); */
+	/* print_full_mat_int(1,(nvcube+1),(g0->mnodes+jel*(nvcube+1)),"NODES(JEL)"); */
   	for(i=0;i<nvface;i++){
   	  facei[i]=c2s->faces[ke*nvface+i];
-  	  facei[i]=g0->mnodes[jel*(nvcube+1)+facei[i]];
+  	  facei[i]=g0->mnodes[jel*(nvcube+1)  + facei[i]];
   	  mnodes[i]=c2s->faces[je*nvface+i];
-  	  mnodes[i]=g0->mnodes[kel*(nvcube+1)+mnodes[i]];
+  	  mnodes[i]=g0->mnodes[kel*(nvcube+1) + mnodes[i]];
   	}
   	k1=aresamep(mnodes,facei,nvface,p);
   	if(!k1){
   	  for(i=0;i<nvface;i++)p[i]=i;
-  	}
   	for(i=0;i<nvface;i++){
+	  //	  fprintf(stdout,"\n11111111:::%d,%d",facei[c2s->faces[ke*nvface+p[i]]],c2s->faces[ke*nvface+i]);
   	  facei[c2s->faces[ke*nvface+p[i]]]=c2s->faces[ke*nvface+i];
-  	  keswp=(ke+c2s->n)%c2s->nf;
+	  //  	  keswp=(ke+c2s->n)%c2s->nf; it is independent of the loop. 
+	  //	  fprintf(stdout,"\n22222222:::%d,%d",facei[c2s->faces[keswp*nvface+p[i]]],c2s->faces[keswp*nvface+i]);
   	  facei[c2s->faces[keswp*nvface+p[i]]]=c2s->faces[keswp*nvface+i];
   	}
   	for(i=0;i<nvcube;i++)
   	  el2v->JA[i]=g0->mnodes[jel*(nvcube+1)+facei[i]];
   	for(i=0;i<nvcube;i++)
   	  g0->mnodes[jel*(nvcube+1)+i]=el2v->JA[i];
-      }
-    }
+	/* print_full_mat_int(1,(nvface),(c2s->faces+ke*nvface),"FACES22(JEL)"); */
+	/* print_full_mat_int(1,(nvcube+1),(g0->mnodes+jel*(nvcube+1)),"NODES22(JEL)"); */      
+	///////////////////////////////AGAIN REBUILD AGAIN....      
+	///////////////////////////////////////////////////////////////
+	//	print_full_mat_int(1,(nvcube+1),(g0->mnodes+jel*(nvcube+1)),"NODES88(JEL)");
+	///////////////////////////////////////////////////////////////
+	memcpy(f_save,el2fnum[jel],c2s->nf*sizeof(INT));
+	for (je=0;je<c2s->nf;je++){
+	  found=-1;
+	  k1=je*nvface;
+	  for(j=0;j<nvface;j++){
+	    facej[j]=c2s->faces[je*nvface+j];
+	    facej[j]=g0->mnodes[jel*(nvcube+1)  + facej[j]];
+	  }
+	  //	print_full_mat_int(1,nvface,facej,"faceJJJJ33()");
+	  //	print_full_mat_int(1,nvface,facei,"faceIIII33()");
+	  for(ke=0;ke<c2s->nf;ke++){
+	    k2=f_save[ke];
+	    for(j=f2v->IA[k2];j<f2v->IA[k2+1];j++){
+	      facei[j-f2v->IA[k2]]=f2v->JA[j];
+	    }
+	    if(aresame(facei,facej,nvface)){	    
+	      //	      print_full_mat_int(1,nvface,facej,"facej33()");
+	      //	      print_full_mat_int(1,nvface,facei,"facei33()");
+	      found=ke;
+	      break;
+	    }
+	  }
+	  if(found<0){
+	    fprintf(stderr,"%%%%***ERROR: FACE %d not found in macroelement %d****\n\n",k2,jel);
+	    exit(13);
+	  } else {
+	    el2fnum[jel][je]=k2;
+	    //	  if(el2fnum[jel][je]!=k2){
+	    //	    fprintf(stdout,"\nel2fnum(%d,%d)=%d;",jel,je,el2fnum[jel][je]);fflush(stdout);	    
+	    //	  }	  
+	  }
+	}	
+      }      
+    }          
   }
-  /*****************************************************/
+  /// AGAIN REBUILD::::::::::::::::::::::::::::::::::::::::::::::::::::::::::  
+  free(f_save);
+  /// END REBUILD::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  //  input_grid_print(g0);
+ /*****************************************************/
+  //YZYZYZYZ
+  /* for(i=0;i<mc->nf;i++){ */
+  /*   j1=f2v->IA[i+1]-f2v->IA[i]; */
+  /*   //    memcpy(facei,(f2v->JA+f2v->IA[i]),j1*sizeof(INT)); */
+  /*   fprintf(stdout,"code(%d)=%d; face_data(%d)=[",i,bcodesf[i],i); */
+  /*   for (j1=f2v->IA[i];j1<f2v->IA[i+1]-1;++j1){ */
+  /*     fprintf(stdout,"%d,",f2v->JA[j1]); */
+  /*   } */
+  /*   j1=f2v->IA[i+1]-1; */
+  /*   fprintf(stdout,"%d]\n",f2v->JA[j1]); */
+  /* } */
+  // free
   icsr_free(el2v);free(el2v);
   icsr_free(f2v);free(f2v);
   icsr_free(el2el);free(el2el);
@@ -486,62 +766,145 @@ static void scomplex_merge1(const INT nvall,		\
 		     scomplex **sc0,		\
 		     cube2simp *c2s)
 {
-  if(mc->nel==1) return;
   scomplex *sc=sc0[0];
+  INT kel,i,ii,j,in1,iin1,newv,nnz;
+  iCSRmat bndry_v1;//,bndry_v2;
   INT n1=(sc->n+1),ns0,nv=nvall,ns=nsall;
-  INT kel,i,ii,j,in1,iin1,newv;
-  sc->marked=realloc(sc->marked,ns*sizeof(INT));
-  sc->gen=realloc(sc->gen,ns*sizeof(INT));
-  sc->nbr=realloc(sc->nbr,ns*n1*sizeof(INT));
-  sc->parent=realloc(sc->parent,ns*sizeof(INT));
-  sc->child0=realloc(sc->child0,ns*sizeof(INT));
-  sc->childn=realloc(sc->childn,ns*sizeof(INT));
-  sc->nodes=realloc(sc->nodes,ns*n1*sizeof(INT));
-  sc->bndry=realloc(sc->bndry,nv*sizeof(INT));
-  /* 
-   * coord sys: 1 is polar, 2 is cyl and so on: not fully implemented
-   * and tested yet
-   */
-  sc->csys=realloc(sc->csys,nv*sizeof(INT));
-  /*connected components*/
-  sc->cc=mc->cc;sc->bndry_cc=mc->bndry_cc;
-  sc->flags=(INT *)realloc(sc->flags,ns*sizeof(INT));
-  sc->x=(REAL *)realloc(sc->x,nv*(sc->n)*sizeof(REAL));
-  sc->vols=(REAL *)realloc(sc->vols,ns*sizeof(REAL));
-  //  sc->fval=(REAL *)realloc(sc->fval,nv*sizeof(REAL)); // function values at every vertex; not used in general;
-  for(kel=1;kel<mc->nel;kel++){
-    ns0=sc->ns;
-    for (ii = 0;ii<sc0[kel]->ns;ii++) {
-      i=ii+ns0;
-      sc->marked[i] = sc0[kel]->marked[ii];
-      sc->gen[i] = sc0[kel]->gen[ii];
-      sc->parent[i]=sc0[kel]->parent[ii];
-      sc->child0[i]=sc0[kel]->child0[ii];
-      sc->childn[i]=sc0[kel]->childn[ii];
-      sc->flags[i]=sc0[kel]->flags[ii];
-      sc->vols[i]=sc0[kel]->vols[ii];
-      in1=i*n1;
-      iin1=ii*n1;
-      for(j=0;j<n1;j++){
-	newv=mc->iindex[kel][sc0[kel]->nodes[iin1+j]];
-	sc->nodes[in1+j]=newv;
-	sc->nbr[in1+j]=sc0[kel]->nbr[iin1+j]+ns0;
+  if(mc->nel!=1) {
+    for(kel=0;kel<mc->nel;++kel){
+      sc0[kel]->bndry_v->col=nvall;
+    }
+    sc->marked=realloc(sc->marked,ns*sizeof(INT));
+    sc->gen=realloc(sc->gen,ns*sizeof(INT));
+    sc->nbr=realloc(sc->nbr,ns*n1*sizeof(INT));
+    sc->parent=realloc(sc->parent,ns*sizeof(INT));
+    sc->child0=realloc(sc->child0,ns*sizeof(INT));
+    sc->childn=realloc(sc->childn,ns*sizeof(INT));
+    sc->nodes=realloc(sc->nodes,ns*n1*sizeof(INT));
+    sc->bndry=realloc(sc->bndry,nv*sizeof(INT));
+    /*  
+	every vertex can be on at most "dim" boundaries in one macroelement. if every
+	boundary on every macroelement has a different code, then these
+	are at most mc->nel*2*dim different codes as every macroelement
+	has at most 2*dim faces. 
+    */
+    //  icsr_realloc(nv,mc->nel*2*sc->n,nv*sc->n,sc->bndry_v); // no need of this here. 
+    /* 
+     * coord sys: 1 is polar, 2 is cyl and so on: not fully implemented
+     * and tested yet
+     */
+    /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
+    /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
+    sc->csys=realloc(sc->csys,nv*sizeof(INT));
+    /*connected components*/
+    sc->cc=mc->cc;sc->bndry_cc=mc->bndry_cc;
+    sc->flags=(INT *)realloc(sc->flags,ns*sizeof(INT));
+    sc->x=(REAL *)realloc(sc->x,nv*(sc->n)*sizeof(REAL));
+    sc->vols=(REAL *)realloc(sc->vols,ns*sizeof(REAL));
+    //  sc->fval=(REAL *)realloc(sc->fval,nv*sizeof(REAL)); // function values at every vertex; not used in general;
+    //
+    /* for(i=0;i<sc->bndry_v->row;++i){ */
+    /*   if((sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i])){ */
+    /*     fprintf(stdout,"\n0size(row=%d)=%d; 0entries=[ ",i,sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i]); */
+    /*     for(j=sc->bndry_v->IA[i];j<sc->bndry_v->IA[i+1];++j){ */
+    /* 	//	fprintf(stdout,"%d(Xc=%d,Xb=%d) ",sc->bndry_v->JA[j],sc->bndry_v->val[j],sc->bndry_v->val[nnz+j]); */
+    /* 	fprintf(stdout,"%d(0c=%d) ",sc->bndry_v->JA[j],sc->bndry_v->val[j]); */
+    /*     }       */
+    /*     fprintf(stdout,"]"); fflush(stdout); */
+    /*   } */
+    /* }   */
+    for(kel=1;kel<mc->nel;kel++){
+      ns0=sc->ns;
+      /* fprintf(stdout,"\nElement=%d; ns0=%d",kel,ns0);       */
+      for (ii = 0;ii<sc0[kel]->ns;ii++) {
+	i=ii+ns0;
+	sc->marked[i] = sc0[kel]->marked[ii];
+	sc->gen[i] = sc0[kel]->gen[ii];
+	sc->parent[i]=sc0[kel]->parent[ii];
+	sc->child0[i]=sc0[kel]->child0[ii];
+	sc->childn[i]=sc0[kel]->childn[ii];
+	sc->flags[i]=sc0[kel]->flags[ii];
+	sc->vols[i]=sc0[kel]->vols[ii];
+	in1=i*n1;
+	iin1=ii*n1;
+	for(j=0;j<n1;j++){
+	  newv=mc->iindex[kel][sc0[kel]->nodes[iin1+j]];
+	  sc->nodes[in1+j]=newv;
+	  sc->nbr[in1+j]=sc0[kel]->nbr[iin1+j]+ns0;
+	}
+      }    
+      for (ii = 0;ii<sc0[kel]->nv;ii++) {
+	i=mc->iindex[kel][ii];
+	sc->bndry[i]=sc0[kel]->bndry[ii];
+	sc->csys[i]=sc0[kel]->csys[ii];
+	//      sc->fval[i]=sc0[kel]->fval[ii];
+	in1=i*sc->n;
+	iin1=ii*sc->n;
+	for(j=0;j<sc->n;j++)
+	  sc->x[in1+j]=sc0[kel]->x[iin1+j];
+      }
+      nnz=sc0[kel]->bndry_v->nnz;
+      for(i=0;i<sc0[kel]->bndry_v->row;++i){
+	for(j=sc0[kel]->bndry_v->IA[i];j<sc0[kel]->bndry_v->IA[i+1];++j){
+	  ii=sc0[kel]->bndry_v->JA[j];// this is vertex number;
+	  //	fprintf(stdout,"\nkel=%d:ii=%d,newindex=%d",kel,ii,mc->iindex[kel][ii]);fflush(stdout);
+	  sc0[kel]->bndry_v->JA[j]=mc->iindex[kel][ii];
+	}
+      }
+      bndry_v1=icsr_create(sc->bndry_v->row,sc->bndry_v->col,sc->bndry_v->nnz);
+      memcpy(bndry_v1.IA,sc->bndry_v->IA,(bndry_v1.row+1)*sizeof(INT));
+      memcpy(bndry_v1.JA,sc->bndry_v->JA,bndry_v1.nnz*sizeof(INT));
+      memcpy(bndry_v1.val,sc->bndry_v->val,bndry_v1.nnz*sizeof(INT));
+      nnz=sc->bndry_v->nnz;
+      /*** MOVE POINTERS AND ADD BNDRY CODES ***/
+      // free, and use as adding
+      icsr_free(sc->bndry_v);
+      //add once
+      icsr_add(&bndry_v1,sc0[kel]->bndry_v,sc->bndry_v); //
+      //    sc->bndry_v->val=realloc(sc->bndry_v->val,2*sc->bndry_v->nnz*sizeof(INT));
+      /*END MOVE POINTERS AND ADD BNDRY CODES*/
+      sc->ns+=sc0[kel]->ns;
+      haz_scomplex_free(sc0[kel]);
+      // very wasteful
+      //    free(bndry_v2.val);
+      icsr_free(&bndry_v1);
+    }
+    ///////////////////////////////////////////
+    sc->nv=nvall;
+  }
+  ///////////////////////////////////////////  
+  /* for(i=0;i<sc->bndry_v->row;++i){ */
+  /*   if((sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i])){ */
+  /*     fprintf(stdout,"\nXsize(row=%d)=%d; Xentries=[ ",i,sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i]); */
+  /*     for(j=sc->bndry_v->IA[i];j<sc->bndry_v->IA[i+1];++j){ */
+  /* 	//	fprintf(stdout,"%d(Xc=%d,Xb=%d) ",sc->bndry_v->JA[j],sc->bndry_v->val[j],sc->bndry_v->val[nnz+j]); */
+  /* 	fprintf(stdout,"%d(Xc=%d) ",sc->bndry_v->JA[j],sc->bndry_v->val[j]); */
+  /*     } */
+  /*     fprintf(stdout,"]"); fflush(stdout); */
+  /*   } */
+  /* } */
+  ////////////////////////////////////////////////////////////////////////////
+  /*Now we transpose to obtain the vertex->face correspondence*/
+  bndry_v1=icsr_create(sc->bndry_v->row,sc->bndry_v->col,sc->bndry_v->nnz);
+  memcpy(bndry_v1.IA,sc->bndry_v->IA,(bndry_v1.row+1)*sizeof(INT));
+  memcpy(bndry_v1.JA,sc->bndry_v->JA,bndry_v1.nnz*sizeof(INT));
+  memcpy(bndry_v1.val,sc->bndry_v->val,bndry_v1.nnz*sizeof(INT));
+  icsr_free(sc->bndry_v);
+  icsr_trans(&bndry_v1,sc->bndry_v);
+  icsr_free(&bndry_v1);  
+  nnz=sc->bndry_v->nnz;
+  sc->bndry_v->val=realloc(sc->bndry_v->val,2*nnz*sizeof(INT));
+  for(i=0;i<sc->bndry_v->row;++i){
+    if((sc->bndry_v->IA[i+1]-sc->bndry_v->IA[i])){
+      for(ii=sc->bndry_v->IA[i];ii<sc->bndry_v->IA[i+1];++ii){
+	j=sc->bndry_v->JA[ii];	
+	//sc->bndry_v->val[ii] must be equal to the mc->bcodesf[j].
+	if(j<mc->nf && j>=0){	    
+	  sc->bndry_v->val[ii+nnz]=mc->isbface[j];	  
+	}	
       }
     }
-    for (ii = 0;ii<sc0[kel]->nv;ii++) {
-      i=mc->iindex[kel][ii];
-      sc->bndry[i]=sc0[kel]->bndry[ii];
-      sc->csys[i]=sc0[kel]->csys[ii];
-      //      sc->fval[i]=sc0[kel]->fval[ii];
-      in1=i*sc->n;
-      iin1=ii*sc->n;
-      for(j=0;j<sc->n;j++)
-	sc->x[in1+j]=sc0[kel]->x[iin1+j];
-    }
-    sc->ns+=sc0[kel]->ns;
-    haz_scomplex_free(sc0[kel]);
   }
-  sc->nv=nvall;
   return;
 }
 /**********************************************************************/
@@ -649,7 +1012,13 @@ void fix_grid(macrocomplex *mc,		\
 	       cube2simp *c2s,			\
 	       input_grid *g0)
 {
-  if(mc->nel<=1) return;
+  INT nsall,nvall;
+  if(mc->nel<=1){
+    nvall=scin[0]->nv;
+    nsall=scin[0]->ns;
+    scomplex_merge1(nvall,nsall,mc,scin,c2s);
+    return;
+  }
   scomplex *scp;
   INT dim=c2s->n,dim1=c2s->n+1,nvface=c2s->nvface,nvcube=c2s->nvcube;
 // at most dim (n-1)dimensional faces may intersect to form a vertex
@@ -680,7 +1049,7 @@ void fix_grid(macrocomplex *mc,		\
   //    kdim=(1<<kz);
   //  for(knnz=0;knnz<mc->bfs->nnz;knnz++){    
   //    kel=mc->bfs->JA[knnz];
-  INT neg,nsall,nvall,nvold;
+  INT neg,nvold;
 
   nvall=0;nsall=0;
 
@@ -812,6 +1181,31 @@ void fix_grid(macrocomplex *mc,		\
     nsall+=scin[kel]->ns;
     //fprintf(stdout,"\nGLOBALLY:v_total=%d; s_total=%d",nvall,nsall);fflush(stdout);
   }
+  /* INT nnz,iloc,iglob; */
+  /* for(jel=0;jel<mc->nel;++jel){ */
+  /*   fprintf(stdout,"\n(Again)Element=%d;",jel); */
+  /*   for(kf=0;kf<scin[jel]->nv;++kf){ */
+  /*     fprintf(stdout,"\noldv=%d-->newv=%d",kf,mc->iindex[jel][kf]); */
+  /*   } */
+  /*   nnz=scin[jel]->bndry_v->nnz; */
+  /*   for(kf=0;kf<scin[jel]->bndry_v->row;++kf){ */
+  /*     if((scin[jel]->bndry_v->IA[kf+1]-scin[jel]->bndry_v->IA[kf])){ */
+  /* 	fprintf(stdout,"\nTsize(Trow=%d)=%d; Tentries=[ ",kf,scin[jel]->bndry_v->IA[kf+1]-scin[jel]->bndry_v->IA[kf]); */
+  /* 	for(j=scin[jel]->bndry_v->IA[kf];j<scin[jel]->bndry_v->IA[kf+1];++j){ */
+  /* 	  iloc=scin[jel]->bndry_v->JA[j]; */
+  /* 	  iglob=mc->iindex[jel][iloc]; */
+  /* 	  fprintf(stdout,"%d(Tc=%d,Tb=%d) ",iglob,scin[jel]->bndry_v->val[j],scin[jel]->bndry_v->val[nnz+j]); */
+  /* 	} */
+  /* 	fprintf(stdout,"]"); fflush(stdout); */
+  /* 	fprintf(stdout,"\nZsize(Zrow=%d)=%d; Zentries=[ ",kf,scin[jel]->bndry_v->IA[kf+1]-scin[jel]->bndry_v->IA[kf]); */
+  /* 	for(j=scin[jel]->bndry_v->IA[kf];j<scin[jel]->bndry_v->IA[kf+1];++j){ */
+  /* 	  fprintf(stdout,"%d(Zc=%d,Zb=%d) ",scin[jel]->bndry_v->JA[j],scin[jel]->bndry_v->val[j],scin[jel]->bndry_v->val[nnz+j]); */
+  /* 	} */
+  /* 	fprintf(stdout,"]"); fflush(stdout); */
+  /*     } */
+  /*   } */
+  /*   haz_scomplex_print(scin[jel],0,"JEL"); */
+  /* }   */
   if(g0->print_level>5){
     for(kel=0;kel<mc->nel;kel++){
       fprintf(stdout,"\nelement{%d}=[",kel);
@@ -886,7 +1280,7 @@ scomplex **generate_initial_grid(input_grid *g0)
   /* for(kel=0;kel<g0->nel;kel++){ */
   /*   print_full_mat_int(1,c2s->nvcube+1,g0->mnodes+kel*(c2s->nvcube+1),"mnodes33"); */
   /* } */
-  input_grid_print(g0);
+  //  input_grid_print(g0);
   /*-------------------------------------------------------------------*/
   //  INT *efound=calloc(c2s->ne*(g0->nel),sizeof(INT));  
   g=malloc(sizeof(input_grid));  //temp grid for one macroelement// we need to free this at the end
@@ -948,8 +1342,18 @@ scomplex **generate_initial_grid(input_grid *g0)
     print_full_mat_int(1,mc->nf,mc->bcodesf,"bcodesf");
   }
   /***********************************************************************/    
-  /* set the divisions on every edge now; since they are consistent we
-   have: */
+    /* fprintf(stdout,"\nbfs0=["); */
+    /* icsr_print_matlab_val(stdout,bfs0); */
+    /* fprintf(stdout,"];"); */
+    /* fprintf(stdout,"\nbfs=sparse(bfs0(:,1),bfs0(:,2),bfs0(:,3));\n"); */
+    /* fprintf(stdout,"\n%%%%*****   g0_nf=%d; mc_nf=%d\n",g0->nf,mc->nf); */
+    /* fprintf(stdout,"\nfel2el0=["); */
+    /* icsr_print_matlab_val(stdout,mc->fullel2el); */
+    /* fprintf(stdout,"];"); */
+    /* fprintf(stdout,"\nfel2el=sparse(fel2el0(:,1),fel2el0(:,2),fel2el0(:,3));\n"); */
+    /* print_full_mat_int(1,mc->nf,mc->isbface,"isbface"); */
+    /* print_full_mat_int(1,mc->nf,mc->bcodesf,"bcodesf"); */
+  /* set the divisions on every edge now; since they are consistent we have: */
   if(set_ndiv_edges(g,g0,c2s,mc->nd,0)) {
     fprintf(stderr,"\n\n***ERR in %s: the divisions of the edges cannod be inconsistent during second call of set_ndiv_edges()\n\n",__FUNCTION__);
     exit(4);
@@ -960,7 +1364,7 @@ scomplex **generate_initial_grid(input_grid *g0)
     }
   }
   if(g0->print_level>15) input_grid_print(g0);
-  INT nsall,nvall;
+  INT nsall,nvall,nnz;
   nsall=0;nvall=0;
   /* now mc->nd is known, let us allocate iindex */
   for(kel=0;kel<g0->nel;kel++){
@@ -973,13 +1377,17 @@ scomplex **generate_initial_grid(input_grid *g0)
   }
   INT intype=g0->ref_type-1,kj,jel;  
   INT *codef=calloc(c2s->nf,sizeof(INT));
+  INT *labelf=calloc(c2s->nf,sizeof(INT));
   INT *isbndf=calloc(c2s->nf,sizeof(INT));
+  iCSRmat bndry_v1,bndry_v2;// local vertex/bface relation. Later combined in sc->bndry_v;
+  INT *tmp_ptr; // to store isbface
   INT kjj;
   for(kj=0;kj<bfs0->row;kj++){
     if(g0->ref_type>=0) intype++;
     else intype=-1;
     for(kjj=bfs0->IA[kj];kjj<bfs0->IA[kj+1];kjj++){
       jel=bfs0->JA[kjj];    
+      /* fprintf(stdout,"\nAAAElement=%d;",jel);       */
       if((intype>=0) && (mc->etree[jel]<0)) intype=g0->ref_type; //reset reftype;
       //    print_full_mat_int(1,c2s->nf,elneib[kel],"neib");
       memcpy(g->mnodes,(g0->mnodes+jel*(nvcube+1)),(nvcube+1)*sizeof(INT));
@@ -990,14 +1398,36 @@ scomplex **generate_initial_grid(input_grid *g0)
 	memcpy((g->xv+i*g->dim),(g0->xv+j*g0->dim),g->dim*sizeof(REAL));
       }
       /***************************************************/
-      /*element code is in mc->flags[]; we now do the face codes:*/      
+      /*element code is in mc->flags[]; we now do the face codes:*/
       for(i=0;i<c2s->nf;i++){
-	codef[i]=bcodesf[el2fnum[jel][i]];
-	isbndf[i]=isbface[el2fnum[jel][i]];       
-      }      
-      sc[jel]=umesh(g->dim,mc->nd[jel],c2s,					\
-		    isbndf,codef,mc->flags[jel],			\
+	labelf[i]=el2fnum[jel][i];  // this is the face global number;
+	codef[i]=bcodesf[labelf[i]];// code associated with this macroelement face
+	isbndf[i]=isbface[labelf[i]];// is this macroelement face on the boundary
+      }
+      sc[jel]=umesh(g->dim,mc->nd[jel],c2s,		\
+		    labelf,isbndf,codef,mc->flags[jel],	\
 		    intype);
+      // now we make the boundary matrix global.... transpose it so it is "face"->"vertex"
+      sc[jel]->bndry_v->col=mc->nf;//
+      nnz=sc[jel]->bndry_v->nnz;
+      icsr_trans(sc[jel]->bndry_v,&bndry_v1);
+      tmp_ptr=sc[jel]->bndry_v->val;
+      sc[jel]->bndry_v->val += nnz;
+      icsr_trans(sc[jel]->bndry_v,&bndry_v2);
+      sc[jel]->bndry_v->val = tmp_ptr;
+      nnz=sc[jel]->bndry_v->nnz;
+      /* Now we copy the face->vertex correspondence over sc->bndry_v */
+      sc[jel]->bndry_v->col=bndry_v1.col;//col
+      sc[jel]->bndry_v->row=bndry_v1.row;//row
+      sc[jel]->bndry_v->nnz=bndry_v1.nnz;//nnz
+      sc[jel]->bndry_v->IA=realloc(sc[jel]->bndry_v->IA,(sc[jel]->bndry_v->row+1)*sizeof(INT));      
+      memcpy(sc[jel]->bndry_v->IA,bndry_v1.IA,(bndry_v1.row+1)*sizeof(INT));
+      memcpy(sc[jel]->bndry_v->JA,bndry_v1.JA,bndry_v1.nnz*sizeof(INT));
+      memcpy(sc[jel]->bndry_v->val,bndry_v1.val,bndry_v1.nnz*sizeof(INT));
+      memcpy((sc[jel]->bndry_v->val+nnz),bndry_v2.val,bndry_v2.nnz*sizeof(INT));
+      icsr_free(&bndry_v1);
+      icsr_free(&bndry_v2);
+      //////////////////////////////////
       nsall+=sc[jel]->ns;
       nvall+=sc[jel]->nv;
       //    if((mc->fullel2el->IA[jel+1]-mc->fullel2el->IA[jel])<=0){
@@ -1011,8 +1441,15 @@ scomplex **generate_initial_grid(input_grid *g0)
     }
   }
   fix_grid(mc,sc,c2s,g0);
-  //  if(g0->print_level>4){
-  if(1){
+  /*initialize the parent_v matrix*/
+  icsr_free(sc[0]->parent_v);
+  sc[0]->parent_v[0]=icsr_create(sc[0]->nv,sc[0]->nv,sc[0]->nv);
+  sc[0]->parent_v->IA[0]=0;
+  for(i=0;i<sc[0]->parent_v->row;++i){
+    sc[0]->parent_v->JA[sc[0]->parent_v->IA[i]]=i;
+    sc[0]->parent_v->IA[i+1]=i+1;
+  }  
+  if(g0->print_level>4){
     fprintf(stdout,"\n%%merged(macroelements=[%d..%d]): vertices=%d; simplices=%d", \
 	    0,mc->nel-1,sc[0]->nv,sc[0]->ns);  
     fprintf(stdout," ..done.\n\n");fflush(stdout);
@@ -1020,6 +1457,7 @@ scomplex **generate_initial_grid(input_grid *g0)
   free(p);
   free(isbndf);
   free(codef);
+  free(labelf);
   input_grid_free(g);
   macrocomplex_free(mc);
   cube2simp_free(c2s);

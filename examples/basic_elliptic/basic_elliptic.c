@@ -77,7 +77,7 @@ int main (int argc, char* argv[])
   INT dim = inparam.spatial_dim;                 // dimension of computational domain
   INT mesh_ref_levels=inparam.refinement_levels; // refinement levels
   INT mesh_ref_type=inparam.refinement_type;     // refinement type (>10 uniform or <10 other)
-  INT set_bndry_codes=inparam.boundary_codes;    // set flags for the boundary DoF (1-16 are Dirichlet)
+  INT set_bndry_codes=inparam.boundary_codes;    // set flags for the boundary DoF ([1:16] are Dirichlet, [17:32] are Neumann, etc)
 
   if(read_mesh_from_file) {
     // Reading from file
@@ -88,7 +88,7 @@ int main (int argc, char* argv[])
     creategrid_fread(gfid,mesh_type,&mesh);
     fclose(gfid);
   } else {
-    // Use HAZMATH built in functions for a uniform mesh in 2D or 3D
+    // Use HAZMATH built in functions for a uniform mesh in 2D or 3D    
     mesh=make_uniform_mesh(dim,mesh_ref_levels,mesh_ref_type,set_bndry_codes);
   }
 

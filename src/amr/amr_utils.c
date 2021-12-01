@@ -47,7 +47,7 @@ INT aresame(INT *a, INT *b, INT n)
 /*!
  * \fn INT aresamep(INT *a, INT *b, INT n, INT *p)
  *
- * \brief checks (n^2 algorithm) if two have the same elements (up to a
+ * \brief checks (n^2 algorithm) if two arrays have the same elements (up to a
      permutation);
  *
  * \param a:   input array
@@ -535,7 +535,7 @@ scomplex *scfinest(scomplex *sc)
  *        on the boundary.
  *
  * \param sc: simplicial complex
- * \param set_bndry_codes: if set to 1, all boundary vertices get a code of 128+(connected component number);
+ * \param set_bndry_codes: if 0 then create the sparse matrix for all vertices;
  *
  * \return
  *
@@ -543,6 +543,7 @@ scomplex *scfinest(scomplex *sc)
  *
  * \author ludmil (20151010) 
  * \modified ludmil (20210831)
+ * \modified ludmil (20211121)
  *
  */
 void scfinalize(scomplex *sc,const INT set_bndry_codes)
@@ -581,13 +582,22 @@ void scfinalize(scomplex *sc,const INT set_bndry_codes)
   sc->flags=realloc(sc->flags,sc->ns*sizeof(INT));
   find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
   // this also can be called separately
-  find_cc_bndry_cc(sc,set_bndry_codes);
+  // set_bndry_codes should always be set to 1.
+  //  set_bndry_codes=1;
+  find_cc_bndry_cc(sc,(INT )1); //set_bndry_codes);
   //
-  if(set_bndry_codes){
-    for(j=0;j<sc->nv;++j){
-      if(sc->bndry[j]>128) sc->bndry[j]-=128;
-    }
-  }
+  /* if(set_bndry_codes){ */
+  /*   for(j=0;j<sc->nv;++j){ */
+  /*     if(sc->bndry[j]>128) sc->bndry[j]-=128; */
+  /*   } */
+  /* } */
+  // clean up:
+  icsr_free(sc->bndry_v);
+  free(sc->bndry_v);
+  sc->bndry_v=NULL;
+  icsr_free(sc->parent_v);
+  free(sc->parent_v);
+  sc->parent_v=NULL;
   return;
 }
 /**********************************************************************/
@@ -898,14 +908,17 @@ INT dvec_set_amr(const REAL value, scomplex *sc, INT npts, REAL *pts, REAL *tose
  * \param sc: a simplicial complex; sc->bndry, sc->neib, sc->nbr must
  *            be allocated and filled in on entry here.
  *
- * \param set_bndry_codes : if true, then sets all boundary codes on
- *                          every connected component to be different.
+ * \param set_bndry_codes if false then sets all boundary codes to be
+ *                        128 plus the connected component number. If
+ *                        true, then create the sparse matrix with
+ *                        codes for all vertices;
+ *                          
  *
  *
  * \note
  *
  */
-void find_cc_bndry_cc(scomplex *sc,INT set_bndry_codes)
+void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
 {
   //
   INT ns = sc->ns, dim=sc->n;
@@ -1032,7 +1045,85 @@ void find_cc_bndry_cc(scomplex *sc,INT set_bndry_codes)
   }
   icsr_free(&f2f);
   /*******************************************************************/    
-  if(set_bndry_codes) {
+  fprintf(stdout,"%%%%--> number of connected components in the bulk=%d\n",sc->cc);
+  fprintf(stdout,"%%%%--> number of connected components on the boundary=%d\n",sc->bndry_cc);
+  /* make boundary codes from parent_v */
+  INT *a1=NULL,*a2=NULL,l,ncap,n1,n2,v1,v2,nnz_bv,nnzold;
+  i=-1;
+  for(k=0;k<sc->bndry_v->row;++k){
+    j=sc->bndry_v->IA[k+1]-sc->bndry_v->IA[k];
+    if(i<j) i=j;
+  }
+  INT *wrk=calloc(2*i,sizeof(INT));  
+  INT *acap=calloc(i,sizeof(INT));  
+  //  fprintf(stdout,"%%%% max_nnz_row_bndry_v=%d\n",i);fflush(stdout);
+  if(1){//ALWAYS set_bndry_codes) {
+    icsr_free(blk_dfs);free(blk_dfs);
+    icsr_free(&f2v);
+    free(indx);
+    free(indxinv);
+    nnz_bv=sc->bndry_v->nnz;
+    for(k=0;k<sc->parent_v->row;++k){
+      j=sc->parent_v->IA[k];
+      if((sc->parent_v->IA[k+1]-j)!=2) continue;
+      nnz_bv+=i;
+    }
+    nnzold=nnz_bv;
+    sc->bndry_v->val=realloc(sc->bndry_v->val,2*nnz_bv*sizeof(INT));    
+    for(k=0;k<sc->bndry_v->nnz;++k){
+      sc->bndry_v->val[nnz_bv+k]=sc->bndry_v->val[sc->bndry_v->nnz+k];
+      //      sc->bndry_v->val[sc->bndry_v->nnz+k]=0;
+    }
+    sc->bndry_v->row=sc->parent_v->row;
+    sc->bndry_v->IA=realloc(sc->bndry_v->IA,(sc->parent_v->row+1)*sizeof(INT));
+    sc->bndry_v->JA=realloc(sc->bndry_v->JA,nnz_bv*sizeof(INT));
+    // add all boundary codes for vertices obtained with
+    // refinement. This uses that such vertices are added one by one
+    // after refinement and ordered after their "ancestors"
+    for(k=0;k<sc->parent_v->row;++k){
+      nnz_bv=sc->bndry_v->IA[k];
+      j=sc->parent_v->IA[k];
+      if((sc->parent_v->IA[k+1]-j)==2){
+	//	fprintf(stdout,"\nnnz_bv=%d (IA=%d),k=%d,diff0=%d",nnz_bv,sc->bndry_v->IA[k],k,(sc->parent_v->IA[k+1]-j));
+	v1=sc->parent_v->JA[j];    
+	n1=sc->bndry_v->IA[v1+1]-sc->bndry_v->IA[v1];
+	a1=sc->bndry_v->JA+sc->bndry_v->IA[v1];
+	//
+	v2=sc->parent_v->JA[j+1];
+	n2=sc->bndry_v->IA[v2+1]-sc->bndry_v->IA[v2];
+	a2=sc->bndry_v->JA+sc->bndry_v->IA[v2];
+	//	fprintf(stdout,"\nnew_vertex=%d,v1=%d,v2=%d; n1=%d,n2=%d",k,v1,v2,n1,n2);fflush(stdout);
+	//	print_full_mat_int(1,n1,a1,"a1");
+	//	print_full_mat_int(1,n2,a2,"a2");
+	ncap=array_cap(n1,a1,n2,a2,acap,wrk);
+	if(ncap){
+	  //	  print_full_mat_int(1,ncap,acap,"INTERSECTION");
+	  for(i=0;i<ncap;++i){
+	    l=wrk[i] + sc->bndry_v->IA[v1];
+	    sc->bndry_v->JA[nnz_bv+i]=acap[i];
+	    sc->bndry_v->val[nnz_bv+i]=sc->bndry_v->val[l];
+	    sc->bndry_v->val[nnz_bv+i+nnzold]=sc->bndry_v->val[l+nnzold];
+	  }
+	  nnz_bv+=ncap;
+	}
+	sc->bndry_v->IA[k+1]=nnz_bv;
+      }
+    }    
+    sc->bndry_v->row=sc->parent_v->row;
+    // in case the mesh was not refined at all, i.e. no added vertices
+    if(sc->bndry_v->IA[sc->bndry_v->row]>nnz_bv)
+      nnz_bv=sc->bndry_v->IA[sc->bndry_v->row];
+    sc->bndry_v->nnz=nnz_bv;
+    sc->bndry_v->IA[sc->bndry_v->row]=nnz_bv;
+    sc->bndry_v->JA=realloc(sc->bndry_v->JA,nnz_bv*sizeof(INT));
+    for(k=0;k<nnz_bv;k++){
+      sc->bndry_v->val[k+nnz_bv]=sc->bndry_v->val[nnzold+k];
+    }
+    sc->bndry_v->val=realloc(sc->bndry_v->val,2*nnz_bv*sizeof(INT));
+    free(wrk);
+    free(acap);
+  } else {
+    /*BEGIN: TO BE REMOVED IN THE FUTURE*/
     for(i=0;i<sc->bndry_cc;++i){
       for(k=blk_dfs->IA[i];k<blk_dfs->IA[i+1];++k){
 	j=blk_dfs->JA[k];
@@ -1041,16 +1132,55 @@ void find_cc_bndry_cc(scomplex *sc,INT set_bndry_codes)
 	}
       }
     }
-  } else {
-    // here we find the boundary codes of every added point.
-    // now do nothing
+    icsr_free(blk_dfs);free(blk_dfs);
+    icsr_free(&f2v);
+    free(indx);
+    free(indxinv);
+    return;
+    /*END: TO BE REMOVED IN THE FUTURE*/
   }
-  icsr_free(blk_dfs);free(blk_dfs);
-  icsr_free(&f2v);
-  fprintf(stdout,"%%%%--> number of connected components in the bulk=%d\n",sc->cc);
-  fprintf(stdout,"%%%%--> number of connected components on the boundary=%d\n",sc->bndry_cc);
-  free(indx);
-  free(indxinv);
+  INT iaa,iab,code,cmin,cmax;
+  cmin=sc->bndry_v->val[0];
+  cmax=sc->bndry_v->val[0];
+  for(i=1;i<sc->bndry_v->nnz;++i){
+    if(cmin>sc->bndry_v->val[i])
+      cmin=sc->bndry_v->val[i];
+    if(cmax<sc->bndry_v->val[i])
+      cmax=sc->bndry_v->val[i];
+  }
+  cmin--;
+  cmax++;
+  if(!cmin) cmin=-1;
+  if(!cmax) cmax=1;
+  for(i=0;i<sc->bndry_v->row;++i){
+    iaa=sc->bndry_v->IA[i];
+    iab=sc->bndry_v->IA[i+1];
+    if((iab-iaa)<=0){
+      sc->bndry[i]=0;// this vertex is definitely interior
+    } else {
+      sc->bndry[i]=cmax;
+      for(k=iaa;k<iab;++k){
+	code=sc->bndry_v->val[k];	
+	if(!code) continue;
+	if(sc->bndry[i]>code) sc->bndry[i]=code;
+      }
+      if(sc->bndry[i]==cmax) {
+	sc->bndry[i]=0;
+      }
+    }
+  }
+  //////////print
+  /* fprintf(stdout,"\nBNDRY_V_CODES:"); */
+  /* for(i=0;i<sc->bndry_v->row;++i){ */
+  /*   iaa=sc->bndry_v->IA[i]; */
+  /*   iab=sc->bndry_v->IA[i+1]; */
+  /*   fprintf(stdout,"\nC(%d)=[",i); */
+  /*   for(k=iaa;k<iab;++k){ */
+  /*     fprintf(stdout,"%d(c=%d) ",sc->bndry_v->JA[k],sc->bndry_v->val[k]); */
+  /*   } */
+  /*   fprintf(stdout,"]"); */
+  /* } */
+  /* fprintf(stdout,"\n"); */
   return;
 }
 /*EOF*/
