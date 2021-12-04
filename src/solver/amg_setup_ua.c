@@ -800,9 +800,9 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
         amg_amli_coef(lambda_max, lambda_min, amlideg, param->amli_coef);
     }
 
-#if DIAGONAL_PREF
-    dcsr_diagpref(&mgl[0].A); // reorder each row to make diagonal appear first
-#endif
+/* #if DIAGONAL_PREF */
+/*     dcsr_diagpref(&mgl[0].A); // reorder each row to make diagonal appear first */
+/* #endif */
 
     /*----------------------------*/
     /*--- checking aggregation ---*/
@@ -895,9 +895,9 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
 
     }
 
-#if DIAGONAL_PREF
-    dcsr_diagpref(&mgl[lvl].A); // reorder each row to make diagonal appear first
-#endif
+/* #if DIAGONAL_PREF */
+/*     dcsr_diagpref(&mgl[lvl].A); // reorder each row to make diagonal appear first */
+/* #endif */
 
     // Setup coarse level systems for direct solvers
     switch (csolver) {
@@ -1034,9 +1034,9 @@ static SHORT amg_setup_smoothP_smoothR(AMG_data *mgl,
         amg_amli_coef(lambda_max, lambda_min, amlideg, param->amli_coef);
     }
 
-#if DIAGONAL_PREF
-    dcsr_diagpref(&mgl[0].A); // reorder each row to make diagonal appear first
-#endif
+/* #if DIAGONAL_PREF */
+/*     dcsr_diagpref(&mgl[0].A); // reorder each row to make diagonal appear first */
+/* #endif */
 
     /*----------------------------*/
     /*--- checking aggregation ---*/
@@ -1131,9 +1131,9 @@ static SHORT amg_setup_smoothP_smoothR(AMG_data *mgl,
 
     }
 
-#if DIAGONAL_PREF
-    dcsr_diagpref(&mgl[lvl].A); // reorder each row to make diagonal appear first
-#endif
+/* #if DIAGONAL_PREF */
+/*     dcsr_diagpref(&mgl[lvl].A); // reorder each row to make diagonal appear first */
+/* #endif */
 
     // Setup coarse level systems for direct solvers
     switch (csolver) {
@@ -1267,9 +1267,9 @@ static SHORT famg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
         amg_amli_coef(lambda_max, lambda_min, amlideg, param->amli_coef);
     }
 
-#if DIAGONAL_PREF
-    dcsr_diagpref(&mgl[0].A); // reorder each row to make diagonal appear first
-#endif
+/* #if DIAGONAL_PREF */
+/*     dcsr_diagpref(&mgl[0].A); // reorder each row to make diagonal appear first */
+/* #endif */
 
     /*----------------------------*/
     /*--- checking aggregation ---*/
@@ -1367,9 +1367,9 @@ static SHORT famg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
 
     }
 
-#if DIAGONAL_PREF
-    dcsr_diagpref(&mgl[lvl].A); // reorder each row to make diagonal appear first
-#endif
+/* #if DIAGONAL_PREF */
+/*     dcsr_diagpref(&mgl[lvl].A); // reorder each row to make diagonal appear first */
+/* #endif */
 
     // Setup coarse level systems for direct solvers
     switch (csolver) {
@@ -1498,9 +1498,9 @@ static SHORT famg_setup_smoothP_smoothR(AMG_data *mgl,
         amg_amli_coef(lambda_max, lambda_min, amlideg, param->amli_coef);
     }
 
-#if DIAGONAL_PREF
-    dcsr_diagpref(&mgl[0].A); // reorder each row to make diagonal appear first
-#endif
+/* #if DIAGONAL_PREF */
+/*     dcsr_diagpref(&mgl[0].A); // reorder each row to make diagonal appear first */
+/* #endif */
 
     /*----------------------------*/
     /*--- checking aggregation ---*/
@@ -1598,9 +1598,9 @@ static SHORT famg_setup_smoothP_smoothR(AMG_data *mgl,
 
     }
 
-#if DIAGONAL_PREF
-    dcsr_diagpref(&mgl[lvl].A); // reorder each row to make diagonal appear first
-#endif
+/* #if DIAGONAL_PREF */
+/*     dcsr_diagpref(&mgl[lvl].A); // reorder each row to make diagonal appear first */
+/* #endif */
 
     // Setup coarse level systems for direct solvers
     switch (csolver) {

@@ -128,16 +128,16 @@ void smoother_dcsr_gs(dvector *u,
                 t = bval[i];
                 begin_row=ia[i],end_row=ia[i+1];
 
-#if DIAGONAL_PREF // diagonal first
-                d=aj[begin_row];
-                if (ABS(d)>SMALLREAL) {
-                    for (k=begin_row+1;k<end_row;++k) {
-                        j=ja[k];
-                        t-=aj[k]*uval[j];
-                    }
-                    uval[i]=t/d;
-                }
-#else // general order
+/* #if DIAGONAL_PREF // diagonal first */
+/*                 d=aj[begin_row]; */
+/*                 if (ABS(d)>SMALLREAL) { */
+/*                     for (k=begin_row+1;k<end_row;++k) { */
+/*                         j=ja[k]; */
+/*                         t-=aj[k]*uval[j]; */
+/*                     } */
+/*                     uval[i]=t/d; */
+/*                 } */
+/* #else // general order */
                 for (k=begin_row;k<end_row;++k) {
                     j=ja[k];
                     if (i!=j)
@@ -145,7 +145,7 @@ void smoother_dcsr_gs(dvector *u,
                     else if (ABS(aj[k])>SMALLREAL) d=1.e+0/aj[k];
                 }
                 uval[i]=t*d;
-#endif
+/* #endif */
             } // end for i
         } // end while
 
@@ -156,16 +156,16 @@ void smoother_dcsr_gs(dvector *u,
             for (i=i_1;i>=i_n;i+=s) {
                 t=bval[i];
                 begin_row=ia[i],end_row=ia[i+1];
-#if DIAGONAL_PREF // diagonal first
-                d=aj[begin_row];
-                if (ABS(d)>SMALLREAL) {
-                    for (k=begin_row+1;k<end_row;++k) {
-                        j=ja[k];
-                        t-=aj[k]*uval[j];
-                    }
-                    uval[i]=t/d;
-                }
-#else // general order
+/* #if DIAGONAL_PREF // diagonal first */
+/*                 d=aj[begin_row]; */
+/*                 if (ABS(d)>SMALLREAL) { */
+/*                     for (k=begin_row+1;k<end_row;++k) { */
+/*                         j=ja[k]; */
+/*                         t-=aj[k]*uval[j]; */
+/*                     } */
+/*                     uval[i]=t/d; */
+/*                 } */
+/* #else // general order */
                 for (k=begin_row;k<end_row;++k) {
                     j=ja[k];
                     if (i!=j)
@@ -173,7 +173,7 @@ void smoother_dcsr_gs(dvector *u,
                     else if (ABS(aj[k])>SMALLREAL) d=1.0/aj[k];
                 }
                 uval[i]=t*d;
-#endif
+/* #endif */
             } // end for i
         } // end while
     } // end if
