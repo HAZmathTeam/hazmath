@@ -16,7 +16,6 @@
 #include "hazmath.h"
 
 static void form_tentative_p(ivector *vertices, dCSRmat *tentp, REAL **basis, INT levelNum, INT num_aggregations);
-/* static void form_boolean_p(ivector *vertices, dCSRmat *tentp, INT levelNum, INT num_aggregations); */
 static void construct_strongly_coupled(dCSRmat *A, AMG_param *param, dCSRmat *Neigh);
 static SHORT aggregation_hec(dCSRmat *A, ivector *vertices, AMG_param *param, dCSRmat *Neigh, INT *num_aggregations, INT lvl);
 static SHORT aggregation_vmb(dCSRmat *A, ivector *vertices, AMG_param *param, dCSRmat *Neigh, INT *num_aggregations, INT lvl);
@@ -276,7 +275,7 @@ static void construct_strongly_coupled(dCSRmat *A,
                                        AMG_param *param,
                                        dCSRmat *Neigh)
 {
-  
+
   // local variables
   const INT  row = A->row, col = A->col, nnz = A->IA[row]-A->IA[0];
   const INT  *AIA = A->IA, *AJA = A->JA;
@@ -296,16 +295,16 @@ static void construct_strongly_coupled(dCSRmat *A,
   // get the diagonal entries
   dvector diag;
   dcsr_getdiag(0, A, &diag);
-  
+
   // allocate Neigh
   dcsr_alloc(row, col, nnz, Neigh);
-  
+
   NIA  = Neigh->IA; NJA  = Neigh->JA;
   Nval = Neigh->val;
-  
+
   // set IA for Neigh
   for ( i = row; i >= 0; i-- ) NIA[i] = AIA[i];
-  
+
   // main loop of finding strongly coupled neighbors
   for ( index = i = 0; i < row; ++i ) {
     NIA[i] = index;
@@ -323,13 +322,13 @@ static void construct_strongly_coupled(dCSRmat *A,
 	  index++;
 	  //fprintf(stdout,"\nHere coupled \n");
 	}
-      
+
     } // end for ( j = row_start; j < row_end; ++j )
   } // end for ( index = i = 0; i < row; ++i )
-  
-  dvec_free(&diag); // free it here;  
+
+  dvec_free(&diag); // free it here;
   NIA[row] = index;
-  
+
   Neigh->nnz = index;
   Neigh->JA  = (INT*) realloc(Neigh->JA,  (Neigh->IA[row])*sizeof(INT));
   Neigh->val = (REAL*)realloc(Neigh->val, (Neigh->IA[row])*sizeof(REAL));
@@ -337,7 +336,7 @@ static void construct_strongly_coupled(dCSRmat *A,
   if(0){
     //begin finding connected components (ltz):
     iCSRmat *blk_dfs=run_dfs(Neigh->row,Neigh->IA, Neigh->JA);
-    index=0; 
+    index=0;
     for(i=0;i<blk_dfs->row;++i){
       j=blk_dfs->IA[i+1]-blk_dfs->IA[i];
       if(j>1){
@@ -346,7 +345,7 @@ static void construct_strongly_coupled(dCSRmat *A,
       }
     }
     fprintf(stdout,"\n blocks(total)=%d ; blocks(non-trivial:size>1)=%d; strongly_coupled=%.5e\n",blk_dfs->row,index,strongly_coupled);
-    icsr_free(blk_dfs);free(blk_dfs);    
+    icsr_free(blk_dfs);free(blk_dfs);
     //end finding connected components (ltz):
   } //end if(0);
 }

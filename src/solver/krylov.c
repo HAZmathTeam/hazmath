@@ -126,12 +126,6 @@ INT dcsr_pcg (dCSRmat *A,
               const SHORT stop_type,
               const SHORT prtlvl)
 {
-  // Check if matrix counting from 1 or 0 for CSR arrays (James vs. Xiaozhe code)
-  INT shift_flag = 0;
-  if(A->IA[0]==1) {
-    dcsr_shift(A, -1);  // shift A
-    shift_flag = 1;
-  }
 
   const SHORT  MaxStag = MAX_STAG, MaxRestartStep = MAX_RESTART;
   const INT    m = b->row;
@@ -368,11 +362,6 @@ INT dcsr_pcg (dCSRmat *A,
 
   // clean up temp memory
   free(work);
-
-  // Fix A back to correct counting if needed
-  if(shift_flag==1) {
-    dcsr_shift(A, 1);  // shift A back
-  }
 
   if ( iter > MaxIt )
     return ERROR_SOLVER_MAXIT;

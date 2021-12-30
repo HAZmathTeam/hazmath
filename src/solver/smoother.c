@@ -337,7 +337,6 @@ void smoother_dcsr_L1diag(dvector *u,
     // local variables
     INT   i,j,k,begin_row,end_row;
 
-    // Checks should be outside of for; t,d can be allocated before calling!!! --Chensong
     REAL *t = (REAL *)calloc(N,sizeof(REAL));
     REAL *d = (REAL *)calloc(N,sizeof(REAL));
 

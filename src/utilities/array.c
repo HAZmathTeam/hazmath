@@ -37,6 +37,7 @@ INT darray_max(INT n, const REAL *u)
   }
   return i_max;
 }
+
 /****************************************************************************************/
 /*!
  * \fn INT darray_min(INT n, const REAL *u)
@@ -65,6 +66,7 @@ INT darray_min(INT n, const REAL *u)
   }
   return i_min;
 }
+
 /****************************************************************************************/
 /*!
  * \fn INT iarray_max(INT n, const INT *u)
@@ -92,6 +94,7 @@ INT iarray_max(INT n, const INT *u)
   }
   return i_max;
 }
+
 /****************************************************************************************/
 /*!
  * \fn INT iarray_min(INT n, const INT *u)
@@ -132,7 +135,7 @@ INT iarray_min(INT n, const INT *u)
  * \param needle element to find (INPUT)
  *
  */
-INT locate0(INT needle, INT *haystack, INT n)
+INT locate0(INT needle, const INT *haystack, INT n)
 {
   /*   */
   INT i;
@@ -141,6 +144,36 @@ INT locate0(INT needle, INT *haystack, INT n)
       return i;
   return -1;
 }
+
+/***********************************************************************************************/
+/*!
+ * \fn INT iarrary_locate(INT needle, const INT *a, INT n)
+ *
+ * \brief finds an element in an array. Returns the index in the array
+ *        where the element is found. If not found, returns (-1).
+ *
+ * \param needle    element to find (INPUT)
+ * \param a         array of integers (INPUT)
+ * \param n         length of the array (INPUT)
+ *
+ */
+INT iarray_locate (INT needle,
+                   const INT *a,
+                   INT n)
+{
+  /*   */
+  INT i;
+  for (i=0; i<n; i++) {
+
+    if(needle == a[i]) {
+      return i;
+    }
+
+  }
+
+  return -1;
+}
+
 /***********************************************************************************************/
 /*!
  * \fn void array_set (const INT n, REAL *x, const REAL val)
@@ -256,7 +289,6 @@ void array_shuffle(const INT n,
 
 }
 
-
 /***********************************************************************************************/
 /*!
  * \fn void iarray_shuffle(const INT n, INT *x)
@@ -284,7 +316,6 @@ void iarray_shuffle(const INT n,
 
 
 }
-
 
 /***********************************************************************************************/
 /*!
@@ -570,6 +601,7 @@ void cross_product(REAL* u, REAL* v, REAL* cross, REAL* mag)
 
   return;
 }
+
 /*!
 * \fn void ld2d(REAL *dest,REAL16 *src, const INT n)
 *
@@ -631,7 +663,7 @@ INT array_uniq(const INT n,INT *a)
     a[i]=a[i]-a[i-1];
   j=1;
   for(i=1;i<n;++i)
-    if(a[i]) 
+    if(a[i])
       a[j++]=a[i];
   for(i=1;i<j;++i)
     a[i]=a[i-1]+a[i];
@@ -651,12 +683,12 @@ INT array_uniq(const INT n,INT *a)
  * \param a2i a pointer to the second sorted integer array with no
  *            repeated entries
  *
- * \param acap array with enough space to hold the intersection. 
+ * \param acap array with enough space to hold the intersection.
  * \param wrk working array of at least n1i+n2i entries to copy the
  *            original arrays.
  *
  * \return 0 if the intersection is empty or the size of the intersection.
- *        
+ *
  *
  *
  */
