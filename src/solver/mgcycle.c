@@ -335,7 +335,7 @@ ForwardSweep:
         if ( param->coarse_scaling == ON ) {
             alpha = array_dotprod(mgl[l+1].A.row, mgl[l+1].x.val, mgl[l+1].b.val)
                   / dcsr_vmv(&mgl[l+1].A, mgl[l+1].x.val, mgl[l+1].x.val);
-            alpha = MIN(alpha, 1.0); // Add this for safety! --Chensong on 10/04/2014
+            alpha = MIN(alpha, 2.0);
         }
 
         // prolongation u = u + alpha*P*e1
@@ -473,7 +473,7 @@ void amli(AMG_data *mgl,
         if ( param->coarse_scaling == ON ) {
             alpha = array_dotprod(m1, e1->val, r1)
             / dcsr_vmv(A1, e1->val, e1->val);
-            alpha = MIN(alpha, 1.0);
+            alpha = MIN(alpha, 2.0);
         }
 
         // prolongation e0 = e0 + alpha * P * e1
@@ -771,7 +771,7 @@ void mgcycle_add(AMG_data *mgl,
         if ( param->coarse_scaling == ON ) {
             alpha = array_dotprod(mgl[l+1].A.row, mgl[l+1].x.val, mgl[l+1].b.val)
                   / dcsr_vmv(&mgl[l+1].A, mgl[l+1].x.val, mgl[l+1].x.val);
-            alpha = MIN(alpha, 1.0);
+            alpha = MIN(alpha, 2.0);
         }
 
         // prolongation u = u + alpha*P*e1
@@ -892,7 +892,7 @@ void mgcycle_add_update(AMG_data *mgl,
         if ( param->coarse_scaling == ON ) {
             alpha = array_dotprod(mgl[l+1].A.row, mgl[l+1].x.val, mgl[l+1].b.val)
                   / dcsr_vmv(&mgl[l+1].A, mgl[l+1].x.val, mgl[l+1].x.val);
-            alpha = MIN(alpha, 1.0);
+            alpha = MIN(alpha, 2.0);
         }
 
         // prolongation u = u + alpha*P*e1
