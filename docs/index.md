@@ -1,3 +1,6 @@
+---
+title: HAZmath
+---
 
 ## HAZmath: A Simple Finite Element, Graph, and Solver Library
 ---
