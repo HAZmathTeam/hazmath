@@ -1,6 +1,6 @@
----
 theme: jekyll-theme-cayman
-title: HAZmath
+layout: page
+title: "HAZmath"
+permalink: /docs/
 show_downloads: true
----
 
