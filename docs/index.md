@@ -4,9 +4,7 @@
 
 **Authors:** [Xiaozhe \***H**\*u (Tufts)](http://math.tufts.edu/faculty/xhu/), [James \***A**\*dler (Tufts)](http://math.tufts.edu/faculty/jadler), [Ludmil \***Z**\*ikatanov (Penn State)](http://personal.psu.edu/ltz1/)
 
----
-
-## Contributions:
+**Contributions:**
 
 - ***HAZNICS (HAZMATH+FEniCS) and Python interface:*** Ana Budisa (Simula, Norway), Miroslav Kuchta (Simula, Norway), Kent-Andre Mardal (Simula, Univ Oslo, Norway).
 - ***Rational Approximation of Functions***: Clemens Hofreither (RICAM, Austrian Academy of Sciences)
