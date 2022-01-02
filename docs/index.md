@@ -2,14 +2,14 @@
 ## HAZmath: A Simple Finite Element, Graph, and Solver Library
 ---
 
-**Authors:** [Xiaozhe \***H**\*u (Tufts)](http://math.tufts.edu/faculty/xhu/), [James \***A**\*dler (Tufts)](http://math.tufts.edu/faculty/jadler), [Ludmil \***Z**\*ikatanov (Penn State)](http://personal.psu.edu/ltz1/)
+**Authors:** [Xiaozhe \***H**\*u (Tufts)](https://xiaozhehu.math.tufts.edu/), [James \***A**\*dler (Tufts)](https://jadler.math.tufts.edu/), [Ludmil \***Z**\*ikatanov (Penn State)](http://personal.psu.edu/ltz1/)
 
-**Contributions:**
+**Contributors:**
 
 - ***HAZNICS (HAZMATH+FEniCS) and Python interface:*** Ana Budisa (Simula, Norway), Miroslav Kuchta (Simula, Norway), Kent-Andre Mardal (Simula, Univ Oslo, Norway).
 - ***Rational Approximation of Functions***: Clemens Hofreither (RICAM, Austrian Academy of Sciences)
 - ***Grid refinement and adaptive FE***: Yuwen Li (Penn State)
-- ***Geometric MultiGrid:*** Johannes Kraus (Universitat Duisburg-Essen, Germany), Peter Ohm (Tufts), Yunrong Zhu (Idaho State).
+- ***Geometric MultiGrid:*** Johannes Kraus (Universitat Duisburg-Essen, Germany), Peter Ohm (Sandia), Yunrong Zhu (Idaho State).
 
 ---
 
