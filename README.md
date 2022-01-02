@@ -1,15 +1,13 @@
 # HAZMATH: A Simple Finite Element, Graph, and Solver Library
 
----
+**Authors:** [Xiaozhe \***H**\*u (Tufts)](https://xiaozhehu.math.tufts.edu/), [James \***A**\*dler (Tufts)](https://jadler.math.tufts.edu/), [Ludmil \***Z**\*ikatanov (Penn State)](http://personal.psu.edu/ltz1/)
 
-**Authors:** [Xiaozhe \***H**\*u (Tufts)](http://math.tufts.edu/faculty/xhu/), [James \***A**\*dler (Tufts)](http://math.tufts.edu/faculty/jadler), [Ludmil \***Z**\*ikatanov (Penn State)](http://personal.psu.edu/ltz1/)
-
-## Contributions:
+**Contributors:**
 
 - ***HAZNICS (HAZMATH+FEniCS) and Python interface:*** Ana Budisa (Simula, Norway), Miroslav Kuchta (Simula, Norway), Kent-Andre Mardal (Simula, Univ Oslo, Norway).
 - ***Rational Approximation of Functions***: Clemens Hofreither (RICAM, Austrian Academy of Sciences)
 - ***Grid refinement and adaptive FE***: Yuwen Li (Penn State)
-- ***Geometric MultiGrid:*** Johannes Kraus (Universitat Duisburg-Essen, Germany), Peter Ohm (Tufts), Yunrong Zhu (Idaho State).
+- ***Geometric MultiGrid:*** Johannes Kraus (Universitat Duisburg-Essen, Germany), Peter Ohm (Sandia), Yunrong Zhu (Idaho State).
 
 ---
 
@@ -27,19 +25,16 @@ Our aim is to provide a basic tool, which can be used to tackle specific problem
 
 3. **HAZNICS:** Collaboration with Simula; Interface with Python and use of HAZMATH solvers in applications modeled by [FEniCS](https://fenicsproject.org/) finite element libraries.
 
-3. **Interfaces with External Libraries:** Some routines require a direct linear solver and these depend on the [SuiteSparse](http://faculty.cse.tamu.edu/davis/suitesparse.html) library (by Tim Davis, Texas A & M), which the user needs to install. We also provide an interface for using [Multigraph 2.1](http://ccom.ucsd.edu/~reb/software.html) (by Randolph E Bank, UCSD) as a solver.  
-
-
----
-
-
-**Licensing:** This software is a free software distributed under the MIT License. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. See further details about the [MIT License](https://opensource.org/licenses/MIT) at the [Open Source Initiative Licenses](https://opensource.org/licenses/) page.
+4. **Interfaces with External Libraries:** Some routines require a direct linear solver and these depend on the [SuiteSparse](http://faculty.cse.tamu.edu/davis/suitesparse.html) library (by Tim Davis, Texas A & M), which the user needs to install. We also provide an interface for using [Multigraph 2.1](http://ccom.ucsd.edu/~reb/software.html) (by Randolph E Bank, UCSD) as a solver.  
 
 ---
 
 **System Requirements:** The library should build on any standard Linux OS or MAC OS X, using cmake (>=3.12).
 
 ---
+
+**Licensing:** This software is a free software distributed under the MIT License. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. See further details about the [MIT License](https://opensource.org/licenses/MIT) at the [Open Source Initiative Licenses](https://opensource.org/licenses/) page.
+
 
 (c) 2009- by X. Hu, J. Adler, L. Zikatanov 
 
