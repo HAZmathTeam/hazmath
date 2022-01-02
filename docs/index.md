@@ -1,5 +1,5 @@
 # HAZMATH: A Simple Finite Element, Graph, and Solver Library
-blahblahblah
+
 ---
 
 **Authors:** [Xiaozhe \***H**\*u (Tufts)](http://math.tufts.edu/faculty/xhu/), [James \***A**\*dler (Tufts)](http://math.tufts.edu/faculty/jadler), [Ludmil \***Z**\*ikatanov (Penn State)](http://personal.psu.edu/ltz1/)
