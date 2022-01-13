@@ -1,4 +1,9 @@
-# HAZMATH: A Simple Finite Element, Graph, and Solver Library
+---
+title: HAZmath
+---
+
+## HAZmath: A Simple Finite Element, Graph, and Solver Library
+---
 
 **Authors:** [Xiaozhe \***H**\*u (Tufts)](https://xiaozhehu.math.tufts.edu/), [James \***A**\*dler (Tufts)](https://jadler.math.tufts.edu/), [Ludmil \***Z**\*ikatanov (Penn State)](http://personal.psu.edu/ltz1/)
 
@@ -37,5 +42,3 @@ Our aim is to provide a basic tool, which can be used to tackle specific problem
 
 
 (c) 2009- by X. Hu, J. Adler, L. Zikatanov 
-
----
