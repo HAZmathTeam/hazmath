@@ -5736,6 +5736,7 @@ void precond_block2_babuska_upper(REAL *r,
  */
 void precond_ra_fenics(REAL *r, REAL *z, void *data)
 {
+    fprintf(stdout, " \n ---- Call from python ---- \n"); fflush(stdout);
     // local variables
   INT status;// = SUCCESS;
     precond_ra_data *precdata=(precond_ra_data *)data;
@@ -5827,6 +5828,7 @@ void precond_ra_fenics(REAL *r, REAL *z, void *data)
 
     for(i = 0; i < npoles; ++i) {
 
+        fprintf(stdout, "We are at pole %d with value %.10f + i %.10f \n", i, poles->val[i], poles->val[i+npoles]); fflush(stdout);
         if(fabs(poles->val[i+npoles]) > 0.) {
             // then we have a nonzero imag part of that pole and we do the 2x2 block algorithm
             /* solve
@@ -5847,6 +5849,10 @@ void precond_ra_fenics(REAL *r, REAL *z, void *data)
             dvector rhs1 = dvec_create(n);
             dvector rhs2 = dvec_create(n);
 
+            // amg data for this pole
+            pcdata.max_levels = mgl[i]->num_levels;
+            pcdata.mgl_data = mgl[i];
+
             for(k = 0; k < K; ++k) {
                 // set right hand sides
                 dvec_set(rhs1.row, &rhs1, 0.0);
@@ -5855,13 +5861,21 @@ void precond_ra_fenics(REAL *r, REAL *z, void *data)
                 dvec_axpy(p_im, &update, &rhs2);
 
                 // (1) solve (A - Re(pole)*I) update = rhs1
+                // set amg data
+                mgl[i]->b.row = n; array_cp(n, rhs1.val, mgl[i]->b.val);
+                mgl[i]->x.row = n; dvec_set(n, &mgl[i]->x, 0.0);
+
                 status = dcsr_pcg(&(mgl[i][0].A), &rhs1, &update, &pc_frac_A, 1e-6, 100, 1, 0);
-		if(status<SUCCESS)
-		  WARN_STATUS(__FUNCTION__,"dcsr_pcg((1) solve...)",status);
+		        if(status<SUCCESS)
+		            WARN_STATUS(__FUNCTION__,"dcsr_pcg((1) solve...)",status);
                 // (2) solve (A - Re(pole)*I) iupdate = rhs2
+                // set amg data
+                mgl[i]->b.row = n; array_cp(n, rhs2.val, mgl[i]->b.val);
+                mgl[i]->x.row = n; dvec_set(n, &mgl[i]->x, 0.0);
+
                 status = dcsr_pcg(&(mgl[i][0].A), &rhs2, &iupdate, &pc_frac_A, 1e-6, 100, 1, 0);
-		if(status<SUCCESS)
-		  WARN_STATUS(__FUNCTION__,"dcsr_pcg((2) solve...)",status);
+		        if(status<SUCCESS)
+		            WARN_STATUS(__FUNCTION__,"dcsr_pcg((2) solve...)",status);
             }
 
             // update next increment
