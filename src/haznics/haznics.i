@@ -1,13 +1,13 @@
-%module haznics 
+%module haznics
 %{
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION 
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #define SWIG_FILE_WITH_INIT
 //#define SWIG_PYTHON_SILENT_MEMLEAK
 #include <numpy/arrayobject.h>
 #include "hazmath.h"
 %}
 
-%include "numpy.ii" 
+%include "numpy.ii"
 
 %init%{
 import_array();
@@ -31,7 +31,7 @@ import_array();
 %include "nonlinear.h"
 %include "timestep.h"
 %include "param.h"
-//%include "eigen.h" 
+//%include "eigen.h"
 %include "graphs.h"
 %include "hazmath.h"
 
@@ -46,6 +46,24 @@ import_array();
    PyObject* to_ndarray() {
         npy_intp dims[1]; dims[0] = self->row;
         PyObject *array = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, (void*)(self->val));
+        if(!array) {
+            PyErr_SetString(PyExc_MemoryError, "Array not allocated!");
+            // SWIG_fail; // for some reason swig says this label is not defined
+        }
+        return array;
+   }
+}
+
+%nodefaultdtor ivector;
+%extend ivector{
+   ~ivector() {
+        ivec_free(self);
+   }
+
+   // return numpy array
+   PyObject* to_ndarray() {
+        npy_intp dims[1]; dims[0] = self->row;
+        PyObject *array = PyArray_SimpleNewFromData(1, dims, NPY_INT, (void*)(self->val));
         if(!array) {
             PyErr_SetString(PyExc_MemoryError, "Array not allocated!");
             // SWIG_fail; // for some reason swig says this label is not defined
@@ -120,6 +138,15 @@ import_array();
    }
 }
 
+%nodefaultctor linear_itsolver_param;
+%extend linear_itsolver_param{
+   linear_itsolver_param() {
+        linear_itsolver_param *itsparam = (linear_itsolver_param *) malloc(sizeof(linear_itsolver_param));
+        param_linear_solver_init(itsparam);
+        return itsparam;
+   }
+}
+
 /*
 // not sure about this one yet
 %nodefaultdtor AMG_param;
@@ -134,10 +161,10 @@ import_array();
 
 
 %extend precond{
-    void apply(dvector *lhs, dvector* rhs) { 
-      printf("lhs-> row %d\n", lhs->row); 
-      apply_precond(lhs->val, rhs->val, $self); 
-    } 
+    void apply(dvector *lhs, dvector* rhs) {
+      printf("lhs-> row %d\n", lhs->row);
+      apply_precond(lhs->val, rhs->val, $self);
+    }
     /*precond_ra_data* precond_data(){
       return (precond_ra_data*)$self->data;
     }*/
@@ -146,19 +173,19 @@ import_array();
 %extend block_dCSRmat{
   void init(int n, int m) {
     bdcsr_alloc(n,m,$self);
-  } 
-  void debugPrint(){
-    printf("n, m = %d, %d \n", $self->bcol, $self->brow); 
   }
-  dCSRmat* get(int i, int j) { 
-      return ($self)->blocks[i + $self->brow*j]; 
+  void debugPrint(){
+    printf("n, m = %d, %d \n", $self->bcol, $self->brow);
+  }
+  dCSRmat* get(int i, int j) {
+      return ($self)->blocks[i + $self->brow*j];
     }
-  void set(int i, int j, dCSRmat* mat) { 
-      ($self)->blocks[i + $self->brow*j] = mat; 
+  void set(int i, int j, dCSRmat* mat) {
+      ($self)->blocks[i + $self->brow*j] = mat;
     }
 
-    
-};  
+
+};
 
 %apply (double* IN_ARRAY1, int DIM1) {(double* A, int nnz)};
 %apply (int* IN_ARRAY1, int DIM1) {(int* ja, int nnz2)};
@@ -171,8 +198,12 @@ dCSRmat* create_matrix(double *A, int nnz, int *ja, int nnz2, int *ia, int n, in
 %clear (int ncol);
 
 %apply (double* IN_ARRAY1, int DIM1) {(double* x, int n)};
-dvector* create_dvector(double *x, int n); 
-%clear (double* a, int n);
+dvector* create_dvector(double *x, int n);
+%clear (double* x, int n);
+
+%apply (int* IN_ARRAY1, int DIM1) {(int* x, int n)};
+ivector* create_ivector(int *x, int n);
+%clear (int* x, int n);
 
 /* this is here because helper functions seems to not be available in the library */
 /* NB: it will produce warnings in haznicswrap - this should be fixed later */
@@ -273,6 +304,22 @@ dvector* my_ra_aaa(int numval, double* z, int numval2, double* f, double AAA_tol
              "First argument is a not of type dict, AMG_param will not be set up! ", RuntimeWarning)
 %}
 
+%pythoncode %{
+    def param_linear_solver_set_dict(d, itsparam):
+        assert isinstance(itsparam, linear_itsolver_param), " Second argument should be of type haznics.linear_itsolver_param! "
+        if isinstance(d, dict):
+            for key in d:
+                if isinstance(d[key], str):
+                    exec("itsparam.%s = \"%s\"" % (key, d[key]))
+                else:
+                    exec("itsparam.%s = %s" % (key, d[key]))
+        else:
+            from warnings import warn
+            from inspect import currentframe
+            warn(" In function %s : "%(currentframe().f_code.co_name) + \
+             "First argument is a not of type dict, linear_itsolver_param will not be set up! ", RuntimeWarning)
+%}
+
 /* callback function as constant?
 %constant void precond_amg(double*, double*, void*);
 %constant void precond_amli(double*, double*, void*);
@@ -289,6 +336,4 @@ void precond_amg_add(double*, double*, void*);
 %nocallback;
  */
 
-
-
-
+void wrapper_krylov_amg(dCSRmat *mat, dvector *rhs, dvector *sol, REAL tol);

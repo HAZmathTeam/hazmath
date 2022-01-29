@@ -38,6 +38,7 @@ inline static REAL16 frac_inv(REAL16 x, REAL16 s1, REAL16 s2, REAL16 alpha, REAL
 /*---------------------------------*/
 
 
+
 dCSRmat* create_matrix(double *A, int nnz, int *ja, int nnz2, int *ia, int n, int ncol)
 {
   dCSRmat *mat = (dCSRmat *)calloc(1, sizeof(dCSRmat));
@@ -54,15 +55,25 @@ dCSRmat* create_matrix(double *A, int nnz, int *ja, int nnz2, int *ia, int n, in
   return mat;
 }
 
-
 dvector* create_dvector(double *x, int n)
 {
-  /* for now not copy arrays, make test that produce seg. fault  */ 
-  dvector* vec; 
-  vec = (dvector* ) calloc(2, sizeof(dvector)); 
-  vec->row = n; 
-  vec->val = x; 
-  return vec; 
+  /* for now not copy arrays, make test that produce seg. fault  */
+  dvector* vec;
+  vec = (dvector* ) calloc(2, sizeof(dvector));
+  vec->row = n;
+  vec->val = x;
+  return vec;
+}
+
+ivector* create_ivector(int *x, int n)
+{
+  /* for now not copy arrays, make test that produce seg. fault  */
+  ivector* vec;
+  vec = (ivector* ) calloc(1, sizeof(ivector));
+  vec->row = n;
+  vec->val = x;
+  int i;
+  return vec;
 }
 
 input_param* create_input_param()
@@ -70,23 +81,23 @@ input_param* create_input_param()
   input_param* in_param = (input_param *)calloc(2, sizeof(input_param));
   param_input_init(in_param);
   param_input("./input.dat", in_param);
-  return in_param; 
+  return in_param;
 }
 
 AMG_param* create_AMG_param(input_param *in_param)
 {
   AMG_param* amg_param = (AMG_param *)calloc(2, sizeof(AMG_param));
-  param_amg_init(amg_param); 
-  param_amg_set(amg_param, in_param); 
-  return amg_param; 
+  param_amg_init(amg_param);
+  param_amg_set(amg_param, in_param);
+  return amg_param;
 }
 
 linear_itsolver_param* create_linear_itsolver_param(input_param *in_param)
 {
   linear_itsolver_param* lin_param = (linear_itsolver_param*)calloc(2, sizeof(linear_itsolver_param));
-  param_linear_solver_init(lin_param); 
-  param_linear_solver_set(lin_param, in_param); 
-  return lin_param; 
+  param_linear_solver_init(lin_param);
+  param_linear_solver_set(lin_param, in_param);
+  return lin_param;
 }
 
 precond* set_precond(void *data, void (*foo)(REAL*, REAL*, void*))
@@ -207,7 +218,7 @@ precond* create_precond_amg(dCSRmat *A, AMG_param *amgparam)
 
     /*// custom smoother
     smoother_matvec *smmv = smoother_matvec_alloc(1);
-    smmv->type = amgparam->smoother; // there is no smoother_type, its smoother only; 
+    smmv->type = amgparam->smoother; // there is no smoother_type, its smoother only;
     if(amgparam->smoother_function) {
         smmv->fct = amgparam->smoother_function;
     }
@@ -238,7 +249,6 @@ precond* create_precond_amg(dCSRmat *A, AMG_param *amgparam)
 
     return pc;
 }
-
 
 precond* create_precond_famg(dCSRmat *A, dCSRmat *M, AMG_param *amgparam)
 {
@@ -304,7 +314,6 @@ precond* create_precond_famg(dCSRmat *A, dCSRmat *M, AMG_param *amgparam)
 
     return pc;
 }
-
 
 precond* create_precond_ra(dCSRmat *A,
                            dCSRmat *M,
@@ -550,14 +559,12 @@ precond* create_precond_ra(dCSRmat *A,
     return pc;
 }
 
-
 INT get_poles_no(precond* pc)
 {
     precond_ra_data* data = (precond_ra_data*)(pc->data);
 
     return data->poles->row;
 }
-
 
 dvector* ra_aaa(int numval,
                 double *z,
@@ -646,7 +653,6 @@ dvector* ra_aaa(int numval,
 
     return res;
 }
-
 
 precond* create_precond_hxcurl(dCSRmat *Acurl,
                                dCSRmat *Pcurl,
@@ -778,7 +784,7 @@ precond* create_precond_hxcurl(dCSRmat *Acurl,
 
     pcdata->backup_r = (REAL*)calloc(Acurl->row, sizeof(REAL));
     pcdata->w = (REAL*)calloc(Acurl->row, sizeof(REAL));
-    
+
     pc->data = pcdata;
     switch (prectype) {
 
@@ -794,18 +800,17 @@ precond* create_precond_hxcurl(dCSRmat *Acurl,
     return pc;
 }
 
-
-precond* create_precond_hxdiv_3D(dCSRmat *Adiv, 
-                                 dCSRmat *P_div, 
+precond* create_precond_hxdiv_3D(dCSRmat *Adiv,
+                                 dCSRmat *P_div,
                                  dCSRmat *Curl,
                                  dCSRmat *P_curl,
                                  SHORT prectype,
                                  AMG_param *amgparam)
-{   
+{
     precond *pc = (precond*)calloc(1, sizeof(precond));
 
     HX_div_data *pcdata = (HX_div_data*)calloc(1, sizeof(HX_div_data));
-    
+
     const SHORT prtlvl = amgparam->print_level;
     const SHORT max_levels = amgparam->max_levels;
 
@@ -929,7 +934,7 @@ precond* create_precond_hxdiv_3D(dCSRmat *Adiv,
 
     pcdata->backup_r = (REAL*)calloc(Adiv->row, sizeof(REAL));
     pcdata->w = (REAL*)calloc(2*(A_curl->row), sizeof(REAL));
-    
+
     pc->data = pcdata;
     switch (prectype) {
 
@@ -945,7 +950,6 @@ precond* create_precond_hxdiv_3D(dCSRmat *Adiv,
     return pc;
 }
 
-
 precond* create_precond_hxdiv_2D(dCSRmat *Adiv,
                                  dCSRmat *P_div,
                                  dCSRmat *Curl,
@@ -955,7 +959,7 @@ precond* create_precond_hxdiv_2D(dCSRmat *Adiv,
     precond *pc = (precond*)calloc(1, sizeof(precond));
 
     HX_div_data *pcdata = (HX_div_data*)calloc(1, sizeof(HX_div_data));
-    
+
     const SHORT prtlvl = amgparam->print_level;
     const SHORT max_levels = amgparam->max_levels;
 
@@ -1097,7 +1101,6 @@ void apply_precond(REAL *r, REAL *z, precond *pc)
 
 }
 
-
 PyObject* py_callback_setup(PyObject* pyfunc, AMG_param *amgparam)
 {
     printf("Here I am inside the callback setup \n");
@@ -1107,7 +1110,7 @@ PyObject* py_callback_setup(PyObject* pyfunc, AMG_param *amgparam)
         return NULL;
     }
     Py_XINCREF(pyfunc);
-// LUDMIL: changed below because this makes no sense. 
+// LUDMIL: changed below because this makes no sense.
 //    (PyObject*)amgparam->smoother_function = pyfunc;
     amgparam->smoother_function = (void *)pyfunc;
     Py_INCREF(Py_None);
@@ -1115,24 +1118,23 @@ PyObject* py_callback_setup(PyObject* pyfunc, AMG_param *amgparam)
     return Py_None;
 }
 
-
 PyObject* py_callback_eval(REAL *r, REAL *x, smoother_matvec *smmv)
 {
     printf("Here I am inside the callback eval\n");
 
     //import_array();
     // get data
-    //LUDMIL    npy_intp D[1]; D[0] = smmv->data->A->col; t// 
+    //LUDMIL    npy_intp D[1]; D[0] = smmv->data->A->col; t//
     // LUDMIL Not exactly sure what this (ABOVE) is supposed to do (find number of columns?), so I rewrote it
     /* INT D[1];//LUDMIL */
     /* dCSRmat *A=(dCSRmat *)smmv->data; //LUDMIL */
     /* D[0] = A->col; //LUDMIL */
-    
-    
+
+
     // create new Python arrays
     //LUDMIL: this NPY_DOUBLE is not the right thing, so commenting out
-    PyObject *rr=NULL; //LUDMIL ?   
-    PyObject *xx=NULL;  //LUDMIL? 
+    PyObject *rr=NULL; //LUDMIL ?
+    PyObject *xx=NULL;  //LUDMIL?
     //LUDMIL     PyObject *rr = PyArray_SimpleNewFromData(1, D, NPY_DOUBLE, (void*)r);
     //LUDMIL     PyObject *xx = PyArray_SimpleNewFromData(1, D, NPY_DOUBLE, (void*)x);
 
@@ -1159,5 +1161,34 @@ PyObject* py_callback_eval(REAL *r, REAL *x, smoother_matvec *smmv)
 
     PyObject *return_obj = PyUnicode_FromString("everything is gone be ok");
     return return_obj;
+
+}
+
+void wrapper_krylov_amg(dCSRmat *mat, dvector *rhs, dvector *sol, REAL tol)
+{
+    AMG_param       amgparam; // parameters for AMG
+    linear_itsolver_param  itparam;  // parameters for linear itsolver
+
+    // Set parameters for linear iterative methods
+    param_linear_solver_init(&itparam);
+    //if (*print_lvl > PRINT_MIN)
+    param_linear_solver_print(&itparam);
+
+    // Set parameters for algebriac multigrid methods
+    param_amg_init(&amgparam);
+    //if (*print_lvl > PRINT_MIN)
+    param_amg_print(&amgparam);
+
+    //amgparam.print_level          = *print_lvl;
+    //itparam.linear_tol            = *tol;
+    //itparam.linear_print_level    = *print_lvl;
+    //itparam.linear_maxit          = *maxit;
+
+    amgparam.print_level          = 2;
+    itparam.linear_tol            = tol;
+    itparam.linear_print_level    = 2;
+    itparam.linear_maxit          = 100;
+
+    linear_solver_dcsr_krylov_amg(mat, rhs, sol, &itparam, &amgparam);
 
 }

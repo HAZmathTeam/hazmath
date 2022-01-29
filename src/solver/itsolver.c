@@ -817,7 +817,6 @@ FINISHED:
     return status;
 }
 
-
 /********************************************************************************************/
 /**
  * \fn INT linear_solver_dcsr_krylov_famg (dCSRmat *A_frac, dvector *bb, dvector *x, dCSRmat *M, dCSRmat *A,
@@ -1054,7 +1053,6 @@ FINISHED:
     return status;
 }
 
-
 /********************************************************************************************/
 /**
  * \fn INT linear_solver_dcsr_krylov_famg_sum (dCSRmat *A_frac, dvector *bb, dvector *x, dCSRmat *M, dCSRmat *A,
@@ -1228,7 +1226,6 @@ FINISHED:
 
     return status;
 }
-
 
 /********************************************************************************************/
 /**
@@ -2838,6 +2835,10 @@ INT linear_solver_bdcsr_krylov_block(block_dCSRmat *A,
 }
 
 /********************************************************************************************/
+// itrative solver for specific problems
+/********************************************************************************************/
+
+/********************************************************************************************/
 /**
  * \fn INT linear_solver_bdcsr_krylov_mixed_darcy (block_dCSRmat *A, dvector *b, dvector *x,
  *                                           itsolver_param *itparam,
@@ -3425,7 +3426,6 @@ FINISHED:
   return status;
 }
 
-
 /********************************************************************************************/
 /*!
  * \fn INT linear_solver_bdcsr_babuska_block_2 (block_dCSRmat *A, dvector *b, dvector *x,
@@ -3734,6 +3734,113 @@ INT linear_solver_bdcsr_babuska_block_2(block_dCSRmat *A,
     return status;
 }
 
+/********************************************************************************************/
+/**
+ * \fn INT linear_solver_dcsr_krylov_md_scalar_elliptic (dCSRmat *A, dvector *b, dvector *x,
+ *                                      linear_itsolver_param *itparam, AMG_param *amgparam,
+ *                                      ivector *pressure_dofs, ivector *mortar_dofs)
+ *
+ * \brief Solve mixed dimensional scalar ellitptic Ax=b by preconditioned Krylov methods
+ *
+ * \param A               Pointer to the coeff matrix in dCSRmat format
+ * \param b               Pointer to the right hand side in dvector format
+ * \param x               Pointer to the approx solution in dvector format
+ * \param itparam         Pointer to parameters for iterative solvers
+ * \param amgparam        Pointer to parameters for AMG methods
+ * \param pressure_dofs   Pointer to the dofs of pressure in ivector format
+ * \param mortar_dofs     Pointer to the dofs of mortar variables in ivector format
+ *
+ * \return          Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   01/29/2022
+ */
+INT linear_solver_dcsr_krylov_md_scalar_elliptic(dCSRmat *A,
+                                                 dvector *b,
+                                                 dvector *x,
+                                                 linear_itsolver_param *itparam,
+                                                 AMG_param *amgparam,
+                                                 ivector *pressure_dofs,
+                                                 ivector *mortar_dofs)
+{
+    const SHORT prtlvl = itparam->linear_print_level;
+    const SHORT max_levels = amgparam->max_levels;
+    const INT nnz = A->nnz, m = A->row, n = A->col;
+
+    /* Local Variables */
+    INT      status = SUCCESS;
+    INT      i;
+    REAL     solver_start, solver_end, solver_duration;
+
+    get_time(&solver_start);
+
+    /*-------------------------*/
+    // get the block structure
+    /*-------------------------*/
+    // allocate 2 by 2 block matrix
+    block_dCSRmat A_blk;
+    bdcsr_alloc(2, 2, &A_blk);
+
+    // get the blocks
+    dcsr_getblk(A, pressure_dofs->val, pressure_dofs->val, pressure_dofs->row, pressure_dofs->row, A_blk.blocks[0]);
+    dcsr_getblk(A, pressure_dofs->val, mortar_dofs->val,   pressure_dofs->row, mortar_dofs->row,   A_blk.blocks[1]);
+    dcsr_getblk(A, mortar_dofs->val,   pressure_dofs->val, mortar_dofs->row,   pressure_dofs->row, A_blk.blocks[2]);
+    dcsr_getblk(A, mortar_dofs->val,   mortar_dofs->val,   mortar_dofs->row,   mortar_dofs->row,   A_blk.blocks[3]);
+
+    // get diagonal blocks in the preconditioner
+    dCSRmat *A_diag = (dCSRmat *)calloc(2, sizeof(dCSRmat));
+    dCSRmat BTB;
+
+    // pressure diaognal block (approximate Schur complement)
+    const INT n_mortar = mortar_dofs->row;
+    dvector diag_mortar;
+    dCSRmat inv_mortar = dcsr_create(n_mortar, n_mortar, n_mortar);
+
+    dcsr_getdiag(n_mortar, A_blk.blocks[3], &diag_mortar);
+    for (i=0;i<n_mortar;i++)
+    {
+        inv_mortar.IA[i] = i;
+        inv_mortar.JA[i] = i;
+        if (diag_mortar.val[i] > SMALLREAL) inv_mortar.val[i]   = 1.0/diag_mortar.val[i];
+        else inv_mortar.val[i] = 1.0;
+
+    }
+    inv_mortar.IA[n_mortar] = n_mortar;
+
+    dcsr_rap(A_blk.blocks[1], &inv_mortar, A_blk.blocks[2], &BTB);
+    dcsr_add(&BTB, -1.0, A_blk.blocks[0], 1.0, &A_diag[0]);
+
+    dcsr_free(&BTB);
+
+    // mortar diagonal block
+    //dcsr_alloc(A_blk.blocks[3]->row, A_blk.blocks[3]->col, A_blk.blocks[3]->nnz, &A_diag[1]);
+    //dcsr_cp(A_blk.blocks[3], &A_diag[1]);
+    dcsr_alloc(n_mortar, n_mortar, n_mortar, &A_diag[1]);
+    iarray_cp(n_mortar+1, inv_mortar.IA, A_diag[1].IA);
+    iarray_cp(n_mortar, inv_mortar.JA, A_diag[1].JA);
+    array_cp(n_mortar, diag_mortar.val, A_diag[1].val);
+
+    dcsr_free(&inv_mortar);
+    dvec_free(&diag_mortar);
+
+    // call iterative solver
+    status = linear_solver_bdcsr_krylov_block_2(&A_blk, b, x, itparam, amgparam, A_diag);
+
+    if ( prtlvl >= PRINT_MIN ) {
+        get_time(&solver_end);
+        solver_duration = solver_end - solver_start;
+        print_cputime("AMG_Krylov method totally", solver_duration);
+        fprintf(stdout,"**********************************************************\n");
+    }
+
+FINISHED:
+    bdcsr_free(&A_blk);
+    if(&A_diag[0]) dcsr_free(&A_diag[0]);
+    if(&A_diag[1]) dcsr_free(&A_diag[1]);
+    if(A_diag) free(A_diag);
+
+    return status;
+}
 
 
 /*---------------------------------*/
