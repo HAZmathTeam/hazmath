@@ -489,7 +489,7 @@ void icsr_print_rows(FILE* fid,
       for(j=A->IA[i];j<A->IA[i+1];++j){
 	fprintf(fid,"%d ",A->JA[j]);
       }
-      fprintf(fid,"]");    
+      fprintf(fid,"]");
   }
   fflush(fid);
   return;
@@ -645,6 +645,7 @@ void bdcsr_write_dcoo(const char *filename,
   return;
 }
 
+
 /***********************************************************************************************/
 /**
  * \fn void dcoo_read_dcsr(const char *filename, dCSRmat *A)
@@ -689,6 +690,92 @@ void dcoo_read_dcsr (const char *filename,
   dcoo_2_dcsr(&Atmp,A);
   dcoo_free(&Atmp);
 }
+
+/**
+ * \fn void dbsr_read (const char *filename, dBSRmat *A)
+ *
+ * \brief Read A from a disk file in dBSRmat format
+ *
+ * \param filename   File name for matrix A
+ * \param A          Pointer to the dBSRmat A
+ *
+ * \note
+ *   This routine reads a dBSRmat matrix from a disk file in the following format:
+ *
+ * \note File format:
+ *   - ROW, COL, NNZ
+ *   - nb: size of each block
+ *   - storage_manner: storage manner of each block
+ *   - ROW+1: length of IA
+ *   - IA(i), i=0:ROW
+ *   - NNZ: length of JA
+ *   - JA(i), i=0:NNZ-1
+ *   - NNZ*nb*nb: length of val
+ *   - val(i), i=0:NNZ*nb*nb-1
+ *
+ * \author Xiaozhe Hu
+ * \date   10/29/2010
+ */
+void dbsr_read (const char  *filename,
+                dBSRmat     *A)
+{
+    INT     ROW, COL, NNZ, nb, storage_manner;
+    INT     i, n;
+    INT     index;
+    REAL    value;
+    size_t  status;
+
+    FILE *fp = fopen(filename,"r");
+
+    if ( fp == NULL ) check_error(ERROR_OPEN_FILE, filename);
+
+    printf("%%%%%s: HAZMATH is reading file %s...\n", __FUNCTION__, filename);
+
+    status = fscanf(fp, "%d %d %d", &ROW,&COL,&NNZ); // read dimension of the problem
+    check_error(status, filename);
+    A->ROW = ROW; A->COL = COL; A->NNZ = NNZ;
+
+    status = fscanf(fp, "%d", &nb); // read the size of each block
+    check_error(status, filename);
+    A->nb = nb;
+
+    status = fscanf(fp, "%d", &storage_manner); // read the storage_manner
+    check_error(status, filename);
+    A->storage_manner = storage_manner;
+
+    // allocate memory space
+    dbsr_alloc(ROW, COL, NNZ, nb, storage_manner, A);
+
+    // read IA
+    status = fscanf(fp, "%d", &n);
+    check_error(status, filename);
+    for ( i = 0; i < n; ++i ) {
+        status = fscanf(fp, "%d", &index);
+        check_error(status, filename);
+        A->IA[i] = index;
+    }
+
+    // read JA
+    status = fscanf(fp, "%d", &n);
+    check_error(status, filename);
+    for ( i = 0; i < n; ++i ){
+        status = fscanf(fp, "%d", &index);
+        check_error(status, filename);
+        A->JA[i] = index;
+    }
+
+    // read val
+    status = fscanf(fp, "%d", &n);
+    check_error(status, filename);
+    for ( i = 0; i < n; ++i ) {
+        status = fscanf(fp, "%le", &value);
+        check_error(status, filename);
+        A->val[i] = value;
+    }
+
+    fclose(fp);
+}
+
 
 /*** Auxillary Files *********************************************************************/
 /****************************************************************************************/

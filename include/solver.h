@@ -165,6 +165,96 @@ typedef struct {
 
 } AMG_data; /**< Data for AMG */
 
+/***********************************************************************************************/
+/**
+ * \struct AMG_data_bsr
+ * \brief Data for multigrid levels in dBSRmat format
+ *
+ * \note This structure is needed for the AMG solver/preconditioner in BSR format
+ */
+typedef struct {
+
+    //! max number of levels
+    INT max_levels;
+
+    //! number of levels in use <= max_levels
+    INT num_levels;
+
+    //! pointer to the matrix at level level_num
+    dBSRmat A;
+
+    //! restriction operator at level level_num
+    dBSRmat R;
+
+    //! prolongation operator at level level_num
+    dBSRmat P;
+
+    //! pointer to the right-hand side at level level_num
+    dvector b;
+
+    //! pointer to the iterative solution at level level_num
+    dvector x;
+
+    //! pointer to the diagonal inverse at level level_num
+    dvector diaginv;
+
+    //! pointer to the matrix at level level_num (csr format)
+    dCSRmat Ac;
+
+    //! pointer to the numerical dactorization from UMFPACK
+    void *Numeric;
+
+    //! pointer to the pressure block (only for reservoir simulation)
+    dCSRmat PP;
+
+    //! pointer to the auxiliary vectors for pressure block
+    REAL *pw;
+
+    //! pointer to the saturation block (only for reservoir simulation)
+    dBSRmat SS;
+
+    //! pointer to the auxiliary vectors for saturation block
+    REAL *sw;
+
+    //! pointer to the diagonal inverse of the saturation block at level level_num
+    dvector diaginv_SS;
+
+    //! ILU data for pressure block
+    //ILU_data PP_LU;
+
+    //! pointer to the CF marker at level level_num
+    ivector cfmark;
+
+    //! number of levels use ILU smoother
+    //INT ILU_levels;
+
+    //! ILU matrix for ILU smoother
+    //ILU_data LU;
+
+    //! dimension of the near kernel for SAMG
+    INT near_kernel_dim;
+
+    //! basis of near kernel space for SAMG
+    REAL **near_kernel_basis;
+
+    //-----------------------------------------
+    // extra near kernal space for extra solve
+    //! Matrix data for near kernal
+    dCSRmat *A_nk;
+
+    //! Prolongation for near kernal
+    dCSRmat *P_nk;
+
+    //! Resriction for near kernal
+    dCSRmat *R_nk;
+    //-----------------------------------------
+
+    //! temporary work space
+    dvector w;
+
+} AMG_data_bsr; /**< AMG data for BSR matrices */
+
+
 /**
  * \struct MG_blk_data
  * \brief Data for MG solvers
@@ -523,6 +613,118 @@ typedef struct {
     REAL *w;
 
 } HX_div_data;
+
+/***********************************************************************************************/
+/**
+ * \struct precond_diag_bsr
+ * \brief Data for diagnal preconditioners in dBSRmat format
+ *
+ * \note This is needed for the diagnal preconditioner.
+ */
+typedef struct {
+
+    //! dimension of each sub-block
+    INT nb;
+
+    //! diagnal elements
+    dvector diag;
+
+} precond_diag_bsr; /**< Data for diagnal preconditioners in dBSRmat format */
+
+/***********************************************************************************************/
+/**
+ * \struct precond_data_bsr
+ * \brief Data for preconditioners in dBSRmat format
+ *
+ * \note This structure is needed for the AMG solver/preconditioner in BSR format
+ */
+typedef struct {
+
+    //! type of AMG method
+    SHORT AMG_type;
+
+    //! print level in AMG preconditioner
+    SHORT print_level;
+
+    //! max number of iterations of AMG preconditioner
+    INT maxit;
+
+    //! max number of AMG levels
+    INT max_levels;
+
+    //! tolerance for AMG preconditioner
+    REAL tol;
+
+    //! AMG cycle type
+    SHORT cycle_type;
+
+    //! AMG smoother type
+    SHORT smoother;
+
+    //! AMG smoother ordering
+    SHORT smooth_order;
+
+    //! number of presmoothing
+    SHORT presmooth_iter;
+
+    //! number of postsmoothing
+    SHORT postsmooth_iter;
+
+    //! coarsening type
+    SHORT coarsening_type;
+
+    //! relaxation parameter for SOR smoother
+    REAL relaxation;
+
+    //! coarse solver type for AMG
+    SHORT coarse_solver;
+
+    //! switch of scaling of the coarse grid correction
+    SHORT coarse_scaling;
+
+    //! degree of the polynomial used by AMLI cycle
+    SHORT amli_degree;
+
+    //! coefficients of the polynomial used by AMLI cycle
+    REAL *amli_coef;
+
+    //! smooth factor for smoothing the tentative prolongation
+    REAL tentative_smooth;
+
+    //! type of krylov method used by Nonlinear AMLI cycle
+    SHORT nl_amli_krylov_type;
+
+    //! AMG preconditioner data
+    AMG_data_bsr *mgl_data;
+
+    //! AMG preconditioner data for pressure block
+    AMG_data *pres_mgl_data;
+
+    //! ILU preconditioner data (needed for CPR type preconditioner)
+    //ILU_data *LU;
+
+    //! Matrix data
+    dBSRmat *A;
+
+    // extra near kernal space
+
+    //! Matrix data for near kernal
+    dCSRmat *A_nk;
+
+    //! Prolongation for near kernal
+    dCSRmat *P_nk;
+
+    //! Resriction for near kernal
+    dCSRmat *R_nk;
+
+    //! temporary dvector used to store and restore the residual
+    dvector r;
+
+    //! temporary work space for other usage
+    REAL *w;
+
+} precond_data_bsr; /**< Data for preconditioners in dBSRmat format */
+
 
 /***********************************************************************************************/
 

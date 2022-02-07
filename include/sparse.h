@@ -136,7 +136,6 @@ typedef struct iCOOmat{
 
 } iCOOmat; /**< Sparse matrix of INT type in COO format */
 
-
 /**
  * \struct block_dCSRmat
  * \brief Block REAL CSR matrix format
@@ -174,5 +173,44 @@ typedef struct block_iCSRmat {
     iCSRmat **blocks;
 
 } block_iCSRmat; /**< Matrix of INT type in Block CSR format */
+
+/**
+ * \struct dBSRmat
+ * \brief Block sparse row storage matrix of REAL type
+ *
+ * \note This data structure is adapted from the Intel MKL library. Refer to:
+ * http://software.intel.com/sites/products/documentation/hpc/mkl/lin/index.htm
+ *
+ */
+typedef struct dBSRmat {
+
+    //! number of rows of block entries in matrix A, M
+    INT ROW;
+
+    //! number of cols of block entries in matrix A, N
+    INT COL;
+
+    //! number of nonzero block entries in matrix A, NNZ
+    INT NNZ;
+
+    //! each block entry should be of the size nb by nb
+    INT nb;
+
+    //! storage manner for each sub-block (default is row-wise ordring)
+    INT storage_manner; // 0: row-wise ordering, 1: column-wise ordering
+
+    //! A real array that contains the elements of the non-zero block entries
+    //! (contains at least one non-zero element). The size is (NNZ*nb*nb).
+    REAL *val;
+
+    //! integer array of row pointers, the size is ROW+1
+    INT *IA;
+
+    //! Element i of the integer array columns is the number of the column in the
+    //! block matrix that contains the i-th non-zero block. The size is NNZ.
+    INT *JA;
+
+} dBSRmat; /**< Matrix of REAL type in BSR format */
+
 
 #endif

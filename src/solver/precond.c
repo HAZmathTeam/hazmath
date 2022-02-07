@@ -110,7 +110,7 @@ inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres
 inline static void WARN_STATUS(const char *function_name,const char *call_to, const INT status)
 {
   fprintf(stderr,"\n\n%%%% ****WARNING in %s: status=%d after exiting %s (WHILE SUCCESS .EQ. %d)\n\n", \
-	  function_name,status,call_to,SUCCESS); 
+	  function_name,status,call_to,SUCCESS);
 }
 /*---------------------------------*/
 /*--      Public Functions       --*/
@@ -1253,6 +1253,84 @@ void precond_hx_div_multiplicative(REAL *r,
     array_cp(n, hxdivdata->backup_r, r);
     //printf("preconditioner done\n");
 
+}
+
+/***********************************************************************************************/
+/**
+ * \fn void precond_dbsr_diag (REAL *r, REAL *z, void *data)
+ *
+ * \brief Diagonal preconditioner z=inv(D)*r
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   10/26/2010
+ *
+ * \note Works for general nb (Xiaozhe)
+ */
+void precond_dbsr_diag (REAL *r,
+                        REAL *z,
+                        void *data)
+{
+    precond_diag_bsr * diag = (precond_diag_bsr *)data;
+    const INT nb = diag->nb;
+
+    REAL *diagptr = diag->diag.val;
+    const INT nb2 = nb*nb;
+    const INT m = diag->diag.row/nb2;
+    INT i;
+
+    for (i = 0; i < m; ++i) {
+        ddense_mxv(&(diagptr[i*nb2]),&(r[i*nb]),&(z[i*nb]),nb);
+    }
+
+
+
+}
+
+/***********************************************************************************************/
+/**
+ * \fn void precond_dbsr_amg(REAL *r, REAL *z, void *data)
+ *
+ * \brief AMG preconditioner
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   08/07/2011
+ */
+void precond_dbsr_amg(REAL *r,
+                      REAL *z,
+                      void *data)
+{
+    precond_data_bsr *predata=(precond_data_bsr *)data;
+    const INT row=predata->mgl_data[0].A.ROW;
+    const INT nb = predata->mgl_data[0].A.nb;
+    const INT maxit=predata->maxit;
+    const INT m = row*nb;
+
+	INT i;
+
+    AMG_param amgparam; param_amg_init(&amgparam);
+    amgparam.cycle_type = predata->cycle_type;
+    amgparam.smoother   = predata->smoother;
+    amgparam.presmooth_iter  = predata->presmooth_iter;
+    amgparam.postsmooth_iter = predata->postsmooth_iter;
+    amgparam.relaxation = predata->relaxation;
+    amgparam.coarse_scaling = predata->coarse_scaling;
+    amgparam.tentative_smooth = predata->tentative_smooth;
+
+    AMG_data_bsr *mgl = predata->mgl_data;
+    mgl->b.row=m; array_cp(m,r,mgl->b.val); // residual is an input
+    mgl->x.row=m; dvec_set(m,&mgl->x,0.0);
+
+    for ( i=maxit; i--; ) mgcycle_bsr(mgl,&amgparam);
+
+    array_cp(m,mgl->x.val,z);
 }
 
 /***********************************************************************************************/
@@ -5264,10 +5342,10 @@ void precond_block2_babuska_diag(REAL *r,
       precond_data pcdata00;
       param_amg_to_prec(&pcdata00, &(amgparam[0]));
       pc00.data = &pcdata00;
-      
+
       pcdata00.max_levels = mgl[0]->num_levels;
       pcdata00.mgl_data = mgl[0];
-      
+
       // solve
       //status = dcsr_pvfgmres(&(mgl[0][0].A), &r0, &z0, &pc00, 1e-6, 100, 100, 1, 1);
       status = dcsr_pcg(&(mgl[0][0].A), &r0, &z0, &pc00, 1e-12, 100, 1, 1);
@@ -5432,10 +5510,10 @@ void precond_block2_babuska_lower(REAL *r,
       precond_data pcdata00;
       param_amg_to_prec(&pcdata00, &(amgparam[0]));
       pc00.data = &pcdata00;
-      
+
       pcdata00.max_levels = mgl[0]->num_levels;
       pcdata00.mgl_data = mgl[0];
-      
+
       // solve
       //status = dcsr_pvfgmres(&(mgl[0][0].A), &r0, &z0, &pc00, 1e-6, 100, 100, 1, 1);
       status = dcsr_pcg(&(mgl[0][0].A), &r0, &z0, &pc00, 1e-12, 100, 1, 1);

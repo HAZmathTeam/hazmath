@@ -855,7 +855,7 @@ INT ddense_solve_pivot_l(INT dopivot,			\
  *        the solution, that is, on return: xr[],xi[] occuppy the same
  *        memory as br[],bi[].
  *
- * \param n number of rows (and columns) of Ar and Ai. 
+ * \param n number of rows (and columns) of Ar and Ai.
  *
  * \param bi[] imaginary part of rhs cannot be null if Ai is not null;
  *             in such case bi[] must be allocated before entry here
@@ -879,14 +879,14 @@ INT zdense_solve_pivot_l(INT n,				\
   // Ai is null or bi is null; or both;
   if((Ai==NULL) && (bi==NULL)){
     piv=calloc(n,sizeof(REAL16));
-    perm=calloc(n,sizeof(INT));  
+    perm=calloc(n,sizeof(INT));
     ddense_solve_pivot_l(1,n,Ar,br,perm,piv);
     free(piv);
     free(perm);
     return 0;
   } else if(Ai==NULL){// bi is not null;
     piv=calloc(n,sizeof(REAL16));
-    perm=calloc(n,sizeof(INT));  
+    perm=calloc(n,sizeof(INT));
     ddense_solve_pivot_l(1,n,Ar,br,perm,piv);
     ddense_solve_pivot_l(1,n,Ar,bi,perm,piv);
     free(piv);
@@ -914,7 +914,7 @@ INT zdense_solve_pivot_l(INT n,				\
     /* print_full_mat_l(n2,n2,A,"A"); */
     /* print_full_mat_l(n2,1,b,"b"); */
     piv=calloc(n2,sizeof(REAL16));
-    perm=calloc(n2,sizeof(INT));  
+    perm=calloc(n2,sizeof(INT));
     ddense_solve_pivot_l(1,n2,A,b,perm,piv);
     //  if(y) free(y);
     for(k=0;k<n;k++) {
@@ -926,8 +926,351 @@ INT zdense_solve_pivot_l(INT n,				\
     free(A);
     free(b);
     return 0;
-  }  
+  }
 }
+
+/**
+ * \fn void ddense_axm (REAL *a, const INT n, const REAL alpha)
+ *
+ * \brief Compute a = alpha*a (in place)
+ *
+ * \param a        Pointer to the REAL array which stands a n*n matrix
+ * \param n        Dimension of the matrix
+ * \param alpha    Scalar
+ *
+ * \author Xiaozhe Hu
+ * \date   05/26/2014
+ */
+void ddense_axm (REAL       *a,
+                 const INT   n,
+                 const REAL  alpha)
+{
+    const INT  n2 = n*n;
+    INT        i;
+
+    for ( i = 0; i < n2; i++ ) a[i] *= alpha;
+
+    return;
+}
+
+/**
+ * \fn void ddense_add (const REAL *a, const REAL *b, const INT n,
+ *                      const REAL alpha, const REAL beta, REAL *c)
+ *
+ * \brief Compute c = alpha*a + beta*b
+ *
+ * \param a        Pointer to the REAL array which stands a n*n matrix
+ * \param b        Pointer to the REAL array which stands a n*n matrix
+ * \param n        Dimension of the matrix
+ * \param alpha    Scalar
+ * \param beta     Scalar
+ * \param c        Pointer to the REAL array which stands a n*n matrix
+ *
+ * \author Xiaozhe Hu
+ * \date   05/26/2014
+ */
+void ddense_add (const REAL  *a,
+                 const REAL  *b,
+                 const INT    n,
+                 const REAL   alpha,
+                 const REAL   beta,
+                 REAL        *c)
+{
+    const INT  n2 = n*n;
+    INT        i;
+
+    for ( i = 0; i < n2; i++ ) c[i] = alpha * a[i] + beta * b[i];
+
+    return;
+}
+
+
+/**
+ * \fn void ddense_mxv (const REAL *a, const REAL *b, REAL *c, const INT n)
+ *
+ * \brief Compute the product of a small full matrix a and a array b, stored in c
+ *
+ * \param a   Pointer to the REAL array which stands a n*n matrix
+ * \param b   Pointer to the REAL array with length n
+ * \param c   Pointer to the REAL array with length n
+ * \param n   Dimension of the matrix
+ *
+ * \author Xiaozhe Hu
+ * \date   04/21/2010
+ */
+void ddense_mxv (const REAL  *a,
+                 const REAL  *b,
+                 REAL        *c,
+                 const INT    n)
+{
+    INT i,j,in=0;
+    REAL temp;
+
+    for (i=0; i<n; ++i, in+=n) {
+        temp = 0.0;
+        for (j=0; j<n; ++j) temp += a[in+j]*b[j];
+        c[i]=temp;
+    } // end for i
+
+    return;
+}
+
+
+/**
+ * \fn void ddense_mul (const REAL *a, const REAL *b, REAL *c, const INT n)
+ *
+ * \brief Compute the matrix product of two small full matrices a and b, stored in c
+ *
+ * \param a   Pointer to the REAL array which stands a n*n matrix
+ * \param b   Pointer to the REAL array which stands a n*n matrix
+ * \param c   Pointer to the REAL array which stands a n*n matrix
+ * \param n   Dimension of the matrix
+ *
+ * \author Xiaozhe Hu
+ * \date   04/21/2010
+ */
+void ddense_mul (const REAL  *a,
+                 const REAL  *b,
+                 REAL        *c,
+                 const INT    n)
+{
+    const INT n2 = n*n;
+    INT i,j,k;
+    REAL temp;
+
+    for (i=0; i<n2; i+=n) {
+        for (j=0; j<n; ++j) {
+            temp = 0.0;
+            for (k=0; k<n; ++k) temp += a[i+k]*b[k*n+j];
+            c[i+j] = temp;
+        } // end for j
+    } // end for i
+
+    return;
+}
+
+/**
+ * \fn void ddense_ypAx (const REAL *A, const REAL *x, REAL *y, const INT n)
+ *
+ * \brief Compute y := y + Ax, where 'A' is a n*n dense matrix
+ *
+ * \param A   Pointer to the n*n dense matrix
+ * \param x   Pointer to the REAL array with length n
+ * \param y   Pointer to the REAL array with length n
+ * \param n   Dimension of the dense matrix
+ *
+ */
+void ddense_ypAx (const REAL  *A,
+                  const REAL  *x,
+                  REAL        *y,
+                  const INT    n)
+{
+    INT i,j,k;
+
+    for ( k = i = 0; i < n; i++, k+=n ) {
+        for ( j = 0; j < n; j++ ) {
+            y[i] += A[k+j]*x[j];
+        }
+    }
+
+    return;
+}
+
+/**
+ * \fn void ddense_ymAx (const REAL *A, const REAL *x, REAL *y, const INT n)
+ *
+ * \brief Compute y := y - Ax, where 'A' is a n*n dense matrix
+ *
+ * \param A   Pointer to the n*n dense matrix
+ * \param x   Pointer to the REAL array with length n
+ * \param y   Pointer to the REAL array with length n
+ * \param  n   the dimension of the dense matrix
+ *
+ * \author Xiaozhe Hu
+ * \date   2010/10/25
+ *
+ */
+void ddense_ymAx (const REAL  *A,
+                  const REAL  *x,
+                  REAL        *y,
+                  const INT    n)
+{
+    INT i,j,k;
+
+    for ( k = i = 0; i < n; i++, k+=n ) {
+        for ( j = 0; j < n; j++ ) {
+            y[i] -= A[k+j]*x[j];
+        }
+    }
+
+    return;
+}
+
+/**
+ * \fn void ddense_aAxpby (const REAL alpha, const REAL *A, const REAL *x,
+ *                                 const REAL beta, REAL *y, const INT n)
+ *
+ * \brief Compute y:=alpha*A*x + beta*y
+ *
+ * \param alpha   REAL factor alpha
+ * \param A       Pointer to the REAL array which stands for a n*n full matrix
+ * \param x       Pointer to the REAL array with length n
+ * \param beta    REAL factor beta
+ * \param y       Pointer to the REAL array with length n
+ * \param n       Length of array x and y
+ *
+ */
+void ddense_aAxpby (const REAL   alpha,
+                    const REAL  *A,
+                    const REAL  *x,
+                    const REAL   beta,
+                    REAL        *y,
+                    const INT    n)
+{
+    INT     i,j,k;
+    REAL    tmp = 0.0;
+
+    if ( alpha == 0 ) {
+        for (i = 0; i < n; i ++) y[i] *= beta;
+        return;
+    }
+
+    // y := (beta/alpha)y
+    tmp = beta / alpha;
+    if ( tmp != 1.0 ) {
+        for (i = 0; i < n; i ++) y[i] *= tmp;
+    }
+
+    // y := y + A*x
+    for ( k = i = 0; i < n; i++, k+=n ) {
+        for (j = 0; j < n; j ++) {
+            y[i] += A[k+j]*x[j];
+        }
+    }
+
+    // y := alpha*y
+    if ( alpha != 1.0 ) {
+        for ( i = 0; i < n; i ++ ) y[i] *= alpha;
+    }
+}
+
+/**
+ * \fn void ddense_inv_inplace (REAL *a, const INT n)
+ *
+ * \brief Compute the inverse of a matrix using Gauss Elimination
+ *
+ * \param a   Pointer to the REAL array which stands a n*n matrix
+ * \param n   Dimension of the matrix
+ *
+ * \author Xiaozhe Hu
+ * \date   05/01/2010
+ */
+void ddense_inv_inplace (REAL      *a,
+                         const INT  n)
+{
+    INT i,j,k,l,u,kn,in;
+    REAL alinv;
+
+    for (k=0; k<n; ++k) {
+
+        kn = k*n;
+        l  = kn+k;
+
+        if (ABS(a[l]) < SMALLREAL) {
+            printf("### HAZMATH ERROR: Diagonal entry is close to zero! ");
+            printf("diag_%d = %.2e! [%s]\n", k, a[l], __FUNCTION__);
+            exit(ERROR_SOLVER_EXIT);
+        }
+        alinv = 1.0/a[l];
+        a[l] = alinv;
+
+        for (j=0; j<k; ++j) {
+            u = kn+j; a[u] *= alinv;
+        }
+
+        for (j=k+1; j<n; ++j) {
+            u = kn+j; a[u] *= alinv;
+        }
+
+        for (i=0; i<k; ++i) {
+            in = i*n;
+            for (j=0; j<n; ++j)
+                if (j!=k) {
+                    u = in+j; a[u] -= a[in+k]*a[kn+j];
+                } // end if (j!=k)
+        }
+
+        for (i=k+1; i<n; ++i) {
+            in = i*n;
+            for (j=0; j<n; ++j)
+                if (j!=k) {
+                    u = in+j; a[u] -= a[in+k]*a[kn+j];
+                } // end if (j!=k)
+        }
+
+        for (i=0; i<k; ++i) {
+            u=i*n+k; a[u] *= -alinv;
+        }
+
+        for (i=k+1; i<n; ++i) {
+            u=i*n+k; a[u] *= -alinv;
+        }
+
+    } // end for (k=0; k<n; ++k)
+}
+
+/**
+ * \fn REAL ddense_Linf (const REAL *A, const INT n )
+ *
+ * \brief Compute the L infinity norm of A
+ *
+ * \param A   Pointer to the n*n dense matrix
+ * \param n   the dimension of the dense matrix
+ *
+ * \author Xiaozhe Hu
+ * \date   05/26/2014
+ */
+REAL ddense_Linf (const REAL  *A,
+                     const INT    n)
+{
+
+    REAL norm = 0.0, value;
+
+    INT i,j;
+
+    for ( i = 0; i < n; i++ ) {
+        for ( value = 0.0, j = 0; j < n; j++ ) {
+            value = value + ABS(A[i*n+j]);
+        }
+        norm = MAX(norm, value);
+    }
+
+    return norm;
+}
+
+/**
+ * \fn void ddense_identity (REAL *a, INT n, INT n2)
+ *
+ * \brief Set a n*n full matrix to be a identity
+ *
+ * \param a      Pointer to the REAL vector which stands for a n*n full matrix
+ * \param n      Size of full matrix
+ * \param n2     Length of the REAL vector which stores the n*n full matrix
+ *
+ * \author Xiaozhe Hu
+ * \date   2010/12/25
+ */
+void ddense_identity (REAL      *a,
+                      const INT  n,
+                      const INT  n2)
+{
+    memset(a, 0X0, n2*sizeof(REAL));
+
+    INT l;
+    for (l = 0; l < n; l ++) a[l*n+l] = 1.0;
+
+}
+
 /************************************** END ***************************************************/
 /*! USED TO BE: \file src/utilities/solve_full.c
  *

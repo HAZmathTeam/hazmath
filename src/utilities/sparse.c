@@ -300,7 +300,7 @@ void dcsr_realloc(const INT m,
 {
   if ( m > 0 ) {
     A->IA=(INT*)realloc(A->IA,(m+1)*sizeof(INT));
-  } else {   
+  } else {
     if(A->IA) {
       free(A->IA);
       A->IA = NULL;
@@ -350,7 +350,7 @@ void icsr_realloc(const INT m,
 {
   if ( m > 0 ) {
     A->IA=(INT*)realloc(A->IA,(m+1)*sizeof(INT));
-  } else {   
+  } else {
     if(A->IA) {
       free(A->IA);
       A->IA = NULL;
@@ -4634,6 +4634,1188 @@ void icsr_uniqueij(iCSRmat *U, ivector *ii, ivector *jj)
     icsr_free(&UT);
     /**END sorting**/
     return;
+}
+
+/**
+ * \fn dBSRmat dbsr_create (const INT ROW, const INT COL, const INT NNZ,
+ *                          const INT nb, const INT storage_manner)
+ *
+ * \brief Create a BSR sparse matrix (allocate memory)
+ *
+ * \param ROW             Number of rows of block
+ * \param COL             Number of columns of block
+ * \param NNZ             Number of nonzero blocks
+ * \param nb              Dimension of each block
+ * \param storage_manner  Storage manner for each sub-block
+ *
+ * \return A              The new dBSRmat matrix
+ *
+ * \author Xiaozhe Hu
+ * \date   10/26/2010
+ */
+dBSRmat dbsr_create (const INT  ROW,
+                     const INT  COL,
+                     const INT  NNZ,
+                     const INT  nb,
+                     const INT  storage_manner)
+{
+    dBSRmat A;
+
+    if ( ROW > 0 ) {
+        A.IA = (INT*)calloc(ROW+1, sizeof(INT));
+    }
+    else {
+        A.IA = NULL;
+    }
+
+    if ( NNZ > 0 ) {
+        A.JA = (INT*)calloc(NNZ ,sizeof(INT));
+    }
+    else {
+        A.JA = NULL;
+    }
+
+    if ( nb > 0 && NNZ > 0) {
+        A.val = (REAL*)calloc(NNZ*nb*nb, sizeof(REAL));
+    }
+    else {
+        A.val = NULL;
+    }
+
+    A.storage_manner = storage_manner;
+    A.ROW = ROW;
+    A.COL = COL;
+    A.NNZ = NNZ;
+    A.nb  = nb;
+
+    return A;
+}
+
+/**
+ * \fn void dbsr_alloc (const INT ROW, const INT COL, const INT NNZ,
+ *                      const INT nb, const INT storage_manner, dBSRmat *A)
+ *
+ * \brief Allocate memory space for a BSR format sparse matrix
+ *
+ * \param ROW             Number of rows of block
+ * \param COL             Number of columns of block
+ * \param NNZ             Number of nonzero blocks
+ * \param nb              Dimension of each block
+ * \param storage_manner  Storage manner for each sub-block
+ * \param A               Pointer to new dBSRmat matrix
+ *
+ * \author Xiaozhe Hu
+ * \date   10/26/2010
+ */
+void dbsr_alloc (const INT  ROW,
+                 const INT  COL,
+                 const INT  NNZ,
+                 const INT  nb,
+                 const INT  storage_manner,
+                 dBSRmat   *A)
+{
+    if ( ROW > 0 ) {
+        A->IA = (INT*)calloc(ROW+1, sizeof(INT));
+    }
+    else {
+        A->IA = NULL;
+    }
+
+    if ( NNZ > 0 ) {
+        A->JA = (INT*)calloc(NNZ, sizeof(INT));
+    }
+    else {
+        A->JA = NULL;
+    }
+
+    if ( nb > 0 ) {
+        A->val = (REAL*)calloc(NNZ*nb*nb, sizeof(REAL));
+    }
+    else {
+        A->val = NULL;
+    }
+
+    A->storage_manner = storage_manner;
+    A->ROW = ROW;
+    A->COL = COL;
+    A->NNZ = NNZ;
+    A->nb  = nb;
+
+    return;
+}
+
+
+/**
+ * \fn void dbsr_free (dBSRmat *A)
+ *
+ * \brief Free memory space for a BSR format sparse matrix
+ *
+ * \param A   Pointer to the dBSRmat matrix
+ *
+ * \author Xiaozhe Hu
+ * \date   10/26/2010
+ */
+void dbsr_free (dBSRmat *A)
+{
+    if (A==NULL) return;
+
+    if (A->IA){
+      free(A->IA);
+      A->IA  = NULL;
+    }
+    if (A->JA){
+      free(A->JA);
+      A->JA  = NULL;
+    }
+    if (A->val){
+      free(A->val);
+      A->val = NULL;
+    }
+
+    A->ROW = 0;
+    A->COL = 0;
+    A->NNZ = 0;
+    A->nb  = 0;
+    A->storage_manner = 0;
+}
+
+/**
+ * \fn void dbsr_cp (const dBSRmat *A, dBSRmat *B)
+ *
+ * \brief copy a dCSRmat to a new one B=A
+ *
+ * \param A   Pointer to the dBSRmat matrix
+ * \param B   Pointer to the dBSRmat matrix
+ *
+ * \author Xiaozhe Hu
+ * \date   08/07/2011
+ */
+void dbsr_cp (const dBSRmat *A,
+              dBSRmat       *B)
+{
+    B->ROW = A->ROW;
+    B->COL = A->COL;
+    B->NNZ = A->NNZ;
+    B->nb  = A->nb;
+    B->storage_manner = A->storage_manner;
+
+    memcpy(B->IA,A->IA,(A->ROW+1)*sizeof(INT));
+    memcpy(B->JA,A->JA,(A->NNZ)*sizeof(INT));
+    memcpy(B->val,A->val,(A->NNZ)*(A->nb)*(A->nb)*sizeof(REAL));
+}
+
+/**
+ * \fn INT dbsr_trans (const dBSRmat *A, dBSRmat *AT)
+ *
+ * \brief Find A^T from given dBSRmat matrix A
+ *
+ * \param A   Pointer to the dBSRmat matrix
+ * \param AT  Pointer to the transpose of dBSRmat matrix A
+ *
+ * \note Xiaozhe Hu (08/06/2011)
+ */
+INT dbsr_trans (const dBSRmat *A,
+                dBSRmat       *AT)
+{
+    const INT n = A->ROW, m = A->COL, nnz = A->NNZ, nb = A->nb;
+
+    INT status = SUCCESS;
+    INT i,j,k,p,inb,jnb,nb2;
+
+    AT->ROW = m;
+    AT->COL = n;
+    AT->NNZ = nnz;
+    AT->nb  = nb;
+    AT->storage_manner = A->storage_manner;
+
+    AT->IA  = (INT*)calloc(m+1,sizeof(INT));
+    AT->JA  = (INT*)calloc(nnz,sizeof(INT));
+    nb2     = nb*nb;
+
+    if (A->val) {
+        AT->val = (REAL*)calloc(nnz*nb2,sizeof(REAL));
+    }
+    else {
+        AT->val = NULL;
+    }
+
+    // first pass: find the number of nonzeros in the first m-1 columns of A
+    // Note: these numbers are stored in the array AT.IA from 1 to m-1
+    iarray_set(m+1, AT->IA, 0);
+
+    for ( j=0; j<nnz; ++j ) {
+        i=A->JA[j]; // column number of A = row number of A'
+        if (i<m-1) AT->IA[i+2]++;
+    }
+
+    for ( i=2; i<=m; ++i ) AT->IA[i]+=AT->IA[i-1];
+
+    // second pass: form A'
+    if ( A->val ) {
+        for ( i=0; i<n; ++i ) {
+            INT ibegin=A->IA[i], iend1=A->IA[i+1];
+            for ( p=ibegin; p<iend1; p++ ) {
+                j=A->JA[p]+1;
+                k=AT->IA[j];
+                AT->JA[k]=i;
+                for ( inb=0; inb<nb; inb++ )
+                    for ( jnb=0; jnb<nb; jnb++ )
+                        AT->val[nb2*k + inb*nb + jnb] = A->val[nb2*p + jnb*nb + inb];
+                AT->IA[j]=k+1;
+            } // end for p
+        } // end for i
+
+    }
+    else {
+        for ( i=0; i<n; ++i ) {
+            INT ibegin=A->IA[i], iend1=A->IA[i+1];
+            for ( p=ibegin; p<iend1; p++ ) {
+                j=A->JA[p]+1;
+                k=AT->IA[j];
+                AT->JA[k]=i;
+                AT->IA[j]=k+1;
+            } // end for p
+        } // end of i
+
+    } // end if
+
+    return status;
+}
+
+/**
+ * \fn void dbsr_axm (dBSRmat *A, const REAL alpha)
+ *
+ * \brief Multiply a sparse matrix A in BSR format by a scalar alpha.
+ *
+ * \param A      Pointer to dBSRmat matrix A
+ * \param alpha  REAL factor alpha
+ *
+ * \author Xiaozhe Hu
+ * \date   05/26/2014
+ */
+void dbsr_axm (dBSRmat     *A,
+               const REAL   alpha)
+{
+    const INT nnz = A->NNZ;
+    const INT nb  = A->nb;
+
+    // A direct calculation can be written as:
+    array_ax(nnz*nb*nb, alpha, A->val);
+}
+
+/*!
+ * \fn void dbsr_aAxpby (const REAL alpha, dBSRmat *A,
+ *                       REAL *x, const REAL beta, REAL *y)
+ *
+ * \brief Compute y := alpha*A*x + beta*y
+ *
+ * \param alpha  REAL factor alpha
+ * \param A      Pointer to the dBSRmat matrix
+ * \param x      Pointer to the array x
+ * \param beta   REAL factor beta
+ * \param y      Pointer to the array y
+ *
+ * \note Works for general nb (Xiaozhe)
+ */
+void dbsr_aAxpby (const REAL   alpha,
+                  dBSRmat     *A,
+                  REAL        *x,
+                  const REAL   beta,
+                  REAL        *y )
+{
+    /* members of A */
+    INT  ROW  = A->ROW;
+    INT  nb   = A->nb;
+    INT  *IA  = A->IA;
+    INT  *JA  = A->JA;
+    REAL *val = A->val;
+
+    /* local variables */
+    INT     size = ROW*nb;
+    INT     jump = nb*nb;
+    INT     i,j,k,iend;
+    REAL    temp;
+    REAL   *pA  = NULL;
+    REAL   *px0 = NULL;
+    REAL   *py0 = NULL;
+    REAL   *py  = NULL;
+
+    //----------------------------------------------
+    //   Treat (alpha == 0.0) computation
+    //----------------------------------------------
+    if (alpha == 0.0) {
+        array_ax(size, beta, y);
+        return;
+    }
+
+    //-------------------------------------------------
+    //   y = (beta/alpha)*y
+    //-------------------------------------------------
+    temp = beta / alpha;
+    if (temp != 1.0) {
+        if (temp == 0.0) {
+            memset(y, 0X0, size*sizeof(REAL));
+        }
+        else {
+            //for (i = size; i--; ) y[i] *= temp; // modified by Xiaozhe, 03/11/2011
+            array_ax(size, temp, y);
+        }
+    }
+
+    //-----------------------------------------------------------------
+    //   y += A*x (Core Computation)
+    //   each non-zero block elements are stored in row-major order
+    //-----------------------------------------------------------------
+    for (i = 0; i < ROW; ++i) {
+        py0 = &y[i*nb];
+        iend = IA[i+1];
+        for (k = IA[i]; k < iend; ++k) {
+            j = JA[k];
+            pA = val+k*jump; // &val[k*jump];
+            px0 = x+j*nb; // &x[j*nb];
+            py = py0;
+            ddense_ypAx( pA, px0, py, nb );
+        }
+    }
+
+    //------------------------------------------
+    //   y = alpha*y
+    //------------------------------------------
+
+    if (alpha != 1.0) {
+        array_ax(size, alpha, y);
+    }
+}
+
+
+/*!
+ * \fn void dbsr_aAxpy (const REAL alpha, const dBSRmat *A,
+ *                      const REAL *x, REAL *y)
+ *
+ * \brief Compute y := alpha*A*x + y
+ *
+ * \param alpha  REAL factor alpha
+ * \param A      Pointer to the dBSRmat matrix
+ * \param x      Pointer to the array x
+ * \param y      Pointer to the array y
+ *
+ * \note Works for general nb (Xiaozhe)
+ */
+void dbsr_aAxpy (const REAL      alpha,
+                 const dBSRmat  *A,
+                 const REAL     *x,
+                 REAL           *y)
+{
+    /* members of A */
+    const INT    ROW = A->ROW;
+    const INT    nb  = A->nb;
+    const INT   *IA  = A->IA;
+    const INT   *JA  = A->JA;
+    const REAL  *val = A->val;
+
+    /* local variables */
+    const REAL *pA   = NULL;
+    const REAL *px0  = NULL;
+    REAL *py0        = NULL;
+    REAL *py         = NULL;
+
+    REAL  temp = 0.0;
+    INT   size = ROW*nb;
+    INT   jump = nb*nb;
+    INT   i, j, k, iend;
+
+    //----------------------------------------------
+    //   Treat (alpha == 0.0) computation
+    //----------------------------------------------
+    if (alpha == 0.0){
+        return; // Nothing to compute
+    }
+
+    //-------------------------------------------------
+    //   y = (1.0/alpha)*y
+    //-------------------------------------------------
+    if (alpha != 1.0){
+        temp = 1.0 / alpha;
+        array_ax(size, temp, y);
+    }
+
+    //-----------------------------------------------------------------
+    //   y += A*x (Core Computation)
+    //   each non-zero block elements are stored in row-major order
+    //-----------------------------------------------------------------
+    for (i = 0; i < ROW; ++i) {
+        py0 = &y[i*nb];
+        iend = IA[i+1];
+        for (k = IA[i]; k < iend; ++k) {
+            j = JA[k];
+            pA = val+k*jump; // &val[k*jump];
+            px0 = x+j*nb; // &x[j*nb];
+            py = py0;
+            ddense_ypAx( pA, px0, py, nb );
+        }
+    }
+
+    //------------------------------------------
+    //   y = alpha*y
+    //------------------------------------------
+    if (alpha != 1.0){
+        array_ax(size, alpha, y);
+    }
+    return;
+}
+
+
+/*!
+ * \fn void dbsr_aAxpy_agg (const REAL alpha, const dBSRmat *A,
+ *                          const REAL *x, REAL *y)
+ *
+ * \brief Compute y := alpha*A*x + y where each small block matrix is an identity matrix
+ *
+ * \param alpha  REAL factor alpha
+ * \param A      Pointer to the dBSRmat matrix
+ * \param x      Pointer to the array x
+ * \param y      Pointer to the array y
+ *
+ * \author Xiaozhe Hu
+ * \date   01/02/2014
+ *
+ * \note Works for general nb (Xiaozhe)
+ */
+void dbsr_aAxpy_agg (const REAL      alpha,
+                     const dBSRmat  *A,
+                     REAL     *x,
+                     REAL           *y)
+{
+    /* members of A */
+    const INT   ROW = A->ROW;
+    const INT   nb  = A->nb;
+    const INT  *IA  = A->IA;
+    const INT  *JA  = A->JA;
+
+    /* local variables */
+    REAL       *px0 = NULL;
+    REAL       *py0 = NULL, *py = NULL;
+    SHORT       nthreads = 1, use_openmp = FALSE;
+
+    INT         size = ROW*nb;
+    INT         i, j, k, iend;
+    REAL        temp = 0.0;
+
+    //----------------------------------------------
+    //   Treat (alpha == 0.0) computation
+    //----------------------------------------------
+    if (alpha == 0.0){
+        return; // Nothing to compute
+    }
+
+    //-------------------------------------------------
+    //   y = (1.0/alpha)*y
+    //-------------------------------------------------
+    if (alpha != 1.0){
+        temp = 1.0 / alpha;
+        array_ax(size, temp, y);
+    }
+
+    //-----------------------------------------------------------------
+    //   y += A*x (Core Computation)
+    //   each non-zero block elements are stored in row-major order
+    //-----------------------------------------------------------------
+    for (i = 0; i < ROW; ++i) {
+        py0 = &y[i*nb];
+        iend = IA[i+1];
+        for (k = IA[i]; k < iend; ++k) {
+            j = JA[k];
+            px0 = x+j*nb; // &x[j*nb];
+            py = py0;
+            array_axpy(nb, 1.0, px0, py);
+        }
+
+    }
+
+    //------------------------------------------
+    //   y = alpha*y
+    //------------------------------------------
+    if ( alpha != 1.0 ) array_ax(size, alpha, y);
+
+    return;
+}
+
+/*!
+ * \fn void dbsr_mxv (const dBSRmat *A, const REAL *x, REAL *y)
+ *
+ * \brief Compute y := A*x
+ *
+ * \param A      Pointer to the dBSRmat matrix
+ * \param x      Pointer to the array x
+ * \param y      Pointer to the array y
+ *
+ *
+ * \note Works for general nb (Xiaozhe)
+ *
+ */
+void dbsr_mxv (const dBSRmat  *A,
+               const REAL     *x,
+               REAL           *y)
+{
+    /* members of A */
+    const INT   ROW = A->ROW;
+    const INT   nb  = A->nb;
+    const INT  *IA  = A->IA;
+    const INT  *JA  = A->JA;
+    const REAL *val = A->val;
+
+    /* local variables */
+    INT     size = ROW*nb;
+    INT     jump = nb*nb;
+    INT     i,j,k, num_nnz_row;
+
+    const REAL *pA  = NULL;
+    const REAL *px0 = NULL;
+    REAL       *py0 = NULL;
+    REAL        *py  = NULL;
+
+
+    //-----------------------------------------------------------------
+    //  zero out 'y'
+    //-----------------------------------------------------------------
+    array_set(size, y, 0.0);
+
+    //-----------------------------------------------------------------
+    //   y = A*x (Core Computation)
+    //   each non-zero block elements are stored in row-major order
+    //-----------------------------------------------------------------
+    for (i = 0; i < ROW; ++i)
+    {
+        py0 = &y[i*nb];
+        for (k = IA[i]; k < IA[i+1]; ++k)
+        {
+            j = JA[k];
+            pA = val+k*jump; // &val[k*jump];
+            px0 = x+j*nb; // &x[j*nb];
+            py = py0;
+            ddense_ypAx( pA, px0, py, nb );
+        }
+    }
+}
+
+
+/*!
+ * \fn void dbsr_mxv_agg (const dBSRmat *A, REAL *x, REAL *y)
+ *
+ * \brief Compute y := A*x, where each small block matrices of A is an identity
+ *
+ * \param A      Pointer to the dBSRmat matrix
+ * \param x      Pointer to the array x
+ * \param y      Pointer to the array y
+ *
+ * \author Xiaozhe Hu
+ * \date   01/02/2014
+ *
+ * \note Works for general nb (Xiaozhe)
+ */
+void dbsr_mxv_agg (const dBSRmat  *A,
+                   REAL     *x,
+                   REAL           *y)
+{
+    /* members of A */
+    const INT  ROW  = A->ROW;
+    const INT  nb   = A->nb;
+    const INT  size = ROW*nb;
+    const INT *IA   = A->IA;
+    const INT *JA   = A->JA;
+
+    /* local variables */
+    REAL  *px0 = NULL;
+    REAL        *py0 = NULL, *py = NULL;
+    INT          i,j,k, num_nnz_row;
+    SHORT        use_openmp = FALSE;
+
+    //-----------------------------------------------------------------
+    //  zero out 'y'
+    //-----------------------------------------------------------------
+    array_set(size, y, 0.0);
+
+    //-----------------------------------------------------------------
+    //   y = A*x (Core Computation)
+    //   each non-zero block elements are stored in row-major order
+    //-----------------------------------------------------------------
+    for (i = 0; i < ROW; ++i) {
+        py0 = &y[i*nb];
+        for (k = IA[i]; k < IA[i+1]; ++k) {
+            j = JA[k];
+            px0 = x+j*nb; // &x[j*nb];
+            py = py0;
+            array_axpy (nb, 1.0, px0, py);
+        }
+    }
+}
+
+
+/**
+ * \fn void dbsr_mxm (const dBSRmat *A, const dBSRmat *B, dBSRmat *C)
+ *
+ * \brief Sparse matrix multiplication C=A*B
+ *
+ * \param A   Pointer to the dBSRmat matrix A
+ * \param B   Pointer to the dBSRmat matrix B
+ * \param C   Pointer to dBSRmat matrix equal to A*B
+ *
+ * \author Xiaozhe Hu
+ * \date   05/26/2014
+ *
+ * \note This fct will be replaced! -- Xiaozhe
+ */
+void dbsr_mxm (const dBSRmat  *A,
+               const dBSRmat  *B,
+               dBSRmat        *C)
+{
+
+    INT i,j,k,l,count;
+    INT *JD = (INT *)calloc(B->COL,sizeof(INT));
+
+    const INT nb  = A->nb;
+    const INT nb2 = nb*nb;
+
+    // check A and B see if there are compatible for multiplication
+    if ( (A->COL != B->ROW) && (A->nb != B->nb ) ) {
+        printf("### HAZMATH ERROR: Matrix sizes do not match!\n");
+        check_error(ERROR_MAT_SIZE, __FUNCTION__);
+    }
+
+    C->ROW = A->ROW;
+    C->COL = B->COL;
+    C->nb  = A->nb;
+    C->storage_manner = A->storage_manner;
+
+    C->val = NULL;
+    C->JA  = NULL;
+    C->IA  = (INT*)calloc(C->ROW+1,sizeof(INT));
+
+    REAL *temp = (REAL *)calloc(nb2, sizeof(REAL));
+
+    for (i=0;i<B->COL;++i) JD[i]=-1;
+
+    // step 1: Find first the structure IA of C
+    for (i=0;i<C->ROW;++i) {
+        count=0;
+
+        for (k=A->IA[i];k<A->IA[i+1];++k) {
+            for (j=B->IA[A->JA[k]];j<B->IA[A->JA[k]+1];++j) {
+                for (l=0;l<count;l++) {
+                    if (JD[l]==B->JA[j]) break;
+                }
+
+                if (l==count) {
+                    JD[count]=B->JA[j];
+                    count++;
+                }
+            }
+        }
+        C->IA[i+1]=count;
+        for (j=0;j<count;++j) {
+            JD[j]=-1;
+        }
+    }
+
+    for (i=0;i<C->ROW;++i) C->IA[i+1]+=C->IA[i];
+
+    // step 2: Find the structure JA of C
+    INT countJD;
+
+    C->JA=(INT*)calloc(C->IA[C->ROW],sizeof(INT));
+
+    for (i=0;i<C->ROW;++i) {
+        countJD=0;
+        count=C->IA[i];
+        for (k=A->IA[i];k<A->IA[i+1];++k) {
+            for (j=B->IA[A->JA[k]];j<B->IA[A->JA[k]+1];++j) {
+                for (l=0;l<countJD;l++) {
+                    if (JD[l]==B->JA[j]) break;
+                }
+
+                if (l==countJD) {
+                    C->JA[count]=B->JA[j];
+                    JD[countJD]=B->JA[j];
+                    count++;
+                    countJD++;
+                }
+            }
+        }
+
+        //for (j=0;j<countJD;++j) JD[j]=-1;
+        iarray_set(countJD, JD, -1);
+    }
+
+    free(JD); JD = NULL;
+
+    // step 3: Find the structure A of C
+    C->val=(REAL*)calloc((C->IA[C->ROW])*nb2,sizeof(REAL));
+
+    for (i=0;i<C->ROW;++i) {
+        for (j=C->IA[i];j<C->IA[i+1];++j) {
+
+            array_set(nb2, C->val+(j*nb2), 0x0);
+
+            for (k=A->IA[i];k<A->IA[i+1];++k) {
+                for (l=B->IA[A->JA[k]];l<B->IA[A->JA[k]+1];l++) {
+                    if (B->JA[l]==C->JA[j]) {
+                        ddense_mul (A->val+(k*nb2), B->val+(l*nb2), temp, nb);
+                        array_axpy (nb2, 1.0, temp, C->val+(j*nb2));
+                    } // end if
+                } // end for l
+            } // end for k
+        } // end for j
+    }    // end for i
+
+    C->NNZ = C->IA[C->ROW]-C->IA[0];
+
+    free(temp); temp = NULL;
+
+}
+
+
+/**
+ * \fn void dbsr_rap (const dBSRmat *R, const dBSRmat *A,
+ *                              const dBSRmat *P, dBSRmat *B)
+ *
+ * \brief dBSRmat sparse matrix multiplication B=R*A*P
+ *
+ * \param R   Pointer to the dBSRmat matrix
+ * \param A   Pointer to the dBSRmat matrix
+ * \param P   Pointer to the dBSRmat matrix
+ * \param B   Pointer to dBSRmat matrix equal to R*A*P (output)
+ *
+ * \author Xiaozhe Hu
+ * \date   10/24/2012
+ *
+ * \note Ref. R.E. Bank and C.C. Douglas. SMMP: Sparse Matrix Multiplication Package.
+ *            Advances in Computational Mathematics, 1 (1993), pp. 127-137.
+ */
+void dbsr_rap (const dBSRmat  *R,
+               const dBSRmat  *A,
+               const dBSRmat  *P,
+               dBSRmat        *B)
+{
+    const INT row=R->ROW, col=P->COL, nb=A->nb, nb2=A->nb*A->nb;
+
+    const REAL *rj=R->val, *aj=A->val, *pj=P->val;
+    const INT  *ir=R->IA,  *ia=A->IA,  *ip=P->IA;
+    const INT  *jr=R->JA,  *ja=A->JA,  *jp=P->JA;
+
+    REAL       *acj;
+    INT        *iac, *jac;
+
+    INT *Ps_marker = NULL;
+    INT *As_marker = NULL;
+
+    INT i, i1, i2, i3, jj1, jj2, jj3;
+    INT counter, jj_row_begining;
+
+    INT nthreads = 1;
+
+    INT n_coarse = row;
+    INT n_fine   = A->ROW;
+    INT coarse_mul_nthreads = n_coarse * nthreads;
+    INT fine_mul_nthreads = n_fine * nthreads;
+    INT coarse_add_nthreads = n_coarse + nthreads;
+    INT minus_one_length = coarse_mul_nthreads + fine_mul_nthreads;
+    INT total_calloc = minus_one_length + coarse_add_nthreads + nthreads;
+
+    Ps_marker = (INT *)calloc(total_calloc, sizeof(INT));
+    As_marker = Ps_marker + coarse_mul_nthreads;
+
+    /*------------------------------------------------------*
+     *  First Pass: Determine size of B and set up B_i  *
+     *------------------------------------------------------*/
+    iac = (INT *)calloc(n_coarse+1, sizeof(INT));
+
+    iarray_set(minus_one_length, Ps_marker, -1);
+
+    REAL *tmp=(REAL *)calloc(2*nthreads*nb2, sizeof(REAL));
+
+    counter = 0;
+    for (i = 0; i < row; ++ i) {
+        Ps_marker[i] = counter;
+        jj_row_begining = counter;
+        counter ++;
+
+        for (jj1 = ir[i]; jj1 < ir[i+1]; ++jj1) {
+            i1 = jr[jj1];
+            for (jj2 = ia[i1]; jj2 < ia[i1+1]; ++jj2) {
+                i2 = ja[jj2];
+                if (As_marker[i2] != i) {
+                    As_marker[i2] = i;
+                    for (jj3 = ip[i2]; jj3 < ip[i2+1]; ++jj3) {
+                        i3 = jp[jj3];
+                        if (Ps_marker[i3] < jj_row_begining) {
+                            Ps_marker[i3] = counter;
+                            counter ++;
+                        }
+                    }
+                }
+            }
+        }
+        iac[i] = jj_row_begining;
+    }
+
+    iac[row] = counter;
+
+    jac=(INT*)calloc(iac[row], sizeof(INT));
+
+    acj=(REAL*)calloc(iac[row]*nb2, sizeof(REAL));
+
+    iarray_set(minus_one_length, Ps_marker, -1);
+
+    /*------------------------------------------------------*
+     *  Second Pass: compute entries of B=R*A*P             *
+     *------------------------------------------------------*/
+     counter = 0;
+     for (i = 0; i < row; ++i) {
+         Ps_marker[i] = counter;
+         jj_row_begining = counter;
+         jac[counter] = i;
+         array_set(nb2, &acj[counter*nb2], 0x0);
+         counter ++;
+
+         for (jj1 = ir[i]; jj1 < ir[i+1]; ++jj1) {
+             i1 = jr[jj1];
+             for (jj2 = ia[i1]; jj2 < ia[i1+1]; ++jj2) {
+                 ddense_mul(&rj[jj1*nb2],&aj[jj2*nb2], tmp, nb);
+                 i2 = ja[jj2];
+                 if (As_marker[i2] != i) {
+                     As_marker[i2] = i;
+                     for (jj3 = ip[i2]; jj3 < ip[i2+1]; ++jj3) {
+                         i3 = jp[jj3];
+                         ddense_mul(tmp, &pj[jj3*nb2], tmp+nb2, nb);
+                         if (Ps_marker[i3] < jj_row_begining) {
+                             Ps_marker[i3] = counter;
+                             array_cp(nb2, tmp+nb2, &acj[counter*nb2]);
+                             jac[counter] = i3;
+                             counter ++;
+                         }
+                         else {
+                             array_axpy(nb2, 1.0, tmp+nb2, &acj[Ps_marker[i3]*nb2]);
+                             }
+                         }
+                     }
+                     else {
+                         for (jj3 = ip[i2]; jj3 < ip[i2+1]; jj3 ++) {
+                             i3 = jp[jj3];
+                             ddense_mul(tmp, &pj[jj3*nb2], tmp+nb2, nb);
+                             array_axpy(nb2, 1.0, tmp+nb2, &acj[Ps_marker[i3]*nb2]);
+                         }
+                     }
+                 }
+             }
+         }
+
+    // setup coarse matrix B
+    B->ROW=row; B->COL=col;
+    B->IA=iac; B->JA=jac; B->val=acj;
+    B->NNZ=B->IA[B->ROW]-B->IA[0];
+    B->nb=A->nb;
+    B->storage_manner = A->storage_manner;
+
+    free(Ps_marker); Ps_marker = NULL;
+    free(tmp);       tmp       = NULL;
+}
+
+
+/**
+ * \fn void dbsr_rap_agg (const dBSRmat *R, const dBSRmat *A,
+ *                                  const dBSRmat *P, dBSRmat *B)
+ *
+ * \brief dBSRmat sparse matrix multiplication B=R*A*P, where small block matrices in
+ *        P and R are identity matrices!
+ *
+ * \param R   Pointer to the dBSRmat matrix
+ * \param A   Pointer to the dBSRmat matrix
+ * \param P   Pointer to the dBSRmat matrix
+ * \param B   Pointer to dBSRmat matrix equal to R*A*P (output)
+ *
+ * \author Xiaozhe Hu
+ * \date   10/24/2012
+ */
+void dbsr_rap_agg (const dBSRmat  *R,
+                   const dBSRmat  *A,
+                   const dBSRmat  *P,
+                   dBSRmat        *B)
+{
+    const INT row=R->ROW, col=P->COL, nb2=A->nb*A->nb;
+
+    REAL *aj=A->val;
+    INT *ir=R->IA, *ia=A->IA, *ip=P->IA;
+    INT *jr=R->JA, *ja=A->JA, *jp=P->JA;
+
+    INT  *iac, *jac;
+    REAL *acj;
+    INT  *Ps_marker = NULL;
+    INT  *As_marker = NULL;
+
+    INT i, i1, i2, i3, jj1, jj2, jj3;
+    INT counter, jj_row_begining;
+
+    INT nthreads = 1;
+
+    INT n_coarse = row;
+    INT n_fine   = A->ROW;
+    INT coarse_mul_nthreads = n_coarse * nthreads;
+    INT fine_mul_nthreads = n_fine * nthreads;
+    INT coarse_add_nthreads = n_coarse + nthreads;
+    INT minus_one_length = coarse_mul_nthreads + fine_mul_nthreads;
+    INT total_calloc = minus_one_length + coarse_add_nthreads + nthreads;
+
+    Ps_marker = (INT *)calloc(total_calloc, sizeof(INT));
+    As_marker = Ps_marker + coarse_mul_nthreads;
+
+    /*------------------------------------------------------*
+     *  First Pass: Determine size of B and set up B_i  *
+     *------------------------------------------------------*/
+    iac = (INT *)calloc(n_coarse+1, sizeof(INT));
+
+    iarray_set(minus_one_length, Ps_marker, -1);
+
+    counter = 0;
+    for (i = 0; i < row; ++ i) {
+        Ps_marker[i] = counter;
+        jj_row_begining = counter;
+        counter ++;
+
+        for (jj1 = ir[i]; jj1 < ir[i+1]; ++jj1) {
+            i1 = jr[jj1];
+            for (jj2 = ia[i1]; jj2 < ia[i1+1]; ++jj2) {
+                i2 = ja[jj2];
+                if (As_marker[i2] != i) {
+                    As_marker[i2] = i;
+                    for (jj3 = ip[i2]; jj3 < ip[i2+1]; ++jj3) {
+                        i3 = jp[jj3];
+                        if (Ps_marker[i3] < jj_row_begining) {
+                            Ps_marker[i3] = counter;
+                            counter ++;
+                        }
+                    }
+                }
+            }
+        }
+        iac[i] = jj_row_begining;
+    }
+
+    iac[row] = counter;
+
+    jac=(INT*)calloc(iac[row], sizeof(INT));
+
+    acj=(REAL*)calloc(iac[row]*nb2, sizeof(REAL));
+
+    iarray_set(minus_one_length, Ps_marker, -1);
+
+    /*------------------------------------------------------*
+     *  Second Pass: compute entries of B=R*A*P             *
+     *------------------------------------------------------*/
+     counter = 0;
+     for (i = 0; i < row; ++i) {
+         Ps_marker[i] = counter;
+         jj_row_begining = counter;
+         jac[counter] = i;
+         array_set(nb2, &acj[counter*nb2], 0x0);
+         counter ++;
+
+         for (jj1 = ir[i]; jj1 < ir[i+1]; ++jj1) {
+             i1 = jr[jj1];
+             for (jj2 = ia[i1]; jj2 < ia[i1+1]; ++jj2) {
+
+                 i2 = ja[jj2];
+                 if (As_marker[i2] != i) {
+                     As_marker[i2] = i;
+                     for (jj3 = ip[i2]; jj3 < ip[i2+1]; ++jj3) {
+                         i3 = jp[jj3];
+                         if (Ps_marker[i3] < jj_row_begining) {
+                             Ps_marker[i3] = counter;
+                             array_cp(nb2, &aj[jj2*nb2], &acj[counter*nb2]);
+                             jac[counter] = i3;
+                             counter ++;
+                         }
+                         else {
+                             array_axpy(nb2, 1.0, &aj[jj2*nb2], &acj[Ps_marker[i3]*nb2]);
+                             }
+                         }
+                     }
+                     else {
+                         for (jj3 = ip[i2]; jj3 < ip[i2+1]; jj3 ++) {
+                             i3 = jp[jj3];
+                             array_axpy(nb2, 1.0, &aj[jj2*nb2], &acj[Ps_marker[i3]*nb2]);
+                             }
+                         }
+                     }
+                 }
+             }
+
+
+    // setup coarse matrix B
+    B->ROW=row; B->COL=col;
+    B->IA=iac; B->JA=jac; B->val=acj;
+    B->NNZ=B->IA[B->ROW]-B->IA[0];
+    B->nb=A->nb;
+    B->storage_manner = A->storage_manner;
+
+    free(Ps_marker); Ps_marker = NULL;
+}
+
+
+/**
+ * \fn dvector dbsr_getdiaginv(const dBSRmat *A)
+ *
+ * \brief Get D^{-1} of matrix A
+ *
+ * \param A   Pointer to the dBSRmat matrix
+ *
+ * \author Xiaozhe Hu
+ * \date   02/19/2013
+ *
+ * \note Works for general nb (Xiaozhe)
+ */
+dvector dbsr_getdiaginv(const dBSRmat *A)
+{
+    // members of A
+    const INT     ROW = A->ROW;
+    const INT     nb  = A->nb;
+    const INT     nb2 = nb*nb;
+    const INT    size = ROW*nb2;
+    const INT    *IA  = A->IA;
+    const INT    *JA  = A->JA;
+    REAL         *val = A->val;
+
+    dvector diaginv;
+
+    INT i,k;
+
+    // Variables for OpenMP
+    SHORT nthreads = 1;
+
+    // allocate memory
+    diaginv.row = size;
+    diaginv.val = (REAL *)calloc(size, sizeof(REAL));
+
+    // get all the diagonal sub-blocks
+    for (i = 0; i < ROW; ++i) {
+        for (k = IA[i]; k < IA[i+1]; ++k) {
+            if (JA[k] == i)
+                memcpy(diaginv.val+i*nb2, val+k*nb2, nb2*sizeof(REAL));
+        }
+    }
+
+    // compute the inverses of all the diagonal sub-blocks
+    if (nb > 1) {
+        for (i = 0; i < ROW; ++i) {
+            ddense_inv_inplace(diaginv.val+i*nb2, nb);
+        }
+    }
+    else {
+        for (i = 0; i < ROW; ++i) {
+            // zero-diagonal should be tested previously
+            diaginv.val[i] = 1.0 / diaginv.val[i];
+        }
+    }
+
+    return (diaginv);
+}
+
+/**
+ * \fn static dCSRmat condenseBSR (const dBSRmat *A)
+ *
+ * \brief Form a dCSRmat matrix from a dBSRmat matrix: use the (1,1)-entry
+ *
+ * \param A    Pointer to the BSR format matrix
+ *
+ * \return     dCSRmat matrix if succeed, NULL if fail
+ *
+ * \author Xiaozhe Hu
+ * \date   03/16/2012
+ */
+dCSRmat condenseBSR (const dBSRmat *A)
+{
+    // information about A
+    const INT   ROW = A->ROW;
+    const INT   COL = A->COL;
+    const INT   NNZ = A->NNZ;
+    const SHORT  nc = A->nb;
+    const SHORT nc2 = nc*nc;
+    const REAL  TOL = 1e-8;
+
+    const REAL *val = A->val;
+    const INT  *IA  = A->IA;
+    const INT  *JA  = A->JA;
+
+    // (1,1) block
+    dCSRmat  P_csr = dcsr_create(ROW, COL, NNZ);
+    REAL    *Pval  = P_csr.val;
+    memcpy (P_csr.JA, JA, NNZ*sizeof(INT));
+    memcpy (P_csr.IA, IA, (ROW+1)*sizeof(INT));
+
+    INT i, j;
+
+    for ( i=NNZ, j=NNZ*nc2-nc2 + (0*nc+0); i--; j-=nc2 ) Pval[i] = val[j];
+
+    // compress CSR format
+    dcsr_compress_inplace (&P_csr,TOL);
+
+    // return P
+    return P_csr;
+}
+
+/**
+ * \fn static dCSRmat condenseBSRLinf (const dBSRmat *A)
+ *
+ * \brief Form a dCSRmat matrix from a dBSRmat matrix: use inf-norm of each block
+ *
+ * \param A    Pointer to the BSR format matrix
+ *
+ * \return     dCSRmat matrix if succeed, NULL if fail
+ *
+ * \author Xiaozhe Hu
+ * \date   05/25/2014
+ */
+dCSRmat condenseBSRLinf (const dBSRmat *A)
+{
+    // information about A
+    const INT   ROW = A->ROW;
+    const INT   COL = A->COL;
+    const INT   NNZ = A->NNZ;
+    const SHORT  nc = A->nb;
+    const SHORT nc2 = nc*nc;
+    const REAL  TOL = 1e-8;
+
+    const REAL *val = A->val;
+    const INT  *IA  = A->IA;
+    const INT  *JA  = A->JA;
+
+    // CSR matrix
+    dCSRmat  Acsr = dcsr_create (ROW, COL, NNZ);
+    REAL    *Aval = Acsr.val;
+
+    // get structure
+    memcpy (Acsr.JA, JA, NNZ*sizeof(INT));
+    memcpy (Acsr.IA, IA, (ROW+1)*sizeof(INT));
+
+    INT i, j, k;
+    INT row_start, row_end;
+
+    for ( i=0; i<ROW; i++ ) {
+
+        row_start = A->IA[i]; row_end = A->IA[i+1];
+
+        for ( k = row_start; k < row_end; k++ ) {
+            j = A->JA[k];
+            Aval[k] = ddense_Linf (val+k*nc2, nc);
+            if ( i != j ) Aval[k] = -Aval[k];
+        }
+
+    }
+
+    // compress CSR format
+    dcsr_compress_inplace(&Acsr,TOL);
+
+    // return CSR matrix
+    return Acsr;
 }
 
 /*********************************EOF***********************************/

@@ -135,6 +135,48 @@ void print_amg_complexity(AMG_data *mgl,
   }
 }
 
+/***********************************************************************************************/
+/**
+ * \fn void void print_amgcomplexity_bsr (const AMG_data_bsr *mgl,
+ *                                       const SHORT prtlvl)
+ *
+ * \brief Print complexities of AMG method for BSR matrices
+ *
+ * \param mgl      Multilevel hierachy for AMG
+ * \param prtlvl   How much information to print
+ *
+ */
+void print_amgcomplexity_bsr(const AMG_data_bsr  *mgl,
+                             const SHORT          prtlvl)
+{
+    const SHORT  max_levels = mgl->num_levels;
+    SHORT        level;
+    REAL         gridcom = 0.0, opcom = 0.0;
+
+    if ( prtlvl >= PRINT_SOME ) {
+
+        printf("-----------------------------------------------------------\n");
+        printf("  Level   Num of rows   Num of nonzeros   Avg. NNZ / row   \n");
+        printf("-----------------------------------------------------------\n");
+        for ( level = 0; level < max_levels; ++level ) {
+            const REAL AvgNNZ = (REAL) mgl[level].A.NNZ/mgl[level].A.ROW;
+            printf("%5d  %13d  %17d  %14.2f\n",
+                   level,mgl[level].A.ROW, mgl[level].A.NNZ, AvgNNZ);
+            gridcom += mgl[level].A.ROW;
+            opcom   += mgl[level].A.NNZ;
+        }
+        printf("-----------------------------------------------------------\n");
+
+        gridcom /= mgl[0].A.ROW;
+        opcom   /= mgl[0].A.NNZ;
+        printf("  Grid complexity = %.3f  |", gridcom);
+        printf("  Operator complexity = %.3f\n", opcom);
+
+        printf("-----------------------------------------------------------\n");
+
+    }
+}
+
 
 /***********************************************************************************************/
 /*!

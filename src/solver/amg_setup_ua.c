@@ -24,6 +24,9 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *, AMG_param *);
 static SHORT amg_setup_smoothP_smoothR(AMG_data *, AMG_param *);
 static SHORT famg_setup_unsmoothP_unsmoothR(AMG_data *, AMG_param *);
 static SHORT famg_setup_smoothP_smoothR(AMG_data *, AMG_param *);
+static void form_boolean_p_bsr(const ivector *vertices,dBSRmat *tentp,const AMG_data_bsr *mgl,const INT NumAggregates);
+static void form_tentative_p_bsr(const ivector *vertices,dBSRmat *tentp, const AMG_data_bsr *mgl,const INT NumAggregates,const INT dim,REAL **basis);
+static SHORT amg_setup_unsmoothP_unsmoothR_bsr(AMG_data_bsr *mgl, AMG_param *param);
 
 /*---------------------------------*/
 /*--      Public Functions       --*/
@@ -120,6 +123,36 @@ SHORT famg_setup_sa (AMG_data *mgl,
 
     return status;
 }
+
+/**
+ * \fn INT amg_setup_ua_bsr (AMG_data_bsr *mgl, AMG_param *param)
+ *
+ * \brief Set up phase of unsmoothed aggregation AMG (BSR format)
+ *
+ * \param mgl    Pointer to AMG data: AMG_data_bsr
+ * \param param  Pointer to AMG parameters: AMG_param
+ *
+ * \return       SUCCESS if successed; otherwise, error information.
+ *
+ * \author Xiaozhe Hu
+ * \date   03/16/2012
+ */
+SHORT amg_setup_ua_bsr(AMG_data_bsr  *mgl,
+                       AMG_param     *param)
+{
+#if DEBUG_MODE > 0
+    printf("### DEBUG: [-Begin-] %s ...\n", __FUNCTION__);
+#endif
+
+    SHORT status = amg_setup_unsmoothP_unsmoothR_bsr(mgl, param);
+
+#if DEBUG_MODE > 0
+    printf("### DEBUG: [--End--] %s ...\n", __FUNCTION__);
+#endif
+
+    return status;
+}
+
 
 
 /*---------------------------------*/
@@ -729,6 +762,167 @@ static SHORT aggregation_hec(dCSRmat *A,
 
 }
 
+/**
+ * \fn static void form_boolean_p_bsr(const ivector *vertices, dBSRmat *tentp,
+ *                                    const AMG_data_bsr *mgl,
+ *                                    const INT NumAggregates)
+ *
+ * \brief Form boolean prolongations in dBSRmat (assume constant vector is in
+ *        the null space)
+ *
+ * \param vertices           Pointer to the aggregation of vertices
+ * \param tentp              Pointer to the prolongation operators
+ * \param mgl                Pointer to AMG levels
+ * \param NumAggregates      Number of aggregations
+ *
+ * \author Xiaozhe Hu
+ * \date   05/27/2014
+ */
+static void form_boolean_p_bsr(const ivector       *vertices,
+                               dBSRmat             *tentp,
+                               const AMG_data_bsr  *mgl,
+                               const INT            NumAggregates)
+{
+    INT i, j;
+
+    /* Form tentative prolongation */
+    tentp->ROW = vertices->row;
+    tentp->COL = NumAggregates;
+    tentp->nb  = mgl->A.nb;
+    INT nb2    = tentp->nb * tentp->nb;
+
+    tentp->IA  = (INT*)calloc(tentp->ROW+1, sizeof(INT));
+
+    // local variables
+    INT * IA = tentp->IA;
+    INT *JA;
+    REAL *val;
+    INT *vval = vertices->val;
+
+    const INT row = tentp->ROW;
+
+    // first run
+    for (i = 0, j = 0; i < row; i ++) {
+        IA[i] = j;
+        if (vval[i] > -1) {
+            j ++;
+        }
+    }
+    IA[row] = j;
+
+    // allocate
+    tentp->NNZ = j;
+
+    tentp->JA = (INT*)calloc(tentp->NNZ, sizeof(INT));
+
+    tentp->val = (REAL*)calloc(tentp->NNZ*nb2, sizeof(REAL));
+
+    JA = tentp->JA;
+    val = tentp->val;
+
+    // second run
+    for (i = 0, j = 0; i < row; i ++) {
+        IA[i] = j;
+        if (vval[i] > -1) {
+            JA[j] = vval[i];
+            ddense_identity (&(val[j*nb2]), tentp->nb, nb2);
+            j ++;
+        }
+    }
+}
+
+/**
+ * \fn static void form_tentative_p_bsr(const ivector *vertices, dBSRmat *tentp,
+ *                                      const AMG_data_bsr *mgl, const INT NumAggregates,
+ *                                      const const INT dim, REAL **basis)
+ *
+ * \brief Form tentative prolongation for BSR format matrix (use general basis for
+ *        the null space)
+ *
+ * \param vertices           Pointer to the aggregation of vertices
+ * \param tentp              Pointer to the prolongation operators
+ * \param mgl                Pointer to AMG levels
+ * \param NumAggregates      Number of aggregations
+ * \param dim                Dimension of the near kernel space
+ * \param basis              Pointer to the basis of the near kernel space
+ *
+ * \author Xiaozhe Hu
+ * \date   05/27/2014
+ */
+static void form_tentative_p_bsr(const ivector       *vertices,
+                                 dBSRmat             *tentp,
+                                 const AMG_data_bsr  *mgl,
+                                 const INT            NumAggregates,
+                                 const INT            dim,
+                                 REAL               **basis)
+{
+    INT i, j, k;
+
+    INT p, q;
+
+    const INT nnz_row = dim/mgl->A.nb; // nonzeros per row
+
+    /* Form tentative prolongation */
+    tentp->ROW = vertices->row;
+    tentp->COL = NumAggregates*nnz_row;
+    tentp->nb = mgl->A.nb;
+    const INT nb = tentp->nb;
+    const INT nb2 = nb * nb;
+
+    tentp->IA  = (INT*)calloc(tentp->ROW+1, sizeof(INT));
+
+    // local variables
+    INT  *IA = tentp->IA;
+    INT  *JA;
+    REAL *val;
+
+    const INT *vval = vertices->val;
+    const INT  row = tentp->ROW;
+
+    // first run
+    for (i = 0, j = 0; i < row; i ++) {
+        IA[i] = j;
+        if (vval[i] > -1) {
+            j = j + nnz_row;
+        }
+    }
+    IA[row] = j;
+
+    // allocate
+    tentp->NNZ = j;
+    tentp->JA = (INT*)calloc(tentp->NNZ, sizeof(INT));
+    tentp->val = (REAL*)calloc(tentp->NNZ*nb2, sizeof(REAL));
+
+    JA  = tentp->JA;
+    val = tentp->val;
+
+    // second run
+    for (i = 0, j = 0; i < row; i ++) {
+        IA[i] = j;
+        if (vval[i] > -1) {
+
+            for (k=0; k<nnz_row; k++) {
+
+                JA[j] = vval[i]*nnz_row + k;
+
+                for (p=0; p<nb; p++) {
+
+                    for (q=0; q<nb; q++) {
+
+                        val[j*nb2 + p*nb + q] = basis[k*nb+p][i*nb+q];
+
+                    }
+
+                }
+
+                j++;
+
+            }
+        }
+    }
+}
+
+
 /***********************************************************************************************/
 /**
  * \fn static SHORT amg_setup_unsmoothP_unsmoothR (AMG_data *mgl, AMG_param *param)
@@ -820,12 +1014,12 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
 
             case VMB: // VMB aggregation
                 status = aggregation_vmb(&mgl[lvl].A, &vertices[lvl], param,
-                                         &Neighbor[lvl], &num_aggs[lvl],lvl);
+                                         &Neighbor[lvl], &num_aggs[lvl], lvl);
                 break;
 
             case HEC: // Heavy edge coarsening aggregation
                 status = aggregation_hec(&mgl[lvl].A, &vertices[lvl], param,
-                                         &Neighbor[lvl], &num_aggs[lvl],lvl);
+                                         &Neighbor[lvl], &num_aggs[lvl], lvl);
                 break;
 
             default: // wrong aggregation type
@@ -905,10 +1099,7 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
         case SOLVER_UMFPACK: {
             // Need to sort the matrix A for UMFPACK to work
             dCSRmat Ac_tran;
-            dcsr_trans(&mgl[lvl].A, &Ac_tran);
-            // It is equivalent to do transpose and then sort
-            //     fasp_dcsr_trans(&mgl[lvl].A, &Ac_tran);
-            //     fasp_dcsr_sort(&Ac_tran);
+            dcsr_transz(&mgl[lvl].A, NULL, &Ac_tran);
             dcsr_cp(&Ac_tran, &mgl[lvl].A);
             dcsr_free(&Ac_tran);
             mgl[lvl].Numeric = umfpack_factorize(&mgl[lvl].A, 0);
@@ -1660,6 +1851,233 @@ static SHORT famg_setup_smoothP_smoothR(AMG_data *mgl,
 
     return status;
 }
+
+/***********************************************************************************************/
+/**
+ * \fn static SHORT amg_setup_unsmoothP_unsmoothR_bsr (AMG_data_bsr *mgl,
+ *                                                     AMG_param *param)
+ *
+ * \brief Set up phase of plain aggregation AMG, using unsmoothed P and unsmoothed A
+ *        in BSR format
+ *
+ * \param mgl    Pointer to AMG data: AMG_data_bsr
+ * \param param  Pointer to AMG parameters: AMG_param
+ *
+ * \return       SUCCESS if succeed, error otherwise
+ *
+ * \author Xiaozhe Hu
+ * \date   03/16/2012
+ *
+ */
+static SHORT amg_setup_unsmoothP_unsmoothR_bsr(AMG_data_bsr   *mgl,
+                                               AMG_param      *param)
+{
+    const SHORT CondType = 1; // Condensation method used for AMG
+
+    const SHORT prtlvl   = param->print_level;
+    const SHORT csolver  = param->coarse_solver;
+    const SHORT min_cdof = MAX(param->coarse_dof,50);
+    const INT   m        = mgl[0].A.ROW;
+    const INT   nb       = mgl[0].A.nb;
+
+    SHORT     max_levels = param->max_levels;
+    SHORT     i, lvl = 0, status = SUCCESS;
+    REAL      setup_start, setup_end;
+
+    AMG_data *mgl_csr = amg_data_create(max_levels);
+
+    dCSRmat   temp1, temp2;
+
+#if DEBUG_MODE > 0
+    printf("### DEBUG: [-Begin-] %s ...\n", __FUNCTION__);
+    printf("### DEBUG: nr=%d, nc=%d, nnz=%d\n",
+           mgl[0].A.ROW, mgl[0].A.COL, mgl[0].A.NNZ);
+#endif
+
+    get_time(&setup_start);
+
+    /*-----------------------*/
+    /*--local working array--*/
+    /*-----------------------*/
+    // level info (fine: 0; coarse: 1)
+    ivector *vertices = (ivector *)calloc(max_levels, sizeof(ivector));
+
+    //each elvel stores the information of the number of aggregations
+    INT *num_aggs = (INT *)calloc(max_levels, sizeof(INT));
+
+    // each level stores the information of the strongly coupled neighborhoods
+    dCSRmat *Neighbor = (dCSRmat *)calloc(max_levels, sizeof(dCSRmat));
+
+    for ( i=0; i<max_levels; ++i ) num_aggs[i] = 0;
+
+    /*------------------------------------------*/
+    /*-- setup null spaces for whole Jacobian --*/
+    /*------------------------------------------*/
+    /*
+     mgl[0].near_kernel_dim   = 1;
+     mgl[0].near_kernel_basis = (REAL **)fasp_mem_calloc(mgl->near_kernel_dim, sizeof(REAL*));
+
+     for ( i=0; i < mgl->near_kernel_dim; ++i ) mgl[0].near_kernel_basis[i] = NULL;
+     */
+
+    /*----------------------------*/
+    /*--- checking aggregation ---*/
+    /*----------------------------*/
+    // Main AMG setup loop
+    while ( (mgl[lvl].A.ROW > min_cdof) && (lvl < max_levels-1) ) {
+
+        /*-- get the diagonal inverse --*/
+        mgl[lvl].diaginv = dbsr_getdiaginv(&mgl[lvl].A);
+
+        switch ( CondType ) {
+            case 2:
+                mgl[lvl].PP = condenseBSR(&mgl[lvl].A); break;
+            default:
+                mgl[lvl].PP = condenseBSRLinf(&mgl[lvl].A); break;
+        }
+
+        /*-- Aggregation --*/
+        switch ( param->aggregation_type ) {
+
+            case VMB: // VMB aggregation
+
+                status = aggregation_vmb(&mgl[lvl].PP, &vertices[lvl], param,
+                                         &Neighbor[lvl], &num_aggs[lvl], lvl);
+                break;
+
+            case HEC: // Heavy edge coarsening aggregation
+
+                status = aggregation_hec(&mgl[lvl].PP, &vertices[lvl], param,
+                                         &Neighbor[lvl], &num_aggs[lvl], lvl);
+                break;
+
+            default: // wrong aggregation type
+                status = ERROR_AMG_AGG_TYPE;
+                check_error(status, __FUNCTION__);
+                break;
+        }
+
+        if ( status < 0 ) {
+            // When error happens, force solver to use the current multigrid levels!
+            if ( prtlvl > PRINT_MIN ) {
+                printf("### WARNING: Forming aggregates on level-%d failed!\n", lvl);
+            }
+            status = SUCCESS; break;
+        }
+
+        /* -- Form Prolongation --*/
+        if ( lvl == 0 && mgl[0].near_kernel_dim >0 ) {
+            form_tentative_p_bsr(&vertices[lvl], &mgl[lvl].P, &mgl[0],
+                                 num_aggs[lvl], mgl[0].near_kernel_dim,
+                                 mgl[0].near_kernel_basis);
+        }
+        else {
+            form_boolean_p_bsr(&vertices[lvl], &mgl[lvl].P, &mgl[0], num_aggs[lvl]);
+        }
+
+        /*-- Form resitriction --*/
+        dbsr_trans(&mgl[lvl].P, &mgl[lvl].R);
+
+        /*-- Form coarse level stiffness matrix --*/
+        dbsr_rap(&mgl[lvl].R, &mgl[lvl].A, &mgl[lvl].P, &mgl[lvl+1].A);
+
+        /* -- Form extra near kernal space if needed --*/
+        if (mgl[lvl].A_nk != NULL){
+
+            mgl[lvl+1].A_nk = (dCSRmat *)calloc(1, sizeof(dCSRmat));
+            mgl[lvl+1].P_nk = (dCSRmat *)calloc(1, sizeof(dCSRmat));
+            mgl[lvl+1].R_nk = (dCSRmat *)calloc(1, sizeof(dCSRmat));
+
+            temp1 = dbsr_2_dcsr(&mgl[lvl].R);
+            dcsr_mxm(&temp1, mgl[lvl].P_nk, mgl[lvl+1].P_nk);
+            dcsr_trans(mgl[lvl+1].P_nk, mgl[lvl+1].R_nk);
+            temp2 = dbsr_2_dcsr(&mgl[lvl+1].A);
+            dcsr_rap(mgl[lvl+1].R_nk, &temp2, mgl[lvl+1].P_nk, mgl[lvl+1].A_nk);
+            dcsr_free(&temp1);
+            dcsr_free(&temp2);
+
+        }
+
+        dcsr_free(&Neighbor[lvl]);
+        ivec_free(&vertices[lvl]);
+
+        ++lvl;
+    }
+
+    // Setup coarse level systems for direct solvers (BSR version)
+    switch (csolver) {
+
+#if WITH_UMFPACK
+        case SOLVER_UMFPACK: {
+            // Need to sort the matrix A for UMFPACK to work
+            mgl[lvl].Ac = dbsr_2_dcsr(&mgl[lvl].A);
+            dCSRmat Ac_tran;
+            dcsr_transz(&mgl[lvl].Ac, NULL, &Ac_tran);
+            dcsr_cp(&Ac_tran, &mgl[lvl].Ac);
+            dcsr_free(&Ac_tran);
+            mgl[lvl].Numeric = umfpack_factorize(&mgl[lvl].Ac, 0);
+            break;
+        }
+#endif
+
+        default:
+            // Do nothing!
+            break;
+    }
+
+
+    // setup total level number and current level
+    mgl[0].num_levels = max_levels = lvl+1;
+    mgl[0].w = dvec_create(3*m*nb);
+
+    if (mgl[0].A_nk != NULL){
+
+#if WITH_UMFPACK
+        // Need to sort the matrix A_nk for UMFPACK
+        dcsr_transz(mgl[0].A_nk, &temp1);
+        dcsr_cp(&temp1, mgl[0].A_nk);
+        dcsr_free(&temp1);
+#endif
+
+    }
+
+    for ( lvl = 1; lvl < max_levels; lvl++ ) {
+        const INT mm = mgl[lvl].A.ROW*nb;
+        mgl[lvl].num_levels = max_levels;
+        mgl[lvl].b          = dvec_create(mm);
+        mgl[lvl].x          = dvec_create(mm);
+        mgl[lvl].w          = dvec_create(3*mm);
+
+        if (mgl[lvl].A_nk != NULL){
+
+#if WITH_UMFPACK
+            // Need to sort the matrix A_nk for UMFPACK
+            dcsr_transz(mgl[lvl].A_nk, &temp1);
+            dcsr_cp(&temp1, mgl[lvl].A_nk);
+            dcsr_free(&temp1);
+#endif
+
+        }
+
+    }
+
+    if ( prtlvl > PRINT_NONE ) {
+        get_time(&setup_end);
+        print_amgcomplexity_bsr(mgl,prtlvl);
+        print_cputime("Unsmoothed aggregation (BSR) setup", setup_end - setup_start);
+    }
+
+    free(vertices); vertices = NULL;
+    free(num_aggs); num_aggs = NULL;
+    free(Neighbor); Neighbor = NULL;
+
+#if DEBUG_MODE > 0
+    printf("### DEBUG: [--End--] %s ...\n", __FUNCTION__);
+#endif
+
+    return status;
+}
+
 
 /*---------------------------------*/
 /*--        End of File          --*/

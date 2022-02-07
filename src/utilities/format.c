@@ -458,6 +458,275 @@ coordinates* array_2_coord ( REAL* xyz, INT ndof, INT dim)
   return cv;
 }
 
+
+/*!
+ * \fn dCSRmat dbsr_2_dcsr (const dBSRmat *B)
+ *
+ * \brief Transfer a 'dBSRmat' type matrix into a dCSRmat.
+ *
+ * \param B   Pointer to dBSRmat matrix
+ *
+ * \return    dCSRmat matrix
+ *
+ *
+ * \note Works for general nb (Xiaozhe)
+ */
+dCSRmat dbsr_2_dcsr (const dBSRmat *B)
+{
+    dCSRmat A;
+
+    /* members of B */
+    INT     ROW = B->ROW;
+    INT     COL = B->COL;
+    INT     NNZ = B->NNZ;
+    INT     nb  = B->nb;
+    INT    *IA  = B->IA;
+    INT    *JA  = B->JA;
+    REAL   *val = B->val;
+
+    INT     storage_manner = B->storage_manner;
+
+    INT jump = nb*nb;
+    INT rowA = ROW*nb;
+    INT colA = COL*nb;
+    INT nzA  = NNZ*jump;
+
+    INT     *ia = NULL;
+    INT     *ja = NULL;
+    REAL    *a  = NULL;
+
+    INT i,j,k;
+    INT mr,mc;
+    INT rowstart0,rowstart,colstart0,colstart;
+    INT colblock,nzperrow;
+
+    REAL  *vp = NULL;
+    REAL  *ap = NULL;
+    INT  *jap = NULL;
+
+    //--------------------------------------------------------
+    // Create a CSR Matrix
+    //--------------------------------------------------------
+    A  = dcsr_create(rowA, colA, nzA);
+    ia = A.IA;
+    ja = A.JA;
+    a  = A.val;
+
+    //--------------------------------------------------------------------------
+    // Compute the number of nonzeros per row, and after this loop,
+    // ia[i],i=1:rowA, will be the number of nonzeros of the (i-1)-th row.
+    //--------------------------------------------------------------------------
+    for (i = 0; i < ROW; ++i)
+    {
+        rowstart = i*nb + 1;
+        colblock = IA[i+1] - IA[i];
+        nzperrow = colblock*nb;
+        for (j = 0; j < nb; ++j)
+        {
+            ia[rowstart+j] = nzperrow;
+        }
+    }
+
+    //-----------------------------------------------------
+    // Generate the real 'ia' for CSR of A
+    //-----------------------------------------------------
+    ia[0] = 0;
+    for (i = 1; i <= rowA; ++i)
+    {
+        ia[i] += ia[i-1];
+    }
+
+    //-----------------------------------------------------
+    // Generate 'ja' and 'a' for CSR of A
+    //-----------------------------------------------------
+    switch (storage_manner)
+    {
+        case 0: // each non-zero block elements are stored in row-major order
+        {
+            for (i = 0; i < ROW; ++i)
+            {
+                for (k = IA[i]; k < IA[i+1]; ++k)
+                {
+                    j = JA[k];
+                    rowstart = i*nb;
+                    colstart = j*nb;
+                    vp = &val[k*jump];
+                    for (mr = 0; mr < nb; mr ++)
+                    {
+                        ap  = &a[ia[rowstart]];
+                        jap = &ja[ia[rowstart]];
+                        for (mc = 0; mc < nb; mc ++)
+                        {
+                            *ap = *vp;
+                            *jap = colstart + mc;
+                            vp ++; ap ++; jap ++;
+                        }
+                        ia[rowstart] += nb;
+                        rowstart ++;
+                    }
+                }
+            }
+        }
+            break;
+
+        case 1: // each non-zero block elements are stored in column-major order
+        {
+            for (i = 0; i < ROW; ++i)
+            {
+                for (k = IA[i]; k < IA[i+1]; ++k)
+                {
+                    j = JA[k];
+                    rowstart0 = i*nb;
+                    colstart0 = j*nb;
+                    vp = &val[k*jump];
+                    for (mc = 0; mc < nb; mc ++)
+                    {
+                        rowstart = rowstart0;
+                        colstart = colstart0 + mc;
+                        for (mr = 0; mr < nb; mr ++)
+                        {
+                            a[ia[rowstart]] = *vp;
+                            ja[ia[rowstart]] = colstart;
+                            vp ++; ia[rowstart]++; rowstart++;
+                        }
+                    }
+                }
+            }
+        }
+            break;
+    }
+
+    //-----------------------------------------------------
+    // Map back the real 'ia' for CSR of A
+    //-----------------------------------------------------
+    for (i = rowA; i > 0; i --) {
+        ia[i] = ia[i-1];
+    }
+    ia[0] = 0;
+
+    return (A);
+}
+
+/*!
+ * \fn dBSRmat dcsr_2_dbsr ( const dCSRmat *A, const INT nb )
+ *
+ * \brief Transfer a dCSRmat type matrix into a dBSRmat.
+ *
+ * \param A   Pointer to the dCSRmat type matrix
+ * \param nb  size of each block
+ *
+ * \return    dBSRmat matrix
+ *
+ */
+dBSRmat dcsr_2_dbsr(const dCSRmat  *A,
+                    const INT       nb)
+{
+    INT i, j, k, ii, jj, kk, l, mod, nnz;
+    INT row   = A->row/nb;
+    INT col   = A->col/nb;
+    INT nb2   = nb*nb;
+    INT *IA   = A->IA;
+    INT *JA   = A->JA;
+    REAL *val = A->val;
+
+    dBSRmat B;	// Safe-guard check
+	INT *col_flag, *ia, *ja;
+	REAL *bval;
+
+    if ((A->row)%nb!=0) {
+        printf("### ERROR: A.row=%d is not a multiplication of nb=%d!\n",
+               A->row, nb);
+        check_error(ERROR_MAT_SIZE, __FUNCTION__);
+    }
+
+    if ((A->col)%nb!=0) {
+        printf("### ERROR: A.col=%d is not a multiplication of nb=%d!\n",
+               A->col, nb);
+        check_error(ERROR_MAT_SIZE, __FUNCTION__);
+    }
+
+    B.ROW = row;
+    B.COL = col;
+    B.nb  = nb;
+    B.storage_manner = 0;
+
+    // allocate memory for B
+	col_flag = (INT *)calloc(col, sizeof(INT));
+    ia = (INT *)calloc(row+1, sizeof(INT));
+
+    iarray_set(col, col_flag, -1);
+
+    // Get ia for BSR format
+    nnz = 0;
+	for (i=0; i<row; ++i) {
+        ii = nb*i;
+        for (j=0; j<nb; ++j) {
+            jj = ii+j;
+            for (k=IA[jj]; k<IA[jj+1]; ++k) {
+                kk = JA[k]/nb;
+                if (col_flag[kk]!=0) {
+                    col_flag[kk] = 0;
+                    //ja[nnz] = kk;
+                    nnz ++;
+                }
+			}
+		}
+        ia[i+1] = nnz;
+        iarray_set(col, col_flag, -1);
+	}
+
+    // set NNZ
+    B.NNZ = nnz;
+
+    // allocate ja and bval
+    ja = (INT*)calloc(nnz, sizeof(INT));
+    bval = (REAL*)calloc(nnz*nb2, sizeof(REAL));
+
+    // Get ja for BSR format
+    nnz = 0;
+    for (i=0; i<row; ++i) {
+        ii = nb*i;
+        for(j=0; j<nb; ++j) {
+            jj = ii+j;
+            for(k=IA[jj]; k<IA[jj+1]; ++k) {
+                kk = JA[k]/nb;
+                if (col_flag[kk]!=0) {
+                    col_flag[kk] = 0;
+                    ja[nnz] = kk;
+                    nnz ++;
+                }
+			}
+		}
+        ia[i+1] = nnz;
+        iarray_set(col, col_flag, -1);
+	}
+
+    // Get non-zeros of BSR
+	for (i=0; i<row; ++i) {
+		ii = nb*i;
+        for (j=0; j<nb; ++j) {
+			jj = ii+j;
+			for (k=IA[jj]; k<IA[jj+1]; ++k) {
+				for (l=ia[i]; l<ia[i+1]; ++l) {
+					if (JA[k]/nb ==ja[l]) {
+                        mod = JA[k]%nb;
+                        bval[l*nb2+j*nb+mod] = val[k];
+                        break;
+                    }
+				}
+			}
+		}
+	}
+
+    B.IA = ia;
+    B.JA = ja;
+    B.val = bval;
+
+    free(col_flag); col_flag = NULL;
+
+    return B;
+}
+
 /***********************************************************************************************/
 /*!
  * \fn dCSRmat *dcoo_2_dcsr_p(dCOOmat *A)

@@ -204,6 +204,102 @@ INT solver_dcsr_linear_itsolver(dCSRmat *A,
     return iter;
 }
 
+/**
+ * \fn INT solver_dbsr_linear_itsolver (dCSRmat *A, dvector *b, dvector *x,
+ *                                    precond *pc, linear_itsolver_param *itparam)
+ *
+ * \brief Solve Ax=b by preconditioned Krylov methods for BSR matrices
+ *
+ * \param A        Pointer to the coeff matrix in dBSRmat format
+ * \param b        Pointer to the right hand side in dvector format
+ * \param x        Pointer to the approx solution in dvector format
+ * \param pc       Pointer to the preconditioning action
+ * \param itparam  Pointer to parameters for lienar iterative solvers
+ *
+ * \return         Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   02/06/2022
+ *
+ * \note This is an abstract interface for iterative methods.
+ */
+INT solver_dbsr_linear_itsolver(dBSRmat *A,
+                                dvector *b,
+                                dvector *x,
+                                precond *pc,
+                                linear_itsolver_param *itparam)
+{
+    const SHORT prtlvl        = itparam->linear_print_level;
+    const SHORT itsolver_type = itparam->linear_itsolver_type;
+    const SHORT stop_type     = itparam->linear_stop_type;
+    const SHORT restart       = itparam->linear_restart;
+    const INT   MaxIt         = itparam->linear_maxit;
+    const REAL  tol           = itparam->linear_tol;
+
+    /* Local Variables */
+    REAL solver_start, solver_end, solver_duration;
+    INT iter;
+
+    get_time(&solver_start);
+
+    /* Safe-guard checks on parameters */
+    ITS_CHECK ( MaxIt, tol );
+
+    /* Choose a desirable Krylov iterative solver */
+    switch ( itsolver_type ) {
+        case 1:
+            if ( prtlvl > PRINT_NONE ) {
+                printf("**********************************************************\n");
+                printf(" --> using Conjugate Gradient Method:\n");
+            }
+            iter = dbsr_pcg(A, b, x, pc, tol, MaxIt, stop_type, prtlvl);
+            break;
+
+/*  // need to add minres for BSR format
+        case 2:
+            if ( prtlvl > PRINT_NONE ) {
+                printf("**********************************************************\n");
+                printf(" --> using MINRES Method:\n");
+            }
+            iter = dcsr_pminres(A, b, x, pc, tol, MaxIt, stop_type, prtlvl);
+            printf(" NOTHING IMPLEMENTED FOR MINRES\n");
+            break;
+*/
+
+        case 3:
+            if ( prtlvl > PRINT_NONE )  {
+                printf("**********************************************************\n");
+                printf(" --> using GMRES Method:\n");
+            }
+            iter = dbsr_pvgmres(A, b, x, pc, tol, MaxIt, restart, stop_type, prtlvl);
+            break;
+
+        case 4:
+            if ( prtlvl > PRINT_NONE ) {
+                printf("**********************************************************\n");
+                printf(" --> using Flexible GMRES Method:\n");
+            }
+            iter = dbsr_pvfgmres(A, b, x, pc, tol, MaxIt, restart, stop_type, prtlvl);
+            break;
+
+        default:
+            printf("### ERROR: Unknown itertive solver type %d!\n", itsolver_type);
+            return ERROR_SOLVER_TYPE;
+
+    }
+
+    if ( (prtlvl >= PRINT_SOME) && (iter >= 0) ) {
+        get_time(&solver_end);
+        solver_duration = solver_end - solver_start;
+        print_cputime("Iterative method", solver_duration);
+        printf("**********************************************************\n");
+    }
+
+
+    return iter;
+}
+
+
 /********************************************************************************************/
 /**
  * \fn INT solver_bdcsr_linear_itsolver (block_dCSRmat *A, dvector *b, dvector *x,
@@ -1847,6 +1943,252 @@ FINISHED:
 
     return status;
 }
+
+/********************************************************************************************/
+// preconditioned Krylov methods for BSR format
+/********************************************************************************************/
+/**
+ * \fn INT linear_solver_dbsr_krylov (dBSRmat *A, dvector *b, dvector *x,
+ *                                  linear_itsolver_param *itparam)
+ *
+ * \brief Solve Ax=b by standard Krylov methods for BSR matrices
+ *
+ * \param A        Pointer to the coeff matrix in dBSRmat format
+ * \param b        Pointer to the right hand side in dvector format
+ * \param x        Pointer to the approx solution in dvector format
+ * \param itparam  Pointer to parameters for linear iterative solvers
+ *
+ * \return         Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   02/06/2022
+ */
+INT linear_solver_dbsr_krylov(dBSRmat *A,
+                              dvector *b,
+                              dvector *x,
+                              linear_itsolver_param *itparam)
+{
+    const SHORT prtlvl = itparam->linear_print_level;
+
+    /* Local Variables */
+    INT      status = SUCCESS;
+    REAL     solver_start, solver_end, solver_duration;
+
+    get_time(&solver_start);
+
+    status = solver_dbsr_linear_itsolver(A,b,x,NULL,itparam);
+
+    if ( prtlvl >= PRINT_MIN ) {
+        get_time(&solver_end);
+        solver_duration = solver_end - solver_start;
+        print_cputime("Krylov method totally", solver_duration);
+        printf("**********************************************************\n");
+    }
+
+    return status;
+}
+
+/**
+ * \fn INT linear_solver_dbsr_krylov_diag (dBSRmat *A, dvector *b, dvector *x,
+ *                                         linear_itsolver_param *itparam)
+ *
+ * \brief Solve Ax=b by diagonal preconditioned Krylov methods
+ *
+ * \param A         Pointer to the coeff matrix in dBSRmat format
+ * \param b         Pointer to the right hand side in dvector format
+ * \param x         Pointer to the approx solution in dvector format
+ * \param itparam   Pointer to parameters for iterative solvers
+ *
+ * \return          Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   02/06/2022
+ *
+ */
+INT linear_solver_dbsr_krylov_diag (dBSRmat    *A,
+                                    dvector    *b,
+                                    dvector    *x,
+                                    linear_itsolver_param  *itparam)
+{
+    const SHORT prtlvl = itparam->linear_print_level;
+
+    INT status = SUCCESS;
+    REAL solve_start, solve_end;
+
+    INT nb=A->nb,i,k;
+    INT nb2=nb*nb;
+    INT ROW=A->ROW;
+
+    // setup preconditioner
+    precond_diag_bsr diag;
+    dvec_alloc(ROW*nb2, &(diag.diag));
+
+#if DEBUG_MODE > 0
+    printf("### DEBUG: [-Begin-] %s ...\n", __FUNCTION__);
+#endif
+
+    // get all the diagonal sub-blocks
+    for (i = 0; i < ROW; ++i) {
+        for (k = A->IA[i]; k < A->IA[i+1]; ++k) {
+            if (A->JA[k] == i)
+            memcpy(diag.diag.val+i*nb2, A->val+k*nb2, nb2*sizeof(REAL));
+        }
+    }
+
+    diag.nb=nb;
+
+    for (i=0; i<ROW; ++i){
+        ddense_inv_inplace(&(diag.diag.val[i*nb2]), nb);
+    }
+
+    precond *pc = (precond *)calloc(1,sizeof(precond));
+    pc->data = &diag;
+    pc->fct  = precond_dbsr_diag;
+
+    // solver part
+    get_time(&solve_start);
+
+    status=solver_dbsr_linear_itsolver(A,b,x,pc,itparam);
+
+    get_time(&solve_end);
+
+    if ( prtlvl > PRINT_NONE )
+        print_cputime("Diag_Krylov method totally", solve_end - solve_start);
+
+    // clean up
+    dvec_free(&(diag.diag));
+
+#if DEBUG_MODE > 0
+    printf("### DEBUG: [--End--] %s ...\n", __FUNCTION__);
+#endif
+
+    return status;
+}
+
+
+/**
+ * \fn INT lienar_solver_dbsr_krylov_amg (dBSRmat *A, dvector *b, dvector *x,
+ *                                        linear_itsolver_param *itparam, AMG_param *amgparam)
+ *
+ * \brief Solve Ax=b by AMG preconditioned Krylov methods
+ *
+ * \param A         Pointer to the coeff matrix in dBSRmat format
+ * \param b         Pointer to the right hand side in dvector format
+ * \param x         Pointer to the approx solution in dvector format
+ * \param itparam   Pointer to parameters for iterative solvers
+ * \param amgparam  Pointer to parameters of AMG
+ *
+ * \return          Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   03/16/2012
+ */
+INT linear_solver_dbsr_krylov_amg(dBSRmat    *A,
+                                  dvector    *b,
+                                  dvector    *x,
+                                  linear_itsolver_param  *itparam,
+                                  AMG_param  *amgparam)
+{
+    //--------------------------------------------------------------
+    // Part 1: prepare
+    // --------------------------------------------------------------
+    //! parameters of iterative method
+    const SHORT prtlvl = itparam->linear_print_level;
+    const SHORT max_levels = amgparam->max_levels;
+
+    // return variable
+    INT status = SUCCESS;
+
+    // data of AMG
+    AMG_data_bsr *mgl = amg_data_bsr_create(max_levels);
+
+    // timing
+    REAL setup_start, setup_end, solve_end;
+
+#if DEBUG_MODE > 0
+    printf("### DEBUG: [-Begin-] %s ...\n", __FUNCTION__);
+#endif
+
+    //--------------------------------------------------------------
+    //Part 2: set up the preconditioner
+    //--------------------------------------------------------------
+    get_time(&setup_start);
+
+    // initialize A, b, x for mgl[0]
+    mgl[0].A = dbsr_create(A->ROW, A->COL, A->NNZ, A->nb, A->storage_manner);
+    mgl[0].b = dvec_create(mgl[0].A.ROW*mgl[0].A.nb);
+    mgl[0].x = dvec_create(mgl[0].A.COL*mgl[0].A.nb);
+
+    dbsr_cp(A, &(mgl[0].A));
+
+    switch (amgparam->AMG_type) {
+
+        case UA_AMG: // Unmoothed Aggregation AMG
+            status = amg_setup_ua_bsr(mgl, amgparam); break;
+
+        default:
+            status = amg_setup_ua_bsr(mgl, amgparam); break;
+
+    }
+
+    if (status < 0) goto FINISHED;
+
+    precond_data_bsr precdata;
+    precdata.print_level = amgparam->print_level;
+    precdata.maxit = amgparam->maxit;
+    precdata.tol = amgparam->tol;
+    precdata.cycle_type = amgparam->cycle_type;
+    precdata.smoother = amgparam->smoother;
+    precdata.presmooth_iter = amgparam->presmooth_iter;
+    precdata.postsmooth_iter = amgparam->postsmooth_iter;
+    precdata.relaxation = amgparam->relaxation;
+    precdata.coarse_scaling = amgparam->coarse_scaling;
+    precdata.amli_degree = amgparam->amli_degree;
+    precdata.amli_coef = amgparam->amli_coef;
+    precdata.tentative_smooth = amgparam->tentative_smooth;
+    precdata.max_levels = mgl[0].num_levels;
+    precdata.mgl_data = mgl;
+    precdata.A = A;
+
+    precond prec;
+    prec.data = &precdata;
+    switch (amgparam->cycle_type) {
+        //case NL_AMLI_CYCLE: // Nonlinear AMLI AMG
+        //    prec.fct = precond_dbsr_namli; break;
+        default: // V,W-Cycle AMG
+            prec.fct = precond_dbsr_amg; break;
+    }
+
+    get_time(&setup_end);
+
+    if ( prtlvl >= PRINT_MIN )
+        print_cputime("BSR AMG setup", setup_end - setup_start);
+
+    //--------------------------------------------------------------
+    // Part 3: solver
+    //--------------------------------------------------------------
+    status = solver_dbsr_linear_itsolver(A,b,x,&prec,itparam);
+
+    get_time(&solve_end);
+
+    if ( prtlvl >= PRINT_MIN )
+        print_cputime("BSR Krylov method", solve_end - setup_start);
+
+FINISHED:
+    amg_data_bsr_free(mgl);
+
+#if DEBUG_MODE > 0
+    printf("### DEBUG: [--End--] %s ...\n", __FUNCTION__);
+#endif
+
+    if ( status == ERROR_ALLOC_MEM ) goto MEMORY_ERROR;
+    return status;
+
+MEMORY_ERROR:
+    printf("### HAZMATH ERROR: Cannot allocate memory! [%s]\n", __FUNCTION__);
+    exit(status);
+}
+
 
 /********************************************************************************************/
 // preconditioned Krylov methods for block CSR format

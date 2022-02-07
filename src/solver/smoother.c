@@ -806,6 +806,226 @@ void smoother_dcsr_Schwarz_backward_additive (Schwarz_data *Schwarz,
     dvec_free(&averaging_factor);
 }
 
+/************************************************************************************************/
+/**
+ * \fn void smoother_dbsr_jacobi(dBSRmat *A, dvector *b, dvector *u,
+ *                               REAL *diaginv)
+ *
+ * \brief Jacobi relaxation
+ *
+ * \param A        Pointer to dBSRmat: the coefficient matrix
+ * \param b        Pointer to dvector: the right hand side
+ * \param u        Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
+ * \param diaginv  Inverses for all the diagonal blocks of A
+ *
+ */
+void smoother_dbsr_jacobi(dBSRmat *A,
+                          dvector *b,
+                          dvector *u,
+                          REAL    *diaginv)
+{
+    // members of A
+    const INT     ROW = A->ROW;
+    const INT     nb  = A->nb;
+    const INT     nb2 = nb*nb;
+    const INT    size = ROW*nb;
+    const INT    *IA  = A->IA;
+    const INT    *JA  = A->JA;
+    REAL         *val = A->val;
+
+    SHORT nthreads = 1;
+
+    // values of dvector b and u
+    REAL *b_val = b->val;
+    REAL *u_val = u->val;
+
+    // auxiliary array
+    REAL *b_tmp = NULL;
+
+    // local variables
+    INT i,j,k;
+    INT pb;
+
+    // b_tmp = b_val
+    b_tmp = (REAL *)calloc(size, sizeof(REAL));
+    memcpy(b_tmp, b_val, size*sizeof(REAL));
+
+    // No need to assign the smoothing order since the result doesn't depend on it
+    if (nb == 1) {
+        for (i = 0; i < ROW; ++i) {
+            for (k = IA[i]; k < IA[i+1]; ++k) {
+                j = JA[k];
+                if (j != i)
+                    b_tmp[i] -= val[k]*u_val[j];
+            }
+        }
+        for (i = 0; i < ROW; ++i) {
+            u_val[i] = b_tmp[i]*diaginv[i];
+        }
+
+        free(b_tmp); b_tmp = NULL;
+    }
+    else if (nb > 1) {
+        for (i = 0; i < ROW; ++i) {
+            pb = i*nb;
+            for (k = IA[i]; k < IA[i+1]; ++k) {
+                j = JA[k];
+                if (j != i)
+                    ddense_ymAx(val+k*nb2, u_val+j*nb, b_tmp+pb, nb);
+            }
+        }
+
+        for (i = 0; i < ROW; ++i) {
+            pb = i*nb;
+            ddense_mxv(diaginv+nb2*i, b_tmp+pb, u_val+pb, nb);
+        }
+
+        free(b_tmp); b_tmp = NULL;
+    }
+    else {
+        printf("### HAZMATH ERROR: nb is illegal! [%s:%d]\n", __FILE__, __LINE__);
+        check_error(ERROR_NUM_BLOCKS, __FUNCTION__);
+    }
+
+}
+
+/**
+ * \fn void smoother_dbsr_gs_ascend(dBSRmat *A, dvector *b, dvector *u,
+ *                                  REAL *diaginv)
+ *
+ * \brief Gauss-Seidel relaxation in the ascending order
+ *
+ * \param A  Pointer to dBSRmat: the coefficient matrix
+ * \param b  Pointer to dvector: the right hand side
+ * \param u  Pointer to dvector: the unknowns (IN: initial guess, OUT: approximation)
+ * \param diaginv  Inverses for all the diagonal blocks of A
+ *
+ */
+void smoother_dbsr_gs_ascend(dBSRmat *A,
+                             dvector *b,
+                             dvector *u,
+                             REAL    *diaginv)
+{
+    // members of A
+    const INT     ROW = A->ROW;
+    const INT     nb  = A->nb;
+    const INT     nb2 = nb*nb;
+    const INT    *IA  = A->IA;
+    const INT    *JA  = A->JA;
+    REAL         *val = A->val;
+
+    // values of dvector b and u
+    REAL *b_val = b->val;
+    REAL *u_val = u->val;
+
+    // local variables
+    INT   i,j,k;
+    INT   pb;
+    REAL  rhs = 0.0;
+
+    if (nb == 1) {
+        for (i = 0; i < ROW; ++i) {
+            rhs = b_val[i];
+            for (k = IA[i]; k < IA[i+1]; ++k) {
+                j = JA[k];
+                if (j != i)
+                    rhs -= val[k]*u_val[j];
+            }
+            u_val[i] = rhs*diaginv[i];
+        }
+    }
+    else if (nb > 1) {
+        REAL *b_tmp = (REAL *)calloc(nb, sizeof(REAL));
+
+        for (i = 0; i < ROW; ++i) {
+            pb = i*nb;
+            memcpy(b_tmp, b_val+pb, nb*sizeof(REAL));
+            for (k = IA[i]; k < IA[i+1]; ++k) {
+                j = JA[k];
+                if (j != i)
+                    ddense_ymAx(val+k*nb2, u_val+j*nb, b_tmp, nb);
+            }
+            ddense_mxv(diaginv+nb2*i, b_tmp, u_val+pb, nb);
+        }
+
+        free(b_tmp); b_tmp = NULL;
+    }
+    else {
+        printf("### HAZMATH ERROR: nb is illegal! [%s:%d]\n", __FILE__, __LINE__);
+        check_error(ERROR_NUM_BLOCKS, __FUNCTION__);
+    }
+
+}
+
+/**
+ * \fn void smoother_dbsr_gs_descend (dBSRmat *A, dvector *b, dvector *u,
+ *                                         REAL *diaginv)
+ *
+ * \brief Gauss-Seidel relaxation in the descending order
+ *
+ * \param A  Pointer to dBSRmat: the coefficient matrix
+ * \param b  Pointer to dvector: the right hand side
+ * \param u  Pointer to dvector: the unknowns (IN: initial guess, OUT: approximation)
+ * \param diaginv  Inverses for all the diagonal blocks of A
+ *
+ */
+void smoother_dbsr_gs_descend(dBSRmat *A,
+                              dvector *b,
+                              dvector *u,
+                              REAL    *diaginv )
+{
+    // members of A
+    const INT     ROW = A->ROW;
+    const INT     nb  = A->nb;
+    const INT     nb2 = nb*nb;
+    const INT    *IA  = A->IA;
+    const INT    *JA  = A->JA;
+    REAL         *val = A->val;
+
+    // values of dvector b and u
+    REAL *b_val = b->val;
+    REAL *u_val = u->val;
+
+    // local variables
+    INT i,j,k;
+    INT pb;
+    REAL rhs = 0.0;
+
+    if (nb == 1) {
+        for (i = ROW-1; i >= 0; i--) {
+            rhs = b_val[i];
+            for (k = IA[i]; k < IA[i+1]; ++k) {
+                j = JA[k];
+                if (j != i)
+                    rhs -= val[k]*u_val[j];
+            }
+            u_val[i] = rhs*diaginv[i];
+        }
+    }
+    else if (nb > 1) {
+        REAL *b_tmp = (REAL *)calloc(nb, sizeof(REAL));
+
+        for (i = ROW-1; i >= 0; i--) {
+            pb = i*nb;
+            memcpy(b_tmp, b_val+pb, nb*sizeof(REAL));
+            for (k = IA[i]; k < IA[i+1]; ++k) {
+                j = JA[k];
+                if (j != i)
+                    ddense_ymAx(val+k*nb2, u_val+j*nb, b_tmp, nb);
+            }
+            ddense_mxv(diaginv+nb2*i, b_tmp, u_val+pb, nb);
+        }
+
+        free(b_tmp); b_tmp = NULL;
+    }
+    else {
+        printf("### HAZAMTH ERROR: nb is illegal! [%s:%d]\n", __FILE__, __LINE__);
+        check_error(ERROR_NUM_BLOCKS, __FUNCTION__);
+    }
+
+}
+
+/************************************************************************************************/
 /**
  * \fn void smoother_bdcsr_jacobi (dvector *u, const INT s, block_dCSRmat *A, dvector *b, INT L)
  *

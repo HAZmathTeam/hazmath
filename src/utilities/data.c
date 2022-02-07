@@ -139,6 +139,85 @@ void amg_data_free(AMG_data *mgl,
 
 }
 
+/**
+ * \fn AMG_data_bsr * amg_data_bsr_create (SHORT max_levels)
+ *
+ * \brief Create and initialize AMG_data data sturcture for AMG/SAMG (BSR format)
+ *
+ * \param max_levels   Max number of levels allowed
+ *
+ * \return Pointer to the AMG_data data structure
+ *
+ * \author Xiaozhe Hu
+ * \date   08/07/2011
+ */
+AMG_data_bsr * amg_data_bsr_create (SHORT max_levels)
+{
+    max_levels = MAX(1, max_levels); // at least allocate one level
+
+    AMG_data_bsr *mgl = (AMG_data_bsr *)calloc(max_levels,sizeof(AMG_data_bsr));
+
+    INT i;
+    for (i=0; i<max_levels; ++i) {
+        mgl[i].max_levels = max_levels;
+        mgl[i].num_levels = 0;
+        mgl[i].near_kernel_dim = 0;
+        mgl[i].near_kernel_basis = NULL;
+        mgl[i].A_nk = NULL;
+        mgl[i].P_nk = NULL;
+        mgl[i].R_nk = NULL;
+    }
+
+    return(mgl);
+}
+
+/**
+ * \fn void amg_data_bsr_free (AMG_data_bsr *mgl)
+ *
+ * \brief Free AMG_data_bsr data memeory space
+ *
+ * \param mgl  Pointer to the AMG_data_bsr
+ *
+ * \author Xiaozhe Hu
+ * \date   2013/02/13
+ *
+ */
+void amg_data_bsr_free (AMG_data_bsr *mgl)
+{
+    const INT max_levels = MAX(1,mgl[0].num_levels);
+
+    INT i;
+
+    for ( i = 0; i < max_levels; ++i ) {
+
+        dbsr_free(&mgl[i].A);
+        if ( max_levels > 1 ) {
+            dbsr_free(&mgl[i].P);
+            dbsr_free(&mgl[i].R);
+        }
+        dvec_free(&mgl[i].b);
+        dvec_free(&mgl[i].x);
+        dvec_free(&mgl[i].diaginv);
+        dvec_free(&mgl[i].diaginv_SS);
+        dcsr_free(&mgl[i].Ac);
+
+        dcsr_free(&mgl[i].PP);
+        dbsr_free(&mgl[i].SS);
+        dvec_free(&mgl[i].diaginv_SS);
+        dvec_free(&mgl[i].w);
+        ivec_free(&mgl[i].cfmark);
+
+        free(mgl[i].pw); mgl[i].pw = NULL;
+        free(mgl[i].sw); mgl[i].sw = NULL;
+    }
+
+    for ( i = 0; i < mgl->near_kernel_dim; ++i ) {
+        free(mgl->near_kernel_basis[i]); mgl->near_kernel_basis[i] = NULL;
+    }
+    free(mgl->near_kernel_basis); mgl->near_kernel_basis = NULL;
+    free(mgl); mgl = NULL;
+}
+
 /***********************************************************************************************/
 /*!
  * \fn void HX_curl_data_null(HX_curl_data *hxcurldata)
