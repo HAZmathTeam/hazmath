@@ -323,12 +323,11 @@ precond* create_precond_amg_bsr(dBSRmat *A, AMG_param *amgparam)
 
     precond_data_bsr *pcdata = (precond_data_bsr*)calloc(1, sizeof(precond_data_bsr));
 
-    const INT nnz = A->nnz, m = A->row, n = A->col;
     short prtlvl = amgparam->print_level;
     INT status = SUCCESS;
 
     AMG_data_bsr *mgl = amg_data_bsr_create(amgparam->max_levels);
-    mgl[0].A = dbsr_create(A->ROW, A->COL, A->NNZ, A->nb, A->storage_manner); dcsr_cp(A, &mgl[0].A);
+    mgl[0].A = dbsr_create(A->ROW, A->COL, A->NNZ, A->nb, A->storage_manner); dbsr_cp(A, &mgl[0].A);
     mgl[0].b = dvec_create(mgl[0].A.ROW*mgl[0].A.nb);
     mgl[0].x = dvec_create(mgl[0].A.COL*mgl[0].A.nb);
 
