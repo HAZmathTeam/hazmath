@@ -315,6 +315,75 @@ precond* create_precond_famg(dCSRmat *A, dCSRmat *M, AMG_param *amgparam)
     return pc;
 }
 
+
+precond* create_precond_amg_bsr(dBSRmat *A, AMG_param *amgparam)
+{
+
+    precond *pc = (precond*)calloc(1, sizeof(precond));
+
+    precond_data_bsr *pcdata = (precond_data_bsr*)calloc(1, sizeof(precond_data_bsr));
+
+    const INT nnz = A->nnz, m = A->row, n = A->col;
+    short prtlvl = amgparam->print_level;
+    INT status = SUCCESS;
+
+    AMG_data_bsr *mgl = amg_data_bsr_create(amgparam->max_levels);
+    mgl[0].A = dbsr_create(A->ROW, A->COL, A->NNZ, A->nb, A->storage_manner); dcsr_cp(A, &mgl[0].A);
+    mgl[0].b = dvec_create(mgl[0].A.ROW*mgl[0].A.nb);
+    mgl[0].x = dvec_create(mgl[0].A.COL*mgl[0].A.nb);
+
+    // bsr amg setup
+    switch (amgparam->AMG_type) {
+
+        case UA_AMG: // Unmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG BSR...\n");
+            status = amg_setup_ua_bsr(mgl, amgparam);
+        break;
+
+        default:
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG BSR...\n");
+            status = amg_setup_ua_bsr(mgl, amgparam);
+        break;
+
+    }
+
+    if (status < 0) {
+        printf("\n In function create_precond: AMG BSR data failed to set up \n");
+        return NULL;
+    }
+
+    // setup preconditioner
+    // todo: make a function for this
+    pcdata->print_level = amgparam->print_level;
+    pcdata->maxit = amgparam->maxit;
+    pcdata->tol = amgparam->tol;
+    pcdata->cycle_type = amgparam->cycle_type;
+    pcdata->smoother = amgparam->smoother;
+    pcdata->presmooth_iter = amgparam->presmooth_iter;
+    pcdata->postsmooth_iter = amgparam->postsmooth_iter;
+    pcdata->relaxation = amgparam->relaxation;
+    pcdata->coarse_scaling = amgparam->coarse_scaling;
+    pcdata->amli_degree = amgparam->amli_degree;
+    pcdata->amli_coef = amgparam->amli_coef;
+    pcdata->tentative_smooth = amgparam->tentative_smooth;
+    pcdata->max_levels = mgl[0].num_levels;
+    pcdata->mgl_data = mgl;
+    pcdata->A = A;
+
+    pc->data = pcdata;
+
+    switch (amgparam->cycle_type) {
+        //case NL_AMLI_CYCLE: // Nonlinear AMLI AMG
+        //    prec.fct = precond_dbsr_namli; break;
+        default: // V,W-Cycle AMG
+            pc->fct = precond_dbsr_amg;
+        break;
+    }
+
+    return pc;
+}
+
+
 precond* create_precond_ra(dCSRmat *A,
                            dCSRmat *M,
                            REAL s_frac_power,
