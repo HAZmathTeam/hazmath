@@ -4143,7 +4143,7 @@ INT linear_solver_dcsr_krylov_md_scalar_elliptic(dCSRmat *A,
     {
         inv_mortar.IA[i] = i;
         inv_mortar.JA[i] = i;
-        if (diag_mortar.val[i] > SMALLREAL) inv_mortar.val[i]   = 1.0/diag_mortar.val[i];
+        if (ABS(diag_mortar.val[i]) > SMALLREAL) inv_mortar.val[i]   = 1.0/diag_mortar.val[i];
         else inv_mortar.val[i] = 1.0;
 
     }
@@ -4155,13 +4155,30 @@ INT linear_solver_dcsr_krylov_md_scalar_elliptic(dCSRmat *A,
     dcsr_free(&BTB);
 
     // mortar diagonal block
-    //dcsr_alloc(A_blk.blocks[3]->row, A_blk.blocks[3]->col, A_blk.blocks[3]->nnz, &A_diag[1]);
-    //dcsr_cp(A_blk.blocks[3], &A_diag[1]);
+    dcsr_alloc(A_blk.blocks[3]->row, A_blk.blocks[3]->col, A_blk.blocks[3]->nnz, &A_diag[1]);
+    dcsr_cp(A_blk.blocks[3], &A_diag[1]);
+    /*
     dcsr_alloc(n_mortar, n_mortar, n_mortar, &A_diag[1]);
     iarray_cp(n_mortar+1, inv_mortar.IA, A_diag[1].IA);
     iarray_cp(n_mortar, inv_mortar.JA, A_diag[1].JA);
     array_cp(n_mortar, diag_mortar.val, A_diag[1].val);
+    */
 
+    /*
+    // if needed, output matrices
+    dcsr_write_dcoo("A00.dat", A_blk.blocks[0]);
+    dcsr_write_dcoo("A01.dat", A_blk.blocks[1]);
+    dcsr_write_dcoo("A10.dat", A_blk.blocks[2]);
+    dcsr_write_dcoo("A11.dat", A_blk.blocks[3]);
+
+    dcsr_write_dcoo("M00.dat", &A_diag[0]);
+    dcsr_write_dcoo("M11.dat", &A_diag[1]);
+
+    dvec_write("d.dat", &diag_mortar);
+    dcsr_write_dcoo("invD.dat", &inv_mortar);
+    */
+
+    // clean
     dcsr_free(&inv_mortar);
     dvec_free(&diag_mortar);
 
