@@ -5814,7 +5814,7 @@ void precond_block2_babuska_upper(REAL *r,
  */
 void precond_ra_fenics(REAL *r, REAL *z, void *data)
 {
-    fprintf(stdout, " \n ---- Call from python ---- \n"); fflush(stdout);
+    // fprintf(stdout, " \n ---- Call from python ---- \n"); fflush(stdout);
     // local variables
   INT status;// = SUCCESS;
     precond_ra_data *precdata=(precond_ra_data *)data;
@@ -5906,7 +5906,7 @@ void precond_ra_fenics(REAL *r, REAL *z, void *data)
 
     for(i = 0; i < npoles; ++i) {
 
-        fprintf(stdout, "We are at pole %d with value %.10f + i %.10f \n", i, poles->val[i], poles->val[i+npoles]); fflush(stdout);
+        // fprintf(stdout, "We are at pole %d with value %.10f + i %.10f \n", i, poles->val[i], poles->val[i+npoles]); fflush(stdout);
         if(fabs(poles->val[i+npoles]) > 0.) {
             // then we have a nonzero imag part of that pole and we do the 2x2 block algorithm
             /* solve
