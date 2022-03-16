@@ -1260,3 +1260,78 @@ void wrapper_krylov_amg(dCSRmat *mat, dvector *rhs, dvector *sol, REAL tol)
     linear_solver_dcsr_krylov_amg(mat, rhs, sol, &itparam, &amgparam);
 
 }
+
+
+void fenics_bsr_solver(INT block_size, dCSRmat *A, dvector *b, dvector *sol)
+{
+    INT i, j;
+    fprintf(stdout, "Here"); fflush(stdout);
+    INT *perm = (INT*)calloc(2*block_size, sizeof(INT));
+    for(i = 0; i < block_size; ++i)
+    {
+        perm[2*i] = i;
+        perm[2*i+1] = i + block_size;
+    }
+    fprintf(stdout, "Here %d %d %d", A->col, A->row, A->nnz); fflush(stdout);
+    dCSRmat *AT = (dCSRmat*)malloc(sizeof(dCSRmat));
+    dcsr_alloc(A->col, A->row, A->nnz, AT);
+    fprintf(stdout, "Here"); fflush(stdout);
+
+    //csr_print_matlab(stdout, A); fflush(stdout);
+    //fclose(fp);
+
+    dcsr_transz(A, perm, AT);
+    dcsr_transz(AT, perm, A);
+
+    dcsr_free(AT);
+    dBSRmat Absr;
+    Absr = dcsr_2_dbsr(A, 2);
+
+    //fp = fopen("./A_after.dat", "w");
+    //csr_print_matlab(stdout, A); fflush(stdout);
+    //fclose(fp);
+
+    for(i = 0; i < 2*block_size; ++i)
+    {
+        sol->val[perm[i]] = b->val[i];
+    }
+    dvec_cp(sol, b);
+
+    //array_print(b->val, 2*block_size);
+
+    /* set Parameters from Reading in Input File */
+
+    input_param inparam;
+    param_input_init(&inparam);
+    param_input("./input.dat", &inparam);
+
+    dvec_set(b->row, sol, 0.0);
+
+    /* Set Solver Parameters */
+    INT solver_flag=-20;
+    /* Set parameters for linear iterative methods */
+    linear_itsolver_param linear_itparam;
+    param_linear_solver_set(&linear_itparam, &inparam);
+    /* Set parameters for algebriac multigrid methods */
+    AMG_param amgparam;
+    param_amg_init(&amgparam);
+    param_amg_set(&amgparam, &inparam);
+    param_amg_print(&amgparam);
+
+    printf("\n===========================================================================\n");
+    printf("Solving the linear system \n");
+    printf("===========================================================================\n");
+
+    // Use Krylov Iterative Solver
+    solver_flag = linear_solver_dbsr_krylov_amg(&Absr, b, sol, &linear_itparam, &amgparam);
+
+    for(i = 0; i < 2*block_size; ++i)
+    {
+        b->val[i] = sol->val[perm[i]];
+    }
+    dvec_cp(b, sol);
+
+    //array_print(sol->val, 2*block_size);
+
+
+}

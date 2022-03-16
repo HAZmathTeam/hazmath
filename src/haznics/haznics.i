@@ -217,6 +217,7 @@ precond* create_precond_hxcurl(dCSRmat *Acurl, dCSRmat *Pcurl, dCSRmat *Grad, SH
 precond* create_precond_hxdiv_3D(dCSRmat *Adiv, dCSRmat *P_div, dCSRmat *Curl, dCSRmat *P_curl, SHORT prectype, AMG_param *amgparam);
 precond* create_precond_hxdiv_2D(dCSRmat *Adiv,dCSRmat *P_div, dCSRmat *Curl, SHORT prectype, AMG_param *amgparam);
 INT get_poles_no(precond *pc);
+void fenics_bsr_solver(INT block_size, dCSRmat *A, dvector *b, dvector *sol);
 // dvector* compute_ra_aaa(REAL s_frac_power, REAL t_frac_power, REAL alpha, REAL beta, REAL scaling_a, REAL scaling_m);
 
 %apply (int DIM1, double* IN_ARRAY1) {(int numval, double* z),
