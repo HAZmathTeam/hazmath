@@ -43,6 +43,7 @@ INT main(int argc,char *argv[])
   INT numval=(1<<14)+1;
   INT mmax_in=(INT )(numval/2),m;
   mmax_in=MAX_NUMBER_POLES;//
+  mmax_in=40;
   REAL16 tolaaa=powl(2e0,TOL_POWER);
   //
   INT mem,mem16,j,m1=m+1,m01=m-1,mm=m*m,mm1=m1*m1;

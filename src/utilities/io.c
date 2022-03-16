@@ -262,7 +262,7 @@ void ivector_print(FILE* fid,
  */
 void print_full_mat(const  INT n, const INT m, REAL *A,const char *varname)
 {
-  INT nprt=1025,mprt=1025;
+  INT nprt=16400,mprt=1025;
   if( (n<1) || (m<1) ) return;
   INT i,j,n1=n-1;
   if(n<=nprt) nprt=n;
@@ -295,7 +295,7 @@ void print_full_mat(const  INT n, const INT m, REAL *A,const char *varname)
  */
 void print_full_mat_l(const  INT n, const INT m, REAL16 *A,const char *varname)
 {
-  INT nprt=1025,mprt=1025;
+  INT nprt=16400,mprt=1025;
   if( (n<1) || (m<1) ) return;
   INT i,j,n1=n-1;
   if(n<=nprt) nprt=n;
@@ -328,7 +328,7 @@ void print_full_mat_l(const  INT n, const INT m, REAL16 *A,const char *varname)
  */
 void print_full_mat_int(const  INT n, const INT m, INT *A,const char *varname)
 {
-  INT nprt=1025,mprt=1025;
+  INT nprt=16400,mprt=1025;
   if( (n<1) || (m<1) ) return;
   INT i,j,n1=n-1;
   if(n<=nprt) nprt=n;

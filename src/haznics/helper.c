@@ -1265,42 +1265,61 @@ void wrapper_krylov_amg(dCSRmat *mat, dvector *rhs, dvector *sol, REAL tol)
 void fenics_bsr_solver(INT block_size, dCSRmat *A, dvector *b, dvector *sol)
 {
     INT i, j;
-    fprintf(stdout, "Here"); fflush(stdout);
+    //    fprintf(stdout, "\nHere block_size=%d; nA=%d; nb=%d,nx=%d\n",block_size,A->row,b->row,sol->row);    fflush(stdout);
+    //    exit(77);
     INT *perm = (INT*)calloc(2*block_size, sizeof(INT));
     for(i = 0; i < block_size; ++i)
     {
         perm[2*i] = i;
-        perm[2*i+1] = i + block_size;
+        perm[2*i+1] = i + block_size;	
     }
-    fprintf(stdout, "Here %d %d %d", A->col, A->row, A->nnz); fflush(stdout);
-    dCSRmat *AT = (dCSRmat*)malloc(sizeof(dCSRmat));
-    dcsr_alloc(A->col, A->row, A->nnz, AT);
-    fprintf(stdout, "Here"); fflush(stdout);
+    dCSRmat AT;
+    dcsr_alloc(A->col, A->row, A->nnz, &AT);
 
-    //csr_print_matlab(stdout, A); fflush(stdout);
-    //fclose(fp);
+    /* fprintf(stdout,"\nperm=["); */
+    /* iarray_print(perm,2*block_size); */
+    /* fprintf(stdout,"]+1;\n"); */
+    /* fprintf(stdout,"\nA=["); */
+    /* csr_print_matlab(stdout, A); fflush(stdout); */
+    /* fprintf(stdout,"];A=sparse(A(:,1),A(:,2),A(:,3),%d,%d);\n",	\ */
+    /* 	    A->row,A->col); */
+    //    
+    dcsr_transz(A, perm, &AT);
+    dcsr_transz(&AT, perm, A);
+    //
+    /* fprintf(stdout,"\nA1=["); */
+    /* csr_print_matlab(stdout, A); */
+    /* fprintf(stdout,"];A1=sparse(A1(:,1),A1(:,2),A1(:,3),%d,%d);\n",	\ */
+    /* 	    A->row,A->col); */
+    /* fflush(stdout); */
+    //    
+    dBSRmat Absr = dcsr_2_dbsr(A, 2);
+    /* AT=dbsr_2_dcsr (&Absr); */
+    /* fprintf(stdout,"\nA2=["); */
+    /* csr_print_matlab(stdout, &AT); */
+    /* fprintf(stdout,"];A2=sparse(A2(:,1),A2(:,2),A2(:,3),%d,%d)\n",	\ */
+    /* 	    AT.row,AT.col); */
+    /* fflush(stdout); */
+    dcsr_free(&AT);
+    //
 
-    dcsr_transz(A, perm, AT);
-    dcsr_transz(AT, perm, A);
-
-    dcsr_free(AT);
-    dBSRmat Absr;
-    Absr = dcsr_2_dbsr(A, 2);
-
-    //fp = fopen("./A_after.dat", "w");
-    //csr_print_matlab(stdout, A); fflush(stdout);
-    //fclose(fp);
-
+    /* fprintf(stdout,"\nb=["); */
+    /* for(i = 0; i < 2*block_size; ++i){ */
+    /*   fprintf(stdout,"%.16e\n",b->val[i]);	      */
+    /* } */
+    /* fprintf(stdout,"];\n"); */
     for(i = 0; i < 2*block_size; ++i)
     {
         sol->val[perm[i]] = b->val[i];
     }
     dvec_cp(sol, b);
-
-    //array_print(b->val, 2*block_size);
-
+    /* fprintf(stdout,"\nb1=["); */
+    /* for(i = 0; i < 2*block_size; ++i){ */
+    /*   fprintf(stdout,"%.16e\n",b->val[i]);	      */
+    /* } */
+    /* fprintf(stdout,"];\n"); */
+    /* fflush(stdout); */
     /* set Parameters from Reading in Input File */
-
     input_param inparam;
     param_input_init(&inparam);
     param_input("./input.dat", &inparam);
@@ -1332,6 +1351,6 @@ void fenics_bsr_solver(INT block_size, dCSRmat *A, dvector *b, dvector *sol)
     dvec_cp(b, sol);
 
     //array_print(sol->val, 2*block_size);
-
+    free(perm);
 
 }
