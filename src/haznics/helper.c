@@ -1265,8 +1265,6 @@ void wrapper_krylov_amg(dCSRmat *mat, dvector *rhs, dvector *sol, REAL tol)
 void fenics_bsr_solver(INT block_size, dCSRmat *A, dvector *b, dvector *sol)
 {
     INT i, j;
-    //    fprintf(stdout, "\nHere block_size=%d; nA=%d; nb=%d,nx=%d\n",block_size,A->row,b->row,sol->row);    fflush(stdout);
-    //    exit(77);
     INT *perm = (INT*)calloc(2*block_size, sizeof(INT));
     for(i = 0; i < block_size; ++i)
     {
@@ -1305,17 +1303,17 @@ void fenics_bsr_solver(INT block_size, dCSRmat *A, dvector *b, dvector *sol)
 
     /* fprintf(stdout,"\nb=["); */
     /* for(i = 0; i < 2*block_size; ++i){ */
-    /*   fprintf(stdout,"%.16e\n",b->val[i]);	      */
+    /*   fprintf(stdout,"%.16e\n",b->val[i]); */
     /* } */
     /* fprintf(stdout,"];\n"); */
     for(i = 0; i < 2*block_size; ++i)
     {
-        sol->val[perm[i]] = b->val[i];
+        sol->val[i] = b->val[perm[i]];
     }
     dvec_cp(sol, b);
     /* fprintf(stdout,"\nb1=["); */
     /* for(i = 0; i < 2*block_size; ++i){ */
-    /*   fprintf(stdout,"%.16e\n",b->val[i]);	      */
+    /*   fprintf(stdout,"%.16e\n",b->val[i]); */
     /* } */
     /* fprintf(stdout,"];\n"); */
     /* fflush(stdout); */
@@ -1344,11 +1342,23 @@ void fenics_bsr_solver(INT block_size, dCSRmat *A, dvector *b, dvector *sol)
     // Use Krylov Iterative Solver
     solver_flag = linear_solver_dbsr_krylov_amg(&Absr, b, sol, &linear_itparam, &amgparam);
 
+    /* fprintf(stdout,"\nx1=["); */
+    /* for(i = 0; i < 2*block_size; ++i){ */
+    /*   fprintf(stdout,"%.16e\n",sol->val[i]); */
+    /* } */
+    /* fprintf(stdout,"];\n"); */
+    /* fflush(stdout); */
     for(i = 0; i < 2*block_size; ++i)
     {
-        b->val[i] = sol->val[perm[i]];
+        b->val[perm[i]] = sol->val[i];
     }
     dvec_cp(b, sol);
+    /* fprintf(stdout,"\nx=["); */
+    /* for(i = 0; i < 2*block_size; ++i){ */
+    /*   fprintf(stdout,"%.16e\n",sol->val[i]); */
+    /* } */
+    /* fprintf(stdout,"];\n"); */
+    /* fflush(stdout); */
 
     //array_print(sol->val, 2*block_size);
     free(perm);
