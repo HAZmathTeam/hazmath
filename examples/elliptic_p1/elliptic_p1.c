@@ -19,15 +19,15 @@
  *                  (typically 0) is the newest vertex bisection
 */
 #ifndef REFINEMENT_TYPE
-#define REFINEMENT_TYPE 11
+#define REFINEMENT_TYPE 0
 #endif
 /**/
 #ifndef REFINEMENT_LEVELS
-#define REFINEMENT_LEVELS 6
+#define REFINEMENT_LEVELS 14
 #endif
 /**/
 #ifndef SPATIAL_DIMENSION
-#define SPATIAL_DIMENSION 3
+#define SPATIAL_DIMENSION 5
 #endif
 /**/
 #ifndef SET_BNDRY_CODES

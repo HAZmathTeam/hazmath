@@ -1098,10 +1098,12 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
 #if WITH_SUITESPARSE
         case SOLVER_UMFPACK: {
             // Need to sort the matrix A for UMFPACK to work
-            dCSRmat Ac_tran;
-            dcsr_transz(&mgl[lvl].A, NULL, &Ac_tran);
-            dcsr_cp(&Ac_tran, &mgl[lvl].A);
-            dcsr_free(&Ac_tran);
+	  dCSRmat A_tran=dcsr_create(mgl[lvl].A.col,	\
+				      mgl[lvl].A.row,	\
+				      mgl[lvl].A.nnz);
+            dcsr_transz(&mgl[lvl].A, NULL, &A_tran);
+            dcsr_cp(&A_tran, &mgl[lvl].A);
+            dcsr_free(&A_tran);
             mgl[lvl].Numeric = umfpack_factorize(&mgl[lvl].A, 0);
             break;
         }
@@ -2011,7 +2013,9 @@ static SHORT amg_setup_unsmoothP_unsmoothR_bsr(AMG_data_bsr   *mgl,
         case SOLVER_UMFPACK: {
             // Need to sort the matrix A for UMFPACK to work
             mgl[lvl].Ac = dbsr_2_dcsr(&mgl[lvl].A);
-            dCSRmat Ac_tran;
+	    dCSRmat Ac_tran=dcsr_create(mgl[lvl].Ac.col,	\
+				      mgl[lvl].Ac.row,	\
+				      mgl[lvl].Ac.nnz);
             dcsr_transz(&mgl[lvl].Ac, NULL, &Ac_tran);
             dcsr_cp(&Ac_tran, &mgl[lvl].Ac);
             dcsr_free(&Ac_tran);
@@ -2034,9 +2038,13 @@ static SHORT amg_setup_unsmoothP_unsmoothR_bsr(AMG_data_bsr   *mgl,
 
 #if WITH_UMFPACK
         // Need to sort the matrix A_nk for UMFPACK
-        dcsr_transz(mgl[0].A_nk, &temp1);
-        dcsr_cp(&temp1, mgl[0].A_nk);
-        dcsr_free(&temp1);
+      dcsr_free(&temp1); // just in case:::
+      temp1=dcsr_create(mgl[lvl].A_nk.col,	\
+			mgl[lvl].A_nk.row,			\
+			mgl[lvl].A_nk.nnz);
+      dcsr_transz(mgl[0].A_nk, NULL, &temp1);
+      dcsr_cp(&temp1, mgl[0].A_nk);
+      dcsr_free(&temp1);
 #endif
 
     }
@@ -2052,9 +2060,13 @@ static SHORT amg_setup_unsmoothP_unsmoothR_bsr(AMG_data_bsr   *mgl,
 
 #if WITH_UMFPACK
             // Need to sort the matrix A_nk for UMFPACK
-            dcsr_transz(mgl[lvl].A_nk, &temp1);
-            dcsr_cp(&temp1, mgl[lvl].A_nk);
-            dcsr_free(&temp1);
+	  temp1=dcsr_create(mgl[lvl].A_nk.col,			\
+			    mgl[lvl].A_nk.row,			\
+			    mgl[lvl].A_nk.nnz);
+	  dcsr_free(&temp1); // just in case:::
+	  dcsr_transz(mgl[lvl].A_nk, NULL, &temp1);
+	  dcsr_cp(&temp1, mgl[lvl].A_nk);
+	  dcsr_free(&temp1);
 #endif
 
         }
