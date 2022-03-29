@@ -1262,7 +1262,7 @@ void wrapper_krylov_amg(dCSRmat *mat, dvector *rhs, dvector *sol, REAL tol)
 }
 
 
-void fenics_bsr_solver(INT block_size, dCSRmat *A, dvector *b, dvector *sol)
+INT fenics_bsr_solver(INT block_size, dCSRmat *A, dvector *b, dvector *sol)
 {
     INT i, j;
     INT *perm = (INT*)calloc(2*block_size, sizeof(INT));
@@ -1363,4 +1363,5 @@ void fenics_bsr_solver(INT block_size, dCSRmat *A, dvector *b, dvector *sol)
     //array_print(sol->val, 2*block_size);
     free(perm);
 
+    return solver_flag;
 }
