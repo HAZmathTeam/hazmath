@@ -5,7 +5,8 @@
 # SRC File name
 #SRCFILE = solvers
 #SRCFILE = solvers_frac
-SRCFILE = solvers_bsr
+#SRCFILE = solvers_bsr
+SRCFILE = solvers_bdcsr
 
 HEADERS =
 

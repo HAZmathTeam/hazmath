@@ -220,6 +220,98 @@ void amg_data_bsr_free (AMG_data_bsr *mgl)
 
 /***********************************************************************************************/
 /*!
+ * \fn AMG_data * amg_data_bdcsr_create (SHORT max_levels)
+ *
+ * \brief Create AMG_data_bdcsr structure (but all values are 0 and pointers point to NULL)
+ *
+ * \param max_levels   Max number of levels allowed
+ *
+ * \return Pointer to the AMG_data structure
+ *
+ */
+AMG_data_bdcsr *amg_data_bdcsr_create(SHORT max_levels)
+{
+    max_levels = MAX(1, max_levels); // at least allocate one level
+
+    AMG_data_bdcsr *mgl = (AMG_data_bdcsr *)calloc(max_levels,sizeof(AMG_data_bdcsr));
+
+    INT i;
+    for ( i=0; i<max_levels; ++i ) {
+        mgl[i].max_levels = max_levels;
+        mgl[i].num_levels = 0;
+        mgl[i].near_kernel_dim = 0;
+        mgl[i].near_kernel_basis = NULL;
+        mgl[i].cycle_type = 0;
+    }
+
+    return(mgl);
+}
+
+/**
+ * \fn void amg_data_bdcsr_free (AMG_data_bsr *mgl, AMG_param *param)
+ *
+ * \brief Free AMG_data_bdcsr data memeory space
+ *
+ * \param mgl       Pointer to the AMG_data_bdcsr
+ * \param param     Pointer to the AMG parameters
+ *
+ * \author Xiaozhe Hu
+ * \date   03/16/2022
+ *
+ */
+void amg_data_bdcsr_free (AMG_data_bdcsr *mgl,
+                          AMG_param *param)
+{
+    const INT max_levels = MAX(1,mgl[0].num_levels);
+
+    INT i;
+    INT brow = mgl[0].A.brow;
+
+    for ( i = 0; i < max_levels; ++i ) {
+
+        bdcsr_free(&mgl[i].A);
+        if ( max_levels > 1 ) {
+            bdcsr_free(&mgl[i].P);
+            bdcsr_free(&mgl[i].R);
+        }
+        dvec_free(&mgl[i].b);
+        dvec_free(&mgl[i].x);
+        dcsr_free(&mgl[i].Ac);
+        dvec_free(&mgl[i].w);
+
+    }
+
+    // clean AMG data for diaognal blocks
+    for (i=0; i<brow; i++){
+        amg_data_free(mgl[0].mgl_diag[i], param);
+    }
+    if (mgl[0].mgl_diag) free(mgl[0].mgl_diag);
+
+    // Clean direct solver data if necessary
+    switch (param->coarse_solver) {
+
+#if WITH_SUITESPARSE
+        case SOLVER_UMFPACK: {
+            umfpack_free_numeric(mgl[max_levels-1].Numeric);
+            break;
+        }
+#endif
+
+        default: // Do nothing!
+            break;
+    }
+
+    for ( i = 0; i < mgl->near_kernel_dim; ++i ) {
+        free(mgl->near_kernel_basis[i]); mgl->near_kernel_basis[i] = NULL;
+    }
+    free(mgl->near_kernel_basis); mgl->near_kernel_basis = NULL;
+
+    free(mgl); mgl = NULL;
+}
+
+
+/***********************************************************************************************/
+/*!
  * \fn void HX_curl_data_null(HX_curl_data *hxcurldata)
  *
  * \brief Initalize HX_curl_data structure (set values to 0 and pointers to NULL) (OUTPUT)

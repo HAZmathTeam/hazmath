@@ -73,7 +73,7 @@ static void coarse_itsolver(dCSRmat *A,
  * \param  relax     relaxation parameter for SOR-type smoothers
  *
  */
-static void dcsr_presmoothing(SHORT smoother,
+ static void dcsr_presmoothing(SHORT smoother,
                               dCSRmat *A,
                               dvector *b,
                               dvector *x,
@@ -1058,7 +1058,7 @@ ForwardSweep:
 
             alpha = (array_dotprod (mgl[l].b.row, Aeh.val, mgl[l].w.val))
                   / (array_dotprod (mgl[l].b.row, Aeh.val, Aeh.val));
-            alpha = MIN(alpha, 1.0); // Add this for safety! --Chensong on 10/04/2014
+            alpha = MIN(alpha, 1.0);
             array_axpy (mgl[l].b.row, alpha, PeH.val, mgl[l].x.val);
         }
         else {
@@ -1123,6 +1123,218 @@ ForwardSweep:
 #endif
 
 }
+
+
+/***********************************************************************************************/
+/**
+ * \fn void mgcycle_bdcsr (AMG_data_bdcsr *mgl, AMG_param *param)
+ *
+ * \brief Solve Ax=b with non-recursive multigrid cycle
+ *
+ * \param mgl    Pointer to AMG data: AMG_data_bdcsr
+ * \param param  Pointer to AMG parameters: AMG_param
+ *
+ * \author Xiaozhe Hu
+ * \date   03/20/2022
+ */
+void mgcycle_bdcsr (AMG_data_bdcsr  *mgl,
+                    AMG_param     *param)
+{
+    const SHORT prtlvl        = param->print_level;
+    const SHORT nl            = mgl[0].num_levels;
+    const SHORT smoother      = param->smoother;
+    const SHORT cycle_type    = param->cycle_type;
+    const SHORT coarse_solver = param->coarse_solver;
+    const REAL  relax         = param->relaxation;
+    INT   steps               = param->presmooth_iter;
+
+    // local variables
+    INT nu_l[MAX_AMG_LVL] = {0}, l = 0;
+    REAL alpha = 1.0;
+    INT i;
+
+    //dvector r_nk, z_nk;
+
+    //if ( mgl[0].A_nk != NULL ) {
+    //    dvec_alloc(mgl[0].A_nk->row, &r_nk);
+    //    dvec_alloc(mgl[0].A_nk->row, &z_nk);
+    //}
+
+#if DEBUG_MODE > 0
+    printf("### DEBUG: [-Begin-] %s ...\n", __FUNCTION__);
+#endif
+
+#if DEBUG_MODE > 1
+    printf("### DEBUG: AMG_level = %d, ILU_level = %d\n", nl, mgl->ILU_levels);
+#endif
+
+ForwardSweep:
+    while ( l < nl-1 ) {
+        nu_l[l]++;
+        // pre smoothing
+        if ( steps > 0 ) {
+            switch ( smoother ) {
+
+                case SMOOTHER_JACOBI:
+                    for (i=0; i<steps; i++) smoother_bdcsr_jacobi_jacobi(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag);
+                    break;
+
+                case SMOOTHER_GS:
+                    for (i=0; i<steps; i++) smoother_bdcsr_fgs_fgs(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag, mgl[l].w.val);
+                    break;
+
+                case SMOOTHER_SGS:
+                    for (i=0; i<steps; i++){
+                        smoother_bdcsr_fgs_fgs(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag, mgl[l].w.val);
+                        smoother_bdcsr_bgs_bgs(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag, mgl[l].w.val);
+                    }
+                    break;
+
+                case SMOOTHER_JACOBI_GS:
+                    for (i=0; i<steps; i++) smoother_bdcsr_jacobi_fgs(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag);
+                    break;
+
+                case SMOOTHER_JACOBI_SGS:
+                    for (i=0; i<steps; i++) smoother_bdcsr_jacobi_sgs(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag);
+                    break;
+
+                default:
+                    printf("### HAZMATH ERROR: Unknown smoother type %d!\n", smoother);
+                    check_error(ERROR_SOLVER_TYPE, __FUNCTION__);
+            }
+        }
+
+
+        // extra kernel solve
+//         if (mgl[l].A_nk != NULL) {
+//
+//             //--------------------------------------------
+//             // extra kernel solve
+//             //--------------------------------------------
+//             // form residual r = b - A x
+//             array_cp(mgl[l].A.ROW*mgl[l].A.nb, mgl[l].b.val, mgl[l].w.val);
+//             dbsr_aAxpy(-1.0,&mgl[l].A, mgl[l].x.val, mgl[l].w.val);
+//
+//             // r_nk = R_nk*r
+//             dcsr_mxv(mgl[l].R_nk, mgl[l].w.val, r_nk.val);
+//
+//             // z_nk = A_nk^{-1}*r_nk
+// #if WITH_UMFPACK // use UMFPACK directly
+//             directsolve_UMF(mgl[l].A_nk, &r_nk, &z_nk, 0);
+// #else
+//             coarse_itsolver(mgl[l].A_nk, &r_nk, &z_nk, 1e-12, 0);
+// #endif
+//
+//             // z = z + P_nk*z_nk;
+//             dcsr_aAxpy(1.0, mgl[l].P_nk, z_nk.val, mgl[l].x.val);
+//         }
+
+        // form residual r = b - A x
+        array_cp(mgl[l].b.row, mgl[l].b.val, mgl[l].w.val);
+        bdcsr_aAxpy(-1.0, &mgl[l].A, mgl[l].x.val, mgl[l].w.val);
+
+        // restriction r1 = R*r0
+        bdcsr_mxv(&mgl[l].R, mgl[l].w.val, mgl[l+1].b.val);
+
+        // prepare for the next level
+        ++l; dvec_set(mgl[l].x.row, &mgl[l].x, 0.0);
+
+    }
+
+    // If AMG only has one level or we have arrived at the coarsest level,
+    // call the coarse space solver:
+    switch ( coarse_solver ) {
+
+#if WITH_UMFPACK
+        case SOLVER_UMFPACK:
+            /* use UMFPACK direct solver on the coarsest level */
+            umfpack_solve(&mgl[nl-1].Ac, &mgl[nl-1].b, &mgl[nl-1].x, mgl[nl-1].Numeric, 0);
+            break;
+#endif
+
+        default: {
+            /* use iterative solver on the coarsest level */
+            const INT  csize = mgl[nl-1].b.row;
+            const INT  cmaxit = MIN(csize*csize, 200); // coarse level iteration number
+            const REAL ctol = param->tol; // coarse level tolerance
+            if ( bdcsr_pvgmres(&mgl[nl-1].A,&mgl[nl-1].b,&mgl[nl-1].x, NULL,ctol,cmaxit,25,1,0) < 0 ) {
+                if ( prtlvl > PRINT_MIN ) {
+                    printf("### HAZMATH WARNING: Coarse level solver did not converge!\n");
+                    printf("### HAZMATH WARNING: Consider to increase maxit to %d!\n", 2*cmaxit);
+                }
+            }
+        }
+    }
+
+    // BackwardSweep:
+    while ( l > 0 ) {
+        --l;
+
+        // prolongation u = u + alpha*P*e1
+        if ( param->coarse_scaling == ON ) {
+            dvector PeH, Aeh;
+            PeH.row = Aeh.row = mgl[l].b.row;
+            PeH.val = mgl[l].w.val + mgl[l].b.row;
+            Aeh.val = PeH.val + mgl[l].b.row;
+
+            bdcsr_mxv (&mgl[l].P, mgl[l+1].x.val,  PeH.val);
+            bdcsr_mxv (&mgl[l].A, PeH.val, Aeh.val);
+
+            alpha = (array_dotprod (mgl[l].b.row, Aeh.val, mgl[l].w.val))
+                  / (array_dotprod (mgl[l].b.row, Aeh.val, Aeh.val));
+            alpha = MIN(alpha, 1.0);
+            array_axpy (mgl[l].b.row, alpha, PeH.val, mgl[l].x.val);
+        }
+        else {
+            bdcsr_aAxpy(alpha, &mgl[l].P, mgl[l+1].x.val, mgl[l].x.val);
+        }
+
+        // extra kernel solve
+
+        // post-smoothing
+        if ( steps > 0 ) {
+            switch ( smoother ) {
+                case SMOOTHER_JACOBI:
+                    for (i=0; i<steps; i++) smoother_bdcsr_jacobi_jacobi(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag);
+                    break;
+
+                case SMOOTHER_GS:
+                    for (i=0; i<steps; i++) smoother_bdcsr_bgs_bgs(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag, mgl[l].w.val);
+                    break;
+
+                case SMOOTHER_SGS:
+                    for (i=0; i<steps; i++){
+                        smoother_bdcsr_fgs_fgs(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag, mgl[l].w.val);
+                        smoother_bdcsr_bgs_bgs(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag, mgl[l].w.val);
+                    }
+                    break;
+
+                case SMOOTHER_JACOBI_GS:
+                    for (i=0; i<steps; i++) smoother_bdcsr_jacobi_bgs(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag);
+                    break;
+
+                case SMOOTHER_JACOBI_SGS:
+                    for (i=0; i<steps; i++) smoother_bdcsr_jacobi_sgs(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag);
+                    break;
+
+                default:
+                    printf("### HAZMATH ERROR: Unknown smoother type %d!\n", smoother);
+                    check_error(ERROR_SOLVER_TYPE, __FUNCTION__);
+            }
+        }
+
+        if ( nu_l[l] < cycle_type ) break;
+        else nu_l[l] = 0;
+    }
+
+    if ( l > 0 ) goto ForwardSweep;
+
+#if DEBUG_MODE > 0
+    printf("### DEBUG: [--End--] %s ...\n", __FUNCTION__);
+#endif
+
+}
+
 
 /***********************************************************************************************/
 /**

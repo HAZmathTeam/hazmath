@@ -254,6 +254,69 @@ typedef struct {
 
 } AMG_data_bsr; /**< AMG data for BSR matrices */
 
+/**
+ * \struct AMG_data_bdcsr
+ * \brief Data for MG solvers
+ *
+ * \note This is needed for the AMG solver/preconditioner in block_dCSR format.
+ */
+typedef struct {
+
+    //! max number of levels
+    INT max_levels;
+
+    //! number of levels in use <= max_levels
+    INT num_levels;
+
+    //! pointer to the matrix at level level_num
+    block_dCSRmat A;
+
+    //! restriction operator at level level_num
+    block_dCSRmat R;
+
+    //! prolongation operator at level level_num
+    block_dCSRmat P;
+
+    //! pointer to the right-hand side at level level_num
+    dvector b;
+
+    //! pointer to the iterative solution at level level_num
+    dvector x;
+
+    /* Solver information */
+    //! Block diagional of A (use those diagonal blocks for coarsening)
+    dCSRmat *A_diag;
+
+    //! pointer to the composite matrix (for coarsest level only)
+    dCSRmat Ac;
+
+    /* Extra information */
+    //! pointer to the numerical factorization from UMFPACK
+    void *Numeric;
+
+    //! dimension of the near kernel for SAMG
+    INT near_kernel_dim;
+
+    //! basis of near kernel space for SAMG
+    REAL **near_kernel_basis;
+
+    /* Smoother information */
+    //! AMG data for A_diag blocks
+    AMG_data **mgl_diag;
+
+    //! number of levels use Schwarz smoother
+    INT Schwarz_levels;
+
+    //! data of Schwarz smoother
+    Schwarz_data Schwarz;
+
+    //! Temporary work space
+    dvector w;
+
+    //! cycle type
+    INT cycle_type;
+
+} AMG_data_bdcsr; /**< Data for block MG */
 
 /**
  * \struct MG_blk_data
@@ -724,6 +787,100 @@ typedef struct {
     REAL *w;
 
 } precond_data_bsr; /**< Data for preconditioners in dBSRmat format */
+
+/***********************************************************************************************/
+/**
+ * \struct precond_data_bdcsr
+ * \brief Data for preconditioners in block_dCSRmat format
+ *
+ * \note This structure is needed for the AMG solver/preconditioner in block_dCSRmat format
+ */
+typedef struct {
+
+    //! type of AMG method
+    SHORT AMG_type;
+
+    //! print level in AMG preconditioner
+    SHORT print_level;
+
+    //! max number of iterations of AMG preconditioner
+    INT maxit;
+
+    //! max number of AMG levels
+    INT max_levels;
+
+    //! tolerance for AMG preconditioner
+    REAL tol;
+
+    //! AMG cycle type
+    SHORT cycle_type;
+
+    //! AMG smoother type
+    SHORT smoother;
+
+    //! AMG smoother ordering
+    SHORT smooth_order;
+
+    //! number of presmoothing
+    SHORT presmooth_iter;
+
+    //! number of postsmoothing
+    SHORT postsmooth_iter;
+
+    //! coarsening type
+    SHORT coarsening_type;
+
+    //! relaxation parameter for SOR smoother
+    REAL relaxation;
+
+    //! coarse solver type for AMG
+    SHORT coarse_solver;
+
+    //! switch of scaling of the coarse grid correction
+    SHORT coarse_scaling;
+
+    //! degree of the polynomial used by AMLI cycle
+    SHORT amli_degree;
+
+    //! coefficients of the polynomial used by AMLI cycle
+    REAL *amli_coef;
+
+    //! smooth factor for smoothing the tentative prolongation
+    REAL tentative_smooth;
+
+    //! type of krylov method used by Nonlinear AMLI cycle
+    SHORT nl_amli_krylov_type;
+
+    //! AMG preconditioner data
+    AMG_data_bdcsr *mgl_data;
+
+    //! ILU preconditioner data (needed for CPR type preconditioner)
+    //ILU_data *LU;
+
+    //! Matrix data
+    block_dCSRmat *A;
+
+    //! Total size of of the matrix
+    INT total_row;
+    INT total_col;
+
+    // extra near kernal space
+    //! Matrix data for near kernal
+    //dCSRmat *A_nk;
+
+    //! Prolongation for near kernal
+    //dCSRmat *P_nk;
+
+    //! Resriction for near kernal
+    //dCSRmat *R_nk;
+
+    //! temporary dvector used to store and restore the residual
+    dvector r;
+
+    //! temporary work space for other usage
+    REAL *w;
+
+} precond_data_bdcsr; /**< Data for preconditioners in block_dCSRmat format */
 
 
 /***********************************************************************************************/

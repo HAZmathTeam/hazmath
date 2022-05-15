@@ -1882,6 +1882,7 @@ void dcsr_mxm(dCSRmat *A,
 
   C->nnz = C->IA[C->row]-C->IA[0];
 }
+
 /***********************************************************************************************/
 /*!
    * \fn void icsr_mxm_symb (iCSRmat *A, iCSRmat *B, iCSRmat *C)
@@ -2982,8 +2983,8 @@ void icsr_keep_value(iCSRmat *a,const INT value)
    *
    */
 void bdcsr_alloc_minimal(const INT brow,
-                 const INT bcol,
-                 block_dCSRmat *A)
+                         const INT bcol,
+                         block_dCSRmat *A)
 {
     //SHORT i;
 
@@ -3704,6 +3705,55 @@ SHORT bdcsr_delete_rowcol(block_dCSRmat *A,
 }
 
 /***********************************************************************************************/
+/*!
+ * \fn void bdcsr_mxm (block_dCSRmat *A, block_dCSRmat *B, block_dCSRmat *C)
+ *
+ * \brief Sparse matrix multiplication C=A*B (block_dCSRmat format)
+ *
+ * \param A   Pointer to the block_dCSRmat matrix A
+ * \param B   Pointer to the block_dCSRmat matrix B
+ * \param C   Pointer to the block_dCSRmat matrix equal to A*B
+ *
+ */
+// void bdcsr_mxm(block_dCSRmat *A,
+//                block_dCSRmat *B,
+//                block_dCSRmat *C)
+// {
+//     // get size
+//     INT A_brow = A->brow;
+//     INT A_bcol = A->bcol;
+//     INT B_brow = B->brow;
+//     INT B_bcol = B->bcol;
+//
+//     // check A->bcol = B->brow
+//     if (A_bcol != B_brow){
+//         printf("HAZMATH DANGER!!! Matrice sizes do not match!!\n");
+//         return;
+//     }
+//
+//     // local variables
+//     INT i,j,k;
+//     dCSRmat temp_mat;
+//
+//     // allocate C
+//     bdcsr_alloc(A->brow, B->bcol, C);
+//
+//     // main loop
+//     for(i=0; i<C->brow; i++){
+//         for(j=0; j<C->bcol; j++){
+//             // C[i][j] = \sum_k A[i][k]*B[k][j]
+//             for (k=0; k<A->bcol; k++){
+//                 //A[i][k]*B[k][j]
+//                 dcsr_mxm(A->blocks[i*bcol+k], B->blocks[k*bcol+j], &temp_mat);
+//                 //
+//
+//             }
+//         }
+//     }
+//
+// }
+
+/***********************************************************************************************/
 
 /**
  * \fn ivector sparse_MIS(dCSRmat *A, INT *ord)
@@ -4198,6 +4248,65 @@ void dcsr2full(dCSRmat *A,REAL *Afull)
     fprintf(stderr,"ERROR in %s: Afull not allocated",__FUNCTION__);
     exit(16);
   }
+}
+
+/***********************************************************************************************/
+/*!
+   * \fn void bdcsr_get_total_size(block_dCSRmat *A, INT total_row, INT total_col, INT total_nnz)
+   *
+   * \brief get total number of rows and columns of a block_dCSRmat matrix
+   *
+   * \param A          Pointer to the block_dCSRmat matrix
+   * \param total_row  total number of rows
+   * \param total_col  total number of cols
+   * \param total_nnz  total number of nonzeros
+   *
+   * \author  Xiaozhe Hu
+   *
+   *
+   */
+void bdcsr_get_total_size(block_dCSRmat *A, INT *total_row, INT *total_col, INT *total_nnz)
+{
+    INT i, j;
+    *total_row = 0;
+    *total_col = 0;
+    *total_nnz = 0;
+
+    INT n = A->brow;
+    INT m = A->bcol;
+
+    // get total row
+    for (i = 0; i < n; ++i){
+        for (j = 0; j < m; ++j) {
+            if (A->blocks[i*m + j] != NULL) {
+                // get the number row for i-th row
+                *total_row = *total_row + A->blocks[i*m + j]->row;
+            }
+            break;
+        }
+    }
+
+    // get total row
+    for (j = 0; j < m; ++j){
+        for (i = 0; i < n; ++i) {
+            if (A->blocks[i*m + j] != NULL) {
+                // get the number columns for j-th column
+                *total_col = *total_col + A->blocks[i*m + j]->col;
+            }
+            break;
+        }
+    }
+
+    // get total nnz
+    for (i = 0; i < n; ++i){
+        for (j = 0; j < m; ++j) {
+            if (A->blocks[i*m + j] != NULL) {
+                // get the number rows of the ij-th block
+                *total_nnz = *total_nnz + A->blocks[i*m + j]->nnz;
+            }
+        }
+    }
+
 }
 
 /***********************************************************************************************/

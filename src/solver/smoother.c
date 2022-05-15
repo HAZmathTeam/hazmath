@@ -1038,30 +1038,335 @@ void smoother_dbsr_gs_descend(dBSRmat *A,
  * \param L      Number of iterations
  *
  */
-void smoother_bdcsr_jacobi(dvector *u,
-                          const INT s,
-                          block_dCSRmat *A,
-                          dvector *b,
-                          INT L)
+// void smoother_bdcsr_jacobi(dvector *u,
+//                           const INT s,
+//                           block_dCSRmat *A,
+//                           dvector *b,
+//                           INT L)
+// {
+//     // Sub-vectors
+//     dvector utemp;
+//     dvector btemp;
+//     // Smooth
+//     INT i, istart;
+//     INT row;
+//     istart = 0;
+//     for(i=0; i<A->brow; i++){
+//         row = A->blocks[i+i*A->brow]->row;
+//         // Get sub-vectors
+//         utemp.row = row;
+//         utemp.val = u->val+istart;
+//         btemp.row = row;
+//         btemp.val = b->val+istart;
+//         // Call jacobi on specific block
+//         smoother_dcsr_jacobi(&utemp,0,row-1,s,A->blocks[i+i*A->brow],&btemp,L);
+//         // Move to next block
+//         istart += row;
+//     }
+//
+// }
+
+/************************************************************************************************/
+/**
+ * \fn void smoother_bdcsr_jacobi_jacobi(dvector *u, block_dCSRmat *A, dvector *b, dCSRmat *A_diag)
+ *
+ * \brief block Jacobi smoother and each block uses jacobi (using specified diagonal blocks)
+ *
+ * \param u       Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
+ * \param A       Pointer to block_dBSRmat: the coefficient matrix
+ * \param b       Pointer to dvector: the right hand side
+ * \param A_diag  Pointer to specified diagonal blocks (e.g., approximation of Schur complements)
+ *
+ * \author  Xiaozhe Hu
+ *
+ */
+void smoother_bdcsr_jacobi_jacobi(dvector *u,
+                                  block_dCSRmat *A,
+                                  dvector *b,
+                                  dCSRmat *A_diag)
 {
     // Sub-vectors
     dvector utemp;
     dvector btemp;
+
     // Smooth
     INT i, istart;
     INT row;
     istart = 0;
     for(i=0; i<A->brow; i++){
-        row = A->blocks[i+i*A->brow]->row;
+
+        row = A_diag[i].row;
+
         // Get sub-vectors
         utemp.row = row;
         utemp.val = u->val+istart;
         btemp.row = row;
         btemp.val = b->val+istart;
+
         // Call jacobi on specific block
-        smoother_dcsr_jacobi(&utemp,0,row-1,s,A->blocks[i+i*A->brow],&btemp,L);
+        smoother_dcsr_jacobi(&utemp, 0, row-1, 1, &A_diag[i], &btemp, 1);
+        //directsolve_UMF(&A_diag[i], &btemp, &utemp, 3);
+
         // Move to next block
         istart += row;
+    }
+
+}
+
+/************************************************************************************************/
+/**
+ * \fn void smoother_bdcsr_jacobi_fgs(dvector *u, block_dCSRmat *A, dvector *b, dCSRmat *A_diag)
+ *
+ * \brief block Jacobi smoother and each block uses forward Gauss-Seidel (using specified diagonal blocks)
+ *
+ * \param u       Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
+ * \param A       Pointer to block_dBSRmat: the coefficient matrix
+ * \param b       Pointer to dvector: the right hand side
+ * \param A_diag  Pointer to specified diagonal blocks (e.g., approximation of Schur complements)
+ *
+ * \author  Xiaozhe Hu
+ *
+ */
+void smoother_bdcsr_jacobi_fgs(dvector *u,
+                               block_dCSRmat *A,
+                               dvector *b,
+                               dCSRmat *A_diag)
+{
+    // Sub-vectors
+    dvector utemp;
+    dvector btemp;
+
+    // Smooth
+    INT i, istart;
+    INT row;
+    istart = 0;
+    for(i=0; i<A->brow; i++){
+
+        row = A_diag[i].row;
+
+        // Get sub-vectors
+        utemp.row = row;
+        utemp.val = u->val+istart;
+        btemp.row = row;
+        btemp.val = b->val+istart;
+
+        // Call gs on specific block
+        smoother_dcsr_gs(&utemp, 0, row-1, 1, &A_diag[i], &btemp, 1);
+
+        // Move to next block
+        istart += row;
+    }
+
+}
+
+/************************************************************************************************/
+/**
+ * \fn void smoother_bdcsr_jacobi_bgs(dvector *u, block_dCSRmat *A, dvector *b, dCSRmat *A_diag)
+ *
+ * \brief block Jacobi smoother and each block uses backward Gauss-Seidel (using specified diagonal blocks)
+ *
+ * \param u       Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
+ * \param A       Pointer to block_dBSRmat: the coefficient matrix
+ * \param b       Pointer to dvector: the right hand side
+ * \param A_diag  Pointer to specified diagonal blocks (e.g., approximation of Schur complements)
+ *
+ * \author  Xiaozhe Hu
+ *
+ */
+void smoother_bdcsr_jacobi_bgs(dvector *u,
+                               block_dCSRmat *A,
+                               dvector *b,
+                               dCSRmat *A_diag)
+{
+    // Sub-vectors
+    dvector utemp;
+    dvector btemp;
+
+    // Smooth
+    INT i, istart;
+    INT row;
+    istart = 0;
+    for(i=0; i<A->brow; i++){
+
+        row = A_diag[i].row;
+
+        // Get sub-vectors
+        utemp.row = row;
+        utemp.val = u->val+istart;
+        btemp.row = row;
+        btemp.val = b->val+istart;
+
+        // Call gs on specific block
+        smoother_dcsr_gs(&utemp, row-1, 0, -1, &A_diag[i], &btemp, 1);
+
+        // Move to next block
+        istart += row;
+    }
+
+}
+
+/************************************************************************************************/
+/**
+ * \fn void smoother_bdcsr_jacobi_sgs(dvector *u, block_dCSRmat *A, dvector *b, dCSRmat *A_diag)
+ *
+ * \brief block Jacobi smoother and each block uses symmetric Gauss-Seidel (using specified diagonal blocks)
+ *
+ * \param u       Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
+ * \param A       Pointer to block_dBSRmat: the coefficient matrix
+ * \param b       Pointer to dvector: the right hand side
+ * \param A_diag  Pointer to specified diagonal blocks (e.g., approximation of Schur complements)
+ *
+ * \author  Xiaozhe Hu
+ *
+ */
+void smoother_bdcsr_jacobi_sgs(dvector *u,
+                               block_dCSRmat *A,
+                               dvector *b,
+                               dCSRmat *A_diag)
+{
+    // Sub-vectors
+    dvector utemp;
+    dvector btemp;
+
+    // Smooth
+    INT i, istart;
+    INT row;
+    istart = 0;
+    for(i=0; i<A->brow; i++){
+
+        row = A_diag[i].row;
+
+        // Get sub-vectors
+        utemp.row = row;
+        utemp.val = u->val+istart;
+        btemp.row = row;
+        btemp.val = b->val+istart;
+
+        // Call gs on specific block
+        smoother_dcsr_sgs(&utemp, &A_diag[i], &btemp, 1);
+
+        // Move to next block
+        istart += row;
+    }
+
+}
+
+/************************************************************************************************/
+/**
+ * \fn void smoother_bdcsr_fgs_fgs(dvector *u, block_dCSRmat *A, dvector *b, dCSRmat *A_diag, REAL *work)
+ *
+ * \brief block Forward Gauss-Seidel smoother and each block uses forward Gauss-Seidel (using specified diagonal blocks)
+ *
+ * \param u       Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
+ * \param A       Pointer to block_dBSRmat: the coefficient matrix
+ * \param b       Pointer to dvector: the right hand side
+ * \param A_diag  Pointer to specified diagonal blocks (e.g., approximation of Schur complements)
+ *
+ * \author  Xiaozhe Hu
+ *
+ */
+void smoother_bdcsr_fgs_fgs(dvector *u,
+                            block_dCSRmat *A,
+                            dvector *b,
+                            dCSRmat *A_diag,
+                            REAL *work)
+{
+    // Sub-vectors
+    dvector utemp;
+    dvector btemp;
+
+    // save right hand side b in the workspace
+    array_cp(b->row, b->val, work);
+
+    // Smooth
+    INT i, j, istart, jstart;
+    INT row;
+    istart = 0;
+    for(i=0; i<A->brow; i++){
+
+        row = A_diag[i].row;
+
+        // Get sub-vectors
+        utemp.row = row;
+        utemp.val = u->val+istart;
+        btemp.row = row;
+        btemp.val = work+istart;
+
+        // Call gs on specific block
+        smoother_dcsr_gs(&utemp, 0, row-1, 1, &A_diag[i], &btemp, 1);
+
+        // Move to next block
+        istart += row;
+
+        // update right hand side (stored in workspace)
+        jstart = istart;
+        for (j=i+1; j<A->brow; j++)
+        {
+            // set starting place
+            dcsr_aAxpy(-1.0, A->blocks[j*A->bcol+i], utemp.val, work+jstart);
+
+            // move jstart
+            jstart += A_diag[j].row;
+        }
+    }
+
+}
+
+/************************************************************************************************/
+/**
+ * \fn void smoother_bdcsr_bgs_bgs(dvector *u, block_dCSRmat *A, dvector *b, dCSRmat *A_diag, REAL *work)
+ *
+ * \brief block backward Gauss-Seidel smoother and each block uses backward Gauss-Seidel (using specified diagonal blocks)
+ *
+ * \param u       Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
+ * \param A       Pointer to block_dBSRmat: the coefficient matrix
+ * \param b       Pointer to dvector: the right hand side
+ * \param A_diag  Pointer to specified diagonal blocks (e.g., approximation of Schur complements)
+ *
+ * \author  Xiaozhe Hu
+ *
+ */
+void smoother_bdcsr_bgs_bgs(dvector *u,
+                            block_dCSRmat *A,
+                            dvector *b,
+                            dCSRmat *A_diag,
+                            REAL *work)
+{
+    // Sub-vectors
+    dvector utemp;
+    dvector btemp;
+
+    // save right hand side b in the workspace
+    array_cp(b->row, b->val, work);
+
+    // Smooth
+    INT i, j, istart, jstart;
+    INT row;
+    istart = u->row;
+    for(i=A->brow-1; i>-1; i--){
+
+        row = A_diag[i].row;
+        istart -= row;
+
+        // Get sub-vectors
+        utemp.row = row;
+        utemp.val = u->val+istart;
+        btemp.row = row;
+        btemp.val = work+istart;
+
+        // Call gs on specific block
+        smoother_dcsr_gs(&utemp, row-1, 0, -1, &A_diag[i], &btemp, 1);
+
+        // update right hand side (stored in workspace)
+        jstart = istart;
+        for (j=i-1; j>-1; j--)
+        {
+            // move jstart
+            jstart -= A_diag[j].row;
+
+            // set starting place
+            dcsr_aAxpy(-1.0, A->blocks[j*A->bcol+i], utemp.val, work+jstart);
+        }
     }
 
 }

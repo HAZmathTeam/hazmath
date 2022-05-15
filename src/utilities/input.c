@@ -548,6 +548,10 @@ void param_input (const char *filenm,		\
                 inparam->AMG_smoother = SMOOTHER_FGS;
             else if ((strcmp(buffer,"FSGS")==0)||(strcmp(buffer,"fsgs")==0))
                 inparam->AMG_smoother = SMOOTHER_FSGS;
+            else if ((strcmp(buffer,"JACOBI_GS")==0)||(strcmp(buffer,"jacobi_gs")==0))
+                inparam->AMG_smoother = SMOOTHER_JACOBI_GS;
+            else if ((strcmp(buffer,"JACOBI_SGS")==0)||(strcmp(buffer,"jacobi_sgs")==0))
+                inparam->AMG_smoother = SMOOTHER_JACOBI_SGS;
             else
             { status = ERROR_INPUT_PAR; break; }
             fgets(buffer,maxb,fp); // skip rest of line

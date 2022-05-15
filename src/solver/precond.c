@@ -1333,6 +1333,51 @@ void precond_dbsr_amg(REAL *r,
     array_cp(m,mgl->x.val,z);
 }
 
+
+/***********************************************************************************************/
+/**
+ * \fn void precond_bdcsr_amg(REAL *r, REAL *z, void *data)
+ *
+ * \brief AMG preconditioner
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   03/16/2022
+ */
+void precond_bdcsr_amg(REAL *r,
+                       REAL *z,
+                       void *data)
+{
+    precond_data_bdcsr *predata=(precond_data_bdcsr *)data;
+    const INT brow=predata->mgl_data[0].A.brow;
+    const INT bcol=predata->mgl_data[0].A.bcol;
+    const INT maxit=predata->maxit;
+    const INT total_row = predata->total_row;
+    const INT total_col = predata->total_col;
+
+	INT i;
+
+    AMG_param amgparam; param_amg_init(&amgparam);
+    amgparam.cycle_type = predata->cycle_type;
+    amgparam.smoother   = predata->smoother;
+    amgparam.presmooth_iter  = predata->presmooth_iter;
+    amgparam.postsmooth_iter = predata->postsmooth_iter;
+    amgparam.relaxation = predata->relaxation;
+    amgparam.coarse_scaling = predata->coarse_scaling;
+    amgparam.tentative_smooth = predata->tentative_smooth;
+
+    AMG_data_bdcsr *mgl = predata->mgl_data;
+    mgl->b.row=total_row; array_cp(total_row, r, mgl->b.val); // residual is an input
+    mgl->x.row=total_col; dvec_set(total_col, &mgl->x, 0.0);
+
+    for ( i=maxit; i--; ) mgcycle_bdcsr(mgl,&amgparam);
+
+    array_cp(total_col, mgl->x.val, z);
+}
+
 /***********************************************************************************************/
 /**
  * \fn void precond_block_diag_2(REAL *r, REAL *z, void *data)
