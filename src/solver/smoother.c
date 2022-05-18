@@ -1473,6 +1473,7 @@ void smoother_bdcsr_metric_additive(dvector *u,
     dvector r;
     dvector r_gamma;
     dvector e_gamma;
+    dvector u_gamma;
 
     INT i;
 
@@ -1506,13 +1507,19 @@ void smoother_bdcsr_metric_additive(dvector *u,
     e_gamma.val = r_gamma.val + r_gamma.row;
     dvec_set(e_gamma.row, &e_gamma, 0.0);
 
+    // save solution
+    u_gamma.row = brow*interface_dof->row;
+    u_gamma.val = e_gamma.val + e_gamma.row;
+    for (i=0; i<interface_dof->row; i++) u_gamma.val[i] = u->val[interface_dof->JA[i]];
+    for (i=0; i<interface_dof->row; i++) u_gamma.val[interface_dof->row+i] = u->val[A->blocks[0]->row+i];
+
     //printf("done set e\n");
 
     // solve for the interface part
-    //block_directsolve_UMF(A_gamma, &r_gamma, &e_gamma, 3);
+    block_directsolve_UMF(A_gamma, &r_gamma, &e_gamma, 0);
     //smoother_bdcsr_fgs_fgs(&e_gamma, A_gamma, &r_gamma, NULL, work);
     //smoother_bdcsr_bgs_bgs(&e_gamma, A_gamma, &r_gamma, NULL, work);
-    smoother_bdcsr_jacobi_jacobi(&e_gamma, A_gamma, &r_gamma, NULL);
+    //smoother_bdcsr_jacobi_jacobi(&e_gamma, A_gamma, &r_gamma, NULL);
 
     //printf("done solve interface\n");
 
@@ -1528,8 +1535,11 @@ void smoother_bdcsr_metric_additive(dvector *u,
     //--------------------------------------------
     // update the solution
     //--------------------------------------------
-    for (i=0; i<interface_dof->row; i++) u->val[interface_dof->JA[i]] += e_gamma.val[i];
-    for (i=0; i<interface_dof->row; i++) u->val[A->blocks[0]->row+i] += e_gamma.val[interface_dof->row+i];
+    //for (i=0; i<interface_dof->row; i++) u->val[interface_dof->JA[i]] += e_gamma.val[i];
+    //for (i=0; i<interface_dof->row; i++) u->val[A->blocks[0]->row+i] += e_gamma.val[interface_dof->row+i];
+    for (i=0; i<interface_dof->row; i++) u->val[interface_dof->JA[i]] = u_gamma.val[i] + e_gamma.val[i];
+    for (i=0; i<interface_dof->row; i++) u->val[A->blocks[0]->row+i] = u_gamma.val[interface_dof->row+i] + e_gamma.val[interface_dof->row+i];
+
 
     //printf("done update u\n");
 
@@ -1563,6 +1573,7 @@ void smoother_bdcsr_metric_additive_bsr(dvector *u,
     dvector r;
     dvector r_gamma;
     dvector e_gamma;
+    dvector u_gamma;
 
     INT i;
 
@@ -1596,13 +1607,19 @@ void smoother_bdcsr_metric_additive_bsr(dvector *u,
     e_gamma.val = r_gamma.val + r_gamma.row;
     dvec_set(e_gamma.row, &e_gamma, 0.0);
 
+    // save solution
+    u_gamma.row = brow*interface_dof->row;
+    u_gamma.val = e_gamma.val + e_gamma.row;
+    for (i=0; i<interface_dof->row; i++) u_gamma.val[i*brow] = u->val[interface_dof->JA[i]];
+    for (i=0; i<interface_dof->row; i++) u_gamma.val[i*brow+1] = u->val[A->blocks[0]->row+i];
+
     //printf("done set e\n");
 
     // solve for the interface part
     //printf("ROW = %d\n", A_gamma->ROW);
     //smoother_dbsr_gs_ascend(A_gamma, &r_gamma, &e_gamma, diaginv);
     //smoother_dbsr_gs_descend(A_gamma, &r_gamma, &e_gamma, diaginv);
-    smoother_dbsr_jacobi(A_gamma, &r_gamma, &e_gamma, diaginv);
+    //smoother_dbsr_jacobi(A_gamma, &r_gamma, &e_gamma, diaginv);
     //printf("done solve interface\n");
 
     //--------------------------------------------
@@ -1617,8 +1634,10 @@ void smoother_bdcsr_metric_additive_bsr(dvector *u,
     //--------------------------------------------
     // update the solution
     //--------------------------------------------
-    for (i=0; i<interface_dof->row; i++) u->val[interface_dof->JA[i]] += e_gamma.val[i*brow];
-    for (i=0; i<interface_dof->row; i++) u->val[A->blocks[0]->row+i] += e_gamma.val[i*brow+1];
+    //for (i=0; i<interface_dof->row; i++) u->val[interface_dof->JA[i]] += e_gamma.val[i*brow];
+    //for (i=0; i<interface_dof->row; i++) u->val[A->blocks[0]->row+i] += e_gamma.val[i*brow+1];
+    for (i=0; i<interface_dof->row; i++) u->val[interface_dof->JA[i]] = u_gamma.val[i*brow] + e_gamma.val[i*brow];
+    for (i=0; i<interface_dof->row; i++) u->val[A->blocks[0]->row+i] = u_gamma.val[i*brow+1] + e_gamma.val[i*brow+1];
 
     //printf("done update u\n");
 

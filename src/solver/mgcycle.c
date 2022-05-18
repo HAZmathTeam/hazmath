@@ -1413,8 +1413,8 @@ ForwardSweep:
                 case SMOOTHER_METRIC_ADD:
                     for (i=0; i<steps; i++){
                         if (l == 0){
-                            //smoother_bdcsr_metric_additive(&mgl[l].x, &mgl[l].A, &mgl[l].b,  mgl[l].A_diag, mgl[l].w.val, mgl[l].interface_dof, mgl[l].A_gamma);
-                            smoother_bdcsr_metric_additive_bsr(&mgl[l].x, &mgl[l].A, &mgl[l].b,  mgl[l].A_diag, mgl[l].w.val, mgl[l].interface_dof, &mgl[l].A_gamma_bsr, mgl[l].A_gamma_diaginv.val);
+                            smoother_bdcsr_metric_additive(&mgl[l].x, &mgl[l].A, &mgl[l].b,  mgl[l].A_diag, mgl[l].w.val, mgl[l].interface_dof, mgl[l].A_gamma);
+                            //smoother_bdcsr_metric_additive_bsr(&mgl[l].x, &mgl[l].A, &mgl[l].b,  mgl[l].A_diag, mgl[l].w.val, mgl[l].interface_dof, &mgl[l].A_gamma_bsr, mgl[l].A_gamma_diaginv.val);
                         }
                         else {
                             smoother_bdcsr_jacobi_jacobi(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag);
@@ -1557,8 +1557,8 @@ ForwardSweep:
                 case SMOOTHER_METRIC_ADD:
                     for (i=0; i<steps; i++){
                         if (l == 0){
-                            //smoother_bdcsr_metric_additive(&mgl[l].x, &mgl[l].A, &mgl[l].b,  mgl[l].A_diag, mgl[l].w.val, mgl[l].interface_dof, mgl[l].A_gamma);
-                            smoother_bdcsr_metric_additive_bsr(&mgl[l].x, &mgl[l].A, &mgl[l].b,  mgl[l].A_diag, mgl[l].w.val, mgl[l].interface_dof, &mgl[l].A_gamma_bsr, mgl[l].A_gamma_diaginv.val);
+                            smoother_bdcsr_metric_additive(&mgl[l].x, &mgl[l].A, &mgl[l].b,  mgl[l].A_diag, mgl[l].w.val, mgl[l].interface_dof, mgl[l].A_gamma);
+                            //smoother_bdcsr_metric_additive_bsr(&mgl[l].x, &mgl[l].A, &mgl[l].b,  mgl[l].A_diag, mgl[l].w.val, mgl[l].interface_dof, &mgl[l].A_gamma_bsr, mgl[l].A_gamma_diaginv.val);
                         }
                         else {
                             smoother_bdcsr_jacobi_jacobi(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag);
