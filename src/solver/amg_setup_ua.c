@@ -2569,7 +2569,7 @@ static SHORT amg_setup_bdcsr_metric(AMG_data_bdcsr *mgl,
     }
 
     // allocate workspace on the fine level
-    mgl[0].w = dvec_create(10*(mgl[0].b.row));
+    mgl[0].w = dvec_create(6*(mgl[0].b.row));
 
     // get the interface submatrix
     //block_dCSRmat A_gamma;
@@ -2584,6 +2584,7 @@ static SHORT amg_setup_bdcsr_metric(AMG_data_bdcsr *mgl,
 
     //dcsr_write_dcoo("A00.dat", mgl[0].A.blocks[0]);
     //for (i=0; i<mgl[0].interface_dof->nnz; i++) printf("idx[%d]=%d\n", i, mgl[0].interface_dof->JA[i]);
+    //getchar();
 
     dcsr_getblk(mgl[0].A.blocks[0], gamma0, gamma0, size0, size0, mgl[0].A_gamma->blocks[0]);
     dcsr_getblk(mgl[0].A.blocks[1], gamma0, gamma1, size0, size1, mgl[0].A_gamma->blocks[1]);
@@ -2608,7 +2609,7 @@ static SHORT amg_setup_bdcsr_metric(AMG_data_bdcsr *mgl,
         mgl[lvl].num_levels = max_levels;
         mgl[lvl].b          = dvec_create(total_col);
         mgl[lvl].x          = dvec_create(total_col);
-        mgl[lvl].w          = dvec_create(4*total_col);
+        mgl[lvl].w          = dvec_create(6*total_col);
     }
 
     if ( prtlvl > PRINT_NONE ) {
