@@ -6,7 +6,7 @@
 #SRCFILE = solvers
 #SRCFILE = solvers_frac
 #SRCFILE = solvers_bsr
-SRCFILE = solvers_bdcsr
+SRCFILE = solvers_metric_amg
 
 HEADERS =
 

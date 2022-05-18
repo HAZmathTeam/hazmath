@@ -1365,3 +1365,71 @@ INT fenics_bsr_solver(INT block_size, dCSRmat *A, dvector *b, dvector *sol)
 
     return solver_flag;
 }
+
+
+INT fenics_metric_amg_solver(block_dCSRmat *A,
+                             dvector *b,
+                             dvector *x,
+                             block_dCSRmat *AD,
+                             block_dCSRmat *M,
+                             dCSRmat *interface_dof)
+{
+    INT i;
+    /* set Parameters from Reading in Input File */
+    input_param inparam;
+    param_input_init(&inparam);
+    param_input("./input_metric.dat", &inparam);
+
+    /* read the matrix and right hand side (2 by 2) */
+    INT brow = 2;
+    dCSRmat *A_diag = (dCSRmat *)calloc(brow, sizeof(dCSRmat));
+
+    // assemble the whole matrix
+    // bdcsr_add(&AD, 1.0, &M, beta, &A);
+
+    /* set initial guess */
+    dvec_set(b->row, x, 0.0);
+
+    /* Set Solver Parameters */
+    INT solver_flag = -20;
+    /* Set parameters for linear iterative methods */
+    linear_itsolver_param linear_itparam;
+    param_linear_solver_set(&linear_itparam, &inparam);
+    /* Set parameters for algebriac multigrid methods */
+    AMG_param amgparam;
+    param_amg_init(&amgparam);
+    param_amg_set(&amgparam, &inparam);
+    param_amg_print(&amgparam);
+
+    printf("\n===========================================================================\n");
+    printf("Solving the linear system \n");
+    printf("===========================================================================\n");
+
+    // --------------------------------------------------------------------------------------------
+    // Set diagonal blocks for AMG solver.  Coarsening is based on the blocks in A_diag.
+    // They can be diagonal blocks of the block matrix A or approximations to the Schur complements
+    // --------------------------------------------------------------------------------------------
+    // Use first diagonal block directly in A_diag
+    dcsr_alloc(A->blocks[0]->row, A->blocks[0]->col, A->blocks[0]->nnz, &A_diag[0]);
+    dcsr_cp(A->blocks[0], &A_diag[0]);
+
+    // Use second diagonal block directly in A_diag
+    dcsr_alloc(A->blocks[3]->row, A->blocks[3]->col, A->blocks[3]->nnz, &A_diag[1]);
+    dcsr_cp(A->blocks[3], &A_diag[1]);
+
+    // Use Krylov Iterative Solver
+    if (linear_itparam.linear_precond_type == PREC_AMG){
+      //solver_flag = linear_solver_bdcsr_krylov_amg(A, b, x, &linear_itparam, &amgparam, A_diag);
+      solver_flag = linear_solver_bdcsr_krylov_metric_amg(A, b, x, &linear_itparam, &amgparam, A_diag, AD, M, interface_dof);
+    }
+    // No preconditoner
+    else{
+       solver_flag = linear_solver_bdcsr_krylov(A, b, x, &linear_itparam);
+    }
+
+    // Clean up memory
+    for (i = 0; i < brow; i++) dcsr_free(&A_diag[i]);
+    if (A_diag) free(A_diag);
+
+    return solver_flag;
+}
