@@ -316,6 +316,29 @@ typedef struct {
     //! cycle type
     INT cycle_type;
 
+    //------------------------------------------
+    // extra data for specific methods/problems
+    // -----------------------------------------
+    // data for metric AMG only (A = AD + M)
+    // -----------------------------------------
+    //! pointer to the AD matrix
+    block_dCSRmat *AD;
+
+    //! pointer to the M matrix
+    block_dCSRmat *M;
+
+    //! pointer to the interface dof matrix
+    dCSRmat *interface_dof;
+
+    //! pointer to the submatrix corresponding to the interface part (block_dCSRmat format)
+    block_dCSRmat *A_gamma;
+
+    //! pointer to the submatrix corresponding to the interface part (dBSRmat format)
+    dBSRmat A_gamma_bsr;
+
+    //! pointer to the diagonal inverse of the interface part (dBSRmat format only)
+    dvector A_gamma_diaginv;
+
 } AMG_data_bdcsr; /**< Data for block MG */
 
 /**

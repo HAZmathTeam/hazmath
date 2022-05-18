@@ -4337,6 +4337,168 @@ FINISHED:
     return status;
 }
 
+/********************************************************************************************/
+/**
+ * \fn INT lienar_solver_bdcsr_krylov_metric_amg (block_dCSRmat *A, dvector *b, dvector *x,
+ *                                                linear_itsolver_param *itparam,
+ *                                                AMG_param *amgparam, dCSRmat *A_diag
+ *                                                block_dCSRmat *AD, block_dCSRmat *M, dCSRmat *interface_dof)
+ *
+ * \brief Solve Ax=b by AMG preconditioned Krylov methods for interface problem using metric AMG approach
+ *
+ * \param A         Pointer to the coeff matrix in block_dCSRmat format
+ * \param b         Pointer to the right hand side in dvector format
+ * \param x         Pointer to the approx solution in dvector format
+ * \param itparam   Pointer to parameters for iterative solvers
+ * \param amgparam  Pointer to parameters of AMG
+ * \param A_diag    Pointer to the diagonal blocks
+ * \param AD        Pointer to the AD matrix in block_dCSRmat format
+ * \param M         Pointer to the M matrix in block_dCSRmat format
+ * \param interface_dof  Pointer to the interface_dof matrix in dCSRmat format
+ *
+ * \return          Iteration number if converges; ERROR otherwise.
+ *
+ * \author Xiaozhe Hu
+ * \date   05/10/2022
+ */
+INT linear_solver_bdcsr_krylov_metric_amg(block_dCSRmat    *A,
+                                          dvector    *b,
+                                          dvector    *x,
+                                          linear_itsolver_param  *itparam,
+                                          AMG_param  *amgparam,
+                                          dCSRmat *A_diag,
+                                          block_dCSRmat *AD,
+                                          block_dCSRmat *M,
+                                          dCSRmat *interface_dof)
+{
+    //--------------------------------------------------------------
+    // Part 1: prepare
+    // --------------------------------------------------------------
+    //! parameters of iterative method
+    const SHORT prtlvl = itparam->linear_print_level;
+    const SHORT max_levels = amgparam->max_levels;
+    const INT brow = A->brow;
+    const INT bcol = A->bcol;
+
+    // total size
+    INT total_row, total_col, total_nnz;
+    bdcsr_get_total_size(A, &total_row, &total_col, &total_nnz);
+
+    // return variable
+    INT status = SUCCESS;
+
+    // data of AMG
+    AMG_data_bdcsr *mgl=amg_data_bdcsr_create(max_levels);
+
+    // timing
+    REAL setup_start, setup_end, solve_end;
+
+#if DEBUG_MODE > 0
+    printf("### DEBUG: [-Begin-] %s ...\n", __FUNCTION__);
+#endif
+
+    //--------------------------------------------------------------
+    //Part 2: set up the preconditioner
+    //--------------------------------------------------------------
+    get_time(&setup_start);
+
+    // initialize A, b, x for mgl[0]
+    bdcsr_alloc(brow, bcol, &(mgl[0].A));
+    bdcsr_cp(A, &(mgl[0].A));
+
+    mgl[0].b=dvec_create(b->row);
+    mgl[0].x=dvec_create(x->row);
+
+    // initialize A_diag
+    mgl[0].A_diag = A_diag;
+
+    // initialize AD
+    mgl[0].AD = AD;
+
+    // initialize M
+    mgl[0].M = AD;
+
+    // initialize interface_dof
+    mgl[0].interface_dof = interface_dof;
+
+    switch (amgparam->AMG_type) {
+
+        case UA_AMG:
+            status = amg_setup_bdcsr(mgl, amgparam);
+            break;
+
+        case SA_AMG:
+            status = amg_setup_bdcsr(mgl, amgparam);
+            break;
+
+        default:
+            status = metric_amg_setup_bdcsr(mgl, amgparam);
+            break;
+
+    }
+
+    if (status < 0) goto FINISHED;
+
+    precond_data_bdcsr precdata;
+    precdata.print_level = amgparam->print_level;
+    precdata.maxit = amgparam->maxit;
+    precdata.tol = amgparam->tol;
+    precdata.cycle_type = amgparam->cycle_type;
+    precdata.smoother = amgparam->smoother;
+    precdata.presmooth_iter = amgparam->presmooth_iter;
+    precdata.postsmooth_iter = amgparam->postsmooth_iter;
+    precdata.relaxation = amgparam->relaxation;
+    precdata.coarse_scaling = amgparam->coarse_scaling;
+    precdata.amli_degree = amgparam->amli_degree;
+    precdata.amli_coef = amgparam->amli_coef;
+    precdata.tentative_smooth = amgparam->tentative_smooth;
+    precdata.max_levels = mgl[0].num_levels;
+    precdata.mgl_data = mgl;
+    precdata.A = A;
+    precdata.total_row = total_row;
+    precdata.total_col = total_col;
+
+    precond prec;
+    prec.data = &precdata;
+    switch (amgparam->cycle_type) {
+        //case NL_AMLI_CYCLE: // Nonlinear AMLI AMG
+        //    prec.fct = precond_dbsr_namli; break;
+        default: // V,W-Cycle AMG
+            prec.fct = precond_bdcsr_metric_amg;
+            break;
+    }
+
+    get_time(&setup_end);
+
+    if ( prtlvl >= PRINT_MIN )
+        print_cputime("Block_dCSR AMG setup", setup_end - setup_start);
+
+    //--------------------------------------------------------------
+    // Part 3: solver
+    //--------------------------------------------------------------
+    status = solver_bdcsr_linear_itsolver(A, b, x, &prec, itparam);
+
+    get_time(&solve_end);
+
+    if ( prtlvl >= PRINT_MIN )
+        print_cputime("Block_dCSR Krylov method", solve_end - setup_start);
+
+FINISHED:
+    amg_data_bdcsr_free(mgl, amgparam);
+
+#if DEBUG_MODE > 0
+    printf("### DEBUG: [--End--] %s ...\n", __FUNCTION__);
+#endif
+
+    if ( status == ERROR_ALLOC_MEM ) goto MEMORY_ERROR;
+    return status;
+
+MEMORY_ERROR:
+    printf("### HAZMATH ERROR: Cannot allocate memory! [%s]\n", __FUNCTION__);
+    exit(status);
+}
+
+
 
 /*---------------------------------*/
 /*--        End of File          --*/

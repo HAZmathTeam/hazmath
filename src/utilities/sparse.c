@@ -2771,6 +2771,57 @@ dCSRmat dcsr_sympat (dCSRmat *A)
     // return
     return SA;
 }
+
+/***********************************************************************************************/
+/**
+ * \fn dCSRmat dcsr_reorder(dCSRmat *A, INT *order)
+ * \brief Reorder a dCSRmat matrix
+ *
+ * \param *A      pointer to the dCSRmat matrix
+ * \param *order  pointer to the new order
+ *
+ * \return reordered dCSRmat matrix
+ *
+ * \author Xiaozhe Hu
+ * \date 05/16/2011
+ */
+dCSRmat dcsr_reorder(dCSRmat *A,
+                      INT *order)
+ {
+    // local variables
+    dCOOmat A_coo;
+    dCSRmat B;
+    const INT nnz = A->nnz;
+
+    INT i;
+
+    // convert to dCOOmat
+    dcsr_2_dcoo(A, &A_coo);
+
+    // map
+    INT *map = (INT *)calloc(A->row, sizeof(INT));
+    for (i=0; i< A->row; i++){
+        map[order[i]] = i;
+    }
+
+    // reorder dCOOmat
+    for (i=0; i<nnz; i++){
+        A_coo.rowind[i] = map[A_coo.rowind[i]];
+        A_coo.colind[i] = map[A_coo.colind[i]];
+    }
+
+    // convert back to dCSRmat
+    dcoo_2_dcsr(&A_coo, &B);
+
+    // clean
+    if(map) free(map);
+    dcoo_free(&A_coo);
+
+    // return
+    return B;
+
+ }
+
 /**********************************************************************/
 /*removing diagonal or extracting upper/lower triangle of a sparse
   matrix*/

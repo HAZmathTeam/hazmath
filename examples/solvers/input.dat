@@ -48,9 +48,9 @@ nonlinear_itsolver_toltype	= 0 	% type of tolerance for nonlinear solver 1 - ||n
 % linear solver
 %---------------%
 
-linear_itsolver_type		= 4   	% 0 Direct Solve | 1 CG | 2 MINRES | 3 GMRES
+linear_itsolver_type		= 1   	% 0 Direct Solve | 1 CG | 2 MINRES | 3 GMRES
 linear_itsolver_maxit		= 100  	% maximal iterations of linear iterative solver
-linear_itsolver_tol		= 1e-6  % tolerance for linear iterative solver
+linear_itsolver_tol		= 1e-8  % tolerance for linear iterative solver
 linear_stop_type		= 1     	% 1 ||r||/||b|| | 2 ||r||_B/||b||_B | % 3 ||r||/||x||
 linear_restart 			= 100		% restart for GMRes
 
@@ -60,20 +60,21 @@ linear_precond_type		= 2		%  0 Null | 1 Diag | 2 AMG
 % parameters for Algebraic Multigrid           %
 %----------------------------------------------%
 
-AMG_type 			= UA	% UA unsmoothed AMG
+AMG_type 			= MSA	% UA Unsmoothed AMG | SA Smoothed AMG | MUA Metric Unsmoothed AMG | MSA Metric Smoothed AMG
 AMG_cycle_type	    = V    % V V-cycle | W W-cycle | A AMLI-cycle | NA Nonlinear AMLI-cycle | ADD additive cycle
 AMG_levels			= 10	%
 AMG_tol				= 1e-8
 AMG_maxit			= 1
 
-AMG_smoother			= SGS	% JACOBI | GS | SGS | SOR | SSOR | L1DIAG |
+AMG_smoother			= METRIC_MUL	% JACOBI | GS | SGS | SOR | SSOR | L1DIAG |
                                 % Extra smoothers for block_dCSRmat: JACOBI_GS | JACOBI_SGS |
-AMG_Schwarz_levels      = 0      % number of levels using Schwarz smoother
+                                % Extra smoothers for metric AMG of block_dCSRmat:
+AMG_Schwarz_levels      = 0      % number of levels using Schwarz smoother: METRIC_ADD | METRIC_MUL
 AMG_relaxation			= 1.0   % Relaxation for SOR
 AMG_presmooth_iter		= 1
 AMG_postsmooth_iter		= 1
 
-AMG_coarse_dof			= 20
+AMG_coarse_dof			= 50
 AMG_coarse_solver		= 32    % coarsest solver: 0 iterative | 32 UMFPACK
 AMG_coarse_scaling		= OFF	% OFF | ON
 
@@ -81,9 +82,9 @@ AMG_amli_degree          	= 2     % degree of the polynomial used by AMLI cycle
 AMG_nl_amli_krylov_type  	= 5	% Krylov method in nonlinear AMLI cycle: 5 GCG |  6 GCR
 
 % aggregation AMG
-AMG_aggregation_type	= 4    % 1 VMB ; 4 HEC
+AMG_aggregation_type	= 1    % 1 VMB ; 4 HEC
 AMG_strong_coupled		= 0.0  % Strong coupled threshold
-AMG_max_aggregation		= 10	% Max size of aggregations
+AMG_max_aggregation		= 100	% Max size of aggregations
 
 %----------------------------------------------%
 % parameters for Schwarz methods       %

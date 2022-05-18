@@ -244,6 +244,8 @@ AMG_data_bdcsr *amg_data_bdcsr_create(SHORT max_levels)
         mgl[i].cycle_type = 0;
     }
 
+    mgl[0].A_gamma = NULL;
+
     return(mgl);
 }
 
@@ -267,19 +269,31 @@ void amg_data_bdcsr_free (AMG_data_bdcsr *mgl,
     INT i;
     INT brow = mgl[0].A.brow;
 
+    //printf("in free\n");
+
     for ( i = 0; i < max_levels; ++i ) {
 
+        //printf("i = %d\n", i);
+
         bdcsr_free(&mgl[i].A);
+        //printf("done free A\n");
         if ( max_levels > 1 ) {
             bdcsr_free(&mgl[i].P);
             bdcsr_free(&mgl[i].R);
         }
+        //printf("done free P and R\n");
         dvec_free(&mgl[i].b);
+        //printf("done free b\n");
         dvec_free(&mgl[i].x);
+        //printf("done free x\n");
         dcsr_free(&mgl[i].Ac);
+        //printf("done free Ac\n");
         dvec_free(&mgl[i].w);
+        //printf("done free w\n");
 
     }
+
+    //printf("done free each level\n");
 
     // clean AMG data for diaognal blocks
     for (i=0; i<brow; i++){
@@ -301,10 +315,20 @@ void amg_data_bdcsr_free (AMG_data_bdcsr *mgl,
             break;
     }
 
+    //printf("free kernel\n");
+
     for ( i = 0; i < mgl->near_kernel_dim; ++i ) {
         free(mgl->near_kernel_basis[i]); mgl->near_kernel_basis[i] = NULL;
     }
     free(mgl->near_kernel_basis); mgl->near_kernel_basis = NULL;
+
+    //printf("done free kernel, start free interface \n");
+
+    bdcsr_free(mgl[0].A_gamma);
+    dbsr_free(&mgl[0].A_gamma_bsr);
+    dvec_free(&mgl[0].A_gamma_diaginv);
+
+    //printf("done free interface\n");
 
     free(mgl); mgl = NULL;
 }

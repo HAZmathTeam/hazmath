@@ -165,6 +165,49 @@ dCSRmat bdcsr_subblk_2_dcsr (block_dCSRmat *Ab, INT brow_start, INT brow_end, IN
 
 /***********************************************************************************************/
 /*!
+ * \fn dBSRmat bdcsr_2_dbsr (block_dCSRmat *Ab)
+ *
+ * \brief   Convert a block_dCSRmat matrix to a dCSRmat matrix
+ *
+ * \param   Ab   Pointer to a block_dCSRmat matrix
+ *
+ * \return  A    dBSRmat matrix if succeed, NULL if fail
+ *
+ *
+ */
+dBSRmat bdcsr_2_dbsr(block_dCSRmat *Ab)
+{
+    // local variables
+    dCSRmat A0 = bdcsr_2_dcsr(Ab);
+
+    INT i,j;
+    INT nb = Ab->brow;
+
+    // generate the ordering
+    ivector order = ivec_create(A0.row);
+    for (i=0; i<order.row/nb; i++){
+        for (j=0; j<nb; j++){
+            order.val[i*nb+j] = j*(order.row/nb)+i;
+        }
+    }
+
+    // reorder dCOOmat
+    dCSRmat A1 = dcsr_reorder(&A0, order.val);
+    dcsr_free(&A0);
+
+    // convert to dBSRmat
+    dBSRmat B = dcsr_2_dbsr(&A1, nb);
+
+    // clean
+    dcsr_free(&A1);
+
+    // return
+    return B;
+
+}
+
+/***********************************************************************************************/
+/*!
  * \fn block_dCSRmat dcsr_2_bdcsr (dCSRmat *A, int bnum, int *bsize)
  *
  * \brief

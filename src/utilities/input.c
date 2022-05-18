@@ -453,6 +453,12 @@ void param_input (const char *filenm,		\
                 inparam->AMG_type = UA_AMG;
             else if ((strcmp(buffer,"SA")==0)||(strcmp(buffer,"sa")==0))
                 inparam->AMG_type = SA_AMG;
+            else if ((strcmp(buffer,"C")==0)||(strcmp(buffer,"c")==0))
+                inparam->AMG_type = C_AMG;
+            else if ((strcmp(buffer,"MUA")==0)||(strcmp(buffer,"mua")==0))
+                inparam->AMG_type = MUA_AMG;
+            else if ((strcmp(buffer,"MSA")==0)||(strcmp(buffer,"msa")==0))
+                inparam->AMG_type = MSA_AMG;
             else
             { status = ERROR_INPUT_PAR; break; }
             fgets(buffer,maxb,fp); // skip rest of line
@@ -552,6 +558,10 @@ void param_input (const char *filenm,		\
                 inparam->AMG_smoother = SMOOTHER_JACOBI_GS;
             else if ((strcmp(buffer,"JACOBI_SGS")==0)||(strcmp(buffer,"jacobi_sgs")==0))
                 inparam->AMG_smoother = SMOOTHER_JACOBI_SGS;
+            else if ((strcmp(buffer,"METRIC_ADD")==0)||(strcmp(buffer,"metric_add")==0))
+                inparam->AMG_smoother = SMOOTHER_METRIC_ADD;
+            else if ((strcmp(buffer,"METRIC_MUL")==0)||(strcmp(buffer,"metric_mul")==0))
+                inparam->AMG_smoother = SMOOTHER_METRIC_MUL;
             else
             { status = ERROR_INPUT_PAR; break; }
             fgets(buffer,maxb,fp); // skip rest of line

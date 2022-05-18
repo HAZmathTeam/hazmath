@@ -1095,7 +1095,12 @@ void smoother_bdcsr_jacobi_jacobi(dvector *u,
     istart = 0;
     for(i=0; i<A->brow; i++){
 
-        row = A_diag[i].row;
+        if (A_diag == NULL){
+            row = A->blocks[i*A->brow+i]->row;
+        }
+        else{
+            row = A_diag[i].row;
+        }
 
         // Get sub-vectors
         utemp.row = row;
@@ -1104,7 +1109,12 @@ void smoother_bdcsr_jacobi_jacobi(dvector *u,
         btemp.val = b->val+istart;
 
         // Call jacobi on specific block
-        smoother_dcsr_jacobi(&utemp, 0, row-1, 1, &A_diag[i], &btemp, 1);
+        if (A_diag == NULL){
+            smoother_dcsr_jacobi(&utemp, 0, row-1, 1, A->blocks[i*A->brow+i], &btemp, 1);
+        }
+        else {
+            smoother_dcsr_jacobi(&utemp, 0, row-1, 1, &A_diag[i], &btemp, 1);
+        }
         //directsolve_UMF(&A_diag[i], &btemp, &utemp, 3);
 
         // Move to next block
@@ -1142,7 +1152,12 @@ void smoother_bdcsr_jacobi_fgs(dvector *u,
     istart = 0;
     for(i=0; i<A->brow; i++){
 
-        row = A_diag[i].row;
+        if (A_diag == NULL){
+            row = A->blocks[i*A->brow+i]->row;
+        }
+        else{
+            row = A_diag[i].row;
+        }
 
         // Get sub-vectors
         utemp.row = row;
@@ -1151,7 +1166,12 @@ void smoother_bdcsr_jacobi_fgs(dvector *u,
         btemp.val = b->val+istart;
 
         // Call gs on specific block
-        smoother_dcsr_gs(&utemp, 0, row-1, 1, &A_diag[i], &btemp, 1);
+        if (A_diag == NULL){
+            smoother_dcsr_gs(&utemp, 0, row-1, 1, A->blocks[i*A->brow+i], &btemp, 1);
+        }
+        else{
+            smoother_dcsr_gs(&utemp, 0, row-1, 1, &A_diag[i], &btemp, 1);
+        }
 
         // Move to next block
         istart += row;
@@ -1188,7 +1208,12 @@ void smoother_bdcsr_jacobi_bgs(dvector *u,
     istart = 0;
     for(i=0; i<A->brow; i++){
 
-        row = A_diag[i].row;
+        if (A_diag == NULL){
+            row = A->blocks[i*A->brow+i]->row;
+        }
+        else{
+            row = A_diag[i].row;
+        }
 
         // Get sub-vectors
         utemp.row = row;
@@ -1197,7 +1222,12 @@ void smoother_bdcsr_jacobi_bgs(dvector *u,
         btemp.val = b->val+istart;
 
         // Call gs on specific block
-        smoother_dcsr_gs(&utemp, row-1, 0, -1, &A_diag[i], &btemp, 1);
+        if (A_diag == NULL){
+            smoother_dcsr_gs(&utemp, row-1, 0, -1, A->blocks[i*A->brow+i], &btemp, 1);
+        }
+        else{
+            smoother_dcsr_gs(&utemp, row-1, 0, -1, &A_diag[i], &btemp, 1);
+        }
 
         // Move to next block
         istart += row;
@@ -1234,7 +1264,12 @@ void smoother_bdcsr_jacobi_sgs(dvector *u,
     istart = 0;
     for(i=0; i<A->brow; i++){
 
-        row = A_diag[i].row;
+        if (A_diag == NULL){
+            row = A->blocks[i*A->brow+i]->row;
+        }
+        else{
+            row = A_diag[i].row;
+        }
 
         // Get sub-vectors
         utemp.row = row;
@@ -1243,7 +1278,12 @@ void smoother_bdcsr_jacobi_sgs(dvector *u,
         btemp.val = b->val+istart;
 
         // Call gs on specific block
-        smoother_dcsr_sgs(&utemp, &A_diag[i], &btemp, 1);
+        if (A_diag == NULL){
+            smoother_dcsr_sgs(&utemp, A->blocks[i*A->brow+i], &btemp, 1);
+        }
+        else {
+            smoother_dcsr_sgs(&utemp, &A_diag[i], &btemp, 1);
+        }
 
         // Move to next block
         istart += row;
@@ -1284,7 +1324,12 @@ void smoother_bdcsr_fgs_fgs(dvector *u,
     istart = 0;
     for(i=0; i<A->brow; i++){
 
-        row = A_diag[i].row;
+        if (A_diag == NULL){
+            row = A->blocks[i*A->brow+i]->row;
+        }
+        else{
+            row = A_diag[i].row;
+        }
 
         // Get sub-vectors
         utemp.row = row;
@@ -1293,7 +1338,12 @@ void smoother_bdcsr_fgs_fgs(dvector *u,
         btemp.val = work+istart;
 
         // Call gs on specific block
-        smoother_dcsr_gs(&utemp, 0, row-1, 1, &A_diag[i], &btemp, 1);
+        if (A_diag == NULL){
+            smoother_dcsr_gs(&utemp, 0, row-1, 1, A->blocks[i*A->brow+i], &btemp, 1);
+        }
+        else {
+            smoother_dcsr_gs(&utemp, 0, row-1, 1, &A_diag[i], &btemp, 1);
+        }
 
         // Move to next block
         istart += row;
@@ -1306,7 +1356,12 @@ void smoother_bdcsr_fgs_fgs(dvector *u,
             dcsr_aAxpy(-1.0, A->blocks[j*A->bcol+i], utemp.val, work+jstart);
 
             // move jstart
-            jstart += A_diag[j].row;
+            if (A_diag == NULL){
+                jstart += A->blocks[j*A->brow+j]->row;
+            }
+            else{
+                jstart += A_diag[j].row;
+            }
         }
     }
 
@@ -1345,7 +1400,12 @@ void smoother_bdcsr_bgs_bgs(dvector *u,
     istart = u->row;
     for(i=A->brow-1; i>-1; i--){
 
-        row = A_diag[i].row;
+        if (A_diag == NULL){
+            row = A->blocks[i*A->brow+i]->row;
+        }
+        else{
+            row = A_diag[i].row;
+        }
         istart -= row;
 
         // Get sub-vectors
@@ -1355,14 +1415,24 @@ void smoother_bdcsr_bgs_bgs(dvector *u,
         btemp.val = work+istart;
 
         // Call gs on specific block
-        smoother_dcsr_gs(&utemp, row-1, 0, -1, &A_diag[i], &btemp, 1);
+        if (A_diag == NULL){
+            smoother_dcsr_gs(&utemp, row-1, 0, -1, A->blocks[i*A->brow+i], &btemp, 1);
+        }
+        else {
+            smoother_dcsr_gs(&utemp, row-1, 0, -1, &A_diag[i], &btemp, 1);
+        }
 
         // update right hand side (stored in workspace)
         jstart = istart;
         for (j=i-1; j>-1; j--)
         {
             // move jstart
-            jstart -= A_diag[j].row;
+            if (A_diag == NULL){
+                jstart -= A->blocks[j*A->brow+j]->row;
+            }
+            else{
+                jstart -= A_diag[j].row;
+            }
 
             // set starting place
             dcsr_aAxpy(-1.0, A->blocks[j*A->bcol+i], utemp.val, work+jstart);
@@ -1371,6 +1441,544 @@ void smoother_bdcsr_bgs_bgs(dvector *u,
 
 }
 
+
+
+/************************************************************************************************/
+// Smoothers for interface problems
+/************************************************************************************************/
+/**
+ * \fn void smoother_bdcsr_metric_additive(dvector *u, block_dCSRmat *A, dvector *b,
+ *                                         dCSRmat *A_diag, REAL *work, dCSRmat *interface_dof,
+ *                                         block_dCSRmat *A_gamma)
+ *
+ * \brief block additive smoother for metric AMG
+ *
+ * \param u       Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
+ * \param A       Pointer to block_dBSRmat: the coefficient matrix
+ * \param b       Pointer to dvector: the right hand side
+ * \param A_diag  Pointer to specified diagonal blocks (e.g., approximation of Schur complements)
+ *
+ * \author  Xiaozhe Hu
+ *
+ */
+void smoother_bdcsr_metric_additive(dvector *u,
+                                    block_dCSRmat *A,
+                                    dvector *b,
+                                    dCSRmat *A_diag,
+                                    REAL *work,
+                                    dCSRmat *interface_dof,
+                                    block_dCSRmat * A_gamma)
+{
+    // local variables
+    dvector r;
+    dvector r_gamma;
+    dvector e_gamma;
+
+    INT i;
+
+    INT brow = A->brow;
+
+    //--------------------------------
+    // smoother on the interface part
+    //--------------------------------
+    // save right hand side b in the workspace
+    array_cp(b->row, b->val, work + b->row);
+
+    //printf("done copy b\n");
+
+    // compute the overall residual
+    r.row = b->row;
+    r.val = work + b->row;
+    bdcsr_aAxpy(-1.0, A, u->val, r.val);
+
+    //printf("done computing r\n");
+
+    // get the residual for the interface part
+    r_gamma.row = brow*interface_dof->row;
+    r_gamma.val = r.val + r.row;
+    for (i=0; i<interface_dof->row; i++) r_gamma.val[i] = r.val[interface_dof->JA[i]];
+    for (i=0; i<interface_dof->row; i++) r_gamma.val[interface_dof->row+i] = r.val[A->blocks[0]->row+i];
+
+    //printf("done get r\n");
+
+    // set initial to be zero
+    e_gamma.row = brow*interface_dof->row;
+    e_gamma.val = r_gamma.val + r_gamma.row;
+    dvec_set(e_gamma.row, &e_gamma, 0.0);
+
+    //printf("done set e\n");
+
+    // solve for the interface part
+    //block_directsolve_UMF(A_gamma, &r_gamma, &e_gamma, 3);
+    //smoother_bdcsr_fgs_fgs(&e_gamma, A_gamma, &r_gamma, NULL, work);
+    //smoother_bdcsr_bgs_bgs(&e_gamma, A_gamma, &r_gamma, NULL, work);
+    smoother_bdcsr_jacobi_jacobi(&e_gamma, A_gamma, &r_gamma, NULL);
+
+    //printf("done solve interface\n");
+
+    //--------------------------------------------
+    // Gauss-Seidel smoother for the whole matrix
+    //--------------------------------------------
+    //smoother_bdcsr_fgs_fgs(u, A, b, A_diag, work);
+    //smoother_bdcsr_bgs_bgs(u, A, b, A_diag, work);
+    smoother_bdcsr_jacobi_jacobi(u, A, b, A_diag);
+
+    //printf("done smooth whole matrix\n");
+
+    //--------------------------------------------
+    // update the solution
+    //--------------------------------------------
+    for (i=0; i<interface_dof->row; i++) u->val[interface_dof->JA[i]] += e_gamma.val[i];
+    for (i=0; i<interface_dof->row; i++) u->val[A->blocks[0]->row+i] += e_gamma.val[interface_dof->row+i];
+
+    //printf("done update u\n");
+
+}
+
+/**
+ * \fn void smoother_bdcsr_metric_additive_bsr(dvector *u, block_dCSRmat *A, dvector *b,
+ *                                         dCSRmat *A_diag, REAL *work, dCSRmat *interface_dof,
+ *                                         dBSRmat *A_gamma, REAL    *diaginv)
+ *
+ * \brief block additive smoother for metric AMG (interface part in dBSRmat)
+ *
+ * \param u       Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
+ * \param A       Pointer to block_dBSRmat: the coefficient matrix
+ * \param b       Pointer to dvector: the right hand side
+ * \param A_diag  Pointer to specified diagonal blocks (e.g., approximation of Schur complements)
+ *
+ * \author  Xiaozhe Hu
+ *
+ */
+void smoother_bdcsr_metric_additive_bsr(dvector *u,
+                                        block_dCSRmat *A,
+                                        dvector *b,
+                                        dCSRmat *A_diag,
+                                        REAL *work,
+                                        dCSRmat *interface_dof,
+                                        dBSRmat * A_gamma,
+                                        REAL    *diaginv)
+{
+    // local variables
+    dvector r;
+    dvector r_gamma;
+    dvector e_gamma;
+
+    INT i;
+
+    INT brow = A->brow;
+
+    //--------------------------------
+    // smoother on the interface part
+    //--------------------------------
+    // save right hand side b in the workspace
+    array_cp(b->row, b->val, work + b->row);
+
+    //printf("done copy b\n");
+
+    // compute the overall residual
+    r.row = b->row;
+    r.val = work + b->row;
+    bdcsr_aAxpy(-1.0, A, u->val, r.val);
+
+    //printf("done computing r\n");
+
+    // get the residual for the interface part
+    r_gamma.row = brow*interface_dof->row;
+    r_gamma.val = r.val + r.row;
+    for (i=0; i<interface_dof->row; i++) r_gamma.val[i*brow] = r.val[interface_dof->JA[i]];
+    for (i=0; i<interface_dof->row; i++) r_gamma.val[i*brow+1] = r.val[A->blocks[0]->row+i];
+
+    //printf("done get r\n");
+
+    // set initial to be zero
+    e_gamma.row = brow*interface_dof->row;
+    e_gamma.val = r_gamma.val + r_gamma.row;
+    dvec_set(e_gamma.row, &e_gamma, 0.0);
+
+    //printf("done set e\n");
+
+    // solve for the interface part
+    //printf("ROW = %d\n", A_gamma->ROW);
+    //smoother_dbsr_gs_ascend(A_gamma, &r_gamma, &e_gamma, diaginv);
+    //smoother_dbsr_gs_descend(A_gamma, &r_gamma, &e_gamma, diaginv);
+    smoother_dbsr_jacobi(A_gamma, &r_gamma, &e_gamma, diaginv);
+    //printf("done solve interface\n");
+
+    //--------------------------------------------
+    // Gauss-Seidel smoother for the whole matrix
+    //--------------------------------------------
+    //smoother_bdcsr_fgs_fgs(u, A, b, A_diag, work);
+    //smoother_bdcsr_bgs_bgs(u, A, b, A_diag, work);
+    smoother_bdcsr_jacobi_jacobi(u, A, b, A_diag);
+
+    //printf("done smooth whole matrix\n");
+
+    //--------------------------------------------
+    // update the solution
+    //--------------------------------------------
+    for (i=0; i<interface_dof->row; i++) u->val[interface_dof->JA[i]] += e_gamma.val[i*brow];
+    for (i=0; i<interface_dof->row; i++) u->val[A->blocks[0]->row+i] += e_gamma.val[i*brow+1];
+
+    //printf("done update u\n");
+
+}
+
+/**
+ * \fn void smoother_bdcsr_metric_multiplicative_omega_gamma(dvector *u, block_dCSRmat *A, dvector *b,
+ *                                         dCSRmat *A_diag, REAL *work, dCSRmat *interface_dof,
+ *                                         block_dCSRmat *A_gamma)
+ *
+ * \brief block additive smoother for metric AMG
+ *
+ * \param u       Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
+ * \param A       Pointer to block_dBSRmat: the coefficient matrix
+ * \param b       Pointer to dvector: the right hand side
+ * \param A_diag  Pointer to specified diagonal blocks (e.g., approximation of Schur complements)
+ *
+ * \author  Xiaozhe Hu
+ *
+ */
+void smoother_bdcsr_metric_multiplicative_omega_gamma(dvector *u,
+                                                      block_dCSRmat *A,
+                                                      dvector *b,
+                                                      dCSRmat *A_diag,
+                                                      REAL *work,
+                                                      dCSRmat *interface_dof,
+                                                      block_dCSRmat * A_gamma)
+{
+    // local variables
+    dvector r;
+    dvector r_gamma;
+    dvector e_gamma;
+
+    INT i;
+
+    INT brow = A->brow;
+
+    //--------------------------------------------
+    // Gauss-Seidel smoother for the whole matrix
+    //--------------------------------------------
+    smoother_bdcsr_fgs_fgs(u, A, b, A_diag, work);
+    //smoother_bdcsr_bgs_bgs(u, A, b, A_diag, work);
+
+    //printf("done smooth whole matrix\n");
+
+    //--------------------------------
+    // smoother on the interface part
+    //--------------------------------
+    // save right hand side b in the workspace
+    array_cp(b->row, b->val, work + b->row);
+
+    //printf("done copy b\n");
+
+    // compute the overall residual
+    r.row = b->row;
+    r.val = work + b->row;
+    bdcsr_aAxpy(-1.0, A, u->val, r.val);
+
+    //printf("done computing r\n");
+
+    // get the residual for the interface part
+    r_gamma.row = brow*interface_dof->row;
+    r_gamma.val = r.val + r.row;
+    for (i=0; i<interface_dof->row; i++) r_gamma.val[i] = r.val[interface_dof->JA[i]];
+    for (i=0; i<interface_dof->row; i++) r_gamma.val[interface_dof->row+i] = r.val[A->blocks[0]->row+i];
+
+    //printf("done get r\n");
+
+    // set initial to be zero
+    e_gamma.row = brow*interface_dof->row;
+    e_gamma.val = r_gamma.val + r_gamma.row;
+    dvec_set(e_gamma.row, &e_gamma, 0.0);
+
+    //printf("done set e\n");
+
+    // solve for the interface part
+    //block_directsolve_UMF(A_gamma, &r_gamma, &e_gamma, 3);
+    smoother_bdcsr_fgs_fgs(&e_gamma, A_gamma, &r_gamma, NULL, work);
+    //smoother_bdcsr_bgs_bgs(&e_gamma, A_gamma, &r_gamma, NULL, work);
+
+    //printf("done solve interface\n");
+
+    //--------------------------------------------
+    // update the solution
+    //--------------------------------------------
+    for (i=0; i<interface_dof->row; i++) u->val[interface_dof->JA[i]] += e_gamma.val[i];
+    for (i=0; i<interface_dof->row; i++) u->val[A->blocks[0]->row+i] += e_gamma.val[interface_dof->row+i];
+
+    //printf("done update u\n");
+
+}
+
+/**
+ * \fn void smoother_bdcsr_metric_multiplicative_omega_gamma_bsr(dvector *u, block_dCSRmat *A, dvector *b,
+ *                                         dCSRmat *A_diag, REAL *work, dCSRmat *interface_dof,
+ *                                         dBSRmat *A_gamma, REAL * diaginv)
+ *
+ * \brief block additive smoother for metric AMG
+ *
+ * \param u       Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
+ * \param A       Pointer to block_dBSRmat: the coefficient matrix
+ * \param b       Pointer to dvector: the right hand side
+ * \param A_diag  Pointer to specified diagonal blocks (e.g., approximation of Schur complements)
+ *
+ * \author  Xiaozhe Hu
+ *
+ */
+void smoother_bdcsr_metric_multiplicative_omega_gamma_bsr(dvector *u,
+                                                          block_dCSRmat *A,
+                                                          dvector *b,
+                                                          dCSRmat *A_diag,
+                                                          REAL *work,
+                                                          dCSRmat *interface_dof,
+                                                          dBSRmat * A_gamma,
+                                                          REAL *diaginv)
+{
+    // local variables
+    dvector r;
+    dvector r_gamma;
+    dvector e_gamma;
+
+    INT i;
+
+    INT brow = A->brow;
+
+    //--------------------------------------------
+    // Gauss-Seidel smoother for the whole matrix
+    //--------------------------------------------
+    smoother_bdcsr_fgs_fgs(u, A, b, A_diag, work);
+    //smoother_bdcsr_bgs_bgs(u, A, b, A_diag, work);
+
+    //printf("done smooth whole matrix\n");
+
+    //--------------------------------
+    // smoother on the interface part
+    //--------------------------------
+    // save right hand side b in the workspace
+    array_cp(b->row, b->val, work + b->row);
+
+    //printf("done copy b\n");
+
+    // compute the overall residual
+    r.row = b->row;
+    r.val = work + b->row;
+    bdcsr_aAxpy(-1.0, A, u->val, r.val);
+
+    //printf("done computing r\n");
+
+    // get the residual for the interface part
+    r_gamma.row = brow*interface_dof->row;
+    r_gamma.val = r.val + r.row;
+    for (i=0; i<interface_dof->row; i++) r_gamma.val[i*brow] = r.val[interface_dof->JA[i]];
+    for (i=0; i<interface_dof->row; i++) r_gamma.val[i*brow+1] = r.val[A->blocks[0]->row+i];
+
+    //printf("done get r\n");
+
+    // set initial to be zero
+    e_gamma.row = brow*interface_dof->row;
+    e_gamma.val = r_gamma.val + r_gamma.row;
+    dvec_set(e_gamma.row, &e_gamma, 0.0);
+
+    //printf("done set e\n");
+
+    // solve for the interface part
+    smoother_dbsr_gs_ascend(A_gamma, &r_gamma, &e_gamma, diaginv);
+    //smoother_dbsr_gs_descend(A_gamma, &r_gamma, &e_gamma, diaginv);
+
+    //printf("done solve interface\n");
+
+    //--------------------------------------------
+    // update the solution
+    //--------------------------------------------
+    for (i=0; i<interface_dof->row; i++) u->val[interface_dof->JA[i]] += e_gamma.val[i*brow];
+    for (i=0; i<interface_dof->row; i++) u->val[A->blocks[0]->row+i] += e_gamma.val[i*brow+1];
+
+    //printf("done update u\n");
+
+}
+
+
+/**
+ * \fn void smoother_bdcsr_metric_multiplicative_gamma_omega(dvector *u, block_dCSRmat *A, dvector *b,
+ *                                         dCSRmat *A_diag, REAL *work, dCSRmat *interface_dof,
+ *                                         block_dCSRmat *A_gamma)
+ *
+ * \brief block additive smoother for metric AMG
+ *
+ * \param u       Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
+ * \param A       Pointer to block_dBSRmat: the coefficient matrix
+ * \param b       Pointer to dvector: the right hand side
+ * \param A_diag  Pointer to specified diagonal blocks (e.g., approximation of Schur complements)
+ *
+ * \author  Xiaozhe Hu
+ *
+ */
+void smoother_bdcsr_metric_multiplicative_gamma_omega(dvector *u,
+                                        block_dCSRmat *A,
+                                          dvector *b,
+                                          dCSRmat *A_diag,
+                                          REAL *work,
+                                          dCSRmat *interface_dof,
+                                          block_dCSRmat * A_gamma)
+{
+    // local variables
+    dvector r;
+    dvector r_gamma;
+    dvector e_gamma;
+
+    INT i;
+
+    INT brow = A->brow;
+
+    //--------------------------------
+    // smoother on the interface part
+    //--------------------------------
+    // save right hand side b in the workspace
+    array_cp(b->row, b->val, work + b->row);
+
+    //printf("done copy b\n");
+
+    // compute the overall residual
+    r.row = b->row;
+    r.val = work + b->row;
+    bdcsr_aAxpy(-1.0, A, u->val, r.val);
+
+    //printf("done computing r\n");
+
+    // get the residual for the interface part
+    r_gamma.row = brow*interface_dof->row;
+    r_gamma.val = r.val + r.row;
+    for (i=0; i<interface_dof->row; i++) r_gamma.val[i] = r.val[interface_dof->JA[i]];
+    for (i=0; i<interface_dof->row; i++) r_gamma.val[interface_dof->row+i] = r.val[A->blocks[0]->row+i];
+
+    //printf("done get r\n");
+
+    // set initial to be zero
+    e_gamma.row = brow*interface_dof->row;
+    e_gamma.val = r_gamma.val + r_gamma.row;
+    dvec_set(e_gamma.row, &e_gamma, 0.0);
+
+    //printf("done set e\n");
+
+    // solve for the interface part
+    //block_directsolve_UMF(A_gamma, &r_gamma, &e_gamma, 3);
+    //smoother_bdcsr_fgs_fgs(&e_gamma, A_gamma, &r_gamma, NULL, work);
+    smoother_bdcsr_bgs_bgs(&e_gamma, A_gamma, &r_gamma, NULL, work);
+
+    //printf("done solve interface\n");
+
+    //--------------------------------------------
+    // update the solution
+    //--------------------------------------------
+    for (i=0; i<interface_dof->row; i++) u->val[interface_dof->JA[i]] += e_gamma.val[i];
+    for (i=0; i<interface_dof->row; i++) u->val[A->blocks[0]->row+i] += e_gamma.val[interface_dof->row+i];
+
+    //printf("done update u\n");
+
+    //--------------------------------------------
+    // Gauss-Seidel smoother for the whole matrix
+    //--------------------------------------------
+    //smoother_bdcsr_fgs_fgs(u, A, b, A_diag, work);
+    smoother_bdcsr_bgs_bgs(u, A, b, A_diag, work);
+
+    //printf("done smooth whole matrix\n");
+
+}
+
+/**
+ * \fn void smoother_bdcsr_metric_multiplicative_gamma_omega_bsr(dvector *u, block_dCSRmat *A, dvector *b,
+ *                                         dCSRmat *A_diag, REAL *work, dCSRmat *interface_dof,
+ *                                         dBSRmat *A_gamma, REAL    *diaginv)
+ *
+ * \brief block additive smoother for metric AMG
+ *
+ * \param u       Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
+ * \param A       Pointer to block_dBSRmat: the coefficient matrix
+ * \param b       Pointer to dvector: the right hand side
+ * \param A_diag  Pointer to specified diagonal blocks (e.g., approximation of Schur complements)
+ *
+ * \author  Xiaozhe Hu
+ *
+ */
+void smoother_bdcsr_metric_multiplicative_gamma_omega_bsr(dvector *u,
+                                                          block_dCSRmat *A,
+                                                          dvector *b,
+                                                          dCSRmat *A_diag,
+                                                          REAL *work,
+                                                          dCSRmat *interface_dof,
+                                                          dBSRmat * A_gamma,
+                                                          REAL    *diaginv)
+{
+    // local variables
+    dvector r;
+    dvector r_gamma;
+    dvector e_gamma;
+
+    INT i;
+
+    INT brow = A->brow;
+
+    //--------------------------------
+    // smoother on the interface part
+    //--------------------------------
+    // save right hand side b in the workspace
+    array_cp(b->row, b->val, work + b->row);
+
+    //printf("done copy b\n");
+
+    // compute the overall residual
+    r.row = b->row;
+    r.val = work + b->row;
+    bdcsr_aAxpy(-1.0, A, u->val, r.val);
+
+    //printf("done computing r\n");
+
+    // get the residual for the interface part
+    r_gamma.row = brow*interface_dof->row;
+    r_gamma.val = r.val + r.row;
+    for (i=0; i<interface_dof->row; i++) r_gamma.val[i*brow] = r.val[interface_dof->JA[i]];
+    for (i=0; i<interface_dof->row; i++) r_gamma.val[i*brow+1] = r.val[A->blocks[0]->row+i];
+
+    //printf("done get r\n");
+
+    // set initial to be zero
+    e_gamma.row = brow*interface_dof->row;
+    e_gamma.val = r_gamma.val + r_gamma.row;
+    dvec_set(e_gamma.row, &e_gamma, 0.0);
+
+    //printf("done set e\n");
+
+    // solve for the interface part
+    //smoother_dbsr_gs_ascend(A_gamma, &r_gamma, &e_gamma, diaginv);
+    smoother_dbsr_gs_descend(A_gamma, &r_gamma, &e_gamma, diaginv);
+
+    //printf("done solve interface\n");
+
+    //--------------------------------------------
+    // update the solution
+    //--------------------------------------------
+    for (i=0; i<interface_dof->row; i++) u->val[interface_dof->JA[i]] += e_gamma.val[i*brow];
+    for (i=0; i<interface_dof->row; i++) u->val[A->blocks[0]->row+i] += e_gamma.val[i*brow+1];
+
+    //printf("done update u\n");
+
+    //--------------------------------------------
+    // Gauss-Seidel smoother for the whole matrix
+    //--------------------------------------------
+    //smoother_bdcsr_fgs_fgs(u, A, b, A_diag, work);
+    smoother_bdcsr_bgs_bgs(u, A, b, A_diag, work);
+
+    //printf("done smooth whole matrix\n");
+
+}
+
+
+
+
+
+/************************************************************************************************/
+// Smoothers for Eigenvalue prolems
 /************************************************************************************************/
 /**
  * \fn void smoother_dcsr_gs_graph_eigen(dvector *u, dCSRmat *A, const INT i_1, const INT i_n, const INT s, INT nsmooth, INT num_eigen)

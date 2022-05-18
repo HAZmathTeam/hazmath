@@ -28,6 +28,7 @@ static void form_boolean_p_bsr(const ivector *vertices,dBSRmat *tentp,const AMG_
 static void form_tentative_p_bsr(const ivector *vertices,dBSRmat *tentp, const AMG_data_bsr *mgl,const INT NumAggregates,const INT dim,REAL **basis);
 static SHORT amg_setup_unsmoothP_unsmoothR_bsr(AMG_data_bsr *mgl, AMG_param *param);
 static SHORT amg_setup_general_bdcsr(AMG_data_bdcsr *mgl, AMG_param *param);
+static SHORT amg_setup_bdcsr_metric(AMG_data_bdcsr *mgl, AMG_param *param);
 
 /*---------------------------------*/
 /*--      Public Functions       --*/
@@ -186,6 +187,38 @@ SHORT amg_setup_bdcsr(AMG_data_bdcsr  *mgl,
     return status;
 }
 
+/***********************************************************************************************/
+/**
+ * \fn INT metric_amg_setup_bdcsr (AMG_data_bdcsr *mgl, AMG_param *param)
+ *
+ * \brief Set up phase of metric AMG (block_dCSRmat format)
+ *
+ * \param mgl    Pointer to AMG data: AMG_data_bdcsr
+ * \param param  Pointer to AMG parameters: AMG_param
+ *
+ * \return       SUCCESS if successed; otherwise, error information.
+ *
+ * \author Xiaozhe Hu
+ * \date   05/15/2012
+ *
+ * \note  special AMG setup phase for interface prolem only
+ *
+ */
+SHORT metric_amg_setup_bdcsr(AMG_data_bdcsr  *mgl,
+                            AMG_param     *param)
+{
+#if DEBUG_MODE > 0
+    printf("### DEBUG: [-Begin-] %s ...\n", __FUNCTION__);
+#endif
+
+    SHORT status = amg_setup_bdcsr_metric(mgl, param);
+
+#if DEBUG_MODE > 0
+    printf("### DEBUG: [--End--] %s ...\n", __FUNCTION__);
+#endif
+
+    return status;
+}
 
 
 /*---------------------------------*/
@@ -2125,7 +2158,7 @@ static SHORT amg_setup_unsmoothP_unsmoothR_bsr(AMG_data_bsr   *mgl,
 
 /***********************************************************************************************/
 /**
- * \fn static SHORT amg_setup_unsmoothP_unsmoothR_bdcsr (AMG_data_bdcsr *mgl,
+ * \fn static SHORT amg_setup_general_bdcsr (AMG_data_bdcsr *mgl,
  *                                                     AMG_param *param)
  *
  * \brief Set up phase of plain aggregation AMG, using unsmoothed P and unsmoothed A
@@ -2329,6 +2362,253 @@ static SHORT amg_setup_general_bdcsr(AMG_data_bdcsr *mgl,
         mgl[lvl].b          = dvec_create(total_col);
         mgl[lvl].x          = dvec_create(total_col);
         mgl[lvl].w          = dvec_create(3*total_col);
+    }
+
+    if ( prtlvl > PRINT_NONE ) {
+        get_time(&setup_end);
+        print_cputime("Block dCSRmat AMG setup", setup_end - setup_start);
+    }
+
+#if DEBUG_MODE > 0
+    printf("### DEBUG: [--End--] %s ...\n", __FUNCTION__);
+#endif
+
+    return status;
+}
+
+
+/***********************************************************************************************/
+/**
+ * \fn static SHORT amg_setup_metric_bdcsr (AMG_data_bdcsr *mgl,
+ *                                          AMG_param *param)
+ *
+ * \brief Set up phase of metric AMG, using unsmoothed P and unsmoothed A
+ *        in block_dCSR format
+ *
+ * \param mgl    Pointer to AMG data: AMG_data_bdcsr
+ * \param param  Pointer to AMG parameters: AMG_param
+
+ *
+ * \return       SUCCESS if succeed, error otherwise
+ *
+ * \author Xiaozhe Hu
+ * \date   05/15/2012
+ *
+ * \note    Assume block_row = block_col !! -- Xiaozhe Hu
+ *
+ */
+static SHORT amg_setup_bdcsr_metric(AMG_data_bdcsr *mgl,
+                                     AMG_param      *param)
+{
+    const SHORT prtlvl   = param->print_level;
+    const SHORT csolver  = param->coarse_solver;
+    const SHORT min_cdof = MAX(param->coarse_dof,50);
+    const INT   brow     = mgl[0].A.brow;
+    const INT   bcol     = mgl[0].A.bcol;
+
+    SHORT max_levels = param->max_levels;
+    SHORT i, j,lvl = 0, status = SUCCESS;
+    REAL  setup_start, setup_end;
+    INT   total_row, total_col, total_nnz;
+
+    // get total size
+    bdcsr_get_total_size(&(mgl[0].A), &total_row, &total_col, &total_nnz);
+
+#if DEBUG_MODE > 0
+    printf("### DEBUG: [-Begin-] %s ...\n", __FUNCTION__);
+    printf("### DEBUG: nblock_row=%d, nblock_col=%d, total_row=%d, total_col=%d, total_nnz=%d\n",
+            brow, bcol, total_row, total_col, total_nnz);
+#endif
+
+    // diagonal matrices for coarsening
+    dCSRmat *A_diag = mgl[0].A_diag;
+
+    // AMG data for each diaongal block
+    AMG_data **mgl_diag = (AMG_data **)calloc(brow, sizeof(AMG_data *));
+
+    // local variable
+    dCSRmat temp_mat;
+
+    /*---------------------------*/
+    /*--Main step for AMG setup--*/
+    /*---------------------------*/
+    get_time(&setup_start);
+
+    // setup AMG for each diagonal block (given by A_diag)
+    for (i=0; i<brow; i++){
+
+        if ( prtlvl > PRINT_NONE ) printf("\n Diagonal block %d ...\n", i);
+
+        /* set AMG for diagonal blocks */
+        mgl_diag[i] = amg_data_create(max_levels);
+        dcsr_alloc(A_diag[i].row, A_diag[i].row, A_diag[i].nnz, &mgl_diag[i][0].A);
+        dcsr_cp(&(A_diag[i]), &mgl_diag[i][0].A);
+        mgl_diag[i][0].b=dvec_create(A_diag[i].row);
+        mgl_diag[i][0].x=dvec_create(A_diag[i].row);
+
+        switch (param->AMG_type) {
+
+            case MUA_AMG: // Unsmoothed Aggregation AMG
+                if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+                status = amg_setup_ua(mgl_diag[i], param);
+                break;
+
+            case MSA_AMG: // Smoothed Aggregation AMG
+                if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+                status = amg_setup_sa(mgl_diag[i], param);
+                break;
+
+            default: // UA AMG
+                if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+                status = amg_setup_ua(mgl_diag[i], param);
+                break;
+
+        }
+
+    }
+
+    // save mgl_diag data
+    mgl[0].mgl_diag = mgl_diag;
+
+    // set the total levels  (TODO: need better way to do this --Xiaozhe Hu)
+    mgl[0].num_levels = mgl_diag[0]->num_levels;
+    for (i=0; i<brow; i++){
+        //mgl[0].num_levels = MAX(mgl[0].num_levels, mgl_diag[i]->num_levels);
+        mgl[0].num_levels = MIN(mgl[0].num_levels, mgl_diag[i]->num_levels);
+    }
+    max_levels = mgl[0].num_levels;
+
+    // construct P and R in the block_dCSR format
+    for (lvl=0; lvl<max_levels-1; lvl++){
+
+        //printf("level = %d\n", lvl);
+
+        // allocate P
+        bdcsr_alloc(brow, bcol, &(mgl[lvl].P));
+        // allocate R
+        bdcsr_alloc(brow, bcol, &(mgl[lvl].R));
+
+        for (i=0; i<brow; i++){
+
+            // copy P
+            dcsr_alloc(mgl_diag[i][lvl].P.row, mgl_diag[i][lvl].P.col, mgl_diag[i][lvl].P.nnz, mgl[lvl].P.blocks[i*brow+i]);
+            dcsr_cp(&mgl_diag[i][lvl].P, mgl[lvl].P.blocks[i*brow+i]);
+
+            // copy R
+            dcsr_alloc(mgl_diag[i][lvl].R.row, mgl_diag[i][lvl].R.col, mgl_diag[i][lvl].R.nnz, mgl[lvl].R.blocks[i*brow+i]);
+            dcsr_cp(&mgl_diag[i][lvl].R, mgl[lvl].R.blocks[i*brow+i]);
+
+        }
+
+    }
+
+    // form coarse level matrices
+    for (lvl=0; lvl<max_levels-1; lvl++){
+        //printf("level = %d\n", lvl);
+
+        // allocate
+        bdcsr_alloc(brow, bcol, &(mgl[lvl+1].A));
+
+        // form coarse level matrices
+        for (i=0; i<brow; i++){
+            for (j=0; j<brow; j++){
+
+                if (i==j)  // diagonal block
+                {
+                    dcsr_rap(mgl[lvl].R.blocks[i*brow+i], mgl[lvl].A.blocks[i*brow+j], mgl[lvl].P.blocks[j*brow+j], mgl[lvl+1].A.blocks[i*brow+j]);
+                }
+                else // off-diagonal blocks
+                {
+                    // temp = R*A
+                    dcsr_mxm(mgl[lvl].R.blocks[i*brow+i], mgl[lvl].A.blocks[i*brow+j], &temp_mat);
+                    // Ac = temp*P
+                    dcsr_mxm (&temp_mat, mgl[lvl].P.blocks[j*brow+j], mgl[lvl+1].A.blocks[i*brow+j]);
+                    // cleam temp mat
+                    dcsr_free(&temp_mat);
+                }
+                //
+
+                //printf("done!\n");
+                //getchar();
+            }
+        }
+    }
+
+    // form coarse level A_diag
+    for (lvl=1; lvl<max_levels; lvl++){
+        // allocate
+        mgl[lvl].A_diag = (dCSRmat *)calloc(brow, sizeof(dCSRmat));
+
+        // form A_diag
+        for (i=0; i<brow; i++){
+            dcsr_alloc(mgl_diag[i][lvl].A.row, mgl_diag[i][lvl].A.col, mgl_diag[i][lvl].A.nnz, &mgl[lvl].A_diag[i]);
+            dcsr_cp(&(mgl_diag[i][lvl].A), &mgl[lvl].A_diag[i]);
+        }
+    }
+
+    // Setup coarse level systems for direct solvers (block_dCSRmat version)
+    lvl = max_levels;
+    switch (csolver) {
+
+#if WITH_UMFPACK
+        case SOLVER_UMFPACK: {
+            // Need to sort the matrix A for UMFPACK to work
+            mgl[lvl].Ac = bdcsr_2_dcsr(&mgl[lvl].A);
+	        dCSRmat Ac_tran=dcsr_create(mgl[lvl].Ac.col,mgl[lvl].Ac.row,mgl[lvl].Ac.nnz);
+            dcsr_transz(&mgl[lvl].Ac, NULL, &Ac_tran);
+            dcsr_cp(&Ac_tran, &mgl[lvl].Ac);
+            dcsr_free(&Ac_tran);
+            mgl[lvl].Numeric = umfpack_factorize(&mgl[lvl].Ac, 0);
+            break;
+        }
+#endif
+
+        default:
+            // Do nothing!
+            break;
+    }
+
+    // allocate workspace on the fine level
+    mgl[0].w = dvec_create(10*(mgl[0].b.row));
+
+    // get the interface submatrix
+    //block_dCSRmat A_gamma;
+    mgl[0].A_gamma = (block_dCSRmat *)calloc(1, sizeof(block_dCSRmat));
+    bdcsr_alloc(brow, bcol, mgl[0].A_gamma);
+
+    // assume 2 x 2 block structure
+    INT *gamma0 = mgl[0].interface_dof->JA;
+    INT size0   = mgl[0].interface_dof->row;
+    INT *gamma1 = mgl[0].interface_dof->IA;
+    INT size1   = mgl[0].interface_dof->row;
+
+    //dcsr_write_dcoo("A00.dat", mgl[0].A.blocks[0]);
+    //for (i=0; i<mgl[0].interface_dof->nnz; i++) printf("idx[%d]=%d\n", i, mgl[0].interface_dof->JA[i]);
+
+    dcsr_getblk(mgl[0].A.blocks[0], gamma0, gamma0, size0, size0, mgl[0].A_gamma->blocks[0]);
+    dcsr_getblk(mgl[0].A.blocks[1], gamma0, gamma1, size0, size1, mgl[0].A_gamma->blocks[1]);
+    dcsr_getblk(mgl[0].A.blocks[2], gamma1, gamma0, size1, size0, mgl[0].A_gamma->blocks[2]);
+    dcsr_getblk(mgl[0].A.blocks[3], gamma1, gamma1, size1, size1, mgl[0].A_gamma->blocks[3]);
+
+    /*
+    dcsr_write_dcoo("AT00.dat", mgl[0].A_gamma->blocks[0]);
+    dcsr_write_dcoo("AT01.dat", mgl[0].A_gamma->blocks[1]);
+    dcsr_write_dcoo("AT10.dat", mgl[0].A_gamma->blocks[2]);
+    dcsr_write_dcoo("AT11.dat", mgl[0].A_gamma->blocks[3]);
+    getchar();
+    */
+
+    // convert to dBSRmat format
+    mgl[0].A_gamma_bsr = bdcsr_2_dbsr(mgl[0].A_gamma);
+    mgl[0].A_gamma_diaginv = dbsr_getdiaginv(&mgl[0].A_gamma_bsr);
+
+    // allocation on coarse level
+    for ( lvl = 1; lvl < max_levels; lvl++ ) {
+        bdcsr_get_total_size(&(mgl[lvl].A), &total_row, &total_col, &total_nnz);
+        mgl[lvl].num_levels = max_levels;
+        mgl[lvl].b          = dvec_create(total_col);
+        mgl[lvl].x          = dvec_create(total_col);
+        mgl[lvl].w          = dvec_create(4*total_col);
     }
 
     if ( prtlvl > PRINT_NONE ) {

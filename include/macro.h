@@ -154,6 +154,10 @@
  */
 #define UA_AMG                  1  /**< unsmoothed aggregation AMG */
 #define SA_AMG                  2  /**< smoothed aggregation AMG */
+#define C_AMG                   3  /**< classical AMG */
+#define MUA_AMG                 10 /**< Metric Unsmoothed aggregation AMG for interface problem */
+#define MSA_AMG                 11 /**< Metric Smoothed aggregation AMG for interface problem */
+
 
 /**
  * \brief Definition of aggregation types
@@ -198,7 +202,8 @@
 #define SMOOTHER_USERDEF       20  /**< User defined smoother (NB! requires fptr to smoother mxv */
 #define SMOOTHER_JACOBI_GS     31  /**< Jacobi GS smoother for block dCSRmat (Block Jacobi + GS for each block)  */
 #define SMOOTHER_JACOBI_SGS    32  /**< Jacobi SGS smoother for block dCSRmat (Block Jacobi + SGS for each block)  */
-
+#define SMOOTHER_METRIC_ADD    40  /**< Additive metric smoother for block dCSRmat  */
+#define SMOOTHER_METRIC_MUL    41  /**< Multiplicative metric smoother for block dCSRmat */
 
 /**
  * \brief Type of vertices (DOFs) for coarsening
