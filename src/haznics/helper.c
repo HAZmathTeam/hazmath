@@ -1374,7 +1374,7 @@ INT fenics_metric_amg_solver(block_dCSRmat *A,
                              block_dCSRmat *M,
                              dCSRmat *interface_dof)
 {
-    INT i;
+    INT i,j;
     /* set Parameters from Reading in Input File */
     input_param inparam;
     param_input_init(&inparam);
@@ -1389,6 +1389,50 @@ INT fenics_metric_amg_solver(block_dCSRmat *A,
 
     /* set initial guess */
     dvec_set(b->row, x, 0.0);
+
+    /* print everything */
+    fprintf(stdout,"\nb1=[");
+    for(i = 0; i < b->row; ++i){
+      fprintf(stdout,"%.16e\n",b->val[i]);
+    }
+    fprintf(stdout,"];\n");
+    fflush(stdout);
+
+    /*fprintf(stdout,"\n------------ A ---------- \n"); fflush(stdout);
+    for(i = 0; i < A->brow; ++i) {
+        for(j = 0; j < A->bcol; ++j) {
+            fprintf(stdout,"\nA1=[");
+            csr_print_matlab(stdout, A->blocks[i+brow*j]);
+            fprintf(stdout,"];A1=sparse(A1(:,1),A1(:,2),A1(:,3),%d,%d);\n",A->blocks[i+brow*j]->row,A->blocks[i+brow*j]->col);
+            fflush(stdout);
+        }
+    }
+
+    fprintf(stdout,"\n------------ M ---------- \n"); fflush(stdout);
+    for(i = 0; i < M->brow; ++i) {
+        for(j = 0; j < M->bcol; ++j) {
+            fprintf(stdout,"\nA1=[");
+            csr_print_matlab(stdout, M->blocks[i+brow*j]);
+            fprintf(stdout,"];A1=sparse(A1(:,1),A1(:,2),A1(:,3),%d,%d);\n",M->blocks[i+brow*j]->row,M->blocks[i+brow*j]->col);
+            fflush(stdout);
+        }
+    }
+
+    fprintf(stdout,"\n------------ AD ---------- \n"); fflush(stdout);
+    for(i = 0; i < AD->brow; ++i) {
+        for(j = 0; j < AD->bcol; ++j) {
+            fprintf(stdout,"\nA1=[");
+            csr_print_matlab(stdout, AD->blocks[i+brow*j]);
+            fprintf(stdout,"];A1=sparse(A1(:,1),A1(:,2),A1(:,3),%d,%d);\n",AD->blocks[i+brow*j]->row,AD->blocks[i+brow*j]->col);
+            fflush(stdout);
+        }
+    }*/
+
+    /*fprintf(stdout,"\n------------ C ---------- \n"); fflush(stdout);
+    fprintf(stdout,"\nA1=[");
+    csr_print_matlab(stdout, interface_dof);
+    fprintf(stdout,"];A1=sparse(A1(:,1),A1(:,2),A1(:,3),%d,%d);\n",interface_dof->row,interface_dof->col);
+    fflush(stdout);*/
 
     /* Set Solver Parameters */
     INT solver_flag = -20;
