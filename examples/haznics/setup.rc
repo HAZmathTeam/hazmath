@@ -1,2 +1,3 @@
 # /bin/sh ./install_haznics.sh
 export PYTHONPATH=$(pwd)/../../swig_files:$PYTHONPATH
+dijitso clean
