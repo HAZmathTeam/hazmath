@@ -1232,10 +1232,11 @@ PyObject* py_callback_eval(REAL *r, REAL *x, smoother_matvec *smmv)
 
 }
 
-void wrapper_krylov_amg(dCSRmat *mat, dvector *rhs, dvector *sol, REAL tol)
+INT wrapper_krylov_amg(dCSRmat *mat, dvector *rhs, dvector *sol, REAL tol)
 {
     AMG_param       amgparam; // parameters for AMG
     linear_itsolver_param  itparam;  // parameters for linear itsolver
+    INT niters = 0;
 
     // Set parameters for linear iterative methods
     param_linear_solver_init(&itparam);
@@ -1257,8 +1258,9 @@ void wrapper_krylov_amg(dCSRmat *mat, dvector *rhs, dvector *sol, REAL tol)
     itparam.linear_print_level    = 2;
     itparam.linear_maxit          = 100;
 
-    linear_solver_dcsr_krylov_amg(mat, rhs, sol, &itparam, &amgparam);
+    niters = linear_solver_dcsr_krylov_amg(mat, rhs, sol, &itparam, &amgparam);
 
+    return niters;
 }
 
 
