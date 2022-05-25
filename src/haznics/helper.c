@@ -1459,3 +1459,11 @@ INT fenics_metric_amg_solver(block_dCSRmat *A,
 
     return solver_flag;
 }
+
+
+void print_bdcsr_matrix(block_dCSRmat *A)
+{
+    fprintf(stdout,"\n------------ A ---------- \n"); fflush(stdout);
+    bdcsr_print_matlab(stdout, A);
+    fflush(stdout);
+}
