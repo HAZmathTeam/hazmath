@@ -178,10 +178,12 @@ import_array();
     printf("n, m = %d, %d \n", $self->bcol, $self->brow);
   }
   dCSRmat* get(int i, int j) {
-      return ($self)->blocks[i + $self->brow*j];
+      return ($self)->blocks[$self->bcol*i + j];
+      /*OOPS     return ($self)->blocks[i + $self->brow*j];*/
     }
   void set(int i, int j, dCSRmat* mat) {
-      ($self)->blocks[i + $self->brow*j] = mat;
+    /*      ($self)->blocks[i + $self->brow*j] = mat;*/
+      ($self)->blocks[$self->bcol*i + j] = mat;
     }
 
 
