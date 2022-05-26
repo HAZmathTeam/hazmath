@@ -204,17 +204,16 @@ INT Schwarz_setup (Schwarz_data *Schwarz,
             /* use UMFPACK direct solver on each block */
             dCSRmat *blk = Schwarz->blk_data;
             void **numeric	= (void**)calloc(nblk, sizeof(void*));
-            dCSRmat Ac_tran;
-            //printf("number of blocks = %d\n",nblk);
+            dCSRmat blk_tran;
             for (i=0; i<nblk; ++i) {
-                Ac_tran = dcsr_create(blk[i].row, blk[i].col, blk[i].nnz);
-                dcsr_transz(&blk[i], NULL, &Ac_tran);
-                dcsr_cp(&Ac_tran, &blk[i]);
+                dcsr_alloc(blk[i].row, blk[i].col, blk[i].nnz, &blk_tran);
+                dcsr_transz(&blk[i], NULL, &blk_tran);
+                dcsr_cp(&blk_tran, &blk[i]);
+                dcsr_free(&blk_tran);
                 //printf("size of block %d: nrow=%d, nnz=%d\n",i, blk[i].row, blk[i].nnz);
                 numeric[i] = umfpack_factorize(&blk[i], 0);
             }
             Schwarz->numeric = numeric;
-            dcsr_free(&Ac_tran);
 
             break;
         }
@@ -237,6 +236,11 @@ INT Schwarz_setup (Schwarz_data *Schwarz,
     Schwarz->blk_solver = param->Schwarz_blksolver;
 
     printf("Schwarz method setup is done! Find %d blocks\n",nblk);
+
+    // clean
+    ivec_free(MaxIndSet);
+    if (MaxIndSet) free(MaxIndSet);
+    MaxIndSet = NULL;
 
     return flag;
 }

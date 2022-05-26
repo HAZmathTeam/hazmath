@@ -9,6 +9,96 @@
 
 #include "hazmath.h"
 
+
+/**
+ * \fn ivector sparse_MIS(dCSRmat *A, INT *ord)
+ *
+ * \brief get the maximal independet set of a CSR matrix
+ *
+ * \param A    pointer to the matrix (can be adjacency matrix or Lapalcian matrix)
+ * \param iord ordering in which the versices are explored
+ *
+ * \note: only use the sparsity of A, index starts from 1 (fortran)!!
+ * \note: changed to start from 0 (ltz);
+ */
+ivector *sparse_MIS(dCSRmat *A, INT *iord)
+{
+
+    //! information of A
+    INT n = A->row;
+    INT *IA = A->IA;
+    INT *JA = A->JA;
+
+    // local variables
+    INT i,j,ii;
+    INT row_begin, row_end;
+    INT count=0;
+    INT *flag;
+    flag = (INT *)calloc(n, sizeof(INT));
+    memset(flag, 0, sizeof(INT)*n);
+
+    //! return
+    ivector *MaxIndSet=malloc(1*sizeof(ivector));
+    MaxIndSet->row = 0; // this is temporary, not used till the end
+    MaxIndSet->val = (INT*)calloc(n,sizeof(INT));
+
+    //main loop
+    if(iord != NULL){
+        for (ii=0;ii<n;ii++) {
+            i=iord[ii];
+            if (flag[i] == 0) {
+                flag[i] = 1;
+                row_begin = IA[i]; row_end = IA[i+1];
+                for (j = row_begin; j<row_end; j++) {
+                    if ( (flag[JA[j]] > 0) && (JA[j]!=i)) {
+                        flag[i] = -1;
+                        break;
+                    }
+                }
+                if (flag[i]>0) {
+                    MaxIndSet->val[count] = i; count++;
+                    for (j = row_begin; j<row_end; j++) {
+                        if (JA[j]!=i){
+                            flag[JA[j]] = -1;
+                        }
+                    }
+                }
+            } // end if
+        }// end for
+    } else {
+        // no ordering
+        for (i=0;i<n;i++) {
+            if (flag[i] == 0) {
+                flag[i] = 1;
+                row_begin = IA[i]; row_end = IA[i+1];
+                for (j = row_begin; j<row_end; j++) {
+                    if ( (flag[JA[j]] > 0) && (JA[j]!=i)) {
+                        flag[i] = -1;
+                        break;
+                    }
+                }
+                if (flag[i]>0) {
+                    MaxIndSet->val[count] = i; count++;
+                    for (j = row_begin; j<row_end; j++) {
+                        if (JA[j] != i){
+                            flag[JA[j]] = -1;
+                        }
+                    }
+                }
+            } // end if
+        }// end for
+    }
+    // form Maximal Independent Set
+    MaxIndSet->row = count;
+    MaxIndSet->val=(INT *)realloc(MaxIndSet->val, count*sizeof(INT));
+
+    // clean
+    if (flag) free(flag);
+    //return
+    return MaxIndSet;
+}
+
+
 /***********************************************************************************************/
 /*!
  * \fn dCSRmat get_adjacency_from_transition(dCSRmat *P, dvector *weighted_degree)

@@ -186,11 +186,11 @@ void param_amg_init (AMG_param *amgparam)
     amgparam->smooth_filter        = ON;
 
     // Schwarz smoother parameters
-    amgparam->Schwarz_levels       = 0; // how many levels will use Schwarz smoother
+    amgparam->Schwarz_levels       = 1; // how many levels will use Schwarz smoother
     amgparam->Schwarz_mmsize       = 200;
-    amgparam->Schwarz_maxlvl       = 3; // blocksize -- vertices with smaller distance
+    amgparam->Schwarz_maxlvl       = 2; // blocksize -- vertices with smaller distance
     amgparam->Schwarz_type         = 1;
-    amgparam->Schwarz_blksolver    = SOLVER_DEFAULT;
+    amgparam->Schwarz_blksolver    = SOLVER_UMFPACK;
 
     // Other smoother param
     amgparam->HAZDIR     = NULL;
@@ -220,7 +220,7 @@ void param_Schwarz_init (Schwarz_param *schparam)
 {
     schparam->print_level       = PRINT_NONE;
     schparam->Schwarz_type      = 3;
-    schparam->Schwarz_maxlvl    = 2;
+    schparam->Schwarz_maxlvl    = 1;
     schparam->Schwarz_mmsize    = 200;
     schparam->Schwarz_blksolver = 0;
 }

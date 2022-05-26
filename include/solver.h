@@ -45,7 +45,7 @@ typedef struct {
     /* matrix information */
 
     //! pointer to the matrix
-    dCSRmat A;  // note: has to be start from 1!! Change later
+    dCSRmat A;  // 
 
     /* blocks information */
     //! number of blocks

@@ -1019,6 +1019,7 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
     INT           i;
     REAL          setup_start, setup_end;
     Schwarz_param swzparam;
+    //dCSRmat As;
 
     get_time(&setup_start);
 
@@ -1071,7 +1072,7 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
 
       /*-- Setup Schwarz smoother if necessary */
       if ( lvl < param->Schwarz_levels ) {
-          mgl[lvl].Schwarz.A=dcsr_sympat(&mgl[lvl].A);
+          mgl[lvl].Schwarz.A = dcsr_sympat(&mgl[lvl].A);
           Schwarz_setup(&mgl[lvl].Schwarz, &swzparam);
       }
 

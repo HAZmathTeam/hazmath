@@ -108,6 +108,11 @@ void amg_data_free(AMG_data *mgl,
         dvec_free(&mgl[i].b);
         dvec_free(&mgl[i].x);
         dvec_free(&mgl[i].w);
+
+        // free Schwarz data
+        if ( i < param->Schwarz_levels ) {
+            schwarz_data_free(&mgl[i].Schwarz);
+        }
     }
 
     for (i=0; i<mgl->near_kernel_dim; ++i) {
@@ -136,6 +141,8 @@ void amg_data_free(AMG_data *mgl,
         if ( param->cycle_type == AMLI_CYCLE )
             free(param->amli_coef);
     }
+
+
 
 }
 
@@ -485,6 +492,68 @@ void HX_div_data_free (HX_div_data *hxdivdata,
     if (hxdivdata->w) free(hxdivdata->w);
 
 }
+
+/**
+ * \fn void schwarz_data_free (Schwarz_data *schwarzdata)
+ * \brief Free Schwarz data memeory space
+ *
+ * \param swzdata      Pointer to the Schwarz_data for Schwarz methods
+ *
+ * \author Xiaozhe Hu
+ * \date   2010/04/06
+ */
+void schwarz_data_free(Schwarz_data *schwarzdata)
+{
+    INT i;
+
+    if ( schwarzdata == NULL ) return; // There is nothing to do!
+
+    dcsr_free(&schwarzdata->A);
+
+    for ( i=0; i<schwarzdata->nblk; ++i ) {
+
+        dcsr_free(&((schwarzdata->blk_data)[i]));
+
+        if (schwarzdata->blk_solver == SOLVER_UMFPACK){
+#if WITH_SUITESPARSE
+            if (schwarzdata->numeric[i]) umfpack_free_numeric(schwarzdata->numeric[i]);
+#endif
+        }
+    }
+    schwarzdata->nblk = 0;
+    if (schwarzdata->blk_data) free(schwarzdata->blk_data);
+    schwarzdata->blk_data = NULL;
+
+    if (schwarzdata->blk_solver == SOLVER_UMFPACK){
+#if WITH_SUITESPARSE
+        if (schwarzdata->numeric) free(schwarzdata->numeric);
+        schwarzdata->numeric = NULL;
+#endif
+    }
+
+    if (schwarzdata->iblock) free(schwarzdata->iblock);
+    schwarzdata->iblock = NULL;
+    if (schwarzdata->jblock) free(schwarzdata->jblock);
+    schwarzdata->jblock = NULL;
+
+    if (schwarzdata->rhsloc) free(schwarzdata->rhsloc);
+    schwarzdata->rhsloc = NULL;
+    dvec_free(&schwarzdata->rhsloc1);
+    dvec_free(&schwarzdata->xloc1);
+
+    if (schwarzdata->au) free(schwarzdata->au);
+    schwarzdata->au = NULL;
+    if (schwarzdata->al) free(schwarzdata->al);
+    schwarzdata->al = NULL;
+
+    schwarzdata->memt = 0;
+    if (schwarzdata->mask) free(schwarzdata->mask);
+    schwarzdata->mask = NULL;
+    if (schwarzdata->maxa) free(schwarzdata->maxa);
+    schwarzdata->maxa = NULL;
+
+}
+
 
 
 /***********************************************************************************************/
