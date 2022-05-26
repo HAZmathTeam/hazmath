@@ -178,10 +178,12 @@ import_array();
     printf("n, m = %d, %d \n", $self->bcol, $self->brow);
   }
   dCSRmat* get(int i, int j) {
-      return ($self)->blocks[i + $self->brow*j];
+      return ($self)->blocks[$self->bcol*i + j];
+      /*OOPS     return ($self)->blocks[i + $self->brow*j];*/
     }
   void set(int i, int j, dCSRmat* mat) {
-      ($self)->blocks[i + $self->brow*j] = mat;
+    /*      ($self)->blocks[i + $self->brow*j] = mat;*/
+      ($self)->blocks[$self->bcol*i + j] = mat;
     }
 
 
@@ -339,3 +341,4 @@ void precond_amg_add(double*, double*, void*);
 
 INT wrapper_krylov_amg(dCSRmat *mat, dvector *rhs, dvector *sol, REAL tol);
 INT fenics_metric_amg_solver(block_dCSRmat *A, dvector *b, dvector *x, block_dCSRmat *AD, block_dCSRmat *M, dCSRmat *interface_dof);
+void print_bdcsr_matrix(block_dCSRmat *A);

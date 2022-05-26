@@ -1393,21 +1393,21 @@ INT fenics_metric_amg_solver(block_dCSRmat *A,
     dvec_set(b->row, x, 0.0);
 
     /* print everything */
-    /*fprintf(stdout,"\nb1=[");
+    fprintf(stdout,"\nb1=[");
     for(i = 0; i < b->row; ++i){
       fprintf(stdout,"%.16e\n",b->val[i]);
     }
     fprintf(stdout,"];\n");
-    fflush(stdout);*/
+    fflush(stdout);
 
-    /*fprintf(stdout,"\n------------ A ---------- \n"); fflush(stdout);
+    fprintf(stdout,"\n------------ A ---------- \n"); fflush(stdout);
     bdcsr_print_matlab(stdout, A);
     fflush(stdout);
     fprintf(stdout,"\n------------ M ---------- \n"); fflush(stdout);
     bdcsr_print_matlab(stdout, M);
     fflush(stdout);
 
-    fprintf(stdout,"\n------------ AD ---------- \n"); fflush(stdout);
+    /*fprintf(stdout,"\n------------ AD ---------- \n"); fflush(stdout);
     bdcsr_print_matlab(stdout, AD);
     fflush(stdout);*/
 
@@ -1458,4 +1458,12 @@ INT fenics_metric_amg_solver(block_dCSRmat *A,
     if (A_diag) free(A_diag);
 
     return solver_flag;
+}
+
+
+void print_bdcsr_matrix(block_dCSRmat *A)
+{
+    fprintf(stdout,"\n------------ A ---------- \n"); fflush(stdout);
+    bdcsr_print_matlab(stdout, A);
+    fflush(stdout);
 }

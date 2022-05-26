@@ -27,7 +27,7 @@ AAA.debugPrint()
 
 
 type(AAA)
-# import pdb; pdb.set_trace()
+import pdb; pdb.set_trace()
 
 AAA.set(i=0,j=0,mat=AA)
 AAA.set(i=0,j=1,mat=AA)
