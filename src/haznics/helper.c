@@ -1264,6 +1264,39 @@ INT wrapper_krylov_amg(dCSRmat *mat, dvector *rhs, dvector *sol, REAL tol)
 }
 
 
+INT wrapper_krylov_amg_schwarz(dCSRmat *mat, dvector *rhs, dvector *sol, REAL tol)
+{
+    AMG_param       amgparam; // parameters for AMG
+    linear_itsolver_param  itparam;  // parameters for linear itsolver
+    INT niters = 0;
+
+    // Set parameters for linear iterative methods
+    param_linear_solver_init(&itparam);
+    //if (*print_lvl > PRINT_MIN)
+    param_linear_solver_print(&itparam);
+
+    // Set parameters for algebriac multigrid methods
+    param_amg_init(&amgparam);
+    //if (*print_lvl > PRINT_MIN)
+    param_amg_print(&amgparam);
+
+    amgparam.print_level          = 2;
+    amgparam.Schwarz_levels       = 1;
+    amgparam.Schwarz_mmsize       = 200;
+    amgparam.Schwarz_maxlvl       = 2;
+    amgparam.Schwarz_type         = 1;
+    amgparam.Schwarz_blksolver    = SOLVER_UMFPACK;
+
+    itparam.linear_tol            = tol;
+    itparam.linear_print_level    = 2;
+    itparam.linear_maxit          = 100;
+
+    niters = linear_solver_dcsr_krylov_amg(mat, rhs, sol, &itparam, &amgparam);
+
+    return niters;
+}
+
+
 INT fenics_bsr_solver(INT block_size, dCSRmat *A, dvector *b, dvector *sol)
 {
     INT i, j;
@@ -1407,9 +1440,9 @@ INT fenics_metric_amg_solver(block_dCSRmat *A,
     bdcsr_print_matlab(stdout, M);
     fflush(stdout);
 
-    /*fprintf(stdout,"\n------------ AD ---------- \n"); fflush(stdout);
+    fprintf(stdout,"\n------------ AD ---------- \n"); fflush(stdout);
     bdcsr_print_matlab(stdout, AD);
-    fflush(stdout);*/
+    fflush(stdout);
 
     fprintf(stdout,"\n------------ C ---------- \n"); fflush(stdout);
     csr_print_matlab(stdout, interface_dof);

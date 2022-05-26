@@ -342,3 +342,4 @@ void precond_amg_add(double*, double*, void*);
 INT wrapper_krylov_amg(dCSRmat *mat, dvector *rhs, dvector *sol, REAL tol);
 INT fenics_metric_amg_solver(block_dCSRmat *A, dvector *b, dvector *x, block_dCSRmat *AD, block_dCSRmat *M, dCSRmat *interface_dof);
 void print_bdcsr_matrix(block_dCSRmat *A);
+INT wrapper_krylov_amg_schwarz(dCSRmat *mat, dvector *rhs, dvector *sol, REAL tol);
