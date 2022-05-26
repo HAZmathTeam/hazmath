@@ -4416,7 +4416,7 @@ INT linear_solver_bdcsr_krylov_metric_amg(block_dCSRmat    *A,
     mgl[0].AD = AD;
 
     // initialize M
-    mgl[0].M = AD;
+    mgl[0].M = M;
 
     // initialize interface_dof
     mgl[0].interface_dof = interface_dof;
