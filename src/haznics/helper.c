@@ -1448,7 +1448,7 @@ INT fenics_metric_amg_solver(block_dCSRmat *A,
     dvec_set(b->row, x, 0.0);
 
     /* print everything */
-    fprintf(stdout,"\nb1=[");
+    /*fprintf(stdout,"\nb1=[");
     for(i = 0; i < b->row; ++i){
       fprintf(stdout,"%.16e\n",b->val[i]);
     }
@@ -1469,7 +1469,7 @@ INT fenics_metric_amg_solver(block_dCSRmat *A,
     fprintf(stdout,"\n------------ C ---------- \n"); fflush(stdout);
     csr_print_matlab(stdout, interface_dof);
     fprintf(stdout,"];A1=sparse(A1(:,1),A1(:,2),A1(:,3),%d,%d);\n",interface_dof->row,interface_dof->col);
-    fflush(stdout);
+    fflush(stdout);*/
 
     /* Set Solver Parameters */
     INT solver_flag = -20;
