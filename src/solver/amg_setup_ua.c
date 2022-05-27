@@ -2578,16 +2578,10 @@ static SHORT amg_setup_bdcsr_metric(AMG_data_bdcsr *mgl,
     bdcsr_alloc(brow, bcol, mgl[0].A_gamma);
 
     // assume 2 x 2 block structure
-    // ltz: this below is wrong when we have more than 1 nnz per row as gamma0 and gamma1 are the (i,j) coordinates of the nonzeroes in interface_dofs. 
-    /* INT *gamma0 = mgl[0].interface_dof->colind; */
-    /* INT size0   = mgl[0].interface_dof->row; */
-    /* INT *gamma1 = mgl[0].interface_dof->rowind; */
-    /* INT size1   = mgl[0].interface_dof->row; */
-    // ltz: set sizes
     INT size0   = mgl[0].interface_dof->row;
     INT size1   = mgl[0].interface_dof->row;
     //
-    // ltz: Grab indices and values
+    //Grab indices and values
     INT *gamma0 = calloc(mgl[0].interface_dof->nnz,sizeof(INT));
     INT *gamma1 = calloc(mgl[0].interface_dof->nnz,sizeof(INT));    
     INT ij,nnz_g=0;
@@ -2595,7 +2589,7 @@ static SHORT amg_setup_bdcsr_metric(AMG_data_bdcsr *mgl,
       for(ij=mgl[0].interface_dof->IA[i];		\
 	  ij<mgl[0].interface_dof->IA[i+1];++ij){
 	// let us drop small entries, so we have 1-1 when r=0:
-	if(fabs(mgl[0].interface_dof->val[ij])<1e-15) continue;
+	if(fabs(mgl[0].interface_dof->val[ij])<1e-10) continue;
 	gamma1[nnz_g]=i;
 	gamma0[nnz_g]=mgl[0].interface_dof->JA[ij];
 	nnz_g++;
