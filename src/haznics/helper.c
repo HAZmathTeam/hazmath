@@ -55,6 +55,28 @@ dCSRmat* create_matrix(double *A, int nnz, int *ja, int nnz2, int *ia, int n, in
   return mat;
 }
 
+dCOOmat* create_matrix_coo(double *A, int nnz, int *ja, int nnz2, int *ia, int n, int ncol)
+{
+  dCOOmat *mat = (dCOOmat *)calloc(1, sizeof(dCOOmat));
+  int i,j,ij;
+  mat->row = n-1;
+  mat->col = ncol;
+  mat->nnz = nnz;
+  mat->rowind = (INT *)calloc(nnz, sizeof(INT)); // rowind is of length nnz
+  mat->colind = (INT *)calloc(nnz, sizeof(INT)); // colind is of length nnz
+  mat->val = (REAL *)calloc(nnz, sizeof(REAL)); // val is of length nnz
+  for (i=0;i<mat->row;++i){
+    for(ij=ia[i];ij<ia[i+1];++ij){
+      // let us drop small entries
+      //      if(fabs(A[ij])<1e-15) continue;
+      mat->rowind[ij]=i;
+      mat->colind[ij]=ja[ij];
+      mat->val[ij]=A[ij];
+    }
+  }
+  return mat;
+}
+
 dvector* create_dvector(double *x, int n)
 {
   /* for now not copy arrays, make test that produce seg. fault  */

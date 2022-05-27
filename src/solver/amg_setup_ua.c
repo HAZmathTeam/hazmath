@@ -2578,11 +2578,29 @@ static SHORT amg_setup_bdcsr_metric(AMG_data_bdcsr *mgl,
     bdcsr_alloc(brow, bcol, mgl[0].A_gamma);
 
     // assume 2 x 2 block structure
-    INT *gamma0 = mgl[0].interface_dof->JA;
+    // ltz: this below is wrong when we have more than 1 nnz per row as gamma0 and gamma1 are the (i,j) coordinates of the nonzeroes in interface_dofs. 
+    /* INT *gamma0 = mgl[0].interface_dof->colind; */
+    /* INT size0   = mgl[0].interface_dof->row; */
+    /* INT *gamma1 = mgl[0].interface_dof->rowind; */
+    /* INT size1   = mgl[0].interface_dof->row; */
+    // ltz: set sizes
     INT size0   = mgl[0].interface_dof->row;
-    INT *gamma1 = mgl[0].interface_dof->IA;
     INT size1   = mgl[0].interface_dof->row;
-
+    //
+    // ltz: Grab indices and values
+    INT *gamma0 = calloc(mgl[0].interface_dof->nnz,sizeof(INT));
+    INT *gamma1 = calloc(mgl[0].interface_dof->nnz,sizeof(INT));    
+    INT ij,nnz_g=0;
+    for (i=0;i<mgl[0].interface_dof->row;++i){
+      for(ij=mgl[0].interface_dof->IA[i];		\
+	  ij<mgl[0].interface_dof->IA[i+1];++ij){
+	// let us drop small entries, so we have 1-1 when r=0:
+	if(fabs(mgl[0].interface_dof->val[ij])<1e-15) continue;
+	gamma1[nnz_g]=i;
+	gamma0[nnz_g]=mgl[0].interface_dof->JA[ij];
+	nnz_g++;
+      }
+    }
     //dcsr_write_dcoo("A00.dat", mgl[0].A.blocks[0]);
     //for (i=0; i<mgl[0].interface_dof->nnz; i++) printf("idx[%d]=%d\n", i, mgl[0].interface_dof->JA[i]);
     //getchar();
@@ -2591,7 +2609,9 @@ static SHORT amg_setup_bdcsr_metric(AMG_data_bdcsr *mgl,
     dcsr_getblk(mgl[0].A.blocks[1], gamma0, gamma1, size0, size1, mgl[0].A_gamma->blocks[1]);
     dcsr_getblk(mgl[0].A.blocks[2], gamma1, gamma0, size1, size0, mgl[0].A_gamma->blocks[2]);
     dcsr_getblk(mgl[0].A.blocks[3], gamma1, gamma1, size1, size1, mgl[0].A_gamma->blocks[3]);
-
+    // free something that should not have been allocated
+    free(gamma0);
+    free(gamma1);
     /*
     dcsr_write_dcoo("AT00.dat", mgl[0].A_gamma->blocks[0]);
     dcsr_write_dcoo("AT01.dat", mgl[0].A_gamma->blocks[1]);
