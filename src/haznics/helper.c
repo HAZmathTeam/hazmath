@@ -1437,13 +1437,6 @@ INT fenics_metric_amg_solver(block_dCSRmat *A,
     param_input_init(&inparam);
     param_input("./input_metric.dat", &inparam);
 
-    /* read the matrix and right hand side (2 by 2) */
-    INT brow = 2;
-    dCSRmat *A_diag = (dCSRmat *)calloc(brow, sizeof(dCSRmat));
-
-    // assemble the whole matrix
-    // bdcsr_add(&AD, 1.0, &M, beta, &A);
-
     /* set initial guess */
     dvec_set(b->row, x, 0.0);
 
@@ -1471,6 +1464,14 @@ INT fenics_metric_amg_solver(block_dCSRmat *A,
     fprintf(stdout,"];A1=sparse(A1(:,1),A1(:,2),A1(:,3),%d,%d);\n",interface_dof->row,interface_dof->col);
     fflush(stdout);*/
 
+    // drop small entries
+    dcsr_compress_inplace(AD->blocks[0], 1e-12);
+    dcsr_compress_inplace(AD->blocks[3], 1e-12);
+    dcsr_compress_inplace(M->blocks[0], 1e-12);
+    //dcsr_compress_inplace(M->blocks[1], 1e-12);
+    //dcsr_compress_inplace(M->blocks[2], 1e-12);
+    dcsr_compress_inplace(M->blocks[3], 1e-12);
+
     /* Set Solver Parameters */
     INT solver_flag = -20;
     /* Set parameters for linear iterative methods */
@@ -1486,31 +1487,14 @@ INT fenics_metric_amg_solver(block_dCSRmat *A,
     printf("Solving the linear system \n");
     printf("===========================================================================\n");
 
-    // --------------------------------------------------------------------------------------------
-    // Set diagonal blocks for AMG solver.  Coarsening is based on the blocks in A_diag.
-    // They can be diagonal blocks of the block matrix A or approximations to the Schur complements
-    // --------------------------------------------------------------------------------------------
-    // Use first diagonal block directly in A_diag
-    dcsr_alloc(A->blocks[0]->row, A->blocks[0]->col, A->blocks[0]->nnz, &A_diag[0]);
-    dcsr_cp(A->blocks[0], &A_diag[0]);
-
-    // Use second diagonal block directly in A_diag
-    dcsr_alloc(A->blocks[3]->row, A->blocks[3]->col, A->blocks[3]->nnz, &A_diag[1]);
-    dcsr_cp(A->blocks[3], &A_diag[1]);
-
     // Use Krylov Iterative Solver
     if (linear_itparam.linear_precond_type == PREC_AMG){
-      //solver_flag = linear_solver_bdcsr_krylov_amg(A, b, x, &linear_itparam, &amgparam, A_diag);
-      solver_flag = linear_solver_bdcsr_krylov_metric_amg(A, b, x, &linear_itparam, &amgparam, A_diag, AD, M, interface_dof);
+        solver_flag = linear_solver_bdcsr_krylov_metric_amg(A, b, x, &linear_itparam, &amgparam, AD, M, interface_dof);
     }
-    // No preconditoner
+    // No preconditioner
     else{
-       solver_flag = linear_solver_bdcsr_krylov(A, b, x, &linear_itparam);
+        solver_flag = linear_solver_bdcsr_krylov(A, b, x, &linear_itparam);
     }
-
-    // Clean up memory
-    for (i = 0; i < brow; i++) dcsr_free(&A_diag[i]);
-    if (A_diag) free(A_diag);
 
     return solver_flag;
 }
