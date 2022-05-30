@@ -1326,7 +1326,7 @@ INT fenics_bsr_solver(INT block_size, dCSRmat *A, dvector *b, dvector *sol)
     for(i = 0; i < block_size; ++i)
     {
         perm[2*i] = i;
-        perm[2*i+1] = i + block_size;	
+        perm[2*i+1] = i + block_size;
     }
     dCSRmat AT;
     dcsr_alloc(A->col, A->row, A->nnz, &AT);
@@ -1338,7 +1338,7 @@ INT fenics_bsr_solver(INT block_size, dCSRmat *A, dvector *b, dvector *sol)
     /* csr_print_matlab(stdout, A); fflush(stdout); */
     /* fprintf(stdout,"];A=sparse(A(:,1),A(:,2),A(:,3),%d,%d);\n",	\ */
     /* 	    A->row,A->col); */
-    //    
+    //
     dcsr_transz(A, perm, &AT);
     dcsr_transz(&AT, perm, A);
     //
@@ -1347,7 +1347,7 @@ INT fenics_bsr_solver(INT block_size, dCSRmat *A, dvector *b, dvector *sol)
     /* fprintf(stdout,"];A1=sparse(A1(:,1),A1(:,2),A1(:,3),%d,%d);\n",	\ */
     /* 	    A->row,A->col); */
     /* fflush(stdout); */
-    //    
+    //
     dBSRmat Absr = dcsr_2_dbsr(A, 2);
     /* AT=dbsr_2_dcsr (&Absr); */
     /* fprintf(stdout,"\nA2=["); */
@@ -1488,7 +1488,7 @@ INT fenics_metric_amg_solver(block_dCSRmat *A,
     printf("===========================================================================\n");
 
     // Use Krylov Iterative Solver
-    if (linear_itparam.linear_precond_type == PREC_AMG){
+    if ( (linear_itparam.linear_precond_type == 10) || (linear_itparam.linear_precond_type == 11) ){
         solver_flag = linear_solver_bdcsr_krylov_metric_amg(A, b, x, &linear_itparam, &amgparam, AD, M, interface_dof);
     }
     // No preconditioner
@@ -1498,7 +1498,6 @@ INT fenics_metric_amg_solver(block_dCSRmat *A,
 
     return solver_flag;
 }
-
 
 void print_bdcsr_matrix(block_dCSRmat *A)
 {
