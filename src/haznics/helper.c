@@ -58,7 +58,7 @@ dCSRmat* create_matrix(double *A, int nnz, int *ja, int nnz2, int *ia, int n, in
 dCOOmat* create_matrix_coo(double *A, int nnz, int *ja, int nnz2, int *ia, int n, int ncol)
 {
   dCOOmat *mat = (dCOOmat *)calloc(1, sizeof(dCOOmat));
-  int i,j,ij;
+  int i, ij;
   mat->row = n-1;
   mat->col = ncol;
   mat->nnz = nnz;
@@ -94,7 +94,7 @@ ivector* create_ivector(int *x, int n)
   vec = (ivector* ) calloc(1, sizeof(ivector));
   vec->row = n;
   vec->val = x;
-  int i;
+
   return vec;
 }
 
@@ -1262,18 +1262,11 @@ INT wrapper_krylov_amg(dCSRmat *mat, dvector *rhs, dvector *sol, REAL tol)
 
     // Set parameters for linear iterative methods
     param_linear_solver_init(&itparam);
-    //if (*print_lvl > PRINT_MIN)
-    param_linear_solver_print(&itparam);
+    if (itparam.linear_print_level > PRINT_MIN) param_linear_solver_print(&itparam);
 
     // Set parameters for algebriac multigrid methods
     param_amg_init(&amgparam);
-    //if (*print_lvl > PRINT_MIN)
-    param_amg_print(&amgparam);
-
-    //amgparam.print_level          = *print_lvl;
-    //itparam.linear_tol            = *tol;
-    //itparam.linear_print_level    = *print_lvl;
-    //itparam.linear_maxit          = *maxit;
+    if (amgparam.print_level > PRINT_MIN) param_amg_print(&amgparam);
 
     amgparam.print_level          = 2;
     itparam.linear_tol            = tol;
@@ -1294,13 +1287,11 @@ INT wrapper_krylov_amg_schwarz(dCSRmat *mat, dvector *rhs, dvector *sol, REAL to
 
     // Set parameters for linear iterative methods
     param_linear_solver_init(&itparam);
-    //if (*print_lvl > PRINT_MIN)
-    param_linear_solver_print(&itparam);
+    if (itparam.linear_print_level > PRINT_MIN) param_linear_solver_print(&itparam);
 
-    // Set parameters for algebriac multigrid methods
+    // Set parameters for algebraic multigrid methods
     param_amg_init(&amgparam);
-    //if (*print_lvl > PRINT_MIN)
-    param_amg_print(&amgparam);
+    if (amgparam.print_level > PRINT_MIN) param_amg_print(&amgparam);
 
     amgparam.print_level          = 2;
     amgparam.Schwarz_levels       = 1;
@@ -1321,7 +1312,7 @@ INT wrapper_krylov_amg_schwarz(dCSRmat *mat, dvector *rhs, dvector *sol, REAL to
 
 INT fenics_bsr_solver(INT block_size, dCSRmat *A, dvector *b, dvector *sol)
 {
-    INT i, j;
+    INT i;
     INT *perm = (INT*)calloc(2*block_size, sizeof(INT));
     for(i = 0; i < block_size; ++i)
     {
@@ -1331,54 +1322,23 @@ INT fenics_bsr_solver(INT block_size, dCSRmat *A, dvector *b, dvector *sol)
     dCSRmat AT;
     dcsr_alloc(A->col, A->row, A->nnz, &AT);
 
-    /* fprintf(stdout,"\nperm=["); */
-    /* iarray_print(perm,2*block_size); */
-    /* fprintf(stdout,"]+1;\n"); */
-    /* fprintf(stdout,"\nA=["); */
-    /* csr_print_matlab(stdout, A); fflush(stdout); */
-    /* fprintf(stdout,"];A=sparse(A(:,1),A(:,2),A(:,3),%d,%d);\n",	\ */
-    /* 	    A->row,A->col); */
-    //
     dcsr_transz(A, perm, &AT);
     dcsr_transz(&AT, perm, A);
-    //
-    /* fprintf(stdout,"\nA1=["); */
-    /* csr_print_matlab(stdout, A); */
-    /* fprintf(stdout,"];A1=sparse(A1(:,1),A1(:,2),A1(:,3),%d,%d);\n",	\ */
-    /* 	    A->row,A->col); */
-    /* fflush(stdout); */
-    //
-    dBSRmat Absr = dcsr_2_dbsr(A, 2);
-    /* AT=dbsr_2_dcsr (&Absr); */
-    /* fprintf(stdout,"\nA2=["); */
-    /* csr_print_matlab(stdout, &AT); */
-    /* fprintf(stdout,"];A2=sparse(A2(:,1),A2(:,2),A2(:,3),%d,%d)\n",	\ */
-    /* 	    AT.row,AT.col); */
-    /* fflush(stdout); */
-    dcsr_free(&AT);
-    //
 
-    /* fprintf(stdout,"\nb=["); */
-    /* for(i = 0; i < 2*block_size; ++i){ */
-    /*   fprintf(stdout,"%.16e\n",b->val[i]); */
-    /* } */
-    /* fprintf(stdout,"];\n"); */
+    dBSRmat Absr = dcsr_2_dbsr(A, 2);
+    dcsr_free(&AT);
+
     for(i = 0; i < 2*block_size; ++i)
     {
         sol->val[i] = b->val[perm[i]];
     }
     dvec_cp(sol, b);
-    /* fprintf(stdout,"\nb1=["); */
-    /* for(i = 0; i < 2*block_size; ++i){ */
-    /*   fprintf(stdout,"%.16e\n",b->val[i]); */
-    /* } */
-    /* fprintf(stdout,"];\n"); */
-    /* fflush(stdout); */
     /* set Parameters from Reading in Input File */
     input_param inparam;
     param_input_init(&inparam);
     param_input("./input.dat", &inparam);
 
+    /* set initial guess */
     dvec_set(b->row, sol, 0.0);
 
     /* Set Solver Parameters */
@@ -1386,11 +1346,13 @@ INT fenics_bsr_solver(INT block_size, dCSRmat *A, dvector *b, dvector *sol)
     /* Set parameters for linear iterative methods */
     linear_itsolver_param linear_itparam;
     param_linear_solver_set(&linear_itparam, &inparam);
-    /* Set parameters for algebriac multigrid methods */
+    if (linear_itparam.linear_print_level > PRINT_MIN) param_linear_solver_print(&linear_itparam);
+
+    /* Set parameters for algebraic multigrid methods */
     AMG_param amgparam;
     param_amg_init(&amgparam);
     param_amg_set(&amgparam, &inparam);
-    param_amg_print(&amgparam);
+    if (amgparam.print_level > PRINT_MIN) param_amg_print(&amgparam);
 
     printf("\n===========================================================================\n");
     printf("Solving the linear system \n");
@@ -1399,25 +1361,11 @@ INT fenics_bsr_solver(INT block_size, dCSRmat *A, dvector *b, dvector *sol)
     // Use Krylov Iterative Solver
     solver_flag = linear_solver_dbsr_krylov_amg(&Absr, b, sol, &linear_itparam, &amgparam);
 
-    /* fprintf(stdout,"\nx1=["); */
-    /* for(i = 0; i < 2*block_size; ++i){ */
-    /*   fprintf(stdout,"%.16e\n",sol->val[i]); */
-    /* } */
-    /* fprintf(stdout,"];\n"); */
-    /* fflush(stdout); */
     for(i = 0; i < 2*block_size; ++i)
     {
         b->val[perm[i]] = sol->val[i];
     }
     dvec_cp(b, sol);
-    /* fprintf(stdout,"\nx=["); */
-    /* for(i = 0; i < 2*block_size; ++i){ */
-    /*   fprintf(stdout,"%.16e\n",sol->val[i]); */
-    /* } */
-    /* fprintf(stdout,"];\n"); */
-    /* fflush(stdout); */
-
-    //array_print(sol->val, 2*block_size);
     free(perm);
 
     return solver_flag;
@@ -1431,7 +1379,6 @@ INT fenics_metric_amg_solver(block_dCSRmat *A,
                              block_dCSRmat *M,
                              dCSRmat *interface_dof)
 {
-    INT i,j;
     /* set Parameters from Reading in Input File */
     input_param inparam;
     param_input_init(&inparam);
@@ -1439,30 +1386,6 @@ INT fenics_metric_amg_solver(block_dCSRmat *A,
 
     /* set initial guess */
     dvec_set(b->row, x, 0.0);
-
-    /* print everything */
-    /*fprintf(stdout,"\nb1=[");
-    for(i = 0; i < b->row; ++i){
-      fprintf(stdout,"%.16e\n",b->val[i]);
-    }
-    fprintf(stdout,"];\n");
-    fflush(stdout);
-
-    fprintf(stdout,"\n------------ A ---------- \n"); fflush(stdout);
-    bdcsr_print_matlab(stdout, A);
-    fflush(stdout);
-    fprintf(stdout,"\n------------ M ---------- \n"); fflush(stdout);
-    bdcsr_print_matlab(stdout, M);
-    fflush(stdout);
-
-    fprintf(stdout,"\n------------ AD ---------- \n"); fflush(stdout);
-    bdcsr_print_matlab(stdout, AD);
-    fflush(stdout);
-
-    fprintf(stdout,"\n------------ C ---------- \n"); fflush(stdout);
-    csr_print_matlab(stdout, interface_dof);
-    fprintf(stdout,"];A1=sparse(A1(:,1),A1(:,2),A1(:,3),%d,%d);\n",interface_dof->row,interface_dof->col);
-    fflush(stdout);*/
 
     // drop small entries
     dcsr_compress_inplace(AD->blocks[0], 1e-12);
@@ -1477,11 +1400,13 @@ INT fenics_metric_amg_solver(block_dCSRmat *A,
     /* Set parameters for linear iterative methods */
     linear_itsolver_param linear_itparam;
     param_linear_solver_set(&linear_itparam, &inparam);
+    if (linear_itparam.linear_print_level > PRINT_MIN) param_linear_solver_print(&linear_itparam);
+
     /* Set parameters for algebriac multigrid methods */
     AMG_param amgparam;
     param_amg_init(&amgparam);
     param_amg_set(&amgparam, &inparam);
-    param_amg_print(&amgparam);
+    if(amgparam.print_level > PRINT_MIN) param_amg_print(&amgparam);
 
     printf("\n===========================================================================\n");
     printf("Solving the linear system \n");
@@ -1489,6 +1414,7 @@ INT fenics_metric_amg_solver(block_dCSRmat *A,
 
     // Use Krylov Iterative Solver
     if ( (linear_itparam.linear_precond_type == 10) || (linear_itparam.linear_precond_type == 11) ){
+        // todo: interface_dof is not used in the function below - remove as requirement
         solver_flag = linear_solver_bdcsr_krylov_metric_amg(A, b, x, &linear_itparam, &amgparam, AD, M, interface_dof);
     }
     // No preconditioner
@@ -1498,6 +1424,7 @@ INT fenics_metric_amg_solver(block_dCSRmat *A,
 
     return solver_flag;
 }
+
 
 void print_bdcsr_matrix(block_dCSRmat *A)
 {
