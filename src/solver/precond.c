@@ -1366,6 +1366,7 @@ void precond_bdcsr_amg(REAL *r,
     amgparam.presmooth_iter  = predata->presmooth_iter;
     amgparam.postsmooth_iter = predata->postsmooth_iter;
     amgparam.relaxation = predata->relaxation;
+    amgparam.coarse_solver = predata->coarse_solver;
     amgparam.coarse_scaling = predata->coarse_scaling;
     amgparam.tentative_smooth = predata->tentative_smooth;
 
@@ -6071,9 +6072,9 @@ void precond_ra_fenics(REAL *r, REAL *z, void *data)
 
 /***********************************************************************************************/
 /**
- * \fn void precond_bdcsr_metric_amg(REAL *r, REAL *z, void *data)
+ * \fn void precond_bdcsr_metric_amg_exact(REAL *r, REAL *z, void *data)
  *
- * \brief AMG preconditioner
+ * \brief metric AMG preconditioner
  *
  * \param r     Pointer to the vector needs preconditioning
  * \param z     Pointer to preconditioned vector
@@ -6081,8 +6082,11 @@ void precond_ra_fenics(REAL *r, REAL *z, void *data)
  *
  * \author Xiaozhe Hu
  * \date   03/16/2022
+ *
+ * \note direct solver on interface + AMG
+ *
  */
-void precond_bdcsr_metric_amg(REAL *r,
+void precond_bdcsr_metric_amg_exact(REAL *r,
                        REAL *z,
                        void *data)
 {
@@ -6092,9 +6096,36 @@ void precond_bdcsr_metric_amg(REAL *r,
     const INT maxit=predata->maxit;
     const INT total_row = predata->total_row;
     const INT total_col = predata->total_col;
+    dvector *tempr = &(predata->r);
 
+    // back up r, setup z;
+    array_cp(total_row, r, tempr->val);
+    array_set(total_row, z, 0.0);
+
+    // local variables
 	INT i;
+    dvector rr, zz;
 
+    rr.row = predata->A->blocks[3]->row; rr.val = r+predata->A->blocks[0]->row;
+    zz.row = predata->A->blocks[3]->col; zz.val = z+predata->A->blocks[0]->row;
+
+    // Schwarz method on the interface part
+    Schwarz_param *schwarz_param = predata->schwarz_param;
+    Schwarz_data *schwarz_data = predata->schwarz_data;
+    //smoother_dcsr_Schwarz_forward(schwarz_data, schwarz_param, &zz, &rr);
+    //smoother_dcsr_Schwarz_backward(schwarz_data, schwarz_param, &zz, &rr);
+#if WITH_SUITESPARSE
+    void **LU_data = predata->LU_data;
+    umfpack_solve(&schwarz_data->A, &rr, &zz, LU_data[0], 0);
+    //directsolve_UMF(&schwarz_data->A, &rr, &zz, 1);
+#else
+    error_extlib(257, __FUNCTION__, "SuiteSparse");
+#endif
+
+    // update residual
+    //bdcsr_aAxpy(-1.0, predata->A, z, r);
+
+    // AMG solve on the whole matrix
     AMG_param amgparam; param_amg_init(&amgparam);
     amgparam.cycle_type = predata->cycle_type;
     amgparam.smoother   = predata->smoother;
@@ -6106,11 +6137,90 @@ void precond_bdcsr_metric_amg(REAL *r,
 
     AMG_data_bdcsr *mgl = predata->mgl_data;
     mgl->b.row=total_row; array_cp(total_row, r, mgl->b.val); // residual is an input
-    mgl->x.row=total_col; dvec_set(total_col, &mgl->x, 0.0);
+    mgl->x.row=total_col; array_cp(total_row, z, mgl->x.val); //dvec_set(total_col, &mgl->x, 0.0);
 
-    for ( i=maxit; i--; ) mgcycle_bdcsr_metric(mgl,&amgparam);
+    //for ( i=maxit; i--; ) mgcycle_bdcsr_metric(mgl,&amgparam);
+    for ( i=maxit; i--; ) mgcycle_bdcsr(mgl,&amgparam);
 
     array_cp(total_col, mgl->x.val, z);
+
+    // restore residual
+    array_cp(total_row, tempr->val, r);
+
+}
+
+
+/***********************************************************************************************/
+/**
+ * \fn void precond_bdcsr_metric_amg(REAL *r, REAL *z, void *data)
+ *
+ * \brief metric AMG preconditioner
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   03/16/2022
+ *
+ * \note foward Schwarz on interface + AMG
+ *
+ */
+void precond_bdcsr_metric_amg(REAL *r,
+                       REAL *z,
+                       void *data)
+{
+    precond_data_bdcsr *predata=(precond_data_bdcsr *)data;
+    const INT brow=predata->mgl_data[0].A.brow;
+    const INT bcol=predata->mgl_data[0].A.bcol;
+    const INT maxit=predata->maxit;
+    const INT total_row = predata->total_row;
+    const INT total_col = predata->total_col;
+    dvector *tempr = &(predata->r);
+
+    // back up r, setup z;
+    array_cp(total_row, r, tempr->val);
+    array_set(total_row, z, 0.0);
+
+    // local variables
+	INT i;
+    dvector rr, zz;
+
+    rr.row = predata->A->blocks[3]->row; rr.val = r+predata->A->blocks[0]->row;
+    zz.row = predata->A->blocks[3]->col; zz.val = z+predata->A->blocks[0]->row;
+
+    // Schwarz method on the interface part
+    Schwarz_param *schwarz_param = predata->schwarz_param;
+    Schwarz_data *schwarz_data = predata->schwarz_data;
+    smoother_dcsr_Schwarz_forward(schwarz_data, schwarz_param, &zz, &rr);
+    //smoother_dcsr_Schwarz_backward(schwarz_data, schwarz_param, &zz, &rr);
+    //directsolve_UMF(&schwarz_data->A, &rr, &zz, 1);
+
+    // update residual
+    //bdcsr_aAxpy(-1.0, predata->A, z, r);
+
+    // AMG solve on the whole matrix
+    AMG_param amgparam; param_amg_init(&amgparam);
+    amgparam.cycle_type = predata->cycle_type;
+    amgparam.smoother   = predata->smoother;
+    amgparam.presmooth_iter  = predata->presmooth_iter;
+    amgparam.postsmooth_iter = predata->postsmooth_iter;
+    amgparam.relaxation = predata->relaxation;
+    amgparam.coarse_scaling = predata->coarse_scaling;
+    amgparam.tentative_smooth = predata->tentative_smooth;
+
+    AMG_data_bdcsr *mgl = predata->mgl_data;
+    mgl->b.row=total_row; array_cp(total_row, r, mgl->b.val); // residual is an input
+    mgl->x.row=total_col; array_cp(total_row, z, mgl->x.val); //dvec_set(total_col, &mgl->x, 0.0);
+
+    //for ( i=maxit; i--; ) mgcycle_bdcsr_metric(mgl,&amgparam);
+    for ( i=maxit; i--; ) mgcycle_bdcsr(mgl,&amgparam);
+
+    array_cp(total_col, mgl->x.val, z);
+
+    // restore residual
+    array_cp(total_row, tempr->val, r);
+
 }
 
 /*---------------------------------*/

@@ -45,7 +45,7 @@ typedef struct {
     /* matrix information */
 
     //! pointer to the matrix
-    dCSRmat A;  // 
+    dCSRmat A;  //
 
     /* blocks information */
     //! number of blocks
@@ -877,8 +877,14 @@ typedef struct {
     //! AMG preconditioner data
     AMG_data_bdcsr *mgl_data;
 
-    //! ILU preconditioner data (needed for CPR type preconditioner)
-    //ILU_data *LU;
+    //! Schwarz method data
+    Schwarz_data *schwarz_data;
+
+    //! Schwarz method parameters
+    Schwarz_param *schwarz_param;
+
+    //! LU data
+    void **LU_data;
 
     //! Matrix data
     block_dCSRmat *A;

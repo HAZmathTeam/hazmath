@@ -2142,6 +2142,7 @@ INT linear_solver_dbsr_krylov_amg(dBSRmat    *A,
     precdata.presmooth_iter = amgparam->presmooth_iter;
     precdata.postsmooth_iter = amgparam->postsmooth_iter;
     precdata.relaxation = amgparam->relaxation;
+    precdata.coarse_solver = amgparam->coarse_solver;
     precdata.coarse_scaling = amgparam->coarse_scaling;
     precdata.amli_degree = amgparam->amli_degree;
     precdata.amli_coef = amgparam->amli_coef;
@@ -4340,8 +4341,7 @@ FINISHED:
 /********************************************************************************************/
 /**
  * \fn INT lienar_solver_bdcsr_krylov_metric_amg (block_dCSRmat *A, dvector *b, dvector *x,
- *                                                linear_itsolver_param *itparam,
- *                                                AMG_param *amgparam, dCSRmat *A_diag
+ *                                                linear_itsolver_param *itparam, AMG_param *amgparam
  *                                                block_dCSRmat *AD, block_dCSRmat *M, dCSRmat *interface_dof)
  *
  * \brief Solve Ax=b by AMG preconditioned Krylov methods for interface problem using metric AMG approach
@@ -4351,7 +4351,6 @@ FINISHED:
  * \param x         Pointer to the approx solution in dvector format
  * \param itparam   Pointer to parameters for iterative solvers
  * \param amgparam  Pointer to parameters of AMG
- * \param A_diag    Pointer to the diagonal blocks
  * \param AD        Pointer to the AD matrix in block_dCSRmat format
  * \param M         Pointer to the M matrix in block_dCSRmat format
  * \param interface_dof  Pointer to the interface_dof matrix in dCSRmat format
@@ -4360,13 +4359,15 @@ FINISHED:
  *
  * \author Xiaozhe Hu
  * \date   05/10/2022
+ *
+ * \note
+ *
  */
 INT linear_solver_bdcsr_krylov_metric_amg(block_dCSRmat    *A,
                                           dvector    *b,
                                           dvector    *x,
                                           linear_itsolver_param  *itparam,
                                           AMG_param  *amgparam,
-                                          dCSRmat *A_diag,
                                           block_dCSRmat *AD,
                                           block_dCSRmat *M,
                                           dCSRmat *interface_dof)
@@ -4379,6 +4380,7 @@ INT linear_solver_bdcsr_krylov_metric_amg(block_dCSRmat    *A,
     const SHORT max_levels = amgparam->max_levels;
     const INT brow = A->brow;
     const INT bcol = A->bcol;
+    const SHORT precond_type = itparam->linear_precond_type;
 
     // total size
     INT total_row, total_col, total_nnz;
@@ -4393,21 +4395,95 @@ INT linear_solver_bdcsr_krylov_metric_amg(block_dCSRmat    *A,
     // timing
     REAL setup_start, setup_end, solve_end;
 
+    // local variables
+    INT i, count_i, count_g;
+
 #if DEBUG_MODE > 0
     printf("### DEBUG: [-Begin-] %s ...\n", __FUNCTION__);
 #endif
 
     //--------------------------------------------------------------
-    //Part 2: set up the preconditioner
+    //Part 2: reorder the matrix
+    //--------------------------------------------------------------
+    // convert whole matrix to CSR format
+    dCSRmat A_csr = bdcsr_2_dcsr(A);
+
+    // sparsify the whole matrix
+    dcsr_compress_inplace(&A_csr, 1e-10);
+    //dcsr_write_dcoo("A_csr.dat", &A_csr);
+
+    // find the interface DoFs
+    ivector interface_flag = ivec_create(total_row);
+    ivec_set(total_row, &interface_flag, 0);
+    for (i=0; i<M->blocks[2]->nnz; i++) interface_flag.val[M->blocks[2]->JA[i]] = 1;
+    // assumming 11 block are all interface DoFs
+    for (i=M->blocks[0]->row; i<total_row; i++) interface_flag.val[i] = 1;
+
+    // count number of DoFs
+    INT Ni, Ng=0;
+    for (i=0; i<total_row; i++) Ng = Ng+interface_flag.val[i];
+    Ni = total_row-Ng;
+
+    // generate index sets for interior DoFs and interface DoFs
+    ivector interior_idx = ivec_create(Ni);
+    ivector interface_idx = ivec_create(Ng);
+    count_i = 0; count_g = 0;
+    for (i=0; i<total_row; i++){
+        if (interface_flag.val[i] == 0){
+            interior_idx.val[count_i] = i;
+            count_i++;
+        }
+        else{
+            interface_idx.val[count_g] = i;
+            count_g++;
+        }
+    }
+
+    // clean the flag
+    ivec_free(&interface_flag);
+
+    // get new ordered block dCSRmat matrix
+    block_dCSRmat A_new;
+    bdcsr_alloc(brow, bcol, &A_new);
+
+    dcsr_getblk(&A_csr, interior_idx.val,  interior_idx.val,  interior_idx.row,  interior_idx.row,  A_new.blocks[0]);
+    dcsr_getblk(&A_csr, interior_idx.val,  interface_idx.val, interior_idx.row,  interface_idx.row, A_new.blocks[1]);
+    dcsr_getblk(&A_csr, interface_idx.val, interior_idx.val,  interface_idx.row, interior_idx.row,  A_new.blocks[2]);
+    dcsr_getblk(&A_csr, interface_idx.val, interface_idx.val, interface_idx.row, interface_idx.row, A_new.blocks[3]);
+
+    // get diagonal blocks
+    dCSRmat *A_diag = (dCSRmat *)calloc(brow, sizeof(dCSRmat));
+    // Use first diagonal block directly in A_diag
+    dcsr_alloc(A_new.blocks[0]->row, A_new.blocks[0]->col, A_new.blocks[0]->nnz, &A_diag[0]);
+    dcsr_cp(A_new.blocks[0], &A_diag[0]);
+
+    // Use second diagonal block directly in A_diag
+    dcsr_alloc(A_new.blocks[3]->row, A_new.blocks[3]->col, A_new.blocks[3]->nnz, &A_diag[1]);
+    dcsr_cp(A_new.blocks[3], &A_diag[1]);
+
+    // clean the CSR matrix
+    dcsr_free(&A_csr);
+
+    // get new ordered right hand side
+    dvector b_new = dvec_create(total_row);
+    for (i=0; i<interior_idx.row;  i++) b_new.val[i] = b->val[interior_idx.val[i]];
+    for (i=0; i<interface_idx.row; i++) b_new.val[interior_idx.row+i] = b->val[interface_idx.val[i]];
+
+    // set new solution
+    dvector x_new = dvec_create(total_row);
+    dvec_set(total_row, &x_new, 0.0);
+
+    //--------------------------------------------------------------
+    //Part 3: set up the preconditioner
     //--------------------------------------------------------------
     get_time(&setup_start);
 
     // initialize A, b, x for mgl[0]
     bdcsr_alloc(brow, bcol, &(mgl[0].A));
-    bdcsr_cp(A, &(mgl[0].A));
+    bdcsr_cp(&A_new, &(mgl[0].A));
 
-    mgl[0].b=dvec_create(b->row);
-    mgl[0].x=dvec_create(x->row);
+    mgl[0].b=dvec_create(b_new.row);
+    mgl[0].x=dvec_create(x_new.row);
 
     // initialize A_diag
     mgl[0].A_diag = A_diag;
@@ -4421,6 +4497,7 @@ INT linear_solver_bdcsr_krylov_metric_amg(block_dCSRmat    *A,
     // initialize interface_dof
     mgl[0].interface_dof = interface_dof;
 
+    // set up the AMG part
     switch (amgparam->AMG_type) {
 
         case UA_AMG:
@@ -4437,6 +4514,45 @@ INT linear_solver_bdcsr_krylov_metric_amg(block_dCSRmat    *A,
 
     }
 
+    // set up the Schwarz smoother for the interface block
+    Schwarz_param schwarz_param;
+    schwarz_param.Schwarz_mmsize = amgparam->Schwarz_mmsize;
+    schwarz_param.Schwarz_maxlvl = amgparam->Schwarz_maxlvl;
+    schwarz_param.Schwarz_type   = amgparam->Schwarz_type;
+    schwarz_param.Schwarz_blksolver = amgparam->Schwarz_blksolver;
+
+    Schwarz_data schwarz_data;
+    schwarz_data.A = dcsr_sympat(A_new.blocks[3]);
+
+    // set up direct solver for the interface block if needed
+#if WITH_SUITESPARSE
+    void **LU_data = (void **)calloc(1, sizeof(void *));
+#else
+    error_extlib(257, __FUNCTION__, "SuiteSparse");
+#endif
+
+    if (precond_type == 10){
+#if WITH_SUITESPARSE
+        // Need to sort the diagonal blocks for UMFPACK format
+        dCSRmat A_tran;
+        dcsr_trans(&schwarz_data.A, &A_tran);
+        dcsr_cp(&A_tran, &schwarz_data.A);
+        if ( prtlvl > PRINT_NONE ) printf("Factorization for the interface block:\n");
+        LU_data[0] = umfpack_factorize(&schwarz_data.A, prtlvl);
+        dcsr_free(&A_tran);
+#else
+        error_extlib(257, __FUNCTION__, "SuiteSparse");
+#endif
+    }
+    else{
+        ivector seeds = ivec_create(M->blocks[3]->row);
+        for (i=0; i<seeds.row; i++) seeds.val[i] = (A_new.blocks[3]->row-M->blocks[3]->row)+i;
+        Schwarz_setup_with_seeds(&schwarz_data, &schwarz_param, &seeds);
+        ivec_free(&seeds);
+        //Schwarz_setup(&schwarz_data, &schwarz_param);
+    }
+
+
     if (status < 0) goto FINISHED;
 
     precond_data_bdcsr precdata;
@@ -4448,22 +4564,30 @@ INT linear_solver_bdcsr_krylov_metric_amg(block_dCSRmat    *A,
     precdata.presmooth_iter = amgparam->presmooth_iter;
     precdata.postsmooth_iter = amgparam->postsmooth_iter;
     precdata.relaxation = amgparam->relaxation;
+    precdata.coarse_solver = amgparam->coarse_solver;
     precdata.coarse_scaling = amgparam->coarse_scaling;
     precdata.amli_degree = amgparam->amli_degree;
     precdata.amli_coef = amgparam->amli_coef;
     precdata.tentative_smooth = amgparam->tentative_smooth;
     precdata.max_levels = mgl[0].num_levels;
     precdata.mgl_data = mgl;
-    precdata.A = A;
+    precdata.schwarz_data = &schwarz_data;
+    precdata.schwarz_param = &schwarz_param;
+    precdata.A = &A_new;
     precdata.total_row = total_row;
     precdata.total_col = total_col;
+    precdata.r = dvec_create(b->row);
+#if WITH_SUITESPARSE
+    precdata.LU_data = LU_data;
+#endif
 
     precond prec;
     prec.data = &precdata;
-    switch (amgparam->cycle_type) {
-        //case NL_AMLI_CYCLE: // Nonlinear AMLI AMG
-        //    prec.fct = precond_dbsr_namli; break;
-        default: // V,W-Cycle AMG
+    switch (precond_type) {
+        case 10: // solve the interface part exactly
+            prec.fct = precond_bdcsr_metric_amg_exact;
+            break;
+        default: // solve the interface part using Schwarz method
             prec.fct = precond_bdcsr_metric_amg;
             break;
     }
@@ -4476,7 +4600,14 @@ INT linear_solver_bdcsr_krylov_metric_amg(block_dCSRmat    *A,
     //--------------------------------------------------------------
     // Part 3: solver
     //--------------------------------------------------------------
-    status = solver_bdcsr_linear_itsolver(A, b, x, &prec, itparam);
+    status = solver_bdcsr_linear_itsolver(&A_new, &b_new, &x_new, &prec, itparam);
+
+    // put the solution back to the original order
+    for (i=0; i<interior_idx.row;  i++) x->val[interior_idx.val[i]] = x_new.val[i];
+    for (i=0; i<interface_idx.row; i++) x->val[interface_idx.val[i]] = x_new.val[interior_idx.row+i];
+
+    // check error
+    //solver_bdcsr_linear_itsolver(A, b, x, NULL, itparam);
 
     get_time(&solve_end);
 
@@ -4485,6 +4616,11 @@ INT linear_solver_bdcsr_krylov_metric_amg(block_dCSRmat    *A,
 
 FINISHED:
     amg_data_bdcsr_free(mgl, amgparam);
+    bdcsr_free(&A_new);
+    dvec_free(&b_new);
+    dvec_free(&x_new);
+    ivec_free(&interior_idx);
+    ivec_free(&interface_idx);
 
 #if DEBUG_MODE > 0
     printf("### DEBUG: [--End--] %s ...\n", __FUNCTION__);

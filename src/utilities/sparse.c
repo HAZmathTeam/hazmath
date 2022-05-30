@@ -2763,7 +2763,7 @@ dCSRmat dcsr_sympat (dCSRmat *A)
     dcsr_trans(A,  &AT);
 
     // get symmetrized A
-    dcsr_add(A, 0.5, &AT, 0.5, &SA);
+    dcsr_add(A, 1.0, &AT, 0.0, &SA);
 
     // clean
     dcsr_free(&AT);

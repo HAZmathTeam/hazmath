@@ -1245,7 +1245,7 @@ ForwardSweep:
     // call the coarse space solver:
     switch ( coarse_solver ) {
 
-#if WITH_UMFPACK
+#if WITH_SUITESPARSE
         case SOLVER_UMFPACK:
             /* use UMFPACK direct solver on the coarsest level */
             umfpack_solve(&mgl[nl-1].Ac, &mgl[nl-1].b, &mgl[nl-1].x, mgl[nl-1].Numeric, 0);

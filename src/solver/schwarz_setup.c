@@ -122,15 +122,15 @@ void Schwarz_get_block_matrix (Schwarz_data *Schwarz,
  * \return           SUCCESS if succeed
  *
  */
-INT Schwarz_setup (Schwarz_data *Schwarz,
-                   Schwarz_param *param)
+INT Schwarz_setup(Schwarz_data *Schwarz,
+                  Schwarz_param *param)
 {
     // information about A
     dCSRmat A = Schwarz->A;
     INT n   = A.row;
 
     INT  block_solver = param->Schwarz_blksolver;
-    INT  maxlev = param->Schwarz_maxlvl;
+    INT  maxlev = ABS(param->Schwarz_maxlvl);
     Schwarz->swzparam = param;
 
     // local variables
@@ -140,6 +140,7 @@ INT Schwarz_setup (Schwarz_data *Schwarz,
     // data for Schwarz method
     INT nblk;
     INT *iblock = NULL, *jblock = NULL, *mask = NULL, *maxa = NULL;
+    INT max_blk_size = 0;
 
     // return
     INT flag = SUCCESS;
@@ -158,7 +159,16 @@ INT Schwarz_setup (Schwarz_data *Schwarz,
     maxa[0]=0;
 
     // select root nodes.
-    ivector *MaxIndSet = sparse_MIS(&A,NULL);
+    ivector *MaxIndSet;
+    if (param->Schwarz_maxlvl < 0){
+        MaxIndSet = (ivector *)calloc(1, sizeof(ivector));
+        ivec_alloc(n, MaxIndSet);
+        for (i=0; i<A.row; i++) MaxIndSet->val[i] = i;
+        //maxlev = 1;
+    }
+    else {
+        MaxIndSet = sparse_MIS(&A,NULL);
+    }
 
     /*-------------------------------------------*/
     // find the blocks
@@ -168,6 +178,7 @@ INT Schwarz_setup (Schwarz_data *Schwarz,
         inroot = MaxIndSet->val[i];
         Schwarz_levels(inroot,&A,mask,&nlvl,maxa,jblock,maxlev);
         nsizei=maxa[nlvl];
+        max_blk_size = MAX(max_blk_size, nsizei);
         nsizeall+=nsizei;
     }
 
@@ -235,12 +246,145 @@ INT Schwarz_setup (Schwarz_data *Schwarz,
     Schwarz->Schwarz_type = param->Schwarz_type;
     Schwarz->blk_solver = param->Schwarz_blksolver;
 
-    printf("Schwarz method setup is done! Find %d blocks\n",nblk);
+    printf("Schwarz method setup is done! Find %d blocks. Maxmium block size = %d\n",nblk, max_blk_size);
 
     // clean
     ivec_free(MaxIndSet);
     if (MaxIndSet) free(MaxIndSet);
     MaxIndSet = NULL;
+
+    return flag;
+}
+
+/***********************************************************************************************/
+/**
+ * \fn INT Schwarz_setup_with_seeds(Schwarz_data *Schwarz, Schwarz_param *param, ivector *seeds)
+ *
+ * \brief Setup phase for the Schwarz methods with user provided seeds for constructing blocks
+ *
+ * \param Schwarz    Pointer to the Schwarz data
+ * \param param      Type of the Schwarz method
+ * \param seeds      Pointer to the seeds for each block
+ *
+ * \return           SUCCESS if succeed
+ *
+ * \author           Xiaozhe Hu
+ *
+ */
+INT Schwarz_setup_with_seeds(Schwarz_data *Schwarz,
+                             Schwarz_param *param,
+                             ivector *seeds)
+{
+    // information about A
+    dCSRmat A = Schwarz->A;
+    INT n   = A.row;
+
+    INT  block_solver = param->Schwarz_blksolver;
+    INT  maxlev = ABS(param->Schwarz_maxlvl);
+    Schwarz->swzparam = param;
+
+    // local variables
+    INT i;
+    INT inroot = -10, nsizei = -10, nsizeall = -10, nlvl = 0;
+    INT *jb=NULL;
+    // data for Schwarz method
+    INT nblk;
+    INT *iblock = NULL, *jblock = NULL, *mask = NULL, *maxa = NULL;
+    INT max_blk_size = 0;
+
+    // return
+    INT flag = SUCCESS;
+
+    // allocate memory
+    maxa    = (INT *)calloc(n,sizeof(INT));
+    mask    = (INT *)calloc(n,sizeof(INT));
+    iblock  = (INT *)calloc(n,sizeof(INT));
+    jblock  = (INT *)calloc(n,sizeof(INT));
+
+    nsizeall=0;
+    memset(mask,   0, sizeof(INT)*n);
+    memset(iblock, 0, sizeof(INT)*n);
+    memset(maxa,   0, sizeof(INT)*n);
+
+    maxa[0]=0;
+
+    /*-------------------------------------------*/
+    // find the blocks
+    /*-------------------------------------------*/
+    // first pass: do a maxlev level sets out for each node
+    for (i=0; i<seeds->row; i++ ) {
+        inroot = seeds->val[i];
+        Schwarz_levels(inroot,&A,mask,&nlvl,maxa,jblock,maxlev);
+        nsizei=maxa[nlvl];
+        max_blk_size = MAX(max_blk_size, nsizei);
+        nsizeall+=nsizei;
+    }
+
+    /* We only calculated the size of this up to here. So we can reallocate jblock */
+    jblock = (INT *)realloc(jblock,(nsizeall+n)*sizeof(INT));
+
+    // second pass: redo the same again, but this time we store in jblock
+    maxa[0]=0;
+    iblock[0]=0;
+    nsizeall=0;
+    jb=jblock;
+    for (i=0;i<seeds->row;i++) {
+        inroot = seeds->val[i];
+        Schwarz_levels(inroot,&A,mask,&nlvl,maxa,jb,maxlev);
+        nsizei=maxa[nlvl];
+        iblock[i+1]=iblock[i]+nsizei;
+        nsizeall+=nsizei;
+        jb+=nsizei;
+    }
+    nblk = seeds->row;
+
+    /*-------------------------------------------*/
+    //  LU decomposition of blocks
+    /*-------------------------------------------*/
+    memset(mask, 0, sizeof(INT)*n);
+    Schwarz->blk_data = (dCSRmat*)calloc(nblk, sizeof(dCSRmat));
+    Schwarz_get_block_matrix(Schwarz, nblk, iblock, jblock, mask);
+
+    // Setup for each block solver
+    switch (block_solver) {
+
+#if WITH_SUITESPARSE
+        case SOLVER_UMFPACK: {
+            /* use UMFPACK direct solver on each block */
+            dCSRmat *blk = Schwarz->blk_data;
+            void **numeric	= (void**)calloc(nblk, sizeof(void*));
+            dCSRmat blk_tran;
+            for (i=0; i<nblk; ++i) {
+                dcsr_alloc(blk[i].row, blk[i].col, blk[i].nnz, &blk_tran);
+                dcsr_transz(&blk[i], NULL, &blk_tran);
+                dcsr_cp(&blk_tran, &blk[i]);
+                dcsr_free(&blk_tran);
+                //printf("size of block %d: nrow=%d, nnz=%d\n",i, blk[i].row, blk[i].nnz);
+                numeric[i] = umfpack_factorize(&blk[i], 0);
+            }
+            Schwarz->numeric = numeric;
+
+            break;
+        }
+#endif
+
+        default: {
+            /* do nothing for iterative methods */
+        }
+    }
+
+    /*-------------------------------------------*/
+    //  return
+    /*-------------------------------------------*/
+    Schwarz->nblk   = nblk;
+    Schwarz->iblock = iblock;
+    Schwarz->jblock = jblock;
+    Schwarz->mask   = mask;
+    Schwarz->maxa   = maxa;
+    Schwarz->Schwarz_type = param->Schwarz_type;
+    Schwarz->blk_solver = param->Schwarz_blksolver;
+
+    printf("Schwarz method setup is done! Find %d blocks. Maxmium block size = %d\n",nblk, max_blk_size);
 
     return flag;
 }

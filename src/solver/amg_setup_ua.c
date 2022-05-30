@@ -2283,7 +2283,6 @@ static SHORT amg_setup_general_bdcsr(AMG_data_bdcsr *mgl,
 
     // form coarse level matrices
     for (lvl=0; lvl<max_levels-1; lvl++){
-        //printf("level = %d\n", lvl);
 
         // allocate
         bdcsr_alloc(brow, bcol, &(mgl[lvl+1].A));
@@ -2291,12 +2290,6 @@ static SHORT amg_setup_general_bdcsr(AMG_data_bdcsr *mgl,
         // form coarse level matrices
         for (i=0; i<brow; i++){
             for (j=0; j<brow; j++){
-                //printf("i = %d\n", i);
-                //printf("j = %d\n", j);
-
-                //dcsr_write_dcoo("Ri.dat", mgl[lvl].R.blocks[i*brow+i]);
-                //dcsr_write_dcoo("Aij.dat", mgl[lvl].A.blocks[i*brow+j]);
-                //dcsr_write_dcoo("Pj.dat", mgl[lvl].P.blocks[j*brow+j]);
 
                 if (i==j)  // diagonal block
                 {
@@ -2311,10 +2304,7 @@ static SHORT amg_setup_general_bdcsr(AMG_data_bdcsr *mgl,
                     // cleam temp mat
                     dcsr_free(&temp_mat);
                 }
-                //
 
-                //printf("done!\n");
-                //getchar();
             }
         }
     }
@@ -2332,10 +2322,10 @@ static SHORT amg_setup_general_bdcsr(AMG_data_bdcsr *mgl,
     }
 
     // Setup coarse level systems for direct solvers (block_dCSRmat version)
-    lvl = max_levels;
+    lvl = max_levels-1;
     switch (csolver) {
 
-#if WITH_UMFPACK
+#if WITH_SUITESPARSE
         case SOLVER_UMFPACK: {
             // Need to sort the matrix A for UMFPACK to work
             mgl[lvl].Ac = bdcsr_2_dcsr(&mgl[lvl].A);
@@ -2583,7 +2573,7 @@ static SHORT amg_setup_bdcsr_metric(AMG_data_bdcsr *mgl,
     //
     //Grab indices and values
     INT *gamma0 = calloc(mgl[0].interface_dof->nnz,sizeof(INT));
-    INT *gamma1 = calloc(mgl[0].interface_dof->nnz,sizeof(INT));    
+    INT *gamma1 = calloc(mgl[0].interface_dof->nnz,sizeof(INT));
     INT ij,nnz_g=0;
     for (i=0;i<mgl[0].interface_dof->row;++i){
       for(ij=mgl[0].interface_dof->IA[i];		\
