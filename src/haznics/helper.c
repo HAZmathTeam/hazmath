@@ -1254,24 +1254,26 @@ PyObject* py_callback_eval(REAL *r, REAL *x, smoother_matvec *smmv)
 
 }
 
-INT wrapper_krylov_amg(dCSRmat *mat, dvector *rhs, dvector *sol, REAL tol)
+INT wrapper_krylov_amg(dCSRmat *mat, dvector *rhs, dvector *sol)
 {
-    AMG_param       amgparam; // parameters for AMG
-    linear_itsolver_param  itparam;  // parameters for linear itsolver
     INT niters = 0;
 
+    /* set Parameters from Reading in Input File */
+    input_param inparam;
+    param_input_init(&inparam);
+    param_input("./input.dat", &inparam);
+
     // Set parameters for linear iterative methods
+    linear_itsolver_param itparam;  // parameters for linear itsolver
     param_linear_solver_init(&itparam);
+    param_linear_solver_set(&itparam, &inparam);
     if (itparam.linear_print_level > PRINT_MIN) param_linear_solver_print(&itparam);
 
     // Set parameters for algebriac multigrid methods
+    AMG_param amgparam; // parameters for AMG
     param_amg_init(&amgparam);
+    param_amg_set(&amgparam, &inparam);
     if (amgparam.print_level > PRINT_MIN) param_amg_print(&amgparam);
-
-    amgparam.print_level          = 2;
-    itparam.linear_tol            = tol;
-    itparam.linear_print_level    = 2;
-    itparam.linear_maxit          = 100;
 
     niters = linear_solver_dcsr_krylov_amg(mat, rhs, sol, &itparam, &amgparam);
 
@@ -1279,30 +1281,26 @@ INT wrapper_krylov_amg(dCSRmat *mat, dvector *rhs, dvector *sol, REAL tol)
 }
 
 
-INT wrapper_krylov_amg_schwarz(dCSRmat *mat, dvector *rhs, dvector *sol, REAL tol)
+INT wrapper_krylov_amg_schwarz(dCSRmat *mat, dvector *rhs, dvector *sol)
 {
-    AMG_param       amgparam; // parameters for AMG
-    linear_itsolver_param  itparam;  // parameters for linear itsolver
     INT niters = 0;
 
-    // Set parameters for linear iterative methods
+    /* set Parameters from Reading in Input File */
+    input_param inparam;
+    param_input_init(&inparam);
+    param_input("./input_schwarz.dat", &inparam);
+
+    /* Set parameters for linear iterative methods */
+    linear_itsolver_param itparam;
     param_linear_solver_init(&itparam);
-    itparam.linear_tol = tol;
-    itparam.linear_stop_type = 2;
-    itparam.linear_maxit = 1000;
-    itparam.linear_print_level = 2;
+    param_linear_solver_set(&itparam, &inparam);
     if (itparam.linear_print_level > PRINT_MIN) param_linear_solver_print(&itparam);
 
     // Set parameters for algebraic multigrid methods
+    AMG_param  amgparam; // parameters for AMG
     param_amg_init(&amgparam);
+    param_amg_set(&amgparam, &inparam);
     if (amgparam.print_level > PRINT_MIN) param_amg_print(&amgparam);
-
-    amgparam.print_level          = 2;
-    amgparam.Schwarz_levels       = 1;
-    amgparam.Schwarz_mmsize       = 200;
-    amgparam.Schwarz_maxlvl       = 2;
-    amgparam.Schwarz_type         = 1;
-    amgparam.Schwarz_blksolver    = SOLVER_UMFPACK;
 
     niters = linear_solver_dcsr_krylov_amg(mat, rhs, sol, &itparam, &amgparam);
 
