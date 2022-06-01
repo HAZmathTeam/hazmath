@@ -1287,6 +1287,10 @@ INT wrapper_krylov_amg_schwarz(dCSRmat *mat, dvector *rhs, dvector *sol, REAL to
 
     // Set parameters for linear iterative methods
     param_linear_solver_init(&itparam);
+    itparam.linear_tol = tol;
+    itparam.linear_stop_type = 2;
+    itparam.linear_maxit = 1000;
+    itparam.linear_print_level = 2;
     if (itparam.linear_print_level > PRINT_MIN) param_linear_solver_print(&itparam);
 
     // Set parameters for algebraic multigrid methods
@@ -1299,10 +1303,6 @@ INT wrapper_krylov_amg_schwarz(dCSRmat *mat, dvector *rhs, dvector *sol, REAL to
     amgparam.Schwarz_maxlvl       = 2;
     amgparam.Schwarz_type         = 1;
     amgparam.Schwarz_blksolver    = SOLVER_UMFPACK;
-
-    itparam.linear_tol            = tol;
-    itparam.linear_print_level    = 2;
-    itparam.linear_maxit          = 100;
 
     niters = linear_solver_dcsr_krylov_amg(mat, rhs, sol, &itparam, &amgparam);
 
