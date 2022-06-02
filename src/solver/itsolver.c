@@ -4610,17 +4610,6 @@ INT linear_solver_bdcsr_krylov_metric_amg(block_dCSRmat    *A,
         print_cputime("Block_dCSR AMG setup", setup_end - setup_start);
 
     /*
-    dCSRmat Af = bdcsr_2_dcsr(&mgl[0].A);
-    dcsr_write_dcoo("Af.dat", &Af);
-    dCSRmat Ac = bdcsr_2_dcsr(&mgl[1].A);
-    dcsr_write_dcoo("Ac.dat", &Ac);
-    dCSRmat P = bdcsr_2_dcsr(&mgl[0].P);
-    dcsr_write_dcoo("P.dat", &P);
-    dCSRmat R = bdcsr_2_dcsr(&mgl[0].R);
-    dcsr_write_dcoo("R.dat", &R);
-    */
-
-    /*
     // check symmetry
     REAL *r = (REAL *)calloc(b_new.row*b_new.row, sizeof(REAL));
     REAL *z = (REAL *)calloc(b_new.row*b_new.row, sizeof(REAL));
@@ -4663,6 +4652,7 @@ FINISHED:
     amg_data_bdcsr_free(mgl, amgparam);
     dvec_free(&precdata.r);
     if (precond_type == 10 || precond_type == 11 ){
+        dcsr_free(&schwarz_data.A);
 #if WITH_SUITESPARSE
         if(precdata.LU_data){
             if(precdata.LU_data[0]) umfpack_free_numeric(precdata.LU_data[0]);
@@ -4671,6 +4661,7 @@ FINISHED:
 #endif
     }
     else{
+        if(precdata.LU_data) free(precdata.LU_data);
         schwarz_data_free(&schwarz_data);
     }
     bdcsr_free(&A_new);

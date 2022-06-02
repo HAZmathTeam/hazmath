@@ -273,7 +273,7 @@ void amg_data_bdcsr_free (AMG_data_bdcsr *mgl,
 {
     const INT max_levels = MAX(1,mgl[0].num_levels);
 
-    INT i;
+    INT i, j;
     INT brow = mgl[0].A.brow;
 
     //printf("in free\n");
@@ -298,13 +298,16 @@ void amg_data_bdcsr_free (AMG_data_bdcsr *mgl,
         dvec_free(&mgl[i].w);
         //printf("done free w\n");
 
+        for (j=0; j<brow; j++) dcsr_free(&mgl[i].A_diag[j]);
+        if (mgl[i].A_diag) free(mgl[i].A_diag);
+
     }
 
-    //printf("done free each level\n");
 
     // clean AMG data for diaognal blocks
     for (i=0; i<brow; i++){
         amg_data_free(mgl[0].mgl_diag[i], param);
+        if (mgl[0].mgl_diag[i]) free(mgl[0].mgl_diag[i]);
     }
     if (mgl[0].mgl_diag) free(mgl[0].mgl_diag);
 
