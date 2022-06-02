@@ -4662,8 +4662,7 @@ INT linear_solver_bdcsr_krylov_metric_amg(block_dCSRmat    *A,
 FINISHED:
     amg_data_bdcsr_free(mgl, amgparam);
     dvec_free(&precdata.r);
-    /*
-    if (precond_type == 10){
+    if (precond_type == 10 || precond_type == 11 ){
 #if WITH_SUITESPARSE
         if(precdata.LU_data){
             if(precdata.LU_data[0]) umfpack_free_numeric(precdata.LU_data[0]);
@@ -4674,7 +4673,6 @@ FINISHED:
     else{
         schwarz_data_free(&schwarz_data);
     }
-    */
     bdcsr_free(&A_new);
     dvec_free(&b_new);
     dvec_free(&x_new);

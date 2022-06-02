@@ -531,24 +531,21 @@ void schwarz_data_free(Schwarz_data *schwarzdata)
 #endif
     }
 
+
     if (schwarzdata->iblock) free(schwarzdata->iblock);
     schwarzdata->iblock = NULL;
+
     if (schwarzdata->jblock) free(schwarzdata->jblock);
     schwarzdata->jblock = NULL;
 
-    if (schwarzdata->rhsloc) free(schwarzdata->rhsloc);
-    schwarzdata->rhsloc = NULL;
     dvec_free(&schwarzdata->rhsloc1);
-    dvec_free(&schwarzdata->xloc1);
 
-    if (schwarzdata->au) free(schwarzdata->au);
-    schwarzdata->au = NULL;
-    if (schwarzdata->al) free(schwarzdata->al);
-    schwarzdata->al = NULL;
+    dvec_free(&schwarzdata->xloc1);
 
     schwarzdata->memt = 0;
     if (schwarzdata->mask) free(schwarzdata->mask);
     schwarzdata->mask = NULL;
+
     if (schwarzdata->maxa) free(schwarzdata->maxa);
     schwarzdata->maxa = NULL;
 

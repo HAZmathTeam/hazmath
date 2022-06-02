@@ -78,6 +78,8 @@ void Schwarz_get_block_matrix (Schwarz_data *Schwarz,
             mask[ki] = i+1;  // The +1 -Peter
         }
 
+        //printf("is=%d\n", is);
+        //printf("nloc=%d, count=%d\n", nloc, count);
         blk[is] = dcsr_create(nloc, nloc, count);
         blk[is].IA[0] = 0;
         nnz = 0;
@@ -132,6 +134,8 @@ INT Schwarz_setup(Schwarz_data *Schwarz,
     INT  block_solver = param->Schwarz_blksolver;
     INT  maxlev = ABS(param->Schwarz_maxlvl);
     Schwarz->swzparam = param;
+
+    printf("param->Schwarz_maxlvl = %d\n", param->Schwarz_maxlvl);
 
     // local variables
     INT i;

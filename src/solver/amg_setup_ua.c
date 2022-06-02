@@ -1307,6 +1307,7 @@ static SHORT amg_setup_smoothP_smoothR(AMG_data *mgl,
         if ( lvl < param->Schwarz_levels ) {
           mgl[lvl].Schwarz.A=dcsr_sympat(&mgl[lvl].A);
           Schwarz_setup(&mgl[lvl].Schwarz, &swzparam);
+          //printf("Schwarz setup done!\n");
         }
 
         /*-- Aggregation --*/

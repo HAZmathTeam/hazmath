@@ -57,20 +57,11 @@ typedef struct {
     //! column index of blocks
     INT *jblock;
 
-    //! temp work space???
-    REAL *rhsloc;
-
     //! local right hand side
     dvector rhsloc1;
 
     //! local solution
     dvector xloc1;
-
-    //! LU decomposition: the U block
-    REAL *au;
-
-    //! LU decomposition: the L block
-    REAL *al;
 
     //! Schwarz method type
     INT Schwarz_type;
