@@ -164,15 +164,15 @@ INT Schwarz_setup(Schwarz_data *Schwarz,
 
     // select root nodes.
     ivector *MaxIndSet;
-    //if (param->Schwarz_maxlvl < 0){
+    if (param->Schwarz_maxlvl < 0){
         MaxIndSet = (ivector *)calloc(1, sizeof(ivector));
         ivec_alloc(n, MaxIndSet);
         for (i=0; i<A.row; i++) MaxIndSet->val[i] = i;
         //maxlev = 1;
-    //}
-    //else {
-    //    MaxIndSet = sparse_MIS(&A,NULL);
-    //}
+    }
+    else {
+        MaxIndSet = sparse_MIS(&A,NULL);
+    }
 
     /*-------------------------------------------*/
     // find the blocks
