@@ -1153,13 +1153,6 @@ void mgcycle_bdcsr (AMG_data_bdcsr  *mgl,
     REAL alpha = 1.0;
     INT i;
 
-    //dvector r_nk, z_nk;
-
-    //if ( mgl[0].A_nk != NULL ) {
-    //    dvec_alloc(mgl[0].A_nk->row, &r_nk);
-    //    dvec_alloc(mgl[0].A_nk->row, &z_nk);
-    //}
-
 #if DEBUG_MODE > 0
     printf("### DEBUG: [-Begin-] %s ...\n", __FUNCTION__);
 #endif
@@ -1173,20 +1166,32 @@ ForwardSweep:
         nu_l[l]++;
         // pre smoothing
         if ( steps > 0 ) {
+
+            // copy right hand side
+            array_cp(mgl[l].b.row, mgl[l].b.val, mgl[l].w.val);
+            // copy current solution
+            array_cp(mgl[l].x.row, mgl[l].x.val, mgl[l].w.val+mgl[l].b.row);
+
+            // compute residual
+            bdcsr_aAxpy(-1.0, &mgl[l].A, mgl[l].x.val, mgl[l].b.val);
+            // set zero initial guess
+            dvec_set(mgl[l].x.row, &mgl[l].x, 0.0);
+
             switch ( smoother ) {
 
                 case SMOOTHER_JACOBI:
                     for (i=0; i<steps; i++) smoother_bdcsr_jacobi_jacobi(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag);
+                    //for (i=0; i<steps; i++) smoother_bdcsr_jacobi_jacobi(&mgl[l].x, &mgl[l].A, &mgl[l].b, NULL);
                     break;
 
                 case SMOOTHER_GS:
-                    for (i=0; i<steps; i++) smoother_bdcsr_fgs_fgs(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag, mgl[l].w.val);
+                    for (i=0; i<steps; i++) smoother_bdcsr_fgs_fgs(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag, mgl[l].w.val+2*mgl[l].b.row);
                     break;
 
                 case SMOOTHER_SGS:
                     for (i=0; i<steps; i++){
-                        smoother_bdcsr_fgs_fgs(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag, mgl[l].w.val);
-                        smoother_bdcsr_bgs_bgs(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag, mgl[l].w.val);
+                        smoother_bdcsr_fgs_sgs(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag, mgl[l].w.val+2*mgl[l].b.row);
+                        //smoother_bdcsr_bgs_bgs(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag, mgl[l].w.val+2*mgl[l].b.row);
                     }
                     break;
 
@@ -1202,32 +1207,13 @@ ForwardSweep:
                     printf("### HAZMATH ERROR: Unknown smoother type %d!\n", smoother);
                     check_error(ERROR_SOLVER_TYPE, __FUNCTION__);
             }
+
+            // update solution
+            array_axpy(mgl[l].x.row, 1.0, mgl[l].w.val+mgl[l].b.row, mgl[l].x.val);
+            // restore right hand side
+            array_cp(mgl[l].b.row, mgl[l].w.val, mgl[l].b.val);
+
         }
-
-
-        // extra kernel solve
-//         if (mgl[l].A_nk != NULL) {
-//
-//             //--------------------------------------------
-//             // extra kernel solve
-//             //--------------------------------------------
-//             // form residual r = b - A x
-//             array_cp(mgl[l].A.ROW*mgl[l].A.nb, mgl[l].b.val, mgl[l].w.val);
-//             dbsr_aAxpy(-1.0,&mgl[l].A, mgl[l].x.val, mgl[l].w.val);
-//
-//             // r_nk = R_nk*r
-//             dcsr_mxv(mgl[l].R_nk, mgl[l].w.val, r_nk.val);
-//
-//             // z_nk = A_nk^{-1}*r_nk
-// #if WITH_UMFPACK // use UMFPACK directly
-//             directsolve_UMF(mgl[l].A_nk, &r_nk, &z_nk, 0);
-// #else
-//             coarse_itsolver(mgl[l].A_nk, &r_nk, &z_nk, 1e-12, 0);
-// #endif
-//
-//             // z = z + P_nk*z_nk;
-//             dcsr_aAxpy(1.0, mgl[l].P_nk, z_nk.val, mgl[l].x.val);
-//         }
 
         // form residual r = b - A x
         array_cp(mgl[l].b.row, mgl[l].b.val, mgl[l].w.val);
@@ -1289,23 +1275,33 @@ ForwardSweep:
             bdcsr_aAxpy(alpha, &mgl[l].P, mgl[l+1].x.val, mgl[l].x.val);
         }
 
-        // extra kernel solve
-
         // post-smoothing
         if ( steps > 0 ) {
+
+            // copy right hand side
+            array_cp(mgl[l].b.row, mgl[l].b.val, mgl[l].w.val);
+            // copy current solution
+            array_cp(mgl[l].x.row, mgl[l].x.val, mgl[l].w.val+mgl[l].b.row);
+
+            // compute residual
+            bdcsr_aAxpy(-1.0, &mgl[l].A, mgl[l].x.val, mgl[l].b.val);
+            // set zero initial guess
+            dvec_set(mgl[l].x.row, &mgl[l].x, 0.0);
+
             switch ( smoother ) {
                 case SMOOTHER_JACOBI:
                     for (i=0; i<steps; i++) smoother_bdcsr_jacobi_jacobi(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag);
+                    //for (i=0; i<steps; i++) smoother_bdcsr_jacobi_jacobi(&mgl[l].x, &mgl[l].A, &mgl[l].b, NULL);
                     break;
 
                 case SMOOTHER_GS:
-                    for (i=0; i<steps; i++) smoother_bdcsr_bgs_bgs(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag, mgl[l].w.val);
+                    for (i=0; i<steps; i++) smoother_bdcsr_bgs_bgs(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag, mgl[l].w.val+2*mgl[l].b.row);
                     break;
 
                 case SMOOTHER_SGS:
                     for (i=0; i<steps; i++){
-                        smoother_bdcsr_fgs_fgs(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag, mgl[l].w.val);
-                        smoother_bdcsr_bgs_bgs(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag, mgl[l].w.val);
+                        //smoother_bdcsr_fgs_fgs(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag, mgl[l].w.val+2*mgl[l].b.row);
+                        smoother_bdcsr_bgs_sgs(&mgl[l].x, &mgl[l].A, &mgl[l].b, mgl[l].A_diag, mgl[l].w.val+2*mgl[l].b.row);
                     }
                     break;
 
@@ -1321,6 +1317,13 @@ ForwardSweep:
                     printf("### HAZMATH ERROR: Unknown smoother type %d!\n", smoother);
                     check_error(ERROR_SOLVER_TYPE, __FUNCTION__);
             }
+
+            // update solution
+            array_axpy(mgl[l].x.row, 1.0, mgl[l].w.val+mgl[l].b.row, mgl[l].x.val);
+
+            // restore right hand side
+            array_cp(mgl[l].b.row, mgl[l].w.val, mgl[l].b.val);
+
         }
 
         if ( nu_l[l] < cycle_type ) break;

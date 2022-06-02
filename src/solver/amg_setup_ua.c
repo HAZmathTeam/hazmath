@@ -2277,6 +2277,14 @@ static SHORT amg_setup_general_bdcsr(AMG_data_bdcsr *mgl,
             dcsr_alloc(mgl_diag[i][lvl].R.row, mgl_diag[i][lvl].R.col, mgl_diag[i][lvl].R.nnz, mgl[lvl].R.blocks[i*brow+i]);
             dcsr_cp(&mgl_diag[i][lvl].R, mgl[lvl].R.blocks[i*brow+i]);
 
+            // set other blocks to be Null
+            for (j=0; j<brow; j++){
+                if (i != j){
+                    mgl[lvl].P.blocks[i*brow+j] = NULL;
+                    mgl[lvl].R.blocks[i*brow+j] = NULL;
+                }
+            }
+
         }
 
     }

@@ -48,15 +48,18 @@ nonlinear_itsolver_toltype	= 0 	% type of tolerance for nonlinear solver 1 - ||n
 % linear solver
 %---------------%
 
-linear_itsolver_type		= 4   	% 0 Direct Solve | 1 CG | 2 MINRES | 3 GMRES
+linear_itsolver_type		= 1   	% 0 Direct Solve | 1 CG | 2 MINRES | 3 GMRES
 linear_itsolver_maxit		= 100  	% maximal iterations of linear iterative solver
 linear_itsolver_tol		= 1e-6  % tolerance for linear iterative solver
-linear_stop_type		= 1     	% 1 ||r||/||b|| | 2 ||r||_B/||b||_B | % 3 ||r||/||x||
+linear_stop_type		= 2     	% 1 ||r||/||b|| | 2 ||r||_B/||b||_B | % 3 ||r||/||x||
 linear_restart 			= 100		% restart for GMRes
 
-linear_precond_type		= 11		%  0 Null | 1 Diag | 2 AMG
-                                    % 10: direct solve on interface part + AMG on the whole matrix
-                                    % 11: Schwarz method on interface part + AMG on the whole matrix
+linear_precond_type		= 14		%  0 Null | 1 Diag | 2 AMG
+                                    % 10: direct solve on interface part + AMG on the whole matrix (nonsymmetric multiplicative version)
+                                    % 11: direct on interface part + AMG on the whole matrix (additive version)
+                                    % 12: Schwarz method on interface part + AMG on the whole matrix (nonsymmetric multiplicative version)
+                                    % 13: Schwarz method on interface part + AMG on the whole matrix (additive version)
+                                    % 14: Schwarz method on interface part + AMG on the whole matrix (symmetric multiplicative version)
 
 %----------------------------------------------%
 % parameters for Algebraic Multigrid           %
@@ -70,7 +73,6 @@ AMG_maxit			= 1
 
 AMG_smoother			= GS	% JACOBI | GS | SGS | SOR | SSOR | L1DIAG |
                                 % Extra smoothers for block_dCSRmat: JACOBI_GS | JACOBI_SGS |
-                                % Extra smoothers for metric AMG of block_dCSRmat: METRIC_ADD | METRIC_MUL
 AMG_Schwarz_levels      = 0      % number of levels using Schwarz smoother
 AMG_relaxation			= 1.0   % Relaxation for SOR
 AMG_presmooth_iter		= 1
@@ -85,13 +87,13 @@ AMG_nl_amli_krylov_type  	= 5	% Krylov method in nonlinear AMLI cycle: 5 GCG |  
 
 % aggregation AMG
 AMG_aggregation_type	= 1    % 1 VMB ; 4 HEC
-AMG_strong_coupled		= 0.1  % Strong coupled threshold
+AMG_strong_coupled		= 0.0  % Strong coupled threshold
 AMG_max_aggregation		= 20	% Max size of aggregations
 
 %----------------------------------------------%
 % parameters for Schwarz methods       %
 %----------------------------------------------%
 Schwarz_mmsize           = 200    % max block size
-Schwarz_maxlvl           = 2      % level used to form blocks
+Schwarz_maxlvl           = 1      % level used to form blocks
 Schwarz_type             = 1      % 1 forward | 2 backward | 3 symmetric
 Schwarz_blksolver        = 32     % sub-block solvers: 0 iterative | 32 UMFPack |

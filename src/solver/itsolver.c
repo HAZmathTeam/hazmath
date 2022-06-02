@@ -4531,7 +4531,7 @@ INT linear_solver_bdcsr_krylov_metric_amg(block_dCSRmat    *A,
     error_extlib(257, __FUNCTION__, "SuiteSparse");
 #endif
 
-    if (precond_type == 10){
+    if (precond_type == 10 || precond_type == 11 ){
 #if WITH_SUITESPARSE
         // Need to sort the diagonal blocks for UMFPACK format
         dCSRmat A_tran;
@@ -4584,11 +4584,23 @@ INT linear_solver_bdcsr_krylov_metric_amg(block_dCSRmat    *A,
     precond prec;
     prec.data = &precdata;
     switch (precond_type) {
+        case 2: // solve using AMG for the whole matrix
+            prec.fct = precond_bdcsr_amg;
+            break;
         case 10: // solve the interface part exactly
             prec.fct = precond_bdcsr_metric_amg_exact;
             break;
-        default: // solve the interface part using Schwarz method
+        case 11: // solve the interface part exactly (additive version)
+            prec.fct = precond_bdcsr_metric_amg_exact_additive;
+            break;
+        case 12: // solve the interface part using Schwarz method (non symmetric multiplicative version)
             prec.fct = precond_bdcsr_metric_amg;
+            break;
+        case 13: // solve the interface part using Schwarz method (additive version)
+            prec.fct = precond_bdcsr_metric_amg_additive;
+            break;
+        default: // solve the interface part using Schwarz method (symmetric multiplicative version)
+            prec.fct = precond_bdcsr_metric_amg_symmetric;
             break;
     }
 
@@ -4596,6 +4608,39 @@ INT linear_solver_bdcsr_krylov_metric_amg(block_dCSRmat    *A,
 
     if ( prtlvl >= PRINT_MIN )
         print_cputime("Block_dCSR AMG setup", setup_end - setup_start);
+
+    /*
+    dCSRmat Af = bdcsr_2_dcsr(&mgl[0].A);
+    dcsr_write_dcoo("Af.dat", &Af);
+    dCSRmat Ac = bdcsr_2_dcsr(&mgl[1].A);
+    dcsr_write_dcoo("Ac.dat", &Ac);
+    dCSRmat P = bdcsr_2_dcsr(&mgl[0].P);
+    dcsr_write_dcoo("P.dat", &P);
+    dCSRmat R = bdcsr_2_dcsr(&mgl[0].R);
+    dcsr_write_dcoo("R.dat", &R);
+    */
+
+    /*
+    // check symmetry
+    REAL *r = (REAL *)calloc(b_new.row*b_new.row, sizeof(REAL));
+    REAL *z = (REAL *)calloc(b_new.row*b_new.row, sizeof(REAL));
+    array_set(b_new.row*b_new.row, r, 0.0);
+    array_set(b_new.row*b_new.row, z, 0.0);
+
+    for (i=0; i<b_new.row; i++){
+        r[i*b_new.row + i] = 1.0;
+        //precond_bdcsr_amg(r+i*b_new.row, z+i*b_new.row, &precdata);
+        prec.fct(r+i*b_new.row, z+i*b_new.row, &precdata);
+        //precond_bdcsr_metric_amg_additive(r+i*b_new.row, z+i*b_new.row, &precdata);
+        //precond_bdcsr_metric_amg_symmetric(r+i*b_new.row, z+i*b_new.row, &precdata);
+    }
+    dvector Z;
+    Z.row = b_new.row*b_new.row;
+    Z.val = z;
+    dvec_write("Z.dat", &Z);
+    getchar();
+    */
+
 
     //--------------------------------------------------------------
     // Part 3: solver
@@ -4616,6 +4661,20 @@ INT linear_solver_bdcsr_krylov_metric_amg(block_dCSRmat    *A,
 
 FINISHED:
     amg_data_bdcsr_free(mgl, amgparam);
+    dvec_free(&precdata.r);
+    /*
+    if (precond_type == 10){
+#if WITH_SUITESPARSE
+        if(precdata.LU_data){
+            if(precdata.LU_data[0]) umfpack_free_numeric(precdata.LU_data[0]);
+        }
+        if(precdata.LU_data) free(precdata.LU_data);
+#endif
+    }
+    else{
+        schwarz_data_free(&schwarz_data);
+    }
+    */
     bdcsr_free(&A_new);
     dvec_free(&b_new);
     dvec_free(&x_new);
