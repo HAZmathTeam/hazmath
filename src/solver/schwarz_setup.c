@@ -135,7 +135,7 @@ INT Schwarz_setup(Schwarz_data *Schwarz,
     INT  maxlev = ABS(param->Schwarz_maxlvl);
     Schwarz->swzparam = param;
 
-    printf("param->Schwarz_maxlvl = %d\n", param->Schwarz_maxlvl);
+    //printf("param->Schwarz_maxlvl = %d\n", param->Schwarz_maxlvl);
 
     // local variables
     INT i;
@@ -150,15 +150,15 @@ INT Schwarz_setup(Schwarz_data *Schwarz,
     INT flag = SUCCESS;
 
     // allocate memory
-    maxa    = (INT *)calloc(n,sizeof(INT));
-    mask    = (INT *)calloc(n,sizeof(INT));
-    iblock  = (INT *)calloc(n,sizeof(INT));
-    jblock  = (INT *)calloc(n,sizeof(INT));
+    maxa    = (INT *)calloc((n+1),sizeof(INT));
+    mask    = (INT *)calloc(10*maxlev*n,sizeof(INT));
+    iblock  = (INT *)calloc((n+1),sizeof(INT));
+    jblock  = (INT *)calloc(10*maxlev*n,sizeof(INT));
 
     nsizeall=0;
-    memset(mask,   0, sizeof(INT)*n);
-    memset(iblock, 0, sizeof(INT)*n);
-    memset(maxa,   0, sizeof(INT)*n);
+    memset(mask,   0, sizeof(INT)*(10*maxlev*n));
+    memset(iblock, 0, sizeof(INT)*(n+1));
+    memset(maxa,   0, sizeof(INT)*(n+1));
 
     maxa[0]=0;
 
@@ -166,13 +166,14 @@ INT Schwarz_setup(Schwarz_data *Schwarz,
     ivector *MaxIndSet;
     if (param->Schwarz_maxlvl < 0){
         MaxIndSet = (ivector *)calloc(1, sizeof(ivector));
-        ivec_alloc(n, MaxIndSet);
+        ivec_alloc(A.row, MaxIndSet);
         for (i=0; i<A.row; i++) MaxIndSet->val[i] = i;
         //maxlev = 1;
     }
     else {
         MaxIndSet = sparse_MIS(&A,NULL);
     }
+    //for(i=0; i<MaxIndSet->row; i++) printf("MIS[%d]=%d\n",i, MaxIndSet->val[i]);
 
     /*-------------------------------------------*/
     // find the blocks
