@@ -147,6 +147,8 @@ INT solver_dcsr_linear_itsolver(dCSRmat *A,
     REAL solver_start, solver_end, solver_duration;
     INT iter;
 
+    REAL condest;
+
     get_time(&solver_start);
 
     /* Safe-guard checks on parameters */
@@ -159,7 +161,9 @@ INT solver_dcsr_linear_itsolver(dCSRmat *A,
                 printf("**********************************************************\n");
                 printf(" --> using Conjugate Gradient Method:\n");
             }
-            iter = dcsr_pcg(A, b, x, pc, tol, MaxIt, stop_type, prtlvl);
+            //iter = dcsr_pcg(A, b, x, pc, tol, MaxIt, stop_type, prtlvl);
+            iter = dcsr_pcg_w_cond_est(A, b, x, pc, tol, MaxIt, stop_type, prtlvl, &condest);
+            printf("Estimated condition number = %13.6e\n", condest);
             break;
 
         case 2:
@@ -240,6 +244,8 @@ INT solver_dbsr_linear_itsolver(dBSRmat *A,
     REAL solver_start, solver_end, solver_duration;
     INT iter;
 
+    REAL condest;
+
     get_time(&solver_start);
 
     /* Safe-guard checks on parameters */
@@ -252,7 +258,9 @@ INT solver_dbsr_linear_itsolver(dBSRmat *A,
                 printf("**********************************************************\n");
                 printf(" --> using Conjugate Gradient Method:\n");
             }
-            iter = dbsr_pcg(A, b, x, pc, tol, MaxIt, stop_type, prtlvl);
+            //iter = dbsr_pcg(A, b, x, pc, tol, MaxIt, stop_type, prtlvl);
+            iter = dbsr_pcg_w_cond_est(A, b, x, pc, tol, MaxIt, stop_type, prtlvl, &condest);
+            printf("Estimated condition number = %13.6e\n", condest);
             break;
 
 /*  // need to add minres for BSR format
@@ -336,6 +344,8 @@ INT solver_bdcsr_linear_itsolver(block_dCSRmat *A,
     REAL  solver_start, solver_end, solver_duration;
     INT   iter = ERROR_SOLVER_TYPE;
 
+    REAL condest;
+
     get_time(&solver_start);
 
     /* Safe-guard checks on parameters */
@@ -348,7 +358,9 @@ INT solver_bdcsr_linear_itsolver(block_dCSRmat *A,
                 printf("**********************************************************\n");
                 printf(" --> using Conjugate Gradient Method (Block CSR):\n");
             }
-            iter = bdcsr_pcg(A, b, x, pc, tol, MaxIt, stop_type, prtlvl);
+            //iter = bdcsr_pcg(A, b, x, pc, tol, MaxIt, stop_type, prtlvl);
+            iter = bdcsr_pcg_w_cond_est(A, b, x, pc, tol, MaxIt, stop_type, prtlvl, &condest);
+            printf("Estimated condition number = %13.6e\n", condest);
             break;
 
         case SOLVER_MinRes:

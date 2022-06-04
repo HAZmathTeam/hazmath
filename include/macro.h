@@ -30,7 +30,7 @@
 #define MAX_CRATE        100.0  /**< Maximal coarsening ratio */
 #define STAG_RATIO       1e-4  /**< Stagnation tolerance = tol*STAGRATIO */
 #define MAX_STAG         20    /**< Maximal number of stagnation times */
-#define MAX_RESTART      20    /**< Maximal number of restarting for BiCGStab */
+#define MAX_RESTART      20    /**< Maximal number of restarting for Krylov method */
 
 /**
  * \brief Definition of return status and error messages
