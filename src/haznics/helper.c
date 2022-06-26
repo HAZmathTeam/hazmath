@@ -540,17 +540,18 @@ precond* create_precond_ra(dCSRmat *A,
     array_cp(k-1, polesi, &(pcdata->poles->val[k-1]));
 
      // print poles, residues
-    printf("Poles:\n");
-    for(i = 0; i < k-1; ++i) {
-        printf("pole[%d] = %.10e + %.10e i\n", i, pcdata->poles->val[i], pcdata->poles->val[k-1+i]);
+    if(print_level > 1){
+        printf("Poles:\n");
+        for(i = 0; i < k-1; ++i) {
+            printf("pole[%d] = %.10e + %.10e i\n", i, pcdata->poles->val[i], pcdata->poles->val[k-1+i]);
+        }
+        printf("\n");
+        printf("Residues:\n");
+        for(i = 0; i < k; ++i) {
+            printf("res[%d] = %.10e + %.10e i\n", i, pcdata->residues->val[i], pcdata->residues->val[k+i]);
+        }
+        printf("\n");
     }
-    printf("\n");
-    printf("Residues:\n");
-    for(i = 0; i < k; ++i) {
-        printf("res[%d] = %.10e + %.10e i\n", i, pcdata->residues->val[i], pcdata->residues->val[k+i]);
-    }
-    printf("\n");
-
     // FIXME: is this necessary? maybe merge with previous or next loop
     /*REAL polez;
     for(i = 0; i < k-1; ++i) {
