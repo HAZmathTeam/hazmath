@@ -2746,7 +2746,7 @@ void dcsr_bandwith(dCSRmat *A,
  *
  * \param *A      pointer to the dCSRmat matrix
  *
- * \return symmetrized the dCSRmat matrix
+ * \return symmetrized the dCSRmat matrix (just the sparsity pattern)
  *
  * \author Xiaozhe Hu
  * \date 03/21/2011
@@ -2764,6 +2764,53 @@ dCSRmat dcsr_sympat (dCSRmat *A)
 
     // get symmetrized A
     dcsr_add(A, 1.0, &AT, 0.0, &SA);
+
+    // clean
+    dcsr_free(&AT);
+
+    // return
+    return SA;
+}
+
+/***********************************************************************************************/
+/**
+ * \fn dCSRmat dcsr_sym(dCSRmat *A)
+ * \brief Symmetrize dCSRmat matrix
+ *
+ * \param *A      pointer to the dCSRmat matrix
+ *
+ * \return symmetrize the dCSRmat matrix
+ *
+ * \author Xiaozhe Hu
+ * \date 06/25/2022
+ */
+dCSRmat dcsr_sym(dCSRmat *A)
+{
+    //local variable
+    dCSRmat AT;
+    INT i, j, row_begin, row_end;
+
+    //return variable
+    dCSRmat SA;
+
+    // get the transpose of A
+    dcsr_trans(A,  &AT);
+
+    // get symmetrized A
+    dcsr_add(A, 1.0, &AT, 1.0, &SA);
+
+    // make sure the diagonals are not double counted
+    for (i=0; i<SA.row; i++){
+        row_begin = SA.IA[i];
+        row_end = SA.IA[i+1];
+        for (j=row_begin; j<row_end; j++){
+            if (SA.JA[j] == i) {
+                SA.val[j] = SA.val[j]/2.0;
+                break;
+            }
+
+        }
+    }
 
     // clean
     dcsr_free(&AT);

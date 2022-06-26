@@ -1866,10 +1866,33 @@ dvector *dvector_read_eof_p(FILE *fp)
 dCSRmat *dcoo_read_dcsr_p(FILE *fp)
 {
   int  i,j,k,m,n,nnz;
+  INT  val;
   REAL value;
+  INT offset;
 
   if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
 
+  char *buffer=malloc(512*sizeof(char));
+  SHORT    status = SUCCESS;
+
+  while ( status == SUCCESS ) {
+
+      offset = ftell(fp);
+      val = fscanf(fp,"%s",buffer);
+      if (buffer[0]=='[' || buffer[0]=='%' || buffer[0]=='|') {
+          fgets(buffer,512,fp); // skip rest of line
+          continue;
+      }
+      else {
+          break;
+      }
+
+  }
+
+  // move back to the beginning of the current line
+  fseek(fp, offset, SEEK_SET);
+
+  // now start to read
   fscanf(fp,"%d %d %d",&m,&n,&nnz);
 
   dCOOmat *Atmp=dcoo_create_p(m,n,nnz);
@@ -1886,6 +1909,71 @@ dCSRmat *dcoo_read_dcsr_p(FILE *fp)
   free((void *)Atmp);
   return A;
 }
+
+/*********************************************************************/
+/**
+ * \fn dCSRmat *dcoo_read_dcsr_p(FILE *fp)
+ *
+ * \brief Read A from a file in IJ format and convert to CSR format (index starts at 1)
+ *
+ * \param fp        File descriptor for the input file
+ * \param A         Pointer to the CSR matrix
+ *
+ * \note File format:
+ *   - nrow ncol nnz     % number of rows, number of columns, and nnz
+ *   - i  j  a_ij        % i, j a_ij in each line
+ *
+ * \note   This is for the case the index starts at 1 insread of 0
+ *
+ */
+dCSRmat *dcoo_read_dcsr_p_1(FILE *fp)
+{
+  int  i,j,k,m,n,nnz;
+  INT  val;
+  REAL value;
+  INT offset;
+
+  if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
+
+  char *buffer=malloc(512*sizeof(char));
+  SHORT    status = SUCCESS;
+
+  while ( status == SUCCESS ) {
+
+      offset = ftell(fp);
+      val = fscanf(fp,"%s",buffer);
+      if (buffer[0]=='[' || buffer[0]=='%' || buffer[0]=='|') {
+          fgets(buffer,512,fp); // skip rest of line
+          continue;
+      }
+      else {
+          break;
+      }
+
+  }
+
+  // move back to the beginning of the current line
+  fseek(fp, offset, SEEK_SET);
+
+  // now start to read
+  fscanf(fp,"%d %d %d",&m,&n,&nnz);
+
+  dCOOmat *Atmp=dcoo_create_p(m,n,nnz);
+
+  for ( k = 0; k < nnz; k++ ) {
+    if ( fscanf(fp, "%d %d %le", &i, &j, &value) != EOF ) {
+      Atmp->rowind[k]=i-1; Atmp->colind[k]=j-1; Atmp->val[k] = value;
+    }
+    else {
+      check_error(ERROR_WRONG_FILE, "dcoo_read_dcsr_p");
+    }
+  }
+  dCSRmat *A=dcoo_2_dcsr_p(Atmp);
+  free((void *)Atmp);
+  return A;
+}
+
+
 /*****************************************************************/
 /**
  * \fn dvector *dvector_read_p(FILE *fp,dvector *b)
