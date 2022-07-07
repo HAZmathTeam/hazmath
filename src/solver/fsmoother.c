@@ -104,7 +104,7 @@ void smoother_dcsr_fjacobi(dvector *u,
  *                            const INT s, dCSRmat *A, dvector *b, dCSRmat *M,
  *                            const REAL p, INT L)
  *
- * \brief Fractional Gauss-Seidel smoother -- not finished yet
+ * \brief Fractional Gauss-Seidel smoother
  *
  * \param u    Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
  * \param i_1  Starting index
@@ -137,8 +137,6 @@ void smoother_dcsr_fgs(dvector *u,
 
     dvector Mdiag_1mp = dvec_create(M->row); // diag of mass matrix
     dcsr_getdiag_pow(0, 1-p, M, &Mdiag_1mp); // get M_ii^(1-p)
-
-    // if (i==j) d[i]=pow(aj[k], p)*Mdiag_1mp.val[i]; //Aii^p * Mii^(1-p)
 
     if (s > 0) {
         while (L--) {
@@ -202,7 +200,7 @@ void smoother_dcsr_fgs(dvector *u,
 /**
  * \fn void smoother_dcsr_sgs(dvector *u, dCSRmat *A, dvector *b, dCSRmat *M, REAL p, INT L)
  *
- * \brief Fractional Symmetric Gauss-Seidel smoother -- not finished yet
+ * \brief Fractional Symmetric Gauss-Seidel smoother
  *
  * \param u      Pointer to dvector: the unknowns (IN: initial, OUT: approximation)
  * \param A      Pointer to dBSRmat: the coefficient matrix
@@ -229,6 +227,9 @@ void smoother_dcsr_fsgs(dvector *u,
     INT   i,j,k,begin_row,end_row;
     REAL  t,d=0;
 
+    dvector Mdiag_1mp = dvec_create(M->row); // diag of mass matrix
+    dcsr_getdiag_pow(0, 1-p, M, &Mdiag_1mp); // get M_ii^(1-p)
+
     while (L--) {
         // forward sweep
         for (i=0;i<=nm1;++i) {
@@ -237,7 +238,7 @@ void smoother_dcsr_fsgs(dvector *u,
             for (k=begin_row;k<end_row;++k) {
                 j=ja[k];
                 if (i!=j) t-=aj[k]*uval[j];
-                else d=aj[k];
+                else d=pow(aj[k], p)*Mdiag_1mp.val[i]; // Aii^p * Mii^(1-p)
             } // end for k
             if (ABS(d)>SMALLREAL) uval[i]=t/d;
         } // end for i
@@ -249,7 +250,7 @@ void smoother_dcsr_fsgs(dvector *u,
             for (k=begin_row;k<end_row;++k) {
                 j=ja[k];
                 if (i!=j) t-=aj[k]*uval[j];
-                else d=aj[k];
+                else d=pow(aj[k], p)*Mdiag_1mp.val[i]; // Aii^p * Mii^(1-p)
             } // end for k
             if (ABS(d)>SMALLREAL) uval[i]=t/d;
         } // end for i
