@@ -540,7 +540,7 @@ precond* create_precond_ra(dCSRmat *A,
     array_cp(k-1, polesi, &(pcdata->poles->val[k-1]));
 
      // print poles, residues
-    if(print_level > 1){
+    if(prtlvl > 1){
         printf("Poles:\n");
         for(i = 0; i < k-1; ++i) {
             printf("pole[%d] = %.10e + %.10e i\n", i, pcdata->poles->val[i], pcdata->poles->val[k-1+i]);

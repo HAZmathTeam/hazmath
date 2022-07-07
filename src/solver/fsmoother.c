@@ -135,6 +135,11 @@ void smoother_dcsr_fgs(dvector *u,
     INT   i,j,k,begin_row,end_row;
     REAL  t,d=0.0;
 
+    dvector Mdiag_1mp = dvec_create(M->row); // diag of mass matrix
+    dcsr_getdiag_pow(0, 1-p, M, &Mdiag_1mp); // get M_ii^(1-p)
+
+    // if (i==j) d[i]=pow(aj[k], p)*Mdiag_1mp.val[i]; //Aii^p * Mii^(1-p)
+
     if (s > 0) {
         while (L--) {
             for (i=i_1;i<=i_n;i+=s) {
@@ -142,7 +147,7 @@ void smoother_dcsr_fgs(dvector *u,
                 begin_row=ia[i],end_row=ia[i+1];
 
 #if DIAGONAL_PREF // diagonal first
-                d=aj[begin_row];
+                d=pow(aj[begin_row], p)*Mdiag_1mp.val[i]; // Aii^p * Mii^(1-p)
                 if (ABS(d)>SMALLREAL) {
                     for (k=begin_row+1;k<end_row;++k) {
                         j=ja[k];
@@ -155,9 +160,9 @@ void smoother_dcsr_fgs(dvector *u,
                     j=ja[k];
                     if (i!=j)
                         t-=aj[k]*uval[j];
-                    else if (ABS(aj[k])>SMALLREAL) d=1.e+0/aj[k];
+                    else if (ABS(aj[k])>SMALLREAL) d=pow(aj[k], p)*Mdiag_1mp.val[i]; // Aii^p * Mii^(1-p)
                 }
-                uval[i]=t*d;
+                uval[i]=t/d;
 #endif
             } // end for i
         } // end while
@@ -170,7 +175,7 @@ void smoother_dcsr_fgs(dvector *u,
                 t=bval[i];
                 begin_row=ia[i],end_row=ia[i+1];
 #if DIAGONAL_PREF // diagonal first
-                d=aj[begin_row];
+                d=pow(aj[begin_row], p)*Mdiag_1mp.val[i]; // Aii^p * Mii^(1-p)
                 if (ABS(d)>SMALLREAL) {
                     for (k=begin_row+1;k<end_row;++k) {
                         j=ja[k];
@@ -183,9 +188,9 @@ void smoother_dcsr_fgs(dvector *u,
                     j=ja[k];
                     if (i!=j)
                         t-=aj[k]*uval[j];
-                    else if (ABS(aj[k])>SMALLREAL) d=1.0/aj[k];
+                    else if (ABS(aj[k])>SMALLREAL)  d=pow(aj[k], p)*Mdiag_1mp.val[i]; // Aii^p * Mii^(1-p)
                 }
-                uval[i]=t*d;
+                uval[i]=t/d;
 #endif
             } // end for i
         } // end while
