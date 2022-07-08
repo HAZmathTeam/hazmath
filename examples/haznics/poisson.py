@@ -15,7 +15,7 @@ from block.algebraic.hazmath import AMG
 from dolfin import *
 
 # Function spaces, elements
-mesh = UnitSquareMesh(16, 16)
+mesh = UnitCubeMesh(16, 16, 16)
 
 V = FunctionSpace(mesh, "CG", 1)
 

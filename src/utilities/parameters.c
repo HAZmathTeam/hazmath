@@ -186,7 +186,7 @@ void param_amg_init (AMG_param *amgparam)
     amgparam->smooth_filter        = ON;
 
     // Schwarz smoother parameters
-    amgparam->Schwarz_levels       = 1; // how many levels will use Schwarz smoother
+    amgparam->Schwarz_levels       = 0; // how many levels will use Schwarz smoother
     amgparam->Schwarz_mmsize       = 200;
     amgparam->Schwarz_maxlvl       = -1; // blocksize -- vertices with smaller distance
     amgparam->Schwarz_type         = 1;
