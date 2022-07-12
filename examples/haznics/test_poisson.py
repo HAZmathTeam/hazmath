@@ -36,7 +36,7 @@ params = {
             # "polynomial_degree": 2,
             # "coarse_dof": 10000,
             "coarse_solver": 32,    # (32 = DIRECT, 0 = ITERATIVE)
-            # "coarse_scaling": "OFF",      # (OFF, ON)
+            # "coarse_scaling": haznics.ON,      # (OFF, ON)
             # "fpwr": 1.0,                  # fractional power (only in fractional AMG)
             "aggregation_type": haznics.VMB,    # (VMB, MIS, MWM, HEC)
             "strong_coupled": 0.0,       # threshold
@@ -85,7 +85,7 @@ params_petsc = {
             #"pc_hypre_boomeramg_measure_type": "local",   # (local global)
             "pc_hypre_boomeramg_coarsen_type": "HMIS", # (Ruge-Stueben, modifiedRuge-Stueben, Falgout, PMIS, HMIS)
             "pc_hypre_boomeramg_interp_type": "ext+i-cc",# (classical, direct, multipass, multipass-wts, ext+i, ext+i-cc, standard, standard-wts, FF, FF1)
-            "pc_hypre_boomeramg_print_statistics": 1,
+            "pc_hypre_boomeramg_print_statistics": 0,
             "pc_hypre_boomeramg_print_debug": 0,
             }
 

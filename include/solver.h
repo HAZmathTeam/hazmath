@@ -30,6 +30,9 @@ typedef struct {
     //! action for preconditioner, void function pointer
     void (*fct)(REAL *, REAL *, void *);
 
+    //! setup time of the preconditioner
+    REAL setup_time;
+
 } precond; /**< Data for general preconditioner passed to iterative solvers */
 
 /***********************************************************************************************/

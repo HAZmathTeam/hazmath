@@ -142,6 +142,9 @@ precond* create_precond(dCSRmat *A, AMG_param *amgparam)
     const INT nnz = A->nnz, m = A->row, n = A->col;
     short prtlvl = amgparam->print_level;
     INT      status = SUCCESS;
+    REAL     setup_start, setup_end;
+    pc->setup_time = 0.;
+    get_time(&setup_start);
 
     AMG_data *mgl = amg_data_create(amgparam->max_levels);
     mgl[0].A = dcsr_create(m,n,nnz); dcsr_cp(A, &mgl[0].A);
@@ -194,6 +197,8 @@ precond* create_precond(dCSRmat *A, AMG_param *amgparam)
             pc->fct = precond_amg; break;
 
     }
+    get_time(&setup_end);
+    pc->setup_time = setup_end - setup_start;
 
     return pc;
 }
@@ -208,6 +213,9 @@ precond* create_precond_amg(dCSRmat *A, AMG_param *amgparam)
     const INT nnz = A->nnz, m = A->row, n = A->col;
     short prtlvl = amgparam->print_level;
     INT      status = SUCCESS;
+    REAL     setup_start, setup_end;
+    pc->setup_time = 0.;
+    get_time(&setup_start);
 
     AMG_data *mgl = amg_data_create(amgparam->max_levels);
     mgl[0].A = dcsr_create(m,n,nnz); dcsr_cp(A, &mgl[0].A);
@@ -268,6 +276,8 @@ precond* create_precond_amg(dCSRmat *A, AMG_param *amgparam)
             pc->fct = precond_amg; break;
 
     }
+    get_time(&setup_end);
+    pc->setup_time = setup_end - setup_start;
 
     return pc;
 }
@@ -282,6 +292,9 @@ precond* create_precond_famg(dCSRmat *A, dCSRmat *M, AMG_param *amgparam)
     const INT nnz = A->nnz, m = A->row, n = A->col, nnz_M = M->nnz;
     short prtlvl = amgparam->print_level;
     INT status = SUCCESS;
+    REAL setup_start, setup_end;
+    pc->setup_time = 0.;
+    get_time(&setup_start);
 
     AMG_data *mgl = amg_data_create(amgparam->max_levels);
     mgl[0].A = dcsr_create(m, n, nnz); dcsr_cp(A, &mgl[0].A);
@@ -333,6 +346,8 @@ precond* create_precond_famg(dCSRmat *A, dCSRmat *M, AMG_param *amgparam)
             pc->fct = precond_famg; break;
 
     }
+    get_time(&setup_end);
+    pc->setup_time = setup_end - setup_start;
 
     return pc;
 }
@@ -347,6 +362,9 @@ precond* create_precond_amg_bsr(dBSRmat *A, AMG_param *amgparam)
 
     short prtlvl = amgparam->print_level;
     INT status = SUCCESS;
+    REAL setup_start, setup_end;
+    pc->setup_time = 0.;
+    get_time(&setup_start);
 
     AMG_data_bsr *mgl = amg_data_bsr_create(amgparam->max_levels);
     mgl[0].A = dbsr_create(A->ROW, A->COL, A->NNZ, A->nb, A->storage_manner); dbsr_cp(A, &mgl[0].A);
@@ -400,6 +418,8 @@ precond* create_precond_amg_bsr(dBSRmat *A, AMG_param *amgparam)
             pc->fct = precond_dbsr_amg;
         break;
     }
+    get_time(&setup_end);
+    pc->setup_time = setup_end - setup_start;
 
     return pc;
 }
@@ -424,6 +444,9 @@ precond* create_precond_ra(dCSRmat *A,
     const INT m = A->row, n = A->col, nnz = A->nnz, nnz_M = M->nnz;
     INT status = SUCCESS;
     INT i, j;
+    REAL setup_start, setup_end;
+    pc->setup_time = 0.;
+    get_time(&setup_start);
 
     //------------------------------------------------
     // compute the rational approximation
@@ -641,6 +664,9 @@ precond* create_precond_ra(dCSRmat *A,
 
     pc->data = pcdata;
     pc->fct = precond_ra_fenics;
+    get_time(&setup_end);
+    pc->setup_time = setup_end - setup_start;
+
 
     // clean
     // if (rpnwf[0]) free(rpnwf); // FIXME
@@ -757,6 +783,9 @@ precond* create_precond_hxcurl(dCSRmat *Acurl,
 
     const SHORT prtlvl = amgparam->print_level;
     const SHORT max_levels = amgparam->max_levels;
+    REAL setup_start, setup_end;
+    pc->setup_time = 0.;
+    get_time(&setup_start);
 
     /*------------------------*/
     /* Local Variables */
@@ -887,6 +916,9 @@ precond* create_precond_hxcurl(dCSRmat *Acurl,
             pc->fct = precond_hx_curl_additive; break;
 
     }
+    get_time(&setup_end);
+    pc->setup_time = setup_end - setup_start;
+
 
     return pc;
 }
@@ -904,6 +936,9 @@ precond* create_precond_hxdiv_3D(dCSRmat *Adiv,
 
     const SHORT prtlvl = amgparam->print_level;
     const SHORT max_levels = amgparam->max_levels;
+    REAL setup_start, setup_end;
+    pc->setup_time = 0.;
+    get_time(&setup_start);
 
     /*------------------------*/
     /* Local Variables */
@@ -1037,6 +1072,8 @@ precond* create_precond_hxdiv_3D(dCSRmat *Adiv,
             pc->fct = precond_hx_div_additive; break;
 
     }
+    get_time(&setup_end);
+    pc->setup_time = setup_end - setup_start;
 
     return pc;
 }
@@ -1053,6 +1090,9 @@ precond* create_precond_hxdiv_2D(dCSRmat *Adiv,
 
     const SHORT prtlvl = amgparam->print_level;
     const SHORT max_levels = amgparam->max_levels;
+    REAL setup_start, setup_end;
+    pc->setup_time = 0.;
+    get_time(&setup_start);
 
     /*------------------------*/
     /* Local Variables */
@@ -1180,6 +1220,8 @@ precond* create_precond_hxdiv_2D(dCSRmat *Adiv,
             pc->fct = precond_hx_div_additive_2D; break;
 
     }
+    get_time(&setup_end);
+    pc->setup_time = setup_end - setup_start;
 
     return pc;
 }
