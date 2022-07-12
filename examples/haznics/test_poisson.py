@@ -161,8 +161,8 @@ with open('results.txt', 'w') as file:
     file.write("---------------------------------------\n")
 
     file.write('\n--------------- hypre ---------------\n')
+    keyz = results_petsc.keys()
     for i in range(args.refine):
-        keyz = results_petsc.keys()
         res = [results_petsc[key][i] for key in keyz]
         file.write(row % (' & '.join(map(str, res))))
     file.write("---------------------------------------\n")
