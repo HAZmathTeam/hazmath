@@ -5221,7 +5221,7 @@ void dbsr_aAxpy_agg (const REAL      alpha,
     /* local variables */
     REAL       *px0 = NULL;
     REAL       *py0 = NULL, *py = NULL;
-    SHORT       nthreads = 1, use_openmp = FALSE;
+  //  SHORT       nthreads = 1, use_openmp = FALSE;
 
     INT         size = ROW*nb;
     INT         i, j, k, iend;
@@ -5293,7 +5293,7 @@ void dbsr_mxv (const dBSRmat  *A,
     /* local variables */
     INT     size = ROW*nb;
     INT     jump = nb*nb;
-    INT     i,j,k, num_nnz_row;
+    INT     i,j,k;//, num_nnz_row;
 
     const REAL *pA  = NULL;
     const REAL *px0 = NULL;
@@ -5353,8 +5353,8 @@ void dbsr_mxv_agg (const dBSRmat  *A,
     /* local variables */
     REAL  *px0 = NULL;
     REAL        *py0 = NULL, *py = NULL;
-    INT          i,j,k, num_nnz_row;
-    SHORT        use_openmp = FALSE;
+    INT          i,j,k;//, num_nnz_row;
+    //SHORT        use_openmp = FALSE;
 
     //-----------------------------------------------------------------
     //  zero out 'y'
@@ -5815,7 +5815,7 @@ dvector dbsr_getdiaginv(const dBSRmat *A)
     INT i,k;
 
     // Variables for OpenMP
-    SHORT nthreads = 1;
+    // SHORT nthreads = 1;
 
     // allocate memory
     diaginv.row = size;

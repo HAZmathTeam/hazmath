@@ -1866,7 +1866,7 @@ dvector *dvector_read_eof_p(FILE *fp)
 dCSRmat *dcoo_read_dcsr_p(FILE *fp)
 {
   int  i,j,k,m,n,nnz;
-  INT  val;
+  //INT  val;
   REAL value;
   INT offset;
 
@@ -1878,7 +1878,8 @@ dCSRmat *dcoo_read_dcsr_p(FILE *fp)
   while ( status == SUCCESS ) {
 
       offset = ftell(fp);
-      val = fscanf(fp,"%s",buffer);
+      //val = fscanf(fp,"%s",buffer);
+      fscanf(fp,"%s",buffer);
       if (buffer[0]=='[' || buffer[0]=='%' || buffer[0]=='|') {
           fgets(buffer,512,fp); // skip rest of line
           continue;
@@ -1929,7 +1930,7 @@ dCSRmat *dcoo_read_dcsr_p(FILE *fp)
 dCSRmat *dcoo_read_dcsr_p_1(FILE *fp)
 {
   int  i,j,k,m,n,nnz;
-  INT  val;
+  //INT  val;
   REAL value;
   INT offset;
 
@@ -1941,7 +1942,8 @@ dCSRmat *dcoo_read_dcsr_p_1(FILE *fp)
   while ( status == SUCCESS ) {
 
       offset = ftell(fp);
-      val = fscanf(fp,"%s",buffer);
+      //val = 
+      fscanf(fp,"%s",buffer);
       if (buffer[0]=='[' || buffer[0]=='%' || buffer[0]=='|') {
           fgets(buffer,512,fp); // skip rest of line
           continue;

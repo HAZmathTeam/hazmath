@@ -1045,8 +1045,8 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
   }
   icsr_free(&f2f);
   /*******************************************************************/    
-  fprintf(stdout,"%%%%--> number of connected components in the bulk=%d\n",sc->cc);
-  fprintf(stdout,"%%%%--> number of connected components on the boundary=%d\n",sc->bndry_cc);
+  //fprintf(stdout,"%%%%--> number of connected components in the bulk=%d\n",sc->cc);
+  //fprintf(stdout,"%%%%--> number of connected components on the boundary=%d\n",sc->bndry_cc);
   /* make boundary codes from parent_v */
   INT *a1=NULL,*a2=NULL,l,ncap,n1,n2,v1,v2,nnz_bv,nnzold;
   i=-1;

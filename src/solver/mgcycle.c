@@ -929,7 +929,7 @@ void mgcycle_bsr (AMG_data_bsr  *mgl,
     const SHORT smoother      = param->smoother;
     const SHORT cycle_type    = param->cycle_type;
     const SHORT coarse_solver = param->coarse_solver;
-    const REAL  relax         = param->relaxation;
+  //  const REAL  relax         = param->relaxation;
     INT   steps               = param->presmooth_iter;
 
     // local variables
@@ -1145,7 +1145,7 @@ void mgcycle_bdcsr (AMG_data_bdcsr  *mgl,
     const SHORT smoother      = param->smoother;
     const SHORT cycle_type    = param->cycle_type;
     const SHORT coarse_solver = param->coarse_solver;
-    const REAL  relax         = param->relaxation;
+  //  const REAL  relax         = param->relaxation;
     INT   steps               = param->presmooth_iter;
 
     // local variables
@@ -1360,7 +1360,7 @@ void mgcycle_bdcsr_metric(AMG_data_bdcsr  *mgl,
     const SHORT smoother      = param->smoother;
     const SHORT cycle_type    = param->cycle_type;
     const SHORT coarse_solver = param->coarse_solver;
-    const REAL  relax         = param->relaxation;
+  //  const REAL  relax         = param->relaxation;
     INT   steps               = param->presmooth_iter;
 
     // local variables

@@ -1352,8 +1352,8 @@ void precond_bdcsr_amg(REAL *r,
                        void *data)
 {
     precond_data_bdcsr *predata=(precond_data_bdcsr *)data;
-    const INT brow=predata->mgl_data[0].A.brow;
-    const INT bcol=predata->mgl_data[0].A.bcol;
+    //const INT brow=predata->mgl_data[0].A.brow;
+  //  const INT bcol=predata->mgl_data[0].A.bcol;
     const INT maxit=predata->maxit;
     const INT total_row = predata->total_row;
     const INT total_col = predata->total_col;
@@ -6091,8 +6091,8 @@ void precond_bdcsr_metric_amg_exact(REAL *r,
                        void *data)
 {
     precond_data_bdcsr *predata=(precond_data_bdcsr *)data;
-    const INT brow=predata->mgl_data[0].A.brow;
-    const INT bcol=predata->mgl_data[0].A.bcol;
+    // const INT brow=predata->mgl_data[0].A.brow;
+    // const INT bcol=predata->mgl_data[0].A.bcol;
     const INT maxit=predata->maxit;
     const INT total_row = predata->total_row;
     const INT total_col = predata->total_col;
@@ -6103,20 +6103,20 @@ void precond_bdcsr_metric_amg_exact(REAL *r,
     array_set(total_row, z, 0.0);
 
     // local variables
-	INT i;
+    INT i;
+
+    // Schwarz method on the interface part
+    // Schwarz_param *schwarz_param = predata->schwarz_param;
+#if WITH_SUITESPARSE
     dvector rr, zz;
 
     rr.row = predata->A->blocks[3]->row; rr.val = r+predata->A->blocks[0]->row;
     zz.row = predata->A->blocks[3]->col; zz.val = z+predata->A->blocks[0]->row;
-
-    // Schwarz method on the interface part
-    Schwarz_param *schwarz_param = predata->schwarz_param;
     Schwarz_data *schwarz_data = predata->schwarz_data;
-#if WITH_SUITESPARSE
     void **LU_data = predata->LU_data;
     umfpack_solve(&schwarz_data->A, &rr, &zz, LU_data[0], 0);
     //directsolve_UMF(&schwarz_data->A, &rr, &zz, 1);
-#else
+    #else
     error_extlib(257, __FUNCTION__, "SuiteSparse");
 #endif
 
@@ -6165,8 +6165,8 @@ void precond_bdcsr_metric_amg_exact_additive(REAL *r,
                        void *data)
 {
     precond_data_bdcsr *predata=(precond_data_bdcsr *)data;
-    const INT brow=predata->mgl_data[0].A.brow;
-    const INT bcol=predata->mgl_data[0].A.bcol;
+    // const INT brow=predata->mgl_data[0].A.brow;
+    // const INT bcol=predata->mgl_data[0].A.bcol;
     const INT maxit=predata->maxit;
     const INT total_row = predata->total_row;
     const INT total_col = predata->total_col;
@@ -6178,17 +6178,18 @@ void precond_bdcsr_metric_amg_exact_additive(REAL *r,
 
     // local variables
 	INT i;
+
+    //smoother_dcsr_Schwarz_forward(schwarz_data, schwarz_param, &zz, &rr);
+    //smoother_dcsr_Schwarz_backward(schwarz_data, schwarz_param, &zz, &rr);
+#if WITH_SUITESPARSE
     dvector rr, zz;
 
     rr.row = predata->A->blocks[3]->row; rr.val = r+predata->A->blocks[0]->row;
     zz.row = predata->A->blocks[3]->col; zz.val = z+predata->A->blocks[0]->row;
 
     // Schwarz method on the interface part
-    Schwarz_param *schwarz_param = predata->schwarz_param;
+    // Schwarz_param *schwarz_param = predata->schwarz_param;
     Schwarz_data *schwarz_data = predata->schwarz_data;
-    //smoother_dcsr_Schwarz_forward(schwarz_data, schwarz_param, &zz, &rr);
-    //smoother_dcsr_Schwarz_backward(schwarz_data, schwarz_param, &zz, &rr);
-#if WITH_SUITESPARSE
     void **LU_data = predata->LU_data;
     umfpack_solve(&schwarz_data->A, &rr, &zz, LU_data[0], 0);
     //directsolve_UMF(&schwarz_data->A, &rr, &zz, 1);
@@ -6246,8 +6247,8 @@ void precond_bdcsr_metric_amg(REAL *r,
                        void *data)
 {
     precond_data_bdcsr *predata=(precond_data_bdcsr *)data;
-    const INT brow=predata->mgl_data[0].A.brow;
-    const INT bcol=predata->mgl_data[0].A.bcol;
+    // const INT brow=predata->mgl_data[0].A.brow;
+    // const INT bcol=predata->mgl_data[0].A.bcol;
     const INT maxit=predata->maxit;
     const INT total_row = predata->total_row;
     const INT total_col = predata->total_col;
@@ -6315,8 +6316,8 @@ void precond_bdcsr_metric_amg_additive(REAL *r,
                        void *data)
 {
     precond_data_bdcsr *predata=(precond_data_bdcsr *)data;
-    const INT brow=predata->mgl_data[0].A.brow;
-    const INT bcol=predata->mgl_data[0].A.bcol;
+    // const INT brow=predata->mgl_data[0].A.brow;
+    // const INT bcol=predata->mgl_data[0].A.bcol;
     const INT maxit=predata->maxit;
     const INT total_row = predata->total_row;
     const INT total_col = predata->total_col;
@@ -6386,8 +6387,8 @@ void precond_bdcsr_metric_amg_symmetric(REAL *r,
                        void *data)
 {
     precond_data_bdcsr *predata=(precond_data_bdcsr *)data;
-    const INT brow=predata->mgl_data[0].A.brow;
-    const INT bcol=predata->mgl_data[0].A.bcol;
+    // const INT brow=predata->mgl_data[0].A.brow;
+    // const INT bcol=predata->mgl_data[0].A.bcol;
     const INT maxit=predata->maxit;
     const INT total_row = predata->total_row;
     const INT total_col = predata->total_col;

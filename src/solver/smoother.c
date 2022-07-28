@@ -833,7 +833,7 @@ void smoother_dbsr_jacobi(dBSRmat *A,
     const INT    *JA  = A->JA;
     REAL         *val = A->val;
 
-    SHORT nthreads = 1;
+    // SHORT nthreads = 1;
 
     // values of dvector b and u
     REAL *b_val = b->val;

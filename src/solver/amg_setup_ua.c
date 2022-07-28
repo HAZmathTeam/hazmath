@@ -1954,7 +1954,7 @@ static SHORT amg_setup_unsmoothP_unsmoothR_bsr(AMG_data_bsr   *mgl,
     SHORT     i, lvl = 0, status = SUCCESS;
     REAL      setup_start, setup_end;
 
-    AMG_data *mgl_csr = amg_data_create(max_levels);
+    //AMG_data *mgl_csr = amg_data_create(max_levels);
 
     dCSRmat   temp1, temp2;
 
@@ -2182,7 +2182,7 @@ static SHORT amg_setup_general_bdcsr(AMG_data_bdcsr *mgl,
 {
     const SHORT prtlvl   = param->print_level;
     const SHORT csolver  = param->coarse_solver;
-    const SHORT min_cdof = MAX(param->coarse_dof,50);
+    //const SHORT min_cdof = MAX(param->coarse_dof,50);
     const INT   brow     = mgl[0].A.brow;
     const INT   bcol     = mgl[0].A.bcol;
 
@@ -2402,7 +2402,7 @@ static SHORT amg_setup_bdcsr_metric(AMG_data_bdcsr *mgl,
 {
     const SHORT prtlvl   = param->print_level;
     const SHORT csolver  = param->coarse_solver;
-    const SHORT min_cdof = MAX(param->coarse_dof,50);
+    //const SHORT min_cdof = MAX(param->coarse_dof,50);
     const INT   brow     = mgl[0].A.brow;
     const INT   bcol     = mgl[0].A.bcol;
 

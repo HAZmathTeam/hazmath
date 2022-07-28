@@ -860,10 +860,12 @@ static char *safe_parse(const char *sinp,		\
   // a warning; else return the input string;
   char *s;
   if(strlen(sinp)<=0){
-    s=strndup(default_s,max_length);
+    //    s=strndup(default_s,max_length);
+    s=strdup(default_s);
     fprintf(stderr,"\n%%%%%%WARNING (input file): %s is not set correctly. Setting it to the default value: %s",warn0,s);
   } else {
-    s=strndup(sinp,max_length);
+    //    s=strndup(sinp,max_length);
+    s=strdup(sinp);
     //  fprintf(stdout,"\n%%%%%%%s={%s}",warn0,s);
   }
   return s;
@@ -1011,7 +1013,8 @@ input_grid *parse_input_grid(FILE *the_file)
   switch(k){
   case 8: case 10: case 12:
     // issue a warning message and switch to the unit cube in 3D.
-    file2str = strndup( DEFAULT_GRID_DATA_ , 1024);
+    //    file2str = strndup( DEFAULT_GRID_DATA_ , 1024);
+    file2str = strdup( DEFAULT_GRID_DATA_);
     length_string=strlen(file2str);
     file2str=realloc(file2str,(length_string+1)*sizeof(char));
     file2str[length_string]='\0';

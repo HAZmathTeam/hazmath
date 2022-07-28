@@ -4255,8 +4255,8 @@ INT linear_solver_dcsr_krylov_md_scalar_elliptic(dCSRmat *A,
                                                  ivector *mortar_dofs)
 {
     const SHORT prtlvl = itparam->linear_print_level;
-    const SHORT max_levels = amgparam->max_levels;
-    const INT nnz = A->nnz, m = A->row, n = A->col;
+    // const SHORT max_levels = amgparam->max_levels;
+    // const INT nnz = A->nnz, m = A->row, n = A->col;
 
     /* Local Variables */
     INT      status = SUCCESS;
@@ -4341,7 +4341,6 @@ INT linear_solver_dcsr_krylov_md_scalar_elliptic(dCSRmat *A,
         fprintf(stdout,"**********************************************************\n");
     }
 
-FINISHED:
     bdcsr_free(&A_blk);
     if(&A_diag[0]) dcsr_free(&A_diag[0]);
     if(&A_diag[1]) dcsr_free(&A_diag[1]);

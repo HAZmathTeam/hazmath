@@ -496,6 +496,7 @@ precond* create_precond_ra(dCSRmat *A,
       fflush(stderr);
       return 0;
     }
+    printf(" HAZ ---- Rational approx error in interp points: %.16e\n", err_max);
 
     // assign poles and residues
     REAL drop_tol = AAA_tol;
@@ -1234,6 +1235,7 @@ void apply_precond(REAL *r, REAL *z, precond *pc)
 
 }
 
+/*
 PyObject* py_callback_setup(PyObject* pyfunc, AMG_param *amgparam)
 {
     printf("Here I am inside the callback setup \n");
@@ -1250,7 +1252,8 @@ PyObject* py_callback_setup(PyObject* pyfunc, AMG_param *amgparam)
 
     return Py_None;
 }
-
+*/
+/*
 PyObject* py_callback_eval(REAL *r, REAL *x, smoother_matvec *smmv)
 {
     printf("Here I am inside the callback eval\n");
@@ -1259,9 +1262,9 @@ PyObject* py_callback_eval(REAL *r, REAL *x, smoother_matvec *smmv)
     // get data
     //LUDMIL    npy_intp D[1]; D[0] = smmv->data->A->col; t//
     // LUDMIL Not exactly sure what this (ABOVE) is supposed to do (find number of columns?), so I rewrote it
-    /* INT D[1];//LUDMIL */
-    /* dCSRmat *A=(dCSRmat *)smmv->data; //LUDMIL */
-    /* D[0] = A->col; //LUDMIL */
+    // INT D[1];//LUDMIL
+    // dCSRmat *A=(dCSRmat *)smmv->data; //LUDMIL
+    // D[0] = A->col; //LUDMIL
 
 
     // create new Python arrays
@@ -1296,6 +1299,7 @@ PyObject* py_callback_eval(REAL *r, REAL *x, smoother_matvec *smmv)
     return return_obj;
 
 }
+*/
 
 INT wrapper_krylov_amg(dCSRmat *mat, dvector *rhs, dvector *sol)
 {

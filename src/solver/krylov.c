@@ -426,7 +426,6 @@ INT dcsr_pcg_w_cond_est(dCSRmat *A,
     REAL *beta_all = (REAL *)calloc(MaxIt, sizeof(REAL));
     INT iter_condest = 0;
     INT i;
-    INT info;
 
     // r = b-A*u
     array_cp(m,b->val,r);
@@ -690,6 +689,7 @@ INT dcsr_pcg_w_cond_est(dCSRmat *A,
     free(beta_all);
 
 #if WITH_LAPACK
+    INT info;
     // call symmetric tridiagonal matrix eigensolver
     dsterf_(&iter_condest, d0, d1, &info);
 
@@ -1063,7 +1063,6 @@ INT dbsr_pcg_w_cond_est(dBSRmat     *A,
     REAL *beta_all = (REAL *)calloc(MaxIt, sizeof(REAL));
     INT iter_condest = 0;
     INT i;
-    INT info;
 
     // Output some info for debuging
     if ( PrtLvl > PRINT_NONE ) printf("\n Calling CG solver (BSR) ...\n");
@@ -1342,6 +1341,8 @@ INT dbsr_pcg_w_cond_est(dBSRmat     *A,
     free(beta_all);
 
 #if WITH_LAPACK
+    INT info;
+
     // call symmetric tridiagonal matrix eigensolver
     dsterf_(&iter_condest, d0, d1, &info);
 
@@ -1710,7 +1711,6 @@ INT bdcsr_pcg_w_cond_est(block_dCSRmat *A,
     REAL *beta_all = (REAL *)calloc(MaxIt, sizeof(REAL));
     INT iter_condest = 0;
     INT i;
-    INT info;
 
     // r = b-A*u
     array_cp(m,b->val,r);
@@ -1981,6 +1981,7 @@ INT bdcsr_pcg_w_cond_est(block_dCSRmat *A,
     free(beta_all);
 
 #if WITH_LAPACK
+    INT info;
     // call symmetric tridiagonal matrix eigensolver
     dsterf_(&iter_condest, d0, d1, &info);
 
