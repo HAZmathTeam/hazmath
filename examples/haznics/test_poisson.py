@@ -28,7 +28,7 @@ for i in range(args.refine):
     results_haz['ndof'][i] = V.dim()
     results_petsc['ndof'][i] = V.dim()
 
-    f = Expression("sin(3.14*x[0])", degree=2)
+    f = Expression("sin(pi*(x[0]))", degree=2)
     u, v = TrialFunction(V), TestFunction(V)
 
     a = u*v*dx + dot(grad(u), grad(v))*dx
@@ -58,7 +58,7 @@ for i in range(args.refine):
                     # "postsmooth_iter": 1,
                     # "polynomial_degree": 2,
                     # "coarse_dof": 10000,
-                    "coarse_solver": 32,    # (32 = DIRECT, 0 = ITERATIVE)
+                    "coarse_solver": 32,    # (32 = SOLVER_UMFPACK, 0 = ITERATIVE)
                     # "coarse_scaling": haznics.ON,      # (OFF, ON)
                     # "fpwr": 1.0,                  # fractional power (only in fractional AMG)
                     "aggregation_type": haznics.VMB,    # (VMB, MIS, MWM, HEC)
@@ -139,9 +139,10 @@ for i in range(args.refine):
     results_petsc['Tsolve'][i] = Ainv_petsc.cputime - B_petsc.setup_time
 
     # plot results
-    # u1 = Function(V)
-    # u1.vector()[:] = x1[:]
+    u1 = Function(V)
+    u1.vector()[:] = x1[:]
     # plot(u1, title="u, computed by hazmath [x=Ainv*b]")
+    File("solution.pvd") << u1
 
     # u2 = Function(V)
     # u2.vector()[:] = x2[:]
