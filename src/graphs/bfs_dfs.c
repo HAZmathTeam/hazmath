@@ -9,7 +9,7 @@
 #include "hazmath.h"
 /***********************************************************************************************/
 /*!
- * \fn iCSRmat *lex_bfs(INT n,INT *ia, INT *ja, ivector *anc,const INT lvlmax)
+ * \fn iCSRmat **lex_bfs(INT n,INT *ia, INT *ja, ivector *anc, const REAL *guide)
  *
  * \brief lexicographical breath first search
  *
@@ -17,6 +17,13 @@
  * \param (ia,ja):         adjacency structure of the graph; diagonels are allowed
  * \param anc[n]:           a vector containing the ancestors of the vertices:
  *                         v<->anc[v] is an edge in the bfs tree. 
+ *
+ * \param guide[n]         an array to identify the "initial points"
+ *                         for BFS. In every connected component this 
+ *                         will pick as roots the minimum and the maximum
+ *                         of "guide". If guide is NULL than the root
+ *                         in a connected component is picked
+ *                         randomly.
  *
  * \return pointer to iCSRmat of size n,n with n nonzeroes, which
  *         contains the bfs ordering permutation of the vertices
@@ -30,7 +37,7 @@
  *
  * Created by ltz1 on 20190621.
  */
-iCSRmat **lex_bfs(INT n,INT *ia, INT *ja,ivector *inv_ord,ivector *anc)
+iCSRmat **lex_bfs(INT n,INT *ia, INT *ja,ivector *inv_ord,ivector *anc, const REAL *guide)
 {
   INT c,h,v,w,p;  
   INT ibeg,iend,i,iv,nfx,ijk,i0;
@@ -46,14 +53,38 @@ iCSRmat **lex_bfs(INT n,INT *ia, INT *ja,ivector *inv_ord,ivector *anc)
   // find all connected components:
   blk=(iCSRmat **)malloc(2*sizeof(iCSRmat *));
   blk[0]=run_dfs(n,ia,ja);
+  /* Move to first place in every connected component, the max abs(guide)*/
+  if(guide!=NULL){
+    INT iaa,iab;
+    REAL emax, etest;
+    for(i=0;i<blk[0]->row;++i){
+      iaa=blk[0]->IA[i];
+      iab=blk[0]->IA[i+1];
+      if((iab-iaa)<2) continue;
+      emax=fabs(guide[blk[0]->JA[iaa]]);
+      iv=iaa;
+      iaa++;
+      for(ijk=iaa;ijk<iab;++ijk){
+	etest=fabs(guide[blk[0]->JA[ijk]]);
+	if(emax < etest){
+	  emax = etest;
+	  iv=ijk;
+	}
+      }
+      // now swap the first vertex in this connected component with the emax one.
+      iaa--;
+      fprintf(stdout,"\nconnected_component=%d;max_node=%d,emax=%e,iaa=%d\n",i,blk[0]->JA[iv],emax,iaa);
+      if(iv==iaa) continue;
+      ijk=blk[0]->JA[iaa];
+      blk[0]->JA[iaa] = blk[0]->JA[iv];
+      blk[0]->JA[iv]=ijk;
+    }
+  }
   blk[1]=malloc(sizeof(iCSRmat));
   *blk[1]=icsr_create(blk[0]->row,blk[0]->col,blk[0]->nnz);
-  //  fprintf(stdout,"\nnrow0=%d,ncol0=%d",blk[0]->row,blk[0]->nnz);
-  //  fprintf(stdout,"\nnrow0=%d,ncol0=%d,nnz0=%d",blk[0]->row,blk[0]->col,blk[0]->nnz);
-  //  fprintf(stdout,"\nnrow1=%d,ncol1=%d,nnz1=%d",blk[1]->row,blk[1]->col,blk[1]->nnz);
-  /*----------------------------------------------------------------*/
+  /*----------------------------------------------------------------*/  
   memcpy(blk[1]->JA,blk[0]->JA,blk[0]->nnz*sizeof(INT));
-  INT *iord=blk[1]->JA;// this makes ordering following connected components. 
+  INT *iord=blk[1]->JA;// this makes ordering following connected components.
   INT *level=blk[1]->val;// this is the level (distance) from every 
   INT *tree=anc->val;
   INT *iord1=inv_ord->val;
@@ -88,10 +119,8 @@ iCSRmat **lex_bfs(INT n,INT *ia, INT *ja,ivector *inv_ord,ivector *anc)
   flag[1] = -1;
   // cell 0 is the beginning; cell 1 is header cell for the first set;
   c=2; // thus the first empty cell is cell 2. 
-  //  fprintf(stdout,"\n");fflush(stdout);
   for(iv=0;iv<n;iv++){
     v = iord[iv]; // vertex label
-    //    fprintf(stdout,"%d ",v);fflush(stdout);
     head[c] = v;  //head(cell)=element;
     cell[v] = c;  //cell(vertex)=cell.
     next[c-1] = c;
@@ -125,7 +154,6 @@ iCSRmat **lex_bfs(INT n,INT *ia, INT *ja,ivector *inv_ord,ivector *anc)
     p=next[head[0]];
     //C     C ADDITION BY ltz
     v = head[p];
-    /* fprintf(stdout,"\n%%%%%%AAA:p=%3d,v=%3d,cell[v]=%3d",p,v,cell[v]);fflush(stdout); */
     //C  delete cell of vertex from set
     next[head[0]] = next[p];
     next[back[cell[v]]]=next[cell[v]];
@@ -136,7 +164,6 @@ iCSRmat **lex_bfs(INT n,INT *ia, INT *ja,ivector *inv_ord,ivector *anc)
     iord[i] = v;
     iord1[v] = i;
     if(level[v]<0) level[v]=0;
-    // fprintf(stdout,"\n*** NUMBERING at (%d) v=%d: inv(%d)=%d",i,v,v,iord1[v]);
     nfx=0;
     ibeg = ia[v]-1;
     iend = ia[v+1]-1;
@@ -169,7 +196,6 @@ iCSRmat **lex_bfs(INT n,INT *ia, INT *ja,ivector *inv_ord,ivector *anc)
 	  next[c] = -1;
 	  // add the new set to fixlst:
 	  fixlst[nfx] = c;
-	  //	  fprintf(stdout,"\n%%%%%%h=%3d,c=%3d;fixlst[%3d]=%3d",h,c,nfx,fixlst[nfx]);fflush(stdout);
 	  nfx++;
 	  if(nfx>nmem) fixlst=realloc(fixlst,nfx*sizeof(INT));
 	  h=c;
@@ -204,12 +230,33 @@ iCSRmat **lex_bfs(INT n,INT *ia, INT *ja,ivector *inv_ord,ivector *anc)
   free(back);
   free(cell);
   //
-  INT swp;
-  for(i=0;i<((INT ) n/2);i++){
-    swp=iord[i]; iord[i]=iord[n-i-1]; iord[n-i-1]=swp;
-    iord1[iord[i]]=i;
-    iord1[iord[n-1-i]]=n-1-i;
-  }
+  blk[0]->IA[blk[0]->row]=blk[0]->nnz;
+  blk[1]->IA[blk[1]->row]=blk[1]->nnz;
+  /* INT swp; */
+  /* for(i=0;i<((INT ) n/2);i++){ */
+  /*   swp=iord[i]; */
+  /*   iord[i]=iord[n-i-1]; */
+  /*   iord[n-i-1]=swp; */
+  /* } */
+  /**************************************set up level array*************************************/
+  // backup the level array;
+  /* for(i=0;i<n;++i) */
+  /*   iord1[i]=level[i]; */
+  /* // put the level array back setting the level numbers correctly */
+  /* for(i=0;i<n;++i) */
+  /*   level[i]=iord1[blk[1]->JA[i]]; */
+  /* /\**************************************set up ancestor array*************************************\/ */
+  /* // backup the ancestor array */
+  /* for(i=0;i<n;++i) */
+  /*   iord1[i]=anc->val[i]; */
+  /* // put the level array back setting the level numbers correctly */
+  /* for(i=0;i<n;++i) */
+  /*   anc->val[i]=iord1[blk[1]->JA[i]]; */
+  /* // */
+  //finally, define the inverse permutation
+  //////////////////////////////////////////////////
+  /* for(i=0;i<n;i++) */
+  /*   iord1[iord[i]]=i; */
   return blk;
 }
 /*****************************************************************************************/
