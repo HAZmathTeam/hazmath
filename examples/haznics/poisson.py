@@ -19,7 +19,7 @@ mesh = UnitCubeMesh(16, 16, 16)
 
 V = FunctionSpace(mesh, "CG", 1)
 
-f = Expression("sin(3.14*x[0])", degree=2)
+f = Expression("sin(pi*x[0])", degree=2)
 u, v = TrialFunction(V), TestFunction(V)
 
 a = u*v*dx + dot(grad(u), grad(v))*dx
