@@ -82,6 +82,7 @@ params = {"maxit": 3,
           "coarse_dof": 50,
           "aggregation_type": haznics.HEC,  # (VMB, MIS, MWM, HEC)
           "strong_coupled": 0.05,
+          "max_levels":10,"print_level":0,"coarse_solver":32
           }
 
 prec = block_mat([[HXCurl(F, V, params),  0  ],

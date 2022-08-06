@@ -1396,7 +1396,7 @@ INT linear_solver_dcsr_krylov_famg_sum2(dCSRmat *A_frac,
     fmgl[0].M      = dcsr_create(m_Mdiv, n_Mdiv, nnz_Mdiv); dcsr_cp(Mdiv, &fmgl[0].M);
     fmgl[0].b      = dvec_create(m_Adiv);
     fmgl[0].x      = dvec_create(n_Adiv);
-    fmgl[0].Numeric = umfpack_factorize(Adivfrac, prtlvl); // LU factorization of Adiv^1+s/2 for direct solve
+    fmgl[0].Numeric = hazmath_factorize(Adivfrac, prtlvl); // LU factorization of Adiv^1+s/2 for direct solve
 
     // initialize A, b, x for standard mgl[0]
     AMG_data *mgl  = amg_data_create(max_levels_amg);
@@ -2426,11 +2426,11 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
   REAL setup_start, setup_end, setup_duration;
   REAL solver_start, solver_end, solver_duration;
 
-#if WITH_SUITESPARSE
+  //#if WITH_SUITESPARSE
     void **LU_diag = (void **)calloc(2, sizeof(void *));
-#else
-    error_extlib(257, __FUNCTION__, "SuiteSparse");
-#endif
+    //#else
+    //    error_extlib(257, __FUNCTION__, "SuiteSparse");
+    //#endif
 
   SHORT max_levels;
   if (amgparam) max_levels = amgparam->max_levels;
@@ -2441,7 +2441,7 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
 
   if (precond_type > 0 && precond_type < 20) {
   /* diagonal blocks are solved exactly */
-#if WITH_SUITESPARSE
+    //#if WITH_SUITESPARSE
     // Need to sort the diagonal blocks for UMFPACK format
     dCSRmat A_tran;
 
@@ -2451,12 +2451,12 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
         dcsr_cp(&A_tran, &A_diag[i]);
 
         if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagonal block: \n", i);
-        LU_diag[i] = umfpack_factorize(&A_diag[i], prtlvl);
+        LU_diag[i] = hazmath_factorize(&A_diag[i], prtlvl);
 
         dcsr_free(&A_tran);
 
     }
-#endif
+    //#endif
   }
   else {
 
@@ -2503,9 +2503,9 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
 
   if (precond_type > 0 && precond_type < 20) {
   /* diagonal blocks are solved exactly */
-#if WITH_SUITESPARSE
+    //#if WITH_SUITESPARSE
       precdata.LU_diag = LU_diag;
-#endif
+      //#endif
   }
   else {
       precdata.mgl = mgl;
@@ -2628,11 +2628,11 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
     REAL setup_start, setup_end, setup_duration;
     REAL solver_start, solver_end, solver_duration;
 
-#if WITH_SUITESPARSE
+    //#if WITH_SUITESPARSE
     void **LU_diag = (void **)calloc(3, sizeof(void *));
 //#else
 //    error_extlib(257, __FUNCTION__, "SuiteSparse");
-#endif
+//#endif
 
 
     SHORT max_levels;
@@ -2644,7 +2644,7 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
 
     if (precond_type > 0 && precond_type < 20) {
     /* diagonal blocks are solved exactly */
-#if WITH_SUITESPARSE
+      //#if WITH_SUITESPARSE
         // Need to sort the diagonal blocks for UMFPACK format
         dCSRmat A_tran;
 
@@ -2654,13 +2654,13 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
             dcsr_cp(&A_tran, &A_diag[i]);
 
             if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagonal block:\n", i);
-            LU_diag[i] = umfpack_factorize(&A_diag[i], prtlvl);
+            LU_diag[i] = hazmath_factorize(&A_diag[i], prtlvl);
 
             dcsr_free(&A_tran);
 
         }
 
-#endif
+	//#endif
     }
     else {
 
@@ -2708,9 +2708,9 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
 
     if (precond_type > 0 && precond_type < 20) {
     /* diagonal blocks are solved exactly */
-#if WITH_SUITESPARSE
+      //#if WITH_SUITESPARSE
         precdata.LU_diag = LU_diag;
-#endif
+	//#endif
     }
     else {
         precdata.mgl = mgl;
@@ -2827,11 +2827,11 @@ INT linear_solver_bdcsr_krylov_block_4(block_dCSRmat *A,
     REAL setup_start, setup_end, setup_duration;
     REAL solver_start, solver_end, solver_duration;
 
-#if WITH_SUITESPARSE
+    //#if WITH_SUITESPARSE
     void **LU_diag = (void **)calloc(4, sizeof(void *));
-#else
-    error_extlib(258, __FUNCTION__, "SuiteSparse");
-#endif
+    //#else
+    //    error_extlib(258, __FUNCTION__, "SuiteSparse");
+    //#endif
 
     SHORT max_levels;
     if (amgparam) max_levels = amgparam->max_levels;
@@ -2842,7 +2842,7 @@ INT linear_solver_bdcsr_krylov_block_4(block_dCSRmat *A,
 
     if (precond_type > 0 && precond_type < 20) {
     /* diagonal blocks are solved exactly */
-#if WITH_SUITESPARSE
+      //#if WITH_SUITESPARSE
         // Need to sort the diagonal blocks for UMFPACK format
         dCSRmat A_tran;
 
@@ -2852,13 +2852,13 @@ INT linear_solver_bdcsr_krylov_block_4(block_dCSRmat *A,
             dcsr_cp(&A_tran, &A_diag[i]);
 
             if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagonal block:\n", i);
-            LU_diag[i] = umfpack_factorize(&A_diag[i], prtlvl);
+            LU_diag[i] = hazmath_factorize(&A_diag[i], prtlvl);
 
             dcsr_free(&A_tran);
 
 
         }
-#endif
+	//#endif
     }
     else {
 
@@ -2909,9 +2909,9 @@ INT linear_solver_bdcsr_krylov_block_4(block_dCSRmat *A,
 
     if (precond_type > 0 && precond_type < 20) {
     /* diagonal blocks are solved exactly */
-#if WITH_SUITESPARSE
+      //#if WITH_SUITESPARSE
         precdata.LU_diag = LU_diag;
-#endif
+	//#endif
     }
     else {
       precdata.mgl = mgl;
@@ -3029,11 +3029,11 @@ INT linear_solver_bdcsr_krylov_block_5(block_dCSRmat *A,
     REAL setup_start, setup_end, setup_duration;
     REAL solver_start, solver_end, solver_duration;
 
-#if WITH_SUITESPARSE
+    //#if WITH_SUITESPARSE
     void **LU_diag = (void **)calloc(5, sizeof(void *));
-//#else
-//    error_extlib(257, __FUNCTION__, "SuiteSparse");
-#endif
+    //#else
+    //    error_extlib(257, __FUNCTION__, "SuiteSparse");
+    //#endif
 
     SHORT max_levels;
     if (amgparam) max_levels = amgparam->max_levels;
@@ -3044,7 +3044,7 @@ INT linear_solver_bdcsr_krylov_block_5(block_dCSRmat *A,
 
     if (precond_type > 0 && precond_type < 20) {
     /* diagonal blocks are solved exactly */
-#if WITH_SUITESPARSE
+      //#if WITH_SUITESPARSE
         // Need to sort the diagonal blocks for UMFPACK format
         dCSRmat A_tran;
 
@@ -3054,13 +3054,13 @@ INT linear_solver_bdcsr_krylov_block_5(block_dCSRmat *A,
             dcsr_cp(&A_tran, &A_diag[i]);
 
             if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagonal block:\n", i);
-            LU_diag[i] = umfpack_factorize(&A_diag[i], prtlvl);
+            LU_diag[i] = hazmath_factorize(&A_diag[i], prtlvl);
 
             dcsr_free(&A_tran);
 
         }
 
-#endif
+	//#endif
     }
     else {
 
@@ -3108,9 +3108,9 @@ INT linear_solver_bdcsr_krylov_block_5(block_dCSRmat *A,
 
     if (precond_type > 0 && precond_type < 20) {
     /* diagonal blocks are solved exactly */
-#if WITH_SUITESPARSE
+      //#if WITH_SUITESPARSE
         precdata.LU_diag = LU_diag;
-#endif
+	//#endif
     }
     else {
         precdata.mgl = mgl;
@@ -3228,24 +3228,24 @@ INT linear_solver_bdcsr_krylov_block(block_dCSRmat *A,
 
   const INT nb = A->brow;
 
-#if WITH_SUITESPARSE
+  //#if WITH_SUITESPARSE
   INT i;
-#endif
+  //#endif
   INT status = SUCCESS;
   REAL setup_start, setup_end, setup_duration;
   REAL solver_start, solver_end, solver_duration;
 
-#if WITH_SUITESPARSE
+  //#if WITH_SUITESPARSE
   void **LU_diag = (void **)calloc(nb, sizeof(void *));
-#else
-    error_extlib(256, __FUNCTION__, "SuiteSparse");
-#endif
+  //#else
+  //    error_extlib(256, __FUNCTION__, "SuiteSparse");
+  //#endif
 
   /* setup preconditioner */
   get_time(&setup_start);
 
   /* diagonal blocks are solved exactly */
-#if WITH_SUITESPARSE
+  //#if WITH_SUITESPARSE
   // Need to sort the diagonal blocks for UMFPACK format
   dCSRmat A_tran;
 
@@ -3255,12 +3255,12 @@ INT linear_solver_bdcsr_krylov_block(block_dCSRmat *A,
     dcsr_cp(&A_tran, &A_diag[i]);
 
     if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagonal block:\n", i);
-    LU_diag[i] = umfpack_factorize(&A_diag[i], prtlvl);
+    LU_diag[i] = hazmath_factorize(&A_diag[i], prtlvl);
 
     dcsr_free(&A_tran);
 
   }
-#endif
+  //#endif
 
   precond_block_data precdata;
   precond_block_data_null(&precdata);
@@ -3270,9 +3270,9 @@ INT linear_solver_bdcsr_krylov_block(block_dCSRmat *A,
   precdata.A_diag = A_diag;
   precdata.r = dvec_create(b->row);
 
-#if WITH_SUITESPARSE
+  //#if WITH_SUITESPARSE
   precdata.LU_diag = LU_diag;
-#endif
+  //#endif
 
   precond prec; prec.data = &precdata;
 
@@ -4536,24 +4536,24 @@ INT linear_solver_bdcsr_krylov_metric_amg(block_dCSRmat    *A,
     schwarz_data.A = dcsr_sympat(A_new.blocks[3]);
 
     // set up direct solver for the interface block if needed
-#if WITH_SUITESPARSE
+    //#if WITH_SUITESPARSE
     void **LU_data = (void **)calloc(1, sizeof(void *));
-#else
-    error_extlib(257, __FUNCTION__, "SuiteSparse");
-#endif
+    //#else
+    //    error_extlib(257, __FUNCTION__, "SuiteSparse");
+    //#endif
 
     if (precond_type == 10 || precond_type == 11 ){
-#if WITH_SUITESPARSE
+      //#if WITH_SUITESPARSE
         // Need to sort the diagonal blocks for UMFPACK format
         dCSRmat A_tran;
         dcsr_trans(&schwarz_data.A, &A_tran);
         dcsr_cp(&A_tran, &schwarz_data.A);
         if ( prtlvl > PRINT_NONE ) printf("Factorization for the interface block:\n");
-        LU_data[0] = umfpack_factorize(&schwarz_data.A, prtlvl);
+        LU_data[0] = hazmath_factorize(&schwarz_data.A, prtlvl);
         dcsr_free(&A_tran);
-#else
-        error_extlib(257, __FUNCTION__, "SuiteSparse");
-#endif
+	//#else
+	//        error_extlib(257, __FUNCTION__, "SuiteSparse");
+	//#endif
     }
     else{
         ivector seeds = ivec_create(M->blocks[3]->row);
@@ -4588,9 +4588,9 @@ INT linear_solver_bdcsr_krylov_metric_amg(block_dCSRmat    *A,
     precdata.total_row = total_row;
     precdata.total_col = total_col;
     precdata.r = dvec_create(b->row);
-#if WITH_SUITESPARSE
+    //#if WITH_SUITESPARSE
     precdata.LU_data = LU_data;
-#endif
+    //#endif
 
     precond prec;
     prec.data = &precdata;
@@ -4664,12 +4664,12 @@ FINISHED:
     dvec_free(&precdata.r);
     if (precond_type == 10 || precond_type == 11 ){
         dcsr_free(&schwarz_data.A);
-#if WITH_SUITESPARSE
+	//#if WITH_SUITESPARSE
         if(precdata.LU_data){
-            if(precdata.LU_data[0]) umfpack_free_numeric(precdata.LU_data[0]);
+            if(precdata.LU_data[0]) hazmath_free_numeric(&precdata.LU_data[0]);
         }
         if(precdata.LU_data) free(precdata.LU_data);
-#endif
+	//#endif
     }
     else{
         if(precdata.LU_data) free(precdata.LU_data);

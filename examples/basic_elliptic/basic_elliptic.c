@@ -320,13 +320,13 @@ int main (int argc, char* argv[])
 
   // Solve the linear system
   if(linear_itparam.linear_itsolver_type == 0) { // Direct Solver
-#if WITH_SUITESPARSE
-    printf(" --> using UMFPACK's Direct Solver:\n");
-    solver_flag = directsolve_UMF(&A,&b,&u,linear_itparam.linear_print_level);
-#else
-    error_extlib(255,__FUNCTION__,"SuiteSparse");
-    return 0;
-#endif
+    //#if WITH_SUITESPARSE
+    printf(" --> using Direct Solver (UMFPACK|HAZMATH):\n");
+    solver_flag = directsolve_HAZ(&A,&b,&u,linear_itparam.linear_print_level);
+    //#else
+    //    error_extlib(255,__FUNCTION__,"SuiteSparse");
+    //    return 0;
+    //#endif
   } else { // Iterative Solver
 
     // Use AMG as iterative solver

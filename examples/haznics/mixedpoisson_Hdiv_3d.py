@@ -110,8 +110,8 @@ BB = block_assemble([[prec11, 0],
 bcs.apply(BB)
 
 # We invert the blocks by taylored multigrid
-M = HXDiv(BB[0][0], V=RT)
-N = AMG(BB[1][1])
+M = HXDiv(BB[0][0], V=RT,parameters={"max_levels":10,"print_level":10,"coarse_solver":32})
+N = AMG(BB[1][1],parameters={"max_levels":10,"print_level":10,"coarse_solver":32})
 
 # Define the block preconditioner
 AAp = block_mat([[M, 0],

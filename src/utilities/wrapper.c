@@ -116,7 +116,7 @@ void python_wrapper_direct(INT *n,
     rhs.row = *n; rhs.val = b;
     sol.row = *n; sol.val = u;
 
-    directsolve_UMF(&mat, &rhs, &sol, *print_lvl);
+    directsolve_HAZ(&mat, &rhs, &sol, *print_lvl);
 }
 
 /*************************************************************************************/

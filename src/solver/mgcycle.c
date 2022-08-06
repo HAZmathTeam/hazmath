@@ -312,13 +312,13 @@ ForwardSweep:
     // call the coarse space solver:
     switch ( coarse_solver ) {
 
-#if WITH_SUITESPARSE
+      //#if WITH_SUITESPARSE
         case SOLVER_UMFPACK: {
-            // use UMFPACK direct solver on the coarsest level
-            umfpack_solve(&mgl[nl-1].A, &mgl[nl-1].b, &mgl[nl-1].x, mgl[nl-1].Numeric, 0);
-            break;
+	  // use UMFPACK direct solver on the coarsest level
+	  hazmath_solve(&mgl[nl-1].A, &mgl[nl-1].b, &mgl[nl-1].x, mgl[nl-1].Numeric, 0);
+	  break;
         }
-#endif
+	  //#endif
         default:
             // use iterative solver on the coarsest level
             coarse_itsolver(&mgl[nl-1].A, &mgl[nl-1].b, &mgl[nl-1].x, tol, prtlvl);
@@ -496,12 +496,12 @@ void amli(AMG_data *mgl,
 
         switch (coarse_solver) {
 
-#if WITH_SUITESPARSE
+	  //#if WITH_SUITESPARSE
             case SOLVER_UMFPACK:
                 // use UMFPACK direct solver on the coarsest level //
-                umfpack_solve(A0, b0, e0, mgl[level].Numeric, 0);
+                hazmath_solve(A0, b0, e0, mgl[level].Numeric, 0);
                 break;
-#endif
+		//#endif
 
             default:
                 /* use iterative solver on the coarsest level */
@@ -640,12 +640,12 @@ void nl_amli (AMG_data *mgl,
 
         switch (coarse_solver) {
 
-#if WITH_SUITESPARSE
+	  //#if WITH_SUITESPARSE
             case SOLVER_UMFPACK:
                 // use UMFPACK direct solver on the coarsest level //
-                umfpack_solve(A0, b0, e0, mgl[level].Numeric, 0);
+                hazmath_solve(A0, b0, e0, mgl[level].Numeric, 0);
                 break;
-#endif
+		//#endif
 
             default:
                 /* use iterative solver on the coarsest level */
@@ -748,13 +748,13 @@ void mgcycle_add(AMG_data *mgl,
     // call the coarse space solver:
     switch ( coarse_solver ) {
 
-#if WITH_SUITESPARSE
+      //#if WITH_SUITESPARSE
         case SOLVER_UMFPACK: {
             // use UMFPACK direct solver on the coarsest level
-            umfpack_solve(&mgl[nl-1].A, &mgl[nl-1].b, &mgl[nl-1].x, mgl[nl-1].Numeric, 0);
+            hazmath_solve(&mgl[nl-1].A, &mgl[nl-1].b, &mgl[nl-1].x, mgl[nl-1].Numeric, 0);
             break;
         }
-#endif
+	  //#endif
         default:
             // use iterative solver on the coarsest level
             coarse_itsolver(&mgl[nl-1].A, &mgl[nl-1].b, &mgl[nl-1].x, tol, prtlvl);
@@ -869,13 +869,13 @@ void mgcycle_add_update(AMG_data *mgl,
     // call the coarse space solver:
     switch ( coarse_solver ) {
 
-#if WITH_SUITESPARSE
+      //#if WITH_SUITESPARSE
         case SOLVER_UMFPACK: {
             // use UMFPACK direct solver on the coarsest level
-            umfpack_solve(&mgl[nl-1].A, &mgl[nl-1].b, &mgl[nl-1].x, mgl[nl-1].Numeric, 0);
+            hazmath_solve(&mgl[nl-1].A, &mgl[nl-1].b, &mgl[nl-1].x, mgl[nl-1].Numeric, 0);
             break;
         }
-#endif
+	  //#endif
         default:
             // use iterative solver on the coarsest level
             coarse_itsolver(&mgl[nl-1].A, &mgl[nl-1].b, &mgl[nl-1].x, tol, prtlvl);
@@ -995,11 +995,11 @@ ForwardSweep:
             dcsr_mxv(mgl[l].R_nk, mgl[l].w.val, r_nk.val);
 
             // z_nk = A_nk^{-1}*r_nk
-#if WITH_UMFPACK // use UMFPACK directly
-            directsolve_UMF(mgl[l].A_nk, &r_nk, &z_nk, 0);
-#else
+	    //#if WITH_UMFPACK // use UMFPACK directly
+            directsolve_HAZ(mgl[l].A_nk, &r_nk, &z_nk, 0);
+	    //#else
             coarse_itsolver(mgl[l].A_nk, &r_nk, &z_nk, 1e-12, 0);
-#endif
+	    //#endif
 
             // z = z + P_nk*z_nk;
             dcsr_aAxpy(1.0, mgl[l].P_nk, z_nk.val, mgl[l].x.val);
@@ -1021,12 +1021,12 @@ ForwardSweep:
     // call the coarse space solver:
     switch ( coarse_solver ) {
 
-#if WITH_UMFPACK
+      //#if WITH_UMFPACK
         case SOLVER_UMFPACK:
             /* use UMFPACK direct solver on the coarsest level */
-            umfpack_solve(&mgl[nl-1].Ac, &mgl[nl-1].b, &mgl[nl-1].x, mgl[nl-1].Numeric, 0);
+            hazmath_solve(&mgl[nl-1].Ac, &mgl[nl-1].b, &mgl[nl-1].x, mgl[nl-1].Numeric, 0);
             break;
-#endif
+	    //#endif
 
         default: {
             /* use iterative solver on the coarsest level */
@@ -1078,11 +1078,11 @@ ForwardSweep:
             dcsr_mxv(mgl[l].R_nk, mgl[l].w.val, r_nk.val);
 
             // z_nk = A_nk^{-1}*r_nk
-#if WITH_UMFPACK // use UMFPACK directly
-            directsolve_UMF(mgl[l].A_nk, &r_nk, &z_nk, 0);
-#else
-            coarse_itsolver(mgl[l].A_nk, &r_nk, &z_nk, 1e-12, 0);
-#endif
+	    //#if WITH_UMFPACK // use UMFPACK directly
+            directsolve_HAZ(mgl[l].A_nk, &r_nk, &z_nk, 0);
+	    //#else
+	    //            coarse_itsolver(mgl[l].A_nk, &r_nk, &z_nk, 1e-12, 0);
+	    //#endif
 
             // z = z + P_nk*z_nk;
             dcsr_aAxpy(1.0, mgl[l].P_nk, z_nk.val, mgl[l].x.val);
@@ -1231,12 +1231,12 @@ ForwardSweep:
     // call the coarse space solver:
     switch ( coarse_solver ) {
 
-#if WITH_SUITESPARSE
+      //#if WITH_SUITESPARSE
         case SOLVER_UMFPACK:
             /* use UMFPACK direct solver on the coarsest level */
-            umfpack_solve(&mgl[nl-1].Ac, &mgl[nl-1].b, &mgl[nl-1].x, mgl[nl-1].Numeric, 0);
+            hazmath_solve(&mgl[nl-1].Ac, &mgl[nl-1].b, &mgl[nl-1].x, mgl[nl-1].Numeric, 0);
             break;
-#endif
+	    //#endif
 
         default: {
             /* use iterative solver on the coarsest level */
@@ -1460,7 +1460,7 @@ ForwardSweep:
 //
 //             // z_nk = A_nk^{-1}*r_nk
 // #if WITH_UMFPACK // use UMFPACK directly
-//             directsolve_UMF(mgl[l].A_nk, &r_nk, &z_nk, 0);
+//             directsolve_HAZ(mgl[l].A_nk, &r_nk, &z_nk, 0);
 // #else
 //             coarse_itsolver(mgl[l].A_nk, &r_nk, &z_nk, 1e-12, 0);
 // #endif
@@ -1485,12 +1485,12 @@ ForwardSweep:
     // call the coarse space solver:
     switch ( coarse_solver ) {
 
-#if WITH_UMFPACK
+      //#if WITH_UMFPACK
         case SOLVER_UMFPACK:
             /* use UMFPACK direct solver on the coarsest level */
-            umfpack_solve(&mgl[nl-1].Ac, &mgl[nl-1].b, &mgl[nl-1].x, mgl[nl-1].Numeric, 0);
+            hazmath_solve(&mgl[nl-1].Ac, &mgl[nl-1].b, &mgl[nl-1].x, mgl[nl-1].Numeric, 0);
             break;
-#endif
+	    //#endif
 
         default: {
             /* use iterative solver on the coarsest level */

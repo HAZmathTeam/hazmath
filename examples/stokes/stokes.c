@@ -211,7 +211,7 @@ int main (int argc, char* argv[])
   // Solve
   if(solver_type==0) { // Direct Solver
 
-    solver_flag = block_directsolve_UMF(&A,&b,&sol,solver_printlevel);
+    solver_flag = block_directsolve_HAZ(&A,&b,&sol,solver_printlevel);
 
   } else { // Iterative Solver
 

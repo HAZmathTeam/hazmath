@@ -1162,7 +1162,7 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
     // Setup coarse level systems for direct solvers
     switch (csolver) {
 
-#if WITH_SUITESPARSE
+      //#if WITH_SUITESPARSE
         case SOLVER_UMFPACK: {
             // Need to sort the matrix A for UMFPACK to work
 	  dCSRmat A_tran=dcsr_create(mgl[lvl].A.col,	\
@@ -1171,10 +1171,10 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
             dcsr_transz(&mgl[lvl].A, NULL, &A_tran);
             dcsr_cp(&A_tran, &mgl[lvl].A);
             dcsr_free(&A_tran);
-            mgl[lvl].Numeric = umfpack_factorize(&mgl[lvl].A, 0);
+            mgl[lvl].Numeric = hazmath_factorize(&mgl[lvl].A, 0);
             break;
         }
-#endif
+	  //#endif
         default:
             // Do nothing!
             break;
@@ -1398,20 +1398,20 @@ static SHORT amg_setup_smoothP_smoothR(AMG_data *mgl,
     // Setup coarse level systems for direct solvers
     switch (csolver) {
 
-#if WITH_SUITESPARSE
-        case SOLVER_UMFPACK: {
-            // Need to sort the matrix A for UMFPACK to work
-            dCSRmat Ac_tran;
-            dcsr_trans(&mgl[lvl].A, &Ac_tran);
-            // It is equivalent to do transpose and then sort
-            //     fasp_dcsr_trans(&mgl[lvl].A, &Ac_tran);
-            //     fasp_dcsr_sort(&Ac_tran);
-            dcsr_cp(&Ac_tran, &mgl[lvl].A);
-            dcsr_free(&Ac_tran);
-            mgl[lvl].Numeric = umfpack_factorize(&mgl[lvl].A, 0);
-            break;
-        }
-#endif
+      //#if WITH_SUITESPARSE
+    case SOLVER_UMFPACK: {
+      // Need to sort the matrix A for UMFPACK to work
+      dCSRmat Ac_tran;
+      dcsr_trans(&mgl[lvl].A, &Ac_tran);
+      // It is equivalent to do transpose and then sort
+      //     fasp_dcsr_trans(&mgl[lvl].A, &Ac_tran);
+      //     fasp_dcsr_sort(&Ac_tran);
+      dcsr_cp(&Ac_tran, &mgl[lvl].A);
+      dcsr_free(&Ac_tran);
+      mgl[lvl].Numeric = hazmath_factorize(&mgl[lvl].A, 0);
+      break;
+    }
+	    //#endif
         default:
             // Do nothing!
             break;
@@ -1634,7 +1634,7 @@ static SHORT famg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
     // Setup coarse level systems for direct solvers
     switch (csolver) {
 
-#if WITH_SUITESPARSE
+      //#if WITH_SUITESPARSE
         case SOLVER_UMFPACK: {
             // Need to sort the matrix A for UMFPACK to work
             dCSRmat Ac_tran;
@@ -1644,10 +1644,10 @@ static SHORT famg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
             //     fasp_dcsr_sort(&Ac_tran);
             dcsr_cp(&Ac_tran, &mgl[lvl].A);
             dcsr_free(&Ac_tran);
-            mgl[lvl].Numeric = umfpack_factorize(&mgl[lvl].A, 0);
+            mgl[lvl].Numeric = hazmath_factorize(&mgl[lvl].A, 0);
             break;
         }
-#endif
+	  //#endif
         default:
             // Do nothing!
             break;
@@ -1865,7 +1865,7 @@ static SHORT famg_setup_smoothP_smoothR(AMG_data *mgl,
     // Setup coarse level systems for direct solvers
     switch (csolver) {
 
-#if WITH_SUITESPARSE
+      //#if WITH_SUITESPARSE
         case SOLVER_UMFPACK: {
             // Need to sort the matrix A for UMFPACK to work
             dCSRmat Ac_tran;
@@ -1875,10 +1875,10 @@ static SHORT famg_setup_smoothP_smoothR(AMG_data *mgl,
             //     fasp_dcsr_sort(&Ac_tran);
             dcsr_cp(&Ac_tran, &mgl[lvl].A);
             dcsr_free(&Ac_tran);
-            mgl[lvl].Numeric = umfpack_factorize(&mgl[lvl].A, 0);
+            mgl[lvl].Numeric = hazmath_factorize(&mgl[lvl].A, 0);
             break;
         }
-#endif
+	  //#endif
         default:
             // Do nothing!
             break;
@@ -2077,7 +2077,7 @@ static SHORT amg_setup_unsmoothP_unsmoothR_bsr(AMG_data_bsr   *mgl,
     // Setup coarse level systems for direct solvers (BSR version)
     switch (csolver) {
 
-#if WITH_UMFPACK
+      //#if WITH_UMFPACK
         case SOLVER_UMFPACK: {
             // Need to sort the matrix A for UMFPACK to work
             mgl[lvl].Ac = dbsr_2_dcsr(&mgl[lvl].A);
@@ -2087,10 +2087,10 @@ static SHORT amg_setup_unsmoothP_unsmoothR_bsr(AMG_data_bsr   *mgl,
             dcsr_transz(&mgl[lvl].Ac, NULL, &Ac_tran);
             dcsr_cp(&Ac_tran, &mgl[lvl].Ac);
             dcsr_free(&Ac_tran);
-            mgl[lvl].Numeric = umfpack_factorize(&mgl[lvl].Ac, 0);
+            mgl[lvl].Numeric = hazmath_factorize(&mgl[lvl].Ac, 0);
             break;
         }
-#endif
+	  //#endif
 
         default:
             // Do nothing!
@@ -2334,18 +2334,18 @@ static SHORT amg_setup_general_bdcsr(AMG_data_bdcsr *mgl,
     lvl = max_levels-1;
     switch (csolver) {
 
-#if WITH_SUITESPARSE
-        case SOLVER_UMFPACK: {
-            // Need to sort the matrix A for UMFPACK to work
-            mgl[lvl].Ac = bdcsr_2_dcsr(&mgl[lvl].A);
-	        dCSRmat Ac_tran=dcsr_create(mgl[lvl].Ac.col,mgl[lvl].Ac.row,mgl[lvl].Ac.nnz);
-            dcsr_transz(&mgl[lvl].Ac, NULL, &Ac_tran);
-            dcsr_cp(&Ac_tran, &mgl[lvl].Ac);
-            dcsr_free(&Ac_tran);
-            mgl[lvl].Numeric = umfpack_factorize(&mgl[lvl].Ac, 0);
-            break;
-        }
-#endif
+      //#if WITH_SUITESPARSE
+    case SOLVER_UMFPACK: {
+  // Need to sort the matrix A for UMFPACK to work
+      mgl[lvl].Ac = bdcsr_2_dcsr(&mgl[lvl].A);
+      dCSRmat Ac_tran=dcsr_create(mgl[lvl].Ac.col,mgl[lvl].Ac.row,mgl[lvl].Ac.nnz);
+      dcsr_transz(&mgl[lvl].Ac, NULL, &Ac_tran);
+      dcsr_cp(&Ac_tran, &mgl[lvl].Ac);
+      dcsr_free(&Ac_tran);
+      mgl[lvl].Numeric = hazmath_factorize(&mgl[lvl].Ac, 0);
+      break;
+    }
+	  //#endif
 
         default:
             // Do nothing!
@@ -2445,7 +2445,6 @@ static SHORT amg_setup_bdcsr_metric(AMG_data_bdcsr *mgl,
         dcsr_cp(&(A_diag[i]), &mgl_diag[i][0].A);
         mgl_diag[i][0].b=dvec_create(A_diag[i].row);
         mgl_diag[i][0].x=dvec_create(A_diag[i].row);
-
         switch (param->AMG_type) {
 
             case MUA_AMG: // Unsmoothed Aggregation AMG
@@ -2550,18 +2549,18 @@ static SHORT amg_setup_bdcsr_metric(AMG_data_bdcsr *mgl,
     lvl = max_levels;
     switch (csolver) {
 
-#if WITH_UMFPACK
+      //#if WITH_UMFPACK
         case SOLVER_UMFPACK: {
             // Need to sort the matrix A for UMFPACK to work
             mgl[lvl].Ac = bdcsr_2_dcsr(&mgl[lvl].A);
-	        dCSRmat Ac_tran=dcsr_create(mgl[lvl].Ac.col,mgl[lvl].Ac.row,mgl[lvl].Ac.nnz);
+	    dCSRmat Ac_tran=dcsr_create(mgl[lvl].Ac.col,mgl[lvl].Ac.row,mgl[lvl].Ac.nnz);
             dcsr_transz(&mgl[lvl].Ac, NULL, &Ac_tran);
             dcsr_cp(&Ac_tran, &mgl[lvl].Ac);
             dcsr_free(&Ac_tran);
-            mgl[lvl].Numeric = umfpack_factorize(&mgl[lvl].Ac, 0);
+            mgl[lvl].Numeric = hazmath_factorize(&mgl[lvl].Ac, 0);
             break;
         }
-#endif
+	  //#endif
 
         default:
             // Do nothing!

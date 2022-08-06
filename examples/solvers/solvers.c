@@ -16,7 +16,7 @@
 // if READ_TO_EOF is 0 the first record in the input files is m,n, nnz and n for dvector
 //otherwise the number of elements in (i,j,v) or dvector is found by reading until EOF.
 #ifndef READ_TO_EOF
-#define READ_TO_EOF 1
+#define READ_TO_EOF 0
 #endif
 /****** MAIN DRIVER **************************************************/
 int main (int argc, char* argv[])

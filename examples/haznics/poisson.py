@@ -29,7 +29,7 @@ A = assemble(a)
 b = assemble(L)
 
 # here we use hazmath AMG:
-B = AMG(A)
+B = AMG(A,parameters={"max_levels":10,"print_level":10,"coarse_solver":32})
 
 Ainv = ConjGrad(A, precond=B, tolerance=1e-10, show=2)
 

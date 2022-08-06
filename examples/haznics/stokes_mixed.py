@@ -70,6 +70,7 @@ B, _ = block_assemble(b, L, bcs)
 params = {
     'AMG_type': haznics.SA_AMG,
     "aggregation_type": haznics.VMB,
+    "max_levels":1,"print_level":10,"coarse_solver":32
 }
 P = block_mat([[AMG(B[0, 0], parameters=params), 0],
                [          0, Jacobi(B[1, 1])]])
@@ -78,6 +79,11 @@ P = block_mat([[AMG(B[0, 0], parameters=params), 0],
 # for the constant pressure nullspace 
 Ainv = MinRes(A, precond=P, relativeconv=True, tolerance=1e-5, show=3)
 x = Ainv * rhs
+
+from block.algebraic.hazmath import PETSc_to_dCSRmat
+Ahaz=PETSc_to_dCSRmat(B[0,0])
+# THIS MATRIX SEEMS TO BE NON_SYMMETRIC! haznics.dcsr_write_dcoo("AAA",Ahaz)
+haznics.chk_symmetry(Ahaz)
 
 # plotting
 # V, Q = [sub_space.collapse() for sub_space in W.split()]

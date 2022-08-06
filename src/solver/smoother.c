@@ -420,9 +420,9 @@ void smoother_dcsr_Schwarz_forward (Schwarz_data  *Schwarz,
     dvector rhs = Schwarz->rhsloc1;
     dvector u   = Schwarz->xloc1;
 
-#if WITH_SUITESPARSE
+    //#if WITH_SUITESPARSE
     void **numeric = Schwarz->numeric;
-#endif
+    //#endif
 
     for (is=0; is<nblk; ++is) {
         // Form the right hand of eack block
@@ -453,13 +453,13 @@ void smoother_dcsr_Schwarz_forward (Schwarz_data  *Schwarz,
         // Solve each block
         switch (block_solver) {
 
-#if WITH_SUITESPARSE
+	  //#if WITH_SUITESPARSE
             case SOLVER_UMFPACK: {
                 /* use UMFPACK direct solver on each block */
-                umfpack_solve(&blk[is], &rhs, &u, numeric[is], 0);
+                hazmath_solve(&blk[is], &rhs, &u, numeric[is], 0);
                 break;
             }
-#endif
+	      //#endif
             default:
                 /* use iterative solver on each block */
                 u.row = blk[is].row;
@@ -522,9 +522,9 @@ void smoother_dcsr_Schwarz_forward_additive (Schwarz_data  *Schwarz,
     dvector averaging_factor = dvec_create( x->row );
     dvector xout = dvec_create( x->row );//TODO: need to allocate
 
-#if WITH_SUITESPARSE
+    //#if WITH_SUITESPARSE
     void **numeric = Schwarz->numeric;
-#endif
+    //#endif
 
     for (is=0; is<nblk; ++is) {
         // Form the right hand of eack block
@@ -555,13 +555,13 @@ void smoother_dcsr_Schwarz_forward_additive (Schwarz_data  *Schwarz,
         // Solve each block
         switch (block_solver) {
 
-#if WITH_SUITESPARSE
+	  //#if WITH_SUITESPARSE
             case SOLVER_UMFPACK: {
                 /* use UMFPACK direct solver on each block */
-                umfpack_solve(&blk[is], &rhs, &u, numeric[is], 0);
+                hazmath_solve(&blk[is], &rhs, &u, numeric[is], 0);
                 break;
             }
-#endif
+	      //#endif
             default:
                 /* use iterative solver on each block */
                 u.row = blk[is].row;
@@ -634,9 +634,9 @@ void smoother_dcsr_Schwarz_backward (Schwarz_data *Schwarz,
     dvector rhs = Schwarz->rhsloc1;
     dvector u   = Schwarz->xloc1;
 
-#if WITH_SUITESPARSE
+    //#if WITH_SUITESPARSE
     void **numeric = Schwarz->numeric;
-#endif
+    //#endif
 
     for (is=nblk-1; is>=0; --is) {
         // Form the right hand of eack block
@@ -667,13 +667,13 @@ void smoother_dcsr_Schwarz_backward (Schwarz_data *Schwarz,
         // Solve each block
         switch (block_solver) {
 
-#if WITH_SUITESPARSE
+	  //#if WITH_SUITESPARSE
             case SOLVER_UMFPACK: {
                 /* use UMFPACK direct solver on each block */
-                umfpack_solve(&blk[is], &rhs, &u, numeric[is], 0);
+                hazmath_solve(&blk[is], &rhs, &u, numeric[is], 0);
                 break;
             }
-#endif
+	      //#endif
             default:
                 /* use iterative solver on each block */
                 rhs.row = blk[is].row;
@@ -736,9 +736,9 @@ void smoother_dcsr_Schwarz_backward_additive (Schwarz_data *Schwarz,
     dvector averaging_factor = dvec_create( x->row );
     dvector xout = dvec_create( x->row );//TODO: need to allocate
 
-#if WITH_SUITESPARSE
+    //#if WITH_SUITESPARSE
     void **numeric = Schwarz->numeric;
-#endif
+    //#endif
 
     for (is=nblk-1; is>=0; --is) {
         // Form the right hand of eack block
@@ -769,13 +769,13 @@ void smoother_dcsr_Schwarz_backward_additive (Schwarz_data *Schwarz,
         // Solve each block
         switch (block_solver) {
 
-#if WITH_SUITESPARSE
+	  //#if WITH_SUITESPARSE
             case SOLVER_UMFPACK: {
                 /* use UMFPACK direct solver on each block */
-                umfpack_solve(&blk[is], &rhs, &u, numeric[is], 0);
+                hazmath_solve(&blk[is], &rhs, &u, numeric[is], 0);
                 break;
             }
-#endif
+	      //#endif
             default:
                 /* use iterative solver on each block */
                 rhs.row = blk[is].row;
@@ -1115,7 +1115,7 @@ void smoother_bdcsr_jacobi_jacobi(dvector *u,
         else {
             smoother_dcsr_jacobi(&utemp, 0, row-1, 1, &A_diag[i], &btemp, 1);
         }
-        //directsolve_UMF(&A_diag[i], &btemp, &utemp, 3);
+        //directsolve_HAZ(&A_diag[i], &btemp, &utemp, 3);
 
         // Move to next block
         istart += row;
@@ -1344,7 +1344,7 @@ void smoother_bdcsr_fgs_fgs(dvector *u,
         else {
             smoother_dcsr_gs(&utemp, 0, row-1, 1, &A_diag[i], &btemp, 1);
         }
-        //directsolve_UMF(&A_diag[i], &btemp, &utemp, 3);
+        //directsolve_HAZ(&A_diag[i], &btemp, &utemp, 3);
 
         // Move to next block
         istart += row;
@@ -1422,7 +1422,7 @@ void smoother_bdcsr_fgs_sgs(dvector *u,
             //smoother_dcsr_gs(&utemp, 0, row-1, 1, &A_diag[i], &btemp, 1);
             smoother_dcsr_sgs(&utemp, &A_diag[i], &btemp, 1);
         }
-        //directsolve_UMF(&A_diag[i], &btemp, &utemp, 3);
+        //directsolve_HAZ(&A_diag[i], &btemp, &utemp, 3);
 
         // Move to next block
         istart += row;
@@ -1500,7 +1500,7 @@ void smoother_bdcsr_bgs_bgs(dvector *u,
         else {
             smoother_dcsr_gs(&utemp, row-1, 0, -1, &A_diag[i], &btemp, 1);
         }
-        //directsolve_UMF(&A_diag[i], &btemp, &utemp, 3);
+        //directsolve_HAZ(&A_diag[i], &btemp, &utemp, 3);
 
         // update right hand side (stored in workspace)
         jstart = istart;
@@ -1577,7 +1577,7 @@ void smoother_bdcsr_bgs_sgs(dvector *u,
             //smoother_dcsr_gs(&utemp, row-1, 0, -1, &A_diag[i], &btemp, 1);
             smoother_dcsr_sgs(&utemp, &A_diag[i], &btemp, 1);
         }
-        //directsolve_UMF(&A_diag[i], &btemp, &utemp, 3);
+        //directsolve_HAZ(&A_diag[i], &btemp, &utemp, 3);
 
         // update right hand side (stored in workspace)
         jstart = istart;
@@ -1673,7 +1673,7 @@ void smoother_bdcsr_metric_additive(dvector *u,
     //printf("done set e\n");
 
     // solve for the interface part
-    block_directsolve_UMF(A_gamma, &r_gamma, &e_gamma, 0);
+    block_directsolve_HAZ(A_gamma, &r_gamma, &e_gamma, 0);
     //smoother_bdcsr_fgs_fgs(&e_gamma, A_gamma, &r_gamma, NULL, work);
     //smoother_bdcsr_bgs_bgs(&e_gamma, A_gamma, &r_gamma, NULL, work);
     //smoother_bdcsr_jacobi_jacobi(&e_gamma, A_gamma, &r_gamma, NULL);
@@ -1871,7 +1871,7 @@ void smoother_bdcsr_metric_multiplicative_omega_gamma(dvector *u,
     //printf("done set e\n");
 
     // solve for the interface part
-    //block_directsolve_UMF(A_gamma, &r_gamma, &e_gamma, 3);
+    //block_directsolve_HAZ(A_gamma, &r_gamma, &e_gamma, 3);
     smoother_bdcsr_fgs_fgs(&e_gamma, A_gamma, &r_gamma, NULL, work);
     //smoother_bdcsr_bgs_bgs(&e_gamma, A_gamma, &r_gamma, NULL, work);
 
@@ -2038,7 +2038,7 @@ void smoother_bdcsr_metric_multiplicative_gamma_omega(dvector *u,
     //printf("done set e\n");
 
     // solve for the interface part
-    //block_directsolve_UMF(A_gamma, &r_gamma, &e_gamma, 3);
+    //block_directsolve_HAZ(A_gamma, &r_gamma, &e_gamma, 3);
     //smoother_bdcsr_fgs_fgs(&e_gamma, A_gamma, &r_gamma, NULL, work);
     smoother_bdcsr_bgs_bgs(&e_gamma, A_gamma, &r_gamma, NULL, work);
 

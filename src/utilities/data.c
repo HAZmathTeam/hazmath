@@ -123,12 +123,12 @@ void amg_data_free(AMG_data *mgl,
     // Clean direct solver data if necessary
     switch (param->coarse_solver) {
 
-#if WITH_SUITESPARSE
+      //#if WITH_SUITESPARSE
         case SOLVER_UMFPACK: {
-            umfpack_free_numeric(mgl[max_levels-1].Numeric);
-            break;
+	  hazmath_free_numeric(&(mgl[max_levels-1].Numeric));
+	  break;
         }
-#endif
+	  //#endif
 
         default: // Do nothing!
             break;
@@ -314,12 +314,12 @@ void amg_data_bdcsr_free (AMG_data_bdcsr *mgl,
     // Clean direct solver data if necessary
     switch (param->coarse_solver) {
 
-#if WITH_SUITESPARSE
+      //#if WITH_SUITESPARSE
         case SOLVER_UMFPACK: {
-            umfpack_free_numeric(mgl[max_levels-1].Numeric);
+	  hazmath_free_numeric(&(mgl[max_levels-1].Numeric));
             break;
         }
-#endif
+	  //#endif
 
         default: // Do nothing!
             break;
@@ -518,9 +518,9 @@ void schwarz_data_free(Schwarz_data *schwarzdata)
         dcsr_free(&((schwarzdata->blk_data)[i]));
 
         if (schwarzdata->blk_solver == SOLVER_UMFPACK){
-#if WITH_SUITESPARSE
-            if (schwarzdata->numeric[i]) umfpack_free_numeric(schwarzdata->numeric[i]);
-#endif
+	  //#if WITH_SUITESPARSE
+	  if (schwarzdata->numeric[i]) hazmath_free_numeric(&(schwarzdata->numeric[i]));
+	    //#endif
         }
     }
     schwarzdata->nblk = 0;
@@ -528,10 +528,10 @@ void schwarz_data_free(Schwarz_data *schwarzdata)
     schwarzdata->blk_data = NULL;
 
     if (schwarzdata->blk_solver == SOLVER_UMFPACK){
-#if WITH_SUITESPARSE
+      //#if WITH_SUITESPARSE
         if (schwarzdata->numeric) free(schwarzdata->numeric);
         schwarzdata->numeric = NULL;
-#endif
+	//#endif
     }
 
 
@@ -666,15 +666,16 @@ void precond_block_data_free(precond_block_data *precdata,
     if(precdata->hxcurldata) free(precdata->hxcurldata);
     if(precdata->hxdivdata)  free(precdata->hxdivdata);
 
-#if WITH_SUITESPARSE
+    //#if WITH_SUITESPARSE
     for (i=0; i<nb; i++)
     {
         if(precdata->LU_diag){
-           if(precdata->LU_diag[i]) umfpack_free_numeric(precdata->LU_diag[i]);
+	  if(precdata->LU_diag[i])
+	    hazmath_free_numeric(&(precdata->LU_diag[i]));
         }
     }
     if(precdata->LU_diag) free(precdata->LU_diag);
-#endif
+    //#endif
 
     dvec_free(&precdata->r);
 
@@ -746,7 +747,8 @@ void precond_ra_data_free(precond_ra_data *precdata)
     for (i = 0; i < np; i++)
     {
         if(precdata->LU_diag){
-           if(precdata->LU_diag[i]) umfpack_free_numeric(precdata->LU_diag[i]);
+	  if(precdata->LU_diag[i])
+	    hazmath_free_numeric(&(precdata->LU_diag[i]));
         }
     }
     if(precdata->LU_diag) free(precdata->LU_diag);

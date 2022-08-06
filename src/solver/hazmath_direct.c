@@ -614,7 +614,7 @@ INT chk_symmetry(dCSRmat *A)
     break;
   case 2:
     fprintf(stderr,"\n\n********************************************************");
-        fprintf(stderr,"\n* WARNING(%s): nonsymmetric pattern at row=%d (counting from 0)\n",__FUNCTION__,irow);
+        fprintf(stderr,"\n* WARNING(%s): nonsymmetric pattern at row=%d\n",__FUNCTION__,irow);
     fprintf(stderr,"\n********************************************************\n\n");
   default:
     break;

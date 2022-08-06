@@ -238,11 +238,12 @@ int main (int argc, char* argv[])
       if(linear_itparam.linear_itsolver_type == 0) { // Direct Solver
 #if WITH_SUITESPARSE
         printf(" --> using UMFPACK's Direct Solver: factorization \n");
-        Numeric = factorize_UMF(time_stepper.At,linear_itparam.linear_print_level);
 #else
-        error_extlib(255,__FUNCTION__,"SuiteSparse");
-        return 0;
+        printf(" --> using HAZMATH's Direct Solver: factorization \n");
+	//        error_extlib(255,__FUNCTION__,"SuiteSparse");
+	//        return 0;
 #endif
+        Numeric = factorize_HAZ(time_stepper.At,linear_itparam.linear_print_level);
       }
     } else {
       eliminate_DirichletBC_RHS(bc,&FE,&mesh,time_stepper.rhs_time,time_stepper.At_noBC,time_stepper.time);
@@ -253,11 +254,12 @@ int main (int argc, char* argv[])
     if(linear_itparam.linear_itsolver_type == 0) { // Direct Solver
 #if WITH_SUITESPARSE
       printf(" --> using UMFPACK's Direct Solver: solve\n");
-      solver_flag = solve_UMF(time_stepper.At,time_stepper.rhs_time,time_stepper.sol,Numeric,linear_itparam.linear_print_level);
 #else
-      error_extlib(255,__FUNCTION__,"SuiteSparse");
-      return 0;
+      printf(" --> using HAZMATH's Direct Solver: solve\n");
+      //      error_extlib(255,__FUNCTION__,"SuiteSparse");
+      //      return 0;
 #endif
+      solver_flag = solve_HAZ(time_stepper.At,time_stepper.rhs_time,time_stepper.sol,Numeric,linear_itparam.linear_print_level);
     } else { // Iterative Solver
       // Use AMG as iterative solver
       if (linear_itparam.linear_itsolver_type == SOLVER_AMG){
@@ -345,9 +347,9 @@ int main (int argc, char* argv[])
     cq = NULL;
   }
   free_mesh(&mesh);
-#if WITH_SUITESPARSE
-  if (Numeric) umfpack_free_numeric(Numeric);
-#endif
+  //#if WITH_SUITESPARSE
+  if (Numeric) hazmath_free_numeric(&Numeric);
+  //#endif
 
   /*******************************************************************/
 

@@ -562,7 +562,7 @@ void precond_sum_famg_add2(REAL *r,
     dcsr_mxv(pcdata[1].A, r, temp1.val); // temp1 = Grad * r
     // direct solve Adiv^1+s/2 temp2 = temp1
     INT status;
-    status = umfpack_solve(pcdata[0].A, &temp1, &temp2, pcdata[0].mgl_data[0].Numeric, pcdata[0].print_level);
+    status = hazmath_solve(pcdata[0].A, &temp1, &temp2, pcdata[0].mgl_data[0].Numeric, pcdata[0].print_level);
     if(status) printf("Direct solve status: %d \n", status);
     dcsr_mxv(pcdata[2].A, temp2.val, x1); // x1 = Grad^T * temp2
 
@@ -579,7 +579,7 @@ void precond_sum_famg_add2(REAL *r,
     // direct solve instead
     dcsr_mxv(pcdata[1].A, x2, temp1.val); // temp1 = Grad * x2
     // direct solve Adiv^1+s/2 temp2 = temp1
-    status = umfpack_solve(pcdata[0].A, &temp1, &temp2, pcdata[0].mgl_data[0].Numeric, pcdata[0].print_level);
+    status = hazmath_solve(pcdata[0].A, &temp1, &temp2, pcdata[0].mgl_data[0].Numeric, pcdata[0].print_level);
     if(status) printf("Direct solve status: %d \n", status);
     dcsr_mxv(pcdata[2].A, temp2.val, z); // z = Grad^T * temp2
 }
@@ -871,7 +871,7 @@ void precond_hx_div_multiplicative_2D(REAL *r,
 
     for (i=0;i<100;++i) mgcycle(mgl_divgrad, amgparam_divgrad);
     //dcsr_pvfgmres(hxdivdata->A_divgrad, &mgl_divgrad->b, &mgl_divgrad->x, NULL, 1e-3, 1000, 1000, 1, 1);
-    //directsolve_UMF(hxdivdata->A_divgrad, &(mgl_divgrad->b), &(mgl_divgrad->x), 1);
+    //directsolve_HAZ(hxdivdata->A_divgrad, &(mgl_divgrad->b), &(mgl_divgrad->x), 1);
 
     //-----------------
     // update solution
@@ -927,7 +927,7 @@ void precond_hx_div_multiplicative_2D(REAL *r,
 
     for (i=0;i<100;++i) mgcycle(mgl_grad, amgparam_grad);
     //dcsr_pvfgmres(hxdivdata->A_curlgrad, &mgl_curlgrad->b, &mgl_curlgrad->x, NULL, 1e-3, 1000, 1000, 1, 1);
-    //directsolve_UMF(hxdivdata->A_curlgrad, &(mgl_curlgrad->b), &(mgl_curlgrad->x),1);
+    //directsolve_HAZ(hxdivdata->A_curlgrad, &(mgl_curlgrad->b), &(mgl_curlgrad->x),1);
 
     //-----------------
     // update solution
@@ -1013,7 +1013,7 @@ void precond_hx_div_additive(REAL *r,
 
     for (i=0;i<maxit;++i) mgcycle(mgl_divgrad, amgparam_divgrad);
     //dcsr_pvfgmres(hxdivdata->A_divgrad, &mgl_divgrad->b, &mgl_divgrad->x, NULL, 1e-3, 1000, 1000, 1, 1);
-    //directsolve_UMF(hxdivdata->A_divgrad, &(mgl_divgrad->b), &(mgl_divgrad->x), 1);
+    //directsolve_HAZ(hxdivdata->A_divgrad, &(mgl_divgrad->b), &(mgl_divgrad->x), 1);
 
     dcsr_aAxpy(1.0, hxdivdata->P_div, mgl_divgrad->x.val, z);
 
@@ -1038,7 +1038,7 @@ void precond_hx_div_additive(REAL *r,
 
     dcsr_mxv(hxdivdata->Curlt,r,Cr.val);
 //    INT flag;
-//    flag = directsolve_UMF(hxdivdata->A_curl, &Cr, &Cz, 1);
+//    flag = directsolve_HAZ(hxdivdata->A_curl, &Cr, &Cz, 1);
 //    printf("flag=%d\n",flag);
     smoother_dcsr_sgs(&Cz, hxdivdata->A_curl, &Cr, smooth_iter);
 //    //smoother_dcsr_jacobi(&Cz, 0, Cz.row, 1, hxdivdata->A_curl, &Cr, smooth_iter);
@@ -1057,7 +1057,7 @@ void precond_hx_div_additive(REAL *r,
 
     for (i=0;i<maxit;++i) mgcycle(mgl_curlgrad, amgparam_curlgrad);
     //dcsr_pvfgmres(hxdivdata->A_curlgrad, &mgl_curlgrad->b, &mgl_curlgrad->x, NULL, 1e-3, 1000, 1000, 1, 1);
-    //directsolve_UMF(hxdivdata->A_curlgrad, &(mgl_curlgrad->b), &(mgl_curlgrad->x),1);
+    //directsolve_HAZ(hxdivdata->A_curlgrad, &(mgl_curlgrad->b), &(mgl_curlgrad->x),1);
 
     dcsr_mxv(hxdivdata->P_curl, mgl_curlgrad->x.val, temp);
     dcsr_aAxpy(1.0, hxdivdata->Curl, temp, z);
@@ -1138,7 +1138,7 @@ void precond_hx_div_multiplicative(REAL *r,
 
     for (i=0;i<maxit;++i) mgcycle(mgl_divgrad, amgparam_divgrad);
     //dcsr_pvfgmres(hxdivdata->A_divgrad, &mgl_divgrad->b, &mgl_divgrad->x, NULL, 1e-6, 1000, 1000, 1, 1);
-    //directsolve_UMF(hxdivdata->A_divgrad, &(mgl_divgrad->b), &(mgl_divgrad->x), 0);
+    //directsolve_HAZ(hxdivdata->A_divgrad, &(mgl_divgrad->b), &(mgl_divgrad->x), 0);
 
     dcsr_aAxpy(1.0, hxdivdata->P_div, mgl_divgrad->x.val, z);
 
@@ -1212,7 +1212,7 @@ void precond_hx_div_multiplicative(REAL *r,
 
     for (i=0;i<maxit;++i) mgcycle(mgl_curlgrad, amgparam_curlgrad);
     //dcsr_pvfgmres(hxdivdata->A_curlgrad, &mgl_curlgrad->b, &mgl_curlgrad->x, NULL, 1e-6, 1000, 1000, 1, 1);
-    //directsolve_UMF(hxdivdata->A_curlgrad, &(mgl_curlgrad->b), &(mgl_curlgrad->x),0);
+    //directsolve_HAZ(hxdivdata->A_curlgrad, &(mgl_curlgrad->b), &(mgl_curlgrad->x),0);
 
     dcsr_mxv(hxdivdata->P_curl, mgl_curlgrad->x.val, temp);
     dcsr_aAxpy(1.0, hxdivdata->Curl, temp, z);
@@ -1396,7 +1396,7 @@ void precond_block_diag_2(REAL *r,
                           REAL *z,
                           void *data)
 {
-#if WITH_SUITESPARSE
+  //#if WITH_SUITESPARSE
   precond_block_data *precdata=(precond_block_data *)data;
   dCSRmat *A_diag = precdata->A_diag;
   dvector *tempr = &(precdata->r);
@@ -1424,19 +1424,19 @@ void precond_block_diag_2(REAL *r,
   // Preconditioning A00 block
   //#if  WITH_UMFPACK
   /* use UMFPACK direct solver */
-  umfpack_solve(&A_diag[0], &r0, &z0, LU_diag[0], 0);
+  hazmath_solve(&A_diag[0], &r0, &z0, LU_diag[0], 0);
   //#endif
 
   // Preconditioning A11 block
   //#if  WITH_UMFPACK
   /* use UMFPACK direct solver */
-  umfpack_solve(&A_diag[1], &r1, &z1, LU_diag[1], 0);
+  hazmath_solve(&A_diag[1], &r1, &z1, LU_diag[1], 0);
   //#endif
 
   // restore r
   array_cp(N, tempr->val, r);
 
-#endif
+  //#endif
 }
 
 /***********************************************************************************************/
@@ -1583,7 +1583,7 @@ void precond_block_lower_2(REAL *r,
                            REAL *z,
                            void *data)
 {
-#if WITH_SUITESPARSE
+  //#if WITH_SUITESPARSE
 
   precond_block_data *precdata=(precond_block_data *)data;
   block_dCSRmat *A = precdata->Abcsr;
@@ -1612,7 +1612,7 @@ void precond_block_lower_2(REAL *r,
   // Preconditioning A00 block
   //#if  WITH_UMFPACK
   /* use UMFPACK direct solver */
-  umfpack_solve(&A_diag[0], &r0, &z0, LU_diag[0], 0);
+  hazmath_solve(&A_diag[0], &r0, &z0, LU_diag[0], 0);
   //#endif
 
   // r1 = r1 - A2*z0
@@ -1621,13 +1621,13 @@ void precond_block_lower_2(REAL *r,
   // Preconditioning A11 block
   //#if  WITH_UMFPACK
   /* use UMFPACK direct solver */
-  umfpack_solve(&A_diag[1], &r1, &z1, LU_diag[1], 0);
+  hazmath_solve(&A_diag[1], &r1, &z1, LU_diag[1], 0);
   //#endif
 
   // restore r
   array_cp(N, tempr->val, r);
 
-#endif
+  //#endif
 
 }
 
@@ -1786,7 +1786,7 @@ void precond_block_upper_2(REAL *r,
                            REAL *z,
                            void *data)
 {
-#if WITH_SUITESPARSE
+  //#if WITH_SUITESPARSE
 
   precond_block_data *precdata=(precond_block_data *)data;
   block_dCSRmat *A = precdata->Abcsr;
@@ -1815,7 +1815,7 @@ void precond_block_upper_2(REAL *r,
   // Preconditioning A11 block
   //#if  WITH_UMFPACK
   /* use UMFPACK direct solver */
-  umfpack_solve(&A_diag[1], &r1, &z1, LU_diag[1], 0);
+  hazmath_solve(&A_diag[1], &r1, &z1, LU_diag[1], 0);
   //#endif
 
   // r0 = r0 - A1*z1
@@ -1824,13 +1824,13 @@ void precond_block_upper_2(REAL *r,
   // Preconditioning A00 block
   //#if  WITH_UMFPACK
   /* use UMFPACK direct solver */
-  umfpack_solve(&A_diag[0], &r0, &z0, LU_diag[0], 0);
+  hazmath_solve(&A_diag[0], &r0, &z0, LU_diag[0], 0);
   //#endif
 
   // restore r
   array_cp(N, tempr->val, r);
 
-#endif
+  //#endif
 
 }
 
@@ -1987,7 +1987,7 @@ void precond_block_diag_3(REAL *r,
                           REAL *z,
                           void *data)
 {
-#if WITH_SUITESPARSE
+  //#if WITH_SUITESPARSE
     precond_block_data *precdata=(precond_block_data *)data;
     dCSRmat *A_diag = precdata->A_diag;
     dvector *tempr = &(precdata->r);
@@ -2014,20 +2014,20 @@ void precond_block_diag_3(REAL *r,
 
     // Preconditioning A00 block
     /* use UMFPACK direct solver */
-    umfpack_solve(&A_diag[0], &r0, &z0, LU_diag[0], 0);
+    hazmath_solve(&A_diag[0], &r0, &z0, LU_diag[0], 0);
 
     // Preconditioning A11 block
     /* use UMFPACK direct solver */
-    umfpack_solve(&A_diag[1], &r1, &z1, LU_diag[1], 0);
+    hazmath_solve(&A_diag[1], &r1, &z1, LU_diag[1], 0);
 
     // Preconditioning A22 block
     /* use UMFPACK direct solver */
-    umfpack_solve(&A_diag[2], &r2, &z2, LU_diag[2], 0);
+    hazmath_solve(&A_diag[2], &r2, &z2, LU_diag[2], 0);
 
     // restore r
     array_cp(N, tempr->val, r);
 
-#endif
+    //#endif
 }
 
 /***********************************************************************************************/
@@ -2193,7 +2193,7 @@ void precond_block_lower_3(REAL *r,
                            REAL *z,
                            void *data)
 {
-#if WITH_SUITESPARSE
+  //#if WITH_SUITESPARSE
 
     precond_block_data *precdata=(precond_block_data *)data;
     block_dCSRmat *A = precdata->Abcsr;
@@ -2223,7 +2223,7 @@ void precond_block_lower_3(REAL *r,
 
     // Preconditioning A00 block
     /* use UMFPACK direct solver */
-    umfpack_solve(&A_diag[0], &r0, &z0, LU_diag[0], 0);
+    hazmath_solve(&A_diag[0], &r0, &z0, LU_diag[0], 0);
 
     // r1 = r1 - A3*z0
     if (A->blocks[3] != NULL)
@@ -2231,7 +2231,7 @@ void precond_block_lower_3(REAL *r,
 
     // Preconditioning A11 block
     /* use UMFPACK direct solver */
-    umfpack_solve(&A_diag[1], &r1, &z1, LU_diag[1], 0);
+    hazmath_solve(&A_diag[1], &r1, &z1, LU_diag[1], 0);
 
     // r2 = r2 - A6*z0 - A7*z1
     if (A->blocks[6] != NULL)
@@ -2241,12 +2241,12 @@ void precond_block_lower_3(REAL *r,
 
     // Preconditioning A22 block
     /* use UMFPACK direct solver */
-    umfpack_solve(&A_diag[2], &r2, &z2, LU_diag[2], 0);
+    hazmath_solve(&A_diag[2], &r2, &z2, LU_diag[2], 0);
 
     // restore r
     array_cp(N, tempr->val, r);
 
-#endif
+    //#endif
 
 }
 
@@ -2435,7 +2435,7 @@ void precond_block_upper_3(REAL *r,
                            REAL *z,
                            void *data)
 {
-#if WITH_SUITESPARSE
+  //#if WITH_SUITESPARSE
 
     precond_block_data *precdata=(precond_block_data *)data;
     block_dCSRmat *A = precdata->Abcsr;
@@ -2465,7 +2465,7 @@ void precond_block_upper_3(REAL *r,
 
     // Preconditioning A22 block
     /* use UMFPACK direct solver */
-    umfpack_solve(&A_diag[2], &r2, &z2, LU_diag[2], 0);
+    hazmath_solve(&A_diag[2], &r2, &z2, LU_diag[2], 0);
 
     // r1 = r1 - A5*z2
     if (A->blocks[5] != NULL)
@@ -2473,7 +2473,7 @@ void precond_block_upper_3(REAL *r,
 
     // Preconditioning A11 block
     /* use UMFPACK direct solver */
-    umfpack_solve(&A_diag[1], &r1, &z1, LU_diag[1], 0);
+    hazmath_solve(&A_diag[1], &r1, &z1, LU_diag[1], 0);
 
     // r0 = r0 - A1*z1 - A2*z2
     if (A->blocks[1] != NULL)
@@ -2483,12 +2483,12 @@ void precond_block_upper_3(REAL *r,
 
     // Preconditioning A00 block
     /* use UMFPACK direct solver */
-    umfpack_solve(&A_diag[0], &r0, &z0, LU_diag[0], 0);
+    hazmath_solve(&A_diag[0], &r0, &z0, LU_diag[0], 0);
 
     // restore r
     array_cp(N, tempr->val, r);
 
-#endif
+    //#endif
 
 }
 
@@ -2676,7 +2676,7 @@ void precond_block_diag_4(REAL *r,
                           REAL *z,
                           void *data)
 {
-#if WITH_SUITESPARSE
+  //#if WITH_SUITESPARSE
     precond_block_data *precdata=(precond_block_data *)data;
     dCSRmat *A_diag = precdata->A_diag;
     dvector *tempr = &(precdata->r);
@@ -2711,24 +2711,24 @@ void precond_block_diag_4(REAL *r,
 
     // Preconditioning A00 block
     /* use UMFPACK direct solver */
-    umfpack_solve(&A_diag[0], &r0, &z0, LU_diag[0], 0);
+    hazmath_solve(&A_diag[0], &r0, &z0, LU_diag[0], 0);
 
     // Preconditioning A11 block
     /* use UMFPACK direct solver */
-    umfpack_solve(&A_diag[1], &r1, &z1, LU_diag[1], 0);
+    hazmath_solve(&A_diag[1], &r1, &z1, LU_diag[1], 0);
 
     // Preconditioning A22 block
     /* use UMFPACK direct solver */
-    umfpack_solve(&A_diag[2], &r2, &z2, LU_diag[2], 0);
+    hazmath_solve(&A_diag[2], &r2, &z2, LU_diag[2], 0);
 
     // Preconditioning A33 block
     /* use UMFPACK direct solver */
-    umfpack_solve(&A_diag[3], &r3, &z3, LU_diag[3], 0);
+    hazmath_solve(&A_diag[3], &r3, &z3, LU_diag[3], 0);
 
     // restore r
     array_cp(N, tempr->val, r);
 
-#endif
+    //#endif
 }
 
 /***********************************************************************************************/
@@ -2832,7 +2832,7 @@ void precond_block_diag_4_amg_krylov(REAL *r,
                                      REAL *z,
                                      void *data)
 {
-#if WITH_SUITESPARSE
+  //#if WITH_SUITESPARSE
     precond_block_data *precdata=(precond_block_data *)data;
     dCSRmat *A_diag = precdata->A_diag;
     dvector *tempr = &(precdata->r);
@@ -2907,7 +2907,7 @@ void precond_block_diag_4_amg_krylov(REAL *r,
     // restore r
     array_cp(N, tempr->val, r);
 
-#endif
+    //#endif
 }
 
 /***********************************************************************************************/
@@ -2932,7 +2932,7 @@ void precond_block_lower_4(REAL *r,
                            REAL *z,
                            void *data)
 {
-#if WITH_SUITESPARSE
+  //#if WITH_SUITESPARSE
 
     precond_block_data *precdata=(precond_block_data *)data;
     block_dCSRmat *A = precdata->Abcsr;
@@ -2970,7 +2970,7 @@ void precond_block_lower_4(REAL *r,
 
     // Preconditioning A00 block
     /* use UMFPACK direct solver */
-    umfpack_solve(&A_diag[0], &r0, &z0, LU_diag[0], 0);
+    hazmath_solve(&A_diag[0], &r0, &z0, LU_diag[0], 0);
 
     // r1 = r1 - A4*z0
     if (A->blocks[4] != NULL)
@@ -2978,7 +2978,7 @@ void precond_block_lower_4(REAL *r,
 
     // Preconditioning A11 block
     /* use UMFPACK direct solver */
-    umfpack_solve(&A_diag[1], &r1, &z1, LU_diag[1], 0);
+    hazmath_solve(&A_diag[1], &r1, &z1, LU_diag[1], 0);
 
     // r2 = r2 - A8*z0 - A9*z1
     if (A->blocks[8] != NULL)
@@ -2988,7 +2988,7 @@ void precond_block_lower_4(REAL *r,
 
     // Preconditioning A22 block
     /* use UMFPACK direct solver */
-    umfpack_solve(&A_diag[2], &r2, &z2, LU_diag[2], 0);
+    hazmath_solve(&A_diag[2], &r2, &z2, LU_diag[2], 0);
 
     // r3 = r3 - A12*z0 - A13*z1 - A14*z2
     if (A->blocks[12] != NULL)
@@ -3000,12 +3000,12 @@ void precond_block_lower_4(REAL *r,
 
     // Preconditioning A33 block
     /* use UMFPACK direct solver */
-    umfpack_solve(&A_diag[3], &r3, &z3, LU_diag[3], 0);
+    hazmath_solve(&A_diag[3], &r3, &z3, LU_diag[3], 0);
 
     // restore r
     array_cp(N, tempr->val, r);
 
-#endif
+    //#endif
 
 }
 
@@ -3258,7 +3258,7 @@ void precond_block_upper_4(REAL *r,
                            REAL *z,
                            void *data)
 {
-#if WITH_SUITESPARSE
+  //#if WITH_SUITESPARSE
 
     precond_block_data *precdata=(precond_block_data *)data;
     block_dCSRmat *A = precdata->Abcsr;
@@ -3296,7 +3296,7 @@ void precond_block_upper_4(REAL *r,
 
     // Preconditioning A33 block
     /* use UMFPACK direct solver */
-    umfpack_solve(&A_diag[3], &r3, &z3, LU_diag[3], 0);
+    hazmath_solve(&A_diag[3], &r3, &z3, LU_diag[3], 0);
 
     // r2 = r2 - A11*z3
     if (A->blocks[11] != NULL)
@@ -3304,7 +3304,7 @@ void precond_block_upper_4(REAL *r,
 
     // Preconditioning A22 block
     /* use UMFPACK direct solver */
-    umfpack_solve(&A_diag[2], &r2, &z2, LU_diag[2], 0);
+    hazmath_solve(&A_diag[2], &r2, &z2, LU_diag[2], 0);
 
     // r1 = r1 - A6*z2 - A7*z3
     if (A->blocks[6] != NULL)
@@ -3314,7 +3314,7 @@ void precond_block_upper_4(REAL *r,
 
     // Preconditioning A11 block
     /* use UMFPACK direct solver */
-    umfpack_solve(&A_diag[1], &r1, &z1, LU_diag[1], 0);
+    hazmath_solve(&A_diag[1], &r1, &z1, LU_diag[1], 0);
 
     // r0 = r0 - A1*z1 - A2*z2 - A3*z3
     if (A->blocks[1] != NULL)
@@ -3326,12 +3326,12 @@ void precond_block_upper_4(REAL *r,
 
     // Preconditioning A00 block
     /* use UMFPACK direct solver */
-    umfpack_solve(&A_diag[0], &r0, &z0, LU_diag[0], 0);
+    hazmath_solve(&A_diag[0], &r0, &z0, LU_diag[0], 0);
 
     // restore r
     array_cp(N, tempr->val, r);
 
-#endif
+    //#endif
 
 }
 
@@ -3685,7 +3685,7 @@ void precond_block_diag(REAL *r,
                           REAL *z,
                           void *data)
 {
-#if WITH_SUITESPARSE
+  //#if WITH_SUITESPARSE
   precond_block_data *precdata=(precond_block_data *)data;
   dCSRmat *A_diag = precdata->A_diag;
   dvector *tempr = &(precdata->r);
@@ -3718,7 +3718,7 @@ void precond_block_diag(REAL *r,
       zi.val = &(z[istart]);
 
       // solve
-      umfpack_solve(&A_diag[i], &ri, &zi, LU_diag[i], 0);
+      hazmath_solve(&A_diag[i], &ri, &zi, LU_diag[i], 0);
 
       // update istart
       istart = istart + A_diag[i].row;
@@ -3728,7 +3728,7 @@ void precond_block_diag(REAL *r,
   // restore r
   array_cp(N, tempr->val, r);
 
-#endif
+  //#endif
 }
 
 
@@ -5400,7 +5400,7 @@ void precond_block2_babuska_diag(REAL *r,
     }
 
     // direct solve the first diagonal block
-    //directsolve_UMF(&(mgl[0][0].A), &r0, &z0, 1);
+    //directsolve_HAZ(&(mgl[0][0].A), &r0, &z0, 1);
     //--------------------------------------------------------
 
     //--------------------------------------------------------
@@ -5482,7 +5482,7 @@ void precond_block2_babuska_diag(REAL *r,
     }
 
     // direct solve A11 block
-    //directsolve_UMF(As, &r1, &z1, 1);
+    //directsolve_HAZ(As, &r1, &z1, 1);
     //--------------------------------------------------------
 
     // restore r
@@ -5568,7 +5568,7 @@ void precond_block2_babuska_lower(REAL *r,
     }
 
     // direct solve the first diagonal block
-    //directsolve_UMF(&(mgl[0][0].A), &r0, &z0, 1);
+    //directsolve_HAZ(&(mgl[0][0].A), &r0, &z0, 1);
     //--------------------------------------------------------
 
     //--------------------------------------------------------
@@ -5656,7 +5656,7 @@ void precond_block2_babuska_lower(REAL *r,
     }
 
     // direct solve A11 block
-    //directsolve_UMF(As, &r1, &z1, 1);
+    //directsolve_HAZ(As, &r1, &z1, 1);
     //--------------------------------------------------------
 
     // restore r
@@ -5789,7 +5789,7 @@ void precond_block2_babuska_upper(REAL *r,
     }
 
     // direct solve A11 block
-    //directsolve_UMF(As, &r1, &z1, 1);
+    //directsolve_HAZ(As, &r1, &z1, 1);
     //--------------------------------------------------------
 
     //--------------------------------------------------------
@@ -5831,7 +5831,7 @@ void precond_block2_babuska_upper(REAL *r,
     }
 
     // direct solve the first diagonal block
-    //directsolve_UMF(&(mgl[0][0].A), &r0, &z0, 1);
+    //directsolve_HAZ(&(mgl[0][0].A), &r0, &z0, 1);
     //--------------------------------------------------------
 
 
@@ -6039,8 +6039,8 @@ void precond_ra_fenics(REAL *r, REAL *z, void *data)
 	    if(status<SUCCESS)
 	      WARN_STATUS(__FUNCTION__,"dcsr_pcg(...)",status);
             /* void *numeric=NULL;  // prepare for direct solve.
-            numeric=factorize_UMF(&(mgl[i][0].A),0);
-            solver_flag=(INT )solve_UMF(&(mgl[i][0].A),	\
+            numeric=factorize_HAZ(&(mgl[i][0].A),0);
+            solver_flag=(INT )solve_HAZ(&(mgl[i][0].A),	\
                               &r_vec,		\
                               &update,		\
                               numeric,
@@ -6107,18 +6107,18 @@ void precond_bdcsr_metric_amg_exact(REAL *r,
 
     // Schwarz method on the interface part
     // Schwarz_param *schwarz_param = predata->schwarz_param;
-#if WITH_SUITESPARSE
+    //#if WITH_SUITESPARSE
     dvector rr, zz;
 
     rr.row = predata->A->blocks[3]->row; rr.val = r+predata->A->blocks[0]->row;
     zz.row = predata->A->blocks[3]->col; zz.val = z+predata->A->blocks[0]->row;
     Schwarz_data *schwarz_data = predata->schwarz_data;
     void **LU_data = predata->LU_data;
-    umfpack_solve(&schwarz_data->A, &rr, &zz, LU_data[0], 0);
-    //directsolve_UMF(&schwarz_data->A, &rr, &zz, 1);
-    #else
-    error_extlib(257, __FUNCTION__, "SuiteSparse");
-#endif
+    hazmath_solve(&schwarz_data->A, &rr, &zz, LU_data[0], 0);
+    //directsolve_HAZ(&schwarz_data->A, &rr, &zz, 1);
+    //    #else
+    //    error_extlib(257, __FUNCTION__, "SuiteSparse");
+    //#endif
 
 
     // AMG solve on the whole matrix
@@ -6181,7 +6181,7 @@ void precond_bdcsr_metric_amg_exact_additive(REAL *r,
 
     //smoother_dcsr_Schwarz_forward(schwarz_data, schwarz_param, &zz, &rr);
     //smoother_dcsr_Schwarz_backward(schwarz_data, schwarz_param, &zz, &rr);
-#if WITH_SUITESPARSE
+	//#if WITH_SUITESPARSE
     dvector rr, zz;
 
     rr.row = predata->A->blocks[3]->row; rr.val = r+predata->A->blocks[0]->row;
@@ -6191,11 +6191,11 @@ void precond_bdcsr_metric_amg_exact_additive(REAL *r,
     // Schwarz_param *schwarz_param = predata->schwarz_param;
     Schwarz_data *schwarz_data = predata->schwarz_data;
     void **LU_data = predata->LU_data;
-    umfpack_solve(&schwarz_data->A, &rr, &zz, LU_data[0], 0);
-    //directsolve_UMF(&schwarz_data->A, &rr, &zz, 1);
-#else
-    error_extlib(257, __FUNCTION__, "SuiteSparse");
-#endif
+    hazmath_solve(&schwarz_data->A, &rr, &zz, LU_data[0], 0);
+    //directsolve_HAZ(&schwarz_data->A, &rr, &zz, 1);
+    //#else
+    //    error_extlib(257, __FUNCTION__, "SuiteSparse");
+    //#endif
 
     // update residual
     //bdcsr_aAxpy(-1.0, predata->A, z, r);
@@ -6270,7 +6270,7 @@ void precond_bdcsr_metric_amg(REAL *r,
     Schwarz_data *schwarz_data = predata->schwarz_data;
     smoother_dcsr_Schwarz_forward(schwarz_data, schwarz_param, &zz, &rr);
     smoother_dcsr_Schwarz_backward(schwarz_data, schwarz_param, &zz, &rr);
-    //directsolve_UMF(&schwarz_data->A, &rr, &zz, 1);
+    //directsolve_HAZ(&schwarz_data->A, &rr, &zz, 1);
 
     // AMG solve on the whole matrix
     AMG_param amgparam; param_amg_init(&amgparam);
@@ -6339,7 +6339,7 @@ void precond_bdcsr_metric_amg_additive(REAL *r,
     Schwarz_data *schwarz_data = predata->schwarz_data;
     smoother_dcsr_Schwarz_forward(schwarz_data, schwarz_param, &zz, &rr);
     smoother_dcsr_Schwarz_backward(schwarz_data, schwarz_param, &zz, &rr);
-    //directsolve_UMF(&schwarz_data->A, &rr, &zz, 1);
+    //directsolve_HAZ(&schwarz_data->A, &rr, &zz, 1);
 
     // AMG solve on the whole matrix
     AMG_param amgparam; param_amg_init(&amgparam);
@@ -6409,7 +6409,7 @@ void precond_bdcsr_metric_amg_symmetric(REAL *r,
     Schwarz_param *schwarz_param = predata->schwarz_param;
     Schwarz_data *schwarz_data = predata->schwarz_data;
     smoother_dcsr_Schwarz_forward(schwarz_data, schwarz_param, &zz, &rr);
-    //directsolve_UMF(&schwarz_data->A, &rr, &zz, 1);
+    //directsolve_HAZ(&schwarz_data->A, &rr, &zz, 1);
 
     // AMG solve on the whole matrix
     AMG_param amgparam; param_amg_init(&amgparam);

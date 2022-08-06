@@ -215,7 +215,7 @@ INT Schwarz_setup(Schwarz_data *Schwarz,
     // Setup for each block solver
     switch (block_solver) {
 
-#if WITH_SUITESPARSE
+      //#if WITH_SUITESPARSE
         case SOLVER_UMFPACK: {
             /* use UMFPACK direct solver on each block */
             dCSRmat *blk = Schwarz->blk_data;
@@ -227,13 +227,13 @@ INT Schwarz_setup(Schwarz_data *Schwarz,
                 dcsr_cp(&blk_tran, &blk[i]);
                 dcsr_free(&blk_tran);
                 //printf("size of block %d: nrow=%d, nnz=%d\n",i, blk[i].row, blk[i].nnz);
-                numeric[i] = umfpack_factorize(&blk[i], 0);
+                numeric[i] = hazmath_factorize(&blk[i], 0);
             }
             Schwarz->numeric = numeric;
 
             break;
         }
-#endif
+	  //#endif
 
         default: {
             /* do nothing for iterative methods */
@@ -353,7 +353,7 @@ INT Schwarz_setup_with_seeds(Schwarz_data *Schwarz,
     // Setup for each block solver
     switch (block_solver) {
 
-#if WITH_SUITESPARSE
+      //#if WITH_SUITESPARSE
         case SOLVER_UMFPACK: {
             /* use UMFPACK direct solver on each block */
             dCSRmat *blk = Schwarz->blk_data;
@@ -365,13 +365,13 @@ INT Schwarz_setup_with_seeds(Schwarz_data *Schwarz,
                 dcsr_cp(&blk_tran, &blk[i]);
                 dcsr_free(&blk_tran);
                 //printf("size of block %d: nrow=%d, nnz=%d\n",i, blk[i].row, blk[i].nnz);
-                numeric[i] = umfpack_factorize(&blk[i], 0);
+                numeric[i] = hazmath_factorize(&blk[i], 0);
             }
             Schwarz->numeric = numeric;
 
             break;
         }
-#endif
+	  //#endif
 
         default: {
             /* do nothing for iterative methods */

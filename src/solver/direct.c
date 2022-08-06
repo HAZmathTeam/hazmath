@@ -15,9 +15,9 @@
 #include "umfpack.h"
 #endif
 
-/***********************************************************************************************/
+/************************************************************/
 /**
- * \fn directsolve_UMF(dCSRmat *A,dvector *f,dvector *x,INT print_level)
+ * \fn directsolve_HAZ(dCSRmat *A,dvector *f,dvector *x,INT print_level)
  *
  * \brief Performs Gaussian Elmination on Ax = f, using UMFPACK (Assumes A is in CSR format)
  * \note This routine does everything, factorization and solve in one shot.  So it is not
@@ -30,65 +30,69 @@
  *
  * \return x	         	Solution
  *
+ * \note modified by Ludmil on 20220802 to include hazmath direct
+ *       solve option.
+ *
  */
-INT directsolve_UMF(dCSRmat *A,
+INT directsolve_HAZ(dCSRmat *A,
                     dvector *f,
                     dvector *x,
                     INT print_level)
 {
-
-#if WITH_SUITESPARSE
-  INT err_flag;
+  // Data for Numerical factorization
+  void* Numeric;
+  INT err_flag_s,err_flag_f;
   INT shift_flag = 0;
 
-  // UMFPACK requires transpose of A
-  dCSRmat At;
+#if WITH_SUITESPARSE
   // Check if counting from 1 or 0 for CSR arrays
   if(A->IA[0]==1) {
     dcsr_shift(A, -1);  // shift A
     shift_flag = 1;
   }
+  // UMFPACK requires transpose of A
+  dCSRmat At;
   // Transpose A
   dcsr_trans(A,&At);
-
+  
   // Fix A back to correct counting
   if(shift_flag==1) {
     dcsr_shift(A, 1);  // shift A back
   }
-
-  // Data for Numerical factorization
-  void* Numeric;
-
   // Factorize
-  Numeric = umfpack_factorize(&At,print_level);
-
+  //  fprintf(stdout,"\n%s: USING UMFPACK\n\n",__FUNCTION__);fflush(stdout);
+  Numeric = hazmath_factorize(&At,print_level);
   // Solve
-  err_flag = umfpack_solve(&At,f,x,Numeric,print_level);
-
-  // Error Check
-  if(err_flag<0) {
-    printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- UMFPACK SOLVE ERROR!!!\n\n",__FUNCTION__);
-    exit(err_flag);
-  }
-
+  err_flag_s = hazmath_solve(&At,f,x,Numeric,print_level);
   // Clean up
   dcsr_free(&At);
-  err_flag = umfpack_free_numeric(Numeric);
-  if(err_flag<0) {
-    printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- UMFPACK FREE ERROR!!!\n\n",__FUNCTION__);
-    exit(err_flag);
-  }
-
-  return err_flag;
+  err_flag_f = hazmath_free_numeric(&Numeric);
 #else
-  error_extlib(252, __FUNCTION__, "SuiteSparse");
-  return 0;
+  // HAZ Factorize
+  //  fprintf(stdout,"\n%s: USING HAZMATH\n\n",__FUNCTION__);fflush(stdout);
+  Numeric = run_hazmath_factorize(A,print_level);
+  // HAZ Solve
+  err_flag_s = run_hazmath_solve(A,f,x,Numeric,print_level);
+  // clean up.
+  err_flag_f = hazmath_free_numeric(&Numeric);
+  //  error_extlib(252, __FUNCTION__, "SuiteSparse not present");
+  //  return 0;
 #endif
+  // Error Check
+  if(err_flag_s<0) {
+    printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- DIRECT SOLVE ERROR!!!\n\n",__FUNCTION__);
+    exit(err_flag_s);
+  }
+  if(err_flag_f<0) {
+    printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- DIRECT SOLVE FREE ERROR!!!\n\n",__FUNCTION__);
+    exit(err_flag_f);
+  }
+  return err_flag_s;
 }
 
 /***********************************************************************************************/
 /**
- * \fn void* factorize_UMF(dCSRmat *A,INT print_level)
+ * \fn void* factorize_HAZ(dCSRmat *A,INT print_level)
  *
  * \brief Performs factorization of A using UMFPACK (Assumes A is in CSR format)
  * \note This routine does factorization only.
@@ -98,23 +102,30 @@ INT directsolve_UMF(dCSRmat *A,
  *
  * \return Numeric	        Stores LU decomposition of A
  *
+ * \note modified by Ludmil on 20220802 to include hazmath direct
+ *       solve option.
+ *
  * \author    Xiaozhe Hu
  *
+ *
  */
-void* factorize_UMF(dCSRmat *A,
+void* factorize_HAZ(dCSRmat *A,
                     INT print_level)
 {
+  // Data for Numerical factorization
+  void* Numeric;
 
 #if WITH_SUITESPARSE
-  INT shift_flag = 0;
 
-  // UMFPACK requires transpose of A
-  dCSRmat At;
+  INT shift_flag = 0;  
   // Check if counting from 1 or 0 for CSR arrays
   if(A->IA[0]==1) {
     dcsr_shift(A, -1);  // shift A
     shift_flag = 1;
   }
+
+  // UMFPACK requires transpose of A
+  dCSRmat At;
   // Transpose A
   dcsr_trans(A,&At);
 
@@ -123,25 +134,22 @@ void* factorize_UMF(dCSRmat *A,
     dcsr_shift(A, 1);  // shift A back
   }
 
-  // Data for Numerical factorization
-  void* Numeric;
-
   // Factorize
-  Numeric = umfpack_factorize(&At,print_level);
-
+  Numeric = hazmath_factorize(&At,print_level);
   // Clean up
   dcsr_free(&At);
-
-  return Numeric;
 #else
-  error_extlib(252, __FUNCTION__, "SuiteSparse");
-  return 0;
+  // Factorize
+  Numeric = hazmath_factorize(A,print_level);
+  //  error_extlib(252, __FUNCTION__, "SuiteSparse");
+  //  return 0;
 #endif
+  return Numeric;
 }
 
 /***********************************************************************************************/
 /**
- * \fn INT solve_UMF(dCSRmat *A,dvector *f,dvector *x, void* Numeric, INT print_level)
+ * \fn INT solve_HAZ(dCSRmat *A,dvector *f,dvector *x, void* Numeric, INT print_level)
  *
  * \brief Performs Gaussian Elmination on Ax = f, using UMFPACK
  *        (Assumes A is in CSR format and factorization has been done)
@@ -157,55 +165,52 @@ void* factorize_UMF(dCSRmat *A,
  *
  * \author Xiaozhe Hu
  *
+ * \note modified by Ludmil on 20220802 to include hazmath direct
+ *       solve option.
+ *
  */
-INT solve_UMF(dCSRmat *A,
+INT solve_HAZ(dCSRmat *A,
               dvector *f,
               dvector *x,
               void *Numeric,
               INT print_level)
 {
 
-#if WITH_SUITESPARSE
   INT err_flag;
-  INT shift_flag = 0;
-
   // UMFPACK requires transpose of A
   dCSRmat At;
+#if WITH_SUITESPARSE
   // Check if counting from 1 or 0 for CSR arrays
+  INT shift_flag = 0;
   if(A->IA[0]==1) {
     dcsr_shift(A, -1);  // shift A
     shift_flag = 1;
   }
   // Transpose A
   dcsr_trans(A,&At);
-
+  // Solve
+  err_flag = hazmath_solve(&At,f,x,Numeric,print_level);
   // Fix A back to correct counting
   if(shift_flag==1) {
     dcsr_shift(A, 1);  // shift A back
   }
-
-  // Solve
-  err_flag = umfpack_solve(&At,f,x,Numeric,print_level);
-
-  // Error Check
-  if(err_flag<0) {
-    printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- UMFPACK SOLVE ERROR!!!\n\n",__FUNCTION__);
-    exit(err_flag);
-  }
-
   // Clean up
   dcsr_free(&At);
-
-  return err_flag;
 #else
-  error_extlib(252, __FUNCTION__, "SuiteSparse");
-  return 0;
+  err_flag = run_hazmath_solve(A,f,x,Numeric,print_level);
+  //  error_extlib(252, __FUNCTION__, "SuiteSparse");
+  //  return 0;
 #endif
+  // Error Check
+  if(err_flag<0) {
+    printf("\n!!! ERROR HAZMATH DANGER: in function '%s' -- DIRECT SOLVE ERROR!!!\n\n",__FUNCTION__);
+    exit(err_flag);
+  }
+  return err_flag;
 }
-
 /***********************************************************************************************/
 /**
- * \fn block_directsolve_UMF(block_dCSRmat *bA,dvector *f,dvector *x,INT print_level)
+ * \fn block_directsolve_HAZ(block_dCSRmat *bA,dvector *f,dvector *x,INT print_level)
  *
  * \brief Performs Gaussian Elmination on Ax = f, using UMFPACK (Assumes A is in block_dCSR format)
  * \note This routine does everything, factorization and solve in one shot.  So it is not
@@ -218,13 +223,15 @@ INT solve_UMF(dCSRmat *A,
  *
  * \return x	         	Solution
  *
+ * \note modified by Ludmil on 20220802 to include hazmath direct
+ *       solve option.
+ *
  */
-INT block_directsolve_UMF(block_dCSRmat *bA,
+INT block_directsolve_HAZ(block_dCSRmat *bA,
                     dvector *f,
                     dvector *x,
                     INT print_level)
 {
-#if WITH_SUITESPARSE
   INT err_flag;
 
   // Convert block matrix to regular matrix
@@ -232,36 +239,38 @@ INT block_directsolve_UMF(block_dCSRmat *bA,
 
   dcsr_compress_inplace(&A, 1.0e-14);
 
-  // Call regular solve
-  err_flag = directsolve_UMF(&A,f,x,print_level);
+  // Call regular solve (either umpfpack or hazmath
+  err_flag = directsolve_HAZ(&A,f,x,print_level);
 
   // Clean up
   dcsr_free(&A);
 
   return err_flag;
-#else
-  error_extlib(252, __FUNCTION__, "SuiteSparse");
-  return 0;
-#endif
+  //#if WITH_SUITESPARSE
+  //#else
+  //  error_extlib(252, __FUNCTION__, "SuiteSparse");
+  //  return 0;
+  //#endif
 }
 
 /***********************************************************************************************/
 /**
- * \fn void* block_factorize_UMF(block_dCSRmat *bA,INT print_level)
+ * \fn void* block_factorize_HAZ(block_dCSRmat *bA,INT print_level)
  *
- * \brief Performs factorization of A using UMFPACK (Assumes A is in block_dCSR format)
+ * \brief Performs factorization of A using UMFPACK (if suitesparse libraries are included) or HAZMath (Assumes A is in block_dCSR format)
  * \note This routine does factorization only.
  *
  * \param bA	       	        Matrix A to be solved (no need of transpose)
  *
  * \return Numeric	        Stores LU decomposition of A
  *
+ * \note modified by Ludmil on 20220802 to include hazmath direct
+ *       solve option.
+ *
  */
-void* block_factorize_UMF(block_dCSRmat *bA,
+void* block_factorize_HAZ(block_dCSRmat *bA,
                     INT print_level)
 {
-
-#if WITH_SUITESPARSE
 
   // Data for Numerical factorization
   void* Numeric = NULL;
@@ -270,21 +279,22 @@ void* block_factorize_UMF(block_dCSRmat *bA,
   dCSRmat A = bdcsr_2_dcsr(bA);
 
   // Factorize
-  Numeric = factorize_UMF(&A,print_level);
+  Numeric = factorize_HAZ(&A,print_level);
 
   // Cleanup
   dcsr_free(&A);
 
   return Numeric;
-#else
-  error_extlib(252, __FUNCTION__, "SuiteSparse");
-  return 0;
-#endif
+  //#if WITH_SUITESPARSE
+  //#else
+  //  error_extlib(252, __FUNCTION__, "SuiteSparse");
+  //  return 0;
+  //#endif
 }
 
 /***********************************************************************************************/
 /**
- * \fn INT block_solve_UMF(block_dCSRmat *bA,dvector *f,dvector *x, void* Numeric, INT print_level)
+ * \fn INT block_solve_HAZ(block_dCSRmat *bA,dvector *f,dvector *x, void* Numeric, INT print_level)
  *
  * \brief Performs Gaussian Elmination on Ax = f, using UMFPACK
  *        (Assumes A is in block_dCSR format and factorization has been done)
@@ -298,51 +308,54 @@ void* block_factorize_UMF(block_dCSRmat *bA,
  *
  * \return x	         	Solution
  *
+ * \note modified by Ludmil on 20220802 to include hazmath direct
+ *       solve option.
+ *
  */
-INT block_solve_UMF(block_dCSRmat *bA,
+INT block_solve_HAZ(block_dCSRmat *bA,
               dvector *f,
               dvector *x,
               void *Numeric,
               INT print_level)
 {
-
-#if WITH_SUITESPARSE
   INT err_flag;
 
   // Convert block matrix to regular matrix
   dCSRmat A = bdcsr_2_dcsr(bA);
 
   // Call regular solve
-  err_flag = solve_UMF(&A,f,x,Numeric,print_level);
+  err_flag = solve_HAZ(&A,f,x,Numeric,print_level);
 
   // Clean up
   dcsr_free(&A);
 
   return err_flag;
-#else
-  error_extlib(252, __FUNCTION__, "SuiteSparse");
-  return 0;
-#endif
-}
 
+}
 // Suitesparse routines - assumes conversions have been done
-/***********************************************************************************************/
+// NOT ANYMORE: hazmath calls suitesparse only if compiled.
+/*******************************************************************/
 /**
- * \fn void* umfpack_factorize (dCSRmat *ptrA, const SHORT prtlvl)
- * \brief factorize A by UMFpack
+ * \fn void* hazmath_factorize (dCSRmat *ptrA, const SHORT prtlvl)
+ * \brief factorize A using either HAZmath or UMFpack
  *
- * \param ptrA      Pointer to dCSRmat matrix (transpose has been done!)
+ * \param ptrA Pointer to dCSRmat matrix (for UMFPACK transpose must
+ *             have been done!)
+ *
  * \param Numeric   Pointer to the numerical factorization
  *
  * \author Xiaozhe Hu
  * \date   10/20/2010
+ * \modified Ludmil (20220802)
  *
  * Modified by Xiaozhe Hu on 05/02/2014
  */
-void* umfpack_factorize (dCSRmat *ptrA,
+void* hazmath_factorize (dCSRmat *ptrA,
                          const SHORT prtlvl)
 {
-
+  void *Numeric;
+  INT status = SUCCESS;
+  clock_t start_time = clock();
 #if WITH_SUITESPARSE
   const INT n = ptrA->col;
 
@@ -350,11 +363,9 @@ void* umfpack_factorize (dCSRmat *ptrA,
   INT *Ai = ptrA->JA;
   double *Ax = ptrA->val;
   void *Symbolic;
-  void *Numeric;
-  INT status = SUCCESS;
-
-  clock_t start_time = clock();
-
+  //  void *Numeric;
+  //  INT status = SUCCESS;
+  //  fprintf(stdout,"\n%s: USING UMFPACK\n\n",__FUNCTION__);fflush(stdout);
   status = umfpack_di_symbolic (n, n, Ap, Ai, Ax, &Symbolic, NULL, NULL);
   if(status<0) {
     fprintf(stderr,"UMFPACK ERROR in Symbolic, status = %d\n\n",status);
@@ -364,24 +375,28 @@ void* umfpack_factorize (dCSRmat *ptrA,
     fprintf(stderr,"UMFPACK ERROR in Numeric, status = %d\n\n",status);
   }
   umfpack_di_free_symbolic (&Symbolic);
-
+  if ( prtlvl > PRINT_MIN ) {
+    fprintf(stdout,"\nUMFPACK: ");
+  }
+#else
+  Numeric=run_hazmath_factorize(ptrA,(INT )prtlvl);
+  //  error_extlib(253, __FUNCTION__, "SuiteSparse");
+  //  return NULL;
+  if ( prtlvl > PRINT_MIN ) {
+    fprintf(stdout,"\nHAZMATH: ");
+  }
+#endif
   if ( prtlvl > PRINT_MIN ) {
     clock_t end_time = clock();
     double fac_time = (double)(end_time - start_time)/(double)(CLOCKS_PER_SEC);
-    printf("UMFPACK factorize costs %f seconds.\n", fac_time);
+    fprintf(stdout,"factorization costs %f seconds.\n", fac_time);
   }
-
-  return Numeric;
-#else
-  error_extlib(253, __FUNCTION__, "SuiteSparse");
-  return NULL;
-#endif
-
+  return Numeric;// in all cases. 
 }
 
 /***************************************************************************************************************************/
 /**
- * \fn INT umfpack_solve (dCSRmat *ptrA, dvector *b, dvector *u,
+ * \fn INT hazmath_solve (dCSRmat *ptrA, dvector *b, dvector *u,
  *                             void *Numeric, const SHORT prtlvl)
  * \brief Solve Au=b by UMFpack, numerical factorization is given
  *
@@ -396,58 +411,72 @@ void* umfpack_factorize (dCSRmat *ptrA,
  *
  * Modified by Xiaozhe on 05/10/2014
  */
-INT umfpack_solve (dCSRmat *ptrA,
+INT hazmath_solve (dCSRmat *ptrA,
                    dvector *b,
                    dvector *u,
                    void *Numeric,
                    const SHORT prtlvl)
 {
 
+  clock_t start_time = clock();
+  INT status = SUCCESS;
 #if WITH_SUITESPARSE
   INT *Ap = ptrA->IA;
   INT *Ai = ptrA->JA;
   double *Ax = ptrA->val;
-  INT status = SUCCESS;
-
-  clock_t start_time = clock();
 
   status = umfpack_di_solve (UMFPACK_A, Ap, Ai, Ax, u->val, b->val, Numeric, NULL, NULL);
-
+  if ( prtlvl > PRINT_NONE ) {
+    fprintf(stdout,"UMFPACK: ");fflush(stdout);
+  }
+#else
+  //  error_extlib(254, __FUNCTION__, "SuiteSparse");
+  //  return 0;
+  if ( prtlvl > PRINT_NONE ) {
+    fprintf(stdout,"HAZMATH: ");fflush(stdout);
+  }
+  status = run_hazmath_solve(ptrA, b, u, Numeric, (INT )prtlvl);
+#endif
   if ( prtlvl > PRINT_NONE ) {
     clock_t end_time = clock();
     double solve_time = (double)(end_time - start_time)/(double)(CLOCKS_PER_SEC);
-    printf("UMFPACK costs %f seconds.\n", solve_time);
+    printf("direct solve costs %f seconds.\n", solve_time);
   }
 
   return status;
-#else
-  error_extlib(254, __FUNCTION__, "SuiteSparse");
-  return 0;
-#endif
 }
 
 /***************************************************************************************************************************/
 /**
- * \fn INT umfpack_free_numeric (void *Numeric)
+ * \fn INT hazmath_free_numeric (void **Numeric)
  * \brief Solve Au=b by UMFpack
  *
- * \param Numeric   Pointer to the numerical factorization
+ * \param Numeric   double pointer to the numerical factorization
  *
  * \author Xiaozhe Hu
  * \date   10/20/2010
+ * \modified Ludmil (20220805)
  */
-INT umfpack_free_numeric (void *Numeric)
+//NO: INT umfpack_free_numeric (void *Numeric)
+INT hazmath_free_numeric (void **Numeric)
 {
-#if WITH_SUITESPARSE
   INT status = SUCCESS;
-
-  umfpack_di_free_numeric (&Numeric);
-
-  return status;
+#if WITH_SUITESPARSE
+  
+  umfpack_di_free_numeric (&Numeric[0]);
+  
 #else
-  error_extlib(255, __FUNCTION__, "SuiteSparse");
-  return 0;
+  dCSRmat *U; dvector *dinv; SHORT *extra;
+  hazmath_get_numeric(Numeric[0], &U, &dinv,&extra);
+  //
+  dcsr_free(U);
+  dvec_free(dinv);
+  free(Numeric[0]);
+  Numeric[0]=NULL;
+  //  error_extlib(255, __FUNCTION__, "SuiteSparse");
+  //  return 0;
 #endif
+  return (INT )status; 
 }
 
 

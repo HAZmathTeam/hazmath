@@ -288,13 +288,13 @@ ForwardSweep:
     // call the coarse space solver:
     switch ( coarse_solver ) {
 
-#if WITH_SUITESPARSE
+      //#if WITH_SUITESPARSE
         case SOLVER_UMFPACK: {
             // use UMFPACK direct solver on the coarsest level
-            umfpack_solve(&mgl[nl-1].A, &mgl[nl-1].b, &mgl[nl-1].x, mgl[nl-1].Numeric, 0);
+            hazmath_solve(&mgl[nl-1].A, &mgl[nl-1].b, &mgl[nl-1].x, mgl[nl-1].Numeric, 0);
             break;
         }
-#endif
+	  //#endif
         default:
             // use iterative solver on the coarsest level
             coarse_fitsolver(&mgl[nl-1].A, &mgl[nl-1].b, &mgl[nl-1].x, tol,
@@ -438,13 +438,13 @@ void fmgcycle_add_update(AMG_data *mgl,
     // call the coarse space solver:
     switch ( coarse_solver ) {
 
-#if WITH_SUITESPARSE
+      //#if WITH_SUITESPARSE
         case SOLVER_UMFPACK: {
             // use UMFPACK direct solver on the coarsest level
-            umfpack_solve(&mgl[nl-1].A, &mgl[nl-1].b, &mgl[nl-1].x, mgl[nl-1].Numeric, 0);
+            hazmath_solve(&mgl[nl-1].A, &mgl[nl-1].b, &mgl[nl-1].x, mgl[nl-1].Numeric, 0);
             break;
         }
-#endif
+	  //#endif
         default:
             // use eigensolver to approximate coarse A^-s
             coarse_fracinv(&mgl[nl-1].A, &mgl[nl-1].b, &mgl[nl-1].x, &mgl[nl-1].M, power);
@@ -599,12 +599,12 @@ void famli(AMG_data *mgl,
 
         switch (coarse_solver) {
 
-#if WITH_SUITESPARSE
+	  //#if WITH_SUITESPARSE
             case SOLVER_UMFPACK:
                 // use UMFPACK direct solver on the coarsest level //
-                umfpack_solve(A0, b0, e0, mgl[level].Numeric, 0);
+                hazmath_solve(A0, b0, e0, mgl[level].Numeric, 0);
                 break;
-#endif
+		//#endif
 
             default:
                 /* use iterative solver on the coarsest level */
