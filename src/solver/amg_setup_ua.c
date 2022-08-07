@@ -587,7 +587,7 @@ static void smooth_aggregation_p(dCSRmat *A,
  * \date   09/29/2009
  *
  * \note Setup A, P, PT and levels using the unsmoothed aggregation algorithm;
- *       Refer to P. Vanek, J. Madel and M. Brezina
+ *       Reference: P. Vanek, J. Mandel and M. Brezina
  *       "Algebraic Multigrid on Unstructured Meshes", 1994
  *
  */
