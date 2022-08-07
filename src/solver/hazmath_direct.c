@@ -543,7 +543,7 @@ void hazmath_get_numeric(void *Numeric, dCSRmat **U, dvector **dinv, SHORT **ext
 }
 /*=====================================================================*/
 /**
- * \fn static void symbolic_factor_symm(dCSRmat *AU, dCSRmat *U)
+ * \fn INT chk_symmetry(dCSRmat *A)
  *
  * \brief checks if a CSR  matrix is symmetric
  *
