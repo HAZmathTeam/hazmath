@@ -1889,7 +1889,7 @@ dCSRmat *dcoo_read_dcsr_p(FILE *fp)
       }
 
   }
-
+  free(buffer);
   // move back to the beginning of the current line
   fseek(fp, offset, SEEK_SET);
 
@@ -1953,7 +1953,7 @@ dCSRmat *dcoo_read_dcsr_p_1(FILE *fp)
       }
 
   }
-
+  free(buffer);
   // move back to the beginning of the current line
   fseek(fp, offset, SEEK_SET);
 

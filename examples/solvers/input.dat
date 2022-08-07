@@ -67,7 +67,7 @@ linear_precond_type		= 2		%  0 Null | 1 Diag | 2 AMG
 
 AMG_type 			= UA	% UA Unsmoothed AMG | SA Smoothed AMG | MUA Metric Unsmoothed AMG | MSA Metric Smoothed AMG
 AMG_cycle_type	    = V    % V V-cycle | W W-cycle | A AMLI-cycle | NA Nonlinear AMLI-cycle | ADD additive cycle
-AMG_levels			= 1	%
+AMG_levels			= 10	%
 AMG_tol				= 1e-8
 AMG_maxit			= 1
 

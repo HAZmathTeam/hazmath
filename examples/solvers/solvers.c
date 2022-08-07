@@ -68,6 +68,7 @@ int main (int argc, char* argv[])
     if (!fp) check_error(ERROR_OPEN_FILE, __FUNCTION__);
     if(fnameb) free(fnameb);
     b=dvector_read_eof_p(fp);
+    fclose(fp);
   } else {
     fp = fopen(fnamea,"r");
     if (!fp) check_error(ERROR_OPEN_FILE, __FUNCTION__);
@@ -78,6 +79,7 @@ int main (int argc, char* argv[])
     if (!fp) check_error(ERROR_OPEN_FILE, __FUNCTION__);
     if(fnameb) free(fnameb);
     b=dvector_read_p(fp);
+    fclose(fp);
   }
   /************************************************************/
   /*************** ACTION *************************************/
