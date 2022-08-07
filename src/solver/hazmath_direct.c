@@ -288,8 +288,6 @@ static void numeric_factor_symm(dCSRmat *AU,dCSRmat *U,		\
   }
   //
   for(i=0;i<n;++i){
-    /* if((i%10==1) && n<7000) */
-    /*   fprintf(stdout,"\nfactoring row:%d",i); */
     ip1 = i + 1;
     it_strt = U->IA[i];
     it_end = U->IA[ip1];
