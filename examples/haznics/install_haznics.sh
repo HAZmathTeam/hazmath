@@ -55,7 +55,7 @@ echo "... Done."
 # Install hazmath (with the python interface haznics=yes)
 echo "Installing hazmath (with haznics)..."
 #make -C ../.. config shared=yes suitesparse=yes lapack=yes haznics=yes swig=yes
-make -C ../.. config shared=yes suitesparse=no lapack=yes haznics=yes swig=yes
+make -C ../.. config shared=yes lapack=yes haznics=yes swig=yes
 make -C ../.. install
 
 echo "... Done."

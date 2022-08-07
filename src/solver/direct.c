@@ -3,9 +3,10 @@
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 8/19/15.
  *  Copyright 2015__HAZMATH__. All rights reserved.
  *
- * \brief Direct Solver methods -- for now just using UMFPACK Solvers
+ * \brief Direct Solver methods
  *
  * \note   Done cleanup for releasing -- Xiaozhe Hu 08/28/2021
+ * \note   modified -- Ludmil 20220802
  *
  */
 
@@ -42,9 +43,9 @@ INT directsolve_HAZ(dCSRmat *A,
   // Data for Numerical factorization
   void* Numeric;
   INT err_flag_s,err_flag_f;
-  INT shift_flag = 0;
 
 #if WITH_SUITESPARSE
+  INT shift_flag = 0;
   // Check if counting from 1 or 0 for CSR arrays
   if(A->IA[0]==1) {
     dcsr_shift(A, -1);  // shift A
@@ -107,6 +108,8 @@ INT directsolve_HAZ(dCSRmat *A,
  *
  * \author    Xiaozhe Hu
  *
+ * \note modified by Ludmil on 20220802 to include hazmath direct
+ *       solve option.
  *
  */
 void* factorize_HAZ(dCSRmat *A,
@@ -178,8 +181,8 @@ INT solve_HAZ(dCSRmat *A,
 
   INT err_flag;
   // UMFPACK requires transpose of A
-  dCSRmat At;
 #if WITH_SUITESPARSE
+  dCSRmat At;
   // Check if counting from 1 or 0 for CSR arrays
   INT shift_flag = 0;
   if(A->IA[0]==1) {
@@ -346,15 +349,15 @@ INT block_solve_HAZ(block_dCSRmat *bA,
  *
  * \author Xiaozhe Hu
  * \date   10/20/2010
- * \modified Ludmil (20220802)
- *
  * Modified by Xiaozhe Hu on 05/02/2014
+ *
+ * \note Modified by Ludmil (20220802)
+ *
  */
 void* hazmath_factorize (dCSRmat *ptrA,
                          const SHORT prtlvl)
 {
   void *Numeric;
-  INT status = SUCCESS;
   clock_t start_time = clock();
 #if WITH_SUITESPARSE
   const INT n = ptrA->col;
@@ -363,9 +366,7 @@ void* hazmath_factorize (dCSRmat *ptrA,
   INT *Ai = ptrA->JA;
   double *Ax = ptrA->val;
   void *Symbolic;
-  //  void *Numeric;
-  //  INT status = SUCCESS;
-  //  fprintf(stdout,"\n%s: USING UMFPACK\n\n",__FUNCTION__);fflush(stdout);
+  INT status = SUCCESS;
   status = umfpack_di_symbolic (n, n, Ap, Ai, Ax, &Symbolic, NULL, NULL);
   if(status<0) {
     fprintf(stderr,"UMFPACK ERROR in Symbolic, status = %d\n\n",status);
@@ -410,6 +411,9 @@ void* hazmath_factorize (dCSRmat *ptrA,
  * \date   10/20/2010
  *
  * Modified by Xiaozhe on 05/10/2014
+ *
+ * \modified Ludmil (20220802)
+ *
  */
 INT hazmath_solve (dCSRmat *ptrA,
                    dvector *b,
@@ -445,8 +449,7 @@ INT hazmath_solve (dCSRmat *ptrA,
 
   return status;
 }
-
-/***************************************************************************************************************************/
+/*****************************************************************/
 /**
  * \fn INT hazmath_free_numeric (void **Numeric)
  * \brief Solve Au=b by UMFpack
@@ -455,7 +458,7 @@ INT hazmath_solve (dCSRmat *ptrA,
  *
  * \author Xiaozhe Hu
  * \date   10/20/2010
- * \modified Ludmil (20220805)
+ * \note Modified by Ludmil (20220805)
  */
 //NO: INT umfpack_free_numeric (void *Numeric)
 INT hazmath_free_numeric (void **Numeric)
