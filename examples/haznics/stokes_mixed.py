@@ -70,7 +70,7 @@ B, _ = block_assemble(b, L, bcs)
 params = {
     'AMG_type': haznics.SA_AMG,
     "aggregation_type": haznics.VMB,
-    "max_levels":1,"print_level":10,"coarse_solver":32
+    "max_levels":10,"print_level":10,"coarse_solver":32
 }
 P = block_mat([[AMG(B[0, 0], parameters=params), 0],
                [          0, Jacobi(B[1, 1])]])
