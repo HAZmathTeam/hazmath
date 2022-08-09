@@ -471,10 +471,13 @@ INT hazmath_free_numeric (void **Numeric)
 #else
   dCSRmat *U,*L=NULL; dvector *dinv;
   SHORT *extra;
-  hazmath_get_numeric(Numeric[0], &U, &dinv,&extra, &L);
+  ivector *perm;
+  hazmath_get_numeric(Numeric[0], &U, &dinv,&extra, &L, &perm);
   //
   dcsr_free(U);
   dvec_free(dinv);
+  if(perm!=NULL)
+    ivec_free(perm);
   if(L!=NULL)
     dcsr_free(L);
   free(Numeric[0]);

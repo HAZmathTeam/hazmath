@@ -6,7 +6,7 @@
 /*=====================================================================*/
 /**
  * \fn static void dcsr_trilu_diag(const SHORT is_sym, dCSRmat *a, 
- *                          dCSRmat *al, dvector *adiag)
+ *                          dCSRmat *al, dvector *adiag,ivector *perm)
  *
  * \brief extracting the lower triangle by columns; upper triangle by
  *        rows and the diagonal of of a dcsr matrix (done in-place,
@@ -32,17 +32,22 @@
  * \author Ludmil
  * \date 20220802
  */
-static void dcsr_trilu_diag(const SHORT is_sym,			\
-		     dCSRmat *a,dCSRmat *al, dvector *adiag)
+static void dcsr_trilu_diag(const SHORT is_sym,				\
+			    dCSRmat *a,dCSRmat *al, dvector *adiag,	\
+			    ivector *perm)
 {
   INT k,j,kj,kj0,kj1;
   // transpose a: al should be allocated upon entry here. no permutation
+  /* if(perm != NULL){     */
+  /*   dcsr_transz(a,perm->val,al); */
+  /*   dcsr_transz(al,perm->val,a); */
+  /* } */
   if(is_sym){
     al->row=0; al->col=0; al->nnz=0;
     if(al->IA) free(al->IA);
     if(al->JA) free(al->JA);
     if(al->val) free(al->val);
-    al->IA=NULL; al->JA=NULL; al->val=NULL;
+    al->IA=NULL; al->JA=NULL; al->val=NULL;    
   } else {
     //AL here should not be null!
     dcsr_transz(a,NULL,al);
@@ -379,15 +384,31 @@ void *run_hazmath_factorize(dCSRmat *A,INT print_level)
   // as of now, A is assumed to have symmetric pattern for the symbolic factorization and symmetric for the numeric factorization. 
   INT n,nnz;
   // size of the output structure. 
-  size_t total=2*sizeof(dCSRmat) + 1*sizeof(dvector) + 3*sizeof(SHORT);
+  size_t total=2*sizeof(dCSRmat) + 1*sizeof(dvector) + 3*sizeof(SHORT) + 1*sizeof(ivector);
   void *Num=(void *)calloc(total/sizeof(char),sizeof(char));
   dCSRmat *U=NULL,*L=NULL;
   dvector *dinv=NULL;
   SHORT *extra=NULL;
-  hazmath_get_numeric(Num, &U,&dinv,&extra,&L);
+  ivector *perm=NULL;
+  hazmath_get_numeric(Num, &U,&dinv,&extra,&L, &perm);
   extra[0]=is_sym;
   extra[1]=0;extra[2]=0;// should not be used.
   // end alloc for the Numeric structure. 
+  // construct a permutation:
+  perm[0]=ivec_create(A->col);
+  iCSRmat **ldfsbfs=NULL;
+  ivector anc=ivec_create(A->col);
+  ldfsbfs=lex_bfs(A->col,A->IA,A->JA,perm,&anc,NULL);
+  //  print_isparse_matlab(stdout,1,ldfsbfs[1],"BFS");
+  //  level_ordering(ldfsbfs[0],ldfsbfs[1]);
+  //  fflush(stdout);
+  ivec_free(&anc);// not needed (the dfs ordering);
+  icsr_free(ldfsbfs[0]);// not needed (the dfs ordering);
+  free(ldfsbfs[0]);// not needed; the dfs ordering too.
+  icsr_free(ldfsbfs[1]);
+  free(ldfsbfs[1]);
+  free(ldfsbfs);
+  ///
   /**/
   if(print_level>6){
     fprintf(stdout,"\nUsing HAZMATH factorize: A=U^T*D*U\n");
@@ -400,14 +421,16 @@ void *run_hazmath_factorize(dCSRmat *A,INT print_level)
   dinv->row=n;
   dinv->val=calloc(n,sizeof(REAL));
   /***************************/
-  if(is_sym){
-    AL=dcsr_create(0,0,0);
-  } else {
+  if(perm!=NULL){
     AL=dcsr_create(n,n,nnz);
+  } else if(!is_sym)
+    AL=dcsr_create(n,n,nnz);
+  else
+    AL=dcsr_create(0,0,0);
   }
   AU=dcsr_create(n,n,nnz);
   dcsr_cp(A,&AU);
-  dcsr_trilu_diag(is_sym,&AU,&AL,&adiag);
+  dcsr_trilu_diag(is_sym,&AU,&AL,&adiag,perm);
   /***************************/
   U->row=AU.row;
   U->col=AU.col;
@@ -469,9 +492,9 @@ INT run_hazmath_solve(dCSRmat *A,dvector *f,dvector *x, \
     fflush(stdout);
   }
   // arrays
-  dCSRmat *U,*L=NULL;  dvector *dinv;  SHORT *extra;
+  dCSRmat *U,*L=NULL;  dvector *dinv;  SHORT *extra; ivector *perm;
   // get them from *Numeric
-  hazmath_get_numeric(Numeric, &U, &dinv,&extra, &L);
+  hazmath_get_numeric(Numeric, &U, &dinv,&extra, &L, &perm);
   //
   x->row=f->row;
   memcpy(x->val,f->val,x->row*sizeof(REAL));
@@ -512,7 +535,7 @@ INT run_hazmath_solve(dCSRmat *A,dvector *f,dvector *x, \
 }
 /********************************************************************/
 /**
- * \fn void hazmath_get_numeric(void *Numeric, dCSRmat **U, dvector **dinv, SHORT **extra,dCSRmat *L)
+ * \fn void hazmath_get_numeric(void *Numeric, dCSRmat **U, dvector **dinv, SHORT **extra,dCSRmat *L,ivector *perm)
  *
  * \brief from the hazmath structure Numeric gets U and D
  *
@@ -525,7 +548,7 @@ INT run_hazmath_solve(dCSRmat *A,dvector *f,dvector *x, \
  * \author Ludmil Zikatanov
  * \date   20220802
  */
-void hazmath_get_numeric(void *Numeric, dCSRmat **U, dvector **dinv, SHORT **extra,dCSRmat **L)
+void hazmath_get_numeric(void *Numeric, dCSRmat **U, dvector **dinv, SHORT **extra,dCSRmat **L,ivector **perm)
 {
   void *wrk=(void *)Numeric;
   extra[0]=(SHORT *)wrk;
@@ -538,6 +561,8 @@ void hazmath_get_numeric(void *Numeric, dCSRmat **U, dvector **dinv, SHORT **ext
   wrk+=sizeof(dvector);
   L[0]=(dCSRmat *)wrk;
   wrk+=sizeof(dCSRmat);
+  perm[0]=(ivector *) wrk;
+  wrk+=sizeof(ivector);
   //
   return; 
 }
