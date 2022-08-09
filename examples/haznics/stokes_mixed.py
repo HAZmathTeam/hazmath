@@ -81,6 +81,10 @@ Ainv = MinRes(A, precond=P, relativeconv=True, tolerance=1e-5, show=3)
 x = Ainv * rhs
 
 from block.algebraic.hazmath import PETSc_to_dCSRmat
+XXX = B[0,0].array()
+import numpy as np
+xnorm0=np.linalg.norm(XXX - XXX.T)
+print("\nxnorm0=",xnorm0)
 Ahaz=PETSc_to_dCSRmat(B[0,0])
 # THIS MATRIX SEEMS TO BE NON_SYMMETRIC! haznics.dcsr_write_dcoo("AAA",Ahaz)
 haznics.chk_symmetry(Ahaz)

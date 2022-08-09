@@ -114,7 +114,7 @@ static void dcsr_trilu_diag(const SHORT is_sym,			\
 /**/
 /*=====================================================================*/
 /**
- * \fn static void symbolic_factor_symm(dCSRmat *AU, dCSRmat *U)
+ * \fn void symbolic_factor_symm(dCSRmat *AU, dCSRmat *U)
  *
  * \brief Symbolic factorization of a sparse matrix with a symmetric
  *        pattern. Gives the structure of the upper triagle (U) of the
@@ -139,7 +139,7 @@ static void dcsr_trilu_diag(const SHORT is_sym,			\
  * \date 20220802
  *
  */
-static void symbolic_factor_symm(dCSRmat *AU, dCSRmat *U)
+void symbolic_factor_symm(dCSRmat *AU, dCSRmat *U)
 {
   INT k,kp1,i,j,jk,last_u;
   INT n=AU->row;
@@ -379,17 +379,14 @@ void *run_hazmath_factorize(dCSRmat *A,INT print_level)
   // as of now, A is assumed to have symmetric pattern for the symbolic factorization and symmetric for the numeric factorization. 
   INT n,nnz;
   // size of the output structure. 
-  size_t total=1*sizeof(dCSRmat) + 1*sizeof(dvector) + 3*sizeof(SHORT);
+  size_t total=2*sizeof(dCSRmat) + 1*sizeof(dvector) + 3*sizeof(SHORT);
   void *Num=(void *)calloc(total/sizeof(char),sizeof(char));
-  void *wrk=Num;
-  dCSRmat *U=(dCSRmat *)wrk;
-  wrk += sizeof(dCSRmat);
-  dvector *dinv=(dvector *)wrk;
-  wrk += sizeof(dvector);
-  SHORT *extra=(SHORT *)wrk;
+  dCSRmat *U=NULL,*L=NULL;
+  dvector *dinv=NULL;
+  SHORT *extra=NULL;
+  hazmath_get_numeric(Num, &U,&dinv,&extra,&L);
   extra[0]=is_sym;
-  extra[1]=0;extra[2]=0;// should not be used. 
-  wrk += 3*sizeof(SHORT);
+  extra[1]=0;extra[2]=0;// should not be used.
   // end alloc for the Numeric structure. 
   /**/
   if(print_level>6){
@@ -472,9 +469,9 @@ INT run_hazmath_solve(dCSRmat *A,dvector *f,dvector *x, \
     fflush(stdout);
   }
   // arrays
-  dCSRmat *U;  dvector *dinv;  SHORT *extra;
+  dCSRmat *U,*L=NULL;  dvector *dinv;  SHORT *extra;
   // get them from *Numeric
-  hazmath_get_numeric(Numeric, &U, &dinv,&extra);
+  hazmath_get_numeric(Numeric, &U, &dinv,&extra, &L);
   //
   x->row=f->row;
   memcpy(x->val,f->val,x->row*sizeof(REAL));
@@ -515,7 +512,7 @@ INT run_hazmath_solve(dCSRmat *A,dvector *f,dvector *x, \
 }
 /********************************************************************/
 /**
- * \fn void hazmath_get_numeric(void *Numeric, dCSRmat **U, dvector **dinv, SHORT **extra)
+ * \fn void hazmath_get_numeric(void *Numeric, dCSRmat **U, dvector **dinv, SHORT **extra,dCSRmat *L)
  *
  * \brief from the hazmath structure Numeric gets U and D
  *
@@ -528,22 +525,25 @@ INT run_hazmath_solve(dCSRmat *A,dvector *f,dvector *x, \
  * \author Ludmil Zikatanov
  * \date   20220802
  */
-void hazmath_get_numeric(void *Numeric, dCSRmat **U, dvector **dinv, SHORT **extra)
+void hazmath_get_numeric(void *Numeric, dCSRmat **U, dvector **dinv, SHORT **extra,dCSRmat **L)
 {
   void *wrk=(void *)Numeric;
+  extra[0]=(SHORT *)wrk;
+  *extra[0]=1; 
+  wrk+=3*sizeof(SHORT);
+  //  SHORT is_sym=extra[0];
   U[0]=(dCSRmat *)wrk;
   wrk+=sizeof(dCSRmat);
   dinv[0]=(dvector *)wrk;
   wrk+=sizeof(dvector);
-  extra[0]=wrk;
-  //  wrk+=3*sizeof(SHORT);
-  //  SHORT is_sym=extra[0];
+  L[0]=(dCSRmat *)wrk;
+  wrk+=sizeof(dCSRmat);
   //
   return; 
 }
 /*=====================================================================*/
 /**
- * \fn INT chk_symmetry(dCSRmat *A)
+ * \fn static void symbolic_factor_symm(dCSRmat *AU, dCSRmat *U)
  *
  * \brief checks if a CSR  matrix is symmetric
  *

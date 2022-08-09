@@ -469,11 +469,14 @@ INT hazmath_free_numeric (void **Numeric)
   umfpack_di_free_numeric (&Numeric[0]);
   
 #else
-  dCSRmat *U; dvector *dinv; SHORT *extra;
-  hazmath_get_numeric(Numeric[0], &U, &dinv,&extra);
+  dCSRmat *U,*L=NULL; dvector *dinv;
+  SHORT *extra;
+  hazmath_get_numeric(Numeric[0], &U, &dinv,&extra, &L);
   //
   dcsr_free(U);
   dvec_free(dinv);
+  if(L!=NULL)
+    dcsr_free(L);
   free(Numeric[0]);
   Numeric[0]=NULL;
   //  error_extlib(255, __FUNCTION__, "SuiteSparse");
