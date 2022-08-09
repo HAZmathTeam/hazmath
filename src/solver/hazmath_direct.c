@@ -37,8 +37,8 @@ static void dcsr_trilu_diag(const SHORT is_sym,				\
 			    ivector *perm)
 {
   INT k,j,kj,kj0,kj1;
-  // transpose a: al should be allocated upon entry here. no permutation
-  /* if(perm != NULL){     */
+  // transpose a: al should be allocated upon entry here.
+  /* if(perm != NULL){ */
   /*   dcsr_transz(a,perm->val,al); */
   /*   dcsr_transz(al,perm->val,a); */
   /* } */
@@ -423,9 +423,9 @@ void *run_hazmath_factorize(dCSRmat *A,INT print_level)
   /***************************/
   if(perm!=NULL){
     AL=dcsr_create(n,n,nnz);
-  } else if(!is_sym)
+  } else if(!is_sym){
     AL=dcsr_create(n,n,nnz);
-  else
+  }else{
     AL=dcsr_create(0,0,0);
   }
   AU=dcsr_create(n,n,nnz);
