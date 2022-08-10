@@ -38,3 +38,7 @@ trabajo/*
 examples/fractures/LS/matrix_structure3.dat
 examples/fractures/LS/matrix_structure2.dat
 examples/fractures/LS/matrix_structure1.dat
+
+examples/haznics/*.pvd
+examples/haznics/*.vtu
+examples/haznics/results/

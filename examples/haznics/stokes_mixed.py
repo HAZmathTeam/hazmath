@@ -28,43 +28,42 @@ and BB^ approximates the inverse of the block operator
 
 where A is the Laplace operator and M the inner product in L2.
 For A, an AMG preconditioner is used, i.e. A^ = AMG(A).
-For M, we use SOR method, i.e. M^ = SOR(M).
+For M, we use Jacobi.
 """
 from dolfin import *
 from block import *
-from block.algebraic.petsc import Jacobi 
+from block.algebraic.petsc import Jacobi
 from block.algebraic.hazmath import AMG
 from block.iterative import MinRes
 import haznics
 
 mesh = UnitSquareMesh(32, 32)
 
-P2 = VectorElement("Lagrange", triangle, 2)
-P1 = FiniteElement("Lagrange", triangle, 1)
-TH = MixedElement([P2, P1])
-
-W = FunctionSpace(mesh, TH)
+V = VectorFunctionSpace(mesh, 'CG', 2)
+Q = FunctionSpace(mesh, 'CG', 1)
+W = (V, Q)
 
 f = Constant((0., 0.))
 
-u, p = TrialFunctions(W)
-v, q = TestFunctions(W)
+u, p = map(TrialFunction, W)
+v, q = map(TestFunction, W)
 
-a = inner(grad(u), grad(v)) * dx \
-  - p * div(v) * dx \
-  - q * div(u) * dx
+a = [[inner(grad(u), grad(v)) * dx, -p * div(v) * dx],
+     [-q * div(u) * dx,                            0]]
 
-b = inner(grad(u), grad(v)) * dx + inner(u, v) * dx \
-  + p * q * dx
+b = [[inner(grad(u), grad(v)) * dx + inner(u, v) * dx, 0],
+     [0                                     , p * q * dx]]
 
-L = inner(f, v) * dx
+L = [inner(f, v) * dx, 0]
 
-bcs = [DirichletBC(W.sub(0), (0., 0.), "on_boundary&&(x[1]<1-DOLFIN_EPS)"),
-       DirichletBC(W.sub(0), (1., 0.), "on_boundary&&(x[1]>1-DOLFIN_EPS)")]
+Vbcs = [DirichletBC(V, (0., 0.), "on_boundary&&(x[1]<1-DOLFIN_EPS)"),
+        DirichletBC(V, (1., 0.), "on_boundary&&(x[1]>1-DOLFIN_EPS)")]
+bcs = block_bc([Vbcs, []], symmetric=True)
 
 # assemble as block matrices
-A, rhs = block_assemble(a, L, bcs)
-B, _ = block_assemble(b, L, bcs)
+A, B, rhs = map(block_assemble, (a, b, L))
+bcs.apply(A).apply(rhs)
+bcs.apply(B)
 
 # build the preconditioner
 params = {
@@ -75,8 +74,6 @@ params = {
 P = block_mat([[AMG(B[0, 0], parameters=params), 0],
                [          0, Jacobi(B[1, 1])]])
 
-# We don't want to solve too precisely since we have not accounted 
-# for the constant pressure nullspace 
 Ainv = MinRes(A, precond=P, relativeconv=True, tolerance=1e-5, show=3)
 x = Ainv * rhs
 
@@ -90,7 +87,6 @@ Ahaz=PETSc_to_dCSRmat(B[0,0])
 haznics.chk_symmetry(Ahaz)
 
 # plotting
-# V, Q = [sub_space.collapse() for sub_space in W.split()]
-# u, p = list(map(Function, [V, Q], x))
-# plot(u)
-# plot(p)
+u, p = Function(V, x[0]), Function(Q, x[1])
+File('./results/stokes_mixed_u.pvd') << u
+File('./results/stokes_mixed_p.pvd') << p
