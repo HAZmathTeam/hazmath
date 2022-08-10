@@ -33,7 +33,8 @@ HAZMATH.pro
 junk.*
 *.bak
 hazmath-*.tar.gz
-
+trabajo/
+trabajo/*
 examples/fractures/LS/matrix_structure3.dat
 examples/fractures/LS/matrix_structure2.dat
 examples/fractures/LS/matrix_structure1.dat
