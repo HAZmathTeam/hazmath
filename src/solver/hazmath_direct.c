@@ -395,20 +395,6 @@ void *run_hazmath_factorize(dCSRmat *A,INT print_level)
   extra[1]=0;extra[2]=0;// should not be used.
   // end alloc for the Numeric structure. 
   // construct a permutation:
-  perm[0]=ivec_create(A->col);
-  iCSRmat **ldfsbfs=NULL;
-  ivector anc=ivec_create(A->col);
-  ldfsbfs=lex_bfs(A->col,A->IA,A->JA,perm,&anc,NULL);
-  //  print_isparse_matlab(stdout,1,ldfsbfs[1],"BFS");
-  //  level_ordering(ldfsbfs[0],ldfsbfs[1]);
-  //  fflush(stdout);
-  ivec_free(&anc);// not needed (the dfs ordering);
-  icsr_free(ldfsbfs[0]);// not needed (the dfs ordering);
-  free(ldfsbfs[0]);// not needed; the dfs ordering too.
-  icsr_free(ldfsbfs[1]);
-  free(ldfsbfs[1]);
-  free(ldfsbfs);
-  ///
   /**/
   if(print_level>6){
     fprintf(stdout,"\nUsing HAZMATH factorize: A=U^T*D*U\n");

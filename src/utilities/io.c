@@ -556,6 +556,37 @@ void dvec_write (const char *filename,
 
 /***********************************************************************************************/
 /*!
+ * \fn void ivec_write (const char *filename, ivector *vec)
+ *
+ * \brief Write an ivector to disk file
+ *
+ * \param vec       Pointer to the ivector
+ * \param filename  File name
+ *
+ */
+void ivec_write (const char *filename,
+                 ivector *vec)
+{
+  // local variables
+  INT m = vec->row, i;
+
+  FILE *fp = fopen(filename,"w");
+
+  if ( fp == NULL )
+    check_error(ERROR_OPEN_FILE, __FUNCTION__);
+
+  fprintf(stdout,"%%%%%s: ivector written to file: %s...\n", __FUNCTION__, filename);
+
+  fprintf(fp,"%d\n",m);
+
+  //main loop
+  for ( i = 0; i < m; ++i ) fprintf(fp,"%10d\n",vec->val[i]);
+
+  fclose(fp);
+}
+
+/***********************************************************************************************/
+/*!
  * \fn void ddense_write(const char *filename, dDENSEmat *A)
  *
  * \brief Write a dDENSEmat matrix to disk file in row-wise format
@@ -618,6 +649,46 @@ void dcsr_write_dcoo (const char *filename,
   }
 
   fclose(fp);
+}
+
+/***********************************************************************************************/
+/*!
+ * \fn void icsr_write_icoo (const char *filename, dCSRmat *A)
+ *
+ * \brief Write an iCSRmat matrix to disk file in IJ format (coordinate format)
+ *
+ * \param A         pointer to the iCSRmat matrix
+ * \param filename  char for vector file name
+ *
+ */
+void icsr_write_icoo (const char *filename,
+                      iCSRmat *A)
+{
+  // local variables
+  const INT m = A->row, n = A->col;
+  INT i, j;
+
+  FILE *fp = fopen(filename, "w");
+
+  if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
+
+  fprintf(stdout,"%%%%%s: iCSRmat is written to file: %s...\n", __FUNCTION__, filename);
+  // main loop
+  fprintf(fp,"%d  %d  %d\n",m,n,A->nnz);
+  if(A->val!=NULL){
+    for ( i = 0; i < m; ++i ) {
+      for ( j = A->IA[i]; j < A->IA[i+1]; j++ )
+	fprintf(fp,"%d  %d  %d\n",i,A->JA[j],A->val[j]);
+    }
+  }else{
+    for ( i = 0; i < m; ++i ) {
+      for ( j = A->IA[i]; j < A->IA[i+1]; j++ )
+	fprintf(fp,"%d  %d  %d\n",i,A->JA[j],1);
+    }
+  }
+
+  fclose(fp);
+  return;
 }
 
 /***********************************************************************************************/
