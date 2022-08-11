@@ -28,50 +28,54 @@ and BB^ approximates the inverse of the block operator
 
 where A is the Laplace operator and M the inner product in L2.
 For A, an AMG preconditioner is used, i.e. A^ = AMG(A).
-For M, we use Jacobi preconditioner.
+For M, we use Jacobi.
 """
 from dolfin import *
 from block import *
-from block.algebraic.petsc import Jacobi 
+from block.algebraic.petsc import Jacobi
 from block.algebraic.hazmath import AMG
 from block.iterative import MinRes
 import haznics
 
 mesh = UnitSquareMesh(32, 32)
 
-P2 = VectorElement("Lagrange", triangle, 2)
-P1 = FiniteElement("Lagrange", triangle, 1)
-TH = MixedElement([P2, P1])
-
-W = FunctionSpace(mesh, TH)
+V = VectorFunctionSpace(mesh, 'CG', 2)
+Q = FunctionSpace(mesh, 'CG', 1)
+W = (V, Q)
 
 f = Constant((0., 0.))
 
-u, p = TrialFunctions(W)
-v, q = TestFunctions(W)
+u, p = map(TrialFunction, W)
+v, q = map(TestFunction, W)
 
-a = inner(grad(u), grad(v)) * dx \
-  - p * div(v) * dx \
-  - q * div(u) * dx
+a = [[inner(grad(u), grad(v)) * dx, -p * div(v) * dx],
+     [-q * div(u) * dx,                            0]]
 
-b = inner(grad(u), grad(v)) * dx + inner(u, v) * dx \
-  + p * q * dx
+b = [[inner(grad(u), grad(v)) * dx + inner(u, v) * dx, 0],
+     [0                                     , p * q * dx]]
 
-L = inner(f, v) * dx
+L = [inner(f, v) * dx, 0]
 
-bcs = [DirichletBC(W.sub(0), (0., 0.), "on_boundary&&(x[1]<1-DOLFIN_EPS)"),
-       DirichletBC(W.sub(0), (1., 0.), "on_boundary&&(x[1]>1-DOLFIN_EPS)")]
+Vbcs = [DirichletBC(V, (0., 0.), "on_boundary&&(x[1]<1-DOLFIN_EPS)"),
+        DirichletBC(V, (1., 0.), "on_boundary&&(x[1]>1-DOLFIN_EPS)")]
+bcs = block_bc([Vbcs, []], symmetric=True)
 
 # assemble as block matrices
-A, _, rhs = block_assemble(a, L, bcs, symmetric=True)
-B, _, _ = block_assemble(b, L, bcs, symmetric=True)
+A, B, rhs = map(block_assemble, (a, b, L))
+bcs.apply(A).apply(rhs)
+bcs.apply(B)
 
 # build the preconditioner
 params = {
-   'AMG_type': haznics.SA_AMG,
-   "aggregation_type": haznics.VMB,
-   "max_levels":10,"print_level":10,"coarse_solver":32
+    'AMG_type': haznics.SA_AMG,
+    "aggregation_type": haznics.VMB,
+    "max_levels":10,"print_level":10,"coarse_solver":32
 }
+P = block_mat([[AMG(B[0, 0], parameters=params), 0],
+               [          0, Jacobi(B[1, 1])]])
+
+Ainv = MinRes(A, precond=P, relativeconv=True, tolerance=1e-5, show=3)
+x = Ainv * rhs
 
 from block.algebraic.hazmath import PETSc_to_dCSRmat
 XXX = B[0,0].array()
@@ -82,18 +86,11 @@ Ahaz=PETSc_to_dCSRmat(B[0,0])
 
 print('Haz B[0, 0] symmetry', haznics.chk_symmetry(Ahaz))
 
-P = block_mat([[AMG(B[0, 0], parameters=params), 0],
-               [          0, Jacobi(B[1, 1])]])
-
-Ainv = MinRes(A, precond=P, relativeconv=True, tolerance=1e-5, show=3)
-x = Ainv * rhs
-
 # plotting
-V, Q = [sub_space.collapse() for sub_space in W.split()]
-u, p = map(Function, [V, Q], x)
+u, p = map(Function, W, x)
 
 print('|u|_0', sqrt(abs(assemble(inner(u, u)*dx))))
 print('|p|_0', sqrt(abs(assemble(inner(p, p)*dx))))
 
-File('./results/stokes_mixed_u.pvd') << u
-File('./results/stokes_mixed_p.pvd') << p
+File('./results/stokes_flat_u.pvd') << u
+File('./results/stokes_flat_p.pvd') << p
