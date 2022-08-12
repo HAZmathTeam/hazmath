@@ -4,9 +4,72 @@
 #include <math.h>
 #include "hazmath.h"
 /*=====================================================================*/
+/**/
+static void do_permutation(ivector *perm,INT n, INT *ia, INT *ja, \
+			   const SHORT algorithm)
+{
+  INT j,iblk,istrt,iend,nb,nblk;
+  //  INT nnz=ia[n];
+  iCSRmat *idfs=run_dfs(n,ia,ja);
+  //  icsr_write_icoo("DFS",idfs);  
+  memcpy(perm->val,idfs->JA,n*sizeof(INT));
+  ///
+  dCSRmat a_t,awrk;
+  ///
+  awrk=dcsr_create(0,0,0);
+  awrk.IA=calloc(n+1,sizeof(INT));
+  awrk.JA=calloc(n,sizeof(INT));
+  awrk.val=NULL;
+  //
+  a_t=dcsr_create(0,0,0);
+  a_t.IA=calloc(n+1,sizeof(INT));
+  a_t.JA=calloc(n,sizeof(INT));
+  a_t.val=NULL;
+  ///
+  INT num,ideg,nnzp;
+  for(iblk=0;iblk<idfs->row;++iblk){
+    istrt=idfs->IA[iblk];
+    iend=idfs->IA[iblk+1];
+    nblk=iend-istrt;
+    if(nblk<2) continue;
+    nb=0;
+    nnzp=0;    
+    awrk.IA[0]=nnzp;
+    awrk.row=nblk;
+    awrk.col=0;
+    for(j=istrt;j<iend;++j){
+      num=idfs->JA[j];
+      perm->val[nb]=num;
+      ideg=ia[num+1]-ia[num]-1;      
+	if(ideg<0)
+	  ideg=0;
+	if((ideg+1)>awrk.col) awrk.col=ideg+1;
+      awrk.JA[nnzp]=ideg;
+      nnzp++;
+      awrk.IA[nb+1]=nnzp;
+      nb++;
+    }
+    if(nb!=nblk){
+      fprintf(stderr,"\n\nERROR: %d=nb != nblk=%d in %s",nb,nblk,__FUNCTION__);
+      exit(15);
+    }
+    awrk.nnz=awrk.IA[nblk];
+    dcsr_transz(&awrk,NULL,&a_t);
+    for(j=istrt;j<iend;++j){
+      idfs->JA[j]=perm->val[a_t.JA[j-istrt]];
+    }
+  }
+  memcpy(perm->val,idfs->JA,n*sizeof(INT));
+  dcsr_free(&a_t);
+  dcsr_free(&awrk);
+  icsr_free(idfs);
+  free(idfs);
+  return;
+}
+/*=====================================================================*/
 /**
  * \fn static void dcsr_trilu_diag(const SHORT is_sym, dCSRmat *a, 
- *                          dCSRmat *al, dvector *adiag,ivector *perm)
+ *                          dCSRmat *al, dvector *adiag)
  *
  * \brief extracting the lower triangle by columns; upper triangle by
  *        rows and the diagonal of of a dcsr matrix (done in-place,
@@ -33,21 +96,17 @@
  * \date 20220802
  */
 static void dcsr_trilu_diag(const SHORT is_sym,				\
-			    dCSRmat *a,dCSRmat *al, dvector *adiag,	\
-			    ivector *perm)
+			    dCSRmat *a,dCSRmat *al, dvector *adiag)
 {
   INT k,j,kj,kj0,kj1;
   // transpose a: al should be allocated upon entry here.
-  /* if(perm != NULL){ */
-  /*   dcsr_transz(a,perm->val,al); */
-  /*   dcsr_transz(al,perm->val,a); */
-  /* } */
+  // permuta a;
   if(is_sym){
     al->row=0; al->col=0; al->nnz=0;
     if(al->IA) free(al->IA);
     if(al->JA) free(al->JA);
     if(al->val) free(al->val);
-    al->IA=NULL; al->JA=NULL; al->val=NULL;    
+    al->IA=NULL; al->JA=NULL; al->val=NULL;
   } else {
     //AL here should not be null!
     dcsr_transz(a,NULL,al);
@@ -61,9 +120,7 @@ static void dcsr_trilu_diag(const SHORT is_sym,				\
       for(kj=kj0;kj<kj1;kj++){
 	j=al->JA[kj];
 	// skip even the diagonal here:
-	if( ((k-j)>=0) || (al->val[kj]==0.) ) continue; // lower is rowind>=colind
-	//fprintf(stdout,"\nlu=%d;(k,j)=(%d,%d):%.5e",lu,k,j,al->val[kj]);fflush(stdout);
-	//      fprintf(stdout,"\nlu=%d;(k,j)=(%d,%d):%.5e",lu,k,j,al->val[kj]);fflush(stdout);
+	if( ((k-j)>=0) || (al->val[kj]==0e0) ) continue; // lower is rowind>=colind
 	al->JA[al->nnz]=j;
 	al->val[al->nnz]=al->val[kj];
 	al->nnz++;
@@ -95,7 +152,7 @@ static void dcsr_trilu_diag(const SHORT is_sym,				\
 	continue;
       }
       //      if(k<=j) for upper; (k>=j) for lower;
-      if( ((k-j)>0) || (a->val[kj]==0.) ) continue; // lower is rowind>=colind
+      if( ((k-j)>0) || (a->val[kj]==0e0) ) continue; // lower is rowind>=colind
       //      fprintf(stdout,"\nlu=%d;(k,j)=(%d,%d):%.5e",lu,k,j,a->val[kj]);fflush(stdout);
       //      fprintf(stdout,"\nlu=%d;(k,j)=(%d,%d):%.5e",lu,k,j,a->val[kj]);fflush(stdout);
       a->JA[a->nnz]=j;
@@ -116,7 +173,6 @@ static void dcsr_trilu_diag(const SHORT is_sym,				\
   }
   return;
 }
-/**/
 /*=====================================================================*/
 /**
  * \fn void symbolic_factor_symm(dCSRmat *AU, dCSRmat *U)
@@ -144,7 +200,7 @@ static void dcsr_trilu_diag(const SHORT is_sym,				\
  * \date 20220802
  *
  */
-void symbolic_factor_symm(dCSRmat *AU, dCSRmat *U)
+static void symbolic_factor_symm(dCSRmat *AU, dCSRmat *U)
 {
   INT k,kp1,i,j,jk,last_u;
   INT n=AU->row;
@@ -269,8 +325,8 @@ void symbolic_factor_symm(dCSRmat *AU, dCSRmat *U)
  * \date 20220802
  *
  */
-static void numeric_factor_symm(dCSRmat *AU,dCSRmat *U,		\
-				dvector *adiag,dvector *dinv)
+void numeric_factor_symm(dCSRmat *AU,dCSRmat *U,		\
+			 dvector *adiag,dvector *dinv)
 {
   /*
   */
@@ -362,8 +418,171 @@ static void numeric_factor_symm(dCSRmat *AU,dCSRmat *U,		\
   return;
 }
 /**************************************************************************/
+/*=====================================================================*/
 /**
- * \fn void* run_hazmath_factorize(dCSRmat *A,INT print_level)
+ * \fn static void numeric_factor_gen(dCSRmat *AU,dCSRmat *AL,
+ *                                    dCSRmat *U, dCSRmat *L,
+ *                                    dvector *adiag,dvector *dinv)
+ *
+ * \brief Numerical factorization of a symmetric sparse matrix. JU
+ *        needs to be ordered (column indices in every row to be
+ *        ordered) for this to work.
+ *
+ * \param *AU pointer to the upper triangle of the dCSR matrix
+ *
+ * \param *U pointer to a dCSRmat: upper triangle of dvector
+ *           containing the nonzero structure of the factor. U->val is
+ *           created here. U->JA needs to have ordered indices (two
+ *           transpositions before call to this.
+ *
+ * \param *dinv pointer to a dvector with the inverse of the diagonal
+ *              elements of U^T*D*U
+ *
+ * \return void; *U is modified and the numerical values of the factor
+ *               are calculated here.
+ *
+ * \note Reference: Chapter 7 in Sergio Pissanetzky. Sparse matrix
+ *                  technology. Academic Press Inc. [Harcourt Brace
+ *                  Jovanovich Publishers], London, 1984.
+ *
+ * \note fortan77 (19960101); C99 (20220801)
+ * 
+ * \author Ludmil 
+ * \date 20220802
+ *
+ */
+static void numeric_factor_gen(const SHORT is_sym,		\
+			       dCSRmat *AU,dCSRmat *AL,		\
+			       dCSRmat *U,dCSRmat *L,		\
+			       dvector *adiag,dvector *dinv)
+{
+  /*
+  */
+  INT i,j,k,l,ip1,lp1,jk,qend;
+  INT ia_strt,ia_end,it_strt,it_end,it1_strt,it1_end,line0;
+  INT n=U->row;
+  REAL lm,um, *di=dinv->val;
+  /*Action:*/
+  if(U->val){
+    free(U->val);
+    U->val=NULL;
+  }
+  if(L->val){
+    free(L->val);
+    L->val=NULL;
+  }
+  L->row=U->row; L->col=U->col;  L->nnz=U->nnz;
+  L->IA=calloc((L->row+1),sizeof(INT));
+  L->JA=calloc(L->nnz,sizeof(INT));
+  // order U:
+  dcsr_transz(U,NULL,L);
+  dcsr_transz(L,NULL,U);
+  //end order U:
+  REAL *xl=NULL;
+  U->val=(REAL *)calloc(U->nnz,sizeof(REAL));
+  if(is_sym){
+    dcsr_free(L);
+    L=U;
+    numeric_factor_symm(AU,U,adiag,dinv);
+    return;
+  } else {
+    // get the lower triangle by columns:
+    memcpy(L->IA,U->IA,(U->row+1)*sizeof(INT));
+    memcpy(L->JA,U->JA,(U->nnz)*sizeof(INT));
+    L->val=(REAL *)calloc(L->nnz,sizeof(REAL));
+    xl=(REAL *)calloc(n,sizeof(REAL));
+  }
+  INT *ichn=NULL, *next=NULL;
+  ichn=(INT *)calloc(n,sizeof(INT));
+  next=(INT *)calloc(n,sizeof(INT));
+  for(k=0;k<n;++k){
+    ichn[k] = -1;
+    next[k]=-1;
+  }
+  //
+  for(i=0;i<n;++i){
+    //    fprintf(stdout,"\n\ni=%d:",i+1);fflush(stdout);
+    ip1 = i + 1;
+    it_strt = U->IA[i];
+    it_end = U->IA[ip1];
+    if(it_end>it_strt) {
+      for(jk = it_strt;jk<it_end;++jk){
+	di[U->JA[jk]] = 0e0;
+	xl[L->JA[jk]] = 0e0;
+      }
+      ia_strt = AU->IA[i];
+      ia_end = AU->IA[ip1];
+      if(ia_end > ia_strt) {
+	//	fprintf(stdout,"\n");
+	for(jk=ia_strt;jk<ia_end;++jk){
+	  di[AU->JA[jk]] = AU->val[jk];
+	  xl[AL->JA[jk]] = AL->val[jk];
+	}
+      }
+    }
+    di[i] = adiag->val[i];
+    qend = ichn[i];
+    if(qend >= 0) {
+      line0 = ichn[qend];
+      while(1){
+	l = line0;
+	lp1=l+1;
+	line0 = ichn[l];
+	it1_strt = next[l];
+	it1_end = U->IA[lp1];
+	lm = L->val[it1_strt] * di[l];
+	um = U->val[it1_strt] * di[l];
+	for(jk = it1_strt;jk<it1_end;++jk){
+	  j = U->JA[jk];
+	  di[j] = di[j] - U->val[jk] * lm;
+	  xl[j] = xl[j] - L->val[jk] * um;
+	}
+	L->val[it1_strt] = lm;
+	U->val[it1_strt] = um;
+	next[l] = it1_strt + 1;
+	if(it1_strt!=(it1_end-1)) {
+	  jk = U->JA[it1_strt+1];
+	  j = ichn[jk];
+	  if(j>=0) {
+	    ichn[l] = ichn[j];
+	    ichn[j] = l;
+	  } else{
+	    ichn[jk] = l;
+	    ichn[l] = l;
+	  }
+	}
+	if(l==qend)
+	  break;
+      }
+    }
+    di[i] = 1e0/di[i];
+    xl[i] = 0e0;
+    if(it_end>it_strt){
+      for(jk = it_strt;jk<it_end;++jk){       
+	U->val[jk] = di[U->JA[jk]];
+	L->val[jk] = xl[L->JA[jk]];
+      }
+      jk = U->JA[it_strt];
+      j = ichn[jk];
+      if(j>=0) {
+	ichn[i] = ichn[j];
+	ichn[j] = i;
+      } else{
+	ichn[jk] = i;
+	ichn[i] = i;
+      } 
+    }
+    next[i] = it_strt;
+  }
+  free(ichn);
+  free(next);
+  free(xl);
+  return;
+}
+/**************************************************************************/
+/**
+ * \fn void* run_hazmath_factorize(dCSRmat *A,ivector *p,INT print_level,
+ *                                  void *more_params)
  *
  * \brief Performs factorization of A using HAZMATH (assumes A is
  *        symmetric and in CSR format)
@@ -371,6 +590,14 @@ static void numeric_factor_symm(dCSRmat *AU,dCSRmat *U,		\
  * \note This routine does factorization only.
  *
  * \param A	       	        Matrix A to be factored
+ * \param A	       	        Matrix A to be factored
+ * \param is_sym                [0/1] if the matrix is 
+ *                              non-symmetric/symmetric;
+ *
+ * \param p                     if not NULL then it is a permutation 
+ *                              of the vertices
+ *
+ *                              non-symmetric/symmetric;
  * \param print_level       Flag to print messages to screen
  *
  * \return Numeric	        Stores U^T D U decomposition of A
@@ -378,68 +605,106 @@ static void numeric_factor_symm(dCSRmat *AU,dCSRmat *U,		\
  * \author    Ludmil Zikatanov
  *
  */
-void *run_hazmath_factorize(dCSRmat *A,INT print_level)
+void *run_hazmath_factorize(dCSRmat *A, INT print_level,	\
+			     void *more_params)
 {
-  const SHORT is_sym=1;
-  // as of now, A is assumed to have symmetric pattern for the symbolic factorization and symmetric for the numeric factorization. 
+  // as of now, A is assumed to have symmetric pattern for the symbolic factorization numeric factorization.
+
+  SHORT is_sym,use_perm,permute_algorithm;
+  SHORT *mpar=(SHORT *)more_params;
+  if(more_params!=NULL){
+    is_sym=mpar[0];
+    use_perm=mpar[1];
+    permute_algorithm=mpar[2];
+  } else {
+    is_sym=0;
+    use_perm=1;
+    permute_algorithm=0;
+  }
   INT n,nnz;
   // size of the output structure. 
   size_t total=2*sizeof(dCSRmat) + 1*sizeof(dvector) + 3*sizeof(SHORT) + 1*sizeof(ivector);
   void *Num=(void *)calloc(total/sizeof(char),sizeof(char));
+  memset(Num,0,((size_t )(total/sizeof(char)))*sizeof(char));
   dCSRmat *U=NULL,*L=NULL;
   dvector *dinv=NULL;
   SHORT *extra=NULL;
   ivector *perm=NULL;
-  hazmath_get_numeric(Num, &U,&dinv,&extra,&L, &perm);
+  hazmath_get_numeric(Num,&U,&dinv,&extra,&L,&perm);
   extra[0]=is_sym;
-  extra[1]=0;extra[2]=0;// should not be used.
-  // end alloc for the Numeric structure. 
-  // construct a permutation:
-  /**/
-  if(print_level>6){
-    fprintf(stdout,"\nUsing HAZMATH factorize: A=U^T*D*U\n");
-    fflush(stdout);
+  extra[1]=use_perm;// this should always be 1, i.e. always use permutation;
+  extra[2]=permute_algorithm;// not used for now.
+  fprintf(stdout,"\nUsing HAZMATH factorize (on the coarsest grid): ");
+    /*  if(print_level>10){ */
+    /* if(extra[0] && extra[1]) */
+    /*   fprintf(stdout,"A(p,p)=U^T*D*U "); */
+    /* else if((!extra[0]) && extra[1]) */
+    /*   fprintf(stdout,"A(p,p)=L*D*U "); */
+    /* else if(extra[0] && (!extra[1])) */
+    /*   fprintf(stdout,"A=U^T*D*U "); */
+    /* else */
+    /*   fprintf(stdout,"A=L*D*U "); */
+    /* } */
+  //    fprintf(stdout,"\n                                               is_symmetric[0/1]=%d; use_permutation[0/1]=%d\n",extra[0],extra[1]);
+  //    fflush(stdout);
+  //
+  /* this is all set, if called again will set this again*/
+  if(use_perm){
+    perm->row=A->col;
+    perm->val=calloc(perm->row,sizeof(INT));
+    do_permutation(perm,A->col,A->IA,A->JA,(const SHORT )extra[2]);
+  } else {
+    perm->row=0;
+    free(perm->val);perm->val=NULL;
   }
+  /*end permutation*/
+  /* if(print_level>6){ */
+  /*   fprintf(stdout,"\nUsing HAZMATH factorize (is_sym=%d): A=L*D*U\n",is_sym); */
+  /*   fflush(stdout); */
+  /* } */
   dCSRmat AU,AL;
   dvector adiag;
   n=A->row; nnz=A->nnz;
   adiag=dvec_create(n);
   dinv->row=n;
-  dinv->val=calloc(n,sizeof(REAL));
+  dinv->val=calloc(n,sizeof(REAL));// this is stored in Numeric. 
   /***************************/
-  if(perm!=NULL){
-    AL=dcsr_create(n,n,nnz);
-  } else if(!is_sym){
-    AL=dcsr_create(n,n,nnz);
-  }else{
-    AL=dcsr_create(0,0,0);
-  }
   AU=dcsr_create(n,n,nnz);
-  dcsr_cp(A,&AU);
-  dcsr_trilu_diag(is_sym,&AU,&AL,&adiag,perm);
+  AL=dcsr_create(n,n,nnz);
+  if((perm!=NULL) && (perm->val!=NULL) && perm->row){
+    dcsr_transz(A,perm->val,&AL);
+    dcsr_transz(&AL,perm->val,&AU);
+  } else {
+    dcsr_cp(A,&AU);
+    if(!is_sym)
+      dcsr_cp(A,&AL);
+    else {
+      dcsr_free(&AL);
+      AL=dcsr_create(0,0,0);
+    }
+  }
+  dcsr_trilu_diag(is_sym,&AU,&AL,&adiag);
+  /* if(print_level>9){  */
+  /*   dcsr_write_dcoo("AU.dat",&AU);  */
+  /*   dcsr_write_dcoo("AL.dat",&AL); */
+  /*   dvec_write("adiag.dat",&adiag);  */
+  /* }  */
   /***************************/
   U->row=AU.row;
   U->col=AU.col;
-  symbolic_factor_symm(&AU,U); //symbolic factorization
+  symbolic_factor_symm(&AU,U); //symbolic factorization, assuming symmetric pattern. 
   U->nnz=U->IA[U->row];
-  // AL is used as working:  
-  AL.row=U->row; AL.col=U->col;  AL.nnz=U->nnz;
-  AL.IA=realloc(AL.IA,(AL.row+1)*sizeof(INT));
-  AL.JA=realloc(AL.JA,(AL.nnz)*sizeof(INT));
-  //SHOULD BE NULL:  AL.val=NULL;//realloc(AL.val,(AL.nnz)*sizeof(REAL));
-  // order U:
-  U->val=NULL;
-  dcsr_transz(U,NULL,&AL);
-  dcsr_transz(&AL,NULL,U);
-  dcsr_free(&AL);
-  numeric_factor_symm(&AU,U,&adiag,dinv);
+  //
+  numeric_factor_gen(is_sym,&AU,&AL,U,L,&adiag,dinv);
   dcsr_free(&AU);
+  dcsr_free(&AL);
   dvec_free(&adiag);
   return (void *)Num; 
 }
 /********************************************************************/
 /**
- * \fn INT run_hazmath_solve(dCSRmat *A,dvector *f,dvector *x, void* Numeric, INT print_level)
+ * \fn INT run_hazmath_solve(dCSRmat *A,dvector *f,dvector *x,     
+ *                           void* Numeric, INT print_level)
  *
  * \brief Performs Gaussian Elmination (Reduction and back
  *        substitution for solving the symmetric system with
@@ -451,70 +716,109 @@ void *run_hazmath_factorize(dCSRmat *A,INT print_level)
  *
  * \param A	       	      Matrix A of the system to be solved
  * \param f	       	      Right hand side vector
- * \param Numeric           contains the U^T*D*U decomposition of A
+ * \param Numeric           contains the L*D*U decomposition of A
  * \param print_level       Flag to print messages to screen
  *
- * \return x	         	    Solution
- *
- * \param *U pointer to the dCSR matrix with the U factor in A=U^T*dinv*U
- *
- * \param *dinv pointer to a dvector containing the inverse of the
- *              diagonal of U.
- *
- * \param *x pointer to a dvector with the right hand side, on output
- *           it contains the solution.
- *
- * \return void; *x is modified
+ * \param *f pointer to a dvector with the right hand side.
+ *           
+ * \param *x pointer to a dvector the solution.
  *
  * \note fortan77 (19960301); C99 (20220801)
  * \author Ludmil Zikatanov
  *
  */
 INT run_hazmath_solve(dCSRmat *A,dvector *f,dvector *x, \
-		  void* Numeric, INT print_level)
+		      void* Numeric, INT print_level)
 {
-  if(print_level>6){
-    fprintf(stdout,"\nUsing HAZMATH solve for U^T*D*U*x=b\n");
-    fflush(stdout);
-  }
   // arrays
   dCSRmat *U,*L=NULL;  dvector *dinv;  SHORT *extra; ivector *perm;
   // get them from *Numeric
   hazmath_get_numeric(Numeric, &U, &dinv,&extra, &L, &perm);
+  if(print_level>10){
+    fprintf(stdout,"\nUsing HAZMATH solve: ");
+    if(extra[0] && extra[1])
+      fprintf(stdout,"U^T*D*U*x(p)=f(p) ");
+    else if((!extra[0]) && extra[1])
+      fprintf(stdout,"L*D*U*x(p)=f(p) ");
+    else if(extra[0] && (!extra[1]))
+      fprintf(stdout,"A=U^T*D*U*x=f ");
+    else
+      fprintf(stdout,"A=L*D*U*x=f ");
+    fprintf(stdout,"\n                    (is_symmetric[0/1]=%d; use_permutation[0/1]=%d)\n",extra[0],extra[1]);
+    fflush(stdout);
+  }
   //
+  INT k,i,it_strt,it_end;
+  REAL xtmp;
+  INT nm = U->row-1;
   x->row=f->row;
   memcpy(x->val,f->val,x->row*sizeof(REAL));
   /*
     NOW action:
     --------------------------------------------------------------------
-    ...  REDUCTION AND BACK SUBSTITUTION FOR SOLVING THE
-    ...  SYMMETRIC SYSTEM WITH FACTORIZED MATRIX
+    ...  REDUCTION AND BACK SUBSTITUTION FOR SOLVING
+    ...  A LINEAR SYSTEM WITH FACTORIZED MATRIX
     --------------------------------------------------------------------
   */
-  INT k,i,it_strt,it_end;
-  REAL xtmp;
-  INT nm = U->row-1;
-  for(k=0;k<nm;++k){
-    it_strt = U->IA[k];
-    it_end = U->IA[k+1];
-    xtmp = x->val[k];
-    if(it_end > it_strt){
-      for(i= it_strt;i<it_end;++i){
-	x->val[U->JA[i]] -= U->val[i]*xtmp;
+  if(extra[0]) // if symmetric, then L just points to U;
+      L=U;
+  if(print_level>6){
+    fprintf(stdout,"\nSolve phase (is_symmetric(0/1)=%d; use_permutation(0/1)=%d)\n", \
+	    extra[0],extra[1]);
+  }
+  // if we have a permutation:
+  if(extra[1] && (perm!=NULL) && (perm->val !=NULL)&& (perm->row)){
+    INT k0;
+    for(k0=0;k0<nm;++k0){
+      k=perm->val[k0];
+      it_strt = L->IA[k0];
+      it_end = L->IA[k0+1];
+      xtmp = x->val[k];
+      if(it_end > it_strt){
+	for(i= it_strt;i<it_end;++i){
+	  x->val[perm->val[L->JA[i]]] -= L->val[i]*xtmp;
+	}
+      }
+      x->val[k] = xtmp*dinv->val[k0];
+    }
+    x->val[perm->val[nm]] *= dinv->val[nm];
+    for(k0 = nm;k0>=0;--k0){
+      k=perm->val[k0];
+      it_strt = U->IA[k0];
+      it_end = U->IA[k0+1];
+      if(it_end > it_strt){
+	xtmp = x->val[k];
+	for(i = it_strt;i<it_end;++i){
+	  xtmp -= U->val[i] *x->val[perm->val[U->JA[i]]];
+	}
+	x->val[k] = xtmp;
       }
     }
-    x->val[k] = xtmp*dinv->val[k];
-  }
-  x->val[nm] *= dinv->val[nm];
-  for(k = nm;k>=0;--k){
-    it_strt = U->IA[k];
-    it_end = U->IA[k+1];
-    if(it_end > it_strt){
+  } else {
+    // no permutation:
+    for(k=0;k<nm;++k){
+      it_strt = L->IA[k];
+      it_end = L->IA[k+1];
       xtmp = x->val[k];
-      for(i = it_strt;i<it_end;++i){
-	xtmp -= U->val[i] *x->val[U->JA[i]];
+      if(it_end > it_strt){
+	for(i= it_strt;i<it_end;++i){
+	  x->val[L->JA[i]] -= L->val[i]*xtmp;
+	}
       }
-      x->val[k] = xtmp;
+      x->val[k] = xtmp*dinv->val[k];
+    }
+    //  x->val[nm] *= dinv->val[nm];
+    x->val[nm] *= dinv->val[nm];
+    for(k=nm;k>=0;--k){
+      it_strt = U->IA[k];
+      it_end = U->IA[k+1];
+      if(it_end > it_strt){
+	xtmp = x->val[k];
+	for(i = it_strt;i<it_end;++i){
+	  xtmp -= U->val[i] *x->val[U->JA[i]];
+	}
+	x->val[k] = xtmp;
+      }
     }
   }
   return (INT )SUCCESS; 
@@ -538,7 +842,7 @@ void hazmath_get_numeric(void *Numeric, dCSRmat **U, dvector **dinv, SHORT **ext
 {
   void *wrk=(void *)Numeric;
   extra[0]=(SHORT *)wrk;
-  *extra[0]=1; 
+  //  *extra[0]=1; 
   wrk+=3*sizeof(SHORT);
   //  SHORT is_sym=extra[0];
   U[0]=(dCSRmat *)wrk;

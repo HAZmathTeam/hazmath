@@ -70,8 +70,10 @@ INT directsolve_HAZ(dCSRmat *A,
   err_flag_f = hazmath_free_numeric(&Numeric);
 #else
   // HAZ Factorize
-  //  fprintf(stdout,"\n%s: USING HAZMATH\n\n",__FUNCTION__);fflush(stdout);
-  Numeric = run_hazmath_factorize(A,print_level);
+  SHORT *more_params=NULL;
+  //  SHORT *more_params[3]={0,1,0}; //={is_sym,use_perm,ordering_algorithm}
+  //
+  Numeric = run_hazmath_factorize(A,print_level,(void *)more_params);
   // HAZ Solve
   err_flag_s = run_hazmath_solve(A,f,x,Numeric,print_level);
   // clean up.
@@ -380,7 +382,10 @@ void* hazmath_factorize (dCSRmat *ptrA,
     fprintf(stdout,"\nUMFPACK: ");
   }
 #else
-  Numeric=run_hazmath_factorize(ptrA,(INT )prtlvl);
+  SHORT *more_params=NULL;
+  //  SHORT *more_params[3]={0,1,0}; //={is_sym,use_perm,ordering_algorithm}
+  //
+  Numeric = run_hazmath_factorize(ptrA,(INT )prtlvl,(void *)more_params);
   //  error_extlib(253, __FUNCTION__, "SuiteSparse");
   //  return NULL;
   if ( prtlvl > PRINT_MIN ) {
@@ -474,10 +479,11 @@ INT hazmath_free_numeric (void **Numeric)
   ivector *perm;
   hazmath_get_numeric(Numeric[0], &U, &dinv,&extra, &L, &perm);
   //
-  dcsr_free(U);
-  dvec_free(dinv);
-  if(perm!=NULL)
+  dcsr_free(U);U=NULL;
+  dvec_free(dinv);dinv=NULL;
+  if(extra[1] && (perm!=NULL) && (perm->val!=NULL) && (perm->row))
     ivec_free(perm);
+  //  if(!extra[0])
   if(L!=NULL)
     dcsr_free(L);
   free(Numeric[0]);
