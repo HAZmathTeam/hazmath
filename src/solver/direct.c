@@ -70,8 +70,8 @@ INT directsolve_HAZ(dCSRmat *A,
   err_flag_f = hazmath_free_numeric(&Numeric);
 #else
   // HAZ Factorize
-  SHORT *more_params=NULL;
-  //  SHORT *more_params[3]={0,1,0}; //={is_sym,use_perm,ordering_algorithm}
+  //SHORT *more_params=NULL;
+  SHORT more_params[3]={0,1,0}; //={is_sym,use_perm,ordering_algorithm}
   //
   Numeric = run_hazmath_factorize(A,print_level,(void *)more_params);
   // HAZ Solve
@@ -382,8 +382,8 @@ void* hazmath_factorize (dCSRmat *ptrA,
     fprintf(stdout,"\nUMFPACK: ");
   }
 #else
-  SHORT *more_params=NULL;
-  //  SHORT *more_params[3]={0,1,0}; //={is_sym,use_perm,ordering_algorithm}
+  //SHORT *more_params=NULL;
+  SHORT more_params[3]={0,1,0}; //={is_sym,use_perm,ordering_algorithm}
   //
   Numeric = run_hazmath_factorize(ptrA,(INT )prtlvl,(void *)more_params);
   //  error_extlib(253, __FUNCTION__, "SuiteSparse");
