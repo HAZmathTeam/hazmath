@@ -89,3 +89,8 @@ void bc3D(REAL *val, REAL *x, REAL time,void *param) {
   exact_sol3D(val,x,time,param);
   return;
 }
+
+// Mean value of p for mean value constraint
+void pmean(REAL* val) {
+  *val = 0.0;
+}
