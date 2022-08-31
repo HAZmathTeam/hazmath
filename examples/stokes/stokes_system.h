@@ -297,3 +297,67 @@ void local_assembly_Stokes(REAL* ALoc, block_fespace *FE, mesh_struct *mesh, qco
 
   return;
 }
+
+/*!
+* \fn void meanzero_pressure(block_dCSR* A, dvector* b,mesh_struct* mesh,fespace* FEp,qcoordinates* cq)
+*
+* \brief Deals with pressure singularity by adding constraint that
+*         int p = int p_true (0 if mean zero constraint)
+*        Do this by adding a row and column to the p-p block that computes this
+*        integral.  Note that this increases the DoF by 1 and the rhs by 1.
+*
+* \param A            Stokes system matrix
+* \param b            System RHS
+* \param mesh         Mesh Information
+* \param FEp          FE space for pressure
+* \param cq           Quadrature needed for anything but P0
+*
+* \return A, b        Modified system
+*
+*/
+void meanzero_pressure(block_dCSRmat* A, dvector* b,mesh_struct* mesh,fespace* FEp,qcoordinates* cq)
+{
+
+  INT ndof = FEp->ndof;
+  INT i,newrows;
+
+  // Reallocate rhs appropriately and add in value of mean if not zero
+  newrows = b->row+1;
+
+  // Copy current values into new longer vector
+  REAL* btmp = (REAL *) calloc(newrows,sizeof(REAL));
+  for(i=0;i<b->row;i++) btmp[i] = b->val[i];
+  // Get mean value
+  REAL pmeanval = 0.0;
+  pmean(&pmeanval);
+  btmp[b->row] = pmeanval;
+  b->val=(REAL *)realloc(b->val,sizeof(REAL)*(newrows));
+
+  // Copy btmp back into b
+  b->row++;
+  for(i=0;i<newrows;i++) b->val[i] = btmp[i];
+
+  // Reallocate matrix
+  // In P0 -> Add el_vol for each entry
+  if(FEp->FEtype==0) {
+    bdcsr_extend(A,mesh->el_vol,mesh->el_vol,mesh->dim,1.0,1.0);
+  } else {
+    // In P1 or higher, the extra row is Mp*1, where Mp is the mass matrix for
+    // the pressure space and 1 is the vector of ones.
+    dCSRmat Mp;
+    assemble_global(&Mp,NULL,assemble_mass_local,FEp,mesh,cq,NULL,one_coeff_scal,0.0);
+    dvector* ones = dvec_create_p(ndof);
+    dvec_set(ndof,ones,1.0);
+    REAL* constraint = (REAL *) calloc(ndof,sizeof(REAL));
+    dcsr_mxv(&Mp,ones->val,constraint);
+    bdcsr_extend(A,constraint,constraint,mesh->dim,1.0,1.0);
+
+    dcsr_free(&Mp);
+    if(ones) free(ones);
+    if(constraint) free(constraint);
+  }
+
+  if(btmp) free(btmp);
+
+  return;
+}
