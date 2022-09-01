@@ -19,15 +19,15 @@
  *                  (typically 0) is the newest vertex bisection
 */
 #ifndef REFINEMENT_TYPE
-#define REFINEMENT_TYPE 0
+#define REFINEMENT_TYPE 11
 #endif
 /**/
 #ifndef REFINEMENT_LEVELS
-#define REFINEMENT_LEVELS 14
+#define REFINEMENT_LEVELS 5
 #endif
 /**/
 #ifndef SPATIAL_DIMENSION
-#define SPATIAL_DIMENSION 5
+#define SPATIAL_DIMENSION 3
 #endif
 /**/
 #ifndef SET_BNDRY_CODES
@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
     sc_vols(sc);
   } else {
     for(jlevel=0;jlevel<ref_levels;++jlevel){
-      //      fprintf(stdout,".%d.",jlevel+1);fflush(stdout);
+      fprintf(stdout,".%d.",jlevel+1);fflush(stdout);
       /* choose the finest grid */
       sctop=scfinest(sc);
       // solve the FE
@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
   /* } */
   ////////////////////////////////////////////// END MAP IT. 
   sol=fe_sol(sc,1.0,1.0);
-  short todraw=1;
+  short todraw=0;
   draw_grids(todraw, sc,&sol);
   /* write the output mesh file:    */
   /* hazw("output/mesh.haz",sc,0); */
