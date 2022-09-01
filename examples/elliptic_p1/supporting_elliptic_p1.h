@@ -114,7 +114,7 @@ static dvector fe_sol(scomplex *sc,const REAL alpha,const REAL gamma)
   clock_t clk_assembly_end = clock(); // End of timing for mesh and FE setup
   fprintf(stdout,"\n%%%%%%CPUtime(assembly) = %.3f sec\n",
 	  (REAL ) (clk_assembly_end - clk_assembly_start)/CLOCKS_PER_SEC);
-  if(print_level > 5)
+  if(print_level > 50)
     csr_print_matlab(stdout,&M);  
   dcsr_free(&M); // not needed
   /*SOLVER SOLVER*/
@@ -126,10 +126,10 @@ static dvector fe_sol(scomplex *sc,const REAL alpha,const REAL gamma)
   linear_itparam.linear_itsolver_type     = SOLVER_CG;
   linear_itparam.linear_stop_type         = STOP_REL_RES;
   // Solver parameters
-  linear_itparam.linear_tol      = 1e-8;
+  linear_itparam.linear_tol      = 1e-6;
   linear_itparam.linear_maxit    = 100;
   linear_itparam.linear_restart       = 100;
-  linear_itparam.linear_print_level    = 10;
+  linear_itparam.linear_print_level    = 7;
   /* Set parameters for algebriac multigrid methods */
   AMG_param amgparam;
   param_amg_init(&amgparam);

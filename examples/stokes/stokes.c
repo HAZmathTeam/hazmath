@@ -23,6 +23,8 @@
 *       how to use block solvers and special preconditioners designed for
 *       Stokes.  These are found in stokes_precond.h.
 *
+* \note P2-P0 in 3D is not necessarily stable - use with caution!
+*
 */
 
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************************/
@@ -73,7 +75,7 @@ int main (int argc, char* argv[])
   // Get info for and create FEM spaces
   // Order of elements: 0 - P0; 1 - P1; 2 - P2; 20 - Nedlec; 30 - Raviart-Thomas
   INT order_u = 2;
-  INT order_p = 0;
+  INT order_p = 1;
 
   // Need Spaces for each component of the velocity plus pressure
   fespace FE_ux; // Velocity in x direction
@@ -156,6 +158,12 @@ int main (int argc, char* argv[])
   if(dim==2) eliminate_DirichletBC_blockFE_blockA(bc2D,&FE,&mesh,&b,&A,0.0);
   if(dim==3) eliminate_DirichletBC_blockFE_blockA(bc3D,&FE,&mesh,&b,&A,0.0);
 
+  // Deal with pressure singularity
+  // Add constraint that int p = int p_true (0 if mean zero constraint)
+  // Do this by adding a row and column to the p-p block that computes this integral
+  // Note that this increases the DoF by 1 and the rhs by 1.
+  meanzero_pressure(&A,&b,&mesh,&FE_p,cq);
+
   clock_t clk_assembly_end = clock();
   printf(" --> elapsed CPU time for assembly = %f seconds.\n\n",(REAL)
   (clk_assembly_end-clk_assembly_start)/CLOCKS_PER_SEC);
@@ -166,10 +174,26 @@ int main (int argc, char* argv[])
   clock_t clk_solve_start = clock();
   INT solver_flag = -20;
 
-  // Prepare diagonal blocks for preconditioners
+  // Allocate solution and set initial guess to be all zero
+  dvector sol = dvec_create(ndof+1); // account for pressure constraint
+  dvec_set(sol.row, &sol, 0.0);
+
+  // Set parameters for linear iterative methods
+  linear_itsolver_param linear_itparam;
+  param_linear_solver_init(&linear_itparam);
+  param_linear_solver_set(&linear_itparam,&inparam);
+  INT solver_type = linear_itparam.linear_itsolver_type;
+  INT solver_printlevel = linear_itparam.linear_print_level;
+
+  /* Set parameters for algebraic multigrid methods */
+  AMG_param amgparam;
+  param_amg_init(&amgparam);
+  param_amg_set(&amgparam, &inparam);
+  if(solver_type!=0 && linear_itparam.linear_precond_type!= PREC_NULL) param_amg_print(&amgparam);
+
+  // Set parameters for block preconditioners
   dCSRmat *A_diag;
   A_diag = (dCSRmat *)calloc(dim+1, sizeof(dCSRmat));
-
   // For velcocities, we use the diagonal blocks of the velocity block
   for(i=0;i<dim;i++){
     dcsr_alloc(A.blocks[i*(dim+2)]->row, A.blocks[i*(dim+2)]->col, A.blocks[i*(dim+2)]->nnz, &A_diag[i]);
@@ -180,33 +204,6 @@ int main (int argc, char* argv[])
   assemble_global(&Mp,NULL,assemble_mass_local,&FE_p,&mesh,cq,NULL,one_coeff_scal,0.0);
   dcsr_alloc(Mp.row, Mp.col, Mp.nnz, &A_diag[dim]);
   dcsr_cp(&Mp, &A_diag[dim]);
-
-  // Allocate solution and set initial guess to be all zero
-  dvector sol = dvec_create(ndof);
-  dvec_set(sol.row, &sol, 0.0);
-
-  //  Apply Pressure "BCs" (removes singularity)
-  INT pressureloc = 0;
-  REAL pressurecoord[dim];
-  for(i=0;i<dim;i++) pressurecoord[i] = 0.0;
-  REAL solval[dim+1];
-  if(dim==2) exact_sol2D(solval,pressurecoord,0.0,NULL);
-  if(dim==3) exact_sol3D(solval,pressurecoord,0.0,NULL);
-  // Set initial guess for pressure to match the known "boundary condition" for pressure
-  sol.val[udof + pressureloc]  = solval[dim];
-
-  // Set parameters for linear iterative methods
-  linear_itsolver_param linear_itparam;
-  param_linear_solver_init(&linear_itparam);
-  param_linear_solver_set(&linear_itparam,&inparam);
-  INT solver_type = linear_itparam.linear_itsolver_type;
-  INT solver_printlevel = linear_itparam.linear_print_level;
-
-  /* Set parameters for algebriac multigrid methods */
-  AMG_param amgparam;
-  param_amg_init(&amgparam);
-  param_amg_set(&amgparam, &inparam);
-  if(solver_type!=0 && linear_itparam.linear_precond_type!= PREC_NULL) param_amg_print(&amgparam);
 
   // Solve
   if(solver_type==0) { // Direct Solver

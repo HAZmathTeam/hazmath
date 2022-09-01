@@ -3802,6 +3802,150 @@ SHORT bdcsr_delete_rowcol(block_dCSRmat *A,
 
 }
 
+/*!
+* \fn void bdcsr_extend(block_dCSRmat *A,REAL *vcol, REAL *vrow,const INT iblock,const REAL c1, const REAL c2)
+*
+* \brief Add a row (vrow) and column (vcol) to a block_dCSRmat sparse matrix A
+*        with diagonal entry 0.  For example, use to add a global constraint like
+*        int p = 0.
+*
+* \param ba            Pointer to block_dCSRmat matrix
+* \param vrow          Pointer to row that needs to be added
+* \param vcol          Pointer to col that needs to be added
+* \param iblock        Specific block row to add to
+* \param c1, c2        Multipliers for adding row and col (usually just 1.0)
+*
+* \return A            block matrix with added row and col
+*
+* \note   If vrow and vcol are NULL, then adds one row and one column of
+*         zeros at block (iblock,iblock). Only need to reallocate
+*         blocks->IA in this case. --ltz
+*
+* \note   If one of the vcol or vrow is NULL, then you add a diagonal matrix
+*         with the non-Null vector on the diagonal.
+*
+* \note   We assume A->brow = A-bcol
+*/
+void bdcsr_extend(block_dCSRmat *A,				\
+			 REAL *vcol, REAL *vrow,			\
+			 const INT iblock,				\
+			 const REAL c1, const REAL c2)
+{
+
+  // Counters
+  INT k,j,n,nnz;
+  INT Abrows = A->brow;
+  INT Abcols = A->bcol;
+
+  // Error Check
+  if(Abrows!=Abcols) {
+    fprintf(stderr,"HAZMATH DANGER! ERROR in %s: Your block matrix is not square.  This will not work...",__FUNCTION__);
+    exit(16);
+  }
+  // Temporary vectors
+  REAL *vals=NULL;
+  dCSRmat *atmp=NULL,*ctmp=NULL,*add=NULL;
+  // For various cases of input
+  INT ptype=-1;
+
+  // If vcol and vrow are NULL just add row and column of zeros
+  if(vcol==NULL && vrow==NULL){
+    // Need to go over all blocks to add appropriate size
+    for(k=0;k<Abrows;k++){
+      atmp=A->blocks[iblock*Abcols+k];
+      atmp->row++;
+      atmp->IA=realloc(atmp->IA,sizeof(INT)*(atmp->row+1));
+      atmp->IA[atmp->row]=atmp->nnz;
+      atmp=A->blocks[k*Abcols+iblock];
+      atmp->col++;
+    }
+    return;
+  }
+  // Check if one of vrow or vcol is NULL
+  if(vcol==NULL){
+    vals=vrow;
+    ptype=2;
+  } else if(vrow==NULL){
+    vals=vcol;
+    ptype=1;
+  } else {
+    ptype=0;
+  }
+
+  // If one of vrow or vcol is NULL, add the non-NULL vector as a diagonal matrix
+  // to the corresponding block.
+  if(ptype) {
+    // block rows
+    atmp=A->blocks[iblock*Abcols+iblock];
+    n=atmp->row;
+    nnz=n;
+    // new matrix to add to the existing one
+    add=dcsr_create_p(n,n,nnz);
+    add->IA[0]=0;
+    for(k=0;k<n;k++){
+      add->JA[add->IA[k]]=k;
+      add->val[add->IA[k]]=vals[k];
+      add->IA[k+1]=add->IA[k]+1;
+    }
+  // Else add the row and column as intended
+  } else {
+    // Loop over each block row of the big matrix
+    for(k=0;k<Abrows;k++){
+      // Grab each block of the chosen block row (iblock)
+      atmp=A->blocks[iblock*Abcols+k];
+      // Add a row to each of these and reallocate IA accordingly
+      atmp->row++;
+      atmp->IA=realloc(atmp->IA,sizeof(INT)*(atmp->row+1));
+      atmp->IA[atmp->row]=atmp->nnz;
+      // Grab each block of the chosen block col (iblock)
+      atmp=A->blocks[k*Abcols+iblock];
+      // Increase the column size
+      atmp->col++;
+    }
+    // Grab the chosen block of matrix (rest just add zero so no modification is needed)
+    atmp=A->blocks[iblock*Abcols+iblock];
+
+    // Create a zero matrix whose last row is vrow and last col is vcol and diagonal is 0
+    n=atmp->row;
+    nnz=2*(n-1);
+    add=dcsr_create_p(n,n,nnz);
+    // Add last column first as you loop through the rows
+    add->IA[0]=0;
+    add->val[0]=vcol[0];
+    for(k=0;k<(n-1);k++){
+      add->JA[add->IA[k]]=(n-1);
+      add->val[add->IA[k]]=vcol[k];
+      add->IA[k+1]=add->IA[k]+1;
+    }
+    add->IA[n]=nnz;
+
+    // Now add last row at end
+    j=0;
+    for(k=add->IA[n-1];k<(add->IA[n]);k++){
+      add->JA[k]=j;
+      add->val[k]=vrow[j];
+      j++;
+    }
+  }
+
+  // Add to atmp to original block and then copy back to atmp (i.e., bigger matrix)
+  // Can choose to scale addition if you like: ctmp=c1*atmp+c2*add;
+  ctmp=malloc(1*sizeof(dCSRmat));
+  dcsr_add(atmp,c1,add,c2,ctmp);
+  free(add);
+
+  // Reallocate chosen block appropriately and copy temporary matrix back into chosen block
+  atmp->IA=(INT *)realloc(atmp->IA,sizeof(INT)*(ctmp->row+1));
+  atmp->JA=(INT *)realloc(atmp->JA,sizeof(INT)*ctmp->nnz);
+  atmp->val=(REAL *)realloc(atmp->val,sizeof(REAL)*ctmp->nnz);
+  dcsr_cp(ctmp,atmp);
+
+  // Free the working memory.
+  dcsr_free(ctmp);
+  free(ctmp);
+  return;
+}
+
 /***********************************************************************************************/
 /*!
  * \fn void bdcsr_mxm (block_dCSRmat *A, block_dCSRmat *B, block_dCSRmat *C)

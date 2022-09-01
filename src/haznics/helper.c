@@ -447,7 +447,6 @@ precond* create_precond_ra(dCSRmat *A,
     REAL setup_start, setup_end;
     pc->setup_time = 0.;
     get_time(&setup_start);
-
     //------------------------------------------------
     // compute the rational approximation
     //------------------------------------------------
@@ -608,54 +607,59 @@ precond* create_precond_ra(dCSRmat *A,
     //------------------------------------------------
     INT npoles = k - 1;
     pcdata->mgl = (AMG_data **)calloc(npoles, sizeof(AMG_data *));
-
+    
     // assemble amg data for all shifted laplacians:
     // (scaling_a*A - poles[i] * scaling_m*M)
     // NOTE: ONLY REAL PART USED HERE.
     // Also, I didn't distinguish between zero and nonzero poles because
     // some pole can have only imag part nonzero (so it's still needed in the solve).
-    for(i = 0; i < npoles; ++i) {
-        //fprintf(stdout,"\nAMG for pole %d\n", i);
-        pcdata->mgl[i] = amg_data_create(max_levels);
-        dcsr_alloc(n, n, 0, &(pcdata->mgl[i][0].A));
-        dcsr_add(A, scaling_a, M, -pcdata->poles->val[i]*scaling_m, &(pcdata->mgl[i][0].A));
-        pcdata->mgl[i][0].b = dvec_create(n);
-        pcdata->mgl[i][0].x = dvec_create(n);
-
-        switch (amgparam->AMG_type) {
-
-          case UA_AMG: // Unsmoothed Aggregation AMG
-              if ( prtlvl > PRINT_NONE ) fprintf(stdout,"\n Calling UA AMG ...\n");
-              status = amg_setup_ua(pcdata->mgl[i], amgparam);
-              break;
-
-          case SA_AMG: // Smoothed Aggregation AMG
-              if ( prtlvl > PRINT_NONE ) fprintf(stdout,"\n Calling SA AMG ...\n");
-              status = amg_setup_sa(pcdata->mgl[i], amgparam);
-              break;
-
-          default: // UA AMG
-              if ( prtlvl > PRINT_NONE ) fprintf(stdout,"\n Calling UA AMG ...\n");
-              status = amg_setup_ua(pcdata->mgl[i], amgparam);
-              break;
-
-        }
-
-        if(status < 0)
-        {
-            fprintf(stdout,"Unsuccessful AMG setup at pole %d with status = %d\n", i, status);
-            return 0;
-        }
-    }
-
-    //------------------------------------------------
-    // setup preconditioner data
-    //------------------------------------------------
-    // NOTE: all poles have the same amgparams
+    // moved this here as it is needed as backup --ana & ltz1
     pcdata->amgparam = (AMG_param*)malloc(sizeof(AMG_param));
     param_amg_init(pcdata->amgparam);
     param_amg_cp(amgparam, pcdata->amgparam);
-    //pcdata->amgparam = amgparam;
+    // now pcdata->amg_param is all set and is used as a parameters reset everytime a pole is changed;
+    for(i = 0; i < npoles; ++i) {
+      //fprintf(stdout,"\nAMG for pole %d\n", i);
+      pcdata->mgl[i] = amg_data_create(max_levels);
+      dcsr_alloc(n, n, 0, &(pcdata->mgl[i][0].A));
+      dcsr_add(A, scaling_a, M, -pcdata->poles->val[i]*scaling_m, &(pcdata->mgl[i][0].A));
+      pcdata->mgl[i][0].b = dvec_create(n);
+      pcdata->mgl[i][0].x = dvec_create(n);
+      
+      switch (amgparam->AMG_type) {
+	
+      case UA_AMG: // Unsmoothed Aggregation AMG
+	if ( prtlvl > PRINT_NONE ) fprintf(stdout,"\n Calling UA AMG ...\n");
+	status = amg_setup_ua(pcdata->mgl[i], amgparam);
+	break;
+	
+      case SA_AMG: // Smoothed Aggregation AMG
+	if ( prtlvl > PRINT_NONE ) fprintf(stdout,"\n Calling SA AMG ...\n");
+	status = amg_setup_sa(pcdata->mgl[i], amgparam);
+	break;
+	
+      default: // UA AMG
+	if ( prtlvl > PRINT_NONE ) fprintf(stdout,"\n Calling UA AMG ...\n");
+	status = amg_setup_ua(pcdata->mgl[i], amgparam);
+	break;
+	
+      }
+      // DEBUG: param_amg_print(amgparam);	      
+      if(status < 0)
+	{
+	  fprintf(stdout,"Unsuccessful AMG setup at pole %d with status = %d\n", i, status);
+	  return 0;
+	}
+      // for a new pole, we copy the amg_param back
+      // We keep all poles to have the same amgparams
+      // actually here we can just copy the amgparam->strong_coupled; but this is safer.
+      param_amg_cp(pcdata->amgparam,amgparam); 
+      //DEBUG:      param_amg_print(amgparam);
+    }
+    // when we exit here, the amgparam should be the same as before starting the pole loop;
+    //------------------------------------------------
+    // amgparams for precond_data was setup earlier.
+    //------------------------------------------------
 
     // save scaled alpha and beta
     pcdata->scaled_alpha = scaled_alpha;

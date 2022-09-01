@@ -71,7 +71,7 @@ INT directsolve_HAZ(dCSRmat *A,
 #else
   // HAZ Factorize
   //SHORT *more_params=NULL;
-  SHORT more_params[3]={0,1,0}; //={is_sym,use_perm,ordering_algorithm}
+  SHORT more_params[3]={1,1,0}; //={is_sym,use_perm,ordering_algorithm}
   //
   Numeric = run_hazmath_factorize(A,print_level,(void *)more_params);
   // HAZ Solve
