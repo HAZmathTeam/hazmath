@@ -7,8 +7,8 @@ import haznics
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('-dim', default=3, choices=(2,3), type=int)  # dimension of the problem
-parser.add_argument('-N', default=8, type=int)  # n for unit square mesh
-parser.add_argument('-refine', default=5, type=int)  # solve or eig
+parser.add_argument('-N', default=8, type=int)  # n for unit square/cube mesh
+parser.add_argument('-refine', default=5, type=int)  # number of refinements (starts from N and goes 2*N, 4*N, 8*N, etc)
 args = parser.parse_args()
 
 # Function spaces, elements

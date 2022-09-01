@@ -634,7 +634,7 @@ void *run_hazmath_factorize(dCSRmat *A, INT print_level,	\
   extra[0]=is_sym;
   extra[1]=use_perm;// this should always be 1, i.e. always use permutation;
   extra[2]=permute_algorithm;// not used for now.
-  fprintf(stdout,"\nUsing HAZMATH factorize (on the coarsest grid): ");
+  if(print_level>10) fprintf(stdout,"\nUsing HAZMATH factorize (on the coarsest grid): ");
     /*  if(print_level>10){ */
     /* if(extra[0] && extra[1]) */
     /*   fprintf(stdout,"A(p,p)=U^T*D*U "); */
