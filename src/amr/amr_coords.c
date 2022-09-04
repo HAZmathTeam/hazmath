@@ -183,7 +183,8 @@ INT cart2polar(INT dim, REAL *c,REAL *p)
       flag=0;
       break;
     }
-    rl/=sin(p[i]);
+    // BUG  rl/=sin(p[i]);
+    rl*=sin(p[i]);
   }
   if(flag) p[dimm1]=atan2(c[dimm1],c[dimm1-1]);
   p[0]=r;
