@@ -458,7 +458,7 @@ precond* create_precond_ra(dCSRmat *A,
     scaled_beta  = beta*pow(scaling_a, -t_frac_power)*pow(scaling_m, t_frac_power-1.);
 
     /* Get interpolation points and function values */
-    // parameters used in the function
+    // parameters used in the function - dividing with the larger coefficient
     REAL16 func_param[4];
     func_param[0] = (REAL16)s_frac_power;
     func_param[1] = (REAL16)t_frac_power;
@@ -575,17 +575,6 @@ precond* create_precond_ra(dCSRmat *A,
         }
         printf("\n");
     }
-    // FIXME: is this necessary? maybe merge with previous or next loop
-    /*REAL polez;
-    for(i = 0; i < k-1; ++i) {
-      polez = pcdata->poles->val[i];
-      if(polez > 0e0){
-        fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Positive pole in function=%s", \
-            __FUNCTION__);
-	    fprintf(stdout,"\n%%%%%%  0 < pole(%d)=%.16e\n", i, polez);
-	    break;
-      }
-    }*/
 
     /* --------------------------------------------- */
     // scaling stiffness matrix
@@ -629,32 +618,31 @@ precond* create_precond_ra(dCSRmat *A,
       switch (amgparam->AMG_type) {
 	
       case UA_AMG: // Unsmoothed Aggregation AMG
-	if ( prtlvl > PRINT_NONE ) fprintf(stdout,"\n Calling UA AMG ...\n");
-	status = amg_setup_ua(pcdata->mgl[i], amgparam);
-	break;
+        if ( prtlvl > PRINT_NONE ) fprintf(stdout,"\n Calling UA AMG ...\n");
+        status = amg_setup_ua(pcdata->mgl[i], amgparam);
+        break;
 	
       case SA_AMG: // Smoothed Aggregation AMG
-	if ( prtlvl > PRINT_NONE ) fprintf(stdout,"\n Calling SA AMG ...\n");
-	status = amg_setup_sa(pcdata->mgl[i], amgparam);
-	break;
+        if ( prtlvl > PRINT_NONE ) fprintf(stdout,"\n Calling SA AMG ...\n");
+        status = amg_setup_sa(pcdata->mgl[i], amgparam);
+        break;
 	
       default: // UA AMG
-	if ( prtlvl > PRINT_NONE ) fprintf(stdout,"\n Calling UA AMG ...\n");
-	status = amg_setup_ua(pcdata->mgl[i], amgparam);
-	break;
+        if ( prtlvl > PRINT_NONE ) fprintf(stdout,"\n Calling UA AMG ...\n");
+        status = amg_setup_ua(pcdata->mgl[i], amgparam);
+        break;
 	
       }
-      // DEBUG: param_amg_print(amgparam);	      
+
       if(status < 0)
-	{
-	  fprintf(stdout,"Unsuccessful AMG setup at pole %d with status = %d\n", i, status);
-	  return 0;
-	}
+	  {
+	    fprintf(stdout,"Unsuccessful AMG setup at pole %d with status = %d\n", i, status);
+	    return 0;
+	  }
       // for a new pole, we copy the amg_param back
       // We keep all poles to have the same amgparams
       // actually here we can just copy the amgparam->strong_coupled; but this is safer.
-      param_amg_cp(pcdata->amgparam,amgparam); 
-      //DEBUG:      param_amg_print(amgparam);
+      param_amg_cp(pcdata->amgparam, amgparam);
     }
     // when we exit here, the amgparam should be the same as before starting the pole loop;
     //------------------------------------------------
@@ -672,9 +660,7 @@ precond* create_precond_ra(dCSRmat *A,
     get_time(&setup_end);
     pc->setup_time = setup_end - setup_start;
 
-
     // clean
-    // if (rpnwf[0]) free(rpnwf); // FIXME
     free(resr); free(resi); free(polesr); free(polesi);
     if (rpnwf) free(rpnwf);
 
@@ -693,15 +679,10 @@ dvector* ra_aaa(int numval,
                 double *f,
                 double AAA_tol)
 {
-    INT i;
+    INT i, j;
     //------------------------------------------------
     // compute the rational approximation
     //------------------------------------------------
-
-    /*fprintf(stdout, "npoints: %d\n", numval); fflush(stdout);
-    for(i = 0; i < numval-1; ++i) {
-        fprintf(stdout, "%.10e \t %.10e\n", z[i], f[i]); fflush(stdout);
-    }*/
 
     /* AAA algorithm for the rational approximation */
     // parameters used in the AAA algorithm
@@ -717,14 +698,9 @@ dvector* ra_aaa(int numval,
     REAL16 *ff = malloc(numval * sizeof(REAL16));
 
     for(i = 0; i < numval; ++i) {
-        zz[i] = (REAL16)z[i];
+        zz[i] = (REAL16)z[i]; // NB: these values should be between 0 and 1 and alpha/beta should be scaled beforehand!
         ff[i] = (REAL16)f[i];
     }
-
-    /*fprintf(stdout, "npoints: %d\n", numval); fflush(stdout);
-    for(i = 0; i < numval; ++i) {
-        fprintf(stdout, "%Le \t %Le\n", zz[i], ff[i]); fflush(stdout);
-    }*/
 
     // compute the rational approximation using AAA algorithms
     REAL err_max = get_rpzwf(numval, zz, ff, rpnwf, &mmax_in, &k, AAA_tol, print_level);
@@ -736,39 +712,70 @@ dvector* ra_aaa(int numval,
     printf(" HAZ ---- Rational approx error in interp points: %.16e\n", err_max);
     // printf("Number of poles: %d\n", k-1);
 
-    // print poles, residues
-    /*printf("Poles:\n");
-    for(i = 0; i < k-1; ++i) {
-        printf("pole[%d] = %.10e + %.10e i\n", i, rpnwf[2][i], rpnwf[3][i]);
+    // assign poles and residues
+    REAL drop_tol = AAA_tol;
+    INT ii = 1; // skip first residue
+
+    REAL *polesr = malloc((k-1) * sizeof(REAL));
+    REAL *polesi = malloc((k-1) * sizeof(REAL));
+    REAL *resr = malloc(k * sizeof(REAL));
+    REAL *resi = malloc(k * sizeof(REAL));
+
+    /* filter poles and residues smaller than some tolerance */
+    // Note: free residual is always only real! also, it's always saved to preserve the numbering (N poles, N+1 residues)
+    resi[0] = 0.;
+    if(fabs(rpnwf[0][0]) < drop_tol) resr[0] = 0.; else resr[0] = rpnwf[0][0];
+
+    for(i = 1; i < k; ++i) {
+        if((fabs(rpnwf[0][i]) < drop_tol) && (fabs(rpnwf[1][i]) < drop_tol)) {
+            // Case 1: remove poles and residues where abs(res) < tol
+            fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Pole number reduced in function=%s \n", \
+                    __FUNCTION__);
+            fprintf(stdout,"%%%%%%  Removing pole[%d] = %.8e + %.8e i \t residue[%d] = %.8e + %.8e i\n", \
+	                i-1, rpnwf[2][i-1], rpnwf[3][i-1], i, rpnwf[0][i], rpnwf[1][i]);
+	        fflush(stdout);
+        }
+        else if((fabs(rpnwf[0][i]) > drop_tol) && (fabs(rpnwf[3][i-1]) < drop_tol)) {
+            // Case 2: only real residues and poles (Note: if Im(pole) = 0, then Im(res) = 0.)
+            resr[ii] = rpnwf[0][i]; resi[ii] = 0.; polesi[ii-1] = 0.;
+            if(fabs(rpnwf[2][i-1]) < drop_tol) polesr[ii-1] = 0.; else polesr[ii-1] = rpnwf[2][i-1];
+            ii++;
+        }
+        else {
+            // Case 3: there is at least one pair of complex conjugate poles
+            // Note: only save one pole per pair -- check if it is already saved: (not the best search ever but ehh)
+            for(j = 0; j < ii-1; ++j) {
+                if((fabs(polesr[j] - rpnwf[2][i-1]) < drop_tol) && (fabs(polesi[j] - rpnwf[3][i-1]) < drop_tol)) break;
+            }
+            // if we found it, skip it
+            if(j < ii-1) {
+                fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Pole number reduced in function=%s \n", \
+                    __FUNCTION__);
+                fprintf(stdout,"%%%%%%  Removing pole[%d] = %.8e + %.8e i \t residue[%d] = %.8e + %.8e i\n", \
+                        i-1, rpnwf[2][i-1], rpnwf[3][i-1], i, rpnwf[0][i], rpnwf[1][i]);
+                fflush(stdout);
+            }
+            else {
+                polesi[ii-1] = rpnwf[3][i-1]; // this should be always > drop_tol in Case 3
+                if(fabs(rpnwf[0][i]) > drop_tol) resr[ii] = rpnwf[0][i]; else resr[ii] = 0.;
+                if(fabs(rpnwf[1][i]) > drop_tol) resi[ii] = rpnwf[1][i]; else resi[ii] = 0.;
+                if(fabs(rpnwf[2][i-1]) > drop_tol) polesr[ii-1] = rpnwf[2][i-1]; else polesr[ii-1] = 0.;
+                ii++;
+            }
+        }
     }
-    printf("\n");
-    printf("Residues:\n");
-    for(i = 0; i < k; ++i) {
-        printf("res[%d] = %.10e + %.10e i\n", i, rpnwf[0][i], rpnwf[1][i]);
-    }
-    printf("\n");*/
+    // new number of poles+1
+    k = ii;
 
     // assign poles and residuals
     dvector *res = dvec_create_p(4*k - 2);
-    array_cp(k-1, rpnwf[2], res->val);
-    array_cp(k-1, rpnwf[3], &(res->val[k-1]));
-    array_cp(k, rpnwf[0], &(res->val[2*k-2]));
-    array_cp(k, rpnwf[1], &(res->val[3*k-2]));
-
-    // check if poles are non negative
-    /*
-    REAL polez;
-    for(i = 0; i < k-1; ++i) {
-      polez = res->val[i];
-      if(polez > 0e0) {
-	    fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Positive pole in function=%s", \
-	        __FUNCTION__);
-	    fprintf(stdout,"\n%%%%%%  0 < pole(%d)=%.16e\n", i, polez);
-	    break;
-      }
-    }*/
+    array_cp(k-1, polesr, res->val);
+    array_cp(k-1, polesi, &(res->val[k-1]));
+    array_cp(k, resr, &(res->val[2*k-2]));
+    array_cp(k, resi, &(res->val[3*k-2]));
 
     // clean
+    free(resr); free(resi); free(polesr); free(polesi);
     if(rpnwf[0]) free(rpnwf[0]);
     if(rpnwf) free(rpnwf);
     free(zz); free(ff);
