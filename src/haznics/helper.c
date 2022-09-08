@@ -481,7 +481,7 @@ precond* create_precond_ra(dCSRmat *A,
 
     /* AAA algorithm for the rational approximation */
     // parameters used in the AAA algorithm
-    INT mmax_in = 30;  // maximal final number of pole + 1
+    INT mmax_in = 50;  // maximal final number of pole + 1
     REAL16 AAA_tol = powl(2e0,-40e0);  // tolerance of the AAA algorithm
     INT k = -22; // k is the number of nodes in the final interpolation after tolerance is achieved or mmax is reached.
     INT print_level = 0; // print level for AAA
@@ -499,7 +499,7 @@ precond* create_precond_ra(dCSRmat *A,
 
     // assign poles and residues
     REAL drop_tol = AAA_tol;
-    INT ii = 1; // skip first residue
+    INT ii; // skip first residue
 
     REAL *polesr = malloc((k-1) * sizeof(REAL));
     REAL *polesi = malloc((k-1) * sizeof(REAL));
@@ -508,17 +508,18 @@ precond* create_precond_ra(dCSRmat *A,
 
     /* filter poles and residues smaller than some tolerance */
     // Note: free residual is always only real! also, it's always saved to preserve the numbering (N poles, N+1 residues)
+    ii=1;
     resi[0] = 0.;
     if(fabs(rpnwf[0][0]) < drop_tol) resr[0] = 0.; else resr[0] = rpnwf[0][0];
 
     for(i = 1; i < k; ++i) {
         if((fabs(rpnwf[0][i]) < drop_tol) && (fabs(rpnwf[1][i]) < drop_tol)) {
             // Case 1: remove poles and residues where abs(res) < tol
-            fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Pole number reduced in function=%s \n", \
-                    __FUNCTION__);
-            fprintf(stdout,"%%%%%%  Removing pole[%d] = %.8e + %.8e i \t residue[%d] = %.8e + %.8e i\n", \
-	                i-1, rpnwf[2][i-1], rpnwf[3][i-1], i, rpnwf[0][i], rpnwf[1][i]);
-	        fflush(stdout);
+            /* fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Pole number reduced in function=%s \n", \ */
+            /*         __FUNCTION__);fflush(stdout); */
+            /* fprintf(stdout,"%%%%%%  Removing pole[%d] = %.8e + %.8e i \t residue[%d] = %.8e + %.8e i\n", \ */
+	    /*             i-1, rpnwf[2][i-1], rpnwf[3][i-1], i, rpnwf[0][i], rpnwf[1][i]); */
+	    /*     fflush(stdout); */
         }
         else if((fabs(rpnwf[0][i]) > drop_tol) && (fabs(rpnwf[3][i-1]) < drop_tol)) {
             // Case 2: only real residues and poles (Note: if Im(pole) = 0, then Im(res) = 0.)
@@ -534,11 +535,11 @@ precond* create_precond_ra(dCSRmat *A,
             }
             // if we found it, skip it
             if(j < ii-1) {
-                fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Pole number reduced in function=%s \n", \
-                    __FUNCTION__);
-                fprintf(stdout,"%%%%%%  Removing pole[%d] = %.8e + %.8e i \t residue[%d] = %.8e + %.8e i\n", \
-                        i-1, rpnwf[2][i-1], rpnwf[3][i-1], i, rpnwf[0][i], rpnwf[1][i]);
-                fflush(stdout);
+                /* fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Pole number reduced in function=%s \n", \ */
+                /*     __FUNCTION__);fflush(stdout); */
+                /* fprintf(stdout,"%%%%%%  Removing pole[%d] = %.8e + %.8e i \t residue[%d] = %.8e + %.8e i\n", \ */
+                /*         i-1, rpnwf[2][i-1], rpnwf[3][i-1], i, rpnwf[0][i], rpnwf[1][i]); */
+                /* fflush(stdout); */
             }
             else {
                 polesi[ii-1] = rpnwf[3][i-1]; // this should be always > drop_tol in Case 3
@@ -550,8 +551,10 @@ precond* create_precond_ra(dCSRmat *A,
         }
     }
     // new number of poles+1
-    k = ii;
-
+    if(k>ii){
+      fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Pole/residues number reduced in function=%s (%d out of %d residues dropped)",__FUNCTION__,k-ii,k);fflush(stdout);    
+      k = ii;
+    }
     // the easiest way seems to first save real part and then imag part
     pcdata->residues = dvec_create_p(2*k);
     pcdata->poles = dvec_create_p(2*(k-1));
@@ -686,7 +689,7 @@ dvector* ra_aaa(int numval,
 
     /* AAA algorithm for the rational approximation */
     // parameters used in the AAA algorithm
-    INT mmax_in = 30;  // maximal final number of pole + 1
+    INT mmax_in = 50;  // maximal final number of pole + 1
     INT k = -22; // k is the number of nodes in the final interpolation after tolerance is achieved or mmax is reached.
     INT print_level = 1; // print level for AAA
 
@@ -714,7 +717,7 @@ dvector* ra_aaa(int numval,
 
     // assign poles and residues
     REAL drop_tol = AAA_tol;
-    INT ii = 1; // skip first residue
+    INT ii; // skip first residue
 
     REAL *polesr = malloc((k-1) * sizeof(REAL));
     REAL *polesi = malloc((k-1) * sizeof(REAL));
@@ -725,15 +728,15 @@ dvector* ra_aaa(int numval,
     // Note: free residual is always only real! also, it's always saved to preserve the numbering (N poles, N+1 residues)
     resi[0] = 0.;
     if(fabs(rpnwf[0][0]) < drop_tol) resr[0] = 0.; else resr[0] = rpnwf[0][0];
-
+    ii=1;
     for(i = 1; i < k; ++i) {
         if((fabs(rpnwf[0][i]) < drop_tol) && (fabs(rpnwf[1][i]) < drop_tol)) {
             // Case 1: remove poles and residues where abs(res) < tol
-            fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Pole number reduced in function=%s \n", \
-                    __FUNCTION__);
-            fprintf(stdout,"%%%%%%  Removing pole[%d] = %.8e + %.8e i \t residue[%d] = %.8e + %.8e i\n", \
-	                i-1, rpnwf[2][i-1], rpnwf[3][i-1], i, rpnwf[0][i], rpnwf[1][i]);
-	        fflush(stdout);
+            /* fprintf(stderr,"\n%%%%%% *** WHAZMATH WARNING*** Pole number reduced in function=%s \n", \ */
+            /*         __FUNCTION__);fflush(stdout); */
+            /* fprintf(stdout,"%%%%%%  Removing pole[%d] = %.8e + %.8e i \t residue[%d] = %.8e + %.8e i\n", \ */
+	    /*             i-1, rpnwf[2][i-1], rpnwf[3][i-1], i, rpnwf[0][i], rpnwf[1][i]); */
+	    /*     fflush(stdout); */
         }
         else if((fabs(rpnwf[0][i]) > drop_tol) && (fabs(rpnwf[3][i-1]) < drop_tol)) {
             // Case 2: only real residues and poles (Note: if Im(pole) = 0, then Im(res) = 0.)
@@ -749,11 +752,11 @@ dvector* ra_aaa(int numval,
             }
             // if we found it, skip it
             if(j < ii-1) {
-                fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Pole number reduced in function=%s \n", \
-                    __FUNCTION__);
-                fprintf(stdout,"%%%%%%  Removing pole[%d] = %.8e + %.8e i \t residue[%d] = %.8e + %.8e i\n", \
-                        i-1, rpnwf[2][i-1], rpnwf[3][i-1], i, rpnwf[0][i], rpnwf[1][i]);
-                fflush(stdout);
+                /* fprintf(stderr,"\n%%%%%% *** XHAZMATH WARNING*** Pole number reduced in function=%s \n", \ */
+                /*     __FUNCTION__);fflush(stdout); */
+                /* fprintf(stdout,"%%%%%%  Removing pole[%d] = %.8e + %.8e i \t residue[%d] = %.8e + %.8e i\n", \ */
+                /*         i-1, rpnwf[2][i-1], rpnwf[3][i-1], i, rpnwf[0][i], rpnwf[1][i]); */
+                /* fflush(stdout); */
             }
             else {
                 polesi[ii-1] = rpnwf[3][i-1]; // this should be always > drop_tol in Case 3
@@ -765,7 +768,10 @@ dvector* ra_aaa(int numval,
         }
     }
     // new number of poles+1
-    k = ii;
+    if(k>ii){
+      fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Pole/residues number reduced in function=%s (%d out of %d residues dropped)\n",__FUNCTION__,k-ii,k);fflush(stdout);    
+      k = ii;
+    }
 
     // assign poles and residuals
     dvector *res = dvec_create_p(4*k - 2);
