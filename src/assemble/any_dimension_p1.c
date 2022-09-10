@@ -155,7 +155,7 @@ REAL *local_mm(const INT dim)
 }
 /*******************************************************************************/
 /*!
- * \fn static void local_coords(const INT dim,REAL *xs,INT *nodes,REAL *x)
+ * \fn void local_coords(const INT dim,REAL *xs,INT *nodes,REAL *x)
  *
  * \brief grabs the coordinates of the vertices of a simplex and
  *        stores them in an array xs[(dim+1)*dim].
@@ -175,7 +175,7 @@ REAL *local_mm(const INT dim)
  *
  * \note
  */
-static void local_coords(const INT dim,REAL *xs,INT *nodes, REAL *x)
+void local_coords(const INT dim,REAL *xs,INT *nodes, REAL *x)
 {
   // from global coords x and nodes=element-vertex for a particular element
   // correspondence extract the local coordinates from x in xs.

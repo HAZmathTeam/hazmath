@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
   /*   mapit(sc,vc); */
   /* } */
   ////////////////////////////////////////////// END MAP IT. 
-  sol=fe_sol(sc,1.0,1.0);
+  sol=fe_sol_no_dg(sc,1.0,1.0);
   short todraw=0;
   draw_grids(todraw, sc,&sol);
   /* write the output mesh file:    */
