@@ -499,7 +499,7 @@ precond* create_precond_ra(dCSRmat *A,
     printf(" HAZ ---- Rational approx error in interp points: %.16e\n", err_max);
 
     // assign poles and residues
-    REAL drop_tol = AAA_tol;
+    REAL drop_tol = powl(2e0,-40e0);
     INT ii; // skip first residue
 
     REAL *polesr = malloc((k-1) * sizeof(REAL));
