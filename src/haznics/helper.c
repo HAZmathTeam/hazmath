@@ -433,6 +433,7 @@ precond* create_precond_ra(dCSRmat *A,
                            REAL beta,
                            REAL scaling_a,
                            REAL scaling_m,
+			   REAL ra_tol,
                            AMG_param *amgparam)
 {
     precond *pc = (precond*)calloc(1, sizeof(precond));
@@ -482,7 +483,7 @@ precond* create_precond_ra(dCSRmat *A,
     /* AAA algorithm for the rational approximation */
     // parameters used in the AAA algorithm
     INT mmax_in = 50;  // maximal final number of pole + 1
-    REAL16 AAA_tol = powl(2e0,-40e0);  // tolerance of the AAA algorithm
+    REAL16 AAA_tol = fmax(ra_tol, powl(2e0,-40e0));  // tolerance of the AAA algorithm
     INT k = -22; // k is the number of nodes in the final interpolation after tolerance is achieved or mmax is reached.
     INT print_level = 0; // print level for AAA
     // output of the AAA algorithm.  It contains residues (Re + Im), poles (Re + Im), nodes, weights, function values

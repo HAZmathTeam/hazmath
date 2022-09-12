@@ -224,7 +224,7 @@ precond* create_precond_amg(dCSRmat *A, AMG_param *amgparam);
 precond* set_precond(void *data, void (*foo)(REAL*, REAL*, void*));
 precond* create_precond(dCSRmat *A, AMG_param *amgparam);
 precond* create_precond_famg(dCSRmat *A, dCSRmat *M, AMG_param *amgparam);
-precond* create_precond_ra(dCSRmat *A, dCSRmat *M, REAL s_frac_power, REAL t_frac_power, REAL alpha, REAL beta, REAL scaling_a, REAL scaling_m, AMG_param *amgparam);
+precond* create_precond_ra(dCSRmat *A, dCSRmat *M, REAL s_frac_power, REAL t_frac_power, REAL alpha, REAL beta, REAL scaling_a, REAL scaling_m, REAL ra_tol, AMG_param *amgparam);
 precond* create_precond_hxcurl(dCSRmat *Acurl, dCSRmat *Pcurl, dCSRmat *Grad, SHORT prectype, AMG_param *amgparam);
 precond* create_precond_hxdiv_3D(dCSRmat *Adiv, dCSRmat *P_div, dCSRmat *Curl, dCSRmat *P_curl, SHORT prectype, AMG_param *amgparam);
 precond* create_precond_hxdiv_2D(dCSRmat *Adiv,dCSRmat *P_div, dCSRmat *Curl, SHORT prectype, AMG_param *amgparam);
