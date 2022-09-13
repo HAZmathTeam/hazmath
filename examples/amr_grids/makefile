@@ -10,12 +10,12 @@ HEADERS = supporting_$(SRCFILE).h
 
 INCLUDE =
 
-LIBS = 
+LIBS =
 
 # Switch between debug or optimized compilation (-O3)
 CFLAGS = -g
 
-WITH_SUITESPARSE=1
+WITH_SUITESPARSE=0
 WITH_LAPACK=1
 
 sinclude ../examples.mk

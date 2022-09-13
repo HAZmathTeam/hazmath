@@ -66,7 +66,7 @@ INT num_lattice(INT *m,const INT dim,INT *nd)
   return kf;
 }
 
-void binary1(const INT dim, unsigned int *bits, INT *nvloc)
+void binary1(const INT dim, unsigned INT *bits, INT *nvloc)
 {
   // coordinates of the vertices of the unit dim-cube as arrays of 0/1 
   INT i,k,kdim=-10,nbits=dim-1;
@@ -74,7 +74,7 @@ void binary1(const INT dim, unsigned int *bits, INT *nvloc)
   for(k = 0;k<(*nvloc);k++){
     kdim=k*dim;
     for (i=nbits ; i >=0; --i){
-      bits[kdim+i] = (unsigned int )(!(k >> i & 1));
+      bits[kdim+i] = (unsigned INT )(!(k >> i & 1));
     }
   }
   return;
@@ -384,7 +384,7 @@ unigrid *ugrid_init(INT n, INT *nd, REAL *xo, REAL *xn)
   ug->n=n; 
   ug->nvcube=(1<<n); 
   ug->ndiv=nd; 
-  ug->bits=(unsigned int *)calloc(n*(ug->nvcube),sizeof(unsigned int));
+  ug->bits=(unsigned INT *)calloc(n*(ug->nvcube),sizeof(unsigned INT));
   binary1(n,ug->bits,&(ug->nvcube));
  if(!xo || !xn){
    ug->xo=(REAL *)calloc(n,sizeof(REAL)); /* coordinates of the origin

@@ -149,8 +149,8 @@ typedef struct /* n-dimensional uniform grid */
 	    */
   INT *ndiv; /*number of divisions in each direction ndiv[dim].
 	       NOTE: nall=(ndiv[dim-1]+1)*...*(ndiv[0]+1) */
-  int nvcube; /* number of vertices on the unit cube in R^n=2^{n}.*/
-  unsigned int *bits; /* the binary digits of all the integers from 0
+  INT nvcube; /* number of vertices on the unit cube in R^n=2^{n}.*/
+  unsigned INT *bits; /* the binary digits of all the integers from 0
 		to 2^{n-1} as an array. These are also the coordinates
 		of the vertices of the unit cube in R^n*/
   REAL *xo; /* coordinates of the origin xo[dim]*/
@@ -173,7 +173,7 @@ typedef struct /* structure to support splitting unit cube into simplices */
 	     cube(n_factorial of them) */
   INT ne; // number of edges in the cube.
   INT nf; // number of n-1 dimensional faces in the cube.
-  unsigned int *bits; /* the binary digits of all the integers from 0
+  unsigned INT *bits; /* the binary digits of all the integers from 0
 		to 2^{n-1} as an array. These are also the coordinates
 		of the vertices of the unit cube in R^n*/
   INT *edges; /* the array containing the ends of edges of the unit cube. */

@@ -673,7 +673,7 @@ static INT  read_data(char **clndata,input_grid *g)
  */
 void x_out(const char *pattern, size_t le)
 {
-  int i;
+  INT i;
   fprintf(stderr, "\n\n\n *** ERROR(%s)::::   \n     UNBALANCED \"{}\" near or before \"",__FUNCTION__);
   for (i=0;i<(le-1);++i)
     fprintf(stderr, "%c",*(pattern+i));
@@ -1130,7 +1130,7 @@ void set_input_grid(INT *nd,input_grid *g,cube2simp *c2s)
   //  print_full_mat_int(g->nf,(c2s->nvface+1),g->mfaces,"mf");
   //  print_full_mat_int(g->nel,(c2s->nvcube+1),g->mnodes,"mel");
   ///newnew
-  memcpy(nd,p,g->dim*sizeof(int));
+  memcpy(nd,p,g->dim*sizeof(INT));
   free(p);
   return;
 }

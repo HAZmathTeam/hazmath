@@ -121,7 +121,7 @@ struct mesh_struct make_uniform_mesh(const INT dim,const INT mesh_ref_levels,con
   scomplex **sc_all=NULL,*sc=NULL,*sctop=NULL;
 
   // Get the coarsest mesh on the cube in dimension dim and set the refinement type.
-  sc_all=mesh_cube_init(dim,mesh_ref_type);
+  sc_all=mesh_cube_init(dim,1,mesh_ref_type);
   sc=sc_all[0];
   if(sc->ref_type>10){
     // Uniform refinement only for dim=2 or dim=3

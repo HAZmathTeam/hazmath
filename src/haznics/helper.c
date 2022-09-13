@@ -1,13 +1,13 @@
 //#include "math.h"
 #include "hazmath.h"
 
-/// A HACK(LUDMIL)
+/// A HACK
 
 #ifndef NPY_INTP
 #define NPY_INTP long
 #endif
 
-/// END A HACK(LUDMIL)
+/// END A HACK
 
 //#include "helper.hidden"
 
@@ -39,7 +39,7 @@ inline static REAL16 frac_inv(REAL16 x, REAL16 s1, REAL16 s2, REAL16 alpha, REAL
 
 
 
-dCSRmat* create_matrix(double *A, int nnz, int *ja, int nnz2, int *ia, int n, int ncol)
+dCSRmat* create_matrix(REAL *A, INT nnz, INT *ja, INT nnz2, INT *ia, INT n, INT ncol)
 {
   dCSRmat *mat = (dCSRmat *)calloc(1, sizeof(dCSRmat));
   mat->row = n-1;
@@ -55,10 +55,10 @@ dCSRmat* create_matrix(double *A, int nnz, int *ja, int nnz2, int *ia, int n, in
   return mat;
 }
 
-dCOOmat* create_matrix_coo(double *A, int nnz, int *ja, int nnz2, int *ia, int n, int ncol)
+dCOOmat* create_matrix_coo(REAL *A, INT nnz, INT *ja, INT nnz2, INT *ia, INT n, INT ncol)
 {
   dCOOmat *mat = (dCOOmat *)calloc(1, sizeof(dCOOmat));
-  int i, ij;
+  INT i, ij;
   mat->row = n-1;
   mat->col = ncol;
   mat->nnz = nnz;
@@ -77,7 +77,7 @@ dCOOmat* create_matrix_coo(double *A, int nnz, int *ja, int nnz2, int *ia, int n
   return mat;
 }
 
-dvector* create_dvector(double *x, int n)
+dvector* create_dvector(REAL *x, INT n)
 {
   /* for now not copy arrays, make test that produce seg. fault  */
   dvector* vec;
@@ -87,7 +87,7 @@ dvector* create_dvector(double *x, int n)
   return vec;
 }
 
-ivector* create_ivector(int *x, int n)
+ivector* create_ivector(INT *x, INT n)
 {
   /* for now not copy arrays, make test that produce seg. fault  */
   ivector* vec;
@@ -678,10 +678,10 @@ INT get_poles_no(precond* pc)
     return data->poles->row;
 }
 
-dvector* ra_aaa(int numval,
-                double *z,
-                double *f,
-                double AAA_tol)
+dvector* ra_aaa(INT numval,
+                REAL *z,
+                REAL *f,
+                REAL AAA_tol)
 {
     INT i, j;
     //------------------------------------------------
@@ -697,7 +697,7 @@ dvector* ra_aaa(int numval,
     // output of the AAA algorithm.  It contains residues (Re + Im), poles (Re + Im), nodes, weights, function values
     REAL **rpnwf = malloc(7 * sizeof(REAL *));
 
-    // cast points and function values to long double
+    // cast points and function values to long REAL
     REAL16 *zz = malloc(numval * sizeof(REAL16));
     REAL16 *ff = malloc(numval * sizeof(REAL16));
 
@@ -1271,53 +1271,53 @@ PyObject* py_callback_setup(PyObject* pyfunc, AMG_param *amgparam)
     return Py_None;
 }
 */
-/*
-PyObject* py_callback_eval(REAL *r, REAL *x, smoother_matvec *smmv)
-{
-    printf("Here I am inside the callback eval\n");
+/* /\* */
+/* PyObject* py_callback_eval(REAL *r, REAL *x, smoother_matvec *smmv) */
+/* { */
+/*     printf("Here I am inside the callback eval\n"); */
 
-    //import_array();
-    // get data
-    //LUDMIL    npy_intp D[1]; D[0] = smmv->data->A->col; t//
-    // LUDMIL Not exactly sure what this (ABOVE) is supposed to do (find number of columns?), so I rewrote it
-    // INT D[1];//LUDMIL
-    // dCSRmat *A=(dCSRmat *)smmv->data; //LUDMIL
-    // D[0] = A->col; //LUDMIL
+/*     //import_array(); */
+/*     // get data */
+/*     //LUDMIL    npy_intp D[1]; D[0] = smmv->data->A->col; t// */
+/*     // LUDMIL Not exactly sure what this (ABOVE) is supposed to do (find number of columns?), so I rewrote it */
+/*     // INT D[1];//LUDMIL */
+/*     // dCSRmat *A=(dCSRmat *)smmv->data; //LUDMIL */
+/*     // D[0] = A->col; //LUDMIL */
 
 
-    // create new Python arrays
-    //LUDMIL: this NPY_DOUBLE is not the right thing, so commenting out
-    PyObject *rr=NULL; //LUDMIL ?
-    PyObject *xx=NULL;  //LUDMIL?
-    //LUDMIL     PyObject *rr = PyArray_SimpleNewFromData(1, D, NPY_DOUBLE, (void*)r);
-    //LUDMIL     PyObject *xx = PyArray_SimpleNewFromData(1, D, NPY_DOUBLE, (void*)x);
+/*     // create new Python arrays */
+/*     //LUDMIL: this NPY_DOUBLE is not the right thing, so commenting out */
+/*     PyObject *rr=NULL; //LUDMIL ? */
+/*     PyObject *xx=NULL;  //LUDMIL? */
+/*     //LUDMIL     PyObject *rr = PyArray_SimpleNewFromData(1, D, NPY_DOUBLE, (void*)r); */
+/*     //LUDMIL     PyObject *xx = PyArray_SimpleNewFromData(1, D, NPY_DOUBLE, (void*)x); */
 
-    // memory management
-    Py_INCREF(rr);
-    Py_INCREF(xx);
+/*     // memory management */
+/*     Py_INCREF(rr); */
+/*     Py_INCREF(xx); */
 
-    // get the function
-    PyObject *pyfunc = (PyObject*)smmv->fct;
-    // check if callable
-    if(!PyCallable_Check(pyfunc)) {
-        PyErr_SetString(PyExc_TypeError, "Smoother matvec function is not (python) callable!");
-        return NULL;
-    }
-    Py_INCREF(pyfunc);
+/*     // get the function */
+/*     PyObject *pyfunc = (PyObject*)smmv->fct; */
+/*     // check if callable */
+/*     if(!PyCallable_Check(pyfunc)) { */
+/*         PyErr_SetString(PyExc_TypeError, "Smoother matvec function is not (python) callable!"); */
+/*         return NULL; */
+/*     } */
+/*     Py_INCREF(pyfunc); */
 
-    // Build up the argument list...
-    PyObject *arglist = Py_BuildValue("(OO)", rr, xx);
+/*     // Build up the argument list... */
+/*     PyObject *arglist = Py_BuildValue("(OO)", rr, xx); */
 
-    // ...for calling the Python function
-    PyObject *result = PyEval_CallObject(pyfunc, arglist);
+/*     // ...for calling the Python function */
+/*     PyObject *result = PyEval_CallObject(pyfunc, arglist); */
 
-    Py_DECREF(arglist);
+/*     Py_DECREF(arglist); */
 
-    PyObject *return_obj = PyUnicode_FromString("everything is gone be ok");
-    return return_obj;
+/*     PyObject *return_obj = PyUnicode_FromString("everything is gone be ok"); */
+/*     return return_obj; */
 
-}
-*/
+/* } */
+/* *\/ */
 
 INT wrapper_krylov_amg(dCSRmat *mat, dvector *rhs, dvector *sol)
 {

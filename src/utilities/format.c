@@ -208,7 +208,7 @@ dBSRmat bdcsr_2_dbsr(block_dCSRmat *Ab)
 
 /***********************************************************************************************/
 /*!
- * \fn block_dCSRmat dcsr_2_bdcsr (dCSRmat *A, int bnum, int *bsize)
+ * \fn block_dCSRmat dcsr_2_bdcsr (dCSRmat *A, INT bnum, INT *bsize)
  *
  * \brief
  *
@@ -223,11 +223,11 @@ dBSRmat bdcsr_2_dbsr(block_dCSRmat *Ab)
  *
  */
 block_dCSRmat dcsr_2_bdcsr (dCSRmat *A,
-                            int bnum,
-                            int *bsize)
+                            INT bnum,
+                            INT *bsize)
 {
     // local variable
-    int i, j;
+    INT i, j;
     SHORT status = SUCCESS;
 
     // allocate block dCSRmat
@@ -239,13 +239,13 @@ block_dCSRmat dcsr_2_bdcsr (dCSRmat *A,
 
 
     // allocate
-    int *idx_row = (int *)calloc(A->row, sizeof(INT));
-    int *idx_col = (int *)calloc(A->col, sizeof(INT));
+    INT *idx_row = (INT *)calloc(A->row, sizeof(INT));
+    INT *idx_col = (INT *)calloc(A->col, sizeof(INT));
 
     for (i=0; i<A->row; i++) idx_row[i] = i;  // generate row index
     for (i=0; i<A->col; i++) idx_col[i] = i;  // generate col index
 
-    int *idx_start = (int *)calloc(bnum, sizeof(INT));
+    INT *idx_start = (INT *)calloc(bnum, sizeof(INT));
     idx_start[0] = 0;
     for (i=0; i<bnum-1; i++) idx_start[i+1] = idx_start[i] + bsize[i];
 

@@ -65,7 +65,7 @@ void param_input (const char *filenm,		\
     }
     // only read when successfully open the file
     while ( status == SUCCESS ) {
-        int     ibuff;
+        INT     ibuff;
         double  dbuff;
         char    sbuff[maxb];
 

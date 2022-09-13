@@ -64,7 +64,7 @@ void haz_scomplex_realloc(scomplex *sc)
  * \note
  *
  */
-REAL chk_sign(const int it, const int nbrit)
+REAL chk_sign(const INT it, const INT nbrit)
 {
 /*
   nbrit is a neighbor of it and this picks the sign of the normal
@@ -552,8 +552,8 @@ void haz_scomplex_free(scomplex *sc)
  * \note
  *
  */
-static unsigned int cmp_simplex(INT n, INT sim1, INT sim2,	\
-			 INT *sv1, INT *sv2, INT *stos1, INT *stos2)
+static unsigned INT cmp_simplex(INT n, INT sim1, INT sim2,		\
+				INT *sv1, INT *sv2, INT *stos1, INT *stos2)
 {
   //sim1 and sim2 are pointers to the neighboring lists of two
   //simplices stos1 and stos2 are pointers to rows in
@@ -565,8 +565,8 @@ static unsigned int cmp_simplex(INT n, INT sim1, INT sim2,	\
   //not, 0 is returned, otherwise 1. no check if the members of the
   //sets are distinct (they should be for the purpose of comparing two
   //simplices.
-  unsigned int fnd;
-  unsigned int nf=0;
+  unsigned INT fnd;
+  unsigned INT nf=0;
   INT i1,k1=-10,i2,k2=-10;
   INT i,j;
   for (i=0;i<n;i++){

@@ -1012,7 +1012,7 @@ void icsr_trans(iCSRmat *A,
     for (i=0;i<n;++i) {
       ibegin=A->IA[i], iend=A->IA[i+1];
       for (p=ibegin;p<iend;p++) {
-        j=A->JA[p]+1;
+        j=A->JA[p]+1L;
         k=AT->IA[j];
         AT->JA[k]=i;
         AT->val[k]=A->val[p];
@@ -3807,7 +3807,7 @@ SHORT bdcsr_delete_rowcol(block_dCSRmat *A,
 *
 * \brief Add a row (vrow) and column (vcol) to a block_dCSRmat sparse matrix A
 *        with diagonal entry 0.  For example, use to add a global constraint like
-*        int p = 0.
+*        INT p = 0.
 *
 * \param ba            Pointer to block_dCSRmat matrix
 * \param vrow          Pointer to row that needs to be added

@@ -15,8 +15,11 @@ import_array();
 
 %numpy_typemaps(short, NPY_SHORT, SHORT)
 %numpy_typemaps(double, NPY_DOUBLE, REAL)
+ /* HOPEFULLY THIS WORKS and we can have all ints to be long ints*/
+%numpy_typemaps(int, NPY_INT, INT)
 
-/*%typemap(in) void (*func_ptr)(double*, double*, void*) {
+
+/*%typemap(in) void (*func_ptr)(REAL*, REAL*, void*) {
   $1 = $input;
 }*/
 
@@ -171,17 +174,17 @@ import_array();
 }
 
 %extend block_dCSRmat{
-  void init(int n, int m) {
+  void init(INT n, INT m) {
     bdcsr_alloc(n,m,$self);
   }
   void debugPrint(){
     printf("n, m = %d, %d \n", $self->bcol, $self->brow);
   }
-  dCSRmat* get(int i, int j) {
+  dCSRmat* get(INT i, INT j) {
       return ($self)->blocks[$self->bcol*i + j];
       /*OOPS     return ($self)->blocks[i + $self->brow*j];*/
     }
-  void set(int i, int j, dCSRmat* mat) {
+  void set(INT i, INT j, dCSRmat* mat) {
     /*      ($self)->blocks[i + $self->brow*j] = mat;*/
       ($self)->blocks[$self->bcol*i + j] = mat;
     }
@@ -189,33 +192,33 @@ import_array();
 
 };
 
-%apply (double* IN_ARRAY1, int DIM1) {(double* A, int nnz)};
-%apply (int* IN_ARRAY1, int DIM1) {(int* ja, int nnz2)};
-%apply (int* IN_ARRAY1, int DIM1) {(int* ia, int n)};
-%apply (int ncol) {(int ncol)};
-dCSRmat* create_matrix(double *A, int nnz, int *ja, int nnz2, int *ia, int n, int ncol);
-%clear (double *A, int nnz);
-%clear (int* ja, int nnz2);
-%clear (int *ia, int n);
-%clear (int ncol);
+%apply (REAL* IN_ARRAY1, INT DIM1) {(REAL* A, INT nnz)};
+%apply (INT* IN_ARRAY1, INT DIM1) {(INT* ja, INT nnz2)};
+%apply (INT* IN_ARRAY1, INT DIM1) {(INT* ia, INT n)};
+%apply (INT ncol) {(INT ncol)};
+dCSRmat* create_matrix(REAL *A, INT nnz, INT *ja, INT nnz2, INT *ia, INT n, INT ncol);
+%clear (REAL *A, INT nnz);
+%clear (INT* ja, INT nnz2);
+%clear (INT *ia, INT n);
+%clear (INT ncol);
 
-%apply (double* IN_ARRAY1, int DIM1) {(double* A, int nnz)};
-%apply (int* IN_ARRAY1, int DIM1) {(int* ja, int nnz2)};
-%apply (int* IN_ARRAY1, int DIM1) {(int* ia, int n)};
-%apply (int ncol) {(int ncol)};
-dCOOmat* create_matrix_coo(double *A, int nnz, int *ja, int nnz2, int *ia, int n, int ncol);
-%clear (double *A, int nnz);
-%clear (int* ja, int nnz2);
-%clear (int *ia, int n);
-%clear (int ncol);
+%apply (REAL* IN_ARRAY1, INT DIM1) {(REAL* A, INT nnz)};
+%apply (INT* IN_ARRAY1, INT DIM1) {(INT* ja, INT nnz2)};
+%apply (INT* IN_ARRAY1, INT DIM1) {(INT* ia, INT n)};
+%apply (INT ncol) {(INT ncol)};
+dCOOmat* create_matrix_coo(REAL *A, INT nnz, INT *ja, INT nnz2, INT *ia, INT n, INT ncol);
+%clear (REAL *A, INT nnz);
+%clear (INT* ja, INT nnz2);
+%clear (INT *ia, INT n);
+%clear (INT ncol);
 
-%apply (double* IN_ARRAY1, int DIM1) {(double* x, int n)};
-dvector* create_dvector(double *x, int n);
-%clear (double* x, int n);
+%apply (REAL* IN_ARRAY1, INT DIM1) {(REAL* x, INT n)};
+dvector* create_dvector(REAL *x, INT n);
+%clear (REAL* x, INT n);
 
-%apply (int* IN_ARRAY1, int DIM1) {(int* x, int n)};
-ivector* create_ivector(int *x, int n);
-%clear (int* x, int n);
+%apply (INT* IN_ARRAY1, INT DIM1) {(INT* x, INT n)};
+ivector* create_ivector(INT *x, INT n);
+%clear (INT* x, INT n);
 
 /* this is here because helper functions seems to not be available in the library */
 /* NB: it will produce warnings in haznicswrap - this should be fixed later */
@@ -232,16 +235,16 @@ INT get_poles_no(precond *pc);
 INT fenics_bsr_solver(INT block_size, dCSRmat *A, dvector *b, dvector *sol);
 // dvector* compute_ra_aaa(REAL s_frac_power, REAL t_frac_power, REAL alpha, REAL beta, REAL scaling_a, REAL scaling_m);
 
-%apply (int DIM1, double* IN_ARRAY1) {(int numval, double* z),
-                                      (int numval2, double* f)};
-//%apply (double AAA_tol) {(double AAA_tol)};
+%apply (INT DIM1, REAL* IN_ARRAY1) {(INT numval, REAL* z),
+                                      (INT numval2, REAL* f)};
+//%apply (REAL AAA_tol) {(REAL AAA_tol)};
 %rename (ra_aaa) my_ra_aaa;
 %exception my_ra_aaa {
     $action
     if (PyErr_Occurred()) SWIG_fail;
 }
 %inline %{
-dvector* my_ra_aaa(int numval, double* z, int numval2, double* f, double AAA_tol) {
+dvector* my_ra_aaa(INT numval, REAL* z, INT numval2, REAL* f, REAL AAA_tol) {
     if (numval != numval2) {
         PyErr_Format(PyExc_ValueError,
                      "Arrays of lengths (%d,%d) given",
@@ -254,8 +257,8 @@ dvector* my_ra_aaa(int numval, double* z, int numval2, double* f, double AAA_tol
 
 //void print_precond_ra_amgparam(precond *pc);
 
-%apply (int DIM1, double* IN_ARRAY1) {(int len1, double* vec1),
-                                      (int len2, double* vec2)}
+%apply (INT DIM1, REAL* IN_ARRAY1) {(INT len1, REAL* vec1),
+                                      (INT len2, REAL* vec2)}
 //%apply (precond* pc_) {(precond* pc)}
 %rename (apply_precond) my_apply_precond;
 %exception my_apply_precond {
@@ -263,7 +266,7 @@ dvector* my_ra_aaa(int numval, double* z, int numval2, double* f, double AAA_tol
     if (PyErr_Occurred()) SWIG_fail;
 }
 %inline %{
-    void my_apply_precond(int len1, double* vec1, int len2, double* vec2, precond* pc) {
+    void my_apply_precond(INT len1, REAL* vec1, INT len2, REAL* vec2, precond* pc) {
         if (len1 != len2) {
             PyErr_Format(PyExc_ValueError,
                          "Arrays of lengths (%d,%d) given",
@@ -334,18 +337,18 @@ dvector* my_ra_aaa(int numval, double* z, int numval2, double* f, double AAA_tol
 %}
 
 /* callback function as constant?
-%constant void precond_amg(double*, double*, void*);
-%constant void precond_amli(double*, double*, void*);
-%constant void precond_nl_amli(double*, double*, void*);
-%constant void precond_amg_add(double*, double*, void*);
+%constant void precond_amg(REAL*, REAL*, void*);
+%constant void precond_amli(REAL*, REAL*, void*);
+%constant void precond_nl_amli(REAL*, REAL*, void*);
+%constant void precond_amg_add(REAL*, REAL*, void*);
  */
 
 /* callback function directive
 %callback("%s_cb");
-void precond_amg(double*, double*, void*);
-void precond_amli(double*, double*, void*);
-void precond_nl_amli(double*, double*, void*);
-void precond_amg_add(double*, double*, void*);
+void precond_amg(REAL*, REAL*, void*);
+void precond_amli(REAL*, REAL*, void*);
+void precond_nl_amli(REAL*, REAL*, void*);
+void precond_amg_add(REAL*, REAL*, void*);
 %nocallback;
  */
 

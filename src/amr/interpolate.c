@@ -131,7 +131,7 @@ REAL interp8(cube2simp *c2s, REAL *u, REAL *ue, REAL *xhat)
   * \note
   *
   */
-void data_transform(const INT nv, const int m,			\
+void data_transform(const INT nv, const INT m,			\
 		    REAL *data, REAL *xodst, REAL *xndst)
 {
   INT i,j;
@@ -183,7 +183,7 @@ void interp1(const INT dimbig, REAL *fi, unigrid *ug,	\
   REAL xoj;
   //  unsigned int bi,bi1;
   REAL *xo = ug->xo,*dx = ug->dx;// *xn = ug->xn;
-  unsigned int *bits=ug->bits;
+  unsigned INT *bits=ug->bits;
   INT nvcube=ug->nvcube;
   //    fprintf(stderr,"\nnvcube=%d\n",nvcube);
   cube2simp *c2s=cube2simplex(dim);
@@ -193,7 +193,7 @@ void interp1(const INT dimbig, REAL *fi, unigrid *ug,	\
   REAL *xhat=(REAL *)calloc(dim,sizeof(REAL));
   /*NOTE: nd[] are the number of DIVISIONS (not number of vertices)
     for every direction */
-  unsigned int found;
+  unsigned INT found;
   REAL eps0=1e-8;
   for (i = 0; i<nvert;i++){
     if(mask != NULL) {

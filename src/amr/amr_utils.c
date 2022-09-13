@@ -249,7 +249,7 @@ void marks(scomplex *sc,dvector *errors)
  * \author ludmil (20151010) 
  *
  */
-unsigned int reflect2(INT n, INT is, INT it,				\
+unsigned INT reflect2(INT n, INT is, INT it,				\
 		      INT* sv1, INT *sv2, INT* stos1, INT* stos2,	\
 		      INT visited, INT *wrk)
 /*************************************************************/
@@ -649,7 +649,7 @@ static void binary0(cube2simp *c2s)
     }
   }
   shift=(1<<(c2s->n-1));
-  INT nperm,jp=-22,jpo=-22,mid=(int)(c2s->nvcube/2);
+  INT nperm,jp=-22,jpo=-22,mid=(INT)(c2s->nvcube/2);
   for(k=0;k<nvcube;k++) c2s->perms[k]=k;
   /* form all n+1 permutations in reverse order! why in reverse order?...*/
   nperm=1;
@@ -657,7 +657,7 @@ static void binary0(cube2simp *c2s)
     jp=nperm*nvcube; jpo=jp+mid;
     for(k = 0;k<nvcube;k++){
       kn=k*c2s->n;
-      if((int)c2s->bits[kn+j]){
+      if((INT)c2s->bits[kn+j]){
 	c2s->perms[jp]=k;
 	c2s->perms[jpo]=k-shift;
 	jp++;jpo++;

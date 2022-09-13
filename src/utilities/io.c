@@ -196,7 +196,7 @@ void dvector_read (const char *filename,
                    dvector *b)
 {
 
-  int  i, n;
+  INT  i, n;
   REAL value;
 
   FILE *fp = fopen(filename,"r");
@@ -734,7 +734,7 @@ void bdcsr_write_dcoo(const char *filename,
 void dcoo_read_dcsr (const char *filename,
                      dCSRmat *A)
 {
-  int  i,j,k,m,n,nnz;
+  INT  i,j,k,m,n,nnz;
   REAL value;
 
   FILE *fp = fopen(filename,"r");
@@ -1545,7 +1545,7 @@ scomplex *hazr(char *namein)
  * uses the simplicial complex data structure (scomplex *sc).
  *
  *************************************************************************/
-void hazw(char *nameout,scomplex *sc, const int shift)
+void hazw(char *nameout,scomplex *sc, const INT shift)
 {
   // WRITING in HAZMATH format.
   FILE *fmesh;
@@ -1840,7 +1840,7 @@ void print_matlab_vector_field(dvector* ux, dvector* uy, dvector* uz, fespace* F
  */
 dCSRmat *dcoo_read_eof_dcsr_p (FILE *fp,INT *size)
 {
-  int  i,j,k,m,n,nnz,ichk;
+  INT i,j,k,m,n,nnz,ichk;
   REAL value;
   dCSRmat *A=NULL;
   if(size){
@@ -1894,7 +1894,7 @@ dCSRmat *dcoo_read_eof_dcsr_p (FILE *fp,INT *size)
  */
 dvector *dvector_read_eof_p(FILE *fp)
 {
-  int  i, n,ichk;
+  INT  i, n,ichk;
   REAL value;
   dvector *b=NULL;
   n=0;
@@ -1936,7 +1936,7 @@ dvector *dvector_read_eof_p(FILE *fp)
  */
 dCSRmat *dcoo_read_dcsr_p(FILE *fp)
 {
-  int  i,j,k,m,n,nnz;
+  INT  i,j,k,m,n,nnz;
   //INT  val;
   REAL value;
   INT offset;
@@ -2000,7 +2000,7 @@ dCSRmat *dcoo_read_dcsr_p(FILE *fp)
  */
 dCSRmat *dcoo_read_dcsr_p_1(FILE *fp)
 {
-  int  i,j,k,m,n,nnz;
+  INT  i,j,k,m,n,nnz;
   //INT  val;
   REAL value;
   INT offset;

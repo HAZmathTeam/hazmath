@@ -4,9 +4,9 @@
 # SRC File name
 SRCFILE = elliptic_p1
 
-HEADERS = #supporting_$(SRCFILE).h
+HEADERS = supporting_$(SRCFILE).h
 
-INCLUDE =	
+INCLUDE =
 
 LIBS = 
 

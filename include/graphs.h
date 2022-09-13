@@ -3,10 +3,10 @@
  * \brief  to be added -- Ludmil
  */
 typedef struct stack {
-  int top;
-  int num_items;
-  int null_item;
-  int *items;
+  INT top;
+  INT num_items;
+  INT null_item;
+  INT *items;
 } stack;
 //////////////////////////////////////////////////////////////
 /**

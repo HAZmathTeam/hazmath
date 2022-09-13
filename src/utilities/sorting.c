@@ -37,7 +37,7 @@ void dlexsort(const INT nr, const INT nc,REAL *a,INT *p)
      with inv permutation aorig[]=a[invp[i]] where invp[p[i]]=i;
   */
   INT i,j,k,pj;
-  unsigned int lt=0;
+  unsigned INT lt=0;
   REAL *aj=(REAL *)calloc(nc,sizeof(REAL));
   for (i = 0; i < nr; i++){p[i]=i;}
   for (j = 1; j < nr; ++j) {
@@ -97,7 +97,7 @@ void ilexsort(const INT nr, const INT nc,INT *a,INT *p)
      with inv permutation aorig[]=a[invp[i]] where invp[p[i]]=i;
   */
   INT i,j,k,pj;
-  unsigned int lt=0;
+  unsigned INT lt=0;
   INT *aj=(INT *)calloc(nc,sizeof(INT));
   for (i = 0; i < nr; i++){p[i]=i;}
   for (j = 1; j < nr; ++j) {

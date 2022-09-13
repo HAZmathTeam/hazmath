@@ -27,7 +27,7 @@
  *
  */
 /****************************************************************/
-scomplex **mesh_cube_init(const INT dim, const INT ref_type)
+scomplex **mesh_cube_init(const INT dim, const INT ndiv, const INT ref_type)
 {
   INT i,j,in;
   scomplex **sc_all=NULL;
@@ -87,7 +87,7 @@ scomplex **mesh_cube_init(const INT dim, const INT ref_type)
     j2=c2s->edges[2*i+1];
     g->seg[3*i]   =  j1;
     g->seg[3*i+1] =  j2;
-    g->seg[3*i+2] =  1;
+    g->seg[3*i+2] =  ndiv;
     for(j=0;j<dim;++j)
       g->xe[j+i*dim]=0.5*(g->xv[j+j1*dim]+g->xv[j+j2*dim]);
   }
@@ -102,7 +102,7 @@ scomplex **mesh_cube_init(const INT dim, const INT ref_type)
   g->num_refine_points=0;
   g->print_level=0;
   g->data_refine_points=NULL;
-  //  input_grid_print(g);
+  if(g->print_level>15) input_grid_print(g);
   sc_all=generate_initial_grid(g);
   input_grid_free(g);
   //////////////////////////////////////////////////////

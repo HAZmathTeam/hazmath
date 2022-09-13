@@ -626,7 +626,7 @@ void precond_block_data_free(precond_block_data *precdata,
                              const INT nb,
                              SHORT flag)
 {
-    int i;
+    INT i;
 
     for (i=0; i<nb; i++)
     {

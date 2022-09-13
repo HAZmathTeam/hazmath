@@ -185,8 +185,8 @@ void python_wrapper_krylov_block_2(INT *n,
     sol.row = *n; sol.val = u;
 
     // convert into 2 by 2 block CSR matrix
-    int *bsize;
-    bsize = (int *)calloc(2, sizeof(int));
+    INT *bsize;
+    bsize = (INT *)calloc(2, sizeof(INT));
     bsize[0] = mat_csr.row/2; bsize[1] = mat_csr.row/2;
 
     block_dCSRmat mat_bdcsr = dcsr_2_bdcsr(&mat_csr, 2, bsize);

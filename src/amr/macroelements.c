@@ -1231,7 +1231,7 @@ void fix_grid(macrocomplex *mc,		\
   /*   } */
   /*   haz_scomplex_print(scin[jel],0,"JEL"); */
   /* }   */
-  if(g0->print_level>5){
+  if(g0->print_level>15){
     for(kel=0;kel<mc->nel;kel++){
       fprintf(stdout,"\nelement{%d}=[",kel);
       for (i = 0;i<(nvcube+1);i++){
@@ -1339,6 +1339,7 @@ scomplex **generate_initial_grid(input_grid *g0)
   while(chng && (iter<maxiter)){
     iter++;
     // make the divisions in g0->seg consistent;
+    //    input_grid_print(g0);
     chng=set_ndiv_edges(g,g0,c2s,mc->nd,iter);
   }
   /*PLACE HOLDERS*/
