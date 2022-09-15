@@ -705,7 +705,6 @@ static void num_assembly(INT ndof, INT *ia, INT *ja,	\
 static dvector fe_sol_no_dg(scomplex *sc,const REAL alpha,const REAL gamma)
 {
   INT solver_flag=-10,print_level=0;
-  clock_t clk_assembly_start = clock(); // begin assembly timing;
   INT i,j,k,idim1,jdim1;  // loop and working
   INT ns,nv,nnz; // num simplices, vertices, num nonzeroes
   REAL volume,fact; //mass matrix entries and dim factorial.  
@@ -742,6 +741,7 @@ static dvector fe_sol_no_dg(scomplex *sc,const REAL alpha,const REAL gamma)
   find_bndry_vertices(sc->n,sc->ns,sc->nodes,idir.val);
   ivec_set(idir.row,&idir,-1);  
   dCSRmat A;
+  clock_t clk_assembly_start = clock(); // begin assembly timing;
   symb_assembly(ns, ndof, ndofloc, sc->nodes,&A.IA, &A.JA,idir.val);
   //
   A.row=nv; A.col=nv;  A.nnz=A.IA[nv];
@@ -798,6 +798,7 @@ static dvector fe_sol_no_dg(scomplex *sc,const REAL alpha,const REAL gamma)
   fprintf(stdout,"\n%%%%%%CPUtime(assembly) = %.3f sec\n",
 	  (REAL ) (clk_assembly_end - clk_assembly_start)/CLOCKS_PER_SEC);
   /*SOLVER SOLVER*/
+  clock_t clk_solver_start = clock(); // begin assembly timing;
   dvector sol=dvec_create(nv);
   // use the same as f for the solution;
   linear_itsolver_param linear_itparam;
@@ -863,6 +864,9 @@ static dvector fe_sol_no_dg(scomplex *sc,const REAL alpha,const REAL gamma)
     solver_flag = linear_solver_dcsr_krylov_amg(&A, &rhs, &sol, &linear_itparam, &amgparam);
     break;
   }
+  clock_t clk_solver_end = clock(); // End of timing for mesh and FE setup
+  fprintf(stdout,"\n%%%%%%CPUtime(solver) = %.3f sec\n",
+	  (REAL ) (clk_solver_end - clk_solver_start)/CLOCKS_PER_SEC);
   dcsr_free(&A);
   dvec_free(&rhs);
   return sol;// return solution

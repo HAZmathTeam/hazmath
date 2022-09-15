@@ -23,7 +23,7 @@
 #endif
 /**/
 #ifndef REFINEMENT_LEVELS
-#define REFINEMENT_LEVELS 5
+#define REFINEMENT_LEVELS 6
 #endif
 /**/
 #ifndef SPATIAL_DIMENSION
@@ -36,6 +36,9 @@
 /****************************************************************************/
 int main(int argc, char *argv[])
 {
+  // Overall CPU Timing
+  clock_t clk_all_start = clock();
+  //
   INT ref_levels=REFINEMENT_LEVELS;
   INT dim=SPATIAL_DIMENSION;
   INT ref_type=REFINEMENT_TYPE; // >10 uniform refinement;
@@ -48,11 +51,18 @@ int main(int argc, char *argv[])
   fprintf(stdout,"ndiv=%ld\n",(long )ndiv);
   //  exit(55);
   sol.row=0;  sol.val=NULL;
+  // Time the mesh generation and FE setup
+  clock_t clk_mesh_start = clock();
   sc_all=mesh_cube_init(dim,ndiv,ref_type);
   sc=sc_all[0];
   /**/
-  scfinalize(sc,(INT )1);
+  scfinalize(sc,(INT )1);  
   sc_vols(sc);
+  clock_t clk_mesh_end = clock();
+  fprintf(stdout,"\n%%%%%%CPUtime(mesh) = %.3f sec\n",
+	  (REAL ) (clk_mesh_end - clk_mesh_start)/CLOCKS_PER_SEC);
+  // Time the mesh generation and FE setup
+  // Time the mesh generation and FE setup
   sol=fe_sol_no_dg(sc,1.0,1.0);
   //  short todraw=0;
   //  draw_grids(todraw, sc,&sol);
@@ -61,5 +71,8 @@ int main(int argc, char *argv[])
   dvec_free(&sol);
   haz_scomplex_free(sc_all[0]);  
   free(sc_all);  
+  clock_t clk_all_end = clock(); // End of timing for mesh and FE setup
+  fprintf(stdout,"\n%%%%%%CPUtime(all) = %.3f sec\n",
+	  (REAL ) (clk_all_end - clk_all_start)/CLOCKS_PER_SEC);
   return 0;
 }
