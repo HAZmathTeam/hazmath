@@ -302,10 +302,10 @@ static void draw_grids(const SHORT todraw,scomplex *sc, dvector *sol)
   INT idsc;
   switch(sc->n){
   case 5:
-    fprintf(stdout,"\n%%%% **** NO PLOT: Dimension=%d is too large for plotting\n\n",sc->n);
+    fprintf(stdout,"\n%%%% **** NO PLOT: Dimension=%lld is too large for plotting\n\n",(long long )sc->n);
     break;
   case 4:
-    fprintf(stdout,"\n%%%% **** NO PLOT: Dimension=%d is too large for plotting\n\n",sc->n);
+    fprintf(stdout,"\n%%%% **** NO PLOT: Dimension=%lld is too large for plotting\n\n",(long long )sc->n);
     /* if(dsc) { */
     /*   idsc = proj_lower_dim(dsc); */
     /*   vtkw("output/4d_to_3d.vtu",dsc,0,1.); */
@@ -390,7 +390,7 @@ static void scomplex_print_matlab(const char *fname,scomplex *sc)
   INT ns_max=100000;
   FILE *fp=fopen(fname,"w");
   if(sc->ns>ns_max){
-    fprintf(fp,"\n%%%% Too large:elements=%d>%d\n",sc->ns,ns_max);
+    fprintf(fp,"\n%%%% Too large:elements=%lld>%lld\n",(long long )sc->ns,(long long )ns_max);
     fclose(fp);
     return;
   }
@@ -398,17 +398,17 @@ static void scomplex_print_matlab(const char *fname,scomplex *sc)
   fprintf(fp,"\nt=[");
   for(j=0;j<n1;j++){
     for(i=0;i<ns-1;++i){
-      fprintf(fp,"%d,",sc->nodes[i*n1+j]);
+      fprintf(fp,"%lld,",(long long )sc->nodes[i*n1+j]);
     }
-    fprintf(fp,"%d;\n",sc->nodes[(ns-1)*n1+j]);
+    fprintf(fp,"%lld;\n",(long long )sc->nodes[(ns-1)*n1+j]);
   }
   fprintf(fp,"];t=t';\n");
   fprintf(fp,"\nnbr=[");
   for(j=0;j<n1;j++){
     for(i=0;i<ns-1;i++){
-      fprintf(fp,"%d,",sc->nbr[i*n1+j]);
+      fprintf(fp,"%lld,",(long long )sc->nbr[i*n1+j]);
     }
-    fprintf(fp,"%d;\n",sc->nbr[(ns-1)*n1+j]);
+    fprintf(fp,"%lld;\n",(long long )sc->nbr[(ns-1)*n1+j]);
   }
   fprintf(fp,"];nbr=nbr';\n");
   //
@@ -422,9 +422,9 @@ static void scomplex_print_matlab(const char *fname,scomplex *sc)
   fprintf(fp,"];xp=xp';\n");
   fprintf(fp,"\nib=[");  
   for(i=0;i<nv-1;i++){
-    fprintf(fp,"%d,",sc->bndry[i]);
+    fprintf(fp,"%lld,",(long long )sc->bndry[i]);
   }
-  fprintf(fp,"%d];ib=ib';\n",sc->bndry[nv-1]);
+  fprintf(fp,"%lld];ib=ib';\n",(long long )sc->bndry[nv-1]);
   fclose(fp);
   return;
 }
@@ -479,7 +479,7 @@ if they intersect in dim points.  in a simplicial mesh of
      forming the boundary_face_2_vertex matrix uses that the
      neighboring list of elements is in accordance with the
   */
-  //  fprintf(stdout,"\nnbf=%d; GUESS=%d,f2v_nnz=%d\n",nbf,f2v.nnz,nbf*dim);fflush(stdout);
+  //  fprintf(stdout,"\nnbf=%lld; GUESS=%lld,f2v_nnz=%lld\n",nbf,f2v.nnz,nbf*dim);fflush(stdout);
   INT nbfnew=0;
   INT nnzf2v=0;
   f2v.IA[0]=nnzf2v;
@@ -498,7 +498,7 @@ if they intersect in dim points.  in a simplicial mesh of
   }
   f2v.nnz=nnzf2v;
   if(nbf!=nbfnew){
-    fprintf(stderr,"\n%%***ERROR(1): num. bndry faces mismatch (nbf=%d .ne. nbfnew=%d) in %s",nbf,nbfnew,__FUNCTION__);
+    fprintf(stderr,"\n%%***ERROR(1): num. bndry faces mismatch (nbf=%lld .ne. nbfnew=%lld) in %s",(long long )nbf,(long long )nbfnew,__FUNCTION__);
     exit(65);
   }
   f2v.IA[nbf]=f2v.nnz;
@@ -506,7 +506,7 @@ if they intersect in dim points.  in a simplicial mesh of
   ///////////////////////////////////////////////////////////
   f2v.row=nbf;
   f2v.col=nv;
-  //  fprintf(stdout,"\nnbf=%d; nv=%d; f2v.nnz=%d\n",nbf,nv,f2v.nnz);fflush(stdout);
+  //  fprintf(stdout,"\nnbf=%lld; nv=%lld; f2v.nnz=%lld\n",nbf,nv,f2v.nnz);fflush(stdout);
   memset(idir,0,nv*sizeof(INT));
   // for bndry vertices k, idir[k]=(nv+1)
   for(k=0;k<f2v.nnz;++k){
@@ -712,7 +712,7 @@ static dvector fe_sol_no_dg(scomplex *sc,const REAL alpha,const REAL gamma)
   // for simplices: number of vertices per simplex. 
   INT dim=0,dim1=1;
   //  scomplex *sc=hazr("3d_example");
-  fprintf(stdout,"ns=%d,nv=%d,dim=%d\n",sc->ns,sc->nv,sc->n); fflush(stdout);
+  fprintf(stdout,"ns=%lld,nv=%lld,dim=%lld\n",(long long )sc->ns,(long long )sc->nv,(long long )sc->n); fflush(stdout);
   dim=sc->n;
   dim1=sc->n+1;  
   nv=sc->nv;// shorthand for num vertices. 
@@ -723,7 +723,7 @@ static dvector fe_sol_no_dg(scomplex *sc,const REAL alpha,const REAL gamma)
   //
   // local mass matrix: it is a constant matrix times the volume of an element.
   REAL *mlocal=local_mm(dim);
-  fprintf(stdout,"\nnum_simplices=%d ; num_vertices=%d",ns,nv);fflush(stdout);
+  fprintf(stdout,"\nnum_simplices=%lld ; num_vertices=%lld",(long long )ns,(long long )nv);fflush(stdout);
   // to compute the volume and to grab the local coordinates of the vertices in the simplex we need some work space
   REAL *slocal=calloc(dim1*dim1,sizeof(REAL));// local stiffness matrix.
   REAL *grad=calloc(dim1*dim,sizeof(REAL));// local matrix with
@@ -768,7 +768,7 @@ static dvector fe_sol_no_dg(scomplex *sc,const REAL alpha,const REAL gamma)
     //    print_full_mat(dim1,dim,grad,"grad");fflush(stdout);
     volume=sc->vols[i];
     //    sc->vols[i]=volume;
-    //    fprintf(stdout,"\nvolume[%d]=%.5e",i,sc->vols[i]);fflush(stdout);
+    //    fprintf(stdout,"\nvolume[%lld]=%.5e",i,sc->vols[i]);fflush(stdout);
     // copute local stiffness matrix as grad*transpose(grad);
     local_sm(slocal,grad,dim,volume);
     for(j=0;j<dim1;j++){
