@@ -101,9 +101,9 @@
  */
 #define SHORT            short      /**< short integer type */
 #define INT              int        /**< regular integer type: int or long */
-//#define INT              long        /**< regular integer type: int or long */
-#define LONG             long       /**< long integer type */
-#define LONGLONG         long long  /**< long integer type */
+//#define INT              long long int        /**< regular integer type: int or long */
+#define LONG             long       /**< long integer type mostly the same as int */
+#define LONGLONG         long long  /**< long long integer type (INTEGER*8 in F77)*/
 #define REAL             double     /**< float type */
 #ifndef REAL16
 #define REAL16 long double
