@@ -389,6 +389,7 @@ void *read_mixed_data(INT nrec, INT ni, INT nr, char *the_string)
   void *out=(void *)malloc(nrec*(ni*sizeof(INT)+nr*sizeof(REAL)));
   INT *idata;
   REAL *rdata;
+  long long int int_read;
   if(ni>0)
     idata=(INT *)out;
   else
@@ -404,8 +405,9 @@ void *read_mixed_data(INT nrec, INT ni, INT nr, char *the_string)
     if(idata!=NULL) {
       cni=count*ni;
       for(j=0;j<ni;j++){
-	iread=sscanf(w[k],"%d",(idata+cni+j));
+	iread=sscanf(w[k],"%lld",&int_read);
 	if(iread<0) break;
+	idata[cni+j]=(INT )int_read;
 	k++;
       }
       if(iread<0) break;
@@ -898,6 +900,7 @@ static INT check_input(char * file2str, input_grid *g,	\
 		INT numel_data)
 {
   INT k,status=0;
+  long long int int_read=-100;
   size_t *lengths=calloc(numel_data,sizeof(size_t));
   char **clndata=malloc(numel_data*sizeof(char *));
   INT *iread=calloc(numel_data,sizeof(INT));
@@ -913,40 +916,40 @@ static INT check_input(char * file2str, input_grid *g,	\
   g->fgrid=safe_parse(clndata[1],"Filename for the grid file","mesh.haz",256);
   g->fvtu=safe_parse(clndata[2],"Filename for the VTU file","mesh.vtu",256);
   /*INTEGERS*/
-  iread[8]=sscanf( clndata[8],"%d",&g->dim); // the dimension of the problem.
+  iread[8]=sscanf( clndata[8],"%lld",&int_read); g->dim=(INT )int_read; // the dimension of the problem.
   if(iread[8]<0) return 8;
   //
-  iread[9]=sscanf( clndata[9],"%d",&g->ncsys);//
+  iread[9]=sscanf( clndata[9],"%lld",&int_read); g->ncsys=(INT )int_read; // num.coord systems
   if(iread[9]<0) g->ncsys=-1; // this is fixable fixable;
   //
-  iread[10]=sscanf( clndata[10],"%d",&g->nv);//
+  iread[10]=sscanf( clndata[10],"%lld",&int_read); g->nv=(INT )int_read; // num vertices
   if(iread[10]<0) return 10;
   //
-  iread[11]=sscanf( clndata[11],"%d",&g->ne);//
+  iread[11]=sscanf( clndata[11],"%lld",&int_read); g->ne=(INT )int_read; // num. edges
   if(iread[11]<0) g->ne=-1; // this is fixable;
   //
-  iread[12]=sscanf( clndata[12],"%d",&g->nel);//
-  if(iread[12]<0) return 12;// no
+  iread[12]=sscanf( clndata[12],"%lld",&int_read);  g->nel=(INT )int_read; // num. macroelements
+  if(iread[12]<0) return 12;// 
   //
-  iread[13]=sscanf(clndata[13],"%d",&g->nf);//
+  iread[13]=sscanf( clndata[13],"%lld",&int_read); g->nf=(INT )int_read; // num. faces
   if(iread[13]<0) g->nf=-1;//ok with some check
   //
-  iread[14]=sscanf(clndata[14],"%d",&g->nref);//
+  iread[14]=sscanf( clndata[14],"%lld",&int_read);  g->nref=(INT )int_read; // face codes
   if(iread[14]<0)g->nref=0;//ok
   //
-  iread[15]=sscanf(clndata[15],"%d",&g->ref_type);//
+  iread[15]=sscanf( clndata[15],"%lld",&int_read); g->ref_type=(INT )int_read; // refinement type
   if(iread[15]<0)g->ref_type=-1;//ok
   //
-  iread[16]=sscanf(clndata[16],"%d",&g->mark_type);//
+  iread[16]=sscanf( clndata[16],"%lld",&int_read); g->mark_type=(INT )int_read; // ,marking type
   if(iread[16]<0)g->mark_type=0;//ok
   //
   iread[17]=sscanf(clndata[17],"%lg",&g->err_stop);//
   if(iread[17]<0)g->err_stop=-1e-10;//ok
   //
-  iread[18]=sscanf(clndata[18],"%hd",&g->print_level);//
+  iread[18]=sscanf( clndata[18],"%lld",&int_read); g->print_level=(SHORT )int_read; // print_level
   if(iread[18]<0)g->print_level=0;//ok
   //
-  iread[19]=sscanf(clndata[19],"%d",&g->num_refine_points);//
+  iread[19]=sscanf( clndata[19],"%lld",&int_read); g->num_refine_points=(INT )int_read; // number of points to refine
   if(iread[19]<0)g->num_refine_points=0;//ok
   /*FREE*/
   free(iread);
