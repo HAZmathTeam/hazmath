@@ -452,16 +452,16 @@ void param_linear_solver_print (linear_itsolver_param *itsparam)
         printf("\n     Parameters in linear_itsolver_param     \n");
         printf("-----------------------------------------------\n");
 
-        printf("Solver print level:                %d\n", itsparam->linear_print_level);
-        printf("Solver type:                       %d\n", itsparam->linear_itsolver_type);
-        printf("Solver precond type:               %d\n", itsparam->linear_precond_type);
-        printf("Solver max num of iter:            %d\n", itsparam->linear_maxit);
+        printf("Solver print level:                %lld\n", (long long )itsparam->linear_print_level);
+        printf("Solver type:                       %lld\n", (long long )itsparam->linear_itsolver_type);
+        printf("Solver precond type:               %lld\n", (long long )itsparam->linear_precond_type);
+        printf("Solver max num of iter:            %lld\n", (long long )itsparam->linear_maxit);
         printf("Solver tolerance:                  %.2e\n", itsparam->linear_tol);
-        printf("Solver stopping type:              %d\n", itsparam->linear_stop_type);
-        printf("Solver restart number:             %d\n", itsparam->linear_restart);
+        printf("Solver stopping type:              %lld\n", (long long )itsparam->linear_stop_type);
+        printf("Solver restart number:             %lld\n", (long long )itsparam->linear_restart);
 
         if ( (itsparam->linear_precond_type == PREC_HX_CURL_A) || (itsparam->linear_precond_type == PREC_HX_CURL_M) )
-            printf("HX precond number of smooth:       %d\n", itsparam->HX_smooth_iter);
+            printf("HX precond number of smooth:       %lld\n", (long long )itsparam->HX_smooth_iter);
 
         printf("-----------------------------------------------\n\n");
 
@@ -490,18 +490,18 @@ void param_amg_print (AMG_param *amgparam)
         printf("\n       Parameters in AMG_param\n");
         printf("-----------------------------------------------\n");
 
-        printf("AMG print level:                   %d\n", amgparam->print_level);
-        printf("AMG max num of iter:               %d\n", amgparam->maxit);
-        printf("AMG type:                          %d\n", amgparam->AMG_type);
+        printf("AMG print level:                   %lld\n", (long long )amgparam->print_level);
+        printf("AMG max num of iter:               %lld\n", (long long )amgparam->maxit);
+        printf("AMG type:                          %lld\n", (long long )amgparam->AMG_type);
         printf("AMG tolerance:                     %.2e\n", amgparam->tol);
-        printf("AMG max levels:                    %d\n", amgparam->max_levels);
-        printf("AMG cycle type:                    %d\n", amgparam->cycle_type);
-        printf("AMG coarse dof:                    %d\n", amgparam->coarse_dof);
-        printf("AMG coarse solver type:            %d\n", amgparam->coarse_solver);
-        printf("AMG scaling of coarse correction:  %d\n", amgparam->coarse_scaling);
-        printf("AMG smoother type:                 %d\n", amgparam->smoother);
-        printf("AMG num of presmoothing:           %d\n", amgparam->presmooth_iter);
-        printf("AMG num of postsmoothing:          %d\n", amgparam->postsmooth_iter);
+        printf("AMG max levels:                    %lld\n", (long long )amgparam->max_levels);
+        printf("AMG cycle type:                    %lld\n", (long long )amgparam->cycle_type);
+        printf("AMG coarse dof:                    %lld\n", (long long )amgparam->coarse_dof);
+        printf("AMG coarse solver type:            %lld\n", (long long )amgparam->coarse_solver);
+        printf("AMG scaling of coarse correction:  %lld\n", (long long )amgparam->coarse_scaling);
+        printf("AMG smoother type:                 %lld\n", (long long )amgparam->smoother);
+        printf("AMG num of presmoothing:           %lld\n", (long long )amgparam->presmooth_iter);
+        printf("AMG num of postsmoothing:          %lld\n", (long long )amgparam->postsmooth_iter);
 
         if ( amgparam->smoother == SMOOTHER_SOR  ||
              amgparam->smoother == SMOOTHER_SSOR ||
@@ -517,34 +517,34 @@ void param_amg_print (AMG_param *amgparam)
         }
 
         if ( amgparam->cycle_type == AMLI_CYCLE ) {
-            printf("AMG AMLI degree of polynomial:     %d\n", amgparam->amli_degree);
+            printf("AMG AMLI degree of polynomial:     %lld\n", (long long )amgparam->amli_degree);
         }
 
         if ( amgparam->cycle_type == NL_AMLI_CYCLE ) {
-            printf("AMG Nonlinear AMLI Krylov type:    %d\n", amgparam->nl_amli_krylov_type);
+            printf("AMG Nonlinear AMLI Krylov type:    %lld\n", (long long )amgparam->nl_amli_krylov_type);
         }
 
         switch (amgparam->AMG_type) {
 
             case SA_AMG:
-                printf("Aggregation type:                  %d\n", amgparam->aggregation_type);
+                printf("Aggregation type:                  %lld\n", (long long )amgparam->aggregation_type);
                 printf("Aggregation AMG strong coupling:   %.4f\n", amgparam->strong_coupled);
-                printf("Aggregation AMG max aggregation:   %d\n", amgparam->max_aggregation);
+                printf("Aggregation AMG max aggregation:   %lld\n", (long long )amgparam->max_aggregation);
                 printf("SA AMG tentative smooth parameter: %.4f\n", amgparam->tentative_smooth);
-                printf("SA AMG smooth filter:              %d\n", amgparam->smooth_filter);
+                printf("SA AMG smooth filter:              %lld\n", (long long )amgparam->smooth_filter);
 
             default: // UA_AMG
-                printf("Aggregation type:                  %d\n", amgparam->aggregation_type);
+                printf("Aggregation type:                  %lld\n", (long long )amgparam->aggregation_type);
                 printf("Aggregation AMG strong coupling:   %.4f\n", amgparam->strong_coupled);
-                printf("Aggregation AMG max aggregation:   %d\n", amgparam->max_aggregation);
+                printf("Aggregation AMG max aggregation:   %lld\n", (long long )amgparam->max_aggregation);
                 break;
         }
 
         if (amgparam->Schwarz_levels>0){
-            printf("AMG Schwarz smoother level:        %d\n", amgparam->Schwarz_levels);
-            printf("AMG Schwarz type:                  %d\n", amgparam->Schwarz_type);
-            printf("AMG Schwarz forming block level:   %d\n", amgparam->Schwarz_maxlvl);
-            printf("AMG Schwarz maximal block size:    %d\n", amgparam->Schwarz_mmsize);
+            printf("AMG Schwarz smoother level:        %lld\n", (long long )amgparam->Schwarz_levels);
+            printf("AMG Schwarz type:                  %lld\n", (long long )amgparam->Schwarz_type);
+            printf("AMG Schwarz forming block level:   %lld\n", (long long )amgparam->Schwarz_maxlvl);
+            printf("AMG Schwarz maximal block size:    %lld\n", (long long )amgparam->Schwarz_mmsize);
         }
 
         printf("-----------------------------------------------\n\n");
@@ -575,11 +575,11 @@ void param_Schwarz_print (Schwarz_param *schparam)
 
         printf("\n       Parameters in Schwarz_param\n");
         printf("-----------------------------------------------\n");
-        printf("Schwarz print level:               %d\n",   schparam->print_level);
-        printf("Schwarz type:                      %d\n",   schparam->Schwarz_type);
-        printf("Schwarz forming block level:       %d\n",   schparam->Schwarz_maxlvl);
-        printf("Schwarz maximal block size:        %d\n",   schparam->Schwarz_mmsize);
-        printf("Schwarz block solver type:         %d\n",   schparam->Schwarz_blksolver);
+        printf("Schwarz print level:               %lld\n",   (long long )schparam->print_level);
+        printf("Schwarz type:                      %lld\n",   (long long )schparam->Schwarz_type);
+        printf("Schwarz forming block level:       %lld\n",   (long long )schparam->Schwarz_maxlvl);
+        printf("Schwarz maximal block size:        %lld\n",   (long long )schparam->Schwarz_mmsize);
+        printf("Schwarz block solver type:         %lld\n",   (long long )schparam->Schwarz_blksolver);
         printf("-----------------------------------------------\n\n");
 
     }
@@ -720,7 +720,7 @@ void amg_amli_coef (const REAL lambda_max,
     }
 
     else {
-        printf("### ERROR HAZMATH DANGER: Wrong AMLI degree %d!\n", degree);
+        printf("### ERROR HAZMATH DANGER: Wrong AMLI degree %lld!\n", (long long )degree);
         check_error(ERROR_INPUT_PAR, __FUNCTION__);
     }
 

@@ -408,9 +408,9 @@ static void construct_strongly_coupled(dCSRmat *A,
   for ( index = i = 0; i < row; ++i ) {
     NIA[i] = index;
     row_start = AIA[i]; row_end = AIA[i+1];
-    //fprintf(stdout,"\nHere coupled index %d \n", index);
+    //fprintf(stdout,"\nHere coupled index %lld \n", (long long )index);
     for ( j = row_start; j < row_end; ++j ) {
-      //fprintf(stdout,"\nHere coupled row start %d end %d \n", row_start, row_end);
+      //fprintf(stdout,"\nHere coupled row start %lld end %lld \n", (long long )row_start, (long long )row_end);
       if ( (AJA[j] == i)
 	   || ( ((Aval[j]*Aval[j]) >= strongly_coupled2*ABS(diag.val[i]*diag.val[AJA[j]])) && (Aval[j] < 0e0) )
 	   )
@@ -439,11 +439,11 @@ static void construct_strongly_coupled(dCSRmat *A,
     for(i=0;i<blk_dfs->row;++i){
       j=blk_dfs->IA[i+1]-blk_dfs->IA[i];
       if(j>1){
-	/* fprintf(stdout,"\nnontrivial block:size(%d)=%d",i,j); */
+	/* fprintf(stdout,"\nnontrivial block:size(%lld)=%d",(long long )i,(long long )j); */
 	index++;
       }
     }
-    fprintf(stdout,"\n blocks(total)=%d ; blocks(non-trivial:size>1)=%d; strongly_coupled=%.5e\n",blk_dfs->row,index,strongly_coupled);
+    fprintf(stdout,"\n blocks(total)=%lld ; blocks(non-trivial:size>1)=%lld; strongly_coupled=%.5e\n",(long long )blk_dfs->row,(long long )index,strongly_coupled);
     icsr_free(blk_dfs);free(blk_dfs);
     //end finding connected components (ltz):
   } //end if(0);
@@ -1105,7 +1105,7 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
         if ( status < 0 ) {
             // When error happens, stop at the current multigrid level!
             if ( prtlvl > PRINT_MIN ) {
-                printf("### HAZMATH WARNING: Forming aggregates on level-%d failed!\n", lvl);
+                printf("### HAZMATH WARNING: Forming aggregates on level-%lld failed!\n", (long long )lvl);
             }
             status = SUCCESS; break;
         }
@@ -1122,7 +1122,7 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
         if ( mgl[lvl].P.row > mgl[lvl].P.col * MAX_CRATE ) {
             if ( prtlvl > PRINT_MIN ) {
                 printf("### HAZMATH WARNING: Coarsening might be too aggressive!\n");
-                printf("### HAZMATH: Fine level = %d, coarse level = %d. Discard!\n",
+                printf("### HAZMATH: Fine level = %lld, coarse level = %(long long )d. Discard!\n",
                        mgl[lvl].P.row, mgl[lvl].P.col);
             }
             break;
@@ -1134,8 +1134,8 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
         if ( (REAL)mgl[lvl].P.col > mgl[lvl].P.row * MIN_CRATE ) {
             if ( prtlvl > PRINT_MIN ) {
                 printf("### WARNING: Coarsening rate is too small!\n");
-                printf("### WARNING: Fine level = %d, coarse level = %d. Discard!\n",
-                       mgl[lvl].P.row, mgl[lvl].P.col);
+                printf("### WARNING: Fine level = %lld, coarse level = %lld. Discard!\n",
+                       (long long )mgl[lvl].P.row, (long long )mgl[lvl].P.col);
             }
             break;
         }
@@ -1339,7 +1339,7 @@ static SHORT amg_setup_smoothP_smoothR(AMG_data *mgl,
         if ( status < 0 ) {
             // When error happens, stop at the current multigrid level!
             if ( prtlvl > PRINT_MIN ) {
-                printf("### HAZMATH WARNING: Forming aggregates on level-%d failed!\n", lvl);
+                printf("### HAZMATH WARNING: Forming aggregates on level-%lld failed!\n", (long long )lvl);
             }
             status = SUCCESS; break;
         }
@@ -1358,8 +1358,8 @@ static SHORT amg_setup_smoothP_smoothR(AMG_data *mgl,
         if ( mgl[lvl].P.row > mgl[lvl].P.col * MAX_CRATE ) {
             if ( prtlvl > PRINT_MIN ) {
                 printf("### HAZMATH WARNING: Coarsening might be too aggressive!\n");
-                printf("### HAZMATH: Fine level = %d, coarse level = %d. Discard!\n",
-                       mgl[lvl].P.row, mgl[lvl].P.col);
+                printf("### HAZMATH: Fine level = %lld, coarse level = %lld. Discard!\n",
+                       (long long )mgl[lvl].P.row, (long long )mgl[lvl].P.col);
             }
             break;
         }
@@ -1370,8 +1370,8 @@ static SHORT amg_setup_smoothP_smoothR(AMG_data *mgl,
         if ( (REAL)mgl[lvl].P.col > mgl[lvl].P.row * MIN_CRATE ) {
             if ( prtlvl > PRINT_MIN ) {
                 printf("### WARNING: Coarsening rate is too small!\n");
-                printf("### WARNING: Fine level = %d, coarse level = %d. Discard!\n",
-                       mgl[lvl].P.row, mgl[lvl].P.col);
+                printf("### WARNING: Fine level = %lld, coarse level = %lld. Discard!\n",
+                       (long long )mgl[lvl].P.row, (long long )mgl[lvl].P.col);
             }
             break;
         }
@@ -1573,7 +1573,7 @@ static SHORT famg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
         if ( status < 0 ) {
             // When error happens, stop at the current multigrid level!
             if ( prtlvl > PRINT_MIN ) {
-                printf("### HAZMATH WARNING: Forming aggregates on level-%d failed!\n", lvl);
+                printf("### HAZMATH WARNING: Forming aggregates on level-%lld failed!\n", (long long )lvl);
             }
             status = SUCCESS; break;
         }
@@ -1590,8 +1590,8 @@ static SHORT famg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
         if ( mgl[lvl].P.row > mgl[lvl].P.col * MAX_CRATE ) {
             if ( prtlvl > PRINT_MIN ) {
                 printf("### HAZMATH WARNING: Coarsening might be too aggressive!\n");
-                printf("### HAZMATH: Fine level = %d, coarse level = %d. Discard!\n",
-                       mgl[lvl].P.row, mgl[lvl].P.col);
+                printf("### HAZMATH: Fine level = %lld, coarse level = %lld. Discard!\n",
+                       (long long )mgl[lvl].P.row, (long long )mgl[lvl].P.col);
             }
             break;
         }
@@ -1602,8 +1602,8 @@ static SHORT famg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
         if ( (REAL)mgl[lvl].P.col > mgl[lvl].P.row * MIN_CRATE ) {
             if ( prtlvl > PRINT_MIN ) {
                 printf("### WARNING: Coarsening rate is too small!\n");
-                printf("### WARNING: Fine level = %d, coarse level = %d. Discard!\n",
-                       mgl[lvl].P.row, mgl[lvl].P.col);
+                printf("### WARNING: Fine level = %lld, coarse level = %lld. Discard!\n",
+                       (long long )mgl[lvl].P.row, (long long )mgl[lvl].P.col);
             }
             break;
         }
@@ -1803,7 +1803,7 @@ static SHORT famg_setup_smoothP_smoothR(AMG_data *mgl,
         if ( status < 0 ) {
             // When error happens, stop at the current multigrid level!
             if ( prtlvl > PRINT_MIN ) {
-                printf("### HAZMATH WARNING: Forming aggregates on level-%d failed!\n", lvl);
+                printf("### HAZMATH WARNING: Forming aggregates on level-%lld failed!\n", (long long )lvl);
             }
             status = SUCCESS; break;
         }
@@ -1822,8 +1822,8 @@ static SHORT famg_setup_smoothP_smoothR(AMG_data *mgl,
         if ( mgl[lvl].P.row > mgl[lvl].P.col * MAX_CRATE ) {
             if ( prtlvl > PRINT_MIN ) {
                 printf("### HAZMATH WARNING: Coarsening might be too aggressive!\n");
-                printf("### HAZMATH: Fine level = %d, coarse level = %d. Discard!\n",
-                       mgl[lvl].P.row, mgl[lvl].P.col);
+                printf("### HAZMATH: Fine level = %lld, coarse level = %lld. Discard!\n",
+                       (long long )mgl[lvl].P.row, (long long )mgl[lvl].P.col);
             }
             break;
         }
@@ -1834,8 +1834,8 @@ static SHORT famg_setup_smoothP_smoothR(AMG_data *mgl,
         if ( (REAL)mgl[lvl].P.col > mgl[lvl].P.row * MIN_CRATE ) {
             if ( prtlvl > PRINT_MIN ) {
                 printf("### WARNING: Coarsening rate is too small!\n");
-                printf("### WARNING: Fine level = %d, coarse level = %d. Discard!\n",
-                       mgl[lvl].P.row, mgl[lvl].P.col);
+                printf("### WARNING: Fine level = %lld, coarse level = %lld. Discard!\n",
+                       (long long )mgl[lvl].P.row, (long long )mgl[lvl].P.col);
             }
             break;
         }
@@ -1960,8 +1960,8 @@ static SHORT amg_setup_unsmoothP_unsmoothR_bsr(AMG_data_bsr   *mgl,
 
 #if DEBUG_MODE > 0
     printf("### DEBUG: [-Begin-] %s ...\n", __FUNCTION__);
-    printf("### DEBUG: nr=%d, nc=%d, nnz=%d\n",
-           mgl[0].A.ROW, mgl[0].A.COL, mgl[0].A.NNZ);
+    printf("### DEBUG: nr=%lld, nc=%lld, nnz=%lld\n",
+           (long long )mgl[0].A.ROW, (long long )mgl[0].A.COL, (long long )mgl[0].A.NNZ);
 #endif
 
     get_time(&setup_start);
@@ -2030,7 +2030,7 @@ static SHORT amg_setup_unsmoothP_unsmoothR_bsr(AMG_data_bsr   *mgl,
         if ( status < 0 ) {
             // When error happens, force solver to use the current multigrid levels!
             if ( prtlvl > PRINT_MIN ) {
-                printf("### WARNING: Forming aggregates on level-%d failed!\n", lvl);
+                printf("### WARNING: Forming aggregates on level-%lld failed!\n", (long long )lvl);
             }
             status = SUCCESS; break;
         }
@@ -2196,8 +2196,8 @@ static SHORT amg_setup_general_bdcsr(AMG_data_bdcsr *mgl,
 
 #if DEBUG_MODE > 0
     printf("### DEBUG: [-Begin-] %s ...\n", __FUNCTION__);
-    printf("### DEBUG: nblock_row=%d, nblock_col=%d, total_row=%d, total_col=%d, total_nnz=%d\n",
-            brow, bcol, total_row, total_col, total_nnz);
+    printf("### DEBUG: nblock_row=%lld, nblock_col=%lld, total_row=%lld, total_col=%lld, total_nnz=%lld\n",
+            (long long )brow, (long long )bcol, (long long )total_row, (long long )total_col, (long long )total_nnz);
 #endif
 
     // diagonal matrices for coarsening
@@ -2217,7 +2217,7 @@ static SHORT amg_setup_general_bdcsr(AMG_data_bdcsr *mgl,
     // setup AMG for each diagonal block (given by A_diag)
     for (i=0; i<brow; i++){
 
-        if ( prtlvl > PRINT_NONE ) printf("\n Diagonal block %d ...\n", i);
+        if ( prtlvl > PRINT_NONE ) printf("\n Diagonal block %lld ...\n", (long long )i);
 
         /* set AMG for diagonal blocks */
         mgl_diag[i] = amg_data_create(max_levels);
@@ -2416,8 +2416,8 @@ static SHORT amg_setup_bdcsr_metric(AMG_data_bdcsr *mgl,
 
 #if DEBUG_MODE > 0
     printf("### DEBUG: [-Begin-] %s ...\n", __FUNCTION__);
-    printf("### DEBUG: nblock_row=%d, nblock_col=%d, total_row=%d, total_col=%d, total_nnz=%d\n",
-            brow, bcol, total_row, total_col, total_nnz);
+    printf("### DEBUG: nblock_row=%lld, nblock_col=%lld, total_row=%lld, total_col=%lld, total_nnz=%lld\n",
+            (long long )brow, (long long )bcol, (long long )total_row, (long long )total_col, (long long )total_nnz);
 #endif
 
     // diagonal matrices for coarsening
@@ -2437,7 +2437,7 @@ static SHORT amg_setup_bdcsr_metric(AMG_data_bdcsr *mgl,
     // setup AMG for each diagonal block (given by A_diag)
     for (i=0; i<brow; i++){
 
-        if ( prtlvl > PRINT_NONE ) printf("\n Diagonal block %d ...\n", i);
+        if ( prtlvl > PRINT_NONE ) printf("\n Diagonal block %lld ...\n", (long long )i);
 
         /* set AMG for diagonal blocks */
         mgl_diag[i] = amg_data_create(max_levels);

@@ -145,7 +145,7 @@ void csrreb(INT *nrow, INT *ncol, INT *nnzluo, \
     }
   }
   /* up to here we only computed the number of nonzeroes in U(A)+U(A^T) */
-  fprintf(stdout,"nnz(U(A+A^T)) vs. nnz(U(A)+U(A^T)) =  %i vs. %i\n",nnzlu,nnzu); fflush(stdout);
+  fprintf(stdout,"nnz(U(A+A^T)) vs. nnz(U(A)+U(A^T)) =  %lld vs. %lld\n",(long long )nnzlu,(long long )nnzu); fflush(stdout);
    if(nnzlu>nnzu){
      jtmp=(INT *)realloc(jtmp,nnzlu*sizeof(int));
      adiag=(REAL *)realloc(adiag,(2*nnzlu+n1)*sizeof(double));
@@ -217,7 +217,7 @@ void csrreb(INT *nrow, INT *ncol, INT *nnzluo, \
       for (jk = istrt;jk<iend;++jk) {
 	j=jb[jk];
 	utmp[jk] = x[j];
-	//	fprintf(stdout,"(%i,%i)=%f\n",i+1,j+1,utmp[jk]);
+	//	fprintf(stdout,"(%lli,%lli)=%f\n",i+1,j+1,utmp[jk]);
       }
     } // if (icstrt > icend)...
   } // loop i=0; i< n

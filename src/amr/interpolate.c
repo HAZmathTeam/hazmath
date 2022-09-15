@@ -209,13 +209,13 @@ void interp1(const INT dimbig, REAL *fi, unigrid *ug,	\
       found=TRUE;
     }   
     if(!found){
-      fprintf(stdout,"\nvertex=%i NOT found. x (xhat)=",i); fflush(stdout);
+      fprintf(stdout,"\nvertex=%lld NOT found. x (xhat)=",(long long )i); fflush(stdout);
       for(j=0;j<dim;j++){ 
 	fprintf(stdout," %12.6e (%10.5f)",x[dimbig*i+j],xhat[j]);
       }
       fprintf(stdout,"\n");
       //    }else{
-      //      fprintf(stdout,"\nvertex=%i found.",i); fflush(stdout);
+      //      fprintf(stdout,"\nvertex=%lld found.",i); fflush(stdout);
     }
     //    if(!found)continue;
     for(j=0;j<dim;j++){
@@ -239,7 +239,7 @@ void interp1(const INT dimbig, REAL *fi, unigrid *ug,	\
     /*   fprintf(stdout,"u=%10.5e ",u[j]); fflush(stdout); */
     /* } */
     fi[i] = interp4(c2s,u,xhat);
-    /*    fprintf(stdout,"Err(%i)=%12.3e;\n",i+1,fi[i]-ff(dim,(x+dim*i)));*/
+    /*    fprintf(stdout,"Err(%lld)=%12.3e;\n",i+1,fi[i]-ff(dim,(x+dim*i)));*/
   }
   if(u) free(u);
   if(mo) free(mo);

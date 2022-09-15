@@ -553,7 +553,7 @@ precond* create_precond_ra(dCSRmat *A,
     }
     // new number of poles+1
     if(k>ii){
-      fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Pole/residues number reduced in function=%s (%d out of %d residues dropped)",__FUNCTION__,k-ii,k);fflush(stdout);    
+      fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Pole/residues number reduced in function=%s (%lld out of %lld residues dropped)",__FUNCTION__,(long long )(k-ii),(long long )k);fflush(stdout);    
       k = ii;
     }
     // the easiest way seems to first save real part and then imag part
@@ -570,12 +570,12 @@ precond* create_precond_ra(dCSRmat *A,
     if(prtlvl > 1){
         printf("Poles:\n");
         for(i = 0; i < k-1; ++i) {
-            printf("pole[%d] = %.10e + %.10e i\n", i, pcdata->poles->val[i], pcdata->poles->val[k-1+i]);
+            printf("pole[%lld] = %.10e + %.10e i\n", (long long )i, pcdata->poles->val[i], pcdata->poles->val[k-1+i]);
         }
         printf("\n");
         printf("Residues:\n");
         for(i = 0; i < k; ++i) {
-            printf("res[%d] = %.10e + %.10e i\n", i, pcdata->residues->val[i], pcdata->residues->val[k+i]);
+            printf("res[%lld] = %.10e + %.10e i\n", (long long )i, pcdata->residues->val[i], pcdata->residues->val[k+i]);
         }
         printf("\n");
     }
@@ -640,7 +640,7 @@ precond* create_precond_ra(dCSRmat *A,
 
       if(status < 0)
 	  {
-	    fprintf(stdout,"Unsuccessful AMG setup at pole %d with status = %d\n", i, status);
+	    fprintf(stdout,"Unsuccessful AMG setup at pole %lld with status = %lld\n", (long long )i, (long long )status);
 	    return 0;
 	  }
       // for a new pole, we copy the amg_param back
@@ -770,7 +770,7 @@ dvector* ra_aaa(INT numval,
     }
     // new number of poles+1
     if(k>ii){
-      fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Pole/residues number reduced in function=%s (%d out of %d residues dropped)\n",__FUNCTION__,k-ii,k);fflush(stdout);    
+      fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Pole/residues number reduced in function=%s (%lld out of %lld residues dropped)\n",__FUNCTION__,(long long )(k-ii),(long long )k);fflush(stdout);    
       k = ii;
     }
 
@@ -849,7 +849,7 @@ precond* create_precond_hxcurl(dCSRmat *Acurl,
 
     if(status < 0)
     {
-        fprintf(stdout,"Unsuccessful AMG setup for vector Laplacian with status = %d\n", status);
+        fprintf(stdout,"Unsuccessful AMG setup for vector Laplacian with status = %lld\n", (long long )status);
         return 0;
     }
 
@@ -894,7 +894,7 @@ precond* create_precond_hxcurl(dCSRmat *Acurl,
 
     if(status < 0)
     {
-        fprintf(stdout,"Unsuccessful AMG setup for scalar Laplacian with status = %d\n", status);
+        fprintf(stdout,"Unsuccessful AMG setup for scalar Laplacian with status = %lld\n", (long long )status);
         return 0;
     }
 
@@ -1013,7 +1013,7 @@ precond* create_precond_hxdiv_3D(dCSRmat *Adiv,
 
     if(status < 0)
     {
-        fprintf(stdout,"Unsuccessful AMG setup for curlgrad Laplacian with status = %d\n", status);
+        fprintf(stdout,"Unsuccessful AMG setup for curlgrad Laplacian with status = %lld\n", (long long )status);
         return 0;
     }
 
@@ -1043,7 +1043,7 @@ precond* create_precond_hxdiv_3D(dCSRmat *Adiv,
 
     if(status < 0)
     {
-        fprintf(stdout,"Unsuccessful AMG setup for divgrad Laplacian with status = %d\n", status);
+        fprintf(stdout,"Unsuccessful AMG setup for divgrad Laplacian with status = %lld\n", (long long )status);
         return 0;
     }
 
@@ -1162,7 +1162,7 @@ precond* create_precond_hxdiv_2D(dCSRmat *Adiv,
 
     if(status < 0)
     {
-        fprintf(stdout,"Unsuccessful AMG setup for grad Laplacian with status = %d\n", status);
+        fprintf(stdout,"Unsuccessful AMG setup for grad Laplacian with status = %lld\n", (long long )status);
         return 0;
     }
 
@@ -1192,7 +1192,7 @@ precond* create_precond_hxdiv_2D(dCSRmat *Adiv,
 
     if(status < 0)
     {
-        fprintf(stdout,"Unsuccessful AMG setup for divgrad Laplacian with status = %d\n", status);
+        fprintf(stdout,"Unsuccessful AMG setup for divgrad Laplacian with status = %lld\n", (long long )status);
         return 0;
     }
 

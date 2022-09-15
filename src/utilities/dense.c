@@ -622,7 +622,7 @@ INT ddense_svd(INT m, INT n, REAL *A, REAL *U, REAL *VT, REAL* S,INT computeUV)
   dgesvd_(&jobuv,&jobuv,&m,&n,A,&lda,S,U,&ldu,VT,&ldvt,dwork,&lwork,&info);
 
   if(info){
-    fprintf(stderr,"\nXXX: lapack error info during svd computations=%d\n",info);fflush(stderr);
+    fprintf(stderr,"\nXXX: lapack error info during svd computations=%lld\n",(long long )info);fflush(stderr);
     exit(16);
   }
   return info;
@@ -697,7 +697,7 @@ INT ddense_qr_lapack(INT m,INT n, REAL *A,REAL * Q,REAL *R,INT computeR)
   c2r(m,n,sizeof(REAL),(void *)Q);
 
   if(info){
-    fprintf(stderr,"\nXXX: lapack error info during qr computations=%d\n",info);fflush(stderr);
+    fprintf(stderr,"\nXXX: lapack error info during qr computations=%lld\n",(long long )info);fflush(stderr);
     exit(16);
   }
 
@@ -1178,7 +1178,7 @@ void ddense_inv_inplace (REAL      *a,
 
         if (ABS(a[l]) < SMALLREAL) {
             printf("### HAZMATH ERROR: Diagonal entry is close to zero! ");
-            printf("diag_%d = %.2e! [%s]\n", k, a[l], __FUNCTION__);
+            printf("diag_%lld = %.2e! [%s]\n", (long long )k, a[l], __FUNCTION__);
             exit(ERROR_SOLVER_EXIT);
         }
         alinv = 1.0/a[l];

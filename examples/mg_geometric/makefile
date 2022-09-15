@@ -16,7 +16,7 @@ CFLAGS = -O3
 
 ## If external libraries support is compiled in the hazmath library,
 ## uncomment  the corresponding line below:
-WITH_SUITESPARSE=1
+WITH_SUITESPARSE=0
 WITH_LAPACK=1
 
 sinclude ../examples.mk

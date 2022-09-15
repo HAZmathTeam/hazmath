@@ -162,25 +162,25 @@ void input_grid_print(input_grid *g)
 {
   INT i,j,dim=g->dim;
   fprintf(stdout,"\n\nTITLE: %s",g->title);fflush(stdout);
-  fprintf(stdout,"\ndimension=%d",g->dim);fflush(stdout);
+  fprintf(stdout,"\ndimension=%lld",(long long )g->dim);fflush(stdout);
   fprintf(stdout,"\nfile_grid=%s",g->fgrid);fflush(stdout);
   fprintf(stdout,"\nfile_vtu=%s",g->fvtu);fflush(stdout);
-  fprintf(stdout,"\nprint_level=%d",g->print_level);fflush(stdout);
-  fprintf(stdout,"\nnum_refinements=%d",g->nref);fflush(stdout);
-  fprintf(stdout,"\nrefinement_type=%d",g->ref_type);fflush(stdout);
-  fprintf(stdout,"\namr_marking_type=%d",g->mark_type);fflush(stdout);
+  fprintf(stdout,"\nprint_level=%lld",(long long )g->print_level);fflush(stdout);
+  fprintf(stdout,"\nnum_refinements=%lld",(long long )g->nref);fflush(stdout);
+  fprintf(stdout,"\nrefinement_type=%lld",(long long )g->ref_type);fflush(stdout);
+  fprintf(stdout,"\namr_marking_type=%lld",(long long )g->mark_type);fflush(stdout);
   fprintf(stdout,"\nerr_stop_amr=%.3g",g->err_stop);fflush(stdout);
   /*ARRAYS*/
-  fprintf(stdout,"\n\nnum_coordsystems=%d",g->ncsys);
+  fprintf(stdout,"\n\nnum_coordsystems=%lld",(long long )g->ncsys);
   for(i=0;i<g->ncsys;i++){
-    fprintf(stdout,"\nlabel=%d,type=%d, origin(",g->syslabels[i],g->systypes[i]);fflush(stdout);
+    fprintf(stdout,"\nlabel=%lld,type=%lld, origin(",(long long )g->syslabels[i],(long long )g->systypes[i]);fflush(stdout);
     for(j=0;j<g->dim;j++) fprintf(stdout," %6.2f ",g->ox[i*dim+j]);
     fflush(stdout);
     fprintf(stdout,")");
   }
-  fprintf(stdout,"\n\nnum_vertices=%d\n",g->nv);fflush(stdout);
+  fprintf(stdout,"\n\nnum_vertices=%lld\n",(long long )g->nv);fflush(stdout);
   for(i=0;i<g->nv;i++){
-    fprintf(stdout,"\nvertex=%d, coord_system=%d, bcode=%d, coords(",i,g->csysv[i],g->bcodesv[i]);fflush(stdout);
+    fprintf(stdout,"\nvertex=%lld, coord_system=%lld, bcode=%lld, coords(",(long long )i,(long long )g->csysv[i],(long long )g->bcodesv[i]);fflush(stdout);
     if(g->systypes[g->csysv[i]]==1){
       fprintf(stdout," %6.2f ",g->xv[i*dim]);
       for(j=1;j<g->dim;j++) fprintf(stdout," %6.2f ",(g->xv[i*dim+j])/((REAL )PI)*180.);
@@ -191,33 +191,33 @@ void input_grid_print(input_grid *g)
     }
     fprintf(stdout,")");
   }
-  fprintf(stdout,"\n\nnum_edges=%d\n",g->ne);
+  fprintf(stdout,"\n\nnum_edges=%lld\n",(long long )g->ne);
   for(i=0;i<g->ne;i++)
-    fprintf(stdout,"\nedge=(%d,%d) div=%d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
+    fprintf(stdout,"\nedge=(%lld,%lld) div=%lld",(long long )g->seg[3*i],(long long )g->seg[3*i+1],(long long )g->seg[3*i+2]);
   fflush(stdout);
   INT nvcube=(1<<g->dim),nvcube1=nvcube+1;
-  fprintf(stdout,"\n\nnum_macroelements=%d\n",g->nel);fflush(stdout);
+  fprintf(stdout,"\n\nnum_macroelements=%lld\n",(long long )g->nel);fflush(stdout);
   for(i=0;i<g->nel;i++){
-    fprintf(stdout,"\nmacroel=%d; code=%d; vertices=(",i,g->mnodes[i*nvcube1+nvcube]);
+    fprintf(stdout,"\nmacroel=%lld; code=%lld; vertices=(",(long long )i,(long long )g->mnodes[i*nvcube1+nvcube]);
     for(j=0;j<nvcube;j++)
-      fprintf(stdout,"%d ",g->mnodes[nvcube1*i+j]);
+      fprintf(stdout,"%lld ",(long long )g->mnodes[nvcube1*i+j]);
     fprintf(stdout,")");fflush(stdout);
   }
   INT nvface=(1<<(g->dim-1)),nvface1=nvface+1;
-  fprintf(stdout,"\n\nnum_faces=%d\n",g->nf);
+  fprintf(stdout,"\n\nnum_faces=%lld\n",(long long )g->nf);
   for(i=0;i<g->nf;i++){
-    fprintf(stdout,"\nmacroface=%d; code=%d; vertices=(",i,g->mfaces[i*nvface1+nvface]);
+    fprintf(stdout,"\nmacroface=%lld; code=%lld; vertices=(",(long long )i,(long long )g->mfaces[i*nvface1+nvface]);
     fflush(stdout);
     for(j=0;j<nvface;j++)
-      fprintf(stdout,"%d ",g->mfaces[nvface1*i+j]);
+      fprintf(stdout,"%lld ",(long long )g->mfaces[nvface1*i+j]);
     fprintf(stdout,")");
     fflush(stdout);
   }
 
   // print refine points
-  fprintf(stdout,"\n\nnum_refine_points=%d\n",g->num_refine_points);fflush(stdout);
+  fprintf(stdout,"\n\nnum_refine_points=%lld\n",(long long )g->num_refine_points);fflush(stdout);
   for(i=0;i<g->num_refine_points;i++){
-    fprintf(stdout,"\n refine point=%d, coord_system=%d, coords(",i,g->csysv[i]);fflush(stdout);
+    fprintf(stdout,"\n refine point=%lld, coord_system=%lld, coords(",(long long )i,(long long )g->csysv[i]);fflush(stdout);
     if(!(g->num_refine_points)) continue;
     if(g->systypes[g->csysv[i]]==1){
       fprintf(stdout," %6.2f ",g->data_refine_points[i*dim]);
@@ -260,29 +260,29 @@ void input_grid_example_file(FILE *fp,input_grid *g)
 	  "===================================================",	\
 	  "%%%%BEGIN(input grid file)");
   fprintf(fp,"\ntitle{%s}",g->title);
-  fprintf(fp,"\ndimension{%d}",g->dim);
+  fprintf(fp,"\ndimension{%lld}",(long long )g->dim);
   fprintf(fp,"\nfile_grid{%s}",g->fgrid);
   fprintf(fp,"\nfile_vtu{%s}",g->fvtu);
-  fprintf(fp,"\nprint_level{%d}",g->print_level);
-  fprintf(fp,"\nnum_refinements{%d}",g->nref);
-  fprintf(fp,"\nrefinement_type{%d}",g->ref_type);
-  fprintf(fp,"\namr_marking_type{%d}",g->mark_type);
+  fprintf(fp,"\nprint_level{%lld}",(long long )g->print_level);
+  fprintf(fp,"\nnum_refinements{%lld}",(long long )g->nref);
+  fprintf(fp,"\nrefinement_type{%lld}",(long long )g->ref_type);
+  fprintf(fp,"\namr_marking_type{%lld}",(long long )g->mark_type);
   fprintf(fp,"\nerr_stop_amr{%.3g}",g->err_stop);
   //
   /*COORDSYSTEMS*/
-  fprintf(fp,"\nnum_coordsystems{%d}",g->ncsys);
+  fprintf(fp,"\nnum_coordsystems{%lld}",(long long )g->ncsys);
   fprintf(fp,"\ndata_coordsystems{");
-  fprintf(fp,"%d %d ",g->syslabels[0],g->systypes[0]);
+  fprintf(fp,"%lld %lld ",(long long )g->syslabels[0],(long long )g->systypes[0]);
   for(j=0;j<g->dim;j++) fprintf(fp," %.4e ",g->ox[j]);
   for(i=1;i<g->ncsys;i++){
-    fprintf(fp,"\n%d %d ",g->syslabels[i],g->systypes[i]);
+    fprintf(fp,"\n%lld %lld ",(long long )g->syslabels[i],(long long )g->systypes[i]);
     for(j=0;j<g->dim;j++) fprintf(fp," %.4e ",g->ox[i*dim+j]);
   }
   fprintf(fp,"}\n");
   /*VERTICES */
-  fprintf(fp,"\nnum_vertices{%d}",g->nv);
+  fprintf(fp,"\nnum_vertices{%lld}",(long long )g->nv);
   fprintf(fp,"\ndata_vertices{");
-  fprintf(fp,"%d %d ",0,g->csysv[0]);
+  fprintf(fp,"%lld %lld ",(long long )0,(long long )g->csysv[0]);
   if(g->systypes[g->csysv[0]]==1){
     fprintf(fp," %.4e ",g->xv[0]);
     for(j=1;j<g->dim;j++) fprintf(fp," %.4e ",g->xv[j]/(PI)*180e00);
@@ -290,7 +290,7 @@ void input_grid_example_file(FILE *fp,input_grid *g)
     for(j=0;j<g->dim;j++) fprintf(fp," %.4e ",g->xv[j]);
   }
   for(i=1;i<g->nv;i++){
-    fprintf(fp,"\n%d %d ",i,g->csysv[i]);
+    fprintf(fp,"\n%lld %lld ",(long long )i,(long long )g->csysv[i]);
     if(g->systypes[g->csysv[i]]==1){
       fprintf(fp," %.4e ",g->xv[i*dim]);
       for(j=1;j<g->dim;j++) fprintf(fp," %.4e ",g->xv[i*dim+j]/(PI)*180);
@@ -300,33 +300,33 @@ void input_grid_example_file(FILE *fp,input_grid *g)
   }
   fprintf(fp,"}\n");
   /*EDGES*/
-  fprintf(fp,"\nnum_edges{%d}",g->ne);
-  fprintf(fp,"\ndata_edges{%d %d %d",g->seg[0],g->seg[1],g->seg[2]);
+  fprintf(fp,"\nnum_edges{%lld}",(long long )g->ne);
+  fprintf(fp,"\ndata_edges{%lld %lld %lld",(long long )g->seg[0],(long long )g->seg[1],(long long )g->seg[2]);
   for(i=1;i<g->ne;i++)
-    fprintf(fp,"\n%d %d   %d",g->seg[3*i],g->seg[3*i+1],g->seg[3*i+2]);
+    fprintf(fp,"\n%lld %lld   %lld",(long long )g->seg[3*i],(long long )g->seg[3*i+1],(long long )g->seg[3*i+2]);
   fprintf(fp,"}\n");
   /*MACROELEMENTS*/
   INT nvcube=(1<<g->dim),nvcube1=nvcube+1;
-  fprintf(fp,"\nnum_macroelements{%d}\n",g->nel);
+  fprintf(fp,"\nnum_macroelements{%lld}\n",(long long )g->nel);
   fprintf(fp,"\ndata_macroelements{");
   for(j=0;j<nvcube1;j++)
-    fprintf(fp,"%d ",g->mnodes[j]);
+    fprintf(fp,"%lld ",(long long )g->mnodes[j]);
   for(i=1;i<g->nel;i++){
     fprintf(fp,"\n");
     for(j=0;j<nvcube1;j++)
-      fprintf(fp,"%d ",g->mnodes[nvcube1*i+j]);
+      fprintf(fp,"%lld ",(long long )g->mnodes[nvcube1*i+j]);
   }
     fprintf(fp,"}\n");
   /*MACROFACES */
   INT nvface=(1<<(g->dim-1)),nvface1=nvface+1;
-  fprintf(fp,"\nnum_macrofaces{%d}\n",g->nf);
+  fprintf(fp,"\nnum_macrofaces{%lld}\n",(long long )g->nf);
   fprintf(fp,"\ndata_macrofaces{");
   for(j=0;j<nvface1;j++)
-    fprintf(fp,"%d ",g->mfaces[j]);
+    fprintf(fp,"%lld ",(long long )g->mfaces[j]);
   for(i=1;i<g->nf;i++){
     fprintf(fp,"\n");
     for(j=0;j<nvface1;j++)
-      fprintf(fp,"%d ",g->mfaces[i*nvface1+j]);
+      fprintf(fp,"%lld ",(long long )g->mfaces[i*nvface1+j]);
   }
   fprintf(fp,"}");fflush(stdout);
   fprintf(fp,"\n%%%%%s\n%%%s%s",					\
@@ -422,7 +422,6 @@ void *read_mixed_data(INT nrec, INT ni, INT nr, char *the_string)
       if(iread<0) break;
     }
   }
-  //  fprintf(stdout,"\n%%%%%%k=%d,nrec=%d,num=%d",k,nrec,num);fflush(stdout);
   for(j=0;j<num;++j) free(w[j]);    
   free(w);
   return out;
@@ -643,7 +642,7 @@ static INT  read_data(char **clndata,input_grid *g)
       if(g->systypes[g->csysv[count]]==1){
 	for(j=1;j<g->dim;j++){
 	  if(!(g->num_refine_points)) continue;
-	  fprintf(stdout,"\ncount=%d;j=%d;indx=%d, g_xv=%f",count,j,count*g->dim+j,g->xv[count*g->dim + j]); fflush(stdout);
+	  fprintf(stdout,"\ncount=%lld;j=%lld;indx=%lld, g_xv=%f",(long long )count,(long long )j,(long long )(count*g->dim+j),g->xv[count*g->dim + j]); fflush(stdout);
 	  g->data_refine_points[count*g->dim + j]=zero_twopi_deg(g->data_refine_points[count*g->dim + j]);
 	}
       }
@@ -655,7 +654,7 @@ static INT  read_data(char **clndata,input_grid *g)
 
 
   if(status<0)
-    fprintf(stdout,"\n%d warnings were issued;",status);
+    fprintf(stdout,"\n%lld warnings were issued;",(long long )status);
   //  input_grid_print(g);
   return status;
 }
@@ -707,7 +706,7 @@ static char *make_string_from_file(FILE *the_file, size_t *length_string)
       ch = fgetc(the_file);
       if(ch) count++;
       if(count>maxcount) {
-	fprintf(stderr,"\n%%%%%% WARNING (in %s): The grid input file is too large. Truncating the input to %d chars\n",__FUNCTION__,count);
+	fprintf(stderr,"\n%%%%%% WARNING (in %s): The grid input file is too large. Truncating the input to %lld chars\n",__FUNCTION__,(long long )count);
 	break;
       }
     }
@@ -1186,8 +1185,8 @@ void set_edges(input_grid *g0,cube2simp *c2s)
       nseg_chk++;
     } else if(g0->print_level>1){
       fprintf(stdout,							\
-	      "\n%%%%%% WARNING (in %s): Removing input segment=(%d,%d) as it is NOT on the boundary of any macroelement\n", \
-	      __FUNCTION__,k01[0],k01[1]);
+	      "\n%%%%%% WARNING (in %s): Removing input segment=(%lld,%lld) as it is NOT on the boundary of any macroelement\n", \
+	      __FUNCTION__,(long long )k01[0],(long long )k01[1]);
     }
   }
   g0->ne=nseg_chk;

@@ -109,7 +109,7 @@ static void bary_interpolate(barycentric_t *bary, const REAL *nodes, const REAL 
   REAL smin = 0.0;
   INT info = svdgeneral(n + 1, n + 1, L, &smin, bary->w);
   if (info) {
-    fprintf(stderr, "\n%% *** HAZMATH WARNING*** IN %s: SVD-INFO IS NOT ZERO; INFO=%d;\n", __FUNCTION__, info);
+    fprintf(stderr, "\n%% *** HAZMATH WARNING*** IN %s: SVD-INFO IS NOT ZERO; INFO=%lld;\n", __FUNCTION__, (long long )info);
   }
   // set up nodes and values
   for (INT j = 0; j < n + 1; ++j) {
@@ -289,7 +289,7 @@ static REAL bary_brasil(
     // compute deviation from equioscillation
     REAL deviation = local_max[max_intv] / local_max[min_intv] - 1.0;
     if (print_level > 2)
-      printf("iter=%d deviation=%e error=%e\n", iter, deviation, local_max[max_intv]);
+      printf("iter=%lld deviation=%e error=%e\n", (long long )iter, deviation, local_max[max_intv]);
 
     // check for convergence
     int converged = (deviation <= tol);
@@ -299,7 +299,7 @@ static REAL bary_brasil(
         fprintf(stderr, "%%\t****warning: BRASIL did not converge; deviation=%e error=%e\n",
             deviation, local_max[max_intv]);
       else if (print_level > 0)
-        printf("%%%%BRASIL converged (%d iter): deviation=%e error=%e\n", iter, deviation, local_max[max_intv]);
+        printf("%%%%BRASIL converged (%lld iter): deviation=%e error=%e\n", (long long )iter, deviation, local_max[max_intv]);
       return_value = local_max[max_intv];
       break;
     }

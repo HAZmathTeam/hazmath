@@ -33,7 +33,7 @@
 void get_edge2d(iCSRmat *e2v, iCSRmat *el2e, scomplex *sc)
 {
   if (sc->n!=2) {
-    fprintf(stderr,"%% *** ERROR in %s: the dimension = %d and is not 3  !\n",__FUNCTION__,sc->n);
+    fprintf(stderr,"%% *** ERROR in %s: the dimension = %lld and is not 3  !\n",__FUNCTION__,(long long )sc->n);
     exit(2);
   }
   INT nv = sc->nv, ns = sc->ns;
@@ -162,7 +162,7 @@ void get_edge2d(iCSRmat *e2v, iCSRmat *el2e, scomplex *sc)
 void get_edge3d(iCSRmat *e2v, iCSRmat *el2e, scomplex *sc)
 {
   if (sc->n!=3) {
-    fprintf(stderr,"%% *** ERROR in %s: the dimension = %d and is not 3  !\n",__FUNCTION__,sc->n);
+    fprintf(stderr,"%% *** ERROR in %s: the dimension = %lld and is not 3  !\n",__FUNCTION__,(long long )sc->n);
     exit(3);
   }
   INT nv = sc->nv, ns = sc->ns;
@@ -378,8 +378,8 @@ void uniformrefine2d(scomplex *sc)
 void uniformrefine3d(scomplex *sc)
 {
   if (sc->n!=3) {
-    fprintf(stderr,"\n%% *** ERROR: %s called but the spatial dimension = %d is not 3  !\n", \
-	    __FUNCTION__,sc->n);exit(3);
+    fprintf(stderr,"\n%% *** ERROR: %s called but the spatial dimension = %lld is not 3  !\n", \
+	    __FUNCTION__,(long long )sc->n);exit(3);
   }
   iCSRmat e2v, el2e;
   get_edge3d(&e2v,&el2e,sc);

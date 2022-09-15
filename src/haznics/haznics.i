@@ -165,7 +165,7 @@ import_array();
 
 %extend precond{
     void apply(dvector *lhs, dvector* rhs) {
-      printf("lhs-> row %d\n", lhs->row);
+      printf("lhs-> row %lld\n", (long long )lhs->row);
       apply_precond(lhs->val, rhs->val, $self);
     }
     /*precond_ra_data* precond_data(){
@@ -178,7 +178,7 @@ import_array();
     bdcsr_alloc(n,m,$self);
   }
   void debugPrint(){
-    printf("n, m = %d, %d \n", $self->bcol, $self->brow);
+    printf("n, m = %lld, %lld \n", (long long )($self->bcol), (long long )($self->brow));
   }
   dCSRmat* get(INT i, INT j) {
       return ($self)->blocks[$self->bcol*i + j];

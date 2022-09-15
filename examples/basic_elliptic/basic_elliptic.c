@@ -111,8 +111,8 @@ int main (int argc, char* argv[])
   // Strings for printing
   char elmtype[8];
   if(order>=0 && order<10) {
-    sprintf(elmtype,"P%d",order);
-    printf(" --> using P%d elements => D = grad\n",order);
+    sprintf(elmtype,"P%lld",(long long )order);
+    printf(" --> using P%lld elements => D = grad\n",(long long )order);
   } else if(order==20) {
     sprintf(elmtype,"Ned");
     printf(" --> using Nedelec elements => D = curl\n");
@@ -144,14 +144,14 @@ int main (int argc, char* argv[])
   /*******************************************************************/
 
   printf("***********************************************************************************\n");
-  printf("\t--- %d-dimensional grid ---\n",dim);
-  printf("Number of Elements = %d\tElement Type = %s\tOrder of Quadrature = %d\n",mesh.nelm,elmtype,2*nq1d-1);
+  printf("\t--- %lld-dimensional grid ---\n",(long long )dim);
+  printf("Number of Elements = %lld\tElement Type = %s\tOrder of Quadrature = %lld\n",(long long )mesh.nelm,elmtype,2*(long long )nq1d-1);
   printf("\n\t--- Degrees of Freedom ---\n");
-  printf("Vertices: %-7d\tEdges: %-7d\tFaces: %-7d",mesh.nv,mesh.nedge,mesh.nface);
-  printf("\t--> DOF: %d\n",FE.ndof);
+  printf("Vertices: %-7lld\tEdges: %-7lld\tFaces: %-7lld",(long long )mesh.nv,(long long )mesh.nedge,(long long )mesh.nface);
+  printf("\t--> DOF: %lld\n",(long long )FE.ndof);
   printf("\n\t--- Boundaries ---\n");
-  printf("Vertices: %-7d\tEdges: %-7d\tFaces: %-7d",mesh.nbv,mesh.nbedge,mesh.nbface);
-  printf("\t--> Boundary DOF: %d\n",FE.nbdof);
+  printf("Vertices: %-7lld\tEdges: %-7lld\tFaces: %-7lld",(long long )mesh.nbv,(long long )mesh.nbedge,(long long )mesh.nbface);
+  printf("\t--> Boundary DOF: %lld\n",(long long )FE.nbdof);
   printf("***********************************************************************************\n\n");
 
   /*** Assemble the matrix and right hand side ***********************/
@@ -390,7 +390,7 @@ int main (int argc, char* argv[])
   }
 
   // Error Check
-  if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
+  if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %lld!\n", (long long )solver_flag);
 
   clock_t clk_solve_end = clock();
   printf("Elapsed CPU Time for Solve = %f seconds.\n\n",

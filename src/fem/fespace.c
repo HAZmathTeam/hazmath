@@ -1219,7 +1219,7 @@ void dump_el_dof(FILE* fid,iCSRmat *el_dof)
     acol = el_dof->IA[i];
     bcol = el_dof->IA[i+1];
     for (j=acol; j<bcol; j++) {
-      fprintf(fid,"%d\t",el_dof->JA[j]);
+      fprintf(fid,"%lld\t",(long long )el_dof->JA[j]);
     }
     fprintf(fid,"\n");
   }
@@ -1261,7 +1261,7 @@ void dump_fespace(fespace *FE,char *varname,char *dir)
 
     // Dump boundary data
     for(i=0;i<totdof;i++) {
-      fprintf(fid2,"%d\n",FE->dirichlet[i]);
+      fprintf(fid2,"%lld\n",(long long )FE->dirichlet[i]);
     }
 
     fclose(fid1);

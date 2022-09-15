@@ -417,7 +417,7 @@ void dvec_axpy (const REAL a,
     if ((y->row-m)!=0) {
         printf("### WARNING HAZMATH DANGER in function %s: Two vectors have different lengths!\n", __FUNCTION__);
         m = MIN(m, y->row);
-        printf("Only first %d entries will be computed!!\n", m);
+        printf("Only first %lld entries will be computed!!\n", (long long )m);
     }
 
     if (a==1.0){
@@ -457,7 +457,7 @@ void dvec_axpyz(const REAL a,
     if ((y->row-m)!=0) {
         printf("### WARNING HAZMATH DANGER in function %s: Two vectors have different lengths!\n", __FUNCTION__);
         m = MIN(m, y->row);
-        printf("Only first %d entries will be computed!!\n", m);
+        printf("Only first %lld entries will be computed!!\n",(long long )m);
     }
 
     z->row = m;
@@ -488,7 +488,7 @@ REAL dvec_dotprod (dvector *x,
     if ((y->row-length)!=0) {
         printf("### WARNING HAZMATH DANGER in function %s: Two vectors have different lengths!\n", __FUNCTION__);
         length = MIN(length, y->row);
-        printf("Only first %d entries will be computed!!\n", length);
+        printf("Only first %lld entries will be computed!!\n", (long long )length);
     }
 
     for (i=0; i<length; ++i) value+=x->val[i]*y->val[i];
@@ -519,7 +519,7 @@ REAL dvec_relerr (dvector *x,
     if (length!=y->row) {
         printf("### WARNING HAZMATH DANGER in function %s: Two vectors have different lengths!\n", __FUNCTION__);
         length = MIN(length, y->row);
-        printf("Only first %d entries will be computed!!\n", length);
+        printf("Only first %lld entries will be computed!!\n", (long long )length);
     }
 
     for (i=0;i<length;++i) {

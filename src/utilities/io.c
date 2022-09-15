@@ -27,10 +27,10 @@ INT chkn(INT n, const INT nmin, const INT nmax)
 {
   INT nnew=n;
   if(n > nmax) {
-    fprintf(stdout, "\n Input value too large: %d ; Changing to the max allowed: %d\n",n,nmax);
+    fprintf(stdout, "\n Input value too large: %lld ; Changing to the max allowed: %lld\n",(long long )n,(long long )nmax);
     nnew=nmax;
   } else if(n < nmin) {
-    fprintf(stdout, "\n Input value too small: %d ; Changing to the min allowed: %d\n",n,nmin);
+    fprintf(stdout, "\n Input value too small: %lld ; Changing to the min allowed: %lld\n",(long long )n,(long long )nmin);
     nnew=nmin;
   }
   return nnew;
@@ -56,7 +56,7 @@ void iarray_print(INT *vec,
 
   // main loop
   for ( ; vec < vec_end; ++vec)
-    fprintf(stdout, "%i\n  ",*vec);
+    fprintf(stdout, "%lld\n  ",(long long )(*vec));
 
   fprintf(stdout,"\n");
 
@@ -115,10 +115,10 @@ void ivector_write(const char *filename,
   fprintf(stdout,"%%%%%s: writing to file %s...\n", __FUNCTION__, filename);
 
   // write number of nonzeros
-  fprintf(fp,"%d\n",m);
+  fprintf(fp,"%lld\n",(long long )m);
 
   // write index and value each line
-  for ( i = 0; i < m; ++i ) fprintf(fp,"%d %d\n",i,vec->val[i]);
+  for ( i = 0; i < m; ++i ) fprintf(fp,"%lld %lld\n",(long long )i,(long long )vec->val[i]);
 
   fclose(fp);
 }
@@ -170,7 +170,7 @@ void dvector_write (const char *filename,
 
   fprintf(stdout,"%%%%%s: HAZMATH is writing to file %s...\n", __FUNCTION__, filename);
 
-  fprintf(fp,"%d\n",m);
+  fprintf(fp,"%lld\n",(long long )m);
 
   for ( i = 0; i < m; ++i ) fprintf(fp,"%0.15e\n",vec->val[i]);
 
@@ -197,6 +197,7 @@ void dvector_read (const char *filename,
 {
 
   INT  i, n;
+  long long i_in;
   REAL value;
 
   FILE *fp = fopen(filename,"r");
@@ -205,7 +206,7 @@ void dvector_read (const char *filename,
 
   fprintf(stdout,"%%%%%s: HAZMATH is reading file %s...\n", __FUNCTION__, filename);
 
-  fscanf(fp,"%d",&n);
+  fscanf(fp,"%lld",&i_in); n=(INT )i_in;
 
   dvec_alloc(n,b);
 
@@ -244,8 +245,8 @@ void ivector_print(FILE* fid,
 
   // main loop
   for(i=0;i<b->row;i++) {
-    fprintf(stdout,"i = %d\n", i);
-    fprintf(fid,"%d\n",b->val[i]);
+    fprintf(stdout,"i = %lld\n",(long long )i);
+    fprintf(fid,"%lld\n",(long long )b->val[i]);
   }
   return;
 }
@@ -340,7 +341,7 @@ void print_full_mat_int(const  INT n, const INT m, INT *A,const char *varname)
   }
   for (i = 0; i<nprt;i++){
     for(j=0;j<mprt;j++){
-      fprintf(stdout,"%16i ", A[m*i+j]);
+      fprintf(stdout,"%16lld ", (long long )A[m*i+j]);
     }
     if(i!=n1){
       fprintf(stdout,";");
@@ -371,7 +372,7 @@ void csr_print_matlab(FILE* fid,
     j1 = A->IA[i];
     j2 = A->IA[i+1];
     for(j=j1;j<j2;j++) {
-      fprintf(fid,"%d\t%d\t%25.16e\n",i+1,A->JA[j]+1,A->val[j]);
+      fprintf(fid,"%lld %lld %25.16e\n",(long long )(i+1),(long long )A->JA[j]+1,A->val[j]);
     }
   }
 
@@ -420,12 +421,12 @@ void csr_print_native(FILE* fid,
 
   if(A->IA[0]==0) shift=0; else  shift=-1;
   // shift -1 if it was fortran, starting from 1.
-  fprintf(fid,"%d %d %d\n",A->row, A->col, A->nnz);
+  fprintf(fid,"%lld %lld %lld\n",(long long )A->row, (long long )A->col, (long long )A->nnz);
   for(i=0;i<(A->row+1);i++)
-    fprintf(fid,"%d ",A->IA[i]+shift);
+    fprintf(fid,"%lld ",((long long )A->IA[i]+(long long )shift));
   fprintf(fid,"\n");
   for(i=0;i<A->nnz;i++)
-    fprintf(fid,"%d ",A->JA[i]+shift);
+    fprintf(fid,"%lld ",((long long )A->JA[i]+(long long )shift));
   fprintf(fid,"\n");
   for(i=0;i<A->nnz;i++)
     fprintf(fid,"%23.16e ",A->val[i]);
@@ -459,7 +460,7 @@ void icsr_print_matlab(FILE* fid,
     j1 = A->IA[i];
     j2 = A->IA[i+1];
     for(j=j1;j<j2;j++) {
-      fprintf(fid,"%d,%d\n",i+1,A->JA[j]+1);
+      fprintf(fid,"%lld,%lld\n",(long long )(i+1),(long long )(A->JA[j]+1));
     }
   }
   return;
@@ -485,9 +486,9 @@ void icsr_print_rows(FILE* fid,
   fprintf(fid,"\n%%%% %s:",sname);
   for(i=0;i<A->row;++i){
     if((A->IA[i+1]-A->IA[i])<=0) continue;
-      fprintf(fid,"\nrow[%d]=[ ",i);
+      fprintf(fid,"\nrow[%lld]=[ ",(long long )i);
       for(j=A->IA[i];j<A->IA[i+1];++j){
-	fprintf(fid,"%d ",A->JA[j]);
+	fprintf(fid,"%lld ",(long long )A->JA[j]);
       }
       fprintf(fid,"]");
   }
@@ -517,7 +518,7 @@ void icsr_print_matlab_val(FILE* fid,
     j1 = A->IA[i];
     j2 = A->IA[i+1];
     for(j=j1;j<j2;j++) {
-      fprintf(fid,"%d,%d,%d\n",i+1,A->JA[j]+1,A->val[j]);
+      fprintf(fid,"%lld,%lld,%lld\n",(long long )(i+1),(long long )(A->JA[j]+1),(long long )(A->val[j]));
     }
   }
   return;
@@ -546,7 +547,7 @@ void dvec_write (const char *filename,
 
   fprintf(stdout,"%%%%%s: HAZMATH is writing to file %s...\n", __FUNCTION__, filename);
 
-  fprintf(fp,"%d\n",m);
+  fprintf(fp,"%lld\n",(long long )m);
 
   //main loop
   for ( i = 0; i < m; ++i ) fprintf(fp,"%0.15e\n",vec->val[i]);
@@ -577,10 +578,10 @@ void ivec_write (const char *filename,
 
   fprintf(stdout,"%%%%%s: ivector written to file: %s...\n", __FUNCTION__, filename);
 
-  fprintf(fp,"%d\n",m);
+  fprintf(fp,"%lld\n",(long long )m);
 
   //main loop
-  for ( i = 0; i < m; ++i ) fprintf(fp,"%10d\n",vec->val[i]);
+  for ( i = 0; i < m; ++i ) fprintf(fp,"%10lld\n",(long long )vec->val[i]);
 
   fclose(fp);
 }
@@ -610,7 +611,7 @@ void ddense_write(const char *filename,
   fprintf(stdout,"%%%%%s: HAZMATH is writing to file %s...\n", __FUNCTION__, filename);
 
   // main loop
-  fprintf(fp,"%d  %d\n", n, m);
+  fprintf(fp,"%lld  %lld\n",(long long )n,(long long )m);
   for (i = 0; i < nnz; ++i) {
     fprintf(fp,"%0.15e\n", A->val[i]);
   }
@@ -642,10 +643,10 @@ void dcsr_write_dcoo (const char *filename,
   fprintf(stdout,"%%%%%s: HAZMATH is writing to file %s...\n", __FUNCTION__, filename);
 
   // main loop
-  fprintf(fp,"%d  %d  %d\n",m,n,A->nnz);
+  fprintf(fp,"%lld  %lld  %lld\n",(long long )m,(long long )n,(long long )A->nnz);
   for ( i = 0; i < m; ++i ) {
     for ( j = A->IA[i]; j < A->IA[i+1]; j++ )
-      fprintf(fp,"%d  %d  %0.15e\n",i,A->JA[j],A->val[j]);
+      fprintf(fp,"%lld  %lld  %0.15e\n",(long long )i,(long long )A->JA[j],A->val[j]);
   }
 
   fclose(fp);
@@ -674,16 +675,16 @@ void icsr_write_icoo (const char *filename,
 
   fprintf(stdout,"%%%%%s: iCSRmat is written to file: %s...\n", __FUNCTION__, filename);
   // main loop
-  fprintf(fp,"%d  %d  %d\n",m,n,A->nnz);
+  fprintf(fp,"%lld  %lld  %lld\n",(long long )m,(long long )n,(long long )A->nnz);
   if(A->val!=NULL){
     for ( i = 0; i < m; ++i ) {
       for ( j = A->IA[i]; j < A->IA[i+1]; j++ )
-	fprintf(fp,"%d  %d  %d\n",i,A->JA[j],A->val[j]);
+	fprintf(fp,"%lld  %lld  %lld\n",(long long )i,(long long )A->JA[j],(long long )A->val[j]);
     }
   }else{
     for ( i = 0; i < m; ++i ) {
       for ( j = A->IA[i]; j < A->IA[i+1]; j++ )
-	fprintf(fp,"%d  %d  %d\n",i,A->JA[j],1);
+	fprintf(fp,"%lld  %lld  %lld\n",(long long )i,(long long )A->JA[j],(long long )1);
     }
   }
 
@@ -743,12 +744,12 @@ void dcoo_read_dcsr (const char *filename,
 
   fprintf(stdout,"%%%%%s: HAZMATH is reading file %s...\n", __FUNCTION__, filename);
 
-  fscanf(fp,"%d %d %d",&m,&n,&nnz);
+  fscanf(fp,"%lld %lld %lld",(long long *)&m,(long long *)&n,(long long *)&nnz);
 
   dCOOmat Atmp=dcoo_create(m,n,nnz);
 
   for ( k = 0; k < nnz; k++ ) {
-    if ( fscanf(fp, "%d %d %le", &i, &j, &value) != EOF ) {
+    if ( fscanf(fp, "%lld %lld %le", (long long *)&i, (long long *)&j,&value) != EOF ) {
       Atmp.rowind[k]=i; Atmp.colind[k]=j; Atmp.val[k] = value;
     }
     else {
@@ -802,15 +803,15 @@ void dbsr_read (const char  *filename,
 
     printf("%%%%%s: HAZMATH is reading file %s...\n", __FUNCTION__, filename);
 
-    status = fscanf(fp, "%d %d %d", &ROW,&COL,&NNZ); // read dimension of the problem
+    status = fscanf(fp, "%lld %lld %lld", (long long *)&ROW,(long long *)&COL,(long long *)&NNZ); // read dimension of the problem
     check_error(status, filename);
     A->ROW = ROW; A->COL = COL; A->NNZ = NNZ;
 
-    status = fscanf(fp, "%d", &nb); // read the size of each block
+    status = fscanf(fp, "%lld", (long long *)&nb); // read the size of each block
     check_error(status, filename);
     A->nb = nb;
 
-    status = fscanf(fp, "%d", &storage_manner); // read the storage_manner
+    status = fscanf(fp, "%lld", (long long *)&storage_manner); // read the storage_manner
     check_error(status, filename);
     A->storage_manner = storage_manner;
 
@@ -818,25 +819,25 @@ void dbsr_read (const char  *filename,
     dbsr_alloc(ROW, COL, NNZ, nb, storage_manner, A);
 
     // read IA
-    status = fscanf(fp, "%d", &n);
+    status = fscanf(fp, "%lld", (long long *)&n);
     check_error(status, filename);
     for ( i = 0; i < n; ++i ) {
-        status = fscanf(fp, "%d", &index);
+      status = fscanf(fp, "%lld", (long long *)&index);
         check_error(status, filename);
         A->IA[i] = index;
     }
 
     // read JA
-    status = fscanf(fp, "%d", &n);
+    status = fscanf(fp, "%lld", (long long *)&n);
     check_error(status, filename);
     for ( i = 0; i < n; ++i ){
-        status = fscanf(fp, "%d", &index);
+      status = fscanf(fp, "%lld", (long long *)&index);
         check_error(status, filename);
         A->JA[i] = index;
     }
 
     // read val
-    status = fscanf(fp, "%d", &n);
+    status = fscanf(fp, "%lld", (long long *)&n);
     check_error(status, filename);
     for ( i = 0; i < n; ++i ) {
         status = fscanf(fp, "%le", &value);
@@ -870,7 +871,7 @@ void rveci_(FILE *fp,INT *vec,INT *nn)
 
   // main loop
   for ( ; vec < vec_end; ++vec)
-    fscanf(fp,"%i",vec);
+    fscanf(fp,"%lld",(long long *)vec);
   return;
 }
 /****************************************************************************************/
@@ -1011,7 +1012,7 @@ void dump_sol_onV_vtk(char *namevtk,
 	  "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"%s\">\n", \
 	  endian);
   fprintf(fvtk,"<UnstructuredGrid>\n");
-  fprintf(fvtk,"<Piece NumberOfPoints=\"%i\" NumberOfCells=\"%i\">\n",nv,nelm);
+  fprintf(fvtk,"<Piece NumberOfPoints=\"%lld\" NumberOfCells=\"%lld\">\n",(long long )nv,(long long )nelm);
   fprintf(fvtk,"<Points>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" NumberOfComponents=\"3\" Format=\"ascii\">", \
   	  tfloat);
@@ -1038,7 +1039,7 @@ void dump_sol_onV_vtk(char *namevtk,
   fprintf(fvtk,"<PointData Scalars=\"scalars\">\n");
   INT i=0;
   for(i=0;i<ncomp;i++) {
-    fprintf(fvtk,"<DataArray type=\"%s\" Name=\"Solution Component %i\" Format=\"ascii\">",tfloat,i);
+    fprintf(fvtk,"<DataArray type=\"%s\" Name=\"Solution Component %lld\" Format=\"ascii\">",tfloat,(long long )i);
     for(k=0;k<nv;k++) fprintf(fvtk," %23.16e ",sol[i*nv+k]);
     fprintf(fvtk,"</DataArray>\n");
   }
@@ -1047,19 +1048,19 @@ void dump_sol_onV_vtk(char *namevtk,
   // Dump el_v map
   fprintf(fvtk,"<Cells>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"offsets\" Format=\"ascii\">",tinto);
-  for(k=1;k<=nelm;k++) fprintf(fvtk," %i ",mesh->el_v->IA[k]);
+  for(k=1;k<=nelm;k++) fprintf(fvtk," %lld ",(long long )mesh->el_v->IA[k]);
   fprintf(fvtk,"</DataArray>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectivity\" Format=\"ascii\">\n",tinto);
   for(k=0;k<nelm;k++){
     kndl=k*v_per_elm;
-    for(j=0;j<v_per_elm;j++) fprintf(fvtk," %i ",mesh->el_v->JA[kndl + j]);
+    for(j=0;j<v_per_elm;j++) fprintf(fvtk," %lld ",(long long )mesh->el_v->JA[kndl + j]);
   }
   fprintf(fvtk,"</DataArray>\n");
 
   // Dump Element Type
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"types\" Format=\"ascii\">",tinto);
   for(k=1;k<=nelm;k++)
-    fprintf(fvtk," %i ",tcell);
+    fprintf(fvtk," %lld ",(long long )tcell);
 
   // Put in remaining headers
   fprintf(fvtk,"</DataArray>\n");
@@ -1153,7 +1154,7 @@ void dump_sol_vtk(char *namevtk,char *varname,mesh_struct *mesh,fespace *FE,REAL
   // Write Headers
   fprintf(fvtk,"<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"%s\">\n",endian);
   fprintf(fvtk,"<UnstructuredGrid>\n");
-  fprintf(fvtk,"<Piece NumberOfPoints=\"%i\" NumberOfCells=\"%i\">\n",nv,nelm);
+  fprintf(fvtk,"<Piece NumberOfPoints=\"%lld\" NumberOfCells=\"%lld\">\n",(long long )nv,(long long )nelm);
   fprintf(fvtk,"<Points>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" NumberOfComponents=\"3\" Format=\"ascii\">",tfloat);
 
@@ -1196,7 +1197,7 @@ void dump_sol_vtk(char *namevtk,char *varname,mesh_struct *mesh,fespace *FE,REAL
     Project_to_Vertices(sol_on_V,sol,FE,mesh);
     fprintf(fvtk,"<PointData Scalars=\"scalars\">\n");
     for(i=0;i<dim;i++) {
-      fprintf(fvtk,"<DataArray type=\"%s\" Name=\"Solution Component - %s%i\" Format=\"ascii\">",tfloat,varname,i);
+      fprintf(fvtk,"<DataArray type=\"%s\" Name=\"Solution Component - %s%lld\" Format=\"ascii\">",tfloat,varname,(long long )i);
       for(k=0;k<nv;k++) fprintf(fvtk," %23.16e ",sol_on_V[i*nv+k]);
       fprintf(fvtk,"</DataArray>\n");
     }
@@ -1206,19 +1207,19 @@ void dump_sol_vtk(char *namevtk,char *varname,mesh_struct *mesh,fespace *FE,REAL
   // Dump el_v map
   fprintf(fvtk,"<Cells>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"offsets\" Format=\"ascii\">",tinto);
-  for(k=1;k<=nelm;k++) fprintf(fvtk," %i ",mesh->el_v->IA[k]);
+  for(k=1;k<=nelm;k++) fprintf(fvtk," %lld ",(long long )mesh->el_v->IA[k]);
   fprintf(fvtk,"</DataArray>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectivity\" Format=\"ascii\">\n",tinto);
   for(k=0;k<nelm;k++){
     kndl=k*v_per_elm;
-    for(j=0;j<v_per_elm;j++) fprintf(fvtk," %i ",mesh->el_v->JA[kndl + j]);
+    for(j=0;j<v_per_elm;j++) fprintf(fvtk," %lld ",(long long )mesh->el_v->JA[kndl + j]);
   }
   fprintf(fvtk,"</DataArray>\n");
 
   // Dump Element Type
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"types\" Format=\"ascii\">",tinto);
   for(k=1;k<=nelm;k++)
-    fprintf(fvtk," %i ",tcell);
+    fprintf(fvtk," %lld ",(long long )tcell);
 
   // Put in remaining headers
   fprintf(fvtk,"</DataArray>\n");
@@ -1313,7 +1314,7 @@ void dump_blocksol_vtk(char *namevtk,char **varname,mesh_struct *mesh,block_fesp
   // Write Headers
   fprintf(fvtk,"<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"%s\">\n",endian);
   fprintf(fvtk,"<UnstructuredGrid>\n");
-  fprintf(fvtk,"<Piece NumberOfPoints=\"%i\" NumberOfCells=\"%i\">\n",nv,nelm);
+  fprintf(fvtk,"<Piece NumberOfPoints=\"%lld\" NumberOfCells=\"%lld\">\n",(long long )nv,(long long )nelm);
   fprintf(fvtk,"<Points>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" NumberOfComponents=\"3\" Format=\"ascii\">",tfloat);
 
@@ -1350,11 +1351,11 @@ void dump_blocksol_vtk(char *namevtk,char **varname,mesh_struct *mesh,block_fesp
       anyP0=1;
       P0cntr[nsp] = 1;
     } else if(FE->var_spaces[nsp]->FEtype>0 && FE->var_spaces[nsp]->FEtype<20) { // PX elements (assume sol at vertices comes first)
-      fprintf(fvtk,"<DataArray type=\"%s\" Name=\"Solution Component %i - %s\" Format=\"ascii\">",tfloat,nsp,varname[nsp]);
+      fprintf(fvtk,"<DataArray type=\"%s\" Name=\"Solution Component %lld - %s\" Format=\"ascii\">",tfloat,(long long )nsp,varname[nsp]);
       for(k=0;k<nv;k++) fprintf(fvtk," %23.16e ",sol[spcntr + k]);
       fprintf(fvtk,"</DataArray>\n");
     } else if(FE->var_spaces[nsp]->FEtype==99) { // Single DoF constraint element (just plot single value everywhere)
-      fprintf(fvtk,"<DataArray type=\"%s\" Name=\"Solution Component %i - %s\" Format=\"ascii\">",tfloat,nsp,varname[nsp]);
+      fprintf(fvtk,"<DataArray type=\"%s\" Name=\"Solution Component %lld - %s\" Format=\"ascii\">",tfloat,(long long )nsp,varname[nsp]);
       for(k=0;k<nv;k++) fprintf(fvtk," %23.16e ",sol[spcntr]);
       fprintf(fvtk,"</DataArray>\n");
     } else { // Vector Elements
@@ -1362,7 +1363,7 @@ void dump_blocksol_vtk(char *namevtk,char **varname,mesh_struct *mesh,block_fesp
       solptr = sol+spcntr;
       Project_to_Vertices(sol_on_V,solptr,FE->var_spaces[nsp],mesh);
       for(i=0;i<dim;i++) {
-        fprintf(fvtk,"<DataArray type=\"%s\" Name=\"Solution Component %i - %s%i\" Format=\"ascii\">",tfloat,nsp,varname[nsp],i);
+        fprintf(fvtk,"<DataArray type=\"%s\" Name=\"Solution Component %lld - %s%lld\" Format=\"ascii\">",tfloat,(long long )nsp,varname[nsp],(long long )i);
         for(k=0;k<nv;k++) fprintf(fvtk," %23.16e ",sol_on_V[i*nv+k]);
         fprintf(fvtk,"</DataArray>\n");
       }
@@ -1378,7 +1379,7 @@ void dump_blocksol_vtk(char *namevtk,char **varname,mesh_struct *mesh,block_fesp
     fprintf(fvtk,"<CellData Scalars=\"scalars\">\n");
     for(nsp=0;nsp<FE->nspaces;nsp++) {
       if(P0cntr[nsp]==1) {
-        fprintf(fvtk,"<DataArray type=\"%s\" Name=\"Solution Component %i - %s\" Format=\"ascii\">",tfloat,nsp,varname[nsp]);
+        fprintf(fvtk,"<DataArray type=\"%s\" Name=\"Solution Component %lld - %s\" Format=\"ascii\">",tfloat,(long long )nsp,varname[nsp]);
         for(k=0;k<nelm;k++) fprintf(fvtk," %23.16e ",sol[spcntr+k]);
         fprintf(fvtk,"</DataArray>\n");
       }
@@ -1391,19 +1392,19 @@ void dump_blocksol_vtk(char *namevtk,char **varname,mesh_struct *mesh,block_fesp
   // Dump el_v map
   fprintf(fvtk,"<Cells>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"offsets\" Format=\"ascii\">",tinto);
-  for(k=1;k<=nelm;k++) fprintf(fvtk," %i ",mesh->el_v->IA[k]);
+  for(k=1;k<=nelm;k++) fprintf(fvtk," %lld ",(long long )mesh->el_v->IA[k]);
   fprintf(fvtk,"</DataArray>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectivity\" Format=\"ascii\">\n",tinto);
   for(k=0;k<nelm;k++){
     kndl=k*v_per_elm;
-    for(j=0;j<v_per_elm;j++) fprintf(fvtk," %i ",mesh->el_v->JA[kndl + j]);
+    for(j=0;j<v_per_elm;j++) fprintf(fvtk," %lld ",(long long )mesh->el_v->JA[kndl + j]);
   }
   fprintf(fvtk,"</DataArray>\n");
 
   // Dump Element Type
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"types\" Format=\"ascii\">",tinto);
   for(k=1;k<=nelm;k++)
-    fprintf(fvtk," %i ",tcell);
+    fprintf(fvtk," %lld ",(long long )tcell);
 
   // Put in remaining headers
   fprintf(fvtk,"</DataArray>\n");
@@ -1461,8 +1462,8 @@ void create_pvd(char *namepvd, INT nfiles,char *vtkfilename,char *filetype)
   fprintf(fvtk,"<Collection>\n");
   char filecounter[40];
   for(i=0;i<nfiles;i++) {
-    sprintf(filecounter,"%s%03d.vtu",vtkfilename,i);
-    fprintf(fvtk,"<DataSet %s=\"%d\" group=\"\" part=\"0\" file=\"%s\"/>\n",filetype,i,filecounter);
+    sprintf(filecounter,"%s%03lld.vtu",vtkfilename,(long long )i);
+    fprintf(fvtk,"<DataSet %s=\"%lld\" group=\"\" part=\"0\" file=\"%s\"/>\n",filetype,(long long )i,filecounter);
   }
 
   // Put in remaining headers
@@ -1505,19 +1506,19 @@ scomplex *hazr(char *namein)
   /* *******************************************
      read a hazmath mesh file.
      *******************************************    */
-  fscanf(fmeshin,"%i %i %i %i\n",&ns,&nv,&dim,&nholes);
+  fscanf(fmeshin,"%lld %lld %lld %lld\n",(long long *)&ns,(long long *)&nv,(long long *)&dim,(long long *)&nholes);
   scomplex *sc = (scomplex *)haz_scomplex_init(dim,ns,nv,dim); // cannot read different dimensions.
   INT dim1=sc->n+1;
   for (j=0;j<dim1;j++) {
     for (k=0;k<ns;k++){
       m=dim1*k+j;
       /* shift if needed */
-      fscanf(fmeshin,"%i", sc->nodes+m);
-      //      fprintf(stdout,"\n%d",sc->nodes[m]);
+      fscanf(fmeshin,"%lld", (long long *)(sc->nodes+m));
+      //      fprintf(stdout,"\n%lld",sc->nodes[m]);
     }
   }
   for (k=0;k<sc->ns;k++){
-    fscanf(fmeshin,"%d", sc->flags+k);
+    fscanf(fmeshin,"%lld", (long long *)(sc->flags+k));
     //      fprintf(stdout,"\n%d",sc->flags[k]);
   }
   for(j=0;j<dim;j++){
@@ -1526,7 +1527,7 @@ scomplex *hazr(char *namein)
     }
   }
   for(k=0;k<nv;k++){
-    fscanf(fmeshin,"%d", sc->bndry+k);
+    fscanf(fmeshin,"%lld", (long long *)(sc->bndry+k));
   }
   /* //NOT USED: a function value */
   /* if(sc->fval){ */
@@ -1560,20 +1561,20 @@ void hazw(char *nameout,scomplex *sc, const INT shift)
      connected components domains.
      * TODO add sc->cc to the reading.
      */
-  fprintf(fmesh,"%i %i %i %i\n",ns,n,dim,(sc->bndry_cc-1)); /* this is the
+  fprintf(fmesh,"%lld %lld %lld %lld\n",(long long )ns,(long long )n,(long long )dim,(long long )(sc->bndry_cc-1)); /* this is the
 							       number of
 							       holes;*/
-  /* fprintf(stdout,"%i %i %li\n",n,ns,sizeof(ib)/sizeof(INT)); */
+  /* fprintf(stdout,"%lld %lld %lld\n",(long long )n,(long long )ns,(long long )sizeof(ib)/sizeof(INT)); */
   for (j=0;j<ndl;j++) {
     for (k=0;k<ns;k++){
       kndl=ndl*k+j;
       /* shift if needed */
-      fprintf(fmesh," %d ", je[kndl]+shift);
+      fprintf(fmesh," %lld ",(long long )(je[kndl]+shift));
     }
     fprintf(fmesh,"\n");
   }
   for (k=0;k<ns;k++){
-    fprintf(fmesh," %d ", sc->flags[k]);
+    fprintf(fmesh," %lld ", (long long )sc->flags[k]);
   }
   fprintf(fmesh,"\n");
   for(j=0;j<dim;j++){
@@ -1584,7 +1585,7 @@ void hazw(char *nameout,scomplex *sc, const INT shift)
     fprintf(fmesh,"\n");
   }
   for(k=0;k<n;k++){
-    fprintf(fmesh," %i ", ib[k]);
+    fprintf(fmesh," %lld ", (long long )ib[k]);
   }
   fprintf(fmesh,"\n");
   //NOT USED: write a function value
@@ -1602,7 +1603,7 @@ void hazw(char *nameout,scomplex *sc, const INT shift)
 void vtkw(char *namevtk, scomplex *sc, const INT shift, const REAL zscale)
 {
   if((sc->n!=2)&&(sc->n!=3))
-    fprintf(stderr,"\n*** ERR(%s; dim=%d): NO vtk files for dim .eq. 1 or (dim .gt. 3).\n",__FUNCTION__,sc->n);
+    fprintf(stderr,"\n*** ERR(%s; dim=%lld): NO vtk files for dim .eq. 1 or (dim .gt. 3).\n",__FUNCTION__,(long long )sc->n);
   FILE *fvtk;
   INT nv=sc->nv,ns=sc->ns, n=sc->n,n1=n+1;
   INT *nodes = sc->nodes, *ib=sc->bndry;
@@ -1657,7 +1658,7 @@ void vtkw(char *namevtk, scomplex *sc, const INT shift, const REAL zscale)
   fvtk=HAZ_fopen(namevtk,"w");
   fprintf(fvtk,"<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"%s\">\n",endian);
   fprintf(fvtk,"<UnstructuredGrid>\n");
-  fprintf(fvtk,"<Piece NumberOfPoints=\"%i\" NumberOfCells=\"%i\">\n",nv,ns);
+  fprintf(fvtk,"<Piece NumberOfPoints=\"%lld\" NumberOfCells=\"%lld\">\n",(long long )nv,(long long )ns);
   fprintf(fvtk,"<Points>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" NumberOfComponents=\"3\" Format=\"ascii\">",tfloat);
   for (j=0;j<nv;j++){
@@ -1693,7 +1694,7 @@ void vtkw(char *namevtk, scomplex *sc, const INT shift, const REAL zscale)
   // Dump v_bdry Data to indicate if vertices are boundaries
   fprintf(fvtk,"<PointData Scalars=\"scalars\">\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"v_bdry\" Format=\"ascii\">",tinto);
-  for(k=0;k<nv;k++) fprintf(fvtk," %i ",ib[k]);
+  for(k=0;k<nv;k++) fprintf(fvtk," %lld ",(long long )ib[k]);
   fprintf(fvtk,"</DataArray>\n");
   /*NOT USED: if(sc->fval){ */
   /*   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"ele\" Format=\"ascii\">",tfloat); */
@@ -1714,13 +1715,13 @@ void vtkw(char *namevtk, scomplex *sc, const INT shift, const REAL zscale)
     fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectedcomponents\" Format=\"ascii\">",tinto);
     for(k=0;k<nv;k++) {
       if(ib[k]==0) {
-	fprintf(fvtk," %i ",1);
+	fprintf(fvtk," %lld ",(long long )1);
       } else if(ib[k]==1) {
-	fprintf(fvtk," %i ",-1);
+	fprintf(fvtk," %lld ",(long long )(-1));
       } else if(ib[k]==-1) {
-	fprintf(fvtk," %i ",-2);
+	fprintf(fvtk," %lld ",(long long )(-2));
       } else {
-	fprintf(fvtk," %i ",ib[k]);
+	fprintf(fvtk," %lld ",(long long )ib[k]);
       }
     }
     fprintf(fvtk,"</DataArray>\n");
@@ -1728,23 +1729,23 @@ void vtkw(char *namevtk, scomplex *sc, const INT shift, const REAL zscale)
   fprintf(fvtk,"</PointData>\n");
   fprintf(fvtk,"<Cells>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"offsets\" Format=\"ascii\">",tinto);
-  for(k=1;k<=ns;k++) fprintf(fvtk," %i ",k*n1);
+  for(k=1;k<=ns;k++) fprintf(fvtk," %lld ",(long long )(k*n1));
   fprintf(fvtk,"</DataArray>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectivity\" Format=\"ascii\">\n",tinto);
   /* for(k=0;k<ns;k++){ */
   /*   kn1=k*n1; */
-  /*   for(j=0;j<n1;j++) fprintf(fvtk," %i ",nodes[kn1 + j]); */
+  /*   for(j=0;j<n1;j++) fprintf(fvtk," %lld ",nodes[kn1 + j]); */
   /* } */
   for (j=0;j<ns;j++){
     /*  for (j=0;j<ns;j++){*/
     for (k=0;k<n1;k++) {
-      fprintf(fvtk,"%d ",nodes[j*n1+k]+shift);
+      fprintf(fvtk,"%lld ",(long long )(nodes[j*n1+k]+shift));
     }
   }
   fprintf(fvtk,"</DataArray>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"types\" Format=\"ascii\">",tinto);
   for(k=1;k<=ns;k++)
-    fprintf(fvtk," %i ",tcell);
+    fprintf(fvtk," %lld ",(long long )tcell);
   fprintf(fvtk,"</DataArray>\n");
   fprintf(fvtk,"</Cells>\n");
   fprintf(fvtk,"</Piece>\n");
@@ -1763,14 +1764,14 @@ void matlw(scomplex *sc, char *namematl)
   fp=HAZ_fopen(namematl,"w");
   //  if(!fp) fp=stdout;
   if(!fp) fp=stdout;
-  fprintf(stdout,"\n%i %i %i\n",ns,nv,n);
+  fprintf(stdout,"\n%lld %lld %lld\n",(long long )ns,(long long )nv,(long long )n);
   fflush(stdout);
   fprintf(fp,"\nt=[");
   fflush(fp);
   for (j=0;j<ns;j++){
     /*  for (j=0;j<ns;j++){*/
     for (k=0;k<n1;k++) {
-      fprintf(fp,"%i ",nodes[j*n1+k]+1);
+      fprintf(fp,"%lld ",(long long )nodes[j*n1+k]+(long long )1);
     }
     fprintf(fp,"\n");
   }
@@ -1852,13 +1853,13 @@ dCSRmat *dcoo_read_eof_dcsr_p (FILE *fp,INT *size)
   }
   nnz=0;
   while(!feof(fp)){
-    ichk=fscanf(fp,"%d %d %lg", &i,&j, &value);
+    ichk=fscanf(fp,"%lld %lld %lg", (long long *)&i,(long long *)&j, &value);
     if(ichk<0) break;
     if(i>m) m=i;
     if(j>n) n=j;
     nnz++;
   }
-  fprintf(stdout,"%s FOUND %d records.\n",__FUNCTION__,nnz);
+  fprintf(stdout,"%s FOUND %lld records.\n",__FUNCTION__,(long long )nnz);
   // check if we read anything...
   if(!nnz) check_error(ERROR_WRONG_FILE, __FUNCTION__);
   //
@@ -1867,7 +1868,7 @@ dCSRmat *dcoo_read_eof_dcsr_p (FILE *fp,INT *size)
   //    fprintf(stdout,"\nCheck structure: %d %d %d\n\n",Atmp->row,Atmp->col,Atmp->nnz);fflush(stdout);
   rewind(fp);
   for ( k = 0; k < nnz; k++ ) {
-    if ( fscanf(fp, "%d %d %lg", &i, &j, &value) != EOF ) {
+    if ( fscanf(fp, "%lld %lld %lg", (long long *)&i, (long long *)&j, &value) != EOF ) {
       Atmp->rowind[k]=i; Atmp->colind[k]=j; Atmp->val[k] = value;
     } else {
       check_error(ERROR_WRONG_FILE, __FUNCTION__);
@@ -1903,7 +1904,7 @@ dvector *dvector_read_eof_p(FILE *fp)
     if(ichk<0) break;
     n++;
   }
-  fprintf(stdout,"%s: FOUND %d records.\n",__FUNCTION__,n);
+  fprintf(stdout,"%s: FOUND %lld records.\n",__FUNCTION__,(long long )n);
   if(!n)
     check_error(ERROR_WRONG_FILE, __FUNCTION__);
   b=dvec_create_p(n);
@@ -1965,12 +1966,12 @@ dCSRmat *dcoo_read_dcsr_p(FILE *fp)
   fseek(fp, offset, SEEK_SET);
 
   // now start to read
-  fscanf(fp,"%d %d %d",&m,&n,&nnz);
+  fscanf(fp,"%lld %lld %lld",(long long *)&m,(long long *)&n,(long long *)&nnz);
 
   dCOOmat *Atmp=dcoo_create_p(m,n,nnz);
 
   for ( k = 0; k < nnz; k++ ) {
-    if ( fscanf(fp, "%d %d %le", &i, &j, &value) != EOF ) {
+    if ( fscanf(fp, "%lld %lld %le", (long long *)&i, (long long *)&j, &value) != EOF ) {
       Atmp->rowind[k]=i; Atmp->colind[k]=j; Atmp->val[k] = value;
     }
     else {
@@ -2029,12 +2030,12 @@ dCSRmat *dcoo_read_dcsr_p_1(FILE *fp)
   fseek(fp, offset, SEEK_SET);
 
   // now start to read
-  fscanf(fp,"%d %d %d",&m,&n,&nnz);
+  fscanf(fp,"%lld %lld %lld",(long long *)&m,(long long *)&n,(long long *)&nnz);
 
   dCOOmat *Atmp=dcoo_create_p(m,n,nnz);
 
   for ( k = 0; k < nnz; k++ ) {
-    if ( fscanf(fp, "%d %d %le", &i, &j, &value) != EOF ) {
+    if ( fscanf(fp, "%lld %lld %le", (long long *)&i, (long long *)&j, &value) != EOF ) {
       Atmp->rowind[k]=i-1; Atmp->colind[k]=j-1; Atmp->val[k] = value;
     }
     else {
@@ -2067,7 +2068,7 @@ dvector *dvector_read_p(FILE *fp)
   INT  i, n;
   REAL value;
   if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
-  fscanf(fp,"%d",&n);
+  fscanf(fp,"%lld",(long long *)&n);
   b=dvec_create_p(n);
   for ( i = 0; i < n; ++i ) {
     fscanf(fp, "%lg", &value);

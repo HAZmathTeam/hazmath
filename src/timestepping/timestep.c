@@ -49,7 +49,7 @@ void initialize_timestepper(timestepper *tstepper,input_param *inparam,INT rhs_t
     sprintf(tstepper->time_scheme_str,"Crank-Nicolson");
     tstepper->old_steps = 1;
   } else {
-    sprintf(tstepper->time_scheme_str,"BDF-%d",tstepper->time_scheme);
+    sprintf(tstepper->time_scheme_str,"BDF-%lld",(long long )tstepper->time_scheme);
     tstepper->old_steps = tstepper->time_scheme;
   }
 
@@ -366,7 +366,7 @@ void initialize_blktimestepper(block_timestepper *tstepper,input_param *inparam,
     sprintf(tstepper->time_scheme_str,"Crank-Nicolson");
     tstepper->old_steps = 1;
   } else {
-    sprintf(tstepper->time_scheme_str,"BDF-%d",tstepper->time_scheme);
+    sprintf(tstepper->time_scheme_str,"BDF-%lld",(long long )tstepper->time_scheme);
     tstepper->old_steps = tstepper->time_scheme;
   }
 

@@ -589,11 +589,11 @@ void assemble_global_block(block_dCSRmat* A,dvector *b,void (*local_assembly)(RE
   INT nblocks = A->brow;
   // Check for errors
   if(nblocks!=A->bcol) {
-    printf("Your block matrix is not square.  It is an %d x %d matrix.\n\n",A->brow,A->bcol);
+    printf("Your block matrix is not square.  It is an %lld x %lld matrix.\n\n",(long long )A->brow,(long long )A->bcol);
     exit(0);
   }
   if(nblocks!=FE->nspaces) {
-    printf("You have %d FEM spaces, but only %dx%d blocks.  They must be consistent.\n\n",FE->nspaces,A->brow,A->bcol);
+    printf("You have %lld FEM spaces, but only %lldx%lld blocks.  They must be consistent.\n\n",(long long )FE->nspaces,(long long )A->brow,(long long )A->bcol);
     exit(0);
   }
   if(rhs!=NULL) {
@@ -734,11 +734,11 @@ void assemble_global_Jacobian(block_dCSRmat* A,dvector *b,dvector *old_sol,void 
   INT nblocks = A->brow;
   // Check for errors
   if(nblocks!=A->bcol) {
-    printf("Your block matrix is not square.  It is an %d x %d matrix.\n\n",A->brow,A->bcol);
+    printf("Your block matrix is not square.  It is an %lld x %lld matrix.\n\n",(long long )A->brow,(long long )A->bcol);
     exit(0);
   }
   if(nblocks!=FE->nspaces) {
-    printf("You have %d FEM spaces, but only %dx%d blocks.  They must be consistent.\n\n",FE->nspaces,A->brow,A->bcol);
+    printf("You have %lld FEM spaces, but only %lldx%lld blocks.  They must be consistent.\n\n",(long long )FE->nspaces,(long long )A->brow,(long long )A->bcol);
     exit(0);
   }
 
@@ -1441,11 +1441,11 @@ void assemble_global_face_block(block_dCSRmat* A,dvector* b,dvector *old_sol,voi
   INT nblocks = A->brow;
   // Check for errors
   if(nblocks!=A->bcol) {
-    printf("Your block matrix is not square.  It is an %d x %d matrix.\n\n",A->brow,A->bcol);
+    printf("Your block matrix is not square.  It is an %lld x %lld matrix.\n\n",(long long )A->brow,(long long )A->bcol);
     exit(0);
   }
   if(nblocks!=nspaces) {
-    printf("You have %d FEM spaces, but only %dx%d blocks.  They must be consistent.\n\n",nspaces,A->brow,A->bcol);
+    printf("You have %lld FEM spaces, but only %lldx%lld blocks.  They must be consistent.\n\n",(long long )nspaces,(long long )A->brow,(long long )A->bcol);
     exit(0);
   }
   if(rhs!=NULL) {

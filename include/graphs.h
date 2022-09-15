@@ -30,5 +30,5 @@ typedef struct
   INT  id; //for the permutation
 } iweights;
 
-typedef INT (*testit)(const void*, const void*);
+typedef int (*testit)(const void*, const void*);
 

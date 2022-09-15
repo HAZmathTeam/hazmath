@@ -133,7 +133,7 @@ static void coarse_itsolver(dCSRmat *A,
             break;
 
         default:
-            printf("### ERROR: Wrong smoother type %d!\n", smoother);
+            printf("### ERROR: Wrong smoother type %lld!\n",   (long long )smoother);
             check_error(ERROR_INPUT_PAR, __FUNCTION__);
     }
 }
@@ -219,7 +219,7 @@ static void dcsr_postsmoothing(SHORT smoother,
             break;
 
         default:
-            printf("### ERROR: Wrong smoother type %d!\n", smoother);
+            printf("### ERROR: Wrong smoother type %lld!\n",   (long long )smoother);
             check_error(ERROR_INPUT_PAR, __FUNCTION__);
     }
 }
@@ -427,7 +427,7 @@ void amli(AMG_data *mgl,
     REAL     *r1       = mgl[level+1].w.val+m1; // work array for residual
 
     if ( prtlvl >= PRINT_MOST )
-        printf("AMLI level %d, smoother %d.\n", level, smoother);
+        printf("AMLI level %lld, smoother %lld.\n",   (long long )level,   (long long )smoother);
 
     if ( level < mgl[level].num_levels-1 ) {
 
@@ -558,7 +558,7 @@ void nl_amli (AMG_data *mgl,
     bH.row = m1; bH.val = mgl[level+1].w.val + 2*m1;
 
     if ( prtlvl >= PRINT_MOST )
-        printf("Nonlinear AMLI level %d, smoother %d.\n", num_levels, smoother);
+        printf("Nonlinear AMLI level %lld, smoother %lld.\n",   (long long )num_levels,   (long long )smoother);
 
     if ( level < num_levels-1 ) {
 
@@ -949,7 +949,7 @@ void mgcycle_bsr (AMG_data_bsr  *mgl,
 #endif
 
 #if DEBUG_MODE > 1
-    printf("### DEBUG: AMG_level = %d, ILU_level = %d\n", nl, mgl->ILU_levels);
+    printf("### DEBUG: AMG_level = %lld, ILU_level = %lld\n",   (long long )nl,   (long long )mgl->ILU_levels);
 #endif
 
 ForwardSweep:
@@ -975,7 +975,7 @@ ForwardSweep:
                     break;
 
                 default:
-                    printf("### HAZMATH ERROR: Unknown smoother type %d!\n", smoother);
+                    printf("### HAZMATH ERROR: Unknown smoother type %lld!\n",   (long long )smoother);
                     check_error(ERROR_SOLVER_TYPE, __FUNCTION__);
             }
         }
@@ -1036,7 +1036,7 @@ ForwardSweep:
             if ( dbsr_pvgmres(&mgl[nl-1].A,&mgl[nl-1].b,&mgl[nl-1].x, NULL,ctol,cmaxit,25,1,0) < 0 ) {
                 if ( prtlvl > PRINT_MIN ) {
                     printf("### HAZMATH WARNING: Coarse level solver did not converge!\n");
-                    printf("### HAZMATH WARNING: Consider to increase maxit to %d!\n", 2*cmaxit);
+                    printf("### HAZMATH WARNING: Consider to increase maxit to %lld!\n", 2*  (long long )cmaxit);
                 }
             }
         }
@@ -1107,7 +1107,7 @@ ForwardSweep:
                     break;
 
                 default:
-                    printf("### HAZMATH ERROR: Unknown smoother type %d!\n", smoother);
+                    printf("### HAZMATH ERROR: Unknown smoother type %lld!\n",   (long long )smoother);
                     check_error(ERROR_SOLVER_TYPE, __FUNCTION__);
             }
         }
@@ -1158,7 +1158,7 @@ void mgcycle_bdcsr (AMG_data_bdcsr  *mgl,
 #endif
 
 #if DEBUG_MODE > 1
-    printf("### DEBUG: AMG_level = %d, ILU_level = %d\n", nl, mgl->ILU_levels);
+    printf("### DEBUG: AMG_level = %lld, ILU_level = %lld\n",   (long long )nl,   (long long )mgl->ILU_levels);
 #endif
 
 ForwardSweep:
@@ -1204,7 +1204,7 @@ ForwardSweep:
                     break;
 
                 default:
-                    printf("### HAZMATH ERROR: Unknown smoother type %d!\n", smoother);
+                    printf("### HAZMATH ERROR: Unknown smoother type %lld!\n",   (long long )smoother);
                     check_error(ERROR_SOLVER_TYPE, __FUNCTION__);
             }
 
@@ -1246,7 +1246,7 @@ ForwardSweep:
             if ( bdcsr_pvgmres(&mgl[nl-1].A,&mgl[nl-1].b,&mgl[nl-1].x, NULL,ctol,cmaxit,25,1,0) < 0 ) {
                 if ( prtlvl > PRINT_MIN ) {
                     printf("### HAZMATH WARNING: Coarse level solver did not converge!\n");
-                    printf("### HAZMATH WARNING: Consider to increase maxit to %d!\n", 2*cmaxit);
+                    printf("### HAZMATH WARNING: Consider to increase maxit to %lld!\n", 2*  (long long )cmaxit);
                 }
             }
         }
@@ -1314,7 +1314,7 @@ ForwardSweep:
                     break;
 
                 default:
-                    printf("### HAZMATH ERROR: Unknown smoother type %d!\n", smoother);
+                    printf("### HAZMATH ERROR: Unknown smoother type %lld!\n",   (long long )smoother);
                     check_error(ERROR_SOLVER_TYPE, __FUNCTION__);
             }
 
@@ -1380,7 +1380,7 @@ void mgcycle_bdcsr_metric(AMG_data_bdcsr  *mgl,
 #endif
 
 #if DEBUG_MODE > 1
-    printf("### DEBUG: AMG_level = %d, ILU_level = %d\n", nl, mgl->ILU_levels);
+    printf("### DEBUG: AMG_level = %lld, ILU_level = %lld\n",   (long long )nl,   (long long )mgl->ILU_levels);
 #endif
 
 ForwardSweep:
@@ -1439,7 +1439,7 @@ ForwardSweep:
                     break;
 
                 default:
-                    printf("### HAZMATH ERROR: Unknown smoother type %d!\n", smoother);
+                    printf("### HAZMATH ERROR: Unknown smoother type %lld!\n",   (long long )smoother);
                     check_error(ERROR_SOLVER_TYPE, __FUNCTION__);
             }
         }
@@ -1500,7 +1500,7 @@ ForwardSweep:
             if ( bdcsr_pvgmres(&mgl[nl-1].A,&mgl[nl-1].b,&mgl[nl-1].x, NULL,ctol,cmaxit,25,1,0) < 0 ) {
                 if ( prtlvl > PRINT_MIN ) {
                     printf("### HAZMATH WARNING: Coarse level solver did not converge!\n");
-                    printf("### HAZMATH WARNING: Consider to increase maxit to %d!\n", 2*cmaxit);
+                    printf("### HAZMATH WARNING: Consider to increase maxit to %lld!\n", 2*  (long long )cmaxit);
                 }
             }
         }
@@ -1583,7 +1583,7 @@ ForwardSweep:
                     break;
 
                 default:
-                    printf("### HAZMATH ERROR: Unknown smoother type %d!\n", smoother);
+                    printf("### HAZMATH ERROR: Unknown smoother type %lld!\n",   (long long )smoother);
                     check_error(ERROR_SOLVER_TYPE, __FUNCTION__);
             }
         }

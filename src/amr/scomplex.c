@@ -394,19 +394,19 @@ void vol_simplex(INT dim, REAL fact, REAL *xf, REAL *volt, void *wrk)
 scomplex *haz_scomplex_read(FILE *fp,INT print_level)
 {
   INT i,ns,nv,n,dummy;
-  i=fscanf(fp,"%d %d %d %d",&ns,&nv,&n,&dummy);
+  i=fscanf(fp,"%lld %lld %lld %lld",(long long *)&ns,(long long *)&nv,(long long *)&n,(long long *)&dummy);
   INT n1=n+1,j,k,n1kj=-10,nbig=n;// we can only read same dimension complexes now.
   scomplex *sc=(scomplex *)haz_scomplex_init(n,ns,nv,n);
   for (j=0;j<n1;j++) {
     for (k=0;k<ns;k++){
       n1kj=n1*k+j;
-      dummy=fscanf(fp," %d ", sc->nodes+n1kj);
+      dummy=fscanf(fp," %lld ", (long long *)(sc->nodes+n1kj));
       /* shift if needed ; this should not be here: later CHANGE */
       sc->nodes[n1kj]=sc->nodes[n1kj]-1;
     }
   }
   for (k=0;k<ns;k++){
-    dummy=fscanf(fp," %d ", sc->flags+k);
+    dummy=fscanf(fp," %lld ", (long long *)sc->flags+k);
   }
   for(j=0;j<nbig;j++){
     for(i=0;i<nv;i++){
@@ -414,7 +414,7 @@ scomplex *haz_scomplex_read(FILE *fp,INT print_level)
     }
   }
   for(i=0;i<nv;i++){
-    dummy=fscanf(fp,"%i",sc->bndry+i);
+    dummy=fscanf(fp,"%lld",(long long *)(sc->bndry+i));
   }
   sc->print_level=0;
   return sc;
@@ -438,23 +438,23 @@ void haz_scomplex_print(scomplex *sc, const INT ns0,const char *infor)
   INT i,j,in,in1;
   INT n=sc->n,n1=n+1,ns=sc->ns,nv=sc->nv,nbig=sc->nbig;
   if (ns0 < 0 || ns0>ns) return;
-  fprintf(stdout,"\nN=%d,NBIG=%d, NS=%d, NV=%d\n",sc->n,sc->nbig,sc->ns,sc->nv);fflush(stdout);
+  fprintf(stdout,"\nN=%lld,NBIG=%lld, NS=%lld, NV=%lld\n",(long long )sc->n,(long long )sc->nbig,(long long )sc->ns,(long long )sc->nv);fflush(stdout);
   fprintf(stdout,"\n%s printout: %s\n",__FUNCTION__,infor);
   fprintf(stdout,"\nNODES list:\n");
   if(sc->parent){
     for(i=ns0;i<ns;i++){
       in1=i*n1;
-      fprintf(stdout,"Element: %d ; vol=%e, Parent=%d; NODES=",i-ns0,sc->vols[i],sc->parent[i-ns0]);
+      fprintf(stdout,"Element: %lld ; vol=%e, Parent=%lld; NODES=",(long long )(i-ns0),sc->vols[i],(long long )sc->parent[i-ns0]);
       for(j=0;j<n1;j++)
-	fprintf(stdout,"%d  ",sc->nodes[in1+j]);
+	fprintf(stdout,"%lld  ",(long long )sc->nodes[in1+j]);
       fprintf(stdout,"\n");
     }
   } else {
     for(i=ns0;i<ns;i++){
       in1=i*n1;
-      fprintf(stdout,"Element: %d ; vol=%e, NODES=",i-ns0,sc->vols[i]);
+      fprintf(stdout,"Element: %lld ; vol=%e, NODES=",(long long )(i-ns0),sc->vols[i]);
       for(j=0;j<n1;j++)
-	fprintf(stdout,"%d  ",sc->nodes[in1+j]);
+	fprintf(stdout,"%lld  ",(long long )sc->nodes[in1+j]);
       fprintf(stdout,"\n");
     }
   }
@@ -462,17 +462,17 @@ void haz_scomplex_print(scomplex *sc, const INT ns0,const char *infor)
   if(sc->gen){
     for(i=ns0;i<ns;i++){
       in1=i*n1;
-      fprintf(stdout,"Element: %d (%d) ; NBR=",i-ns0,sc->gen[i-ns0]);
+      fprintf(stdout,"Element: %lld (%lld) ; NBR=",(long long )(i-ns0),(long long )sc->gen[i-ns0]);
       for(j=0;j<n1;j++)
-	fprintf(stdout,"%d  ",sc->nbr[in1+j]-ns0);
+	fprintf(stdout,"%lld  ",(long long )(sc->nbr[in1+j]-ns0));
       fprintf(stdout,"\n");
     }
   } else {
     for(i=ns0;i<ns;i++){
       in1=i*n1;
-      fprintf(stdout,"Element: %d ; NBR=",i-ns0);
+      fprintf(stdout,"Element: %lld ; NBR=",(long long )(i-ns0));
       for(j=0;j<n1;j++)
-	fprintf(stdout,"%d  ",sc->nbr[in1+j]-ns0);
+	fprintf(stdout,"%lld  ",(long long )(sc->nbr[in1+j]-ns0));
       fprintf(stdout,"\n");
     }
   }
@@ -480,7 +480,7 @@ void haz_scomplex_print(scomplex *sc, const INT ns0,const char *infor)
   if(sc->bndry){
     for(i=0;i<nv;i++){
       in=i*nbig;
-      fprintf(stdout,"Node: %d ; Code: %d ; COORDS=",i,sc->bndry[i]);
+      fprintf(stdout,"Node: %lld ; Code: %lld ; COORDS=",(long long )i,(long long )sc->bndry[i]);
       for(j=0;j<nbig;j++){
 	fprintf(stdout,"%e  ",sc->x[in+j]);
       }
@@ -489,7 +489,7 @@ void haz_scomplex_print(scomplex *sc, const INT ns0,const char *infor)
   } else {
     for(i=0;i<nv;i++){
       in=i*nbig;
-      fprintf(stdout,"Node: %d ; COORDS=",i);
+      fprintf(stdout,"Node: %lld ; COORDS=",(long long )i);
       for(j=0;j<nbig;j++){
 	fprintf(stdout,"%e  ",sc->x[in+j]);
       }
@@ -609,7 +609,7 @@ static unsigned INT cmp_simplex(INT n, INT sim1, INT sim2,		\
   }
   /* NOW put the neightbors at the right places ******* */
   if(k1<0||k2<0){
-    fprintf(stderr,"\n***ERROR in %s; k1=%d,k2=%d\n\n",__FUNCTION__,k1,k2);
+    fprintf(stderr,"\n***ERROR in %s; k1=%lld,k2=%lld\n\n",__FUNCTION__,(long long )k1,(long long )k2);
     exit(65);
   } else {
     stos1[k1]=sim2;
@@ -970,7 +970,7 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
     snnbri=sc->nbr[iscn+i]; /*s->childn->neighbor[i]*/
     if(s0nbri>=0){
       if(s0nbri >=sc->ns) {
-	fprintf(stderr,"\n\nSTOPPING: nsnew,s0nbri,snnbri,ns: %i %i %i %i\n\n",nsnew,snnbri,s0nbri,sc->ns); fflush(stdout);
+	fprintf(stderr,"\n\nSTOPPING: nsnew,s0nbri,snnbri,ns: %lld %lld %lld %lld\n\n",(long long )nsnew,(long long )snnbri,(long long )s0nbri,(long long )sc->ns); fflush(stdout);
 	exit(32);
       }
       //      if(sc->gen[s0nbri]==s0->gen)
@@ -980,7 +980,7 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
     }
     if(snnbri>=0){
       if(snnbri >=sc->ns) {
-	fprintf(stderr,"\n\nSTOPPING2: s0nbri,snnbri,ns: %i %i %i %i\n",nsnew,snnbri,s0nbri,sc->ns); fflush(stdout);
+	fprintf(stderr,"\n\nSTOPPING2: s0nbri,snnbri,ns: %lld %lld %lld %lld\n",(long long )nsnew,(long long )snnbri,(long long )s0nbri,(long long )sc->ns); fflush(stdout);
 	exit(33);
       }
       //      if(sc->gen[snnbri]==sn->gen)
@@ -1248,7 +1248,7 @@ scomplex sc_bndry(scomplex *sc)
     }
   }
   if(ns_b!=ns_b1){
-    fprintf(stderr,"\n%%***ERROR(65): num. bndry faces mismatch (ns_b=%d .ne. ns_b=%d) in %s",ns_b1,ns_b,__FUNCTION__);
+    fprintf(stderr,"\n%%***ERROR(65): num. bndry faces mismatch (ns_b=%lld .ne. ns_b=%lld) in %s",(long long )ns_b1,(long long )ns_b,__FUNCTION__);
     exit(65);
   }
   // FIX numbering, there is global numbering of nodes and local numbering of nodes:
@@ -1265,13 +1265,13 @@ scomplex sc_bndry(scomplex *sc)
     indxinv[nv_b]=i;
     nv_b++;
   }
-  fprintf(stdout,"\n%%number of boundary vertices=%d (total nv=%d)\n",nv_b,sc->nv);
+  fprintf(stdout,"\n%%number of boundary vertices=%lld (total nv=%lld)\n",(long long )nv_b,(long long )sc->nv);
   dsc=haz_scomplex_null((sc->n-1),sc->n);
   dsc.nv=nv_b;
   dsc.ns=ns_b;
   ////////////////
   if(dsc.nbig>dsc.n){
-    fprintf(stdout,"\n%%%%In %s:Simplicial complex of dimension %d embedded in sc of dimension %d\n\n",__FUNCTION__,dsc.n,dsc.nbig);
+    fprintf(stdout,"\n%%%%In %s:Simplicial complex of dimension %lld embedded in sc of dimension %lld\n\n",__FUNCTION__,(long long )dsc.n,(long long )dsc.nbig);
   }
   // there are things we dont need:
   //  free(dsc.nodes);

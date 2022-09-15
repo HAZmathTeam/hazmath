@@ -44,6 +44,7 @@ void param_input (const char *filenm,		\
 {
   INT maxb=512; // max number of char for each line is maxb
   INT      val;
+  long long int long_ibuff=-10;
   SHORT    status = SUCCESS;
   char     *buffer=malloc(maxb*sizeof(char));
   if(!buffer){
@@ -87,7 +88,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->print_level = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -112,7 +113,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->read_mesh_from_file = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -134,7 +135,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->spatial_dim = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -145,7 +146,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->refinement_type = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -156,7 +157,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->refinement_levels = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -167,7 +168,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->boundary_codes = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -181,7 +182,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->nquad = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -192,7 +193,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->FE_type = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -203,7 +204,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->Mass_lump = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -228,7 +229,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->time_step_type = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -239,7 +240,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->time_steps = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -261,7 +262,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->rhs_time_dep = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -275,7 +276,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->nonlinear_itsolver_type = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -286,7 +287,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->nonlinear_itsolver_maxit = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -308,7 +309,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->nonlinear_itsolver_toltype = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -319,7 +320,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->fas_presmoothers = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -330,7 +331,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->fas_postsmoothers = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -355,7 +356,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->linear_itsolver_type = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -366,7 +367,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->linear_itsolver_maxit = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -388,7 +389,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->linear_stop_type = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -399,7 +400,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->linear_restart = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -410,7 +411,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->linear_precond_type = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -435,7 +436,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->AMG_maxit = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -469,7 +470,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->AMG_levels = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -503,7 +504,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->AMG_amli_degree = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -514,7 +515,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->AMG_nl_amli_krylov_type = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -583,7 +584,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
               status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->AMG_Schwarz_levels = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -594,7 +595,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->AMG_presmooth_iter = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -605,7 +606,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->AMG_postsmooth_iter = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -616,7 +617,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->AMG_coarse_dof = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -627,7 +628,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->AMG_coarse_solver = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -670,7 +671,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->AMG_aggregation_type = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -692,7 +693,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->AMG_max_aggregation = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line
@@ -741,7 +742,7 @@ void param_input (const char *filenm,		\
           if (val!=1 || strcmp(buffer,"=")!=0) {
             status = ERROR_INPUT_PAR; break;
           }
-          val = fscanf(fp,"%d",&ibuff);
+          val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
           if (val!=1) { status = ERROR_INPUT_PAR; break; }
           inparam->Schwarz_mmsize = ibuff;
           fgets(buffer,maxb,fp); // skip rest of line
@@ -753,7 +754,7 @@ void param_input (const char *filenm,		\
           if (val!=1 || strcmp(buffer,"=")!=0) {
             status = ERROR_INPUT_PAR; break;
           }
-          val = fscanf(fp,"%d",&ibuff);
+          val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
           if (val!=1) {status = ERROR_INPUT_PAR; break; }
           inparam->Schwarz_maxlvl = ibuff;
           fgets(buffer,maxb,fp); // skip rest of line
@@ -765,7 +766,7 @@ void param_input (const char *filenm,		\
           if (val!=1 || strcmp(buffer,"=")!=0) {
             status = ERROR_INPUT_PAR; break;
           }
-          val = fscanf(fp,"%d",&ibuff);
+          val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
           if (val!=1) { status = ERROR_INPUT_PAR; break; }
           inparam->Schwarz_type = ibuff;
           fgets(buffer,maxb,fp); // skip rest of line
@@ -776,7 +777,7 @@ void param_input (const char *filenm,		\
           if (val!=1 || strcmp(buffer,"=")!=0) {
             status = ERROR_INPUT_PAR; break;
           }
-          val = fscanf(fp,"%d",&ibuff);
+          val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
           if (val!=1) { status = ERROR_INPUT_PAR; break; }
           inparam->Schwarz_blksolver = ibuff;
           fgets(buffer,maxb,fp); // skip rest of line
@@ -790,7 +791,7 @@ void param_input (const char *filenm,		\
             if (val!=1 || strcmp(buffer,"=")!=0) {
                 status = ERROR_INPUT_PAR; break;
             }
-            val = fscanf(fp,"%d",&ibuff);
+            val = fscanf(fp,"%lld",&long_ibuff); ibuff=(INT )long_ibuff;
             if (val!=1) { status = ERROR_INPUT_PAR; break; }
             inparam->HX_smooth_iter = ibuff;
             fgets(buffer,maxb,fp); // skip rest of line

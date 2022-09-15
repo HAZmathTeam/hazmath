@@ -1090,7 +1090,7 @@ void python_wrapper_cascadic_eigen(INT *n,
       INT i;
       for (i=0; i<(*num_eigen); i++)
       {
-        printf("eigenvalue[%d]=%f\n", i, dcsr_vmv(&mat, &(eigenvec.val[i*mat.row]), &(eigenvec.val[i*mat.row])));
+        printf("eigenvalue[%lld]=%f\n", (long long )i, dcsr_vmv(&mat, &(eigenvec.val[i*mat.row]), &(eigenvec.val[i*mat.row])));
       }
     }
 

@@ -140,7 +140,7 @@ static void dcsr_fpresmoothing(const SHORT smoother,
             break;
 
         default:
-            printf("### ERROR: Wrong smoother type %d!\n", smoother);
+            printf("### ERROR: Wrong smoother type %lld!\n", (long long )smoother);
             check_error(ERROR_INPUT_PAR, __FUNCTION__);
     }
 }
@@ -195,7 +195,7 @@ static void dcsr_fpostsmoothing(const SHORT smoother,
             break;
 
         default:
-            printf("### ERROR: Wrong smoother type %d!\n", smoother);
+            printf("### ERROR: Wrong smoother type %lld!\n", (long long )smoother);
             check_error(ERROR_INPUT_PAR, __FUNCTION__);
     }
 }
@@ -530,7 +530,7 @@ void famli(AMG_data *mgl,
     REAL     *r1       = mgl[level+1].w.val+m1; // work array for residual
 
     if ( prtlvl >= PRINT_MOST )
-        printf("AMLI level %d, smoother %d.\n", level, smoother);
+        printf("AMLI level %lld, smoother %lld.\n", (long long )level, (long long )smoother);
 
     if ( level < mgl[level].num_levels-1 ) {
 

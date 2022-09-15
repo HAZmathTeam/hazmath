@@ -81,7 +81,7 @@ void creategrid_fread(FILE *gfid,INT file_type,mesh_struct* mesh)
   } else if(file_type==1) {
     read_grid_vtk(gfid,mesh);
   } else {
-    fprintf(stderr,"Unknown mesh file type, %d. Try using vtk format. -Exiting\n",file_type);
+    fprintf(stderr,"Unknown mesh file type, %lld. Try using vtk format. -Exiting\n",(long long )file_type);
     exit(255);
   }
 
@@ -239,7 +239,7 @@ void build_mesh_all(mesh_struct* mesh)
     }
     if(euler!=1) {
       printf("ERROR HAZMATH DANGER: in function %s, your simplices are all messed up.  "
-      "Euler Characteristic doesn't equal 1+nholes!\teuler=%d\tnholes=%d.\n\n",__FUNCTION__,euler,nholes);
+      "Euler Characteristic doesn't equal 1+nholes!\teuler=%lld\tnholes=%lld.\n\n",__FUNCTION__,(long long )euler,(long long )nholes);
       exit(ERROR_DIM);
     }
 

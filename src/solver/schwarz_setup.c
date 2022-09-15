@@ -251,7 +251,7 @@ INT Schwarz_setup(Schwarz_data *Schwarz,
     Schwarz->Schwarz_type = param->Schwarz_type;
     Schwarz->blk_solver = param->Schwarz_blksolver;
 
-    printf("Schwarz method setup is done! Find %d blocks. Maxmium block size = %d\n",nblk, max_blk_size);
+    printf("Schwarz method setup is done! Find %lld blocks. Maxmium block size = %lld\n",  (long long )nblk,  (long long )max_blk_size);
 
     // clean
     ivec_free(MaxIndSet);
@@ -389,7 +389,7 @@ INT Schwarz_setup_with_seeds(Schwarz_data *Schwarz,
     Schwarz->Schwarz_type = param->Schwarz_type;
     Schwarz->blk_solver = param->Schwarz_blksolver;
 
-    printf("Schwarz method setup is done! Find %d blocks. Maxmium block size = %d\n",nblk, max_blk_size);
+    printf("Schwarz method setup is done! Find %lld blocks. Maxmium block size = %lld\n",  (long long )nblk,   (long long )max_blk_size);
 
     return flag;
 }

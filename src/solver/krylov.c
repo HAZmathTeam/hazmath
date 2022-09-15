@@ -20,19 +20,19 @@
 #define ITS_FACONV  printf("### HAZMATH WARNING: False convergence!\n")
 
 //! Warning for solution close to zero
-#define ITS_ZEROSOL printf("### HAZMATH WARNING: Iteration stopped due to the solution is almost zero! %s : %d\n", __FUNCTION__, __LINE__)
+#define ITS_ZEROSOL printf("### HAZMATH WARNING: Iteration stopped due to the solution is almost zero! %s : %lld\n", __FUNCTION__,   (long long )__LINE__)
 
 //! Warning for iteration restarted
-#define ITS_RESTART printf("### HAZMATH WARNING: Iteration restarted due to stagnation! %s : %d\n", __FUNCTION__, __LINE__)
+#define ITS_RESTART printf("### HAZMATH WARNING: Iteration restarted due to stagnation! %s : %lld\n", __FUNCTION__,   (long long )__LINE__)
 
 //! Warning for stagged iteration
-#define ITS_STAGGED printf("### HAZMATH WARNING: Iteration stopped due to staggnation! %s : %d\n", __FUNCTION__, __LINE__)
+#define ITS_STAGGED printf("### HAZMATH WARNING: Iteration stopped due to staggnation! %s : %lld\n", __FUNCTION__,   (long long )__LINE__)
 
 //! Warning for tolerance practically close to zero
-#define ITS_ZEROTOL printf("### HAZMATH WARNING: The tolerence might be too small! %s : %d\n", __FUNCTION__, __LINE__)
+#define ITS_ZEROTOL printf("### HAZMATH WARNING: The tolerence might be too small! %s : %lld\n", __FUNCTION__,   (long long )__LINE__)
 
 //! Warning for divided by zero
-#define ITS_DIVZERO printf("### HAZMATH WARNING: Divided by zero! %s : %d\n", __FUNCTION__, __LINE__)
+#define ITS_DIVZERO printf("### HAZMATH WARNING: Divided by zero! %s : %lld\n", __FUNCTION__,   (long long )__LINE__)
 
 //! Warning for actual relative residual
 #define ITS_REALRES(relres) printf("### HAZMATH WARNING: The actual relative residual = %e!\n",(relres))
@@ -41,10 +41,10 @@
 #define ITS_COMPRES(relres) printf("### HAZMATH WARNING: The computed relative residual = %e!\n",(relres))
 
 //! Warning for too small sp
-#define ITS_SMALLSP printf("### HAZMATH WARNING: sp is too small! %s : %d\n", __FUNCTION__, __LINE__)
+#define ITS_SMALLSP printf("### HAZMATH WARNING: sp is too small! %s : %lld\n", __FUNCTION__,  (long long ) __LINE__)
 
 //! Warning for restore previous iteration
-#define ITS_RESTORE(iter) printf("### HAZMATH WARNING: Restore iteration %d!\n",(iter));
+#define ITS_RESTORE(iter) printf("### HAZMATH WARNING: Restore iteration %lld!\n",  (long long )(iter));
 
 //! Output relative difference and residual
 #define ITS_DIFFRES(reldiff,relres) printf("||u-u'|| = %e and the comp. rel. res. = %e.\n",(reldiff),(relres));
@@ -84,11 +84,11 @@ inline static void ITS_CHECK (const INT MaxIt, const REAL tol)
 inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres)
 {
     if ( iter > MaxIt ) {
-        printf("### HAZMATH WARNING: Max iter %d reached with rel. resid. %e.\n", MaxIt, relres);
+      printf("### HAZMATH WARNING: Max iter %lld reached with rel. resid. %e.\n", (long long )MaxIt, relres);
     }
     else if ( iter >= 0 ) {
-      //        printf("Number of iterations = %d with relative residual %e.\n", iter, relres);
-	printf("Num_iter(krylov.c) = %d with relative residual %e.\n", iter, relres);
+      //        printf("Number of iterations = %lld with relative residual %e.\n", iter, relres);
+	printf("Num_iter(krylov.c) = %lld with relative residual %e.\n",   (long long )iter, relres);
     }
 }
 
@@ -768,7 +768,7 @@ INT dbsr_pcg (dBSRmat     *A,
 
 #if DEBUG_MODE > 0
     printf("### DEBUG: [-Begin-] %s ...\n", __FUNCTION__);
-    printf("### DEBUG: maxit = %d, tol = %.4le\n", MaxIt, tol);
+    printf("### DEBUG: maxit = %lld, tol = %.4le\n",   (long long )MaxIt, tol);
 #endif
 
     // r = b-A*u
@@ -1069,7 +1069,7 @@ INT dbsr_pcg_w_cond_est(dBSRmat     *A,
 
 #if DEBUG_MODE > 0
     printf("### DEBUG: [-Begin-] %s ...\n", __FUNCTION__);
-    printf("### DEBUG: maxit = %d, tol = %.4le\n", MaxIt, tol);
+    printf("### DEBUG: maxit = %lld, tol = %.4le\n",   (long long )MaxIt, tol);
 #endif
 
     // r = b-A*u
@@ -3701,13 +3701,13 @@ INT dcsr_pvgmres (dCSRmat *A,
   }
 
   if ( work == NULL ) {
-    printf("### ERROR: No enough memory for vGMRES %s : %s : %d!\n",
-	   __FILE__, __FUNCTION__, __LINE__ );
+    printf("### ERROR: No enough memory for vGMRES %s : %s : %lld!\n",
+	   __FILE__, __FUNCTION__,   (long long )__LINE__ );
     exit(ERROR_ALLOC_MEM);
   }
 
   if ( prtlvl > PRINT_MIN && Restart < restart ) {
-    printf("### WARNING: vGMRES restart number set to %d!\n", Restart);
+    printf("### WARNING: vGMRES restart number set to %lld!\n",   (long long )Restart);
   }
 
   p     = (REAL **)calloc(Restart1, sizeof(REAL *));
@@ -4031,7 +4031,7 @@ INT dbsr_pvgmres (dBSRmat      *A,
 
 #if DEBUG_MODE > 0
     printf("### DEBUG: [-Begin-] %s ...\n", __FUNCTION__);
-    printf("### DEBUG: maxit = %d, tol = %.4le\n", MaxIt, tol);
+    printf("### DEBUG: maxit = %lld, tol = %.4le\n",   (long long )MaxIt, tol);
 #endif
 
     /* allocate memory and setup temp work space */
@@ -4046,12 +4046,12 @@ INT dbsr_pvgmres (dBSRmat      *A,
     }
 
     if ( work == NULL ) {
-        printf("### ERROR: No enough memory! [%s:%d]\n", __FILE__, __LINE__ );
+        printf("### ERROR: No enough memory! [%s:%lld]\n", __FILE__,   (long long )__LINE__ );
         check_error(ERROR_ALLOC_MEM, __FUNCTION__);
     }
 
     if ( PrtLvl > PRINT_MIN && Restart < restart ) {
-        printf("### WARNING: vGMRES restart number set to %d!\n", Restart);
+        printf("### WARNING: vGMRES restart number set to %lld!\n",   (long long )Restart);
     }
 
     p     = (REAL **)calloc(Restart1, sizeof(REAL *));
@@ -4382,13 +4382,13 @@ INT bdcsr_pvgmres (block_dCSRmat *A,
     }
 
     if ( work == NULL ) {
-        printf("### ERROR: No enough memory for vGMRES %s : %s : %d!\n",
-               __FILE__, __FUNCTION__, __LINE__ );
+        printf("### ERROR: No enough memory for vGMRES %s : %s : %lld!\n",
+               __FILE__, __FUNCTION__,   (long long )__LINE__ );
         exit(ERROR_ALLOC_MEM);
     }
 
     if ( prtlvl > PRINT_MIN && Restart < restart ) {
-        printf("### WARNING: vGMRES restart number set to %d!\n", Restart);
+        printf("### WARNING: vGMRES restart number set to %lld!\n",   (long long )Restart);
     }
 
     p     = (REAL **)calloc(Restart1, sizeof(REAL *));
@@ -4720,13 +4720,13 @@ INT general_pvgmres (matvec *mxv,
     }
 
     if ( work == NULL ) {
-        printf("### ERROR: No enough memory for vGMRES %s : %s : %d!\n",
-               __FILE__, __FUNCTION__, __LINE__ );
+        printf("### ERROR: No enough memory for vGMRES %s : %s : %lld!\n",
+               __FILE__, __FUNCTION__,   (long long )__LINE__ );
         exit(ERROR_ALLOC_MEM);
     }
 
     if ( prtlvl > PRINT_MIN && Restart < restart ) {
-        printf("### WARNING: vGMRES restart number set to %d!\n", Restart);
+        printf("### WARNING: vGMRES restart number set to %lld!\n",   (long long )Restart);
     }
 
     p     = (REAL **)calloc(Restart1, sizeof(REAL *));
@@ -5053,13 +5053,13 @@ INT dcsr_pvfgmres(dCSRmat *A,
     }
 
     if ( work == NULL ) {
-        printf("### ERROR: No enough memory for vFGMRES %s : %s : %d!\n",
-               __FILE__, __FUNCTION__, __LINE__ );
+        printf("### ERROR: No enough memory for vFGMRES %s : %s : %lld!\n",
+               __FILE__, __FUNCTION__,   (long long )__LINE__ );
         exit(ERROR_ALLOC_MEM);
     }
 
     if ( prtlvl > PRINT_MIN && Restart < restart ) {
-        printf("### WARNING: vFGMRES restart number set to %d!\n", Restart);
+        printf("### WARNING: vFGMRES restart number set to %lld!\n",   (long long )Restart);
     }
 
     p  = (REAL **)calloc(Restart1, sizeof(REAL *));
@@ -5362,7 +5362,7 @@ INT dbsr_pvfgmres (dBSRmat      *A,
 
 #if DEBUG_MODE > 0
     printf("### DEBUG: [-Begin-] %s ...\n", __FUNCTION__);
-    printf("### DEBUG: maxit = %d, tol = %.4le\n", MaxIt, tol);
+    printf("### DEBUG: maxit = %lld, tol = %.4le\n",   (long long )MaxIt, tol);
 #endif
 
     /* allocate memory and setup temp work space */
@@ -5377,12 +5377,12 @@ INT dbsr_pvfgmres (dBSRmat      *A,
     }
 
     if ( work == NULL ) {
-        printf("### ERROR: No enough memory! [%s:%d]\n", __FILE__, __LINE__ );
+        printf("### ERROR: No enough memory! [%s:%lld]\n", __FILE__,   (long long )__LINE__ );
         check_error(ERROR_ALLOC_MEM, __FUNCTION__);
     }
 
     if ( PrtLvl > PRINT_MIN && Restart < restart ) {
-        printf("### WARNING: vFGMRES restart number set to %d!\n", Restart);
+        printf("### WARNING: vFGMRES restart number set to %lld!\n",   (long long )Restart);
     }
 
     p  = (REAL **)calloc(Restart1, sizeof(REAL *));
@@ -5691,13 +5691,13 @@ INT bdcsr_pvfgmres(block_dCSRmat *A,
     }
 
     if ( work == NULL ) {
-        printf("### ERROR: No enough memory for vFGMRES %s : %s : %d!\n",
-               __FILE__, __FUNCTION__, __LINE__ );
+        printf("### ERROR: No enough memory for vFGMRES %s : %s : %lld!\n",
+               __FILE__, __FUNCTION__,   (long long )__LINE__ );
         exit(ERROR_ALLOC_MEM);
     }
 
     if ( prtlvl > PRINT_MIN && Restart < restart ) {
-        printf("### WARNING: vFGMRES restart number set to %d!\n", Restart);
+        printf("### WARNING: vFGMRES restart number set to %lld!\n",   (long long )Restart);
     }
 
     p  = (REAL **)calloc(Restart1, sizeof(REAL *));
@@ -6009,13 +6009,13 @@ INT general_pvfgmres(matvec *mxv,
     }
 
     if ( work == NULL ) {
-        printf("### ERROR: No enough memory for vFGMRES %s : %s : %d!\n",
-               __FILE__, __FUNCTION__, __LINE__ );
+        printf("### ERROR: No enough memory for vFGMRES %s : %s : %lld!\n",
+               __FILE__, __FUNCTION__,   (long long )__LINE__ );
         exit(ERROR_ALLOC_MEM);
     }
 
     if ( prtlvl > PRINT_MIN && Restart < restart ) {
-        printf("### WARNING: vFGMRES restart number set to %d!\n", Restart);
+        printf("### WARNING: vFGMRES restart number set to %lld!\n",   (long long )Restart);
     }
 
     p  = (REAL **)calloc(Restart1, sizeof(REAL *));

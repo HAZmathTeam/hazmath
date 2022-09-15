@@ -62,7 +62,7 @@ void read_grid_haz(FILE *gfid,mesh_struct *mesh)
 
   // Get basic data
   INT nelm,nv,dim,nholes;
-  fscanf(gfid,"%d %d %d %d",&nelm,&nv,&dim,&nholes);
+  fscanf(gfid,"%lld %lld %lld %lld",  (long long *)&nelm,  (long long *)&nv,  (long long *)&dim,  (long long *)&nholes);
 
   // Get number of vertices per element
   INT v_per_elm = dim+1;
@@ -80,7 +80,7 @@ void read_grid_haz(FILE *gfid,mesh_struct *mesh)
   for (i=0;i<v_per_elm;i++) {
     for (j=0;j<nelm;j++){
       k=v_per_elm*j+i;
-      fscanf(gfid,"%d", (mesh->el_v->JA+k));
+      fscanf(gfid,"%lld",   (long long *)(mesh->el_v->JA+k));
       if(mesh->el_v->JA[k]==0 && one_zero_flag==1)
         one_zero_flag = 0;
     }
@@ -247,7 +247,9 @@ void dump_mesh_haz(char *namehaz,mesh_struct *mesh)
   FILE* fhaz = HAZ_fopen(namehaz,"w");
 
   // Write First Line
-  fprintf(fhaz,"%d %d %d %d\n",nelm,nv,dim,mesh->nconn_bdry-mesh->nconn_reg);
+  fprintf(fhaz,"%lld %lld %lld %lld\n",				\
+	  (long long )nelm,(long long )nv,(long long )dim,	\
+	  (long long )mesh->nconn_bdry-(long long )mesh->nconn_reg);
 
   // Write Next 2-4 lines for element->vertex map
   INT* nodes = (INT *) calloc(nelm*v_per_elm,sizeof(INT));
@@ -260,26 +262,26 @@ void dump_mesh_haz(char *namehaz,mesh_struct *mesh)
       jcnt++;
     }
     // Print first node of elements
-    fprintf(fhaz," %d ",nodes[i*v_per_elm]);
+    fprintf(fhaz," %lld ",  (long long )nodes[i*v_per_elm]);
   }
   fprintf(fhaz,"\n");
 
   // Print Second Node
   for(i=0;i<nelm;i++) {
-    fprintf(fhaz," %d ",nodes[i*v_per_elm+1]);
+    fprintf(fhaz," %lld ",  (long long )nodes[i*v_per_elm+1]);
   }
   fprintf(fhaz,"\n");
   // Print Third if in 2 or 3D
   if(dim==2 || dim==3) {
     for(i=0;i<nelm;i++) {
-      fprintf(fhaz,"% d ",nodes[i*v_per_elm+2]);
+      fprintf(fhaz,"%lld ",(long long )nodes[i*v_per_elm+2]);
     }
     fprintf(fhaz,"\n");
   }
   // Print Fourth node if in 3D
   if(dim==3) {
     for(i=0;i<nelm;i++) {
-      fprintf(fhaz," %d ",nodes[i*v_per_elm+3]);
+      fprintf(fhaz," %lld ",  (long long )nodes[i*v_per_elm+3]);
     }
     fprintf(fhaz,"\n");
   }
@@ -305,7 +307,7 @@ void dump_mesh_haz(char *namehaz,mesh_struct *mesh)
   }
 
   // Dump v_flag Data to indicate if vertices are boundaries
-  for(i=0;i<nv;i++) fprintf(fhaz,"%i ",mesh->v_flag[i]);
+  for(i=0;i<nv;i++) fprintf(fhaz,"%lld ",  (long long )mesh->v_flag[i]);
   fprintf(fhaz,"\n");
 
   fclose(fhaz);
@@ -431,7 +433,7 @@ void dump_mesh_vtk(char *namevtk,mesh_struct *mesh)
           "<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"%s\">\n", \
           endian);
   fprintf(fvtk,"<UnstructuredGrid>\n");
-  fprintf(fvtk,"<Piece NumberOfPoints=\"%i\" NumberOfCells=\"%i\">\n",nv,nelm);
+  fprintf(fvtk,"<Piece NumberOfPoints=\"%lld\" NumberOfCells=\"%lld\">\n",  (long long )nv,  (long long )nelm);
   fprintf(fvtk,"<Points>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" NumberOfComponents=\"3\" Format=\"ascii\">", \
           tfloat);
@@ -457,7 +459,7 @@ void dump_mesh_vtk(char *namevtk,mesh_struct *mesh)
   // Dump v_flag Data to indicate if vertices are boundaries
   fprintf(fvtk,"<PointData Scalars=\"scalars\">\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"v_flag\" Format=\"ascii\">",tinto);
-  for(k=0;k<nv;k++) fprintf(fvtk," %i ",mesh->v_flag[k]);
+  for(k=0;k<nv;k++) fprintf(fvtk," %lld ",  (long long )mesh->v_flag[k]);
   fprintf(fvtk,"</DataArray>\n");
 
   // Dump information about connected components.
@@ -471,7 +473,7 @@ void dump_mesh_vtk(char *namevtk,mesh_struct *mesh)
   // If NULL, then one connected region and boundary.
   if(mesh->v_component) {
     fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectedcomponents\" Format=\"ascii\">",tinto);
-    for(k=0;k<nv;k++) fprintf(fvtk," %i ",mesh->v_component[k]);
+    for(k=0;k<nv;k++) fprintf(fvtk," %lld ",  (long long )mesh->v_component[k]);
     fprintf(fvtk,"</DataArray>\n");
   }
   fprintf(fvtk,"</PointData>\n");
@@ -479,19 +481,19 @@ void dump_mesh_vtk(char *namevtk,mesh_struct *mesh)
   // Dump el_v map
   fprintf(fvtk,"<Cells>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"offsets\" Format=\"ascii\">",tinto);
-  for(k=1;k<=nelm;k++) fprintf(fvtk," %i ",mesh->el_v->IA[k]);
+  for(k=1;k<=nelm;k++) fprintf(fvtk," %lld ",  (long long )mesh->el_v->IA[k]);
   fprintf(fvtk,"</DataArray>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectivity\" Format=\"ascii\">\n",tinto);
   for(k=0;k<nelm;k++){
     kndl=k*v_per_elm;
-    for(j=0;j<v_per_elm;j++) fprintf(fvtk," %i ",mesh->el_v->JA[kndl + j]);
+    for(j=0;j<v_per_elm;j++) fprintf(fvtk," %lld ",  (long long )mesh->el_v->JA[kndl + j]);
   }
   fprintf(fvtk,"</DataArray>\n");
 
   // Dump Element Type
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"types\" Format=\"ascii\">",tinto);
   for(k=1;k<=nelm;k++)
-    fprintf(fvtk," %i ",tcell);
+    fprintf(fvtk," %lld ",  (long long )tcell);
 
   // Put in remaining headers
   fprintf(fvtk,"</DataArray>\n");

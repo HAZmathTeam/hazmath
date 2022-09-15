@@ -51,7 +51,7 @@ INT eigsymm(dCSRmat *A,dCSRmat *B,REAL *evalues, REAL *evectors)
     c2r(n,n,sizeof(REAL),(void *)evectors);
   }
   if(info){
-    fprintf(stderr,"\nXXX: lapack error info during eigenvalue computations=%d (n=%d)\n",info,n);fflush(stderr);
+    fprintf(stderr,"\nXXX: lapack error info during eigenvalue computations=%lld (n=%lld)\n",(long long )info,(long long )n);fflush(stderr);
     exit(16);
   }
   return info;
@@ -163,7 +163,7 @@ INT svdgeneral(INT nrow, INT ncol, REAL *a,REAL *smin, REAL *w)
   work = u +  memu;
   REAL *memend=work+lwork;
   if((memend-at)>(m*n + mnmin + memu + memvt + lwork)) {
-    fprintf(stdout,"\n%% HAZMATH WARNING ***  IN %s: REALLOC bc of insufficient memory (%ld REALs);\n",__FUNCTION__,(memend-at)-(m*n + mnmin + memu + memvt + lwork));
+    fprintf(stdout,"\n%% HAZMATH WARNING ***  IN %s: REALLOC bc of insufficient memory (%lld REALs);\n",__FUNCTION__,(long long int)((memend-at)-(m*n + mnmin + memu + memvt + lwork)));
     allwork=realloc(allwork,(memend-at)*sizeof(REAL));
   }
   for(j=0;j<n;j++){
@@ -191,7 +191,7 @@ INT svdgeneral(INT nrow, INT ncol, REAL *a,REAL *smin, REAL *w)
   }
   free(allwork);
   if(info!=0){
-    fprintf(stdout,"\n%% WARNING: IN %s: INFO IS NOT ZERO; INFO=%d;\n",__FUNCTION__,info);
+    fprintf(stdout,"\n%% WARNING: IN %s: INFO IS NOT ZERO; INFO=%lld;\n",__FUNCTION__,(long long )info);
   }
   return info;
 #else

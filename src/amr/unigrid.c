@@ -358,7 +358,7 @@ void unirefine(INT *nd,scomplex *sc)
     /* new mesh */
     //    ns=sc->ns; 
     sc->level++;
-    fprintf(stdout,"u%du",sc->level);//,nsold,ns,nv);
+    fprintf(stdout,"u%lldu",(long long int )sc->level);//,nsold,ns,nv);
   }
   fprintf(stdout,"\n");
   scfinalize(sc,(INT )0);

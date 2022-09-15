@@ -50,7 +50,7 @@ static void do_permutation(ivector *perm,INT n, INT *ia, INT *ja, \
       nb++;
     }
     if(nb!=nblk){
-      fprintf(stderr,"\n\nERROR: %d=nb != nblk=%d in %s",nb,nblk,__FUNCTION__);
+      fprintf(stderr,"\n\nERROR: %lld=nb != nblk=%lld in %s",(long long )nb,(long long )nblk,__FUNCTION__);
       exit(15);
     }
     awrk.nnz=awrk.IA[nblk];
@@ -746,7 +746,7 @@ INT run_hazmath_solve(dCSRmat *A,dvector *f,dvector *x, \
       fprintf(stdout,"A=U^T*D*U*x=f ");
     else
       fprintf(stdout,"A=L*D*U*x=f ");
-    fprintf(stdout,"\n                    (is_symmetric[0/1]=%d; use_permutation[0/1]=%d)\n",extra[0],extra[1]);
+    fprintf(stdout,"\n                    (is_symmetric[0/1]=%lld; use_permutation[0/1]=%lld)\n",(long long )extra[0],(long long )extra[1]);
     fflush(stdout);
   }
   //
@@ -765,8 +765,8 @@ INT run_hazmath_solve(dCSRmat *A,dvector *f,dvector *x, \
   if(extra[0]) // if symmetric, then L just points to U;
       L=U;
   if(print_level>6){
-    fprintf(stdout,"\nSolve phase (is_symmetric(0/1)=%d; use_permutation(0/1)=%d)\n", \
-	    extra[0],extra[1]);
+    fprintf(stdout,"\nSolve phase (is_symmetric(0/1)=%lld; use_permutation(0/1)=%lld)\n", \
+	    (long long )extra[0],(long long )extra[1]);
   }
   // if we have a permutation:
   if(extra[1] && (perm!=NULL) && (perm->val !=NULL)&& (perm->row)){
@@ -878,7 +878,7 @@ void hazmath_get_numeric(void *Numeric, dCSRmat **U, dvector **dinv, SHORT **ext
 INT chk_symmetry(dCSRmat *A)
 { 
   if(A->row != A->col){
-    fprintf(stderr,"\n\n*** WARNING(%s): the matrix is NOT square: (%d x %d)\n",__FUNCTION__,A->row,A->col);
+    fprintf(stderr,"\n\n*** WARNING(%s): the matrix is NOT square: (%lld x %lld)\n",__FUNCTION__,(long long )A->row,(long long )A->col);
     return 3;
   }
   INT flag=0,i,j,jk,jt,irow;
@@ -929,7 +929,7 @@ INT chk_symmetry(dCSRmat *A)
     break;
   case 2:
     fprintf(stderr,"\n\n********************************************************");
-        fprintf(stderr,"\n* WARNING(%s): nonsymmetric pattern at row=%d\n",__FUNCTION__,irow);
+        fprintf(stderr,"\n* WARNING(%s): nonsymmetric pattern at row=%lld\n",__FUNCTION__,(long long )irow);
     fprintf(stderr,"\n********************************************************\n\n");
   default:
     break;

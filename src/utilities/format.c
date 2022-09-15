@@ -677,14 +677,14 @@ dBSRmat dcsr_2_dbsr(const dCSRmat  *A,
 	REAL *bval;
 
     if ((A->row)%nb!=0) {
-        printf("### ERROR: A.row=%d is not a multiplication of nb=%d!\n",
-               A->row, nb);
+        printf("### ERROR: A.row=%lld is not a multiplication of nb=%lld!\n",
+                 (long long )A->row,   (long long )nb);
         check_error(ERROR_MAT_SIZE, __FUNCTION__);
     }
 
     if ((A->col)%nb!=0) {
-        printf("### ERROR: A.col=%d is not a multiplication of nb=%d!\n",
-               A->col, nb);
+        printf("### ERROR: A.col=%lld is not a multiplication of nb=%lld!\n",
+                 (long long )A->col,   (long long )nb);
         check_error(ERROR_MAT_SIZE, __FUNCTION__);
     }
 

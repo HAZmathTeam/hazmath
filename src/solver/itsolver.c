@@ -17,19 +17,19 @@
 #define ITS_FACONV  printf("### HAZMATH WARNING: False convergence!\n")
 
 //! Warning for solution close to zero
-#define ITS_ZEROSOL printf("### HAZMATH WARNING: Iteration stopped due to the solution is almost zero! %s : %d\n", __FUNCTION__, __LINE__)
+#define ITS_ZEROSOL printf("### HAZMATH WARNING: Iteration stopped due to the solution is almost zero! %s : %lld\n", __FUNCTION__, (long long )__LINE__)
 
 //! Warning for iteration restarted
-#define ITS_RESTART printf("### HAZMATH WARNING: Iteration restarted due to stagnation! %s : %d\n", __FUNCTION__, __LINE__)
+#define ITS_RESTART printf("### HAZMATH WARNING: Iteration restarted due to stagnation! %s : %lld\n", __FUNCTION__, (long long )__LINE__)
 
 //! Warning for stagged iteration
-#define ITS_STAGGED printf("### HAZMATH WARNING: Iteration stopped due to staggnation! %s : %d\n", __FUNCTION__, __LINE__)
+#define ITS_STAGGED printf("### HAZMATH WARNING: Iteration stopped due to staggnation! %s : %lld\n", __FUNCTION__, (long long )__LINE__)
 
 //! Warning for tolerance practically close to zero
-#define ITS_ZEROTOL printf("### HAZMATH WARNING: The tolerence might be too small! %s : %d\n", __FUNCTION__, __LINE__)
+#define ITS_ZEROTOL printf("### HAZMATH WARNING: The tolerence might be too small! %s : %lld\n", __FUNCTION__, (long long )__LINE__)
 
 //! Warning for divided by zero
-#define ITS_DIVZERO printf("### HAZMATH WARNING: Divided by zero! %s : %d\n", __FUNCTION__, __LINE__)
+#define ITS_DIVZERO printf("### HAZMATH WARNING: Divided by zero! %s : %lld\n", __FUNCTION__, (long long )__LINE__)
 
 //! Warning for actual relative residual
 #define ITS_REALRES(relres) printf("### HAZMATH WARNING: The actual relative residual = %e!\n",(relres))
@@ -38,10 +38,10 @@
 #define ITS_COMPRES(relres) printf("### HAZMATH WARNING: The computed relative residual = %e!\n",(relres))
 
 //! Warning for too small sp
-#define ITS_SMALLSP printf("### HAZMATH WARNING: sp is too small! %s : %d\n", __FUNCTION__, __LINE__)
+#define ITS_SMALLSP printf("### HAZMATH WARNING: sp is too small! %s : %lld\n", __FUNCTION__, (long long )__LINE__)
 
 //! Warning for restore previous iteration
-#define ITS_RESTORE(iter) printf("### HAZMATH WARNING: Restore iteration %d!\n",(iter));
+#define ITS_RESTORE(iter) printf("### HAZMATH WARNING: Restore iteration %lld!\n",(long long )(iter));
 
 //! Output relative difference and residual
 #define ITS_DIFFRES(reldiff,relres) printf("||u-u'|| = %e and the comp. rel. res. = %e.\n",(reldiff),(relres));
@@ -81,11 +81,11 @@ inline static void ITS_CHECK (const INT MaxIt, const REAL tol)
 inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres)
 {
     if ( iter > MaxIt ) {
-        printf("### HAZMATH WARNING: Max iter %d reached with rel. resid. %e.\n", MaxIt, relres);
+        printf("### HAZMATH WARNING: Max iter %lld reached with rel. resid. %e.\n", (long long )MaxIt, relres);
     }
     else if ( iter >= 0 ) {
-      //        printf("Number of iterations = %d with relative residual %e.\n", iter, relres);
-	printf("Num_iter(itsolver.c) = %d with relative residual %e.\n", iter, relres);
+      //        printf("Number of iterations = %lld with relative residual %e.\n", (long long )iter, relres);
+	printf("Num_iter(itsolver.c) = %lld with relative residual %e.\n", (long long )iter, relres);
     }
 }
 
@@ -192,7 +192,7 @@ INT solver_dcsr_linear_itsolver(dCSRmat *A,
             break;
 
         default:
-            printf("### ERROR: Unknown itertive solver type %d!\n", itsolver_type);
+            printf("### ERROR: Unknown itertive solver type %lld!\n", (long long )itsolver_type);
             return ERROR_SOLVER_TYPE;
 
     }
@@ -291,7 +291,7 @@ INT solver_dbsr_linear_itsolver(dBSRmat *A,
             break;
 
         default:
-            printf("### ERROR: Unknown itertive solver type %d!\n", itsolver_type);
+            printf("### ERROR: Unknown itertive solver type %lld!\n", (long long )itsolver_type);
             return ERROR_SOLVER_TYPE;
 
     }
@@ -388,7 +388,7 @@ INT solver_bdcsr_linear_itsolver(block_dCSRmat *A,
             break;
 
         default:
-            printf("### ERROR: Unknown itertive solver type %d!\n", itsolver_type);
+            printf("### ERROR: Unknown itertive solver type %lld!\n", (long long )itsolver_type);
 
     }
 
@@ -481,7 +481,7 @@ INT solver_general_linear_itsolver(matvec *mxv,
             break;
 
         default:
-            printf("### ERROR: Unknown itertive solver type %d!\n", itsolver_type);
+            printf("### ERROR: Unknown itertive solver type %lld!\n", (long long )itsolver_type);
             return ERROR_SOLVER_TYPE;
 
     }
@@ -983,19 +983,19 @@ INT linear_solver_dcsr_krylov_famg(dCSRmat *A_frac,
         case UA_AMG: // Unsmoothed Aggregation AMG
             if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
             status = famg_setup_ua(mgl, amgparam);
-            printf("AMG status: %d \n", status);
+            printf("AMG status: %lld \n", (long long )status);
         break;
 
         case SA_AMG: // Smoothed Aggregation AMG setup
             if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
             status = famg_setup_sa(mgl, amgparam);
-            printf("AMG status: %d \n", status);
+            printf("AMG status: %lld \n", (long long )status);
         break;
 
         default: // Unsmoothed Aggregation AMG
             if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
             status = famg_setup_ua(mgl, amgparam);
-            printf("AMG status: %d \n", status);
+            printf("AMG status: %lld \n", (long long )status);
         break;
 
     }
@@ -1099,19 +1099,19 @@ INT linear_solver_dcsr_krylov_famg2(dCSRmat *A_frac,
         case UA_AMG: // Unsmoothed Aggregation AMG
             if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
             status = famg_setup_ua(mgl, amgparam);
-            printf("AMG status: %d \n", status);
+            printf("AMG status: %lld \n", (long long )status);
         break;
 
         case SA_AMG: // Smoothed Aggregation AMG setup
             if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
             status = famg_setup_sa(mgl, amgparam);
-            printf("AMG status: %d \n", status);
+            printf("AMG status: %lld \n", (long long )status);
         break;
 
         default: // Unsmoothed Aggregation AMG
             if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
             status = famg_setup_ua(mgl, amgparam);
-            printf("AMG status: %d \n", status);
+            printf("AMG status: %lld \n", (long long )status);
         break;
 
     }
@@ -1249,20 +1249,20 @@ INT linear_solver_dcsr_krylov_famg_sum(dCSRmat *A_frac,
         case UA_AMG: // Unsmoothed Aggregation AMG
             if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
             status = amg_setup_ua(mgl, amgparam);
-            printf("AMG status: %d \n", status);
+            printf("AMG status: %lld \n", (long long )status);
 
         break;
 
         case SA_AMG: // Smoothed Aggregation AMG setup
             if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
             status = amg_setup_sa(mgl, amgparam);
-            printf("AMG status: %d \n", status);
+            printf("AMG status: %lld \n", (long long )status);
         break;
 
         default: // Unsmoothed Aggregation AMG
             if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
             status = amg_setup_ua(mgl, amgparam);
-            printf("AMG status: %d \n", status);
+            printf("AMG status: %lld \n", (long long )status);
 
         break;
 
@@ -1274,19 +1274,19 @@ INT linear_solver_dcsr_krylov_famg_sum(dCSRmat *A_frac,
         case UA_AMG: // Unsmoothed Aggregation AMG
             if ( prtlvl > PRINT_NONE ) printf("\n Calling UA FAMG ...\n");
             status = famg_setup_ua(fmgl, famgparam);
-            printf("FAMG status: %d \n", status);
+            printf("FAMG status: %lld \n", (long long )status);
         break;
 
         case SA_AMG: // Smoothed Aggregation AMG setup
             if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
             status = famg_setup_sa(fmgl, famgparam);
-            printf("FAMG status: %d \n", status);
+            printf("FAMG status: %lld \n", (long long )status);
         break;
 
         default: // Unsmoothed Aggregation AMG
             if ( prtlvl > PRINT_NONE ) printf("\n Calling UA FAMG ...\n");
             status = famg_setup_ua(fmgl, famgparam);
-            printf("FAMG status: %d \n", status);
+            printf("FAMG status: %lld \n", (long long )status);
         break;
 
     }
@@ -1431,20 +1431,20 @@ INT linear_solver_dcsr_krylov_famg_sum2(dCSRmat *A_frac,
         case UA_AMG: // Unsmoothed Aggregation AMG
             if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
             status = amg_setup_ua(mgl, amgparam);
-            printf("AMG status: %d \n", status);
+            printf("AMG status: %lld \n", (long long )status);
 
         break;
 
         case SA_AMG: // Smoothed Aggregation AMG setup
             if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
             status = amg_setup_sa(mgl, amgparam);
-            printf("AMG status: %d \n", status);
+            printf("AMG status: %lld \n", (long long )status);
         break;
 
         default: // Unsmoothed Aggregation AMG
             if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
             status = amg_setup_ua(mgl, amgparam);
-            printf("AMG status: %d \n", status);
+            printf("AMG status: %lld \n", (long long )status);
 
         break;
 
@@ -1456,19 +1456,19 @@ INT linear_solver_dcsr_krylov_famg_sum2(dCSRmat *A_frac,
         case UA_AMG: // Unsmoothed Aggregation AMG
             if ( prtlvl > PRINT_NONE ) printf("\n Calling UA FAMG ...\n");
             status = famg_setup_ua(fmgl, famgparam);
-            printf("FAMG status: %d \n", status);
+            printf("FAMG status: %lld \n", (long long )status);
         break;
 
         case SA_AMG: // Smoothed Aggregation AMG setup
             if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
             status = famg_setup_sa(fmgl, famgparam);
-            printf("FAMG status: %d \n", status);
+            printf("FAMG status: %lld \n", (long long )status);
         break;
 
         default: // Unsmoothed Aggregation AMG
             if ( prtlvl > PRINT_NONE ) printf("\n Calling UA FAMG ...\n");
             status = famg_setup_ua(fmgl, famgparam);
-            printf("FAMG status: %d \n", status);
+            printf("FAMG status: %lld \n", (long long )status);
         break;
 
     }
@@ -2450,7 +2450,7 @@ INT linear_solver_bdcsr_krylov_block_2(block_dCSRmat *A,
         dcsr_trans(&A_diag[i], &A_tran);
         dcsr_cp(&A_tran, &A_diag[i]);
 
-        if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagonal block: \n", i);
+        if ( prtlvl > PRINT_NONE ) printf("Factorization for %lld-th diagonal block: \n", (long long )i);
         LU_diag[i] = hazmath_factorize(&A_diag[i], prtlvl);
 
         dcsr_free(&A_tran);
@@ -2653,7 +2653,7 @@ INT linear_solver_bdcsr_krylov_block_3(block_dCSRmat *A,
             dcsr_trans(&A_diag[i], &A_tran);
             dcsr_cp(&A_tran, &A_diag[i]);
 
-            if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagonal block:\n", i);
+            if ( prtlvl > PRINT_NONE ) printf("Factorization for %lld-th diagonal block:\n", (long long )i);
             LU_diag[i] = hazmath_factorize(&A_diag[i], prtlvl);
 
             dcsr_free(&A_tran);
@@ -2851,7 +2851,7 @@ INT linear_solver_bdcsr_krylov_block_4(block_dCSRmat *A,
             dcsr_trans(&A_diag[i], &A_tran);
             dcsr_cp(&A_tran, &A_diag[i]);
 
-            if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagonal block:\n", i);
+            if ( prtlvl > PRINT_NONE ) printf("Factorization for %lld-th diagonal block:\n", (long long )i);
             LU_diag[i] = hazmath_factorize(&A_diag[i], prtlvl);
 
             dcsr_free(&A_tran);
@@ -3053,7 +3053,7 @@ INT linear_solver_bdcsr_krylov_block_5(block_dCSRmat *A,
             dcsr_trans(&A_diag[i], &A_tran);
             dcsr_cp(&A_tran, &A_diag[i]);
 
-            if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagonal block:\n", i);
+            if ( prtlvl > PRINT_NONE ) printf("Factorization for %lld-th diagonal block:\n", (long long )i);
             LU_diag[i] = hazmath_factorize(&A_diag[i], prtlvl);
 
             dcsr_free(&A_tran);
@@ -3254,7 +3254,7 @@ INT linear_solver_bdcsr_krylov_block(block_dCSRmat *A,
     dcsr_trans(&A_diag[i], &A_tran);
     dcsr_cp(&A_tran, &A_diag[i]);
 
-    if ( prtlvl > PRINT_NONE ) printf("Factorization for %d-th diagonal block:\n", i);
+    if ( prtlvl > PRINT_NONE ) printf("Factorization for %lld-th diagonal block:\n", (long long )i);
     LU_diag[i] = hazmath_factorize(&A_diag[i], prtlvl);
 
     dcsr_free(&A_tran);

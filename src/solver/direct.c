@@ -371,11 +371,11 @@ void* hazmath_factorize (dCSRmat *ptrA,
   INT status = SUCCESS;
   status = umfpack_di_symbolic (n, n, Ap, Ai, Ax, &Symbolic, NULL, NULL);
   if(status<0) {
-    fprintf(stderr,"UMFPACK ERROR in Symbolic, status = %d\n\n",status);
+    fprintf(stderr,"UMFPACK ERROR in Symbolic, status = %lld\n\n",(long long )status);
   }
   status = umfpack_di_numeric (Ap, Ai, Ax, Symbolic, &Numeric, NULL, NULL);
   if(status<0) {
-    fprintf(stderr,"UMFPACK ERROR in Numeric, status = %d\n\n",status);
+    fprintf(stderr,"UMFPACK ERROR in Numeric, status = %lld\n\n",(long long )status);
   }
   umfpack_di_free_symbolic (&Symbolic);
   if ( prtlvl > PRINT_MIN ) {
@@ -383,7 +383,7 @@ void* hazmath_factorize (dCSRmat *ptrA,
   }
 #else
   //SHORT *more_params=NULL;
-  SHORT more_params[3]={0,1,0}; //={is_sym,use_perm,ordering_algorithm}
+  SHORT more_params[3]={1,1,0}; //={is_sym,use_perm,ordering_algorithm}
   //
   Numeric = run_hazmath_factorize(ptrA,(INT )prtlvl,(void *)more_params);
   //  error_extlib(253, __FUNCTION__, "SuiteSparse");

@@ -36,7 +36,7 @@ void print_itsolver_info(const INT  print_lvl,
 
     // case iter > 0:  not the first iteration
     if ( iter > 0 ) {
-      printf("%6d | %13.6e   | %13.6e  | %10.4f\n", iter, rel_res, abs_res, factor);
+      printf("%6lld | %13.6e   | %13.6e  | %10.4f\n",   (long long )iter, rel_res, abs_res, factor);
     }
     // case iter == 0: first iteration
     else {
@@ -53,7 +53,7 @@ void print_itsolver_info(const INT  print_lvl,
         break;
       }
       printf("-----------------------------------------------------------\n");
-      printf("%6d | %13.6e   | %13.6e  |     -.-- \n", iter, rel_res, abs_res);
+      printf("%6lld | %13.6e   | %13.6e  |     -.-- \n",   (long long )iter, rel_res, abs_res);
     } // end if iter
 
   }
@@ -119,7 +119,7 @@ void print_amg_complexity(AMG_data *mgl,
 
     for ( level = 0; level < max_levels; ++level) {
         AvgNNZ = (REAL) mgl[level].A.nnz/mgl[level].A.row;
-        printf("%5d %13d %17d %14.2f\n", level, mgl[level].A.row, mgl[level].A.nnz, AvgNNZ);
+        printf("%5lld %13lld %17lld %14.2f\n", (long long )level, (long long )mgl[level].A.row, (long long )mgl[level].A.nnz, AvgNNZ);
         grid_complexity     += mgl[level].A.row;
         operator_complexity += mgl[level].A.nnz;
     }
@@ -160,8 +160,8 @@ void print_amgcomplexity_bsr(const AMG_data_bsr  *mgl,
         printf("-----------------------------------------------------------\n");
         for ( level = 0; level < max_levels; ++level ) {
             const REAL AvgNNZ = (REAL) mgl[level].A.NNZ/mgl[level].A.ROW;
-            printf("%5d  %13d  %17d  %14.2f\n",
-                   level,mgl[level].A.ROW, mgl[level].A.NNZ, AvgNNZ);
+            printf("%5lld  %13lld  %17lld  %14.2f\n",
+                   (long long )level,(long long )mgl[level].A.ROW, (long long )mgl[level].A.NNZ, AvgNNZ);
             gridcom += mgl[level].A.ROW;
             opcom   += mgl[level].A.NNZ;
         }

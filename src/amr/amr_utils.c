@@ -268,8 +268,8 @@ unsigned INT reflect2(INT n, INT is, INT it,				\
       if(stos1[i]!=it){
 	if(sv1[i]-sv2[i]) {
 	  /* not reflected neighbors */
-	  fprintf(stderr,"\n***ERROR in %s ; (is)=%d(vis=%d) and (it) = %d are both visited but are not reflected neighbors.\n\n",__FUNCTION__,is,visited,it);
-	  fprintf(stderr,"\n***The problem is at node %d, (sv1=%d,sv2=%d)\n",i,sv1[i],sv2[i]);
+	  fprintf(stderr,"\n***ERROR in %s ; (is)=%lld(vis=%lld) and (it) = %lld are both visited but are not reflected neighbors.\n\n",__FUNCTION__,(long long )is,(long long )visited,(long long )it);
+	  fprintf(stderr,"\n***The problem is at node %lld, (sv1=%lld,sv2=%lld)\n",(long long )i,(long long )sv1[i],(long long )sv2[i]);
 	  return 2;
 	}
       }
@@ -291,7 +291,7 @@ unsigned INT reflect2(INT n, INT is, INT it,				\
     }
   }
   if (kv1<0 || kv2 < 0) {
-    fprintf(stderr,"\n***ERROR in %s ; kv1=%d, kv2=%d must be positive.\n\n",__FUNCTION__,kv1,kv2);
+    fprintf(stderr,"\n***ERROR in %s ; kv1=%lld, kv2=%lld must be positive.\n\n",__FUNCTION__,(long long )kv1,(long long )kv2);
     return 3;
   }
   wrk1=wrk; wrk2=wrk1+n2; p=wrk2+n2;invp=p+n2;  pw=invp+n2;
@@ -424,8 +424,8 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
 	  case 2 :
 	  case 3 :
 	    fprintf(stderr,						\
-		    "Invalid return from reflect2 in %s; return value = %d\n", \
-		    __FUNCTION__,ireflect);
+		    "Invalid return from reflect2 in %s; return value = %lld\n", \
+		    __FUNCTION__,(long long )ireflect);
 	    exit(ireflect);
 	    break;
 	  case 0 :
@@ -438,8 +438,8 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
 	    break;
 	  default :
 	    fprintf(stderr,						\
-		    "Invalid return from reflect2 in %s; return value = %d\n", \
-		    __FUNCTION__,ireflect);
+		    "Invalid return from reflect2 in %s; return value = %lld\n", \
+		    __FUNCTION__,(long long )ireflect);
 	    exit(4);
 	  }
 	  if(!mask[is]){
@@ -978,7 +978,7 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
   }
   f2v.nnz=nnzf2v;
   if(nbf!=nbfnew){
-    fprintf(stderr,"\n%%***ERROR(1): num. bndry faces mismatch (nbf=%d .ne. nbfnew=%d) in %s",nbf,nbfnew,__FUNCTION__);
+    fprintf(stderr,"\n%%***ERROR(1): num. bndry faces mismatch (nbf=%lld .ne. nbfnew=%lld) in %s",(long long )nbf,(long long )nbfnew,__FUNCTION__);
     exit(65);
   }
   // FIX numbering (ignoring all interior vertices):

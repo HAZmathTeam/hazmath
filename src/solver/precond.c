@@ -27,19 +27,19 @@
 #define ITS_FACONV  printf("### HAZMATH WARNING: False convergence!\n")
 
 //! Warning for solution close to zero
-#define ITS_ZEROSOL printf("### HAZMATH WARNING: Iteration stopped due to the solution is almost zero! %s : %d\n", __FUNCTION__, __LINE__)
+#define ITS_ZEROSOL printf("### HAZMATH WARNING: Iteration stopped due to the solution is almost zero! %s : %lld\n", __FUNCTION__,   (long long )__LINE__)
 
 //! Warning for iteration restarted
-#define ITS_RESTART printf("### HAZMATH WARNING: Iteration restarted due to stagnation! %s : %d\n", __FUNCTION__, __LINE__)
+#define ITS_RESTART printf("### HAZMATH WARNING: Iteration restarted due to stagnation! %s : %lld\n", __FUNCTION__,   (long long )__LINE__)
 
 //! Warning for stagged iteration
-#define ITS_STAGGED printf("### HAZMATH WARNING: Iteration stopped due to staggnation! %s : %d\n", __FUNCTION__, __LINE__)
+#define ITS_STAGGED printf("### HAZMATH WARNING: Iteration stopped due to staggnation! %s : %lld\n", __FUNCTION__,   (long long )__LINE__)
 
 //! Warning for tolerance practically close to zero
-#define ITS_ZEROTOL printf("### HAZMATH WARNING: The tolerence might be too small! %s : %d\n", __FUNCTION__, __LINE__)
+#define ITS_ZEROTOL printf("### HAZMATH WARNING: The tolerence might be too small! %s : %lld\n", __FUNCTION__,   (long long )__LINE__)
 
 //! Warning for divided by zero
-#define ITS_DIVZERO printf("### HAZMATH WARNING: Divided by zero! %s : %d\n", __FUNCTION__, __LINE__)
+#define ITS_DIVZERO printf("### HAZMATH WARNING: Divided by zero! %s : %lld\n", __FUNCTION__,   (long long )__LINE__)
 
 //! Warning for actual relative residual
 #define ITS_REALRES(relres) printf("### HAZMATH WARNING: The actual relative residual = %e!\n",(relres))
@@ -48,10 +48,10 @@
 #define ITS_COMPRES(relres) printf("### HAZMATH WARNING: The computed relative residual = %e!\n",(relres))
 
 //! Warning for too small sp
-#define ITS_SMALLSP printf("### HAZMATH WARNING: sp is too small! %s : %d\n", __FUNCTION__, __LINE__)
+#define ITS_SMALLSP printf("### HAZMATH WARNING: sp is too small! %s : %lld\n", __FUNCTION__,   (long long )__LINE__)
 
 //! Warning for restore previous iteration
-#define ITS_RESTORE(iter) printf("### HAZMATH WARNING: Restore iteration %d!\n",(iter));
+#define ITS_RESTORE(iter) printf("### HAZMATH WARNING: Restore iteration %lld!\n",  (long long )(iter));
 
 //! Output relative difference and residual
 #define ITS_DIFFRES(reldiff,relres) printf("||u-u'|| = %e and the comp. rel. res. = %e.\n",(reldiff),(relres));
@@ -91,10 +91,10 @@ inline static void ITS_CHECK (const INT MaxIt, const REAL tol)
 inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres)
 {
     if ( iter > MaxIt ) {
-        printf("### HAZMATH WARNING: Max iter %d reached with rel. resid. %e.\n", MaxIt, relres);
+        printf("### HAZMATH WARNING: Max iter %lld reached with rel. resid. %e.\n",   (long long )MaxIt, relres);
     }
     else if ( iter >= 0 ) {
-        printf("Number of iterations = %d with relative residual %e.\n", iter, relres);
+        printf("Number of iterations = %lld with relative residual %e.\n",   (long long )iter, relres);
     }
 }
 /***********************************************************************************************/
@@ -109,8 +109,8 @@ inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres
  */
 inline static void WARN_STATUS(const char *function_name,const char *call_to, const INT status)
 {
-  fprintf(stderr,"\n\n%%%% ****WARNING in %s: status=%d after exiting %s (WHILE SUCCESS .EQ. %d)\n\n", \
-	  function_name,status,call_to,SUCCESS);
+  fprintf(stderr,"\n\n%%%% ****WARNING in %s: status=%lld after exiting %s (WHILE SUCCESS .EQ. %lld)\n\n", \
+	  function_name,  (long long )status,call_to,  (long long )SUCCESS);
 }
 /*---------------------------------*/
 /*--      Public Functions       --*/
@@ -563,7 +563,7 @@ void precond_sum_famg_add2(REAL *r,
     // direct solve Adiv^1+s/2 temp2 = temp1
     INT status;
     status = hazmath_solve(pcdata[0].A, &temp1, &temp2, pcdata[0].mgl_data[0].Numeric, pcdata[0].print_level);
-    if(status) printf("Direct solve status: %d \n", status);
+    if(status) printf("Direct solve status: %lld \n",   (long long )status);
     dcsr_mxv(pcdata[2].A, temp2.val, x1); // x1 = Grad^T * temp2
 
 
@@ -580,7 +580,7 @@ void precond_sum_famg_add2(REAL *r,
     dcsr_mxv(pcdata[1].A, x2, temp1.val); // temp1 = Grad * x2
     // direct solve Adiv^1+s/2 temp2 = temp1
     status = hazmath_solve(pcdata[0].A, &temp1, &temp2, pcdata[0].mgl_data[0].Numeric, pcdata[0].print_level);
-    if(status) printf("Direct solve status: %d \n", status);
+    if(status) printf("Direct solve status: %lld \n",   (long long )status);
     dcsr_mxv(pcdata[2].A, temp2.val, z); // z = Grad^T * temp2
 }
 
@@ -1020,7 +1020,7 @@ void precond_hx_div_additive(REAL *r,
     /*
     INT j;
     for(j=0;j<n;j++){
-      if(z[j]!=z[j]){ printf("DIV z[%d]=%f\n",j,z[j]);}
+      if(z[j]!=z[j]){ printf("DIV z[%lld]=%f\n",j,z[j]);}
     }
     */
 
@@ -1039,7 +1039,7 @@ void precond_hx_div_additive(REAL *r,
     dcsr_mxv(hxdivdata->Curlt,r,Cr.val);
 //    INT flag;
 //    flag = directsolve_HAZ(hxdivdata->A_curl, &Cr, &Cz, 1);
-//    printf("flag=%d\n",flag);
+//    printf("flag=%lld\n",flag);
     smoother_dcsr_sgs(&Cz, hxdivdata->A_curl, &Cr, smooth_iter);
 //    //smoother_dcsr_jacobi(&Cz, 0, Cz.row, 1, hxdivdata->A_curl, &Cr, smooth_iter);
     dcsr_aAxpy(1.0,hxdivdata->Curl,Cz.val,z);
@@ -1063,7 +1063,7 @@ void precond_hx_div_additive(REAL *r,
     dcsr_aAxpy(1.0, hxdivdata->Curl, temp, z);
     /*
     for(j=0;j<n;j++){
-      if(z[j]!=z[j]){ printf("z[%d]=%f\n",j,z[j]);}
+      if(z[j]!=z[j]){ printf("z[%lld]=%f\n",j,z[j]);}
     }
     */
 
@@ -5879,9 +5879,9 @@ void precond_ra_fenics(REAL *r, REAL *z, void *data)
     array_set(n, z_vec.val, 0e0);
     r_vec.row = n;
     r_vec.val = r;
-    // printf("Norm residual (n=%d)before copy: %.5e\n", n, array_norm2(n, r));
+    // printf("Norm residual (n=%lld)before copy: %.5e\n", n, array_norm2(n, r));
     /* dvector r_vec = dvec_create(n); // we probably can just have r_vec.val=r; */
-    /* fprintf(stderr,"\nr_vec %ld: %d\n",sizeof(r_vec.val)/sizeof(REAL),r_vec.row); */
+    /* fprintf(stderr,"\nr_vec %ld: %lld\n",sizeof(r_vec.val)/sizeof(REAL),r_vec.row); */
     /* if(r_vec.val == NULL){ */
     /*   fprintf(stderr,"\nCOULD NOT ALLOCATE r_vec\n"); */
     /*   fflush(stderr); */
@@ -5947,12 +5947,12 @@ void precond_ra_fenics(REAL *r, REAL *z, void *data)
     dvector update = dvec_create(n);
     /* dvector u000 = dvec_create(n); */
     // INT solver_flag,jjj;
-    /* printf("\nNumber of poles: %d\n", npoles); */
+    /* printf("\nNumber of poles: %lld\n", npoles); */
     // INT count = 0;
 
     for(i = 0; i < npoles; ++i) {
 
-        // fprintf(stdout, "We are at pole %d with value %.10f + i %.10f \n", i, poles->val[i], poles->val[i+npoles]); fflush(stdout);
+        // fprintf(stdout, "We are at pole %lld with value %.10f + i %.10f \n", i, poles->val[i], poles->val[i+npoles]); fflush(stdout);
         if(fabs(poles->val[i+npoles]) > 0.) {
             // then we have a nonzero imag part of that pole and we do the 2x2 block algorithm
             /* solve
@@ -6033,7 +6033,7 @@ void precond_ra_fenics(REAL *r, REAL *z, void *data)
             dvec_set(update.row, &update, 0.0);
 
             // solve
-            // printf("\tPole %d, norm of r = %e\n", i, dvec_norm2(&r_vec));
+            // printf("\tPole %lld, norm of r = %e\n", i, dvec_norm2(&r_vec));
             // status = dcsr_pvfgmres(&(mgl[i][0].A), &r1, &update, &pc_frac_A, 1e-6, 100, 100, 1, 1);
             status = dcsr_pcg(&(mgl[i][0].A), &r_vec, &update, &pc_frac_A, 1e-6, 100, 1, 0);
 	    if(status<SUCCESS)
@@ -6047,14 +6047,14 @@ void precond_ra_fenics(REAL *r, REAL *z, void *data)
                               0);
             free(numeric); */
             // if(status > 0) count += status;
-            // printf("\tPole %d, norm of update = %e\n", i, dvec_norm2(&update));
+            // printf("\tPole %lld, norm of update = %e\n", i, dvec_norm2(&update));
             // z = z + residues[i+1]*update
             array_axpy(n, residues->val[i+1], update.val, z_vec.val);
             /* for(jjj=0;jjj<z_vec.row;jjj++) z[jjj]=z_vec.val[jjj]; */
         }
     }
 
-    // if(count) printf("Inner solver took total of %d iterations. \n", count);
+    // if(count) printf("Inner solver took total of %lld iterations. \n", count);
 
     // cleanup
     // UNSCALLING r

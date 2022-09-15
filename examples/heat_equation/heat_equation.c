@@ -72,7 +72,7 @@ int main (int argc, char* argv[])
   create_fespace(&FE,&mesh,order);
   // Strings for printing
   char elmtype[8];
-  sprintf(elmtype,"P%d",order);
+  sprintf(elmtype,"P%lld",(long long )order);
 
   // Set Dirichlet Boundaries
   // Assume physical boundaries are Dirichlet
@@ -99,14 +99,14 @@ int main (int argc, char* argv[])
   /*******************************************************************/
 
   printf("***********************************************************************************\n");
-  printf("\t--- %d-dimensional grid ---\n",dim);
-  printf("Number of Elements = %d\tElement Type = %s\tOrder of Quadrature = %d\n",mesh.nelm,elmtype,2*nq1d-1);
+  printf("\t--- %lld-dimensional grid ---\n",(long long )dim);
+  printf("Number of Elements = %lld\tElement Type = %s\tOrder of Quadrature = %lld\n",(long long )mesh.nelm,elmtype,2*(long long )nq1d-1);
   printf("\n\t--- Degrees of Freedom ---\n");
-  printf("Vertices: %-7d\tEdges: %-7d\tFaces: %-7d",mesh.nv,mesh.nedge,mesh.nface);
-  printf("\t--> DOF: %d\n",FE.ndof);
+  printf("Vertices: %-7lld\tEdges: %-7lld\tFaces: %-7lld",(long long )mesh.nv,(long long )mesh.nedge,(long long )mesh.nface);
+  printf("\t--> DOF: %lld\n",(long long )FE.ndof);
   printf("\n\t--- Boundaries ---\n");
-  printf("Vertices: %-7d\tEdges: %-7d\tFaces: %-7d",mesh.nbv,mesh.nbedge,mesh.nbface);
-  printf("\t--> Boundary DOF: %d\n",FE.nbdof);
+  printf("Vertices: %-7lld\tEdges: %-7lld\tFaces: %-7lld",(long long )mesh.nbv,(long long )mesh.nbedge,(long long )mesh.nbface);
+  printf("\t--> Boundary DOF: %lld\n",(long long )FE.nbdof);
   printf("***********************************************************************************\n\n");
 
   /*** Assemble the matrix and right hand side ***********************/
@@ -199,10 +199,10 @@ int main (int argc, char* argv[])
   REAL* utnorm = (REAL *) calloc(time_stepper.tsteps+1,sizeof(REAL));
   utnorm[0] = L2norm(exact_sol.val,&FE,&mesh,cq);
 
-  printf("Performing %d Time Steps with step size dt = %1.3f\n",time_stepper.tsteps,time_stepper.dt);
+  printf("Performing %lld Time Steps with step size dt = %1.3f\n",(long long )time_stepper.tsteps,time_stepper.dt);
   printf("--------------------------------------------------------------\n\n");
   printf("============================\n");
-  printf("Time Step %d: Time = %1.8f\n",time_stepper.current_step,time_stepper.time);
+  printf("Time Step %lld: Time = %1.8f\n",(long long )time_stepper.current_step,time_stepper.time);
   printf("============================\n");
   printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
   printf("L2 Norm of u            = %26.13e\n",unorm[0]);
@@ -220,7 +220,7 @@ int main (int argc, char* argv[])
     update_timestep(&time_stepper);
 
     printf("============================\n");
-    printf("Time Step %d: Time = %1.3f\n",time_stepper.current_step,time_stepper.time);
+    printf("Time Step %lld: Time = %1.3f\n",(long long )time_stepper.current_step,time_stepper.time);
     printf("============================\n");
 
     // Recompute RHS if it's time-dependent
@@ -281,7 +281,7 @@ int main (int argc, char* argv[])
     }
 
     // Error Check
-    if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n", solver_flag);
+    if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %lld!\n", (long long )solver_flag);
 
     clock_t clk_solve_end = clock();
     printf("Elapsed CPU Time for Solve = %f seconds.\n\n",(REAL) (clk_solve_end-clk_solve_start)/CLOCKS_PER_SEC);
@@ -309,9 +309,9 @@ int main (int argc, char* argv[])
     /*******************************************************************/
 
     if (inparam.output_dir!=NULL) {
-      sprintf(solout,"output/solution_ts%03d.vtu",time_stepper.current_step);
+      sprintf(solout,"output/solution_ts%03lld.vtu",(long long )time_stepper.current_step);
       dump_sol_vtk(solout,"u",&mesh,&FE,time_stepper.sol->val);
-      sprintf(exactout,"output/exact_solution_ts%03d.vtu",time_stepper.current_step);
+      sprintf(exactout,"output/exact_solution_ts%03lld.vtu",(long long )time_stepper.current_step);
       dump_sol_vtk(exactout,"ut",&mesh,&FE,exact_sol.val);
     }
     printf("\n");
@@ -326,7 +326,7 @@ int main (int argc, char* argv[])
   printf("Summary of Timestepping\n");
   printf("Time Step\tTime\t\t\t||u||\t\t\t\t||u_exact||\t\t\t||error||\n\n");
   for(j=0;j<=time_stepper.tsteps;j++) {
-    printf("%02d\t\t%f\t%25.16e\t%25.16e\t%25.16e\n",j,j*time_stepper.dt,unorm[j],utnorm[j],uerr[j]);
+    printf("%02lld\t\t%f\t%25.16e\t%25.16e\t%25.16e\n",(long long )j,j*time_stepper.dt,unorm[j],utnorm[j],uerr[j]);
   }
 
   // Combine all timestep vtks in one file

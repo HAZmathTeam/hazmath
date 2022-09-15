@@ -359,7 +359,7 @@ REAL get_rpzwf(INT numval,REAL16 *z, REAL16 *f,		\
       rmax_min=rmax;
     }
     if(print_level>2){
-      fprintf(stdout,"\n%%%%iter=%d | rmax=%.20Le at %7d;",m,rmax,kmax); fflush(stdout);
+      fprintf(stdout,"\n%%%%iter=%lld | rmax=%.20Le at %7lld;",(long long )m,rmax,(long long )kmax); fflush(stdout);
     }
     if(rmax<tol || m>=(mmax-1)) break;
     swp=z[kmax];  z[kmax]=z[m];   z[m]=swp;
@@ -375,7 +375,7 @@ REAL get_rpzwf(INT numval,REAL16 *z, REAL16 *f,		\
     INT info=svdgeneral(numval,m,x21d,&smin,wd);
     /////////    if(m>1) print_full_mat(m,1,wd,"wd");    
     if(info!=0){
-      fprintf(stdout,"\n%% *** HAZMATH WARNING*** IN %s: SVD-INFO IS NOT ZERO; INFO=%d;\n",__FUNCTION__,info);
+      fprintf(stdout,"\n%% *** HAZMATH WARNING*** IN %s: SVD-INFO IS NOT ZERO; INFO=%lld;\n",__FUNCTION__,(long long )info);
     }
   }
   free(x21d);
@@ -466,7 +466,7 @@ REAL16 **set_f_values(REAL16 (*func)(REAL16 , REAL16 , REAL16 , REAL16 , REAL16 
   }
   if(k<numval){
     if(print_level>1){
-      fprintf(stdout,"\n%%%% WARNING: some values of f were too big; removing %d of the values in z[]\n", numval-k);
+      fprintf(stdout,"\n%%%% WARNING: some values of f were too big; removing %lld of the values in z[]\n", (long long )(numval-k));
     }
     numval=k;
     z=realloc(z,numval*sizeof(REAL16));

@@ -50,29 +50,29 @@ INT main(int argc,char *argv[])
   fprintf(stdout,"\n%%%%function [res,pol,z,w,f,er0,er2]=frac_brasil()\n");
   fprintf(stdout,"\n%% AUTO GENERATED\n");
   fprintf(stdout,"\n%%%%EXAMPLE(fractional):\n");
-  fprintf(stdout,"\nx=linspace(%.8e,%.8e,%d);\nif(size(x,1)==1),x=x';end\n",xmin_in,xmax_in,1025);
+  fprintf(stdout,"\nx=linspace(%.8e,%.8e,%lld);\nif(size(x,1)==1),x=x';end\n",xmin_in,xmax_in,(long long )1025);
   //  fprintf(stdout,"\n%%f_in = @(x) ( %.2Lf * x.^(%.1Lf) + %.2Lf * x.^(%.1Lf) );\n",s[2],s[0],s[3],s[1]);
   fprintf(stdout,"\nf_in = %.2Lf * x.^(%.1Lf) + %.2Lf * x.^(%.1Lf) ;\n",s[2],s[0],s[3],s[1]);
   fprintf(stdout,"\n%%===============================================%%\n");
   fprintf(stdout,"\nbounds=[%.16e,%.16e];\n",xmin_in,xmax_in);
-  fprintf(stdout,"\n\ndegree=%d; num_iter=%d; max_err=%.12e;\n",degree,iter_brasil,rmax);
+  fprintf(stdout,"\n\ndegree=%lld; num_iter=%lld; max_err=%.12e;\n",(long long )degree,(long long )iter_brasil,rmax);
   // pol is one dimension less when printing. 
-  fprintf(stdout,"\nres=zeros(%d,1);pol=zeros(%d,1);\nz=zeros(%d,1);w=zeros(%d,1);f=zeros(%d,1);\n", \
-	  degree+1,degree,degree+1,degree+1,degree+1);
+  fprintf(stdout,"\nres=zeros(%lld,1);pol=zeros(%lld,1);\nz=zeros(%lld,1);w=zeros(%lld,1);f=zeros(%lld,1);\n", \
+	  (long long )degree+1,(long long )degree,(long long )degree+1,(long long )degree+1,(long long )degree+1);
   fprintf(stdout,"\n%%===============================================%%\n");
-  for(i=0;i<degree+1;i++) fprintf(stdout,"\nres(%d)=%.16e;",i+1,*(rpzwf_brasil[0]+i));
+  for(i=0;i<degree+1;i++) fprintf(stdout,"\nres(%lld)=%.16e;",(long long )i+1,*(rpzwf_brasil[0]+i));
   fprintf(stdout,"\n");
-  for(i=0;i<degree;i++) fprintf(stdout,"\npol(%d)=%.16e;",i+1,*(rpzwf_brasil[1]+i));
+  for(i=0;i<degree;i++) fprintf(stdout,"\npol(%lld)=%.16e;",(long long )i+1,*(rpzwf_brasil[1]+i));
   fprintf(stdout,"\n");
-  for(i=0;i<degree+1;i++) fprintf(stdout,"\nz(%d)=%.16e;",i+1,*(rpzwf_brasil[2]+i));
+  for(i=0;i<degree+1;i++) fprintf(stdout,"\nz(%lld)=%.16e;",(long long )i+1,*(rpzwf_brasil[2]+i));
   fprintf(stdout,"\n");
-  for(i=0;i<degree+1;i++) fprintf(stdout,"\nw(%d)=%.16e;",i+1,*(rpzwf_brasil[3]+i));
+  for(i=0;i<degree+1;i++) fprintf(stdout,"\nw(%lld)=%.16e;",(long long )i+1,*(rpzwf_brasil[3]+i));
   fprintf(stdout,"\n");
-  for(i=0;i<degree+1;i++) fprintf(stdout,"\nf(%d)=%.16e;",i+1,*(rpzwf_brasil[4]+i));
+  for(i=0;i<degree+1;i++) fprintf(stdout,"\nf(%lld)=%.16e;",(long long )i+1,*(rpzwf_brasil[4]+i));
   fprintf(stdout,"\n");
   fprintf(stdout,"\n");
   fprintf(stdout,"f_ra=1./(kron(x,ones(size(pol\')))-kron(ones(size(x)),pol\'));");
-  fprintf(stdout,"f_ra=res(1)+f_ra*(res(2:%d));",degree+1);
+  fprintf(stdout,"f_ra=res(1)+f_ra*(res(2:%lld));",(long long )degree+1);
   fprintf(stdout,"\n%%%%%%%%\t\tfz = %.2Lf * z.^(%.1Lf) + %.2Lf * z.^(%.1Lf);\n",s[2],s[0],s[3],s[1]);
   fprintf(stdout,"\ner0=norm(f_in-f_ra);");
   fprintf(stdout,"\ner2=norm(f_in(2:length(x))-f_ra(2:length(x)));");

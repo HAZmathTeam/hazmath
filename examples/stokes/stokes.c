@@ -122,15 +122,15 @@ int main (int argc, char* argv[])
 
   // Summarize Setup
   printf("***********************************************************************************\n");
-  printf("\t--- %d-dimensional grid ---\n",dim);
-  printf("Number of Elements = %d\tOrder of Quadrature = %d\n",mesh.nelm,2*nq1d-1);
+  printf("\t--- %lld-dimensional grid ---\n",(long long )dim);
+  printf("Number of Elements = %lld\tOrder of Quadrature = %lld\n",(long long )mesh.nelm,2*(long long )nq1d-1);
   printf("\n\t--- Element Type ---\n");
-  printf("Velocity Element Type = %d\tPressure Element Type = %d\n",order_u,order_p);
+  printf("Velocity Element Type = %lld\tPressure Element Type = %lld\n",(long long )order_u,(long long )order_p);
   printf("\n\t--- Degrees of Freedom ---\n");
-  printf("Vertices: %-7d\tEdges: %-7d\tFaces: %-7d",mesh.nv,mesh.nedge,mesh.nface);
-  printf("\t--> DOF: %d\n",FE.ndof);
+  printf("Vertices: %-7lld\tEdges: %-7lld\tFaces: %-7lld",(long long )mesh.nv,(long long )mesh.nedge,(long long )mesh.nface);
+  printf("\t--> DOF: %lld\n",(long long )FE.ndof);
   printf("\n\t--- Boundaries ---\n");
-  printf("Vertices: %-7d\tEdges: %-7d\tFaces: %-7d\n",mesh.nbv,mesh.nbedge,mesh.nbface);
+  printf("Vertices: %-7lld\tEdges: %-7lld\tFaces: %-7lld\n",(long long )mesh.nbv,(long long )mesh.nbedge,(long long )mesh.nbface);
   printf("***********************************************************************************\n\n");
 
   /*** Assemble the matrix and right hand side *******************************/
@@ -238,7 +238,7 @@ int main (int argc, char* argv[])
   }
 
   // Error Check
-  if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %d!\n",solver_flag);
+  if (solver_flag < 0) printf("### ERROR: Solver does not converge with error code = %lld!\n",(long long )solver_flag);
 
   clock_t clk_solve_end = clock();
   printf("Elapsed CPU Time for Solve = %f seconds.\n\n",

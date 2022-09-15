@@ -205,7 +205,7 @@ INT check_newton_convergence(newton *n_it)
   if(n_it->current_step>=n_it->max_steps) {
     newton_stop=1;
     printf("**********************************************************************************\n");
-    printf("The Newton iterations have reached the max number of iterations (%d Newton Steps) \n",n_it->current_step);
+    printf("The Newton iterations have reached the max number of iterations (%lld Newton Steps) \n",(long long )n_it->current_step);
     printf("Convergence may not be reached.\n");
     printf("\nl2-norm of Nonlinear Residual = %25.16e\n",res_norm);
     printf("               Scaled Version = %25.16e\n\n",res_norm_scaled);
@@ -219,7 +219,7 @@ INT check_newton_convergence(newton *n_it)
     if(update_norm<tol) {
       newton_stop=1;
       printf("**********************************************************************************\n");
-      printf("Convergence met after %d Newton Steps.\n",n_it->current_step);
+      printf("Convergence met after %lld Newton Steps.\n",(long long )n_it->current_step);
       printf("\nl2-norm of Final Nonlinear Residual = %25.16e\n",res_norm);
       printf("                     Scaled Version = %25.16e\n\n",res_norm_scaled);
       printf("Final L2 Norm of Update             = %25.16e\n\n",update_norm);
@@ -229,7 +229,7 @@ INT check_newton_convergence(newton *n_it)
     if(res_norm_scaled<tol) {
       newton_stop=1;
       printf("**********************************************************************************\n");
-      printf("Convergence met after %d Newton Steps.\n",n_it->current_step);
+      printf("Convergence met after %lld Newton Steps.\n",(long long )n_it->current_step);
       printf("\nl2-norm of Final Nonlinear Residual = %25.16e\n",res_norm);
       printf("                     Scaled Version = %25.16e\n\n",res_norm_scaled);
       printf("Final L2 Norm of Update             = %25.16e\n\n",update_norm);
@@ -239,7 +239,7 @@ INT check_newton_convergence(newton *n_it)
     if(res_norm_scaled<tol || update_norm<tol) {
       newton_stop=1;
       printf("**********************************************************************************\n");
-      printf("Convergence met after %d Newton Steps.\n",n_it->current_step);
+      printf("Convergence met after %lld Newton Steps.\n",(long long )n_it->current_step);
       printf("\nl2-norm of Final Nonlinear Residual = %25.16e\n",res_norm);
       printf("                     Scaled Version = %25.16e\n\n",res_norm_scaled);
       printf("Final L2 Norm of Update             = %25.16e\n\n",update_norm);

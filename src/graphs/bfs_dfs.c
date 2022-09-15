@@ -73,7 +73,7 @@ iCSRmat **lex_bfs(INT n,INT *ia, INT *ja,ivector *inv_ord,ivector *anc, const RE
       }
       // now swap the first vertex in this connected component with the emax one.
       iaa--;
-      fprintf(stdout,"\nconnected_component=%d;max_node=%d,emax=%e,iaa=%d\n",i,blk[0]->JA[iv],emax,iaa);
+      fprintf(stdout,"\nconnected_component=%lld;max_node=%lld,emax=%e,iaa=%lld\n",(long long )i,(long long )blk[0]->JA[iv],emax,(long long )iaa);
       if(iv==iaa) continue;
       ijk=blk[0]->JA[iaa];
       blk[0]->JA[iaa] = blk[0]->JA[iv];
@@ -463,7 +463,7 @@ static void dfs00_(INT *nin, INT *ia, INT *ja, INT *nblko,INT *iblk, INT *jblk)
 	}
       }
       if(myflag !=30){
-	fprintf (stderr,"There is an error in DEPTH FIRST SEARCH:  %i == %i\n",i,n);
+	fprintf (stderr,"There is an error in DEPTH FIRST SEARCH:  %lld == %lld\n",(long long )i,(long long )n);
 	exit(254);
       } else {
 	v = i;
@@ -646,7 +646,7 @@ iCSRmat *dfs_di(void *a, const char c)
 }
 /*********************************************************************************************************/
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXx*/
-INT check0(weights *elem1, weights *elem2)
+int check0(weights *elem1, weights *elem2)
 {
   if ( elem1->val < elem2->val)
     return -1;
