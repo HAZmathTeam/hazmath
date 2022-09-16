@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
   /**/
   dvector sol;
   INT ndiv=(1<<ref_levels);
-  fprintf(stdout,"ndiv=%ld\n",(long )ndiv);
+  fprintf(stdout,"ndiv=%lld\n",(long long )ndiv);
   //  exit(55);
   sol.row=0;  sol.val=NULL;
   // Time the mesh generation and FE setup
@@ -61,7 +61,6 @@ int main(int argc, char *argv[])
   clock_t clk_mesh_end = clock();
   fprintf(stdout,"\n%%%%%%CPUtime(mesh) = %.3f sec\n",
 	  (REAL ) (clk_mesh_end - clk_mesh_start)/CLOCKS_PER_SEC);
-  // Time the mesh generation and FE setup
   // Time the mesh generation and FE setup
   sol=fe_sol_no_dg(sc,1.0,1.0);
   //  short todraw=0;
