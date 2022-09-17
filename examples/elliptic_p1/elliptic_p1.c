@@ -12,8 +12,6 @@
 #include "hazmath.h"
 #include "supporting_elliptic_p1.h"
 /****************************************************************************/
-/****************************************************************************/
-
 /* 
  * refinement type: .gt. 10 is uniform refinement and .le. 10
  *                  (typically 0) is the newest vertex bisection
@@ -23,7 +21,7 @@
 #endif
 /**/
 #ifndef REFINEMENT_LEVELS
-#define REFINEMENT_LEVELS 6
+#define REFINEMENT_LEVELS 7
 #endif
 /**/
 #ifndef SPATIAL_DIMENSION
@@ -48,19 +46,18 @@ int main(int argc, char *argv[])
   /**/
   dvector sol;
   INT ndiv=(1<<ref_levels);
-  fprintf(stdout,"ndiv=%lld\n",(long long )ndiv);
-  //  exit(55);
+  //  fprintf(stdout,"ndiv=%lld\n",(long long )ndiv);
   sol.row=0;  sol.val=NULL;
   // Time the mesh generation and FE setup
   clock_t clk_mesh_start = clock();
+  fprintf(stdout,"\nMeshing in dimension=%lld ...",(long long )dim);
   sc_all=mesh_cube_init(dim,ndiv,ref_type);
-  sc=sc_all[0];
+  fprintf(stdout,"\nElements = Simplexes = %12lld;\nDoF      = Vertices  = %12lld\n",(long long )sc_all[0]->ns,(long long )sc_all[0]->nv); fflush(stdout);
   /**/
+  sc=sc_all[0];
   scfinalize(sc,(INT )1);  
   sc_vols(sc);
   clock_t clk_mesh_end = clock();
-  fprintf(stdout,"\n%%%%%%CPUtime(mesh) = %.3f sec\n",
-	  (REAL ) (clk_mesh_end - clk_mesh_start)/CLOCKS_PER_SEC);
   // Time the mesh generation and FE setup
   sol=fe_sol_no_dg(sc,1.0,1.0);
   //  short todraw=0;
@@ -71,7 +68,8 @@ int main(int argc, char *argv[])
   haz_scomplex_free(sc_all[0]);  
   free(sc_all);  
   clock_t clk_all_end = clock(); // End of timing for mesh and FE setup
-  fprintf(stdout,"\n%%%%%%CPUtime(all) = %.3f sec\n",
+  fprintf(stdout,"\n%%%%%%CPUtime(mesh)     = %10.3f sec\n%%%%%%CPUtime(all)      = %10.3f sec\n",
+	  (REAL ) (clk_mesh_end - clk_mesh_start)/CLOCKS_PER_SEC,	\
 	  (REAL ) (clk_all_end - clk_all_start)/CLOCKS_PER_SEC);
   return 0;
 }

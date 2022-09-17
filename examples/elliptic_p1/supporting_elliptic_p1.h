@@ -517,7 +517,6 @@ if they intersect in dim points.  in a simplicial mesh of
   free(nbr);
   return;
 }
-/**************************************************************************/
 /******************************************************************************/
 static void symb_assembly(INT ns, INT ndof, INT ndofloc, INT *je, INT **ia_out, INT **ja_out,INT *idir)
 {
@@ -701,7 +700,7 @@ static void num_assembly(INT ndof, INT *ia, INT *ja,	\
   }
   return;
 }
-/*************************************************************************/
+/****************************************************************************/
 static dvector fe_sol_no_dg(scomplex *sc,const REAL alpha,const REAL gamma)
 {
   INT solver_flag=-10,print_level=0;
@@ -711,7 +710,6 @@ static dvector fe_sol_no_dg(scomplex *sc,const REAL alpha,const REAL gamma)
   // for simplices: number of vertices per simplex. 
   INT dim=0,dim1=1;
   //  scomplex *sc=hazr("3d_example");
-  fprintf(stdout,"ns=%lld,nv=%lld,dim=%lld\n",(long long )sc->ns,(long long )sc->nv,(long long )sc->n); fflush(stdout);
   dim=sc->n;
   dim1=sc->n+1;  
   nv=sc->nv;// shorthand for num vertices. 
@@ -722,7 +720,7 @@ static dvector fe_sol_no_dg(scomplex *sc,const REAL alpha,const REAL gamma)
   //
   // local mass matrix: it is a constant matrix times the volume of an element.
   REAL *mlocal=local_mm(dim);
-  fprintf(stdout,"\nnum_simplices=%lld ; num_vertices=%lld",(long long )ns,(long long )nv);fflush(stdout);
+  //  fprintf(stdout,"\nnum_simplices=%lld ; num_vertices=%lld",(long long )ns,(long long )nv);fflush(stdout);
   // to compute the volume and to grab the local coordinates of the vertices in the simplex we need some work space
   REAL *slocal=calloc(dim1*dim1,sizeof(REAL));// local stiffness matrix.
   REAL *grad=calloc(dim1*dim,sizeof(REAL));// local matrix with
@@ -795,8 +793,6 @@ static dvector fe_sol_no_dg(scomplex *sc,const REAL alpha,const REAL gamma)
   free(mlocal);
   ivec_free(&idir);
   clock_t clk_assembly_end = clock(); // End of timing for mesh and FE setup
-  fprintf(stdout,"\n%%%%%%CPUtime(assembly) = %.3f sec\n",
-	  (REAL ) (clk_assembly_end - clk_assembly_start)/CLOCKS_PER_SEC);
   /*SOLVER SOLVER*/
   clock_t clk_solver_start = clock(); // begin assembly timing;
   dvector sol=dvec_create(nv);
@@ -865,7 +861,8 @@ static dvector fe_sol_no_dg(scomplex *sc,const REAL alpha,const REAL gamma)
     break;
   }
   clock_t clk_solver_end = clock(); // End of timing for mesh and FE setup
-  fprintf(stdout,"\n%%%%%%CPUtime(solver) = %.3f sec\n",
+  fprintf(stdout,"\n%%%%%%CPUtime(assembly) = %10.3f sec\n%%%%%%CPUtime(solver)   = %10.3f sec",
+	  (REAL ) (clk_assembly_end - clk_assembly_start)/CLOCKS_PER_SEC, \
 	  (REAL ) (clk_solver_end - clk_solver_start)/CLOCKS_PER_SEC);
   dcsr_free(&A);
   dvec_free(&rhs);
