@@ -1199,7 +1199,7 @@ void get_Pigrad_H1toNed(dCSRmat* Pgrad,mesh_struct* mesh)
       Ptmp.val[cola+dim+2] = zL;
     }
   }
-
+  Ptmp.IA[nedge]=Ptmp.nnz; //it is this one for real.
   *Pgrad = Ptmp;
 
   return;
