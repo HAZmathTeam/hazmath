@@ -39,13 +39,13 @@ from __future__ import print_function
 from dolfin import *
 from block import *
 from block.iterative import MinRes
-from block.algebraic.hazmath import AMG, HXCurl
+from block.algebraic.hazmath import AMG, HXCurl, Pcurl
 import sys
 import haznics
 
 set_log_level(30)
 
-N = 4
+N = 2
 dim = 3
 # Parse command-line arguments like "N=6"
 for s in sys.argv[1:]:
@@ -76,13 +76,35 @@ b0 = assemble(inner(v, Constant((1, )*gdim))*dx)
 b1 = assemble(inner(q, Constant(2))*dx)
 bb = block_vec([b0, b1])
 
+Pc = Pcurl(mesh)
+if True:
+    from scipy.sparse import csr_matrix
+    Pc = Pc.down_cast().mat()
+    pi, pj, pv = Pc.getValuesCSR()
+    Pc = csr_matrix((pv, pj, pi))
+    import pdb; pdb.set_trace()
+
+    F = F.down_cast().mat()
+    fi, fj, fv = F.getValuesCSR()
+    F = csr_matrix((fv, fj, fi))
+
+    Agrad = Pc.transpose(copy=True) * F * Pc
+    from scipy.sparse.linalg import norm as sp_norm
+    assert sp_norm(Agrad - Agrad.transpose(copy=True)) < 1e-14
+    from numpy.linalg import eigvalsh
+    ev = eigvalsh(Agrad.todense())
+    print("number of zero eigvals: ", sum(ev < 1e-14))
+    exit(0)
+
+# import pdb; pdb.set_trace()
+
 params = {"maxit": 3,
           'cycle_type': haznics.W_CYCLE,
           "smoother": haznics.SMOOTHER_GS,
           "coarse_dof": 50,
           "aggregation_type": haznics.HEC,  # (VMB, MIS, MWM, HEC)
           "strong_coupled": 0.05,
-          "max_levels":10,"print_level":0,"coarse_solver":32
+          "max_levels":1,"print_level":10,"coarse_solver":32
           }
 
 prec = block_mat([[HXCurl(F, V, params),  0  ],
