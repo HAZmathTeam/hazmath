@@ -802,6 +802,8 @@ precond* create_precond_hxcurl(dCSRmat *Acurl,
 
     const SHORT prtlvl = amgparam->print_level;
     const SHORT max_levels = amgparam->max_levels;
+    // always use iterative solver on coarsest grid
+    amgparam->coarse_solver = 0;
     REAL setup_start, setup_end;
     pc->setup_time = 0.;
     get_time(&setup_start);
@@ -955,6 +957,8 @@ precond* create_precond_hxdiv_3D(dCSRmat *Adiv,
 
     const SHORT prtlvl = amgparam->print_level;
     const SHORT max_levels = amgparam->max_levels;
+    // always use iterative solver on coarsest grid
+    amgparam->coarse_solver = 0;
     REAL setup_start, setup_end;
     pc->setup_time = 0.;
     get_time(&setup_start);
@@ -1109,6 +1113,8 @@ precond* create_precond_hxdiv_2D(dCSRmat *Adiv,
 
     const SHORT prtlvl = amgparam->print_level;
     const SHORT max_levels = amgparam->max_levels;
+    // always use iterative solver on coarsest grid
+    amgparam->coarse_solver = 0;
     REAL setup_start, setup_end;
     pc->setup_time = 0.;
     get_time(&setup_start);
