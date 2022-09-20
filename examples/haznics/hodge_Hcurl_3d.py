@@ -82,7 +82,6 @@ if True:
     Pc = Pc.down_cast().mat()
     pi, pj, pv = Pc.getValuesCSR()
     Pc = csr_matrix((pv, pj, pi))
-    import pdb; pdb.set_trace()
 
     F = F.down_cast().mat()
     fi, fj, fv = F.getValuesCSR()
@@ -91,12 +90,20 @@ if True:
     Agrad = Pc.transpose(copy=True) * F * Pc
     from scipy.sparse.linalg import norm as sp_norm
     assert sp_norm(Agrad - Agrad.transpose(copy=True)) < 1e-14
-    from numpy.linalg import eigvalsh
-    ev = eigvalsh(Agrad.todense())
-    print("number of zero eigvals: ", sum(ev < 1e-14))
+    from numpy.linalg import eigh
+    ew, ev = eigh(Agrad.todense())  # ascending - first k vectors are kernel, if k is multiplicity of eigenvalue zero
+    zero_ew = sum(ew < 1e-14)
+    print("number of zero eigvals: ", zero_ew)
+
+    X = VectorFunctionSpace(mesh, "CG", 1)
+    for i in range(zero_ew):
+        uu = Function(X)
+        # import pdb; pdb.set_trace()
+        # print(ev[:, i])
+        uu.vector().set_local(ev[:, i])
+        File("kernel_vector_%s.pvd" % str(i)) << uu
     exit(0)
 
-# import pdb; pdb.set_trace()
 
 params = {"maxit": 3,
           'cycle_type': haznics.W_CYCLE,
