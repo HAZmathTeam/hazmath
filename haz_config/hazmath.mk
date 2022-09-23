@@ -89,6 +89,11 @@
 # $(suitesparse_dir)/include or in the system standard paths for libraries
 # and header files.
 # -------------------------------------------------------------------------
+# If you want to use the HDF5 data library
+#
+# hdf5=yes
+#
+# -------------------------------------------------------------------------
 # If you want to use the interface with MATLAB, uncomment the next line:
 #
 # matlab=yes

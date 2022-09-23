@@ -10,6 +10,7 @@
 #	     2021-03-13   --ltz
 #	     2021-05-05   --ltz
 #	     2021-07-18   --ltz
+#	     2022-09-23   --ltz
 #
 ############################################################
 cmake_minimum_required (VERSION 3.12)
@@ -248,6 +249,28 @@ if (USE_SUITESPARSE)
 endif(USE_SUITESPARSE)
 
 ##################################################################
+# For HDF5: 
+##################################################################
+if (USE_HDF5)
+  # set the path to find specific modules
+  set(CMAKE_MODULE_PATH "${HAZMATH_SOURCE_DIR}/cmake.modules")
+  set(HDF5_DIR /usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}/hdf5)
+  set (HDF5_LIBRARY_NAME "hdf5_serial")
+  # could be: set (HDF5_LIBRARY_NAME "hdf5_openmpi") 
+  find_package(HDF5 REQUIRED COMPONENTS C CXX Fortran HL) ## COMPONENTS C CXX Fortran HL)
+  if (HDF5_FOUND)
+    message(STATUS "Found HDF5 at ${HDF5_DIR}")
+    add_definitions("-DWITH_HDF5=1")
+    if (SHARED)
+      set(CMAKE_SHARED_LINKER_FLAGS ${HDF5_LIBRARIES})
+    endif(SHARED)
+##    message("   HDF5 was found!")
+  else(HDF5_FOUND)
+    message(WARNING  " HDF5 was requested but not supported!")
+  endif(HDF5_FOUND)
+endif(USE_HDF5)
+
+##################################################################
 # For HAZNICS: we here require Python and SWIG
 ##################################################################
 if (USE_HAZNICS)
@@ -410,7 +433,10 @@ if (USE_HAZNICS)
     if (SUITESPARSE_FOUND)
       LIST(APPEND LIBS_TO_LINK ${SUITESPARSE_LIBRARIES})
     endif(SUITESPARSE_FOUND)
-##     message(STATUS " ADDITIONAL_LIBSTO_LINK=${LIBS_TO_LINK}" )
+     if (HDF5_FOUND)
+      LIST(APPEND LIBS_TO_LINK ${HDF5_LIBRARY_NAME})
+    endif(HDF5_FOUND)
+    message(STATUS " ADDITIONAL_LIBSTO_LINK=${LIBS_TO_LINK}" )
     target_link_libraries(haznics "${LIBS_TO_LINK}")
 #MAKE_SWIG_FLAGS can be used to add special flags to all swig calls.
 #SWIG_MODULE_haznics_EXTRA_DEPS property

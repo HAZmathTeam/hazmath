@@ -16,20 +16,16 @@
  * refinement type: .gt. 10 is uniform refinement and .le. 10
  *                  (typically 0) is the newest vertex bisection
 */
-#ifndef REFINEMENT_TYPE
-#define REFINEMENT_TYPE 11
-#endif
-/**/
-#ifndef REFINEMENT_LEVELS
-#define REFINEMENT_LEVELS 7
-#endif
-/**/
 #ifndef SPATIAL_DIMENSION
 #define SPATIAL_DIMENSION 3
 #endif
 /**/
-#ifndef SET_BNDRY_CODES
-#define SET_BNDRY_CODES 1
+#ifndef REFINEMENT_LEVELS
+#define REFINEMENT_LEVELS 5
+#endif
+/**/
+#ifndef REFINEMENT_TYPE
+#define REFINEMENT_TYPE 11
 #endif
 /****************************************************************************/
 int main(int argc, char *argv[])

@@ -69,6 +69,11 @@ ifeq ($(suitesparse), yes)
     CONFIG_FLAGS+=-DSUITESPARSE_DIR=$(suitesparse_dir)
 endif
 
+ifeq ($(hdf5), yes)
+    CONFIG_FLAGS+=-DUSE_HDF5=$(hdf5)
+    CONFIG_FLAGS+=-DHDF5_DIR=$(hdf5_dir)
+endif
+
 
 ifeq ($(haznics), yes)
     CONFIG_FLAGS+=-DUSE_HAZNICS=$(haznics)
