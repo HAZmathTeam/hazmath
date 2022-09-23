@@ -52,7 +52,7 @@ DG = FunctionSpace(mesh, "DG", 0)
 
 # Define trial and test functions
 tau, sigma = TestFunction(RT), TrialFunction(RT)
-v,   u     = TestFunction(DG),  TrialFunction(DG)
+v, u = TestFunction(DG),  TrialFunction(DG)
 
 
 # Define function G such that G \cdot n = g
@@ -88,41 +88,48 @@ bcs = block_bc([bcs_RT, None], True)
 f = Expression("10*exp(-(pow(x[0] - 0.5, 2) + pow(x[1] - 0.5, 2)) / 0.02)", degree=4)
 
 # Define variational forms (one per block)
-a11 = dot(sigma, tau) * dx
-a12 = div(tau) * u * dx
-a21 = div(sigma) * v *dx
-L2  = - f * v * dx
+a11 = inner(sigma, tau) * dx
+a12 = inner(div(tau), u) * dx
+a21 = inner(div(sigma), v) * dx
+# Add sources
+L2 = -inner(f, v) * dx
 
+# system matrix
 AA = block_assemble([[a11, a12],
                      [a21,  0 ]])
-
+# right hand side
 bb = block_assemble([0, L2])
 
+# apply boundary conditions
 bcs.apply(AA).apply(bb)
 
 # Unlike in mixedpoisson.py the blocks of the preconditioner are constructed
 # rather than extracted from the system
-prec11 = inner(sigma, tau)*dx + inner(div(sigma), div(tau))*dx
-prec22 = inner(u, v)*dx
+prec11 = inner(sigma, tau) * dx + inner(div(sigma), div(tau)) * dx
+prec22 = inner(u, v) * dx
 
 BB = block_assemble([[prec11, 0],
                      [0, prec22]])
 bcs.apply(BB)
 
-# We invert the blocks by taylored multigrid
-M = HXDiv(BB[0][0], V=RT,parameters={"max_levels":10,"print_level":10,"coarse_solver":32})
-N = AMG(BB[1][1],parameters={"max_levels":10,"print_level":10,"coarse_solver":32})
+# We invert the blocks by tailored multigrid method
+params = {"max_levels": 10,
+          # "print_level": 10,
+          }
+M = HXDiv(BB[0][0], V=RT, parameters=params)
+N = AMG(BB[1][1], parameters=params)
 
 # Define the block preconditioner
 AAp = block_mat([[M, 0],
-                 [0,  N]])
+                 [0, N]])
 
+# Solver
 AAinv = MinRes(AA, precond=AAp, show=2, name='AA^', tolerance=1E-10)
 
-#=====================
+# =====================
 # Solve the system
 Sigma, U = AAinv * bb
-#=====================
+# =====================
 
 # Print norms that can be compared with those reported by demo-parallelmixedpoisson
 print(('norm Sigma:', Sigma.norm('l2')))
