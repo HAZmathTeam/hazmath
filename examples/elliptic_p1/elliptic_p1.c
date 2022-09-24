@@ -43,8 +43,8 @@ int main(int argc, char *argv[])
   INT ndiv=(1<<ref_levels);
   //  fprintf(stdout,"ndiv=%lld\n",(long long )ndiv);
   // Time the mesh generation and FE setup
-  clock_t clk_mesh_start = clock();
   fprintf(stdout,"\nMeshing in dimension=%lld ...",(long long )dim);
+  clock_t clk_mesh_start = clock();
   sc_all=mesh_cube_init(dim,ndiv,ref_type);
   fprintf(stdout,"\nElements = Simplexes = %12lld;\nDoF      = Vertices  = %12lld\n",(long long )sc_all[0]->ns,(long long )sc_all[0]->nv); fflush(stdout);
   /**/
@@ -56,28 +56,36 @@ int main(int argc, char *argv[])
   dvector rhs, sol;
   rhs.row=0; rhs.val=NULL;
   sol.row=0; sol.val=NULL;
+  /* Assemble */
+  clock_t clk_assembly_start = clock(); // begin assembly timing;
   // Time the mesh generation and FE setup
   /* fe_sol(sc,					\ */
   /* 	 &A,					\ */
   /* 	 &rhs,					\ */
-  /* 	 &sol,					\ */
   /* 	 1e0,1e0); */
-  fe_sol_no_dg(sc,					\
+  /********************************************************/
+  fe_sol_no_dg(sc,				\
 	 &A,					\
 	 &rhs,					\
-	 &sol,					\
 	 1e0,1e0);
-    //  short todraw=0;
-    //  draw_grids(todraw, sc,&sol);
-    /* write the output mesh file:    */
-    /* hazw("output/mesh.haz",sc,0); */
+  //  short todraw=0;
+  //  draw_grids(todraw, sc,&sol);
+  /* write the output mesh file:    */
+  /* hazw("output/mesh.haz",sc,0); */
+  haz_scomplex_free(sc_all[0]);
+  free(sc_all);  
+  clock_t clk_assembly_end = clock(); // End of timing for mesh and FE setup
+  /*Solve*/
+  clock_t clk_solver_start = clock(); // End of timing for mesh and FE setup
+  solveit(&A,&rhs,&sol);
+  clock_t clk_solver_end = clock(); // End of timing for mesh and FE setup
   dvec_free(&sol);
   dvec_free(&rhs);
   dcsr_free(&A);
-  haz_scomplex_free(sc_all[0]);  
-  free(sc_all);  
   clock_t clk_all_end = clock(); // End of timing for mesh and FE setup
-  fprintf(stdout,"\n%%%%%%CPUtime(mesh)     = %10.3f sec\n%%%%%%CPUtime(all)      = %10.3f sec\n",
+  fprintf(stdout,"\n%%%%%%CPUtime(assembly) = %10.3f sec\n%%%%%%CPUtime(solver)   = %10.3f sec\n%%%%%%CPUtime(mesh)     = %10.3f sec\n%%%%%%CPUtime(all)      = %10.3f sec\n", \
+	  (REAL ) (clk_assembly_end - clk_assembly_start)/CLOCKS_PER_SEC, \
+	  (REAL ) (clk_solver_end - clk_solver_start)/CLOCKS_PER_SEC,	\
 	  (REAL ) (clk_mesh_end - clk_mesh_start)/CLOCKS_PER_SEC,	\
 	  (REAL ) (clk_all_end - clk_all_start)/CLOCKS_PER_SEC);
   return 0;
