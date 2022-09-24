@@ -65,7 +65,9 @@ static void mapit(scomplex *sc,REAL *vc)
 }
 /**********************************************************************************/
 /*!
- * \fn static dvector fe_sol(scomplex *sc,const REAL alpha,const REAL gamma)
+ * \fn static void fe_sol(scomplex *sc,dCSRmat *A,
+ *                        dvector *rhs, dvector *sol, 
+ *                        const REAL alpha, const REAL gamma)
  *
  * \brief assembles and solves the finite element discretization of a
  *        reaction diffusion equation discretized with P1 continuous
@@ -74,43 +76,50 @@ static void mapit(scomplex *sc,REAL *vc)
  *
  * \param sc    I: simplicial complex defining the FE grid.
  *
+ * \param A    I/O: pointer to the stiffness (dCSRmat) matrix
+ *
+ * \param rhs  I/O: pointer to the dvector with the right hand side
+ *
+ * \param sol  I/O: pointer to the dvector with solution
+ *
  * \param alpha I:  the diffusion coefficient
  *
  * \param gamma I: the reaction coefficient
  *
- * \return The FE solution as dvector.
- *
  * \note Ludmil (20210807)
  */
 /**********************************************************************************/
-static dvector fe_sol(scomplex *sc,const REAL alpha,const REAL gamma)
+static void fe_sol(scomplex *sc,			\
+		   dCSRmat *A,				\
+		   dvector *rhs,			\
+		   dvector *sol,			\
+		   const REAL alpha,const REAL gamma)
 {
   REAL fi;
   INT i,ij,j,solver_flag=-10,print_level=0;
-  dCSRmat A,M;
   clock_t clk_assembly_start = clock(); // begin assembly timing;
-  assemble_p1(sc,&A,&M);
+  dCSRmat M;
+  assemble_p1(sc,A,&M);
   // Now we solve the Neumann problem (A+M) u = f;
-  for(i=0;i<A.nnz;++i)
-    A.val[i]=alpha*A.val[i] + gamma*M.val[i];
+  for(i=0;i<A->nnz;++i)
+    A->val[i]=alpha*A->val[i] + gamma*M.val[i];
   /*We have Neumann problem, so no boundary codes*/
   memset(sc->bndry,0,sc->nv*sizeof(INT));
   // RHS set up: We take as a right hand side the function f(x)=1;
   // the right hand side is just M*ones(n,1);
-  dvector f=dvec_create(A.row);
-  dvector sol=f;
-  dvec_set(f.row,&f,1e0);// this we can have as function value at the vertices in general. 
-  dvector rhs=dvec_create(M.row);// this is the "algebraic" right hand side 
+  sol[0]=dvec_create(A->row);
+  rhs[0]=dvec_create(A->row);
+  dvector f=sol[0];
+  dvec_set(f.row,&f,1e0);// this we can have as function evaluated at the vertices in general. 
+  //rhs is the "algebraic" right hand side 
   for(i=0;i<M.row;++i){
     fi=0e0;
     for(ij=M.IA[i];ij<M.IA[i+1];++ij){
       j=M.JA[ij];
       fi+=M.val[ij]*f.val[j];
     }
-    rhs.val[i]=fi;
+    rhs->val[i]=fi;
   }
-  //  dvector_print(stdout,&f);
-  //  dvector_print(stdout,&rhs);
   clock_t clk_assembly_end = clock(); // End of timing for mesh and FE setup
   fprintf(stdout,"\n%%%%%%CPUtime(assembly) = %.3f sec\n",
 	  (REAL ) (clk_assembly_end - clk_assembly_start)/CLOCKS_PER_SEC);
@@ -165,26 +174,24 @@ static dvector fe_sol(scomplex *sc,const REAL alpha,const REAL gamma)
   //  param_amg_print(&amgparam);
 
   /* Actual solve */
-  memset(sol.val,0,sol.row*sizeof(REAL));
+  memset(sol->val,0,sol->row*sizeof(REAL));
   switch(linear_itparam.linear_precond_type){
   case SOLVER_AMG:
     // Use AMG as iterative solver
-    solver_flag = linear_solver_amg(&A, &rhs, &sol, &amgparam);
+    solver_flag = linear_solver_amg(A, rhs, sol, &amgparam);
     break;
   case PREC_AMG:
     // Use Krylov Iterative Solver with AMG
-    solver_flag = linear_solver_dcsr_krylov_amg(&A, &rhs, &sol, &linear_itparam, &amgparam);
+    solver_flag = linear_solver_dcsr_krylov_amg(A, rhs, sol, &linear_itparam, &amgparam);
     break;
   case  PREC_DIAG:
-    solver_flag = linear_solver_dcsr_krylov_diag(&A, &rhs, &sol, &linear_itparam);
+    solver_flag = linear_solver_dcsr_krylov_diag(A, rhs, sol, &linear_itparam);
     break;
   default:
-    solver_flag = linear_solver_dcsr_krylov_amg(&A, &rhs, &sol, &linear_itparam, &amgparam);
+    solver_flag = linear_solver_dcsr_krylov_amg(A, rhs, sol, &linear_itparam, &amgparam);
     break;
   }
-  dcsr_free(&A);
-  dvec_free(&rhs);
-  return sol;// return solution
+  return;//
 }
 /**********************************************************************************/
 /*!
@@ -701,8 +708,35 @@ static void num_assembly(INT ndof, INT *ia, INT *ja,	\
   return;
 }
 /****************************************************************************/
-static dvector fe_sol_no_dg(scomplex *sc,const REAL alpha,const REAL gamma)
-{
+/*!
+ * \fn static void fe_sol_no_dg(scomplex *sc,dCSRmat *A,
+ *                              dvector *rhs, dvector *sol, 
+ *                              const REAL alpha, const REAL gamma)
+ *
+ * \brief assembles and solves the finite element discretization of a
+ *        reaction diffusion equation discretized with P1 continuous
+ *        elements in any spatial dimension > 1. The right hand side
+ *        is f(x)=1.
+ *
+ * \param sc    I: simplicial complex defining the FE grid.
+ *
+ * \param A    I/O: pointer to the stiffness (dCSRmat) matrix
+ *
+ * \param rhs  I/O: pointer to the dvector with the right hand side
+ *
+ * \param sol  I/O: pointer to the dvector with solution
+ *
+ * \param alpha I:  the diffusion coefficient
+ *
+ * \param gamma I: the reaction coefficient
+ *
+ * \note Ludmil (20220924)
+ */
+/**********************************************************************************/
+static void fe_sol_no_dg(scomplex *sc,dCSRmat *A,		\
+			 dvector *rhs, dvector *sol,		\
+			 const REAL alpha, const REAL gamma)
+ {
   INT solver_flag=-10,print_level=0;
   INT i,j,k,idim1,jdim1;  // loop and working
   INT ns,nv,nnz; // num simplices, vertices, num nonzeroes
@@ -738,18 +772,17 @@ static dvector fe_sol_no_dg(scomplex *sc,const REAL alpha,const REAL gamma)
   ivec_set(ip.row,&ip,-1);
   find_bndry_vertices(sc->n,sc->ns,sc->nodes,idir.val);
   ivec_set(idir.row,&idir,-1);  
-  dCSRmat A;
   clock_t clk_assembly_start = clock(); // begin assembly timing;
-  symb_assembly(ns, ndof, ndofloc, sc->nodes,&A.IA, &A.JA,idir.val);
+  symb_assembly(ns, ndof, ndofloc, sc->nodes,&A->IA, &A->JA,idir.val);
   //
-  A.row=nv; A.col=nv;  A.nnz=A.IA[nv];
-  A.val=calloc(A.nnz,sizeof(REAL));
-  memset(A.val,0,A.nnz*sizeof(REAL));
+  A->row=nv; A->col=nv;  A->nnz=A->IA[nv];
+  A->val=calloc(A->nnz,sizeof(REAL));
+  memset(A->val,0,A->nnz*sizeof(REAL));
   //
-  dvector rhs=dvec_create(nv);
+  rhs[0]=dvec_create(nv);
   for(k=0;k<nv;++k){
     if(idir.val[k]>nv){
-      rhs.val[k]=0e0;// this is the global rhs;
+      rhs->val[k]=0e0;// this is the global rhs;
     }
   }
   REAL smjk;
@@ -778,9 +811,9 @@ static dvector fe_sol_no_dg(scomplex *sc,const REAL alpha,const REAL gamma)
 	slocal[jdim1+k]=alpha*slocal[jdim1+k] + gamma*smjk;
       }
     }
-    num_assembly(ndof,A.IA,A.JA,			\
+    num_assembly(ndof,A->IA,A->JA,			\
 		 ndofloc, &sc->nodes[idim1],		\
-		 A.val, rhs.val,			\
+		 A->val, rhs->val,			\
 		 slocal,rhsloc,				\
 		 idir.val,ip.val);
   }
@@ -795,7 +828,7 @@ static dvector fe_sol_no_dg(scomplex *sc,const REAL alpha,const REAL gamma)
   clock_t clk_assembly_end = clock(); // End of timing for mesh and FE setup
   /*SOLVER SOLVER*/
   clock_t clk_solver_start = clock(); // begin assembly timing;
-  dvector sol=dvec_create(nv);
+  sol[0]=dvec_create(nv);
   // use the same as f for the solution;
   linear_itsolver_param linear_itparam;
   linear_itparam.linear_precond_type = PREC_AMG;
@@ -843,28 +876,26 @@ static dvector fe_sol_no_dg(scomplex *sc,const REAL alpha,const REAL gamma)
   //  param_amg_print(&amgparam);
 
   /* Actual solve */
-  memset(sol.val,0,sol.row*sizeof(REAL));
+  memset(sol->val,0,sol->row*sizeof(REAL));
   switch(linear_itparam.linear_precond_type){
   case SOLVER_AMG:
     // Use AMG as iterative solver
-    solver_flag = linear_solver_amg(&A, &rhs, &sol, &amgparam);
+    solver_flag = linear_solver_amg(A, rhs, sol, &amgparam);
     break;
   case PREC_AMG:
     // Use Krylov Iterative Solver with AMG
-    solver_flag = linear_solver_dcsr_krylov_amg(&A, &rhs, &sol, &linear_itparam, &amgparam);
+    solver_flag = linear_solver_dcsr_krylov_amg(A, rhs, sol, &linear_itparam, &amgparam);
     break;
   case  PREC_DIAG:
-    solver_flag = linear_solver_dcsr_krylov_diag(&A, &rhs, &sol, &linear_itparam);
+    solver_flag = linear_solver_dcsr_krylov_diag(A, rhs, sol, &linear_itparam);
     break;
   default:
-    solver_flag = linear_solver_dcsr_krylov_amg(&A, &rhs, &sol, &linear_itparam, &amgparam);
+    solver_flag = linear_solver_dcsr_krylov_amg(A, rhs, sol, &linear_itparam, &amgparam);
     break;
   }
   clock_t clk_solver_end = clock(); // End of timing for mesh and FE setup
   fprintf(stdout,"\n%%%%%%CPUtime(assembly) = %10.3f sec\n%%%%%%CPUtime(solver)   = %10.3f sec",
 	  (REAL ) (clk_assembly_end - clk_assembly_start)/CLOCKS_PER_SEC, \
 	  (REAL ) (clk_solver_end - clk_solver_start)/CLOCKS_PER_SEC);
-  dcsr_free(&A);
-  dvec_free(&rhs);
-  return sol;// return solution
+  return;// return solution
 }

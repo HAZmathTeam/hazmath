@@ -40,10 +40,8 @@ int main(int argc, char *argv[])
   INT jlevel,k;
   scomplex **sc_all=NULL,*sc=NULL,*sctop=NULL;
   /**/
-  dvector sol;
   INT ndiv=(1<<ref_levels);
   //  fprintf(stdout,"ndiv=%lld\n",(long long )ndiv);
-  sol.row=0;  sol.val=NULL;
   // Time the mesh generation and FE setup
   clock_t clk_mesh_start = clock();
   fprintf(stdout,"\nMeshing in dimension=%lld ...",(long long )dim);
@@ -54,13 +52,28 @@ int main(int argc, char *argv[])
   scfinalize(sc,(INT )1);  
   sc_vols(sc);
   clock_t clk_mesh_end = clock();
+  dCSRmat A=dcsr_create(0,0,0);
+  dvector rhs, sol;
+  rhs.row=0; rhs.val=NULL;
+  sol.row=0; sol.val=NULL;
   // Time the mesh generation and FE setup
-  sol=fe_sol_no_dg(sc,1.0,1.0);
-  //  short todraw=0;
-  //  draw_grids(todraw, sc,&sol);
-  /* write the output mesh file:    */
-  /* hazw("output/mesh.haz",sc,0); */
+  /* fe_sol(sc,					\ */
+  /* 	 &A,					\ */
+  /* 	 &rhs,					\ */
+  /* 	 &sol,					\ */
+  /* 	 1e0,1e0); */
+  fe_sol_no_dg(sc,					\
+	 &A,					\
+	 &rhs,					\
+	 &sol,					\
+	 1e0,1e0);
+    //  short todraw=0;
+    //  draw_grids(todraw, sc,&sol);
+    /* write the output mesh file:    */
+    /* hazw("output/mesh.haz",sc,0); */
   dvec_free(&sol);
+  dvec_free(&rhs);
+  dcsr_free(&A);
   haz_scomplex_free(sc_all[0]);  
   free(sc_all);  
   clock_t clk_all_end = clock(); // End of timing for mesh and FE setup

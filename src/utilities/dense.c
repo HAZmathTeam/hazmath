@@ -430,6 +430,44 @@ void ddense_inv(REAL *Ainv,INT n, REAL *A, void *wrk)
 }
 /**************************************************************************/
 /*
+ * \fn void ddense_inv_l(REAL16 *Ainv, INT n, REAL16 *A, void *wrk)
+ *
+ * \brief Inverse of a general (nxn) matrix A (long double)
+ *
+ * \param n    Number of rows
+ * \param m    Number of columns
+ * \param A    the matrix as a one dim. array by rows
+ * \param Ainv the output inverse.
+ *
+ * \param wrk working array of size at least
+ *            n*sizeof(INT)+n*(n+1)*sizeof(REAL16)
+ *
+ */
+void ddense_inv_l(REAL16 *Ainv,INT n, REAL16 *A, void *wrk)
+{
+  REAL16 *piv=(REAL16 *)wrk; REAL16 *Awrk=piv+n;
+  INT *p=(INT *)(wrk+n*(n+1)*sizeof(REAL16));
+  INT i,j,ji,ni;
+  /* first transpose A beacuse we invert by rows;*/
+  for (i=0;i<n;i++){
+    for (j=0;j<n;j++){
+      ji=(n*j+i);
+      Awrk[ji]=*A;
+      A++;
+    }
+  }
+  for(i=0;i<n;i++){
+    ni=n*i;
+    for(j=0;j<n;j++)
+      Ainv[ni+j]=0e0;
+    Ainv[ni+i]=1e0;
+    // solve with rhs a row of the identity;
+    ddense_solve_pivot_l((!i),n, Awrk, (Ainv+ni), p, piv);
+  }
+  return;
+}
+/**************************************************************************/
+/*
  * \fn void ddense_abyb(const INT m, const INT p, REAL *c, REAL *a,
  *                   REAL *b, const INT n)
  *
