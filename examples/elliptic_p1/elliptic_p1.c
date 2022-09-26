@@ -10,6 +10,7 @@
  */
 /*********************************************************************/
 #include "hazmath.h"
+#include "eafe_data.h"
 #include "supporting_elliptic_p1.h"
 /****************************************************************************/
 /* 
@@ -21,7 +22,7 @@
 #endif
 /**/
 #ifndef REFINEMENT_LEVELS
-#define REFINEMENT_LEVELS 5
+#define REFINEMENT_LEVELS 4
 #endif
 /**/
 #ifndef REFINEMENT_TYPE
@@ -52,41 +53,64 @@ int main(int argc, char *argv[])
   scfinalize(sc,(INT )1);  
   sc_vols(sc);
   clock_t clk_mesh_end = clock();
+  /* Assemble */
+  clock_t clk_assembly_start = clock(); // begin assembly timing;
   dCSRmat A=dcsr_create(0,0,0);
   dvector rhs, sol;
   rhs.row=0; rhs.val=NULL;
   sol.row=0; sol.val=NULL;
-  /* Assemble */
-  clock_t clk_assembly_start = clock(); // begin assembly timing;
   // Time the mesh generation and FE setup
-  /* fe_sol(sc,					\ */
+  REAL alpha=1e0,gamma=0e0;
+  /* call_assembly_w_dg(sc,			\ */
   /* 	 &A,					\ */
   /* 	 &rhs,					\ */
-  /* 	 1e0,1e0); */
+  /* 	 alpha,gamma); */
+  /* dcsr_write_dcoo("Adg.dat",&A); */
   /********************************************************/
-  fe_sol_no_dg(sc,				\
-	 &A,					\
-	 &rhs,					\
-	 1e0,1e0);
+  call_assembly(sc,				\
+		&A,				\
+		&rhs,				\
+		alpha,gamma);
+  //dcsr_write_dcoo("A.dat",&A);
   //  short todraw=0;
   //  draw_grids(todraw, sc,&sol);
   /* write the output mesh file:    */
   /* hazw("output/mesh.haz",sc,0); */
-  haz_scomplex_free(sc_all[0]);
-  free(sc_all);  
   clock_t clk_assembly_end = clock(); // End of timing for mesh and FE setup
   /*Solve*/
-  clock_t clk_solver_start = clock(); // End of timing for mesh and FE setup
+  clock_t clk_solver_start = clock(); // End of timing for mesh and FE setup  
   solveit(&A,&rhs,&sol);
   clock_t clk_solver_end = clock(); // End of timing for mesh and FE setup
+  // err computation |u_I-u_h|_{1} and use rhs as a working space
+  REAL err1,err0,uinterp;
+  INT i,ij,j;
+  // rhs= A*(err)
+  for(i=0;i<sc->nv;++i){
+    err0=0e0;
+    for(ij=A.IA[i];ij<A.IA[i+1];++ij){
+      j=A.JA[ij];
+      exactsol(&uinterp,&sc->x[j*dim],0e0,dim,NULL);
+      err0+=A.val[ij]*(sol.val[j]-uinterp);
+    }
+    rhs.val[i]=err0;
+  }
+  // err0=err'*A*err.
+  err0=0e0;
+  for(i=0;i<sc->nv;++i){
+    exactsol(&uinterp,&sc->x[i*dim],0e0,dim,NULL);
+    err0+=rhs.val[i]*(sol.val[i]-uinterp);
+  }
+  fprintf(stdout,"\n|u_I-u_h|_1=%.6e\n",sqrt(err0));
+  haz_scomplex_free(sc_all[0]);
+  free(sc_all);  
   dvec_free(&sol);
   dvec_free(&rhs);
   dcsr_free(&A);
   clock_t clk_all_end = clock(); // End of timing for mesh and FE setup
-  fprintf(stdout,"\n%%%%%%CPUtime(assembly) = %10.3f sec\n%%%%%%CPUtime(solver)   = %10.3f sec\n%%%%%%CPUtime(mesh)     = %10.3f sec\n%%%%%%CPUtime(all)      = %10.3f sec\n", \
+  fprintf(stdout,"\n%%%%%%CPUtime(mesh)     = %10.3f sec\n%%%%%%CPUtime(assembly) = %10.3f sec\n%%%%%%CPUtime(solver)   = %10.3f sec\n%%%%%%CPUtime(all)      = %10.3f sec\n", \
+	  (REAL ) (clk_mesh_end - clk_mesh_start)/CLOCKS_PER_SEC,	\
 	  (REAL ) (clk_assembly_end - clk_assembly_start)/CLOCKS_PER_SEC, \
 	  (REAL ) (clk_solver_end - clk_solver_start)/CLOCKS_PER_SEC,	\
-	  (REAL ) (clk_mesh_end - clk_mesh_start)/CLOCKS_PER_SEC,	\
 	  (REAL ) (clk_all_end - clk_all_start)/CLOCKS_PER_SEC);
   return 0;
 }
