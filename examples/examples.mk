@@ -12,11 +12,19 @@ FC = gfortran
 CXX = g++
 CFLAGS += 
 FFLAGS += -fno-second-underscore
-
 ExtraFLAGS =
-INCLUDE =
+INCLUDE = 
 LIBS =
 
+# MAC specific (assuming homebrew)
+MAC_ON=0
+MAC_INCLUDE=-I/opt/homebrew/include
+MAC_LIB=-L/opt/homebrew/lib
+
+ifeq ($(MAC_ON),1)
+	INCLUDE += $(MAC_INCLUDE)
+	LIBS += $(MAC_LIB)
+endif
 
 ##################### no change should be needed below. ###########
 # HAZMATH LIB and INCLUDE
@@ -39,7 +47,11 @@ INCLUDE += -I$(HAZDIR)/include
 
 LIBS += $(HAZLIB) -lm 
 
-RPATH = -Wl,-rpath=$(HAZDIR)/lib
+ifeq ($(MAC_ON),1)
+	RPATH = 
+else
+	RPATH = -Wl,-rpath=$(HAZDIR)/lib
+endif
 
 MGRAPH_WRAPPERDIR = $(realpath ../multigraph_wrap)
 DMGRAPH = 
@@ -84,8 +96,10 @@ endif
 INCLUDESSP=
 ifeq ($(WITH_SUITESPARSE),1)
 	CFLAGS += -DWITH_SUITESPARSE=1
-	SSDIR = /usr/lib/x86_64-linux-gnu
-	INCLUDESSP = -I/usr/include/suitesparse
+	ifeq ($(MAC_ON),0)
+		SSDIR = /usr/lib/x86_64-linux-gnu
+		INCLUDESSP = -I/usr/include/suitesparse
+	endif
 	LIBS += -lsuitesparseconfig -lcholmod -lamd -lcolamd -lccolamd -lcamd -lspqr -lumfpack -lamd -lcxsparse 
 endif
 
@@ -107,7 +121,7 @@ LIBS += #-lgfortran
 all: $(EXE) 
 
 $(EXE):	$(MGTARGET)	$(OBJS)	
-	+$(LINKER) $(CFLAGS) $(ExtraFLAGS) $(OBJS)  $(RPATH)  $(MGLIBS) -o $@  $(LIBS)
+	+$(LINKER) $(CFLAGS) $(ExtraFLAGS) $(OBJS) $(RPATH) $(MGLIBS) -o $@  $(LIBS)
 
 %.o:	%.c	$(HEADERS)
 	+$(COMPILER) $(INCLUDE) $(INCLUDESSP) $(CFLAGS) $(DMGRAPH) -o $@ -c $<
