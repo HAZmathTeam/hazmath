@@ -868,10 +868,13 @@ void rveci_(FILE *fp,INT *vec,INT *nn)
   INT *vec_end;
   n = *nn;
   vec_end  =  vec + n;
-
+  long long readint;
   // main loop
-  for ( ; vec < vec_end; ++vec)
-    fscanf(fp,"%lld",(long long *)vec);
+  for ( ; vec < vec_end; ++vec) {
+  //  fscanf(fp,"%lld",(long long *)vec);
+    fscanf(fp,"%lld",&readint);
+    *vec = readint;
+  }
   return;
 }
 /****************************************************************************************/
@@ -2014,7 +2017,7 @@ dCSRmat *dcoo_read_dcsr_p_1(FILE *fp)
   while ( status == SUCCESS ) {
 
       offset = ftell(fp);
-      //val = 
+      //val =
       fscanf(fp,"%s",buffer);
       if (buffer[0]=='[' || buffer[0]=='%' || buffer[0]=='|') {
           fgets(buffer,512,fp); // skip rest of line

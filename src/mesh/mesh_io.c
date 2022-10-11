@@ -61,11 +61,16 @@ void read_grid_haz(FILE *gfid,mesh_struct *mesh)
   INT one_zero_flag = 1;
 
   // Get basic data
-  INT nelm,nv,dim,nholes;
-  fscanf(gfid,"%lld %lld %lld %lld",  (long long *)&nelm,  (long long *)&nv,  (long long *)&dim,  (long long *)&nholes);
-
+  long long nelm_,nv_,dim_,nholes_;
+  //fscanf(gfid,"%lld %lld %lld %lld",  (long long *)&nelm,  (long long *)&nv,  (long long *)&dim,  (long long *)&nholes);
+  fscanf(gfid,"%lld %lld %lld %lld", &nelm_,  &nv_,  &dim_,  &nholes_);
+  INT nelm = (INT )nelm_,nv=(INT) nv_,dim=(INT) dim_,nholes=(INT) nholes_;
+  printf("%d\t%d\t%d\n",nelm,nv,dim);
+  // exit(666);
   // Get number of vertices per element
   INT v_per_elm = dim+1;
+
+  long long readint;
 
   // Element-Vertex Map
   mesh->el_v=malloc(sizeof(iCSRmat));
@@ -80,7 +85,9 @@ void read_grid_haz(FILE *gfid,mesh_struct *mesh)
   for (i=0;i<v_per_elm;i++) {
     for (j=0;j<nelm;j++){
       k=v_per_elm*j+i;
-      fscanf(gfid,"%lld",   (long long *)(mesh->el_v->JA+k));
+    //  fscanf(gfid,"%lld",   (long long *)(mesh->el_v->JA+k));
+      fscanf(gfid,"%lld",   &readint);
+      mesh->el_v->JA[k] = (INT ) readint;
       if(mesh->el_v->JA[k]==0 && one_zero_flag==1)
         one_zero_flag = 0;
     }

@@ -164,7 +164,7 @@ struct mesh_struct make_uniform_mesh(const INT dim,const INT mesh_ref_levels,con
   /* vtkw("mesh.vtu",sc,0,1.); // to plot with paraview*/
   // Convert to mesh_struct for FEM assembly
   mesh_struct mesh0=sc2mesh(sc);
-  // Free simplicial complex  
+  // Free simplicial complex
   ////////////////////////////////////////////////////
   haz_scomplex_free(sc_all[0]);
   free(sc_all);
@@ -229,6 +229,7 @@ void build_mesh_all(mesh_struct* mesh)
     if(dim==2) {
       nface = nedge;
       euler = nv - nedge + nelm + nholes;
+      printf("nv=%d\tned=%d\tnelm=%d\tnholes=%d\n",nv,nedge,nelm,nholes);
     } else if (dim==3) {
       nface = 1 + nedge-nv+nelm;
       nface = nface + nholes; // add number of holes!
