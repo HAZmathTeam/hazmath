@@ -3,13 +3,16 @@
 - python >= 3.5 (with numpy >= 1.13.3)
 - cmake >= 3.12
 
-### Install additional packages 
-...required by the haznics demos: 
-- Edit `setup.rc` and, if needed, `install_haznics.sh` to match your system
-- Source the setup file (this executes install_haznics.sh and installs all package dependencies)
+### Install additional packages (required by HAZniCS demos): 
+- Edit, if needed, `install_haznics.sh` to match your system and execute with 
+```
+/bin/sh ./install_haznics.sh
+``` 
+(this installs all package dependencies: [FEniCS v2019.1.0](https://fenicsproject.org/download/archive/), [FEniCS_ii](https://github.com/MiroK/fenics_ii), [cbc.block](https://bitbucket.org/fenics-apps/cbc.block/) )
+- add HAZniCS library to PYTHONPATH with 
 ```
 source setup.rc
-```
+``` 
 
 ### Running tests
 ```
