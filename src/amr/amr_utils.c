@@ -1212,7 +1212,7 @@ void mapit(scomplex *sc,REAL *vc)
   if(!vc) return;
   /* maps a mesh on the unit cube in d-dimensions to a domain with vertices vc[] */
   INT dim=sc->n;
-  INT i,j,kf,dim1=dim+1;
+  INT i,kf;//,dim1=dim+1;
   cube2simp *c2s=cube2simplex(dim);
   REAL *vcp_xhat = (REAL *)calloc(dim*(c2s->nvcube+1),sizeof(REAL));
   REAL *vcp = vcp_xhat;

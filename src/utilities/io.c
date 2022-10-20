@@ -2155,7 +2155,7 @@ INT features_r(features *feat,scomplex *sc, const INT do_map)
   */
   INT dim=feat->n, dimbig=feat->nbig;
   /***************************************************/
-  INT ichk,k=0,count=0,i,j,m,jstar;
+  INT ichk,k=0,count=0,i,j,m;
   /* INT *scnjn=NULL; */
   /* REAL *xstar0=NULL; */
   REAL xtmp;
