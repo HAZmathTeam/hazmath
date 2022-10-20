@@ -1483,7 +1483,6 @@ INT fenics_metric_amg_solver(block_dCSRmat *A,
 
     // Use Krylov Iterative Solver
     if ( (linear_itparam.linear_precond_type >= 10) && (linear_itparam.linear_precond_type < 15) ){
-        // todo: interface_dof is not used in the function below - remove as requirement
         solver_flag = linear_solver_bdcsr_krylov_metric_amg(A, b, x, &linear_itparam, &amgparam, AD, M, interface_dof);
     }
     // No preconditioner
@@ -1501,3 +1500,77 @@ void print_bdcsr_matrix(block_dCSRmat *A)
     bdcsr_print_matlab(stdout, A);
     fflush(stdout);
 }
+
+
+INT fenics_metric_amg_solver_minimal(INT n0,
+                                     INT n1,
+                                     dCSRmat *A,
+                                     dvector *b,
+                                     dvector *x)
+{
+    INT i;
+    /* set Parameters from Reading in Input File */
+    input_param inparam;
+    param_input_init(&inparam);
+    param_input("./input_metric.dat", &inparam);
+
+    /* set initial guess */
+    dvec_set(b->row, x, 0.0);
+
+    /* rescale matrix and rhs! */
+    REAL amin[1], amax[1];
+    dcsr_diag_extremal(0, A, amin, amax);
+    dcsr_axm(A, 1./amax[0]);
+    dvec_ax(1./amax[0], b);
+
+    /* create bdcsr mat */
+    block_dCSRmat A_new;
+    INT brow = 2, bcol = 2;
+    bdcsr_alloc(brow, bcol, &A_new);
+
+    // generate index sets for first block DoFs and second block DoFs
+    ivector first_idx = ivec_create(n0);
+    ivector second_idx = ivec_create(n1);
+    for (i=0; i<n0; i++) first_idx.val[i] = i;
+    for (i=n0; i<n0+n1; i++) second_idx.val[i-n0] = i;
+
+    dcsr_getblk(A, first_idx.val,  first_idx.val,  first_idx.row,  first_idx.row,  A_new.blocks[0]);
+    dcsr_getblk(A, first_idx.val,  second_idx.val, first_idx.row,  second_idx.row, A_new.blocks[1]);
+    dcsr_getblk(A, second_idx.val, first_idx.val,  second_idx.row, first_idx.row,  A_new.blocks[2]);
+    dcsr_getblk(A, second_idx.val, second_idx.val, second_idx.row, second_idx.row, A_new.blocks[3]);
+
+    // drop small entries
+    dcsr_compress_inplace(A_new.blocks[0], 1e-12);
+    dcsr_compress_inplace(A_new.blocks[3], 1e-12);
+    dcsr_compress_inplace(A_new.blocks[1], 1e-12);
+    dcsr_compress_inplace(A_new.blocks[2], 1e-12);
+
+    /* Set Solver Parameters */
+    INT solver_flag = -20;
+    /* Set parameters for linear iterative methods */
+    linear_itsolver_param linear_itparam;
+    param_linear_solver_set(&linear_itparam, &inparam);
+    if (linear_itparam.linear_print_level > PRINT_MIN) param_linear_solver_print(&linear_itparam);
+
+    /* Set parameters for algebriac multigrid methods */
+    AMG_param amgparam;
+    param_amg_init(&amgparam);
+    param_amg_set(&amgparam, &inparam);
+    if(amgparam.print_level > PRINT_MIN) param_amg_print(&amgparam);
+
+    printf("\n===========================================================================\n");
+    printf("Solving the linear system \n");
+    printf("===========================================================================\n");
+
+    // Use Krylov Iterative Solver
+    if ( (linear_itparam.linear_precond_type >= 10) && (linear_itparam.linear_precond_type < 15) ){
+        solver_flag = linear_solver_bdcsr_krylov_metric_amg_minimal(&A_new, b, x, &linear_itparam, &amgparam);
+    }
+    // No preconditioner
+    else{
+        solver_flag = linear_solver_bdcsr_krylov(&A_new, b, x, &linear_itparam);
+    }
+
+    return solver_flag;
+}
+

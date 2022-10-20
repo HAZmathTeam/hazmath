@@ -2118,6 +2118,46 @@ void dcsr_getdiag(INT n,
 
 }
 
+
+/***********************************************************************************************/
+/*!
+   * \fn void dcsr_diag_extremal (INT n, dCSRmat *A, REAL *amax, REAL *amin)
+   *
+   * \brief Get maximal and minimal value (in abs) of the first n diagonal entries of a dCSRmat sparse matrix A
+   *
+   * \param n     Number of diagonal entries to check (if n = 0, then check all diagonal entries)
+   * \param A     Pointer to dCSRmat CSR matrix
+   * \param amin  Pointer to REAL, for minimal value of diag(A)
+   * \param amax  Pointer to REAL, for maximal value of diag(A)
+   *
+   * \note Added by A Budisa 2022-10-20
+   */
+void dcsr_diag_extremal(INT n,
+                        dCSRmat *A,
+                        REAL *amin,
+                        REAL *amax)
+{
+    INT i, j, k, ibegin, iend;
+    REAL aii;
+    *amax = 0.0; *amin = 0.0;
+
+    if ( n == 0 || n > A->row || n > A->col ) n = MIN(A->row, A->col);
+
+    for (i = 0; i < n; ++i) {
+        ibegin = A->IA[i]; iend = A->IA[i+1];
+        for (k = ibegin; k < iend; ++k) {
+            j = A->JA[k];
+            if ((j - i) == 0) {
+                aii = ABS(A->val[k]);
+                if(aii > *amax) *amax = aii;
+                if(aii < *amin) *amin = aii;
+                break;
+            } // end if
+        }  // end for k
+    } // end for i
+
+}
+
 /***********************************************************************************************/
 /*!
    * \fn void dcsr_getdiag_pow (INT n, REAL p, dCSRmat *A, dvector *diag)

@@ -356,3 +356,4 @@ INT wrapper_krylov_amg(dCSRmat *mat, dvector *rhs, dvector *sol);
 INT fenics_metric_amg_solver(block_dCSRmat *A, dvector *b, dvector *x, block_dCSRmat *AD, block_dCSRmat *M, dCSRmat *interface_dof);
 void print_bdcsr_matrix(block_dCSRmat *A);
 INT wrapper_krylov_amg_schwarz(dCSRmat *mat, dvector *rhs, dvector *sol);
+INT fenics_metric_amg_solver_minimal(INT n0, INT n1, dCSRmat *A, dvector *b, dvector *x);

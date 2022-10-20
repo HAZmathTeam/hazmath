@@ -799,6 +799,7 @@ void dcoo_read_dcsr (const char *filename,
     }
   }
 
+  fprintf(stdout,"%%%%%s: HAZMATH reading file %s is DONE. \n", __FUNCTION__, filename); fflush(stdout);
   fclose(fp);
 
   dcoo_2_dcsr(&Atmp,A);
