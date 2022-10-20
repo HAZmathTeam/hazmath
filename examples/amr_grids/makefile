@@ -5,8 +5,7 @@
 # SRC File name
 SRCFILE = amr_grids
 
-#HEADERS = supporting_$(SRCFILE).h features.h
-HEADERS = supporting_amr_grids.h features.h
+HEADERS = supporting_$(SRCFILE).h
 
 INCLUDE =
 
