@@ -187,6 +187,7 @@ add_custom_target(headers ./headmk.sh "${HAZMATH_SOURCE_DIR}"
   COMMENT 
   "HAZMATH: Autogenerating header file with C functions..."
   VERBATIM)
+
 ##################################################################
 # For BLAS: 
 ##################################################################
@@ -217,7 +218,7 @@ if (USE_LAPACK)
     if (SHARED)
       set(CMAKE_SHARED_LINKER_FLAGS ${LAPACK_LIBRARIES})
     endif(SHARED)
-##    message("   LAPACK was found!")
+    #message("   LAPACK was found!" ${LAPACK_LIBRARIES})
   else(LAPACK_FOUND)
     message(WARNING  " LAPACK was requested but not supported!")
   endif(LAPACK_FOUND)
@@ -389,7 +390,32 @@ endif(NOT (CMAKE_CXX_COMPILER_ID STREQUAL CMAKE_C_COMPILER_ID))
 # depends also on the source, header and inl files 
 add_library(hazmath ${HAZMATH_LIBRARY_TYPE} ${HAZMATH_C_SOURCES} ${HAZMATH_INL_SOURCES} ${HAZMATH_F_SOURCES}  ${HAZMATH_HEADERS}) 
 
-# install libhazmath 
+# Add links to libraries for external modules (needed for shared libraries on MAC)
+set(XLIBS_TO_LINK "")
+# blas 
+if (BLAS_FOUND)
+  LIST(APPEND XLIBS_TO_LINK "blas")
+endif(BLAS_FOUND)
+# lapack
+if (LAPACK_FOUND)
+  LIST(APPEND XLIBS_TO_LINK "lapack")
+endif(LAPACK_FOUND)
+# suitesparse
+if (SUITESPARSE_FOUND)
+  LIST(APPEND XLIBS_TO_LINK ${SUITESPARSE_LIBRARIES})
+endif(SUITESPARSE_FOUND)
+# hdf5
+if (HDF5_FOUND)
+  LIST(APPEND XLIBS_TO_LINK ${HDF5_LIBRARIES})
+endif(HDF5_FOUND)
+# matlab
+if (MATLAB_FOUND)
+  LIST(APPEND XLIBS_TO_LINK "matlab")
+endif(MATLAB_FOUND)
+message(STATUS " ADDITIONAL_LIBSTO_LINK=${XLIBS_TO_LINK}" )
+target_link_libraries(hazmath "${XLIBS_TO_LINK}") 
+
+# install libhazmath
 install(TARGETS hazmath
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib
@@ -436,6 +462,7 @@ if (USE_HAZNICS)
      if (HDF5_FOUND)
       LIST(APPEND LIBS_TO_LINK ${HDF5_LIBRARY_NAME})
     endif(HDF5_FOUND)
+    LIST(APPEND LIBS_TO_LINK ${Python_LIBRARIES})
     message(STATUS " ADDITIONAL_LIBSTO_LINK=${LIBS_TO_LINK}" )
     target_link_libraries(haznics "${LIBS_TO_LINK}")
 #MAKE_SWIG_FLAGS can be used to add special flags to all swig calls.

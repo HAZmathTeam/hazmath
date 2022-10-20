@@ -2,22 +2,24 @@
 % input parameters: for grid generation        %
 %----------------------------------------------%
 %
-title{Grid on the cube (-1,1)x(-1,1)x(-1,1)}
+title{Grid on the cube (0,1)x(0,1)x(0,1)}
 %
 dimension{3}   % spatial dimension in which the grid has to be generated
 print_level{0}	% how much information to print out: 0 little | >0 more
 %---------------%
 
-num_refinements{0}
+num_refinements{10}
 
 refinement_type{-2}
+
+amr_marking_type{44}
 
 err_stop_refinement{        -1.e-10        }
 %%% files:  should be writeable by the user
 %%% vtu files for plotting follow the same convention.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-file_grid{output/3d_cube.haz}
-file_vtu{output/3d_cube.vtu}
+file_grid{output/3d_c.haz}
+file_vtu{output/3d_c.vtu}
 
 %%%num_edges{12}
 %%% it is enough to specify 3 divisions only for the 3
@@ -25,9 +27,9 @@ file_vtu{output/3d_cube.vtu}
 
 num_edges{3}
 
-data_edges{0 1 5 %% edge: 1st vertex, 2nd vertex, number of divisions.
-  	   0 2 5
-	   0 4 5
+data_edges{0 1 1 %% edge: 1st vertex, 2nd vertex, number of divisions.
+  	   0 2 1
+	   0 4 1
 	   }
 %%% ====================VERTICES=========================
 num_vertices{8} %number of vertices
@@ -43,13 +45,13 @@ num_vertices{8} %number of vertices
 %%% line connecting the two vertices.
 %---------------%
 %%% vertex number (label) coord_system, coords
-data_vertices{0 0 -1.  -1.   -1. 
-	      1 0 -1.  -1     1. 
-	      2 0 -1.   1.    -1. 
-	      3 0 -1.   1.   1.   
-	      4 0  1.  -1.   -1.  
-	      5 0  1.  -1.   1.	 
-	      6 0  1.   1.   -1. 
+data_vertices{0 0  0.   0.    0. 
+	      1 0  0.   0     1. 
+	      2 0  0.   1.    0. 
+	      3 0  0.   1.    1.   
+	      4 0  1.   0.    0.  
+	      5 0  1.   0.    1.	 
+	      6 0  1.   1.    0. 
 	      7 0  1.   1.    1. }
 %%%%%
 
@@ -71,12 +73,12 @@ data_macroelements{0 1 2 3 4 5 6 7  10  }
 % here have a code 0. Faces given here and not found in the
 % macroelement list are ignored.
 % If no faces are given then every boundary point gets a code of 1 (Dirichlet); 
- data_macrofaces{0 1 2 3 1
-  		0 4 1 5 3
- 		4 7 5 6 2
- 		2 6 3 7 4
- 		0 4 2 6 12
- 		1 5 7 3 17
+ data_macrofaces{0 1 2 3 17
+  		0 4 1 5 18
+ 		4 7 5 6 19
+ 		2 6 3 7 20
+ 		0 4 2 6 21
+ 		1 5 7 3 22
  		   }
 
 num_coordsystems{1}
@@ -88,5 +90,7 @@ data_coordsystems{0 0. 0.  0. 0}
 %%%  marking strategy as in the examples given in the file
 %%%  solve_estimate_mark.h
 
-amr_marking_type{0}
-
+num_refine_points{1} %number of points near which the mesh will be refined
+%%% coords, type, origin for polar system: angles are in degrees
+data_refine_points{0 0   0.5 0.125   0.375
+			    }
