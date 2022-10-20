@@ -1183,4 +1183,57 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
   /* fprintf(stdout,"\n"); */
   return;
 }
+/********************************************************************************/
+/*!
+ * \fn void mapit(scomplex *sc,const REAL *vc)
+ *
+ * \brief Constructs a simplicial mesh in a polyhedral domain O in
+ *        dim-dimensions (dim=sc->n). The domain is assumed to be
+ *        isomorphic to the cube in dim-dimensions. Examples: it is a
+ *        quadrilateral when d=2 and hexagonal when d=3. To avoid
+ *        ambiguity, we order the vertices vc[] of O lexicographicaly
+ *        to get vcp[] so that the j-th vertex in the ordered array,
+ *        with coordinates vcp[j*dim--(j+1)*dim-1] is mapped to the
+ *        vertex of the unit cube whose coordinates are the digits in
+ *        the binary representation of j. Here j=[0,...,2^(dim)-1].
+ *
+ * \param sc    I: simplicial complex defining the FE grid.
+ *
+ * \param vc[] I:    A REAL array with coordinates of the vertices of the
+ *                   domain. The vertex k is with coordinates
+ *                   vc[k*dim--(k+1)*dim-1]. These could be given in
+ *                   any order.
+ *
+ * \note Ludmil (20210807)
+ */
+/********************************************************************************/
+void mapit(scomplex *sc,REAL *vc)
+{
+  if(!vc) return;
+  /* maps a mesh on the unit cube in d-dimensions to a domain with vertices vc[] */
+  INT dim=sc->n;
+  INT i,j,kf,dim1=dim+1;
+  cube2simp *c2s=cube2simplex(dim);
+  REAL *vcp_xhat = (REAL *)calloc(dim*(c2s->nvcube+1),sizeof(REAL));
+  REAL *vcp = vcp_xhat;
+  REAL *xhat = vcp + c2s->nvcube*dim;
+  // work with a copy:
+  memcpy(vcp,vc,(dim*c2s->nvcube)*sizeof(REAL));
+  INT *p = (INT *)calloc(c2s->nvcube,sizeof(INT));
+  /*order vcp lexicographically because it will be mapped to the unit
+    cube which has lexicographically ordered vertices.*/
+  dlexsort(c2s->nvcube,dim,vcp,p);
+  /* the permutation of vertices is not needed, so we free it */
+  free(p);
+  /* transpose vcp to get one vertex per column as we first transform x,
+     then y then z and so on */
+  r2c(c2s->nvcube,dim,sizeof(REAL),vcp);
+  for(kf=0;kf<sc->nv;kf++){
+    for(i=0;i<dim;i++) xhat[i]=sc->x[kf*dim+i];
+    for(i=0;i<dim;i++) sc->x[kf*dim+i]=interp4(c2s,vcp+i*c2s->nvcube,xhat);
+  }
+  cube2simp_free(c2s);
+  free(vcp_xhat);
+  return;
+}
 /*EOF*/

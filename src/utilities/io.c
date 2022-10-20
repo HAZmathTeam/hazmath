@@ -7,7 +7,7 @@
  *
  * \note: modified by Xiaozhe Hu on 10/31/2016
  * \note: modified 20171119 (ltz) added output using scomplex
- * \note: modifided by jha on 02/22/2019 for 0-1 fix.  need somone to check last three functions by ltz
+ * \note: modifided by jha on 02/22/2019 for 0-1 fix.
  */
 
 #include "hazmath.h"
@@ -400,7 +400,49 @@ void bdcsr_print_matlab(FILE* fid,
 
   return;
 }
-
+void scomplex_print_matlab(const char *fname,scomplex *sc)
+{
+  INT ns_max=100000;
+  FILE *fp=fopen(fname,"w");
+  if(sc->ns>ns_max){
+    fprintf(fp,"\n%%%% Too large:elements=%lld>%lld\n",(long long )sc->ns,(long long )ns_max);
+    fclose(fp);
+    return;
+  }
+  INT i, j,n1=sc->n+1,dim=sc->n,nv=sc->nv,ns=sc->ns;
+  fprintf(fp,"\nt=[");
+  for(j=0;j<n1;j++){
+    for(i=0;i<ns-1;++i){
+      fprintf(fp,"%lld,",(long long )sc->nodes[i*n1+j]);
+    }
+    fprintf(fp,"%lld;\n",(long long )sc->nodes[(ns-1)*n1+j]);
+  }
+  fprintf(fp,"];t=t';\n");
+  fprintf(fp,"\nnbr=[");
+  for(j=0;j<n1;j++){
+    for(i=0;i<ns-1;i++){
+      fprintf(fp,"%lld,",(long long )sc->nbr[i*n1+j]);
+    }
+    fprintf(fp,"%lld;\n",(long long )sc->nbr[(ns-1)*n1+j]);
+  }
+  fprintf(fp,"];nbr=nbr';\n");
+  //
+  fprintf(fp,"\nxp=[");
+  for(j=0;j<dim;j++){
+    for(i=0;i<nv-1;i++){
+      fprintf(fp,"%.16e,",sc->x[i*dim+j]);
+    }
+    fprintf(fp,"%.16e;\n",sc->x[(nv-1)*dim+j]);
+  }
+  fprintf(fp,"];xp=xp';\n");
+  fprintf(fp,"\nib=[");
+  for(i=0;i<nv-1;i++){
+    fprintf(fp,"%lld,",(long long )sc->bndry[i]);
+  }
+  fprintf(fp,"%lld];ib=ib';\n",(long long )sc->bndry[nv-1]);
+  fclose(fp);
+  return;
+}
 /***********************************************************************************************/
 /*!
  * \fn void csr_print_native(FILE* fid,dCSRmat *A)
@@ -2084,5 +2126,143 @@ dvector *dvector_read_p(FILE *fp)
   }
   return b;
 }
-
+/********************************************************************/
+/********************************************************************************/
+/*!
+ * \fn INT features_r(features *feat,scomplex *sc, const INT do_map)
+ *
+ * \brief Reads file with features (coordinates of points to refine
+ *        around them). Allocates memory for the components of struct
+ *        features (amr.h).
+ *
+ * \param sc    simplicial complex defining the FE grid.
+ *
+ * \param feat  feature structure:
+ *
+ * \param do_map if not zero, then the simplicial complex coordinates
+ *               are mapped so that they are in the cube defined by
+ *               the min and max coords of the data in "feat".
+ *
+ * \note Ludmil (20221020)
+ */
+/********************************************************************************/
+INT features_r(features *feat,scomplex *sc, const INT do_map)
+{
+  /*
+     dimbig is the spatial dimension; dim can be either dimbig or
+     something smaller as which will indicate the features are on a plane for which all coords x[dim:dimbig-1]=vfill
+     Upon return feat->x[] here is dimbig by f->n array
+  */
+  INT dim=feat->n, dimbig=feat->nbig;
+  /***************************************************/
+  INT ichk,k=0,count=0,i,j,m,jstar;
+  /* INT *scnjn=NULL; */
+  /* REAL *xstar0=NULL; */
+  REAL xtmp;
+  char ch;
+  if(!feat->fpf) {
+    feat->nf=0;
+    feat->x=NULL;
+    fprintf(stderr,"****ERROR:Could not open file for reading in %s; no features read",__FUNCTION__);
+    return 3;
+  }
+  /*
+     Read csv file. When exported from excel often a file has 3-4 control
+     chars at the beginning we need to skip these.
+  */
+  /*read special chars if any*/
+  ch=fgetc(feat->fpf); while((INT )ch < 0){ch=fgetc(feat->fpf);count++;}
+  if(count){
+    fprintf(stdout,"%%Read: %lld control chars...", (long long int)count);
+    fseek(feat->fpf,count*sizeof(char),SEEK_SET);
+  } else rewind(feat->fpf);
+  k=0;
+  while(1){
+    //    if(feof(feat->fpf) || k>40000) break;
+    if(feof(feat->fpf)) break;
+    for (j=0;j<dim;j++){
+      ichk=fscanf(feat->fpf,"%lg", &xtmp);
+      if(ichk<0) break;
+      k++;
+    }
+  }
+  k=k/dim;
+  /* read now k numbers from the file */
+  if(count){
+    fseek(feat->fpf,count*sizeof(char),SEEK_SET);
+  } else {
+    rewind(feat->fpf);
+  }
+  feat->nf=k;
+  /* we allocate always the max of dim or dimbig */
+  if(dimbig>dim) {
+    feat->x=(REAL *)calloc(dimbig*(feat->nf),sizeof(REAL));
+    //    fprintf(stdout,"\ndimbig=%lld, dim=%lld",(long long int)dimbig,(long long int )dim);fflush(stdout);
+  }else{
+    feat->x=(REAL *)calloc(dim*(feat->nf),sizeof(REAL));
+  }
+  for (i=0;i<k;i++){
+    for(j=0;j<dim;j++){
+      count = fscanf(feat->fpf,"%lg", (feat->x+dim*i+j));
+    }
+  }
+  fprintf(stdout,"Read %lld coords\n",(long long int)k);
+  fclose(feat->fpf);
+  // if dimbig>dim we fill the remaining coordinates with feat->fill.
+  if(dimbig > dim) {
+    k=feat->nf-1;
+    for(i=k;i>0;i--){
+      for(m=dim-1;m>=0;m--){
+	feat->x[dimbig*i+m]=feat->x[dim*i+m];
+	//	fprintf(stdout,"(%lld,%lld): %lld  %lld\n",(long long int)i,(long long int)m,(long long int)(dimbig*i+m),(long long int)(dim*i+m));  fflush(stdout);
+      }
+      for(m=dim;m<dimbig;m++){
+	feat->x[dimbig*i+m]=feat->fill;
+      }
+    }
+  }
+  if(do_map){
+    cube2simp *c2s=cube2simplex(dim);//now we have the vertices of the unit cube in bits
+    REAL *vc=calloc(dim*c2s->nvcube,sizeof(REAL));
+    REAL *xmin=vc;// maps to [0...0]
+    REAL *xmax=vc+dim*(c2s->nvcube-1); // last vertex
+    INT kdimi;
+    for(i=0;i<dim;i++){
+      xmax[i]=feat->x[i];
+      xmin[i]=xmax[i];
+      kdimi=dim+i;
+      for (k=1;k<feat->nf;k++){
+	if(feat->x[kdimi] > xmax[i]){
+	  xmax[i]=feat->x[kdimi];
+	}
+	if(feat->x[kdimi] < xmin[i]){
+	  xmin[i]=feat->x[kdimi];
+	}
+	kdimi+=dim;
+      }
+    }
+    // compute the diagonal length
+    REAL diag0=0e0;
+    for(i=0;i<dim;i++){
+      diag0+=(xmax[i]-xmin[i])*(xmax[i]-xmin[i]);
+    }
+    /* print_full_mat(1,dim,xmin,"xmin"); */
+    /* print_full_mat(1,dim,xmax,"xmax"); */
+    diag0=pow(0.5,((REAL )feat->n))*(sqrt(diag0)/pow((REAL )feat->nf,1./((REAL )feat->n)));
+    //  fprintf(stdout,"\nNew:::diag-length=%.16e\n",diag0);
+    for(i=0;i<dim;i++){
+      xmax[i]+=diag0;
+      xmin[i]-=diag0;
+    }
+    for(j=1;j<c2s->nvcube-1;j++){
+      for(i=0;i<dim;i++){
+	vc[j*dim+i]=xmin[i]+(xmax[i]-xmin[i])*(c2s->bits[dim*j+i]);
+      }
+    }
+    mapit(sc,vc);
+    free(vc);
+  }
+  return 0;
+}
+/*********************************************************************/
 /*EOF*/

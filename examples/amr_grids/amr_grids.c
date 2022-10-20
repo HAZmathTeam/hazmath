@@ -26,31 +26,70 @@ INT main(INT   argc,   char *argv[])
   // fp=HAZ_fopen("inputs/3d_2cubes_edge.input","r");
   // fp=HAZ_fopen("inputs/3d_2cubes_vertex.input","r");
   //  fp=HAZ_fopen("inputs/5d_cube.input","r");
+  // fp=HAZ_fopen("input/3d_c","r");
   /*
     PARSE THE INPUT.
   */
   input_grid *g=parse_input_grid(fp);
-  //  input_grid_print(g);
   fclose(fp);
-  /*
-    GENERATE INITIAL GRID AND DECLARE VARIABLES.
-  */
   scomplex **sc_all=generate_initial_grid(g);
-  //NNNNNNNNNNNNNNNN
-  INT ref_levels=g->nref, amr_marking_type=g->mark_type,j;
+  fprintf(stdout,"\nInitial mesh:\nElements = %12lld;\nVertices=%12lld\n",(long long )sc_all[0]->ns,(long long )sc_all[0]->nv); fflush(stdout);
   scomplex *sc=sc_all[0];
-  //NNNNNNNNNNNNNNNNNNNNNNNNNNNN
+  INT ref_levels=g->nref,amr_marking_type=g->mark_type,j,k,kmarked;
   scomplex *sctop=NULL;
   dvector solfem,estimator;
   ivector marked;
   void *all=NULL;
   REAL *xstar=NULL;
   INT nstar,dim=sc->n;
+  features feat;
+  feat.n=0;feat.nbig=0;feat.x=NULL;feat.fill=-1e20;feat.fpf=NULL;
+  iCSRmat node_ins;
+  //NNNNNNNNNNNNNNNNNNNNNNNNNNNN
+  fprintf(stdout,"\n****AMR_MARKING_TYPE=%d\n",amr_marking_type);
+  if(amr_marking_type==44){
+    char *data_file=strdup("./try_features.txt");
+    feat.fpf=fopen(data_file,"r");
+    feat.nbig=sc->n;
+    feat.n=sc->n;
+    feat.fill=-1e20;
+    node_ins=icsr_create(0,0,0);
+    // last argument below is whether to map the simplicial complex to
+    // a cube enclosing the data.
+    j=features_r(&feat,sc,(INT )1);
+    free(data_file);
+  }
+  //NNNNNNNNNNNNNNNN
   if(amr_marking_type==0){
     // refine ref_levels;
     refine(ref_levels,sc,NULL);
-  } else if(amr_marking_type==33){
-
+  } else if (amr_marking_type==44){
+    nstar = feat.nf;
+    xstar = feat.x;
+    //
+    for(j=0;j<ref_levels;j++){
+      sctop=scfinest(sc);
+      /* MARK: marked is an ivector with num.rows=the number of
+       *       simplices; its componenets are nonzero if the simplex
+       *       is marked for refinement and 0 if it is not marked for
+       *       refinement.
+       */
+      marked=mark_around_pts(sctop,sc,nstar,xstar,&node_ins);
+      /* kmarked=0; */
+      /* for(k=0;k<marked.row;++k){ */
+      /* 	if(marked.val[k]) */
+      /* 	  kmarked++; */
+      /* } */
+      fprintf(stdout,"\n|lvl=%2lld|simplices[%2lld:%2lld]=%12lld|simplices[%2lld]=%12lld|",(long long int)j,0LL,(long long int)j,(long long int)sc->ns,(long long int)j,(long long int)sctop->ns);fflush(stdout);
+      refine(1,sc,&marked);
+      /* free */
+      ivec_free(&marked);
+      haz_scomplex_free(sctop);
+    }
+    fprintf(stdout,"\n");
+    ivec_free(&marked);
+    free(feat.x);
+  } else if(amr_marking_type==33){    
     REAL h = 0.05;  // step distance of points
     REAL threshold = h; // threshold for close to the points or not
     //
@@ -68,6 +107,7 @@ INT main(INT   argc,   char *argv[])
        *       refinement.
        */
       marked=mark_near_points(sctop,nstar,xstar, threshold);
+      fprintf(stdout,"\n|lvl=%2lld|simplices[%2lld:%2lld]=%12lld|simplices[%2lld]=%12lld|",(long long int)j,0LL,(long long int)j,(long long int)sc->ns,(long long int)j,(long long int)sctop->ns);fflush(stdout);
       refine(1,sc,&marked);
       /* free */
       ivec_free(&marked);
