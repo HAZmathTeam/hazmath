@@ -89,6 +89,7 @@ INT main(INT   argc,   char *argv[])
     fprintf(stdout,"\n");
     ivec_free(&marked);
     free(feat.x);
+    icsr_free(&node_ins);
   } else if(amr_marking_type==33){    
     REAL h = 0.05;  // step distance of points
     REAL threshold = h; // threshold for close to the points or not

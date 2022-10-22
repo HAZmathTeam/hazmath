@@ -2262,7 +2262,8 @@ INT features_r(features *feat,scomplex *sc, const INT do_map)
     }
     mapit(sc,vc);
     free(vc);
-  }
+    cube2simp_free(c2s);
+  }  
   return 0;
 }
 /*********************************************************************/

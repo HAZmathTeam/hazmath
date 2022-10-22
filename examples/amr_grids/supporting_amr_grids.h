@@ -182,8 +182,8 @@ ivector mark_near_points(scomplex *sc, INT nstar, REAL *xstar, REAL threshold)
 static ivector mark_around_pts(scomplex *sc, scomplex *scglobal, INT nstar, REAL *xstar, iCSRmat *node_ins)
 {
   /* scglobal is the global sc that contains all refinements */
-  iCSRmat tmpw;
-  dCSRmat xtmpw,xnode_ins;
+  iCSRmat ins_node;
+  dCSRmat xins_node,xnode_ins;
   INT *ii,*jj;
   INT dim=scglobal->n,dim1=dim+1,n=sc->n,n1=n+1,ns=sc->ns;
   INT nzw=-10,istar,jstar,jk,p,pj,cj0,cjn,j=-1,iwa,iwb,keep;
@@ -233,18 +233,18 @@ static ivector mark_around_pts(scomplex *sc, scomplex *scglobal, INT nstar, REAL
     //
   } else {
     //    haz_scomplex_print(scglobal,0,__FUNCTION__);
-    tmpw=icsr_create(node_ins->col,node_ins->row,node_ins->nnz);
-    xtmpw=dcsr_create(0,0,0);
-    xtmpw.row=tmpw.row; xtmpw.col=tmpw.col;  xtmpw.nnz=tmpw.nnz;
-    xtmpw.IA=tmpw.IA;  xtmpw.JA=tmpw.JA; xtmpw.val=NULL;
+    ins_node=icsr_create(node_ins->col,node_ins->row,node_ins->nnz);
+    xins_node=dcsr_create(0,0,0);
+    xins_node.row=ins_node.row; xins_node.col=ins_node.col;  xins_node.nnz=ins_node.nnz;
+    xins_node.IA=ins_node.IA;  xins_node.JA=ins_node.JA; xins_node.val=NULL;
     // input:
     xnode_ins=dcsr_create(0,0,0);
     xnode_ins.row=node_ins->row;  xnode_ins.col=node_ins->col;  xnode_ins.nnz=node_ins->nnz;
     xnode_ins.IA=node_ins->IA; xnode_ins.JA=node_ins->JA;  xnode_ins.val=NULL;
     // transpose
-    dcsr_transz(&xnode_ins,NULL,&xtmpw);
+    dcsr_transz(&xnode_ins,NULL,&xins_node);
     //    fprintf(stdout,"\nNS=%d",scglobal->ns);fflush(stdout);
-    //    icsr_write_icoo("tmpw.txt",&tmpw);
+    //    icsr_write_icoo("ins_node.txt",&ins_node);
     /* INT nzw=0; */
     INT pjiter;
     nzw=0;
@@ -255,9 +255,9 @@ static ivector mark_around_pts(scomplex *sc, scomplex *scglobal, INT nstar, REAL
 	pj=scglobal->parent[j];
 	p=pj;
 	if(pj<0) pj=j;
-	//	fprintf(stdout,"\nj=%d,p=%d;pj=%d,tmpw.row=%d",j,p,pj,tmpw.row);fflush(stdout);
+	//	fprintf(stdout,"\nj=%d,p=%d;pj=%d,ins_node.row=%d",j,p,pj,ins_node.row);fflush(stdout);
 	pjiter=0;
-	while(pj>=tmpw.row) {
+	while(pj>=ins_node.row) {
 	  pj=scglobal->parent[pj];
 	  pjiter++;
 	  if(pjiter>scglobal->level){
@@ -269,15 +269,15 @@ static ivector mark_around_pts(scomplex *sc, scomplex *scglobal, INT nstar, REAL
 	/* if(pjiter>0){ */
 	/*   fprintf(stdout,"\nNew:pj[%d]==%d,pjiter=%d",j,pj,pjiter);fflush(stdout); */
 	/* } */
-	iwa=tmpw.IA[pj];
-	iwb=tmpw.IA[pj+1];
+	iwa=ins_node.IA[pj];
+	iwb=ins_node.IA[pj+1];
 	if((iwb-iwa)<=0) {
 	  //empty simplex do nothing
 	  continue;
 	}
 	scnjn = scglobal->nodes+j*n1;
 	for(jk=iwa;jk<iwb;jk++){
-	  jstar=tmpw.JA[jk];
+	  jstar=ins_node.JA[jk];
 	  xstar0=xstar+jstar*n;
 	  // check if the point is inside the simplex.
 	  if(!xins(n,scnjn,scglobal->x,xstar0)){
@@ -288,22 +288,22 @@ static ivector mark_around_pts(scomplex *sc, scomplex *scglobal, INT nstar, REAL
       }
     }
     // reallocate as some nodes may belong to more than 1 simplex... otherwise this can be simplified.
-    if(nzw>tmpw.nnz){
-      tmpw.val=realloc(tmpw.val,nzw*sizeof(INT));
-      tmpw.JA=realloc(tmpw.JA,nzw*sizeof(INT));
+    if(nzw>ins_node.nnz){
+      ins_node.val=realloc(ins_node.val,nzw*sizeof(INT));
+      ins_node.JA=realloc(ins_node.JA,nzw*sizeof(INT));
     }
-    tmpw.nnz=nzw;
+    ins_node.nnz=nzw;
     if(nzw>node_ins->nnz){
       node_ins->JA=realloc(node_ins->JA,nzw*sizeof(INT));
     }
     node_ins->nnz=nzw;
-    for(j=0;j<tmpw.nnz;++j){
-      tmpw.val[j]=-1;
+    for(j=0;j<ins_node.nnz;++j){
+      ins_node.val[j]=-1;
       node_ins->JA[j]=-1;
     }
     // now run again to get the JA in val.
     jj=node_ins->JA;
-    ii=tmpw.val;
+    ii=ins_node.val;
     nzw=0;
     for(j=0;j<scglobal->ns;j++){
       /* // check if we have marked and do nothing if we are marked: */
@@ -313,7 +313,7 @@ static ivector mark_around_pts(scomplex *sc, scomplex *scglobal, INT nstar, REAL
 	pj=scglobal->parent[j];
 	if(pj<0) pj=j;
 	pjiter=0;
-	while(pj>=tmpw.row) {
+	while(pj>=ins_node.row) {
 	  pj=scglobal->parent[pj];
 	  pjiter++;
 	  if(pjiter>scglobal->level){
@@ -322,20 +322,20 @@ static ivector mark_around_pts(scomplex *sc, scomplex *scglobal, INT nstar, REAL
 	    exit(16);
 	  }
 	}
-	iwa=tmpw.IA[pj];
-	iwb=tmpw.IA[pj+1];
+	iwa=ins_node.IA[pj];
+	iwb=ins_node.IA[pj+1];
 	if((iwb-iwa)<=0) {
 	  //empty simplex do nothing
 	  continue;
 	}
 	scnjn = scglobal->nodes+j*n1;
 	for(jk=iwa;jk<iwb;jk++){
-	  jstar=tmpw.JA[jk];
+	  jstar=ins_node.JA[jk];
 	  xstar0=xstar+jstar*n;
 	  // check if the point is inside the simplex.
 	  if(!xins(n,scnjn,scglobal->x,xstar0)){
 	    // this is in, so we add it.
-	    ii[nzw]=j; // note: ii is alias for tmpw.val
+	    ii[nzw]=j; // note: ii is alias for ins_node.val
 	    jj[nzw]=jstar; // note: jj is alias for node_ins->JA (node_ins->val does not exist).
 	    nzw++;
 	  } 
@@ -344,41 +344,41 @@ static ivector mark_around_pts(scomplex *sc, scomplex *scglobal, INT nstar, REAL
     }// endfor over all simplices
     //now we need to convert and clean up (use dcoo_2_dcsr for our particular case with tmp->val used as jj.
     int i, iind, jind;
-    tmpw.row=scglobal->ns;
-    tmpw.col=nstar;
-    tmpw.nnz=nzw;
-    INT *ind = calloc((tmpw.row+1),sizeof(INT));
-    tmpw.IA = realloc(tmpw.IA,(tmpw.row+1)*sizeof(INT));
-    // inittmpw.IAlize
-    memset(ind, 0, sizeof(INT)*(tmpw.row+1));
+    ins_node.row=scglobal->ns;
+    ins_node.col=nstar;
+    ins_node.nnz=nzw;
+    INT *ind = calloc((ins_node.row+1),sizeof(INT));
+    ins_node.IA = realloc(ins_node.IA,(ins_node.row+1)*sizeof(INT));
+    // initins_node.IAlize
+    memset(ind, 0, sizeof(INT)*(ins_node.row+1));
     // count number of nonzeros in each row
     for (i=0; i<nzw; ++i) ind[ii[i]+1]++;
     // set row pointer
-    tmpw.IA[0] = 0;
-    for (i=1; i<=tmpw.row; ++i) {
-        tmpw.IA[i] = tmpw.IA[i-1]+ind[i];
-        ind[i] = tmpw.IA[i];
+    ins_node.IA[0] = 0;
+    for (i=1; i<=ins_node.row; ++i) {
+        ins_node.IA[i] = ins_node.IA[i-1]+ind[i];
+        ind[i] = ins_node.IA[i];
     }
 
     // set column index and values
     for (i=0; i<nzw; ++i) {
         iind = ii[i];
         jind = ind[iind];
-        tmpw.JA[jind] = jj[i];
+        ins_node.JA[jind] = jj[i];
         ind[iind] = ++jind;
     }
     free(ind);
     // now all should be ready we transpose and we are done:
-    tmpw.nnz=nzw;
-    xtmpw.row=tmpw.row;xtmpw.col=xtmpw.col;xtmpw.nnz=tmpw.nnz;
-    node_ins->col=tmpw.row;//transpose should also have this, 
-    node_ins->row=tmpw.col;
-    node_ins->nnz=tmpw.nnz;
+    ins_node.nnz=nzw;
+    xins_node.row=ins_node.row;xins_node.col=xins_node.col;xins_node.nnz=ins_node.nnz;
+    node_ins->col=ins_node.row;//transpose should also have this, 
+    node_ins->row=ins_node.col;
+    node_ins->nnz=ins_node.nnz;
     // here we need to assign the right pointers:
-    xtmpw.IA=tmpw.IA;xtmpw.JA=tmpw.JA;
+    xins_node.IA=ins_node.IA;xins_node.JA=ins_node.JA;
     xnode_ins.IA=node_ins->IA;xnode_ins.JA=node_ins->JA;
-    dcsr_transz(&xtmpw,NULL,&xnode_ins);
-    //    icsr_write_icoo("tmpw.txt",&tmpw);
+    dcsr_transz(&xins_node,NULL,&xnode_ins);
+    //    icsr_write_icoo("ins_node.txt",&ins_node);
     //    icsr_write_icoo("node_ins.txt",node_ins);
     for(j=0;j<sc->ns;j++){
       marked.val[j]=FALSE;
@@ -387,14 +387,14 @@ static ivector mark_around_pts(scomplex *sc, scomplex *scglobal, INT nstar, REAL
     for(j=0;j<scglobal->ns;j++){
       if(scglobal->child0[j]<0||scglobal->childn[j]<0){
 	nzw++;
-	if((tmpw.IA[j+1]-tmpw.IA[j])>1){
+	if((ins_node.IA[j+1]-ins_node.IA[j])>1){
 	  p=abs((scglobal->child0[j]+1));
 	  //	  fprintf(stdout,"\np=%d",p);fflush(stdout);
 	  marked.val[p]=TRUE;
 	}
       }
     }
-    icsr_free(&tmpw);
+    icsr_free(&ins_node);
   }
   /* if(scglobal->level > 256){ */
   /*   fprintf(stdout,"\nnode_ins(row)=%d,node_ins(col)=%d,node_ins(nnz)=%d\n",node_ins->row,node_ins->col,node_ins->nnz);fflush(stdout); */
