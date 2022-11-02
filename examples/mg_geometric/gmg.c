@@ -76,14 +76,18 @@ void main()
 
   /* timing? */
   clock_t beg ; double time0;
-
   levels = 9; 
   fprintf(stdout, "\nINPUT NOTE: Number of points in one direction is = 2^(levels)+1.\n");
   fprintf(stdout, "           *Enter the desired number of levels (2-%2i): ",MAX_LEVELS);
+  //
+  FILE *fp;
+  //  fp=stdin;
+  fp=fopen("sample.input","r");
+  //
 #if( __longint == 1 )
-  k=fscanf(stdin,"%ld", &levels);
+  k=fscanf(fp,"%ld", &levels);
 #else
-  k=fscanf(stdin,"%d", &levels);
+  k=fscanf(fp,"%d", &levels);
 #endif
   fprintf(stdout,"\n");
   if(levels > MAX_LEVELS) 
@@ -93,9 +97,9 @@ void main()
   /* Number of pre- and post- smoothing steps */
   fprintf(stdout, "           *Enter spatial dimension (2 or 3): ");
 #if( __longint == 1 )
-  k=fscanf(stdin,"%ld", &nspdim);
+  k=fscanf(fp,"%ld", &nspdim);
 #else
-  k=fscanf(stdin,"%d", &nspdim);
+  k=fscanf(fp,"%d", &nspdim);
 #endif
   fprintf(stdout,"\n");
   if(nspdim > 3) 
@@ -105,9 +109,9 @@ void main()
   /* */
   fprintf(stdout, "\n           *Enter number of smoothing steps: ");
 #if( __longint == 1 )
-  k=fscanf(stdin,"%ld", &nsweeps);
+  k=fscanf(fp,"%ld", &nsweeps);
 #else
-  k=fscanf(stdin,"%d", &nsweeps);
+  k=fscanf(fp,"%d", &nsweeps);
 #endif
   fprintf(stdout,"\n");
   if(nsweeps < 1) 
@@ -115,10 +119,11 @@ void main()
   /* */
   fprintf(stdout, "\n           *(V-cycles or FMG): [0 or 1]: ");
 #if( __longint == 1 )
-  k=fscanf(stdin,"%ld", &isfmg);
+  k=fscanf(fp,"%ld", &isfmg);
 #else
-  k=fscanf(stdin,"%d", &isfmg);
+  k=fscanf(fp,"%d", &isfmg);
 #endif
+  fclose(fp);
   fprintf(stdout,"\n");
   if(isfmg) { 
     isfmg=1;

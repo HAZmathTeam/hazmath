@@ -238,25 +238,18 @@ iCSRmat **lex_bfs(INT n,INT *ia, INT *ja,ivector *inv_ord,ivector *anc, const RE
   /*   iord[i]=iord[n-i-1]; */
   /*   iord[n-i-1]=swp; */
   /* } */
-  /**************************************set up level array*************************************/
+  /****************************set up level array**********************************/
   // backup the level array;
-  /* for(i=0;i<n;++i) */
-  /*   iord1[i]=level[i]; */
-  /* // put the level array back setting the level numbers correctly */
-  /* for(i=0;i<n;++i) */
-  /*   level[i]=iord1[blk[1]->JA[i]]; */
-  /* /\**************************************set up ancestor array*************************************\/ */
-  /* // backup the ancestor array */
-  /* for(i=0;i<n;++i) */
-  /*   iord1[i]=anc->val[i]; */
-  /* // put the level array back setting the level numbers correctly */
-  /* for(i=0;i<n;++i) */
-  /*   anc->val[i]=iord1[blk[1]->JA[i]]; */
-  /* // */
-  //finally, define the inverse permutation
-  //////////////////////////////////////////////////
-  /* for(i=0;i<n;i++) */
-  /*   iord1[iord[i]]=i; */
+  memcpy(iord1,level,n*sizeof(INT));
+  // put the level array back setting the level numbers correctly
+  for(i=0;i<n;++i) level[i]=iord1[blk[1]->JA[i]];
+  /**************************************set up ancestor array*************************************/
+  // backup the ancestor array
+  memcpy(iord1,anc->val,n*sizeof(INT));
+  // put the ancestor rray back
+  for(i=0;i<n;++i) anc->val[i]=iord1[blk[1]->JA[i]];
+  //  finally, define the inverse permutation  
+  for(i=0;i<n;i++) iord1[iord[i]]=i;
   return blk;
 }
 /*****************************************************************************************/
