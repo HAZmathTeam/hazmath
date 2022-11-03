@@ -3,10 +3,29 @@
 #include <string.h>
 #include <math.h>
 #include "hazmath.h"
-/*=====================================================================*/
-/**/
-static void do_permutation(ivector *perm,INT n, INT *ia, INT *ja, \
-			   const SHORT algorithm)
+/**************************************************************************/
+/**
+ * \fn void do_permutation(ivector *perm,INT n,INT *ia, INT *ja,
+ *                         const SHORT algorithm)
+ *
+ * \brief  gives a permutation using "algorithm"
+ *
+ * \param perm:      ivector which on output contains the permutation.
+ *
+ * \param ia,ja:     the structure of a icsr(dcsr) matrix a
+ *
+ * \param algorithm: currently ONLY a min degree algorithm in two
+ *                   seteps: 1. construct (n by ?)  sparse matrix
+ *                   D(i,degree)=1, where the degree gives the degree
+ *                   of the i-th node. 2. The CSR transpose of this
+ *                   automatically gives the ordering by degree:
+ *                   D^T(degree,:) degree=1,2,\ldots max_degree is in
+ *                   DT->JA * \author Ludmil Zikatanov (20220810)
+ *
+ */
+/**********************************************************************************/
+void do_permutation(ivector *perm,INT n, INT *ia, INT *ja,	\
+		    const SHORT algorithm)
 {
   INT j,iblk,istrt,iend,nb,nblk;
   //  INT nnz=ia[n];
