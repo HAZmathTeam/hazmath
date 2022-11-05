@@ -11,7 +11,12 @@
  */
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************/
 #include "hazmath.h"
-/*THIS SHOULD BE MOVED TO MACROS or elseware later (ltz)*/
+/* This macro definition below is amr_marking_type=44; and SHOULD BE
+   MOVED TO MACROS or elseware later (ltz)*/
+/*
+  If set to something less than 2 it will refine non-stop until ref_levels is reached if there is at least one simplex containing at least one point. It is the maximum allowed number of features (nodes) per element. Any element containing more than this number of features is refined. 
+
+*/
 #ifndef MAX_NODES_PER_SIMPLEX
 #define MAX_NODES_PER_SIMPLEX 1
 #endif
