@@ -1645,6 +1645,75 @@ void hazw(char *nameout,scomplex *sc, const INT shift)
   fclose(fmesh);
   return;
 }
+/*********************************************************************************************/
+void mshw(char *nameout,scomplex *sc, const INT shift0)
+{
+  // WRITING in .msh format.
+  INT shift=shift0;// this is fake because shift must be 1 below, nno zero node nnumbers:
+  shift=1;
+  INT n=sc->nv,ns=sc->ns, dim=sc->n,ndl=sc->n+1;
+  INT *je = sc->nodes, *material=sc->flags;//*ib=sc->bndry;
+  REAL *x = sc->x;
+  INT k=-10,j=-10,kndl=-10;
+  FILE *fmesh;
+  fmesh=HAZ_fopen(nameout,"w");
+  /*
+     MSH way of writing mesh file.
+     fmt=0 is ASCII -- only this is supported now. 
+  */
+  int fmt=0,num_el_tags=1;
+  size_t data_size=sizeof(double);
+  float ver=2.0;
+  int el_type;
+  switch(dim){
+  case 1:
+    el_type=1;//interval;
+    break;
+  case 2:
+    el_type=2;//triangle 3 is the quad
+    break;
+  default:
+    el_type=4;//tet
+    break;
+  }
+  // writing:
+  fprintf(fmesh,"%s\n","$MeshFormat"); 
+  fprintf(fmesh,"%.1f %d %ld\n",ver,fmt,data_size); 
+  fprintf(fmesh,"%s\n","$EndMeshFormat");
+  fprintf(fmesh,"%s\n","$Nodes");
+  fprintf(fmesh,"%lld\n",(long long )n);
+  for(k=0;k<n;k++){
+    fprintf(fmesh,"%lld",(long long )(k+shift));
+    for(j=0;j<dim;j++){
+      fprintf(fmesh," %23.16e",x[k*dim+j]);
+    }
+    fprintf(fmesh,"\n");
+  }
+  fprintf(fmesh,"%s\n","$EndNodes");
+  fprintf(fmesh,"%s\n","$Elements");
+  fprintf(fmesh,"%lld\n",(long long )ns);
+  for (k=0;k<ns;k++){
+    // element number, 1 tag=material property of the element;
+    fprintf(fmesh,"%lld %lld %lld %lld", (long long )(k+shift),\
+	    (long long )el_type,			   \
+	    (long long )num_el_tags,			   \
+	    (long long )material[k]);
+    for (j=0;j<ndl;j++) {
+      kndl=ndl*k+j;
+      /* shift if needed */
+      fprintf(fmesh," %lld",(long long )(je[kndl]+shift));
+    }
+    fprintf(fmesh,"\n");
+  }
+  fprintf(fmesh,"%s\n","$EndElements");
+  /* for(k=0;k<n;k++){ */
+  /*   fprintf(fmesh," %lld ", (long long )ib[k]); */
+  /* } */
+  fprintf(fmesh,"\n");
+  fprintf(stdout,"\n%%Output (MSH) written on:%s\n",nameout);
+  fclose(fmesh);
+  return;
+}
 /* WRITE mesh on VTU file*/
 void vtkw(char *namevtk, scomplex *sc, const INT shift, const REAL zscale)
 {

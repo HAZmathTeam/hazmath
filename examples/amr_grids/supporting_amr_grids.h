@@ -7,6 +7,9 @@
  *
  * \note mock code for solve-estimate-mark and refinement. 
  */
+/* #ifndef MAX_NODES_PER_SIMPLEX */
+/* #define MAX_NODES_PER_SIMPLEX 10 */
+/* #endif */
 /**********************************************************************/
 /*!
  * \fn INT isxnears(INT n, INT *splx_nodes, REAL *splx_coord, REAL *x, REAL threshold)
@@ -179,7 +182,7 @@ ivector mark_near_points(scomplex *sc, INT nstar, REAL *xstar, REAL threshold)
   return marked;
 }
 /**************************************************************************/
-static ivector mark_around_pts(scomplex *sc, scomplex *scglobal, INT nstar, REAL *xstar, iCSRmat *node_ins)
+static ivector mark_around_pts(scomplex *sc, scomplex *scglobal, INT nstar, REAL *xstar, iCSRmat *node_ins, const INT max_nodes)
 {
   /* scglobal is the global sc that contains all refinements */
   iCSRmat ins_node;
@@ -387,7 +390,7 @@ static ivector mark_around_pts(scomplex *sc, scomplex *scglobal, INT nstar, REAL
     for(j=0;j<scglobal->ns;j++){
       if(scglobal->child0[j]<0||scglobal->childn[j]<0){
 	nzw++;
-	if((ins_node.IA[j+1]-ins_node.IA[j])>1){
+	if((ins_node.IA[j+1]-ins_node.IA[j])>=max_nodes ){
 	  p=abs((scglobal->child0[j]+1));
 	  //	  fprintf(stdout,"\np=%d",p);fflush(stdout);
 	  marked.val[p]=TRUE;

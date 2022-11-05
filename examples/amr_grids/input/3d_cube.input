@@ -8,7 +8,7 @@ dimension{3}   % spatial dimension in which the grid has to be generated
 print_level{0}	% how much information to print out: 0 little | >0 more
 %---------------%
 
-num_refinements{10}
+num_refinements{20}
 
 refinement_type{-2}
 
@@ -18,7 +18,7 @@ err_stop_refinement{        -1.e-10        }
 %%% files:  should be writeable by the user
 %%% vtu files for plotting follow the same convention.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-file_grid{output/3d_c.haz}
+file_grid{output/3d_c.msh}
 file_vtu{output/3d_c.vtu}
 
 %%%num_edges{12}

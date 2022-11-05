@@ -11,6 +11,10 @@
  */
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************/
 #include "hazmath.h"
+/*THIS SHOULD BE MOVED TO MACROS or elseware later (ltz)*/
+#ifndef MAX_NODES_PER_SIMPLEX
+#define MAX_NODES_PER_SIMPLEX 1
+#endif
 /*********************************************************************/
 #include "supporting_amr_grids.h"
 /*********************************************************************/
@@ -26,7 +30,7 @@ INT main(INT   argc,   char *argv[])
   // fp=HAZ_fopen("inputs/3d_2cubes_edge.input","r");
   // fp=HAZ_fopen("inputs/3d_2cubes_vertex.input","r");
   //  fp=HAZ_fopen("inputs/5d_cube.input","r");
-  // fp=HAZ_fopen("input/3d_c","r");
+  fp=HAZ_fopen("input/3d_cube.input","r");
   /*
     PARSE THE INPUT.
   */
@@ -53,7 +57,6 @@ INT main(INT   argc,   char *argv[])
     feat.nbig=sc->n;
     feat.n=sc->n;
     feat.fill=-1e20;
-    node_ins=icsr_create(0,0,0);
     // last argument below is whether to map the simplicial complex to
     // a cube enclosing the data.
     j=features_r(&feat,sc,(INT )1);
@@ -64,9 +67,12 @@ INT main(INT   argc,   char *argv[])
     // refine ref_levels;
     refine(ref_levels,sc,NULL);
   } else if (amr_marking_type==44){
+    node_ins=icsr_create(0,0,0);
     nstar = feat.nf;
     xstar = feat.x;
     //
+    INT max_nodes=(INT )MAX_NODES_PER_SIMPLEX ;
+    if(max_nodes<=0) max_nodes=1;
     for(j=0;j<ref_levels;j++){
       sctop=scfinest(sc);
       /* MARK: marked is an ivector with num.rows=the number of
@@ -74,22 +80,25 @@ INT main(INT   argc,   char *argv[])
        *       is marked for refinement and 0 if it is not marked for
        *       refinement.
        */
-      marked=mark_around_pts(sctop,sc,nstar,xstar,&node_ins);
-      /* kmarked=0; */
-      /* for(k=0;k<marked.row;++k){ */
-      /* 	if(marked.val[k]) */
-      /* 	  kmarked++; */
-      /* } */
-      fprintf(stdout,"\n|lvl=%2lld|simplices[%2lld:%2lld]=%12lld|simplices[%2lld]=%12lld|",(long long int)j,0LL,(long long int)j,(long long int)sc->ns,(long long int)j,(long long int)sctop->ns);fflush(stdout);
+      marked=mark_around_pts(sctop,sc,nstar,xstar,&node_ins,(const INT)max_nodes);
+      kmarked=0;
+      for(k=0;k<marked.row;++k)
+	if(marked.val[k]) kmarked++;
+      fprintf(stdout,"\n|lvl=%2lld|simplices[%2lld:%2lld]=%12lld|simplices[%2lld]=%12lld|",(long long int)j,0LL,(long long int)j,(long long int)sc->ns,(long long int)j,(long long int)sctop->ns);fflush(stdout);      
       refine(1,sc,&marked);
-      /* free */
+      if(!kmarked){
+	fprintf(stdout,"\nthere were no simplices containing > %lld points. Exiting",(long long )MAX_NODES_PER_SIMPLEX);
+		ivec_free(&marked);
+		haz_scomplex_free(sctop);
+		break;
+      }
       ivec_free(&marked);
       haz_scomplex_free(sctop);
     }
     fprintf(stdout,"\n");
+    icsr_free(&node_ins);
     ivec_free(&marked);
     free(feat.x);
-    icsr_free(&node_ins);
   } else if(amr_marking_type==33){    
     REAL h = 0.05;  // step distance of points
     REAL threshold = h; // threshold for close to the points or not
@@ -162,7 +171,10 @@ INT main(INT   argc,   char *argv[])
   /*  MAKE sc to be the finest grid only */
   scfinalize(sc,(INT )1);
   /* WRITE THE OUTPUT MESH FILE:    */
-  hazw(g->fgrid,sc,0);
+  //  hazw(g->fgrid,sc,0); //last argument is the shift
+  if(dim < 4)
+    mshw(g->fgrid,sc,0); //  the choice of format should also be given
+			 //  as part of a structure.
   /* WRITE THE OUTPUT vtu file for paraview:    */
   if(dim <4) vtkw(g->fvtu,sc,0,1.);
   /*FREE: the input grid is freed here, because it has the filenames in it*/
