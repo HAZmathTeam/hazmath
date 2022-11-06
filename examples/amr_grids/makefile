@@ -3,9 +3,10 @@
 ####################################################
 
 # SRC File name
-SRCFILE = amr_grids
+SRCFILE = graph_in_3d
 
-HEADERS = supporting_$(SRCFILE).h
+#SRCFILE = amr_grids
+#HEADERS = supporting_amr_grids.h
 
 INCLUDE =
 

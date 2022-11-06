@@ -1002,8 +1002,9 @@ void dump_sol_onV_vtk(char *namevtk,
   // VTK needed Quantities
   INT tcell=-10;
   INT k=-10,j=-10,kndl=-10;
-  char *tfloat="Float64", *tinto="Int64", *endian="LittleEndian";
-
+  char *tfloat=strndup("Float64",8);
+  char *tinto=strndup("Int64",6);
+  char *endian=strndup("LittleEndian",13);
   /*
     What endian?:
 
@@ -1116,6 +1117,9 @@ void dump_sol_onV_vtk(char *namevtk,
   fprintf(fvtk,"</VTKFile>\n");
 
   fclose(fvtk);
+  free(tfloat);
+  free(tinto);
+  free(endian);
 
   return;
 }
@@ -1586,12 +1590,40 @@ scomplex *hazr(char *namein)
   fprintf(stdout,"\n%%INPUT mesh: (hazmath) read from:%s\n",namein);
   return sc;
 }
-
-/**********************************************************************
- * Routines to save to file the mesh in different formats.
- * uses the simplicial complex data structure (scomplex *sc).
+/********************************************************************************/
+/* 
+ * Routines to save to file the mesh in different formats. uses the
+ * simplicial complex data structure (scomplex *sc)
+*/
+/********************************************************************************/
+/*!
+ * \fn void hazw(char *nameout,scomplex *sc, const INT shift)
  *
- *************************************************************************/
+ * \brief Write a simplicial complex to a file in a "hazmath" format.
+ *
+ * \param nameout   File name 
+ * \param sc        Pointer to a simplicial complex
+ * \param shift     integer added to the elements of arrays such as sc->nodes. 
+ *
+ * \note The data is organized as follows: 
+ *
+ * 0. num_simplices,num_vertices,dimension,connected_components(bndry)-1;
+ *
+ * 1. As every simplex has (dim+1) vertices, the next
+ *    (dim+1)*num_simplices integers are: 1st vertex for each simplex
+ *    (num_simplices integers); 2nd vertex for every simplex, etc.
+ *
+ * 2. num_simplices integers are the flags (tags) associated with
+ *    every element: could be something characterizing the element.
+ *
+ * 3. (dim)*num_vertices REALs (coordinates of the vertices) e.g.:
+ *    num_vertices REALs with 1st coordinate, num_vertices REALs with
+ *    2nd coordinate,...
+ *
+ * 4. num_vertices integers with tages (boundary codes) for every vertex. 
+ *
+ */
+/********************************************************************************/
 void hazw(char *nameout,scomplex *sc, const INT shift)
 {
   // WRITING in HAZMATH format.
@@ -1645,8 +1677,22 @@ void hazw(char *nameout,scomplex *sc, const INT shift)
   fclose(fmesh);
   return;
 }
-/*********************************************************************************************/
-void mshw(char *nameout,scomplex *sc, const INT shift0)
+/********************************************************************************/
+/*!
+ * \fn void mshw(char *namemsh,scomplex *sc, const INT shift0)
+ *
+ * \brief Write a simplicial complex to a file in a ".msh" format. No
+ *        boundary information is written. The data is organized as
+ *        described at
+ *        https://www.manpagez.com/info/gmsh/gmsh-2.2.6/gmsh_63.php
+ *
+ * \param namemsh   File name 
+ * \param sc        Pointer to a simplicial complex
+ * \param shift0    integer added to the elements of arrays (here always=1).  
+ *
+ */
+/********************************************************************************/
+void mshw(char *namemsh,scomplex *sc, const INT shift0)
 {
   // WRITING in .msh format.
   INT shift=shift0;// this is fake because shift must be 1 below, nno zero node nnumbers:
@@ -1656,7 +1702,7 @@ void mshw(char *nameout,scomplex *sc, const INT shift0)
   REAL *x = sc->x;
   INT k=-10,j=-10,kndl=-10;
   FILE *fmesh;
-  fmesh=HAZ_fopen(nameout,"w");
+  fmesh=HAZ_fopen(namemsh,"w");
   /*
      MSH way of writing mesh file.
      fmt=0 is ASCII -- only this is supported now. 
@@ -1710,22 +1756,39 @@ void mshw(char *nameout,scomplex *sc, const INT shift0)
   /*   fprintf(fmesh," %lld ", (long long )ib[k]); */
   /* } */
   fprintf(fmesh,"\n");
-  fprintf(stdout,"\n%%Output (MSH) written on:%s\n",nameout);
+  fprintf(stdout,"\n%%Output (MSH) written on:%s\n",namemsh);
   fclose(fmesh);
   return;
 }
-/* WRITE mesh on VTU file*/
+/**********************************************************************************/
+/*!
+ * \fn void vtkw(char *namevtk, scomplex *sc, const INT shift, const REAL zscale)
+ *
+ * \brief Write a simplicial complex to a unstructured grid vtk
+ *        file. The vtk format is describd in the (c) Kitware vtk
+ *        manual found at:
+ *        https://vtk.org/wp-content/uploads/2021/08/VTKUsersGuide.pdf
+ *
+ * \param namevtk   File name 
+ * \param sc        Pointer to a simplicial complex
+ * \param shift    integer added to the elements of arrays (here always=1).  
+ * \param zscale   not used. 
+ *
+ */
+/**********************************************************************************/
 void vtkw(char *namevtk, scomplex *sc, const INT shift, const REAL zscale)
 {
-  if((sc->n!=2)&&(sc->n!=3))
-    fprintf(stderr,"\n*** ERR(%s; dim=%lld): NO vtk files for dim .eq. 1 or (dim .gt. 3).\n",__FUNCTION__,(long long )sc->n);
+  if((sc->n!=3)&&(sc->n!=2)&&(sc->n!=1))
+    fprintf(stderr,"\n*** ERR(%s; dim=%lld): No vtk files for dim .gt. 3.\n",__FUNCTION__,(long long )sc->n);
   FILE *fvtk;
-  INT nv=sc->nv,ns=sc->ns, n=sc->n,n1=n+1;
+  INT nv=sc->nv,ns=sc->ns, n=sc->n,n1=n+1,nbig=sc->nbig;
   INT *nodes = sc->nodes, *ib=sc->bndry;
   REAL *x = sc->x;
   INT tcell=-10;
   INT k=-10,j=-10;
-  char *tfloat="Float64", *tinto="Int64", *endian="LittleEndian";
+  char *tfloat=strndup("Float64",8);
+  char *tinto=strndup("Int64",6);
+  char *endian=strndup("LittleEndian",13);
   /*
     what endian?:
 
@@ -1763,7 +1826,7 @@ void vtkw(char *namevtk, scomplex *sc, const INT shift, const REAL zscale)
   const INT TRI=5;
   const INT TET=10;
   if(n==1)
-    tcell=LINE; /* triangle */
+    tcell=LINE; /* line */
   else if(n==2)
     tcell=TRI; /* triangle */
   else
@@ -1777,28 +1840,13 @@ void vtkw(char *namevtk, scomplex *sc, const INT shift, const REAL zscale)
   fprintf(fvtk,"<Points>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" NumberOfComponents=\"3\" Format=\"ascii\">",tfloat);
   for (j=0;j<nv;j++){
-    for (k=0;k<n;k++) {
-      fprintf(fvtk,"%.8f ",x[j*n+k]);
+    for (k=0;k<nbig;k++) {
+      fprintf(fvtk,"%.8f ",x[j*nbig+k]);
     }
-    for (k=0;k<(3-n);k++) {
+    for (k=0;k<(3-nbig);k++) {
       fprintf(fvtk,"%.8f ",0.);
     }
   }
-  /* if(n == 2){ */
-  /*   for (j=0;j<nv;j++){ */
-  /*     for (k=0;k<n;k++) { */
-  /* 	fprintf(fvtk,"%.8f ",x[j*n+k]); */
-  /*     } */
-  /*     fprintf(fvtk,"%.8f ",0.); */
-  /*   } */
-  /* }  else { */
-  /*   for (j=0;j<nv;j++){ */
-  /*     for (k=0;k<n-1;k++) { */
-  /* 	fprintf(fvtk,"%.8f ",x[j*n+k]); */
-  /*     } */
-  /*     fprintf(fvtk,"%.8f ",x[j*n+n-1]*zscale); */
-  /*   } */
-  /* } */
   fprintf(fvtk,"</DataArray>\n");
   fprintf(fvtk,"</Points>\n");
   fprintf(fvtk,"<CellData Scalars=\"scalars\">\n");
@@ -1868,8 +1916,12 @@ void vtkw(char *namevtk, scomplex *sc, const INT shift, const REAL zscale)
   fprintf(fvtk,"</VTKFile>\n");
   fprintf(stdout,"%%Output (vtk) written on:%s\n",namevtk);
   fclose(fvtk);
+  free(tfloat);
+  free(tinto);
+  free(endian);
   return;
 }
+/**/
 void matlw(scomplex *sc, char *namematl)
 {
   FILE *fp;
@@ -1910,7 +1962,7 @@ void matlw(scomplex *sc, char *namematl)
   fclose(fp);
   return;
 }
-
+/*****************************************************************************************/
 /*!
  * \fn void print_matlab_vector_field(dvector* ux, dvector* uy, dvector* uz, fespace* FE )
  *
@@ -2291,7 +2343,7 @@ INT features_r(features *feat,scomplex *sc, const INT do_map)
       }
     }
   }
-  if(do_map){
+  if(sc!=NULL && do_map){
     cube2simp *c2s=cube2simplex(dim);//now we have the vertices of the unit cube in bits
     REAL *vc=calloc(dim*c2s->nvcube,sizeof(REAL));
     REAL *xmin=vc;// maps to [0...0]
