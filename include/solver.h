@@ -903,6 +903,9 @@ typedef struct {
     //! temporary work space for other usage
     REAL *w;
 
+    //! temporary vector space for permutation that assembles the block format
+    ivector perm;
+
 } precond_data_bdcsr; /**< Data for preconditioners in block_dCSRmat format */
 
 

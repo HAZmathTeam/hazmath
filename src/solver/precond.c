@@ -6381,6 +6381,7 @@ void precond_bdcsr_metric_amg_additive(REAL *r,
  *
  * \note symmetric Schwarz on interface + AMG
  *
+ * \note edited 2022-11-11 by ana (add permutation)
  */
 void precond_bdcsr_metric_amg_symmetric(REAL *r,
                        REAL *z,
@@ -6401,6 +6402,11 @@ void precond_bdcsr_metric_amg_symmetric(REAL *r,
     // local variables
 	INT i;
     dvector rr, zz;
+
+    // permute residual (IN PLACE, USING THE BACKUP!)
+    if(&(predata->perm)){
+        for(i = 0; i < total_row; ++i) r[i] = tempr->val[predata->perm.val[i]];
+    }
 
     rr.row = predata->A->blocks[3]->row; rr.val = r+predata->A->blocks[0]->row;
     zz.row = predata->A->blocks[3]->col; zz.val = z+predata->A->blocks[0]->row;
@@ -6439,6 +6445,14 @@ void precond_bdcsr_metric_amg_symmetric(REAL *r,
 
     // update solution
     array_axpy(total_col, 1.0, mgl->x.val, z);
+
+    // permute back the solution (USING precond_data_bdcsr temp work variable)
+    if(&(predata->perm)) {
+        predata->w = (REAL*)calloc(total_row, sizeof(REAL*));
+        array_cp(total_row, z, predata->w);
+        for(i = 0; i < total_row; ++i) z[predata->perm.val[i]] = predata->w[i];
+        free(predata->w);
+    }
 
     // restore residual
     array_cp(total_row, tempr->val, r);

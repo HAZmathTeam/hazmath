@@ -797,4 +797,38 @@ void precond_data_free(precond_data *precdata)
     return;
 }
 
+
+/***********************************************************************************************/
+/*!
+ * \fn void precond_data_bdcsr_free(precond_data_bdcsr *precdata)
+ *
+ * \brief Free precond_data_bdcsr structure
+ *
+ * \param precdata      Pointer to the precond_data_bdcsr structure
+ *
+ */
+void precond_data_bdcsr_free(precond_data_bdcsr *precdata)
+{
+    if(precdata->amli_coef) free(precdata->amli_coef);
+
+    if(precdata->mgl_data) {
+        amg_data_bdcsr_free(precdata->mgl_data, NULL);
+        free(precdata->mgl_data);
+    }
+
+    if(precdata->schwarz_data) schwarz_data_free(precdata->schwarz_data);
+    if(precdata->LU_data){
+        if(precdata->LU_data[0]) hazmath_free_numeric(&precdata->LU_data[0]);
+    }
+    if(precdata->LU_data) free(precdata->LU_data);
+
+    if(precdata->A)  bdcsr_free(precdata->A);
+
+    if(&(precdata->r)) dvec_free(&(precdata->r));
+    if(precdata->w) free(precdata->w);
+    if(&(precdata->perm)) ivec_free(&(precdata->perm));
+
+    return;
+}
+
 /*************************************  END  ***************************************************/
