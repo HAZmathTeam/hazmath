@@ -1625,7 +1625,6 @@ INT fenics_metric_amg_solver_timo(INT n0,
 }
 */
 
-// todo: precond_data_bdcsr should save original indices of interior and interface dofs (so we can reorder residual in preconds)
 // todo: remove AD, M, interface_dofs matrices from amg_data_bdcsr because they are not used
 precond* create_precond_metric_amg(dCSRmat *A,
                                    ivector *interface_dofs,
@@ -1678,34 +1677,23 @@ precond* create_precond_metric_amg(dCSRmat *A,
     ivec_free(&interface_flag);
 
     // get new ordered block dCSRmat matrix
-    block_dCSRmat A_new;
-    bdcsr_alloc(brow, bcol, &A_new);
+    block_dCSRmat *A_new = (block_dCSRmat*)calloc(1, sizeof(block_dCSRmat));
+    bdcsr_alloc(brow, bcol, A_new);
 
-    dcsr_getblk(A, interior_idx.val,  interior_idx.val,  interior_idx.row,  interior_idx.row,  A_new.blocks[0]);
-    dcsr_getblk(A, interior_idx.val,  interface_dofs->val, interior_idx.row,  interface_dofs->row, A_new.blocks[1]);
-    dcsr_getblk(A, interface_dofs->val, interior_idx.val,  interface_dofs->row, interior_idx.row,  A_new.blocks[2]);
-    dcsr_getblk(A, interface_dofs->val, interface_dofs->val, interface_dofs->row, interface_dofs->row, A_new.blocks[3]);
+    dcsr_getblk(A, interior_idx.val,  interior_idx.val,  interior_idx.row,  interior_idx.row,  A_new->blocks[0]);
+    dcsr_getblk(A, interior_idx.val,  interface_dofs->val, interior_idx.row,  interface_dofs->row, A_new->blocks[1]);
+    dcsr_getblk(A, interface_dofs->val, interior_idx.val,  interface_dofs->row, interior_idx.row,  A_new->blocks[2]);
+    dcsr_getblk(A, interface_dofs->val, interface_dofs->val, interface_dofs->row, interface_dofs->row, A_new->blocks[3]);
 
     // get diagonal blocks
     dCSRmat *A_diag = (dCSRmat *)calloc(brow, sizeof(dCSRmat));
     // Use first diagonal block directly in A_diag
-    dcsr_alloc(A_new.blocks[0]->row, A_new.blocks[0]->col, A_new.blocks[0]->nnz, &A_diag[0]);
-    dcsr_cp(A_new.blocks[0], &A_diag[0]);
+    dcsr_alloc(A_new->blocks[0]->row, A_new->blocks[0]->col, A_new->blocks[0]->nnz, &A_diag[0]);
+    dcsr_cp(A_new->blocks[0], &A_diag[0]);
 
     // Use second diagonal block directly in A_diag
-    dcsr_alloc(A_new.blocks[3]->row, A_new.blocks[3]->col, A_new.blocks[3]->nnz, &A_diag[1]);
-    dcsr_cp(A_new.blocks[3], &A_diag[1]);
-
-    /* fixme: copy reordering this to precond function
-    // get new ordered right hand side //
-    dvector b_new = dvec_create(total_row);
-    for (i=0; i<interior_idx.row;  i++) b_new.val[i] = b->val[interior_idx.val[i]];
-    for (i=0; i<interface_dofs->row; i++) b_new.val[interior_idx.row+i] = b->val[interface_dofs->val[i]];
-
-    // set new solution
-    // dvector x_new = dvec_create(total_row);
-    // dvec_set(total_row, &x_new, 0.0);
-    */
+    dcsr_alloc(A_new->blocks[3]->row, A_new->blocks[3]->col, A_new->blocks[3]->nnz, &A_diag[1]);
+    dcsr_cp(A_new->blocks[3], &A_diag[1]);
 
     //--------------------------------------------------------------
     // Part 3: set up the preconditioner
@@ -1715,7 +1703,7 @@ precond* create_precond_metric_amg(dCSRmat *A,
 
     // initialize A, b, x for mgl[0]
     bdcsr_alloc(brow, bcol, &(mgl[0].A));
-    bdcsr_cp(&A_new, &(mgl[0].A));
+    bdcsr_cp(A_new, &(mgl[0].A));
 
     mgl[0].b = dvec_create(total_row);
     mgl[0].x = dvec_create(total_row);
@@ -1750,14 +1738,14 @@ precond* create_precond_metric_amg(dCSRmat *A,
     }
 
     // set up the Schwarz smoother for the interface block
-    Schwarz_param schwarz_param;
-    schwarz_param.Schwarz_mmsize = amgparam->Schwarz_mmsize;
-    schwarz_param.Schwarz_maxlvl = amgparam->Schwarz_maxlvl;
-    schwarz_param.Schwarz_type   = amgparam->Schwarz_type;
-    schwarz_param.Schwarz_blksolver = amgparam->Schwarz_blksolver;
+    Schwarz_param *schwarz_param = (Schwarz_param *)calloc(1, sizeof(Schwarz_param));
+    schwarz_param->Schwarz_mmsize = amgparam->Schwarz_mmsize;
+    schwarz_param->Schwarz_maxlvl = amgparam->Schwarz_maxlvl;
+    schwarz_param->Schwarz_type   = amgparam->Schwarz_type;
+    schwarz_param->Schwarz_blksolver = amgparam->Schwarz_blksolver;
 
-    Schwarz_data schwarz_data;
-    schwarz_data.A = dcsr_sympat(A_new.blocks[3]);
+    Schwarz_data *schwarz_data = (Schwarz_data*)calloc(1,sizeof(Schwarz_data));
+    schwarz_data->A = dcsr_sympat(A_new->blocks[3]);
 
     // set up direct solver for the interface block if needed
     //#if WITH_SUITESPARSE
@@ -1770,10 +1758,10 @@ precond* create_precond_metric_amg(dCSRmat *A,
       //#if WITH_SUITESPARSE
         // Need to sort the diagonal blocks for UMFPACK format
         dCSRmat A_tran;
-        dcsr_trans(&schwarz_data.A, &A_tran);
-        dcsr_cp(&A_tran, &schwarz_data.A);
+        dcsr_trans(&(schwarz_data->A), &A_tran);
+        dcsr_cp(&A_tran, &(schwarz_data->A));
         if ( prtlvl > PRINT_NONE ) printf("Factorization for the interface block:\n");
-        LU_data[0] = hazmath_factorize(&schwarz_data.A, prtlvl);
+        LU_data[0] = hazmath_factorize(&(schwarz_data->A), prtlvl);
         dcsr_free(&A_tran);
 	//#else
 	//        error_extlib(257, __FUNCTION__, "SuiteSparse");
@@ -1781,8 +1769,8 @@ precond* create_precond_metric_amg(dCSRmat *A,
     }
     else{
         ivector seeds = ivec_create(interface_dofs->row);
-        for (i=0; i<seeds.row; i++) seeds.val[i] = (A_new.blocks[3]->row-interface_dofs->row)+i; // fixme: not sure about this one
-        Schwarz_setup_with_seeds(&schwarz_data, &schwarz_param, &seeds);
+        for (i=0; i<seeds.row; i++) seeds.val[i] = (A_new->blocks[3]->row - interface_dofs->row)+i; // fixme: not sure about this one
+        Schwarz_setup_with_seeds(schwarz_data, schwarz_param, &seeds);
         ivec_free(&seeds);
     }
 
@@ -1804,9 +1792,9 @@ precond* create_precond_metric_amg(dCSRmat *A,
     precdata->tentative_smooth = amgparam->tentative_smooth;
     precdata->max_levels = mgl[0].num_levels;
     precdata->mgl_data = mgl;
-    precdata->schwarz_data = &schwarz_data;
-    precdata->schwarz_param = &schwarz_param;
-    precdata->A = &A_new;
+    precdata->schwarz_data = schwarz_data;
+    precdata->schwarz_param = schwarz_param;
+    precdata->A = A_new;
     precdata->total_row = total_row;
     precdata->total_col = total_col;
     precdata->r = dvec_create(total_row);
@@ -1819,6 +1807,7 @@ precond* create_precond_metric_amg(dCSRmat *A,
     ivec_free(&interior_idx);
 
     pc->data = precdata;
+
     switch (precond_type) {
         case 2: // solve using AMG for the whole matrix
             pc->fct = precond_bdcsr_amg;
@@ -1839,10 +1828,6 @@ precond* create_precond_metric_amg(dCSRmat *A,
             pc->fct = precond_bdcsr_metric_amg_symmetric;
             break;
     }
-    // put the solution back to the original order fixme: copy reordering this to precond function
-    //for (i=0; i<interior_idx.row;  i++) x->val[interior_idx.val[i]] = x_new.val[i];
-    //for (i=0; i<interface_dofs->row; i++) x->val[interface_dofs->val[i]] = x_new.val[interior_idx.row+i];
-    //ivec_free(&interior_idx);
 
     get_time(&setup_end);
     pc->setup_time = setup_end - setup_start;
@@ -1851,4 +1836,3 @@ precond* create_precond_metric_amg(dCSRmat *A,
 
     return pc;
 }
-
