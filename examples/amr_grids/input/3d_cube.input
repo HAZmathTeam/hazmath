@@ -8,7 +8,7 @@ dimension{3}   % spatial dimension in which the grid has to be generated
 print_level{0}	% how much information to print out: 0 little | >0 more
 %---------------%
 
-num_refinements{20}
+num_refinements{3}
 
 refinement_type{-2}
 
@@ -74,11 +74,11 @@ data_macroelements{0 1 2 3 4 5 6 7  10  }
 % macroelement list are ignored.
 % If no faces are given then every boundary point gets a code of 1 (Dirichlet); 
  data_macrofaces{0 1 2 3 17
-  		0 4 1 5 18
+  		0 4 1 5 1
  		4 7 5 6 19
- 		2 6 3 7 20
- 		0 4 2 6 21
- 		1 5 7 3 22
+ 		2 6 3 7 2
+ 		0 4 2 6 20
+ 		1 5 7 3 3
  		   }
 
 num_coordsystems{1}

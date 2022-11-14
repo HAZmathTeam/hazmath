@@ -64,7 +64,7 @@ INT main(INT   argc,   char *argv[])
     feat.fill=-1e20;
     // last argument below is whether to map the simplicial complex to
     // a cube enclosing the data.
-    j=features_r(&feat,sc,(INT )1);
+    j=features_r(&feat,sc,(INT )1,(REAL )1.1e0);
     free(data_file);
   }
   //NNNNNNNNNNNNNNNN
@@ -181,7 +181,13 @@ INT main(INT   argc,   char *argv[])
     mshw(g->fgrid,sc,0); //  the choice of format should also be given
 			 //  as part of a structure.
   /* WRITE THE OUTPUT vtu file for paraview:    */
-  if(dim <4) vtkw(g->fvtu,sc,0,1.);
+  if(dim <4) {
+    vtu_data vdata;
+    vtu_data_init(sc,&vdata);
+    vtkw(g->fvtu,&vdata);
+    vtkw("output/1d_graph.vtu",&vdata); //0,(REAL )1);
+    vtu_data_free(&vdata);
+  }
   /*FREE: the input grid is freed here, because it has the filenames in it*/
   input_grid_free(g);
   haz_scomplex_free(sc);

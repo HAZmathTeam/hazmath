@@ -219,6 +219,35 @@ typedef struct /* macroelement complex (isomorphic to
   INT *etree; /* bfs tree (el by el only if the elems share a face) */
 } macrocomplex;
 /*********************************************************************/
+/*******************************************************************/
+typedef struct /* data for writing simplcial complex as vtu file*/
+{
+  SHORT print_level;   /**< print level */
+  scomplex *sc; /* the simplicial complex which we want to export as VTU*/
+  INT nipt; /* how many integer ARRAYS as point data */
+  INT ndpt; /* how many double ARRAYS as point data */  
+  INT nicell; /* how many integer ARRAYS as point data */
+  INT ndcell; /* how many double ARRAYS as point data */
+  //
+  INT shift;   /** shift of indices if needed....*/
+  REAL zscale;   /** not used */
+  INT **ipt; /** integer point data: each array ipt[1:nipt][] are
+		 arrays with integers added to the vtu
+	     **/
+  REAL **dpt; /** integer point data: each array dpt[1:nrpt_data][]
+		  are arrays with doubles added to the vtu
+	      **/
+  INT **icell; /** integer cell data: each array
+		   icell[1:nicell][] are arrays with integers
+	       **/
+  REAL **dcell; /** integer point data: each array
+		    dcell[1:ndcell][] are arrays with data
+		  **/
+  char **names_ipt; /** names of the integer point-data arrays stored in the vtu file */
+  char **names_dpt; /** names of the double point-data arrays stored in the vtu file */
+  char **names_icell; /** names of the integer cell-data arrays stored in the vtu file */
+  char **names_dcell; /** names of the double cell-data arrays stored in the vtu file */
+} vtu_data;
 /*==================================================================*/
 typedef struct /* features (to refine around these) */
 {

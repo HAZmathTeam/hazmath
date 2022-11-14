@@ -20,8 +20,6 @@
  * \return     if the arrays are a permutation of each other returns 1,
  *             otherwise returns 0.
  *
- *
- *
  */
 INT aresame(INT *a, INT *b, INT n)
 {
@@ -1236,4 +1234,281 @@ void mapit(scomplex *sc,REAL *vc)
   free(vcp_xhat);
   return;
 }
+/**/
+/********************************************************************************/
+/*!
+ * \fn vtu_data vtu_data_init(scomplex *sc)
+ *
+ * \brief initializes vtu_data_arrays to the minimal data associated
+ * with the simplicial complex
+ *
+ * \note Ludmil (20210807)
+ */
+void vtu_data_init(scomplex *sc, vtu_data *vdata)
+{
+  vdata->sc=sc; /* the simplicial complex which we want to export as VTU*/
+  vdata->print_level=0;
+  vdata->shift=0;
+  vdata->zscale=-1e20;  
+  // integer
+  vdata->nipt=1; // number of integer point-data arrays 
+  vdata->nicell=1; // number of integer cell-data arrays 
+  vdata->ipt=malloc(vdata->nipt*sizeof(INT *));
+  vdata->icell=malloc(vdata->nicell*sizeof(INT *));
+  vdata->names_ipt=malloc(vdata->nipt*sizeof(char *));
+  vdata->names_dpt=malloc(vdata->nicell*sizeof(INT *));
+  vdata->names_icell=malloc(vdata->nipt*sizeof(char *));
+  vdata->names_dcell=malloc(vdata->nicell*sizeof(INT *));
+  //
+  vdata->ipt[0]=sc->bndry;
+  vdata->icell[0]=sc->flags;
+  INT k;
+  /* for(k=0;k<sc->nv;++k){ */
+  /*   fprintf(stdout,"\nbndry_code[%d]=%d",k,sc->bndry[k]); */
+  /* } */
+  /* for(k=0;k<sc->ns;++k){ */
+  /*   fprintf(stdout,"\nel_code[%d]=%d",k,vdata->icell[0][k]); */
+  /* } */
+  vdata->names_ipt[0]=strdup("bndry_codes");  
+  vdata->names_icell[0]=strdup("el_codes");
+  // double
+  vdata->ndpt=0; // number of double point-data arrays 
+  vdata->ndcell=0; // number of double cell-data arrays 
+  vdata->dpt=NULL;// collection of double point-data arrays
+  vdata->dcell=NULL;// collection double cell-data arrays
+  vdata->names_dpt=NULL;  
+  vdata->names_dcell=NULL;
+}
+/********************************************************************************/
+/*!
+ * \fn vtu_data vtu_data_free(vtu_data *vdata)
+ *
+ * \brief initializes vtu_data_arrays to the minimal data associated
+ * with the simplicial complex
+ *
+ * \note Ludmil (20210807)
+ */
+void vtu_data_free(vtu_data *vdata)
+{
+  /* does not free any of the vdata lower level arrays as they may be
+     associated with other structures (such as simplicial complex,
+     etc). but it frees the top level data. */
+  INT arrays=0;  
+  if(vdata->ipt) free(vdata->ipt);
+  if(vdata->icell) free(vdata->icell);
+  /*double*/
+  if(vdata->dpt) free(vdata->dpt);
+  if(vdata->dcell) free(vdata->dcell);
+  /*names*/
+  if(vdata->names_ipt){
+    for(arrays=0;arrays<vdata->nipt;++arrays)
+      free(vdata->names_ipt[arrays]);
+    free(vdata->names_ipt);
+  }
+  if(vdata->names_dpt){
+    for(arrays=0;arrays<vdata->ndpt;++arrays)
+      free(vdata->names_dpt[arrays]);
+    free(vdata->names_dpt);
+  }
+  if(vdata->names_icell){
+    for(arrays=0;arrays<vdata->nicell;++arrays)
+      free(vdata->names_icell[arrays]);
+    free(vdata->names_icell);
+  }
+  if(vdata->names_dcell){
+    for(arrays=0;arrays<vdata->ndcell;++arrays)
+      free(vdata->names_dcell[arrays]);
+    free(vdata->names_dcell);
+  }
+  return;
+}
+/**********************************************************************************/
+/*!
+ * \fn void vtkw(const char *namevtk, vtu_data *vdata)
+ *
+ * \brief Write a simplicial complex to a unstructured grid vtk
+ *        file. The vtk format is describd in the (c) Kitware vtk
+ *        manual found at:
+ *        https://vtk.org/wp-content/uploads/2021/08/VTKUsersGuide.pdf
+ *
+ * \param namevtk   File name 
+ * \param sc        Pointer to a simplicial complex
+ * \param shift    integer added to the elements of arrays (here always=1).  
+ *
+ */
+/**********************************************************************************/
+void vtkw(const char *namevtk, vtu_data *vdata)
+{
+  scomplex *sc=vdata->sc;
+  INT shift=vdata->shift;
+  REAL zscale=vdata->zscale;
+  if((sc->n!=3)&&(sc->n!=2)&&(sc->n!=1))
+    fprintf(stderr,"\n*** ERR(%s; dim=%lld): No vtk files for dim .gt. 3.\n",__FUNCTION__,(long long )sc->n);
+  FILE *fvtk;
+  INT nv=sc->nv,ns=sc->ns, n=sc->n,n1=n+1,nbig=sc->nbig;
+  INT *nodes = sc->nodes;
+  REAL *x = sc->x;
+  INT tcell=-10;
+  INT k=-10,j=-10;
+  char *tfloat=strndup("Float64",8);
+  char *tinto=strndup("Int64",6);
+  char *endian=strndup("LittleEndian",13);
+  /*
+    what endian?:
+
+    Intel x86; OS=MAC OS X: little-endian
+    Intel x86; OS=Windows: little-endian
+    Intel x86; OS=Linux: little-endian
+    Intel x86; OS=Solaris: little-endian
+    Dec Alpha; OS=Digital Unix: little-endian
+    Dec Alpha; OS=VMS: little-endian
+    Hewlett Packard PA-RISC; OS=HP-UX: big-endian
+    IBM RS/6000; OS=AIX: big-endian
+    Motorola PowerPC; OS=Mac OS X:  big-endian
+    SGI R4000 and up; OS=IRIX: big-endian
+    Sun SPARC; OS=Solaris: big-endian
+  */
+  /*
+    Types of cells for VTK
+
+    VTK_VERTEX (=1)
+    VTK_POLY_VERTEX (=2)
+    VTK_LINE (=3)
+    VTK_POLY_LINE (=4)
+    VTK_TRIANGLE(=5)
+    VTK_TRIANGLE_STRIP (=6)
+    VTK_POLYGON (=7)
+    VTK_PIXEL (=8)
+    VTK_QUAD (=9)
+    VTK_TETRA (=10)
+    VTK_VOXEL (=11)
+    VTK_HEXAHEDRON (=12)
+    VTK_WEDGE (=13)
+    VTK_PYRAMID (=14)
+  */
+  const INT LINE=3;
+  const INT TRI=5;
+  const INT TET=10;
+  if(n==1)
+    tcell=LINE; /* line */
+  else if(n==2)
+    tcell=TRI; /* triangle */
+  else
+    tcell=TET; /* tet */
+
+  /* VTK format writing the mesh for plot */
+  fvtk=fopen((const char *)namevtk,"w");
+  fprintf(fvtk,"<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"%s\">\n",endian);
+  fprintf(fvtk,"<UnstructuredGrid>\n");
+  fprintf(fvtk,"<Piece NumberOfPoints=\"%lld\" NumberOfCells=\"%lld\">\n",(long long )nv,(long long )ns);
+  fprintf(fvtk,"<Points>\n");
+  fprintf(fvtk,"<DataArray type=\"%s\" NumberOfComponents=\"3\" Format=\"ascii\">",tfloat);
+  for (j=0;j<nv;j++){
+    for (k=0;k<nbig;k++) {
+      fprintf(fvtk,"%.8f ",x[j*nbig+k]);
+    }
+    for (k=0;k<(3-nbig);k++) {
+      fprintf(fvtk,"%.8f ",0.);
+    }
+  }
+  fprintf(fvtk,"</DataArray>\n");
+  fprintf(fvtk,"</Points>\n");
+  /*NOT USED: if(sc->fval){ */
+  /*   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"ele\" Format=\"ascii\">",tfloat); */
+  /*   for(k=0;k<nv;k++) fprintf(fvtk," %e ",sc->fval[k]); */
+  /*   fprintf(fvtk,"</DataArray>\n"); */
+  /* } */
+  // Dump information about connected components.  For now only assume
+  // 1 connected region and at most 2 connected boundaries.  Positive
+  // integers indicate connected components of a domain Negative
+  // integers indicate connected components of the boundaries Example:
+  // A cube (1 connected domain and 1 connected boundary) would be 1
+  // on the interior and -1 on points on the boundary A cube with a
+  // hole (1 connected domain and 2 connected boundaries) would have 1
+  // on the points in the interior and -1 on points on the outer
+  // boundary and -2 on the inner boundary If NULL, then one connected
+  // region and boundary.
+  /* if(sc->bndry_cc>1) { */
+  /*   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectedcomponents\" Format=\"ascii\">",tinto); */
+  /*   for(k=0;k<nv;k++) { */
+  /*     if(ib[k]==0) { */
+  /* 	fprintf(fvtk," %lld ",(long long )1); */
+  /*     } else if(ib[k]==1) { */
+  /* 	fprintf(fvtk," %lld ",(long long )(-1)); */
+  /*     } else if(ib[k]==-1) { */
+  /* 	fprintf(fvtk," %lld ",(long long )(-2)); */
+  /*     } else { */
+  /* 	fprintf(fvtk," %lld ",(long long )ib[k]); */
+  /*     } */
+  /*   } */
+  /*   fprintf(fvtk,"</DataArray>\n"); */
+  /* } */
+  /* fprintf(fvtk,"</PointData>\n"); */  
+  fprintf(fvtk,"<Cells>\n");
+  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"offsets\" Format=\"ascii\">",tinto);
+  for(k=1;k<=ns;k++) fprintf(fvtk," %lld ",(long long )(k*n1));
+  fprintf(fvtk,"</DataArray>\n");
+  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectivity\" Format=\"ascii\">\n",tinto);
+  /* for(k=0;k<ns;k++){ */
+  /*   kn1=k*n1; */
+  /*   for(j=0;j<n1;j++) fprintf(fvtk," %lld ",nodes[kn1 + j]); */
+  /* } */
+  for (j=0;j<ns;j++){
+    /*  for (j=0;j<ns;j++){*/
+    for (k=0;k<n1;k++) {
+      fprintf(fvtk,"%lld ",(long long )(nodes[j*n1+k]+shift));
+    }
+  }
+  fprintf(fvtk,"</DataArray>\n");
+  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"types\" Format=\"ascii\">",tinto);
+  for(k=1;k<=ns;k++)
+    fprintf(fvtk," %lld ",(long long )tcell);
+  fprintf(fvtk,"</DataArray>\n");
+  fprintf(fvtk,"</Cells>\n");
+  //
+  INT arrays;
+  for(arrays=0;arrays<vdata->nipt;++arrays){
+    /* dump integer point data:*/
+    fprintf(fvtk,"<PointData Scalars=\"scalars\">\n");
+    fprintf(fvtk,"<DataArray type=\"%s\" Name=\"%s\" Format=\"ascii\">",tinto,vdata->names_ipt[arrays]);
+    for(k=0;k<nv;k++)
+      fprintf(fvtk," %lld ",(long long )vdata->ipt[arrays][k]);
+    fprintf(fvtk,"</DataArray>\n");
+  }
+  for(arrays=0;arrays<vdata->ndpt;++arrays){
+    /* dump double point data:*/
+    fprintf(fvtk,"<PointData Scalars=\"scalars\">\n");
+    fprintf(fvtk,"<DataArray type=\"%s\" Name=\"%s\" Format=\"ascii\">",tfloat,vdata->names_dpt[arrays]);
+    for(k=0;k<nv;k++)
+      fprintf(fvtk," %.8f ",vdata->dpt[arrays][k]);
+    fprintf(fvtk,"</DataArray>\n");
+  }
+  fprintf(fvtk,"</PointData>\n");
+  /**/
+  fprintf(fvtk,"<CellData Scalars=\"scalars\">\n");
+  for(arrays=0;arrays<vdata->nicell;++arrays){
+    fprintf(fvtk,"<DataArray type=\"%s\" Name=\"%s\" Format=\"ascii\">",tinto,vdata->names_icell[arrays]);
+    for(k=0;k<ns;k++)
+      fprintf(fvtk," %lld ",(long long)vdata->icell[arrays][k]);
+    fprintf(fvtk,"</DataArray>\n");
+  }
+  for(arrays=0;arrays<vdata->ndcell;++arrays){
+    fprintf(fvtk,"<DataArray type=\"%s\" Name=\"%s\" Format=\"ascii\">",tfloat,vdata->names_dcell[arrays]);
+    for(k=0;k<ns;k++)
+      fprintf(fvtk," %.8f ",vdata->dcell[arrays][k]);
+    fprintf(fvtk,"</DataArray>\n");
+  }
+  fprintf(fvtk,"</CellData>\n");
+  //
+  fprintf(fvtk,"</Piece>\n");
+  fprintf(fvtk,"</UnstructuredGrid>\n");
+  fprintf(fvtk,"</VTKFile>\n");
+  fprintf(stdout,"%%Output (vtk) written on:%s\n",namevtk);
+  fclose(fvtk);
+  free(tfloat);
+  free(tinto);
+  free(endian);
+  return;
+}
+/**/
 /*EOF*/

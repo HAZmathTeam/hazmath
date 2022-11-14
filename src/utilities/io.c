@@ -893,6 +893,76 @@ void dbsr_read (const char  *filename,
 
 
 /*** Auxillary Files *********************************************************************/
+/* 
+ * \fn void read_eof(const char *fname, void **data, INT *ndata, const char dtype)
+ *
+ * \brief Reads data until EOF until eof. skips any control chars at
+ * the beginning of the file (ASCII < 0).
+ *
+ * The result is stored in data[0] which is allocated here (REAL* for
+ *  double/float or INT* for ints).
+ * 
+ * dtype is either 'R', or 'r' for REAL or 'I', 'i' for INT.
+ *
+*/
+void read_eof(const char *fname, void **data, INT *ndata, const char dtype)
+/*************************************************************************************/
+{
+  SHORT data_type=-1;
+  if(dtype=='i' || dtype=='I')
+    data_type=TRUE;// integers
+  else if(dtype=='r' || dtype=='R')
+    data_type=FALSE;
+  else{
+    fprintf(stderr,"*** Wrong type in %s; must be \'I\' for integer type  or \'R\' for double/float",__FUNCTION__);
+    exit(9);
+  }
+  INT k,count=0,ichk=-1;
+  long long lint0;
+  long double dl;
+  char ch;
+  FILE *fp=fopen(fname,"r");
+  ch=fgetc(fp); while((INT )ch < 0){ch=fgetc(fp);count++;}
+  if(count){
+    //    fprintf(stdout,"%%Read: %lld control chars...", (long long int)count);
+    fseek(fp,count*sizeof(char),SEEK_SET);
+  } else rewind(fp);
+  if(data_type){
+    k=0;
+    while(1){
+      if(feof(fp)) break;
+      ichk=fscanf(fp,"%lld", &lint0);
+      if(ichk<0) break;
+      k++;
+    }
+  } else {
+    k=0;
+    while(1){
+      if(feof(fp)) break;
+      ichk=fscanf(fp,"%Lg", &dl);
+      if(ichk<0) break;
+      k++;
+    }
+  }
+  if(count){
+    fseek(fp,count*sizeof(char),SEEK_SET);
+  } else {
+    rewind(fp);
+  }
+  /* we allocate k array*/
+  ndata[0]=k;
+  if(data_type){
+    data[0]=(void *)calloc(ndata[0],sizeof(INT));
+    rveci_(fp,(INT *)data[0],ndata);
+    //    fprintf(stdout,"\n%%%%Read %lld integers\n",(long long int)ndata[0]);
+  }else{
+    data[0]=(void *)calloc(ndata[0],sizeof(REAL));
+    rvecd_(fp,(REAL *)data[0],ndata);
+    //    fprintf(stdout,"\n%%%%Read %lld reals\n",(long long int)ndata[0]);
+  }
+  fclose(fp);
+  return;
+}
 /****************************************************************************************/
 /*!
  * \fn void rveci_(FILE *fp, INT *vec, INT *nn)
@@ -1697,7 +1767,7 @@ void mshw(char *namemsh,scomplex *sc, const INT shift0)
   // WRITING in .msh format.
   INT shift=shift0;// this is fake because shift must be 1 below, nno zero node nnumbers:
   shift=1;
-  INT n=sc->nv,ns=sc->ns, dim=sc->n,ndl=sc->n+1;
+  INT n=sc->nv,ns=sc->ns, dimbig=sc->nbig,dim=sc->n,ndl=sc->n+1;
   INT *je = sc->nodes, *material=sc->flags;//*ib=sc->bndry;
   REAL *x = sc->x;
   INT k=-10,j=-10,kndl=-10;
@@ -1730,8 +1800,8 @@ void mshw(char *namemsh,scomplex *sc, const INT shift0)
   fprintf(fmesh,"%lld\n",(long long )n);
   for(k=0;k<n;k++){
     fprintf(fmesh,"%lld",(long long )(k+shift));
-    for(j=0;j<dim;j++){
-      fprintf(fmesh," %23.16e",x[k*dim+j]);
+    for(j=0;j<dimbig;j++){
+      fprintf(fmesh," %23.16e",x[k*dimbig+j]);
     }
     fprintf(fmesh,"\n");
   }
@@ -1760,168 +1830,8 @@ void mshw(char *namemsh,scomplex *sc, const INT shift0)
   fclose(fmesh);
   return;
 }
-/**********************************************************************************/
-/*!
- * \fn void vtkw(char *namevtk, scomplex *sc, const INT shift, const REAL zscale)
- *
- * \brief Write a simplicial complex to a unstructured grid vtk
- *        file. The vtk format is describd in the (c) Kitware vtk
- *        manual found at:
- *        https://vtk.org/wp-content/uploads/2021/08/VTKUsersGuide.pdf
- *
- * \param namevtk   File name 
- * \param sc        Pointer to a simplicial complex
- * \param shift    integer added to the elements of arrays (here always=1).  
- * \param zscale   not used. 
- *
- */
-/**********************************************************************************/
-void vtkw(char *namevtk, scomplex *sc, const INT shift, const REAL zscale)
-{
-  if((sc->n!=3)&&(sc->n!=2)&&(sc->n!=1))
-    fprintf(stderr,"\n*** ERR(%s; dim=%lld): No vtk files for dim .gt. 3.\n",__FUNCTION__,(long long )sc->n);
-  FILE *fvtk;
-  INT nv=sc->nv,ns=sc->ns, n=sc->n,n1=n+1,nbig=sc->nbig;
-  INT *nodes = sc->nodes, *ib=sc->bndry;
-  REAL *x = sc->x;
-  INT tcell=-10;
-  INT k=-10,j=-10;
-  char *tfloat=strndup("Float64",8);
-  char *tinto=strndup("Int64",6);
-  char *endian=strndup("LittleEndian",13);
-  /*
-    what endian?:
-
-    Intel x86; OS=MAC OS X: little-endian
-    Intel x86; OS=Windows: little-endian
-    Intel x86; OS=Linux: little-endian
-    Intel x86; OS=Solaris: little-endian
-    Dec Alpha; OS=Digital Unix: little-endian
-    Dec Alpha; OS=VMS: little-endian
-    Hewlett Packard PA-RISC; OS=HP-UX: big-endian
-    IBM RS/6000; OS=AIX: big-endian
-    Motorola PowerPC; OS=Mac OS X:  big-endian
-    SGI R4000 and up; OS=IRIX: big-endian
-    Sun SPARC; OS=Solaris: big-endian
-  */
-  /*
-    Types of cells for VTK
-
-    VTK_VERTEX (=1)
-    VTK_POLY_VERTEX (=2)
-    VTK_LINE (=3)
-    VTK_POLY_LINE (=4)
-    VTK_TRIANGLE(=5)
-    VTK_TRIANGLE_STRIP (=6)
-    VTK_POLYGON (=7)
-    VTK_PIXEL (=8)
-    VTK_QUAD (=9)
-    VTK_TETRA (=10)
-    VTK_VOXEL (=11)
-    VTK_HEXAHEDRON (=12)
-    VTK_WEDGE (=13)
-    VTK_PYRAMID (=14)
-  */
-  const INT LINE=3;
-  const INT TRI=5;
-  const INT TET=10;
-  if(n==1)
-    tcell=LINE; /* line */
-  else if(n==2)
-    tcell=TRI; /* triangle */
-  else
-    tcell=TET; /* tet */
-
-  /* VTK format writing the mesh for plot */
-  fvtk=HAZ_fopen(namevtk,"w");
-  fprintf(fvtk,"<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"%s\">\n",endian);
-  fprintf(fvtk,"<UnstructuredGrid>\n");
-  fprintf(fvtk,"<Piece NumberOfPoints=\"%lld\" NumberOfCells=\"%lld\">\n",(long long )nv,(long long )ns);
-  fprintf(fvtk,"<Points>\n");
-  fprintf(fvtk,"<DataArray type=\"%s\" NumberOfComponents=\"3\" Format=\"ascii\">",tfloat);
-  for (j=0;j<nv;j++){
-    for (k=0;k<nbig;k++) {
-      fprintf(fvtk,"%.8f ",x[j*nbig+k]);
-    }
-    for (k=0;k<(3-nbig);k++) {
-      fprintf(fvtk,"%.8f ",0.);
-    }
-  }
-  fprintf(fvtk,"</DataArray>\n");
-  fprintf(fvtk,"</Points>\n");
-  fprintf(fvtk,"<CellData Scalars=\"scalars\">\n");
-  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"%s (layer)\" Format=\"ascii\">",tfloat,"L");
-  for(k=0;k<ns;k++) fprintf(fvtk," %g ",(REAL )sc->flags[k]);//element flags
-  fprintf(fvtk,"</DataArray>\n");
-  fprintf(fvtk,"</CellData>\n");
-  // Dump v_bdry Data to indicate if vertices are boundaries
-  fprintf(fvtk,"<PointData Scalars=\"scalars\">\n");
-  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"v_bdry\" Format=\"ascii\">",tinto);
-  for(k=0;k<nv;k++) fprintf(fvtk," %lld ",(long long )ib[k]);
-  fprintf(fvtk,"</DataArray>\n");
-  /*NOT USED: if(sc->fval){ */
-  /*   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"ele\" Format=\"ascii\">",tfloat); */
-  /*   for(k=0;k<nv;k++) fprintf(fvtk," %e ",sc->fval[k]); */
-  /*   fprintf(fvtk,"</DataArray>\n"); */
-  /* } */
-  // Dump information about connected components.  For now only assume
-  // 1 connected region and at most 2 connected boundaries.  Positive
-  // integers indicate connected components of a domain Negative
-  // integers indicate connected components of the boundaries Example:
-  // A cube (1 connected domain and 1 connected boundary) would be 1
-  // on the interior and -1 on points on the boundary A cube with a
-  // hole (1 connected domain and 2 connected boundaries) would have 1
-  // on the points in the interior and -1 on points on the outer
-  // boundary and -2 on the inner boundary If NULL, then one connected
-  // region and boundary.
-  if(sc->bndry_cc>1) {
-    fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectedcomponents\" Format=\"ascii\">",tinto);
-    for(k=0;k<nv;k++) {
-      if(ib[k]==0) {
-	fprintf(fvtk," %lld ",(long long )1);
-      } else if(ib[k]==1) {
-	fprintf(fvtk," %lld ",(long long )(-1));
-      } else if(ib[k]==-1) {
-	fprintf(fvtk," %lld ",(long long )(-2));
-      } else {
-	fprintf(fvtk," %lld ",(long long )ib[k]);
-      }
-    }
-    fprintf(fvtk,"</DataArray>\n");
-  }
-  fprintf(fvtk,"</PointData>\n");
-  fprintf(fvtk,"<Cells>\n");
-  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"offsets\" Format=\"ascii\">",tinto);
-  for(k=1;k<=ns;k++) fprintf(fvtk," %lld ",(long long )(k*n1));
-  fprintf(fvtk,"</DataArray>\n");
-  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"connectivity\" Format=\"ascii\">\n",tinto);
-  /* for(k=0;k<ns;k++){ */
-  /*   kn1=k*n1; */
-  /*   for(j=0;j<n1;j++) fprintf(fvtk," %lld ",nodes[kn1 + j]); */
-  /* } */
-  for (j=0;j<ns;j++){
-    /*  for (j=0;j<ns;j++){*/
-    for (k=0;k<n1;k++) {
-      fprintf(fvtk,"%lld ",(long long )(nodes[j*n1+k]+shift));
-    }
-  }
-  fprintf(fvtk,"</DataArray>\n");
-  fprintf(fvtk,"<DataArray type=\"%s\" Name=\"types\" Format=\"ascii\">",tinto);
-  for(k=1;k<=ns;k++)
-    fprintf(fvtk," %lld ",(long long )tcell);
-  fprintf(fvtk,"</DataArray>\n");
-  fprintf(fvtk,"</Cells>\n");
-  fprintf(fvtk,"</Piece>\n");
-  fprintf(fvtk,"</UnstructuredGrid>\n");
-  fprintf(fvtk,"</VTKFile>\n");
-  fprintf(stdout,"%%Output (vtk) written on:%s\n",namevtk);
-  fclose(fvtk);
-  free(tfloat);
-  free(tinto);
-  free(endian);
-  return;
-}
-/**/
+/*******************************************************************************/
+/*******************************************************************************/
 void matlw(scomplex *sc, char *namematl)
 {
   FILE *fp;
@@ -2268,7 +2178,7 @@ dvector *dvector_read_p(FILE *fp)
  * \note Ludmil (20221020)
  */
 /********************************************************************************/
-INT features_r(features *feat,scomplex *sc, const INT do_map)
+INT features_r(features *feat,scomplex *sc, const INT do_map, const REAL scale)
 {
   /*
      dimbig is the spatial dimension; dim can be either dimbig or
@@ -2328,7 +2238,7 @@ INT features_r(features *feat,scomplex *sc, const INT do_map)
       count = fscanf(feat->fpf,"%lg", (feat->x+dim*i+j));
     }
   }
-  fprintf(stdout,"Read %lld coords\n",(long long int)k);
+  //  fprintf(stdout,"%%%%Read %lld coords\n",(long long int)k);
   fclose(feat->fpf);
   // if dimbig>dim we fill the remaining coordinates with feat->fill.
   if(dimbig > dim) {
@@ -2345,9 +2255,11 @@ INT features_r(features *feat,scomplex *sc, const INT do_map)
   }
   if(sc!=NULL && do_map){
     cube2simp *c2s=cube2simplex(dim);//now we have the vertices of the unit cube in bits
-    REAL *vc=calloc(dim*c2s->nvcube,sizeof(REAL));
-    REAL *xmin=vc;// maps to [0...0]
-    REAL *xmax=vc+dim*(c2s->nvcube-1); // last vertex
+    REAL *vc=calloc(2*dim*c2s->nvcube,sizeof(REAL));
+    REAL *xmintmp=vc;// maps to [0...0]
+    REAL *xmaxtmp=xmintmp+dim*(c2s->nvcube-1); // last vertex
+    REAL *xmin=xmaxtmp+dim*(c2s->nvcube-1); // last vertex
+    REAL *xmax=xmin+dim*(c2s->nvcube-1); // last vertex
     INT kdimi;
     for(i=0;i<dim;i++){
       xmax[i]=feat->x[i];
@@ -2364,21 +2276,27 @@ INT features_r(features *feat,scomplex *sc, const INT do_map)
       }
     }
     // compute the diagonal length
-    REAL diag0=0e0;
-    for(i=0;i<dim;i++){
-      diag0+=(xmax[i]-xmin[i])*(xmax[i]-xmin[i]);
-    }
+    /* REAL diag0=0e0; */
+    /* for(i=0;i<dim;i++){ */
+    /*   diag0+=(xmax[i]-xmin[i])*(xmax[i]-xmin[i]); */
+    /* } */
+    /* diag0=pow(0.5,((REAL )feat->n))*(sqrt(diag0)/pow((REAL )feat->nf,1./((REAL )feat->n))); */
+    /* //  fprintf(stdout,"\nNew:::diag-length=%.16e\n",diag0); */
+    /* for(i=0;i<dim;i++){ */
+    /*   xmax[i]+=diag0*scale; */
+    /*   xmin[i]-=diag0*scale; */
+    /* } */
     /* print_full_mat(1,dim,xmin,"xmin"); */
     /* print_full_mat(1,dim,xmax,"xmax"); */
-    diag0=pow(0.5,((REAL )feat->n))*(sqrt(diag0)/pow((REAL )feat->nf,1./((REAL )feat->n)));
-    //  fprintf(stdout,"\nNew:::diag-length=%.16e\n",diag0);
     for(i=0;i<dim;i++){
-      xmax[i]+=diag0;
-      xmin[i]-=diag0;
+      xmaxtmp[i]=xmax[i]+(scale-1e0)*(xmax[i]-xmin[i]);
+      xmintmp[i]=xmin[i]-(scale-1e0)*(xmax[i]-xmin[i]);
     }
+    /* print_full_mat(1,dim,xmintmp,"xmintmp"); */
+    /* print_full_mat(1,dim,xmaxtmp,"xmaxtmp"); */
     for(j=1;j<c2s->nvcube-1;j++){
       for(i=0;i<dim;i++){
-	vc[j*dim+i]=xmin[i]+(xmax[i]-xmin[i])*(c2s->bits[dim*j+i]);
+	vc[j*dim+i]=xmintmp[i]+(xmaxtmp[i]-xmintmp[i])*(c2s->bits[dim*j+i]);
       }
     }
     mapit(sc,vc);

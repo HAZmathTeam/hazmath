@@ -391,6 +391,13 @@ static ivector mark_around_pts(scomplex *sc, scomplex *scglobal, INT nstar, REAL
       if(scglobal->child0[j]<0||scglobal->childn[j]<0){
 	nzw++;
 	if((ins_node.IA[j+1]-ins_node.IA[j])>=max_nodes ){
+	  /* if(scglobal->level>50){ */
+	  /*   fprintf(stdout,"\nj=%d; nodes=%d (",j,ins_node.IA[j+1]-ins_node.IA[j]); */
+	  /*   for(i=ins_node.IA[j];i<ins_node.IA[j+1];++i){ */
+	  /*     fprintf(stdout,"%d ",ins_node.JA[i]); */
+	  /*   } */
+	  /*   fprintf(stdout,")\n"); */
+	  /* } */
 	  p=abs((scglobal->child0[j]+1));
 	  //	  fprintf(stdout,"\np=%d",p);fflush(stdout);
 	  marked.val[p]=TRUE;
@@ -405,4 +412,15 @@ static ivector mark_around_pts(scomplex *sc, scomplex *scglobal, INT nstar, REAL
   /* } */
   return marked;
 }
-/*ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ*/
+/************************************************************/
+static char *fname_set(const char *dir,const char *fname_in)
+{
+  // combines names: fname_in[0]=dir/fname_in[0]
+  size_t ldir0=strlen(dir)+1;
+  size_t lfname=strlen(fname_in);
+  char *fname=strndup(dir,ldir0);
+  fname=realloc(fname,(lfname+ldir0+1)*sizeof(char));
+  strncat(fname,fname_in,lfname);
+  return fname;
+}
+/************************************************************/
