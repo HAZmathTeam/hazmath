@@ -1262,7 +1262,6 @@ void vtu_data_init(scomplex *sc, vtu_data *vdata)
   //
   vdata->ipt[0]=sc->bndry;
   vdata->icell[0]=sc->flags;
-  INT k;
   /* for(k=0;k<sc->nv;++k){ */
   /*   fprintf(stdout,"\nbndry_code[%d]=%d",k,sc->bndry[k]); */
   /* } */
@@ -1341,7 +1340,7 @@ void vtkw(const char *namevtk, vtu_data *vdata)
 {
   scomplex *sc=vdata->sc;
   INT shift=vdata->shift;
-  REAL zscale=vdata->zscale;
+  //  REAL zscale=vdata->zscale;
   if((sc->n!=3)&&(sc->n!=2)&&(sc->n!=1))
     fprintf(stderr,"\n*** ERR(%s; dim=%lld): No vtk files for dim .gt. 3.\n",__FUNCTION__,(long long )sc->n);
   FILE *fvtk;
