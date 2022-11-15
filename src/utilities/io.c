@@ -56,7 +56,7 @@ void iarray_print(INT *vec,
 
   // main loop
   for ( ; vec < vec_end; ++vec)
-    fprintf(stdout, "%lld\n  ",(long long )(*vec));
+    fprintf(stdout, "%lld  ",(long long )(*vec));
 
   fprintf(stdout,"\n");
 
@@ -83,7 +83,7 @@ void array_print(REAL *vec,
   fprintf(stdout,"\n");
 
   for ( ; vec < vec_end; ++vec)
-    fprintf(stdout, "%e\n  ",*vec);
+    fprintf(stdout, "%e  ",*vec);
 
   fprintf(stdout,"\n");
 

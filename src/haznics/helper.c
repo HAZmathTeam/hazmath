@@ -1502,7 +1502,7 @@ void print_bdcsr_matrix(block_dCSRmat *A)
 }
 
 
-INT fenics_metric_amg_solver_minimal(dCSRmat *A,
+INT fenics_metric_amg_solver_minimal(block_dCSRmat *A,
                                      dvector *b,
                                      dvector *x,
                                      ivector *interface_dofs)
@@ -1512,6 +1512,8 @@ INT fenics_metric_amg_solver_minimal(dCSRmat *A,
     input_param inparam;
     param_input_init(&inparam);
     param_input("./input_metric.dat", &inparam);
+
+    dCSRmat A_csr = bdcsr_2_dcsr(A);
 
     /* set initial guess */
     dvec_set(b->row, x, 0.0);
@@ -1545,7 +1547,7 @@ INT fenics_metric_amg_solver_minimal(dCSRmat *A,
     }
     // No preconditioner
     else{
-        solver_flag = linear_solver_dcsr_krylov(A, b, x, &linear_itparam);
+        solver_flag = linear_solver_dcsr_krylov(&A_csr, b, x, &linear_itparam);
     }
 
     return solver_flag;
@@ -1648,7 +1650,7 @@ precond* create_precond_metric_amg(dCSRmat *A,
     get_time(&setup_start);
 
     // sparsify the whole matrix
-    dcsr_compress_inplace(A, 1e-12); //fixme: doesn't this change total_nnz??
+    //dcsr_compress_inplace(A, 1e-12); //fixme: doesn't this change total_nnz??
     //dcsr_write_dcoo("A_csr.dat", A);
 
     // total size
@@ -1673,6 +1675,7 @@ precond* create_precond_metric_amg(dCSRmat *A,
             count_i++;
         }
     }
+    printf("Ndof interior %d, ndof interface %d\n", count_i, interface_dofs->row);
     // clean the flag
     ivec_free(&interface_flag);
 
@@ -1706,7 +1709,7 @@ precond* create_precond_metric_amg(dCSRmat *A,
     bdcsr_cp(A_new, &(mgl[0].A));
 
     mgl[0].b = dvec_create(total_row);
-    mgl[0].x = dvec_create(total_row);
+    mgl[0].x = dvec_create(total_col);
 
     // initialize A_diag
     mgl[0].A_diag = A_diag;
@@ -1804,6 +1807,7 @@ precond* create_precond_metric_amg(dCSRmat *A,
     precdata->perm = ivec_create(total_row);
     iarray_cp(interior_idx.row, interior_idx.val, precdata->perm.val);
     iarray_cp(interface_dofs->row, interface_dofs->val, &(precdata->perm.val[interior_idx.row]));
+    //iarray_print(precdata->perm.val, total_row);
     ivec_free(&interior_idx);
 
     pc->data = precdata;

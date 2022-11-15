@@ -4718,7 +4718,7 @@ MEMORY_ERROR:
  *         the set/vector of interface dofs indices
  *
  */
-INT linear_solver_bdcsr_krylov_metric_amg_minimal(dCSRmat *A,
+INT linear_solver_bdcsr_krylov_metric_amg_minimal(block_dCSRmat *AA,
                                                   dvector *b,
                                                   dvector *x,
                                                   ivector *interface_dofs,
@@ -4736,8 +4736,10 @@ INT linear_solver_bdcsr_krylov_metric_amg_minimal(dCSRmat *A,
     const SHORT precond_type = itparam->linear_precond_type;
 
     // sparsify the whole matrix
-    dcsr_compress_inplace(A, 1e-12); //fixme: doesn't this change total_nnz??
+    //dcsr_compress_inplace(A, 1e-12); //fixme: doesn't this change total_nnz??
     //dcsr_write_dcoo("A_csr.dat", &A_csr);
+    dCSRmat *A = (dCSRmat*)malloc(sizeof(dCSRmat));
+    A[0] = bdcsr_2_dcsr(AA);
 
     // total size
     INT total_row = A->row;
@@ -4788,6 +4790,16 @@ INT linear_solver_bdcsr_krylov_metric_amg_minimal(dCSRmat *A,
     dcsr_getblk(A, interior_idx.val,  interface_dofs->val, interior_idx.row,  interface_dofs->row, A_new.blocks[1]);
     dcsr_getblk(A, interface_dofs->val, interior_idx.val,  interface_dofs->row, interior_idx.row,  A_new.blocks[2]);
     dcsr_getblk(A, interface_dofs->val, interface_dofs->val, interface_dofs->row, interface_dofs->row, A_new.blocks[3]);
+
+    //fprintf(stdout, "A(0,0) sizes: %d %d %d\n", A_new.blocks[0]->row, A_new.blocks[0]->col, A_new.blocks[0]->nnz);
+    //fprintf(stdout, "A(0,1) sizes: %d %d %d\n", A_new.blocks[1]->row, A_new.blocks[1]->col, A_new.blocks[1]->nnz);
+    //fprintf(stdout, "A(1,0) sizes: %d %d %d\n", A_new.blocks[2]->row, A_new.blocks[2]->col, A_new.blocks[2]->nnz);
+    //fprintf(stdout, "A(1,1) sizes: %d %d %d\n", A_new.blocks[3]->row, A_new.blocks[3]->col, A_new.blocks[3]->nnz);
+
+    //dcsr_write_dcoo("./A00.dat", A_new.blocks[0]);
+    //dcsr_write_dcoo("./A01.dat", A_new.blocks[1]);
+    //dcsr_write_dcoo("./A10.dat", A_new.blocks[2]);
+    //dcsr_write_dcoo("./A11.dat", A_new.blocks[3]);
 
     // get diagonal blocks
     dCSRmat *A_diag = (dCSRmat *)calloc(brow, sizeof(dCSRmat));
@@ -4880,8 +4892,8 @@ INT linear_solver_bdcsr_krylov_metric_amg_minimal(dCSRmat *A,
 	//#endif
     }
     else{
-        ivector seeds = ivec_create(interface_dofs->row);
-        for (i=0; i<seeds.row; i++) seeds.val[i] = (A_new.blocks[3]->row-interface_dofs->row)+i; // fixme: not sure about this one
+        ivector seeds = ivec_create(AA->blocks[3]->row);
+        for (i=0; i<seeds.row; i++) seeds.val[i] = (A_new.blocks[3]->row - AA->blocks[3]->row) + i; // fixme: not sure about this one
         Schwarz_setup_with_seeds(&schwarz_data, &schwarz_param, &seeds);
         ivec_free(&seeds);
         //Schwarz_setup(&schwarz_data, &schwarz_param);
@@ -4912,6 +4924,9 @@ INT linear_solver_bdcsr_krylov_metric_amg_minimal(dCSRmat *A,
     precdata.r = dvec_create(b->row);
     //#if WITH_SUITESPARSE
     precdata.LU_data = LU_data;
+    precdata.perm = ivec_create(0); ivec_null(&(precdata.perm));
+    //precdata.perm = ivec_create(total_row);
+    //for(i = 0; i < total_row; ++i) precdata.perm.val[i] = i; // should be identity perm
     //#endif
 
     precond prec;
@@ -4963,7 +4978,7 @@ FINISHED:
     amg_data_bdcsr_free(mgl, amgparam);
     dvec_free(&precdata.r);
     if (precond_type == 10 || precond_type == 11 ){
-        dcsr_free(&schwarz_data.A);
+        //dcsr_free(&schwarz_data.A);
 	//#if WITH_SUITESPARSE
         if(precdata.LU_data){
             if(precdata.LU_data[0]) hazmath_free_numeric(&precdata.LU_data[0]);
@@ -4976,6 +4991,7 @@ FINISHED:
         schwarz_data_free(&schwarz_data);
     }
     bdcsr_free(&A_new);
+    //dcsr_free(A);
     dvec_free(&b_new);
     dvec_free(&x_new);
     ivec_free(&interior_idx);
