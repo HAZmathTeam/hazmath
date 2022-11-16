@@ -57,18 +57,10 @@ int main (int argc, char* argv[])
     fnameb=strdup(argv[2]);
   }
   if(read_to_eof){
-    fprintf(stdout,"\n%s: reading file \"%s\" unitl EOF\n", __FUNCTION__,fnamea);
-    fp = fopen(fnamea,"r");
-    if (!fp) check_error(ERROR_OPEN_FILE, __FUNCTION__);
+    A=dcoo_read_eof_dcsr_p(fnamea,NULL,'A'); //'A' is for ascii. 
     if(fnamea) free(fnamea);
-    A=dcoo_read_eof_dcsr_p(fp,NULL);
-    fclose(fp);
-    fprintf(stdout,"\n%s: reading file \"%s\" unitl EOF\n", __FUNCTION__,fnameb);
-    fp = fopen(fnameb,"r");
-    if (!fp) check_error(ERROR_OPEN_FILE, __FUNCTION__);
+    b=dvector_read_eof_p(fnameb,'A'); //'A' is for ascii
     if(fnameb) free(fnameb);
-    b=dvector_read_eof_p(fp);
-    fclose(fp);
   } else {
     fp = fopen(fnamea,"r");
     if (!fp) check_error(ERROR_OPEN_FILE, __FUNCTION__);

@@ -959,7 +959,7 @@ void read_eof(const char *fname, void **data, INT *ndata, const char dtype,const
   } else {
     rewind(fp);
   }
-  /* we allocate k array*/
+  /* we allocate k reals array*/
   ndata[0]=k;
   if(data_type){
     data[0]=(void *)calloc(ndata[0],sizeof(INT));
@@ -1906,10 +1906,10 @@ void print_matlab_vector_field(dvector* ux, dvector* uy, dvector* uz, fespace* F
 }
 /************************* io functions returning pointers ***********/
 /**
- * \fn void dcoo_read_eof_dcsr_p(FILE *fp,INT *size)
+ * \fn void dcoo_read_eof_dcsr_p(const char *fname,const INT *size,const unsigned char format)
  *
  * \brief Read A from matrix disk file in I,J,V format and convert to CSR format
- *        first reads until the end of file to count the number of nonzeroes
+ *        first reads (as reals) until the end of file to count the number of nonzeroes
  *        then reqinds the file and reads all nonzeroes.
  *        The number of rows is the max of all integers from I[] and size[0]
  *        The number of columns is the max of all integers from J[] and size[1]
@@ -1917,94 +1917,93 @@ void print_matlab_vector_field(dvector* ux, dvector* uy, dvector* uz, fespace* F
  *
  * \param filename  File name for matrix
  * \param size      Pointer to an array with two integers or NULL.
+ * \param format    if format='b' or 'B' reads npy format. if format='a' or 'A' it reads ASCII
  *
- * \note File format:
- *   - nrow ncol nnz     % number of rows, number of columns, and nnz
- *   - i  j  a_ij        % i, j a_ij in each line
+ * \note File format (ASCII):
+ *   - i  j  a_ij        % i, j a_ij
  *
  * \return A         Pointer to the matrix in CSR format
  *
  */
-dCSRmat *dcoo_read_eof_dcsr_p (FILE *fp,INT *size)
+dCSRmat *dcoo_read_eof_dcsr_p(const char *fname,const INT *size,const unsigned char format)
 {
-  INT i,j,k,m,n,nnz,ichk;
-  REAL value;
-  dCSRmat *A=NULL;
-  if(size){
-    m=size[0];
-    n=size[1];
+  SHORT ascii;
+  if(format=='a' || format=='A'){
+    ascii=TRUE;// ascii format
+  } else if(format=='b' || format=='B'){
+    ascii=FALSE; // binary npy
+  } else{
+    fprintf(stderr,"*** Wrong type in %s; must be \'A\' for ascii format type  or \'B\' for npy format",__FUNCTION__);
+    exit(10);
+  }
+  INT i,i1,i2,nnz;
+  dCOOmat acoo=dcoo_create(0,0,0);
+  if(ascii){
+    read_eof(fname,(void **)&acoo.val,&nnz,'R',0);
   } else {
-    m=-1;
-    n=-1;
+    // READ NPY:
+    read_npy_eof(fname,(void **)&acoo.val,&nnz,'R',0);
   }
-  nnz=0;
-  while(!feof(fp)){
-    ichk=fscanf(fp,"%lld %lld %lg", (long long *)&i,(long long *)&j, &value);
-    if(ichk<0) break;
-    if(i>m) m=i;
-    if(j>n) n=j;
-    nnz++;
-  }
-  fprintf(stdout,"%s FOUND %lld records.\n",__FUNCTION__,(long long )nnz);
   // check if we read anything...
   if(!nnz) check_error(ERROR_WRONG_FILE, __FUNCTION__);
   //
-  m++;n++; //bc indices strat from zero so row and coll are with one more.
-  dCOOmat *Atmp=dcoo_create_p(m,n,nnz);
-  //    fprintf(stdout,"\nCheck structure: %d %d %d\n\n",Atmp->row,Atmp->col,Atmp->nnz);fflush(stdout);
-  rewind(fp);
-  for ( k = 0; k < nnz; k++ ) {
-    if ( fscanf(fp, "%lld %lld %lg", (long long *)&i, (long long *)&j, &value) != EOF ) {
-      Atmp->rowind[k]=i; Atmp->colind[k]=j; Atmp->val[k] = value;
-    } else {
-      check_error(ERROR_WRONG_FILE, __FUNCTION__);
-    }
+  nnz=(INT )nnz/3; // this is for coo matrix;
+  acoo.rowind = (INT *)calloc(nnz, sizeof(INT));
+  acoo.colind = (INT *)calloc(nnz, sizeof(INT));
+  acoo.row=-1;acoo.col=-1;
+  acoo.nnz=nnz;
+  acoo.nnz=0;
+  for(i=0;i<nnz;++i){
+    i1=(INT )rint(acoo.val[3*i]);
+    i2=(INT )rint(acoo.val[3*i+1]);
+    if(i1>acoo.row)acoo.row=i1;
+    if(i2>acoo.col)acoo.col=i2;    
+    acoo.rowind[i]=i1;
+    acoo.colind[i]=i2;
+    acoo.val[acoo.nnz]=acoo.val[3*i+2];
+    acoo.nnz++;
   }
-  A=dcoo_2_dcsr_p(Atmp);
-  free(Atmp); // just one free if it was allocated with "something_p"
-  return A;
+  acoo.row++;acoo.col++;
+  acoo.val=realloc(acoo.val,acoo.nnz*sizeof(REAL));
+  if(size){
+    if(acoo.row<size[0])
+      acoo.row=size[0];
+    if(acoo.col<size[1])
+      acoo.col=size[1];
+  }
+  dCSRmat *a=dcoo_2_dcsr_p(&acoo);
+  dcoo_free(&acoo); // just one free if it was allocated with "something_p"
+  return a;
 }
 /***********************************************************************************************/
 /**
- * \fn dvector *dvector_read_eof_p(FILE *fp)
+ * \fn dvector *dvector_read_eof_p(const char *fname, const unsigned char format)
  *
- * \brief Read b from a disk file until EOF in array format
+ * \brief Read b from a disk file until EOF. B is just a column of REALS numbers
  *
  * \param  filename  File name for vector b
+ * \param format    if format='b' or 'B' reads npy format. if format='a' or 'A' it reads ASCII
  *
  * \note File Format:
- *   - nrow
  *   - val_j, j=0:nrow-1
  *
  * \return b         Pointer to the dvector b (output)
  *
  */
-dvector *dvector_read_eof_p(FILE *fp)
+dvector *dvector_read_eof_p(const char *fname, const unsigned char format)
 {
-  INT  i, n,ichk;
-  REAL value;
-  dvector *b=NULL;
-  n=0;
-  while(!feof(fp)){
-    ichk=fscanf(fp,"%lg", &value);
-    if(ichk<0) break;
-    n++;
+  dvector *b=dvec_create_p(0);
+  if(format=='a' || format=='A'){
+    read_eof(fname,(void **)&b->val,&b->row,'R',0);
+  } else if(format=='b' || format=='B'){
+    // READ NPY:
+    read_npy_eof(fname,(void **)&b->val,&b->row,'R',0);
+  } else {
+    fprintf(stderr,"*** Wrong type in %s; must be \'A\' for ascii format type  or \'B\' for npy format",__FUNCTION__);
+    exit(11);
   }
-  fprintf(stdout,"%s: FOUND %lld records.\n",__FUNCTION__,(long long )n);
-  if(!n)
+  if(!b->row)
     check_error(ERROR_WRONG_FILE, __FUNCTION__);
-  b=dvec_create_p(n);
-  rewind(fp);
-  for ( i = 0; i < n; ++i ) {
-    fscanf(fp, "%lg", &value);
-    b->val[i] = value;
-    if ( value > BIGREAL ) {
-      fprintf(stderr,"### ERROR: Wrong value = %lf\n", value);
-      fclose(fp);
-      if(b) free(b);
-      exit(ERROR_INPUT_PAR);
-    }
-  }
   return b;
 }
 /*********************************************************************/
@@ -2314,7 +2313,6 @@ INT features_r(features *feat,scomplex *sc, const INT do_map, const REAL scale)
   }  
   return 0;
 }
-/*********************************************************************/
 /************************************************************************************************/
 /* 
  * \fn void read_npy_eof(const char *fname, void **data, INT *ndata, const char dtype,const SHORT print_level)
@@ -2472,5 +2470,7 @@ void read_npy_eof(const char *fname, void **data, INT *ndata, const char dtype,c
   ndata[0]=ret[3];
   if(print_level>10)
     fprintf(stdout,"\n%%%%Read %lld %s\n",(long long int)ndata[0],type_name);
+  free(type_name);
+  return;
 }
 /*EOF*/
