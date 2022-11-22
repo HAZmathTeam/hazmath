@@ -1650,8 +1650,7 @@ precond* create_precond_metric_amg(block_dCSRmat *Ablock,
     get_time(&setup_start);
 
     // sparsify the whole matrix
-    //dcsr_compress_inplace(A, 1e-12); //fixme: doesn't this change total_nnz??
-    //dcsr_write_dcoo("A_csr.dat", A);
+    //for(i = 0; i < 4; ++i) dcsr_compress_inplace(AA->blocks[i], 1e-12);
 
     // total size
     dCSRmat *A = (dCSRmat*)malloc(sizeof(dCSRmat));
@@ -1663,21 +1662,68 @@ precond* create_precond_metric_amg(block_dCSRmat *Ablock,
     //--------------------------------------------------------------
     // Part 2: reorder the matrix
     //--------------------------------------------------------------
+    SHORT null_tag = 0, schwarz_tag = (precond_type != 10 && precond_type != 11);
     // make interface flags
     ivector interface_flag = ivec_create(total_row);
     ivec_set(total_row, &interface_flag, 0);
-    for (i=0; i<interface_dofs->row; i++) interface_flag.val[interface_dofs->val[i]] = 1;
-
-    // generate index sets for interior DoFs
-    ivector interior_idx = ivec_create(total_row - interface_dofs->row);
-    INT count_i = 0;
-    for (i = 0; i < total_row; i++){
-        if (!interface_flag.val[i]){
-            interior_idx.val[count_i] = i;
-            count_i++;
+    // seeds are only for preconds with schwarz method
+    ivector seeds_flag;
+    if (schwarz_tag) {
+        fprintf(stdout, "Schwarz"); fflush(stdout);
+        seeds_flag = ivec_create(total_row);
+        ivec_set(total_row, &seeds_flag, 0);
+    }
+    // check if we already have interface_dofs, otherwise make them
+    INT Nseeds = 0;
+    ivector interior_idx;
+    if(interface_dofs) {
+        Nseeds = 0;
+        for (i = 0; i < interface_dofs->row; i++) {
+            interface_flag.val[interface_dofs->val[i]] = 1;
+            if (schwarz_tag && interface_dofs->val[i] > Ablock->blocks[0]->row - 1) {
+                seeds_flag.val[interface_dofs->val[i]] = 1; Nseeds++;
+            }
+        }
+        // generate index sets for interior DoFs
+        interior_idx = ivec_create(total_row - interface_dofs->row);
+        INT count_i = 0;
+        for (i = 0; i < total_row; i++) {
+            if (!interface_flag.val[i]) {
+                interior_idx.val[count_i] = i;
+                count_i++;
+            }
         }
     }
-    printf("Ndof interior %d, ndof interface %d\n", count_i, interface_dofs->row);
+    else {
+        null_tag = 1; // interface_dofs was NULL pointer so we need to make it NULL again at the end (free ivector)
+        // if NULL, we assume all rows of A[3] and all nonzero columns of A[2] are interface dofs
+        for (i = 0; i < Ablock->blocks[2]->nnz; i++) interface_flag.val[Ablock->blocks[2]->JA[i]] = 1;
+        for (i = Ablock->blocks[0]->row; i < total_row; i++) {
+            interface_flag.val[i] = 1;
+            if (schwarz_tag) seeds_flag.val[i] = 1; //fixme: check only once, not for each i
+        }
+        // count number of DoFs
+        INT Ni, Ng = 0;
+        for (i=0; i<total_row; i++) {
+            Ng = Ng+interface_flag.val[i];
+            if (schwarz_tag) Nseeds = Nseeds+seeds_flag.val[i];
+        }
+        Ni = total_row - Ng;
+        // generate index sets for interior DoFs and interface DoFs
+        interior_idx = ivec_create(Ni);
+        interface_dofs = (ivector*)malloc(sizeof(ivector)); interface_dofs[0] = ivec_create(Ng);
+        INT count_i = 0, count_g = 0;
+        for (i = 0; i < total_row; i++) {
+            if (interface_flag.val[i] == 0){
+                interior_idx.val[count_i] = i;
+                count_i++;
+            }
+            else {
+                interface_dofs->val[count_g] = i;
+                count_g++;
+            }
+        }
+    }
     // clean the flag
     ivec_free(&interface_flag);
 
@@ -1776,10 +1822,23 @@ precond* create_precond_metric_amg(block_dCSRmat *Ablock,
 	//#endif
     }
     else{
-        ivector seeds = ivec_create(Ablock->blocks[3]->row);
-        for (i=0; i<seeds.row; i++) seeds.val[i] = (A_new->blocks[3]->row - Ablock->blocks[3]->row)+i; // fixme: not sure about this one
+        // seeds are the interface dofs from the second subdomain, ie i is a seed if interface_dofs[i] is a dof of AA[3]
+        // this includes the case when all dofs of AA[3] are interface dofs (eg in 3d-1d problem, seeds are the 1d dofs)
+        // NB: interface_dofs[i] have the ordering of the input matrix AA, while i are dofs in order of matrix A_new->blocks[3]
+        // (so the indexing of i are local to A_new->blocks[3], ie i \in {0, 1, ..., A_new->blocks[3]->row})
+        ivector seeds = ivec_create(Nseeds);
+        INT count_seeds = 0;
+        for(i = 0; i < interface_dofs->row; ++i) {
+            if(seeds_flag.val[interface_dofs->val[i]]) {
+                seeds.val[count_seeds] = i;
+                count_seeds++;
+            }
+        }
         Schwarz_setup_with_seeds(schwarz_data, schwarz_param, &seeds);
+        //Schwarz_setup(&schwarz_data, &schwarz_param);
+        // clean seeds dofs and flags
         ivec_free(&seeds);
+        ivec_free(&seeds_flag);
     }
 
     precdata->print_level = amgparam->print_level;
@@ -1837,6 +1896,8 @@ precond* create_precond_metric_amg(block_dCSRmat *Ablock,
             pc->fct = precond_bdcsr_metric_amg_symmetric;
             break;
     }
+
+    if(null_tag) { ivec_free(interface_dofs); interface_dofs = NULL; }
 
     get_time(&setup_end);
     pc->setup_time = setup_end - setup_start;

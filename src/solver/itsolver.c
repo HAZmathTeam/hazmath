@@ -4747,11 +4747,11 @@ INT linear_solver_bdcsr_krylov_metric_amg_minimal(block_dCSRmat *AA,
 
     // local variables
     INT i;
-    SHORT null_tag = 0;
+    SHORT null_tag = 0, schwarz_tag = (precond_type != 10 && precond_type != 11);
 
     // sparsify the whole matrix
     for(i = 0; i < 4; ++i) dcsr_compress_inplace(AA->blocks[i], 1e-12);
-    //dcsr_write_dcoo("A_csr.dat", &A_csr);
+
     dCSRmat *A = (dCSRmat*)malloc(sizeof(dCSRmat));
     A[0] = bdcsr_2_dcsr(AA);
 
@@ -4772,7 +4772,7 @@ INT linear_solver_bdcsr_krylov_metric_amg_minimal(block_dCSRmat *AA,
     ivec_set(total_row, &interface_flag, 0);
     // seeds are only for preconds with schwarz method
     ivector seeds_flag;
-    if (precond_type != 10 && precond_type != 11 ) {
+    if (schwarz_tag) {
         seeds_flag = ivec_create(total_row);
         ivec_set(total_row, &seeds_flag, 0);
     }
@@ -4783,7 +4783,7 @@ INT linear_solver_bdcsr_krylov_metric_amg_minimal(block_dCSRmat *AA,
         Nseeds = 0;
         for (i = 0; i < interface_dofs->row; i++) {
             interface_flag.val[interface_dofs->val[i]] = 1;
-            if (precond_type != 10 && precond_type != 11 && interface_dofs->val[i] > AA->blocks[0]->row - 1) {
+            if (schwarz_tag && interface_dofs->val[i] > AA->blocks[0]->row - 1) {
                 seeds_flag.val[interface_dofs->val[i]] = 1; Nseeds++;
             }
         }
@@ -4803,11 +4803,14 @@ INT linear_solver_bdcsr_krylov_metric_amg_minimal(block_dCSRmat *AA,
         for (i = 0; i < AA->blocks[2]->nnz; i++) interface_flag.val[AA->blocks[2]->JA[i]] = 1;
         for (i = AA->blocks[0]->row; i < total_row; i++) {
             interface_flag.val[i] = 1;
-            if (precond_type != 10 && precond_type != 11 ) seeds_flag.val[i] = 1; //fixme: check only once, not for each i
+            if (schwarz_tag) seeds_flag.val[i] = 1; //fixme: check only once, not for each i
         }
         // count number of DoFs
         INT Ni, Ng = 0;
-        for (i=0; i<total_row; i++) { Ng = Ng+interface_flag.val[i]; Nseeds = Nseeds+seeds_flag.val[i]; }
+        for (i=0; i<total_row; i++) {
+            Ng = Ng+interface_flag.val[i];
+            if (schwarz_tag) Nseeds = Nseeds+seeds_flag.val[i];
+        }
         Ni = total_row - Ng;
         // generate index sets for interior DoFs and interface DoFs
         interior_idx = ivec_create(Ni);
