@@ -4696,16 +4696,17 @@ MEMORY_ERROR:
 
 /********************************************************************************************/
 /**
- * \fn INT linear_solver_bdcsr_krylov_metric_amg_minimal (dCSRmat *A, dvector *b, dvector *x,
+ * \fn INT linear_solver_bdcsr_krylov_metric_amg_minimal (block_dCSRmat *A, dvector *b, dvector *x,
+ *                                                        ivector *interface_dofs,
  *                                                        linear_itsolver_param *itparam, AMG_param *amgparam)
  *
  *
  * \brief Solve Ax=b by AMG preconditioned Krylov methods for interface problem using metric AMG approach
  *
- * \param A                 Pointer to the coeff matrix in dCSRmat format
+ * \param A                 Pointer to the coeff matrix in block_dCSRmat format (2x2 matrix!!)
  * \param b                 Pointer to the right hand side in dvector format
  * \param x                 Pointer to the approx solution in dvector format
- * \param interface_dofs    Pointer to indices of interface dofs in ivector format
+ * \param interface_dofs    Pointer to indices of interface dofs in ivector format (can be NULL)
  * \param itparam           Pointer to parameters for iterative solvers
  * \param amgparam          Pointer to parameters of AMG
  *
@@ -4736,7 +4737,7 @@ INT linear_solver_bdcsr_krylov_metric_amg_minimal(block_dCSRmat *AA,
     const SHORT precond_type = itparam->linear_precond_type;
 
     // sparsify the whole matrix
-    //dcsr_compress_inplace(A, 1e-12); //fixme: doesn't this change total_nnz??
+    //dcsr_compress_inplace(A, 1e-12);
     //dcsr_write_dcoo("A_csr.dat", &A_csr);
     dCSRmat *A = (dCSRmat*)malloc(sizeof(dCSRmat));
     A[0] = bdcsr_2_dcsr(AA);
@@ -4765,18 +4766,61 @@ INT linear_solver_bdcsr_krylov_metric_amg_minimal(block_dCSRmat *AA,
     //--------------------------------------------------------------
     //Part 2: reorder the matrix
     //--------------------------------------------------------------
-    // make interface flags
+    // make interface flags and seeds flag for schwarz method
     ivector interface_flag = ivec_create(total_row);
     ivec_set(total_row, &interface_flag, 0);
-    for (i=0; i<interface_dofs->row; i++) interface_flag.val[interface_dofs->val[i]] = 1;
-
-    // generate index sets for interior DoFs
-    ivector interior_idx = ivec_create(total_row - interface_dofs->row);
-    INT count_i = 0;
-    for (i = 0; i < total_row; i++){
-        if (!interface_flag.val[i]){
-            interior_idx.val[count_i] = i;
-            count_i++;
+    // seeds are only for preconds with schwarz method
+    ivector seeds_flag;
+    if (precond_type != 10 && precond_type != 11 ) {
+        seeds_flag = ivec_create(total_row);
+        ivec_set(total_row, &seeds_flag, 0);
+    }
+    // check if we already have interface_dofs, otherwise make them
+    INT Nseeds;
+    ivector interior_idx;
+    if(interface_dofs) {
+        Nseeds = 0;
+        for (i = 0; i < interface_dofs->row; i++) {
+            interface_flag.val[interface_dofs->val[i]] = 1;
+            if (precond_type != 10 && precond_type != 11 && interface_dofs->val[i] > AA->blocks[0]->row - 1) {
+                seeds_flag.val[interface_dofs->val[i]] = 1; Nseeds++;
+            }
+        }
+        // generate index sets for interior DoFs
+        interior_idx = ivec_create(total_row - interface_dofs->row);
+        INT count_i = 0;
+        for (i = 0; i < total_row; i++) {
+            if (!interface_flag.val[i]) {
+                interior_idx.val[count_i] = i;
+                count_i++;
+            }
+        }
+    }
+    else {
+        // if NULL, we assume all rows of A[3] and all nonzero columns of A[2] are interface dofs
+        for (i = 0; i < AA->blocks[2]->nnz; i++) interface_flag.val[AA->blocks[2]->JA[i]] = 1;
+        for (i = AA->blocks[0]->row; i < total_row; i++) {
+            interface_flag.val[i] = 1;
+            if (precond_type != 10 && precond_type != 11 ) seeds_flag.val[i] = 1;
+        }
+        // count number of DoFs
+        INT Ni, Ng;
+        Ng = AA->blocks[2]->nnz + AA->blocks[3]->row;
+        Ni = total_row - Ng;
+        Nseeds = total_row - AA->blocks[0]->row;
+        // generate index sets for interior DoFs and interface DoFs
+        interior_idx = ivec_create(Ni);
+        interface_dofs = (ivector*)malloc(sizeof(ivector)); interface_dofs[0] = ivec_create(Ng);
+        INT count_i = 0, count_g = 0;
+        for (i = 0; i < total_row; i++) {
+            if (interface_flag.val[i] == 0){
+                interior_idx.val[count_i] = i;
+                count_i++;
+            }
+            else {
+                interface_dofs->val[count_g] = i;
+                count_g++;
+            }
         }
     }
     // clean the flag
@@ -4837,10 +4881,8 @@ INT linear_solver_bdcsr_krylov_metric_amg_minimal(block_dCSRmat *AA,
 
     // initialize AD
     mgl[0].AD = NULL;
-
     // initialize M
     mgl[0].M = NULL;
-
     // initialize interface_dof
     mgl[0].interface_dof = NULL;
 
@@ -4878,8 +4920,8 @@ INT linear_solver_bdcsr_krylov_metric_amg_minimal(block_dCSRmat *AA,
     //    error_extlib(257, __FUNCTION__, "SuiteSparse");
     //#endif
 
-    if (precond_type == 10 || precond_type == 11 ){
-      //#if WITH_SUITESPARSE
+    if (precond_type == 10 || precond_type == 11 ) {
+    //#if WITH_SUITESPARSE
         // Need to sort the diagonal blocks for UMFPACK format
         dCSRmat A_tran;
         dcsr_trans(&schwarz_data.A, &A_tran);
@@ -4887,17 +4929,30 @@ INT linear_solver_bdcsr_krylov_metric_amg_minimal(block_dCSRmat *AA,
         if ( prtlvl > PRINT_NONE ) printf("Factorization for the interface block:\n");
         LU_data[0] = hazmath_factorize(&schwarz_data.A, prtlvl);
         dcsr_free(&A_tran);
-	//#else
-	//        error_extlib(257, __FUNCTION__, "SuiteSparse");
-	//#endif
+    //#else
+    //        error_extlib(257, __FUNCTION__, "SuiteSparse");
+    //#endif
     }
-    else{
-        ivector seeds = ivec_create(AA->blocks[3]->row);
-        for (i=0; i<seeds.row; i++) seeds.val[i] = (A_new.blocks[3]->row - AA->blocks[3]->row) + i; // fixme: not sure about this one
+    else {
+        // seeds are the interface dofs from the second subdomain, ie i is a seed if interface_dofs[i] is a dof of AA[3]
+        // this includes the case when all dofs of AA[3] are interface dofs (eg in 3d-1d problem, seeds are the 1d dofs)
+        // NB: interface_dofs[i] have the ordering of the input matrix AA, while i are dofs in order of matrix A_new->blocks[3]
+        // (so the indexing of i are local to A_new->blocks[3], ie i \in {0, 1, ..., A_new->blocks[3]->row})
+        ivector seeds = ivec_create(Nseeds);
+        INT count_seeds = 0;
+        for(i = 0; i < interface_dofs->row; ++i) {
+            if(seeds_flag.val[interface_dofs->val[i]]) {
+                seeds.val[count_seeds] = i;
+                count_seeds++;
+            }
+        }
         Schwarz_setup_with_seeds(&schwarz_data, &schwarz_param, &seeds);
-        ivec_free(&seeds);
         //Schwarz_setup(&schwarz_data, &schwarz_param);
+        // clean seeds dofs and flags
+        ivec_free(&seeds);
+        ivec_free(&seeds_flag);
     }
+
     if (status < 0) goto FINISHED;
 
     precond_data_bdcsr precdata;

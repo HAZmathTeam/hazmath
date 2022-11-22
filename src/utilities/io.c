@@ -894,6 +894,85 @@ void dbsr_read (const char  *filename,
 
 /*** Auxillary Files *********************************************************************/
 /****************************************************************************************/
+/*
+ * \fn void read_eof(const char *fname, void **data, INT *ndata, const char dtype,const SHORT print_level)
+ *
+ * \brief Reads data until EOF until eof. skips any control chars at
+ * the beginning of the file (ASCII < 0).
+ *
+ * The result is stored in data[0] which is allocated here (REAL* for
+ *  double/float or INT* for ints).
+ *
+ * dtype is either 'R', or 'r' for REAL or 'I', 'i' for INT.
+ *
+*/
+void read_eof(const char *fname, void **data, INT *ndata, const char dtype,const SHORT print_level)
+/*************************************************************************************/
+{
+  SHORT data_type=-1;
+  char *type_name=NULL;
+  if(dtype=='i' || dtype=='I'){
+    data_type=TRUE;// integers
+    type_name=strdup("INTs");
+  } else if(dtype=='r' || dtype=='R'){
+    data_type=FALSE;
+    type_name=strdup("REALs");
+  } else{
+    fprintf(stderr,"*** Wrong type in %s; must be \'I\' for integer type  or \'R\' for double/float",__FUNCTION__);
+    exit(9);
+  }
+  INT k,count=0,ichk=-1;
+  long long lint0;
+  long double dl;
+  char ch;
+  FILE *fp=fopen(fname,"r");
+  if (!fp) {
+    perror("fopen");
+    return;
+  }
+  if(print_level>10)
+    fprintf(stdout,"\n%%%%Reading %s from %s\n",type_name,fname);
+  ch=fgetc(fp); while((INT )ch < 0){ch=fgetc(fp);count++;}
+  if(count){
+    if(print_level>10)
+      fprintf(stdout,"%%Read: %lld control chars...", (long long int)count);
+    fseek(fp,count*sizeof(char),SEEK_SET);
+  } else rewind(fp);
+  if(data_type){
+    k=0;
+    while(1){
+      if(feof(fp)) break;
+      ichk=fscanf(fp,"%lld", &lint0);
+      if(ichk<0) break;
+      k++;
+    }
+  } else {
+    k=0;
+    while(1){
+      if(feof(fp)) break;
+      ichk=fscanf(fp,"%Lg", &dl);
+      if(ichk<0) break;
+      k++;
+    }
+  }
+  if(count){
+    fseek(fp,count*sizeof(char),SEEK_SET);
+  } else {
+    rewind(fp);
+  }
+  /* we allocate k reals array*/
+  ndata[0]=k;
+  if(data_type){
+    data[0]=(void *)calloc(ndata[0],sizeof(INT));
+    rveci_(fp,(INT *)data[0],ndata);
+  }else{
+    data[0]=(void *)calloc(ndata[0],sizeof(REAL));
+    rvecd_(fp,(REAL *)data[0],ndata);
+  }
+  if(print_level>10)
+    fprintf(stdout,"\n%%%%Read %lld %s\n",(long long int)ndata[0],type_name);
+  return;
+}
 /*!
  * \fn void rveci_(FILE *fp, INT *vec, INT *nn)
  *
@@ -1985,12 +2064,14 @@ void print_matlab_vector_field(dvector* ux, dvector* uy, dvector* uz, fespace* F
   fclose(fid);
   return;
 }
+
+
 /************************* io functions returning pointers ***********/
 /**
- * \fn void dcoo_read_eof_dcsr_p(FILE *fp,INT *size)
+ * \fn void dcoo_read_eof_dcsr_p(const char *fname,const INT *size,const unsigned char format)
  *
  * \brief Read A from matrix disk file in I,J,V format and convert to CSR format
- *        first reads until the end of file to count the number of nonzeroes
+ *        first reads (as reals) until the end of file to count the number of nonzeroes
  *        then reqinds the file and reads all nonzeroes.
  *        The number of rows is the max of all integers from I[] and size[0]
  *        The number of columns is the max of all integers from J[] and size[1]
@@ -1998,94 +2079,126 @@ void print_matlab_vector_field(dvector* ux, dvector* uy, dvector* uz, fespace* F
  *
  * \param filename  File name for matrix
  * \param size      Pointer to an array with two integers or NULL.
+ * \param format    if format='b' or 'B' reads npy format. if format='a' or 'A' it reads ASCII
  *
- * \note File format:
- *   - nrow ncol nnz     % number of rows, number of columns, and nnz
- *   - i  j  a_ij        % i, j a_ij in each line
+ * \note File format (ASCII):
+ *   - i  j  a_ij        % i, j a_ij
  *
  * \return A         Pointer to the matrix in CSR format
  *
  */
-dCSRmat *dcoo_read_eof_dcsr_p (FILE *fp,INT *size)
+dCSRmat *dcoo_read_eof_dcsr_p(const char *fname,const INT *size,const unsigned char format)
 {
-  INT i,j,k,m,n,nnz,ichk;
-  REAL value;
-  dCSRmat *A=NULL;
-  if(size){
-    m=size[0];
-    n=size[1];
+  SHORT ascii;
+  if(format=='a' || format=='A'){
+    ascii=TRUE;// ascii format
+  } else if(format=='b' || format=='B'){
+    ascii=FALSE; // binary npy
+  } else{
+    fprintf(stderr,"*** Wrong type in %s; must be \'A\' for ascii format type  or \'B\' for npy format",__FUNCTION__);
+    exit(10);
+  }
+  INT i,i1,i2,nnz;
+  dCOOmat acoo=dcoo_create(0,0,0);
+  if(ascii){
+    read_eof(fname,(void **)&acoo.val,&nnz,'R',0);
   } else {
-    m=-1;
-    n=-1;
+    // READ NPY:
+    read_npy_eof(fname,(void **)&acoo.val,&nnz,'R',0);
   }
-  nnz=0;
-  while(!feof(fp)){
-    ichk=fscanf(fp,"%lld %lld %lg", (long long *)&i,(long long *)&j, &value);
-    if(ichk<0) break;
-    if(i>m) m=i;
-    if(j>n) n=j;
-    nnz++;
-  }
-  fprintf(stdout,"%s FOUND %lld records.\n",__FUNCTION__,(long long )nnz);
   // check if we read anything...
   if(!nnz) check_error(ERROR_WRONG_FILE, __FUNCTION__);
   //
-  m++;n++; //bc indices strat from zero so row and coll are with one more.
-  dCOOmat *Atmp=dcoo_create_p(m,n,nnz);
-  //    fprintf(stdout,"\nCheck structure: %d %d %d\n\n",Atmp->row,Atmp->col,Atmp->nnz);fflush(stdout);
-  rewind(fp);
-  for ( k = 0; k < nnz; k++ ) {
-    if ( fscanf(fp, "%lld %lld %lg", (long long *)&i, (long long *)&j, &value) != EOF ) {
-      Atmp->rowind[k]=i; Atmp->colind[k]=j; Atmp->val[k] = value;
-    } else {
-      check_error(ERROR_WRONG_FILE, __FUNCTION__);
-    }
+  nnz=(INT )nnz/3; // this is for coo matrix;
+  acoo.rowind = (INT *)calloc(nnz, sizeof(INT));
+  acoo.colind = (INT *)calloc(nnz, sizeof(INT));
+  acoo.row=-1;acoo.col=-1;
+  acoo.nnz=nnz;
+  acoo.nnz=0;
+  for(i=0;i<nnz;++i){
+    i1=(INT )rint(acoo.val[3*i]);
+    i2=(INT )rint(acoo.val[3*i+1]);
+    if(i1>acoo.row)acoo.row=i1;
+    if(i2>acoo.col)acoo.col=i2;
+    acoo.rowind[i]=i1;
+    acoo.colind[i]=i2;
+    acoo.val[acoo.nnz]=acoo.val[3*i+2];
+    acoo.nnz++;
   }
-  A=dcoo_2_dcsr_p(Atmp);
-  free(Atmp); // just one free if it was allocated with "something_p"
-  return A;
+  acoo.row++;acoo.col++;
+  acoo.val=realloc(acoo.val,acoo.nnz*sizeof(REAL));
+  if(size){
+    if(acoo.row<size[0])
+      acoo.row=size[0];
+    if(acoo.col<size[1])
+      acoo.col=size[1];
+  }
+  dCSRmat *a=dcoo_2_dcsr_p(&acoo);
+  dcoo_free(&acoo); // just one free if it was allocated with "something_p"
+  return a;
 }
+
+
 /***********************************************************************************************/
 /**
- * \fn dvector *dvector_read_eof_p(FILE *fp)
+ * \fn dvector *dvector_read_eof_p(const char *fname, const unsigned char format)
  *
- * \brief Read b from a disk file until EOF in array format
+ * \brief Read b from a disk file until EOF. B is just a column of REALS numbers
  *
  * \param  filename  File name for vector b
+ * \param format    if format='b' or 'B' reads npy format. if format='a' or 'A' it reads ASCII
  *
  * \note File Format:
- *   - nrow
  *   - val_j, j=0:nrow-1
  *
  * \return b         Pointer to the dvector b (output)
  *
  */
-dvector *dvector_read_eof_p(FILE *fp)
+dvector *dvector_read_eof_p(const char *fname, const unsigned char format)
 {
-  INT  i, n,ichk;
-  REAL value;
-  dvector *b=NULL;
-  n=0;
-  while(!feof(fp)){
-    ichk=fscanf(fp,"%lg", &value);
-    if(ichk<0) break;
-    n++;
+  dvector *b=dvec_create_p(0);
+  if(format=='a' || format=='A'){
+    read_eof(fname,(void **)&b->val,&b->row,'R',0);
+  } else if(format=='b' || format=='B'){
+    // READ NPY:
+    read_npy_eof(fname,(void **)&b->val,&b->row,'R',0);
+  } else {
+    fprintf(stderr,"*** Wrong type in %s; must be \'A\' for ascii format type  or \'B\' for npy format",__FUNCTION__);
+    exit(11);
   }
-  fprintf(stdout,"%s: FOUND %lld records.\n",__FUNCTION__,(long long )n);
-  if(!n)
+  if(!b->row)
     check_error(ERROR_WRONG_FILE, __FUNCTION__);
-  b=dvec_create_p(n);
-  rewind(fp);
-  for ( i = 0; i < n; ++i ) {
-    fscanf(fp, "%lg", &value);
-    b->val[i] = value;
-    if ( value > BIGREAL ) {
-      fprintf(stderr,"### ERROR: Wrong value = %lf\n", value);
-      fclose(fp);
-      if(b) free(b);
-      exit(ERROR_INPUT_PAR);
-    }
+  return b;
+}
+
+/*
+ * \fn ivector *ivector_read_eof_p(const char *fname, const unsigned char format)
+ *
+ * \brief Read b from a disk file until EOF. B is just a column of INT32 numbers
+ *
+ * \param  filename  File name for vector b
+ * \param format    if format='b' or 'B' reads npy format. if format='a' or 'A' it reads ASCII
+ *
+ * \note File Format:
+ *   - val_j, j=0:nrow-1
+ *
+ * \return b         Pointer to the ivector b (output)
+ *
+ */
+ivector *ivector_read_eof_p(const char *fname, const unsigned char format)
+{
+  ivector *b=ivec_create_p(0);
+  if(format=='a' || format=='A'){
+    read_eof(fname,(void **)&b->val,&b->row,'I',0);
+  } else if(format=='b' || format=='B'){
+    // READ NPY:
+    read_npy_eof(fname,(void **)&b->val,&b->row,'I',0);
+  } else {
+    fprintf(stderr,"*** Wrong type in %s; must be \'A\' for ascii format type  or \'B\' for npy format",__FUNCTION__);
+    exit(11);
   }
+  if(!b->row)
+    check_error(ERROR_WRONG_FILE, __FUNCTION__);
   return b;
 }
 /*********************************************************************/
@@ -2386,6 +2499,168 @@ INT features_r(features *feat,scomplex *sc, const INT do_map)
     cube2simp_free(c2s);
   }  
   return 0;
+}
+
+
+/************************************************************************************************/
+/*
+ * \fn void read_npy_eof(const char *fname, void **data, INT *ndata, const char dtype,const SHORT print_level)
+ *
+ * \brief Reads data from npy file until EOF. skips any header, so it is insensitive to the shape.
+ * The result is stored in data[0] which is allocated here (REAL* for
+ *  double/float or INT* for ints).
+ *
+ * dtype is either 'R', or 'r' for REAL or 'I', 'i' for INT.
+ *
+ *
+ *   NPY format description as found on GitHub:
+ *   https://github.com/numpy/numpy/blob/main/doc/neps/nep-0001-npy-format.rst
+ *
+ *
+ * \note The first 6 bytes are a magic string: exactly "x93NUMPY". The
+ *       next 1 byte is an unsigned byte: the major version number of
+ *       the file format, e.g. x01.
+ *
+ *       The next 1 byte is an unsigned byte: the minor version number
+ *       of the file format, e.g. x00. Note: the version of the file
+ *       format is not tied to the version of the numpy package.
+ *
+ *       The next 2 bytes form a little-endian unsigned short int: the
+ *       length of the header data HEADER_LEN.
+ *
+ *       The next HEADER_LEN bytes form the header data describing the
+ *       array's format. It is an ASCII string which contains a Python
+ *       literal expression of a dictionary. It is terminated by a
+ *       newline ('n') and padded with spaces ('x20') to make the
+ *       total length of the magic string + 4 + HEADER_LEN be evenly
+ *       divisible by 16 for alignment purposes.
+ *
+ *       The dictionary contains three keys:
+ *
+ *        "descr" : dtype.descr: An object that can be passed as an
+ *                  argument to the numpy.dtype() constructor to
+ *                  create the array's dtype.
+ *
+ * "fortran_order": bool: Whether the array data is
+ *                        Fortran-contiguous or not. Since
+ *                        Fortran-contiguous arrays are a common form
+ *                        of non-C-contiguity, we allow them to be
+ *                        written directly to disk for efficiency.
+ *
+ * "shape" : tuple of int The shape of the array. For repeatability
+ *           and readability, this dictionary is formatted using
+ *           pprint.pformat() so the keys are in alphabetic order.
+ *
+ *         Following the header comes the array data. If the dtype
+ *         contains Python objects (i.e. dtype.hasobject is True),
+ *         then the data is a Python pickle of the array. Otherwise
+ *         the data is the contiguous (either C- or Fortran-,
+ *         depending on fortran_order) bytes of the array. Consumers
+ *         can figure out the number of bytes by multiplying the
+ *         number of elements given by the shape (noting that shape=()
+ *         means there is 1 element) by dtype.itemsize.
+ *
+ * Format Specification: Version 2.0:
+ *
+ *         The version 1.0 format only * allowed the array header to
+ *         have a total size of 65535 * bytes. This can be exceeded by
+ *         structured arrays with a large number of columns. The
+ *         version 2.0 format extends the header size to 4
+ *         GiB. numpy.save will automatically save in 2.0 format if
+ *         the data requires it, else it will always use the more
+ *         compatible 1.0 format.
+ *
+ *         The description of the fourth element of the header
+ *         therefore has become:
+ *
+ *         The next 4 bytes form a little-endian unsigned int: the
+ *         length of the header data HEADER_LEN.
+ *
+ * 20221115 (ltz)
+ *
+ */
+/************************************************************************************************/
+void read_npy_eof(const char *fname, void **data, INT *ndata, const char dtype,const SHORT print_level)
+/*************************************************************************************/
+{
+  SHORT data_type=-1;
+  char *type_name=NULL;
+  if(dtype=='i' || dtype=='I'){
+    data_type=TRUE;// integers
+    type_name=strdup("INTs");
+  } else if(dtype=='r' || dtype=='R'){
+    data_type=FALSE;
+    type_name=strdup("REALs");
+  } else{
+    fprintf(stderr,"*** Wrong type in %s; must be \'I\' for integer type  or \'R\' for double/float",__FUNCTION__);
+    exit(9);
+  }
+  if(print_level>10)
+    fprintf(stdout,"\n%%%%Reading %s from %s\n",type_name,fname);
+  FILE *fp = fopen(fname, "rb");
+  if (!fp) {
+    perror("fopen");
+    return;
+  }
+  unsigned char buffer[8];// 8 bytes first
+  size_t ret[4];
+  unsigned short int nb = 8;
+  ret[0]= fread(buffer,sizeof(unsigned char),nb, fp);
+  if(print_level>10)
+    fprintf(stdout,"%%%%magic=%#2x; header++=%s\n", buffer[0], &buffer[1]);
+  ret[0]*=sizeof(unsigned char);
+  unsigned short int vmajor=(unsigned short int )buffer[6];
+  unsigned short int vminor=(unsigned short int )buffer[7];
+  if(print_level>10)
+    fprintf(stdout,"%%%%NPY format version=%1d.%1d\n", vmajor,vminor);
+  unsigned short int buffint;
+  unsigned int buffint2;
+  size_t hl;
+  if(vmajor<2){
+    ret[1] = fread(&buffint,sizeof(unsigned short int),1, fp);
+    ret[1]*=sizeof(unsigned short int);
+    hl=(size_t )buffint;
+  } else {
+    ret[1] = fread(&buffint2,sizeof(unsigned int),1, fp);
+    ret[1]*=sizeof(unsigned int);
+    hl=(size_t )buffint2;
+  }
+  if(print_level>10)
+    fprintf(stdout,"\n%%%%HEADER LENGTH (in chars)=%ld\n",hl);
+  char *header=calloc(hl,sizeof(char));
+  ret[2] = fread(header,sizeof(char),hl, fp);
+  ret[2]*=sizeof(char);
+  if(print_level>10)
+    fprintf(stdout,"%%%%HEADER=%s\n",header);
+  //
+  size_t hb=ret[0]+ret[1]+ret[2];
+  //
+  if(print_level>10)
+    fprintf(stdout,"\n%%%%Bytes_to_skip=%ld\n",hb);
+  free(header);
+  ndata[0]=0;
+  size_t read_size=0;
+  if(data_type)
+    read_size=sizeof(INT);
+  else
+    read_size=sizeof(REAL);
+  data[0]=calloc(1,read_size);
+  while(1){
+    if(feof(fp)) break;
+    ret[3]=fread((REAL *)data[0],read_size,1,fp);
+    if(ret[3]<0) break;
+    ndata[0]++;
+  }
+  rewind(fp);
+  fseek(fp,hb,SEEK_SET);
+  data[0]=realloc(data[0],ndata[0]*read_size);
+  ret[3]=fread((REAL *)data[0],read_size,ndata[0],fp);
+  fclose(fp);
+  ndata[0]=ret[3];
+  if(print_level>10)
+    fprintf(stdout,"\n%%%%Read %lld %s\n",(long long int)ndata[0],type_name);
+  free(type_name);
+  return;
 }
 /*********************************************************************/
 /*EOF*/

@@ -1513,8 +1513,6 @@ INT fenics_metric_amg_solver_minimal(block_dCSRmat *A,
     param_input_init(&inparam);
     param_input("./input_metric.dat", &inparam);
 
-    dCSRmat A_csr = bdcsr_2_dcsr(A);
-
     /* set initial guess */
     dvec_set(b->row, x, 0.0);
 
@@ -1547,7 +1545,9 @@ INT fenics_metric_amg_solver_minimal(block_dCSRmat *A,
     }
     // No preconditioner
     else{
+        dCSRmat A_csr = bdcsr_2_dcsr(A);
         solver_flag = linear_solver_dcsr_krylov(&A_csr, b, x, &linear_itparam);
+        dcsr_free(&A_csr);
     }
 
     return solver_flag;
@@ -1628,7 +1628,7 @@ INT fenics_metric_amg_solver_timo(INT n0,
 */
 
 // todo: remove AD, M, interface_dofs matrices from amg_data_bdcsr because they are not used
-precond* create_precond_metric_amg(dCSRmat *A,
+precond* create_precond_metric_amg(block_dCSRmat *Ablock,
                                    ivector *interface_dofs,
                                    SHORT precond_type,
                                    AMG_param *amgparam)
@@ -1654,6 +1654,8 @@ precond* create_precond_metric_amg(dCSRmat *A,
     //dcsr_write_dcoo("A_csr.dat", A);
 
     // total size
+    dCSRmat *A = (dCSRmat*)malloc(sizeof(dCSRmat));
+    A[0] = bdcsr_2_dcsr(Ablock);
     INT total_row = A->row;
     INT total_col = A->col;
     INT total_nnz = A->nnz;
@@ -1697,6 +1699,9 @@ precond* create_precond_metric_amg(dCSRmat *A,
     // Use second diagonal block directly in A_diag
     dcsr_alloc(A_new->blocks[3]->row, A_new->blocks[3]->col, A_new->blocks[3]->nnz, &A_diag[1]);
     dcsr_cp(A_new->blocks[3], &A_diag[1]);
+
+    // clean csr matrix
+    dcsr_free(A);
 
     //--------------------------------------------------------------
     // Part 3: set up the preconditioner
@@ -1771,8 +1776,8 @@ precond* create_precond_metric_amg(dCSRmat *A,
 	//#endif
     }
     else{
-        ivector seeds = ivec_create(interface_dofs->row);
-        for (i=0; i<seeds.row; i++) seeds.val[i] = (A_new->blocks[3]->row - interface_dofs->row)+i; // fixme: not sure about this one
+        ivector seeds = ivec_create(Ablock->blocks[3]->row);
+        for (i=0; i<seeds.row; i++) seeds.val[i] = (A_new->blocks[3]->row - Ablock->blocks[3]->row)+i; // fixme: not sure about this one
         Schwarz_setup_with_seeds(schwarz_data, schwarz_param, &seeds);
         ivec_free(&seeds);
     }
