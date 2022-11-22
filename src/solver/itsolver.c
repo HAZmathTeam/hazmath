@@ -4736,17 +4736,6 @@ INT linear_solver_bdcsr_krylov_metric_amg_minimal(block_dCSRmat *AA,
     const INT bcol = 2;
     const SHORT precond_type = itparam->linear_precond_type;
 
-    // sparsify the whole matrix
-    //dcsr_compress_inplace(A, 1e-12);
-    //dcsr_write_dcoo("A_csr.dat", &A_csr);
-    dCSRmat *A = (dCSRmat*)malloc(sizeof(dCSRmat));
-    A[0] = bdcsr_2_dcsr(AA);
-
-    // total size
-    INT total_row = A->row;
-    INT total_col = A->col;
-    INT total_nnz = A->nnz;
-
     // return variable
     INT status = SUCCESS;
 
@@ -4758,6 +4747,18 @@ INT linear_solver_bdcsr_krylov_metric_amg_minimal(block_dCSRmat *AA,
 
     // local variables
     INT i;
+    SHORT null_tag = 0;
+
+    // sparsify the whole matrix
+    for(i = 0; i < 4; ++i) dcsr_compress_inplace(AA->blocks[i], 1e-12);
+    //dcsr_write_dcoo("A_csr.dat", &A_csr);
+    dCSRmat *A = (dCSRmat*)malloc(sizeof(dCSRmat));
+    A[0] = bdcsr_2_dcsr(AA);
+
+    // total size
+    INT total_row = A->row;
+    INT total_col = A->col;
+    INT total_nnz = A->nnz;
 
 #if DEBUG_MODE > 0
     printf("### DEBUG: [-Begin-] %s ...\n", __FUNCTION__);
@@ -4776,7 +4777,7 @@ INT linear_solver_bdcsr_krylov_metric_amg_minimal(block_dCSRmat *AA,
         ivec_set(total_row, &seeds_flag, 0);
     }
     // check if we already have interface_dofs, otherwise make them
-    INT Nseeds;
+    INT Nseeds = 0;
     ivector interior_idx;
     if(interface_dofs) {
         Nseeds = 0;
@@ -4797,17 +4798,17 @@ INT linear_solver_bdcsr_krylov_metric_amg_minimal(block_dCSRmat *AA,
         }
     }
     else {
+        null_tag = 1; // interface_dofs was NULL pointer so we need to make it NULL again at the end (free ivector)
         // if NULL, we assume all rows of A[3] and all nonzero columns of A[2] are interface dofs
         for (i = 0; i < AA->blocks[2]->nnz; i++) interface_flag.val[AA->blocks[2]->JA[i]] = 1;
         for (i = AA->blocks[0]->row; i < total_row; i++) {
             interface_flag.val[i] = 1;
-            if (precond_type != 10 && precond_type != 11 ) seeds_flag.val[i] = 1;
+            if (precond_type != 10 && precond_type != 11 ) seeds_flag.val[i] = 1; //fixme: check only once, not for each i
         }
         // count number of DoFs
-        INT Ni, Ng;
-        Ng = AA->blocks[2]->nnz + AA->blocks[3]->row;
+        INT Ni, Ng = 0;
+        for (i=0; i<total_row; i++) { Ng = Ng+interface_flag.val[i]; Nseeds = Nseeds+seeds_flag.val[i]; }
         Ni = total_row - Ng;
-        Nseeds = total_row - AA->blocks[0]->row;
         // generate index sets for interior DoFs and interface DoFs
         interior_idx = ivec_create(Ni);
         interface_dofs = (ivector*)malloc(sizeof(ivector)); interface_dofs[0] = ivec_create(Ng);
@@ -4823,9 +4824,13 @@ INT linear_solver_bdcsr_krylov_metric_amg_minimal(block_dCSRmat *AA,
             }
         }
     }
+
+    //print all vectors
+    //fprintf(stdout, "Total size: %d x %d \n", total_row, total_col);
+    //fprintf(stdout, "Interface flags size %d \n", interface_flag.row); iarray_print(interface_flag.val, interface_flag.row);
+
     // clean the flag
     ivec_free(&interface_flag);
-
     // get new ordered block dCSRmat matrix
     block_dCSRmat A_new;
     bdcsr_alloc(brow, bcol, &A_new);
@@ -4835,15 +4840,8 @@ INT linear_solver_bdcsr_krylov_metric_amg_minimal(block_dCSRmat *AA,
     dcsr_getblk(A, interface_dofs->val, interior_idx.val,  interface_dofs->row, interior_idx.row,  A_new.blocks[2]);
     dcsr_getblk(A, interface_dofs->val, interface_dofs->val, interface_dofs->row, interface_dofs->row, A_new.blocks[3]);
 
-    //fprintf(stdout, "A(0,0) sizes: %d %d %d\n", A_new.blocks[0]->row, A_new.blocks[0]->col, A_new.blocks[0]->nnz);
-    //fprintf(stdout, "A(0,1) sizes: %d %d %d\n", A_new.blocks[1]->row, A_new.blocks[1]->col, A_new.blocks[1]->nnz);
-    //fprintf(stdout, "A(1,0) sizes: %d %d %d\n", A_new.blocks[2]->row, A_new.blocks[2]->col, A_new.blocks[2]->nnz);
-    //fprintf(stdout, "A(1,1) sizes: %d %d %d\n", A_new.blocks[3]->row, A_new.blocks[3]->col, A_new.blocks[3]->nnz);
-
+    //fprintf(stdout, "A(0,0) sizes: %d %d %d\n", AA->blocks[0]->row, AA->blocks[0]->col, AA->blocks[0]->nnz);
     //dcsr_write_dcoo("./A00.dat", A_new.blocks[0]);
-    //dcsr_write_dcoo("./A01.dat", A_new.blocks[1]);
-    //dcsr_write_dcoo("./A10.dat", A_new.blocks[2]);
-    //dcsr_write_dcoo("./A11.dat", A_new.blocks[3]);
 
     // get diagonal blocks
     dCSRmat *A_diag = (dCSRmat *)calloc(brow, sizeof(dCSRmat));
@@ -5050,6 +5048,7 @@ FINISHED:
     dvec_free(&b_new);
     dvec_free(&x_new);
     ivec_free(&interior_idx);
+    if(null_tag) { ivec_free(interface_dofs); interface_dofs = NULL; }
 
 #if DEBUG_MODE > 0
     printf("### DEBUG: [--End--] %s ...\n", __FUNCTION__);
