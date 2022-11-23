@@ -1517,10 +1517,13 @@ INT fenics_metric_amg_solver_minimal(block_dCSRmat *A,
     dvec_set(b->row, x, 0.0);
 
     /* rescale matrix and rhs! */
-    //REAL amin[1], amax[1];
-    //dcsr_diag_extremal(0, A, amin, amax);
-    //dcsr_axm(A, 1./amax[0]);
-    //dvec_ax(1./amax[0], b);
+    INT nblocks = A->brow * A->bcol;
+    REAL *amin = (REAL*)calloc(nblocks, sizeof(REAL));
+    REAL *amax = (REAL*)calloc(nblocks, sizeof(REAL));
+    for(i = 0; i < nblocks; ++i) dcsr_diag_extremal(0, A->blocks[i], amin+i, amax+i);
+    REAL maxx = darray_max(nblocks, amax);
+    bdcsr_axm(A, 1./maxx);
+    dvec_ax(1./maxx, b);
 
     /* Set Solver Parameters */
     INT solver_flag = -20;
@@ -1669,7 +1672,6 @@ precond* create_precond_metric_amg(block_dCSRmat *Ablock,
     // seeds are only for preconds with schwarz method
     ivector seeds_flag;
     if (schwarz_tag) {
-        fprintf(stdout, "Schwarz"); fflush(stdout);
         seeds_flag = ivec_create(total_row);
         ivec_set(total_row, &seeds_flag, 0);
     }
@@ -1871,7 +1873,7 @@ precond* create_precond_metric_amg(block_dCSRmat *Ablock,
     precdata->perm = ivec_create(total_row);
     iarray_cp(interior_idx.row, interior_idx.val, precdata->perm.val);
     iarray_cp(interface_dofs->row, interface_dofs->val, &(precdata->perm.val[interior_idx.row]));
-    //iarray_print(precdata->perm.val, total_row);
+    iarray_print(precdata->perm.val, total_row);
     ivec_free(&interior_idx);
 
     pc->data = precdata;

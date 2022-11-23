@@ -3386,6 +3386,31 @@ FINISHED:
 
 /***********************************************************************************************/
 /*!
+ * \fn void bdcsr_axm (block_dCSRmat *A, const REAL alpha)
+ *
+ * \brief Multiply a block_dCSRmat format sparse matrix A by a scalar number alpha.
+ *
+ * \param A      Pointer to block_dCSRmat matrix A
+ * \param alpha  Scalar REAL number
+ *
+ * \note 2022-11-23 by Ana Budisa
+ *
+ */
+void bdcsr_axm(block_dCSRmat *A,
+               const REAL alpha)
+{
+    INT i;
+    for (i=0; i<(A->brow*A->bcol); i++) {
+        if (A->blocks[i]) {
+            dcsr_axm(A->blocks[i], alpha);
+        }
+    }
+}
+
+
+
+/***********************************************************************************************/
+/*!
    * \fn void bdcsr_aAxpy (const REAL alpha, block_dCSRmat *A,
    *                                 REAL *x, REAL *y)
    *
