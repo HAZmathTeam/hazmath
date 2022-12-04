@@ -3731,6 +3731,170 @@ void precond_block_diag(REAL *r,
   //#endif
 }
 
+/***********************************************************************************************/
+/**
+ * \fn void precond_block_lower(REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (nxn block matrix, each diagonal block
+ *        is solved exactly)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   12/04/2022
+ */
+void precond_block_lower(REAL *r,
+                          REAL *z,
+                          void *data)
+{
+  //#if WITH_SUITESPARSE
+  precond_block_data *precdata=(precond_block_data *)data;
+  dCSRmat *A_diag = precdata->A_diag;
+  dvector *tempr = &(precdata->r);
+  block_dCSRmat *A = precdata->Abcsr;
+
+  const INT nb = A->brow;
+  const INT N = tempr->row;
+
+  INT i, j, istart, jstart;
+
+  //const INT N0 = A_diag[0].row;
+  //const INT N1 = A_diag[1].row;
+
+  // back up r, setup z;
+  array_cp(N, r, tempr->val);
+  array_set(N, z, 0.0);
+
+  // prepare
+  void **LU_diag = precdata->LU_diag;
+  dvector ri, zi;
+  istart = 0;
+
+  // main loop
+  for (i=0; i<nb; i++)
+  {
+      // setup jstart
+      jstart = 0;
+
+      for (j=0; j<i; j++)
+      {
+
+          // update right hand side
+          dcsr_aAxpy(-1.0, A->blocks[i*nb+j], &(z[jstart]), &(r[istart]));
+
+          // update jstart
+          jstart = jstart + A_diag[j].row;
+
+      }
+
+      // get dvector for solutions and right hand sides
+      ri.row = A_diag[i].row;
+      zi.row = A_diag[i].row;
+
+      ri.val = &(r[istart]);
+      zi.val = &(z[istart]);
+
+      // solve
+      hazmath_solve(&A_diag[i], &ri, &zi, LU_diag[i], 0);
+
+      // update istart
+      istart = istart + A_diag[i].row;
+
+  }
+
+  // restore r
+  array_cp(N, tempr->val, r);
+
+  //#endif
+}
+
+
+/***********************************************************************************************/
+/**
+ * \fn void precond_block_upper(REAL *r, REAL *z, void *data)
+ * \brief block diagonal preconditioning (nxn block matrix, each diagonal block
+ *        is solved exactly)
+ *
+ * \param r     Pointer to the vector needs preconditioning
+ * \param z     Pointer to preconditioned vector
+ * \param data  Pointer to precondition data
+ *
+ * \author Xiaozhe Hu
+ * \date   12/04/2022
+ */
+void precond_block_upper(REAL *r,
+                         REAL *z,
+                         void *data)
+{
+  //#if WITH_SUITESPARSE
+  precond_block_data *precdata=(precond_block_data *)data;
+  dCSRmat *A_diag = precdata->A_diag;
+  dvector *tempr = &(precdata->r);
+  block_dCSRmat *A = precdata->Abcsr;
+
+  const INT nb = A->brow;
+  const INT N = tempr->row;
+
+  INT i, j, istart, jstart;
+
+  // back up r, setup z;
+  array_cp(N, r, tempr->val);
+  array_set(N, z, 0.0);
+
+  // prepare
+  void **LU_diag = precdata->LU_diag;
+  dvector ri, zi;
+  istart = 0;
+  for (i=0; i<nb-1; i++) istart = istart + A_diag[i].row;
+
+  //printf("istart = %d\n", istart);
+  //printf("nb=%d\n",nb);
+
+  for (i=nb-1; i>=0; i--)
+  {
+      //printf("i=%d\n",i);
+
+      jstart = 0;
+      for (j=0; j<nb-1; j++) jstart = jstart + A_diag[j].row;
+      //printf("jstart = %d\n", jstart);
+
+      for (j=nb-1; j>i; j--)
+      {
+
+          // update right hand side
+          //printf("i=%d, j=%d, i*nb+j=%d, istart=%d, jstart=%d\n", i, j, i*nb+j, istart, jstart);
+          //getchar();
+          dcsr_aAxpy(-1.0, A->blocks[i*nb+j], &(z[jstart]), &(r[istart]));
+
+          // update jstart
+          jstart = jstart - A_diag[j-1].row;
+
+      }
+
+      // get dvector for solutions and right hand sides
+      ri.row = A_diag[i].row;
+      zi.row = A_diag[i].row;
+
+      ri.val = &(r[istart]);
+      zi.val = &(z[istart]);
+
+      // solve
+      //printf("istart=%d\n", istart);
+      //getchar();
+      hazmath_solve(&A_diag[i], &ri, &zi, LU_diag[i], 0);
+
+      // update istart
+      if (i>0) istart = istart - A_diag[i-1].row;
+
+  }
+
+  // restore r
+  array_cp(N, tempr->val, r);
+
+  //#endif
+}
+
 
 /*************** Special Preconditioners for Mixed Darcy Flow *********************************/
 

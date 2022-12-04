@@ -3283,7 +3283,6 @@ INT linear_solver_bdcsr_krylov_block(block_dCSRmat *A,
       prec.fct = precond_block_diag;
       break;
 
-    /*
     case 11:
       prec.fct = precond_block_lower;
       break;
@@ -3291,7 +3290,6 @@ INT linear_solver_bdcsr_krylov_block(block_dCSRmat *A,
     case 12:
       prec.fct = precond_block_upper;
       break;
-   */
 
     default:
       prec.fct = precond_block_diag;
