@@ -66,6 +66,9 @@ typedef struct {
     //! local solution
     dvector xloc1;
 
+    //! local matrix
+    dCSRmat Aloc1;
+
     //! Schwarz method type
     INT Schwarz_type;
 
@@ -902,6 +905,9 @@ typedef struct {
 
     //! temporary work space for other usage
     REAL *w;
+
+    //! temporary vector space for permutation that assembles the block format
+    ivector perm;
 
 } precond_data_bdcsr; /**< Data for preconditioners in block_dCSRmat format */
 

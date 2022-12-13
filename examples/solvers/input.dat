@@ -54,7 +54,7 @@ linear_itsolver_tol		= 1e-6  % tolerance for linear iterative solver
 linear_stop_type		= 2     	% 1 ||r||/||b|| | 2 ||r||_B/||b||_B | % 3 ||r||/||x||
 linear_restart 			= 100		% restart for GMRes
 
-linear_precond_type		= 2		%  0 Null | 1 Diag | 2 AMG
+linear_precond_type		= 14		%  0 Null | 1 Diag | 2 AMG
                                     % 10: direct solve on interface part + AMG on the whole matrix (nonsymmetric multiplicative version)
                                     % 11: direct on interface part + AMG on the whole matrix (additive version)
                                     % 12: Schwarz method on interface part + AMG on the whole matrix (nonsymmetric multiplicative version)

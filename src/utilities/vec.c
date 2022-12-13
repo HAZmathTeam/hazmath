@@ -70,10 +70,12 @@ dvector dvec_create (const INT m)
     dvector u;
 
     u.row = m;
-    u.val = (REAL *)calloc(m,sizeof(REAL));
-
+    if(m>0){
+      u.val = (REAL *)calloc(m,sizeof(REAL));
+    } else {
+      u.val=NULL;
+    }
     return u;
-
 }
 
 /***********************************************************************************************/
@@ -90,10 +92,12 @@ dvector dvec_create (const INT m)
 ivector ivec_create (const INT m)
 {
     ivector u;
-
+    if(m>0){
+      u.val = (INT *)calloc(m,sizeof(INT));
+    } else {
+      u.val=NULL;
+    }
     u.row = m;
-    u.val = (INT *)calloc(m,sizeof(INT));
-
     return u;
 }
 
@@ -111,8 +115,11 @@ void dvec_alloc (const INT m,
                  dvector *u)
 {
     u->row = m;
-    u->val = (REAL*)calloc(m,sizeof(REAL));
-
+    if(m>0){
+      u->val = (REAL*)calloc(m,sizeof(REAL));
+    } else {
+      u->val=NULL;
+    }
     return;
 }
 
@@ -129,9 +136,12 @@ void dvec_alloc (const INT m,
 void ivec_alloc (const INT m,
                  ivector *u)
 {
+    if(m>0){
+      u->val = (INT*)calloc(m,sizeof(INT));
+    } else {
+      u->val=NULL;
+    }
     u->row = m;
-    u->val = (INT*)calloc(m,sizeof(INT));
-
     return;
 }
 
