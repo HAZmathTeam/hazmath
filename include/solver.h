@@ -69,7 +69,7 @@ typedef struct {
     //! local matrix
     dCSRmat Aloc1;
 
-    //! Schwarz method type
+    //! Schwarz method type (1 forward, 2 backward, 3 symmetric, 4 additive)
     INT Schwarz_type;
 
     //! Schwarz block solver
