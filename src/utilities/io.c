@@ -56,7 +56,7 @@ void iarray_print(INT *vec,
 
   // main loop
   for ( ; vec < vec_end; ++vec)
-    fprintf(stdout, "%lld\n  ",(long long )(*vec));
+    fprintf(stdout, "%lld  ",(long long )(*vec));
 
   fprintf(stdout,"\n");
 
@@ -83,7 +83,7 @@ void array_print(REAL *vec,
   fprintf(stdout,"\n");
 
   for ( ; vec < vec_end; ++vec)
-    fprintf(stdout, "%e\n  ",*vec);
+    fprintf(stdout, "%e  ",*vec);
 
   fprintf(stdout,"\n");
 
@@ -973,6 +973,7 @@ void read_eof(const char *fname, void **data, INT *ndata, const char dtype,const
   return;
 }
 /****************************************************************************************/
+
 /*!
  * \fn void rveci_(FILE *fp, INT *vec, INT *nn)
  *
@@ -1904,6 +1905,8 @@ void print_matlab_vector_field(dvector* ux, dvector* uy, dvector* uz, fespace* F
   fclose(fid);
   return;
 }
+
+
 /************************* io functions returning pointers ***********/
 /**
  * \fn void dcoo_read_eof_dcsr_p(const char *fname,const INT *size,const unsigned char format)
@@ -1957,7 +1960,7 @@ dCSRmat *dcoo_read_eof_dcsr_p(const char *fname,const INT *size,const unsigned c
     i1=(INT )rint(acoo.val[3*i]);
     i2=(INT )rint(acoo.val[3*i+1]);
     if(i1>acoo.row)acoo.row=i1;
-    if(i2>acoo.col)acoo.col=i2;    
+    if(i2>acoo.col)acoo.col=i2;
     acoo.rowind[i]=i1;
     acoo.colind[i]=i2;
     acoo.val[acoo.nnz]=acoo.val[3*i+2];
@@ -1975,6 +1978,8 @@ dCSRmat *dcoo_read_eof_dcsr_p(const char *fname,const INT *size,const unsigned c
   dcoo_free(&acoo); // just one free if it was allocated with "something_p"
   return a;
 }
+
+
 /***********************************************************************************************/
 /**
  * \fn dvector *dvector_read_eof_p(const char *fname, const unsigned char format)
@@ -2004,6 +2009,39 @@ dvector *dvector_read_eof_p(const char *fname, const unsigned char format)
   }
   if(!b->row)
     check_error(ERROR_WRONG_FILE, __FUNCTION__);
+
+  return b;
+}
+
+/*
+ * \fn ivector *ivector_read_eof_p(const char *fname, const unsigned char format)
+ *
+ * \brief Read b from a disk file until EOF. B is just a column of INT32 numbers
+ *
+ * \param  filename  File name for vector b
+ * \param format    if format='b' or 'B' reads npy format. if format='a' or 'A' it reads ASCII
+ *
+ * \note File Format:
+ *   - val_j, j=0:nrow-1
+ *
+ * \return b         Pointer to the ivector b (output)
+ *
+ */
+ivector *ivector_read_eof_p(const char *fname, const unsigned char format)
+{
+  ivector *b=ivec_create_p(0);
+  if(format=='a' || format=='A'){
+    read_eof(fname,(void **)&b->val,&b->row,'I',0);
+  } else if(format=='b' || format=='B'){
+    // READ NPY:
+    read_npy_eof(fname,(void **)&b->val,&b->row,'I',0);
+  } else {
+    fprintf(stderr,"*** Wrong type in %s; must be \'A\' for ascii format type  or \'B\' for npy format",__FUNCTION__);
+    exit(11);
+  }
+  if(!b->row)
+    check_error(ERROR_WRONG_FILE, __FUNCTION__);
+
   return b;
 }
 /*********************************************************************/
@@ -2313,21 +2351,21 @@ INT features_r(features *feat,scomplex *sc, const INT do_map, const REAL scale)
   }  
   return 0;
 }
+
 /************************************************************************************************/
-/* 
+/*
  * \fn void read_npy_eof(const char *fname, void **data, INT *ndata, const char dtype,const SHORT print_level)
  *
- * \brief Reads data from npy file until EOF. skips any header, so it is insensitive to the shape. 
+ * \brief Reads data from npy file until EOF. skips any header, so it is insensitive to the shape.
  * The result is stored in data[0] which is allocated here (REAL* for
  *  double/float or INT* for ints).
- * 
+ *
  * dtype is either 'R', or 'r' for REAL or 'I', 'i' for INT.
  *
  *
  *   NPY format description as found on GitHub:
  *   https://github.com/numpy/numpy/blob/main/doc/neps/nep-0001-npy-format.rst
  *
- * 
  * \note The first 6 bytes are a magic string: exactly "x93NUMPY". The
  *       next 1 byte is an unsigned byte: the major version number of
  *       the file format, e.g. x01.
@@ -2371,7 +2409,7 @@ INT features_r(features *feat,scomplex *sc, const INT do_map, const REAL scale)
  *         number of elements given by the shape (noting that shape=()
  *         means there is 1 element) by dtype.itemsize.
  *
- * Format Specification: Version 2.0: 
+ * Format Specification: Version 2.0:
  *
  *         The version 1.0 format only * allowed the array header to
  *         have a total size of 65535 * bytes. This can be exceeded by
@@ -2382,7 +2420,7 @@ INT features_r(features *feat,scomplex *sc, const INT do_map, const REAL scale)
  *         compatible 1.0 format.
  *
  *         The description of the fourth element of the header
- *         therefore has become: 
+ *         therefore has become:
  *
  *         The next 4 bytes form a little-endian unsigned int: the
  *         length of the header data HEADER_LEN.
@@ -2412,8 +2450,8 @@ void read_npy_eof(const char *fname, void **data, INT *ndata, const char dtype,c
   if (!fp) {
     perror("fopen");
     return;
-  }  
-  unsigned char buffer[8];// 8 bytes first  
+  }
+  unsigned char buffer[8];// 8 bytes first
   size_t ret[4];
   unsigned short int nb = 8;
   ret[0]= fread(buffer,sizeof(unsigned char),nb, fp);
@@ -2473,4 +2511,7 @@ void read_npy_eof(const char *fname, void **data, INT *ndata, const char dtype,c
   free(type_name);
   return;
 }
+
+/*********************************************************************/
+
 /*EOF*/

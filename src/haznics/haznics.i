@@ -117,6 +117,12 @@ import_array();
    }
 }
 
+%nodefaultdtor precond_data_bdcsr;
+%extend precond_data_bdcsr{
+   ~precond_data_bdcsr() {
+        precond_data_bdcsr_free(self);
+   }
+}
 
 %nodefaultctor input_param;
 %extend input_param{
@@ -231,6 +237,7 @@ precond* create_precond_ra(dCSRmat *A, dCSRmat *M, REAL s_frac_power, REAL t_fra
 precond* create_precond_hxcurl(dCSRmat *Acurl, dCSRmat *Pcurl, dCSRmat *Grad, SHORT prectype, AMG_param *amgparam);
 precond* create_precond_hxdiv_3D(dCSRmat *Adiv, dCSRmat *P_div, dCSRmat *Curl, dCSRmat *P_curl, SHORT prectype, AMG_param *amgparam);
 precond* create_precond_hxdiv_2D(dCSRmat *Adiv,dCSRmat *P_div, dCSRmat *Curl, SHORT prectype, AMG_param *amgparam);
+precond* create_precond_metric_amg(block_dCSRmat *Ablock, ivector *interface_dofs, SHORT precond_type, AMG_param *amgparam);
 INT get_poles_no(precond *pc);
 INT fenics_bsr_solver(INT block_size, dCSRmat *A, dvector *b, dvector *sol);
 // dvector* compute_ra_aaa(REAL s_frac_power, REAL t_frac_power, REAL alpha, REAL beta, REAL scaling_a, REAL scaling_m);
@@ -356,4 +363,5 @@ INT wrapper_krylov_amg(dCSRmat *mat, dvector *rhs, dvector *sol);
 INT fenics_metric_amg_solver(block_dCSRmat *A, dvector *b, dvector *x, block_dCSRmat *AD, block_dCSRmat *M, dCSRmat *interface_dof);
 void print_bdcsr_matrix(block_dCSRmat *A);
 INT wrapper_krylov_amg_schwarz(dCSRmat *mat, dvector *rhs, dvector *sol);
-INT fenics_metric_amg_solver_minimal(INT n0, INT n1, dCSRmat *A, dvector *b, dvector *x);
+//INT fenics_metric_amg_solver_timo(INT n0, INT n1, dCSRmat *A, dvector *b, dvector *x);
+INT fenics_metric_amg_solver_minimal(block_dCSRmat *A, dvector *b, dvector *x, ivector *interface_dof);

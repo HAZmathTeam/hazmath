@@ -18,7 +18,7 @@
 
 */
 #ifndef MAX_NODES_PER_SIMPLEX
-#define MAX_NODES_PER_SIMPLEX 1
+#define MAX_NODES_PER_SIMPLEX 5
 #endif
 /*********************************************************************/
 #include "supporting_amr_grids.h"

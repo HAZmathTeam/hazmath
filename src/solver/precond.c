@@ -6274,6 +6274,11 @@ void precond_bdcsr_metric_amg_exact(REAL *r,
     //#if WITH_SUITESPARSE
     dvector rr, zz;
 
+    // PERMUTE
+    if(predata->perm.val){
+        for(i = 0; i < total_row; ++i) r[i] = tempr->val[predata->perm.val[i]];
+    }
+
     rr.row = predata->A->blocks[3]->row; rr.val = r+predata->A->blocks[0]->row;
     zz.row = predata->A->blocks[3]->col; zz.val = z+predata->A->blocks[0]->row;
     Schwarz_data *schwarz_data = predata->schwarz_data;
@@ -6302,6 +6307,14 @@ void precond_bdcsr_metric_amg_exact(REAL *r,
     for ( i=maxit; i--; ) mgcycle_bdcsr(mgl,&amgparam);
 
     array_cp(total_col, mgl->x.val, z);
+
+    // permute back the solution (USING precond_data_bdcsr temp work variable)
+    if(predata->perm.val) {
+        predata->w = (REAL*)calloc(total_col, sizeof(REAL*));
+        array_cp(total_col, z, predata->w);
+        for(i = 0; i < total_col; ++i) z[predata->perm.val[i]] = predata->w[i];
+        free(predata->w);
+    }
 
     // restore residual
     array_cp(total_row, tempr->val, r);
@@ -6348,6 +6361,11 @@ void precond_bdcsr_metric_amg_exact_additive(REAL *r,
 	//#if WITH_SUITESPARSE
     dvector rr, zz;
 
+    // permute residual (IN PLACE, USING THE BACKUP!)
+    if(predata->perm.val){
+        for(i = 0; i < total_row; ++i) r[i] = tempr->val[predata->perm.val[i]];
+    }
+
     rr.row = predata->A->blocks[3]->row; rr.val = r+predata->A->blocks[0]->row;
     zz.row = predata->A->blocks[3]->col; zz.val = z+predata->A->blocks[0]->row;
 
@@ -6383,6 +6401,14 @@ void precond_bdcsr_metric_amg_exact_additive(REAL *r,
     // update solution (additive)
     array_axpy(total_col, 1.0, mgl->x.val, z);
     //array_cp(total_col, mgl->x.val, z);
+
+    // permute back the solution (USING precond_data_bdcsr temp work variable)
+    if(predata->perm.val) {
+        predata->w = (REAL*)calloc(total_col, sizeof(REAL*));
+        array_cp(total_col, z, predata->w);
+        for(i = 0; i < total_col; ++i) z[predata->perm.val[i]] = predata->w[i];
+        free(predata->w);
+    }
 
     // restore residual
     array_cp(total_row, tempr->val, r);
@@ -6426,6 +6452,11 @@ void precond_bdcsr_metric_amg(REAL *r,
 	INT i;
     dvector rr, zz;
 
+    // permute residual (IN PLACE, USING THE BACKUP!)
+    if(predata->perm.val){
+        for(i = 0; i < total_row; ++i) r[i] = tempr->val[predata->perm.val[i]];
+    }
+
     rr.row = predata->A->blocks[3]->row; rr.val = r+predata->A->blocks[0]->row;
     zz.row = predata->A->blocks[3]->col; zz.val = z+predata->A->blocks[0]->row;
 
@@ -6453,6 +6484,14 @@ void precond_bdcsr_metric_amg(REAL *r,
     for ( i=maxit; i--; ) mgcycle_bdcsr(mgl,&amgparam);
 
     array_cp(total_col, mgl->x.val, z);
+
+    // permute back the solution (USING precond_data_bdcsr temp work variable)
+    if(predata->perm.val) {
+        predata->w = (REAL*)calloc(total_col, sizeof(REAL*));
+        array_cp(total_col, z, predata->w);
+        for(i = 0; i < total_col; ++i) z[predata->perm.val[i]] = predata->w[i];
+        free(predata->w);
+    }
 
     // restore residual
     array_cp(total_row, tempr->val, r);
@@ -6495,6 +6534,11 @@ void precond_bdcsr_metric_amg_additive(REAL *r,
 	INT i;
     dvector rr, zz;
 
+    // permute residual (IN PLACE, USING THE BACKUP!)
+    if(predata->perm.val){
+        for(i = 0; i < total_row; ++i) r[i] = tempr->val[predata->perm.val[i]];
+    }
+
     rr.row = predata->A->blocks[3]->row; rr.val = r+predata->A->blocks[0]->row;
     zz.row = predata->A->blocks[3]->col; zz.val = z+predata->A->blocks[0]->row;
 
@@ -6525,6 +6569,14 @@ void precond_bdcsr_metric_amg_additive(REAL *r,
     // update solution
     array_axpy(total_col, 1.0, mgl->x.val, z);
 
+    // permute back the solution (USING precond_data_bdcsr temp work variable)
+    if(predata->perm.val) {
+        predata->w = (REAL*)calloc(total_col, sizeof(REAL*));
+        array_cp(total_col, z, predata->w);
+        for(i = 0; i < total_col; ++i) z[predata->perm.val[i]] = predata->w[i];
+        free(predata->w);
+    }
+
     // restore residual
     array_cp(total_row, tempr->val, r);
 
@@ -6545,6 +6597,7 @@ void precond_bdcsr_metric_amg_additive(REAL *r,
  *
  * \note symmetric Schwarz on interface + AMG
  *
+ * \note edited 2022-11-11 by ana (add permutation)
  */
 void precond_bdcsr_metric_amg_symmetric(REAL *r,
                        REAL *z,
@@ -6562,18 +6615,38 @@ void precond_bdcsr_metric_amg_symmetric(REAL *r,
     array_cp(total_row, r, tempr->val);
     array_set(total_row, z, 0.0);
 
+    /*fprintf(stdout, "Before permuting \n");
+    array_print(r, total_row);
+    array_print(z, total_col);*/
+
     // local variables
 	INT i;
     dvector rr, zz;
 
-    rr.row = predata->A->blocks[3]->row; rr.val = r+predata->A->blocks[0]->row;
-    zz.row = predata->A->blocks[3]->col; zz.val = z+predata->A->blocks[0]->row;
+    // permute residual (IN PLACE, USING THE BACKUP!)
+    if(predata->perm.val){
+        for(i = 0; i < total_row; ++i) r[i] = tempr->val[predata->perm.val[i]];
+    }
 
+    /*fprintf(stdout, "After permuting \n"); fflush(stdout);
+    array_print(r, total_row);
+    array_print(z, total_col);*/
+
+    rr.row = predata->A->blocks[3]->row; rr.val = r+predata->A->blocks[0]->row;
+    zz.row = predata->A->blocks[3]->col; zz.val = z+predata->A->blocks[0]->col;
+
+    /*fprintf(stdout, "After cutting to interface values \n"); fflush(stdout);
+    array_print(rr.val, predata->A->blocks[3]->row);
+    array_print(zz.val, predata->A->blocks[3]->col);*/
     // Schwarz method on the interface part
     Schwarz_param *schwarz_param = predata->schwarz_param;
     Schwarz_data *schwarz_data = predata->schwarz_data;
     smoother_dcsr_Schwarz_forward(schwarz_data, schwarz_param, &zz, &rr);
     //directsolve_HAZ(&schwarz_data->A, &rr, &zz, 1);
+
+    /*fprintf(stdout, "After first schwarz \n"); fflush(stdout);
+    array_print(rr.val, predata->A->blocks[3]->row);
+    array_print(zz.val, predata->A->blocks[3]->col);*/
 
     // AMG solve on the whole matrix
     AMG_param amgparam; param_amg_init(&amgparam);
@@ -6592,6 +6665,9 @@ void precond_bdcsr_metric_amg_symmetric(REAL *r,
 
     for ( i=maxit; i--; ) mgcycle_bdcsr(mgl,&amgparam);
 
+    /*fprintf(stdout, "After amg cycle \n"); fflush(stdout);
+    array_print(mgl->b.val, total_row);
+    array_print(mgl->x.val, total_col);*/
     // update residual
     bdcsr_aAxpy(-1.0, predata->A, mgl->x.val, r);
 
@@ -6601,12 +6677,26 @@ void precond_bdcsr_metric_amg_symmetric(REAL *r,
     // Schwarz method on the interface part
     smoother_dcsr_Schwarz_backward(schwarz_data, schwarz_param, &zz, &rr);
 
+    /*fprintf(stdout, "After second schwarz \n"); fflush(stdout);
+    array_print(rr.val, predata->A->blocks[3]->row);
+    array_print(zz.val, predata->A->blocks[3]->col);*/
     // update solution
     array_axpy(total_col, 1.0, mgl->x.val, z);
+
+    // permute back the solution (USING precond_data_bdcsr temp work variable)
+    if(predata->perm.val) {
+        predata->w = (REAL*)calloc(total_col, sizeof(REAL*));
+        array_cp(total_col, z, predata->w);
+        for(i = 0; i < total_col; ++i) z[predata->perm.val[i]] = predata->w[i];
+        free(predata->w);
+    }
 
     // restore residual
     array_cp(total_row, tempr->val, r);
 
+    /*fprintf(stdout, "After unpermuting \n");
+    array_print(r, total_row);
+    array_print(z, total_col);*/
 }
 
 
