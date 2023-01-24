@@ -35,7 +35,7 @@ INT main(int argc,char *argv[])
   INT print_level=PRINT_LEVEL;
   // parameters for the function we are approximating.
   REAL16 s=0.6e0,t=-0.2e0,alpha=1e0,beta=1e0; // s, t, alpha,beta
-  fprintf(stderr,"\nUSAGE: %s<<EOF_FRAC\n s,t,alpha,beta,xmin,xmax\nEOF_FRAC\n",argv[0]);
+  fprintf(stderr,"\nUSAGE: %s<<EOF_FRAC\n s t alpha beta xmin xmax\nEOF_FRAC\n",argv[0]);
   fprintf(stderr,"\nEXAMPLE:\n%s<<EOF_FRAC >frac_aaa.m\n %.2Lf %.2Lf %.2Lf %.2Lf %.2f %.2f\nEOF_FRAC\n", \
 	  argv[0],s,t,alpha,beta,xmin_in,xmax_in);
   INT k=fscanf(stdin,"%Lg %Lg %Lg %Lg %lg %lg",&s,&t,&alpha,&beta,&xmin_in,&xmax_in);
