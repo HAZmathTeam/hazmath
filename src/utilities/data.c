@@ -495,7 +495,35 @@ void HX_div_data_free (HX_div_data *hxdivdata,
     if (hxdivdata->w) free(hxdivdata->w);
 
 }
-
+/***********************************************************************/
+/**
+ * \fn void schwarz_data_init (Schwarz_data *schwarzdata)
+ * \brief initialize Schwarz data memory space
+ *
+ * \param schwarzdata      Pointer to the Schwarz_data for Schwarz methods
+ *
+ * \author Ludmil
+ * \date   20221213
+ */
+void schwarz_data_init(Schwarz_data *Schwarz)
+{
+  Schwarz->A=dcsr_create(0,0,0); // NULL dcsr matrix.
+  Schwarz->nblk=0;
+  Schwarz->iblock=0;
+  Schwarz->jblock=0;
+  Schwarz->Schwarz_type=3; //this should be set.
+  Schwarz->blk_solver=SOLVER_UMFPACK; //direct solve of all blocks.
+  Schwarz->memt=0;
+  Schwarz->mask=NULL;
+  Schwarz->maxbs=0;
+  Schwarz->maxa=NULL;
+  Schwarz->blk_data=NULL;
+  Schwarz->rhsloc1=dvec_create(0);
+  Schwarz->xloc1=dvec_create(0);
+  Schwarz->numeric=NULL;
+  Schwarz->swzparam=NULL;
+}
+/***********************************************************************/
 /**
  * \fn void schwarz_data_free (Schwarz_data *schwarzdata)
  * \brief Free Schwarz data memeory space
@@ -504,57 +532,63 @@ void HX_div_data_free (HX_div_data *hxdivdata,
  *
  * \author Xiaozhe Hu
  * \date   2010/04/06
+ * \modified 20221213 --ltz
  */
 void schwarz_data_free(Schwarz_data *schwarzdata)
 {
-    INT i;
-
-    if ( schwarzdata == NULL ) return; // There is nothing to do!
-
+  INT i;
+  if ( schwarzdata == NULL ) return; // There is nothing to do!
+  //
+  if(&(schwarzdata->A)!=NULL)
     dcsr_free(&schwarzdata->A);
-
+  if(schwarzdata->Schwarz_type==SCHWARZ_FORWARD || schwarzdata->Schwarz_type==SCHWARZ_BACKWARD || schwarzdata->Schwarz_type==SCHWARZ_SYMMETRIC){
     for ( i=0; i<schwarzdata->nblk; ++i ) {
-
-        dcsr_free(&((schwarzdata->blk_data)[i]));
-
-        if (schwarzdata->blk_solver == SOLVER_UMFPACK){
-	  //#if WITH_SUITESPARSE
-	  if (schwarzdata->numeric[i]) hazmath_free_numeric(&(schwarzdata->numeric[i]));
-	    //#endif
-        }
+      dcsr_free(&((schwarzdata->blk_data)[i]));
+      if (schwarzdata->blk_solver == SOLVER_UMFPACK){
+	//#if WITH_SUITESPARSE
+	if (schwarzdata->numeric[i])
+	  hazmath_free_numeric(&(schwarzdata->numeric[i]));
+	//#endif
+      }
     }
-    schwarzdata->nblk = 0;
-    if (schwarzdata->blk_data) free(schwarzdata->blk_data);
-    schwarzdata->blk_data = NULL;
-
+  } else {
+    // only one matrix then:
+    dcsr_free(&((schwarzdata->blk_data)[0]));
     if (schwarzdata->blk_solver == SOLVER_UMFPACK){
       //#if WITH_SUITESPARSE
-        if (schwarzdata->numeric) free(schwarzdata->numeric);
-        schwarzdata->numeric = NULL;
-	//#endif
+      if (schwarzdata->numeric[0])
+	  hazmath_free_numeric(&(schwarzdata->numeric[0]));
+      //#endif
     }
-
-
-    if (schwarzdata->iblock) free(schwarzdata->iblock);
-    schwarzdata->iblock = NULL;
-
-    if (schwarzdata->jblock) free(schwarzdata->jblock);
-    schwarzdata->jblock = NULL;
-
-    dvec_free(&schwarzdata->rhsloc1);
-
-    dvec_free(&schwarzdata->xloc1);
-
-    schwarzdata->memt = 0;
-    if (schwarzdata->mask) free(schwarzdata->mask);
-    schwarzdata->mask = NULL;
-
-    if (schwarzdata->maxa) free(schwarzdata->maxa);
-    schwarzdata->maxa = NULL;
-
+  }
+  schwarzdata->nblk = 0;
+  if (schwarzdata->blk_data) free(schwarzdata->blk_data);
+  schwarzdata->blk_data = NULL;
+  //
+  if (schwarzdata->blk_solver == SOLVER_UMFPACK){
+    //#if WITH_SUITESPARSE
+    if (schwarzdata->numeric) free(schwarzdata->numeric);
+    schwarzdata->numeric = NULL;
+    //#endif
+  }
+  if (schwarzdata->iblock) free(schwarzdata->iblock);
+  schwarzdata->iblock = NULL;
+  //
+  if (schwarzdata->jblock) free(schwarzdata->jblock);
+  schwarzdata->jblock = NULL;
+  //
+  dvec_free(&schwarzdata->rhsloc1);
+  //
+  dvec_free(&schwarzdata->xloc1);
+  //
+  schwarzdata->memt = 0;
+  if (schwarzdata->mask) free(schwarzdata->mask);
+  schwarzdata->mask = NULL;
+  //
+  if (schwarzdata->maxa) free(schwarzdata->maxa);
+  schwarzdata->maxa = NULL;
+  return;
 }
-
-
 
 /***********************************************************************************************/
 /**

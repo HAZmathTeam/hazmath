@@ -553,6 +553,7 @@ void scfinalize(scomplex *sc,const INT set_bndry_codes)
       store the finest mesh in sc structure.
       on input sc has all the hierarchy, on return sc only has the final mesh.
   */
+  //  free(sc->parent_v->val);  sc->parent_v->val=NULL;
   ns=0;
   for (j=0;j<sc->ns;j++){
     /*

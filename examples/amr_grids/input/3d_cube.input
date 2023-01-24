@@ -8,7 +8,11 @@ dimension{3}   % spatial dimension in which the grid has to be generated
 print_level{0}	% how much information to print out: 0 little | >0 more
 %---------------%
 
+<<<<<<< HEAD
+num_refinements{1}
+=======
 num_refinements{45}
+>>>>>>> a2d5267b8c26dcc0fbfd75ff795cc9115d2331eb
 
 refinement_type{-2}
 

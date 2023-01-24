@@ -180,9 +180,12 @@
 /**
  * \brief Type of Schwarz smoother
  */
-#define SCHWARZ_FORWARD         1  /**< Forward ordering */
-#define SCHWARZ_BACKWARD        2  /**< Backward ordering */
-#define SCHWARZ_SYMMETRIC       3  /**< Symmetric smoother */
+#define SCHWARZ_FORWARD           1  /**< Forward ordering */
+#define SCHWARZ_BACKWARD          2  /**< Backward ordering */
+#define SCHWARZ_SYMMETRIC         3  /**< Symmetric smoother */
+#define SCHWARZ_FORWARD_LOCAL    11  /**< Forward: each block decomposed inline */
+#define SCHWARZ_BACKWARD_LOCAL   12  /**< Backward: each block decomposed inline */
+#define SCHWARZ_SYMMETRIC_LOCAL  13  /**< Symmetric: each block decomposed inline */
 
 /**
  * \brief Definition of standard smoother types

@@ -212,11 +212,12 @@ scomplex *haz_scomplex_init(const INT n,INT ns, INT nv,const INT nbig)
     sc->bndry[i]=0;
     sc->csys[i]=0;
     sc->parent_v->JA[nnz_pv]=i;
+    sc->parent_v->val[nnz_pv]=0;
     nnz_pv++;
     sc->parent_v->IA[i+1]=nnz_pv;
   }
   // not needed for now, it will be freed later.
-  if(nnz_pv) memset(sc->parent_v->val,0,nnz_pv*sizeof(INT));
+  //  if(nnz_pv) memset(sc->parent_v->val,0,nnz_pv*sizeof(INT));
   //////////////////////////////////////
   sc->nv=nv;
   sc->ns=ns;
@@ -227,10 +228,10 @@ scomplex *haz_scomplex_init(const INT n,INT ns, INT nv,const INT nbig)
   sc->bfs=malloc(sizeof(iCSRmat));
   sc->bfs[0]=icsr_create(0,0,0);
   // the parent_v->val is not needed for now
-  if(sc->parent_v->val) {
-    free(sc->parent_v->val);
-    sc->parent_v->val=NULL;
-  }
+  /* if(sc->parent_v->val) { */
+  /*   free(sc->parent_v->val); */
+  /*   sc->parent_v->val=NULL; */
+  /* } */
   sc->bndry_v=malloc(sizeof(iCSRmat));
   sc->bndry_v[0]=icsr_create(0,0,0);
   return sc;
@@ -750,6 +751,9 @@ INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew,	\
     sc->parent_v->JA=realloc(sc->parent_v->JA,(nnz_pv+2)*sizeof(REAL));
     sc->parent_v->JA[nnz_pv]=pv[0];
     sc->parent_v->JA[nnz_pv+1]=pv[1];
+    sc->parent_v->val=realloc(sc->parent_v->val,(nnz_pv+2)*sizeof(REAL));
+    sc->parent_v->val[nnz_pv]=sc->level+1;
+    sc->parent_v->val[nnz_pv+1]=sc->level+1;
     sc->parent_v->nnz+=2;
     sc->parent_v->IA=realloc(sc->parent_v->IA,(nvnew+1)*sizeof(REAL));
     sc->parent_v->IA[nvnew]=sc->parent_v->nnz;

@@ -367,6 +367,10 @@ typedef struct {
     SHORT print_level;
 
     //! type for Schwarz method
+    //   1 forward, 2 backward, 3 symmetric, 4(not used) additive (global LU of the block matrix);
+    //  If local LU of the block matrices is done every /* iteration, then */
+    /* //  11 forward, 12 backward, 13 symmetric, 14(not used) additive */
+    /* SHORT Schwarz_type; */
     SHORT Schwarz_type;
 
     //! maximal level for constructing the blocks

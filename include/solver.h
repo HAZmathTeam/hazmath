@@ -66,12 +66,12 @@ typedef struct {
     //! local solution
     dvector xloc1;
 
-    //! local matrix
-    dCSRmat Aloc1;
-
-    //! Schwarz method type (1 forward, 2 backward, 3 symmetric, 4 additive)
-    INT Schwarz_type;
-
+    /* THIS SHOULD BE IN SCHWARZ_PARAM: */
+    //! Schwarz method type
+    //   1 forward, 2 backward, 3 symmetric, 4 additive (global LU of the block matrix);
+    //  If local LU of the block matrices is done every iteration, then
+    //  11 forward, 12 backward, 13 symmetric, 14 additive
+    SHORT Schwarz_type;
     //! Schwarz block solver
     INT blk_solver;
 
@@ -84,16 +84,20 @@ typedef struct {
     //! maximal block size
     INT maxbs;
 
+    //! maximal nnz in a block
+    INT maxbnnz;
+
     //! maxa
     INT *maxa;
 
-    //! matrix for each partition
+    //! matrix for each block during iterations (if Schwarz_type>10)
+    //! or for all blocks (if Schwarz_type < 10);
     dCSRmat *blk_data;
 
-    //! symbol factorize for UMFPACK
+    //! UMFPACK or HAZmath factorization place
     void **numeric;
 
-    //! param for Schwarz
+    //! other parameters for the  Schwarz method
     Schwarz_param *swzparam;
 
 } Schwarz_data;
