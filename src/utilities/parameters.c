@@ -599,6 +599,7 @@ void param_Schwarz_print (Schwarz_param *schparam)
  *
  * \note added frac. exponent (Ana Budisa, 2020-05-13)
  * \note added function pointer to user defined smoother (Ana Budisa, 2021-04-27)
+ * \note update to copy amli coefs (Ana Budisa, 2023-01-30)
  */
 void param_amg_to_prec (precond_data *pcdata,
                         AMG_param *amgparam)
@@ -617,9 +618,15 @@ void param_amg_to_prec (precond_data *pcdata,
     pcdata->polynomial_degree   = amgparam->polynomial_degree;
     pcdata->coarse_scaling      = amgparam->coarse_scaling;
     pcdata->amli_degree         = amgparam->amli_degree;
-    pcdata->amli_coef           = amgparam->amli_coef;
+    //pcdata->amli_coef           = amgparam->amli_coef;
     pcdata->nl_amli_krylov_type = amgparam->nl_amli_krylov_type;
     pcdata->fpwr                = amgparam->fpwr;
+
+    // 2023-01-30 ANA: this caused many errors for me so I'm updating this for safety
+    if(amgparam->amli_coef) {
+        pcdata->amli_coef = (REAL*)calloc(amgparam->amli_degree+1, sizeof(REAL));
+        array_cp(amgparam->amli_degree+1, amgparam->amli_coef, pcdata->amli_coef);
+    }
 }
 
 /*************************************************************************************/
@@ -633,6 +640,7 @@ void param_amg_to_prec (precond_data *pcdata,
  *
  * \note added frac. exponent (Ana Budisa, 2020-05-13)
  * \note added function pointer to user defined smoother (Ana Budisa, 2021-04-27)
+ * \note update to copy amli coefs (Ana Budisa, 2023-01-30)
  */
 void param_prec_to_amg (AMG_param *amgparam,
                         precond_data *pcdata)
@@ -648,9 +656,36 @@ void param_prec_to_amg (AMG_param *amgparam,
     amgparam->coarse_solver       = pcdata->coarse_solver;
     amgparam->coarse_scaling      = pcdata->coarse_scaling;
     amgparam->amli_degree         = pcdata->amli_degree;
-    amgparam->amli_coef           = pcdata->amli_coef;
+    //amgparam->amli_coef           = pcdata->amli_coef;
     amgparam->nl_amli_krylov_type = pcdata->nl_amli_krylov_type;
     amgparam->fpwr                = pcdata->fpwr;
+
+    // 2023-01-30 ANA: this caused many errors for me so I'm updating this for safety
+    if(pcdata->amli_coef) {
+        amgparam->amli_coef = (REAL*)calloc(pcdata->amli_degree+1, sizeof(REAL));
+        array_cp(pcdata->amli_degree+1, pcdata->amli_coef, amgparam->amli_coef);
+    }
+}
+
+
+/*************************************************************************************/
+/*!
+ * \fn void param_amg_to_schwarz (Schwarz_param *schparam, AMG_param *amgparam)
+ *
+ * \brief Set parameters in Schwarz_param using AMG parameters
+ *
+ * \param schparam      Pointer to the Schwarz_param structure
+ * \param amgparam          Pointer to the AMG_param structure
+ *
+ */
+void param_amg_to_schwarz (Schwarz_param *schparam,
+                           AMG_param *amgparam)
+{
+    schparam->print_level       = amgparam->print_level;
+    schparam->Schwarz_type      = amgparam->Schwarz_type;
+    schparam->Schwarz_maxlvl    = amgparam->Schwarz_maxlvl;
+    schparam->Schwarz_mmsize    = amgparam->Schwarz_mmsize;
+    schparam->Schwarz_blksolver = amgparam->Schwarz_blksolver;
 }
 
 /*************************************************************************************/

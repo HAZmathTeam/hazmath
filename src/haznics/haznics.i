@@ -365,3 +365,4 @@ void print_bdcsr_matrix(block_dCSRmat *A);
 INT wrapper_krylov_amg_schwarz(dCSRmat *mat, dvector *rhs, dvector *sol);
 //INT fenics_metric_amg_solver_timo(INT n0, INT n1, dCSRmat *A, dvector *b, dvector *x);
 INT fenics_metric_amg_solver_minimal(block_dCSRmat *A, dvector *b, dvector *x, ivector *interface_dof);
+precond* create_precond_metric_amg_dcsr(dCSRmat *A, ivector *interface_dofs, SHORT precond_type, AMG_param *amgparam);
