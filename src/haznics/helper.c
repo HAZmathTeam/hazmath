@@ -1908,3 +1908,213 @@ precond* create_precond_metric_amg(block_dCSRmat *Ablock,
 
     return pc;
 }
+
+
+
+
+precond* create_precond_metric_amg_dcsr(dCSRmat *A,
+                                        ivector *interface_dofs,
+                                        SHORT precond_type,
+                                        AMG_param *amgparam)
+{
+    precond *pc = (precond*)calloc(1, sizeof(precond));
+
+    precond_data *precdata = (precond_data*)calloc(1, sizeof(precond_data));
+
+    //! parameters of iterative method
+    INT i;
+    const SHORT max_levels = amgparam->max_levels;
+    const SHORT prtlvl = amgparam->print_level;
+    INT status = SUCCESS;
+
+    REAL setup_start, setup_end;
+    pc->setup_time = 0.;
+    get_time(&setup_start);
+
+    // total size
+    INT total_row = A->row;
+    INT total_col = A->col;
+    INT total_nnz = A->nnz;
+
+    //--------------------------------------------------------------
+    // Part 2: separate dofs to interior and interface
+    //--------------------------------------------------------------
+    // NB: we assume interface_dofs is not NULL!
+    SHORT schwarz_tag = (precond_type != 10 && precond_type != 11);
+    // make interface flags
+    ivector interface_flag = ivec_create(total_row);
+    ivec_set(total_row, &interface_flag, 0);
+    // seeds are only for preconds with schwarz method
+    ivector seeds_flag;
+    if (schwarz_tag) {
+        seeds_flag = ivec_create(total_row);
+        ivec_set(total_row, &seeds_flag, 0);
+    }
+    // check if we already have interface_dofs, otherwise make them
+    INT Nseeds = 0;
+    ivector interior_idx;
+    if(interface_dofs) {
+        Nseeds = 0;
+        for (i = 0; i < interface_dofs->row; i++) {
+            interface_flag.val[interface_dofs->val[i]] = 1;
+            if (schwarz_tag) {
+                seeds_flag.val[interface_dofs->val[i]] = 1; Nseeds++;
+            }
+        }
+        // generate index sets for interior DoFs
+        interior_idx = ivec_create(total_row - interface_dofs->row);
+        INT count_i = 0;
+        for (i = 0; i < total_row; i++) {
+            if (!interface_flag.val[i]) {
+                interior_idx.val[count_i] = i;
+                count_i++;
+            }
+        }
+    }
+    // clean the flag
+    ivec_free(&interface_flag);
+
+    //--------------------------------------------------------------
+    // Part 3: set up the preconditioner
+    //--------------------------------------------------------------
+    // data of AMG
+    AMG_data *mgl = amg_data_create(max_levels);
+
+    // initialize A, b, x for mgl[0]
+    dcsr_alloc(total_row, total_col, total_nnz, &(mgl[0].A));
+    dcsr_cp(A, &(mgl[0].A));
+    mgl[0].b = dvec_create(total_row);
+    mgl[0].x = dvec_create(total_col);
+
+    // set up the AMG part
+    switch (amgparam->AMG_type) {
+        case UA_AMG:
+            status = amg_setup_ua(mgl, amgparam);
+            break;
+
+        case SA_AMG:
+            status = amg_setup_sa(mgl, amgparam);
+            break;
+
+        default:
+            status = amg_setup_ua(mgl, amgparam);
+            break;
+    }
+
+    if(status < 0)
+    {
+        fprintf(stdout,"Unsuccessful AMG setup with status = %lld\n", (long long )status);
+        return 0;
+    }
+
+    // set up the Schwarz smoother for the interface block
+    // fixme
+    Schwarz_param *schwarz_param = (Schwarz_param *)calloc(1, sizeof(Schwarz_param));
+    schwarz_param->Schwarz_mmsize = amgparam->Schwarz_mmsize;
+    schwarz_param->Schwarz_maxlvl = amgparam->Schwarz_maxlvl;
+    schwarz_param->Schwarz_type   = amgparam->Schwarz_type;
+    schwarz_param->Schwarz_blksolver = amgparam->Schwarz_blksolver;
+
+    Schwarz_data *schwarz_data = (Schwarz_data*)calloc(1,sizeof(Schwarz_data));
+    schwarz_data->A = dcsr_sympat(A);
+
+    if (precond_type == 10 || precond_type == 11 ){
+    // set up direct solver for the interface block if needed
+    //#if WITH_SUITESPARSE
+        void **LU_data = (void **)calloc(1, sizeof(void *));
+    //#else
+    //    error_extlib(257, __FUNCTION__, "SuiteSparse");
+    //#endif
+        dCSRmat A_tran;
+        dcsr_trans(&(schwarz_data->A), &A_tran);
+        dcsr_cp(&A_tran, &(schwarz_data->A));
+        if ( prtlvl > PRINT_NONE ) printf("Factorization for the interface block:\n");
+        LU_data[0] = hazmath_factorize(&(schwarz_data->A), prtlvl);
+        dcsr_free(&A_tran);
+	//#else
+	//        error_extlib(257, __FUNCTION__, "SuiteSparse");
+	//#endif
+    }
+    else{
+        // seeds are the interface dofs from the second subdomain, with a global index
+        ivector seeds = ivec_create(Nseeds);
+        INT count_seeds = 0;
+        for(i = 0; i < interface_dofs->row; ++i) {
+            if(seeds_flag.val[interface_dofs->val[i]]) {
+                seeds.val[count_seeds] = i;
+                count_seeds++;
+            }
+        }
+        Schwarz_setup_with_seeds(schwarz_data, schwarz_param, &seeds);
+        //Schwarz_setup(&schwarz_data, &schwarz_param);
+        // clean seeds dofs and flags
+        ivec_free(&seeds);
+        ivec_free(&seeds_flag);
+    }
+
+    mgl->Schwarz = schwarz_data[0]; //fixme
+    mgl->Schwarz_levels = amgparam->Schwarz_levels;
+    // mgl->schwarz_param??? fixme
+    precdata->print_level = amgparam->print_level;
+    precdata->maxit = amgparam->maxit;
+    precdata->tol = amgparam->tol;
+    precdata->cycle_type = amgparam->cycle_type;
+    precdata->smoother = amgparam->smoother;
+    precdata->presmooth_iter = amgparam->presmooth_iter;
+    precdata->postsmooth_iter = amgparam->postsmooth_iter;
+    precdata->relaxation = amgparam->relaxation;
+    precdata->coarse_solver = amgparam->coarse_solver;
+    precdata->coarse_scaling = amgparam->coarse_scaling;
+    precdata->amli_degree = amgparam->amli_degree;
+    if(amgparam->amli_coef) {
+        precdata->amli_coef = (REAL*)calloc(amgparam->amli_degree+1, sizeof(REAL));
+        array_cp(amgparam->amli_degree+1, amgparam->amli_coef, precdata->amli_coef);
+    }
+    //precdata->tentative_smooth = amgparam->tentative_smooth;
+    precdata->max_levels = mgl[0].num_levels;
+    precdata->mgl_data = mgl;
+    precdata->A = (dCSRmat*)calloc(1, sizeof(dCSRmat));
+    dcsr_cp(A, precdata->A);
+    precdata->r = dvec_create_p(total_row);
+    //#if WITH_SUITESPARSE
+    //precdata->LU_data = LU_data; fixme
+    //#endif
+    /*precdata->perm = ivec_create(total_row);
+    iarray_cp(interior_idx.row, interior_idx.val, precdata->perm.val);
+    iarray_cp(interface_dofs->row, interface_dofs->val, &(precdata->perm.val[interior_idx.row]));
+    iarray_print(precdata->perm.val, total_row);
+    ivec_free(&interior_idx);*/
+
+    pc->data = precdata;
+
+    switch (precond_type) {
+        case 2: // solve using AMG for the whole matrix
+            pc->fct = precond_amg;
+            break;
+    /*    case 10: // solve the interface part exactly
+            pc->fct = precond_bdcsr_metric_amg_exact;
+            break;
+        case 11: // solve the interface part exactly (additive version)
+            pc->fct = precond_bdcsr_metric_amg_exact_additive;
+            break;
+        case 12: // solve the interface part using Schwarz method (non symmetric multiplicative version)
+            pc->fct = precond_bdcsr_metric_amg;
+            break;
+        case 13: // solve the interface part using Schwarz method (additive version)
+            pc->fct = precond_bdcsr_metric_amg_additive;
+            break;
+        case 14: // solve the interface part using Schwarz method (additive version)
+            pc->fct = precond_bdcsr_metric_amg_additive;
+            break;*/
+        default: // solve the interface part using Schwarz method (symmetric multiplicative version)
+            pc->fct = precond_amg;
+            break;
+    }
+
+    get_time(&setup_end);
+    pc->setup_time = setup_end - setup_start;
+    if ( prtlvl >= PRINT_MIN )
+        print_cputime("dCSR AMG setup", pc->setup_time);
+
+    return pc;
+}
