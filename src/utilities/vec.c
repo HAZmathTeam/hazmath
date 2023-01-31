@@ -479,6 +479,65 @@ void dvec_axpyz(const REAL a,
 
 /***********************************************************************************************/
 /*!
+ * \fn REAL dvec_auv(dCSRmat *A, dvector *u, dvector *v)
+ *
+ * \brief <Au,v> inner product of A*u and v for dCSRmat A and dvectors u,v.
+ *
+ * \param A   Pointer to dCSRmat A
+ * \param u   Pointer to dvector u
+ * \param v   Pointer to dvector v
+ *
+ * \return Inner product of A*u and v: (Au,v)
+ *
+ */
+REAL dvec_auv(dCSRmat *A, dvector *u_in, dvector *v_in)
+{
+  REAL sum=0e0,aui;
+  INT n=A->row,i,ij,iaa,iab;
+  REAL *u=u_in->val,*v=v_in->val;
+  for(i=0;i<n;++i){
+    iaa=A->IA[i];
+    iab=A->IA[i+1];
+    aui=0e0;
+    for(ij=iaa;ij<iab;++ij){
+      aui+=A->val[ij]*u[A->JA[ij]];
+    }
+    sum+=v[i]*aui;
+  }
+  return sum;
+}
+/***********************************************************************************************/
+/*!
+ * \fn REAL residual_norm(dCSRmat *A, dvector *x, dvector *b)
+ *
+ * \brief compiutes the l^2 norm of the residual |b-A*x|.
+ *
+ * \param A   Pointer to dCSRmat A
+ * \param u   Pointer to dvector x
+ * \param v   Pointer to dvector b
+ *
+ * \return Inner product of A*u and v: (Au,v)
+ *
+ */
+REAL residual_norm(dCSRmat *A, dvector *x_in, dvector *b_in)
+{
+  REAL res=0e0,axi,bi;
+  INT n=A->row,i,ij,iaa,iab;
+  REAL *x=x_in->val,*b=b_in->val;
+  for(i=0;i<n;++i){
+    iaa=A->IA[i];
+    iab=A->IA[i+1];
+    bi=b[i];
+    axi=0e0;    
+    for(ij=iaa;ij<iab;++ij){
+      axi+=A->val[ij]*x[A->JA[ij]];
+    }
+    res+=(bi-axi)*(bi-axi);
+  }
+  return sqrt((REAL )res);
+}
+/***********************************************************************************************/
+/*!
  * \fn REAL dvec_dotprod (dvector *x, dvector *y)
  *
  * \brief Inner product of two dvectors x and y

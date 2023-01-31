@@ -1,0 +1,78 @@
+%----------------------------------------------%
+% input parameters for basic_elliptic example  %
+% This can simulate the grad grad, curl curl,  %
+% or div div operator as a test problem.       %
+% lines starting with % are comments           %
+% must have spaces around the equal sign "="   %
+%----------------------------------------------%
+
+%---------------%
+% output
+%---------------%
+
+print_level	= 2;	% how much information to print out: 0 Nothing | >0 Something
+output_dir  = ./output/ % directory for all output (must be created)
+
+
+%---------------%
+% mesh
+%---------------%
+
+read_mesh_from_file = 0 % [0/1]; 1=Either read from file in .haz format or 0=build uniform mesh directly
+
+% For reading in a pre-made mesh file (any dimension works)
+gridfile          = unitSQ_n9.haz
+
+% For using HAZmath's built-in uniform mesh functions
+spatial_dim       = 3   % For now only 2D or 3D
+refinement_type   = 11  % Refinement type (>10 uniform or <10 other)
+refinement_levels = 6  % Number of levels of refinement (2^(l+1) vertices in each direction)
+boundary_codes    = 1   % Will set the boundary codes
+
+%---------------%
+% finite element
+%---------------%
+
+nquad		= 2	% Quadrature nodes each direction
+FE_type	= 1	% 1-9 PX | 10-19 QX (not yet) | 20 Ned | 30 RT | -9--1 DGX (not yet)
+
+%---------------%
+% time stepping
+%---------------%
+
+% Not needed here
+time_step_type	= 1	% 0 CN | 1 BDF1 | 2 BDF2 |
+time_steps			= 0 	% number of time steps
+time_step_size	= 0.01	% time step size
+
+%---------------%
+% nonlinear solver
+%---------------%
+
+% Not needed here
+nonlinear_itsolver_type    	= 0    %  0 Linear Problem | 1 Newton | 2 Picard (not yet)
+nonlinear_itsolver_maxit	  = 0   	% maximal iterations of nonlinear solver
+nonlinear_itsolver_tol	  	= 1e-8 	% tolerance for nonlinear solver
+nonlinear_itsolver_toltype	= 0 	% type of tolerance for nonlinear solver 1 - ||nonlinear residual||<tol OR 2 - ||update|| < tol OR 0 - BOTH
+
+%---------------%
+% linear solver
+%---------------%
+
+linear_itsolver_type		= 1    	% 0 Direct Solve | 1 CG | 2 MINRES | 3 GMRES
+linear_itsolver_maxit		= 900  	% maximal iterations of linear iterative solver
+linear_itsolver_tol		  = 1e-8  % tolerance for linear iterative solver
+linear_stop_type		    = 1     % 1 ||r||/||b|| | 2 ||r||_B/||b||_B | % 3 ||r||/||x||
+linear_restart 			    = 100		% restart for GMRes
+linear_precond_type		  = 2		%  0 Null | 1 Diag | 2 AMG
+
+%----------------------------------------------%
+% parameters for Schwarz methods       %
+%----------------------------------------------%
+% AMG_Schwarz_levels	 = 1 % how many levels will use Schwarz smoother;
+Schwarz_mmsize           = 200    % max block size
+Schwarz_maxlvl           = 1      % level used to form blocks; (like 6 degrees of separation, hey:)
+Schwarz_type             = 13      % 1 forward | 2 backward | 3 symmetric |
+			   	  % 11 forward (local LU) | 12 backward (local LU) | 
+				  % 13 symmetric (local LU)
+Schwarz_blksolver        = 32     % sub-block solvers: 0 iterative | 32 UMFPack |
