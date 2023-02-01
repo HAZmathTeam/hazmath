@@ -6443,7 +6443,7 @@ void precond_bdcsr_metric_amg(REAL *r,
     const INT total_row = predata->total_row;
     const INT total_col = predata->total_col;
     dvector *tempr = &(predata->r);
-
+    INT sch_type=SCHWARZ_SYMMETRIC_LOCAL;
     // back up r, setup z;
     array_cp(total_row, r, tempr->val);
     array_set(total_row, z, 0.0);
@@ -6463,8 +6463,19 @@ void precond_bdcsr_metric_amg(REAL *r,
     // Schwarz method on the interface part
     Schwarz_param *schwarz_param = predata->schwarz_param;
     Schwarz_data *schwarz_data = predata->schwarz_data;
-    smoother_dcsr_Schwarz_forward(schwarz_data, schwarz_param, &zz, &rr);
-    smoother_dcsr_Schwarz_backward(schwarz_data, schwarz_param, &zz, &rr);
+    sch_type=schwarz_data->Schwarz_type;
+    if(sch_type==SCHWARZ_FORWARD ||		\
+       sch_type==SCHWARZ_BACKWARD ||		\
+       sch_type==SCHWARZ_SYMMETRIC){
+      schwarz_data->Schwarz_type=SCHWARZ_SYMMETRIC;
+    }else{
+      schwarz_data->Schwarz_type=SCHWARZ_SYMMETRIC_LOCAL;
+    }
+    smoother_dcsr_Schwarz(schwarz_data, &zz, &rr,1);
+    // get it back just in case it was different;
+    schwarz_data->Schwarz_type=sch_type; 
+    //    smoother_dcsr_Schwarz_forward(schwarz_data, schwarz_param, &zz, &rr);
+    //    smoother_dcsr_Schwarz_backward(schwarz_data, schwarz_param, &zz, &rr);
     //directsolve_HAZ(&schwarz_data->A, &rr, &zz, 1);
 
     // AMG solve on the whole matrix
@@ -6525,6 +6536,7 @@ void precond_bdcsr_metric_amg_additive(REAL *r,
     const INT total_row = predata->total_row;
     const INT total_col = predata->total_col;
     dvector *tempr = &(predata->r);
+    INT sch_type=SCHWARZ_SYMMETRIC_LOCAL;
 
     // back up r, setup z;
     array_cp(total_row, r, tempr->val);
@@ -6545,8 +6557,19 @@ void precond_bdcsr_metric_amg_additive(REAL *r,
     // Schwarz method on the interface part
     Schwarz_param *schwarz_param = predata->schwarz_param;
     Schwarz_data *schwarz_data = predata->schwarz_data;
-    smoother_dcsr_Schwarz_forward(schwarz_data, schwarz_param, &zz, &rr);
-    smoother_dcsr_Schwarz_backward(schwarz_data, schwarz_param, &zz, &rr);
+    sch_type=schwarz_data->Schwarz_type;
+    if(sch_type==SCHWARZ_FORWARD ||		\
+       sch_type==SCHWARZ_BACKWARD ||		\
+       sch_type==SCHWARZ_SYMMETRIC){
+      schwarz_data->Schwarz_type=SCHWARZ_SYMMETRIC;
+    }else{
+      schwarz_data->Schwarz_type=SCHWARZ_SYMMETRIC_LOCAL;
+    }
+    smoother_dcsr_Schwarz(schwarz_data, &zz, &rr,1);
+    // get it back just in case it was different;
+    schwarz_data->Schwarz_type=sch_type; 
+    //    smoother_dcsr_Schwarz_forward(schwarz_data, schwarz_param, &zz, &rr);
+    //    smoother_dcsr_Schwarz_backward(schwarz_data, schwarz_param, &zz, &rr);
     //directsolve_HAZ(&schwarz_data->A, &rr, &zz, 1);
 
     // AMG solve on the whole matrix
@@ -6610,6 +6633,7 @@ void precond_bdcsr_metric_amg_symmetric(REAL *r,
     const INT total_row = predata->total_row;
     const INT total_col = predata->total_col;
     dvector *tempr = &(predata->r);
+    INT sch_type=SCHWARZ_SYMMETRIC_LOCAL;
 
     // back up r, setup z;
     array_cp(total_row, r, tempr->val);
@@ -6641,7 +6665,18 @@ void precond_bdcsr_metric_amg_symmetric(REAL *r,
     // Schwarz method on the interface part
     Schwarz_param *schwarz_param = predata->schwarz_param;
     Schwarz_data *schwarz_data = predata->schwarz_data;
-    smoother_dcsr_Schwarz_forward(schwarz_data, schwarz_param, &zz, &rr);
+    sch_type=schwarz_data->Schwarz_type;
+    if(sch_type==SCHWARZ_FORWARD ||		\
+       sch_type==SCHWARZ_BACKWARD ||		\
+       sch_type==SCHWARZ_SYMMETRIC){
+      schwarz_data->Schwarz_type=SCHWARZ_FORWARD;
+    }else{
+      schwarz_data->Schwarz_type=SCHWARZ_FORWARD_LOCAL;
+    }
+    smoother_dcsr_Schwarz(schwarz_data, &zz, &rr,1);
+    // get it back just in case it was different;
+    schwarz_data->Schwarz_type=sch_type; 
+    //    smoother_dcsr_Schwarz_forward(schwarz_data, schwarz_param, &zz, &rr);
     //directsolve_HAZ(&schwarz_data->A, &rr, &zz, 1);
 
     /*fprintf(stdout, "After first schwarz \n"); fflush(stdout);
@@ -6675,7 +6710,18 @@ void precond_bdcsr_metric_amg_symmetric(REAL *r,
     dvec_set(zz.row, &zz, 0.0);
 
     // Schwarz method on the interface part
-    smoother_dcsr_Schwarz_backward(schwarz_data, schwarz_param, &zz, &rr);
+    sch_type=schwarz_data->Schwarz_type;
+    if(sch_type==SCHWARZ_FORWARD ||		\
+       sch_type==SCHWARZ_BACKWARD ||		\
+       sch_type==SCHWARZ_SYMMETRIC){
+      schwarz_data->Schwarz_type=SCHWARZ_BACKWARD;
+    }else{
+      schwarz_data->Schwarz_type=SCHWARZ_BACKWARD_LOCAL;
+    }
+    smoother_dcsr_Schwarz(schwarz_data, &zz, &rr,1);
+    // get it back just in case it was different;
+    schwarz_data->Schwarz_type=sch_type; 
+    //    smoother_dcsr_Schwarz_backward(schwarz_data, schwarz_param, &zz, &rr);
 
     /*fprintf(stdout, "After second schwarz \n"); fflush(stdout);
     array_print(rr.val, predata->A->blocks[3]->row);

@@ -1507,7 +1507,7 @@ INT fenics_metric_amg_solver_minimal(block_dCSRmat *A,
                                      dvector *x,
                                      ivector *interface_dofs)
 {
-    INT i, n;
+    INT i;
     /* set Parameters from Reading in Input File */
     input_param inparam;
     param_input_init(&inparam);
@@ -1660,7 +1660,7 @@ precond* create_precond_metric_amg(block_dCSRmat *Ablock,
     A[0] = bdcsr_2_dcsr(Ablock);
     INT total_row = A->row;
     INT total_col = A->col;
-    INT total_nnz = A->nnz;
+    /* INT total_nnz = A->nnz; //not needed */
 
     //--------------------------------------------------------------
     // Part 2: reorder the matrix
@@ -1836,7 +1836,8 @@ precond* create_precond_metric_amg(block_dCSRmat *Ablock,
                 count_seeds++;
             }
         }
-        Schwarz_setup_with_seeds(schwarz_data, schwarz_param, &seeds);
+        Schwarz_setup(schwarz_data, schwarz_param, &seeds);
+	//        ySchwarz_setup_with_seeds(schwarz_data, schwarz_param, &seeds);
         //Schwarz_setup(&schwarz_data, &schwarz_param);
         // clean seeds dofs and flags
         ivec_free(&seeds);
@@ -1908,7 +1909,6 @@ precond* create_precond_metric_amg(block_dCSRmat *Ablock,
 
     return pc;
 }
-
 
 
 

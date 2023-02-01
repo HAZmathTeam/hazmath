@@ -516,7 +516,6 @@ void schwarz_data_init(Schwarz_data *Schwarz)
   Schwarz->memt=0;
   Schwarz->mask=NULL;
   Schwarz->maxbs=0;
-  Schwarz->maxa=NULL;
   Schwarz->blk_data=NULL;
   Schwarz->rhsloc1=dvec_create(0);
   Schwarz->xloc1=dvec_create(0);
@@ -585,8 +584,8 @@ void schwarz_data_free(Schwarz_data *schwarzdata)
   if (schwarzdata->mask) free(schwarzdata->mask);
   schwarzdata->mask = NULL;
   //
-  if (schwarzdata->maxa) free(schwarzdata->maxa);
-  schwarzdata->maxa = NULL;
+  /* if (schwarzdata->maxa) free(schwarzdata->maxa); */
+  /* schwarzdata->maxa = NULL; */
   return;
 }
 

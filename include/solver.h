@@ -87,9 +87,6 @@ typedef struct {
     //! maximal nnz in a block
     INT maxbnnz;
 
-    //! maxa
-    INT *maxa;
-
     //! matrix for each block during iterations (if Schwarz_type>10)
     //! or for all blocks (if Schwarz_type < 10);
     dCSRmat *blk_data;

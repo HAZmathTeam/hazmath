@@ -4556,7 +4556,8 @@ INT linear_solver_bdcsr_krylov_metric_amg(block_dCSRmat    *A,
     else{
         ivector seeds = ivec_create(M->blocks[3]->row);
         for (i=0; i<seeds.row; i++) seeds.val[i] = (A_new.blocks[3]->row-M->blocks[3]->row)+i;
-        Schwarz_setup_with_seeds(&schwarz_data, &schwarz_param, &seeds);
+        Schwarz_setup(&schwarz_data, &schwarz_param, &seeds);
+        //ySchwarz_setup_with_seeds(&schwarz_data, &schwarz_param, &seeds);
         ivec_free(&seeds);
         //Schwarz_setup(&schwarz_data, &schwarz_param);
     }
@@ -4756,7 +4757,7 @@ INT linear_solver_bdcsr_krylov_metric_amg_minimal(block_dCSRmat *AA,
     // total size
     INT total_row = A->row;
     INT total_col = A->col;
-    INT total_nnz = A->nnz;
+    /* INT total_nnz = A->nnz; // not used */
 
 #if DEBUG_MODE > 0
     printf("### DEBUG: [-Begin-] %s ...\n", __FUNCTION__);
@@ -4945,8 +4946,8 @@ INT linear_solver_bdcsr_krylov_metric_amg_minimal(block_dCSRmat *AA,
                 count_seeds++;
             }
         }
-        Schwarz_setup_with_seeds(&schwarz_data, &schwarz_param, &seeds);
-        //Schwarz_setup(&schwarz_data, &schwarz_param);
+        Schwarz_setup(&schwarz_data, &schwarz_param, &seeds);
+        //ySchwarz_setup_with_seeds(&schwarz_data, &schwarz_param, &seeds);
         // clean seeds dofs and flags
         ivec_free(&seeds);
         ivec_free(&seeds_flag);

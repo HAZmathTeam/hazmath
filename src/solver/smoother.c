@@ -2299,6 +2299,223 @@ void smoother_dcsr_sgs_graph_eigen(dvector *u, dCSRmat *A, dvector *b, const INT
 
 }
 
+/**
+ * \fn void smoother_dcsr_Schwarz (const Schwarz_data *Schwarz, 
+ *                                 dvector *x_in,
+ *                                 const dvector *b_in,
+ *                                 const INT maxiter)
+ *
+ * \brief Schwarz smoothers: forward, backward, symmetric, local LU or
+ *                           global LU.
+ *
+ * \param Schwarz Pointer to data about the Schwarz method, eg, blocks and:
+ *                If Schwarz->Schwarz_type=1  (forward iter w global LU)
+ *                If Schwarz->Schwarz_type=2  (backward iter w global LU)
+ *                If Schwarz->Schwarz_type=3  (symmetric iter w global LU)
+ *                If Schwarz->Schwarz_type=11 (forward iter w local LU)
+ *                If Schwarz->Schwarz_type=12 (backward iter w local LU)
+ *                If Schwarz->Schwarz_type=13 (symmetric iter w local LU)
+ * \param x_in    Pointer to solution vector
+ * \param b_in    Pointer to right hand
+ * \param maxiter maximum number of iterations. 
+ *
+ * \note Needs improvment -- Xiaozhe
+ *
+ * \note Modified (ltz 20230131)
+ */
+void smoother_dcsr_Schwarz(const Schwarz_data *Schwarz,		\
+			   dvector *x_in,			\
+			   const dvector *b_in,			\
+			   const INT maxiter)
+{
+  INT nzloc,nloc,ij,j,iter,jk,i,iloc,ibl0,ibl1;
+  INT kblk,nblk_start,nblk_end, step;
+  // local
+  dCSRmat A=Schwarz->A;
+  REAL *x=x_in->val,*b=b_in->val;
+  INT stype=(INT )Schwarz->Schwarz_type;
+  INT *mask=Schwarz->mask;
+  INT *iblock=Schwarz->iblock;
+  INT *jblock=Schwarz->jblock;
+  INT block_solver=Schwarz->blk_solver;
+  dCSRmat *blk=Schwarz->blk_data;
+  //forward method always:)  
+  nblk_start=0;
+  nblk_end=Schwarz->nblk-1;
+  step=1;
+  dvector rhsloc=Schwarz->rhsloc1;
+  dvector xloc=Schwarz->xloc1;  
+  void **numeric = Schwarz->numeric; //
+  dCSRmat Aloc=blk[0];// this is not needed if there is global LU.
+  if(stype == SCHWARZ_BACKWARD_LOCAL || stype == SCHWARZ_BACKWARD){
+    //swap;
+    i=nblk_start;
+    nblk_start=nblk_end;
+    nblk_end=i;
+    step=-step;
+  }
+  //
+  // loop: a counter for symmetric Schwarz which loops twice over the blocks: forward and backwards.
+  INT loop; 
+  /*  
+      fprintf(stdout,"\nstype=%d,%d,%d,%d::%d,%d,%d\n",			
+      stype,SCHWARZ_FORWARD,SCHWARZ_BACKWARD,SCHWARZ_SYMMETRIC,		
+      SCHWARZ_FORWARD_LOCAL,SCHWARZ_BACKWARD_LOCAL,SCHWARZ_SYMMETRIC_LOCAL);
+  */
+  if(stype==SCHWARZ_FORWARD ||		\
+     stype==SCHWARZ_BACKWARD ||		\
+     stype==SCHWARZ_SYMMETRIC){
+    for(iter=0;iter<maxiter; iter++){
+      loop=2;
+      while(loop>0){
+	kblk=nblk_start;
+	while(kblk!=nblk_end+step){
+	  //	  fprintf(stdout,"\nkblk(lu_global)=%d (nblk_end=%d)",kblk,nblk_end);fflush(stdout);
+	  ibl0 = iblock[kblk];
+	  ibl1 = iblock[kblk+1];
+	  iloc=0;
+	  nloc=ibl1-ibl0;
+	  for(jk = ibl0;jk<ibl1;++jk){
+	    i = jblock[jk];
+	    mask[i] = iloc;
+	    rhsloc.val[iloc] = b[i];
+	    iloc++;
+	  }
+	  /* fprintf(stdout,"\nkblk(%d)=",kblk); */
+	  /* for(jk=ibl0;jk<ibl1;++jk){ */
+	  /*   i=jblock[jk]; //node number */
+	  /*   fprintf(stdout," %d ",i);fflush(stdout); */
+	  /* } */
+	  // Solve each block
+	  iloc=0;
+	  for(jk=ibl0;jk<ibl1;++jk){
+	    i=jblock[jk]; //node number
+	    for(ij=A.IA[i];ij<A.IA[i+1];++ij){
+	      j=A.JA[ij];
+	      if(mask[j]<0) {
+		rhsloc.val[iloc] -= A.val[ij]*x[j];
+	      }
+	    }
+	    iloc++;
+	  }
+	  switch (block_solver) {
+	  case SOLVER_UMFPACK: {
+	    /* use UMFPACK direct solver on each block */
+	    hazmath_solve(&blk[kblk], &rhsloc, &xloc, numeric[kblk], 0);
+	    break;
+	  }
+	    //#endif
+	  default:
+	    /* use iterative solver on each block */
+	    xloc.row = Aloc.row;
+	    rhsloc.row = Aloc.row;
+	    memset(xloc.val,0,xloc.row*sizeof(REAL));
+	    dcsr_pvgmres(&Aloc, &rhsloc, &xloc, NULL, 1e-8, 20, 20, 1, 0);
+	  }
+	  iloc=0;
+	  for(jk=ibl0;jk<ibl1;++jk){
+	    i = jblock[jk];
+	    mask[i] = -1;
+	    x[i] = xloc.val[iloc];
+	    iloc++;
+	  }
+	  /*...  DONE  */
+	  kblk+=step;
+	}
+	if(stype==SCHWARZ_FORWARD || stype==SCHWARZ_BACKWARD){
+	  break;
+	} else { //?stype==SCHWARZ_SYMMETRIC
+	  jk=nblk_end; // swap start and end;
+	  nblk_end=nblk_start;
+	  nblk_start=jk;
+	  step=-step;// change step;
+	  loop--; // decrease loop so once we pass twice through this we exit. 
+	}
+      }
+    }
+  } else {
+    dCSRmat blk_tran=dcsr_create(Schwarz->maxbs,Schwarz->maxbs,Schwarz->maxbnnz);
+    for(iter=0;iter<maxiter; iter++){
+      loop=2;
+      while(loop>0){
+	// this loop may go forward and backward if needed
+	kblk=nblk_start;
+	while(kblk!=(nblk_end+step)){
+	  //	  fprintf(stdout,"\nkblk(lu_local)=%d (nblk_end=%d)",kblk,nblk_end);fflush(stdout);
+	  ibl0 = iblock[kblk];
+	  ibl1 = iblock[kblk+1];
+	  iloc=0;
+	  nloc=ibl1-ibl0;
+	  for(jk = ibl0;jk<ibl1;++jk){
+	    i = jblock[jk];
+	    mask[i] = iloc;
+	    rhsloc.val[iloc] = b[i];
+	    iloc++;
+	  }
+	  Aloc.row=nloc;
+	  Aloc.col=nloc;
+	  nzloc=0;
+	  iloc=0;
+	  Aloc.IA[iloc]=nzloc;
+	  for(jk=ibl0;jk<ibl1;++jk){
+	    i=jblock[jk]; //node number
+	    for(ij=A.IA[i];ij<A.IA[i+1];++ij){
+	      j=A.JA[ij];
+	      if(mask[j]<0) {
+		rhsloc.val[iloc] -= A.val[ij]*x[j];
+	      }else {
+		Aloc.JA[nzloc]=mask[j];
+		Aloc.val[nzloc]=A.val[ij];
+		nzloc++;
+	      }
+	    }
+	    iloc++;
+	    Aloc.IA[iloc]=nzloc;
+	  }
+	  Aloc.nnz=Aloc.IA[nloc];
+	  /*... A=LU*/
+	  switch(block_solver) {	
+	  case SOLVER_UMFPACK: 
+	    /* use direct solver on each block locally */
+	    dcsr_transz(&Aloc, NULL, &blk_tran);
+	    dcsr_cp(&blk_tran, &Aloc);
+	    //	dcsr_free(&blk_tran);
+	    //printf("size of block %d: nrow=%d, nnz=%d\n",i, blk[i].row, blk[i].nnz);
+	    numeric[0] = hazmath_factorize(&Aloc, 0);
+	    hazmath_solve(&Aloc, &rhsloc, &xloc, numeric[0], 0);
+	    break;      
+	  default:
+	    /* use iterative solver on each block */
+	    xloc.row = Aloc.row;
+	    rhsloc.row = Aloc.row;
+	    memset(xloc.val,0,xloc.row*sizeof(REAL));
+	    dcsr_pvgmres(&Aloc, &rhsloc, &xloc, NULL, 1e-8, 20, 20, 1, 0);
+	  }
+	  iloc=0;
+	  for(jk=ibl0;jk<ibl1;++jk){
+	    i = jblock[jk];
+	    mask[i] = -1;
+	    x[i] = xloc.val[iloc];
+	    iloc++;
+	  }
+	  /*...  DONE  */
+	  kblk+=step;
+	}
+	if(stype==SCHWARZ_FORWARD_LOCAL || stype==SCHWARZ_BACKWARD_LOCAL){
+	  break;
+	} else { //?stype==SCHWARZ_SYMMETRIC_LOCAL
+	  jk=nblk_end; // swap start and end;
+	  nblk_end=nblk_start;
+	  nblk_start=jk;
+	  step=-step;// change step;
+	  loop--; // decrease loop so once we pass twice through this we exit. 
+	}
+      }
+    }
+    dcsr_free(&blk_tran);
+  }
+  return;
+}
 
 /*---------------------------------*/
 /*--        End of File          --*/

@@ -229,34 +229,33 @@ void fmgcycle(AMG_data *mgl,
     const REAL   relax = param->relaxation;
     const REAL   tol = param->tol * 1e-2;
     const REAL   power = param->fpwr; // fractional exponent
-
+    
     // Schwarz parameters
     Schwarz_param swzparam;
 
     // local variables
     REAL alpha = 1.0;
-    INT  num_lvl[MAX_AMG_LVL] = {0}, l = 0;
+    INT  num_lvl[MAX_AMG_LVL] = {0}, l = 0,sch_type=SCHWARZ_SYMMETRIC_LOCAL;
 
 ForwardSweep:
     while ( l < nl-1 ) {
 
         num_lvl[l]++;
-
-        // pre-smoothing with Schwarz method - I don't know what to do with this
         if ( l < mgl->Schwarz_levels ) {
             swzparam.Schwarz_blksolver = mgl[l].Schwarz.blk_solver;
-            switch (mgl[l].Schwarz.Schwarz_type) {
-                case SCHWARZ_SYMMETRIC:
-                    smoother_dcsr_Schwarz_forward(&mgl[l].Schwarz, &swzparam,
-                                                  &mgl[l].x, &mgl[l].b);
-                    smoother_dcsr_Schwarz_backward(&mgl[l].Schwarz, &swzparam,
-                                                   &mgl[l].x, &mgl[l].b);
-                    break;
-                default:
-                    smoother_dcsr_Schwarz_forward(&mgl[l].Schwarz, &swzparam,
-                                                  &mgl[l].x, &mgl[l].b);
-                    break;
-            }
+            /* switch (mgl[l].Schwarz.Schwarz_type) { */
+            /*     case SCHWARZ_SYMMETRIC: */
+	    smoother_dcsr_Schwarz(&mgl[l].Schwarz,&mgl[l].x, &mgl[l].b,param->presmooth_iter);
+	    /* smoother_dcsr_Schwarz_forward(&mgl[l].Schwarz, &swzparam, */
+	    /*                               &mgl[l].x, &mgl[l].b); */
+	    /* smoother_dcsr_Schwarz_backward(&mgl[l].Schwarz, &swzparam, */
+	    /*                                &mgl[l].x, &mgl[l].b); */
+            /*         break; */
+            /*     default: */
+            /*         smoother_dcsr_Schwarz_forward(&mgl[l].Schwarz, &swzparam, */
+            /*                                       &mgl[l].x, &mgl[l].b); */
+            /*         break; */
+            /* } */
         }
         else
         { // pre-smoothing with standard smoothers
@@ -328,24 +327,46 @@ ForwardSweep:
         // post-smoothing with Schwarz method
         if ( l < mgl->Schwarz_levels ) {
           swzparam.Schwarz_blksolver = mgl[l].Schwarz.blk_solver;
-            switch (mgl[l].Schwarz.Schwarz_type) {
-                case SCHWARZ_SYMMETRIC:
-                    smoother_dcsr_Schwarz_backward(&mgl[l].Schwarz, &swzparam,
-                                                   &mgl[l].x, &mgl[l].b);
-                    smoother_dcsr_Schwarz_forward(&mgl[l].Schwarz, &swzparam,
-                                                  &mgl[l].x, &mgl[l].b);
-                    break;
-                default:
-                    smoother_dcsr_Schwarz_backward(&mgl[l].Schwarz, &swzparam,
-                                                   &mgl[l].x, &mgl[l].b);
-                    break;
-            }
-        }
-        else
-        { // post-smoothing with standard methods
-          dcsr_fpostsmoothing(smoother, &mgl[l].A, &mgl[l].b, &mgl[l].x, &mgl[l].M,
-                              power, param->postsmooth_iter, 0, mgl[l].A.row-1,
-                              -1, relax);
+	  sch_type=mgl[l].Schwarz.Schwarz_type;
+	  switch(sch_type){
+	  case SCHWARZ_FORWARD:
+	    mgl[l].Schwarz.Schwarz_type=SCHWARZ_BACKWARD;
+	    smoother_dcsr_Schwarz(&mgl[l].Schwarz,&mgl[l].x, &mgl[l].b,param->postsmooth_iter);
+	    mgl[l].Schwarz.Schwarz_type=sch_type;
+	    break;
+	  case SCHWARZ_FORWARD_LOCAL:
+	    mgl[l].Schwarz.Schwarz_type=SCHWARZ_BACKWARD_LOCAL;
+	    smoother_dcsr_Schwarz(&mgl[l].Schwarz,&mgl[l].x, &mgl[l].b,param->postsmooth_iter);
+	    mgl[l].Schwarz.Schwarz_type=sch_type;
+	    break;
+	  case SCHWARZ_BACKWARD:
+	    mgl[l].Schwarz.Schwarz_type=SCHWARZ_FORWARD;
+	    smoother_dcsr_Schwarz(&mgl[l].Schwarz,&mgl[l].x, &mgl[l].b,param->postsmooth_iter);
+	    mgl[l].Schwarz.Schwarz_type=sch_type;
+	    break;
+	  case SCHWARZ_BACKWARD_LOCAL:
+	    mgl[l].Schwarz.Schwarz_type=SCHWARZ_FORWARD_LOCAL;
+	    smoother_dcsr_Schwarz(&mgl[l].Schwarz,&mgl[l].x, &mgl[l].b,param->postsmooth_iter);
+	    mgl[l].Schwarz.Schwarz_type=sch_type;
+	    break;
+	  default: //symmetric or symmetric local stays the same
+	    smoother_dcsr_Schwarz(&mgl[l].Schwarz,&mgl[l].x, &mgl[l].b,param->postsmooth_iter);
+	    break;
+	  }
+	  /* switch (mgl[l].Schwarz.Schwarz_type) { */
+	  /*     case SCHWARZ_SYMMETRIC: */
+	  /*         smoother_dcsr_Schwarz_backward(&mgl[l].Schwarz, &swzparam, */
+	  /*                                        &mgl[l].x, &mgl[l].b); */
+	  /*         smoother_dcsr_Schwarz_forward(&mgl[l].Schwarz, &swzparam, */
+	  /*                                       &mgl[l].x, &mgl[l].b); */
+	  /*         break; */
+	  /*     default: */
+	  /*         smoother_dcsr_Schwarz_backward(&mgl[l].Schwarz, &swzparam, */
+	  /*                                        &mgl[l].x, &mgl[l].b); */
+	  /*         break; */
+	  /* } */
+        }  else { // post-smoothing with standard methods
+          dcsr_fpostsmoothing(smoother, &mgl[l].A, &mgl[l].b, &mgl[l].x, &mgl[l].M,power, param->postsmooth_iter, 0, mgl[l].A.row-1,-1, relax);
         }
 
         if ( num_lvl[l] < cycle_type ) break;
@@ -399,21 +420,20 @@ void fmgcycle_add_update(AMG_data *mgl,
         // pre-smoothing with Schwarz method
         if ( l < mgl->Schwarz_levels ) {
             swzparam.Schwarz_blksolver = mgl[l].Schwarz.blk_solver;
-            switch (mgl[l].Schwarz.Schwarz_type) {
-                case SCHWARZ_SYMMETRIC:
-                    smoother_dcsr_Schwarz_forward(&mgl[l].Schwarz, &swzparam,
-                                                  &mgl[l].x, &mgl[l].b);
-                    smoother_dcsr_Schwarz_backward(&mgl[l].Schwarz, &swzparam,
-                                                   &mgl[l].x, &mgl[l].b);
-                    break;
-                default:
-                    smoother_dcsr_Schwarz_forward(&mgl[l].Schwarz, &swzparam,
-                                                  &mgl[l].x, &mgl[l].b);
-                    break;
-            }
-        }
-        else
-        { // pre-smoothing with standard smoothers
+	    smoother_dcsr_Schwarz(&mgl[l].Schwarz,&mgl[l].x, &mgl[l].b,param->presmooth_iter);
+            /* switch (mgl[l].Schwarz.Schwarz_type) { */
+            /*     case SCHWARZ_SYMMETRIC: */
+            /*         smoother_dcsr_Schwarz_forward(&mgl[l].Schwarz, &swzparam, */
+            /*                                       &mgl[l].x, &mgl[l].b); */
+            /*         smoother_dcsr_Schwarz_backward(&mgl[l].Schwarz, &swzparam, */
+            /*                                        &mgl[l].x, &mgl[l].b); */
+            /*         break; */
+            /*     default: */
+            /*         smoother_dcsr_Schwarz_forward(&mgl[l].Schwarz, &swzparam, */
+            /*                                       &mgl[l].x, &mgl[l].b); */
+            /*         break; */
+            /* } */
+        } else { // pre-smoothing with standard smoothers
           dcsr_fpresmoothing(smoother, &mgl[l].A, &mgl[l].b, &mgl[l].x, &mgl[l].M,
                              power, param->presmooth_iter, 0, mgl[l].A.row-1, 1,
                              relax);
