@@ -272,6 +272,30 @@ if (USE_HDF5)
 endif(USE_HDF5)
 
 ##################################################################
+# For FFTW3: 
+##################################################################
+if (USE_FFTW3)
+  # set the path to find specific modules
+  set(CMAKE_MODULE_PATH "${HAZMATH_SOURCE_DIR}/cmake.modules")
+  set(FFTW3_DIR /usr/lib/${CMAKE_LIBRARY_ARCHITECTURE})
+  set (FFTW3_LIBRARY_NAME "fftw3")
+#  Could be: set (FFTW3_LIBRARY_NAME "fftw3_mpi")
+#  Could be: set (FFTW3_LIBRARY_NAME "fftw3_omp")
+#  Could be: set (FFTW3_LIBRARY_NAME "fftw3_OTHER_THINGS")
+  find_package(FFTW3 REQUIRED COMPONENTS C CXX Fortran ) ## COMPONENTS C CXX Fortran HL)
+  if (FFTW3_FOUND)
+    message(STATUS "Found FFTW3 at ${FFTW3_DIR}")
+    add_definitions("-DWITH_FFTW3=1")
+    if (SHARED)
+      set(CMAKE_SHARED_LINKER_FLAGS ${FFTW3_LIBRARIES})
+    endif(SHARED)
+    message("   FFTW3 was found!")
+  else(FFTW3_FOUND)
+    message(WARNING  " FFTW3 was requested but not supported!")
+  endif(FFTW3_FOUND)
+endif(USE_FFTW3)
+
+##################################################################
 # For HAZNICS: we here require Python and SWIG
 ##################################################################
 if (USE_HAZNICS)
@@ -408,11 +432,15 @@ endif(SUITESPARSE_FOUND)
 if (HDF5_FOUND)
   LIST(APPEND XLIBS_TO_LINK ${HDF5_LIBRARIES})
 endif(HDF5_FOUND)
+# fftw3
+if (FFTW3_FOUND)
+  LIST(APPEND XLIBS_TO_LINK ${FFTW3_LIBRARIES})
+endif(FFTW3_FOUND)
 # matlab
 if (MATLAB_FOUND)
   LIST(APPEND XLIBS_TO_LINK "matlab")
 endif(MATLAB_FOUND)
-message(STATUS " ADDITIONAL_LIBSTO_LINK=${XLIBS_TO_LINK}" )
+message(STATUS " ADDITIONAL_LIBS_TO_LINK=${XLIBS_TO_LINK}" )
 target_link_libraries(hazmath "${XLIBS_TO_LINK}") 
 
 # install libhazmath
@@ -462,8 +490,11 @@ if (USE_HAZNICS)
      if (HDF5_FOUND)
       LIST(APPEND LIBS_TO_LINK ${HDF5_LIBRARY_NAME})
     endif(HDF5_FOUND)
+     if (FFTW3_FOUND)
+      LIST(APPEND LIBS_TO_LINK ${FFTW3_LIBRARY_NAME})
+    endif(FFTW3_FOUND)
     LIST(APPEND LIBS_TO_LINK ${Python_LIBRARIES})
-    message(STATUS " ADDITIONAL_LIBSTO_LINK=${LIBS_TO_LINK}" )
+    message(STATUS " ADDITIONAL_LIBS_TO_LINK=${LIBS_TO_LINK}" )
     target_link_libraries(haznics "${LIBS_TO_LINK}")
 #MAKE_SWIG_FLAGS can be used to add special flags to all swig calls.
 #SWIG_MODULE_haznics_EXTRA_DEPS property
