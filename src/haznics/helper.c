@@ -1971,7 +1971,7 @@ precond* create_precond_metric_amg_dcsr(dCSRmat *A,
             fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Schwarz seeds not provided in function=%s \n%%%%%% Using MIS on all DOFs instead.", \
             __FUNCTION__); fflush(stdout);
         }
-        Schwarz_setup_with_seeds(&(mgl->Schwarz), schwarz_param, interface_dofs);
+        Schwarz_setup(&(mgl->Schwarz), schwarz_param, interface_dofs);
     }
 
     mgl->Schwarz_levels = amgparam->Schwarz_levels;
