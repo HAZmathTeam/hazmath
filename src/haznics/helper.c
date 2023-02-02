@@ -1914,7 +1914,6 @@ precond* create_precond_metric_amg(block_dCSRmat *Ablock,
 
 precond* create_precond_metric_amg_dcsr(dCSRmat *A,
                                         ivector *interface_dofs,
-                                        SHORT precond_type,
                                         AMG_param *amgparam)
 {
     precond *pc = (precond*)calloc(1, sizeof(precond));
@@ -1947,96 +1946,73 @@ precond* create_precond_metric_amg_dcsr(dCSRmat *A,
     // Part 2.5: make interface solver (direct or schwarz)
     //--------------------------------------------------------------
     // set up the Schwarz smoother for the interface block
-    Schwarz_param *schwarz_param;
+    Schwarz_param *schwarz_param = (Schwarz_param *)calloc(1, sizeof(Schwarz_param));
+    param_amg_to_schwarz(schwarz_param, amgparam);
     schwarz_data_init(&(mgl->Schwarz));
     mgl->Schwarz.A = dcsr_sympat(A);
-
-    if (precond_type == 10 || precond_type == 11 ){
-        // solve directly on the interface instead of schwarz
-        void **LU_data = (void **)calloc(1, sizeof(void *));
-
-        dCSRmat A_tran;
-        dcsr_trans(&(mgl->Schwarz.A), &A_tran);
-        dcsr_cp(&A_tran, &(mgl->Schwarz.A));
-        if ( prtlvl > PRINT_NONE ) printf("Factorization for the interface block:\n");
-        LU_data[0] = hazmath_factorize(&(mgl->Schwarz.A), prtlvl);
-        dcsr_free(&A_tran);
+    // Schwarz seeds are the interface dofs from the second subdomain (with a global indexing)
+    // or NULL (means to use MIS on all dofs)
+    if(!interface_dofs) {
+        fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Schwarz seeds not provided in function=%s \n%%%%%% Using MIS on all DOFs instead.", \
+        __FUNCTION__); fflush(stdout);
     }
-    else{
-        schwarz_param = (Schwarz_param *)calloc(1, sizeof(Schwarz_param));
-        param_amg_to_schwarz(schwarz_param, amgparam);
-        // seeds are the interface dofs from the second subdomain, with a global index
-        // or NULL means to use MIS
-        if(!interface_dofs) {
-            fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Schwarz seeds not provided in function=%s \n%%%%%% Using MIS on all DOFs instead.", \
-            __FUNCTION__); fflush(stdout);
-        }
-        Schwarz_setup(&(mgl->Schwarz), schwarz_param, interface_dofs);
-    }
+    Schwarz_setup(&(mgl->Schwarz), schwarz_param, interface_dofs);
 
     mgl->Schwarz_levels = amgparam->Schwarz_levels;
     param_amg_to_prec(precdata, amgparam);
 
     // set up the AMG part
     switch (amgparam->AMG_type) {
-        case UA_AMG:
+        case UA_AMG: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
             status = amg_setup_ua(mgl, amgparam);
-            break;
+        break;
 
-        case SA_AMG:
+        case SA_AMG: // Smoothed Aggregation AMG setup
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
             status = amg_setup_sa(mgl, amgparam);
-            break;
+        break;
 
-        default:
+        default: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
             status = amg_setup_ua(mgl, amgparam);
-            break;
+        break;
     }
     if(status < 0) {
-        fprintf(stdout,"Unsuccessful AMG setup with status = %lld\n", (long long )status);
+        fprintf(stdout,"Unsuccessful AMG setup n function create_precond_metric_amg_dcsr with status = %lld\n", (long long )status);
         return 0;
     }
 
     //--------------------------------------------------------------
     // Part 3: set up the preconditioner
     //--------------------------------------------------------------
-    //precdata->tentative_smooth = amgparam->tentative_smooth; //fixme
     precdata->max_levels = mgl[0].num_levels;
     precdata->mgl_data = mgl;
-    precdata->A = (dCSRmat*)calloc(1, sizeof(dCSRmat));
-    dcsr_cp(A, precdata->A);
+    precdata->A = dcsr_create_p(nrow, ncol, nnz); dcsr_cp(A, precdata->A);
     precdata->r = dvec_create_p(nrow);
-    //#if WITH_SUITESPARSE
-    //precdata->LU_data = LU_data; //fixme
-    //#endif
+
     pc->data = precdata;
 
-    switch (precond_type) {
-        case 2: // solve using AMG for the whole matrix
-            pc->fct = precond_amg;
-            break;
-    /*    case 10: // solve the interface part exactly
-            pc->fct = precond_bdcsr_metric_amg_exact;
-            break;
-        case 11: // solve the interface part exactly (additive version)
-            pc->fct = precond_bdcsr_metric_amg_exact_additive;
-            break;
-        case 12: // solve the interface part using Schwarz method (non symmetric multiplicative version)
-            pc->fct = precond_bdcsr_metric_amg;
-            break;
-        case 13: // solve the interface part using Schwarz method (additive version)
-            pc->fct = precond_bdcsr_metric_amg_additive;
-            break;
-        case 14: // solve the interface part using Schwarz method (additive version)
-            pc->fct = precond_bdcsr_metric_amg_additive;
-            break;*/
-        default: // solve the interface part using Schwarz method (symmetric multiplicative version)
-            pc->fct = precond_amg;
-            break;
+    switch (amgparam->cycle_type) {
+
+        case V_CYCLE:
+            pc->fct = precond_amg; break;
+        case W_CYCLE:
+            pc->fct = precond_amg; break;
+        case AMLI_CYCLE:
+            pc->fct = precond_amli; break;
+        case NL_AMLI_CYCLE:
+            pc->fct = precond_nl_amli; break;
+        case ADD_CYCLE:
+            pc->fct = precond_amg_add; break;
+        default:
+            pc->fct = precond_amg; break;
+
     }
 
     get_time(&setup_end);
     pc->setup_time = setup_end - setup_start;
-    if ( prtlvl >= PRINT_MIN )
+    if ( prtlvl > PRINT_NONE)
         print_cputime("dCSR AMG setup", pc->setup_time);
 
     return pc;
