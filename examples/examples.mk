@@ -1,6 +1,7 @@
 
 ####################################################
-# Last Modified 2017-03-08 --ltz
+# Modified 2017-03-08 --ltz
+# Last Modified 2023-02-02 --ltz
 ####################################################
 
 # Extension for the Executable Programs
@@ -16,15 +17,31 @@ ExtraFLAGS =
 INCLUDE = 
 LIBS =
 
-# MAC specific (assuming homebrew)
-MAC_ON=0
-MAC_INCLUDE=-I/opt/homebrew/include
-MAC_LIB=-L/opt/homebrew/lib
-
-ifeq ($(MAC_ON),1)
+SYSNAME := $(shell uname -s)
+# MAC_ON=0 #[0/1] this should be given in the particular makefile.
+ifeq ($(SYSNAME),Darwin)
+	MAC_INCLUDE=-I/opt/homebrew/include
+	MAC_LIB=-L/opt/homebrew/lib
 	INCLUDE += $(MAC_INCLUDE)
 	LIBS += $(MAC_LIB)
+	MAC_ON=1
+	RPATH = 
+else
+	MAC_ON=0
+	RPATH = -Wl,-rpath=$(HAZDIR)/lib
 endif
+
+# PROCNAME := $(shell uname -p)
+# ifeq ($(PROCNAME),x86_64)
+#     CCFLAGS += -D AMD64
+# endif
+# ifneq ($(filter %86,$(PROCNAME)),)
+#     CCFLAGS += -D IA32
+# endif
+# ifneq ($(filter arm%,$(PROCNAME)),)
+#     CCFLAGS += -D ARM
+# endif
+# MAC specific (assuming homebrew)
 
 ##################### no change should be needed below. ###########
 # HAZMATH LIB and INCLUDE
@@ -46,12 +63,6 @@ HAZLIB = -L$(HAZDIR)/lib -lhazmath
 INCLUDE += -I$(HAZDIR)/include
 
 LIBS += $(HAZLIB) -lm 
-
-ifeq ($(MAC_ON),1)
-	RPATH = 
-else
-	RPATH = -Wl,-rpath=$(HAZDIR)/lib
-endif
 
 MGRAPH_WRAPPERDIR = $(realpath ../multigraph_wrap)
 DMGRAPH = 
@@ -86,6 +97,16 @@ endif
 ifeq ($(WITH_LAPACK),1)
 	CFLAGS += -DWITH_LAPACK=1
 	LIBS += -llapack
+endif
+
+ifeq ($(WITH_HDF5),1)
+	CFLAGS += -DWITH_HDF5=1
+	LIBS += -lhdf5_serial
+endif
+
+ifeq ($(WITH_FFTW3),1)
+	CFLAGS += -DWITH_FFTW3=1
+	LIBS += -lfftw3
 endif
 
 ifeq ($(WITH_HAZNICS),1)
