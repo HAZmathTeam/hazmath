@@ -74,6 +74,11 @@ ifeq ($(hdf5), yes)
     CONFIG_FLAGS+=-DHDF5_DIR=$(hdf5_dir)
 endif
 
+ifeq ($(fftw3), yes)
+    CONFIG_FLAGS+=-DUSE_FFTW3=$(fftw3)
+    CONFIG_FLAGS+=-DFFTW3_DIR=$(fftw3_dir)
+endif
+
 
 ifeq ($(haznics), yes)
     CONFIG_FLAGS+=-DUSE_HAZNICS=$(haznics)

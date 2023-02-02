@@ -94,6 +94,11 @@
 # hdf5=yes
 #
 # -------------------------------------------------------------------------
+# If you want to use the FFTW3 library
+#
+# fftw3=yes
+#
+# -------------------------------------------------------------------------
 # If you want to use the interface with MATLAB, uncomment the next line:
 #
 # matlab=yes
