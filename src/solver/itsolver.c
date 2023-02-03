@@ -884,6 +884,7 @@ INT linear_solver_dcsr_krylov_amg(dCSRmat *A,
 
     // setup preconditioner
     precond_data pcdata;
+    precond_data_null(&pcdata);
     param_amg_to_prec(&pcdata,amgparam);
     pcdata.max_levels = mgl[0].num_levels;
     pcdata.mgl_data = mgl;

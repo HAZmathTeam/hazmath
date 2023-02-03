@@ -431,11 +431,11 @@ INT dcsr_pcg_w_cond_est(dCSRmat *A,
     array_cp(m,b->val,r);
     dcsr_aAxpy(-1.0,A,u->val,r);
 
-    if ( pc != NULL )
-        pc->fct(r,z,pc->data); /* Apply preconditioner */
-    else
+    if ( pc != NULL ){
+      pc->fct(r,z,pc->data); /* Apply preconditioner */
+    } else{
         array_cp(m,r,z); /* No preconditioner */
-
+    }
     // compute initial residuals
     switch ( stop_type ) {
         case STOP_REL_RES:
@@ -469,7 +469,6 @@ INT dcsr_pcg_w_cond_est(dCSRmat *A,
 
     // main PCG loop
     while ( iter++ < MaxIt ) {
-
         // t=A*p
         dcsr_mxv(A,p,t);
 

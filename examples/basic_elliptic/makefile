@@ -13,7 +13,7 @@ LIBS =
 
 # Switch between debug or optimized
 CFLAGS = -g
-FFLAGS = -g 
+FFLAGS = -g
 
 
 ## If an external libraries support is compiled in the hazmath library,

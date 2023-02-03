@@ -171,9 +171,9 @@ void precond_amg(REAL *r,
     AMG_data *mgl = pcdata->mgl_data;
     mgl->b.row=m; array_cp(m,r,mgl->b.val); // residual is an input
     mgl->x.row=m; dvec_set(m,&mgl->x,0.0);
-
-    for (i=0;i<maxit;++i) mgcycle(mgl,&amgparam);
-
+    for (i=0;i<maxit;++i) {
+      mgcycle(mgl,&amgparam);
+    }
     array_cp(m,mgl->x.val,z);
 }
 
