@@ -240,7 +240,7 @@ static void chouseh2(REAL16 a1r,REAL16 a1i,		\
 }
 /***************************************************************************/
 /*
- * \fn static void xdivy(const REAL16 xr,const REAL16 xi,
+ * \fn void xdivy(const REAL16 xr,const REAL16 xi,
  *		  const REAL16 yr,const REAL16 yi,
  *		  REAL16 *zr,REAL16 *zi)
  *
@@ -258,9 +258,9 @@ static void chouseh2(REAL16 a1r,REAL16 a1i,		\
  *
  * \note Ludmil 20210426
  */
-static void xdivy(const REAL16 xr,const REAL16 xi,	\
-		  const REAL16 yr,const REAL16 yi,	\
-		  REAL16 *zr,REAL16 *zi)
+void xdivy(const REAL16 xr,const REAL16 xi,	\
+	   const REAL16 yr,const REAL16 yi,	\
+	   REAL16 *zr,REAL16 *zi)
 {
   REAL16 wr,wi,vr,vi,d;
   if(FABS(yr)>=FABS(yi)){
