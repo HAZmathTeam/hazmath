@@ -386,7 +386,8 @@ INT Schwarz_setup(Schwarz_data *Schwarz,
       break;
     }
       //#endif	
-    default: 
+    default:
+    break;
       /* do nothing for iterative methods */
     }
   } else {
