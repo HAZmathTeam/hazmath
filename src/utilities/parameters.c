@@ -627,10 +627,9 @@ void param_amg_to_prec (precond_data *pcdata,
     /* } */
     // 2023-01-30 ANA: this caused many errors for me so I'm updating this for safety
     if(amgparam->amli_coef) {
-      fprintf(stdout,"\ndeg=%d",amgparam->amli_degree);fflush(stdout);
-        pcdata->amli_coef = (REAL*)calloc(amgparam->amli_degree+1, sizeof(REAL));
-	//        array_cp(amgparam->amli_degree+1, amgparam->amli_coef, pcdata->amli_coef);
-        memcpy(pcdata->amli_coef,amgparam->amli_coef,(amgparam->amli_degree+1)*sizeof(REAL));
+      pcdata->amli_coef = (REAL*)calloc(amgparam->amli_degree+1, sizeof(REAL));
+      //        array_cp(amgparam->amli_degree+1, amgparam->amli_coef, pcdata->amli_coef);
+      memcpy(pcdata->amli_coef,amgparam->amli_coef,(amgparam->amli_degree+1)*sizeof(REAL));
     }
 }
 
@@ -670,7 +669,6 @@ void param_prec_to_amg (AMG_param *amgparam,
     //      fprintf(stdout,"\ncoef[%d]=%e",j,pcdata->amli_coef[j]);fflush(stdout);
     //    }
     if(pcdata->amli_coef) {
-      fprintf(stdout,"\ndeg1=%d",amgparam->amli_degree);fflush(stdout);
       amgparam->amli_coef = (REAL*)calloc(pcdata->amli_degree+1, sizeof(REAL));
       memcpy(amgparam->amli_coef,pcdata->amli_coef,(pcdata->amli_degree+1)*sizeof(REAL));
     }
