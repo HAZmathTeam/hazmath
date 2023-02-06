@@ -1,4 +1,3 @@
-
 /*! \file src/eigen/eigen_drivers.c
  *
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 8/19/15.
@@ -32,13 +31,13 @@ INT eigsymm(dCSRmat *A,dCSRmat *B,REAL *evalues, REAL *evectors)
   bf=calloc(n*n+lwork,sizeof(REAL));
   dcsr2full(A,af);
   /*
-     if the matrix is not symmetric we need to do here c2r before we
+     if the matrix is not symmetric we need to do here col_2_row before we
      call the fortran to make the matrix stored "fortran friendly". We
-     use c2r here just to be consistent
+     use col_2_row here just to be consistent
   */
-  // TODO: Shouldn't this be r2c?  But it's symmetric anyway??
-  c2r(n,n,sizeof(REAL),(void *)af);
-  /*B must be always symmetric as it should define an inner product  so no need of c2r; */
+  // TODO: Shouldn't this be row_2_col?  But it's symmetric anyway??
+  col_2_row(n,n,sizeof(REAL),(void *)af);
+  /*B must be always symmetric as it should define an inner product  so no need of col_2_row; */
   dcsr2full(B,bf);
   work = bf + n*n;
   dsygv_( &itype, &jobz, &uplo, &n, af, &n, bf, &n, w, work,
@@ -48,7 +47,7 @@ INT eigsymm(dCSRmat *A,dCSRmat *B,REAL *evalues, REAL *evectors)
     free(af);
   else{
     // fortran orders memory by columns, so we need to order by rows.
-    c2r(n,n,sizeof(REAL),(void *)evectors);
+    col_2_row(n,n,sizeof(REAL),(void *)evectors);
   }
   if(info){
     fprintf(stderr,"\nXXX: lapack error info during eigenvalue computations=%lld (n=%lld)\n",(long long )info,(long long )n);fflush(stderr);

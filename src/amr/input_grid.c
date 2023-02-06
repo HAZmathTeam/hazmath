@@ -472,7 +472,7 @@ static INT  read_data(char **clndata,input_grid *g)
   mdata=read_mixed_data(g->ncsys,2,g->dim,clndata[3]);
   if(mdata!=NULL){
     idata=(INT *)mdata;
-    r2c(g->ncsys,2,sizeof(INT),idata);// by rows.
+    row_2_col(g->ncsys,2,sizeof(INT),idata);// by rows.
     memcpy(g->ox,(mdata+g->ncsys*2*sizeof(INT)),g->ncsys*g->dim*sizeof(REAL));
     memcpy(g->syslabels,idata,g->ncsys*sizeof(INT));
     memcpy(g->systypes,(idata+g->ncsys),g->ncsys*sizeof(INT));
@@ -505,7 +505,7 @@ static INT  read_data(char **clndata,input_grid *g)
     /*   fprintf(stdout,")"); */
     /* } */
     /* fprintf(stdout,"\n"); */
-    r2c(g->nv,2,sizeof(INT),idata);// vertex labels and coord systems by rows.
+    row_2_col(g->nv,2,sizeof(INT),idata);// vertex labels and coord systems by rows.
     memcpy(g->xv,(mdata+g->nv*2*sizeof(INT)),g->nv*g->dim*sizeof(REAL));
     //    print_full_mat(g->nv,g->dim,g->xv,"x1");
     /* for(count=0;count<g->nv;count++){ */
@@ -618,7 +618,7 @@ static INT  read_data(char **clndata,input_grid *g)
     /* } */
     /* fprintf(stdout,"\n"); */
     if(g->num_refine_points){
-      r2c(g->num_refine_points,2,sizeof(INT),idata);// vertex labels and coord systems by rows.
+      row_2_col(g->num_refine_points,2,sizeof(INT),idata);// vertex labels and coord systems by rows.
       memcpy(g->data_refine_points,(mdata+g->num_refine_points*2*sizeof(INT)),g->num_refine_points*g->dim*sizeof(REAL));
     }
     //    print_full_mat(g->nv,g->dim,g->xv,"x1");

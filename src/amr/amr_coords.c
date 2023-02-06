@@ -279,8 +279,8 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
   }
   //  print_full_mat(c2s->nvcube,dim,xmac,"X");
   //  print_full_mat(c2s->ne,dim,xemac,"XE");
-  r2c(c2s->nvcube,dim,sizeof(REAL),xmac); // we need xmac by rows here
-  r2c(c2s->ne,dim,sizeof(REAL),xemac); // we need xemac (mid points of
+  row_2_col(c2s->nvcube,dim,sizeof(REAL),xmac); // we need xmac by rows here
+  row_2_col(c2s->ne,dim,sizeof(REAL),xemac); // we need xemac (mid points of
 				       // edges) also by rows
   for(kf=0;kf<sc->nv;kf++){
     for(i=0;i<dim;i++)xhat[i]=sc->x[kf*dim+i];
@@ -292,8 +292,8 @@ void map2mac(scomplex *sc,cube2simp *c2s, input_grid *g)
       //      sc->x[kf*dim+i]=interp4(c2s,xmac+i*c2s->nvcube,xhat);
     //    }
   }
-  //  r2c(dim,c2s->nvcube,sizeof(REAL),xmac); // we need xmac by columns here
-  //  r2c(dim,c2s->ne,sizeof(REAL),xemac); // we need xemac by rows agin
+  //  row_2_col(dim,c2s->nvcube,sizeof(REAL),xmac); // we need xmac by columns here
+  //  row_2_col(dim,c2s->ne,sizeof(REAL),xemac); // we need xemac by rows agin
   free(xhat);
   free(xemac);
   free(c1);
