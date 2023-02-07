@@ -644,7 +644,7 @@ INT ddense_svd(INT m, INT n, REAL *A, REAL *U, REAL *VT, REAL* S,INT computeUV)
   INT lwork=-1; // Indicates we're not solving yet
 
   // Convert to column-wise ordering
-  r2c(m,n,sizeof(REAL),(void *)A);
+  row_2_col(m,n,sizeof(REAL),(void *)A);
 
   // Default to not compute U and V^T
   // Later can decide if you want the partial computations.
@@ -705,7 +705,7 @@ INT ddense_qr_lapack(INT m,INT n, REAL *A,REAL * Q,REAL *R,INT computeR)
   INT lwork=-1; // Indicates we're not solving yet
 
   // Convert to column-wise ordering
-  r2c(m,n,sizeof(REAL),(void *)A);
+  row_2_col(m,n,sizeof(REAL),(void *)A);
 
   // Store reflectors to compute Q later
   REAL* tau = (REAL *) calloc(n,sizeof(REAL));
@@ -732,7 +732,7 @@ INT ddense_qr_lapack(INT m,INT n, REAL *A,REAL * Q,REAL *R,INT computeR)
   dorgqr_(&m,&n,&n,A,&lda,tau,dwork,&lwork,&info);
   array_cp(m*n,A,Q);
   // Convert back to row-major form
-  c2r(m,n,sizeof(REAL),(void *)Q);
+  col_2_row(m,n,sizeof(REAL),(void *)Q);
 
   if(info){
     fprintf(stderr,"\nXXX: lapack error info during qr computations=%lld\n",(long long )info);fflush(stderr);
@@ -752,14 +752,14 @@ INT ddense_qr_lapack(INT m,INT n, REAL *A,REAL * Q,REAL *R,INT computeR)
 }
 
 /*******************************************************************/
-/* \fn  void c2r(const INT n, const INT m, const size_t sizeel, void *x)
+/* \fn  void col_2_row(const INT n, const INT m, const size_t sizeel, void *x)
  *
  * \note: converts 2d array stored by columns to a 2d array stored by
  *     rows (fortran to c); overwrites the input array x with the
  *     result. sizeel is the size of an element in the array in bytes.
  *
 */
-void c2r(const INT n, const INT m, const size_t sizeel, void *x)
+void col_2_row(const INT n, const INT m, const size_t sizeel, void *x)
 {
   INT i,j,ji,nms=n*m*sizeel;
   void *y=(void *)malloc(nms);
@@ -775,14 +775,14 @@ void c2r(const INT n, const INT m, const size_t sizeel, void *x)
   return;
 }
 /*******************************************************************/
-/* \fn void r2c(const INT n, const INT m, const size_t sizeel, void *x)
+/* \fn void row_2_col(const INT n, const INT m, const size_t sizeel, void *x)
  *
  * \note: converts 2d array stored by rows to a 2d array stored by
  *        columns (c to fortran). sizeel is the size of an element in
  *        the array in bytes
  *
 */
-void r2c(const INT n, const INT m, const size_t sizeel, void *x)
+void row_2_col(const INT n, const INT m, const size_t sizeel, void *x)
 {
   INT i,j,ji,nms=n*m*sizeel;
   void *y=(void *)malloc(nms);

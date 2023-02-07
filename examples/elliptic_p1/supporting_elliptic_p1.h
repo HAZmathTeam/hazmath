@@ -98,7 +98,7 @@ static void mapit(scomplex *sc,REAL *vc)
   free(p);
   /* transpose vcp to get one vertex per column as we first transform x,
      then y then z and so on */
-  r2c(c2s->nvcube,dim,sizeof(REAL),vcp);
+  row_2_col(c2s->nvcube,dim,sizeof(REAL),vcp);
   for(kf=0;kf<sc->nv;kf++){
     for(i=0;i<dim;i++) xhat[i]=sc->x[kf*dim+i];
     for(i=0;i<dim;i++) sc->x[kf*dim+i]=interp4(c2s,vcp+i*c2s->nvcube,xhat);
