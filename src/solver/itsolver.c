@@ -1005,6 +1005,7 @@ INT linear_solver_dcsr_krylov_famg(dCSRmat *A_frac,
 
     // setup preconditioner
     precond_data pcdata;
+    precond_data_null(&pcdata);
     param_amg_to_prec(&pcdata, amgparam);
     pcdata.max_levels = mgl[0].num_levels;
     pcdata.mgl_data = mgl;
@@ -1123,7 +1124,7 @@ INT linear_solver_dcsr_krylov_famg2(dCSRmat *A_frac,
     //                        1 - Grad
     //                        2 - Grad^T
     precond_data pcdata0, pcdata1, pcdata2;
-
+    precond_data_null(&pcdata0); precond_data_null(&pcdata1); precond_data_null(&pcdata2);
     param_amg_to_prec(&pcdata0, amgparam);
     pcdata0.max_levels = mgl[0].num_levels;
     pcdata0.mgl_data = mgl;
@@ -1297,7 +1298,7 @@ INT linear_solver_dcsr_krylov_famg_sum(dCSRmat *A_frac,
     // setup preconditioners: 1 - FAMG(s/2),
     //                        2 - AMG(alpha * lump(M)^-1 + beta * lump(M)^-1 A lump(M)^-1)
     precond_data pcdata1, pcdata2;
-
+    precond_data_null(&pcdata1); precond_data_null(&pcdata2);
     param_amg_to_prec(&pcdata1, famgparam);
     param_amg_to_prec(&pcdata2, amgparam);
 
@@ -1479,7 +1480,7 @@ INT linear_solver_dcsr_krylov_famg_sum2(dCSRmat *A_frac,
     // setup preconditioners: 0-2 - FAMG(Adiv^1+s/2),
     //                        3   - AMG(alpha * lump(M)^-1 + beta * lump(M)^-1 A lump(M)^-1)
     precond_data pcdata0, pcdata1, pcdata2, pcdata3;
-
+    precond_data_null(&pcdata0); precond_data_null(&pcdata1); precond_data_null(&pcdata2); precond_data_null(&pcdata3);
     param_amg_to_prec(&pcdata0, famgparam);
     pcdata0.max_levels = fmgl[0].num_levels;
     pcdata0.mgl_data = fmgl;
@@ -5065,6 +5066,134 @@ MEMORY_ERROR:
     exit(status);
 }
 
+
+/********************************************************************************************/
+/**
+ * \fn INT linear_solver_dcsr_krylov_metric_amg(dCSRmat *A, dvector *b, dvector *x, ivector *interface_dofs,
+ *                                              linear_itsolver_param *itparam, AMG_param *amgparam)
+ *
+ *
+ * \brief Solve Ax=b by AMG preconditioned Krylov methods for interface problem using metric AMG approach
+ *
+ * \param A                 Pointer to the coeff matrix in dCSRmat format
+ * \param b                 Pointer to the right hand side in dvector format
+ * \param x                 Pointer to the approx solution in dvector format
+ * \param interface_dofs    Pointer to indices of interface dofs in ivector format
+ * \param itparam           Pointer to parameters for iterative solvers
+ * \param amgparam          Pointer to parameters of AMG
+ *
+ * \return          Iteration number if converges; ERROR otherwise.
+ *
+ * \author Ana Budisa
+ * \date   2023-02-07
+ *
+ *
+ */
+INT linear_solver_dcsr_krylov_metric_amg(dCSRmat *A,
+                                         dvector *b,
+                                         dvector *x,
+                                         ivector *interface_dofs,
+                                         linear_itsolver_param *itparam,
+                                         AMG_param *amgparam)
+{
+    const SHORT prtlvl = itparam->linear_print_level;
+    const SHORT max_levels = amgparam->max_levels;
+    const INT nnz = A->nnz, m = A->row, n = A->col;
+
+    /* Local Variables */
+    INT      status = SUCCESS;
+    REAL     solver_start, solver_end, solver_duration;
+
+    get_time(&solver_start);
+
+    // initialize A, b, x for mgl[0]
+    AMG_data *mgl = amg_data_create(max_levels);
+    mgl[0].A = dcsr_create(m, n, nnz); dcsr_cp(A, &mgl[0].A);
+    mgl[0].b = dvec_create(n); mgl[0].x = dvec_create(n);
+
+    // set up the Schwarz smoother for the interface block
+    Schwarz_param schwarz_param;
+    param_Schwarz_init(&schwarz_param);
+    param_amg_to_schwarz(&schwarz_param, amgparam);
+    schwarz_data_init(&(mgl->Schwarz));
+    mgl->Schwarz.A = dcsr_sympat(A);
+    mgl->Schwarz_levels = amgparam->Schwarz_levels;
+    // Schwarz seeds are the interface dofs from the second subdomain (with a global indexing)
+    // or NULL (means to use MIS on all dofs)
+    if(!interface_dofs) {
+        fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Schwarz seeds not provided in function=%s \n%%%%%% Using MIS on all DOFs instead.", \
+        __FUNCTION__); fflush(stdout);
+    }
+    Schwarz_setup(&(mgl->Schwarz), &schwarz_param, interface_dofs);
+
+    // setup preconditioner
+    switch (amgparam->AMG_type) {
+
+        case UA_AMG: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_ua(mgl, amgparam);
+        break;
+
+        case SA_AMG: // Smoothed Aggregation AMG setup
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling SA AMG ...\n");
+            status = amg_setup_sa(mgl, amgparam);
+        break;
+
+        default: // Unsmoothed Aggregation AMG
+            if ( prtlvl > PRINT_NONE ) printf("\n Calling UA AMG ...\n");
+            status = amg_setup_ua(mgl, amgparam);
+        break;
+
+    }
+
+    if (status < 0) {
+        printf("### HAZMATH ERROR: Unsuccessful AMG setup in [%s]\n", __FUNCTION__);
+        return status;
+    }
+
+    // setup preconditioner
+    precond_data pcdata;
+    precond_data_null(&pcdata);
+    param_amg_to_prec(&pcdata, amgparam);
+    pcdata.max_levels = mgl[0].num_levels;
+    pcdata.mgl_data = mgl;
+
+    precond pc; pc.data = &pcdata;
+
+    switch (amgparam->cycle_type) {
+        case AMLI_CYCLE: // AMLI cycle
+            pc.fct = precond_amli;
+            break;
+        case NL_AMLI_CYCLE: // Nonlinear AMLI AMG
+            pc.fct = precond_nl_amli;
+            break;
+        case ADD_CYCLE: // additive cycle
+            pc.fct = precond_amg_add;
+            break;
+        default: // V,W-Cycle AMG
+            pc.fct = precond_amg;
+            break;
+    }
+
+    // call iterative solver
+    status = solver_dcsr_linear_itsolver(A, b, x, &pc, itparam);
+
+    if ( prtlvl >= PRINT_MIN ) {
+        get_time(&solver_end);
+        solver_duration = solver_end - solver_start;
+        print_cputime("AMG_Krylov method totally", solver_duration);
+        fprintf(stdout,"**********************************************************\n");
+    }
+
+#if DEBUG_MODE > 0
+    printf("### DEBUG: [--End--] %s ...\n", __FUNCTION__);
+#endif
+
+FINISHED:
+    amg_data_free(mgl, amgparam);free(mgl);
+    return status;
+
+}
 
 /*---------------------------------*/
 /*--        End of File          --*/
