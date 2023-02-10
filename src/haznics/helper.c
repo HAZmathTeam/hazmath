@@ -1556,6 +1556,60 @@ INT fenics_metric_amg_solver_minimal(block_dCSRmat *A,
     return solver_flag;
 }
 
+
+
+INT fenics_metric_amg_solver_dcsr(dCSRmat *A,
+                                  dvector *b,
+                                  dvector *x,
+                                  ivector *interface_dofs)
+{
+    INT i;
+    /* set Parameters from Reading in Input File */
+    input_param inparam;
+    param_input_init(&inparam);
+    param_input("./input_metric.dat", &inparam);
+
+    /* set initial guess */
+    dvec_set(b->row, x, 0.0);
+
+    /* rescale matrix and rhs! */
+    /*INT nblocks = A->brow * A->bcol;
+    REAL *amin = (REAL*)calloc(nblocks, sizeof(REAL));
+    REAL *amax = (REAL*)calloc(nblocks, sizeof(REAL));
+    for(i = 0; i < nblocks; ++i) dcsr_diag_extremal(0, A->blocks[i], amin+i, amax+i);
+    REAL maxx = darray_max(nblocks, amax);
+    bdcsr_axm(A, 1./maxx);
+    dvec_ax(1./maxx, b);*/
+
+    /* Set Solver Parameters */
+    INT solver_flag = -20;
+    /* Set parameters for linear iterative methods */
+    linear_itsolver_param linear_itparam;
+    param_linear_solver_set(&linear_itparam, &inparam);
+    if (linear_itparam.linear_print_level > PRINT_MIN) param_linear_solver_print(&linear_itparam);
+
+    /* Set parameters for algebriac multigrid methods */
+    AMG_param amgparam;
+    param_amg_init(&amgparam);
+    param_amg_set(&amgparam, &inparam);
+    if(amgparam.print_level > PRINT_MIN) param_amg_print(&amgparam);
+
+    printf("\n===========================================================================\n");
+    printf("Solving the linear system \n");
+    printf("===========================================================================\n");
+
+    // Use Krylov Iterative Solver
+    if ( (linear_itparam.linear_precond_type == 16) ) {
+        solver_flag = linear_solver_dcsr_krylov_metric_amg(A, b, x, interface_dofs, &linear_itparam, &amgparam);
+    }
+    // No preconditioner
+    else {
+        solver_flag = linear_solver_dcsr_krylov(A, b, x, &linear_itparam);
+    }
+
+    return solver_flag;
+}
+
 /*
 INT fenics_metric_amg_solver_timo(INT n0,
                                   INT n1,
