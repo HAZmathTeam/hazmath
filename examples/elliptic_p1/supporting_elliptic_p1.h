@@ -9,104 +9,6 @@
  *  \note: modified by ltz on 20210602
  *
  */
-/*******************************************************************/
-static void scomplex_print_matlab(const char *fname,scomplex *sc)
-{
-  INT ns_max=100000;
-  FILE *fp=fopen(fname,"w");
-  if(sc->ns>ns_max){
-    fprintf(fp,"\n%%%% Too large:elements=%lld>%lld\n",(long long )sc->ns,(long long )ns_max);
-    fclose(fp);
-    return;
-  }
-  INT i, j, k, in,in1,n1=sc->n+1,dim=sc->n,nv=sc->nv,ns=sc->ns;
-  fprintf(fp,"\nt=[");
-  for(j=0;j<n1;j++){
-    for(i=0;i<ns-1;++i){
-      fprintf(fp,"%lld,",(long long )sc->nodes[i*n1+j]);
-    }
-    fprintf(fp,"%lld;\n",(long long )sc->nodes[(ns-1)*n1+j]);
-  }
-  fprintf(fp,"];t=t';\n");
-  fprintf(fp,"\nnbr=[");
-  for(j=0;j<n1;j++){
-    for(i=0;i<ns-1;i++){
-      fprintf(fp,"%lld,",(long long )sc->nbr[i*n1+j]);
-    }
-    fprintf(fp,"%lld;\n",(long long )sc->nbr[(ns-1)*n1+j]);
-  }
-  fprintf(fp,"];nbr=nbr';\n");
-  //
-  fprintf(fp,"\nxp=[");
-  for(j=0;j<dim;j++){
-    for(i=0;i<nv-1;i++){
-      fprintf(fp,"%.16e,",sc->x[i*dim+j]);
-    }
-    fprintf(fp,"%.16e;\n",sc->x[(nv-1)*dim+j]);
-  }
-  fprintf(fp,"];xp=xp';\n");
-  fprintf(fp,"\nib=[");  
-  for(i=0;i<nv-1;i++){
-    fprintf(fp,"%lld,",(long long )sc->bndry[i]);
-  }
-  fprintf(fp,"%lld];ib=ib';\n",(long long )sc->bndry[nv-1]);
-  fclose(fp);
-  return;
-}
-/**********************************************************************************/
-/*!
- * \fn static void mapit(scomplex *sc,const REAL *vc)
- *
- * \brief Constructs a simplicial mesh in a polyhedral domain O in
- *        dim-dimensions (dim=sc->n). The domain is assumed to be
- *        isomorphic to the cube in dim-dimensions. Examples: it is a
- *        quadrilateral when d=2 and hexagonal when d=3. To avoid
- *        ambiguity, we order the vertices vc[] of O lexicographicaly
- *        to get vcp[] so that the j-th vertex in the ordered array,
- *        with coordinates vcp[j*dim--(j+1)*dim-1] is mapped to the
- *        vertex of the unit cube whose coordinates are the digits in
- *        the binary representation of j. Here j=[0,...,2^(dim)-1]. 
- *        
- *
- * \param sc    I: simplicial complex defining the FE grid.
- *
- * \param vc[] I:    A REAL array with coordinates of the vertices of the
- *                   domain. The vertex k is with coordinates
- *                   vc[k*dim--(k+1)*dim-1]. These could be given in
- *                   any order.
- *
- * \note Ludmil (20210807)
- */
-/**********************************************************************************/
-static void mapit(scomplex *sc,REAL *vc)
-{
-  if(!vc) return;
-  /* maps a mesh on the unit cube in d-dimensions to a domain with vertices vc[] */
-  INT dim=sc->n;
-  INT i,j,kf,dim1=dim+1;
-  cube2simp *c2s=cube2simplex(dim);
-  REAL *vcp_xhat = (REAL *)calloc(dim*(c2s->nvcube+1),sizeof(REAL));
-  REAL *vcp = vcp_xhat;
-  REAL *xhat = vcp + c2s->nvcube*dim;
-  // work with a copy:
-  memcpy(vcp,vc,(dim*c2s->nvcube)*sizeof(REAL));
-  INT *p = (INT *)calloc(c2s->nvcube,sizeof(INT));
-  /*order vcp lexicographically because it will be mapped to the unit
-    cube which has lexicographically ordered vertices.*/
-  dlexsort(c2s->nvcube,dim,vcp,p);
-  /* the permutation of vertices is not needed, so we free it */
-  free(p);
-  /* transpose vcp to get one vertex per column as we first transform x,
-     then y then z and so on */
-  row_2_col(c2s->nvcube,dim,sizeof(REAL),vcp);
-  for(kf=0;kf<sc->nv;kf++){
-    for(i=0;i<dim;i++) xhat[i]=sc->x[kf*dim+i];
-    for(i=0;i<dim;i++) sc->x[kf*dim+i]=interp4(c2s,vcp+i*c2s->nvcube,xhat);
-  }
-  cube2simp_free(c2s);
-  free(vcp_xhat);  
-  return;
-}
 /**************************************************************************/
 /*!
  * \fn static void solveit(dCSRmat *A,dvector *rhs, dvector *sol)
@@ -938,6 +840,7 @@ static void draw_grids(const SHORT todraw,scomplex *sc, dvector *sol)
   */
   /**/
   INT idsc;
+  vtu_data vdata;
   switch(sc->n){
   case 5:
     fprintf(stdout,"\n%%%% **** NO PLOT: Dimension=%lld is too large for plotting\n\n",(long long )sc->n);
@@ -952,16 +855,19 @@ static void draw_grids(const SHORT todraw,scomplex *sc, dvector *sol)
     /* } */
     break;
   case 3:
-    vtkw("output/3d.vtu",sc,0,1.);
+    vtu_data_init(sc,&vdata);
+    vtkw("output/3d.vtu",&vdata);
     /* if(dsc) */
     /*   vtkw("output/3d_to_2d.vtu",dsc,0,1.); */
     break;
   default:
-    vtkw("output/2d.vtu",sc,0,1.);
+    vtu_data_init(sc,&vdata);
+    vtkw("output/2d.vtu",&vdata);
     /* if(dsc) */
     /*   vtkw("output/2d_to_1d.vtu",dsc,0,1.); */
   }
   /*  haz_scomplex_free(dsc);*/
+  vtu_data_free(&vdata);
   return;
 }
 /* /\******************************************************************\/ */

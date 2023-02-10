@@ -10,7 +10,7 @@
  */
 /*********************************************************************/
 #include "hazmath.h"
-#include "eafe_data.h"
+#include "functions_elliptic_p1.h"
 #include "supporting_elliptic_p1.h"
 /****************************************************************************/
 /* 
@@ -72,8 +72,8 @@ int main(int argc, char *argv[])
 		&rhs,				\
 		alpha,gamma);
   //dcsr_write_dcoo("A.dat",&A);
-  //  short todraw=0;
-  //  draw_grids(todraw, sc,&sol);
+  short todraw=1;
+  draw_grids(todraw, sc,&sol);
   /* write the output mesh file:    */
   /* hazw("output/mesh.haz",sc,0); */
   clock_t clk_assembly_end = clock(); // End of timing for mesh and FE setup
