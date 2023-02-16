@@ -1385,13 +1385,16 @@ void set_periodic_bdry(fespace* FE,mesh_struct* mesh,const REAL minx,const REAL 
     if(mesh->dim==3) zvals[i] = -666.66;
   }
 
+  // Tolerance for finding difference in real number values
+  REAL mytol = 1e-13;
+
   // Cycle through DOF finding corresponding values.
   // This depends on the FE, but we assume FE->cdof contains the Coordinates
   if(mesh->dim==1) {
     for(i=0;i<FE->ndof;i++) {
-      if(xper && FE->cdof->x[i]==minx) {
+      if(xper && fabs(FE->cdof->x[i]-minx)<=mytol) {
         for(j=0;j<FE->ndof;j++) {
-          if(FE->cdof->x[j]==maxx) {
+          if(fabs(FE->cdof->x[j]-maxx)<=mytol) {
             FE->periodic[i]=j;
             FE->periodic[j]=i;
           }
@@ -1400,19 +1403,19 @@ void set_periodic_bdry(fespace* FE,mesh_struct* mesh,const REAL minx,const REAL 
     }
   } else if(mesh->dim==2) {
     for(i=0;i<FE->ndof;i++) {
-      if(xper && FE->cdof->x[i]==minx) {
+      if(xper && fabs(FE->cdof->x[i]-minx)<=mytol) {
         yvals[i] = FE->cdof->y[i];
         for(j=0;j<FE->ndof;j++) {
-          if(FE->cdof->x[j]==maxx && FE->cdof->y[j]==yvals[i]) {
+          if(fabs(FE->cdof->x[j]-maxx)<=mytol && fabs(FE->cdof->y[j]-yvals[i])<=mytol) {
             FE->periodic[i]=j;
             FE->periodic[j]=i;
           }
         }
       }
-      if(yper && FE->cdof->y[i]==miny) {
+      if(yper && fabs(FE->cdof->y[i]-miny)<=mytol) {
         xvals[i] = FE->cdof->x[i];
         for(j=0;j<FE->ndof;j++) {
-          if(FE->cdof->y[j]==maxy && FE->cdof->x[j]==xvals[i]) {
+          if(fabs(FE->cdof->y[j]-maxy)<=mytol && fabs(FE->cdof->x[j]-xvals[i])<=mytol) {
             FE->periodic[i]=j;
             FE->periodic[j]=i;
           }
@@ -1421,31 +1424,31 @@ void set_periodic_bdry(fespace* FE,mesh_struct* mesh,const REAL minx,const REAL 
     }
   } else if(mesh->dim==3) {
     for(i=0;i<FE->ndof;i++) {
-      if(xper && FE->cdof->x[i]==minx) {
+      if(xper && fabs(FE->cdof->x[i]-minx)<=mytol) {
         yvals[i] = FE->cdof->y[i];
         zvals[i] = FE->cdof->z[i];
         for(j=0;j<FE->ndof;j++) {
-          if(FE->cdof->x[j]==maxx && FE->cdof->y[j]==yvals[i] && FE->cdof->z[j]==zvals[i]) {
+          if(fabs(FE->cdof->x[j]-maxx)<=mytol && fabs(FE->cdof->y[j]-yvals[i])<=mytol && fabs(FE->cdof->z[j]-zvals[i])<=mytol) {
             FE->periodic[i]=j;
             FE->periodic[j]=i;
           }
         }
       }
-      if(yper && FE->cdof->y[i]==miny) {
+      if(yper && fabs(FE->cdof->y[i]-miny)<=mytol) {
         xvals[i] = FE->cdof->x[i];
         zvals[i] = FE->cdof->z[i];
         for(j=0;j<FE->ndof;j++) {
-          if(FE->cdof->y[j]==maxy && FE->cdof->x[j]==xvals[i] && FE->cdof->z[j]==zvals[i]) {
+          if(fabs(FE->cdof->y[j]-maxy)<=mytol && fabs(FE->cdof->x[j]-xvals[i])<=mytol && fabs(FE->cdof->z[j]-zvals[i])<=mytol) {
             FE->periodic[i]=j;
             FE->periodic[j]=i;
           }
         }
       }
-      if(zper && FE->cdof->z[i]==minz) {
+      if(zper && fabs(FE->cdof->z[i]-minz)<=mytol) {
         xvals[i] = FE->cdof->x[i];
         yvals[i] = FE->cdof->y[i];
         for(j=0;j<FE->ndof;j++) {
-          if(FE->cdof->z[j]==maxz && FE->cdof->x[j]==xvals[i] && FE->cdof->y[j]==yvals[i]) {
+          if(fabs(FE->cdof->z[j]-maxz)<=mytol && fabs(FE->cdof->x[j]-xvals[i])<=mytol && fabs(FE->cdof->y[j]-yvals[i])<=mytol) {
             FE->periodic[i]=j;
             FE->periodic[j]=i;
           }
