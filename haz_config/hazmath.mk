@@ -65,6 +65,8 @@
 #
 # lapack=yes
 # lapack_dir=/home/whatever/lapack-xxx-yyy
+# FOR MAC
+# lapack_dir=/opt/homebrew/opt/lapack
 #
 # IMPORTANT: The LAPACK libraries/(include files) are expected to be
 # fouund either under the path specified above of in the system
