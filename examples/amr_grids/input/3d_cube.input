@@ -8,15 +8,11 @@ dimension{3}   % spatial dimension in which the grid has to be generated
 print_level{0}	% how much information to print out: 0 little | >0 more
 %---------------%
 
-<<<<<<< HEAD
 num_refinements{1}
-=======
-num_refinements{45}
->>>>>>> a2d5267b8c26dcc0fbfd75ff795cc9115d2331eb
 
-refinement_type{-2}
+refinement_type{11} 
 
-amr_marking_type{44}
+amr_marking_type{0}
 
 err_stop_refinement{        -1.e-10        }
 %%% files:  should be writeable by the user
