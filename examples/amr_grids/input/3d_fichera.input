@@ -17,9 +17,9 @@ print_level{2}	% how much information to print out: 0 less | >0 more
 %%%  marking strategy as in the examples given in the file
 %%%  solve_estimate_mark.h
 
-amr_marking_type{1}
+amr_marking_type{0}
 
-num_refinements{0}
+num_refinements{5}
 
 err_stop_refinement{        -1.e-10        }
 

@@ -35,7 +35,7 @@ INT main(INT   argc,   char *argv[])
   // fp=HAZ_fopen("inputs/3d_2cubes_edge.input","r");
   // fp=HAZ_fopen("inputs/3d_2cubes_vertex.input","r");
   //  fp=HAZ_fopen("inputs/5d_cube.input","r");
-  fp=HAZ_fopen("input/3d_cube.input","r");
+  //  fp=HAZ_fopen("input/3d_cube.input","r");
   /*
     PARSE THE INPUT.
   */

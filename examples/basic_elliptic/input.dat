@@ -10,7 +10,7 @@
 % output
 %---------------%
 
-print_level	= 4;	% how much information to print out: 0 Nothing | >0 Something
+print_level	= 0;	% how much information to print out: 0 Nothing | >0 Something
 output_dir  = ./output/ % directory for all output (must be created)
 
 
