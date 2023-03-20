@@ -81,7 +81,7 @@ void creategrid_fread(FILE *gfid,INT file_type,mesh_struct* mesh)
   } else if(file_type==1) {
     read_grid_vtk(gfid,mesh);
   } else {
-    fprintf(stderr,"Unknown mesh file type, %lld. Try using vtk format. -Exiting\n",(long long )file_type);
+    fprintf(stderr,"Unknown mesh file type, %lld. Try using native format. -Exiting\n",(long long )file_type);
     exit(255);
   }
 
