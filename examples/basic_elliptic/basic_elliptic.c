@@ -88,7 +88,7 @@ int main (int argc, char* argv[])
     creategrid_fread(gfid,mesh_type,&mesh);
     fclose(gfid);
   } else {
-    // Use HAZMATH built in functions for a uniform mesh in 2D or 3D    
+    // Use HAZMATH built in functions for a uniform mesh in 2D or 3D
     mesh=make_uniform_mesh(dim,mesh_ref_levels,mesh_ref_type,set_bndry_codes);
   }
 
@@ -134,8 +134,12 @@ int main (int argc, char* argv[])
     dump_fespace(&FE,varu,dir);
 
     // Mesh
-    char* namevtk = "output/mesh.vtu";
+    char* namevtk = strdup("output/mesh.vtu");
     dump_mesh_vtk(namevtk,&mesh);
+    char* namemesh = strdup("output/mesh.haz");
+    dump_mesh_haz(namemesh,&mesh);
+    free(namemesh);
+    free(namevtk);
   }
 
   clock_t clk_mesh_end = clock(); // End of timing for mesh and FE setup
