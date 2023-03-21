@@ -29,7 +29,7 @@
 /**************************************************************************/
 static void solveit(dCSRmat *A, dvector *rhs, dvector *sol)
 {
-  INT solver_flag=-10,print_level=0;
+  INT solver_flag=-10,print_level=10;
   /*SOLVER SOLVER*/
   sol->row=A->row;
   sol->val=realloc(sol->val,sol->row*sizeof(REAL));
@@ -53,14 +53,14 @@ static void solveit(dCSRmat *A, dvector *rhs, dvector *sol)
   // adjust AMG parameters if needed
   // General AMG parameters
   amgparam.AMG_type             = UA_AMG;
-  amgparam.print_level          = 0;
+  amgparam.print_level          = 10;
   amgparam.maxit                = 1;
   amgparam.max_levels           = 10;
-  amgparam.coarse_dof           = 2000;
-  amgparam.cycle_type           = W_CYCLE;
+  amgparam.coarse_dof           = 20;
+  amgparam.cycle_type           = V_CYCLE;
   amgparam.smoother             = SMOOTHER_GS;
-  amgparam.presmooth_iter       = 1;
-  amgparam.postsmooth_iter      = 1;
+  amgparam.presmooth_iter       = 2;
+  amgparam.postsmooth_iter      = 2;
   amgparam.coarse_solver        = SOLVER_UMFPACK;
   //amgparam.relaxation           = 1.0;
   //amgparam.polynomial_degree    = 2;
@@ -70,7 +70,7 @@ static void solveit(dCSRmat *A, dvector *rhs, dvector *sol)
   //amgparam.nl_amli_krylov_type  = SOLVER_VFGMRES;
 
   // Aggregation AMG parameters
-  amgparam.aggregation_type     = VMB;
+  amgparam.aggregation_type     = HEC;
   amgparam.strong_coupled       = 0.0;
   amgparam.max_aggregation      = 100;
 
@@ -699,7 +699,7 @@ static void call_assembly_w_dg(scomplex *sc,			\
 			       const REAL gamma)
 {
   REAL fi;
-  INT i,ij,j,print_level=0;
+  INT i,ij,j,print_level=10;
   dCSRmat M;
   assemble_p1(sc,A,&M);
   // Now we solve the Neumann problem (A+M) u = f;
