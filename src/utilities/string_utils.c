@@ -10,7 +10,7 @@
 
 /*****************************************************************************************/
 /*!
- * \fn void trim_str(char **str, INT nstrings)
+ * \fn void print_ascii(const char *s)
  *
  * \brief function to print the ascii codes separated by | of the chars in a string s. 
  *
@@ -30,10 +30,10 @@ void print_ascii(const char *s)
 /*!
  * \fn void trim_str(char **str, INT nstrings)
  *
- * \brief function to trim all space-like chars from the beginning and the end of a string. 
+ * \brief function to trim all space-like chars from the beginning and the end of a strings. Input is an array of strings and the number of strings.  
  *        The new string is realloc-ed and stored at str[k], k=0:nstrings-1
  *
- * \param **str pointer to array of strings. 
+ * \param **str pointer to the input/output array of strings. 
  */
 void trim_str(char **str, INT nstrings)
 {
