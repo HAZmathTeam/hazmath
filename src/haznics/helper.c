@@ -31,6 +31,13 @@ inline static REAL16 frac_inv(REAL16 x, REAL16 s1, REAL16 s2, REAL16 alpha, REAL
   return 1./(alpha*powl(x,s1)+beta*powl(x,s2));
 }
 
+inline static REAL16 frac(REAL16 x, REAL16 s1, REAL16 s2, REAL16 alpha, REAL16 beta)
+{
+  // fprintf(stdout,"\nf-param: s=%Le,t=%Le,alpha=%Le,beta=%Le\n",s1,s2,alpha,beta);
+  // fflush(stdout);
+  return (alpha*powl(x,s1)+beta*powl(x,s2));
+}
+
 /**/
 
 /*---------------------------------*/
@@ -670,6 +677,255 @@ precond* create_precond_ra(dCSRmat *A,
 
     return pc;
 }
+
+
+precond* create_ra(dCSRmat *A,
+		   dCSRmat *M,
+		   REAL s_frac_power,
+		   REAL t_frac_power,
+		   REAL alpha,
+		   REAL beta,
+		   REAL scaling_a,
+		   REAL scaling_m,
+		   REAL ra_tol,
+		   AMG_param *amgparam)
+{
+    precond *pc = (precond*)calloc(1, sizeof(precond));
+
+    precond_ra_data *pcdata = (precond_ra_data*)calloc(1, sizeof(precond_ra_data));
+
+    const SHORT prtlvl = amgparam->print_level;
+    const SHORT max_levels = amgparam->max_levels;
+    const INT m = A->row, n = A->col, nnz = A->nnz, nnz_M = M->nnz;
+    INT status = SUCCESS;
+    INT i, j;
+    REAL setup_start, setup_end;
+    pc->setup_time = 0.;
+    get_time(&setup_start);
+    //------------------------------------------------
+    // compute the rational approximation
+    //------------------------------------------------
+    // scaling parameters for rational approximation
+    REAL scaled_alpha = alpha, scaled_beta = beta;
+    // scale alpha = alpha*sa^(-s)*sm^(s-1)
+    scaled_alpha = alpha*pow(scaling_a, -s_frac_power)*pow(scaling_m, s_frac_power-1.);
+    // scale beta = beta*sa^(-t)*sm^(t-1)
+    scaled_beta  = beta*pow(scaling_a, -t_frac_power)*pow(scaling_m, t_frac_power-1.);
+
+    printf("%.18e %.18e\n", scaled_alpha, scaled_beta);
+    /* Get interpolation points and function values */
+    // parameters used in the function - dividing with the larger coefficient
+    REAL16 func_param[4];
+    func_param[0] = (REAL16)s_frac_power;
+    func_param[1] = (REAL16)t_frac_power;
+    if (scaled_alpha > scaled_beta)
+    {
+      func_param[2] = 1.;
+      func_param[3] = (REAL16)scaled_beta/scaled_alpha;
+    }
+    else
+    {
+      func_param[2] = (REAL16)scaled_alpha/scaled_beta;
+      func_param[3] = 1.;
+    }
+
+    // get points and function values first
+    INT numval = (1<<14)+1;  // initial number of points on the interval [x_min, x_max]
+    REAL xmin_in = 0.e0, xmax_in = 1.e0;  // interval for x
+    REAL16 **zf = set_f_values(frac, func_param[0], func_param[1], func_param[2], func_param[3], &numval, \
+                               xmin_in, xmax_in, 0);
+
+    /* AAA algorithm for the rational approximation */
+    // parameters used in the AAA algorithm
+    INT mmax_in = 50;  // maximal final number of pole + 1
+    REAL16 AAA_tol = fmax(ra_tol, powl(2e0,-40e0));  // tolerance of the AAA algorithm
+    INT k = -22; // k is the number of nodes in the final interpolation after tolerance is achieved or mmax is reached.
+    INT print_level = 0; // print level for AAA
+    // output of the AAA algorithm.  It contains residues (Re + Im), poles (Re + Im), nodes, weights, function values
+    REAL **rpnwf = malloc(7 * sizeof(REAL *));
+
+    // compute the rational approximation using AAA algorithms
+    REAL err_max=get_rpzwf(numval, zf[0], zf[1], rpnwf, &mmax_in, &k, AAA_tol, print_level);
+    if(rpnwf == NULL) {
+      fprintf(stderr,"\nUnsuccessful AAA computation of rational approximation\n");
+      fflush(stderr);
+      return 0;
+    }
+    printf(" HAZ ---- Rational approx error in interp points: %.16e\n", err_max);
+
+    // assign poles and residues
+    REAL drop_tol = powl(2e0,-40e0);
+    INT ii; // skip first residue
+
+    REAL *polesr = malloc((k-1) * sizeof(REAL));
+    REAL *polesi = malloc((k-1) * sizeof(REAL));
+    REAL *resr = malloc(k * sizeof(REAL));
+    REAL *resi = malloc(k * sizeof(REAL));
+
+    /* filter poles and residues smaller than some tolerance */
+    // Note: free residual is always only real! also, it's always saved to preserve the numbering (N poles, N+1 residues)
+    ii=1;
+    resi[0] = 0.;
+    if(fabs(rpnwf[0][0]) < drop_tol) resr[0] = 0.; else resr[0] = rpnwf[0][0];
+
+    for(i = 1; i < k; ++i) {
+        if((fabs(rpnwf[0][i]) < drop_tol) && (fabs(rpnwf[1][i]) < drop_tol)) {
+            // Case 1: remove poles and residues where abs(res) < tol
+            /* fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Pole number reduced in function=%s \n", \ */
+            /*         __FUNCTION__);fflush(stdout); */
+            /* fprintf(stdout,"%%%%%%  Removing pole[%d] = %.8e + %.8e i \t residue[%d] = %.8e + %.8e i\n", \ */
+	    /*             i-1, rpnwf[2][i-1], rpnwf[3][i-1], i, rpnwf[0][i], rpnwf[1][i]); */
+	    /*     fflush(stdout); */
+        }
+        else if((fabs(rpnwf[0][i]) > drop_tol) && (fabs(rpnwf[3][i-1]) < drop_tol)) {
+            // Case 2: only real residues and poles (Note: if Im(pole) = 0, then Im(res) = 0.)
+            resr[ii] = rpnwf[0][i]; resi[ii] = 0.; polesi[ii-1] = 0.;
+            if(fabs(rpnwf[2][i-1]) < drop_tol) polesr[ii-1] = 0.; else polesr[ii-1] = rpnwf[2][i-1];
+            ii++;
+        }
+        else {
+            // Case 3: there is at least one pair of complex conjugate poles
+            // Note: only save one pole per pair -- check if it is already saved: (not the best search ever but ehh)
+            for(j = 0; j < ii-1; ++j) {
+                if((fabs(polesr[j] - rpnwf[2][i-1]) < drop_tol) && (fabs(polesi[j] - rpnwf[3][i-1]) < drop_tol)) break;
+            }
+            // if we found it, skip it
+            if(j < ii-1) {
+                /* fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Pole number reduced in function=%s \n", \ */
+                /*     __FUNCTION__);fflush(stdout); */
+                /* fprintf(stdout,"%%%%%%  Removing pole[%d] = %.8e + %.8e i \t residue[%d] = %.8e + %.8e i\n", \ */
+                /*         i-1, rpnwf[2][i-1], rpnwf[3][i-1], i, rpnwf[0][i], rpnwf[1][i]); */
+                /* fflush(stdout); */
+            }
+            else {
+                polesi[ii-1] = rpnwf[3][i-1]; // this should be always > drop_tol in Case 3
+                if(fabs(rpnwf[0][i]) > drop_tol) resr[ii] = rpnwf[0][i]; else resr[ii] = 0.;
+                if(fabs(rpnwf[1][i]) > drop_tol) resi[ii] = rpnwf[1][i]; else resi[ii] = 0.;
+                if(fabs(rpnwf[2][i-1]) > drop_tol) polesr[ii-1] = rpnwf[2][i-1]; else polesr[ii-1] = 0.;
+                ii++;
+            }
+        }
+    }
+    // new number of poles+1
+    if(k>ii){
+      fprintf(stderr,"\n%%%%%% *** HAZMATH WARNING*** Pole/residues number reduced in function=%s (%lld out of %lld residues dropped)",__FUNCTION__,(long long )(k-ii),(long long )k);fflush(stdout);    
+      k = ii;
+    }
+    // the easiest way seems to first save real part and then imag part
+    pcdata->residues = dvec_create_p(2*k);
+    pcdata->poles = dvec_create_p(2*(k-1));
+
+    // copy and append in pcdata
+    array_cp(k, resr, pcdata->residues->val);
+    array_cp(k, resi, &(pcdata->residues->val[k]));
+    array_cp(k-1, polesr, pcdata->poles->val);
+    array_cp(k-1, polesi, &(pcdata->poles->val[k-1]));
+
+     // print poles, residues
+    if(prtlvl > 1){
+        printf("Poles:\n");
+        for(i = 0; i < k-1; ++i) {
+            printf("pole[%lld] = %.10e + %.10e i\n", (long long )i, pcdata->poles->val[i], pcdata->poles->val[k-1+i]);
+        }
+        printf("\n");
+        printf("Residues:\n");
+        for(i = 0; i < k; ++i) {
+            printf("res[%lld] = %.10e + %.10e i\n", (long long )i, pcdata->residues->val[i], pcdata->residues->val[k+i]);
+        }
+        printf("\n");
+    }
+
+    /* --------------------------------------------- */
+    // scaling stiffness matrix
+    pcdata->scaled_A = dcsr_create_p(m, n, nnz);
+    dcsr_cp(A, pcdata->scaled_A);
+    dcsr_axm(pcdata->scaled_A, scaling_a);
+
+    // scaling mass matrix
+    pcdata->scaled_M = dcsr_create_p(m, n, nnz_M);
+    dcsr_cp(M, pcdata->scaled_M);
+    dcsr_axm(pcdata->scaled_M, scaling_m);
+
+    // get diagonal entries of the scaled mass matrix
+    pcdata->diag_scaled_M = dvec_create_p(n);
+    dcsr_getdiag(0, pcdata->scaled_M, pcdata->diag_scaled_M);
+
+    //------------------------------------------------
+    // Set up all AMG for shifted laplacians
+    //------------------------------------------------
+    INT npoles = k - 1;
+    pcdata->mgl = (AMG_data **)calloc(npoles, sizeof(AMG_data *));
+    
+    // assemble amg data for all shifted laplacians:
+    // (scaling_a*A - poles[i] * scaling_m*M)
+    // NOTE: ONLY REAL PART USED HERE.
+    // Also, I didn't distinguish between zero and nonzero poles because
+    // some pole can have only imag part nonzero (so it's still needed in the solve).
+    // moved this here as it is needed as backup --ana & ltz1
+    pcdata->amgparam = (AMG_param*)malloc(sizeof(AMG_param));
+    param_amg_init(pcdata->amgparam);
+    param_amg_cp(amgparam, pcdata->amgparam);
+    // now pcdata->amg_param is all set and is used as a parameters reset everytime a pole is changed;
+    for(i = 0; i < npoles; ++i) {
+      //fprintf(stdout,"\nAMG for pole %d\n", i);
+      pcdata->mgl[i] = amg_data_create(max_levels);
+      dcsr_alloc(n, n, 0, &(pcdata->mgl[i][0].A));
+      dcsr_add(A, scaling_a, M, -pcdata->poles->val[i]*scaling_m, &(pcdata->mgl[i][0].A));
+      pcdata->mgl[i][0].b = dvec_create(n);
+      pcdata->mgl[i][0].x = dvec_create(n);
+      
+      switch (amgparam->AMG_type) {
+	
+      case UA_AMG: // Unsmoothed Aggregation AMG
+        if ( prtlvl > PRINT_NONE ) fprintf(stdout,"\n Calling UA AMG ...\n");
+        status = amg_setup_ua(pcdata->mgl[i], amgparam);
+        break;
+	
+      case SA_AMG: // Smoothed Aggregation AMG
+        if ( prtlvl > PRINT_NONE ) fprintf(stdout,"\n Calling SA AMG ...\n");
+        status = amg_setup_sa(pcdata->mgl[i], amgparam);
+        break;
+	
+      default: // UA AMG
+        if ( prtlvl > PRINT_NONE ) fprintf(stdout,"\n Calling UA AMG ...\n");
+        status = amg_setup_ua(pcdata->mgl[i], amgparam);
+        break;
+	
+      }
+
+      if(status < 0)
+	  {
+	    fprintf(stdout,"Unsuccessful AMG setup at pole %lld with status = %lld\n", (long long )i, (long long )status);
+	    return 0;
+	  }
+      // for a new pole, we copy the amg_param back
+      // We keep all poles to have the same amgparams
+      // actually here we can just copy the amgparam->strong_coupled; but this is safer.
+      param_amg_cp(pcdata->amgparam, amgparam);
+    }
+    // when we exit here, the amgparam should be the same as before starting the pole loop;
+    //------------------------------------------------
+    // amgparams for precond_data was setup earlier.
+    //------------------------------------------------
+
+    // save scaled alpha and beta
+    pcdata->scaled_alpha = scaled_alpha;
+    pcdata->scaled_beta = scaled_beta;
+    pcdata->s_power = s_frac_power;
+    pcdata->t_power = t_frac_power;
+
+    pc->data = pcdata;
+    pc->fct = precond_ra_fenics;
+    get_time(&setup_end);
+    pc->setup_time = setup_end - setup_start;
+
+    // clean
+    free(resr); free(resi); free(polesr); free(polesi);
+    if (rpnwf) free(rpnwf);
+
+    return pc;
+}
+
 
 INT get_poles_no(precond* pc)
 {
