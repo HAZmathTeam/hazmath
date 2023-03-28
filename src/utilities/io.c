@@ -115,7 +115,7 @@ void ivector_write(const char *filename,
   fprintf(stdout,"%%%%%s: writing to file %s...\n", __FUNCTION__, filename);
 
   // write number of nonzeros
-  fprintf(fp,"%lld\n",(long long )m);
+  fprintf(fp,"%lld %d\n",(long long )m,0);
 
   // write index and value each line
   for ( i = 0; i < m; ++i ) fprintf(fp,"%lld %lld\n",(long long )i,(long long )vec->val[i]);
