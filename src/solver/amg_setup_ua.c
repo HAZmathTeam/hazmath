@@ -432,7 +432,7 @@ static void construct_strongly_coupled(dCSRmat *A,
   Neigh->JA  = (INT*) realloc(Neigh->JA,  (Neigh->IA[row])*sizeof(INT));
   Neigh->val = (REAL*)realloc(Neigh->val, (Neigh->IA[row])*sizeof(REAL));
   //
-  if(0){
+  if(1){
     //begin finding connected components (ltz):
     iCSRmat *blk_dfs=run_dfs(Neigh->row,Neigh->IA, Neigh->JA);
     index=0;
@@ -837,7 +837,12 @@ static SHORT aggregation_hec(dCSRmat *A,
 
     // free spaces
     free(perm);
-
+    if(row>520000){
+      fprintf(stdout,"\nstoping with ROWs=%d aggregations=*d",row,*num_aggregations);fflush(stdout);
+      dcsr_write_dcoo("Azz.txt",A);
+      dcsr_write_dcoo("Nzz.txt",Neigh);
+      exit(77);
+    }    
     return status;
 
 }
