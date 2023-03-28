@@ -786,31 +786,45 @@ static SHORT aggregation_hec(dCSRmat *A,
 
     // main loop
     for ( ii = 0; ii < row; ii++ ) {
-        i = perm[ii];
-        if ( (NIA[i+1] - NIA[i]) == 1 ) {
-            vertices->val[i] = UNPT;
-        }
-        else {
-            // find the most strongly connected neighbor
-            row_start = NIA[i]; row_end = NIA[i+1];
-            maxval = 0.0;
-            for (jj = row_start; jj < row_end; jj++)
-            {
-                if (NJA[jj] != i) {
-                    if ( ABS(Nval[jj]) > maxval ) {
-                        k = jj;
-                        maxval = ABS(Nval[jj]);
-                    }
-                }
-            } // end for (jj = row_start+1; jj < row_end; jj++)
-            j = NJA[k];
-
-            // create a new aggregates if the most strongly conncected neighbor
-            // is still avaliable
-            if (vertices->val[j] < UNPT)
-            {
-                vertices->val[j] = *num_aggregations;
-                vertices->val[i] = *num_aggregations;
+      i = perm[ii];
+      if ( (NIA[i+1] - NIA[i]) == 1 ) {
+	vertices->val[i] = UNPT;
+      } else {
+	// find the most strongly connected neighbor
+	row_start = NIA[i]; row_end = NIA[i+1];
+	maxval = 0.0;
+	k = -1;
+	for (jj = row_start; jj < row_end; jj++) {
+	  if (NJA[jj] != i) {
+	    if ( ABS(Nval[jj]) > maxval ) {
+	      k = jj;
+	      maxval = ABS(Nval[jj]);
+	    }
+	  }
+	} // end for (jj = row_start+1; jj < row_end; jj++)
+	if(k<0) {
+	  // run again to find anything in this row:
+	  maxval = -1e0;
+	  for (jj = row_start; jj < row_end; jj++){
+	    if (NJA[jj] != i) {
+	      if ( ABS(Nval[jj]) > maxval ) {
+		k = jj;
+		maxval = ABS(Nval[jj]);
+	      }
+	    }
+	      } // end for (jj = row_start+1; jj < row_end; jj++)
+	}
+	if(k<0) {
+	  // well we should never come here, but if we do:
+	  fprintf(stderr,"\n\n%%%% ERROR Stop: negative index encountered in %s()\n\n",__FUNCTION__);
+	  exit(16);
+	}
+	j = NJA[k];
+	// create a new aggregates if the most strongly conncected neighbor
+	// is still avaliable
+	if (vertices->val[j] < UNPT) {
+	    vertices->val[j] = *num_aggregations;
+	    vertices->val[i] = *num_aggregations;
                 (*num_aggregations)++;
             }
             else
