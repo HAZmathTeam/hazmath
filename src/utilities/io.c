@@ -2301,7 +2301,7 @@ INT features_r(features *feat,scomplex *sc, const INT do_map, const REAL scale)
   }
   if(sc!=NULL && do_map){
     cube2simp *c2s=cube2simplex(dim);//now we have the vertices of the unit cube in bits
-    REAL *vc=calloc(2*dim*c2s->nvcube,sizeof(REAL));
+    REAL *vc=calloc(4*dim*c2s->nvcube,sizeof(REAL));
     REAL *xmintmp=vc;// maps to [0...0]
     REAL *xmaxtmp=xmintmp+dim*(c2s->nvcube-1); // last vertex
     REAL *xmin=xmaxtmp+dim*(c2s->nvcube-1); // last vertex
