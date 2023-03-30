@@ -18,6 +18,9 @@
 static void form_tentative_p(ivector *vertices, dCSRmat *tentp, REAL **basis, INT levelNum, INT num_aggregations);
 static void construct_strongly_coupled(dCSRmat *A, AMG_param *param, dCSRmat *Neigh);
 static SHORT aggregation_hec(dCSRmat *A, ivector *vertices, AMG_param *param, dCSRmat *Neigh, INT *num_aggregations, INT lvl);
+static INT heavy_edg(REAL *wei,INT *numb, INT n);
+static INT light_edg(REAL *wei,INT *numb, INT n);
+static SHORT aggregation_hem(dCSRmat *A, ivector *vertices, AMG_param *param, dCSRmat *Neigh, INT *num_aggregations, INT lvl);
 static SHORT aggregation_vmb(dCSRmat *A, ivector *vertices, AMG_param *param, dCSRmat *Neigh, INT *num_aggregations, INT lvl);
 static void smooth_aggregation_p(dCSRmat *A, dCSRmat *tentp, dCSRmat *P, AMG_param *param, INT levelNum, dCSRmat *N);
 static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *, AMG_param *);
@@ -841,7 +844,228 @@ static SHORT aggregation_hec(dCSRmat *A,
     return status;
 
 }
-
+/***********************************************************************/
+/* \fn static void heavy_edg(REAL *wei,INT *numb,INT *iheavy,INT n)
+ *
+ * \brief [iheavy]=argmax(wei(k),k in numb(1:n))
+ *
+ * \param wei               real array(n) with weights
+ * \param numb              integer array(n) with indices
+ * \param n                 size of wei and n;
+ *
+ * \return *iheavy           numb[k] where wei[k] is maximal, k=1:n.
+ *
+ * \author Ludmil Zikatanov
+ * \date   20230328
+ *
+ * \note Refer to Kim, Xu, Zikatanov 2003: "A multigrid method based on graph matching for
+ *                                          convection–di␁usion equations"
+ *
+ */
+static INT heavy_edg(REAL *wei,INT *numb, INT n)
+{
+  /*====================================================================*/
+  /*--------------------------------------------------------------------
+  ...  Pick the heaviest WEI.
+  --------------------------------------------------------------------*/
+  INT j = 0,k=-1;
+  INT iheavy = numb[j];
+  REAL temp = wei[j];
+  while (numb[j]<0){
+    iheavy = numb[j];
+    temp = wei[j];
+    j++;
+  }
+  for(k = j; k< n;++k){
+    if(wei[k] > temp && numb[k] >=0){
+      temp = wei[k];
+      iheavy = numb[k];
+    }
+  }
+  return iheavy;
+}
+/* \fn static void light_edg(REAL *wei,INT *numb,INT *ilight,INT n)
+ *
+ * \brief [ilight]=argmin(wei(k),k in numb(1:n))
+ *
+ * \param wei               real array(n) with weights
+ * \param numb              integer array(n) with indices
+ * \param n                 size of wei and n;
+ *
+ * \return *ilight           numb[k] where wei[k] is maximal, k=1:n.
+ *
+ * \author Ludmil Zikatanov
+ * \date   20230328
+ *
+ * \note Refer to Kim, Xu, Zikatanov 2003: "A multigrid method based on graph matching for
+ *                                          convection–di␁usion equations"
+ *
+ */
+static INT light_edg(REAL *wei,INT *numb,INT n)
+{
+  /*--------------------------------------------------------------------
+  ...  Pick the lightest WEI.
+  --------------------------------------------------------------------*/
+  INT j = 0,k=-1;
+  INT ilight = numb[j];
+  REAL temp = wei[j];
+  while (numb[j]<0){
+    ilight = numb[j];
+    temp = wei[j];
+    j++;
+  }
+  for(k = j; k< n;++k){
+    if(wei[k] < temp && numb[k] >=0){
+      temp = wei[k];
+      ilight = numb[k];
+    }
+  }
+  return ilight;
+}
+/**************************************************************************************/
+/* \fn static SHORT aggregation_hem (dCSRmat *A, ivector *vertices, AMG_param *param,
+ *                                   dCSRmat *Neigh, INT *num_aggregations,INT lvl)
+ *
+ * \brief heavy/light edge matching based on strongly
+ *        coupled neighbors
+ *
+ * \param A                 Pointer to the coefficient matrices
+ * \param vertices          Pointer to the aggregation of vertices
+ * \param param             Pointer to AMG parameters
+ * \param Neigh             Pointer to strongly coupled neighbors
+ * \param num_aggregations  Pointer to number of aggregations
+ * \param lvl               Level number
+ *
+ * \author Ludmil Zikatanov
+ * \date   20230328
+ *
+ * \note Refer to Kim, Xu, Zikatanov 2003: "A multigrid method based on graph matching for
+ *                                          convection–di␁usion equations"
+ *
+ */
+static SHORT aggregation_hem(dCSRmat *A,
+			     ivector *vertices,
+			     AMG_param *param,
+			     dCSRmat *Neigh,
+			     INT *num_aggregations, INT lvl)
+{
+    // local variables
+  const INT n= A->row;
+  SHORT  status = SUCCESS;
+  //
+  INT  i, j, k, jk,iz,pick,row_start, row_end;
+  REAL ajk;
+  //
+  construct_strongly_coupled(A, param, Neigh);
+  //  INT *ia  = Neigh->IA,*ja  = Neigh->JA;
+  //  REAL *a = Neigh->val;
+  INT *ia  = Neigh->IA,*ja  = Neigh->JA;
+  REAL *a = Neigh->val;
+  /*------------------------------------------*/
+  /*             Initialization               */
+  /*------------------------------------------*/
+  ivec_alloc(n, vertices);
+  iarray_set(n, vertices->val, -1);
+  INT *mask=vertices->val;
+  ivector num_els=ivec_create(n);
+  iarray_set(n, num_els.val, 0);
+  /*find first the "diagonal part" of A */
+  INT maxdeg=0,l=0,kdir = 0;
+  for(k=0;k<n;++k){
+    l=ia[k+1]-ia[k];
+    if(l>maxdeg) maxdeg=l;
+    if(l>1) continue;
+    mask[k] = -2;
+    kdir++;
+  }
+  REAL *work=calloc(maxdeg,sizeof(REAL));
+  INT *iwork=calloc(maxdeg,sizeof(INT));
+  //
+  INT kiso=0,kmatch=0;
+  INT nc=0;
+  for(k=(n-1);k>=0;--k){
+    if((mask[k]<0) && (mask[k]>-2)){
+      // this is interior and unmatched:
+      // count its unmatched neighbors:
+      iz = 0;
+      row_start=ia[k];
+      row_end=ia[k+1];
+      for(jk = row_start;jk<row_end;++jk){
+	j = ja[jk];
+	ajk = a[jk];
+	if(mask[j]<0 && j!=k){
+	  // found an unmatched neighbor;
+	  work[iz]=fabs(ajk);
+	  iwork[iz]=j;
+	  iz++;
+	}
+      }
+      if(!iz){
+	//Isolated points; no change in mask (vertices->val)!
+	//	num_els.val[nc]++;
+	kiso++;// one isolated;
+      }else{
+	//C...           Matched edges.
+	pick=heavy_edg(work,iwork,iz);
+	mask[k] = nc;
+	mask[pick] = nc;
+	num_els.val[nc]+=2;
+	kmatch+=2;// two are matched
+      }
+      nc++;
+    }
+  }
+  //  fprintf(stdout,"\n%%%%After Pass1: nc=%d;kiso=%d,kdir=%d,kmatch=%d\n\n",nc,kiso,kdir,kmatch);fflush(stdout);
+  num_els.row=nc;
+  num_els.val=realloc(num_els.val,num_els.row*sizeof(INT));
+  INT kc;
+  /**/
+  /*second run to remove the isolated*/
+  for(k=0;k<n;++k){
+    if(mask[k]!=(-1)) continue;
+      // this is isolated
+    iz=0;
+    row_start=ia[k];
+    row_end=ia[k+1];
+    for(jk = row_start;jk<row_end;++jk){
+      j = ja[jk];
+      ajk = a[jk];
+      if(mask[j]>=0){// here by default we cannot have k=j
+	//found an aggregate
+	kc=mask[j];
+	work[iz]=(REAL )(-num_els.val[kc]);
+	iwork[iz]=kc;
+	iz++;
+      }
+    }
+    if(!iz){
+      //Isolated points again, this cannot happen, so it must be an error
+      fprintf(stderr,"%%%%ERROR in %s: isolated point (=%d) on the second matching pass",__FUNCTION__,k);
+      exit(17);
+    }else{
+      //C...           Matched edges.
+      kc=heavy_edg(work,iwork,iz);
+      mask[k] =kc;
+      kiso--;
+      kmatch++;
+      num_els.val[kc]++;
+    }
+  }
+  //  fprintf(stdout,"\n%%%%After Pass2: nc=%d;kiso=%d,kdir=%d,kmatch=%d\n\n",nc,kiso,kdir,kmatch); fflush(stdout);
+  free(work);
+  free(iwork);
+  ivec_free(&num_els);
+  //
+  //  fprintf(stdout,"\n%%%%num(aggregates)=%lld\n", (long long )nc); fflush(stdout);
+  *num_aggregations = nc;
+  for(k=0;k<n;++k){
+    if(mask[k]<0){
+      mask[k]=UNPT;
+      //      fprintf(stdout,"\nvec[%d]=%d",k,mask[k]);
+    }
+  }
+  return status;
+}
 /**
  * \fn static void form_boolean_p_bsr(const ivector *vertices, dBSRmat *tentp,
  *                                    const AMG_data_bsr *mgl,
@@ -1103,6 +1327,11 @@ static SHORT amg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
                                          &Neighbor[lvl], &num_aggs[lvl], lvl);
                 break;
 
+            case HEM: // Heavy edge matching
+                status = aggregation_hem(&mgl[lvl].A, &vertices[lvl], param,
+                                         &Neighbor[lvl], &num_aggs[lvl], lvl);
+                break;
+
             default: // wrong aggregation type
                 status = ERROR_AMG_AGG_TYPE;
                 check_error(status, __FUNCTION__);
@@ -1334,6 +1563,11 @@ static SHORT amg_setup_smoothP_smoothR(AMG_data *mgl,
 
             case HEC: // Heavy edge coarsening aggregation
                 status = aggregation_hec(&mgl[lvl].A, &vertices[lvl], param,
+                                         &Neighbor[lvl], &num_aggs[lvl],lvl);
+                break;
+
+            case HEM: // Heavy edge matching
+                status = aggregation_hem(&mgl[lvl].A, &vertices[lvl], param,
                                          &Neighbor[lvl], &num_aggs[lvl],lvl);
                 break;
 
@@ -1571,6 +1805,11 @@ static SHORT famg_setup_unsmoothP_unsmoothR(AMG_data *mgl,
                                          &Neighbor[lvl], &num_aggs[lvl],lvl);
                 break;
 
+            case HEM: // Heavy edge matching
+                status = aggregation_hem(&mgl[lvl].A, &vertices[lvl], param,
+                                         &Neighbor[lvl], &num_aggs[lvl],lvl);
+                break;
+
             default: // wrong aggregation type
                 status = ERROR_AMG_AGG_TYPE;
                 check_error(status, __FUNCTION__);
@@ -1798,6 +2037,11 @@ static SHORT famg_setup_smoothP_smoothR(AMG_data *mgl,
 
             case HEC: // Heavy edge coarsening aggregation
                 status = aggregation_hec(&mgl[lvl].A, &vertices[lvl], param,
+                                         &Neighbor[lvl], &num_aggs[lvl],lvl);
+                break;
+
+            case HEM: // Heavy edge matching
+                status = aggregation_hem(&mgl[lvl].A, &vertices[lvl], param,
                                          &Neighbor[lvl], &num_aggs[lvl],lvl);
                 break;
 
@@ -2032,6 +2276,11 @@ static SHORT amg_setup_unsmoothP_unsmoothR_bsr(AMG_data_bsr   *mgl,
             case HEC: // Heavy edge coarsening aggregation
 
                 status = aggregation_hec(&mgl[lvl].PP, &vertices[lvl], param,
+                                         &Neighbor[lvl], &num_aggs[lvl], lvl);
+                break;
+
+            case HEM: // Heavy edge matching
+                status = aggregation_hem(&mgl[lvl].PP, &vertices[lvl], param,
                                          &Neighbor[lvl], &num_aggs[lvl], lvl);
                 break;
 

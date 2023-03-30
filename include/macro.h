@@ -167,6 +167,7 @@
 #define MIS                     2  /**< MIS aggregation */
 #define MWM                     3  /**< Maximal Weighted Matching aggregation */
 #define HEC                     4  /**< Hearvy Edge Coarsening aggregation */
+#define HEM                     5  /**< Hearvy Edge Matching aggregation */
 
 /**
  * \brief Definition of cycle types
