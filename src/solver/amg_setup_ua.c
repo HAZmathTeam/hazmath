@@ -952,15 +952,16 @@ static SHORT aggregation_hem(dCSRmat *A,
     // local variables
   const INT n= A->row;
   SHORT  status = SUCCESS;
+  SHORT print_level=(SHORT )param->print_level;
   //
   INT  i, j, k, jk,iz,pick,row_start, row_end;
   REAL ajk;
   //
   construct_strongly_coupled(A, param, Neigh);
-  //  INT *ia  = Neigh->IA,*ja  = Neigh->JA;
-  //  REAL *a = Neigh->val;
   INT *ia  = Neigh->IA,*ja  = Neigh->JA;
   REAL *a = Neigh->val;
+  //INT *ia  =A->IA,*ja  =A->JA;
+  //REAL *a = A->val;
   /*------------------------------------------*/
   /*             Initialization               */
   /*------------------------------------------*/
@@ -970,26 +971,25 @@ static SHORT aggregation_hem(dCSRmat *A,
   ivector num_els=ivec_create(n);
   iarray_set(n, num_els.val, 0);
   /*find first the "diagonal part" of A */
-  INT maxdeg=0,l=0,kdir = 0;
+  INT maxdeg=0,l=0; //INT kdir = 0;
   for(k=0;k<n;++k){
     l=ia[k+1]-ia[k];
     if(l>maxdeg) maxdeg=l;
     if(l>1) continue;
     mask[k] = -2;
-    kdir++;
+    //    kdir++;
   }
   REAL *work=calloc(maxdeg,sizeof(REAL));
   INT *iwork=calloc(maxdeg,sizeof(INT));
   //
-  INT kiso=0,kmatch=0;
+  INT kmatch=0;
+  //  INT kiso=0;
   INT nc=0;
   for(k=(n-1);k>=0;--k){
     if((mask[k]<0) && (mask[k]>-2)){
-      // this is interior and unmatched:
-      // count its unmatched neighbors:
+      // this is interior and unmatched; count its unmatched neighbors:
       iz = 0;
-      row_start=ia[k];
-      row_end=ia[k+1];
+      row_start=ia[k]; row_end=ia[k+1];
       for(jk = row_start;jk<row_end;++jk){
 	j = ja[jk];
 	ajk = a[jk];
@@ -1000,22 +1000,25 @@ static SHORT aggregation_hem(dCSRmat *A,
 	  iz++;
 	}
       }
-      if(!iz){
-	//Isolated points; no change in mask (vertices->val)!
-	//	num_els.val[nc]++;
-	kiso++;// one isolated;
-      }else{
-	//C...           Matched edges.
+      if(iz){
+	//     Matched edges.
 	pick=heavy_edg(work,iwork,iz);
 	mask[k] = nc;
 	mask[pick] = nc;
 	num_els.val[nc]+=2;
 	kmatch+=2;// two are matched
+	// these are the only nc, so increment only here!
+	nc++;	
       }
-      nc++;
+      /* else{ */
+      /* 	//Isolated points; no change in mask (vertices->val)! */
+      /* 	// num_els.val[nc]++; */
+      /* 	INT kiso++;// one isolated; */
+      /* } */
     }
   }
-  //  fprintf(stdout,"\n%%%%After Pass1: nc=%d;kiso=%d,kdir=%d,kmatch=%d\n\n",nc,kiso,kdir,kmatch);fflush(stdout);
+  if(print_level>10)
+    fprintf(stdout,"\n%%%%num(aggregates(pass1))=%lld\n", (long long )nc); fflush(stdout);
   num_els.row=nc;
   num_els.val=realloc(num_els.val,num_els.row*sizeof(INT));
   INT kc;
@@ -1029,34 +1032,34 @@ static SHORT aggregation_hem(dCSRmat *A,
     row_end=ia[k+1];
     for(jk = row_start;jk<row_end;++jk){
       j = ja[jk];
-      ajk = a[jk];
-      if(mask[j]>=0){// here by default we cannot have k=j
-	//found an aggregate
-	kc=mask[j];
+      //Not needed ...      ajk = a[jk];
+      kc=mask[j];
+      if(kc>=0){// here by default we cannot have k=j
+	//found an aggregate nearby
 	work[iz]=(REAL )(-num_els.val[kc]);
 	iwork[iz]=kc;
 	iz++;
       }
     }
-    if(!iz){
+    if(iz){
+      //add to the aggregate kc which has least number of elements
+      kc=heavy_edg(work,iwork,iz);
+      mask[k] =kc;
+      kmatch++;
+      num_els.val[kc]++;
+    }else{
       //Isolated points again, this cannot happen, so it must be an error
       fprintf(stderr,"%%%%ERROR in %s: isolated point (=%d) on the second matching pass",__FUNCTION__,k);
       exit(17);
-    }else{
-      //C...           Matched edges.
-      kc=heavy_edg(work,iwork,iz);
-      mask[k] =kc;
-      kiso--;
-      kmatch++;
-      num_els.val[kc]++;
     }
   }
-  //  fprintf(stdout,"\n%%%%After Pass2: nc=%d;kiso=%d,kdir=%d,kmatch=%d\n\n",nc,kiso,kdir,kmatch); fflush(stdout);
+  //    fprintf(stdout,"\n%%%%After Pass2: nc=%d\n\n",nc); fflush(stdout);
   free(work);
   free(iwork);
   ivec_free(&num_els);
   //
-  //  fprintf(stdout,"\n%%%%num(aggregates)=%lld\n", (long long )nc); fflush(stdout);
+  if(print_level>10)
+    fprintf(stdout,"\n%%%%num(aggregates(pass2))=%lld (should be the same as pass1)\n", (long long )nc); fflush(stdout); 
   *num_aggregations = nc;
   for(k=0;k<n;++k){
     if(mask[k]<0){
