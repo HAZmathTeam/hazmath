@@ -18,8 +18,7 @@
 static void form_tentative_p(ivector *vertices, dCSRmat *tentp, REAL **basis, INT levelNum, INT num_aggregations);
 static void construct_strongly_coupled(dCSRmat *A, AMG_param *param, dCSRmat *Neigh);
 static SHORT aggregation_hec(dCSRmat *A, ivector *vertices, AMG_param *param, dCSRmat *Neigh, INT *num_aggregations, INT lvl);
-static INT heavy_edg(REAL *wei,INT *numb, INT n);
-static INT light_edg(REAL *wei,INT *numb, INT n);
+static INT heavy_edg(const REAL *wei,const INT *numb, const INT n0,const INT n1);
 static SHORT aggregation_hem(dCSRmat *A, ivector *vertices, AMG_param *param, dCSRmat *Neigh, INT *num_aggregations, INT lvl);
 static SHORT aggregation_vmb(dCSRmat *A, ivector *vertices, AMG_param *param, dCSRmat *Neigh, INT *num_aggregations, INT lvl);
 static void smooth_aggregation_p(dCSRmat *A, dCSRmat *tentp, dCSRmat *P, AMG_param *param, INT levelNum, dCSRmat *N);
@@ -862,65 +861,33 @@ static SHORT aggregation_hec(dCSRmat *A,
  *                                          convection–di␁usion equations"
  *
  */
-static INT heavy_edg(REAL *wei,INT *numb, INT n)
+static INT heavy_edg(const REAL *wei,const INT *numb, const INT n0, const INT n1)
 {
   /*====================================================================*/
   /*--------------------------------------------------------------------
   ...  Pick the heaviest WEI.
   --------------------------------------------------------------------*/
-  INT j = 0,k=-1;
-  INT iheavy = numb[j];
-  REAL temp = wei[j];
-  while (numb[j]<0){
-    iheavy = numb[j];
-    temp = wei[j];
-    j++;
-  }
-  for(k = j; k< n;++k){
-    if(wei[k] > temp && numb[k] >=0){
-      temp = wei[k];
-      iheavy = numb[k];
+  INT j,nend,step=1;
+  if(n0<0) return -1;
+  if(n1<0) return -1;
+  if(n0>n1) {step=-1;}
+  nend=n1+step;
+  /* while (numb[j]<0){ */
+  /*   iheavy = numb[j]; */
+  /*   temp = wei[j]; */
+  /*   j+=step; */
+  /* } */
+  INT iheavy = numb[n0];
+  REAL temp = wei[n0];
+  j=n0;
+  while(j!=nend){
+    if(wei[j] > temp && numb[j] >=0){
+      temp = wei[j];
+      iheavy = numb[j];
     }
+    j+=step;
   }
   return iheavy;
-}
-/* \fn static void light_edg(REAL *wei,INT *numb,INT *ilight,INT n)
- *
- * \brief [ilight]=argmin(wei(k),k in numb(1:n))
- *
- * \param wei               real array(n) with weights
- * \param numb              integer array(n) with indices
- * \param n                 size of wei and n;
- *
- * \return *ilight           numb[k] where wei[k] is maximal, k=1:n.
- *
- * \author Ludmil Zikatanov
- * \date   20230328
- *
- * \note Refer to Kim, Xu, Zikatanov 2003: "A multigrid method based on graph matching for
- *                                          convection–di␁usion equations"
- *
- */
-static INT light_edg(REAL *wei,INT *numb,INT n)
-{
-  /*--------------------------------------------------------------------
-  ...  Pick the lightest WEI.
-  --------------------------------------------------------------------*/
-  INT j = 0,k=-1;
-  INT ilight = numb[j];
-  REAL temp = wei[j];
-  while (numb[j]<0){
-    ilight = numb[j];
-    temp = wei[j];
-    j++;
-  }
-  for(k = j; k< n;++k){
-    if(wei[k] < temp && numb[k] >=0){
-      temp = wei[k];
-      ilight = numb[k];
-    }
-  }
-  return ilight;
 }
 /**************************************************************************************/
 /* \fn static SHORT aggregation_hem (dCSRmat *A, ivector *vertices, AMG_param *param,
@@ -956,8 +923,18 @@ static SHORT aggregation_hem(dCSRmat *A,
   //
   INT  i, j, k, jk,iz,pick,row_start, row_end;
   REAL ajk;
+  //ORDER the column indices in Neigh in increasing order; just in case (so bidomain
+  //examples behave in a certain way); these work without such ordering too, but...
+  ///////////////////////////////////////////////////
+  // dCSRmat AT=dcsr_create(0,0,0); // ORDERING
+  //construct_strongly_coupled(A, param, &AT);// ORDERING
+  //  dcsr_alloc(AT.col,AT.row,AT.nnz,Neigh); // ORDERING
+  //  dcsr_transz(&AT,NULL,Neigh); // ORDERING
+  //  dcsr_free(&AT); // ORDERING
+  ///////////////////////////////////////////////////
+  construct_strongly_coupled(A, param, Neigh);// //No ORDERING of column indices
+  /******************************/
   //
-  construct_strongly_coupled(A, param, Neigh);
   INT *ia  = Neigh->IA,*ja  = Neigh->JA;
   REAL *a = Neigh->val;
   //INT *ia  =A->IA,*ja  =A->JA;
@@ -985,7 +962,7 @@ static SHORT aggregation_hem(dCSRmat *A,
   INT kmatch=0;
   //  INT kiso=0;
   INT nc=0;
-  for(k=(n-1);k>=0;--k){
+  for(k=0;k<n;++k){
     if((mask[k]<0) && (mask[k]>-2)){
       // this is interior and unmatched; count its unmatched neighbors:
       iz = 0;
@@ -1002,7 +979,7 @@ static SHORT aggregation_hem(dCSRmat *A,
       }
       if(iz){
 	//     Matched edges.
-	pick=heavy_edg(work,iwork,iz);
+	pick=heavy_edg(work,iwork,iz-1,0);
 	mask[k] = nc;
 	mask[pick] = nc;
 	num_els.val[nc]+=2;
@@ -1043,7 +1020,7 @@ static SHORT aggregation_hem(dCSRmat *A,
     }
     if(iz){
       //add to the aggregate kc which has least number of elements
-      kc=heavy_edg(work,iwork,iz);
+      kc=heavy_edg(work,iwork,0,iz-1);
       mask[k] =kc;
       kmatch++;
       num_els.val[kc]++;
