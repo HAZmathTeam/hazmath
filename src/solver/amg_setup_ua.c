@@ -994,8 +994,9 @@ static SHORT aggregation_hem(dCSRmat *A,
       /* } */
     }
   }
-  if(print_level>10)
+  if(print_level>10){
     fprintf(stdout,"\n%%%%num(aggregates(pass1))=%lld\n", (long long )nc); fflush(stdout);
+  }
   num_els.row=nc;
   num_els.val=realloc(num_els.val,num_els.row*sizeof(INT));
   INT kc;
@@ -1035,8 +1036,9 @@ static SHORT aggregation_hem(dCSRmat *A,
   free(iwork);
   ivec_free(&num_els);
   //
-  if(print_level>10)
-    fprintf(stdout,"\n%%%%num(aggregates(pass2))=%lld (should be the same as pass1)\n", (long long )nc); fflush(stdout); 
+  if(print_level>10){
+    fprintf(stdout,"\n%%%%num(aggregates(pass2))=%lld (should be the same as pass1)\n", (long long )nc); fflush(stdout);
+  }
   *num_aggregations = nc;
   for(k=0;k<n;++k){
     if(mask[k]<0){
