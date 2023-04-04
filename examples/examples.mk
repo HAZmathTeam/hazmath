@@ -7,6 +7,11 @@
 # Extension for the Executable Programs
 EXTENSION = ex
 
+ifeq ($(MAKE_LIB),1)
+	CFLAGS += -fPIC -shared
+	EXTENSION = so
+endif
+
 # Machine Specific Compilers and Libraries
 CC = gcc
 FC = gfortran

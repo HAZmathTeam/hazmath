@@ -9,12 +9,27 @@
 /********************************************************************/
 #include "hazmath.h"
 
+static SHORT lt00(REAL *a, REAL *b, const INT n,const REAL tol)
+{
+  /*  
+      \brief if a<b (lexicogrphically), then return 1, if a>b return (-1) and if a=b return 0;
+  */
+  INT k,lt=0;
+  REAL to_chk=1e20;
+  for(k=0;k<n;k++) {
+    to_chk=fabs(a[k]-b[k])/(fabs(a[k])+1e-15);
+    if(to_chk<=tol) {continue;}
+    else if(a[k]>b[k]){lt=-1;break;}
+    else if(a[k]<b[k]){lt=1;break;}
+  }
+  return lt;
+}
 /***************************************************************/
 /*!
  * \fn void dlexsort(const INT nr, const INT nc,REAL *a, INT *p)
  *
  * \brief implements STRAIGHT INSERT sorting to order lexicographically nr
- names with nc components each.
+ names with nc components each. two elements are equal if they differ by 1e-15. 
  *
  * \param nr    Number of names
  * \param nc    Number of components
@@ -36,32 +51,17 @@ void dlexsort(const INT nr, const INT nc,REAL *a,INT *p)
      is the permutation used to order a. The ogiginal a is recovered
      with inv permutation aorig[]=a[invp[i]] where invp[p[i]]=i;
   */
+/********************************************************************************/
   INT i,j,k,pj;
   unsigned INT lt=0;
   REAL *aj=(REAL *)calloc(nc,sizeof(REAL));
   for (i = 0; i < nr; i++){p[i]=i;}
   for (j = 1; j < nr; ++j) {
-    //    for(k=0;k<nc;k++)aj[k] = a[j*nc+k];
     memcpy(aj,(a+j*nc),nc*sizeof(REAL)); pj = *(p + j);
     i = j - 1;
-    lt=0;
-    for(k=0;k<nc;k++) {
-      if(aj[k]>a[i*nc+k]){lt=0;break;}
-      else if(aj[k]<a[i*nc+k]){lt=1;break;}
-      else {continue;}
-    }
-    //    while ((i >=0) && (aj<a[i])){
-    while ((i>=0) && (lt)){
+    while ((i>=0) && (lt00(aj,&a[i*nc],nc,(REAL )1e-15)>0)){
       memcpy((a+(i+1)*nc),(a+i*nc),nc*sizeof(REAL)); *(p+i+1)=*(p+i);
-      //      for(k=0;k<nc;k++) a[(i + 1)*nc+k] = a[i*nc+k];
       --i;
-      if(i<0) break;
-      lt=0;
-      for(k=0;k<nc;k++) {
-	if(aj[k]>a[i*nc+k]){lt=0;break;}
-	else if(aj[k]<a[i*nc+k]){lt=1;break;}
-	else{continue;}
-      }
     }
     memcpy((a+(i+1)*nc),aj,nc*sizeof(REAL)); *(p+i+1)=pj;
   }
