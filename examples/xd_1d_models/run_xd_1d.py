@@ -34,7 +34,7 @@ getopt.add_option("-i", "--input_dir", action="store", type="string", dest="idir
 
 getopt.add_option("-o", "--output_dir", action="store", type="string", dest="odir", help="Output directory", metavar="OUTPUT_DIR",default="./output/")
 
-getopt.add_option("-s", "--use_solver", action="store", type="string", dest="solver", help="Use Solver?", metavar="[0/1]",default="0")
+getopt.add_option("-s", "--use_solver", action="store", type=int, dest="solver", help="Use Solver?", metavar="[0/1]",default=0)
 
 getopt.add_option("-f", "--solver_input", action="store", type="string", dest="solver_input_file", help="solver input", metavar="SOLVER_INPUT",default="./input/solver.input")
 
@@ -78,10 +78,10 @@ mesh.write(op.odir+sdim+'d_grid.xdmf')
 
 ## once the meshes are done, the matrices can be assembled. and then the solver can be run. 
 
-sfile=bytes(op.solver_input_file,'utf-8')
-mdir=bytes(op.matrices_dir,'utf-8')
-
-print("\nsolver input file: ",op.solver_input_file,"\nmatrices_dir=",op.matrices_dir,"\n")
-libxd_1d_.solver_xd_1d(sfile,mdir)
+if(op.solver):
+    sfile=bytes(op.solver_input_file,'utf-8')
+    mdir=bytes(op.matrices_dir,'utf-8')
+    print("\nsolver input file: ",op.solver_input_file,"\nmatrices_dir=",op.matrices_dir,"\n")
+    libxd_1d_.solver_xd_1d(sfile,mdir)
 
 
