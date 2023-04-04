@@ -5,11 +5,12 @@
 ####################################################
 
 # Extension for the Executable Programs
-EXTENSION = ex
-
 ifeq ($(MAKE_LIB),1)
+## making shared lib from a source. 
 	CFLAGS += -fPIC -shared
 	EXTENSION = so
+else
+	EXTENSION = ex
 endif
 
 # Machine Specific Compilers and Libraries

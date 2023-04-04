@@ -1,4 +1,4 @@
-/*! \file examples/amr_grids/amr_grids.c
+/*! \file examples/amr_grids/xd_1d.c
  *
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov 2019/01/09.
  *  Copyright 2015_HAZMATH__. All rights reserved.
@@ -24,147 +24,15 @@
  * refinement type: .gt. 10 is uniform refinement and .le. 10
  *                  (typically 0) is the newest vertex bisection
 */
-#ifndef MAX_NODES_PER_SIMPLEX
-#define MAX_NODES_PER_SIMPLEX  1
-#endif
-/**/
-#ifndef OUTER_SPATIAL_DIMENSION
-#define OUTER_SPATIAL_DIMENSION 3
-#endif
-/**/
-#ifndef REFINEMENT_LEVELS
-#define REFINEMENT_LEVELS 150
-#endif
-/**/
-/*********************************************************************/
-typedef struct /* n-homogenous simplicial complex */
-{
-  INT dimbig;     /* the dimension of the space in which SC is embedded */
-  INT dim;        /* the dimension of SC */
-  INT nv;         /* number of 0-dimensional simplices */
-  INT nvadd;      /* number of 0-dimensional simplices added on every segment */
-  INT nseg;       /* number of segments */
-  INT *seg;       /* nv boundary codes for vertices */
-  INT *divisions; /*divisions per segment */
-  REAL *xv; /*(nv times dimbig) array to hold the coordinates of vertices */
-  REAL *pt_thickness; /* points attribute */
-  REAL *seg_radius;   /* segments attribute */
-  char *fv_coords;   /*input_file: coords of bifurcations*/
-  char *fseg;       /*input_file: segments definition */
-  char *fdivisions; /*input_file: divisions per segment*/
-  char *fvtmp_coords; /*input_file: coordinates of all points (biffurcations or not */
-  char *fpt_thickness;/*input_file: segment thickness*/
-  char *fseg_radius;/*input_file: radius */
-  char *fvtu_3d;  /*output_file: for the 3d grid in vtu*/
-  char *fvtu_1d;  /*output_file: for the 1d grid on vtu */
-} data_1d;
-/*********************************************************************/
 #include "supporting_xd_1d.h"
-/*********************************************************************************************/
-static INT init_pts(const INT dim, const INT npts, REAL *pts, scomplex *sc, const REAL scale)
+///////////////////////////////////////////////////////////////////////////////
+void xd_1d_lib(const INT dimbig, const INT max_nodes_in, const INT ref_levels_in, \
+	       const char *idir, const char *odir)
 {
-  INT k = 0, i, j;
-  cube2simp *c2s = cube2simplex(dim);  // now we have the vertices of the unit cube in bits
-  REAL *vc = calloc(4 * dim * c2s->nvcube, sizeof(REAL));
-  REAL *xmintmp = vc;                                 // maps to [0...0]
-  REAL *xmaxtmp = xmintmp + dim * (c2s->nvcube - 1);  // last vertex
-  REAL *xmin = xmaxtmp + dim * (c2s->nvcube - 1);     // last vertex
-  REAL *xmax = xmin + dim * (c2s->nvcube - 1);        // last vertex
-  INT kdimi;
-  for (i = 0; i < dim; i++) {
-    xmax[i] = pts[i];
-    xmin[i] = xmax[i];
-    kdimi = dim + i;
-    for (k = 1; k < npts; k++) {
-      if (pts[kdimi] > xmax[i]) {
-        xmax[i] = pts[kdimi];
-      }
-      if (pts[kdimi] < xmin[i]) {
-        xmin[i] = pts[kdimi];
-      }
-      kdimi += dim;
-    }
-  }
-  fprintf(stdout,"\n\ndim=%d;scale=%.16e\n",dim,scale);fflush(stdout);
-  print_full_mat(1,dim,xmin,"xmin");
-  print_full_mat(1,dim,xmax,"xmax");
-  for (i = 0; i < dim; i++) {
-    xmaxtmp[i] = xmax[i] + (scale - 1e0) * (xmax[i] - xmin[i]);
-    xmintmp[i] = xmin[i] - (scale - 1e0) * (xmax[i] - xmin[i]);
-  }
-  for (j = 1; j < c2s->nvcube - 1; j++) {
-    for (i = 0; i < dim; i++) {
-      vc[j * dim + i] =
-          xmintmp[i] + (xmaxtmp[i] - xmintmp[i]) * (c2s->bits[dim * j + i]);
-    }
-  }
-  mapit(sc, vc);
-  free(vc);
-  cube2simp_free(c2s);
-  return 0;
-}
-/****************************************************************************************/
-static void special_1d(scomplex *sc, data_1d *g, dvector *seg_r) {
-  // construct 1-homogenous simplicial complex embedded in 2d or 3d
-  INT i, j, k, l, m, dimbig;
-  dimbig = g->dimbig;
-  REAL *xvtmp = g->xv + g->nv * dimbig;
-  REAL r = -1e20;
-  INT i1, i2, ko, bego, endo, ptrn, ptre;
-  bego = 0, ptrn = 0;
-  ptre = 0;
-  for (i = 0; i < g->nseg; ++i) {
-    l = g->divisions[i] - 2;
-    i1 = g->seg[2 * i];
-    i2 = g->seg[2 * i + 1];
-    r = g->seg_radius[i];
-    if (!l) {
-      endo = bego + 1;
-      bego = endo + 1;
-      sc->nodes[2 * ptre] = i1;
-      sc->nodes[2 * ptre + 1] = i2;
-      seg_r->val[ptre] = r;
-      ptre++;
-      continue;
-    }
-    endo = bego + l + 1;
-    sc->nodes[2 * ptre] = i1;
-    sc->nodes[2 * (ptre + l) + 1] = i2;
-    seg_r->val[ptre + l] = r;
-    k = ptrn;
-    ko = bego + 1;
-    for (j = ptre; j < (ptre + l); ++j) {
-      sc->nodes[2 * j + 1] = k + g->nv;
-      sc->nodes[2 * (j + 1)] = k + g->nv;
-      // fprintf(stdout,"\nt123(%d,1:2)=[%d
-      // %d];",j+1,sc->nodes[2*j]+1,sc->nodes[2*j+1]+1);
-      seg_r->val[j] = r;
-      for (m = 0; m < dimbig; ++m) {
-        xvtmp[dimbig * k + m] = xvtmp[dimbig * ko + m];
-      }
-      k++;
-      ko++;
-    }
-    // fprintf(stdout,"\nt123(%d,1:2)=[%d
-    // %d];",ptre+l+1,sc->nodes[2*(ptre+l)]+1,sc->nodes[2*(ptre+l)+1]+1);
-    bego = endo + 1;
-    ptrn += l;
-    ptre += (l + 1);
-  }
-  sc->nv = ptrn + g->nv;
-  sc->ns = ptre;
-  seg_r->val = realloc(seg_r->val, (sc->ns) * sizeof(REAL));
-  sc->nodes = realloc(sc->nodes, (sc->n + 1) * (sc->ns) * sizeof(INT));
-  free(sc->x);
-  g->xv = realloc(g->xv, sc->nv * dimbig * sizeof(REAL));  //
-  sc->x = g->xv;
-  return;
-}
-INT main(INT argc, char *argv[]) {
   INT j, k;
   data_1d g;
   //init 1d struct
-  data_1d_init(&g);
+  data_1d_init(dimbig,idir,odir,&g);
   INT dim=g.dimbig;// 
   getdata_1d(&g);
   ////////////// read all 1d data.
@@ -200,8 +68,6 @@ INT main(INT argc, char *argv[]) {
   // free 1d data;
   dvec_free(&seg_r);
   //
-  INT ref_levels=REFINEMENT_LEVELS;
-  //
   fprintf(stdout,"\nMeshing in dimension=%lld ...",(long long )dim);
   //  clock_t clk_mesh_start = clock();
   scomplex **sc_all=mesh_cube_init(dim,(INT )1,(INT )0);
@@ -230,8 +96,8 @@ INT main(INT argc, char *argv[]) {
   init_pts(dim, nstar, xstar, sc_dimbig, (REAL)1.1);
   node_ins = icsr_create(0, 0, 0);
   //
-  INT max_nodes = (INT)MAX_NODES_PER_SIMPLEX;
-  if (max_nodes <= 0) max_nodes = 1;
+  INT max_nodes=max_nodes_in,ref_levels=ref_levels_in;
+  if (max_nodes_in <= 0) max_nodes = 1;
   for (j = 0; j < ref_levels; j++) {
     sctop = scfinest(sc_dimbig);
     /* MARK: marked is an ivector with num.rows=the number of
@@ -278,5 +144,5 @@ INT main(INT argc, char *argv[]) {
   haz_scomplex_free(sc_dimbig);
   free(sc_all);
   //  clock_t clk_mesh_end = clock();
-  return 0;
+  return;
 }

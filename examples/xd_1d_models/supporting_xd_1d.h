@@ -8,6 +8,30 @@
  * \note
  */
 /****************************************************************************/
+typedef struct /* n-homogenous simplicial complex */
+{
+  INT dimbig;     /* the dimension of the space in which SC is embedded */
+  INT dim;        /* the dimension of SC */
+  INT nv;         /* number of 0-dimensional simplices */
+  INT nvadd;      /* number of 0-dimensional simplices added on every segment */
+  INT nseg;       /* number of segments */
+  INT *seg;       /* nv boundary codes for vertices */
+  INT *divisions; /*divisions per segment */
+  REAL *xv; /*(nv times dimbig) array to hold the coordinates of vertices */
+  REAL *pt_thickness; /* points attribute */
+  REAL *seg_radius;   /* segments attribute */
+  char *idir; /* directory with input files*/
+  char *odir; /* directory for the output files */
+  char *fv_coords;   /*input_file: coords of bifurcations*/
+  char *fseg;       /*input_file: segments definition */
+  char *fdivisions; /*input_file: divisions per segment*/
+  char *fvtmp_coords; /*input_file: coordinates of all points (biffurcations or not */
+  char *fpt_thickness;/*input_file: segment thickness*/
+  char *fseg_radius;/*input_file: radius */
+  char *fvtu_3d;  /*output_file: for the 3d grid in vtu*/
+  char *fvtu_1d;  /*output_file: for the 1d grid on vtu */
+} data_1d;
+/*********************************************************************/
 static ivector mark_around_pts(scomplex *sc, scomplex *scglobal, INT nstar,
                                REAL *xstar, iCSRmat *node_ins,
                                const INT max_nodes) {
@@ -293,7 +317,7 @@ static char *fname_set(const char *dir, const char *fname_in) {
   return fname;
 }
 /************************************************************/
-static void data_1d_init(data_1d *g)
+static void data_1d_init(const INT dimbig,const char *idir, const char *odir,data_1d *g)
 {
   const char *fnames[] = {
     "001_coordinates_of_vertices",
@@ -305,11 +329,10 @@ static void data_1d_init(data_1d *g)
     "\0"};
   //  char
   //////////////////////////////////////////////////////////////////////////////
-#ifndef OUTER_SPATIAL_DIMENSION
-#define OUTER_SPATIAL_DIMENSION=3
-#endif
   g->dim = 1;
-  g->dimbig = OUTER_SPATIAL_DIMENSION;
+  g->dimbig = dimbig;
+  if(g->dimbig<2) g->dimbig=2;
+  else if(g->dimbig>3) g->dimbig=3;  
   g->nv = 0;
   g->nseg = 0;
   g->xv = NULL;
@@ -317,15 +340,14 @@ static void data_1d_init(data_1d *g)
   g->pt_thickness = NULL;
   g->seg = NULL, g->divisions = NULL;
   // filenames:
-  char *idir = str_add_dim(g->dimbig,"./input/1d_nets_","d/");
   g->fv_coords = fname_set(idir, fnames[0]);
   g->fseg = fname_set(idir, fnames[1]);
   g->fdivisions = fname_set(idir, fnames[2]);
   g->fvtmp_coords = fname_set(idir, fnames[3]);
   g->fpt_thickness = fname_set(idir, fnames[4]);
   g->fseg_radius = fname_set(idir, fnames[5]);
-  g->fvtu_3d = str_add_dim(g->dimbig,"./output/","d_grid.vtu");
-  g->fvtu_1d = str_add_dim(g->dim,"./output/","d_grid.vtu");
+  g->fvtu_3d = str_add_dim(g->dimbig,g->odir,"d_grid.vtu");
+  g->fvtu_1d = str_add_dim(g->dim,g->odir,"d_grid.vtu");
   ////////////////////////////////////////////////////////////////////
   fprintf(stdout,"\n%%%%INPUT FILENAMES=\n%s\n%s\n%s\n%s\n%s\n%s\n",\
 	  g->fv_coords,g->fseg,g->fdivisions,g->fvtmp_coords,g->fpt_thickness,g->fseg_radius);
@@ -404,3 +426,104 @@ static void data_1d_free(data_1d *g)
   free(g->fvtu_3d);
   return;
 }
+/*********************************************************************************************/
+static INT init_pts(const INT dim, const INT npts, REAL *pts, scomplex *sc, const REAL scale)
+{
+  INT k = 0, i, j;
+  cube2simp *c2s = cube2simplex(dim);  // now we have the vertices of the unit cube in bits
+  REAL *vc = calloc(4 * dim * c2s->nvcube, sizeof(REAL));
+  REAL *xmintmp = vc;                                 // maps to [0...0]
+  REAL *xmaxtmp = xmintmp + dim * (c2s->nvcube - 1);  // last vertex
+  REAL *xmin = xmaxtmp + dim * (c2s->nvcube - 1);     // last vertex
+  REAL *xmax = xmin + dim * (c2s->nvcube - 1);        // last vertex
+  INT kdimi;
+  for (i = 0; i < dim; i++) {
+    xmax[i] = pts[i];
+    xmin[i] = xmax[i];
+    kdimi = dim + i;
+    for (k = 1; k < npts; k++) {
+      if (pts[kdimi] > xmax[i]) {
+        xmax[i] = pts[kdimi];
+      }
+      if (pts[kdimi] < xmin[i]) {
+        xmin[i] = pts[kdimi];
+      }
+      kdimi += dim;
+    }
+  }
+  fprintf(stdout,"\n\ndim=%d;scale=%.16e\n",dim,scale);fflush(stdout);
+  print_full_mat(1,dim,xmin,"xmin");
+  print_full_mat(1,dim,xmax,"xmax");
+  for (i = 0; i < dim; i++) {
+    xmaxtmp[i] = xmax[i] + (scale - 1e0) * (xmax[i] - xmin[i]);
+    xmintmp[i] = xmin[i] - (scale - 1e0) * (xmax[i] - xmin[i]);
+  }
+  for (j = 1; j < c2s->nvcube - 1; j++) {
+    for (i = 0; i < dim; i++) {
+      vc[j * dim + i] =
+          xmintmp[i] + (xmaxtmp[i] - xmintmp[i]) * (c2s->bits[dim * j + i]);
+    }
+  }
+  mapit(sc, vc);
+  free(vc);
+  cube2simp_free(c2s);
+  return 0;
+}
+/****************************************************************************************/
+static void special_1d(scomplex *sc, data_1d *g, dvector *seg_r) {
+  // construct 1-homogenous simplicial complex embedded in 2d or 3d
+  INT i, j, k, l, m, dimbig;
+  dimbig = g->dimbig;
+  REAL *xvtmp = g->xv + g->nv * dimbig;
+  REAL r = -1e20;
+  INT i1, i2, ko, bego, endo, ptrn, ptre;
+  bego = 0, ptrn = 0;
+  ptre = 0;
+  for (i = 0; i < g->nseg; ++i) {
+    l = g->divisions[i] - 2;
+    i1 = g->seg[2 * i];
+    i2 = g->seg[2 * i + 1];
+    r = g->seg_radius[i];
+    if (!l) {
+      endo = bego + 1;
+      bego = endo + 1;
+      sc->nodes[2 * ptre] = i1;
+      sc->nodes[2 * ptre + 1] = i2;
+      seg_r->val[ptre] = r;
+      ptre++;
+      continue;
+    }
+    endo = bego + l + 1;
+    sc->nodes[2 * ptre] = i1;
+    sc->nodes[2 * (ptre + l) + 1] = i2;
+    seg_r->val[ptre + l] = r;
+    k = ptrn;
+    ko = bego + 1;
+    for (j = ptre; j < (ptre + l); ++j) {
+      sc->nodes[2 * j + 1] = k + g->nv;
+      sc->nodes[2 * (j + 1)] = k + g->nv;
+      // fprintf(stdout,"\nt123(%d,1:2)=[%d
+      // %d];",j+1,sc->nodes[2*j]+1,sc->nodes[2*j+1]+1);
+      seg_r->val[j] = r;
+      for (m = 0; m < dimbig; ++m) {
+        xvtmp[dimbig * k + m] = xvtmp[dimbig * ko + m];
+      }
+      k++;
+      ko++;
+    }
+    // fprintf(stdout,"\nt123(%d,1:2)=[%d
+    // %d];",ptre+l+1,sc->nodes[2*(ptre+l)]+1,sc->nodes[2*(ptre+l)+1]+1);
+    bego = endo + 1;
+    ptrn += l;
+    ptre += (l + 1);
+  }
+  sc->nv = ptrn + g->nv;
+  sc->ns = ptre;
+  seg_r->val = realloc(seg_r->val, (sc->ns) * sizeof(REAL));
+  sc->nodes = realloc(sc->nodes, (sc->n + 1) * (sc->ns) * sizeof(INT));
+  free(sc->x);
+  g->xv = realloc(g->xv, sc->nv * dimbig * sizeof(REAL));  //
+  sc->x = g->xv;
+  return;
+}
+/**************************************************************************************/
