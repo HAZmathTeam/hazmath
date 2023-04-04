@@ -27,33 +27,35 @@ getopt.add_option("-d", "--dim", action="store", type="int",dest="dim", help="X 
 
 getopt.add_option("-m", "--max_nodes", action="store", type="int",dest="max_nodes", help="max refinement levels"+str(default_dim)+")", metavar="MAX_NODES",default=10)
 
-getopt.add_option("-r", "--ref_levels", action="store", type="int",dest="ref_levels", help="max refinement levels"+str(default_dim)+")", metavar="REF_LEVELS",default=100)
+getopt.add_option("-r", "--ref_levels", action="store", type="int",dest="ref_levels", help="max refinement levels"+str(default_dim)+")", metavar="REFINEMENT_LEVELS",default=100)
 
 getopt.add_option("-i", "--input_dir", action="store", type="string", dest="idir", \
                   help="Input directory (see README.md)",metavar="INPUT_DIR",default="./input/1d_nets_"+str(default_dim)+"d/")
 
 getopt.add_option("-o", "--output_dir", action="store", type="string", dest="odir", help="Output directory", metavar="OUTPUT_DIR",default="./output/")
 
+getopt.add_option("-s", "--use_solver", action="store", type="string", dest="solver", help="Use Solver?", metavar="[0/1]",default="0")
+
+getopt.add_option("-f", "--solver_input", action="store", type="string", dest="solver_input_file", help="solver input", metavar="SOLVER_INPUT",default="./input/solver.input")
+
+getopt.add_option("-l", "--matrices_dir", action="store", type="string", dest="matrices_dir", help="Directory with matrices(npy)", metavar="MATRICES_DIR",default="./input/1d_matrices_"+str(default_dim)+"d/")
+
 (op, args) = getopt.parse_args()
 
 if(op.dim<2):
     op.dim=2
 elif(op.dim>3):
-    op.dim=3
+    op.dim=3    
 
 import ctypes
 import os
 op.idir=os.path.abspath(op.idir)+'/'
 op.odir=os.path.abspath(op.odir)+'/'
+op.solver_input_file=os.path.abspath(op.solver_input_file)
+op.matrices_dir=os.path.abspath(op.matrices_dir)+'/'
 
 sdim=str(op.dim)
 libxd_1d_=ctypes.CDLL(os.path.abspath('./libxd_1d_.so'))
-
-print("\n%%%%%%DIM=",op.dim,\
-        "\nmax_nodes=",op.max_nodes, \
-      "\nref_levels=",op.ref_levels,\
-      "\ninput_dir=",op.idir,\
-	"\noutput_dir=",op.odir,"\n");
 
 dim=ctypes.c_int(op.dim);
 max_nodes=ctypes.c_int(op.max_nodes);
@@ -74,25 +76,12 @@ mesh.write(op.odir+'1d_grid.xdmf')
 mesh=meshio.read(op.odir+sdim+'d_grid.vtu')
 mesh.write(op.odir+sdim+'d_grid.xdmf')
 
+## once the meshes are done, the matrices can be assembled. and then the solver can be run. 
+
+sfile=bytes(op.solver_input_file,'utf-8')
+mdir=bytes(op.matrices_dir,'utf-8')
+
+print("\nsolver input file: ",op.solver_input_file,"\nmatrices_dir=",op.matrices_dir,"\n")
+libxd_1d_.solver_xd_1d(sfile,mdir)
 
 
-
-#https://github.com/MiroK/metric-amg-examples/blob/master/src/emi3d1d_sylvie_ludmil.py
-
-
-####################################################################
-# LATER
-####################################################################
-# mesh3d = Mesh()
-#     with HDF5File(mesh3d.mpi_comm(), './data/sylvie/sylvie_3d.h5', 'r') as h5:
-#         h5.read(mesh3d, '/mesh', False)
-
-#     mesh1d = Mesh()
-#     with HDF5File(mesh1d.mpi_comm(), './data/sylvie/sylvie_1d.h5', 'r') as h5:
-#         h5.read(mesh1d, '/mesh', False)
-
-#     mesh1d_radii = MeshFunction('double', mesh1d, 1, 0)
-#     with HDF5File(mesh1d.mpi_comm(), './data/sylvie/sylvie_1d.h5', 'r') as h5:    
-#         h5.read(mesh1d_radii, '/radii_cell_foo')
-
-        

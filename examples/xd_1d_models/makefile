@@ -3,7 +3,7 @@
 ####################################################
 
 SRCFILE = libxd_1d_
-HEADERS = supporting_xd_1d.h definitions_xd_1d.h
+HEADERS = supporting_xd_1d.h solver_xd_1d.h definitions_xd_1d.h
 
 INCLUDE =
 

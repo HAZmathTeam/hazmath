@@ -1974,7 +1974,9 @@ dCSRmat *dcoo_read_eof_dcsr_p(const char *fname,const INT *size,const unsigned c
     if(acoo.col<size[1])
       acoo.col=size[1];
   }
-  dCSRmat *a=dcoo_2_dcsr_p(&acoo);
+  dCSRmat *a=malloc(1*sizeof(dCSRmat));
+  dcoo_2_dcsr(&acoo,a);
+  //  dCSRmat *a=dcoo_2_dcsr_p(&acoo);
   dcoo_free(&acoo); // just one free if it was allocated with "something_p"
   return a;
 }
@@ -1997,7 +1999,9 @@ dCSRmat *dcoo_read_eof_dcsr_p(const char *fname,const INT *size,const unsigned c
  */
 dvector *dvector_read_eof_p(const char *fname, const unsigned char format)
 {
-  dvector *b=dvec_create_p(0);
+  dvector *b=malloc(1*sizeof(dvector));
+  b->row=0;
+  b->val=NULL;
   if(format=='a' || format=='A'){
     read_eof(fname,(void **)&b->val,&b->row,'R',0);
   } else if(format=='b' || format=='B'){
@@ -2029,7 +2033,9 @@ dvector *dvector_read_eof_p(const char *fname, const unsigned char format)
  */
 ivector *ivector_read_eof_p(const char *fname, const unsigned char format)
 {
-  ivector *b=ivec_create_p(0);
+  ivector *b=malloc(1*sizeof(ivector));
+  b->row=0;
+  b->val=NULL;
   if(format=='a' || format=='A'){
     read_eof(fname,(void **)&b->val,&b->row,'I',0);
   } else if(format=='b' || format=='B'){

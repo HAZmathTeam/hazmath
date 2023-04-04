@@ -26,6 +26,7 @@
 */
 #include "definitions_xd_1d.h"
 #include "supporting_xd_1d.h"
+#include "solver_xd_1d.h"
 ///////////////////////////////////////////////////////////////////////////////
 void xd_1d_lib(const INT dimbig,const INT max_nodes_in,const INT ref_levels_in, \
 	       const char *idir,const char *odir)
