@@ -304,6 +304,9 @@ static void data_1d_init(const INT dimbig,const char *idir, const char *odir,dat
     "\0"};
   //  char
   //////////////////////////////////////////////////////////////////////////////
+  g->odir=strdup(odir);
+  g->idir=strdup(idir);
+  //////////////////////////////////////////////////////////////////////////////
   g->dim = 1;
   g->dimbig = dimbig;
   if(g->dimbig<2) g->dimbig=2;
@@ -317,10 +320,11 @@ static void data_1d_init(const INT dimbig,const char *idir, const char *odir,dat
   // filenames:
   g->fv_coords = fname_set(idir, fnames[0]);
   g->fseg = fname_set(idir, fnames[1]);
-  g->fdivisions = fname_set(idir, fnames[2]);
-  g->fvtmp_coords = fname_set(idir, fnames[3]);
-  g->fpt_thickness = fname_set(idir, fnames[4]);
-  g->fseg_radius = fname_set(idir, fnames[5]);
+  g->fdivisions = fname_set(g->idir, fnames[2]);
+  g->fvtmp_coords = fname_set(g->idir, fnames[3]);
+  g->fpt_thickness = fname_set(g->idir, fnames[4]);
+  g->fseg_radius = fname_set(g->idir, fnames[5]);
+  //
   g->fvtu_3d = str_add_dim(g->dimbig,g->odir,"d_grid.vtu");
   g->fvtu_1d = str_add_dim(g->dim,g->odir,"d_grid.vtu");
   ////////////////////////////////////////////////////////////////////
