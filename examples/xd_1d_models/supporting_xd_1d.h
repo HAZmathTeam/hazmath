@@ -7,31 +7,28 @@
  *
  * \note
  */
-/****************************************************************************/
-typedef struct /* n-homogenous simplicial complex */
+/************************************************************/
+static char *str_add_dim(const INT dim, const char *prefix, const char *suffix)
 {
-  INT dimbig;     /* the dimension of the space in which SC is embedded */
-  INT dim;        /* the dimension of SC */
-  INT nv;         /* number of 0-dimensional simplices */
-  INT nvadd;      /* number of 0-dimensional simplices added on every segment */
-  INT nseg;       /* number of segments */
-  INT *seg;       /* nv boundary codes for vertices */
-  INT *divisions; /*divisions per segment */
-  REAL *xv; /*(nv times dimbig) array to hold the coordinates of vertices */
-  REAL *pt_thickness; /* points attribute */
-  REAL *seg_radius;   /* segments attribute */
-  char *idir; /* directory with input files*/
-  char *odir; /* directory for the output files */
-  char *fv_coords;   /*input_file: coords of bifurcations*/
-  char *fseg;       /*input_file: segments definition */
-  char *fdivisions; /*input_file: divisions per segment*/
-  char *fvtmp_coords; /*input_file: coordinates of all points (biffurcations or not */
-  char *fpt_thickness;/*input_file: segment thickness*/
-  char *fseg_radius;/*input_file: radius */
-  char *fvtu_3d;  /*output_file: for the 3d grid in vtu*/
-  char *fvtu_1d;  /*output_file: for the 1d grid on vtu */
-} data_1d;
-/*********************************************************************/
+  INT k=dim;
+  if(k<1) k=1;
+  else if(k>3) k=3;  
+  char *dir0=calloc(1023,sizeof(char));
+  snprintf(dir0,1023,"%s%d%s",prefix,k,suffix);
+  trim_str(&dir0,1);
+  return dir0;
+}
+static char *fname_set(const char *dir, const char *fname_in) {
+  // combine names: fname_in[0]=dir/fname_in[0]
+  size_t ldir0 = strlen(dir) + 1;
+  size_t lfname = strlen(fname_in);
+  char *fname = strndup(dir, ldir0);
+  fname = realloc(fname, (lfname + ldir0 + 1) * sizeof(char));
+  strncat(fname, fname_in, lfname);
+  trim_str(&fname,1);
+  return fname;
+}
+/************************************************************/
 static ivector mark_around_pts(scomplex *sc, scomplex *scglobal, INT nstar,
                                REAL *xstar, iCSRmat *node_ins,
                                const INT max_nodes) {
@@ -295,28 +292,6 @@ static ivector mark_around_pts(scomplex *sc, scomplex *scglobal, INT nstar,
   /* } */
   return marked;
 }
-/************************************************************/
-static char *str_add_dim(const INT dim, const char *prefix, const char *suffix)
-{
-  INT k=dim;
-  if(k<1) k=1;
-  else if(k>3) k=3;  
-  char *dir0=calloc(1023,sizeof(char));
-  snprintf(dir0,1023,"%s%d%s",prefix,k,suffix);
-  trim_str(&dir0,1);
-  return dir0;
-}
-static char *fname_set(const char *dir, const char *fname_in) {
-  // combine names: fname_in[0]=dir/fname_in[0]
-  size_t ldir0 = strlen(dir) + 1;
-  size_t lfname = strlen(fname_in);
-  char *fname = strndup(dir, ldir0);
-  fname = realloc(fname, (lfname + ldir0 + 1) * sizeof(char));
-  strncat(fname, fname_in, lfname);
-  trim_str(&fname,1);
-  return fname;
-}
-/************************************************************/
 static void data_1d_init(const INT dimbig,const char *idir, const char *odir,data_1d *g)
 {
   const char *fnames[] = {

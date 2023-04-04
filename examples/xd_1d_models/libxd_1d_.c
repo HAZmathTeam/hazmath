@@ -24,6 +24,7 @@
  * refinement type: .gt. 10 is uniform refinement and .le. 10
  *                  (typically 0) is the newest vertex bisection
 */
+#include "definitions_xd_1d.h"
 #include "supporting_xd_1d.h"
 ///////////////////////////////////////////////////////////////////////////////
 void xd_1d_lib(const INT dimbig, const INT max_nodes_in, const INT ref_levels_in, \
