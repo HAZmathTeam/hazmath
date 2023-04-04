@@ -27,12 +27,19 @@
 #include "definitions_xd_1d.h"
 #include "supporting_xd_1d.h"
 ///////////////////////////////////////////////////////////////////////////////
-void xd_1d_lib(const INT dimbig, const INT max_nodes_in, const INT ref_levels_in, \
-	       const char *idir, const char *odir)
+void xd_1d_lib(const INT dimbig,const INT max_nodes_in,const INT ref_levels_in, \
+	       const char *idir,const char *odir)
 {
   INT j, k;
   data_1d g;
   //init 1d struct
+  fprintf(stdout,"\n%%%%%%In %s:\n%%%%%%DIMBIG=%lld\nMAX_NODES=%lld\nREF_LEVELS=%lld\nINPUT=%s\nOUTPUT=%s", \
+	  __FUNCTION__,
+	  (long long)dimbig,					\
+	  (long long)max_nodes_in,				\
+	  (long long)ref_levels_in,				\
+	  idir,							\
+	  odir);
   data_1d_init(dimbig,idir,odir,&g);
   INT dim=g.dimbig;// 
   getdata_1d(&g);
@@ -43,7 +50,9 @@ void xd_1d_lib(const INT dimbig, const INT max_nodes_in, const INT ref_levels_in
   scomplex *sc_dim = haz_scomplex_init(g.dim, g.nvadd, g.nvadd, g.dimbig);
   dvector seg_r = dvec_create(sc_dim->ns);  // seg_radius;
   //
+  clock_t clk_1dmesh_start = clock();
   special_1d(sc_dim, &g, &seg_r);
+  clock_t clk_1dmesh_end = clock();
   //
   /* fp=fopen("coords.txt","w"); */
   /* for(k=0;k<sc_dim->nv;k++){ */
@@ -69,12 +78,12 @@ void xd_1d_lib(const INT dimbig, const INT max_nodes_in, const INT ref_levels_in
   // free 1d data;
   dvec_free(&seg_r);
   //
-  fprintf(stdout,"\nMeshing in dimension=%lld ...",(long long )dim);
-  //  clock_t clk_mesh_start = clock();
+  fprintf(stdout,"\n%%%%Meshing in dimension=%lld ...",(long long )dim);
+  clock_t clk_3dmesh_start = clock();
   scomplex **sc_all=mesh_cube_init(dim,(INT )1,(INT )0);
   scomplex *sc_dimbig = sc_all[0];
   //haz_scomplex_print(sc_dimbig,0,"ZZZ");
-  fprintf(stdout,"\nElements = Simplexes = %12lld;\nDoF      = Vertices  = %12lld\n",(long long )sc_dimbig->ns,(long long )sc_dimbig->nv); fflush(stdout);
+  fprintf(stdout,"\n%%%%Elements = Simplexes = %12lld;\nDoF      = Vertices  = %12lld\n",(long long )sc_dimbig->ns,(long long )sc_dimbig->nv); fflush(stdout);
   /**/
   //  scfinalize(sc_dimbig,(INT )1);  
   //  sc_vols(sc_dimbig);
@@ -106,8 +115,7 @@ void xd_1d_lib(const INT dimbig, const INT max_nodes_in, const INT ref_levels_in
      *       is marked for refinement and 0 if it is not marked for
      *       refinement.
      */
-    marked = mark_around_pts(sctop, sc_dimbig, nstar, xstar, &node_ins,
-                             (const INT)max_nodes);
+    marked = mark_around_pts(sctop, sc_dimbig, nstar, xstar, &node_ins, (const INT)max_nodes);
     kmarked = 0;
     for (k = 0; k < marked.row; ++k)
       if (marked.val[k]) kmarked++;
@@ -135,15 +143,21 @@ void xd_1d_lib(const INT dimbig, const INT max_nodes_in, const INT ref_levels_in
   /*  MAKE sc to be the finest grid only */
   //  icsr_write_icoo("parent_v.zcoo",sc_dimbig->parent_v);
   scfinalize(sc_dimbig, (INT)1);
+  //
+  clock_t clk_3dmesh_end = clock();
+  //
   vtu_data_init(sc_dimbig, &vdata);
   vtkw(g.fvtu_3d,&vdata);
   vtu_data_free(&vdata);
   /*FREE: the input grid is freed here, because it has the filenames in it*/
   //  input_grid_free(g3d);
   //  haz_scomplex_print(sc_dimbig,0,__FUNCTION__);
+  fprintf(stdout,"\n%%%%%%CPUtime(1d-mesh)     = %10.3f sec\n%%%%%%CPUtime(%dd-mesh) = %10.3f sec\n", \
+	  (REAL ) (clk_1dmesh_end - clk_1dmesh_start)/CLOCKS_PER_SEC,	g.dimbig,
+	  (REAL ) (clk_3dmesh_end - clk_3dmesh_start)/CLOCKS_PER_SEC);
+  ////////////////////////////////////////////////////////////////////////////////
   data_1d_free(&g);
   haz_scomplex_free(sc_dimbig);
   free(sc_all);
-  //  clock_t clk_mesh_end = clock();
   return;
 }

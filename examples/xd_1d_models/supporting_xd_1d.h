@@ -430,9 +430,6 @@ static INT init_pts(const INT dim, const INT npts, REAL *pts, scomplex *sc, cons
       kdimi += dim;
     }
   }
-  fprintf(stdout,"\n\ndim=%d;scale=%.16e\n",dim,scale);fflush(stdout);
-  print_full_mat(1,dim,xmin,"xmin");
-  print_full_mat(1,dim,xmax,"xmax");
   for (i = 0; i < dim; i++) {
     xmaxtmp[i] = xmax[i] + (scale - 1e0) * (xmax[i] - xmin[i]);
     xmintmp[i] = xmin[i] - (scale - 1e0) * (xmax[i] - xmin[i]);
