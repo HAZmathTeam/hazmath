@@ -25,7 +25,7 @@ getopt = OptionParser(usage=usage)
 
 getopt.add_option("-d", "--dim", action="store", type="int",dest="dim", help="X in Xd-1d (default="+str(default_dim)+")", metavar="DIMENSION",default=default_dim)
 
-getopt.add_option("-m", "--max_nodes", action="store", type="int",dest="max_nodes", help="max refinement levels"+str(default_dim)+")", metavar="MAX_NODES",default=10)
+getopt.add_option("-m", "--max_nodes", action="store", type="int",dest="max_nodes", help="max refinement levels"+str(default_dim)+")", metavar="MAX_NODES",default=3)
 
 getopt.add_option("-r", "--ref_levels", action="store", type="int",dest="ref_levels", help="max refinement levels"+str(default_dim)+")", metavar="REFINEMENT_LEVELS",default=100)
 

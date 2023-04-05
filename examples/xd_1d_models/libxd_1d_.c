@@ -121,7 +121,7 @@ void xd_1d_lib(const INT dimbig,const INT max_nodes_in,const INT ref_levels_in, 
     refine(1, sc_dimbig, &marked);
     if (!kmarked) {
       fprintf(stdout,
-              "\nDone:There were no simplices containing > %lld bif. points from the 1d network.\n",
+              "\nDone:There were no simplices containing > %lld points from the 1d network.\n",
               (long long)(max_nodes));
       ivec_free(&marked);
       haz_scomplex_free(sctop);
