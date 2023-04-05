@@ -34,11 +34,6 @@ getopt.add_option("-i", "--input_dir", action="store", type="string", dest="idir
 
 getopt.add_option("-o", "--output_dir", action="store", type="string", dest="odir", help="Output directory", metavar="OUTPUT_DIR",default="./output/")
 
-getopt.add_option("-s", "--use_solver", action="store", type=int, dest="solver", help="Use Solver?", metavar="[0/1]",default=0)
-
-getopt.add_option("-f", "--solver_input", action="store", type="string", dest="solver_input_file", help="solver input", metavar="SOLVER_INPUT",default="./input/solver.input")
-
-getopt.add_option("-l", "--matrices_dir", action="store", type="string", dest="matrices_dir", help="Directory with matrices(npy)", metavar="MATRICES_DIR",default="./input/1d_matrices_"+str(default_dim)+"d/")
 
 (op, args) = getopt.parse_args()
 
@@ -51,8 +46,6 @@ import ctypes
 import os
 op.idir=os.path.abspath(op.idir)+'/'
 op.odir=os.path.abspath(op.odir)+'/'
-op.solver_input_file=os.path.abspath(op.solver_input_file)
-op.matrices_dir=os.path.abspath(op.matrices_dir)+'/'
 
 sdim=str(op.dim)
 libxd_1d_=ctypes.CDLL(os.path.abspath('./libxd_1d_.so'))
@@ -61,8 +54,6 @@ dim=ctypes.c_int(op.dim);
 max_nodes=ctypes.c_int(op.max_nodes);
 ref_levels=ctypes.c_int(op.ref_levels);
 
-#idir=ctypes.c_wchar_p(op.idir);
-#odir=ctypes.c_wchar_p(op.odir);
 idir=bytes(op.idir,'utf-8')
 odir=bytes(op.odir,'utf-8')
 
@@ -76,12 +67,5 @@ mesh.write(op.odir+'1d_grid.xdmf')
 mesh=meshio.read(op.odir+sdim+'d_grid.vtu')
 mesh.write(op.odir+sdim+'d_grid.xdmf')
 
-## once the meshes are done, the matrices can be assembled. and then the solver can be run. 
-
-if(op.solver):
-    sfile=bytes(op.solver_input_file,'utf-8')
-    mdir=bytes(op.matrices_dir,'utf-8')
-    print("\nsolver input file: ",op.solver_input_file,"\nmatrices_dir=",op.matrices_dir,"\n")
-    libxd_1d_.solver_xd_1d(sfile,mdir)
 
 
