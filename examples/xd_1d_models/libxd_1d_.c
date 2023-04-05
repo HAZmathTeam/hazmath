@@ -34,23 +34,21 @@ void xd_1d_lib(const INT dimbig,const INT max_nodes_in,const INT ref_levels_in, 
   INT j, k;
   data_1d g;
   //init 1d struct
-  fprintf(stdout,"\n%%%%%%In %s:\n%%%%%%DIMBIG=%lld\nMAX_NODES=%lld\nREF_LEVELS=%lld\nINPUT=%s\nOUTPUT=%s", \
-	  __FUNCTION__,
-	  (long long)dimbig,					\
-	  (long long)max_nodes_in,				\
-	  (long long)ref_levels_in,				\
-	  idir,							\
-	  odir);
+  /* fprintf(stdout,"\n%%%%%%In %s:\n%%%%%%DIMBIG=%lld\nMAX_NODES=%lld\nREF_LEVELS=%lld\nINPUT=%s\nOUTPUT=%s", \ */
+  /* 	  __FUNCTION__, */
+  /* 	  (long long)dimbig,					\ */
+  /* 	  (long long)max_nodes_in,				\ */
+  /* 	  (long long)ref_levels_in,				\ */
+  /* 	  idir,							\ */
+  /* 	  odir); */
   data_1d_init(dimbig,idir,odir,&g);
   INT dim=g.dimbig;// 
   getdata_1d(&g);
   ////////////// read all 1d data.
+  /* fprintf(stdout, "\nnv=%d,nvadd=%d,nseg=%d\n", g.nv, g.nvadd, g.nseg);  fflush(stdout); */
   //  form the complex:
-  fprintf(stdout, "\nnv=%d,nvadd=%d,nseg=%d\n", g.nv, g.nvadd, g.nseg);
-  fflush(stdout);
   scomplex *sc_dim = haz_scomplex_init(g.dim, g.nvadd, g.nvadd, g.dimbig);
-  dvector seg_r = dvec_create(sc_dim->ns);  // seg_radius;
-  //
+  dvector seg_r = dvec_create(sc_dim->ns);  // segment_radius;
   clock_t clk_1dmesh_start = clock();
   special_1d(sc_dim, &g, &seg_r);
   clock_t clk_1dmesh_end = clock();
@@ -79,22 +77,10 @@ void xd_1d_lib(const INT dimbig,const INT max_nodes_in,const INT ref_levels_in, 
   // free 1d data;
   dvec_free(&seg_r);
   //
-  fprintf(stdout,"\n%%%%Meshing in dimension=%lld ...",(long long )dim);
+  //  fprintf(stdout,"\n%%%%Meshing in dimension=%lld ...",(long long )dim);
   clock_t clk_3dmesh_start = clock();
-  scomplex **sc_all=mesh_cube_init(dim,(INT )1,(INT )0);
+  scomplex **sc_all=mesh_cube_init(dim,(INT )1,(INT )0); //number of divisions =1
   scomplex *sc_dimbig = sc_all[0];
-  //haz_scomplex_print(sc_dimbig,0,"ZZZ");
-  fprintf(stdout,"\n%%%%Elements = Simplexes = %12lld;\nDoF      = Vertices  = %12lld\n",(long long )sc_dimbig->ns,(long long )sc_dimbig->nv); fflush(stdout);
-  /**/
-  //  scfinalize(sc_dimbig,(INT )1);  
-  //  sc_vols(sc_dimbig);
-
-  /* input_grid *g3d = parse_input_grid(fp); */
-  /* fclose(fp); */
-  /* scomplex **sc_all = generate_initial_grid(g3d); */
-  /* fprintf(stdout, "\nInitial mesh:\nElements = %12lld;\nVertices=%12lld\n", */
-  /*         (long long)sc_all[0]->ns, (long long)sc_all[0]->nv); */
-  /* fflush(stdout); */
   scomplex *sctop = NULL;
   ivector marked;
   void *all = NULL;
@@ -104,8 +90,12 @@ void xd_1d_lib(const INT dimbig,const INT max_nodes_in,const INT ref_levels_in, 
   memcpy(xstar, sc_dim->x, nstar * dim * sizeof(REAL));
   if (sc_dim) haz_scomplex_free(sc_dim);
   iCSRmat node_ins;
-  init_pts(dim, nstar, xstar, sc_dimbig, (REAL)1.1);
-  node_ins = icsr_create(0, 0, 0);
+  init_pts(dim, nstar, xstar, sc_dimbig, (REAL)1.1);// scale by 1.1 to
+						    // contain the
+						    // network's
+						    // interpolationm
+						    // radius.
+  node_ins = icsr_create(0, 0, 0);// sparse matrix giving the correspondence: (1d-node)->(3d-simplex)
   //
   INT max_nodes=max_nodes_in,ref_levels=ref_levels_in;
   if (max_nodes_in <= 0) max_nodes = 1;
@@ -122,7 +112,7 @@ void xd_1d_lib(const INT dimbig,const INT max_nodes_in,const INT ref_levels_in, 
       if (marked.val[k]) kmarked++;
     fprintf(stdout,
             "\n|lvl=%2lld|simplices[%2lld:%2lld]=%12lld|simplices[%2lld]=%"
-            "12lld|vertices[%2lld]=%12lld|kmarked=%lld",
+            "12lld|vertices[%2lld]=%12lld|marked=%lld",
             (long long int)j, 0LL, (long long int)j,
             (long long int)sc_dimbig->ns, (long long int)j,
             (long long int)sctop->ns, (long long int)j,
@@ -131,7 +121,7 @@ void xd_1d_lib(const INT dimbig,const INT max_nodes_in,const INT ref_levels_in, 
     refine(1, sc_dimbig, &marked);
     if (!kmarked) {
       fprintf(stdout,
-              "\nthere were no simplices containing > %lld points. Exiting",
+              "\nDone:There were no simplices containing > %lld bif. points from the 1d network.\n",
               (long long)(max_nodes));
       ivec_free(&marked);
       haz_scomplex_free(sctop);

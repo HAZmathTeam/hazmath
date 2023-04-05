@@ -270,13 +270,13 @@ static ivector mark_around_pts(scomplex *sc, scomplex *scglobal, INT nstar,
       if (scglobal->child0[j] < 0 || scglobal->childn[j] < 0) {
         nzw++;
         if ((ins_node.IA[j + 1] - ins_node.IA[j]) > max_nodes) {
-          if (scglobal->level > 100) {
-            fprintf(stdout, "\ntet=%d; num_nodes=%d;nodes=[", j,ins_node.IA[j + 1] - ins_node.IA[j]);
-            for (i = ins_node.IA[j]; i < ins_node.IA[j + 1]; ++i) {
-              fprintf(stdout, "%d", ins_node.JA[i]);
-            }
-            fprintf(stdout, "];\n");
-          }
+          /* if (scglobal->level > 100) { */
+          /*   fprintf(stdout, "\ntet=%d; num_nodes=%d;nodes=[", j,ins_node.IA[j + 1] - ins_node.IA[j]); */
+          /*   for (i = ins_node.IA[j]; i < ins_node.IA[j + 1]; ++i) { */
+          /*     fprintf(stdout, "%d", ins_node.JA[i]); */
+          /*   } */
+          /*   fprintf(stdout, "];\n"); */
+          /* } */
           p = abs((scglobal->child0[j] + 1));
           //	  fprintf(stdout,"\np=%d",p);fflush(stdout);
           marked.val[p] = TRUE;
@@ -328,9 +328,9 @@ static void data_1d_init(const INT dimbig,const char *idir, const char *odir,dat
   g->fvtu_3d = str_add_dim(g->dimbig,g->odir,"d_grid.vtu");
   g->fvtu_1d = str_add_dim(g->dim,g->odir,"d_grid.vtu");
   ////////////////////////////////////////////////////////////////////
-  fprintf(stdout,"\n%%%%INPUT FILENAMES=\n%s\n%s\n%s\n%s\n%s\n%s\n",\
-	  g->fv_coords,g->fseg,g->fdivisions,g->fvtmp_coords,g->fpt_thickness,g->fseg_radius);
-  fprintf(stdout,"\n%%%%OUTPUT FILENAMES:\n%s\n%s\n",g->fvtu_3d,g->fvtu_1d);
+  /* fprintf(stdout,"\n%%%%INPUT FILENAMES=\n%s\n%s\n%s\n%s\n%s\n%s\n",\ */
+  /* 	  g->fv_coords,g->fseg,g->fdivisions,g->fvtmp_coords,g->fpt_thickness,g->fseg_radius); */
+  /* fprintf(stdout,"\n%%%%OUTPUT FILENAMES:\n%s\n%s\n",g->fvtu_3d,g->fvtu_1d); */
   //
 }
 /************************************************************/
@@ -354,7 +354,7 @@ static void getdata_1d(data_1d *g) {
   g->nv = (INT)nvsize / g->dimbig;
   g->nvadd = (INT)nvaddsize / g->dimbig;
   //
-  fprintf(stdout, "\nnvsize=%lld,nvaddsize=%lld\n", (long long)nvsize,
+  fprintf(stdout, "\n%%%%1d grid: num(vertices)=%lld,num(all_points)=%lld\n", (long long)nvsize,
           (long long)nvaddsize);
   g->xv = realloc(g->xv, (nvsize + nvaddsize) * sizeof(REAL));
   memcpy((g->xv + nvsize), xvtmp, nvaddsize * sizeof(REAL));
@@ -510,10 +510,10 @@ static void read_and_setup(const char *finput_solver,const char *dir_matrices, \
   block_dCSRmat Ablk;
 
   INT i,j;
-  fprintf(stdout,"\n===========================================================================\n");
-  fprintf(stdout,"Reading the matrix, right hand side, and parameters\n");
-  fprintf(stdout,"===========================================================================\n");
-  /* set Parameters from Reading in Input File */
+  /* fprintf(stdout,"\n===========================================================================\n"); */
+  fprintf(stdout,"Reading the matrix, right hand side, and parameters...\n");
+  /* fprintf(stdout,"===========================================================================\n"); */
+  /* set Parameters from an Input File */
   param_input_init(inparam);
   param_input(finput_solver,inparam);
   /* read the matrix and right hand side (2 by 2) */
@@ -532,15 +532,15 @@ static void read_and_setup(const char *finput_solver,const char *dir_matrices, \
   char *fmatc  = fname_set(dir_matrices, fnames_mat[3]);
   char *fb0    = fname_set(dir_matrices, fnames_mat[4]);
   char *fb1    = fname_set(dir_matrices, fnames_mat[5]);
-  char *fidofs = fname_set(dir_matrices, fnames_mat[6]);
-  fprintf(stdout,"\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n",
-	  fmata,				\
-	  fmatb,				\
-	  fmatbt,				\
-	  fmatc,				\
-	  fb0,					\
-	  fb1,					\
-	  fidofs);fflush(stdout);
+  //not used:  char *fidofs = fname_set(dir_matrices, fnames_mat[6]);
+  /* fprintf(stdout,"\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n", */
+  /* 	  fmata,				\ */
+  /* 	  fmatb,				\ */
+  /* 	  fmatbt,				\ */
+  /* 	  fmatc,				\ */
+  /* 	  fb0,					\ */
+  /* 	  fb1,					\ */
+  /* 	  fidofs);fflush(stdout); */
 
 // reading
   Ablk.blocks[0]=dcoo_read_eof_dcsr_p(fmata,NULL,fmt);
@@ -558,8 +558,8 @@ static void read_and_setup(const char *finput_solver,const char *dir_matrices, \
   //  idofs = ivector_read_eof_p(fidofs,fmt);
   //
   // clean filenames
-  free(fmata);  free(fmatb);  free(fmatbt); free(fmatc);  free(fb0);    free(fb1); free(fidofs); 
-  fmata=NULL; fmatb=NULL; fmatbt=NULL; fmatc=NULL; fb0=NULL; fb1=NULL;  fidofs=NULL; 
+  free(fmata);  free(fmatb);  free(fmatbt); free(fmatc);  free(fb0);    free(fb1); //not used:: free(fidofs); 
+  fmata=NULL; fmatb=NULL; fmatbt=NULL; fmatc=NULL; fb0=NULL; fb1=NULL;  //not used: fidofs=NULL; 
   b->row=b_blk[0]->row+b_blk[1]->row;
   b->val=calloc(b->row,sizeof(REAL));
   memcpy(b->val,b_blk[0]->val,b_blk[0]->row*sizeof(REAL));
