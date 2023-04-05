@@ -53,8 +53,9 @@ INT solver_xd_1d(const char *finput_solver,const char *dir_matrices)
   }
   //  fprintf(stdout,"\nIters=%lld;Preconditioner=%lld\n\n",(long long )num_iters,(long long )linear_itparam.linear_precond_type);
   
-  char *fsolution  = fname_set(dir_matrices,"sol.txt");
+  char *fsolution  = fname_set("output/","sol.txt");
   dvec_write(fsolution,&x);
+  free(fsolution);
   dvec_free(&b);
   dvec_free(&x);
   dcsr_free(&A);
