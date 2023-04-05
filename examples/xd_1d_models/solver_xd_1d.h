@@ -52,6 +52,9 @@ INT solver_xd_1d(const char *finput_solver,const char *dir_matrices)
     linear_solver_dcsr_krylov(&A, &b, &x, &linear_itparam);
   }
   //  fprintf(stdout,"\nIters=%lld;Preconditioner=%lld\n\n",(long long )num_iters,(long long )linear_itparam.linear_precond_type);
+  
+  char *fsolution  = fname_set(dir_matrices,"sol.txt");
+  dvec_write(fsolution,&x);
   dvec_free(&b);
   dvec_free(&x);
   dcsr_free(&A);
