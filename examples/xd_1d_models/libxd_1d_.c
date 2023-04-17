@@ -70,7 +70,9 @@ void xd_1d_lib(const INT dimbig,const INT max_nodes_in,const INT ref_levels_in, 
   vdata.dcell[vdata.ndcell] = seg_r.val;
   vdata.names_dcell[vdata.ndcell] = strdup("thickness");
   vdata.ndcell++;                         // increase with one;
-  // write the 1d vtu:  
+  // write the 1d vtu:
+  char* fvtu = strdup(g.fvtu_1d);
+  g.fvtu_1d = str_add_dim(max_nodes_in,fvtu,".vtu"); free(fvtu);
   vtkw(g.fvtu_1d, &vdata);
   //free the vdata with variable names etc
   vtu_data_free(&vdata);
@@ -138,6 +140,10 @@ void xd_1d_lib(const INT dimbig,const INT max_nodes_in,const INT ref_levels_in, 
   clock_t clk_3dmesh_end = clock();
   //
   vtu_data_init(sc_dimbig, &vdata);
+  fvtu = strdup(g.fvtu_3d);
+  g.fvtu_3d = str_add_dim(max_nodes_in,fvtu,".vtu"); free(fvtu);
+  //fvtu = strdup(g.fvtu_1d);
+  //g.fvtu_1d = str_add_dim(max_nodes,fvtu,".vtu"); free(fvtu);
   vtkw(g.fvtu_3d,&vdata);
   vtu_data_free(&vdata);
   /*FREE: the input grid is freed here, because it has the filenames in it*/

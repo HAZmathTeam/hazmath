@@ -325,8 +325,8 @@ static void data_1d_init(const INT dimbig,const char *idir, const char *odir,dat
   g->fpt_thickness = fname_set(g->idir, fnames[4]);
   g->fseg_radius = fname_set(g->idir, fnames[5]);
   //
-  g->fvtu_3d = str_add_dim(g->dimbig,g->odir,"d_grid.vtu");
-  g->fvtu_1d = str_add_dim(g->dim,g->odir,"d_grid.vtu");
+  g->fvtu_3d = str_add_dim(g->dimbig,g->odir,"d_grid");
+  g->fvtu_1d = str_add_dim(g->dim,g->odir,"d_grid");
   ////////////////////////////////////////////////////////////////////
   /* fprintf(stdout,"\n%%%%INPUT FILENAMES=\n%s\n%s\n%s\n%s\n%s\n%s\n",\ */
   /* 	  g->fv_coords,g->fseg,g->fdivisions,g->fvtmp_coords,g->fpt_thickness,g->fseg_radius); */

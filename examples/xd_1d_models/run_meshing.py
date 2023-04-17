@@ -61,11 +61,12 @@ odir=bytes(op.odir,'utf-8')
 #libxd_1d_.xd_1d_lib(const INT dimbig, const INT max_nodes_in, const INT ref_levels_in, const char *idir, const char *odir)
 libxd_1d_.xd_1d_lib(dim,max_nodes,ref_levels,idir,odir)
 
-mesh=meshio.read(op.odir+'1d_grid.vtu')
-mesh.write(op.odir+'1d_grid.xdmf')
+mesh=meshio.read(op.odir+'1d_grid'+str(op.max_nodes)+'.vtu')
+mesh.write(op.odir+'1d_grid'+str(op.max_nodes)+'.xdmf')
+# '+str(op.max_nodes)+'
 
-mesh=meshio.read(op.odir+sdim+'d_grid.vtu')
-mesh.write(op.odir+sdim+'d_grid.xdmf')
+mesh=meshio.read(op.odir+sdim+'d_grid'+str(op.max_nodes)+'.vtu')
+mesh.write(op.odir+sdim+'d_grid'+str(op.max_nodes)+'.xdmf')
 
 
 
