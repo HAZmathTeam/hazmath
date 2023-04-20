@@ -549,8 +549,8 @@ void famli(AMG_data *mgl,
     REAL     *r        = mgl[level].w.val;      // work array for residual
     REAL     *r1       = mgl[level+1].w.val+m1; // work array for residual
 
-    if ( prtlvl >= PRINT_MOST )
-        printf("AMLI level %lld, smoother %lld.\n", (long long )level, (long long )smoother);
+    // if ( prtlvl >= PRINT_MOST )
+    //    printf("AMLI level %lld, smoother %lld.\n", (long long )level, (long long )smoother);
 
     if ( level < mgl[level].num_levels-1 ) {
 

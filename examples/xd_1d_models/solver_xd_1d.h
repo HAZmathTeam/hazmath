@@ -19,8 +19,9 @@ INT solver_xd_1d(const char *finput_solver,const char *dir_matrices)
   input_param inparam;
   dCSRmat A; //
   dvector b,x;
+  ivector idofs;
   //
-  read_and_setup(finput_solver,dir_matrices,&inparam,&A,&b,&x);
+  read_and_setup(finput_solver,dir_matrices,&inparam,&A,&b,&x,&idofs);
   //
   //  INT num_iters=-20;
   /* Set parameters for linear iterative methods */
@@ -39,11 +40,10 @@ INT solver_xd_1d(const char *finput_solver,const char *dir_matrices)
   // Set diagonal blocks for AMG solver.  Coarsening is based on the blocks in AD.
   // They can be diagonal blocks of the block matrix A or approximations to the Schur complements
   // --------------------------------------------------------------------------------------------
-  //  if (linear_itparam.linear_precond_type == PREC_AMG
-  //      || linear_itparam.linear_precond_type == 10 || linear_itparam.linear_precond_type == 11 ){
-  //    linear_solver_bdcsr_krylov_metric_amg_minimal(&A, &b, &x, idofs, &linear_itparam, &amgparam);
-  // else 
-  if (linear_itparam.linear_precond_type == PREC_AMG){
+  if (linear_itparam.linear_precond_type == 16 ){
+    linear_solver_dcsr_krylov_metric_amg(&A, &b, &x, &idofs, &linear_itparam, &amgparam);
+  }
+  else if (linear_itparam.linear_precond_type == PREC_AMG){
     linear_solver_dcsr_krylov_amg(&A, &b, &x, &linear_itparam, &amgparam);
   }
   // No preconditoner

@@ -12,7 +12,7 @@ static char *str_add_dim(const INT dim, const char *prefix, const char *suffix)
 {
   INT k=dim;
   if(k<1) k=1;
-  else if(k>3) k=3;  
+  //else if(k>3) k=3;
   char *dir0=calloc(1023,sizeof(char));
   snprintf(dir0,1023,"%s%d%s",prefix,k,suffix);
   trim_str(&dir0,1);
@@ -504,7 +504,7 @@ static void special_1d(scomplex *sc, data_1d *g, dvector *seg_r) {
 }
 /**************************************************************************************/
 static void read_and_setup(const char *finput_solver,const char *dir_matrices, \
-		    input_param *inparam, dCSRmat *A,   dvector *b, dvector *x)
+		    input_param *inparam, dCSRmat *A, dvector *b, dvector *x, ivector *idofs)
 {
   /* matrix and right hand side: reads block, returns monolitic */
   block_dCSRmat Ablk;
@@ -524,7 +524,9 @@ static void read_and_setup(const char *finput_solver,const char *dir_matrices, \
   unsigned char fmt='B'; // 'b' or 'B' is for binary format
   // Read the 00 block of the stiffness matrix
   /************************************************************/
-  const char *fnames_mat[] = {"A.npy","B.npy","Bt.npy","C.npy","b0.npy","b1.npy","idofs.npy","\0"};
+  const char *fnames_mat[] = {"A.npy","B.npy","Bt.npy","C.npy","b0.npy","b1.npy","idofs3d.npy","\0"}; // this uses 3d nodes
+  // const char *fnames_mat[] = {"A.npy","B.npy","Bt.npy","C.npy","b0.npy","b1.npy","idofs.npy","\0"}; // this uses 1d nodes
+
   //
   char *fmata  = fname_set(dir_matrices, fnames_mat[0]);
   char *fmatb  = fname_set(dir_matrices, fnames_mat[1]);
@@ -532,7 +534,7 @@ static void read_and_setup(const char *finput_solver,const char *dir_matrices, \
   char *fmatc  = fname_set(dir_matrices, fnames_mat[3]);
   char *fb0    = fname_set(dir_matrices, fnames_mat[4]);
   char *fb1    = fname_set(dir_matrices, fnames_mat[5]);
-  //not used:  char *fidofs = fname_set(dir_matrices, fnames_mat[6]);
+  char *fidofs = fname_set(dir_matrices, fnames_mat[6]);
   /* fprintf(stdout,"\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n", */
   /* 	  fmata,				\ */
   /* 	  fmatb,				\ */
@@ -554,12 +556,12 @@ static void read_and_setup(const char *finput_solver,const char *dir_matrices, \
   dvector **b_blk=malloc(bcol*sizeof(dvector));
   b_blk[0]=dvector_read_eof_p(fb0,fmt);
   b_blk[1]=dvector_read_eof_p(fb1,fmt);
-  // ivector *idofs=(ivector*)malloc(sizeof(ivector));
-  //  idofs = ivector_read_eof_p(fidofs,fmt);
+  idofs=(ivector*)malloc(sizeof(ivector));
+  idofs = ivector_read_eof_p(fidofs,fmt);
   //
   // clean filenames
-  free(fmata);  free(fmatb);  free(fmatbt); free(fmatc);  free(fb0);    free(fb1); //not used:: free(fidofs); 
-  fmata=NULL; fmatb=NULL; fmatbt=NULL; fmatc=NULL; fb0=NULL; fb1=NULL;  //not used: fidofs=NULL; 
+  free(fmata);  free(fmatb);  free(fmatbt); free(fmatc);  free(fb0);    free(fb1); free(fidofs);
+  fmata=NULL; fmatb=NULL; fmatbt=NULL; fmatc=NULL; fb0=NULL; fb1=NULL;  fidofs=NULL;
   b->row=b_blk[0]->row+b_blk[1]->row;
   b->val=calloc(b->row,sizeof(REAL));
   memcpy(b->val,b_blk[0]->val,b_blk[0]->row*sizeof(REAL));

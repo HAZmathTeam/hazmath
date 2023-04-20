@@ -61,7 +61,7 @@ nonlinear_itsolver_toltype	= 0 	% type of tolerance for nonlinear solver 1 - ||n
 
 linear_itsolver_type		= 1    	% 0 Direct Solve | 1 CG | 2 MINRES | 3 GMRES
 linear_itsolver_maxit		= 900  	% maximal iterations of linear iterative solver
-linear_itsolver_tol		  = 1e-8  % tolerance for linear iterative solver
+linear_itsolver_tol		  = 1e-6  % tolerance for linear iterative solver
 linear_stop_type		    = 1     % 1 ||r||/||b|| | 2 ||r||_B/||b||_B | % 3 ||r||/||x||
 linear_restart 			    = 100		% restart for GMRes
 linear_precond_type		  = 2		%  0 Null | 1 Diag | 2 AMG
@@ -72,9 +72,9 @@ AMG_levels			= 30	%
 AMG_tol				= 1e-8
 AMG_maxit			= 1
 
-AMG_smoother			= GS	% JACOBI | GS | SGS | SOR | SSOR | L1DIAG |
+AMG_smoother			= SGS	% JACOBI | GS | SGS | SOR | SSOR | L1DIAG |
                                 % Extra smoothers for block_dCSRmat: JACOBI_GS | JACOBI_SGS |
-AMG_relaxation			= 1.0   % Relaxation for SOR
+AMG_relaxation			= 1.2   % Relaxation for SOR
 AMG_presmooth_iter		= 1
 AMG_postsmooth_iter		= 1
 
@@ -86,8 +86,8 @@ AMG_amli_degree          	= 2     % degree of the polynomial used by AMLI cycle
 AMG_nl_amli_krylov_type  	= 5	% Krylov method in nonlinear AMLI cycle: 5 GCG |  6 GCR
 
 % aggregation AMG
-AMG_aggregation_type	= 5    % 1 VMB ; 4 HEC ; 5 HEM
-AMG_strong_coupled		= 0.0  % Strong coupled threshold
+AMG_aggregation_type	= 4    % 1 VMB ; 4 HEC ; 5 HEM
+AMG_strong_coupled		= 0.1  % Strong coupled threshold
 AMG_max_aggregation		= 20	% Max size of aggregations
 
 %----------------------------------------------%
@@ -95,6 +95,6 @@ AMG_max_aggregation		= 20	% Max size of aggregations
 %----------------------------------------------%
 AMG_Schwarz_levels	 = 0 % how many levels will use Schwarz smoother;
 Schwarz_mmsize           = 200    % max block size
-Schwarz_maxlvl           = 0      % level used to form blocks; (like 6 degrees of separation, hey:)
-Schwarz_type             = 0      % 1 forward | 2 backward | 3 symmetric
+Schwarz_maxlvl           = 1      % level used to form blocks; (like 6 degrees of separation, hey:)
+Schwarz_type             = 3      % 1 forward | 2 backward | 3 symmetric
 Schwarz_blksolver        = 32     % sub-block solvers: 0 iterative | 32 UMFPack |

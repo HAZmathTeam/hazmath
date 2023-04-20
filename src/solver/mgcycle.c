@@ -453,8 +453,8 @@ void amli(AMG_data *mgl,
     REAL     *r        = mgl[level].w.val;      // work array for residual
     REAL     *r1       = mgl[level+1].w.val+m1; // work array for residual
 
-    if ( prtlvl >= PRINT_MOST )
-        printf("AMLI level %lld, smoother %lld.\n",   (long long )level,   (long long )smoother);
+    // if ( prtlvl >= PRINT_MOST )
+    //    printf("AMLI level %lld, smoother %lld.\n",   (long long )level,   (long long )smoother);
 
     if ( level < mgl[level].num_levels-1 ) {
 
@@ -584,8 +584,8 @@ void nl_amli (AMG_data *mgl,
     uH.row = m1; uH.val = mgl[level+1].w.val + m1;
     bH.row = m1; bH.val = mgl[level+1].w.val + 2*m1;
 
-    if ( prtlvl >= PRINT_MOST )
-        printf("Nonlinear AMLI level %lld, smoother %lld.\n",   (long long )num_levels,   (long long )smoother);
+    //if ( prtlvl >= PRINT_MOST )
+    //    printf("Nonlinear AMLI level %lld, smoother %lld.\n",   (long long )num_levels,   (long long )smoother);
 
     if ( level < num_levels-1 ) {
 
