@@ -42,4 +42,5 @@ examples/fractures/LS/matrix_structure1.dat
 examples/haznics/*.pvd
 examples/haznics/*.vtu
 examples/haznics/results/
+examples/xd_1d_models/input/solver.input
 

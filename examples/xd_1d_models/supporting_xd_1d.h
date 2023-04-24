@@ -524,8 +524,8 @@ static void read_and_setup(const char *finput_solver,const char *dir_matrices, \
   unsigned char fmt='B'; // 'b' or 'B' is for binary format
   // Read the 00 block of the stiffness matrix
   /************************************************************/
-  const char *fnames_mat[] = {"A.npy","B.npy","Bt.npy","C.npy","b0.npy","b1.npy","idofs3d.npy","\0"}; // this uses 3d nodes
-  // const char *fnames_mat[] = {"A.npy","B.npy","Bt.npy","C.npy","b0.npy","b1.npy","idofs.npy","\0"}; // this uses 1d nodes
+  //const char *fnames_mat[] = {"A.npy","B.npy","Bt.npy","C.npy","b0.npy","b1.npy","idofs3d.npy","\0"}; // this uses 3d nodes
+  const char *fnames_mat[] = {"A.npy","B.npy","Bt.npy","C.npy","b0.npy","b1.npy","idofs.npy","\0"}; // this uses 1d nodes
 
   //
   char *fmata  = fname_set(dir_matrices, fnames_mat[0]);
