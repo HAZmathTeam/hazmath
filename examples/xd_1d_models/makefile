@@ -10,7 +10,7 @@ INCLUDE =
 LIBS =
 
 # Switch between debug or optimized
-CFLAGS = -O -Wall
+CFLAGS = -g -Wall
 
 
 ## If an external libraries support is compiled in the hazmath library,

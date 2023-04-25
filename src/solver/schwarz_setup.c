@@ -340,8 +340,9 @@ INT Schwarz_setup(Schwarz_data *Schwarz,
   }
   if(nblk_new>nblk){
     // additional blocks needed to cover all dofs. 
-    //    fprintf(stdout,"\n\n%d nodes not included in any block\n",nblk_new-nblk);fflush(stdout);
+    fprintf(stdout,"\n\n%d nodes not included in any block\n",nblk_new-nblk);fflush(stdout);
     iblock=(INT *)realloc(iblock,(nblk_new+1)*sizeof(INT));
+    fprintf(stdout, "Local size: %d %d\n", iblock[nblk]+nblk_new, nblk); fflush(stdout);
     jblock=(INT *)realloc(jblock,(iblock[nblk]+nblk_new)*sizeof(INT));
     nsizeall=iblock[nblk];
     for(i=0;i<n;++i){
