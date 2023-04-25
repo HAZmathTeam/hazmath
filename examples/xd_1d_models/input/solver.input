@@ -64,7 +64,7 @@ linear_itsolver_maxit		= 500  	% maximal iterations of linear iterative solver
 linear_itsolver_tol		  = 1e-6  % tolerance for linear iterative solver
 linear_stop_type		    = 1     % 1 ||r||/||b|| | 2 ||r||_B/||b||_B | % 3 ||r||/||x||
 linear_restart 			    = 100		% restart for GMRes
-linear_precond_type		  = 2		%  0 Null | 1 Diag | 2 AMG
+linear_precond_type		  = 16		%  0 Null | 1 Diag | 2 AMG
 
 AMG_type 			= SA	% UA Unsmoothed AMG | SA Smoothed AMG | MUA Metric Unsmoothed AMG | MSA Metric Smoothed AMG
 AMG_cycle_type	    = W    % V V-cycle | W W-cycle | A AMLI-cycle | NA Nonlinear AMLI-cycle | ADD additive cycle

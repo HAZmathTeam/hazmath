@@ -504,7 +504,7 @@ static void special_1d(scomplex *sc, data_1d *g, dvector *seg_r) {
 }
 /**************************************************************************************/
 static void read_and_setup(const char *finput_solver,const char *dir_matrices, \
-		    input_param *inparam, dCSRmat *A, dvector *b, dvector *x, ivector *idofs)
+		    input_param *inparam, dCSRmat *A, dvector *b, dvector *x, ivector **idofs_in)
 {
   /* matrix and right hand side: reads block, returns monolitic */
   //block_dCSRmat Ablk;
@@ -560,8 +560,8 @@ static void read_and_setup(const char *finput_solver,const char *dir_matrices, \
   dvector *b_blk=(dvector*)malloc(sizeof(dvector));
   b_blk=dvector_read_eof_p(fb, fmt);
 
-  idofs=(ivector*)malloc(sizeof(ivector));
-  idofs = ivector_read_eof_p(fidofs,fmt);
+  //  idofs=(ivector*)malloc(sizeof(ivector));
+  idofs_in[0] = ivector_read_eof_p(fidofs,fmt);
   //
   // clean filenames
   free(fmata);  free(fb); free(fidofs); //free(fmatb);  free(fmatbt); free(fmatc);  free(fb0);    free(fb1); free(fidofs);

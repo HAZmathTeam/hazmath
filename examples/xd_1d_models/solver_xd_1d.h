@@ -19,7 +19,9 @@ INT solver_xd_1d(const char *finput_solver,const char *dir_matrices)
   input_param inparam;
   dCSRmat A; //
   dvector b,x;
-  ivector idofs;
+  ivector *idofs=malloc(1*sizeof(ivector));
+  idofs->row=0;
+  idofs->val=NULL;
   //
   read_and_setup(finput_solver,dir_matrices,&inparam,&A,&b,&x,&idofs);
   //
@@ -41,7 +43,7 @@ INT solver_xd_1d(const char *finput_solver,const char *dir_matrices)
   // They can be diagonal blocks of the block matrix A or approximations to the Schur complements
   // --------------------------------------------------------------------------------------------
   if (linear_itparam.linear_precond_type == 16 ){
-    linear_solver_dcsr_krylov_metric_amg(&A, &b, &x, &idofs, &linear_itparam, &amgparam);
+    linear_solver_dcsr_krylov_metric_amg(&A, &b, &x, idofs, &linear_itparam, &amgparam);
   }
   else if (linear_itparam.linear_precond_type == PREC_AMG){
     linear_solver_dcsr_krylov_amg(&A, &b, &x, &linear_itparam, &amgparam);
