@@ -30,7 +30,7 @@ getopt.add_option("-m", "--max_nodes", action="store", type="int",dest="max_node
 getopt.add_option("-r", "--ref_levels", action="store", type="int",dest="ref_levels", help="max refinement levels"+str(default_dim)+")", metavar="REFINEMENT_LEVELS",default=100)
 
 getopt.add_option("-i", "--input_dir", action="store", type="string", dest="idir", \
-                  help="Input directory (see README.md)",metavar="INPUT_DIR",default="./input/1d_nets_"+str(default_dim)+"d/")
+                  help="Input directory (see README.md)",metavar="INPUT_DIR",default='')
 
 getopt.add_option("-o", "--output_dir", action="store", type="string", dest="odir", help="Output directory", metavar="OUTPUT_DIR",default="./output/")
 
@@ -42,6 +42,9 @@ if(op.dim<2):
 elif(op.dim>3):
     op.dim=3    
 
+if(op.idir==''):
+    op.idir="./input/1d_nets_"+str(op.dim)+"d/"
+    
 import ctypes
 import os
 op.idir=os.path.abspath(op.idir)+'/'
@@ -59,6 +62,7 @@ odir=bytes(op.odir,'utf-8')
 
 
 #libxd_1d_.xd_1d_lib(const INT dimbig, const INT max_nodes_in, const INT ref_levels_in, const char *idir, const char *odir)
+
 libxd_1d_.xd_1d_lib(dim,max_nodes,ref_levels,idir,odir)
 
 mesh=meshio.read(op.odir+'1d_grid'+str(op.max_nodes)+'.vtu')
