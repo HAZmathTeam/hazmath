@@ -543,7 +543,7 @@ static void read_and_setup(const char *finput_solver,const char *dir_matrices, \
   /* 	  fb0,					\ */
   /* 	  fb1,					\ */
   /* 	  fidofs);fflush(stdout); */
-
+  fprintf(stdout, "\n%s\n", fidofs); fflush(stdout);
 // reading
   Ablk=dcoo_read_eof_dcsr_p(fmata, NULL, fmt);
   //Ablk.blocks[0]=dcoo_read_eof_dcsr_p(fmata,NULL,fmt);
