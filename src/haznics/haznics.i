@@ -367,6 +367,4 @@ INT wrapper_krylov_amg_schwarz(dCSRmat *mat, dvector *rhs, dvector *sol);
 INT fenics_metric_amg_solver_minimal(block_dCSRmat *A, dvector *b, dvector *x, ivector *interface_dof);
 precond* create_precond_metric_amg_dcsr(dCSRmat *A, ivector *interface_dofs, AMG_param *amgparam);
 INT fenics_metric_amg_solver_dcsr(dCSRmat *A, dvector *b, dvector *x, ivector *interface_dofs);
-static char *fname_set_haznics(const char *dir, const char *fname_in);
-static void read_and_setup_haznics(const char *finput_solver, const char *dir_matrices, input_param *inparam, dCSRmat *A, dvector *b, dvector *x, ivector **idofs_in, const unsigned char fmt);
 INT fenics_metric_solver_xd_1d(const char *finput_solver, const char *dir_matrices, const char *dir_output);
