@@ -2071,3 +2071,62 @@ precond* create_precond_metric_amg_dcsr(dCSRmat *A,
 
     return pc;
 }
+
+
+INT fenics_metric_solver_xd_1d(const char *finput_solver,
+                               const char *dir_matrices,
+                               const char *dir_output)
+{
+    /*************** ACTION *************************************/
+    //  char *dir_matrices=strdup("./input/1d_matrices_2d/");
+    //  char *finput_solver=strdup("./input/solver.input");
+    /* Set Solver Parameters */
+    input_param inparam;
+    dCSRmat A;
+    dvector b, x;
+    ivector *idofs = malloc(1*sizeof(ivector));
+    idofs->row = 0;
+    idofs->val = NULL;
+
+    /* Read matrices and input parameters */ // FIXME: not implemented yet
+    read_and_setup(finput_solver, dir_matrices, &inparam, &A, &b, &x, &idofs);
+
+    /* Set parameters for linear iterative methods */
+    linear_itsolver_param linear_itparam;
+    param_linear_solver_set(&linear_itparam, &inparam);
+
+    /* Set parameters for algebriac multigrid methods */
+    AMG_param amgparam;
+    param_amg_init(&amgparam);
+    param_amg_set(&amgparam, &inparam);
+    param_amg_print(&amgparam);
+
+    fprintf(stdout,"\n===========================================================================\n");
+    fprintf(stdout,"Solving the linear system \n");
+    fprintf(stdout,"===========================================================================\n");
+    // --------------------------------------------------------------------------------------------
+    // Set diagonal blocks for AMG solver.  Coarsening is based on the blocks in AD.
+    // They can be diagonal blocks of the block matrix A or approximations to the Schur complements
+    // --------------------------------------------------------------------------------------------
+    if (linear_itparam.linear_precond_type == 16){
+        linear_solver_dcsr_krylov_metric_amg(&A, &b, &x, idofs, &linear_itparam, &amgparam);
+    }
+    else if (linear_itparam.linear_precond_type == PREC_AMG){
+        linear_solver_dcsr_krylov_amg(&A, &b, &x, &linear_itparam, &amgparam);
+    }
+    // No preconditioner
+    else{
+        linear_itparam.linear_precond_type = 0;
+        linear_solver_dcsr_krylov(&A, &b, &x, &linear_itparam);
+    }
+
+    char *fsolution = fname_set(dir_output, "solution.txt");
+    dvec_write(fsolution, &x);
+
+    free(fsolution);
+    dvec_free(&b);
+    dvec_free(&x);
+    dcsr_free(&A);
+
+    return 0;
+}
