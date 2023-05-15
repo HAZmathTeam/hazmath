@@ -1,7 +1,7 @@
 //#include "math.h"
 #include "hazmath.h"
 
-/// A HACK
+/// A HACK (ltz1)
 
 #ifndef NPY_INTP
 #define NPY_INTP long
@@ -2070,4 +2070,96 @@ precond* create_precond_metric_amg_dcsr(dCSRmat *A,
         print_cputime("dCSR AMG setup", pc->setup_time);
 
     return pc;
+}
+/**************************************************************************************/
+static char *fname_set_haznics(const char *dir, const char *fname_in) {
+  // combine names: fname_in[0]=dir/fname_in[0]
+  size_t ldir0 = strlen(dir) + 1;
+  size_t lfname = strlen(fname_in);
+  char *fname = strndup(dir, ldir0);
+  fname = realloc(fname, (lfname + ldir0 + 1) * sizeof(char));
+  strncat(fname, fname_in, lfname);
+  trim_str(&fname,1);
+  return fname;
+}
+/**************************************************************************************/
+static void read_and_setup_haznics(const char *finput_solver,const char *dir_matrices, \
+				   input_param *inparam,		\
+				   dCSRmat *A, dvector *b, dvector *x,	\
+				   ivector **idofs_in,			\
+				   const unsigned char fmt			\
+				   )
+{
+  dCSRmat *Ablk = (dCSRmat*)malloc(sizeof(dCSRmat));
+  fprintf(stdout,"Reading the matrix, right hand side, and parameters...\n");
+  /* set Parameters from an Input File */
+  param_input_init(inparam);
+  param_input(finput_solver,inparam);
+  // Read the 00 block of the stiffness matrix
+  /************************************************************/
+  const char *fnames_mat[] = {"A.npy","b.npy","idofs.npy","\0"};
+  //
+  char *fmata  = fname_set_haznics(dir_matrices, fnames_mat[0]);
+  char *fb    = fname_set_haznics(dir_matrices, fnames_mat[1]);
+  char *fidofs = fname_set_haznics(dir_matrices, fnames_mat[2]);
+// reading
+  Ablk=dcoo_read_eof_dcsr_p(fmata, NULL, fmt);
+  dvector *b_blk=(dvector*)malloc(sizeof(dvector));
+  b_blk=dvector_read_eof_p(fb, fmt);
+  idofs_in[0] = ivector_read_eof_p(fidofs,fmt);
+  free(fmata);  free(fb); free(fidofs); 
+  fmata=NULL; fb=NULL; fidofs=NULL; 
+  b->row = b_blk->row;
+  b->val=calloc(b->row,sizeof(REAL));
+  memcpy(b->val, b_blk->val,b_blk->row*sizeof(REAL));
+  free(b_blk); b_blk = NULL;
+  /* set initial guess */
+  dvec_alloc(b->row, x);
+  dvec_set(b->row, x, 0e0);
+  /*************** *************************************/
+  //A[0]=bdcsr_2_dcsr(&Ablk);
+  dcsr_alloc(Ablk->row, Ablk->col, Ablk->nnz, A);
+  dcsr_cp(Ablk, A);
+  dcsr_free(Ablk); Ablk = NULL;
+  return;
+}
+/**************************************************************************************/
+INT solver_xd_1d_haznics(const char *finput_solver,const char *dir_matrices)
+{
+  // finput_solver is a usual "input.dat" with solver params. dir_matrices is where the matrices are stored. 
+  /*************** ACTION *************************************/
+  input_param inparam;
+  dCSRmat A; //
+  dvector b,x;
+  ivector *idofs=malloc(1*sizeof(ivector));
+  idofs->row=0;
+  idofs->val=NULL;
+  //
+  read_and_setup_haznics(finput_solver,dir_matrices,&inparam,&A,&b,&x,&idofs,'B');
+  //
+  linear_itsolver_param linear_itparam;
+  param_linear_solver_set(&linear_itparam, &inparam);
+  /* Set parameters for algebriac multigrid methods */
+  AMG_param amgparam;
+  param_amg_init(&amgparam);
+  param_amg_set(&amgparam, &inparam);
+  param_amg_print(&amgparam);
+  fprintf(stdout,"\n===========================================================================\n");
+  fprintf(stdout,"Solving the linear system \n");
+  fprintf(stdout,"===========================================================================\n");
+  if (linear_itparam.linear_precond_type == 16 ){
+    linear_solver_dcsr_krylov_metric_amg(&A, &b, &x, idofs, &linear_itparam, &amgparam);
+  }
+  else if (linear_itparam.linear_precond_type == PREC_AMG){
+    linear_solver_dcsr_krylov_amg(&A, &b, &x, &linear_itparam, &amgparam);
+  }
+  // No preconditoner
+  else{
+    linear_itparam.linear_precond_type=0;
+    linear_solver_dcsr_krylov(&A, &b, &x, &linear_itparam);
+  }
+  dvec_free(&b);
+  dvec_free(&x);
+  dcsr_free(&A);
+  return 0;
 }
