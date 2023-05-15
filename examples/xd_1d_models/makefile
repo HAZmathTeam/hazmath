@@ -2,7 +2,8 @@
 # Last Modified 2019-06-10 --jha
 ####################################################
 
-SRCFILE = libxd_1d_
+#SRCFILE = main_solver_xd_1d
+SRCFILE = main_meshing_xd_1d
 HEADERS = supporting_xd_1d.h solver_xd_1d.h definitions_xd_1d.h
 
 INCLUDE =
@@ -18,5 +19,5 @@ CFLAGS = -g -Wall
 WITH_SUITESPARSE=1
 WITH_LAPACK=1
 
-MAKE_LIB=1
+MAKE_LIB=0
 sinclude ../examples.mk

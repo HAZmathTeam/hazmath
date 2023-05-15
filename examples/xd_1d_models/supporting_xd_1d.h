@@ -502,12 +502,98 @@ static void special_1d(scomplex *sc, data_1d *g, dvector *seg_r) {
   sc->x = g->xv;
   return;
 }
-/**************************************************************************************/
-static void read_and_setup(const char *finput_solver,const char *dir_matrices, \
-		    input_param *inparam, dCSRmat *A, dvector *b, dvector *x, ivector **idofs_in)
+/********************************************************************************************/
+static void read_and_setup_blk(const char *finput_solver,const char *dir_matrices, \
+			       input_param *inparam, dCSRmat *A, dvector *b, dvector *x, \
+			       ivector **idofs_in)
 {
   /* matrix and right hand side: reads block, returns monolitic */
-  //block_dCSRmat Ablk;
+  block_dCSRmat Ablk;
+  fprintf(stdout,"\n===========================================================================\n");
+  fprintf(stdout,"Reading the matrix, right hand side, and parameters...\n");
+   fprintf(stdout,"===========================================================================\n"); 
+  /* set Parameters from an Input File */
+  param_input_init(inparam);
+  param_input(finput_solver,inparam);
+  /* read the matrix and right hand side (2 by 2) */
+  INT brow = 2, bcol = 2,i,j;;
+  bdcsr_alloc_minimal(brow, bcol, &Ablk);
+  bdcsr_alloc(brow, bcol, &Ablk);
+  unsigned char fmt='B'; // 'b' or 'B' is for binary format
+  // Read the 00 block of the stiffness matrix
+  /************************************************************/
+  const char *fnames_mat[] = {"A.npy","B.npy","Bt.npy","C.npy","b0.npy","b1.npy","\0"}; // this uses 3d nodes
+  //  const char *fnames_mat[] = {"A.npy","B.npy","Bt.npy","C.npy","b0.npy","b1.npy","idofs3d.npy","\0"}; // this uses 3d nodes
+  //const char *fnames_mat[] = {"A.npy","B.npy","Bt.npy","C.npy","b0.npy","b1.npy","idofs.npy","\0"}; // this uses 1d nodes
+  //
+  char *fmata  = fname_set(dir_matrices, fnames_mat[0]);
+  char *fmatb  = fname_set(dir_matrices, fnames_mat[1]);
+  char *fmatbt = fname_set(dir_matrices, fnames_mat[2]);
+  char *fmatc  = fname_set(dir_matrices, fnames_mat[3]);
+  char *fb0    = fname_set(dir_matrices, fnames_mat[4]);
+  char *fb1    = fname_set(dir_matrices, fnames_mat[5]);
+  fprintf(stdout,"\n%s\n%s\n%s\n%s\n%s\n%s\n",
+	  fmata,				\
+	  fmatb,				\
+	  fmatbt,				\
+	  fmatc,				\
+	  fb0,					\
+	  fb1);fflush(stdout);
+// reading
+  Ablk.blocks[0]=dcoo_read_eof_dcsr_p(fmata,NULL,fmt);
+  Ablk.blocks[3]=dcoo_read_eof_dcsr_p(fmatc,NULL,fmt);
+  INT size[2]; 
+  size[0]=Ablk.blocks[0]->row;  size[1]=Ablk.blocks[3]->row;
+  Ablk.blocks[1]=dcoo_read_eof_dcsr_p(fmatbt,size,fmt);
+  size[1]=Ablk.blocks[0]->row;  size[0]=Ablk.blocks[3]->row;
+  Ablk.blocks[2]=dcoo_read_eof_dcsr_p(fmatb,size,fmt);
+  //
+  dvector **b_blk=malloc(bcol*sizeof(dvector));
+  b_blk[0]=dvector_read_eof_p(fb0,fmt);
+  b_blk[1]=dvector_read_eof_p(fb1,fmt);
+  idofs_in[0]=(ivector*)malloc(sizeof(ivector));
+  idofs_in[0]->row=0;
+  idofs_in[0]->val=NULL;
+  //  idofs_in[0] = ivector_read_eof_p(fidofs,fmt);
+  //
+  // clean filenames
+  free(fmata);  free(fb0); free(fb1); free(fmatb);  free(fmatbt); free(fmatc);
+  fmata=NULL; fmatb=NULL; fmatbt=NULL; fmatc=NULL; fb0=NULL; fb1=NULL;
+  b->row=b_blk[0]->row+b_blk[1]->row;
+  b->val=calloc(b->row,sizeof(REAL));
+  memcpy(b->val,b_blk[0]->val,b_blk[0]->row*sizeof(REAL));
+  memcpy(&b->val[b_blk[0]->row],b_blk[1]->val,b_blk[1]->row*sizeof(REAL));
+  for(i=0;i<brow;++i)
+    free(b_blk[i]);// not needed any longer
+  free(b_blk); b_blk = NULL;
+  /* set initial guess */
+  dvec_alloc(b->row, x);
+  dvec_set(b->row, x, 0e0);
+  /*************** *************************************/
+  A[0]=bdcsr_2_dcsr(&Ablk);
+  /* Ablk is not needed */
+  for(i=0;i<brow;++i){
+    for(j=0;j<bcol;++j){
+      //
+      dcsr_free(Ablk.blocks[i*bcol+j]);
+    }
+  }
+  bdcsr_free(&Ablk);
+  /* write to check: do not do it for large matrices*/
+  /* dcsr_write_dcoo("Ablk.ztxt",Ablk.blocks[0]); */
+  /* dcsr_write_dcoo("C.ztxt",Ablk.blocks[3]); */
+  /* dcsr_write_dcoo("Bt.ztxt",Ablk.blocks[1]); */
+  /* dcsr_write_dcoo("B.ztxt",Ablk.blocks[2]); */
+  /* dcsr_write_dcoo("A.ztxt",&A); */
+  /* exit(33);   */
+  fprintf(stdout, "\nEnd of setup\n"); fflush(stdout);
+  return;
+}
+/*************************************************************************/
+static void read_and_setup(const char *finput_solver,const char *dir_matrices, \
+			   input_param *inparam, dCSRmat *A, dvector *b, dvector *x, \
+			   ivector **idofs_in)
+{
   dCSRmat *Ablk = (dCSRmat*)malloc(sizeof(dCSRmat));
 
   /* fprintf(stdout,"\n===========================================================================\n"); */
@@ -517,10 +603,6 @@ static void read_and_setup(const char *finput_solver,const char *dir_matrices, \
   param_input_init(inparam);
   param_input(finput_solver,inparam);
   /* read the matrix and right hand side (2 by 2) */
-  //INT brow = 2;
-  //INT bcol = 2;
-  //bdcsr_alloc_minimal(brow, bcol, &Ablk);
-  //bdcsr_alloc(brow, bcol, &Ablk);
   unsigned char fmt='B'; // 'b' or 'B' is for binary format
   // Read the 00 block of the stiffness matrix
   /************************************************************/
@@ -534,7 +616,10 @@ static void read_and_setup(const char *finput_solver,const char *dir_matrices, \
   //char *fmatc  = fname_set(dir_matrices, fnames_mat[3]);
   //char *fb0    = fname_set(dir_matrices, fnames_mat[4]);
   char *fb    = fname_set(dir_matrices, fnames_mat[1]);
-  char *fidofs = fname_set(dir_matrices, fnames_mat[2]);
+  //  char *fidofs = fname_set(dir_matrices, fnames_mat[2]);
+  fprintf(stdout,"\n%s\n%s\n",			\
+	  fmata,				\
+	  fb);fflush(stdout);
   /* fprintf(stdout,"\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n", */
   /* 	  fmata,				\ */
   /* 	  fmatb,				\ */
@@ -543,29 +628,21 @@ static void read_and_setup(const char *finput_solver,const char *dir_matrices, \
   /* 	  fb0,					\ */
   /* 	  fb1,					\ */
   /* 	  fidofs);fflush(stdout); */
-  fprintf(stdout, "\n%s\n", fidofs); fflush(stdout);
+  //  fprintf(stdout, "\n%s\n", fidofs); fflush(stdout);
 // reading
   Ablk=dcoo_read_eof_dcsr_p(fmata, NULL, fmt);
-  //Ablk.blocks[0]=dcoo_read_eof_dcsr_p(fmata,NULL,fmt);
-  //Ablk.blocks[3]=dcoo_read_eof_dcsr_p(fmatc,NULL,fmt);
-  //INT size[2]; size[0] = Ablk->row; size[1] = Ablk->col;
-  //size[0]=Ablk.blocks[0]->row;  size[1]=Ablk.blocks[3]->row;
-  //Ablk.blocks[1]=dcoo_read_eof_dcsr_p(fmatbt,size,fmt);
-  //size[1]=Ablk.blocks[0]->row;  size[0]=Ablk.blocks[3]->row;
-  //Ablk.blocks[2]=dcoo_read_eof_dcsr_p(fmatb,size,fmt);
-  //
-  //dvector **b_blk=malloc(bcol*sizeof(dvector));
-  //b_blk[0]=dvector_read_eof_p(fb0,fmt);
-  //b_blk[1]=dvector_read_eof_p(fb1,fmt);
   dvector *b_blk=(dvector*)malloc(sizeof(dvector));
+  fprintf(stdout,"\nFILE=%s\n",fb);fflush(stdout);
   b_blk=dvector_read_eof_p(fb, fmt);
 
-  //  idofs=(ivector*)malloc(sizeof(ivector));
-  idofs_in[0] = ivector_read_eof_p(fidofs,fmt);
+  idofs_in[0]=(ivector*)malloc(sizeof(ivector));
+  idofs_in[0]->row=0;
+  idofs_in[0]->val=NULL;
+  //  idofs_in[0] = ivector_read_eof_p(fidofs,fmt);
   //
   // clean filenames
-  free(fmata);  free(fb); free(fidofs); //free(fmatb);  free(fmatbt); free(fmatc);  free(fb0);    free(fb1); free(fidofs);
-  fmata=NULL; fb=NULL; fidofs=NULL; //fmatb=NULL; fmatbt=NULL; fmatc=NULL; fb0=NULL; fb1=NULL;  fidofs=NULL;
+  free(fmata);  free(fb); //free(fidofs); //free(fmatb);  free(fmatbt); free(fmatc);  free(fb0);    free(fb1); free(fidofs);
+  fmata=NULL; fb=NULL; //fidofs=NULL; //fmatb=NULL; fmatbt=NULL; fmatc=NULL; fb0=NULL; fb1=NULL;  fidofs=NULL;
   //b->row=b_blk[0]->row+b_blk[1]->row;
   //b->val=calloc(b->row,sizeof(REAL));
   //memcpy(b->val,b_blk[0]->val,b_blk[0]->row*sizeof(REAL));

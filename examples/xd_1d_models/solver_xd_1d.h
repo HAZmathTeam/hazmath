@@ -23,7 +23,7 @@ INT solver_xd_1d(const char *finput_solver,const char *dir_matrices)
   idofs->row=0;
   idofs->val=NULL;
   //
-  read_and_setup(finput_solver,dir_matrices,&inparam,&A,&b,&x,&idofs);
+  read_and_setup_blk(finput_solver,dir_matrices,&inparam,&A,&b,&x,&idofs);
   //
   //  INT num_iters=-20;
   /* Set parameters for linear iterative methods */
@@ -52,12 +52,7 @@ INT solver_xd_1d(const char *finput_solver,const char *dir_matrices)
   else{
     linear_itparam.linear_precond_type=0;
     linear_solver_dcsr_krylov(&A, &b, &x, &linear_itparam);
-  }
-  //  fprintf(stdout,"\nIters=%lld;Preconditioner=%lld\n\n",(long long )num_iters,(long long )linear_itparam.linear_precond_type);
-  
-  char *fsolution  = fname_set("output/","solution.txt");
-  dvec_write(fsolution,&x);
-  free(fsolution);
+  }  
   dvec_free(&b);
   dvec_free(&x);
   dcsr_free(&A);

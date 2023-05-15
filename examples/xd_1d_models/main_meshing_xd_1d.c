@@ -1,36 +1,23 @@
-/*! \file examples/amr_grids/xd_1d.c
- *
- *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov 2019/01/09.
- *  Copyright 2015_HAZMATH__. All rights reserved.
- *
- * \brief This program generates simplicial grids in 2,3,4... dimension.
- *
- * \note This example highlights some of the features of the simple
- * mesh generator included with HAZmath. It is only to illustrate how
- * to use the mesh refinement.
- */
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************/
 #include "hazmath.h"
-/* This macro definition below is amr_marking_type=44; and SHOULD BE
-   MOVED TO MACROS or elseware later (ltz)*/
-/*
-  If set to something less than 2 it will refine non-stop until ref_levels is
-  reached if there is at least one simplex containing at least one point. It is
-  the maximum allowed number of features (nodes) per element. Any element
-  containing more than this number of features is refined.
-
-*/
-/* 
- * refinement type: .gt. 10 is uniform refinement and .le. 10
- *                  (typically 0) is the newest vertex bisection
-*/
 #include "definitions_xd_1d.h"
 #include "supporting_xd_1d.h"
-#include "solver_xd_1d.h"
+/******************************************************/
+#ifndef SPATIAL_DIMENSION
+#define SPATIAL_DIMENSION 2
+#endif
+#ifndef MAX_NODES_PER_SIMPLEX
+#define MAX_NODES_PER_SIMPLEX 1
+#endif
+#ifndef REF_LEVELS
+#define REF_LEVELS 100
+#endif
 ///////////////////////////////////////////////////////////////////////////////
-void xd_1d_lib(const INT dimbig,const INT max_nodes_in,const INT ref_levels_in, \
-	       const char *idir,const char *odir)
+INT main(int argc, char* argv[])
 {
+  INT dimbig=SPATIAL_DIMENSION,max_nodes_in=MAX_NODES_PER_SIMPLEX,ref_levels_in=REF_LEVELS;
+  char *idir=strdup("./input/1d_nets_2d/");
+  char *odir=strdup("./output/");
   INT j, k;
   data_1d g;
   //init 1d struct
@@ -156,5 +143,6 @@ void xd_1d_lib(const INT dimbig,const INT max_nodes_in,const INT ref_levels_in, 
   data_1d_free(&g);
   haz_scomplex_free(sc_dimbig);
   free(sc_all);
-  return;
-}
+  return 0;
+ }
+ 
