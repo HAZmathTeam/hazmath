@@ -2174,7 +2174,7 @@ INT fenics_metric_solver_xd_1d(const char *finput_solver,
         linear_solver_dcsr_krylov(&A, &b, &x, &linear_itparam);
     }
 
-    char *fsolution = fname_set(dir_output, "solution.txt");
+    char *fsolution = fname_set_haznics(dir_output, "solution.txt");
     dvec_write(fsolution, &x);
 
     free(fsolution);
