@@ -4555,13 +4555,16 @@ INT linear_solver_bdcsr_krylov_metric_amg(block_dCSRmat    *A,
 	//        error_extlib(257, __FUNCTION__, "SuiteSparse");
 	//#endif
     }
-    else{
+    else if (precond_type == 12 || precond_type == 13 || precond_type == 14){
         ivector seeds = ivec_create(M->blocks[3]->row);
         for (i=0; i<seeds.row; i++) seeds.val[i] = (A_new.blocks[3]->row-M->blocks[3]->row)+i;
         Schwarz_setup(&schwarz_data, &schwarz_param, &seeds);
         //ySchwarz_setup_with_seeds(&schwarz_data, &schwarz_param, &seeds);
         ivec_free(&seeds);
         //Schwarz_setup(&schwarz_data, &schwarz_param);
+    }
+    else {
+        schwarz_data_init(&schwarz_data);
     }
 
 

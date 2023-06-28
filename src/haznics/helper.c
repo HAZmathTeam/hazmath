@@ -1482,7 +1482,7 @@ INT fenics_metric_amg_solver(block_dCSRmat *A,
     printf("===========================================================================\n");
 
     // Use Krylov Iterative Solver
-    if ( (linear_itparam.linear_precond_type >= 10) && (linear_itparam.linear_precond_type < 15) ){
+    if ( (linear_itparam.linear_precond_type >= 2) && (linear_itparam.linear_precond_type < 15) ){
         solver_flag = linear_solver_bdcsr_krylov_metric_amg(A, b, x, &linear_itparam, &amgparam, AD, M, interface_dof);
     }
     // No preconditioner
