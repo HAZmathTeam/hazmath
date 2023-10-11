@@ -59,7 +59,7 @@ INT aresame(INT *a, INT *b, INT n)
  *                    so that a[i]=b[p[i]]. If there is no permutation,
  *                    i.e. p[i]=i, then returns 1.
  *
- * \author ludmil (20151010) 
+ * \author ludmil (20151010)
  *
  */
 INT aresamep(INT *a, INT *b, INT n, INT *p)
@@ -244,7 +244,7 @@ void marks(scomplex *sc,dvector *errors)
  * \return             returns 0 if is and it are reflected neighbors
  *
  * \note
- * \author ludmil (20151010) 
+ * \author ludmil (20151010)
  *
  */
 unsigned INT reflect2(INT n, INT is, INT it,				\
@@ -348,7 +348,7 @@ unsigned INT reflect2(INT n, INT is, INT it,				\
  * \return
  *
  * \note
- * \author ludmil (20151010) 
+ * \author ludmil (20151010)
  *
  */
 /*using bfs to get the reflected mesh  if possible*/
@@ -468,7 +468,7 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
  * \return the simplicial complex corresponding to all simplices which
  *         were not refined.
  *
- * \author ludmil (20151010) 
+ * \author ludmil (20151010)
  *
  */
 scomplex *scfinest(scomplex *sc)
@@ -539,7 +539,7 @@ scomplex *scfinest(scomplex *sc)
  *
  * \note
  *
- * \author ludmil (20151010) 
+ * \author ludmil (20151010)
  * \modified ludmil (20210831)
  * \modified ludmil (20211121)
  *
@@ -689,7 +689,7 @@ static unsigned INT bitdiff(const INT dim, unsigned INT *bits1,unsigned INT *bit
   INT j;
   unsigned INT numbits=0;
   for(j=0;j<dim;j++){
-    numbits+=abs(bits1[j]-bits2[j]);
+    numbits+=ABS(bits1[j]-bits2[j]);
   }
   return numbits;
 }
@@ -911,7 +911,7 @@ INT dvec_set_amr(const REAL value, scomplex *sc, INT npts, REAL *pts, REAL *tose
  *                        128 plus the connected component number. If
  *                        true, then create the sparse matrix with
  *                        codes for all vertices;
- *                          
+ *
  *
  *
  * \note
@@ -1000,18 +1000,18 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
   iCSRmat v2f,f2f;
   INT j0,j1,ke,je,found;
   icsr_trans(&f2v,&v2f);
-  /*******************************************************************/    
+  /*******************************************************************/
   icsr_mxm(&f2v,&v2f,&f2f);
-  /*******************************************************************/    
+  /*******************************************************************/
   icsr_free(&v2f);// we do not need v2f now
-  /*******************************************************************/    
-  /* 
+  /*******************************************************************/
+  /*
      now remove all rows in f2f that correspond to interior faces and
      all entries that are not dim, i.e. the number of vertices in
      a (n-2)-simplex;
   */
   f2f.nnz=f2f.IA[0];
-  for(i=0;i<f2f.row;i++){    
+  for(i=0;i<f2f.row;i++){
     j0=f2f.IA[i];
     j1=f2f.IA[i+1];
     f2f.IA[i]=f2f.nnz;
@@ -1034,7 +1034,7 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
   f2f.IA[f2f.row]=f2f.nnz;
   f2f.JA=realloc(f2f.JA,f2f.nnz*sizeof(INT));
   f2f.val=realloc(f2f.val,f2f.nnz*sizeof(INT));
-  /*******************************************************************/    
+  /*******************************************************************/
   icsr_free(blk_dfs);free(blk_dfs);
   blk_dfs=run_dfs(f2f.row,f2f.IA, f2f.JA);
   sc->bndry_cc=0;
@@ -1043,7 +1043,7 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
     if(found>1) sc->bndry_cc++;
   }
   icsr_free(&f2f);
-  /*******************************************************************/    
+  /*******************************************************************/
   //fprintf(stdout,"%%%%--> number of connected components in the bulk=%d\n",sc->cc);
   //fprintf(stdout,"%%%%--> number of connected components on the boundary=%d\n",sc->bndry_cc);
   /* make boundary codes from parent_v */
@@ -1053,8 +1053,8 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
     j=sc->bndry_v->IA[k+1]-sc->bndry_v->IA[k];
     if(i<j) i=j;
   }
-  INT *wrk=calloc(2*i,sizeof(INT));  
-  INT *acap=calloc(i,sizeof(INT));  
+  INT *wrk=calloc(2*i,sizeof(INT));
+  INT *acap=calloc(i,sizeof(INT));
   //  fprintf(stdout,"%%%% max_nnz_row_bndry_v=%d\n",i);fflush(stdout);
   if(1){//ALWAYS set_bndry_codes) {
     icsr_free(blk_dfs);free(blk_dfs);
@@ -1068,7 +1068,7 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
       nnz_bv+=i;
     }
     nnzold=nnz_bv;
-    sc->bndry_v->val=realloc(sc->bndry_v->val,2*nnz_bv*sizeof(INT));    
+    sc->bndry_v->val=realloc(sc->bndry_v->val,2*nnz_bv*sizeof(INT));
     for(k=0;k<sc->bndry_v->nnz;++k){
       sc->bndry_v->val[nnz_bv+k]=sc->bndry_v->val[sc->bndry_v->nnz+k];
       //      sc->bndry_v->val[sc->bndry_v->nnz+k]=0;
@@ -1084,7 +1084,7 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
       j=sc->parent_v->IA[k];
       if((sc->parent_v->IA[k+1]-j)==2){
 	//	fprintf(stdout,"\nnnz_bv=%d (IA=%d),k=%d,diff0=%d",nnz_bv,sc->bndry_v->IA[k],k,(sc->parent_v->IA[k+1]-j));
-	v1=sc->parent_v->JA[j];    
+	v1=sc->parent_v->JA[j];
 	n1=sc->bndry_v->IA[v1+1]-sc->bndry_v->IA[v1];
 	a1=sc->bndry_v->JA+sc->bndry_v->IA[v1];
 	//
@@ -1107,7 +1107,7 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
 	}
 	sc->bndry_v->IA[k+1]=nnz_bv;
       }
-    }    
+    }
     sc->bndry_v->row=sc->parent_v->row;
     // in case the mesh was not refined at all, i.e. no added vertices
     if(sc->bndry_v->IA[sc->bndry_v->row]>nnz_bv)
@@ -1159,7 +1159,7 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
     } else {
       sc->bndry[i]=cmax;
       for(k=iaa;k<iab;++k){
-	code=sc->bndry_v->val[k];	
+	code=sc->bndry_v->val[k];
 	if(!code) continue;
 	if(sc->bndry[i]>code) sc->bndry[i]=code;
       }
@@ -1250,10 +1250,10 @@ void vtu_data_init(scomplex *sc, vtu_data *vdata)
   vdata->sc=sc; /* the simplicial complex which we want to export as VTU*/
   vdata->print_level=0;
   vdata->shift=0;
-  vdata->zscale=-1e20;  
+  vdata->zscale=-1e20;
   // integer
-  vdata->nipt=1; // number of integer point-data arrays 
-  vdata->nicell=1; // number of integer cell-data arrays 
+  vdata->nipt=1; // number of integer point-data arrays
+  vdata->nicell=1; // number of integer cell-data arrays
   vdata->ipt=malloc(vdata->nipt*sizeof(INT *));
   vdata->icell=malloc(vdata->nicell*sizeof(INT *));
   vdata->names_ipt=malloc(vdata->nipt*sizeof(char *));
@@ -1269,14 +1269,14 @@ void vtu_data_init(scomplex *sc, vtu_data *vdata)
   /* for(k=0;k<sc->ns;++k){ */
   /*   fprintf(stdout,"\nel_code[%d]=%d",k,vdata->icell[0][k]); */
   /* } */
-  vdata->names_ipt[0]=strdup("bndry_codes");  
+  vdata->names_ipt[0]=strdup("bndry_codes");
   vdata->names_icell[0]=strdup("el_codes");
   // double
-  vdata->ndpt=0; // number of double point-data arrays 
-  vdata->ndcell=0; // number of double cell-data arrays 
+  vdata->ndpt=0; // number of double point-data arrays
+  vdata->ndcell=0; // number of double cell-data arrays
   vdata->dpt=NULL;// collection of double point-data arrays
   vdata->dcell=NULL;// collection double cell-data arrays
-  vdata->names_dpt=NULL;  
+  vdata->names_dpt=NULL;
   vdata->names_dcell=NULL;
 }
 /********************************************************************************/
@@ -1293,7 +1293,7 @@ void vtu_data_free(vtu_data *vdata)
   /* does not free any of the vdata lower level arrays as they may be
      associated with other structures (such as simplicial complex,
      etc). but it frees the top level data. */
-  INT arrays=0;  
+  INT arrays=0;
   if(vdata->ipt) free(vdata->ipt);
   if(vdata->icell) free(vdata->icell);
   /*double*/
@@ -1331,9 +1331,9 @@ void vtu_data_free(vtu_data *vdata)
  *        manual found at:
  *        https://vtk.org/wp-content/uploads/2021/08/VTKUsersGuide.pdf
  *
- * \param namevtk   File name 
+ * \param namevtk   File name
  * \param sc        Pointer to a simplicial complex
- * \param shift    integer added to the elements of arrays (here always=1).  
+ * \param shift    integer added to the elements of arrays (here always=1).
  *
  */
 /**********************************************************************************/
@@ -1443,7 +1443,7 @@ void vtkw(const char *namevtk, vtu_data *vdata)
   /*   } */
   /*   fprintf(fvtk,"</DataArray>\n"); */
   /* } */
-  /* fprintf(fvtk,"</PointData>\n"); */  
+  /* fprintf(fvtk,"</PointData>\n"); */
   fprintf(fvtk,"<Cells>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"offsets\" Format=\"ascii\">",tinto);
   for(k=1;k<=ns;k++) fprintf(fvtk," %lld ",(long long )(k*n1));

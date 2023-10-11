@@ -15,7 +15,7 @@
 *       N00014-67-A-0181-0023 issued jointly with Stanford techreport
 *       STAN-CS-232-71
 *
-* \note ALL is in long double. 
+* \note ALL is in long double.
 *
 * \note Ludmil 20210426
 */
@@ -955,7 +955,7 @@ void qzvec(INT nd, INT n,					\
   betam = beta[m];
   if (fabs(alpham)<epsa)
     alpham = 0e0;
-  if (abs(betam)<epsb)
+  if (ABS(betam)<epsb)
     betam =0e0;
   b[m*np1+m]=1e0;
   l=m-1;
