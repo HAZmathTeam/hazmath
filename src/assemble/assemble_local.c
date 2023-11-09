@@ -123,9 +123,7 @@ void assemble_DuDv_local(REAL* ALoc,fespace *FE,mesh_struct *mesh,qcoordinates *
 
   return;
 }
-/******************************************************************************************************/
 
-/******************************************************************************************************/
 /*!
  * \fn void assemble_mass_local(REAL* MLoc,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
  *
@@ -234,9 +232,109 @@ void assemble_mass_local(REAL* MLoc,fespace *FE,mesh_struct *mesh,qcoordinates *
 
   return;
 }
-/******************************************************************************************************/
 
-/******************************************************************************************************/
+/*!
+ * \fn void assemble_P1masslump_local(REAL* MLoc,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
+ *
+ * \brief Computes the local mass-lumped matrix for coeff*<u,v> bilinear form using various element types
+ *
+ * \note Only works for P1 at the moment
+ *        For this problem we compute:
+ *         temp_ij = coeff*<phi_j,phi_i>
+ *         -> M_ii = sum_j temp_ij
+ *
+ * \param FE            FE Space
+ * \param mesh          Mesh Data
+ * \param cq            Quadrature Nodes
+ * \param dof_on_elm    Specific DOF on element
+ * \param elm           Current element
+ * \param coeff         Function that gives coefficient (for now assume constant)
+ * \param time          Physical Time if time dependent
+ *
+ * \return MLoc         Local Mass Matrix (Full Matrix)
+ *
+ */
+void assemble_P1masslump_local(REAL* MLoc,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
+{
+  INT dim = mesh->dim;
+
+  // Loop Indices
+  INT quad,test,trial,idim;
+
+  // Quadrature Weights and Nodes
+  REAL w;
+  INT maxdim=4;
+  REAL qx[maxdim];
+
+  // Stiffness Matrix Entry
+  REAL kij;
+  // Coefficient Value at Quadrature Nodes
+  REAL coeff_val=0.0;
+
+  // Vector Functions
+  if(FE->scal_or_vec) {
+
+    //  Sum over quadrature points
+    for (quad=0;quad<cq->nq_per_elm;quad++) {
+      qx[0] = cq->x[elm*cq->nq_per_elm+quad];
+      if(dim==2 || dim==3)
+        qx[1] = cq->y[elm*cq->nq_per_elm+quad];
+      if(dim==3)
+        qx[2] = cq->z[elm*cq->nq_per_elm+quad];
+      w = cq->w[elm*cq->nq_per_elm+quad];
+      if(coeff!=NULL) {
+        (*coeff)(&coeff_val,qx,time,&(mesh->el_flag[elm]));
+      } else {
+        coeff_val = 1.0;
+      }
+
+      // Basis Functions and its derivatives if necessary
+      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
+
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->dof_per_elm;test++) {
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->dof_per_elm; trial++) {
+          kij=0.0;
+          for(idim=0;idim<dim;idim++)
+            kij += coeff_val*(FE->phi[test*dim+idim]*FE->phi[trial*dim+idim]);
+          MLoc[test*FE->dof_per_elm+test] += w*kij;
+        }
+      }
+    }
+  } else { // Scalar Functions
+
+    //  Sum over quadrature points
+    for (quad=0;quad<cq->nq_per_elm;quad++) {
+      qx[0] = cq->x[elm*cq->nq_per_elm+quad];
+      if(dim==2 || dim==3)
+        qx[1] = cq->y[elm*cq->nq_per_elm+quad];
+      if(dim==3)
+        qx[2] = cq->z[elm*cq->nq_per_elm+quad];
+      w = cq->w[elm*cq->nq_per_elm+quad];
+      if(coeff!=NULL) {
+        (*coeff)(&coeff_val,qx,time,&(mesh->el_flag[elm]));
+      } else {
+        coeff_val = 1.0;
+      }
+
+      // Basis Functions and its derivatives if necessary
+      get_FEM_basis(FE->phi,FE->dphi,qx,v_on_elm,dof_on_elm,mesh,FE);
+
+      // Loop over Test Functions (Rows)
+      for (test=0; test<FE->dof_per_elm;test++) {
+        // Loop over Trial Functions (Columns)
+        for (trial=0; trial<FE->dof_per_elm; trial++) {
+          kij = coeff_val*(FE->phi[test]*FE->phi[trial]);
+          MLoc[test*FE->dof_per_elm+trial] += w*kij;
+        }
+      }
+    }
+  }
+
+  return;
+}
+
 /*!
  * \fn void assemble_DuDvplusmass_local(REAL* ALoc,fespace *FE,mesh_struct *mesh,qcoordinates *cq,INT *dof_on_elm,INT *v_on_elm,INT elm,void (*coeff)(REAL *,REAL *,REAL,void *),REAL time)
  *
@@ -474,7 +572,7 @@ void assemble_symmetricDuDv_local(REAL* ALoc, block_fespace *FE, mesh_struct *me
     //  Get the Basis Functions at each quadrature node
     local_dof_on_elm = dof_on_elm;
     for(i=0;i<dim;i++){
-      get_FEM_basis(FE->var_spaces[i]->phi,FE->var_spaces[i]->dphi,qx,v_on_elm,dof_on_elm,mesh,FE->var_spaces[i]);
+      get_FEM_basis(FE->var_spaces[i]->phi,FE->var_spaces[i]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[i]);
       // Shift local dof to next finite element space
       local_dof_on_elm += FE->var_spaces[i]->dof_per_elm;
     }
@@ -930,11 +1028,9 @@ void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,mesh_struct *mesh,qcoordin
 
   // Mesh and FE data
   INT dim = mesh->dim;
-  INT dof_per_elm = 0;
   INT nun=0;
 
   for(i=0;i<FE->nspaces;i++) {
-    dof_per_elm += FE->var_spaces[i]->dof_per_elm;
     if(FE->var_spaces[i]->FEtype<20) /* Scalar Element */
       nun++;
     else /* Vector Element */

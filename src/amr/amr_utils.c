@@ -180,7 +180,7 @@ void marks(scomplex *sc,dvector *errors)
   INT ne=(INT )((n*n1)/2);
   REAL slmin,slmax,asp,aspmax=-10.;;
   REAL *sl=(REAL *)calloc(ne,sizeof(REAL));
-  INT kbad=0;
+  //INT kbad=0;
   for(i = 0;i<ns;i++){
     if(sc->gen[i] < level) continue;
     ni=n1*i;
@@ -207,7 +207,7 @@ void marks(scomplex *sc,dvector *errors)
     asp=slmax/slmin;
     if(asp>1e1){
       sc->marked[i]=1;
-      kbad++;
+      //kbad++;
       if(asp>aspmax){
         //kbadel=i;
         aspmax=asp;
@@ -921,10 +921,10 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
 {
   //
   INT ns = sc->ns, dim=sc->n;
-  INT dim1=dim+1,iii,i,j,k,m,isn1,is,nbf,nnzbf;
+  INT dim1=dim+1,iii,i,j,k,m,isn1,is,nbf;//,nnzbf;
   iCSRmat s2s=icsr_create(ns,ns,dim1*ns+ns);
   nbf=0;
-  nnzbf=0;
+  //nnzbf=0;
   iii=0;
   s2s.IA[0]=iii;
   for(i=0;i<ns;i++){
@@ -937,7 +937,7 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
 	iii++;
       } else {
 	nbf++;
-	nnzbf+=dim;
+	//nnzbf+=dim;
       }
     }
     s2s.IA[i+1]=iii;

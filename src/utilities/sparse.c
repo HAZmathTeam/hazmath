@@ -2053,7 +2053,7 @@ void icsr_mxm_symb_max(iCSRmat *A,iCSRmat *B,iCSRmat *C,	\
   C->nnz=nnz;
   return;
 }
-/***********************************************************************************************/
+
 /*!
    * \fn dCSRmat dcsr_create_diagonal_matrix(dvector *diag)
    *
@@ -2077,6 +2077,42 @@ dCSRmat dcsr_create_diagonal_matrix(dvector *diag)
     D.IA[i] = i;
     D.JA[i] = i;
     D.val[i]   = diag->val[i];
+  }
+  D.IA[n] = n;
+
+  // return
+  return D;
+}
+
+/*!
+ * \fn dCSRmat dcsr_diag_lump(dCSRmat *A)
+ *
+   * \brief create diagonal matrix by "lumping" entries of A onto diagonal
+   *        D_ii = sum_j A_ij
+   *
+   * \param A  Pointer to the original CSR matrix
+   *
+   * \return D     Pointer to dCSRmat diagonal matrix
+   *
+   * \note Assume A is square matrix
+   */
+dCSRmat dcsr_diag_lump(dCSRmat *A)
+{
+  // local variable
+  INT n = A->row;
+  INT i,j,acol,bcol;
+
+  // form the diaongal matrix
+  dCSRmat D = dcsr_create(n,n,n);
+  for (i=0;i<n;i++) {
+    D.IA[i] = i;
+    D.JA[i] = i;
+    D.val[i] = 0.0;
+    acol = A->IA[i];
+    bcol = A->IA[i+1];
+    for(j=acol;j<bcol;j++) {
+      D.val[i] += A->val[j];
+    }
   }
   D.IA[n] = n;
 
@@ -3382,6 +3418,48 @@ INT bdcsr_add(block_dCSRmat *A,
 
 FINISHED:
   return status;
+}
+
+/***********************************************************************************************/
+/*!
+   * \fn void bdcsr_add_overwrite (block_dCSRmat *A, const REAL alpha, block_dCSRmat *B,
+   *                              const REAL beta)
+   *
+   * \brief compute A = alpha*A + beta*B in block_dCSRmat format
+   *
+   * \param A      Pointer to block dCSRmat matrix
+   * \param alpha  REAL factor alpha
+   * \param B      Pointer to block_dCSRmat matrix
+   * \param beta   REAL factor beta
+   *
+   * \return A overwritten as addition
+   *
+   */
+void bdcsr_add_overwrite(block_dCSRmat *A,
+              const REAL alpha,
+              block_dCSRmat *B,
+              const REAL beta)
+{
+  // local variable
+  block_dCSRmat temp_bdcsr;
+
+  // copy
+  bdcsr_alloc(A->brow, A->bcol, &temp_bdcsr);
+  bdcsr_cp(A, &temp_bdcsr);
+
+  // free A matrix
+  bdcsr_free(A);
+
+  // allocate A matrix again
+  bdcsr_alloc(temp_bdcsr.brow, temp_bdcsr.bcol, A);
+
+  //actually add
+  bdcsr_add(&temp_bdcsr, alpha, B, beta, A);
+
+  // clean
+  bdcsr_free(&temp_bdcsr);
+
+  return;
 }
 
 /***********************************************************************************************/

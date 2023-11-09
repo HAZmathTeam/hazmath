@@ -856,7 +856,7 @@ void get_FEM_basis_at_x(simplex_local_data *simplex_data,fe_local_data *fe_data,
 
   if(lam) free(lam);
   if(dlam) free(dlam);
-  
+
   return;
 }
 /******************************************************************************/
@@ -957,9 +957,9 @@ void get_FEM_basis_at_x(simplex_local_data *simplex_data,fe_local_data *fe_data,
 */
 void PX_H1_basis(REAL *p,REAL *dp,REAL *x,INT *dof,INT porder,mesh_struct *mesh)
 {
-  REAL dp0r,dp1r,dp2r,dp3r,dp4r,dp5r,dp6r,dp7r,dp8r,dp9r;
-  REAL dp0s,dp1s,dp2s,dp3s,dp4s,dp5s,dp6s,dp7s,dp8s,dp9s;
-  REAL dp0t,dp1t,dp2t,dp3t,dp4t,dp5t,dp6t,dp7t,dp8t,dp9t;
+  REAL dp0r=0.0,dp1r=0.0,dp2r=0.0,dp3r=0.0,dp4r=0.0,dp5r=0.0,dp6r=0.0,dp7r=0.0,dp8r=0.0,dp9r=0.0;
+  REAL dp0s=0.0,dp1s=0.0,dp2s=0.0,dp3s=0.0,dp4s=0.0,dp5s=0.0,dp6s=0.0,dp7s=0.0,dp8s=0.0,dp9s=0.0;
+  REAL dp0t=0.0,dp1t=0.0,dp2t=0.0,dp3t=0.0,dp4t=0.0,dp5t=0.0,dp6t=0.0,dp7t=0.0,dp8t=0.0,dp9t=0.0;
   REAL onemrst;
 
   // Flag for errors
@@ -1378,6 +1378,470 @@ void quad_tri_2D_2der(REAL *p,REAL *dpx,REAL *dpy,REAL *dpxx,REAL *dpyy,REAL *dp
   dpxy[3] = dp3rr*drdy*drdx + dp3rs*drdy*dsdx + dp3rs*drdx*dsdy + dp3ss*dsdx*dsdy;
   dpxy[4] = dp4rr*drdy*drdx + dp4rs*drdy*dsdx + dp4rs*drdx*dsdy + dp4ss*dsdx*dsdy;
   dpxy[5] = dp5rr*drdy*drdx + dp5rs*drdy*dsdx + dp5rs*drdx*dsdy + dp5ss*dsdx*dsdy;
+
+  return;
+}
+/*******************************************************************************************************/
+
+/*******************************************************************************************************/
+/*!
+* \fn void P2_basis_2der(REAL *p,REAL *dp,REAL *ddp,REAL* x,INT *dof,mesh_struct *mesh)
+*
+* \brief Compute Standard Quadratic Finite Element Basis Functions (P2) at a particular point
+*        Also compute the 2nd derivatives.  Uses old "global" version of basis assembly,
+*        but can be used for error estimator calculations.
+*
+* \param x               Coordinate on where to compute basis function
+* \param dof             DOF for the given element
+* \param mesh            Mesh struct
+*
+* \return p              Basis functions (1 for each DOF on element)
+* \return dp             Derivatives of basis functions (i.e., gradient)
+* \return ddp            2nd Derivatives of basis functions (Order: uxx,uxy,uyy,uxz,uyz,uzz)
+*
+*/
+void P2_basis_2der(REAL *p,REAL *dp,REAL *ddp,REAL* x,INT *dof,mesh_struct *mesh)
+{
+  REAL dp0r,dp1r,dp2r,dp3r,dp4r,dp5r,dp6r,dp7r,dp8r,dp9r;
+  REAL dp0s,dp1s,dp2s,dp3s,dp4s,dp5s,dp6s,dp7s,dp8s,dp9s;
+  REAL dp0t,dp1t,dp2t,dp3t,dp4t,dp5t,dp6t,dp7t,dp8t,dp9t;
+  REAL onemrst;
+  REAL xv0,xv1,xv2,xv3,yv0,yv1,yv2,yv3,zv0,zv1,zv2,zv3;
+  REAL dp0rr,dp1rr,dp2rr,dp3rr,dp4rr,dp5rr,dp6rr,dp7rr,dp8rr,dp9rr;
+  REAL dp0ss,dp1ss,dp2ss,dp3ss,dp4ss,dp5ss,dp6ss,dp7ss,dp8ss,dp9ss;
+  REAL dp0rs,dp1rs,dp2rs,dp3rs,dp4rs,dp5rs,dp6rs,dp7rs,dp8rs,dp9rs;
+  REAL dp0tt,dp1tt,dp2tt,dp3tt,dp4tt,dp5tt,dp6tt,dp7tt,dp8tt,dp9tt;
+  REAL dp0rt,dp1rt,dp2rt,dp3rt,dp4rt,dp5rt,dp6rt,dp7rt,dp8rt,dp9rt;
+  REAL dp0st,dp1st,dp2st,dp3st,dp4st,dp5st,dp6st,dp7st,dp8st,dp9st;
+
+  coordinates* cv = mesh->cv;
+  INT dim = mesh->dim;
+  INT twoders = 3*(dim-1); // 3 in 2D 6 in 3D
+
+  // Get Nodes and Physical Coordinates of vertices only
+  xv0 = cv->x[dof[0]];
+  xv1 = cv->x[dof[1]];
+  xv2 = cv->x[dof[2]];
+  yv0 = cv->y[dof[0]];
+  yv1 = cv->y[dof[1]];
+  yv2 = cv->y[dof[2]];
+  if(dim==3) {
+    xv3 = cv->x[dof[3]];
+    yv3 = cv->y[dof[3]];
+    zv0 = cv->z[dof[0]];
+    zv1 = cv->z[dof[1]];
+    zv2 = cv->z[dof[2]];
+    zv3 = cv->z[dof[3]];
+  }
+
+  if(dim==2) {
+    // Get coordinates on reference triangle
+    REAL det = (xv1-xv0)*(yv2-yv0) - (xv2-xv0)*(yv1-yv0);
+
+    REAL r = ((yv2-yv0)*(x[0]-xv0) + (xv0-xv2)*(x[1]-yv0))/det;
+
+    REAL drdx = (yv2-yv0)/det;
+    REAL drdy = (xv0-xv2)/det;
+
+    REAL s = ((yv0-yv1)*(x[0]-xv0) + (xv1-xv0)*(x[1]-yv0))/det;
+
+    REAL dsdx = (yv0-yv1)/det;
+    REAL dsdy = (xv1-xv0)/det;
+
+    /*  Get the basis functions for quadratic elements on each node and edge.
+    *  The basis functions can now be evaluated in terms of the
+    *  reference coordinates R and S.  It's also easy to determine
+    *  the values of the derivatives with respect to R and S.
+    */
+
+    onemrst = 1 - r - s;
+    p[0] = 2*onemrst*(onemrst-0.5);
+    p[1] = 2*r*(r-0.5);
+    p[2] = 2*s*(s-0.5);
+    p[3] = 4*r*onemrst;
+    p[4] = 4*s*onemrst;
+    p[5] = 4*r*s;
+    dp0r = 4*r+4*s-3;
+    dp0rr = 4.0;
+    dp0rs = 4.0;
+    dp1r = 4*r - 1;
+    dp1rr = 4.0;
+    dp1rs = 0.0;
+    dp2r = 0.0;
+    dp2rr = 0.0;
+    dp2rs = 0.0;
+    dp3r = 4.0-8*r-4*s;
+    dp3rr = -8.0;
+    dp3rs = -4.0;
+    dp4r = -4.0*s;
+    dp4rr = 0.0;
+    dp4rs = -4.0;
+    dp5r = 4.0*s;
+    dp5rr = 0.0;
+    dp5rs = 4.0;
+    dp0s = dp0r;
+    dp0ss = 4.0;
+    dp1s = 0.0;
+    dp1ss = 0.0;
+    dp2s = 4.0*s-1.0;
+    dp2ss = 4.0;
+    dp3s = -4.0*r;
+    dp3ss = 0;
+    dp4s = 4.0-4*r-8*s;
+    dp4ss = -8.0;
+    dp5s = 4.0*r;
+    dp5ss = 0.0;
+
+
+    /*  We need to convert the derivative information from (R(X,Y),S(X,Y))
+    *  to (X,Y) using the chain rule.
+    */
+
+    dp[0*dim+0] = dp0r * drdx + dp0s * dsdx;
+    dp[0*dim+1] = dp0r * drdy + dp0s * dsdy;
+    dp[1*dim+0] = dp1r * drdx + dp1s * dsdx;
+    dp[1*dim+1] = dp1r * drdy + dp1s * dsdy;
+    dp[2*dim+0] = dp2r * drdx + dp2s * dsdx;
+    dp[2*dim+1] = dp2r * drdy + dp2s * dsdy;
+    dp[3*dim+0] = dp3r * drdx + dp3s * dsdx;
+    dp[3*dim+1] = dp3r * drdy + dp3s * dsdy;
+    dp[4*dim+0] = dp4r * drdx + dp4s * dsdx;
+    dp[4*dim+1] = dp4r * drdy + dp4s * dsdy;
+    dp[5*dim+0] = dp5r * drdx + dp5s * dsdx;
+    dp[5*dim+1] = dp5r * drdy + dp5s * dsdy;
+    ddp[0*twoders+0] = dp0rr*drdx*drdx + 2*dp0rs*drdx*dsdx + dp0ss*dsdx*dsdx;
+    ddp[1*twoders+0] = dp1rr*drdx*drdx + 2*dp1rs*drdx*dsdx + dp1ss*dsdx*dsdx;
+    ddp[2*twoders+0] = dp2rr*drdx*drdx + 2*dp2rs*drdx*dsdx + dp2ss*dsdx*dsdx;
+    ddp[3*twoders+0] = dp3rr*drdx*drdx + 2*dp3rs*drdx*dsdx + dp3ss*dsdx*dsdx;
+    ddp[4*twoders+0] = dp4rr*drdx*drdx + 2*dp4rs*drdx*dsdx + dp4ss*dsdx*dsdx;
+    ddp[5*twoders+0] = dp5rr*drdx*drdx + 2*dp5rs*drdx*dsdx + dp5ss*dsdx*dsdx;
+
+    ddp[0*twoders+2] = dp0rr*drdy*drdy + 2*dp0rs*drdy*dsdy + dp0ss*dsdy*dsdy;
+    ddp[1*twoders+2] = dp1rr*drdy*drdy + 2*dp1rs*drdy*dsdy + dp1ss*dsdy*dsdy;
+    ddp[2*twoders+2] = dp2rr*drdy*drdy + 2*dp2rs*drdy*dsdy + dp2ss*dsdy*dsdy;
+    ddp[3*twoders+2] = dp3rr*drdy*drdy + 2*dp3rs*drdy*dsdy + dp3ss*dsdy*dsdy;
+    ddp[4*twoders+2] = dp4rr*drdy*drdy + 2*dp4rs*drdy*dsdy + dp4ss*dsdy*dsdy;
+    ddp[5*twoders+2] = dp5rr*drdy*drdy + 2*dp5rs*drdy*dsdy + dp5ss*dsdy*dsdy;
+
+    ddp[0*twoders+1] = dp0rr*drdy*drdx + dp0rs*drdy*dsdx + dp0rs*drdx*dsdy + dp0ss*dsdx*dsdy;
+    ddp[1*twoders+1] = dp1rr*drdy*drdx + dp1rs*drdy*dsdx + dp1rs*drdx*dsdy + dp1ss*dsdx*dsdy;
+    ddp[2*twoders+1] = dp2rr*drdy*drdx + dp2rs*drdy*dsdx + dp2rs*drdx*dsdy + dp2ss*dsdx*dsdy;
+    ddp[3*twoders+1] = dp3rr*drdy*drdx + dp3rs*drdy*dsdx + dp3rs*drdx*dsdy + dp3ss*dsdx*dsdy;
+    ddp[4*twoders+1] = dp4rr*drdy*drdx + dp4rs*drdy*dsdx + dp4rs*drdx*dsdy + dp4ss*dsdx*dsdy;
+    ddp[5*twoders+1] = dp5rr*drdy*drdx + dp5rs*drdy*dsdx + dp5rs*drdx*dsdy + dp5ss*dsdx*dsdy;
+
+  } else if (dim==3) {
+    // Get coordinates on reference tetrahedron
+    REAL det = (xv3-xv0)*((yv1-yv0)*(zv2-zv0)-(yv2-yv0)*(zv1-zv0)) \
+    - (xv2-xv0)*((yv1-yv0)*(zv3-zv0)-(yv3-yv0)*(zv1-zv0)) \
+    + (xv1-xv0)*((yv2-yv0)*(zv3-zv0)-(yv3-yv0)*(zv2-zv0));
+
+    REAL r = ((xv3-xv0)*((x[1]-yv0)*(zv2-zv0)-(yv2-yv0)*(x[2]-zv0)) \
+    - (xv2-xv0)*((x[1]-yv0)*(zv3-zv0)-(yv3-yv0)*(x[2]-zv0)) \
+    + (x[0]-xv0)*((yv2-yv0)*(zv3-zv0)-(yv3-yv0)*(zv2-zv0)))/det;
+
+    REAL drdx = ((yv2-yv0)*(zv3-zv0)-(yv3-yv0)*(zv2-zv0))/det;
+    REAL drdy = ((xv3-xv0)*(zv2-zv0) - (xv2-xv0)*(zv3-zv0))/det;
+    REAL drdz = ((xv2-xv0)*(yv3-yv0) - (xv3-xv0)*(yv2-yv0))/det;
+
+    REAL s = ((xv3-xv0)*((yv1-yv0)*(x[2]-zv0)-(x[1]-yv0)*(zv1-zv0)) \
+    - (x[0]-xv0)*((yv1-yv0)*(zv3-zv0)-(yv3-yv0)*(zv1-zv0)) \
+    + (xv1-xv0)*((x[1]-yv0)*(zv3-zv0)-(yv3-yv0)*(x[2]-zv0)))/det;
+
+    REAL dsdx = -((yv1-yv0)*(zv3-zv0)-(yv3-yv0)*(zv1-zv0))/det;
+    REAL dsdy = ((xv1-xv0)*(zv3-zv0) - (xv3-xv0)*(zv1-zv0))/det;
+    REAL dsdz = ((xv3-xv0)*(yv1-yv0) - (xv1-xv0)*(yv3-yv0))/det;
+
+    REAL t = ((x[0]-xv0)*((yv1-yv0)*(zv2-zv0)-(yv2-yv0)*(zv1-zv0)) \
+    - (xv2-xv0)*((yv1-yv0)*(x[2]-zv0)-(x[1]-yv0)*(zv1-zv0)) \
+    + (xv1-xv0)*((yv2-yv0)*(x[2]-zv0)-(x[1]-yv0)*(zv2-zv0)))/det;
+
+    REAL dtdx = ((yv1-yv0)*(zv2-zv0)-(yv2-yv0)*(zv1-zv0))/det;
+    REAL dtdy = ((xv2-xv0)*(zv1-zv0) - (xv1-xv0)*(zv2-zv0))/det;
+    REAL dtdz = ((xv1-xv0)*(yv2-yv0) - (xv2-xv0)*(yv1-yv0))/det;
+
+    /*  Get the basis functions for quadratic elements on each node and edge.
+    *  The basis functions can now be evaluated in terms of the
+    *  reference coordinates R and S.  It's also easy to determine
+    *  the values of the derivatives with respect to R and S.
+    */
+
+    onemrst = 1 - r - s - t;
+    p[0] = onemrst*(1 - 2*r - 2*s - 2*t);
+    p[1] = 2*r*(r-0.5);
+    p[2] = 2*s*(s-0.5);
+    p[3] = 2*t*(t-0.5);
+    p[4] = 4*r*onemrst;
+    p[5] = 4*s*onemrst;
+    p[6] = 4*t*onemrst;
+    p[7] = 4*r*s;
+    p[8] = 4*r*t;
+    p[9] = 4*s*t;
+
+    dp0r = 4*r+4*s+4*t-3;
+    dp1r = 4*r-1;
+    dp2r = 0;
+    dp3r = 0;
+    dp4r = 4*onemrst - 4*r;
+    dp5r = -4*s;
+    dp6r = -4*t;
+    dp7r = 4*s;
+    dp8r = 4*t;
+    dp9r = 0;
+    dp0s = 4*r+4*s+4*t-3;
+    dp1s = 0;
+    dp2s = 4*s-1;
+    dp3s = 0;
+    dp4s = -4*r;
+    dp5s = 4*onemrst - 4*s;
+    dp6s = -4*t;
+    dp7s = 4*r;
+    dp8s = 0;
+    dp9s = 4*t;
+    dp0t = 4*r+4*s+4*t-3;
+    dp1t = 0;
+    dp2t = 0;
+    dp3t = 4*t-1;
+    dp4t = -4*r;
+    dp5t = -4*s;
+    dp6t = 4*onemrst - 4*t;
+    dp7t = 0;
+    dp8t = 4*r;
+    dp9t = 4*s;
+
+    dp0rr = 4.0;
+    dp0rs = 4.0;
+    dp0ss = 4.0;
+    dp0rt = 4.0;
+    dp0st = 4.0;
+    dp0tt = 4.0;
+
+    dp1rr = 4.0;
+    dp1rs = 0.0;
+    dp1ss = 0.0;
+    dp1rt = 0.0;
+    dp1st = 0.0;
+    dp1tt = 0.0;
+
+    dp2rr = 0.0;
+    dp2rs = 0.0;
+    dp2ss = 4.0;
+    dp2rt = 0.0;
+    dp2st = 0.0;
+    dp2tt = 0.0;
+
+    dp3rr = 0.0;
+    dp3rs = 0.0;
+    dp3ss = 0.0;
+    dp3rt = 0.0;
+    dp3st = 0.0;
+    dp3tt = 4.0;
+
+    dp4rr = -8.0;
+    dp4rs = -4.0;
+    dp4ss = 0.0;
+    dp4rt = -4.0;
+    dp4st = 0.0;
+    dp4tt = 0.0;
+
+    dp5rr = 0.0;
+    dp5rs = -4.0;
+    dp5ss = -8.0;
+    dp5rt = 0.0;
+    dp5st = -4.0;
+    dp5tt = 0.0;
+
+    dp6rr = 0.0;
+    dp6rs = 0.0;
+    dp6ss = 4.0;
+    dp6rt = -4.0;
+    dp6st = -4.0;
+    dp6tt = -8.0;
+
+    dp7rr = 0.0;
+    dp7rs = 4.0;
+    dp7ss = 0.0;
+    dp7rt = 0.0;
+    dp7st = 0.0;
+    dp7tt = 0.0;
+
+    dp8rr = 0.0;
+    dp8rs = 0.0;
+    dp8ss = 0.0;
+    dp8rt = 4.0;
+    dp8st = 0.0;
+    dp8tt = 0.0;
+
+    dp9rr = 0.0;
+    dp9rs = 0.0;
+    dp9ss = 0.0;
+    dp9rt = 0.0;
+    dp9st = 4.0;
+    dp9tt = 0.0;
+
+
+
+    /*  We need to convert the derivative information from (R(X,Y),S(X,Y))
+    *  to (X,Y) using the chain rule.
+    */
+
+    dp[0*dim] = dp0r * drdx + dp0s * dsdx + dp0t * dtdx;
+    dp[0*dim+1] = dp0r * drdy + dp0s * dsdy + dp0t * dtdy;
+    dp[0*dim+2] = dp0r * drdz + dp0s * dsdz + dp0t * dtdz;
+    dp[1*dim] = dp1r * drdx + dp1s * dsdx + dp1t * dtdx;
+    dp[1*dim+1] = dp1r * drdy + dp1s * dsdy + dp1t * dtdy;
+    dp[1*dim+2] = dp1r * drdz + dp1s * dsdz + dp1t * dtdz;
+    dp[2*dim] = dp2r * drdx + dp2s * dsdx + dp2t * dtdx;
+    dp[2*dim+1] = dp2r * drdy + dp2s * dsdy + dp2t * dtdy;
+    dp[2*dim+2] = dp2r * drdz + dp2s * dsdz + dp2t * dtdz;
+    dp[3*dim] = dp3r * drdx + dp3s * dsdx + dp3t * dtdx;
+    dp[3*dim+1] = dp3r * drdy + dp3s * dsdy + dp3t * dtdy;
+    dp[3*dim+2] = dp3r * drdz + dp3s * dsdz + dp3t * dtdz;
+    dp[4*dim] = dp4r * drdx + dp4s * dsdx + dp4t * dtdx;
+    dp[4*dim+1] = dp4r * drdy + dp4s * dsdy + dp4t * dtdy;
+    dp[4*dim+2] = dp4r * drdz + dp4s * dsdz + dp4t * dtdz;
+    dp[5*dim] = dp5r * drdx + dp5s * dsdx + dp5t * dtdx;
+    dp[5*dim+1] = dp5r * drdy + dp5s * dsdy + dp5t * dtdy;
+    dp[5*dim+2] = dp5r * drdz + dp5s * dsdz + dp5t * dtdz;
+    dp[6*dim] = dp6r * drdx + dp6s * dsdx + dp6t * dtdx;
+    dp[6*dim+1] = dp6r * drdy + dp6s * dsdy + dp6t * dtdy;
+    dp[6*dim+2] = dp6r * drdz + dp6s * dsdz + dp6t * dtdz;
+    dp[7*dim] = dp7r * drdx + dp7s * dsdx + dp7t * dtdx;
+    dp[7*dim+1] = dp7r * drdy + dp7s * dsdy + dp7t * dtdy;
+    dp[7*dim+2] = dp7r * drdz + dp7s * dsdz + dp7t * dtdz;
+    dp[8*dim] = dp8r * drdx + dp8s * dsdx + dp8t * dtdx;
+    dp[8*dim+1] = dp8r * drdy + dp8s * dsdy + dp8t * dtdy;
+    dp[8*dim+2] = dp8r * drdz + dp8s * dsdz + dp8t * dtdz;
+    dp[9*dim] = dp9r * drdx + dp9s * dsdx + dp9t * dtdx;
+    dp[9*dim+1] = dp9r * drdy + dp9s * dsdy + dp9t * dtdy;
+    dp[9*dim+2] = dp9r * drdz + dp9s * dsdz + dp9t * dtdz;
+
+    ddp[0*twoders+0] = dp0rr*drdx*drdx + 2.0*dp0rs*drdx*dsdx + dp0ss*dsdx*dsdx + 2.0*dp0rt*drdx*dtdx + 2.0*dp0st*dsdx*dtdx +
+    dp0tt*dtdx*dtdx;
+    ddp[1*twoders+0] = dp1rr*drdx*drdx + 2.0*dp1rs*drdx*dsdx + dp1ss*dsdx*dsdx + 2.0*dp1rt*drdx*dtdx + 2.0*dp1st*dsdx*dtdx +
+    dp1tt*dtdx*dtdx;
+    ddp[2*twoders+0] = dp2rr*drdx*drdx + 2.0*dp2rs*drdx*dsdx + dp2ss*dsdx*dsdx + 2.0*dp2rt*drdx*dtdx + 2.0*dp2st*dsdx*dtdx +
+    dp2tt*dtdx*dtdx;
+    ddp[3*twoders+0] = dp3rr*drdx*drdx + 2.0*dp3rs*drdx*dsdx + dp3ss*dsdx*dsdx + 2.0*dp3rt*drdx*dtdx + 2.0*dp3st*dsdx*dtdx +
+    dp3tt*dtdx*dtdx;
+    ddp[4*twoders+0] = dp4rr*drdx*drdx + 2.0*dp4rs*drdx*dsdx + dp4ss*dsdx*dsdx + 2.0*dp4rt*drdx*dtdx + 2.0*dp4st*dsdx*dtdx +
+    dp4tt*dtdx*dtdx;
+    ddp[5*twoders+0] = dp5rr*drdx*drdx + 2.0*dp5rs*drdx*dsdx + dp5ss*dsdx*dsdx + 2.0*dp5rt*drdx*dtdx + 2.0*dp5st*dsdx*dtdx +
+    dp5tt*dtdx*dtdx;
+    ddp[6*twoders+0] = dp6rr*drdx*drdx + 2.0*dp6rs*drdx*dsdx + dp6ss*dsdx*dsdx + 2.0*dp6rt*drdx*dtdx + 2.0*dp6st*dsdx*dtdx +
+    dp6tt*dtdx*dtdx;
+    ddp[7*twoders+0] = dp7rr*drdx*drdx + 2.0*dp7rs*drdx*dsdx + dp7ss*dsdx*dsdx + 2.0*dp7rt*drdx*dtdx + 2.0*dp7st*dsdx*dtdx +
+    dp7tt*dtdx*dtdx;
+    ddp[8*twoders+0] = dp8rr*drdx*drdx + 2.0*dp8rs*drdx*dsdx + dp8ss*dsdx*dsdx + 2.0*dp8rt*drdx*dtdx + 2.0*dp8st*dsdx*dtdx +
+    dp8tt*dtdx*dtdx;
+    ddp[9*twoders+0] = dp9rr*drdx*drdx + 2.0*dp9rs*drdx*dsdx + dp9ss*dsdx*dsdx + 2.0*dp9rt*drdx*dtdx + 2.0*dp9st*dsdx*dtdx +
+    dp9tt*dtdx*dtdx;
+
+    ddp[0*twoders+1] = dp0rr*drdy*drdx + dp0rs*drdy*dsdx + dp0rt*drdy*dtdx + dp0rs*drdx*dsdy + dp0ss*dsdx*dsdy +
+    dp0st*dsdy*dtdx + dp0rt*drdx*dtdy + dp0st*dsdx*dtdy + dp0tt*dtdx*dtdy;
+    ddp[1*twoders+1] = dp1rr*drdy*drdx + dp1rs*drdy*dsdx + dp1rt*drdy*dtdx + dp1rs*drdx*dsdy + dp1ss*dsdx*dsdy +
+    dp1st*dsdy*dtdx + dp1rt*drdx*dtdy + dp1st*dsdx*dtdy + dp1tt*dtdx*dtdy;
+    ddp[2*twoders+1] =dp2rr*drdy*drdx + dp2rs*drdy*dsdx + dp2rt*drdy*dtdx + dp2rs*drdx*dsdy + dp2ss*dsdx*dsdy +
+    dp2st*dsdy*dtdx + dp2rt*drdx*dtdy + dp2st*dsdx*dtdy + dp2tt*dtdx*dtdy;
+    ddp[3*twoders+1] = dp3rr*drdy*drdx + dp3rs*drdy*dsdx + dp3rt*drdy*dtdx + dp3rs*drdx*dsdy + dp3ss*dsdx*dsdy +
+    dp3st*dsdy*dtdx + dp3rt*drdx*dtdy + dp3st*dsdx*dtdy + dp3tt*dtdx*dtdy;
+    ddp[4*twoders+1] = dp4rr*drdy*drdx + dp4rs*drdy*dsdx + dp4rt*drdy*dtdx + dp4rs*drdx*dsdy + dp4ss*dsdx*dsdy +
+    dp4st*dsdy*dtdx + dp4rt*drdx*dtdy + dp4st*dsdx*dtdy + dp4tt*dtdx*dtdy;
+    ddp[5*twoders+1] = dp5rr*drdy*drdx + dp5rs*drdy*dsdx + dp5rt*drdy*dtdx + dp5rs*drdx*dsdy + dp5ss*dsdx*dsdy +
+    dp5st*dsdy*dtdx + dp5rt*drdx*dtdy + dp5st*dsdx*dtdy + dp5tt*dtdx*dtdy;
+    ddp[6*twoders+1] = dp6rr*drdy*drdx + dp6rs*drdy*dsdx + dp6rt*drdy*dtdx + dp6rs*drdx*dsdy + dp6ss*dsdx*dsdy +
+    dp6st*dsdy*dtdx + dp6rt*drdx*dtdy + dp6st*dsdx*dtdy + dp6tt*dtdx*dtdy;
+    ddp[7*twoders+1] = dp7rr*drdy*drdx + dp7rs*drdy*dsdx + dp7rt*drdy*dtdx + dp7rs*drdx*dsdy + dp7ss*dsdx*dsdy +
+    dp7st*dsdy*dtdx + dp7rt*drdx*dtdy + dp7st*dsdx*dtdy + dp7tt*dtdx*dtdy;
+    ddp[8*twoders+1] = dp8rr*drdy*drdx + dp8rs*drdy*dsdx + dp8rt*drdy*dtdx + dp8rs*drdx*dsdy + dp8ss*dsdx*dsdy +
+    dp8st*dsdy*dtdx + dp8rt*drdx*dtdy + dp8st*dsdx*dtdy + dp8tt*dtdx*dtdy;
+    ddp[9*twoders+1] = dp9rr*drdy*drdx + dp9rs*drdy*dsdx + dp9rt*drdy*dtdx + dp9rs*drdx*dsdy + dp9ss*dsdx*dsdy +
+    dp9st*dsdy*dtdx + dp9rt*drdx*dtdy + dp9st*dsdx*dtdy + dp9tt*dtdx*dtdy;
+
+    ddp[0*twoders+2] = dp0rr*drdy*drdy + 2.0*dp0rs*drdy*dsdy + 2.0*dp0rt*drdy*dtdy + dp0ss*dsdy*dsdy + 2.0*dp0st*dsdy*dtdy +
+    dp0tt*dtdy*dtdy;
+    ddp[1*twoders+2] =dp1rr*drdy*drdy + 2.0*dp1rs*drdy*dsdy + 2.0*dp1rt*drdy*dtdy + dp1ss*dsdy*dsdy + 2.0*dp1st*dsdy*dtdy +
+    dp1tt*dtdy*dtdy;
+    ddp[2*twoders+2] = dp2rr*drdy*drdy + 2.0*dp2rs*drdy*dsdy + 2.0*dp2rt*drdy*dtdy + dp2ss*dsdy*dsdy + 2.0*dp2st*dsdy*dtdy +
+    dp2tt*dtdy*dtdy;
+    ddp[3*twoders+2] = dp3rr*drdy*drdy + 2.0*dp3rs*drdy*dsdy + 2.0*dp3rt*drdy*dtdy + dp3ss*dsdy*dsdy + 2.0*dp3st*dsdy*dtdy +
+    dp3tt*dtdy*dtdy;
+    ddp[4*twoders+2] = dp4rr*drdy*drdy + 2.0*dp4rs*drdy*dsdy + 2.0*dp4rt*drdy*dtdy + dp4ss*dsdy*dsdy + 2.0*dp4st*dsdy*dtdy +
+    dp4tt*dtdy*dtdy;
+    ddp[5*twoders+2] = dp5rr*drdy*drdy + 2.0*dp5rs*drdy*dsdy + 2.0*dp5rt*drdy*dtdy + dp5ss*dsdy*dsdy + 2.0*dp5st*dsdy*dtdy +
+    dp5tt*dtdy*dtdy;
+    ddp[6*twoders+2] = dp6rr*drdy*drdy + 2.0*dp6rs*drdy*dsdy + 2.0*dp6rt*drdy*dtdy + dp6ss*dsdy*dsdy + 2.0*dp6st*dsdy*dtdy +
+    dp6tt*dtdy*dtdy;
+    ddp[7*twoders+2] = dp7rr*drdy*drdy + 2.0*dp7rs*drdy*dsdy + 2.0*dp7rt*drdy*dtdy + dp7ss*dsdy*dsdy + 2.0*dp7st*dsdy*dtdy +
+    dp7tt*dtdy*dtdy;
+    ddp[8*twoders+2] = dp8rr*drdy*drdy + 2.0*dp8rs*drdy*dsdy + 2.0*dp8rt*drdy*dtdy + dp8ss*dsdy*dsdy + 2.0*dp8st*dsdy*dtdy +
+    dp8tt*dtdy*dtdy;
+    ddp[9*twoders+2] = dp9rr*drdy*drdy + 2.0*dp9rs*drdy*dsdy + 2.0*dp9rt*drdy*dtdy + dp9ss*dsdy*dsdy + 2.0*dp9st*dsdy*dtdy +
+    dp9tt*dtdy*dtdy;
+
+    ddp[0*twoders+3] = dp0rr*drdz*drdx + dp0rs*drdz*dsdx + dp0rt*drdz*dtdx + dp0rs*drdx*dsdz + dp0ss*dsdx*dsdz +
+    dp0st*dsdz*dtdx + dp0rt*drdx*dtdz + dp0st*dsdx*dtdz + dp0tt*dtdx*dtdz;
+    ddp[1*twoders+3] = dp1rr*drdz*drdx + dp1rs*drdz*dsdx + dp1rt*drdz*dtdx + dp1rs*drdx*dsdz + dp1ss*dsdx*dsdz +
+    dp1st*dsdz*dtdx + dp1rt*drdx*dtdz + dp1st*dsdx*dtdz + dp1tt*dtdx*dtdz;
+    ddp[2*twoders+3] =dp2rr*drdz*drdx + dp2rs*drdz*dsdx + dp2rt*drdz*dtdx + dp2rs*drdx*dsdz + dp2ss*dsdx*dsdz +
+    dp2st*dsdz*dtdx + dp2rt*drdx*dtdz + dp2st*dsdx*dtdz + dp2tt*dtdx*dtdz;
+    ddp[3*twoders+3] = dp3rr*drdz*drdx + dp3rs*drdz*dsdx + dp3rt*drdz*dtdx + dp3rs*drdx*dsdz + dp3ss*dsdx*dsdz +
+    dp3st*dsdz*dtdx + dp3rt*drdx*dtdz + dp3st*dsdx*dtdz + dp3tt*dtdx*dtdz;
+    ddp[4*twoders+3] = dp4rr*drdz*drdx + dp4rs*drdz*dsdx + dp4rt*drdz*dtdx + dp4rs*drdx*dsdz + dp4ss*dsdx*dsdz +
+    dp4st*dsdz*dtdx + dp4rt*drdx*dtdz + dp4st*dsdx*dtdz + dp4tt*dtdx*dtdz;
+    ddp[5*twoders+3] = dp5rr*drdz*drdx + dp5rs*drdz*dsdx + dp5rt*drdz*dtdx + dp5rs*drdx*dsdz + dp5ss*dsdx*dsdz +
+    dp5st*dsdz*dtdx + dp5rt*drdx*dtdz + dp5st*dsdx*dtdz + dp5tt*dtdx*dtdz;
+    ddp[6*twoders+3] = dp6rr*drdz*drdx + dp6rs*drdz*dsdx + dp6rt*drdz*dtdx + dp6rs*drdx*dsdz + dp6ss*dsdx*dsdz +
+    dp6st*dsdz*dtdx + dp6rt*drdx*dtdz + dp6st*dsdx*dtdz + dp6tt*dtdx*dtdz;
+    ddp[7*twoders+3] = dp7rr*drdz*drdx + dp7rs*drdz*dsdx + dp7rt*drdz*dtdx + dp7rs*drdx*dsdz + dp7ss*dsdx*dsdz +
+    dp7st*dsdz*dtdx + dp7rt*drdx*dtdz + dp7st*dsdx*dtdz + dp7tt*dtdx*dtdz;
+    ddp[8*twoders+3] = dp8rr*drdz*drdx + dp8rs*drdz*dsdx + dp8rt*drdz*dtdx + dp8rs*drdx*dsdz + dp8ss*dsdx*dsdz +
+    dp8st*dsdz*dtdx + dp8rt*drdx*dtdz + dp8st*dsdx*dtdz + dp8tt*dtdx*dtdz;
+    ddp[9*twoders+3] = dp9rr*drdz*drdx + dp9rs*drdz*dsdx + dp9rt*drdz*dtdx + dp9rs*drdx*dsdz + dp9ss*dsdx*dsdz +
+    dp9st*dsdz*dtdx + dp9rt*drdx*dtdz + dp9st*dsdx*dtdz + dp9tt*dtdx*dtdz;
+
+    ddp[0*twoders+4] = dp0rr*drdz*drdy + dp0rs*drdz*dsdy + dp0rt*drdz*dtdy + dp0rs*drdy*dsdz + dp0ss*dsdy*dsdz +
+    dp0st*dsdz*dtdy + dp0rt*drdy*dtdz + dp0st*dsdy*dtdz + dp0tt*dtdy*dtdz;
+    ddp[1*twoders+4] = dp1rr*drdz*drdy + dp1rs*drdz*dsdy + dp1rt*drdz*dtdy + dp1rs*drdy*dsdz + dp1ss*dsdy*dsdz +
+    dp1st*dsdz*dtdy + dp1rt*drdy*dtdz + dp1st*dsdy*dtdz + dp1tt*dtdy*dtdz;
+    ddp[2*twoders+4] =dp2rr*drdz*drdy + dp2rs*drdz*dsdy + dp2rt*drdz*dtdy + dp2rs*drdy*dsdz + dp2ss*dsdy*dsdz +
+    dp2st*dsdz*dtdy + dp2rt*drdy*dtdz + dp2st*dsdy*dtdz + dp2tt*dtdy*dtdz;
+    ddp[3*twoders+4] = dp3rr*drdz*drdy + dp3rs*drdz*dsdy + dp3rt*drdz*dtdy + dp3rs*drdy*dsdz + dp3ss*dsdy*dsdz +
+    dp3st*dsdz*dtdy + dp3rt*drdy*dtdz + dp3st*dsdy*dtdz + dp3tt*dtdy*dtdz;
+    ddp[4*twoders+4] = dp4rr*drdz*drdy + dp4rs*drdz*dsdy + dp4rt*drdz*dtdy + dp4rs*drdy*dsdz + dp4ss*dsdy*dsdz +
+    dp4st*dsdz*dtdy + dp4rt*drdy*dtdz + dp4st*dsdy*dtdz + dp4tt*dtdy*dtdz;
+    ddp[5*twoders+4] = dp5rr*drdz*drdy + dp5rs*drdz*dsdy + dp5rt*drdz*dtdy + dp5rs*drdy*dsdz + dp5ss*dsdy*dsdz +
+    dp5st*dsdz*dtdy + dp5rt*drdy*dtdz + dp5st*dsdy*dtdz + dp5tt*dtdy*dtdz;
+    ddp[6*twoders+4] = dp6rr*drdz*drdy + dp6rs*drdz*dsdy + dp6rt*drdz*dtdy + dp6rs*drdy*dsdz + dp6ss*dsdy*dsdz +
+    dp6st*dsdz*dtdy + dp6rt*drdy*dtdz + dp6st*dsdy*dtdz + dp6tt*dtdy*dtdz;
+    ddp[7*twoders+4] = dp7rr*drdz*drdy + dp7rs*drdz*dsdy + dp7rt*drdz*dtdy + dp7rs*drdy*dsdz + dp7ss*dsdy*dsdz +
+    dp7st*dsdz*dtdy + dp7rt*drdy*dtdz + dp7st*dsdy*dtdz + dp7tt*dtdy*dtdz;
+    ddp[8*twoders+4] = dp8rr*drdz*drdy + dp8rs*drdz*dsdy + dp8rt*drdz*dtdy + dp8rs*drdy*dsdz + dp8ss*dsdy*dsdz +
+    dp8st*dsdz*dtdy + dp8rt*drdy*dtdz + dp8st*dsdy*dtdz + dp8tt*dtdy*dtdz;
+    ddp[9*twoders+4] = dp9rr*drdz*drdy + dp9rs*drdz*dsdy + dp9rt*drdz*dtdy + dp9rs*drdy*dsdz + dp9ss*dsdy*dsdz +
+    dp9st*dsdz*dtdy + dp9rt*drdy*dtdz + dp9st*dsdy*dtdz + dp9tt*dtdy*dtdz;
+
+    ddp[0*twoders+5] = dp0rr*drdz*drdz + 2.0*dp0rs*drdz*dsdz + 2.0*dp0rt*drdz*dtdz + dp0ss*dsdz*dsdz + 2.0*dp0st*dsdz*dtdz +
+    dp0tt*dtdz*dtdz;
+    ddp[1*twoders+5] =dp1rr*drdz*drdz + 2.0*dp1rs*drdz*dsdz + 2.0*dp1rt*drdz*dtdz + dp1ss*dsdz*dsdz + 2.0*dp1st*dsdz*dtdz +
+    dp1tt*dtdz*dtdz;
+    ddp[2*twoders+5] = dp2rr*drdz*drdz + 2.0*dp2rs*drdz*dsdz + 2.0*dp2rt*drdz*dtdz + dp2ss*dsdz*dsdz + 2.0*dp2st*dsdz*dtdz +
+    dp2tt*dtdz*dtdz;
+    ddp[3*twoders+5] = dp3rr*drdz*drdz + 2.0*dp3rs*drdz*dsdz + 2.0*dp3rt*drdz*dtdz + dp3ss*dsdz*dsdz + 2.0*dp3st*dsdz*dtdz +
+    dp3tt*dtdz*dtdz;
+    ddp[4*twoders+5] = dp4rr*drdz*drdz + 2.0*dp4rs*drdz*dsdz + 2.0*dp4rt*drdz*dtdz + dp4ss*dsdz*dsdz + 2.0*dp4st*dsdz*dtdz +
+    dp4tt*dtdz*dtdz;
+    ddp[5*twoders+5] = dp5rr*drdz*drdz + 2.0*dp5rs*drdz*dsdz + 2.0*dp5rt*drdz*dtdz + dp5ss*dsdz*dsdz + 2.0*dp5st*dsdz*dtdz +
+    dp5tt*dtdz*dtdz;
+    ddp[6*twoders+5] = dp6rr*drdz*drdz + 2.0*dp6rs*drdz*dsdz + 2.0*dp6rt*drdz*dtdz + dp6ss*dsdz*dsdz + 2.0*dp6st*dsdz*dtdz +
+    dp6tt*dtdz*dtdz;
+    ddp[7*twoders+5] = dp7rr*drdz*drdz + 2.0*dp7rs*drdz*dsdz + 2.0*dp7rt*drdz*dtdz + dp7ss*dsdz*dsdz + 2.0*dp7st*dsdz*dtdz +
+    dp7tt*dtdz*dtdz;
+    ddp[8*twoders+5] = dp8rr*drdz*drdz + 2.0*dp8rs*drdz*dsdz + 2.0*dp8rt*drdz*dtdz + dp8ss*dsdz*dsdz + 2.0*dp8st*dsdz*dtdz +
+    dp8tt*dtdz*dtdz;
+    ddp[9*twoders+5] = dp9rr*drdz*drdz + 2.0*dp9rs*drdz*dsdz + 2.0*dp9rt*drdz*dtdz + dp9ss*dsdz*dsdz + 2.0*dp9st*dsdz*dtdz +
+    dp9tt*dtdz*dtdz;
+  }
 
   return;
 }

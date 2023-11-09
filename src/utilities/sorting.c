@@ -11,7 +11,7 @@
 
 static SHORT lt00(REAL *a, REAL *b, const INT n,const REAL tol)
 {
-  /*  
+  /*
       \brief if a<b (lexicogrphically), then return 1, if a>b return (-1) and if a=b return 0;
   */
   INT k,lt=0;
@@ -29,7 +29,7 @@ static SHORT lt00(REAL *a, REAL *b, const INT n,const REAL tol)
  * \fn void dlexsort(const INT nr, const INT nc,REAL *a, INT *p)
  *
  * \brief implements STRAIGHT INSERT sorting to order lexicographically nr
- names with nc components each. two elements are equal if they differ by 1e-15. 
+ names with nc components each. two elements are equal if they differ by 1e-15.
  *
  * \param nr    Number of names
  * \param nc    Number of components
@@ -52,8 +52,8 @@ void dlexsort(const INT nr, const INT nc,REAL *a,INT *p)
      with inv permutation aorig[]=a[invp[i]] where invp[p[i]]=i;
   */
 /********************************************************************************/
-  INT i,j,k,pj;
-  unsigned INT lt=0;
+  INT i,j,pj;
+  //unsigned INT lt=0;
   REAL *aj=(REAL *)calloc(nc,sizeof(REAL));
   for (i = 0; i < nr; i++){p[i]=i;}
   for (j = 1; j < nr; ++j) {

@@ -1643,3 +1643,48 @@ void blockFE_DerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,I
   return;
 }
 /******************************************************************************/
+
+/******************************************************************************/
+/* Some special interpolation routines needed for some error estimators */
+/******************************************************************************/
+/*!
+* \fn void P2_2ndDerivativeInterpolation(REAL* val,REAL *u,REAL* x,INT *dof_on_elm,INT *v_on_elm,fespace *FE,mesh_struct *mesh)
+*
+* \brief Interpolate the "second derivative" of a P2 finite-element approximation to any other point in the given element
+*
+* \param u 	        Approximation to interpolate
+* \param x           Coordinates where to compute value
+* \param dof_on_elm  DOF belonging to particular element
+* \param v_on_elm    Vertices belonging to particular element
+* \param FE          FE Space
+* \param mesh        Mesh Data
+* \param val         Pointer 2nd derivatives (uxx, uxy, uyy, uxz, uyz, uzz) of approximation at given values
+*
+*/
+void P2_2ndDerivativeInterpolation(REAL* val,REAL *u,REAL *x,INT *dof_on_elm,fespace *FE,mesh_struct *mesh)
+{
+  INT dof,j,k;
+
+  // Get FE and Mesh data
+  INT dof_per_elm = FE->dof_per_elm;
+  INT dim = mesh->dim;
+  INT twoders = 3*(dim-1);
+
+  REAL* ddp = (REAL *) calloc(3*(dim-1)*dof_per_elm,sizeof(REAL));
+
+  // Basis Functions and its derivatives
+  P2_basis_2der(FE->phi,FE->dphi,ddp,x,dof_on_elm,mesh);
+
+  for(j=0;j<twoders;j++) {
+    val[j] = 0.0;
+    for(k=0; k<dof_per_elm; k++) {
+      dof = dof_on_elm[k];
+      val[j] += u[dof]*ddp[k*twoders+j];
+    }
+  }
+
+  if(ddp) free(ddp);
+
+  return;
+}
+/******************************************************************************/
