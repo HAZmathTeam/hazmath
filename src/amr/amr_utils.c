@@ -689,7 +689,7 @@ static unsigned INT bitdiff(const INT dim, unsigned INT *bits1,unsigned INT *bit
   INT j;
   unsigned INT numbits=0;
   for(j=0;j<dim;j++){
-    numbits+=ABS(bits1[j]-bits2[j]);
+    numbits+=(unsigned INT )(abs((INT )(bits1[j]-bits2[j])));
   }
   return numbits;
 }

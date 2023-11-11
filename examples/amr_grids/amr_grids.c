@@ -185,7 +185,7 @@ INT main(INT   argc,   char *argv[])
     vtu_data vdata;
     vtu_data_init(sc,&vdata);
     vtkw(g->fvtu,&vdata);
-    vtkw("output/1d_graph.vtu",&vdata); //0,(REAL )1);
+    //    vtkw("output/1d_graph.vtu",&vdata); //0,(REAL )1);
     vtu_data_free(&vdata);
   }
   /*FREE: the input grid is freed here, because it has the filenames in it*/
