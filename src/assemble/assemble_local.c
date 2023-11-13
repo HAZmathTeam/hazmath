@@ -326,7 +326,7 @@ void assemble_P1masslump_local(REAL* MLoc,fespace *FE,mesh_struct *mesh,qcoordin
         // Loop over Trial Functions (Columns)
         for (trial=0; trial<FE->dof_per_elm; trial++) {
           kij = coeff_val*(FE->phi[test]*FE->phi[trial]);
-          MLoc[test*FE->dof_per_elm+trial] += w*kij;
+          MLoc[test*FE->dof_per_elm+test] += w*kij;
         }
       }
     }
