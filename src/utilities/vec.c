@@ -645,6 +645,29 @@ REAL dvec_norm2 (dvector *x)
 
 /***********************************************************************************************/
 /*!
+ * \fn REAL dvec_normp (dvector *x)
+ *
+ * \brief Compute lp norm of dvector x
+ *
+ * \param x   Pointer to dvector x
+ *
+ * \return Lp norm of x: ||x||_p
+ *
+ */
+REAL dvec_normp (dvector *x,  INT p)
+{
+    REAL pnorm=0;
+    INT i;
+    const INT length=x->row;
+
+    for (i=0;i<length;++i) pnorm+=pow(ABS(x->val[i]),p);
+
+    return pow(pnorm, 1.0/p);
+}
+
+
+/***********************************************************************************************/
+/*!
  * \fn REAL dvec_norminf (dvector *x)
  *
  * \brief Compute l_inf norm of dvector x
@@ -664,6 +687,7 @@ REAL dvec_norminf (dvector *x)
 
     return infnorm;
 }
+
 
 /***********************************************************************************************/
 /*!
