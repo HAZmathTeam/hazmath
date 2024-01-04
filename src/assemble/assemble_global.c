@@ -1174,6 +1174,8 @@ void assemble_global_face(dCSRmat* A,dvector* b,dvector *old_sol,void (*local_as
     dof_per_face = 2*dim - 3; // 3 edges per face in 3D; face is edge in 2D
   } else if(FE->FEtype==30) { // Raviart-Thomas Elements
     dof_per_elm = 1;
+  } else if(FE->FEtype==103) { // Mini
+    dof_per_elm = dim; // Just linear part
   } else {
     printf("Face integration isn't set up for the FEM space you chose\n");
     exit(0);
@@ -1321,6 +1323,8 @@ void assemble_global_RHS_face(dvector* b,dvector *old_sol,void (*local_rhs_assem
     dof_per_face = 1;
   } else if(FE->FEtype==61) { // Bubbles
     dof_per_face = 1;
+  } else if(FE->FEtype==103) { // MINI
+    dof_per_face = dim; // only linears contribute to face
   } else {
     printf("Face integration isn't set up for the FEM space you chose\n");
     exit(0);
@@ -1513,6 +1517,9 @@ void assemble_global_face_block(block_dCSRmat* A,dvector* b,dvector *old_sol,voi
     } else if (FEtype==99) { // Constraint Space (single DoF)
       dof_per_face_blk[i] = 1;
       dof_per_face += 1;
+    } else if (FEtype==103) { // Mini
+       dof_per_face_blk[i] = dim;
+       dof_per_face += dim;
     } else {
       printf("Block face integration isn't set up for the FEM space you chose\n");
       check_error(ERROR_FE_TYPE,__FUNCTION__);
@@ -1682,6 +1689,9 @@ void assemble_global_RHS_face_block(dvector *b, dvector *old_sol, void (*local_r
     } else if (FEtype==99) { // Constraint Space (1 DoF)
       dof_per_face_blk[i] = 1;
       dof_per_face += 1;
+    } else if (FEtype==99) { // Mini
+      dof_per_face_blk[i] = dim;
+      dof_per_face += dim;
     } else {
       printf("Block face integration isn't set up for the FEM space you chose\n");
       check_error(ERROR_FE_TYPE,__FUNCTION__);

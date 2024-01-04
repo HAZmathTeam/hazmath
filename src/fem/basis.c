@@ -2297,6 +2297,78 @@ void bubble_face_basis(REAL *phi, REAL *dphi, REAL *x, INT *v_on_elm, INT *dof, 
 }
 /****************************************************************************************************************************/
 
+/*******************************************************************************************************/
+/*!
+* \fn void MINI_basis(REAL *p,REAL *dp,REAL *x,INT *v_on_elm,mesh_struct *mesh)
+*
+* \brief Compute a MINI element (P1 + cubic bubble) at a particular point in 1, 2 or 3D
+*
+* \param x       Coordinate on where to compute basis function
+* \param v_on_elm     vertices on element
+* \param mesh    Mesh struct
+*
+* \return p      Basis functions (1 for each DOF on element)
+* \return dp     Derivatives of basis functions (i.e., gradient)
+*
+*  \note We call the P1 basis routine, then augment with cubic bubble:
+*         b = lam1*lam2*lam3 (in 2D)
+*        where lam_i are the P1 basis functions.
+*
+*     DoF of the bubble is eta(f) = c(int_T (f) - f(v1)*int_T lam1 - f(v2)*int_T lam2 - f(v3)*int_T lam3)
+*      c = (int_T lam1*lam2*lam3)^{-1}  (again in 2D)
+*        = d(2d+1)!/(d! * |V|)  where |V| is volume of element (area in 2D)
+*
+*/
+void MINI_basis(REAL *p,REAL *dp,REAL *x,INT *v_on_elm,mesh_struct *mesh)
+{
+
+  // Get Mesh Data
+  INT v_per_elm = mesh->v_per_elm;
+  INT dim = mesh->dim;
+
+  INT i,j,k;
+  REAL temp;
+
+  /* Get Linear Basis Functions for particular element */
+  // We use the working double arrays in mesh to store the values
+  // This way we do not need to reallocate each time this is called.
+  REAL* lam = mesh->dwork;
+  REAL* dlam = mesh->dwork + v_per_elm;
+  PX_H1_basis(lam,dlam,x,v_on_elm,1,mesh);
+
+  for(i=0;i<v_per_elm;i++) {
+    p[i] = lam[i];
+    for(j=0;j<dim;j++) {
+      dp[i*dim+j] = dlam[i*dim+j];
+    }
+  }
+  // bubbles
+  p[v_per_elm] = 1.0;
+  for(i=0;i<v_per_elm;i++) {
+    p[v_per_elm] = p[v_per_elm]*lam[i];
+  }
+
+  // Gradient of bubble
+  for(k=0;k<dim;k++) {
+    dp[v_per_elm*dim+k] = 0.0;
+    for(i=0;i<v_per_elm;i++) {
+      temp = 1.0;
+      for(j=0;j<v_per_elm;j++) {
+        if(j==i) {
+          temp = temp*dlam[i*dim+k];
+        } else {
+          temp = temp*lam[j];
+        }
+      }
+      dp[v_per_elm*dim+k] += temp;
+    }
+  }
+
+  return;
+}
+/*******************************************************************************************************/
+
+
 /****************************************************************************************************************************/
 /*!
 * \fn void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,mesh_struct *mesh,fespace *FE)
@@ -2351,6 +2423,10 @@ void get_FEM_basis(REAL *phi,REAL *dphi,REAL *x,INT *v_on_elm,INT *dof,mesh_stru
   } else if(FEtype==99) { // Constraint Single DOF Space
 
     phi[0] = 1.0;
+
+  } else if(FEtype==103) { // MINI element
+
+    MINI_basis(phi,dphi,x,v_on_elm,mesh);
 
   } else {
     status = ERROR_FE_TYPE;
