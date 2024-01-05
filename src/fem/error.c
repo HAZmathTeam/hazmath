@@ -763,7 +763,7 @@ void HDsemierror_block(REAL *err,REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,vo
   for(i=0;i<FE->nspaces;i++) {
     err[i] = 0.0;
     dof_per_elm += FE->var_spaces[i]->dof_per_elm;
-    if(FE->var_spaces[i]->FEtype<20) /* Scalar Gradient */
+    if(FE->var_spaces[i]->FEtype<20 || FE->var_spaces[i]->FEtype==103) /* Scalar Gradient */
       ncomp[i]=dim;
     else if(FE->var_spaces[i]->FEtype==20 && dim==2) /* Curl in 2D is scalar */
       ncomp[i] = 1;
