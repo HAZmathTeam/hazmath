@@ -509,6 +509,7 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_st
   REAL x[maxdim];
   INT dim = mesh->dim;
   INT nv = mesh->nv;
+  INT ndof = FE->ndof;
   INT FEtype = FE->FEtype;
   INT nq1d = 3; // If quadrature not given, fix order.
   REAL val=-666e+00;
@@ -529,7 +530,7 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_st
 
     // Lagrange Elements u[dof] = u[x_i]
   } else if(FEtype>0 && FEtype<10) {
-    for(j=0;j<dim;j++) x[j] = FE->cdof->x[DOF*dim+j];
+    for(j=0;j<dim;j++) x[j] = FE->cdof->x[j*ndof+DOF];
     (*expr)(&val,x,time,&(FE->dof_flag[DOF]));
 
     // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
@@ -579,7 +580,7 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_st
   } else if(FEtype==103) { // MINI
     // First check if the DOF is a vertex (linear) or element (bubble)
     if(DOF<nv) { // Vertex DoF: val = f(vertex)
-      for(j=0;j<dim;j++) x[j] = FE->cdof->x[DOF*dim+j];
+      for(j=0;j<dim;j++) x[j] = FE->cdof->x[j*ndof+DOF];
       (*expr)(&val,x,time,&(FE->dof_flag[DOF]));
     } else { // bubble DoF: val = int_elm (f) - sum_v_on_elm f(v)*int_elm (lam_v)
       // Precompute some values:
@@ -600,7 +601,7 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_st
       get_incidence_row(DOF-nv,mesh->el_v,loc_el_v);
       for(j=0;j<mesh->v_per_elm;j++) {
         elv = loc_el_v[j];
-        for(m=0;m<dim;m++) x[m] = FE->cdof->x[elv*dim+m];
+        for(m=0;m<dim;m++) x[m] = FE->cdof->x[m*ndof+elv];
         (*expr)(&expronv,x,time,&(mesh->v_flag[elv]));
         val += expronv/dp1fact;
       }
@@ -672,6 +673,7 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
   INT maxdim=4;
   REAL x[maxdim];
   INT FEtype = FE->var_spaces[comp]->FEtype;
+  INT ndof = FE->var_spaces[comp]->ndof;
   INT nv = mesh->nv;
   REAL valx[dim*FE->nspaces];
   INT local_dim = 0;
@@ -702,7 +704,7 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
 
     // Lagrange Elements u[dof] = u[x_i]
   } else if(FEtype>0 && FEtype<10) {
-    for(j=0;j<dim;j++) x[j] = FE->var_spaces[comp]->cdof->x[DOF*dim+j];
+    for(j=0;j<dim;j++) x[j] = FE->var_spaces[comp]->cdof->x[j*ndof+DOF];
     (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
     val = valx[local_dim];
 
@@ -749,7 +751,7 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
   } else if(FEtype==103) { // MINI
     // First check if the DOF is a vertex (linear) or element (bubble)
     if(DOF<nv) { // Vertex DoF: val = f(vertex)
-      for(j=0;j<dim;j++) x[j] = FE->var_spaces[comp]->cdof->x[DOF*dim+j];
+      for(j=0;j<dim;j++) x[j] = FE->var_spaces[comp]->cdof->x[j*ndof+DOF];
       (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
       val = valx[local_dim];
     } else { // bubble DoF: val = int_elm (f) - sum_v_on_elm f(v)*int_elm (lam_v)
@@ -771,7 +773,7 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
       get_incidence_row(DOF-nv,mesh->el_v,loc_el_v);
       for(j=0;j<mesh->v_per_elm;j++) {
         elv = loc_el_v[j];
-        for(m=0;m<dim;m++) x[m] = FE->var_spaces[comp]->cdof->x[elv*dim+m];
+        for(m=0;m<dim;m++) x[m] = FE->var_spaces[comp]->cdof->x[m*nv+elv];
         (*expr)(expronv,x,time,&(mesh->v_flag[elv]));
         val += expronv[local_dim]/dp1fact;
       }

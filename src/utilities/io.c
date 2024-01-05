@@ -893,7 +893,7 @@ void dbsr_read (const char  *filename,
 
 
 /*** Auxillary Files *********************************************************************/
-/* 
+/*
  * \fn void read_eof(const char *fname, void **data, INT *ndata, const char dtype,const SHORT print_level)
  *
  * \brief Reads data until EOF until eof. skips any control chars at
@@ -901,7 +901,7 @@ void dbsr_read (const char  *filename,
  *
  * The result is stored in data[0] which is allocated here (REAL* for
  *  double/float or INT* for ints).
- * 
+ *
  * dtype is either 'R', or 'r' for REAL or 'I', 'i' for INT.
  *
 */
@@ -928,7 +928,7 @@ void read_eof(const char *fname, void **data, INT *ndata, const char dtype,const
   if (!fp) {
     perror("fopen");
     return;
-  }  
+  }
   if(print_level>10)
     fprintf(stdout,"\n%%%%Reading %s from %s\n",type_name,fname);
   ch=fgetc(fp); while((INT )ch < 0){ch=fgetc(fp);count++;}
@@ -1480,7 +1480,7 @@ void dump_blocksol_vtk(char *namevtk,char **varname,mesh_struct *mesh,block_fesp
       // We need to save this for later so mark
       anyP0=1;
       P0cntr[nsp] = 1;
-    } else if(FE->var_spaces[nsp]->FEtype>0 && FE->var_spaces[nsp]->FEtype<20) { // PX elements (assume sol at vertices comes first)
+    } else if((FE->var_spaces[nsp]->FEtype>0 && FE->var_spaces[nsp]->FEtype<20) || FE->var_spaces[nsp]->FEtype==103) { // PX elements (assume sol at vertices comes first)
       fprintf(fvtk,"<DataArray type=\"%s\" Name=\"Solution Component %lld - %s\" Format=\"ascii\">",tfloat,(long long )nsp,varname[nsp]);
       for(k=0;k<nv;k++) fprintf(fvtk," %23.16e ",sol[spcntr + k]);
       fprintf(fvtk,"</DataArray>\n");
@@ -1671,7 +1671,7 @@ scomplex *hazr(char *namein)
   return sc;
 }
 /********************************************************************************/
-/* 
+/*
  * Routines to save to file the mesh in different formats. uses the
  * simplicial complex data structure (scomplex *sc)
 */
@@ -1681,11 +1681,11 @@ scomplex *hazr(char *namein)
  *
  * \brief Write a simplicial complex to a file in a "hazmath" format.
  *
- * \param nameout   File name 
+ * \param nameout   File name
  * \param sc        Pointer to a simplicial complex
- * \param shift     integer added to the elements of arrays such as sc->nodes. 
+ * \param shift     integer added to the elements of arrays such as sc->nodes.
  *
- * \note The data is organized as follows: 
+ * \note The data is organized as follows:
  *
  * 0. num_simplices,num_vertices,dimension,connected_components(bndry)-1;
  *
@@ -1700,7 +1700,7 @@ scomplex *hazr(char *namein)
  *    num_vertices REALs with 1st coordinate, num_vertices REALs with
  *    2nd coordinate,...
  *
- * 4. num_vertices integers with tages (boundary codes) for every vertex. 
+ * 4. num_vertices integers with tages (boundary codes) for every vertex.
  *
  */
 /********************************************************************************/
@@ -1766,9 +1766,9 @@ void hazw(char *nameout,scomplex *sc, const INT shift)
  *        described at
  *        https://www.manpagez.com/info/gmsh/gmsh-2.2.6/gmsh_63.php
  *
- * \param namemsh   File name 
+ * \param namemsh   File name
  * \param sc        Pointer to a simplicial complex
- * \param shift0    integer added to the elements of arrays (here always=1).  
+ * \param shift0    integer added to the elements of arrays (here always=1).
  *
  */
 /********************************************************************************/
@@ -1785,7 +1785,7 @@ void mshw(char *namemsh,scomplex *sc, const INT shift0)
   fmesh=HAZ_fopen(namemsh,"w");
   /*
      MSH way of writing mesh file.
-     fmt=0 is ASCII -- only this is supported now. 
+     fmt=0 is ASCII -- only this is supported now.
   */
   int fmt=0,num_el_tags=1;
   size_t data_size=sizeof(double);
@@ -1803,8 +1803,8 @@ void mshw(char *namemsh,scomplex *sc, const INT shift0)
     break;
   }
   // writing:
-  fprintf(fmesh,"%s\n","$MeshFormat"); 
-  fprintf(fmesh,"%.1f %d %ld\n",ver,fmt,data_size); 
+  fprintf(fmesh,"%s\n","$MeshFormat");
+  fprintf(fmesh,"%.1f %d %ld\n",ver,fmt,data_size);
   fprintf(fmesh,"%s\n","$EndMeshFormat");
   fprintf(fmesh,"%s\n","$Nodes");
   fprintf(fmesh,"%lld\n",(long long )n);
@@ -2354,7 +2354,7 @@ INT features_r(features *feat,scomplex *sc, const INT do_map, const REAL scale)
     mapit(sc,vc);
     free(vc);
     cube2simp_free(c2s);
-  }  
+  }
   return 0;
 }
 
