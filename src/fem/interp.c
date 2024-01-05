@@ -585,19 +585,19 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_st
       // Precompute some values:
       if(dim==1) {
         dp1fact = 2.0;
-        bubcoef = 6.0/mesh->el_vol[DOF];
+        bubcoef = 6.0/mesh->el_vol[DOF-nv];
       } else if(dim==2) {
         dp1fact = 6.0;
-        bubcoef = 60.0/mesh->el_vol[DOF];
+        bubcoef = 60.0/mesh->el_vol[DOF-nv];
       } else if(dim==3) {
         dp1fact = 24.0;
-        bubcoef = 840.0/mesh->el_vol[DOF];
+        bubcoef = 840.0/mesh->el_vol[DOF-nv];
       } else { // Not implmented above dim==3
         check_error(ERROR_DIM,__FUNCTION__);
       }
       // First get vertices on the element and evaluate function at each Vertex and add up
       val = 0.0;
-      get_incidence_row(DOF,mesh->el_v,loc_el_v);
+      get_incidence_row(DOF-nv,mesh->el_v,loc_el_v);
       for(j=0;j<mesh->v_per_elm;j++) {
         elv = loc_el_v[j];
         for(m=0;m<dim;m++) x[m] = FE->cdof->x[elv*dim+m];
@@ -605,7 +605,7 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_st
         val += expronv/dp1fact;
       }
       // Integrate function over element and add
-      val = bubcoef*(integrate_elm(expr,1,0,nq1d,NULL,mesh,time,DOF) - val);
+      val = bubcoef*(integrate_elm(expr,1,0,nq1d,NULL,mesh,time,DOF-nv) - val);
     }
     // No other FEM types implemented
   } else {
@@ -687,7 +687,7 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
 
 
   for(i=0;i<comp;i++) {
-    if((FE->var_spaces[i]->FEtype>=0 && FE->var_spaces[i]->FEtype<10) || FE->var_spaces[i]->FEtype==99) { // Scalar Element
+    if(FE->var_spaces[i]->scal_or_vec==0 && FE->var_spaces[i]->FEtype!=61) {
       local_dim += 1;
     } else if(FE->var_spaces[i]->FEtype == 61) { // Bubble Element
       local_dim += 0; // Assuming bubbles are written such that linears follow it immediately
@@ -756,19 +756,19 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
       // Precompute some values:
       if(dim==1) {
         dp1fact = 2.0;
-        bubcoef = 6.0/mesh->el_vol[DOF];
+        bubcoef = 6.0/mesh->el_vol[DOF-nv];
       } else if(dim==2) {
         dp1fact = 6.0;
-        bubcoef = 60.0/mesh->el_vol[DOF];
+        bubcoef = 60.0/mesh->el_vol[DOF-nv];
       } else if(dim==3) {
         dp1fact = 24.0;
-        bubcoef = 840.0/mesh->el_vol[DOF];
+        bubcoef = 840.0/mesh->el_vol[DOF-nv];
       } else { // Not implmented above dim==3
         check_error(ERROR_DIM,__FUNCTION__);
       }
       // First get vertices on the element and evaluate function at each Vertex and add up
       val = 0.0;
-      get_incidence_row(DOF,mesh->el_v,loc_el_v);
+      get_incidence_row(DOF-nv,mesh->el_v,loc_el_v);
       for(j=0;j<mesh->v_per_elm;j++) {
         elv = loc_el_v[j];
         for(m=0;m<dim;m++) x[m] = FE->var_spaces[comp]->cdof->x[elv*dim+m];
@@ -776,7 +776,7 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
         val += expronv[local_dim]/dp1fact;
       }
       // Integrate function over element and add
-      val = bubcoef*(integrate_elm(expr,FE->nun,local_dim,nq1d,NULL,mesh,time,DOF) - val);
+      val = bubcoef*(integrate_elm(expr,FE->nun,local_dim,nq1d,NULL,mesh,time,DOF-nv) - val);
     }
     // No other FEM types implemented
   } else {

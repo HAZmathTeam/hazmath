@@ -338,6 +338,8 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     dphi = (REAL *) calloc(FE->dof_per_elm*mesh->dim*mesh->dim,sizeof(REAL));
     FE->dphi = dphi;
     break;
+
+    // Constraint space
     case 99: // 1 DOF FE Space (i.e., for an integral constraint)
     FE->scal_or_vec = 0;
     FE->ndof = 1;
