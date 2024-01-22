@@ -1258,7 +1258,7 @@ void get_MINI(fespace* FE,mesh_struct* mesh)
   // First go through all vertices.
   for (i=0; i<nv; i++) {
     for (j=0;j<dim;j++) {
-      cdof->x[j*nv+i] = mesh->cv->x[j*nv+i];
+      cdof->x[j*ndof+i] = mesh->cv->x[j*nv+i];
     }
   }
   // Now, go through and add extra nodes for the midpoint of element
@@ -1266,7 +1266,7 @@ void get_MINI(fespace* FE,mesh_struct* mesh)
   // In 1D this is just the midpoint of the elements
   for(i=0;i<nelm;i++) {
     for (j=0;j<dim;j++) {
-      cdof->x[j*nv+s] = mesh->el_mid[i*dim+j];
+      cdof->x[j*ndof+s] = mesh->el_mid[i*dim+j];
     }
     s++;
   }
