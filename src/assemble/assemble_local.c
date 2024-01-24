@@ -1031,11 +1031,12 @@ void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,mesh_struct *mesh,qcoordin
   INT nun=0;
 
   for(i=0;i<FE->nspaces;i++) {
-    if(FE->var_spaces[i]->FEtype<20) /* Scalar Element */
+    if(FE->var_spaces[i]->scal_or_vec==0) /* Scalar Element */
       nun++;
     else /* Vector Element */
       nun += dim;
   }
+
   INT* local_dof_on_elm = NULL;
   INT local_row_index=0;
   INT unknown_index=0;
@@ -1065,30 +1066,32 @@ void FEM_Block_RHS_Local(REAL* bLoc,block_fespace *FE,mesh_struct *mesh,qcoordin
       get_FEM_basis(FE->var_spaces[i]->phi,FE->var_spaces[i]->dphi,qx,v_on_elm,local_dof_on_elm,mesh,FE->var_spaces[i]);
 
       // Loop over test functions and integrate rhs
-      if(FE->var_spaces[i]->FEtype<20) { // Scalar Element
+      if(FE->var_spaces[i]->scal_or_vec==0) { // Scalar Element
         for (test=0; test<FE->var_spaces[i]->dof_per_elm;test++) {
           bLoc[(local_row_index+test)] += w*rhs_val[unknown_index]*FE->var_spaces[i]->phi[test];
         }
         unknown_index++;
 
-      } else if (FE->var_spaces[i]->FEtype==61) { // bubble
-        for (test=0; test<FE->var_spaces[i]->dof_per_elm;test++) {
-          bLoc[(local_row_index+test)] += w*(rhs_val[unknown_index]*FE->var_spaces[i]->phi[test*dim] +
-              rhs_val[unknown_index+1]*FE->var_spaces[i]->phi[test*dim+1]);
-          if(dim==3) bLoc[(local_row_index+test)] += w*rhs_val[unknown_index+2]*FE->var_spaces[i]->phi[test*dim+2];
-        }
+      } else {
+        if (FE->var_spaces[i]->FEtype==61) { // peter bubble
+          for (test=0; test<FE->var_spaces[i]->dof_per_elm;test++) {
+            bLoc[(local_row_index+test)] += w*(rhs_val[unknown_index]*FE->var_spaces[i]->phi[test*dim] +
+                rhs_val[unknown_index+1]*FE->var_spaces[i]->phi[test*dim+1]);
+            if(dim==3) bLoc[(local_row_index+test)] += w*rhs_val[unknown_index+2]*FE->var_spaces[i]->phi[test*dim+2];
+          }
         //
         // no update of unknown_index.
         // Assuming that bubble is the first FE space and that the space it is enriching
         // follow immediately
         //
-      } else { // Vector Element
-        for (test=0; test<FE->var_spaces[i]->dof_per_elm;test++) {
-          bLoc[(local_row_index+test)] += w*(rhs_val[unknown_index]*FE->var_spaces[i]->phi[test*dim] +
-              rhs_val[unknown_index+1]*FE->var_spaces[i]->phi[test*dim+1]);
-          if(dim==3) bLoc[(local_row_index+test)] += w*rhs_val[unknown_index+2]*FE->var_spaces[i]->phi[test*dim+2];
+        } else { // Vector Element
+          for (test=0; test<FE->var_spaces[i]->dof_per_elm;test++) {
+            bLoc[(local_row_index+test)] += w*(rhs_val[unknown_index]*FE->var_spaces[i]->phi[test*dim] +
+                rhs_val[unknown_index+1]*FE->var_spaces[i]->phi[test*dim+1]);
+            if(dim==3) bLoc[(local_row_index+test)] += w*rhs_val[unknown_index+2]*FE->var_spaces[i]->phi[test*dim+2];
+          }
+          unknown_index += dim;
         }
-        unknown_index += dim;
       }
 
       local_dof_on_elm += FE->var_spaces[i]->dof_per_elm;
