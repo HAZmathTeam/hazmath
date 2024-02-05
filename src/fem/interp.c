@@ -585,13 +585,13 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_st
     } else { // bubble DoF: val = int_elm (f) - sum_v_on_elm f(v)*int_elm (lam_v)
       // Precompute some values:
       if(dim==1) {
-        dp1fact = 2.0;
+        dp1fact = 0.5*mesh->el_vol[DOF-nv];
         bubcoef = 6.0/mesh->el_vol[DOF-nv];
       } else if(dim==2) {
-        dp1fact = 6.0;
+        dp1fact = (1.0/3.0)*mesh->el_vol[DOF-nv];
         bubcoef = 60.0/mesh->el_vol[DOF-nv];
       } else if(dim==3) {
-        dp1fact = 24.0;
+        dp1fact = 0.25*mesh->el_vol[DOF-nv];
         bubcoef = 840.0/mesh->el_vol[DOF-nv];
       } else { // Not implmented above dim==3
         check_error(ERROR_DIM,__FUNCTION__);
@@ -603,7 +603,7 @@ REAL FE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),fespace *FE,mesh_st
         elv = loc_el_v[j];
         for(m=0;m<dim;m++) x[m] = FE->cdof->x[m*ndof+elv];
         (*expr)(&expronv,x,time,&(mesh->v_flag[elv]));
-        val += expronv/dp1fact;
+        val += expronv*dp1fact;
       }
       // Integrate function over element and add
       val = bubcoef*(integrate_elm(expr,1,0,nq1d,NULL,mesh,time,DOF-nv) - val);
@@ -704,10 +704,11 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
 
     // Lagrange Elements u[dof] = u[x_i]
   } else if(FEtype>0 && FEtype<10) {
-    for(j=0;j<dim;j++) x[j] = FE->var_spaces[comp]->cdof->x[j*ndof+DOF];
+    for(j=0;j<dim;j++) { 
+      x[j] = FE->var_spaces[comp]->cdof->x[j*ndof+DOF];
+    }
     (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
     val = valx[local_dim];
-
     // Nedelec u[dof] = (1/elen) \int_edge u*t_edge
   } else if (FEtype==20) {
     val = (1.0/mesh->ed_len[DOF])*integrate_edge_vector_tangent(expr,FE->nun,local_dim,nq1d,NULL,mesh,time,DOF);
@@ -751,19 +752,21 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
   } else if(FEtype==103) { // MINI
     // First check if the DOF is a vertex (linear) or element (bubble)
     if(DOF<nv) { // Vertex DoF: val = f(vertex)
-      for(j=0;j<dim;j++) x[j] = FE->var_spaces[comp]->cdof->x[j*ndof+DOF];
+      for(j=0;j<dim;j++) {
+        x[j] = FE->var_spaces[comp]->cdof->x[j*ndof+DOF];
+      }
       (*expr)(valx,x,time,&(FE->var_spaces[comp]->dof_flag[DOF]));
       val = valx[local_dim];
     } else { // bubble DoF: val = int_elm (f) - sum_v_on_elm f(v)*int_elm (lam_v)
       // Precompute some values:
       if(dim==1) {
-        dp1fact = 2.0;
+        dp1fact = 0.5*mesh->el_vol[DOF-nv];
         bubcoef = 6.0/mesh->el_vol[DOF-nv];
       } else if(dim==2) {
-        dp1fact = 6.0;
+        dp1fact = (1.0/3.0)*mesh->el_vol[DOF-nv];
         bubcoef = 60.0/mesh->el_vol[DOF-nv];
       } else if(dim==3) {
-        dp1fact = 24.0;
+        dp1fact = 0.25*mesh->el_vol[DOF-nv];
         bubcoef = 840.0/mesh->el_vol[DOF-nv];
       } else { // Not implmented above dim==3
         check_error(ERROR_DIM,__FUNCTION__);
@@ -773,9 +776,9 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
       get_incidence_row(DOF-nv,mesh->el_v,loc_el_v);
       for(j=0;j<mesh->v_per_elm;j++) {
         elv = loc_el_v[j];
-        for(m=0;m<dim;m++) x[m] = FE->var_spaces[comp]->cdof->x[m*nv+elv];
+        for(m=0;m<dim;m++) x[m] = FE->var_spaces[comp]->cdof->x[m*ndof+elv];
         (*expr)(expronv,x,time,&(mesh->v_flag[elv]));
-        val += expronv[local_dim]/dp1fact;
+        val += expronv[local_dim]*dp1fact;
       }
       // Integrate function over element and add
       val = bubcoef*(integrate_elm(expr,FE->nun,local_dim,nq1d,NULL,mesh,time,DOF-nv) - val);

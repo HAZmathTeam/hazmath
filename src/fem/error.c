@@ -660,6 +660,7 @@ REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,void *),fespace *F
 
   // FE Stuff
   INT FEtype = FE->FEtype;
+  INT scal_or_vec = FE->scal_or_vec;
   INT elm,quad,j;
   REAL sum = 0.0;
   INT dof_per_elm = FE->dof_per_elm;
@@ -669,13 +670,19 @@ REAL HDsemierror(REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,void *),fespace *F
 
   // Derivative of True Solution and FE Solution at Quadrature Nodes
   INT ncomp = 0;
-  if(FEtype<20) { // Lagrange Elements -> Grad
+  if(scal_or_vec==0) { // Scalar Elements; derivatives are gradient vectors
     ncomp = dim;
-  } else if(FEtype>=20 && FEtype<30 && dim==3) { // Nedelec Elements in 3D -> Curl is a Vector
-    ncomp = dim;
-  } else { // 2D Nedelec -> Curl is a scalar or RT -> Div is a scalar
-    ncomp = 1;
-  }
+    if(FEtype==0 || FEtype==99) { // P0 Elements or Constraint element
+      printf("\nHAZmath Warning: You are using elements that don't have a derivative.  Evaluation of H1semi norm of approximation is 0.\n");
+    }
+  } else { // Vector Elements
+    if(FEtype>=20 && FEtype<30 && dim==3) { // Nedelec Elements in 3D -> Curl is a Vector
+      ncomp = dim;
+    } else { // 2D Nedelec -> Curl is a scalar or RT -> Div is a scalar
+      ncomp = 1;
+    }
+  } 
+
   REAL* val_true = (REAL *) calloc(ncomp,sizeof(REAL));
   REAL* val_sol = (REAL *) calloc(ncomp,sizeof(REAL));
 
@@ -763,14 +770,19 @@ void HDsemierror_block(REAL *err,REAL *u,void (*D_truesol)(REAL *,REAL *,REAL,vo
   for(i=0;i<FE->nspaces;i++) {
     err[i] = 0.0;
     dof_per_elm += FE->var_spaces[i]->dof_per_elm;
-    if(FE->var_spaces[i]->FEtype<20 || FE->var_spaces[i]->FEtype==103) /* Scalar Gradient */
-      ncomp[i]=dim;
-    else if(FE->var_spaces[i]->FEtype==20 && dim==2) /* Curl in 2D is scalar */
-      ncomp[i] = 1;
-    else if(FE->var_spaces[i]->FEtype==20 && dim==3) /* Curl in 3D is vector */
+    
+    if(FE->var_spaces[i]->scal_or_vec==0) { // Scalar Elements; derivatives are gradient vectors
       ncomp[i] = dim;
-    else /* Div is scalar */
-      ncomp[i] = 1;
+      if(FE->var_spaces[i]->FEtype==0 || FE->var_spaces[i]->FEtype==99) { // P0 Elements or Constraint element
+        printf("\nHAZmath Warning: You are using elements that don't have a derivative.  Evaluation of H1semi norm of approximation is 0.\n");
+      } 
+    } else { // Vector Elements
+      if(FE->var_spaces[i]->FEtype>=20 && FE->var_spaces[i]->FEtype<30 && dim==3) { // Nedelec Elements in 3D -> Curl is a Vector
+        ncomp[i] = dim;
+      } else { // 2D Nedelec -> Curl is a scalar or RT -> Div is a scalar
+        ncomp[i] = 1;
+      }
+    } 
     nun += ncomp[i];
   }
   INT* dof_on_elm = (INT *) calloc(dof_per_elm,sizeof(INT));
