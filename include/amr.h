@@ -267,4 +267,20 @@ typedef struct /* features (to refine around these) */
 	     */
   FILE *fpf;
 } features;
+
+typedef struct nested_it {
+
+  //! current level mesh
+  mesh_struct *mesh;
+
+  //! current simplicial complex structure
+  scomplex **sc_all;
+
+  //! number of nested iteration levels
+  INT ni_levels;
+
+  //! mapping of vertices from simplicial complex to mesh struct
+
+} nested_it;
+
 /* END OF STRUCTURE DEFINITIONS */
