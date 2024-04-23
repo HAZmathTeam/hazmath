@@ -94,15 +94,19 @@ void get_initial_mesh_ni(nested_it* ni,INT dim,INT init_ref_levels)
 
   INT i;
   // Get the coarsest mesh on the cube in dimension dim and set the refinement type.
-  ni->sc_all=mesh_cube_init(dim,1,11); // check why is this 11
+  ni->sc_all=mesh_cube_init(dim,1,8); // check why is this 11
   scomplex* sc=ni->sc_all[0];
+  ivector marked;
   
   // uniform refine
   if(dim==2){
-    for(i=0;i<init_ref_levels;++i){
-      uniformrefine2d(sc);
+   //for(i=0;i<init_ref_levels;++i){
+      //uniformrefine2d(sc);
+      marked=ivec_create(sc->ns);
+      ivec_set(sc->ns,&marked,1);
+      refine(init_ref_levels,sc,NULL);
       sc_vols(sc);
-    }
+   // }
   } else if(dim==3){
     for(i=0;i<init_ref_levels;++i){
       uniformrefine3d(sc);
