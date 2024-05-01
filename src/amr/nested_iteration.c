@@ -9,71 +9,35 @@
 #include "hazmath.h"
 
 /*!
- * \fn void scfinalize_temp(scomplex *sc,const INT set_bndry_codes)
+ * \fn void initialize_ni(nested_it* ni)
  *
- * \brief Removes all hierachy and make sc to represent only the final
- *        grid. computes connected components and connected components
- *        on the boundary.
+ * \brief Initialize the nested iteration struct
  *
- * \param sc: simplicial complex
- * \param set_bndry_codes: if 0 then create the sparse matrix for all vertices;
+ * \param ni: nested iteration struct containing current mesh, simplicial complexes, and FE info
  *
- * \note This is a modified version of the real scfinalize avoiding some memory issues with the boundary codes until that is fixed.
+ * \return ni: allocate the components of the nested iteration struct
  *
  */
-void scfinalize_temp(scomplex *sc,const INT set_bndry_codes)
+void initialize_ni(nested_it* ni)
 {
-  // INT n=sc->n;
-  INT ns,j=-10,k=-10;
-  INT n1=sc->n+1;
-  /*
-      store the finest mesh in sc structure.
-      on input sc has all the hierarchy, on return sc only has the final mesh.
-  */
-  //  free(sc->parent_v->val);  sc->parent_v->val=NULL;
-  ns=0;
-  for (j=0;j<sc->ns;j++){
-    /*
-      On the last grid are all simplices that were not refined, so
-      these are the ones for which child0 and childn are not set.
-    */
-    if(sc->child0[j]<0 || sc->childn[j]<0){
-      for (k=0;k<n1;k++) {
-	      sc->nodes[ns*n1+k]=sc->nodes[j*n1+k];
-      }
-      sc->child0[ns]=-1;
-      sc->childn[ns]=-1;
-      sc->gen[ns]=sc->gen[j];
-      sc->flags[ns]=sc->flags[j];
-      ns++;
-    }
-  }
-  sc->ns=ns;
-  sc->nodes=realloc(sc->nodes,n1*sc->ns*sizeof(INT));
-  sc->nbr=realloc(sc->nbr,n1*sc->ns*sizeof(INT));
-  sc->vols=realloc(sc->vols,sc->ns*sizeof(REAL));
-  sc->child0=realloc(sc->child0,sc->ns*sizeof(INT));
-  sc->childn=realloc(sc->childn,sc->ns*sizeof(INT));
-  sc->gen=realloc(sc->gen,sc->ns*sizeof(INT));
-  sc->flags=realloc(sc->flags,sc->ns*sizeof(INT));
-  find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
-  // this also can be called separately
-  // set_bndry_codes should always be set to 1.
-  //  set_bndry_codes=1;
-  find_cc_bndry_cc(sc,(INT )1); //set_bndry_codes);
-  //
-  /* if(set_bndry_codes){ */
-  /*   for(j=0;j<sc->nv;++j){ */
-  /*     if(sc->bndry[j]>128) sc->bndry[j]-=128; */
-  /*   } */
-  /* } */
-  // clean up: TODO: DO NOT FREE ANYTHING UNTIL LUDMIL FIXES!
-  // icsr_free(sc->bndry_v);
-  // free(sc->bndry_v);
-  // sc->bndry_v=NULL;
-  // icsr_free(sc->parent_v);
-  // free(sc->parent_v);
-  // sc->parent_v=NULL;
+  // Mesh
+  ni->mesh=malloc(sizeof(mesh_struct));
+
+  // FE space
+  ni->FE=malloc(sizeof(block_fespace));
+
+  // Quadrature
+  ni->cq=malloc(sizeof(qcoordinates));
+
+  // Assume at least 1 level of nested iteration
+  ni->ni_levels=1;
+
+  // Assume uniform refinement by default
+  ni->mark_type=0;
+  ni->mark_param=0.0;
+
+  // Error estimator for AMR
+  ni->err_est=malloc(sizeof(REAL));
   return;
 }
 
@@ -91,19 +55,21 @@ void scfinalize_temp(scomplex *sc,const INT set_bndry_codes)
  */
 void get_initial_mesh_ni(nested_it* ni,INT dim,INT init_ref_levels)
 {
-  INT i;
   // Get the coarsest mesh on the cube in dimension dim and set the refinement type.
-  ni->sc_all=mesh_cube_init(dim,1,8); // > 10 means uniform refinement, which we avoid because it does not complete sc structure
+  // At the moment there are two types of refinement: > 10 uniform refinement; < 10 longest edge
+  ni->sc_all=mesh_cube_init(dim,1,8); // we avoid > 10 because it does not complete sc structure
   scomplex* sc=ni->sc_all[0]; // Grab the finest level 
   
-  // Perform init_ref_levels of uniform refinement to get initial mesh (mark all elements to do uniform refinement)
+  // Perform init_ref_levels of refinement to get initial mesh (mark all elements to obtain cris-cross grid)
   ivector marked;
+  marked=ivec_create(sc->ns);
+  ivec_set(sc->ns,&marked,1);
+  refine(init_ref_levels,sc,NULL);
+
+ // OLD STUFF using uniformrefine which has boundary code issues
  // if(dim==2){
    //for(i=0;i<init_ref_levels;++i){
       //uniformrefine2d(sc);
-      marked=ivec_create(sc->ns);
-      ivec_set(sc->ns,&marked,1);
-      refine(init_ref_levels,sc,NULL);
       //sc_vols(sc); // compute volumes of simplices
    // }
   // } else if(dim==3){
@@ -116,13 +82,75 @@ void get_initial_mesh_ni(nested_it* ni,INT dim,INT init_ref_levels)
   // }
 
   // Get boundary codes and compute volumes of simplices TODO: LTZ check on scfinalize version
-  scfinalize_temp(sc,(INT )1);
+  scfinalize_nofree(sc,(INT )1);
   sc_vols(sc);
 
   // Convert to mesh_struct for FEM assembly
-  ni->mesh=malloc(sizeof(mesh_struct));
+  //ni->mesh=malloc(sizeof(mesh_struct));
   ni->mesh[0]=sc2mesh(sc);
   build_mesh_all(ni->mesh);
+
+  return;
+}
+
+/*!
+ * \fn void ni_refine_mesh(nested_it* ni)
+ *
+ * \brief Refine mesh for next level in the nested iteration process
+ *
+ * \param ni: nested iteration struct containing current mesh, simplicial complexes, and FE info
+ *
+ * \return ni: updates the mesh for next NI level
+ *
+ */
+void ni_refine_mesh(nested_it* ni)
+{
+  // Get to the finest grid in simplicial complex hierarchy (current mesh)
+  scomplex *sc=NULL,*sctop=NULL; // Simplicial complex (all, current, finest)
+  sc = ni->sc_all[0];
+  sctop=scfinest(sc);
+
+  // Mark element using error estimator if needed
+  ivector marked;
+  switch(ni->mark_type) {
+  case 1: // maximal mark
+    marked = amr_maximal_mark(sctop, ni->err_est, ni->mark_param); // elements with error > then mark_param*100% of largest error
+    break;
+  default:
+    marked=ivec_create(sc->ns);
+    ivec_set(sc->ns,&marked,1);
+    break;
+  }
+
+  // Refine the grid once based on who's marked and convert to a mesh again
+  refine(1,sc,&marked);
+  scfinalize_nofree(sc,(INT )1);
+  sc_vols(sc);
+
+  // Convert to mesh_struct for FEM assembly
+  ni->mesh[0]=sc2mesh(sc);
+  build_mesh_all(ni->mesh);
+
+  return;
+}
+
+/*!
+ * \fn void next_ni_level(nested_it* ni,INT dim)
+ *
+ * \brief Updates to the next level in the nested iteration process
+ *
+ * \param ni: nested iteration struct containing current mesh, simplicial complexes, and FE info
+ * \param dim:  Dimension of problem
+ *
+ * \return ni: updates the mesh, FE space, quadrature, and solution for next NI level
+ *
+ */
+void next_ni_level(nested_it* ni,INT dim)
+{
+  
+
+  // Convert to mesh_struct for FEM assembly
+  // ni->cq=cq;
 
   return;
 }

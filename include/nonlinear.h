@@ -67,4 +67,34 @@ typedef struct newton{
 
 } newton;
 
+typedef struct nested_it {
+
+  //! current level mesh
+  mesh_struct *mesh;
+
+  //! current simplicial complex structure
+  scomplex **sc_all;
+
+  //! current level FE system
+  block_fespace *FE;
+
+  //! current level quadrature
+  qcoordinates *cq;
+
+  //! number of nested iteration levels
+  INT ni_levels;
+
+  //! marking strategy for refinement: 0 - mark all (uniform); 1 - maximal mark; 
+  INT mark_type;
+
+  //! marking parameter
+  REAL mark_param;
+
+  //! error estimator
+  REAL* err_est;
+
+  //! mapping of vertices from simplicial complex to mesh struct
+
+} nested_it;
+
 #endif
