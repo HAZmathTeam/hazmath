@@ -267,4 +267,5 @@ typedef struct /* features (to refine around these) */
 	     */
   FILE *fpf;
 } features;
+
 /* END OF STRUCTURE DEFINITIONS */
