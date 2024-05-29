@@ -60,6 +60,7 @@
  * \param tol     Tolerance for convergence check
  *
  */
+/*
 inline static void ITS_CHECK (const INT MaxIt, const REAL tol)
 {
     if ( tol < SMALLREAL ) {
@@ -69,6 +70,7 @@ inline static void ITS_CHECK (const INT MaxIt, const REAL tol)
         printf("### HAZMATH WARNING: Max number of iterations should be a POSITIVE integer!\n");
     }
 }
+*/
 
 /**
  * \fn inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres)

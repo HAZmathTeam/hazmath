@@ -921,7 +921,7 @@ static SHORT aggregation_hem(dCSRmat *A,
   SHORT  status = SUCCESS;
   SHORT print_level=(SHORT )param->print_level;
   //
-  INT  i, j, k, jk,iz,pick,row_start, row_end;
+  INT  j, k, jk,iz,pick,row_start, row_end;
   REAL ajk;
   //ORDER the column indices in Neigh in increasing order; just in case (so bidomain
   //examples behave in a certain way); these work without such ordering too, but...
@@ -959,7 +959,8 @@ static SHORT aggregation_hem(dCSRmat *A,
   REAL *work=calloc(maxdeg,sizeof(REAL));
   INT *iwork=calloc(maxdeg,sizeof(INT));
   //
-  INT kmatch=0;
+  INT kmatch=-1;
+  kmatch=kmatch+1;  // stupid way to make the complier happy (and James happy)... --Xiaozhe
   //  INT kiso=0;
   INT nc=0;
   for(k=0;k<n;++k){
