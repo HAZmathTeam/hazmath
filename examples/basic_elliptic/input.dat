@@ -26,7 +26,7 @@ gridfile          = unitSQ_n9.haz
 % For using HAZmath's built-in uniform mesh functions
 spatial_dim       = 2   % For now only 2D or 3D
 refinement_type   = 11  % Refinement type (>10 uniform or <10 other)
-refinement_levels = 5  % Number of levels of refinement (2^(l+1) vertices in each direction)
+refinement_levels = 5  % Number of levels of refinement (2^(l)+1 vertices in each direction)
 boundary_codes    = 1   % Will set the boundary codes
 
 %---------------%
@@ -59,7 +59,7 @@ nonlinear_itsolver_toltype	= 0 	% type of tolerance for nonlinear solver 1 - ||n
 % linear solver
 %---------------%
 
-linear_itsolver_type		= 3    	% 0 Direct Solve | 1 CG | 2 MINRES | 3 GMRES
+linear_itsolver_type		= 3    	% 0 Direct Solve | 1 CG | 2 MINRES | 3 GMRES | 4 FGMRES
 linear_itsolver_maxit		= 900  	% maximal iterations of linear iterative solver
 linear_itsolver_tol		  = 1e-8  % tolerance for linear iterative solver
 linear_stop_type		    = 1     % 1 ||r||/||b|| | 2 ||r||_B/||b||_B | % 3 ||r||/||x||
