@@ -70,6 +70,7 @@ INT directsolve_HAZ(dCSRmat *A,
   err_flag_f = hazmath_free_numeric(&Numeric);
 #else
   // HAZ Factorize
+  printf("\nHAZMATH WARNING in %s: USING HAZMATH's internal direct solver.\nThis only works for SPD matrices.  Good luck!\n\n",__FUNCTION__);
   //SHORT *more_params=NULL;
   SHORT more_params[3]={1,1,0}; //={is_sym,use_perm,ordering_algorithm}
   //
