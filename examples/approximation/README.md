@@ -19,7 +19,7 @@ The examples below are for approximating the function: f(x) = x^{-0.5} + 0.25*x^
     
   ---
   
-    ./test_aaa.ex <<EOF_FRAC >frac_aaa.m  
+    ./test_aaa.ex &lt;&lt;EOF_FRAC &gt;frac_aaa.m  
            -0.50 0.50 1.00 0.25 0.00001 1.00  
      EOF_FRAC  
   
@@ -32,7 +32,7 @@ The examples below are for approximating the function: f(x) = x^{-0.5} + 0.25*x^
     
   ---
   
-    ./test_brasil.ex <<EOF_FRAC >frac_brasil.m  
+    ./test_brasil.ex &lt;&lt;EOF_FRAC &gt;frac_brasil.m  
            -0.50 0.50 1.00 0.25 0.00001 1.00  
      EOF_FRAC  
   
