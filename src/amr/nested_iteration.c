@@ -131,26 +131,72 @@ void ni_refine_mesh(nested_it* ni)
   ni->mesh[0]=sc2mesh(sc);
   build_mesh_all(ni->mesh);
 
+  // Update the quadrature on the mesh using same order as previous level
+  ni->cq = get_quadrature(ni->mesh,ni->cq->nq1d);
+
   return;
 }
 
 /*!
- * \fn void next_ni_level(nested_it* ni,INT dim)
+ * \fn void ni_update_sol(nested_it* ni,INT dim)
  *
- * \brief Updates to the next level in the nested iteration process
+ * \brief Updates solutions to the next level in the nested iteration process
  *
  * \param ni: nested iteration struct containing current mesh, simplicial complexes, and FE info
  * \param dim:  Dimension of problem
  *
- * \return ni: updates the mesh, FE space, quadrature, and solution for next NI level
+ * \return ni: updates solution for next NI level
+ * 
+ * \note This assumes mesh is updated and FE spaces, as these are problem-dependent, are updated by user
  *
  */
-void next_ni_level(nested_it* ni,INT dim)
+void next_update_sol(nested_it* ni,INT dim)
 {
-  
+ 
+  // Update solution
+  return;
+}
 
-  // Convert to mesh_struct for FEM assembly
-  // ni->cq=cq;
+/*!
+* \fn void free_ni(nested_it* ni)
+*
+* \brief Frees memory of ni struct
+*
+* \param ni     Pointer to ni struct to be freed
+*
+*/
+void free_ni(nested_it* ni)
+{
+  if(ni==NULL) return;
+
+  // Free Mesh
+  if(ni->mesh) {
+    free_mesh(ni->mesh);
+    free(ni->mesh);
+    ni->mesh=NULL;
+  }
+
+  // Figure out how to free simplicial complex (sc_all)
+  
+  // Free quadrature
+  if(ni->cq) {
+    free_qcoords(ni->cq);
+    free(ni->cq);
+    ni->cq=NULL;
+  }
+
+  // Free FE space
+  if(ni->FE) {
+    free_blockfespace(ni->FE);
+    free(ni->FE);
+    ni->FE=NULL;
+  }
+
+  // Free error estimate array
+  if(ni->err_est) {
+    free(ni->err_est);
+    ni->err_est=NULL;
+  }
 
   return;
 }
