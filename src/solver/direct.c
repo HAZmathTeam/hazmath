@@ -70,9 +70,14 @@ INT directsolve_HAZ(dCSRmat *A,
   err_flag_f = hazmath_free_numeric(&Numeric);
 #else
   // HAZ Factorize
-  printf("\nHAZMATH WARNING in %s: USING HAZMATH's internal direct solver.\nThis only works for SPD matrices.  Good luck!\n\n",__FUNCTION__);
+  fprintf(stdout,"\nHAZMATH WARNING in %s: USING HAZMATH's internal direct solver for \
+  \"general\" matrices with symmetric pattern/.\n\n",\
+        __FUNCTION__);
   //SHORT *more_params=NULL;
-  SHORT more_params[3]={1,1,0}; //={is_sym,use_perm,ordering_algorithm}
+  SHORT more_params[3]={0,1,0}; //={is_sym,use_perm,ordering_algorithm}
+  if(more_params[0]){
+    fprintf(stdout,"\nThis choice of params only works for SPD matrices.  Good luck!");
+  }
   //
   Numeric = run_hazmath_factorize(A,print_level,(void *)more_params);
   // HAZ Solve
