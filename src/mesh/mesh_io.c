@@ -313,6 +313,8 @@ void dump_mesh_haz(char *namehaz,mesh_struct *mesh)
     fprintf(fhaz,"\n");
   }
 
+  free(nodes);
+
   // Dump v_flag Data to indicate if vertices are boundaries
   for(i=0;i<nv;i++) fprintf(fhaz,"%lld ",  (long long )mesh->v_flag[i]);
   fprintf(fhaz,"\n");
