@@ -10,7 +10,7 @@
 % output
 %---------------%
 
-print_level	= 2;	% how much information to print out: 0 Nothing | >0 Something
+print_level	= 4;	% how much information to print out: 0 Nothing | >0 Something
 output_dir  = ./output/ % directory for all output (must be created)
 
 
@@ -59,7 +59,7 @@ nonlinear_itsolver_toltype	= 0 	% type of tolerance for nonlinear solver 1 - ||n
 % linear solver
 %---------------%
 
-linear_itsolver_type		= 0    	% 0 Direct Solve | 1 CG | 2 MINRES | 3 GMRES | 4 FGMRES
+linear_itsolver_type		= 21    	% 0 Direct Solve | 1 CG | 2 MINRES | 3 GMRES | 4 FGMRES
 linear_itsolver_maxit		= 900  	% maximal iterations of linear iterative solver
 linear_itsolver_tol		  = 1e-8  % tolerance for linear iterative solver
 linear_stop_type		    = 1     % 1 ||r||/||b|| | 2 ||r||_B/||b||_B | % 3 ||r||/||x||

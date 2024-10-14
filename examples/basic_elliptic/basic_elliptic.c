@@ -335,7 +335,20 @@ int main (int argc, char* argv[])
 
     // Use AMG as iterative solver
     if (linear_itparam.linear_itsolver_type == SOLVER_AMG){
+      printf("Start calling linear solver for A:\n");
       solver_flag = linear_solver_amg(&A, &b, &u, &amgparam);
+      printf("Start calling linear solver for A^T:\n");
+      dCSRmat AT; 
+      dcsr_trans(&A, &AT);
+      solver_flag = linear_solver_amg(&AT, &b, &u, &amgparam);
+      printf("Start calling linear solver for (A^T)^T:\n");
+      dCSRmat ATT;
+      dcsr_trans(&AT, &ATT);
+      solver_flag = linear_solver_amg(&ATT, &b, &u, &amgparam);
+      printf("Start calling linear solver for ((A^T)^T)^T:\n");
+      dCSRmat ATTT;
+      dcsr_trans(&ATT, &ATTT);
+      solver_flag = linear_solver_amg(&ATTT, &b, &u, &amgparam);
     } else { // Use Krylov Iterative Solver
       // Determine Preconditioner
       // Diagonal preconditioner
