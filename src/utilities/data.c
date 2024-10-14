@@ -142,6 +142,7 @@ void amg_data_free(AMG_data *mgl,
             free(param->amli_coef);
     }
 
+    free(mgl);
 
 
 }
