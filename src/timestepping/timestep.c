@@ -387,14 +387,16 @@ void initialize_blktimestepper(block_timestepper *tstepper,input_param *inparam,
   tstepper->At=malloc(sizeof(struct block_dCSRmat)); /* A_time */
   tstepper->At_noBC=malloc(sizeof(struct block_dCSRmat)); /* A_time with no boundary elimination */
   tstepper->sol_prev=malloc(sizeof(struct dvector)); /* uprev */
-  tstepper->sol=NULL;      /* u */
-  tstepper->rhs=NULL;     /* f */
+  tstepper->sol=malloc(sizeof(struct dvector));;      /* u */
+  tstepper->rhs=malloc(sizeof(struct dvector));;     /* f */
   tstepper->rhs_prev=malloc(sizeof(struct dvector)); /* fprev */
   tstepper->rhs_time=malloc(sizeof(struct dvector));
 
   bdcsr_alloc(blksize,blksize,tstepper->At);
   bdcsr_alloc(blksize,blksize,tstepper->At_noBC);
   dvec_alloc(tstepper->old_steps*ndof,tstepper->sol_prev);
+  dvec_alloc(ndof,tstepper->sol);
+  dvec_alloc(ndof,tstepper->rhs);
   dvec_alloc(ndof,tstepper->rhs_prev);
   dvec_alloc(ndof,tstepper->rhs_time);
 
@@ -459,30 +461,32 @@ void free_blktimestepper(block_timestepper* ts, INT flag)
 
   if(ts->sol) {
     dvec_free(ts->sol);
+    free(ts->sol);
     ts->sol=NULL;
   }
 
   if(ts->sol_prev) {
     dvec_free(ts->sol_prev);
-      free(ts->sol_prev);
-      ts->sol_prev=NULL;
+    free(ts->sol_prev);
+    ts->sol_prev=NULL;
   }
 
   if(ts->rhs) {
-      dvec_free(ts->rhs);
-      ts->rhs=NULL;
+    dvec_free(ts->rhs);
+    free(ts->rhs);
+    ts->rhs=NULL;
   }
 
   if(ts->rhs_prev) {
-      dvec_free(ts->rhs_prev);
-      free(ts->rhs_prev);
-      ts->rhs_prev=NULL;
+    dvec_free(ts->rhs_prev);
+    free(ts->rhs_prev);
+    ts->rhs_prev=NULL;
   }
 
   if(ts->rhs_time) {
-      dvec_free(ts->rhs_time);
-      free(ts->rhs_time);
-      ts->rhs_time=NULL;
+    dvec_free(ts->rhs_time);
+    free(ts->rhs_time);
+    ts->rhs_time=NULL;
   }
 
   return;
