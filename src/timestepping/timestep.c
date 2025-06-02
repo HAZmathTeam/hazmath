@@ -382,16 +382,18 @@ void initialize_blktimestepper(block_timestepper *tstepper,input_param *inparam,
   }
 
   // Matrices and Vectors
-  tstepper->M=NULL;
-  tstepper->A=NULL;
-  tstepper->At=malloc(sizeof(struct block_dCSRmat)); /* A_time */
+  tstepper->M=malloc(sizeof(struct block_dCSRmat)); /* M - du/dt part of du/dt + Lu = f */;
+  tstepper->A=malloc(sizeof(struct block_dCSRmat)); /* A - L part of du/dt + Lu = f */;
+  tstepper->At=malloc(sizeof(struct block_dCSRmat)); /* A_time - entire operator*/
   tstepper->At_noBC=malloc(sizeof(struct block_dCSRmat)); /* A_time with no boundary elimination */
   tstepper->sol_prev=malloc(sizeof(struct dvector)); /* uprev */
   tstepper->sol=malloc(sizeof(struct dvector));;      /* u */
   tstepper->rhs=malloc(sizeof(struct dvector));;     /* f */
   tstepper->rhs_prev=malloc(sizeof(struct dvector)); /* fprev */
-  tstepper->rhs_time=malloc(sizeof(struct dvector));
+  tstepper->rhs_time=malloc(sizeof(struct dvector)); /* full right-hand side */
 
+  bdcsr_alloc(blksize,blksize,tstepper->M);
+  bdcsr_alloc(blksize,blksize,tstepper->A);
   bdcsr_alloc(blksize,blksize,tstepper->At);
   bdcsr_alloc(blksize,blksize,tstepper->At_noBC);
   dvec_alloc(tstepper->old_steps*ndof,tstepper->sol_prev);
@@ -434,6 +436,7 @@ void free_blktimestepper(block_timestepper* ts, INT flag)
     else {
         bdcsr_free(ts->A);
     }
+    free(ts->A);
     ts->A=NULL;
   }
 
@@ -444,6 +447,7 @@ void free_blktimestepper(block_timestepper* ts, INT flag)
       else {
         bdcsr_free(ts->M);
       }
+    free(ts->M);
     ts->M=NULL;
   }
 
@@ -451,7 +455,7 @@ void free_blktimestepper(block_timestepper* ts, INT flag)
     bdcsr_free(ts->At);
     free(ts->At);
     ts->At=NULL;
-  }
+    }
 
   if(ts->At_noBC) {
     bdcsr_free(ts->At_noBC);
