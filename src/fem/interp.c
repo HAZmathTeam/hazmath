@@ -788,6 +788,8 @@ REAL blockFE_Evaluate_DOF(void (*expr)(REAL *,REAL *,REAL,void *),block_fespace 
     check_error(ERROR_FE_TYPE,__FUNCTION__);
   }
 
+  if (loc_el_v) free(loc_el_v);
+
   return val;
 }
 /****************************************************************************************************************************/
