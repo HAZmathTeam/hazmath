@@ -3,7 +3,8 @@
 # Last Modified 2018-08-30 --ltz1
 ####################################################
 # SRC File name
-SRCFILE = test_Schwarz
+SRCFILE = solvers
+#SRCFILE = test_Schwarz
 #SRCFILE = solvers_frac
 #SRCFILE = solvers_bsr
 
