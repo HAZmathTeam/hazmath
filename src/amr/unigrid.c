@@ -33,7 +33,7 @@ void coord_lattice(INT *m,const INT dim,const INT kf, \
   */
   j=nall;  k=kf;
   for(i=dim;i>0;i--){
-    j=j/(nd[i-1]);  m[i-1] = k/j;   k=k-m[i-1]*j;
+    j=j/(nd[i-1]+1);  m[i-1] = k/j;   k=k-m[i-1]*j;
   }
   return;
 }
@@ -61,7 +61,7 @@ INT num_lattice(INT *m,const INT dim,INT *nd)
   kf=m[dim-1];
   //      kf = m[dim-1];
   for (i=dim-1; i>0; i--){
-    kf=kf*(nd[i-1])+m[i-1];
+    kf=kf*(nd[i-1]+1)+m[i-1];
   }
   return kf;
 }
