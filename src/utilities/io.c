@@ -2066,7 +2066,7 @@ ivector *ivector_read_eof_p(const char *fname, const unsigned char format)
  */
 dCSRmat *dcoo_read_dcsr_p(FILE *fp)
 {
-  INT  i,j,k,m,n,nnz;
+  long long  i,j,k,m,n,nnz;
   //INT  val;
   REAL value;
   INT offset;
@@ -2094,20 +2094,24 @@ dCSRmat *dcoo_read_dcsr_p(FILE *fp)
   // move back to the beginning of the current line
   fseek(fp, offset, SEEK_SET);
 
+  printf("start reading\n");
+
   // now start to read
-  fscanf(fp,"%lld %lld %lld",(long long *)&m,(long long *)&n,(long long *)&nnz);
+  fscanf(fp,"%lld %lld %lld",&m, &n, &nnz);
 
   dCOOmat *Atmp=dcoo_create_p(m,n,nnz);
 
   for ( k = 0; k < nnz; k++ ) {
-    if ( fscanf(fp, "%lld %lld %le", (long long *)&i, (long long *)&j, &value) != EOF ) {
+    if ( fscanf(fp, "%lld %lld %le", &i, &j, &value) != EOF ) {
       Atmp->rowind[k]=i; Atmp->colind[k]=j; Atmp->val[k] = value;
     }
     else {
       check_error(ERROR_WRONG_FILE, "dcoo_read_dcsr_p");
     }
   }
+
   dCSRmat *A=dcoo_2_dcsr_p(Atmp);
+
   free((void *)Atmp);
   return A;
 }
@@ -2130,7 +2134,7 @@ dCSRmat *dcoo_read_dcsr_p(FILE *fp)
  */
 dCSRmat *dcoo_read_dcsr_p_1(FILE *fp)
 {
-  INT  i,j,k,m,n,nnz;
+  long long  i,j,k,m,n,nnz;
   //INT  val;
   REAL value;
   INT offset;
@@ -2194,10 +2198,10 @@ dCSRmat *dcoo_read_dcsr_p_1(FILE *fp)
 dvector *dvector_read_p(FILE *fp)
 {
   dvector *b=NULL;
-  INT  i, n;
+  long long  i, n;
   REAL value;
   if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
-  fscanf(fp,"%lld",(long long *)&n);
+  fscanf(fp,"%lld",&n);
   b=dvec_create_p(n);
   for ( i = 0; i < n; ++i ) {
     fscanf(fp, "%lg", &value);

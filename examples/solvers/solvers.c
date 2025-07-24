@@ -56,23 +56,33 @@ int main (int argc, char* argv[])
     fnamea=strdup(argv[1]);
     fnameb=strdup(argv[2]);
   }
+  printf("Matrix A read from file %s\n",fnamea);
+  printf("RHS b read from file %s\n",fnameb);
+  printf("read_to_eof=%d\n",read_to_eof);
   if(read_to_eof){
     A=dcoo_read_eof_dcsr_p(fnamea,NULL,'A'); //'A' is for ascii. 
     if(fnamea) free(fnamea);
     b=dvector_read_eof_p(fnameb,'A'); //'A' is for ascii
     if(fnameb) free(fnameb);
   } else {
+    INT  m,n,nnz;
     fp = fopen(fnamea,"r");
     if (!fp) check_error(ERROR_OPEN_FILE, __FUNCTION__);
     if(fnamea) free(fnamea);
     A=dcoo_read_dcsr_p(fp);
+    printf("Matrix A read from file %s\n",fnamea);
     fclose(fp);
     fp = fopen(fnameb,"r");
     if (!fp) check_error(ERROR_OPEN_FILE, __FUNCTION__);
     if(fnameb) free(fnameb);
     b=dvector_read_p(fp);
+    printf("RHS b read from file %s\n",fnameb);
     fclose(fp);
   }
+
+  printf("\nMatrix A: %d x %d with %d nonzeros\n", A->row, A->col, A->nnz);
+  printf("RHS b: %d entries\n", b->row);
+
   /************************************************************/
   /*************** ACTION *************************************/
   /* set initial guess */

@@ -3236,7 +3236,6 @@ void bdcsr_free_minimal(block_dCSRmat *A)
   return;
 }
 
-/***********************************************************************************************/
 /*!
    * \fn void bdcsr_free (block_dCSRmat *A)
    *

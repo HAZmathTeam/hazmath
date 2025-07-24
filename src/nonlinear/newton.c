@@ -51,6 +51,8 @@ void initialize_newton(newton *n_it,input_param *inparam,INT ndof,INT blksize)
     n_it->Jac_block=NULL;
   }
   n_it->sol=malloc(sizeof(struct dvector));
+  // dvector sol = dvec_create(ndof);
+  // n_it->sol = &sol;
   n_it->sol_prev=malloc(sizeof(struct dvector));
   n_it->update=malloc(sizeof(struct dvector));
   n_it->rhs=malloc(sizeof(struct dvector));     /* f - A(sol_prev) */
