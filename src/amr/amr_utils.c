@@ -1191,8 +1191,8 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
   }
   INT *wrk=NULL,*acap=NULL;
   if(i>0){
-    INT *wrk=calloc(2*i,sizeof(INT));
-    INT *acap=calloc(i,sizeof(INT));
+    wrk=calloc(2*i,sizeof(INT));
+    acap=calloc(i,sizeof(INT));
   }
   // fprintf(stdout,"%%%% max_nnz_row_bndry_v=%d\n",i);fflush(stdout);
   if(1){//ALWAYS set_bndry_codes) {
