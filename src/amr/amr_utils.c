@@ -1284,7 +1284,7 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
   }  // end else
 //
   INT iaa,iab,code,cmin,cmax;
-  fprintf(stdout,"\nNNZOLD=%d;NNZBV=%d",nnzold,nnz_bv);
+  // fprintf(stdout,"\nNNZOLD=%d;NNZBV=%d",nnzold,nnz_bv);
   if(!nnz_bv){
     for(i=0;i<sc->bndry_cc;++i){
       for(k=blk_dfs->IA[i];k<blk_dfs->IA[i+1];++k){
