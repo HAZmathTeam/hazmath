@@ -1,7 +1,7 @@
 /*! \file src/graphs/dfs.c
  *
  *  Created by James Adler, Xiaozhe Hu, and Ludmil Zikatanov on 20190715.
- *  Copyright 2017__HAZMATH__. All rights reserved.
+ *  Copyright 2017__HAZMATH__. All righrts reserved.
  *
  *  \note depth first search and related routines. 
  *

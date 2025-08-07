@@ -84,18 +84,17 @@ INT main(int argc,char *argv[])
   fprintf(stdout,"\n%%%%EXAMPLE(fractional):\n");
   fprintf(stdout,"\nxmin=%.8e;xmax=%.8e;npts=%lld;h=(xmax-xmin)/(npts-1);\n",xmin_in,xmax_in,(long long )4097);
   fprintf(stdout,"\nx=linspace(xmin,xmax,npts);\nif(size(x,1)==1),x=x';end\n");
-  fprintf(stdout,"\nf_in = 1./(%.2Lf * x.^(%.1Lf) + %.2Lf * x.^(%.1Lf) );\n",alpha,s,beta,t);
+//  fprintf(stdout,"\nf_in = 1./(%.2Lf * x.^(%.1Lf) + %.2Lf * x.^(%.1Lf) );\n",alpha,s,beta,t);
+  fprintf(stdout,"\nf_in = (%.2Lf * x.^(%.1Lf) + %.2Lf * x.^(%.1Lf) );\n",alpha,s,beta,t);
   fprintf(stdout,"\n%%===============================================%%\n");
   fprintf(stdout,"\nbounds=[%.16e,%.16e];\n",xmin_in,xmax_in);
   fprintf(stdout,"\n\nm=%lld; max_err=%.12e;\n",(long long )m,rmax);
   fprintf(stdout,"\nres=zeros(%lld,1);pol=zeros(%lld,1);\nz=zeros(%lld,1);w=zeros(%lld,1);f=zeros(%lld,1);", \
 	  (long long )m,(long long )m-1,(long long )m,(long long )m,(long long )m);
   fprintf(stdout,"\n%%===============================================%%\n");
-  fprintf(stdout,"im=sqrt(-1);");
-  fprintf(stdout,"\n%%===============================================%%\n");
-  for(i=0;i<m;i++)fprintf(stdout,"\nres(%lld)=%.16e + im*(%.16e);",(long long )(i+1),*(rpzwf[0]+i),*(rpzwf[1]+i));
+  for(i=0;i<m;i++)fprintf(stdout,"\nres(%lld)=%.16e + 1i*(%.16e);",(long long )(i+1),*(rpzwf[0]+i),*(rpzwf[1]+i));
   fprintf(stdout,"\n");
-  for(i=0;i<m-1;i++) fprintf(stdout,"\npol(%lld)=%.16e + im*(%.16e);",(long long )(i+1),*(rpzwf[2]+i),*(rpzwf[3]+i));
+  for(i=0;i<m-1;i++) fprintf(stdout,"\npol(%lld)=%.16e + 1i*(%.16e);",(long long )(i+1),*(rpzwf[2]+i),*(rpzwf[3]+i));
   fprintf(stdout,"\n");
   for(i=0;i<m;i++) fprintf(stdout,"\nz(%lld)=%.16e;",(long long )(i+1),*(rpzwf[4]+i));
   fprintf(stdout,"\n");
@@ -105,7 +104,8 @@ INT main(int argc,char *argv[])
   fprintf(stdout,"\n");  
   fprintf(stdout,"f_ra=1./(kron(x,ones(size(pol\')))-kron(ones(size(x)),conj(pol\')));");
   fprintf(stdout,"f_ra=res(1)+f_ra*(res(2:%lld));",(long long )m);
-  fprintf(stdout,"\n%%%%%%%%\t\tf_of_z = 1./(%.2Lf * z.^(%.1Lf) + %.2Lf * z.^(%.1Lf));\n",alpha,s,beta,t);
+//  fprintf(stdout,"\n%%%%%%%%\t\tf_of_z = 1./(%.2Lf * z.^(%.1Lf) + %.2Lf * z.^(%.1Lf));\n",alpha,s,beta,t);
+  fprintf(stdout,"\n%%%%%%%%\t\tf_of_z = (%.2Lf * z.^(%.1Lf) + %.2Lf * z.^(%.1Lf));\n",alpha,s,beta,t);
   fprintf(stdout,"\nerL2=norm(f_in-f_ra,2)/norm(f_in,2);");
   fprintf(stdout,"\nerinf=norm(f_in-f_ra,inf)/norm(f_in,inf);");
   fprintf(stdout,"\n%%%%return;end\n");

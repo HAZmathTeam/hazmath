@@ -30,7 +30,7 @@ INT main(INT   argc,   char *argv[])
   FILE *fp;
   fp=stdin;
   //no   fp=HAZ_fopen("inputs/2d_ann.input","r");
-  //   fp=HAZ_fopen("inputs/2d_2L.input","r");
+  // fp=HAZ_fopen("input/2d_2L.input","r");
   // fp=HAZ_fopen("inputs/3d_fichera.input","r");
   // fp=HAZ_fopen("inputs/3d_2cubes_edge.input","r");
   // fp=HAZ_fopen("inputs/3d_2cubes_vertex.input","r");

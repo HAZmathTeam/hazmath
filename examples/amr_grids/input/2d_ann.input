@@ -99,7 +99,7 @@ data_macrofaces{0 1  1
 		   }
 
 %%%%%%%%%%%%%%AMR %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-num_refinements{5}
+num_refinements{1}
 
 err_stop_refinement{        -1.e-10        }
 %%% marking type: 0 everything is marked; not zero can be user defined

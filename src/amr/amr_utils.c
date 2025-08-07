@@ -24,10 +24,70 @@
 INT aresame(INT *a, INT *b, INT n)
 {
   /*
+     checks if two integer arrays have the same elements (up to a
+     permutation); Uses equality in Schwarz inequality; 
+     if they are same, returns 1, otherwise returns 0;
+     (O(n) algorithm) 
+  */
+  INT i;
+  LONG ai,bi,abnrms,adotb2=(LONG )0,bnrm=(LONG )0,anrm=(LONG )0;
+  for (i=0;i<n;i++){
+    ai=(LONG )a[i];
+    bi=(LONG )b[i];
+    anrm+=ai*ai;
+    bnrm+=bi*bi;
+    adotb2+=(ai*bi);
+  }
+  fprintf(stdout, "\na b=");
+  for (i=0;i<n;i++){
+    ai=(LONG )a[i];
+    bi=(LONG )b[i];
+    fprintf(stdout, "%li %li ",ai, bi);
+  }
+  // now compare ||a||^2||b||^2 with (a.b)^2
+  adotb2=adotb2*adotb2;
+  abnrms=anrm*bnrm;
+  if(adotb2 != abnrms){
+    fprintf(stdout,"X=%li %li\n",adotb2,abnrms); fflush(stdout);
+    return 0;
+  } else { // this shows that the arrays are proportional to each other. 
+    fprintf(stdout,"YYY:%li %li\n",adotb2,abnrms); fflush(stdout);
+  ai=(LONG )a[0];
+    for(i=0;i<n;i++){
+      bi=(LONG )b[i];
+      if(ai==bi) //check if proportionality is 1. 
+        return 1;
+    }
+    return 0;
+  }
+} 
+/**********************************************************************/
+/*!
+ * \fn INT aresame_old(INT *a, INT *b, INT n)
+ *
+ * \brief checks if two arrays have same elements up to a permutation.
+ *
+ * \param a:   input array
+ * \param b:   input array to compare with a.
+ * \param n:   the size of a and b;
+ *
+ * \return     if the arrays are a permutation of each other returns 1,
+ *             otherwise returns 0.
+ *
+ */
+INT aresame0(INT *a, INT *b, INT n)
+{
+  /*
      checks (n^2 algorithm) if two have the same elements (up to a
      permutation), if they are same, returns 1, otherwise returns 0
   */
   INT i,j,flag,ai,bj;
+  fprintf(stdout, "\na b=");
+  for (i=0;i<n;i++){
+    ai=a[i];
+    bj=b[i];
+    fprintf(stdout, "%i %i ",ai, bj);fflush(stdout);
+  }
   for (i=0;i<n;i++){
     ai=a[i];
     flag=0;
@@ -1001,12 +1061,12 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
     for(j=0;j<dim1;j++){
       is=sc->nbr[isn1+j];
       if(is>=0){
-	s2s.JA[iii]=is;
-	s2s.val[iii]=1;
-	iii++;
+	      s2s.JA[iii]=is;
+	      s2s.val[iii]=1;
+	      iii++;
       } else {
-	nbf++;
-	//nnzbf+=dim;
+	      nbf++;
+	// nnzbf+=dim;
       }
     }
     s2s.IA[i+1]=iii;
@@ -1087,9 +1147,9 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
     for(ke=j0;ke<j1;ke++){
       je=f2f.JA[ke];
       if(je==i){
-	f2f.JA[f2f.nnz]=i;
-	f2f.val[f2f.nnz]=1;
-	f2f.nnz++;
+	      f2f.JA[f2f.nnz]=i;
+	      f2f.val[f2f.nnz]=1;
+	      f2f.nnz++;
       	continue;
       }
       if(f2f.val[ke]!=(dim-1)) continue;
@@ -1113,91 +1173,106 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
   }
   icsr_free(&f2f);
   /*******************************************************************/
-  //fprintf(stdout,"%%%%--> number of connected components in the bulk=%d\n",sc->cc);
-  //fprintf(stdout,"%%%%--> number of connected components on the boundary=%d\n",sc->bndry_cc);
+  fprintf(stdout,"%%%%--> number of connected components in the bulk=%d\n",sc->cc);
+  fprintf(stdout,"%%%%--> number of connected components on the boundary=%d\n",sc->bndry_cc);
+  fflush(stdout);
   /* make boundary codes from parent_v */
   INT *a1=NULL,*a2=NULL,l,ncap,n1,n2,v1,v2,nnz_bv,nnzold;
   i=-1;
+  // fprintf(stdout,"\nr=%d;c=%d;nnz=%d\n", sc->bndry_v->row,sc->bndry_v->col,sc->bndry_v->nnz);fflush(stdout);
+// compute the max degree of a vertex in bndry_v; 
+// a vertex may lie the intersection of many boundaries as the 
+// dimension of the problem increases. 
+// sc_bndry_v is an iCSRmat that for every vertex, it contains all boundaries it lies on. 
+//
   for(k=0;k<sc->bndry_v->row;++k){
     j=sc->bndry_v->IA[k+1]-sc->bndry_v->IA[k];
     if(i<j) i=j;
   }
-  INT *wrk=calloc(2*i,sizeof(INT));
-  INT *acap=calloc(i,sizeof(INT));
-  //  fprintf(stdout,"%%%% max_nnz_row_bndry_v=%d\n",i);fflush(stdout);
+  INT *wrk=NULL,*acap=NULL;
+  if(i>0){
+    INT *wrk=calloc(2*i,sizeof(INT));
+    INT *acap=calloc(i,sizeof(INT));
+  }
+  // fprintf(stdout,"%%%% max_nnz_row_bndry_v=%d\n",i);fflush(stdout);
   if(1){//ALWAYS set_bndry_codes) {
-    icsr_free(blk_dfs);free(blk_dfs);
-    icsr_free(&f2v);
-    free(indx);
-    free(indxinv);
     nnz_bv=sc->bndry_v->nnz;
     for(k=0;k<sc->parent_v->row;++k){
       j=sc->parent_v->IA[k];
-      if((sc->parent_v->IA[k+1]-j)!=2) continue;
+      // two parents for a vertex obtained during refinement
+      if((sc->parent_v->IA[k+1]-j)!=2) continue; 
       nnz_bv+=i;
     }
     nnzold=nnz_bv;
-    sc->bndry_v->val=realloc(sc->bndry_v->val,2*nnz_bv*sizeof(INT));
-    for(k=0;k<sc->bndry_v->nnz;++k){
-      sc->bndry_v->val[nnz_bv+k]=sc->bndry_v->val[sc->bndry_v->nnz+k];
+    // if nnz_bv==0 then this is a mesh without any refinements. 
+    if(nnz_bv){
+      sc->bndry_v->val=realloc(sc->bndry_v->val,2*nnz_bv*sizeof(INT));
+      for(k=0;k<sc->bndry_v->nnz;++k){
+        sc->bndry_v->val[nnz_bv+k]=sc->bndry_v->val[sc->bndry_v->nnz+k];
       //      sc->bndry_v->val[sc->bndry_v->nnz+k]=0;
+      }
+      sc->bndry_v->JA=realloc(sc->bndry_v->JA,nnz_bv*sizeof(INT));
     }
     sc->bndry_v->row=sc->parent_v->row;
     sc->bndry_v->IA=realloc(sc->bndry_v->IA,(sc->parent_v->row+1)*sizeof(INT));
-    sc->bndry_v->JA=realloc(sc->bndry_v->JA,nnz_bv*sizeof(INT));
-    // add all boundary codes for vertices obtained with
-    // refinement. This uses that such vertices are added one by one
-    // after refinement and ordered after their "ancestors"
-    for(k=0;k<sc->parent_v->row;++k){
-      nnz_bv=sc->bndry_v->IA[k];
-      j=sc->parent_v->IA[k];
-      if((sc->parent_v->IA[k+1]-j)==2){
-	//	fprintf(stdout,"\nnnz_bv=%d (IA=%d),k=%d,diff0=%d",nnz_bv,sc->bndry_v->IA[k],k,(sc->parent_v->IA[k+1]-j));
-	v1=sc->parent_v->JA[j];
-	n1=sc->bndry_v->IA[v1+1]-sc->bndry_v->IA[v1];
-	a1=sc->bndry_v->JA+sc->bndry_v->IA[v1];
+    sc->bndry_v->IA[sc->bndry_v->row]=nnz_bv;
+//    fprintf(stdout,"\nia=%d,nnzbv=%d",sc->bndry_v->IA[sc->bndry_v->row],nnz_bv);fflush(stdout);
+    if(nnz_bv){
+      // add all boundary codes for vertices obtained with
+      // refinement. This uses that such vertices are added one by one
+      // after refinement and ordered after their "ancestors"
+      for(k=0;k<sc->parent_v->row;++k){
+        nnz_bv=sc->bndry_v->IA[k];
+        j=sc->parent_v->IA[k];
+        if((sc->parent_v->IA[k+1]-j)==2){
+	        v1=sc->parent_v->JA[j];
+      	  n1=sc->bndry_v->IA[v1+1]-sc->bndry_v->IA[v1];
+	        a1=sc->bndry_v->JA+sc->bndry_v->IA[v1];
 	//
-	v2=sc->parent_v->JA[j+1];
-	n2=sc->bndry_v->IA[v2+1]-sc->bndry_v->IA[v2];
-	a2=sc->bndry_v->JA+sc->bndry_v->IA[v2];
-	//	fprintf(stdout,"\nnew_vertex=%d,v1=%d,v2=%d; n1=%d,n2=%d",k,v1,v2,n1,n2);fflush(stdout);
-	//	print_full_mat_int(1,n1,a1,"a1");
-	//	print_full_mat_int(1,n2,a2,"a2");
-	ncap=array_cap(n1,a1,n2,a2,acap,wrk);
-	if(ncap){
-	  //	  print_full_mat_int(1,ncap,acap,"INTERSECTION");
-	  for(i=0;i<ncap;++i){
-	    l=wrk[i] + sc->bndry_v->IA[v1];
-	    sc->bndry_v->JA[nnz_bv+i]=acap[i];
-	    sc->bndry_v->val[nnz_bv+i]=sc->bndry_v->val[l];
-	    sc->bndry_v->val[nnz_bv+i+nnzold]=sc->bndry_v->val[l+nnzold];
-	  }
-	  nnz_bv+=ncap;
-	}
-	sc->bndry_v->IA[k+1]=nnz_bv;
+	        v2=sc->parent_v->JA[j+1];
+	        n2=sc->bndry_v->IA[v2+1]-sc->bndry_v->IA[v2];
+	        a2=sc->bndry_v->JA+sc->bndry_v->IA[v2];
+    	  //	fprintf(stdout,"\nnew_vertex=%d,v1=%d,v2=%d; n1=%d,n2=%d",k,v1,v2,n1,n2);fflush(stdout);
+	      //print_full_mat_int(1,n1,a1,"a1");
+	      //print_full_mat_int(1,n2,a2,"a2");
+          ncap=array_cap(n1,a1,n2,a2,acap,wrk);
+          if(ncap){
+	  //	    print_full_mat_int(1,ncap,acap,"INTERSECTION");
+	          for(i=0;i<ncap;++i){
+	            l=wrk[i] + sc->bndry_v->IA[v1];
+	            sc->bndry_v->JA[nnz_bv+i]=acap[i];
+	            sc->bndry_v->val[nnz_bv+i]=sc->bndry_v->val[l];
+	            sc->bndry_v->val[nnz_bv+i+nnzold]=sc->bndry_v->val[l+nnzold];
+	          }
+	          nnz_bv+=ncap;
+	        }
+		      sc->bndry_v->IA[k+1]=nnz_bv;
+        }
       }
+      if(wrk) free(wrk);
+      if(acap) free(acap);
     }
     sc->bndry_v->row=sc->parent_v->row;
     // in case the mesh was not refined at all, i.e. no added vertices
     if(sc->bndry_v->IA[sc->bndry_v->row]>nnz_bv)
       nnz_bv=sc->bndry_v->IA[sc->bndry_v->row];
-    sc->bndry_v->nnz=nnz_bv;
+    else
+      sc->bndry_v->nnz=nnz_bv;
     sc->bndry_v->IA[sc->bndry_v->row]=nnz_bv;
     sc->bndry_v->JA=realloc(sc->bndry_v->JA,nnz_bv*sizeof(INT));
+    sc->bndry_v->val=realloc(sc->bndry_v->val,dim*sc->bndry_v->row*sizeof(INT));
     for(k=0;k<nnz_bv;k++){
       sc->bndry_v->val[k+nnz_bv]=sc->bndry_v->val[nnzold+k];
     }
     sc->bndry_v->val=realloc(sc->bndry_v->val,2*nnz_bv*sizeof(INT));
-    free(wrk);
-    free(acap);
   } else {
     /*BEGIN: TO BE REMOVED IN THE FUTURE*/
     for(i=0;i<sc->bndry_cc;++i){
       for(k=blk_dfs->IA[i];k<blk_dfs->IA[i+1];++k){
-	j=blk_dfs->JA[k];
-	for(m=0;m<dim;m++){
-	  sc->bndry[indxinv[f2v.JA[dim*j+m]]]=i+1+128;
-	}
+	      j=blk_dfs->JA[k];
+	        for(m=0;m<dim;m++){
+	            sc->bndry[indxinv[f2v.JA[dim*j+m]]]=i+1+128;
+	        }
       }
     }
     icsr_free(blk_dfs);free(blk_dfs);
@@ -1206,8 +1281,39 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
     free(indxinv);
     return;
     /*END: TO BE REMOVED IN THE FUTURE*/
-  }
+  }  // end else
+//
   INT iaa,iab,code,cmin,cmax;
+  fprintf(stdout,"\nNNZOLD=%d;NNZBV=%d",nnzold,nnz_bv);
+  if(!nnz_bv){
+    for(i=0;i<sc->bndry_cc;++i){
+      for(k=blk_dfs->IA[i];k<blk_dfs->IA[i+1];++k){
+	      j=blk_dfs->JA[k];
+	      for(m=0;m<dim;m++){
+//	        fprintf(stdout,"\nBV=%d,code=%d; face=%d",indxinv[f2v.JA[dim*j+m]],i,k);
+	        sc->bndry[indxinv[f2v.JA[dim*j+m]]]=i;
+	      }
+      }
+    }
+    sc->bndry_v->IA=realloc(sc->bndry_v->IA,(sc->bndry_v->row+1)*sizeof(INT));   
+    sc->bndry_v->JA=realloc(sc->bndry_v->JA,dim*(sc->bndry_v->row)*sizeof(INT));   
+    sc->bndry_v->val=realloc(sc->bndry_v->val,dim*(sc->bndry_v->row+1)*sizeof(INT));   
+    // sc->bndry_v->IA[1]=0;// this should be of length nv at least. 
+    // for(i=0;i<sc->bndry_cc;++i){
+    //   for(k=blk_dfs->IA[i];k<blk_dfs->IA[i+1];++k){
+	  //     j=blk_dfs->JA[k];
+	  //     for(m=0;m<dim;m++){
+	  //       fprintf(stdout,"\nBV=%d,code=%d; face=%d",indxinv[f2v.JA[dim*j+m]],i,k);
+	  //       sc->bndry[indxinv[f2v.JA[dim*j+m]]]=i;
+	  //     }
+    //   }
+    // }
+  }
+  icsr_free(blk_dfs);free(blk_dfs);
+  icsr_free(&f2v);
+  free(indx);
+  free(indxinv);
+  return;
   cmin=sc->bndry_v->val[0];
   cmax=sc->bndry_v->val[0];
   for(i=1;i<sc->bndry_v->nnz;++i){
@@ -1218,6 +1324,10 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
   }
   cmin--;
   cmax++;
+  fprintf(stdout,"cmin=%d,cmax=%d,nnz_bv=%d,nnz_in bv=%d,k123=%d,rows:%10d\n", \
+    cmin,cmax,nnz_bv,\
+    sc->bndry_v->nnz,sc->bndry_v->IA[sc->bndry_v->row],sc->bndry_v->row);fflush(stdout);
+  exit(2);
   if(!cmin) cmin=-1;
   if(!cmax) cmax=1;
   for(i=0;i<sc->bndry_v->row;++i){
@@ -1228,12 +1338,13 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
     } else {
       sc->bndry[i]=cmax;
       for(k=iaa;k<iab;++k){
-	code=sc->bndry_v->val[k];
-	if(!code) continue;
-	if(sc->bndry[i]>code) sc->bndry[i]=code;
+        fprintf(stdout,"\nk=%d,nnz_bv=%d",k,nnz_bv);fflush(stdout);
+	      code=sc->bndry_v->val[k];
+	      if(!code) continue;
+	      if(sc->bndry[i]>code) sc->bndry[i]=code;
       }
       if(sc->bndry[i]==cmax) {
-	sc->bndry[i]=0;
+	        sc->bndry[i]=0;
       }
     }
   }
