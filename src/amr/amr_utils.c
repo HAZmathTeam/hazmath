@@ -24,77 +24,24 @@
 INT aresame(INT *a, INT *b, INT n)
 {
   /*
-     checks if two integer arrays have the same elements (up to a
-     permutation); Uses equality in Schwarz inequality; 
-     if they are same, returns 1, otherwise returns 0;
-     (O(n) algorithm) 
-  */
-  INT i;
-  LONG ai,bi,abnrms,adotb2=(LONG )0,bnrm=(LONG )0,anrm=(LONG )0;
-  for (i=0;i<n;i++){
-    ai=(LONG )a[i];
-    bi=(LONG )b[i];
-    anrm+=ai*ai;
-    bnrm+=bi*bi;
-    adotb2+=(ai*bi);
-  }
-  fprintf(stdout, "\na b=");
-  for (i=0;i<n;i++){
-    ai=(LONG )a[i];
-    bi=(LONG )b[i];
-    fprintf(stdout, "%li %li ",ai, bi);
-  }
-  // now compare ||a||^2||b||^2 with (a.b)^2
-  adotb2=adotb2*adotb2;
-  abnrms=anrm*bnrm;
-  if(adotb2 != abnrms){
-    fprintf(stdout,"X=%li %li\n",adotb2,abnrms); fflush(stdout);
-    return 0;
-  } else { // this shows that the arrays are proportional to each other. 
-    fprintf(stdout,"YYY:%li %li\n",adotb2,abnrms); fflush(stdout);
-  ai=(LONG )a[0];
-    for(i=0;i<n;i++){
-      bi=(LONG )b[i];
-      if(ai==bi) //check if proportionality is 1. 
-        return 1;
-    }
-    return 0;
-  }
-} 
-/**********************************************************************/
-/*!
- * \fn INT aresame_old(INT *a, INT *b, INT n)
- *
- * \brief checks if two arrays have same elements up to a permutation.
- *
- * \param a:   input array
- * \param b:   input array to compare with a.
- * \param n:   the size of a and b;
- *
- * \return     if the arrays are a permutation of each other returns 1,
- *             otherwise returns 0.
- *
- */
-INT aresame0(INT *a, INT *b, INT n)
-{
-  /*
      checks (n^2 algorithm) if two have the same elements (up to a
      permutation), if they are same, returns 1, otherwise returns 0
   */
   INT i,j,flag,ai,bj;
-  fprintf(stdout, "\na b=");
-  for (i=0;i<n;i++){
-    ai=a[i];
-    bj=b[i];
-    fprintf(stdout, "%i %i ",ai, bj);fflush(stdout);
-  }
+  // fprintf(stdout, "\na b=");
+  // for (i=0;i<n;i++){
+  //   ai=a[i];
+  //   bj=b[i];
+  //   //fprintf(stdout, "%i %i ",ai, bj);fflush(stdout);
+  // }
   for (i=0;i<n;i++){
     ai=a[i];
     flag=0;
     for(j=0;j<n;j++){
       bj=b[j];
       if(ai==bj){
-	flag=1; break;
+        // if ai is found in b, break and go to next ai;
+	      flag=1; break;
       }
     }
     if(!flag) return 0;
