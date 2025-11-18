@@ -1,6 +1,6 @@
 from numpy import random
 import haznics
-from dolfin import *
+from dolfinx import *
 
 
 mesh = UnitIntervalMesh(10) 
