@@ -1031,27 +1031,29 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
   //
   // now working on the boundary:
   //
-  iCSRmat f2v=icsr_create(nbf,sc->nv,nbf*dim);
   // forming the face2vertex matrix uses that the neighboring list of
-  // elements is in accordance with the simplex2vertex map.
+  // elements is in accordance with the simplex2vertex map. 
+  // This means that the j-th neighbor in sc->nbr is opposite to the j-th
+  // vertex in sc->nodes.
+  iCSRmat f2v=icsr_create(nbf,sc->nv,nbf*dim);
   INT nbfnew=0;
   INT nnzf2v=0;
   f2v.IA[0]=nnzf2v;
-  for(i=0;i<ns;i++){
-    for(j=0;j<dim1;j++){
-      if(sc->nbr[i*dim1+j]<0) {
-	for(m=0;m<dim1;m++){
-	  if(m==j) continue;
-	  f2v.JA[nnzf2v]=sc->nodes[i*dim1+m];
-	  f2v.val[nnzf2v]=1;
-	  nnzf2v++;
-	}
-	nbfnew++;
-	f2v.IA[nbfnew]=nnzf2v;
+  for (i = 0; i < ns; i++) {
+    for (j = 0; j < dim1; j++) {
+      if (sc->nbr[i * dim1 + j] < 0) {
+        for (m = 0; m < dim1; m++) {
+          if (m == j) continue;
+          f2v.JA[nnzf2v] = sc->nodes[i * dim1 + m];
+          f2v.val[nnzf2v] = 1;
+          nnzf2v++;
+        }
+        nbfnew++;
+        f2v.IA[nbfnew] = nnzf2v;
       }
     }
   }
-  f2v.nnz=nnzf2v;
+  f2v.nnz = nnzf2v;
   if(nbf!=nbfnew){
     fprintf(stderr,"\n%%***ERROR(1): num. bndry faces mismatch (nbf=%lld .ne. nbfnew=%lld) in %s",(long long )nbf,(long long )nbfnew,__FUNCTION__);
     exit(65);
@@ -1112,7 +1114,8 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
   f2f.val=realloc(f2f.val,f2f.nnz*sizeof(INT));
   /*******************************************************************/
   icsr_free(blk_dfs);free(blk_dfs);
-  blk_dfs=run_dfs(f2f.row,f2f.IA, f2f.JA);
+  // find connected components on the boundary
+  blk_dfs=run_dfs(f2f.row,f2f.IA, f2f.JA); 
   sc->bndry_cc=0;
   for(i=0;i<blk_dfs->row;++i){
     found=blk_dfs->IA[i+1]-blk_dfs->IA[i];
@@ -1141,9 +1144,10 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
     wrk=calloc(2*i,sizeof(INT));
     acap=calloc(i,sizeof(INT));
   }
-  // fprintf(stdout,"%%%% max_nnz_row_bndry_v=%d\n",i);fflush(stdout);
+  fprintf(stdout,"%%%% max_nnz_row_bndry_v=%d\n",i);fflush(stdout);
   if(1){//ALWAYS set_bndry_codes) {
     nnz_bv=sc->bndry_v->nnz;
+    // fprintf(stdout,"\n%% =7_x=%ld",(LONG )nnz_bv);fflush(stdout);
     for(k=0;k<sc->parent_v->row;++k){
       j=sc->parent_v->IA[k];
       // two parents for a vertex obtained during refinement
@@ -1175,7 +1179,8 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
 	        v1=sc->parent_v->JA[j];
       	  n1=sc->bndry_v->IA[v1+1]-sc->bndry_v->IA[v1];
 	        a1=sc->bndry_v->JA+sc->bndry_v->IA[v1];
-	//
+	//      fprintf(stdout,"\n%% =7_1=");fflush(stdout);
+
 	        v2=sc->parent_v->JA[j+1];
 	        n2=sc->bndry_v->IA[v2+1]-sc->bndry_v->IA[v2];
 	        a2=sc->bndry_v->JA+sc->bndry_v->IA[v2];
@@ -1207,11 +1212,20 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
       sc->bndry_v->nnz=nnz_bv;
     sc->bndry_v->IA[sc->bndry_v->row]=nnz_bv;
     sc->bndry_v->JA=realloc(sc->bndry_v->JA,nnz_bv*sizeof(INT));
-    sc->bndry_v->val=realloc(sc->bndry_v->val,dim*sc->bndry_v->row*sizeof(INT));
+    sc->bndry_v->val=realloc(sc->bndry_v->val,2*nnz_bv*sizeof(INT));
+// WHy this fails: sc->bndry_v->val=realloc(sc->bndry_v->val,dim*sc->bndry_v->row*sizeof(INT));
+    //
+//
     for(k=0;k<nnz_bv;k++){
+      // fprintf(stdout,"\n%% =8_x=%d %d %d",k+nnz_bv,nnzold+k,dim*sc->bndry_v->row);fflush(stdout);
       sc->bndry_v->val[k+nnz_bv]=sc->bndry_v->val[nnzold+k];
     }
+  // fprintf(stdout,"\n%% =8_1=%ld",(LONG )nnz_bv);fflush(stdout);
     sc->bndry_v->val=realloc(sc->bndry_v->val,2*nnz_bv*sizeof(INT));
+    fprintf(stdout,
+      "\nrows=%d;cols=%d;nnz=%d;nnz_bv=%d",sc->bndry_v->row,
+      sc->bndry_v->col,sc->bndry_v->nnz,nnz_bv);
+//    sc->bndry_v->val=calloc(2*nnz_bv,sizeof(INT));
   } else {
     /*BEGIN: TO BE REMOVED IN THE FUTURE*/
     for(i=0;i<sc->bndry_cc;++i){

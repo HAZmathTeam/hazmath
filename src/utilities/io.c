@@ -502,7 +502,8 @@ void icsr_print_matlab(FILE* fid,
     j1 = A->IA[i];
     j2 = A->IA[i+1];
     for(j=j1;j<j2;j++) {
-      fprintf(fid,"%lld,%lld\n",(long long )(i+1),(long long )(A->JA[j]+1));
+      fprintf(fid,"%lld,%lld,%lld\n",(long long )(i+1),\
+          (long long )(A->JA[j]+1),(long long )A->val[j]);
     }
   }
   return;
