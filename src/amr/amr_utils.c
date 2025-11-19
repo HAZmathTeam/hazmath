@@ -1222,10 +1222,9 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
     }
   // fprintf(stdout,"\n%% =8_1=%ld",(LONG )nnz_bv);fflush(stdout);
     sc->bndry_v->val=realloc(sc->bndry_v->val,2*nnz_bv*sizeof(INT));
-    fprintf(stdout,
-      "\nrows=%d;cols=%d;nnz=%d;nnz_bv=%d",sc->bndry_v->row,
-      sc->bndry_v->col,sc->bndry_v->nnz,nnz_bv);
-//    sc->bndry_v->val=calloc(2*nnz_bv,sizeof(INT));
+      // fprintf(stdout,
+      //   "\nrows=%d;cols=%d;nnz=%d;nnz_bv=%d",sc->bndry_v->row,
+      //   sc->bndry_v->col,sc->bndry_v->nnz,nnz_bv);fflush(stdout);
   } else {
     /*BEGIN: TO BE REMOVED IN THE FUTURE*/
     for(i=0;i<sc->bndry_cc;++i){
