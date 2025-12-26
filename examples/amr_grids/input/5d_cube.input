@@ -2,7 +2,7 @@
 % input parameters: for grid generation        %
 %----------------------------------------------%
 %
-title{Grid on the 5d cube (-1,1)x(-1,1)x(-1,1)x(-1,-1)}
+title{Grid on the 5d cube (-1,1)x(-1,1)x(-1,1)x(-1,-1)x(-1,1)}
 %
 dimension{5}   % spatial dimension in which the grid has to be generated
 print_level{1}	% how much information to print out: 0 little | >0 more

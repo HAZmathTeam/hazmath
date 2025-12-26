@@ -495,15 +495,26 @@ void icsr_print_matlab(FILE* fid,
                        iCSRmat *A)
 {
   // local variables
-  INT i,j1,j2,j;
+  INT i, j1, j2, j;
 
   // main loop; comma separated
-  for(i=0;i<A->row;i++) {
-    j1 = A->IA[i];
-    j2 = A->IA[i+1];
-    for(j=j1;j<j2;j++) {
-      fprintf(fid,"%lld,%lld,%lld\n",(long long )(i+1),\
-          (long long )(A->JA[j]+1),(long long )A->val[j]);
+  if (A->val != NULL) {
+    for (i = 0; i < A->row; i++) {
+      j1 = A->IA[i];
+      j2 = A->IA[i + 1];
+      for (j = j1; j < j2; j++) {
+        fprintf(fid, "%lld,%lld,%lld\n", (long long)(i + 1),
+                (long long)(A->JA[j] + 1), (long long)A->val[j]);
+      }
+    }
+  } else {
+    for (i = 0; i < A->row; i++) {
+      j1 = A->IA[i];
+      j2 = A->IA[i + 1];
+      for (j = j1; j < j2; j++) {
+        fprintf(fid, "%lld,%lld,%lld\n", (long long)(i + 1),
+                (long long)(A->JA[j] + 1), (long long)(-10));
+      }
     }
   }
   return;

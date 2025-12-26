@@ -1115,7 +1115,9 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
   /*******************************************************************/
   icsr_free(blk_dfs);free(blk_dfs);
   // find connected components on the boundary
+  // icsr_print_matlab(stdout,&f2f);
   blk_dfs=run_dfs(f2f.row,f2f.IA, f2f.JA); 
+  // icsr_print_matlab(stdout,blk_dfs);
   sc->bndry_cc=0;
   for(i=0;i<blk_dfs->row;++i){
     found=blk_dfs->IA[i+1]-blk_dfs->IA[i];

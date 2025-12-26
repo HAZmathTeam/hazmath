@@ -20,7 +20,7 @@ refinement_type{1}
 
 amr_marking_type{0}
 
-num_refinements{10}
+num_refinements{3}
 
 err_stop_refinement{        -1.e-10        }
 
@@ -157,31 +157,31 @@ num_macroelements{7}
 
 data_macroelements{
     0 1  2  3  4  5  6  7  1
-    6 7  8  9 10 11 12 13  2
-    2 3 14 15  6  7  8  9  3
-    4 5 6  7  16 17  10 11 4
-    1 18 3 19  5 20   7 21 -1
-    7 21 9  22  11 23 13  24 -2
-    3 19 15 25 7 21 9 22 -2
+    6 7  8  9 10 11 12 13  1
+    2 3 14 15  6  7  8  9  1
+    4 5 6  7  16 17  10 11 1
+    1 18 3 19  5 20   7 21 1
+    7 21 9  22  11 23 13  24 1
+    3 19 15 25 7 21 9 22 1
            }
 
 num_macrofaces{9}
 
-% any face which needs a code (for example boundary faces: face
+% any face which needs a code (for example boundary faces): face
 % number. If a face is not included here and is a boundary face then
 % its code is set to Dirichlet (i.e. 1...16). Internal faces not found
 % here have a code 0. Faces given here and not found in the
 % macroelement list are ignored.
 
 data_macrofaces{0 1 2 3 1
-        0 4 1 5 3
-        4 7 5 6 2
-        2 6 3 7 4
-        0 4 2 6 12
-        1 5 7 3 17
-        6 7 8 9 -1
-        8 12 9 13 -3
-        2 6 14 8 -4
+        0 4 1 5 1
+        4 7 5 6 1
+        2 6 3 7 1
+        0 4 2 6 1
+        1 5 7 3 1
+        6 7 8 9 1
+        8 12 9 13 1
+        2 6 14 8 1
            }
 
 
