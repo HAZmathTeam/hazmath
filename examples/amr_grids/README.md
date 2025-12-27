@@ -9,6 +9,40 @@ Copyright (c) 2009- HAZMath: Xiaozhe Hu, James H Adler, Ludmil T Zikatanov
 
 ---
 
+How to run the examples. The commands bellow compile and install libhazmath as a shared library with some and then use one of the preset examples to construct a mesh. 
+
+```
+
+ $ cd HAZMATH_DIR/examples/amr
+ $ make -C ../.. distclean ; make -C ../.. config shared=yes ; make -C ../.. install
+ $ make clean ; make
+ $ ./amr_grids.ex < input/3d_fichera.input 
+ $ paraview output/3d_fichera.vtu &
+
+```
+files other than ```3d_fichera.input``` included iin the ```amr``` examples are found in the input directory and they are: 
+
+```
+
+input/2d_2L.input
+input/2d_ann.input
+input/2d_circle.input
+input/2d_grid.input
+input/2d_L.input
+input/2d_SQ+L.input
+input/2d_square.input
+input/3d_2cubes_edge.input
+input/3d_2cubes_vertex.input
+input/3d_cube.input
+input/3d_fichera.input
+input/4d_cube.input
+input/5d_cube.input
+
+
+```
+
+---
+
 A short description of the input required to use the simple grid generator included with HAZMATH. Please refer to the examples for more details. 
 
 ## Rules ##

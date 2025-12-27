@@ -28,13 +28,20 @@ INT aresame(INT *a, INT *b, INT n)
      permutation), if they are same, returns 1, otherwise returns 0
   */
   INT i,j,flag,ai,bj;
+  // fprintf(stdout, "\na b=");
+  // for (i=0;i<n;i++){
+  //   ai=a[i];
+  //   bj=b[i];
+  //   //fprintf(stdout, "%i %i ",ai, bj);fflush(stdout);
+  // }
   for (i=0;i<n;i++){
     ai=a[i];
     flag=0;
     for(j=0;j<n;j++){
       bj=b[j];
       if(ai==bj){
-	flag=1; break;
+        // if ai is found in b, break and go to next ai;
+	      flag=1; break;
       }
     }
     if(!flag) return 0;
@@ -59,7 +66,7 @@ INT aresame(INT *a, INT *b, INT n)
  *                    so that a[i]=b[p[i]]. If there is no permutation,
  *                    i.e. p[i]=i, then returns 1.
  *
- * \author ludmil (20151010) 
+ * \author ludmil (20151010)
  *
  */
 INT aresamep(INT *a, INT *b, INT n, INT *p)
@@ -180,7 +187,7 @@ void marks(scomplex *sc,dvector *errors)
   INT ne=(INT )((n*n1)/2);
   REAL slmin,slmax,asp,aspmax=-10.;;
   REAL *sl=(REAL *)calloc(ne,sizeof(REAL));
-  INT kbad=0;
+  //INT kbad=0;
   for(i = 0;i<ns;i++){
     if(sc->gen[i] < level) continue;
     ni=n1*i;
@@ -207,7 +214,7 @@ void marks(scomplex *sc,dvector *errors)
     asp=slmax/slmin;
     if(asp>1e1){
       sc->marked[i]=1;
-      kbad++;
+      //kbad++;
       if(asp>aspmax){
         //kbadel=i;
         aspmax=asp;
@@ -244,7 +251,7 @@ void marks(scomplex *sc,dvector *errors)
  * \return             returns 0 if is and it are reflected neighbors
  *
  * \note
- * \author ludmil (20151010) 
+ * \author ludmil (20151010)
  *
  */
 unsigned INT reflect2(INT n, INT is, INT it,				\
@@ -348,7 +355,7 @@ unsigned INT reflect2(INT n, INT is, INT it,				\
  * \return
  *
  * \note
- * \author ludmil (20151010) 
+ * \author ludmil (20151010)
  *
  */
 /*using bfs to get the reflected mesh  if possible*/
@@ -468,7 +475,7 @@ void abfstree(const INT it0, scomplex *sc,INT *wrk,const INT print_level)
  * \return the simplicial complex corresponding to all simplices which
  *         were not refined.
  *
- * \author ludmil (20151010) 
+ * \author ludmil (20151010)
  *
  */
 scomplex *scfinest(scomplex *sc)
@@ -524,7 +531,76 @@ scomplex *scfinest(scomplex *sc)
   free(sctop->csys);sctop->csys=NULL;
   return sctop;
 }
-/**********************************************************************/
+
+/*!
+ * \fn void scfinalize_nofree(scomplex *sc,const INT set_bndry_codes)
+ *
+ * \brief Removes all hierachy and make sc to represent only the final
+ *        grid. computes connected components and connected components
+ *        on the boundary.
+ *
+ * \param sc: simplicial complex
+ * \param set_bndry_codes: if 0 then create the sparse matrix for all vertices;
+ *
+ * \note This is a modified version of the real scfinalize avoiding some memory issues with the boundary codes until that is fixed.
+ *
+ */
+void scfinalize_nofree(scomplex *sc,const INT set_bndry_codes)
+{
+  // INT n=sc->n;
+  INT ns,j=-10,k=-10;
+  INT n1=sc->n+1;
+  /*
+      store the finest mesh in sc structure.
+      on input sc has all the hierarchy, on return sc only has the final mesh.
+  */
+  //  free(sc->parent_v->val);  sc->parent_v->val=NULL;
+  ns=0;
+  for (j=0;j<sc->ns;j++){
+    /*
+      On the last grid are all simplices that were not refined, so
+      these are the ones for which child0 and childn are not set.
+    */
+    if(sc->child0[j]<0 || sc->childn[j]<0){
+      for (k=0;k<n1;k++) {
+	      sc->nodes[ns*n1+k]=sc->nodes[j*n1+k];
+      }
+      sc->child0[ns]=-1;
+      sc->childn[ns]=-1;
+      sc->gen[ns]=sc->gen[j];
+      sc->flags[ns]=sc->flags[j];
+      ns++;
+    }
+  }
+  sc->ns=ns;
+  sc->nodes=realloc(sc->nodes,n1*sc->ns*sizeof(INT));
+  sc->nbr=realloc(sc->nbr,n1*sc->ns*sizeof(INT));
+  sc->vols=realloc(sc->vols,sc->ns*sizeof(REAL));
+  sc->child0=realloc(sc->child0,sc->ns*sizeof(INT));
+  sc->childn=realloc(sc->childn,sc->ns*sizeof(INT));
+  sc->gen=realloc(sc->gen,sc->ns*sizeof(INT));
+  sc->flags=realloc(sc->flags,sc->ns*sizeof(INT));
+  find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
+  // this also can be called separately
+  // set_bndry_codes should always be set to 1.
+  //  set_bndry_codes=1;
+  find_cc_bndry_cc(sc,(INT )1); //set_bndry_codes);
+  //
+  /* if(set_bndry_codes){ */
+  /*   for(j=0;j<sc->nv;++j){ */
+  /*     if(sc->bndry[j]>128) sc->bndry[j]-=128; */
+  /*   } */
+  /* } */
+  // clean up: TODO: DO NOT FREE ANYTHING UNTIL LUDMIL FIXES! JHA: we actually think this is right and should update scfinalize to this
+  // icsr_free(sc->bndry_v);
+  // free(sc->bndry_v);
+  // sc->bndry_v=NULL;
+  // icsr_free(sc->parent_v);
+  // free(sc->parent_v);
+  // sc->parent_v=NULL;
+  return;
+}
+// OLDER VERSION
 /*!
  * \fn void scfinalize(scomplex *sc,const INT set_bndry_codes)
  *
@@ -539,7 +615,7 @@ scomplex *scfinest(scomplex *sc)
  *
  * \note
  *
- * \author ludmil (20151010) 
+ * \author ludmil (20151010)
  * \modified ludmil (20210831)
  * \modified ludmil (20211121)
  *
@@ -590,7 +666,7 @@ void scfinalize(scomplex *sc,const INT set_bndry_codes)
   /*     if(sc->bndry[j]>128) sc->bndry[j]-=128; */
   /*   } */
   /* } */
-  // clean up:
+  // clean up: // This should be removed?
   icsr_free(sc->bndry_v);
   free(sc->bndry_v);
   sc->bndry_v=NULL;
@@ -689,7 +765,7 @@ static unsigned INT bitdiff(const INT dim, unsigned INT *bits1,unsigned INT *bit
   INT j;
   unsigned INT numbits=0;
   for(j=0;j<dim;j++){
-    numbits+=abs(bits1[j]-bits2[j]);
+    numbits+=(unsigned INT )(abs((INT )(bits1[j]-bits2[j])));
   }
   return numbits;
 }
@@ -911,7 +987,7 @@ INT dvec_set_amr(const REAL value, scomplex *sc, INT npts, REAL *pts, REAL *tose
  *                        128 plus the connected component number. If
  *                        true, then create the sparse matrix with
  *                        codes for all vertices;
- *                          
+ *
  *
  *
  * \note
@@ -921,10 +997,10 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
 {
   //
   INT ns = sc->ns, dim=sc->n;
-  INT dim1=dim+1,iii,i,j,k,m,isn1,is,nbf,nnzbf;
+  INT dim1=dim+1,iii,i,j,k,m,isn1,is,nbf;//,nnzbf;
   iCSRmat s2s=icsr_create(ns,ns,dim1*ns+ns);
   nbf=0;
-  nnzbf=0;
+  //nnzbf=0;
   iii=0;
   s2s.IA[0]=iii;
   for(i=0;i<ns;i++){
@@ -932,12 +1008,12 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
     for(j=0;j<dim1;j++){
       is=sc->nbr[isn1+j];
       if(is>=0){
-	s2s.JA[iii]=is;
-	s2s.val[iii]=1;
-	iii++;
+	      s2s.JA[iii]=is;
+	      s2s.val[iii]=1;
+	      iii++;
       } else {
-	nbf++;
-	nnzbf+=dim;
+	      nbf++;
+	// nnzbf+=dim;
       }
     }
     s2s.IA[i+1]=iii;
@@ -955,27 +1031,29 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
   //
   // now working on the boundary:
   //
-  iCSRmat f2v=icsr_create(nbf,sc->nv,nbf*dim);
   // forming the face2vertex matrix uses that the neighboring list of
-  // elements is in accordance with the simplex2vertex map.
+  // elements is in accordance with the simplex2vertex map. 
+  // This means that the j-th neighbor in sc->nbr is opposite to the j-th
+  // vertex in sc->nodes.
+  iCSRmat f2v=icsr_create(nbf,sc->nv,nbf*dim);
   INT nbfnew=0;
   INT nnzf2v=0;
   f2v.IA[0]=nnzf2v;
-  for(i=0;i<ns;i++){
-    for(j=0;j<dim1;j++){
-      if(sc->nbr[i*dim1+j]<0) {
-	for(m=0;m<dim1;m++){
-	  if(m==j) continue;
-	  f2v.JA[nnzf2v]=sc->nodes[i*dim1+m];
-	  f2v.val[nnzf2v]=1;
-	  nnzf2v++;
-	}
-	nbfnew++;
-	f2v.IA[nbfnew]=nnzf2v;
+  for (i = 0; i < ns; i++) {
+    for (j = 0; j < dim1; j++) {
+      if (sc->nbr[i * dim1 + j] < 0) {
+        for (m = 0; m < dim1; m++) {
+          if (m == j) continue;
+          f2v.JA[nnzf2v] = sc->nodes[i * dim1 + m];
+          f2v.val[nnzf2v] = 1;
+          nnzf2v++;
+        }
+        nbfnew++;
+        f2v.IA[nbfnew] = nnzf2v;
       }
     }
   }
-  f2v.nnz=nnzf2v;
+  f2v.nnz = nnzf2v;
   if(nbf!=nbfnew){
     fprintf(stderr,"\n%%***ERROR(1): num. bndry faces mismatch (nbf=%lld .ne. nbfnew=%lld) in %s",(long long )nbf,(long long )nbfnew,__FUNCTION__);
     exit(65);
@@ -1000,27 +1078,27 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
   iCSRmat v2f,f2f;
   INT j0,j1,ke,je,found;
   icsr_trans(&f2v,&v2f);
-  /*******************************************************************/    
+  /*******************************************************************/
   icsr_mxm(&f2v,&v2f,&f2f);
-  /*******************************************************************/    
+  /*******************************************************************/
   icsr_free(&v2f);// we do not need v2f now
-  /*******************************************************************/    
-  /* 
+  /*******************************************************************/
+  /*
      now remove all rows in f2f that correspond to interior faces and
      all entries that are not dim, i.e. the number of vertices in
      a (n-2)-simplex;
   */
   f2f.nnz=f2f.IA[0];
-  for(i=0;i<f2f.row;i++){    
+  for(i=0;i<f2f.row;i++){
     j0=f2f.IA[i];
     j1=f2f.IA[i+1];
     f2f.IA[i]=f2f.nnz;
     for(ke=j0;ke<j1;ke++){
       je=f2f.JA[ke];
       if(je==i){
-	f2f.JA[f2f.nnz]=i;
-	f2f.val[f2f.nnz]=1;
-	f2f.nnz++;
+	      f2f.JA[f2f.nnz]=i;
+	      f2f.val[f2f.nnz]=1;
+	      f2f.nnz++;
       	continue;
       }
       if(f2f.val[ke]!=(dim-1)) continue;
@@ -1034,101 +1112,129 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
   f2f.IA[f2f.row]=f2f.nnz;
   f2f.JA=realloc(f2f.JA,f2f.nnz*sizeof(INT));
   f2f.val=realloc(f2f.val,f2f.nnz*sizeof(INT));
-  /*******************************************************************/    
+  /*******************************************************************/
   icsr_free(blk_dfs);free(blk_dfs);
-  blk_dfs=run_dfs(f2f.row,f2f.IA, f2f.JA);
+  // find connected components on the boundary
+  // icsr_print_matlab(stdout,&f2f);
+  blk_dfs=run_dfs(f2f.row,f2f.IA, f2f.JA); 
+  // icsr_print_matlab(stdout,blk_dfs);
   sc->bndry_cc=0;
   for(i=0;i<blk_dfs->row;++i){
     found=blk_dfs->IA[i+1]-blk_dfs->IA[i];
     if(found>1) sc->bndry_cc++;
   }
   icsr_free(&f2f);
-  /*******************************************************************/    
-  //fprintf(stdout,"%%%%--> number of connected components in the bulk=%d\n",sc->cc);
-  //fprintf(stdout,"%%%%--> number of connected components on the boundary=%d\n",sc->bndry_cc);
+  /*******************************************************************/
+  fprintf(stdout,"%%%%--> number of connected components in the bulk=%d\n",sc->cc);
+  fprintf(stdout,"%%%%--> number of connected components on the boundary=%d\n",sc->bndry_cc);
+  fflush(stdout);
   /* make boundary codes from parent_v */
   INT *a1=NULL,*a2=NULL,l,ncap,n1,n2,v1,v2,nnz_bv,nnzold;
   i=-1;
+  // fprintf(stdout,"\nr=%d;c=%d;nnz=%d\n", sc->bndry_v->row,sc->bndry_v->col,sc->bndry_v->nnz);fflush(stdout);
+// compute the max degree of a vertex in bndry_v; 
+// a vertex may lie the intersection of many boundaries as the 
+// dimension of the problem increases. 
+// sc_bndry_v is an iCSRmat that for every vertex, it contains all boundaries it lies on. 
+//
   for(k=0;k<sc->bndry_v->row;++k){
     j=sc->bndry_v->IA[k+1]-sc->bndry_v->IA[k];
     if(i<j) i=j;
   }
-  INT *wrk=calloc(2*i,sizeof(INT));  
-  INT *acap=calloc(i,sizeof(INT));  
-  //  fprintf(stdout,"%%%% max_nnz_row_bndry_v=%d\n",i);fflush(stdout);
+  INT *wrk=NULL,*acap=NULL;
+  if(i>0){
+    wrk=calloc(2*i,sizeof(INT));
+    acap=calloc(i,sizeof(INT));
+  }
+  // fprintf(stdout,"%%%% max_nnz_row_bndry_v=%d\n",i);fflush(stdout);
   if(1){//ALWAYS set_bndry_codes) {
-    icsr_free(blk_dfs);free(blk_dfs);
-    icsr_free(&f2v);
-    free(indx);
-    free(indxinv);
     nnz_bv=sc->bndry_v->nnz;
+    // fprintf(stdout,"\n%% =7_x=%ld",(LONG )nnz_bv);fflush(stdout);
     for(k=0;k<sc->parent_v->row;++k){
       j=sc->parent_v->IA[k];
-      if((sc->parent_v->IA[k+1]-j)!=2) continue;
+      // two parents for a vertex obtained during refinement
+      if((sc->parent_v->IA[k+1]-j)!=2) continue; 
       nnz_bv+=i;
     }
     nnzold=nnz_bv;
-    sc->bndry_v->val=realloc(sc->bndry_v->val,2*nnz_bv*sizeof(INT));    
-    for(k=0;k<sc->bndry_v->nnz;++k){
-      sc->bndry_v->val[nnz_bv+k]=sc->bndry_v->val[sc->bndry_v->nnz+k];
+    // if nnz_bv==0 then this is a mesh without any refinements. 
+    if(nnz_bv){
+      sc->bndry_v->val=realloc(sc->bndry_v->val,2*nnz_bv*sizeof(INT));
+      for(k=0;k<sc->bndry_v->nnz;++k){
+        sc->bndry_v->val[nnz_bv+k]=sc->bndry_v->val[sc->bndry_v->nnz+k];
       //      sc->bndry_v->val[sc->bndry_v->nnz+k]=0;
+      }
+      sc->bndry_v->JA=realloc(sc->bndry_v->JA,nnz_bv*sizeof(INT));
     }
     sc->bndry_v->row=sc->parent_v->row;
     sc->bndry_v->IA=realloc(sc->bndry_v->IA,(sc->parent_v->row+1)*sizeof(INT));
-    sc->bndry_v->JA=realloc(sc->bndry_v->JA,nnz_bv*sizeof(INT));
-    // add all boundary codes for vertices obtained with
-    // refinement. This uses that such vertices are added one by one
-    // after refinement and ordered after their "ancestors"
-    for(k=0;k<sc->parent_v->row;++k){
-      nnz_bv=sc->bndry_v->IA[k];
-      j=sc->parent_v->IA[k];
-      if((sc->parent_v->IA[k+1]-j)==2){
-	//	fprintf(stdout,"\nnnz_bv=%d (IA=%d),k=%d,diff0=%d",nnz_bv,sc->bndry_v->IA[k],k,(sc->parent_v->IA[k+1]-j));
-	v1=sc->parent_v->JA[j];    
-	n1=sc->bndry_v->IA[v1+1]-sc->bndry_v->IA[v1];
-	a1=sc->bndry_v->JA+sc->bndry_v->IA[v1];
-	//
-	v2=sc->parent_v->JA[j+1];
-	n2=sc->bndry_v->IA[v2+1]-sc->bndry_v->IA[v2];
-	a2=sc->bndry_v->JA+sc->bndry_v->IA[v2];
-	//	fprintf(stdout,"\nnew_vertex=%d,v1=%d,v2=%d; n1=%d,n2=%d",k,v1,v2,n1,n2);fflush(stdout);
-	//	print_full_mat_int(1,n1,a1,"a1");
-	//	print_full_mat_int(1,n2,a2,"a2");
-	ncap=array_cap(n1,a1,n2,a2,acap,wrk);
-	if(ncap){
-	  //	  print_full_mat_int(1,ncap,acap,"INTERSECTION");
-	  for(i=0;i<ncap;++i){
-	    l=wrk[i] + sc->bndry_v->IA[v1];
-	    sc->bndry_v->JA[nnz_bv+i]=acap[i];
-	    sc->bndry_v->val[nnz_bv+i]=sc->bndry_v->val[l];
-	    sc->bndry_v->val[nnz_bv+i+nnzold]=sc->bndry_v->val[l+nnzold];
-	  }
-	  nnz_bv+=ncap;
-	}
-	sc->bndry_v->IA[k+1]=nnz_bv;
+    sc->bndry_v->IA[sc->bndry_v->row]=nnz_bv;
+//    fprintf(stdout,"\nia=%d,nnzbv=%d",sc->bndry_v->IA[sc->bndry_v->row],nnz_bv);fflush(stdout);
+    if(nnz_bv){
+      // add all boundary codes for vertices obtained with
+      // refinement. This uses that such vertices are added one by one
+      // after refinement and ordered after their "ancestors"
+      for(k=0;k<sc->parent_v->row;++k){
+        nnz_bv=sc->bndry_v->IA[k];
+        j=sc->parent_v->IA[k];
+        if((sc->parent_v->IA[k+1]-j)==2){
+	        v1=sc->parent_v->JA[j];
+      	  n1=sc->bndry_v->IA[v1+1]-sc->bndry_v->IA[v1];
+	        a1=sc->bndry_v->JA+sc->bndry_v->IA[v1];
+	//      fprintf(stdout,"\n%% =7_1=");fflush(stdout);
+
+	        v2=sc->parent_v->JA[j+1];
+	        n2=sc->bndry_v->IA[v2+1]-sc->bndry_v->IA[v2];
+	        a2=sc->bndry_v->JA+sc->bndry_v->IA[v2];
+    	  //	fprintf(stdout,"\nnew_vertex=%d,v1=%d,v2=%d; n1=%d,n2=%d",k,v1,v2,n1,n2);fflush(stdout);
+	      //print_full_mat_int(1,n1,a1,"a1");
+	      //print_full_mat_int(1,n2,a2,"a2");
+          ncap=array_cap(n1,a1,n2,a2,acap,wrk);
+          if(ncap){
+	  //	    print_full_mat_int(1,ncap,acap,"INTERSECTION");
+	          for(i=0;i<ncap;++i){
+	            l=wrk[i] + sc->bndry_v->IA[v1];
+	            sc->bndry_v->JA[nnz_bv+i]=acap[i];
+	            sc->bndry_v->val[nnz_bv+i]=sc->bndry_v->val[l];
+	            sc->bndry_v->val[nnz_bv+i+nnzold]=sc->bndry_v->val[l+nnzold];
+	          }
+	          nnz_bv+=ncap;
+	        }
+		      sc->bndry_v->IA[k+1]=nnz_bv;
+        }
       }
-    }    
+      if(wrk) free(wrk);
+      if(acap) free(acap);
+    }
     sc->bndry_v->row=sc->parent_v->row;
     // in case the mesh was not refined at all, i.e. no added vertices
     if(sc->bndry_v->IA[sc->bndry_v->row]>nnz_bv)
       nnz_bv=sc->bndry_v->IA[sc->bndry_v->row];
-    sc->bndry_v->nnz=nnz_bv;
+    else
+      sc->bndry_v->nnz=nnz_bv;
     sc->bndry_v->IA[sc->bndry_v->row]=nnz_bv;
     sc->bndry_v->JA=realloc(sc->bndry_v->JA,nnz_bv*sizeof(INT));
+    sc->bndry_v->val=realloc(sc->bndry_v->val,2*nnz_bv*sizeof(INT));
+// WHy this fails: sc->bndry_v->val=realloc(sc->bndry_v->val,dim*sc->bndry_v->row*sizeof(INT));
+    //
+//
     for(k=0;k<nnz_bv;k++){
+      // fprintf(stdout,"\n%% =8_x=%d %d %d",k+nnz_bv,nnzold+k,dim*sc->bndry_v->row);fflush(stdout);
       sc->bndry_v->val[k+nnz_bv]=sc->bndry_v->val[nnzold+k];
     }
+  // fprintf(stdout,"\n%% =8_1=%ld",(LONG )nnz_bv);fflush(stdout);
     sc->bndry_v->val=realloc(sc->bndry_v->val,2*nnz_bv*sizeof(INT));
-    free(wrk);
-    free(acap);
+      // fprintf(stdout,
+      //   "\nrows=%d;cols=%d;nnz=%d;nnz_bv=%d",sc->bndry_v->row,
+      //   sc->bndry_v->col,sc->bndry_v->nnz,nnz_bv);fflush(stdout);
   } else {
     /*BEGIN: TO BE REMOVED IN THE FUTURE*/
     for(i=0;i<sc->bndry_cc;++i){
       for(k=blk_dfs->IA[i];k<blk_dfs->IA[i+1];++k){
-	j=blk_dfs->JA[k];
-	for(m=0;m<dim;m++){
-	  sc->bndry[indxinv[f2v.JA[dim*j+m]]]=i+1+128;
-	}
+	      j=blk_dfs->JA[k];
+	        for(m=0;m<dim;m++){
+	            sc->bndry[indxinv[f2v.JA[dim*j+m]]]=i+1+128;
+	        }
       }
     }
     icsr_free(blk_dfs);free(blk_dfs);
@@ -1137,8 +1243,39 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
     free(indxinv);
     return;
     /*END: TO BE REMOVED IN THE FUTURE*/
-  }
+  }  // end else
+//
   INT iaa,iab,code,cmin,cmax;
+  // fprintf(stdout,"\nNNZOLD=%d;NNZBV=%d",nnzold,nnz_bv);
+  if(!nnz_bv){
+    for(i=0;i<sc->bndry_cc;++i){
+      for(k=blk_dfs->IA[i];k<blk_dfs->IA[i+1];++k){
+	      j=blk_dfs->JA[k];
+	      for(m=0;m<dim;m++){
+//	        fprintf(stdout,"\nBV=%d,code=%d; face=%d",indxinv[f2v.JA[dim*j+m]],i,k);
+	        sc->bndry[indxinv[f2v.JA[dim*j+m]]]=i;
+	      }
+      }
+    }
+    sc->bndry_v->IA=realloc(sc->bndry_v->IA,(sc->bndry_v->row+1)*sizeof(INT));   
+    sc->bndry_v->JA=realloc(sc->bndry_v->JA,dim*(sc->bndry_v->row)*sizeof(INT));   
+    sc->bndry_v->val=realloc(sc->bndry_v->val,dim*(sc->bndry_v->row+1)*sizeof(INT));   
+    // sc->bndry_v->IA[1]=0;// this should be of length nv at least. 
+    // for(i=0;i<sc->bndry_cc;++i){
+    //   for(k=blk_dfs->IA[i];k<blk_dfs->IA[i+1];++k){
+	  //     j=blk_dfs->JA[k];
+	  //     for(m=0;m<dim;m++){
+	  //       fprintf(stdout,"\nBV=%d,code=%d; face=%d",indxinv[f2v.JA[dim*j+m]],i,k);
+	  //       sc->bndry[indxinv[f2v.JA[dim*j+m]]]=i;
+	  //     }
+    //   }
+    // }
+  }
+  icsr_free(blk_dfs);free(blk_dfs);
+  icsr_free(&f2v);
+  free(indx);
+  free(indxinv);
+  return;
   cmin=sc->bndry_v->val[0];
   cmax=sc->bndry_v->val[0];
   for(i=1;i<sc->bndry_v->nnz;++i){
@@ -1149,6 +1286,10 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
   }
   cmin--;
   cmax++;
+  fprintf(stdout,"cmin=%d,cmax=%d,nnz_bv=%d,nnz_in bv=%d,k123=%d,rows:%10d\n", \
+    cmin,cmax,nnz_bv,\
+    sc->bndry_v->nnz,sc->bndry_v->IA[sc->bndry_v->row],sc->bndry_v->row);fflush(stdout);
+  exit(2);
   if(!cmin) cmin=-1;
   if(!cmax) cmax=1;
   for(i=0;i<sc->bndry_v->row;++i){
@@ -1159,12 +1300,13 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
     } else {
       sc->bndry[i]=cmax;
       for(k=iaa;k<iab;++k){
-	code=sc->bndry_v->val[k];	
-	if(!code) continue;
-	if(sc->bndry[i]>code) sc->bndry[i]=code;
+        fprintf(stdout,"\nk=%d,nnz_bv=%d",k,nnz_bv);fflush(stdout);
+	      code=sc->bndry_v->val[k];
+	      if(!code) continue;
+	      if(sc->bndry[i]>code) sc->bndry[i]=code;
       }
       if(sc->bndry[i]==cmax) {
-	sc->bndry[i]=0;
+	        sc->bndry[i]=0;
       }
     }
   }
@@ -1250,10 +1392,10 @@ void vtu_data_init(scomplex *sc, vtu_data *vdata)
   vdata->sc=sc; /* the simplicial complex which we want to export as VTU*/
   vdata->print_level=0;
   vdata->shift=0;
-  vdata->zscale=-1e20;  
+  vdata->zscale=-1e20;
   // integer
-  vdata->nipt=1; // number of integer point-data arrays 
-  vdata->nicell=1; // number of integer cell-data arrays 
+  vdata->nipt=1; // number of integer point-data arrays
+  vdata->nicell=1; // number of integer cell-data arrays
   vdata->ipt=malloc(vdata->nipt*sizeof(INT *));
   vdata->icell=malloc(vdata->nicell*sizeof(INT *));
   vdata->names_ipt=malloc(vdata->nipt*sizeof(char *));
@@ -1269,14 +1411,14 @@ void vtu_data_init(scomplex *sc, vtu_data *vdata)
   /* for(k=0;k<sc->ns;++k){ */
   /*   fprintf(stdout,"\nel_code[%d]=%d",k,vdata->icell[0][k]); */
   /* } */
-  vdata->names_ipt[0]=strdup("bndry_codes");  
+  vdata->names_ipt[0]=strdup("bndry_codes");
   vdata->names_icell[0]=strdup("el_codes");
   // double
-  vdata->ndpt=0; // number of double point-data arrays 
-  vdata->ndcell=0; // number of double cell-data arrays 
+  vdata->ndpt=0; // number of double point-data arrays
+  vdata->ndcell=0; // number of double cell-data arrays
   vdata->dpt=NULL;// collection of double point-data arrays
   vdata->dcell=NULL;// collection double cell-data arrays
-  vdata->names_dpt=NULL;  
+  vdata->names_dpt=NULL;
   vdata->names_dcell=NULL;
 }
 /********************************************************************************/
@@ -1293,7 +1435,7 @@ void vtu_data_free(vtu_data *vdata)
   /* does not free any of the vdata lower level arrays as they may be
      associated with other structures (such as simplicial complex,
      etc). but it frees the top level data. */
-  INT arrays=0;  
+  INT arrays=0;
   if(vdata->ipt) free(vdata->ipt);
   if(vdata->icell) free(vdata->icell);
   /*double*/
@@ -1331,9 +1473,9 @@ void vtu_data_free(vtu_data *vdata)
  *        manual found at:
  *        https://vtk.org/wp-content/uploads/2021/08/VTKUsersGuide.pdf
  *
- * \param namevtk   File name 
+ * \param namevtk   File name
  * \param sc        Pointer to a simplicial complex
- * \param shift    integer added to the elements of arrays (here always=1).  
+ * \param shift    integer added to the elements of arrays (here always=1).
  *
  */
 /**********************************************************************************/
@@ -1443,7 +1585,7 @@ void vtkw(const char *namevtk, vtu_data *vdata)
   /*   } */
   /*   fprintf(fvtk,"</DataArray>\n"); */
   /* } */
-  /* fprintf(fvtk,"</PointData>\n"); */  
+  /* fprintf(fvtk,"</PointData>\n"); */
   fprintf(fvtk,"<Cells>\n");
   fprintf(fvtk,"<DataArray type=\"%s\" Name=\"offsets\" Format=\"ascii\">",tinto);
   for(k=1;k<=ns;k++) fprintf(fvtk," %lld ",(long long )(k*n1));

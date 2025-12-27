@@ -61,6 +61,7 @@
  * \param tol     Tolerance for convergence check
  *
  */
+/*
 inline static void ITS_CHECK (const INT MaxIt, const REAL tol)
 {
     if ( tol < SMALLREAL ) {
@@ -70,6 +71,7 @@ inline static void ITS_CHECK (const INT MaxIt, const REAL tol)
         printf("### HAZMATH WARNING: Max number of iterations should be a POSITIVE integer!\n");
     }
 }
+*/
 
 /***********************************************************************************************/
 /**
@@ -282,7 +284,7 @@ INT dcsr_pcg (dCSRmat *A,
 	}
 	array_set(m,p,0.0);
 	++stag;
-	++restart_step;
+	restart_step=restart_step+1;
       }
     } // end of stagnation check!
 
@@ -2194,7 +2196,7 @@ INT general_pcg (matvec *mxv,
                 }
                 array_set(m,p,0.0);
                 ++stag;
-                ++restart_step;
+                restart_step=restart_step+1;
             }
         } // end of stagnation check!
 
@@ -2244,7 +2246,7 @@ INT general_pcg (matvec *mxv,
             // prepare for restarting the method
             array_set(m,p,0.0);
             ++more_step;
-            ++restart_step;
+            restart_step=restart_step+1;;
 
         } // end of safe-guard check!
 
@@ -2680,7 +2682,7 @@ INT dcsr_pminres(dCSRmat *A,
                 }
                 array_set(m,p0,0.0);
                 ++stag;
-                ++restart_step;
+                restart_step=restart_step+1;
 
                 // p1 = B(r)
                 if ( pc != NULL )
@@ -2763,7 +2765,7 @@ INT dcsr_pminres(dCSRmat *A,
             // prepare for restarting the method
             array_set(m,p0,0.0);
             ++more_step;
-            ++restart_step;
+            restart_step=restart_step+1;
 
             // p1 = B(r)
             if ( pc != NULL )
@@ -3076,7 +3078,7 @@ INT bdcsr_pminres(block_dCSRmat *A,
                 }
                 array_set(m,p0,0.0);
                 ++stag;
-                ++restart_step;
+                restart_step=restart_step+1;
 
                 // p1 = B(r)
                 if ( pc != NULL )
@@ -3159,7 +3161,7 @@ INT bdcsr_pminres(block_dCSRmat *A,
             // prepare for restarting the method
             array_set(m,p0,0.0);
             ++more_step;
-            ++restart_step;
+            restart_step=restart_step+1;
 
             // p1 = B(r)
             if ( pc != NULL )
@@ -3472,7 +3474,7 @@ INT general_pminres(matvec *mxv,
                 }
                 array_set(m,p0,0.0);
                 ++stag;
-                ++restart_step;
+                restart_step=restart_step+1;
 
                 // p1 = B(r)
                 if ( pc != NULL )
@@ -3555,7 +3557,7 @@ INT general_pminres(matvec *mxv,
             // prepare for restarting the method
             array_set(m,p0,0.0);
             ++more_step;
-            ++restart_step;
+            restart_step=restart_step+1;
 
             // p1 = B(r)
             if ( pc != NULL )

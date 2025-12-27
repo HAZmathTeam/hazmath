@@ -4,7 +4,8 @@
 REAL16 f_to_approx_l(REAL16 x,REAL16 s, REAL16 t, REAL16 alpha, REAL16 beta)
 {  
   //  fprintf(stdout,"\ns1=%Lf; s2=%Lf; alpha=%Lf; beta=%Lf;",s,t,alpha,beta);
-  return 1./(alpha*powl(x,s)+beta*powl(x,t)); 
+  //return 1./(alpha*powl(x,s)+beta*powl(x,t)); 
+   return (alpha*powl(x,s)+beta*powl(x,t)); 
 }
 /**/
 /*OLD:function to be approximated*/

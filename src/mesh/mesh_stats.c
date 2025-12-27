@@ -474,7 +474,7 @@ void get_face_maps(iCSRmat* el_v,INT el_order,iCSRmat* ed_v,INT nface,INT dim,IN
         f_el.val[jcntr] = j;
         f_el.JA[jcntr+1] = el;
         // Find face number for other element
-        find_facenumber(el_v,el,nd,dim,&f_num); 
+        find_facenumber(el_v,el,nd,dim,&f_num);
         f_el.val[jcntr+1] = f_num;
         f_bdry[icntr] = 0;
         f_v->IA[icntr] = kcntr;
@@ -646,7 +646,7 @@ void face_stats(REAL *f_area,REAL *f_mid,REAL *f_norm,iCSRmat *f_v,mesh_struct *
   /* Get Transpose of f_el -> el_f */
   iCSRmat f_el;
   icsr_trans(el_f,&f_el);
-  
+
   // Loop over all Faces
   for(i=0;i<nface;i++) {
     /* Find Vertices in given Face */
@@ -867,19 +867,17 @@ void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
   // Flag for errors
   SHORT status;
 
-  INT i,j,cnt,nd,acol,bcol; /* Loop Index */
+  INT i,j,nd,acol,bcol; /* Loop Index */
   INT nelm = el_v->row;
 
   if (dim==1) {
     for (i=0; i<nelm; i++) {
       acol = el_v->IA[i];
       bcol = el_v->IA[i+1];
-      cnt=0;
       el_mid[i]=0;
       for (j=acol; j<bcol; j++) {
         nd = el_v->JA[j];
         el_mid[i] += cv->x[nd];
-        cnt++;
       }
       el_mid[i]=el_mid[i]/2.0;
     }
@@ -887,14 +885,12 @@ void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
     for (i=0; i<nelm; i++) {
       acol = el_v->IA[i];
       bcol = el_v->IA[i+1];
-      cnt=0;
       el_mid[i*dim]=0;
       el_mid[i*dim+1]=0;
       for (j=acol; j<bcol; j++) {
         nd = el_v->JA[j];
         el_mid[i*dim] += cv->x[nd];
         el_mid[i*dim+1] += cv->y[nd];
-        cnt++;
       }
       el_mid[i*dim]=el_mid[i*dim]/3.0;
       el_mid[i*dim+1]=el_mid[i*dim+1]/3.0;
@@ -903,7 +899,6 @@ void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
     for (i=0; i<nelm; i++) {
       acol = el_v->IA[i];
       bcol = el_v->IA[i+1];
-      cnt=0;
       el_mid[i*dim]=0;
       el_mid[i*dim+1]=0;
       el_mid[i*dim+2]=0;
@@ -912,7 +907,6 @@ void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
         el_mid[i*dim] += cv->x[nd];
         el_mid[i*dim+1] += cv->y[nd];
         el_mid[i*dim+2] += cv->z[nd];;
-        cnt++;
       }
       el_mid[i*dim]=0.25*el_mid[i*dim];
       el_mid[i*dim+1]=0.25*el_mid[i*dim+1];
@@ -922,7 +916,6 @@ void get_el_mid(REAL *el_mid,iCSRmat* el_v,coordinates *cv,INT dim)
     status = ERROR_DIM;
     check_error(status, __FUNCTION__);
   }
-
   return;
 }
 /********************************************************************************/

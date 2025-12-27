@@ -29,7 +29,30 @@ Our aim is to provide a basic tool, which can be used to tackle specific problem
 
 ---
 
-**System Requirements:** The library should build on any standard Linux OS or MAC OS X, using cmake (>=3.12).
+**System Requirements:** The library should build on any standard Linux OS or MAC OS X, using cmake (>=3.12).  After downloading type ```make help``` for a quick guide to building:
+
+```
+$$ make help
+=============================================================
+                         HAZMATH
+-------------------------------------------------------------
+Quick start: 1. Edit "haz_config/hazmath.mk" as needed.
+             2. Type "make config" ;
+                and then  "make install"
+=============================================================
+ make config           # set environment to build
+ make config CC=gcc    # set a specific C compiler
+ make config debug=yes # compiler's debug options ON
+ make headers          # function defs in include/hazmath.h
+ make docs	       # install documentations for HAZMATH
+      		       # (!need to set doxygen=yes!)
+ make                  # compile/link libhazmath
+ make install          # install libhazmath and examples
+ make clean            # remove *.o and *~ files
+ make distclean        # delete the build directory
+=============================================================
+*More user defined options can go in "haz_config/hazmath.mk"*
+```
 
 ---
 

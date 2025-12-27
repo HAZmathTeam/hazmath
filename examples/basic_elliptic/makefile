@@ -18,7 +18,7 @@ FFLAGS = -g
 
 ## If an external libraries support is compiled in the hazmath library,
 ## uncomment  the corresponding lines below:
-WITH_SUITESPARSE=1
-WITH_LAPACK=1
+WITH_SUITESPARSE=0
+WITH_LAPACK=0
 
 sinclude ../examples.mk

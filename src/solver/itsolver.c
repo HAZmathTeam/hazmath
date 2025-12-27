@@ -78,6 +78,7 @@ inline static void ITS_CHECK (const INT MaxIt, const REAL tol)
  * \param relres  Relative residual
  *
  */
+/*
 inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres)
 {
     if ( iter > MaxIt ) {
@@ -88,6 +89,7 @@ inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres
 	printf("Num_iter(itsolver.c) = %lld with relative residual %e.\n", (long long )iter, relres);
     }
 }
+*/
 
 /***********************************************************************************************/
 /**
@@ -3963,7 +3965,7 @@ INT linear_solver_bdcsr_babuska_block_2(block_dCSRmat *A,
     REAL setup_start, setup_end, setup_duration;
     REAL solver_start, solver_end, solver_duration;
 
-    SHORT max_levels1, max_levels2;
+    SHORT max_levels1 = 0, max_levels2 = 0;
     if(amgparam1) max_levels1 = amgparam1->max_levels;
     if(amgparam2) max_levels2 = amgparam2->max_levels;
 
@@ -5192,7 +5194,7 @@ INT linear_solver_dcsr_krylov_metric_amg(dCSRmat *A,
     printf("### DEBUG: [--End--] %s ...\n", __FUNCTION__);
 #endif
 
-FINISHED:
+// FINISHED:
     amg_data_free(mgl, amgparam);free(mgl);
     return status;
 

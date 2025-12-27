@@ -230,7 +230,37 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     FE->dphi = dphi;
     break;
 
-    // Vector Velocity (Seems to be only for linears though...)
+    // Bubble routines.
+    // Numbering will be X0Y: X = polynomial space order; Y = order of bubbles
+    //                        Ex: 103 is P1 plus cubic bubble -> MINI element
+    // MINI element
+    // Note: numbering is as follows: 0, 1, ..., nv-1, nv, nv+1, ..., nv+nelm-1
+    case 103:
+    FE->scal_or_vec = 0; // Scalar
+    FE->ndof = mesh->nv + mesh->nelm;
+    FE->nbdof = mesh->nbv;
+    FE->dof_per_elm = mesh->v_per_elm + 1;
+    FE->dof_per_face = mesh->dim;
+    FE->dof_per_edge = 2;
+    FE->el_dof = malloc(sizeof(struct iCSRmat));
+
+    // Get coordinates and adjust el_dof maps to account for bubble
+    get_MINI(FE,mesh);
+
+    // Edge to DoF and Face to Dof is same as P1, since bubble is at element center
+    if(dim>1) {
+      FE->ed_dof = mesh->ed_v;
+      FE->f_dof = mesh->f_v;
+    }
+
+    // Allocate space for basis functions
+    phi = (REAL *) calloc(FE->dof_per_elm,sizeof(REAL));
+    FE->phi = phi;
+    dphi = (REAL *) calloc(FE->dof_per_elm*mesh->dim,sizeof(REAL));
+    FE->dphi = dphi;
+    break;
+
+    // Vector Velocity TODO: This is not complete yet (Seems to be only for linears though...)
     case 60:
     FE->scal_or_vec = 1;
     FE->cdof = NULL;
@@ -308,6 +338,8 @@ void create_fespace(fespace *FE,mesh_struct* mesh,INT FEtype)
     dphi = (REAL *) calloc(FE->dof_per_elm*mesh->dim*mesh->dim,sizeof(REAL));
     FE->dphi = dphi;
     break;
+
+    // Constraint space
     case 99: // 1 DOF FE Space (i.e., for an integral constraint)
     FE->scal_or_vec = 0;
     FE->ndof = 1;
@@ -392,19 +424,19 @@ void free_fespace(fespace* FE)
     FE->cdof = NULL;
   }
 
-  if(FE->el_dof && (FE->FEtype==2 || FE->FEtype==0 || FE->FEtype==99)) { // If not P2 or P0, free_mesh will destroy el_dof struct
+  if(FE->el_dof && (FE->FEtype==2 || FE->FEtype==0 || FE->FEtype==99 || FE->FEtype>=101)) { // If not P2 or P0 or bubbles, free_mesh will destroy el_dof struct
     icsr_free(FE->el_dof);
     free(FE->el_dof);
     FE->el_dof = NULL;
   }
 
-  if(FE->ed_dof && FE->FEtype!=1) { // If Linears, free_mesh will destroy ed_dof struct
+  if(FE->ed_dof && FE->FEtype!=1 && FE->FEtype!=103) { // If Linears, free_mesh will destroy ed_dof struct
     icsr_free(FE->ed_dof);
     free(FE->ed_dof);
     FE->ed_dof = NULL;
   }
 
-  if(FE->f_dof && FE->FEtype!=1 && FE->FEtype!=20) { // If Linears or Nedelec, free_mesh will destroy f_dof
+  if(FE->f_dof && FE->FEtype!=1 && FE->FEtype!=20 && FE->FEtype!=103) { // If Linears or Nedelec, free_mesh will destroy f_dof
     icsr_free(FE->f_dof);
     free(FE->f_dof);
     FE->f_dof = NULL;
@@ -1197,6 +1229,89 @@ void get_P2(fespace* FE,mesh_struct* mesh)
   return;
 }
 /******************************************************************************************/
+
+/*!
+* \fn void get_MINI(fespace* FE,mesh_struct* mesh)
+*
+* \brief Converts mesh data to account for Mini elements
+*
+* \param mesh      Mesh struct
+*
+* \return FE       Struct for Mini FE space (P1 + cubic bubble)
+*
+*/
+void get_MINI(fespace* FE,mesh_struct* mesh)
+{
+  // Loop indices
+  INT i,j,s,jcntr;
+  INT va,vb,dofa;
+
+  INT ndof = FE->ndof;
+  INT dof_per_elm = FE->dof_per_elm;
+  INT dim = mesh->dim;
+  INT nv = mesh->nv;
+  INT nelm = mesh->nelm;
+  iCSRmat *el_v = mesh->el_v;
+
+  // Get Coordinates
+  coordinates *cdof = allocatecoords(ndof,dim);
+  // First go through all vertices.
+  for (i=0; i<nv; i++) {
+    for (j=0;j<dim;j++) {
+      cdof->x[j*ndof+i] = mesh->cv->x[j*nv+i];
+    }
+  }
+  // Now, go through and add extra nodes for the midpoint of element
+  s = nv;
+  // In 1D this is just the midpoint of the elements
+  for(i=0;i<nelm;i++) {
+    for (j=0;j<dim;j++) {
+      cdof->x[j*ndof+s] = mesh->el_mid[i*dim+j];
+    }
+    s++;
+  }
+
+  // Get Element to DoF map
+  iCSRmat el_dof = icsr_create(nelm,ndof,dof_per_elm*nelm);
+  // Rows of Element to DOF map
+  for(i=0;i<nelm+1;i++) {
+    el_dof.IA[i] = dof_per_elm*i;
+  }
+  // Columns
+  // Just add the midpoint of elements
+  for(i=0;i<nelm;i++) {
+    va = el_v->IA[i];
+    vb = el_v->IA[i+1];
+    dofa = el_dof.IA[i];
+    jcntr = 0;
+    for(j=va;j<vb;j++) {
+      el_dof.JA[dofa + jcntr] = el_v->JA[j];
+      jcntr++;
+    }
+    el_dof.JA[dofa+jcntr] = nv+i;
+  }
+
+  // Fix Boundaries
+  INT* dirichlet = (INT *) calloc(ndof,sizeof(INT));
+  INT* dof_flag = (INT *) calloc(ndof,sizeof(INT));
+  // First set of nodes are vertices
+  for (i=0; i<nv; i++) {
+    dirichlet[i] = mesh->v_flag[i];
+    dof_flag[i] = mesh->v_flag[i];
+  }
+  // Rest are interior element centers
+  for(i=0;i<nelm;i++) {
+    dirichlet[nv+i] = 0;
+    dof_flag[nv+i] = mesh->el_flag[i];
+  }
+
+  FE->dirichlet = dirichlet;
+  FE->dof_flag = dof_flag;
+  *(FE->el_dof) = el_dof;
+  FE->cdof = cdof;
+
+  return;
+}
 
 /****************************************************************************************/
 /*!

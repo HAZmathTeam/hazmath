@@ -2,8 +2,8 @@
 # Last Modified 2019-06-10 --jha
 ####################################################
 
-#SRCFILE = main_solver_xd_1d
-SRCFILE = main_meshing_xd_1d
+SRCFILE = main_solver_xd_1d
+#SRCFILE = main_meshing_xd_1d
 HEADERS = supporting_xd_1d.h solver_xd_1d.h definitions_xd_1d.h
 
 INCLUDE =

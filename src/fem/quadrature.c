@@ -363,7 +363,7 @@ void quad_edge_local(quadrature *cqedge,simplex_local_data *loc_data,INT nq1d,IN
   for(i=0;i<v_per_ed;i++) {
     for(j=0;j<v_per_elm;j++) {
       if(v_on_ed[i]==v_on_elm[j]) {
-        for(k=0;i<dim;k++) {
+        for(k=0;k<dim;k++) {
           xved[i*dim+k] = loc_data->xv[j*dim+k];
         }
       }
@@ -446,7 +446,7 @@ void quad_face_local(quadrature *cqface,simplex_local_data *loc_data,INT nq1d,IN
   for(i=0;i<v_per_face;i++) {
     for(j=0;j<v_per_elm;j++) {
       if(v_on_face[i]==v_on_elm[j]) {
-        for(k=0;i<dim;k++) {
+        for(k=0;k<dim;k++) {
           xvf[i*dim+k] = loc_data->xv[j*dim+k];
         }
       }
@@ -568,7 +568,7 @@ REAL integrate_elm_local(void (*expr)(REAL *,REAL *,INT,REAL,void *),INT nun,INT
   } else { // use quadrature saved on the element
     quadrature *cqelm = elm_data->quad_local;
     nq_per_elm = cqelm->nq_simplex;
-    for (quad=0;nq_per_elm;quad++) {
+    for (quad=0;quad<nq_per_elm;quad++) {
       qx = cqelm->x + quad*dim;
       w = cqelm->w[quad];
       (*expr)(uval,qx,dim,time,&(elm_data->flag));
@@ -630,7 +630,7 @@ REAL integrate_face_local(void (*expr)(REAL *,REAL *,INT,REAL,void *),INT nun,IN
   } else { // assemble quadrature again
     quadrature *cqface = face_data->quad_local;
     nq_per_face = cqface->nq_simplex;
-    for (quad=0;nq_per_face;quad++) {
+    for (quad=0;quad<nq_per_face;quad++) {
       qx = cqface->x + quad*dim;
       w = cqface->w[quad];
       (*expr)(uval,qx,time,dim,&(face_data->flag));
@@ -692,7 +692,7 @@ REAL integrate_edge_local(void (*expr)(REAL *,REAL *,INT,REAL,void *),INT nun,IN
   } else { // assemble quadrature again
     quadrature *cqedge = edge_data->quad_local;
     nq_per_edge = cqedge->nq_simplex;
-    for (quad=0;nq_per_edge;quad++) {
+    for (quad=0;quad<nq_per_edge;quad++) {
       qx = cqedge->x + quad*dim;
       w = cqedge->w[quad];
       (*expr)(uval,qx,time,dim,&(edge_data->flag));
@@ -757,7 +757,7 @@ REAL integrate_edge_vector_tangent_local(void (*expr)(REAL *,REAL *,INT,REAL,voi
   } else { // assemble quadrature again
     quadrature *cqedge = edge_data->quad_local;
     nq_per_edge = cqedge->nq_simplex;
-    for (quad=0;nq_per_edge;quad++) {
+    for (quad=0;quad<nq_per_edge;quad++) {
       qx = cqedge->x + quad*dim;
       w = cqedge->w[quad];
       (*expr)(uval,qx,time,dim,&(edge_data->flag));
@@ -820,7 +820,7 @@ REAL integrate_face_vector_normal_local(void (*expr)(REAL *,REAL *,INT,REAL,void
   } else { // assemble quadrature again
     quadrature *cqface = face_data->quad_local;
     nq_per_face = cqface->nq_simplex;
-    for (quad=0;nq_per_face;quad++) {
+    for (quad=0;quad<nq_per_face;quad++) {
       qx = cqface->x + quad*dim;
       w = cqface->w[quad];
       (*expr)(uval,qx,time,dim,&(face_data->flag));

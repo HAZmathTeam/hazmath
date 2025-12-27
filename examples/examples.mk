@@ -128,7 +128,7 @@ ifeq ($(WITH_SUITESPARSE),1)
 		SSDIR = /usr/lib/x86_64-linux-gnu
 		INCLUDESSP = -I/usr/include/suitesparse
 	endif
-	LIBS += -lsuitesparseconfig -lcholmod -lamd -lcolamd -lccolamd -lcamd -lspqr -lumfpack -lamd -lcxsparse 
+	LIBS += -lsuitesparseconfig -lcholmod -lamd -lcolamd -lccolamd -lcamd -lspqr -lumfpack -lcxsparse 
 endif
 
 

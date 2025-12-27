@@ -51,6 +51,8 @@ void initialize_newton(newton *n_it,input_param *inparam,INT ndof,INT blksize)
     n_it->Jac_block=NULL;
   }
   n_it->sol=malloc(sizeof(struct dvector));
+  // dvector sol = dvec_create(ndof);
+  // n_it->sol = &sol;
   n_it->sol_prev=malloc(sizeof(struct dvector));
   n_it->update=malloc(sizeof(struct dvector));
   n_it->rhs=malloc(sizeof(struct dvector));     /* f - A(sol_prev) */
@@ -59,6 +61,8 @@ void initialize_newton(newton *n_it,input_param *inparam,INT ndof,INT blksize)
 
   dvec_alloc(ndof,n_it->sol);
   dvec_alloc(ndof,n_it->rhs);
+  dvec_alloc(ndof,n_it->sol_prev);
+  dvec_alloc(ndof,n_it->update);
 
   return;
 }
@@ -99,28 +103,40 @@ void free_newton(newton* n_it)
     n_it->rhs=NULL;
   }
 
-  if(n_it->current_step>0) {
-    if(n_it->sol_prev) {
-      dvec_free(n_it->sol_prev);
-      free(n_it->sol_prev);
-      n_it->sol_prev=NULL;
-    }
-
-    if(n_it->update) {
-      dvec_free(n_it->update);
-      free(n_it->update);
-      n_it->update=NULL;
-    }
-  } else {
-    if(n_it->sol_prev) {
-      free(n_it->sol_prev);
-      n_it->sol_prev=NULL;
-    }
-    if(n_it->update) {
-      free(n_it->update);
-      n_it->update=NULL;
-    }
+  if(n_it->sol_prev) {
+    dvec_free(n_it->sol_prev);
+    free(n_it->sol_prev);
+    n_it->sol_prev=NULL;
   }
+
+  if(n_it->update) {
+    dvec_free(n_it->update);
+    free(n_it->update);
+    n_it->update=NULL;
+  }
+
+  // if(n_it->current_step>0) {
+  //   if(n_it->sol_prev) {
+  //     dvec_free(n_it->sol_prev);
+  //     free(n_it->sol_prev);
+  //     n_it->sol_prev=NULL;
+  //   }
+
+  //   if(n_it->update) {
+  //     dvec_free(n_it->update);
+  //     free(n_it->update);
+  //     n_it->update=NULL;
+  //   }
+  // } else {
+  //   if(n_it->sol_prev) {
+  //     free(n_it->sol_prev);
+  //     n_it->sol_prev=NULL;
+  //   }
+  //   if(n_it->update) {
+  //     free(n_it->update);
+  //     n_it->update=NULL;
+  //   }
+  // }
 
   return;
 }
@@ -141,15 +157,15 @@ void update_newtonstep(newton* n_it)
   n_it->current_step++;
 
   // Solution
-  if(n_it->current_step==1) {
-    dvec_alloc(n_it->sol->row,n_it->sol_prev);
-  }
+  // if(n_it->current_step==1) {
+  //   dvec_alloc(n_it->sol->row,n_it->sol_prev);
+  // }
   dvec_cp(n_it->sol,n_it->sol_prev);
 
   // Update
-  if(n_it->current_step==1) {
-    dvec_alloc(n_it->sol->row,n_it->update);
-  }
+  // if(n_it->current_step==1) {
+  //   dvec_alloc(n_it->sol->row,n_it->update);
+  // }
   dvec_set(n_it->update->row,n_it->update,0.0);
 
   return;

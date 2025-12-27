@@ -495,14 +495,26 @@ void icsr_print_matlab(FILE* fid,
                        iCSRmat *A)
 {
   // local variables
-  INT i,j1,j2,j;
+  INT i, j1, j2, j;
 
   // main loop; comma separated
-  for(i=0;i<A->row;i++) {
-    j1 = A->IA[i];
-    j2 = A->IA[i+1];
-    for(j=j1;j<j2;j++) {
-      fprintf(fid,"%lld,%lld\n",(long long )(i+1),(long long )(A->JA[j]+1));
+  if (A->val != NULL) {
+    for (i = 0; i < A->row; i++) {
+      j1 = A->IA[i];
+      j2 = A->IA[i + 1];
+      for (j = j1; j < j2; j++) {
+        fprintf(fid, "%lld,%lld,%lld\n", (long long)(i + 1),
+                (long long)(A->JA[j] + 1), (long long)A->val[j]);
+      }
+    }
+  } else {
+    for (i = 0; i < A->row; i++) {
+      j1 = A->IA[i];
+      j2 = A->IA[i + 1];
+      for (j = j1; j < j2; j++) {
+        fprintf(fid, "%lld,%lld,%lld\n", (long long)(i + 1),
+                (long long)(A->JA[j] + 1), (long long)(-10));
+      }
     }
   }
   return;
@@ -893,7 +905,7 @@ void dbsr_read (const char  *filename,
 
 
 /*** Auxillary Files *********************************************************************/
-/* 
+/*
  * \fn void read_eof(const char *fname, void **data, INT *ndata, const char dtype,const SHORT print_level)
  *
  * \brief Reads data until EOF until eof. skips any control chars at
@@ -901,7 +913,7 @@ void dbsr_read (const char  *filename,
  *
  * The result is stored in data[0] which is allocated here (REAL* for
  *  double/float or INT* for ints).
- * 
+ *
  * dtype is either 'R', or 'r' for REAL or 'I', 'i' for INT.
  *
 */
@@ -928,7 +940,7 @@ void read_eof(const char *fname, void **data, INT *ndata, const char dtype,const
   if (!fp) {
     perror("fopen");
     return;
-  }  
+  }
   if(print_level>10)
     fprintf(stdout,"\n%%%%Reading %s from %s\n",type_name,fname);
   ch=fgetc(fp); while((INT )ch < 0){ch=fgetc(fp);count++;}
@@ -1480,7 +1492,7 @@ void dump_blocksol_vtk(char *namevtk,char **varname,mesh_struct *mesh,block_fesp
       // We need to save this for later so mark
       anyP0=1;
       P0cntr[nsp] = 1;
-    } else if(FE->var_spaces[nsp]->FEtype>0 && FE->var_spaces[nsp]->FEtype<20) { // PX elements (assume sol at vertices comes first)
+    } else if((FE->var_spaces[nsp]->FEtype>0 && FE->var_spaces[nsp]->FEtype<20) || FE->var_spaces[nsp]->FEtype==103) { // PX elements (assume sol at vertices comes first)
       fprintf(fvtk,"<DataArray type=\"%s\" Name=\"Solution Component %lld - %s\" Format=\"ascii\">",tfloat,(long long )nsp,varname[nsp]);
       for(k=0;k<nv;k++) fprintf(fvtk," %23.16e ",sol[spcntr + k]);
       fprintf(fvtk,"</DataArray>\n");
@@ -1671,7 +1683,7 @@ scomplex *hazr(char *namein)
   return sc;
 }
 /********************************************************************************/
-/* 
+/*
  * Routines to save to file the mesh in different formats. uses the
  * simplicial complex data structure (scomplex *sc)
 */
@@ -1681,11 +1693,11 @@ scomplex *hazr(char *namein)
  *
  * \brief Write a simplicial complex to a file in a "hazmath" format.
  *
- * \param nameout   File name 
+ * \param nameout   File name
  * \param sc        Pointer to a simplicial complex
- * \param shift     integer added to the elements of arrays such as sc->nodes. 
+ * \param shift     integer added to the elements of arrays such as sc->nodes.
  *
- * \note The data is organized as follows: 
+ * \note The data is organized as follows:
  *
  * 0. num_simplices,num_vertices,dimension,connected_components(bndry)-1;
  *
@@ -1700,7 +1712,7 @@ scomplex *hazr(char *namein)
  *    num_vertices REALs with 1st coordinate, num_vertices REALs with
  *    2nd coordinate,...
  *
- * 4. num_vertices integers with tages (boundary codes) for every vertex. 
+ * 4. num_vertices integers with tages (boundary codes) for every vertex.
  *
  */
 /********************************************************************************/
@@ -1766,9 +1778,9 @@ void hazw(char *nameout,scomplex *sc, const INT shift)
  *        described at
  *        https://www.manpagez.com/info/gmsh/gmsh-2.2.6/gmsh_63.php
  *
- * \param namemsh   File name 
+ * \param namemsh   File name
  * \param sc        Pointer to a simplicial complex
- * \param shift0    integer added to the elements of arrays (here always=1).  
+ * \param shift0    integer added to the elements of arrays (here always=1).
  *
  */
 /********************************************************************************/
@@ -1785,7 +1797,7 @@ void mshw(char *namemsh,scomplex *sc, const INT shift0)
   fmesh=HAZ_fopen(namemsh,"w");
   /*
      MSH way of writing mesh file.
-     fmt=0 is ASCII -- only this is supported now. 
+     fmt=0 is ASCII -- only this is supported now.
   */
   int fmt=0,num_el_tags=1;
   size_t data_size=sizeof(double);
@@ -1803,8 +1815,8 @@ void mshw(char *namemsh,scomplex *sc, const INT shift0)
     break;
   }
   // writing:
-  fprintf(fmesh,"%s\n","$MeshFormat"); 
-  fprintf(fmesh,"%.1f %d %ld\n",ver,fmt,data_size); 
+  fprintf(fmesh,"%s\n","$MeshFormat");
+  fprintf(fmesh,"%.1f %d %ld\n",ver,fmt,data_size);
   fprintf(fmesh,"%s\n","$EndMeshFormat");
   fprintf(fmesh,"%s\n","$Nodes");
   fprintf(fmesh,"%lld\n",(long long )n);
@@ -2066,7 +2078,7 @@ ivector *ivector_read_eof_p(const char *fname, const unsigned char format)
  */
 dCSRmat *dcoo_read_dcsr_p(FILE *fp)
 {
-  INT  i,j,k,m,n,nnz;
+  long long  i,j,k,m,n,nnz;
   //INT  val;
   REAL value;
   INT offset;
@@ -2094,20 +2106,24 @@ dCSRmat *dcoo_read_dcsr_p(FILE *fp)
   // move back to the beginning of the current line
   fseek(fp, offset, SEEK_SET);
 
+  printf("start reading\n");
+
   // now start to read
-  fscanf(fp,"%lld %lld %lld",(long long *)&m,(long long *)&n,(long long *)&nnz);
+  fscanf(fp,"%lld %lld %lld",&m, &n, &nnz);
 
   dCOOmat *Atmp=dcoo_create_p(m,n,nnz);
 
   for ( k = 0; k < nnz; k++ ) {
-    if ( fscanf(fp, "%lld %lld %le", (long long *)&i, (long long *)&j, &value) != EOF ) {
+    if ( fscanf(fp, "%lld %lld %le", &i, &j, &value) != EOF ) {
       Atmp->rowind[k]=i; Atmp->colind[k]=j; Atmp->val[k] = value;
     }
     else {
       check_error(ERROR_WRONG_FILE, "dcoo_read_dcsr_p");
     }
   }
+
   dCSRmat *A=dcoo_2_dcsr_p(Atmp);
+
   free((void *)Atmp);
   return A;
 }
@@ -2130,7 +2146,7 @@ dCSRmat *dcoo_read_dcsr_p(FILE *fp)
  */
 dCSRmat *dcoo_read_dcsr_p_1(FILE *fp)
 {
-  INT  i,j,k,m,n,nnz;
+  long long  i,j,k,m,n,nnz;
   //INT  val;
   REAL value;
   INT offset;
@@ -2194,10 +2210,10 @@ dCSRmat *dcoo_read_dcsr_p_1(FILE *fp)
 dvector *dvector_read_p(FILE *fp)
 {
   dvector *b=NULL;
-  INT  i, n;
+  long long  i, n;
   REAL value;
   if ( fp == NULL ) check_error(ERROR_OPEN_FILE, __FUNCTION__);
-  fscanf(fp,"%lld",(long long *)&n);
+  fscanf(fp,"%lld",&n);
   b=dvec_create_p(n);
   for ( i = 0; i < n; ++i ) {
     fscanf(fp, "%lg", &value);
@@ -2354,7 +2370,7 @@ INT features_r(features *feat,scomplex *sc, const INT do_map, const REAL scale)
     mapit(sc,vc);
     free(vc);
     cube2simp_free(c2s);
-  }  
+  }
   return 0;
 }
 

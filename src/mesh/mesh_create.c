@@ -229,7 +229,7 @@ void build_mesh_all(mesh_struct* mesh)
     if(dim==2) {
       nface = nedge;
       euler = nv - nedge + nelm + nholes;
-      printf("nv=%d\tned=%d\tnelm=%d\tnholes=%d\n",nv,nedge,nelm,nholes);
+      //printf("nv=%d\tned=%d\tnelm=%d\tnholes=%d\n",nv,nedge,nelm,nholes);
     } else if (dim==3) {
       nface = 1 + nedge-nv+nelm;
       nface = nface + nholes; // add number of holes!

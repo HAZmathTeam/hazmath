@@ -28,6 +28,7 @@ INT main(INT   argc,   char *argv[])
 {
   INT i;
   FILE *fp;
+<<<<<<< HEAD
    fp=stdin;
   //no   fp=HAZ_fopen("input/2d_ann.input","r");
   // fp=HAZ_fopen("input/2d_2L.input","r");
@@ -36,6 +37,15 @@ INT main(INT   argc,   char *argv[])
   // fp=HAZ_fopen("input/3d_2cubes_vertex.input","r");
   // fp=HAZ_fopen("input/5d_cube.input","r");
   // fp=HAZ_fopen("input/4d_cube.input","r");
+=======
+  fp=stdin;
+  //no   fp=HAZ_fopen("inputs/2d_ann.input","r");
+  // fp=HAZ_fopen("input/2d_2L.input","r");
+  // fp=HAZ_fopen("input/3d_fichera.input","r");
+  // fp=HAZ_fopen("input/3d_2cubes_edge.input","r");
+  //fp=HAZ_fopen("input/3d_2cubes_vertex.input","r");
+  //  fp=HAZ_fopen("input/5d_cube.input","r");
+>>>>>>> e933aef7ad29a951c6fd8b3163f6c1120828d45c
   //  fp=HAZ_fopen("input/3d_cube.input","r");
   /*
     PARSE THE INPUT.
@@ -186,7 +196,7 @@ INT main(INT   argc,   char *argv[])
     vtu_data vdata;
     vtu_data_init(sc,&vdata);
     vtkw(g->fvtu,&vdata);
-    vtkw("output/1d_graph.vtu",&vdata); //0,(REAL )1);
+    //    vtkw("output/1d_graph.vtu",&vdata); //0,(REAL )1);
     vtu_data_free(&vdata);
   }
   /*FREE: the input grid is freed here, because it has the filenames in it*/

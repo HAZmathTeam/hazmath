@@ -1785,7 +1785,7 @@ void eliminate_PeriodicBC_blockFE(block_dCSRmat* P_periodic, block_dCSRmat* A, d
     for (j=0; j<A->bcol; j++)
     {
 
-      if ( (Atemp.blocks[i*A->brow+j] == NULL)  )
+      if ( Atemp.blocks[i*A->brow+j] == NULL  )
       {
         A->blocks[i*A->brow+j] = NULL;
       }
@@ -1856,7 +1856,7 @@ void eliminate_PeriodicBC_blockFE_nonoverwrite(block_dCSRmat* P_periodic, block_
     for (j=0; j<A->bcol; j++)
     {
 
-      if ( (A->blocks[i*A->brow+j] == NULL)  )
+      if ( A->blocks[i*A->brow+j] == NULL  )
       {
         PTAP->blocks[i*A->brow+j] = NULL;
       }

@@ -68,6 +68,7 @@
  * \param tol     Tolerance for convergence check
  *
  */
+/*
 inline static void ITS_CHECK (const INT MaxIt, const REAL tol)
 {
     if ( tol < SMALLREAL ) {
@@ -77,6 +78,7 @@ inline static void ITS_CHECK (const INT MaxIt, const REAL tol)
         printf("### HAZMATH WARNING: Max number of iterations should be a POSITIVE integer!\n");
     }
 }
+*/
 
 /***********************************************************************************************/
 /**
@@ -88,6 +90,7 @@ inline static void ITS_CHECK (const INT MaxIt, const REAL tol)
  * \param relres  Relative residual
  *
  */
+/*
 inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres)
 {
     if ( iter > MaxIt ) {
@@ -97,6 +100,8 @@ inline static void ITS_FINAL (const INT iter, const INT MaxIt, const REAL relres
         printf("Number of iterations = %lld with relative residual %e.\n",   (long long )iter, relres);
     }
 }
+*/
+
 /***********************************************************************************************/
 /**
  * \fn inline static void WARN_STATUS(const char *function_name,const char *call_to, const INT status)
@@ -6461,7 +6466,7 @@ void precond_bdcsr_metric_amg(REAL *r,
     zz.row = predata->A->blocks[3]->col; zz.val = z+predata->A->blocks[0]->row;
 
     // Schwarz method on the interface part
-    Schwarz_param *schwarz_param = predata->schwarz_param;
+    //Schwarz_param *schwarz_param = predata->schwarz_param;
     Schwarz_data *schwarz_data = predata->schwarz_data;
     sch_type=schwarz_data->Schwarz_type;
     if(sch_type==SCHWARZ_FORWARD ||		\
@@ -6555,7 +6560,7 @@ void precond_bdcsr_metric_amg_additive(REAL *r,
     zz.row = predata->A->blocks[3]->col; zz.val = z+predata->A->blocks[0]->row;
 
     // Schwarz method on the interface part
-    Schwarz_param *schwarz_param = predata->schwarz_param;
+    //Schwarz_param *schwarz_param = predata->schwarz_param;
     Schwarz_data *schwarz_data = predata->schwarz_data;
     sch_type=schwarz_data->Schwarz_type;
     if(sch_type==SCHWARZ_FORWARD ||		\
@@ -6663,7 +6668,7 @@ void precond_bdcsr_metric_amg_symmetric(REAL *r,
     array_print(rr.val, predata->A->blocks[3]->row);
     array_print(zz.val, predata->A->blocks[3]->col);*/
     // Schwarz method on the interface part
-    Schwarz_param *schwarz_param = predata->schwarz_param;
+    //Schwarz_param *schwarz_param = predata->schwarz_param;
     Schwarz_data *schwarz_data = predata->schwarz_data;
     sch_type=schwarz_data->Schwarz_type;
     if(sch_type==SCHWARZ_FORWARD ||		\

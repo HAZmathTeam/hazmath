@@ -382,19 +382,23 @@ void initialize_blktimestepper(block_timestepper *tstepper,input_param *inparam,
   }
 
   // Matrices and Vectors
-  tstepper->M=NULL;
-  tstepper->A=NULL;
-  tstepper->At=malloc(sizeof(struct block_dCSRmat)); /* A_time */
+  tstepper->M=malloc(sizeof(struct block_dCSRmat)); /* M - du/dt part of du/dt + Lu = f */;
+  tstepper->A=malloc(sizeof(struct block_dCSRmat)); /* A - L part of du/dt + Lu = f */;
+  tstepper->At=malloc(sizeof(struct block_dCSRmat)); /* A_time - entire operator*/
   tstepper->At_noBC=malloc(sizeof(struct block_dCSRmat)); /* A_time with no boundary elimination */
   tstepper->sol_prev=malloc(sizeof(struct dvector)); /* uprev */
-  tstepper->sol=NULL;      /* u */
-  tstepper->rhs=NULL;     /* f */
+  tstepper->sol=malloc(sizeof(struct dvector));;      /* u */
+  tstepper->rhs=malloc(sizeof(struct dvector));;     /* f */
   tstepper->rhs_prev=malloc(sizeof(struct dvector)); /* fprev */
-  tstepper->rhs_time=malloc(sizeof(struct dvector));
+  tstepper->rhs_time=malloc(sizeof(struct dvector)); /* full right-hand side */
 
+  bdcsr_alloc(blksize,blksize,tstepper->M);
+  bdcsr_alloc(blksize,blksize,tstepper->A);
   bdcsr_alloc(blksize,blksize,tstepper->At);
   bdcsr_alloc(blksize,blksize,tstepper->At_noBC);
   dvec_alloc(tstepper->old_steps*ndof,tstepper->sol_prev);
+  dvec_alloc(ndof,tstepper->sol);
+  dvec_alloc(ndof,tstepper->rhs);
   dvec_alloc(ndof,tstepper->rhs_prev);
   dvec_alloc(ndof,tstepper->rhs_time);
 
@@ -432,6 +436,7 @@ void free_blktimestepper(block_timestepper* ts, INT flag)
     else {
         bdcsr_free(ts->A);
     }
+    free(ts->A);
     ts->A=NULL;
   }
 
@@ -442,6 +447,7 @@ void free_blktimestepper(block_timestepper* ts, INT flag)
       else {
         bdcsr_free(ts->M);
       }
+    free(ts->M);
     ts->M=NULL;
   }
 
@@ -449,7 +455,7 @@ void free_blktimestepper(block_timestepper* ts, INT flag)
     bdcsr_free(ts->At);
     free(ts->At);
     ts->At=NULL;
-  }
+    }
 
   if(ts->At_noBC) {
     bdcsr_free(ts->At_noBC);
@@ -459,30 +465,32 @@ void free_blktimestepper(block_timestepper* ts, INT flag)
 
   if(ts->sol) {
     dvec_free(ts->sol);
+    free(ts->sol);
     ts->sol=NULL;
   }
 
   if(ts->sol_prev) {
     dvec_free(ts->sol_prev);
-      free(ts->sol_prev);
-      ts->sol_prev=NULL;
+    free(ts->sol_prev);
+    ts->sol_prev=NULL;
   }
 
   if(ts->rhs) {
-      dvec_free(ts->rhs);
-      ts->rhs=NULL;
+    dvec_free(ts->rhs);
+    free(ts->rhs);
+    ts->rhs=NULL;
   }
 
   if(ts->rhs_prev) {
-      dvec_free(ts->rhs_prev);
-      free(ts->rhs_prev);
-      ts->rhs_prev=NULL;
+    dvec_free(ts->rhs_prev);
+    free(ts->rhs_prev);
+    ts->rhs_prev=NULL;
   }
 
   if(ts->rhs_time) {
-      dvec_free(ts->rhs_time);
-      free(ts->rhs_time);
-      ts->rhs_time=NULL;
+    dvec_free(ts->rhs_time);
+    free(ts->rhs_time);
+    ts->rhs_time=NULL;
   }
 
   return;
@@ -552,12 +560,18 @@ void get_blktimeoperator(block_timestepper* ts,INT first_visit,INT cpyNoBC)
     REAL dt = ts->dt;
     INT time_scheme = ts->time_scheme;
 
+    // If not the first visit, free the previous At blocks so that bdcsr_add can allocate new ones
+    if(first_visit==0) { 
+      bdcsr_free(ts->At);
+      bdcsr_alloc(ts->A->brow,ts->A->bcol,ts->At);
+    }
+
     switch (time_scheme) {
       case 0: // Crank-Nicolson: (M + 0.5*dt*A)u = (M*uprev - 0.5*dt*L(uprev) + 0.5*dt*(b_old + b)
         bdcsr_add(ts->M,1.0,ts->A,0.5*dt,ts->At);
         break;
       case 1: // Backward Euler: (M + dt*A)u = M*uprev + dt*b
-        bdcsr_add(ts->M,1.0,ts->A,dt,ts->At);
+        bdcsr_add(ts->M,1.0,ts->A,dt,ts->At); 
         break;
       case 2: // BDF-2: (M + (2/3)*dt*A)u = (4/3)*M*uprev - (1/3)*M*uprevprev+ (2/3)*dt*b
         bdcsr_add(ts->M,1.0,ts->A,2.0*dt/3.0,ts->At);

@@ -10,7 +10,7 @@
 % output
 %---------------%
 
-print_level	= 0;	% how much information to print out: 0 Nothing | >0 Something
+print_level	= 2;	% how much information to print out: 0 Nothing | >0 Something
 output_dir  = ./output/ % directory for all output (must be created)
 
 
@@ -21,19 +21,19 @@ output_dir  = ./output/ % directory for all output (must be created)
 read_mesh_from_file = 0 % [0/1]; 1=Either read from file in .haz format or 0=build uniform mesh directly
 
 % For reading in a pre-made mesh file (any dimension works)
-gridfile          = unitSQ_n9.haz
+% gridfile          = ../grids/2D/unitSQ_n9.haz
 
 % For using HAZmath's built-in uniform mesh functions
-spatial_dim       = 3   % For now only 2D or 3D
+spatial_dim       = 2   % For now only 2D or 3D
 refinement_type   = 11  % Refinement type (>10 uniform or <10 other)
-refinement_levels = 3  % Number of levels of refinement (2^(l+1) vertices in each direction)
+refinement_levels = 2  % Number of levels of refinement (2^(l)+1 vertices in each direction)
 boundary_codes    = 1   % Will set the boundary codes
 
 %---------------%
 % finite element
 %---------------%
 
-nquad		= 2	% Quadrature nodes each direction
+nquad		= 3	% Quadrature nodes each direction
 FE_type	= 1	% 1-9 PX | 10-19 QX (not yet) | 20 Ned | 30 RT | -9--1 DGX (not yet)
 
 %---------------%
@@ -59,9 +59,9 @@ nonlinear_itsolver_toltype	= 0 	% type of tolerance for nonlinear solver 1 - ||n
 % linear solver
 %---------------%
 
-linear_itsolver_type		= 1    	% 0 Direct Solve | 1 CG | 2 MINRES | 3 GMRES
+linear_itsolver_type		= 0    	% 0 Direct Solve | 1 CG | 2 MINRES | 3 GMRES | 4 FGMRES
 linear_itsolver_maxit		= 900  	% maximal iterations of linear iterative solver
 linear_itsolver_tol		  = 1e-8  % tolerance for linear iterative solver
 linear_stop_type		    = 1     % 1 ||r||/||b|| | 2 ||r||_B/||b||_B | % 3 ||r||/||x||
 linear_restart 			    = 100		% restart for GMRes
-linear_precond_type		  = 2		%  0 Null | 1 Diag | 2 AMG
+linear_precond_type		  = 0		%  0 Null | 1 Diag | 2 AMG
