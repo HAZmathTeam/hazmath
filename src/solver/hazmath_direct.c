@@ -5,8 +5,7 @@
 #include "hazmath.h"
 // /**************************************************************************/
 // /**
-//  * \fn void do_permutation(ivector *perm,INT n,INT *ia, INT *ja,
-//  *                         const SHORT algorithm)
+//  * \fn void do_permutation(dCSRmat* a, INT* perm, INT* iperm)
 //  *
 //  * \brief  gives a permutation using "algorithm"
 //  *
@@ -24,331 +23,73 @@
 //  *
 //  */
 // /**********************************************************************************/
-// void do_permutation(ivector *perm,INT n, INT *ia, INT *ja,	\
-// 		    const SHORT algorithm)
-// {
-//   INT j,iblk,istrt,iend,nb,nblk;
-//   //  INT nnz=ia[n];
-//   iCSRmat *idfs=run_dfs(n,ia,ja);
-//   //  icsr_write_icoo("DFS",idfs);  
-//   memcpy(perm->val,idfs->JA,n*sizeof(INT));
-//   ///
-//   dCSRmat a_t,awrk;
-//   ///
-//   awrk=dcsr_create(0,0,0);
-//   awrk.IA=calloc(n+1,sizeof(INT));
-//   awrk.JA=calloc(n,sizeof(INT));
-//   awrk.val=NULL;
-//   //
-//   a_t=dcsr_create(0,0,0);
-//   a_t.IA=calloc(n+1,sizeof(INT));
-//   a_t.JA=calloc(n,sizeof(INT));
-//   a_t.val=NULL;
-//   ///
-//   INT num,ideg,nnzp;
-//   for(iblk=0;iblk<idfs->row;++iblk){
-//     istrt=idfs->IA[iblk];
-//     iend=idfs->IA[iblk+1];
-//     nblk=iend-istrt;
-//     if(nblk<2) continue;
-//     nb=0;
-//     nnzp=0;    
-//     awrk.IA[0]=nnzp;
-//     awrk.row=nblk;
-//     awrk.col=0;
-//     for(j=istrt;j<iend;++j){
-//       num=idfs->JA[j];
-//       perm->val[nb]=num;
-//       ideg=ia[num+1]-ia[num]-1;      
-// 	if(ideg<0)
-// 	  ideg=0;
-// 	if((ideg+1)>awrk.col) awrk.col=ideg+1;
-//       awrk.JA[nnzp]=ideg;
-//       nnzp++;
-//       awrk.IA[nb+1]=nnzp;
-//       nb++;
-//     }
-//     if(nb!=nblk){
-//       fprintf(stderr,"\n\nERROR: %lld=nb != nblk=%lld in %s",(long long )nb,(long long )nblk,__FUNCTION__);
-//       exit(15);
-//     }
-//     awrk.nnz=awrk.IA[nblk];
-//     dcsr_transz(&awrk,NULL,&a_t);
-//     for(j=istrt;j<iend;++j){
-//       idfs->JA[j]=perm->val[a_t.JA[j-istrt]];
-//     }
-//   }
-//   memcpy(perm->val,idfs->JA,n*sizeof(INT));
-//   dcsr_free(&a_t);
-//   dcsr_free(&awrk);
-//   icsr_free(idfs);
-//   free(idfs);
-//   return;
-// }
-
-/*=====================================================================*/
-/**************************************************************************/
-/**
- * \fn void do_permutation(dCSRmat* a, INT* perm, INT* iperm)
- *
- * \brief Approximate Minimum Degree (AMD) ordering with quotient graph
- *
- * Computes an ordering that attempts to minimize fill-in during
- * Cholesky factorization using the AMD algorithm.
- *
- * \param a      - symmetric graph in CSR format (dCSRmat, 0-based)
- * \param perm   - output permutation array of size n
- *                 perm[i] = j means vertex j is the i-th to be eliminated
- * \param iperm  - output inverse permutation array of size n (can be NULL)
- *                 iperm[j] = i means vertex j is eliminated at step i
- *
- * \note Reference:
- *   Amestoy, P. R., Davis, T. A., & Duff, I. S. (1996).
- *   "An Approximate Minimum Degree Ordering Algorithm."
- *   SIAM Journal on Matrix Analysis and Applications, 17(4), 886-905.
- *   https://doi.org/10.1137/S0895479894278952
- *
- *   See also:
- *   George, A., & Liu, J. W. (1989).
- *   "The Evolution of the Minimum Degree Ordering Algorithm."
- *   SIAM Review, 31(1), 1-19.
- *
- * \note Uses quotient graph representation to avoid explicit fill-in computation.
- *       External degree is approximated as an upper bound for efficiency.
- *
- * \author ?Ludmil Zikatanov + help(cl)
- */
-/**********************************************************************************/
-void do_permutation(dCSRmat* a,  INT *perm, INT* iperm) 
+void do_permutation(dCSRmat* a, INT* perm, INT* iperm) 
 {
-    INT n = a->row;
+  INT n = a->row;
+  for (INT i = 0; i < n; ++i) perm[i] = i;
+  if (0) {
     INT *ia = a->IA, *ja = a->JA;
-    INT i, j, k, p, e, v, w, nelim;
-    INT deg, ext_deg, len_e, len_v;
+    INT j, iblk, istrt, iend, nb, nblk;
+    //  INT nnz=ia[n];
+    iCSRmat* idfs = run_dfs(n, ia, ja);
+    //  icsr_write_icoo("DFS",idfs);
 
-    /* Allocate work arrays */
-    INT* degree = (INT*)malloc(n * sizeof(INT));      /* approximate external degree */
-    INT* elen = (INT*)malloc(n * sizeof(INT));        /* element list length / status */
-    INT* last = (INT*)malloc(n * sizeof(INT));        /* last vertex in element's list */
-    INT* nv = (INT*)malloc(n * sizeof(INT));          /* # vertices in supervariable */
-    INT* next = (INT*)malloc(n * sizeof(INT));        /* next in degree list */
-    INT* prev = (INT*)malloc(n * sizeof(INT));        /* prev in degree list (or -1) */
-    INT* head = (INT*)malloc(n * sizeof(INT));        /* head of degree list */
-    INT* w_arr = (INT*)malloc(n * sizeof(INT));       /* work array for reachable set */
-    INT* marker = (INT*)calloc(n, sizeof(INT));       /* marker for visited vertices */
-
-    /* Dynamic adjacency lists stored in-place in Lp/Li (quotient graph representation)
-     * For variable i: Lp[i]..Lp[i]+Len[i]-1 contains adjacent elements
-     *                 followed by adjacent variables
-     * For element e:  Lp[e]..Lp[e]+Len[e]-1 contains variables in element */
-    INT* Lp = (INT*)malloc((n + 1) * sizeof(INT));    /* pointers into Li */
-    INT* Li = (INT*)malloc(2 * ia[n] * sizeof(INT));  /* adjacency lists */
-    INT* Len = (INT*)malloc(n * sizeof(INT));         /* length of list for i */
-
-    INT pfree = 0;  /* next free position in Li */
-
-    /* InitIAlize: copy adjacency structure, compute initial degrees */
-    for (i = 0; i < n; i++) {
-        Lp[i] = pfree;
-        deg = 0;
-        for (k = ia[i]; k < ia[i + 1]; k++) {
-            j = ja[k];
-            if (j != i) {  /* skip diagonal */
-                Li[pfree++] = j;
-                deg++;
-            }
-        }
-        Len[i] = deg;
-        degree[i] = deg;
-        elen[i] = 0;      /* no adjacent elements initially */
-        nv[i] = 1;        /* each variable is its own supervariable */
-        marker[i] = 0;
+    memcpy(perm, idfs->JA, n * sizeof(INT));
+    ///
+    dCSRmat a_t, awrk;
+    ///
+    awrk = dcsr_create(0, 0, 0);
+    awrk.IA = calloc(n + 1, sizeof(INT));
+    awrk.JA = calloc(n, sizeof(INT));
+    awrk.val = NULL;
+    //
+    a_t = dcsr_create(0, 0, 0);
+    a_t.IA = calloc(n + 1, sizeof(INT));
+    a_t.JA = calloc(n, sizeof(INT));
+    a_t.val = NULL;
+    ///
+    INT num, ideg, nnzp;
+    for (iblk = 0; iblk < idfs->row; ++iblk) {
+      istrt = idfs->IA[iblk];
+      iend = idfs->IA[iblk + 1];
+      nblk = iend - istrt;
+      if (nblk < 2) continue;
+      nb = 0;
+      nnzp = 0;
+      awrk.IA[0] = nnzp;
+      awrk.row = nblk;
+      awrk.col = 0;
+      for (j = istrt; j < iend; ++j) {
+        num = idfs->JA[j];
+        perm[nb] = num;
+        ideg = ia[num + 1] - ia[num] - 1;
+        if (ideg < 0) ideg = 0;
+        if ((ideg + 1) > awrk.col) awrk.col = ideg + 1;
+        awrk.JA[nnzp] = ideg;
+        nnzp++;
+        awrk.IA[nb + 1] = nnzp;
+        nb++;
+      }
+      if (nb != nblk) {
+        fprintf(stderr, "\n\nERROR: %lld=nb != nblk=%lld in %s", (long long)nb,
+                (long long)nblk, __FUNCTION__);
+        exit(15);
+      }
+      awrk.nnz = awrk.IA[nblk];
+      dcsr_transz(&awrk, NULL, &a_t);
+      for (j = istrt; j < iend; ++j) {
+        idfs->JA[j] = perm[a_t.JA[j - istrt]];
+      }
     }
-    Lp[n] = pfree;
-
-    /* Initialize degree lists */
-    for (i = 0; i < n; i++) head[i] = -1;
-    for (i = 0; i < n; i++) {
-        deg = degree[i];
-        if (deg > 0) {
-            next[i] = head[deg];
-            if (head[deg] != -1) prev[head[deg]] = i;
-            prev[i] = -1;
-            head[deg] = i;
-        } else {
-            next[i] = -1;
-            prev[i] = -1;
-        }
-    }
-
-    nelim = 0;  /* number of eliminated variables */
-    INT mindeg = 0;
-    INT min_v, min_deg;
-
-    /* Main elimination loop */
-    while (nelim < n) {
-        /* Find minimum degree vertex */
-        while (mindeg < n && head[mindeg] == -1) mindeg++;
-        if (mindeg >= n) break;
-
-        min_v = head[mindeg];
-        min_deg = mindeg;
-
-        /* Remove min_v from degree list */
-        if (next[min_v] != -1) prev[next[min_v]] = -1;
-        head[min_deg] = next[min_v];
-
-        /* min_v becomes an element (pivot) */
-        INT pivot = min_v;
-        INT pivot_nv = nv[pivot];
-
-        /* Record elimination */
-        for (k = 0; k < pivot_nv; k++) {
-            perm[nelim + k] = pivot;  /* supervariable: all map to pivot */
-        }
-        if (iperm) {
-            iperm[pivot] = nelim;
-        }
-        nelim += pivot_nv;
-        elen[pivot] = -pivot_nv;  /* mark as element, store negative size */
-
-        /* Compute reachable set L_e (variables adjacent to element e=pivot) */
-        INT nreach = 0;
-        INT mark = nelim + 1;  /* unique marker for this elimination */
-
-        /* Add variables adjacent to pivot */
-        p = Lp[pivot];
-        for (k = 0; k < Len[pivot]; k++) {
-            j = Li[p + k];
-            if (nv[j] > 0 && marker[j] < mark) {  /* uneliminated variable */
-                marker[j] = mark;
-                w_arr[nreach++] = j;
-            }
-        }
-
-        /* Add variables reachable through elements adjacent to pivot */
-        for (k = 0; k < elen[pivot]; k++) {
-            e = Li[Lp[pivot] + k];
-            if (elen[e] < 0) {  /* e is an element */
-                len_e = -elen[e];
-                for (p = Lp[e]; p < Lp[e] + Len[e]; p++) {
-                    j = Li[p];
-                    if (nv[j] > 0 && marker[j] < mark) {
-                        marker[j] = mark;
-                        w_arr[nreach++] = j;
-                    }
-                }
-            }
-        }
-
-        /* Update adjacency lists and degrees for reachable variables */
-        for (i = 0; i < nreach; i++) {
-            v = w_arr[i];
-
-            /* Remove pivot and absorbed elements from v's list,
-             * add new element (pivot) */
-            INT pv = Lp[v];
-            len_v = Len[v];
-            INT new_len = 0;
-            INT has_pivot = 0;
-
-            /* Scan v's adjacency list */
-            for (k = 0; k < len_v; k++) {
-                j = Li[pv + k];
-                if (j == pivot) {
-                    has_pivot = 1;
-                    continue;  /* skip pivot (will add as element) */
-                }
-                if (elen[j] < 0) {
-                    /* j is an element - check if subsumed by pivot */
-                    /* For simplicity, keep all elements for now */
-                    Li[pv + new_len++] = j;
-                } else if (nv[j] > 0) {
-                    /* j is an uneliminated variable */
-                    Li[pv + new_len++] = j;
-                }
-                /* else: j is eliminated variable, skip */
-            }
-
-            /* Add pivot as adjacent element if not already there */
-            Li[pv + new_len++] = pivot;
-            Len[v] = new_len;
-
-            /* Update approximate external degree:
-             * |L_v| <= |adj(v) \ {e}| + |L_e| - |adj(v) ∩ L_e| - 1
-             * We use upper bound: degree[v] = min(degree[v] + nreach - 1, n - nelim) */
-            ext_deg = 0;
-            for (k = 0; k < new_len; k++) {
-                j = Li[pv + k];
-                if (nv[j] > 0) {
-                    ext_deg += nv[j];  /* count supervariable size */
-                } else if (elen[j] < 0) {
-                    ext_deg += (-elen[j]);  /* element size as upper bound */
-                }
-            }
-            ext_deg = (ext_deg < n - nelim) ? ext_deg : (n - nelim);
-            if (ext_deg < 1) ext_deg = 1;
-
-            /* Remove v from old degree list */
-            deg = degree[v];
-            if (prev[v] == -1) {
-                head[deg] = next[v];
-            } else {
-                next[prev[v]] = next[v];
-            }
-            if (next[v] != -1) {
-                prev[next[v]] = prev[v];
-            }
-
-            /* Insert v into new degree list */
-            degree[v] = ext_deg;
-            next[v] = head[ext_deg];
-            if (head[ext_deg] != -1) prev[head[ext_deg]] = v;
-            prev[v] = -1;
-            head[ext_deg] = v;
-
-            if (ext_deg < mindeg) mindeg = ext_deg;
-        }
-
-        /* Store reachable set as element's variable list */
-        if (nreach > 0) {
-            /* Reuse pivot's space or allocate new */
-            if (nreach <= Len[pivot]) {
-                for (k = 0; k < nreach; k++) {
-                    Li[Lp[pivot] + k] = w_arr[k];
-                }
-            } else {
-                Lp[pivot] = pfree;
-                for (k = 0; k < nreach; k++) {
-                    Li[pfree++] = w_arr[k];
-                }
-            }
-            Len[pivot] = nreach;
-        }
-
-        nv[pivot] = 0;  /* mark pivot as eliminated */
-    }
-
-    /* Handle any remaining isolated vertices */
-    for (i = 0; i < n; i++) {
-        if (nv[i] > 0 && elen[i] >= 0) {
-            perm[nelim++] = i;
-            if (iperm) iperm[i] = nelim - 1;
-        }
-    }
-
-    free(degree);
-    free(elen);
-    free(last);
-    free(nv);
-    free(next);
-    free(prev);
-    free(head);
-    free(w_arr);
-    free(marker);
-    free(Lp);
-    free(Li);
-    free(Len); 
+    memcpy(perm, idfs->JA, n * sizeof(INT));
+    dcsr_free(&a_t);
+    dcsr_free(&awrk);
+    icsr_free(idfs);
+    free(idfs);
+  }
+  if (iperm != NULL)
+    for (INT i = 0; i < n; ++i) iperm[perm[i]] = i;
+  return;
 }
 /********************************************************************* */
 /**
