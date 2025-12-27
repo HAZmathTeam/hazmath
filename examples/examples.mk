@@ -108,6 +108,7 @@ endif
 ifeq ($(WITH_HDF5),1)
 	CFLAGS += -DWITH_HDF5=1
 	LIBS += -lhdf5_serial
+	INCLUDE += -I/usr/include/hdf5/serial
 endif
 
 ifeq ($(WITH_FFTW3),1)

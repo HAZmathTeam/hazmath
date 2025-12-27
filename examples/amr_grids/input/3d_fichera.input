@@ -111,6 +111,19 @@ data_vertices{
 num_edges{16} %
 
 %% edge: 1st vertex, 2nd vertex, number of divisions.
+<<<<<<< HEAD
+data_edges{0 1 	     1
+  	   4 0	     1	      
+	    0 2	     1 
+	    1 3      1
+	    1 5      1
+            3 7      1
+            7 5	     1
+  	    2 6      1
+  	    4 6      1	      
+  	    3 2      1	      
+  	    7  6     1	      
+=======
 data_edges{0 1          1
          4 0         1
        0 2         1
@@ -122,11 +135,15 @@ data_edges{0 1          1
           4 6      1
           3 2      1
           7  6     1
+>>>>>>> e933aef7ad29a951c6fd8b3163f6c1120828d45c
             11 13   1
             9 13    1
            13 12    1
            15 25    1
            3  19     1
+<<<<<<< HEAD
+	   }	    
+=======
        }
 
 %%% data_edges{0 1          1
@@ -146,6 +163,7 @@ data_edges{0 1          1
 %%%            15 25    5
 %%%            3  19     5
 %%%        }
+>>>>>>> e933aef7ad29a951c6fd8b3163f6c1120828d45c
 
 %%% ====================MACROELEMENTS=========================
 num_macroelements{7}

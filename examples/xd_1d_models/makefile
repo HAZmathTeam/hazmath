@@ -19,5 +19,5 @@ CFLAGS = -g -Wall
 WITH_SUITESPARSE=1
 WITH_LAPACK=1
 
-MAKE_LIB=0
+MAKE_LIB=1
 sinclude ../examples.mk
