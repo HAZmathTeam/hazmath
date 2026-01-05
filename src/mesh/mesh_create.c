@@ -119,7 +119,8 @@ struct mesh_struct make_uniform_mesh(const INT dim,const INT mesh_ref_levels,con
 
   // Create a simplicial complex
   scomplex **sc_all=NULL,*sc=NULL,*sctop=NULL;
-
+  fprintf(stdout,"\n%%%%---------------------------------------------------------------------");
+  fprintf(stdout,"\n%%%%Meshing..."); 
   // Get the coarsest mesh on the cube in dimension dim and set the refinement type.
   sc_all=mesh_cube_init(dim,1,mesh_ref_type);
   sc=sc_all[0];
@@ -158,10 +159,21 @@ struct mesh_struct make_uniform_mesh(const INT dim,const INT mesh_ref_levels,con
     }
     ivec_free(&marked);
   }
-  // Get boundary codes
+  /* LZ: Get boundary codes; this now by DEFAULT sets the boundary codes to be
+   * equal to i+1 where i is the number of the connected component on the
+   * boundary. So for the unit square all codes are equal to 1.
+   */
+  fprintf(stdout,"Done.\n");
   scfinalize(sc,(INT )1);
+  //      
   sc_vols(sc);
-  /* vtkw("mesh.vtu",sc,0,1.); // to plot with paraview*/
+  if (FALSE) {// (do not export)/(export) the mesh to vtu: [FALSE/TRUE] 
+    vtu_data vdata;
+    vtu_data_init(sc, &vdata);
+    vtkw("mesh.vtu", &vdata);
+    vtu_data_free(&vdata);
+  }
+  fprintf(stdout,"%%%%---------------------------------------------------------------------\n");
   // Convert to mesh_struct for FEM assembly
   mesh_struct mesh0=sc2mesh(sc);
   // Free simplicial complex

@@ -636,18 +636,18 @@ void scfinalize(scomplex *sc,const INT set_bndry_codes)
       On the last grid are all simplices that were not refined, so
       these are the ones for which child0 and childn are not set.
     */
-    if(sc->child0[j]<0 || sc->childn[j]<0){
-      for (k=0;k<n1;k++) {
-	sc->nodes[ns*n1+k]=sc->nodes[j*n1+k];
+    if (sc->child0[j] < 0 || sc->childn[j] < 0) {
+      for (k = 0; k < n1; k++) {
+        sc->nodes[ns * n1 + k] = sc->nodes[j * n1 + k];
       }
-      sc->child0[ns]=-1;
-      sc->childn[ns]=-1;
-      sc->gen[ns]=sc->gen[j];
-      sc->flags[ns]=sc->flags[j];
+      sc->child0[ns] = -1;
+      sc->childn[ns] = -1;
+      sc->gen[ns] = sc->gen[j];
+      sc->flags[ns] = sc->flags[j];
       ns++;
     }
   }
-  sc->ns=ns;
+  sc->ns = ns;
   sc->nodes=realloc(sc->nodes,n1*sc->ns*sizeof(INT));
   sc->nbr=realloc(sc->nbr,n1*sc->ns*sizeof(INT));
   sc->vols=realloc(sc->vols,sc->ns*sizeof(REAL));
@@ -659,14 +659,13 @@ void scfinalize(scomplex *sc,const INT set_bndry_codes)
   // this also can be called separately
   // set_bndry_codes should always be set to 1.
   //  set_bndry_codes=1;
-  find_cc_bndry_cc(sc,(INT )1); //set_bndry_codes);
-  //
-  /* if(set_bndry_codes){ */
-  /*   for(j=0;j<sc->nv;++j){ */
-  /*     if(sc->bndry[j]>128) sc->bndry[j]-=128; */
-  /*   } */
-  /* } */
-  // clean up: // This should be removed?
+  find_cc_bndry_cc(sc,(INT )1);
+  // if(set_bndry_codes){ 
+  //   for(j=0;j<sc->nv;++j){ 
+  //      if(sc->bndry[j]>128) sc->bndry[j]-=128; 
+  //    } 
+  //  } 
+  // clean up: // This below should be removed?
   icsr_free(sc->bndry_v);
   free(sc->bndry_v);
   sc->bndry_v=NULL;
@@ -1131,10 +1130,8 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
   /* make boundary codes from parent_v */
   INT *a1=NULL,*a2=NULL,l,ncap,n1,n2,v1,v2,nnz_bv,nnzold;
   i=-1;
-  // fprintf(stdout,"\nr=%d;c=%d;nnz=%d\n", sc->bndry_v->row,sc->bndry_v->col,sc->bndry_v->nnz);fflush(stdout);
 // compute the max degree of a vertex in bndry_v; 
-// a vertex may lie the intersection of many boundaries as the 
-// dimension of the problem increases. 
+// a vertex may lie the intersection of many boundaries as the dimension of the problem increases. 
 // sc_bndry_v is an iCSRmat that for every vertex, it contains all boundaries it lies on. 
 //
   for(k=0;k<sc->bndry_v->row;++k){
@@ -1147,7 +1144,14 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
     acap=calloc(i,sizeof(INT));
   }
   // fprintf(stdout,"%%%% max_nnz_row_bndry_v=%d\n",i);fflush(stdout);
-  if(1){//ALWAYS set_bndry_codes) {
+  /*
+   * always set boundary codes. The iCSRmat matrix "sc->bndry_v"
+   * is as follows: for every row (a boundary vertex) the column indices
+   * are the initial grid faces to which it belongs. The val part of sc->bndry_v
+   * contains the codes of these faces. The sc->bndry array then is the minimal
+   * code per bndry vertex (row in sc->bndry_v).
+   */
+  if(TRUE){
     nnz_bv=sc->bndry_v->nnz;
     // fprintf(stdout,"\n%% =7_x=%ld",(LONG )nnz_bv);fflush(stdout);
     for(k=0;k<sc->parent_v->row;++k){
@@ -1158,7 +1162,7 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
     }
     nnzold=nnz_bv;
     // if nnz_bv==0 then this is a mesh without any refinements. 
-    if(nnz_bv){
+    if(nnz_bv!=0){
       sc->bndry_v->val=realloc(sc->bndry_v->val,2*nnz_bv*sizeof(INT));
       for(k=0;k<sc->bndry_v->nnz;++k){
         sc->bndry_v->val[nnz_bv+k]=sc->bndry_v->val[sc->bndry_v->nnz+k];
@@ -1169,7 +1173,7 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
     sc->bndry_v->row=sc->parent_v->row;
     sc->bndry_v->IA=realloc(sc->bndry_v->IA,(sc->parent_v->row+1)*sizeof(INT));
     sc->bndry_v->IA[sc->bndry_v->row]=nnz_bv;
-//    fprintf(stdout,"\nia=%d,nnzbv=%d",sc->bndry_v->IA[sc->bndry_v->row],nnz_bv);fflush(stdout);
+    // fprintf(stdout,"\nWWW:ia=%d,nnzbv=%d",sc->bndry_v->IA[sc->bndry_v->row],nnz_bv);fflush(stdout);
     if(nnz_bv){
       // add all boundary codes for vertices obtained with
       // refinement. This uses that such vertices are added one by one
@@ -1186,7 +1190,7 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
 	        v2=sc->parent_v->JA[j+1];
 	        n2=sc->bndry_v->IA[v2+1]-sc->bndry_v->IA[v2];
 	        a2=sc->bndry_v->JA+sc->bndry_v->IA[v2];
-    	  //	fprintf(stdout,"\nnew_vertex=%d,v1=%d,v2=%d; n1=%d,n2=%d",k,v1,v2,n1,n2);fflush(stdout);
+    	  // fprintf(stdout,"\nnew_vertex=%d,v1=%d,v2=%d; n1=%d,n2=%d",k,v1,v2,n1,n2);fflush(stdout);
 	      //print_full_mat_int(1,n1,a1,"a1");
 	      //print_full_mat_int(1,n2,a2,"a2");
           ncap=array_cap(n1,a1,n2,a2,acap,wrk);
@@ -1215,9 +1219,7 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
     sc->bndry_v->IA[sc->bndry_v->row]=nnz_bv;
     sc->bndry_v->JA=realloc(sc->bndry_v->JA,nnz_bv*sizeof(INT));
     sc->bndry_v->val=realloc(sc->bndry_v->val,2*nnz_bv*sizeof(INT));
-// WHy this fails: sc->bndry_v->val=realloc(sc->bndry_v->val,dim*sc->bndry_v->row*sizeof(INT));
-    //
-//
+// Why this fails: sc->bndry_v->val=realloc(sc->bndry_v->val,dim*sc->bndry_v->row*sizeof(INT));
     for(k=0;k<nnz_bv;k++){
       // fprintf(stdout,"\n%% =8_x=%d %d %d",k+nnz_bv,nnzold+k,dim*sc->bndry_v->row);fflush(stdout);
       sc->bndry_v->val[k+nnz_bv]=sc->bndry_v->val[nnzold+k];
@@ -1226,7 +1228,7 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
     sc->bndry_v->val=realloc(sc->bndry_v->val,2*nnz_bv*sizeof(INT));
       // fprintf(stdout,
       //   "\nrows=%d;cols=%d;nnz=%d;nnz_bv=%d",sc->bndry_v->row,
-      //   sc->bndry_v->col,sc->bndry_v->nnz,nnz_bv);fflush(stdout);
+      //   sc->bndry_v->col,sc->bndry_v->nnz,nnz_bv);fflush(stdout); fflush(stdout);
   } else {
     /*BEGIN: TO BE REMOVED IN THE FUTURE*/
     for(i=0;i<sc->bndry_cc;++i){
@@ -1244,22 +1246,23 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
     return;
     /*END: TO BE REMOVED IN THE FUTURE*/
   }  // end else
-//
+  //
   INT iaa,iab,code,cmin,cmax;
   // fprintf(stdout,"\nNNZOLD=%d;NNZBV=%d",nnzold,nnz_bv);
   if(!nnz_bv){
+    // this is if no refinement was done
     for(i=0;i<sc->bndry_cc;++i){
       for(k=blk_dfs->IA[i];k<blk_dfs->IA[i+1];++k){
 	      j=blk_dfs->JA[k];
 	      for(m=0;m<dim;m++){
-//	        fprintf(stdout,"\nBV=%d,code=%d; face=%d",indxinv[f2v.JA[dim*j+m]],i,k);
-	        sc->bndry[indxinv[f2v.JA[dim*j+m]]]=i;
+	        // fprintf(stdout,"\nBV=%d,code=%d; face=%d",indxinv[f2v.JA[dim*j+m]],i,k);
+	        sc->bndry[indxinv[f2v.JA[dim*j+m]]]=i+1;
 	      }
       }
     }
     sc->bndry_v->IA=realloc(sc->bndry_v->IA,(sc->bndry_v->row+1)*sizeof(INT));   
     sc->bndry_v->JA=realloc(sc->bndry_v->JA,dim*(sc->bndry_v->row)*sizeof(INT));   
-    sc->bndry_v->val=realloc(sc->bndry_v->val,dim*(sc->bndry_v->row+1)*sizeof(INT));   
+    sc->bndry_v->val=realloc(sc->bndry_v->val,dim*(sc->bndry_v->row+1)*sizeof(INT));
     // sc->bndry_v->IA[1]=0;// this should be of length nv at least. 
     // for(i=0;i<sc->bndry_cc;++i){
     //   for(k=blk_dfs->IA[i];k<blk_dfs->IA[i+1];++k){
@@ -1271,7 +1274,32 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
     //   }
     // }
   }
-  icsr_free(blk_dfs);free(blk_dfs);
+  //
+  // fprintf(stdout,"\nparent_v2=[");
+  // icsr_print_matlab(stdout,sc->parent_v);
+  // fprintf(stdout,"];\n");
+  // fprintf(stdout,"\nbndry_v2=[");
+  // icsr_print_matlab(stdout,sc->bndry_v);
+  // fprintf(stdout,"];\n");  fflush(stdout);
+  // set all boundary vertices as interior:
+  memset(sc->bndry,0,sc->nv*sizeof(INT));
+  for(i=0;i<sc->bndry_v->row;++i){
+    iaa=sc->bndry_v->IA[i];
+    iab=sc->bndry_v->IA[i+1];
+    if((iab-iaa)<=0) continue;
+    m=sc->bndry_v->val[iaa];
+    for (INT k=iaa+1;k<iab;++k){
+      // j=sc->bndry_v->JA[k];
+      if(m>sc->bndry_v->val[k]) m=sc->bndry_v->val[k];
+    }
+    // this check should not be needed
+    if(i<sc->nv) sc->bndry[i]=m;
+  }
+  // haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
+  //
+  //
+  icsr_free(blk_dfs);
+  free(blk_dfs);
   icsr_free(&f2v);
   free(indx);
   free(indxinv);
@@ -1645,7 +1673,7 @@ void vtkw(const char *namevtk, vtu_data *vdata)
   fprintf(fvtk,"</Piece>\n");
   fprintf(fvtk,"</UnstructuredGrid>\n");
   fprintf(fvtk,"</VTKFile>\n");
-  fprintf(stdout,"%%Output (vtk) written on:%s\n",namevtk);
+  fprintf(stdout,"\n%%Output (vtk) written on:%s\n",namevtk);
   fclose(fvtk);
   free(tfloat);
   free(tinto);

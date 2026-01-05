@@ -367,15 +367,27 @@ void csr_print_matlab(FILE* fid,
   // local variables
   INT i,j1,j2,j;
 
-  // main loop
-  for(i=0;i<A->row;i++) {
-    j1 = A->IA[i];
-    j2 = A->IA[i+1];
-    for(j=j1;j<j2;j++) {
-      fprintf(fid,"%lld %lld %25.16e\n",(long long )(i+1),(long long )A->JA[j]+1,A->val[j]);
+  if (A->val != NULL) {
+    // main loop
+    for (i = 0; i < A->row; i++) {
+      j1 = A->IA[i];
+      j2 = A->IA[i + 1];
+      for (j = j1; j < j2; j++) {
+        fprintf(fid, "%lld %lld %25.16e\n", (long long)(i + 1),
+                (long long)A->JA[j] + 1, A->val[j]);
+      }
+    }
+  } else {
+    // main loop for null val.
+    for (i = 0; i < A->row; i++) {
+      j1 = A->IA[i];
+      j2 = A->IA[i + 1];
+      for (j = j1; j < j2; j++) {
+        fprintf(fid, "%lld %lld %lld\n", (long long)(i + 1),
+                (long long)A->JA[j] + 1, (long long )1);
+      }
     }
   }
-
   return;
 }
 /***********************************************************************************************/
@@ -496,9 +508,8 @@ void icsr_print_matlab(FILE* fid,
 {
   // local variables
   INT i, j1, j2, j;
-
-  // main loop; comma separated
   if (A->val != NULL) {
+      // main loop; comma separated
     for (i = 0; i < A->row; i++) {
       j1 = A->IA[i];
       j2 = A->IA[i + 1];
@@ -508,6 +519,7 @@ void icsr_print_matlab(FILE* fid,
       }
     }
   } else {
+      // A->val is NULL: main loop; comma separated
     for (i = 0; i < A->row; i++) {
       j1 = A->IA[i];
       j2 = A->IA[i + 1];

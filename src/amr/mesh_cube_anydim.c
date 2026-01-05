@@ -65,10 +65,21 @@ scomplex **mesh_cube_init(const INT dim, const INT ndiv, const INT ref_type)
   }
   g->mnodes[nvcube]=1;
   // faces
+  srand(time(NULL));
   g->mfaces=(INT *)calloc(abs(g->nf)*(nvface+1),sizeof(INT));
   for(i=0;i<g->nf;++i){
     memcpy((g->mfaces+i*(nvface+1)),(c2s->faces+i*nvface),c2s->nvface*sizeof(INT));
-    g->mfaces[nvface+i*(nvface+1)]=1;
+    //dirichlet conditions: face number modulo 16:
+    // below we assign dirichlet codes depending on the input face number
+    INT ii=(g->nf - 1 - i); // =i;  or =(INT )(RAND_MAX/rand());
+    // DIRICHLET
+    g->mfaces[nvface+i*(nvface+1)]= ((ii)%(MARKER_NEUMANN - MARKER_DIRICHLET ) ) + MARKER_DIRICHLET;
+    // NEUMANN 
+    // g->mfaces[nvface+i*(nvface+1)]= (ii%(MARKER_ROBIN - MARKER_NEUMANN ) ) + MARKER_NEUMANN ;
+    // ROBIN
+    // g->mfaces[nvface+i*(nvface+1)]= (ii%(MARKER_BOUNDARY_NO - MARKER_ROBIN ) ) + MARKER_ROBIN; 
+    // OTHER
+    // g->mfaces[nvface+i*(nvface+1)]= (ii%(MARKER_NEUMANN - MARKER_DIRICHLET ) ) + MARKER_BOUNDARY_NO;
   }
   // vertex coords:
   g->xv=(REAL *)calloc(g->dim*g->nv,sizeof(REAL));
@@ -102,7 +113,7 @@ scomplex **mesh_cube_init(const INT dim, const INT ndiv, const INT ref_type)
   g->num_refine_points=0;
   g->print_level=0;
   g->data_refine_points=NULL;
-  if(g->print_level>15) input_grid_print(g);
+  if(g->print_level>15)     input_grid_print(g);
   sc_all=generate_initial_grid(g);
   input_grid_free(g);
   //////////////////////////////////////////////////////
@@ -113,5 +124,6 @@ scomplex **mesh_cube_init(const INT dim, const INT ndiv, const INT ref_type)
   //////////////////////////////////////////////////////
   //  if(dim <4) vtkw(g->fvtu,sc,0,1.);
   //  haz_scomplex_print(sc_all[0],0,"XXX"); fflush(stdout);
+  //
   return sc_all;
 }

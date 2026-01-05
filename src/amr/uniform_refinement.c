@@ -324,12 +324,15 @@ void uniformrefine2d(scomplex *sc)
   sc->parent_v->nnz += 2*ne;
   sc->parent_v->IA = (INT *)realloc(sc->parent_v->IA,(sc->nv+1)*sizeof(INT));
   sc->parent_v->JA = (INT*)realloc(sc->parent_v->JA,(sc->parent_v->nnz)*sizeof(INT));
+  sc->parent_v->val = (INT*)realloc(sc->parent_v->val,(sc->parent_v->nnz)*sizeof(INT));
   //
   for (i=0;i<ne;i++) {
     // one added vertex between e2v.JA[2*i] and e2v.JA[2*i+1];
     sc->parent_v->JA[nnz_p]=e2v.JA[2*i];
+    sc->parent_v->val[nnz_p]=0;
     nnz_p++;
     sc->parent_v->JA[nnz_p]=e2v.JA[2*i+1];
+    sc->parent_v->val[nnz_p]=0;
     nnz_p++;
     sc->parent_v->IA[nv+i+1] = nnz_p;
   }
@@ -401,13 +404,16 @@ void uniformrefine3d(scomplex *sc)
   sc->parent_v->nnz += 2*ne;
   sc->parent_v->IA = (INT *)realloc(sc->parent_v->IA,(sc->nv+1)*sizeof(INT));
   sc->parent_v->JA = (INT *)realloc(sc->parent_v->JA,(sc->parent_v->nnz)*sizeof(INT));
+  sc->parent_v->val = (INT *)realloc(sc->parent_v->val,(sc->parent_v->nnz)*sizeof(INT));
   //
   for (i=0;i<ne;i++) {
     i2=2*i;
     // one added vertex between e2v.JA[2*i] and e2v.JA[2*i+1];
     sc->parent_v->JA[nnz_p]=e2v.JA[i2];
+    sc->parent_v->val[nnz_p]=0;
     nnz_p++;
     sc->parent_v->JA[nnz_p]=e2v.JA[i2+1];
+    sc->parent_v->val[nnz_p]=0;
     nnz_p++;
     sc->parent_v->IA[nv+i+1] = nnz_p;
   }
