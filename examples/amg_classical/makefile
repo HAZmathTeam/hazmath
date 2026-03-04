@@ -4,8 +4,8 @@
 ####################################################
 
 # Main program
-#SRCFILE = test_amg
-SRCFILE = test_ilu_ichol
+SRCFILE = test_amg
+### SRCFILE = test_ilu_ichol
 
 # Additional source files for the AMG library
 AMG_SRCS = amg_wrapper.c
