@@ -810,12 +810,12 @@ void dcoo_read_dcsr (const char *filename,
 
   fprintf(stdout,"%%%%%s: HAZMATH is reading file %s...\n", __FUNCTION__, filename);
 
-  fscanf(fp,"%lld %lld %lld",(INT *)&m,(INT *)&n,(INT *)&nnz);
+  fscanf(fp,"%d %d %d",&m,&n,&nnz);
 
   dCOOmat Atmp=dcoo_create(m,n,nnz);
 
   for ( k = 0; k < nnz; k++ ) {
-    if ( fscanf(fp, "%lld %lld %le", (INT *)&i, (INT *)&j,&value) != EOF ) {
+    if ( fscanf(fp, "%d %d %le", &i, &j,&value) != EOF ) {
       Atmp.rowind[k]=i; Atmp.colind[k]=j; Atmp.val[k] = value;
     }
     else {
