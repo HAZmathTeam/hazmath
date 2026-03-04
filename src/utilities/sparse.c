@@ -1591,6 +1591,40 @@ void dcsr_mxv(dCSRmat *A,
 
 /***********************************************************************************************/
 /*!
+ * \fn void dcsr_mxv_trans (dCSRmat *A, REAL *x, REAL *y)
+ *
+ * \brief Transpose matrix-vector multiplication y = A^T*x (index starts at 0!!)
+ *
+ * \param A   Pointer to dCSRmat matrix A
+ * \param x   Pointer to array x
+ * \param y   Pointer to array y
+ *
+ */
+void dcsr_mxv_trans(dCSRmat *A,
+                    REAL *x,
+                    REAL *y)
+{
+  const INT m=A->row, n=A->col;
+  const INT *ia=A->IA, *ja=A->JA;
+  const REAL *aj=A->val;
+  INT i, k, begin_row, end_row;
+  register REAL xi;
+
+  // initialize y to zero
+  for (i=0;i<n;++i) y[i]=0.0;
+
+  // accumulate A^T*x
+  for (i=0;i<m;++i) {
+    xi=x[i];
+    begin_row=ia[i]; end_row=ia[i+1];
+    for (k=begin_row; k<end_row; ++k) {
+      y[ja[k]]+=aj[k]*xi;
+    }
+  }
+}
+
+/***********************************************************************************************/
+/*!
  * \fn dcsr_mxv_forts (void *A, REAL *x, REAL *y)
  *
  * \brief Matrix-vector multiplication y = A*x

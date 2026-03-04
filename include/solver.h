@@ -163,6 +163,25 @@ typedef struct {
 
 } AMG_data; /**< Data for AMG */
 
+/**
+ * \struct rs_level_aux
+ * \brief Per-level auxiliary data for classical Ruge-Stuben AMG
+ *
+ * Stored in AMG_data mgl[lev].wdata for each level.
+ * Standard per-level data (A, P) lives in AMG_data directly.
+ */
+typedef struct {
+  dCSRmat A_filtered; /**< strength matrix S */
+  INT* mis;           /**< mis[i]=1 if C-point, 0 if F-point */
+  INT* isolated;      /**< isolated[i]=1 if isolated node */
+  INT* cf_order;      /**< CF ordering: C-points first, then F-points */
+  dCSRmat L_ichol;    /**< ichol factor (lower triangular, coarsest level only) */
+  REAL* l1_diag;      /**< l1 row norms for L1 smoother */
+} rs_level_aux;
+
+/** Helper to access RS auxiliary data at a given level */
+#define RS_AUX(mgl, lev) ((rs_level_aux*)(mgl)[lev].wdata)
+
 /***********************************************************************************************/
 /**
  * \struct AMG_data_bsr

@@ -826,6 +826,19 @@ void dcoo_read_dcsr (const char *filename,
   fprintf(stdout,"%%%%%s: HAZMATH reading file %s is DONE. \n", __FUNCTION__, filename); fflush(stdout);
   fclose(fp);
 
+  /* Auto-detect 1-based indices and shift to 0-based */
+  INT min_idx = Atmp.rowind[0];
+  for ( k = 0; k < nnz; k++ ) {
+    if (Atmp.rowind[k] < min_idx) min_idx = Atmp.rowind[k];
+    if (Atmp.colind[k] < min_idx) min_idx = Atmp.colind[k];
+  }
+  if (min_idx == 1) {
+    for ( k = 0; k < nnz; k++ ) {
+      Atmp.rowind[k]--;
+      Atmp.colind[k]--;
+    }
+  }
+
   dcoo_2_dcsr(&Atmp,A);
   dcoo_free(&Atmp);
 }
