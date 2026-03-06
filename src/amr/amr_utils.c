@@ -1218,13 +1218,11 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
       sc->bndry_v->nnz=nnz_bv;
     sc->bndry_v->IA[sc->bndry_v->row]=nnz_bv;
     sc->bndry_v->JA=realloc(sc->bndry_v->JA,nnz_bv*sizeof(INT));
-    sc->bndry_v->val=realloc(sc->bndry_v->val,2*nnz_bv*sizeof(INT));
-// Why this fails: sc->bndry_v->val=realloc(sc->bndry_v->val,dim*sc->bndry_v->row*sizeof(INT));
+    // move second array from offset nnzold to offset nnz_bv BEFORE
+    // reallocating, since realloc may truncate the data at nnzold.
     for(k=0;k<nnz_bv;k++){
-      // fprintf(stdout,"\n%% =8_x=%d %d %d",k+nnz_bv,nnzold+k,dim*sc->bndry_v->row);fflush(stdout);
       sc->bndry_v->val[k+nnz_bv]=sc->bndry_v->val[nnzold+k];
     }
-  // fprintf(stdout,"\n%% =8_1=%ld",(LONG )nnz_bv);fflush(stdout);
     sc->bndry_v->val=realloc(sc->bndry_v->val,2*nnz_bv*sizeof(INT));
       // fprintf(stdout,
       //   "\nrows=%d;cols=%d;nnz=%d;nnz_bv=%d",sc->bndry_v->row,

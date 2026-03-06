@@ -137,6 +137,30 @@ typedef struct {
   REAL *data_refine_points;
 }input_grid; /** Input GRID parameters */
 /*************************************************************/
+/* Configuration file parser types for parse_config.c */
+#define MAX_FIELDS 64
+#define MAX_NAME_LEN 128
+#define MAX_STR_LEN 4096
+
+enum { TYPE_INTEGER = 0, TYPE_DOUBLE, TYPE_STRING, TYPE_DOUBLE_ARRAY };
+
+typedef struct {
+  char name[MAX_NAME_LEN];
+  INT type;
+  union {
+    INT int_val;
+    REAL dbl_val;
+    char str_val[MAX_STR_LEN];
+  } value;
+  REAL *dbl_array;
+  INT array_len;
+} field_z;
+
+typedef struct {
+  field_z fields[MAX_FIELDS];
+  INT num_fields;
+} config_z;
+/*************************************************************/
 typedef struct /* n-dimensional uniform grid */
 { INT n; /* spatial dimension of the grid */
   INT ugtype; /* type = 0 is uniform grid; type =1 dx and dy must be

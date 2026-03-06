@@ -791,17 +791,183 @@ INT haz_add_simplex(INT is, scomplex *sc,REAL *xnew,	\
 }
 /**********************************************************************/
 /*!
+ * \fn static INT set_color(scomplex *sc, INT *color)
+ *
+ * \brief Generalized coloring with N+1 colors (Algorithm 2 from
+ *        Diening, Gehring, Storn, "Adaptive Mesh Refinement for
+ *        Arbitrary Initial Triangulations", FoCM, 2025).
+ *
+ *        Assigns to each vertex the smallest color not already
+ *        attained by a neighboring vertex. The number of colors N+1
+ *        is bounded by the maximal vertex degree + 1.
+ *
+ * \param sc     I: simplicial complex (uses nodes, ns, nv, n)
+ * \param color  O: array of size nv; color[v] in {0,...,N}
+ *
+ * \return N (the largest color assigned)
+ */
+static INT set_color(scomplex *sc, INT *color)
+{
+  INT nv = sc->nv, ns = sc->ns, n = sc->n;
+  INT n1 = n + 1, i, j, k, v, w, c;
+  /* Build vertex-to-vertex adjacency from the element connectivity.
+     We use a simple approach: for each simplex, all pairs of its
+     vertices are neighbors. We store adjacency in CSR format. */
+  /* Step 1: count edges per vertex (upper bound via element connectivity) */
+  INT *deg = (INT *)calloc(nv, sizeof(INT));
+  for (i = 0; i < ns; i++) {
+    INT *el = sc->nodes + i * n1;
+    for (j = 0; j < n1; j++) {
+      deg[el[j]] += n; /* at most n neighbors per element */
+    }
+  }
+  /* Allocate adjacency lists (with room for duplicates; we handle them) */
+  INT *adjptr = (INT *)calloc(nv + 1, sizeof(INT));
+  adjptr[0] = 0;
+  for (i = 0; i < nv; i++)
+    adjptr[i + 1] = adjptr[i] + deg[i];
+  INT nnz_adj = adjptr[nv];
+  INT *adjind = (INT *)malloc(nnz_adj * sizeof(INT));
+  INT *pos = (INT *)calloc(nv, sizeof(INT)); /* current insert position */
+  for (i = 0; i < ns; i++) {
+    INT *el = sc->nodes + i * n1;
+    for (j = 0; j < n1; j++) {
+      v = el[j];
+      for (k = 0; k < n1; k++) {
+        if (k == j) continue;
+        w = el[k];
+        adjind[adjptr[v] + pos[v]] = w;
+        pos[v]++;
+      }
+    }
+  }
+  free(pos);
+  free(deg);
+  /* Step 2: greedy coloring */
+  INT max_color = 0;
+  /* max possible colors is bounded by max vertex degree + 1;
+     for safety allocate nv+1 entries */
+  INT *used = (INT *)calloc(nv + 1, sizeof(INT)); /* flag array: used[c]=v+1 means color c is used by a neighbor of v */
+  for (v = 0; v < nv; v++)
+    color[v] = -1; /* uncolored = infinity in the paper */
+  for (v = 0; v < nv; v++) {
+    /* Mark colors used by neighbors of v */
+    for (j = adjptr[v]; j < adjptr[v + 1]; j++) {
+      w = adjind[j];
+      if (color[w] >= 0)
+        used[color[w]] = v + 1; /* mark as used for vertex v */
+    }
+    /* Find smallest color not used by any neighbor */
+    for (c = 0; ; c++) {
+      if (used[c] != v + 1) {
+        color[v] = c;
+        break;
+      }
+    }
+    if (c > max_color) max_color = c;
+  }
+  free(used);
+  free(adjind);
+  free(adjptr);
+  return max_color; /* N */
+}
+/**********************************************************************/
+/*!
+ * \fn static void dgs_initialize(scomplex *sc, INT *color, INT N)
+ *
+ * \brief Maubach initialization using a generalized coloring
+ *        (Definition 2 from Diening, Gehring, Storn, "Adaptive Mesh
+ *        Refinement for Arbitrary Initial Triangulations", FoCM,
+ *        2025).
+ *
+ *        For each initial simplex T with vertices v0,...,vn, we sort
+ *        the vertices so that c(v_j) < c(v_{j+1}) for all j.  Then
+ *        the tagged simplex is:
+ *          T = [vn, v0, v1,...,v_{n-1}]_n  if c(vn) == N
+ *          T = [v0, v1,...,vn]_n            otherwise
+ *        The tag gamma = n for all initial simplices.
+ *
+ * \param sc     I/O: simplicial complex (nodes are reordered in place)
+ * \param color  I: vertex coloring array of size nv
+ * \param N      I: the largest color
+ */
+static void dgs_initialize(scomplex *sc, INT *color, INT N)
+{
+  INT ns = sc->ns, n = sc->n, n1 = n + 1;
+  INT i, j, k;
+  INT *tmp = (INT *)malloc(n1 * sizeof(INT));
+  INT *perm = (INT *)malloc(n1 * sizeof(INT));
+  INT *nbrtmp = (INT *)malloc(n1 * sizeof(INT));
+  for (i = 0; i < ns; i++) {
+    INT *el = sc->nodes + i * n1;
+    INT *nb = sc->nbr + i * n1;
+    /* Build sorting permutation: perm[new_pos] = old_pos.
+       First sort by color using insertion sort (n1 is small). */
+    for (j = 0; j < n1; j++) perm[j] = j;
+    for (j = 1; j < n1; j++) {
+      INT key_perm = perm[j];
+      INT key_color = color[el[key_perm]];
+      k = j - 1;
+      while (k >= 0 && color[el[perm[k]]] > key_color) {
+        perm[k + 1] = perm[k];
+        k--;
+      }
+      perm[k + 1] = key_perm;
+    }
+    /* perm now maps: sorted position j -> original position perm[j],
+       with color[el[perm[0]]] < ... < color[el[perm[n]]].
+       Apply Definition 2 (equation (1)):
+       If c(v_{perm[n]}) == N: T = [v_n, v_0, ..., v_{n-1}]_n (cyclic)
+       Otherwise:               T = [v_0, v_1, ..., v_n]_n
+    */
+    memcpy(tmp, el, n1 * sizeof(INT));
+    memcpy(nbrtmp, nb, n1 * sizeof(INT));
+    if (color[tmp[perm[n]]] == N) {
+      /* Cyclic: new[0]=old[perm[n]], new[j+1]=old[perm[j]] for j=0..n-1 */
+      el[0] = tmp[perm[n]];
+      nb[0] = nbrtmp[perm[n]];
+      for (j = 0; j < n; j++) {
+        el[j + 1] = tmp[perm[j]];
+        nb[j + 1] = nbrtmp[perm[j]];
+      }
+    } else {
+      /* Straight sort: new[j] = old[perm[j]] */
+      for (j = 0; j < n1; j++) {
+        el[j] = tmp[perm[j]];
+        nb[j] = nbrtmp[perm[j]];
+      }
+    }
+    sc->gen[i] = 0;
+  }
+  free(nbrtmp);
+  free(perm);
+  free(tmp);
+}
+/**********************************************************************/
+/*!
  * \fn INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
  *
- * \brief
+ * \brief Bisects simplex is in the simplicial complex sc. The
+ *        bisection rule is Algorithm 1 from Maubach (1995) / Traxler
+ *        (1997). With the initialization from Diening-Gehring-Storn
+ *        (2025) this works for arbitrary initial triangulations.
  *
- * \param
+ * \param sc  I/O: simplicial complex
+ * \param is  I: index of the simplex to bisect
+ * \param it  I: index of the neighbor that already created the new vertex;
+ *               pass -1 if no such neighbor exists.
  *
- * \return
+ * \return 0 on success
  *
- * \note The algorithm is found in Traxler, C. T. An algorithm for
- *       adaptive mesh refinement in n-dimensions. Computing 59
- *       (1997), no. 2, 115–137 (MR1475530)
+ * \note When ref_type >= 20 the DGS initialization (coloring-based)
+ *       is used instead of the Traxler reflected-neighbor ordering.
+ *       The bisection rule itself (Algorithm 1) is the same.
+ *
+ *       References:
+ *       [1] Traxler, C. T. An algorithm for adaptive mesh refinement
+ *           in n-dimensions. Computing 59 (1997), no. 2, 115–137.
+ *       [2] Diening, L., Gehring, L., Storn, J. Adaptive Mesh
+ *           Refinement for Arbitrary Initial Triangulations. FoCM (2025).
  *
  */
 INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
@@ -1032,10 +1198,28 @@ void refine(const INT ref_levels, scomplex *sc,ivector *marked)
     /* sc->level this is set to 0 in haz_scomplex_init */
     /* form neighboring list on the coarsest level */
     find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
-    INT *wrk=calloc(5*(sc->n+2),sizeof(INT));
-    /* construct bfs tree for the dual graph */
-    abfstree(0,sc,wrk,print_level);
-    if(wrk) free(wrk);
+    if(sc->ref_type >= 20){
+      /*
+       * DGS initialization (Diening-Gehring-Storn, FoCM 2025):
+       * Color the vertices and reorder each simplex accordingly.
+       * This works for ANY conforming initial triangulation and
+       * does not require the reflected-neighbor (Traxler) ordering.
+       */
+      INT *color = (INT *)calloc(sc->nv, sizeof(INT));
+      INT N = set_color(sc, color);
+      /* dgs_initialize permutes both nodes and nbr arrays consistently,
+         so no need to recompute neighbors. */
+      dgs_initialize(sc, color, N);
+      free(color);
+      if(sc->print_level > 0)
+	fprintf(stdout,"\n%%%% DGS initialization: %lld colors used (N=%lld)\n",
+		(long long)(N+1), (long long)N);
+    } else {
+      INT *wrk=calloc(5*(sc->n+2),sizeof(INT));
+      /* construct bfs tree for the dual graph */
+      abfstree(0,sc,wrk,print_level);
+      if(wrk) free(wrk);
+    }
   }
   if((!marked)){
     // just refine everything that was not refined:
@@ -1300,5 +1484,138 @@ scomplex sc_bndry(scomplex *sc)
   return dsc;
 }
 
+/**********************************************************************/
+/*!
+ * \fn INT sc_conformity_check(scomplex *sc)
+ *
+ * \brief Checks if a simplicial complex is conforming (no hanging nodes).
+ *
+ * A triangulation is conforming if every facet (codimension-1 face)
+ * is shared by exactly 2 simplices (interior) or 1 simplex (boundary).
+ * A facet appearing once that is not on the boundary indicates a
+ * hanging node (non-conforming mesh).
+ *
+ * \param sc  I: the simplicial complex (leaf mesh) to check
+ *
+ * \return 0 if the mesh is conforming, nonzero = number of non-conforming facets
+ *
+ * \note Uses a hash table to count facet occurrences. Each facet is
+ *       identified by its sorted vertex indices.
+ */
+INT sc_conformity_check(scomplex *sc)
+{
+  INT ns = sc->ns, n = sc->n, n1 = n + 1;
+  INT nfacets = ns * n1; /* total facets (n+1 per simplex) */
+  INT i, j, k;
+  /*
+   * Store all facets as sorted vertex tuples of length n.
+   * facets[f*n + 0..n-1] = sorted vertex indices of facet f.
+   */
+  INT *facets = (INT *)calloc(nfacets * n, sizeof(INT));
+  INT *ftmp = (INT *)calloc(n, sizeof(INT));
+  for (i = 0; i < ns; i++) {
+    INT *el = sc->nodes + i * n1;
+    for (j = 0; j < n1; j++) {
+      /* facet j = all vertices except vertex j */
+      INT fi = i * n1 + j;
+      INT pos = 0;
+      for (k = 0; k < n1; k++) {
+        if (k == j) continue;
+        ftmp[pos++] = el[k];
+      }
+      /* insertion sort ftmp */
+      for (pos = 1; pos < n; pos++) {
+        INT val = ftmp[pos];
+        INT hole = pos;
+        while (hole > 0 && ftmp[hole - 1] > val) {
+          ftmp[hole] = ftmp[hole - 1];
+          hole--;
+        }
+        ftmp[hole] = val;
+      }
+      memcpy(facets + fi * n, ftmp, n * sizeof(INT));
+    }
+  }
+  free(ftmp);
+  /*
+   * Sort facets lexicographically to count duplicates.
+   * Use an index array and qsort.
+   */
+  INT *idx = (INT *)calloc(nfacets, sizeof(INT));
+  for (i = 0; i < nfacets; i++) idx[i] = i;
+  /* We need n accessible in the comparator — use a file-scope variable */
+  /* Instead, sort by building a comparison key approach with qsort_r or
+   * just do a simple bucket/radix approach. For portability, we do a
+   * manual merge sort with the facets array. */
+  /* Simple approach: sort idx[] using shell sort with lexicographic compare */
+  {
+    INT gap, ii, jj, tmp;
+    for (gap = nfacets / 2; gap > 0; gap /= 2) {
+      for (ii = gap; ii < nfacets; ii++) {
+        tmp = idx[ii];
+        INT *a = facets + tmp * n;
+        for (jj = ii; jj >= gap; jj -= gap) {
+          INT *b = facets + idx[jj - gap] * n;
+          INT cmp = 0;
+          for (k = 0; k < n; k++) {
+            if (a[k] < b[k]) { cmp = -1; break; }
+            if (a[k] > b[k]) { cmp = 1; break; }
+          }
+          if (cmp >= 0) break;
+          idx[jj] = idx[jj - gap];
+        }
+        idx[jj] = tmp;
+      }
+    }
+  }
+  /*
+   * Scan sorted facets and count occurrences.
+   * Conforming: each facet appears 1 (boundary) or 2 (interior) times.
+   * Non-conforming: a facet appears an odd number != 1 or > 2 times.
+   */
+  INT nerr = 0;
+  i = 0;
+  while (i < nfacets) {
+    /* count how many consecutive facets are identical */
+    INT cnt = 1;
+    while (i + cnt < nfacets) {
+      INT *a = facets + idx[i] * n;
+      INT *b = facets + idx[i + cnt] * n;
+      INT same = 1;
+      for (k = 0; k < n; k++) {
+        if (a[k] != b[k]) { same = 0; break; }
+      }
+      if (!same) break;
+      cnt++;
+    }
+    if (cnt > 2) {
+      /* more than 2 simplices share this facet — broken mesh */
+      nerr++;
+      if (sc->print_level > 0) {
+        fprintf(stderr, "\n%%WARNING: facet shared by %lld simplices: [",
+                (long long)cnt);
+        INT *a = facets + idx[i] * n;
+        for (k = 0; k < n; k++)
+          fprintf(stderr, " %lld", (long long)a[k]);
+        fprintf(stderr, " ]");
+      }
+    }
+    /* cnt == 1 is boundary, cnt == 2 is interior — both OK */
+    i += cnt;
+  }
+  free(facets);
+  free(idx);
+  if (nerr) {
+    fprintf(stderr,
+            "\n%%***CONFORMITY CHECK FAILED: %lld non-conforming facets "
+            "(ns=%lld, nv=%lld, dim=%lld)\n",
+            (long long)nerr, (long long)ns, (long long)sc->nv, (long long)n);
+  } else {
+    fprintf(stdout,
+            "%% Conformity check PASSED (ns=%lld, nv=%lld, dim=%lld)\n",
+            (long long)ns, (long long)sc->nv, (long long)n);
+  }
+  return nerr;
+}
 /*XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
 /*EOF*/

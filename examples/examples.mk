@@ -137,6 +137,10 @@ endif
 
 EXE = $(SRCFILE).$(EXTENSION)
 
+ifneq ($(EXTRA_SRCFILE),)
+EXTRA_EXE = $(EXTRA_SRCFILE).$(EXTENSION)
+endif
+
 # Source and Object Files
 OBJS += $(SRCFILE).o
 
@@ -146,10 +150,15 @@ LIBS += #-lgfortran
 
 .PHONY:  all
 
-all: $(EXE) 
+all: $(EXE) $(EXTRA_EXE)
 
-$(EXE):	$(MGTARGET)	$(OBJS)	
+$(EXE):	$(MGTARGET)	$(OBJS)
 	+$(LINKER) $(CFLAGS) $(ExtraFLAGS) $(OBJS) $(RPATH) $(MGLIBS) -o $@  $(LIBS)
+
+ifneq ($(EXTRA_EXE),)
+$(EXTRA_EXE): $(EXTRA_EXE:.ex=.o)
+	+$(LINKER) $(CFLAGS) $(ExtraFLAGS) $< $(RPATH) $(MGLIBS) -o $@ $(LIBS)
+endif
 
 %.o:	%.c	$(HEADERS)
 	+$(COMPILER) $(INCLUDE) $(INCLUDESSP) $(CFLAGS) $(DMGRAPH) -o $@ -c $<
@@ -158,7 +167,7 @@ $(EXE):	$(MGTARGET)	$(OBJS)
 	+$(COMPILER) $(INCLUDE) $(INCLUDESSP) $(CFLAGS) $(DMGRAPH) -o $@ -c $<
 
 clean:
-	+rm -rf $(EXE) $(OBJS) *.mod output/* ./*.dSYM  $(EXTRA_DEL)
+	+rm -rf $(EXE) $(EXTRA_EXE) $(EXTRA_EXE:.ex=.o) $(OBJS) *.mod output/* ./*.dSYM  $(EXTRA_DEL)
 
 multigraph:	
 	@if [  -f  $(MGRAPH_SRCDIR)/mg0.f \

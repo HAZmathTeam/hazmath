@@ -1491,12 +1491,15 @@ scomplex **generate_initial_grid(input_grid *g0)
   cube2simp_free(c2s);
   /* order simplex2vertex array as required by the adaptive refinement */
   find_nbr(sc[0]->ns,sc[0]->nv,sc[0]->n,sc[0]->nodes,sc[0]->nbr);
-  //
-  INT *wrk1=calloc(5*(sc[0]->n+2),sizeof(INT));
-  /*   construct bfs tree for the dual graph*/
   sc_vols(sc[0]);
-  abfstree(0,sc[0],wrk1,g0->print_level);
-  free(wrk1);
+  sc[0]->ref_type = g0->ref_type;
+  if(g0->ref_type < 20){
+    /* Traxler ordering via BFS tree */
+    INT *wrk1=calloc(5*(sc[0]->n+2),sizeof(INT));
+    abfstree(0,sc[0],wrk1,g0->print_level);
+    free(wrk1);
+  }
+  /* else: DGS initialization is done in refine() */
   //  sc=realloc(sc,sizeof(scomplex *));
   return sc;
 }

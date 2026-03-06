@@ -5,7 +5,7 @@
 
 # Main program
 SRCFILE = test_amg
-### SRCFILE = test_ilu_ichol
+EXTRA_SRCFILE = test_ilu_ichol
 
 # Additional source files for the AMG library
 AMG_SRCS = amg_wrapper.c
@@ -21,8 +21,6 @@ LIBS =
 # Switch between debug or optimized
 CFLAGS = -O3
 FFLAGS =
-
-EXTRA_DEL = test_ilu_ichol.ex test_ilu_ichol.o
 
 WITH_SUITESPARSE=0
 WITH_LAPACK=0

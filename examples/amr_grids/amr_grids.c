@@ -27,20 +27,15 @@
 INT main(INT   argc,   char *argv[])
 {
   INT i;
-  FILE *fp;
-   fp=stdin;
-  //no   fp=HAZ_fopen("input/2d_ann.input","r");
-  // fp=HAZ_fopen("input/2d_2L.input","r");
-  // fp=HAZ_fopen("input/3d_fichera.input","r");
-  // fp=HAZ_fopen("input/3d_2cubes_edge.input","r");
-  // fp=HAZ_fopen("input/3d_2cubes_vertex.input","r");
-  // fp=HAZ_fopen("input/5d_cube.input","r");
-  // fp=HAZ_fopen("input/4d_cube.input","r");
+  const char *input_file = "input/3d_cube.input";
+  if (argc > 1) input_file = argv[1];
   /*
     PARSE THE INPUT.
   */
-  input_grid *g=parse_input_grid(fp);
-  fclose(fp);
+  config_z config = get_input(input_file);
+  input_grid *g = input_grid_alloc();
+  config2vars_amr(&config, g);
+  free_config(&config);
   scomplex **sc_all=generate_initial_grid(g);
   fprintf(stdout,"\nInitial mesh:\nElements = %12lld;\nVertices=%12lld\n",(long long )sc_all[0]->ns,(long long )sc_all[0]->nv); fflush(stdout);
   scomplex *sc=sc_all[0];

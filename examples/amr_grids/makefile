@@ -6,6 +6,8 @@
 SRCFILE = amr_grids
 HEADERS = supporting_$(SRCFILE).h
 
+EXTRA_SRCFILE = test_dgs_adaptive
+
 INCLUDE =
 
 LIBS =
