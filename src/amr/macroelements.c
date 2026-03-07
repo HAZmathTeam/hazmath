@@ -1403,7 +1403,13 @@ scomplex **generate_initial_grid(input_grid *g0)
     // TRUE    mc->flags[kel]=g0->mnodes[nvcube+kel*(nvcube+1)];
     mc->flags[kel]=2*kel+1;
   }
-  INT intype=g0->ref_type-1,kj,jel;
+  /* intype controls diagonal pattern inside each macroelement:
+   *   intype = -1: all diagonals point the same way (consistent)
+   *   intype >= 0: criss-cross pattern within each macroelement
+   * The SAME intype is used for ALL macroelements so that shared
+   * faces have matching triangulations. */
+  INT intype = (g0->ref_type==20) ? 0 : -1;
+  INT kj, jel;
   INT *codef=calloc(c2s->nf,sizeof(INT));
   INT *labelf=calloc(c2s->nf,sizeof(INT));
   INT *isbndf=calloc(c2s->nf,sizeof(INT));
@@ -1411,12 +1417,8 @@ scomplex **generate_initial_grid(input_grid *g0)
   INT *tmp_ptr; // to store isbface
   INT kjj;
   for(kj=0;kj<bfs0->row;kj++){
-    if(g0->ref_type>=0) intype++;
-    else intype=-1;
     for(kjj=bfs0->IA[kj];kjj<bfs0->IA[kj+1];kjj++){
       jel=bfs0->JA[kjj];
-      /* fprintf(stdout,"\nAAAElement=%d;",jel);       */
-      if((intype>=0) && (mc->etree[jel]<0)) intype=g0->ref_type; //reset reftype;
       //    print_full_mat_int(1,c2s->nf,elneib[kel],"neib");
       memcpy(g->mnodes,(g0->mnodes+jel*(nvcube+1)),(nvcube+1)*sizeof(INT));
       for(i=0;i<c2s->nvcube;i++){
@@ -1493,13 +1495,12 @@ scomplex **generate_initial_grid(input_grid *g0)
   find_nbr(sc[0]->ns,sc[0]->nv,sc[0]->n,sc[0]->nodes,sc[0]->nbr);
   sc_vols(sc[0]);
   sc[0]->ref_type = g0->ref_type;
-  if(g0->ref_type < 20){
-    /* Traxler ordering via BFS tree */
-    INT *wrk1=calloc(5*(sc[0]->n+2),sizeof(INT));
-    abfstree(0,sc[0],wrk1,g0->print_level);
-    free(wrk1);
-  }
-  /* else: DGS initialization is done in refine() */
+  /* Traxler BFS tree ordering commented out — DGS initialization is done in refine() */
+  /* if(g0->ref_type < 20){ */
+  /*   INT *wrk1=calloc(5*(sc[0]->n+2),sizeof(INT)); */
+  /*   abfstree(0,sc[0],wrk1,g0->print_level); */
+  /*   free(wrk1); */
+  /* } */
   //  sc=realloc(sc,sizeof(scomplex *));
   return sc;
 }

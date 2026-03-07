@@ -7,15 +7,13 @@ dimension{2}   % spatial dimension in which the grid has to be generated
 %
 print_level{0}	% how much information to print out: 0 Nothing | >0 Something
 
-refinement_type{0}
+refinement_type{20}
 
 
 %---------------%
 % files:  writeable by the user
 % vtu files for plotting follow the same convention.
 %---------------%
-file_grid{output/2d_sector.haz}
-file_vtu{output/2d_sector.vtu}
 
 %---------------%
 % coordinate systems: Each has coordinates of the origin o[0:dim-1]

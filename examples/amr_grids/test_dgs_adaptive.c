@@ -96,7 +96,15 @@ int main(int argc, char *argv[])
 
   /* Write VTU if dim <= 3 */
   if (dim <= 3) {
+    /* (debug removed) */
     scfinalize(sc, (INT)1);
+    {
+      INT nerr2 = sc_conformity_check(sc);
+      if (nerr2)
+        fprintf(stderr, "%% FAIL: finalized mesh is non-conforming (%d bad facets)\n", (int)nerr2);
+      else
+        fprintf(stdout, "%% Finalized mesh conformity check PASSED (ns=%d, nv=%d)\n", (int)sc->ns, (int)sc->nv);
+    }
     char fname[256];
     snprintf(fname, sizeof(fname), "output/dgs_adaptive_%dd.vtu", (int)dim);
     vtu_data vdata;

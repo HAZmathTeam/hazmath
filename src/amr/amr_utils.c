@@ -660,11 +660,11 @@ void scfinalize(scomplex *sc,const INT set_bndry_codes)
   // set_bndry_codes should always be set to 1.
   //  set_bndry_codes=1;
   find_cc_bndry_cc(sc,(INT )1);
-  // if(set_bndry_codes){ 
-  //   for(j=0;j<sc->nv;++j){ 
-  //      if(sc->bndry[j]>128) sc->bndry[j]-=128; 
-  //    } 
-  //  } 
+  // if(set_bndry_codes){
+  //   for(j=0;j<sc->nv;++j){
+  //      if(sc->bndry[j]>128) sc->bndry[j]-=128;
+  //    }
+  //  }
   // clean up: // This below should be removed?
   icsr_free(sc->bndry_v);
   free(sc->bndry_v);
@@ -1057,6 +1057,16 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
     fprintf(stderr,"\n%%***ERROR(1): num. bndry faces mismatch (nbf=%lld .ne. nbfnew=%lld) in %s",(long long )nbf,(long long )nbfnew,__FUNCTION__);
     exit(65);
   }
+  /* Save boundary f2v with global vertex indices before renumbering.
+     Face codes (val) will be filled in after sc->bndry is set. */
+  if(sc->bndry_f2v){
+    icsr_free(sc->bndry_f2v); free(sc->bndry_f2v);
+  }
+  sc->bndry_f2v = malloc(sizeof(iCSRmat));
+  sc->bndry_f2v[0] = icsr_create(nbf, sc->nv, nnzf2v);
+  memcpy(sc->bndry_f2v->IA, f2v.IA, (nbf + 1) * sizeof(INT));
+  memcpy(sc->bndry_f2v->JA, f2v.JA, nnzf2v * sizeof(INT));
+  memset(sc->bndry_f2v->val, 0, nnzf2v * sizeof(INT));
   // FIX numbering (ignoring all interior vertices):
   INT *indx    = calloc(sc->nv,sizeof(INT));
   INT *indxinv = calloc(sc->nv,sizeof(INT));
@@ -1294,7 +1304,21 @@ void find_cc_bndry_cc(scomplex *sc,const INT set_bndry_codes)
     if(i<sc->nv) sc->bndry[i]=m;
   }
   // haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
-  //
+  /* Fill in face codes in bndry_f2v from sc->bndry.
+     For each boundary face, the code is the minimum bndry code
+     of its vertices (consistent with how sc->bndry is set). */
+  if(sc->bndry_f2v){
+    for(i=0;i<sc->bndry_f2v->row;++i){
+      INT fa=sc->bndry_f2v->IA[i], fb=sc->bndry_f2v->IA[i+1];
+      INT fcode=0;
+      if(fa<fb) fcode=sc->bndry[sc->bndry_f2v->JA[fa]];
+      for(k=fa+1;k<fb;++k){
+        INT vc=sc->bndry[sc->bndry_f2v->JA[k]];
+        if(vc && (!fcode || vc<fcode)) fcode=vc;
+      }
+      for(k=fa;k<fb;++k) sc->bndry_f2v->val[k]=fcode;
+    }
+  }
   //
   icsr_free(blk_dfs);
   free(blk_dfs);

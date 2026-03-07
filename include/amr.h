@@ -65,6 +65,11 @@ typedef struct /* n-homogenous simplicial complex */
   iCSRmat *bfs; /* bfs structure for the simplices. works for more than one connected components */
   INT *etree; /* bfs tree (etree[k]=unique_ancestor_of_k in the BFS
 		 tree) */
+  iCSRmat *bndry_f2v; /* boundary face-to-vertex: rows = boundary faces,
+			JA = global vertex indices (dim vertices per row),
+			val = boundary code for each entry (same code
+			for all entries in a row = the face code).
+			NULL until find_cc_bndry_cc is called. */
   INT ref_type; /* refinement type */
   INT cc; /*num connected components */
   INT bndry_cc; /*num connected components on the boundary */

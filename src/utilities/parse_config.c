@@ -548,6 +548,46 @@ void config2vars_amr(config_z* config, input_grid* gz)
 }
 /*-----------------------------------------------------------------------------------------------*/
 /*
+ * input_grid_set_output - Set output filenames from the input filename.
+ *
+ * Given input_file = "path/to/blahblah.input", sets:
+ *   g->fgrid = "output/blahblah_rlX_rtY"  (base for .haz and .msh)
+ *   g->fvtu  = "output/blahblah_rlX_rtY.vtu"
+ *
+ * where X = g->nref (refinement levels) and Y = g->ref_type.
+ * The directory "output/" is relative to cwd; the input path is
+ * stripped to its basename (without extension).
+ */
+void input_grid_set_output(input_grid *g, const char *input_file)
+{
+  if(!g || !input_file) return;
+  /* find basename: skip directories */
+  const char *base = input_file;
+  const char *p;
+  for(p = input_file; *p; p++){
+    if(*p == '/') base = p + 1;
+  }
+  /* find extension dot */
+  const char *dot = NULL;
+  for(p = base; *p; p++){
+    if(*p == '.') dot = p;
+  }
+  INT baselen = dot ? (INT)(dot - base) : (INT)strlen(base);
+  /* build: output/<base>_rl<nref>_rt<ref_type> */
+  char buf[MAXFILENAMESIZE];
+  snprintf(buf, sizeof(buf), "output/%.*s_rl%lld_rt%lld",
+	   (int)baselen, base, (long long)g->nref, (long long)g->ref_type);
+  /* set fgrid to base (caller appends .haz or .msh) */
+  if(g->fgrid) free(g->fgrid);
+  g->fgrid = strdup(buf);
+  /* set fvtu */
+  char vbuf[MAXFILENAMESIZE];
+  snprintf(vbuf, sizeof(vbuf), "%s.vtu", buf);
+  if(g->fvtu) free(g->fvtu);
+  g->fvtu = strdup(vbuf);
+}
+/*-----------------------------------------------------------------------------------------------*/
+/*
  * input_grid_alloc - Allocate and initialize input_grid structure
  */
 input_grid* input_grid_alloc(void)

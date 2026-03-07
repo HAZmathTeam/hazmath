@@ -18,10 +18,8 @@ dimension{2}   % spatial dimension in which the grid has to be generated
 
 print_level{1}	% how much information to print out: 0 Nothing | >0 Something
 
-refinement_type{0}
+refinement_type{20}
 
-file_grid{output/2d_circle.haz}
-file_vtu{output/2d_circle.vtu}
 
 %---------------%
 % coordinate systems: Each has coordinates of the origin o[0:dim-1]

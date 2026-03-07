@@ -234,6 +234,7 @@ scomplex *haz_scomplex_init(const INT n,INT ns, INT nv,const INT nbig)
   /* } */
   sc->bndry_v=malloc(sizeof(iCSRmat));
   sc->bndry_v[0]=icsr_create(0,0,0);
+  sc->bndry_f2v=NULL;
   return sc;
 }
 /**********************************************************************/
@@ -281,6 +282,7 @@ scomplex haz_scomplex_null(const INT n,const INT nbig)
   sc.bndry_v[0]=icsr_create(0,0,0); //
   sc.parent_v=malloc(sizeof(iCSRmat));
   sc.parent_v[0]=icsr_create(0,0,0);
+  sc.bndry_f2v=NULL;
   sc.flags=NULL;
   sc.x=NULL;
   sc.vols=NULL;
@@ -535,6 +537,9 @@ void haz_scomplex_free(scomplex *sc)
   }
   if(sc->bfs) {
     icsr_free(sc->bfs);free(sc->bfs);sc->bfs=NULL;
+  }
+  if(sc->bndry_f2v) {
+    icsr_free(sc->bndry_f2v);free(sc->bndry_f2v);sc->bndry_f2v=NULL;
   }
   if(sc) free(sc);
   return;
@@ -984,15 +989,52 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
   if(sc->child0[is] >= 0) return 0;
   //  isn=is*n;
   isn1=is*n1;
-  for (i=1;i<n;i++){
-    snbri=sc->nbr[isn1+i] ; // the on-axis neighbor.
-    if(snbri<0) continue; //this is a boundary
-    if (sc->gen[snbri]<sc->gen[is]){//this was wrong in the code in the Traxler's paper
-      haz_refine_simplex(sc,snbri,-1);
-      nsnew=sc->ns;
-      nvnew=sc->nv;
+  /* DGS conforming closure (Algorithm 3, Diening-Gehring-Storn 2025):
+     Before bisecting 'is' along edge e=(v0,vn), ensure ALL leaf
+     simplices sharing e have e as their bisection edge. If any
+     simplex T' shares e but bse(T')!=e, refine T' first. */
+  {
+    INT v0 = sc->nodes[isn1];
+    INT vn = sc->nodes[isn1 + n];
+    INT dgs_retry = 1;
+    while (dgs_retry) {
+      dgs_retry = 0;
+      for (j = 0; j < sc->ns; j++) {
+        if (j == is || sc->child0[j] >= 0) continue;
+        INT *elj = sc->nodes + j * n1;
+        INT has_v0 = 0, has_vn = 0;
+        for (i = 0; i < n1; i++) {
+          if (elj[i] == v0) has_v0 = 1;
+          if (elj[i] == vn) has_vn = 1;
+        }
+        if (!has_v0 || !has_vn) continue;
+        /* js shares edge e; check if bse(js) == e */
+        if ((elj[0] == v0 && elj[n] == vn) ||
+            (elj[0] == vn && elj[n] == v0))
+          continue;
+        /* bse(js) != e: refine js first (Algorithm 3 recursive call) */
+        haz_refine_simplex(sc, j, -1);
+        nsnew = sc->ns;
+        nvnew = sc->nv;
+        dgs_retry = 1;
+        break; /* restart scan (ns may have changed) */
+      }
     }
+    /* 'is' may have been bisected as a side effect of the closure */
+    if (sc->child0[is] >= 0) return 0;
   }
+  /* Traxler pre-refinement commented out — using DGS only */
+  /* } else { */
+  /*   for (i=1;i<n;i++){ */
+  /*     snbri=sc->nbr[isn1+i] ; // the on-axis neighbor. */
+  /*     if(snbri<0) continue; //this is a boundary */
+  /*     if (sc->gen[snbri]<sc->gen[is]){//this was wrong in the code in the Traxler's paper */
+  /*       haz_refine_simplex(sc,snbri,-1); */
+  /*       nsnew=sc->ns; */
+  /*       nvnew=sc->nv; */
+  /*     } */
+  /*   } */
+  /* } */
   if (it<0){
     xnew = (REAL *)calloc(nbig,sizeof(REAL));
     jv0=sc->nodes[isn1];
@@ -1167,6 +1209,25 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
   for(i=1 ; i < n; i++){
     haz_refine_simplex(sc, sc->nbr[isn1+i], is);
   }
+  /* DGS: also bisect any remaining leaf simplices sharing the
+     bisection edge that are not face-adjacent (relevant for n>=3).
+     All such simplices have e as bse (guaranteed by the pre-refinement
+     conforming closure above). */
+  {
+    INT v0p = sc->nodes[isn1];
+    INT vnp = sc->nodes[isn1 + n];
+    for (j = 0; j < sc->ns; j++) {
+      if (sc->child0[j] >= 0) continue;
+      INT *elj = sc->nodes + j * n1;
+      INT hv0 = 0, hvn = 0;
+      for (i = 0; i < n1; i++) {
+        if (elj[i] == v0p) hv0 = 1;
+        if (elj[i] == vnp) hvn = 1;
+      }
+      if (hv0 && hvn)
+        haz_refine_simplex(sc, j, is);
+    }
+  }
   return 0;
 }
 /******************************************************************/
@@ -1198,13 +1259,13 @@ void refine(const INT ref_levels, scomplex *sc,ivector *marked)
     /* sc->level this is set to 0 in haz_scomplex_init */
     /* form neighboring list on the coarsest level */
     find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
-    if(sc->ref_type >= 20){
-      /*
-       * DGS initialization (Diening-Gehring-Storn, FoCM 2025):
-       * Color the vertices and reorder each simplex accordingly.
-       * This works for ANY conforming initial triangulation and
-       * does not require the reflected-neighbor (Traxler) ordering.
-       */
+    /*
+     * DGS initialization (Diening-Gehring-Storn, FoCM 2025):
+     * Color the vertices and reorder each simplex accordingly.
+     * This works for ANY conforming initial triangulation and
+     * does not require the reflected-neighbor (Traxler) ordering.
+     */
+    {
       INT *color = (INT *)calloc(sc->nv, sizeof(INT));
       INT N = set_color(sc, color);
       /* dgs_initialize permutes both nodes and nbr arrays consistently,
@@ -1214,12 +1275,14 @@ void refine(const INT ref_levels, scomplex *sc,ivector *marked)
       if(sc->print_level > 0)
 	fprintf(stdout,"\n%%%% DGS initialization: %lld colors used (N=%lld)\n",
 		(long long)(N+1), (long long)N);
-    } else {
-      INT *wrk=calloc(5*(sc->n+2),sizeof(INT));
-      /* construct bfs tree for the dual graph */
-      abfstree(0,sc,wrk,print_level);
-      if(wrk) free(wrk);
     }
+    /* Traxler BFS tree initialization commented out — using DGS only */
+    /* { */
+    /*   INT *wrk=calloc(5*(sc->n+2),sizeof(INT)); */
+    /*   /\* construct bfs tree for the dual graph *\/ */
+    /*   abfstree(0,sc,wrk,print_level); */
+    /*   if(wrk) free(wrk); */
+    /* } */
   }
   if((!marked)){
     // just refine everything that was not refined:

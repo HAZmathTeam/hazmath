@@ -36,6 +36,7 @@ INT main(INT   argc,   char *argv[])
   input_grid *g = input_grid_alloc();
   config2vars_amr(&config, g);
   free_config(&config);
+  input_grid_set_output(g, input_file);
   scomplex **sc_all=generate_initial_grid(g);
   fprintf(stdout,"\nInitial mesh:\nElements = %12lld;\nVertices=%12lld\n",(long long )sc_all[0]->ns,(long long )sc_all[0]->nv); fflush(stdout);
   scomplex *sc=sc_all[0];
@@ -170,18 +171,29 @@ INT main(INT   argc,   char *argv[])
   }
   /*  MAKE sc to be the finest grid only */
   scfinalize(sc,(INT )1);
-  /* WRITE THE OUTPUT MESH FILE:    */
-  //  hazw(g->fgrid,sc,0); //last argument is the shift
-  if(dim < 4)
-    mshw(g->fgrid,sc,0); //  the choice of format should also be given
-			 //  as part of a structure.
-  /* WRITE THE OUTPUT vtu file for paraview:    */
-  if(dim <4) {
-    vtu_data vdata;
-    vtu_data_init(sc,&vdata);
-    vtkw(g->fvtu,&vdata);
-    //    vtkw("output/1d_graph.vtu",&vdata); //0,(REAL )1);
-    vtu_data_free(&vdata);
+  /* conformity check */
+  {
+    INT nerr = sc_conformity_check(sc);
+    if(nerr)
+      fprintf(stderr,"\n%% FAIL: non-conforming mesh (%lld bad facets)\n",(long long)nerr);
+    else
+      fprintf(stdout,"\n%% conformity check PASSED (ns=%lld, nv=%lld)\n",(long long)sc->ns,(long long)sc->nv);
+  }
+  /* WRITE OUTPUT FILES: .haz, .msh, .vtu
+   * g->fgrid is the base (e.g. "output/3d_fichera_rl3_rt20")
+   * g->fvtu already has .vtu appended */
+  {
+    char fname[MAXFILENAMESIZE];
+    snprintf(fname, sizeof(fname), "%s.haz", g->fgrid);
+    hazw(fname, sc, 0);
+    snprintf(fname, sizeof(fname), "%s.msh", g->fgrid);
+    mshw(fname, sc, 0);
+    if(dim < 4){
+      vtu_data vdata;
+      vtu_data_init(sc, &vdata);
+      vtkw(g->fvtu, &vdata);
+      vtu_data_free(&vdata);
+    }
   }
   /*FREE: the input grid is freed here, because it has the filenames in it*/
   input_grid_free(g);

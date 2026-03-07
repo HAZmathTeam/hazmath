@@ -1829,15 +1829,10 @@ void mshw(char *namemsh,scomplex *sc, const INT shift0)
   float ver=2.0;
   int el_type;
   switch(dim){
-  case 1:
-    el_type=1;//interval;
-    break;
-  case 2:
-    el_type=2;//triangle 3 is the quad
-    break;
-  default:
-    el_type=4;//tet
-    break;
+  case 1:  el_type=1;  break; /* 2-node line */
+  case 2:  el_type=2;  break; /* 3-node triangle */
+  case 3:  el_type=4;  break; /* 4-node tetrahedron */
+  default: el_type=50+(int)dim; break; /* custom: dim+1 node simplex */
   }
   // writing:
   fprintf(fmesh,"%s\n","$MeshFormat");
@@ -1854,10 +1849,35 @@ void mshw(char *namemsh,scomplex *sc, const INT shift0)
   }
   fprintf(fmesh,"%s\n","$EndNodes");
   fprintf(fmesh,"%s\n","$Elements");
-  fprintf(fmesh,"%lld\n",(long long )ns);
+  /* count boundary faces */
+  INT nbf_out=0;
+  if(sc->bndry_f2v) nbf_out=sc->bndry_f2v->row;
+  fprintf(fmesh,"%lld\n",(long long )(nbf_out+ns));
+  /* write boundary faces as lower-dimensional elements */
+  if(nbf_out>0){
+    int face_type;
+    switch(dim){
+    case 1:  face_type=15; break; /* point */
+    case 2:  face_type=1;  break; /* 2-node line */
+    case 3:  face_type=2;  break; /* 3-node triangle */
+    default: face_type=50+(int)dim-1; break; /* custom: dim-node simplex */
+    }
+    for(k=0;k<nbf_out;k++){
+      INT fa=sc->bndry_f2v->IA[k];
+      INT fb=sc->bndry_f2v->IA[k+1];
+      INT fcode=sc->bndry_f2v->val[fa];
+      fprintf(fmesh,"%lld %d 2 %lld %lld",
+        (long long)(k+shift), face_type,
+        (long long)fcode, (long long)fcode);
+      for(j=fa;j<fb;j++)
+        fprintf(fmesh," %lld",(long long)(sc->bndry_f2v->JA[j]+shift));
+      fprintf(fmesh,"\n");
+    }
+  }
+  /* write volume elements */
   for (k=0;k<ns;k++){
     // element number, 1 tag=material property of the element;
-    fprintf(fmesh,"%lld %lld %lld %lld", (long long )(k+shift),\
+    fprintf(fmesh,"%lld %lld %lld %lld", (long long )(nbf_out+k+shift),\
 	    (long long )el_type,			   \
 	    (long long )num_el_tags,			   \
 	    (long long )material[k]);
