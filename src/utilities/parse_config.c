@@ -581,7 +581,7 @@ void input_grid_set_output(input_grid *g, const char *input_file)
   if(g->fgrid) free(g->fgrid);
   g->fgrid = strdup(buf);
   /* set fvtu */
-  char vbuf[MAXFILENAMESIZE];
+  char vbuf[MAXFILENAMESIZE+8];
   snprintf(vbuf, sizeof(vbuf), "%s.vtu", buf);
   if(g->fvtu) free(g->fvtu);
   g->fvtu = strdup(vbuf);
