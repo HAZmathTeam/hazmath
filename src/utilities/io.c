@@ -8,6 +8,7 @@
  * \note: modified by Xiaozhe Hu on 10/31/2016
  * \note: modified 20171119 (ltz) added output using scomplex
  * \note: modifided by jha on 02/22/2019 for 0-1 fix.
+ *  \modified 20260307 (ltz with the help of Claude (Anthropic))
  */
 
 #include "hazmath.h"

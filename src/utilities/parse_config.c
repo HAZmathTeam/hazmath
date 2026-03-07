@@ -1,10 +1,15 @@
-/*
- * Configuration File Parser for AMR
+/*! \file src/utilities/parse_config.c
  *
- * Parses files with format: variable_name{variable_value}
- * or variable_name{value value value ...} for arrays of doubles.
- * Values within braces can span multiple lines.
- * Comments start with % and continue to end of line.
+ *  Created by Ludmil Zikatanov on 20260307.
+ *  Copyright 2026__HAZMATH__. All rights reserved.
+ *
+ *  \note Configuration file parser for AMR input.
+ *  Parses files with format: variable_name{variable_value}
+ *  or variable_name{value value value ...} for arrays of doubles.
+ *  Values within braces can span multiple lines.
+ *  Comments start with % and continue to end of line.
+ *  \modified 20260307 (ltz with the help of Claude (Anthropic))
+ *
  */
 
 #include "hazmath.h"

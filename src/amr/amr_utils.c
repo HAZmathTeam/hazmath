@@ -4,6 +4,7 @@
  *  Copyright 2017__HAZMATH__. All rights reserved.
  *
  *  \note contains some utility functions for mesh refinement.
+ *  \modified 20260307 (ltz with the help of Claude (Anthropic))
  *
  */
 #include "hazmath.h"

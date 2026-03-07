@@ -1,11 +1,15 @@
-/*
- * test_dgs_adaptive.c
+/*! \file examples/amr_grids/test_dgs_adaptive.c
  *
- * Tests DGS (Diening-Gehring-Storn) adaptive refinement in 2D-5D.
- * Refines simplices containing at least one of 3 random points
- * inside the unit cube.
+ *  Created by Ludmil Zikatanov on 20260307.
+ *  Copyright 2026__HAZMATH__. All rights reserved.
  *
- * Usage: ./test_dgs_adaptive.ex <dim> <nref> <seed>
+ *  \note Tests DGS (Diening-Gehring-Storn) adaptive refinement in nD.
+ *  Refines simplices containing at least one of 3 random points
+ *  inside the unit cube.
+ *
+ *  Usage: ./test_dgs_adaptive.ex <dim> <nref> <seed>
+ *  \modified 20260307 (ltz with the help of Claude (Anthropic))
+ *
  */
 #include "hazmath.h"
 

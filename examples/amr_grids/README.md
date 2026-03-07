@@ -83,5 +83,8 @@ input/2d_SQ+L.input         input/5d_cube.input
 input/2d_square.input
 ```
 
----
-Previous README: [README.md.bak](README.md.bak)
+## References
+
+L. Diening, L. Gehring, J. Storn, *Adaptive Mesh Refinement for
+Arbitrary Initial Triangulations*, Found. Comput. Math., 2025.
+DOI: [10.1007/s10208-024-09642-1](https://doi.org/10.1007/s10208-024-09642-1)

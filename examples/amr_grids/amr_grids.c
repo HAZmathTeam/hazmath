@@ -8,6 +8,7 @@
  * \note This example highlights some of the features of the simple
  * mesh generator included with HAZmath. It is only to illustrate how
  * to use the mesh refinement.
+ *  \modified 20260307 (ltz with the help of Claude (Anthropic))
  */
 /*********** HAZMATH FUNCTIONS and INCLUDES ***************************/
 #include "hazmath.h"

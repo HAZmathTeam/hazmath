@@ -8,6 +8,7 @@
  *  \date 20170715
  *  \modified 20190715 (ltz);
  *  \note: modified by ltz on 20210813
+ *  \modified 20260307 (ltz with the help of Claude (Anthropic))
  */
 #include "hazmath.h"
 /**************************************************************************/
