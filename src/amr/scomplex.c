@@ -236,6 +236,8 @@ scomplex *haz_scomplex_init(const INT n,INT ns, INT nv,const INT nbig)
   sc->bndry_v=malloc(sizeof(iCSRmat));
   sc->bndry_v[0]=icsr_create(0,0,0);
   sc->bndry_f2v=NULL;
+  sc->v2s_head=NULL; sc->v2s_next=NULL; sc->v2s_simp=NULL;
+  sc->v2s_count=0; sc->v2s_alloc=0;
   return sc;
 }
 /**********************************************************************/
@@ -284,6 +286,8 @@ scomplex haz_scomplex_null(const INT n,const INT nbig)
   sc.parent_v=malloc(sizeof(iCSRmat));
   sc.parent_v[0]=icsr_create(0,0,0);
   sc.bndry_f2v=NULL;
+  sc.v2s_head=NULL; sc.v2s_next=NULL; sc.v2s_simp=NULL;
+  sc.v2s_count=0; sc.v2s_alloc=0;
   sc.flags=NULL;
   sc.x=NULL;
   sc.vols=NULL;
@@ -542,6 +546,10 @@ void haz_scomplex_free(scomplex *sc)
   if(sc->bndry_f2v) {
     icsr_free(sc->bndry_f2v);free(sc->bndry_f2v);sc->bndry_f2v=NULL;
   }
+  if(sc->v2s_head){free(sc->v2s_head);sc->v2s_head=NULL;}
+  if(sc->v2s_next){free(sc->v2s_next);sc->v2s_next=NULL;}
+  if(sc->v2s_simp){free(sc->v2s_simp);sc->v2s_simp=NULL;}
+  sc->v2s_count=0; sc->v2s_alloc=0;
   if(sc) free(sc);
   return;
 }
@@ -953,6 +961,67 @@ static void dgs_initialize(scomplex *sc, INT *color, INT N)
 }
 /**********************************************************************/
 /*!
+ * \brief Build the vertex-to-simplex incidence (transpose of nodes).
+ */
+static void v2s_build(scomplex *sc)
+{
+  INT ns = sc->ns, nv = sc->nv, n1 = sc->n + 1;
+  INT i, j, v;
+  sc->v2s_alloc = ns * n1 * 2; /* room to grow */
+  sc->v2s_head = (INT *)malloc(nv * sizeof(INT));
+  sc->v2s_next = (INT *)malloc(sc->v2s_alloc * sizeof(INT));
+  sc->v2s_simp = (INT *)malloc(sc->v2s_alloc * sizeof(INT));
+  for (i = 0; i < nv; i++) sc->v2s_head[i] = -1;
+  sc->v2s_count = 0;
+  for (i = 0; i < ns; i++) {
+    INT *el = sc->nodes + i * n1;
+    for (j = 0; j < n1; j++) {
+      v = el[j];
+      INT k = sc->v2s_count++;
+      sc->v2s_simp[k] = i;
+      sc->v2s_next[k] = sc->v2s_head[v];
+      sc->v2s_head[v] = k;
+    }
+  }
+}
+/**********************************************************************/
+/*!
+ * \brief Add one (vertex, simplex) pair to the v2s incidence.
+ */
+static inline void v2s_add(scomplex *sc, INT v, INT s)
+{
+  if (sc->v2s_count >= sc->v2s_alloc) {
+    sc->v2s_alloc *= 2;
+    sc->v2s_next = realloc(sc->v2s_next, sc->v2s_alloc * sizeof(INT));
+    sc->v2s_simp = realloc(sc->v2s_simp, sc->v2s_alloc * sizeof(INT));
+  }
+  INT k = sc->v2s_count++;
+  sc->v2s_simp[k] = s;
+  sc->v2s_next[k] = sc->v2s_head[v];
+  sc->v2s_head[v] = k;
+}
+/**********************************************************************/
+/*!
+ * \brief Grow v2s_head array when a new vertex is added.
+ */
+static inline void v2s_add_vertex(scomplex *sc, INT vnew)
+{
+  sc->v2s_head = realloc(sc->v2s_head, (vnew + 1) * sizeof(INT));
+  sc->v2s_head[vnew] = -1;
+}
+/**********************************************************************/
+/*!
+ * \brief Register all vertices of a new simplex in v2s.
+ */
+static void v2s_register_simplex(scomplex *sc, INT s)
+{
+  INT n1 = sc->n + 1, j;
+  INT *el = sc->nodes + s * n1;
+  for (j = 0; j < n1; j++)
+    v2s_add(sc, el[j], s);
+}
+/**********************************************************************/
+/*!
  * \fn INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
  *
  * \brief Bisects simplex is in the simplicial complex sc. The
@@ -1005,25 +1074,27 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
     INT dgs_retry = 1;
     while (dgs_retry) {
       dgs_retry = 0;
-      for (j = 0; j < sc->ns; j++) {
+      /* Walk v2s list of v0; for each simplex check if it also has vn */
+      INT k;
+      for (k = sc->v2s_head[v0]; k >= 0; k = sc->v2s_next[k]) {
+        j = sc->v2s_simp[k];
         if (j == is || sc->child0[j] >= 0) continue;
         INT *elj = sc->nodes + j * n1;
-        INT has_v0 = 0, has_vn = 0;
+        INT has_vn = 0;
         for (i = 0; i < n1; i++) {
-          if (elj[i] == v0) has_v0 = 1;
-          if (elj[i] == vn) has_vn = 1;
+          if (elj[i] == vn) { has_vn = 1; break; }
         }
-        if (!has_v0 || !has_vn) continue;
-        /* js shares edge e; check if bse(js) == e */
+        if (!has_vn) continue;
+        /* j shares edge e; check if bse(j) == e */
         if ((elj[0] == v0 && elj[n] == vn) ||
             (elj[0] == vn && elj[n] == v0))
           continue;
-        /* bse(js) != e: refine js first (Algorithm 3 recursive call) */
+        /* bse(j) != e: refine j first (Algorithm 3 recursive call) */
         haz_refine_simplex(sc, j, -1);
         nsnew = sc->ns;
         nvnew = sc->nv;
         dgs_retry = 1;
-        break; /* restart scan (ns may have changed) */
+        break; /* restart scan (v2s list may have changed) */
       }
     }
     /* 'is' may have been bisected as a side effect of the closure */
@@ -1085,6 +1156,9 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
     Add two new simplices and initialize their parents, etc
   */
   haz_add_simplex(is,sc,xnew,pv,ibnew,csysnew,nsnew,nvnew);
+  /* grow v2s_head if a new vertex was added */
+  if(sc->v2s_head && nvnew > nv)
+    v2s_add_vertex(sc, nodnew);
   /*
     Initialize all vertex pointers of the children according to the
     scheme. Also initialize all pointers to bring simplices as long
@@ -1176,6 +1250,11 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
 	sc->nbr[iscn+pn]=snbrp;
       }
     }
+  /* register children in v2s */
+  if(sc->v2s_head) {
+    v2s_register_simplex(sc, ks0);
+    v2s_register_simplex(sc, ksn);
+  }
   for(i=0;i<n1;i++) {
      /*
 	The children OF NEIGHBORS, if existent, still point to s as
@@ -1222,15 +1301,17 @@ INT haz_refine_simplex(scomplex *sc, const INT is, const INT it)
   {
     INT v0p = sc->nodes[isn1];
     INT vnp = sc->nodes[isn1 + n];
-    for (j = 0; j < sc->ns; j++) {
+    /* Walk v2s list of v0p; for each simplex check if it also has vnp */
+    INT k;
+    for (k = sc->v2s_head[v0p]; k >= 0; k = sc->v2s_next[k]) {
+      j = sc->v2s_simp[k];
       if (sc->child0[j] >= 0) continue;
       INT *elj = sc->nodes + j * n1;
-      INT hv0 = 0, hvn = 0;
+      INT hvn = 0;
       for (i = 0; i < n1; i++) {
-        if (elj[i] == v0p) hv0 = 1;
-        if (elj[i] == vnp) hvn = 1;
+        if (elj[i] == vnp) { hvn = 1; break; }
       }
-      if (hv0 && hvn)
+      if (hvn)
         haz_refine_simplex(sc, j, is);
     }
   }
@@ -1299,6 +1380,7 @@ void refine(const INT ref_levels, scomplex *sc,ivector *marked)
   }
   if((!marked)){
     // just refine everything that was not refined:
+    v2s_build(sc);
     for (i=0;i<ref_levels;i++){
       nsold=sc->ns;
       for(j = 0;j < nsold;j++)
@@ -1306,6 +1388,11 @@ void refine(const INT ref_levels, scomplex *sc,ivector *marked)
 	  haz_refine_simplex(sc, j, -1);
       sc->level++;
     }
+    /* free v2s */
+    free(sc->v2s_head);sc->v2s_head=NULL;
+    free(sc->v2s_next);sc->v2s_next=NULL;
+    free(sc->v2s_simp);sc->v2s_simp=NULL;
+    sc->v2s_count=0; sc->v2s_alloc=0;
     for(j=0;j<sc->ns;j++) sc->marked[j]=TRUE; // not sure we need this.
     // we are done here;
     return;
@@ -1333,10 +1420,16 @@ void refine(const INT ref_levels, scomplex *sc,ivector *marked)
    * refine everything that is marked on the finest level and is
    * not yet refined: (marked>0 and child<0)
    */
+  v2s_build(sc);
   nsold=sc->ns;
   for(j = 0;j < nsold;j++)
     if(sc->marked[j] && (sc->child0[j]<0||sc->childn[j]<0))
       haz_refine_simplex(sc, j, -1);
+  /* free v2s */
+  free(sc->v2s_head);sc->v2s_head=NULL;
+  free(sc->v2s_next);sc->v2s_next=NULL;
+  free(sc->v2s_simp);sc->v2s_simp=NULL;
+  sc->v2s_count=0; sc->v2s_alloc=0;
   /*
    *  compute volumes (the volumes on the coarsest grid should be set in
    * generate_initial_grid, but just in case we are coming here from

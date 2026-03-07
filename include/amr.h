@@ -71,6 +71,15 @@ typedef struct /* n-homogenous simplicial complex */
 			val = boundary code for each entry (same code
 			for all entries in a row = the face code).
 			NULL until find_cc_bndry_cc is called. */
+  /* vertex-to-simplex incidence (transpose of nodes).
+     Linked-list per vertex: v2s_head[v] is the first entry index,
+     v2s_next[k] is the next entry, v2s_simp[k] is the simplex.
+     Built during refinement, NULL otherwise. */
+  INT *v2s_head; /* [nv] head of chain per vertex, -1 if empty */
+  INT *v2s_next; /* [v2s_alloc] next entry in chain, -1 if end */
+  INT *v2s_simp; /* [v2s_alloc] simplex index for entry */
+  INT v2s_count; /* number of entries used */
+  INT v2s_alloc; /* allocated size of next/simp arrays */
   INT ref_type; /* refinement type */
   INT cc; /*num connected components */
   INT bndry_cc; /*num connected components on the boundary */
