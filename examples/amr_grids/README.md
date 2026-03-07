@@ -19,11 +19,12 @@ Output filenames are generated automatically from the input filename:
 produces:
 
     output/3d_fichera_rl3_rt20.haz   (HAZmath grid format)
-    output/3d_fichera_rl3_rt20.msh   (Gmsh MSH 2.0, dim < 4 only)
+    output/3d_fichera_rl3_rt20.msh   (Gmsh MSH 2.0; custom element types for dim >= 4
+                                      because Gmsh MSH 2.0 only defines elements up to dim 3)
     output/3d_fichera_rl3_rt20.vtu   (VTK/ParaView, dim < 4 only)
 
-The `.msh` file includes boundary faces (edges in 2D, triangles in 3D)
-with their boundary codes, followed by volume elements.
+The `.msh` file includes boundary faces (edges in 2D, triangles in 3D,
+tetrahedra in 4D, etc.) with their boundary codes, followed by volume elements.
 
 ## Input file format
 
