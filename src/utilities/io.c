@@ -422,7 +422,7 @@ void scomplex_print_matlab(const char *fname,scomplex *sc)
     fclose(fp);
     return;
   }
-  INT i, j,n1=sc->n+1,dim=sc->n,nv=sc->nv,ns=sc->ns;
+  INT i, j,n1=sc->dim+1,dim=sc->dim,nv=sc->nv,ns=sc->ns;
   fprintf(fp,"\nt=[");
   for(j=0;j<n1;j++){
     for(i=0;i<ns-1;++i){
@@ -1676,7 +1676,7 @@ scomplex *hazr(char *namein)
      *******************************************    */
   fscanf(fmeshin,"%lld %lld %lld %lld\n",(long long *)&ns,(long long *)&nv,(long long *)&dim,(long long *)&nholes);
   scomplex *sc = (scomplex *)haz_scomplex_init(dim,ns,nv,dim); // cannot read different dimensions.
-  INT dim1=sc->n+1;
+  INT dim1=sc->dim+1;
   for (j=0;j<dim1;j++) {
     for (k=0;k<ns;k++){
       m=dim1*k+j;
@@ -1746,7 +1746,7 @@ void hazw(char *nameout,scomplex *sc, const INT shift)
 {
   // WRITING in HAZMATH format.
   FILE *fmesh;
-  INT n=sc->nv,ns=sc->ns, dim=sc->n,ndl=sc->n+1;
+  INT n=sc->nv,ns=sc->ns, dim=sc->dim,ndl=sc->dim+1;
   INT *je = sc->nodes, *ib=sc->bndry;
   REAL *x = sc->x;
   INT k=-10,j=-10,kndl=-10;
@@ -1815,7 +1815,7 @@ void mshw(char *namemsh,scomplex *sc, const INT shift0)
   // WRITING in .msh format.
   INT shift=shift0;// this is fake because shift must be 1 below, nno zero node nnumbers:
   shift=1;
-  INT n=sc->nv,ns=sc->ns, dimbig=sc->nbig,dim=sc->n,ndl=sc->n+1;
+  INT n=sc->nv,ns=sc->ns, dimbig=sc->nbig,dim=sc->dim,ndl=sc->dim+1;
   INT *je = sc->nodes, *material=sc->flags;//*ib=sc->bndry;
   REAL *x = sc->x;
   INT k=-10,j=-10,kndl=-10;
@@ -1903,13 +1903,13 @@ void mshw(char *namemsh,scomplex *sc, const INT shift0)
 void matlw(scomplex *sc, char *namematl)
 {
   FILE *fp;
-  INT ns=sc->ns,nv=sc->nv,n=sc->n,n1=n+1,j=-10,k=-10;
+  INT ns=sc->ns,nv=sc->nv,dim=sc->dim,n1=dim+1,j=-10,k=-10;
   INT *nodes=sc->nodes;
   REAL *x=sc->x;
   fp=HAZ_fopen(namematl,"w");
   //  if(!fp) fp=stdout;
   if(!fp) fp=stdout;
-  fprintf(stdout,"\n%lld %lld %lld\n",(long long )ns,(long long )nv,(long long )n);
+  fprintf(stdout,"\n%lld %lld %lld\n",(long long )ns,(long long )nv,(long long )dim);
   fflush(stdout);
   fprintf(fp,"\nt=[");
   fflush(fp);
@@ -1923,13 +1923,13 @@ void matlw(scomplex *sc, char *namematl)
   fprintf(fp,"];\n");
   fprintf(fp,"\nx=[");
   for (j=0;j<nv;j++){
-    for (k=0;k<n;k++) {
-      fprintf(fp,"%23.16e ",x[j*n+k]);
+    for (k=0;k<dim;k++) {
+      fprintf(fp,"%23.16e ",x[j*dim+k]);
     }
     fprintf(fp,"\n");
   }
   fprintf(fp,"];\n");
-  if(n<3) {
+  if(dim<3) {
     fprintf(fp,"\ntriplot(t,x(:,1),x(:,2));hold on");
   }else {
     fprintf(fp,"\ntetramesh(t,x(:,1),x(:,2),x(:,3));hold on");

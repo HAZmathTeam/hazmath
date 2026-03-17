@@ -116,7 +116,7 @@ scomplex** mesh_cube_init(const INT dim, const INT ndiv, const INT ref_type) {
   sc_all = generate_initial_grid(g);
   input_grid_free(g);
   //////////////////////////////////////////////////////
-  if (sc_all[0]->n > 3)
+  if (sc_all[0]->dim > 3)
     sc_all[0]->ref_type = 0;
   else
     sc_all[0]->ref_type = ref_type;

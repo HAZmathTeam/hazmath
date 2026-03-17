@@ -210,7 +210,7 @@ scomplex* umesh(const INT dim, INT* nd, cube2simp* c2s, INT* labelf, INT* isbndf
   // second pass: set boundaries, so that the bondaries are the ones
   // that we care about:
   /******************************************************************/
-  icsr_realloc(sc->nv, sc->n, sc->n * sc->nv, sc->bndry_v); // a vertex belongs to at most dim faces in every macroelement; and also for the codes.
+  icsr_realloc(sc->nv, sc->dim, sc->dim * sc->nv, sc->bndry_v); // a vertex belongs to at most dim faces in every macroelement; and also for the codes.
   sc->bndry_v->val = realloc(sc->bndry_v->val, 2 * sc->bndry_v->nnz * sizeof(INT));// 2 values per vertex per dimension
   // init the column indices to negative
   for (j = 0; j < sc->bndry_v->nnz; ++j)
@@ -219,7 +219,7 @@ scomplex* umesh(const INT dim, INT* nd, cube2simp* c2s, INT* labelf, INT* isbndf
   sc->bndry_v->IA[0] = 0;
   for (kf = 0; kf < sc->nv; ++kf) {
     /* from 1 to n this holds the address of the beginning of the previous row */
-    sc->bndry_v->IA[kf + 1] = sc->bndry_v->IA[kf] + sc->n;
+    sc->bndry_v->IA[kf + 1] = sc->bndry_v->IA[kf] + sc->dim;
   }
   /**/
   for (facei = 0; facei < c2s->nf; facei++) {
@@ -253,7 +253,7 @@ scomplex* umesh(const INT dim, INT* nd, cube2simp* c2s, INT* labelf, INT* isbndf
   //return IA to previous state.
   sc->bndry_v->IA[0] = 0;
   for (kf = 0; kf < sc->nv; kf++)
-    sc->bndry_v->IA[kf + 1] = sc->bndry_v->IA[kf] + sc->n;
+    sc->bndry_v->IA[kf + 1] = sc->bndry_v->IA[kf] + sc->dim;
   INT row_begin = sc->bndry_v->IA[0], nnz = 0;
   for (kf = 0; kf < sc->nv; kf++) {
     for (j = row_begin; j < sc->bndry_v->IA[kf + 1]; ++j) {
@@ -309,7 +309,7 @@ void unirefine(INT* nd, scomplex* sc) {
 /*
 */
   INT ndmax = -1, i = -1, j = -1;
-  for (i = 0; i < sc->n; i++)
+  for (i = 0; i < sc->dim; i++)
     if (ndmax < nd[i]) ndmax = nd[i];
   //  fprintf(stdout,"\nmax split=%d",ndmax);
   REAL sref = log2((REAL)ndmax);
@@ -317,11 +317,11 @@ void unirefine(INT* nd, scomplex* sc) {
     sref = floor(sref);
   else
     sref = floor(sref) + 1.;
-  INT ref_levels = sc->n * ((INT)sref);
+  INT ref_levels = sc->dim * ((INT)sref);
   //  fprintf(stdout,"\nlog2 of the max=%e, l=%d",log2((REAL )ndmax)+1,ref_levels);
-  find_nbr(sc->ns, sc->nv, sc->n, sc->nodes, sc->nbr);
+  find_nbr(sc->ns, sc->nv, sc->dim, sc->nodes, sc->nbr);
   //  haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
-  INT* wrk = calloc(5 * (sc->n + 2), sizeof(INT));
+  INT* wrk = calloc(5 * (sc->dim + 2), sizeof(INT));
   /* construct bfs tree for the dual graph */
   abfstree(0, sc, wrk, 0);
   ref_levels = 0;
@@ -329,7 +329,7 @@ void unirefine(INT* nd, scomplex* sc) {
   INT nsold, print_level = 0;//ns,nvold,level;
   if (!sc->level) {
     /* form neighboring list; */
-    find_nbr(sc->ns, sc->nv, sc->n, sc->nodes, sc->nbr);
+    find_nbr(sc->ns, sc->nv, sc->dim, sc->nodes, sc->nbr);
     //    haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
     /* construct bfs tree for the dual graph */
     abfstree(0, sc, wrk, print_level = 0);
@@ -337,7 +337,7 @@ void unirefine(INT* nd, scomplex* sc) {
     //    exit(100);
   }
   free(wrk);
-  //INT n=sc->n, n1=n+1,level=0;
+  //INT dim=sc->dim, n1=dim+1,level=0;
   fprintf(stdout, "refine: ");
   while (sc->level < ref_levels && TRUE) {
     nsold = sc->ns;

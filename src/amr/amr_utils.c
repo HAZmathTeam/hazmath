@@ -179,10 +179,10 @@ INT xins(INT n, INT* nodes, REAL* xs, REAL* xstar) {
 void marks(scomplex* sc, dvector* errors) {
   /* mark simplices depending on the value of an estimator */
   /* the estimator here is the aspect ratio of the simplex */
-  INT n = sc->n, nbig = sc->nbig, n1 = n + 1, ns = sc->ns, level = sc->level;
+  INT dim = sc->dim, nbig = sc->nbig, n1 = dim + 1, ns = sc->ns, level = sc->level;
   // INT kbadel;
   INT ke, i, j, j1, k, p, ni, mj, mk;
-  INT ne = (INT)((n * n1) / 2);
+  INT ne = (INT)((dim * n1) / 2);
   REAL slmin, slmax, asp, aspmax = -10.;
   ;
   REAL* sl = (REAL*)calloc(ne, sizeof(REAL));
@@ -191,11 +191,11 @@ void marks(scomplex* sc, dvector* errors) {
     if (sc->gen[i] < level) continue;
     ni = n1 * i;
     ke = 0;
-    for (j = 0; j < n; j++) {
-      mj = sc->nodes[ni + j] * n;
+    for (j = 0; j < dim; j++) {
+      mj = sc->nodes[ni + j] * dim;
       j1 = j + 1;
       for (k = j1; k < n1; k++) {
-        mk = sc->nodes[ni + k] * n;
+        mk = sc->nodes[ni + k] * dim;
         sl[ke] = 0e0;
         for (p = 0; p < nbig; p++) {
           sl[ke] +=
@@ -376,12 +376,12 @@ unsigned INT reflect2(INT n, INT is, INT it, INT* sv1, INT* sv2, INT* stos1,
 /*using bfs to get the reflected mesh  if possible*/
 void abfstree(const INT it0, scomplex* sc, INT* wrk, const INT print_level) {
   //  haz_scomplex_print(sc,0,__FUNCTION__);  fflush(stdout);
-  INT it = it0, n = sc->n, n1 = n + 1, ns = sc->ns, cc = sc->cc;
+  INT it = it0, dim = sc->dim, n1 = dim + 1, ns = sc->ns, cc = sc->cc;
   INT i, j, k, iii, is, isn1, itn1;
   INT i1, kcc;
   // INT in1;
   INT kbeg, kend, nums, iai, iai1, klev;
-  iCSRmat neib = icsr_create(ns, ns, (n + 1) * ns);
+  iCSRmat neib = icsr_create(ns, ns, (dim + 1) * ns);
   iii = 0;
   neib.IA[0] = iii;
   for (i = 0; i < ns; i++) {
@@ -439,7 +439,7 @@ void abfstree(const INT it0, scomplex* sc, INT* wrk, const INT print_level) {
           isn1 = is * n1;
           isnbr = (sc->nbr + isn1);
           isv = (sc->nodes + isn1);
-          ireflect = reflect2(n, is, it, isv, itv, isnbr, itnbr, mask[is], wrk);
+          ireflect = reflect2(dim, is, it, isv, itv, isnbr, itnbr, mask[is], wrk);
           switch (ireflect) {
             case 2:
             case 3:
@@ -501,7 +501,7 @@ void abfstree(const INT it0, scomplex* sc, INT* wrk, const INT print_level) {
  *
  */
 scomplex* scfinest(scomplex* sc) {
-  INT ns, i = 0, j = -10, k = -10, n = sc->n, nbig = sc->nbig, n1 = sc->n + 1,
+  INT ns, i = 0, j = -10, k = -10, dim = sc->dim, nbig = sc->nbig, n1 = sc->dim + 1,
           nv = sc->nv;
   scomplex* sctop = NULL;
   /*
@@ -519,7 +519,7 @@ scomplex* scfinest(scomplex* sc) {
     if (sc->child0[j] < 0 || sc->childn[j] < 0) ns++;
   }
   /*allocate the scomplex for the finest level*/
-  sctop = haz_scomplex_init(n, ns, nv, nbig);
+  sctop = haz_scomplex_init(dim, ns, nv, nbig);
   /* we dont need bunch of these, at least for assembly, so we free them*/
   free(sctop->parent);
   sctop->parent = NULL;
@@ -552,7 +552,7 @@ scomplex* scfinest(scomplex* sc) {
   /* copy the boudary codes and the coordinates*/
   for (i = 0; i < nv; i++) {
     sctop->bndry[i] = sc->bndry[i];
-    for (j = 0; j < nbig; j++) sctop->x[i * n + j] = sc->x[i * nbig + j];
+    for (j = 0; j < nbig; j++) sctop->x[i * dim + j] = sc->x[i * nbig + j];
   }
   free(sctop->csys);
   sctop->csys = NULL;
@@ -576,7 +576,7 @@ scomplex* scfinest(scomplex* sc) {
 void scfinalize_nofree(scomplex* sc, const INT set_bndry_codes) {
   // INT n=sc->n;
   INT ns, j = -10, k = -10;
-  INT n1 = sc->n + 1;
+  INT n1 = sc->dim + 1;
   /*
       store the finest mesh in sc structure.
       on input sc has all the hierarchy, on return sc only has the final mesh.
@@ -607,7 +607,7 @@ void scfinalize_nofree(scomplex* sc, const INT set_bndry_codes) {
   sc->childn = realloc(sc->childn, sc->ns * sizeof(INT));
   sc->gen = realloc(sc->gen, sc->ns * sizeof(INT));
   sc->flags = realloc(sc->flags, sc->ns * sizeof(INT));
-  find_nbr(sc->ns, sc->nv, sc->n, sc->nodes, sc->nbr);
+  find_nbr(sc->ns, sc->nv, sc->dim, sc->nodes, sc->nbr);
   // this also can be called separately
   // set_bndry_codes should always be set to 1.
   //  set_bndry_codes=1;
@@ -651,7 +651,7 @@ void scfinalize_nofree(scomplex* sc, const INT set_bndry_codes) {
 void scfinalize(scomplex* sc, const INT set_bndry_codes) {
   // INT n=sc->n;
   INT ns, j = -10, k = -10;
-  INT n1 = sc->n + 1;
+  INT n1 = sc->dim + 1;
   /*
       store the finest mesh in sc structure.
       on input sc has all the hierarchy, on return sc only has the final mesh.
@@ -682,7 +682,7 @@ void scfinalize(scomplex* sc, const INT set_bndry_codes) {
   sc->childn = realloc(sc->childn, sc->ns * sizeof(INT));
   sc->gen = realloc(sc->gen, sc->ns * sizeof(INT));
   sc->flags = realloc(sc->flags, sc->ns * sizeof(INT));
-  find_nbr(sc->ns, sc->nv, sc->n, sc->nodes, sc->nbr);
+  find_nbr(sc->ns, sc->nv, sc->dim, sc->nodes, sc->nbr);
   // this also can be called separately
   // set_bndry_codes should always be set to 1.
   //  set_bndry_codes=1;
@@ -971,7 +971,7 @@ cube2simp* cube2simplex(INT dim) {
  *        to equal value at every simplex that is on the last level of
  *        refinement (not refined simplex) and contains a point from
  *        dvector pts (note that the size of pts->val should be
- *        sc->n*pts->row)
+ *        sc->dim*pts->row)
  *
  * \param dvector toset;
  *
@@ -980,7 +980,7 @@ cube2simp* cube2simplex(INT dim) {
  */
 INT dvec_set_amr(const REAL value, scomplex* sc, INT npts, REAL* pts,
                  REAL* toset) {
-  INT j, k, jpts, n = sc->n, n1 = sc->n + 1, ns = sc->ns;
+  INT j, k, jpts, dim = sc->dim, n1 = sc->dim + 1, ns = sc->ns;
   REAL* pval0 = NULL; /*place holder*/
   INT* scnjn = NULL;  /*place holder*/
   k = 0;
@@ -988,8 +988,8 @@ INT dvec_set_amr(const REAL value, scomplex* sc, INT npts, REAL* pts,
     scnjn = sc->nodes + j * n1; /* beginning of local vertex numbering for
                                    simplex j.*/
     for (jpts = 0; jpts < npts; jpts++) {
-      pval0 = pts + jpts * n;
-      if (!xins(n, scnjn, sc->x, pval0)) {
+      pval0 = pts + jpts * dim;
+      if (!xins(dim, scnjn, sc->x, pval0)) {
         toset[j] = value;
         k++;
         break;
@@ -1024,7 +1024,7 @@ INT dvec_set_amr(const REAL value, scomplex* sc, INT npts, REAL* pts,
  */
 void find_cc_bndry_cc(scomplex* sc, const INT set_bndry_codes) {
   //
-  INT ns = sc->ns, dim = sc->n;
+  INT ns = sc->ns, dim = sc->dim;
   INT dim1 = dim + 1, iii, i, j, k, m, isn1, is, nbf;  //,nnzbf;
   iCSRmat s2s = icsr_create(ns, ns, dim1 * ns + ns);
   nbf = 0;
@@ -1424,7 +1424,7 @@ void find_cc_bndry_cc(scomplex* sc, const INT set_bndry_codes) {
  * \fn void mapit(scomplex *sc,const REAL *vc)
  *
  * \brief Constructs a simplicial mesh in a polyhedral domain O in
- *        dim-dimensions (dim=sc->n). The domain is assumed to be
+ *        dim-dimensions (dim=sc->dim). The domain is assumed to be
  *        isomorphic to the cube in dim-dimensions. Examples: it is a
  *        quadrilateral when d=2 and hexagonal when d=3. To avoid
  *        ambiguity, we order the vertices vc[] of O lexicographicaly
@@ -1447,7 +1447,7 @@ void mapit(scomplex* sc, REAL* vc) {
   if (!vc) return;
   /* maps a mesh on the unit cube in d-dimensions to a domain with vertices vc[]
    */
-  INT dim = sc->n;
+  INT dim = sc->dim;
   INT i, kf;  //,dim1=dim+1;
   cube2simp* c2s = cube2simplex(dim);
   REAL* vcp_xhat = (REAL*)calloc(dim * (c2s->nvcube + 1), sizeof(REAL));
@@ -1577,11 +1577,11 @@ void vtkw(const char* namevtk, vtu_data* vdata) {
   scomplex* sc = vdata->sc;
   INT shift = vdata->shift;
   //  REAL zscale=vdata->zscale;
-  if ((sc->n != 3) && (sc->n != 2) && (sc->n != 1))
+  if ((sc->dim != 3) && (sc->dim != 2) && (sc->dim != 1))
     fprintf(stderr, "\n*** ERR(%s; dim=%lld): No vtk files for dim .gt. 3.\n",
-            __FUNCTION__, (long long)sc->n);
+            __FUNCTION__, (long long)sc->dim);
   FILE* fvtk;
-  INT nv = sc->nv, ns = sc->ns, n = sc->n, n1 = n + 1, nbig = sc->nbig;
+  INT nv = sc->nv, ns = sc->ns, dim = sc->dim, n1 = dim + 1, nbig = sc->nbig;
   INT* nodes = sc->nodes;
   REAL* x = sc->x;
   INT tcell = -10;
@@ -1625,9 +1625,9 @@ void vtkw(const char* namevtk, vtu_data* vdata) {
   const INT LINE = 3;
   const INT TRI = 5;
   const INT TET = 10;
-  if (n == 1)
+  if (dim == 1)
     tcell = LINE; /* line */
-  else if (n == 2)
+  else if (dim == 2)
     tcell = TRI; /* triangle */
   else
     tcell = TET; /* tet */

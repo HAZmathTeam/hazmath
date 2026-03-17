@@ -140,7 +140,7 @@ struct mesh_struct make_uniform_mesh(const INT dim,const INT mesh_ref_levels,con
       check_error(ERROR_DIM, __FUNCTION__);
     }
     // Get boundaries
-    find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
+    find_nbr(sc->ns,sc->nv,sc->dim,sc->nodes,sc->nbr);
     sc_vols(sc);
   } else {
     // Nearest vertex bisection refinement

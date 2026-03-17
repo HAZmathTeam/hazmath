@@ -201,7 +201,7 @@ INT cart2polar(INT dim, REAL* c, REAL* p) {
 void map2mac(scomplex* sc, cube2simp* c2s, input_grid* g) {
   /*
    */
-  INT i, j, k1, k2, k1c, kf, dim = sc->n;
+  INT i, j, k1, k2, k1c, kf, dim = sc->dim;
   // INT k2c;
   INT ksys;
   REAL* xmac = g->xv;

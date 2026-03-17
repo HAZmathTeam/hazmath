@@ -31,8 +31,8 @@
  *  \note Yuwen 20210606.
  */
 void get_edge2d(iCSRmat* e2v, iCSRmat* el2e, scomplex* sc) {
-  if (sc->n != 2) {
-    fprintf(stderr, "%% *** ERROR in %s: the dimension = %lld and is not 3  !\n", __FUNCTION__, (long long)sc->n);
+  if (sc->dim != 2) {
+    fprintf(stderr, "%% *** ERROR in %s: the dimension = %lld and is not 3  !\n", __FUNCTION__, (long long)sc->dim);
     exit(2);
   }
   INT nv = sc->nv, ns = sc->ns;
@@ -58,7 +58,7 @@ void get_edge2d(iCSRmat* e2v, iCSRmat* el2e, scomplex* sc) {
 
     el2v_csr.IA[k + 1] = el2v_csr.IA[k] + 3;
   }
-  memcpy(el2v_csr.JA, el2v, (sc->n + 1) * ns * sizeof(INT));
+  memcpy(el2v_csr.JA, el2v, (sc->dim + 1) * ns * sizeof(INT));
   for (i = 0; i < ns3; i++) {el2v_csr.val[i] = 1;}
   icsr_uniqueij(&U, &ii, &jj);
   ivec_free(&ii); ivec_free(&jj);
@@ -159,8 +159,8 @@ void get_edge2d(iCSRmat* e2v, iCSRmat* el2e, scomplex* sc) {
  *  \note Yuwen 20210606.
  */
 void get_edge3d(iCSRmat* e2v, iCSRmat* el2e, scomplex* sc) {
-  if (sc->n != 3) {
-    fprintf(stderr, "%% *** ERROR in %s: the dimension = %lld and is not 3  !\n", __FUNCTION__, (long long)sc->n);
+  if (sc->dim != 3) {
+    fprintf(stderr, "%% *** ERROR in %s: the dimension = %lld and is not 3  !\n", __FUNCTION__, (long long)sc->dim);
     exit(3);
   }
   INT nv = sc->nv, ns = sc->ns;
@@ -297,7 +297,7 @@ void get_edge3d(iCSRmat* e2v, iCSRmat* el2e, scomplex* sc) {
  *  \note Yuwen 20210606.
  */
 void uniformrefine2d(scomplex* sc) {
-  if (sc->n != 2) {
+  if (sc->dim != 2) {
     fprintf(stderr, "\n%% *** ERROR: %s called but the spatial dimension is not 2   !\n",
 	    __FUNCTION__); exit(2);
   }
@@ -356,7 +356,7 @@ void uniformrefine2d(scomplex* sc) {
   // reallocate arrays:
   haz_scomplex_realloc(sc);
   // find neighbors
-  //  find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
+  //  find_nbr(sc->ns,sc->nv,sc->dim,sc->nodes,sc->nbr);
   return;
 }
 
@@ -376,9 +376,9 @@ void uniformrefine2d(scomplex* sc) {
  * \note Yuwen 20210606.
  */
 void uniformrefine3d(scomplex* sc) {
-  if (sc->n != 3) {
+  if (sc->dim != 3) {
     fprintf(stderr, "\n%% *** ERROR: %s called but the spatial dimension = %lld is not 3  !\n",
-	    __FUNCTION__, (long long)sc->n); exit(3);
+	    __FUNCTION__, (long long)sc->dim); exit(3);
   }
   iCSRmat e2v, el2e;
   get_edge3d(&e2v, &el2e, sc);
@@ -453,6 +453,6 @@ void uniformrefine3d(scomplex* sc) {
   free(el2v);
   //  reallocate unallocated arrays
   haz_scomplex_realloc(sc);
-  //  find_nbr(sc->ns,sc->nv,sc->n,sc->nodes,sc->nbr);
+  //  find_nbr(sc->ns,sc->nv,sc->dim,sc->nodes,sc->nbr);
   return;
 }

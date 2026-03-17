@@ -16,7 +16,7 @@
 /* Mark all leaf simplices that contain at least one of the given points */
 static ivector mark_containing(scomplex* sctop,
                                INT npts, REAL* pts) {
-  INT dim = sctop->n, n1 = dim + 1;
+  INT dim = sctop->dim, n1 = dim + 1;
   INT ns = sctop->ns, i, k;
   ivector marked;
   marked.row = ns;

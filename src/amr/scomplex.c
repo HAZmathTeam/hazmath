@@ -22,8 +22,8 @@
  *
  */
 void haz_scomplex_realloc(scomplex* sc) {
-  INT i, j, ns = sc->ns, nv = sc->nv, n = sc->n;
-  INT n1 = n + 1;
+  INT i, j, ns = sc->ns, nv = sc->nv, dim = sc->dim;
+  INT n1 = dim + 1;
   sc->print_level = 0;
   sc->factorial = 1.;
   for (j = 2; j < n1; j++) sc->factorial *= ((REAL)j);
@@ -125,7 +125,7 @@ REAL volume_compute(INT dim, REAL factorial, REAL* xs, void* wrk) {
  * \note
  */
 void sc_vols(scomplex* sc) {
-  INT dim = sc->n, ns = sc->ns;
+  INT dim = sc->dim, ns = sc->ns;
   INT dim1 = dim + 1, i, j, node, idim1;
   void* wrk = malloc(dim1 * (dim * sizeof(REAL) + sizeof(INT)));
   REAL* xs = calloc(dim1 * dim, sizeof(REAL));
@@ -168,9 +168,9 @@ scomplex* haz_scomplex_init(const INT n, INT ns, INT nv, const INT nbig) {
   */
   scomplex* sc = (scomplex*)malloc(sizeof(scomplex));
   sc->nbig = nbig;
-  sc->n = n;
+  sc->dim = n;
   if (sc->nbig <= 0) sc->nbig = n;
-  INT n1 = sc->n + 1, i, j, in1;
+  INT n1 = sc->dim + 1, i, j, in1;
   sc->level = 0;
   sc->ref_type = 0;
   sc->print_level = 0;
@@ -265,9 +265,9 @@ scomplex haz_scomplex_null(const INT n, const INT nbig) {
   */
   scomplex sc;
   sc.nbig = nbig;
-  sc.n = n;
+  sc.dim = n;
   if (sc.nbig <= 0) sc.nbig = n;
-  INT n1 = sc.n + 1, j;
+  INT n1 = sc.dim + 1, j;
   sc.level = 0;
   sc.ref_type = 0;
   sc.print_level = 0;
@@ -322,7 +322,7 @@ scomplex haz_scomplex_null(const INT n, const INT nbig) {
  *
  */
 void haz_scomplex_init_part(scomplex* sc) {
-  INT nv = sc->nv, ns = sc->ns, n1 = sc->n + 1, i, j;
+  INT nv = sc->nv, ns = sc->ns, n1 = sc->dim + 1, i, j;
   sc->level = 0;
   sc->ref_type = 0;
   sc->print_level = 0;
@@ -448,9 +448,9 @@ scomplex* haz_scomplex_read(FILE* fp, INT print_level) {
 void haz_scomplex_print(scomplex* sc, const INT ns0, const char* infor) {
   // print simplicial complex, starting with ns0.
   INT i, j, in, in1;
-  INT n = sc->n, n1 = n + 1, ns = sc->ns, nv = sc->nv, nbig = sc->nbig;
+  INT dim = sc->dim, n1 = dim + 1, ns = sc->ns, nv = sc->nv, nbig = sc->nbig;
   if (ns0 < 0 || ns0 > ns) return;
-  fprintf(stdout, "\nN=%lld,NBIG=%lld, NS=%lld, NV=%lld\n", (long long)sc->n,
+  fprintf(stdout, "\nN=%lld,NBIG=%lld, NS=%lld, NV=%lld\n", (long long)sc->dim,
           (long long)sc->nbig, (long long)sc->ns, (long long)sc->nv);
   fflush(stdout);
   fprintf(stdout, "\n%s printout: %s\n", __FUNCTION__, infor);
@@ -759,7 +759,7 @@ void find_nbr(INT ns, INT nv, INT n, INT* sv, INT* stos) {
 INT haz_add_simplex(INT is, scomplex* sc, REAL* xnew, INT* pv, INT ibnew,
                     INT csysnew, INT nsnew, INT nvnew) {
   /* adds nodes and coords as well */
-  INT n = sc->n, nbig = sc->nbig, n1 = n + 1, nv = sc->nv;  // ns=sc->ns;
+  INT dim = sc->dim, nbig = sc->nbig, n1 = dim + 1, nv = sc->nv;  // ns=sc->ns;
   INT ks0 = sc->child0[is], ksn = sc->childn[is];
   INT isc0 = ks0 * n1, iscn = ksn * n1;
   //  INT *dsti,*srci;
@@ -781,7 +781,7 @@ INT haz_add_simplex(INT is, scomplex* sc, REAL* xnew, INT* pv, INT ibnew,
   if (nvnew != nv) {
     sc->x = realloc(sc->x, (nvnew * nbig) * sizeof(REAL));
     dstr = (sc->x + nv * nbig);
-    memcpy(dstr, xnew, n * sizeof(REAL));
+    memcpy(dstr, xnew, dim * sizeof(REAL));
     if (xnew) free(xnew);
     sc->bndry = realloc(sc->bndry, (nvnew) * sizeof(INT));
     sc->bndry[nv] = ibnew;
@@ -855,8 +855,8 @@ INT haz_add_simplex(INT is, scomplex* sc, REAL* xnew, INT* pv, INT ibnew,
  * \return N (the largest color assigned)
  */
 static INT set_color(scomplex* sc, INT* color) {
-  INT nv = sc->nv, ns = sc->ns, n = sc->n;
-  INT n1 = n + 1, i, j, k, v, w, c;
+  INT nv = sc->nv, ns = sc->ns, dim = sc->dim;
+  INT n1 = dim + 1, i, j, k, v, w, c;
   /* Build vertex-to-vertex adjacency from the element connectivity.
      We use a simple approach: for each simplex, all pairs of its
      vertices are neighbors. We store adjacency in CSR format. */
@@ -865,7 +865,7 @@ static INT set_color(scomplex* sc, INT* color) {
   for (i = 0; i < ns; i++) {
     INT* el = sc->nodes + i * n1;
     for (j = 0; j < n1; j++) {
-      deg[el[j]] += n; /* at most n neighbors per element */
+      deg[el[j]] += dim; /* at most dim neighbors per element */
     }
   }
   /* Allocate adjacency lists (with room for duplicates; we handle them) */
@@ -940,7 +940,7 @@ static INT set_color(scomplex* sc, INT* color) {
  * \param N      I: the largest color
  */
 static void dgs_initialize(scomplex* sc, INT* color, INT N) {
-  INT ns = sc->ns, n = sc->n, n1 = n + 1;
+  INT ns = sc->ns, dim = sc->dim, n1 = dim + 1;
   INT i, j, k;
   INT* tmp = (INT*)malloc(n1 * sizeof(INT));
   INT* perm = (INT*)malloc(n1 * sizeof(INT));
@@ -969,11 +969,11 @@ static void dgs_initialize(scomplex* sc, INT* color, INT N) {
     */
     memcpy(tmp, el, n1 * sizeof(INT));
     memcpy(nbrtmp, nb, n1 * sizeof(INT));
-    if (color[tmp[perm[n]]] == N) {
-      /* Cyclic: new[0]=old[perm[n]], new[j+1]=old[perm[j]] for j=0..n-1 */
-      el[0] = tmp[perm[n]];
-      nb[0] = nbrtmp[perm[n]];
-      for (j = 0; j < n; j++) {
+    if (color[tmp[perm[dim]]] == N) {
+      /* Cyclic: new[0]=old[perm[dim]], new[j+1]=old[perm[j]] for j=0..dim-1 */
+      el[0] = tmp[perm[dim]];
+      nb[0] = nbrtmp[perm[dim]];
+      for (j = 0; j < dim; j++) {
         el[j + 1] = tmp[perm[j]];
         nb[j + 1] = nbrtmp[perm[j]];
       }
@@ -995,7 +995,7 @@ static void dgs_initialize(scomplex* sc, INT* color, INT N) {
  * \brief Build the vertex-to-simplex incidence (transpose of nodes).
  */
 static void v2s_build(scomplex* sc) {
-  INT ns = sc->ns, nv = sc->nv, n1 = sc->n + 1;
+  INT ns = sc->ns, nv = sc->nv, n1 = sc->dim + 1;
   INT i, j, v;
   sc->v2s_alloc = ns * n1 * 2; /* room to grow */
   sc->v2s_head = (INT*)malloc(nv * sizeof(INT));
@@ -1042,7 +1042,7 @@ static inline void v2s_add_vertex(scomplex* sc, INT vnew) {
  * \brief Register all vertices of a new simplex in v2s.
  */
 static void v2s_register_simplex(scomplex* sc, INT s) {
-  INT n1 = sc->n + 1, j;
+  INT n1 = sc->dim + 1, j;
   INT* el = sc->nodes + s * n1;
   for (j = 0; j < n1; j++) v2s_add(sc, el[j], s);
 }
@@ -1077,10 +1077,10 @@ static void v2s_register_simplex(scomplex* sc, INT s) {
  *
  */
 INT haz_refine_simplex(scomplex* sc, const INT is, const INT it) {
-  INT n = sc->n, nbig = sc->nbig, ns = sc->ns, nv = sc->nv;
+  INT dim = sc->dim, nbig = sc->nbig, ns = sc->ns, nv = sc->nv;
   INT nsnew = ns, nvnew = nv;
   INT itype, nodnew = -10;
-  INT n1 = n + 1, j, i, p, p0, pn, isn1, snbri, snbrp, snbrn, snbr0;
+  INT n1 = dim + 1, j, i, p, p0, pn, isn1, snbri, snbrp, snbrn, snbr0;
   INT jt, jv0, jvn, ks0, ksn, s0nbri, snnbri;  //,isn;
   REAL* xnew;
   INT pv[2];
@@ -1095,7 +1095,7 @@ INT haz_refine_simplex(scomplex* sc, const INT is, const INT it) {
      simplex T' shares e but bse(T')!=e, refine T' first. */
   {
     INT v0 = sc->nodes[isn1];
-    INT vn = sc->nodes[isn1 + n];
+    INT vn = sc->nodes[isn1 + dim];
     INT dgs_retry = 1;
     while (dgs_retry) {
       dgs_retry = 0;
@@ -1114,7 +1114,7 @@ INT haz_refine_simplex(scomplex* sc, const INT is, const INT it) {
         }
         if (!has_vn) continue;
         /* j shares edge e; check if bse(j) == e */
-        if ((elj[0] == v0 && elj[n] == vn) || (elj[0] == vn && elj[n] == v0))
+        if ((elj[0] == v0 && elj[dim] == vn) || (elj[0] == vn && elj[dim] == v0))
           continue;
         /* bse(j) != e: refine j first (Algorithm 3 recursive call) */
         haz_refine_simplex(sc, j, -1);
@@ -1143,7 +1143,7 @@ INT haz_refine_simplex(scomplex* sc, const INT is, const INT it) {
   if (it < 0) {
     xnew = (REAL*)calloc(nbig, sizeof(REAL));
     jv0 = sc->nodes[isn1];
-    jvn = sc->nodes[isn1 + n];
+    jvn = sc->nodes[isn1 + dim];
     // here we can store the edge the new vertex comes from
     for (j = 0; j < nbig; j++) {
       xnew[j] = 0.5 * (sc->x[jv0 * nbig + j] + sc->x[jvn * nbig + j]);
@@ -1202,7 +1202,7 @@ INT haz_refine_simplex(scomplex* sc, const INT is, const INT it) {
   iscn = ksn * n1;
   sc->nodes[isc0 + 0] = sc->nodes[isn1];  // nodes[is][0]
   sc->nodes[iscn + 0] =
-      sc->nodes[isn1 + n];  // nodes[is][n1] nodes is (ns x n1)
+      sc->nodes[isn1 + dim];  // nodes[is][n1] nodes is (ns x n1)
   /*backup:   sn->nodes[1]=s0->nodes[1]=nodnew;*/
   sc->nodes[iscn + 1] = sc->nodes[isc0 + 1] = nodnew;
   sc->nbr[isc0] = sc->childn[is];
@@ -1212,7 +1212,7 @@ INT haz_refine_simplex(scomplex* sc, const INT is, const INT it) {
     thanks to the structural condition.
   */
   snbr0 = sc->nbr[isn1];
-  snbrn = sc->nbr[isn1 + n];
+  snbrn = sc->nbr[isn1 + dim];
   if (snbrn >= 0) {
     if (sc->child0[snbrn] >= 0) {
       //      s0->nbr[1]=sc->child0[snbrn];
@@ -1231,16 +1231,16 @@ INT haz_refine_simplex(scomplex* sc, const INT is, const INT it) {
       sc->nbr[iscn + 1] = snbr0;
   }
   /* Compute the simplex type. */
-  itype = (sc->gen[is]) % n;
-  // for each vertex p=1..n-1 of the parent simplex S
-  for (p = 1; p < n; p++) {
+  itype = (sc->gen[is]) % dim;
+  // for each vertex p=1..dim-1 of the parent simplex S
+  for (p = 1; p < dim; p++) {
     /*
        p0 is the index of S->vertex[p] in child0
        pn is the index of S->vertex[p] in childn
     */
     pn = p + 1;
     p0 = p + 1;
-    if (p > itype) pn = n - p + itype + 1;
+    if (p > itype) pn = dim - p + itype + 1;
     /*       YYYYYYYYYYYYYYYYYYYYYY */
     /* initialize children % vertex according to structural cond */
     //      sn->nodes[pn]=s0->nodes[p0]=sc->nodes[isn1+p];
@@ -1252,7 +1252,7 @@ INT haz_refine_simplex(scomplex* sc, const INT is, const INT it) {
       /*
          S-> nbr[p] is subdivided. The corresponding nbr pointers of the
          children of S should then point to S nbr[p] -> children (structural
-         condition). It might however be that the vertices 0 and n of S have
+         condition). It might however be that the vertices 0 and dim of S have
          exchanged local indices in the nbr. That has to be tested.
       */
       if (sc->nodes[snbrp * n1 + 0] == sc->nodes[isn1 + 0]) {
@@ -1327,7 +1327,7 @@ INT haz_refine_simplex(scomplex* sc, const INT is, const INT it) {
      pointer to this simplex S so they find our new vertex.  Skip the
      neighbors opposite to x0 and xn, they do not have to be refined
      and refine the rest of the "on-axis" neighbors */
-  for (i = 1; i < n; i++) {
+  for (i = 1; i < dim; i++) {
     haz_refine_simplex(sc, sc->nbr[isn1 + i], is);
   }
   /* DGS: also bisect any remaining leaf simplices sharing the
@@ -1336,7 +1336,7 @@ INT haz_refine_simplex(scomplex* sc, const INT is, const INT it) {
      conforming closure above). */
   {
     INT v0p = sc->nodes[isn1];
-    INT vnp = sc->nodes[isn1 + n];
+    INT vnp = sc->nodes[isn1 + dim];
     /* Walk v2s list of v0p; for each simplex check if it also has vnp */
     INT k;
     for (k = sc->v2s_head[v0p]; k >= 0; k = sc->v2s_next[k]) {
@@ -1389,7 +1389,7 @@ void refine(const INT ref_levels, scomplex* sc, ivector* marked) {
   if (!sc->level) {
     /* sc->level this is set to 0 in haz_scomplex_init */
     /* form neighboring list on the coarsest level */
-    find_nbr(sc->ns, sc->nv, sc->n, sc->nodes, sc->nbr);
+    find_nbr(sc->ns, sc->nv, sc->dim, sc->nodes, sc->nbr);
     /*
      * DGS initialization (Diening-Gehring-Storn, FoCM 2025):
      * Color the vertices and reorder each simplex accordingly.
@@ -1410,7 +1410,7 @@ void refine(const INT ref_levels, scomplex* sc, ivector* marked) {
     }
     /* Traxler BFS tree initialization commented out — using DGS only */
     /* { */
-    /*   INT *wrk=calloc(5*(sc->n+2),sizeof(INT)); */
+    /*   INT *wrk=calloc(5*(sc->dim+2),sizeof(INT)); */
     /*   /\* construct bfs tree for the dual graph *\/ */
     /*   abfstree(0,sc,wrk,print_level); */
     /*   if(wrk) free(wrk); */
@@ -1483,16 +1483,16 @@ void refine(const INT ref_levels, scomplex* sc, ivector* marked) {
    * some other function we compute these here too.
    */
   INT node, in1;
-  void* wrk1 = malloc((sc->n + 1) * (sc->n * sizeof(REAL) + sizeof(INT)));
-  REAL* xs = calloc((sc->n + 1) * sc->n, sizeof(REAL));
+  void* wrk1 = malloc((sc->dim + 1) * (sc->dim * sizeof(REAL) + sizeof(INT)));
+  REAL* xs = calloc((sc->dim + 1) * sc->dim, sizeof(REAL));
   for (i = 0; i < sc->ns; ++i) {
     if (sc->child0[i] < 0 || sc->childn[i] < 0) {
-      in1 = i * (sc->n + 1);
-      for (j = 0; j <= sc->n; ++j) {
+      in1 = i * (sc->dim + 1);
+      for (j = 0; j <= sc->dim; ++j) {
         node = sc->nodes[in1 + j];
-        memcpy((xs + j * sc->n), (sc->x + node * sc->n), sc->n * sizeof(REAL));
+        memcpy((xs + j * sc->dim), (sc->x + node * sc->dim), sc->dim * sizeof(REAL));
       }
-      sc->vols[i] = volume_compute(sc->n, sc->factorial, xs, wrk1);
+      sc->vols[i] = volume_compute(sc->dim, sc->factorial, xs, wrk1);
     }
   }
   free(wrk1);
@@ -1526,7 +1526,7 @@ mesh_struct sc2mesh(scomplex* sc) {
   /* copy the final grid at position 1*/
   mesh_struct mesh;
   initialize_mesh(&mesh);
-  INT ns = 0, nv = sc->nv, n1 = sc->n + 1, dim = sc->n, dimbig = sc->nbig;
+  INT ns = 0, nv = sc->nv, n1 = sc->dim + 1, dim = sc->dim, dimbig = sc->nbig;
   if (dimbig != dim) return mesh;
   INT jk = -10, k = -10, j = -10, i = -10;
   /*
@@ -1538,7 +1538,7 @@ mesh_struct sc2mesh(scomplex* sc) {
   for (j = 0; j < sc->ns; j++)
     if (sc->child0[j] < 0 || sc->childn[j] < 0) ns++;
   /*Update mesh with known quantities*/
-  mesh.dim = sc->n;
+  mesh.dim = sc->dim;
   mesh.nelm = ns;  // do not ever put sc->ns here
   mesh.nv = nv;
   mesh.nconn_reg = sc->cc;  //
@@ -1582,7 +1582,7 @@ mesh_struct sc2mesh(scomplex* sc) {
   /*Coordinates*/
   for (j = 0; j < mesh.dim; j++) {
     for (i = 0; i < nv; i++) {
-      mesh.cv->x[j * nv + i] = sc->x[i * sc->n + j];
+      mesh.cv->x[j * nv + i] = sc->x[i * sc->dim + j];
     }
   }
   // el_v
@@ -1612,7 +1612,7 @@ mesh_struct sc2mesh(scomplex* sc) {
  */
 scomplex sc_bndry(scomplex* sc) {
   scomplex dsc;
-  INT ns = sc->ns, nv = sc->nv, dim = sc->n;
+  INT ns = sc->ns, nv = sc->nv, dim = sc->dim;
   /*
      first find the neighbors so that we have a consistent ordering of
      the vertices and faces. These may already be found, but if not we
@@ -1672,34 +1672,34 @@ scomplex sc_bndry(scomplex* sc) {
   }
   fprintf(stdout, "\n%%number of boundary vertices=%lld (total nv=%lld)\n",
           (long long)nv_b, (long long)sc->nv);
-  dsc = haz_scomplex_null((sc->n - 1), sc->n);
+  dsc = haz_scomplex_null((sc->dim - 1), sc->dim);
   dsc.nv = nv_b;
   dsc.ns = ns_b;
   ////////////////
-  if (dsc.nbig > dsc.n) {
+  if (dsc.nbig > dsc.dim) {
     fprintf(stdout,
             "\n%%%%In %s:Simplicial complex of dimension %lld embedded in sc "
             "of dimension %lld\n\n",
-            __FUNCTION__, (long long)dsc.n, (long long)dsc.nbig);
+            __FUNCTION__, (long long)dsc.dim, (long long)dsc.nbig);
   }
   // there are things we dont need:
   //  free(dsc.nodes);
   dsc.nodes = fnodes;
   if (dsc.nv < sc->nv) indxinv = realloc(indxinv, dsc.nv * sizeof(INT));
   // now we can init the complex and then remove the unnecessary stuff:
-  for (i = 0; i < dsc.ns * (dsc.n + 1); ++i) fnodes[i] = indx[fnodes[i]];
+  for (i = 0; i < dsc.ns * (dsc.dim + 1); ++i) fnodes[i] = indx[fnodes[i]];
   // set x, sc->bndry and so on:
   dsc.x = (REAL*)calloc(dsc.nv * (dsc.nbig), sizeof(REAL));
   for (i = 0; i < dsc.nv; i++) {
     in1 = i * dsc.nbig;
     j = indxinv[i];
-    jn1 = j * sc->n;  // original coords:
-    memcpy((dsc.x + in1), sc->x + jn1, sc->n * sizeof(REAL));
+    jn1 = j * sc->dim;  // original coords:
+    memcpy((dsc.x + in1), sc->x + jn1, sc->dim * sizeof(REAL));
   }
   free(indx);
   free(indxinv);
   haz_scomplex_realloc(&dsc);
-  find_nbr(dsc.ns, dsc.nv, dsc.n, dsc.nodes, dsc.nbr);
+  find_nbr(dsc.ns, dsc.nv, dsc.dim, dsc.nodes, dsc.nbr);
   return dsc;
 }
 
@@ -1723,15 +1723,15 @@ scomplex sc_bndry(scomplex* sc) {
  *       identified by its sorted vertex indices.
  */
 INT sc_conformity_check(scomplex* sc) {
-  INT ns = sc->ns, n = sc->n, n1 = n + 1;
-  INT nfacets = ns * n1; /* total facets (n+1 per simplex) */
+  INT ns = sc->ns, dim = sc->dim, n1 = dim + 1;
+  INT nfacets = ns * n1; /* total facets (dim+1 per simplex) */
   INT i, j, k;
   /*
-   * Store all facets as sorted vertex tuples of length n.
-   * facets[f*n + 0..n-1] = sorted vertex indices of facet f.
+   * Store all facets as sorted vertex tuples of length dim.
+   * facets[f*dim + 0..dim-1] = sorted vertex indices of facet f.
    */
-  INT* facets = (INT*)calloc(nfacets * n, sizeof(INT));
-  INT* ftmp = (INT*)calloc(n, sizeof(INT));
+  INT* facets = (INT*)calloc(nfacets * dim, sizeof(INT));
+  INT* ftmp = (INT*)calloc(dim, sizeof(INT));
   for (i = 0; i < ns; i++) {
     INT* el = sc->nodes + i * n1;
     for (j = 0; j < n1; j++) {
@@ -1743,7 +1743,7 @@ INT sc_conformity_check(scomplex* sc) {
         ftmp[pos++] = el[k];
       }
       /* insertion sort ftmp */
-      for (pos = 1; pos < n; pos++) {
+      for (pos = 1; pos < dim; pos++) {
         INT val = ftmp[pos];
         INT hole = pos;
         while (hole > 0 && ftmp[hole - 1] > val) {
@@ -1752,7 +1752,7 @@ INT sc_conformity_check(scomplex* sc) {
         }
         ftmp[hole] = val;
       }
-      memcpy(facets + fi * n, ftmp, n * sizeof(INT));
+      memcpy(facets + fi * dim, ftmp, dim * sizeof(INT));
     }
   }
   free(ftmp);
@@ -1762,7 +1762,7 @@ INT sc_conformity_check(scomplex* sc) {
    */
   INT* idx = (INT*)calloc(nfacets, sizeof(INT));
   for (i = 0; i < nfacets; i++) idx[i] = i;
-  /* We need n accessible in the comparator — use a file-scope variable */
+  /* We need dim accessible in the comparator — use a file-scope variable */
   /* Instead, sort by building a comparison key approach with qsort_r or
    * just do a simple bucket/radix approach. For portability, we do a
    * manual merge sort with the facets array. */
@@ -1772,11 +1772,11 @@ INT sc_conformity_check(scomplex* sc) {
     for (gap = nfacets / 2; gap > 0; gap /= 2) {
       for (ii = gap; ii < nfacets; ii++) {
         tmp = idx[ii];
-        INT* a = facets + tmp * n;
+        INT* a = facets + tmp * dim;
         for (jj = ii; jj >= gap; jj -= gap) {
-          INT* b = facets + idx[jj - gap] * n;
+          INT* b = facets + idx[jj - gap] * dim;
           INT cmp = 0;
-          for (k = 0; k < n; k++) {
+          for (k = 0; k < dim; k++) {
             if (a[k] < b[k]) {
               cmp = -1;
               break;
@@ -1804,10 +1804,10 @@ INT sc_conformity_check(scomplex* sc) {
     /* count how many consecutive facets are identical */
     INT cnt = 1;
     while (i + cnt < nfacets) {
-      INT* a = facets + idx[i] * n;
-      INT* b = facets + idx[i + cnt] * n;
+      INT* a = facets + idx[i] * dim;
+      INT* b = facets + idx[i + cnt] * dim;
       INT same = 1;
-      for (k = 0; k < n; k++) {
+      for (k = 0; k < dim; k++) {
         if (a[k] != b[k]) {
           same = 0;
           break;
@@ -1822,8 +1822,8 @@ INT sc_conformity_check(scomplex* sc) {
       if (sc->print_level > 0) {
         fprintf(stderr, "\n%%WARNING: facet shared by %lld simplices: [",
                 (long long)cnt);
-        INT* a = facets + idx[i] * n;
-        for (k = 0; k < n; k++) fprintf(stderr, " %lld", (long long)a[k]);
+        INT* a = facets + idx[i] * dim;
+        for (k = 0; k < dim; k++) fprintf(stderr, " %lld", (long long)a[k]);
         fprintf(stderr, " ]");
       }
     }
@@ -1836,10 +1836,10 @@ INT sc_conformity_check(scomplex* sc) {
     fprintf(stderr,
             "\n%%***CONFORMITY CHECK FAILED: %lld non-conforming facets "
             "(ns=%lld, nv=%lld, dim=%lld)\n",
-            (long long)nerr, (long long)ns, (long long)sc->nv, (long long)n);
+            (long long)nerr, (long long)ns, (long long)sc->nv, (long long)dim);
   } else {
     fprintf(stdout, "%% Conformity check PASSED (ns=%lld, nv=%lld, dim=%lld)\n",
-            (long long)ns, (long long)sc->nv, (long long)n);
+            (long long)ns, (long long)sc->nv, (long long)dim);
   }
   return nerr;
 }

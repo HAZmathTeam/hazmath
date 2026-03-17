@@ -70,7 +70,7 @@ dvector exmpl_solve(scomplex* sc, void* all) {
   /**********************************************************************/
   INT npts;
   npts = 1;
-  pts = (REAL*)calloc(sc->n * npts, sizeof(REAL)); // npts x n vector of
+  pts = (REAL*)calloc(sc->dim * npts, sizeof(REAL)); // npts x dim vector of
 					       // points used to mock
 					       // marking
   memset(pts, 0, npts * sizeof(REAL));// this is set to be the origin;
@@ -134,7 +134,7 @@ ivector mark_near_points(scomplex* sc, INT nstar, REAL* xstar, REAL threshold) {
      point from xstar[...]. unmarked simplices are left unmarked
   */
 //  fprintf(stdout,"\nNSTAR=%d\n",nstar);fflush(stdout);
-  INT n = sc->n, n1 = n + 1, ns = sc->ns;
+  INT dim = sc->dim, n1 = dim + 1, ns = sc->ns;
   INT istar, jstar, j = -1;
   /* mark everything */
   ivector marked = ivec_create(sc->ns);
@@ -153,11 +153,11 @@ ivector mark_near_points(scomplex* sc, INT nstar, REAL* xstar, REAL threshold) {
     scnjn = sc->nodes + j * n1;
     for (jstar = 0; jstar < nstar; jstar++) {
       //      fprintf(stdout,"\nel=%d\n",jstar+1);
-      xstar0 = xstar + jstar * n;
+      xstar0 = xstar + jstar * dim;
       // check if the point is inside the simplex.
-      //if(!xins(n,scnjn,sc->x,xstar0)){
-      //flag = isxnears(n, scnjn, sc->x, xstar0, threshold);
-      flag = xins(n, scnjn, sc->x, xstar0);
+      //if(!xins(dim,scnjn,sc->x,xstar0)){
+      //flag = isxnears(dim, scnjn, sc->x, xstar0, threshold);
+      flag = xins(dim, scnjn, sc->x, xstar0);
       //printf("flad = %d\n", flag);
       //sleep(5);
       if (!flag) {
@@ -180,7 +180,7 @@ static ivector mark_around_pts(scomplex* sc, scomplex* scglobal, INT nstar, REAL
   iCSRmat ins_node;
   dCSRmat xins_node, xnode_ins;
   INT *ii, *jj;
-  INT dim = scglobal->n, dim1 = dim + 1, n = sc->n, n1 = n + 1, ns = sc->ns;
+  INT dim = scglobal->dim, dim1 = dim + 1, n = sc->dim, n1 = n + 1, ns = sc->ns;
   INT nzw = -10, istar, jstar, jk, p, pj, cj0, cjn, j = -1, iwa, iwb, keep;
   /* un-mark everything */
   ivector marked = ivec_create(sc->ns);// this is only created on the top level....

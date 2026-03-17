@@ -46,7 +46,7 @@ INT main(INT argc, char* argv[]) {
   ivector marked;
   void* all = NULL;
   REAL* xstar = NULL;
-  INT nstar, dim = sc->n;
+  INT nstar, dim = sc->dim;
   features feat;
   feat.n = 0; feat.nbig = 0; feat.x = NULL; feat.fill = -1e20; feat.fpf = NULL;
   iCSRmat node_ins;
@@ -55,8 +55,8 @@ INT main(INT argc, char* argv[]) {
   if (amr_marking_type == 44) {
     char* data_file = strdup("./try_features.txt");
     feat.fpf = fopen(data_file, "r");
-    feat.nbig = sc->n;
-    feat.n = sc->n;
+    feat.nbig = sc->dim;
+    feat.n = sc->dim;
     feat.fill = -1e20;
     // last argument below is whether to map the simplicial complex to
     // a cube enclosing the data.

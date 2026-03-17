@@ -35,7 +35,7 @@ static ivector mark_around_pts(scomplex* sc, scomplex* scglobal, INT nstar,
   iCSRmat ins_node;
   dCSRmat xins_node, xnode_ins;
   INT* ii, *jj;
-  INT dim = scglobal->n, dim1 = dim + 1, n = sc->n, n1 = n + 1, ns = sc->ns;
+  INT dim = scglobal->dim, dim1 = dim + 1, n = sc->dim, n1 = n + 1, ns = sc->ns;
   INT nzw = -10, jstar, jk, p, pj, j = -1, iwa, iwb;
   /* un-mark everything */
   ivector marked =
@@ -492,7 +492,7 @@ static void special_1d(scomplex* sc, data_1d* g, dvector* seg_r) {
   sc->nv = ptrn + g->nv;
   sc->ns = ptre;
   seg_r->val = realloc(seg_r->val, (sc->ns) * sizeof(REAL));
-  sc->nodes = realloc(sc->nodes, (sc->n + 1) * (sc->ns) * sizeof(INT));
+  sc->nodes = realloc(sc->nodes, (sc->dim + 1) * (sc->ns) * sizeof(INT));
   free(sc->x);
   g->xv = realloc(g->xv, sc->nv * dimbig * sizeof(REAL));  //
   sc->x = g->xv;

@@ -790,7 +790,7 @@ static void scomplex_merge1(const INT nvall,
   scomplex* sc = sc0[0];
   INT kel, i, ii, j, in1, iin1, newv, nnz;
   iCSRmat bndry_v1;//,bndry_v2;
-  INT n1 = (sc->n + 1), ns0, nv = nvall, ns = nsall;
+  INT n1 = (sc->dim + 1), ns0, nv = nvall, ns = nsall;
   if (mc->nel != 1) {
     for (kel = 0; kel < mc->nel; ++kel) {
       sc0[kel]->bndry_v->col = nvall;
@@ -809,7 +809,7 @@ static void scomplex_merge1(const INT nvall,
         are at most mc->nel*2*dim different codes as every macroelement
         has at most 2*dim faces.
     */
-    //  icsr_realloc(nv,mc->nel*2*sc->n,nv*sc->n,sc->bndry_v); // no need of this here.
+    //  icsr_realloc(nv,mc->nel*2*sc->dim,nv*sc->dim,sc->bndry_v); // no need of this here.
     /*
      * coord sys: 1 is polar, 2 is cyl and so on: not fully implemented
      * and tested yet
@@ -820,7 +820,7 @@ static void scomplex_merge1(const INT nvall,
     /*connected components*/
     sc->cc = mc->cc; sc->bndry_cc = mc->bndry_cc;
     sc->flags = (INT *)realloc(sc->flags, ns * sizeof(INT));
-    sc->x = (REAL *)realloc(sc->x, nv * (sc->n) * sizeof(REAL));
+    sc->x = (REAL *)realloc(sc->x, nv * (sc->dim) * sizeof(REAL));
     sc->vols = (REAL *)realloc(sc->vols, ns * sizeof(REAL));
     //  sc->fval=(REAL *)realloc(sc->fval,nv*sizeof(REAL)); // function values at every vertex; not used in general;
     //
@@ -859,9 +859,9 @@ static void scomplex_merge1(const INT nvall,
         sc->bndry[i] = sc0[kel]->bndry[ii];
         sc->csys[i] = sc0[kel]->csys[ii];
         //      sc->fval[i]=sc0[kel]->fval[ii];
-        in1 = i * sc->n;
-        iin1 = ii * sc->n;
-        for (j = 0; j < sc->n; j++)
+        in1 = i * sc->dim;
+        iin1 = ii * sc->dim;
+        for (j = 0; j < sc->dim; j++)
           sc->x[in1 + j] = sc0[kel]->x[iin1 + j];
       }
       nnz = sc0[kel]->bndry_v->nnz;
@@ -1484,12 +1484,12 @@ scomplex **generate_initial_grid(input_grid* g0) {
   macrocomplex_free(mc);
   cube2simp_free(c2s);
   /* order simplex2vertex array as required by the adaptive refinement */
-  find_nbr(sc[0]->ns, sc[0]->nv, sc[0]->n, sc[0]->nodes, sc[0]->nbr);
+  find_nbr(sc[0]->ns, sc[0]->nv, sc[0]->dim, sc[0]->nodes, sc[0]->nbr);
   sc_vols(sc[0]);
   sc[0]->ref_type = g0->ref_type;
   /* Traxler BFS tree ordering commented out — DGS initialization is done in refine() */
   /* if(g0->ref_type < 20){ */
-  /*   INT *wrk1=calloc(5*(sc[0]->n+2),sizeof(INT)); */
+  /*   INT *wrk1=calloc(5*(sc[0]->dim+2),sizeof(INT)); */
   /*   abfstree(0,sc[0],wrk1,g0->print_level); */
   /*   free(wrk1); */
   /* } */

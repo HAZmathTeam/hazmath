@@ -541,8 +541,8 @@ static void call_assembly(scomplex* sc, dCSRmat* A, dvector* rhs, const REAL alp
   // for simplices: number of vertices per simplex.
   INT dim = 0, dim1 = 1;
   //  scomplex *sc=hazr("3d_example");
-  dim = sc->n;
-  dim1 = sc->n + 1;
+  dim = sc->dim;
+  dim1 = sc->dim + 1;
   nv = sc->nv;// shorthand for num vertices.
   ns = sc->ns; // shorthand for num simplices
   /*=====================================================*/
@@ -722,12 +722,12 @@ static void call_assembly_w_dg(scomplex* sc, dCSRmat* A, dvector* rhs, const REA
 /**********************************************************************************/
 static INT proj_lower_dim(scomplex* dsc) {
 // dsc should be a boundary complex.
-  if (dsc->nbig != (dsc->n + 1)) {
+  if (dsc->nbig != (dsc->dim + 1)) {
     fprintf(stdout, "\n%%%%******* ERROR: Wrong dimensions of the boundary simplicial complex\n");
     return 1;
   }
   REAL tol = 1e-10;
-  INT i, j, node, n = dsc->n, n1 = dsc->n + 1, ns = dsc->ns, nv = dsc->nv;
+  INT i, j, node, n = dsc->dim, n1 = dsc->dim + 1, ns = dsc->ns, nv = dsc->nv;
   INT nbig = dsc->nbig, nbig1 = dsc->nbig + 1;
   // mark for removal all vertices with last coordinate WITHIN TOL OF (1) and all simplices attached to them;
   INT* indv = calloc(nv, sizeof(INT));
@@ -763,7 +763,7 @@ static INT proj_lower_dim(scomplex* dsc) {
     if (node >= 0) {
       // copy coordinates after projection:
       xn = 1e0 / (1e0 - dsc->x[nbig * i + nbig - 1]);
-      for (j = 0; j < dsc->n; j++) {
+      for (j = 0; j < dsc->dim; j++) {
         dsc->x[node * n + j] = dsc->x[i * nbig + j] * xn;
       }
       dsc->bndry[node] = 0;
@@ -774,8 +774,8 @@ static INT proj_lower_dim(scomplex* dsc) {
   dsc->nbig = n;
   dsc->ns = nsnew;
   dsc->nv = nvnew;
-  dsc->nodes = realloc(dsc->nodes, dsc->ns * (dsc->n + 1) * sizeof(INT));
-  dsc->x = realloc(dsc->x, (dsc->nv * dsc->n) * sizeof(REAL));
+  dsc->nodes = realloc(dsc->nodes, dsc->ns * (dsc->dim + 1) * sizeof(INT));
+  dsc->x = realloc(dsc->x, (dsc->nv * dsc->dim) * sizeof(REAL));
   return 0;
 }
 /**********************************************************************************/
@@ -815,12 +815,12 @@ static void draw_grids(const SHORT todraw, scomplex* sc, dvector* sol) {
   /**/
   INT idsc;
   vtu_data vdata;
-  switch (sc->n) {
+  switch (sc->dim) {
   case 5:
-    fprintf(stdout, "\n%%%% **** NO PLOT: Dimension=%lld is too large for plotting\n\n", (long long)sc->n);
+    fprintf(stdout, "\n%%%% **** NO PLOT: Dimension=%lld is too large for plotting\n\n", (long long)sc->dim);
     break;
   case 4:
-    fprintf(stdout, "\n%%%% **** NO PLOT: Dimension=%lld is too large for plotting\n\n", (long long)sc->n);
+    fprintf(stdout, "\n%%%% **** NO PLOT: Dimension=%lld is too large for plotting\n\n", (long long)sc->dim);
     /* if(dsc) { */
     /*   idsc = proj_lower_dim(dsc); */
     /*   vtkw("output/4d_to_3d.vtu",dsc,0,1.); */

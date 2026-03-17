@@ -211,8 +211,8 @@ INT assemble_p1(scomplex* sc, dCSRmat* A, dCSRmat* M)
   REAL volume, fact;          // mass matrix entries and dim factorial.
   // for simplices: number of vertices per simplex.
   INT dim = 0, dim1 = 1;
-  dim = sc->n;
-  dim1 = sc->n + 1;
+  dim = sc->dim;
+  dim1 = sc->dim + 1;
   nv = sc->nv;  // shorthand for num vertices.
   ns = sc->ns;  // shorthand for num simplices
   /*=====================================================*/
